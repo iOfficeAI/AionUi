@@ -39,6 +39,7 @@ import {
   findEveInferenceTier,
   isEveInferenceSelection,
   parseEveTierIdFromSelection,
+  resolveCommandEveWarmupLane,
   resolveEffectiveInferenceSelection,
 } from './common/config/eveInferenceCore';
 import { readLicenseWire } from './common/config/licenseWireAtRest';
@@ -784,12 +785,86 @@ function registerCommandEveRuntimeBridge(): void {
     });
 }
 
+type CommandEveEveLaneWarmup = (options: {
+  baseUrl?: string;
+  tier?: string;
+  timeoutMs?: number;
+}) => Promise<{ ok: boolean; elapsedMs: number; tier: string; status?: number; error?: string }>;
+
+/**
+ * Fire a LIGHT EVE Inference (cloud) preflight at startup so the first real EVE
+ * turn is fast: it warms the TLS/edge path to the eve-inference function and
+ * verifies the CEVE license + reachability while the user is still typing. Goes
+ * through the loopback shim (same egress-boundary-safe path the send lane uses).
+ *
+ * Fail-soft: warm-up never blocks app start and never throws to the user — a
+ * preflight failure (no license, unreachable, blocked) is logged only. The
+ * user's first real turn surfaces the same error through the normal path.
+ */
+function scheduleCommandEveEveLaneWarmup(
+  shimUrl: string,
+  tier: string | undefined,
+  eveWarmup: CommandEveEveLaneWarmup,
+  mark?: (label: string) => void
+): void {
+  void eveWarmup({ baseUrl: shimUrl, tier, timeoutMs: 30_000 })
+    .then((result) => {
+      if (result.ok) {
+        console.info(`[Command EVE] EVE Inference preflight ready: ${result.tier} (${result.elapsedMs}ms)`);
+        mark?.(`commandEveEvePreflight (${result.elapsedMs}ms)`);
+      } else {
+        console.warn(
+          `[Command EVE] EVE Inference preflight not ready (non-blocking): ${result.error || 'unknown error'}` +
+            (result.status ? ` [status ${result.status}]` : '')
+        );
+      }
+    })
+    .catch((error) => {
+      // Defense-in-depth: warmCommandEveEveLane is already fail-soft, but never
+      // let a rejected preflight escape into an unhandled rejection.
+      console.warn('[Command EVE] EVE Inference preflight threw (non-blocking):', error);
+    });
+}
+
+/**
+ * Lane-aware startup warm-up dispatcher. Reads the SAME effective inference
+ * selection the send path resolves and warms ONLY the lane the user will hit:
+ *
+ *   - EVE tier active  → light cloud preflight (TLS/edge + license/reachability),
+ *     never loading the bundled local model into VRAM the user may not use.
+ *   - Local selected   → the existing bundled-Ollama model warm-up.
+ *
+ * Fail-soft on every branch (neither call can block app start or throw to the
+ * user). `eveWarmup` is injected so the shim warmup primitives stay swappable in
+ * tests; the local warm-up keeps its existing receipt/in-flight gating.
+ */
 function scheduleCommandEveLocalModelWarmup(
   receipt: CommandEveWarmupReceipt,
   shimUrl: string,
   warmup: CommandEveWarmup,
-  mark?: (label: string) => void
+  mark?: (label: string) => void,
+  eveWarmup?: CommandEveEveLaneWarmup
 ): void {
+  let lane: ReturnType<typeof resolveCommandEveWarmupLane>;
+  try {
+    lane = resolveCommandEveWarmupLane(ProcessConfig.getSync('commandEve.inferenceSelection'));
+  } catch (error) {
+    // Fail-soft: if the selection cannot be read, fall back to the (safe) local
+    // warm-up gate rather than skipping warm-up entirely.
+    console.warn('[Command EVE] Could not resolve warm-up lane; defaulting to local gate:', error);
+    lane = { lane: 'local' };
+  }
+
+  if (lane.lane === 'eve') {
+    // EVE is the active lane: warm the cloud route, NOT the local model. Skip the
+    // Ollama warm-up so we never load Gemma into VRAM the user will not use.
+    if (eveWarmup) {
+      scheduleCommandEveEveLaneWarmup(shimUrl, lane.tier, eveWarmup, mark);
+    }
+    return;
+  }
+
+  // Local lane: keep the existing bundled-model warm-up (receipt-gated).
   if (receipt.status !== 'ready' || !receipt.default_model) return;
   void ensureCommandEveLocalModelWarmup(receipt, shimUrl, warmup, mark);
 }
@@ -1079,7 +1154,7 @@ const handleAppReady = async (): Promise<void> => {
 
   try {
     const { getDataPath } = await import('./process/utils/utils');
-    const { startCommandEveOllamaOpenAiShim, warmCommandEveLocalModel } =
+    const { startCommandEveOllamaOpenAiShim, warmCommandEveLocalModel, warmCommandEveEveLane } =
       await import('./process/commandEve/ollamaOpenAiShim');
     const {
       ensureCommandEveRuntimeBootstrap,
@@ -1106,12 +1181,12 @@ const handleAppReady = async (): Promise<void> => {
     if (shouldBlockStartupForCommandEveRuntimeBootstrap) {
       const receipt = await bootstrap;
       mark(`commandEveRuntimeBootstrap (${receipt.status})`);
-      scheduleCommandEveLocalModelWarmup(receipt, shimUrl, warmCommandEveLocalModel, mark);
+      scheduleCommandEveLocalModelWarmup(receipt, shimUrl, warmCommandEveLocalModel, mark, warmCommandEveEveLane);
     } else {
       void bootstrap
         .then((receipt) => {
           console.info(`[Command EVE] Runtime bootstrap ${receipt.status}: ${receipt.next_action}`);
-          scheduleCommandEveLocalModelWarmup(receipt, shimUrl, warmCommandEveLocalModel, mark);
+          scheduleCommandEveLocalModelWarmup(receipt, shimUrl, warmCommandEveLocalModel, mark, warmCommandEveEveLane);
         })
         .catch((error) => {
           console.error('[Command EVE] Runtime bootstrap failed:', error);
