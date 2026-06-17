@@ -10,7 +10,7 @@ import { Form, Input, Select, Message, TimePicker, Radio, Button } from '@arco-d
 import ModalWrapper from '@renderer/components/base/ModalWrapper';
 import { Down, Robot } from '@icon-park/react';
 import { ipcBridge } from '@/common';
-import type { ICreateCronJobParams, ICronAgentConfig, ICronJob } from '@/common/adapter/ipcBridge';
+import type { ICreateCronJobParams, ICronJob, ICronJobUpdateParams } from '@/common/adapter/ipcBridge';
 import { useConversationAssistants } from '@renderer/pages/conversation/hooks/useConversationAssistants';
 import { resolveAgentLogo } from '@renderer/utils/model/agentLogo';
 import dayjs from 'dayjs';
@@ -391,24 +391,26 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
 
       if (isEditMode) {
         // Edit mode: update existing job
+        const updates: ICronJobUpdateParams = {
+          name: values.name,
+          description: values.description,
+          schedule,
+          target: {
+            payload: { kind: 'message', text: values.prompt },
+            execution_mode,
+          },
+          metadata: {
+            conversation_title: editJob!.metadata.conversation_title,
+            agent_config,
+          },
+          state: {
+            max_retries: editJob!.state.max_retries,
+          },
+        };
+
         await ipcBridge.cron.updateJob.invoke({
           job_id: editJob!.id,
-          updates: {
-            name: values.name,
-            description: values.description,
-            schedule,
-            target: {
-              ...editJob!.target,
-              payload: { kind: 'message', text: values.prompt },
-              execution_mode,
-            },
-            metadata: {
-              ...editJob!.metadata,
-              agent_type: resolvedAgentType,
-              agent_config,
-              updated_at: Date.now(),
-            },
-          },
+          updates,
         });
         Message.success(t('cron.page.updateSuccess'));
       } else {

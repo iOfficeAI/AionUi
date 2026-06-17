@@ -5,7 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
-import type { ICronJob } from '@/common/adapter/ipcBridge';
+import type { ICronJob, ICronJobUpdateParams } from '@/common/adapter/ipcBridge';
 import type { TChatConversation } from '@/common/config/storage';
 import { emitter } from '@/renderer/utils/emitter';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -22,7 +22,7 @@ interface CronJobActionsResult {
   pauseJob: (job_id: string) => Promise<void>;
   resumeJob: (job_id: string) => Promise<void>;
   deleteJob: (job_id: string) => Promise<void>;
-  updateJob: (job_id: string, updates: Partial<ICronJob>) => Promise<ICronJob>;
+  updateJob: (job_id: string, updates: ICronJobUpdateParams) => Promise<ICronJob>;
 }
 
 /**
@@ -57,7 +57,7 @@ function useCronJobActions(
   );
 
   const updateJob = useCallback(
-    async (job_id: string, updates: Partial<ICronJob>) => {
+    async (job_id: string, updates: ICronJobUpdateParams) => {
       const updated = await ipcBridge.cron.updateJob.invoke({ job_id, updates });
       onJobUpdated?.(job_id, updated);
       return updated;

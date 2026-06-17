@@ -1237,7 +1237,7 @@ export const cron = {
   ),
   getJob: httpGet<ICronJob | null, { job_id: string }>((p) => `/api/cron/jobs/${p.job_id}`),
   addJob: httpPost<ICronJob, ICreateCronJobParams>('/api/cron/jobs'),
-  updateJob: httpPut<ICronJob, { job_id: string; updates: Partial<ICronJob> }>(
+  updateJob: httpPut<ICronJob, { job_id: string; updates: ICronJobUpdateParams }>(
     (p) => `/api/cron/jobs/${p.job_id}`,
     (p) => ({
       name: p.updates.name,
@@ -1296,7 +1296,7 @@ export interface ICronJob {
     created_by: 'user' | 'agent';
     created_at: number;
     updated_at: number;
-    agent_config?: ICronAgentConfig;
+    agent_config?: ICronAgentConfigRead;
   };
   state: {
     next_run_at_ms?: number;
@@ -1309,7 +1309,7 @@ export interface ICronJob {
   };
 }
 
-export interface ICronAgentConfig {
+export interface ICronAgentConfigRead {
   backend: string;
   name: string;
   cli_path?: string;
@@ -1318,6 +1318,16 @@ export interface ICronAgentConfig {
   /** @deprecated Legacy assistant identity kept for read compatibility only. */
   custom_agent_id?: string;
   preset_agent_type?: string;
+  mode?: string;
+  model_id?: string;
+  config_options?: Record<string, string>;
+  workspace?: string;
+}
+
+export interface ICronAgentConfigWrite {
+  backend: string;
+  name: string;
+  assistant_id?: string;
   mode?: string;
   model_id?: string;
   config_options?: Record<string, string>;
@@ -1335,7 +1345,25 @@ export interface ICreateCronJobParams {
   agent_type: string;
   created_by: 'user' | 'agent';
   execution_mode?: 'existing' | 'new_conversation';
-  agent_config?: ICronAgentConfig;
+  agent_config?: ICronAgentConfigWrite;
+}
+
+export interface ICronJobUpdateParams {
+  name?: string;
+  description?: string;
+  enabled?: boolean;
+  schedule?: ICronSchedule;
+  target?: {
+    payload?: { kind: 'message'; text: string };
+    execution_mode?: 'existing' | 'new_conversation';
+  };
+  metadata?: {
+    conversation_title?: string;
+    agent_config?: ICronAgentConfigWrite;
+  };
+  state?: {
+    max_retries?: number;
+  };
 }
 
 // ---------------------------------------------------------------------------

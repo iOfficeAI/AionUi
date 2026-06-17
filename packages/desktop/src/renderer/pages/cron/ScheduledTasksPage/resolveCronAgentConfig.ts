@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { ICreateCronJobParams, ICronAgentConfig } from '@/common/adapter/ipcBridge';
+import type { ICreateCronJobParams, ICronAgentConfigWrite } from '@/common/adapter/ipcBridge';
 import type { Assistant } from '@/common/types/agent/assistantTypes';
 import { resolveSupportedConversationType } from '@renderer/utils/model/agentTypeSupportPolicy';
 
@@ -25,7 +25,7 @@ type ResolveCronAgentConfigInput = {
 };
 
 type ResolveCronAgentConfigResult = {
-  agent_config: ICronAgentConfig | undefined;
+  agent_config: ICronAgentConfigWrite | undefined;
   resolvedAgentType: ICreateCronJobParams['agent_type'];
 };
 
@@ -48,7 +48,7 @@ export function resolveCronAgentConfig(input: ResolveCronAgentConfigInput): Reso
     throw new Error('assistant_id is required');
   }
 
-  let agent_config: ICronAgentConfig | undefined;
+  let agent_config: ICronAgentConfigWrite | undefined;
   let resolvedAgentType: ICreateCronJobParams['agent_type'] = resolveSupportedConversationType('acp');
 
   const assistant = assistantSelection;
