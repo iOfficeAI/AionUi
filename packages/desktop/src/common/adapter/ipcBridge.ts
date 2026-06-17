@@ -1312,7 +1312,7 @@ export interface ICronJob {
 }
 
 export interface ICronAgentConfigRead {
-  backend: string;
+  backend?: string;
   name: string;
   cli_path?: string;
   is_preset?: boolean;
