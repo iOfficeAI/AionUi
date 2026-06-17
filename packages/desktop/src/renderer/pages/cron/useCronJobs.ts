@@ -9,6 +9,7 @@ import type { ICronJob, ICronJobUpdateParams } from '@/common/adapter/ipcBridge'
 import type { TChatConversation } from '@/common/config/storage';
 import { emitter } from '@/renderer/utils/emitter';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useConversationListSync } from '@renderer/pages/conversation/GroupedHistory/hooks/useConversationListSync';
 import { repairCronJobTimeZones } from '@renderer/pages/cron/repairCronJobTimeZone';
 
 const isJobErrorLike = (job: ICronJob): boolean => {
@@ -477,79 +478,35 @@ export function useCronJobsMap() {
 }
 
 /**
- * Hook for fetching conversations spawned by a specific cron job
+ * Hook for fetching conversations spawned by a specific cron job.
+ *
+ * Derives the result from the shared `useConversationListSync` store
+ * (which already keeps the full conversation list cached and updated via
+ * the `conversation.listChanged` / `responseStream` channels) instead of
+ * issuing a per-row `GET /api/cron/jobs/{id}/conversations`. With N cron
+ * rows in the Sider that endpoint was the busiest path in the access
+ * log on every app start.
+ *
  * @param job_id - The cron job ID to fetch conversations for
  */
 export function useCronJobConversations(job_id: string | undefined) {
-  const [conversations, setConversations] = useState<TChatConversation[]>([]);
-  const [loading, setLoading] = useState(false);
+  const { conversations: allConversations } = useConversationListSync();
 
-  const fetchConversations = useCallback(async () => {
-    if (!job_id) {
-      setConversations([]);
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const result = await ipcBridge.conversation.listByCronJob.invoke({ cron_job_id: job_id });
-      setConversations(result || []);
-    } catch (err) {
-      console.error('[useCronJobConversations] Failed to fetch:', err);
-      setConversations([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [job_id]);
-
-  // Initial fetch
-  useEffect(() => {
-    void fetchConversations();
-  }, [fetchConversations]);
-
-  // Refetch when job executes or a known conversation is removed.
-  // `created` events are intentionally ignored: cron-spawned conversations
-  // arrive through `onJobExecuted` (which carries the matching `job_id`),
-  // so subscribing the listChanged broadcast on every Sider row would fan
-  // out N×M requests on each unrelated conversation create.
-  // `deleted` events fan out by checking against the current row set —
-  // we only refetch when the deleted conversation belonged to this cron.
-  const conversationIdsRef = useRef<Set<string>>(new Set());
-  useEffect(() => {
-    conversationIdsRef.current = new Set(conversations.map((c) => c.id));
-  }, [conversations]);
-
-  useEffect(() => {
-    if (!job_id) return;
-    const unsubExecuted = ipcBridge.cron.onJobExecuted.on((data) => {
-      if (data.job_id === job_id) {
-        void fetchConversations();
-      }
+  const conversations = useMemo<TChatConversation[]>(() => {
+    if (!job_id) return [];
+    return allConversations.filter((conversation) => {
+      const extra = conversation.extra as { cron_job_id?: unknown; cronJobId?: unknown } | undefined;
+      const cronId =
+        typeof extra?.cron_job_id === 'string'
+          ? extra.cron_job_id
+          : typeof extra?.cronJobId === 'string'
+            ? extra.cronJobId
+            : '';
+      return cronId === job_id;
     });
-    const unsubListChanged = ipcBridge.conversation.listChanged.on((data) => {
-      if (data.action === 'deleted' && conversationIdsRef.current.has(data.conversation_id)) {
-        void fetchConversations();
-      }
-    });
-    return () => {
-      unsubExecuted();
-      unsubListChanged();
-    };
-  }, [job_id, fetchConversations]);
+  }, [allConversations, job_id]);
 
-  // Listen to chat.history.refresh to handle conversation renames
-  useEffect(() => {
-    if (!job_id) return;
-    const handleRefresh = () => {
-      void fetchConversations();
-    };
-    emitter.on('chat.history.refresh', handleRefresh);
-    return () => {
-      emitter.off('chat.history.refresh', handleRefresh);
-    };
-  }, [job_id, fetchConversations]);
-
-  return { conversations, loading };
+  return { conversations, loading: false };
 }
 
 export default useCronJobs;
