@@ -8,6 +8,7 @@ import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { ipcBridge } from '@/common';
 import type { TeamAgent, TTeam } from '@/common/types/team/teamTypes';
 import type { IProvider, TChatConversation, TProviderWithModel } from '@/common/config/storage';
+import { classifyConfigSetError, useAcpConfigOptions } from '@/renderer/hooks/agent/useAcpConfigOptions';
 import ChatLayout from '@/renderer/pages/conversation/components/ChatLayout';
 import ChatSlider from '@renderer/pages/conversation/components/ChatSlider.tsx';
 import { useTeamPendingPermissions } from './hooks/useTeamPendingPermissions';
@@ -19,10 +20,11 @@ import TeamTabs from './components/TeamTabs';
 import TeamChatView from './components/TeamChatView';
 import TeamAgentIdentity from './components/TeamAgentIdentity';
 import { TeamTabsProvider, useTeamTabs } from './hooks/TeamTabsContext';
-import { TeamPermissionProvider } from './hooks/TeamPermissionContext';
+import { TeamPermissionProvider, useTeamPermission } from './hooks/TeamPermissionContext';
 import { useTeamSession } from './hooks/useTeamSession';
 import { useTeamRunView, type TeamRunViewState } from './hooks/useTeamRunView';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
+import { warmupConversation } from '@/renderer/pages/conversation/utils/warmupConversation';
 import { resolveTeamWorkspaceView } from './utils/teamWorkspaceView';
 
 type Props = {
@@ -34,11 +36,21 @@ type TeamPageContentProps = {
   onRenameTeam: (new_name: string) => Promise<boolean>;
 };
 
+const configErrorMessageKey = (error: unknown) => {
+  const errorKind = classifyConfigSetError(error);
+  if (errorKind === 'command_ack') return 'agent.config.commandAck';
+  if (errorKind === 'confirmation_timeout') return 'agent.config.timeout';
+  if (errorKind === 'config_update_in_progress') return 'agent.config.busy';
+  return 'agent.config.failed';
+};
+
 /** Compact aionrs model selector for the agent header */
 const AionrsHeaderModelSelector: React.FC<{ conversation_id: string; initialModel?: TProviderWithModel }> = ({
   conversation_id,
   initialModel,
 }) => {
+  const { t } = useTranslation();
+  const teamPermission = useTeamPermission();
   const onSelectModel = useCallback(
     async (_provider: IProvider, modelName: string) => {
       const selected = { ..._provider, use_model: modelName } as TProviderWithModel;
@@ -49,7 +61,36 @@ const AionrsHeaderModelSelector: React.FC<{ conversation_id: string; initialMode
     [conversation_id]
   );
   const modelSelection = useAionrsModelSelection({ initialModel, onSelectModel });
-  return <AionrsModelSelector selection={modelSelection} />;
+  const prepareRuntimeConfig = useCallback(async () => {
+    await teamPermission?.warmupSession();
+    await warmupConversation(conversation_id);
+  }, [conversation_id, teamPermission]);
+  const runtimeConfig = useAcpConfigOptions({
+    conversation_id,
+    prepareRuntime: prepareRuntimeConfig,
+    enabled: Boolean(conversation_id),
+  });
+  const handleThoughtLevelSetOption = useCallback(
+    async (optionId: string, value: string) => {
+      try {
+        const result = await runtimeConfig.setConfigOption(optionId, value);
+        Message.success(t('agent.thoughtLevel.switchSuccess'));
+        return result;
+      } catch (error) {
+        Message.error(t(configErrorMessageKey(error)));
+        throw error;
+      }
+    },
+    [runtimeConfig, t]
+  );
+  return (
+    <AionrsModelSelector
+      selection={modelSelection}
+      thoughtLevel={runtimeConfig.thoughtLevel}
+      setStatus={runtimeConfig.setStatus}
+      onSetThoughtLevel={handleThoughtLevelSetOption}
+    />
+  );
 };
 
 /** Fetches conversation for a single agent and renders TeamChatView */

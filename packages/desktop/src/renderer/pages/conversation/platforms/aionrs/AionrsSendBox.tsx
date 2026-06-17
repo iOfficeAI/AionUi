@@ -7,7 +7,6 @@
 import { ipcBridge } from '@/common';
 import type { IConversationMcpStatus } from '@/common/config/storage';
 import AgentModeSelector from '@/renderer/components/agent/AgentModeSelector';
-import AcpThoughtLevelSelector from '@/renderer/components/agent/AcpThoughtLevelSelector';
 import CommandQueuePanel from '@/renderer/components/chat/CommandQueuePanel';
 import MobileActionSheet, {
   type MobileActionSheetEntry,
@@ -655,14 +654,6 @@ const AionrsSendBox: React.FC<{
         }
         rightTools={
           <div className='flex items-center gap-8px min-w-0'>
-            {!isMobile && (
-              <AcpThoughtLevelSelector
-                thoughtLevel={runtimeThoughtLevel}
-                setStatus={runtimeConfig.setStatus}
-                onSetOption={runtimeConfig.setConfigOption}
-                iconOnly={Boolean(teamPermission)}
-              />
-            )}
             <AgentModeSelector
               backend='aionrs'
               conversation_id={conversation_id}

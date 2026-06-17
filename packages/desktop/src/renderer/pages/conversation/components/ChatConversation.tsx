@@ -9,6 +9,7 @@ import type { IConversationMcpStatus, IProvider, TChatConversation, TProviderWit
 import { uuid } from '@/common/utils';
 import addChatIcon from '@/renderer/assets/icons/add-chat.svg';
 import { CronJobManager } from '@/renderer/pages/cron';
+import { classifyConfigSetError, useAcpConfigOptions } from '@/renderer/hooks/agent/useAcpConfigOptions';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { usePresetAssistantInfo, resolveAssistantConfigId } from '@/renderer/hooks/agent/usePresetAssistantInfo';
 import { iconColors } from '@/renderer/styles/colors';
@@ -26,6 +27,7 @@ import AcpModelSelector from '@/renderer/components/agent/AcpModelSelector';
 import { saveAionrsDefaultModel } from '@/renderer/pages/guid/hooks/agentSelectionUtils';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
 import { getConversationCreateErrorMessage } from '@/renderer/pages/conversation/utils/conversationCreateError';
+import { warmupConversation } from '@/renderer/pages/conversation/utils/warmupConversation';
 import GoogleModelSelector from '../platforms/gemini/GoogleModelSelector';
 import AionrsChat from '../platforms/aionrs/AionrsChat';
 import AionrsModelSelector from '../platforms/aionrs/AionrsModelSelector';
@@ -39,6 +41,14 @@ import LegacyReadOnlyConversation from '../platforms/legacy/LegacyReadOnlyConver
 const hasLoadedSkill = (conversation: TChatConversation | undefined, skillName: string): boolean => {
   const skills = (conversation?.extra as { skills?: string[] } | undefined)?.skills;
   return skills?.includes(skillName) ?? false;
+};
+
+const configErrorMessageKey = (error: unknown) => {
+  const errorKind = classifyConfigSetError(error);
+  if (errorKind === 'command_ack') return 'agent.config.commandAck';
+  if (errorKind === 'confirmation_timeout') return 'agent.config.timeout';
+  if (errorKind === 'config_update_in_progress') return 'agent.config.busy';
+  return 'agent.config.failed';
 };
 
 const _AssociatedConversation: React.FC<{ conversation_id: string }> = ({ conversation_id }) => {
@@ -171,6 +181,26 @@ const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; slid
   // Mobile: model selection moved into the sendbox `+` action sheet to free up
   // header space; the dropdown stays available on desktop and tablets ≥768px.
   const isMobile = Boolean(layout?.isMobile);
+  const { t } = useTranslation();
+  const prepareRuntimeConfig = useCallback(() => warmupConversation(conversation.id), [conversation.id]);
+  const runtimeConfig = useAcpConfigOptions({
+    conversation_id: conversation.id,
+    prepareRuntime: prepareRuntimeConfig,
+    enabled: !isMobile,
+  });
+  const handleThoughtLevelSetOption = useCallback(
+    async (optionId: string, value: string) => {
+      try {
+        const result = await runtimeConfig.setConfigOption(optionId, value);
+        Message.success(t('agent.thoughtLevel.switchSuccess'));
+        return result;
+      } catch (error) {
+        Message.error(t(configErrorMessageKey(error)));
+        throw error;
+      }
+    },
+    [runtimeConfig, t]
+  );
 
   const chatLayoutProps = {
     title: conversation.name,
@@ -183,7 +213,14 @@ const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; slid
           cron_job_id={conversation.extra?.cron_job_id as string | undefined}
           hasCronSkill={hasLoadedSkill(conversation, 'cron')}
         />
-        {!isMobile && <AionrsModelSelector selection={modelSelection} />}
+        {!isMobile && (
+          <AionrsModelSelector
+            selection={modelSelection}
+            thoughtLevel={runtimeConfig.thoughtLevel}
+            setStatus={runtimeConfig.setStatus}
+            onSetThoughtLevel={handleThoughtLevelSetOption}
+          />
+        )}
       </div>
     ),
     workspaceEnabled,

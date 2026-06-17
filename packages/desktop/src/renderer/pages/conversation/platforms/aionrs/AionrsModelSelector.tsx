@@ -5,6 +5,12 @@
  */
 
 import type { AionrsModelSelection } from './useAionrsModelSelection';
+import type { AcpConfigSetStatus, AcpDerivedOption } from '@/renderer/hooks/agent/useAcpConfigOptions';
+import {
+  composeRuntimeSelectorLabel,
+  RuntimeSelectorMenuDivider,
+  renderThoughtLevelMenuGroup,
+} from '@/renderer/components/agent/runtimeSelectorOptions';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { getModelDisplayLabel } from '@/renderer/utils/model/agentLogo';
@@ -18,7 +24,10 @@ import classNames from 'classnames';
 const AionrsModelSelector: React.FC<{
   selection?: AionrsModelSelection;
   disabled?: boolean;
-}> = ({ selection, disabled = false }) => {
+  thoughtLevel?: AcpDerivedOption | null;
+  setStatus?: AcpConfigSetStatus;
+  onSetThoughtLevel?: (optionId: string, value: string) => Promise<unknown>;
+}> = ({ selection, disabled = false, thoughtLevel = null, setStatus, onSetThoughtLevel }) => {
   const { t } = useTranslation();
   const { isOpen: isPreviewOpen } = usePreviewContext();
   const layout = useLayoutContext();
@@ -60,6 +69,11 @@ const AionrsModelSelector: React.FC<{
     defaultModelLabel,
     fallbackLabel: t('conversation.welcome.selectModel'),
   });
+  const combinedLabel = composeRuntimeSelectorLabel({ modelLabel: label, thoughtLevel });
+  const handleThoughtLevelSelect = (value: string) => {
+    if (!thoughtLevel || value === thoughtLevel.currentValue || !onSetThoughtLevel) return;
+    void onSetThoughtLevel(thoughtLevel.id, value);
+  };
 
   return (
     <Dropdown
@@ -69,6 +83,13 @@ const AionrsModelSelector: React.FC<{
       {...(isMobileHeaderCompact ? { getPopupContainer: () => document.body } : {})}
       droplist={
         <Menu className='aion-model-menu--sticky-group'>
+          {renderThoughtLevelMenuGroup({
+            thoughtLevel,
+            setStatus,
+            title: t('agent.thoughtLevel.label'),
+            onSelect: handleThoughtLevelSelect,
+          })}
+          {thoughtLevel && <RuntimeSelectorMenuDivider />}
           {providers.map((provider) => {
             const models = getAvailableModels(provider);
             if (!models.length) return null;
@@ -105,7 +126,7 @@ const AionrsModelSelector: React.FC<{
       >
         <span className='flex items-center gap-6px min-w-0'>
           {renderLogo()}
-          <span className={compact ? 'block truncate' : undefined}>{label}</span>
+          <span className={compact ? 'block truncate' : undefined}>{combinedLabel}</span>
           <Down theme='outline' size={12} fill={iconColors.secondary} className='shrink-0' />
         </span>
       </Button>
