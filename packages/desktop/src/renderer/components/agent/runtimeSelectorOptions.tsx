@@ -35,6 +35,18 @@ export const RuntimeSelectorMenuDivider: React.FC = () => (
   <div role='separator' data-testid='runtime-selector-menu-divider' className='h-1px my-4px bg-[var(--color-fill-3)]' />
 );
 
+export const RuntimeSelectorCheckedItem: React.FC<{
+  selected: boolean;
+  children: React.ReactNode;
+}> = ({ selected, children }) => (
+  <div className='flex items-center gap-8px w-full'>
+    <span aria-hidden='true' className='w-16px shrink-0 text-primary'>
+      {selected ? '\u2713' : ''}
+    </span>
+    <span className='min-w-0 truncate'>{children}</span>
+  </div>
+);
+
 export const renderThoughtLevelMenuGroup = ({
   thoughtLevel,
   setStatus,
@@ -58,10 +70,9 @@ export const renderThoughtLevelMenuGroup = ({
             if (!setting) onSelect(item.value);
           }}
         >
-          <div className='flex items-center gap-8px w-full'>
-            {item.value === thoughtLevel.currentValue && <span className='text-primary'>{'\u2713'}</span>}
-            <span className={item.value !== thoughtLevel.currentValue ? 'ml-16px' : ''}>{item.label}</span>
-          </div>
+          <RuntimeSelectorCheckedItem selected={item.value === thoughtLevel.currentValue}>
+            {item.label}
+          </RuntimeSelectorCheckedItem>
         </Menu.Item>
       ))}
     </Menu.ItemGroup>

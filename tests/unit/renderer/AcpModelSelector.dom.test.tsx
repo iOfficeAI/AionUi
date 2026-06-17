@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import React from 'react';
 import AcpModelSelector from '@/renderer/components/agent/AcpModelSelector';
@@ -181,6 +181,17 @@ describe('AcpModelSelector runtime options', () => {
       'Model',
     ]);
     expect(screen.getByTestId('runtime-selector-menu-divider')).toBeInTheDocument();
+  });
+
+  it('marks the current model with the same leading check indicator as thought level options', () => {
+    render(<AcpModelSelector conversation_id='conversation-1' backend='codex' />);
+
+    const modelGroup = screen.getByRole('group', { name: 'Model' });
+    const currentModelItem = within(modelGroup).getByText('GPT-5.2').closest('[role="menuitem"]');
+    const otherModelItem = within(modelGroup).getByText('GPT-5.2 Mini').closest('[role="menuitem"]');
+
+    expect(currentModelItem?.textContent?.trim().startsWith('\u2713')).toBe(true);
+    expect(otherModelItem).not.toHaveTextContent('\u2713');
   });
 
   it('omits the thought level label and group when the runtime has no thought option', () => {

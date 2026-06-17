@@ -8,6 +8,7 @@ import type { AionrsModelSelection } from './useAionrsModelSelection';
 import type { AcpConfigSetStatus, AcpDerivedOption } from '@/renderer/hooks/agent/useAcpConfigOptions';
 import {
   composeRuntimeSelectorLabel,
+  RuntimeSelectorCheckedItem,
   RuntimeSelectorMenuDivider,
   renderThoughtLevelMenuGroup,
 } from '@/renderer/components/agent/runtimeSelectorOptions';
@@ -103,9 +104,11 @@ const AionrsModelSelector: React.FC<{
                     className={current_model?.id + current_model?.use_model === provider.id + modelName ? '!bg-2' : ''}
                     onClick={() => void handleSelectModel(provider, modelName)}
                   >
-                    <div className='flex items-center gap-8px w-full'>
-                      <span>{modelName}</span>
-                    </div>
+                    <RuntimeSelectorCheckedItem
+                      selected={current_model?.id + current_model?.use_model === provider.id + modelName}
+                    >
+                      {modelName}
+                    </RuntimeSelectorCheckedItem>
                   </Menu.Item>
                 ))}
               </Menu.ItemGroup>

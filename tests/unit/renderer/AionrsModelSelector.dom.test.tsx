@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import React from 'react';
 import AionrsModelSelector from '@/renderer/pages/conversation/platforms/aionrs/AionrsModelSelector';
@@ -166,6 +166,24 @@ describe('AionrsModelSelector runtime options', () => {
       'OpenAI',
     ]);
     expect(screen.getByTestId('runtime-selector-menu-divider')).toBeInTheDocument();
+  });
+
+  it('marks the current model with the same leading check indicator as thought level options', () => {
+    render(
+      <AionrsModelSelector
+        selection={makeSelection()}
+        thoughtLevel={thoughtLevel}
+        setStatus={{ state: 'idle' }}
+        onSetThoughtLevel={vi.fn().mockResolvedValue(undefined)}
+      />
+    );
+
+    const providerGroup = screen.getByRole('group', { name: 'OpenAI' });
+    const currentModelItem = within(providerGroup).getByText('gpt-5.2').closest('[role="menuitem"]');
+    const otherModelItem = within(providerGroup).getByText('gpt-5.2-mini').closest('[role="menuitem"]');
+
+    expect(currentModelItem?.textContent?.trim().startsWith('\u2713')).toBe(true);
+    expect(otherModelItem).not.toHaveTextContent('\u2713');
   });
 
   it('keeps the existing model-only label when thought level is unavailable', () => {

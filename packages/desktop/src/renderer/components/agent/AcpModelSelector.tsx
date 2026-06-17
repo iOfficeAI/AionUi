@@ -18,6 +18,7 @@ import RuntimeSelectorPill from './RuntimeSelectorPill';
 import {
   composeRuntimeSelectorLabel,
   isConfigSetting,
+  RuntimeSelectorCheckedItem,
   RuntimeSelectorMenuDivider,
   renderThoughtLevelMenuGroup,
 } from './runtimeSelectorOptions';
@@ -145,9 +146,9 @@ const AcpModelSelector: React.FC<{
                   if (!isRuntimeSetting) selectModel(model.id);
                 }}
               >
-                <div className='flex items-center gap-8px w-full'>
-                  <span>{model.label || model.id}</span>
-                </div>
+                <RuntimeSelectorCheckedItem selected={model.id === model_info.current_model_id}>
+                  {model.label || model.id}
+                </RuntimeSelectorCheckedItem>
               </Menu.Item>
             ))}
           </Menu.ItemGroup>
