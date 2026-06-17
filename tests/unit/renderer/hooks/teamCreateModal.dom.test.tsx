@@ -86,6 +86,7 @@ describe('TeamCreateModal', () => {
 
     expect(screen.getByTestId('team-create-agent-option-bare-aionrs')).toBeInTheDocument();
     expect(screen.getByTestId('team-create-agent-option-blocked-reviewer')).toBeInTheDocument();
+    expect(screen.getByTestId('team-create-agent-option-remote-runner')).toBeInTheDocument();
     expect(screen.getByText('Temporarily unavailable for team mode')).toBeInTheDocument();
 
     const createButton = screen.getByRole('button', { name: 'Create Team' });
@@ -142,6 +143,13 @@ function assistants(): Assistant[] {
       team_selectable: false,
       team_block_reason: 'Temporarily unavailable for team mode',
       deletable: true,
+    }),
+    assistant({
+      id: 'remote-runner',
+      name: 'Remote Runner',
+      source: 'bare',
+      preset_agent_type: 'remote',
+      team_selectable: true,
     }),
   ];
 }

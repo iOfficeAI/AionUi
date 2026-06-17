@@ -44,7 +44,14 @@ export function assistantFromId(
 
 /** Filter assistants to only those supported in team mode. */
 export function filterTeamSupportedAssistants(assistants: TeamAssistantOption[]): TeamAssistantOption[] {
-  return assistants.filter((assistant) => !isDeprecatedRuntimeAgentType(assistant.backend));
+  return assistants.map((assistant) =>
+    isDeprecatedRuntimeAgentType(assistant.backend)
+      ? {
+          ...assistant,
+          team_capable: false,
+        }
+      : assistant
+  );
 }
 
 export const AssistantOptionLabel: React.FC<{ assistant: TeamAssistantOption }> = ({ assistant }) => {

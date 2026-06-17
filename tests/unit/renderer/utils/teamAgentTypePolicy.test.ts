@@ -3,21 +3,11 @@ import { describe, expect, it } from 'vitest';
 import {
   assistantToOption,
   filterTeamSupportedAssistants,
-  resolveConversationType,
 } from '@/renderer/pages/team/components/assistantSelectUtils';
 import type { Assistant } from '@/common/types/agent/assistantTypes';
 
 describe('team agent type policy', () => {
-  it('resolves every non-Aion CLI backend as ACP conversation type', () => {
-    expect(resolveConversationType('aionrs')).toBe('aionrs');
-    expect(resolveConversationType('claude')).toBe('acp');
-    expect(resolveConversationType('gemini')).toBe('acp');
-    expect(resolveConversationType('openclaw-gateway')).toBe('acp');
-    expect(resolveConversationType('nanobot')).toBe('acp');
-    expect(resolveConversationType('remote')).toBe('acp');
-  });
-
-  it('filters retired top-level runtime agents out of team creation options', () => {
+  it('keeps retired runtime assistants visible but non-selectable in team creation options', () => {
     const options = [
       assistantToOption(assistant('assistant-claude', true, undefined, 'claude')),
       assistantToOption(assistant('assistant-aionrs', true, undefined, 'aionrs')),
@@ -27,7 +17,14 @@ describe('team agent type policy', () => {
       assistantToOption(assistant('assistant-gemini', true, undefined, 'gemini')),
     ];
 
-    expect(filterTeamSupportedAssistants(options).map((option) => option.backend)).toEqual(['claude', 'aionrs']);
+    expect(filterTeamSupportedAssistants(options)).toEqual([
+      expect.objectContaining({ backend: 'claude', team_capable: true }),
+      expect.objectContaining({ backend: 'aionrs', team_capable: true }),
+      expect.objectContaining({ backend: 'openclaw-gateway', team_capable: false }),
+      expect.objectContaining({ backend: 'nanobot', team_capable: false }),
+      expect.objectContaining({ backend: 'remote', team_capable: false }),
+      expect.objectContaining({ backend: 'gemini', team_capable: false }),
+    ]);
   });
 
   it('maps assistant team selectability directly from the assistant catalog', () => {
