@@ -62,17 +62,10 @@ function toWorkspaceMode(raw: string | undefined): WorkspaceMode {
   return VALID_WORKSPACE_MODES.has(raw as WorkspaceMode) ? (raw as WorkspaceMode) : 'shared';
 }
 
-const NON_ACP_BACKENDS = new Set(['aionrs', 'openclaw-gateway', 'nanobot', 'remote']);
-
-function resolveConversationType(backend: string): string {
-  return NON_ACP_BACKENDS.has(backend) ? backend : 'acp';
-}
-
 export function fromBackendAssistant(raw: unknown): TeamAssistant {
   const r = (raw ?? {}) as Record<string, unknown>;
   const agentType = (r.agent_type as string | undefined) ?? (r.backend as string | undefined) ?? '';
   const backend = (r.assistant_backend as string | undefined) ?? (r.backend as string | undefined) ?? agentType;
-  const conversationType = resolveConversationType(backend);
   return {
     slot_id: (r.slot_id as string | undefined) ?? '',
     conversation_id: (r.conversation_id as string | undefined) ?? '',
@@ -84,7 +77,6 @@ export function fromBackendAssistant(raw: unknown): TeamAssistant {
       (r.agent_name as string | undefined) ??
       (r.name as string | undefined) ??
       '',
-    conversation_type: conversationType,
     status: normalizeTeamStatus(r.status as BackendTeammateStatus | undefined),
     cli_path: r.cli_path as string | undefined,
     assistant_id: r.assistant_id as string | undefined,

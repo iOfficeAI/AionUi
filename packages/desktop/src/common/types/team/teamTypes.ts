@@ -22,7 +22,6 @@ export type TeamAssistant = {
   assistant_backend: string;
   icon?: string;
   assistant_name: string;
-  conversation_type: string;
   status: TeammateStatus;
   cli_path?: string;
   assistant_id?: string;

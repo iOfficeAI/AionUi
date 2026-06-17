@@ -28,6 +28,13 @@ type Props = {
   team: TTeam;
 };
 
+const NON_ACP_BACKENDS = new Set(['aionrs', 'openclaw-gateway', 'nanobot', 'remote']);
+
+function isAcpLikeBackend(backend: string | undefined): boolean {
+  if (!backend) return false;
+  return !NON_ACP_BACKENDS.has(backend);
+}
+
 type TeamPageContentProps = {
   team: TTeam;
   onRenameTeam: (new_name: string) => Promise<boolean>;
@@ -79,8 +86,7 @@ const AssistantChatSlot: React.FC<{
 
   const isAionrs = conversation?.type === 'aionrs';
   const initialModelId = (conversation?.extra as { current_model_id?: string })?.current_model_id;
-  const isAcpLike =
-    assistant.conversation_type === 'acp' || assistant.conversation_type === 'codex' || conversation?.type === 'acp';
+  const isAcpLike = conversation?.type === 'acp' || isAcpLikeBackend(assistant.assistant_backend);
 
   return (
     <div

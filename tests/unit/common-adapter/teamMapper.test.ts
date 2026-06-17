@@ -68,7 +68,7 @@ describe('teamMapper', () => {
     });
 
     expect(assistant.assistant_backend).toBe('claude');
-    expect(assistant.conversation_type).toBe('acp');
+    expect(assistant).not.toHaveProperty('conversation_type');
   });
 
   it('hydrates assistant identity from assistant_id', () => {
@@ -103,7 +103,6 @@ describe('teamMapper', () => {
         role: 'leader',
         assistant_backend: 'aionrs',
         assistant_name: 'Aion CLI',
-        conversation_type: 'aionrs',
         status: 'pending',
         assistant_id: 'assistant-1',
       })
@@ -119,7 +118,6 @@ describe('teamMapper', () => {
         role: 'teammate',
         assistant_backend: 'codex',
         assistant_name: 'Writer',
-        conversation_type: 'acp',
         status: 'pending',
         assistant_id: 'assistant-writer',
         model: 'gpt-5',
@@ -133,7 +131,6 @@ describe('teamMapper', () => {
         role: 'teammate',
         assistant_backend: 'acp',
         assistant_name: 'Legacy Worker',
-        conversation_type: 'acp',
         status: 'pending',
         model: 'claude',
       })
