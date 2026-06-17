@@ -18,9 +18,14 @@
  *   (b) The UI SIGNAL is visible: under locale de-DE the UpdateModal opens and
  *       renders the German signal copy "Update verfügbar" plus the 9.9.9-test
  *       version, driven by that same status broadcast.
- *   (c) With NO feed URL configured the startup check no-ops quietly — no
- *       'available'/'error'/'checking' status is broadcast and no error dialog is
- *       shown (the W8 quiet "no feed source" state).
+ *   (c) With the EXPLICIT empty-env opt-out (COMMAND_EVE_UPDATE_FEED_URL='') the
+ *       startup check no-ops quietly — no 'available'/'error'/'checking' status is
+ *       broadcast and no error dialog is shown (the W8 quiet "no feed source"
+ *       state, now reached via the opt-out in a CE-shell build).
+ *   (d) With NO feed env at all, the CE-shell R2 default (FIX 1) activates: the
+ *       startup check actually runs (broadcasts 'checking') instead of staying
+ *       quiet — the Alois-machine path. (Asserts the seam activated, not the
+ *       non-deterministic network outcome; the exact R2 url is unit-tested.)
  *
  * Why the PACKAGED app (not dev, not the shared fixtures app):
  *   electron-updater refuses to run when !app.isPackaged (isUpdaterActive gate),
@@ -382,6 +387,74 @@ test.describe.serial('Command EVE auto-update – detect + signal against local 
   });
 });
 
+// ── Suite B: CE shell default → R2 feed active (no env override) ──────────────
+
+/**
+ * Proves FIX 1: an installed Command EVE build with NO COMMAND_EVE_UPDATE_FEED_URL
+ * and NO persisted update.feedUrl no longer stays in the W8 quiet no-op — the
+ * resolver falls back to the CE-scoped R2 base (COMMAND_EVE_UPDATE_FEED_BASE_URL),
+ * so configureFeed wires the generic provider and the startup check actually runs
+ * (it broadcasts 'checking'). This is the discriminator against Suite C's
+ * explicit empty-env opt-out, which stays silent.
+ *
+ * We assert the OBSERVABLE seam ('checking' is broadcast → the feed activated and
+ * the updater started), NOT the network outcome: against the real public R2
+ * bucket the result may be 'available', 'not-available', or a transient network
+ * 'error', none of which are deterministic in e2e. The hermetic proof that the
+ * default resolves to the exact R2 base lives in the autoUpdaterFeed unit test
+ * (configureFeed → setFeedURL url === COMMAND_EVE_UPDATE_FEED_BASE_URL).
+ */
+test.describe.serial('Command EVE auto-update – CE shell defaults to the R2 feed (no env override)', () => {
+  test.setTimeout(120_000);
+
+  let electronApp: ElectronApplication;
+  let page: Page;
+
+  test.beforeAll(async () => {
+    // Launch WITHOUT COMMAND_EVE_UPDATE_FEED_URL at all (delete any inherited
+    // value) so the CE-scoped R2 default is the only feed source. This is the
+    // Alois-machine condition.
+    electronApp = await launchPackagedApp({});
+    page = await resolveMainWindow(electronApp);
+    await installStatusCapture(page);
+  });
+
+  test.afterAll(async () => {
+    await electronApp?.close().catch(() => {});
+  });
+
+  test('(d) startup check activates (broadcasts "checking") instead of the quiet no-op', async () => {
+    // The R2 default makes configureFeed resolve a feed, so the startup
+    // checkForUpdatesAndNotify() calls into electron-updater and the
+    // 'checking-for-update' handler broadcasts a 'checking' status. We poll for
+    // ANY broadcast status (checking/available/not-available/error all prove the
+    // feed activated); the empty-env opt-out (Suite C) produces none of these.
+    const sawAnyStatus = (statuses: CapturedStatus[]) => statuses.length > 0;
+    let statuses = await waitForStatus(page, sawAnyStatus, 20_000);
+
+    // Deterministic backstop: if the ~3s startup auto-check has not surfaced a
+    // status yet, drive the same W8 configureFeed path via the renderer bridge.
+    if (!sawAnyStatus(statuses)) {
+      await page.evaluate(async () => {
+        const w = window as unknown as { electronAPI?: { emit: (name: string, data: unknown) => Promise<unknown> } };
+        await w.electronAPI?.emit('auto-update.check', { includePrerelease: false }).catch(() => undefined);
+      });
+      statuses = await waitForStatus(page, sawAnyStatus, 25_000);
+    }
+
+    expect(
+      statuses.length,
+      `CE-shell default must activate the R2 feed and start a real check; captured: ${JSON.stringify(statuses)}`
+    ).toBeGreaterThan(0);
+
+    // If the check reached a terminal error, it must be a NETWORK/feed error from
+    // actually contacting R2 — never the W8 "no feed configured" short-circuit
+    // (which would mean the CE default failed to apply).
+    const noFeedError = statuses.find((s) => s.status === 'error' && /no feed|kein feed|feed configured/i.test(s.error || ''));
+    expect(noFeedError, `the CE default must apply — no "no feed configured" error allowed: ${noFeedError?.error ?? ''}`).toBeUndefined();
+  });
+});
+
 // ── Suite C: no feed → quiet no-op, no error dialog ───────────────────────────
 
 test.describe.serial('Command EVE auto-update – quiet no-op when no feed configured', () => {
@@ -391,7 +464,10 @@ test.describe.serial('Command EVE auto-update – quiet no-op when no feed confi
   let page: Page;
 
   test.beforeAll(async () => {
-    // Explicitly ensure no feed env leaks in from the outer process.
+    // COMMAND_EVE_UPDATE_FEED_URL='' is the EXPLICIT "force no feed" opt-out.
+    // After FIX 1 the packaged CE build (COMMAND_EVE_SHELL_ENABLED === true) would
+    // otherwise fall back to the R2 default (see Suite B), so the empty-string env
+    // is what pins this instance into the W8 quiet no-op state for the proof.
     electronApp = await launchPackagedApp({ COMMAND_EVE_UPDATE_FEED_URL: '' });
     page = await resolveMainWindow(electronApp);
     await installStatusCapture(page);
