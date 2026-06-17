@@ -62,6 +62,19 @@ export const COMMAND_EVE_CDP_REGISTRY_FILE = '.command-eve-cdp-registry.json';
 
 export const COMMAND_EVE_AGENT_FALLBACK_ORDER = ['hermes'] as const;
 
+/**
+ * True iff an ACP conversation's backend is the Command EVE runtime (Hermes)
+ * while the EVE shell is enabled. The single signal used to decide whether a
+ * running conversation surfaces the EVE Inference tier picker (instead of the
+ * raw ACP model selector) and the EVE tier entry in the mobile action sheet.
+ *
+ * Founder mandate: an EVE user must never see a raw CLI/agent/model list — only
+ * the EVE Inference + Private tier picker and the permission-mode selector.
+ */
+export function isCommandEveAcpConversation(backend: string | null | undefined): boolean {
+  return COMMAND_EVE_SHELL_ENABLED && backend === COMMAND_EVE_DEFAULT_ACP_BACKEND;
+}
+
 export function getCommandEveEnvSuffix(): string {
   return process.env.AIONUI_MULTI_INSTANCE === '1' ? '-dev-2' : '-dev';
 }

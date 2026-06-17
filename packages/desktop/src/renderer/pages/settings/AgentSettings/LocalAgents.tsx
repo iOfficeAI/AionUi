@@ -199,29 +199,38 @@ const LocalAgents: React.FC = () => {
         </div>
       )}
 
-      {/* Detected Agents section */}
-      <div className='px-16px mt-8px'>
-        <Typography.Text className='text-12px font-medium text-t-secondary mb-4px block'>
-          {t('settings.agentManagement.detected')}
-        </Typography.Text>
-      </div>
-      <div className='grid grid-cols-2 gap-10px px-16px md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5'>
-        {aionrsAgent && (
-          <AgentCard type='detected' agent={aionrsAgent} onGoToChat={() => goToChatWithAgent(aionrsAgent)} />
-        )}
-        {otherDetected.map((agent) => (
-          <AgentCard
-            key={agent.backend || agent.agent_type}
-            type='detected'
-            agent={agent}
-            onGoToChat={() => goToChatWithAgent(agent)}
-          />
-        ))}
-      </div>
-      {(!visibleDetectedAgents || visibleDetectedAgents.length === 0) && (
-        <Typography.Text type='secondary' className='block px-16px py-16px text-center text-12px'>
-          {t('settings.agentManagement.localAgentsEmpty')}
-        </Typography.Text>
+      {/* Detected Agents section.
+          Founder mandate: in the Command EVE shell the user must NEVER see a
+          CLI/agent picker that lets them leave the EVE (Hermes) runtime. The
+          fixed Hermes runtime card above is the only runtime surface; the
+          detected-CLI grid (codex/claude/gemini "go to chat" cards) is hidden
+          when COMMAND_EVE_SHELL_ENABLED. */}
+      {!COMMAND_EVE_SHELL_ENABLED && (
+        <>
+          <div className='px-16px mt-8px'>
+            <Typography.Text className='text-12px font-medium text-t-secondary mb-4px block'>
+              {t('settings.agentManagement.detected')}
+            </Typography.Text>
+          </div>
+          <div className='grid grid-cols-2 gap-10px px-16px md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5'>
+            {aionrsAgent && (
+              <AgentCard type='detected' agent={aionrsAgent} onGoToChat={() => goToChatWithAgent(aionrsAgent)} />
+            )}
+            {otherDetected.map((agent) => (
+              <AgentCard
+                key={agent.backend || agent.agent_type}
+                type='detected'
+                agent={agent}
+                onGoToChat={() => goToChatWithAgent(agent)}
+              />
+            ))}
+          </div>
+          {(!visibleDetectedAgents || visibleDetectedAgents.length === 0) && (
+            <Typography.Text type='secondary' className='block px-16px py-16px text-center text-12px'>
+              {t('settings.agentManagement.localAgentsEmpty')}
+            </Typography.Text>
+          )}
+        </>
       )}
 
       {/* Custom Agents section */}

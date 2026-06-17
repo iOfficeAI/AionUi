@@ -664,17 +664,41 @@ const GuidPage: React.FC = () => {
                   />
                 </div>
                 <div className={styles.heroHeaderRight}>
-                  <Dropdown
-                    trigger='click'
-                    position='bl'
-                    droplist={
-                      <Menu
-                        onClickMenuItem={(key) => {
-                          handlePresetAgentTypeSwitch(String(key)).catch((err) =>
-                            console.error('Failed to switch agent type:', err)
-                          );
-                        }}
-                      >
+                  {isCommandEveAssistant ? (
+                    // Founder mandate: an EVE user must NEVER see a CLI/agent-type
+                    // switcher. Render a static, non-clickable runtime label instead
+                    // of the agent-type dropdown. The EVE Inference + permission-mode
+                    // selectors (in the action row) are the only choices that remain.
+                    <span
+                      data-testid='eve-static-runtime-label'
+                      className={styles.heroAgentSwitchButton}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 4, opacity: 0.85 }}
+                    >
+                      {effectiveAgentLogo ? (
+                        <img
+                          src={effectiveAgentLogo}
+                          alt=''
+                          width={20}
+                          height={20}
+                          className={styles.heroAgentSwitchIcon}
+                        />
+                      ) : (
+                        <Robot theme='outline' size={20} fill='currentColor' />
+                      )}
+                      <span className='text-13px'>EVE / Hermes</span>
+                    </span>
+                  ) : (
+                    <Dropdown
+                      trigger='click'
+                      position='bl'
+                      droplist={
+                        <Menu
+                          onClickMenuItem={(key) => {
+                            handlePresetAgentTypeSwitch(String(key)).catch((err) =>
+                              console.error('Failed to switch agent type:', err)
+                            );
+                          }}
+                        >
                         {agentSwitcherItems.map((item) => (
                           <Menu.Item key={item.key}>
                             <div className='flex items-center justify-between gap-12px min-w-120px'>
@@ -721,6 +745,7 @@ const GuidPage: React.FC = () => {
                       </span>
                     </Button>
                   </Dropdown>
+                  )}
                 </div>
               </div>
             ) : (
@@ -761,6 +786,11 @@ const GuidPage: React.FC = () => {
                 />
               ) : null}
             </div>
+          ) : isCommandEveAssistant ? (
+            // Founder mandate: EVE users never see the raw agent/CLI pill bar.
+            // The only runtime choices for EVE are the EVE Inference picker and
+            // the permission-mode selector in the action row below.
+            null
           ) : agentSelection.availableAgents === undefined ? (
             <AgentPillBarSkeleton />
           ) : agentSelection.availableAgents.length > 0 ? (

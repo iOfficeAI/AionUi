@@ -23,6 +23,8 @@ import AcpChat from '../platforms/acp/AcpChat';
 import ChatLayout from './ChatLayout';
 import ChatSlider from './ChatSlider.tsx';
 import AcpModelSelector from '@/renderer/components/agent/AcpModelSelector';
+import EveInferencePicker from '@/renderer/components/agent/EveInferencePicker';
+import { isCommandEveAcpConversation } from '@/common/config/commandEveShell';
 import { saveAionrsDefaultModel } from '@/renderer/pages/guid/hooks/agentSelectionUtils';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
 import { getConversationCreateErrorMessage } from '@/renderer/pages/conversation/utils/conversationCreateError';
@@ -281,6 +283,14 @@ const ChatConversation: React.FC<{
     if (isLegacyReadOnlyConversation) return undefined;
     if (conversation.type === 'acp') {
       const extra = conversation.extra as { backend?: string; current_model_id?: string };
+      // Founder mandate: an EVE (Hermes) conversation surfaces the EVE Inference
+      // tier picker (Standard/High/Max + Private) in-session — NOT the raw ACP
+      // model list. Persisting to `commandEve.inferenceSelection` (configService,
+      // via the shared hook) makes the switch take effect on the next turn: the
+      // send-path shim re-resolves the live selection per request.
+      if (isCommandEveAcpConversation(extra.backend)) {
+        return <EveInferencePicker />;
+      }
       return (
         <AcpModelSelector
           conversation_id={conversation.id}

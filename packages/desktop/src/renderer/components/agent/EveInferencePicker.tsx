@@ -24,20 +24,12 @@
  * the raw license wire.
  */
 
-import { configService } from '@/common/config/configService';
-import {
-  buildEvePickerGroups,
-  EVE_DEFAULT_INFERENCE_SELECTION,
-  EVE_INFERENCE_DEFAULT_TIER_ID,
-  eveTierValue,
-  isEveInferenceSelection,
-  type EvePickerItem,
-} from '@/common/config/eveInferenceCore';
-import { useEntitlementGate } from '@renderer/hooks/useEntitlementGate';
+import { isEveInferenceSelection, type EvePickerItem } from '@/common/config/eveInferenceCore';
+import { useEveInferenceSelection } from '@renderer/hooks/agent/useEveInferenceSelection';
 import { iconColors } from '@renderer/styles/colors';
 import { Button, Dropdown, Menu, Tooltip } from '@arco-design/web-react';
 import { Brain } from '@icon-park/react';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 
 const PAID_HINT_DE = 'im Paid-Tarif';
@@ -49,41 +41,9 @@ const EveInferencePicker: React.FC<{
   disabled?: boolean;
 }> = ({ onChange, disabled }) => {
   const { t } = useTranslation();
-  const { status } = useEntitlementGate();
-
-  const [selection, setSelection] = useState<string>(() => {
-    // Default to EVE Standard (cloud) for a fresh user; local Gemma is opt-in.
-    return configService.get('commandEve.inferenceSelection') || EVE_DEFAULT_INFERENCE_SELECTION;
-  });
-
-  // Keep local state in sync with config changes from elsewhere.
-  useEffect(() => {
-    const unsubscribe = configService.subscribe('commandEve.inferenceSelection', (value) => {
-      if (typeof value === 'string' && value.length > 0) setSelection(value);
-    });
-    return unsubscribe;
-  }, []);
-
-  // Two-group model, gated by the current entitlement.
-  const groups = useMemo(() => buildEvePickerGroups(status), [status]);
-
-  // Flatten for label lookup. If the persisted selection is now disabled
-  // (e.g. trial picked EVE High in a prior paid session), fall back to EVE
-  // Standard so the displayed selection is always a selectable one.
-  const allItems = useMemo(() => groups.flatMap((g) => g.items), [groups]);
-  const selectedItem = useMemo(() => allItems.find((i) => i.value === selection), [allItems, selection]);
-  const effectiveSelectedItem = selectedItem && !selectedItem.disabled ? selectedItem : undefined;
-
-  const commit = useCallback(
-    (value: string) => {
-      setSelection(value);
-      configService.set('commandEve.inferenceSelection', value);
-      // Mirror the EVE-vs-local choice into the existing tier key so the rest
-      // of the runtime (warmup, status) keeps working for the local lanes.
-      onChange?.(value);
-    },
-    [onChange]
-  );
+  // All state/persistence/gating lives in the shared hook so the GuidPage
+  // picker, the in-session header and the mobile sheets never drift apart.
+  const { selection, groups, selectedItem, commit } = useEveInferenceSelection(onChange);
 
   const handleSelect = useCallback(
     (item: EvePickerItem) => {
@@ -93,22 +53,13 @@ const EveInferencePicker: React.FC<{
     [commit]
   );
 
-  // If trialing flips a previously-selected paid EVE tier to disabled, reset to
-  // the safe default (EVE Standard) once, so the picker never shows a disabled
-  // value as "active".
-  useEffect(() => {
-    if (selectedItem && selectedItem.disabled) {
-      commit(eveTierValue(EVE_INFERENCE_DEFAULT_TIER_ID));
-    }
-  }, [selectedItem, commit]);
-
   const displayLabel = useMemo(() => {
-    if (effectiveSelectedItem) {
-      const groupTitle = effectiveSelectedItem.group === 'eve' ? 'EVE' : t('common.localModel', 'Lokal');
-      return `${groupTitle} · ${effectiveSelectedItem.label}`;
+    if (selectedItem) {
+      const groupTitle = selectedItem.group === 'eve' ? 'EVE' : t('common.localModel', 'Lokal');
+      return `${groupTitle} · ${selectedItem.label}`;
     }
     return t('conversation.eveInference.pick', 'Modell wählen');
-  }, [effectiveSelectedItem, t]);
+  }, [selectedItem, t]);
 
   const renderLogo = () => <Brain theme='outline' size='14' fill={iconColors.secondary} className='shrink-0' />;
 
