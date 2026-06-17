@@ -230,6 +230,33 @@ export function parseLocalTierFromSelection(value: string | null | undefined): E
 }
 
 // ---------------------------------------------------------------------------
+// Startup warm-up lane selection. The shim warms whichever lane the user will
+// actually hit first; we never warm the inactive lane.
+// ---------------------------------------------------------------------------
+
+/**
+ * Which lane the startup warm-up should target, derived from the SAME effective
+ * picker selection the send path resolves. EVE-tier selection ⇒ warm the cloud
+ * route (TLS/edge + license/reachability preflight); local selection ⇒ warm the
+ * bundled Ollama model. Pure + sync so it can be unit-tested and shares the
+ * exact discriminant the routing resolver uses (no second source of truth).
+ *
+ * For an EVE selection the resolved wire `tier` is included so the preflight
+ * POSTs the right tier; `undefined` tier falls back to the function default.
+ */
+export type CommandEveWarmupLane = { lane: 'eve'; tier?: EveInferenceWireTier } | { lane: 'local' };
+
+export function resolveCommandEveWarmupLane(persisted: string | null | undefined): CommandEveWarmupLane {
+  const selection = resolveEffectiveInferenceSelection(persisted);
+  if (!isEveInferenceSelection(selection)) {
+    return { lane: 'local' };
+  }
+  const tierId = parseEveTierIdFromSelection(selection);
+  const tier = tierId ? findEveInferenceTier(tierId)?.tier : undefined;
+  return { lane: 'eve', tier };
+}
+
+// ---------------------------------------------------------------------------
 // Entitlement → gating. The ONLY input the gating needs is the trial flag, so
 // callers pass a minimal shape (mirrors entitlementCore's status surface).
 // ---------------------------------------------------------------------------

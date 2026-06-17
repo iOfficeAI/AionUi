@@ -37,6 +37,7 @@ import {
   isTrialingEntitlement,
   localTierValue,
   parseEveTierIdFromSelection,
+  resolveCommandEveWarmupLane,
   resolveEffectiveInferenceSelection,
   type EvePickerItem,
 } from '@/common/config/eveInferenceCore';
@@ -203,5 +204,25 @@ describe('eveInferenceCore — default-flip to EVE Standard (cloud)', () => {
     expect(isEveInferenceSelection(resolveEffectiveInferenceSelection(local))).toBe(false);
     const eveHigh = eveTierValue('eve-high');
     expect(resolveEffectiveInferenceSelection(eveHigh)).toBe(eveHigh);
+  });
+});
+
+describe('eveInferenceCore — startup warm-up lane selection', () => {
+  it('warms the EVE cloud lane (with wire tier) for an EVE selection', () => {
+    expect(resolveCommandEveWarmupLane(eveTierValue('eve-standard'))).toEqual({ lane: 'eve', tier: 'standard' });
+    expect(resolveCommandEveWarmupLane(eveTierValue('eve-high'))).toEqual({ lane: 'eve', tier: 'high' });
+  });
+
+  it('warms the EVE cloud lane for the DEFAULT (absent/empty) selection — never the inactive local model', () => {
+    // The default flipped to EVE Standard, so a fresh user warms the cloud lane.
+    expect(resolveCommandEveWarmupLane(undefined)).toEqual({ lane: 'eve', tier: 'standard' });
+    expect(resolveCommandEveWarmupLane(null)).toEqual({ lane: 'eve', tier: 'standard' });
+    expect(resolveCommandEveWarmupLane('')).toEqual({ lane: 'eve', tier: 'standard' });
+    expect(resolveCommandEveWarmupLane('   ')).toEqual({ lane: 'eve', tier: 'standard' });
+  });
+
+  it('warms the LOCAL lane only for an explicit local selection', () => {
+    expect(resolveCommandEveWarmupLane(localTierValue('local-high'))).toEqual({ lane: 'local' });
+    expect(resolveCommandEveWarmupLane(localTierValue('local-standard'))).toEqual({ lane: 'local' });
   });
 });

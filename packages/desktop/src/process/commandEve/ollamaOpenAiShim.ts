@@ -78,6 +78,24 @@ export type CommandEveModelWarmupResult = {
   error?: string;
 };
 
+export type CommandEveEveLaneWarmupOptions = {
+  /** Loopback shim base URL the request is sent through (defaults to the running shim). */
+  baseUrl?: string;
+  /** Wire tier value (e.g. "standard") POSTed so the function routes correctly. */
+  tier?: string;
+  timeoutMs?: number;
+};
+
+export type CommandEveEveLaneWarmupResult = {
+  ok: boolean;
+  elapsedMs: number;
+  /** Wire tier the preflight exercised. */
+  tier: string;
+  /** HTTP status the shim/function returned, when a response was received. */
+  status?: number;
+  error?: string;
+};
+
 export type CommandEvePromptProof = {
   version: 'command-eve-prompt-proof/v0';
   ok: boolean;
@@ -725,6 +743,92 @@ export async function warmCommandEveLocalModel(
       ok: false,
       elapsedMs: Date.now() - startedAt,
       model: warmupOptions.model,
+      error: error instanceof Error ? error.message : String(error),
+    };
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+/**
+ * Light EVE Inference (cloud) lane preflight. Fired at startup when the active
+ * picker selection is an EVE tier, INSTEAD of the local Ollama warm-up, so the
+ * first real EVE turn does not pay the cold-start cost: it warms the TLS/edge
+ * path to the eve-inference Edge Function and verifies the CEVE license +
+ * reachability while the user is still typing.
+ *
+ * Unlike the local warm-up this is NOT a "ping" — a ping is classified as a
+ * warm-up request by the shim and stays LOCAL by design. The preflight sends a
+ * minimal *real* EVE-persona chat (tiny system + user message, max_tokens 1) so
+ * `isCommandEveWarmupRequest` does NOT match and the shim routes it through the
+ * live EVE cloud route (egress boundary → license bearer → function). The
+ * eve-inference function returns an OpenAI-compatible completion exactly like a
+ * normal turn; we only care that the route resolves and authenticates.
+ *
+ * Fail-soft: every failure mode (missing route/license, blocked egress,
+ * unreachable function, timeout) is captured into the result — this never
+ * throws and never blocks app start. A non-2xx status (e.g. 401 no-license,
+ * 502 unreachable) is reported via `ok: false` + `status` so the caller can log
+ * a gentle status, but it is still just a warm-up: the user's first real turn
+ * surfaces the same error through the normal path.
+ */
+export async function warmCommandEveEveLane(
+  warmupOptions: CommandEveEveLaneWarmupOptions = {}
+): Promise<CommandEveEveLaneWarmupResult> {
+  const startedAt = Date.now();
+  const baseUrl = warmupOptions.baseUrl || serverUrl || `http://127.0.0.1:${DEFAULT_SHIM_PORT}`;
+  const tier = warmupOptions.tier && warmupOptions.tier.trim() ? warmupOptions.tier.trim() : 'standard';
+
+  if (!isLoopbackHttpUrl(baseUrl)) {
+    return {
+      ok: false,
+      elapsedMs: Date.now() - startedAt,
+      tier,
+      error: 'Command EVE preflight must go through the loopback shim (no direct cloud egress).',
+    };
+  }
+
+  const abortController = new AbortController();
+  const timeout = setTimeout(() => abortController.abort(), warmupOptions.timeoutMs ?? 30_000);
+  try {
+    const response = await fetch(chatCompletionsUrl(baseUrl), {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      signal: abortController.signal,
+      body: JSON.stringify({
+        // A tiny EVE-persona system message keeps the prompt-proof marker happy;
+        // the non-"ping" user content ensures the request is NOT classified as a
+        // local warm-up and is routed through the EVE cloud lane instead.
+        messages: [
+          { role: 'system', content: 'EVE Operating Rule: warm-up preflight.' },
+          { role: 'user', content: 'warm up' },
+        ],
+        max_tokens: 1,
+        stream: false,
+      }),
+    });
+    if (!response.ok) {
+      const text = await response.text().catch(() => '');
+      return {
+        ok: false,
+        elapsedMs: Date.now() - startedAt,
+        tier,
+        status: response.status,
+        error: text || `EVE preflight failed (${response.status})`,
+      };
+    }
+    await response.arrayBuffer().catch((): undefined => undefined);
+    return {
+      ok: true,
+      elapsedMs: Date.now() - startedAt,
+      tier,
+      status: response.status,
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      elapsedMs: Date.now() - startedAt,
+      tier,
       error: error instanceof Error ? error.message : String(error),
     };
   } finally {

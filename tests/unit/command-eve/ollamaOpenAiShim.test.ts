@@ -7,6 +7,7 @@ import {
   isCommandEveWarmupRequest,
   startCommandEveOllamaOpenAiShim,
   stopCommandEveOllamaOpenAiShimForTest,
+  warmCommandEveEveLane,
   warmCommandEveLocalModel,
 } from '@/process/commandEve/ollamaOpenAiShim';
 
@@ -400,5 +401,57 @@ describe('Command EVE shim — EVE cloud routing', () => {
     // Warm-up exercises the bundled local model, never the cloud function.
     expect(ollamaSeen).toBe(true);
     expect(fnSeen.body).toBeUndefined();
+  });
+});
+
+describe('warmCommandEveEveLane — EVE cloud preflight', () => {
+  it('routes the preflight through the shim to the EVE function (NOT a local ping), with bearer + tier', async () => {
+    let ollamaSeen = false;
+    const ollamaBaseUrl = await startFakeOpenAiServer(() => {
+      ollamaSeen = true;
+    });
+    const fnSeen: EveFnSeen = {};
+    const fnUrl = await startFakeEveFunction(fnSeen);
+
+    shimServerUrl = await startCommandEveOllamaOpenAiShim({
+      port: 0,
+      ollamaBaseUrl,
+      eveRouting: () => ({ active: true, functionUrl: fnUrl, license: FAKE_LICENSE, tier: 'standard' }),
+    });
+
+    const result = await warmCommandEveEveLane({ baseUrl: shimServerUrl, tier: 'standard', timeoutMs: 5_000 });
+
+    expect(result.ok).toBe(true);
+    expect(result.tier).toBe('standard');
+    expect(result.status).toBe(200);
+    // The EVE function — not Ollama — was warmed (preflight is NOT classified as a ping).
+    expect(fnSeen.authHeader).toBe(`Bearer ${FAKE_LICENSE}`);
+    expect(fnSeen.body?.tier).toBe('standard');
+    expect(ollamaSeen).toBe(false);
+  });
+
+  it('is fail-soft when the EVE license is missing (reports ok:false + 401, never throws)', async () => {
+    const fnSeen: EveFnSeen = {};
+    const fnUrl = await startFakeEveFunction(fnSeen);
+
+    shimServerUrl = await startCommandEveOllamaOpenAiShim({
+      port: 0,
+      ollamaBaseUrl: 'http://127.0.0.1:1', // never reached
+      eveRouting: () => ({ active: true, functionUrl: fnUrl, license: '', tier: 'standard' }),
+    });
+
+    const result = await warmCommandEveEveLane({ baseUrl: shimServerUrl, tier: 'standard', timeoutMs: 5_000 });
+
+    expect(result.ok).toBe(false);
+    expect(result.status).toBe(401);
+    // Fail-closed at the shim: no unauthenticated request reached the function.
+    expect(fnSeen.body).toBeUndefined();
+  });
+
+  it('refuses to preflight a non-loopback base URL (no direct cloud egress)', async () => {
+    const result = await warmCommandEveEveLane({ baseUrl: 'https://api.example.com/v1', timeoutMs: 1_000 });
+
+    expect(result.ok).toBe(false);
+    expect(result.error).toContain('loopback');
   });
 });

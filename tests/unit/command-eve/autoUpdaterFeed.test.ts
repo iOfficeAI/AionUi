@@ -105,14 +105,18 @@ describe('autoUpdaterService.configureFeed', () => {
     expect(setFeedURL).not.toHaveBeenCalled();
   });
 
-  it('applies a generic feed via setFeedURL when a URL is present', async () => {
-    const result = await autoUpdaterService.configureFeed(async () => 'https://config.example/feed');
+  it('applies a generic feed via setFeedURL when a URL is present (the R2 base flows through verbatim)', async () => {
+    // The R2 feed base electron-builder.yml `publish.url` bakes into app-update.yml
+    // is the same value passed here at runtime via env/config → generic provider.
+    const R2_FEED = 'https://pub-0a282738bf7a4731a6bb71c2420bfd69.r2.dev';
+    const result = await autoUpdaterService.configureFeed(async () => R2_FEED);
     expect(result.configured).toBe(true);
     expect(autoUpdaterService.isFeedConfigured).toBe(true);
     expect(setFeedURL).toHaveBeenCalledTimes(1);
     const arg = setFeedURL.mock.calls[0][0];
+    // generic provider so electron-updater reads `<url>/latest-mac.yml` over static HTTPS.
     expect(arg.provider).toBe('generic');
-    expect(arg.url).toBe('https://config.example/feed');
+    expect(arg.url).toBe(R2_FEED);
   });
 });
 

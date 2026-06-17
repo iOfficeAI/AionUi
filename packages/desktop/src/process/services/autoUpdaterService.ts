@@ -29,6 +29,14 @@ export const UPDATE_FEED_URL_CONFIG_KEY = 'update.feedUrl' as const;
  * ProcessConfig setting. Returns undefined when neither is configured, which
  * is a first-class quiet "no feed" state — NOT an error.
  *
+ * NOTE (feed wiring): this runtime resolver intentionally does NOT read the
+ * bundled app-update.yml. electron-builder.yml `publish` (generic, R2) is what
+ * bakes app-update.yml into the build; the runtime then re-points the updater
+ * via setFeedURL using THIS env/config value (W8 feed-agnostic design). So for
+ * the installed app to actually check the R2 feed, the app must run with
+ * COMMAND_EVE_UPDATE_FEED_URL (or a persisted `update.feedUrl`) set to the R2
+ * base. Without it the startup check stays in the quiet no-op state by design.
+ *
  * The config reader is injected so this stays unit-testable without booting
  * Electron storage; production passes ProcessConfig.get.
  */
