@@ -43,7 +43,6 @@ describe('AssistantListPanel', () => {
   const defaultProps = {
     assistants: mockAssistants,
     localeKey: 'en',
-    avatarImageMap: {},
     onEdit: vi.fn(),
     onDuplicate: vi.fn(),
     onDelete: vi.fn(),

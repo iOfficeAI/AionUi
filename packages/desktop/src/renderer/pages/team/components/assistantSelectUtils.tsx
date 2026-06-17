@@ -11,8 +11,7 @@ export type TeamAssistantOption = {
   name: string;
   /** Execution backend (claude, gemini, qwen, …). */
   backend?: string;
-  /** Icon / avatar token — an SVG filename, emoji, or key into
-   *  `CUSTOM_AVATAR_IMAGE_MAP`. */
+  /** Avatar token — a backend-resolved URL or an emoji. */
   icon?: string;
   /** Whether this assistant can currently be used in team mode. */
   team_capable?: boolean;

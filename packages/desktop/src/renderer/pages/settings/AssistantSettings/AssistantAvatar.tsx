@@ -10,13 +10,12 @@ import { isEmoji, resolveAvatarImageSrc } from './assistantUtils';
 type AssistantAvatarProps = {
   assistant: AssistantListItem;
   size?: number;
-  avatarImageMap: Record<string, string>;
 };
 
-const AssistantAvatar: React.FC<AssistantAvatarProps> = ({ assistant, size = 32, avatarImageMap }) => {
+const AssistantAvatar: React.FC<AssistantAvatarProps> = ({ assistant, size = 32 }) => {
   const resolvedAvatar = assistant.avatar?.trim();
   const hasEmojiAvatar = Boolean(resolvedAvatar && isEmoji(resolvedAvatar));
-  const avatarImage = resolveAvatarImageSrc(resolvedAvatar, avatarImageMap);
+  const avatarImage = resolveAvatarImageSrc(resolvedAvatar);
   const iconSize = Math.floor(size * 0.5);
   const emojiSize = Math.floor(size * 0.6);
 

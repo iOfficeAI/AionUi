@@ -16,15 +16,9 @@ export const isEmoji = (str: string): boolean => {
 /**
  * Resolve an avatar string to an image src URL, or undefined if it is not an image.
  */
-export const resolveAvatarImageSrc = (
-  avatar: string | undefined,
-  avatarImageMap: Record<string, string>
-): string | undefined => {
+export const resolveAvatarImageSrc = (avatar: string | undefined): string | undefined => {
   const value = avatar?.trim();
   if (!value) return undefined;
-
-  const mapped = avatarImageMap[value];
-  if (mapped) return mapped;
 
   const isLocalAbsolutePath = isLikelyLocalFilePath(value);
   if (isLocalAbsolutePath) {

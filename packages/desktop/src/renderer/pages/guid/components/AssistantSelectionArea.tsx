@@ -4,7 +4,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { CUSTOM_AVATAR_IMAGE_MAP } from '../constants';
 import styles from '../index.module.css';
 import type { Assistant } from '@/common/types/agent/assistantTypes';
 import { Down, Robot, Search } from '@icon-park/react';
@@ -67,9 +66,7 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
 
   const renderAssistantPill = (assistant: Assistant, testId: string) => {
     const avatarValue = assistant.avatar?.trim();
-    const mappedAvatar = avatarValue ? CUSTOM_AVATAR_IMAGE_MAP[avatarValue] : undefined;
-    const resolvedAvatar = avatarValue ? resolveExtensionAssetUrl(avatarValue) : undefined;
-    const avatarImage = mappedAvatar || resolvedAvatar;
+    const avatarImage = avatarValue ? resolveExtensionAssetUrl(avatarValue) : undefined;
     const isImageAvatar = Boolean(
       avatarImage &&
       (/\.(svg|png|jpe?g|webp|gif)$/i.test(avatarImage) || /^(https?:|file:\/\/|data:|\/)/i.test(avatarImage))

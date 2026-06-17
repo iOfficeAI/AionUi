@@ -17,7 +17,6 @@ import { useTranslation } from 'react-i18next';
 type AssistantListPanelProps = {
   assistants: AssistantListItem[];
   localeKey: string;
-  avatarImageMap: Record<string, string>;
   onEdit: (assistant: AssistantListItem) => void;
   onDuplicate: (assistant: AssistantListItem) => void;
   onDelete: (assistant: AssistantListItem) => void;
@@ -34,7 +33,6 @@ type AssistantListPanelProps = {
 type SortableAssistantCardProps = {
   assistant: AssistantListItem;
   localeKey: string;
-  avatarImageMap: Record<string, string>;
   highlightedId: string | null;
   onEdit: (assistant: AssistantListItem) => void;
   onDuplicate: (assistant: AssistantListItem) => void;
@@ -49,7 +47,6 @@ type SortableAssistantCardProps = {
 const SortableAssistantCard: React.FC<SortableAssistantCardProps> = ({
   assistant,
   localeKey,
-  avatarImageMap,
   highlightedId,
   onEdit,
   onDuplicate,
@@ -104,7 +101,7 @@ const SortableAssistantCard: React.FC<SortableAssistantCardProps> = ({
         >
           <Drag size={16} fill='currentColor' />
         </Button>
-        <AssistantAvatar assistant={assistant} size={28} avatarImageMap={avatarImageMap} />
+        <AssistantAvatar assistant={assistant} size={28} />
         <div className='min-w-0 flex-1'>
           <div className='flex min-w-0 items-center gap-8px font-medium text-t-primary'>
             <span className='truncate'>{assistant.name_i18n?.[localeKey] || assistant.name}</span>
@@ -173,7 +170,6 @@ const SortableAssistantCard: React.FC<SortableAssistantCardProps> = ({
 const AssistantListPanel: React.FC<AssistantListPanelProps> = ({
   assistants,
   localeKey,
-  avatarImageMap,
   onEdit,
   onDuplicate,
   onDelete,
@@ -267,7 +263,6 @@ const AssistantListPanel: React.FC<AssistantListPanelProps> = ({
         key={assistant.id}
         assistant={assistant}
         localeKey={localeKey}
-        avatarImageMap={avatarImageMap}
         highlightedId={highlightedId}
         onEdit={onEdit}
         onDuplicate={onDuplicate}

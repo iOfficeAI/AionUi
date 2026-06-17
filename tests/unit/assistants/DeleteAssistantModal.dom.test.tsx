@@ -28,7 +28,6 @@ describe('DeleteAssistantModal', () => {
     onConfirm: vi.fn(),
     onCancel: vi.fn(),
     activeAssistant: null as AssistantListItem | null,
-    avatarImageMap: {},
   };
 
   beforeEach(() => {

@@ -10,7 +10,6 @@ import type { TChatConversation } from '@/common/config/storage';
 import { ipcBridge } from '@/common';
 import type { Assistant } from '@/common/types/agent/assistantTypes';
 import { resolveLocaleKey } from '@/common/utils';
-import CoworkLogo from '@/renderer/assets/icons/cowork.svg';
 import type { AgentLogoMap } from '@/renderer/utils/model/agentLogo';
 import { resolveAgentLogo, useAgentLogos } from '@/renderer/utils/model/agentLogo';
 import { resolveExtensionAssetUrl } from '@/renderer/utils/platform';
@@ -135,10 +134,6 @@ function resolveLegacyRuntimeDisplayName(conversation: TChatConversation): strin
 function normalizeAvatar(avatar: string | undefined): { logo: string; isEmoji: boolean } {
   const value = (avatar || '').trim();
   if (!value) return { logo: '🤖', isEmoji: true };
-
-  if (value === 'cowork.svg') {
-    return { logo: CoworkLogo, isEmoji: false };
-  }
 
   const resolved = resolveExtensionAssetUrl(value) || value;
   const isImage = /\.(svg|png|jpe?g|webp|gif)$/i.test(resolved) || /^(https?:|file:\/\/|data:|\/)/i.test(resolved);
