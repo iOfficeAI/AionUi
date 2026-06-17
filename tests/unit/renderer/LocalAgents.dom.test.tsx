@@ -32,6 +32,9 @@ const { messageSuccess, messageWarning, messageError } = vi.hoisted(() => ({
   messageWarning: vi.fn(),
   messageError: vi.fn(),
 }));
+const { openExternalUrl } = vi.hoisted(() => ({
+  openExternalUrl: vi.fn().mockResolvedValue(undefined),
+}));
 vi.mock('@arco-design/web-react', async () => {
   const actual = await vi.importActual<typeof import('@arco-design/web-react')>('@arco-design/web-react');
   return {
@@ -71,6 +74,14 @@ vi.mock('@/common', () => ({
     },
   },
 }));
+
+vi.mock('@renderer/utils/platform', async () => {
+  const actual = await vi.importActual<typeof import('@renderer/utils/platform')>('@renderer/utils/platform');
+  return {
+    ...actual,
+    openExternalUrl,
+  };
+});
 
 // Keep the test focused on LocalAgents' own logic — stub heavy children.
 vi.mock('@/renderer/components/base/AionModal', () => ({ default: () => null }));
@@ -223,6 +234,20 @@ describe('LocalAgents', () => {
 
     expect(screen.queryByText('settings.agentManagement.installFromMarket')).toBeNull();
     expect(screen.queryByText('settings.agentManagement.discoverMoreAgents')).toBeNull();
+  });
+
+  it('renders the setup-guide action for official agents diagnostics', () => {
+    useManagedAgents.mockReturnValue({
+      agents: makeAgents(),
+      revalidate: vi.fn(),
+      refreshCatalog: vi.fn(),
+    });
+
+    render(<LocalAgents />);
+
+    fireEvent.click(screen.getByText('settings.agentManagement.localAgentsSetupLink'));
+
+    expect(openExternalUrl).toHaveBeenCalledWith('https://github.com/iOfficeAI/AionUi/wiki/Getting-Started');
   });
 
   it('renders agent management as a single diagnostics page without local/remote tabs', () => {

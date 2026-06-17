@@ -8,11 +8,14 @@ import { ipcBridge } from '@/common';
 import type { ManagedAgent } from '@/renderer/utils/model/agentTypes';
 import AionModal from '@/renderer/components/base/AionModal';
 import { useManagedAgents } from '@/renderer/hooks/agent/useAgents';
+import { openExternalUrl } from '@/renderer/utils/platform';
 import { Button, Message, Typography } from '@arco-design/web-react';
 import React, { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import AgentCard from './AgentCard';
 import InlineAgentEditor, { type CustomAgentDraft } from './InlineAgentEditor';
+
+const LOCAL_AGENT_SETUP_GUIDE_URL = 'https://github.com/iOfficeAI/AionUi/wiki/Getting-Started';
 
 const LocalAgents: React.FC = () => {
   const { t } = useTranslation();
@@ -134,6 +137,16 @@ const LocalAgents: React.FC = () => {
     <div className='flex flex-col gap-8px py-16px'>
       <div className='px-16px text-12px text-t-secondary'>
         <span>{t('settings.agentManagement.localAgentsDescription')} </span>
+        <Button
+          type='text'
+          size='mini'
+          className='!mr-8px !h-auto !p-0 !align-baseline !text-12px !font-normal !text-primary-6 hover:!text-primary-7 hover:!underline underline-offset-2'
+          onClick={() => {
+            void openExternalUrl(LOCAL_AGENT_SETUP_GUIDE_URL).catch(console.error);
+          }}
+        >
+          {t('settings.agentManagement.localAgentsSetupLink')}
+        </Button>
         <Button
           type='text'
           size='mini'
