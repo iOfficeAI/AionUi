@@ -117,9 +117,8 @@ function getDescriptionInitialValue(job: ICronJob): string {
 /**
  * Infer the assistant selection key from an ICronJob's agent_config.
  *
- * New jobs persist `assistant_id`; legacy jobs may only carry
- * `custom_agent_id` or a backend slug. For those rows we map back to a stable
- * assistant id, preferring the bare assistant for the backend.
+ * New jobs persist `assistant_id`; legacy jobs may only carry a backend slug.
+ * For those rows we map back to a stable bare assistant for the backend.
  */
 function getAssistantSelectionFromJob(
   job: ICronJob,
@@ -128,7 +127,6 @@ function getAssistantSelectionFromJob(
   const config = job.metadata.agent_config;
   if (config) {
     if (config.assistant_id) return config.assistant_id;
-    if (config.custom_agent_id) return config.custom_agent_id;
   }
 
   const backend =

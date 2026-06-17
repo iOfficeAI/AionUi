@@ -132,6 +132,15 @@ describe('CreateTaskDialog', () => {
 
     await waitFor(() => expect(screen.getByDisplayValue('edited prompt')).toBeInTheDocument());
   });
+
+  it('maps legacy cron jobs without assistant_id to the backend bare assistant instead of custom_agent_id', async () => {
+    currentAssistants = [bareAssistant(), ...assistants()];
+
+    render(<CreateTaskDialog visible onClose={() => {}} editJob={legacyJobWithoutAssistantId()} />);
+
+    expect(await screen.findByText('Codex')).toBeInTheDocument();
+    expect(screen.queryByText('问好助手')).not.toBeInTheDocument();
+  });
 });
 
 function job(): ICronJob {
@@ -171,6 +180,22 @@ function job(): ICronJob {
       run_count: 0,
       retry_count: 0,
       max_retries: 0,
+    },
+  } as ICronJob;
+}
+
+function legacyJobWithoutAssistantId(): ICronJob {
+  return {
+    ...job(),
+    metadata: {
+      ...job().metadata,
+      agent_config: {
+        custom_agent_id: 'assistant-1',
+        backend: 'codex',
+        name: 'Legacy Cron Assistant',
+        preset_agent_type: 'codex',
+        is_preset: false,
+      },
     },
   } as ICronJob;
 }

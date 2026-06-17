@@ -16,7 +16,7 @@ function normalizeAgentBackend(agent: string | undefined): string | undefined {
 }
 
 function resolveCronAssistantId(config: ICronJob['metadata']['agent_config']): string | undefined {
-  return config?.assistant_id || config?.custom_agent_id;
+  return config?.assistant_id;
 }
 
 /**

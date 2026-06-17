@@ -59,7 +59,7 @@ describe('getJobAgentMeta', () => {
     expect(meta.logo).toBe('/api/assets/logos/tools/coding/codex.svg');
   });
 
-  it('still resolves assistant metadata from legacy custom_agent_id rows', () => {
+  it('falls back to cron payload metadata for legacy custom_agent_id rows without assistant_id', () => {
     const meta = getJobAgentMeta(
       cronJob({
         metadata: {
@@ -81,10 +81,8 @@ describe('getJobAgentMeta', () => {
       LOGOS
     );
 
-    expect(meta).toEqual({
-      name: '文件规划助手',
-      emoji: '🤖',
-    });
+    expect(meta.name).toBe('Legacy name');
+    expect(meta.logo).toBe('/api/assets/logos/tools/coding/codex.svg');
   });
 });
 
