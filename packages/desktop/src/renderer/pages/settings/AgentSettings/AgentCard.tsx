@@ -62,6 +62,24 @@ const diagnosticMeta = (backend?: string, agentType?: string) => {
   return parts.join(' · ');
 };
 
+const statusSummary = (
+  t: (key: string, options?: Record<string, unknown>) => string,
+  agent: ManagedAgent,
+  diagnostics: string
+) => {
+  if (diagnostics) return diagnostics;
+  switch (agent.status) {
+    case 'available':
+      return t('settings.agentManagement.testConnectionAvailable', { name: agent.name });
+    case 'missing':
+      return t('settings.agentManagement.testConnectionMissing', { name: agent.name });
+    case 'unavailable':
+      return t('settings.agentManagement.testConnectionUnavailable', { name: agent.name });
+    default:
+      return t('settings.agentManagement.statusUnknown');
+  }
+};
+
 const AgentCard: React.FC<AgentCardProps> = (props) => {
   const { t } = useTranslation();
 
@@ -79,6 +97,7 @@ const AgentCard: React.FC<AgentCardProps> = (props) => {
 
     const metadata = diagnosticMeta(agent.backend, agent.agent_type);
     const diagnostics = statusHelpText(agent.last_check_error_message, agent.last_check_guidance);
+    const summary = statusSummary(t, agent, diagnostics);
 
     return (
       <div className='flex min-h-[154px] flex-col rounded-12px border border-solid border-[var(--color-border-2)] bg-[var(--color-bg-2)] p-12px transition-colors hover:border-[var(--color-border-3)]'>
@@ -105,11 +124,9 @@ const AgentCard: React.FC<AgentCardProps> = (props) => {
               </Tooltip>
             )}
           </div>
-          {diagnostics ? (
-            <Typography.Paragraph className='mt-6px mb-0 text-11px leading-16px text-t-secondary'>
-              {diagnostics}
-            </Typography.Paragraph>
-          ) : null}
+          <Typography.Paragraph className='mt-6px mb-0 text-11px leading-16px text-t-secondary'>
+            {summary}
+          </Typography.Paragraph>
         </div>
 
         <Button size='small' type='secondary' onClick={onTestConnection} loading={isTesting}>
@@ -123,6 +140,7 @@ const AgentCard: React.FC<AgentCardProps> = (props) => {
   const isDisabled = agent.enabled === false;
   const metadata = diagnosticMeta(agent.backend, agent.agent_type);
   const diagnostics = statusHelpText(agent.last_check_error_message, agent.last_check_guidance);
+  const summary = statusSummary(t, agent, diagnostics);
 
   return (
     <div className='flex items-center justify-between px-16px py-10px rd-8px bg-aou-1 hover:bg-aou-2'>
@@ -151,7 +169,7 @@ const AgentCard: React.FC<AgentCardProps> = (props) => {
               </Tooltip>
             )}
           </div>
-          {diagnostics ? <div className='mt-4px text-11px text-t-secondary line-clamp-2'>{diagnostics}</div> : null}
+          <div className='mt-4px text-11px text-t-secondary line-clamp-2'>{summary}</div>
         </div>
       </div>
       <div className='flex items-center gap-8px'>

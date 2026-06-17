@@ -92,4 +92,25 @@ describe('AgentCard (official variant)', () => {
     expect(screen.getByText('CLAUDE · ACP')).toBeInTheDocument();
     expect(screen.getByText('CLI command not found Install Claude Code locally to continue.')).toBeInTheDocument();
   });
+
+  it('shows a status summary even when no diagnostics text is present', () => {
+    render(
+      <AgentCard
+        type='official'
+        agent={{
+          id: 'aionrs',
+          name: 'Aion CLI',
+          agent_type: 'aionrs',
+          agent_source: 'internal',
+          backend: 'aionrs',
+          enabled: true,
+          installed: true,
+          status: 'available',
+        }}
+        onTestConnection={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText('settings.agentManagement.testConnectionAvailable')).toBeInTheDocument();
+  });
 });
