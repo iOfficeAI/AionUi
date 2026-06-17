@@ -457,7 +457,7 @@ Please check your local CLI tool authentication status`,
       const eveOptions: MobileActionSheetOption[] = eveInference.groups.flatMap((group) =>
         group.items.map((item) => ({
           key: item.value,
-          label: group.kind === 'eve' ? `EVE · ${item.label}` : `${t('common.localModel', { defaultValue: 'Lokal' })} · ${item.label}`,
+          label: group.kind === 'eve' ? `EVE Cloud · ${item.label}` : `${t('common.localModel', { defaultValue: 'Lokal' })} · ${item.label}`,
           description: item.sublabel,
           active: item.value === eveInference.selection && !item.disabled,
           disabled: item.disabled,
@@ -465,7 +465,7 @@ Please check your local CLI tool authentication status`,
       );
       const currentEveLabel = eveInference.selectedItem
         ? eveInference.selectedItem.group === 'eve'
-          ? `EVE · ${eveInference.selectedItem.label}`
+          ? `EVE Cloud · ${eveInference.selectedItem.label}`
           : `${t('common.localModel', { defaultValue: 'Lokal' })} · ${eveInference.selectedItem.label}`
         : t('conversation.eveInference.pick', { defaultValue: 'Modell wählen' });
       entries.push({

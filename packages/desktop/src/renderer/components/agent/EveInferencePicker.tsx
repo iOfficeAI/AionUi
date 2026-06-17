@@ -55,7 +55,9 @@ const EveInferencePicker: React.FC<{
 
   const displayLabel = useMemo(() => {
     if (selectedItem) {
-      const groupTitle = selectedItem.group === 'eve' ? 'EVE' : t('common.localModel', 'Lokal');
+      // Honest cloud labeling: the EVE lane is external cloud, so the chip reads
+      // "EVE Cloud · <tier>" — never just "EVE" (which could read as private).
+      const groupTitle = selectedItem.group === 'eve' ? 'EVE Cloud' : t('common.localModel', 'Lokal');
       return `${groupTitle} · ${selectedItem.label}`;
     }
     return t('conversation.eveInference.pick', 'Modell wählen');

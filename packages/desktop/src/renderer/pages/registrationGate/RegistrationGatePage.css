@@ -150,19 +150,23 @@
    app's dark-theme white text -> white-on-white / unreadable. Force readable dark
    text + light field background regardless of the active app theme. The
    -webkit-text-fill-color is required: in Electron it overrides `color` and is the
-   actual cause of the invisible text. */
+   actual cause of the invisible text.
+   !important is mandatory on the color / -webkit-text-fill-color / placeholder
+   declarations: the Arco dark theme sets the white fill with its OWN !important
+   rule, so without !important here the override loses the cascade and the bug
+   returns. The light field background is also forced for the same reason. */
 .registration-gate .arco-input,
 .registration-gate input,
 .registration-gate textarea {
-  color: #0b1220;
-  -webkit-text-fill-color: #0b1220;
-  background-color: #ffffff;
+  color: #0b1220 !important;
+  -webkit-text-fill-color: #0b1220 !important;
+  background-color: #ffffff !important;
 }
 .registration-gate .arco-input::placeholder,
 .registration-gate input::placeholder,
 .registration-gate textarea::placeholder {
-  color: #94a3b8;
-  -webkit-text-fill-color: #94a3b8;
+  color: #94a3b8 !important;
+  -webkit-text-fill-color: #94a3b8 !important;
 }
 .registration-gate .arco-input-wrapper,
 .registration-gate .arco-input-inner-wrapper {
