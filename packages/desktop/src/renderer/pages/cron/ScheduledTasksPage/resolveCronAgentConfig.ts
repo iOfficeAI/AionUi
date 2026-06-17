@@ -7,7 +7,7 @@
 import type { ICreateCronJobParams, ICronAgentConfig } from '@/common/adapter/ipcBridge';
 import type { Assistant } from '@/common/types/agent/assistantTypes';
 import type { AgentMetadata } from '@renderer/utils/model/agentTypes';
-import { resolveSupportedConversationType } from '@renderer/utils/model/agentTypeSupportPolicy';
+import { normalizeSupportedAgentSelection, resolveSupportedConversationType } from '@renderer/utils/model/agentTypeSupportPolicy';
 
 type SelectedAionrsProvider = {
   id?: string;
@@ -59,6 +59,11 @@ export function resolveCronAgentConfig(input: ResolveCronAgentConfigInput): Reso
     const agent = cliAgents.find((item) => item.backend === agentId || item.agent_type === agentId);
     const backend = (agent?.backend || agent?.agent_type || agentId) as string;
 
+    // Normalize agent type: legacy types like 'codex', 'claude', 'qoder' should be treated as ACP
+    const normalized = normalizeSupportedAgentSelection(agent?.agent_type, backend);
+    const effectiveBackend = normalized?.backend || backend;
+    const isAcpType = normalized?.agent_type === 'acp';
+
     if (backend === 'aionrs') {
       if (!selectedAionrsProvider?.id || !model_id) {
         throw new Error(aionrsModelRequiredMessage);
@@ -71,23 +76,25 @@ export function resolveCronAgentConfig(input: ResolveCronAgentConfigInput): Reso
         model_id,
         workspace,
       };
-    } else if (agent?.agent_type === 'acp') {
-      const capitalizedBackend = backend.charAt(0).toUpperCase() + backend.slice(1);
+    } else if (isAcpType || agent?.agent_type === 'acp') {
+      const capitalizedBackend = effectiveBackend.charAt(0).toUpperCase() + effectiveBackend.slice(1);
       resolvedAgentType = 'acp';
       agent_config = {
-        backend,
-        name: agent.name || capitalizedBackend,
-        mode: getMode(backend),
+        backend: effectiveBackend,
+        name: agent?.name || capitalizedBackend,
+        mode: getMode(effectiveBackend),
         model_id,
         config_options,
         workspace,
       };
     } else if (agent) {
-      resolvedAgentType = resolveSupportedConversationType(backend);
+      // Fallback for any other agent type: build agent_config to prevent missing 'name' field
+      const capitalizedBackend = effectiveBackend.charAt(0).toUpperCase() + effectiveBackend.slice(1);
+      resolvedAgentType = resolveSupportedConversationType(effectiveBackend);
       agent_config = {
-        backend,
-        name: agent.name || (backend.charAt(0).toUpperCase() + backend.slice(1)),
-        mode: getMode(backend),
+        backend: effectiveBackend,
+        name: agent.name || capitalizedBackend,
+        mode: getMode(effectiveBackend),
         model_id,
         workspace,
       };
