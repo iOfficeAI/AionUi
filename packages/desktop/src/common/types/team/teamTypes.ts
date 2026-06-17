@@ -30,9 +30,6 @@ export type TeamAssistant = {
   pending_confirmations?: number;
 };
 
-/** @deprecated Use TeamAssistant. */
-export type TeamAgent = TeamAssistant;
-
 /** Persisted team record (stored in SQLite `teams` table) */
 export type TTeam = {
   id: string;

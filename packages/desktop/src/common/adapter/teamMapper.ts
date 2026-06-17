@@ -28,9 +28,6 @@ export type IAddTeamAssistantParams = {
   assistant: Omit<TeamAssistant, 'slot_id' | 'conversation_id'>;
 };
 
-/** @deprecated Use IAddTeamAssistantParams. */
-export type IAddTeamAgentParams = IAddTeamAssistantParams;
-
 // ── Backend → Frontend ─────────────────────────────────────────────────
 
 const VALID_ROLES = new Set<TeammateRole>(['leader', 'teammate']);
@@ -85,9 +82,6 @@ export function fromBackendAssistant(raw: unknown): TeamAssistant {
   };
 }
 
-/** @deprecated Use fromBackendAssistant. */
-export const fromBackendAgent = fromBackendAssistant;
-
 export function fromBackendTeam(raw: unknown): TTeam {
   const r = (raw ?? {}) as Record<string, unknown>;
   const assistants = Array.isArray(r.agents) ? (r.agents as unknown[]).map(fromBackendAssistant) : [];
@@ -128,6 +122,3 @@ export function toBackendAssistant(a: Omit<TeamAssistant, 'slot_id' | 'conversat
     assistant_id: a.assistant_id,
   };
 }
-
-/** @deprecated Use toBackendAssistant. */
-export const toBackendAgent = toBackendAssistant;

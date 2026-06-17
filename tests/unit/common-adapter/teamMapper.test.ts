@@ -5,7 +5,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { fromBackendAgent, normalizeTeamStatus, toBackendAgent } from '@/common/adapter/teamMapper';
+import { fromBackendAssistant, normalizeTeamStatus, toBackendAssistant } from '@/common/adapter/teamMapper';
 
 describe('teamMapper', () => {
   describe('normalizeTeamStatus', () => {
@@ -25,7 +25,7 @@ describe('teamMapper', () => {
   });
 
   it('uses normalized status when mapping backend agents', () => {
-    const agent = fromBackendAgent({
+    const assistant = fromBackendAssistant({
       slot_id: 'slot-1',
       conversation_id: 'conversation-1',
       role: 'teammate',
@@ -34,11 +34,11 @@ describe('teamMapper', () => {
       status: 'thinking',
     });
 
-    expect(agent.status).toBe('active');
+    expect(assistant.status).toBe('active');
   });
 
   it('maps backend agent fields into assistant-first frontend runtime fields', () => {
-    const agent = fromBackendAgent({
+    const assistant = fromBackendAssistant({
       slot_id: 'slot-1',
       conversation_id: 'conversation-1',
       role: 'teammate',
@@ -48,14 +48,14 @@ describe('teamMapper', () => {
       status: 'idle',
     });
 
-    expect(agent.assistant_backend).toBe('claude');
-    expect(agent.assistant_name).toBe('Worker');
-    expect(agent).not.toHaveProperty('agent_type');
-    expect(agent).not.toHaveProperty('agent_name');
+    expect(assistant.assistant_backend).toBe('claude');
+    expect(assistant.assistant_name).toBe('Worker');
+    expect(assistant).not.toHaveProperty('agent_type');
+    expect(assistant).not.toHaveProperty('agent_name');
   });
 
   it('prefers the concrete backend over generic agent_type when hydrating assistant runtime fields', () => {
-    const agent = fromBackendAgent({
+    const assistant = fromBackendAssistant({
       slot_id: 'slot-1',
       conversation_id: 'conversation-1',
       role: 'teammate',
@@ -65,13 +65,13 @@ describe('teamMapper', () => {
       status: 'idle',
     });
 
-    expect(agent.assistant_backend).toBe('claude');
-    expect(agent.conversation_type).toBe('acp');
+    expect(assistant.assistant_backend).toBe('claude');
+    expect(assistant.conversation_type).toBe('acp');
   });
 
   it('hydrates assistant identity from assistant_id', () => {
     expect(
-      fromBackendAgent({
+      fromBackendAssistant({
         slot_id: 'slot-1',
         conversation_id: 'conversation-1',
         role: 'teammate',
@@ -84,7 +84,7 @@ describe('teamMapper', () => {
 
   it('ignores legacy custom_agent_id when assistant_id is absent from the backend payload', () => {
     expect(
-      fromBackendAgent({
+      fromBackendAssistant({
         slot_id: 'slot-2',
         conversation_id: 'conversation-2',
         role: 'teammate',
@@ -97,7 +97,7 @@ describe('teamMapper', () => {
 
   it('preserves assistant identity when serializing agents back to the backend payload', () => {
     expect(
-      toBackendAgent({
+      toBackendAssistant({
         role: 'leader',
         assistant_backend: 'aionrs',
         assistant_name: 'Aion CLI',
@@ -113,7 +113,7 @@ describe('teamMapper', () => {
 
   it('omits backend for new assistant-led payloads so the backend can derive it from assistant identity', () => {
     expect(
-      toBackendAgent({
+      toBackendAssistant({
         role: 'teammate',
         assistant_backend: 'codex',
         assistant_name: 'Writer',
@@ -127,7 +127,7 @@ describe('teamMapper', () => {
 
   it('rejects new team payloads without assistant identity', () => {
     expect(() =>
-      toBackendAgent({
+      toBackendAssistant({
         role: 'teammate',
         assistant_backend: 'acp',
         assistant_name: 'Legacy Worker',
