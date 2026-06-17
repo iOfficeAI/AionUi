@@ -131,7 +131,7 @@ const makeAgents = () => [
 ];
 
 describe('LocalAgents', () => {
-  it('shows a success toast after an official-agent health check succeeds', async () => {
+  it('shows a success toast and refreshes both caches after an official-agent health check succeeds', async () => {
     const revalidate = vi.fn().mockResolvedValue(undefined);
     const refreshCatalog = vi.fn().mockResolvedValue(undefined);
     useManagedAgents.mockReturnValue({ agents: makeAgents(), revalidate, refreshCatalog });
@@ -148,8 +148,8 @@ describe('LocalAgents', () => {
       expect(ipcBridge.acpConversation.checkManagedAgentHealthById.invoke).toHaveBeenCalledWith({ id: 'aionrs' });
     });
     await waitFor(() => {
-      expect(revalidate).toHaveBeenCalled();
-      expect(refreshCatalog).not.toHaveBeenCalled();
+      expect(refreshCatalog).toHaveBeenCalled();
+      expect(revalidate).not.toHaveBeenCalled();
       expect(messageSuccess).toHaveBeenCalledWith('settings.agentManagement.testConnectionAvailable');
     });
   });

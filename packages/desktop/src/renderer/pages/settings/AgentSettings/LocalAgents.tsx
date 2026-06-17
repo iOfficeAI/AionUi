@@ -106,7 +106,7 @@ const LocalAgents: React.FC = () => {
       try {
         setTestingAgentId(agentId);
         const result = await ipcBridge.acpConversation.checkManagedAgentHealthById.invoke({ id: agentId });
-        await revalidate();
+        await refreshCatalog();
         switch (result.status) {
           case 'available':
             Message.success(t('settings.agentManagement.testConnectionAvailable', { name: result.name }));
@@ -130,7 +130,7 @@ const LocalAgents: React.FC = () => {
         setTestingAgentId(null);
       }
     },
-    [revalidate, t]
+    [refreshCatalog, t]
   );
 
   return (
