@@ -100,10 +100,14 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
   const sendingRef = useRef(false);
 
   const handleSend = useCallback(async () => {
+    if (!selectedAssistantId) {
+      return;
+    }
+
     const isCustomWorkspace = !!dir;
     const finalWorkspace = dir || '';
 
-    const assistantConversationId = selectedAssistantId || undefined;
+    const assistantConversationId = selectedAssistantId;
     const assistantBackend = selectedAssistantBackend;
     const enabled_skills_to_send = guidEnabledSkills ?? assistantDefaultSkillIds;
     const excludeBuiltinSkills = guidDisabledBuiltinSkills ?? assistantDefaultDisabledBuiltinSkillIds;
@@ -153,24 +157,17 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
           type: 'aionrs',
           name: input,
           model: current_model,
-          assistant: assistantConversationId
-            ? {
-                id: assistantConversationId,
-                locale: localeKey,
-                conversation_overrides: assistantOverrides,
-              }
-            : undefined,
+          assistant: {
+            id: assistantConversationId,
+            locale: localeKey,
+            conversation_overrides: assistantOverrides,
+          },
           extra: {
             default_files: files,
             workspace: finalWorkspace,
             custom_workspace: isCustomWorkspace,
             selected_mcp_server_ids: selectedUserMcpServerIdsToSend,
             selected_session_mcp_servers: selectedSessionMcpServersToSend,
-            ...(!assistantConversationId && selectedMode
-              ? {
-                  session_mode: selectedMode,
-                }
-              : {}),
           },
         });
 
@@ -211,32 +208,15 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
         type: 'acp',
         model: current_model ?? ({} as TProviderWithModel),
         name: input,
-        assistant: assistantConversationId
-          ? {
-              id: assistantConversationId,
-              locale: localeKey,
-              conversation_overrides: assistantOverrides,
-            }
-          : undefined,
+        assistant: {
+          id: assistantConversationId,
+          locale: localeKey,
+          conversation_overrides: assistantOverrides,
+        },
         extra: {
           workspace: finalWorkspace,
           custom_workspace: isCustomWorkspace,
           default_files: files,
-          ...(!assistantConversationId
-            ? {
-                backend: assistantBackend,
-              }
-            : {}),
-          ...(!assistantConversationId && selectedMode
-            ? {
-                session_mode: selectedMode,
-              }
-            : {}),
-          ...(!assistantConversationId && (selectedAcpModel || currentAcpCachedModelInfo?.current_model_id)
-            ? {
-                current_model_id: selectedAcpModel || currentAcpCachedModelInfo?.current_model_id || undefined,
-              }
-            : {}),
           selected_mcp_server_ids: selectedUserMcpServerIdsToSend,
           selected_session_mcp_servers:
             selectedMcpServerIds !== undefined ? selectedSessionMcpServers : selectedSessionMcpServersToSend,
@@ -330,7 +310,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
   ]);
 
   // Calculate button disabled state
-  const isButtonDisabled = loading || !input.trim();
+  const isButtonDisabled = loading || !input.trim() || !selectedAssistantId;
 
   return {
     handleSend,

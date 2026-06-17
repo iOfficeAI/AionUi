@@ -233,21 +233,19 @@ describe('useGuidSend', () => {
     expect(payload.extra.backend).toBeUndefined();
   });
 
-  it('still writes backend for plain ACP conversations without assistant identity', async () => {
+  it('does not create a conversation without assistant identity', async () => {
     const deps = createDeps();
     deps.selectedAssistantId = null;
     deps.selectedAssistantBackend = 'claude';
 
     const { result } = renderHook(() => useGuidSend(deps));
 
+    expect(result.current.isButtonDisabled).toBe(true);
+
     await act(async () => {
       await result.current.handleSend();
     });
 
-    const payload = createConversationInvokeMock.mock.calls[0][0];
-    expect(payload.assistant).toBeUndefined();
-    expect(payload.extra.backend).toBe('claude');
-    expect(payload.extra.session_mode).toBe('bypassPermissions');
-    expect(payload.extra.current_model_id).toBe('claude-opus');
+    expect(createConversationInvokeMock).not.toHaveBeenCalled();
   });
 });
