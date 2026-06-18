@@ -440,16 +440,30 @@ export function findEveInferenceTier(tierId: string): EveInferenceTier | undefin
 /**
  * Build the OpenAI-compatible request body for an EVE Inference call. The
  * function routes by `tier`; `messages`/`stream` are OpenAI-standard.
+ *
+ * `agent_id` is OPTIONAL and ADDITIVE: when the call is on behalf of a
+ * delegated "Dein Team" role, the desktop passes that role's stable id so the
+ * backend ledger `agent_id` column attributes the spend to the character.
+ * When omitted the field is left off entirely (the backend defaults it to the
+ * system `eve`), so an un-delegated call's body keeps its exact prior shape.
  */
 export function buildEveInferenceRequestBody(args: {
   tier: EveInferenceWireTier;
   messages: Array<{ role: string; content: string }>;
   stream?: boolean;
-}): { messages: Array<{ role: string; content: string }>; stream: boolean; tier: EveInferenceWireTier } {
+  agent_id?: string;
+}): {
+  messages: Array<{ role: string; content: string }>;
+  stream: boolean;
+  tier: EveInferenceWireTier;
+  agent_id?: string;
+} {
+  const agentId = typeof args.agent_id === 'string' ? args.agent_id.trim() : '';
   return {
     messages: args.messages,
     stream: args.stream === true,
     tier: args.tier,
+    ...(agentId.length > 0 ? { agent_id: agentId } : {}),
   };
 }
 

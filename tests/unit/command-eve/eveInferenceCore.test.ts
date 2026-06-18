@@ -274,6 +274,35 @@ describe('eveInferenceCore — EVE Standard routing (requirement 2)', () => {
       tier: 'standard',
     });
   });
+
+  it('omits agent_id entirely when not delegated (un-delegated body keeps its prior shape)', () => {
+    const body = buildEveInferenceRequestBody({
+      tier: 'standard',
+      messages: [{ role: 'user', content: 'hallo' }],
+    });
+    // No agent_id key at all — the backend defaults it to the system `eve`.
+    expect(body).toEqual({
+      messages: [{ role: 'user', content: 'hallo' }],
+      stream: false,
+      tier: 'standard',
+    });
+    expect('agent_id' in body).toBe(false);
+  });
+
+  it('carries a delegated agent_id (Dein Team ledger attribution) when provided', () => {
+    const body = buildEveInferenceRequestBody({
+      tier: 'max',
+      messages: [{ role: 'user', content: 'kampagne' }],
+      stream: true,
+      agent_id: 'growth-lead',
+    });
+    expect(body).toEqual({
+      messages: [{ role: 'user', content: 'kampagne' }],
+      stream: true,
+      tier: 'max',
+      agent_id: 'growth-lead',
+    });
+  });
 });
 
 describe('eveInferenceCore — selection parsing', () => {
