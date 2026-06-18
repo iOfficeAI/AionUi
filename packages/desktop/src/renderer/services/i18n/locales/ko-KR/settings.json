@@ -984,7 +984,19 @@
     "customAgents": "커스텀 에이전트",
     "custom": "사용자 정의",
     "addCustomAgent": "사용자 정의 에이전트 추가",
-    "customEmpty": "구성된 사용자 정의 에이전트가 없습니다. \"사용자 정의 에이전트 추가\"를 클릭하여 생성하세요."
+    "customEmpty": "구성된 사용자 정의 에이전트가 없습니다. \"사용자 정의 에이전트 추가\"를 클릭하여 생성하세요.",
+    "errorCodes": {
+      "command_not_found": "Install {{command}} and retry the connection test.",
+      "acp_init_failed": "The CLI started but failed during initialization. Complete sign-in or first-run setup, then retry the connection test.",
+      "health_check_failed": "Open {{name}} once to finish setup or sign-in, then retry the connection test.",
+      "session_send_failed": "Fix the credentials or network issue affecting {{name}}, then start a new conversation or retry the connection test.",
+      "disabled": "Enable this agent, then retry the connection test.",
+      "no_command": "Configure a launch command for this agent, then retry the connection test.",
+      "bridge_missing": "Install {{command}} and retry the connection test.",
+      "primary_missing": "Install {{command}} and retry the connection test.",
+      "command_missing": "Install {{command}} and retry the connection test.",
+      "managed_runtime_unavailable": "Repair or reinstall {{resource}}, then retry the connection test."
+    }
   },
   "remoteAgent": {
     "title": "원격 에이전트",

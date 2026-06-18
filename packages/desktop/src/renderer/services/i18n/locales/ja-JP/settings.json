@@ -984,7 +984,19 @@
     "customAgents": "カスタムエージェント",
     "custom": "カスタム",
     "addCustomAgent": "カスタムエージェントを追加",
-    "customEmpty": "カスタムエージェントが設定されていません。「カスタムエージェントを追加」をクリックして作成してください。"
+    "customEmpty": "カスタムエージェントが設定されていません。「カスタムエージェントを追加」をクリックして作成してください。",
+    "errorCodes": {
+      "command_not_found": "Install {{command}} and retry the connection test.",
+      "acp_init_failed": "The CLI started but failed during initialization. Complete sign-in or first-run setup, then retry the connection test.",
+      "health_check_failed": "Open {{name}} once to finish setup or sign-in, then retry the connection test.",
+      "session_send_failed": "Fix the credentials or network issue affecting {{name}}, then start a new conversation or retry the connection test.",
+      "disabled": "Enable this agent, then retry the connection test.",
+      "no_command": "Configure a launch command for this agent, then retry the connection test.",
+      "bridge_missing": "Install {{command}} and retry the connection test.",
+      "primary_missing": "Install {{command}} and retry the connection test.",
+      "command_missing": "Install {{command}} and retry the connection test.",
+      "managed_runtime_unavailable": "Repair or reinstall {{resource}}, then retry the connection test."
+    }
   },
   "remoteAgent": {
     "title": "リモートエージェント",

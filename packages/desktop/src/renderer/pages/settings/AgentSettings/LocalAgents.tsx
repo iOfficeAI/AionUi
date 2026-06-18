@@ -6,7 +6,7 @@
 
 import { ipcBridge } from '@/common';
 import { parseError } from '@/common/utils';
-import type { ManagedAgent } from '@/renderer/utils/model/agentTypes';
+import { formatManagedAgentDiagnosticMessage, type ManagedAgent } from '@/renderer/utils/model/agentTypes';
 import AionModal from '@/renderer/components/base/AionModal';
 import { useManagedAgents } from '@/renderer/hooks/agent/useManagedAgents';
 import { openExternalUrl } from '@/renderer/utils/platform';
@@ -117,7 +117,7 @@ const LocalAgents: React.FC = () => {
             break;
           case 'unavailable':
             Message.warning(
-              result.last_check_error_message ||
+              formatManagedAgentDiagnosticMessage(t, result) ||
                 t('settings.agentManagement.testConnectionUnavailable', { name: result.name })
             );
             break;

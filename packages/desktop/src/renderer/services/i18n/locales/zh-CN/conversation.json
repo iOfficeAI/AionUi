@@ -94,6 +94,11 @@
   "createError": {
     "pathVariants": {
       "WORKSPACE_PATH_UNAVAILABLE": "所选工作区路径不可用。请确保工作区路径“{{workspacePath}}”真实存在且可访问。"
+    },
+    "codes": {
+      "TEAM_ASSISTANT_ID_REQUIRED": "创建团队前请先选择助手。",
+      "TEAM_ASSISTANT_NOT_FOUND": "助手 {{assistantId}} 已不可用。请刷新助手列表后重新选择。",
+      "TEAM_ASSISTANT_FIELD_UNSUPPORTED": "请使用 assistant_id，不要再传 {{field}}。"
     }
   },
   "agentError": {
@@ -269,6 +274,38 @@
       "UNKNOWN_UPSTREAM_ERROR": {
         "title": "上游 Agent 或模型服务商出错",
         "body": "收到上游错误，但暂时无法准确分类。可以查看下方详情或提交反馈。"
+      },
+      "MCP_HTTP_RESPONSE_READ_FAILED": {
+        "title": "读取团队辅助进程响应失败",
+        "body": "AionUi 无法读取本地团队辅助进程的响应。请先重试一次，如果持续出现，再重启应用。"
+      },
+      "MCP_TOOL_REMOTE_ERROR": {
+        "title": "本地团队辅助进程拒绝了这次请求",
+        "body": "本地团队辅助进程在处理这次请求时返回了错误。请查看下面的详情，调整团队操作后再重试。"
+      },
+      "MCP_TOOL_RESPONSE_UNEXPECTED": {
+        "title": "团队辅助进程返回了异常响应",
+        "body": "AionUi 收到了本地团队辅助进程的异常响应。请先重试一次，如果持续出现再反馈问题。"
+      },
+      "MCP_TCP_READ_FAILED": {
+        "title": "读取本地团队辅助进程失败",
+        "body": "AionUi 无法读取本地团队辅助进程的 TCP 响应。请先重试一次，如仍失败可重启应用。"
+      },
+      "TEAM_SERVICE_UNAVAILABLE": {
+        "title": "团队服务尚未就绪",
+        "body": "本地团队会话仍在启动中，或刚刚被中断。请稍等片刻后重试。"
+      },
+      "TEAM_ASSISTANT_ID_REQUIRED": {
+        "title": "必须先选择队友助手",
+        "body": "创建或拉起队友前，请先从可用助手目录中选择一个真实的 assistant。"
+      },
+      "TEAM_ASSISTANT_NOT_FOUND": {
+        "title": "所选助手已不可用",
+        "body": "请刷新助手目录，然后为这个队友重新选择一个助手。"
+      },
+      "TEAM_ASSISTANT_FIELD_UNSUPPORTED": {
+        "title": "请求仍在使用旧的团队身份字段",
+        "body": "这个团队操作必须使用 assistant_id，不能再使用旧的 backend 或 agent 字段。"
       }
     }
   },

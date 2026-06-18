@@ -10,7 +10,11 @@ import { Delete, EditTwo, Robot } from '@icon-park/react';
 import { useTranslation } from 'react-i18next';
 import { resolveAgentLogo, useAgentLogos } from '@/renderer/utils/model/agentLogo';
 import { resolveExtensionAssetUrl } from '@/renderer/utils/platform';
-import type { AgentManagementStatus, ManagedAgent } from '@/renderer/utils/model/agentTypes';
+import {
+  type AgentManagementStatus,
+  type ManagedAgent,
+  formatManagedAgentDiagnosticMessage,
+} from '@/renderer/utils/model/agentTypes';
 
 type AgentCardProps =
   | {
@@ -54,8 +58,6 @@ const statusLabelKey = (status?: AgentManagementStatus) => {
       return 'settings.agentManagement.statusUnknown';
   }
 };
-
-const statusHelpText = (error?: string, guidance?: string) => [error, guidance].filter(Boolean).join(' ');
 
 const formatStatusTimestamp = (timestamp?: number): string | null => {
   if (!timestamp) return null;
@@ -102,7 +104,7 @@ const AgentCard: React.FC<AgentCardProps> = (props) => {
       });
 
     const metadata = diagnosticMeta(agent.backend, agent.agent_type);
-    const diagnostics = statusHelpText(agent.last_check_error_message, agent.last_check_guidance);
+    const diagnostics = formatManagedAgentDiagnosticMessage(t, agent);
     const summary = statusSummary(t, agent, diagnostics);
     const checkedAt = formatStatusTimestamp(agent.last_check_at);
 
@@ -151,7 +153,7 @@ const AgentCard: React.FC<AgentCardProps> = (props) => {
   const { agent, onTestConnection, onEdit, onDelete, onToggle, isTesting } = props;
   const isDisabled = agent.enabled === false;
   const metadata = diagnosticMeta(agent.backend, agent.agent_type);
-  const diagnostics = statusHelpText(agent.last_check_error_message, agent.last_check_guidance);
+  const diagnostics = formatManagedAgentDiagnosticMessage(t, agent);
   const summary = statusSummary(t, agent, diagnostics);
   const checkedAt = formatStatusTimestamp(agent.last_check_at);
 

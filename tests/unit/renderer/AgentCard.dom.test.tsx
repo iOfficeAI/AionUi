@@ -69,7 +69,7 @@ describe('AgentCard (custom variant)', () => {
 });
 
 describe('AgentCard (official variant)', () => {
-  it('shows backend/type metadata and the latest diagnostic message', () => {
+  it('shows backend/type metadata and the latest localized diagnostic key', () => {
     render(
       <AgentCard
         type='official'
@@ -82,15 +82,16 @@ describe('AgentCard (official variant)', () => {
           enabled: true,
           installed: false,
           status: 'missing',
+          last_check_error_code: 'command_not_found',
+          last_check_error_details: { command: 'claude' },
           last_check_error_message: 'CLI command not found',
-          last_check_guidance: 'Install Claude Code locally to continue.',
         }}
         onTestConnection={vi.fn()}
       />
     );
 
     expect(screen.getByText('CLAUDE · ACP')).toBeInTheDocument();
-    expect(screen.getByText('CLI command not found Install Claude Code locally to continue.')).toBeInTheDocument();
+    expect(screen.getByText('settings.agentManagement.errorCodes.command_not_found')).toBeInTheDocument();
   });
 
   it('shows the last check timestamp when a health snapshot is present', () => {

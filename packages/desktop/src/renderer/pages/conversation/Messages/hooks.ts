@@ -468,6 +468,47 @@ const classifyPersistedSendFailure = (
   }
 
   const persistedCode = typeof parsed.code === 'string' ? parsed.code : undefined;
+  const structuredContent = isRecord(parsed.structuredContent) ? parsed.structuredContent : undefined;
+  const domainCode =
+    typeof structuredContent?.domainCode === 'string'
+      ? structuredContent.domainCode
+      : typeof parsed.domainCode === 'string'
+        ? parsed.domainCode
+        : undefined;
+  const effectiveCode = domainCode || persistedCode;
+
+  if (
+    effectiveCode === 'MCP_HTTP_RESPONSE_READ_FAILED' ||
+    effectiveCode === 'MCP_TOOL_REMOTE_ERROR' ||
+    effectiveCode === 'MCP_TOOL_RESPONSE_UNEXPECTED' ||
+    effectiveCode === 'MCP_TCP_READ_FAILED' ||
+    effectiveCode === 'TEAM_SERVICE_UNAVAILABLE'
+  ) {
+    return {
+      message,
+      code: effectiveCode,
+      ownership: 'aionui',
+      detail: message,
+      retryable: true,
+      feedback_recommended: true,
+    };
+  }
+
+  if (
+    effectiveCode === 'TEAM_ASSISTANT_ID_REQUIRED' ||
+    effectiveCode === 'TEAM_ASSISTANT_NOT_FOUND' ||
+    effectiveCode === 'TEAM_ASSISTANT_FIELD_UNSUPPORTED'
+  ) {
+    return {
+      message,
+      code: effectiveCode,
+      ownership: 'aionui',
+      detail: message,
+      retryable: false,
+      feedback_recommended: false,
+    };
+  }
+
   if (persistedCode === 'BAD_GATEWAY') {
     return {
       message,

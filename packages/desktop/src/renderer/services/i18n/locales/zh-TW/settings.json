@@ -996,7 +996,19 @@
     "customAgents": "自訂 Agents",
     "custom": "自訂",
     "addCustomAgent": "新增自訂 Agent",
-    "customEmpty": "尚無自訂 Agent，點擊「新增自訂 Agent」建立。"
+    "customEmpty": "尚無自訂 Agent，點擊「新增自訂 Agent」建立。",
+    "errorCodes": {
+      "command_not_found": "請安裝 {{command}}，然後重新測試連線。",
+      "acp_init_failed": "CLI 已啟動，但初始化失敗。請先完成登入或首次設定，然後重新測試連線。",
+      "health_check_failed": "請先手動開啟一次 {{name}} 完成設定或登入，然後重新測試連線。",
+      "session_send_failed": "請修復 {{name}} 的憑證或網路問題，然後新建對話或重新測試連線。",
+      "disabled": "請先啟用這個助手，然後重新測試連線。",
+      "no_command": "請先為這個助手設定啟動命令，然後重新測試連線。",
+      "bridge_missing": "請安裝 {{command}}，然後重新測試連線。",
+      "primary_missing": "請安裝 {{command}}，然後重新測試連線。",
+      "command_missing": "請安裝 {{command}}，然後重新測試連線。",
+      "managed_runtime_unavailable": "請修復或重新安裝 {{resource}}，然後重新測試連線。"
+    }
   },
   "remoteAgent": {
     "title": "遠端 Agent",

@@ -5,6 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
+import type { TFunction } from 'i18next';
 
 /**
  * SWR key for the Agent settings management view (`/api/agents/management`).
@@ -24,6 +25,13 @@ export type AgentSource = 'internal' | 'builtin' | 'extension' | 'custom';
 export type AgentManagementStatus = 'available' | 'unavailable' | 'missing';
 export type AgentSnapshotCheckStatus = 'available' | 'unavailable';
 export type AgentSnapshotCheckKind = 'startup' | 'scheduled' | 'manual' | 'session';
+export type AgentManagementErrorDetails = {
+  code?: string;
+  command?: string;
+  resource?: string;
+  agent_name?: string;
+  backend?: string;
+};
 
 /** Source-specific bookkeeping (how to probe, how to upgrade). */
 export type AgentSourceInfo = {
@@ -113,6 +121,7 @@ export type AgentMetadata = {
   last_check_kind?: AgentSnapshotCheckKind;
   last_check_error_code?: string;
   last_check_error_message?: string;
+  last_check_error_details?: AgentManagementErrorDetails;
   last_check_guidance?: string;
   last_check_latency_ms?: number;
   last_check_at?: number;
@@ -151,6 +160,48 @@ export async function fetchManagedAgents(): Promise<ManagedAgent[]> {
     // fallback to empty
   }
   return [];
+}
+
+const getAgentManagementErrorDetails = (details: unknown): AgentManagementErrorDetails => {
+  if (!details || typeof details !== 'object' || Array.isArray(details)) {
+    return {};
+  }
+  return details as AgentManagementErrorDetails;
+};
+
+export function formatManagedAgentDiagnosticMessage(t: TFunction, agent: ManagedAgent): string {
+  const fallback = agent.last_check_error_message || agent.last_check_guidance || '';
+  const details = getAgentManagementErrorDetails(agent.last_check_error_details);
+  const command = details.command || agent.command || agent.backend || agent.name;
+  const resource = details.resource || agent.backend || agent.name;
+
+  switch (agent.last_check_error_code) {
+    case 'command_not_found':
+    case 'bridge_missing':
+    case 'primary_missing':
+    case 'command_missing':
+      return t(`settings.agentManagement.errorCodes.${agent.last_check_error_code}`, {
+        command,
+        defaultValue: fallback,
+      });
+    case 'acp_init_failed':
+    case 'health_check_failed':
+    case 'session_send_failed':
+    case 'disabled':
+    case 'no_command':
+      return t(`settings.agentManagement.errorCodes.${agent.last_check_error_code}`, {
+        name: agent.name,
+        backend: agent.backend || details.backend || agent.name,
+        defaultValue: fallback,
+      });
+    case 'managed_runtime_unavailable':
+      return t('settings.agentManagement.errorCodes.managed_runtime_unavailable', {
+        resource,
+        defaultValue: fallback,
+      });
+    default:
+      return fallback;
+  }
 }
 
 /**

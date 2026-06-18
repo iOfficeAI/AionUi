@@ -995,7 +995,19 @@
     "customAgents": "自定义 Agents",
     "custom": "自定义",
     "addCustomAgent": "添加自定义 Agent",
-    "customEmpty": "暂无自定义 Agent，点击「添加自定义 Agent」创建。"
+    "customEmpty": "暂无自定义 Agent，点击「添加自定义 Agent」创建。",
+    "errorCodes": {
+      "command_not_found": "请安装 {{command}}，然后重新测试连接。",
+      "acp_init_failed": "CLI 已启动，但初始化失败。请先完成登录或首次设置，然后重新测试连接。",
+      "health_check_failed": "请先手动打开一次 {{name}} 完成设置或登录，然后重新测试连接。",
+      "session_send_failed": "请修复 {{name}} 的凭证或网络问题，然后新建会话或重新测试连接。",
+      "disabled": "请先启用这个助手，然后重新测试连接。",
+      "no_command": "请先为这个助手配置启动命令，然后重新测试连接。",
+      "bridge_missing": "请安装 {{command}}，然后重新测试连接。",
+      "primary_missing": "请安装 {{command}}，然后重新测试连接。",
+      "command_missing": "请安装 {{command}}，然后重新测试连接。",
+      "managed_runtime_unavailable": "请修复或重新安装 {{resource}}，然后重新测试连接。"
+    }
   },
   "remoteAgent": {
     "title": "远程 Agent",
