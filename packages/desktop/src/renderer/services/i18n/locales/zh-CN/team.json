@@ -37,7 +37,7 @@
     "noSearchResults": "未找到结果",
     "step": {
       "dispatch": "团队 Leader",
-      "subAgents": "子 Agent",
+      "subAgents": "团队成员",
       "workspace": "项目"
     },
     "nameRequired": "请输入团队名称",
@@ -54,7 +54,7 @@
   "emptyState": {
     "subtitle": "描述你的目标，我来协调团队搞定它",
     "suggestions": {
-      "debate": "组织一场辩论赛，让 Agent 各持立场",
+      "debate": "组织一场辩论赛，让不同助手各持立场",
       "interview": "策划一场深度访谈",
       "expert_review": "多位专家会诊同一个问题"
     }

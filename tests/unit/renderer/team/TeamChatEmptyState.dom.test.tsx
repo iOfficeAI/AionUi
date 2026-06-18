@@ -85,4 +85,24 @@ describe('TeamChatEmptyState', () => {
 
     expect(screen.getByText('Legacy Runtime Name')).toBeInTheDocument();
   });
+
+  it('uses assistant-first fallback suggestion copy', () => {
+    useSWRMock.mockReturnValue({
+      data: {
+        id: 'conv-1',
+        type: 'acp',
+        name: 'Team - Leader',
+        extra: {
+          team_id: 'team-1',
+          backend: 'claude',
+        },
+      },
+    });
+    usePresetAssistantInfoMock.mockReturnValue({ info: null });
+
+    render(<TeamChatEmptyState conversation_id='conv-1' isLeader />);
+
+    expect(screen.getByText('Organize a debate with assistants taking different sides')).toBeInTheDocument();
+    expect(screen.getByText('Plan an in-depth interview between assistants')).toBeInTheDocument();
+  });
 });

@@ -27,8 +27,8 @@ const SUGGESTIONS = [
 ];
 
 const SUGGESTION_DEFAULTS: Record<string, string> = {
-  debate: 'Organize a debate with agents taking different sides',
-  interview: 'Plan an in-depth interview between agents',
+  debate: 'Organize a debate with assistants taking different sides',
+  interview: 'Plan an in-depth interview between assistants',
   expert_review: 'Have multiple experts analyze the same problem',
 };
 
