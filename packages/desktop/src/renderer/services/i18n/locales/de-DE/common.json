@@ -59,7 +59,7 @@
   "historyBack": "Zurück",
   "more": "Mehr",
   "refresh": "Aktualisieren",
-  "readOnly": "Read only",
+  "readOnly": "Schreibgeschützt",
   "tray.showWindow": "AionUi anzeigen",
   "tray.newChat": "Neuer Chat",
   "tray.closeToTray": "In Taskleiste minimieren",
@@ -92,12 +92,12 @@
       "description": "Dieses AionUi-Paket ist für {{packageArch}}, aber dieser Mac ist {{deviceArch}}. Möglicherweise hast du das falsche Paket heruntergeladen. Bitte lade das {{expectedArch}}-Paket herunter und installiere es."
     }
   },
-  "fileAttach.addFiles": "Add files",
+  "fileAttach.addFiles": "Dateien hinzufügen",
   "fileAttach.myDevice": "Mein Gerät",
   "fileAttach.failed": "Hochladen fehlgeschlagen",
   "fileAttach.uploading": "Wird hochgeladen...",
   "fileAttach.uploadSuccess": "Erfolgreich hochgeladen",
-  "fileAttach.cancelUpload": "Cancel upload",
+  "fileAttach.cancelUpload": "Upload abbrechen",
   "expand": "Ausklappen",
   "name": "Name",
   "added": "Hinzugefügt",
