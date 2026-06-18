@@ -1400,7 +1400,7 @@ export function initCommandEveBridge(): void {
         };
       }
 
-      const raw = (await response.json().catch(() => null)) as Record<string, unknown> | null;
+      const raw = (await response.json().catch((): null => null)) as Record<string, unknown> | null;
       if (!raw || typeof raw !== 'object') {
         return { success: false, msg: 'CREDITS_STATUS_BAD_BODY', data: quietCreditsStatus(spendCapEurCents, 'CREDITS_STATUS_BAD_BODY') };
       }
