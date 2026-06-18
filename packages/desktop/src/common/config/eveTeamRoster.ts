@@ -32,6 +32,14 @@
  *                                     still gated by the permission modes).
  *   - {@link EveTeamRole.kind}        'work' (an operator role) or 'governance'
  *                                     (a seat — CEO / Chief-of-Staff).
+ *   - {@link EveTeamRole.rhythm}      'always-on' (a permanent worker you pause /
+ *                                     throttle) or 'burst' (a sprint hire you
+ *                                     engage / let go). This drives WHICH control
+ *                                     the UI shows — see eveTeamControlsCore.
+ *   - {@link EveTeamRole.free}        true iff the role runs on the bundled,
+ *                                     zero-cost local Gemma model (no credits).
+ *                                     The base keeps >=1 free always-on worker so
+ *                                     the company is never empty (the floor).
  *
  * The `tier` values mirror {@link EveInferenceWireTier} so a role's spend lands
  * on a known EVE level; we keep this module decoupled (a plain union below) so
@@ -50,6 +58,17 @@ export type EveTeamRoleTier = 'standard' | 'high' | 'max' | 'maximum';
 /** A role is either an operator ("work") or a governance seat. */
 export type EveTeamRoleKind = 'work' | 'governance';
 
+/**
+ * A role's working rhythm — the pre-mortem distinction that keeps the controls
+ * honest:
+ *   - 'always-on' : a permanent member of the company. You PAUSE or THROTTLE
+ *                   (drosseln) it — you do not "fire" it. It stays on the team.
+ *   - 'burst'     : engaged for a sprint / a specific push. You HIRE it for a
+ *                   sprint (einstellen) and LET IT GO (entlassen) when done.
+ * The control surface is keyed off this field — see eveTeamControlsCore.
+ */
+export type EveTeamRoleRhythm = 'always-on' | 'burst';
+
 export interface EveTeamRole {
   /** Stable kebab id — the backend ledger `agent_id` attribution key. Never rename. */
   agent_id: string;
@@ -65,6 +84,14 @@ export interface EveTeamRole {
   skills: string[];
   /** 'work' (operator) or 'governance' (seat). */
   kind: EveTeamRoleKind;
+  /** Working rhythm — drives which control the UI shows (pause/throttle vs hire/fire). */
+  rhythm: EveTeamRoleRhythm;
+  /**
+   * True iff this role runs on the bundled zero-cost local Gemma model. At least
+   * one free always-on worker exists so the non-empty floor can never be undercut
+   * (the company is never empty). Defaults to false (a paid cloud-tier role).
+   */
+  free?: boolean;
 }
 
 /** The reserved system default agent id (un-delegated EVE itself). */
@@ -76,7 +103,7 @@ export const EVE_SYSTEM_AGENT_ID = 'eve';
  * operators, then the eval/research support role.
  */
 export const EVE_TEAM_ROSTER: readonly EveTeamRole[] = [
-  // ── Governance seats ────────────────────────────────────────────────
+  // ── Governance seats (always-on — the company always has its leadership) ──
   {
     agent_id: 'ceo',
     displayName: 'EVE',
@@ -85,6 +112,7 @@ export const EVE_TEAM_ROSTER: readonly EveTeamRole[] = [
     tier: 'high',
     skills: ['strategy', 'planning', 'decision-making'],
     kind: 'governance',
+    rhythm: 'always-on',
   },
   {
     agent_id: 'chief-of-staff',
@@ -94,8 +122,27 @@ export const EVE_TEAM_ROSTER: readonly EveTeamRole[] = [
     tier: 'high',
     skills: ['coordination', 'delegation', 'reporting'],
     kind: 'governance',
+    rhythm: 'always-on',
+  },
+  // ── The free local floor (Hauspförtner / FAQ) ───────────────────────────
+  // G0: the bundled, zero-cost local Gemma always-on worker. This is the
+  // non-empty floor — the base always keeps at least one of these so the
+  // company is never empty. No card, no credits, ever.
+  {
+    agent_id: 'house-keeper',
+    displayName: 'Hauspförtner',
+    title: 'Empfang / FAQ (G0, gratis lokal)',
+    outcome: 'Beantwortet einfache Fragen rund um die Uhr — kostenlos und lokal, ohne Credits.',
+    tier: 'standard',
+    skills: ['faq', 'triage', 'local-chat'],
+    kind: 'work',
+    rhythm: 'always-on',
+    free: true,
   },
   // ── Growth / content operators ──────────────────────────────────────
+  // Always-on operators run the steady drumbeat (you pause / throttle them);
+  // burst operators are engaged for a specific push (you hire for a sprint /
+  // let them go).
   {
     agent_id: 'growth-lead',
     displayName: 'Growth Lead',
@@ -104,6 +151,7 @@ export const EVE_TEAM_ROSTER: readonly EveTeamRole[] = [
     tier: 'max',
     skills: ['marketing-strategy', 'campaign-planning', 'analytics'],
     kind: 'work',
+    rhythm: 'always-on',
   },
   {
     agent_id: 'seo-lead',
@@ -113,6 +161,7 @@ export const EVE_TEAM_ROSTER: readonly EveTeamRole[] = [
     tier: 'high',
     skills: ['seo-audit', 'keyword-research', 'web-search'],
     kind: 'work',
+    rhythm: 'always-on',
   },
   {
     agent_id: 'content-writer',
@@ -122,6 +171,7 @@ export const EVE_TEAM_ROSTER: readonly EveTeamRole[] = [
     tier: 'standard',
     skills: ['content-creation', 'copywriting', 'brand-voice'],
     kind: 'work',
+    rhythm: 'always-on',
   },
   {
     agent_id: 'reddit-lead',
@@ -131,6 +181,7 @@ export const EVE_TEAM_ROSTER: readonly EveTeamRole[] = [
     tier: 'standard',
     skills: ['community', 'web-search', 'social-listening'],
     kind: 'work',
+    rhythm: 'burst',
   },
   {
     agent_id: 'video-marketer',
@@ -140,6 +191,7 @@ export const EVE_TEAM_ROSTER: readonly EveTeamRole[] = [
     tier: 'max',
     skills: ['video-script', 'storyboard', 'social-video'],
     kind: 'work',
+    rhythm: 'burst',
   },
   // ── Eval / research support ─────────────────────────────────────────
   {
@@ -150,6 +202,7 @@ export const EVE_TEAM_ROSTER: readonly EveTeamRole[] = [
     tier: 'maximum',
     skills: ['research', 'fact-check', 'evaluation'],
     kind: 'work',
+    rhythm: 'burst',
   },
 ] as const;
 

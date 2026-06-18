@@ -17,6 +17,7 @@ import {
   SiderConnectorCatalogEntry,
   SiderSkillLibraryEntry,
   SiderLocalRuntimeEntry,
+  SiderDeinTeamEntry,
 } from './SiderNav';
 import SiderFooter from './SiderFooter';
 import CronJobSiderSection from './CronJobSiderSection';
@@ -158,6 +159,19 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
     }
   };
 
+  const handleDeinTeamClick = () => {
+    cleanupSiderTooltips();
+    blurActiveElement();
+    closePreview();
+    setIsBatchMode(false);
+    Promise.resolve(navigate('/team-roster')).catch((error) => {
+      console.error('Navigation failed:', error);
+    });
+    if (onSessionClick) {
+      onSessionClick();
+    }
+  };
+
   const handleQuickThemeToggle = () => {
     void setTheme(theme === 'dark' ? 'light' : 'dark');
   };
@@ -273,6 +287,13 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
               collapsed={collapsed}
               siderTooltipProps={siderTooltipProps}
               onClick={handleLocalRuntimeClick}
+            />
+            <SiderDeinTeamEntry
+              isMobile={isMobile}
+              isActive={pathname === '/team-roster'}
+              collapsed={collapsed}
+              siderTooltipProps={siderTooltipProps}
+              onClick={handleDeinTeamClick}
             />
             {/* Divider between fixed top nav and scrollable content area */}
             <div

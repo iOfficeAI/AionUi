@@ -1077,6 +1077,9 @@ export type I18nKey =
   | 'cron.status.unread'
   | 'cron.taskCount'
   | 'cron.trigger.runScheduledTask'
+  | 'deinTeam.sider'
+  | 'deinTeam.subtitle'
+  | 'deinTeam.title'
   | 'fileSelection.pleaseSelectDirectory'
   | 'fileSelection.pleaseSelectFile'
   | 'fileSelection.selectDirectory'
@@ -2692,4 +2695,5 @@ export type I18nModule =
   | 'connectorCatalog'
   | 'skillLibrary'
   | 'localRuntime'
+  | 'deinTeam'
   | 'registrationGate';

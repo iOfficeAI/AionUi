@@ -26,6 +26,7 @@ const CommandCenterPage = React.lazy(() => import('@renderer/pages/commandCenter
 const ConnectorCatalogPage = React.lazy(() => import('@renderer/pages/connectorCatalog'));
 const SkillLibraryPage = React.lazy(() => import('@renderer/pages/skillLibrary'));
 const LocalRuntimePage = React.lazy(() => import('@renderer/pages/localRuntime'));
+const DeinTeamPage = React.lazy(() => import('@renderer/pages/deinTeam'));
 const RegistrationGatePage = React.lazy(() => import('@renderer/pages/registrationGate'));
 const DayZeroOnboardingHost = React.lazy(() => import('@renderer/components/billing/DayZeroOnboardingHost'));
 
@@ -117,6 +118,7 @@ const PanelRoute: React.FC<{ layout: React.ReactElement }> = ({ layout }) => {
           <Route path='/connectors' element={withRouteFallback(ConnectorCatalogPage)} />
           <Route path='/skills' element={withRouteFallback(SkillLibraryPage)} />
           <Route path='/runtime' element={withRouteFallback(LocalRuntimePage)} />
+          <Route path='/team-roster' element={withRouteFallback(DeinTeamPage)} />
         </Route>
         <Route path='*' element={<Navigate to={status === 'authenticated' ? '/guid' : '/login'} replace />} />
       </Routes>
