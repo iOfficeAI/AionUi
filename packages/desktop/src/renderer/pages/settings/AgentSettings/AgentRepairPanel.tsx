@@ -68,6 +68,9 @@ const AgentRepairPanel: React.FC<AgentRepairPanelProps> = ({ agent, onSaved }) =
         .filter((row) => row.key.trim())
         .map((row) => ({ name: row.key.trim(), value: row.value }));
 
+      // Backend uses whole-replace semantics: setAgentOverrides overwrites BOTH command_override
+      // and env_override columns from the request body. Missing/empty/null command_override is
+      // written as None (cleared), so reset-path-then-save correctly clears the override.
       await acpConversation.setAgentOverrides.invoke({
         id: agent.id,
         command_override: commandOverride.trim() || undefined,
