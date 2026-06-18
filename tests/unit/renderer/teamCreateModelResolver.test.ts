@@ -78,4 +78,15 @@ describe('resolveDefaultTeamAgentModel', () => {
       })
     ).resolves.toBe('auto');
   });
+
+  it('uses the provided assistant backend when detail lookup fails', async () => {
+    getAssistantMock.mockRejectedValue(new Error('lookup failed'));
+
+    await expect(
+      resolveDefaultTeamAgentModel({
+        assistant_id: 'assistant-gemini',
+        assistant_backend: 'gemini',
+      })
+    ).resolves.toBe('auto');
+  });
 });

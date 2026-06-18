@@ -147,6 +147,7 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
       const leaderAssistant = leaderAssistantId ? assistantFromId(leaderAssistantId, allAssistants) : undefined;
       const resolvedModel = await resolveDefaultTeamAgentModel({
         assistant_id: leaderAssistant?.id,
+        assistant_backend: leaderAssistant?.backend,
       });
       assistants.push({
         role: 'leader',
