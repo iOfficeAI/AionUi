@@ -5,6 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
+import { parseError } from '@/common/utils';
 import type { ManagedAgent } from '@/renderer/utils/model/agentTypes';
 import AionModal from '@/renderer/components/base/AionModal';
 import { useManagedAgents } from '@/renderer/hooks/agent/useManagedAgents';
@@ -54,8 +55,8 @@ const LocalAgents: React.FC = () => {
         setEditorVisible(false);
         setEditingAgent(null);
       } catch (err) {
-        // Surface backend rejection (e.g. cli_not_found / acp_init_failed) without crashing.
         console.error('save custom agent failed:', err);
+        Message.error(parseError(err));
       }
     },
     [editingAgent, refreshCatalog]
@@ -68,6 +69,7 @@ const LocalAgents: React.FC = () => {
         await refreshCatalog();
       } catch (err) {
         console.error('delete custom agent failed:', err);
+        Message.error(parseError(err));
       }
     },
     [refreshCatalog]
@@ -80,6 +82,7 @@ const LocalAgents: React.FC = () => {
         await refreshCatalog();
       } catch (err) {
         console.error('toggle custom agent failed:', err);
+        Message.error(parseError(err));
       }
     },
     [refreshCatalog]

@@ -280,4 +280,29 @@ describe('LocalAgents', () => {
     expect(screen.getByText('Aion CLI')).toBeInTheDocument();
     expect(screen.queryByText('settings.agentManagement.localAgents')).toBeNull();
   });
+
+  it('surfaces custom-agent toggle failures to the user', async () => {
+    const refreshCatalog = vi.fn().mockResolvedValue(undefined);
+    useManagedAgents.mockReturnValue({
+      agents: makeAgents(),
+      revalidate: vi.fn(),
+      refreshCatalog,
+    });
+    vi.mocked(ipcBridge.acpConversation.setAgentEnabled.invoke).mockRejectedValue({
+      backendMessage: 'permission denied',
+    });
+
+    render(<LocalAgents />);
+
+    fireEvent.click(screen.getByRole('switch'));
+
+    await waitFor(() => {
+      expect(ipcBridge.acpConversation.setAgentEnabled.invoke).toHaveBeenCalledWith({
+        id: 'custom-1',
+        enabled: false,
+      });
+      expect(messageError).toHaveBeenCalledWith('permission denied');
+    });
+    expect(refreshCatalog).not.toHaveBeenCalled();
+  });
 });
