@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -12,6 +12,7 @@ import type { Assistant } from '@/common/types/agent/assistantTypes';
 import type { ICronJob } from '@/common/adapter/ipcBridge';
 
 const getJobInvokeMock = vi.fn();
+const runNowInvokeMock = vi.fn();
 const navigateMock = vi.fn();
 
 vi.mock('react-i18next', () => ({
@@ -35,7 +36,7 @@ vi.mock('@/common', () => ({
       onJobUpdated: { on: () => vi.fn() },
       onJobExecuted: { on: () => vi.fn() },
       updateJob: { invoke: vi.fn() },
-      runNow: { invoke: vi.fn() },
+      runNow: { invoke: (...args: unknown[]) => runNowInvokeMock(...args) },
       removeJob: { invoke: vi.fn() },
     },
     conversation: {
@@ -68,7 +69,32 @@ describe('TaskDetailPage', () => {
   beforeEach(() => {
     getJobInvokeMock.mockReset();
     getJobInvokeMock.mockResolvedValue(job());
+    runNowInvokeMock.mockReset();
+    runNowInvokeMock.mockResolvedValue({});
     navigateMock.mockReset();
+  });
+
+  it('triggers run-now only once when the button is clicked twice in quick succession', async () => {
+    // Keep the in-flight run pending so the button stays in its running state
+    // across both clicks. The second click must be blocked by the re-entry
+    // guard rather than firing another backend invocation.
+    runNowInvokeMock.mockReturnValue(new Promise(() => {}));
+
+    render(
+      <MemoryRouter initialEntries={['/scheduled/job-1']}>
+        <Routes>
+          <Route path='/scheduled/:job_id' element={<TaskDetailPage />} />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    await waitFor(() => expect(getJobInvokeMock).toHaveBeenCalledWith({ job_id: 'job-1' }));
+
+    const runButton = await screen.findByText('cron.detail.runNow');
+    fireEvent.click(runButton);
+    fireEvent.click(runButton);
+
+    expect(runNowInvokeMock).toHaveBeenCalledTimes(1);
   });
 
   it('renders preset assistant identity instead of backing runtime identity', async () => {

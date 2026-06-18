@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button, Message, Switch, Popconfirm, Spin, Empty } from '@arco-design/web-react';
@@ -32,6 +32,10 @@ const TaskDetailPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [editDialogVisible, setEditDialogVisible] = useState(false);
   const [runningNow, setRunningNow] = useState(false);
+  // Synchronous re-entry guard: `setRunningNow` is async, so two rapid clicks
+  // can both pass a state-based check before the first re-render disables the
+  // button. The ref blocks the second invocation immediately.
+  const runningNowRef = useRef(false);
 
   const isNewConversationMode = job?.target.execution_mode === 'new_conversation';
   const isManualOnly = job?.schedule.kind === 'cron' && !job.schedule.expr;
@@ -89,6 +93,8 @@ const TaskDetailPage: React.FC = () => {
 
   const handleRunNow = useCallback(async () => {
     if (!job) return;
+    if (runningNowRef.current) return;
+    runningNowRef.current = true;
     setRunningNow(true);
     try {
       const result = await ipcBridge.cron.runNow.invoke({ job_id: job.id });
@@ -143,6 +149,7 @@ const TaskDetailPage: React.FC = () => {
     } catch (err) {
       Message.error(getConversationRuntimeWorkspaceErrorMessage(err, t));
     } finally {
+      runningNowRef.current = false;
       setRunningNow(false);
     }
   }, [job, t, navigate]);
@@ -230,7 +237,7 @@ const TaskDetailPage: React.FC = () => {
                     icon={<Delete theme='outline' size={16} fill='currentColor' />}
                   />
                 </Popconfirm>
-                <Button type='primary' shape='round' loading={runningNow} onClick={handleRunNow}>
+                <Button type='primary' shape='round' loading={runningNow} disabled={runningNow} onClick={handleRunNow}>
                   {t('cron.detail.runNow')}
                 </Button>
               </div>
