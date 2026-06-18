@@ -45,9 +45,12 @@ export function useHubAgents() {
       );
 
       // After install completes, revalidate the diagnostics catalog only.
-      // Business pickers consume assistants, not `/api/agents`.
+      // Business pickers consume assistants, not `/api/agents`, so hub
+      // installs must also invalidate assistant list caches.
       if (payload.status === 'installed') {
         mutate(MANAGED_AGENTS_SWR_KEY);
+        mutate('assistants.list');
+        mutate('assistants');
       }
     });
 
