@@ -550,7 +550,9 @@ const AionrsSendBox: React.FC<{
             group.kind === 'eve'
               ? `EVE · ${item.label}`
               : `${t('common.localModel', { defaultValue: 'Lokal' })} · ${item.label}`,
-          description: item.sublabel,
+          // Paid STUFEN (Max/Maximum) append their cost badge so the credit /
+          // ~5× cost is visible in-chat, not only in the pre-chat picker.
+          description: item.costBadge ? `${item.sublabel} · ${item.costBadge}` : item.sublabel,
           active: item.value === eveInference.selection && !item.disabled,
           disabled: item.disabled,
         }))

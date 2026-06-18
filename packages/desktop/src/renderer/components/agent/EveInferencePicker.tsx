@@ -5,21 +5,29 @@
  */
 
 /**
- * EVE Inference picker — the ONLY model picker a Command EVE trial user sees.
+ * EVE Inference picker — the ONLY model picker a Command EVE user sees. The user
+ * picks a STUFE (level), never a raw model id.
  *
  * Founder mandate: "nothing confusing". So this renders EXACTLY TWO groups and
  * nothing else — no raw CLI/agent picker, no raw provider/model list:
  *
- *   - Privat (lokal):   Standard (Gemma 4 E4B) · High (Gemma 4 12B)
- *   - EVE Inference:    Standard · High · Max
+ *   - Privat (lokal):   Standard (Gemma 4 E4B) · Hoch (Gemma 4 12B)
+ *   - EVE Inference:    Standard · Hoch · Max · Maximum
+ *
+ * EVE LEVELS (Stufen):
+ *   - Standard / Hoch — FREE (Standard is the default).
+ *   - Max — PAID (DeepSeek V4 Pro). Marked "verbraucht Credits".
+ *   - Maximum / "härteste Aufgabe" — PAID + GATED (GLM 5.2). Carries a VISIBLE
+ *     higher-cost badge ("~5× Kosten") so the rate is obvious before picking.
  *
  * When the entitlement is trialing/free (entitlementCore CEVE.v2
- * `trial_ends_at` present), EVE High + EVE Max are GREYED OUT (disabled) with a
- * subtle "im Paid-Tarif" hint. Only EVE Standard + the two local tiers stay
- * selectable. The picker model + gating come from the pure `eveInferenceCore`.
+ * `trial_ends_at` present), EVE Max + EVE Maximum are GREYED OUT (disabled) with
+ * a subtle "im Paid-Tarif" hint. Only EVE Standard + EVE Hoch + the two local
+ * tiers stay selectable. The picker model + gating come from the pure
+ * `eveInferenceCore`.
  *
  * The selection is persisted to `commandEve.inferenceSelection`; the send path
- * resolves it (and injects the CEVE bearer for an EVE tier) via the main-process
+ * resolves it (and injects the CEVE bearer for an EVE level) via the main-process
  * `command-eve.resolve-inference-provider` bridge — this component never holds
  * the raw license wire.
  */
@@ -84,9 +92,31 @@ const EveInferencePicker: React.FC<{
                       <span className='text-12px opacity-50'>({item.sublabel})</span>
                     ) : null}
                   </span>
-                  {item.disabled && item.disabledReasonCode === 'PAID_TIER_REQUIRED' ? (
-                    <span className='text-11px opacity-50 shrink-0'>{PAID_HINT_DE}</span>
-                  ) : null}
+                  <span className='flex items-center gap-6px shrink-0'>
+                    {/* Cost badge: the GATED (Maximum) level gets a loud, high-cost
+                        badge so the ~5× rate is unmistakable; the credit-consuming
+                        Max level gets a softer credit marker. Always shown,
+                        whether or not the row is greyed while trialing. */}
+                    {item.costBadge ? (
+                      <span
+                        className={
+                          item.gated
+                            ? 'text-11px font-600 px-6px py-1px rounded-full text-warning bg-warning-light-1 shrink-0'
+                            : 'text-11px px-6px py-1px rounded-full opacity-70 bg-2 shrink-0'
+                        }
+                        title={
+                          item.gated
+                            ? t('conversation.eveInference.highestCost', 'Höchste Kosten — nur für die härteste Aufgabe')
+                            : t('conversation.eveInference.consumesCredits', 'Verbraucht Credits')
+                        }
+                      >
+                        {item.costBadge}
+                      </span>
+                    ) : null}
+                    {item.disabled && item.disabledReasonCode === 'PAID_TIER_REQUIRED' ? (
+                      <span className='text-11px opacity-50 shrink-0'>{PAID_HINT_DE}</span>
+                    ) : null}
+                  </span>
                 </div>
               </Menu.Item>
             );
