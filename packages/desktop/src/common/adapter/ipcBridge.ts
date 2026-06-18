@@ -436,7 +436,7 @@ export interface IAppRestartResult {
   reason?: 'dev-mode';
 }
 
-export type IRendererLogLevel = 'info' | 'warn' | 'error';
+export type IRendererLogLevel = 'debug' | 'info' | 'warn' | 'error';
 
 export interface IRendererLogEntry {
   level: IRendererLogLevel;
