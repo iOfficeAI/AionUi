@@ -81,11 +81,29 @@ export function isWorkerActive(role: EveTeamRole, statuses: EveTeamWorkerStatusM
   return statusForRole(role, statuses) === 'active';
 }
 
-/** Count the currently-active workers across the roster. */
+/** Count ALL currently-active roles across the roster (operators + seats). */
 export function countActiveWorkers(statuses: EveTeamWorkerStatusMap, roster: readonly EveTeamRole[] = EVE_TEAM_ROSTER): number {
   let n = 0;
   for (const role of roster) {
     if (isWorkerActive(role, statuses)) n += 1;
+  }
+  return n;
+}
+
+/**
+ * Count the currently-active OPERATORS (kind === 'work') only. This is the
+ * number the non-empty-floor guard cares about: governance seats (CEO /
+ * Chief-of-Staff) are permanent and have no off control, so counting them would
+ * mask an empty *workforce*. The floor is about keeping a real worker running —
+ * specifically the free local one — not about leadership always being present.
+ */
+export function countActiveOperators(
+  statuses: EveTeamWorkerStatusMap,
+  roster: readonly EveTeamRole[] = EVE_TEAM_ROSTER
+): number {
+  let n = 0;
+  for (const role of roster) {
+    if (role.kind === 'work' && isWorkerActive(role, statuses)) n += 1;
   }
   return n;
 }
@@ -182,10 +200,12 @@ export function evaluateFloorGuard(
   }
 
   const floor = findFreeFloorWorker(roster);
-  const activeBefore = countActiveWorkers(statuses, roster);
-  const roleIsActive = isWorkerActive(role, statuses);
-  // How many workers would be active AFTER this action (only changes if the
-  // role was active and is being deactivated).
+  // The floor is measured over OPERATORS only — governance seats are permanent
+  // and would otherwise mask an empty workforce.
+  const activeBefore = countActiveOperators(statuses, roster);
+  const roleIsActive = role.kind === 'work' && isWorkerActive(role, statuses);
+  // How many operators would be active AFTER this action (only changes if the
+  // role is a work role that was active and is being deactivated).
   const activeAfter = roleIsActive ? activeBefore - 1 : activeBefore;
 
   // Rule 1: never deactivate the free floor worker when it is the last guard of

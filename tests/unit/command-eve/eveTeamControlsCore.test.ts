@@ -26,6 +26,7 @@ import {
   applyControlAction,
   controlKindForRhythm,
   controlKindForRole,
+  countActiveOperators,
   countActiveWorkers,
   defaultStatusForRole,
   evaluateFloorGuard,
@@ -129,6 +130,15 @@ describe('eveTeamControlsCore — status resolution & defaults', () => {
     expect(countActiveWorkers({}, TEST_ROSTER)).toBe(3);
     expect(countActiveWorkers({ 'seo-lead': 'off', 'video-marketer': 'off' }, TEST_ROSTER)).toBe(1);
   });
+
+  it('countActiveOperators counts only work roles, never governance seats', () => {
+    // The real roster has 2 governance seats; counting all vs operators differs.
+    const all = countActiveWorkers({});
+    const ops = countActiveOperators({});
+    expect(all - ops).toBe(2); // exactly the two governance seats
+    // On the synthetic (governance-free) roster the two agree.
+    expect(countActiveOperators({}, TEST_ROSTER)).toBe(3);
+  });
 });
 
 describe('eveTeamControlsCore — (B) the free local floor worker', () => {
@@ -231,18 +241,39 @@ describe('eveTeamControlsCore — applyControlAction reducer (never goes empty)'
     expect(countActiveWorkers(next, TEST_ROSTER)).toBe(2);
   });
 
-  it('property: no sequence of deactivations against the real roster can empty the company', () => {
+  it('property: no sequence of deactivations against the real roster can empty the workforce', () => {
     let statuses: EveTeamWorkerStatusMap = {};
-    // Try to turn every worker off, always confirming the warning.
+    // Try to turn every operator off, always confirming the warning.
     for (const role of EVE_TEAM_ROSTER) {
       if (role.kind === 'governance') continue; // governance has no off control
       const action = role.rhythm === 'always-on' ? 'stop' : 'release';
       const res = applyControlAction(role, action, statuses, { confirmedWarning: true });
       statuses = res.next;
     }
-    // The floor guarantees at least one active worker remains.
-    expect(countActiveWorkers(statuses)).toBeGreaterThanOrEqual(1);
+    // The floor guarantees at least one active OPERATOR remains — and it is the
+    // free local worker. Governance seats stay up but do not satisfy the floor.
+    expect(countActiveOperators(statuses)).toBeGreaterThanOrEqual(1);
     const floor = findEveTeamRole('house-keeper')!;
     expect(isWorkerActive(floor, statuses)).toBe(true);
+  });
+
+  it('governance seats do NOT mask an empty workforce (operator floor, not seat count)', () => {
+    // Deactivate every operator EXCEPT the floor, in roster order, then try to
+    // deactivate the floor itself — the guard must refuse / keep it on.
+    let statuses: EveTeamWorkerStatusMap = {};
+    for (const role of EVE_TEAM_ROSTER) {
+      if (role.kind !== 'work') continue;
+      if (role.agent_id === 'house-keeper') continue;
+      const action = role.rhythm === 'always-on' ? 'stop' : 'release';
+      statuses = applyControlAction(role, action, statuses, { confirmedWarning: true }).next;
+    }
+    // Now only governance seats + the floor are active. Try to stop the floor.
+    const floor = findEveTeamRole('house-keeper')!;
+    const decision = evaluateFloorGuard(floor, 'stop', statuses);
+    expect(decision.requiresWarning).toBe(true);
+    expect(decision.reason).toBe('is-free-floor-worker');
+    const res = applyControlAction(floor, 'stop', statuses, { confirmedWarning: true });
+    expect(isWorkerActive(floor, res.next)).toBe(true); // floor kept on
+    expect(countActiveOperators(res.next)).toBeGreaterThanOrEqual(1);
   });
 });
