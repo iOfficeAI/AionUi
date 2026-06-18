@@ -477,6 +477,7 @@ const PreviewPanel: React.FC = () => {
                 content={content}
                 file_path={metadata?.file_path}
                 workspace={metadata?.workspace}
+                isDirty={activeTab?.isDirty}
                 copySuccessMessage={t('preview.html.copySuccess')}
                 inspectMode={inspectMode}
                 onElementSelected={handleElementSelected}
@@ -519,6 +520,7 @@ const PreviewPanel: React.FC = () => {
                   content={content}
                   file_path={metadata?.file_path}
                   workspace={metadata?.workspace}
+                  isDirty={activeTab?.isDirty}
                   containerRef={previewContainerRef}
                   onScroll={handlePreviewScroll}
                   inspectMode={inspectMode}
@@ -551,6 +553,7 @@ const PreviewPanel: React.FC = () => {
               content={content}
               file_path={metadata?.file_path}
               workspace={metadata?.workspace}
+              isDirty={activeTab?.isDirty}
               inspectMode={inspectMode}
               copySuccessMessage={t('preview.html.copySuccess')}
               onElementSelected={handleElementSelected}
