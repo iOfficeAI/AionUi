@@ -12,10 +12,16 @@ const LEGACY_BACKEND_CLOSE_TO_TRAY_KEY = 'closeToTray';
 
 const readBackendBoolean = async (key: string): Promise<boolean | undefined> => {
   try {
-    const value = await httpRequest<unknown>('GET', `/api/settings/client?key=${encodeURIComponent(key)}`, undefined, {
-      silentStatuses: [404],
-    });
-    return typeof value === 'boolean' ? value : undefined;
+    const value = await httpRequest<Record<string, unknown>>(
+      'GET',
+      `/api/settings/client?keys=${encodeURIComponent(key)}`,
+      undefined,
+      {
+        silentStatuses: [404],
+      }
+    );
+    const entry = value?.[key];
+    return typeof entry === 'boolean' ? entry : undefined;
   } catch {
     return undefined;
   }

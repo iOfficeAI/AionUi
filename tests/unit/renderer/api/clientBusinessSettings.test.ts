@@ -26,11 +26,13 @@ describe('clientBusinessSettings', () => {
   });
 
   it('reads a business setting from backend client settings', async () => {
-    httpRequestMock.mockResolvedValue({ id: 'provider-1', use_model: 'gpt-image-1' });
+    httpRequestMock.mockResolvedValue({
+      'tools.imageGenerationModel': { id: 'provider-1', use_model: 'gpt-image-1' },
+    });
 
     const result = await getClientBusinessSetting('tools.imageGenerationModel');
 
-    expect(httpRequestMock).toHaveBeenCalledWith('GET', '/api/settings/client?key=tools.imageGenerationModel');
+    expect(httpRequestMock).toHaveBeenCalledWith('GET', '/api/settings/client?keys=tools.imageGenerationModel');
     expect(result).toEqual({ id: 'provider-1', use_model: 'gpt-image-1' });
   });
 

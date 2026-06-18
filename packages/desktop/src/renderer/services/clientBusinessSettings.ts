@@ -10,10 +10,11 @@ import type { ClientBusinessSettingKey, ClientBusinessSettingMap } from '@/commo
 export async function getClientBusinessSetting<K extends ClientBusinessSettingKey>(
   key: K
 ): Promise<ClientBusinessSettingMap[K] | undefined> {
-  return httpRequest<ClientBusinessSettingMap[K] | undefined>(
+  const data = await httpRequest<Record<string, ClientBusinessSettingMap[K] | undefined>>(
     'GET',
-    `/api/settings/client?key=${encodeURIComponent(key)}`
+    `/api/settings/client?keys=${encodeURIComponent(key)}`
   );
+  return data?.[key];
 }
 
 export async function setClientBusinessSetting<K extends ClientBusinessSettingKey>(

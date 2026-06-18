@@ -113,6 +113,17 @@ import {
   type RawWorkspaceFlatFile,
 } from './workspaceMapper';
 
+const httpGetClientSetting = <T>(key: string) => ({
+  provider: () => {},
+  invoke: (async () => {
+    const data = await httpRequest<Record<string, T | undefined>>(
+      'GET',
+      `/api/settings/client?keys=${encodeURIComponent(key)}`
+    );
+    return data?.[key];
+  }) as () => Promise<T | undefined>,
+});
+
 // ---------------------------------------------------------------------------
 // Shell — routed to POST /api/shell/*
 // ---------------------------------------------------------------------------
@@ -1118,23 +1129,23 @@ export const theme = {
 export const systemSettings = {
   getCloseToTray: bridge.buildProvider<boolean, void>('system-settings:get-close-to-tray'),
   setCloseToTray: bridge.buildProvider<void, { enabled: boolean }>('system-settings:set-close-to-tray'),
-  getNotificationEnabled: httpGet<boolean, void>('/api/settings/client?key=notificationEnabled'),
+  getNotificationEnabled: httpGetClientSetting<boolean>('notificationEnabled'),
   setNotificationEnabled: httpPut<void, { enabled: boolean }>('/api/settings/client', (p) => ({
     notificationEnabled: p.enabled,
   })),
-  getCronNotificationEnabled: httpGet<boolean, void>('/api/settings/client?key=cronNotificationEnabled'),
+  getCronNotificationEnabled: httpGetClientSetting<boolean>('cronNotificationEnabled'),
   setCronNotificationEnabled: httpPut<void, { enabled: boolean }>('/api/settings/client', (p) => ({
     cronNotificationEnabled: p.enabled,
   })),
-  getKeepAwake: httpGet<boolean, void>('/api/settings/client?key=keepAwake'),
+  getKeepAwake: httpGetClientSetting<boolean>('keepAwake'),
   setKeepAwake: httpPut<void, { enabled: boolean }>('/api/settings/client', (p) => ({ keepAwake: p.enabled })),
   changeLanguage: httpPatch<void, { language: string }>('/api/settings', (p) => ({ language: p.language })),
   languageChanged: wsEmitter<{ language: string }>('system-settings:language-changed'),
-  getSaveUploadToWorkspace: httpGet<boolean, void>('/api/settings/client?key=saveUploadToWorkspace'),
+  getSaveUploadToWorkspace: httpGetClientSetting<boolean>('saveUploadToWorkspace'),
   setSaveUploadToWorkspace: httpPut<void, { enabled: boolean }>('/api/settings/client', (p) => ({
     saveUploadToWorkspace: p.enabled,
   })),
-  getAutoPreviewOfficeFiles: httpGet<boolean, void>('/api/settings/client?key=autoPreviewOfficeFiles'),
+  getAutoPreviewOfficeFiles: httpGetClientSetting<boolean>('autoPreviewOfficeFiles'),
   setAutoPreviewOfficeFiles: httpPut<void, { enabled: boolean }>('/api/settings/client', (p) => ({
     autoPreviewOfficeFiles: p.enabled,
   })),
