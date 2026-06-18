@@ -164,9 +164,10 @@ export const buildAssistantEditorBackends = (
       continue;
     }
 
+    const models = Array.isArray(assistant.models) ? assistant.models : [];
     const modelOptions =
-      assistant.models.length > 0
-        ? assistant.models.map((model) => ({ value: model, label: model }))
+      models.length > 0
+        ? models.map((model) => ({ value: model, label: model }))
         : backend === 'codex'
           ? DEFAULT_CODEX_MODELS.map((model) => ({ value: model.id, label: model.label }))
           : [];

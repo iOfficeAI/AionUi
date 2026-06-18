@@ -86,6 +86,26 @@ describe('buildAssistantEditorBackends', () => {
       },
     ]);
   });
+
+  it('tolerates bare assistants with missing models arrays', () => {
+    const assistants = [
+      assistant({
+        id: 'bare-droid',
+        source: 'bare',
+        preset_agent_type: 'droid',
+        name: 'droid',
+        models: undefined,
+      }),
+    ] as Assistant[];
+
+    expect(buildAssistantEditorBackends(assistants, 'en-US')).toEqual([
+      {
+        id: 'droid',
+        name: 'droid',
+        modelOptions: [],
+      },
+    ]);
+  });
 });
 
 function assistant(overrides: Partial<Assistant> & Pick<Assistant, 'id' | 'source' | 'preset_agent_type' | 'name'>) {
