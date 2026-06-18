@@ -12,6 +12,7 @@ import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 import type { TokenUsageData } from '@/common/config/storage';
 import { useAddOrUpdateMessage } from '@/renderer/pages/conversation/Messages/hooks';
 import type { ThoughtData } from '@/renderer/components/chat/ThoughtDisplay';
+import { useQuotaWall, type QuotaWallState } from '@renderer/hooks/useQuotaWall';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 export type UseAcpMessageReturn = {
@@ -29,6 +30,13 @@ export type UseAcpMessageReturn = {
   slashCommands: SlashCommandItem[];
   fetchSlashCommands: () => void;
   runtimeActivity: AcpRuntimeActivity;
+  /**
+   * Lane-3 402 quota-exhausted wall controller. Fed by the LIVE ACP stream-error
+   * path: when an EVE-inference turn errors with a 402 quota_exhausted body, the
+   * wall body is set and surfaces <QuotaExhaustedWall/> (idle-suppressed). The
+   * container renders `<QuotaExhaustedWall {...quotaWall} jobInFlight=… />`.
+   */
+  quotaWall: QuotaWallState;
 };
 
 export type AcpRuntimeActivityPhase =
@@ -72,6 +80,11 @@ export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: 
     phase: 'idle',
     updatedAt: Date.now(),
   });
+
+  // Lane-3: the 402 quota-exhausted wall controller. The live stream-error path
+  // (the 'error' case below) feeds it via reportInferenceError; the container
+  // renders the wall from this state.
+  const quotaWall = useQuotaWall();
 
   // Use refs to sync state for immediate access in event handlers
   const runningRef = useRef(running);
@@ -410,7 +423,15 @@ export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: 
             );
           }
           break;
-        case 'error':
+        case 'error': {
+          // Lane-3 402 wall: capture whether a turn was in-flight BEFORE the
+          // resets below clear it (idle-suppression keys off jobInFlight). Then
+          // feed the raw error to the quota-wall controller — a genuine 402
+          // quota_exhausted surfaces <QuotaExhaustedWall/>; anything else is a
+          // no-op so the existing error message rendering is untouched.
+          const jobWasInFlight = runningRef.current || aiProcessingRef.current;
+          quotaWall.reportInferenceError(message.data, { jobInFlight: jobWasInFlight });
+
           // Stop all loading states when error occurs
           turnFinishedRef.current = true;
           setRunning(false);
@@ -439,6 +460,7 @@ export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: 
             requestTraceRef.current = null;
           }
           break;
+        }
         default:
           // Auto-recover running state only if turn hasn't finished
           if (!runningRef.current && !turnFinishedRef.current) {
@@ -449,7 +471,7 @@ export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: 
           break;
       }
     },
-    [conversation_id, addOrUpdateMessage, throttledSetThought, setThought, setRunning, setAiProcessing, setAcpStatus]
+    [conversation_id, addOrUpdateMessage, throttledSetThought, setThought, setRunning, setAiProcessing, setAcpStatus, quotaWall]
   );
 
   useEffect(() => {
@@ -611,5 +633,6 @@ export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: 
     slashCommands,
     fetchSlashCommands,
     runtimeActivity,
+    quotaWall,
   };
 };

@@ -120,6 +120,11 @@ export interface IConfigStorageRefer {
   'commandEve.inferenceSelection'?: string;
   // Explicit Command EVE execution mode. Default runtime interpretation is delegated.
   'commandEve.executionMode'?: 'observed' | 'delegated' | 'autonomous';
+  // User hard spend cap in EUR cents (Lane 3 billing). 0 / absent ⇒ uncapped.
+  // The main process persists this here and merges it into the credits-status
+  // result so the meter + wall reflect the cap even before a Lane-1+2 server
+  // round-trips it back.
+  'commandEve.spendCapEurCents'?: number;
   // Telegram assistant default model / Telegram 助手默认模型
   'assistant.telegram.defaultModel'?: {
     id: string;

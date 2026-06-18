@@ -50,7 +50,35 @@ import {
   type EveInferenceTierId,
 } from '@/common/config/eveInferenceCore';
 import { getCommandEveLocalRuntimeProvider } from '@/common/config/commandEveShell';
+import { CREDITS_STATUS_FUNCTION_URL, type CreditsTier } from '@/common/config/creditsCore';
+import { ProcessConfig } from '@process/utils/initStorage';
 import { getDataPath } from '@process/utils/utils';
+
+/** Version tag mirrored onto every credits bridge result (ipcBridge contract). */
+const COMMAND_EVE_CREDITS_BRIDGE_VERSION = 'command-eve-credits/v0' as const;
+
+/**
+ * A SELF-QUIET zero-status returned when the credits-status backend is not
+ * reachable pre-deploy (no license wire, or the Edge Function is absent / errors).
+ * `ok:false` keeps the renderer meter quiet (it renders nothing) instead of
+ * crashing the chrome. The persisted spend cap is still merged in so a cap the
+ * user already set survives an offline read.
+ */
+function quietCreditsStatus(spendCapEurCents: number, reasonCode: string, message?: string) {
+  return {
+    version: COMMAND_EVE_CREDITS_BRIDGE_VERSION,
+    ok: false,
+    reason_code: reasonCode,
+    message,
+    tier: 'free' as CreditsTier,
+    included_allowance_credits_remaining: 0,
+    purchased_credits_remaining: 0,
+    spend_cap_eur_cents: Math.max(0, spendCapEurCents),
+    free_actions_used_this_period: 0,
+    free_cap: 0,
+    period_start: '',
+  };
+}
 
 type CommandEveStatusSurfaceRequest = { maxRuns?: number; companyOsRoot?: string; eventLedgerPath?: string };
 type CommandEveBridgeEnvelope<T> = { data?: T };
@@ -1303,6 +1331,153 @@ export function initCommandEveBridge(): void {
           success: false,
           msg: error instanceof Error ? error.message : 'Command EVE resolve-inference-provider bridge failed.',
           data: undefined,
+        };
+      }
+    });
+
+  // -------------------------------------------------------------------------
+  // Credits / billing (Lane 3). The main process holds the CEVE bearer and is
+  // the ONLY side that calls the credits-status Edge Function — the renderer
+  // never sees the wire. SELF-QUIET: when there is no license wire OR no
+  // function URL OR the call fails, we return an `ok:false` zero-status (the
+  // meter renders nothing) instead of throwing. This handler is therefore safe
+  // to ship BEFORE the Lane-1+2 backend exists (PREPARED).
+  // -------------------------------------------------------------------------
+  bridge.buildProvider('command-eve.credits-status').provider(async () => {
+    // Read the user's persisted spend cap up-front so it rides on every result
+    // (even the quiet pre-deploy one) — the meter/wall reflect a cap the user
+    // set locally before the server round-trips it back.
+    let spendCapEurCents = 0;
+    try {
+      const stored = await ProcessConfig.get('commandEve.spendCapEurCents');
+      if (typeof stored === 'number' && stored > 0) spendCapEurCents = stored;
+    } catch {
+      // A config read failure must not break the status read.
+    }
+
+    try {
+      // No Edge Function URL configured ⇒ nothing to call. Quiet, not a crash.
+      if (!CREDITS_STATUS_FUNCTION_URL) {
+        return { success: false, msg: 'CREDITS_STATUS_NO_URL', data: quietCreditsStatus(spendCapEurCents, 'CREDITS_STATUS_NO_URL') };
+      }
+
+      // No usable CEVE bearer ⇒ the user is not yet licensed / activated. Quiet.
+      const wireResult = readLicenseWire(getDataPath());
+      if (!wireResult.ok || !wireResult.wire) {
+        return {
+          success: false,
+          msg: wireResult.reason_code || 'CREDITS_STATUS_NO_BEARER',
+          data: quietCreditsStatus(spendCapEurCents, wireResult.reason_code || 'CREDITS_STATUS_NO_BEARER'),
+        };
+      }
+
+      // Proxy GET to the credits-status Edge Function with the CEVE license as a
+      // bearer. The wire is sent only in the Authorization HEADER (never logged,
+      // never returned to the renderer).
+      let response: Response;
+      try {
+        response = await fetch(CREDITS_STATUS_FUNCTION_URL, {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${wireResult.wire}`,
+            Accept: 'application/json',
+          },
+        });
+      } catch (networkError) {
+        // Network failure (offline / function not deployed) — stay quiet.
+        return {
+          success: false,
+          msg: networkError instanceof Error ? networkError.message : 'CREDITS_STATUS_NETWORK',
+          data: quietCreditsStatus(spendCapEurCents, 'CREDITS_STATUS_NETWORK'),
+        };
+      }
+
+      if (!response.ok) {
+        return {
+          success: false,
+          msg: `CREDITS_STATUS_HTTP_${response.status}`,
+          data: quietCreditsStatus(spendCapEurCents, `CREDITS_STATUS_HTTP_${response.status}`),
+        };
+      }
+
+      const raw = (await response.json().catch(() => null)) as Record<string, unknown> | null;
+      if (!raw || typeof raw !== 'object') {
+        return { success: false, msg: 'CREDITS_STATUS_BAD_BODY', data: quietCreditsStatus(spendCapEurCents, 'CREDITS_STATUS_BAD_BODY') };
+      }
+
+      const num = (v: unknown, fallback = 0): number => (typeof v === 'number' && Number.isFinite(v) ? v : fallback);
+      const tier = (raw.tier === 'solo' || raw.tier === 'starter' ? raw.tier : 'free') as CreditsTier;
+      // The user-set local cap takes precedence when present; otherwise honour
+      // whatever the server reports.
+      const serverCap = num(raw.spend_cap_eur_cents, 0);
+      const effectiveCap = spendCapEurCents > 0 ? spendCapEurCents : serverCap;
+
+      return {
+        success: true,
+        data: {
+          version: COMMAND_EVE_CREDITS_BRIDGE_VERSION,
+          ok: true,
+          tier,
+          included_allowance_credits_remaining: num(raw.included_allowance_credits_remaining),
+          purchased_credits_remaining: num(raw.purchased_credits_remaining),
+          spend_cap_eur_cents: Math.max(0, effectiveCap),
+          free_actions_used_this_period: num(raw.free_actions_used_this_period),
+          free_cap: num(raw.free_cap),
+          period_start: typeof raw.period_start === 'string' ? raw.period_start : '',
+        },
+      };
+    } catch (error) {
+      // Any unexpected failure: never crash the renderer chrome — go quiet.
+      return {
+        success: false,
+        msg: error instanceof Error ? error.message : 'Command EVE credits-status bridge failed.',
+        data: quietCreditsStatus(spendCapEurCents, 'CREDITS_STATUS_BRIDGE_FAILED'),
+      };
+    }
+  });
+
+  // Persist the user's hard spend cap (EUR cents; 0 ⇒ uncapped) via ProcessConfig.
+  // This is a LOCAL persistence write — the binding enforcement is the backend's
+  // (Lane-2 debit refuses past the cap); the desktop carries the intent so the
+  // meter + a future checkout reflect it. SELF-QUIET on a bad/absent value.
+  bridge
+    .buildProvider('command-eve.credits-set-spend-cap')
+    .provider(async (request?: { spend_cap_eur_cents?: number } | CommandEveBridgeEnvelope<{ spend_cap_eur_cents?: number }>) => {
+      try {
+        const payload = unwrapBridgeRequest<{ spend_cap_eur_cents?: number }>(request);
+        const requested = payload?.spend_cap_eur_cents;
+        if (typeof requested !== 'number' || !Number.isFinite(requested) || requested < 0) {
+          return {
+            success: false,
+            msg: 'CREDITS_SPEND_CAP_INVALID',
+            data: {
+              version: COMMAND_EVE_CREDITS_BRIDGE_VERSION,
+              ok: false,
+              reason_code: 'CREDITS_SPEND_CAP_INVALID',
+              spend_cap_eur_cents: 0,
+            },
+          };
+        }
+        const normalized = Math.round(requested);
+        await ProcessConfig.set('commandEve.spendCapEurCents', normalized);
+        return {
+          success: true,
+          data: {
+            version: COMMAND_EVE_CREDITS_BRIDGE_VERSION,
+            ok: true,
+            spend_cap_eur_cents: normalized,
+          },
+        };
+      } catch (error) {
+        return {
+          success: false,
+          msg: error instanceof Error ? error.message : 'Command EVE credits-set-spend-cap bridge failed.',
+          data: {
+            version: COMMAND_EVE_CREDITS_BRIDGE_VERSION,
+            ok: false,
+            reason_code: 'CREDITS_SPEND_CAP_BRIDGE_FAILED',
+            spend_cap_eur_cents: 0,
+          },
         };
       }
     });

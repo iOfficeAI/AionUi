@@ -17,6 +17,7 @@ import {
 } from '@renderer/pages/conversation/Messages/hooks';
 import { usePendingConfirmationsRecovery } from '@renderer/pages/conversation/Messages/usePendingConfirmationsRecovery';
 import HOC from '@renderer/utils/ui/HOC';
+import QuotaExhaustedWall from '@renderer/components/billing/QuotaExhaustedWall';
 import React from 'react';
 import AcpE2EStreamInjector from './AcpE2EStreamInjector';
 import AcpSendBox from './AcpSendBox';
@@ -75,6 +76,16 @@ const AcpChat: React.FC<{
             <MessageList className='flex-1' emptySlot={emptySlot} />
           </FlexFullContainer>
           <AcpE2EStreamInjector conversationId={conversation_id} />
+          {/* Lane-3 402 quota-exhausted wall — fed by the LIVE stream-error path
+              in useAcpMessage. The wall idle-suppresses itself: it renders only
+              when a turn was in-flight AND a 402 quota_exhausted body arrived. */}
+          <QuotaExhaustedWall
+            body={messageState.quotaWall.body}
+            jobInFlight={messageState.quotaWall.jobInFlight}
+            autoReloadDefault={messageState.quotaWall.autoReload}
+            onAutoReloadChange={messageState.quotaWall.setAutoReload}
+            onClose={messageState.quotaWall.closeWall}
+          />
           {!hideSendBox && (
             <AcpSendBox
               conversation_id={conversation_id}
