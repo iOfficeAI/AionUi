@@ -13,8 +13,11 @@
  *     re-reads it on the next turn;
  *   - a switch made on one surface propagates to others via the config
  *     subscription (header ↔ sheet ↔ GuidPage);
- *   - a greyed paid tier (trialing) is NOT committable, and a previously-stored
- *     paid tier auto-resets to EVE Standard when the entitlement is trialing.
+ *   - a greyed paid level (trialing) is NOT committable, and a previously-stored
+ *     paid level auto-resets to EVE Standard when the entitlement is trialing.
+ *
+ * STUFEN note: Standard + Hoch are FREE (selectable on a trial); Max + Maximum
+ * are the paid levels that grey out while trialing.
  */
 
 import { describe, expect, it, vi, beforeEach } from 'vitest';
@@ -46,7 +49,7 @@ vi.mock('@/common/config/configService', () => {
 });
 
 // Controllable entitlement status. `trial_ends_at` non-null ⇒ trialing (greys
-// EVE High/Max). Default: paid (all tiers selectable).
+// EVE Max/Maximum; Standard/Hoch stay free). Default: paid (all selectable).
 const entitlement: { trial_ends_at?: string | null } = { trial_ends_at: null };
 vi.mock('@renderer/hooks/useEntitlementGate', () => ({
   useEntitlementGate: () => ({ loading: false, status: entitlement, blocked: false, refresh: vi.fn() }),
@@ -102,30 +105,44 @@ describe('useEveInferenceSelection', () => {
     await waitFor(() => expect(result.current.selection).toBe(localStandard));
   });
 
-  it('greys EVE High/Max while trialing and refuses to commit a greyed tier', () => {
+  it('keeps EVE Hoch (FREE) selectable while trialing', () => {
     entitlement.trial_ends_at = '2099-01-01T00:00:00.000Z'; // trialing
     const { result } = renderHook(() => useEveInferenceSelection());
-    const eveHigh = eveTierValue('eve-high');
-    expect(result.current.isSelectable(eveHigh)).toBe(false);
-    act(() => result.current.commit(eveHigh));
-    // commit is a no-op for a disabled tier — selection stays at the default.
-    expect(result.current.selection).toBe(EVE_DEFAULT_INFERENCE_SELECTION);
-    expect(configService.set).not.toHaveBeenCalledWith('commandEve.inferenceSelection', eveHigh);
+    const eveHoch = eveTierValue('eve-high');
+    // Hoch is a FREE level now — selectable + committable on a trial.
+    expect(result.current.isSelectable(eveHoch)).toBe(true);
+    act(() => result.current.commit(eveHoch));
+    expect(result.current.selection).toBe(eveHoch);
   });
 
-  it('auto-resets a previously-stored paid tier to EVE Standard when trialing', async () => {
-    store.set('commandEve.inferenceSelection', eveTierValue('eve-max'));
+  it('greys EVE Max/Maximum while trialing and refuses to commit a greyed level', () => {
+    entitlement.trial_ends_at = '2099-01-01T00:00:00.000Z'; // trialing
+    const { result } = renderHook(() => useEveInferenceSelection());
+    const eveMax = eveTierValue('eve-max');
+    const eveMaximum = eveTierValue('eve-maximum');
+    expect(result.current.isSelectable(eveMax)).toBe(false);
+    expect(result.current.isSelectable(eveMaximum)).toBe(false);
+    act(() => result.current.commit(eveMax));
+    act(() => result.current.commit(eveMaximum));
+    // commit is a no-op for a disabled level — selection stays at the default.
+    expect(result.current.selection).toBe(EVE_DEFAULT_INFERENCE_SELECTION);
+    expect(configService.set).not.toHaveBeenCalledWith('commandEve.inferenceSelection', eveMax);
+    expect(configService.set).not.toHaveBeenCalledWith('commandEve.inferenceSelection', eveMaximum);
+  });
+
+  it('auto-resets a previously-stored paid level (Maximum) to EVE Standard when trialing', async () => {
+    store.set('commandEve.inferenceSelection', eveTierValue('eve-maximum'));
     entitlement.trial_ends_at = '2099-01-01T00:00:00.000Z'; // trialing
     const { result } = renderHook(() => useEveInferenceSelection());
     await waitFor(() => expect(result.current.selection).toBe(eveTierValue('eve-standard')));
     expect(store.get('commandEve.inferenceSelection')).toBe(eveTierValue('eve-standard'));
   });
 
-  it('keeps EVE High/Max selectable when paid (trial_ends_at null)', () => {
+  it('keeps EVE Max/Maximum selectable when paid (trial_ends_at null)', () => {
     const { result } = renderHook(() => useEveInferenceSelection());
-    expect(result.current.isSelectable(eveTierValue('eve-high'))).toBe(true);
     expect(result.current.isSelectable(eveTierValue('eve-max'))).toBe(true);
-    act(() => result.current.commit(eveTierValue('eve-max')));
-    expect(result.current.selection).toBe(eveTierValue('eve-max'));
+    expect(result.current.isSelectable(eveTierValue('eve-maximum'))).toBe(true);
+    act(() => result.current.commit(eveTierValue('eve-maximum')));
+    expect(result.current.selection).toBe(eveTierValue('eve-maximum'));
   });
 });
