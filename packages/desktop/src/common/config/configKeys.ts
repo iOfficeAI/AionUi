@@ -67,6 +67,14 @@ export type ConfigKeyMap = {
    */
   'commandEve.inferenceSelection': string | undefined;
   'commandEve.executionMode': 'observed' | 'delegated' | 'autonomous' | undefined;
+  /**
+   * "Dein Team" per-worker active/paused state. A map of stable roster
+   * `agent_id` → 'active' | 'paused' | 'off'. Absent ids fall back to the
+   * roster default (active). The non-empty-floor guard (eveTeamControlsCore)
+   * enforces that this map can never describe an empty company — at least one
+   * free local always-on worker stays active.
+   */
+  'commandEve.teamWorkerStatus': Record<string, 'active' | 'paused' | 'off'> | undefined;
   // --- Credits / billing UX (Lane 3, WG#3 credits-billing spec) ---
   /**
    * Day-0 onboarding seed flag: set true once the user has provided ONE real

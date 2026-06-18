@@ -27,6 +27,7 @@
     "connectorCatalog",
     "skillLibrary",
     "localRuntime",
+    "deinTeam",
     "registrationGate"
   ]
 }

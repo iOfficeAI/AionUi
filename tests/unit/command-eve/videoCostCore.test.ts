@@ -24,6 +24,7 @@ import {
   estimateVideoCost,
   getVideoTier,
   isExplicitUpgrade,
+  isVideoGenerationRequest,
   VIDEO_TIERS,
 } from '@/common/config/videoCostCore';
 
@@ -130,5 +131,39 @@ describe('isExplicitUpgrade — 1080p only via explicit toggle', () => {
   it('is false for the default (non-upgrade) tier regardless of the toggle', () => {
     expect(isExplicitUpgrade({ selectedTierId: 'fast', userToggledUpgrade: true })).toBe(false);
     expect(isExplicitUpgrade({ selectedTierId: 'fast', userToggledUpgrade: false })).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// (5) video-generation INTENT detection (the send-path seam)
+// ---------------------------------------------------------------------------
+
+describe('isVideoGenerationRequest — high-precision generation-intent detection', () => {
+  it('detects EN generation requests', () => {
+    expect(isVideoGenerationRequest('Generate a video for our launch')).toBe(true);
+    expect(isVideoGenerationRequest('please create a short reel for TikTok')).toBe(true);
+    expect(isVideoGenerationRequest('make a 5s clip about the product')).toBe(true);
+    expect(isVideoGenerationRequest('do a text-to-video of the hero shot')).toBe(true);
+  });
+
+  it('detects DE generation requests (verb before OR after the noun)', () => {
+    expect(isVideoGenerationRequest('Erstelle ein Video für die Kampagne')).toBe(true);
+    expect(isVideoGenerationRequest('Mach mir ein kurzes Reel für Instagram')).toBe(true);
+    expect(isVideoGenerationRequest('Ich möchte ein Video erstellen')).toBe(true);
+    expect(isVideoGenerationRequest('Bitte ein Kurzvideo generieren')).toBe(true);
+  });
+
+  it('does NOT trip on a mere mention of a video (no generation intent)', () => {
+    expect(isVideoGenerationRequest('schau dir dieses Video an')).toBe(false);
+    expect(isVideoGenerationRequest('the video was great, thanks')).toBe(false);
+    expect(isVideoGenerationRequest('summarize this YouTube link')).toBe(false);
+    expect(isVideoGenerationRequest('write a blog post about marketing')).toBe(false);
+  });
+
+  it('is false for empty / whitespace / non-string input', () => {
+    expect(isVideoGenerationRequest('')).toBe(false);
+    expect(isVideoGenerationRequest('   ')).toBe(false);
+    expect(isVideoGenerationRequest(null)).toBe(false);
+    expect(isVideoGenerationRequest(undefined)).toBe(false);
   });
 });

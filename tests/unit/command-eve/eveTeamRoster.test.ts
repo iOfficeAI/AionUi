@@ -79,7 +79,31 @@ describe('eveTeamRoster — curated A-roster shape', () => {
       expect(KNOWN_TIERS.has(role.tier), `known tier for ${role.agent_id}`).toBe(true);
       expect(role.skills.length, `skills for ${role.agent_id}`).toBeGreaterThan(0);
       expect(role.kind === 'work' || role.kind === 'governance').toBe(true);
+      // Every role declares a rhythm — it drives which control the UI shows.
+      expect(role.rhythm === 'always-on' || role.rhythm === 'burst', `rhythm for ${role.agent_id}`).toBe(true);
     }
+  });
+
+  it('governance seats are always-on (leadership is never let go)', () => {
+    for (const id of ['ceo', 'chief-of-staff']) {
+      expect(findEveTeamRole(id)?.rhythm, `${id} rhythm`).toBe('always-on');
+    }
+  });
+
+  it('includes the free local always-on floor worker (Hauspförtner / G0)', () => {
+    const floor = findEveTeamRole('house-keeper');
+    expect(floor, 'floor worker present').toBeDefined();
+    expect(floor?.kind).toBe('work');
+    expect(floor?.free).toBe(true);
+    expect(floor?.rhythm).toBe('always-on');
+    // It is the bundled local tier — the no-credits floor.
+    expect(floor?.tier).toBe('standard');
+  });
+
+  it('exactly one role is the free always-on floor (the non-empty-floor anchor)', () => {
+    const floors = EVE_TEAM_ROSTER.filter((r) => r.free === true && r.rhythm === 'always-on');
+    expect(floors.length).toBe(1);
+    expect(floors[0].agent_id).toBe('house-keeper');
   });
 });
 
