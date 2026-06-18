@@ -1161,6 +1161,38 @@ export interface ICommandEveResolveInferenceProviderResult {
 }
 
 // ---------------------------------------------------------------------------
+// Command EVE credits/billing (Lane 3 desktop UX, WG#3 credits-billing spec)
+// ---------------------------------------------------------------------------
+
+/** The credits-status read result (Lane-1 contract; mirrors creditsCore.CreditsStatus). */
+export interface ICommandEveCreditsStatusResult {
+  version: 'command-eve-credits/v0';
+  ok: boolean;
+  reason_code?: string;
+  message?: string;
+  tier: 'free' | 'solo' | 'starter';
+  included_allowance_credits_remaining: number;
+  purchased_credits_remaining: number;
+  spend_cap_eur_cents: number;
+  free_actions_used_this_period: number;
+  free_cap: number;
+  period_start: string;
+}
+
+/** Request to write the user's spend cap (Lane-1 contract; 0 ⇒ uncapped). */
+export interface ICommandEveCreditsSpendCapRequest {
+  spend_cap_eur_cents: number;
+}
+
+export interface ICommandEveCreditsSpendCapResult {
+  version: 'command-eve-credits/v0';
+  ok: boolean;
+  reason_code?: string;
+  message?: string;
+  spend_cap_eur_cents: number;
+}
+
+// ---------------------------------------------------------------------------
 // Command EVE runtime — stays IPC (local runtime, receipts, model tier prep)
 // ---------------------------------------------------------------------------
 
@@ -1270,6 +1302,17 @@ export const commandEve = {
     IBridgeResponse<ICommandEveResolveInferenceProviderResult>,
     { selection?: string; localTierId?: string }
   >('command-eve.resolve-inference-provider'),
+  // Credits/billing (Lane 3). The main process holds the CEVE bearer and calls
+  // the credits-status Edge Function; the renderer never sees the wire. PREPARED:
+  // the main-process handler is Lane-1+2 backend scope (declared here as the
+  // desktop-side contract surface, exactly like entitlement-status above).
+  creditsStatus: bridge.buildProvider<IBridgeResponse<ICommandEveCreditsStatusResult>, void>(
+    'command-eve.credits-status'
+  ),
+  creditsSetSpendCap: bridge.buildProvider<
+    IBridgeResponse<ICommandEveCreditsSpendCapResult>,
+    ICommandEveCreditsSpendCapRequest
+  >('command-eve.credits-set-spend-cap'),
 };
 
 // ---------------------------------------------------------------------------
