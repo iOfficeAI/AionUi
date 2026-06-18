@@ -103,24 +103,6 @@ bunx vitest run
 | i18n 错误 | 检查缺失的 key，运行 `bun run i18n:types` 重新生成类型 |
 | 测试失败  | 修复失败的测试或实现，重新运行 `bunx vitest run`       |
 
-### Claude Code 快捷方式
-
-如果你使用 [Claude Code](https://docs.anthropic.com/en/docs/claude-code)，运行 `/oss-pr` 即可自动完成全部检查 + 提交 + PR 流程。
-
-## 提交 PR 后
-
-本仓库运行 PR 自动化 bot，自动 review、修复小问题、准备合并。你的 PR 上可能出现以下 label：
-
-| Label                    | 含义                            | 需要的操作                     |
-| ------------------------ | ------------------------------- | ------------------------------ |
-| `bot:reviewing`          | Bot 正在 review 你的 PR         | 等待                           |
-| `bot:ci-waiting`         | CI 失败，bot 等你修复           | 推送新 commit 修复 CI          |
-| `bot:needs-rebase`       | 有合并冲突，bot 无法自动 rebase | 将分支 rebase 到 `main` 后推送 |
-| `bot:needs-human-review` | 发现阻塞性问题                  | 维护者会介入审查并评论         |
-| `bot:ready-to-merge`     | 所有检查已通过                  | 维护者会在准备好后合并         |
-
-完整自动化流程请参考 [docs/contributing/pr-automation.md](docs/contributing/pr-automation.md)。
-
 ## 执行方式
 
 不符合规则时，维护者可能：

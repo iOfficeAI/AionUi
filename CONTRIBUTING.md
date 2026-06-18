@@ -103,24 +103,6 @@ bunx vitest run
 | i18n errors   | Check for missing keys; run `bun run i18n:types` to regenerate types |
 | Test failures | Fix the failing test or implementation; re-run `bunx vitest run`     |
 
-### Claude Code shortcut
-
-If you use [Claude Code](https://docs.anthropic.com/en/docs/claude-code), run `/oss-pr` to automate the entire check + commit + PR flow.
-
-## After Your PR
-
-This repository runs a PR automation bot that reviews, fixes minor issues, and prepares PRs for merge. You may see these labels on your PR:
-
-| Label                    | Meaning                                | Action needed                           |
-| ------------------------ | -------------------------------------- | --------------------------------------- |
-| `bot:reviewing`          | Bot is reviewing your PR               | Wait                                    |
-| `bot:ci-waiting`         | CI failed; bot is waiting for your fix | Push a new commit to fix CI             |
-| `bot:needs-rebase`       | Merge conflict; bot cannot auto-rebase | Rebase your branch onto `main` and push |
-| `bot:needs-human-review` | Blocking issue found                   | A maintainer will review and comment    |
-| `bot:ready-to-merge`     | All checks passed                      | A maintainer will merge when ready      |
-
-See [docs/contributing/pr-automation.md](docs/contributing/pr-automation.md) for the full automation workflow.
-
 ## Enforcement
 
 When these rules are not followed, maintainers may:
