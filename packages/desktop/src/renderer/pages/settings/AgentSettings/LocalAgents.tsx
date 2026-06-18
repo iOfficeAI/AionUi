@@ -27,9 +27,7 @@ const LocalAgents: React.FC = () => {
   // can change after health checks or custom-agent mutations.
   const { agents: allAgents, isRefreshing, refreshCatalog } = useManagedAgents();
 
-  const officialAgents = allAgents.filter(
-    (a) => (a.agent_type === 'acp' || a.agent_type === 'aionrs') && a.agent_source !== 'custom'
-  );
+  const officialAgents = allAgents.filter((a) => a.agent_source !== 'custom');
 
   const customAgents: ManagedAgent[] = allAgents.filter((a) => a.agent_source === 'custom');
 

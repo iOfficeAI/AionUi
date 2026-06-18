@@ -118,6 +118,17 @@ const makeAgents = () => [
     status: 'missing',
   },
   {
+    id: 'openclaw-gateway',
+    name: 'OpenClaw Gateway',
+    agent_type: 'openclaw-gateway',
+    agent_source: 'builtin',
+    backend: 'openclaw-gateway',
+    enabled: true,
+    available: false,
+    installed: false,
+    status: 'missing',
+  },
+  {
     id: 'custom-1',
     name: 'My Agent',
     agent_type: 'acp',
@@ -191,7 +202,7 @@ describe('LocalAgents', () => {
 
     expect(screen.getByText('settings.agentManagement.officialAgents')).toBeTruthy();
     expect(screen.getByText('settings.agentManagement.customAgents')).toBeTruthy();
-    expect(screen.getByText('settings.agentManagement.statusMissing')).toBeTruthy();
+    expect(screen.getAllByText('settings.agentManagement.statusMissing')).toHaveLength(2);
     expect(screen.getByText('settings.agentManagement.statusUnavailable')).toBeTruthy();
     expect(screen.queryByText('settings.agentManagement.goToChat')).toBeNull();
   });
@@ -221,6 +232,7 @@ describe('LocalAgents', () => {
 
     expect(screen.getByText('AIONRS · AIONRS')).toBeInTheDocument();
     expect(screen.getByText('CLAUDE · ACP')).toBeInTheDocument();
+    expect(screen.getByText('OPENCLAW-GATEWAY · OPENCLAW-GATEWAY')).toBeInTheDocument();
   });
 
   it('does not render the market-install CTA in the diagnostics-only agent page', () => {
