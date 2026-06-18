@@ -19,6 +19,15 @@ export type UseManagedAgentsResult = {
   refreshCustomAgents: () => Promise<void>;
 };
 
+export async function refreshManagedAgentCatalogAndAssistants(): Promise<ManagedAgent[] | undefined> {
+  const [agents] = await Promise.all([
+    mutate<ManagedAgent[]>(MANAGED_AGENTS_SWR_KEY),
+    mutate('assistants.list'),
+    mutate('assistants'),
+  ]);
+  return agents;
+}
+
 /**
  * Hook for the Agent settings management surface only. Reads the dedicated
  * `/api/agents/management` diagnostics view (`MANAGED_AGENTS_SWR_KEY`) so
@@ -40,21 +49,16 @@ export const useManagedAgents = (): UseManagedAgentsResult => {
 
   const revalidateManaged = () => mutate<ManagedAgent[]>(MANAGED_AGENTS_SWR_KEY);
 
-  const refreshCatalog = async () => {
-    const [agents] = await Promise.all([revalidateManaged(), mutate('assistants.list'), mutate('assistants')]);
-    return agents;
-  };
-
   return {
     agents: data ?? [],
     isLoading,
     isRefreshing: isValidating && !isLoading,
     error,
     revalidate: revalidateManaged,
-    refreshCatalog,
+    refreshCatalog: refreshManagedAgentCatalogAndAssistants,
     refreshCustomAgents: async () => {
       await ipcBridge.acpConversation.refreshCustomAgents.invoke();
-      await refreshCatalog();
+      await refreshManagedAgentCatalogAndAssistants();
     },
   };
 };

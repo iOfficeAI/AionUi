@@ -1,8 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
-import { mutate } from 'swr';
 import type { IHubAgentItem } from '@/common/types/agent/hub';
 import { ipcBridge } from '@/common';
-import { MANAGED_AGENTS_SWR_KEY } from '@renderer/utils/model/agentTypes';
+import { refreshManagedAgentCatalogAndAssistants } from './useAgents';
 
 export function useHubAgents() {
   const [agents, setAgents] = useState<IHubAgentItem[]>([]);
@@ -44,13 +43,11 @@ export function useHubAgents() {
         })
       );
 
-      // After install completes, revalidate the diagnostics catalog only.
-      // Business pickers consume assistants, not `/api/agents`, so hub
-      // installs must also invalidate assistant list caches.
+      // Hub installs can change both the management diagnostics view and
+      // the generated bare-assistant catalog, so refresh both through the
+      // shared helper used by AgentSettings.
       if (payload.status === 'installed') {
-        mutate(MANAGED_AGENTS_SWR_KEY);
-        mutate('assistants.list');
-        mutate('assistants');
+        void refreshManagedAgentCatalogAndAssistants();
       }
     });
 
