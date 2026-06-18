@@ -1,5 +1,36 @@
 # Changelog
 
+## [2.1.21](https://github.com/iOfficeAI/AionUi/compare/v2.1.20...v2.1.21) (2026-06-18)
+
+### Desktop
+
+#### Features
+
+- **i18n:** add German (de-DE) locale (#3370)
+
+#### Bug Fixes
+
+- **preview:** restore local html and selected file reopen (#3369)
+- **preview:** build valid file:// URL for PDF preview on Windows (#3366)
+- **i18n:** wire pt-BR into language pickers and main-process loader (#3361)
+
+### Core ([v0.1.32](https://github.com/iOfficeAI/AionCore/releases/tag/v0.1.32))
+
+#### Features
+
+- **team:** centralize team MCP prompt governance ([#490](https://github.com/iOfficeAI/AionCore/issues/490))
+
+#### Bug Fixes
+
+- **acp:** recover dead ACP connections ([#487](https://github.com/iOfficeAI/AionCore/issues/487))
+- **conversation:** upsert streaming tool calls (AIO-30) ([#484](https://github.com/iOfficeAI/AionCore/issues/484))
+
+#### Documentation
+
+- **skills:** add cross-platform notes so Windows users translate shell examples ([#489](https://github.com/iOfficeAI/AionCore/issues/489))
+
+---
+
 ## [2.1.20](https://github.com/iOfficeAI/AionUi/compare/v2.1.19...v2.1.20) (2026-06-17)
 
 ### Desktop
