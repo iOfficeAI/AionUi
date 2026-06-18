@@ -7,7 +7,10 @@
 import type { ICreateCronJobParams, ICronAgentConfig } from '@/common/adapter/ipcBridge';
 import type { Assistant } from '@/common/types/agent/assistantTypes';
 import type { AgentMetadata } from '@renderer/utils/model/agentTypes';
-import { normalizeSupportedAgentSelection, resolveSupportedConversationType } from '@renderer/utils/model/agentTypeSupportPolicy';
+import {
+  normalizeSupportedAgentSelection,
+  resolveSupportedConversationType,
+} from '@renderer/utils/model/agentTypeSupportPolicy';
 
 type SelectedAionrsProvider = {
   id?: string;
