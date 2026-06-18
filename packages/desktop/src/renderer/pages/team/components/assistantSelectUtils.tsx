@@ -3,7 +3,6 @@ import { Robot } from '@icon-park/react';
 import { resolveAgentLogo, useAgentLogos } from '@renderer/utils/model/agentLogo';
 import { resolveAssistantAvatar } from '@renderer/utils/model/assistantAvatar';
 import type { Assistant } from '@/common/types/agent/assistantTypes';
-import { isDeprecatedRuntimeAgentType } from '@/renderer/utils/model/agentTypeSupportPolicy';
 
 /** Team leader selector entry derived from the unified assistant catalog. */
 export type TeamAssistantOption = {
@@ -43,14 +42,7 @@ export function assistantFromId(
 
 /** Filter assistants to only those supported in team mode. */
 export function filterTeamSupportedAssistants(assistants: TeamAssistantOption[]): TeamAssistantOption[] {
-  return assistants.map((assistant) =>
-    isDeprecatedRuntimeAgentType(assistant.backend)
-      ? {
-          ...assistant,
-          team_capable: false,
-        }
-      : assistant
-  );
+  return assistants;
 }
 
 export const AssistantOptionLabel: React.FC<{ assistant: TeamAssistantOption }> = ({ assistant }) => {
