@@ -3,6 +3,7 @@
     "title": "MCP Integration",
     "description": "Manage Model Context Protocol servers and tools"
   },
+  "label": "MCP",
   "servers": "Servers",
   "tools": "Tools",
   "executionHistory": "Execution History",

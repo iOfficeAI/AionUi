@@ -24,6 +24,7 @@ const DirInputItem: React.FC<{
     <Form.Item label={label} field={field}>
       {(value, form) => {
         const current_value = form.getFieldValue(field) || '';
+        const actionTooltip = field === 'workDir' ? t('settings.changeWorkDir') : t('settings.changeLogDir');
 
         const handlePick = () => {
           ipcBridge.dialog.showOpen
@@ -41,22 +42,36 @@ const DirInputItem: React.FC<{
             });
         };
 
+        const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+          if (event.key !== 'Enter' && event.key !== ' ') return;
+          event.preventDefault();
+          handlePick();
+        };
+
         return (
-          <div className='aion-dir-input h-[32px] flex items-center rounded-8px border border-solid border-transparent pl-14px bg-[var(--fill-0)]'>
+          <div
+            className='aion-dir-input h-[32px] flex items-center rounded-8px border border-solid border-transparent pl-14px bg-[var(--fill-0)] cursor-pointer'
+            tabIndex={0}
+            onClick={handlePick}
+            onKeyDown={handleKeyDown}
+          >
             <Tooltip content={current_value || t('settings.dirNotConfigured')} position='top'>
               <div className='flex-1 min-w-0 text-13px text-t-primary truncate '>
                 {current_value || t('settings.dirNotConfigured')}
               </div>
             </Tooltip>
-            <Button
-              type='text'
-              style={{ borderLeft: '1px solid var(--color-border-2)', borderRadius: '0 8px 8px 0' }}
-              icon={<FolderOpen theme='outline' size='18' fill={iconColors.primary} />}
-              onClick={(e) => {
-                e.stopPropagation();
-                handlePick();
-              }}
-            />
+            <Tooltip content={actionTooltip} position='top'>
+              <Button
+                type='text'
+                aria-label={actionTooltip}
+                style={{ borderLeft: '1px solid var(--color-border-2)', borderRadius: '0 8px 8px 0' }}
+                icon={<FolderOpen theme='outline' size='18' fill={iconColors.primary} />}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handlePick();
+                }}
+              />
+            </Tooltip>
           </div>
         );
       }}

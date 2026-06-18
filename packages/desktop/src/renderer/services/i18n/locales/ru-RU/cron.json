@@ -100,7 +100,6 @@
       "executionModeEditHint": "Режим выполнения нельзя изменить после создания. Удалите и создайте задачу заново для смены режима.",
       "advancedSettings": "Расширенные настройки",
       "workspace": "Проект",
-      "workspacePlaceholder": "Выберите папку",
       "workspaceHint": "Опционально: задайте папку проекта для файловых операций",
       "selectFolder": "[Select Folder]",
       "clearFolder": "[Clear]",

@@ -30,7 +30,7 @@ Supported Viewers:
 Supported Editors:
 
 - **Markdown Editor** - Live preview + split-screen mode
-- **Code Editor** - Monaco Editor integration
+- **Code Editor** - CodeMirror 6 integration
 - **HTML Editor** - Real-time HTML editing
 
 ### 3. Advanced Features
@@ -60,7 +60,6 @@ preview/
 │   │   └── PreviewHistoryDropdown.tsx # History version dropdown
 │   ├── viewers/                       # Viewer components
 │   │   ├── MarkdownViewer.tsx         # Markdown rendering
-│   │   ├── CodeViewer.tsx             # Code highlighting
 │   │   ├── ImageViewer.tsx            # Image viewer
 │   │   ├── DiffViewer.tsx             # Diff comparison
 │   │   ├── PDFViewer.tsx              # PDF viewer
@@ -70,7 +69,7 @@ preview/
 │   │   └── URLViewer.tsx              # URL web page viewer
 │   ├── editors/                       # Editor components
 │   │   ├── MarkdownEditor.tsx         # Markdown editor
-│   │   ├── TextEditor.tsx             # Code editor (Monaco)
+│   │   ├── CodeEditor.tsx             # Code editor (CodeMirror 6)
 │   │   └── HTMLEditor.tsx             # HTML editor
 │   └── renderers/                     # Special renderers
 │       ├── HTMLRenderer.tsx           # HTML iframe renderer
@@ -397,7 +396,7 @@ Editable types:
 - Scroll synchronization
 - Syntax highlighting
 
-**Code Editor (Monaco)**:
+**Code Editor (CodeMirror 6)**:
 
 - Full code editing capabilities
 - Syntax highlighting
@@ -550,4 +549,4 @@ export const FILE_TYPES_WITH_BUILTIN_OPEN = ['pdf', 'word', 'excel', 'ppt'];
 
 - [Workspace Module Documentation](../Workspace/README.en.md)
 - [IPC Bridge Source](../../../../common/adapter/ipcBridge.ts)
-- [Monaco Editor Documentation](https://microsoft.github.io/monaco-editor/)
+- [CodeMirror 6 Documentation](https://codemirror.net/)

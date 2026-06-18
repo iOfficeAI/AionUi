@@ -1,0 +1,17 @@
+{
+  "desktopPet": "Mascote de Mesa",
+  "enable": "Habilitar Mascote de Mesa",
+  "size": "Tamanho do Mascote",
+  "sizeSmall": "Pequeno ({{px}}px)",
+  "sizeMedium": "Médio ({{px}}px)",
+  "sizeLarge": "Grande ({{px}}px)",
+  "dnd": "Não Perturbe",
+  "dndDescription": "Mascote fica ocioso, ignora eventos de IA",
+  "confirmBubble": "Mostrar autorizações no mascote",
+  "confirmBubbleDescription": "Quando desativado, autorizações de ferramentas de IA permanecem na janela principal de chat",
+  "pat": "Acariciar",
+  "resetPosition": "Redefinir Posição",
+  "hide": "Ocultar",
+  "showHide": "Mostrar/Ocultar",
+  "desktopOnly": "O Mascote de Mesa está disponível apenas no aplicativo para desktop. Ele não pode ser usado no modo navegador WebUI."
+}

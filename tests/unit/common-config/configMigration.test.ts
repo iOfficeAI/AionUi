@@ -143,22 +143,37 @@ describe('configMigration', () => {
   });
 
   describe('migrateProviders', () => {
+    /**
+     * In-memory fake of the local config file. Backed by a Map so we can both
+     * seed legacy data and assert that the migration sets the completion flag
+     * (ELECTRON-1KT). `get` returns `undefined` for missing keys (matching the
+     * real JsonFileBuilder behaviour); tests that simulate read failures
+     * override `get` directly.
+     */
+    function makeConfig(seed: Record<string, unknown> = {}): ConfigFile & { store: Map<string, unknown> } {
+      const store = new Map<string, unknown>(Object.entries(seed));
+      return {
+        get: vi.fn(async (key: string) => store.get(key) as never),
+        set: vi.fn(async (key: string, value: unknown) => {
+          store.set(key, value);
+        }),
+        store,
+      } as unknown as ConfigFile & { store: Map<string, unknown> };
+    }
+
     it('skips when all legacy providers already exist in backend', async () => {
       const legacyProviders = [{ id: 'p1', platform: 'openai', name: 'P1', baseUrl: '', apiKey: '', model: ['gpt-4'] }];
-      const configFile: ConfigFile = {
-        get: vi.fn((key: string) => {
-          if (key === 'model.config') return Promise.resolve(legacyProviders as never);
-          return Promise.reject(new Error('not found'));
-        }),
-        set: vi.fn(),
-      };
+      const configFile = makeConfig({ 'model.config': legacyProviders });
       (ipcBridge.mode.listProviders.invoke as ReturnType<typeof vi.fn>).mockResolvedValue([{ id: 'p1' }]);
       const infoSpy = vi.spyOn(console, 'info').mockImplementation(() => {});
 
       await migrateProviders(configFile);
 
       expect(ipcBridge.mode.createProvider.invoke).not.toHaveBeenCalled();
-      expect(configFile.set).not.toHaveBeenCalled();
+      // Legacy field must remain untouched (downgrade safety); only the new
+      // completion flag is written.
+      expect(configFile.store.get('model.config')).toBe(legacyProviders);
+      expect(configFile.store.get('migration.providersMigrated_v1')).toBe(true);
       expect(infoSpy).toHaveBeenCalledWith(expect.stringContaining('already exist in backend'), 1);
     });
 
@@ -213,13 +228,7 @@ describe('configMigration', () => {
         },
       ];
 
-      const configFile: ConfigFile = {
-        get: vi.fn((key: string) => {
-          if (key === 'model.config') return Promise.resolve(legacyProviders as never);
-          return Promise.reject(new Error('not found'));
-        }),
-        set: vi.fn(),
-      };
+      const configFile = makeConfig({ 'model.config': legacyProviders });
       (ipcBridge.mode.listProviders.invoke as ReturnType<typeof vi.fn>).mockResolvedValue([]);
       (ipcBridge.mode.createProvider.invoke as ReturnType<typeof vi.fn>).mockResolvedValue({ id: 'created' });
       vi.spyOn(console, 'info').mockImplementation(() => {});
@@ -264,7 +273,9 @@ describe('configMigration', () => {
         },
       });
 
-      expect(configFile.set).not.toHaveBeenCalled();
+      // Legacy field is preserved; the new completion flag is written.
+      expect(configFile.store.get('model.config')).toBe(legacyProviders);
+      expect(configFile.store.get('migration.providersMigrated_v1')).toBe(true);
     });
 
     it('only migrates providers not already in backend (by id)', async () => {
@@ -272,13 +283,7 @@ describe('configMigration', () => {
         { id: 'p1', platform: 'openai', name: 'P1', baseUrl: '', apiKey: '', model: ['gpt-4'] },
         { id: 'p2', platform: 'anthropic', name: 'P2', baseUrl: '', apiKey: '', model: ['claude-3'] },
       ];
-      const configFile: ConfigFile = {
-        get: vi.fn((key: string) => {
-          if (key === 'model.config') return Promise.resolve(legacyProviders as never);
-          return Promise.reject(new Error('not found'));
-        }),
-        set: vi.fn(),
-      };
+      const configFile = makeConfig({ 'model.config': legacyProviders });
       (ipcBridge.mode.listProviders.invoke as ReturnType<typeof vi.fn>).mockResolvedValue([{ id: 'p1' }]);
       (ipcBridge.mode.createProvider.invoke as ReturnType<typeof vi.fn>).mockResolvedValue({ id: 'p2' });
       vi.spyOn(console, 'info').mockImplementation(() => {});
@@ -294,13 +299,7 @@ describe('configMigration', () => {
         { id: 'p1', platform: 'openai', name: 'P1', baseUrl: '', apiKey: '', model: ['gpt-4'] },
         { id: 'p2', platform: 'anthropic', name: 'P2', baseUrl: '', apiKey: '', model: ['claude-3'] },
       ];
-      const configFile: ConfigFile = {
-        get: vi.fn((key: string) => {
-          if (key === 'model.config') return Promise.resolve(legacyProviders as never);
-          return Promise.reject(new Error('not found'));
-        }),
-        set: vi.fn(),
-      };
+      const configFile = makeConfig({ 'model.config': legacyProviders });
       (ipcBridge.mode.listProviders.invoke as ReturnType<typeof vi.fn>).mockResolvedValue([]);
       (ipcBridge.mode.createProvider.invoke as ReturnType<typeof vi.fn>)
         .mockResolvedValueOnce({ id: 'p1' })
@@ -312,13 +311,21 @@ describe('configMigration', () => {
       await migrateProviders(configFile);
 
       expect(warnSpy).toHaveBeenCalledWith('[Migration] failed to create provider %s:', 'p2', expect.any(Error));
-      expect(configFile.set).not.toHaveBeenCalled();
+      // Partial failure: legacy field untouched AND flag must remain unset so
+      // the next launch retries the still-missing row.
+      expect(configFile.store.get('model.config')).toBe(legacyProviders);
+      expect(configFile.store.has('migration.providersMigrated_v1')).toBe(false);
     });
 
     it('handles missing model.config gracefully', async () => {
+      // get() rejects for everything (legacy file truly absent). The flag
+      // read failure is caught as "not migrated yet"; the model.config read
+      // failure routes to the early return that now also sets the flag so
+      // we don't redundantly hit this path on every subsequent boot.
+      const setMock = vi.fn();
       const configFile: ConfigFile = {
         get: vi.fn().mockRejectedValue(new Error('not found')),
-        set: vi.fn(),
+        set: setMock,
       };
       vi.spyOn(console, 'info').mockImplementation(() => {});
 
@@ -326,24 +333,116 @@ describe('configMigration', () => {
 
       expect(ipcBridge.mode.listProviders.invoke).not.toHaveBeenCalled();
       expect(ipcBridge.mode.createProvider.invoke).not.toHaveBeenCalled();
-      expect(configFile.set).not.toHaveBeenCalled();
+      // The only write must be the completion flag — never the legacy field.
+      expect(setMock).toHaveBeenCalledWith('migration.providersMigrated_v1', true);
+      const legacyWrite = setMock.mock.calls.find((c) => c[0] === 'model.config');
+      expect(legacyWrite).toBeUndefined();
     });
 
     it('handles empty model.config array gracefully', async () => {
-      const configFile: ConfigFile = {
-        get: vi.fn((key: string) => {
-          if (key === 'model.config') return Promise.resolve([] as never);
-          return Promise.reject(new Error('not found'));
-        }),
-        set: vi.fn(),
-      };
+      const configFile = makeConfig();
       vi.spyOn(console, 'info').mockImplementation(() => {});
 
       await migrateProviders(configFile);
 
       expect(ipcBridge.mode.listProviders.invoke).not.toHaveBeenCalled();
       expect(ipcBridge.mode.createProvider.invoke).not.toHaveBeenCalled();
-      expect(configFile.set).not.toHaveBeenCalled();
+    });
+
+    // ---------------------------------------------------------------------
+    // ELECTRON-1KT regression coverage: the providers migration must persist
+    // a one-shot flag on success and short-circuit on subsequent launches so
+    // user-deleted providers don't reappear on every restart.
+    // ---------------------------------------------------------------------
+
+    it('sets completion flag after successful migration of legacy providers', async () => {
+      const legacyProviders = [{ id: 'p1', platform: 'openai', name: 'P1', baseUrl: '', apiKey: '', model: ['gpt-4'] }];
+      const configFile = makeConfig({ 'model.config': legacyProviders });
+      (ipcBridge.mode.listProviders.invoke as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+      (ipcBridge.mode.createProvider.invoke as ReturnType<typeof vi.fn>).mockResolvedValue({ id: 'p1' });
+      vi.spyOn(console, 'info').mockImplementation(() => {});
+
+      await migrateProviders(configFile);
+
+      expect(ipcBridge.mode.createProvider.invoke).toHaveBeenCalledTimes(1);
+      expect(configFile.store.get('migration.providersMigrated_v1')).toBe(true);
+      // Legacy field is intentionally preserved on disk for downgrade safety.
+      expect(configFile.store.get('model.config')).toEqual(legacyProviders);
+    });
+
+    it('skips migration entirely on subsequent runs once flag is set', async () => {
+      // Simulate a second launch: legacy file still on disk, flag already true.
+      const legacyProviders = [{ id: 'p1', platform: 'openai', name: 'P1', baseUrl: '', apiKey: '', model: ['gpt-4'] }];
+      const configFile = makeConfig({
+        'model.config': legacyProviders,
+        'migration.providersMigrated_v1': true,
+      });
+      vi.spyOn(console, 'info').mockImplementation(() => {});
+
+      await migrateProviders(configFile);
+
+      // Critical: the migration must not even read the legacy provider list,
+      // and createProvider must never be called.
+      expect(ipcBridge.mode.listProviders.invoke).not.toHaveBeenCalled();
+      expect(ipcBridge.mode.createProvider.invoke).not.toHaveBeenCalled();
+    });
+
+    it('does not re-import a provider deleted by the user after migration (ELECTRON-1KT)', async () => {
+      // Run 1: full migration succeeds, flag gets set.
+      const legacyProviders = [
+        { id: 'p1', platform: 'openai', name: 'P1', baseUrl: '', apiKey: '', model: ['gpt-4'] },
+        { id: 'p2', platform: 'anthropic', name: 'P2', baseUrl: '', apiKey: '', model: ['claude-3'] },
+      ];
+      const configFile = makeConfig({ 'model.config': legacyProviders });
+      (ipcBridge.mode.listProviders.invoke as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+      (ipcBridge.mode.createProvider.invoke as ReturnType<typeof vi.fn>).mockResolvedValue({ id: 'ok' });
+      vi.spyOn(console, 'info').mockImplementation(() => {});
+
+      await migrateProviders(configFile);
+      expect(configFile.store.get('migration.providersMigrated_v1')).toBe(true);
+
+      // Run 2: user has deleted `p1` from the backend. The legacy list on
+      // disk is unchanged. listProviders would now return only [p2]. With
+      // the flag in place, the migration must NOT call createProvider for
+      // p1 — that's the bug being fixed.
+      vi.clearAllMocks();
+      (ipcBridge.mode.listProviders.invoke as ReturnType<typeof vi.fn>).mockResolvedValue([{ id: 'p2' }]);
+      (ipcBridge.mode.createProvider.invoke as ReturnType<typeof vi.fn>).mockResolvedValue({ id: 'p1' });
+
+      await migrateProviders(configFile);
+
+      expect(ipcBridge.mode.listProviders.invoke).not.toHaveBeenCalled();
+      expect(ipcBridge.mode.createProvider.invoke).not.toHaveBeenCalled();
+    });
+
+    it('does not set flag on partial failure so retry can fill the gap', async () => {
+      const legacyProviders = [
+        { id: 'p1', platform: 'openai', name: 'P1', baseUrl: '', apiKey: '', model: ['gpt-4'] },
+        { id: 'p2', platform: 'anthropic', name: 'P2', baseUrl: '', apiKey: '', model: ['claude-3'] },
+      ];
+      const configFile = makeConfig({ 'model.config': legacyProviders });
+      (ipcBridge.mode.listProviders.invoke as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+      (ipcBridge.mode.createProvider.invoke as ReturnType<typeof vi.fn>)
+        .mockResolvedValueOnce({ id: 'p1' })
+        .mockRejectedValueOnce(new Error('boom'));
+      vi.spyOn(console, 'warn').mockImplementation(() => {});
+      vi.spyOn(console, 'info').mockImplementation(() => {});
+
+      await migrateProviders(configFile);
+
+      // Flag must remain unset so the next launch retries the still-missing row.
+      expect(configFile.store.has('migration.providersMigrated_v1')).toBe(false);
+    });
+
+    it('sets flag when there is no legacy model.config to migrate', async () => {
+      // Fresh install or already-cleaned config: nothing to do, but we still
+      // want to set the flag so we never re-read this path again.
+      const configFile = makeConfig();
+      vi.spyOn(console, 'info').mockImplementation(() => {});
+
+      await migrateProviders(configFile);
+
+      expect(configFile.store.get('migration.providersMigrated_v1')).toBe(true);
     });
   });
 

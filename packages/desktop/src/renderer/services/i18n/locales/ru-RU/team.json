@@ -20,6 +20,7 @@
   "newAgent": "Новый агент",
   "noMessages": "Пока нет сообщений.",
   "agentNotConfigured": "Агент ещё не настроен.",
+  "stopAgentFailed": "Не удалось остановить этого агента. Повторите попытку.",
   "sendBox": {
     "placeholder": "Сообщение агенту-диспетчеру..."
   },
@@ -28,7 +29,6 @@
     "namePlaceholder": "Название команды",
     "dispatchAgentPlaceholder": "Выбрать лидера команды",
     "subAgentsPlaceholder": "Выбрать подагентов",
-    "workspacePlaceholder": "Путь к папке проекта (опционально)",
     "confirm": "Создать команду",
     "noSupportedAgents": "Поддерживаемые агенты не установлены",
     "supportedAgentsHint": "Сейчас поддерживаются Claude, Codex, CodeBuddy. Другие агенты скоро появятся.",

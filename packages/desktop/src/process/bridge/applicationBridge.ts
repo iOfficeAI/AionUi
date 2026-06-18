@@ -13,6 +13,7 @@ import { getCdpStatus, updateCdpConfig } from '@process/utils/configureChromium'
 import { getGpuStatus, setGpuUserOverride } from '@process/utils/gpuRecovery';
 import { initApplicationBridgeCore } from './applicationBridgeCore';
 import type { IStartOnBootStatus } from '@/common/adapter/ipcBridge';
+import { restartApplication } from './restartApplication';
 
 let mainWindowRef: BrowserWindow | null = null;
 
@@ -102,8 +103,7 @@ export function initApplicationBridge(): void {
     // Backend subprocess shutdown is handled by backendManager.stop() in the
     // main window's before-quit hook; agent children are killed transitively
     // when backend exits.
-    app.relaunch();
-    app.exit(0);
+    return restartApplication(app);
   });
 
   ipcBridge.application.isDevToolsOpened.provider(() => {
@@ -155,6 +155,20 @@ export function initApplicationBridge(): void {
       console.error('[ApplicationBridge] Failed to persist zoom factor:', error);
     }
     return updatedFactor;
+  });
+
+  ipcBridge.application.writeRendererLog.provider(async ({ level, tag, message, data }) => {
+    const prefix = `[Renderer:${tag}] ${message}`;
+    const args = data === undefined ? [prefix] : [prefix, data];
+    if (level === 'error') {
+      console.error(...args);
+    } else if (level === 'warn') {
+      console.warn(...args);
+    } else if (level === 'debug') {
+      console.debug(...args);
+    } else {
+      console.info(...args);
+    }
   });
 
   // CDP status and configuration

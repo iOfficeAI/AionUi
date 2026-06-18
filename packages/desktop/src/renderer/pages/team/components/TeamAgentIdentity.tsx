@@ -1,9 +1,9 @@
 import React from 'react';
 import useSWR from 'swr';
-import { ipcBridge } from '@/common';
 import { getAgentLogo } from '@renderer/utils/model/agentLogo';
 import { usePresetAssistantInfo } from '@renderer/hooks/agent/usePresetAssistantInfo';
 import { resolveBackendAssetUrl } from '@renderer/utils/platform';
+import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
 
 type Props = {
   agent_name: string;
@@ -34,7 +34,7 @@ const TeamAgentIdentity: React.FC<Props> = ({
 }) => {
   // Share the SWR key with AgentChatSlot / TeamChatEmptyState so this hits cache instead of firing a fetch
   const { data: conversation } = useSWR(conversation_id ? ['team-conversation', conversation_id] : null, () =>
-    ipcBridge.conversation.get.invoke({ id: conversation_id! })
+    getConversationOrNull(conversation_id!)
   );
   const { info: presetInfo } = usePresetAssistantInfo(conversation ?? undefined);
   const explicitLogo = resolveBackendAssetUrl(icon) ?? icon;

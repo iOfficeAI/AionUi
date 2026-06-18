@@ -121,15 +121,33 @@ export interface ToolCallLocationItem {
   path: string;
 }
 
+export interface AcpImageOutput {
+  path: string;
+  mime_type?: string;
+  source?: string;
+}
+
+export interface AcpRawOutput {
+  saved_path?: string;
+  image?: AcpImageOutput;
+  result_omitted?: boolean;
+  result_omitted_reason?: string;
+  result_bytes?: number;
+  status?: string;
+  [key: string]: unknown;
+}
+
 /** Tool call session update */
 export interface ToolCallUpdate extends BaseSessionUpdate {
   update: {
-    sessionUpdate: 'tool_call';
+    sessionUpdate: 'tool_call' | 'tool_call_update';
     tool_call_id: string;
     status: 'pending' | 'in_progress' | 'completed' | 'failed';
     title: string;
     kind: 'read' | 'edit' | 'execute';
     rawInput?: Record<string, unknown>;
+    rawOutput?: AcpRawOutput;
+    raw_output?: AcpRawOutput;
     content?: ToolCallContentItem[];
     locations?: ToolCallLocationItem[];
   };
@@ -168,6 +186,42 @@ export interface AcpSessionConfigOption {
   selected_value?: string; // Some agents may use selected_value instead of current_value
   options?: AcpConfigSelectOption[];
 }
+
+export type AcpConfigOptionType = 'select' | 'boolean' | 'string';
+
+export type AcpConfigOptionConfirmation = 'observed' | 'command_ack';
+
+export type AcpConfigSelectOptionDto = {
+  value: string;
+  name?: string | null;
+  label?: string | null;
+  description?: string | null;
+};
+
+export type AcpConfigOptionDto = {
+  id: string;
+  name?: string | null;
+  label?: string | null;
+  description?: string | null;
+  category?: string | null;
+  type?: AcpConfigOptionType;
+  option_type?: AcpConfigOptionType;
+  current_value?: string | null;
+  options: AcpConfigSelectOptionDto[];
+};
+
+export type GetConfigOptionsResponse = {
+  config_options: AcpConfigOptionDto[];
+};
+
+export type SetConfigOptionRequest = {
+  value: string;
+};
+
+export type SetConfigOptionResponse = {
+  confirmation: AcpConfigOptionConfirmation;
+  config_options: AcpConfigOptionDto[] | null;
+};
 
 // ===== ACP Mode / Model types (unstable API) =====
 

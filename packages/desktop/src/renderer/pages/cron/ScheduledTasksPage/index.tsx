@@ -25,7 +25,7 @@ const ScheduledTasksPage: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { jobs, loading, pauseJob, resumeJob } = useAllCronJobs();
-  const { cliAgents } = useConversationAgents();
+  const { cliAgents, presetAssistants } = useConversationAgents();
   const [createDialogVisible, setCreateDialogVisible] = useState(false);
   const [keepAwake, setKeepAwake] = useState(false);
 
@@ -141,7 +141,7 @@ const ScheduledTasksPage: React.FC = () => {
             )}
           >
             {jobs.map((job) => {
-              const agentMeta = getJobAgentMeta(job, cliAgents);
+              const agentMeta = getJobAgentMeta(job, cliAgents, presetAssistants);
               const isManualOnly = job.schedule.kind === 'cron' && !job.schedule.expr;
               const executionModeLabel =
                 job.target.execution_mode === 'new_conversation'

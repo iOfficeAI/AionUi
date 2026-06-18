@@ -7,10 +7,12 @@
 import type { ICreateConversationParams } from '@/common/adapter/ipcBridge';
 import type { TProviderWithModel } from '@/common/config/storage';
 
-export type BuildAgentConversationPresetResources = {
-  rules?: string;
-  enabled_skills?: string[];
-  exclude_auto_inject_skills?: string[];
+export type BuildAgentConversationAssistantOverrides = {
+  model?: string;
+  permission?: string;
+  skill_ids?: string[];
+  disabled_builtin_skill_ids?: string[];
+  mcp_ids?: string[];
 };
 
 export type BuildAgentConversationInput = {
@@ -26,26 +28,16 @@ export type BuildAgentConversationInput = {
   custom_workspace?: boolean;
   is_preset?: boolean;
   preset_agent_type?: string;
-  preset_resources?: BuildAgentConversationPresetResources;
   session_mode?: string;
   current_model_id?: string;
+  thought_level?: string;
+  assistant_locale?: string;
+  assistant_conversation_overrides?: BuildAgentConversationAssistantOverrides;
   extra?: Partial<ICreateConversationParams['extra']>;
 };
 
 export function getConversationTypeForBackend(backend: string): ICreateConversationParams['type'] {
-  switch (backend) {
-    case 'aionrs':
-      return 'aionrs';
-    case 'openclaw-gateway':
-    case 'openclaw':
-      return 'openclaw-gateway';
-    case 'nanobot':
-      return 'nanobot';
-    case 'remote':
-      return 'remote';
-    default:
-      return 'acp';
-  }
+  return backend === 'aionrs' ? 'aionrs' : 'acp';
 }
 
 export function buildAgentConversationParams(input: BuildAgentConversationInput): ICreateConversationParams {
@@ -62,9 +54,11 @@ export function buildAgentConversationParams(input: BuildAgentConversationInput)
     custom_workspace = true,
     is_preset = false,
     preset_agent_type,
-    preset_resources,
     session_mode,
     current_model_id,
+    thought_level,
+    assistant_locale,
+    assistant_conversation_overrides,
     extra: extraOverrides,
   } = input;
 
@@ -78,28 +72,9 @@ export function buildAgentConversationParams(input: BuildAgentConversationInput)
   };
 
   if (is_preset) {
-    // Transient create-request fields: backend's create handler consumes
-    // them to compute extra.skills, then strips before persistence.
-    if (preset_resources?.enabled_skills?.length) {
-      extra.preset_enabled_skills = preset_resources.enabled_skills;
-    }
-    if (preset_resources?.exclude_auto_inject_skills?.length) {
-      extra.exclude_auto_inject_skills = preset_resources.exclude_auto_inject_skills;
-    }
     extra.preset_assistant_id = effectivePresetAssistantId;
-    extra.preset_context = preset_resources?.rules;
     if (type === 'acp') {
       extra.backend = effectivePresetType as string;
-    }
-  } else if (type === 'remote') {
-    extra.remote_agent_id = custom_agent_id;
-  } else if (type === 'openclaw-gateway') {
-    extra.agent_name = agent_name || name;
-    extra.gateway = {
-      cli_path,
-    };
-    if (custom_agent_id) {
-      extra.custom_agent_id = custom_agent_id;
     }
   } else if (type === 'acp') {
     extra.backend = backend as string;
@@ -113,11 +88,19 @@ export function buildAgentConversationParams(input: BuildAgentConversationInput)
 
   if (session_mode) extra.session_mode = session_mode;
   if (current_model_id) extra.current_model_id = current_model_id;
+  if (thought_level) extra.thought_level = thought_level;
 
   return {
     type,
     model,
     name,
+    assistant: effectivePresetAssistantId
+      ? {
+          id: effectivePresetAssistantId,
+          locale: assistant_locale,
+          conversation_overrides: assistant_conversation_overrides,
+        }
+      : undefined,
     extra,
   };
 }

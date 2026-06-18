@@ -1,7 +1,8 @@
 import { resolveExtensionAssetUrl } from '@/renderer/utils/platform';
 import type { AssistantListItem } from './types';
 
-export type AssistantListFilter = 'all' | 'enabled' | 'disabled' | 'builtin' | 'user' | 'extension';
+export type AssistantListFilter = 'all' | 'enabled' | 'disabled' | 'builtin' | 'user';
+export const ASSISTANT_SORT_ORDER_GAP = 1000;
 
 /**
  * Check if a string is an emoji (simple check for common emoji patterns).
@@ -25,9 +26,32 @@ export const resolveAvatarImageSrc = (
   const mapped = avatarImageMap[value];
   if (mapped) return mapped;
 
+  const isLocalAbsolutePath = isLikelyLocalFilePath(value);
+  if (isLocalAbsolutePath) {
+    const isImageLocalPath = /\.(svg|png|jpe?g|webp|gif)$/i.test(value) || isLikelyLocalFilePath(value);
+    return isImageLocalPath ? toFileUrl(value) : undefined;
+  }
+
   const resolved = resolveExtensionAssetUrl(value) || value;
   const isImage = /\.(svg|png|jpe?g|webp|gif)$/i.test(resolved) || /^(https?:|file:\/\/|data:|\/)/i.test(resolved);
   return isImage ? resolved : undefined;
+};
+
+const toFileUrl = (path: string): string => {
+  if (path.startsWith('file://')) return path;
+  if (/^[A-Za-z]:[\\/]/.test(path)) {
+    return `file:///${encodeURI(path.replace(/\\/g, '/'))}`;
+  }
+  return `file://${encodeURI(path)}`;
+};
+
+const isLikelyLocalFilePath = (value: string): boolean => {
+  if (value.startsWith('file://')) return true;
+  if (/^[A-Za-z]:[\\/]/.test(value)) return true;
+
+  const unixLocalPathPrefixes = ['/Users/', '/home/', '/var/', '/tmp/', '/private/', '/Volumes/', '/mnt/'];
+
+  return unixLocalPathPrefixes.some((prefix) => value.startsWith(prefix));
 };
 
 /**
@@ -36,6 +60,51 @@ export const resolveAvatarImageSrc = (
  */
 export const sortAssistants = (list: AssistantListItem[]): AssistantListItem[] =>
   [...list].toSorted((a, b) => a.sort_order - b.sort_order);
+
+/**
+ * Reorder assistants by moving `activeId` to the position of `overId`.
+ */
+export const reorderAssistantList = (
+  assistants: AssistantListItem[],
+  activeId: string,
+  overId: string
+): AssistantListItem[] => {
+  const activeIndex = assistants.findIndex((assistant) => assistant.id === activeId);
+  const overIndex = assistants.findIndex((assistant) => assistant.id === overId);
+  if (activeIndex < 0 || overIndex < 0 || activeIndex === overIndex) {
+    return assistants;
+  }
+
+  const nextAssistants = [...assistants];
+  const [movedAssistant] = nextAssistants.splice(activeIndex, 1);
+  nextAssistants.splice(overIndex, 0, movedAssistant);
+  return nextAssistants;
+};
+
+/**
+ * Build deterministic sort_order updates for a reordered assistant list.
+ */
+export const buildAssistantSortUpdates = (
+  previousAssistants: AssistantListItem[],
+  nextAssistants: AssistantListItem[]
+): Array<{ id: string; sort_order: number }> =>
+  nextAssistants
+    .map((assistant, index) => ({
+      id: assistant.id,
+      sort_order: (index + 1) * ASSISTANT_SORT_ORDER_GAP,
+      previous: previousAssistants.find((item) => item.id === assistant.id),
+    }))
+    .filter(({ previous, sort_order }) => previous?.sort_order !== sort_order)
+    .map(({ id, sort_order }) => ({ id, sort_order }));
+
+/**
+ * Apply normalized sort_order values to a reordered assistant list.
+ */
+export const applyAssistantSortOrders = (assistants: AssistantListItem[]): AssistantListItem[] =>
+  assistants.map((assistant, index) => ({
+    ...assistant,
+    sort_order: (index + 1) * ASSISTANT_SORT_ORDER_GAP,
+  }));
 
 /**
  * Apply search and management filter to assistant list.
@@ -69,8 +138,6 @@ export const filterAssistants = (
         return assistant.source === 'builtin';
       case 'user':
         return assistant.source === 'user';
-      case 'extension':
-        return assistant.source === 'extension';
       case 'all':
       default:
         return true;

@@ -17,6 +17,8 @@ import { getPlatformServices } from '@/common/platform';
 import { ProcessConfig } from '@process/utils/initStorage';
 import { changeLanguage } from '@process/services/i18n';
 import type { PetSize } from '@process/pet/petTypes';
+import { createOrUpdateTray, destroyTray, setCloseToTrayEnabled } from '@process/utils/tray';
+import { readCloseToTraySetting, writeCloseToTraySetting } from '@process/utils/closeToTraySetting';
 
 // Keep-awake power blocker state
 let _keepAwakeBlockerId: number | null = null;
@@ -33,6 +35,18 @@ export function onLanguageChanged(listener: LanguageChangeListener): void {
 }
 
 export function initSystemSettingsBridge(): void {
+  ipcBridge.systemSettings.getCloseToTray.provider(async () => readCloseToTraySetting());
+
+  ipcBridge.systemSettings.setCloseToTray.provider(async ({ enabled }) => {
+    await writeCloseToTraySetting(enabled);
+    setCloseToTrayEnabled(enabled);
+    if (enabled) {
+      createOrUpdateTray();
+    } else {
+      destroyTray();
+    }
+  });
+
   // Set "keep awake" — toggle prevent-display-sleep blocker.
   // getKeepAwake is served by the backend via HTTP; only the setter remains
   // because it drives the local power.preventDisplaySleep blocker.

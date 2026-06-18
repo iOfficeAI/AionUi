@@ -11,6 +11,7 @@ import classNames from 'classnames';
 import type { ICronJob } from '@/common/adapter/ipcBridge';
 import type { TChatConversation } from '@/common/config/storage';
 import { ipcBridge } from '@/common';
+import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
 import { emitter } from '@/renderer/utils/emitter';
 import CronJobSiderItem from './CronJobSiderItem';
 
@@ -46,7 +47,7 @@ const CronJobSiderSection: React.FC<CronJobSiderSectionProps> = ({ jobs, pathnam
       return;
     }
     // Fetch all conversations in parallel
-    Promise.all(existingModeConvIds.map((id) => ipcBridge.conversation.get.invoke({ id }))).then((results) => {
+    Promise.all(existingModeConvIds.map((id) => getConversationOrNull(id))).then((results) => {
       const map = new Map<string, TChatConversation>();
       for (const conv of results) {
         if (conv) map.set(conv.id, conv);

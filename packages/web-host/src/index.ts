@@ -6,6 +6,7 @@ export type { StaticServerOptions, StaticServerHandle } from './static-server.js
 
 // Backend launcher exports (M4)
 export {
+  BackendStartupCancelledError,
   BackendLifecycleManager,
   buildSpawnArgs,
   buildSpawnEnv,
@@ -13,7 +14,7 @@ export {
   startBackend,
   stopBackend,
 } from './backend-launcher.js';
-export type { BackendDirConfig, BackendLaunchOptions, BackendHandle } from './backend-launcher.js';
+export type { BackendDirConfig, BackendLaunchOptions, BackendHandle, BackendStartOptions } from './backend-launcher.js';
 
 /**
  * Start WebHost (main entry point).

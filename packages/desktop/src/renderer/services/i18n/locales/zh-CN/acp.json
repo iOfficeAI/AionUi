@@ -4,8 +4,18 @@
     "console_error": "ACP认证错误详情:",
     "failed_confirm": "ACP {{backend}} 认证失败：\n\n{{error}}\n\n是否现在前往设置页面配置？"
   },
+  "send": {
+    "failed": "发送消息失败：{{error}}"
+  },
   "sendbox": {
     "placeholder": "发送消息到 {{backend}}..."
+  },
+  "image": {
+    "download": "下载",
+    "download_aria": "下载图片",
+    "download_success": "下载成功",
+    "download_error": "下载失败",
+    "generated_alt": "生成的图片"
   },
   "status": {
     "connecting": "正在连接 {{agent}}...",

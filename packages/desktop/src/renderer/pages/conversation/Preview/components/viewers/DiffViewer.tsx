@@ -179,6 +179,7 @@ const DiffPreview: React.FC<DiffPreviewProps> = ({
             PreTag='div'
             showLineNumbers
             wrapLongLines
+            customStyle={{ fontSize: '13px', fontFamily: 'var(--font-mono)', lineHeight: 1.5 }}
           >
             {content}
           </SyntaxHighlighter>

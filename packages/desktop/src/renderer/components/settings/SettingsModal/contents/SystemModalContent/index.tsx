@@ -10,10 +10,9 @@ import { configService } from '@/common/config/configService';
 import AionScrollArea from '@/renderer/components/base/AionScrollArea';
 import FeedbackButton from '@/renderer/components/base/FeedbackButton';
 import LanguageSwitcher from '@/renderer/components/settings/LanguageSwitcher';
-import { iconColors } from '@/renderer/styles/colors';
+import { notifyManualRestartRequired } from '@/renderer/utils/appRestart';
 import { isElectronDesktop } from '@/renderer/utils/platform';
-import { Alert, Button, Collapse, Form, InputNumber, Message, Modal, Switch, Tooltip } from '@arco-design/web-react';
-import { FolderSearch } from '@icon-park/react';
+import { Alert, Collapse, Form, InputNumber, Message, Modal, Switch } from '@arco-design/web-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
@@ -21,6 +20,7 @@ import { useSettingsViewMode } from '../../settingsViewContext';
 import DevSettings from './DevSettings';
 import DirInputItem from './DirInputItem';
 import PreferenceRow from './PreferenceRow';
+import VoiceInputSection from './VoiceInputSection';
 
 /**
  * System settings content component
@@ -79,6 +79,15 @@ const SystemModalContent: React.FC = () => {
 
   useEffect(() => {
     setCloseToTray(configService.get('system.closeToTray') ?? false);
+    if (isDesktop) {
+      ipcBridge.systemSettings.getCloseToTray
+        .invoke()
+        .then((enabled) => {
+          setCloseToTray(enabled);
+          configService.setLocal('system.closeToTray', enabled);
+        })
+        .catch(() => {});
+    }
     setNotificationEnabled(configService.get('system.notificationEnabled') ?? true);
     setCronNotificationEnabled(configService.get('system.cronNotificationEnabled') ?? false);
     setSaveUploadToWorkspace(configService.get('upload.saveToWorkspace') ?? false);
@@ -87,16 +96,29 @@ const SystemModalContent: React.FC = () => {
     if (pt && pt > 0) setPromptTimeout(pt);
     const ait = configService.get('acp.agentIdleTimeout');
     if (ait && ait > 0) setAgentIdleTimeout(ait);
-  }, []);
+  }, [isDesktop]);
 
-  const handleCloseToTrayChange = useCallback((checked: boolean) => {
-    setCloseToTray(checked);
-    configService.setLocal('system.closeToTray', checked);
-    ipcBridge.systemSettings.setCloseToTray.invoke({ enabled: checked }).catch(() => {
-      setCloseToTray(!checked);
-      configService.setLocal('system.closeToTray', !checked);
-    });
-  }, []);
+  const handleCloseToTrayChange = useCallback(
+    (checked: boolean) => {
+      const previous = closeToTray;
+      setCloseToTray(checked);
+      configService.setLocal('system.closeToTray', checked);
+
+      if (!isDesktop) {
+        configService.set('system.closeToTray', checked).catch(() => {
+          setCloseToTray(previous);
+          configService.setLocal('system.closeToTray', previous);
+        });
+        return;
+      }
+
+      ipcBridge.systemSettings.setCloseToTray.invoke({ enabled: checked }).catch(() => {
+        setCloseToTray(previous);
+        configService.setLocal('system.closeToTray', previous);
+      });
+    },
+    [closeToTray, isDesktop]
+  );
 
   const handleHardwareAccelerationChange = useCallback(
     (checked: boolean) => {
@@ -115,7 +137,10 @@ const SystemModalContent: React.FC = () => {
           .then((result) => {
             if (result.success && result.data) {
               setGpuStatus(result.data);
-              ipcBridge.application.restart.invoke().catch(() => {});
+              ipcBridge.application.restart
+                .invoke()
+                .then((restartResult) => notifyManualRestartRequired(restartResult, t))
+                .catch(() => {});
             } else {
               setGpuStatus(previous);
               Message.error(t('settings.hardwareAccelerationUpdateFailed'));
@@ -216,20 +241,11 @@ const SystemModalContent: React.FC = () => {
   // Get system directory info
   const { data: systemInfo } = useSWR('system.dir.info', () => ipcBridge.application.systemInfo.invoke());
 
-  const handleOpenLogDir = useCallback(() => {
-    if (!systemInfo?.logDir) return;
-    void ipcBridge.shell.openFolderWith
-      .invoke({ folder_path: systemInfo.logDir, tool: 'explorer' })
-      .catch((caughtError) => {
-        console.error('[SystemModalContent] Failed to open log directory:', caughtError);
-      });
-  }, [systemInfo?.logDir]);
-
   // Initialize form data
   useEffect(() => {
     if (systemInfo) {
       initializingRef.current = true;
-      form.setFieldsValue({ workDir: systemInfo.workDir });
+      form.setFieldsValue({ workDir: systemInfo.workDir, logDir: systemInfo.logDir });
       requestAnimationFrame(() => {
         initializingRef.current = false;
       });
@@ -312,7 +328,7 @@ const SystemModalContent: React.FC = () => {
     },
   ];
 
-  const saveDirConfigValidate = (_values: { workDir: string }): Promise<unknown> => {
+  const saveDirConfigValidate = (_values: { workDir: string; logDir: string }): Promise<unknown> => {
     return new Promise((resolve, reject) => {
       modal.confirm({
         title: t('settings.updateConfirm'),
@@ -328,21 +344,22 @@ const SystemModalContent: React.FC = () => {
   const handleValuesChange = useCallback(
     async (_changedValue: unknown, allValues: Record<string, string>) => {
       if (initializingRef.current || savingRef.current || !systemInfo) return;
-      const { workDir } = allValues;
-      const needsRestart = workDir !== systemInfo.workDir;
+      const { workDir, logDir } = allValues;
+      const needsRestart = workDir !== systemInfo.workDir || logDir !== systemInfo.logDir;
       if (!needsRestart) return;
 
       savingRef.current = true;
       setError(null);
       try {
-        await saveDirConfigValidate({ workDir });
+        await saveDirConfigValidate({ workDir, logDir });
         // Pass systemInfo.cacheDir as-is: cacheDir is no longer user-editable
         // (removed from UI), but the backend IPC interface still expects it.
         // Passing the current value ensures existing custom paths are preserved.
-        await ipcBridge.application.updateSystemInfo.invoke({ cacheDir: systemInfo.cacheDir, workDir });
-        await ipcBridge.application.restart.invoke();
+        await ipcBridge.application.updateSystemInfo.invoke({ cacheDir: systemInfo.cacheDir, workDir, logDir });
+        const restartResult = await ipcBridge.application.restart.invoke();
+        notifyManualRestartRequired(restartResult, t);
       } catch (caughtError: unknown) {
-        form.setFieldValue('workDir', systemInfo.workDir);
+        form.setFieldsValue({ workDir: systemInfo.workDir, logDir: systemInfo.logDir });
         if (caughtError) {
           setError(caughtError instanceof Error ? caughtError.message : String(caughtError));
         }
@@ -350,7 +367,7 @@ const SystemModalContent: React.FC = () => {
         savingRef.current = false;
       }
     },
-    [systemInfo, form, saveDirConfigValidate]
+    [systemInfo, form, saveDirConfigValidate, t]
   );
 
   return (
@@ -408,25 +425,7 @@ const SystemModalContent: React.FC = () => {
             </Collapse>
             <Form form={form} layout='vertical' className='!mt-32px space-y-16px' onValuesChange={handleValuesChange}>
               <DirInputItem label={t('settings.workDir')} field='workDir' />
-              {/* Log directory (read-only, click to open in file manager) */}
-              <div>
-                <Form.Item label={t('settings.logDir')}>
-                  <div className='aion-dir-input h-[32px] flex items-center rounded-8px border border-solid border-transparent pl-14px bg-[var(--fill-0)] '>
-                    <Tooltip content={systemInfo?.logDir || ''} position='top'>
-                      <div className='flex-1 min-w-0 text-13px text-t-primary truncate'>{systemInfo?.logDir || ''}</div>
-                    </Tooltip>
-                    <Button
-                      type='text'
-                      style={{ borderLeft: '1px solid var(--color-border-2)', borderRadius: '0 8px 8px 0' }}
-                      icon={<FolderSearch theme='outline' size='18' fill={iconColors.primary} />}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleOpenLogDir();
-                      }}
-                    />
-                  </div>
-                </Form.Item>
-              </div>
+              <DirInputItem label={t('settings.logDir')} field='logDir' />
               {error && (
                 <Alert
                   className='mt-16px'
@@ -441,6 +440,9 @@ const SystemModalContent: React.FC = () => {
               )}
             </Form>
           </div>
+
+          {/* Voice input (speech-to-text) settings */}
+          <VoiceInputSection />
 
           {/* Developer settings: DevTools + CDP (only visible in dev mode) */}
           <DevSettings />

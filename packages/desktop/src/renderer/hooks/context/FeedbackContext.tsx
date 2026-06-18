@@ -6,12 +6,16 @@
 
 import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
 import FeedbackReportModal, {
+  type FeedbackEventExtra,
+  type FeedbackEventTags,
   type PrefilledScreenshot,
 } from '@/renderer/components/settings/SettingsModal/contents/FeedbackReportModal';
 
 type OpenFeedbackOptions = {
   module?: string;
   autoScreenshot?: boolean;
+  tags?: FeedbackEventTags;
+  extra?: FeedbackEventExtra;
 };
 
 type FeedbackContextValue = {
@@ -40,9 +44,13 @@ export const FeedbackProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [visible, setVisible] = useState(false);
   const [defaultModule, setDefaultModule] = useState<string | undefined>(undefined);
   const [prefilledScreenshots, setPrefilledScreenshots] = useState<PrefilledScreenshot[] | undefined>(undefined);
+  const [feedbackTags, setFeedbackTags] = useState<FeedbackEventTags | undefined>(undefined);
+  const [feedbackExtra, setFeedbackExtra] = useState<FeedbackEventExtra | undefined>(undefined);
 
   const openFeedback = useCallback(async (options?: OpenFeedbackOptions) => {
     setDefaultModule(options?.module);
+    setFeedbackTags(options?.tags);
+    setFeedbackExtra(options?.extra);
     if (options?.autoScreenshot) {
       const shot = await captureScreenshot();
       setPrefilledScreenshots(shot ? [shot] : undefined);
@@ -55,6 +63,8 @@ export const FeedbackProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const handleCancel = useCallback(() => {
     setVisible(false);
     setPrefilledScreenshots(undefined);
+    setFeedbackTags(undefined);
+    setFeedbackExtra(undefined);
   }, []);
 
   const value = useMemo(() => ({ openFeedback }), [openFeedback]);
@@ -67,6 +77,8 @@ export const FeedbackProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         onCancel={handleCancel}
         defaultModule={defaultModule}
         prefilledScreenshots={prefilledScreenshots}
+        feedbackTags={feedbackTags}
+        feedbackExtra={feedbackExtra}
       />
     </FeedbackContext.Provider>
   );

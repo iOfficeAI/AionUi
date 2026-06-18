@@ -113,7 +113,6 @@
       "executionModeEditHint": "作成後に実行モードは変更できません。モードを切り替えるには、タスクを削除して再作成してください。",
       "advancedSettings": "詳細設定",
       "workspace": "プロジェクト",
-      "workspacePlaceholder": "フォルダを選択",
       "workspaceHint": "オプション：ファイル操作のプロジェクトフォルダを設定",
       "selectFolder": "フォルダを選択",
       "clearFolder": "クリア",

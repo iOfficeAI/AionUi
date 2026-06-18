@@ -5,8 +5,10 @@
  */
 
 import { ipcBridge } from '@/common';
+import type { IMcpServer } from '@/common/config/storage';
 import AgentModeSelector from '@/renderer/components/agent/AgentModeSelector';
 import { supportsModeSwitch, type AgentModeOption } from '@/renderer/utils/model/agentModes';
+import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { getCleanFileNames, FileService } from '@/renderer/services/FileService';
 import { iconColors } from '@/renderer/styles/colors';
 import { isElectronDesktop } from '@/renderer/utils/platform';
@@ -53,6 +55,9 @@ type GuidActionRowProps = {
   disabledBuiltinSkills: string[];
   enabledSkills: string[];
   onToggleSkill: (name: string, isAuto: boolean) => void;
+  mcpServers: IMcpServer[];
+  selectedMcpServerIds: string[];
+  onToggleMcpServer: (serverId: string) => void;
 
   // Send button
   loading: boolean;
@@ -81,6 +86,9 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
   disabledBuiltinSkills,
   enabledSkills,
   onToggleSkill,
+  mcpServers,
+  selectedMcpServerIds,
+  onToggleMcpServer,
   hidePresetTag = false,
   loading,
   isButtonDisabled,
@@ -88,6 +96,8 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
   onSend,
 }) => {
   const { t } = useTranslation();
+  const layout = useLayoutContext();
+  const isMobile = layout?.isMobile ?? false;
   const [isPlusDropdownOpen, setIsPlusDropdownOpen] = useState(false);
   const modeBackend = effectiveModeAgent || selectedAgent;
   const showModeSwitch = supportsModeSwitch(modeBackend);
@@ -123,11 +133,11 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
 
   const isWebUI = !isElectronDesktop();
 
-  const builtinAutoSkills = allSkills.filter((s) => s.isAuto);
-  const activeSkillCount = builtinAutoSkills.length - disabledBuiltinSkills.length;
-
   const isSkillChecked = (skill: { name: string; isAuto: boolean }) =>
     skill.isAuto ? !disabledBuiltinSkills.includes(skill.name) : enabledSkills.includes(skill.name);
+
+  const activeSkillCount = allSkills.filter(isSkillChecked).length;
+  const activeMcpCount = selectedMcpServerIds.length;
 
   const menuContent = (
     <Menu
@@ -154,7 +164,7 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
           <Menu.Item key='file'>
             <div className='flex items-center gap-8px'>
               <UploadOne theme='outline' size='16' fill={iconColors.secondary} style={{ lineHeight: 0 }} />
-              <span>{t('common.fileAttach.hostFiles')}</span>
+              <span>{t('common.fileAttach.addFiles')}</span>
             </div>
           </Menu.Item>
           <Menu.Item key='device'>
@@ -168,7 +178,7 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
         <Menu.Item key='file'>
           <div className='flex items-center gap-8px'>
             <UploadOne theme='outline' size='16' fill={iconColors.secondary} style={{ lineHeight: 0 }} />
-            <span>{t('conversation.welcome.uploadFile')}</span>
+            <span>{t('common.fileAttach.addFiles')}</span>
           </div>
         </Menu.Item>
       )}
@@ -205,6 +215,47 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
                 onChange={() => onToggleSkill(skill.name, skill.isAuto)}
               >
                 <span className='text-13px'>{skill.name}</span>
+              </Checkbox>
+            </Menu.Item>
+          ))}
+        </Menu.SubMenu>
+      )}
+      {mcpServers.length > 0 && (
+        <Menu.SubMenu
+          key='mcp'
+          title={
+            <div className='flex items-center gap-8px'>
+              <Shield theme='outline' size='16' fill={iconColors.primary} style={{ lineHeight: 0 }} />
+              <span>
+                {t('mcp.label')} ({activeMcpCount}/{mcpServers.length})
+              </span>
+            </div>
+          }
+          triggerProps={{
+            popupStyle: {
+              maxHeight: 360,
+              overflowY: 'auto',
+              overflowX: 'hidden',
+            },
+          }}
+        >
+          {mcpServers.map((server) => (
+            <Menu.Item
+              key={`mcp-${server.id}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleMcpServer(server.id);
+              }}
+            >
+              <Checkbox
+                checked={selectedMcpServerIds.includes(server.id)}
+                onClick={(e: React.MouseEvent) => e.stopPropagation()}
+                onChange={() => onToggleMcpServer(server.id)}
+              >
+                <span className='text-13px'>
+                  {server.name}
+                  {server.tools?.length ? ` (${server.tools.length} ${t('mcp.tools')})` : ''}
+                </span>
               </Checkbox>
             </Menu.Item>
           ))}
@@ -251,7 +302,7 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
       </div>
       <div className={styles.actionSubmit}>
         {configOptionCount > 0 && (
-          <div className={styles.actionConfigGroup}>
+          <div className={styles.actionConfigGroup} data-mobile={isMobile ? 'true' : undefined}>
             {modelSelectorNode}
 
             {showModeSwitch && (

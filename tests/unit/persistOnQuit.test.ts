@@ -82,4 +82,28 @@ describe('persistOnQuit', () => {
     await Promise.resolve();
     expect(appQuit).toHaveBeenCalled();
   });
+
+  it('keeps blocking repeated before-quit events while writes are still flushing', async () => {
+    let resolveWrite: (() => void) | undefined;
+    trackPersistedWrite(
+      new Promise<void>((resolve) => {
+        resolveWrite = resolve;
+      })
+    );
+
+    const firstPreventDefault = vi.fn();
+    fireAppEvent('before-quit', { preventDefault: firstPreventDefault });
+    expect(firstPreventDefault).toHaveBeenCalled();
+
+    const secondPreventDefault = vi.fn();
+    fireAppEvent('before-quit', { preventDefault: secondPreventDefault });
+    expect(secondPreventDefault).toHaveBeenCalled();
+    expect(appQuit).not.toHaveBeenCalled();
+
+    resolveWrite?.();
+    await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(appQuit).toHaveBeenCalled();
+  });
 });

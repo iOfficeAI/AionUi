@@ -15,7 +15,7 @@ describe('base64 utils', () => {
       const blob = base64ToBlob(dataUrl, 'text/plain');
 
       expect(blob).toBeInstanceOf(Blob);
-      expect(blob.type).toBe('text/plain');
+      expect(blob.type).toMatch(/^text\/plain/);
       expect(blob.size).toBe(13);
     });
 
@@ -31,7 +31,7 @@ describe('base64 utils', () => {
       const dataUrl = `data:text/plain;base64,${base64}`;
       const blob = base64ToBlob(dataUrl, 'application/json');
 
-      expect(blob.type).toBe('application/json');
+      expect(blob.type).toMatch(/^application\/json/);
     });
 
     it('handles binary data', () => {

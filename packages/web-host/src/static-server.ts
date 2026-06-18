@@ -1,10 +1,11 @@
 /**
  * WebUI static server.
  *
- * Serves out/renderer/ as the SPA and reverse-proxies /api/*, /ws, /login and
- * /logout to aioncore. All auth goes to backend's aionui-auth crate;
+ * Serves out/renderer/ as the SPA and reverse-proxies /api/*, /ws, /api/stt/stream,
+ * /login and /logout to aioncore. All auth goes to backend's aionui-auth crate;
  * /login and /logout are aionui-auth's top-level paths, the rest live under
- * /api/auth/*.
+ * /api/auth/*. /ws and /api/stt/stream are WebSocket/stream upgrades spliced at
+ * TCP level; /api/stt/stream is the STT streaming endpoint.
  *
  * Design: Node native http + serve-handler. No Express. No business routes.
  */
@@ -100,12 +101,12 @@ function spliceToTcpEndpoint(client: Socket, targetPort: number, initialBytes: B
 
 /**
  * Decide routing from the first chunk of an incoming HTTP connection:
- *  - `true`  → `GET /ws[...] HTTP/1.x` (WebSocket upgrade), splice to backend
+ *  - `true`  → `GET /ws[...] HTTP/1.x` or `GET /api/stt/stream[...] HTTP/1.x` (WebSocket/stream upgrades), splice to backend
  *  - `false` → any other HTTP method / path, hand to internal HTTP server
  *  - `null`  → need more bytes (no CRLF yet)
  *
  * We only check the request-line; `Upgrade: websocket` is not strictly
- * required — the backend will reject a non-upgrade `GET /ws` on its own.
+ * required — the backend will reject a non-upgrade GET on these paths on its own.
  * Keeping the rule simple means we can decide after the first ~50 bytes
  * instead of waiting for the full header block.
  */
@@ -113,7 +114,7 @@ function peekWsRoute(buf: Buffer): boolean | null {
   const newlineIdx = buf.indexOf(0x0a); // \n
   if (newlineIdx < 0) return null;
   const firstLine = buf.slice(0, newlineIdx).toString('ascii');
-  return /^GET\s+\/ws(?:\?[^\s]*)?\s+HTTP\/1\.[01]\r?$/.test(firstLine);
+  return /^GET\s+\/(?:ws|api\/stt\/stream)(?:\?[^\s]*)?\s+HTTP\/1\.[01]\r?$/.test(firstLine);
 }
 
 export async function startStaticServer(opts: StaticServerOptions): Promise<StaticServerHandle> {
@@ -123,7 +124,7 @@ export async function startStaticServer(opts: StaticServerOptions): Promise<Stat
 
   // The HTTP server listens only on loopback — user traffic hits the outer
   // net.Server first. We route to this server for everything except WS
-  // upgrades, which go straight to the backend via a raw TCP splice.
+  // upgrades and STT stream upgrades, which go straight to the backend via a raw TCP splice.
   //
   // Why two listeners instead of using `http.Server`'s native `upgrade` event:
   // bun 1.3's http-compat layer does not faithfully forward writes on the
@@ -174,7 +175,7 @@ export async function startStaticServer(opts: StaticServerOptions): Promise<Stat
   }
 
   // User-facing listener: inspect the first line of every TCP connection and
-  // route to either the backend (for /ws upgrades) or the internal HTTP
+  // route to either the backend (for /ws and /api/stt/stream upgrades) or the internal HTTP
   // server (everything else). Both routes use raw TCP splice — no reliance
   // on http.Server's upgrade event.
   const tcp_server = net.createServer((client: Socket) => {

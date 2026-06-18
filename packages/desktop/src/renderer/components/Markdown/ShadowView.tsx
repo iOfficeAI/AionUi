@@ -8,12 +8,18 @@ import { theme } from '@office-ai/platform';
 import React, { useState } from 'react';
 import ReactDOM from 'react-dom';
 import { addImportantToAll } from '@renderer/utils/theme/customCssProcessor';
-import { configService } from '@/common/config/configService';
+import { ipcBridge } from '@/common';
+import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 
 /**
  * Create the base style element for Shadow DOM with CSS variables, theme styles, and optional custom CSS.
  */
-const createInitStyle = (currentTheme = 'light', cssVars?: Record<string, string>, customCss?: string) => {
+const createInitStyle = (
+  currentTheme = 'light',
+  cssVars?: Record<string, string>,
+  customCss?: string,
+  isMobile?: boolean
+) => {
   const style = document.createElement('style');
   // Inject external CSS variables into Shadow DOM for dark mode support
   const cssVarsDeclaration = cssVars
@@ -22,6 +28,12 @@ const createInitStyle = (currentTheme = 'light', cssVars?: Record<string, string
         .join('\n    ')
     : '';
 
+  const lineHeight = isMobile ? '19.6px' : '24px';
+  const fontSize = isMobile ? 'var(--chat-font-size, 14px)' : 'var(--chat-font-size, 16px)';
+  // Desktop paragraph spacing trimmed from 16px to 12px (~0.85em) for a more
+  // compact reply; mobile spacing is left untouched (tuned separately).
+  const paragraphMargin = isMobile ? '16px' : '12px';
+
   style.innerHTML = `
   /* Shadow DOM CSS variable definitions */
   :host {
@@ -29,8 +41,8 @@ const createInitStyle = (currentTheme = 'light', cssVars?: Record<string, string
   }
 
   * {
-    line-height:28px;
-    font-size:16px;
+    line-height:${lineHeight};
+    font-size:${fontSize};
     color: inherit;
   }
 
@@ -49,8 +61,8 @@ const createInitStyle = (currentTheme = 'light', cssVars?: Record<string, string
     margin-block-end:0px;
   }
   .markdown-shadow-body p {
-    margin-block-start: 16px;
-    margin-block-end: 16px;
+    margin-block-start: ${paragraphMargin};
+    margin-block-end: ${paragraphMargin};
   }
   .markdown-shadow-body li {
     margin-block-start: 6px;
@@ -76,8 +88,9 @@ const createInitStyle = (currentTheme = 'light', cssVars?: Record<string, string
     margin-bottom: 12px;
   }
   code span{
-    font-size:13px;
+    font-size:var(--code-font-size, 13px);
     line-height:20px;
+    font-family: var(--font-mono);
   }
 
   .markdown-shadow-body>p:last-child{
@@ -100,8 +113,8 @@ const createInitStyle = (currentTheme = 'light', cssVars?: Record<string, string
     color: var(--text-primary);
     padding: 2px 6px;
     border-radius: 4px;
-    font-size: 0.92em;
-    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 0.875em;
+    font-family: var(--font-mono);
   }
   blockquote {
     border-left: 3px solid var(--bg-3);
@@ -253,29 +266,23 @@ const ShadowView = ({ children }: { children: React.ReactNode }) => {
   const [root, setRoot] = useState<ShadowRoot | null>(null);
   const styleRef = React.useRef<HTMLStyleElement | null>(null);
   const [customCss, setCustomCss] = useState<string>('');
+  const layout = useLayoutContext();
+  const isMobile = layout?.isMobile ?? false;
 
   React.useEffect(() => {
-    const css = configService.get('customCss');
-    if (css) {
-      setCustomCss(addImportantToAll(css));
-    } else {
-      setCustomCss('');
-    }
-
-    // Listen to custom CSS update events
-    const handleCustomCssUpdate = (e: CustomEvent) => {
-      if (e.detail?.customCss !== undefined) {
-        const css = e.detail.customCss || '';
-        // Use unified utility to auto-add !important
-        const processedCss = addImportantToAll(css);
-        setCustomCss(processedCss);
-      }
+    let mounted = true;
+    const applyCss = (t: { css?: string } | null) => {
+      if (!mounted) return;
+      setCustomCss(t?.css ? addImportantToAll(t.css) : '');
     };
-
-    window.addEventListener('custom-css-updated', handleCustomCssUpdate as EventListener);
-
+    ipcBridge.theme.requestCurrent
+      .invoke()
+      .then(applyCss)
+      .catch(() => {});
+    const off = ipcBridge.theme.changed.on((t) => applyCss(t));
     return () => {
-      window.removeEventListener('custom-css-updated', handleCustomCssUpdate as EventListener);
+      mounted = false;
+      off?.();
     };
   }, []);
 
@@ -293,13 +300,15 @@ const ShadowView = ({ children }: { children: React.ReactNode }) => {
         '--color-text-3': computedStyle.getPropertyValue('--color-text-3'),
         '--text-primary': computedStyle.getPropertyValue('--text-primary'),
         '--text-secondary': computedStyle.getPropertyValue('--text-secondary'),
+        '--chat-font-size': computedStyle.getPropertyValue('--chat-font-size'),
+        '--code-font-size': computedStyle.getPropertyValue('--code-font-size'),
       };
 
       // Remove old style and add new style
       if (styleRef.current) {
         styleRef.current.remove();
       }
-      const newStyle = createInitStyle(currentTheme, cssVars, customCss);
+      const newStyle = createInitStyle(currentTheme, cssVars, customCss, isMobile);
       styleRef.current = newStyle;
       shadowRoot.appendChild(newStyle);
 
@@ -310,7 +319,7 @@ const ShadowView = ({ children }: { children: React.ReactNode }) => {
         shadowRoot.adoptedStyleSheets = [...shadowRoot.adoptedStyleSheets, katexSheet];
       }
     },
-    [customCss]
+    [customCss, isMobile]
   );
 
   React.useEffect(() => {
@@ -330,7 +339,7 @@ const ShadowView = ({ children }: { children: React.ReactNode }) => {
 
     observer.observe(document.documentElement, {
       attributes: true,
-      attributeFilter: ['data-theme', 'class'],
+      attributeFilter: ['data-theme', 'class', 'style'],
     });
 
     return () => observer.disconnect();

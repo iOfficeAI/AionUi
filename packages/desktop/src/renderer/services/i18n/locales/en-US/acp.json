@@ -4,8 +4,18 @@
     "console_error": "ACP authentication error details:",
     "failed_confirm": "ACP {{backend}} authentication failed:\n\n{{error}}\n\nWould you like to go to settings page to configure now?"
   },
+  "send": {
+    "failed": "Failed to send message: {{error}}"
+  },
   "sendbox": {
     "placeholder": "Send message to {{backend}}..."
+  },
+  "image": {
+    "download": "Download",
+    "download_aria": "Download image",
+    "download_success": "Download successful",
+    "download_error": "Failed to download",
+    "generated_alt": "Generated image"
   },
   "status": {
     "connecting": "Connecting to {{agent}}...",

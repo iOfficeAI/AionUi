@@ -5,6 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
+import { notifyManualRestartRequired } from '@/renderer/utils/appRestart';
 import { Alert, Button, Collapse, Message, Switch, Tooltip } from '@arco-design/web-react';
 import { Copy, Down, Link } from '@icon-park/react';
 import React, { useEffect, useRef, useState } from 'react';
@@ -78,7 +79,8 @@ const DevSettings: React.FC = () => {
 
   const handleRestart = async () => {
     try {
-      await ipcBridge.application.restart.invoke();
+      const result = await ipcBridge.application.restart.invoke();
+      notifyManualRestartRequired(result, t);
     } catch {
       Message.error(t('common.error'));
     }

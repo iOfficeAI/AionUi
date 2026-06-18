@@ -9,6 +9,7 @@ import { useAuth } from '@renderer/hooks/context/AuthContext';
 import { useConversationAgents } from '@renderer/pages/conversation/hooks/useConversationAgents';
 import AionModal from '@renderer/components/base/AionModal';
 import { WorkspaceFolderSelect } from '@renderer/components/workspace';
+import { getConversationCreateErrorMessage } from '@renderer/pages/conversation/utils/conversationCreateError';
 import {
   agentKey,
   agentFromKey,
@@ -166,7 +167,7 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
         role: 'leader',
         status: 'pending',
         agent_type: dispatchAgentType,
-        agent_name: 'Leader',
+        agent_name: dispatchAgent?.name || 'Leader',
         conversation_type: dispatchConversationType,
         custom_agent_id: dispatchAgent?.id,
         model: resolvedModel,
@@ -183,15 +184,14 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
       // The platform bridge swallows provider errors and returns a sentinel object
       const result = team as unknown as { __bridgeError?: boolean; message?: string };
       if (result.__bridgeError) {
-        Message.error(result.message ?? t('team.create.error', { defaultValue: 'Failed to create team' }));
+        Message.error(getConversationCreateErrorMessage(result.message ?? t('team.create.error'), t));
         return;
       }
 
       onCreated(team);
       handleClose();
     } catch (error) {
-      const msg = error instanceof Error ? error.message : String(error);
-      Message.error(msg || t('team.create.error', { defaultValue: 'Failed to create team' }));
+      Message.error(getConversationCreateErrorMessage(error, t));
     } finally {
       setLoading(false);
     }
@@ -340,9 +340,6 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
               value={workspace}
               onChange={setWorkspace}
               placeholder={t('team.create.selectFolder', { defaultValue: 'Select folder' })}
-              input_placeholder={t('team.create.workspacePlaceholder', {
-                defaultValue: 'Project folder path (optional)',
-              })}
               recentLabel={t('team.create.recentLabel', { defaultValue: 'Recent' })}
               chooseDifferentLabel={t('team.create.chooseDifferentFolder', {
                 defaultValue: 'Choose a different folder',

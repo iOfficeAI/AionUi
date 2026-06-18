@@ -4,6 +4,8 @@
   "acceptEdits": "Accept Edits",
   "autoEdit": "Auto Edit",
   "auto_edit": "Auto Edit",
+  "read-only": "Salt okunur",
+  "full-access": "Tam erişim",
   "yolo": "YOLO",
   "yoloNoSandbox": "Tam Otomatik (Sandbox Yok)",
   "auto": "Otomatik",

@@ -1,7 +1,7 @@
 import type { IProvider } from '@/common/config/storage';
 import ModalHOC from '@/renderer/utils/ui/ModalHOC';
 import { Form, Input, Message, Select, Tag } from '@arco-design/web-react';
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import AionModal from '@/renderer/components/base/AionModal';
 import { LinkCloud } from '@icon-park/react';
@@ -31,6 +31,15 @@ const EditModeModal = ModalHOC<{ data?: IProvider; onChange(data: IProvider): vo
     const bedrockAuthMethod = Form.useWatch('bedrockAuthMethod', form);
     const isBedrock = data?.platform === 'bedrock';
 
+    // Watch the live form values so editing the Base URL (or API key) re-keys the
+    // model-list SWR cache. Without this the list would keep fetching from the
+    // provider's original base_url and a Base URL edit could never refresh it.
+    // Fall back to the initial provider value until the form is populated.
+    const watchedBaseUrl = Form.useWatch('base_url', form);
+    const watchedApiKey = Form.useWatch('api_key', form);
+    const effectiveBaseUrl = watchedBaseUrl ?? data?.base_url;
+    const effectiveApiKey = watchedApiKey ?? data?.api_key;
+
     // 获取供应商 Logo / Get provider logo
     const providerLogo = useMemo(() => {
       return getProviderLogo({ name: data?.name, base_url: data?.base_url, platform: data?.platform });
@@ -38,16 +47,79 @@ const EditModeModal = ModalHOC<{ data?: IProvider; onChange(data: IProvider): vo
 
     const isFullUrl = data?.is_full_url ?? false;
 
+    // A non-destructive hint shown when a refresh after a Base URL change
+    // succeeds but a currently selected model is absent from the new list. It
+    // never mutates the selection — the user keeps whatever they picked.
+    const [modelsMissingAfterRefresh, setModelsMissingAfterRefresh] = useState<string[]>([]);
+
     // For Bedrock, don't pass bedrock_config to avoid auto-refresh on input changes
     // We'll build it dynamically in onFocus
     // When is_full_url, pass empty base_url to prevent auto-fetch with the full endpoint URL
     const modelListState = useModeModeList(
       data?.platform || 'gemini',
-      isFullUrl ? '' : data?.base_url,
-      isFullUrl ? '' : data?.api_key,
+      isFullUrl ? '' : effectiveBaseUrl,
+      isFullUrl ? '' : effectiveApiKey,
       true,
       undefined
     );
+
+    // Re-fetch the model list after the user edits the Base URL. This is
+    // strictly non-destructive: it only refreshes the dropdown candidates and
+    // never resets the selected model(s). The most common reason to edit a
+    // provider is "same models, new endpoint", and mid-edit / unauthenticated
+    // states make fetches fail often — so we never clear the selection based on
+    // a refresh result. When the refresh succeeds and a selected model is
+    // missing from the new list we surface a passive hint only.
+    const handleBaseUrlBlur = async () => {
+      // is_full_url providers don't fetch a model list (the endpoint is a full
+      // chat URL, not a base), so there is nothing to refresh — mirror onFocus.
+      if (isFullUrl || isBedrock) return;
+
+      const nextBaseUrl = form.getFieldValue('base_url') as string | undefined;
+      const apiKey = (form.getFieldValue('api_key') as string | undefined) ?? '';
+      // Backend requires an api_key for non-bedrock platforms; without one a
+      // fetch would just return empty — skip and clear any stale hint.
+      if (!apiKey) {
+        setModelsMissingAfterRefresh([]);
+        return;
+      }
+
+      const selected = form.getFieldValue('model') as string | string[] | undefined;
+      const selectedModels = (Array.isArray(selected) ? selected : selected ? [selected] : []).filter(Boolean);
+
+      try {
+        const res = await ipcBridge.mode.fetchModelList.invoke({
+          base_url: nextBaseUrl,
+          api_key: apiKey,
+          try_fix: true,
+          platform: data?.platform || 'gemini',
+        });
+        const models = res.models.map((v) =>
+          typeof v === 'string' ? { label: v, value: v } : { label: v.name, value: v.id }
+        );
+        // Refresh the dropdown candidates only — selection is untouched.
+        void modelListState.mutate({ models }, false);
+
+        // An empty list almost always means the fetch didn't really succeed
+        // (bad URL / unauthenticated returns no models rather than an error), so
+        // treat it like a failure: don't warn, don't touch the selection.
+        if (models.length === 0) {
+          setModelsMissingAfterRefresh([]);
+          return;
+        }
+
+        // Genuine success with candidates: warn (without changing anything) if a
+        // selected model is not among the freshly fetched ones.
+        const available = new Set(models.map((m) => m.value));
+        const missing = selectedModels.filter((m) => !available.has(m));
+        setModelsMissingAfterRefresh(missing);
+      } catch {
+        // Fetch failed (bad URL, auth not ready, network): do NOT show the hint
+        // and do NOT touch the selection — a genuine failure is surfaced later
+        // when the user actually sends a message.
+        setModelsMissingAfterRefresh([]);
+      }
+    };
 
     useEffect(() => {
       if (data) {
@@ -149,10 +221,14 @@ const EditModeModal = ModalHOC<{ data?: IProvider; onChange(data: IProvider): vo
               required={data?.platform !== 'gemini' && data?.platform !== 'gemini-vertex-ai' && !isBedrock}
               rules={[{ required: data?.platform !== 'gemini' && data?.platform !== 'gemini-vertex-ai' && !isBedrock }]}
               field={'base_url'}
-              disabled
             >
-              <Input></Input>
+              <Input onBlur={handleBaseUrlBlur} />
             </Form.Item>
+            {modelsMissingAfterRefresh.length > 0 && (
+              <div className='text-11px text-t-secondary -mt-8px mb-12px'>
+                {t('settings.modelNotFoundAfterUrlChange', { model: modelsMissingAfterRefresh.join(', ') })}
+              </div>
+            )}
 
             <Form.Item
               hidden={isBedrock}

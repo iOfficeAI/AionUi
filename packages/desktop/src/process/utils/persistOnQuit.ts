@@ -20,7 +20,12 @@ const ensureHandlerInstalled = (): void => {
   if (installed) return;
   installed = true;
   app.on('before-quit', (event) => {
-    if (flushing) return;
+    if (flushing) {
+      if (pending.size > 0) {
+        event.preventDefault();
+      }
+      return;
+    }
     if (pending.size === 0) return;
     flushing = true;
     event.preventDefault();

@@ -4,8 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Popover } from '@arco-design/web-react';
-import React, { useCallback, useMemo, useState } from 'react';
+import { Button, Empty, Popover, Tabs } from '@arco-design/web-react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 // Common emoji categories with popular emojis
@@ -440,12 +440,24 @@ interface EmojiPickerProps {
   onChange?: (emoji: string) => void;
   children?: React.ReactNode;
   placement?: PopoverPosition;
+  builtinAvatars?: Array<{
+    id: string;
+    label: string;
+    src: string;
+  }>;
 }
 
-const EmojiPicker: React.FC<EmojiPickerProps> = ({ value, onChange, children, placement = 'bl' }) => {
+const EmojiPicker: React.FC<EmojiPickerProps> = ({
+  value,
+  onChange,
+  children,
+  placement = 'bl',
+  builtinAvatars = [],
+}) => {
   const { t } = useTranslation();
   const [visible, setVisible] = useState(false);
   const [activeCategory, setActiveCategory] = useState<CategoryKey>('smileys');
+  const [activeTab, setActiveTab] = useState<'emoji' | 'builtin'>('emoji');
 
   // Load recent emojis from localStorage
   const recentEmojis = useMemo(() => {
@@ -481,6 +493,14 @@ const EmojiPicker: React.FC<EmojiPickerProps> = ({ value, onChange, children, pl
     [onChange, saveRecentEmoji]
   );
 
+  const handleSelectBuiltinAvatar = useCallback(
+    (src: string) => {
+      onChange?.(src);
+      setVisible(false);
+    },
+    [onChange]
+  );
+
   const currentEmojis = useMemo(() => {
     if (activeCategory === 'recent') {
       return recentEmojis;
@@ -497,7 +517,16 @@ const EmojiPicker: React.FC<EmojiPickerProps> = ({ value, onChange, children, pl
     return keys;
   }, [recentEmojis.length]);
 
-  const pickerContent = (
+  useEffect(() => {
+    if (!visible) {
+      return;
+    }
+
+    const hasMatchingBuiltinAvatar = builtinAvatars.some((avatarOption) => avatarOption.src === value);
+    setActiveTab(hasMatchingBuiltinAvatar ? 'builtin' : 'emoji');
+  }, [builtinAvatars, value, visible]);
+
+  const emojiPickerContent = (
     <div className='w-280px'>
       {/* Category Tabs */}
       <div className='flex items-center gap-2px px-8px py-6px border-b border-[var(--color-border-2)] overflow-x-auto'>
@@ -535,6 +564,68 @@ const EmojiPicker: React.FC<EmojiPickerProps> = ({ value, onChange, children, pl
       </div>
     </div>
   );
+
+  const builtinAvatarContent = (
+    <div className='w-280px p-8px max-h-264px overflow-y-auto'>
+      {builtinAvatars.length > 0 ? (
+        <div className='grid grid-cols-4 gap-8px'>
+          {builtinAvatars.map((avatarOption) => {
+            const isSelected = avatarOption.src === value;
+            return (
+              <Button
+                key={avatarOption.id}
+                type='text'
+                className={`!h-auto !w-full !justify-start !rounded-10px !border !border-solid !px-6px !py-8px transition-colors ${
+                  isSelected ? 'border-primary bg-primary-1' : 'border-transparent bg-transparent hover:bg-fill-1'
+                }`}
+                onClick={() => handleSelectBuiltinAvatar(avatarOption.src)}
+              >
+                <div className='flex w-full items-center justify-center'>
+                  <div className='h-48px w-48px overflow-hidden rounded-10px bg-fill-1'>
+                    <img src={avatarOption.src} alt={avatarOption.label} className='h-full w-full object-cover' />
+                  </div>
+                </div>
+              </Button>
+            );
+          })}
+        </div>
+      ) : (
+        <Empty description={t('settings.assistantAvatarNoBuiltinImages', { defaultValue: 'No built-in images' })} />
+      )}
+    </div>
+  );
+
+  const pickerContent =
+    builtinAvatars.length > 0 ? (
+      <div className='w-280px'>
+        <Tabs activeTab={activeTab} onChange={(key) => setActiveTab(key as 'emoji' | 'builtin')} size='small'>
+          <Tabs.TabPane
+            key='builtin'
+            title={
+              <span className='flex items-center gap-4px'>
+                <span aria-hidden='true'>👤</span>{' '}
+                <span>{t('settings.assistantAvatarBuiltinTab', { defaultValue: 'Built-in' })}</span>
+              </span>
+            }
+          >
+            {builtinAvatarContent}
+          </Tabs.TabPane>
+          <Tabs.TabPane
+            key='emoji'
+            title={
+              <span className='flex items-center gap-4px'>
+                <span aria-hidden='true'>🙂</span>{' '}
+                <span>{t('settings.assistantAvatarEmojiTab', { defaultValue: 'Emoji' })}</span>
+              </span>
+            }
+          >
+            {emojiPickerContent}
+          </Tabs.TabPane>
+        </Tabs>
+      </div>
+    ) : (
+      emojiPickerContent
+    );
 
   return (
     <Popover

@@ -89,22 +89,6 @@ const ExtensionSettingsPage: React.FC = () => {
         void postLocaleInit();
         return;
       }
-
-      if (data.type !== 'star-office:request-snapshot') return;
-
-      try {
-        const snapshot = await extensionsIpc.getAgentActivitySnapshot.invoke();
-        frameWindow.postMessage(
-          {
-            type: 'star-office:activity-snapshot',
-            reqId: data.reqId,
-            snapshot,
-          },
-          '*'
-        );
-      } catch (err) {
-        console.error('[ExtensionSettingsPage] Failed to get activity snapshot:', err);
-      }
     };
 
     window.addEventListener('message', onMessage);

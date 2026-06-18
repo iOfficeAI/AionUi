@@ -45,12 +45,22 @@ contextBridge.exposeInMainWorld('electronAPI', {
   collectFeedbackLogs: () => ipcRenderer.invoke('feedback:collect-logs'),
   // Feedback: capture a screenshot of the current window
   captureFeedbackScreenshot: () => ipcRenderer.invoke('feedback:capture-screenshot'),
+  // Feedback: forward diagnostics logs to the main process console
+  logFeedbackEvent: (payload: { details?: unknown; level: 'info' | 'warn' | 'error'; message: string }) =>
+    ipcRenderer.send('feedback:renderer-log', payload),
 });
 
 // Synchronously fetch the aioncore port and expose it to the renderer
 // via contextBridge (direct window assignment is invisible under contextIsolation).
 const backendPort = ipcRenderer.sendSync('get-backend-port') as number;
+const initialLanguage = ipcRenderer.sendSync('get-initial-language') as string | null;
+const backendStartupFailed = ipcRenderer.sendSync('get-backend-startup-failed') as boolean;
+const backendStartupFailure = ipcRenderer.sendSync('get-backend-startup-failure') as unknown;
 contextBridge.exposeInMainWorld('__backendPort', backendPort > 0 ? backendPort : 0);
+contextBridge.exposeInMainWorld('__initialLanguage', initialLanguage ?? null);
+contextBridge.exposeInMainWorld('__aionuiE2ETest', process.env.AIONUI_E2E_TEST === '1');
+contextBridge.exposeInMainWorld('__backendStartupFailed', backendStartupFailed === true);
+contextBridge.exposeInMainWorld('__backendStartupFailure', backendStartupFailure ?? null);
 
 // 托盘事件监听 - 将 IPC 事件转换为 DOM 事件
 // Tray event listeners - convert IPC events to DOM events

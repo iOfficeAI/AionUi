@@ -17,7 +17,7 @@ interface PetConfirmAPI {
   onConfirmationAdd: (callback: (data: any) => void) => void;
   onConfirmationUpdate: (callback: (data: any) => void) => void;
   onConfirmationRemove: (callback: (data: any) => void) => void;
-  onThemeChange: (callback: (theme: string) => void) => void;
+  onThemeChange: (callback: (theme: import('@/common/theme/types').Theme) => void) => void;
   respond: (data: { conversation_id: string; msg_id: string; call_id: string; data: any }) => void;
   dragStart: () => void;
   dragEnd: () => void;

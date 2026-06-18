@@ -8,7 +8,7 @@
 // ANY module that calls app.getPath('userData'), because Electron caches the path on first call.
 import './process/utils/configureChromium';
 import { installGpuCrashHandler } from './process/utils/gpuRecovery';
-import { initSentry, scheduleStartupLogReport, setSentryDeviceId } from './sentry';
+import { captureBackendStartupFailure, initSentry, scheduleStartupLogReport, setSentryDeviceId } from './sentry';
 
 initSentry();
 
@@ -20,7 +20,12 @@ import * as path from 'path';
 import { initMainAdapterWithWindow } from './common/adapter/main';
 import { ipcBridge } from './common';
 import { initializeProcess } from './process';
+import { startBackendOrExit } from './process/startup/backendStartup';
+import { assertStartupArchitectureCompatible } from './process/startup/architectureCompatibility';
+import { classifyBackendStartupFailure } from './process/startup/backendStartupFailure';
+import { installQuitCleanup } from './process/startup/quitCleanup';
 import { ProcessConfig } from './process/utils/initStorage';
+import type { BackendStartupFailureInfo } from './common/types/platform/electron';
 import { registerWindowMaximizeListeners } from '@process/bridge';
 import { BackendLifecycleManager } from '@aionui/web-host';
 import { resolveBinaryPath } from '@process/backend';
@@ -31,6 +36,7 @@ import { setInitialLanguage } from '@process/services/i18n';
 import { setupApplicationMenu } from './process/utils/appMenu';
 import { startWebHost } from '@aionui/web-host';
 import { initializeZoomFactor, setupZoomForWindow } from './process/utils/zoom';
+import { hydrateWindowsProcessPath } from './process/startup/windowsPath';
 import {
   MIN_WINDOW_WIDTH,
   MIN_WINDOW_HEIGHT,
@@ -64,6 +70,7 @@ import {
   setCloseToTrayEnabled,
   setIsQuitting,
 } from './process/utils/tray';
+import { readCloseToTraySetting } from './process/utils/closeToTraySetting';
 // @ts-expect-error - electron-squirrel-startup doesn't have types
 import electronSquirrelStartup from 'electron-squirrel-startup';
 
@@ -107,8 +114,7 @@ if (!gotTheLock) {
   });
 }
 
-// Handle creating/removing shortcuts on Windows when installing/uninstalling.
-// 修复 macOS 和 Linux 下 GUI 应用的 PATH 环境变量,使其与命令行一致
+// Align GUI-launched PATH with what local CLIs expect on each desktop OS.
 if (process.platform === 'darwin' || process.platform === 'linux') {
   fixPath();
 
@@ -130,6 +136,8 @@ if (process.platform === 'darwin' || process.platform === 'linux') {
       // Ignore errors when reading nvm directory
     }
   }
+} else if (process.platform === 'win32') {
+  hydrateWindowsProcessPath();
 }
 
 // Handle Squirrel startup events (Windows installer)
@@ -197,11 +205,33 @@ let disposeCronResumeListener: (() => void) | null = null;
 // Flag tracking whether the backend subprocess started successfully. Read by
 // the deferred runBackendMigrations trigger in createWindow().
 let backendStartedOk = false;
+let backendStartupFailed = false;
+let backendStartupFailureInfo: BackendStartupFailureInfo | null = null;
+let rendererInitialLanguage: string | null = null;
 let backendMigrationsScheduled = false;
+let ensureAdminUserPromise: Promise<void> | null = null;
 
 ipcMain.on('get-backend-port', (event) => {
   event.returnValue = backendManager.port;
 });
+
+ipcMain.on('get-initial-language', (event) => {
+  event.returnValue = rendererInitialLanguage;
+});
+
+ipcMain.on('get-backend-startup-failed', (event) => {
+  event.returnValue = backendStartupFailed;
+});
+
+ipcMain.on('get-backend-startup-failure', (event) => {
+  event.returnValue = backendStartupFailureInfo;
+});
+
+function markBackendStartupFailed(error: unknown): void {
+  backendStartupFailed = true;
+  backendStartupFailureInfo = classifyBackendStartupFailure(error);
+  (globalThis as typeof globalThis & { __backendStartupFailed?: boolean }).__backendStartupFailed = true;
+}
 
 function registerCronResumeBridge(backendPort: number): void {
   disposeCronResumeListener?.();
@@ -242,6 +272,88 @@ const scheduleBackendMigrations = (): void => {
     }
   })();
 };
+
+function exposeBackendPort(backendPort: number): void {
+  // Expose the backend port to main-process callers of httpBridge (e.g. the
+  // one-shot assistant migration hook below). Must land BEFORE any
+  // ipcBridge.* invoke from the main process — the renderer side reads
+  // window.__backendPort via preload, but main has no `window`.
+  (globalThis as typeof globalThis & { __backendPort?: number }).__backendPort = backendPort;
+}
+
+function ensureAdminUserOnce(backendPort: number): Promise<void> {
+  if (!ensureAdminUserPromise) {
+    ensureAdminUserPromise = (async () => {
+      try {
+        const { ensureAdminUser } = await import('./process/utils/ensureAdminUser');
+        await ensureAdminUser(backendPort);
+      } catch (err) {
+        console.error('[WebUI] ensureAdminUser failed:', err);
+      }
+    })();
+  }
+  return ensureAdminUserPromise;
+}
+
+function markBackendReady(backendPort: number, source: string): void {
+  if (backendStartedOk) return;
+  console.log(`[AionUi] ${source} ready (port=${backendPort})`);
+  exposeBackendPort(backendPort);
+  registerCronResumeBridge(backendPort);
+  backendStartedOk = true;
+  backendStartupFailed = false;
+  backendStartupFailureInfo = null;
+  (globalThis as typeof globalThis & { __backendStartupFailed?: boolean }).__backendStartupFailed = false;
+  void ensureAdminUserOnce(backendPort);
+  scheduleBackendMigrations();
+}
+
+function resolveDebugBackendStartupFailure(): BackendStartupFailureInfo | null {
+  const reason = process.env.AIONUI_DEBUG_BACKEND_STARTUP_FAILURE as BackendStartupFailureInfo['reason'] | undefined;
+  if (!reason) {
+    return null;
+  }
+  if ((app.isPackaged && !isE2ETestMode) || isWebUIMode || isResetPasswordMode) {
+    console.warn('[AionUi] Ignoring AIONUI_DEBUG_BACKEND_STARTUP_FAILURE outside desktop dev/e2e mode.');
+    return null;
+  }
+
+  if (reason === 'backend_incompatible_runtime') {
+    return { reason, runtime: 'glibc', requiredVersions: ['2.28'] };
+  }
+  if (reason === 'backend_package_architecture_mismatch') {
+    return {
+      reason,
+      deviceArch: process.arch === 'arm64' ? 'arm64' : 'x64',
+      expectedDownloadArch: process.arch === 'arm64' ? 'arm64' : 'x64',
+      packageArch: process.arch === 'arm64' ? 'x64' : 'arm64',
+    };
+  }
+  if (reason === 'backend_startup_failed') {
+    return {
+      reason,
+      backendBoundaryCode: 'E2E_DEBUG_BACKEND_STARTUP_FAILURE',
+      backendBoundaryStage: 'debug_injection',
+    };
+  }
+  if (reason === 'backend_incomplete_installation') {
+    return {
+      reason,
+      incompleteInstallationKind: 'missing_directory_resources',
+      missingRuntimeDir: true,
+      missingResources: ['managed node runtime', 'ACP adapters'],
+    };
+  }
+
+  console.warn(`[AionUi] Ignoring unknown AIONUI_DEBUG_BACKEND_STARTUP_FAILURE value: ${reason}`);
+  return null;
+}
+
+function applyDebugBackendStartupFailure(failure: BackendStartupFailureInfo): void {
+  backendStartupFailed = true;
+  backendStartupFailureInfo = failure;
+  (globalThis as typeof globalThis & { __backendStartupFailed?: boolean }).__backendStartupFailed = true;
+}
 
 const createWindow = ({ showOnReady = true }: { showOnReady?: boolean } = {}): void => {
   console.log('[AionUi] Creating main window...');
@@ -344,6 +456,9 @@ const createWindow = ({ showOnReady = true }: { showOnReady?: boolean } = {}): v
         // Create status broadcast callback that emits via ipcBridge (pure emitter, no window binding)
         const statusBroadcast = createAutoUpdateStatusBroadcast();
         autoUpdaterService.initialize(statusBroadcast);
+        autoUpdaterService.setBeforeQuitAndInstall(async () => {
+          await backendManager.stop();
+        });
         // Check for updates after 3 seconds delay
         // 3秒后检查更新
         setTimeout(() => {
@@ -474,6 +589,7 @@ const handleAppReady = async (): Promise<void> => {
 
   try {
     await initializeProcess();
+    rendererInitialLanguage = ProcessConfig.getSync('language') ?? null;
     mark('initializeProcess');
   } catch (error) {
     console.error('Failed to initialize process:', error);
@@ -481,40 +597,76 @@ const handleAppReady = async (): Promise<void> => {
     return;
   }
 
-  // Start aioncore only after initializeProcess(). initStorage may open
-  // the legacy Electron SQLite catalog for a one-shot v26 migration and must
-  // close it before the backend touches the same file.
-  try {
-    const { getDataPath } = await import('./process/utils/utils');
-    const { getSystemDir } = await import('./process/utils/initStorage');
-    const sysDir = getSystemDir();
-    const backendPort = await backendManager.start(getDataPath(), sysDir.logDir, {
-      cacheDir: sysDir.cacheDir,
-      workDir: sysDir.workDir,
-      logDir: sysDir.logDir,
+  const debugBackendStartupFailure = resolveDebugBackendStartupFailure();
+  if (debugBackendStartupFailure) {
+    applyDebugBackendStartupFailure(debugBackendStartupFailure);
+    mark(`debugBackendStartupFailure:${debugBackendStartupFailure.reason}`);
+  } else {
+    // Start aioncore only after initializeProcess(). initStorage may open
+    // the legacy Electron SQLite catalog for a one-shot v26 migration and must
+    // close it before the backend touches the same file.
+    const backendStartup = await startBackendOrExit({
+      startBackend: async () => {
+        assertStartupArchitectureCompatible({
+          arch: process.arch,
+          isPackaged: app.isPackaged,
+          platform: process.platform,
+        });
+        const { getDataPath } = await import('./process/utils/utils');
+        const { getSystemDir } = await import('./process/utils/initStorage');
+        const sysDir = getSystemDir();
+        return backendManager.start(
+          getDataPath(),
+          sysDir.logDir,
+          {
+            cacheDir: sysDir.cacheDir,
+            workDir: sysDir.workDir,
+            logDir: sysDir.logDir,
+          },
+          {
+            allowPendingOnHealthTimeout: !(isWebUIMode || isResetPasswordMode),
+            onHealthTimeout: async (error) => {
+              markBackendStartupFailed(error);
+              await captureBackendStartupFailure(error);
+            },
+            onPendingExit: async (error) => {
+              markBackendStartupFailed(error);
+              await captureBackendStartupFailure(error);
+            },
+            onReady: (backendPort) => {
+              markBackendReady(backendPort, 'backendManager.lateReady');
+            },
+          }
+        );
+      },
+      onStarted: (backendPort) => {
+        exposeBackendPort(backendPort);
+        if (backendManager.status === 'running') {
+          markBackendReady(backendPort, 'backendManager.start');
+          return;
+        }
+        mark(`backendManager.start pending health (port=${backendPort})`);
+      },
+      captureFailure: async (error) => {
+        markBackendStartupFailed(error);
+        await captureBackendStartupFailure(error);
+      },
+      exitApp: (code) => app.exit(code),
+      exitOnFailure: isWebUIMode || isResetPasswordMode,
+      logError: console.error,
     });
-    mark(`backendManager.start (port=${backendPort})`);
-    // Expose the backend port to main-process callers of httpBridge (e.g. the
-    // one-shot assistant migration hook below). Must land BEFORE any
-    // ipcBridge.* invoke from the main process — the renderer side reads
-    // window.__backendPort via preload, but main has no `window`.
-    (globalThis as typeof globalThis & { __backendPort?: number }).__backendPort = backendPort;
-    registerCronResumeBridge(backendPort);
-    backendStartedOk = true;
-  } catch (error) {
-    console.error('[AionUi] Failed to start aioncore:', error);
-  }
+    if (!backendStartup.ok) {
+      if (isWebUIMode || isResetPasswordMode) {
+        return;
+      }
+    }
 
-  // One-shot WebUI admin credential migration. Must run after the backend is
-  // up (__backendPort set) and before any mode branch below that might log the
-  // user in. Swallows its own errors; the next boot retries.
-  const bootBackendPort = (globalThis as typeof globalThis & { __backendPort?: number }).__backendPort;
-  if (bootBackendPort) {
-    try {
-      const { ensureAdminUser } = await import('./process/utils/ensureAdminUser');
-      await ensureAdminUser(bootBackendPort);
-    } catch (err) {
-      console.error('[WebUI] ensureAdminUser failed:', err);
+    // One-shot WebUI admin credential migration. Must run after the backend is
+    // up (__backendPort set) and before any mode branch below that might log the
+    // user in. Swallows its own errors; the next boot retries.
+    const bootBackendPort = (globalThis as typeof globalThis & { __backendPort?: number }).__backendPort;
+    if (backendStartedOk && bootBackendPort) {
+      await ensureAdminUserOnce(bootBackendPort);
     }
   }
 
@@ -628,8 +780,8 @@ const handleAppReady = async (): Promise<void> => {
       destroyTray();
     } else {
       try {
-        const savedCloseToTray = await ProcessConfig.get('system.closeToTray');
-        setCloseToTrayEnabled(savedCloseToTray ?? false);
+        const savedCloseToTray = await readCloseToTraySetting();
+        setCloseToTrayEnabled(savedCloseToTray);
         if (getCloseToTrayEnabled()) {
           createOrUpdateTray();
         }
@@ -776,41 +928,28 @@ app.on('activate', () => {
   }
 });
 
-app.on('before-quit', async () => {
-  console.log('[AionUi] before-quit');
-  setIsQuitting(true);
-  isExplicitQuit = true;
-  destroyTray();
-
-  const cleanup = async () => {
+installQuitCleanup({
+  onBeforeQuit: (handler) => app.on('before-quit', (event) => handler(event)),
+  quitApp: () => app.quit(),
+  setIsQuitting,
+  markExplicitQuit: () => {
+    isExplicitQuit = true;
+  },
+  destroyTray,
+  disposeCronResumeListener: () => {
     disposeCronResumeListener?.();
     disposeCronResumeListener = null;
-
-    // Stop aioncore subprocess — backend shutdown kills all agent
-    // children transitively (no separate frontend workerTaskManager remains)
-    await backendManager.stop().catch((err) => console.error('[App] Failed to stop backend:', err));
-
-    // Destroy desktop pet windows
-    try {
-      const { destroyPetWindow } = await import('./process/pet/petManager');
-      destroyPetWindow();
-    } catch {
-      /* pet not initialized */
-    }
-
-    // Web Server lifecycle is managed by aioncore subprocess
-    // Office/PPT preview spawns also live in the backend; frontend no longer owns those sessions.
-  };
-
-  // Master timeout: force quit if cleanup hangs
-  const timeout = new Promise<void>((resolve) => {
-    setTimeout(() => {
-      console.warn('[AionUi] Cleanup timed out after 10s, forcing quit');
-      resolve();
-    }, 10000);
-  });
-
-  await Promise.race([cleanup(), timeout]);
+  },
+  // Stop aioncore subprocess — backend shutdown kills all agent children
+  // transitively (no separate frontend workerTaskManager remains).
+  stopBackend: () => backendManager.stop(),
+  destroyPetWindow: async () => {
+    const { destroyPetWindow } = await import('./process/pet/petManager');
+    destroyPetWindow();
+  },
+  logInfo: console.log,
+  logWarn: console.warn,
+  logError: console.error,
 });
 
 app.on('will-quit', () => {

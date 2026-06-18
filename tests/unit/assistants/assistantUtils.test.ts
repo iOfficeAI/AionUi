@@ -9,12 +9,13 @@
 
 import { describe, it, expect, vi } from 'vitest';
 import {
+  buildAssistantSortUpdates,
   isEmoji,
+  reorderAssistantList,
   resolveAvatarImageSrc,
   sortAssistants,
   filterAssistants,
   groupAssistantsByEnabled,
-  type AssistantListFilter,
 } from '@/renderer/pages/settings/AssistantSettings/assistantUtils';
 import type { AssistantListItem } from '@/renderer/pages/settings/AssistantSettings/types';
 
@@ -22,6 +23,7 @@ import type { AssistantListItem } from '@/renderer/pages/settings/AssistantSetti
 vi.mock('@/renderer/utils/platform', () => ({
   resolveExtensionAssetUrl: vi.fn((url: string) => {
     if (url.startsWith('ext://')) return `resolved-${url}`;
+    if (url.startsWith('/api/assistants/')) return `http://127.0.0.1:13400${url}`;
     return null;
   }),
 }));
@@ -64,8 +66,15 @@ describe('assistantUtils', () => {
     it('returns valid image URLs', () => {
       expect(resolveAvatarImageSrc('logo.png', {})).toBe('logo.png');
       expect(resolveAvatarImageSrc('/path/icon.svg', {})).toBe('/path/icon.svg');
+      expect(resolveAvatarImageSrc('/Users/demo/avatar.png', {})).toBe('file:///Users/demo/avatar.png');
       expect(resolveAvatarImageSrc('https://example.com/icon.jpg', {})).toBe('https://example.com/icon.jpg');
       expect(resolveAvatarImageSrc('data:image/png;base64,xyz', {})).toBe('data:image/png;base64,xyz');
+    });
+
+    it('resolves backend-served assistant avatar routes', () => {
+      expect(resolveAvatarImageSrc('/api/assistants/u1/avatar', {})).toBe(
+        'http://127.0.0.1:13400/api/assistants/u1/avatar'
+      );
     });
 
     it('returns undefined for non-image strings', () => {
@@ -109,27 +118,78 @@ describe('assistantUtils', () => {
     });
   });
 
+  describe('reorderAssistantList', () => {
+    it('moves the dragged assistant before the target assistant', () => {
+      const list: AssistantListItem[] = [
+        { id: 'a', name: 'A', sort_order: 1, source: 'user', enabled: true },
+        { id: 'b', name: 'B', sort_order: 2, source: 'user', enabled: true },
+        { id: 'c', name: 'C', sort_order: 3, source: 'user', enabled: true },
+      ];
+
+      const reordered = reorderAssistantList(list, 'c', 'a');
+      expect(reordered.map((assistant) => assistant.id)).toEqual(['c', 'a', 'b']);
+    });
+
+    it('returns the original order when ids are missing', () => {
+      const list: AssistantListItem[] = [
+        { id: 'a', name: 'A', sort_order: 1, source: 'user', enabled: true },
+        { id: 'b', name: 'B', sort_order: 2, source: 'user', enabled: true },
+      ];
+
+      expect(reorderAssistantList(list, 'missing', 'b').map((assistant) => assistant.id)).toEqual(['a', 'b']);
+      expect(reorderAssistantList(list, 'a', 'missing').map((assistant) => assistant.id)).toEqual(['a', 'b']);
+    });
+  });
+
+  describe('buildAssistantSortUpdates', () => {
+    it('assigns deterministic sort_order values after reorder', () => {
+      const previous: AssistantListItem[] = [
+        { id: 'a', name: 'A', sort_order: 1, source: 'user', enabled: true },
+        { id: 'b', name: 'B', sort_order: 2, source: 'user', enabled: true },
+        { id: 'c', name: 'C', sort_order: 3, source: 'user', enabled: true },
+      ];
+      const next: AssistantListItem[] = [
+        { id: 'c', name: 'C', sort_order: 3, source: 'user', enabled: true },
+        { id: 'a', name: 'A', sort_order: 1, source: 'user', enabled: true },
+        { id: 'b', name: 'B', sort_order: 2, source: 'user', enabled: true },
+      ];
+
+      expect(buildAssistantSortUpdates(previous, next)).toEqual([
+        { id: 'c', sort_order: 1000 },
+        { id: 'a', sort_order: 2000 },
+        { id: 'b', sort_order: 3000 },
+      ]);
+    });
+
+    it('returns no updates when the effective sort order is unchanged', () => {
+      const previous: AssistantListItem[] = [
+        { id: 'a', name: 'A', sort_order: 1000, source: 'user', enabled: true },
+        { id: 'b', name: 'B', sort_order: 2000, source: 'user', enabled: true },
+      ];
+
+      expect(buildAssistantSortUpdates(previous, previous)).toEqual([]);
+    });
+  });
+
   describe('filterAssistants', () => {
     const assistants: AssistantListItem[] = [
       { id: '1', name: 'Claude', description: 'AI assistant', sort_order: 1, source: 'builtin', enabled: true },
       { id: '2', name: 'GPT', description: 'OpenAI model', sort_order: 2, source: 'builtin', enabled: false },
       { id: '3', name: 'MyCustom', description: 'User assistant', sort_order: 3, source: 'user', enabled: true },
-      { id: '4', name: 'ExtAssist', description: 'From extension', sort_order: 4, source: 'extension', enabled: true },
     ];
 
     it('returns all assistants when filter is "all" and no query', () => {
-      expect(filterAssistants(assistants, '', 'all', 'en')).toHaveLength(4);
+      expect(filterAssistants(assistants, '', 'all', 'en')).toHaveLength(3);
     });
 
     it('filters by enabled status', () => {
-      expect(filterAssistants(assistants, '', 'enabled', 'en')).toHaveLength(3);
+      expect(filterAssistants(assistants, '', 'enabled', 'en')).toHaveLength(2);
       expect(filterAssistants(assistants, '', 'disabled', 'en')).toHaveLength(1);
     });
 
     it('filters by source', () => {
       expect(filterAssistants(assistants, '', 'builtin', 'en')).toHaveLength(2);
       expect(filterAssistants(assistants, '', 'user', 'en')).toHaveLength(1);
-      expect(filterAssistants(assistants, '', 'extension', 'en')).toHaveLength(1);
     });
 
     it('filters by search query (case-insensitive)', () => {

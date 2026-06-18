@@ -5,6 +5,7 @@
  */
 
 import { contextBridge, ipcRenderer } from 'electron';
+import type { Theme } from '@/common/theme/types';
 
 contextBridge.exposeInMainWorld('petConfirmAPI', {
   onConfirmationAdd: (callback: (data: any) => void) => {
@@ -16,7 +17,7 @@ contextBridge.exposeInMainWorld('petConfirmAPI', {
   onConfirmationRemove: (callback: (data: any) => void) => {
     ipcRenderer.on('pet:confirm-remove', (_event, data) => callback(data));
   },
-  onThemeChange: (callback: (theme: string) => void) => {
+  onThemeChange: (callback: (theme: Theme) => void) => {
     ipcRenderer.on('pet:confirm-theme', (_event, theme) => callback(theme));
   },
   respond: (data: { conversation_id: string; msg_id: string; call_id: string; data: any }) => {

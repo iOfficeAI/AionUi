@@ -9,6 +9,7 @@ import { ipcBridge } from '@/common';
 import type { Assistant } from '@/common/types/agent/assistantTypes';
 import { DETECTED_AGENTS_SWR_KEY, fetchDetectedAgents } from '@/renderer/utils/model/agentTypes';
 import type { AgentMetadata } from '@/renderer/utils/model/agentTypes';
+import { isSupportedNewConversationAgent } from '@/renderer/utils/model/agentTypeSupportPolicy';
 
 export type UseConversationAgentsResult = {
   /** Detected execution engines (acp, extension, remote, aionrs, gemini, etc.) */
@@ -26,7 +27,7 @@ export type UseConversationAgentsResult = {
  *
  * Two independent data sources:
  *   - Execution engines — from AgentRegistry via IPC (agents.detected)
- *   - Preset assistants — from backend `/api/assistants` (merged builtin + user + extension)
+ *   - Preset assistants — from backend `/api/assistants` (merged builtin + user)
  */
 export const useConversationAgents = (): UseConversationAgentsResult => {
   // Execution engines from AgentRegistry (shared cache with useDetectedAgents / useGuidAgentSelection)
@@ -52,7 +53,7 @@ export const useConversationAgents = (): UseConversationAgentsResult => {
   };
 
   return {
-    cliAgents: cliAgents || [],
+    cliAgents: (cliAgents || []).filter(isSupportedNewConversationAgent),
     presetAssistants: presetAssistants || [],
     isLoading: isLoadingAgents || isLoadingPresets,
     refresh,

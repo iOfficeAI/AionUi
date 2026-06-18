@@ -92,7 +92,10 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
       <Dropdown
         trigger='hover'
         droplist={
-          <Menu selectedKeys={current_model ? [current_model.id + current_model.use_model] : []}>
+          <Menu
+            className='aion-model-menu--sticky-group'
+            selectedKeys={current_model ? [current_model.id + current_model.use_model] : []}
+          >
             {!enabledModelList || enabledModelList.length === 0
               ? [
                   <Menu.Item

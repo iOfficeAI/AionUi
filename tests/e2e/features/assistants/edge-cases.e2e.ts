@@ -8,7 +8,7 @@ import {
   goToAssistantSettings,
   takeScreenshot,
   clickCreateAssistant,
-  closeDrawer,
+  closeAssistantEditor,
   httpPost,
   httpInvoke,
 } from '../../helpers';
@@ -160,7 +160,7 @@ test.describe('Assistant Settings Edge Cases (P2)', () => {
     if (cardCount === 0) {
       // No skill cards with delete buttons found
       await takeScreenshot(page, 'assistants/p2-3/04-no-delete-buttons.png');
-      await closeDrawer(page);
+      await closeAssistantEditor(page);
       await httpInvoke(page, 'DELETE', '/api/skills/external-paths', { path: tempSkillPath });
       const { rmSync } = await import('fs');
       rmSync(tempSkillPath, { recursive: true, force: true });
@@ -177,7 +177,7 @@ test.describe('Assistant Settings Edge Cases (P2)', () => {
     const deleteCount = await deleteBtn.count();
     if (deleteCount === 0) {
       await takeScreenshot(page, 'assistants/p2-3/05-no-delete-button.png');
-      await closeDrawer(page);
+      await closeAssistantEditor(page);
       await httpInvoke(page, 'DELETE', '/api/skills/external-paths', { path: tempSkillPath });
       const { rmSync } = await import('fs');
       rmSync(tempSkillPath, { recursive: true, force: true });
@@ -192,7 +192,7 @@ test.describe('Assistant Settings Edge Cases (P2)', () => {
     await takeScreenshot(page, 'assistants/p2-3/06-after-hover.png');
 
     // Clean up
-    await closeDrawer(page);
+    await closeAssistantEditor(page);
     await httpInvoke(page, 'DELETE', '/api/skills/external-paths', { path: tempSkillPath });
 
     // Remove temp directory in test process
@@ -229,7 +229,7 @@ test.describe('Assistant Settings Edge Cases (P2)', () => {
       // No add path button found, skip test
       await takeScreenshot(page, 'assistants/p2-4/04-no-add-button.png');
       await page.keyboard.press('Escape');
-      await closeDrawer(page);
+      await closeAssistantEditor(page);
       return;
     }
 
@@ -243,7 +243,7 @@ test.describe('Assistant Settings Edge Cases (P2)', () => {
       // pathModal didn't open, skip test
       await takeScreenshot(page, 'assistants/p2-4/04-modal-not-opened.png');
       await page.keyboard.press('Escape');
-      await closeDrawer(page);
+      await closeAssistantEditor(page);
       return;
     }
 
@@ -286,7 +286,7 @@ test.describe('Assistant Settings Edge Cases (P2)', () => {
     await page.keyboard.press('Escape');
     await page.waitForTimeout(200);
     await page.keyboard.press('Escape');
-    await closeDrawer(page);
+    await closeAssistantEditor(page);
   });
 
   test('P2-5: add custom path folder button triggers dialog', async ({ page }) => {
@@ -315,7 +315,7 @@ test.describe('Assistant Settings Edge Cases (P2)', () => {
     if (btnCount === 0) {
       await takeScreenshot(page, 'assistants/p2-5/02-no-add-button.png');
       await page.keyboard.press('Escape');
-      await closeDrawer(page);
+      await closeAssistantEditor(page);
       return;
     }
 
@@ -328,7 +328,7 @@ test.describe('Assistant Settings Edge Cases (P2)', () => {
     if (!pathModalVisible) {
       await takeScreenshot(page, 'assistants/p2-5/02-modal-not-opened.png');
       await page.keyboard.press('Escape');
-      await closeDrawer(page);
+      await closeAssistantEditor(page);
       return;
     }
 
@@ -348,7 +348,7 @@ test.describe('Assistant Settings Edge Cases (P2)', () => {
       await page.keyboard.press('Escape');
       await page.waitForTimeout(200);
       await page.keyboard.press('Escape');
-      await closeDrawer(page);
+      await closeAssistantEditor(page);
       return;
     }
 
@@ -371,6 +371,6 @@ test.describe('Assistant Settings Edge Cases (P2)', () => {
     await page.keyboard.press('Escape');
     await page.waitForTimeout(200);
     await page.keyboard.press('Escape');
-    await closeDrawer(page);
+    await closeAssistantEditor(page);
   });
 });

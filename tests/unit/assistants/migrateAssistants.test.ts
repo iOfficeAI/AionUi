@@ -18,6 +18,7 @@ vi.mock('@/common', () => ({
       setState: { invoke: vi.fn() },
       update: { invoke: vi.fn() },
       list: { invoke: vi.fn(async () => []) },
+      get: { invoke: vi.fn() },
     },
     fs: {
       writeAssistantRule: { invoke: vi.fn(async () => true) },
@@ -56,6 +57,9 @@ import { BackendHttpError } from '@/common/adapter/httpBridge';
 describe('migrateAssistants', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    (ipcBridge.assistants.list.invoke as any).mockResolvedValue([]);
+    (ipcBridge.assistants.get.invoke as any).mockResolvedValue(undefined);
+    (ipcBridge.fs.readAssistantRule.invoke as any).mockResolvedValue('');
   });
 
   describe('legacyAssistantToCreateRequest', () => {
@@ -189,6 +193,50 @@ describe('migrateAssistants', () => {
 
       expect(result).toBe(false); // keep retrying on next launch
       expect(config.store).toHaveProperty('assistants'); // legacy field always preserved
+    });
+
+    it('skips legacy builtin override replay when backend already exposes unified assistant detail', async () => {
+      const config = makeConfig({
+        assistants: [
+          { id: 'builtin-morph-ppt-3d', enabled: false, isBuiltin: true },
+          { id: 'custom-1', name: 'Custom 1' },
+        ],
+      });
+
+      (ipcBridge.assistants.list.invoke as any).mockResolvedValue([{ id: 'morph-ppt-3d', source: 'builtin' }]);
+      (ipcBridge.assistants.get.invoke as any).mockResolvedValue({
+        id: 'morph-ppt-3d',
+        source: 'builtin',
+        profile: { name: 'Morph PPT', name_i18n: {}, description_i18n: {} },
+        state: { enabled: true, sort_order: 0 },
+        engine: { agent_backend: 'aionrs' },
+        rules: { content: '', storage_mode: 'builtin_asset' },
+        prompts: { recommended: [], recommended_i18n: {} },
+        defaults: {
+          model: { mode: 'auto' },
+          permission: { mode: 'auto' },
+          skills: { mode: 'auto', value: [] },
+          mcps: { mode: 'auto', value: [] },
+        },
+        capabilities: {
+          default_skill_ids: [],
+          custom_skill_names: [],
+          default_disabled_builtin_skill_ids: [],
+        },
+        preferences: {
+          last_skill_ids: [],
+          last_disabled_builtin_skill_ids: [],
+          last_mcp_ids: [],
+        },
+      });
+      (ipcBridge.assistants.import.invoke as any).mockResolvedValue({ imported: 1, skipped: 0, failed: 0, errors: [] });
+
+      const result = await migrateAssistantsToBackend(config as any);
+
+      expect(result).toBe(true);
+      expect(ipcBridge.assistants.import.invoke).toHaveBeenCalledTimes(1);
+      expect(ipcBridge.assistants.setState.invoke).not.toHaveBeenCalled();
+      expect(ipcBridge.assistants.update.invoke).not.toHaveBeenCalled();
     });
   });
 
@@ -382,8 +430,112 @@ describe('migrateAssistants', () => {
       const result = await migrateAssistantsToBackend(config as any);
 
       expect(result).toBe(true);
-      // No completion flag is written — re-runs are guarded phase-by-phase.
+      // Legacy field is never modified by the migration.
       expect(config.store).toHaveProperty('assistants');
+    });
+  });
+
+  // ---------------------------------------------------------------------
+  // ELECTRON-1KT regression coverage: assistants migration must persist a
+  // one-shot flag on success and short-circuit on subsequent launches so a
+  // user-deleted assistant does not get re-imported from the legacy on-disk
+  // `assistants` field via Phase 1 (insert-only import).
+  // ---------------------------------------------------------------------
+  describe('migrateAssistantsToBackend completion flag (ELECTRON-1KT)', () => {
+    /**
+     * Fake config exposing both `get` and `set`, backed by a Map. `get`
+     * returns `undefined` for missing keys; `set` stores the value. Tests
+     * inspect `store` directly to assert flag persistence.
+     */
+    function makeConfigWithSet(seed: Record<string, unknown> = {}) {
+      const store = new Map<string, unknown>(Object.entries(seed));
+      return {
+        get: (key: string) => Promise.resolve(store.get(key)),
+        set: vi.fn(async (key: string, value: unknown) => {
+          store.set(key, value);
+        }),
+        store,
+      };
+    }
+
+    it('sets completion flag after a clean migration run', async () => {
+      const config = makeConfigWithSet({
+        assistants: [{ id: 'custom-1', name: 'Custom 1' }],
+      });
+      (ipcBridge.assistants.import.invoke as any).mockResolvedValue({ imported: 1, skipped: 0, failed: 0, errors: [] });
+
+      const result = await migrateAssistantsToBackend(config as any);
+
+      expect(result).toBe(true);
+      expect(config.store.get('migration.assistantsMigrated_v1')).toBe(true);
+      // Legacy field preserved for downgrade safety.
+      expect(config.store.has('assistants')).toBe(true);
+    });
+
+    it('short-circuits subsequent runs once flag is set', async () => {
+      const config = makeConfigWithSet({
+        assistants: [{ id: 'custom-1', name: 'Custom 1' }],
+        'migration.assistantsMigrated_v1': true,
+      });
+
+      const result = await migrateAssistantsToBackend(config as any);
+
+      expect(result).toBe(true);
+      // No backend calls at all — neither import nor list nor setState.
+      expect(ipcBridge.assistants.import.invoke).not.toHaveBeenCalled();
+      expect(ipcBridge.assistants.list.invoke).not.toHaveBeenCalled();
+      expect(ipcBridge.assistants.setState.invoke).not.toHaveBeenCalled();
+      expect(ipcBridge.assistants.update.invoke).not.toHaveBeenCalled();
+    });
+
+    it('does not re-import an assistant deleted by the user after migration', async () => {
+      // Run 1: full import succeeds, flag persisted.
+      const config = makeConfigWithSet({
+        assistants: [
+          { id: 'custom-1', name: 'Custom 1' },
+          { id: 'custom-2', name: 'Custom 2' },
+        ],
+      });
+      (ipcBridge.assistants.import.invoke as any).mockResolvedValue({ imported: 2, skipped: 0, failed: 0, errors: [] });
+
+      let result = await migrateAssistantsToBackend(config as any);
+      expect(result).toBe(true);
+      expect(config.store.get('migration.assistantsMigrated_v1')).toBe(true);
+
+      // Run 2: user deletes custom-1 from the backend. Legacy `assistants`
+      // on disk is unchanged. With the flag set, the migration must NOT
+      // call import again — that's the bug being fixed.
+      vi.clearAllMocks();
+      result = await migrateAssistantsToBackend(config as any);
+      expect(result).toBe(true);
+      expect(ipcBridge.assistants.import.invoke).not.toHaveBeenCalled();
+    });
+
+    it('sets flag on the empty/no-op path so we never re-read legacy data', async () => {
+      const config = makeConfigWithSet({});
+
+      const result = await migrateAssistantsToBackend(config as any);
+
+      expect(result).toBe(true);
+      expect(config.store.get('migration.assistantsMigrated_v1')).toBe(true);
+    });
+
+    it('does not set flag on a partial failure so retry can finish the job', async () => {
+      // Phase 1 reports 1 failed → migration returns false → flag stays unset.
+      const config = makeConfigWithSet({
+        assistants: [{ id: 'custom-1', name: 'Custom 1' }],
+      });
+      (ipcBridge.assistants.import.invoke as any).mockResolvedValue({
+        imported: 0,
+        skipped: 0,
+        failed: 1,
+        errors: [{ id: 'custom-1', message: 'boom' }],
+      });
+
+      const result = await migrateAssistantsToBackend(config as any);
+
+      expect(result).toBe(false);
+      expect(config.store.has('migration.assistantsMigrated_v1')).toBe(false);
     });
   });
 });

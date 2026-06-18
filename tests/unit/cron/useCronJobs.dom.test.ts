@@ -17,6 +17,8 @@ import { emitter } from '@/renderer/utils/emitter';
 import type { ICronJob } from '@/common/adapter/ipcBridge';
 import type { TChatConversation } from '@/common/config/storage';
 
+const originalDateTimeFormat = Intl.DateTimeFormat;
+
 vi.mock('@/common', () => ({
   ipcBridge: {
     cron: {
@@ -47,7 +49,7 @@ vi.mock('@/renderer/utils/emitter', () => ({
 const mockJob = (overrides?: Partial<ICronJob>): ICronJob => ({
   id: 'job-1',
   enabled: true,
-  schedule: { kind: 'cron', expr: '0 9 * * *', description: 'Daily at 9 AM' },
+  schedule: { kind: 'cron', expr: '0 9 * * *', tz: 'Asia/Shanghai', description: 'Daily at 9 AM' },
   action: { command: 'test' },
   state: {
     last_status: 'success',
@@ -78,6 +80,16 @@ describe('useCronJobs', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
+    Intl.DateTimeFormat = vi.fn(
+      () =>
+        ({
+          resolvedOptions: () => ({ timeZone: 'Asia/Shanghai' }),
+        }) as Intl.DateTimeFormat
+    ) as unknown as typeof Intl.DateTimeFormat;
+  });
+
+  afterEach(() => {
+    Intl.DateTimeFormat = originalDateTimeFormat;
   });
 
   it('fetches jobs on mount with valid conversation_id', async () => {
@@ -100,6 +112,36 @@ describe('useCronJobs', () => {
     expect(result.current.hasJobs).toBe(true);
     expect(result.current.activeJobsCount).toBe(2);
     expect(result.current.hasError).toBe(false);
+    expect(ipcBridge.cron.updateJob.invoke).not.toHaveBeenCalled();
+  });
+
+  it('repairs missing cron timezone on conversation fetch', async () => {
+    const jobWithoutTz = mockJob({
+      schedule: { kind: 'cron', expr: '0 9 * * *', description: 'Daily at 9 AM' },
+    });
+    const repairedJob = mockJob();
+    vi.mocked(ipcBridge.cron.listJobsByConversation.invoke).mockResolvedValue([jobWithoutTz]);
+    vi.mocked(ipcBridge.cron.updateJob.invoke).mockResolvedValue(repairedJob);
+    vi.mocked(ipcBridge.cron.onJobCreated.on).mockReturnValue(() => {});
+    vi.mocked(ipcBridge.cron.onJobUpdated.on).mockReturnValue(() => {});
+    vi.mocked(ipcBridge.cron.onJobRemoved.on).mockReturnValue(() => {});
+
+    const { result } = renderHook(() => useCronJobs('conv-1'));
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    expect(ipcBridge.cron.updateJob.invoke).toHaveBeenCalledWith({
+      job_id: 'job-1',
+      updates: {
+        schedule: {
+          kind: 'cron',
+          expr: '0 9 * * *',
+          tz: 'Asia/Shanghai',
+          description: 'Daily at 9 AM',
+        },
+      },
+    });
+    expect(result.current.jobs).toEqual([repairedJob]);
   });
 
   it('sets empty jobs when conversation_id is undefined', async () => {
@@ -308,6 +350,16 @@ describe('useCronJobs', () => {
 describe('useAllCronJobs', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    Intl.DateTimeFormat = vi.fn(
+      () =>
+        ({
+          resolvedOptions: () => ({ timeZone: 'Asia/Shanghai' }),
+        }) as Intl.DateTimeFormat
+    ) as unknown as typeof Intl.DateTimeFormat;
+  });
+
+  afterEach(() => {
+    Intl.DateTimeFormat = originalDateTimeFormat;
   });
 
   it('fetches all jobs on mount', async () => {
@@ -327,6 +379,36 @@ describe('useAllCronJobs', () => {
     expect(result.current.jobs).toEqual(jobs);
     expect(result.current.activeCount).toBe(2);
     expect(result.current.hasError).toBe(false);
+    expect(ipcBridge.cron.updateJob.invoke).not.toHaveBeenCalled();
+  });
+
+  it('repairs missing cron timezone on all-jobs fetch', async () => {
+    const jobWithoutTz = mockJob({
+      schedule: { kind: 'cron', expr: '0 9 * * *', description: 'Daily at 9 AM' },
+    });
+    const repairedJob = mockJob();
+    vi.mocked(ipcBridge.cron.listJobs.invoke).mockResolvedValue([jobWithoutTz]);
+    vi.mocked(ipcBridge.cron.updateJob.invoke).mockResolvedValue(repairedJob);
+    vi.mocked(ipcBridge.cron.onJobCreated.on).mockReturnValue(() => {});
+    vi.mocked(ipcBridge.cron.onJobUpdated.on).mockReturnValue(() => {});
+    vi.mocked(ipcBridge.cron.onJobRemoved.on).mockReturnValue(() => {});
+
+    const { result } = renderHook(() => useAllCronJobs());
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    expect(ipcBridge.cron.updateJob.invoke).toHaveBeenCalledWith({
+      job_id: 'job-1',
+      updates: {
+        schedule: {
+          kind: 'cron',
+          expr: '0 9 * * *',
+          tz: 'Asia/Shanghai',
+          description: 'Daily at 9 AM',
+        },
+      },
+    });
+    expect(result.current.jobs).toEqual([repairedJob]);
   });
 
   it('computes activeCount correctly', async () => {
@@ -393,6 +475,16 @@ describe('useCronJobsMap', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
+    Intl.DateTimeFormat = vi.fn(
+      () =>
+        ({
+          resolvedOptions: () => ({ timeZone: 'Asia/Shanghai' }),
+        }) as Intl.DateTimeFormat
+    ) as unknown as typeof Intl.DateTimeFormat;
+  });
+
+  afterEach(() => {
+    Intl.DateTimeFormat = originalDateTimeFormat;
   });
 
   it('fetches and groups jobs by conversation', async () => {

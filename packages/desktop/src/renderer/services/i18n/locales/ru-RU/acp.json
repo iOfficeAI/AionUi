@@ -4,8 +4,18 @@
     "console_error": "Детали ошибки аутентификации ACP:",
     "failed_confirm": "Ошибка аутентификации ACP {{backend}}:\n\n{{error}}\n\nПерейти на страницу настроек для конфигурации?"
   },
+  "send": {
+    "failed": "Не удалось отправить сообщение: {{error}}"
+  },
   "sendbox": {
     "placeholder": "Отправить сообщение {{backend}}..."
+  },
+  "image": {
+    "download": "Скачать",
+    "download_aria": "Скачать изображение",
+    "download_success": "Скачивание завершено",
+    "download_error": "Не удалось скачать",
+    "generated_alt": "Созданное изображение"
   },
   "status": {
     "connecting": "Подключение к {{agent}}...",

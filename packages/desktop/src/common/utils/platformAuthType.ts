@@ -21,6 +21,14 @@ export function getAuthTypeFromPlatform(platform: string): AuthType {
     return AuthType.LOGIN_WITH_GOOGLE;
   }
 
+  if (platformLower.includes('gemini-vertex-ai')) {
+    return AuthType.USE_VERTEX_AI;
+  }
+
+  if (platformLower.includes('gemini')) {
+    return AuthType.USE_GEMINI;
+  }
+
   // Anthropic/Claude 相关平台
   if (platformLower.includes('anthropic') || platformLower.includes('claude')) {
     return AuthType.USE_ANTHROPIC;

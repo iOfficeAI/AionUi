@@ -58,6 +58,7 @@
   "mermaidTitle": "Mermaid 図",
   "largeTextTruncatedHint": "大きなファイルのプレビューでは、パフォーマンスのため先頭 {{count}} 文字のみ表示します。",
   "truncatedBanner": "プレビュー内容は途中で切り詰められています。完全な内容はダウンロードして確認してください。",
+  "aiWriting": "AI が書き込み中…",
   "errors": {
     "missingFilePath": "ファイルパスが指定されていません",
     "openWithoutPath": "ファイルパスがないため開けません",
@@ -72,6 +73,10 @@
       "portTimeout": "プレビューサービスは起動しましたが、時間内に準備完了になりませんでした。再試行してください。",
       "startFailed": "Office プレビューサービスの起動に失敗しました。",
       "outsideSandbox": "このファイルは現在のプロジェクトサンドボックスの外にあります。"
+    },
+    "serverInstall": {
+      "hint": "AionUi はサーバー上で動作しています。プレビューコンポーネントはそのサーバーにインストールする必要があります。サーバーで次のコマンドを実行してから再試行してください：",
+      "icuNote": "それでも起動しない場合は、サーバーに ICU ライブラリをインストールしてください（Debian/Ubuntu：apt-get install -y libicu-dev）。"
     }
   },
   "word": {
@@ -129,6 +134,6 @@
     "loading": "PPTプレビューを起動中...",
     "installing": "プレビューコンポーネントをインストール中...",
     "startFailed": "PPTプレビューの起動に失敗しました",
-    "installHint": "officecliがインストールされていることを確認してください: npm run postinstall"
+    "installHint": "公式 iOfficeAI/OfficeCli releases ページから OfficeCLI をインストールしてください"
   }
 }

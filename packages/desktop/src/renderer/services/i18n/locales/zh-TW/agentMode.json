@@ -4,6 +4,8 @@
   "acceptEdits": "自動接受編輯",
   "autoEdit": "自動編輯",
   "auto_edit": "自動編輯",
+  "read-only": "唯讀",
+  "full-access": "完整存取",
   "yolo": "全自動",
   "yoloNoSandbox": "全自動（無沙盒）",
   "auto": "自動",

@@ -29,7 +29,36 @@
 - 多个不相关的 bug 修复打包在一起（例如标题栏导航修复 + i18n 缺失 key + 语音输入 UI 修复）
 - 独立的技术层（例如 IPC 桥接重构 + 渲染进程组件 + Worker 进程变更，分属不相关的功能）
 
-## 规则二：Push 前必须通过本地检查
+## 规则二：Commit 和 PR 标题格式
+
+Commit message 和 PR 标题必须使用英文 Conventional Commit 格式：
+
+```text
+<type>(<scope>): <subject>
+```
+
+`type` 必须使用以下取值之一：
+
+| Type       | 含义       | Changelog 可见性 |
+| ---------- | ---------- | ---------------- |
+| `feat`     | 新用户功能 | 可见             |
+| `fix`      | Bug 修复   | 可见             |
+| `perf`     | 性能优化   | 可见             |
+| `refactor` | 代码重构   | 可见             |
+| `docs`     | 文档       | 可见             |
+| `style`    | 格式或样式 | 隐藏             |
+| `chore`    | 维护工作   | 隐藏             |
+| `test`     | 测试       | 隐藏             |
+| `ci`       | CI 配置    | 隐藏             |
+| `build`    | 构建系统   | 隐藏             |
+
+示例：
+
+- `fix(preview): restore local html loading`
+- `feat(workspace): add file preview shortcuts`
+- `docs(contributing): document pr title format`
+
+## 规则三：Push 前必须通过本地检查
 
 CI 会在这些检查失败时拒绝你的 PR。**推送前**在本地运行，节省时间。
 

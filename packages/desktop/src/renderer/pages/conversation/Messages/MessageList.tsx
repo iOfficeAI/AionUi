@@ -7,6 +7,7 @@
 import type { IConversationArtifact } from '@/common/adapter/ipcBridge';
 import type { IMessageAcpToolCall, IMessageToolCall, IMessageToolGroup, TMessage } from '@/common/chat/chatLib';
 import { useConversationContextSafe } from '@/renderer/hooks/context/ConversationContext';
+import { useConversationRuntimeView } from '@/renderer/pages/conversation/runtime/useConversationRuntimeView';
 import { iconColors } from '@/renderer/styles/colors';
 import { CHAT_MESSAGE_JUMP_EVENT, type ChatMessageJumpDetail } from '@/renderer/utils/chat/chatMinimapEvents';
 import { Image } from '@arco-design/web-react';
@@ -18,14 +19,13 @@ import classNames from 'classnames';
 import React, { createContext, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation } from 'react-router-dom';
-import { Virtuoso } from 'react-virtuoso';
 import { uuid } from '@renderer/utils/common';
 import './messages.css';
 import HOC from '@renderer/utils/ui/HOC';
 import type { FileChangeInfo } from './MessageFileChanges';
 import MessageFileChanges, { parseDiff } from './MessageFileChanges';
 import { useConversationArtifacts } from './artifacts';
-import { useMessageList } from './hooks';
+import { useMessageList, useMessageListLoading } from './hooks';
 import MessageAgentStatus from './components/MessageAgentStatus';
 import MessagePlan from './components/MessagePlan';
 import MessageTips from './components/MessageTips';
@@ -102,7 +102,76 @@ const getUnhandledMessageType = (_message: never): string => 'unknown';
 // Image preview context
 export const ImagePreviewContext = createContext<{ inPreviewGroup: boolean }>({ inPreviewGroup: false });
 
-const MessageItem: React.FC<{ message: TMessage; highlighted?: boolean }> = React.memo(
+const MessageListSkeleton: React.FC = () => {
+  const rows = [
+    { align: 'left', bubbleWidth: '100%', lines: [72, 58, 64] },
+    { align: 'right', bubbleWidth: '82%', lines: [54, 48] },
+    { align: 'left', bubbleWidth: '100%', lines: [68, 76, 44] },
+    { align: 'left', bubbleWidth: '100%', lines: [46, 52] },
+    { align: 'right', bubbleWidth: '78%', lines: [60, 42, 36] },
+    { align: 'left', bubbleWidth: '100%', lines: [74, 62] },
+    { align: 'right', bubbleWidth: '84%', lines: [52, 66] },
+    { align: 'left', bubbleWidth: '100%', lines: [64, 56, 40] },
+    { align: 'right', bubbleWidth: '80%', lines: [58, 46] },
+  ] as const;
+
+  return (
+    <div
+      className='flex-1 h-full overflow-y-auto pb-10px box-border'
+      data-testid='message-list-skeleton'
+      style={{ minHeight: '100%' }}
+    >
+      <div className='min-h-full flex flex-col justify-between py-10px box-border'>
+        {rows.map((row, index) => (
+          <div
+            key={index}
+            className={classNames(
+              'w-full min-w-0 flex items-start message-item px-8px m-t-10px max-w-full md:max-w-780px mx-auto',
+              {
+                'justify-start': row.align === 'left',
+                'justify-end': row.align === 'right',
+              }
+            )}
+          >
+            <div
+              className='flex-none min-w-0 rd-16px p-14px'
+              style={{
+                width: row.bubbleWidth,
+                maxWidth: '100%',
+                background: 'var(--color-fill-1)',
+                border: '1px solid var(--color-border-2)',
+              }}
+            >
+              <div className='flex flex-col gap-10px'>
+                {row.lines.map((width, lineIndex) => (
+                  <div
+                    key={lineIndex}
+                    className='h-12px rd-999px'
+                    style={{
+                      width: `${width}%`,
+                      background:
+                        'linear-gradient(90deg, var(--color-fill-2) 0%, var(--color-fill-3) 50%, var(--color-fill-2) 100%)',
+                      backgroundSize: '200% 100%',
+                      animation: 'message-list-skeleton-shimmer 1.4s ease-in-out infinite',
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+      <style>{`
+        @keyframes message-list-skeleton-shimmer {
+          0% { background-position: 200% 0; }
+          100% { background-position: -200% 0; }
+        }
+      `}</style>
+    </div>
+  );
+};
+
+const MessageItem: React.FC<{ message: TMessage; highlighted?: boolean; showCopyRow?: boolean }> = React.memo(
   HOC((props) => {
     const { message, highlighted } = props as { message: TMessage; highlighted?: boolean };
     return (
@@ -125,11 +194,11 @@ const MessageItem: React.FC<{ message: TMessage; highlighted?: boolean }> = Reac
         {props.children}
       </div>
     );
-  })(({ message }) => {
+  })(({ message, showCopyRow }: { message: TMessage; highlighted?: boolean; showCopyRow?: boolean }) => {
     const { t } = useTranslation();
     switch (message.type) {
       case 'text':
-        return <MessageText message={message}></MessageText>;
+        return <MessageText message={message} showCopyRow={showCopyRow}></MessageText>;
       case 'tips':
         return <MessageTips message={message}></MessageTips>;
       case 'tool_call':
@@ -159,14 +228,20 @@ const MessageItem: React.FC<{ message: TMessage; highlighted?: boolean }> = Reac
     prev.message.content === next.message.content &&
     prev.message.position === next.message.position &&
     prev.message.type === next.message.type &&
-    prev.highlighted === next.highlighted
+    prev.highlighted === next.highlighted &&
+    prev.showCopyRow === next.showCopyRow
 );
 
 const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }> = ({ emptySlot }) => {
   const list = useMessageList();
+  const isMessageListLoading = useMessageListLoading();
   const artifacts = useConversationArtifacts();
   const conversationContext = useConversationContextSafe();
   useAutoPreviewOfficeFiles(conversationContext);
+  // While the agent is still streaming, the in-progress turn's last text keeps
+  // moving down, so we defer its copy/timestamp row until the turn finishes to
+  // avoid the row flashing in and the layout reflowing mid-stream.
+  const { isProcessing } = useConversationRuntimeView(conversationContext?.conversation_id ?? '');
   const { t } = useTranslation();
   const location = useLocation();
   const locationState = (location.state || {}) as ConversationLocationState;
@@ -275,15 +350,56 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
     );
   }, [artifacts, list]);
 
+  // An AI reply can be split into several messages (thinking / multiple text /
+  // tool blocks). The hover copy + timestamp row should appear once per turn,
+  // after the turn's last text — not under every intermediate text block.
+  // Collect the id of the last AI text in each turn; a turn runs until the next
+  // user (right) message. Tool/file/artifact items don't end a turn and, per the
+  // fallback strategy, the row stays on the turn's last text even when followed
+  // by tool blocks. While the conversation is still streaming, the final turn's
+  // row is withheld (it would otherwise appear then shift down as more text
+  // streams in); earlier, already-finished turns always keep their row.
+  const aiCopyRowTextIds = useMemo(() => {
+    const ids = new Set<string>();
+    let pendingTextId: string | undefined;
+    let lastTurnTextId: string | undefined;
+    const flush = () => {
+      if (pendingTextId) ids.add(pendingTextId);
+      pendingTextId = undefined;
+    };
+    for (const item of processedList) {
+      if (
+        'type' in item &&
+        (item.type === 'file_summary' || item.type === 'tool_summary' || item.type === 'artifact')
+      ) {
+        continue;
+      }
+      const message = item as TMessage;
+      if (message.position === 'right') {
+        flush();
+        continue;
+      }
+      if (message.type === 'text') {
+        pendingTextId = message.id;
+      }
+    }
+    lastTurnTextId = pendingTextId;
+    flush();
+    // The final turn is the one that may still be streaming; hide its row until done.
+    if (isProcessing && lastTurnTextId) ids.delete(lastTurnTextId);
+    return ids;
+  }, [processedList, isProcessing]);
+
   // Use auto-scroll hook
   const {
-    virtuosoRef,
     handleScrollerRef,
+    handleContentRef,
     handleScroll,
-    handleAtBottomStateChange,
-    handleFollowOutput,
+    handleWheel,
+    handlePointerDown,
     showScrollButton,
     scrollToBottom,
+    scrollElementIntoView,
     hideScrollButton,
   } = useAutoScroll({
     messages: list,
@@ -291,7 +407,7 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
   });
 
   useEffect(() => {
-    if (!targetMessageId || processedList.length === 0 || !virtuosoRef.current) {
+    if (!targetMessageId || processedList.length === 0) {
       return;
     }
 
@@ -310,10 +426,10 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
     hideScrollButton();
 
     requestAnimationFrame(() => {
-      virtuosoRef.current?.scrollToIndex({
-        index: targetIndex,
+      const targetElement = document.getElementById(`message-${getProcessedItemAnchorId(processedList[targetIndex])}`);
+      scrollElementIntoView(targetElement, {
         behavior: 'smooth',
-        align: 'center',
+        block: 'center',
       });
     });
 
@@ -322,7 +438,7 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
     }, 2400);
 
     return () => window.clearTimeout(timer);
-  }, [hideScrollButton, location.key, processedList, targetMessageId, virtuosoRef]);
+  }, [hideScrollButton, location.key, processedList, scrollElementIntoView, targetMessageId]);
 
   useEffect(() => {
     const handleMessageJump = (event: Event) => {
@@ -348,9 +464,11 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
 
       hideScrollButton();
       requestAnimationFrame(() => {
-        virtuosoRef.current?.scrollToIndex({
-          index: targetIndex,
-          align: detail.align || 'start',
+        const targetElement = document.getElementById(
+          `message-${getProcessedItemAnchorId(processedList[targetIndex])}`
+        );
+        scrollElementIntoView(targetElement, {
+          block: detail.align || 'start',
           behavior: detail.behavior || 'smooth',
         });
       });
@@ -360,7 +478,7 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
     return () => {
       window.removeEventListener(CHAT_MESSAGE_JUMP_EVENT, handleMessageJump);
     };
-  }, [conversationContext?.conversation_id, hideScrollButton, processedList, virtuosoRef]);
+  }, [conversationContext?.conversation_id, hideScrollButton, processedList, scrollElementIntoView]);
 
   // Click scroll button
   const handleScrollButtonClick = () => {
@@ -401,8 +519,17 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
         </div>
       );
     }
-    return <MessageItem message={item as TMessage} key={(item as TMessage).id} highlighted={highlighted}></MessageItem>;
+    const message = item as TMessage;
+    // User messages keep their own copy row; AI text only shows it at the turn end.
+    const showCopyRow = message.position !== 'left' || message.type !== 'text' || aiCopyRowTextIds.has(message.id);
+    return (
+      <MessageItem message={message} key={message.id} highlighted={highlighted} showCopyRow={showCopyRow}></MessageItem>
+    );
   };
+
+  if (processedList.length === 0 && isMessageListLoading) {
+    return <MessageListSkeleton />;
+  }
 
   if (processedList.length === 0 && emptySlot) {
     return <div className='relative flex-1 h-full flex items-center justify-center'>{emptySlot}</div>;
@@ -413,24 +540,25 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
       {/* Use PreviewGroup to wrap all messages for cross-message image preview */}
       <Image.PreviewGroup actionsLayout={['zoomIn', 'zoomOut', 'originalSize', 'rotateLeft', 'rotateRight']}>
         <ImagePreviewContext.Provider value={{ inPreviewGroup: true }}>
-          <Virtuoso
-            ref={virtuosoRef}
-            scrollerRef={handleScrollerRef}
-            className='flex-1 h-full pb-10px box-border'
-            data={processedList}
-            initialTopMostItemIndex={processedList.length - 1}
-            defaultItemHeight={40}
-            atBottomThreshold={100}
-            increaseViewportBy={1200}
-            itemContent={renderItem}
-            followOutput={handleFollowOutput}
+          <div
+            ref={handleScrollerRef}
+            data-testid='message-list-scroller'
+            // Break out of the parent's 20px horizontal padding so the scrollbar hugs the
+            // window edge, while re-applying that padding inside to keep message content inset.
+            className='flex-1 h-full overflow-y-auto pb-10px box-border -mx-20px px-20px'
+            style={{ overflowAnchor: 'none' }}
+            onPointerDown={handlePointerDown}
             onScroll={handleScroll}
-            atBottomStateChange={handleAtBottomStateChange}
-            components={{
-              Header: () => <div className='h-10px' />,
-              Footer: () => <div className='h-20px' />,
-            }}
-          />
+            onWheel={handleWheel}
+          >
+            <div ref={handleContentRef} data-testid='message-list-content' style={{ overflowAnchor: 'none' }}>
+              <div className='h-10px' />
+              {processedList.map((item, index) => (
+                <React.Fragment key={getProcessedItemAnchorId(item) || index}>{renderItem(index, item)}</React.Fragment>
+              ))}
+              <div className='h-20px' />
+            </div>
+          </div>
         </ImagePreviewContext.Provider>
       </Image.PreviewGroup>
 

@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  *
  * Unit tests for renderer/hooks/assistant/useAssistantList.ts (A1 in N4a).
- * Tests useAssistantList hook: load, sort, active selection, and isExtensionAssistant predicate.
+ * Tests useAssistantList hook: load, sort, and active selection behavior.
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
@@ -15,6 +15,7 @@ vi.mock('@/common', () => ({
   ipcBridge: {
     assistants: {
       list: { invoke: vi.fn(), provider: vi.fn() },
+      setState: { invoke: vi.fn(), provider: vi.fn() },
     },
   },
 }));
@@ -27,7 +28,7 @@ vi.mock('react-i18next', () => ({
   }),
 }));
 
-import { useAssistantList, isExtensionAssistant } from '@/renderer/hooks/assistant/useAssistantList';
+import { useAssistantList } from '@/renderer/hooks/assistant/useAssistantList';
 import { ipcBridge } from '@/common';
 import type { Assistant } from '@/common/types/agent/assistantTypes';
 
@@ -50,6 +51,20 @@ describe('useAssistantList', () => {
     expect(result.current.assistants[0].id).toBe('1');
     expect(result.current.activeAssistantId).toBe('1');
     expect(result.current.activeAssistant?.id).toBe('1');
+  });
+
+  it('preserves backend order instead of resorting client side', async () => {
+    const mockList: Assistant[] = [
+      { id: 'cowork', name: 'Cowork', sort_order: 2000, source: 'builtin', enabled: true },
+      { id: 'writer', name: 'Writer', sort_order: 1000, source: 'user', enabled: true },
+    ];
+    (ipcBridge.assistants.list.invoke as any).mockResolvedValue(mockList);
+
+    const { result } = renderHook(() => useAssistantList());
+
+    await waitFor(() => expect(result.current.assistants).toHaveLength(2));
+
+    expect(result.current.assistants.map((assistant) => assistant.id)).toEqual(['cowork', 'writer']);
   });
 
   it('handles empty list', async () => {
@@ -129,22 +144,48 @@ describe('useAssistantList', () => {
     consoleErrorSpy.mockRestore();
   });
 
-  describe('isExtensionAssistant predicate', () => {
-    it('returns true for extension-sourced assistant', () => {
-      const ext: Assistant = { id: 'e1', name: 'Ext', sort_order: 1, source: 'extension', enabled: true };
-      expect(isExtensionAssistant(ext)).toBe(true);
+  it('reorders assistants and persists sort_order updates', async () => {
+    const initialList: Assistant[] = [
+      { id: '1', name: 'A', sort_order: 1, source: 'user', enabled: true },
+      { id: '2', name: 'B', sort_order: 2, source: 'user', enabled: true },
+      { id: '3', name: 'C', sort_order: 3, source: 'user', enabled: true },
+    ];
+    (ipcBridge.assistants.list.invoke as any).mockResolvedValue(initialList);
+    (ipcBridge.assistants.setState.invoke as any).mockResolvedValue(undefined);
+
+    const { result } = renderHook(() => useAssistantList());
+    await waitFor(() => expect(result.current.assistants).toHaveLength(3));
+
+    await act(async () => {
+      await result.current.reorderAssistants('3', '1');
     });
 
-    it('returns false for builtin/user assistants', () => {
-      const builtin: Assistant = { id: 'b1', name: 'B', sort_order: 1, source: 'builtin', enabled: true };
-      const user: Assistant = { id: 'u1', name: 'U', sort_order: 1, source: 'user', enabled: true };
-      expect(isExtensionAssistant(builtin)).toBe(false);
-      expect(isExtensionAssistant(user)).toBe(false);
+    expect(result.current.assistants.map((assistant) => assistant.id)).toEqual(['3', '1', '2']);
+    expect(ipcBridge.assistants.setState.invoke).toHaveBeenCalledTimes(3);
+    expect(ipcBridge.assistants.setState.invoke).toHaveBeenNthCalledWith(1, { id: '3', sort_order: 1000 });
+    expect(ipcBridge.assistants.setState.invoke).toHaveBeenNthCalledWith(2, { id: '1', sort_order: 2000 });
+    expect(ipcBridge.assistants.setState.invoke).toHaveBeenNthCalledWith(3, { id: '2', sort_order: 3000 });
+  });
+
+  it('restores the previous order when reorder persistence fails', async () => {
+    const initialList: Assistant[] = [
+      { id: '1', name: 'A', sort_order: 1, source: 'user', enabled: true },
+      { id: '2', name: 'B', sort_order: 2, source: 'user', enabled: true },
+    ];
+    (ipcBridge.assistants.list.invoke as any).mockResolvedValue(initialList);
+    (ipcBridge.assistants.setState.invoke as any).mockRejectedValue(new Error('persist failed'));
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    const { result } = renderHook(() => useAssistantList());
+    await waitFor(() => expect(result.current.assistants).toHaveLength(2));
+
+    await act(async () => {
+      await result.current.reorderAssistants('2', '1');
     });
 
-    it('returns false for null/undefined', () => {
-      expect(isExtensionAssistant(null)).toBe(false);
-      expect(isExtensionAssistant(undefined)).toBe(false);
-    });
+    expect(result.current.assistants.map((assistant) => assistant.id)).toEqual(['1', '2']);
+    expect(consoleErrorSpy).toHaveBeenCalled();
+
+    consoleErrorSpy.mockRestore();
   });
 });

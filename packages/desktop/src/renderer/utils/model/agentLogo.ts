@@ -148,9 +148,9 @@ export const isDefaultModel = (value?: string | null, label?: string | null): bo
  * @returns The computed display label
  */
 export const getModelDisplayLabel = ({
-  selected_value,
+  selected_value: _selected_value,
   selectedLabel,
-  defaultModelLabel,
+  defaultModelLabel: _defaultModelLabel,
   fallbackLabel,
 }: {
   selected_value?: string | null;
@@ -159,5 +159,5 @@ export const getModelDisplayLabel = ({
   fallbackLabel: string;
 }): string => {
   if (!selectedLabel) return fallbackLabel;
-  return isDefaultModel(selected_value, selectedLabel) ? defaultModelLabel : selectedLabel;
+  return selectedLabel;
 };

@@ -1,10 +1,14 @@
 // src/renderer/pages/team/hooks/useTeamSession.ts
 import { ipcBridge } from '@/common';
+import { normalizeTeamStatus } from '@/common/adapter/teamMapper';
 import type {
   ITeamAgentRemovedEvent,
   ITeamAgentRenamedEvent,
   ITeamAgentSpawnedEvent,
   ITeamAgentStatusEvent,
+  ITeamMcpStatusEvent,
+  ITeamSessionChangedEvent,
+  ITeamTaskChangedEvent,
   TeamAgent,
   TeammateStatus,
   TTeam,
@@ -32,7 +36,11 @@ export function useTeamSession(team: TTeam) {
       if (event.team_id !== team.id) return;
       setStatusMap((prev) => {
         const next = new Map(prev);
-        next.set(event.slot_id, { slot_id: event.slot_id, status: event.status, last_message: event.last_message });
+        next.set(event.slot_id, {
+          slot_id: event.slot_id,
+          status: normalizeTeamStatus(event.status),
+          last_message: event.last_message,
+        });
         return next;
       });
     });
@@ -52,11 +60,28 @@ export function useTeamSession(team: TTeam) {
       void mutateTeam();
     });
 
+    const unsubMcpStatus = ipcBridge.team.mcpStatus.on((event: ITeamMcpStatusEvent) => {
+      if (event.team_id !== team.id) return;
+    });
+
+    const unsubTaskChanged = ipcBridge.team.taskChanged.on((event: ITeamTaskChangedEvent) => {
+      if (event.team_id !== team.id) return;
+      void mutateTeam();
+    });
+
+    const unsubSessionChanged = ipcBridge.team.sessionChanged.on((event: ITeamSessionChangedEvent) => {
+      if (event.team_id !== team.id) return;
+      void mutateTeam();
+    });
+
     return () => {
       unsubStatus();
       unsubSpawned();
       unsubRemoved();
       unsubRenamed();
+      unsubMcpStatus();
+      unsubTaskChanged();
+      unsubSessionChanged();
     };
   }, [team.id, mutateTeam]);
 

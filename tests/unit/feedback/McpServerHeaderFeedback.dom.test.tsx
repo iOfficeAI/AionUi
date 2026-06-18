@@ -22,36 +22,32 @@ vi.mock('@/renderer/hooks/context/FeedbackContext', () => ({
   useFeedback: () => ({ openFeedback: openFeedbackMock }),
 }));
 
-vi.mock('./McpAgentStatusDisplay', () => ({
-  default: () => null,
-}));
-
 import McpServerHeader from '@/renderer/pages/settings/ToolsSettings/McpServerHeader';
 import type { IMcpServer } from '@/common/config/storage';
 
-const buildServer = (status: IMcpServer['status']): IMcpServer =>
+const buildServer = (last_test_status: IMcpServer['last_test_status']): IMcpServer =>
   ({
     id: 's1',
     name: 'my-server',
     enabled: true,
     transport: { type: 'http', url: 'http://example' },
-    status,
+    last_test_status,
+    created_at: 0,
+    updated_at: 0,
+    original_json: '',
   }) as IMcpServer;
 
 const commonProps = {
-  agentInstallStatus: {},
-  isServerLoading: () => false,
   isTestingConnection: false,
   onTestConnection: vi.fn(),
   onEditServer: vi.fn(),
   onDeleteServer: vi.fn(),
-  onToggleServer: vi.fn(),
 };
 
-const renderHeader = (status: IMcpServer['status']) =>
+const renderHeader = (last_test_status: IMcpServer['last_test_status']) =>
   render(
     <ConfigProvider>
-      <McpServerHeader server={buildServer(status)} {...commonProps} />
+      <McpServerHeader server={buildServer(last_test_status)} {...commonProps} />
     </ConfigProvider>
   );
 

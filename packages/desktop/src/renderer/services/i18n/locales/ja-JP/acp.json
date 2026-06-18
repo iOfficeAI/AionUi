@@ -4,8 +4,18 @@
     "console_error": "ACP認証エラー詳細:",
     "failed_confirm": "ACP {{backend}} 認証が失敗しました：\n\n{{error}}\n\n設定ページで設定しますか？"
   },
+  "send": {
+    "failed": "メッセージの送信に失敗しました：{{error}}"
+  },
   "sendbox": {
     "placeholder": "{{backend}}にメッセージを送信..."
+  },
+  "image": {
+    "download": "ダウンロード",
+    "download_aria": "画像をダウンロード",
+    "download_success": "ダウンロードしました",
+    "download_error": "ダウンロードに失敗しました",
+    "generated_alt": "生成された画像"
   },
   "status": {
     "connecting": "{{agent}} に接続中...",
