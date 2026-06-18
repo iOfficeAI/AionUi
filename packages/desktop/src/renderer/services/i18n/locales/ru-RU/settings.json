@@ -986,8 +986,12 @@
       "bridge_missing": "Install {{command}} and retry the connection test.",
       "primary_missing": "Install {{command}} and retry the connection test.",
       "command_missing": "Install {{command}} and retry the connection test.",
-      "managed_runtime_unavailable": "Repair or reinstall {{resource}}, then retry the connection test."
-    }
+      "managed_runtime_unavailable": "Repair or reinstall {{resource}}, then retry the connection test.",
+      "auth_required": "Сначала войдите или завершите авторизацию в {{name}}, затем повторите проверку подключения.",
+      "user_agent_auth_required": "Сначала войдите или завершите авторизацию в {{name}}, затем повторите проверку подключения."
+    },
+    "statusNeedsAuth": "Требуется авторизация",
+    "testConnectionNeedsAuth": "Для {{name}} требуется авторизация."
   },
   "remoteAgent": {
     "title": "Удалённые агенты",

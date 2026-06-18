@@ -137,6 +137,17 @@ const makeAgents = () => [
     enabled: true,
     available: true,
     installed: true,
+    status: 'needs_auth',
+  },
+  {
+    id: 'custom-2',
+    name: 'Broken Agent',
+    agent_type: 'acp',
+    agent_source: 'custom',
+    command: 'sh',
+    enabled: true,
+    available: true,
+    installed: true,
     status: 'unavailable',
   },
 ];
@@ -204,6 +215,7 @@ describe('LocalAgents', () => {
     expect(screen.getByText('settings.agentManagement.customAgents')).toBeTruthy();
     expect(screen.getAllByText('settings.agentManagement.statusMissing')).toHaveLength(2);
     expect(screen.getByText('settings.agentManagement.statusUnavailable')).toBeTruthy();
+    expect(screen.getByText('settings.agentManagement.statusNeedsAuth')).toBeTruthy();
     expect(screen.queryByText('settings.agentManagement.goToChat')).toBeNull();
   });
 
@@ -294,7 +306,8 @@ describe('LocalAgents', () => {
 
     render(<LocalAgents />);
 
-    fireEvent.click(screen.getByRole('switch'));
+    const [firstCustomSwitch] = screen.getAllByRole('switch');
+    fireEvent.click(firstCustomSwitch);
 
     await waitFor(() => {
       expect(ipcBridge.acpConversation.setAgentEnabled.invoke).toHaveBeenCalledWith({

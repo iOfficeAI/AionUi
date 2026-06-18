@@ -22,7 +22,7 @@ export type AgentType = 'acp' | 'remote' | 'aionrs' | 'openclaw-gateway' | 'nano
 /** Source tier of an agent row, mirroring backend `agent_source` enum. */
 export type AgentSource = 'internal' | 'builtin' | 'extension' | 'custom';
 
-export type AgentManagementStatus = 'available' | 'unavailable' | 'missing';
+export type AgentManagementStatus = 'available' | 'unavailable' | 'missing' | 'needs_auth';
 export type AgentSnapshotCheckStatus = 'available' | 'unavailable';
 export type AgentSnapshotCheckKind = 'startup' | 'scheduled' | 'manual' | 'session';
 export type AgentManagementErrorDetails = {
@@ -187,6 +187,8 @@ export function formatManagedAgentDiagnosticMessage(t: TFunction, agent: Managed
     case 'acp_init_failed':
     case 'health_check_failed':
     case 'session_send_failed':
+    case 'auth_required':
+    case 'user_agent_auth_required':
     case 'disabled':
     case 'no_command':
       return t(`settings.agentManagement.errorCodes.${agent.last_check_error_code}`, {

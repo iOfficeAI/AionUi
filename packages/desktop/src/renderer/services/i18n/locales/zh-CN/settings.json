@@ -1006,8 +1006,12 @@
       "bridge_missing": "请安装 {{command}}，然后重新测试连接。",
       "primary_missing": "请安装 {{command}}，然后重新测试连接。",
       "command_missing": "请安装 {{command}}，然后重新测试连接。",
-      "managed_runtime_unavailable": "请修复或重新安装 {{resource}}，然后重新测试连接。"
-    }
+      "managed_runtime_unavailable": "请修复或重新安装 {{resource}}，然后重新测试连接。",
+      "auth_required": "请先登录或完成 {{name}} 的授权，然后重试连接测试。",
+      "user_agent_auth_required": "请先登录或完成 {{name}} 的授权，然后重试连接测试。"
+    },
+    "statusNeedsAuth": "需要认证",
+    "testConnectionNeedsAuth": "{{name}} 需要先完成认证。"
   },
   "remoteAgent": {
     "title": "远程 Agent",

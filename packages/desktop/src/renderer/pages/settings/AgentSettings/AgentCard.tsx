@@ -37,6 +37,7 @@ const statusColor = (status?: AgentManagementStatus): 'green' | 'orange' | 'red'
   switch (status) {
     case 'available':
       return 'green';
+    case 'needs_auth':
     case 'unavailable':
       return 'orange';
     case 'missing':
@@ -50,6 +51,8 @@ const statusLabelKey = (status?: AgentManagementStatus) => {
   switch (status) {
     case 'available':
       return 'settings.agentManagement.statusAvailable';
+    case 'needs_auth':
+      return 'settings.agentManagement.statusNeedsAuth';
     case 'unavailable':
       return 'settings.agentManagement.statusUnavailable';
     case 'missing':
@@ -78,6 +81,8 @@ const statusSummary = (
   switch (agent.status) {
     case 'available':
       return t('settings.agentManagement.testConnectionAvailable', { name: agent.name });
+    case 'needs_auth':
+      return t('settings.agentManagement.testConnectionNeedsAuth', { name: agent.name });
     case 'missing':
       return t('settings.agentManagement.testConnectionMissing', { name: agent.name });
     case 'unavailable':
