@@ -375,7 +375,6 @@
     "apiErrorSwitched": "APIエラー、{{cli}} CLIに自動切り替えしました",
     "confirmationLoadError": "確認ダイアログの読み込みに失敗しました",
     "tryAnotherAgent": "別のエージェントを試す：",
-    "switchedToAgent": "{{agent}}に切り替えました",
     "switchAgentFailed": "エージェントの切り替えに失敗しました",
     "speech": {
       "recordTooltip": "音声入力を開始",

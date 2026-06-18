@@ -375,7 +375,6 @@
     "apiErrorSwitched": "Ошибка API, автоматическое переключение на {{cli}} CLI",
     "confirmationLoadError": "Не удалось загрузить диалог подтверждения",
     "tryAnotherAgent": "Попробуйте другого агента:",
-    "switchedToAgent": "Переключено на {{agent}}",
     "switchAgentFailed": "Не удалось переключить агента",
     "speech": {
       "recordTooltip": "Начать голосовой ввод",

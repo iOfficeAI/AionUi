@@ -381,7 +381,6 @@
     "apiErrorSwitched": "Erro na API, mudou automaticamente para a CLI do {{cli}}",
     "confirmationLoadError": "Falha ao carregar a caixa de diálogo de confirmação",
     "tryAnotherAgent": "Tente outro agente:",
-    "switchedToAgent": "Mudou para {{agent}}",
     "switchAgentFailed": "Falha ao mudar o agente",
     "speech": {
       "recordTooltip": "Iniciar entrada de voz",

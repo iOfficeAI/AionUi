@@ -375,7 +375,6 @@
     "apiErrorSwitched": "API error, auto-switched to {{cli}} CLI",
     "confirmationLoadError": "Failed to load confirmation dialog",
     "tryAnotherAgent": "Try another agent:",
-    "switchedToAgent": "Switched to {{agent}}",
     "switchAgentFailed": "Failed to switch agent",
     "speech": {
       "recordTooltip": "Start voice input",

@@ -399,7 +399,6 @@ export type I18nKey =
   | 'conversation.chat.speech.transcriptionFailed'
   | 'conversation.chat.speech.unsupported'
   | 'conversation.chat.switchAgentFailed'
-  | 'conversation.chat.switchedToAgent'
   | 'conversation.chat.tryAnotherAgent'
   | 'conversation.commandQueue.cancelEdit'
   | 'conversation.commandQueue.clear'

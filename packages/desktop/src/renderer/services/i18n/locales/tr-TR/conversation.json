@@ -365,7 +365,6 @@
     "apiErrorSwitched": "API error, auto-switched to {{cli}} CLI",
     "confirmationLoadError": "Onay penceresi yüklenemedi",
     "tryAnotherAgent": "Try another agent:",
-    "switchedToAgent": "Switched to {{agent}}",
     "switchAgentFailed": "Ajan değiştirilemedi",
     "speech": {
       "recordTooltip": "Sesli girişi başlat",

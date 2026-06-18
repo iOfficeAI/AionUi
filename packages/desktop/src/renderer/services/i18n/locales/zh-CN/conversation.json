@@ -375,7 +375,6 @@
     "apiErrorSwitched": "API 错误，已自动切换到 {{cli}} CLI",
     "confirmationLoadError": "确认对话框加载失败",
     "tryAnotherAgent": "尝试其他 Agent：",
-    "switchedToAgent": "已切换到 {{agent}}",
     "switchAgentFailed": "切换 Agent 失败",
     "speech": {
       "recordTooltip": "开始语音输入",
