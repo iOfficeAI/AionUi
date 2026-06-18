@@ -8,6 +8,7 @@ import { ipcBridge } from '@/common';
 import { TEAM_MODE_ENABLED } from '@/common/config/constants';
 import MobileConversationBrand from './MobileConversationBrand';
 import WindowControls from '../WindowControls';
+import CreditMeterBadge from '@renderer/components/billing/CreditMeterBadge';
 import { WORKSPACE_STATE_EVENT, dispatchWorkspaceToggleEvent } from '@renderer/utils/workspace/workspaceEvents';
 import type { WorkspaceStateDetail } from '@renderer/utils/workspace/workspaceEvents';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
@@ -332,6 +333,8 @@ const Titlebar: React.FC<TitlebarProps> = ({ workspaceAvailable }) => {
       </div>
       <div ref={toolbarRef} className='app-titlebar__toolbar'>
         {layout?.isMobile && <div id='app-titlebar-actions-slot' className='app-titlebar__actions-slot' />}
+        {/* Live credit meter (Lane 3). Self-quiets before first read / non-desktop. */}
+        {!layout?.isMobile && <CreditMeterBadge onOpenBilling={() => void navigate('/settings/billing')} />}
         {showWorkspaceButton && (
           <button
             type='button'

@@ -1,0 +1,196 @@
+/**
+ * Command EVE credits/billing UX (Lane 3) styles. Uses the existing CSS-variable
+ * theme tokens (var(--bg-*), var(--text-*), var(--border-base)) so it tracks
+ * light/dark like the rest of the chrome.
+ */
+
+/* ---- Live credit meter badge (titlebar) ---- */
+.credit-meter-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: auto;
+  padding: 0 8px;
+  border-radius: 8px;
+  white-space: nowrap;
+  font-size: 12px;
+  color: var(--text-secondary, #6b7280);
+}
+.credit-meter-badge__bar {
+  display: inline-flex;
+  align-items: center;
+}
+.credit-meter-badge__label {
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.credit-meter-badge[data-near-wall='true'] .credit-meter-badge__label {
+  color: var(--color-warning-6, #d97706);
+  font-weight: 600;
+}
+.credit-meter-badge__tooltip > div {
+  line-height: 1.5;
+}
+
+/* ---- 402 quota-exhausted wall ---- */
+.quota-exhausted-wall__body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 8px 4px;
+}
+.quota-exhausted-wall__title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary, #111827);
+}
+.quota-exhausted-wall__math {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-secondary, #4b5563);
+}
+.quota-exhausted-wall__packs {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.quota-exhausted-wall__pack-row {
+  display: inline-flex;
+  flex-direction: column;
+}
+.quota-exhausted-wall__pack-price {
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.quota-exhausted-wall__pack-bonus {
+  font-size: 11px;
+  color: var(--color-success-6, #16a34a);
+}
+.quota-exhausted-wall__pack-default {
+  font-size: 11px;
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: var(--color-primary-light-1, #eef2ff);
+  color: var(--color-primary-6, #4f46e5);
+}
+.quota-exhausted-wall__pack-jobs {
+  font-size: 12px;
+  color: var(--text-tertiary, #9ca3af);
+}
+.quota-exhausted-wall__autoreload {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-secondary, #4b5563);
+}
+.quota-exhausted-wall__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+.quota-exhausted-wall__later {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text-tertiary, #9ca3af);
+}
+
+/* ---- value receipt ---- */
+.value-receipt {
+  text-align: center;
+}
+.value-receipt__icon {
+  font-size: 20px;
+  opacity: 0.7;
+}
+.value-receipt__headline {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary, #111827);
+  margin: 6px 0;
+}
+.value-receipt__detail {
+  font-size: 13px;
+  color: var(--text-secondary, #4b5563);
+}
+
+/* ---- day-0 onboarding ---- */
+.day-zero-onboarding__body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.day-zero-onboarding__title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+}
+.day-zero-onboarding__lede {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-secondary, #4b5563);
+}
+.day-zero-onboarding__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.day-zero-onboarding__skip {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text-tertiary, #9ca3af);
+}
+
+/* ---- billing settings ---- */
+.billing-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.billing-settings__hint {
+  font-size: 13px;
+  color: var(--text-secondary, #4b5563);
+  margin: 4px 0;
+}
+.billing-settings__cap-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.billing-settings__plan-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+}
+.billing-settings__plan-name {
+  font-weight: 600;
+}
+.billing-settings__plan-price {
+  color: var(--text-secondary, #4b5563);
+}
+.billing-settings__pack-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+.billing-settings__pack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: auto;
+  padding: 10px;
+}
+.billing-settings__pack-bonus {
+  font-size: 11px;
+  color: var(--color-success-6, #16a34a);
+}

@@ -12,12 +12,13 @@ import { type IExtensionSettingsTab } from '@/common/adapter/ipcBridge';
 import { useExtI18n } from '@/renderer/hooks/system/useExtI18n';
 import { useExtensionSettingsTabs } from '@/renderer/hooks/system/useExtensionSettingsTabs';
 import { Tabs } from '@arco-design/web-react';
-import { Computer, Earth, Info, LinkCloud, Puzzle, Toolkit } from '@icon-park/react';
+import { Computer, Earth, Info, LinkCloud, Puzzle, Toolkit, Wallet } from '@icon-park/react';
 import classNames from 'classnames';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import AboutModalContent from './contents/AboutModalContent';
 import AgentModalContent from './contents/AgentModalContent';
+import BillingModalContent from './contents/BillingModalContent';
 import ExtensionSettingsTabContent from './contents/ExtensionSettingsTabContent';
 import ModelModalContent from './contents/ModelModalContent';
 import SystemModalContent from './contents/SystemModalContent';
@@ -55,7 +56,7 @@ const RESIZE_DEBOUNCE_DELAY = 150;
 /**
  * 内置设置标签页类型 / Built-in settings tab type
  */
-export type BuiltinSettingTab = 'model' | 'agent' | 'tools' | 'webui' | 'system' | 'about';
+export type BuiltinSettingTab = 'model' | 'agent' | 'tools' | 'webui' | 'system' | 'about' | 'billing';
 
 /**
  * 设置标签页类型（内置 + 扩展）/ Settings tab type (built-in + extension)
@@ -200,6 +201,11 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onCancel, defaul
         label: t('settings.tools'),
         icon: <Toolkit theme='outline' size='20' fill={iconColors.secondary} />,
       },
+      {
+        key: 'billing',
+        label: t('settings.billing', { defaultValue: 'Billing' }),
+        icon: <Wallet theme='outline' size='20' fill={iconColors.secondary} />,
+      },
     ];
 
     if (isDesktop) {
@@ -306,6 +312,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onCancel, defaul
         return <AgentModalContent />;
       case 'tools':
         return <ToolsModalContent />;
+      case 'billing':
+        return <BillingModalContent />;
       case 'webui':
         return <WebuiModalContent />;
       case 'system':
