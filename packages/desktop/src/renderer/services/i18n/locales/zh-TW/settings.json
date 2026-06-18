@@ -837,7 +837,7 @@
     "copyCode": "複製配對碼",
     "agentDescTelegram": "用於 Telegram 對話",
     "autoFollowCliModel": "自動跟隨CLI運行時的模型",
-    "agentSwitched": "Agent 切換成功",
+    "agentSwitched": "助手切換成功",
     "modelSwitched": "模型切換成功",
     "tokenLocked": "請先關閉 Channel 並刪除所有已授權用戶後，再嘗試修改",
     "tokenValid": "Token 有效"

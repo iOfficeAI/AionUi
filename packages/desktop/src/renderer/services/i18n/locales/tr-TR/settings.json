@@ -825,7 +825,7 @@
     "copyCode": "Copy pairing code",
     "agentDescTelegram": "Telegram sohbetleri icin kullanilir",
     "autoFollowCliModel": "CLI calisirken modeli otomatik olarak takip et",
-    "agentSwitched": "Agent basariyla degistirildi",
+    "agentSwitched": "Asistan basariyla degistirildi",
     "modelSwitched": "Model basariyla degistirildi"
   },
   "lark": {

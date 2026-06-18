@@ -776,7 +776,7 @@
     "copyCode": "Копіювати код сполучення",
     "agentDescTelegram": "Для діалогів через Channel",
     "autoFollowCliModel": "Автоматично слідувати моделі при роботі CLI",
-    "agentSwitched": "Агент успішно переключений",
+    "agentSwitched": "Асистент успішно переключений",
     "modelSwitched": "Модель успішно переключена"
   },
   "lark": {

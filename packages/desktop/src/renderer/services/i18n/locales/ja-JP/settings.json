@@ -825,7 +825,7 @@
     "copyCode": "ペアリングコードをコピー",
     "agentDescTelegram": "Telegram の会話に使用",
     "autoFollowCliModel": "CLI実行時のモデルに自動的に従う",
-    "agentSwitched": "Agent の切り替えに成功しました",
+    "agentSwitched": "アシスタントの切り替えに成功しました",
     "modelSwitched": "モデルの切り替えに成功しました",
     "tokenLocked": "設定を変更する前に、Channel を閉じてすべての承認済みユーザーを削除してください",
     "tokenValid": "Token が有効です"

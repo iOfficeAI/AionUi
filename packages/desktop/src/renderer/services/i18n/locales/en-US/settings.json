@@ -837,7 +837,7 @@
     "copyCode": "Copy pairing code",
     "agentDescTelegram": "Used for Telegram conversations",
     "autoFollowCliModel": "Automatically follow the model when CLI is running",
-    "agentSwitched": "Agent switched successfully",
+    "agentSwitched": "Assistant switched successfully",
     "modelSwitched": "Model switched successfully"
   },
   "lark": {

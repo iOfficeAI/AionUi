@@ -837,7 +837,7 @@
     "copyCode": "复制配对码",
     "agentDescTelegram": "用于与Channel进行对话",
     "autoFollowCliModel": "自动跟随CLI运行时的模型",
-    "agentSwitched": "Agent 切换成功",
+    "agentSwitched": "助手切换成功",
     "modelSwitched": "模型切换成功"
   },
   "lark": {

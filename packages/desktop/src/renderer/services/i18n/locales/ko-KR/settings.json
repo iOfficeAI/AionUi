@@ -825,7 +825,7 @@
     "copyCode": "페어링 코드 복사",
     "agentDescTelegram": "Telegram 대화에 사용",
     "autoFollowCliModel": "CLI 실행 시 모델을 자동으로 따름",
-    "agentSwitched": "Agent 전환 성공",
+    "agentSwitched": "어시스턴트 전환 성공",
     "modelSwitched": "모델 전환 성공",
     "tokenLocked": "설정을 변경하기 전에 Channel을 닫고 모든 승인된 사용자를 삭제하세요",
     "tokenValid": "Token이 유효합니다"

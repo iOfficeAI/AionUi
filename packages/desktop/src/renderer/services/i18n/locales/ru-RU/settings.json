@@ -817,7 +817,7 @@
     "copyCode": "Копировать код сопряжения",
     "agentDescTelegram": "Для диалогов через Channel",
     "autoFollowCliModel": "Автоматически следовать модели при работе CLI",
-    "agentSwitched": "Агент успешно переключён",
+    "agentSwitched": "Ассистент успешно переключён",
     "modelSwitched": "Модель успешно переключена"
   },
   "lark": {
