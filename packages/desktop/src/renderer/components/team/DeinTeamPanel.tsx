@@ -108,7 +108,7 @@ const RoleControls: React.FC<RoleControlsProps> = ({ role, status, statuses, onA
   const renderActivate = (
     action: Extract<EveTeamControlAction, 'hire' | 'resume'>,
     label: string,
-    button: React.ReactElement
+    button: React.ReactElement<React.ComponentProps<typeof Button>>
   ) => {
     const budget = evaluateBudgetGate(role, action, statuses);
     if (budget.requiresWarning) {
@@ -129,7 +129,7 @@ const RoleControls: React.FC<RoleControlsProps> = ({ role, status, statuses, onA
         </Popconfirm>
       );
     }
-    return React.cloneElement(button, { key: action, onClick: () => onAction(role, action), 'aria-label': label });
+    return React.cloneElement(button, { key: action, onClick: () => onAction(role, action) });
   };
 
   // Build a guarded deactivation button: if the floor guard requires a warning,
