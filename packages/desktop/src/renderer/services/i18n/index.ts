@@ -23,6 +23,7 @@ import trTR from './locales/tr-TR/index';
 import ruRU from './locales/ru-RU/index';
 import ukUA from './locales/uk-UA/index';
 import ptBR from './locales/pt-BR/index';
+import deDE from './locales/de-DE/index';
 export type { I18nKey, I18nModule } from './i18n-keys';
 
 // Re-exports
@@ -41,6 +42,7 @@ const localeData: LocaleData = {
   'ru-RU': ruRU,
   'uk-UA': ukUA,
   'pt-BR': ptBR,
+  'de-DE': deDE,
 };
 
 const fallbackLocale = localeData[DEFAULT_LANGUAGE] ?? {};

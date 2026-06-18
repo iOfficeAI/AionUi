@@ -119,6 +119,7 @@ const LoginPage: React.FC = () => {
       { code: 'tr-TR', label: 'Türkçe' },
       { code: 'uk-UA', label: 'Українська' },
       { code: 'pt-BR', label: 'Português (BR)' },
+      { code: 'de-DE', label: 'Deutsch' },
       { code: 'en-US', label: 'English' },
     ],
     []

@@ -1,0 +1,60 @@
+{
+  "sider": {
+    "title": "Teams",
+    "createTeam": "Neues Team",
+    "pin": "Anheften",
+    "unpin": "Loslösen",
+    "rename": "Umbenennen",
+    "delete": "Löschen",
+    "renameTitle": "Team umbenennen",
+    "renamePlaceholder": "Teamname",
+    "deleteConfirm": "Dieses Team löschen?",
+    "deleteConfirmContent": "Diese Aktion kann nicht rückgängig gemacht werden.",
+    "deleteOk": "Löschen",
+    "deleteCancel": "Abbrechen",
+    "renameOk": "Speichern",
+    "renameCancel": "Abbrechen",
+    "renameSuccess": "Team umbenannt",
+    "deleteSuccess": "Team gelöscht"
+  },
+  "newAgent": "Neuer Agent",
+  "noMessages": "Noch keine Nachrichten.",
+  "agentNotConfigured": "Agent noch nicht konfiguriert.",
+  "stopAgentFailed": "Konnte diesen Agenten nicht stoppen. Bitte versuche es erneut.",
+  "sendBox": {
+    "placeholder": "Nachricht an Dispatch-Agenten..."
+  },
+  "create": {
+    "title": "Team erstellen",
+    "namePlaceholder": "Teamname",
+    "dispatchAgentPlaceholder": "Teamleiter auswählen",
+    "subAgentsPlaceholder": "Unteragenten auswählen",
+    "confirm": "Team erstellen",
+    "noSupportedAgents": "Keine unterstützten Agenten installiert",
+    "supportedAgentsHint": "Unterstützt derzeit Claude und Codex. Weitere Agenten folgen bald.",
+    "leaderDesc": "Versteht deine Ziele und koordiniert Agenten zur Aufgabenerledigung",
+    "step": {
+      "dispatch": "Teamleiter",
+      "subAgents": "Unteragenten",
+      "workspace": "Arbeitsbereich"
+    },
+    "nameRequired": "Bitte einen Teamnamen eingeben",
+    "leaderRequired": "Bitte einen Teamleiter auswählen",
+    "selectFolder": "Ordner auswählen",
+    "recentLabel": "Zuletzt",
+    "chooseDifferentFolder": "Anderen Ordner wählen",
+    "error": "Team erstellen fehlgeschlagen"
+  },
+  "removeAgent": {
+    "confirmTitle": "Teammitglied entfernen",
+    "confirmContent": "Dieses Mitglied ist aktuell aktiv. Trotzdem entfernen?"
+  },
+  "emptyState": {
+    "subtitle": "Beschreibe dein Ziel und ich bringe das Team an die Arbeit",
+    "suggestions": {
+      "debate": "Eine Debatte mit Agenten auf verschiedenen Seiten organisieren",
+      "interview": "Ein eingehendes Interview zwischen Agenten planen",
+      "expert_review": "Mehrere Experten das gleiche Problem analysieren lassen"
+    }
+  }
+}
