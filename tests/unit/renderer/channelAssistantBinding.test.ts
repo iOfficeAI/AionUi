@@ -52,16 +52,10 @@ describe('channel assistant binding helpers', () => {
     expect(resolveChannelAssistantId({ assistant_id: 'user-writer' }, assistants)).toBe('user-writer');
   });
 
-  it('maps legacy custom-agent channel bindings to the matching assistant', () => {
-    expect(resolveChannelAssistantId({ custom_agent_id: 'bare-claude' }, assistants)).toBe('bare-claude');
-  });
-
-  it('maps legacy backend-only channel bindings to the matching assistant', () => {
-    expect(resolveChannelAssistantId({ backend: 'claude' }, assistants)).toBe('bare-claude');
-    expect(resolveChannelAssistantId({ agent_type: 'claude' }, assistants)).toBe('bare-claude');
-  });
-
-  it('falls back to the default assistant when no assistant id or backend mapping exists', () => {
+  it('falls back to the default assistant when no canonical assistant id exists', () => {
+    expect(resolveChannelAssistantId({ custom_agent_id: 'bare-claude' }, assistants)).toBe('bare-aionrs');
+    expect(resolveChannelAssistantId({ backend: 'claude' }, assistants)).toBe('bare-aionrs');
+    expect(resolveChannelAssistantId({ agent_type: 'claude' }, assistants)).toBe('bare-aionrs');
     expect(resolveChannelAssistantId({ backend: 'missing-backend' }, assistants)).toBe('bare-aionrs');
   });
 

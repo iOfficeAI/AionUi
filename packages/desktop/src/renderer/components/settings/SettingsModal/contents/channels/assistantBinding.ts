@@ -9,8 +9,9 @@ import type { IChannelAssistantBindingRead, IChannelAssistantBindingWrite } from
 
 /**
  * Channel settings UI consumes backend-normalized assistant bindings.
- * Legacy backend/custom-agent migration is handled separately during local
- * config import; new writes must use `IChannelAssistantBindingWrite`.
+ * Legacy backend/custom-agent migration is handled by aionCore during channel
+ * settings reads; renderer-side selection must only trust canonical
+ * `assistant_id` bindings.
  */
 export type ChannelAssistantBinding = IChannelAssistantBindingRead | undefined;
 
@@ -31,26 +32,6 @@ export function resolveChannelAssistantId(saved: ChannelAssistantBinding, assist
 
   if (explicitAssistantId && assistants.some((assistant) => assistant.id === explicitAssistantId)) {
     return explicitAssistantId;
-  }
-
-  const legacyAssistantId = typeof saved.custom_agent_id === 'string' ? saved.custom_agent_id : undefined;
-  if (legacyAssistantId && assistants.some((assistant) => assistant.id === legacyAssistantId)) {
-    return legacyAssistantId;
-  }
-
-  const legacyBackend =
-    (typeof saved.backend === 'string' && saved.backend.trim()) ||
-    (typeof saved.agent_type === 'string' && saved.agent_type.trim()) ||
-    undefined;
-
-  if (legacyBackend) {
-    const mappedAssistant =
-      assistants.find((assistant) => assistant.source === 'bare' && assistant.preset_agent_type === legacyBackend) ||
-      assistants.find((assistant) => assistant.preset_agent_type === legacyBackend);
-
-    if (mappedAssistant) {
-      return mappedAssistant.id;
-    }
   }
 
   return getDefaultChannelAssistant(assistants)?.id;
