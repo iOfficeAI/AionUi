@@ -1,0 +1,193 @@
+/**
+ * @license
+ * Copyright 2025 AionUi (aionui.com)
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/**
+ * Command EVE — "Dein Team" curated A-roster (HONEST-A).
+ *
+ * This is a small, opinionated, OUTCOME-NAMED set of roles a user's EVE works
+ * AS — NOT an assemble-your-own-company builder. There is deliberately NO
+ * role-manifest schema, NO assembler, NO marketplace and NO per-agent Stripe
+ * SKU here: this module is curated DATA only. A later step may add those
+ * affordances; this one ships the honest fixed team plus the read-only surface
+ * and the existing-delegation quick-win.
+ *
+ * WHY OUTCOME NAMES: the founder mandate is "nothing confusing" — a micro-SME
+ * owner thinks in outcomes ("get me found on Google", "write the post"), not in
+ * model ids or agent internals. Each role is therefore named for the result it
+ * owns and carries a one-line outcome description in plain German.
+ *
+ * EACH ROLE CARRIES:
+ *   - {@link EveTeamRole.agent_id}    stable kebab id (the attribution key the
+ *                                     backend ledger `agent_id` column stores).
+ *   - {@link EveTeamRole.displayName} the user-facing name.
+ *   - {@link EveTeamRole.title}       the human role label (e.g. "Growth Lead").
+ *   - {@link EveTeamRole.outcome}     plain-German outcome the role owns.
+ *   - {@link EveTeamRole.tier}        the EVE Inference LEVEL it leans on
+ *                                     (matches eveInferenceCore wire tiers).
+ *   - {@link EveTeamRole.skills}      the Hermes skills it leans on (labels,
+ *                                     not a capability grant — execution is
+ *                                     still gated by the permission modes).
+ *   - {@link EveTeamRole.kind}        'work' (an operator role) or 'governance'
+ *                                     (a seat — CEO / Chief-of-Staff).
+ *
+ * The `tier` values mirror {@link EveInferenceWireTier} so a role's spend lands
+ * on a known EVE level; we keep this module decoupled (a plain union below) so
+ * the roster stays a pure, dependency-light data table that is trivially
+ * unit-testable in a plain Node (vitest) environment.
+ *
+ * AGENT_ID DISCIPLINE: ids are stable kebab-case, unique, and MUST NOT be
+ * renamed once shipped — the backend ledger attributes spend by this exact
+ * string. The reserved system default is `eve` (the un-delegated EVE itself);
+ * roster ids never collide with it.
+ */
+
+/** EVE Inference level a role leans on (mirrors eveInferenceCore wire tiers). */
+export type EveTeamRoleTier = 'standard' | 'high' | 'max' | 'maximum';
+
+/** A role is either an operator ("work") or a governance seat. */
+export type EveTeamRoleKind = 'work' | 'governance';
+
+export interface EveTeamRole {
+  /** Stable kebab id — the backend ledger `agent_id` attribution key. Never rename. */
+  agent_id: string;
+  /** User-facing name. */
+  displayName: string;
+  /** Human role label (e.g. "Growth Lead (CMO)"). */
+  title: string;
+  /** Plain-German outcome this role owns. */
+  outcome: string;
+  /** EVE Inference level the role leans on. */
+  tier: EveTeamRoleTier;
+  /** Hermes skills the role leans on (labels only — not a capability grant). */
+  skills: string[];
+  /** 'work' (operator) or 'governance' (seat). */
+  kind: EveTeamRoleKind;
+}
+
+/** The reserved system default agent id (un-delegated EVE itself). */
+export const EVE_SYSTEM_AGENT_ID = 'eve';
+
+/**
+ * The curated A-roster. Small + opinionated on purpose. Order is presentation
+ * order: governance seats first (they own the company), then the growth/content
+ * operators, then the eval/research support role.
+ */
+export const EVE_TEAM_ROSTER: readonly EveTeamRole[] = [
+  // ── Governance seats ────────────────────────────────────────────────
+  {
+    agent_id: 'ceo',
+    displayName: 'EVE',
+    title: 'CEO',
+    outcome: 'Setzt Prioritäten, trifft Entscheidungen und hält den Kurs.',
+    tier: 'high',
+    skills: ['strategy', 'planning', 'decision-making'],
+    kind: 'governance',
+  },
+  {
+    agent_id: 'chief-of-staff',
+    displayName: 'Stabschef',
+    title: 'Chief of Staff',
+    outcome: 'Koordiniert die Arbeit, verteilt Aufgaben und fasst Ergebnisse zusammen.',
+    tier: 'high',
+    skills: ['coordination', 'delegation', 'reporting'],
+    kind: 'governance',
+  },
+  // ── Growth / content operators ──────────────────────────────────────
+  {
+    agent_id: 'growth-lead',
+    displayName: 'Growth Lead',
+    title: 'Growth Lead (CMO)',
+    outcome: 'Bringt neue Kunden — plant Kampagnen und misst, was wirkt.',
+    tier: 'max',
+    skills: ['marketing-strategy', 'campaign-planning', 'analytics'],
+    kind: 'work',
+  },
+  {
+    agent_id: 'seo-lead',
+    displayName: 'SEO',
+    title: 'SEO Lead',
+    outcome: 'Macht dich bei Google sichtbar — Keywords, On-Page und Content-Lücken.',
+    tier: 'high',
+    skills: ['seo-audit', 'keyword-research', 'web-search'],
+    kind: 'work',
+  },
+  {
+    agent_id: 'content-writer',
+    displayName: 'Autor',
+    title: 'Content / Writer',
+    outcome: 'Schreibt Blogposts, Newsletter und Landingpages in deiner Stimme.',
+    tier: 'standard',
+    skills: ['content-creation', 'copywriting', 'brand-voice'],
+    kind: 'work',
+  },
+  {
+    agent_id: 'reddit-lead',
+    displayName: 'Reddit',
+    title: 'Reddit / Community',
+    outcome: 'Findet die richtigen Subreddits und antwortet ohne Werbe-Geruch.',
+    tier: 'standard',
+    skills: ['community', 'web-search', 'social-listening'],
+    kind: 'work',
+  },
+  {
+    agent_id: 'video-marketer',
+    displayName: 'Video',
+    title: 'Videomarketer',
+    outcome: 'Plant Kurzvideos und Hooks für Shorts, Reels und TikTok.',
+    tier: 'max',
+    skills: ['video-script', 'storyboard', 'social-video'],
+    kind: 'work',
+  },
+  // ── Eval / research support ─────────────────────────────────────────
+  {
+    agent_id: 'eval-research',
+    displayName: 'Recherche',
+    title: 'Eval / Research',
+    outcome: 'Prüft Behauptungen, recherchiert Quellen und bewertet Ergebnisse.',
+    tier: 'maximum',
+    skills: ['research', 'fact-check', 'evaluation'],
+    kind: 'work',
+  },
+] as const;
+
+/** Roster role ids, as a set, for fast membership checks. */
+const ROSTER_AGENT_IDS: ReadonlySet<string> = new Set(EVE_TEAM_ROSTER.map((r) => r.agent_id));
+
+/** True iff `id` is a known roster role id (the system default `eve` is NOT a roster role). */
+export function isEveTeamAgentId(id: string | null | undefined): boolean {
+  return typeof id === 'string' && ROSTER_AGENT_IDS.has(id);
+}
+
+/** Find a roster role by its stable agent id, or undefined. */
+export function findEveTeamRole(agentId: string | null | undefined): EveTeamRole | undefined {
+  if (typeof agentId !== 'string') return undefined;
+  return EVE_TEAM_ROSTER.find((r) => r.agent_id === agentId);
+}
+
+/**
+ * Resolve the agent id to attribute an inference call to. Returns the role id
+ * verbatim when it is a known roster role; otherwise falls back to the reserved
+ * system default ({@link EVE_SYSTEM_AGENT_ID}). This is the single rule the
+ * desktop uses to stamp the eve-inference request so the backend ledger
+ * `agent_id` column attributes spend to the character (or to `eve` when EVE
+ * answers directly, un-delegated).
+ */
+export function resolveAttributionAgentId(candidate: string | null | undefined): string {
+  return isEveTeamAgentId(candidate) ? (candidate as string) : EVE_SYSTEM_AGENT_ID;
+}
+
+/**
+ * Display label for a delegated worker, given the agent id a `delegate_task`
+ * carries. Used by the renderer to show "dein Team verteilt die Arbeit" — who
+ * is on a delegated sub-task. Falls back to "EVE" for the system default and to
+ * the raw id for an unknown worker (never throws, never hides the activity).
+ */
+export function eveTeamWorkerLabel(agentId: string | null | undefined): string {
+  const role = findEveTeamRole(agentId);
+  if (role) return `${role.displayName} · ${role.title}`;
+  if (typeof agentId === 'string' && agentId === EVE_SYSTEM_AGENT_ID) return 'EVE';
+  return typeof agentId === 'string' && agentId.trim().length > 0 ? agentId.trim() : 'EVE';
+}

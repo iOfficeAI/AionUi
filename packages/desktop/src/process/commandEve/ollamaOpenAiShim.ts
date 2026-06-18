@@ -14,6 +14,7 @@ import {
   writeCommandEveEgressBoundaryReceipt,
   type CommandEveEgressPolicyAction,
 } from './egressBoundaryCore';
+import { resolveAttributionAgentId } from '../../common/config/eveTeamRoster';
 
 const DEFAULT_SHIM_PORT = 25811;
 const DEFAULT_OLLAMA_BASE_URL = 'http://127.0.0.1:11434';
@@ -436,10 +437,22 @@ async function handleEveCloudCompletions(
   // Forward only OpenAI-standard fields + the tier the function routes on. The
   // function STRIPS model/models/user/license itself, so the local Gemma model
   // ref Hermes sent is harmless, but we omit it to keep the request clean.
+  //
+  // agent_id (Dein Team attribution): when EVE delegated this call to a roster
+  // role, the inbound body carries that role's stable id. We resolve it to a
+  // KNOWN roster id (an unknown/absent value falls back to the system default
+  // `eve`) so the backend ledger `agent_id` column attributes the spend to the
+  // character. We only forward it for a delegated (non-default) role, so an
+  // un-delegated call's body keeps its prior shape and the backend default
+  // applies. The id is a kebab role string, never a secret — safe to forward.
+  const attributionAgentId = resolveAttributionAgentId(
+    typeof body.agent_id === 'string' ? body.agent_id : undefined
+  );
   const outboundBody: Record<string, unknown> = {
     messages: outboundMessages,
     stream,
     tier,
+    ...(attributionAgentId !== 'eve' ? { agent_id: attributionAgentId } : {}),
   };
 
   let upstream: Response;

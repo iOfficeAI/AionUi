@@ -452,13 +452,15 @@ Please check your local CLI tool authentication status`,
     const entries: MobileActionSheetEntry[] = [];
 
     if (isEveConversation) {
-      // EVE Inference tier entry (Standard/High/Max + Private). High/Max stay
-      // greyed (disabled) while trialing via the shared core gating.
+      // EVE Inference STUFE entry (Standard/Hoch free · Max · Maximum + Private).
+      // Max/Maximum stay greyed (disabled) while trialing via the shared core
+      // gating; the paid levels carry a visible cost badge in the description so
+      // the credit / ~5× cost is obvious in-chat, not only in the pre-chat picker.
       const eveOptions: MobileActionSheetOption[] = eveInference.groups.flatMap((group) =>
         group.items.map((item) => ({
           key: item.value,
           label: group.kind === 'eve' ? `EVE Cloud · ${item.label}` : `${t('common.localModel', { defaultValue: 'Lokal' })} · ${item.label}`,
-          description: item.sublabel,
+          description: item.costBadge ? `${item.sublabel} · ${item.costBadge}` : item.sublabel,
           active: item.value === eveInference.selection && !item.disabled,
           disabled: item.disabled,
         }))

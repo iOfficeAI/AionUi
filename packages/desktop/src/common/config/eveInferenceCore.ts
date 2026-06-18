@@ -5,30 +5,49 @@
  */
 
 /**
- * Command EVE inference picker — pure core.
+ * Command EVE inference picker — pure core (STUFEN / level model).
  *
- * The founder mandate is "nothing confusing": a trial user must be able to pick
- * ONE thing — "EVE Inference → Standard" — and get a cloud free-model answer,
- * alongside the bundled local Gemma tiers. So the picker is EXACTLY TWO groups
- * and NOTHING else (no raw CLI/agent picker, no raw provider/model list):
+ * The founder mandate is "nothing confusing": a user picks a STUFE (level), NOT
+ * a raw model id. So the picker is EXACTLY TWO groups and NOTHING else (no raw
+ * CLI/agent picker, no raw provider/model list, no raw "DeepSeek"/"GLM" id in
+ * the primary row):
  *
- *   - Privat (lokal):   Standard = Gemma 4 E4B, High = Gemma 4 12B
+ *   - Privat (lokal):   Standard = Gemma 4 E4B, Hoch = Gemma 4 12B
  *                       (the bundled local tiers from commandEveShell.ts).
- *   - EVE Inference:    Standard, High, Max (cloud, OpenAI-compatible Edge fn).
+ *   - EVE Inference:    Standard, Hoch, Max, Maximum (cloud, OpenAI-compatible
+ *                       Edge fn). The user sees a level; the backend resolves
+ *                       the concrete model from that level via a registry.
+ *
+ * THE FOUR EVE LEVELS (STUFEN):
+ *   - Standard  — FREE. The default for a fresh chat.
+ *   - Hoch      — FREE. (Was paid in the old 3-tier model; now free.)
+ *   - Max       — PAID. DeepSeek V4 Pro. Consumes credits (visible badge).
+ *   - Maximum / "härteste Aufgabe" — PAID + GATED. GLM 5.2. The highest cost
+ *     level: it carries a VISIBLE higher-cost badge so the ~5× rate vs Max is
+ *     obvious before the user picks it.
  *
  * FREE-TIER RULES (entitlement trialing/free per entitlementCore):
- *   - EVE High + EVE Max are GREYED OUT (disabled, "im Paid-Tarif" hint).
+ *   - EVE Max + EVE Maximum are GREYED OUT (disabled, "im Paid-Tarif" hint).
  *   - BYOK is GREYED OUT in settings (handled at the settings surface using
  *     {@link isByokDisabledForEntitlement} from this module).
- *   - Only EVE Standard + the two local tiers are selectable.
+ *   - Only EVE Standard + EVE Hoch + the two local tiers are selectable.
  *
- * EVE STANDARD ROUTING (and High/Max once paid): all EVE Inference tiers route
- * through the Command EVE backend Edge Function as an OpenAI-compatible client.
- * We model an EVE tier as a synthetic {@link TProviderWithModel} pointed at the
- * function URL with the stored CEVE license WIRE STRING as the bearer
- * credential (`api_key`), then hand it to the existing `ClientFactory` so the
- * existing OpenAIRotatingClient + egress-boundary enforcement apply UNCHANGED.
- * The client never holds an OpenRouter/provider key — only the license.
+ * BACKEND LEVEL REGISTRY + TIER→LEVEL BRIDGE: the eve-inference Edge Function
+ * resolves the concrete upstream model from a user-facing LEVEL via a registry
+ * (levels: standard, hoch/high [free], max [DeepSeek V4 Pro, paid], maximum/
+ * haerteste [GLM 5.2, paid, gated]). The function also accepts the legacy tier
+ * strings (standard/high/max) via a tier→level compatibility bridge, so the
+ * wire value this module sends stays compatible: Standard→`standard`,
+ * Hoch→`high` (legacy-compatible alias the bridge maps to the `hoch` level),
+ * Max→`max`, Maximum→`maximum`.
+ *
+ * EVE ROUTING (all levels): every EVE Inference level routes through the
+ * Command EVE backend Edge Function as an OpenAI-compatible client. We model an
+ * EVE level as a synthetic {@link TProviderWithModel} pointed at the function
+ * URL with the stored CEVE license WIRE STRING as the bearer credential
+ * (`api_key`), then hand it to the existing `ClientFactory` so the existing
+ * OpenAIRotatingClient + egress-boundary enforcement apply UNCHANGED. The
+ * client never holds an OpenRouter/provider key — only the license.
  *
  * This module is PURE (no Electron, no fs, no network) so the gating + routing
  * shape is unit-testable in a plain Node (vitest) environment.
@@ -70,11 +89,20 @@ export const EVE_INFERENCE_GROUP_TITLE = `${EVE_INFERENCE_PROVIDER_NAME} (Cloud)
 export const EVE_INFERENCE_TIER_SUBLABEL = 'Externe Free-Modelle · OpenRouter';
 
 /**
- * EVE Inference cloud tiers. `tier` is the wire value POSTed in the body; the
- * server maps it to a concrete model (free model for Standard on a trial).
- * `model` is the OpenAI `model` field the client sends — the function accepts a
- * sentinel and routes by `tier`, so we send the tier string as the model too
- * for a stable, self-describing request.
+ * EVE Inference cloud LEVELS (Stufen). `tier` is the wire value POSTed in the
+ * body; the backend level registry (with the legacy tier→level bridge) maps it
+ * to a concrete model. `model` is the OpenAI `model` field the client sends —
+ * the function accepts a sentinel and routes by this value, so we send it as
+ * the model too for a stable, self-describing request.
+ *
+ * Per-level UI economics (so the picker never surprises a user about cost):
+ *   - `paidOnly`        — greyed out while trialing (free tiers stay open).
+ *   - `consumesCredits` — show a "verbraucht Credits" marker on the row.
+ *   - `gated`           — highest cost, server-gated; show the high-cost badge.
+ *   - `costBadge`       — short, non-secret UI badge text (e.g. "~5× Kosten").
+ *
+ * The two FREE levels (Standard + Hoch) carry NO cost badge; the user can pick
+ * them on a trial with no card.
  */
 export const EVE_INFERENCE_TIERS = [
   {
@@ -83,18 +111,44 @@ export const EVE_INFERENCE_TIERS = [
     tier: 'standard',
     /** Free-tier-eligible: selectable on a trial. */
     paidOnly: false,
+    consumesCredits: false,
+    gated: false,
   },
   {
     id: 'eve-high',
-    label: 'High',
+    // STUFE: Hoch (was "High"/paid in the old 3-tier model; now FREE).
+    label: 'Hoch',
+    // Legacy-compatible wire alias; the backend tier→level bridge maps `high`
+    // to the `hoch` level (and accepts `hoch` directly).
     tier: 'high',
-    paidOnly: true,
+    paidOnly: false,
+    consumesCredits: false,
+    gated: false,
   },
   {
     id: 'eve-max',
+    // STUFE: Max — DeepSeek V4 Pro, paid, consumes credits.
     label: 'Max',
     tier: 'max',
     paidOnly: true,
+    consumesCredits: true,
+    gated: false,
+    /** User-facing model behind this level (sublabel only; never the picker id). */
+    modelLabel: 'DeepSeek V4 Pro',
+    /** Visible credit marker. */
+    costBadge: 'verbraucht Credits',
+  },
+  {
+    id: 'eve-maximum',
+    // STUFE: Maximum / "härteste Aufgabe" — GLM 5.2, paid + GATED, highest cost.
+    label: 'Maximum',
+    tier: 'maximum',
+    paidOnly: true,
+    consumesCredits: true,
+    gated: true,
+    modelLabel: 'GLM 5.2',
+    /** Highest-cost badge so the ~5× rate vs Max is obvious before picking. */
+    costBadge: '~5× Kosten',
   },
 ] as const;
 
@@ -125,7 +179,7 @@ export interface EveLocalPickerTier {
 /**
  * The two local picker entries. Bound by `state` to the bundled tiers so a
  * rename in commandEveShell.ts stays in sync (default ⇒ Standard, opt_in ⇒
- * High). Fails loudly (throws at module load) if those states ever go missing.
+ * Hoch). Fails loudly (throws at module load) if those states ever go missing.
  */
 function resolveLocalTier(state: CommandEveLocalModelTier['state']): CommandEveLocalModelTier {
   const tier = COMMAND_EVE_LOCAL_MODEL_TIERS.find((t) => t.state === state);
@@ -144,7 +198,8 @@ export const EVE_LOCAL_PICKER_TIERS: EveLocalPickerTier[] = [
   },
   {
     id: 'local-high',
-    label: 'High',
+    // STUFE label aligned with the cloud lane: "Hoch" (not "High").
+    label: 'Hoch',
     modelLabel: resolveLocalTier('opt_in').label,
     localTierId: resolveLocalTier('opt_in').id,
   },
@@ -161,14 +216,20 @@ export interface EvePickerItem {
   value: string;
   /** Group this item belongs to. */
   group: EvePickerGroupKind;
-  /** Primary label, e.g. "Standard" / "High" / "Max". */
+  /** Primary label (STUFE), e.g. "Standard" / "Hoch" / "Max" / "Maximum". */
   label: string;
-  /** Secondary descriptor, e.g. "Gemma 4 E4B" for local rows. */
+  /** Secondary descriptor, e.g. "Gemma 4 E4B" (local) or "DeepSeek V4 Pro". */
   sublabel?: string;
   /** True when this item is disabled for the current entitlement (greyed). */
   disabled: boolean;
   /** Non-secret reason the item is disabled (UI hint). */
   disabledReasonCode?: 'PAID_TIER_REQUIRED';
+  /** True iff this is a paid level that consumes credits (show a credit marker). */
+  consumesCredits?: boolean;
+  /** True iff this is the highest-cost, server-gated level (show high-cost badge). */
+  gated?: boolean;
+  /** Short, non-secret cost badge text, e.g. "verbraucht Credits" / "~5× Kosten". */
+  costBadge?: string;
 }
 
 export interface EvePickerGroup {
@@ -313,9 +374,13 @@ export function isEveTierSelectable(
 }
 
 /**
- * Build the full two-group picker model for the current entitlement. Local
- * tiers are never gated; EVE High/Max are greyed (disabled, PAID_TIER_REQUIRED)
- * while trialing. EVE Standard always stays selectable.
+ * Build the full two-group picker model (STUFEN) for the current entitlement.
+ * Local tiers are never gated; the PAID EVE levels (Max, Maximum) are greyed
+ * (disabled, PAID_TIER_REQUIRED) while trialing. The FREE levels (Standard,
+ * Hoch) always stay selectable. Paid levels carry their model label as the
+ * sublabel plus a visible cost badge; the GATED Maximum level carries the
+ * highest-cost badge so the ~5× rate is obvious. Free levels keep the
+ * cloud/external sublabel.
  */
 export function buildEvePickerGroups(entitlement: EveEntitlementView | null | undefined): EvePickerGroup[] {
   const trialing = isTrialingEntitlement(entitlement);
@@ -339,14 +404,23 @@ export function buildEvePickerGroups(entitlement: EveEntitlementView | null | un
     title: EVE_INFERENCE_GROUP_TITLE,
     items: EVE_INFERENCE_TIERS.map((tier) => {
       const disabled = tier.paidOnly && trialing;
+      const consumesCredits = tier.consumesCredits === true;
+      const gated = tier.gated === true;
+      // Paid levels surface their model label (DeepSeek V4 Pro / GLM 5.2);
+      // free levels keep the cloud/external sublabel.
+      const modelLabel = 'modelLabel' in tier ? (tier.modelLabel as string) : undefined;
+      const costBadge = 'costBadge' in tier ? (tier.costBadge as string) : undefined;
+      const sublabel = modelLabel ?? EVE_INFERENCE_TIER_SUBLABEL;
       return {
         value: eveTierValue(tier.id),
         group: 'eve' as const,
         label: tier.label,
-        // Per-row cloud/external sublabel (mirrors the local model-label pattern).
-        sublabel: EVE_INFERENCE_TIER_SUBLABEL,
+        sublabel,
         disabled,
         ...(disabled ? { disabledReasonCode: 'PAID_TIER_REQUIRED' as const } : {}),
+        consumesCredits,
+        gated,
+        ...(costBadge ? { costBadge } : {}),
       };
     }),
   };
@@ -366,16 +440,30 @@ export function findEveInferenceTier(tierId: string): EveInferenceTier | undefin
 /**
  * Build the OpenAI-compatible request body for an EVE Inference call. The
  * function routes by `tier`; `messages`/`stream` are OpenAI-standard.
+ *
+ * `agent_id` is OPTIONAL and ADDITIVE: when the call is on behalf of a
+ * delegated "Dein Team" role, the desktop passes that role's stable id so the
+ * backend ledger `agent_id` column attributes the spend to the character.
+ * When omitted the field is left off entirely (the backend defaults it to the
+ * system `eve`), so an un-delegated call's body keeps its exact prior shape.
  */
 export function buildEveInferenceRequestBody(args: {
   tier: EveInferenceWireTier;
   messages: Array<{ role: string; content: string }>;
   stream?: boolean;
-}): { messages: Array<{ role: string; content: string }>; stream: boolean; tier: EveInferenceWireTier } {
+  agent_id?: string;
+}): {
+  messages: Array<{ role: string; content: string }>;
+  stream: boolean;
+  tier: EveInferenceWireTier;
+  agent_id?: string;
+} {
+  const agentId = typeof args.agent_id === 'string' ? args.agent_id.trim() : '';
   return {
     messages: args.messages,
     stream: args.stream === true,
     tier: args.tier,
+    ...(agentId.length > 0 ? { agent_id: agentId } : {}),
   };
 }
 
