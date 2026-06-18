@@ -56,10 +56,9 @@ vi.mock('@/renderer/pages/settings/AssistantSettings/SkillConfirmModals', () => 
 }));
 
 vi.mock('@/renderer/pages/settings/AssistantSettings/assistantUtils', async () => {
-  const actual =
-    await vi.importActual<typeof import('@/renderer/pages/settings/AssistantSettings/assistantUtils')>(
-      '@/renderer/pages/settings/AssistantSettings/assistantUtils'
-    );
+  const actual = await vi.importActual<typeof import('@/renderer/pages/settings/AssistantSettings/assistantUtils')>(
+    '@/renderer/pages/settings/AssistantSettings/assistantUtils'
+  );
 
   return {
     ...actual,

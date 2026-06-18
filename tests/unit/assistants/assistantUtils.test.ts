@@ -67,7 +67,9 @@ describe('assistantUtils', () => {
     });
 
     it('resolves backend-served assistant avatar routes', () => {
-      expect(resolveAvatarImageSrc('/api/assistants/u1/avatar')).toBe('http://127.0.0.1:13400/api/assistants/u1/avatar');
+      expect(resolveAvatarImageSrc('/api/assistants/u1/avatar')).toBe(
+        'http://127.0.0.1:13400/api/assistants/u1/avatar'
+      );
     });
 
     it('returns undefined for non-image strings', () => {

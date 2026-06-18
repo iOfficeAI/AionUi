@@ -14,7 +14,12 @@ type DeleteAssistantModalProps = {
   activeAssistant: AssistantListItem | null;
 };
 
-const DeleteAssistantModal: React.FC<DeleteAssistantModalProps> = ({ visible, onCancel, onConfirm, activeAssistant }) => {
+const DeleteAssistantModal: React.FC<DeleteAssistantModalProps> = ({
+  visible,
+  onCancel,
+  onConfirm,
+  activeAssistant,
+}) => {
   const { t } = useTranslation();
 
   return (
