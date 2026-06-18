@@ -7,9 +7,9 @@
  *
  * The Agent settings management surface must read the
  * `include_disabled=true` view (a SEPARATE SWR key from any detected-agent
- * cache). Diagnostics-only actions should refresh the management cache only;
- * catalog-changing actions must also invalidate the shared detected-agent
- * cache.
+ * cache). Diagnostics-only actions can refresh the management cache only;
+ * catalog-changing or health actions that affect bare assistants must also
+ * invalidate assistant list caches.
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
@@ -83,7 +83,7 @@ describe('useManagedAgents', () => {
     expect(mutate).not.toHaveBeenCalledWith('agents.detected');
   });
 
-  it('refreshCatalog refreshes only the management key', async () => {
+  it('refreshCatalog refreshes the management key and assistant list caches', async () => {
     (useSWR as any).mockReturnValue({ data: [], error: null, isLoading: false });
 
     const { result } = renderHook(() => useManagedAgents());
@@ -93,10 +93,11 @@ describe('useManagedAgents', () => {
     });
 
     expect(mutate).toHaveBeenCalledWith('agents.managed');
-    expect(mutate).not.toHaveBeenCalledWith('agents.detected');
+    expect(mutate).toHaveBeenCalledWith('assistants.list');
+    expect(mutate).toHaveBeenCalledWith('assistants');
   });
 
-  it('refreshCustomAgents triggers a backend rescan then refreshes only the management cache', async () => {
+  it('refreshCustomAgents triggers a backend rescan then refreshes management and assistant caches', async () => {
     (useSWR as any).mockReturnValue({ data: [], error: null, isLoading: false });
 
     const { result } = renderHook(() => useManagedAgents());
@@ -107,7 +108,8 @@ describe('useManagedAgents', () => {
 
     expect(ipcBridge.acpConversation.refreshCustomAgents.invoke).toHaveBeenCalled();
     expect(mutate).toHaveBeenCalledWith('agents.managed');
-    expect(mutate).not.toHaveBeenCalledWith('agents.detected');
+    expect(mutate).toHaveBeenCalledWith('assistants.list');
+    expect(mutate).toHaveBeenCalledWith('assistants');
   });
 
   it('getManagedAgents fetches the management catalog without invalidating the detected cache', async () => {

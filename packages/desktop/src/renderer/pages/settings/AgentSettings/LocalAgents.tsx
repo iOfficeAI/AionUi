@@ -22,10 +22,10 @@ const LocalAgents: React.FC = () => {
   const [testingAgentId, setTestingAgentId] = useState<string | null>(null);
 
   // Management view: includes user-disabled custom agents so they stay
-  // listed (greyed) with a working re-enable toggle. Use `revalidate` for
-  // diagnostics-only updates and `refreshCatalog` when the underlying agent
-  // directory changed and assistant/backend selectors must be kept in sync.
-  const { agents: allAgents, isRefreshing, refreshCatalog, revalidate } = useManagedAgents();
+  // listed (greyed) with a working re-enable toggle. `refreshCatalog`
+  // also refreshes assistant list caches because bare-assistant availability
+  // can change after health checks or custom-agent mutations.
+  const { agents: allAgents, isRefreshing, refreshCatalog } = useManagedAgents();
 
   const officialAgents = allAgents.filter(
     (a) => (a.agent_type === 'acp' || a.agent_type === 'aionrs') && a.agent_source !== 'custom'
@@ -106,7 +106,7 @@ const LocalAgents: React.FC = () => {
       try {
         setTestingAgentId(agentId);
         const result = await ipcBridge.acpConversation.checkManagedAgentHealthById.invoke({ id: agentId });
-        await revalidate();
+        await refreshCatalog();
         switch (result.status) {
           case 'available':
             Message.success(t('settings.agentManagement.testConnectionAvailable', { name: result.name }));
@@ -130,7 +130,7 @@ const LocalAgents: React.FC = () => {
         setTestingAgentId(null);
       }
     },
-    [revalidate, t]
+    [refreshCatalog, t]
   );
 
   return (
