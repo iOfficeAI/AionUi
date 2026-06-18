@@ -15,6 +15,11 @@ import type { IChannelAssistantBindingRead, IChannelAssistantBindingWrite } from
  */
 export type ChannelAssistantBinding = IChannelAssistantBindingRead | undefined;
 
+export type ResolvedChannelAssistantSelection = {
+  assistantId?: string;
+  hasBrokenSavedAssistant: boolean;
+};
+
 export function getDefaultChannelAssistant(assistants: Assistant[]): Assistant | undefined {
   return (
     assistants.find((assistant) => assistant.source === 'bare' && assistant.preset_agent_type === 'aionrs') ||
@@ -24,17 +29,40 @@ export function getDefaultChannelAssistant(assistants: Assistant[]): Assistant |
 }
 
 export function resolveChannelAssistantId(saved: ChannelAssistantBinding, assistants: Assistant[]): string | undefined {
+  return resolveChannelAssistantSelection(saved, assistants).assistantId;
+}
+
+export function resolveChannelAssistantSelection(
+  saved: ChannelAssistantBinding,
+  assistants: Assistant[]
+): ResolvedChannelAssistantSelection {
   if (!saved) {
-    return getDefaultChannelAssistant(assistants)?.id;
+    return {
+      assistantId: getDefaultChannelAssistant(assistants)?.id,
+      hasBrokenSavedAssistant: false,
+    };
   }
 
   const explicitAssistantId = typeof saved.assistant_id === 'string' ? saved.assistant_id : undefined;
 
   if (explicitAssistantId && assistants.some((assistant) => assistant.id === explicitAssistantId)) {
-    return explicitAssistantId;
+    return {
+      assistantId: explicitAssistantId,
+      hasBrokenSavedAssistant: false,
+    };
   }
 
-  return getDefaultChannelAssistant(assistants)?.id;
+  if (explicitAssistantId || saved.custom_agent_id || saved.backend || saved.agent_type) {
+    return {
+      assistantId: undefined,
+      hasBrokenSavedAssistant: true,
+    };
+  }
+
+  return {
+    assistantId: getDefaultChannelAssistant(assistants)?.id,
+    hasBrokenSavedAssistant: false,
+  };
 }
 
 export function buildChannelAssistantBinding(assistant: Assistant): IChannelAssistantBindingWrite {

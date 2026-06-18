@@ -18,7 +18,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import {
   buildChannelAssistantBinding,
   getDefaultChannelAssistant,
-  resolveChannelAssistantId,
+  resolveChannelAssistantSelection,
 } from './assistantBinding';
 
 type LoginState = 'idle' | 'loading_qr' | 'showing_qr' | 'scanned' | 'connected';
@@ -78,6 +78,7 @@ const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({ pluginStatus, model
 
   const [availableAssistants, setAvailableAssistants] = useState<Assistant[]>([]);
   const [selectedAssistant, setSelectedAssistant] = useState<Assistant | null>(null);
+  const [hasBrokenSavedAssistant, setHasBrokenSavedAssistant] = useState(false);
 
   // Close EventSource on unmount to prevent connection leaks.
   useEffect(() => {
@@ -203,12 +204,13 @@ const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({ pluginStatus, model
 
         setAvailableAssistants(assistantList);
 
-        const selectedAssistantId = resolveChannelAssistantId(saved.assistant ?? undefined, assistantList);
+        const selection = resolveChannelAssistantSelection(saved.assistant ?? undefined, assistantList);
         const nextAssistant =
-          assistantList.find((assistant) => assistant.id === selectedAssistantId) ||
-          getDefaultChannelAssistant(assistantList) ||
+          assistantList.find((assistant) => assistant.id === selection.assistantId) ||
+          (!selection.hasBrokenSavedAssistant ? getDefaultChannelAssistant(assistantList) : undefined) ||
           null;
 
+        setHasBrokenSavedAssistant(selection.hasBrokenSavedAssistant);
         setSelectedAssistant(nextAssistant);
       } catch (error) {
         console.error('[WeixinConfig] Failed to load assistants:', error);
@@ -381,7 +383,19 @@ const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({ pluginStatus, model
       {/* Assistant Selection */}
       <PreferenceRow
         label={t('settings.assistant.name', 'Assistant')}
-        description={t('settings.weixin.agentDesc', 'Used for WeChat conversations')}
+        description={
+          <div className='flex flex-col gap-4px'>
+            <span>{t('settings.weixin.agentDesc', 'Used for WeChat conversations')}</span>
+            {hasBrokenSavedAssistant && (
+              <span className='text-orange-6'>
+                {t(
+                  'conversation.errors.TEAM_ASSISTANT_NOT_FOUND.title',
+                  'The selected assistant is no longer available'
+                )}
+              </span>
+            )}
+          </div>
+        }
       >
         <Dropdown
           trigger='click'
@@ -394,6 +408,7 @@ const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({ pluginStatus, model
                     key={assistant.id}
                     onClick={() => {
                       if (assistant.id === selectedAssistant?.id) return;
+                      setHasBrokenSavedAssistant(false);
                       setSelectedAssistant(assistant);
                       void persistSelectedAssistant(assistant);
 

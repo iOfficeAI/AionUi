@@ -17,7 +17,7 @@ import { useTranslation } from 'react-i18next';
 import {
   buildChannelAssistantBinding,
   getDefaultChannelAssistant,
-  resolveChannelAssistantId,
+  resolveChannelAssistantSelection,
 } from './assistantBinding';
 
 /**
@@ -80,6 +80,7 @@ const DingTalkConfigForm: React.FC<DingTalkConfigFormProps> = ({ pluginStatus, m
 
   const [availableAssistants, setAvailableAssistants] = useState<Assistant[]>([]);
   const [selectedAssistant, setSelectedAssistant] = useState<Assistant | null>(null);
+  const [hasBrokenSavedAssistant, setHasBrokenSavedAssistant] = useState(false);
 
   // Load pending pairings
   const loadPendingPairings = useCallback(async () => {
@@ -128,12 +129,13 @@ const DingTalkConfigForm: React.FC<DingTalkConfigFormProps> = ({ pluginStatus, m
 
         setAvailableAssistants(assistantList);
 
-        const selectedAssistantId = resolveChannelAssistantId(saved.assistant ?? undefined, assistantList);
+        const selection = resolveChannelAssistantSelection(saved.assistant ?? undefined, assistantList);
         const nextAssistant =
-          assistantList.find((assistant) => assistant.id === selectedAssistantId) ||
-          getDefaultChannelAssistant(assistantList) ||
+          assistantList.find((assistant) => assistant.id === selection.assistantId) ||
+          (!selection.hasBrokenSavedAssistant ? getDefaultChannelAssistant(assistantList) : undefined) ||
           null;
 
+        setHasBrokenSavedAssistant(selection.hasBrokenSavedAssistant);
         setSelectedAssistant(nextAssistant);
       } catch (error) {
         console.error('[DingTalkConfig] Failed to load assistants:', error);
@@ -451,7 +453,19 @@ const DingTalkConfigForm: React.FC<DingTalkConfigFormProps> = ({ pluginStatus, m
       <div className='flex flex-col gap-8px'>
         <PreferenceRow
           label={t('settings.assistant.name', 'Assistant')}
-          description={t('settings.dingtalk.agentDesc', 'Used for DingTalk conversations')}
+          description={
+            <div className='flex flex-col gap-4px'>
+              <span>{t('settings.dingtalk.agentDesc', 'Used for DingTalk conversations')}</span>
+              {hasBrokenSavedAssistant && (
+                <span className='text-orange-6'>
+                  {t(
+                    'conversation.errors.TEAM_ASSISTANT_NOT_FOUND.title',
+                    'The selected assistant is no longer available'
+                  )}
+                </span>
+              )}
+            </div>
+          }
         >
           <Dropdown
             trigger='click'
@@ -466,6 +480,7 @@ const DingTalkConfigForm: React.FC<DingTalkConfigFormProps> = ({ pluginStatus, m
                         if (assistant.id === selectedAssistant?.id) {
                           return;
                         }
+                        setHasBrokenSavedAssistant(false);
                         setSelectedAssistant(assistant);
                         void persistSelectedAssistant(assistant);
 
