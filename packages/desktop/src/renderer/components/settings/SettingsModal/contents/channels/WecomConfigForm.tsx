@@ -468,7 +468,7 @@ const WecomConfigForm: React.FC<WecomConfigFormProps> = ({
       {/* Default Model Selection */}
       <PreferenceRow
         label={t('settings.assistant.defaultModel', 'Model')}
-        description={t('settings.wecom.defaultModelDesc', 'Used for Agent conversations')}
+        description={t('settings.wecom.defaultModelDesc', 'Model used for conversations handled by this assistant')}
       >
         <GoogleModelSelector
           selection={showModelSelector ? modelSelection : undefined}

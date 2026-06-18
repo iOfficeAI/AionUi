@@ -428,7 +428,10 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({
       {/* Default Model Selection */}
       <PreferenceRow
         label={t('settings.assistant.defaultModel', 'Default Model')}
-        description={t('settings.assistant.defaultModelDesc', 'Model used for Telegram conversations')}
+        description={t(
+          'settings.assistant.defaultModelDesc',
+          'Model used for Telegram conversations handled by this assistant'
+        )}
       >
         <GoogleModelSelector
           selection={showModelSelector ? modelSelection : undefined}

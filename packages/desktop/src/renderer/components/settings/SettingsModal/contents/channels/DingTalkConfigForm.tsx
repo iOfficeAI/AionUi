@@ -501,7 +501,7 @@ const DingTalkConfigForm: React.FC<DingTalkConfigFormProps> = ({ pluginStatus, m
       {/* Default Model Selection */}
       <PreferenceRow
         label={t('settings.assistant.defaultModel', 'Model')}
-        description={t('settings.dingtalk.defaultModelDesc', 'Used for Agent conversations')}
+        description={t('settings.dingtalk.defaultModelDesc', 'Model used for conversations handled by this assistant')}
       >
         <GoogleModelSelector
           selection={showModelSelector ? modelSelection : undefined}
