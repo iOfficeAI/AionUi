@@ -16,6 +16,7 @@ import {
   Shield,
   Speed,
   System,
+  Wallet,
 } from '@icon-park/react';
 import classNames from 'classnames';
 import React, { useMemo } from 'react';
@@ -34,6 +35,7 @@ export const BUILTIN_TAB_IDS = [
   'webui',
   'pet',
   'privacy',
+  'billing',
   'system',
   'about',
 ] as const;
@@ -116,6 +118,12 @@ const SettingsSider: React.FC<{ collapsed?: boolean; tooltipEnabled?: boolean }>
         label: t('settings.privacy.navLabel', { defaultValue: 'Privacy' }),
         icon: <Shield />,
         path: 'privacy',
+      },
+      billing: {
+        id: 'billing',
+        label: t('settings.billing', { defaultValue: 'Billing' }),
+        icon: <Wallet />,
+        path: 'billing',
       },
       system: { id: 'system', label: t('settings.system'), icon: <System />, path: 'system' },
       about: { id: 'about', label: t('settings.about'), icon: <Info />, path: 'about' },

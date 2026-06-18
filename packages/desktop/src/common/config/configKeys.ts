@@ -67,6 +67,24 @@ export type ConfigKeyMap = {
    */
   'commandEve.inferenceSelection': string | undefined;
   'commandEve.executionMode': 'observed' | 'delegated' | 'autonomous' | undefined;
+  // --- Credits / billing UX (Lane 3, WG#3 credits-billing spec) ---
+  /**
+   * Day-0 onboarding seed flag: set true once the user has provided ONE real
+   * client input (connect a client / paste a brief) that seeds the Company-Brain.
+   * Once set, the force-onboarding prompt never re-nags. (creditsCore
+   * `shouldForceDayZeroOnboarding`.)
+   */
+  'commandEve.clientSeeded': boolean | undefined;
+  /**
+   * The blended €/h rate used to monetize the €-value receipt ("≈ ~Nh / ~M€ of
+   * your work"). Founder-overridable; defaults to DEFAULT_VALUE_RECEIPT_HOURLY_EUR.
+   */
+  'commandEve.valueReceiptHourlyEur': number | undefined;
+  /**
+   * Whether a churn signal has surfaced — gates the hidden Solo-49 plan into the
+   * pricing list / save-offer (spec §1, §6). Default absent ⇒ Solo stays hidden.
+   */
+  'commandEve.churnSignal': boolean | undefined;
   'assistant.telegram.defaultModel': { id: string; use_model: string } | undefined;
   'assistant.telegram.agent':
     | { agent_type: string; backend?: string; id?: string; custom_agent_id?: string; name?: string }

@@ -12,6 +12,7 @@ const CapabilitiesSettings = React.lazy(() => import('@renderer/pages/settings/C
 const AppearanceSettings = React.lazy(() => import('@renderer/pages/settings/AppearanceSettings'));
 const ModeSettings = React.lazy(() => import('@renderer/pages/settings/ModeSettings'));
 const SystemSettings = React.lazy(() => import('@renderer/pages/settings/SystemSettings'));
+const BillingSettings = React.lazy(() => import('@renderer/pages/settings/BillingSettings'));
 const PrivacySettings = React.lazy(() => import('@renderer/pages/settings/PrivacySettings'));
 const WebuiSettings = React.lazy(() => import('@renderer/pages/settings/WebuiSettings'));
 const PetSettings = React.lazy(() => import('@renderer/pages/settings/PetSettings'));
@@ -26,6 +27,7 @@ const ConnectorCatalogPage = React.lazy(() => import('@renderer/pages/connectorC
 const SkillLibraryPage = React.lazy(() => import('@renderer/pages/skillLibrary'));
 const LocalRuntimePage = React.lazy(() => import('@renderer/pages/localRuntime'));
 const RegistrationGatePage = React.lazy(() => import('@renderer/pages/registrationGate'));
+const DayZeroOnboardingHost = React.lazy(() => import('@renderer/components/billing/DayZeroOnboardingHost'));
 
 const withRouteFallback = (Component: React.LazyExoticComponent<React.ComponentType>) => (
   <Suspense fallback={<AppLoader />}>
@@ -61,7 +63,16 @@ const ProtectedLayout: React.FC<{ layout: React.ReactElement }> = ({ layout }) =
     );
   }
 
-  return React.cloneElement(layout);
+  // Entitled: render the main layout. Mount the Day-0 onboarding host alongside
+  // it — it self-quiets unless this is a first run with no Company-Brain seed.
+  return (
+    <>
+      {React.cloneElement(layout)}
+      <Suspense fallback={null}>
+        <DayZeroOnboardingHost entitled />
+      </Suspense>
+    </>
+  );
 };
 
 const PanelRoute: React.FC<{ layout: React.ReactElement }> = ({ layout }) => {
@@ -94,6 +105,7 @@ const PanelRoute: React.FC<{ layout: React.ReactElement }> = ({ layout }) => {
           <Route path='/settings/webui' element={withRouteFallback(WebuiSettings)} />
           <Route path='/settings/pet' element={withRouteFallback(PetSettings)} />
           <Route path='/settings/system' element={withRouteFallback(SystemSettings)} />
+          <Route path='/settings/billing' element={withRouteFallback(BillingSettings)} />
           <Route path='/settings/about' element={withRouteFallback(SystemSettings)} />
           <Route path='/settings/privacy' element={withRouteFallback(PrivacySettings)} />
           <Route path='/settings/ext/:tabId' element={withRouteFallback(ExtensionSettingsPage)} />
