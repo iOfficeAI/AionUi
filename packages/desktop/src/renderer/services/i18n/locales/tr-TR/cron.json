@@ -13,7 +13,7 @@
     "error": "Error",
     "unread": "New execution",
     "unconfigured": "No scheduled task",
-    "unconfiguredHint": "No scheduled task yet. Create one with your Agent!",
+    "unconfiguredHint": "Henüz zamanlanmış görev yok. Asistanınızla bir tane oluşturun!",
     "createNow": "Create Now",
     "defaultPrompt": "Every day at 10am, search for the latest AI news, summarize and output an insight report."
   },
@@ -95,7 +95,7 @@
       "descriptionPlaceholder": "Görevin kısa açıklaması",
       "prompt": "Komut",
       "promptRequired": "Komut gereklidir",
-      "promptPlaceholder": "Ajanın yürüteceği talimatlar",
+      "promptPlaceholder": "Asistanın yürüteceği talimatlar",
       "frequency": "Sıklık",
       "cronExpr": "Cron İfadesi",
       "cronExprRequired": "Cron ifadesi gereklidir",

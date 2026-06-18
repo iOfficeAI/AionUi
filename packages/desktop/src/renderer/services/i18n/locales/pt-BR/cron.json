@@ -13,7 +13,7 @@
     "error": "Erro",
     "unread": "Nova execução",
     "unconfigured": "Sem tarefa agendada",
-    "unconfiguredHint": "Nenhuma tarefa agendada ainda. Crie uma com seu Agente!",
+    "unconfiguredHint": "Nenhuma tarefa agendada ainda. Crie uma com seu assistente!",
     "createNow": "Criar Agora",
     "defaultPrompt": "Todos os dias às 10h, pesquise as últimas notícias sobre IA, resuma e gere um relatório de insights."
   },
@@ -82,7 +82,7 @@
       "descriptionPlaceholder": "Breve descrição da tarefa",
       "prompt": "Prompt",
       "promptRequired": "Prompt é obrigatório",
-      "promptPlaceholder": "Instruções para o agente executar",
+      "promptPlaceholder": "Instruções para o assistente executar",
       "frequency": "Frequência",
       "cronExpr": "Expressão Cron",
       "cronExprRequired": "A expressão Cron é obrigatória",
