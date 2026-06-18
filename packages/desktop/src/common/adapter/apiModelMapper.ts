@@ -37,6 +37,42 @@ export function toApiModelOptional(m?: TProviderWithModel): ApiProviderWithModel
   return hasCompleteModelIdentity(m) ? toApiModel(m) : undefined;
 }
 
+/** Minimal shape of a create-conversation request consumed by the body builder. */
+export type CreateConversationBodyInput = {
+  type?: 'acp' | 'aionrs';
+  id?: string;
+  name?: string;
+  model?: TProviderWithModel;
+  assistant?: unknown;
+  extra?: unknown;
+};
+
+/**
+ * Build the HTTP body for `POST /api/conversations`.
+ *
+ * Top-level `model` is aionrs-only on the backend (spec 2026-05-12); other
+ * agent types carry model info via `extra`. Assistant-first creates omit the
+ * explicit `type`, so we must NOT gate the top-level `model` on `type ===
+ * 'aionrs'`. Instead we forward the model whenever it carries a complete
+ * identity: only aionrs flows produce a complete top-level model
+ * (`useGuidModelSelection` is aionrs-only), while ACP flows pass an empty
+ * placeholder that `toApiModelOptional` filters out. This keeps ACP creates
+ * free of a top-level model (which the backend would reject) without dropping
+ * the aionrs model the user actually selected.
+ */
+export function buildCreateConversationBody(p: CreateConversationBodyInput): Record<string, unknown> {
+  const body: Record<string, unknown> = {
+    type: p.type,
+    id: p.id,
+    name: p.name,
+    assistant: p.assistant,
+    extra: p.extra,
+  };
+  const model = toApiModelOptional(p.model);
+  if (model) body.model = model;
+  return body;
+}
+
 // ── Backend → Frontend ──────────────────────────────────────────────────
 
 export function fromApiModel(raw: ApiProviderWithModel): TProviderWithModel {

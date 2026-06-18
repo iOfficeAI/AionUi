@@ -31,6 +31,7 @@ const menuContext = React.createContext<((key: string) => void) | null>(null);
 vi.mock('@icon-park/react', () => ({
   Down: () => <span aria-hidden='true'>v</span>,
   Loading: ({ className }: { className?: string }) => <span aria-hidden='true' className={className} />,
+  Robot: ({ className }: { className?: string }) => <span aria-hidden='true' className={className} />,
 }));
 
 vi.mock('@arco-design/web-react', () => {

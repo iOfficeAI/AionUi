@@ -83,7 +83,7 @@ import type {
 import type { AgentMetadata } from '@/renderer/utils/model/agentTypes';
 import type { Theme } from '@/common/theme/types';
 import type { ProtocolDetectionRequest, ProtocolDetectionResponse } from '../utils/protocolDetector';
-import { fromApiConversation, fromApiPaginatedConversations, toApiModelOptional } from './apiModelMapper';
+import { buildCreateConversationBody, fromApiConversation, fromApiPaginatedConversations, toApiModelOptional } from './apiModelMapper';
 import {
   httpDelete,
   httpGet,
@@ -167,23 +167,7 @@ export const assistants = {
 
 export const conversation = {
   create: withResponseMap(
-    httpPost<TChatConversation, ICreateConversationParams>('/api/conversations', (p) => {
-      // Top-level `model` is aionrs-only on the backend (spec 2026-05-12).
-      // Other agent types carry model info via `extra`.
-      const isAionrs = p.type === 'aionrs';
-      const body: Record<string, unknown> = {
-        type: p.type,
-        id: p.id,
-        name: p.name,
-        assistant: p.assistant,
-        extra: p.extra,
-      };
-      if (isAionrs) {
-        const model = toApiModelOptional(p.model);
-        if (model) body.model = model;
-      }
-      return body;
-    }),
+    httpPost<TChatConversation, ICreateConversationParams>('/api/conversations', (p) => buildCreateConversationBody(p)),
     fromApiConversation
   ),
   createWithConversation: withResponseMap(

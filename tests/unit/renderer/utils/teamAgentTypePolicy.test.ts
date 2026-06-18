@@ -8,13 +8,15 @@ import type { Assistant } from '@/common/types/agent/assistantTypes';
 
 describe('team agent type policy', () => {
   it('keeps retired runtime assistants visible but non-selectable in team creation options', () => {
+    // Selectability is now decided by the backend via `team_selectable`; the
+    // frontend trusts that flag instead of re-deriving it from the backend slug.
     const options = [
       assistantToOption(assistant('assistant-claude', true, undefined, 'claude')),
       assistantToOption(assistant('assistant-aionrs', true, undefined, 'aionrs')),
-      assistantToOption(assistant('assistant-openclaw', true, undefined, 'openclaw-gateway')),
-      assistantToOption(assistant('assistant-nanobot', true, undefined, 'nanobot')),
-      assistantToOption(assistant('assistant-remote', true, undefined, 'remote')),
-      assistantToOption(assistant('assistant-gemini', true, undefined, 'gemini')),
+      assistantToOption(assistant('assistant-openclaw', false, undefined, 'openclaw-gateway')),
+      assistantToOption(assistant('assistant-nanobot', false, undefined, 'nanobot')),
+      assistantToOption(assistant('assistant-remote', false, undefined, 'remote')),
+      assistantToOption(assistant('assistant-gemini', false, undefined, 'gemini')),
     ];
 
     expect(filterTeamSupportedAssistants(options)).toEqual([
