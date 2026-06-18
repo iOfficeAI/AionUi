@@ -29,7 +29,7 @@ type AgentCardProps =
       isTesting?: boolean;
     };
 
-const statusColor = (status?: AgentManagementStatus): 'green' | 'orange' | 'red' | 'gray' => {
+const statusColor = (status?: AgentManagementStatus): 'green' | 'orange' | 'red' | 'gold' | 'gray' => {
   switch (status) {
     case 'available':
       return 'green';
@@ -37,6 +37,8 @@ const statusColor = (status?: AgentManagementStatus): 'green' | 'orange' | 'red'
       return 'orange';
     case 'missing':
       return 'red';
+    case 'needs_auth':
+      return 'gold';
     default:
       return 'gray';
   }
@@ -50,6 +52,8 @@ const statusLabelKey = (status?: AgentManagementStatus) => {
       return 'settings.agentManagement.statusUnavailable';
     case 'missing':
       return 'settings.agentManagement.statusMissing';
+    case 'needs_auth':
+      return 'settings.agentManagement.statusNeedsAuth';
     default:
       return 'settings.agentManagement.statusUnknown';
   }
@@ -80,6 +84,8 @@ const statusSummary = (
       return t('settings.agentManagement.testConnectionMissing', { name: agent.name });
     case 'unavailable':
       return t('settings.agentManagement.testConnectionUnavailable', { name: agent.name });
+    case 'needs_auth':
+      return t('settings.agentManagement.needsAuthSummary', { name: agent.name });
     default:
       return t('settings.agentManagement.statusUnknown');
   }

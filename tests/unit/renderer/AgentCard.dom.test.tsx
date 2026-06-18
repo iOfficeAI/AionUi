@@ -137,4 +137,24 @@ describe('AgentCard (official variant)', () => {
 
     expect(screen.getByText('settings.agentManagement.testConnectionAvailable')).toBeInTheDocument();
   });
+
+  it('renders needs_auth as a distinct yellow state with login guidance', () => {
+    render(
+      <AgentCard
+        type='official'
+        agent={{
+          id: 'test-agent',
+          name: 'Test Agent',
+          agent_type: 'acp',
+          agent_source: 'builtin',
+          enabled: true,
+          installed: true,
+          status: 'needs_auth',
+        }}
+        onTestConnection={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText('settings.agentManagement.statusNeedsAuth')).toBeInTheDocument();
+  });
 });
