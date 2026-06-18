@@ -50,6 +50,9 @@ import { useTranslation } from 'react-i18next';
 import { buildSendFailureError } from './buildSendFailureError';
 import { useAcpInitialMessage } from './useAcpInitialMessage';
 import type { UseAcpMessageReturn } from './useAcpMessage';
+import VideoCostWall from '@/renderer/components/billing/VideoCostWall';
+import { useVideoCostWall } from '@/renderer/hooks/useVideoCostWall';
+import { isVideoGenerationRequest } from '@/common/config/videoCostCore';
 
 const useAcpSendBoxDraft = getSendBoxDraftHook('acp', {
   _type: 'acp',
@@ -379,6 +382,33 @@ Please check your local CLI tool authentication status`,
     onExecute: executeCommand,
   });
 
+  // Video PRE-SUBMIT cost-wall controller (alpha.9 OI#2 wiring). Video is the
+  // single most expensive action; this is the seam that guarantees the
+  // transparent cost preview ALWAYS fires + requires an explicit confirm BEFORE
+  // a video generation request is submitted. Fast/720p is the default; 1080p is
+  // an explicit upgrade inside the wall.
+  const videoCostWall = useVideoCostWall();
+
+  // The real dispatch (queue or execute) for an already-cleared message. Both
+  // the normal send and the post-confirm video send route through this so the
+  // queue/in-flight semantics are identical.
+  const dispatchMessage = useCallback(
+    async (message: string, allFiles: string[]) => {
+      if (
+        shouldEnqueueConversationCommand({
+          enabled: true,
+          isBusy,
+          hasPendingCommands,
+        })
+      ) {
+        enqueue({ input: message, files: allFiles });
+        return;
+      }
+      await executeCommand({ input: message, files: allFiles });
+    },
+    [enqueue, executeCommand, hasPendingCommands, isBusy]
+  );
+
   const onSendHandler = async (message: string) => {
     const atPathFiles = atPath.map((item) => (typeof item === 'string' ? item : item.path));
     const allFiles = [...uploadFile, ...atPathFiles];
@@ -386,18 +416,18 @@ Please check your local CLI tool authentication status`,
     clearFiles();
     emitter.emit('acp.selected.file.clear');
 
-    if (
-      shouldEnqueueConversationCommand({
-        enabled: true,
-        isBusy,
-        hasPendingCommands,
-      })
-    ) {
-      enqueue({ input: message, files: allFiles });
+    // Heavy-lane guardrail: in a Command EVE conversation, a video-GENERATION
+    // request is routed through the cost-wall first — `requestVideo` opens the
+    // wall (transparent cost preview) and only fires the real dispatch from the
+    // user's explicit confirm. Non-video sends fall straight through.
+    if (isEveConversation && isVideoGenerationRequest(message)) {
+      videoCostWall.requestVideo({}, () => {
+        void dispatchMessage(message, allFiles);
+      });
       return;
     }
 
-    await executeCommand({ input: message, files: allFiles });
+    await dispatchMessage(message, allFiles);
   };
 
   const handleEditQueuedCommand = useCallback(
@@ -616,6 +646,15 @@ Please check your local CLI tool authentication status`,
 
   return (
     <div className='max-w-800px w-full mx-auto flex flex-col mt-auto mb-16px'>
+      {/* Video PRE-SUBMIT cost-wall (alpha.9 OI#2): the wall opens for a pending
+          video-generation request and requires an explicit confirm before the
+          actual request is dispatched. Fast/720p default; 1080p explicit upgrade. */}
+      <VideoCostWall
+        visible={videoCostWall.visible}
+        durationSeconds={videoCostWall.durationSeconds}
+        onCancel={videoCostWall.cancel}
+        onConfirm={videoCostWall.confirm}
+      />
       <CommandQueuePanel
         items={queuedCommands}
         paused={isQueuePaused}

@@ -41,7 +41,12 @@ import {
   type EveTeamWorkerStatus,
   type EveTeamWorkerStatusMap,
 } from '@/common/config/eveTeamControlsCore';
+import {
+  evaluateBudgetGate,
+  projectMonthlySpend,
+} from '@/common/config/eveTeamBudgetCore';
 import { useConfig } from '@renderer/hooks/config/useConfig';
+import ProjectedSpendMeter from '@renderer/components/team/ProjectedSpendMeter';
 import { Button, Card, Message, Popconfirm, Tag } from '@arco-design/web-react';
 import { Pause, PlayOne, Power, UserPositioning } from '@icon-park/react';
 import React, { useCallback, useMemo } from 'react';
@@ -96,6 +101,37 @@ const RoleControls: React.FC<RoleControlsProps> = ({ role, status, statuses, onA
 
   const controlKind = controlKindForRole(role);
 
+  // Build a guarded ACTIVATE (hire / resume) button: cap-and-ask STOPS AT the
+  // budget line — if activating this paid worker would push the projected
+  // month-end spend over the included base hull, wrap it in a Popconfirm so the
+  // user confirms the overage BEFORE it is incurred. Within budget → fire direct.
+  const renderActivate = (
+    action: Extract<EveTeamControlAction, 'hire' | 'resume'>,
+    label: string,
+    button: React.ReactElement
+  ) => {
+    const budget = evaluateBudgetGate(role, action, statuses);
+    if (budget.requiresWarning) {
+      return (
+        <Popconfirm
+          key={action}
+          title='Über dem Basis-Budget'
+          content={`${role.displayName} einstellen bringt deine voraussichtlichen Kosten auf ${Math.round(
+            budget.projectedEur
+          )}€/Mon. — ${Math.round(budget.overageEur)}€ über dem enthaltenen Basis-Budget (${Math.round(
+            budget.hullEur
+          )}€). Zusätzliche Kosten fallen an. Trotzdem einstellen?`}
+          okText='Trotzdem einstellen'
+          cancelText='Abbrechen'
+          onOk={() => onAction(role, action)}
+        >
+          {React.cloneElement(button, { key: action })}
+        </Popconfirm>
+      );
+    }
+    return React.cloneElement(button, { key: action, onClick: () => onAction(role, action), 'aria-label': label });
+  };
+
   // Build a guarded deactivation button: if the floor guard requires a warning,
   // wrap it in a Popconfirm; otherwise fire directly.
   const renderDeactivate = (action: EveTeamControlAction, label: string, icon: React.ReactNode) => {
@@ -129,16 +165,13 @@ const RoleControls: React.FC<RoleControlsProps> = ({ role, status, statuses, onA
       <div className='flex items-center gap-1 flex-wrap'>
         {status === 'active'
           ? renderDeactivate('pause', 'Drosseln', <Pause theme='outline' size='12' />)
-          : (
-            <Button
-              size='mini'
-              type='outline'
-              icon={<PlayOne theme='outline' size='12' />}
-              onClick={() => onAction(role, 'resume')}
-            >
-              Fortsetzen
-            </Button>
-          )}
+          : renderActivate(
+              'resume',
+              'Fortsetzen',
+              <Button size='mini' type='outline' icon={<PlayOne theme='outline' size='12' />}>
+                Fortsetzen
+              </Button>
+            )}
         {status !== 'off' ? renderDeactivate('stop', 'Pausieren', <Power theme='outline' size='12' />) : null}
       </div>
     );
@@ -149,16 +182,13 @@ const RoleControls: React.FC<RoleControlsProps> = ({ role, status, statuses, onA
     <div className='flex items-center gap-1 flex-wrap'>
       {status === 'active'
         ? renderDeactivate('release', 'Entlassen', <Power theme='outline' size='12' />)
-        : (
-          <Button
-            size='mini'
-            type='primary'
-            icon={<UserPositioning theme='outline' size='12' />}
-            onClick={() => onAction(role, 'hire')}
-          >
-            Für Sprint einstellen
-          </Button>
-        )}
+        : renderActivate(
+            'hire',
+            'Für Sprint einstellen',
+            <Button size='mini' type='primary' icon={<UserPositioning theme='outline' size='12' />}>
+              Für Sprint einstellen
+            </Button>
+          )}
     </div>
   );
 };
@@ -233,6 +263,10 @@ const DeinTeamPanel: React.FC = () => {
     return { governance, operators };
   }, []);
 
+  // Live PRE-VISIBLE projection (P0 #1): the running month-end spend = sum of the
+  // ACTIVE workers' grade salaries, recomputed from the persisted status map.
+  const projection = useMemo(() => projectMonthlySpend(statuses), [statuses]);
+
   const handleAction = useCallback(
     (role: EveTeamRole, action: EveTeamControlAction) => {
       // The Popconfirm has already surfaced any required warning; confirm here so
@@ -259,6 +293,9 @@ const DeinTeamPanel: React.FC = () => {
           Mitarbeiter bleibt immer an — deine Firma ist nie leer.
         </div>
       </div>
+      {/* PRE-VISIBLE projected-budget meter (P0 #1): always-on running total of
+          what the active team will cost this month vs the included base hull. */}
+      <ProjectedSpendMeter projection={projection} />
       {governance.length > 0 ? (
         <div className='mb-3'>
           <div className='text-xs uppercase tracking-wide text-t-secondary mb-1'>Führung</div>

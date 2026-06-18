@@ -152,3 +152,42 @@ export function isExplicitUpgrade(args: { selectedTierId: VideoQualityTier; user
   if (!tier.isUpgrade) return false;
   return args.userToggledUpgrade === true;
 }
+
+// ---------------------------------------------------------------------------
+// Video-generation INTENT detection (the send-path seam)
+// ---------------------------------------------------------------------------
+
+/**
+ * Phrases that signal the user is asking to GENERATE a video (the heavy lane),
+ * not merely mentioning the word "video". Kept deliberately high-precision so a
+ * chat that only references videos ("schau dir dieses Video an") does NOT trip
+ * the cost-wall — the wall only fires on an actual generation request. Matched
+ * case-insensitively against the trimmed message; DE + EN coverage.
+ *
+ * The list pairs a video noun with a creation verb (or a well-known short-form
+ * format the videomarketer produces) so the signal is a *generation* intent.
+ */
+const VIDEO_GENERATION_PATTERNS: readonly RegExp[] = [
+  // EN: "generate/create/make/produce a video/clip/reel/short"
+  /\b(generate|create|make|produce|render|animate)\b[^.!?]{0,40}\b(video|clip|reel|short|tiktok|animation)s?\b/i,
+  // EN: "video generation", "text-to-video"
+  /\b(text[-\s]?to[-\s]?video|video\s+generation|ai\s+video)\b/i,
+  // DE: "erstelle/mach/generiere/produziere ein Video/Clip/Reel/Short"
+  /\b(erstelle?|mach|mache|generiere?|produziere?|dreh|drehe|erzeuge?)\b[^.!?]{0,40}\b(video|clip|reel|short|kurzvideo|tiktok|animation)s?\b/i,
+  // DE: "Video erstellen/generieren/drehen/produzieren" (verb after noun)
+  /\b(video|clip|reel|short|kurzvideo)s?\b[^.!?]{0,40}\b(erstellen|generieren|drehen|produzieren|machen|erzeugen)\b/i,
+];
+
+/**
+ * Heuristically detect whether a chat message is asking to GENERATE a video.
+ * Pure + dependency-light so the send-path can decide, BEFORE submitting,
+ * whether to route through the cost-wall. Empty / whitespace / non-string input
+ * is never a video request. False positives are minimized by requiring a
+ * generation verb near a video noun (see {@link VIDEO_GENERATION_PATTERNS}).
+ */
+export function isVideoGenerationRequest(message: string | null | undefined): boolean {
+  if (typeof message !== 'string') return false;
+  const text = message.trim();
+  if (text.length === 0) return false;
+  return VIDEO_GENERATION_PATTERNS.some((re) => re.test(text));
+}

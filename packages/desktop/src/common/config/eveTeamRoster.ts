@@ -55,6 +55,39 @@
 /** EVE Inference level a role leans on (mirrors eveInferenceCore wire tiers). */
 export type EveTeamRoleTier = 'standard' | 'high' | 'max' | 'maximum';
 
+/**
+ * Salary-grade band of a role (the FINAL Founder-locked table, 2026-06-18 —
+ * `docs/strategy/command-eve-worker-pricing-architecture-2026-06-18.md` §7).
+ * The grade maps to a fixed expected EUR/mo "salary" (the hire price) the
+ * PRE-VISIBLE budget meter (P0 #1) sums over the ACTIVE team:
+ *
+ *   - G0 — Gratis-Sockel   : €0   the bundled zero-cost local floor (Gemma).
+ *   - G1 — Basis           : €25  content / ops / sales-entry workers.
+ *   - G2 — Fach            : €35  creative / image workers.
+ *   - G3 — Spezialist      : €40  research / data workers.
+ *   - G4 — Premium/Skalierbar: €60  the videomarketer (heavy GPU lane).
+ *   - G5 — Deferred (off-ICP): €100 the coder (not in the launch roster).
+ *
+ * Grades are PRICE BANDS, never renamed once shipped — the projected-budget math
+ * and the founder pricing doc both key off this exact mapping.
+ */
+export type EveTeamRoleGrade = 'G0' | 'G1' | 'G2' | 'G3' | 'G4' | 'G5';
+
+/**
+ * The Founder-locked expected EUR/mo "salary" (hire price) per grade band. This
+ * is the SINGLE source of the per-role budget figure the projected-spend meter
+ * sums. Pure data — no FX, no credits; the at-cost credit layer is a separate
+ * concern (see creditsCore). Values mirror the §7 grade table exactly.
+ */
+export const EVE_GRADE_SALARY_EUR: Record<EveTeamRoleGrade, number> = {
+  G0: 0,
+  G1: 25,
+  G2: 35,
+  G3: 40,
+  G4: 60,
+  G5: 100,
+} as const;
+
 /** A role is either an operator ("work") or a governance seat. */
 export type EveTeamRoleKind = 'work' | 'governance';
 
@@ -80,6 +113,12 @@ export interface EveTeamRole {
   outcome: string;
   /** EVE Inference level the role leans on. */
   tier: EveTeamRoleTier;
+  /**
+   * Salary-grade band (Founder-locked §7 table). Drives the PRE-VISIBLE budget:
+   * each role's expected EUR/mo "salary" is {@link EVE_GRADE_SALARY_EUR}[grade].
+   * The free local floor (G0) costs €0; paid cloud roles carry G1..G5.
+   */
+  grade: EveTeamRoleGrade;
   /** Hermes skills the role leans on (labels only — not a capability grant). */
   skills: string[];
   /** 'work' (operator) or 'governance' (seat). */
@@ -110,6 +149,10 @@ export const EVE_TEAM_ROSTER: readonly EveTeamRole[] = [
     title: 'CEO',
     outcome: 'Setzt Prioritäten, trifft Entscheidungen und hält den Kurs.',
     tier: 'high',
+    // Governance seats are part of the included base subscription, not an
+    // incremental metered hire — so they carry the €0 grade (they never add to
+    // the projected hire-spend hull; the base price already covers leadership).
+    grade: 'G0',
     skills: ['strategy', 'planning', 'decision-making'],
     kind: 'governance',
     rhythm: 'always-on',
@@ -120,6 +163,8 @@ export const EVE_TEAM_ROSTER: readonly EveTeamRole[] = [
     title: 'Chief of Staff',
     outcome: 'Koordiniert die Arbeit, verteilt Aufgaben und fasst Ergebnisse zusammen.',
     tier: 'high',
+    // Included in the base subscription (see CEO note) — €0 incremental.
+    grade: 'G0',
     skills: ['coordination', 'delegation', 'reporting'],
     kind: 'governance',
     rhythm: 'always-on',
@@ -134,6 +179,8 @@ export const EVE_TEAM_ROSTER: readonly EveTeamRole[] = [
     title: 'Empfang / FAQ (G0, gratis lokal)',
     outcome: 'Beantwortet einfache Fragen rund um die Uhr — kostenlos und lokal, ohne Credits.',
     tier: 'standard',
+    // G0 — the free local Gratis-Sockel: €0/mo, never adds to the budget.
+    grade: 'G0',
     skills: ['faq', 'triage', 'local-chat'],
     kind: 'work',
     rhythm: 'always-on',
@@ -149,6 +196,8 @@ export const EVE_TEAM_ROSTER: readonly EveTeamRole[] = [
     title: 'Growth Lead (CMO)',
     outcome: 'Bringt neue Kunden — plant Kampagnen und misst, was wirkt.',
     tier: 'max',
+    // G1 — Basis (ops/sales-entry band, €25/mo).
+    grade: 'G1',
     skills: ['marketing-strategy', 'campaign-planning', 'analytics'],
     kind: 'work',
     rhythm: 'always-on',
@@ -159,6 +208,8 @@ export const EVE_TEAM_ROSTER: readonly EveTeamRole[] = [
     title: 'SEO Lead',
     outcome: 'Macht dich bei Google sichtbar — Keywords, On-Page und Content-Lücken.',
     tier: 'high',
+    // G1 — Basis (content/SEO band, €25/mo).
+    grade: 'G1',
     skills: ['seo-audit', 'keyword-research', 'web-search'],
     kind: 'work',
     rhythm: 'always-on',
@@ -169,6 +220,8 @@ export const EVE_TEAM_ROSTER: readonly EveTeamRole[] = [
     title: 'Content / Writer',
     outcome: 'Schreibt Blogposts, Newsletter und Landingpages in deiner Stimme.',
     tier: 'standard',
+    // G1 — Basis (content band, €25/mo).
+    grade: 'G1',
     skills: ['content-creation', 'copywriting', 'brand-voice'],
     kind: 'work',
     rhythm: 'always-on',
@@ -179,6 +232,8 @@ export const EVE_TEAM_ROSTER: readonly EveTeamRole[] = [
     title: 'Reddit / Community',
     outcome: 'Findet die richtigen Subreddits und antwortet ohne Werbe-Geruch.',
     tier: 'standard',
+    // G1 — Basis (community/ops band, €25/mo).
+    grade: 'G1',
     skills: ['community', 'web-search', 'social-listening'],
     kind: 'work',
     rhythm: 'burst',
@@ -189,6 +244,8 @@ export const EVE_TEAM_ROSTER: readonly EveTeamRole[] = [
     title: 'Videomarketer',
     outcome: 'Plant Kurzvideos und Hooks für Shorts, Reels und TikTok.',
     tier: 'max',
+    // G4 — Premium/Skalierbar (the heavy GPU video lane, €60/mo).
+    grade: 'G4',
     skills: ['video-script', 'storyboard', 'social-video'],
     kind: 'work',
     rhythm: 'burst',
@@ -200,6 +257,8 @@ export const EVE_TEAM_ROSTER: readonly EveTeamRole[] = [
     title: 'Eval / Research',
     outcome: 'Prüft Behauptungen, recherchiert Quellen und bewertet Ergebnisse.',
     tier: 'maximum',
+    // G3 — Spezialist (research/data band, €40/mo).
+    grade: 'G3',
     skills: ['research', 'fact-check', 'evaluation'],
     kind: 'work',
     rhythm: 'burst',
@@ -218,6 +277,15 @@ export function isEveTeamAgentId(id: string | null | undefined): boolean {
 export function findEveTeamRole(agentId: string | null | undefined): EveTeamRole | undefined {
   if (typeof agentId !== 'string') return undefined;
   return EVE_TEAM_ROSTER.find((r) => r.agent_id === agentId);
+}
+
+/**
+ * The expected EUR/mo "salary" (hire price) of a role, resolved from its grade
+ * band via {@link EVE_GRADE_SALARY_EUR}. This is the single per-role figure the
+ * PRE-VISIBLE budget meter sums over the ACTIVE team. Free local (G0) is €0.
+ */
+export function roleSalaryEur(role: Pick<EveTeamRole, 'grade'>): number {
+  return EVE_GRADE_SALARY_EUR[role.grade] ?? 0;
 }
 
 /**
