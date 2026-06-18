@@ -3,7 +3,7 @@
  * Copyright 2025 AionUi (aionui.com)
  * SPDX-License-Identifier: Apache-2.0
  *
- * Unit tests for renderer/hooks/agent/useAgents.ts → useManagedAgents.
+ * Unit tests for renderer/hooks/agent/useManagedAgents.ts.
  *
  * The Agent settings management surface must read the
  * `include_disabled=true` view (a SEPARATE SWR key from any detected-agent
@@ -33,7 +33,7 @@ vi.mock('@/renderer/utils/model/agentTypes', () => ({
   fetchManagedAgents: vi.fn(),
 }));
 
-import { getManagedAgents, useManagedAgents } from '@/renderer/hooks/agent/useAgents';
+import { getManagedAgents, useManagedAgents } from '@/renderer/hooks/agent/useManagedAgents';
 import { ipcBridge } from '@/common';
 import useSWR, { mutate } from 'swr';
 import { fetchManagedAgents } from '@/renderer/utils/model/agentTypes';

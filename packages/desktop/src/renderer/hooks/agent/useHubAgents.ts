@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { IHubAgentItem } from '@/common/types/agent/hub';
 import { ipcBridge } from '@/common';
-import { refreshManagedAgentCatalogAndAssistants } from './useAgents';
+import { refreshManagedAgentCatalogAndAssistants } from './useManagedAgents';
 
 export function useHubAgents() {
   const [agents, setAgents] = useState<IHubAgentItem[]>([]);

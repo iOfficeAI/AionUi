@@ -57,7 +57,7 @@ vi.mock('@arco-design/web-react', async () => {
 
 // Controlled management-view data; assert LocalAgents consumes THIS hook.
 const useManagedAgents = vi.fn();
-vi.mock('@renderer/hooks/agent/useAgents', () => ({
+vi.mock('@renderer/hooks/agent/useManagedAgents', () => ({
   useManagedAgents: () => useManagedAgents(),
 }));
 

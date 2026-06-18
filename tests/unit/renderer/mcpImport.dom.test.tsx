@@ -30,7 +30,7 @@ vi.mock('@/common/adapter/ipcBridge', () => ({
   },
 }));
 
-vi.mock('@/renderer/hooks/agent/useAgents', () => ({
+vi.mock('@/renderer/hooks/agent/useManagedAgents', () => ({
   getManagedAgents: (...args: unknown[]) => getManagedAgents(...args),
 }));
 

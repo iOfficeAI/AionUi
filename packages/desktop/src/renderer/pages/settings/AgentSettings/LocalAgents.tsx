@@ -7,7 +7,7 @@
 import { ipcBridge } from '@/common';
 import type { ManagedAgent } from '@/renderer/utils/model/agentTypes';
 import AionModal from '@/renderer/components/base/AionModal';
-import { useManagedAgents } from '@/renderer/hooks/agent/useAgents';
+import { useManagedAgents } from '@/renderer/hooks/agent/useManagedAgents';
 import { openExternalUrl } from '@/renderer/utils/platform';
 import { Button, Message, Typography } from '@arco-design/web-react';
 import React, { useCallback, useState } from 'react';
