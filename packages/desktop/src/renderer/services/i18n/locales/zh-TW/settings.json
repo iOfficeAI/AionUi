@@ -1007,12 +1007,8 @@
       "bridge_missing": "請安裝 {{command}}，然後重新測試連線。",
       "primary_missing": "請安裝 {{command}}，然後重新測試連線。",
       "command_missing": "請安裝 {{command}}，然後重新測試連線。",
-      "managed_runtime_unavailable": "請修復或重新安裝 {{resource}}，然後重新測試連線。",
-      "auth_required": "請先登入或完成 {{name}} 的授權，然後重試連線測試。",
-      "user_agent_auth_required": "請先登入或完成 {{name}} 的授權，然後重試連線測試。"
-    },
-    "statusNeedsAuth": "需要認證",
-    "testConnectionNeedsAuth": "{{name}} 需要先完成認證。"
+      "managed_runtime_unavailable": "請修復或重新安裝 {{resource}}，然後重新測試連線。"
+    }
   },
   "remoteAgent": {
     "title": "遠端 Agent",

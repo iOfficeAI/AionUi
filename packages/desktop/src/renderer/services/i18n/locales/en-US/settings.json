@@ -1005,12 +1005,8 @@
       "bridge_missing": "Install {{command}} and retry the connection test.",
       "primary_missing": "Install {{command}} and retry the connection test.",
       "command_missing": "Install {{command}} and retry the connection test.",
-      "managed_runtime_unavailable": "Repair or reinstall {{resource}}, then retry the connection test.",
-      "auth_required": "Sign in to {{name}}, then retry the connection test.",
-      "user_agent_auth_required": "Sign in to {{name}}, then retry the connection test."
-    },
-    "statusNeedsAuth": "Needs auth",
-    "testConnectionNeedsAuth": "{{name}} requires authentication."
+      "managed_runtime_unavailable": "Repair or reinstall {{resource}}, then retry the connection test."
+    }
   },
   "remoteAgent": {
     "title": "Remote Agents",

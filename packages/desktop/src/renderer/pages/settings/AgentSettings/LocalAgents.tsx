@@ -115,12 +115,6 @@ const LocalAgents: React.FC = () => {
           case 'missing':
             Message.warning(t('settings.agentManagement.testConnectionMissing', { name: result.name }));
             break;
-          case 'needs_auth':
-            Message.warning(
-              formatManagedAgentDiagnosticMessage(t, result) ||
-                t('settings.agentManagement.testConnectionNeedsAuth', { name: result.name })
-            );
-            break;
           case 'unavailable':
             Message.warning(
               formatManagedAgentDiagnosticMessage(t, result) ||
