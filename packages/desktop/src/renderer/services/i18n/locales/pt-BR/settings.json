@@ -998,6 +998,19 @@
     "addCustomAgent": "Adicionar Agente Personalizado",
     "customEmpty": "Nenhum agente personalizado configurado. Clique em \"Adicionar Agente Personalizado\" para criar um."
   },
+  "repair": {
+    "configuredVarsCount": "{{count}} variáveis de ambiente configuradas",
+    "hasPathOverride": "Caminho de inicialização personalizado configurado",
+    "unlockAndEdit": "Desbloquear e Editar",
+    "pathLabel": "Caminho de Inicialização",
+    "pathPlaceholder": "Atualmente usando: {{command}}",
+    "pathHelp": "Se o caminho padrão não puder ser encontrado, especifique o caminho completo aqui. Deixe em branco para usar o padrão.",
+    "resetPath": "Redefinir para Padrão",
+    "envLabel": "Variáveis de Ambiente",
+    "envHelp": "Algumas ferramentas requerem chaves de API ou tokens de acesso para executar, como ANTHROPIC_API_KEY ou FACTORY_API_KEY. Adicione uma variável por linha.",
+    "saveAndTest": "Salvar e Testar",
+    "duplicateKeysError": "Nomes de variáveis de ambiente duplicados encontrados. Verifique e tente novamente."
+  },
   "remoteAgent": {
     "title": "Agentes Remotos",
     "add": "Adicionar",

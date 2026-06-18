@@ -11,6 +11,7 @@ import { useTranslation } from 'react-i18next';
 import { resolveAgentLogo, useAgentLogos } from '@/renderer/utils/model/agentLogo';
 import { resolveExtensionAssetUrl } from '@/renderer/utils/platform';
 import type { AgentManagementStatus, ManagedAgent } from '@/renderer/utils/model/agentTypes';
+import AgentRepairPanel from './AgentRepairPanel';
 
 type AgentCardProps =
   | {
@@ -150,6 +151,9 @@ const AgentCard: React.FC<AgentCardProps> = (props) => {
         <Button size='small' type='secondary' onClick={onTestConnection} loading={isTesting}>
           {t('settings.agentManagement.testConnection')}
         </Button>
+
+        {/* Repair Panel for non-available statuses */}
+        {agent.status !== 'available' && <AgentRepairPanel agent={agent} onSaved={onTestConnection} />}
       </div>
     );
   }
@@ -208,6 +212,13 @@ const AgentCard: React.FC<AgentCardProps> = (props) => {
           onClick={onDelete}
         />
       </div>
+
+      {/* Repair Panel for non-available statuses */}
+      {agent.status !== 'available' && (
+        <div className='mt-8px'>
+          <AgentRepairPanel agent={agent} onSaved={onTestConnection} />
+        </div>
+      )}
     </div>
   );
 };

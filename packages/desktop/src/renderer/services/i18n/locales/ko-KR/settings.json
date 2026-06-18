@@ -988,6 +988,19 @@
     "addCustomAgent": "사용자 정의 에이전트 추가",
     "customEmpty": "구성된 사용자 정의 에이전트가 없습니다. \"사용자 정의 에이전트 추가\"를 클릭하여 생성하세요."
   },
+  "repair": {
+    "configuredVarsCount": "{{count}}개의 환경 변수가 구성되었습니다",
+    "hasPathOverride": "사용자 정의 시작 경로가 구성되었습니다",
+    "unlockAndEdit": "잠금 해제 및 편집",
+    "pathLabel": "시작 경로",
+    "pathPlaceholder": "현재 사용 중: {{command}}",
+    "pathHelp": "기본 경로를 찾을 수 없는 경우 여기에 전체 경로를 지정하세요. 비워두면 기본값을 사용합니다.",
+    "resetPath": "기본값으로 재설정",
+    "envLabel": "환경 변수",
+    "envHelp": "일부 도구는 실행하기 위해 API 키 또는 액세스 토큰이 필요합니다. 예: ANTHROPIC_API_KEY, FACTORY_API_KEY. 행당 하나의 변수를 추가하세요.",
+    "saveAndTest": "저장 및 테스트",
+    "duplicateKeysError": "중복된 환경 변수 이름이 발견되었습니다. 확인 후 다시 시도하세요."
+  },
   "remoteAgent": {
     "title": "원격 에이전트",
     "add": "추가",

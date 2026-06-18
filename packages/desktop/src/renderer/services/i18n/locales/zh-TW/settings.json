@@ -1000,6 +1000,19 @@
     "addCustomAgent": "新增自訂 Agent",
     "customEmpty": "尚無自訂 Agent，點擊「新增自訂 Agent」建立。"
   },
+  "repair": {
+    "configuredVarsCount": "已設定 {{count}} 個環境變數",
+    "hasPathOverride": "已設定自訂啟動路徑",
+    "unlockAndEdit": "解鎖並編輯",
+    "pathLabel": "啟動路徑",
+    "pathPlaceholder": "目前使用：{{command}}",
+    "pathHelp": "如果找不到預設路徑，請在此指定完整路徑。留空則使用預設路徑。",
+    "resetPath": "恢復預設",
+    "envLabel": "環境變數",
+    "envHelp": "某些工具需要 API 金鑰或存取權杖才能執行，例如 ANTHROPIC_API_KEY 或 FACTORY_API_KEY。每行填一個變數。",
+    "saveAndTest": "儲存並測試",
+    "duplicateKeysError": "環境變數名稱重複，請檢查後重試。"
+  },
   "remoteAgent": {
     "title": "遠端 Agent",
     "add": "新增",

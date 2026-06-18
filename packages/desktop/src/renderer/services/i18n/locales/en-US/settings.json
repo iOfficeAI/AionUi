@@ -998,6 +998,19 @@
     "addCustomAgent": "Add Custom Agent",
     "customEmpty": "No custom agents configured. Click \"Add Custom Agent\" to create one."
   },
+  "repair": {
+    "configuredVarsCount": "{{count}} environment variables configured",
+    "hasPathOverride": "Custom launch path configured",
+    "unlockAndEdit": "Unlock & Edit",
+    "pathLabel": "Launch Path",
+    "pathPlaceholder": "Currently using: {{command}}",
+    "pathHelp": "If the default path cannot be found, specify the full path here. Leave blank to use the default.",
+    "resetPath": "Reset to Default",
+    "envLabel": "Environment Variables",
+    "envHelp": "Some tools require API keys or access tokens to run, such as ANTHROPIC_API_KEY or FACTORY_API_KEY. Add one variable per row.",
+    "saveAndTest": "Save & Test",
+    "duplicateKeysError": "Duplicate environment variable names found. Please check and try again."
+  },
   "remoteAgent": {
     "title": "Remote Agents",
     "add": "Add",
