@@ -3,6 +3,7 @@
     "title": "MCP 統合",
     "description": "モデルコンテキストプロトコルサーバーとツールを管理"
   },
+  "label": "MCP",
   "servers": "サーバー",
   "tools": "ツール",
   "executionHistory": "実行履歴",

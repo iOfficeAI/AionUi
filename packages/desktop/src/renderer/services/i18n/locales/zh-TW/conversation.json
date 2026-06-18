@@ -2,7 +2,6 @@
   "welcome": {
     "title": "Hi，今天有什麼安排？",
     "placeholder": "發送訊息、上傳檔案、開啟資料夾或建立定時任務...",
-    "uploadFile": "上傳檔案",
     "linkFolder": "開啟資料夾",
     "newConversation": "新會話",
     "selectModel": "選擇模型",
@@ -14,7 +13,7 @@
     "openFolder": "Open Folder",
     "none": "None",
     "quickActionsTitle": "AionUi 能做什麼？",
-    "quickActionFeedback": "想吐槽或提建議?",
+    "quickActionFeedback": "反饋問題",
     "quickActionStar": "喜歡我們？點個星吧",
     "skillsMarket": "AionUi Skills Market",
     "skillsMarketDesc": "按需搜尋並啟用社區 Skills，一次設定，所有Agent通用。",
@@ -92,6 +91,187 @@
   "noAgentsAvailable": "沒有可用的 Agent",
   "noModelConfigured": "未設定模型，請前往設定頁面設定。",
   "createFailed": "建立對話失敗",
+  "createError": {
+    "pathVariants": {
+      "WORKSPACE_PATH_UNAVAILABLE": "所選工作區路徑不可用。請確認工作區路徑「{{workspacePath}}」確實存在且可存取。"
+    }
+  },
+  "agentError": {
+    "fallbackTitle": "Agent 未能回覆",
+    "errorCode": "錯誤碼",
+    "retryable": "可重試",
+    "notRetryable": "需先處理設定",
+    "resolutionPrefix": "建議：",
+    "resolution": {
+      "retry": "Retry later, or send this message again.",
+      "wait_for_current_response": "Wait for the current response to finish before sending another message.",
+      "start_new_session": "Start a new conversation before continuing.",
+      "reconnect_agent": "Restart or reconnect the selected agent, then retry.",
+      "check_agent_login": "Log in to the selected agent, or refresh its credentials.",
+      "check_agent_installation": "Check the agent installation and local command configuration.",
+      "check_agent_version": "Update the agent, or fix the protocol version incompatibility.",
+      "check_local_command": "Install the missing command, or confirm it has been added to PATH.",
+      "check_provider_credentials": "Check the model provider API key or account credentials in settings.",
+      "check_provider_billing": "Check the model provider balance, credits, or quota.",
+      "check_provider_base_url": "Check the model provider Base URL, API path, proxy, and API compatibility.",
+      "change_model": "Choose a model that is available for the current account and supports this request.",
+      "reduce_context": "Reduce the message content, referenced files, or context size, then retry.",
+      "send_feedback": "Send feedback with logs so the team can investigate."
+    },
+    "ownership": {
+      "aionui": "應用",
+      "user_agent": "Agent",
+      "user_llm_provider": "模型服務商",
+      "unknown_upstream": "上游"
+    },
+    "codes": {
+      "AIONUI_STREAM_BROKEN": {
+        "title": "回應流異常中斷",
+        "body": "訊息已送出，但回應流異常結束。請先重試；如果反覆出現，可以提交回饋。"
+      },
+      "AIONUI_STATE_INCONSISTENT": {
+        "title": "會話狀態不一致",
+        "body": "目前對話狀態和後台記錄不同步。請重新開啟應用程式或建立新對話後再試。"
+      },
+      "AIONUI_PERMISSION_ERROR": {
+        "title": "無法存取所需資源",
+        "body": "本機權限或檔案存取檢查失敗。請確認專案路徑和應用程式權限後重試。"
+      },
+      "AIONUI_INTERNAL_ERROR": {
+        "title": "應用處理失敗",
+        "body": "本次請求在應用程式處理過程中失敗。請先重試一次；如果仍然出現，可以提交回饋。"
+      },
+      "AIONUI_CONVERSATION_BUSY": {
+        "title": "會話正在處理上一則訊息",
+        "body": "目前會話還有回覆尚未結束。請等待本次回覆完成後再傳送新的訊息。"
+      },
+      "USER_AGENT_NOT_INSTALLED": {
+        "title": "所選 Agent 未安裝",
+        "body": "請先安裝該 Agent 依賴的 CLI 或應用程式，然後在設定中重新連線。"
+      },
+      "USER_AGENT_STARTUP_FAILED": {
+        "title": "所選 Agent 啟動失敗",
+        "body": "Agent 程序在準備完成前退出了。請檢查安裝、登入狀態和本機命令設定。"
+      },
+      "USER_AGENT_DISCONNECTED": {
+        "title": "所選 Agent 已中斷連線",
+        "body": "Agent 在處理本次訊息時中斷了連線。請重新啟動或重新連線 Agent 後重試。"
+      },
+      "USER_AGENT_AUTH_REQUIRED": {
+        "title": "所選 Agent 需要登入",
+        "body": "請先登入該 Agent 或更新憑證，然後重新傳送訊息。"
+      },
+      "USER_AGENT_SESSION_NOT_FOUND": {
+        "title": "Agent 會話已遺失",
+        "body": "Agent 已無法識別目前會話。請建立新對話或重新連線 Agent。"
+      },
+      "USER_AGENT_UNSUPPORTED_METHOD": {
+        "title": "所選 Agent 不支援該操作",
+        "body": "目前 Agent 無法處理這個請求。可以嘗試切換 Agent 或升級目前 Agent。"
+      },
+      "USER_AGENT_INVALID_PARAMS": {
+        "title": "所選 Agent 拒絕了請求",
+        "body": "Agent 認為請求格式無效。可以簡化訊息內容，或切換到其他 Agent。"
+      },
+      "USER_AGENT_HANDSHAKE_FAILED": {
+        "title": "Agent 握手失敗",
+        "body": "所選 Agent 未能完成啟動握手。請重新啟動或重新連線該 Agent 後重試。"
+      },
+      "USER_AGENT_HANDSHAKE_TIMEOUT": {
+        "title": "Agent 握手逾時",
+        "body": "所選 Agent 未在預期時間內完成啟動握手。請確認它沒有卡在啟動或登入流程中，然後重試。"
+      },
+      "USER_AGENT_ACP_INIT_FAILED": {
+        "title": "Agent 協議初始化失敗",
+        "body": "應用程式無法和該 Agent 初始化 Agent Client Protocol 會話。請檢查 Agent 版本並重新連線。"
+      },
+      "USER_AGENT_PROTOCOL_MISMATCH": {
+        "title": "Agent 協議版本不相容",
+        "body": "所選 Agent 使用的協議版本不相容。請升級 Agent，或切換到相容的 Agent。"
+      },
+      "USER_AGENT_NO_PREVIOUS_SESSION": {
+        "title": "無法恢復上一次 Agent 會話",
+        "body": "Agent 無法恢復之前的會話狀態。請建立新對話後繼續。"
+      },
+      "USER_AGENT_COMMAND_NOT_FOUND": {
+        "title": "找不到 Agent 命令",
+        "body": "未找到已設定的 Agent 命令。請先安裝該命令，或在設定中更新命令路徑。"
+      },
+      "USER_AGENT_MISSING_ENV": {
+        "title": "Agent 缺少必要環境變數",
+        "body": "該 Agent 需要的環境變數尚未設定。請在設定或 shell 環境中補齊後重新連線。"
+      },
+      "USER_LLM_PROVIDER_AUTH_FAILED": {
+        "title": "模型服務商驗證失敗",
+        "body": "所選服務商拒絕了 API Key 或帳號憑證。請檢查模型設定後重試。"
+      },
+      "USER_LLM_PROVIDER_CONFIG_ERROR": {
+        "title": "模型服務商設定無效",
+        "body": "目前設定無法建構服務商請求。請檢查憑證、區域、Base URL 和服務商專屬設定後再重試。"
+      },
+      "USER_LLM_PROVIDER_MODEL_NOT_FOUND": {
+        "title": "找不到所選模型",
+        "body": "服務商不識別目前模型名稱。請在設定中選擇可用模型後重試。"
+      },
+      "USER_LLM_PROVIDER_RATE_LIMITED": {
+        "title": "模型服務商觸發限流",
+        "body": "服務商暫時限制了請求。請稍後重試、降低請求頻率，或切換模型。"
+      },
+      "USER_LLM_PROVIDER_TIMEOUT": {
+        "title": "模型服務商回應逾時",
+        "body": "服務商沒有及時返回結果。請稍後重試，或切換到更穩定的服務商。"
+      },
+      "USER_LLM_PROVIDER_NETWORK_ERROR": {
+        "title": "無法連線模型服務商",
+        "body": "網路或 DNS 錯誤導致無法存取服務商。請檢查網路、代理和 Base URL。"
+      },
+      "USER_LLM_PROVIDER_GATEWAY_ERROR": {
+        "title": "模型服務商暫不可用",
+        "body": "服務商返回了閘道或服務異常。請稍後重試，或切換到其他服務商。"
+      },
+      "USER_LLM_PROVIDER_PERMISSION_DENIED": {
+        "title": "模型服務商無權處理請求",
+        "body": "目前服務商帳號沒有使用該模型或執行該操作的權限。請檢查帳號權限，或切換其他模型。"
+      },
+      "USER_LLM_PROVIDER_BILLING_REQUIRED": {
+        "title": "模型服務商需要啟用計費",
+        "body": "所選服務商需要有效的計費、餘額或額度後才能完成請求。請處理後重試。"
+      },
+      "USER_LLM_PROVIDER_UNSUPPORTED_MODEL": {
+        "title": "模型不支援本次請求",
+        "body": "所選模型不可用，或不支援本次請求所需能力。請切換到受支援的模型後重試。"
+      },
+      "USER_LLM_PROVIDER_ENDPOINT_NOT_FOUND": {
+        "title": "找不到模型服務商介面",
+        "body": "服務商介面或 API 路徑不存在。請檢查 Base URL、部署名稱和 API 相容性。"
+      },
+      "USER_LLM_PROVIDER_INVALID_REQUEST": {
+        "title": "模型服務商拒絕了請求",
+        "body": "服務商認為本次請求無效。請簡化訊息內容，或檢查模型和服務商設定。"
+      },
+      "USER_LLM_PROVIDER_INVALID_TOOL_SCHEMA": {
+        "title": "模型服務商拒絕了工具定義",
+        "body": "服務商拒絕了本次請求中的工具定義。請更新 Agent，或停用不相容的工具後重試。"
+      },
+      "USER_LLM_PROVIDER_CONTEXT_TOO_LARGE": {
+        "title": "上下文超出模型限制",
+        "body": "本次請求超出了模型上下文限制。請減少訊息內容、引用檔案或對話歷史後重試。"
+      },
+      "USER_LLM_PROVIDER_EMPTY_RESPONSE": {
+        "title": "模型服務商返回了空回應",
+        "body": "服務商完成了請求，但沒有返回可用內容。請先重試一次；如果反覆出現，可切換服務商。"
+      },
+      "WORKSPACE_PATH_RUNTIME_UNAVAILABLE": {
+        "title": "目前 Agent 在該工作區路徑下執行失敗",
+        "body": "請確認目前工作區路徑確實存在。",
+        "bodyWithPath": "目前 Agent 在該工作區路徑下執行失敗。請確認工作區路徑「{{workspacePath}}」確實存在。"
+      },
+      "UNKNOWN_UPSTREAM_ERROR": {
+        "title": "上游 Agent 或模型服務商出錯",
+        "body": "收到上游錯誤，但暫時無法準確分類。可以查看下方詳情或提交回饋。"
+      }
+    }
+  },
   "workspace": {
     "title": "專案",
     "pasteConfirm_title": "貼上檔案",
@@ -284,8 +464,37 @@
   "skills": {
     "loaded": "已載入技能"
   },
+  "mcp": {
+    "loaded": "已載入 MCP",
+    "managementHint": "如果某個 MCP 載入異常，通常是 MCP JSON 設定有問題。請到工具設定頁檢查並手動檢測。",
+    "openSettings": "前往工具設定",
+    "status": {
+      "loaded": "已載入",
+      "failed": "失敗",
+      "unsupported": "不支援"
+    }
+  },
+  "runtimePreparing": {
+    "sendboxHint": "正在準備執行環境。首次啟動可能會稍慢一些。"
+  },
   "sendbox": {
     "hint": "輸入 / 喚起命令，@ 引用檔案"
+  },
+  "agentTip": {
+    "codes": {
+      "ACP_EMPTY_TURN": {
+        "body": "這次請求沒有產生任何可見回覆。"
+      },
+      "ACP_EMPTY_TURN_MAX_TOKENS": {
+        "body": "這次請求在產生任何可見回覆前已達到模型輸出 token 上限。"
+      },
+      "ACP_EMPTY_TURN_MAX_TURN_REQUESTS": {
+        "body": "這次請求在產生任何可見回覆前已達到模型單輪請求上限。"
+      },
+      "ACP_EMPTY_TURN_REFUSAL": {
+        "body": "模型在產生任何可見回覆前拒絕了這次請求。"
+      }
+    }
   },
   "notFound": "會話不存在或已被刪除"
 }

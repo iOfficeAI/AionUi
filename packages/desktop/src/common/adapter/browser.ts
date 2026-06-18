@@ -15,6 +15,38 @@ interface CustomWindow extends Window {
   __websocketReconnect?: () => void;
 }
 
+type BrowserWebSocketPayload = { name: string; data?: unknown };
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function isBrowserWebSocketPayload(value: unknown): value is BrowserWebSocketPayload {
+  return isRecord(value) && typeof value.name === 'string';
+}
+
+export function isRealtimeAuthTerminalError(payload: unknown): boolean {
+  const data = getRealtimeErrorData(payload);
+  if (!data) {
+    return false;
+  }
+
+  const { code } = data;
+  return code === 'REALTIME_AUTH_MISSING' || code === 'REALTIME_AUTH_EXPIRED';
+}
+
+function getRealtimeErrorData(payload: unknown): Record<string, unknown> | null {
+  if (!isBrowserWebSocketPayload(payload) || payload.name !== 'realtime.error' || !isRecord(payload.data)) {
+    return null;
+  }
+
+  return payload.data;
+}
+
+function isUnrecoverableRealtimeError(payload: unknown): boolean {
+  return getRealtimeErrorData(payload)?.recoverable === false;
+}
+
 const win = window as CustomWindow;
 
 /**
@@ -113,10 +145,11 @@ if (win.electronAPI) {
       }
 
       try {
-        const payload = JSON.parse(event.data as string) as {
-          name: string;
-          data: unknown;
-        };
+        const payload = JSON.parse(event.data as string) as unknown;
+
+        if (!isBrowserWebSocketPayload(payload)) {
+          return;
+        }
 
         // 处理服务端心跳 ping，立即回复 pong 以保持连接
         // Handle server heartbeat ping - respond with pong immediately to keep connection alive
@@ -129,7 +162,7 @@ if (win.electronAPI) {
 
         // 处理认证过期 - 停止重连并跳转到登录页
         // Handle auth expiration - stop reconnecting and redirect to login
-        if (payload.name === 'auth-expired') {
+        if (isRealtimeAuthTerminalError(payload)) {
           console.warn('[WebSocket] Authentication expired, stopping reconnection');
           shouldReconnect = false;
 
@@ -161,6 +194,13 @@ if (win.electronAPI) {
           return;
         }
 
+        if (isUnrecoverableRealtimeError(payload)) {
+          console.warn('[WebSocket] Unrecoverable realtime error, reconnecting');
+          emitterRef.emit(payload.name, payload.data);
+          currentSocket.close();
+          return;
+        }
+
         emitterRef.emit(payload.name, payload.data);
       } catch (error) {
         // 忽略格式错误的消息 / Ignore malformed payloads
@@ -171,31 +211,6 @@ if (win.electronAPI) {
       // Only null the outer reference if it still points at this socket.
       if (socket === currentSocket) {
         socket = null;
-      }
-
-      // Detect auth failure from close code (server sends 1008 for token issues).
-      // This acts as a fallback in case the auth-expired message was not received
-      // (e.g., socket not yet ready for sending during initial handshake).
-      if (event.code === 1008 && !shouldReconnect) {
-        return; // Already handled by auth-expired message handler
-      }
-      if (event.code === 1008) {
-        console.warn('[WebSocket] Connection rejected by server (policy violation), redirecting to login');
-        shouldReconnect = false;
-        if (reconnectTimer !== null) {
-          window.clearTimeout(reconnectTimer);
-          reconnectTimer = null;
-        }
-        // 已在登录页则不再重定向，防止无限刷新循环
-        // Skip redirect if already on login page to prevent infinite reload loop
-        if (window.location.pathname === '/login' || window.location.hash.includes('/login')) {
-          return;
-        }
-        // Use hash navigation to stay within the SPA (HashRouter)
-        setTimeout(() => {
-          window.location.hash = '/login';
-        }, 500);
-        return;
       }
 
       scheduleReconnect();

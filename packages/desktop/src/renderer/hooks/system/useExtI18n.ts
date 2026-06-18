@@ -12,7 +12,7 @@ type NestedRecord = Record<string, unknown>;
 
 /**
  * Deeply resolve a dot-separated key path from a nested object.
- * e.g. resolve('settingsTabs.star-office.name', { settingsTabs: { 'star-office': { name: '星辰办公' } } })
+ * e.g. resolve('settingsTabs.ext-feishu.name', { settingsTabs: { 'ext-feishu': { name: 'Feishu' } } })
  */
 function deepGet(obj: unknown, keyPath: string): string | undefined {
   const parts = keyPath.split('.');

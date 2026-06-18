@@ -21,7 +21,7 @@ import { execFileSync } from 'node:child_process';
 import { test, expect } from '../../fixtures';
 import {
   clickCreateAssistant,
-  closeDrawer,
+  closeAssistantEditor,
   fillAssistantDescription,
   fillAssistantName,
   goToAssistantSettings,
@@ -29,10 +29,10 @@ import {
   httpGet,
   httpInvoke,
   httpPost,
-  openAssistantDrawer,
+  openAssistantEditor,
   saveAssistant,
   toggleAssistantEnabled,
-  waitForDrawerClose,
+  waitForAssistantEditorClose,
 } from '../../helpers';
 
 // ── Shared constants ─────────────────────────────────────────────────────────
@@ -130,7 +130,7 @@ test.describe('Assistant User Data Migration (T5)', () => {
     await fillAssistantName(page, name);
     await fillAssistantDescription(page, description);
     await saveAssistant(page);
-    await waitForDrawerClose(page);
+    await waitForAssistantEditorClose(page);
 
     const list = await httpGet<Assistant[]>(page, '/api/assistants');
     const created = list.find((a) => a.name === name);
@@ -255,13 +255,13 @@ test.describe('Assistant User Data Migration (T5)', () => {
     // UI-level: opening the built-in card shows no save button enabled for
     // name/desc edits. We assert the card exists and the delete button is
     // absent or disabled (built-ins cannot be deleted).
-    await openAssistantDrawer(page, BUILTIN_PROBE_ID);
+    await openAssistantEditor(page, BUILTIN_PROBE_ID);
     const deleteBtn = page.locator('[data-testid="btn-delete-assistant"]');
     const isDeleteVisible = await deleteBtn.isVisible().catch(() => false);
     if (isDeleteVisible) {
       await expect(deleteBtn).toBeDisabled();
     }
-    await closeDrawer(page);
+    await closeAssistantEditor(page);
   });
 
   // ── Scenario 6 — Extension assistant edit rejected ─────────────────────────

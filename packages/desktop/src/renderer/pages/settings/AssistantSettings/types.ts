@@ -1,4 +1,6 @@
 import type { Assistant } from '@/common/types/agent/assistantTypes';
+import type { IMcpServer } from '@/common/config/storage';
+import type { AvailableBackend } from '@/renderer/hooks/assistant';
 
 // Skill info type
 export type SkillSource = 'builtin' | 'custom' | 'extension';
@@ -33,3 +35,80 @@ export type BuiltinAutoSkill = {
 };
 
 export type AssistantListItem = Assistant;
+
+export type BuiltinAvatarOption = {
+  id: string;
+  label: string;
+  src: string;
+};
+
+export type AssistantEditorViewModel = {
+  isCreating: boolean;
+  profile: {
+    name: string;
+    setName: (value: string) => void;
+    description: string;
+    setDescription: (value: string) => void;
+    avatar: string;
+    setAvatar: (value: string) => void;
+    setAvatarPreview: (value: string | undefined) => void;
+    avatarImage?: string;
+    builtinAvatarOptions: BuiltinAvatarOption[];
+  };
+  agent: {
+    value: string;
+    setValue: (value: string) => void;
+    availableBackends: AvailableBackend[];
+  };
+  prompts: {
+    text: string;
+    setText: (value: string) => void;
+  };
+  defaults: {
+    model: {
+      mode: 'auto' | 'fixed';
+      setMode: (value: 'auto' | 'fixed') => void;
+      value: string;
+      setValue: (value: string) => void;
+    };
+    permission: {
+      mode: 'auto' | 'fixed';
+      setMode: (value: 'auto' | 'fixed') => void;
+      value: string;
+      setValue: (value: string) => void;
+    };
+    skills: {
+      mode: 'auto' | 'fixed';
+      setMode: (value: 'auto' | 'fixed') => void;
+    };
+    mcps: {
+      mode: 'auto' | 'fixed';
+      setMode: (value: 'auto' | 'fixed') => void;
+      availableServers: IMcpServer[];
+      selectedIds: string[];
+      setSelectedIds: (value: string[]) => void;
+    };
+  };
+  rules: {
+    content: string;
+    setContent: (value: string) => void;
+    viewMode: 'edit' | 'preview';
+    setViewMode: (value: 'edit' | 'preview') => void;
+  };
+  skills: {
+    availableSkills: SkillInfo[];
+    selectedSkills: string[];
+    setSelectedSkills: (value: string[]) => void;
+    pendingSkills: Array<{ name: string; description: string }>;
+    setDeletePendingSkillName: (value: string | null) => void;
+    setDeleteCustomSkillName: (value: string | null) => void;
+    builtinAutoSkills: BuiltinAutoSkill[];
+    disabledBuiltinSkills: string[];
+    setDisabledBuiltinSkills: (value: string[]) => void;
+  };
+  actions: {
+    save: () => void;
+    requestDelete: () => void;
+    duplicate: (assistant: AssistantListItem) => void;
+  };
+};

@@ -3,6 +3,7 @@
     "title": "Интеграция MCP",
     "description": "Управление серверами и инструментами Model Context Protocol"
   },
+  "label": "MCP",
   "servers": "Серверы",
   "tools": "Инструменты",
   "executionHistory": "История выполнения",

@@ -9,7 +9,7 @@ import {
   injectBackgroundCssBlock,
   BACKGROUND_BLOCK_START,
   BACKGROUND_BLOCK_END,
-} from '@/renderer/pages/settings/DisplaySettings/backgroundUtils';
+} from '@/renderer/pages/settings/AppearanceSettings/backgroundUtils';
 
 describe('backgroundUtils', () => {
   const testImageUrl = 'data:image/png;base64,iVBORw0KGg';

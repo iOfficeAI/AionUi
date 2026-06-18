@@ -69,3 +69,10 @@
 .summary {
   white-space: nowrap;
 }
+
+@media (max-width: 767px) {
+  .body {
+    font-size: 13px;
+    line-height: 1.4;
+  }
+}

@@ -101,7 +101,6 @@
       "executionModeEditHint": "创建后无法更改执行模式，如需切换请删除任务后重新创建。",
       "advancedSettings": "高级设置",
       "workspace": "项目",
-      "workspacePlaceholder": "选择文件夹",
       "workspaceHint": "可选：设置文件操作的项目文件夹",
       "selectFolder": "选择文件夹",
       "clearFolder": "清除",

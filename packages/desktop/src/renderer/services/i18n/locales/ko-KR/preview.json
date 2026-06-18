@@ -58,6 +58,7 @@
   "mermaidTitle": "Mermaid 다이어그램",
   "largeTextTruncatedHint": "대용량 파일 미리보기 모드: 성능을 위해 앞의 {{count}}자만 표시합니다.",
   "truncatedBanner": "미리보기 내용이 잘렸습니다. 전체 파일은 다운로드해서 확인하세요.",
+  "aiWriting": "AI가 작성 중…",
   "errors": {
     "missingFilePath": "파일 경로가 누락되었습니다",
     "openWithoutPath": "열 수 없음: 파일 경로가 제공되지 않았습니다",
@@ -72,6 +73,10 @@
       "portTimeout": "미리보기 서비스가 시작되었지만 제시간에 준비되지 않았습니다. 다시 시도하세요.",
       "startFailed": "Office 미리보기 서비스 시작에 실패했습니다.",
       "outsideSandbox": "이 파일은 현재 프로젝트 샌드박스 범위 밖에 있습니다."
+    },
+    "serverInstall": {
+      "hint": "AionUi가 서버에서 실행 중입니다. 미리보기 구성 요소는 해당 서버에 설치해야 합니다. 서버에서 다음 명령을 실행한 후 다시 시도하세요:",
+      "icuNote": "설치 후에도 시작되지 않으면 서버에 ICU 라이브러리를 설치하세요(Debian/Ubuntu: apt-get install -y libicu-dev)."
     }
   },
   "word": {
@@ -129,6 +134,6 @@
     "loading": "PPT 미리보기 시작 중...",
     "installing": "미리보기 구성 요소 설치 중...",
     "startFailed": "PPT 미리보기 시작 실패",
-    "installHint": "officecli가 설치되어 있는지 확인하세요: npm run postinstall"
+    "installHint": "공식 iOfficeAI/OfficeCli releases 페이지에서 OfficeCLI를 설치하세요"
   }
 }

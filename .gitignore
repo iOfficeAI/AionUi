@@ -171,6 +171,9 @@ wiki/
 # Local design docs and screenshots
 desdoc/
 
+# Local kanban (协作工作簿，不入库)
+kanban/
+
 # E2E test artifacts (Playwright)
 tests/e2e/screenshots/
 tests/e2e/results/

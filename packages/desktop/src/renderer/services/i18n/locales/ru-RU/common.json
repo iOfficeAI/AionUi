@@ -7,7 +7,8 @@
   "file": "Файл",
   "folder": "Папка",
   "upload": "Загрузить",
-  "attach": "Вложить",
+  "model": "Модель",
+  "skills": "Навыки",
   "workspace": "Проект",
   "settings": "Настройки",
   "system": "Система",
@@ -57,6 +58,7 @@
   "forward": "Вперёд",
   "more": "Ещё",
   "refresh": "Обновить",
+  "readOnly": "Только чтение",
   "tray.showWindow": "Показать AionUi",
   "tray.newChat": "Новый чат",
   "tray.closeToTray": "Свернуть в трей",
@@ -68,11 +70,33 @@
   "tray.checkUpdate": "Проверить обновления",
   "tray.recentChats": "Недавние чаты",
   "tray.untitled": "Без названия",
-  "fileAttach.hostFiles": "Файлы хоста",
+  "backendStartup": {
+    "incompatibleRuntime": {
+      "title": "Эта система не поддерживается встроенным backend",
+      "description": "AionUi открылся, но локальный backend AionCore не может работать в этой версии Linux. Обновитесь до поддерживаемого дистрибутива Linux и перезапустите AionUi.",
+      "requiredVersions": "Требуемые символы среды выполнения: {{versions}}"
+    },
+    "incompleteInstallation": {
+      "title": "Установка AionUi неполная",
+      "description": "В этой установке отсутствуют обязательные локальные ресурсы, поэтому AionCore не может запуститься. Загрузите и переустановите последнюю версию AionUi. Если проблема повторится после переустановки, проверьте, не поместило ли защитное или антивирусное ПО AionCore в карантин.",
+      "downloadLatest": "Скачать последнюю версию",
+      "sendDiagnostics": "Отправить диагностику",
+      "diagnosticsSent": "Диагностика отправлена",
+      "diagnosticsReportSuccess": "Диагностический отчет отправлен",
+      "diagnosticsReportFailed": "Не удалось отправить диагностический отчет",
+      "runtimeComponentDescription": "В этой установке отсутствуют необходимые встроенные компоненты среды выполнения, поэтому {{resource}} не может запуститься. Переустановите последнюю версию AionUi. Если проблема повторится после переустановки, проверьте, не поместило ли защитное или антивирусное ПО компоненты AionUi в карантин."
+    },
+    "packageArchitectureMismatch": {
+      "title": "AionUi package architecture mismatch",
+      "description": "This AionUi package is for {{packageArch}}, but this Mac is {{deviceArch}}. You may have downloaded the wrong package. Please download and install the {{expectedArch}} package."
+    }
+  },
+  "fileAttach.addFiles": "Добавить файлы",
   "fileAttach.myDevice": "Моё устройство",
   "fileAttach.failed": "Ошибка загрузки",
   "fileAttach.uploading": "Загрузка...",
   "fileAttach.uploadSuccess": "Загружено успешно",
+  "fileAttach.cancelUpload": "Отменить загрузку",
   "expand": "Развернуть",
   "name": "Имя",
   "added": "Добавлено",
@@ -83,5 +107,9 @@
   "optional": "(необязательно)",
   "clear": "Очистить",
   "historyBack": "Назад",
-  "agentMode": "Режим агента"
+  "agentMode": "Режим агента",
+  "unit": {
+    "minute_short": "мин",
+    "second_short": "с"
+  }
 }

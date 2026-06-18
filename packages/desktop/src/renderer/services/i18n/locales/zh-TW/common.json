@@ -7,7 +7,8 @@
   "file": "檔案",
   "folder": "資料夾",
   "upload": "上傳",
-  "attach": "附件",
+  "model": "模型",
+  "skills": "技能",
   "workspace": "專案",
   "settings": "設定",
   "system": "系統",
@@ -58,6 +59,7 @@
   "historyBack": "後退",
   "more": "更多",
   "refresh": "重新整理",
+  "readOnly": "唯讀",
   "tray.showWindow": "顯示 AionUi",
   "tray.newChat": "新建對話",
   "tray.closeToTray": "隱藏到托盤",
@@ -69,11 +71,33 @@
   "tray.checkUpdate": "檢查更新",
   "tray.recentChats": "最近對話",
   "tray.untitled": "未命名",
-  "fileAttach.hostFiles": "伺服器檔案",
+  "backendStartup": {
+    "incompatibleRuntime": {
+      "title": "目前系統不支援內建後端",
+      "description": "AionUi 已開啟，但本機 AionCore 後端無法在目前 Linux 版本上執行。請升級到受支援的 Linux 發行版後重新啟動 AionUi。",
+      "requiredVersions": "需要的執行階段符號：{{versions}}"
+    },
+    "incompleteInstallation": {
+      "title": "AionUi 安裝不完整",
+      "description": "目前安裝缺少必要的本機資源，AionCore 無法啟動。請下載並重新安裝最新版 AionUi；如果重新安裝後仍然出現，請檢查系統安全軟體或防毒軟體是否隔離了 AionCore。",
+      "downloadLatest": "下載最新版",
+      "sendDiagnostics": "傳送診斷報告",
+      "diagnosticsSent": "診斷報告已傳送",
+      "diagnosticsReportSuccess": "診斷報告已傳送",
+      "diagnosticsReportFailed": "診斷報告傳送失敗",
+      "runtimeComponentDescription": "目前安裝缺少必要的內建執行元件，{{resource}} 無法啟動。請重新安裝最新版 AionUi；如果重新安裝後仍然出現，請檢查系統安全軟體或防毒軟體是否隔離了 AionUi 元件。"
+    },
+    "packageArchitectureMismatch": {
+      "title": "AionUi 安裝包架構不相符",
+      "description": "目前 AionUi 安裝包是 {{packageArch}}，但這台 Mac 是 {{deviceArch}}。你可能下載了錯誤的安裝包，請重新下載並安裝 {{expectedArch}} 版本。"
+    }
+  },
+  "fileAttach.addFiles": "新增檔案",
   "fileAttach.myDevice": "我的裝置",
   "fileAttach.failed": "上傳失敗",
   "fileAttach.uploading": "上傳中...",
   "fileAttach.uploadSuccess": "上傳成功",
+  "fileAttach.cancelUpload": "取消上傳",
   "expand": "展開",
   "name": "名稱",
   "added": "已新增",
@@ -83,5 +107,9 @@
   "import": "匯入",
   "processing": "處理中...",
   "optional": "（選填）",
-  "clear": "清除"
+  "clear": "清除",
+  "unit": {
+    "minute_short": "分",
+    "second_short": "秒"
+  }
 }

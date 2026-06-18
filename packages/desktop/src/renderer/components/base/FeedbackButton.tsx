@@ -13,6 +13,10 @@ import { useTranslation } from 'react-i18next';
 type FeedbackButtonProps = {
   /** Pre-selects the module in the feedback modal (see FEEDBACK_MODULES tags). */
   module?: string;
+  /** Extra Sentry tags attached to the feedback event. */
+  feedbackTags?: Record<string, string>;
+  /** Extra structured context attached to the feedback event. */
+  feedbackExtra?: Record<string, unknown>;
   /** Additional classes appended to the default pill styling. */
   className?: string;
 };
@@ -23,18 +27,18 @@ type FeedbackButtonProps = {
  * auto-captures the current window and opens the feedback modal with the
  * relevant module preselected; the user only needs to describe the issue.
  */
-const FeedbackButton: React.FC<FeedbackButtonProps> = ({ module, className }) => {
+const FeedbackButton: React.FC<FeedbackButtonProps> = ({ module, feedbackTags, feedbackExtra, className }) => {
   const { t } = useTranslation();
   const { openFeedback } = useFeedback();
 
   const handleClick = useCallback(
     (event: React.MouseEvent<HTMLElement>) => {
       event.stopPropagation();
-      openFeedback({ module, autoScreenshot: true }).catch((err) => {
+      openFeedback({ module, autoScreenshot: true, tags: feedbackTags, extra: feedbackExtra }).catch((err) => {
         console.error('[FeedbackButton] Failed to open feedback:', err);
       });
     },
-    [module, openFeedback]
+    [feedbackExtra, feedbackTags, module, openFeedback]
   );
 
   return (

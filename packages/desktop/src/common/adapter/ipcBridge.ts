@@ -13,11 +13,21 @@
  */
 
 import type { IConfirmation } from '@/common/chat/chatLib';
+import type { AcpSlashCommandApiItem } from '@/common/chat/slash/types';
 import { bridge } from '@office-ai/platform';
 import type { OpenDialogOptions } from 'electron';
-import type { ICssTheme, IMcpServer, IProvider, TChatConversation, TProviderWithModel } from '../config/storage';
+import type {
+  ICssTheme,
+  IMcpServer,
+  IProvider,
+  ISessionMcpServer,
+  TChatConversation,
+  TConversationRuntimeSummary,
+  TProviderWithModel,
+} from '../config/storage';
 import type {
   Assistant,
+  AssistantDetail,
   CreateAssistantRequest,
   ImportAssistantsRequest,
   ImportAssistantsResult,
@@ -25,33 +35,54 @@ import type {
   UpdateAssistantRequest,
 } from '../types/agent/assistantTypes';
 import type { PreviewHistoryTarget, PreviewSnapshotInfo } from '../types/office/preview';
-import type { AcpModelInfo } from '../types/platform/acpTypes';
+import type {
+  GetConfigOptionsResponse,
+  SetConfigOptionRequest,
+  SetConfigOptionResponse,
+} from '../types/platform/acpTypes';
 import type {
   CreateProviderRequest,
   FetchModelsAnonymousRequest,
   FetchModelsResponse,
+  ProviderHealthCheckRequest,
+  ProviderHealthCheckResponse,
   UpdateProviderRequest,
 } from '../types/provider/providerApi';
-import type { SpeechToTextRequest, SpeechToTextResult } from '../types/provider/speech';
 import type {
   ITeamAgentRemovedEvent,
   ITeamAgentRenamedEvent,
   ITeamAgentSpawnedEvent,
   ITeamAgentStatusEvent,
+  ITeamChildTurnEvent,
   ITeamCreatedEvent,
   ITeamListChangedEvent,
+  ITeamMcpStatusEvent,
+  ITeamRemovedEvent,
+  ITeamRenamedEvent,
+  ITeamRunAck,
+  ITeamRunEvent,
+  ITeamSessionChangedEvent,
+  ITeamTaskChangedEvent,
+  ICancelTeamChildTurnParams,
+  ICancelTeamRunParams,
+  IPauseTeamSlotParams,
+  ISendTeamAgentMessageParams,
+  ISendTeamMessageParams,
   ITeamTeammateMessageEvent,
   TTeam,
   TeamAgent,
 } from '../types/team/teamTypes';
 import type {
+  AutoUpdateReadyResult,
   AutoUpdateStatus,
   UpdateCheckRequest,
   UpdateCheckResult,
+  UpdateDownloadCancelRequest,
   UpdateDownloadProgressEvent,
   UpdateDownloadRequest,
   UpdateDownloadResult,
 } from '../update/updateTypes';
+import type { Theme } from '@/common/theme/types';
 import type { ProtocolDetectionRequest, ProtocolDetectionResponse } from '../utils/protocolDetector';
 import { fromApiConversation, fromApiPaginatedConversations, toApiModelOptional } from './apiModelMapper';
 import {
@@ -76,7 +107,12 @@ import {
   toBackendAgent,
 } from './teamMapper';
 import { fromBackendCompareResult, type RawCompareResult } from './fileSnapshotMapper';
-import { absoluteToRelativePath, fromBackendWorkspaceList } from './workspaceMapper';
+import {
+  absoluteToRelativePath,
+  fromBackendWorkspaceFlatFiles,
+  fromBackendWorkspaceList,
+  type RawWorkspaceFlatFile,
+} from './workspaceMapper';
 
 // ---------------------------------------------------------------------------
 // Shell — routed to POST /api/shell/*
@@ -98,6 +134,10 @@ export const shell = {
 
 export const assistants = {
   list: httpGet<Assistant[], void>('/api/assistants'),
+  get: httpGet<AssistantDetail, { id: string; locale?: string }>(
+    ({ id, locale }) =>
+      `/api/assistants/${encodeURIComponent(id)}${locale ? `?locale=${encodeURIComponent(locale)}` : ''}`
+  ),
   create: httpPost<Assistant, CreateAssistantRequest>('/api/assistants'),
   update: httpPut<Assistant, UpdateAssistantRequest>((p) => `/api/assistants/${p.id}`),
   delete: httpDelete<void, { id: string }>((p) => `/api/assistants/${p.id}`),
@@ -125,6 +165,7 @@ export const conversation = {
         type: p.type,
         id: p.id,
         name: p.name,
+        assistant: p.assistant,
         extra: p.extra,
       };
       if (isAionrs) {
@@ -141,19 +182,19 @@ export const conversation = {
       const { model: _rawModel, ...rest } = p.conversation as TChatConversation & {
         model?: TProviderWithModel;
       };
-      const conversation: Record<string, unknown> = { ...rest };
+      const clonedConversation: Record<string, unknown> = { ...rest };
       if (isAionrs) {
         const model = toApiModelOptional(_rawModel);
-        if (model) conversation.model = model;
+        if (model) clonedConversation.model = model;
       }
       return {
-        conversation,
+        conversation: clonedConversation,
       };
     }),
     fromApiConversation
   ),
   get: withResponseMap(
-    httpGet<TChatConversation, { id: string }>((p) => `/api/conversations/${p.id}`),
+    httpGet<TChatConversation, { id: string }>((p) => `/api/conversations/${p.id}`, { silentStatuses: [404] }),
     fromApiConversation
   ),
   getAssociateConversation: withResponseMap(
@@ -182,7 +223,10 @@ export const conversation = {
   ),
   reset: httpPost<void, IResetConversationParams>((p) => `/api/conversations/${p.id}/reset`),
   warmup: httpPost<void, { conversation_id: string }>((p) => `/api/conversations/${p.conversation_id}/warmup`),
-  stop: httpPost<void, { conversation_id: string }>((p) => `/api/conversations/${p.conversation_id}/cancel`),
+  stop: httpPost<{ runtime: TConversationRuntimeSummary }, { conversation_id: string; turn_id: string }>(
+    (p) => `/api/conversations/${p.conversation_id}/cancel`,
+    (p) => ({ turn_id: p.turn_id })
+  ),
   activeCount: httpGet<{ count: number }>('/api/conversations/active-count'),
   sendMessage: httpPost<ISendMessageResult, ISendMessageParams>(
     (p) => `/api/conversations/${p.conversation_id}/messages`,
@@ -193,7 +237,7 @@ export const conversation = {
       inject_skills: p.inject_skills,
     })
   ),
-  getSlashCommands: httpGet<Array<{ command: string; description: string }>, { conversation_id: string }>(
+  getSlashCommands: httpGet<AcpSlashCommandApiItem[], { conversation_id: string }>(
     (p) => `/api/conversations/${p.conversation_id}/slash-commands`
   ),
   askSideQuestion: httpPost<ConversationSideQuestionResult, { conversation_id: string; question: string }>(
@@ -215,6 +259,15 @@ export const conversation = {
     (p) => ({ status: p.status })
   ),
   responseStream: wsEmitter<IResponseMessage>('message.stream'),
+  userCreated: wsEmitter<{
+    conversation_id: string;
+    msg_id: string;
+    content: string;
+    position: 'right';
+    status: 'finish';
+    hidden: boolean;
+    created_at: number;
+  }>('message.userCreated'),
   artifactStream: wsEmitter<IConversationArtifact>('conversation.artifact'),
   turnCompleted: wsMappedEmitter<IConversationTurnCompletedEvent>('turn.completed', (raw) => {
     const r = raw as Record<string, unknown>;
@@ -233,13 +286,14 @@ export const conversation = {
         };
     const rawRuntime = (r.runtime ?? {}) as Record<string, unknown>;
     const runtime: IConversationTurnCompletedEvent['runtime'] = {
+      state: (rawRuntime.state ?? 'idle') as IConversationTurnCompletedEvent['runtime']['state'],
+      can_send_message: (rawRuntime.can_send_message ?? rawRuntime.canSendMessage ?? true) as boolean,
       has_task: (rawRuntime.has_task ?? rawRuntime.hasTask ?? false) as boolean,
       task_status: (rawRuntime.task_status ??
         rawRuntime.taskStatus) as IConversationTurnCompletedEvent['runtime']['task_status'],
       is_processing: (rawRuntime.is_processing ?? rawRuntime.isProcessing ?? false) as boolean,
       pending_confirmations: (rawRuntime.pending_confirmations ?? rawRuntime.pendingConfirmations ?? 0) as number,
-      db_status: (rawRuntime.db_status ??
-        rawRuntime.dbStatus) as IConversationTurnCompletedEvent['runtime']['db_status'],
+      turn_id: (rawRuntime.turn_id ?? rawRuntime.turnId ?? null) as string | null,
     };
     const rawModel = (r.model ?? {}) as Record<string, unknown>;
     const model: IConversationTurnCompletedEvent['model'] = {
@@ -249,6 +303,7 @@ export const conversation = {
     };
     return {
       session_id: (r.session_id ?? r.sessionId ?? r.conversation_id ?? '') as string,
+      turn_id: (r.turn_id ?? r.turnId ?? runtime.turn_id ?? '') as string,
       status: (r.status ?? 'finished') as IConversationTurnCompletedEvent['status'],
       state: (r.state ??
         (r.status === 'finished' ? 'ai_waiting_input' : 'unknown')) as IConversationTurnCompletedEvent['state'],
@@ -300,6 +355,10 @@ export const conversation = {
   },
 };
 
+export const runtime = {
+  statusChanged: wsEmitter<IRuntimeStatusEvent>('runtime.statusChanged'),
+};
+
 // ---------------------------------------------------------------------------
 // CDP status / config types (used by application, stays IPC)
 // ---------------------------------------------------------------------------
@@ -323,6 +382,35 @@ export interface ICdpConfig {
   port?: number;
 }
 
+export type RuntimeStatusScopeKind = 'conversation' | 'mcp' | 'custom_agent';
+export type RuntimeResourceKind = 'node' | 'acp_tool';
+export type RuntimeStatusPhase = 'waiting_for_lock' | 'downloading' | 'extracting' | 'validating' | 'ready' | 'failed';
+export type RuntimeFailureKind =
+  | 'timeout'
+  | 'download_failed'
+  | 'http_status'
+  | 'checksum_mismatch'
+  | 'validation_failed'
+  | 'unsupported_platform'
+  | 'bundled_resource_missing'
+  | 'bundled_resource_invalid'
+  | 'unknown';
+
+export interface IRuntimeStatusScope {
+  kind: RuntimeStatusScopeKind;
+  id: string;
+}
+
+export interface IRuntimeStatusEvent {
+  resource: RuntimeResourceKind;
+  resource_id?: string;
+  scope: IRuntimeStatusScope;
+  phase: RuntimeStatusPhase;
+  failure_kind?: RuntimeFailureKind;
+  message?: string;
+  status_code?: number;
+}
+
 export interface IStartOnBootStatus {
   supported: boolean;
   enabled: boolean;
@@ -342,12 +430,27 @@ export interface IGpuStatus {
   lastCrashAt: number | null;
 }
 
+export interface IAppRestartResult {
+  restarted: boolean;
+  manualRestartRequired: boolean;
+  reason?: 'dev-mode';
+}
+
+export type IRendererLogLevel = 'debug' | 'info' | 'warn' | 'error';
+
+export interface IRendererLogEntry {
+  level: IRendererLogLevel;
+  tag: string;
+  message: string;
+  data?: unknown;
+}
+
 // ---------------------------------------------------------------------------
 // Application — stays IPC (Electron-native)
 // ---------------------------------------------------------------------------
 
 export const application = {
-  restart: bridge.buildProvider<void, void>('restart-app'),
+  restart: bridge.buildProvider<IAppRestartResult, void>('restart-app'),
   openDevTools: bridge.buildProvider<boolean, void>('open-dev-tools'),
   isDevToolsOpened: bridge.buildProvider<boolean, void>('is-dev-tools-opened'),
   systemInfo: withResponseMap(
@@ -365,7 +468,9 @@ export const application = {
   getPath: bridge.buildProvider<string, { name: 'desktop' | 'home' | 'downloads' }>('app.get-path'),
   // Electron-local: copies cache dir + persists to ProcessEnv, paired with restart.
   // The backend reads AIONUI_*_DIR env vars on boot, so it does not own this config.
-  updateSystemInfo: bridge.buildProvider<void, { cacheDir: string; workDir: string }>('update-system-info'),
+  updateSystemInfo: bridge.buildProvider<void, { cacheDir: string; workDir: string; logDir?: string }>(
+    'update-system-info'
+  ),
   getZoomFactor: bridge.buildProvider<number, void>('app.get-zoom-factor'),
   setZoomFactor: bridge.buildProvider<number, { factor: number }>('app.set-zoom-factor'),
   getCdpStatus: bridge.buildProvider<IBridgeResponse<ICdpStatus>, void>('app.get-cdp-status'),
@@ -378,6 +483,7 @@ export const application = {
   setGpuOverride: bridge.buildProvider<IBridgeResponse<IGpuStatus>, { override: IGpuOverride | null }>(
     'app.set-gpu-override'
   ),
+  writeRendererLog: bridge.buildProvider<void, IRendererLogEntry>('app.write-renderer-log'),
   logStream: bridge.buildEmitter<{ level: 'log' | 'warn' | 'error'; tag: string; message: string; data?: unknown }>(
     'app.log-stream'
   ),
@@ -389,9 +495,10 @@ export const application = {
 // ---------------------------------------------------------------------------
 
 export const update = {
-  open: bridge.buildEmitter<{ source?: 'menu' | 'about' }>('update.open'),
+  open: bridge.buildEmitter<{ source?: 'menu' | 'about' | 'tray' }>('update.open'),
   check: bridge.buildProvider<IBridgeResponse<UpdateCheckResult>, UpdateCheckRequest>('update.check'),
   download: bridge.buildProvider<IBridgeResponse<UpdateDownloadResult>, UpdateDownloadRequest>('update.download'),
+  cancelDownload: bridge.buildProvider<IBridgeResponse, UpdateDownloadCancelRequest>('update.download.cancel'),
   downloadProgress: bridge.buildEmitter<UpdateDownloadProgressEvent>('update.download.progress'),
 };
 
@@ -400,19 +507,13 @@ export const autoUpdate = {
     IBridgeResponse<{ updateInfo?: { version: string; releaseDate?: string; releaseNotes?: string } }>,
     { includePrerelease?: boolean }
   >('auto-update.check'),
+  restoreDownloaded: bridge.buildProvider<IBridgeResponse<AutoUpdateReadyResult>, void>(
+    'auto-update.restore-downloaded'
+  ),
   download: bridge.buildProvider<IBridgeResponse, void>('auto-update.download'),
+  cancelDownload: bridge.buildProvider<IBridgeResponse, void>('auto-update.download.cancel'),
   quitAndInstall: bridge.buildProvider<void, void>('auto-update.quit-and-install'),
   status: bridge.buildEmitter<AutoUpdateStatus>('auto-update.status'),
-};
-
-// ---------------------------------------------------------------------------
-// Star Office — routed to backend
-// ---------------------------------------------------------------------------
-
-export const starOffice = {
-  detectUrl: httpPost<{ url: string | null }, { preferredUrl?: string; force?: boolean; timeoutMs?: number }>(
-    '/api/star-office/detect'
-  ),
 };
 
 // ---------------------------------------------------------------------------
@@ -433,7 +534,10 @@ export const dialog = {
 
 export const fs = {
   getFilesByDir: httpPost<Array<IDirOrFile>, { dir: string; root: string }>('/api/fs/dir'),
-  listWorkspaceFiles: httpPost<Array<IWorkspaceFlatFile>, { root: string }>('/api/fs/list'),
+  listWorkspaceFiles: withResponseMap(
+    httpPost<Array<RawWorkspaceFlatFile>, { root: string }>('/api/fs/list'),
+    fromBackendWorkspaceFlatFiles
+  ),
   getImageBase64: httpPost<string | null, { path: string; workspace?: string }>('/api/fs/image-base64'),
   fetchRemoteImage: httpPost<string, { url: string }>('/api/fs/fetch-remote-image'),
   readFile: httpPost<string | null, { path: string; workspace?: string }>('/api/fs/read'),
@@ -469,13 +573,6 @@ export const fs = {
   deleteAssistantRule: httpDelete<boolean, { assistant_id: string }>(
     (p) => `/api/skills/assistant-rule/${p.assistant_id}`
   ),
-  readAssistantSkill: httpPost<string, { assistant_id: string; locale?: string }>('/api/skills/assistant-skill/read'),
-  writeAssistantSkill: httpPost<boolean, { assistant_id: string; content: string; locale?: string }>(
-    '/api/skills/assistant-skill/write'
-  ),
-  deleteAssistantSkill: httpDelete<boolean, { assistant_id: string }>(
-    (p) => `/api/skills/assistant-skill/${p.assistant_id}`
-  ),
   listAvailableSkills: httpGet<
     Array<{
       name: string;
@@ -509,7 +606,9 @@ export const fs = {
     }>,
     void
   >('/api/skills/detect-external'),
-  importSkillWithSymlink: httpPost<{ skill_name: string }, { skill_path: string }>('/api/skills/import-symlink'),
+  importSkillWithSymlink: httpPost<{ skill_name: string; skill_names?: string[] }, { skill_path: string }>(
+    '/api/skills/import-symlink'
+  ),
   deleteSkill: httpDelete<void, { skill_name: string }>((p) => `/api/skills/${p.skill_name}`),
   getSkillPaths: httpGet<{ user_skills_dir: string; builtin_skills_dir: string }, void>('/api/skills/paths'),
   getCustomExternalPaths: httpGet<Array<{ name: string; path: string }>, void>('/api/skills/external-paths'),
@@ -519,14 +618,6 @@ export const fs = {
   ),
   enableSkillsMarket: httpPost<void, void>('/api/skills/market/enable'),
   disableSkillsMarket: httpPost<void, void>('/api/skills/market/disable'),
-};
-
-// ---------------------------------------------------------------------------
-// Speech to Text — routed to backend
-// ---------------------------------------------------------------------------
-
-export const speechToText = {
-  transcribe: httpPost<SpeechToTextResult, SpeechToTextRequest>('/api/stt'),
 };
 
 // ---------------------------------------------------------------------------
@@ -673,10 +764,18 @@ export const acpConversation = {
   sendMessage: conversation.sendMessage,
   responseStream: conversation.responseStream,
   getAvailableAgents: httpGet<AgentMetadata[], void>('/api/agents'),
+  /**
+   * Management view of `/api/agents` (`?include_disabled=true`). Returns the
+   * picker-safe list plus agents hidden solely because the user disabled
+   * them (still installed). Used only by the Agent settings screen so a
+   * disabled custom agent stays listed with a working re-enable toggle.
+   * Pickers must keep using `getAvailableAgents` (default filtered view).
+   */
+  getManagedAgents: httpGet<AgentMetadata[], void>('/api/agents?include_disabled=true'),
   refreshCustomAgents: httpPost<void, void>('/api/agents/refresh'),
   testCustomAgent: httpPost<
     { step: 'success' } | { step: 'fail_cli'; error: string } | { step: 'fail_acp'; error: string },
-    { command: string; acp_args?: string[]; env?: Record<string, string> }
+    { command: string; acp_args?: string[]; env?: Record<string, string>; runtime_scope_id?: string }
   >('/api/agents/custom/try-connect'),
   createCustomAgent: httpPost<
     AgentMetadata,
@@ -725,26 +824,16 @@ export const acpConversation = {
   checkAgentHealth: httpPost<{ available: boolean; latency?: number; error?: string }, { backend: string }>(
     '/api/agents/health-check'
   ),
-  setMode: httpPut<void, { conversation_id: string; mode: string }>(
-    (p) => `/api/conversations/${p.conversation_id}/mode`,
-    (p) => ({ mode: p.mode })
+  checkProviderHealth: httpPost<ProviderHealthCheckResponse, ProviderHealthCheckRequest>(
+    '/api/agents/provider-health-check'
   ),
-  // 404 is the expected pre-warmup response from `/api/conversations/:id/mode`
-  // and `/api/conversations/:id/model` — the agent has not attached yet, so
-  // we have nothing to read. AcpModeSelector / AcpModelSelector both fall back
-  // to handshake metadata in that case. Silence the bridge log so this
-  // ordinary state doesn't pollute Sentry breadcrumbs (ELECTRON-1BT).
-  getMode: httpGet<{ mode: string; initialized: boolean }, { conversation_id: string }>(
-    (p) => `/api/conversations/${p.conversation_id}/mode`,
+  getConfigOptions: httpGet<GetConfigOptionsResponse, { conversation_id: string }>(
+    (p) => `/api/conversations/${p.conversation_id}/config-options`,
     { silentStatuses: [404] }
   ),
-  getModel: httpGet<{ model_info: AcpModelInfo | null }, { conversation_id: string }>(
-    (p) => `/api/conversations/${p.conversation_id}/model`,
-    { silentStatuses: [404] }
-  ),
-  setModel: httpPut<void, { conversation_id: string; model_id: string }>(
-    (p) => `/api/conversations/${p.conversation_id}/model`,
-    (p) => ({ model_id: p.model_id })
+  setConfigOption: httpPut<SetConfigOptionResponse, { conversation_id: string; option_id: string; value: string }>(
+    (p) => `/api/conversations/${p.conversation_id}/config-options/${encodeURIComponent(p.option_id)}`,
+    (p): SetConfigOptionRequest => ({ value: p.value })
   ),
 };
 
@@ -753,36 +842,70 @@ export const acpConversation = {
 // ---------------------------------------------------------------------------
 
 export const mcpService = {
+  listServers: httpGet<IMcpServer[], void>('/api/mcp/servers'),
+  createServer: httpPost<
+    IMcpServer,
+    Pick<IMcpServer, 'name' | 'description' | 'transport' | 'original_json' | 'builtin'>
+  >('/api/mcp/servers'),
+  importServers: httpPost<
+    IMcpServer[],
+    { servers: Array<Pick<IMcpServer, 'name' | 'description' | 'transport' | 'original_json' | 'builtin'>> }
+  >('/api/mcp/servers/import'),
+  updateServer: httpPut<
+    IMcpServer,
+    {
+      id: string;
+      data: Partial<Pick<IMcpServer, 'name' | 'description' | 'transport' | 'original_json' | 'builtin'>>;
+    }
+  >(
+    (p) => `/api/mcp/servers/${p.id}`,
+    (p) => p.data
+  ),
+  deleteServer: httpDelete<void, { id: string }>((p) => `/api/mcp/servers/${p.id}`),
+  toggleServer: httpPost<IMcpServer, { id: string }>(
+    (p) => `/api/mcp/servers/${p.id}/toggle`,
+    () => undefined
+  ),
+  batchImportServers: httpPost<
+    IMcpServer[],
+    { servers: Array<Partial<IMcpServer> & Pick<IMcpServer, 'name' | 'transport'>> }
+  >('/api/mcp/servers/import'),
   getAgentMcpConfigs: httpGet<
-    Array<{ source: string; servers: IMcpServer[] }>,
+    Array<{
+      source: string;
+      servers: Array<
+        IMcpServer & {
+          importable: boolean;
+          import_skip_reason?: string;
+        }
+      >;
+    }>,
     Array<{ agent_type: string; backend?: string; name: string; cli_path?: string }>
   >('/api/mcp/agent-configs'),
   testMcpConnection: httpPost<
     {
       success: boolean;
-      tools?: Array<{ name: string; description?: string; _meta?: Record<string, unknown> }>;
+      tools?: Array<{
+        name: string;
+        description?: string;
+        input_schema?: unknown;
+        _meta?: Record<string, unknown>;
+      }>;
       error?: string;
+      code?: string;
+      details?: unknown;
       needsAuth?: boolean;
+      needs_auth?: boolean;
       authMethod?: 'oauth' | 'basic';
+      auth_method?: 'oauth' | 'basic';
       wwwAuthenticate?: string;
+      www_authenticate?: string;
     },
-    IMcpServer
+    IMcpServer & { runtime_scope_id?: string }
   >('/api/mcp/test-connection'),
-  syncMcpToAgents: httpPost<
-    { success: boolean; results: Array<{ agent: string; success: boolean; error?: string }> },
-    { servers: string[] }
-  >('/api/mcp/sync-to-agents'),
-  removeMcpFromAgents: httpPost<
-    { success: boolean; results: Array<{ agent: string; success: boolean; error?: string }> },
-    { server_names: string[] }
-  >('/api/mcp/remove-from-agents'),
-  checkOAuthStatus: httpPost<{ isAuthenticated: boolean; needsLogin: boolean; error?: string }, IMcpServer>(
-    '/api/mcp/oauth/check-status'
-  ),
-  loginMcpOAuth: httpPost<{ success: boolean; error?: string }, { server: IMcpServer; config?: unknown }>(
-    '/api/mcp/oauth/login'
-  ),
-  logoutMcpOAuth: httpPost<void, string>('/api/mcp/oauth/logout', (serverName) => ({ serverName })),
+  checkOAuthStatus: httpPost<{ authenticated: boolean }, { server_url: string }>('/api/mcp/oauth/check-status'),
+  loginMcpOAuth: httpPost<{ success: boolean; error?: string }, { server_url: string }>('/api/mcp/oauth/login'),
+  logoutMcpOAuth: httpPost<void, { server_url: string }>('/api/mcp/oauth/logout'),
   getAuthenticatedServers: httpGet<string[], void>('/api/mcp/oauth/authenticated'),
 };
 
@@ -860,11 +983,15 @@ export type PaginatedResult<T> = {
 export const database = {
   getConversationMessages: httpGet<
     PaginatedResult<import('@/common/chat/chatLib').TMessage>,
-    { conversation_id: string; page?: number; page_size?: number; order?: string }
+    { conversation_id: string; page?: number; page_size?: number; order?: string; content_mode?: 'compact' | 'full' }
   >(
     (p) =>
-      `/api/conversations/${p.conversation_id}/messages?page=${p.page ?? 1}&page_size=${p.page_size ?? 50}${p.order ? `&order=${p.order}` : ''}`
+      `/api/conversations/${p.conversation_id}/messages?page=${p.page ?? 1}&page_size=${p.page_size ?? 50}${p.order ? `&order=${p.order}` : ''}${p.content_mode ? `&content_mode=${p.content_mode}` : ''}`
   ),
+  getConversationMessage: httpGet<
+    import('@/common/chat/chatLib').TMessage,
+    { conversation_id: string; message_id: string }
+  >((p) => `/api/conversations/${p.conversation_id}/messages/${encodeURIComponent(p.message_id)}`),
   getUserConversations: withResponseMap(
     httpGet<PaginatedResult<import('@/common/config/storage').TChatConversation>, { cursor?: string; limit?: number }>(
       (p) => {
@@ -982,12 +1109,25 @@ export const windowControls = {
 };
 
 // ---------------------------------------------------------------------------
-// System Settings — routed to /api/settings/*
+// Theme — stays IPC (main process owns the resolved-theme cache)
+// ---------------------------------------------------------------------------
+
+export const theme = {
+  // main → all renderers: the resolved active theme changed
+  changed: bridge.buildEmitter<Theme>('theme:changed'),
+  // renderer → main: publish a newly resolved theme (main caches + re-emits `changed`)
+  setActive: bridge.buildProvider<void, Theme>('theme:set-active'),
+  // any window → main: pull the currently cached resolved theme on load (null if none yet)
+  requestCurrent: bridge.buildProvider<Theme | null, void>('theme:request-current'),
+};
+
+// ---------------------------------------------------------------------------
+// System Settings — routed to /api/settings/* unless they need Electron-native side effects.
 // ---------------------------------------------------------------------------
 
 export const systemSettings = {
-  getCloseToTray: httpGet<boolean, void>('/api/settings/client?key=closeToTray'),
-  setCloseToTray: httpPut<void, { enabled: boolean }>('/api/settings/client', (p) => ({ closeToTray: p.enabled })),
+  getCloseToTray: bridge.buildProvider<boolean, void>('system-settings:get-close-to-tray'),
+  setCloseToTray: bridge.buildProvider<void, { enabled: boolean }>('system-settings:set-close-to-tray'),
   getNotificationEnabled: httpGet<boolean, void>('/api/settings/client?key=notificationEnabled'),
   setNotificationEnabled: httpPut<void, { enabled: boolean }>('/api/settings/client', (p) => ({
     notificationEnabled: p.enabled,
@@ -1016,6 +1156,10 @@ export const systemSettings = {
   setPetDnd: bridge.buildProvider<void, { dnd: boolean }>('system-settings:set-pet-dnd'),
   getPetConfirmEnabled: bridge.buildProvider<boolean, void>('system-settings:get-pet-confirm-enabled'),
   setPetConfirmEnabled: bridge.buildProvider<void, { enabled: boolean }>('system-settings:set-pet-confirm-enabled'),
+  ensureNodeRuntime: httpPost<{ ready: boolean }, { scope: IRuntimeStatusScope }>('/api/system/ensure-node-runtime'),
+  ensureManagedAcpTool: httpPost<{ ready: boolean }, { scope: IRuntimeStatusScope; tool_id: string }>(
+    '/api/system/ensure-managed-acp-tool'
+  ),
 };
 
 // ---------------------------------------------------------------------------
@@ -1221,6 +1365,8 @@ interface ISendMessageParams {
 // local state aligns with DB rows and WebSocket stream events.
 export interface ISendMessageResult {
   msg_id: string;
+  turn_id: string;
+  runtime: TConversationRuntimeSummary;
 }
 
 export interface IConfirmMessageParams {
@@ -1231,10 +1377,21 @@ export interface IConfirmMessageParams {
 }
 
 export interface ICreateConversationParams {
-  type: 'acp' | 'codex' | 'openclaw-gateway' | 'nanobot' | 'remote' | 'aionrs';
+  type: 'acp' | 'aionrs';
   id?: string;
   name?: string;
   model: TProviderWithModel;
+  assistant?: {
+    id: string;
+    locale?: string;
+    conversation_overrides?: {
+      model?: string;
+      permission?: string;
+      skill_ids?: string[];
+      disabled_builtin_skill_ids?: string[];
+      mcp_ids?: string[];
+    };
+  };
   extra: {
     workspace?: string;
     custom_workspace?: boolean;
@@ -1264,9 +1421,12 @@ export interface ICreateConversationParams {
     exclude_auto_inject_skills?: string[];
     preset_context?: string;
     preset_assistant_id?: string;
+    selected_mcp_server_ids?: string[];
+    selected_session_mcp_servers?: ISessionMcpServer[];
     session_mode?: string;
     codex_model?: string;
     current_model_id?: string;
+    thought_level?: string;
     cached_config_options?: import('../types/platform/acpTypes').AcpSessionConfigOption[];
     pending_config_options?: Record<string, string>;
     runtime_validation?: {
@@ -1278,6 +1438,7 @@ export interface ICreateConversationParams {
       expected_identity_hash?: string | null;
       switched_at?: number;
     };
+    /** Legacy marker for pre-provider-probe health-check conversations. */
     is_health_check?: boolean;
     remote_agent_id?: string;
     extra_skill_paths?: string[];
@@ -1317,9 +1478,12 @@ export interface IResponseMessage {
   type: string;
   data: unknown;
   msg_id: string;
+  turn_id?: string;
   conversation_id: string;
   created_at?: number;
   hidden?: boolean;
+  position?: 'left' | 'right' | 'center' | 'pop';
+  status?: 'finish' | 'pending' | 'error' | 'work';
   /** Replace accumulated text for the same msg_id instead of appending. */
   replace?: boolean;
 }
@@ -1365,6 +1529,7 @@ export type IConversationArtifact = ICronTriggerArtifact | ISkillSuggestArtifact
 
 export interface IConversationTurnCompletedEvent {
   session_id: string;
+  turn_id: string;
   status: 'pending' | 'running' | 'finished';
   state:
     | 'ai_generating'
@@ -1377,11 +1542,13 @@ export interface IConversationTurnCompletedEvent {
   detail: string;
   can_send_message: boolean;
   runtime: {
+    state: 'idle' | 'starting' | 'running' | 'cancelling' | 'waiting_confirmation';
+    can_send_message: boolean;
     has_task: boolean;
     task_status?: 'pending' | 'running' | 'finished';
     is_processing: boolean;
     pending_confirmations: number;
-    db_status?: 'pending' | 'running' | 'finished';
+    turn_id: string | null;
   };
   workspace: string;
   model: {
@@ -1671,13 +1838,60 @@ export const team = {
   ),
   setSessionMode: httpPost<void, { team_id: string; session_mode: string }>(
     (p) => `/api/teams/${p.team_id}/session-mode`,
-    (p) => ({ session_mode: p.session_mode })
+    (p) => ({ mode: p.session_mode })
   ),
-  agentStatusChanged: wsEmitter<ITeamAgentStatusEvent>('team.agent.status'),
-  agentSpawned: wsEmitter<ITeamAgentSpawnedEvent>('team.agent.spawned'),
-  agentRemoved: wsEmitter<ITeamAgentRemovedEvent>('team.agent.removed'),
-  agentRenamed: wsEmitter<ITeamAgentRenamedEvent>('team.agent.renamed'),
-  listChanged: wsEmitter<ITeamListChangedEvent>('team.list-changed'),
+  sendMessage: httpPost<ITeamRunAck, ISendTeamMessageParams>(
+    (p) => `/api/teams/${p.team_id}/messages`,
+    (p) => ({
+      content: p.input,
+      files: p.files,
+    })
+  ),
+  sendMessageToAgent: httpPost<ITeamRunAck, ISendTeamAgentMessageParams>(
+    (p) => `/api/teams/${p.team_id}/agents/${p.slot_id}/messages`,
+    (p) => ({
+      content: p.input,
+      files: p.files,
+    })
+  ),
+  cancelRun: httpPost<void, ICancelTeamRunParams>(
+    (p) => `/api/teams/${p.team_id}/runs/${p.team_run_id}/cancel`,
+    (p) => ({
+      target_slot_id: p.target_slot_id,
+      reason: p.reason,
+    })
+  ),
+  cancelChildTurn: httpPost<void, ICancelTeamChildTurnParams>(
+    (p) => `/api/teams/${p.team_id}/runs/${p.team_run_id}/agents/${p.slot_id}/cancel`,
+    (p) => ({
+      reason: p.reason,
+    })
+  ),
+  pauseSlotWork: httpPost<void, IPauseTeamSlotParams>(
+    (p) => `/api/teams/${p.team_id}/runs/${p.team_run_id}/agents/${p.slot_id}/pause`,
+    (p) => ({
+      reason: p.reason,
+    })
+  ),
+  agentStatusChanged: wsEmitter<ITeamAgentStatusEvent>('team.agentStatusChanged'),
+  agentSpawned: wsEmitter<ITeamAgentSpawnedEvent>('team.agentSpawned'),
+  agentRemoved: wsEmitter<ITeamAgentRemovedEvent>('team.agentRemoved'),
+  agentRenamed: wsEmitter<ITeamAgentRenamedEvent>('team.agentRenamed'),
+  listChanged: wsEmitter<ITeamListChangedEvent>('team.listChanged'),
   created: wsEmitter<ITeamCreatedEvent>('team.created'),
-  teammateMessage: wsEmitter<ITeamTeammateMessageEvent>('team.teammate.message'),
+  removed: wsEmitter<ITeamRemovedEvent>('team.removed'),
+  renamed: wsEmitter<ITeamRenamedEvent>('team.renamed'),
+  teammateMessage: wsEmitter<ITeamTeammateMessageEvent>('team.teammateMessage'),
+  mcpStatus: wsEmitter<ITeamMcpStatusEvent>('team.mcpStatus'),
+  taskChanged: wsEmitter<ITeamTaskChangedEvent>('team.taskChanged'),
+  sessionChanged: wsEmitter<ITeamSessionChangedEvent>('team.sessionChanged'),
+  runAccepted: wsEmitter<ITeamRunEvent>('team.runAccepted'),
+  runStarted: wsEmitter<ITeamRunEvent>('team.runStarted'),
+  runUpdated: wsEmitter<ITeamRunEvent>('team.runUpdated'),
+  runCompleted: wsEmitter<ITeamRunEvent>('team.runCompleted'),
+  runCancelled: wsEmitter<ITeamRunEvent>('team.runCancelled'),
+  runFailed: wsEmitter<ITeamRunEvent>('team.runFailed'),
+  childTurnStarted: wsEmitter<ITeamChildTurnEvent>('team.childTurnStarted'),
+  childTurnCompleted: wsEmitter<ITeamChildTurnEvent>('team.childTurnCompleted'),
+  childTurnCancelled: wsEmitter<ITeamChildTurnEvent>('team.childTurnCancelled'),
 };

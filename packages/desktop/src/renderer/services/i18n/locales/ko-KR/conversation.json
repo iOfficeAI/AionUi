@@ -2,7 +2,6 @@
   "welcome": {
     "title": "안녕하세요, 오늘의 계획은 무엇인가요?",
     "placeholder": "메시지 전송, 파일 업로드, 폴더 열기 또는 예약 작업 만들기...",
-    "uploadFile": "파일 업로드",
     "linkFolder": "폴더 열기",
     "newConversation": "새 채팅",
     "selectModel": "모델 선택",
@@ -14,7 +13,7 @@
     "openFolder": "폴더 열기",
     "none": "없음",
     "quickActionsTitle": "AionUi로 무엇을 할 수 있나요?",
-    "quickActionFeedback": "피드백이나 제안이 있으신가요?",
+    "quickActionFeedback": "문제 보고",
     "quickActionStar": "마음에 드시나요? 별을 주세요!",
     "skillsMarket": "AionUi Skills Market",
     "skillsMarketDesc": "커뮤니티 Skills를 필요에 따라 검색하고 활성화. 한 번 설정하면 모든 Agent에서 사용 가능.",
@@ -92,6 +91,187 @@
   "noAgentsAvailable": "사용 가능한 에이전트가 없습니다",
   "noModelConfigured": "모델이 설정되지 않았습니다. 설정 페이지에서 설정하세요.",
   "createFailed": "대화 생성에 실패했습니다",
+  "createError": {
+    "pathVariants": {
+      "WORKSPACE_PATH_UNAVAILABLE": "선택한 작업공간 경로를 사용할 수 없습니다. 작업공간 경로 \"{{workspacePath}}\" 가 실제로 존재하고 접근 가능한지 확인하세요."
+    }
+  },
+  "agentError": {
+    "fallbackTitle": "에이전트가 응답하지 못했습니다",
+    "errorCode": "오류 코드",
+    "retryable": "다시 시도 가능",
+    "notRetryable": "설정 확인 필요",
+    "resolutionPrefix": "제안: ",
+    "resolution": {
+      "retry": "잠시 후 다시 시도하거나 이 메시지를 다시 보내세요.",
+      "wait_for_current_response": "현재 응답이 끝난 뒤 다음 메시지를 보내세요.",
+      "start_new_session": "새 대화를 시작한 뒤 계속하세요.",
+      "reconnect_agent": "선택한 에이전트를 다시 시작하거나 다시 연결한 뒤 재시도하세요.",
+      "check_agent_login": "선택한 에이전트에 로그인하거나 인증 정보를 새로 고치세요.",
+      "check_agent_installation": "에이전트 설치 상태와 로컬 명령 설정을 확인하세요.",
+      "check_agent_version": "에이전트를 업데이트하거나 프로토콜 버전 호환성 문제를 해결하세요.",
+      "check_local_command": "누락된 명령을 설치하거나 PATH에 추가되어 있는지 확인하세요.",
+      "check_provider_credentials": "설정에서 모델 제공자의 API 키 또는 계정 인증 정보를 확인하세요.",
+      "check_provider_billing": "모델 제공자의 잔액, 크레딧 또는 할당량을 확인하세요.",
+      "check_provider_base_url": "모델 제공자의 Base URL, API 경로, 프록시 및 API 호환성을 확인하세요.",
+      "change_model": "현재 계정에서 사용할 수 있고 이 요청을 지원하는 모델을 선택하세요.",
+      "reduce_context": "메시지 내용, 참조 파일 또는 컨텍스트 크기를 줄인 뒤 재시도하세요.",
+      "send_feedback": "팀이 조사할 수 있도록 로그와 함께 피드백을 보내세요."
+    },
+    "ownership": {
+      "aionui": "앱",
+      "user_agent": "에이전트",
+      "user_llm_provider": "모델 제공자",
+      "unknown_upstream": "상위 서비스"
+    },
+    "codes": {
+      "AIONUI_STREAM_BROKEN": {
+        "title": "응답 스트림이 중단되었습니다",
+        "body": "앱이 메시지를 받았지만 응답 스트림이 예기치 않게 종료되었습니다. 다시 시도하세요. 반복되면 피드백을 보내세요."
+      },
+      "AIONUI_STATE_INCONSISTENT": {
+        "title": "대화 상태가 동기화되지 않았습니다",
+        "body": "대화 상태가 동기화되지 않았습니다. 이 채팅을 다시 시작하거나 앱을 새로고침한 뒤 재시도하세요."
+      },
+      "AIONUI_PERMISSION_ERROR": {
+        "title": "요청한 리소스에 접근할 수 없습니다",
+        "body": "로컬 권한 또는 파일 시스템 확인에 실패했습니다. 프로젝트 경로와 앱 권한을 확인한 뒤 재시도하세요."
+      },
+      "AIONUI_INTERNAL_ERROR": {
+        "title": "앱에서 요청 처리에 실패했습니다",
+        "body": "앱이 요청을 처리하는 동안 실패했습니다. 한 번 다시 시도하고, 반복되면 피드백을 보내세요."
+      },
+      "AIONUI_CONVERSATION_BUSY": {
+        "title": "대화가 처리 중입니다",
+        "body": "다른 응답이 아직 실행 중입니다. 완료된 뒤 새 메시지를 보내세요."
+      },
+      "USER_AGENT_NOT_INSTALLED": {
+        "title": "선택한 에이전트가 설치되어 있지 않습니다",
+        "body": "이 에이전트에 필요한 CLI 또는 앱을 설치한 뒤 설정에서 다시 연결하세요."
+      },
+      "USER_AGENT_STARTUP_FAILED": {
+        "title": "선택한 에이전트 시작에 실패했습니다",
+        "body": "에이전트 프로세스가 준비되기 전에 종료되었습니다. 설치, 로그인 상태, 로컬 명령 설정을 확인하세요."
+      },
+      "USER_AGENT_DISCONNECTED": {
+        "title": "선택한 에이전트 연결이 끊어졌습니다",
+        "body": "이 메시지를 처리하는 동안 에이전트 연결이 닫혔습니다. 에이전트를 다시 시작하거나 다시 연결한 뒤 재시도하세요."
+      },
+      "USER_AGENT_AUTH_REQUIRED": {
+        "title": "선택한 에이전트에 인증이 필요합니다",
+        "body": "선택한 에이전트에 로그인하거나 인증 정보를 새로 고친 뒤 메시지를 다시 보내세요."
+      },
+      "USER_AGENT_SESSION_NOT_FOUND": {
+        "title": "에이전트 세션을 찾을 수 없습니다",
+        "body": "에이전트가 더 이상 이 세션을 인식하지 못합니다. 새 채팅을 시작하거나 에이전트를 다시 연결하세요."
+      },
+      "USER_AGENT_UNSUPPORTED_METHOD": {
+        "title": "선택한 에이전트가 이 작업을 지원하지 않습니다",
+        "body": "이 에이전트는 요청한 작업을 처리할 수 없습니다. 다른 에이전트를 사용하거나 현재 에이전트를 업데이트하세요."
+      },
+      "USER_AGENT_INVALID_PARAMS": {
+        "title": "선택한 에이전트가 요청을 거부했습니다",
+        "body": "에이전트가 요청 형식이 잘못되었다고 보고했습니다. 메시지를 단순화하거나 다른 에이전트로 전환하세요."
+      },
+      "USER_AGENT_HANDSHAKE_FAILED": {
+        "title": "에이전트 핸드셰이크에 실패했습니다",
+        "body": "선택한 에이전트가 시작 핸드셰이크를 완료하지 못했습니다. 에이전트를 다시 시작하거나 다시 연결한 뒤 재시도하세요."
+      },
+      "USER_AGENT_HANDSHAKE_TIMEOUT": {
+        "title": "에이전트 핸드셰이크 시간이 초과되었습니다",
+        "body": "선택한 에이전트가 제시간에 시작 핸드셰이크를 완료하지 못했습니다. 아직 시작 중이거나 차단되어 있는지 확인한 뒤 재시도하세요."
+      },
+      "USER_AGENT_ACP_INIT_FAILED": {
+        "title": "에이전트 프로토콜 초기화에 실패했습니다",
+        "body": "앱이 이 에이전트와 Agent Client Protocol 세션을 초기화하지 못했습니다. 에이전트 버전을 확인하고 다시 연결하세요."
+      },
+      "USER_AGENT_PROTOCOL_MISMATCH": {
+        "title": "에이전트 프로토콜 버전이 호환되지 않습니다",
+        "body": "선택한 에이전트가 호환되지 않는 프로토콜 버전을 사용하고 있습니다. 에이전트를 업데이트하거나 호환되는 에이전트로 전환하세요."
+      },
+      "USER_AGENT_NO_PREVIOUS_SESSION": {
+        "title": "이전 에이전트 세션을 사용할 수 없습니다",
+        "body": "에이전트가 이전 세션을 재개할 수 없습니다. 계속하려면 새 대화를 시작하세요."
+      },
+      "USER_AGENT_COMMAND_NOT_FOUND": {
+        "title": "에이전트 명령을 찾을 수 없습니다",
+        "body": "설정된 에이전트 명령을 찾을 수 없습니다. 설치하거나 설정에서 명령 경로를 업데이트하세요."
+      },
+      "USER_AGENT_MISSING_ENV": {
+        "title": "에이전트에 필요한 환경 변수가 없습니다",
+        "body": "에이전트에 필요한 환경 변수가 설정되어 있지 않습니다. 설정 또는 셸 환경에 추가한 뒤 다시 연결하세요."
+      },
+      "USER_LLM_PROVIDER_AUTH_FAILED": {
+        "title": "모델 제공자 인증에 실패했습니다",
+        "body": "선택한 제공자가 API 키 또는 계정 인증 정보를 거부했습니다. 제공자 설정을 확인하고 다시 시도하세요."
+      },
+      "USER_LLM_PROVIDER_CONFIG_ERROR": {
+        "title": "모델 제공자 설정이 올바르지 않습니다",
+        "body": "현재 설정으로 제공자 요청을 만들 수 없습니다. 인증 정보, 리전, Base URL 및 제공자별 설정을 확인한 뒤 재시도하세요."
+      },
+      "USER_LLM_PROVIDER_MODEL_NOT_FOUND": {
+        "title": "선택한 모델을 찾을 수 없습니다",
+        "body": "제공자가 이 모델 이름을 인식하지 못합니다. 설정에서 사용 가능한 모델을 선택한 뒤 재시도하세요."
+      },
+      "USER_LLM_PROVIDER_RATE_LIMITED": {
+        "title": "모델 제공자 요청 제한에 도달했습니다",
+        "body": "제공자가 일시적으로 요청을 제한하고 있습니다. 잠시 기다리거나 요청 빈도를 낮추거나 모델을 전환하세요."
+      },
+      "USER_LLM_PROVIDER_TIMEOUT": {
+        "title": "모델 제공자 요청 시간이 초과되었습니다",
+        "body": "제공자가 제시간에 응답하지 않았습니다. 나중에 다시 시도하거나 더 안정적인 제공자로 전환하세요."
+      },
+      "USER_LLM_PROVIDER_NETWORK_ERROR": {
+        "title": "모델 제공자에 연결할 수 없습니다",
+        "body": "네트워크 또는 DNS 오류로 제공자에 접근할 수 없습니다. 네트워크, 프록시, Base URL을 확인하세요."
+      },
+      "USER_LLM_PROVIDER_GATEWAY_ERROR": {
+        "title": "모델 제공자 서비스를 사용할 수 없습니다",
+        "body": "제공자가 게이트웨이 또는 서비스 오류를 반환했습니다. 나중에 다시 시도하거나 다른 제공자를 사용하세요."
+      },
+      "USER_LLM_PROVIDER_PERMISSION_DENIED": {
+        "title": "모델 제공자 권한이 거부되었습니다",
+        "body": "제공자 계정에 이 모델 또는 작업을 사용할 권한이 없습니다. 계정 권한을 확인하거나 다른 모델을 선택하세요."
+      },
+      "USER_LLM_PROVIDER_BILLING_REQUIRED": {
+        "title": "모델 제공자 결제가 필요합니다",
+        "body": "선택한 제공자가 이 요청을 완료하려면 활성 결제, 크레딧 또는 할당량이 필요합니다."
+      },
+      "USER_LLM_PROVIDER_UNSUPPORTED_MODEL": {
+        "title": "모델이 이 요청을 지원하지 않습니다",
+        "body": "선택한 모델을 사용할 수 없거나 요청한 기능을 지원하지 않습니다. 지원되는 모델을 선택하고 재시도하세요."
+      },
+      "USER_LLM_PROVIDER_ENDPOINT_NOT_FOUND": {
+        "title": "모델 제공자 엔드포인트를 찾을 수 없습니다",
+        "body": "제공자 엔드포인트 또는 API 경로를 찾을 수 없습니다. Base URL, 배포 이름, API 호환성을 확인하세요."
+      },
+      "USER_LLM_PROVIDER_INVALID_REQUEST": {
+        "title": "모델 제공자가 요청을 거부했습니다",
+        "body": "제공자가 요청이 잘못되었다고 보고했습니다. 메시지를 단순화하거나 모델/제공자 설정을 확인하세요."
+      },
+      "USER_LLM_PROVIDER_INVALID_TOOL_SCHEMA": {
+        "title": "도구 스키마가 제공자에게 거부되었습니다",
+        "body": "제공자가 이 요청의 도구 정의를 거부했습니다. 에이전트를 업데이트하거나 호환되지 않는 도구를 비활성화한 뒤 재시도하세요."
+      },
+      "USER_LLM_PROVIDER_CONTEXT_TOO_LARGE": {
+        "title": "컨텍스트가 모델 한도를 초과했습니다",
+        "body": "요청이 모델 컨텍스트 한도를 초과했습니다. 메시지 내용, 참조 파일 또는 대화 기록을 줄인 뒤 재시도하세요."
+      },
+      "USER_LLM_PROVIDER_EMPTY_RESPONSE": {
+        "title": "모델 제공자가 빈 응답을 반환했습니다",
+        "body": "제공자가 요청을 완료했지만 사용할 수 있는 내용을 반환하지 않았습니다. 한 번 재시도하고 반복되면 제공자를 전환하세요."
+      },
+      "WORKSPACE_PATH_RUNTIME_UNAVAILABLE": {
+        "title": "현재 Agent가 이 작업공간 경로에서 실행되지 못했습니다",
+        "body": "현재 작업공간 경로가 실제로 존재하는지 확인하세요.",
+        "bodyWithPath": "현재 Agent가 작업공간 경로 \"{{workspacePath}}\" 에서 실행되지 못했습니다. 작업공간 경로가 실제로 존재하는지 확인하세요."
+      },
+      "UNKNOWN_UPSTREAM_ERROR": {
+        "title": "상위 에이전트 또는 제공자에서 오류가 발생했습니다",
+        "body": "앱이 상위 오류를 받았지만 확실하게 분류할 수 없습니다. 아래 세부 정보를 확인하거나 피드백을 보내세요."
+      }
+    }
+  },
   "workspace": {
     "title": "프로젝트",
     "pasteConfirm_title": "파일 붙여넣기",
@@ -284,8 +464,37 @@
   "skills": {
     "loaded": "로드된 스킬"
   },
+  "mcp": {
+    "loaded": "로드된 MCP",
+    "managementHint": "MCP가 비정상적으로 보인다면 보통 MCP JSON 설정 문제입니다. 도구 설정으로 이동해 직접 테스트하세요.",
+    "openSettings": "도구 설정 열기",
+    "status": {
+      "loaded": "로드됨",
+      "failed": "실패",
+      "unsupported": "지원되지 않음"
+    }
+  },
+  "runtimePreparing": {
+    "sendboxHint": "실행 환경을 준비하는 중입니다. 첫 시작은 조금 더 오래 걸릴 수 있습니다."
+  },
   "sendbox": {
     "hint": "/ 로 명령, @ 로 파일 참조"
+  },
+  "agentTip": {
+    "codes": {
+      "ACP_EMPTY_TURN": {
+        "body": "이번 요청에서는 표시할 수 있는 응답이 없었습니다."
+      },
+      "ACP_EMPTY_TURN_MAX_TOKENS": {
+        "body": "이번 요청은 표시 가능한 응답이 나오기 전에 모델의 출력 토큰 한도에 도달했습니다."
+      },
+      "ACP_EMPTY_TURN_MAX_TURN_REQUESTS": {
+        "body": "이번 요청은 표시 가능한 응답이 나오기 전에 모델의 요청 한도에 도달했습니다."
+      },
+      "ACP_EMPTY_TURN_REFUSAL": {
+        "body": "모델이 표시 가능한 응답을 생성하기 전에 이번 요청을 거부했습니다."
+      }
+    }
   },
   "notFound": "대화를 찾을 수 없거나 삭제되었습니다"
 }

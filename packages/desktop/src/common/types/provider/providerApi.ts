@@ -78,3 +78,34 @@ export interface FetchModelsAnonymousRequest {
   bedrock_config?: IProvider['bedrock_config'];
   try_fix?: boolean;
 }
+
+export type ProviderHealthCheckErrorKind =
+  | 'timeout'
+  | 'invalid_authorization_header'
+  | 'unauthorized'
+  | 'forbidden'
+  | 'not_found'
+  | 'insufficient_quota'
+  | 'aws_credentials'
+  | 'invalid_request'
+  | 'rate_limited'
+  | 'connection_error'
+  | 'api_error'
+  | 'unknown';
+
+export interface ProviderHealthCheckRequest {
+  provider_id: string;
+  model: string;
+}
+
+export interface ProviderHealthCheckResponse {
+  provider_id: string;
+  platform: string;
+  model: string;
+  status: 'unknown' | 'healthy' | 'unhealthy';
+  elapsed_ms: number;
+  message?: string;
+  error_kind?: ProviderHealthCheckErrorKind;
+  http_status?: number;
+  timeout_stage?: string;
+}

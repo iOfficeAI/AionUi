@@ -124,7 +124,10 @@ export function getAllAtFileQueries(value: string): ActiveAtFileQuery[] {
   return queries;
 }
 
-export function buildAtFileInsertion(item: FileOrFolderItem): string {
+export function buildAtFileInsertion(item: FileOrFolderItem): string | null {
   const path = item.relativePath || item.path;
+  if (!path) {
+    return null;
+  }
   return `@${escapeAtFilePath(path)}`;
 }

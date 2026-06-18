@@ -5,8 +5,12 @@
  */
 
 import type { AcpPermissionRequest, PlanUpdate, ToolCallUpdate } from '@/common/types/platform/acpTypes';
+import type { AcpAvailableCommand } from '@/common/chat/slash/types';
 import type { IResponseMessage } from '../adapter/ipcBridge';
 import { uuid } from '../utils';
+import { sanitizeAcpToolCallContent, sanitizeAcpToolUpdate } from './acpToolCallOutput';
+
+export { sanitizeAcpToolCallContent } from './acpToolCallOutput';
 
 /**
  * 安全的路径拼接函数，兼容Windows和Mac
@@ -125,7 +129,61 @@ export type IMessageText = IMessage<
   }
 >;
 
-export type IMessageTips = IMessage<'tips', { content: string; type: 'error' | 'success' | 'warning' }>;
+export type AgentErrorOwnership = 'aionui' | 'user_agent' | 'user_llm_provider' | 'unknown_upstream';
+
+export type AgentErrorResolutionKind =
+  | 'retry'
+  | 'wait_for_current_response'
+  | 'start_new_session'
+  | 'reconnect_agent'
+  | 'check_agent_login'
+  | 'check_agent_installation'
+  | 'check_agent_version'
+  | 'check_local_command'
+  | 'check_provider_credentials'
+  | 'check_provider_billing'
+  | 'check_provider_base_url'
+  | 'change_model'
+  | 'reduce_context'
+  | 'send_feedback';
+
+export type AgentErrorResolutionTarget = 'provider_settings' | 'agent_settings' | 'new_conversation' | 'feedback';
+
+export type AgentErrorResolution = {
+  kind: AgentErrorResolutionKind;
+  target?: AgentErrorResolutionTarget;
+};
+
+export type AgentStreamErrorInfo = {
+  message: string;
+  code?: string;
+  ownership?: AgentErrorOwnership;
+  detail?: string;
+  workspacePath?: string;
+  retryable?: boolean;
+  feedback_recommended?: boolean;
+  resolution?: AgentErrorResolution;
+};
+
+export type IMessageTips = IMessage<
+  'tips',
+  {
+    content: string;
+    type: 'error' | 'info' | 'success' | 'warning';
+    code?: string;
+    params?: Record<string, unknown>;
+    error?: AgentStreamErrorInfo;
+  }
+>;
+
+export const isErrorTipMessage = (message: IResponseMessage): boolean => {
+  if (message.type !== 'tips' || !message.data || typeof message.data !== 'object') {
+    return false;
+  }
+
+  const tipData = message.data as { type?: unknown };
+  return tipData.type === 'error';
+};
 
 export type IMessageToolCall = IMessage<
   'tool_call',
@@ -225,27 +283,11 @@ export const mergeAcpToolCallContent = (
 ): IMessageAcpToolCall['content'] => ({
   ...existing,
   ...incoming,
-  update: {
+  update: sanitizeAcpToolUpdate({
     ...existing.update,
     ...incoming.update,
-  },
+  }),
 });
-
-type ResponseTextData = {
-  content: string;
-  replace?: boolean;
-  cronMeta?: CronMessageMeta;
-  teammate_message?: boolean;
-  sender_name?: string;
-  sender_backend?: string;
-  sender_conversation_id?: string;
-};
-
-const isResponseTextData = (data: unknown): data is ResponseTextData =>
-  typeof data === 'object' &&
-  data !== null &&
-  'content' in data &&
-  typeof (data as { content?: unknown }).content === 'string';
 
 export const isTextContentReplacement = (content: IMessageText['content'] | undefined): boolean =>
   content?.replace === true;
@@ -295,11 +337,7 @@ export type IMessageThinking = IMessage<
 >;
 
 // Available commands from ACP agents (Claude, etc.)
-export type AvailableCommand = {
-  name: string;
-  description: string;
-  hint?: string;
-};
+export type AvailableCommand = AcpAvailableCommand;
 
 export type IMessageAvailableCommands = IMessage<
   'available_commands',
@@ -341,14 +379,213 @@ export interface IConfirmation<Option extends any = any> {
   command_type?: string;
 }
 
+const isObject = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
+type RawTextMessageContent = {
+  content?: unknown;
+  replace?: unknown;
+  cronMeta?: unknown;
+  teammateMessage?: unknown;
+  teammate_message?: unknown;
+  senderName?: unknown;
+  sender_name?: unknown;
+  from_name?: unknown;
+  senderAgentType?: unknown;
+  sender_backend?: unknown;
+  senderBackend?: unknown;
+  senderConversationId?: unknown;
+  sender_conversation_id?: unknown;
+  senderConversationID?: unknown;
+};
+
+type NormalizeTextMessageContentOptions = {
+  replace?: boolean;
+};
+
+const isCronMessageMeta = (value: unknown): value is CronMessageMeta =>
+  isObject(value) &&
+  value.source === 'cron' &&
+  typeof value.cron_job_id === 'string' &&
+  typeof value.cron_job_name === 'string' &&
+  typeof value.triggered_at === 'number';
+
+const firstStringField = (
+  data: RawTextMessageContent,
+  keys: Array<keyof RawTextMessageContent>
+): string | undefined => {
+  for (const key of keys) {
+    const value = data[key];
+    if (typeof value === 'string' && value.length > 0) {
+      return value;
+    }
+  }
+  return undefined;
+};
+
+const normalizeTextMessageContentObject = (
+  data: RawTextMessageContent,
+  options?: NormalizeTextMessageContentOptions
+): IMessageText['content'] => {
+  const content = typeof data.content === 'string' ? data.content : String(data.content ?? '');
+  const senderName = firstStringField(data, ['senderName', 'sender_name', 'from_name']);
+  const senderAgentType = firstStringField(data, ['senderAgentType', 'sender_backend', 'senderBackend']);
+  const senderConversationId = firstStringField(data, [
+    'senderConversationId',
+    'sender_conversation_id',
+    'senderConversationID',
+  ]);
+  const cronMeta = isCronMessageMeta(data.cronMeta) ? data.cronMeta : undefined;
+  const replace = options?.replace === true || data.replace === true;
+  const teammateMessage = Boolean(data.teammateMessage) || Boolean(data.teammate_message);
+
+  return {
+    content,
+    ...(replace ? { replace: true } : {}),
+    ...(cronMeta ? { cronMeta } : {}),
+    ...(teammateMessage ? { teammateMessage: true } : {}),
+    ...(senderName ? { senderName } : {}),
+    ...(senderAgentType ? { senderAgentType } : {}),
+    ...(senderConversationId ? { senderConversationId } : {}),
+  };
+};
+
+export const normalizeTextMessageContent = (
+  raw: unknown,
+  options?: NormalizeTextMessageContentOptions
+): IMessageText['content'] => {
+  if (typeof raw === 'string') {
+    try {
+      const parsed = JSON.parse(raw) as unknown;
+      if (isObject(parsed)) {
+        return normalizeTextMessageContentObject(parsed as RawTextMessageContent, options);
+      }
+    } catch {
+      // Plain text is the common streaming shape.
+    }
+
+    return {
+      content: raw,
+      ...(options?.replace === true ? { replace: true } : {}),
+    };
+  }
+
+  if (isObject(raw)) {
+    return normalizeTextMessageContentObject(raw as RawTextMessageContent, options);
+  }
+
+  return {
+    content: String(raw ?? ''),
+    ...(options?.replace === true ? { replace: true } : {}),
+  };
+};
+
+const AGENT_ERROR_OWNERSHIPS = new Set<AgentErrorOwnership>([
+  'aionui',
+  'user_agent',
+  'user_llm_provider',
+  'unknown_upstream',
+]);
+
+const AGENT_ERROR_RESOLUTION_KINDS = new Set<AgentErrorResolutionKind>([
+  'retry',
+  'wait_for_current_response',
+  'start_new_session',
+  'reconnect_agent',
+  'check_agent_login',
+  'check_agent_installation',
+  'check_agent_version',
+  'check_local_command',
+  'check_provider_credentials',
+  'check_provider_billing',
+  'check_provider_base_url',
+  'change_model',
+  'reduce_context',
+  'send_feedback',
+]);
+
+const AGENT_ERROR_RESOLUTION_TARGETS = new Set<AgentErrorResolutionTarget>([
+  'provider_settings',
+  'agent_settings',
+  'new_conversation',
+  'feedback',
+]);
+
+export const normalizeAgentErrorResolution = (value: unknown): AgentErrorResolution | undefined => {
+  if (!isObject(value) || typeof value.kind !== 'string') {
+    return undefined;
+  }
+
+  if (!AGENT_ERROR_RESOLUTION_KINDS.has(value.kind as AgentErrorResolutionKind)) {
+    return undefined;
+  }
+
+  const target =
+    typeof value.target === 'string' && AGENT_ERROR_RESOLUTION_TARGETS.has(value.target as AgentErrorResolutionTarget)
+      ? (value.target as AgentErrorResolutionTarget)
+      : undefined;
+
+  return {
+    kind: value.kind as AgentErrorResolutionKind,
+    ...(target ? { target } : {}),
+  };
+};
+
+export const normalizeAgentStreamError = (value: unknown): AgentStreamErrorInfo | undefined => {
+  if (!isObject(value) || typeof value.message !== 'string') {
+    return undefined;
+  }
+
+  const code = typeof value.code === 'string' ? value.code : undefined;
+  const ownership =
+    typeof value.ownership === 'string' && AGENT_ERROR_OWNERSHIPS.has(value.ownership as AgentErrorOwnership)
+      ? (value.ownership as AgentErrorOwnership)
+      : undefined;
+  const detail = typeof value.detail === 'string' ? value.detail : undefined;
+  const workspacePath = typeof value.workspacePath === 'string' ? value.workspacePath : undefined;
+  const retryable = typeof value.retryable === 'boolean' ? value.retryable : undefined;
+  const feedback_recommended = typeof value.feedback_recommended === 'boolean' ? value.feedback_recommended : undefined;
+  const resolution = normalizeAgentErrorResolution(value.resolution);
+
+  if (
+    !code &&
+    !ownership &&
+    !detail &&
+    !workspacePath &&
+    retryable === undefined &&
+    feedback_recommended === undefined &&
+    !resolution
+  ) {
+    return undefined;
+  }
+
+  return {
+    message: value.message,
+    ...(code ? { code } : {}),
+    ...(ownership ? { ownership } : {}),
+    ...(detail ? { detail } : {}),
+    ...(workspacePath ? { workspacePath } : {}),
+    ...(retryable !== undefined ? { retryable } : {}),
+    ...(feedback_recommended !== undefined ? { feedback_recommended } : {}),
+    ...(resolution ? { resolution } : {}),
+  };
+};
+
 /**
  * @description 将后端返回的消息转换为前端消息
  * */
-export const transformMessage = (message: IResponseMessage): TMessage => {
+const isChatMessagePosition = (value: unknown): value is NonNullable<TMessage['position']> =>
+  value === 'left' || value === 'right' || value === 'center' || value === 'pop';
+
+const isChatMessageStatus = (value: unknown): value is NonNullable<TMessage['status']> =>
+  value === 'finish' || value === 'pending' || value === 'error' || value === 'work';
+
+export const transformMessage = (message: IResponseMessage): TMessage | undefined => {
   const created_at = message.created_at ?? Date.now();
   switch (message.type) {
     case 'error': {
       const errorData = message.data;
+      const structuredError = normalizeAgentStreamError(errorData);
       const errorText =
         typeof errorData === 'string'
           ? errorData
@@ -363,11 +600,25 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
         content: {
           content: errorText,
           type: 'error',
+          ...(structuredError ? { error: structuredError } : {}),
         },
       };
     }
     case 'tips': {
-      const data = message.data as { content: string; type?: 'error' | 'success' | 'warning' };
+      const data = message.data as {
+        content: string;
+        type?: 'error' | 'info' | 'success' | 'warning';
+        code?: unknown;
+        params?: unknown;
+        error?: unknown;
+      };
+      const tipType = data.type ?? 'warning';
+      const tipCode = typeof data.code === 'string' ? data.code : undefined;
+      const tipParams = isObject(data.params) ? data.params : undefined;
+      const structuredError =
+        tipType === 'error'
+          ? (normalizeAgentStreamError(data.error) ?? normalizeAgentStreamError({ ...data, message: data.content }))
+          : undefined;
       return {
         id: uuid(),
         type: 'tips',
@@ -377,7 +628,10 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
         created_at,
         content: {
           content: data.content,
-          type: data.type ?? 'warning',
+          type: tipType,
+          ...(tipCode ? { code: tipCode } : {}),
+          ...(tipParams ? { params: tipParams } : {}),
+          ...(structuredError ? { error: structuredError } : {}),
         },
       };
     }
@@ -385,29 +639,23 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
     case 'content':
     case 'user_content': {
       const data = message.data;
-      const isRichData = isResponseTextData(data);
-      const shouldReplace = message.replace === true || (isRichData && data.replace === true);
+      const position = isChatMessagePosition(message.position)
+        ? message.position
+        : message.type === 'user_content'
+          ? 'right'
+          : 'left';
+      const status = isChatMessageStatus(message.status) ? message.status : undefined;
       return {
         id: uuid(),
         type: 'text',
         msg_id: message.msg_id,
-        position: message.type === 'user_content' ? 'right' : 'left',
+        position,
+        ...(status ? { status } : {}),
         conversation_id: message.conversation_id,
         created_at,
-        content: isRichData
-          ? {
-              content: data.content,
-              cronMeta: data.cronMeta,
-              ...(shouldReplace ? { replace: true } : {}),
-              ...(data.teammate_message ? { teammateMessage: true } : {}),
-              ...(data.sender_name ? { senderName: data.sender_name } : {}),
-              ...(data.sender_backend ? { senderAgentType: data.sender_backend } : {}),
-              ...(data.sender_conversation_id ? { senderConversationId: data.sender_conversation_id } : {}),
-            }
-          : {
-              content: data as string,
-              ...(shouldReplace ? { replace: true } : {}),
-            },
+        content: normalizeTextMessageContent(data, {
+          replace: message.replace === true,
+        }),
         ...(message.hidden && { hidden: true }),
       };
     }
@@ -512,7 +760,7 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
     }
     // Disabled: available_commands messages are too noisy and distracting in the chat UI
     case 'available_commands':
-      break;
+      return undefined;
     case 'start':
     case 'finish':
     case 'thought':
@@ -524,12 +772,12 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
     case 'codex_model_info': // Legacy Codex model info updates
     case 'acp_context_usage': // Context usage updates, handled by AcpSendBox
     case 'request_trace': // Request trace events, logged to F12 console (not persisted)
-      break;
+      return undefined;
     default: {
       console.warn(
         `[transformMessage] Unsupported message type '${message.type}'. All non-standard message types should be pre-processed by respective AgentManagers.`
       );
-      break;
+      return undefined;
     }
   }
 };
@@ -543,9 +791,13 @@ export const composeMessage = (
   messageHandler: (type: 'update' | 'insert', message: TMessage) => void = () => {}
 ): TMessage[] => {
   if (!message) return list || [];
+  const normalizedMessage =
+    message.type === 'acp_tool_call'
+      ? ({ ...message, content: sanitizeAcpToolCallContent(message.content) } as TMessage)
+      : message;
   if (!list?.length) {
-    messageHandler('insert', message);
-    return [message];
+    messageHandler('insert', normalizedMessage);
+    return [normalizedMessage];
   }
   const last = list[list.length - 1];
 
@@ -629,7 +881,7 @@ export const composeMessage = (
       }
     }
     // If no existing tool call found, add new one
-    return pushMessage(message);
+    return pushMessage(normalizedMessage);
   }
 
   if (message.type === 'plan') {
@@ -645,28 +897,31 @@ export const composeMessage = (
     // If no existing plan found, add new one
   }
 
-  // Handle thinking message merging — append streaming content by msg_id
+  // Handle thinking message merging — only merge contiguous streaming chunks
   if (message.type === 'thinking') {
-    for (let i = list.length - 1; i >= 0; i--) {
-      const msg = list[i];
-      if (msg.type === 'thinking' && msg.msg_id === message.msg_id) {
-        // If incoming is 'done', update status and duration but keep accumulated content
-        if (message.content.status === 'done') {
-          const merged = {
-            ...msg.content,
-            status: message.content.status as 'done',
-            duration: message.content.duration,
-          };
-          return updateMessage(i, { ...msg, content: merged });
-        }
-        // Otherwise append content
+    if (message.content.status === 'done') {
+      for (let i = list.length - 1; i >= 0; i--) {
+        const msg = list[i];
+        if (msg.type !== 'thinking' || msg.msg_id !== message.msg_id) continue;
+
         const merged = {
           ...msg.content,
-          content: msg.content.content + message.content.content,
+          status: 'done' as const,
+          duration: message.content.duration,
           subject: message.content.subject || msg.content.subject,
         };
         return updateMessage(i, { ...msg, content: merged });
       }
+    }
+
+    if (last.type === 'thinking' && last.msg_id === message.msg_id) {
+      // Otherwise append content
+      const merged = {
+        ...last.content,
+        content: last.content.content + message.content.content,
+        subject: message.content.subject || last.content.subject,
+      };
+      return updateMessage(list.length - 1, { ...last, content: merged });
     }
     return pushMessage(message);
   }

@@ -8,6 +8,7 @@ import { iconColors } from '@/renderer/styles/colors';
 import { emitter } from '@/renderer/utils/emitter';
 import { ipcBridge } from '@/common';
 import type { ICronJob } from '@/common/adapter/ipcBridge';
+import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { Button, Popover, Tooltip } from '@arco-design/web-react';
 import { AlarmClock } from '@icon-park/react';
 import React, { useCallback, useEffect, useState } from 'react';
@@ -31,6 +32,7 @@ interface CronJobManagerProps {
 const CronJobManager: React.FC<CronJobManagerProps> = ({ conversation_id, cron_job_id, hasCronSkill = true }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const layout = useLayoutContext();
 
   // For child conversations spawned by a cron job, fetch the job directly by ID
   const [directJob, setDirectJob] = useState<ICronJob | null>(null);
@@ -90,6 +92,10 @@ const CronJobManager: React.FC<CronJobManagerProps> = ({ conversation_id, cron_j
   // Handle unconfigured state (no jobs)
   // If cron skill is not loaded for this conversation, hide entirely
   if (!found && !loading && !hasCronSkill) return null;
+
+  // Hide on mobile/narrow widths to keep the titlebar slot uncluttered;
+  // scheduling stays accessible via the sidebar entry.
+  if (layout?.isMobile) return null;
 
   if (!found && !loading) {
     const handleCreateClick = () => {

@@ -12,7 +12,6 @@ import type { Assistant } from '@/common/types/agent/assistantTypes';
 import { DEFAULT_CODEX_MODELS } from '@/common/types/codex/codexModels';
 import { CODEX_MODE_NATIVE_FULL_ACCESS, normalizeCodexMode } from '@/common/types/codex/codexModes';
 import { resolveLocaleKey } from '@/common/utils';
-import { loadPresetAssistantResources } from '@/common/utils/presetAssistantResources';
 import {
   buildAgentConversationParams,
   getConversationTypeForBackend,
@@ -22,6 +21,7 @@ import { getAgents } from '@/renderer/hooks/agent/useAgents';
 import type { AcpModelInfo } from '@/common/types/platform/acpTypes';
 import { getAgentModes } from '@/renderer/utils/model/agentModes';
 import { hasSpecificModelCapability } from '@/renderer/utils/model/modelCapabilities';
+import { getPreferredThoughtLevel } from '@/renderer/pages/guid/hooks/agentSelectionUtils';
 
 type ModePreference = {
   preferredMode?: string;
@@ -164,6 +164,7 @@ export async function buildCliAgentParams(agent: AgentMetadata, workspace: strin
   const type = getConversationTypeForBackend(agentKey);
   const preferredMode = await resolvePreferredMode(agentKey);
   const preferredAcpModelId = type === 'acp' ? await resolvePreferredAcpModelId(agentKey) : undefined;
+  const preferredThoughtLevel = type === 'acp' ? getPreferredThoughtLevel(agentKey) : undefined;
 
   let model: TProviderWithModel;
   if (type === 'aionrs') {
@@ -182,6 +183,7 @@ export async function buildCliAgentParams(agent: AgentMetadata, workspace: strin
     model,
     session_mode: preferredMode,
     current_model_id: preferredAcpModelId,
+    thought_level: preferredThoughtLevel,
   });
 }
 
@@ -198,21 +200,12 @@ export async function buildPresetAssistantParams(
   const preset_agent_type = assistant.preset_agent_type || 'claude';
   const custom_agent_id = assistant.id;
 
-  // [BUG-2] Map raw i18n.language to standard locale key
   const localeKey = resolveLocaleKey(language);
-
-  const {
-    rules: preset_context,
-    enabled_skills,
-    exclude_auto_inject_skills,
-  } = await loadPresetAssistantResources({
-    custom_agent_id,
-    localeKey,
-  });
 
   const preferredMode = await resolvePreferredMode(preset_agent_type);
   const type = getConversationTypeForBackend(preset_agent_type);
   const preferredAcpModelId = type === 'acp' ? await resolvePreferredAcpModelId(preset_agent_type) : undefined;
+  const preferredThoughtLevel = type === 'acp' ? getPreferredThoughtLevel(preset_agent_type) : undefined;
   const model = {} as TProviderWithModel;
 
   return buildAgentConversationParams({
@@ -223,13 +216,16 @@ export async function buildPresetAssistantParams(
     custom_agent_id,
     is_preset: true,
     preset_agent_type,
-    preset_resources: {
-      rules: preset_context,
-      enabled_skills,
-      exclude_auto_inject_skills,
+    assistant_locale: localeKey,
+    assistant_conversation_overrides: {
+      model: preferredAcpModelId,
+      skill_ids: assistant.enabled_skills.length > 0 ? assistant.enabled_skills : undefined,
+      disabled_builtin_skill_ids:
+        assistant.disabled_builtin_skills.length > 0 ? assistant.disabled_builtin_skills : undefined,
     },
     model,
     session_mode: preferredMode,
     current_model_id: preferredAcpModelId,
+    thought_level: preferredThoughtLevel,
   });
 }

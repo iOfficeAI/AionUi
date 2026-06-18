@@ -4,8 +4,18 @@
     "console_error": "ACP kimlik doğrulama hatası detayları:",
     "failed_confirm": "ACP {{backend}} kimlik doğrulaması başarısız:\n\n{{error}}\n\nŞimdi yapılandırmak için ayarlar sayfasına gitmek ister misiniz?"
   },
+  "send": {
+    "failed": "Mesaj gönderilemedi: {{error}}"
+  },
   "sendbox": {
     "placeholder": "{{backend}}'a mesaj gönder..."
+  },
+  "image": {
+    "download": "İndir",
+    "download_aria": "Görseli indir",
+    "download_success": "İndirme başarılı",
+    "download_error": "İndirme başarısız",
+    "generated_alt": "Oluşturulan görsel"
   },
   "status": {
     "connecting": "{{agent}} ajanına bağlanılıyor...",

@@ -15,6 +15,7 @@ export type ConversationCommandQueueItem = {
 export type ConversationCommandQueueState = {
   items: ConversationCommandQueueItem[];
   isPaused: boolean;
+  deferredAfterTeamUpgrade: boolean;
 };
 
 export const MAX_QUEUED_COMMANDS = 20;
@@ -46,7 +47,6 @@ const summarizeQueuedCommand = (item: ConversationCommandQueueItem): Record<stri
   created_at: item.created_at,
   inputLength: item.input.length,
   fileCount: item.files.length,
-  preview: item.input.replace(/\s+/g, ' ').trim().slice(0, 120),
 });
 
 const logCommandQueue = (conversation_id: string, event: string, payload: Record<string, unknown> = {}): void => {
@@ -60,6 +60,7 @@ const logCommandQueue = (conversation_id: string, event: string, payload: Record
 const createDefaultQueueState = (): ConversationCommandQueueState => ({
   items: [],
   isPaused: false,
+  deferredAfterTeamUpgrade: false,
 });
 
 const queueStore = new Map<string, ConversationCommandQueueState>();
@@ -122,6 +123,7 @@ export const normalizeQueueState = (state: unknown): ConversationCommandQueueSta
     const nextState = {
       items: nextItems,
       isPaused: Boolean(candidate.isPaused),
+      deferredAfterTeamUpgrade: Boolean(candidate.deferredAfterTeamUpgrade),
     };
 
     if (measureQueueStateBytes(nextState) > MAX_QUEUED_COMMAND_STATE_BYTES) {
@@ -134,6 +136,7 @@ export const normalizeQueueState = (state: unknown): ConversationCommandQueueSta
   return {
     items,
     isPaused: items.length > 0 ? Boolean(candidate.isPaused) : false,
+    deferredAfterTeamUpgrade: items.length > 0 ? Boolean(candidate.deferredAfterTeamUpgrade) : false,
   };
 };
 
@@ -305,11 +308,49 @@ export const shouldEnqueueConversationCommand = ({
   hasPendingCommands: boolean;
 }): boolean => enabled && (isBusy || hasPendingCommands);
 
+export type ConversationCommandQueueRuntimeGate = {
+  hydrated: boolean;
+  canSendMessage: boolean;
+  isProcessing: boolean;
+};
+
+export type CommandQueueExecutionGate = {
+  hydrated: boolean;
+  canExecute: boolean;
+  isProcessing: boolean;
+};
+
+export const getCommandQueueExecutionGate = ({
+  isBusy,
+  isHydrated = true,
+  runtimeGate,
+}: {
+  isBusy: boolean;
+  isHydrated?: boolean;
+  runtimeGate?: ConversationCommandQueueRuntimeGate;
+}): CommandQueueExecutionGate => {
+  if (runtimeGate) {
+    return {
+      hydrated: runtimeGate.hydrated,
+      canExecute: runtimeGate.canSendMessage && !runtimeGate.isProcessing,
+      isProcessing: runtimeGate.isProcessing,
+    };
+  }
+
+  return {
+    hydrated: isHydrated,
+    canExecute: !isBusy,
+    isProcessing: isBusy,
+  };
+};
+
 type UseConversationCommandQueueOptions = {
   conversation_id: string;
   enabled?: boolean;
   isBusy: boolean;
   isHydrated?: boolean;
+  runtimeGate?: ConversationCommandQueueRuntimeGate;
+  teamUpgradeHandoffReady?: boolean;
   onExecute: (item: ConversationCommandQueueItem) => Promise<void>;
 };
 
@@ -347,9 +388,12 @@ export const useConversationCommandQueue = ({
   enabled = true,
   isBusy,
   isHydrated = true,
+  runtimeGate,
+  teamUpgradeHandoffReady = true,
   onExecute,
 }: UseConversationCommandQueueOptions) => {
   const { t } = useTranslation();
+  const executionGate = getCommandQueueExecutionGate({ isBusy, isHydrated, runtimeGate });
   const { data = createDefaultQueueState(), mutate } = useSWR(
     [`/conversation-command-queue/${conversation_id}`, conversation_id, enabled],
     ([, id, is_enabled]) => (is_enabled ? readPersistedQueueState(id) : createDefaultQueueState())
@@ -359,6 +403,7 @@ export const useConversationCommandQueue = ({
   const pausedRef = useRef(data.isPaused);
   const waitingForTurnStartRef = useRef(false);
   const waitingForTurnCompletionRef = useRef(false);
+  const waitingForTeamUpgradeHandoffRef = useRef(false);
   const interactionLockedRef = useRef(false);
   const [isInteractionLocked, setIsInteractionLocked] = useState(false);
   const [executionGateVersion, setExecutionGateVersion] = useState(0);
@@ -368,7 +413,7 @@ export const useConversationCommandQueue = ({
   }, [data]);
 
   useEffect(() => {
-    if (waitingForTurnStartRef.current && isBusy) {
+    if (waitingForTurnStartRef.current && executionGate.isProcessing) {
       waitingForTurnStartRef.current = false;
       waitingForTurnCompletionRef.current = true;
       logCommandQueue(conversation_id, 'turn-started', {
@@ -377,13 +422,13 @@ export const useConversationCommandQueue = ({
       return;
     }
 
-    if (waitingForTurnCompletionRef.current && !isBusy) {
+    if (waitingForTurnCompletionRef.current && executionGate.hydrated && executionGate.canExecute) {
       waitingForTurnCompletionRef.current = false;
       logCommandQueue(conversation_id, 'turn-finished', {
         pendingItemCount: stateRef.current.items.length,
       });
     }
-  }, [conversation_id, isBusy]);
+  }, [conversation_id, executionGate.canExecute, executionGate.hydrated, executionGate.isProcessing]);
 
   useEffect(() => {
     pausedRef.current = data.isPaused;
@@ -400,6 +445,7 @@ export const useConversationCommandQueue = ({
 
     waitingForTurnStartRef.current = false;
     waitingForTurnCompletionRef.current = false;
+    waitingForTeamUpgradeHandoffRef.current = false;
     pausedRef.current = false;
     interactionLockedRef.current = false;
     stateRef.current = createDefaultQueueState();
@@ -437,6 +483,7 @@ export const useConversationCommandQueue = ({
   const clear = useCallback(() => {
     waitingForTurnStartRef.current = false;
     waitingForTurnCompletionRef.current = false;
+    waitingForTeamUpgradeHandoffRef.current = false;
     pausedRef.current = false;
     logCommandQueue(conversation_id, 'cleared');
     void updateState(() => createDefaultQueueState());
@@ -452,6 +499,33 @@ export const useConversationCommandQueue = ({
       removePersistedQueueState(conversation_id);
     },
     [clear, conversation_id]
+  );
+
+  useAddEventListener(
+    'conversation.commandQueue.deferAfterTeamUpgrade',
+    (event) => {
+      if (event.conversation_id !== conversation_id || !enabled) {
+        return;
+      }
+
+      waitingForTurnStartRef.current = false;
+      waitingForTurnCompletionRef.current = false;
+      waitingForTeamUpgradeHandoffRef.current = stateRef.current.items.length > 0;
+      logCommandQueue(conversation_id, 'deferred-after-team-upgrade', {
+        team_id: event.team_id,
+        itemCount: stateRef.current.items.length,
+      });
+      void updateState((state) => {
+        if (state.items.length === 0) {
+          return createDefaultQueueState();
+        }
+        return {
+          ...state,
+          deferredAfterTeamUpgrade: true,
+        };
+      });
+    },
+    [conversation_id, enabled, updateState]
   );
 
   const enqueue = useCallback(
@@ -505,6 +579,7 @@ export const useConversationCommandQueue = ({
       const nextItems = updateQueuedCommand(currentState.items, commandId, { input });
       const nextState: ConversationCommandQueueState = {
         isPaused: false,
+        deferredAfterTeamUpgrade: currentState.deferredAfterTeamUpgrade,
         items: nextItems,
       };
       const failureReason = getQueueValidationFailureReason(nextState);
@@ -544,6 +619,7 @@ export const useConversationCommandQueue = ({
         return {
           items: nextItems,
           isPaused: false,
+          deferredAfterTeamUpgrade: state.deferredAfterTeamUpgrade && nextItems.length > 0,
         };
       });
     },
@@ -562,6 +638,7 @@ export const useConversationCommandQueue = ({
       });
       void updateState((state) => ({
         isPaused: false,
+        deferredAfterTeamUpgrade: state.deferredAfterTeamUpgrade,
         items: reorderQueuedCommand(state.items, activeCommandId, overCommandId),
       }));
     },
@@ -576,6 +653,7 @@ export const useConversationCommandQueue = ({
     pausedRef.current = true;
     waitingForTurnStartRef.current = false;
     waitingForTurnCompletionRef.current = false;
+    waitingForTeamUpgradeHandoffRef.current = false;
     logCommandQueue(conversation_id, 'paused', {
       itemCount: data.items.length,
     });
@@ -635,6 +713,7 @@ export const useConversationCommandQueue = ({
       const hadPendingTurn = waitingForTurnStartRef.current || waitingForTurnCompletionRef.current;
       waitingForTurnStartRef.current = false;
       waitingForTurnCompletionRef.current = false;
+      waitingForTeamUpgradeHandoffRef.current = false;
 
       if (!hadPendingTurn) {
         return;
@@ -650,11 +729,34 @@ export const useConversationCommandQueue = ({
   );
 
   useEffect(() => {
+    const isWaitingForTeamUpgradeHandoff =
+      waitingForTeamUpgradeHandoffRef.current || stateRef.current.deferredAfterTeamUpgrade;
+    if (isWaitingForTeamUpgradeHandoff) {
+      waitingForTeamUpgradeHandoffRef.current = true;
+      if (
+        !teamUpgradeHandoffReady ||
+        isBusy ||
+        !executionGate.hydrated ||
+        !executionGate.canExecute ||
+        executionGate.isProcessing
+      ) {
+        return;
+      }
+      waitingForTeamUpgradeHandoffRef.current = false;
+      logCommandQueue(conversation_id, 'team-upgrade-handoff-finished', {
+        pendingItemCount: stateRef.current.items.length,
+      });
+      void updateState((state) => ({
+        ...state,
+        deferredAfterTeamUpgrade: false,
+      }));
+    }
+
     if (
       !enabled ||
-      !isHydrated ||
+      !executionGate.hydrated ||
       pausedRef.current ||
-      isBusy ||
+      !executionGate.canExecute ||
       waitingForTurnStartRef.current ||
       waitingForTurnCompletionRef.current ||
       interactionLockedRef.current ||
@@ -672,6 +774,7 @@ export const useConversationCommandQueue = ({
     void updateState(() => ({
       items: remainingCommands,
       isPaused: false,
+      deferredAfterTeamUpgrade: false,
     }));
 
     void onExecute(nextCommand).catch((error) => {
@@ -686,6 +789,7 @@ export const useConversationCommandQueue = ({
       void updateState((state) => ({
         items: restoreQueuedCommand(state.items, nextCommand),
         isPaused: true,
+        deferredAfterTeamUpgrade: false,
       }));
       Message.warning(
         t('conversation.commandQueue.pausedAfterFailure', {
@@ -695,11 +799,15 @@ export const useConversationCommandQueue = ({
     });
   }, [
     conversation_id,
+    data.deferredAfterTeamUpgrade,
     data.items,
     enabled,
     executionGateVersion,
+    executionGate.canExecute,
+    executionGate.hydrated,
+    executionGate.isProcessing,
     isBusy,
-    isHydrated,
+    teamUpgradeHandoffReady,
     isInteractionLocked,
     onExecute,
     t,

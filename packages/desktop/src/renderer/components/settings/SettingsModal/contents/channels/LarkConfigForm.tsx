@@ -11,6 +11,10 @@ import { configService } from '@/common/config/configService';
 import { openExternalUrl } from '@/renderer/utils/platform';
 import GoogleModelSelector from '@/renderer/pages/conversation/platforms/gemini/GoogleModelSelector';
 import type { GoogleModelSelection } from '@/renderer/pages/conversation/platforms/gemini/useGoogleModelSelection';
+import {
+  isSupportedNewConversationAgent,
+  normalizeSupportedAgentSelection,
+} from '@/renderer/utils/model/agentTypeSupportPolicy';
 import { Button, Dropdown, Empty, Input, Menu, Message, Spin, Tooltip } from '@arco-design/web-react';
 import { CheckOne, CloseOne, Copy, Delete, Down, Refresh } from '@icon-park/react';
 import React, { useCallback, useEffect, useState } from 'react';
@@ -133,7 +137,7 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
         const [agentsResp, saved] = await Promise.all([getAgents(), configService.get('assistant.lark.agent')]);
 
         if (Array.isArray(agentsResp)) {
-          const list = agentsResp.map((a) => ({
+          const list = agentsResp.filter(isSupportedNewConversationAgent).map((a) => ({
             agent_type: a.agent_type,
             backend: a.backend,
             name: a.name,
@@ -144,25 +148,23 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
 
         if (saved && typeof saved === 'object') {
           const s = saved as Record<string, unknown>;
-          const agentType =
-            typeof s.agent_type === 'string'
-              ? s.agent_type
-              : typeof s.backend === 'string' &&
-                  ['aionrs', 'aion-cli', 'openclaw-gateway', 'nanobot', 'remote'].includes(s.backend)
-                ? s.backend
-                : 'acp';
-          setSelectedAgent({
-            agent_type: agentType,
-            backend: typeof s.backend === 'string' ? s.backend : undefined,
-            // Legacy rows persist `custom_agent_id`; new rows write `id`.
-            id: (s.id as string | undefined) ?? (s.custom_agent_id as string | undefined),
-            name: s.name as string | undefined,
-          });
+          const normalized = normalizeSupportedAgentSelection(
+            typeof s.agent_type === 'string' ? s.agent_type : undefined,
+            typeof s.backend === 'string' ? s.backend : undefined
+          );
+          if (normalized) {
+            setSelectedAgent({
+              ...normalized,
+              // Legacy rows persist `custom_agent_id`; new rows write `id`.
+              id: (s.id as string | undefined) ?? (s.custom_agent_id as string | undefined),
+              name: s.name as string | undefined,
+            });
+          }
         } else if (typeof saved === 'string') {
-          const agentType = ['aionrs', 'aion-cli', 'openclaw-gateway', 'nanobot', 'remote'].includes(saved)
-            ? saved
-            : 'acp';
-          setSelectedAgent({ agent_type: agentType, backend: saved });
+          const normalized = normalizeSupportedAgentSelection(undefined, saved);
+          if (normalized) {
+            setSelectedAgent(normalized);
+          }
         }
       } catch (error) {
         console.error('[LarkConfig] Failed to load agents:', error);

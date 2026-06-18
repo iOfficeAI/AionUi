@@ -20,6 +20,7 @@
   "newAgent": "New Agent",
   "noMessages": "No messages yet.",
   "agentNotConfigured": "에이전트가 아직 구성되지 않았습니다.",
+  "stopAgentFailed": "이 에이전트를 중지하지 못했습니다. 다시 시도해 주세요.",
   "sendBox": {
     "placeholder": "디스패치 에이전트에 메시지 보내기..."
   },
@@ -28,7 +29,6 @@
     "namePlaceholder": "Team name",
     "dispatchAgentPlaceholder": "팀 리더 선택",
     "subAgentsPlaceholder": "Select sub agents",
-    "workspacePlaceholder": "프로젝트 폴더 경로(선택)",
     "confirm": "Create Team",
     "noSupportedAgents": "지원되는 에이전트가 설치되지 않았습니다",
     "supportedAgentsHint": "현재 Claude와 Codex를 지원합니다. 더 많은 에이전트가 곧 추가됩니다.",

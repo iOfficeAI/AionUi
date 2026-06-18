@@ -170,6 +170,7 @@ install_headless_deps() {
         libxss1 \
         libasound2 \
         libgbm1 \
+        libicu-dev \
         2>/dev/null || warn "部分套件可能已安裝或不可用"
 
     success "Headless 依賴安裝完成"

@@ -31,16 +31,24 @@ export const TeamPermissionProvider: React.FC<{
     (mode: string) => {
       // Persist session_mode on the team record so newly spawned agents inherit it
       void ipcBridge.team.setSessionMode.invoke({ team_id, session_mode: mode }).catch(() => {
-        // Best-effort: if this fails, agents still get mode via per-conversation setMode below
+        // Best-effort: if this fails, active agents still receive per-conversation config updates.
       });
     },
     [team_id]
   );
 
   const warmupSession = useCallback((): Promise<void> => {
-    if (!warmupPromiseRef.current) {
-      warmupPromiseRef.current = ipcBridge.team.ensureSession.invoke({ team_id }).catch(() => {});
+    if (warmupPromiseRef.current) {
+      return warmupPromiseRef.current;
     }
+
+    const promise = ipcBridge.team.ensureSession.invoke({ team_id });
+    // Fire-and-forget callers only use warmup as a hint; attach a no-op catch
+    // so rejected warmups do not surface as unhandled promise rejections.
+    void promise.catch(() => {});
+    warmupPromiseRef.current = promise.finally(() => {
+      warmupPromiseRef.current = null;
+    });
     return warmupPromiseRef.current;
   }, [team_id]);
 

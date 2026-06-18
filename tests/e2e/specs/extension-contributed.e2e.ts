@@ -17,8 +17,8 @@ import {
   BTN_SAVE_ASSISTANT,
   BTN_DELETE_ASSISTANT,
   goToAssistantSettings,
-  openAssistantDrawer,
-  closeDrawer,
+  openAssistantEditor,
+  closeAssistantEditor,
   getVisibleAssistantIds,
   duplicateAssistant,
   fillAssistantName,
@@ -66,7 +66,7 @@ test.describe('Extension-Contributed Agents & Assistants', () => {
     const extId = ids.find((id) => id.includes('e2e-test-assistant'));
     test.skip(!extId, 'E2E Test Assistant not found');
 
-    await openAssistantDrawer(page, extId!);
+    await openAssistantEditor(page, extId!);
     // Save button is disabled for extension assistants
     const saveBtn = page.locator(BTN_SAVE_ASSISTANT);
     await expect(saveBtn).toBeDisabled();
@@ -77,7 +77,7 @@ test.describe('Extension-Contributed Agents & Assistants', () => {
       .catch(() => false);
     expect(deleteVisible).toBeFalsy();
 
-    await closeDrawer(page);
+    await closeAssistantEditor(page);
   });
 
   test('duplicate extension assistant to custom', async ({ page }) => {
@@ -101,7 +101,7 @@ test.describe('Extension-Contributed Agents & Assistants', () => {
     for (const id of idsAfter) {
       const cardText = await page.locator(`[data-testid="assistant-card-${id}"]`).textContent();
       if (cardText?.includes(`E2E Ext Copy ${TS}`)) {
-        await openAssistantDrawer(page, id);
+        await openAssistantEditor(page, id);
         await deleteAssistant(page);
         break;
       }

@@ -40,16 +40,21 @@ async function resolveMainWindow(electronApp: ElectronApplication): Promise<Page
     return existingMainWindow;
   }
 
-  const deadline = Date.now() + 30_000;
-  while (Date.now() < deadline) {
+  const resolveWindowBefore = async (deadline: number): Promise<Page> => {
+    if (Date.now() >= deadline) {
+      throw new Error('Failed to resolve main renderer window (non-DevTools).');
+    }
+
     const win = await electronApp.waitForEvent('window', { timeout: 1_000 }).catch(() => null);
     if (win && !isDevToolsWindow(win)) {
       await win.waitForLoadState('domcontentloaded');
       return win;
     }
-  }
 
-  throw new Error('Failed to resolve main renderer window (non-DevTools).');
+    return resolveWindowBefore(deadline);
+  };
+
+  return resolveWindowBefore(Date.now() + 30_000);
 }
 
 /**

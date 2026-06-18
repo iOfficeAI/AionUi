@@ -1,10 +1,13 @@
 import React from 'react';
 import { Robot } from '@icon-park/react';
 import { getAgentLogo } from '@renderer/utils/model/agentLogo';
-import { CUSTOM_AVATAR_IMAGE_MAP } from '@renderer/pages/guid/constants';
+import { resolveAssistantAvatar } from '@renderer/utils/model/assistantAvatar';
 import type { AgentMetadata } from '@renderer/utils/model/agentTypes';
 import type { Assistant } from '@/common/types/agent/assistantTypes';
-import { resolveBackendAssetUrl } from '@renderer/utils/platform';
+import {
+  isDeprecatedRuntimeAgentType,
+  resolveSupportedConversationType,
+} from '@/renderer/utils/model/agentTypeSupportPolicy';
 
 /**
  * Team leader selector entry — unified view over CLI agents and preset
@@ -17,6 +20,8 @@ export type TeamAgentOption = {
   /** Execution backend (claude, gemini, qwen, …). For assistants this is
    *  `preset_agent_type`; for CLI agents it's `backend`. */
   backend?: string;
+  /** Top-level runtime type from detected agents. Preset assistants leave this unset. */
+  agent_type?: string;
   /** Icon / avatar token — an SVG filename, emoji, or key into
    *  `CUSTOM_AVATAR_IMAGE_MAP`. */
   icon?: string;
@@ -29,6 +34,7 @@ export function cliAgentToOption(agent: AgentMetadata): TeamAgentOption {
     id: agent.id,
     name: agent.name,
     backend: agent.backend || agent.agent_type,
+    agent_type: agent.agent_type,
     icon: agent.icon,
     team_capable: agent.team_capable,
   };
@@ -58,38 +64,22 @@ export function resolveTeamAgentType(agent: TeamAgentOption | undefined, fallbac
 
 /** Filter agents to only those supported in team mode */
 export function filterTeamSupportedAgents(agents: TeamAgentOption[]): TeamAgentOption[] {
-  return agents.filter((a) => a.team_capable);
+  return agents.filter((a) => a.team_capable && !isDeprecatedRuntimeAgentType(a.agent_type));
 }
 
-export function resolveConversationType(
-  backend: string
-): 'acp' | 'aionrs' | 'codex' | 'openclaw-gateway' | 'nanobot' | 'remote' {
-  if (backend === 'aionrs') return 'aionrs';
-  if (backend === 'codex') return 'acp';
-  if (backend === 'openclaw-gateway') return 'openclaw-gateway';
-  if (backend === 'nanobot') return 'nanobot';
-  if (backend === 'remote') return 'remote';
-  return 'acp';
+export function resolveConversationType(backend: string): 'acp' | 'aionrs' {
+  return resolveSupportedConversationType(backend);
 }
 
 export const AgentOptionLabel: React.FC<{ agent: TeamAgentOption }> = ({ agent }) => {
   const logo = getAgentLogo(agent.backend);
-  const avatarImage = agent.icon ? CUSTOM_AVATAR_IMAGE_MAP[agent.icon] : undefined;
-  const directIcon =
-    agent.icon &&
-    !avatarImage &&
-    (/^(?:[a-z][a-z\d+.-]*:|\/)/i.test(agent.icon) || /\.(svg|png|jpe?g|gif|webp)$/i.test(agent.icon))
-      ? (resolveBackendAssetUrl(agent.icon) ?? agent.icon)
-      : undefined;
-  const isEmoji = Boolean(agent.icon && !avatarImage && !directIcon);
+  const avatar = resolveAssistantAvatar(agent.icon);
   return (
     <div className='flex items-center gap-8px'>
-      {avatarImage ? (
-        <img src={avatarImage} alt={agent.name} style={{ width: 16, height: 16, objectFit: 'contain' }} />
-      ) : isEmoji ? (
-        <span style={{ fontSize: 14, lineHeight: '16px' }}>{agent.icon}</span>
-      ) : directIcon ? (
-        <img src={directIcon} alt={agent.name} style={{ width: 16, height: 16, objectFit: 'contain' }} />
+      {avatar.kind === 'image' ? (
+        <img src={avatar.value} alt={agent.name} style={{ width: 16, height: 16, objectFit: 'contain' }} />
+      ) : avatar.kind === 'emoji' ? (
+        <span style={{ fontSize: 14, lineHeight: '16px' }}>{avatar.value}</span>
       ) : logo ? (
         <img src={logo} alt={agent.name} style={{ width: 16, height: 16, objectFit: 'contain' }} />
       ) : (

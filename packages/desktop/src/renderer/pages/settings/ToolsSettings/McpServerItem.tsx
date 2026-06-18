@@ -8,26 +8,21 @@ import type { McpOAuthStatus } from '@/renderer/hooks/mcp/useMcpOAuth';
 interface McpServerItemProps {
   server: IMcpServer;
   isCollapsed: boolean;
-  agentInstallStatus: Record<string, string[]>;
-  isServerLoading: (server_name: string) => boolean;
   isTestingConnection: boolean;
   oauthStatus?: McpOAuthStatus;
   isLoggingIn?: boolean;
-  /** Extension-contributed servers are read-only (no edit/delete/toggle) */
+  /** Extension-contributed servers are read-only (no edit/delete) */
   isReadOnly?: boolean;
   onToggleCollapse: () => void;
   onTestConnection: (server: IMcpServer) => void;
   onEditServer: (server: IMcpServer) => void;
   onDeleteServer: (serverId: string) => void;
-  onToggleServer: (serverId: string, enabled: boolean) => void;
   onOAuthLogin?: (server: IMcpServer) => void;
 }
 
 const McpServerItem: React.FC<McpServerItemProps> = ({
   server,
   isCollapsed,
-  agentInstallStatus,
-  isServerLoading,
   isTestingConnection,
   oauthStatus,
   isLoggingIn,
@@ -36,7 +31,6 @@ const McpServerItem: React.FC<McpServerItemProps> = ({
   onTestConnection,
   onEditServer,
   onDeleteServer,
-  onToggleServer,
   onOAuthLogin,
 }) => {
   return (
@@ -50,8 +44,6 @@ const McpServerItem: React.FC<McpServerItemProps> = ({
         header={
           <McpServerHeader
             server={server}
-            agentInstallStatus={agentInstallStatus}
-            isServerLoading={isServerLoading}
             isTestingConnection={isTestingConnection}
             oauthStatus={oauthStatus}
             isLoggingIn={isLoggingIn}
@@ -59,7 +51,6 @@ const McpServerItem: React.FC<McpServerItemProps> = ({
             onTestConnection={onTestConnection}
             onEditServer={onEditServer}
             onDeleteServer={onDeleteServer}
-            onToggleServer={onToggleServer}
             onOAuthLogin={onOAuthLogin}
           />
         }

@@ -5,7 +5,7 @@
  */
 
 /**
- * Listens for the `team.list-changed` WebSocket event with action `created`
+ * Listens for Team creation WebSocket events
  * and automatically:
  * 1. Refreshes the conversation list (so the converted conversation disappears)
  * 2. Navigates to the newly created team page
@@ -19,28 +19,43 @@ import { ipcBridge } from '@/common';
 import { emitter } from '@/renderer/utils/emitter';
 import { useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { deferLeaderQueueBeforeTeamRedirect } from './teamCreatedRedirectQueue';
 
 export function useTeamCreatedRedirect() {
   const navigate = useNavigate();
   const location = useLocation();
   const pathnameRef = useRef(location.pathname);
+  const inFlightTeamIdsRef = useRef(new Set<string>());
   pathnameRef.current = location.pathname;
 
   useEffect(() => {
-    const navigateToTeam = (teamId: string) => {
+    const navigateToTeam = async (teamId: string) => {
       if (!teamId) return;
       if (pathnameRef.current === `/team/${teamId}`) return;
-      emitter.emit('chat.history.refresh');
-      Promise.resolve(navigate(`/team/${teamId}`)).catch(console.error);
+      if (inFlightTeamIdsRef.current.has(teamId)) return;
+
+      inFlightTeamIdsRef.current.add(teamId);
+      try {
+        await deferLeaderQueueBeforeTeamRedirect({
+          team_id: teamId,
+          getTeam: ipcBridge.team.get.invoke,
+          emitDefer: (payload) => emitter.emit('conversation.commandQueue.deferAfterTeamUpgrade', payload),
+        });
+
+        emitter.emit('chat.history.refresh');
+        await Promise.resolve(navigate(`/team/${teamId}`));
+      } finally {
+        inFlightTeamIdsRef.current.delete(teamId);
+      }
     };
 
     const unsubListChanged = ipcBridge.team.listChanged.on((event) => {
       if (event.action !== 'created') return;
-      navigateToTeam(event.team_id);
+      void navigateToTeam(event.team_id).catch(console.error);
     });
 
     const unsubCreated = ipcBridge.team.created.on((event) => {
-      navigateToTeam(event.team_id);
+      void navigateToTeam(event.team_id).catch(console.error);
     });
 
     return () => {

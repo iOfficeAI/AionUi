@@ -54,6 +54,14 @@
   color: var(--color-text-1);
 }
 
+/* Header model pill — only cap width on mobile, where the titlebar slot has
+   limited horizontal room. Desktop lets the pill grow to fit the full name. */
+@media (max-width: 767px) {
+  .header-model-btn {
+    max-width: 140px;
+  }
+}
+
 /* Mobile: conversation header pills */
 @media (max-width: 767px) {
   .agent-mode-compact-pill {

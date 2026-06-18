@@ -29,7 +29,36 @@ Each pull request must contain **exactly one feature or one bug fix** that canno
 - Unrelated bug fixes bundled together (e.g., titlebar navigation fix + i18n missing key + speech input UI fix)
 - Independent technical layers (e.g., IPC bridge refactor + renderer component + worker process change for unrelated features)
 
-## Rule 2: Pass Local Checks Before Push
+## Rule 2: Commit and PR Title Format
+
+Commit messages and PR titles must use Conventional Commit format in English:
+
+```text
+<type>(<scope>): <subject>
+```
+
+Use one of these types:
+
+| Type       | Meaning                  | Changelog visibility |
+| ---------- | ------------------------ | -------------------- |
+| `feat`     | New user-facing behavior | Visible              |
+| `fix`      | Bug fix                  | Visible              |
+| `perf`     | Performance improvement  | Visible              |
+| `refactor` | Code restructuring       | Visible              |
+| `docs`     | Documentation            | Visible              |
+| `style`    | Formatting or styles     | Hidden               |
+| `chore`    | Maintenance work         | Hidden               |
+| `test`     | Tests                    | Hidden               |
+| `ci`       | CI configuration         | Hidden               |
+| `build`    | Build system             | Hidden               |
+
+Examples:
+
+- `fix(preview): restore local html loading`
+- `feat(workspace): add file preview shortcuts`
+- `docs(contributing): document pr title format`
+
+## Rule 3: Pass Local Checks Before Push
 
 CI will reject your PR if these checks fail. Run them locally **before pushing** to save time.
 

@@ -3,9 +3,7 @@
  * Copyright 2025 AionUi (aionui.com)
  * SPDX-License-Identifier: Apache-2.0
  *
- * Verifies InlineAgentEditor surfaces the FeedbackButton only after a failed
- * connection test, and that it is wired to module=agent-detection for both
- * fail_cli (error Alert) and fail_acp (warning Alert) states.
+ * Verifies InlineAgentEditor does not surface the FeedbackButton in error alerts.
  */
 
 import React from 'react';
@@ -67,7 +65,7 @@ const fillCommandAndTest = async (user: ReturnType<typeof userEvent.setup>, comm
   });
 };
 
-describe('InlineAgentEditor — FeedbackButton wiring', () => {
+describe('InlineAgentEditor — FeedbackButton absence', () => {
   beforeEach(() => {
     openFeedbackMock.mockClear();
     testCustomAgentMock.mockReset();
@@ -93,7 +91,7 @@ describe('InlineAgentEditor — FeedbackButton wiring', () => {
     expect(screen.queryByText('settings.oneClickFeedback')).not.toBeInTheDocument();
   });
 
-  it('renders FeedbackButton on fail_cli and wires module=agent-detection', async () => {
+  it('does not render FeedbackButton on fail_cli', async () => {
     testCustomAgentMock.mockResolvedValue({ step: 'fail_cli' });
     const user = userEvent.setup();
     renderEditor();
@@ -103,17 +101,11 @@ describe('InlineAgentEditor — FeedbackButton wiring', () => {
       expect(screen.getByText('settings.testConnectionFailCli')).toBeInTheDocument();
     });
 
-    await act(async () => {
-      await user.click(screen.getByText('settings.oneClickFeedback'));
-    });
-    expect(openFeedbackMock).toHaveBeenCalledTimes(1);
-    expect(openFeedbackMock).toHaveBeenCalledWith({
-      module: 'agent-detection',
-      autoScreenshot: true,
-    });
+    expect(screen.queryByText('settings.oneClickFeedback')).not.toBeInTheDocument();
+    expect(openFeedbackMock).not.toHaveBeenCalled();
   });
 
-  it('renders FeedbackButton on fail_acp and wires module=agent-detection', async () => {
+  it('does not render FeedbackButton on fail_acp', async () => {
     testCustomAgentMock.mockResolvedValue({ step: 'fail_acp' });
     const user = userEvent.setup();
     renderEditor();
@@ -123,12 +115,7 @@ describe('InlineAgentEditor — FeedbackButton wiring', () => {
       expect(screen.getByText('settings.testConnectionFailAcp')).toBeInTheDocument();
     });
 
-    await act(async () => {
-      await user.click(screen.getByText('settings.oneClickFeedback'));
-    });
-    expect(openFeedbackMock).toHaveBeenCalledWith({
-      module: 'agent-detection',
-      autoScreenshot: true,
-    });
+    expect(screen.queryByText('settings.oneClickFeedback')).not.toBeInTheDocument();
+    expect(openFeedbackMock).not.toHaveBeenCalled();
   });
 });

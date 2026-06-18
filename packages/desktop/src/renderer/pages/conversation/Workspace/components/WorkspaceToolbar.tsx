@@ -65,7 +65,7 @@ const WorkspaceToolbar: React.FC<WorkspaceToolbarProps> = ({
         }
       }}
     >
-      <Menu.Item key='host'>{t('common.fileAttach.hostFiles')}</Menu.Item>
+      <Menu.Item key='host'>{t('common.fileAttach.addFiles')}</Menu.Item>
       <Menu.Item key='device'>{t('common.fileAttach.myDevice')}</Menu.Item>
     </Menu>
   );

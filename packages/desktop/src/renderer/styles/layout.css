@@ -206,10 +206,10 @@
   }
 
   .layout-sider-header--mobile {
-    min-height: 72px !important;
-    padding-top: 14px !important;
-    padding-bottom: 12px !important;
-    gap: 14px !important;
+    min-height: 56px !important;
+    padding-top: 10px !important;
+    padding-bottom: 8px !important;
+    gap: 8px !important;
   }
 
   /* Mobile-only: clip overflow instead of allowing scroll */
@@ -224,23 +224,25 @@
     padding-bottom: 20px;
   }
 
+  /* Match the mobile sider top buttons to the conversation row height (34px)
+     so the new-chat / search / footer rows form one consistent vertical rhythm. */
   .sider-action-btn-mobile {
-    height: 44px !important;
-    gap: 12px !important;
-    padding-inline: 14px !important;
-    border-radius: 10px !important;
+    height: 34px !important;
+    gap: 8px !important;
+    padding-inline: 10px !important;
+    border-radius: 8px !important;
   }
 
   .sider-action-icon-btn-mobile {
-    width: 44px !important;
-    height: 44px !important;
-    border-radius: 10px !important;
+    width: 34px !important;
+    height: 34px !important;
+    border-radius: 8px !important;
   }
 
   .sider-footer-btn-mobile {
-    min-height: 44px !important;
-    padding: 10px 14px !important;
-    border-radius: 10px !important;
+    min-height: 34px !important;
+    padding: 6px 10px !important;
+    border-radius: 8px !important;
   }
 
   /* Mobile: remove left padding for message wrapper */

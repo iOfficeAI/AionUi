@@ -11,6 +11,10 @@ import { configService } from '@/common/config/configService';
 import { openExternalUrl } from '@/renderer/utils/platform';
 import GoogleModelSelector from '@/renderer/pages/conversation/platforms/gemini/GoogleModelSelector';
 import type { GoogleModelSelection } from '@/renderer/pages/conversation/platforms/gemini/useGoogleModelSelection';
+import {
+  isSupportedNewConversationAgent,
+  normalizeSupportedAgentSelection,
+} from '@/renderer/utils/model/agentTypeSupportPolicy';
 import { Button, Dropdown, Empty, Input, Menu, Message, Spin, Tooltip } from '@arco-design/web-react';
 import { CheckOne, CloseOne, Copy, Delete, Down, Refresh } from '@icon-park/react';
 import React, { useCallback, useEffect, useState } from 'react';
@@ -128,7 +132,7 @@ const DingTalkConfigForm: React.FC<DingTalkConfigFormProps> = ({ pluginStatus, m
         const [agentsResp, saved] = await Promise.all([getAgents(), configService.get('assistant.dingtalk.agent')]);
 
         if (Array.isArray(agentsResp)) {
-          const list = agentsResp.map((a) => ({
+          const list = agentsResp.filter(isSupportedNewConversationAgent).map((a) => ({
             agent_type: a.agent_type,
             backend: a.backend,
             name: a.name,
@@ -140,25 +144,24 @@ const DingTalkConfigForm: React.FC<DingTalkConfigFormProps> = ({ pluginStatus, m
         if (saved && typeof saved === 'object') {
           const s = saved as any;
           const backend = typeof s.backend === 'string' ? s.backend : undefined;
-          const agentType =
-            typeof s.agent_type === 'string'
-              ? s.agent_type
-              : backend && ['aionrs', 'aion-cli', 'openclaw-gateway', 'nanobot', 'remote'].includes(backend)
-                ? backend
-                : 'acp';
-          setSelectedAgent({
-            agent_type: agentType,
-            backend,
-            // Legacy rows persist `custom_agent_id`; new rows write `id`.
-            id: s.id ?? s.custom_agent_id,
-            name: s.name,
-          });
+          const normalized = normalizeSupportedAgentSelection(
+            typeof s.agent_type === 'string' ? s.agent_type : undefined,
+            backend
+          );
+          if (normalized) {
+            setSelectedAgent({
+              ...normalized,
+              // Legacy rows persist `custom_agent_id`; new rows write `id`.
+              id: s.id ?? s.custom_agent_id,
+              name: s.name,
+            });
+          }
         } else if (typeof saved === 'string') {
           const backend = saved as string;
-          const agentType = ['aionrs', 'aion-cli', 'openclaw-gateway', 'nanobot', 'remote'].includes(backend)
-            ? backend
-            : 'acp';
-          setSelectedAgent({ agent_type: agentType, backend });
+          const normalized = normalizeSupportedAgentSelection(undefined, backend);
+          if (normalized) {
+            setSelectedAgent(normalized);
+          }
         }
       } catch (error) {
         console.error('[DingTalkConfig] Failed to load agents:', error);

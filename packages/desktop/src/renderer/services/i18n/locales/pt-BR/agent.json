@@ -1,0 +1,46 @@
+{
+  "health": {
+    "detectedError": "Erro detectado com o agente atual ({{agent}})",
+    "autoSwitching": ". O sistema tentará alternar automaticamente.",
+    "evaluating": "Avaliando a latência da rede e a disponibilidade do modelo...",
+    "checking": "Verificando o endpoint de {{agent}}...",
+    "foundBest": "Melhor alternativa encontrada",
+    "recommendSwitch": "Recomendado",
+    "available": "Disponível",
+    "lowLatency": "Baixa Latência",
+    "mediumLatency": "Média Latência",
+    "highLatency": "Alta Latência",
+    "bestMatch": "Melhor Combinação",
+    "noAvailable": "Nenhum agente disponível no ambiente atual",
+    "checkConfig": "Por favor, verifique a configuração ou tente novamente mais tarde"
+  },
+  "setup": {
+    "connectionError": "Erro de Conexão",
+    "notConfigured": "{{agent}} não está configurado",
+    "authRequired": "Autenticação ou chave de API é necessária para usar este agente.",
+    "findingAlternatives": "Buscando alternativas disponíveis...",
+    "checkingAgent": "Verificando {{agent}}...",
+    "alternativesFound": "{{count}} alternativas disponíveis encontradas",
+    "autoSwitching": "Alternando automaticamente para o melhor agente disponível...",
+    "configError": "Erro de configuração. Por favor, verifique suas configurações ou selecione uma alternativa:",
+    "noAlternatives": "Nenhum agente disponível encontrado",
+    "configureFirst": "Por favor, configure um agente nas Configurações primeiro.",
+    "switching": "Alternando agente..."
+  },
+  "model": {
+    "switchSuccess": "Modelo alterado com sucesso",
+    "switchFailed": "Falha ao alternar o modelo"
+  },
+  "config": {
+    "setting": "Aplicando configuração...",
+    "commandAck": "Comando enviado, mas o estado ainda não foi confirmado. Atualize ou tente novamente mais tarde.",
+    "timeout": "A confirmação da configuração expirou. O estado anterior continua sendo exibido.",
+    "busy": "Outra configuração está sendo aplicada. Tente novamente mais tarde.",
+    "failed": "Falha ao aplicar a configuração. O estado anterior continua sendo exibido."
+  },
+  "thoughtLevel": {
+    "label": "Nível de raciocínio",
+    "switchSuccess": "Nível de raciocínio alterado",
+    "switchFailed": "Falha ao alterar o nível de raciocínio"
+  }
+}

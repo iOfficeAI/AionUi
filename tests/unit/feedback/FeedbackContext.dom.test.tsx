@@ -28,6 +28,8 @@ vi.mock('@/renderer/components/settings/SettingsModal/contents/FeedbackReportMod
     onCancel: () => void;
     defaultModule?: string;
     prefilledScreenshots?: Array<{ filename: string; data: Uint8Array; type: string }>;
+    feedbackTags?: Record<string, string>;
+    feedbackExtra?: Record<string, unknown>;
   }) => {
     modalSpy(props);
     if (!props.visible) return null;
@@ -52,13 +54,18 @@ function setElectronAPI(capture: CaptureFn | undefined) {
     capture === undefined ? undefined : { captureFeedbackScreenshot: capture };
 }
 
-const Trigger: React.FC<{ module?: string; autoScreenshot?: boolean }> = ({ module, autoScreenshot }) => {
+const Trigger: React.FC<{
+  module?: string;
+  autoScreenshot?: boolean;
+  tags?: Record<string, string>;
+  extra?: Record<string, unknown>;
+}> = ({ module, autoScreenshot, tags, extra }) => {
   const { openFeedback } = useFeedback();
   return (
     <button
       type='button'
       onClick={() => {
-        openFeedback({ module, autoScreenshot });
+        openFeedback({ module, autoScreenshot, tags, extra });
       }}
     >
       open
@@ -96,6 +103,41 @@ describe('FeedbackProvider / useFeedback', () => {
     expect(lastCall.visible).toBe(true);
     expect(lastCall.defaultModule).toBe('mcp-tools');
     expect(lastCall.prefilledScreenshots).toBeUndefined();
+  });
+
+  it('forwards feedback tags and extra context to the modal', async () => {
+    const user = userEvent.setup();
+    renderWithProvider(
+      <Trigger
+        module='conversation-session'
+        autoScreenshot={false}
+        tags={{
+          agent_error_code: 'USER_AGENT_ACP_INIT_FAILED',
+          agent_error_ownership: 'user_agent',
+        }}
+        extra={{
+          agent_error: {
+            code: 'USER_AGENT_ACP_INIT_FAILED',
+            ownership: 'user_agent',
+          },
+        }}
+      />
+    );
+
+    await user.click(document.querySelector('button')!);
+
+    const lastCall = modalSpy.mock.calls.at(-1)?.[0];
+    expect(lastCall.visible).toBe(true);
+    expect(lastCall.feedbackTags).toEqual({
+      agent_error_code: 'USER_AGENT_ACP_INIT_FAILED',
+      agent_error_ownership: 'user_agent',
+    });
+    expect(lastCall.feedbackExtra).toEqual({
+      agent_error: {
+        code: 'USER_AGENT_ACP_INIT_FAILED',
+        ownership: 'user_agent',
+      },
+    });
   });
 
   it('captures a screenshot via electronAPI when autoScreenshot=true', async () => {
@@ -182,6 +224,8 @@ describe('FeedbackProvider / useFeedback', () => {
     const lastCall = modalSpy.mock.calls.at(-1)?.[0];
     expect(lastCall.visible).toBe(false);
     expect(lastCall.prefilledScreenshots).toBeUndefined();
+    expect(lastCall.feedbackTags).toBeUndefined();
+    expect(lastCall.feedbackExtra).toBeUndefined();
   });
 
   it('returns a no-op openFeedback when used outside a provider', async () => {

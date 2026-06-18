@@ -7,16 +7,18 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { ClientFactory, normalizeNewApiBaseUrl } from '@/common/api/ClientFactory';
 import { OpenAIRotatingClient } from '@/common/api/OpenAIRotatingClient';
+import { GeminiRotatingClient } from '@/common/api/GeminiRotatingClient';
 import { AnthropicRotatingClient } from '@/common/api/AnthropicRotatingClient';
 import { AuthType } from '@office-ai/aioncli-core';
 
 // Mock rotating clients
 vi.mock('@/common/api/OpenAIRotatingClient');
+vi.mock('@/common/api/GeminiRotatingClient');
 vi.mock('@/common/api/AnthropicRotatingClient');
 
 // Mock utility functions
 vi.mock('@/common/utils/platformAuthType', () => ({
-  getProviderAuthType: vi.fn((provider) => provider.authType || AuthType.USE_OPENAI),
+  getProviderAuthType: vi.fn((provider) => provider.auth_type || provider.authType || AuthType.USE_OPENAI),
 }));
 
 vi.mock('@/common/utils/platformConstants', () => ({
@@ -46,6 +48,11 @@ describe('ClientFactory', () => {
 
     it('returns root URL for Anthropic', () => {
       const result = normalizeNewApiBaseUrl('https://api.example.com/v1', AuthType.USE_ANTHROPIC);
+      expect(result).toBe('https://api.example.com');
+    });
+
+    it('returns root URL for Gemini', () => {
+      const result = normalizeNewApiBaseUrl('https://api.example.com/v1', AuthType.USE_GEMINI);
       expect(result).toBe('https://api.example.com');
     });
 
@@ -84,6 +91,27 @@ describe('ClientFactory', () => {
       const client = await ClientFactory.createRotatingClient(anthropicProvider);
       expect(AnthropicRotatingClient).toHaveBeenCalled();
       expect(client).toBeInstanceOf(AnthropicRotatingClient);
+    });
+
+    it('creates GeminiRotatingClient for USE_GEMINI', async () => {
+      const geminiProvider = {
+        ...mockProvider,
+        platform: 'gemini',
+        authType: AuthType.USE_GEMINI,
+        base_url: 'https://generativelanguage.googleapis.com',
+        use_model: 'gemini-3-pro-image-preview',
+      };
+
+      const client = await ClientFactory.createRotatingClient(geminiProvider);
+
+      expect(GeminiRotatingClient).toHaveBeenCalled();
+      expect(client).toBeInstanceOf(GeminiRotatingClient);
+      const calls = (GeminiRotatingClient as any).mock.calls;
+      expect(calls[0][1]).toMatchObject({
+        model: 'gemini-3-pro-image-preview',
+        baseURL: 'https://generativelanguage.googleapis.com',
+      });
+      expect(calls[0][3]).toBe(AuthType.USE_GEMINI);
     });
 
     it('normalizes base URL for new-api platform', async () => {
@@ -156,6 +184,18 @@ describe('ClientFactory', () => {
       const calls = (AnthropicRotatingClient as any).mock.calls;
       const config = calls[0][1];
       expect(config.model).toBe('claude-sonnet-4-20250514');
+    });
+
+    it('passes model to Gemini config', async () => {
+      const geminiProvider = {
+        ...mockProvider,
+        authType: AuthType.USE_GEMINI,
+        use_model: 'gemini-3-pro-image-preview',
+      };
+      await ClientFactory.createRotatingClient(geminiProvider);
+      const calls = (GeminiRotatingClient as any).mock.calls;
+      const config = calls[0][1];
+      expect(config.model).toBe('gemini-3-pro-image-preview');
     });
 
     it('defaults to OpenAI client for unknown auth type', async () => {

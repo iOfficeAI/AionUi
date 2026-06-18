@@ -1,98 +1,98 @@
-// hooks/useTheme.ts
+/**
+ * @license
+ * Copyright 2025 AionUi (aionui.com)
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 import { configService } from '@/common/config/configService';
+import { ipcBridge } from '@/common';
+import { resolveActiveTheme } from '@/common/theme/resolveTheme';
+import { applyTheme, setActiveTheme } from '@/renderer/utils/theme/applyTheme';
+import { getSystemPrefersDark } from '@/renderer/utils/theme/systemAppearance';
+import { startSystemThemeWatcher } from '@/renderer/utils/theme/systemThemeWatcher';
+import { BUILTIN_THEMES } from '@renderer/theme/builtinThemes';
+import { LIGHT_THEME_ID } from '@/common/theme/constants';
+import type { Theme } from '@/common/theme/types';
 import { useCallback, useEffect, useState } from 'react';
 
-export type Theme = 'light' | 'dark';
+const APPEARANCE_CACHE_KEY = '__aionui_theme';
 
-const DEFAULT_THEME: Theme = 'light';
-const THEME_CACHE_KEY = '__aionui_theme';
-
-const applyThemeToDom = (value: Theme) => {
-  document.documentElement.setAttribute('data-theme', value);
-  document.body.setAttribute('arco-theme', value);
-};
-
-const readCachedTheme = (): Theme => {
-  try {
-    const cached = localStorage.getItem(THEME_CACHE_KEY);
-    if (cached === 'light' || cached === 'dark') return cached;
-  } catch (_e) {
-    /* noop */
-  }
-  return DEFAULT_THEME;
-};
-
-// Apply localStorage hint synchronously to avoid FOUC, then resolve to the
-// authoritative value from configService once it has loaded from the backend.
-const initTheme = async (): Promise<Theme> => {
-  const hint = readCachedTheme();
-  applyThemeToDom(hint);
-  try {
-    await configService.whenReady();
-    const theme = (configService.get('theme') as Theme) || hint;
-    applyThemeToDom(theme);
-    try {
-      localStorage.setItem(THEME_CACHE_KEY, theme);
-    } catch (_e) {
-      /* noop */
-    }
-    return theme;
-  } catch (error) {
-    console.error('Failed to load initial theme:', error);
-    return hint;
-  }
-};
-
-// Run theme initialization immediately
-let initialThemePromise: Promise<Theme> | null = null;
-if (typeof window !== 'undefined') {
-  initialThemePromise = initTheme();
+function getPersistedActiveId(): string {
+  return (configService.get('theme.activeId') as string) || LIGHT_THEME_ID;
 }
 
-const useTheme = (): [Theme, (theme: Theme) => Promise<void>] => {
-  const [theme, setThemeState] = useState<Theme>(DEFAULT_THEME);
-
-  // Apply theme to document
-  const applyTheme = useCallback((newTheme: Theme) => {
-    applyThemeToDom(newTheme);
+async function initActiveTheme(): Promise<Theme> {
+  try {
+    await configService.whenReady();
+    const activeId = getPersistedActiveId();
+    const userThemes = (configService.get('theme.userThemes') as Theme[]) ?? [];
+    const resolved = resolveActiveTheme(activeId, [...BUILTIN_THEMES, ...userThemes], getSystemPrefersDark());
+    applyTheme(resolved);
     try {
-      localStorage.setItem(THEME_CACHE_KEY, newTheme);
-    } catch (_e) {
+      localStorage.setItem(APPEARANCE_CACHE_KEY, resolved.appearance);
+    } catch {
       /* noop */
     }
-  }, []);
+    // Seed the main-process relay so other surfaces (markdown shadow DOM, pet windows) can pull it.
+    void ipcBridge.theme.setActive.invoke(resolved).catch(() => {});
+    return resolved;
+  } catch (e) {
+    console.error('init theme failed', e);
+    const fallback = resolveActiveTheme(LIGHT_THEME_ID, BUILTIN_THEMES);
+    applyTheme(fallback);
+    return fallback;
+  }
+}
 
-  // Set theme with persistence
-  const setTheme = useCallback(
-    async (newTheme: Theme) => {
-      try {
-        setThemeState(newTheme);
-        applyTheme(newTheme);
-        await configService.set('theme', newTheme);
-      } catch (error) {
-        console.error('Failed to save theme:', error);
-        // Revert on error
-        setThemeState(theme);
-        applyTheme(theme);
-      }
-    },
-    [theme, applyTheme]
-  );
+let initialPromise: Promise<Theme> | null = null;
+if (typeof window !== 'undefined') initialPromise = initActiveTheme();
 
-  // Initialize theme state from the early initialization
+/**
+ * Returns [resolvedActiveTheme, selectThemeById, rawActiveId]. `rawActiveId` may be the
+ * `system` sentinel while the resolved theme is the Light/Dark builtin — the gallery
+ * highlights cards by `rawActiveId`.
+ */
+const useTheme = (): [Theme | null, (activeId: string) => Promise<void>, string | null] => {
+  const [active, setActive] = useState<Theme | null>(null);
+  const [activeId, setActiveId] = useState<string | null>(null);
+
   useEffect(() => {
-    if (initialThemePromise) {
-      initialThemePromise
-        .then((initialTheme) => {
-          setThemeState(initialTheme);
-        })
-        .catch((error) => {
-          console.error('Failed to initialize theme:', error);
-        });
-    }
+    let mounted = true;
+    initialPromise
+      ?.then((t) => {
+        if (mounted) {
+          setActive(t);
+          setActiveId(getPersistedActiveId());
+        }
+      })
+      .catch((e) => console.error('init theme failed', e));
+    const off = ipcBridge.theme.changed.on((t: Theme) => {
+      applyTheme(t);
+      if (mounted) {
+        setActive((prev) => (prev?.id === t.id ? prev : t));
+        // Best-effort: config was persisted before the broadcast, fall back to the resolved id.
+        setActiveId((configService.get('theme.activeId') as string) || t.id);
+      }
+      try {
+        localStorage.setItem(APPEARANCE_CACHE_KEY, t.appearance);
+      } catch {
+        /* noop */
+      }
+    });
+    const offSystemWatch = startSystemThemeWatcher();
+    return () => {
+      mounted = false;
+      off?.();
+      offSystemWatch();
+    };
   }, []);
 
-  return [theme, setTheme];
+  const select = useCallback(async (activeId: string) => {
+    await setActiveTheme(activeId);
+    setActiveId(activeId);
+  }, []);
+
+  return [active, select, activeId];
 };
 
 export default useTheme;

@@ -68,9 +68,49 @@ describe('useDetectedAgents', () => {
 
     expect(result.current.availableBackends).toHaveLength(2); // 'remote' excluded
     // backend slug wins when present
-    expect(result.current.availableBackends[0]).toEqual({ id: 'claude', name: 'ClaudeCode', isExtension: false });
+    expect(result.current.availableBackends[0]).toEqual({
+      id: 'claude',
+      name: 'ClaudeCode',
+      isExtension: false,
+      modelOptions: [],
+    });
     // falls back to agent_type when backend is absent (e.g. internal engines)
-    expect(result.current.availableBackends[1]).toEqual({ id: 'local', name: 'ExtAgent', isExtension: true });
+    expect(result.current.availableBackends[1]).toEqual({
+      id: 'local',
+      name: 'ExtAgent',
+      isExtension: true,
+      modelOptions: [],
+    });
+  });
+
+  it('derives backend-scoped model options from handshake available_models', () => {
+    const mockAgents: AgentMetadata[] = [
+      {
+        id: 'a1',
+        name: 'ClaudeCode',
+        agent_type: 'acp',
+        agent_source: 'builtin',
+        backend: 'claude',
+        handshake: {
+          available_models: {
+            current_model_id: 'claude-sonnet-4',
+            current_model_label: 'Claude Sonnet 4',
+            available_models: [
+              { id: 'claude-sonnet-4', label: 'Claude Sonnet 4' },
+              { id: 'claude-opus-4', label: 'Claude Opus 4' },
+            ],
+          },
+        },
+      },
+    ];
+    (useSWR as any).mockReturnValue({ data: mockAgents, error: null });
+
+    const { result } = renderHook(() => useDetectedAgents());
+
+    expect(result.current.availableBackends[0]?.modelOptions).toEqual([
+      { value: 'claude-sonnet-4', label: 'Claude Sonnet 4' },
+      { value: 'claude-opus-4', label: 'Claude Opus 4' },
+    ]);
   });
 
   it('calls refreshCustomAgents and mutate on refreshAgentDetection', async () => {

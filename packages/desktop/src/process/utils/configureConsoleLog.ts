@@ -20,6 +20,7 @@
  * BEFORE any other module emits console output.
  */
 
+import { app } from 'electron';
 import log from 'electron-log/main';
 
 const FILE_SIZE_LIMIT = 10 * 1024 * 1024; // 10 MB
@@ -33,7 +34,7 @@ log.transports.file.fileName = `${today}.log`;
 // --- Main-process logger (frontend) ---
 log.transports.file.level = FILE_LOG_LEVEL;
 log.transports.file.maxSize = FILE_SIZE_LIMIT;
-log.transports.console.level = CONSOLE_LOG_LEVEL;
+log.transports.console.level = app.isPackaged ? false : CONSOLE_LOG_LEVEL;
 
 const BACKEND_PREFIX = '[aioncore]';
 
@@ -61,7 +62,7 @@ function parseTracingLine(raw: string): { level: string; body: string } {
 
 // Clean up backend subprocess log lines: strip tracing timestamps/levels,
 // resolve the log level, and keep them in the shared log file.
-log.hooks.push((message, _transport, transportName) => {
+log.hooks.push((message, _transport) => {
   const first = message.data[0];
   if (typeof first !== 'string' || !first.startsWith(BACKEND_PREFIX)) return message;
 

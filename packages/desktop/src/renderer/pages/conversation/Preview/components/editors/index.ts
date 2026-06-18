@@ -14,4 +14,4 @@
 
 export { default as MarkdownEditor } from './MarkdownEditor';
 export { default as HTMLEditor } from './HTMLEditor';
-export { default as TextEditor } from './TextEditor';
+export { default as CodeEditor } from './CodeEditor';

@@ -157,14 +157,24 @@ describe('agentLogo', () => {
       expect(result).toBe('GPT-4 Turbo');
     });
 
-    it('returns defaultModelLabel when selectedLabel contains default keyword', () => {
+    it('keeps a specific model label even when it includes the default tier suffix', () => {
       const result = getModelDisplayLabel({
         selected_value: 'gpt-4',
         selectedLabel: 'GPT-4 (default)',
         defaultModelLabel: 'Default Model',
         fallbackLabel: 'Unknown',
       });
-      expect(result).toBe('Default Model');
+      expect(result).toBe('GPT-4 (default)');
+    });
+
+    it('keeps a generic default option label unchanged', () => {
+      const result = getModelDisplayLabel({
+        selected_value: 'default/default',
+        selectedLabel: 'Default (default)',
+        defaultModelLabel: 'Default Model',
+        fallbackLabel: 'Unknown',
+      });
+      expect(result).toBe('Default (default)');
     });
 
     it('falls back to fallbackLabel when selectedLabel is null', () => {

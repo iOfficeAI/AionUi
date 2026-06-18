@@ -35,23 +35,31 @@ export interface PresetAssistantInfo {
  */
 export function resolveAssistantConfigId(conversation: TChatConversation): string | null {
   const extra = conversation.extra as {
+    assistant_id?: unknown;
     preset_assistant_id?: unknown;
     custom_agent_id?: unknown;
   };
+  const assistant_id = typeof extra?.assistant_id === 'string' ? extra.assistant_id.trim() : '';
   const preset_assistant_id = typeof extra?.preset_assistant_id === 'string' ? extra.preset_assistant_id.trim() : '';
   const custom_agent_id = typeof extra?.custom_agent_id === 'string' ? extra.custom_agent_id.trim() : '';
-  return preset_assistant_id || custom_agent_id || null;
+  return assistant_id || preset_assistant_id || custom_agent_id || null;
 }
 
 export function resolvePresetId(conversation: TChatConversation): string | null {
   const extra = conversation.extra as {
+    assistant_id?: unknown;
     preset_assistant_id?: unknown;
     custom_agent_id?: unknown;
     enabled_skills?: unknown;
   };
+  const assistant_id = typeof extra?.assistant_id === 'string' ? extra.assistant_id.trim() : '';
   const preset_assistant_id = typeof extra?.preset_assistant_id === 'string' ? extra.preset_assistant_id.trim() : '';
   const custom_agent_id = typeof extra?.custom_agent_id === 'string' ? extra.custom_agent_id.trim() : '';
   const enabled_skills = Array.isArray(extra?.enabled_skills) ? extra.enabled_skills : [];
+
+  if (assistant_id) {
+    return assistant_id.replace('builtin-', '');
+  }
 
   // 1. 优先使用 preset_assistant_id（新会话）
   // Priority: use preset_assistant_id (new conversations)
@@ -209,7 +217,7 @@ export function usePresetAssistantInfo(conversation: TChatConversation | undefin
 } {
   const { i18n } = useTranslation();
 
-  // Merged assistant catalog (builtin + user + extension) from backend
+  // Merged assistant catalog (builtin + user) from backend
   const { data: assistantsList, isLoading: isLoadingAssistants } = useSWR('assistants', () =>
     ipcBridge.assistants.list.invoke().catch(() => [] as Assistant[])
   );
@@ -248,24 +256,26 @@ export function usePresetAssistantInfo(conversation: TChatConversation | undefin
       return { info: null, isLoading: false };
     }
 
+    const presetId = resolvePresetId(conversation);
+
     // Custom ACP row short-circuit: conversation.extra carries `agent_id`
     // (written by buildAgentConversationParams) or the legacy `custom_agent_id`
     // alias. Neither is a preset assistant id, so we resolve directly against
     // the detected-agent catalog and trust the row's own icon/name.
-    const extra = conversation.extra as { agent_id?: unknown; custom_agent_id?: unknown } | undefined;
-    const rowAgentId =
-      (typeof extra?.agent_id === 'string' && extra.agent_id.trim()) ||
-      (typeof extra?.custom_agent_id === 'string' && extra.custom_agent_id.trim()) ||
-      '';
-    if (rowAgentId && Array.isArray(detectedAgents)) {
-      const row = detectedAgents.find((a) => a.id === rowAgentId && a.agent_source === 'custom');
-      if (row) {
-        const normalized = normalizeAvatar(row.icon);
-        return { info: { name: row.name, logo: normalized.logo, isEmoji: normalized.isEmoji }, isLoading: false };
+    if (!presetId) {
+      const extra = conversation.extra as { agent_id?: unknown; custom_agent_id?: unknown } | undefined;
+      const rowAgentId =
+        (typeof extra?.agent_id === 'string' && extra.agent_id.trim()) ||
+        (typeof extra?.custom_agent_id === 'string' && extra.custom_agent_id.trim()) ||
+        '';
+      if (rowAgentId && Array.isArray(detectedAgents)) {
+        const row = detectedAgents.find((a) => a.id === rowAgentId && a.agent_source === 'custom');
+        if (row) {
+          const normalized = normalizeAvatar(row.icon);
+          return { info: { name: row.name, logo: normalized.logo, isEmoji: normalized.isEmoji }, isLoading: false };
+        }
       }
     }
-
-    const presetId = resolvePresetId(conversation);
     const locale = i18n.language || 'en-US';
 
     if (!presetId) {
@@ -279,7 +289,7 @@ export function usePresetAssistantInfo(conversation: TChatConversation | undefin
       return { info: null, isLoading: false };
     }
 
-    // Assistant lookup: backend returns merged builtin + user + extension list.
+    // Assistant lookup: backend returns merged builtin + user list.
     // Accept either the bare id or the legacy `builtin-` / `ext-` prefixed forms.
     if (assistantsList && Array.isArray(assistantsList)) {
       const assistantMatch = assistantsList.find(

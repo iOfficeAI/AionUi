@@ -1,0 +1,121 @@
+.summarySelect :global(.arco-select-view-multiple) {
+  padding: 0;
+}
+
+.summarySelect :global(.arco-input-tag) {
+  min-height: 32px;
+  padding-left: 11px !important;
+  padding-right: 11px !important;
+  background: transparent;
+  border: none;
+}
+
+.summarySelect :global(.arco-input-tag:hover),
+.summarySelect :global(.arco-input-tag.arco-input-tag-focus) {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+.summarySelect :global(.arco-input-tag-view) {
+  min-height: 32px;
+  align-items: center;
+}
+
+.summarySelect :global(.arco-input-tag-input),
+.summarySelect :global(.arco-input-tag-input-mirror) {
+  font-size: 14px;
+  line-height: 30px;
+  color: var(--color-text-1);
+}
+
+.summarySelect :global(.arco-input-tag-has-placeholder input),
+.summarySelect :global(.arco-input-tag-has-placeholder .arco-input-tag-input-mirror) {
+  padding-left: 0 !important;
+}
+
+.summarySelect :global(.arco-input-tag-input::placeholder) {
+  color: var(--color-text-1);
+}
+
+.summarySelect :global(.arco-input-tag-input::-webkit-input-placeholder) {
+  color: var(--color-text-1);
+}
+
+.summarySelect :global(.arco-input-tag-input::-moz-placeholder) {
+  color: var(--color-text-1);
+}
+
+.summarySelect :global(.arco-input-tag-input::-ms-input-placeholder) {
+  color: var(--color-text-1);
+}
+
+.summarySelect :global(.arco-input-tag-inner) {
+  width: 100%;
+  min-height: 32px;
+  flex-wrap: nowrap;
+  align-items: center;
+}
+
+.summarySelect :global(.arco-select-view-tag) {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 32px;
+  padding: 0;
+  margin-inline-end: 0;
+}
+
+.summarySelect :global(.arco-input-tag-tag) {
+  width: 100%;
+  margin-right: 0;
+  font-size: inherit;
+}
+
+.summarySelect :global(.arco-tag) {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 32px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  border-radius: 0;
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+  color: inherit;
+}
+
+.summarySelect :global(.arco-tag-content) {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 32px;
+  overflow: visible;
+}
+
+.summaryTagText {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 32px;
+  font-size: 14px;
+  line-height: 30px;
+  color: var(--color-text-1);
+}
+
+.hiddenAutoOption {
+  display: none !important;
+}
+
+.hiddenAutoOptionWrapper {
+  display: none !important;
+  height: 0 !important;
+  min-height: 0 !important;
+  padding-block: 0 !important;
+  padding-inline: 0 !important;
+  margin: 0 !important;
+  border: 0 !important;
+  overflow: hidden !important;
+}

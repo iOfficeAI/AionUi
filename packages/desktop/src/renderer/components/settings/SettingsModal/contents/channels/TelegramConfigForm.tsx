@@ -10,6 +10,10 @@ import { getAgents } from '@/renderer/hooks/agent/useAgents';
 import { configService } from '@/common/config/configService';
 import GoogleModelSelector from '@/renderer/pages/conversation/platforms/gemini/GoogleModelSelector';
 import type { GoogleModelSelection } from '@/renderer/pages/conversation/platforms/gemini/useGoogleModelSelection';
+import {
+  isSupportedNewConversationAgent,
+  normalizeSupportedAgentSelection,
+} from '@/renderer/utils/model/agentTypeSupportPolicy';
 import { Button, Dropdown, Empty, Input, Menu, Message, Spin, Tooltip } from '@arco-design/web-react';
 import { CheckOne, CloseOne, Copy, Delete, Down, Refresh } from '@icon-park/react';
 import React, { useCallback, useEffect, useState } from 'react';
@@ -124,7 +128,7 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({
         const [agentsResp, saved] = await Promise.all([getAgents(), configService.get('assistant.telegram.agent')]);
 
         if (Array.isArray(agentsResp)) {
-          const list = agentsResp.map((a) => ({
+          const list = agentsResp.filter(isSupportedNewConversationAgent).map((a) => ({
             agent_type: a.agent_type,
             backend: a.backend,
             name: a.name,
@@ -135,19 +139,13 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({
 
         if (saved && typeof saved === 'object') {
           const s = saved as Record<string, unknown>;
-          let agentType = typeof s.agent_type === 'string' ? s.agent_type : undefined;
+          const agentType = typeof s.agent_type === 'string' ? s.agent_type : undefined;
           const backend = typeof s.backend === 'string' ? s.backend : undefined;
 
-          if (!agentType && backend) {
-            agentType = ['aionrs', 'aion-cli', 'openclaw-gateway', 'nanobot', 'remote'].includes(backend)
-              ? backend
-              : 'acp';
-          }
-
-          if (agentType) {
+          const normalized = normalizeSupportedAgentSelection(agentType, backend);
+          if (normalized) {
             setSelectedAgent({
-              agent_type: agentType,
-              backend,
+              ...normalized,
               // Legacy rows persist `custom_agent_id`; new rows write
               // `id`. Accept either so switching across builds doesn't
               // silently drop the user's agent pick.
@@ -157,12 +155,12 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({
           }
         } else if (typeof saved === 'string') {
           // Very old legacy rows store just the backend/agent-type
-          // string. Top-level AgentTypes pass through verbatim; any
-          // other value is an ACP vendor label.
-          const agentType = ['aionrs', 'aion-cli', 'openclaw-gateway', 'nanobot', 'remote'].includes(saved)
-            ? saved
-            : 'acp';
-          setSelectedAgent({ agent_type: agentType, backend: saved });
+          // string. Retired runtime types are ignored; supported ACP
+          // vendor labels remain in `backend`.
+          const normalized = normalizeSupportedAgentSelection(undefined, saved);
+          if (normalized) {
+            setSelectedAgent(normalized);
+          }
         }
       } catch (error) {
         console.error('[TelegramConfig] Failed to load agents:', error);

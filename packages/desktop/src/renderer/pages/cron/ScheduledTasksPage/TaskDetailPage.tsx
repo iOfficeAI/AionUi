@@ -18,8 +18,10 @@ import CreateTaskDialog from './CreateTaskDialog';
 import { getJobAgentMeta } from './jobAgentMeta';
 import { formatSchedule, formatNextRun } from '@renderer/pages/cron/cronUtils';
 import { useCronJobConversations } from '@renderer/pages/cron/useCronJobs';
+import { repairCronJobTimeZone } from '@renderer/pages/cron/repairCronJobTimeZone';
 import { getActivityTime } from '@/renderer/utils/chat/timeline';
 import { mutate } from 'swr';
+import { getConversationRuntimeWorkspaceErrorMessage } from '@renderer/pages/conversation/utils/conversationCreateError';
 
 const TaskDetailPage: React.FC = () => {
   const { t } = useTranslation();
@@ -33,14 +35,14 @@ const TaskDetailPage: React.FC = () => {
   const isNewConversationMode = job?.target.execution_mode === 'new_conversation';
   const isManualOnly = job?.schedule.kind === 'cron' && !job.schedule.expr;
   const { conversations } = useCronJobConversations(job_id);
-  const { cliAgents } = useConversationAgents();
+  const { cliAgents, presetAssistants } = useConversationAgents();
 
   const fetchJob = useCallback(async () => {
     if (!job_id) return;
     setLoading(true);
     try {
       const found = await ipcBridge.cron.getJob.invoke({ job_id });
-      setJob(found ?? null);
+      setJob(found ? await repairCronJobTimeZone(found) : null);
     } catch (err) {
       console.error('[TaskDetailPage] Failed to fetch job:', err);
     } finally {
@@ -136,7 +138,7 @@ const TaskDetailPage: React.FC = () => {
         navigate(`/conversation/${result.conversation_id}`);
       }
     } catch (err) {
-      Message.error(String(err));
+      Message.error(getConversationRuntimeWorkspaceErrorMessage(err, t));
     } finally {
       setRunningNow(false);
     }
@@ -298,11 +300,15 @@ const TaskDetailPage: React.FC = () => {
                 <h2 className='m-0 text-13px font-medium text-t-secondary'>{t('cron.detail.agent')}</h2>
                 <div className='flex items-center gap-10px'>
                   {(() => {
-                    const { name: displayName, logo } = getJobAgentMeta(job, cliAgents);
+                    const { name: displayName, logo, emoji } = getJobAgentMeta(job, cliAgents, presetAssistants);
                     return (
                       <>
                         {logo ? (
                           <img src={logo} alt={displayName} className='h-28px w-28px rounded-50%' />
+                        ) : emoji ? (
+                          <span className='inline-flex h-28px w-28px items-center justify-center text-20px'>
+                            {emoji}
+                          </span>
                         ) : (
                           <Robot size='28' className='shrink-0 text-t-secondary' />
                         )}

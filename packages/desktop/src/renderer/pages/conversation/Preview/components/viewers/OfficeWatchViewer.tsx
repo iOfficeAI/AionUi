@@ -69,7 +69,7 @@ const OFFICE_ERROR_I18N_KEYS: Record<OfficeWatchErrorCode, string> = {
   PATH_OUTSIDE_SANDBOX: 'preview.office.errors.outsideSandbox',
 };
 
-const OFFICECLI_INSTALL_URL = 'https://www.npmjs.com/package/officecli';
+export const OFFICECLI_INSTALL_URL = 'https://github.com/iOfficeAI/OfficeCli/releases';
 
 interface OfficeWatchViewerProps {
   docType: DocType;
@@ -83,7 +83,7 @@ interface OfficeWatchErrorState {
   message: string;
 }
 
-function resolveOfficeWatchUrl(url: string, docType: DocType): string {
+export function resolveOfficeWatchUrl(url: string, docType: DocType): string {
   const proxyMatch = url.match(/^\/api\/(?:office-watch-proxy|ppt-proxy)\/(\d+)(\/.*)?$/);
   if (proxyMatch && isElectronDesktop()) {
     const [, port, suffix] = proxyMatch;
@@ -95,7 +95,11 @@ function resolveOfficeWatchUrl(url: string, docType: DocType): string {
       const proxyPortMatch = url.match(/^\/api\/(?:office-watch-proxy|ppt-proxy)\/(\d+)(\/.*)?$/);
       if (proxyPortMatch) {
         const [, port, suffix] = proxyPortMatch;
-        return `${PROXY_PATH[docType]}/${port}${suffix || '/'}`;
+        // The backend registers /{port} and /{port}/{*path} only; a bare
+        // trailing slash matches neither route and 404s (#3212), so emit a
+        // suffix only when it carries a real sub-path.
+        const subPath = suffix && suffix !== '/' ? suffix : '';
+        return `${PROXY_PATH[docType]}/${port}${subPath}`;
       }
     }
     return `${getBaseUrl()}${url}`;
@@ -103,7 +107,7 @@ function resolveOfficeWatchUrl(url: string, docType: DocType): string {
 
   if (!isElectronDesktop()) {
     const parsed = new URL(url);
-    return `${PROXY_PATH[docType]}/${parsed.port}/`;
+    return `${PROXY_PATH[docType]}/${parsed.port}`;
   }
 
   return url;
@@ -120,6 +124,24 @@ function normalizeOfficeWatchErrorCode(error?: string | null): OfficeWatchErrorC
     default:
       return undefined;
   }
+}
+
+// officecli runs next to the backend, so on web deployments it must be
+// installed on the server — same command the backend's auto-installer uses.
+export const OFFICECLI_SERVER_INSTALL_COMMAND = 'curl -fsSL https://d.officecli.ai/install.sh | bash';
+
+export function resolveOfficeErrorActions(
+  code: OfficeWatchErrorCode | undefined,
+  isElectron: boolean
+): { showServerInstallGuide: boolean; showInstallLink: boolean; showRetry: boolean } {
+  const officecliMissing = code === 'OFFICECLI_NOT_FOUND' || code === 'OFFICECLI_INSTALL_FAILED';
+  return {
+    // A desktop install link would point web users at the wrong machine —
+    // give them the server-side command instead.
+    showServerInstallGuide: !isElectron && officecliMissing,
+    showInstallLink: isElectron && code === 'OFFICECLI_NOT_FOUND',
+    showRetry: officecliMissing || code === 'OFFICECLI_PORT_TIMEOUT',
+  };
 }
 
 /**
@@ -231,14 +253,25 @@ const OfficeWatchViewer: React.FC<OfficeWatchViewerProps> = ({ docType, file_pat
   }
 
   if (error) {
-    const showRetry = error.code === 'OFFICECLI_INSTALL_FAILED' || error.code === 'OFFICECLI_PORT_TIMEOUT';
-    const showInstallLink = error.code === 'OFFICECLI_NOT_FOUND';
+    const { showServerInstallGuide, showInstallLink, showRetry } = resolveOfficeErrorActions(
+      error.code,
+      isElectronDesktop()
+    );
 
     return (
       <div className='h-full w-full flex items-center justify-center bg-bg-1'>
         <div className='text-center max-w-400px'>
           <div className='text-16px text-danger mb-8px'>{error.message}</div>
           {!error.code && <div className='text-12px text-t-secondary mb-12px'>{t(keys.installHint)}</div>}
+          {showServerInstallGuide && (
+            <div className='text-left mb-12px'>
+              <div className='text-12px text-t-secondary mb-8px'>{t('preview.office.serverInstall.hint')}</div>
+              <code className='block select-all rounded-8px bg-2 px-10px py-8px text-12px text-t-primary'>
+                {OFFICECLI_SERVER_INSTALL_COMMAND}
+              </code>
+              <div className='text-12px text-t-secondary mt-8px'>{t('preview.office.serverInstall.icuNote')}</div>
+            </div>
+          )}
           {showInstallLink && (
             <div className='flex justify-center'>
               <Button type='text' size='small' onClick={() => void openExternalUrl(OFFICECLI_INSTALL_URL)}>

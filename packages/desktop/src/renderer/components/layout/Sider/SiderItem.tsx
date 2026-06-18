@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { Dropdown, Menu, Tooltip } from '@arco-design/web-react';
 import { MoreOne, Pushpin } from '@icon-park/react';
 import classNames from 'classnames';
@@ -38,6 +39,8 @@ const SiderItem: React.FC<SiderItemProps> = ({
   onContextMenu,
 }) => {
   const [menuVisible, setMenuVisible] = useState(false);
+  const layout = useLayoutContext();
+  const isMobile = layout?.isMobile ?? false;
 
   const hasMenu = menuItems && menuItems.length > 0;
 
@@ -92,8 +95,8 @@ const SiderItem: React.FC<SiderItemProps> = ({
         {hasMenu && (
           <div
             className={classNames('absolute right-8px top-1/2 -translate-y-1/2 items-center justify-end', {
-              flex: menuVisible,
-              'hidden group-hover:flex': !menuVisible,
+              flex: isMobile || menuVisible,
+              'hidden group-hover:flex': !isMobile && !menuVisible,
             })}
             onClick={(e) => e.stopPropagation()}
           >
@@ -131,8 +134,8 @@ const SiderItem: React.FC<SiderItemProps> = ({
                 className={classNames(
                   'flex-center cursor-pointer transition-colors text-t-secondary hover:text-t-primary size-20px rd-4px sider-action-btn',
                   {
-                    flex: menuVisible,
-                    'hidden group-hover:flex': !menuVisible,
+                    flex: isMobile || menuVisible,
+                    'hidden group-hover:flex': !isMobile && !menuVisible,
                   }
                 )}
                 onClick={(e) => {

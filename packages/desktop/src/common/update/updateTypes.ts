@@ -40,6 +40,8 @@ export interface UpdateCheckRequest {
 }
 
 export interface UpdateDownloadRequest {
+  /** Optional caller-provided id so renderer can match progress events immediately. */
+  downloadId?: string;
   url: string;
   /** Fallback URL tried when the primary URL fails (e.g. CDN down). */
   fallbackUrl?: string;
@@ -49,6 +51,10 @@ export interface UpdateDownloadRequest {
 export interface UpdateDownloadResult {
   downloadId: string;
   file_path: string;
+}
+
+export interface UpdateDownloadCancelRequest {
+  downloadId: string;
 }
 
 export type UpdateDownloadStatus = 'starting' | 'downloading' | 'completed' | 'error' | 'cancelled';
@@ -83,9 +89,21 @@ export interface AutoUpdateProgress {
 
 export interface AutoUpdateStatus {
   status: AutoUpdateStatusType;
+  /** New version available for download. */
   version?: string;
+  /** Current installed version — reflects the dev debug override when set. */
+  currentVersion?: string;
   releaseDate?: string;
   releaseNotes?: string;
   progress?: AutoUpdateProgress;
   error?: string;
+}
+
+export interface AutoUpdateReadyResult {
+  ready: boolean;
+  version?: string;
+  currentVersion?: string;
+  releaseNotes?: string;
+  filePath?: string;
+  size?: number;
 }

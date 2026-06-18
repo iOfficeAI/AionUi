@@ -1,0 +1,21 @@
+{
+  "plan": "Modo de Planejamento",
+  "default": "Padrão",
+  "acceptEdits": "Aceitar Edições",
+  "autoEdit": "Edição Automática",
+  "auto_edit": "Edição Automática",
+  "read-only": "Somente leitura",
+  "full-access": "Acesso total",
+  "yolo": "YOLO",
+  "yoloNoSandbox": "Automático Completo (Sem Sandbox)",
+  "auto": "Automático",
+  "dontAsk": "Não Perguntar",
+  "bypass": "Ignorar (YOLO)",
+  "bypassPermissions": "YOLO",
+  "smart": "Inteligente",
+  "build": "Modo de Construção",
+  "permission": "Permissão",
+  "switchMode": "Modo de Permissão",
+  "switchSuccess": "Modo alternado com sucesso",
+  "switchFailed": "Falha ao alternar modo"
+}

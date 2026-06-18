@@ -124,7 +124,13 @@ The `oss-pr` skill runs this automatically during PR creation.
 
 ### Commit & PR Format
 
-Commit format: `<type>(<scope>): <subject>` in English. Types: feat, fix, refactor, chore, docs, test, style, perf.
+Commits and PR titles must follow the Conventional Commit format defined in [CONTRIBUTING.md](CONTRIBUTING.md):
+
+```text
+<type>(<scope>): <subject>
+```
+
+Allowed types: `feat`, `fix`, `perf`, `refactor`, `docs`, `style`, `chore`, `test`, `ci`, `build`.
 
 **NEVER add AI signatures** (Co-Authored-By, Generated with, etc.).
 

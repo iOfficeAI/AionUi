@@ -3,6 +3,7 @@
     "title": "MCP 통합",
     "description": "모델 컨텍스트 프로토콜 서버 및 도구 관리"
   },
+  "label": "MCP",
   "servers": "서버",
   "tools": "도구",
   "executionHistory": "실행 기록",

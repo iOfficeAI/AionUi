@@ -2,7 +2,6 @@
   "welcome": {
     "title": "Hi，今天有什么安排？",
     "placeholder": "发消息、上传文件、打开文件夹或创建定时任务...",
-    "uploadFile": "上传文件",
     "linkFolder": "打开文件夹",
     "newConversation": "新会话",
     "selectModel": "选择模型",
@@ -14,7 +13,7 @@
     "openFolder": "打开文件夹",
     "none": "无",
     "quickActionsTitle": "AionUi 能做什么？",
-    "quickActionFeedback": "想吐槽或提建议?",
+    "quickActionFeedback": "反馈问题",
     "quickActionStar": "喜欢我们？点个星吧",
     "skillsMarket": "AionUi Skills Market",
     "skillsMarketDesc": "按需搜索并调用社区 Skills，一次配置，所有Agent通用。",
@@ -92,6 +91,187 @@
   "noAgentsAvailable": "没有可用的 Agent",
   "noModelConfigured": "未配置模型，请前往设置页面配置。",
   "createFailed": "创建会话失败",
+  "createError": {
+    "pathVariants": {
+      "WORKSPACE_PATH_UNAVAILABLE": "所选工作区路径不可用。请确保工作区路径“{{workspacePath}}”真实存在且可访问。"
+    }
+  },
+  "agentError": {
+    "fallbackTitle": "Agent 未能回复",
+    "errorCode": "错误码",
+    "retryable": "可重试",
+    "notRetryable": "需先处理配置",
+    "resolutionPrefix": "建议：",
+    "resolution": {
+      "retry": "稍后重试，或重新发送这条消息。",
+      "wait_for_current_response": "请等待当前回复结束后再发送下一条消息。",
+      "start_new_session": "请新建一个对话后继续。",
+      "reconnect_agent": "请重启或重新连接所选 Agent 后重试。",
+      "check_agent_login": "请先登录所选 Agent，或刷新它的凭证。",
+      "check_agent_installation": "请检查 Agent 的安装状态和本地命令配置。",
+      "check_agent_version": "请更新 Agent，或修复协议版本不兼容问题。",
+      "check_local_command": "请安装缺失的命令，或确认它已经加入 PATH。",
+      "check_provider_credentials": "请在设置中检查模型服务商的 API Key 或账号凭证。",
+      "check_provider_billing": "请检查模型服务商的余额、额度或配额。",
+      "check_provider_base_url": "请检查模型服务商的 Base URL、接口路径、代理和 API 兼容性。",
+      "change_model": "请选择当前账号可用且支持该请求的模型。",
+      "reduce_context": "请减少消息内容、引用文件或上下文大小后重试。",
+      "send_feedback": "请提交反馈并附带日志，方便团队排查。"
+    },
+    "ownership": {
+      "aionui": "应用",
+      "user_agent": "Agent",
+      "user_llm_provider": "模型服务商",
+      "unknown_upstream": "上游"
+    },
+    "codes": {
+      "AIONUI_STREAM_BROKEN": {
+        "title": "响应流异常中断",
+        "body": "消息已发送，但响应流异常结束。请先重试；如果反复出现，可以提交反馈。"
+      },
+      "AIONUI_STATE_INCONSISTENT": {
+        "title": "会话状态不一致",
+        "body": "当前对话状态和后台记录不同步。请重新打开应用或新建会话后再试。"
+      },
+      "AIONUI_PERMISSION_ERROR": {
+        "title": "无法访问所需资源",
+        "body": "本地权限或文件访问检查失败。请确认项目路径和应用权限后重试。"
+      },
+      "AIONUI_INTERNAL_ERROR": {
+        "title": "应用处理失败",
+        "body": "本次请求在应用处理过程中失败。请先重试一次；如果仍然出现，可以提交反馈。"
+      },
+      "AIONUI_CONVERSATION_BUSY": {
+        "title": "会话正在处理上一条消息",
+        "body": "当前会话还有回复未结束。请等待本次回复完成后再发送新的消息。"
+      },
+      "USER_AGENT_NOT_INSTALLED": {
+        "title": "所选 Agent 未安装",
+        "body": "请先安装该 Agent 依赖的 CLI 或应用，然后在设置中重新连接。"
+      },
+      "USER_AGENT_STARTUP_FAILED": {
+        "title": "所选 Agent 启动失败",
+        "body": "Agent 进程在准备完成前退出了。请检查安装、登录状态和本地命令配置。"
+      },
+      "USER_AGENT_DISCONNECTED": {
+        "title": "所选 Agent 已断开连接",
+        "body": "Agent 在处理本次消息时断开了连接。请重启或重新连接 Agent 后重试。"
+      },
+      "USER_AGENT_AUTH_REQUIRED": {
+        "title": "所选 Agent 需要登录",
+        "body": "请先登录该 Agent 或刷新凭证，然后重新发送消息。"
+      },
+      "USER_AGENT_SESSION_NOT_FOUND": {
+        "title": "Agent 会话已丢失",
+        "body": "Agent 已无法识别当前会话。请新建对话或重新连接 Agent。"
+      },
+      "USER_AGENT_UNSUPPORTED_METHOD": {
+        "title": "所选 Agent 不支持该操作",
+        "body": "当前 Agent 无法处理这个请求。可以尝试切换 Agent 或升级当前 Agent。"
+      },
+      "USER_AGENT_INVALID_PARAMS": {
+        "title": "所选 Agent 拒绝了请求",
+        "body": "Agent 认为请求格式无效。可以简化消息内容，或切换到其他 Agent。"
+      },
+      "USER_AGENT_HANDSHAKE_FAILED": {
+        "title": "Agent 握手失败",
+        "body": "所选 Agent 未能完成启动握手。请重启或重新连接该 Agent 后重试。"
+      },
+      "USER_AGENT_HANDSHAKE_TIMEOUT": {
+        "title": "Agent 握手超时",
+        "body": "所选 Agent 未在预期时间内完成启动握手。请确认它没有卡在启动或登录流程中，然后重试。"
+      },
+      "USER_AGENT_ACP_INIT_FAILED": {
+        "title": "Agent 协议初始化失败",
+        "body": "应用无法和该 Agent 初始化 Agent Client Protocol 会话。请检查 Agent 版本并重新连接。"
+      },
+      "USER_AGENT_PROTOCOL_MISMATCH": {
+        "title": "Agent 协议版本不兼容",
+        "body": "所选 Agent 使用的协议版本不兼容。请升级 Agent，或切换到兼容的 Agent。"
+      },
+      "USER_AGENT_NO_PREVIOUS_SESSION": {
+        "title": "无法恢复上一次 Agent 会话",
+        "body": "Agent 无法恢复之前的会话状态。请新建对话后继续。"
+      },
+      "USER_AGENT_COMMAND_NOT_FOUND": {
+        "title": "找不到 Agent 命令",
+        "body": "未找到已配置的 Agent 命令。请先安装该命令，或在设置中更新命令路径。"
+      },
+      "USER_AGENT_MISSING_ENV": {
+        "title": "Agent 缺少必要环境变量",
+        "body": "该 Agent 需要的环境变量尚未配置。请在设置或 shell 环境中补齐后重新连接。"
+      },
+      "USER_LLM_PROVIDER_AUTH_FAILED": {
+        "title": "模型服务商鉴权失败",
+        "body": "所选服务商拒绝了 API Key 或账号凭证。请检查模型设置后重试。"
+      },
+      "USER_LLM_PROVIDER_CONFIG_ERROR": {
+        "title": "模型服务商配置无效",
+        "body": "当前设置无法构造服务商请求。请检查凭证、区域、Base URL 和服务商专属配置后再重试。"
+      },
+      "USER_LLM_PROVIDER_MODEL_NOT_FOUND": {
+        "title": "找不到所选模型",
+        "body": "服务商不识别当前模型名。请在设置中选择可用模型后重试。"
+      },
+      "USER_LLM_PROVIDER_RATE_LIMITED": {
+        "title": "模型服务商触发限流",
+        "body": "服务商暂时限制了请求。请稍后重试、降低请求频率，或切换模型。"
+      },
+      "USER_LLM_PROVIDER_TIMEOUT": {
+        "title": "模型服务商响应超时",
+        "body": "服务商没有及时返回结果。请稍后重试，或切换到更稳定的服务商。"
+      },
+      "USER_LLM_PROVIDER_NETWORK_ERROR": {
+        "title": "无法连接模型服务商",
+        "body": "网络或 DNS 错误导致无法访问服务商。请检查网络、代理和 Base URL。"
+      },
+      "USER_LLM_PROVIDER_GATEWAY_ERROR": {
+        "title": "模型服务商暂不可用",
+        "body": "服务商返回了网关或服务异常。请稍后重试，或切换到其他服务商。"
+      },
+      "USER_LLM_PROVIDER_PERMISSION_DENIED": {
+        "title": "模型服务商无权处理请求",
+        "body": "当前服务商账号没有使用该模型或执行该操作的权限。请检查账号权限，或切换其他模型。"
+      },
+      "USER_LLM_PROVIDER_BILLING_REQUIRED": {
+        "title": "模型服务商需要开通计费",
+        "body": "所选服务商需要有效的计费、余额或额度后才能完成请求。请处理后重试。"
+      },
+      "USER_LLM_PROVIDER_UNSUPPORTED_MODEL": {
+        "title": "模型不支持本次请求",
+        "body": "所选模型不可用，或不支持本次请求所需能力。请切换到受支持的模型后重试。"
+      },
+      "USER_LLM_PROVIDER_ENDPOINT_NOT_FOUND": {
+        "title": "找不到模型服务商接口",
+        "body": "服务商接口或 API 路径不存在。请检查 Base URL、部署名称和 API 兼容性。"
+      },
+      "USER_LLM_PROVIDER_INVALID_REQUEST": {
+        "title": "模型服务商拒绝了请求",
+        "body": "服务商认为本次请求无效。请简化消息内容，或检查模型和服务商设置。"
+      },
+      "USER_LLM_PROVIDER_INVALID_TOOL_SCHEMA": {
+        "title": "模型服务商拒绝了工具定义",
+        "body": "服务商拒绝了本次请求中的工具定义。请更新 Agent，或禁用不兼容的工具后重试。"
+      },
+      "USER_LLM_PROVIDER_CONTEXT_TOO_LARGE": {
+        "title": "上下文超出模型限制",
+        "body": "本次请求超出了模型上下文限制。请减少消息内容、引用文件或对话历史后重试。"
+      },
+      "USER_LLM_PROVIDER_EMPTY_RESPONSE": {
+        "title": "模型服务商返回了空响应",
+        "body": "服务商完成了请求，但没有返回可用内容。请先重试一次；如果反复出现，可切换服务商。"
+      },
+      "WORKSPACE_PATH_RUNTIME_UNAVAILABLE": {
+        "title": "当前 Agent 在该工作区路径下运行失败",
+        "body": "请确保当前工作区路径真实存在。",
+        "bodyWithPath": "当前 Agent 在该工作区路径下运行失败。请确保工作区路径“{{workspacePath}}”真实存在。"
+      },
+      "UNKNOWN_UPSTREAM_ERROR": {
+        "title": "上游 Agent 或模型服务商出错",
+        "body": "收到上游错误，但暂时无法准确分类。可以查看下方详情或提交反馈。"
+      }
+    }
+  },
   "workspace": {
     "title": "项目",
     "pasteConfirm_title": "粘贴文件",
@@ -284,8 +464,37 @@
   "skills": {
     "loaded": "已加载技能"
   },
+  "mcp": {
+    "loaded": "已加载 MCP",
+    "managementHint": "如果某个 MCP 加载异常，通常是 MCP JSON 配置有问题。请到工具设置页检查并手动检测。",
+    "openSettings": "前往工具设置",
+    "status": {
+      "loaded": "已加载",
+      "failed": "失败",
+      "unsupported": "不支持"
+    }
+  },
+  "runtimePreparing": {
+    "sendboxHint": "正在准备运行环境。首次启动可能会稍慢一些。"
+  },
   "sendbox": {
     "hint": "输入 / 唤起命令，@ 引用文件"
+  },
+  "agentTip": {
+    "codes": {
+      "ACP_EMPTY_TURN": {
+        "body": "这次请求没有产生任何可见回复。"
+      },
+      "ACP_EMPTY_TURN_MAX_TOKENS": {
+        "body": "这次请求在产生任何可见回复前已达到模型输出 token 上限。"
+      },
+      "ACP_EMPTY_TURN_MAX_TURN_REQUESTS": {
+        "body": "这次请求在产生任何可见回复前已达到模型单轮请求上限。"
+      },
+      "ACP_EMPTY_TURN_REFUSAL": {
+        "body": "模型在产生任何可见回复前拒绝了这次请求。"
+      }
+    }
   },
   "notFound": "会话不存在或已被删除"
 }

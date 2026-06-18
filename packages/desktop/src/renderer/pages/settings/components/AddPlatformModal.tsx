@@ -238,10 +238,12 @@ const AddPlatformModal = ModalHOC<{
   const [modelProtocol, setModelProtocol] = useState<string>('openai');
   const [isFullUrl, setIsFullUrl] = useState(false);
 
-  // Auto-detect protocol when model changes (for new-api platforms)
+  // Auto-detect protocol when model changes (for new-api platforms). The model
+  // field is multi-select, so detect from the most recently added model.
   useEffect(() => {
-    if (isNewApi && modelValue) {
-      setModelProtocol(detectNewApiProtocol(modelValue));
+    const lastModel = Array.isArray(modelValue) ? modelValue[modelValue.length - 1] : modelValue;
+    if (isNewApi && lastModel) {
+      setModelProtocol(detectNewApiProtocol(lastModel));
     }
   }, [modelValue, isNewApi]);
 
@@ -352,7 +354,9 @@ const AddPlatformModal = ModalHOC<{
           // Prefer user input base_url, fallback to platform preset
           base_url: isBedrock ? '' : values.base_url || selectedPlatform?.base_url || '',
           api_key: isBedrock ? '' : values.api_key,
-          models: [values.model],
+          // The model Select is multi-select: values.model is a string[], but
+          // keep the single-value fallback for safety.
+          models: Array.isArray(values.model) ? values.model : [values.model],
           is_full_url: isFullUrl,
         };
 
@@ -373,8 +377,12 @@ const AddPlatformModal = ModalHOC<{
         }
 
         // new-api 平台：保存每模型协议配置 / new-api platform: save per-model protocol config
+        // Multi-select: apply the chosen protocol to every selected model so we
+        // never produce a comma-joined ("a,b") dirty key. Per-model fine-tuning
+        // still lives on the platform list tag switcher.
         if (isNewApi && values.model) {
-          provider.model_protocols = { [values.model]: modelProtocol };
+          const selectedModels: string[] = Array.isArray(values.model) ? values.model : [values.model];
+          provider.model_protocols = Object.fromEntries(selectedModels.filter(Boolean).map((m) => [m, modelProtocol]));
         }
 
         onSubmit(provider);
@@ -423,7 +431,9 @@ const AddPlatformModal = ModalHOC<{
               onChange={(value) => {
                 const plat = MODEL_PLATFORMS.find((p) => p.value === value);
                 if (plat) {
-                  form.setFieldValue('model', '');
+                  // model is a multi-select field — reset to an empty array, not
+                  // '' (which would surface as a stray empty tag).
+                  form.setFieldValue('model', []);
                 }
               }}
               renderFormat={(option) => {
@@ -463,9 +473,14 @@ const AddPlatformModal = ModalHOC<{
             />
           </Form.Item>
 
-          {/* Full URL toggle - only for custom and new-api platforms */}
+          {/*
+            Full URL toggle - only for custom and new-api platforms.
+            Use a positive marginTop so the Switch row sits below the Input.
+            A negative marginTop would overlap the Input's bottom edge and
+            intercept clicks on its lower rim (see ELECTRON-1K4).
+          */}
           {(isCustom || isNewApi) && !isBedrock && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: -8, marginBottom: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4, marginBottom: 12 }}>
               <Switch size='small' checked={isFullUrl} onChange={setIsFullUrl} />
               <span className='text-12px text-t-secondary'>{t('settings.fullUrlMode', '完整 URL')}</span>
               <span className='text-11px text-t-tertiary'>
@@ -600,6 +615,7 @@ const AddPlatformModal = ModalHOC<{
             }
           >
             <Select
+              mode='multiple'
               loading={!isFullUrl && modelListState.isLoading}
               showSearch
               allowCreate

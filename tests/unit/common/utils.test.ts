@@ -83,6 +83,13 @@ describe('utils', () => {
       expect(parseError(error)).toBe('msg value');
     });
 
+    it('prefers backendMessage over wrapped error message', () => {
+      const error = Object.assign(new Error('wrapped error'), {
+        backendMessage: 'raw backend error',
+      });
+      expect(parseError(error)).toBe('raw backend error');
+    });
+
     it('stringifies object without msg/message', () => {
       const error = { code: 500, status: 'fail' };
       expect(parseError(error)).toBe('{"code":500,"status":"fail"}');
@@ -140,6 +147,15 @@ describe('utils', () => {
       expect(resolveLocaleKey('tr-TR')).toBe('tr-TR');
     });
 
+    it('resolves ru, uk, and pt variants to supported locales', () => {
+      expect(resolveLocaleKey('ru')).toBe('ru-RU');
+      expect(resolveLocaleKey('ru-RU')).toBe('ru-RU');
+      expect(resolveLocaleKey('uk')).toBe('uk-UA');
+      expect(resolveLocaleKey('uk-UA')).toBe('uk-UA');
+      expect(resolveLocaleKey('pt')).toBe('pt-BR');
+      expect(resolveLocaleKey('pt-BR')).toBe('pt-BR');
+    });
+
     it('resolves unknown languages to en-US', () => {
       expect(resolveLocaleKey('en')).toBe('en-US');
       expect(resolveLocaleKey('en-US')).toBe('en-US');
@@ -153,6 +169,9 @@ describe('utils', () => {
       expect(resolveLocaleKey('JA')).toBe('ja-JP');
       expect(resolveLocaleKey('KO')).toBe('ko-KR');
       expect(resolveLocaleKey('TR')).toBe('tr-TR');
+      expect(resolveLocaleKey('RU')).toBe('ru-RU');
+      expect(resolveLocaleKey('UK')).toBe('uk-UA');
+      expect(resolveLocaleKey('PT')).toBe('pt-BR');
     });
 
     it('handles empty string', () => {

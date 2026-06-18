@@ -5,27 +5,41 @@
  */
 
 import { ipcBridge } from '@/common';
+import type { IConversationMcpStatus } from '@/common/config/storage';
 import AgentModeSelector from '@/renderer/components/agent/AgentModeSelector';
 import CommandQueuePanel from '@/renderer/components/chat/CommandQueuePanel';
-import SendBox from '@/renderer/components/chat/sendbox';
+import MobileActionSheet, {
+  type MobileActionSheetEntry,
+  type MobileActionSheetOption,
+  useAttachEntry,
+} from '@/renderer/components/chat/MobileActionSheet';
+import SendBox from '@/renderer/components/chat/SendBox';
 import ThoughtDisplay from '@/renderer/components/chat/ThoughtDisplay';
 import FileAttachButton from '@/renderer/components/media/FileAttachButton';
 import FilePreview from '@/renderer/components/media/FilePreview';
 import HorizontalFileList from '@/renderer/components/media/HorizontalFileList';
+import { classifyConfigSetError, useAcpConfigOptions } from '@/renderer/hooks/agent/useAcpConfigOptions';
+import { useConversationContextSafe } from '@/renderer/hooks/context/ConversationContext';
+import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { useAutoTitle } from '@/renderer/hooks/chat/useAutoTitle';
 import { getSendBoxDraftHook, type FileOrFolderItem } from '@/renderer/hooks/chat/useSendBoxDraft';
 import { createSetUploadFile, useSendBoxFiles } from '@/renderer/hooks/chat/useSendBoxFiles';
 import { useSlashCommands } from '@/renderer/hooks/chat/useSlashCommands';
 import { useOpenFileSelector } from '@/renderer/hooks/file/useOpenFileSelector';
 import { useLatestRef } from '@/renderer/hooks/ui/useLatestRef';
-import { useAddOrUpdateMessage, useRemoveMessageByMsgId } from '@/renderer/pages/conversation/Messages/hooks';
+import { savePreferredMode } from '@/renderer/pages/guid/hooks/agentSelectionUtils';
 import {
   shouldEnqueueConversationCommand,
   useConversationCommandQueue,
   type ConversationCommandQueueItem,
 } from '@/renderer/pages/conversation/platforms/useConversationCommandQueue';
+import { useConversationRuntimeView } from '@/renderer/pages/conversation/runtime/useConversationRuntimeView';
+import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
+import { getConversationRuntimeWorkspaceErrorMessage } from '@/renderer/pages/conversation/utils/conversationCreateError';
+import { warmupConversation } from '@/renderer/pages/conversation/utils/warmupConversation';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import { useTeamPermission } from '@/renderer/pages/team/hooks/TeamPermissionContext';
+import type { TeamSendBoxRuntime } from '@/renderer/pages/team/components/teamSendRuntime';
 import { allSupportedExts } from '@/renderer/services/FileService';
 import { iconColors } from '@/renderer/styles/colors';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
@@ -33,11 +47,19 @@ import { mergeFileSelectionItems } from '@/renderer/utils/file/fileSelection';
 import { buildDisplayMessage, collectSelectedFiles } from '@/renderer/utils/file/messageFiles';
 import { mergeWithCapabilities, type AgentModeOption } from '@/renderer/utils/model/agentModes';
 import { Message, Tag } from '@arco-design/web-react';
-import { Shield } from '@icon-park/react';
-import React, { useCallback, useEffect, useState } from 'react';
+import { Brain, MagicHat, Shield } from '@icon-park/react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAionrsMessage } from './useAionrsMessage';
 import type { AionrsModelSelection } from './useAionrsModelSelection';
+
+const configErrorMessageKey = (error: unknown) => {
+  const errorKind = classifyConfigSetError(error);
+  if (errorKind === 'command_ack') return 'agent.config.commandAck';
+  if (errorKind === 'confirmation_timeout') return 'agent.config.timeout';
+  if (errorKind === 'config_update_in_progress') return 'agent.config.busy';
+  return 'agent.config.failed';
+};
 
 const useAionrsSendBoxDraft = getSendBoxDraftHook('aionrs', {
   _type: 'aionrs',
@@ -86,24 +108,41 @@ const AionrsSendBox: React.FC<{
   conversation_id: string;
   modelSelection: AionrsModelSelection;
   session_mode?: string;
-}> = ({ conversation_id, modelSelection, session_mode }) => {
+  agent_name?: string;
+  teamSendMessage?: (payload: { input: string; files: string[] }) => Promise<void>;
+  teamRuntime?: TeamSendBoxRuntime;
+}> = ({ conversation_id, modelSelection, session_mode, agent_name, teamSendMessage, teamRuntime }) => {
   const [workspacePath, setWorkspacePath] = useState('');
   const [dynamicModes, setDynamicModes] = useState<AgentModeOption[]>([]);
+  const [currentMode, setCurrentMode] = useState<string | undefined>(session_mode);
+  const [isMobileSheetOpen, setIsMobileSheetOpen] = useState(false);
+  const layout = useLayoutContext();
+  const isMobile = Boolean(layout?.isMobile);
+  const conversationContext = useConversationContextSafe();
+  const loadedSkills = conversationContext?.loadedSkills ?? [];
+  const assistantId = conversationContext?.assistantId;
+  const loadedMcpStatuses =
+    conversationContext?.loadedMcpStatuses ??
+    (conversationContext?.loadedMcpServers ?? []).map<IConversationMcpStatus>((name) => ({
+      id: name,
+      name,
+      status: 'loaded',
+    }));
   const { t } = useTranslation();
   const { checkAndUpdateTitle } = useAutoTitle();
-  const { current_model, getDisplayModelName } = modelSelection;
+  const { current_model } = modelSelection;
   const teamPermission = useTeamPermission();
   const propagateMode = teamPermission?.propagateMode;
 
-  const { thought, running, hasHydratedRunningState, setActiveMsgId, setWaitingResponse, resetState } =
-    useAionrsMessage(conversation_id, {
-      onConfigChanged: (capabilities) => {
-        const modes = (capabilities as { modes?: string[] })?.modes;
-        if (modes && modes.length > 0) {
-          setDynamicModes(mergeWithCapabilities('aionrs', modes));
-        }
-      },
-    });
+  const { thought, running, setActiveMsgId, setWaitingResponse, resetState } = useAionrsMessage(conversation_id, {
+    onConfigChanged: (capabilities) => {
+      const modes = (capabilities as { modes?: string[] })?.modes;
+      if (modes && modes.length > 0) {
+        setDynamicModes(mergeWithCapabilities('aionrs', modes));
+      }
+    },
+  });
+  const runtimeView = useConversationRuntimeView(conversation_id);
 
   const { atPath, uploadFile, setAtPath, setUploadFile, content, setContent } = useSendBoxDraft(conversation_id);
 
@@ -116,9 +155,27 @@ const AionrsSendBox: React.FC<{
   );
 
   const [agentWarmed, setAgentWarmed] = useState(false);
+  const prepareRuntimeSync = useCallback(async () => {
+    if (teamPermission) {
+      await teamPermission.warmupSession();
+    }
+    await warmupConversation(conversation_id);
+  }, [conversation_id, teamPermission]);
+  const runtimeConfig = useAcpConfigOptions({
+    conversation_id,
+    prepareRuntime: prepareRuntimeSync,
+    enabled: Boolean(conversation_id),
+  });
+  const runtimeMode = runtimeConfig.mode;
+  const runtimeThoughtLevel = runtimeConfig.thoughtLevel;
 
   useEffect(() => {
-    void ipcBridge.conversation.get.invoke({ id: conversation_id }).then((res) => {
+    if (!runtimeMode?.currentValue) return;
+    setCurrentMode(runtimeMode.currentValue);
+  }, [runtimeMode?.currentValue]);
+
+  useEffect(() => {
+    void getConversationOrNull(conversation_id).then((res) => {
       if (!res?.extra?.workspace) return;
       setWorkspacePath(res.extra.workspace);
     });
@@ -126,34 +183,29 @@ const AionrsSendBox: React.FC<{
 
   useEffect(() => {
     if (!conversation_id) return;
-    if (teamPermission) {
-      void teamPermission
-        .warmupSession()
-        .then(() => ipcBridge.conversation.warmup.invoke({ conversation_id }))
-        .then(() => {
-          setAgentWarmed(true);
-        })
-        .catch(() => {});
-      return;
-    }
     setAgentWarmed(false);
-    void ipcBridge.conversation.warmup
-      .invoke({ conversation_id })
+    void prepareRuntimeSync()
       .then(() => {
         setAgentWarmed(true);
       })
-      .catch(() => {});
-  }, [conversation_id, teamPermission]);
+      .catch((error) => {
+        Message.error(getConversationRuntimeWorkspaceErrorMessage(error, t));
+      });
+  }, [conversation_id, prepareRuntimeSync, t]);
 
   const slash_commands = useSlashCommands(conversation_id, {
     conversation_type: 'aionrs',
     agentStatus: agentWarmed ? 'active' : null,
   });
 
-  const addOrUpdateMessage = useAddOrUpdateMessage();
-  const removeMessageByMsgId = useRemoveMessageByMsgId();
   const { setSendBoxHandler } = usePreviewContext();
-  const isBusy = running;
+  const commandQueueRuntimeGate = teamRuntime?.runtimeGate ?? {
+    hydrated: runtimeView.hydrated,
+    canSendMessage: runtimeView.canSendMessage,
+    isProcessing: runtimeView.isProcessing,
+  };
+  const isCancelling = runtimeView.state === 'cancelling';
+  const isBusy = isCancelling || commandQueueRuntimeGate.isProcessing || !commandQueueRuntimeGate.canSendMessage;
 
   const setContentRef = useLatestRef(setContent);
   const contentRef = useLatestRef(content);
@@ -194,69 +246,62 @@ const AionrsSendBox: React.FC<{
         throw new Error('No model selected');
       }
 
-      setWaitingResponse(true);
-
       const displayMessage = buildDisplayMessage(input, files, workspacePath);
-      let msg_id: string | null = null;
       try {
         void checkAndUpdateTitle(conversation_id, input);
-        // Wait for the server-assigned msg_id before rendering the optimistic
-        // user bubble so the local row uses the same id as the DB row and
-        // subsequent WebSocket stream events — avoids duplicate bubbles when
-        // useMessageLstCache reloads.
+        if (teamSendMessage) {
+          await teamSendMessage({ input: displayMessage, files });
+          emitter.emit('chat.history.refresh');
+          if (files.length > 0) {
+            emitter.emit('aionrs.workspace.refresh');
+          }
+          return;
+        }
+
+        runtimeView.markSendStarted();
+        setWaitingResponse(true);
         const res = await ipcBridge.conversation.sendMessage.invoke({
           input: displayMessage,
           conversation_id,
           files,
         });
-        msg_id = res.msg_id;
-        setActiveMsgId(msg_id);
-        // Use add=false (compose mode) so composeMessageWithIndex can de-dup
-        // by msg_id — this prevents a duplicate bubble if useMessageLstCache
-        // already inserted the DB row for this same msg_id.
-        addOrUpdateMessage({
-          id: msg_id,
-          msg_id,
-          type: 'text',
-          position: 'right',
-          conversation_id,
-          content: {
-            content: displayMessage,
-          },
-          created_at: Date.now(),
-        });
+        setActiveMsgId(res.msg_id);
+        runtimeView.markSendAccepted(res.turn_id, res.runtime, res.msg_id);
         emitter.emit('chat.history.refresh');
         if (files.length > 0) {
           emitter.emit('aionrs.workspace.refresh');
         }
       } catch (error) {
-        if (msg_id) removeMessageByMsgId(msg_id);
+        const errorMessage =
+          getConversationRuntimeWorkspaceErrorMessage(error, t) ||
+          (error instanceof Error ? error.message : String(error));
+        runtimeView.markSendFailed(errorMessage);
+        Message.error(errorMessage);
         throw error;
       }
     },
     [
-      addOrUpdateMessage,
       checkAndUpdateTitle,
       conversation_id,
       current_model?.use_model,
+      runtimeView,
       setActiveMsgId,
-      removeMessageByMsgId,
       setWaitingResponse,
+      t,
+      teamPermission,
+      teamSendMessage,
       workspacePath,
     ]
   );
 
   const {
     items: queuedCommands,
-    isPaused: isQueuePaused,
     isInteractionLocked: isQueueInteractionLocked,
     hasPendingCommands,
     enqueue,
     remove,
     clear,
     reorder,
-    pause,
-    resume,
     lockInteraction,
     unlockInteraction,
     resetActiveExecution,
@@ -264,7 +309,8 @@ const AionrsSendBox: React.FC<{
     conversation_id: conversation_id,
     enabled: true,
     isBusy,
-    isHydrated: hasHydratedRunningState,
+    runtimeGate: commandQueueRuntimeGate,
+    teamUpgradeHandoffReady: Boolean(teamRuntime && teamSendMessage),
     onExecute: executeCommand,
   });
 
@@ -296,11 +342,6 @@ const AionrsSendBox: React.FC<{
   }, [conversation_id, current_model?.use_model, executeCommand]);
 
   const onSendHandler = async (message: string) => {
-    if (isBusy) {
-      Message.warning(t('messages.conversationInProgress'));
-      return;
-    }
-
     const filesToSend = collectSelectedFiles(uploadFile, atPath);
     clearFiles();
     emitter.emit('aionrs.selected.file.clear');
@@ -340,6 +381,197 @@ const AionrsSendBox: React.FC<{
     onFilesSelected: appendSelectedFiles,
   });
 
+  const { entries: attachEntries, hiddenFileInput: attachHiddenInput } = useAttachEntry({
+    openFileSelector,
+    onLocalFilesAdded: handleFilesAdded,
+    dividerBefore: true,
+  });
+
+  const handleSheetModeChange = useCallback(
+    async (mode: string) => {
+      if (!runtimeMode || mode === runtimeMode.currentValue) return;
+      try {
+        await runtimeConfig.setConfigOption(runtimeMode.id, mode);
+        setCurrentMode(mode);
+        if (!assistantId) {
+          void savePreferredMode('aionrs', mode);
+        }
+        propagateMode?.(mode);
+        Message.success(t('agentMode.switchSuccess'));
+      } catch (error) {
+        console.error('[AionrsSendBox] Failed to switch mode via sheet:', error);
+        Message.error(t(configErrorMessageKey(error)));
+      }
+    },
+    [assistantId, propagateMode, runtimeConfig, runtimeMode, t]
+  );
+
+  const handleSheetModelSelect = useCallback(
+    (value: string) => {
+      // value format: `${providerId}::${modelName}`
+      const [providerId, modelName] = value.split('::');
+      const provider = modelSelection.providers.find((p) => p.id === providerId);
+      if (!provider || !modelName) return;
+      void modelSelection.handleSelectModel(provider, modelName);
+    },
+    [modelSelection]
+  );
+
+  const sheetEntries = useMemo<MobileActionSheetEntry[]>(() => {
+    if (!isMobile) return [];
+
+    const availableModes: AgentModeOption[] =
+      runtimeMode?.options.map((item) => ({
+        value: item.value,
+        label: item.label,
+        description: item.description ?? undefined,
+      })) ??
+      (dynamicModes.length > 0
+        ? dynamicModes
+        : [
+            { value: 'default', label: 'Default' },
+            { value: 'auto_edit', label: 'Auto-Accept Edits' },
+            { value: 'yolo', label: 'YOLO' },
+          ]);
+    const modeOptions: MobileActionSheetOption[] = availableModes.map((mode) => ({
+      key: mode.value,
+      label: t(`agentMode.${mode.value}`, { defaultValue: mode.label }),
+      description: mode.description,
+      active: (runtimeMode?.currentValue ?? currentMode) === mode.value,
+    }));
+
+    const modelOptions: MobileActionSheetOption[] = modelSelection.providers.flatMap((provider) =>
+      modelSelection.getAvailableModels(provider).map((modelName) => ({
+        key: `${provider.id}::${modelName}`,
+        label: modelName,
+        description: provider.name,
+        active:
+          modelSelection.current_model?.id === provider.id && modelSelection.current_model?.use_model === modelName,
+      }))
+    );
+
+    const currentModeLabel =
+      modeOptions.find((opt) => opt.active)?.label ?? t('agentMode.default', { defaultValue: 'Default' });
+    const currentModelLabel = modelSelection.current_model?.use_model || t('conversation.welcome.selectModel');
+
+    const entries: MobileActionSheetEntry[] = [
+      {
+        key: 'model',
+        icon: <Brain theme='outline' size='16' />,
+        label: t('common.model', { defaultValue: 'Model' }),
+        meta: currentModelLabel,
+        submenu: {
+          title: t('common.model', { defaultValue: 'Model' }),
+          options: modelOptions,
+          onSelect: handleSheetModelSelect,
+          emptyText: t('conversation.welcome.selectModel'),
+        },
+      },
+      {
+        key: 'permission',
+        icon: <Shield theme='outline' size='16' />,
+        label: t('agentMode.permission', { defaultValue: 'Permission' }),
+        meta: currentModeLabel,
+        submenu: {
+          title: t('agentMode.permission', { defaultValue: 'Permission' }),
+          options: modeOptions,
+          onSelect: (key) => void handleSheetModeChange(key),
+        },
+      },
+      ...attachEntries,
+    ];
+
+    if (runtimeThoughtLevel) {
+      entries.splice(1, 0, {
+        key: 'thought-level',
+        icon: <Brain theme='outline' size='16' />,
+        label: t('agent.thoughtLevel.label'),
+        meta:
+          runtimeThoughtLevel.options.find((item) => item.value === runtimeThoughtLevel.currentValue)?.label ||
+          runtimeThoughtLevel.currentValue ||
+          '',
+        submenu: {
+          title: t('agent.thoughtLevel.label'),
+          options: runtimeThoughtLevel.options.map((item) => ({
+            key: item.value,
+            label: item.label,
+            description: item.description ?? undefined,
+            active: runtimeThoughtLevel.currentValue === item.value,
+          })),
+          onSelect: (value) => {
+            void runtimeConfig
+              .setConfigOption(runtimeThoughtLevel.id, value)
+              .then(() => Message.success(t('agent.thoughtLevel.switchSuccess')))
+              .catch((error) => Message.error(t(configErrorMessageKey(error))));
+          },
+        },
+      });
+    }
+
+    if (loadedSkills.length > 0) {
+      const skillOptions: MobileActionSheetOption[] = loadedSkills.map((name) => ({
+        key: name,
+        label: `/${name}`,
+      }));
+      entries.push({
+        key: 'skills',
+        icon: <MagicHat theme='outline' size='16' />,
+        label: t('common.skills', { defaultValue: 'Skills' }),
+        variant: 'muted',
+        submenu: {
+          title: t('common.skills', { defaultValue: 'Skills' }),
+          selectable: false,
+          options: skillOptions,
+          onSelect: (name) => {
+            setContent(`/${name} `);
+          },
+        },
+      });
+    }
+
+    if (loadedMcpStatuses.length > 0) {
+      const mcpOptions: MobileActionSheetOption[] = loadedMcpStatuses.map((item) => ({
+        key: item.id,
+        label: item.name,
+        description:
+          item.status === 'loaded'
+            ? undefined
+            : item.reason
+              ? `${t(`conversation.mcp.status.${item.status}` as const)} · ${item.reason}`
+              : t(`conversation.mcp.status.${item.status}` as const),
+      }));
+      entries.push({
+        key: 'mcp',
+        icon: <Shield theme='outline' size='16' />,
+        label: t('conversation.mcp.loaded', { defaultValue: 'Loaded MCP' }),
+        variant: 'muted',
+        submenu: {
+          title: t('conversation.mcp.loaded', { defaultValue: 'Loaded MCP' }),
+          selectable: false,
+          options: mcpOptions,
+          onSelect: () => undefined,
+        },
+      });
+    }
+
+    return entries;
+  }, [
+    attachEntries,
+    currentMode,
+    dynamicModes,
+    handleSheetModeChange,
+    handleSheetModelSelect,
+    isMobile,
+    loadedMcpStatuses,
+    loadedSkills,
+    modelSelection,
+    runtimeConfig,
+    runtimeMode,
+    runtimeThoughtLevel,
+    setContent,
+    t,
+  ]);
+
   useAddEventListener('aionrs.selected.file', setAtPath);
   useAddEventListener('aionrs.selected.file.append', (selectedItems: Array<string | FileOrFolderItem>) => {
     const merged = mergeFileSelectionItems(atPathRef.current, selectedItems);
@@ -352,24 +584,31 @@ const AionrsSendBox: React.FC<{
   const handleStop = async (): Promise<void> => {
     // Best-effort cancel: swallow rejections so they don't bubble up as
     // unhandled rejections. UI state is still reset via finally.
+    const turnId = runtimeView.activeTurnId;
+    if (!turnId) {
+      resetState();
+      resetActiveExecution('stop');
+      return;
+    }
+    runtimeView.markStopRequested(turnId);
     try {
-      await ipcBridge.conversation.stop.invoke({ conversation_id });
+      const result = await ipcBridge.conversation.stop.invoke({ conversation_id, turn_id: turnId });
+      runtimeView.markStopAcknowledged(turnId, result.runtime);
     } catch (error) {
       console.warn('[AionrsSendBox] stop request failed', error);
+      runtimeView.resetLocalGate('stop_failed');
     } finally {
       resetState();
       resetActiveExecution('stop');
     }
   };
+  const effectiveHandleStop = teamRuntime?.onStop ?? handleStop;
 
   return (
     <div className='max-w-800px w-full mx-auto flex flex-col mt-auto mb-16px'>
       <CommandQueuePanel
         items={queuedCommands}
-        paused={isQueuePaused}
         interactionLocked={isQueueInteractionLocked}
-        onPause={pause}
-        onResume={resume}
         onInteractionLock={lockInteraction}
         onInteractionUnlock={unlockInteraction}
         onEdit={handleEditQueuedCommand}
@@ -377,10 +616,11 @@ const AionrsSendBox: React.FC<{
         onRemove={remove}
         onClear={clear}
       />
-      <ThoughtDisplay thought={thought} running={running} onStop={handleStop} />
+      <ThoughtDisplay thought={thought} running={teamRuntime?.loading ?? running} onStop={effectiveHandleStop} />
 
       <SendBox
         data-testid='aionrs-sendbox'
+        onMobilePlusClick={isMobile ? () => setIsMobileSheetOpen(true) : undefined}
         value={content}
         onChange={handleContentChange}
         selectedWorkspaceItems={atPath}
@@ -388,34 +628,47 @@ const AionrsSendBox: React.FC<{
           emitter.emit('aionrs.selected.file', items);
           setAtPath(items);
         }}
-        loading={isBusy}
+        loading={teamRuntime?.loading ?? isBusy}
         disabled={!current_model?.use_model}
         placeholder={
           current_model?.use_model
-            ? t('conversation.chat.sendMessageTo', { model: getDisplayModelName(current_model.use_model) })
+            ? t('acp.sendbox.placeholder', {
+                backend: agent_name || 'AionCLI',
+                defaultValue: `Send message to {{backend}}...`,
+              })
             : t('conversation.chat.noModelSelected')
         }
-        onStop={handleStop}
+        onStop={effectiveHandleStop}
         className='z-10'
         onFilesAdded={handleFilesAdded}
         hasPendingAttachments={uploadFile.length > 0 || atPath.length > 0}
         supportedExts={allSupportedExts}
-        defaultMultiLine={true}
-        lockMultiLine={true}
-        tools={<FileAttachButton openFileSelector={openFileSelector} onLocalFilesAdded={handleFilesAdded} />}
-        rightTools={
-          <AgentModeSelector
-            backend='aionrs'
-            conversation_id={conversation_id}
-            compact
-            initialMode={session_mode}
-            dynamicModes={dynamicModes}
-            compactLeadingIcon={<Shield theme='outline' size='14' fill={iconColors.secondary} />}
-            modeLabelFormatter={(mode) => t(`agentMode.${mode.value}`, { defaultValue: mode.label })}
-            compactLabelPrefix={t('agentMode.permission')}
-            hideCompactLabelPrefixOnMobile
-            onModeChanged={propagateMode}
+        defaultMultiLine={!isMobile}
+        lockMultiLine={!isMobile}
+        tools={
+          <FileAttachButton
+            openFileSelector={openFileSelector}
+            onLocalFilesAdded={handleFilesAdded}
+            loadedMcpStatuses={loadedMcpStatuses}
           />
+        }
+        rightTools={
+          <div className='flex items-center gap-8px min-w-0'>
+            <AgentModeSelector
+              backend='aionrs'
+              conversation_id={conversation_id}
+              compact
+              initialMode={session_mode}
+              dynamicModes={dynamicModes}
+              compactLeadingIcon={<Shield theme='outline' size='14' fill={iconColors.secondary} />}
+              modeLabelFormatter={(mode) => t(`agentMode.${mode.value}`, { defaultValue: mode.label })}
+              compactLabelPrefix={t('agentMode.permission')}
+              hideCompactLabelPrefixOnMobile
+              onModeChanged={propagateMode}
+              beforeRuntimeSync={prepareRuntimeSync}
+              persistGlobalPreference={!assistantId}
+            />
+          </div>
         }
         prefix={
           <>
@@ -464,6 +717,17 @@ const AionrsSendBox: React.FC<{
         onSlashBuiltinCommand={onSlashBuiltinCommand}
         allowSendWhileLoading
       />
+      {isMobile && (
+        <>
+          <MobileActionSheet
+            open={isMobileSheetOpen}
+            onClose={() => setIsMobileSheetOpen(false)}
+            title={t('common.more', { defaultValue: 'More' })}
+            entries={sheetEntries}
+          />
+          {attachHiddenInput}
+        </>
+      )}
     </div>
   );
 };

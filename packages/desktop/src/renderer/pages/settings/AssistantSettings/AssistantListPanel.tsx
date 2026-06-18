@@ -1,13 +1,16 @@
 /**
  * AssistantListPanel — Renders the collapsible list of assistants
- * with avatar, name, enabled switch, and edit/duplicate actions.
+ * with avatar, name, enabled switch, and persistent row actions.
  */
-import { filterAssistants, groupAssistantsByEnabled, type AssistantListFilter } from './assistantUtils';
+import type { DragEndEvent } from '@dnd-kit/core';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import type { AssistantListItem } from './types';
 import AssistantAvatar from './AssistantAvatar';
-import { Button, Input, Switch, Tabs, Tag } from '@arco-design/web-react';
-import { Plus, Search, SettingOne, CloseSmall } from '@icon-park/react';
+import { DndContext, PointerSensor, closestCenter, useSensor, useSensors } from '@dnd-kit/core';
+import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { Button, Switch, Tag } from '@arco-design/web-react';
+import { Drag, Plus } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -15,11 +18,12 @@ type AssistantListPanelProps = {
   assistants: AssistantListItem[];
   localeKey: string;
   avatarImageMap: Record<string, string>;
-  isExtensionAssistant: (assistant: AssistantListItem | null | undefined) => boolean;
   onEdit: (assistant: AssistantListItem) => void;
   onDuplicate: (assistant: AssistantListItem) => void;
+  onDelete: (assistant: AssistantListItem) => void;
   onCreate: () => void;
   onToggleEnabled: (assistant: AssistantListItem, checked: boolean) => void;
+  onReorder: (activeId: string, overId: string) => void | Promise<void>;
   setActiveAssistantId: (id: string) => void;
   /** When set, scroll to and highlight the matching assistant card */
   highlightId?: string | null;
@@ -27,15 +31,155 @@ type AssistantListPanelProps = {
   onHighlightConsumed?: () => void;
 };
 
+type SortableAssistantCardProps = {
+  assistant: AssistantListItem;
+  localeKey: string;
+  avatarImageMap: Record<string, string>;
+  highlightedId: string | null;
+  onEdit: (assistant: AssistantListItem) => void;
+  onDuplicate: (assistant: AssistantListItem) => void;
+  onDelete: (assistant: AssistantListItem) => void;
+  onToggleEnabled: (assistant: AssistantListItem, checked: boolean) => void;
+  setActiveAssistantId: (id: string) => void;
+  renderSourceTag: (assistant: AssistantListItem) => React.ReactNode;
+  cardRefSetter: (id: string) => (el: HTMLDivElement | null) => void;
+  sortingEnabled: boolean;
+};
+
+const SortableAssistantCard: React.FC<SortableAssistantCardProps> = ({
+  assistant,
+  localeKey,
+  avatarImageMap,
+  highlightedId,
+  onEdit,
+  onDuplicate,
+  onDelete,
+  onToggleEnabled,
+  setActiveAssistantId,
+  renderSourceTag,
+  cardRefSetter,
+  sortingEnabled,
+}) => {
+  const { t } = useTranslation();
+  const canDelete = assistant.source === 'user';
+  const canDuplicate = assistant.source !== 'user';
+  const { attributes, listeners, setActivatorNodeRef, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: assistant.id,
+    disabled: !sortingEnabled,
+  });
+
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.72 : undefined,
+    zIndex: isDragging ? 1 : undefined,
+  };
+
+  return (
+    <div
+      ref={(node) => {
+        setNodeRef(node);
+        cardRefSetter(assistant.id)(node);
+      }}
+      key={assistant.id}
+      style={style}
+      data-testid={`assistant-card-${assistant.id}`}
+      className={`group flex cursor-pointer items-center justify-between gap-12px rounded-12px border border-solid px-14px py-10px transition-all duration-180 hover:border-border-1 hover:bg-fill-1 ${highlightedId === assistant.id ? 'border-primary-5 bg-primary-1' : 'border-transparent bg-base'}`}
+      onClick={() => {
+        setActiveAssistantId(assistant.id);
+        onEdit(assistant);
+      }}
+    >
+      <div className='flex min-w-0 flex-1 items-center gap-12px'>
+        <Button
+          ref={setActivatorNodeRef}
+          type='text'
+          size='small'
+          disabled={!sortingEnabled}
+          data-testid={`assistant-reorder-handle-${assistant.id}`}
+          className={`!min-w-0 !rounded-6px !px-4px !py-0 !text-t-tertiary ${sortingEnabled ? 'cursor-grab active:cursor-grabbing' : '!opacity-40'}`}
+          onClick={(event) => event.stopPropagation()}
+          {...attributes}
+          {...listeners}
+        >
+          <Drag size={16} fill='currentColor' />
+        </Button>
+        <AssistantAvatar assistant={assistant} size={28} avatarImageMap={avatarImageMap} />
+        <div className='min-w-0 flex-1'>
+          <div className='flex min-w-0 items-center gap-8px font-medium text-t-primary'>
+            <span className='truncate'>{assistant.name_i18n?.[localeKey] || assistant.name}</span>
+            <div className='flex flex-shrink-0 items-center gap-6px'>{renderSourceTag(assistant)}</div>
+          </div>
+          <div className='truncate text-12px text-t-secondary'>
+            {assistant.description_i18n?.[localeKey] || assistant.description || ''}
+          </div>
+        </div>
+      </div>
+      <div
+        className='ml-12px flex flex-shrink-0 items-center gap-8px text-t-secondary'
+        onClick={(e) => e.stopPropagation()}
+      >
+        <Switch
+          size='small'
+          data-testid={`switch-enabled-${assistant.id}`}
+          checked={assistant.enabled !== false}
+          onChange={(checked) => {
+            onToggleEnabled(assistant, checked);
+          }}
+        />
+        <Button
+          type='outline'
+          size='small'
+          className='!h-30px !rounded-8px !border-border-2 !bg-base !px-10px !text-12px !font-500 !text-t-primary hover:!border-border-1 hover:!bg-fill-1'
+          data-testid={`btn-edit-${assistant.id}`}
+          onClick={() => {
+            onEdit(assistant);
+          }}
+        >
+          {t('common.edit', { defaultValue: 'Edit' })}
+        </Button>
+        {canDuplicate ? (
+          <Button
+            type='outline'
+            size='small'
+            className='!h-30px !rounded-8px !border-border-2 !bg-base !px-8px !text-12px !font-500 !text-t-primary hover:!border-border-1 hover:!bg-fill-1'
+            data-testid={`btn-duplicate-${assistant.id}`}
+            onClick={() => {
+              onDuplicate(assistant);
+            }}
+          >
+            {t('settings.duplicateAssistant', { defaultValue: 'Duplicate' })}
+          </Button>
+        ) : null}
+        {canDelete ? (
+          <Button
+            type='outline'
+            size='small'
+            status='danger'
+            className='!h-30px !rounded-8px !border-danger-2 !bg-base !px-8px !text-12px !font-500'
+            data-testid={`btn-delete-${assistant.id}`}
+            onClick={() => {
+              onDelete(assistant);
+            }}
+          >
+            {t('common.delete', { defaultValue: 'Delete' })}
+          </Button>
+        ) : null}
+      </div>
+    </div>
+  );
+};
+
 const AssistantListPanel: React.FC<AssistantListPanelProps> = ({
   assistants,
   localeKey,
   avatarImageMap,
-  isExtensionAssistant,
   onEdit,
   onDuplicate,
+  onDelete,
   onCreate,
   onToggleEnabled,
+  onReorder,
   setActiveAssistantId,
   highlightId,
   onHighlightConsumed,
@@ -43,11 +187,15 @@ const AssistantListPanel: React.FC<AssistantListPanelProps> = ({
   const { t } = useTranslation();
   const layout = useLayoutContext();
   const isMobile = layout?.isMobile ?? false;
-  const [search_query, setSearchQuery] = useState('');
-  const [activeFilter, setActiveFilter] = useState<AssistantListFilter>('all');
-  const [searchExpanded, setSearchExpanded] = useState(false);
   const [highlightedId, setHighlightedId] = useState<string | null>(null);
   const cardRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    })
+  );
   const cardRefSetter = useCallback(
     (id: string) => (el: HTMLDivElement | null) => {
       cardRefs.current[id] = el;
@@ -74,133 +222,101 @@ const AssistantListPanel: React.FC<AssistantListPanelProps> = ({
 
     return () => clearTimeout(timer);
   }, [highlightId, assistants, onHighlightConsumed]);
-
-  const filteredAssistants = useMemo(
-    () => filterAssistants(assistants, search_query, activeFilter, localeKey),
-    [activeFilter, assistants, localeKey, search_query]
-  );
-  const { enabledAssistants, disabledAssistants } = useMemo(
-    () => groupAssistantsByEnabled(filteredAssistants),
-    [filteredAssistants]
-  );
-
-  const filterOptions: Array<{ key: AssistantListFilter; label: string }> = [
-    { key: 'all', label: t('settings.assistantFilterAll', { defaultValue: 'All' }) },
-    { key: 'builtin', label: t('settings.assistantFilterBuiltin', { defaultValue: 'System' }) },
-    { key: 'user', label: t('settings.assistantFilterCustom', { defaultValue: 'Custom' }) },
-  ];
+  const listAssistants = useMemo(() => assistants, [assistants]);
+  const sortingEnabled = true;
 
   const renderSourceTag = (assistant: AssistantListItem) => {
-    if (assistant.source === 'builtin' || assistant.source === 'extension') {
-      return null;
+    if (assistant.source === 'builtin') {
+      return (
+        <Tag
+          size='small'
+          bordered={false}
+          className='!rounded-10px !bg-fill-1 !px-8px !py-1px !text-10px !font-600 !leading-16px !text-primary-6'
+        >
+          {t('settings.builtin', { defaultValue: 'Built-in' })}
+        </Tag>
+      );
     }
 
     return (
       <Tag
         size='small'
-        color='green'
         bordered={false}
-        className='!text-11px !leading-16px !px-8px !py-1px !rounded-8px !bg-primary-1 !text-primary-6'
+        className='!rounded-10px !bg-fill-1 !px-8px !py-1px !text-10px !font-600 !leading-16px !text-[rgb(var(--success-6))]'
       >
         {t('settings.assistantSourceCustom', { defaultValue: 'Custom' })}
       </Tag>
     );
   };
 
-  const renderAssistantCard = (assistant: AssistantListItem) => {
-    const assistantIsExtension = isExtensionAssistant(assistant);
+  const handleSectionDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      const { active, over } = event;
+      if (!sortingEnabled || !over || active.id === over.id) {
+        return;
+      }
 
-    return (
-      <div
+      void onReorder(String(active.id), String(over.id));
+    },
+    [onReorder, sortingEnabled]
+  );
+
+  const renderList = (sectionAssistants: AssistantListItem[]) => {
+    const sectionCards = sectionAssistants.map((assistant) => (
+      <SortableAssistantCard
         key={assistant.id}
-        ref={cardRefSetter(assistant.id)}
-        data-testid={`assistant-card-${assistant.id}`}
-        className={`group border border-solid rounded-16px px-16px py-14px flex items-center justify-between cursor-pointer transition-all duration-180 hover:border-[var(--color-primary-light-4)] hover:bg-bg-1 ${highlightedId === assistant.id ? 'border-primary-5 bg-primary-1' : 'border-[var(--color-neutral-3)] bg-fill-0'}`}
-        onClick={() => {
-          setActiveAssistantId(assistant.id);
-          onEdit(assistant);
-        }}
-      >
-        <div className='flex items-center gap-12px min-w-0 flex-1'>
-          <AssistantAvatar assistant={assistant} size={28} avatarImageMap={avatarImageMap} />
-          <div className='min-w-0 flex-1'>
-            <div className='font-medium text-t-primary min-w-0 flex items-center gap-10px'>
-              <span className='truncate'>{assistant.name_i18n?.[localeKey] || assistant.name}</span>
-              <div className='flex items-center gap-6px flex-shrink-0'>{renderSourceTag(assistant)}</div>
-            </div>
-            <div className='text-12px text-t-secondary truncate'>
-              {assistant.description_i18n?.[localeKey] || assistant.description || ''}
-            </div>
-          </div>
-        </div>
-        <div
-          className='flex items-center gap-10px text-t-secondary ml-12px flex-shrink-0'
-          onClick={(e) => e.stopPropagation()}
-        >
-          <span
-            className='invisible group-hover:visible text-12px text-primary cursor-pointer hover:underline transition-all'
-            data-testid={`btn-duplicate-${assistant.id}`}
-            onClick={() => {
-              onDuplicate(assistant);
-            }}
-          >
-            {t('settings.duplicateAssistant', { defaultValue: 'Duplicate' })}
-          </span>
-          <Switch
-            size='small'
-            data-testid={`switch-enabled-${assistant.id}`}
-            checked={assistantIsExtension ? true : assistant.enabled !== false}
-            disabled={assistantIsExtension}
-            onChange={(checked) => {
-              onToggleEnabled(assistant, checked);
-            }}
-          />
-          <Button
-            type='text'
-            size='small'
-            icon={<SettingOne size={16} />}
-            className='!rounded-10px'
-            data-testid={`btn-edit-${assistant.id}`}
-            onClick={() => {
-              onEdit(assistant);
-            }}
-          />
-        </div>
-      </div>
-    );
-  };
-
-  const renderSection = (title: string, sectionAssistants: AssistantListItem[]) => {
-    if (sectionAssistants.length === 0) return null;
+        assistant={assistant}
+        localeKey={localeKey}
+        avatarImageMap={avatarImageMap}
+        highlightedId={highlightedId}
+        onEdit={onEdit}
+        onDuplicate={onDuplicate}
+        onDelete={onDelete}
+        onToggleEnabled={onToggleEnabled}
+        setActiveAssistantId={setActiveAssistantId}
+        renderSourceTag={renderSourceTag}
+        cardRefSetter={cardRefSetter}
+        sortingEnabled={sortingEnabled}
+      />
+    ));
 
     return (
-      <div className='space-y-12px'>
-        <div className='flex items-center gap-8px text-13px font-medium text-t-secondary px-4px'>
-          {title}
-          <span className='text-t-tertiary'>({sectionAssistants.length})</span>
-        </div>
-        <div className='space-y-12px'>{sectionAssistants.map(renderAssistantCard)}</div>
+      <div className='rounded-12px border border-border-2 bg-2 p-8px md:rounded-16px md:p-10px'>
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleSectionDragEnd}>
+          <SortableContext
+            items={sectionAssistants.map((assistant) => assistant.id)}
+            strategy={verticalListSortingStrategy}
+          >
+            <div className='space-y-8px'>{sectionCards}</div>
+          </SortableContext>
+        </DndContext>
       </div>
     );
   };
-
-  const isSearchVisible = searchExpanded || search_query.length > 0;
 
   return (
-    <div className='py-2'>
-      <div className={`bg-fill-2 rounded-24px ${isMobile ? 'p-16px' : 'p-20px'}`}>
-        <div className='flex flex-col gap-14px mb-20px'>
+    <div data-testid='assistant-list-shell' className='flex h-full min-h-0 flex-col overflow-hidden bg-transparent'>
+      <div
+        data-testid='assistant-list-header'
+        className={`sticky top-0 z-10 border-b border-border-2 bg-bg-0 ${isMobile ? 'px-8px py-12px' : 'px-18px py-18px'}`}
+      >
+        <div className='mx-auto w-full max-w-760px'>
           <div className={`flex gap-12px ${isMobile ? 'flex-col' : 'items-start justify-between'}`}>
             <div className='min-w-0'>
-              <h2 className='m-0 text-28px font-700 leading-[1.1] text-t-primary'>
+              <h2 className='m-0 text-16px font-600 leading-[1.2] text-t-primary'>
                 {t('settings.assistants', { defaultValue: 'Assistants' })}
               </h2>
+              <p className='mt-4px text-12px text-t-tertiary'>
+                {t('settings.assistantsListDescription', {
+                  defaultValue: 'Manage your assistants, control visibility, and adjust their order.',
+                })}
+              </p>
             </div>
             <div className={`${isMobile ? 'w-full' : 'flex-shrink-0'}`}>
               <Button
                 type='primary'
                 size='small'
-                className={`!rounded-[100px] ${isMobile ? '!w-full !h-36px' : '!px-16px !h-32px'}`}
+                className={`!rounded-8px ${isMobile ? '!h-36px !w-full' : '!h-32px !px-14px'}`}
                 icon={<Plus size={14} fill='currentColor' />}
                 onClick={onCreate}
                 data-testid='btn-create-assistant'
@@ -209,78 +325,24 @@ const AssistantListPanel: React.FC<AssistantListPanelProps> = ({
               </Button>
             </div>
           </div>
-          <div className={`flex gap-12px ${isMobile ? 'flex-col' : 'items-end justify-between'}`}>
-            <div className='min-w-0 max-w-[760px] space-y-6px'>
-              <p className='m-0 text-14px text-t-secondary leading-relaxed'>
-                {t('settings.assistantsListDescription', {
-                  defaultValue: 'Build task-specific assistants by combining an AI agent with custom rules and skills.',
-                })}
-              </p>
-            </div>
-            <div
-              className={`flex ${isMobile ? 'items-center justify-between' : 'items-center'} gap-10px text-12px text-t-tertiary`}
-            >
-              <Button
-                type={isSearchVisible ? 'secondary' : 'text'}
-                size='small'
-                data-testid='btn-search-toggle'
-                className='!rounded-10px !h-34px !w-34px !p-0 flex items-center justify-center !text-t-secondary hover:!bg-fill-1 hover:!text-t-primary'
-                icon={
-                  isSearchVisible ? (
-                    <CloseSmall size={16} fill='currentColor' />
-                  ) : (
-                    <Search size={16} fill='currentColor' />
-                  )
-                }
-                onClick={() => {
-                  if (isSearchVisible) {
-                    setSearchExpanded(false);
-                    setSearchQuery('');
-                    return;
-                  }
-                  setSearchExpanded(true);
-                }}
-              />
-            </div>
-          </div>
-          {isSearchVisible && (
-            <Input
-              allowClear
-              autoFocus
-              value={search_query}
-              onChange={setSearchQuery}
-              data-testid='input-search-assistant'
-              className='!bg-[var(--color-bg-2)]'
-              placeholder={t('settings.searchAssistants', {
-                defaultValue: 'Search assistants by name or description',
-              })}
-              prefix={<Search size={14} fill='currentColor' />}
-            />
-          )}
-          <Tabs
-            activeTab={activeFilter}
-            onChange={(key) => setActiveFilter((key as AssistantListFilter) || 'all')}
-            type='line'
-            className='assistant-filter-tabs w-full'
-          >
-            {filterOptions.map((filterOption) => (
-              <Tabs.TabPane key={filterOption.key} title={filterOption.label} />
-            ))}
-          </Tabs>
         </div>
+      </div>
 
-        {filteredAssistants.length > 0 ? (
-          <div className='space-y-16px'>
-            {renderSection(t('settings.assistantSectionEnabled', { defaultValue: 'Enabled' }), enabledAssistants)}
-            {renderSection(t('settings.assistantSectionDisabled', { defaultValue: 'Disabled' }), disabledAssistants)}
-          </div>
-        ) : (
-          <div className='text-center text-t-secondary py-12px'>
-            {t('settings.assistantNoMatch', {
-              defaultValue: 'No assistants match the current filters.',
-            })}
-          </div>
-        )}
+      <div
+        data-testid='assistant-list-body'
+        className={`min-h-0 flex-1 overflow-auto ${isMobile ? 'px-8px pt-0 pb-12px' : 'px-18px pt-0 pb-24px'}`}
+      >
+        <div className='mx-auto w-full max-w-760px'>
+          {listAssistants.length > 0 ? (
+            renderList(listAssistants)
+          ) : (
+            <div className='py-12px text-center text-t-secondary'>
+              {t('settings.assistantNoMatch', {
+                defaultValue: 'No assistants match the current filters.',
+              })}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -29,21 +29,10 @@ interface EventTypes {
   'codex.selected.file.append': [Array<string | FileOrFolderItem>];
   'codex.selected.file.clear': void;
   'codex.workspace.refresh': void;
-  'openclaw-gateway.selected.file': [Array<string | FileOrFolderItem>];
-  'openclaw-gateway.selected.file.append': [Array<string | FileOrFolderItem>];
-  'openclaw-gateway.selected.file.clear': void;
-  'openclaw-gateway.workspace.refresh': void;
-  'nanobot.selected.file': [Array<string | FileOrFolderItem>];
-  'nanobot.selected.file.append': [Array<string | FileOrFolderItem>];
-  'nanobot.selected.file.clear': void;
-  'nanobot.workspace.refresh': void;
-  'remote.selected.file': [Array<string | FileOrFolderItem>];
-  'remote.selected.file.append': [Array<string | FileOrFolderItem>];
-  'remote.selected.file.clear': void;
-  'remote.workspace.refresh': void;
   'chat.history.refresh': void;
   // 会话删除事件 / Conversation deletion event
   'conversation.deleted': [string]; // conversation_id
+  'conversation.commandQueue.deferAfterTeamUpgrade': [{ conversation_id: string; team_id: string }];
   // 预览面板事件 / Preview panel events
   'preview.open': [
     { content: string; contentType: PreviewContentType; metadata?: { title?: string; file_name?: string } },
@@ -52,8 +41,6 @@ interface EventTypes {
   'sendbox.fill': [string]; // prompt text to fill
   'sendbox.reply': [ReplyQuote]; // reply/quote a message
   'sendbox.reply.clear': void; // clear reply quote
-  'staroffice.install.request': [{ conversation_id: string; text: string; detectedUrl?: string | null }];
-  'staroffice.install.finished': [{ conversation_id: string }];
 }
 
 export const emitter = new EventEmitter<EventTypes>();

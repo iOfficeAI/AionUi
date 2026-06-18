@@ -3,6 +3,7 @@
     "title": "MCP Entegrasyonu",
     "description": "Model Bağlam Protokolü sunucularını ve araçlarını yönet"
   },
+  "label": "MCP",
   "servers": "Sunucular",
   "tools": "Araçlar",
   "executionHistory": "Yürütme Geçmişi",

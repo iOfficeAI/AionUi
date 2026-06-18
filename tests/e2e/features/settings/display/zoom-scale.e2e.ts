@@ -89,16 +89,16 @@ test.describe('Zoom scale (FontSizeControl)', () => {
     expect(after).toBeLessThan(baseline);
   });
 
-  test('clicking reset returns to 100%', async ({ page }) => {
+  test('clicking reset returns to the 95% default', async ({ page }) => {
     const pct = await currentPercent(page);
     const plus = plusButton(page);
 
-    // Move away from 100% so reset has something to do
-    if (pct === 100) {
+    // Move away from the default so reset has something to do
+    if (pct === 95) {
       await plus.click();
       await waitForSettle(page, 1_000);
       const moved = await currentPercent(page);
-      expect(moved).not.toBe(100);
+      expect(moved).not.toBe(95);
     }
 
     const reset = resetButton(page);
@@ -108,7 +108,7 @@ test.describe('Zoom scale (FontSizeControl)', () => {
     await waitForSettle(page, 1_000);
 
     const final = await currentPercent(page);
-    expect(final).toBe(100);
+    expect(final).toBe(95);
   });
 
   test('+ button is disabled at maximum scale', async ({ page }) => {
@@ -142,14 +142,14 @@ test.describe('Zoom scale (FontSizeControl)', () => {
   });
 
   test('clicking the slider track changes the percentage', async ({ page }) => {
-    // Reset to 100% first for a known baseline
+    // Reset to the 95% default first for a known baseline
     const reset = resetButton(page);
     if (await reset.isEnabled()) {
       await reset.click();
       await waitForSettle(page, 1_000);
     }
     const baseline = await currentPercent(page);
-    expect(baseline).toBe(100);
+    expect(baseline).toBe(95);
 
     const slider = fontSizeControlLocator(page);
     await expect(slider).toBeVisible({ timeout: 5_000 });

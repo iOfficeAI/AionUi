@@ -8,6 +8,22 @@ import type { FileOrFolderItem } from '@/renderer/utils/file/fileTypes';
 
 export type FileSelectionItem = string | FileOrFolderItem;
 
+/**
+ * 剥离 Windows 扩展长度路径前缀（`\\?\C:\DEV` → `C:\DEV`，`\\?\UNC\srv\share` → `\\srv\share`）
+ * Strip the Windows extended-length (verbatim) prefix. Older backend builds
+ * canonicalized picker paths into this form, which breaks agent spawning and
+ * splits one directory into two project-list entries (issue #3191).
+ */
+export const stripWindowsVerbatimPrefix = (path: string): string => {
+  if (path.startsWith('\\\\?\\UNC\\')) {
+    return '\\\\' + path.slice('\\\\?\\UNC\\'.length);
+  }
+  if (path.startsWith('\\\\?\\')) {
+    return path.slice('\\\\?\\'.length);
+  }
+  return path;
+};
+
 const getItemPath = (item: FileSelectionItem): string | undefined => {
   if (typeof item === 'string') {
     return item;

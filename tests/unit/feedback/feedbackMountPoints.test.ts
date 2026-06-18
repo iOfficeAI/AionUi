@@ -37,11 +37,9 @@ describe('FeedbackButton mount points — source-level wiring', () => {
     expect(src).toMatch(/<FeedbackButton\s+module=['"]conversation-session['"]/);
   });
 
-  it('InlineAgentEditor wires module=agent-detection on both fail Alerts', () => {
+  it('InlineAgentEditor has no FeedbackButton', () => {
     const src = read('packages/desktop/src/renderer/pages/settings/AgentSettings/InlineAgentEditor.tsx');
-    const matches = src.match(/<FeedbackButton\s+module=['"]([^'"]+)['"]/g) ?? [];
-    expect(matches.length).toBe(2);
-    expect(matches.every((m) => m.includes('agent-detection'))).toBe(true);
+    expect(src).not.toMatch(/<FeedbackButton/);
   });
 
   it('SystemModalContent wires module=system-settings', () => {
