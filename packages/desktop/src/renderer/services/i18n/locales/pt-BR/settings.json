@@ -988,7 +988,9 @@
     "statusAvailable": "Disponível",
     "statusUnavailable": "Indisponível",
     "statusMissing": "Não encontrado",
+    "statusNeedsAuth": "Precisa fazer login",
     "statusUnknown": "Desconhecido",
+    "needsAuthSummary": "{{name}} está pronto, mas você precisa fazer login primeiro. Abra-o em um terminal para fazer login ou adicione uma credencial de acesso abaixo.",
     "localAgentsEmpty": "Nenhum agente local detectado",
     "detected": "Detectado",
     "customAgents": "Agentes Personalizados",
@@ -1007,6 +1009,19 @@
       "command_missing": "Install {{command}} and retry the connection test.",
       "managed_runtime_unavailable": "Repair or reinstall {{resource}}, then retry the connection test."
     }
+  },
+  "repair": {
+    "configuredVarsCount": "{{count}} variáveis de ambiente configuradas",
+    "hasPathOverride": "Caminho de inicialização personalizado configurado",
+    "unlockAndEdit": "Desbloquear e Editar",
+    "pathLabel": "Caminho de Inicialização",
+    "pathPlaceholder": "Atualmente usando: {{command}}",
+    "pathHelp": "Se o caminho padrão não puder ser encontrado, especifique o caminho completo aqui. Deixe em branco para usar o padrão.",
+    "resetPath": "Redefinir para Padrão",
+    "envLabel": "Variáveis de Ambiente",
+    "envHelp": "Algumas ferramentas requerem chaves de API ou tokens de acesso para executar, como ANTHROPIC_API_KEY ou FACTORY_API_KEY. Adicione uma variável por linha.",
+    "saveAndTest": "Salvar e Testar",
+    "duplicateKeysError": "Nomes de variáveis de ambiente duplicados encontrados. Verifique e tente novamente."
   },
   "remoteAgent": {
     "title": "Agentes Remotos",

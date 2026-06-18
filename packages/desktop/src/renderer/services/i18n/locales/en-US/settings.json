@@ -988,7 +988,9 @@
     "statusAvailable": "Available",
     "statusUnavailable": "Unavailable",
     "statusMissing": "Missing",
+    "statusNeedsAuth": "Needs sign-in",
     "statusUnknown": "Unknown",
+    "needsAuthSummary": "{{name}} is ready but needs you to sign in first. Open it in a terminal to log in, or add an access credential below.",
     "localAgentsEmpty": "No local agents detected",
     "detected": "Detected",
     "customAgents": "Custom Agents",
@@ -1007,6 +1009,19 @@
       "command_missing": "Install {{command}} and retry the connection test.",
       "managed_runtime_unavailable": "Repair or reinstall {{resource}}, then retry the connection test."
     }
+  },
+  "repair": {
+    "configuredVarsCount": "{{count}} environment variables configured",
+    "hasPathOverride": "Custom launch path configured",
+    "unlockAndEdit": "Unlock & Edit",
+    "pathLabel": "Launch Path",
+    "pathPlaceholder": "Currently using: {{command}}",
+    "pathHelp": "If the default path cannot be found, specify the full path here. Leave blank to use the default.",
+    "resetPath": "Reset to Default",
+    "envLabel": "Environment Variables",
+    "envHelp": "Some tools require API keys or access tokens to run, such as ANTHROPIC_API_KEY or FACTORY_API_KEY. Add one variable per row.",
+    "saveAndTest": "Save & Test",
+    "duplicateKeysError": "Duplicate environment variable names found. Please check and try again."
   },
   "remoteAgent": {
     "title": "Remote Agents",

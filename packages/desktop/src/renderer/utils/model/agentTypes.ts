@@ -22,7 +22,7 @@ export type AgentType = 'acp' | 'remote' | 'aionrs' | 'openclaw-gateway' | 'nano
 /** Source tier of an agent row, mirroring backend `agent_source` enum. */
 export type AgentSource = 'internal' | 'builtin' | 'extension' | 'custom';
 
-export type AgentManagementStatus = 'available' | 'unavailable' | 'missing';
+export type AgentManagementStatus = 'available' | 'unavailable' | 'missing' | 'needs_auth';
 export type AgentSnapshotCheckStatus = 'available' | 'unavailable';
 export type AgentSnapshotCheckKind = 'startup' | 'scheduled' | 'manual' | 'session';
 export type AgentManagementErrorDetails = {
@@ -103,6 +103,10 @@ export type AgentMetadata = {
   team_capable?: boolean;
   /** Derived status used by the Agent settings management view. */
   status?: AgentManagementStatus;
+  /** True when the agent has a command_override set (requires auth). */
+  has_command_override?: boolean;
+  /** Count of environment variable overrides set. */
+  env_override_key_count?: number;
 
   /** Pre-resolution spawn command as stored in the catalog (e.g. "bun"). */
   command?: string;

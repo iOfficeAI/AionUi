@@ -976,7 +976,9 @@
     "statusAvailable": "Kullanılabilir",
     "statusUnavailable": "Kullanılamıyor",
     "statusMissing": "Bulunamadı",
+    "statusNeedsAuth": "Oturum açma gerekli",
     "statusUnknown": "Bilinmiyor",
+    "needsAuthSummary": "{{name}} hazır ancak önce oturum açmanız gerekiyor. Oturum açmak için bir terminalde açın veya aşağıya bir erişim kimlik bilgisi ekleyin.",
     "localAgentsEmpty": "Yerel ajan algılanmadı",
     "detected": "Algılanan",
     "customAgents": "Özel Ajanlar",
@@ -995,6 +997,19 @@
       "command_missing": "Install {{command}} and retry the connection test.",
       "managed_runtime_unavailable": "Repair or reinstall {{resource}}, then retry the connection test."
     }
+  },
+  "repair": {
+    "configuredVarsCount": "{{count}} ortam değişkeni yapılandırıldı",
+    "hasPathOverride": "Özel başlatma yolu yapılandırıldı",
+    "unlockAndEdit": "Kilidi Aç ve Düzenle",
+    "pathLabel": "Başlatma Yolu",
+    "pathPlaceholder": "Şu anda kullanılıyor: {{command}}",
+    "pathHelp": "Varsayılan yol bulunamazsa, tam yolu buraya belirtin. Varsayılanı kullanmak için boş bırakın.",
+    "resetPath": "Varsayılana Sıfırla",
+    "envLabel": "Ortam Değişkenleri",
+    "envHelp": "Bazı araçlar çalışmak için API anahtarları veya erişim belirteçleri gerektirir, örneğin ANTHROPIC_API_KEY veya FACTORY_API_KEY. Her satıra bir değişken ekleyin.",
+    "saveAndTest": "Kaydet ve Test Et",
+    "duplicateKeysError": "Yinelenen ortam değişkeni adları bulundu. Lütfen kontrol edin ve tekrar deneyin."
   },
   "remoteAgent": {
     "title": "Uzak Ajanlar",

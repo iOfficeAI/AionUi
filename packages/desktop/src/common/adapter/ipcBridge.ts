@@ -772,6 +772,16 @@ export const acpConversation = {
   getAgentLogos: httpGet<import('@/renderer/utils/model/agentLogo').AgentLogoEntry[], void>('/api/agents/logos'),
   /** Management view used by Agent settings. */
   getManagedAgents: httpGet<import('@/renderer/utils/model/agentTypes').ManagedAgent[], void>('/api/agents/management'),
+  getAgentOverrides: httpGet<{ command_override?: string; env_override: { name: string; value: string }[] }, { id: string }>(
+    (p) => `/api/agents/${encodeURIComponent(p.id)}/overrides`
+  ),
+  setAgentOverrides: httpPut<
+    import('@/renderer/utils/model/agentTypes').ManagedAgent,
+    { id: string; command_override?: string | null; env_override?: { name: string; value: string }[] }
+  >(
+    (p) => `/api/agents/${encodeURIComponent(p.id)}/overrides`,
+    (p) => ({ command_override: p.command_override, env_override: p.env_override })
+  ),
   refreshCustomAgents: httpPost<void, void>('/api/agents/refresh'),
   testCustomAgent: httpPost<
     { step: 'success' } | { step: 'fail_cli'; error: string } | { step: 'fail_acp'; error: string },

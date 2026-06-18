@@ -15,6 +15,7 @@ import {
   type ManagedAgent,
   formatManagedAgentDiagnosticMessage,
 } from '@/renderer/utils/model/agentTypes';
+import AgentRepairPanel from './AgentRepairPanel';
 
 type AgentCardProps =
   | {
@@ -33,7 +34,7 @@ type AgentCardProps =
       isTesting?: boolean;
     };
 
-const statusColor = (status?: AgentManagementStatus): 'green' | 'orange' | 'red' | 'gray' => {
+const statusColor = (status?: AgentManagementStatus): 'green' | 'orange' | 'red' | 'gold' | 'gray' => {
   switch (status) {
     case 'available':
       return 'green';
@@ -41,6 +42,8 @@ const statusColor = (status?: AgentManagementStatus): 'green' | 'orange' | 'red'
       return 'orange';
     case 'missing':
       return 'red';
+    case 'needs_auth':
+      return 'gold';
     default:
       return 'gray';
   }
@@ -54,6 +57,8 @@ const statusLabelKey = (status?: AgentManagementStatus) => {
       return 'settings.agentManagement.statusUnavailable';
     case 'missing':
       return 'settings.agentManagement.statusMissing';
+    case 'needs_auth':
+      return 'settings.agentManagement.statusNeedsAuth';
     default:
       return 'settings.agentManagement.statusUnknown';
   }
@@ -82,6 +87,8 @@ const statusSummary = (
       return t('settings.agentManagement.testConnectionMissing', { name: agent.name });
     case 'unavailable':
       return t('settings.agentManagement.testConnectionUnavailable', { name: agent.name });
+    case 'needs_auth':
+      return t('settings.agentManagement.needsAuthSummary', { name: agent.name });
     default:
       return t('settings.agentManagement.statusUnknown');
   }
@@ -146,6 +153,9 @@ const AgentCard: React.FC<AgentCardProps> = (props) => {
         <Button size='small' type='secondary' onClick={onTestConnection} loading={isTesting}>
           {t('settings.agentManagement.testConnection')}
         </Button>
+
+        {/* Repair Panel for non-available statuses */}
+        {agent.status !== 'available' && <AgentRepairPanel agent={agent} onSaved={onTestConnection} />}
       </div>
     );
   }
@@ -158,52 +168,57 @@ const AgentCard: React.FC<AgentCardProps> = (props) => {
   const checkedAt = formatStatusTimestamp(agent.last_check_at);
 
   return (
-    <div className='flex items-center justify-between px-16px py-10px rd-8px bg-aou-1 hover:bg-aou-2'>
-      <div className={`flex items-center gap-12px min-w-0 flex-1 ${isDisabled ? 'opacity-50' : ''}`}>
-        <Avatar
-          size={32}
-          shape='square'
-          style={{ flexShrink: 0, backgroundColor: agent.icon ? 'var(--color-fill-2)' : 'transparent', fontSize: 18 }}
-        >
-          {agent.icon || <Robot theme='outline' size='20' />}
-        </Avatar>
-        <div className='min-w-0 flex-1'>
-          <Typography.Text className='font-medium text-14px'>{agent.name || 'Custom Agent'}</Typography.Text>
-          {metadata ? <div className='text-11px text-t-secondary truncate'>{metadata}</div> : null}
-          <div className='text-12px text-t-secondary truncate'>
-            {agent.command}
-            {agent.args && agent.args.length > 0 ? ` ${agent.args.join(' ')}` : ''}
+    <div className='flex flex-col px-16px py-10px rd-8px bg-aou-1 hover:bg-aou-2'>
+      <div className='flex items-center justify-between'>
+        <div className={`flex items-center gap-12px min-w-0 flex-1 ${isDisabled ? 'opacity-50' : ''}`}>
+          <Avatar
+            size={32}
+            shape='square'
+            style={{ flexShrink: 0, backgroundColor: agent.icon ? 'var(--color-fill-2)' : 'transparent', fontSize: 18 }}
+          >
+            {agent.icon || <Robot theme='outline' size='20' />}
+          </Avatar>
+          <div className='min-w-0 flex-1'>
+            <Typography.Text className='font-medium text-14px'>{agent.name || 'Custom Agent'}</Typography.Text>
+            {metadata ? <div className='text-11px text-t-secondary truncate'>{metadata}</div> : null}
+            <div className='text-12px text-t-secondary truncate'>
+              {agent.command}
+              {agent.args && agent.args.length > 0 ? ` ${agent.args.join(' ')}` : ''}
+            </div>
+            <div className='mt-6px flex items-center gap-6px'>
+              <Tag size='small' color={statusColor(agent.status)}>
+                {t(statusLabelKey(agent.status))}
+              </Tag>
+              {diagnostics && (
+                <Tooltip content={diagnostics}>
+                  <Typography.Text className='text-11px text-t-secondary'>i</Typography.Text>
+                </Tooltip>
+              )}
+            </div>
+            <div className='mt-4px text-11px text-t-secondary line-clamp-2'>{summary}</div>
+            {checkedAt ? (
+              <div className='mt-4px text-11px text-t-secondary'>{`${t('settings.mcpCheckedAtLabel')} ${checkedAt}`}</div>
+            ) : null}
           </div>
-          <div className='mt-6px flex items-center gap-6px'>
-            <Tag size='small' color={statusColor(agent.status)}>
-              {t(statusLabelKey(agent.status))}
-            </Tag>
-            {diagnostics && (
-              <Tooltip content={diagnostics}>
-                <Typography.Text className='text-11px text-t-secondary'>i</Typography.Text>
-              </Tooltip>
-            )}
-          </div>
-          <div className='mt-4px text-11px text-t-secondary line-clamp-2'>{summary}</div>
-          {checkedAt ? (
-            <div className='mt-4px text-11px text-t-secondary'>{`${t('settings.mcpCheckedAtLabel')} ${checkedAt}`}</div>
-          ) : null}
+        </div>
+        <div className='flex items-center gap-8px'>
+          <Switch size='small' checked={agent.enabled !== false} onChange={onToggle} />
+          <Button size='small' type='text' onClick={onTestConnection} loading={isTesting}>
+            {t('settings.agentManagement.testConnection')}
+          </Button>
+          <Button size='small' type='text' icon={<EditTwo theme='outline' size='14' />} onClick={onEdit} />
+          <Button
+            size='small'
+            type='text'
+            status='danger'
+            icon={<Delete theme='outline' size='14' />}
+            onClick={onDelete}
+          />
         </div>
       </div>
-      <div className='flex items-center gap-8px'>
-        <Switch size='small' checked={agent.enabled !== false} onChange={onToggle} />
-        <Button size='small' type='text' onClick={onTestConnection} loading={isTesting}>
-          {t('settings.agentManagement.testConnection')}
-        </Button>
-        <Button size='small' type='text' icon={<EditTwo theme='outline' size='14' />} onClick={onEdit} />
-        <Button
-          size='small'
-          type='text'
-          status='danger'
-          icon={<Delete theme='outline' size='14' />}
-          onClick={onDelete}
-        />
-      </div>
+
+      {/* Repair Panel for non-available statuses */}
+      {agent.status !== 'available' && <AgentRepairPanel agent={agent} onSaved={onTestConnection} />}
     </div>
   );
 };

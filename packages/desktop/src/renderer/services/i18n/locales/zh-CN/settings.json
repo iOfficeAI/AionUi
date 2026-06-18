@@ -989,7 +989,9 @@
     "statusAvailable": "可用",
     "statusUnavailable": "不可用",
     "statusMissing": "未找到",
+    "statusNeedsAuth": "需登录",
     "statusUnknown": "未知",
+    "needsAuthSummary": "{{name}} 已就绪，但还需要登录后才能使用。请在终端打开它登录一次，或在下方补充访问凭据。",
     "localAgentsEmpty": "未检测到本地 Agent",
     "detected": "已检测",
     "customAgents": "自定义 Agents",
@@ -1008,6 +1010,19 @@
       "command_missing": "请安装 {{command}}，然后重新测试连接。",
       "managed_runtime_unavailable": "请修复或重新安装 {{resource}}，然后重新测试连接。"
     }
+  },
+  "repair": {
+    "configuredVarsCount": "已配置 {{count}} 个环境变量",
+    "hasPathOverride": "已配置自定义启动路径",
+    "unlockAndEdit": "解锁并编辑",
+    "pathLabel": "启动路径",
+    "pathPlaceholder": "当前使用：{{command}}",
+    "pathHelp": "如果默认路径找不到，请在这里指定完整路径。留空使用默认路径。",
+    "resetPath": "恢复默认",
+    "envLabel": "环境变量",
+    "envHelp": "某些工具需要 API 密钥或访问令牌才能运行，例如 ANTHROPIC_API_KEY 或 FACTORY_API_KEY。每行填一个变量。",
+    "saveAndTest": "保存并测试",
+    "duplicateKeysError": "环境变量名称重复，请检查后重试"
   },
   "remoteAgent": {
     "title": "远程 Agent",

@@ -978,7 +978,9 @@
     "statusAvailable": "利用可能",
     "statusUnavailable": "利用不可",
     "statusMissing": "未検出",
+    "statusNeedsAuth": "サインインが必要",
     "statusUnknown": "不明",
+    "needsAuthSummary": "{{name}} の準備は完了していますが、サインインが必要です。ターミナルで開いてログインするか、下にアクセス資格情報を追加してください。",
     "localAgentsEmpty": "ローカルエージェントが検出されていません",
     "detected": "検出済み",
     "customAgents": "カスタムエージェント",
@@ -997,6 +999,19 @@
       "command_missing": "Install {{command}} and retry the connection test.",
       "managed_runtime_unavailable": "Repair or reinstall {{resource}}, then retry the connection test."
     }
+  },
+  "repair": {
+    "configuredVarsCount": "{{count}}個の環境変数が設定されています",
+    "hasPathOverride": "カスタム起動パスが設定されています",
+    "unlockAndEdit": "ロック解除して編集",
+    "pathLabel": "起動パス",
+    "pathPlaceholder": "現在使用中: {{command}}",
+    "pathHelp": "デフォルトパスが見つからない場合は、ここにフルパスを指定してください。空白のままにするとデフォルトを使用します。",
+    "resetPath": "デフォルトに戻す",
+    "envLabel": "環境変数",
+    "envHelp": "一部のツールは実行にAPIキーまたはアクセストークンが必要です。例：ANTHROPIC_API_KEY、FACTORY_API_KEY。1行に1つの変数を追加してください。",
+    "saveAndTest": "保存してテスト",
+    "duplicateKeysError": "環境変数名が重複しています。確認して再試行してください。"
   },
   "remoteAgent": {
     "title": "リモートエージェント",

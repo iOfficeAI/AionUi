@@ -969,7 +969,9 @@
     "statusAvailable": "Доступен",
     "statusUnavailable": "Недоступен",
     "statusMissing": "Не найден",
+    "statusNeedsAuth": "Требуется вход",
     "statusUnknown": "Неизвестно",
+    "needsAuthSummary": "{{name}} готов, но сначала вам нужно войти в систему. Откройте его в терминале для входа или добавьте учетные данные доступа ниже.",
     "localAgentsEmpty": "Локальные агенты не обнаружены",
     "detected": "Обнаружено",
     "customAgents": "Пользовательские агенты",
@@ -988,6 +990,19 @@
       "command_missing": "Install {{command}} and retry the connection test.",
       "managed_runtime_unavailable": "Repair or reinstall {{resource}}, then retry the connection test."
     }
+  },
+  "repair": {
+    "configuredVarsCount": "Настроено переменных окружения: {{count}}",
+    "hasPathOverride": "Настроен пользовательский путь запуска",
+    "unlockAndEdit": "Разблокировать и редактировать",
+    "pathLabel": "Путь запуска",
+    "pathPlaceholder": "Сейчас используется: {{command}}",
+    "pathHelp": "Если путь по умолчанию не найден, укажите здесь полный путь. Оставьте пустым для использования значения по умолчанию.",
+    "resetPath": "Сбросить на значение по умолчанию",
+    "envLabel": "Переменные окружения",
+    "envHelp": "Некоторым инструментам требуются ключи API или токены доступа для работы, например ANTHROPIC_API_KEY или FACTORY_API_KEY. Добавьте по одной переменной в строку.",
+    "saveAndTest": "Сохранить и протестировать",
+    "duplicateKeysError": "Обнаружены дублирующиеся имена переменных окружения. Проверьте и попробуйте снова."
   },
   "remoteAgent": {
     "title": "Удалённые агенты",
