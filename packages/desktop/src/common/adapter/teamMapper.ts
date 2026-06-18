@@ -87,15 +87,23 @@ export function fromBackendAssistant(raw: unknown): TeamAssistant {
 
 export function fromBackendTeam(raw: unknown): TTeam {
   const r = (raw ?? {}) as Record<string, unknown>;
-  const assistants = Array.isArray(r.agents) ? (r.agents as unknown[]).map(fromBackendAssistant) : [];
+  const rawAssistants = Array.isArray(r.assistants)
+    ? (r.assistants as unknown[])
+    : Array.isArray(r.agents)
+      ? (r.agents as unknown[])
+      : [];
+  const assistants = rawAssistants.map(fromBackendAssistant);
+  const leaderAssistantId =
+    (r.leader_assistant_id as string | undefined) ?? (r.leader_agent_id as string | undefined) ?? '';
   return {
     id: (r.id as string | undefined) ?? '',
     user_id: (r.user_id as string | undefined) ?? '',
     name: (r.name as string | undefined) ?? '',
     workspace: (r.workspace as string | undefined) ?? '',
     workspace_mode: toWorkspaceMode(r.workspace_mode as string | undefined),
-    leader_agent_id: (r.leader_agent_id as string | undefined) ?? '',
+    leader_assistant_id: leaderAssistantId,
     assistants,
+    leader_agent_id: leaderAssistantId,
     agents: assistants,
     session_mode: r.session_mode as string | undefined,
     created_at: (r.created_at as number | undefined) ?? 0,

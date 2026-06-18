@@ -5,7 +5,12 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { fromBackendAssistant, normalizeTeamStatus, toBackendAssistant } from '@/common/adapter/teamMapper';
+import {
+  fromBackendAssistant,
+  fromBackendTeam,
+  normalizeTeamStatus,
+  toBackendAssistant,
+} from '@/common/adapter/teamMapper';
 
 describe('teamMapper', () => {
   describe('normalizeTeamStatus', () => {
@@ -54,6 +59,33 @@ describe('teamMapper', () => {
     expect(assistant.assistant_name).toBe('Writer');
     expect(assistant).not.toHaveProperty('agent_type');
     expect(assistant).not.toHaveProperty('agent_name');
+  });
+
+  it('prefers assistant-first team response fields while keeping legacy aliases hydrated', () => {
+    const team = fromBackendTeam({
+      id: 'team-1',
+      name: 'Alpha',
+      workspace: '/tmp/ws',
+      workspace_mode: 'shared',
+      leader_assistant_id: 'slot-lead',
+      assistants: [
+        {
+          slot_id: 'slot-lead',
+          conversation_id: 'conv-1',
+          role: 'leader',
+          assistant_backend: 'codex',
+          assistant_name: 'Lead',
+          status: 'idle',
+        },
+      ],
+      created_at: 1,
+      updated_at: 2,
+    });
+
+    expect(team.leader_assistant_id).toBe('slot-lead');
+    expect(team.leader_agent_id).toBe('slot-lead');
+    expect(team.assistants).toHaveLength(1);
+    expect(team.agents).toHaveLength(1);
   });
 
   it('prefers the concrete backend over generic agent_type when hydrating assistant runtime fields', () => {

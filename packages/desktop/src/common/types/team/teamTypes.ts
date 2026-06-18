@@ -36,10 +36,12 @@ export type TTeam = {
   name: string;
   workspace: string;
   workspace_mode: WorkspaceMode;
-  leader_agent_id: string;
+  leader_assistant_id: string;
   assistants: TeamAssistant[];
+  /** @deprecated Use leader_assistant_id. */
+  leader_agent_id?: string;
   /** @deprecated Use assistants. */
-  agents: TeamAssistant[];
+  agents?: TeamAssistant[];
   /** Current session permission mode (e.g. 'plan', 'auto'). Persisted so newly spawned assistants inherit it. */
   session_mode?: string;
   created_at: number;
@@ -128,7 +130,7 @@ export type ITeamAgentSpawnedEvent = {
   team_id: string;
   assistant: TeamAssistant;
   /** @deprecated Use assistant. */
-  agent: TeamAssistant;
+  agent?: TeamAssistant;
 };
 
 /** IPC event pushed to renderer when an agent is removed from the team */

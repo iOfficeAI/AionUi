@@ -22,6 +22,7 @@ const team = {
   name: 'Alpha',
   workspace: '/tmp/workspace',
   workspace_mode: 'shared',
+  leader_assistant_id: 'slot-1',
   leader_agent_id: 'slot-1',
   session_mode: undefined,
   created_at: 1,
