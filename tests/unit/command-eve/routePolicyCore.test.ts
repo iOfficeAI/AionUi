@@ -71,6 +71,24 @@ describe('Command EVE route policy core — data sensitivity classification', ()
     const result = classifyDataSensitivity(`token: ${secret}`);
     expect(JSON.stringify(result)).not.toContain('abcdefghijklmnopqrstuvwxyz');
   });
+
+  it('classifies financial PII (IBAN) as S3', () => {
+    const result = classifyDataSensitivity('Konto: DE89 3704 0044 0532 0130 00');
+    expect(result.sensitivity).toBe('S3');
+    expect(result.findings.some((finding) => finding.kind === 'financial')).toBe(true);
+  });
+
+  it('classifies a health identifier as S3', () => {
+    const result = classifyDataSensitivity('Versichertennummer: A123456789');
+    expect(result.sensitivity).toBe('S3');
+    expect(result.findings.some((finding) => finding.kind === 'health')).toBe(true);
+  });
+
+  it('classifies non-DACH international PII as S2', () => {
+    const result = classifyDataSensitivity('Ship to 1600 Pennsylvania Avenue, call +1 415 555 1234');
+    expect(result.sensitivity).toBe('S2');
+    expect(result.findings.some((finding) => finding.kind === 'intl_pii')).toBe(true);
+  });
 });
 
 describe('Command EVE route policy core — laneForProvider / toRouteProvider', () => {

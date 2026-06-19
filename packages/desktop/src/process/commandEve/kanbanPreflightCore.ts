@@ -6422,20 +6422,23 @@ import re
 import sqlite3
 import sys
 
+# Mirror of egressBoundaryCore.ts SENSITIVE_RULES — SAME order + patterns (parity = no leak on
+# either path). Financial + health BEFORE phones; email last. (Detection-only here; no redaction.)
 SENSITIVE_RULES = [
     ("secret", "provider-api-key-token", re.compile(r"\b(?:sk-[A-Za-z0-9_-]{16,}|AIza[0-9A-Za-z_-]{20,}|ghp_[A-Za-z0-9_]{20,}|xox[baprs]-[A-Za-z0-9-]{10,})\b")),
     ("secret", "secret-assignment", re.compile(r"\b(?:api[_-]?key|secret|token|password|passwort)\s*[:=]\s*[\"']?[^\"'\s]{8,}[\"']?", re.IGNORECASE)),
-    ("german_pii", "german-street-address", re.compile(r"\b[A-ZÄÖÜ][A-Za-zÄÖÜäöüß.-]+(?:straße|strasse|weg|allee|platz|gasse|ring|damm)\s+\d+[a-z]?\b", re.IGNORECASE)),
-    ("german_pii", "german-phone-number", re.compile(r"(?:\+49|0049|0)\s?(?:\(?\d{2,5}\)?[\s./-]?)\d{3,}[\d\s./-]{2,}\b")),
-    ("email", "email-address", re.compile(r"\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b", re.IGNORECASE)),
-    ("financial", "iban", re.compile(r"\b[A-Z]{2}\d{2}(?:[ ]?[A-Z0-9]{4}){3,7}(?:[ ]?[A-Z0-9]{1,3})?\b")),
+    ("financial", "iban", re.compile(r"\b[A-Z]{2}\d{2}(?:[ ]?[A-Z0-9]{4}){2,8}(?:[ ]?[A-Z0-9]{1,3})?\b")),
     ("financial", "payment-card-number", re.compile(r"\b(?:4\d{3}|5[1-5]\d{2}|3[47]\d{2}|6(?:011|5\d{2}))[ -]?\d{4}[ -]?\d{4}[ -]?\d{1,4}\b")),
     ("financial", "bic-swift", re.compile(r"\b(?:BIC|SWIFT)\b\s*[:=]?\s*[A-Z]{6}[A-Z0-9]{2}(?:[A-Z0-9]{3})?\b", re.IGNORECASE)),
+    ("health", "health-identifier", re.compile(r"\b(?:versichertennummer|insurance\s*(?:no\.?|number|id)|patient\s*(?:id|no\.?|number)|medical\s*record\s*(?:no\.?|number)|kranken(?:versicherung|kasse))\b(?:\s+\w+){0,3}\s*[:=#]?\s*[A-Z0-9][A-Z0-9-]{4,}\b", re.IGNORECASE)),
+    ("health", "health-insurance-number", re.compile(r"\b[A-Z]\d{9}\b")),
+    ("german_pii", "german-street-address", re.compile(r"\b[A-ZÄÖÜ][A-Za-zÄÖÜäöüß.-]+(?:straße|strasse|weg|allee|platz|gasse|ring|damm)\s+\d+[a-z]?\b", re.IGNORECASE)),
+    ("german_pii", "german-phone-number", re.compile(r"(?:\+49|0049|0)\s?(?:\(?\d{2,5}\)?[\s./-]?)\d{3,}[\d\s./-]{2,}\b")),
     ("intl_pii", "intl-phone-number", re.compile(r"\+(?!49)\d{1,3}[\s.\-/()]?(?:\d[\s.\-/()]?){6,13}\d\b")),
-    ("intl_pii", "north-american-phone", re.compile(r"\b(?:\+?1[\s.\-]?)?\(\d{3}\)[\s.\-]?\d{3}[\s.\-]?\d{4}\b|\b\d{3}[\s.\-]\d{3}[\s.\-]\d{4}\b")),
-    ("intl_pii", "intl-street-address", re.compile(r"\b\d{1,5}\s+[A-Z][A-Za-z.'-]+(?:\s+[A-Z][A-Za-z.'-]+){0,3}\s+(?:Street|Avenue|Ave|Road|Rd|Boulevard|Blvd|Lane|Drive|Court|Place|Square|Terrace|Parkway|Pkwy|Highway|Hwy|Crescent|Close)\b\.?")),
+    ("intl_pii", "north-american-phone", re.compile(r"(?<![\w(])(?:\+?1[\s.\-]?)?\(\d{3}\)[\s.\-]?\d{3}[\s.\-]?\d{4}\b")),
+    ("intl_pii", "intl-street-address", re.compile(r"\b\d{1,5}\s+[A-Z][A-Za-z.'-]+(?:\s+[A-Z][A-Za-z.'-]+){0,3}\s+(?:Street|Avenue|Ave|Road|Rd|Boulevard|Blvd|Lane|Drive|Court|Place|Square|Terrace|Parkway|Pkwy|Highway|Hwy|Crescent|Close)\b(?=[,.\n]|\s+[A-Z]|$)")),
     ("intl_pii", "us-ssn", re.compile(r"\b\d{3}-\d{2}-\d{4}\b")),
-    ("health", "health-identifier", re.compile(r"\b(?:versichertennummer|insurance\s*(?:no\.?|number|id)|patient\s*(?:id|no\.?|number)|medical\s*record\s*(?:no\.?|number)|kranken(?:versicherung|kasse))\b\s*[:=#]?\s*[A-Z0-9][A-Z0-9-]{4,}\b", re.IGNORECASE)),
+    ("email", "email-address", re.compile(r"\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b", re.IGNORECASE)),
 ]
 
 def local_data_boundary_receipt(payload_text):

@@ -130,4 +130,72 @@ describe('Command EVE egress boundary core', () => {
     expect(result.decision).toBe('allow');
     expect(result.receipt.finding_count).toBe(0);
   });
+
+  it('redacts a FULL IBAN in redact mode — no country/bank prefix leak (CRITICAL regression)', async () => {
+    // The prior bug: german-phone fragmented the IBAN first, leaking "DE89 3704".
+    const result = await evaluateCommandEveEgressBoundary({
+      text: 'Überweisung an DE89 3704 0044 0532 0130 00 heute.',
+      provider: { ...LOCAL_PROVIDER, kind: 'cloud', name: 'openrouter' },
+      policyAction: 'redact',
+    });
+
+    expect(result.allowedText).toContain('[REDACTED_IBAN]');
+    expect(result.allowedText).not.toMatch(/DE\d{2}/);
+    expect(result.allowedText).not.toContain('3704');
+    expect(result.allowedText).not.toContain('0532');
+    expect(result.allowedText).not.toContain('[REDACTED_PHONE]');
+  });
+
+  it('catches the 15-char Norway IBAN (shortest valid length)', async () => {
+    const result = await evaluateCommandEveEgressBoundary({
+      text: 'Konto: NO93 8601 1117 947.',
+      provider: { ...LOCAL_PROVIDER, kind: 'cloud', name: 'openrouter' },
+    });
+
+    expect(result.receipt.findings.some((finding) => finding.rule_id === 'iban')).toBe(true);
+  });
+
+  it('catches a health insurance number in natural-language German AND bare form', async () => {
+    const labeled = await evaluateCommandEveEgressBoundary({
+      text: 'Meine Versichertennummer ist A123456789 bitte.',
+      provider: { ...LOCAL_PROVIDER, kind: 'cloud', name: 'openrouter' },
+    });
+    expect(labeled.receipt.findings.some((finding) => finding.kind === 'health')).toBe(true);
+
+    const bare = await evaluateCommandEveEgressBoundary({
+      text: 'Notiz: A123456789 vormerken.',
+      provider: { ...LOCAL_PROVIDER, kind: 'cloud', name: 'openrouter' },
+    });
+    expect(bare.receipt.findings.some((finding) => finding.kind === 'health')).toBe(true);
+  });
+
+  it('catches a bare parenthesised US phone (no country code)', async () => {
+    const result = await evaluateCommandEveEgressBoundary({
+      text: 'Call the client at (415) 555-2671 tomorrow.',
+      provider: { ...LOCAL_PROVIDER, kind: 'cloud', name: 'openrouter' },
+    });
+
+    expect(result.decision).toBe('block');
+    expect(result.receipt.findings.some((finding) => finding.rule_id === 'north-american-phone')).toBe(true);
+  });
+
+  it('does NOT redact bare 3-3-4 business reference numbers (order/ticket/SKU)', async () => {
+    const result = await evaluateCommandEveEgressBoundary({
+      text: 'Bestellnummer 845-291-6034 und Ticket 234-567-8901 versandt.',
+      provider: { ...LOCAL_PROVIDER, kind: 'cloud', name: 'openrouter' },
+    });
+
+    expect(result.decision).toBe('allow');
+    expect(result.receipt.finding_count).toBe(0);
+  });
+
+  it('does NOT redact a street suffix inside marketing copy ("Top 10 ... Avenue strategies")', async () => {
+    const result = await evaluateCommandEveEgressBoundary({
+      text: 'Read our Top 10 Marketing Avenue strategies for 2026 growth.',
+      provider: { ...LOCAL_PROVIDER, kind: 'cloud', name: 'openrouter' },
+    });
+
+    expect(result.decision).toBe('allow');
+    expect(result.receipt.finding_count).toBe(0);
+  });
 });

@@ -56,6 +56,10 @@ type SensitiveRule = {
   replacement: string;
 };
 
+// ORDER MATTERS: redactCommandEveSensitiveText applies these as a sequential
+// reduce, so a high-value token (IBAN, card, health id) MUST be redacted BEFORE
+// a broader numeric rule (phone) can fragment it. Financial + health therefore
+// come BEFORE the phone rules; email (the most generic) stays last.
 const SENSITIVE_RULES: SensitiveRule[] = [
   {
     kind: 'secret',
@@ -69,29 +73,13 @@ const SENSITIVE_RULES: SensitiveRule[] = [
     pattern: /\b(?:api[_-]?key|secret|token|password|passwort)\s*[:=]\s*["']?[^"'\s]{8,}["']?/gi,
     replacement: '[REDACTED_SECRET_ASSIGNMENT]',
   },
-  {
-    kind: 'german_pii',
-    ruleId: 'german-street-address',
-    pattern: /\b[A-ZÄÖÜ][A-Za-zÄÖÜäöüß.-]+(?:straße|strasse|weg|allee|platz|gasse|ring|damm)\s+\d+[a-z]?\b/gi,
-    replacement: '[REDACTED_ADDRESS]',
-  },
-  {
-    kind: 'german_pii',
-    ruleId: 'german-phone-number',
-    pattern: /(?:\+49|0049|0)\s?(?:\(?\d{2,5}\)?[\s./-]?)\d{3,}[\d\s./-]{2,}\b/g,
-    replacement: '[REDACTED_PHONE]',
-  },
-  {
-    kind: 'email',
-    ruleId: 'email-address',
-    pattern: /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi,
-    replacement: '[REDACTED_EMAIL]',
-  },
-  // --- Financial PII (S3) — international; the German-only filter missed all of these ---
+  // --- Financial PII (S3) — BEFORE phones (an IBAN's interior digit groups would
+  // otherwise be eaten by the phone rule, leaking the country+bank prefix). ---
   {
     kind: 'financial',
     ruleId: 'iban',
-    pattern: /\b[A-Z]{2}\d{2}(?:[ ]?[A-Z0-9]{4}){3,7}(?:[ ]?[A-Z0-9]{1,3})?\b/g,
+    // {2,8} four-char groups covers the full 15–34 char IBAN length range (incl. the 15-char NO IBAN).
+    pattern: /\b[A-Z]{2}\d{2}(?:[ ]?[A-Z0-9]{4}){2,8}(?:[ ]?[A-Z0-9]{1,3})?\b/g,
     replacement: '[REDACTED_IBAN]',
   },
   {
@@ -106,6 +94,34 @@ const SENSITIVE_RULES: SensitiveRule[] = [
     pattern: /\b(?:BIC|SWIFT)\b\s*[:=]?\s*[A-Z]{6}[A-Z0-9]{2}(?:[A-Z0-9]{3})?\b/gi,
     replacement: '[REDACTED_BIC]',
   },
+  // --- Health / special-category PII (S3, GDPR Art. 9) — BEFORE phones. ---
+  {
+    kind: 'health',
+    // Label-anchored, allowing a small filler window ("...nummer IST A123...") between label and value.
+    ruleId: 'health-identifier',
+    pattern: /\b(?:versichertennummer|insurance\s*(?:no\.?|number|id)|patient\s*(?:id|no\.?|number)|medical\s*record\s*(?:no\.?|number)|kranken(?:versicherung|kasse))\b(?:\s+\w+){0,3}\s*[:=#]?\s*[A-Z0-9][A-Z0-9-]{4,}\b/gi,
+    replacement: '[REDACTED_HEALTH_ID]',
+  },
+  {
+    kind: 'health',
+    // Bare German health-insurance number (Versichertennummer): 1 letter + 9 digits.
+    ruleId: 'health-insurance-number',
+    pattern: /\b[A-Z]\d{9}\b/g,
+    replacement: '[REDACTED_HEALTH_ID]',
+  },
+  // --- German PII ---
+  {
+    kind: 'german_pii',
+    ruleId: 'german-street-address',
+    pattern: /\b[A-ZÄÖÜ][A-Za-zÄÖÜäöüß.-]+(?:straße|strasse|weg|allee|platz|gasse|ring|damm)\s+\d+[a-z]?\b/gi,
+    replacement: '[REDACTED_ADDRESS]',
+  },
+  {
+    kind: 'german_pii',
+    ruleId: 'german-phone-number',
+    pattern: /(?:\+49|0049|0)\s?(?:\(?\d{2,5}\)?[\s./-]?)\d{3,}[\d\s./-]{2,}\b/g,
+    replacement: '[REDACTED_PHONE]',
+  },
   // --- International PII (S2) — addresses, phones, national IDs outside DACH ---
   {
     kind: 'intl_pii',
@@ -115,14 +131,19 @@ const SENSITIVE_RULES: SensitiveRule[] = [
   },
   {
     kind: 'intl_pii',
+    // North-American format REQUIRES the (NNN) parenthesised area code (optionally +1-prefixed).
+    // A bare NNN-NNN-NNNN run is indistinguishable from order/SKU/ref numbers, so it is NOT matched
+    // (+1-prefixed bare numbers are caught by intl-phone above). The (?<![\w(]) anchors the parens form.
     ruleId: 'north-american-phone',
-    pattern: /\b(?:\+?1[\s.\-]?)?\(\d{3}\)[\s.\-]?\d{3}[\s.\-]?\d{4}\b|\b\d{3}[\s.\-]\d{3}[\s.\-]\d{4}\b/g,
+    pattern: /(?<![\w(])(?:\+?1[\s.\-]?)?\(\d{3}\)[\s.\-]?\d{3}[\s.\-]?\d{4}\b/g,
     replacement: '[REDACTED_PHONE]',
   },
   {
     kind: 'intl_pii',
+    // Trailing lookahead requires the street suffix to end a clause (comma/period/newline/end) or be
+    // followed by a Capitalised city token — kills "Top 10 Marketing Avenue strategies"-style FPs.
     ruleId: 'intl-street-address',
-    pattern: /\b\d{1,5}\s+[A-Z][A-Za-z.'-]+(?:\s+[A-Z][A-Za-z.'-]+){0,3}\s+(?:Street|Avenue|Ave|Road|Rd|Boulevard|Blvd|Lane|Drive|Court|Place|Square|Terrace|Parkway|Pkwy|Highway|Hwy|Crescent|Close)\b\.?/g,
+    pattern: /\b\d{1,5}\s+[A-Z][A-Za-z.'-]+(?:\s+[A-Z][A-Za-z.'-]+){0,3}\s+(?:Street|Avenue|Ave|Road|Rd|Boulevard|Blvd|Lane|Drive|Court|Place|Square|Terrace|Parkway|Pkwy|Highway|Hwy|Crescent|Close)\b(?=[,.\n]|\s+[A-Z]|$)/g,
     replacement: '[REDACTED_ADDRESS]',
   },
   {
@@ -131,12 +152,12 @@ const SENSITIVE_RULES: SensitiveRule[] = [
     pattern: /\b\d{3}-\d{2}-\d{4}\b/g,
     replacement: '[REDACTED_NATIONAL_ID]',
   },
-  // --- Health / special-category PII (S3, GDPR Art. 9) — label-anchored to keep false positives low ---
+  // --- Email (most generic) stays LAST ---
   {
-    kind: 'health',
-    ruleId: 'health-identifier',
-    pattern: /\b(?:versichertennummer|insurance\s*(?:no\.?|number|id)|patient\s*(?:id|no\.?|number)|medical\s*record\s*(?:no\.?|number)|kranken(?:versicherung|kasse))\b\s*[:=#]?\s*[A-Z0-9][A-Z0-9-]{4,}\b/gi,
-    replacement: '[REDACTED_HEALTH_ID]',
+    kind: 'email',
+    ruleId: 'email-address',
+    pattern: /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi,
+    replacement: '[REDACTED_EMAIL]',
   },
 ];
 
