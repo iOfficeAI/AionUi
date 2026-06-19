@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import ReactMarkdown from 'react-markdown';
+import ReactMarkdown, { defaultUrlTransform } from 'react-markdown';
 
 import rehypeKatex from 'rehype-katex';
 import rehypeRaw from 'rehype-raw';
@@ -16,6 +16,10 @@ import remarkMath from 'remark-math';
 import 'katex/dist/katex.min.css';
 
 import { openExternalUrl } from '@/renderer/utils/platform';
+import { iconColors } from '@/renderer/styles/colors';
+import { copyText } from '@/renderer/utils/ui/clipboard';
+import { Button, Message, Tooltip } from '@arco-design/web-react';
+import { Copy } from '@icon-park/react';
 import classNames from 'classnames';
 import React, { useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -23,6 +27,7 @@ import { convertLatexDelimiters } from '@renderer/utils/chat/latexDelimiters';
 import LocalImageView from '@renderer/components/media/LocalImageView';
 import CodeBlock from './CodeBlock';
 import ShadowView from './ShadowView';
+import { resolveLocalFileLinkPath } from './markdownUtils';
 
 const REMARK_PLUGINS = [remarkGfm, remarkMath, remarkBreaks];
 
@@ -38,12 +43,71 @@ type MarkdownViewProps = {
   codeStyle?: React.CSSProperties;
   className?: string;
   onRef?: (el?: HTMLDivElement | null) => void;
+  onLocalFileLink?: (path: string) => void | Promise<void>;
   /** Enable raw HTML rendering in markdown content. Use with caution — only for trusted sources. */
   allowHtml?: boolean;
 };
 
+const LocalFileLink: React.FC<{
+  filePath: string;
+  children?: React.ReactNode;
+  onOpen?: (path: string) => void | Promise<void>;
+}> = ({ filePath, children, onOpen }) => {
+  const { t } = useTranslation();
+  const label = children || filePath.split(/[\\/]/).pop() || filePath;
+
+  const handleOpen = useCallback(
+    (event: React.MouseEvent<HTMLElement>) => {
+      event.preventDefault();
+      event.stopPropagation();
+      if (onOpen) {
+        void onOpen(filePath);
+      }
+    },
+    [filePath, onOpen]
+  );
+
+  const handleCopy = useCallback(
+    (event: React.MouseEvent<HTMLElement>) => {
+      event.preventDefault();
+      event.stopPropagation();
+      copyText(filePath).catch(() => {
+        Message.error(t('common.copyFailed'));
+      });
+    },
+    [filePath, t]
+  );
+
+  return (
+    <span
+      className='inline-flex items-center gap-2px max-w-full align-baseline'
+      data-local-file-path={filePath}
+      title={filePath}
+    >
+      <Button
+        type='text'
+        size='mini'
+        className='markdown-local-file-link !px-2px !h-auto !leading-normal !align-baseline max-w-full'
+        onClick={handleOpen}
+      >
+        <span className='truncate'>{label}</span>
+      </Button>
+      <Tooltip content={t('common.copy', { defaultValue: 'Copy' })}>
+        <Button
+          aria-label={t('common.copy', { defaultValue: 'Copy' })}
+          type='text'
+          size='mini'
+          className='markdown-local-file-copy !p-1px !w-20px !h-20px flex-shrink-0'
+          icon={<Copy theme='outline' size='14' fill={iconColors.secondary} />}
+          onClick={handleCopy}
+        />
+      </Tooltip>
+    </span>
+  );
+};
+
 const MarkdownView: React.FC<MarkdownViewProps> = React.memo(
-  ({ hiddenCodeCopyButton, codeStyle, className, onRef, allowHtml, children: childrenProp }) => {
+  ({ hiddenCodeCopyButton, codeStyle, className, onRef, onLocalFileLink, allowHtml, children: childrenProp }) => {
     const { t } = useTranslation();
 
     const normalizedChildren = useMemo(() => {
@@ -85,14 +149,21 @@ const MarkdownView: React.FC<MarkdownViewProps> = React.memo(
             hiddenCodeCopyButton={hiddenCodeCopyButton}
           />
         ),
-        a: ({ node: _node, ...rest }: Record<string, unknown>) => (
-          <a
-            {...(rest as React.AnchorHTMLAttributes<HTMLAnchorElement>)}
-            target='_blank'
-            rel='noreferrer'
-            onClick={handleLinkClick}
-          />
-        ),
+        a: ({ node: _node, ...rest }: Record<string, unknown>) => {
+          const anchorProps = rest as React.AnchorHTMLAttributes<HTMLAnchorElement>;
+          const rawHref = typeof anchorProps.href === 'string' ? anchorProps.href : '';
+          const localFilePath = resolveLocalFileLinkPath(rawHref);
+          if (localFilePath) {
+            return (
+              <LocalFileLink filePath={localFilePath} onOpen={onLocalFileLink}>
+                {anchorProps.children}
+              </LocalFileLink>
+            );
+          }
+          return (
+            <a {...anchorProps} href={anchorProps.href} target='_blank' rel='noreferrer' onClick={handleLinkClick} />
+          );
+        },
         table: ({ node: _node, ...rest }: Record<string, unknown>) => (
           <div style={{ overflowX: 'auto', maxWidth: '100%' }}>
             <table
@@ -126,7 +197,7 @@ const MarkdownView: React.FC<MarkdownViewProps> = React.memo(
           return <img {...imgProps} />;
         },
       }),
-      [codeStyle, hiddenCodeCopyButton, handleLinkClick]
+      [codeStyle, hiddenCodeCopyButton, handleLinkClick, onLocalFileLink]
     );
 
     const rehypePlugins = useMemo(() => (allowHtml ? [rehypeRaw, rehypeKatex] : [rehypeKatex]), [allowHtml]);
@@ -135,7 +206,12 @@ const MarkdownView: React.FC<MarkdownViewProps> = React.memo(
       <div className={classNames('relative w-full', className)}>
         <ShadowView>
           <div ref={onRef} className='markdown-shadow-body'>
-            <ReactMarkdown remarkPlugins={REMARK_PLUGINS} rehypePlugins={rehypePlugins} components={components}>
+            <ReactMarkdown
+              remarkPlugins={REMARK_PLUGINS}
+              rehypePlugins={rehypePlugins}
+              components={components}
+              urlTransform={(url) => (resolveLocalFileLinkPath(url) ? url : defaultUrlTransform(url))}
+            >
               {normalizedChildren}
             </ReactMarkdown>
           </div>

@@ -1,0 +1,93 @@
+/**
+ * @license
+ * Copyright 2025 AionUi (aionui.com)
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import React from 'react';
+import { fireEvent, render, screen } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
+import MarkdownView from '@/renderer/components/Markdown';
+
+const copyTextMock = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
+
+vi.mock('@/renderer/components/Markdown/ShadowView', () => ({
+  __esModule: true,
+  default: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
+}));
+
+vi.mock('@/renderer/components/Markdown/CodeBlock', () => ({
+  __esModule: true,
+  default: ({ children }: { children?: React.ReactNode }) => <code>{children}</code>,
+}));
+
+vi.mock('@/renderer/components/media/LocalImageView', () => ({
+  __esModule: true,
+  default: ({ src, alt }: { src: string; alt: string }) => <img src={src} alt={alt} />,
+}));
+
+vi.mock('@/renderer/utils/chat/latexDelimiters', () => ({
+  convertLatexDelimiters: (text: string) => text,
+}));
+
+vi.mock('@/renderer/utils/platform', () => ({
+  openExternalUrl: vi.fn(),
+}));
+
+vi.mock('@/renderer/utils/ui/clipboard', () => ({
+  copyText: copyTextMock,
+}));
+
+vi.mock('@arco-design/web-react', () => ({
+  Button: ({
+    children,
+    icon,
+    ...props
+  }: React.ButtonHTMLAttributes<HTMLButtonElement> & { icon?: React.ReactNode }) => (
+    <button type='button' {...props}>
+      {icon}
+      {children}
+    </button>
+  ),
+  Message: {
+    error: vi.fn(),
+  },
+  Tooltip: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
+}));
+
+vi.mock('@icon-park/react', () => ({
+  Copy: () => <span data-testid='copy-icon' />,
+}));
+
+vi.mock('react-i18next', () => ({
+  useTranslation: () => ({
+    t: (key: string, options?: { defaultValue?: string }) => options?.defaultValue ?? key,
+  }),
+}));
+
+describe('MarkdownView local file links', () => {
+  it('renders local file links as app controls instead of browser anchors', () => {
+    const onLocalFileLink = vi.fn();
+
+    render(
+      <MarkdownView onLocalFileLink={onLocalFileLink}>
+        {'[report.xlsx](/C:/Users/Administrator/AppData/Roaming/AionUi/report.xlsx)'}
+      </MarkdownView>
+    );
+
+    expect(screen.queryByRole('link')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'report.xlsx' }));
+    expect(onLocalFileLink).toHaveBeenCalledWith('C:/Users/Administrator/AppData/Roaming/AionUi/report.xlsx');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Copy' }));
+    expect(copyTextMock).toHaveBeenCalledWith('C:/Users/Administrator/AppData/Roaming/AionUi/report.xlsx');
+  });
+
+  it('keeps ordinary http links as browser anchors', () => {
+    render(<MarkdownView>{'[docs](https://aionui.com/docs)'}</MarkdownView>);
+
+    const link = screen.getByRole('link', { name: 'docs' });
+    expect(link).toHaveAttribute('href', 'https://aionui.com/docs');
+  });
+});
