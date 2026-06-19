@@ -71,7 +71,7 @@ const FREEMAIL_DOMAINS = new Set([
 
 function titleCase(part: string): string {
   return part
-    .split(/[\s_-]+/)
+    .split(/[\s._-]+/)
     .filter(Boolean)
     .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
     .join(' ');
