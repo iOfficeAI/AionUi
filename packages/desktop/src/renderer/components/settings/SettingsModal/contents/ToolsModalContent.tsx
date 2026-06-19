@@ -20,7 +20,14 @@ import AionScrollArea from '@/renderer/components/base/AionScrollArea';
 import AionSelect from '@/renderer/components/base/AionSelect';
 import AddMcpServerModal from '@/renderer/pages/settings/components/AddMcpServerModal';
 import McpServerItem from '@/renderer/pages/settings/ToolsSettings/McpServerItem';
-import { useMcpServers, useMcpConnection, useMcpModal, useMcpServerCRUD, useMcpOAuth } from '@/renderer/hooks/mcp';
+import {
+  useMcpServers,
+  useMcpConnection,
+  useMcpModal,
+  useMcpServerCRUD,
+  useMcpOAuth,
+  useMountedMessage,
+} from '@/renderer/hooks/mcp';
 import classNames from 'classnames';
 import { useSettingsViewMode } from '../settingsViewContext';
 
@@ -299,7 +306,10 @@ const ModalMcpManagementSection: React.FC<{
 
 const ToolsModalContent: React.FC = () => {
   const { t } = useTranslation();
-  const [mcpMessage, mcpMessageContext] = Message.useMessage({ maxCount: 10 });
+  const [rawMcpMessage, mcpMessageContext] = Message.useMessage({ maxCount: 10 });
+  // ELECTRON-1A1: guard message calls so async MCP callbacks that resolve after this
+  // component unmounts don't hit a null Arco context holder (null.addInstance crash).
+  const mcpMessage = useMountedMessage(rawMcpMessage);
   const [imageGenerationModel, setImageGenerationModel] = useState<
     ConfigKeyMap['tools.imageGenerationModel'] | undefined
   >();
