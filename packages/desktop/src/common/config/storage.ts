@@ -125,6 +125,10 @@ export interface IConfigStorageRefer {
   // result so the meter + wall reflect the cap even before a Lane-1+2 server
   // round-trips it back.
   'commandEve.spendCapEurCents'?: number;
+  // "Dein Team" worker status map (agent_id → 'active'|'paused'|'off'). Written
+  // by the team panel; READ by the main process (getSync) so the shim refuses to
+  // dispatch a paused/off delegated worker (DUX-4). Absent ids default active.
+  'commandEve.teamWorkerStatus'?: Record<string, 'active' | 'paused' | 'off'>;
   // Telegram assistant default model / Telegram 助手默认模型
   'assistant.telegram.defaultModel'?: {
     id: string;
