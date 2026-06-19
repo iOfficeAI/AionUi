@@ -118,6 +118,28 @@ function signDmgArtifact(artifactPath, env = process.env) {
   return true;
 }
 
+// `xcrun stapler staple` fails with Error 68 ("A new staple could not be stapled")
+// when run IMMEDIATELY after notarytool reports "Accepted": the notarization ticket
+// has not yet propagated to Apple's CloudKit CDN that stapler pulls from. It lands
+// within seconds-to-minutes. Treat a staple failure as transient and retry with a
+// short backoff instead of failing the whole build (the notarization itself already
+// succeeded — only the offline-ticket attach is racing). Verified live 2026-06-19:
+// notarytool "Accepted" then staple Error 68, and a re-staple ~minutes later worked.
+function stapleWithRetry(artifactPath, attempts = 6, delaySeconds = 15) {
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      execFileSync('xcrun', ['stapler', 'staple', artifactPath], { stdio: 'inherit' });
+      return;
+    } catch (err) {
+      if (attempt === attempts) throw err;
+      console.log(
+        `stapler staple attempt ${attempt}/${attempts} failed (likely Error 68 ticket-propagation race); retrying in ${delaySeconds}s...`
+      );
+      try { execFileSync('sleep', [String(delaySeconds)], { stdio: 'ignore' }); } catch (_) { /* sleep best-effort */ }
+    }
+  }
+}
+
 function notarizeDmgArtifact(artifactPath, env = process.env) {
   const options = getNotarizeOptions({
     appBundleId: 'dmg-artifact',
@@ -141,7 +163,7 @@ function notarizeDmgArtifact(artifactPath, env = process.env) {
 
   console.log(`Starting DMG notarization for ${path.basename(artifactPath)} using ${getNotarizeAuthMode(options)}...`);
   execFileSync('xcrun', args, { stdio: 'inherit' });
-  execFileSync('xcrun', ['stapler', 'staple', artifactPath], { stdio: 'inherit' });
+  stapleWithRetry(artifactPath);
   // Self-verify: prove the staple stuck AND Gatekeeper accepts the DMG. This
   // throws (fails the build) on any problem so we never ship an unverified DMG.
   verifyNotarizationStapled(artifactPath);
