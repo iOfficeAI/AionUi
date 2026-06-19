@@ -30,7 +30,13 @@
  * company is never empty.
  */
 
-import { EVE_TEAM_ROSTER, type EveTeamRole, type EveTeamRoleRhythm } from './eveTeamRoster';
+import {
+  EVE_SYSTEM_AGENT_ID,
+  EVE_TEAM_ROSTER,
+  findEveTeamRole,
+  type EveTeamRole,
+  type EveTeamRoleRhythm,
+} from './eveTeamRoster';
 
 /**
  * The persisted status of a single worker.
@@ -79,6 +85,86 @@ export function statusForRole(role: EveTeamRole, statuses: EveTeamWorkerStatusMa
 /** A worker counts as "active" iff its effective status is 'active'. Paused/off do not count. */
 export function isWorkerActive(role: EveTeamRole, statuses: EveTeamWorkerStatusMap): boolean {
   return statusForRole(role, statuses) === 'active';
+}
+
+// ---------------------------------------------------------------------------
+// DISPATCH GATING (DUX-4). The panel WRITES the worker status; this is the rule
+// the EXECUTION path READS so a paused/off worker is actually not dispatched.
+// Without it the pause/throttle/fire controls are a closed loop with no effect.
+//
+// The execution path (the EVE-cloud send path) carries the delegated worker's
+// stable `agent_id` (or the system default `eve` for an un-delegated call). The
+// gate is keyed off that raw id so the shim — which only sees the id, not a role
+// object — can enforce it directly.
+// ---------------------------------------------------------------------------
+
+/** The decision of the dispatch gate for one delegated worker. */
+export interface WorkerDispatchDecision {
+  /** True iff the call may be dispatched to this worker. */
+  allowed: boolean;
+  /** The effective worker status the decision was made on (undefined for non-roster ids). */
+  status?: EveTeamWorkerStatus;
+  /** Stable reason code (UI copy + tests key off this). */
+  reason:
+    | 'ok-active' //          a known roster worker whose status is active
+    | 'ok-system-default' //  the un-delegated EVE itself (not a pausable worker)
+    | 'ok-unknown-agent' //   an unknown/non-roster id — never blocked (fail-open)
+    | 'blocked-paused' //     a known roster worker the user throttled (paused)
+    | 'blocked-off'; //       a known roster worker the user stopped / let go (off)
+}
+
+/**
+ * Decide whether a delegated worker may be dispatched, given the persisted
+ * status map. This is the SINGLE rule the execution path reads so the panel's
+ * pause/throttle/fire controls have a real effect:
+ *
+ *   - the reserved system default `eve` (un-delegated EVE) is ALWAYS allowed —
+ *     it is not a member of the pausable roster;
+ *   - an unknown / non-roster id is ALWAYS allowed (fail-open: we never block a
+ *     call we cannot positively identify as a paused roster worker);
+ *   - a KNOWN roster worker is allowed ONLY when its effective status is
+ *     'active'; a 'paused' (throttled) or 'off' (stopped / let go) worker is
+ *     BLOCKED so the desktop actually enforces what the panel shows.
+ *
+ * Pure + dependency-light so the shim (main process) and the unit tests share
+ * one rule. The shim turns a blocked decision into a clear, non-secret error.
+ */
+export function evaluateWorkerDispatch(
+  agentId: string | null | undefined,
+  statuses: EveTeamWorkerStatusMap
+): WorkerDispatchDecision {
+  // The un-delegated EVE itself is never a pausable roster worker.
+  if (typeof agentId !== 'string' || agentId.trim().length === 0 || agentId === EVE_SYSTEM_AGENT_ID) {
+    return { allowed: true, reason: 'ok-system-default' };
+  }
+  const role = findEveTeamRole(agentId);
+  if (!role) {
+    // Unknown / future id — fail-open. We only ever block a positively-known
+    // paused/off roster worker, never an id we cannot identify.
+    return { allowed: true, reason: 'ok-unknown-agent' };
+  }
+  const status = statusForRole(role, statuses);
+  if (status === 'active') {
+    return { allowed: true, status, reason: 'ok-active' };
+  }
+  return {
+    allowed: false,
+    status,
+    reason: status === 'paused' ? 'blocked-paused' : 'blocked-off',
+  };
+}
+
+/**
+ * Convenience boolean: may this delegated worker be dispatched right now? True
+ * for the system default, unknown ids, and active roster workers; false for a
+ * paused/off roster worker. Use {@link evaluateWorkerDispatch} when the reason
+ * code is needed (e.g. to phrase the block message).
+ */
+export function isWorkerDispatchable(
+  agentId: string | null | undefined,
+  statuses: EveTeamWorkerStatusMap
+): boolean {
+  return evaluateWorkerDispatch(agentId, statuses).allowed;
 }
 
 /** Count ALL currently-active roles across the roster (operators + seats). */

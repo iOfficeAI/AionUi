@@ -7,7 +7,7 @@
 /**
  * Command EVE — PRE-VISIBLE projected-budget core (P0 #1) unit tests, all pure:
  *
- *  (0) GRADE → salary mapping is the Founder-locked §7 table (G0=0 … G5=100)
+ *  (0) GRADE → salary mapping is the seven canonical bands (G0=0 … G6=100)
  *      and every roster role carries a known grade.
  *  (1) projectMonthlySpend: sums ONLY active workers' grade salaries; the free
  *      local floor + the €0 governance seats never inflate the figure; fits-hull
@@ -42,14 +42,15 @@ import type { EveTeamWorkerStatusMap } from '@/common/config/eveTeamControlsCore
 // (0) grade → salary table (Founder-locked §7)
 // ---------------------------------------------------------------------------
 
-describe('grade salary table — Founder-locked §7 bands', () => {
+describe('grade salary table — seven canonical G0–G6 bands', () => {
   it('maps each grade to the exact expected EUR/mo', () => {
     expect(EVE_GRADE_SALARY_EUR.G0).toBe(0);
-    expect(EVE_GRADE_SALARY_EUR.G1).toBe(25);
-    expect(EVE_GRADE_SALARY_EUR.G2).toBe(35);
-    expect(EVE_GRADE_SALARY_EUR.G3).toBe(40);
-    expect(EVE_GRADE_SALARY_EUR.G4).toBe(60);
-    expect(EVE_GRADE_SALARY_EUR.G5).toBe(100);
+    expect(EVE_GRADE_SALARY_EUR.G1).toBe(25); // Content
+    expect(EVE_GRADE_SALARY_EUR.G2).toBe(35); // Creative
+    expect(EVE_GRADE_SALARY_EUR.G3).toBe(40); // Research
+    expect(EVE_GRADE_SALARY_EUR.G4).toBe(25); // Ops/Sales (own band — NOT €60)
+    expect(EVE_GRADE_SALARY_EUR.G5).toBe(60); // Videomarketer
+    expect(EVE_GRADE_SALARY_EUR.G6).toBe(100); // Coder
   });
 
   it('every roster role carries a known grade and resolves to a salary', () => {
@@ -105,7 +106,7 @@ describe('projectMonthlySpend — sum of ACTIVE worker salaries', () => {
     expect(projection.overageEur).toBe(0);
   });
 
-  it('a single G1 worker active projects exactly its salary, with head-room', () => {
+  it('a single €25 operator active (growth-lead, G4 Ops/Sales) projects exactly its salary, with head-room', () => {
     const statuses: EveTeamWorkerStatusMap = {
       'growth-lead': 'active',
       'seo-lead': 'off',
