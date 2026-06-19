@@ -75,6 +75,65 @@ const createInitStyle = (
     word-break: break-all;
     overflow-wrap: anywhere;
   }
+  .markdown-local-file-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    max-width: 100%;
+    min-height: 22px;
+    padding: 2px 6px;
+    background: var(--bg-2);
+    color: var(--text-primary);
+    border: 1px solid transparent;
+    border-radius: 6px;
+    box-shadow: none;
+    font: inherit;
+    line-height: inherit;
+    vertical-align: baseline;
+    cursor: pointer;
+    transition:
+      background-color 0.15s ease,
+      border-color 0.15s ease;
+  }
+  span.markdown-local-file-link {
+    cursor: default;
+  }
+  .markdown-local-file-link:hover {
+    background: var(--bg-3);
+    color: var(--text-primary);
+    text-decoration: none;
+  }
+  .markdown-local-file-link .truncate {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .markdown-local-file-line {
+    padding: 0 4px;
+    border-radius: 4px;
+    background: var(--bg-3);
+    color: var(--text-secondary);
+  }
+  .markdown-local-file-copy {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    min-width: 20px;
+    padding: 1px;
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+  }
+  .markdown-local-file-copy:hover {
+    background: var(--bg-3);
+    color: var(--text-primary);
+  }
   h1{
     font-size: 24px;
     line-height: 32px;

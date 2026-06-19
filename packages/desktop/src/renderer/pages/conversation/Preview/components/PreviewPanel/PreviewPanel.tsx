@@ -585,6 +585,8 @@ const PreviewPanel: React.FC = () => {
             language={metadata?.language}
             fileName={metadata?.file_name}
             readOnly={isEditable === false}
+            targetLine={metadata?.targetLine}
+            targetColumn={metadata?.targetColumn}
           />
         </div>
       );

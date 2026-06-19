@@ -27,7 +27,8 @@ import { convertLatexDelimiters } from '@renderer/utils/chat/latexDelimiters';
 import LocalImageView from '@renderer/components/media/LocalImageView';
 import CodeBlock from './CodeBlock';
 import ShadowView from './ShadowView';
-import { resolveLocalFileLinkPath } from './markdownUtils';
+import { resolveLocalFileLinkPath, resolveLocalFileLinkReference } from './markdownUtils';
+import type { LocalFileLinkReference } from './markdownUtils';
 
 const REMARK_PLUGINS = [remarkGfm, remarkMath, remarkBreaks];
 
@@ -43,55 +44,79 @@ type MarkdownViewProps = {
   codeStyle?: React.CSSProperties;
   className?: string;
   onRef?: (el?: HTMLDivElement | null) => void;
-  onLocalFileLink?: (path: string) => void | Promise<void>;
+  onLocalFileLink?: (path: string, reference?: LocalFileLinkReference) => void | Promise<void>;
   /** Enable raw HTML rendering in markdown content. Use with caution — only for trusted sources. */
   allowHtml?: boolean;
 };
 
 const LocalFileLink: React.FC<{
-  filePath: string;
+  reference: LocalFileLinkReference;
   children?: React.ReactNode;
-  onOpen?: (path: string) => void | Promise<void>;
-}> = ({ filePath, children, onOpen }) => {
+  onOpen?: (path: string, reference?: LocalFileLinkReference) => void | Promise<void>;
+}> = ({ reference, children, onOpen }) => {
   const { t } = useTranslation();
-  const label = children || filePath.split(/[\\/]/).pop() || filePath;
+  const { filePath, line, rawReference } = reference;
+  const fallbackLabel = filePath.split(/[\\/]/).pop() || filePath;
+  const label = children || fallbackLabel;
+  const textLabel =
+    React.Children.toArray(children)
+      .map((child) => (typeof child === 'string' || typeof child === 'number' ? String(child) : ''))
+      .join('') || fallbackLabel;
+  const locationLabel = line == null ? null : `L${line}${reference.column == null ? '' : `:${reference.column}`}`;
+  const canOpen = Boolean(onOpen);
 
   const handleOpen = useCallback(
     (event: React.MouseEvent<HTMLElement>) => {
       event.preventDefault();
       event.stopPropagation();
       if (onOpen) {
-        void onOpen(filePath);
+        void onOpen(filePath, reference);
       }
     },
-    [filePath, onOpen]
+    [filePath, onOpen, reference]
   );
 
   const handleCopy = useCallback(
     (event: React.MouseEvent<HTMLElement>) => {
       event.preventDefault();
       event.stopPropagation();
-      copyText(filePath).catch(() => {
+      copyText(rawReference).catch(() => {
         Message.error(t('common.copyFailed'));
       });
     },
-    [filePath, t]
+    [rawReference, t]
   );
 
   return (
     <span
       className='inline-flex items-center gap-2px max-w-full align-baseline'
       data-local-file-path={filePath}
-      title={filePath}
+      data-local-file-line={line}
+      title={rawReference}
     >
-      <Button
-        type='text'
-        size='mini'
-        className='markdown-local-file-link !px-2px !h-auto !leading-normal !align-baseline max-w-full'
-        onClick={handleOpen}
-      >
-        <span className='truncate'>{label}</span>
-      </Button>
+      {canOpen ? (
+        <Button
+          type='text'
+          size='mini'
+          aria-label={locationLabel ? `${textLabel} ${locationLabel}` : textLabel}
+          className='markdown-local-file-link !px-6px !py-2px !h-auto !leading-normal !align-baseline max-w-full !rd-6px'
+          onClick={handleOpen}
+        >
+          <span className='inline-flex items-center gap-4px max-w-full'>
+            <span className='truncate'>{label}</span>
+            {locationLabel && (
+              <span className='markdown-local-file-line flex-shrink-0 text-11px font-mono'>{locationLabel}</span>
+            )}
+          </span>
+        </Button>
+      ) : (
+        <span className='markdown-local-file-link inline-flex items-center gap-4px max-w-full'>
+          <span className='truncate'>{label}</span>
+          {locationLabel && (
+            <span className='markdown-local-file-line flex-shrink-0 text-11px font-mono'>{locationLabel}</span>
+          )}
+        </span>
+      )}
       <Tooltip content={t('common.copy', { defaultValue: 'Copy' })}>
         <Button
           aria-label={t('common.copy', { defaultValue: 'Copy' })}
@@ -152,10 +177,10 @@ const MarkdownView: React.FC<MarkdownViewProps> = React.memo(
         a: ({ node: _node, ...rest }: Record<string, unknown>) => {
           const anchorProps = rest as React.AnchorHTMLAttributes<HTMLAnchorElement>;
           const rawHref = typeof anchorProps.href === 'string' ? anchorProps.href : '';
-          const localFilePath = resolveLocalFileLinkPath(rawHref);
-          if (localFilePath) {
+          const localFileReference = resolveLocalFileLinkReference(rawHref);
+          if (localFileReference) {
             return (
-              <LocalFileLink filePath={localFilePath} onOpen={onLocalFileLink}>
+              <LocalFileLink reference={localFileReference} onOpen={onLocalFileLink}>
                 {anchorProps.children}
               </LocalFileLink>
             );
