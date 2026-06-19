@@ -7,12 +7,12 @@
 import { ipcBridge } from '@/common';
 import type { FileChangeInfo, SnapshotInfo } from '@/common/types/platform/fileSnapshot';
 import Diff2Html from '@/renderer/components/media/Diff2Html';
-import { isTextFile } from '@/renderer/services/FileService';
 import { Button, Empty, Spin, Tooltip } from '@arco-design/web-react';
 import { Down, Minus, Plus, PreviewOpen, Redo, Refresh, Right } from '@icon-park/react';
 import { createTwoFilesPatch } from 'diff';
 import type { TFunction } from 'i18next';
 import React, { useCallback, useMemo, useState } from 'react';
+import { isDiffableWorkspaceFile, resolveWorkspaceChangeReadPath } from '../utils/fileChangePaths';
 
 type FileChangeListProps = {
   t: TFunction;
@@ -184,11 +184,12 @@ const FileChangeList: React.FC<FileChangeListProps> = ({
   const loadDiffState = useCallback(
     async (change: FileChangeInfo) => {
       const file_name = change.relativePath;
-      if (!isTextFile(file_name)) return null;
+      if (!isDiffableWorkspaceFile(file_name)) return null;
 
       try {
         let before = '';
         let after = '';
+        const readPath = resolveWorkspaceChangeReadPath(workspace, change.file_path, change.relativePath);
 
         if (change.operation === 'modify' || change.operation === 'delete') {
           const baseline = await ipcBridge.fileSnapshot.getBaselineContent.invoke({
@@ -199,7 +200,7 @@ const FileChangeList: React.FC<FileChangeListProps> = ({
         }
 
         if (change.operation === 'modify' || change.operation === 'create') {
-          const current = await ipcBridge.fs.readFile.invoke({ path: change.file_path, workspace });
+          const current = await ipcBridge.fs.readFile.invoke({ path: readPath, workspace });
           after = typeof current === 'string' ? current : '';
         }
 
@@ -221,7 +222,7 @@ const FileChangeList: React.FC<FileChangeListProps> = ({
   const handleToggleDiff = useCallback(
     async (change: FileChangeInfo) => {
       const file_name = change.relativePath;
-      if (!isTextFile(file_name)) return;
+      if (!isDiffableWorkspaceFile(file_name)) return;
 
       if (expandedFilePath === change.file_path) {
         setExpandedFilePath(null);
@@ -387,7 +388,8 @@ const FileChangeList: React.FC<FileChangeListProps> = ({
                 const diffState = diffCache[change.file_path];
                 const isExpanded = expandedFilePath === change.file_path;
                 const isLoadingDiff = loadingFilePath === change.file_path;
-                const canExpand = isTextFile(change.relativePath);
+                const canExpand = isDiffableWorkspaceFile(change.relativePath);
+                const readPath = resolveWorkspaceChangeReadPath(workspace, change.file_path, change.relativePath);
 
                 return (
                   <FileChangeItem
@@ -414,7 +416,7 @@ const FileChangeList: React.FC<FileChangeListProps> = ({
                     }
                   >
                     {diffState ? (
-                      <Diff2Html diff={diffState.diff} title={change.relativePath} file_path={change.file_path} />
+                      <Diff2Html diff={diffState.diff} title={change.relativePath} file_path={readPath} />
                     ) : isLoadingDiff ? (
                       <div className='flex items-center justify-center py-12px text-12px text-t-quaternary'>
                         <Spin size={14} />
