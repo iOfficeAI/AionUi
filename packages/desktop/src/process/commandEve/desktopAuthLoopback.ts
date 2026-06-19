@@ -64,8 +64,16 @@ export const DESKTOP_AUTH_WEB_URL = 'https://command-eve.com/auth/desktop';
  * deployed yet, so the loopback exchange returns BROKER_HTTP_* until both the
  * web page and the broker are live. Tests inject the key + fetch directly.
  */
+// The public anon (publishable) key for the command-eve project (unvbeothoimlzlolxucl).
+// PUBLIC by design — the same key ships in every web client; data is protected by RLS
+// + each Edge Function's own auth, NEVER by hiding this key. Co-located here like the
+// hardcoded function URLs (eveInferenceCore.ts/creditsCore.ts). Env stays first so a
+// different project / a future key rotation can be wired without a rebuild.
+const DEFAULT_SUPABASE_ANON_KEY =
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVudmJlb3Rob2ltbHpsb2x4dWNsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyMDI2MzQsImV4cCI6MjA5Njc3ODYzNH0.yL0mW3xbsSJHvO6PG4h8TrBFoCEZy6jAt7MLb1cGAys';
+
 export function resolveSupabaseAnonKey(env: NodeJS.ProcessEnv = process.env): string {
-  return env.COMMAND_EVE_SUPABASE_ANON_KEY || env.SUPABASE_ANON_KEY || '';
+  return env.COMMAND_EVE_SUPABASE_ANON_KEY || env.SUPABASE_ANON_KEY || DEFAULT_SUPABASE_ANON_KEY;
 }
 
 // ---------------------------------------------------------------------------
