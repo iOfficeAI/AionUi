@@ -495,18 +495,23 @@ jobs:
 
           Write-Host "Installed executable: $installedExe"
 
-      - name: Verify Windows arm64 package contents
+      - name: Silent install smoke test (Windows arm64)
         if: matrix.platform == 'windows-arm64'
         shell: pwsh
         run: |
           Write-Host "=========================================="
           Write-Host "SMOKE INSTALL: windows-arm64"
           Write-Host "=========================================="
-          Write-Host "Skipping runtime install smoke for windows-arm64: NSIS silent install does not reliably install on the GitHub Windows ARM runner."
 
           $installer = Get-ChildItem -Path out -Filter "AionUi-*-win-arm64.exe" | Sort-Object LastWriteTime -Descending | Select-Object -First 1
           if (-not $installer) {
             throw "No Windows ARM64 installer found in out/"
+          }
+
+          Write-Host "Using installer: $($installer.FullName)"
+          $installProcess = Start-Process -FilePath $installer.FullName -ArgumentList '/S' -Wait -NoNewWindow -PassThru
+          if ($installProcess.ExitCode -ne 0) {
+            throw "Silent install failed with exit code $($installProcess.ExitCode)"
           }
 
           $unpackedExe = "out\win-arm64-unpacked\AionUi.exe"
@@ -514,7 +519,26 @@ jobs:
             throw "Windows ARM64 unpacked executable not found: $unpackedExe"
           }
 
+          $installRoot = "$env:LOCALAPPDATA\\Programs\\AionUi"
+          $requiredFiles = @(
+            "$env:LOCALAPPDATA\\Programs\\AionUi\\AionUi.exe",
+            "$installRoot\\ffmpeg.dll",
+            "$installRoot\\libEGL.dll",
+            "$installRoot\\libGLESv2.dll",
+            "$installRoot\\vulkan-1.dll",
+            "$installRoot\\resources\\app.asar",
+            "$installRoot\\resources\\bundled-aioncore\\win32-arm64\\aioncore.exe",
+            "$installRoot\\resources\\bundled-aioncore\\win32-arm64\\managed-resources\\node\\node-v24.11.0-win-arm64\\node.exe"
+          )
+
+          $missing = @($requiredFiles | Where-Object { -not (Test-Path $_) })
+          if ($missing.Count -gt 0) {
+            $missing | ForEach-Object { Write-Host "Missing required file: $_" }
+            throw "Silent install finished but required Windows ARM64 runtime files are missing"
+          }
+
           Get-Item $installer.FullName, $unpackedExe | Format-Table FullName, Length
+          Get-Item $requiredFiles | Format-Table FullName, Length
 
       - name: Install smoke test (macOS arm64)
         if: matrix.platform == 'macos-arm64'
