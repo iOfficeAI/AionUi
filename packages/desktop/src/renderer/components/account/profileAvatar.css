@@ -1,0 +1,42 @@
+/**
+ * @license
+ * Copyright 2025 AionUi (aionui.com)
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+.profile-avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 9999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-base, rgba(255, 255, 255, 0.12));
+  background: var(--color-fill-2, rgba(120, 120, 130, 0.16));
+  color: var(--color-text-1, #f4f4f5);
+  cursor: pointer;
+  padding: 0;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
+  user-select: none;
+}
+
+.profile-avatar:hover {
+  background: var(--color-fill-3, rgba(120, 120, 130, 0.26));
+  border-color: var(--color-primary-light-4, rgba(120, 140, 255, 0.5));
+}
+
+.profile-avatar__initials {
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.profile-avatar__glyph {
+  font-size: 14px;
+  font-weight: 500;
+}

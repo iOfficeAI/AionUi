@@ -16,6 +16,7 @@ import {
   Shield,
   Speed,
   System,
+  User,
   Wallet,
 } from '@icon-park/react';
 import classNames from 'classnames';
@@ -36,6 +37,7 @@ export const BUILTIN_TAB_IDS = [
   'pet',
   'privacy',
   'billing',
+  'account',
   'system',
   'about',
 ] as const;
@@ -124,6 +126,12 @@ const SettingsSider: React.FC<{ collapsed?: boolean; tooltipEnabled?: boolean }>
         label: t('settings.billing', { defaultValue: 'Billing' }),
         icon: <Wallet />,
         path: 'billing',
+      },
+      account: {
+        id: 'account',
+        label: t('settings.account', { defaultValue: 'Account' }),
+        icon: <User />,
+        path: 'account',
       },
       system: { id: 'system', label: t('settings.system'), icon: <System />, path: 'system' },
       about: { id: 'about', label: t('settings.about'), icon: <Info />, path: 'about' },

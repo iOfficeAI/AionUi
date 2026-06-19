@@ -9,6 +9,7 @@ import { TEAM_MODE_ENABLED } from '@/common/config/constants';
 import MobileConversationBrand from './MobileConversationBrand';
 import WindowControls from '../WindowControls';
 import CreditMeterBadge from '@renderer/components/billing/CreditMeterBadge';
+import ProfileAvatar from '@renderer/components/account/ProfileAvatar';
 import { WORKSPACE_STATE_EVENT, dispatchWorkspaceToggleEvent } from '@renderer/utils/workspace/workspaceEvents';
 import type { WorkspaceStateDetail } from '@renderer/utils/workspace/workspaceEvents';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
@@ -335,6 +336,10 @@ const Titlebar: React.FC<TitlebarProps> = ({ workspaceAvailable }) => {
         {layout?.isMobile && <div id='app-titlebar-actions-slot' className='app-titlebar__actions-slot' />}
         {/* Live credit meter (Lane 3). Self-quiets before first read / non-desktop. */}
         {!layout?.isMobile && <CreditMeterBadge onOpenBilling={() => void navigate('/settings/billing')} />}
+        {/* Account avatar (desktop only). Opens the Account settings panel. */}
+        {isDesktopRuntime && !layout?.isMobile && (
+          <ProfileAvatar onOpenAccount={() => void navigate('/settings/account')} />
+        )}
         {showWorkspaceButton && (
           <button
             type='button'
