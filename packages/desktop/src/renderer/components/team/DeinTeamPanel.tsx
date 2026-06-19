@@ -24,6 +24,12 @@
  *
  * The roster is pure DATA from {@link EVE_TEAM_ROSTER}; active/paused state is
  * persisted via the existing config service (`commandEve.teamWorkerStatus`).
+ *
+ * ENFORCEMENT (DUX-4): the persisted status is not cosmetic — the EVE-cloud
+ * send path READS it and refuses to dispatch a paused/off delegated worker (see
+ * {@link evaluateWorkerDispatch} in eveTeamControlsCore, wired through the shim
+ * via the main-process team-status resolver). So pausing/throttling/firing a
+ * worker actually stops it being used on the cloud lane — not just a label.
  */
 
 import {

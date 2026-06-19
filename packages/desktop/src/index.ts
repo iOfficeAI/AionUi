@@ -43,6 +43,7 @@ import {
   resolveEffectiveInferenceSelection,
 } from './common/config/eveInferenceCore';
 import { readLicenseWire } from './common/config/licenseWireAtRest';
+import type { EveTeamWorkerStatusMap } from './common/config/eveTeamControlsCore';
 import { buildEveCloudRoute, type CommandEveEveCloudRoute } from './process/commandEve/ollamaOpenAiShim';
 import { getDataPath } from '@process/utils/utils';
 import { registerWindowMaximizeListeners } from '@process/bridge';
@@ -421,6 +422,28 @@ function buildCommandEveShimRoutingResolver(): () => CommandEveEveCloudRoute | u
   };
 }
 
+/**
+ * Build the "Dein Team" worker-status resolver passed to the Ollama OpenAI shim
+ * (DUX-4). The resolver runs PER request (sync) so it always reflects the live
+ * pause/throttle/fire state the panel persists to `commandEve.teamWorkerStatus`.
+ * The shim uses it to refuse dispatching a paused/off delegated worker.
+ *
+ * Fail-soft: any read error returns `undefined`, which the shim treats as "no
+ * status map" ⇒ every worker active ⇒ no gating (never blocks a call on a read
+ * error). Only a positively-known paused/off roster worker is ever blocked.
+ */
+function buildCommandEveShimTeamStatusResolver(): () => EveTeamWorkerStatusMap | undefined {
+  return () => {
+    try {
+      const statuses = ProcessConfig.getSync('commandEve.teamWorkerStatus');
+      return statuses && typeof statuses === 'object' ? (statuses as EveTeamWorkerStatusMap) : undefined;
+    } catch (error) {
+      console.warn('[Command EVE] EVE shim team-status resolver failed; no gating:', error);
+      return undefined;
+    }
+  };
+}
+
 function writeCommandEveModelWarmupReceipt(runtimeRoot: string, receipt: CommandEveModelWarmupReceipt): void {
   try {
     if (!runtimeRoot) return;
@@ -678,6 +701,7 @@ function registerCommandEveRuntimeBridge(): void {
           promptProofPath: commandEvePromptProofPath(paths.runtimeRoot),
           egressReceiptPath: commandEveEgressBoundaryReceiptPath(paths.runtimeRoot),
           eveRouting: buildCommandEveShimRoutingResolver(),
+          teamWorkerStatus: buildCommandEveShimTeamStatusResolver(),
         }));
       commandEveOllamaShimUrl = shimUrl;
       const warmupReceipt = shouldWarm
@@ -730,6 +754,7 @@ function registerCommandEveRuntimeBridge(): void {
           promptProofPath: commandEvePromptProofPath(paths.runtimeRoot),
           egressReceiptPath: commandEveEgressBoundaryReceiptPath(paths.runtimeRoot),
           eveRouting: buildCommandEveShimRoutingResolver(),
+          teamWorkerStatus: buildCommandEveShimTeamStatusResolver(),
         }));
       commandEveOllamaShimUrl = shimUrl;
       const warmupReceipt = await ensureCommandEveLocalModelWarmup(receipt, shimUrl, warmCommandEveLocalModel);
@@ -1166,6 +1191,7 @@ const handleAppReady = async (): Promise<void> => {
       promptProofPath: commandEvePromptProofPath(runtimePaths.runtimeRoot),
       egressReceiptPath: commandEveEgressBoundaryReceiptPath(runtimePaths.runtimeRoot),
       eveRouting: buildCommandEveShimRoutingResolver(),
+      teamWorkerStatus: buildCommandEveShimTeamStatusResolver(),
     });
     commandEveOllamaShimUrl = shimUrl;
     mark(`commandEveOllamaShim (${shimUrl})`);

@@ -32,14 +32,13 @@
  *     {@link isByokDisabledForEntitlement} from this module).
  *   - Only EVE Standard + EVE Hoch + the two local tiers are selectable.
  *
- * BACKEND LEVEL REGISTRY + TIER→LEVEL BRIDGE: the eve-inference Edge Function
+ * BACKEND LEVEL REGISTRY (no tier→level shift): the eve-inference Edge Function
  * resolves the concrete upstream model from a user-facing LEVEL via a registry
- * (levels: standard, hoch/high [free], max [DeepSeek V4 Pro, paid], maximum/
- * haerteste [GLM 5.2, paid, gated]). The function also accepts the legacy tier
- * strings (standard/high/max) via a tier→level compatibility bridge, so the
- * wire value this module sends stays compatible: Standard→`standard`,
- * Hoch→`high` (legacy-compatible alias the bridge maps to the `hoch` level),
- * Max→`max`, Maximum→`maximum`.
+ * (levels: standard [free], high [free], max [DeepSeek V4 Pro, paid], maximum
+ * [GLM 5.2, paid, gated]). After the backend wire-contract fix the wire `tier`
+ * this module sends IS the registry level verbatim — there is NO tier→level
+ * bridge/shift any more: Standard→`standard`, Hoch→`high`, Max→`max`,
+ * Maximum→`maximum`. The function looks the value up in the registry directly.
  *
  * EVE ROUTING (all levels): every EVE Inference level routes through the
  * Command EVE backend Edge Function as an OpenAI-compatible client. We model an
@@ -90,8 +89,9 @@ export const EVE_INFERENCE_TIER_SUBLABEL = 'Externe Free-Modelle · OpenRouter';
 
 /**
  * EVE Inference cloud LEVELS (Stufen). `tier` is the wire value POSTed in the
- * body; the backend level registry (with the legacy tier→level bridge) maps it
- * to a concrete model. `model` is the OpenAI `model` field the client sends —
+ * body; it IS the backend registry level verbatim (no tier→level bridge/shift)
+ * and the function maps it straight to a concrete model. `model` is the OpenAI
+ * `model` field the client sends —
  * the function accepts a sentinel and routes by this value, so we send it as
  * the model too for a stable, self-describing request.
  *
@@ -118,8 +118,8 @@ export const EVE_INFERENCE_TIERS = [
     id: 'eve-high',
     // STUFE: Hoch (was "High"/paid in the old 3-tier model; now FREE).
     label: 'Hoch',
-    // Legacy-compatible wire alias; the backend tier→level bridge maps `high`
-    // to the `hoch` level (and accepts `hoch` directly).
+    // The wire `high` IS the registry level (no tier→level bridge/shift); the
+    // backend looks `high` up directly. The German label "Hoch" is UI-only.
     tier: 'high',
     paidOnly: false,
     consumesCredits: false,

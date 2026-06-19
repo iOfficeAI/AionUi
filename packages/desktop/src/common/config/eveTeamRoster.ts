@@ -56,36 +56,66 @@
 export type EveTeamRoleTier = 'standard' | 'high' | 'max' | 'maximum';
 
 /**
- * Salary-grade band of a role (the FINAL Founder-locked table, 2026-06-18 —
- * `docs/strategy/command-eve-worker-pricing-architecture-2026-06-18.md` §7).
+ * Salary-grade band of a role — the SEVEN canonical Company.OS bands (G0–G6).
  * The grade maps to a fixed expected EUR/mo "salary" (the hire price) the
  * PRE-VISIBLE budget meter (P0 #1) sums over the ACTIVE team:
  *
- *   - G0 — Gratis-Sockel   : €0   the bundled zero-cost local floor (Gemma).
- *   - G1 — Basis           : €25  content / ops / sales-entry workers.
- *   - G2 — Fach            : €35  creative / image workers.
- *   - G3 — Spezialist      : €40  research / data workers.
- *   - G4 — Premium/Skalierbar: €60  the videomarketer (heavy GPU lane).
- *   - G5 — Deferred (off-ICP): €100 the coder (not in the launch roster).
+ *   - G0 — Gratis-Sockel    : €0   the bundled zero-cost local floor (Gemma).
+ *   - G1 — Content          : €25  content / SEO / writer workers.
+ *   - G2 — Creative          : €35  creative / image workers.
+ *   - G3 — Research          : €40  research / data workers.
+ *   - G4 — Ops/Sales         : €25  ops / sales / community workers (its OWN
+ *                                   band — NOT folded into G1; a future Ops/Sales
+ *                                   worker projects €25, not the €60 video band).
+ *   - G5 — Videomarketer     : €60  the heavy GPU video lane.
+ *   - G6 — Coder             : €100 the coder (off-ICP, not in the launch roster).
+ *
+ * DOC PARITY: these are the seven canonical bands (G0–G6). An earlier desktop
+ * enum COLLAPSED them to six (G0–G5) by folding Ops/Sales (€25) into G1 and
+ * placing video at G4 / coder at G5 — that diverged the band LETTERS from the
+ * canonical source even though the euro values were right. This enum is now
+ * re-aligned: Ops/Sales is its own G4=€25, video is G5=€60, coder is G6=€100.
+ * The euro values are pinned by {@link EVE_GRADE_SALARY_EUR} and a doc-parity
+ * unit test so a future Ops/Sales worker can never be mis-priced at €60.
  *
  * Grades are PRICE BANDS, never renamed once shipped — the projected-budget math
- * and the founder pricing doc both key off this exact mapping.
+ * keys off this exact mapping.
  */
-export type EveTeamRoleGrade = 'G0' | 'G1' | 'G2' | 'G3' | 'G4' | 'G5';
+export type EveTeamRoleGrade = 'G0' | 'G1' | 'G2' | 'G3' | 'G4' | 'G5' | 'G6';
 
 /**
  * The Founder-locked expected EUR/mo "salary" (hire price) per grade band. This
  * is the SINGLE source of the per-role budget figure the projected-spend meter
  * sums. Pure data — no FX, no credits; the at-cost credit layer is a separate
- * concern (see creditsCore). Values mirror the §7 grade table exactly.
+ * concern (see creditsCore). Values mirror the seven canonical G0–G6 bands:
+ * Content €25 · Creative €35 · Research €40 · Ops/Sales €25 · Video €60 ·
+ * Coder €100. A doc-parity test pins each value so the band↔euro map cannot
+ * silently drift (notably: G4 Ops/Sales = €25, NEVER €60).
  */
 export const EVE_GRADE_SALARY_EUR: Record<EveTeamRoleGrade, number> = {
   G0: 0,
-  G1: 25,
-  G2: 35,
-  G3: 40,
-  G4: 60,
-  G5: 100,
+  G1: 25, // Content
+  G2: 35, // Creative
+  G3: 40, // Research
+  G4: 25, // Ops/Sales (own band — not folded into G1, not the €60 video band)
+  G5: 60, // Videomarketer (heavy GPU lane)
+  G6: 100, // Coder (off-ICP, deferred)
+} as const;
+
+/**
+ * Canonical band → worker-class label (G0–G6). The single doc-parity reference a
+ * unit test asserts against so the band LETTERS can never silently re-collapse:
+ * Ops/Sales must stay its OWN G4 band (€25), not fold back into G1, and video /
+ * coder must stay at G5 / G6 (not G4 / G5). Pure labels — no behavior.
+ */
+export const EVE_CANONICAL_GRADE_CLASS: Record<EveTeamRoleGrade, string> = {
+  G0: 'Gratis-Sockel',
+  G1: 'Content',
+  G2: 'Creative',
+  G3: 'Research',
+  G4: 'Ops/Sales',
+  G5: 'Videomarketer',
+  G6: 'Coder',
 } as const;
 
 /** A role is either an operator ("work") or a governance seat. */
@@ -114,9 +144,11 @@ export interface EveTeamRole {
   /** EVE Inference level the role leans on. */
   tier: EveTeamRoleTier;
   /**
-   * Salary-grade band (Founder-locked §7 table). Drives the PRE-VISIBLE budget:
-   * each role's expected EUR/mo "salary" is {@link EVE_GRADE_SALARY_EUR}[grade].
-   * The free local floor (G0) costs €0; paid cloud roles carry G1..G5.
+   * Salary-grade band (the seven canonical G0–G6 bands). Drives the PRE-VISIBLE
+   * budget: each role's expected EUR/mo "salary" is
+   * {@link EVE_GRADE_SALARY_EUR}[grade]. The free local floor (G0) costs €0;
+   * paid cloud roles carry G1..G6 (Content G1 · Creative G2 · Research G3 ·
+   * Ops/Sales G4 · Video G5 · Coder G6).
    */
   grade: EveTeamRoleGrade;
   /** Hermes skills the role leans on (labels only — not a capability grant). */
@@ -196,8 +228,9 @@ export const EVE_TEAM_ROSTER: readonly EveTeamRole[] = [
     title: 'Growth Lead (CMO)',
     outcome: 'Bringt neue Kunden — plant Kampagnen und misst, was wirkt.',
     tier: 'max',
-    // G1 — Basis (ops/sales-entry band, €25/mo).
-    grade: 'G1',
+    // G4 — Ops/Sales band (€25/mo). Growth/CMO is a sales-side worker; it sits
+    // in its OWN G4 Ops/Sales band, not the G1 Content band.
+    grade: 'G4',
     skills: ['marketing-strategy', 'campaign-planning', 'analytics'],
     kind: 'work',
     rhythm: 'always-on',
@@ -208,7 +241,7 @@ export const EVE_TEAM_ROSTER: readonly EveTeamRole[] = [
     title: 'SEO Lead',
     outcome: 'Macht dich bei Google sichtbar — Keywords, On-Page und Content-Lücken.',
     tier: 'high',
-    // G1 — Basis (content/SEO band, €25/mo).
+    // G1 — Content band (SEO/content, €25/mo).
     grade: 'G1',
     skills: ['seo-audit', 'keyword-research', 'web-search'],
     kind: 'work',
@@ -220,7 +253,7 @@ export const EVE_TEAM_ROSTER: readonly EveTeamRole[] = [
     title: 'Content / Writer',
     outcome: 'Schreibt Blogposts, Newsletter und Landingpages in deiner Stimme.',
     tier: 'standard',
-    // G1 — Basis (content band, €25/mo).
+    // G1 — Content band (€25/mo).
     grade: 'G1',
     skills: ['content-creation', 'copywriting', 'brand-voice'],
     kind: 'work',
@@ -232,8 +265,8 @@ export const EVE_TEAM_ROSTER: readonly EveTeamRole[] = [
     title: 'Reddit / Community',
     outcome: 'Findet die richtigen Subreddits und antwortet ohne Werbe-Geruch.',
     tier: 'standard',
-    // G1 — Basis (community/ops band, €25/mo).
-    grade: 'G1',
+    // G4 — Ops/Sales band (community/social outreach, €25/mo).
+    grade: 'G4',
     skills: ['community', 'web-search', 'social-listening'],
     kind: 'work',
     rhythm: 'burst',
@@ -244,8 +277,8 @@ export const EVE_TEAM_ROSTER: readonly EveTeamRole[] = [
     title: 'Videomarketer',
     outcome: 'Plant Kurzvideos und Hooks für Shorts, Reels und TikTok.',
     tier: 'max',
-    // G4 — Premium/Skalierbar (the heavy GPU video lane, €60/mo).
-    grade: 'G4',
+    // G5 — Videomarketer (the heavy GPU video lane, €60/mo).
+    grade: 'G5',
     skills: ['video-script', 'storyboard', 'social-video'],
     kind: 'work',
     rhythm: 'burst',
@@ -257,7 +290,7 @@ export const EVE_TEAM_ROSTER: readonly EveTeamRole[] = [
     title: 'Eval / Research',
     outcome: 'Prüft Behauptungen, recherchiert Quellen und bewertet Ergebnisse.',
     tier: 'maximum',
-    // G3 — Spezialist (research/data band, €40/mo).
+    // G3 — Research band (research/data, €40/mo).
     grade: 'G3',
     skills: ['research', 'fact-check', 'evaluation'],
     kind: 'work',
@@ -267,6 +300,34 @@ export const EVE_TEAM_ROSTER: readonly EveTeamRole[] = [
 
 /** Roster role ids, as a set, for fast membership checks. */
 const ROSTER_AGENT_IDS: ReadonlySet<string> = new Set(EVE_TEAM_ROSTER.map((r) => r.agent_id));
+
+/** The heavy GPU video-lane worker's stable agent id (the videomarketer). */
+export const VIDEO_MARKETER_AGENT_ID = 'video-marketer';
+
+/**
+ * Phrases that ADDRESS the videomarketer worker by name/role in a chat message
+ * (DE + EN). Used by the send-path as a fail-safe video-lane signal (DUX-6): a
+ * message that explicitly hands the task to the videomarketer reaches the heavy
+ * lane even if the NL video-intent regex misses, so the cost-wall still fires.
+ * Matched case-insensitively against the trimmed message.
+ */
+const VIDEO_MARKETER_ADDRESS_PATTERNS: readonly RegExp[] = [
+  /@?\bvideomarketer\b/i,
+  /@?\bvideo[-\s]?marketer\b/i,
+  /\bvideo[-\s]?marketing\b/i,
+];
+
+/**
+ * True iff the message explicitly addresses the videomarketer worker by name or
+ * role. Pure + dependency-light. This is a HELPFUL extra signal for the video
+ * cost-wall fail-safe — never the sole gate (the resolved capability/worker is).
+ */
+export function addressesVideoMarketer(message: string | null | undefined): boolean {
+  if (typeof message !== 'string') return false;
+  const text = message.trim();
+  if (text.length === 0) return false;
+  return VIDEO_MARKETER_ADDRESS_PATTERNS.some((re) => re.test(text));
+}
 
 /** True iff `id` is a known roster role id (the system default `eve` is NOT a roster role). */
 export function isEveTeamAgentId(id: string | null | undefined): boolean {

@@ -30,10 +30,12 @@ import {
   countActiveWorkers,
   defaultStatusForRole,
   evaluateFloorGuard,
+  evaluateWorkerDispatch,
   findFreeFloorWorker,
   isDeactivatingAction,
   isFreeFloorWorker,
   isWorkerActive,
+  isWorkerDispatchable,
   statusForRole,
   targetStatusForAction,
   type EveTeamWorkerStatusMap,
@@ -275,5 +277,50 @@ describe('eveTeamControlsCore — applyControlAction reducer (never goes empty)'
     const res = applyControlAction(floor, 'stop', statuses, { confirmedWarning: true });
     expect(isWorkerActive(floor, res.next)).toBe(true); // floor kept on
     expect(countActiveOperators(res.next)).toBeGreaterThanOrEqual(1);
+  });
+});
+
+describe('eveTeamControlsCore — (C) dispatch gate (DUX-4, the controls actually bite)', () => {
+  it('allows the un-delegated EVE itself (system default) regardless of map', () => {
+    const d = evaluateWorkerDispatch('eve', { 'seo-lead': 'off' });
+    expect(d.allowed).toBe(true);
+    expect(d.reason).toBe('ok-system-default');
+    expect(isWorkerDispatchable('eve', {})).toBe(true);
+    // empty / absent ids resolve to the system default and stay allowed
+    expect(evaluateWorkerDispatch('', {}).reason).toBe('ok-system-default');
+    expect(evaluateWorkerDispatch(undefined, {}).reason).toBe('ok-system-default');
+    expect(evaluateWorkerDispatch(null, {}).reason).toBe('ok-system-default');
+  });
+
+  it('allows an unknown / non-roster id (fail-open — never block what we cannot identify)', () => {
+    const d = evaluateWorkerDispatch('some-future-worker', { 'some-future-worker': 'off' });
+    expect(d.allowed).toBe(true);
+    expect(d.reason).toBe('ok-unknown-agent');
+  });
+
+  it('allows a known roster worker when active (default or explicit)', () => {
+    expect(evaluateWorkerDispatch('seo-lead', {}).reason).toBe('ok-active'); // default active
+    expect(evaluateWorkerDispatch('seo-lead', { 'seo-lead': 'active' }).allowed).toBe(true);
+  });
+
+  it('BLOCKS a known roster worker the user paused (throttled)', () => {
+    const d = evaluateWorkerDispatch('seo-lead', { 'seo-lead': 'paused' });
+    expect(d.allowed).toBe(false);
+    expect(d.status).toBe('paused');
+    expect(d.reason).toBe('blocked-paused');
+    expect(isWorkerDispatchable('seo-lead', { 'seo-lead': 'paused' })).toBe(false);
+  });
+
+  it('BLOCKS a known roster worker the user stopped / let go (off)', () => {
+    const d = evaluateWorkerDispatch('video-marketer', { 'video-marketer': 'off' });
+    expect(d.allowed).toBe(false);
+    expect(d.status).toBe('off');
+    expect(d.reason).toBe('blocked-off');
+  });
+
+  it('gates per worker — pausing one does not block another', () => {
+    const statuses: EveTeamWorkerStatusMap = { 'seo-lead': 'paused' };
+    expect(isWorkerDispatchable('seo-lead', statuses)).toBe(false);
+    expect(isWorkerDispatchable('content-writer', statuses)).toBe(true);
   });
 });

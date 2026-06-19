@@ -31,12 +31,18 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  addressesVideoMarketer,
+  EVE_CANONICAL_GRADE_CLASS,
+  EVE_GRADE_SALARY_EUR,
   EVE_SYSTEM_AGENT_ID,
   EVE_TEAM_ROSTER,
   eveTeamWorkerLabel,
   findEveTeamRole,
   isEveTeamAgentId,
   resolveAttributionAgentId,
+  roleSalaryEur,
+  VIDEO_MARKETER_AGENT_ID,
+  type EveTeamRoleGrade,
   type EveTeamRoleTier,
 } from '@/common/config/eveTeamRoster';
 
@@ -165,5 +171,89 @@ describe('eveTeamRoster — eveTeamWorkerLabel (Dein Team verteilt die Arbeit)',
 
   it('renders an unknown non-empty id verbatim (never hides the activity)', () => {
     expect(eveTeamWorkerLabel('some-future-worker')).toBe('some-future-worker');
+  });
+});
+
+describe('eveTeamRoster — addressesVideoMarketer (DUX-6 fail-safe signal)', () => {
+  it('exposes the videomarketer agent id and it matches the roster role', () => {
+    expect(VIDEO_MARKETER_AGENT_ID).toBe('video-marketer');
+    expect(findEveTeamRole(VIDEO_MARKETER_AGENT_ID)).toBeDefined();
+  });
+
+  it('detects the videomarketer addressed by name/role (DE + EN, @ + spacing)', () => {
+    expect(addressesVideoMarketer('@Videomarketer mach ein Reel')).toBe(true);
+    expect(addressesVideoMarketer('Videomarketer, plane Shorts')).toBe(true);
+    expect(addressesVideoMarketer('lass den video-marketer ran')).toBe(true);
+    expect(addressesVideoMarketer('hand this to the Video Marketer')).toBe(true);
+    expect(addressesVideoMarketer('starte das Video-Marketing')).toBe(true);
+  });
+
+  it('does NOT fire for an unrelated message or empty input', () => {
+    expect(addressesVideoMarketer('schreib einen Blogpost')).toBe(false);
+    expect(addressesVideoMarketer('')).toBe(false);
+    expect(addressesVideoMarketer(null)).toBe(false);
+    expect(addressesVideoMarketer(undefined)).toBe(false);
+  });
+});
+
+describe('eveTeamRoster — ME-3 canonical grade bands (G0–G6 doc parity)', () => {
+  // The SEVEN canonical Company.OS bands. Pinned here so the band LETTERS can
+  // never silently re-collapse to the old six-band map (which folded Ops/Sales
+  // into G1 and put video at G4 / coder at G5).
+  const CANONICAL_SALARY: Record<EveTeamRoleGrade, number> = {
+    G0: 0,
+    G1: 25, // Content
+    G2: 35, // Creative
+    G3: 40, // Research
+    G4: 25, // Ops/Sales (own band)
+    G5: 60, // Videomarketer
+    G6: 100, // Coder
+  };
+
+  it('exposes all seven bands G0–G6 with the canonical euro values', () => {
+    expect(Object.keys(EVE_GRADE_SALARY_EUR).sort()).toEqual(['G0', 'G1', 'G2', 'G3', 'G4', 'G5', 'G6']);
+    for (const grade of Object.keys(CANONICAL_SALARY) as EveTeamRoleGrade[]) {
+      expect(EVE_GRADE_SALARY_EUR[grade], `salary for ${grade}`).toBe(CANONICAL_SALARY[grade]);
+    }
+  });
+
+  it('G4 is the Ops/Sales band at €25 — NOT folded into G1, NOT the €60 video band', () => {
+    // The regression this test exists to catch: a future Ops/Sales worker must
+    // project €25, never €60 (the old enum collapsed Ops/Sales into another band).
+    expect(EVE_GRADE_SALARY_EUR.G4).toBe(25);
+    expect(EVE_GRADE_SALARY_EUR.G4).not.toBe(60);
+    expect(EVE_CANONICAL_GRADE_CLASS.G4).toBe('Ops/Sales');
+  });
+
+  it('video is G5=€60 and coder is G6=€100 (shifted up from the old G4/G5)', () => {
+    expect(EVE_CANONICAL_GRADE_CLASS.G5).toBe('Videomarketer');
+    expect(EVE_GRADE_SALARY_EUR.G5).toBe(60);
+    expect(EVE_CANONICAL_GRADE_CLASS.G6).toBe('Coder');
+    expect(EVE_GRADE_SALARY_EUR.G6).toBe(100);
+  });
+
+  it('the class map covers exactly the seven bands', () => {
+    expect(Object.keys(EVE_CANONICAL_GRADE_CLASS).sort()).toEqual(['G0', 'G1', 'G2', 'G3', 'G4', 'G5', 'G6']);
+  });
+
+  it('every roster role carries a known canonical grade and its euro value', () => {
+    for (const role of EVE_TEAM_ROSTER) {
+      expect(EVE_CANONICAL_GRADE_CLASS[role.grade], `class for ${role.agent_id}`).toBeTruthy();
+      expect(roleSalaryEur(role)).toBe(EVE_GRADE_SALARY_EUR[role.grade]);
+    }
+  });
+
+  it('the videomarketer role keeps €60 (now via G5) and growth/reddit project €25 (now via G4 Ops/Sales)', () => {
+    expect(roleSalaryEur(findEveTeamRole('video-marketer')!)).toBe(60);
+    expect(findEveTeamRole('video-marketer')!.grade).toBe('G5');
+    // Growth + community are Ops/Sales (G4) — €25, NOT the €60 video band.
+    expect(findEveTeamRole('growth-lead')!.grade).toBe('G4');
+    expect(roleSalaryEur(findEveTeamRole('growth-lead')!)).toBe(25);
+    expect(findEveTeamRole('reddit-lead')!.grade).toBe('G4');
+    expect(roleSalaryEur(findEveTeamRole('reddit-lead')!)).toBe(25);
+    // Content/SEO/writer stay G1 Content (€25); research stays G3 (€40).
+    expect(findEveTeamRole('seo-lead')!.grade).toBe('G1');
+    expect(findEveTeamRole('content-writer')!.grade).toBe('G1');
+    expect(roleSalaryEur(findEveTeamRole('eval-research')!)).toBe(40);
   });
 });

@@ -15,6 +15,10 @@ import {
   type CommandEveEgressPolicyAction,
 } from './egressBoundaryCore';
 import { resolveAttributionAgentId } from '../../common/config/eveTeamRoster';
+import {
+  evaluateWorkerDispatch,
+  type EveTeamWorkerStatusMap,
+} from '../../common/config/eveTeamControlsCore';
 
 const DEFAULT_SHIM_PORT = 25811;
 const DEFAULT_OLLAMA_BASE_URL = 'http://127.0.0.1:11434';
@@ -50,6 +54,16 @@ export type CommandEveEveCloudRoute = {
 /** Per-request resolver: is the active selection an EVE cloud tier? */
 export type CommandEveEveRoutingResolver = () => CommandEveEveCloudRoute | undefined;
 
+/**
+ * Per-request resolver for the persisted "Dein Team" worker-status map
+ * (`commandEve.teamWorkerStatus`). Injected at shim startup (main process) so
+ * the shim can READ the live pause/throttle/fire state and actually gate a
+ * delegated worker's dispatch (DUX-4). Returns the status map, or `undefined`
+ * when there is none — in which case every worker defaults to active (no-op
+ * gating, exactly as before this resolver existed).
+ */
+export type CommandEveTeamStatusResolver = () => EveTeamWorkerStatusMap | undefined;
+
 export type CommandEveOllamaShimOptions = {
   port?: number;
   ollamaBaseUrl?: string;
@@ -63,6 +77,13 @@ export type CommandEveOllamaShimOptions = {
    * as before (local Ollama only) — EVE routing is purely additive.
    */
   eveRouting?: CommandEveEveRoutingResolver;
+  /**
+   * Optional "Dein Team" worker-status resolver (DUX-4). When provided, the
+   * EVE-cloud send path checks the delegated worker's status BEFORE dispatch and
+   * refuses to dispatch a paused/off worker. When omitted, no gating is applied
+   * (every worker is treated as active), so this is purely additive.
+   */
+  teamWorkerStatus?: CommandEveTeamStatusResolver;
 };
 
 export type CommandEveModelWarmupOptions = {
@@ -448,6 +469,30 @@ async function handleEveCloudCompletions(
   const attributionAgentId = resolveAttributionAgentId(
     typeof body.agent_id === 'string' ? body.agent_id : undefined
   );
+
+  // DUX-4 — ENFORCE the "Dein Team" pause/throttle/fire controls. The panel
+  // WRITES `commandEve.teamWorkerStatus`; here is the ONE place the execution
+  // path READS it. A delegated worker the user paused (throttled) or stopped /
+  // let go (off) is NOT dispatched — we fail-closed with a clear, non-secret
+  // error instead of silently spending on a worker the user turned off. The
+  // un-delegated EVE (`eve`) and any unknown id are always allowed (fail-open),
+  // so only a positively-known paused/off roster worker is blocked.
+  const teamStatuses = options.teamWorkerStatus() ?? {};
+  const dispatch = evaluateWorkerDispatch(attributionAgentId, teamStatuses);
+  if (!dispatch.allowed) {
+    response.setHeader('x-command-eve-worker-dispatch', dispatch.reason);
+    jsonResponse(response, 409, {
+      error: {
+        code: dispatch.reason,
+        message:
+          dispatch.reason === 'blocked-paused'
+            ? `Dieser Mitarbeiter ist gedrosselt (pausiert) und wird nicht eingesetzt. Setze ihn in "Dein Team" fort, um ihn wieder arbeiten zu lassen.`
+            : `Dieser Mitarbeiter ist aus (gestoppt bzw. entlassen) und wird nicht eingesetzt. Stelle ihn in "Dein Team" wieder ein, um ihn arbeiten zu lassen.`,
+      },
+    });
+    return;
+  }
+
   const outboundBody: Record<string, unknown> = {
     messages: outboundMessages,
     stream,
@@ -659,6 +704,9 @@ export async function startCommandEveOllamaOpenAiShim(shimOptions: CommandEveOll
     egressPolicyAction: shimOptions.egressPolicyAction || 'block',
     // Default resolver keeps every request on the local lane.
     eveRouting: shimOptions.eveRouting || ((): undefined => undefined),
+    // Default resolver returns no status map ⇒ every worker is treated active
+    // (gating is a no-op until the main process injects the live status map).
+    teamWorkerStatus: shimOptions.teamWorkerStatus || ((): undefined => undefined),
   };
   server = http.createServer((request, response) => {
     void (async () => {
