@@ -124,9 +124,9 @@ export function classifyDataSensitivity(text: string): CommandEveRouteSensitivit
   const findings = detectCommandEveSensitiveEgress(text || '');
   const kinds = new Set(findings.map((finding) => finding.kind));
   let sensitivity: CommandEveDataSensitivity = 'S0';
-  if (kinds.has('secret')) {
+  if (kinds.has('secret') || kinds.has('financial') || kinds.has('health')) {
     sensitivity = 'S3';
-  } else if (kinds.has('german_pii')) {
+  } else if (kinds.has('german_pii') || kinds.has('intl_pii')) {
     sensitivity = 'S2';
   } else if (kinds.has('email')) {
     sensitivity = 'S1';

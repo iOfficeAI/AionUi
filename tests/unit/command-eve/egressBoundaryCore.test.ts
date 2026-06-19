@@ -82,4 +82,52 @@ describe('Command EVE egress boundary core', () => {
     expect(payload).toContain('"command-eve-egress-boundary-receipt/v0"');
     expect(payload).not.toContain('supersecretvalue');
   });
+
+  it('blocks international financial PII (IBAN + card) the German-only filter missed', async () => {
+    const result = await evaluateCommandEveEgressBoundary({
+      text: 'Bitte überweise auf IBAN DE89 3704 0044 0532 0130 00, Karte 4111 1111 1111 1111.',
+      provider: { ...LOCAL_PROVIDER, kind: 'cloud', name: 'openrouter' },
+    });
+
+    expect(result.decision).toBe('block');
+    expect(result.receipt.findings.some((finding) => finding.kind === 'financial' && finding.rule_id === 'iban')).toBe(true);
+    expect(result.receipt.findings.some((finding) => finding.rule_id === 'payment-card-number')).toBe(true);
+    expect(JSON.stringify(result.receipt)).not.toContain('0532');
+    expect(JSON.stringify(result.receipt)).not.toContain('4111');
+  });
+
+  it('blocks non-DACH PII (intl phone, US address, SSN)', async () => {
+    const result = await evaluateCommandEveEgressBoundary({
+      text: 'Reach the client at +1 415 555 1234, ship to 1600 Pennsylvania Avenue, SSN 123-45-6789.',
+      provider: { ...LOCAL_PROVIDER, kind: 'cloud', name: 'openrouter' },
+    });
+
+    expect(result.decision).toBe('block');
+    expect(result.receipt.findings.some((finding) => finding.kind === 'intl_pii')).toBe(true);
+    expect(result.receipt.findings.some((finding) => finding.rule_id === 'intl-phone-number')).toBe(true);
+    expect(result.receipt.findings.some((finding) => finding.rule_id === 'intl-street-address')).toBe(true);
+    expect(result.receipt.findings.some((finding) => finding.rule_id === 'us-ssn')).toBe(true);
+  });
+
+  it('redacts a label-anchored health identifier (GDPR Art. 9) without leaking the value', async () => {
+    const result = await evaluateCommandEveEgressBoundary({
+      text: 'Versichertennummer: A123456789 — bitte vormerken.',
+      provider: { ...LOCAL_PROVIDER, kind: 'cloud', name: 'openrouter' },
+      policyAction: 'redact',
+    });
+
+    expect(result.receipt.findings.some((finding) => finding.kind === 'health')).toBe(true);
+    expect(result.allowedText).toContain('[REDACTED_HEALTH_ID]');
+    expect(JSON.stringify(result.receipt)).not.toContain('A123456789');
+  });
+
+  it('does NOT false-positive on clean international marketing copy', async () => {
+    const result = await evaluateCommandEveEgressBoundary({
+      text: 'Our 5 step plan boosts ROI by 30% across 3 channels in Q4. Visit our shop today.',
+      provider: { ...LOCAL_PROVIDER, kind: 'cloud', name: 'openrouter' },
+    });
+
+    expect(result.decision).toBe('allow');
+    expect(result.receipt.finding_count).toBe(0);
+  });
 });

@@ -7,7 +7,7 @@
 export type CommandEveEgressPolicyAction = 'block' | 'redact' | 'allow';
 export type CommandEveEgressDecision = 'allow' | 'block' | 'redact';
 export type CommandEveEgressProviderKind = 'local' | 'cloud' | 'unknown';
-export type CommandEveEgressFindingKind = 'secret' | 'german_pii' | 'email';
+export type CommandEveEgressFindingKind = 'secret' | 'german_pii' | 'email' | 'financial' | 'intl_pii' | 'health';
 
 export type CommandEveEgressProvider = {
   kind: CommandEveEgressProviderKind;
@@ -86,6 +86,57 @@ const SENSITIVE_RULES: SensitiveRule[] = [
     ruleId: 'email-address',
     pattern: /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi,
     replacement: '[REDACTED_EMAIL]',
+  },
+  // --- Financial PII (S3) — international; the German-only filter missed all of these ---
+  {
+    kind: 'financial',
+    ruleId: 'iban',
+    pattern: /\b[A-Z]{2}\d{2}(?:[ ]?[A-Z0-9]{4}){3,7}(?:[ ]?[A-Z0-9]{1,3})?\b/g,
+    replacement: '[REDACTED_IBAN]',
+  },
+  {
+    kind: 'financial',
+    ruleId: 'payment-card-number',
+    pattern: /\b(?:4\d{3}|5[1-5]\d{2}|3[47]\d{2}|6(?:011|5\d{2}))[ -]?\d{4}[ -]?\d{4}[ -]?\d{1,4}\b/g,
+    replacement: '[REDACTED_CARD]',
+  },
+  {
+    kind: 'financial',
+    ruleId: 'bic-swift',
+    pattern: /\b(?:BIC|SWIFT)\b\s*[:=]?\s*[A-Z]{6}[A-Z0-9]{2}(?:[A-Z0-9]{3})?\b/gi,
+    replacement: '[REDACTED_BIC]',
+  },
+  // --- International PII (S2) — addresses, phones, national IDs outside DACH ---
+  {
+    kind: 'intl_pii',
+    ruleId: 'intl-phone-number',
+    pattern: /\+(?!49)\d{1,3}[\s.\-/()]?(?:\d[\s.\-/()]?){6,13}\d\b/g,
+    replacement: '[REDACTED_PHONE]',
+  },
+  {
+    kind: 'intl_pii',
+    ruleId: 'north-american-phone',
+    pattern: /\b(?:\+?1[\s.\-]?)?\(\d{3}\)[\s.\-]?\d{3}[\s.\-]?\d{4}\b|\b\d{3}[\s.\-]\d{3}[\s.\-]\d{4}\b/g,
+    replacement: '[REDACTED_PHONE]',
+  },
+  {
+    kind: 'intl_pii',
+    ruleId: 'intl-street-address',
+    pattern: /\b\d{1,5}\s+[A-Z][A-Za-z.'-]+(?:\s+[A-Z][A-Za-z.'-]+){0,3}\s+(?:Street|Avenue|Ave|Road|Rd|Boulevard|Blvd|Lane|Drive|Court|Place|Square|Terrace|Parkway|Pkwy|Highway|Hwy|Crescent|Close)\b\.?/g,
+    replacement: '[REDACTED_ADDRESS]',
+  },
+  {
+    kind: 'intl_pii',
+    ruleId: 'us-ssn',
+    pattern: /\b\d{3}-\d{2}-\d{4}\b/g,
+    replacement: '[REDACTED_NATIONAL_ID]',
+  },
+  // --- Health / special-category PII (S3, GDPR Art. 9) — label-anchored to keep false positives low ---
+  {
+    kind: 'health',
+    ruleId: 'health-identifier',
+    pattern: /\b(?:versichertennummer|insurance\s*(?:no\.?|number|id)|patient\s*(?:id|no\.?|number)|medical\s*record\s*(?:no\.?|number)|kranken(?:versicherung|kasse))\b\s*[:=#]?\s*[A-Z0-9][A-Z0-9-]{4,}\b/gi,
+    replacement: '[REDACTED_HEALTH_ID]',
   },
 ];
 
