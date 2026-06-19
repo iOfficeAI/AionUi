@@ -63,6 +63,33 @@ const createDiffStats = (diffContent: string): { additions: number; deletions: n
   return { additions, deletions };
 };
 
+const readCurrentFileContent = async (
+  primaryPath: string,
+  fallbackPath: string,
+  workspace: string
+): Promise<string | null> => {
+  const paths = primaryPath === fallbackPath ? [primaryPath] : [primaryPath, fallbackPath];
+  let lastError: unknown;
+
+  for (const path of paths) {
+    try {
+      const current = await ipcBridge.fs.readFile.invoke({ path, workspace });
+      if (typeof current === 'string') {
+        return current;
+      }
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  console.error('[FileChangeList] Failed to read current file content:', {
+    primaryPath,
+    fallbackPath,
+    error: lastError,
+  });
+  return null;
+};
+
 const FileChangeItem: React.FC<{
   change: FileChangeInfo;
   diffState?: DiffState;
@@ -200,8 +227,9 @@ const FileChangeList: React.FC<FileChangeListProps> = ({
         }
 
         if (change.operation === 'modify' || change.operation === 'create') {
-          const current = await ipcBridge.fs.readFile.invoke({ path: readPath, workspace });
-          after = typeof current === 'string' ? current : '';
+          const current = await readCurrentFileContent(readPath, change.file_path, workspace);
+          if (current == null) return null;
+          after = current;
         }
 
         const diffContent = createTwoFilesPatch(file_name, file_name, before, after);
