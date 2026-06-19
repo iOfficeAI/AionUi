@@ -3,6 +3,7 @@ import { HashRouter, Navigate, Route, Routes } from 'react-router-dom';
 import AppLoader from '@renderer/components/layout/AppLoader';
 import { useAuth } from '@renderer/hooks/context/AuthContext';
 import { useEntitlementGate } from '@renderer/hooks/useEntitlementGate';
+import { isElectronDesktop } from '@renderer/utils/platform';
 import { TEAM_MODE_ENABLED } from '@/common/config/constants';
 const Conversation = React.lazy(() => import('@renderer/pages/conversation'));
 const Guid = React.lazy(() => import('@renderer/pages/guid'));
@@ -41,28 +42,32 @@ const ProtectedLayout: React.FC<{ layout: React.ReactElement }> = ({ layout }) =
   const { status } = useAuth();
   const { loading: gateLoading, status: gateStatus, blocked: gateBlocked, refresh: refreshGate } = useEntitlementGate();
 
-  if (status === 'checking') {
+  if (status === 'checking' || gateLoading) {
     return <AppLoader />;
   }
 
-  if (status !== 'authenticated') {
-    return <Navigate to='/login' replace />;
-  }
-
-  // Command EVE registration + license gate (W12). The gate is a STRUCTURAL
-  // guard: while it is required and not entitled, it replaces the protected
-  // layout entirely, so every protected route — including the index redirect and
-  // the `*` catch-all — renders the gate instead of any main surface. No route,
-  // deep link, or window reopen can reach a main surface from here.
-  if (gateLoading) {
-    return <AppLoader />;
-  }
+  // Command EVE registration + license gate (W12) — checked FIRST. The gate is a
+  // STRUCTURAL guard: while it is required and not entitled, it replaces the
+  // protected layout entirely, so every protected route — including the index
+  // redirect and the `*` catch-all — renders the gate (web login/register) instead
+  // of any main surface. No route, deep link, or window reopen can reach a main
+  // surface from here. It is fail-closed + E2E-proven, and on the Electron desktop
+  // it is the SOLE source of truth, so it precedes the auth-status redirect below.
   if (gateBlocked) {
     return (
       <Suspense fallback={<AppLoader />}>
         <RegistrationGatePage status={gateStatus} onEntitled={refreshGate} />
       </Suspense>
     );
+  }
+
+  // Auth-status backstop — WebUI ONLY. On the Electron desktop there is no web
+  // /login surface (the entitlement gate above IS the login), and desktop `status`
+  // is honest (entitlement-derived) but must NOT act as a second, independently-
+  // disagreeing redirect — that would risk a /login <-> /guid loop on a
+  // momentarily-stale status. So this redirect is scoped to non-desktop builds.
+  if (!isElectronDesktop() && status !== 'authenticated') {
+    return <Navigate to='/login' replace />;
   }
 
   // Entitled: render the main layout. Mount the Day-0 onboarding host alongside
@@ -85,7 +90,12 @@ const PanelRoute: React.FC<{ layout: React.ReactElement }> = ({ layout }) => {
       <Routes>
         <Route
           path='/login'
-          element={status === 'authenticated' ? <Navigate to='/guid' replace /> : withRouteFallback(LoginPage)}
+          element={
+            // Desktop has no web /login surface — the entitlement gate (rendered by
+            // ProtectedLayout on /guid) is the login. Send desktop to /guid so the
+            // gate decides; WebUI keeps the real LoginPage when unauthenticated.
+            isElectronDesktop() || status === 'authenticated' ? <Navigate to='/guid' replace /> : withRouteFallback(LoginPage)
+          }
         />
         <Route element={<ProtectedLayout layout={layout} />}>
           <Route index element={<Navigate to='/guid' replace />} />
@@ -122,7 +132,7 @@ const PanelRoute: React.FC<{ layout: React.ReactElement }> = ({ layout }) => {
           <Route path='/runtime' element={withRouteFallback(LocalRuntimePage)} />
           <Route path='/team-roster' element={withRouteFallback(DeinTeamPage)} />
         </Route>
-        <Route path='*' element={<Navigate to={status === 'authenticated' ? '/guid' : '/login'} replace />} />
+        <Route path='*' element={<Navigate to={isElectronDesktop() || status === 'authenticated' ? '/guid' : '/login'} replace />} />
       </Routes>
     </HashRouter>
   );

@@ -1,4 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { commandEve } from '@/common/adapter/ipcBridge';
 // M6: CSRF removed with legacy webserver — stub functions for compatibility, re-implement in M7
 const withCsrfToken = <T extends Record<string, unknown>>(data: T): T => data;
 const hasValidCsrfToken = (): boolean => true;
@@ -6,6 +7,17 @@ const clearCookie = (_name: string, _path?: string): void => {};
 const CSRF_COOKIE_NAME = 'csrf-token';
 
 type AuthStatus = 'checking' | 'authenticated' | 'unauthenticated';
+
+/**
+ * Map the Command EVE entitlement-gate bridge response to a desktop auth status.
+ * ONLY a confirmed entitled gate authenticates; every other state — and any
+ * missing/malformed/thrown response (caller passes null) — is 'unauthenticated'
+ * (FAIL-CLOSED). Exported so the mapping is unit-testable without the DOM or the
+ * module-level desktop-runtime const.
+ */
+export function deriveDesktopAuthStatus(res: { data?: { ok?: boolean; state?: string } | null } | null | undefined): AuthStatus {
+  return res?.data?.ok && res.data.state === 'entitled' ? 'authenticated' : 'unauthenticated';
+}
 
 export interface AuthUser {
   id: string;
@@ -110,8 +122,21 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
 
   const refresh = useCallback(async () => {
     if (isDesktopRuntime) {
-      setStatus('authenticated');
+      // Desktop has no web session cookie; the Command EVE entitlement gate is the
+      // source of truth. Derive auth status from it (FAIL-CLOSED) instead of
+      // hard-coding 'authenticated' — that lie made the /login route a no-op and
+      // left the entitlement gate as the ONLY gate. Blocking itself stays the
+      // entitlement gate (Router renders it gate-first); this only keeps `status`
+      // HONEST for every consumer (ProfileAvatar, Sider, logout).
+      setStatus('checking');
       setUser(null);
+      let nextStatus: AuthStatus = 'unauthenticated'; // fail-closed default
+      try {
+        nextStatus = deriveDesktopAuthStatus(await commandEve.entitlementStatus.invoke());
+      } catch {
+        nextStatus = 'unauthenticated'; // a bridge error never reports authenticated
+      }
+      setStatus(nextStatus);
       setReady(true);
       return;
     }
@@ -244,9 +269,17 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
 
   const logout = useCallback(async () => {
     if (isDesktopRuntime) {
+      // Clear the account session via the orchestrator, then RE-DERIVE status from
+      // the entitlement gate. Logout keeps the offline license (founder decision),
+      // so a still-licensed machine re-derives to 'authenticated'; an unlicensed
+      // one to 'unauthenticated' — never the old hard-coded 'authenticated' lie.
       setUser(null);
-      setStatus('authenticated');
-      setReady(true);
+      try {
+        await commandEve.authLogout.invoke();
+      } catch {
+        // best-effort session clear; status is still re-derived below
+      }
+      await refresh();
       return;
     }
 
@@ -268,7 +301,7 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
       // Clear cache on logout for security
       clearAuthCache();
     }
-  }, []);
+  }, [refresh]);
 
   const value = useMemo<AuthContextValue>(
     () => ({
