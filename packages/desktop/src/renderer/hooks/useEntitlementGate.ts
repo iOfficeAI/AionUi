@@ -75,7 +75,9 @@ export function useEntitlementGate(): EntitlementGateState {
   // Block only when the main process says the gate is required AND not entitled.
   // `required:false` (flag off / non-desktop) never blocks. `ok:true` with
   // state 'entitled' is the only unlocked state.
-  const blocked = Boolean(status && status.required && !(status.ok && status.state === 'entitled'));
+  // `=== true` on the unblock condition: a forged ok:"yes"/ok:1 with state 'entitled'
+  // must never unblock. `required` truthy already errs toward blocking (safe direction).
+  const blocked = Boolean(status && status.required && !(status.ok === true && status.state === 'entitled'));
 
   return { loading, status, blocked, refresh };
 }

@@ -37,4 +37,12 @@ describe('deriveDesktopAuthStatus — honest, fail-closed desktop auth gate', ()
   ])('fails CLOSED to unauthenticated for a missing/malformed response (%s)', (_label, res) => {
     expect(deriveDesktopAuthStatus(res as Parameters<typeof deriveDesktopAuthStatus>[0])).toBe('unauthenticated');
   });
+
+  it.each([
+    ['ok as string "yes"', { ok: 'yes', state: 'entitled' }],
+    ['ok as number 1', { ok: 1, state: 'entitled' }],
+    ['ok as object', { ok: {}, state: 'entitled' }],
+  ])('does NOT authenticate on a forged non-boolean ok (%s) — requires ok === true', (_label, data) => {
+    expect(deriveDesktopAuthStatus({ data } as Parameters<typeof deriveDesktopAuthStatus>[0])).toBe('unauthenticated');
+  });
 });

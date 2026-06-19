@@ -16,7 +16,8 @@ type AuthStatus = 'checking' | 'authenticated' | 'unauthenticated';
  * module-level desktop-runtime const.
  */
 export function deriveDesktopAuthStatus(res: { data?: { ok?: boolean; state?: string } | null } | null | undefined): AuthStatus {
-  return res?.data?.ok && res.data.state === 'entitled' ? 'authenticated' : 'unauthenticated';
+  // `ok === true` (not merely truthy): a forged ok:"yes"/ok:1 must never authenticate.
+  return res?.data?.ok === true && res.data.state === 'entitled' ? 'authenticated' : 'unauthenticated';
 }
 
 export interface AuthUser {

@@ -38,7 +38,7 @@ const withRouteFallback = (Component: React.LazyExoticComponent<React.ComponentT
   </Suspense>
 );
 
-const ProtectedLayout: React.FC<{ layout: React.ReactElement }> = ({ layout }) => {
+export const ProtectedLayout: React.FC<{ layout: React.ReactElement }> = ({ layout }) => {
   const { status } = useAuth();
   const { loading: gateLoading, status: gateStatus, blocked: gateBlocked, refresh: refreshGate } = useEntitlementGate();
 
