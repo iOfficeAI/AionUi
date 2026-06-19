@@ -6,6 +6,21 @@
     "registration": "Registration",
     "license": "License code"
   },
+  "auth": {
+    "title": "Sign in to Command EVE",
+    "subtitle": "Sign in with your Command EVE account. Sign-in briefly opens your browser — your license is then set up automatically.",
+    "login": "Sign in",
+    "register": "Register",
+    "loggingIn": "Signing in… please finish in the browser window.",
+    "haveCode": "I have a code",
+    "pasteFallback": "Sign-in not available yet? Enter your license code manually.",
+    "errors": {
+      "AUTH_TIMEOUT": "Sign-in took too long. Please try again.",
+      "STATE_MISMATCH": "Security check failed. Please try again.",
+      "OPEN_BROWSER_FAILED": "Could not open the browser. Please try again.",
+      "unknown": "Sign-in failed. You can paste your license code instead."
+    }
+  },
   "registration": {
     "title": "Register Command EVE",
     "subtitle": "One-time setup. Your details stay on this Mac — nothing is sent anywhere.",

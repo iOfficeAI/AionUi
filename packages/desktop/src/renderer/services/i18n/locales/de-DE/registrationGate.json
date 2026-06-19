@@ -6,6 +6,21 @@
     "registration": "Registrierung",
     "license": "Lizenzcode"
   },
+  "auth": {
+    "title": "Bei Command EVE anmelden",
+    "subtitle": "Melde dich mit deinem Command-EVE-Konto an. Die Anmeldung öffnet kurz deinen Browser — deine Lizenz wird danach automatisch eingerichtet.",
+    "login": "Anmelden",
+    "register": "Registrieren",
+    "loggingIn": "Anmeldung läuft… bitte schließe das Browser-Fenster ab.",
+    "haveCode": "Ich habe einen Code",
+    "pasteFallback": "Anmeldung noch nicht verfügbar? Gib deinen Lizenzcode manuell ein.",
+    "errors": {
+      "AUTH_TIMEOUT": "Die Anmeldung hat zu lange gedauert. Bitte versuche es erneut.",
+      "STATE_MISMATCH": "Sicherheitsprüfung fehlgeschlagen. Bitte versuche es erneut.",
+      "OPEN_BROWSER_FAILED": "Der Browser konnte nicht geöffnet werden. Bitte versuche es erneut.",
+      "unknown": "Die Anmeldung ist fehlgeschlagen. Du kannst stattdessen deinen Lizenzcode einfügen."
+    }
+  },
   "registration": {
     "title": "Command EVE registrieren",
     "subtitle": "Einmalige Einrichtung. Deine Angaben bleiben auf diesem Mac — es wird nichts übertragen.",

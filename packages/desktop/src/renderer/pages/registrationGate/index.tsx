@@ -31,7 +31,10 @@ import {
 } from '@/common/adapter/ipcBridge';
 import './RegistrationGatePage.css';
 
-type GateStep = 'registration' | 'license';
+// 'auth' is the PRIMARY first-run path (web login/register). 'registration' +
+// 'license' remain as the SECONDARY manual code-paste fallback flow, reached via
+// the "Ich habe einen Code" link or when the web login is not yet available.
+type GateStep = 'auth' | 'registration' | 'license';
 
 /**
  * The day-14 trial-conversion curtain destination. This routes the user OUT to
@@ -96,10 +99,48 @@ const RegistrationGatePage: React.FC<RegistrationGatePageProps> = ({ status, onE
 
   // When the user is already registered (e.g. relaunch with registration but no
   // license, or a now-expired PAID license) jump straight to the license step.
-  // A trial expiry is handled by the curtain above, not this step.
+  // Otherwise the PRIMARY first-run path is the web-login 'auth' step. A trial
+  // expiry is handled by the curtain above, not this step.
   const initialStep: GateStep =
-    !trialExpired && (status?.state === 'registered_unlicensed' || status?.state === 'expired') ? 'license' : 'registration';
+    !trialExpired && (status?.state === 'registered_unlicensed' || status?.state === 'expired') ? 'license' : 'auth';
   const [step, setStep] = useState<GateStep>(initialStep);
+
+  // Web-login (browser-loopback) flow state.
+  const [authBusy, setAuthBusy] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
+  const handleWebLogin = useCallback(
+    async (intent: 'login' | 'register') => {
+      setAuthError(null);
+      setAuthBusy(true);
+      try {
+        const response = await commandEve.authWebLogin.invoke({ intent });
+        const data = response.data;
+        if (data?.ok && data.entitled) {
+          // Gate host re-reads the main-process status and unmounts the gate.
+          await onEntitled();
+          return;
+        }
+        // Login completed but no license yet (PENDING) OR the web page / broker
+        // is not live yet ⇒ fall back to the manual code-paste flow. If we have a
+        // local registration already, jump straight to the license step.
+        if (data?.needs_paste) {
+          const knownKey = `registrationGate.auth.errors.${data.reason_code}`;
+          const translated = data.reason_code ? t(knownKey) : '';
+          setAuthError(translated && translated !== knownKey ? translated : t('registrationGate.auth.errors.unknown'));
+          setStep('registration');
+          return;
+        }
+        setAuthError(t('registrationGate.auth.errors.unknown'));
+      } catch (error) {
+        console.error('Web login bridge call failed:', error);
+        setAuthError(t('registrationGate.auth.errors.unknown'));
+        setStep('registration');
+      } finally {
+        setAuthBusy(false);
+      }
+    },
+    [onEntitled, t]
+  );
 
   // Opening the web checkout is a deliberate, low-risk action — it never touches
   // local data. Setup (memory, connections, SOPs) is preserved by definition:
@@ -349,13 +390,15 @@ const RegistrationGatePage: React.FC<RegistrationGatePageProps> = ({ status, onE
           <p className='registration-gate__subtitle'>
             {isUnconfigured
               ? t('registrationGate.unconfigured.title')
-              : step === 'registration'
-                ? t('registrationGate.registration.title')
-                : t('registrationGate.license.title')}
+              : step === 'auth'
+                ? t('registrationGate.auth.title')
+                : step === 'registration'
+                  ? t('registrationGate.registration.title')
+                  : t('registrationGate.license.title')}
           </p>
         </div>
 
-        {!isUnconfigured ? (
+        {!isUnconfigured && step !== 'auth' ? (
           <div className='registration-gate__steps' aria-hidden='true'>
             <span
               className={`registration-gate__step ${step === 'registration' ? 'registration-gate__step--active' : ''}`}
@@ -375,6 +418,50 @@ const RegistrationGatePage: React.FC<RegistrationGatePageProps> = ({ status, onE
           <div className='registration-gate__form' data-testid='registration-gate-unconfigured'>
             <p className='registration-gate__subtitle'>{t('registrationGate.unconfigured.description')}</p>
             <p className='registration-gate__hint'>{t('registrationGate.unconfigured.fallbackHint')}</p>
+          </div>
+        ) : step === 'auth' ? (
+          <div className='registration-gate__form' data-testid='registration-gate-auth'>
+            <p className='registration-gate__subtitle'>{t('registrationGate.auth.subtitle')}</p>
+
+            {authError ? (
+              <span className='registration-gate__error' role='alert' data-testid='registration-gate-auth-error'>
+                {authError}
+              </span>
+            ) : null}
+
+            <Button
+              type='primary'
+              long
+              shape='round'
+              loading={authBusy}
+              onClick={() => void handleWebLogin('login')}
+              data-testid='registration-gate-login'
+            >
+              {authBusy ? t('registrationGate.auth.loggingIn') : t('registrationGate.auth.login')}
+            </Button>
+
+            <Button
+              long
+              shape='round'
+              disabled={authBusy}
+              onClick={() => void handleWebLogin('register')}
+              data-testid='registration-gate-register'
+            >
+              {t('registrationGate.auth.register')}
+            </Button>
+
+            <button
+              type='button'
+              className='registration-gate__back'
+              onClick={() => {
+                setAuthError(null);
+                setStep('registration');
+              }}
+              disabled={authBusy}
+              data-testid='registration-gate-have-code'
+            >
+              {t('registrationGate.auth.haveCode')}
+            </button>
           </div>
         ) : step === 'registration' ? (
           <form className='registration-gate__form' onSubmit={handleRegister} data-testid='registration-gate-form'>
