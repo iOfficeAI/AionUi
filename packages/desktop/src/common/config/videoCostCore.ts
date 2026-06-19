@@ -193,8 +193,8 @@ const VIDEO_GENERATION_PATTERNS: readonly RegExp[] = [
   /\b(video|clip|reel|short|kurzvideo|tiktok|tik[-\s]?tok|animation|spot|trailer)s?\b[^.!?]{0,60}\b(generate|create|make|produce|render|animate|edit|cut|film|shoot|design|build|für\s+mich|for\s+me)\b/i,
   // EN: format/lane keywords — "text-to-video", "ai video", "video generation"
   /\b(text[-\s]?to[-\s]?video|img[-\s]?to[-\s]?video|image[-\s]?to[-\s]?video|video\s+gen(eration)?|ai\s+video|video\s+ad|promo\s+video|explainer\s+video|product\s+video)\b/i,
-  // DE: "erstelle/mach/generiere/produziere/schneide/drehe ein Video/Clip/Reel/Short"
-  /\b(erstell|erstelle?|erstellst|mach|mache|machst|generier|generiere?|generierst|produzier|produziere?|dreh|drehe|drehst|erzeug|erzeuge?|schneid|schneide|bau|baue|design|entwirf|braucht?\s+ein|will\s+ein|möchte?\s+ein|hätte?\s+gern)\b[^.!?]{0,60}\b(video|clip|reel|short|shorts|kurzvideo|tiktok|tik[-\s]?tok|animation|spot|werbespot|werbevideo|trailer|imagefilm|film|produktvideo)s?\b/i,
+  // DE: "erstelle/mach/generiere/produziere/schneide/drehe/brauche ein Video/Clip/Reel/Short"
+  /\b(erstell|erstelle|erstellst|mach|mache|machst|generier|generiere|generierst|produzier|produziere|dreh|drehe|drehst|erzeug|erzeuge|schneid|schneide|bau|baue|design|entwirf|brauch|brauche|brauchst|braucht|will|möcht|möchte|möchtest|hätte?\s+gern)\b[^.!?]{0,60}\b(video|clip|reel|short|shorts|kurzvideo|tiktok|tik[-\s]?tok|animation|spot|werbespot|werbevideo|trailer|imagefilm|film|produktvideo)s?\b/i,
   // DE: verb-after-noun — "Video erstellen/generieren/schneiden/produzieren"
   /\b(video|clip|reel|short|shorts|kurzvideo|tiktok|tik[-\s]?tok|animation|spot|werbespot|werbevideo|trailer|imagefilm|produktvideo)s?\b[^.!?]{0,60}\b(erstellen|erstell|generieren|generier|drehen|dreh|produzieren|produzier|machen|mach|erzeugen|erzeug|schneiden|schneid|bauen|bau|für\s+mich)\b/i,
 ];
