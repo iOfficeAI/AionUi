@@ -1151,6 +1151,62 @@ export interface ICommandEveLicenseWireStatusResult {
   available: boolean;
 }
 
+// ---------------------------------------------------------------------------
+// Command EVE account auth (browser-loopback, P1)
+// ---------------------------------------------------------------------------
+
+/** Whether the loopback flow is a sign-in or a sign-up (drives the web page). */
+export type ICommandEveAuthIntent = 'login' | 'register';
+
+export interface ICommandEveAuthWebLoginRequest {
+  intent: ICommandEveAuthIntent;
+}
+
+/**
+ * Result of a full browser-loopback login attempt + post-session orchestration.
+ * NEVER carries tokens — the renderer only learns the resulting gate status,
+ * whether the gate is now entitled, and whether it must offer the paste
+ * fallback (my-license still PENDING / web page not live).
+ */
+export interface ICommandEveAuthWebLoginResult {
+  version: 'command-eve-account-auth/v0';
+  ok: boolean;
+  /** True iff the entitlement gate is now `entitled`. */
+  entitled: boolean;
+  /** True iff the UI should fall back to the manual code-paste path. */
+  needs_paste: boolean;
+  reason_code?: string;
+  message?: string;
+  /** The post-flow entitlement status (drives the gate). */
+  status?: ICommandEveEntitlementStatusResult;
+  /** Minimal, non-secret account identity for the avatar/account panel. */
+  account?: { name?: string; email: string; company?: string };
+}
+
+export interface ICommandEveAuthLogoutResult {
+  version: 'command-eve-account-auth/v0';
+  ok: boolean;
+  reason_code?: string;
+}
+
+/**
+ * Local account/registration readout for the avatar + account panel. Mirrors the
+ * locally-stored registration record (name/email/company) plus whether a session
+ * exists. NEVER returns tokens. PII stays local — only the renderer that owns the
+ * chrome reads it.
+ */
+export interface ICommandEveRegistrationStatusResult {
+  version: 'command-eve-account-auth/v0';
+  ok: boolean;
+  /** True iff a local registration record exists. */
+  registered: boolean;
+  /** True iff an encrypted account session is stored (logged in). */
+  has_session: boolean;
+  name?: string;
+  email?: string;
+  company?: string;
+}
+
 export interface ICommandEveResolveInferenceProviderResult {
   /** The resolved conversation `model` provider (local-runtime or EVE cloud). */
   provider: TProviderWithModel;
@@ -1295,6 +1351,17 @@ export const commandEve = {
   // license wire string). Never returns the raw wire — only `{ available }`.
   licenseWireStatus: bridge.buildProvider<IBridgeResponse<ICommandEveLicenseWireStatusResult>, void>(
     'command-eve.license-wire-status'
+  ),
+  // Account auth (browser-loopback, P1). The whole PKCE/loopback/token flow runs
+  // in the MAIN process — the renderer only triggers it and reads back the gate
+  // status. No tokens ever cross the bridge.
+  authWebLogin: bridge.buildProvider<IBridgeResponse<ICommandEveAuthWebLoginResult>, ICommandEveAuthWebLoginRequest>(
+    'command-eve.auth-web-login'
+  ),
+  authLogout: bridge.buildProvider<IBridgeResponse<ICommandEveAuthLogoutResult>, void>('command-eve.auth-logout'),
+  // Local registration/session readout for the avatar + account panel (no tokens).
+  registrationStatus: bridge.buildProvider<IBridgeResponse<ICommandEveRegistrationStatusResult>, void>(
+    'command-eve.registration-status'
   ),
   // Resolve a picker selection into the full conversation `model` provider.
   // For an EVE tier the bearer (CEVE wire) is injected in the main process.

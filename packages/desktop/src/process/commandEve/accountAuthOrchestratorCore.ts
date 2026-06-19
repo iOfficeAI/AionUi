@@ -35,6 +35,7 @@ import {
   type CommandEveEntitlementStatusResult,
 } from './entitlementCore';
 import { COMMAND_EVE_SUPABASE_URL, resolveSupabaseAnonKey, type CommandEveAccountSession } from './desktopAuthLoopback';
+import { getFreshSession, hasAccountSession } from './accountSessionAtRest';
 
 export const REGISTER_PROFILE_URL = `${COMMAND_EVE_SUPABASE_URL}/functions/v1/register-profile`;
 export const MY_LICENSE_URL = `${COMMAND_EVE_SUPABASE_URL}/functions/v1/my-license`;
@@ -322,5 +323,56 @@ export async function activateEntitlementFromSession(
     activated: activation.ok,
     needsPaste: !activation.ok,
     reason_code: activation.ok ? undefined : (activation.reason_code as string) || 'ACTIVATION_FAILED',
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Silent reinstall / relaunch RESUME (no browser)
+// ---------------------------------------------------------------------------
+
+export interface SilentResumeResult {
+  /** 'resumed' = session was valid/refreshable and the post-flow ran;
+   *  'no-session' = nothing stored ⇒ require Login;
+   *  'refresh-dead' = refresh token rejected ⇒ require Login;
+   *  'skipped' = no session file present. */
+  outcome: 'resumed' | 'no-session' | 'refresh-dead' | 'skipped';
+  status?: CommandEveEntitlementStatusResult;
+  activated?: boolean;
+  reason_code?: string;
+}
+
+/**
+ * Startup SILENT RESUME (no browser): if a session.enc decrypts AND its refresh
+ * token is still valid → refresh → register-profile → my-license →
+ * activateEntitlement, all WITHOUT opening the browser. A dead refresh token (or
+ * no session) returns a `require-login` outcome so the gate stays on Login.
+ *
+ * Safe to call fire-and-forget on every launch: it is a no-op when no session
+ * file exists and never throws (callers ignore the rejection).
+ */
+export async function silentResumeAccountAuth(
+  userDataPath: string,
+  deps: ActivateFromSessionDeps
+): Promise<SilentResumeResult> {
+  if (!hasAccountSession(userDataPath)) {
+    return { outcome: 'skipped' };
+  }
+  const fresh = await getFreshSession(userDataPath, {
+    fetch: deps.fetch,
+    anonKey: deps.anonKey,
+    now: deps.now,
+  });
+  if (!fresh.ok || !fresh.session) {
+    // A dead/rejected refresh token ⇒ require Login. A transient network failure
+    // also lands here but is reported with its own reason_code so the caller can
+    // decide whether to retry vs force re-login.
+    return { outcome: 'refresh-dead', reason_code: fresh.reason_code };
+  }
+  const result = await activateEntitlementFromSession(userDataPath, fresh.session, deps);
+  return {
+    outcome: 'resumed',
+    status: result.status,
+    activated: result.activated,
+    reason_code: result.reason_code,
   };
 }

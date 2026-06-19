@@ -18,9 +18,20 @@ import {
 import {
   activateEntitlement,
   getEntitlementStatus,
+  readRegistration,
   registerTenant,
   COMMAND_EVE_ENTITLEMENT_BRIDGE_VERSION,
 } from '@process/commandEve/entitlementCore';
+import { runDesktopAuthLoopback, type DesktopAuthIntent } from '@process/commandEve/desktopAuthLoopback';
+import {
+  hasAccountSession,
+  readAccountSession,
+  revokeAndClearSession,
+} from '@process/commandEve/accountSessionAtRest';
+import {
+  activateEntitlementFromSession,
+  silentResumeAccountAuth,
+} from '@process/commandEve/accountAuthOrchestratorCore';
 import {
   applyKanbanMarketingCardAction,
   approveKanbanMarketingOutput,
@@ -1287,6 +1298,155 @@ export function initCommandEveBridge(): void {
     }
   });
 
+  // -------------------------------------------------------------------------
+  // Account auth (browser-loopback, P1). The whole PKCE/loopback/token exchange
+  // + post-session orchestration runs HERE in the main process; the renderer
+  // only triggers it and reads back the gate status. Tokens never cross the
+  // bridge. PREPARED: the web /auth/desktop page + desktop-auth-broker are not
+  // live yet, so a real login returns a typed BROKER_HTTP_*/OPEN failure and the
+  // UI keeps the paste fallback — this handler is safe to ship now.
+  // -------------------------------------------------------------------------
+  bridge
+    .buildProvider('command-eve.auth-web-login')
+    .provider(async (request?: { intent?: DesktopAuthIntent }) => {
+      const version = 'command-eve-account-auth/v0' as const;
+      try {
+        const intent: DesktopAuthIntent = request?.intent === 'register' ? 'register' : 'login';
+        const userDataPath = getDataPath();
+
+        // Open the system browser via Electron shell (lazy require so this module
+        // stays importable in non-Electron/test contexts).
+        const openExternal = (url: string): Promise<void> => {
+          // eslint-disable-next-line @typescript-eslint/no-require-imports
+          const { shell } = require('electron') as { shell?: { openExternal(u: string): Promise<void> } };
+          if (!shell?.openExternal) return Promise.reject(new Error('shell.openExternal unavailable'));
+          return shell.openExternal(url);
+        };
+
+        const loopback = await runDesktopAuthLoopback(intent, { openExternal });
+        if (!loopback.ok || !loopback.session) {
+          return {
+            success: false,
+            msg: loopback.reason_code || 'AUTH_FAILED',
+            data: {
+              version,
+              ok: false,
+              entitled: false,
+              // The user has no session ⇒ no automatic activation possible; offer
+              // the manual paste path so a pre-broker build is still usable.
+              needs_paste: true,
+              reason_code: loopback.reason_code,
+              message: loopback.message,
+            },
+          };
+        }
+
+        const session = loopback.session;
+        // Persist the session at rest (keychain, fail-closed) so silent resume
+        // works on next launch.
+        const { storeAccountSession } = await import('@process/commandEve/accountSessionAtRest');
+        storeAccountSession(userDataPath, session);
+
+        const result = await activateEntitlementFromSession(userDataPath, session, {
+          storeLicenseWire: (p, wire) => {
+            try {
+              storeLicenseWire(p, wire);
+            } catch {
+              // non-fatal
+            }
+          },
+        });
+
+        return {
+          success: result.activated,
+          msg: result.activated ? undefined : result.reason_code,
+          data: {
+            version,
+            ok: result.activated,
+            entitled: result.status.state === 'entitled',
+            needs_paste: result.needsPaste,
+            reason_code: result.reason_code,
+            status: result.status,
+            account: { name: session.user.name, email: session.user.email, company: session.user.company },
+          },
+        };
+      } catch (error) {
+        return {
+          success: false,
+          msg: error instanceof Error ? error.message : 'Command EVE auth-web-login bridge failed.',
+          data: {
+            version,
+            ok: false,
+            entitled: false,
+            needs_paste: true,
+            reason_code: 'AUTH_WEB_LOGIN_BRIDGE_FAILED',
+            message: error instanceof Error ? error.message : undefined,
+          },
+        };
+      }
+    });
+
+  // Logout: revoke the GoTrue session + delete session.enc + clear memory. Per
+  // founder decision the entitlement.json + license-wire are KEPT so the app
+  // stays offline-usable after logout.
+  bridge.buildProvider('command-eve.auth-logout').provider(async () => {
+    const version = 'command-eve-account-auth/v0' as const;
+    try {
+      await revokeAndClearSession(getDataPath());
+      return { success: true, data: { version, ok: true } };
+    } catch (error) {
+      // Even on error the local session file is best-effort cleared inside
+      // revokeAndClearSession; report ok:false but never throw the chrome.
+      return {
+        success: false,
+        msg: error instanceof Error ? error.message : 'Command EVE auth-logout bridge failed.',
+        data: { version, ok: false, reason_code: 'AUTH_LOGOUT_BRIDGE_FAILED' },
+      };
+    }
+  });
+
+  // Local registration/session readout for the avatar + account panel. NEVER
+  // returns tokens — only the locally-stored name/email/company + presence flags.
+  bridge.buildProvider('command-eve.registration-status').provider(async () => {
+    const version = 'command-eve-account-auth/v0' as const;
+    try {
+      const userDataPath = getDataPath();
+      const registration = readRegistration(userDataPath);
+      const hasSession = hasAccountSession(userDataPath);
+      // Prefer the session's user identity when present (it is the source of
+      // truth for the logged-in account); fall back to the local registration.
+      let name = registration?.name;
+      let email = registration?.email;
+      let company = registration?.company;
+      if (hasSession) {
+        const read = readAccountSession(userDataPath);
+        if (read.ok && read.session) {
+          email = read.session.user.email || email;
+          name = read.session.user.name || name;
+          company = read.session.user.company || company;
+        }
+      }
+      return {
+        success: true,
+        data: {
+          version,
+          ok: true,
+          registered: Boolean(registration),
+          has_session: hasSession,
+          ...(name ? { name } : {}),
+          ...(email ? { email } : {}),
+          ...(company ? { company } : {}),
+        },
+      };
+    } catch (error) {
+      return {
+        success: false,
+        msg: error instanceof Error ? error.message : 'Command EVE registration-status bridge failed.',
+        data: { version, ok: false, registered: false, has_session: false },
+      };
+    }
+  });
+
   // Resolve a picker selection ("Privat lokal" tier OR "EVE Inference" tier)
   // into the full TProviderWithModel used as the conversation `model`. For an
   // EVE tier we inject the stored CEVE license WIRE STRING here in the MAIN
@@ -1481,4 +1641,26 @@ export function initCommandEveBridge(): void {
         };
       }
     });
+
+  // SILENT REINSTALL / relaunch RESUME (no browser): on bridge init, if a
+  // session.enc decrypts AND its refresh token is valid, refresh → register-
+  // profile → my-license → activateEntitlement WITHOUT any browser. The renderer
+  // gate re-reads entitlement-status on mount, so a resumed entitlement opens the
+  // gate automatically. Fire-and-forget + a no-op when no session is stored;
+  // never blocks bridge init and never throws the chrome.
+  void (async () => {
+    try {
+      await silentResumeAccountAuth(getDataPath(), {
+        storeLicenseWire: (p, wire) => {
+          try {
+            storeLicenseWire(p, wire);
+          } catch {
+            // non-fatal
+          }
+        },
+      });
+    } catch {
+      // A dead refresh / network failure just leaves the gate on Login.
+    }
+  })();
 }
