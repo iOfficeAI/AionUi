@@ -113,13 +113,32 @@ function resolveAppEntitlementsPlist(env = process.env) {
 // detection fallback in enumerateMachOFiles (extension + bin/ exec come first),
 // so a missing/odd codesign is harmless — return false on any doubt.
 function probeMachOWithCodesign(filePath) {
+  // Read the first 4 bytes and test for a Mach-O / universal-binary magic number.
+  // This is DETERMINISTIC. The previous heuristic ran `codesign -d` and treated any
+  // output containing "not signed" as proof of a Mach-O — but codesign emits
+  // "...is not signed at all" for PLAIN DATA files too, so C headers like
+  // python/include/python3.12/iterobject.h false-positived into the sign list and
+  // broke the whole deep-sign (codesign cannot sign a .h → the loop aborted BEFORE
+  // re-sealing the .app → stale-seal "file modified" on the already-re-signed .so).
+  // Magic-byte detection never mis-classifies a header/script/.py as signable.
   try {
-    const result = spawnSync('codesign', ['-d', '--verbose=1', filePath], { encoding: 'utf8' });
-    const text = `${result.stdout || ''}${result.stderr || ''}`;
-    if (result.status === 0) return true;
-    // "code object is not signed at all" still proves it IS a Mach-O.
-    if (/not signed/i.test(text)) return true;
-    return false;
+    const fd = fs.openSync(filePath, 'r');
+    try {
+      const buf = Buffer.alloc(4);
+      const n = fs.readSync(fd, buf, 0, 4, 0);
+      if (n < 4) return false;
+      const magic = buf.readUInt32BE(0);
+      return (
+        magic === 0xfeedface || // Mach-O 32-bit
+        magic === 0xfeedfacf || // Mach-O 64-bit
+        magic === 0xcefaedfe || // Mach-O 32-bit byte-swapped
+        magic === 0xcffaedfe || // Mach-O 64-bit byte-swapped
+        magic === 0xcafebabe || // universal/fat
+        magic === 0xbebafeca    // universal/fat byte-swapped
+      );
+    } finally {
+      fs.closeSync(fd);
+    }
   } catch {
     return false;
   }
@@ -168,8 +187,24 @@ function deepSignBundledPython(appPath, env = process.env, deps = {}) {
     entitlementsPlist: pythonEntitlements,
   });
 
+  // Resilient: a single non-signable file (a false-positive non-Mach-O that slips the
+  // probe, or a transient codesign hiccup) must NOT abort the deep-sign before the outer
+  // .app is re-sealed — an aborted deep-sign leaves the .app seal STALE relative to the
+  // .so already re-signed ("file modified" → notarization rejects, the exact failure that
+  // blocked alpha.9). Skip-and-log instead; the re-seal below ALWAYS runs, and a genuinely
+  // unsigned Mach-O still surfaces loudly at the notarization gate (never silent).
+  const skipped = [];
   for (const step of plan) {
-    runCodesign(step.args);
+    try {
+      runCodesign(step.args);
+    } catch (err) {
+      skipped.push(step.filePath);
+      const msg = err && err.message ? String(err.message).split('\n')[0] : String(err);
+      console.warn(`  ⚠ deep-sign skipped (not signable): ${step.filePath} — ${msg}`);
+    }
+  }
+  if (skipped.length) {
+    console.warn(`Bundled-python deep-sign: skipped ${skipped.length} non-signable file(s); continuing to re-seal the .app.`);
   }
 
   // Re-seal the outer .app so its signature covers the re-signed python tree.
