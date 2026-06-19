@@ -52,7 +52,8 @@ import { useAcpInitialMessage } from './useAcpInitialMessage';
 import type { UseAcpMessageReturn } from './useAcpMessage';
 import VideoCostWall from '@/renderer/components/billing/VideoCostWall';
 import { useVideoCostWall } from '@/renderer/hooks/useVideoCostWall';
-import { isVideoGenerationRequest } from '@/common/config/videoCostCore';
+import { isVideoLaneRequest, buildResolvedVideoMessage, VIDEO_LANE_AGENT_ID } from '@/common/config/videoCostCore';
+import { addressesVideoMarketer } from '@/common/config/eveTeamRoster';
 
 const useAcpSendBoxDraft = getSendBoxDraftHook('acp', {
   _type: 'acp',
@@ -416,13 +417,31 @@ Please check your local CLI tool authentication status`,
     clearFiles();
     emitter.emit('acp.selected.file.clear');
 
-    // Heavy-lane guardrail: in a Command EVE conversation, a video-GENERATION
-    // request is routed through the cost-wall first — `requestVideo` opens the
-    // wall (transparent cost preview) and only fires the real dispatch from the
-    // user's explicit confirm. Non-video sends fall straight through.
-    if (isEveConversation && isVideoGenerationRequest(message)) {
-      videoCostWall.requestVideo({}, () => {
-        void dispatchMessage(message, allFiles);
+    // Heavy-lane guardrail (DUX-6, FAIL-SAFE): in a Command EVE conversation a
+    // request that reaches the heavy video lane by ANY path is routed through the
+    // cost-wall first. The gate is NOT the NL regex alone — it ALSO fires when the
+    // message addresses the videomarketer worker by name/role (and, where a
+    // resolver surfaces it, the resolved video capability). A regex false-negative
+    // can no longer silently bypass the most expensive lane.
+    const routesToVideo = isEveConversation &&
+      isVideoLaneRequest({
+        message,
+        // The videomarketer is addressed in-prompt today; surface that as a
+        // resolved-worker signal so the wall fires even when the verb/noun regex
+        // misses. (A backend resolver may later pass resolvedVideoCapability.)
+        resolvedAgentId: addressesVideoMarketer(message) ? VIDEO_LANE_AGENT_ID : null,
+      });
+
+    if (routesToVideo) {
+      // `requestVideo` opens the wall (transparent cost preview) and only fires
+      // the real dispatch from the user's explicit confirm. DUX-5: on confirm we
+      // dispatch the RESOLVED video request — the original text PLUS an explicit
+      // video directive carrying the confirmed tier/resolution/credit ceiling —
+      // not the unmodified original message. Confirming now actually routes a
+      // video request at exactly the spec the user approved.
+      videoCostWall.requestVideo({}, (resolved) => {
+        const resolvedMessage = buildResolvedVideoMessage(message, resolved);
+        void dispatchMessage(resolvedMessage, allFiles);
       });
       return;
     }

@@ -268,6 +268,34 @@ export const EVE_TEAM_ROSTER: readonly EveTeamRole[] = [
 /** Roster role ids, as a set, for fast membership checks. */
 const ROSTER_AGENT_IDS: ReadonlySet<string> = new Set(EVE_TEAM_ROSTER.map((r) => r.agent_id));
 
+/** The heavy GPU video-lane worker's stable agent id (the videomarketer). */
+export const VIDEO_MARKETER_AGENT_ID = 'video-marketer';
+
+/**
+ * Phrases that ADDRESS the videomarketer worker by name/role in a chat message
+ * (DE + EN). Used by the send-path as a fail-safe video-lane signal (DUX-6): a
+ * message that explicitly hands the task to the videomarketer reaches the heavy
+ * lane even if the NL video-intent regex misses, so the cost-wall still fires.
+ * Matched case-insensitively against the trimmed message.
+ */
+const VIDEO_MARKETER_ADDRESS_PATTERNS: readonly RegExp[] = [
+  /@?\bvideomarketer\b/i,
+  /@?\bvideo[-\s]?marketer\b/i,
+  /\bvideo[-\s]?marketing\b/i,
+];
+
+/**
+ * True iff the message explicitly addresses the videomarketer worker by name or
+ * role. Pure + dependency-light. This is a HELPFUL extra signal for the video
+ * cost-wall fail-safe — never the sole gate (the resolved capability/worker is).
+ */
+export function addressesVideoMarketer(message: string | null | undefined): boolean {
+  if (typeof message !== 'string') return false;
+  const text = message.trim();
+  if (text.length === 0) return false;
+  return VIDEO_MARKETER_ADDRESS_PATTERNS.some((re) => re.test(text));
+}
+
 /** True iff `id` is a known roster role id (the system default `eve` is NOT a roster role). */
 export function isEveTeamAgentId(id: string | null | undefined): boolean {
   return typeof id === 'string' && ROSTER_AGENT_IDS.has(id);

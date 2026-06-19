@@ -31,12 +31,14 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  addressesVideoMarketer,
   EVE_SYSTEM_AGENT_ID,
   EVE_TEAM_ROSTER,
   eveTeamWorkerLabel,
   findEveTeamRole,
   isEveTeamAgentId,
   resolveAttributionAgentId,
+  VIDEO_MARKETER_AGENT_ID,
   type EveTeamRoleTier,
 } from '@/common/config/eveTeamRoster';
 
@@ -165,5 +167,27 @@ describe('eveTeamRoster — eveTeamWorkerLabel (Dein Team verteilt die Arbeit)',
 
   it('renders an unknown non-empty id verbatim (never hides the activity)', () => {
     expect(eveTeamWorkerLabel('some-future-worker')).toBe('some-future-worker');
+  });
+});
+
+describe('eveTeamRoster — addressesVideoMarketer (DUX-6 fail-safe signal)', () => {
+  it('exposes the videomarketer agent id and it matches the roster role', () => {
+    expect(VIDEO_MARKETER_AGENT_ID).toBe('video-marketer');
+    expect(findEveTeamRole(VIDEO_MARKETER_AGENT_ID)).toBeDefined();
+  });
+
+  it('detects the videomarketer addressed by name/role (DE + EN, @ + spacing)', () => {
+    expect(addressesVideoMarketer('@Videomarketer mach ein Reel')).toBe(true);
+    expect(addressesVideoMarketer('Videomarketer, plane Shorts')).toBe(true);
+    expect(addressesVideoMarketer('lass den video-marketer ran')).toBe(true);
+    expect(addressesVideoMarketer('hand this to the Video Marketer')).toBe(true);
+    expect(addressesVideoMarketer('starte das Video-Marketing')).toBe(true);
+  });
+
+  it('does NOT fire for an unrelated message or empty input', () => {
+    expect(addressesVideoMarketer('schreib einen Blogpost')).toBe(false);
+    expect(addressesVideoMarketer('')).toBe(false);
+    expect(addressesVideoMarketer(null)).toBe(false);
+    expect(addressesVideoMarketer(undefined)).toBe(false);
   });
 });

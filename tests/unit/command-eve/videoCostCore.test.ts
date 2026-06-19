@@ -18,6 +18,7 @@
 
 import { describe, expect, it } from 'vitest';
 import {
+  buildResolvedVideoMessage,
   buildVideoSubmitGate,
   DEFAULT_VIDEO_DURATION_SECONDS,
   DEFAULT_VIDEO_TIER_ID,
@@ -25,6 +26,9 @@ import {
   getVideoTier,
   isExplicitUpgrade,
   isVideoGenerationRequest,
+  isVideoLaneRequest,
+  requestRoutesToVideoLane,
+  VIDEO_LANE_AGENT_ID,
   VIDEO_TIERS,
 } from '@/common/config/videoCostCore';
 
@@ -55,6 +59,26 @@ describe('VIDEO_TIERS — default + upgrade shape', () => {
     expect(hd.creditsPerSecond).toBeGreaterThan(fast.creditsPerSecond);
   });
 
+  // DUX-2: the per-second credit rate MUST equal the backend Seedance debit
+  // (1 credit = 1 US-cent). SSOT = eve-app `eve-model-registry` Seedance
+  // usd_price: Fast/720p $0.2419/s → ceil 24; Standard/1080p $0.682/s → ceil 68.
+  // The prior 8/20 figures under-stated the real charge by ~3× (dishonest
+  // preview). If the registry usd_price changes, update BOTH the registry and
+  // VIDEO_TIERS, and this pin.
+  it('pins per-second credits to the CALIBRATED backend Seedance rate (1 credit = 1 US-cent)', () => {
+    expect(getVideoTier('fast').creditsPerSecond).toBe(24); // ceil($0.2419/s × 100)
+    expect(getVideoTier('hd').creditsPerSecond).toBe(68); //   ceil($0.682/s × 100)
+  });
+
+  it('the calibrated rates are no LONGER the old ~3× under-stated 8/20', () => {
+    // Regression guard: the honesty bug was the preview being ~3× below debit.
+    expect(getVideoTier('fast').creditsPerSecond).not.toBe(8);
+    expect(getVideoTier('hd').creditsPerSecond).not.toBe(20);
+    // And the calibrated rates are within ~1 credit of the registry USD cents.
+    expect(getVideoTier('fast').creditsPerSecond).toBeCloseTo(24.19, 0);
+    expect(getVideoTier('hd').creditsPerSecond).toBeCloseTo(68.2, 0);
+  });
+
   it('getVideoTier falls back to the default tier for an unknown id', () => {
     // @ts-expect-error — exercising the runtime fallback for a bad id.
     expect(getVideoTier('nope').isDefault).toBe(true);
@@ -72,15 +96,15 @@ describe('estimateVideoCost — preview math', () => {
     expect(preview.durationSeconds).toBe(DEFAULT_VIDEO_DURATION_SECONDS);
     expect(preview.tier.id).toBe('fast');
     expect(preview.isUpgrade).toBe(false);
-    // 5s × 8 credits/s = 40.
-    expect(preview.estimatedCredits).toBe(40);
+    // CALIBRATED: 5s × 24 credits/s = 120 (Seedance Fast 720p, matches debit).
+    expect(preview.estimatedCredits).toBe(120);
   });
 
   it('rounds the estimate UP so the preview never under-states', () => {
-    // 3.2s × 8 = 25.6 → ceil(duration) 4s × 8 = 32 (duration ceil first).
+    // 3.2s → ceil(duration) 4s × 24 credits/s = 96 (duration ceil first).
     const preview = estimateVideoCost({ durationSeconds: 3.2 });
     expect(preview.durationSeconds).toBe(4);
-    expect(preview.estimatedCredits).toBe(32);
+    expect(preview.estimatedCredits).toBe(96);
   });
 
   it('floors a degenerate (0/negative) duration to the default clip length', () => {
@@ -165,5 +189,103 @@ describe('isVideoGenerationRequest — high-precision generation-intent detectio
     expect(isVideoGenerationRequest('   ')).toBe(false);
     expect(isVideoGenerationRequest(null)).toBe(false);
     expect(isVideoGenerationRequest(undefined)).toBe(false);
+  });
+
+  // DUX-6: the hardened classifier must catch MORE real video-intent phrasings
+  // (ad/spot/trailer/promo formats, more verbs, both word orders) so fewer heavy
+  // requests slip past — without tripping on a mere mention.
+  it('detects the broadened video-intent phrasings (DUX-6 recall)', () => {
+    expect(isVideoGenerationRequest('schneide mir einen Werbespot für Instagram')).toBe(true);
+    expect(isVideoGenerationRequest('mach ein Produktvideo für die Landingpage')).toBe(true);
+    expect(isVideoGenerationRequest('ich brauche ein Video für den Launch')).toBe(true);
+    expect(isVideoGenerationRequest('cut a promo video for the product')).toBe(true);
+    expect(isVideoGenerationRequest('whip up a TikTok ad for us')).toBe(true);
+    expect(isVideoGenerationRequest('design a trailer for the campaign')).toBe(true);
+    expect(isVideoGenerationRequest('a product video for me — create it')).toBe(true);
+  });
+
+  it('still does NOT trip on mere mentions after broadening', () => {
+    expect(isVideoGenerationRequest('schau dir dieses Video an')).toBe(false);
+    expect(isVideoGenerationRequest('the trailer was great, thanks')).toBe(false);
+    expect(isVideoGenerationRequest('what time is the ad meeting?')).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// (6) FAIL-SAFE video-lane gate (DUX-6) — not the NL regex alone
+// ---------------------------------------------------------------------------
+
+describe('requestRoutesToVideoLane — fail-safe gate on the resolved capability/worker', () => {
+  it('fires when the resolver explicitly flags the video capability (regex irrelevant)', () => {
+    // A message the NL regex would MISS, but the resolver classified as video.
+    expect(requestRoutesToVideoLane({ message: 'do the thing we talked about', resolvedVideoCapability: true })).toBe(true);
+  });
+
+  it('fires when the request is addressed/resolved to the videomarketer agent', () => {
+    expect(requestRoutesToVideoLane({ message: 'handle it', resolvedAgentId: VIDEO_LANE_AGENT_ID })).toBe(true);
+    expect(VIDEO_LANE_AGENT_ID).toBe('video-marketer');
+  });
+
+  it('fires when the resolved worker owns a video-lane skill', () => {
+    expect(requestRoutesToVideoLane({ message: 'go', resolvedSkills: ['storyboard'] })).toBe(true);
+    expect(requestRoutesToVideoLane({ message: 'go', resolvedSkills: ['social-video', 'copywriting'] })).toBe(true);
+  });
+
+  it('falls back to the NL classifier as a LAST resort when no resolver signal', () => {
+    expect(requestRoutesToVideoLane({ message: 'Erstelle ein Video für die Kampagne' })).toBe(true);
+  });
+
+  it('does NOT fire for a plain non-video request with no video signal at all', () => {
+    expect(requestRoutesToVideoLane({ message: 'write a blog post about marketing' })).toBe(false);
+    expect(requestRoutesToVideoLane({ message: 'handle it', resolvedAgentId: 'content-writer' })).toBe(false);
+    expect(requestRoutesToVideoLane({ message: 'go', resolvedSkills: ['copywriting'] })).toBe(false);
+  });
+
+  it('isVideoLaneRequest is the readable alias of the same gate', () => {
+    expect(isVideoLaneRequest({ resolvedVideoCapability: true })).toBe(true);
+    expect(isVideoLaneRequest({ message: 'just chatting' })).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// (7) Resolved video message on CONFIRM (DUX-5)
+// ---------------------------------------------------------------------------
+
+describe('buildResolvedVideoMessage — confirm carries the resolved tier/resolution/cost', () => {
+  it('appends an explicit video directive with the resolved spec (not the bare text)', () => {
+    const out = buildResolvedVideoMessage('Mach ein Reel für den Launch', { tierId: 'fast', estimatedCredits: 120 });
+    expect(out).toContain('Mach ein Reel für den Launch');
+    expect(out).toContain('[EVE:VIDEO ');
+    expect(out).toContain('tier=fast');
+    expect(out).toContain('resolution=720p');
+    expect(out).toContain('quality=fast');
+    expect(out).toContain('credits<=120');
+  });
+
+  it('carries the 1080p upgrade resolution + higher cost when the user upgraded', () => {
+    const out = buildResolvedVideoMessage('Make a launch video', { tierId: 'hd', estimatedCredits: 340 });
+    expect(out).toContain('tier=hd');
+    expect(out).toContain('resolution=1080p');
+    expect(out).toContain('quality=hd');
+    expect(out).toContain('credits<=340');
+  });
+
+  it('is idempotent — never double-stamps the directive', () => {
+    const once = buildResolvedVideoMessage('clip pls', { tierId: 'fast', estimatedCredits: 120 });
+    const twice = buildResolvedVideoMessage(once, { tierId: 'hd', estimatedCredits: 999 });
+    expect(twice).toBe(once);
+    expect((twice.match(/\[EVE:VIDEO /g) ?? []).length).toBe(1);
+  });
+
+  it('still emits the directive even when the original text is empty', () => {
+    const out = buildResolvedVideoMessage('', { tierId: 'fast', estimatedCredits: 120 });
+    expect(out.startsWith('[EVE:VIDEO ')).toBe(true);
+  });
+
+  it('the resolved message DIFFERS from the unmodified original (the DUX-5 bug)', () => {
+    const original = 'Erstelle ein Kurzvideo';
+    const resolved = buildResolvedVideoMessage(original, { tierId: 'hd', estimatedCredits: 340 });
+    // Confirming must NOT just re-fire the original text — it carries the spec.
+    expect(resolved).not.toBe(original);
   });
 });
