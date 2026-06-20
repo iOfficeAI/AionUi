@@ -3,10 +3,12 @@ import type { TFunction } from 'i18next';
 import React, { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 
-const AIONUI_DOWNLOAD_URL = 'https://www.aionui.com/';
+// Command EVE brand: the "installation incomplete → download latest" prompt sends the
+// user to OUR download page, never the upstream AionUi site (was https://www.aionui.com/).
+const COMMAND_EVE_DOWNLOAD_URL = 'https://command-eve.com/';
 
 export function openDownloadLatest(): void {
-  window.open(AIONUI_DOWNLOAD_URL, '_blank', 'noopener,noreferrer');
+  window.open(COMMAND_EVE_DOWNLOAD_URL, '_blank', 'noopener,noreferrer');
 }
 
 export function getInstallationIntegrityTitle(t: TFunction): string {
