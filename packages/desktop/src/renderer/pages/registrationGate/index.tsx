@@ -35,6 +35,12 @@ import './RegistrationGatePage.css';
 // the jank); the glass panel's backdrop-blur is computed once over a still frame
 // and cached. Swap to './assets/gate-bg-alt.jpg' for the liquid-ribbon variant.
 import gateBackground from './assets/gate-bg.jpg';
+// Seamless FLF morph-loop (A->B->D->A, 12s, OpenRouter Seedance 2.0 Fast). webm
+// (vp9, 717K) is preferred; mp4 (h264) is the fallback. The static jpg above stays
+// as the deepest poster/fallback if video can't play. Continuous gentle motion.
+import gateLoopWebm from './assets/gate-loop.webm';
+import gateLoopMp4 from './assets/gate-loop.mp4';
+import gateLoopPoster from './assets/gate-loop-poster.jpg';
 
 // 'auth' is the PRIMARY first-run path (web login/register). 'registration' +
 // 'license' remain as the SECONDARY manual code-paste fallback flow, reached via
@@ -309,7 +315,21 @@ const RegistrationGatePage: React.FC<RegistrationGatePageProps> = ({ status, onE
       className='registration-gate__bg'
       style={{ backgroundImage: `url(${gateBackground})` }}
       aria-hidden='true'
-    />
+    >
+      <video
+        className='registration-gate__bg-video'
+        autoPlay
+        muted
+        loop
+        playsInline
+        preload='auto'
+        poster={gateLoopPoster}
+        tabIndex={-1}
+      >
+        <source src={gateLoopWebm} type='video/webm' />
+        <source src={gateLoopMp4} type='video/mp4' />
+      </video>
+    </div>
   );
 
   const languageToggle = (
