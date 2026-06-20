@@ -95,7 +95,10 @@ const splitLocationSuffix = (filePath: string): Omit<LocalFileLinkReference, 'ra
   };
 };
 
-export const resolveLocalFileLinkReference = (rawHref: string, resolvedHref?: string): LocalFileLinkReference | null => {
+export const resolveLocalFileLinkReference = (
+  rawHref: string,
+  resolvedHref?: string
+): LocalFileLinkReference | null => {
   const href = safeDecodeURIComponent((rawHref || resolvedHref || '').trim());
   if (!href) return null;
 

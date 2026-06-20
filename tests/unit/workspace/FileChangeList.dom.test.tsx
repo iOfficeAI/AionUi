@@ -104,10 +104,7 @@ describe('FileChangeList', () => {
     fireEvent.click(screen.getByRole('button', { name: /src\/app\.ts/ }));
 
     await waitFor(() => {
-      expect(screen.getByTestId('diff-viewer')).toHaveAttribute(
-        'data-file-path',
-        'C:\\Users\\demo\\repo\\src\\app.ts'
-      );
+      expect(screen.getByTestId('diff-viewer')).toHaveAttribute('data-file-path', 'C:\\Users\\demo\\repo\\src\\app.ts');
     });
     expect(ipcBridge.fs.readFile.invoke).toHaveBeenCalledWith({
       path: 'C:\\Users\\demo\\repo\\src\\app.ts',
