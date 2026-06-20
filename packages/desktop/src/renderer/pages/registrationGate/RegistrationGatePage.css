@@ -1,3 +1,10 @@
+/* ============================================================================
+   Command EVE — first-run gate. The "we are the future" moment: a deep, living
+   aurora behind a frosted-glass panel. Premium, calm, unmistakably ours.
+   (Seedance cinematic loop can later slot in as a <video> behind the aurora —
+   the glass panel + palette already assume a moving backdrop.)
+   ========================================================================== */
+
 .registration-gate {
   position: relative;
   display: flex;
@@ -5,39 +12,74 @@
   justify-content: center;
   min-height: 100vh;
   padding: 32px 20px;
-  overflow-y: auto;
-  color: #0b1220;
+  overflow: hidden;
+  isolation: isolate;
+  color: #e6edf6;
   font-family:
     Inter,
     -apple-system,
     BlinkMacSystemFont,
     'Segoe UI',
     sans-serif;
-  background: #fffdfa;
+  background:
+    radial-gradient(150% 120% at 50% -10%, #0e1a33 0%, #070d1b 52%, #04060e 100%);
+}
+
+.registration-gate::before,
+.registration-gate::after {
+  content: '';
+  position: absolute;
+  inset: -25%;
+  z-index: 0;
+  pointer-events: none;
+  filter: blur(64px) saturate(135%);
+  will-change: transform;
 }
 
 .registration-gate::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
+  opacity: 0.72;
   background:
-    radial-gradient(circle at 50% 32%, rgba(249, 115, 22, 0.1), transparent 24%),
-    radial-gradient(circle at 60% 46%, rgba(251, 146, 60, 0.06), transparent 30%);
+    radial-gradient(34% 42% at 26% 28%, rgba(249, 115, 22, 0.55), transparent 60%),
+    radial-gradient(32% 38% at 74% 22%, rgba(56, 132, 246, 0.42), transparent 62%),
+    radial-gradient(42% 50% at 66% 80%, rgba(139, 92, 246, 0.40), transparent 60%);
+  animation: gate-aurora-a 28s ease-in-out infinite alternate;
+}
+
+.registration-gate::after {
+  opacity: 0.55;
+  background:
+    radial-gradient(30% 34% at 80% 60%, rgba(249, 115, 22, 0.32), transparent 60%),
+    radial-gradient(36% 44% at 18% 70%, rgba(45, 212, 230, 0.30), transparent 62%);
+  animation: gate-aurora-b 36s ease-in-out infinite alternate;
+}
+
+@keyframes gate-aurora-a {
+  0% { transform: translate3d(-4%, -2%, 0) scale(1); }
+  100% { transform: translate3d(6%, 4%, 0) scale(1.14); }
+}
+@keyframes gate-aurora-b {
+  0% { transform: translate3d(4%, 3%, 0) scale(1.06); }
+  100% { transform: translate3d(-6%, -4%, 0) scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .registration-gate::before,
+  .registration-gate::after { animation: none; }
 }
 
 .registration-gate__card {
   position: relative;
   z-index: 1;
-  width: min(100%, 460px);
-  padding: 34px 32px 28px;
-  border: 1px solid rgba(226, 232, 240, 0.92);
-  border-radius: 20px;
-  background: linear-gradient(180deg, #ffffff 0%, rgba(248, 250, 252, 0.82) 100%);
+  width: min(100%, 468px);
+  padding: 36px 34px 30px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 24px;
+  background: rgba(13, 21, 38, 0.46);
+  -webkit-backdrop-filter: blur(44px) saturate(160%);
+  backdrop-filter: blur(44px) saturate(160%);
   box-shadow:
-    0 1px 2px rgba(15, 23, 42, 0.04),
-    0 18px 48px rgba(15, 23, 42, 0.08);
+    0 1px 0 rgba(255, 255, 255, 0.10) inset,
+    0 0 0 1px rgba(255, 255, 255, 0.02),
+    0 30px 80px rgba(0, 0, 0, 0.60);
 }
 
 .registration-gate__lang-toggle {
@@ -46,53 +88,42 @@
   gap: 6px;
   margin-bottom: 8px;
 }
-
 .registration-gate__lang-option {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 4px 10px;
-  border: 1px solid rgba(226, 232, 240, 0.92);
+  padding: 4px 11px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 999px;
-  background: #ffffff;
-  color: #475569;
+  background: rgba(255, 255, 255, 0.05);
+  color: #aeb9c9;
   font-size: 12px;
   line-height: 16px;
   cursor: pointer;
-  transition:
-    border-color 0.15s ease,
-    color 0.15s ease;
+  transition: border-color 0.18s ease, color 0.18s ease, background 0.18s ease;
 }
-
+.registration-gate__lang-option:hover { background: rgba(255, 255, 255, 0.09); }
 .registration-gate__lang-option--active {
-  border-color: rgba(249, 115, 22, 0.7);
-  color: #c2410c;
+  border-color: rgba(249, 115, 22, 0.6);
+  background: rgba(249, 115, 22, 0.12);
+  color: #fdba74;
 }
 
-.registration-gate__header {
-  text-align: center;
-  margin-bottom: 22px;
-}
-
+.registration-gate__header { text-align: center; margin-bottom: 22px; }
 .registration-gate__title {
-  margin: 12px 0 6px;
-  font-size: 26px;
+  margin: 14px 0 6px;
+  font-size: 27px;
   font-weight: 700;
   line-height: 32px;
-  color: #0b1220;
+  letter-spacing: -0.01em;
+  color: #f4f8fd;
 }
-
 .registration-gate__title-command {
-  margin-right: 4px;
+  margin-right: 6px;
   color: #f97316;
+  text-shadow: 0 0 22px rgba(249, 115, 22, 0.55);
 }
-
-.registration-gate__subtitle {
-  margin: 0;
-  font-size: 14px;
-  line-height: 21px;
-  color: #475569;
-}
+.registration-gate__subtitle { margin: 0; font-size: 14px; line-height: 21px; color: #9fb0c4; }
 
 .registration-gate__steps {
   display: flex;
@@ -101,21 +132,15 @@
   gap: 10px;
   margin-bottom: 22px;
 }
-
 .registration-gate__step {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   font-size: 12px;
   line-height: 16px;
-  color: #94a3b8;
+  color: #6b7a90;
 }
-
-.registration-gate__step--active {
-  color: #c2410c;
-  font-weight: 600;
-}
-
+.registration-gate__step--active { color: #fdba74; font-weight: 600; }
 .registration-gate__step-dot {
   display: inline-flex;
   align-items: center;
@@ -127,150 +152,131 @@
   font-size: 11px;
   font-weight: 600;
 }
+.registration-gate__step-sep { width: 22px; height: 1px; background: rgba(159, 176, 196, 0.35); }
 
-.registration-gate__step-sep {
-  width: 22px;
-  height: 1px;
-  background: rgba(148, 163, 184, 0.5);
-}
+.registration-gate__form { display: flex; flex-direction: column; gap: 16px; }
+.registration-gate__field { display: flex; flex-direction: column; gap: 6px; }
 
-.registration-gate__form {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.registration-gate__field {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-/* The registration card is ALWAYS light, but Arco <Input> otherwise inherits the
-   app's dark-theme white text -> white-on-white / unreadable. Force readable dark
-   text + light field background regardless of the active app theme. The
-   -webkit-text-fill-color is required: in Electron it overrides `color` and is the
-   actual cause of the invisible text.
-   !important is mandatory on the color / -webkit-text-fill-color / placeholder
-   declarations: the Arco dark theme sets the white fill with its OWN !important
-   rule, so without !important here the override loses the cascade and the bug
-   returns. The light field background is also forced for the same reason. */
 .registration-gate .arco-input,
 .registration-gate input,
 .registration-gate textarea {
-  color: #0b1220 !important;
-  -webkit-text-fill-color: #0b1220 !important;
-  background-color: #ffffff !important;
+  color: #eef3fa !important;
+  -webkit-text-fill-color: #eef3fa !important;
+  background-color: rgba(255, 255, 255, 0.05) !important;
 }
 .registration-gate .arco-input::placeholder,
 .registration-gate input::placeholder,
 .registration-gate textarea::placeholder {
-  color: #94a3b8 !important;
-  -webkit-text-fill-color: #94a3b8 !important;
+  color: #74859b !important;
+  -webkit-text-fill-color: #74859b !important;
 }
 .registration-gate .arco-input-wrapper,
 .registration-gate .arco-input-inner-wrapper {
-  background-color: #ffffff;
-  border-color: rgba(226, 232, 240, 0.92);
+  background-color: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 11px;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+.registration-gate .arco-input-wrapper:focus-within,
+.registration-gate .arco-input-inner-wrapper:focus-within {
+  border-color: rgba(249, 115, 22, 0.7);
+  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.18);
 }
 
-.registration-gate__label {
-  font-size: 13px;
-  font-weight: 600;
-  line-height: 18px;
-  color: #1e293b;
-}
-
-.registration-gate__hint {
-  font-size: 11px;
-  line-height: 16px;
-  color: #64748b;
-}
+.registration-gate__label { font-size: 13px; font-weight: 600; line-height: 18px; color: #cdd8e6; }
+.registration-gate__hint { font-size: 11px; line-height: 16px; color: #7c8aa0; }
 
 .registration-gate__consent {
   display: flex;
   gap: 10px;
   align-items: flex-start;
   padding: 12px 14px;
-  border: 1px solid rgba(226, 232, 240, 0.92);
-  border-radius: 12px;
-  background: rgba(248, 250, 252, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.04);
+}
+.registration-gate__consent-text { font-size: 12px; line-height: 17px; color: #aebccd; }
+
+.registration-gate .arco-btn-primary {
+  background: linear-gradient(180deg, #fb923c 0%, #f97316 100%) !important;
+  border: none !important;
+  color: #ffffff !important;
+  font-weight: 600 !important;
+  box-shadow:
+    0 10px 26px rgba(249, 115, 22, 0.36),
+    0 1px 0 rgba(255, 255, 255, 0.28) inset !important;
+  transition: filter 0.18s ease, box-shadow 0.18s ease, transform 0.06s ease !important;
+}
+.registration-gate .arco-btn-primary:hover {
+  filter: brightness(1.06) !important;
+  box-shadow: 0 12px 32px rgba(249, 115, 22, 0.48), 0 1px 0 rgba(255, 255, 255, 0.3) inset !important;
+}
+.registration-gate .arco-btn-primary:active { transform: translateY(1px) !important; }
+
+.registration-gate .arco-btn-secondary,
+.registration-gate .arco-btn-default {
+  background: rgba(255, 255, 255, 0.06) !important;
+  border: 1px solid rgba(255, 255, 255, 0.18) !important;
+  color: #e6edf6 !important;
+  font-weight: 500 !important;
+  transition: background 0.18s ease, border-color 0.18s ease !important;
+}
+.registration-gate .arco-btn-secondary:hover,
+.registration-gate .arco-btn-default:hover {
+  background: rgba(255, 255, 255, 0.12) !important;
+  border-color: rgba(255, 255, 255, 0.28) !important;
 }
 
-.registration-gate__consent-text {
-  font-size: 12px;
-  line-height: 17px;
-  color: #334155;
+.registration-gate .arco-checkbox-mask {
+  background-color: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.3);
 }
 
-.registration-gate__error {
-  font-size: 12px;
-  line-height: 17px;
-  color: #dc2626;
-}
-
+.registration-gate__error { font-size: 12px; line-height: 17px; color: #fda4a4; }
 .registration-gate__back {
-  align-self: flex-start;
-  padding: 0;
+  align-self: center;
+  padding: 4px 8px;
   border: none;
   background: transparent;
-  color: #64748b;
+  color: #8a99ad;
   font-size: 12px;
   line-height: 17px;
   cursor: pointer;
+  transition: color 0.18s ease;
 }
+.registration-gate__back:hover { color: #cdd8e6; }
+.registration-gate__registered-as { font-size: 12px; line-height: 17px; color: #8a99ad; text-align: center; }
 
-.registration-gate__registered-as {
-  font-size: 12px;
-  line-height: 17px;
-  color: #64748b;
-  text-align: center;
-}
-
-/* Day-14 trial-conversion curtain. A warm "continue" screen, NOT an error.
-   Styling stays inside the existing gate vocabulary (same card, palette, radii)
-   but leans on the brand orange to read as an invitation rather than a block. */
 .registration-gate__card--curtain {
-  border-color: rgba(249, 115, 22, 0.35);
+  border-color: rgba(249, 115, 22, 0.4);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.10) inset,
+    0 0 60px rgba(249, 115, 22, 0.12),
+    0 30px 80px rgba(0, 0, 0, 0.60);
 }
-
-.registration-gate__curtain-lede {
-  margin: 0;
-  font-size: 14px;
-  line-height: 21px;
-  color: #334155;
-}
-
+.registration-gate__curtain-lede { margin: 0; font-size: 14px; line-height: 21px; color: #aebccd; }
 .registration-gate__curtain-preserved {
   display: flex;
   flex-direction: column;
   gap: 4px;
   padding: 14px 16px;
-  border: 1px solid rgba(249, 115, 22, 0.25);
-  border-radius: 12px;
-  background: rgba(249, 115, 22, 0.06);
+  border: 1px solid rgba(249, 115, 22, 0.3);
+  border-radius: 13px;
+  background: rgba(249, 115, 22, 0.08);
 }
-
 .registration-gate__curtain-preserved-title {
   margin: 0;
   font-size: 13px;
   font-weight: 600;
   line-height: 18px;
-  color: #c2410c;
+  color: #fdba74;
 }
-
-.registration-gate__curtain-preserved-body {
-  margin: 0;
-  font-size: 12px;
-  line-height: 18px;
-  color: #475569;
-}
-
+.registration-gate__curtain-preserved-body { margin: 0; font-size: 12px; line-height: 18px; color: #9fb0c4; }
 .registration-gate__curtain-price {
   margin: 0;
   font-size: 13px;
   font-weight: 600;
   line-height: 19px;
-  color: #1e293b;
+  color: #e6edf6;
   text-align: center;
 }
