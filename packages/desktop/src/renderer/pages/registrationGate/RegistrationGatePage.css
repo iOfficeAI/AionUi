@@ -1,8 +1,9 @@
 /* ============================================================================
-   Command EVE — first-run gate. The "we are the future" moment: a deep, living
-   aurora behind a frosted-glass panel. Premium, calm, unmistakably ours.
-   (Seedance cinematic loop can later slot in as a <video> behind the aurora —
-   the glass panel + palette already assume a moving backdrop.)
+   Command EVE — first-run gate. Premium + FAST: a single static painted
+   background (zero animation, zero animated blur — the prior drifting aurora was
+   a GPU repaint killer) behind one frosted-glass panel. A generated background
+   image will slot into .registration-gate__bg next; morph-between-images is a
+   later, opt-in step.
    ========================================================================== */
 
 .registration-gate {
@@ -21,49 +22,30 @@
     BlinkMacSystemFont,
     'Segoe UI',
     sans-serif;
+  /* ONE static paint — soft brand glows over a nightblue fall-off. No animation,
+     no animated blur. Cheap to composite. */
   background:
+    radial-gradient(48% 42% at 22% 24%, rgba(249, 115, 22, 0.20), transparent 62%),
+    radial-gradient(46% 42% at 80% 20%, rgba(56, 132, 246, 0.18), transparent 62%),
+    radial-gradient(60% 55% at 64% 90%, rgba(139, 92, 246, 0.16), transparent 62%),
     radial-gradient(150% 120% at 50% -10%, #0e1a33 0%, #070d1b 52%, #04060e 100%);
 }
 
-.registration-gate::before,
-.registration-gate::after {
-  content: '';
+/* Optional generated background image layer (set background-image on this div via
+   the gate once an asset is bundled). Stays empty + invisible until then. */
+.registration-gate__bg {
   position: absolute;
-  inset: -25%;
+  inset: 0;
   z-index: 0;
   pointer-events: none;
-  filter: blur(64px) saturate(135%);
-  will-change: transform;
+  background-size: cover;
+  background-position: center;
 }
-
-.registration-gate::before {
-  opacity: 0.72;
-  background:
-    radial-gradient(34% 42% at 26% 28%, rgba(249, 115, 22, 0.55), transparent 60%),
-    radial-gradient(32% 38% at 74% 22%, rgba(56, 132, 246, 0.42), transparent 62%),
-    radial-gradient(42% 50% at 66% 80%, rgba(139, 92, 246, 0.40), transparent 60%);
-  animation: gate-aurora-a 28s ease-in-out infinite alternate;
-}
-
-.registration-gate::after {
-  opacity: 0.55;
-  background:
-    radial-gradient(30% 34% at 80% 60%, rgba(249, 115, 22, 0.32), transparent 60%),
-    radial-gradient(36% 44% at 18% 70%, rgba(45, 212, 230, 0.30), transparent 62%);
-  animation: gate-aurora-b 36s ease-in-out infinite alternate;
-}
-
-@keyframes gate-aurora-a {
-  0% { transform: translate3d(-4%, -2%, 0) scale(1); }
-  100% { transform: translate3d(6%, 4%, 0) scale(1.14); }
-}
-@keyframes gate-aurora-b {
-  0% { transform: translate3d(4%, 3%, 0) scale(1.06); }
-  100% { transform: translate3d(-6%, -4%, 0) scale(1); }
-}
-@media (prefers-reduced-motion: reduce) {
-  .registration-gate::before,
-  .registration-gate::after { animation: none; }
+.registration-gate__bg::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(4, 6, 14, 0.35) 0%, rgba(4, 6, 14, 0.55) 100%);
 }
 
 .registration-gate__card {
@@ -73,13 +55,12 @@
   padding: 36px 34px 30px;
   border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 24px;
-  background: rgba(13, 21, 38, 0.46);
-  -webkit-backdrop-filter: blur(44px) saturate(160%);
-  backdrop-filter: blur(44px) saturate(160%);
+  background: rgba(13, 21, 38, 0.55);
+  -webkit-backdrop-filter: blur(28px) saturate(150%);
+  backdrop-filter: blur(28px) saturate(150%);
   box-shadow:
     0 1px 0 rgba(255, 255, 255, 0.10) inset,
-    0 0 0 1px rgba(255, 255, 255, 0.02),
-    0 30px 80px rgba(0, 0, 0, 0.60);
+    0 24px 64px rgba(0, 0, 0, 0.55);
 }
 
 .registration-gate__lang-toggle {
@@ -118,11 +99,7 @@
   letter-spacing: -0.01em;
   color: #f4f8fd;
 }
-.registration-gate__title-command {
-  margin-right: 6px;
-  color: #f97316;
-  text-shadow: 0 0 22px rgba(249, 115, 22, 0.55);
-}
+.registration-gate__title-command { margin-right: 6px; color: #f97316; }
 .registration-gate__subtitle { margin: 0; font-size: 14px; line-height: 21px; color: #9fb0c4; }
 
 .registration-gate__steps {
@@ -202,16 +179,10 @@
   border: none !important;
   color: #ffffff !important;
   font-weight: 600 !important;
-  box-shadow:
-    0 10px 26px rgba(249, 115, 22, 0.36),
-    0 1px 0 rgba(255, 255, 255, 0.28) inset !important;
-  transition: filter 0.18s ease, box-shadow 0.18s ease, transform 0.06s ease !important;
+  box-shadow: 0 8px 20px rgba(249, 115, 22, 0.30) !important;
+  transition: filter 0.15s ease !important;
 }
-.registration-gate .arco-btn-primary:hover {
-  filter: brightness(1.06) !important;
-  box-shadow: 0 12px 32px rgba(249, 115, 22, 0.48), 0 1px 0 rgba(255, 255, 255, 0.3) inset !important;
-}
-.registration-gate .arco-btn-primary:active { transform: translateY(1px) !important; }
+.registration-gate .arco-btn-primary:hover { filter: brightness(1.06) !important; }
 
 .registration-gate .arco-btn-secondary,
 .registration-gate .arco-btn-default {
@@ -219,7 +190,7 @@
   border: 1px solid rgba(255, 255, 255, 0.18) !important;
   color: #e6edf6 !important;
   font-weight: 500 !important;
-  transition: background 0.18s ease, border-color 0.18s ease !important;
+  transition: background 0.15s ease, border-color 0.15s ease !important;
 }
 .registration-gate .arco-btn-secondary:hover,
 .registration-gate .arco-btn-default:hover {
@@ -242,18 +213,12 @@
   font-size: 12px;
   line-height: 17px;
   cursor: pointer;
-  transition: color 0.18s ease;
+  transition: color 0.15s ease;
 }
 .registration-gate__back:hover { color: #cdd8e6; }
 .registration-gate__registered-as { font-size: 12px; line-height: 17px; color: #8a99ad; text-align: center; }
 
-.registration-gate__card--curtain {
-  border-color: rgba(249, 115, 22, 0.4);
-  box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.10) inset,
-    0 0 60px rgba(249, 115, 22, 0.12),
-    0 30px 80px rgba(0, 0, 0, 0.60);
-}
+.registration-gate__card--curtain { border-color: rgba(249, 115, 22, 0.4); }
 .registration-gate__curtain-lede { margin: 0; font-size: 14px; line-height: 21px; color: #aebccd; }
 .registration-gate__curtain-preserved {
   display: flex;
@@ -264,19 +229,6 @@
   border-radius: 13px;
   background: rgba(249, 115, 22, 0.08);
 }
-.registration-gate__curtain-preserved-title {
-  margin: 0;
-  font-size: 13px;
-  font-weight: 600;
-  line-height: 18px;
-  color: #fdba74;
-}
+.registration-gate__curtain-preserved-title { margin: 0; font-size: 13px; font-weight: 600; line-height: 18px; color: #fdba74; }
 .registration-gate__curtain-preserved-body { margin: 0; font-size: 12px; line-height: 18px; color: #9fb0c4; }
-.registration-gate__curtain-price {
-  margin: 0;
-  font-size: 13px;
-  font-weight: 600;
-  line-height: 19px;
-  color: #e6edf6;
-  text-align: center;
-}
+.registration-gate__curtain-price { margin: 0; font-size: 13px; font-weight: 600; line-height: 19px; color: #e6edf6; text-align: center; }
