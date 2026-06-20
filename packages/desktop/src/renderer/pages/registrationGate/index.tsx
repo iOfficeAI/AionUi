@@ -30,6 +30,11 @@ import {
   type ICommandEveRegistrationRecord,
 } from '@/common/adapter/ipcBridge';
 import './RegistrationGatePage.css';
+// Bundled (Vite-hashed) cinematic background. A STATIC image = one GPU texture,
+// zero animation → zero repaint cost (the prior drifting aurora was the source of
+// the jank); the glass panel's backdrop-blur is computed once over a still frame
+// and cached. Swap to './assets/gate-bg-alt.jpg' for the liquid-ribbon variant.
+import gateBackground from './assets/gate-bg.jpg';
 
 // 'auth' is the PRIMARY first-run path (web login/register). 'registration' +
 // 'license' remain as the SECONDARY manual code-paste fallback flow, reached via
@@ -296,6 +301,17 @@ const RegistrationGatePage: React.FC<RegistrationGatePageProps> = ({ status, onE
     return t('registrationGate.license.registeredAs', { name: displayName, company: displayCompany });
   }, [company, name, registrationRecord, t]);
 
+  // Static cinematic backdrop behind the frosted-glass card (set via a bundled,
+  // hashed asset URL so it resolves under file:// in the packaged build). Rendered
+  // in BOTH gate branches (normal + day-14 curtain) so the look never drops out.
+  const backgroundLayer = (
+    <div
+      className='registration-gate__bg'
+      style={{ backgroundImage: `url(${gateBackground})` }}
+      aria-hidden='true'
+    />
+  );
+
   const languageToggle = (
     <div className='registration-gate__lang-toggle' role='group' aria-label={t('registrationGate.languageToggle')}>
       {SUPPORTED_LANGUAGES.map((lang) => {
@@ -330,6 +346,7 @@ const RegistrationGatePage: React.FC<RegistrationGatePageProps> = ({ status, onE
   if (trialExpired) {
     return (
       <div className='registration-gate' data-testid='registration-gate'>
+        {backgroundLayer}
         <div className='registration-gate__card registration-gate__card--curtain' data-testid='registration-gate-curtain'>
           {languageToggle}
 
@@ -377,6 +394,7 @@ const RegistrationGatePage: React.FC<RegistrationGatePageProps> = ({ status, onE
 
   return (
     <div className='registration-gate' data-testid='registration-gate'>
+      {backgroundLayer}
       <div className='registration-gate__card'>
         {languageToggle}
 
