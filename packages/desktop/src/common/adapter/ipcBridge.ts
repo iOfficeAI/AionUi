@@ -1163,6 +1163,18 @@ export interface ICommandEveAuthWebLoginRequest {
 }
 
 /**
+ * In-app email/password sign-in (founder HG-4, 2026-06-20). The renderer passes
+ * the credentials over the bridge ONCE; the GoTrue grant + session + keychain all
+ * stay in MAIN. The result is the same shape as the loopback
+ * (`ICommandEveAuthWebLoginResult`) — never tokens, never the password.
+ */
+export interface ICommandEveAuthPasswordLoginRequest {
+  intent: ICommandEveAuthIntent;
+  email: string;
+  password: string;
+}
+
+/**
  * Result of a full browser-loopback login attempt + post-session orchestration.
  * NEVER carries tokens — the renderer only learns the resulting gate status,
  * whether the gate is now entitled, and whether it must offer the paste
@@ -1358,6 +1370,12 @@ export const commandEve = {
   authWebLogin: bridge.buildProvider<IBridgeResponse<ICommandEveAuthWebLoginResult>, ICommandEveAuthWebLoginRequest>(
     'command-eve.auth-web-login'
   ),
+  // In-app email/password sign-in (MAIN does the GoTrue grant; tokens/password
+  // never cross back). Same result shape as authWebLogin.
+  authPasswordLogin: bridge.buildProvider<
+    IBridgeResponse<ICommandEveAuthWebLoginResult>,
+    ICommandEveAuthPasswordLoginRequest
+  >('command-eve.auth-password-login'),
   authLogout: bridge.buildProvider<IBridgeResponse<ICommandEveAuthLogoutResult>, void>('command-eve.auth-logout'),
   // Local registration/session readout for the avatar + account panel (no tokens).
   registrationStatus: bridge.buildProvider<IBridgeResponse<ICommandEveRegistrationStatusResult>, void>(

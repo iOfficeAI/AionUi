@@ -23,6 +23,7 @@ import {
   COMMAND_EVE_ENTITLEMENT_BRIDGE_VERSION,
 } from '@process/commandEve/entitlementCore';
 import { runDesktopAuthLoopback, type DesktopAuthIntent } from '@process/commandEve/desktopAuthLoopback';
+import { passwordGrant } from '@process/commandEve/desktopAuthPassword';
 import {
   hasAccountSession,
   readAccountSession,
@@ -1381,6 +1382,78 @@ export function initCommandEveBridge(): void {
             needs_paste: true,
             reason_code: 'AUTH_WEB_LOGIN_BRIDGE_FAILED',
             message: error instanceof Error ? error.message : undefined,
+          },
+        };
+      }
+    });
+
+  // -------------------------------------------------------------------------
+  // In-app email/password auth (founder HG-4, 2026-06-20). Same MAIN-process
+  // posture as the loopback: the renderer passes {intent,email,password}; the
+  // GoTrue grant, session and keychain-at-rest stay here. NEVER returns or logs
+  // tokens/passwords. A grant failure (bad creds / taken email / weak password /
+  // confirmation required) returns needs_paste:false so the UI shows an inline
+  // error and the user retries — only a SESSION-obtained-but-license-pending case
+  // (result.needsPaste) routes to the code-paste fallback.
+  // -------------------------------------------------------------------------
+  bridge
+    .buildProvider('command-eve.auth-password-login')
+    .provider(async (request?: { intent?: DesktopAuthIntent; email?: string; password?: string }) => {
+      const version = 'command-eve-account-auth/v0' as const;
+      try {
+        const intent: DesktopAuthIntent = request?.intent === 'register' ? 'register' : 'login';
+        const email = typeof request?.email === 'string' ? request.email : '';
+        const password = typeof request?.password === 'string' ? request.password : '';
+        const userDataPath = getDataPath();
+
+        const grant = await passwordGrant(intent, email, password);
+        if (!grant.ok || !grant.session) {
+          // No session ⇒ the user corrects credentials and retries in place; do
+          // NOT drop to the paste step (that is for the no-browser loopback case).
+          return {
+            success: false,
+            msg: grant.reason_code || 'AUTH_FAILED',
+            data: { version, ok: false, entitled: false, needs_paste: false, reason_code: grant.reason_code },
+          };
+        }
+
+        const session = grant.session;
+        const { storeAccountSession } = await import('@process/commandEve/accountSessionAtRest');
+        storeAccountSession(userDataPath, session);
+
+        const result = await activateEntitlementFromSession(userDataPath, session, {
+          storeLicenseWire: (p, wire) => {
+            try {
+              storeLicenseWire(p, wire);
+            } catch {
+              // non-fatal
+            }
+          },
+        });
+
+        return {
+          success: result.activated,
+          msg: result.activated ? undefined : result.reason_code,
+          data: {
+            version,
+            ok: result.activated,
+            entitled: result.status.state === 'entitled',
+            needs_paste: result.needsPaste,
+            reason_code: result.reason_code,
+            status: result.status,
+            account: { name: session.user.name, email: session.user.email, company: session.user.company },
+          },
+        };
+      } catch (error) {
+        return {
+          success: false,
+          msg: error instanceof Error ? error.message : 'Command EVE auth-password-login bridge failed.',
+          data: {
+            version,
+            ok: false,
+            entitled: false,
+            needs_paste: false,
+            reason_code: 'AUTH_PASSWORD_LOGIN_BRIDGE_FAILED',
           },
         };
       }

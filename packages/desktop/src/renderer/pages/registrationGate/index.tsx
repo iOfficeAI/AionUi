@@ -116,9 +116,14 @@ const RegistrationGatePage: React.FC<RegistrationGatePageProps> = ({ status, onE
     !trialExpired && (status?.state === 'registered_unlicensed' || status?.state === 'expired') ? 'license' : 'auth';
   const [step, setStep] = useState<GateStep>(initialStep);
 
-  // Web-login (browser-loopback) flow state.
+  // Auth state. authBusy/authError are shared by the in-app password flow and the
+  // browser-loopback flow; pendingIntent tracks which password action is running so
+  // only that button shows a spinner.
   const [authBusy, setAuthBusy] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
+  const [authEmail, setAuthEmail] = useState('');
+  const [authPassword, setAuthPassword] = useState('');
+  const [pendingIntent, setPendingIntent] = useState<'login' | 'register' | null>(null);
   const handleWebLogin = useCallback(
     async (intent: 'login' | 'register') => {
       setAuthError(null);
@@ -151,6 +156,61 @@ const RegistrationGatePage: React.FC<RegistrationGatePageProps> = ({ status, onE
       }
     },
     [onEntitled, t]
+  );
+
+  // Map a main-process reason_code to a localized, account-existence-safe message.
+  // Works for any code (login/register GoTrue codes or the bridge's own), falling
+  // back to the generic 'unknown' string when there is no specific translation.
+  const resolveAuthError = useCallback(
+    (reasonCode?: string): string => {
+      if (reasonCode) {
+        const key = `registrationGate.auth.errors.${reasonCode}`;
+        const translated = t(key);
+        if (translated && translated !== key) return translated;
+      }
+      return t('registrationGate.auth.errors.unknown');
+    },
+    [t]
+  );
+
+  // In-app email/password sign-in (founder HG-4). Credentials go to MAIN once via
+  // the bridge; the renderer never holds tokens. A grant failure shows an inline
+  // error and STAYS on the auth step (retry in place); a session-ok-but-license-
+  // pending result routes to the code-paste step. NEVER logs the credentials.
+  const handlePasswordAuth = useCallback(
+    async (intent: 'login' | 'register') => {
+      setAuthError(null);
+      const email = authEmail.trim();
+      const password = authPassword;
+      if (!email || !password) {
+        setAuthError(t('registrationGate.auth.errors.fieldsRequired'));
+        return;
+      }
+      setPendingIntent(intent);
+      setAuthBusy(true);
+      try {
+        const response = await commandEve.authPasswordLogin.invoke({ intent, email, password });
+        const data = response.data;
+        if (data?.ok && data.entitled) {
+          await onEntitled();
+          return;
+        }
+        if (data?.needs_paste) {
+          // Signed in, but my-license is still pending ⇒ offer the manual code path.
+          setAuthError(t('registrationGate.auth.licensePending'));
+          setStep('license');
+          return;
+        }
+        setAuthError(resolveAuthError(data?.reason_code));
+      } catch (error) {
+        console.error('Password auth bridge call failed:', error);
+        setAuthError(t('registrationGate.auth.errors.unknown'));
+      } finally {
+        setAuthBusy(false);
+        setPendingIntent(null);
+      }
+    },
+    [authEmail, authPassword, onEntitled, resolveAuthError, t]
   );
 
   // Opening the web checkout is a deliberate, low-risk action — it never touches
@@ -458,8 +518,46 @@ const RegistrationGatePage: React.FC<RegistrationGatePageProps> = ({ status, onE
             <p className='registration-gate__hint'>{t('registrationGate.unconfigured.fallbackHint')}</p>
           </div>
         ) : step === 'auth' ? (
-          <div className='registration-gate__form' data-testid='registration-gate-auth'>
+          <form
+            className='registration-gate__form'
+            data-testid='registration-gate-auth'
+            onSubmit={(event) => {
+              event.preventDefault();
+              void handlePasswordAuth('login');
+            }}
+          >
             <p className='registration-gate__subtitle'>{t('registrationGate.auth.subtitle')}</p>
+
+            <div className='registration-gate__field'>
+              <label className='registration-gate__label' htmlFor='registration-gate-email'>
+                {t('registrationGate.auth.emailLabel')}
+              </label>
+              <Input
+                id='registration-gate-email'
+                type='email'
+                value={authEmail}
+                onChange={(value) => setAuthEmail(value)}
+                placeholder={t('registrationGate.auth.emailPlaceholder')}
+                data-testid='registration-gate-email'
+                disabled={authBusy}
+                autoComplete='email'
+              />
+            </div>
+
+            <div className='registration-gate__field'>
+              <label className='registration-gate__label' htmlFor='registration-gate-password'>
+                {t('registrationGate.auth.passwordLabel')}
+              </label>
+              <Input.Password
+                id='registration-gate-password'
+                value={authPassword}
+                onChange={(value) => setAuthPassword(value)}
+                placeholder={t('registrationGate.auth.passwordPlaceholder')}
+                data-testid='registration-gate-password'
+                disabled={authBusy}
+                autoComplete='current-password'
+              />
+            </div>
 
             {authError ? (
               <span className='registration-gate__error' role='alert' data-testid='registration-gate-auth-error'>
@@ -469,24 +567,40 @@ const RegistrationGatePage: React.FC<RegistrationGatePageProps> = ({ status, onE
 
             <Button
               type='primary'
+              htmlType='submit'
               long
               shape='round'
-              loading={authBusy}
-              onClick={() => void handleWebLogin('login')}
+              loading={authBusy && pendingIntent === 'login'}
+              disabled={authBusy}
               data-testid='registration-gate-login'
             >
-              {authBusy ? t('registrationGate.auth.loggingIn') : t('registrationGate.auth.login')}
+              {authBusy && pendingIntent === 'login'
+                ? t('registrationGate.auth.loggingIn')
+                : t('registrationGate.auth.login')}
             </Button>
 
             <Button
               long
               shape='round'
+              loading={authBusy && pendingIntent === 'register'}
               disabled={authBusy}
-              onClick={() => void handleWebLogin('register')}
+              onClick={() => void handlePasswordAuth('register')}
               data-testid='registration-gate-register'
             >
-              {t('registrationGate.auth.register')}
+              {authBusy && pendingIntent === 'register'
+                ? t('registrationGate.auth.registering')
+                : t('registrationGate.auth.register')}
             </Button>
+
+            <button
+              type='button'
+              className='registration-gate__back'
+              onClick={() => void handleWebLogin('login')}
+              disabled={authBusy}
+              data-testid='registration-gate-browser-login'
+            >
+              {t('registrationGate.auth.browserLogin')}
+            </button>
 
             <button
               type='button'
@@ -500,7 +614,7 @@ const RegistrationGatePage: React.FC<RegistrationGatePageProps> = ({ status, onE
             >
               {t('registrationGate.auth.haveCode')}
             </button>
-          </div>
+          </form>
         ) : step === 'registration' ? (
           <form className='registration-gate__form' onSubmit={handleRegister} data-testid='registration-gate-form'>
             <p className='registration-gate__subtitle'>{t('registrationGate.registration.subtitle')}</p>
