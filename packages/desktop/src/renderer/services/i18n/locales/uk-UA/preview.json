@@ -53,6 +53,10 @@
   "closeAll": "Закрити всі",
   "readOnlyLabel": "Перегляд лише для читання",
   "pathLabel": "Шлях",
+  "missingFile": {
+    "title": "Файл не знайдено",
+    "openInNewTab": "Спробувати відкрити в новій вкладці"
+  },
   "noTabs": "Немає відкритих вкладок",
   "openInPanelTooltip": "Переглянути в панелі попереднього перегляду",
   "mermaidTitle": "Діаграма Mermaid",

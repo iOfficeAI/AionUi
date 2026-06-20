@@ -53,6 +53,10 @@
   "closeAll": "Закрыть все",
   "readOnlyLabel": "Только для чтения",
   "pathLabel": "Путь",
+  "missingFile": {
+    "title": "Файл не найден",
+    "openInNewTab": "Попробовать открыть в новой вкладке"
+  },
   "noTabs": "Нет открытых вкладок",
   "openInPanelTooltip": "Просмотреть в панели предпросмотра",
   "mermaidTitle": "Диаграмма Mermaid",

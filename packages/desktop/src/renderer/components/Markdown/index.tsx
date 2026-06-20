@@ -66,7 +66,7 @@ const LocalFileLink: React.FC<{
   const canOpen = Boolean(onOpen);
 
   const handleOpen = useCallback(
-    (event: React.MouseEvent<HTMLElement>) => {
+    (event: Event) => {
       event.preventDefault();
       event.stopPropagation();
       if (onOpen) {
@@ -77,7 +77,7 @@ const LocalFileLink: React.FC<{
   );
 
   const handleCopy = useCallback(
-    (event: React.MouseEvent<HTMLElement>) => {
+    (event: Event) => {
       event.preventDefault();
       event.stopPropagation();
       copyText(rawReference).catch(() => {

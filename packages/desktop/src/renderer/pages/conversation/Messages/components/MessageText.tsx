@@ -22,7 +22,6 @@ import { Copy } from '@icon-park/react';
 import classNames from 'classnames';
 import React, { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { classifyPreviewError, previewErrorToI18nKey } from '@/renderer/utils/previewError';
 import { copyText } from '@/renderer/utils/ui/clipboard';
 import CollapsibleContent from '@renderer/components/chat/CollapsibleContent';
 import FilePreview from '@renderer/components/media/FilePreview';
@@ -160,6 +159,9 @@ const MessageText: React.FC<{ message: IMessageText; showCopyRow?: boolean }> = 
       let isLargeTextTruncated = false;
 
       try {
+        const metadata = await ipcBridge.fs.getFileMetadata.invoke({ path: file_path, workspace });
+        if (metadata == null) throw null;
+
         if (contentType === 'image') {
           const imageContent = await ipcBridge.fs.getImageBase64.invoke({ path: file_path, workspace });
           if (imageContent == null) throw null;
@@ -191,9 +193,23 @@ const MessageText: React.FC<{ message: IMessageText; showCopyRow?: boolean }> = 
           },
           { replace: true }
         );
-      } catch (error) {
-        const kind = classifyPreviewError(error);
-        Message.error(t(previewErrorToI18nKey(kind)));
+      } catch (_error) {
+        openPreview(
+          '',
+          contentType,
+          {
+            title: fileName,
+            file_name: fileName,
+            file_path,
+            workspace,
+            language: getPreviewLanguage(fileName),
+            targetLine: reference?.line,
+            targetColumn: reference?.column,
+            editable: false,
+            missingFile: true,
+          },
+          { replace: true }
+        );
       }
     },
     [conversationContext?.workspace, openPreview, t]

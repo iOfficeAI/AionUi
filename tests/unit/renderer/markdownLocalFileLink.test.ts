@@ -28,6 +28,10 @@ describe('resolveLocalFileLinkPath', () => {
     expect(resolveLocalFileLinkPath('/Users/demo/outputs/report.xlsx')).toBe('/Users/demo/outputs/report.xlsx');
   });
 
+  it('recognizes file-like POSIX absolute paths outside common home and temp roots', () => {
+    expect(resolveLocalFileLinkPath('/opt/aionui/outputs/report.xlsx')).toBe('/opt/aionui/outputs/report.xlsx');
+  });
+
   it('recognizes line suffixes without confusing Windows drive letters', () => {
     const reference = resolveLocalFileLinkReference('C:/Users/Administrator/AppData/Roaming/AionUi/logs/app.log:1421');
 

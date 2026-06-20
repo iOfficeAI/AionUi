@@ -53,6 +53,10 @@
   "closeAll": "Close All",
   "readOnlyLabel": "Read-only preview",
   "pathLabel": "Path",
+  "missingFile": {
+    "title": "File not found",
+    "openInNewTab": "Try opening in a new tab"
+  },
   "noTabs": "No tabs open",
   "openInPanelTooltip": "View in preview panel",
   "mermaidTitle": "Mermaid Diagram",

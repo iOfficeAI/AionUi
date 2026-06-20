@@ -30,6 +30,7 @@ export interface PreviewMetadata {
   truncated?: boolean; // 预览内容是否被截断 / Whether preview content was truncated
   targetLine?: number; // 打开文件后定位到的目标行 / Target line to reveal after opening
   targetColumn?: number; // 打开文件后定位到的目标列 / Target column to reveal after opening
+  missingFile?: boolean; // 文件不存在或无法读取 / Whether the referenced file is missing or unreadable
 }
 
 export interface PreviewTab {

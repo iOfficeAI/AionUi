@@ -76,6 +76,7 @@ const normalizeLocalFileHrefToPath = (href: string): string | null => {
   }
 
   if (/^\/(Users|home|tmp|private|var|mnt|Volumes)\//.test(href)) return href;
+  if (/^\/[^/?#]+\/.+\.[^/?#/.]+(?:[?#].*)?$/.test(href)) return href;
 
   return null;
 };

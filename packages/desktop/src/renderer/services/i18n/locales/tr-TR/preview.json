@@ -53,6 +53,10 @@
   "closeAll": "Tümünü Kapat",
   "readOnlyLabel": "Salt okunur önizleme",
   "pathLabel": "Yol",
+  "missingFile": {
+    "title": "Dosya bulunamadı",
+    "openInNewTab": "Yeni sekmede açmayı dene"
+  },
   "noTabs": "Açık sekme yok",
   "openInPanelTooltip": "Önizleme panelinde görüntüle",
   "mermaidTitle": "Mermaid Diyagramı",

@@ -53,6 +53,10 @@
   "closeAll": "모두 닫기",
   "readOnlyLabel": "읽기 전용 미리보기",
   "pathLabel": "경로",
+  "missingFile": {
+    "title": "파일을 찾을 수 없음",
+    "openInNewTab": "새 탭에서 열기 시도"
+  },
   "noTabs": "열린 탭 없음",
   "openInPanelTooltip": "미리보기 패널에서 보기",
   "mermaidTitle": "Mermaid 다이어그램",
