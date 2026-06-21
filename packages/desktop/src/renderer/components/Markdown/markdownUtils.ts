@@ -82,16 +82,27 @@ const normalizeLocalFileHrefToPath = (href: string): string | null => {
 };
 
 const splitLocationSuffix = (filePath: string): Omit<LocalFileLinkReference, 'rawReference'> => {
-  const match = /^(.*):(\d+)(?::(\d+))?$/.exec(filePath);
-  if (!match) return { filePath };
+  const lineColumnMatch = /^(.*):(\d+):(\d+)$/.exec(filePath);
+  if (lineColumnMatch) {
+    const [, pathWithoutLocation, lineText, columnText] = lineColumnMatch;
+    if (normalizeLocalFileHrefToPath(pathWithoutLocation)) {
+      return {
+        filePath: pathWithoutLocation,
+        line: Number(lineText),
+        column: Number(columnText),
+      };
+    }
+  }
 
-  const [, pathWithoutLocation, lineText, columnText] = match;
+  const lineMatch = /^(.*):(\d+)$/.exec(filePath);
+  if (!lineMatch) return { filePath };
+
+  const [, pathWithoutLocation, lineText] = lineMatch;
   if (!normalizeLocalFileHrefToPath(pathWithoutLocation)) return { filePath };
 
   return {
     filePath: pathWithoutLocation,
     line: Number(lineText),
-    column: columnText ? Number(columnText) : undefined,
   };
 };
 

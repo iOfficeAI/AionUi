@@ -118,6 +118,32 @@ describe('MarkdownView local file links', () => {
     expect(copyTextMock).toHaveBeenCalledWith('C:/Users/Administrator/AppData/Roaming/AionUi/logs/2026-06-19.log:1421');
   });
 
+  it('renders line and column references as file chips and copies the full reference', () => {
+    const onLocalFileLink = vi.fn();
+
+    render(
+      <MarkdownView onLocalFileLink={onLocalFileLink}>
+        {'[app.log](C:/Users/Administrator/AppData/Roaming/AionUi/logs/app.log:1421:7)'}
+      </MarkdownView>
+    );
+
+    const fileButton = screen.getByRole('button', { name: /app\.log\s+L1421:7/ });
+    fireEvent.click(fileButton);
+
+    expect(onLocalFileLink).toHaveBeenCalledWith(
+      'C:/Users/Administrator/AppData/Roaming/AionUi/logs/app.log',
+      expect.objectContaining({
+        filePath: 'C:/Users/Administrator/AppData/Roaming/AionUi/logs/app.log',
+        rawReference: 'C:/Users/Administrator/AppData/Roaming/AionUi/logs/app.log:1421:7',
+        line: 1421,
+        column: 7,
+      })
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Copy' }));
+    expect(copyTextMock).toHaveBeenCalledWith('C:/Users/Administrator/AppData/Roaming/AionUi/logs/app.log:1421:7');
+  });
+
   it('does not render a no-op open button when no local file handler is provided', () => {
     render(<MarkdownView>{'[report.xlsx](/C:/Users/Administrator/AppData/Roaming/AionUi/report.xlsx)'}</MarkdownView>);
 

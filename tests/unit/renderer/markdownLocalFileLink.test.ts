@@ -45,6 +45,22 @@ describe('resolveLocalFileLinkPath', () => {
     );
   });
 
+  it('recognizes line and column suffixes without including the line in the file path', () => {
+    const reference = resolveLocalFileLinkReference(
+      'C:/Users/Administrator/AppData/Roaming/AionUi/logs/app.log:1421:7'
+    );
+
+    expect(reference).toEqual({
+      filePath: 'C:/Users/Administrator/AppData/Roaming/AionUi/logs/app.log',
+      rawReference: 'C:/Users/Administrator/AppData/Roaming/AionUi/logs/app.log:1421:7',
+      line: 1421,
+      column: 7,
+    });
+    expect(resolveLocalFileLinkPath('C:/Users/Administrator/AppData/Roaming/AionUi/logs/app.log:1421:7')).toBe(
+      'C:/Users/Administrator/AppData/Roaming/AionUi/logs/app.log'
+    );
+  });
+
   it('does not treat normal web links or app routes as local files', () => {
     expect(resolveLocalFileLinkPath('https://aionui.com/docs')).toBeNull();
     expect(resolveLocalFileLinkPath('/settings')).toBeNull();
