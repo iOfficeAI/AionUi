@@ -271,7 +271,12 @@ describe('Command EVE runtime bootstrap core', () => {
       expect(configYaml).toContain('context_length: 65536');
       expect(configYaml).toContain('ollama_num_ctx: 65536');
       expect(configYaml).toContain('max_tokens: 512');
-      expect(configYaml).toContain('reasoning_effort: none');
+      // Soul-wiring: reasoning is ON (challenger alive). Default tier is the
+      // cheap-but-real 'low'; it must never regress to 'none' (which disables
+      // reasoning entirely in Hermes).
+      expect(configYaml).toContain('reasoning_effort: low');
+      expect(configYaml).not.toContain('reasoning_effort: none');
+      expect(configYaml).toMatch(/reasoning_effort: (low|medium|high|xhigh)/);
       expect(configYaml).toContain('skills:');
       expect(configYaml).toContain('external_dirs:');
       expect(configYaml).toContain('"${HERMES_HOME}/skills-command-eve"');
@@ -290,6 +295,15 @@ describe('Command EVE runtime bootstrap core', () => {
       expect(configYaml).not.toContain('"gaming"');
       expect(configYaml).not.toContain('"weixin"');
       expect(configYaml).toContain('mcp_servers: {}');
+      // Soul-wiring: the remember + self-optimize loops are ON. These default OFF
+      // in Hermes code, so they MUST be emitted explicitly.
+      expect(configYaml).toContain('creation_nudge_interval: 0');
+      expect(configYaml).toContain('memory:');
+      expect(configYaml).toContain('memory_enabled: true');
+      expect(configYaml).toContain('user_profile_enabled: true');
+      expect(configYaml).toContain('nudge_interval: 10');
+      expect(configYaml).toContain('curator:');
+      expect(configYaml).toContain('enabled: true');
       // EVE Standard (cloud) is the default lane; raw secrets still blocked and
       // S2/S3 stays local.
       expect(configYaml).toContain('default_lane: eve_cloud');
@@ -298,10 +312,40 @@ describe('Command EVE runtime bootstrap core', () => {
       expect(configYaml).toContain('- S3');
       expect(configYaml).toContain('kanban:');
       expect(configYaml).toContain('dispatch_in_gateway: false');
-      expect(configYaml).toContain('auto_decompose: false');
+      // auto_decompose flipped ON so EVE can decompose goals into child work.
+      expect(configYaml).toContain('auto_decompose: true');
       expect(configYaml).toContain(`model_url: ${baseUrl}`);
-      // SOUL.md reflects EVE-cloud-as-default and the full capability surface.
+      // SOUL.md now carries the full composed eve-doctrine soul (identity +
+      // voice + convictions + method + non-negotiables + self-learning), not the
+      // old 5-line capability stub. This is the founder-self-detection regression
+      // tripwire: if the soul silently drifts back to a stub, these break.
       const soulMd = fs.readFileSync(path.join(paths.hermesHome, 'SOUL.md'), 'utf8');
+      // Identity markers.
+      expect(soulMd).toContain('The Operator');
+      expect(soulMd).toContain('JARVIS for making money');
+      expect(soulMd).toContain('and then what');
+      expect(soulMd.toLowerCase()).toContain('invisible delivery');
+      expect(soulMd.toLowerCase()).toContain('per-client isolation');
+      // At least 5 of the 8 convictions verbatim.
+      const convictions = [
+        'Simplicity is strategy',
+        'Growth by subtraction',
+        'Curse of Capability',
+        'Bottlenecks are singular',
+        'Plumbing before water',
+        'Customers know the answer',
+        'No memo, no decision',
+        'Leverage over busyness',
+      ];
+      expect(convictions.filter((c) => soulMd.includes(c)).length).toBeGreaterThanOrEqual(5);
+      // Self-learning section: it remembers (USER.md/MEMORY.md) and builds itself skills.
+      expect(soulMd).toContain('USER.md');
+      expect(soulMd).toContain('MEMORY.md');
+      expect(soulMd).toContain('build myself skills');
+      // Not a stub: substantial body + the prior 5-line stub signature is gone.
+      expect(soulMd.length).toBeGreaterThan(2000);
+      expect(soulMd).not.toContain('You are EVE, Command EVE Chief of Staff.');
+      // Operating-environment block preserved (EVE-cloud default + full surface).
       expect(soulMd).toContain('EVE Standard');
       expect(soulMd).toContain('full Hermes capability surface');
       expect(soulMd).not.toContain('Default to local-first execution');
@@ -325,7 +369,7 @@ describe('Command EVE runtime bootstrap core', () => {
       expect(reconciliation.hermes_config.mcp_servers).toEqual([]);
       expect(reconciliation.hermes_config.platform_toolsets).toEqual({ cli: ['hermes-cli'], acp: ['hermes-acp'] });
       expect(reconciliation.hermes_config.kanban_dispatch_in_gateway).toBe(false);
-      expect(reconciliation.hermes_config.kanban_auto_decompose).toBe(false);
+      expect(reconciliation.hermes_config.kanban_auto_decompose).toBe(true);
       expect(reconciliation.blocked_external_mcp_transports).toEqual(['http', 'sse']);
       expect(fs.readFileSync(path.join(paths.hermesHome, 'context_length_cache.yaml'), 'utf8')).toContain(
         `${runtimeModelRef}@${baseUrl}/v1: 65536`
