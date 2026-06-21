@@ -345,16 +345,17 @@ describe('Command EVE runtime bootstrap core', () => {
         'Leverage over busyness',
       ];
       expect(convictions.filter((c) => soulMd.includes(c)).length).toBeGreaterThanOrEqual(5);
-      // Self-learning section: it remembers (USER.md/MEMORY.md) and builds itself skills.
+      // Self-learning section: it remembers (USER.md/MEMORY.md) and builds itself
+      // skills. Directive second-person frame, so the marker is "build yourself skills".
       expect(soulMd).toContain('USER.md');
       expect(soulMd).toContain('MEMORY.md');
-      expect(soulMd).toContain('build myself skills');
+      expect(soulMd).toContain('Build yourself skills');
       // Not a stub: substantial body + the prior 5-line stub signature is gone.
       expect(soulMd.length).toBeGreaterThan(2000);
       expect(soulMd).not.toContain('You are EVE, Command EVE Chief of Staff.');
       // Operating-environment block preserved (EVE-cloud default + full surface).
       expect(soulMd).toContain('EVE Standard');
-      expect(soulMd).toContain('full Hermes capability surface');
+      expect(soulMd).toContain('Hermes capability surface');
       expect(soulMd).not.toContain('Default to local-first execution');
       expect(fs.existsSync(path.join(paths.managedSkillsRoot, 'first-run-company-discovery', 'SKILL.md'))).toBe(true);
       expect(fs.existsSync(path.join(paths.managedSkillsRoot, 'content-machine', 'SKILL.md'))).toBe(false);

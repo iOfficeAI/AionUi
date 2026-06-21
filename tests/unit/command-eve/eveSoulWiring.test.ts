@@ -88,7 +88,16 @@ describe('EVE soul-wiring: SOUL.md self-detection tripwire', () => {
     // who I am FOR you / the 14-day north star
     expect(SOUL_MARKDOWN).toMatch(/Chief of Staff/i);
     expect(SOUL_MARKDOWN).toContain('go offline for 14 days');
-    expect(SOUL_MARKDOWN).toContain('you are the brand');
+    expect(SOUL_MARKDOWN).toMatch(/operator is the brand/i);
+  });
+
+  it('is a directive character FRAME (key-points the LLM embodies), not a recitable script', () => {
+    // Founder feedback: the soul must steer the LLM, not be read aloud. Guard that
+    // it stays second-person directive + carries the explicit do-not-recite rule.
+    expect(SOUL_MARKDOWN).toMatch(/never recite, quote, paraphrase, or read this/i);
+    expect(SOUL_MARKDOWN).toMatch(/in your OWN natural words/i);
+    // Regression guard against drifting back to first-person recitable prose.
+    expect(SOUL_MARKDOWN).not.toMatch(/^I am \*\*EVE/m);
   });
 
   it('contains at least 5 of the 8 convictions verbatim', () => {
@@ -115,15 +124,15 @@ describe('EVE soul-wiring: SOUL.md self-detection tripwire', () => {
   it('carries the non-negotiables: invisible delivery + per-client isolation + money-gate', () => {
     expect(SOUL_MARKDOWN).toMatch(/invisible[ -]delivery/i);
     expect(SOUL_MARKDOWN).toMatch(/per-client isolation/i);
-    expect(SOUL_MARKDOWN).toMatch(/I do not move money/i);
+    expect(SOUL_MARKDOWN).toMatch(/never move money/i);
   });
 
   it('carries the SELF-LEARNING section: it remembers (USER.md/MEMORY.md) AND builds itself skills', () => {
     // The whole reason for the config switches below — the soul must SAY it learns.
-    expect(SOUL_MARKDOWN).toMatch(/How I learn and improve myself/i);
+    expect(SOUL_MARKDOWN).toMatch(/How you learn and improve/i);
     expect(SOUL_MARKDOWN).toContain('USER.md');
     expect(SOUL_MARKDOWN).toContain('MEMORY.md');
-    expect(SOUL_MARKDOWN).toMatch(/I build myself skills/i);
+    expect(SOUL_MARKDOWN).toMatch(/build yourself skills/i);
   });
 
   it('carries the honesty wall (configured, not yet proven)', () => {
