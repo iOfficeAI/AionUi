@@ -24,6 +24,39 @@ const DEFAULT_LONG_CONTEXT_LENGTH = 65_536;
 const DEFAULT_HERMES_MAX_TOKENS = 512;
 const COMMAND_EVE_OLLAMA_MODEL_PREFIX = 'command-eve';
 const BUNDLED_HERMES_DIR = 'bundled-hermes';
+// The bundled EVE strategy skills (real eve-doctrine/plan-system/etc. SKILL.md
+// trees), shipped at Contents/Resources/bundled-skills via electron-builder
+// extraResources (staged by scripts/fetch-bundled-skills.mjs). At first run they
+// are copied ADDITIVELY into managedSkillsRoot so skills.external_dirs serves the
+// real method content alongside the onboarding capability stubs.
+const BUNDLED_SKILLS_DIR = 'bundled-skills';
+// Dev/unpackaged override pointing directly at a staged bundled-skills dir, so the
+// real-skill copy path is exercisable without a packaged app (mirrors
+// COMMAND_EVE_BUNDLED_PYTHON for python). In a packaged build the dir is resolved
+// from process.resourcesPath instead (see resolveBundledSkillsDir).
+const COMMAND_EVE_SKILLS_DIR_ENV = 'COMMAND_EVE_SKILLS_DIR';
+// The curated EVE strategy skill ids that ship bundled and get copied into
+// managedSkillsRoot at first run. EXPLICIT allowlist — kept in lockstep with
+// scripts/fetch-bundled-skills.mjs EVE_STRATEGY_SKILL_IDS. marketing-outbound is a
+// BUNDLE (nested sub-skill dirs); the rest are single-folder skills. The
+// whole-tree copy below handles both shapes.
+export const EVE_STRATEGY_SKILL_IDS = [
+  'eve-doctrine',
+  'plan-system',
+  'pre-mortem',
+  'business-diagnostic',
+  'icp-persona-panel',
+  'decision-brief',
+  'deep-research',
+  'gtm-strategy',
+  'customer-discovery',
+  'business-architecture',
+  'hiring',
+  'option-tournament',
+  'landing-copy',
+  'human-design-profile',
+  'marketing-outbound',
+] as const;
 const COMMAND_EVE_CAPABILITIES_FILE = 'command-eve-capabilities.json';
 const COMMAND_EVE_MANAGED_SKILLS_DIR = 'skills-command-eve';
 const COMMAND_EVE_RUNTIME_RECONCILIATION_FILE = 'command-eve-runtime-reconciliation.json';
@@ -93,6 +126,25 @@ function resolveBundledPythonCandidate(env: NodeJS.ProcessEnv, resourcesPath?: s
   if (override) return override;
   if (resourcesPath) return path.join(resourcesPath, ...BUNDLED_PYTHON_REL_SEGMENTS);
   return '';
+}
+
+// Resolve the dir holding the bundled EVE strategy skills (the snapshot staged by
+// scripts/fetch-bundled-skills.mjs). Mirrors resolveBundledHermesWheel/
+// resolveBundledPythonCandidate so it stays unit-testable without electron `app`:
+//   1) explicit COMMAND_EVE_SKILLS_DIR env (dev override / tests),
+//   2) packaged: <resourcesPath>/bundled-skills (Contents/Resources/bundled-skills),
+//   3) dev: <cwd>/resources/bundled-skills (the committed snapshot).
+// Returns the FIRST candidate that exists, or '' when none is found — callers then
+// skip the real-skill copy (and surface a missing-skill failure only when a dir
+// WAS resolved but an allowlisted skill is absent, never on a clean dev box that
+// simply has no snapshot path).
+export function resolveBundledSkillsDir(env: NodeJS.ProcessEnv, resourcesPath?: string): string {
+  const candidates = [
+    compact(env[COMMAND_EVE_SKILLS_DIR_ENV]),
+    resourcesPath ? path.join(resourcesPath, BUNDLED_SKILLS_DIR) : '',
+    path.join(process.cwd(), 'resources', BUNDLED_SKILLS_DIR),
+  ].filter(Boolean);
+  return candidates.find((candidate) => fs.existsSync(candidate)) || '';
 }
 const LOCAL_OLLAMA_BINARY_CANDIDATES =
   process.platform === 'darwin'
@@ -1082,10 +1134,94 @@ function commandEveManagedSkillMarkdown(skill: CommandEveCapabilityPack['skills'
   ].join('\n');
 }
 
+// Recursively copy a directory tree from src into dest (whole-tree so
+// marketing-outbound's 17 nested sub-skills + READMEs travel and Hermes' os.walk
+// discovers every nested SKILL.md). Files land 0o600 (consistent with the rest of
+// the managed home; the dir is writable so the curator/skill_manage loop can edit
+// AGENT-created skills — never these bundled ones, FACT hermes config.py docstring).
+function copyDirTreeMode600(srcDir: string, destDir: string): void {
+  ensureDir(destDir);
+  for (const entry of fs.readdirSync(srcDir, { withFileTypes: true })) {
+    const from = path.join(srcDir, entry.name);
+    const to = path.join(destDir, entry.name);
+    if (entry.isDirectory()) {
+      copyDirTreeMode600(from, to);
+    } else if (entry.isFile()) {
+      fs.copyFileSync(from, to);
+      try {
+        fs.chmodSync(to, 0o600);
+      } catch {
+        // best-effort mode set; copy success is what matters.
+      }
+    }
+    // symlinks / other entry types are intentionally skipped — skills are pure files.
+  }
+}
+
+/** True iff the dir holds (at any depth) at least one non-empty SKILL.md. */
+function hasAnySkillMd(dir: string): boolean {
+  let entries: fs.Dirent[];
+  try {
+    entries = fs.readdirSync(dir, { withFileTypes: true });
+  } catch {
+    return false;
+  }
+  for (const entry of entries) {
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      if (hasAnySkillMd(full)) return true;
+    } else if (entry.isFile() && entry.name === 'SKILL.md') {
+      try {
+        if (fs.statSync(full).size > 0) return true;
+      } catch {
+        // ignore
+      }
+    }
+  }
+  return false;
+}
+
+// Copy the REAL bundled EVE strategy skills into managedSkillsRoot, ADDITIVELY
+// (on top of the onboarding capability stubs the loop above wrote). This is what
+// makes skills.external_dirs serve real eve-doctrine/plan-system/icp-persona-panel
+// method content to the running Hermes agent instead of boilerplate stubs.
+//
+// FAIL-CLOSED: if bundledSkillsDir resolved but an allowlisted id is absent or has
+// no SKILL.md, push a 'capabilities.bundled_skill_missing:<id>' failure rather than
+// silently shipping a gap (founder-self-detection: a capability the agent thinks it
+// has but doesn't). When bundledSkillsDir is '' (no snapshot path resolvable, e.g. a
+// bare unit-test env), this is a no-op — the stubs still ship and nothing fails.
+export function copyBundledStrategySkills(paths: RuntimeBootstrapPaths, bundledSkillsDir: string): string[] {
+  const failures: string[] = [];
+  if (!bundledSkillsDir) return failures;
+  ensureDir(paths.managedSkillsRoot);
+  for (const id of EVE_STRATEGY_SKILL_IDS) {
+    const srcDir = path.join(bundledSkillsDir, id);
+    let srcIsDir = false;
+    try {
+      srcIsDir = fs.statSync(srcDir).isDirectory();
+    } catch {
+      srcIsDir = false;
+    }
+    if (!srcIsDir || !hasAnySkillMd(srcDir)) {
+      failures.push(`capabilities.bundled_skill_missing:${id}`);
+      continue;
+    }
+    const destDir = path.join(paths.managedSkillsRoot, id);
+    copyDirTreeMode600(srcDir, destDir);
+  }
+  return failures;
+}
+
+// Returns the executable (onboarding-stub) skill ids AND any bundled-strategy-skill
+// failures so the caller can surface a VISIBLE warning. The two skill sets coexist:
+// the onboarding capability stubs (real, useful first-run scaffolding) PLUS the 15
+// real strategy skills copied from the bundle.
 function writeCommandEveManagedSkills(
   paths: RuntimeBootstrapPaths,
-  capabilityPack: CommandEveCapabilityPack
-): string[] {
+  capabilityPack: CommandEveCapabilityPack,
+  bundledSkillsDir = ''
+): { executableSkillIds: string[]; bundledSkillFailures: string[] } {
   ensureDir(paths.managedSkillsRoot);
   const executableSkillIds = capabilityPack.skills
     .filter((skill) => skill.default_state === 'active' && safeCapabilityId(skill.id))
@@ -1096,7 +1232,11 @@ function writeCommandEveManagedSkills(
     ensureDir(skillDir);
     fs.writeFileSync(path.join(skillDir, 'SKILL.md'), commandEveManagedSkillMarkdown(skill), { mode: 0o600 });
   }
-  return executableSkillIds;
+  // ADDITIVE: copy the real strategy skills over the stubs (separate id-space, so
+  // they don't collide with the onboarding capability ids — FACT: none of the 15
+  // strategy ids appear in command-eve-capabilities.json).
+  const bundledSkillFailures = copyBundledStrategySkills(paths, bundledSkillsDir);
+  return { executableSkillIds, bundledSkillFailures };
 }
 
 function buildCommandEveRuntimeReconciliation(
@@ -1536,10 +1676,19 @@ function writeHermesRuntimeFiles(
   // and the free-tier skill-creation interval (0). Paid/top tiers raise these
   // upstream via index.ts plumbing (separate slice).
   reasoningEffort: CommandEveReasoningEffort = DEFAULT_COMMAND_EVE_REASONING_EFFORT,
-  creationNudgeInterval = DEFAULT_COMMAND_EVE_CREATION_NUDGE_INTERVAL
-): void {
+  creationNudgeInterval = DEFAULT_COMMAND_EVE_CREATION_NUDGE_INTERVAL,
+  // The resolved bundled-skills snapshot dir (Contents/Resources/bundled-skills in
+  // a packaged build; resources/bundled-skills in dev). When set, the real
+  // strategy skills are copied additively into managedSkillsRoot. '' = no-op (a
+  // bare env with no snapshot path) — the onboarding stubs still ship.
+  bundledSkillsDir = ''
+): string[] {
   ensureDir(paths.hermesHome);
-  const executableSkillIds = writeCommandEveManagedSkills(paths, capabilityPack);
+  const { executableSkillIds, bundledSkillFailures } = writeCommandEveManagedSkills(
+    paths,
+    capabilityPack,
+    bundledSkillsDir
+  );
   writeCommandEveRuntimeReconciliation(paths, capabilityPack, executableSkillIds);
   const hermesBaseUrl = ollamaOpenAiCompatibleBaseUrl(manifest.local_runtime.egress_proxy_url);
   const contextLength = tierContextLength(tier);
@@ -1664,6 +1813,9 @@ function writeHermesRuntimeFiles(
   ].join('\n');
   fs.writeFileSync(paths.hermesWrapper, wrapper, { mode: 0o700 });
   writeHermesCliShim(paths);
+  // Surface any missing/invalid bundled strategy skill so the caller can make it
+  // VISIBLE (founder-self-detection). Empty = all 15 landed (or no snapshot path).
+  return bundledSkillFailures;
 }
 
 function freeDiskGb(targetPath: string, statfs: RuntimeBootstrapOptions['statfs']): number {
@@ -2045,7 +2197,27 @@ export async function ensureCommandEveRuntimeBootstrap(
   } else {
     pushStage(makeStage('hermes', 'pass', { detail: `Hermes ${installedHermesVersion} already installed.` }));
   }
-  writeHermesRuntimeFiles(paths, manifest, tier, capabilityPack, runtimeModelRef);
+  const bundledSkillsDir = resolveBundledSkillsDir(env, options.resourcesPath);
+  const bundledSkillFailures = writeHermesRuntimeFiles(
+    paths,
+    manifest,
+    tier,
+    capabilityPack,
+    runtimeModelRef,
+    DEFAULT_COMMAND_EVE_REASONING_EFFORT,
+    DEFAULT_COMMAND_EVE_CREATION_NUDGE_INTERVAL,
+    bundledSkillsDir
+  );
+  if (bundledSkillFailures.length) {
+    // VISIBLE preflight break (founder-self-detection): a skip-status stage with a
+    // detail surfaces in receipt.warnings so oversight sees a strategy skill the
+    // running agent expected was not shipped — rather than a silent capability gap.
+    pushStage(
+      makeStage('capabilities', 'skip', {
+        detail: `Bundled EVE strategy skills missing/invalid: ${bundledSkillFailures.join(', ')}`,
+      })
+    );
+  }
 
   let ollama = await resolveOllamaCommand(runner, env, options.ollamaBinaryCandidates);
   if (!ollama.ok && mode === 'auto' && manifest.installer_policy.allow_homebrew_install) {

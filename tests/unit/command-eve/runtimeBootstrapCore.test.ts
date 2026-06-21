@@ -22,6 +22,9 @@ import {
   resolveCommandEveRuntimeBootstrapPaths,
   resolveCommandEveRuntimeBootstrapManifestPath,
   validateCommandEveCapabilityPack,
+  copyBundledStrategySkills,
+  resolveBundledSkillsDir,
+  EVE_STRATEGY_SKILL_IDS,
   type RuntimeBootstrapCommandResult,
   type RuntimeBootstrapRunner,
 } from '@/process/commandEve/runtimeBootstrapCore';
@@ -1143,5 +1146,155 @@ describe('resolveCommandEveFirstRunProfile registration seed (COMPA-596)', () =>
     expect(profile.company_name).toBe('FYN Labs');
     expect(profile.source).toBe('registration');
     expect(profile.needs_confirmation).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// SLICE B2 — bundled EVE strategy skills (real SKILL.md, not boilerplate stubs)
+// ---------------------------------------------------------------------------
+
+// Build a fixture bundled-skills dir: every allowlisted single skill gets a real
+// <id>/SKILL.md, and marketing-outbound gets a BUNDLE (nested sub-skill dirs each
+// with their own SKILL.md) so the whole-tree copy is exercised.
+const buildBundledSkillsFixture = (root: string, opts: { omit?: string[] } = {}): string => {
+  const omit = new Set(opts.omit || []);
+  const dir = path.join(root, 'bundled-skills');
+  fs.mkdirSync(dir, { recursive: true });
+  for (const id of EVE_STRATEGY_SKILL_IDS) {
+    if (omit.has(id)) continue;
+    const skillDir = path.join(dir, id);
+    fs.mkdirSync(skillDir, { recursive: true });
+    if (id === 'marketing-outbound') {
+      // A bundle: README.md + nested sub-skills, no top-level SKILL.md.
+      fs.writeFileSync(path.join(skillDir, 'README.md'), '# marketing-outbound bundle\n');
+      for (const sub of ['icp-definer', 'offer-definer', 'cold-call-script']) {
+        const subDir = path.join(skillDir, sub);
+        fs.mkdirSync(subDir, { recursive: true });
+        fs.writeFileSync(
+          path.join(subDir, 'SKILL.md'),
+          `---\nname: ${sub}\n---\n\n# ${sub}\n\nReal nested method content for ${sub}.\n`
+        );
+      }
+    } else {
+      fs.writeFileSync(
+        path.join(skillDir, 'SKILL.md'),
+        `---\nname: ${id}\n---\n\n# ${id}\n\nReal strategy method content for ${id} (not a stub).\n`
+      );
+    }
+  }
+  return dir;
+};
+
+describe('Command EVE bundled strategy skills (SLICE B2)', () => {
+  it('copies all 15 real strategy skills into managedSkillsRoot (whole-tree for the bundle)', () => {
+    const root = makeRoot();
+    const bundledSkillsDir = buildBundledSkillsFixture(root);
+    const paths = resolveCommandEveRuntimeBootstrapPaths(root);
+
+    const failures = copyBundledStrategySkills(paths, bundledSkillsDir);
+    expect(failures).toEqual([]);
+
+    // Every single skill landed its own SKILL.md with REAL (non-stub) content.
+    for (const id of EVE_STRATEGY_SKILL_IDS) {
+      if (id === 'marketing-outbound') continue;
+      const md = path.join(paths.managedSkillsRoot, id, 'SKILL.md');
+      expect(fs.existsSync(md)).toBe(true);
+      const body = fs.readFileSync(md, 'utf8');
+      expect(body).toContain('Real strategy method content');
+      // NOT the onboarding-stub signature.
+      expect(body).not.toContain('Command EVE managed core skill for local-first founder onboarding');
+    }
+
+    // The bundle's nested sub-skill SKILL.md files travelled (whole-tree copy).
+    for (const sub of ['icp-definer', 'offer-definer', 'cold-call-script']) {
+      const nested = path.join(paths.managedSkillsRoot, 'marketing-outbound', sub, 'SKILL.md');
+      expect(fs.existsSync(nested)).toBe(true);
+      expect(fs.readFileSync(nested, 'utf8')).toContain('Real nested method content');
+    }
+    // The bundle README travelled too.
+    expect(fs.existsSync(path.join(paths.managedSkillsRoot, 'marketing-outbound', 'README.md'))).toBe(true);
+  });
+
+  it('is ADDITIVE: the onboarding capability stubs coexist with the real strategy skills', () => {
+    const root = makeRoot();
+    const bundledSkillsDir = buildBundledSkillsFixture(root);
+    const paths = resolveCommandEveRuntimeBootstrapPaths(root);
+
+    // Pre-seed an onboarding-stub skill the way writeCommandEveManagedSkills does.
+    const stubDir = path.join(paths.managedSkillsRoot, 'first-run-company-discovery');
+    fs.mkdirSync(stubDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(stubDir, 'SKILL.md'),
+      '---\nname: first-run-company-discovery\n---\n\nCommand EVE managed core skill for local-first founder onboarding and governed work routing.\n'
+    );
+
+    copyBundledStrategySkills(paths, bundledSkillsDir);
+
+    // The stub is untouched...
+    expect(fs.existsSync(path.join(stubDir, 'SKILL.md'))).toBe(true);
+    expect(fs.readFileSync(path.join(stubDir, 'SKILL.md'), 'utf8')).toContain(
+      'Command EVE managed core skill for local-first founder onboarding'
+    );
+    // ...and the real strategy skill exists alongside it.
+    expect(fs.existsSync(path.join(paths.managedSkillsRoot, 'eve-doctrine', 'SKILL.md'))).toBe(true);
+  });
+
+  it('FAILS CLOSED: a missing allowlisted skill yields capabilities.bundled_skill_missing:<id>', () => {
+    const root = makeRoot();
+    // Omit eve-doctrine — the most load-bearing skill — to prove the tripwire fires.
+    const bundledSkillsDir = buildBundledSkillsFixture(root, { omit: ['eve-doctrine'] });
+    const paths = resolveCommandEveRuntimeBootstrapPaths(root);
+
+    const failures = copyBundledStrategySkills(paths, bundledSkillsDir);
+    expect(failures).toContain('capabilities.bundled_skill_missing:eve-doctrine');
+    // The OTHER skills still copied — fail-closed reports the gap, it does not abort the rest.
+    expect(fs.existsSync(path.join(paths.managedSkillsRoot, 'plan-system', 'SKILL.md'))).toBe(true);
+  });
+
+  it('FAILS CLOSED: an empty bundle (no nested SKILL.md) is reported missing', () => {
+    const root = makeRoot();
+    const bundledSkillsDir = buildBundledSkillsFixture(root);
+    // Strip the bundle's nested sub-skills so it has a dir but no SKILL.md anywhere.
+    fs.rmSync(path.join(bundledSkillsDir, 'marketing-outbound'), { recursive: true, force: true });
+    fs.mkdirSync(path.join(bundledSkillsDir, 'marketing-outbound'), { recursive: true });
+    fs.writeFileSync(path.join(bundledSkillsDir, 'marketing-outbound', 'README.md'), 'only a readme\n');
+    const paths = resolveCommandEveRuntimeBootstrapPaths(root);
+
+    const failures = copyBundledStrategySkills(paths, bundledSkillsDir);
+    expect(failures).toContain('capabilities.bundled_skill_missing:marketing-outbound');
+  });
+
+  it('is a no-op (no failures) when no bundled-skills dir is resolvable', () => {
+    const root = makeRoot();
+    const paths = resolveCommandEveRuntimeBootstrapPaths(root);
+    expect(copyBundledStrategySkills(paths, '')).toEqual([]);
+    // managedSkillsRoot is not populated with strategy skills.
+    expect(fs.existsSync(path.join(paths.managedSkillsRoot, 'eve-doctrine'))).toBe(false);
+  });
+
+  it('resolveBundledSkillsDir prefers env, then resourcesPath, then cwd/resources', () => {
+    const root = makeRoot();
+    const envDir = path.join(root, 'env-skills');
+    const resourcesDir = path.join(root, 'res');
+    fs.mkdirSync(envDir, { recursive: true });
+    fs.mkdirSync(path.join(resourcesDir, 'bundled-skills'), { recursive: true });
+
+    // 1) explicit env override wins (when it exists).
+    expect(resolveBundledSkillsDir({ COMMAND_EVE_SKILLS_DIR: envDir } as NodeJS.ProcessEnv, resourcesDir)).toBe(
+      envDir
+    );
+    // 2) no env -> packaged resourcesPath/bundled-skills.
+    expect(resolveBundledSkillsDir({} as NodeJS.ProcessEnv, resourcesDir)).toBe(
+      path.join(resourcesDir, 'bundled-skills')
+    );
+    // 3) neither -> falls back to the committed snapshot at cwd/resources/bundled-skills,
+    //    which exists in this repo (staged by fetch-bundled-skills.mjs).
+    const cwdSnapshot = path.join(process.cwd(), 'resources', 'bundled-skills');
+    const resolved = resolveBundledSkillsDir({} as NodeJS.ProcessEnv, undefined);
+    if (fs.existsSync(cwdSnapshot)) {
+      expect(resolved).toBe(cwdSnapshot);
+    } else {
+      expect(resolved).toBe('');
+    }
   });
 });
