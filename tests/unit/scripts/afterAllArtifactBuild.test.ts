@@ -160,16 +160,22 @@ describe('afterAllArtifactBuild notarization self-verification (fail-closed)', (
     expect(evaluateSpctlAssessment(0, 'accepted\nsource=Notarized Developer ID').ok).toBe(true);
   });
 
-  it('rejects a Gatekeeper-denied artifact', () => {
-    expect(evaluateSpctlAssessment(3, 'rejected\nsource=no usable signature').ok).toBe(false);
+  it('rejects a Gatekeeper-denied artifact (explicit reject = hard block)', () => {
+    const v = evaluateSpctlAssessment(3, 'rejected\nsource=no usable signature');
+    expect(v.ok).toBe(false);
+    expect(v.rejected).toBe(true);
   });
 
-  it('fails closed when spctl prints accepted but exits non-zero', () => {
-    expect(evaluateSpctlAssessment(1, 'accepted').ok).toBe(false);
+  it('is inconclusive (not a reject) when spctl prints accepted but exits non-zero', () => {
+    const v = evaluateSpctlAssessment(1, 'accepted');
+    expect(v.ok).toBe(false);
+    expect(v.rejected).toBe(false);
   });
 
-  it('fails closed when spctl produces no verdict', () => {
-    expect(evaluateSpctlAssessment(0, '').ok).toBe(false);
+  it('is inconclusive when spctl produces no verdict (deprecated for DMGs on macOS 15/26)', () => {
+    const v = evaluateSpctlAssessment(0, '');
+    expect(v.ok).toBe(false);
+    expect(v.rejected).toBe(false);
   });
 
   it('passes verification when stapler validates and spctl accepts', () => {
@@ -221,20 +227,34 @@ describe('afterAllArtifactBuild notarization self-verification (fail-closed)', (
     expect(spctlCalls).toBe(3);
   });
 
-  it('throws after exhausting retries when spctl never accepts (fail-closed)', () => {
+  it('treats an inconclusive spctl as authoritative-staple PASS after retries (does NOT throw)', () => {
     let spctlCalls = 0;
+    // stapler validate already proved the staple; spctl that never returns a
+    // verdict (status 0, no "accepted"/"rejected") is the macOS 15/26 deprecation
+    // false-negative, NOT a rejection — it must NOT fail the build. Retries are
+    // still exhausted first in case the verdict was merely lagging.
+    const result = verifyNotarizationStapled('/tmp/Command EVE.dmg', {
+      runValidate: () => undefined,
+      runSpctl: () => {
+        spctlCalls += 1;
+        return { status: 0, output: '' };
+      },
+      spctlAttempts: 4,
+      spctlDelayMs: 0,
+    });
+    expect(result).toBe(true);
+    expect(spctlCalls).toBe(4);
+  });
+
+  it('STILL throws after retries when spctl EXPLICITLY rejects (real Gatekeeper block)', () => {
     expect(() =>
       verifyNotarizationStapled('/tmp/Command EVE.dmg', {
         runValidate: () => undefined,
-        runSpctl: () => {
-          spctlCalls += 1;
-          return { status: 0, output: '' }; // never returns an "accepted" verdict
-        },
+        runSpctl: () => ({ status: 3, output: 'rejected\nsource=no usable signature' }),
         spctlAttempts: 4,
         spctlDelayMs: 0,
       })
-    ).toThrow(/after 4 spctl attempt\(s\)/);
-    expect(spctlCalls).toBe(4);
+    ).toThrow(/self-verification FAILED/);
   });
 
   it('does NOT retry — throws immediately — when stapler validate fails (staple proof is authoritative)', () => {

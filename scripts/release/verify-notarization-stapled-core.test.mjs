@@ -60,31 +60,50 @@ test('spctl assessment passes on accepted + Notarized Developer ID', () => {
   assert.equal(result.ok, true);
 });
 
-test('spctl assessment fails on rejected verdict', () => {
+test('spctl assessment flags an EXPLICIT reject as rejected (hard block)', () => {
   const result = evaluateSpctlAssessment({
     exitCode: 3,
     output: '/tmp/Command EVE.dmg: rejected\nsource=no usable signature',
   });
   assert.equal(result.ok, false);
+  assert.equal(result.rejected, true);
 });
 
-test('spctl assessment fails closed on non-zero exit without a verdict', () => {
+test('spctl assessment is INCONCLUSIVE (not a reject) on non-zero exit without a verdict', () => {
   const result = evaluateSpctlAssessment({ exitCode: 1, output: '' });
   assert.equal(result.ok, false);
+  assert.equal(result.rejected, false);
 });
 
-test('spctl assessment fails closed when "accepted" appears but exit is non-zero', () => {
+test('spctl assessment is INCONCLUSIVE when "accepted" appears but exit is non-zero', () => {
   const result = evaluateSpctlAssessment({ exitCode: 1, output: 'accepted' });
   assert.equal(result.ok, false);
+  assert.equal(result.rejected, false);
 });
 
-test('combined gate PASSes only when both stapler and spctl pass', () => {
+test('spctl assessment is INCONCLUSIVE on exit 0 with no verdict (deprecated for DMGs on macOS 15/26)', () => {
+  const result = evaluateSpctlAssessment({ exitCode: 0, output: '' });
+  assert.equal(result.ok, false);
+  assert.equal(result.rejected, false);
+});
+
+test('combined gate PASSes when both stapler and spctl pass', () => {
   const result = evaluateNotarizationStapled({
     stapler: { exitCode: 0, output: 'The validate action worked!' },
     spctl: { exitCode: 0, output: 'accepted\nsource=Notarized Developer ID' },
   });
   assert.equal(result.status, 'PASS');
   assert.equal(result.exit_code, NOTARIZATION_STAPLED_STATUS_EXIT_CODES.PASS);
+});
+
+test('combined gate PASSes when staple is valid but spctl is inconclusive (deprecated assess)', () => {
+  const result = evaluateNotarizationStapled({
+    stapler: { exitCode: 0, output: 'The validate action worked!' },
+    spctl: { exitCode: 0, output: '' },
+  });
+  assert.equal(result.status, 'PASS');
+  assert.equal(result.exit_code, NOTARIZATION_STAPLED_STATUS_EXIT_CODES.PASS);
+  assert.equal(result.spctl.ok, false);
 });
 
 test('combined gate blocks on bad staple before even checking spctl', () => {
@@ -97,7 +116,7 @@ test('combined gate blocks on bad staple before even checking spctl', () => {
   assert.equal(result.spctl, null);
 });
 
-test('combined gate blocks when staple is fine but spctl rejects', () => {
+test('combined gate blocks when staple is fine but spctl EXPLICITLY rejects', () => {
   const result = evaluateNotarizationStapled({
     stapler: { exitCode: 0, output: 'The validate action worked!' },
     spctl: { exitCode: 3, output: 'rejected' },

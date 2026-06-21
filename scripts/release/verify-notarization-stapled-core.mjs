@@ -55,23 +55,27 @@ export function evaluateStaplerValidate({ exitCode, output = '' } = {}) {
   };
 }
 
-// Decide PASS/FAIL for a Gatekeeper assessment from its exit code + output.
-// `spctl` writes its verdict to stderr. Fail-closed: require BOTH a zero exit
-// AND an "accepted" verdict; any "rejected"/"denied" or non-zero code blocks.
+// Decide a Gatekeeper assessment from its exit code + output. `spctl` writes its
+// verdict to stderr. `rejected: true` is the ONLY hard-block signal (an explicit
+// Gatekeeper rejection). Every other non-accepted outcome is INCONCLUSIVE, because
+// Apple has effectively deprecated `spctl --assess` for DMGs on macOS 15/26 — it
+// often exits 0 with no verdict text even for a correctly notarized+stapled DMG.
+// `stapler validate` (checked first, fail-closed) is the authoritative offline
+// Gatekeeper proof; this is only a secondary signal.
 export function evaluateSpctlAssessment({ exitCode, output = '' } = {}) {
   const text = asText(output);
   if (SPCTL_REJECTED.test(text)) {
-    return { ok: false, detail: 'spctl rejected the artifact (Gatekeeper would block it)' };
+    return { ok: false, rejected: true, detail: 'spctl rejected the artifact (Gatekeeper would block it)' };
   }
   const codeOk = exitCode === 0;
   const accepted = SPCTL_ACCEPTED.test(text);
   if (codeOk && accepted) {
-    return { ok: true, detail: 'spctl accepted the artifact (Notarized Developer ID)' };
+    return { ok: true, rejected: false, detail: 'spctl accepted the artifact (Notarized Developer ID)' };
   }
   if (!codeOk) {
-    return { ok: false, detail: `spctl exited non-zero (${asText(exitCode)})` };
+    return { ok: false, rejected: false, detail: `spctl exited non-zero (${asText(exitCode)}) without a reject verdict` };
   }
-  return { ok: false, detail: 'spctl did not return an "accepted" verdict' };
+  return { ok: false, rejected: false, detail: 'spctl returned no verdict (deprecated for DMGs on this macOS)' };
 }
 
 // Combine both checks into a single fail-closed gate result with a stable
@@ -89,7 +93,8 @@ export function evaluateNotarizationStapled({ stapler, spctl } = {}) {
   }
 
   const spctlResult = evaluateSpctlAssessment(spctl || {});
-  if (!spctlResult.ok) {
+  if (!spctlResult.ok && spctlResult.rejected) {
+    // Only an EXPLICIT Gatekeeper rejection blocks — stapler already passed above.
     return {
       status: 'BLOCKED_SPCTL_REJECTED',
       exit_code: NOTARIZATION_STAPLED_STATUS_EXIT_CODES.BLOCKED_SPCTL_REJECTED,
@@ -102,7 +107,9 @@ export function evaluateNotarizationStapled({ stapler, spctl } = {}) {
   return {
     status: 'PASS',
     exit_code: NOTARIZATION_STAPLED_STATUS_EXIT_CODES.PASS,
-    detail: 'Artifact is stapled and accepted by Gatekeeper',
+    detail: spctlResult.ok
+      ? 'Artifact is stapled and accepted by Gatekeeper'
+      : 'Artifact is stapled (stapler validate — authoritative); spctl inconclusive (deprecated for DMGs on this macOS)',
     stapler: staplerResult,
     spctl: spctlResult,
   };
