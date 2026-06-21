@@ -10,8 +10,10 @@ import os from 'node:os';
 import path from 'node:path';
 
 import {
+  COMMAND_EVE_ONBOARDING_STEP_MARKER,
   EVE_STRATEGY_SKILL_IDS,
   commandEveOnboardingSkillMarkdown,
+  commandEveOnboardingStepScreenHtml,
   copyBundledStrategySkills,
   resolveBundledSkillsDir,
   resolveCommandEveRuntimeBootstrapPaths,
@@ -445,5 +447,73 @@ describe('EVE onboarding S1: SOUL posture block (directive, cloud-default, no-se
 
   it('does not over-claim seed-learning or connector wiring on this lane', () => {
     expect(SOUL_MARKDOWN).toMatch(/those are not built here; never claim them/);
+  });
+});
+
+// =========================================================================
+// Guided Onboarding SLICE S3 self-detection gate.
+//
+// S3 gives EVE the onboarding.html authoring surface (taught in the app-owned
+// skill) plus ONE canonical, SAFE Ollama-install step-screen template, surfaced
+// via the proven preview-click chain. These tripwires break VISIBLY if the
+// template ever grows a <script>, a form, a pasted terminal command, or loses its
+// generated-step marker / cloud fallback — i.e. if the "static instructions, no
+// secret, no command, click-the-link-yourself" contract silently drifts.
+// =========================================================================
+
+describe('EVE onboarding S3: skill teaches authoring a safe onboarding.html step-screen', () => {
+  const SKILL_MD = commandEveOnboardingSkillMarkdown();
+
+  it('teaches writing onboarding.html surfaced via the preview chain', () => {
+    expect(SKILL_MD).toMatch(/## Author a step-screen as onboarding\.html/);
+    expect(SKILL_MD).toContain('onboarding.html');
+    expect(SKILL_MD).toMatch(/preview chain/i);
+  });
+
+  it('requires the generated-step marker and forbids embedding a terminal command', () => {
+    expect(SKILL_MD).toContain('<!-- eve-onboarding-step -->');
+    expect(SKILL_MD).toMatch(/never embed a brew\/pip\/terminal command/i);
+  });
+
+  it('keeps the no-script / no-secret / cloud-fallback authoring contract', () => {
+    expect(SKILL_MD).toMatch(/no external scripts/i);
+    expect(SKILL_MD).toMatch(/in der Cloud weiterarbeiten/);
+    expect(SKILL_MD).toMatch(/does not install anything|does not mean a stage is fixed/i);
+  });
+});
+
+describe('EVE onboarding S3: canonical Ollama-install step-screen template', () => {
+  const HTML = commandEveOnboardingStepScreenHtml();
+
+  it('starts with the generated-step marker so the auto-open bonus can recognise it', () => {
+    expect(HTML.startsWith(COMMAND_EVE_ONBOARDING_STEP_MARKER)).toBe(true);
+    expect(COMMAND_EVE_ONBOARDING_STEP_MARKER).toBe('<!-- eve-onboarding-step -->');
+  });
+
+  it('is a well-formed standalone HTML document', () => {
+    expect(HTML).toMatch(/<!doctype html>/i);
+    expect(HTML).toContain('<html lang="de">');
+    expect(HTML).toContain('</html>');
+  });
+
+  it('links to the Ollama download for the operator to click themselves (no command to paste)', () => {
+    expect(HTML).toContain('https://ollama.com/download');
+    expect(HTML).toMatch(/rel="noopener noreferrer"/);
+    // No pasted terminal command / package-manager invocation in the page.
+    expect(HTML).not.toMatch(/brew\s+install/i);
+    expect(HTML).not.toMatch(/\bpip\s+install/i);
+    expect(HTML).not.toMatch(/ollama\s+(?:pull|run)/i);
+  });
+
+  it('carries NO script and NO password/key-collecting form (static instructions only)', () => {
+    expect(HTML).not.toMatch(/<script/i);
+    expect(HTML).not.toMatch(/<form/i);
+    expect(HTML).not.toMatch(/type=["']password["']/i);
+    expect(HTML).not.toMatch(/api[\s_-]?key/i);
+  });
+
+  it('keeps the warm cloud fallback (local is optional, cloud runs immediately)', () => {
+    expect(HTML).toMatch(/in der Cloud weiterarbeiten/);
+    expect(HTML).toMatch(/EVE Standard l[äa]uft sofort/i);
   });
 });

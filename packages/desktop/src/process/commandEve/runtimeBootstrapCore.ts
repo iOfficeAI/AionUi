@@ -1205,9 +1205,68 @@ export function commandEveOnboardingSkillMarkdown(): string {
     ``,
     `- The working path is register + paste the CEVE license. That is all. You do NOT need, and must NEVER ask for, an API key, provider token, password, cookie, recovery code, or .env value. The egress boundary blocks raw secrets anyway.`,
     ``,
+    `## Author a step-screen as onboarding.html (Guided Onboarding S3)`,
+    ``,
+    `- When a local stage is blocked and the operator wants to fix it (e.g. \`OLLAMA_MISSING\`), you can WRITE a small, friendly walkthrough as an HTML file into the current workspace, then tell the operator "klick hier" — the app surfaces any \`.html\` file you write through its preview chain (it opens as a rendered page in a side panel), so a written file is a clickable step-screen.`,
+    `- Name the file \`onboarding.html\` (or \`onboarding-<step>.html\`, e.g. \`onboarding-ollama.html\`). Keep ONE screen per file: a clear German headline, 2–4 numbered steps, and a plain "oder einfach in der Cloud weiterarbeiten" fallback. Start the file with the marker comment \`<!-- eve-onboarding-step -->\` on its own first line — that marks it as a generated step-screen.`,
+    `- Put the download/landing LINK as a normal \`<a href>\` the operator clicks themselves; never embed a brew/pip/terminal command, never auto-run anything, never inline a secret. For PYTHON/HERMES (our-bug) cases, the step-screen points to a reinstall, not a command.`,
+    `- The HTML is a layout for plain instructions only: no external scripts, no tracking, no forms that collect a password/key. It composes with — does not replace — your spoken guidance in chat.`,
+    `- Honesty: writing a step-screen makes setup CLEARER. It does not install anything for the operator and does not mean a stage is fixed; only the live onboarding-status decides that. Re-read your state after they act; do not assume success.`,
+    ``,
     `## Honesty for this lane`,
     ``,
     `- This skill makes you AWARE of setup state and able to render a step-screen. It does NOT mean you have learned from a per-client seed or can wire a third-party connector — those are not built on this lane. Never claim either. Mark FACT / INFERENCE / HYPOTHESIS on any load-bearing claim about your own state.`,
+    ``,
+  ].join('\n');
+}
+
+// Guided Onboarding SLICE S3: the canonical Ollama-install step-screen, as a pure
+// builder. EVE authors step-screens herself (the skill above teaches her how), but
+// the app ships ONE consistent, safe template the renderer/onboarding flow can write
+// as a baseline artifact so the proven preview-click chain (a written `.html` opens
+// in the preview panel's HTML renderer) always has a clean, no-script, no-secret
+// page to surface. It starts with the `<!-- eve-onboarding-step -->` marker so the
+// best-effort auto-open bonus (useAutoPreviewOfficeFiles) can recognise it; that
+// auto-open is inert without a backend watcher, so the page is primarily a
+// click-to-open step-screen. The page is static instructions + one external LINK the
+// operator clicks themselves — no <script>, no form, no command to paste, no secret.
+export const COMMAND_EVE_ONBOARDING_STEP_MARKER = '<!-- eve-onboarding-step -->';
+
+export function commandEveOnboardingStepScreenHtml(): string {
+  return [
+    COMMAND_EVE_ONBOARDING_STEP_MARKER,
+    `<!doctype html>`,
+    `<html lang="de">`,
+    `<head>`,
+    `<meta charset="utf-8" />`,
+    `<meta name="viewport" content="width=device-width, initial-scale=1" />`,
+    `<title>Lokales KI-Modell einrichten</title>`,
+    `<style>`,
+    `  :root { color-scheme: light dark; }`,
+    `  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.6; max-width: 640px; margin: 2.5rem auto; padding: 0 1.25rem; }`,
+    `  h1 { font-size: 1.5rem; margin-bottom: 0.25rem; }`,
+    `  .lede { opacity: 0.75; margin-top: 0; }`,
+    `  ol { padding-left: 1.25rem; }`,
+    `  li { margin: 0.6rem 0; }`,
+    `  a.cta { display: inline-block; margin: 0.25rem 0; padding: 0.6rem 1.1rem; border-radius: 0.6rem; background: #2563eb; color: #fff; text-decoration: none; font-weight: 600; }`,
+    `  .fallback { margin-top: 1.75rem; padding: 0.9rem 1.1rem; border-radius: 0.6rem; background: rgba(127,127,127,0.12); }`,
+    `  code { background: rgba(127,127,127,0.18); padding: 0.1rem 0.35rem; border-radius: 0.35rem; }`,
+    `</style>`,
+    `</head>`,
+    `<body>`,
+    `  <h1>Lokales KI-Modell einrichten (optional)</h1>`,
+    `  <p class="lede">Nur nötig, wenn du EVE privat/offline auf deinem Mac laufen lassen willst. In der Cloud kannst du sofort weiterarbeiten.</p>`,
+    `  <ol>`,
+    `    <li>Lade <strong>Ollama</strong> über den Button unten herunter und installiere es per Doppelklick.</li>`,
+    `    <li>Starte Ollama einmal — es läuft danach leise im Hintergrund.</li>`,
+    `    <li>Komm zurück zu EVE und schreib mir „lokal einrichten“ — ich lade das Modell und zeige dir den Fortschritt.</li>`,
+    `  </ol>`,
+    `  <p><a class="cta" href="https://ollama.com/download" target="_blank" rel="noopener noreferrer">Ollama herunterladen</a></p>`,
+    `  <div class="fallback">`,
+    `    <strong>Kein Stress:</strong> Du musst das nicht machen. Sag einfach „in der Cloud weiterarbeiten“ — EVE Standard läuft sofort, ganz ohne Installation.`,
+    `  </div>`,
+    `</body>`,
+    `</html>`,
     ``,
   ].join('\n');
 }
