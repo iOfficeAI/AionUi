@@ -1193,6 +1193,68 @@ export interface ICommandEveCreditsSpendCapResult {
 }
 
 // ---------------------------------------------------------------------------
+// Command EVE guided onboarding (SLICE S0). Read-only aggregator over the two
+// machine-written runtime signals + entitlement + license-wire presence,
+// mirrored for the renderer. The renderer NEVER re-decides any gate; it only
+// renders this model. (Mirrors onboardingStatusCore in the main process.)
+// ---------------------------------------------------------------------------
+
+export type ICommandEveOnboardingItemState = 'ok' | 'blocked' | 'skipped';
+
+export type ICommandEveOnboardingRemediationKind =
+  | 'none'
+  | 'external-link'
+  | 'html-screen'
+  | 'cloud-redirect'
+  | 'reinstall';
+
+export type ICommandEveOnboardingItemId =
+  | 'registration'
+  | 'license'
+  | 'cloud-lane'
+  | 'local-lane'
+  | 'identity';
+
+export interface ICommandEveOnboardingItem {
+  id: ICommandEveOnboardingItemId;
+  state: ICommandEveOnboardingItemState;
+  plain_meaning: string;
+  remediation_kind: ICommandEveOnboardingRemediationKind;
+  reason_code?: string;
+}
+
+export interface ICommandEveOnboardingStatusModel {
+  schema_version: 'command-eve-onboarding-status/v0';
+  generated_at: string;
+  read_only: true;
+  first_value_ready: boolean;
+  entitlement_state: ICommandEveEntitlementGateState;
+  cloud_bearer_available: boolean;
+  identity: {
+    founder_name?: string;
+    company_name?: string;
+    needs_confirmation: boolean;
+    confidence: 'verified' | 'needs_confirmation' | 'placeholder';
+    source: 'registration' | 'env' | 'macos_full_name' | 'os_user' | 'unverified';
+  };
+  items: ICommandEveOnboardingItem[];
+  warnings: string[];
+}
+
+export interface ICommandEveOnboardingStatusResult {
+  version: 'command-eve-onboarding-status/v0';
+  ok: boolean;
+  reason_code?: string;
+  message?: string;
+  model?: ICommandEveOnboardingStatusModel;
+  source: {
+    receipt_path?: string;
+    first_run_profile_path?: string;
+    generated_by: 'command-eve-onboarding-status-core';
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Command EVE runtime — stays IPC (local runtime, receipts, model tier prep)
 // ---------------------------------------------------------------------------
 
@@ -1313,6 +1375,10 @@ export const commandEve = {
     IBridgeResponse<ICommandEveCreditsSpendCapResult>,
     ICommandEveCreditsSpendCapRequest
   >('command-eve.credits-set-spend-cap'),
+  // Guided onboarding (SLICE S0): read-only setup-completeness aggregator.
+  onboardingStatus: bridge.buildProvider<IBridgeResponse<ICommandEveOnboardingStatusResult>, void>(
+    'command-eve.onboarding-status'
+  ),
 };
 
 // ---------------------------------------------------------------------------
