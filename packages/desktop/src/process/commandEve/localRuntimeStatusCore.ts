@@ -15,6 +15,7 @@ import {
   validateRuntimeBootstrapManifest,
   type RuntimeBootstrapManifest,
   type RuntimeBootstrapReceipt,
+  type RuntimeBootstrapStage,
   type RuntimeBootstrapTier,
 } from './runtimeBootstrapCore';
 
@@ -23,6 +24,81 @@ export const COMMAND_EVE_LOCAL_RUNTIME_STATUS_BRIDGE_VERSION = 'command-eve-loca
 export type CommandEveLocalRuntimeStatus = 'ready' | 'blocked' | 'failed';
 
 export type CommandEveLocalRuntimeTierStatus = 'selected' | 'available' | 'opt_in' | 'pro';
+
+/**
+ * How a blocked local stage is fixed — drives the S4 RemediationCard on the
+ * read-only /runtime page. Mirrors the S0 onboarding-status canon so both
+ * surfaces key off the same reason-code → kind decision:
+ *   - `external-link`  → download Ollama (the download step-screen card).
+ *   - `pull-progress`  → the model is not (fully) fetched; show the live pull
+ *                        poll + explainer (reuses the warm-up poll).
+ *   - `cloud-redirect` → this Mac can't run local (RAM/disk); stay on cloud.
+ *   - `reinstall`      → our-bug class (Python/Hermes); reinstall, never brew.
+ */
+export type CommandEveLocalRuntimeRemediationKind =
+  | 'external-link'
+  | 'pull-progress'
+  | 'cloud-redirect'
+  | 'reinstall';
+
+export type CommandEveLocalRuntimeBlockedStage = {
+  /** The bootstrap stage that blocked (e.g. `ollama`, `model`, `python`). */
+  stage_id: RuntimeBootstrapStage['id'];
+  /** The stage status that surfaced the block. */
+  stage_status: 'blocked' | 'failed';
+  /** The machine reason code carried on the blocking stage (e.g. OLLAMA_MISSING). */
+  reason_code: string;
+  /** How the renderer should remediate it. */
+  remediation_kind: CommandEveLocalRuntimeRemediationKind;
+  /** Optional raw stage detail (already operator-safe; never a shell command). */
+  detail?: string;
+};
+
+/**
+ * Reason-code → remediation-kind for the read-only /runtime RemediationCard.
+ * Kept in lockstep with onboardingStatusCore's LOCAL_BLOCK_REMEDIATION: the
+ * difference is only the kind VOCAB the /runtime page renders against
+ * (`pull-progress` is the page's name for the html-screen pull poll).
+ */
+const LOCAL_RUNTIME_REMEDIATION_KIND: Record<string, CommandEveLocalRuntimeRemediationKind> = {
+  OLLAMA_MISSING: 'external-link',
+  OLLAMA_NOT_RUNNING: 'external-link',
+  MODEL_NOT_FETCHED: 'pull-progress',
+  MODEL_PULL_FAILED: 'pull-progress',
+  BLOCKED_RAM: 'cloud-redirect',
+  BLOCKED_DISK: 'cloud-redirect',
+  PYTHON_UNSUPPORTED: 'reinstall',
+  PYTHON_MISSING: 'reinstall',
+  PYTHON_VENV_FAILED: 'reinstall',
+  HERMES_MISSING: 'reinstall',
+  HERMES_VERSION_MISMATCH: 'reinstall',
+  HERMES_INSTALL_FAILED: 'reinstall',
+};
+
+function remediationKindForCode(code: string): CommandEveLocalRuntimeRemediationKind {
+  // Unknown block code: surface as the our-bug "reinstall" class rather than
+  // inventing a brew command or pretending it is fine.
+  return LOCAL_RUNTIME_REMEDIATION_KIND[code] || 'reinstall';
+}
+
+function buildBlockedStage(
+  receipt?: RuntimeBootstrapReceipt
+): CommandEveLocalRuntimeBlockedStage | undefined {
+  const stages = receipt?.stages;
+  if (!Array.isArray(stages)) return undefined;
+  // The bootstrap returns the receipt the moment a stage blocks, so at most one
+  // blocking stage is present; we still scan defensively for the first one.
+  const stage = stages.find((s) => s.status === 'blocked' || s.status === 'failed');
+  if (!stage) return undefined;
+  const code = String(stage.code || '').trim() || 'UNKNOWN_LOCAL_BLOCK';
+  return {
+    stage_id: stage.id,
+    stage_status: stage.status as 'blocked' | 'failed',
+    reason_code: code,
+    remediation_kind: remediationKindForCode(code),
+    ...(typeof stage.detail === 'string' && stage.detail.trim() ? { detail: stage.detail } : {}),
+  };
+}
 
 export type CommandEveLocalRuntimeTierCard = {
   id: string;
@@ -70,6 +146,12 @@ export type CommandEveLocalRuntimeStatusModel = {
     elapsed_ms: number;
     error?: string;
   };
+  /**
+   * The first blocked/failed bootstrap stage, with its reason code mapped to a
+   * remediation kind — drives the S4 RemediationCard. Absent when no local
+   * stage is blocked (cloud stays the default regardless).
+   */
+  blocked_stage?: CommandEveLocalRuntimeBlockedStage;
   tiers: CommandEveLocalRuntimeTierCard[];
   warnings: string[];
 };
@@ -281,6 +363,7 @@ export function buildLocalRuntimeStatus(
               completed_at: parsedReceipt.receipt.completed_at,
             }
           : undefined,
+        blocked_stage: buildBlockedStage(parsedReceipt.receipt),
         model_warmup: parsedModelWarmupReceipt.receipt,
         tiers,
         warnings,

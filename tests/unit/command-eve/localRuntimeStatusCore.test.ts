@@ -179,6 +179,115 @@ describe('Command EVE local runtime status core', () => {
     expect(result.model?.warnings).not.toContain('model_warmup_receipt_schema_mismatch');
   });
 
+  it('plumbs a blocked OLLAMA_MISSING stage into an external-link remediation', () => {
+    const root = makeRoot();
+    const manifestPath = path.join(root, 'command-eve-runtime-bootstrap.json');
+    const receiptPath = path.join(root, 'receipt.json');
+    writeJson(manifestPath, manifest);
+    writeJson(receiptPath, {
+      version: 'command-eve-runtime-bootstrap/v0',
+      app_release: '1.0.0-alpha.5',
+      mode: 'auto',
+      status: 'blocked',
+      started_at: '2026-06-11T01:00:00.000Z',
+      completed_at: '2026-06-11T01:01:00.000Z',
+      runtime_root: root,
+      hermes_home: path.join(root, 'hermes-home'),
+      provider: 'ollama',
+      default_model: 'command-eve-gemma4-e4b-64k:latest',
+      ollama_base_url: 'http://127.0.0.1:11434',
+      egress_proxy_url: 'http://127.0.0.1:25811',
+      stages: [
+        { id: 'capacity', status: 'pass' },
+        { id: 'ollama', status: 'blocked', code: 'OLLAMA_MISSING', detail: 'ollama binary not found' },
+      ],
+      next_action: 'install_ollama',
+      warnings: [],
+      capabilities: { skills: 1, connectors: 1, capability_pack: 'pack.json' },
+    });
+
+    const result = buildLocalRuntimeStatus({ userDataPath: root, manifestPath, receiptPath });
+
+    expect(result.ok).toBe(true);
+    expect(result.model?.blocked_stage?.stage_id).toBe('ollama');
+    expect(result.model?.blocked_stage?.stage_status).toBe('blocked');
+    expect(result.model?.blocked_stage?.reason_code).toBe('OLLAMA_MISSING');
+    expect(result.model?.blocked_stage?.remediation_kind).toBe('external-link');
+    expect(result.model?.blocked_stage?.detail).toBe('ollama binary not found');
+  });
+
+  it('maps the local-block reason codes to their remediation kinds', () => {
+    const root = makeRoot();
+    const manifestPath = path.join(root, 'command-eve-runtime-bootstrap.json');
+    writeJson(manifestPath, manifest);
+    const cases: Array<[string, string]> = [
+      ['MODEL_NOT_FETCHED', 'pull-progress'],
+      ['MODEL_PULL_FAILED', 'pull-progress'],
+      ['BLOCKED_RAM', 'cloud-redirect'],
+      ['BLOCKED_DISK', 'cloud-redirect'],
+      ['PYTHON_UNSUPPORTED', 'reinstall'],
+      ['HERMES_VERSION_MISMATCH', 'reinstall'],
+      ['SOMETHING_UNKNOWN', 'reinstall'],
+    ];
+    for (const [code, kind] of cases) {
+      const receiptPath = path.join(root, `receipt-${code}.json`);
+      writeJson(receiptPath, {
+        version: 'command-eve-runtime-bootstrap/v0',
+        app_release: '1.0.0-alpha.5',
+        mode: 'auto',
+        status: 'blocked',
+        started_at: '2026-06-11T01:00:00.000Z',
+        completed_at: '2026-06-11T01:01:00.000Z',
+        runtime_root: root,
+        hermes_home: path.join(root, 'hermes-home'),
+        provider: 'ollama',
+        default_model: 'command-eve-gemma4-e4b-64k:latest',
+        ollama_base_url: 'http://127.0.0.1:11434',
+        egress_proxy_url: 'http://127.0.0.1:25811',
+        stages: [{ id: 'model', status: 'blocked', code }],
+        next_action: 'remediate',
+        warnings: [],
+        capabilities: { skills: 1, connectors: 1, capability_pack: 'pack.json' },
+      });
+      const result = buildLocalRuntimeStatus({ userDataPath: root, manifestPath, receiptPath });
+      expect(result.model?.blocked_stage?.reason_code).toBe(code);
+      expect(result.model?.blocked_stage?.remediation_kind).toBe(kind);
+    }
+  });
+
+  it('leaves blocked_stage absent when every stage passed', () => {
+    const root = makeRoot();
+    const manifestPath = path.join(root, 'command-eve-runtime-bootstrap.json');
+    const receiptPath = path.join(root, 'receipt.json');
+    writeJson(manifestPath, manifest);
+    writeJson(receiptPath, {
+      version: 'command-eve-runtime-bootstrap/v0',
+      app_release: '1.0.0-alpha.5',
+      mode: 'auto',
+      status: 'ready',
+      started_at: '2026-06-11T01:00:00.000Z',
+      completed_at: '2026-06-11T01:01:00.000Z',
+      runtime_root: root,
+      hermes_home: path.join(root, 'hermes-home'),
+      provider: 'ollama',
+      default_model: 'command-eve-gemma4-e4b-64k:latest',
+      ollama_base_url: 'http://127.0.0.1:11434',
+      egress_proxy_url: 'http://127.0.0.1:25811',
+      stages: [
+        { id: 'ollama', status: 'pass' },
+        { id: 'model', status: 'pass' },
+      ],
+      next_action: 'ready',
+      warnings: [],
+      capabilities: { skills: 1, connectors: 1, capability_pack: 'pack.json' },
+    });
+
+    const result = buildLocalRuntimeStatus({ userDataPath: root, manifestPath, receiptPath });
+
+    expect(result.ok).toBe(true);
+    expect(result.model?.blocked_stage).toBeUndefined();
+  });
+
   it('fails closed when the manifest is unsafe', () => {
     const root = makeRoot();
     const manifestPath = path.join(root, 'command-eve-runtime-bootstrap.json');

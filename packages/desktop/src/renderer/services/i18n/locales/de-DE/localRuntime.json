@@ -10,6 +10,36 @@
     "warmup": "Modell-Warm-up",
     "kanban": "Hermes Kanban"
   },
+  "remediation": {
+    "title": "Lokale Spur einrichten",
+    "cloudReassurance": "Die Cloud-KI ist und bleibt deine Standard-Spur — sie läuft sofort, egal was hier steht.",
+    "reasonLabel": "Grund",
+    "external-link": {
+      "title": "Lokale KI braucht Ollama",
+      "body": "Damit die lokale KI auf diesem Mac laufen kann, muss Ollama installiert sein. Du kannst es in einem Schritt installieren — oder einfach in der Cloud weiterarbeiten.",
+      "actionHint": "EVE kann dir eine Schritt-für-Schritt-Anleitung als Seite öffnen.",
+      "explainer": "OLLAMA_MISSING / OLLAMA_NOT_RUNNING: die lokale Laufzeit fehlt oder läuft nicht."
+    },
+    "pull-progress": {
+      "title": "Lokales Modell wird vorbereitet",
+      "bodyFetching": "Das lokale Modell ist noch nicht (vollständig) heruntergeladen. Sobald der Download läuft, siehst du den Fortschritt hier.",
+      "bodyFailed": "Der Download des lokalen Modells ist abgebrochen. Sobald wieder Netz da ist, kann er erneut starten.",
+      "pollingLabel": "Status wird automatisch aktualisiert …",
+      "pollAttempt": "Aktualisierung {{count}}/12",
+      "explainer": "MODEL_NOT_FETCHED / MODEL_PULL_FAILED: die Modell-Gewichte werden lokal nachgeladen."
+    },
+    "cloud-redirect": {
+      "titleRam": "Für die lokale KI reicht der Arbeitsspeicher nicht",
+      "titleDisk": "Für die lokale KI ist zu wenig Speicherplatz frei",
+      "body": "Dieser Mac kann das lokale Modell nicht ausführen — das ist völlig in Ordnung. Die Cloud-KI ist deine Standard-Spur und läuft sofort.",
+      "explainer": "BLOCKED_RAM / BLOCKED_DISK: die Hardware-Anforderung der lokalen Spur ist nicht erfüllt."
+    },
+    "reinstall": {
+      "title": "Das ist unser Fehler",
+      "body": "Eine mitgelieferte Komponente passt nicht zu deinem System. Das liegt nicht an dir — eine Neuinstallation von Command EVE behebt es. Wir geben dir hier nie einen Terminal-Befehl.",
+      "explainer": "PYTHON_/HERMES_-Klasse: eine gebündelte Laufzeit-Komponente fehlt oder passt nicht."
+    }
+  },
   "labels": {
     "release": "Release",
     "hermes": "Hermes",
