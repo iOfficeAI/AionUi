@@ -6,28 +6,20 @@
 
 import type { IMessageText } from '@/common/chat/chatLib';
 import { AIONUI_FILES_MARKER } from '@/common/config/constants';
-import { ipcBridge } from '@/common';
-import type { PreviewContentType } from '@/common/types/office/preview';
 import { useConversationContextSafe } from '@/renderer/hooks/context/ConversationContext';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
-import {
-  LARGE_TEXT_PREVIEW_MAX_LENGTH,
-  LARGE_TEXT_PREVIEW_THRESHOLD,
-} from '@/renderer/pages/conversation/Preview/constants';
-import { getContentTypeByExtension } from '@/renderer/pages/conversation/Preview/fileUtils';
-import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
+import { useLocalFilePreview } from '@/renderer/pages/conversation/Preview/hooks/useLocalFilePreview';
 import { iconColors } from '@/renderer/styles/colors';
 import { Alert, Message, Tooltip } from '@arco-design/web-react';
 import { Copy } from '@icon-park/react';
 import classNames from 'classnames';
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { copyText } from '@/renderer/utils/ui/clipboard';
 import CollapsibleContent from '@renderer/components/chat/CollapsibleContent';
 import FilePreview from '@renderer/components/media/FilePreview';
 import HorizontalFileList from '@renderer/components/media/HorizontalFileList';
 import MarkdownView from '@renderer/components/Markdown';
-import type { LocalFileLinkReference } from '@renderer/components/Markdown/markdownUtils';
 import { stripThinkTags, hasThinkTags } from '@renderer/utils/chat/thinkTagFilter';
 import { stripSkillSuggest, hasSkillSuggest } from '@renderer/utils/chat/skillSuggestParser';
 
@@ -88,19 +80,6 @@ export const resolveMessageFilePath = (file_path: string, workspace?: string): s
   return `${normalizedWorkspace}/${normalizedFilePath}`.replace(/\/+/g, '/');
 };
 
-const getFileNameFromPath = (file_path: string): string => {
-  const normalized = file_path.replace(/\\/g, '/');
-  return normalized.split('/').pop() || file_path;
-};
-
-const getPreviewLanguage = (file_name: string): string => {
-  const dotIndex = file_name.lastIndexOf('.');
-  return dotIndex >= 0 ? file_name.slice(dotIndex + 1).toLowerCase() : '';
-};
-
-const shouldReadPreviewContent = (contentType: PreviewContentType): boolean =>
-  !['pdf', 'word', 'excel', 'ppt'].includes(contentType);
-
 const useFormatContent = (content: string) => {
   return useMemo(() => {
     try {
@@ -144,75 +123,10 @@ const MessageText: React.FC<{ message: IMessageText; showCopyRow?: boolean }> = 
   const conversationContext = useConversationContextSafe();
   const layout = useLayoutContext();
   const isMobile = layout?.isMobile ?? false;
-  const { openPreview } = usePreviewContext();
+  const handleLocalFileLink = useLocalFilePreview(conversationContext?.workspace);
   const resolvedFiles = useMemo(
     () => files.map((file_path) => resolveMessageFilePath(file_path, conversationContext?.workspace)),
     [conversationContext?.workspace, files]
-  );
-
-  const handleLocalFileLink = useCallback(
-    async (file_path: string, reference?: LocalFileLinkReference) => {
-      const fileName = getFileNameFromPath(file_path);
-      const contentType = getContentTypeByExtension(fileName);
-      const workspace = conversationContext?.workspace;
-      let content = '';
-      let isLargeTextTruncated = false;
-
-      try {
-        const metadata = await ipcBridge.fs.getFileMetadata.invoke({ path: file_path, workspace });
-        if (metadata == null) throw null;
-
-        if (contentType === 'image') {
-          const imageContent = await ipcBridge.fs.getImageBase64.invoke({ path: file_path, workspace });
-          if (imageContent == null) throw null;
-          content = imageContent;
-        } else if (shouldReadPreviewContent(contentType)) {
-          const textContent = await ipcBridge.fs.readFile.invoke({ path: file_path, workspace });
-          if (textContent == null) throw null;
-          content = textContent;
-
-          if (contentType === 'code' && content.length > LARGE_TEXT_PREVIEW_THRESHOLD) {
-            content = content.slice(0, LARGE_TEXT_PREVIEW_MAX_LENGTH);
-            isLargeTextTruncated = true;
-          }
-        }
-
-        openPreview(
-          content,
-          contentType,
-          {
-            title: fileName,
-            file_name: fileName,
-            file_path,
-            workspace,
-            language: getPreviewLanguage(fileName),
-            truncated: isLargeTextTruncated,
-            targetLine: reference?.line,
-            targetColumn: reference?.column,
-            editable: contentType === 'markdown' || contentType === 'image' || isLargeTextTruncated ? false : undefined,
-          },
-          { replace: true }
-        );
-      } catch (_error) {
-        openPreview(
-          '',
-          contentType,
-          {
-            title: fileName,
-            file_name: fileName,
-            file_path,
-            workspace,
-            language: getPreviewLanguage(fileName),
-            targetLine: reference?.line,
-            targetColumn: reference?.column,
-            editable: false,
-            missingFile: true,
-          },
-          { replace: true }
-        );
-      }
-    },
-    [conversationContext?.workspace, openPreview, t]
   );
 
   // 过滤空内容，避免渲染空DOM
