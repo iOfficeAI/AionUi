@@ -8,6 +8,7 @@ import { ipcBridge } from '@/common';
 import { transformMessage } from '@/common/chat/chatLib';
 import type { AvailableCommand } from '@/common/chat/chatLib';
 import type { SlashCommandItem } from '@/common/chat/slash/types';
+import { mapAcpCommandsToSlashCommands } from '@/common/chat/slash/acpMapping';
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 import type { TokenUsageData } from '@/common/config/storage';
 import { useAddOrUpdateMessage } from '@/renderer/pages/conversation/Messages/hooks';
@@ -100,6 +101,10 @@ export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: 
   // Track whether current turn has a thinking message in the conversation
   const hasThinkingMessageRef = useRef(false);
   const [hasThinkingMessage, setHasThinkingMessage] = useState(false);
+  // Track the in-flight thinking block so a synthetic done update (with a
+  // computed duration) can be emitted when the turn finishes or the first
+  // non-thinking message arrives, even if the backend never sends a done.
+  const activeThinkingRef = useRef<{ msgId: string; startedAt: number } | null>(null);
 
   // Track request trace state for displaying complete request lifecycle
   const requestTraceRef = useRef<{
@@ -157,6 +162,38 @@ export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: 
     };
   }, []);
 
+  const completeActiveThinking = useCallback(
+    (
+      boundaryMessage: Pick<IResponseMessage, 'conversation_id' | 'created_at'>,
+      completeOptions?: {
+        duration?: number;
+      }
+    ) => {
+      const activeThinking = activeThinkingRef.current;
+      if (!activeThinking) return;
+
+      const endTime = boundaryMessage.created_at ?? Date.now();
+      const duration = completeOptions?.duration ?? Math.max(0, endTime - activeThinking.startedAt);
+
+      addOrUpdateMessage({
+        id: `${activeThinking.msgId}-thinking-done`,
+        type: 'thinking',
+        msg_id: activeThinking.msgId,
+        conversation_id: boundaryMessage.conversation_id,
+        position: 'left',
+        created_at: endTime,
+        content: {
+          content: '',
+          duration,
+          status: 'done',
+        },
+      });
+
+      activeThinkingRef.current = null;
+    },
+    [addOrUpdateMessage]
+  );
+
   const handleResponseMessage = useCallback(
     (message: IResponseMessage) => {
       if (conversation_id !== message.conversation_id) {
@@ -165,6 +202,30 @@ export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: 
 
       if (message.type === 'skill_suggest' || message.type === 'cron_trigger') {
         return;
+      }
+
+      // Close out an in-flight thinking block as soon as the first message that
+      // isn't part of the thinking stream arrives (text, finish, error, …), so
+      // ThoughtDisplay shows a finished duration instead of spinning forever.
+      const shouldCompleteThinking =
+        activeThinkingRef.current &&
+        ![
+          'thought',
+          'thinking',
+          'start',
+          'request_trace',
+          'acp_context_usage',
+          'acp_model_info',
+          'codex_model_info',
+          'available_commands',
+          'slash_commands_updated',
+          'agent_status',
+          'user_content',
+          'teammate_message',
+        ].includes(message.type);
+
+      if (shouldCompleteThinking) {
+        completeActiveThinking(message);
       }
 
       const transformedMessage = transformMessage(message);
@@ -178,11 +239,28 @@ export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: 
           }
           break;
         case 'thinking': {
-          const thinkingData = message.data as { status?: string };
+          const thinkingData = message.data as { status?: string; duration?: number; duration_ms?: number };
+          if (thinkingData?.status === 'done') {
+            // Backend sent its own done signal — complete the active block with
+            // the backend-reported duration when it matches the in-flight block.
+            if (activeThinkingRef.current?.msgId === message.msg_id) {
+              completeActiveThinking(message, {
+                duration: thinkingData.duration ?? thinkingData.duration_ms,
+              });
+            }
+            break;
+          }
+
           // Only set running for active thinking, not for done signal
-          if (thinkingData?.status !== 'done' && !runningRef.current && !turnFinishedRef.current) {
+          if (!runningRef.current && !turnFinishedRef.current) {
             setRunning(true);
             runningRef.current = true;
+          }
+          if (!activeThinkingRef.current || activeThinkingRef.current.msgId !== message.msg_id) {
+            activeThinkingRef.current = {
+              msgId: message.msg_id,
+              startedAt: message.created_at ?? Date.now(),
+            };
           }
           hasThinkingMessageRef.current = true;
           setHasThinkingMessage(true);
@@ -216,6 +294,7 @@ export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: 
             setThought({ subject: '', description: '' });
             hasContentInTurnRef.current = false;
             hasThinkingMessageRef.current = false;
+            activeThinkingRef.current = null;
             setHasThinkingMessage(false);
             // Log request completion
             if (requestTraceRef.current) {
@@ -371,15 +450,9 @@ export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: 
         case 'available_commands': {
           const cmdData = message.data as { commands?: AvailableCommand[] };
           if (cmdData?.commands && Array.isArray(cmdData.commands)) {
-            setSlashCommands(
-              cmdData.commands.map((c) => ({
-                name: c.name,
-                description: c.description,
-                kind: 'template' as const,
-                source: 'acp' as const,
-                selectionBehavior: 'insert' as const,
-              }))
-            );
+            // Use the shared mapper so hint + empty-turn tip metadata survive,
+            // matching the HTTP slash-command path (useSlashCommands).
+            setSlashCommands(mapAcpCommandsToSlashCommands(cmdData.commands));
           }
           break;
         }
@@ -438,6 +511,7 @@ export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: 
           runningRef.current = false;
           setAiProcessing(false);
           aiProcessingRef.current = false;
+          activeThinkingRef.current = null;
           addOrUpdateMessage(transformedMessage);
           // Log request error
           if (requestTraceRef.current) {
@@ -471,7 +545,7 @@ export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: 
           break;
       }
     },
-    [conversation_id, addOrUpdateMessage, throttledSetThought, setThought, setRunning, setAiProcessing, setAcpStatus, quotaWall]
+    [conversation_id, addOrUpdateMessage, completeActiveThinking, throttledSetThought, setThought, setRunning, setAiProcessing, setAcpStatus, quotaWall]
   );
 
   useEffect(() => {
@@ -491,6 +565,7 @@ export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: 
     hasContentInTurnRef.current = false;
     turnFinishedRef.current = false;
     hasThinkingMessageRef.current = false;
+    activeThinkingRef.current = null;
     setHasThinkingMessage(false);
     setHasHydratedRunningState(false);
 
@@ -542,7 +617,26 @@ export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: 
           setContextLimit(last_context_limit);
         }
       }
-    });
+    })
+      .catch((error: unknown) => {
+        // A failed conversation lookup (e.g. transient "Failed to fetch") must
+        // not leave the hook stuck un-hydrated — complete hydration in the idle
+        // state so ThoughtDisplay/running indicators resolve. Unexpected errors
+        // still surface.
+        if (cancelled) return;
+        setRunning(false);
+        runningRef.current = false;
+        setAiProcessing(false);
+        aiProcessingRef.current = false;
+        setHasHydratedRunningState(true);
+
+        if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+          console.warn('[useAcpMessage] Failed to hydrate conversation state:', error);
+          return;
+        }
+
+        throw error;
+      });
 
     return () => {
       cancelled = true;
@@ -597,6 +691,7 @@ export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: 
     }));
     hasContentInTurnRef.current = false;
     hasThinkingMessageRef.current = false;
+    activeThinkingRef.current = null;
     setHasThinkingMessage(false);
   }, []);
 

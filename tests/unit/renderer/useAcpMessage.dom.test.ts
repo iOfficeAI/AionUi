@@ -7,23 +7,19 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useAcpMessage } from '@/renderer/pages/conversation/platforms/acp/useAcpMessage';
-import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 
-const { addOrUpdateMessageMock, responseStreamOnMock, responseStreamHandlerRef } = vi.hoisted(() => ({
+const { addOrUpdateMessageMock, responseStreamOnMock, responseStreamHandlerRef, conversationGetInvokeMock } = vi.hoisted(() => ({
   addOrUpdateMessageMock: vi.fn(),
   responseStreamOnMock: vi.fn(),
   responseStreamHandlerRef: {
     current: undefined as ((message: IResponseMessage) => void) | undefined,
   },
+  conversationGetInvokeMock: vi.fn(),
 }));
 
 vi.mock('@/renderer/pages/conversation/Messages/hooks', () => ({
   useAddOrUpdateMessage: () => addOrUpdateMessageMock,
-}));
-
-vi.mock('@/renderer/pages/conversation/utils/conversationCache', () => ({
-  getConversationOrNull: vi.fn(),
 }));
 
 vi.mock('@/common', () => ({
@@ -37,6 +33,9 @@ vi.mock('@/common', () => ({
       },
     },
     conversation: {
+      get: {
+        invoke: conversationGetInvokeMock,
+      },
       warmup: {
         invoke: vi.fn().mockResolvedValue(undefined),
       },
@@ -54,7 +53,7 @@ describe('useAcpMessage', () => {
   });
 
   it('completes hydration when the conversation lookup fails', async () => {
-    vi.mocked(getConversationOrNull).mockRejectedValue(new TypeError('Failed to fetch'));
+    conversationGetInvokeMock.mockRejectedValue(new TypeError('Failed to fetch'));
 
     const { result } = renderHook(() => useAcpMessage('conv-1'));
 
@@ -67,7 +66,7 @@ describe('useAcpMessage', () => {
   });
 
   it('emits a synthetic thinking done update on finish when the stream never sends one', async () => {
-    vi.mocked(getConversationOrNull).mockResolvedValue(null);
+    conversationGetInvokeMock.mockResolvedValue(null);
 
     const now = Date.now();
     renderHook(() => useAcpMessage('conv-1'));
@@ -116,7 +115,7 @@ describe('useAcpMessage', () => {
   });
 
   it('completes thinking as soon as the first non-thinking message arrives', async () => {
-    vi.mocked(getConversationOrNull).mockResolvedValue(null);
+    conversationGetInvokeMock.mockResolvedValue(null);
 
     renderHook(() => useAcpMessage('conv-1'));
 
@@ -170,7 +169,7 @@ describe('useAcpMessage', () => {
   });
 
   it('preserves slash-command metadata from available_commands stream updates', async () => {
-    vi.mocked(getConversationOrNull).mockResolvedValue(null);
+    conversationGetInvokeMock.mockResolvedValue(null);
 
     const { result } = renderHook(() => useAcpMessage('conv-1'));
 

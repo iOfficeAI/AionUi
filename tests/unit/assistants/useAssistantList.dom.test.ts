@@ -37,8 +37,11 @@ describe('useAssistantList', () => {
   });
 
   it('loads assistants on mount and selects first by default', async () => {
+    // Command-EVE shell scopes the list to the EVE assistant + user-created
+    // assistants (builtin AionUi presets are hidden), so both fixtures use a
+    // shell-visible source to exercise the load/sort/default-select path.
     const mockList: Assistant[] = [
-      { id: '1', name: 'Claude', sort_order: 1, source: 'builtin', enabled: true },
+      { id: '1', name: 'Claude', sort_order: 1, source: 'user', enabled: true },
       { id: '2', name: 'GPT', sort_order: 2, source: 'user', enabled: true },
     ];
     (ipcBridge.assistants.list.invoke as any).mockResolvedValue(mockList);
