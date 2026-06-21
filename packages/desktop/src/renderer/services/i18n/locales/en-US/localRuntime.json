@@ -10,6 +10,36 @@
     "warmup": "Model warm-up",
     "kanban": "Hermes Kanban"
   },
+  "remediation": {
+    "title": "Set up the local lane",
+    "cloudReassurance": "The cloud AI is and stays your default lane — it runs immediately, no matter what this screen says.",
+    "reasonLabel": "Reason",
+    "external-link": {
+      "title": "The local AI needs Ollama",
+      "body": "For the local AI to run on this Mac, Ollama must be installed. You can install it in one step — or simply keep working in the cloud.",
+      "actionHint": "EVE can open a step-by-step walkthrough as a page for you.",
+      "explainer": "OLLAMA_MISSING / OLLAMA_NOT_RUNNING: the local runtime is missing or not running."
+    },
+    "pull-progress": {
+      "title": "The local model is being prepared",
+      "bodyFetching": "The local model is not (fully) downloaded yet. Once the download is running, you'll see the progress here.",
+      "bodyFailed": "The local model download was interrupted. Once you're back online it can start again.",
+      "pollingLabel": "Status refreshes automatically …",
+      "pollAttempt": "Refresh {{count}}/12",
+      "explainer": "MODEL_NOT_FETCHED / MODEL_PULL_FAILED: the model weights are being fetched locally."
+    },
+    "cloud-redirect": {
+      "titleRam": "Not enough memory for the local AI",
+      "titleDisk": "Not enough free disk space for the local AI",
+      "body": "This Mac can't run the local model — and that's perfectly fine. The cloud AI is your default lane and runs immediately.",
+      "explainer": "BLOCKED_RAM / BLOCKED_DISK: the local lane's hardware requirement isn't met."
+    },
+    "reinstall": {
+      "title": "This one's on us",
+      "body": "A bundled component doesn't fit your system. This isn't your fault — reinstalling Command EVE fixes it. We never hand you a terminal command here.",
+      "explainer": "PYTHON_/HERMES_ class: a bundled runtime component is missing or mismatched."
+    }
+  },
   "labels": {
     "release": "Release",
     "hermes": "Hermes",

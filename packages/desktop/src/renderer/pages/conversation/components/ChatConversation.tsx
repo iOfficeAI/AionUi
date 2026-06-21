@@ -29,6 +29,7 @@ import { saveAionrsDefaultModel } from '@/renderer/pages/guid/hooks/agentSelecti
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
 import { getConversationCreateErrorMessage } from '@/renderer/pages/conversation/utils/conversationCreateError';
 import GoogleModelSelector from '../platforms/gemini/GoogleModelSelector';
+import OnboardingReadinessGreeting from './OnboardingReadinessGreeting';
 import AionrsChat from '../platforms/aionrs/AionrsChat';
 import AionrsModelSelector from '../platforms/aionrs/AionrsModelSelector';
 import { useAionrsModelSelection } from '../platforms/aionrs/useAionrsModelSelection';
@@ -242,7 +243,14 @@ const ChatConversation: React.FC<{
       return <LegacyReadOnlyConversation key={conversation.id} conversation={conversation} />;
     }
     switch (conversation.type) {
-      case 'acp':
+      case 'acp': {
+        // Guided onboarding (SLICE S2): for a Command EVE (Hermes) conversation,
+        // render the one-time German readiness greeting in the empty-chat seam.
+        // It is shown by MessageList ONLY while the conversation has zero
+        // messages (no new message type, no persistence), self-quiets on any
+        // read failure, and is scoped to EVE conversations so no other backend
+        // is affected.
+        const isCommandEve = isCommandEveAcpConversation(conversation.extra?.backend);
         return (
           <AcpChat
             key={conversation.id}
@@ -253,6 +261,7 @@ const ChatConversation: React.FC<{
             agent_name={assistantDisplayName}
             cron_job_id={(conversation.extra as { cron_job_id?: string })?.cron_job_id}
             hideSendBox={resolvedHideSendBox}
+            emptySlot={isCommandEve ? <OnboardingReadinessGreeting /> : undefined}
             loadedSkills={(conversation.extra as { skills?: string[] } | undefined)?.skills}
             loadedMcpServers={(conversation.extra as { mcp_servers?: string[] } | undefined)?.mcp_servers}
             loadedMcpStatuses={
@@ -260,6 +269,7 @@ const ChatConversation: React.FC<{
             }
           ></AcpChat>
         );
+      }
       default:
         return null;
     }

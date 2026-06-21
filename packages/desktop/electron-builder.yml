@@ -116,6 +116,17 @@ extraResources:
   # being published to the public Python package index.
   - from: resources/bundled-hermes
     to: bundled-hermes
+  # EVE strategy skills (the real eve-doctrine/plan-system/icp-persona-panel/etc.
+  # SKILL.md trees), staged into resources/bundled-skills by
+  # scripts/fetch-bundled-skills.mjs (committed snapshot; refreshed from the
+  # canonical Company.OS /.claude/skills when present). Lands at
+  # Contents/Resources/bundled-skills/ OUTSIDE the asar — the bundled CPython/
+  # Hermes agent reads SKILL.md via os.walk, not Electron fs. First-run copies
+  # these into the writable managedSkillsRoot so skills.external_dirs serves the
+  # real method content (replacing the boilerplate onboarding stubs). Pure
+  # markdown -> no deep-sign/notarize step needed (unlike Resources/python).
+  - from: resources/bundled-skills
+    to: bundled-skills
   # Self-contained CPython 3.12 (astral-sh/python-build-standalone), staged at
   # build/bundled-python/python by scripts/fetch-bundled-python.mjs (NOT committed
   # to git). Lands at Contents/Resources/python/ — interpreter at

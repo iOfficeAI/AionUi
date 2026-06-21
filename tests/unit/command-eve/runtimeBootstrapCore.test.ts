@@ -22,6 +22,9 @@ import {
   resolveCommandEveRuntimeBootstrapPaths,
   resolveCommandEveRuntimeBootstrapManifestPath,
   validateCommandEveCapabilityPack,
+  copyBundledStrategySkills,
+  resolveBundledSkillsDir,
+  EVE_STRATEGY_SKILL_IDS,
   type RuntimeBootstrapCommandResult,
   type RuntimeBootstrapRunner,
 } from '@/process/commandEve/runtimeBootstrapCore';
@@ -271,7 +274,12 @@ describe('Command EVE runtime bootstrap core', () => {
       expect(configYaml).toContain('context_length: 65536');
       expect(configYaml).toContain('ollama_num_ctx: 65536');
       expect(configYaml).toContain('max_tokens: 512');
-      expect(configYaml).toContain('reasoning_effort: none');
+      // Soul-wiring: reasoning is ON (challenger alive). Default tier is the
+      // cheap-but-real 'low'; it must never regress to 'none' (which disables
+      // reasoning entirely in Hermes).
+      expect(configYaml).toContain('reasoning_effort: low');
+      expect(configYaml).not.toContain('reasoning_effort: none');
+      expect(configYaml).toMatch(/reasoning_effort: (low|medium|high|xhigh)/);
       expect(configYaml).toContain('skills:');
       expect(configYaml).toContain('external_dirs:');
       expect(configYaml).toContain('"${HERMES_HOME}/skills-command-eve"');
@@ -290,6 +298,19 @@ describe('Command EVE runtime bootstrap core', () => {
       expect(configYaml).not.toContain('"gaming"');
       expect(configYaml).not.toContain('"weixin"');
       expect(configYaml).toContain('mcp_servers: {}');
+      // Soul-wiring: the remember + self-optimize loops are ON. These default OFF
+      // in Hermes code, so they MUST be emitted explicitly — and the skill-creation
+      // loop MUST ship > 0 (a 0 here is the original "loop is off" defect the soul lies
+      // about; creation_nudge_interval is read on the ACP chat lane via
+      // init_agent/agent_init.py:1190-1193).
+      expect(configYaml).toContain('creation_nudge_interval: 10');
+      expect(configYaml).not.toContain('creation_nudge_interval: 0');
+      expect(configYaml).toContain('memory:');
+      expect(configYaml).toContain('memory_enabled: true');
+      expect(configYaml).toContain('user_profile_enabled: true');
+      expect(configYaml).toContain('nudge_interval: 10');
+      expect(configYaml).toContain('curator:');
+      expect(configYaml).toContain('enabled: true');
       // EVE Standard (cloud) is the default lane; raw secrets still blocked and
       // S2/S3 stays local.
       expect(configYaml).toContain('default_lane: eve_cloud');
@@ -298,12 +319,43 @@ describe('Command EVE runtime bootstrap core', () => {
       expect(configYaml).toContain('- S3');
       expect(configYaml).toContain('kanban:');
       expect(configYaml).toContain('dispatch_in_gateway: false');
-      expect(configYaml).toContain('auto_decompose: false');
+      // auto_decompose flipped ON so EVE can decompose goals into child work.
+      expect(configYaml).toContain('auto_decompose: true');
       expect(configYaml).toContain(`model_url: ${baseUrl}`);
-      // SOUL.md reflects EVE-cloud-as-default and the full capability surface.
+      // SOUL.md now carries the full composed eve-doctrine soul (identity +
+      // voice + convictions + method + non-negotiables + self-learning), not the
+      // old 5-line capability stub. This is the founder-self-detection regression
+      // tripwire: if the soul silently drifts back to a stub, these break.
       const soulMd = fs.readFileSync(path.join(paths.hermesHome, 'SOUL.md'), 'utf8');
+      // Identity markers.
+      expect(soulMd).toContain('The Operator');
+      expect(soulMd).toContain('JARVIS for making money');
+      expect(soulMd).toContain('and then what');
+      expect(soulMd.toLowerCase()).toContain('invisible delivery');
+      expect(soulMd.toLowerCase()).toContain('per-client isolation');
+      // At least 5 of the 8 convictions verbatim.
+      const convictions = [
+        'Simplicity is strategy',
+        'Growth by subtraction',
+        'Curse of Capability',
+        'Bottlenecks are singular',
+        'Plumbing before water',
+        'Customers know the answer',
+        'No memo, no decision',
+        'Leverage over busyness',
+      ];
+      expect(convictions.filter((c) => soulMd.includes(c)).length).toBeGreaterThanOrEqual(5);
+      // Self-learning section: it remembers (USER.md/MEMORY.md) and builds itself
+      // skills. Directive second-person frame, so the marker is "build yourself skills".
+      expect(soulMd).toContain('USER.md');
+      expect(soulMd).toContain('MEMORY.md');
+      expect(soulMd).toContain('Build yourself skills');
+      // Not a stub: substantial body + the prior 5-line stub signature is gone.
+      expect(soulMd.length).toBeGreaterThan(2000);
+      expect(soulMd).not.toContain('You are EVE, Command EVE Chief of Staff.');
+      // Operating-environment block preserved (EVE-cloud default + full surface).
       expect(soulMd).toContain('EVE Standard');
-      expect(soulMd).toContain('full Hermes capability surface');
+      expect(soulMd).toContain('Hermes capability surface');
       expect(soulMd).not.toContain('Default to local-first execution');
       expect(fs.existsSync(path.join(paths.managedSkillsRoot, 'first-run-company-discovery', 'SKILL.md'))).toBe(true);
       expect(fs.existsSync(path.join(paths.managedSkillsRoot, 'content-machine', 'SKILL.md'))).toBe(false);
@@ -325,7 +377,7 @@ describe('Command EVE runtime bootstrap core', () => {
       expect(reconciliation.hermes_config.mcp_servers).toEqual([]);
       expect(reconciliation.hermes_config.platform_toolsets).toEqual({ cli: ['hermes-cli'], acp: ['hermes-acp'] });
       expect(reconciliation.hermes_config.kanban_dispatch_in_gateway).toBe(false);
-      expect(reconciliation.hermes_config.kanban_auto_decompose).toBe(false);
+      expect(reconciliation.hermes_config.kanban_auto_decompose).toBe(true);
       expect(reconciliation.blocked_external_mcp_transports).toEqual(['http', 'sse']);
       expect(fs.readFileSync(path.join(paths.hermesHome, 'context_length_cache.yaml'), 'utf8')).toContain(
         `${runtimeModelRef}@${baseUrl}/v1: 65536`
@@ -1099,5 +1151,155 @@ describe('resolveCommandEveFirstRunProfile registration seed (COMPA-596)', () =>
     expect(profile.company_name).toBe('FYN Labs');
     expect(profile.source).toBe('registration');
     expect(profile.needs_confirmation).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// SLICE B2 — bundled EVE strategy skills (real SKILL.md, not boilerplate stubs)
+// ---------------------------------------------------------------------------
+
+// Build a fixture bundled-skills dir: every allowlisted single skill gets a real
+// <id>/SKILL.md, and marketing-outbound gets a BUNDLE (nested sub-skill dirs each
+// with their own SKILL.md) so the whole-tree copy is exercised.
+const buildBundledSkillsFixture = (root: string, opts: { omit?: string[] } = {}): string => {
+  const omit = new Set(opts.omit || []);
+  const dir = path.join(root, 'bundled-skills');
+  fs.mkdirSync(dir, { recursive: true });
+  for (const id of EVE_STRATEGY_SKILL_IDS) {
+    if (omit.has(id)) continue;
+    const skillDir = path.join(dir, id);
+    fs.mkdirSync(skillDir, { recursive: true });
+    if (id === 'marketing-outbound') {
+      // A bundle: README.md + nested sub-skills, no top-level SKILL.md.
+      fs.writeFileSync(path.join(skillDir, 'README.md'), '# marketing-outbound bundle\n');
+      for (const sub of ['icp-definer', 'offer-definer', 'cold-call-script']) {
+        const subDir = path.join(skillDir, sub);
+        fs.mkdirSync(subDir, { recursive: true });
+        fs.writeFileSync(
+          path.join(subDir, 'SKILL.md'),
+          `---\nname: ${sub}\n---\n\n# ${sub}\n\nReal nested method content for ${sub}.\n`
+        );
+      }
+    } else {
+      fs.writeFileSync(
+        path.join(skillDir, 'SKILL.md'),
+        `---\nname: ${id}\n---\n\n# ${id}\n\nReal strategy method content for ${id} (not a stub).\n`
+      );
+    }
+  }
+  return dir;
+};
+
+describe('Command EVE bundled strategy skills (SLICE B2)', () => {
+  it('copies all 15 real strategy skills into managedSkillsRoot (whole-tree for the bundle)', () => {
+    const root = makeRoot();
+    const bundledSkillsDir = buildBundledSkillsFixture(root);
+    const paths = resolveCommandEveRuntimeBootstrapPaths(root);
+
+    const failures = copyBundledStrategySkills(paths, bundledSkillsDir);
+    expect(failures).toEqual([]);
+
+    // Every single skill landed its own SKILL.md with REAL (non-stub) content.
+    for (const id of EVE_STRATEGY_SKILL_IDS) {
+      if (id === 'marketing-outbound') continue;
+      const md = path.join(paths.managedSkillsRoot, id, 'SKILL.md');
+      expect(fs.existsSync(md)).toBe(true);
+      const body = fs.readFileSync(md, 'utf8');
+      expect(body).toContain('Real strategy method content');
+      // NOT the onboarding-stub signature.
+      expect(body).not.toContain('Command EVE managed core skill for local-first founder onboarding');
+    }
+
+    // The bundle's nested sub-skill SKILL.md files travelled (whole-tree copy).
+    for (const sub of ['icp-definer', 'offer-definer', 'cold-call-script']) {
+      const nested = path.join(paths.managedSkillsRoot, 'marketing-outbound', sub, 'SKILL.md');
+      expect(fs.existsSync(nested)).toBe(true);
+      expect(fs.readFileSync(nested, 'utf8')).toContain('Real nested method content');
+    }
+    // The bundle README travelled too.
+    expect(fs.existsSync(path.join(paths.managedSkillsRoot, 'marketing-outbound', 'README.md'))).toBe(true);
+  });
+
+  it('is ADDITIVE: the onboarding capability stubs coexist with the real strategy skills', () => {
+    const root = makeRoot();
+    const bundledSkillsDir = buildBundledSkillsFixture(root);
+    const paths = resolveCommandEveRuntimeBootstrapPaths(root);
+
+    // Pre-seed an onboarding-stub skill the way writeCommandEveManagedSkills does.
+    const stubDir = path.join(paths.managedSkillsRoot, 'first-run-company-discovery');
+    fs.mkdirSync(stubDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(stubDir, 'SKILL.md'),
+      '---\nname: first-run-company-discovery\n---\n\nCommand EVE managed core skill for local-first founder onboarding and governed work routing.\n'
+    );
+
+    copyBundledStrategySkills(paths, bundledSkillsDir);
+
+    // The stub is untouched...
+    expect(fs.existsSync(path.join(stubDir, 'SKILL.md'))).toBe(true);
+    expect(fs.readFileSync(path.join(stubDir, 'SKILL.md'), 'utf8')).toContain(
+      'Command EVE managed core skill for local-first founder onboarding'
+    );
+    // ...and the real strategy skill exists alongside it.
+    expect(fs.existsSync(path.join(paths.managedSkillsRoot, 'eve-doctrine', 'SKILL.md'))).toBe(true);
+  });
+
+  it('FAILS CLOSED: a missing allowlisted skill yields capabilities.bundled_skill_missing:<id>', () => {
+    const root = makeRoot();
+    // Omit eve-doctrine — the most load-bearing skill — to prove the tripwire fires.
+    const bundledSkillsDir = buildBundledSkillsFixture(root, { omit: ['eve-doctrine'] });
+    const paths = resolveCommandEveRuntimeBootstrapPaths(root);
+
+    const failures = copyBundledStrategySkills(paths, bundledSkillsDir);
+    expect(failures).toContain('capabilities.bundled_skill_missing:eve-doctrine');
+    // The OTHER skills still copied — fail-closed reports the gap, it does not abort the rest.
+    expect(fs.existsSync(path.join(paths.managedSkillsRoot, 'plan-system', 'SKILL.md'))).toBe(true);
+  });
+
+  it('FAILS CLOSED: an empty bundle (no nested SKILL.md) is reported missing', () => {
+    const root = makeRoot();
+    const bundledSkillsDir = buildBundledSkillsFixture(root);
+    // Strip the bundle's nested sub-skills so it has a dir but no SKILL.md anywhere.
+    fs.rmSync(path.join(bundledSkillsDir, 'marketing-outbound'), { recursive: true, force: true });
+    fs.mkdirSync(path.join(bundledSkillsDir, 'marketing-outbound'), { recursive: true });
+    fs.writeFileSync(path.join(bundledSkillsDir, 'marketing-outbound', 'README.md'), 'only a readme\n');
+    const paths = resolveCommandEveRuntimeBootstrapPaths(root);
+
+    const failures = copyBundledStrategySkills(paths, bundledSkillsDir);
+    expect(failures).toContain('capabilities.bundled_skill_missing:marketing-outbound');
+  });
+
+  it('is a no-op (no failures) when no bundled-skills dir is resolvable', () => {
+    const root = makeRoot();
+    const paths = resolveCommandEveRuntimeBootstrapPaths(root);
+    expect(copyBundledStrategySkills(paths, '')).toEqual([]);
+    // managedSkillsRoot is not populated with strategy skills.
+    expect(fs.existsSync(path.join(paths.managedSkillsRoot, 'eve-doctrine'))).toBe(false);
+  });
+
+  it('resolveBundledSkillsDir prefers env, then resourcesPath, then cwd/resources', () => {
+    const root = makeRoot();
+    const envDir = path.join(root, 'env-skills');
+    const resourcesDir = path.join(root, 'res');
+    fs.mkdirSync(envDir, { recursive: true });
+    fs.mkdirSync(path.join(resourcesDir, 'bundled-skills'), { recursive: true });
+
+    // 1) explicit env override wins (when it exists).
+    expect(resolveBundledSkillsDir({ COMMAND_EVE_SKILLS_DIR: envDir } as NodeJS.ProcessEnv, resourcesDir)).toBe(
+      envDir
+    );
+    // 2) no env -> packaged resourcesPath/bundled-skills.
+    expect(resolveBundledSkillsDir({} as NodeJS.ProcessEnv, resourcesDir)).toBe(
+      path.join(resourcesDir, 'bundled-skills')
+    );
+    // 3) neither -> falls back to the committed snapshot at cwd/resources/bundled-skills,
+    //    which exists in this repo (staged by fetch-bundled-skills.mjs).
+    const cwdSnapshot = path.join(process.cwd(), 'resources', 'bundled-skills');
+    const resolved = resolveBundledSkillsDir({} as NodeJS.ProcessEnv, undefined);
+    if (fs.existsSync(cwdSnapshot)) {
+      expect(resolved).toBe(cwdSnapshot);
+    } else {
+      expect(resolved).toBe('');
+    }
   });
 });

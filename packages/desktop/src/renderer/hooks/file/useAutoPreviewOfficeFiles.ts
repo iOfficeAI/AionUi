@@ -12,7 +12,28 @@ import { getFileTypeInfo } from '@/renderer/utils/file/fileType';
 import { useCallback, useEffect, useRef } from 'react';
 
 const OFFICE_OPEN_DELAY_MS = 1000;
-const OFFICE_CONTENT_TYPES = new Set(['ppt', 'word', 'excel']);
+// 'html' is included for the Guided Onboarding S3 step-screen bonus only. The proven
+// PRIMARY path for an EVE-authored onboarding.html is the click chain (FileChangesPanel
+// -> launchPreview -> HTMLRenderer), which needs no change here. Auto-open is a
+// best-effort BONUS and is inert in this worktree (no backend watcher emits fileAdded).
+const OFFICE_CONTENT_TYPES = new Set(['ppt', 'word', 'excel', 'html']);
+
+// Marker-gate for the html auto-open bonus: only auto-open HTML files that follow the
+// generated step-screen naming convention (onboarding.html / onboarding-<step>.html).
+// This keeps arbitrary user/agent HTML from being auto-surfaced — those still open via
+// the explicit preview-click chain. Gating on the filename keeps this hook synchronous
+// and side-effect-free (no file read). Marker constant lives next to the template in
+// runtimeBootstrapCore (COMMAND_EVE_ONBOARDING_STEP_MARKER) for the in-content marker;
+// here we gate on the filename so no async read is needed in the watch path.
+const ONBOARDING_STEP_FILE_RE = /(^|[\\/])onboarding(?:-[a-z0-9-]+)?\.html$/i;
+
+// Exported (additive, pure) so the S3 marker-gate is unit-testable without mounting
+// the DOM hook. The hook's behaviour is unchanged; this is only the eligibility predicate.
+export const isAutoOpenEligible = (file_path: string, contentType: string): boolean => {
+  if (contentType !== 'html') return OFFICE_CONTENT_TYPES.has(contentType);
+  // html: bonus auto-open ONLY for generated onboarding step-screens.
+  return ONBOARDING_STEP_FILE_RE.test(file_path);
+};
 
 const normalizeWatchPath = (value: string): string => {
   const normalized = value.replaceAll('\\', '/');
@@ -57,7 +78,7 @@ export const useAutoPreviewOfficeFiles = (
       if (openTimersRef.current.has(normalizedFilePath)) return;
 
       const { contentType } = getFileTypeInfo(file_path);
-      if (!OFFICE_CONTENT_TYPES.has(contentType)) return;
+      if (!isAutoOpenEligible(file_path, contentType)) return;
 
       const file_name = file_path.split(/[\\/]/).pop() ?? file_path;
       const timer = setTimeout(() => {
@@ -91,7 +112,7 @@ export const useAutoPreviewOfficeFiles = (
           currentFiles
             .map((file) => file.fullPath)
             .map((file_path) => normalizeWatchPath(file_path))
-            .filter((file_path) => OFFICE_CONTENT_TYPES.has(getFileTypeInfo(file_path).contentType))
+            .filter((file_path) => isAutoOpenEligible(file_path, getFileTypeInfo(file_path).contentType))
         );
       } catch {
         // Ignore watcher/bootstrap failures; the hook should stay inert rather than noisy.

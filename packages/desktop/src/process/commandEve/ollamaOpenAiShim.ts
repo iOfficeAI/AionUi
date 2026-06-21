@@ -125,7 +125,12 @@ export type CommandEvePromptProof = {
   model: string;
   message_count: number;
   system_message_count: number;
-  marker: 'eve_operating_rule' | 'command_eve_chief_of_staff' | 'command_eve_founder_intent' | 'none';
+  marker:
+    | 'eve_soul'
+    | 'eve_operating_rule'
+    | 'command_eve_chief_of_staff'
+    | 'command_eve_founder_intent'
+    | 'none';
   prompt_sha256: string;
   roles: string[];
 };
@@ -250,6 +255,18 @@ function redactMessageContent(message: unknown): unknown {
 }
 
 function classifyPromptMarker(promptText: string): CommandEvePromptProof['marker'] {
+  // SOUL.md now carries the doctrine voice (FACT runtimeBootstrapCore.ts:183
+  // EVE_SOUL_MARKDOWN). Match its distinctive identity cues FIRST so the prompt-
+  // proof self-detection gate stays green when the soul is in the system prompt
+  // instead of (or alongside) the thin internal operating rule. Without this the
+  // soul text would classify as 'none' and silently blind the gate.
+  if (
+    /\bEVE SOUL\b/i.test(promptText) ||
+    /The Operator/i.test(promptText) ||
+    /JARVIS for making money/i.test(promptText)
+  ) {
+    return 'eve_soul';
+  }
   if (/\bEVE Operating Rule\b/i.test(promptText)) return 'eve_operating_rule';
   if (/Command EVE'?s Chief-of-Staff/i.test(promptText) || /Command EVE Chief of Staff/i.test(promptText)) {
     return 'command_eve_chief_of_staff';

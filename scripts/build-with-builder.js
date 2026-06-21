@@ -340,6 +340,34 @@ function fetchBundledPython() {
   }
 }
 
+// Stage the EVE strategy skills (the real eve-doctrine/plan-system/etc. SKILL.md
+// trees) into resources/bundled-skills BEFORE electron-builder runs, so its
+// `extraResources` mapping (resources/bundled-skills -> bundled-skills) copies
+// them into Contents/Resources/bundled-skills. Unlike bundled-python this runs
+// UNCONDITIONALLY for every platform — the skills are cross-platform pure
+// markdown with no signing/notarize concern. The fetch script refreshes the
+// committed snapshot from the canonical Company.OS skills dir when present and
+// otherwise trusts the committed snapshot; either way it FAILS CLOSED (non-zero
+// exit) if any allowlisted strategy skill is missing/invalid, so we never ship a
+// silent capability gap (founder-self-detection standard).
+function fetchBundledSkills() {
+  const fetchScript = path.join(__dirname, 'fetch-bundled-skills.mjs');
+  console.log('🧠 Staging bundled EVE strategy skills for extraResources...');
+  const result = spawnSync(process.execPath, [fetchScript], {
+    stdio: 'inherit',
+    env: process.env,
+  });
+  if (result.error) {
+    throw new Error(`Bundled-skills stage could not start: ${result.error.message}`);
+  }
+  if (result.status !== 0) {
+    throw new Error(
+      `Bundled-skills stage failed (exit ${result.status}) — aborting before electron-builder ` +
+        `to avoid shipping a missing/invalid EVE strategy skill set.`
+    );
+  }
+}
+
 // Parse command line arguments
 const args = process.argv.slice(2);
 const archList = ['x64', 'arm64', 'ia32', 'armv7l'];
@@ -527,6 +555,12 @@ try {
   if (builderArgs.includes('--mac') || builderArgs.includes('--all')) {
     fetchBundledPython();
   }
+
+  // 6c. Stage the EVE strategy skills for ALL platforms (cross-platform markdown,
+  // no signing concern), BEFORE electron-builder runs so the bundled-skills
+  // extraResources mapping has a verified tree to copy. Fail-closed on a missing
+  // strategy skill (throws → caught below → exit 1).
+  fetchBundledSkills();
 
   // 6. 运行 electron-builder 生成分发包（DMG/ZIP/EXE等）
   // Run electron-builder to create distributables (DMG/ZIP/EXE, etc.)

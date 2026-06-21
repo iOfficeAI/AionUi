@@ -14,6 +14,16 @@ import { isElectronDesktop } from '@renderer/utils/platform';
 
 type TierStatus = 'selected' | 'available' | 'opt_in' | 'pro';
 
+type RemediationKind = 'external-link' | 'pull-progress' | 'cloud-redirect' | 'reinstall';
+
+type BlockedStage = {
+  stage_id: string;
+  stage_status: 'blocked' | 'failed';
+  reason_code: string;
+  remediation_kind: RemediationKind;
+  detail?: string;
+};
+
 type BridgeResponse<D = unknown> = {
   success: boolean;
   msg?: string;
@@ -66,6 +76,7 @@ type LocalRuntimeModel = {
     elapsed_ms: number;
     error?: string;
   };
+  blocked_stage?: BlockedStage;
   tiers: LocalRuntimeTier[];
   warnings: string[];
 };
@@ -181,6 +192,80 @@ const TierCard: React.FC<{ tier: LocalRuntimeTier }> = ({ tier }) => {
   );
 };
 
+/**
+ * S4 — reason-code-keyed local-lane remediation. Read-only, additive: it never
+ * mutates runtime state and never shows a shell command. Cloud stays the default
+ * lane, so every card reassures the operator that the cloud still works.
+ */
+const RemediationCard: React.FC<{ blocked: BlockedStage; warmupPollCount: number }> = ({
+  blocked,
+  warmupPollCount,
+}) => {
+  const { t } = useTranslation();
+  const kind = blocked.remediation_kind;
+
+  const title = (() => {
+    if (kind === 'cloud-redirect') {
+      return blocked.reason_code === 'BLOCKED_DISK'
+        ? t('localRuntime.remediation.cloud-redirect.titleDisk')
+        : t('localRuntime.remediation.cloud-redirect.titleRam');
+    }
+    return t(`localRuntime.remediation.${kind}.title`);
+  })();
+
+  const body = (() => {
+    if (kind === 'pull-progress') {
+      return blocked.reason_code === 'MODEL_PULL_FAILED'
+        ? t('localRuntime.remediation.pull-progress.bodyFailed')
+        : t('localRuntime.remediation.pull-progress.bodyFetching');
+    }
+    return t(`localRuntime.remediation.${kind}.body`);
+  })();
+
+  // cloud-redirect is reassurance, not an error; everything else is a warning.
+  const alertType = kind === 'cloud-redirect' ? 'info' : 'warning';
+
+  return (
+    <section className='rounded-16px border border-solid border-[var(--color-border-2)] bg-bg-2 px-18px py-16px'>
+      <div className='mb-12px flex flex-wrap items-center gap-8px'>
+        <span className='text-16px font-700 leading-24px text-t-primary'>
+          {t('localRuntime.remediation.title')}
+        </span>
+        <Tag color='gray'>{t('localRuntime.readOnly')}</Tag>
+      </div>
+      <Alert type={alertType} title={title} content={body} />
+
+      {kind === 'external-link' ? (
+        <p className='m-0 mt-12px text-12px leading-18px text-t-tertiary'>
+          {t('localRuntime.remediation.external-link.actionHint')}
+        </p>
+      ) : null}
+
+      {kind === 'pull-progress' ? (
+        <div className='mt-12px flex items-center gap-8px text-12px leading-18px text-t-tertiary'>
+          <Spin size={14} />
+          <span>{t('localRuntime.remediation.pull-progress.pollingLabel')}</span>
+          {warmupPollCount > 0 ? (
+            <Tag color='blue'>
+              {t('localRuntime.remediation.pull-progress.pollAttempt', { count: warmupPollCount })}
+            </Tag>
+          ) : null}
+        </div>
+      ) : null}
+
+      <p className='m-0 mt-12px text-12px leading-18px text-t-secondary'>
+        {t('localRuntime.remediation.cloudReassurance')}
+      </p>
+      <div className='mt-10px grid gap-x-12px gap-y-6px text-12px leading-18px lg:grid-cols-[180px_minmax(0,1fr)]'>
+        <span className='text-t-tertiary'>{t('localRuntime.remediation.reasonLabel')}</span>
+        <span className='break-words text-t-secondary'>
+          {`${blocked.reason_code} · ${t(`localRuntime.remediation.${kind}.explainer`)}`}
+        </span>
+      </div>
+    </section>
+  );
+};
+
 const LocalRuntimePage: React.FC = () => {
   const { t } = useTranslation();
   const layout = useLayoutContext();
@@ -240,10 +325,14 @@ const LocalRuntimePage: React.FC = () => {
   const model = result?.model;
   const warmupStatus = model?.model_warmup?.status;
   const warmupMissing = Boolean(model?.warnings.includes('model_warmup_receipt_missing'));
+  const blockedStage = model?.blocked_stage;
+  // While the local model is being fetched (S4 pull-progress card), keep the
+  // existing ~12x poll alive so the live progress updates without manual reload.
+  const pullInProgress = blockedStage?.remediation_kind === 'pull-progress';
 
   useEffect(() => {
     if (loading || !model) return undefined;
-    if (!warmupMissing && warmupStatus !== 'running') {
+    if (!warmupMissing && warmupStatus !== 'running' && !pullInProgress) {
       setWarmupPollCount(0);
       return undefined;
     }
@@ -253,7 +342,7 @@ const LocalRuntimePage: React.FC = () => {
       void load();
     }, 2500);
     return () => clearTimeout(timer);
-  }, [load, loading, model, warmupMissing, warmupPollCount, warmupStatus]);
+  }, [load, loading, model, pullInProgress, warmupMissing, warmupPollCount, warmupStatus]);
 
   return (
     <div className='size-full overflow-y-auto bg-bg-1'>
@@ -297,6 +386,10 @@ const LocalRuntimePage: React.FC = () => {
                 title={t('localRuntime.warnings.title')}
                 content={model.warnings.map((warning) => t(`localRuntime.warnings.${warning}`, warning)).join(' · ')}
               />
+            ) : null}
+
+            {model.blocked_stage ? (
+              <RemediationCard blocked={model.blocked_stage} warmupPollCount={warmupPollCount} />
             ) : null}
 
             <section className='rounded-16px border border-solid border-[var(--color-border-2)] bg-bg-2 px-18px py-16px'>

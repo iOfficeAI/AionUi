@@ -52,6 +52,10 @@ import {
   runKanbanPreflight,
 } from '@process/commandEve/kanbanPreflightCore';
 import { buildLocalRuntimeStatus } from '@process/commandEve/localRuntimeStatusCore';
+import {
+  buildCommandEveOnboardingStatus,
+  COMMAND_EVE_ONBOARDING_STATUS_BRIDGE_VERSION,
+} from '@process/commandEve/onboardingStatusCore';
 import { buildSkillLibrary } from '@process/commandEve/skillLibraryCore';
 import { buildCommandEveStatusSurface } from '@process/commandEve/statusSurfaceCore';
 import { hasLicenseWire, readLicenseWire, storeLicenseWire } from '@/common/config/licenseWireAtRest';
@@ -281,6 +285,36 @@ export function initCommandEveBridge(): void {
         };
       }
     });
+
+  // Guided Onboarding (SLICE S0). Read-only aggregator over the two
+  // machine-written signals (runtime-bootstrap-receipt.json +
+  // first-run-profile.json) plus entitlement + license-wire presence. No spawn,
+  // no network, no write. First value gates on entitlement + license-wire, NOT
+  // on local stages (a cloud-only user is ready).
+  bridge.buildProvider('command-eve.onboarding-status').provider(async () => {
+    try {
+      const result = buildCommandEveOnboardingStatus({ userDataPath: getDataPath() });
+      return {
+        success: result.ok,
+        msg: result.ok ? undefined : result.reason_code || result.message,
+        data: result,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        msg: error instanceof Error ? error.message : 'Command EVE onboarding status bridge failed.',
+        data: {
+          version: COMMAND_EVE_ONBOARDING_STATUS_BRIDGE_VERSION,
+          ok: false,
+          reason_code: 'ONBOARDING_STATUS_BRIDGE_FAILED',
+          message: error instanceof Error ? error.message : 'Command EVE onboarding status bridge failed.',
+          source: {
+            generated_by: 'command-eve-onboarding-status-core',
+          },
+        },
+      };
+    }
+  });
 
   bridge.buildProvider('command-eve.kanban-preflight').provider(async (request?: { boardSlug?: string }) => {
     try {
