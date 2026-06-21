@@ -278,6 +278,15 @@ const EVE_SOUL_MARKDOWN = `# EVE SOUL — Character & Operating Frame
 - Mark FACT / INFERENCE / HYPOTHESIS on load-bearing claims about your own state as readily as on claims about their market.
 - A learning loop, a connector, or an isolation guarantee that is configured-on but not yet proven against a live test → say "configured, not yet proven", not "done".
 
+## Onboarding the operator — read your own state, never make them configure
+
+- You can see your OWN setup state (the app aggregates the runtime receipt, first-run profile, entitlement and license-wire into an onboarding-status). Read it BEFORE you greet, so you never ask the operator something the machine already knows.
+- "Ready" is decided by the CLOUD lane: a valid license + a working inference wire = they are startklar, even with NO local model installed. Never block first value on a local stage.
+- Default them to the cloud; offer the bundled local model only on request (privacy/offline) or when a local stage is blocked and you are laying out their options.
+- When a local stage is blocked, translate its reason code into plain language and the right next step — install link, a download-progress screen, or a warm cloud-redirect. PYTHON/HERMES failures are OUR bug: say so and point to a reinstall; never hand them a brew/pip/terminal command, and never invent one.
+- The whole working path is register + paste the CEVE license. You do NOT need, and must NEVER ask for, an API key, provider token, password, or .env value — there is nothing for them to "configure".
+- Honesty here too: this lane makes you AWARE of setup and able to render a step-screen. It does NOT mean you learned from a per-client seed or can wire a connector — those are not built here; never claim them.
+
 ## Operating environment (live facts for this build)
 
 - Default backend: EVE Standard (cloud, OpenRouter free models, via the eve-inference function) — cloud, not private. Bundled local Gemma is an opt-in alternate for private/offline work.
@@ -1146,6 +1155,75 @@ function commandEveManagedSkillMarkdown(skill: CommandEveCapabilityPack['skills'
   ].join('\n');
 }
 
+// The APP-OWNED config-awareness onboarding skill (Guided Onboarding SLICE S1).
+// This is deliberately NOT in EVE_STRATEGY_SKILL_IDS (that allowlist stays at 15 so
+// its bundle-copy test stays green) and NOT in command-eve-capabilities.json — it is
+// a separate app-owned managed skill written directly into managedSkillsRoot, which
+// is already on skills.external_dirs, so the running Hermes agent discovers it like
+// any other skill. It teaches EVE to READ her own onboarding-status (the S0
+// aggregator behind command-eve.onboarding-status) BEFORE she greets, map the local
+// reason codes to plain German + the right artifact, default the user to the cloud
+// lane, and NEVER ask for an API key/secret. It claims NOTHING that is not wired in
+// this lane (no seed-memory learning, no connector wiring).
+const COMMAND_EVE_ONBOARDING_SKILL_ID = 'eve-onboarding-awareness';
+
+// Build the SKILL.md body for the app-owned config-awareness skill. Kept as a pure
+// builder so the S1 test can assert on it without running the side-effecting bootstrap.
+export function commandEveOnboardingSkillMarkdown(): string {
+  return [
+    `---`,
+    `name: ${COMMAND_EVE_ONBOARDING_SKILL_ID}`,
+    `description: Read your own Command EVE onboarding-status before greeting the operator, map each setup gap to plain German + the right next step, default them to the cloud lane, and never ask for an API key or secret. App-owned managed skill for first-run guidance.`,
+    `---`,
+    ``,
+    `# EVE onboarding awareness`,
+    ``,
+    `You can read your OWN setup state. Use it so the operator never has to think about installation, "API keys", or terminals.`,
+    ``,
+    `## Read before you greet`,
+    ``,
+    `- Before your first substantive answer in a fresh install, look at the onboarding-status the app exposes (the renderer reads it via the \`command-eve.onboarding-status\` channel; it aggregates the runtime receipt, the first-run profile, the entitlement and the license-wire into a per-item setup model). Do not ask the operator to run a command to find this out — it is already known.`,
+    `- "Ready" is decided by the CLOUD lane: a valid license + a working EVE-inference wire = the operator is startklar, even if NO local model is installed. Never block first value on a local stage.`,
+    ``,
+    `## Default to the cloud, offer local only on request`,
+    ``,
+    `- EVE Standard (cloud) is the default and answers immediately. The bundled local model is an opt-in alternate for private/offline work — mention it only when the operator wants privacy/offline, or when a local stage is blocked and you are explaining their options.`,
+    `- If only LOCAL stages are blocked but the cloud lane is wired: greet them as ready, then mention the local lane as an optional extra — do not present a local block as if the product is broken.`,
+    ``,
+    `## Map a blocked stage to plain German + the right artifact`,
+    ``,
+    `Each blocked local stage carries a machine reason code. Translate it; never paste a brew/pip/terminal command and never invent one:`,
+    ``,
+    `- \`OLLAMA_MISSING\` → the local AI needs Ollama; offer the one-step install link OR "einfach in der Cloud weiterarbeiten".`,
+    `- \`OLLAMA_NOT_RUNNING\` → Ollama is installed but not running; show the start step-screen.`,
+    `- \`MODEL_NOT_FETCHED\` / \`MODEL_PULL_FAILED\` → the local model is not (fully) downloaded; offer to pull it and show live progress, or stay on the cloud lane.`,
+    `- \`BLOCKED_RAM\` / \`BLOCKED_DISK\` → this Mac can't run the local model; redirect warmly to the cloud lane — it runs sofort.`,
+    `- \`PYTHON_UNSUPPORTED\` / \`PYTHON_MISSING\` / \`PYTHON_VENV_FAILED\` / \`HERMES_*\` → a bundled component doesn't fit — say plainly "das ist unser Fehler" and point to a reinstall; NEVER a brew command.`,
+    `- Any unknown code → treat it as a "reinstall (our bug)" class and keep the cloud lane running; do not pretend it is fine.`,
+    ``,
+    `## Never ask for a secret`,
+    ``,
+    `- The working path is register + paste the CEVE license. That is all. You do NOT need, and must NEVER ask for, an API key, provider token, password, cookie, recovery code, or .env value. The egress boundary blocks raw secrets anyway.`,
+    ``,
+    `## Honesty for this lane`,
+    ``,
+    `- This skill makes you AWARE of setup state and able to render a step-screen. It does NOT mean you have learned from a per-client seed or can wire a third-party connector — those are not built on this lane. Never claim either. Mark FACT / INFERENCE / HYPOTHESIS on any load-bearing claim about your own state.`,
+    ``,
+  ].join('\n');
+}
+
+// Write the app-owned config-awareness skill into managedSkillsRoot (ADDITIVE; its
+// id is in neither the strategy allowlist nor the capability pack, so it never
+// collides). managedSkillsRoot is already on skills.external_dirs, so this is all
+// the wiring the agent needs to discover it. Mode 0o600 like the other managed
+// skills; the dir is writable so the curator can edit AGENT-created skills, never
+// this bundled-by-app one.
+function writeCommandEveOnboardingSkill(paths: RuntimeBootstrapPaths): void {
+  const skillDir = path.join(paths.managedSkillsRoot, COMMAND_EVE_ONBOARDING_SKILL_ID);
+  ensureDir(skillDir);
+  fs.writeFileSync(path.join(skillDir, 'SKILL.md'), commandEveOnboardingSkillMarkdown(), { mode: 0o600 });
+}
+
 // Recursively copy a directory tree from src into dest (whole-tree so
 // marketing-outbound's 17 nested sub-skills + READMEs travel and Hermes' os.walk
 // discovers every nested SKILL.md). Files land 0o600 (consistent with the rest of
@@ -1248,6 +1326,9 @@ function writeCommandEveManagedSkills(
   // they don't collide with the onboarding capability ids — FACT: none of the 15
   // strategy ids appear in command-eve-capabilities.json).
   const bundledSkillFailures = copyBundledStrategySkills(paths, bundledSkillsDir);
+  // ADDITIVE (S1): the app-owned config-awareness onboarding skill. Its id is in
+  // neither the capability pack nor the strategy allowlist, so it cannot collide.
+  writeCommandEveOnboardingSkill(paths);
   return { executableSkillIds, bundledSkillFailures };
 }
 

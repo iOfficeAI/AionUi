@@ -11,6 +11,7 @@ import path from 'node:path';
 
 import {
   EVE_STRATEGY_SKILL_IDS,
+  commandEveOnboardingSkillMarkdown,
   copyBundledStrategySkills,
   resolveBundledSkillsDir,
   resolveCommandEveRuntimeBootstrapPaths,
@@ -364,5 +365,85 @@ describe('EVE soul-wiring: internal Operating Rule reconciled to defer to SOUL.m
     expect(COMMAND_EVE_ASSISTANT_RULE_EN).toContain('raw tokens');
     expect(COMMAND_EVE_ASSISTANT_RULE_DE).toContain('Du setzt keine Plane-Items auf Done');
     expect(COMMAND_EVE_ASSISTANT_RULE_DE).toContain('Passwoertern');
+  });
+});
+
+// =========================================================================
+// Guided Onboarding SLICE S1 self-detection gate.
+//
+// S1 adds (a) an APP-OWNED config-awareness onboarding skill emitted into the
+// managed skills dir the agent reads, and (b) a directive SOUL posture block.
+// These tripwires break VISIBLY if the skill drifts into asking for a secret, if
+// it is wrongly added to the length-15-asserted strategy allowlist, or if the
+// SOUL posture loses its honesty/cloud-default/no-secret guards.
+// =========================================================================
+
+describe('EVE onboarding S1: app-owned config-awareness skill (separate from the strategy allowlist)', () => {
+  const SKILL_MD = commandEveOnboardingSkillMarkdown();
+
+  it('is its own app-owned skill, NOT in EVE_STRATEGY_SKILL_IDS (allowlist stays at 15)', () => {
+    expect(EVE_STRATEGY_SKILL_IDS).toHaveLength(15);
+    expect(EVE_STRATEGY_SKILL_IDS as readonly string[]).not.toContain('eve-onboarding-awareness');
+  });
+
+  it('carries a valid SKILL.md frontmatter naming the app-owned skill id', () => {
+    expect(SKILL_MD.startsWith('---\nname: eve-onboarding-awareness\n')).toBe(true);
+    expect(SKILL_MD).toMatch(/^description: /m);
+  });
+
+  it('teaches EVE to read her own onboarding-status before greeting', () => {
+    expect(SKILL_MD).toContain('command-eve.onboarding-status');
+    expect(SKILL_MD).toMatch(/before you greet/i);
+  });
+
+  it('defaults the operator to the cloud lane and treats local as opt-in', () => {
+    expect(SKILL_MD).toMatch(/EVE Standard \(cloud\) is the default/i);
+    expect(SKILL_MD).toMatch(/opt-in alternate/i);
+  });
+
+  it('maps the local block reason codes to plain steps, never a terminal command', () => {
+    for (const code of ['OLLAMA_MISSING', 'MODEL_NOT_FETCHED', 'MODEL_PULL_FAILED', 'BLOCKED_RAM', 'BLOCKED_DISK', 'PYTHON_UNSUPPORTED']) {
+      expect(SKILL_MD, `reason code ${code} must be mapped`).toContain(code);
+    }
+    expect(SKILL_MD).toMatch(/never (?:paste|hand them) a brew/i);
+  });
+
+  it('forbids ever asking for an API key/secret', () => {
+    expect(SKILL_MD).toMatch(/never ask for/i);
+    expect(SKILL_MD).toContain('API key');
+    expect(SKILL_MD).toMatch(/paste the CEVE license/i);
+  });
+
+  it('keeps the honesty wall for this lane (no seed-learning / connector claim)', () => {
+    expect(SKILL_MD).toMatch(/FACT \/ INFERENCE \/ HYPOTHESIS/);
+    expect(SKILL_MD).toMatch(/not built/i);
+  });
+});
+
+describe('EVE onboarding S1: SOUL posture block (directive, cloud-default, no-secret, honest)', () => {
+  it('appends the onboarding posture section to the soul frame', () => {
+    expect(SOUL_MARKDOWN).toMatch(/## Onboarding the operator/);
+    expect(SOUL_MARKDOWN).toMatch(/read your own state/i);
+  });
+
+  it('keeps it directive (second person), never a recitable script or first-person prose', () => {
+    // The soul-wide do-not-recite + OWN-words guards already assert globally; here
+    // we guard the new block specifically stays directive ("you ... your").
+    expect(SOUL_MARKDOWN).toMatch(/Read it BEFORE you greet/);
+    expect(SOUL_MARKDOWN).not.toMatch(/^I read my onboarding/m);
+  });
+
+  it('defaults to cloud and forbids asking for a key/secret in the posture', () => {
+    expect(SOUL_MARKDOWN).toMatch(/Default them to the cloud/);
+    expect(SOUL_MARKDOWN).toMatch(/never ask for, an API key/i);
+  });
+
+  it('keeps the reinstall-is-our-bug honesty (never a brew command in the posture)', () => {
+    expect(SOUL_MARKDOWN).toMatch(/PYTHON\/HERMES failures are OUR bug/);
+    expect(SOUL_MARKDOWN).toMatch(/never hand them a brew/i);
+  });
+
+  it('does not over-claim seed-learning or connector wiring on this lane', () => {
+    expect(SOUL_MARKDOWN).toMatch(/those are not built here; never claim them/);
   });
 });
