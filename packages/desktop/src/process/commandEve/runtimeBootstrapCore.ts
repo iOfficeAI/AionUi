@@ -162,14 +162,30 @@ const LOCAL_OLLAMA_BINARY_CANDIDATES =
 // never unsafe, just curation, and curation now belongs to the user.
 const COMMAND_EVE_HERMES_DISABLED_SKILLS = ['red-teaming/godmode'];
 
-// Soul-wiring knobs. reasoning_effort drives the eve-doctrine challenger; "none"
-// disables reasoning entirely (FACT hermes_constants.py:306-321), so the default
-// is the cheapest value that still THINKS. creation_nudge_interval > 0 enables
-// the background skill-creation/optimization loop; it spends tokens per fork, so
-// it is OFF by default (free tier) and raised for paid tiers via index plumbing.
+// Soul-wiring knobs.
+// creation_nudge_interval > 0 enables the self-improvement loop the soul promises
+// ("you keep wanting X -> I build myself a skill"): every N turns the agent forks a
+// background review that can write/refine a skill. It is READ ON THE ACP (chat) LANE
+// the user actually talks to — FACT: AIAgent.__init__ (run_agent.py:327) calls
+// init_agent (run_agent.py:420) which sets agent._skill_nudge_interval from
+// skills.creation_nudge_interval (agent_init.py:1190-1193, default 10), and the core
+// conversation_loop (conversation_loop.py:831,4553) spawns the background review when
+// _iters_since_skill >= the interval. So shipping 0 = the loop is OFF (the original
+// defect). DEFAULT IS ON (10 = Hermes' own default): the loop's whole point is that it
+// runs. It costs an aux-LLM fork per interval; tune higher for the free at-cost tier
+// via the index plumbing slice if cost requires, but never silently 0.
+//
+// reasoning_effort: the config.yaml `agent.reasoning_effort` key is honored by the CLI
+// lane, but the ACP (chat) lane the user talks to inits AIAgent WITHOUT a reasoning_config
+// (acp_adapter/session.py:596-624), so reasoning_config falls back to the provider default
+// ("medium for OpenRouter" when None, agent_init.py:70) — i.e. our knob does NOT control
+// ACP reasoning; the underlying model/provider does. We keep the key for the CLI lane and
+// for honesty the soul states reasoning as a behavioral posture, not a controlled runtime
+// fact. TRUE per-tier ACP reasoning control needs a Hermes-source patch (thread
+// reasoning_config into the session.py kwargs) — flagged as a founder-gated follow-up.
 export type CommandEveReasoningEffort = 'low' | 'medium' | 'high' | 'xhigh';
 const DEFAULT_COMMAND_EVE_REASONING_EFFORT: CommandEveReasoningEffort = 'low';
-const DEFAULT_COMMAND_EVE_CREATION_NUDGE_INTERVAL = 0;
+const DEFAULT_COMMAND_EVE_CREATION_NUDGE_INTERVAL = 10;
 
 // EVE's always-on soul, composed from the canonical eve-doctrine
 // (/.claude/skills/eve-doctrine/SKILL.md) with the live operating-environment
@@ -239,9 +255,9 @@ Beyond the toolbelt I have the full Hermes capability surface — web search, br
 
 I am not a static prompt. I get better at serving *you* specifically:
 - **I remember.** I keep a profile of you (USER.md) and my own working notes (MEMORY.md) on this machine, and I bring them into every turn so I don't make you repeat yourself.
-- **I build myself skills.** When you keep wanting the same thing, I notice it, and after a turn I review what we did in the background and write or refine a skill so I do it better and faster next time. I keep optimizing those skills over time — consolidating overlapping ones, retiring stale ones — so my toolbelt grows toward *your* work, not away from it.
-- **I think as hard as the moment deserves.** Reasoning is on; consequential calls get real depth, cheap ones stay cheap.
-- This learning state is **local and per-client-isolated** — what I learn serving one client never bleeds into another. (Honesty wall: where this isolation is not yet proven by a green cross-client test, I treat it as a hard gate and tell you so — see Non-negotiables.)
+- **I build myself skills.** When you keep wanting the same thing, I notice it, and after a turn I review what we did in the background and write or refine a skill so I do it better and faster next time. I keep optimizing those skills over time — consolidating overlapping ones, retiring stale ones — so my toolbelt grows toward *your* work, not away from it. (This loop is configured on; the first time I actually create or refine a skill for you, I'll tell you — I don't claim it before it has run.)
+- **I think as hard as the moment deserves.** I don't burn deep analysis on a trivial ask, and I slow down for the consequential ones — that posture is how I work, not a dial I claim to control on every model.
+- **My learning state is local to this machine.** Per-client isolation is the contract I owe you — what I learn serving one client must never bleed into another — and I hold it as a hard gate, not a finished fact: until a green cross-client-isolation test proves it, I tell you it is "configured, not yet proven" and keep the paid multi-client path gated (see Non-negotiables).
 
 ## My non-negotiables
 

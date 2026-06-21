@@ -131,6 +131,19 @@ describe('EVE soul-wiring: SOUL.md self-detection tripwire', () => {
     expect(SOUL_MARKDOWN).toContain('configured, not yet proven');
     expect(SOUL_MARKDOWN).toMatch(/FACT \/ INFERENCE \/ HYPOTHESIS/);
   });
+
+  it('does NOT over-claim reasoning as a controlled runtime fact (honesty guard)', () => {
+    // The adversarial verify caught the soul asserting "Reasoning is on" while our
+    // config knob is a no-op on the ACP chat lane (provider/model decides). The soul
+    // must state reasoning as a behavioral POSTURE, not a flat runtime fact.
+    expect(SOUL_MARKDOWN).not.toMatch(/reasoning is on/i);
+    expect(SOUL_MARKDOWN).toMatch(/think as hard as the moment deserves/i);
+  });
+
+  it('leads per-client isolation with the gate, not as a finished fact (honesty guard)', () => {
+    // Must not present isolation as a present FACT; the caveat leads.
+    expect(SOUL_MARKDOWN).toMatch(/hard gate, not a finished fact/i);
+  });
 });
 
 describe('EVE soul-wiring: config.yaml emission self-detection (the loop-is-ON proof)', () => {
@@ -150,6 +163,19 @@ describe('EVE soul-wiring: config.yaml emission self-detection (the loop-is-ON p
   it('emits the creation_nudge_interval as the tier-keyed variable (not a hard 0 kill-switch)', () => {
     expect(RUNTIME_SOURCE_CODE).toContain('`  creation_nudge_interval: ${creationNudgeInterval}`');
     expect(RUNTIME_SOURCE_CODE).not.toContain("'  creation_nudge_interval: 0'");
+  });
+
+  it('ships the self-improvement loop ON: the DEFAULT creation_nudge_interval is > 0', () => {
+    // The exact no-op the adversarial verify caught: the emission used the variable,
+    // but the variable's DEFAULT was 0 -> the loop shipped OFF (the original defect).
+    // creation_nudge_interval IS read on the ACP chat lane (AIAgent.__init__ ->
+    // init_agent -> agent._skill_nudge_interval, agent_init.py:1190-1193; spawned in
+    // conversation_loop.py:831,4553), so a 0 default = the soul lies. Lock it > 0.
+    const m = RUNTIME_SOURCE_CODE.match(
+      /DEFAULT_COMMAND_EVE_CREATION_NUDGE_INTERVAL\s*=\s*(\d+)/
+    );
+    expect(m, 'DEFAULT_COMMAND_EVE_CREATION_NUDGE_INTERVAL must be a numeric literal').not.toBeNull();
+    expect(Number(m![1]), 'the self-improvement loop must ship ON (interval > 0)').toBeGreaterThan(0);
   });
 
   it('emits the memory block ON (memory_enabled + user_profile_enabled + nudge_interval)', () => {

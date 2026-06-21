@@ -299,8 +299,12 @@ describe('Command EVE runtime bootstrap core', () => {
       expect(configYaml).not.toContain('"weixin"');
       expect(configYaml).toContain('mcp_servers: {}');
       // Soul-wiring: the remember + self-optimize loops are ON. These default OFF
-      // in Hermes code, so they MUST be emitted explicitly.
-      expect(configYaml).toContain('creation_nudge_interval: 0');
+      // in Hermes code, so they MUST be emitted explicitly — and the skill-creation
+      // loop MUST ship > 0 (a 0 here is the original "loop is off" defect the soul lies
+      // about; creation_nudge_interval is read on the ACP chat lane via
+      // init_agent/agent_init.py:1190-1193).
+      expect(configYaml).toContain('creation_nudge_interval: 10');
+      expect(configYaml).not.toContain('creation_nudge_interval: 0');
       expect(configYaml).toContain('memory:');
       expect(configYaml).toContain('memory_enabled: true');
       expect(configYaml).toContain('user_profile_enabled: true');
