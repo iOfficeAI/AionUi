@@ -1413,5 +1413,32 @@
   "crossSessionMessageDesc": "允许 Agent 向你的其他会话发送消息。关闭后，输入框的 @@ 会话提及与投递能力同时停用。",
   "crossSessionMessageDisabledBanner": "跨会话消息已关闭，输入框的 @@ 会话提及不可用。",
   "crossSessionMessageResume": "重新开启",
-  "crossSessionMessageUpdateFailed": "跨会话消息设置更新失败"
+  "crossSessionMessageUpdateFailed": "跨会话消息设置更新失败",
+  "fontSizeChat": "聊天字号",
+  "fontSizeMarkdown": "Markdown 字号",
+  "fontSizeCode": "代码字号",
+  "mattermost": {
+    "serverUrl": "Mattermost 服务地址",
+    "accessToken": "访问令牌",
+    "allowedChannelIds": "允许的频道 ID",
+    "allowedChannelIdsDesc": "多个频道用英文逗号分隔，留空表示允许全部频道。",
+    "replyInThread": "在线程中回复",
+    "ignoreSelfMessages": "忽略自己发送的消息",
+    "saveAndEnable": "保存并启用",
+    "pluginEnabled": "Mattermost 渠道已启用",
+    "pluginDisabled": "Mattermost 渠道已停用",
+    "configureFirst": "请先保存 Mattermost 服务地址和访问令牌",
+    "credentialsRequired": "请输入服务地址和访问令牌",
+    "connectionSuccess": "已连接到 Mattermost API",
+    "connectionFailed": "连接失败",
+    "serverUrlRequired": "请输入 Mattermost 服务地址",
+    "accessTokenRequired": "请输入访问令牌",
+    "agentDesc": "用于 Mattermost 对话",
+    "defaultModelDesc": "用于 Mattermost 对话",
+    "connectionStatus": "连接状态",
+    "statusConnected": "已连接",
+    "statusConnecting": "连接中..."
+  },
+  "channels.mattermostTitle": "Mattermost",
+  "channels.mattermostDesc": "通过 Mattermost 与 AionUi 助手对话"
 }

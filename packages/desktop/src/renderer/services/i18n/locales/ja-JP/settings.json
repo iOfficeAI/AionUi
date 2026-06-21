@@ -1414,5 +1414,32 @@
   "crossSessionMessageDesc": "エージェントが他の会話にメッセージを送れるようにします。オフにすると入力欄の @@ 会話メンションも無効になります。",
   "crossSessionMessageDisabledBanner": "会話間メッセージはオフです。入力欄の @@ 会話メンションは使用できません。",
   "crossSessionMessageResume": "再度オンにする",
-  "crossSessionMessageUpdateFailed": "会話間メッセージ設定の更新に失敗しました"
+  "crossSessionMessageUpdateFailed": "会話間メッセージ設定の更新に失敗しました",
+  "fontSizeChat": "チャットの文字サイズ",
+  "fontSizeMarkdown": "Markdownの文字サイズ",
+  "fontSizeCode": "コードのフォントサイズ",
+  "mattermost": {
+    "serverUrl": "Mattermost Server URL",
+    "accessToken": "Access Token",
+    "allowedChannelIds": "Allowed Channel IDs",
+    "allowedChannelIdsDesc": "Comma-separated. Leave empty to allow all channels.",
+    "replyInThread": "Reply in thread",
+    "ignoreSelfMessages": "Ignore self messages",
+    "saveAndEnable": "Save & Enable",
+    "pluginEnabled": "Mattermost channel enabled",
+    "pluginDisabled": "Mattermost channel disabled",
+    "configureFirst": "Please save Mattermost Server URL and Access Token first",
+    "credentialsRequired": "Please enter Server URL and Access Token",
+    "connectionSuccess": "Connected to Mattermost API",
+    "connectionFailed": "Connection failed",
+    "serverUrlRequired": "Please enter Mattermost Server URL",
+    "accessTokenRequired": "Please enter Access Token",
+    "agentDesc": "Used for Mattermost conversations",
+    "defaultModelDesc": "Used for Mattermost conversations",
+    "connectionStatus": "Connection Status",
+    "statusConnected": "Connected",
+    "statusConnecting": "Connecting..."
+  },
+  "channels.mattermostTitle": "Mattermost",
+  "channels.mattermostDesc": "Chat with AionUi assistant via Mattermost"
 }

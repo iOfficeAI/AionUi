@@ -1415,5 +1415,32 @@
   "crossSessionMessageDesc": "Permite que agentes enviem mensagens para suas outras conversas. Desativar também desliga a menção @@ na caixa de entrada.",
   "crossSessionMessageDisabledBanner": "As mensagens entre conversas estão desativadas, a menção @@ não está disponível.",
   "crossSessionMessageResume": "Ativar novamente",
-  "crossSessionMessageUpdateFailed": "Falha ao atualizar a configuração de mensagens entre conversas"
+  "crossSessionMessageUpdateFailed": "Falha ao atualizar a configuração de mensagens entre conversas",
+  "fontSizeChat": "Tamanho do texto do chat",
+  "fontSizeMarkdown": "Tamanho do texto Markdown",
+  "fontSizeCode": "Tamanho da fonte do código",
+  "mattermost": {
+    "serverUrl": "Mattermost Server URL",
+    "accessToken": "Access Token",
+    "allowedChannelIds": "Allowed Channel IDs",
+    "allowedChannelIdsDesc": "Comma-separated. Leave empty to allow all channels.",
+    "replyInThread": "Reply in thread",
+    "ignoreSelfMessages": "Ignore self messages",
+    "saveAndEnable": "Save & Enable",
+    "pluginEnabled": "Mattermost channel enabled",
+    "pluginDisabled": "Mattermost channel disabled",
+    "configureFirst": "Please save Mattermost Server URL and Access Token first",
+    "credentialsRequired": "Please enter Server URL and Access Token",
+    "connectionSuccess": "Connected to Mattermost API",
+    "connectionFailed": "Connection failed",
+    "serverUrlRequired": "Please enter Mattermost Server URL",
+    "accessTokenRequired": "Please enter Access Token",
+    "agentDesc": "Used for Mattermost conversations",
+    "defaultModelDesc": "Used for Mattermost conversations",
+    "connectionStatus": "Connection Status",
+    "statusConnected": "Connected",
+    "statusConnecting": "Connecting..."
+  },
+  "channels.mattermostTitle": "Mattermost",
+  "channels.mattermostDesc": "Chat with AionUi assistant via Mattermost"
 }

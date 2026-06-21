@@ -7,6 +7,7 @@
 import type { IChannelPluginStatus } from '@/common/types/channel/channel';
 import type { IProvider, TProviderWithModel } from '@/common/config/storage';
 import { channel, webui, type IWebUIStatus } from '@/common/adapter/ipcBridge';
+import { configService } from '@/common/config/configService';
 import AionScrollArea from '@/renderer/components/base/AionScrollArea';
 import { useModelProviderList } from '@/renderer/hooks/agent/useModelProviderList';
 import type { GoogleModelSelection } from '@/renderer/pages/conversation/platforms/gemini/useGoogleModelSelection';
@@ -25,8 +26,17 @@ import SlackConfigForm from './SlackConfigForm';
 import TelegramConfigForm from './TelegramConfigForm';
 import WeixinConfigForm from './WeixinConfigForm';
 import WecomConfigForm from './WecomConfigForm';
+import MattermostConfigForm from './MattermostConfigForm';
 
-type ChannelSettingsPlatform = 'telegram' | 'slack' | 'discord' | 'lark' | 'dingtalk' | 'weixin' | 'wecom';
+type ChannelSettingsPlatform =
+  | 'telegram'
+  | 'slack'
+  | 'discord'
+  | 'lark'
+  | 'dingtalk'
+  | 'weixin'
+  | 'wecom'
+  | 'mattermost';
 
 type ExtensionFieldType = 'text' | 'password' | 'select' | 'number' | 'boolean';
 
@@ -41,7 +51,16 @@ type ExtensionFieldSchema = {
 
 type ExtensionFieldValues = Record<string, Record<string, string | number | boolean>>;
 
-const BUILTIN_CHANNEL_TYPES = new Set(['telegram', 'lark', 'dingtalk', 'weixin', 'wecom', 'slack', 'discord']);
+const BUILTIN_CHANNEL_TYPES = new Set([
+  'telegram',
+  'lark',
+  'dingtalk',
+  'weixin',
+  'wecom',
+  'mattermost',
+  'slack',
+  'discord',
+]);
 
 /**
  * Internal hook: wraps useGoogleModelSelection with backend-owned channel settings
@@ -152,6 +171,7 @@ const ChannelModalContent: React.FC = () => {
   const [dingtalkPluginStatus, setDingtalkPluginStatus] = useState<IChannelPluginStatus | null>(null);
   const [weixinPluginStatus, setWeixinPluginStatus] = useState<IChannelPluginStatus | null>(null);
   const [wecomPluginStatus, setWecomPluginStatus] = useState<IChannelPluginStatus | null>(null);
+  const [mattermostPluginStatus, setMattermostPluginStatus] = useState<IChannelPluginStatus | null>(null);
   const [enableLoading, setEnableLoading] = useState(false);
   const [slackEnableLoading, setSlackEnableLoading] = useState(false);
   const [discordEnableLoading, setDiscordEnableLoading] = useState(false);
@@ -159,6 +179,7 @@ const ChannelModalContent: React.FC = () => {
   const [dingtalkEnableLoading, setDingtalkEnableLoading] = useState(false);
   const [weixinEnableLoading, setWeixinEnableLoading] = useState(false);
   const [wecomEnableLoading, setWecomEnableLoading] = useState(false);
+  const [mattermostEnableLoading, setMattermostEnableLoading] = useState(false);
   const [extensionStatuses, setExtensionStatuses] = useState<Record<string, IChannelPluginStatus>>({});
   const [extensionLoadingMap, setExtensionLoadingMap] = useState<Record<string, boolean>>({});
   const [extensionFieldValues, setExtensionFieldValues] = useState<ExtensionFieldValues>({});
@@ -180,6 +201,7 @@ const ChannelModalContent: React.FC = () => {
     discord: true,
     lark: true,
     dingtalk: true,
+    mattermost: true,
     weixin: true,
     wecom: true,
   });
@@ -192,6 +214,7 @@ const ChannelModalContent: React.FC = () => {
   const dingtalkModelSelection = useChannelModelSelection('dingtalk');
   const weixinModelSelection = useChannelModelSelection('weixin');
   const wecomModelSelection = useChannelModelSelection('wecom');
+  const mattermostModelSelection = useChannelModelSelection('mattermost');
 
   // Load plugin status
   const loadPluginStatus = useCallback(async () => {
@@ -206,6 +229,7 @@ const ChannelModalContent: React.FC = () => {
         const dingtalkPlugin = plugins.find((p) => p.type === 'dingtalk');
         const weixinPlugin = plugins.find((p) => p.type === 'weixin');
         const wecomPlugin = plugins.find((p) => p.type === 'wecom');
+        const mattermostPlugin = plugins.find((p) => p.type === 'mattermost');
         const extensionPlugins = plugins.filter((p) => !BUILTIN_CHANNEL_TYPES.has(p.type));
 
         setPluginStatus(telegramPlugin || null);
@@ -215,6 +239,7 @@ const ChannelModalContent: React.FC = () => {
         setDingtalkPluginStatus(dingtalkPlugin || null);
         setWeixinPluginStatus(weixinPlugin || null);
         setWecomPluginStatus(wecomPlugin || null);
+        setMattermostPluginStatus(mattermostPlugin || null);
         setExtensionStatuses(() => {
           const next: Record<string, IChannelPluginStatus> = {};
           for (const plugin of extensionPlugins) {
@@ -284,6 +309,8 @@ const ChannelModalContent: React.FC = () => {
         setWeixinPluginStatus(status);
       } else if (status.type === 'wecom') {
         setWecomPluginStatus(status);
+      } else if (status.type === 'mattermost') {
+        setMattermostPluginStatus(status);
       } else if (!BUILTIN_CHANNEL_TYPES.has(status.type)) {
         setExtensionStatuses((prev) => ({
           ...prev,
@@ -537,6 +564,40 @@ const ChannelModalContent: React.FC = () => {
       Message.error(error instanceof Error ? error.message : String(error));
     } finally {
       setWecomEnableLoading(false);
+    }
+  };
+
+  const handleToggleMattermostPlugin = async (enabled: boolean) => {
+    setMattermostEnableLoading(true);
+    try {
+      if (enabled) {
+        const savedConfig = await configService.get('assistant.mattermost.config');
+        if (!mattermostPluginStatus?.hasToken || !savedConfig?.serverUrl) {
+          Message.warning(
+            t('settings.mattermost.configureFirst', 'Please save Mattermost Server URL and Access Token first')
+          );
+          setMattermostEnableLoading(false);
+          return;
+        }
+        await channel.enablePlugin.invoke({
+          plugin_id: 'mattermost',
+          config: {
+            config: savedConfig,
+          },
+        });
+        Message.success(t('settings.mattermost.pluginEnabled', 'Mattermost channel enabled'));
+        await loadPluginStatus();
+      } else {
+        await channel.disablePlugin.invoke({
+          plugin_id: 'mattermost',
+        });
+        Message.success(t('settings.mattermost.pluginDisabled', 'Mattermost channel disabled'));
+        await loadPluginStatus();
+      }
+    } catch (error: unknown) {
+      Message.error(error instanceof Error ? error.message : String(error));
+    } finally {
+      setMattermostEnableLoading(false);
     }
   };
 
@@ -864,6 +925,24 @@ const ChannelModalContent: React.FC = () => {
       ),
     };
 
+    const mattermostChannel: ChannelConfig = {
+      id: 'mattermost',
+      title: t('settings.channels.mattermostTitle', 'Mattermost'),
+      description: t('settings.channels.mattermostDesc', 'Chat with AionUi assistant via Mattermost'),
+      status: 'active',
+      enabled: mattermostPluginStatus?.enabled || false,
+      disabled: mattermostEnableLoading,
+      is_connected: mattermostPluginStatus?.connected || false,
+      defaultModel: mattermostModelSelection.current_model?.use_model,
+      content: (
+        <MattermostConfigForm
+          pluginStatus={mattermostPluginStatus}
+          modelSelection={mattermostModelSelection}
+          onStatusChange={setMattermostPluginStatus}
+        />
+      ),
+    };
+
     const extensionChannels: ChannelConfig[] = Object.values(extensionStatuses)
       .toSorted((a, b) => a.name.localeCompare(b.name))
       .map((status) => ({
@@ -889,6 +968,7 @@ const ChannelModalContent: React.FC = () => {
       discordChannel,
       larkChannel,
       dingtalkChannel,
+      mattermostChannel,
       weixinChannel,
       wecomChannel,
       ...extensionChannels,
@@ -899,6 +979,7 @@ const ChannelModalContent: React.FC = () => {
     discordPluginStatus,
     larkPluginStatus,
     dingtalkPluginStatus,
+    mattermostPluginStatus,
     extensionStatuses,
     extensionLoadingMap,
     telegramModelSelection,
@@ -906,11 +987,13 @@ const ChannelModalContent: React.FC = () => {
     discordModelSelection,
     larkModelSelection,
     dingtalkModelSelection,
+    mattermostModelSelection,
     enableLoading,
     slackEnableLoading,
     discordEnableLoading,
     larkEnableLoading,
     dingtalkEnableLoading,
+    mattermostEnableLoading,
     weixinPluginStatus,
     weixinEnableLoading,
     weixinModelSelection,
@@ -929,6 +1012,7 @@ const ChannelModalContent: React.FC = () => {
     if (channelId === 'discord') return handleToggleDiscordPlugin;
     if (channelId === 'lark') return handleToggleLarkPlugin;
     if (channelId === 'dingtalk') return handleToggleDingtalkPlugin;
+    if (channelId === 'mattermost') return handleToggleMattermostPlugin;
     if (channelId === 'weixin') return handleToggleWeixinPlugin;
     if (channelId === 'wecom') return handleToggleWecomPlugin;
     if (extensionStatuses[channelId]) {
