@@ -153,6 +153,10 @@
         "title": "Der ausgewählte Agent konnte nicht gestartet werden",
         "body": "Der Agent-Prozess ist beendet worden, bevor er bereit war. Überprüfe seine Installation, seinen Anmeldestatus und die lokale Befehlskonfiguration."
       },
+      "USER_AGENT_OPENCLAW_GATEWAY_UNREACHABLE": {
+        "title": "OpenClaw Gateway ist nicht erreichbar",
+        "body": "OpenClaw Gateway wird nicht ausgeführt oder ist unter 127.0.0.1:18789 nicht erreichbar.\n\nStarte OpenClaw Gateway und versuche es erneut. Du kannst ausführen:\nopenclaw gateway status\nopenclaw gateway start"
+      },
       "USER_AGENT_DISCONNECTED": {
         "title": "Der ausgewählte Agent wurde getrennt",
         "body": "Die Agentverbindung wurde während der Bearbeitung dieser Nachricht geschlossen. Starten oder verbinde den Agenten neu und versuche es erneut."

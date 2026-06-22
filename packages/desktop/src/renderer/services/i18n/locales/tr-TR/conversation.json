@@ -141,6 +141,10 @@
         "title": "Seçili ajan başlatılamadı",
         "body": "Ajan işlemi hazır olmadan çıktı. Kurulumu, oturum durumunu ve yerel komut yapılandırmasını kontrol edin."
       },
+      "USER_AGENT_OPENCLAW_GATEWAY_UNREACHABLE": {
+        "title": "OpenClaw Gateway'e ulaşılamıyor",
+        "body": "OpenClaw Gateway çalışmıyor veya 127.0.0.1:18789 adresine ulaşılamıyor.\n\nOpenClaw Gateway'i başlatıp tekrar deneyin. Şu komutları çalıştırabilirsiniz:\nopenclaw gateway status\nopenclaw gateway start"
+      },
       "USER_AGENT_DISCONNECTED": {
         "title": "Seçili ajan bağlantısı kesildi",
         "body": "Bu mesaj işlenirken ajan bağlantısı kapandı. Ajanı yeniden başlatın veya yeniden bağlayın, ardından tekrar deneyin."
