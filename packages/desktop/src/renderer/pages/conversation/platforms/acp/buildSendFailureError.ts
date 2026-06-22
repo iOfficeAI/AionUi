@@ -6,6 +6,7 @@
 
 import { isBackendHttpError } from '@/common/adapter/httpBridge';
 import { getWorkspacePathFromErrorDetails, normalizeWorkspacePathErrorCode } from '../../utils/conversationCreateError';
+import { buildRawErrorSummary } from './errorDiagnostics';
 import type { AgentStreamErrorInfo } from '@/common/chat/chatLib';
 
 const isConversationBusyError = (error: unknown): boolean => {
@@ -72,6 +73,10 @@ export const buildSendFailureError = (error: unknown, message: string): AgentStr
     };
   }
 
+  // Fallback: this is the "catch-all" bucket where the original error was
+  // previously discarded, leaving telemetry unable to locate the failure.
+  // Preserve a redacted summary of the original error so it reaches Sentry.
+  const rawError = buildRawErrorSummary(error);
   return {
     message,
     code: 'AIONUI_INTERNAL_ERROR',
@@ -79,5 +84,6 @@ export const buildSendFailureError = (error: unknown, message: string): AgentStr
     detail: message,
     retryable: true,
     feedback_recommended: true,
+    ...(rawError ? { rawError } : {}),
   };
 };

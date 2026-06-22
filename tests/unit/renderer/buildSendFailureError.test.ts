@@ -108,4 +108,50 @@ describe('buildSendFailureError', () => {
     expect(result.ownership).toBe('aionui');
     expect(result.retryable).toBe(true);
   });
+
+  it('preserves a redacted summary of the original error in the fallback branch', () => {
+    const original = Object.assign(new Error('connect ECONNREFUSED 127.0.0.1:8080'), { code: 'ECONNREFUSED' });
+
+    const result = buildSendFailureError(original, 'Something went wrong, please try again.');
+
+    expect(result.code).toBe('AIONUI_INTERNAL_ERROR');
+    expect(result.rawError).toEqual({
+      name: 'Error',
+      message: 'connect ECONNREFUSED 127.0.0.1:8080',
+      code: 'ECONNREFUSED',
+      stack: expect.any(String),
+    });
+  });
+
+  it('carries backend http diagnostics into the fallback rawError for unclassified HTTP errors', () => {
+    const err = httpError(409, 'CONFLICT', 'Conflict: WebSocket not connected; nothing to cancel');
+
+    const result = buildSendFailureError(err, 'Conflict: WebSocket not connected; nothing to cancel');
+
+    expect(result.code).toBe('AIONUI_INTERNAL_ERROR');
+    expect(result.rawError).toMatchObject({
+      name: 'BackendHttpError',
+      status: 409,
+      code: 'CONFLICT',
+      message: 'Conflict: WebSocket not connected; nothing to cancel',
+    });
+  });
+
+  it('redacts secrets from the fallback rawError summary', () => {
+    const original = new Error('auth failed for key sk-ant-api03-shouldNotLeak123456');
+
+    const result = buildSendFailureError(original, 'failed');
+
+    expect(result.rawError?.message).not.toContain('sk-ant-api03-shouldNotLeak123456');
+    expect(result.rawError?.message).toContain('[REDACTED_KEY]');
+  });
+
+  it('does not attach rawError to classified (non-fallback) branches', () => {
+    const err = httpError(502, 'BAD_GATEWAY', 'Bad gateway: upstream timeout');
+
+    const result = buildSendFailureError(err, 'Bad gateway: upstream timeout');
+
+    expect(result.code).toBe('UNKNOWN_UPSTREAM_ERROR');
+    expect(result.rawError).toBeUndefined();
+  });
 });
