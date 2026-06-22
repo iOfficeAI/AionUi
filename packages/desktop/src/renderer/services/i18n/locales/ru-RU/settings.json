@@ -1106,5 +1106,6 @@
     "codexAcp": "the Codex ACP runtime component",
     "claudeAgentAcp": "the Claude ACP runtime component"
   },
-  "updateReadyInstall": "{{version}} готова, установить сейчас"
+  "updateReadyInstall": "{{version}} готова, установить сейчас",
+  "assistantAgentUnavailable": "Требуемый агент сейчас недоступен."
 }

@@ -6,6 +6,22 @@ export type AssistantListFilter = 'all' | 'enabled' | 'disabled' | 'builtin' | '
 export const ASSISTANT_SORT_ORDER_GAP = 1000;
 
 /**
+ * Source tag shown next to an assistant in the settings list.
+ *
+ * - `builtin` → "Built-in" tag
+ * - `user` → "Custom" tag
+ * - `bare` (agent-generated) → no tag, since it is neither built-in nor
+ *   user-authored; surfacing "Custom" for it is misleading.
+ */
+export type AssistantSourceTag = 'builtin' | 'custom' | null;
+
+export const resolveAssistantSourceTag = (source: string): AssistantSourceTag => {
+  if (source === 'builtin') return 'builtin';
+  if (source === 'bare') return null;
+  return 'custom';
+};
+
+/**
  * Check if a string is an emoji (simple check for common emoji patterns).
  */
 export const isEmoji = (str: string): boolean => {

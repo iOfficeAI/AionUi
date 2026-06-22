@@ -1104,5 +1104,6 @@
     "mcp": "MCP",
     "customAgent": "Custom Agent"
   },
-  "updateReadyInstall": "{{version}} is ready, install now"
+  "updateReadyInstall": "{{version}} is ready, install now",
+  "assistantAgentUnavailable": "The required agent is currently unavailable."
 }

@@ -1104,5 +1104,6 @@
     "codexAcp": "the Codex ACP runtime component",
     "claudeAgentAcp": "the Claude ACP runtime component"
   },
-  "updateReadyInstall": "{{version}} hazır, şimdi yükle"
+  "updateReadyInstall": "{{version}} hazır, şimdi yükle",
+  "assistantAgentUnavailable": "Gereken aracı şu anda kullanılamıyor."
 }

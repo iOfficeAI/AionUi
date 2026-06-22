@@ -1055,5 +1055,6 @@
     "mcp": "MCP",
     "customAgent": "Benutzerdefinierter Agent"
   },
-  "updateReadyInstall": "{{version}} ist bereit, jetzt installieren"
+  "updateReadyInstall": "{{version}} ist bereit, jetzt installieren",
+  "assistantAgentUnavailable": "Der benötigte Agent ist derzeit nicht verfügbar."
 }

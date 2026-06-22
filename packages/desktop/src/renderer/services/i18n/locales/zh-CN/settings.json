@@ -1105,5 +1105,6 @@
     "mcp": "MCP",
     "customAgent": "自定义 Agent"
   },
-  "updateReadyInstall": "{{version}} 已就绪, 立即安装"
+  "updateReadyInstall": "{{version}} 已就绪, 立即安装",
+  "assistantAgentUnavailable": "所依赖的 Agent 当前不可用。"
 }

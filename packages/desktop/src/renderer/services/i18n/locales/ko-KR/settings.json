@@ -1106,5 +1106,6 @@
     "codexAcp": "the Codex ACP runtime component",
     "claudeAgentAcp": "the Claude ACP runtime component"
   },
-  "updateReadyInstall": "{{version}} 준비 완료, 지금 설치"
+  "updateReadyInstall": "{{version}} 준비 완료, 지금 설치",
+  "assistantAgentUnavailable": "필요한 에이전트를 현재 사용할 수 없습니다."
 }

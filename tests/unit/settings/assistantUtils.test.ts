@@ -11,6 +11,7 @@ import {
   sortAssistants,
   filterAssistants,
   groupAssistantsByEnabled,
+  resolveAssistantSourceTag,
 } from '@/renderer/pages/settings/AssistantSettings/assistantUtils';
 import type { AssistantListItem } from '@/renderer/pages/settings/AssistantSettings/types';
 
@@ -222,5 +223,19 @@ describe('groupAssistantsByEnabled', () => {
     const { enabledAssistants, disabledAssistants } = groupAssistantsByEnabled(assistants);
     expect(enabledAssistants).toEqual([]);
     expect(disabledAssistants.map((a) => a.id)).toEqual(['a1', 'a2']);
+  });
+});
+
+describe('resolveAssistantSourceTag', () => {
+  it('shows the built-in tag for builtin assistants', () => {
+    expect(resolveAssistantSourceTag('builtin')).toBe('builtin');
+  });
+
+  it('shows the custom tag for user assistants', () => {
+    expect(resolveAssistantSourceTag('user')).toBe('custom');
+  });
+
+  it('shows no tag for bare (agent-generated) assistants', () => {
+    expect(resolveAssistantSourceTag('bare')).toBeNull();
   });
 });

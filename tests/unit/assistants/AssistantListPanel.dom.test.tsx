@@ -36,8 +36,24 @@ const renderWithProviders = (ui: React.ReactElement) => render(<ConfigProvider>{
 
 describe('AssistantListPanel', () => {
   const mockAssistants: AssistantListItem[] = [
-    { id: '1', name: 'Claude', description: 'AI', sort_order: 1, source: 'builtin', enabled: true },
-    { id: '2', name: 'GPT', description: 'OpenAI', sort_order: 2, source: 'user', enabled: false },
+    {
+      id: '1',
+      name: 'Claude',
+      description: 'AI',
+      sort_order: 1,
+      source: 'builtin',
+      enabled: true,
+      agent_status: 'online',
+    },
+    {
+      id: '2',
+      name: 'GPT',
+      description: 'OpenAI',
+      sort_order: 2,
+      source: 'user',
+      enabled: false,
+      agent_status: 'online',
+    },
   ];
 
   const defaultProps = {
@@ -156,5 +172,56 @@ describe('AssistantListPanel', () => {
     expect(screen.getByTestId('btn-edit-1')).toHaveClass('!h-30px', '!rounded-8px', '!text-12px', '!font-500');
     expect(screen.getByTestId('btn-duplicate-1')).toHaveClass('!h-30px', '!rounded-8px', '!text-12px', '!font-500');
     expect(screen.getByTestId('btn-delete-2')).toHaveClass('!h-30px', '!rounded-8px', '!text-12px', '!font-500');
+  });
+
+  // F2-05: flag assistants whose underlying agent is not online.
+  it('shows an unavailable-agent warning only for assistants whose agent is not online', () => {
+    const assistants: AssistantListItem[] = [
+      {
+        id: '1',
+        name: 'Claude',
+        description: 'AI',
+        sort_order: 1,
+        source: 'builtin',
+        enabled: true,
+        agent_status: 'online',
+      },
+      {
+        id: '2',
+        name: 'Gemini',
+        description: 'G',
+        sort_order: 2,
+        source: 'builtin',
+        enabled: true,
+        agent_status: 'offline',
+        agent_status_message: 'Agent requires sign-in.',
+      },
+    ] as AssistantListItem[];
+
+    renderWithProviders(<AssistantListPanel {...defaultProps} assistants={assistants} />);
+
+    // Online assistant: no warning.
+    expect(screen.queryByTestId('assistant-agent-unavailable-1')).toBeNull();
+    // Offline assistant: warning shown, and the assistant stays toggleable (not disabled/removed).
+    expect(screen.getByTestId('assistant-agent-unavailable-2')).toBeInTheDocument();
+    expect(screen.getByTestId('switch-enabled-2')).toBeInTheDocument();
+  });
+
+  it('flags assistants with a missing agent as unavailable too', () => {
+    const assistants: AssistantListItem[] = [
+      {
+        id: '9',
+        name: 'Orphan',
+        description: 'X',
+        sort_order: 1,
+        source: 'user',
+        enabled: true,
+        agent_status: 'missing',
+      },
+    ] as AssistantListItem[];
+
+    renderWithProviders(<AssistantListPanel {...defaultProps} assistants={assistants} />);
+
+    expect(screen.getByTestId('assistant-agent-unavailable-9')).toBeInTheDocument();
   });
 });
