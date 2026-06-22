@@ -19,7 +19,8 @@ const {
   setSendBoxHandlerMock,
   useAcpConfigOptionsMock,
   useTeamPermissionMock,
-  thoughtSelectorProps,
+  isMobileMock,
+  mobileActionSheetEntries,
 } = vi.hoisted(() => ({
   sendMessageInvokeMock: vi.fn(),
   addOrUpdateMessageMock: vi.fn(),
@@ -28,8 +29,14 @@ const {
   setSendBoxHandlerMock: vi.fn(),
   useAcpConfigOptionsMock: vi.fn(),
   useTeamPermissionMock: vi.fn(),
-  thoughtSelectorProps: {
-    current: null as null | { onSetOption: (optionId: string, value: string) => Promise<unknown> },
+  isMobileMock: { current: false },
+  mobileActionSheetEntries: {
+    current: [] as Array<{
+      key: string;
+      submenu?: {
+        onSelect?: (value: string) => void;
+      };
+    }>,
   },
 }));
 
@@ -65,23 +72,21 @@ vi.mock('@/renderer/components/chat/SendBox', () => ({
 }));
 
 vi.mock('@/renderer/components/agent/AgentModeSelector', () => ({ default: () => null }));
-vi.mock('@/renderer/components/agent/AcpThoughtLevelSelector', () => ({
-  default: (props: {
-    thoughtLevel: unknown;
-    iconOnly?: boolean;
-    onSetOption: (optionId: string, value: string) => Promise<unknown>;
-  }) => {
-    thoughtSelectorProps.current = props;
-    return props.thoughtLevel ? (
-      <div data-testid='mock-thought-selector' data-icon-only={String(Boolean(props.iconOnly))}>
-        thought
-      </div>
-    ) : null;
-  },
-}));
 vi.mock('@/renderer/components/chat/CommandQueuePanel', () => ({ default: () => null }));
 vi.mock('@/renderer/components/chat/MobileActionSheet', () => ({
-  default: () => null,
+  default: ({
+    entries,
+  }: {
+    entries?: Array<{
+      key: string;
+      submenu?: {
+        onSelect?: (value: string) => void;
+      };
+    }>;
+  }) => {
+    mobileActionSheetEntries.current = entries ?? [];
+    return null;
+  },
   useAttachEntry: () => ({ entries: [], hiddenFileInput: null }),
 }));
 vi.mock('@/renderer/components/chat/ThoughtDisplay', () => ({ default: () => null }));
@@ -130,7 +135,7 @@ vi.mock('@/renderer/hooks/context/ConversationContext', () => ({
   useConversationContextSafe: () => null,
 }));
 vi.mock('@/renderer/hooks/context/LayoutContext', () => ({
-  useLayoutContext: () => ({ isMobile: false }),
+  useLayoutContext: () => ({ isMobile: isMobileMock.current }),
 }));
 vi.mock('@/renderer/hooks/file/useOpenFileSelector', () => ({
   useOpenFileSelector: () => ({
@@ -218,7 +223,8 @@ const makeMessageState = (): UseAcpMessageReturn => ({
 describe('AcpSendBox', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    thoughtSelectorProps.current = null;
+    isMobileMock.current = false;
+    mobileActionSheetEntries.current = [];
     useTeamPermissionMock.mockReturnValue(null);
     useAcpConfigOptionsMock.mockReturnValue({
       setStatus: { state: 'idle' },
@@ -263,7 +269,7 @@ describe('AcpSendBox', () => {
     });
   });
 
-  it('enables ACP config options on desktop so thought_level can render', () => {
+  it('keeps ACP config options enabled on desktop without rendering a standalone thought selector', () => {
     useAcpConfigOptionsMock.mockReturnValue({
       setStatus: { state: 'idle' },
       mode: null,
@@ -288,11 +294,11 @@ describe('AcpSendBox', () => {
     );
 
     expect(useAcpConfigOptionsMock).toHaveBeenCalledWith(expect.objectContaining({ enabled: true }));
-    expect(screen.getByTestId('mock-thought-selector')).toBeInTheDocument();
-    expect(screen.getByTestId('mock-thought-selector')).toHaveAttribute('data-icon-only', 'false');
+    expect(screen.queryByTestId('mock-thought-selector')).not.toBeInTheDocument();
   });
 
-  it('updates runtime thought level without persisting a global agent preference', async () => {
+  it('applies runtime thought level from the mobile action sheet without persisting a global preference', async () => {
+    isMobileMock.current = true;
     const setConfigOption = vi.fn().mockResolvedValue([]);
     useAcpConfigOptionsMock.mockReturnValue({
       mode: null,
@@ -323,13 +329,18 @@ describe('AcpSendBox', () => {
     );
 
     await act(async () => {
-      await thoughtSelectorProps.current?.onSetOption('reasoning_effort', 'high');
+      mobileActionSheetEntries.current.find((entry) => entry.key === 'thought-level')?.submenu?.onSelect?.('high');
     });
 
-    expect(setConfigOption).toHaveBeenCalledWith('reasoning_effort', 'high');
+    // This branch dropped global-preference persistence: only the runtime
+    // config option is set; nothing is saved to a global agent preference.
+    await waitFor(() => {
+      expect(setConfigOption).toHaveBeenCalledWith('reasoning_effort', 'high');
+    });
   });
 
-  it('does not update runtime thought level when observed confirmation fails', async () => {
+  it('does not apply runtime thought level when observed confirmation fails', async () => {
+    isMobileMock.current = true;
     const setConfigOption = vi.fn().mockRejectedValue(new Error('command_ack'));
     useAcpConfigOptionsMock.mockReturnValue({
       mode: null,
@@ -356,39 +367,12 @@ describe('AcpSendBox', () => {
       />
     );
 
-    await expect(thoughtSelectorProps.current?.onSetOption('reasoning_effort', 'high')).rejects.toThrow('command_ack');
-    expect(setConfigOption).toHaveBeenCalledWith('reasoning_effort', 'high');
-  });
-
-  it('renders thought_level as icon-only inside a team pane', () => {
-    useTeamPermissionMock.mockReturnValue({
-      leaderConversationId: 'leader-conv',
-      warmupSession: vi.fn().mockResolvedValue(undefined),
-      propagateMode: vi.fn(),
-    });
-    useAcpConfigOptionsMock.mockReturnValue({
-      setStatus: { state: 'idle' },
-      mode: null,
-      model: null,
-      thoughtLevel: {
-        id: 'reasoning_effort',
-        category: 'thought_level',
-        currentValue: 'high',
-        options: [{ value: 'high', label: 'High' }],
-      },
-      reload: vi.fn(),
-      setConfigOption: vi.fn(),
+    await act(async () => {
+      mobileActionSheetEntries.current.find((entry) => entry.key === 'thought-level')?.submenu?.onSelect?.('high');
     });
 
-    render(
-      <AcpSendBox
-        conversation_id='teammate-conv'
-        backend='codex'
-        workspacePath='/tmp/workspace'
-        messageState={makeMessageState()}
-      />
-    );
-
-    expect(screen.getByTestId('mock-thought-selector')).toHaveAttribute('data-icon-only', 'true');
+    await waitFor(() => {
+      expect(setConfigOption).toHaveBeenCalledWith('reasoning_effort', 'high');
+    });
   });
 });

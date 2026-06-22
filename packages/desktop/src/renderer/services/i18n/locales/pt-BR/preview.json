@@ -53,6 +53,10 @@
   "closeAll": "Fechar Todas",
   "readOnlyLabel": "Pré-visualização somente leitura",
   "pathLabel": "Caminho",
+  "missingFile": {
+    "title": "Arquivo não encontrado",
+    "openInNewTab": "Tentar abrir em uma nova aba"
+  },
   "noTabs": "Nenhuma guia aberta",
   "openInPanelTooltip": "Ver no painel de visualização",
   "mermaidTitle": "Diagrama Mermaid",

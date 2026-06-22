@@ -1,15 +1,17 @@
 {
-  "modalTitle": "ソフトウェア更新",
+  "modalTitle": "アップデートがあります",
   "checking": "更新を確認しています...",
   "checkFailed": "更新の確認に失敗しました",
   "upToDateTitle": "最新です",
+  "alreadyLatest": "すでに最新バージョンです",
   "currentVersion": "現在のバージョン：{{version}}",
   "availableTitle": "更新があります",
   "noReleaseNotes": "リリースノートはありません。",
   "downloadingTitle": "更新をダウンロードしています...",
-  "downloadButton": "ダウンロード",
+  "downloadButton": "今すぐダウンロード",
   "downloadAndInstall": "ダウンロードしてインストール",
   "manualInstall": "手動インストール",
+  "later": "後で",
   "downloadStartFailed": "ダウンロードを開始できませんでした",
   "downloadFailed": "ダウンロードに失敗しました",
   "noCompatibleAsset": "このプラットフォームに対応するファイルが見つかりません",
@@ -19,6 +21,7 @@
   "readyToInstall": "インストール準備完了",
   "readyToInstallDesc": "更新のダウンロードが完了しました。下のボタンをクリックして再起動し、更新をインストールしてください。",
   "installNow": "今すぐインストール",
+  "restartNow": "今すぐ再起動",
   "installWarning": "インストール中はアプリを手動で開かないでください。自動的に再起動されます。",
   "autoUpdateMode": "自動更新モード",
   "showInFolder": "フォルダーで表示",
@@ -36,6 +39,14 @@
     "downloadFailed": "ダウンロードリクエストに失敗しました（{{status}}）",
     "downloadNoBody": "ダウンロード応答に本文がありません",
     "missingUrl": "ダウンロード URL がありません",
-    "checkReturnedNull": "更新確認が結果を返しませんでした。パッケージ済みアプリ、または開発用更新設定の強制有効化が必要です。"
-  }
+    "checkReturnedNull": "更新確認が結果を返しませんでした。パッケージ済みアプリ、または開発用更新設定の強制有効化が必要です。",
+    "missingDownloadId": "ダウンロード ID がありません"
+  },
+  "releaseNotesLoading": "更新内容を取得中",
+  "releaseNotesFailed": "取得に失敗しました。",
+  "viewRelease": "リリースを見る",
+  "releaseLog": "リリースログ",
+  "cancel": "キャンセル",
+  "minimize": "最小化",
+  "restoreUpdateNotification": "更新の進行状況を復元"
 }

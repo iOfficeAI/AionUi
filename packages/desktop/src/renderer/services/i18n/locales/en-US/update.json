@@ -1,15 +1,17 @@
 {
-  "modalTitle": "Software update",
+  "modalTitle": "Update Ready",
   "checking": "Checking for updates...",
   "checkFailed": "Failed to check for updates",
   "upToDateTitle": "You're up to date",
+  "alreadyLatest": "You are already on the latest version",
   "currentVersion": "Current version: {{version}}",
   "availableTitle": "Update available",
   "noReleaseNotes": "No release notes provided.",
   "downloadingTitle": "Downloading update...",
-  "downloadButton": "Download",
+  "downloadButton": "Download Now",
   "downloadAndInstall": "Download & Install",
   "manualInstall": "Manual install",
+  "later": "Later",
   "downloadStartFailed": "Failed to start download",
   "downloadFailed": "Download failed",
   "noCompatibleAsset": "No compatible download found for this platform",
@@ -19,6 +21,7 @@
   "readyToInstall": "Ready to install",
   "readyToInstallDesc": "Update has been downloaded. Click the button below to restart and install the update.",
   "installNow": "Install and restart",
+  "restartNow": "Restart Now",
   "installWarning": "Do not reopen the app during installation. It will restart automatically.",
   "autoUpdateMode": "Auto-update mode",
   "showInFolder": "Show in folder",
@@ -36,6 +39,14 @@
     "downloadFailed": "Download request failed ({{status}})",
     "downloadNoBody": "Download response did not include a body",
     "missingUrl": "Missing download URL",
-    "checkReturnedNull": "Update check returned no result. Packaged app or forced dev update config is required."
-  }
+    "checkReturnedNull": "Update check returned no result. Packaged app or forced dev update config is required.",
+    "missingDownloadId": "Missing download ID"
+  },
+  "releaseNotesLoading": "Fetching update details...",
+  "releaseNotesFailed": "Failed to fetch update details.",
+  "viewRelease": "View release",
+  "releaseLog": "Release Log",
+  "cancel": "Cancel",
+  "minimize": "Minimize",
+  "restoreUpdateNotification": "Restore update progress"
 }

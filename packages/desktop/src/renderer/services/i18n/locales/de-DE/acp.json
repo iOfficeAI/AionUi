@@ -1,0 +1,32 @@
+{
+  "auth": {
+    "failed": "{{backend}}-Authentifizierung fehlgeschlagen:\n\n{{error}}\n\nBitte überprüfe den Authentifizierungsstatus deines lokalen CLI-Tools",
+    "console_error": "ACP-Authentifizierungsfehler Details:",
+    "failed_confirm": "ACP {{backend}}-Authentifizierung fehlgeschlagen:\n\n{{error}}\n\nMöchtest du jetzt zur Einstellungsseite wechseln, um es zu konfigurieren?"
+  },
+  "send": {
+    "failed": "Nachricht konnte nicht gesendet werden: {{error}}"
+  },
+  "sendbox": {
+    "placeholder": "Nachricht an {{backend}} senden..."
+  },
+  "image": {
+    "download": "Herunterladen",
+    "download_aria": "Bild herunterladen",
+    "download_success": "Erfolgreich heruntergeladen",
+    "download_error": "Download fehlgeschlagen",
+    "generated_alt": "Generiertes Bild"
+  },
+  "status": {
+    "connecting": "Verbinde mit {{agent}}...",
+    "connected": "Mit {{agent}} verbunden",
+    "authenticated": "Mit {{agent}} authentifiziert",
+    "session_active": "Aktive Sitzung mit {{agent}}",
+    "error": "Verbindungsfehler",
+    "unknown": "Unbekannter Status"
+  },
+  "config": {
+    "reasoning_effort": "Denkaufwand",
+    "default": "Standard"
+  }
+}

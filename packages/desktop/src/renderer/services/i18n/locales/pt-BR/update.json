@@ -1,15 +1,17 @@
 {
-  "modalTitle": "Atualização de software",
+  "modalTitle": "Atualização disponível",
   "checking": "Verificando atualizações...",
   "checkFailed": "Falha ao verificar atualizações",
   "upToDateTitle": "Você está atualizado",
+  "alreadyLatest": "Você já está na versão mais recente",
   "currentVersion": "Versão atual: {{version}}",
   "availableTitle": "Atualização disponível",
   "noReleaseNotes": "Nenhuma nota de lançamento fornecida.",
   "downloadingTitle": "Baixando atualização...",
-  "downloadButton": "Baixar",
+  "downloadButton": "Baixar agora",
   "downloadAndInstall": "Baixar e Instalar",
   "manualInstall": "Instalar manualmente",
+  "later": "Mais tarde",
   "downloadStartFailed": "Falha ao iniciar o download",
   "downloadFailed": "O download falhou",
   "noCompatibleAsset": "Nenhum download compatível encontrado para esta plataforma",
@@ -19,6 +21,7 @@
   "readyToInstall": "Pronto para instalar",
   "readyToInstallDesc": "A atualização foi baixada. Clique no botão abaixo para reiniciar e instalar a atualização.",
   "installNow": "Instalar e reiniciar",
+  "restartNow": "Reiniciar agora",
   "installWarning": "Não reabra o aplicativo durante a instalação. Ele reiniciará automaticamente.",
   "autoUpdateMode": "Modo de atualização automática",
   "showInFolder": "Mostrar na pasta",
@@ -36,6 +39,14 @@
     "downloadFailed": "Falha na solicitação de download ({{status}})",
     "downloadNoBody": "A resposta do download não incluiu conteúdo",
     "missingUrl": "URL de download ausente",
-    "checkReturnedNull": "A verificação de atualização não retornou resultado. É necessário usar o app empacotado ou forçar a configuração de atualização de desenvolvimento."
-  }
+    "checkReturnedNull": "A verificação de atualização não retornou resultado. É necessário usar o app empacotado ou forçar a configuração de atualização de desenvolvimento.",
+    "missingDownloadId": "ID de download ausente"
+  },
+  "releaseNotesLoading": "Buscando detalhes da atualização...",
+  "releaseNotesFailed": "Falha ao buscar detalhes.",
+  "viewRelease": "Ver release",
+  "releaseLog": "Registro de versões",
+  "cancel": "Cancelar",
+  "minimize": "Minimizar",
+  "restoreUpdateNotification": "Restaurar progresso da atualização"
 }

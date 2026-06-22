@@ -73,9 +73,11 @@ import type {
   TeamAssistant,
 } from '../types/team/teamTypes';
 import type {
+  AutoUpdateReadyResult,
   AutoUpdateStatus,
   UpdateCheckRequest,
   UpdateCheckResult,
+  UpdateDownloadCancelRequest,
   UpdateDownloadProgressEvent,
   UpdateDownloadRequest,
   UpdateDownloadResult,
@@ -435,7 +437,7 @@ export interface IAppRestartResult {
   reason?: 'dev-mode';
 }
 
-export type IRendererLogLevel = 'info' | 'warn' | 'error';
+export type IRendererLogLevel = 'debug' | 'info' | 'warn' | 'error';
 
 export interface IRendererLogEntry {
   level: IRendererLogLevel;
@@ -494,9 +496,10 @@ export const application = {
 // ---------------------------------------------------------------------------
 
 export const update = {
-  open: bridge.buildEmitter<{ source?: 'menu' | 'about' }>('update.open'),
+  open: bridge.buildEmitter<{ source?: 'menu' | 'about' | 'tray' }>('update.open'),
   check: bridge.buildProvider<IBridgeResponse<UpdateCheckResult>, UpdateCheckRequest>('update.check'),
   download: bridge.buildProvider<IBridgeResponse<UpdateDownloadResult>, UpdateDownloadRequest>('update.download'),
+  cancelDownload: bridge.buildProvider<IBridgeResponse, UpdateDownloadCancelRequest>('update.download.cancel'),
   downloadProgress: bridge.buildEmitter<UpdateDownloadProgressEvent>('update.download.progress'),
 };
 
@@ -505,7 +508,11 @@ export const autoUpdate = {
     IBridgeResponse<{ updateInfo?: { version: string; releaseDate?: string; releaseNotes?: string } }>,
     { includePrerelease?: boolean }
   >('auto-update.check'),
+  restoreDownloaded: bridge.buildProvider<IBridgeResponse<AutoUpdateReadyResult>, void>(
+    'auto-update.restore-downloaded'
+  ),
   download: bridge.buildProvider<IBridgeResponse, void>('auto-update.download'),
+  cancelDownload: bridge.buildProvider<IBridgeResponse, void>('auto-update.download.cancel'),
   quitAndInstall: bridge.buildProvider<void, void>('auto-update.quit-and-install'),
   status: bridge.buildEmitter<AutoUpdateStatus>('auto-update.status'),
 };

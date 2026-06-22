@@ -29,7 +29,36 @@ Each pull request must contain **exactly one feature or one bug fix** that canno
 - Unrelated bug fixes bundled together (e.g., titlebar navigation fix + i18n missing key + speech input UI fix)
 - Independent technical layers (e.g., IPC bridge refactor + renderer component + worker process change for unrelated features)
 
-## Rule 2: Pass Local Checks Before Push
+## Rule 2: Commit and PR Title Format
+
+Commit messages and PR titles must use Conventional Commit format in English:
+
+```text
+<type>(<scope>): <subject>
+```
+
+Use one of these types:
+
+| Type       | Meaning                  | Changelog visibility |
+| ---------- | ------------------------ | -------------------- |
+| `feat`     | New user-facing behavior | Visible              |
+| `fix`      | Bug fix                  | Visible              |
+| `perf`     | Performance improvement  | Visible              |
+| `refactor` | Code restructuring       | Visible              |
+| `docs`     | Documentation            | Visible              |
+| `style`    | Formatting or styles     | Hidden               |
+| `chore`    | Maintenance work         | Hidden               |
+| `test`     | Tests                    | Hidden               |
+| `ci`       | CI configuration         | Hidden               |
+| `build`    | Build system             | Hidden               |
+
+Examples:
+
+- `fix(preview): restore local html loading`
+- `feat(workspace): add file preview shortcuts`
+- `docs(contributing): document pr title format`
+
+## Rule 3: Pass Local Checks Before Push
 
 CI will reject your PR if these checks fail. Run them locally **before pushing** to save time.
 
@@ -73,24 +102,6 @@ bunx vitest run
 | Type errors   | Fix the TypeScript issue, then re-run `bunx tsc --noEmit`            |
 | i18n errors   | Check for missing keys; run `bun run i18n:types` to regenerate types |
 | Test failures | Fix the failing test or implementation; re-run `bunx vitest run`     |
-
-### Claude Code shortcut
-
-If you use [Claude Code](https://docs.anthropic.com/en/docs/claude-code), run `/oss-pr` to automate the entire check + commit + PR flow.
-
-## After Your PR
-
-This repository runs a PR automation bot that reviews, fixes minor issues, and prepares PRs for merge. You may see these labels on your PR:
-
-| Label                    | Meaning                                | Action needed                           |
-| ------------------------ | -------------------------------------- | --------------------------------------- |
-| `bot:reviewing`          | Bot is reviewing your PR               | Wait                                    |
-| `bot:ci-waiting`         | CI failed; bot is waiting for your fix | Push a new commit to fix CI             |
-| `bot:needs-rebase`       | Merge conflict; bot cannot auto-rebase | Rebase your branch onto `main` and push |
-| `bot:needs-human-review` | Blocking issue found                   | A maintainer will review and comment    |
-| `bot:ready-to-merge`     | All checks passed                      | A maintainer will merge when ready      |
-
-See [docs/contributing/pr-automation.md](docs/contributing/pr-automation.md) for the full automation workflow.
 
 ## Enforcement
 

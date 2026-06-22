@@ -1,15 +1,17 @@
 {
-  "modalTitle": "软件更新",
+  "modalTitle": "发现新版本",
   "checking": "正在检查更新...",
   "checkFailed": "检查更新失败",
   "upToDateTitle": "已是最新版本",
+  "alreadyLatest": "已经是最新版本了",
   "currentVersion": "当前版本：{{version}}",
   "availableTitle": "发现新版本",
   "noReleaseNotes": "暂无更新说明。",
   "downloadingTitle": "正在下载更新...",
-  "downloadButton": "下载",
+  "downloadButton": "立即下载",
   "downloadAndInstall": "下载并安装",
   "manualInstall": "手动安装",
+  "later": "稍后",
   "downloadStartFailed": "启动下载失败",
   "downloadFailed": "下载失败",
   "noCompatibleAsset": "未找到适用于当前平台的安装包",
@@ -19,6 +21,7 @@
   "readyToInstall": "准备安装",
   "readyToInstallDesc": "更新已下载完成，点击下方按钮重启应用并安装更新。",
   "installNow": "立即安装",
+  "restartNow": "立即安装",
   "installWarning": "安装期间请勿手动打开应用，应用将自动重启。",
   "autoUpdateMode": "自动更新模式",
   "showInFolder": "在文件夹中显示",
@@ -36,6 +39,14 @@
     "downloadFailed": "下载请求失败（{{status}}）",
     "downloadNoBody": "下载响应没有内容",
     "missingUrl": "缺少下载地址",
-    "checkReturnedNull": "更新检查没有返回结果，需要打包应用或强制启用开发更新配置。"
-  }
+    "checkReturnedNull": "更新检查没有返回结果，需要打包应用或强制启用开发更新配置。",
+    "missingDownloadId": "缺少下载 ID"
+  },
+  "releaseNotesLoading": "更新内容获取中",
+  "releaseNotesFailed": "获取失败，可",
+  "viewRelease": "前往查看",
+  "releaseLog": "更新日志",
+  "cancel": "取消",
+  "minimize": "最小化",
+  "restoreUpdateNotification": "恢复更新进度"
 }

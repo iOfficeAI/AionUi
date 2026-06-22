@@ -24,6 +24,8 @@ interface CodeEditorProps {
   readOnly?: boolean; // 是否只读 / Whether read-only
   containerRef?: React.RefObject<HTMLDivElement>; // 滚动同步容器 / Scroll sync container
   onScroll?: (scrollTop: number, scrollHeight: number, clientHeight: number) => void; // 滚动回调 / Scroll callback
+  targetLine?: number; // 初次打开时定位到的目标行 / Target line to reveal on initial open
+  targetColumn?: number; // 初次打开时定位到的目标列 / Target column to reveal on initial open
 }
 
 // 流式判定空闲超时：超过此时长无外部增长则视为流结束
@@ -44,6 +46,8 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
   readOnly = false,
   containerRef,
   onScroll,
+  targetLine,
+  targetColumn,
 }) => {
   const { theme } = useThemeContext();
   const { t } = useTranslation();
@@ -57,6 +61,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
   const userEditRef = useRef(false); // 最近一次 value 变化来自用户编辑 / Last value change came from a user edit
   const prevLenRef = useRef(value.length);
   const viewRef = useRef<EditorView | null>(null);
+  const revealedTargetRef = useRef<string | null>(null);
   const streamingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const disableHighlight = shouldDisableHighlighting(value.length);
@@ -83,9 +88,31 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
     prevLenRef.current = value.length;
     userEditRef.current = false;
     setIsStreaming(false);
+    revealedTargetRef.current = null;
     // value intentionally omitted: we only re-baseline when the file identity changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [language, fileName]);
+
+  useEffect(() => {
+    if (!targetLine || targetLine < 1) return;
+    const view = viewRef.current;
+    if (!view) return;
+
+    if (targetLine > view.state.doc.lines) return;
+
+    const targetKey = `${fileName ?? ''}:${targetLine}:${targetColumn ?? ''}`;
+    if (revealedTargetRef.current === targetKey) return;
+    revealedTargetRef.current = targetKey;
+
+    const line = view.state.doc.line(targetLine);
+    const columnOffset =
+      targetColumn == null || targetColumn < 1 ? 0 : Math.min(targetColumn - 1, Math.max(0, line.length));
+    const position = line.from + columnOffset;
+    view.dispatch({
+      selection: { anchor: position },
+      effects: EditorView.scrollIntoView(position, { y: 'center' }),
+    });
+  }, [fileName, targetColumn, targetLine, value.length]);
 
   // 区分外部流式增长 vs 用户编辑：外部增长时显示角标并自动滚到底
   // Distinguish external streaming growth from user edits: badge + auto-scroll on external growth

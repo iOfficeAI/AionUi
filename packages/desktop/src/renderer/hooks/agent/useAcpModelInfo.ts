@@ -6,8 +6,8 @@
 
 import { ipcBridge } from '@/common';
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
-import type { AcpModelInfo } from '@/common/types/platform/acpTypes';
-import { useAcpConfigOptions } from './useAcpConfigOptions';
+import type { AcpConfigOptionDto, AcpModelInfo } from '@/common/types/platform/acpTypes';
+import { type AcpConfigSetStatus, type AcpDerivedOption, useAcpConfigOptions } from './useAcpConfigOptions';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 type UseAcpModelInfoArgs = {
@@ -25,6 +25,9 @@ export type UseAcpModelInfoResult = {
   canSwitch: boolean;
   isSetting: boolean;
   selectModel: (model_id: string) => void;
+  thoughtLevel: AcpDerivedOption | null;
+  setStatus: AcpConfigSetStatus;
+  setConfigOption: (optionId: string, value: string) => Promise<AcpConfigOptionDto[]>;
 };
 
 function sameModelInfo(a: AcpModelInfo | null, b: AcpModelInfo | null): boolean {
@@ -61,7 +64,7 @@ export const useAcpModelInfo = ({
   onSelectModelSuccess,
   onSelectModelFailed,
 }: UseAcpModelInfoArgs): UseAcpModelInfoResult => {
-  const { model, setStatus, setConfigOption } = useAcpConfigOptions({
+  const { model, thoughtLevel, setStatus, setConfigOption } = useAcpConfigOptions({
     conversation_id,
     prepareRuntime,
     enabled,
@@ -126,5 +129,8 @@ export const useAcpModelInfo = ({
     canSwitch: Boolean(configModelInfo && configModelInfo.available_models.length > 0),
     isSetting: setStatus.state === 'setting' && setStatus.optionId === model?.id,
     selectModel,
+    thoughtLevel,
+    setStatus,
+    setConfigOption,
   };
 };

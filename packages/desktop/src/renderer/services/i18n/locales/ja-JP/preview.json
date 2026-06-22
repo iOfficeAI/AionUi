@@ -53,6 +53,10 @@
   "closeAll": "すべて閉じる",
   "readOnlyLabel": "閲覧専用",
   "pathLabel": "パス",
+  "missingFile": {
+    "title": "ファイルが見つかりません",
+    "openInNewTab": "新しいタブで開いてみる"
+  },
   "noTabs": "タブはありません",
   "openInPanelTooltip": "プレビューパネルで表示",
   "mermaidTitle": "Mermaid 図",

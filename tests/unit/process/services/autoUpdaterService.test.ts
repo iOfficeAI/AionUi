@@ -4,6 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import path from 'path';
+
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const autoUpdaterMock = vi.hoisted(() => ({
@@ -20,6 +22,7 @@ const autoUpdaterMock = vi.hoisted(() => ({
   removeListener: vi.fn(),
   checkForUpdates: vi.fn(),
   downloadUpdate: vi.fn(),
+  getOrCreateDownloadHelper: vi.fn(),
   quitAndInstall: vi.fn(),
   checkForUpdatesAndNotify: vi.fn(),
 }));
@@ -60,6 +63,7 @@ describe('AutoUpdaterService', () => {
     autoUpdaterMock.allowPrerelease = false;
     autoUpdaterMock.allowDowngrade = false;
     autoUpdaterMock.channel = undefined;
+    delete (autoUpdaterMock as { updateInfoAndProvider?: unknown }).updateInfoAndProvider;
     appMock.isPackaged = false;
     delete process.env.AIONUI_FORCE_DEV_AUTO_UPDATE;
     delete process.env.AIONUI_DEBUG_AUTO_UPDATE_CURRENT_VERSION;
@@ -139,6 +143,12 @@ describe('AutoUpdaterService', () => {
     return entry[1] as (error: Error) => void;
   };
 
+  const getUpdateDownloadedHandler = (): ((info: { version: string }) => void) => {
+    const entry = autoUpdaterMock.on.mock.calls.find(([event]) => event === 'update-downloaded');
+    if (!entry) throw new Error('update-downloaded handler not registered');
+    return entry[1] as (info: { version: string }) => void;
+  };
+
   it('clarifies the Squirrel bundle error in dev mode', async () => {
     appMock.isPackaged = false;
     const { autoUpdaterService } = await import('@/process/services/autoUpdaterService');
@@ -166,5 +176,148 @@ describe('AutoUpdaterService', () => {
 
     const errorStatus = statuses.find((s) => s.status === 'error');
     expect(errorStatus?.error).toBe('network timeout');
+  });
+
+  it('reuses the active auto-update download promise', async () => {
+    let resolveDownload!: () => void;
+    autoUpdaterMock.downloadUpdate.mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveDownload = resolve;
+        })
+    );
+
+    const { autoUpdaterService } = await import('@/process/services/autoUpdaterService');
+    autoUpdaterService.initialize();
+
+    const first = autoUpdaterService.downloadUpdate();
+    const second = autoUpdaterService.downloadUpdate();
+
+    expect(autoUpdaterMock.downloadUpdate).toHaveBeenCalledTimes(1);
+
+    resolveDownload();
+    await expect(first).resolves.toEqual({ success: true });
+    await expect(second).resolves.toEqual({ success: true });
+  });
+
+  it('allows a new auto-update download after a terminal updater event', async () => {
+    autoUpdaterMock.downloadUpdate.mockResolvedValue(undefined);
+
+    const { autoUpdaterService } = await import('@/process/services/autoUpdaterService');
+    autoUpdaterService.initialize();
+
+    await expect(autoUpdaterService.downloadUpdate()).resolves.toEqual({ success: true });
+    getUpdateDownloadedHandler()({ version: '2.2.0' });
+    await expect(autoUpdaterService.downloadUpdate()).resolves.toEqual({ success: true });
+
+    expect(autoUpdaterMock.downloadUpdate).toHaveBeenCalledTimes(2);
+  });
+
+  it('passes a cancellation token to auto-updater and cancels it on cancelDownload', async () => {
+    let resolveDownload!: () => void;
+    autoUpdaterMock.downloadUpdate.mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveDownload = resolve;
+        })
+    );
+
+    const { autoUpdaterService } = await import('@/process/services/autoUpdaterService');
+    autoUpdaterService.initialize();
+
+    const download = autoUpdaterService.downloadUpdate();
+
+    const token = autoUpdaterMock.downloadUpdate.mock.calls[0]?.[0] as
+      | { cancel: () => void; cancelled: boolean }
+      | undefined;
+    expect(token).toBeTruthy();
+    expect(token?.cancelled).toBe(false);
+
+    await expect(autoUpdaterService.cancelDownload()).resolves.toEqual({ success: true });
+
+    expect(token?.cancelled).toBe(true);
+
+    resolveDownload();
+    await expect(download).resolves.toEqual({ success: true });
+  });
+
+  it('restores a completed cached auto-update when the downloaded package validates', async () => {
+    const updateInfo = {
+      version: '2.1.14',
+      files: [{ url: 'AionUi-2.1.14-mac.zip', sha512: 'sha512-value' }],
+      path: 'AionUi-2.1.14-mac.zip',
+      sha512: 'sha512-value',
+      releaseDate: '2026-06-08T00:00:00.000Z',
+    };
+    const fileInfo = {
+      url: new URL('https://static.aionui.com/releases/2.1.14/AionUi-2.1.14-mac.zip'),
+      info: { url: 'AionUi-2.1.14-mac.zip', sha512: 'sha512-value' },
+    };
+    const cachedUpdatePath = path.join('/cache/pending', 'AionUi-2.1.14-mac.zip');
+    const validateDownloadedPath = vi.fn().mockResolvedValue(cachedUpdatePath);
+
+    autoUpdaterMock.checkForUpdates.mockImplementation(async () => {
+      (autoUpdaterMock as { updateInfoAndProvider?: unknown }).updateInfoAndProvider = {
+        info: updateInfo,
+        provider: { resolveFiles: vi.fn(() => [fileInfo]) },
+      };
+      return { isUpdateAvailable: true, updateInfo };
+    });
+    autoUpdaterMock.getOrCreateDownloadHelper.mockResolvedValue({
+      cacheDirForPendingUpdate: '/cache/pending',
+      validateDownloadedPath,
+    });
+    autoUpdaterMock.downloadUpdate.mockResolvedValue(undefined);
+
+    const { autoUpdaterService } = await import('@/process/services/autoUpdaterService');
+    autoUpdaterService.initialize();
+
+    await expect(autoUpdaterService.restoreDownloadedUpdateIfAvailable()).resolves.toEqual({
+      success: true,
+      data: {
+        ready: true,
+        version: '2.1.14',
+        currentVersion: '2.1.13',
+        filePath: cachedUpdatePath,
+      },
+    });
+    expect(validateDownloadedPath).toHaveBeenCalledWith(cachedUpdatePath, updateInfo, fileInfo, expect.anything());
+    expect(autoUpdaterMock.downloadUpdate).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not restore a cached auto-update when the downloaded package is missing or invalid', async () => {
+    const updateInfo = {
+      version: '2.1.14',
+      files: [{ url: 'AionUi-2.1.14-mac.zip', sha512: 'sha512-value' }],
+      path: 'AionUi-2.1.14-mac.zip',
+      sha512: 'sha512-value',
+      releaseDate: '2026-06-08T00:00:00.000Z',
+    };
+    const fileInfo = {
+      url: new URL('https://static.aionui.com/releases/2.1.14/AionUi-2.1.14-mac.zip'),
+      info: { url: 'AionUi-2.1.14-mac.zip', sha512: 'sha512-value' },
+    };
+    const validateDownloadedPath = vi.fn().mockResolvedValue(null);
+
+    autoUpdaterMock.checkForUpdates.mockImplementation(async () => {
+      (autoUpdaterMock as { updateInfoAndProvider?: unknown }).updateInfoAndProvider = {
+        info: updateInfo,
+        provider: { resolveFiles: vi.fn(() => [fileInfo]) },
+      };
+      return { isUpdateAvailable: true, updateInfo };
+    });
+    autoUpdaterMock.getOrCreateDownloadHelper.mockResolvedValue({
+      cacheDirForPendingUpdate: '/cache/pending',
+      validateDownloadedPath,
+    });
+
+    const { autoUpdaterService } = await import('@/process/services/autoUpdaterService');
+    autoUpdaterService.initialize();
+
+    await expect(autoUpdaterService.restoreDownloadedUpdateIfAvailable()).resolves.toEqual({
+      success: true,
+      data: { ready: false },
+    });
+    expect(autoUpdaterMock.downloadUpdate).not.toHaveBeenCalled();
   });
 });

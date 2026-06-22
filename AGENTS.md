@@ -120,29 +120,25 @@ prek run --from-ref origin/main --to-ref HEAD
 
 > `prek` is read-only — it reports but does not fix. If it reports issues, run the auto-fix commands above, commit, then re-run.
 
-The `oss-pr` skill runs this automatically during PR creation.
-
 ### Commit & PR Format
 
-Commit format: `<type>(<scope>): <subject>` in English. Types: feat, fix, refactor, chore, docs, test, style, perf.
+Commits and PR titles must follow the Conventional Commit format defined in [CONTRIBUTING.md](CONTRIBUTING.md):
+
+```text
+<type>(<scope>): <subject>
+```
+
+Allowed types: `feat`, `fix`, `perf`, `refactor`, `docs`, `style`, `chore`, `test`, `ci`, `build`.
 
 **NEVER add AI signatures** (Co-Authored-By, Generated with, etc.).
 
-For pull request creation, see the `oss-pr` skill (`.claude/skills/oss-pr/SKILL.md`).
-
 ## Skills Index
 
-| Skill             | Purpose                                                                               | Triggers                                                                                   |
-| ----------------- | ------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| **architecture**  | File & directory structure conventions for all process types                          | Creating files, adding modules, architectural decisions                                    |
-| **i18n**          | Internationalization workflow and standards                                           | Adding user-facing text, modifying `locales/` or `packages/desktop/src/common/config/i18n` |
-| **testing**       | Testing workflow and quality standards                                                | Writing tests, adding features, before claiming completion                                 |
-| **oss-pr**        | Full commit + PR workflow: branch management, quality checks, issue linking, PR       | Creating pull requests, after committing, `/oss-pr`                                        |
-| **bump-version**  | Version bump workflow: update package.json, checks, branch, PR, tag release           | Bumping version, `/bump-version`                                                           |
-| **pr-review**     | Local PR code review with full project context, no truncation limits                  | Reviewing a PR, user says "review PR", `/pr-review`                                        |
-| **pr-fix**        | Fix all issues from a pr-review report, create a follow-up PR, and verify each fix    | After pr-review, user says "fix all issues", `/pr-fix`                                     |
-| **pr-verify**     | Verify and merge bot:ready-to-merge PRs with impact analysis and test supplementation | Verifying PRs, merging ready PRs, `/pr-verify`                                             |
-| **pr-ship**       | End-to-end PR lifecycle: create, CI wait, review, fix, merge in one invocation        | `/pr-ship`, after development is done, resume shepherding a PR                             |
-| **pr-automation** | PR automation orchestrator: poll PRs, review, fix, and merge via label state machine  | Invoked by daemon script (`pr-automation.sh`), `/pr-automation`                            |
+| Skill            | Purpose                                                                     | Triggers                                                                                   |
+| ---------------- | --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| **architecture** | File & directory structure conventions for all process types                | Creating files, adding modules, architectural decisions                                    |
+| **i18n**         | Internationalization workflow and standards                                 | Adding user-facing text, modifying `locales/` or `packages/desktop/src/common/config/i18n` |
+| **testing**      | Testing workflow and quality standards                                      | Writing tests, adding features, before claiming completion                                 |
+| **bump-version** | Version bump workflow: update package.json, checks, branch, PR, tag release | Bumping version, `/bump-version`                                                           |
 
 > Skills are located in `.claude/skills/` and contain project conventions that apply to **all** agents and contributors.

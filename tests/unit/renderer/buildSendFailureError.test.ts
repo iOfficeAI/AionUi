@@ -43,6 +43,31 @@ describe('buildSendFailureError', () => {
     expect(result.retryable).toBe(true);
   });
 
+  it('classifies ACP protocol not connected as USER_AGENT_DISCONNECTED', () => {
+    const err = httpError(502, 'BAD_GATEWAY', 'Bad gateway: ACP protocol is not connected.');
+
+    const result = buildSendFailureError(err, 'Bad gateway: ACP protocol is not connected.');
+
+    expect(result).toEqual({
+      message: 'Bad gateway: ACP protocol is not connected.',
+      code: 'USER_AGENT_DISCONNECTED',
+      ownership: 'user_agent',
+      detail: 'Bad gateway: ACP protocol is not connected.',
+      retryable: true,
+      feedback_recommended: false,
+      resolution: { kind: 'reconnect_agent', target: 'agent_settings' },
+    });
+  });
+
+  it('classifies ACP protocol not connected before generic BAD_GATEWAY', () => {
+    const err = httpError(502, 'BAD_GATEWAY', 'ACP protocol not connected');
+
+    const result = buildSendFailureError(err, 'ACP protocol not connected');
+
+    expect(result.code).toBe('USER_AGENT_DISCONNECTED');
+    expect(result.code).not.toBe('UNKNOWN_UPSTREAM_ERROR');
+  });
+
   it('preserves workspace-path validation code as a structured non-retryable error', () => {
     const err = httpError(
       400,

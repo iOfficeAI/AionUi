@@ -15,6 +15,13 @@ import { Brain, Down } from '@icon-park/react';
 import React, { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import RuntimeSelectorPill from './RuntimeSelectorPill';
+import {
+  composeRuntimeSelectorLabel,
+  isConfigSetting,
+  RuntimeSelectorCheckedItem,
+  RuntimeSelectorMenuDivider,
+  renderThoughtLevelMenuGroup,
+} from './runtimeSelectorOptions';
 
 const configErrorMessageKey = (error: unknown) => {
   const errorKind = classifyConfigSetError(error);
@@ -46,7 +53,7 @@ const AcpModelSelector: React.FC<{
   const layout = useLayoutContext();
   const isMobileHeaderCompact = Boolean(layout?.isMobile);
   const prepareRuntime = useCallback(() => warmupConversation(conversation_id), [conversation_id]);
-  const { model_info, canSwitch, isSetting, selectModel } = useAcpModelInfo({
+  const { model_info, canSwitch, isSetting, selectModel, thoughtLevel, setStatus, setConfigOption } = useAcpModelInfo({
     conversation_id,
     backend,
     initialModelId,
@@ -68,7 +75,21 @@ const AcpModelSelector: React.FC<{
     defaultModelLabel,
     fallbackLabel: t('conversation.welcome.useCliModel'),
   });
-  const tooltipContent = display_label;
+  const combinedLabel = composeRuntimeSelectorLabel({ modelLabel: display_label, thoughtLevel });
+  const isRuntimeSetting = isConfigSetting(setStatus);
+  const handleThoughtLevelSelect = useCallback(
+    async (value: string) => {
+      if (!thoughtLevel || value === thoughtLevel.currentValue || isRuntimeSetting) return;
+      try {
+        await setConfigOption(thoughtLevel.id, value);
+        Message.success(t('agent.thoughtLevel.switchSuccess'));
+      } catch (error) {
+        Message.error(t(configErrorMessageKey(error)));
+      }
+    },
+    [isRuntimeSetting, setConfigOption, thoughtLevel, t]
+  );
+  const tooltipContent = combinedLabel;
 
   const renderLogo = () => <Brain theme='outline' size='14' fill={iconColors.secondary} className='shrink-0' />;
 
@@ -90,7 +111,7 @@ const AcpModelSelector: React.FC<{
       <Tooltip content={tooltipContent} position='top'>
         <RuntimeSelectorPill
           className='sendbox-model-btn header-model-btn agent-mode-compact-pill'
-          label={display_label}
+          label={combinedLabel}
           leading={renderLogo()}
           style={{ cursor: 'default' }}
         />
@@ -106,30 +127,39 @@ const AcpModelSelector: React.FC<{
       {...(isMobileHeaderCompact ? { getPopupContainer: () => document.body } : {})}
       droplist={
         <Menu>
-          {model_info.available_models.map((model) => (
-            <Menu.Item
-              key={model.id}
-              className={model.id === model_info.current_model_id ? 'bg-2!' : ''}
-              onClick={() => {
-                if (!isSetting) selectModel(model.id);
-              }}
-            >
-              <div className='flex items-center gap-8px w-full'>
-                <span>{model.label || model.id}</span>
-              </div>
-            </Menu.Item>
-          ))}
+          {renderThoughtLevelMenuGroup({
+            thoughtLevel,
+            setStatus,
+            title: t('agent.thoughtLevel.label'),
+            onSelect: (value) => void handleThoughtLevelSelect(value),
+          })}
+          {thoughtLevel && <RuntimeSelectorMenuDivider />}
+          <Menu.ItemGroup title={t('common.model', { defaultValue: 'Model' })}>
+            {model_info.available_models.map((model) => (
+              <Menu.Item
+                key={model.id}
+                className={model.id === model_info.current_model_id ? 'bg-2!' : ''}
+                onClick={() => {
+                  if (!isRuntimeSetting) selectModel(model.id);
+                }}
+              >
+                <RuntimeSelectorCheckedItem selected={model.id === model_info.current_model_id}>
+                  {model.label || model.id}
+                </RuntimeSelectorCheckedItem>
+              </Menu.Item>
+            ))}
+          </Menu.ItemGroup>
         </Menu>
       }
     >
       <RuntimeSelectorPill
         testId='acp-model-selector'
         className='sendbox-model-btn header-model-btn agent-mode-compact-pill'
-        label={display_label}
+        label={combinedLabel}
         leading={renderLogo()}
         trailing={<Down theme='outline' size={12} fill={iconColors.secondary} className='shrink-0' />}
-        loading={isSetting}
-        disabled={isSetting}
+        loading={isSetting || isRuntimeSetting}
+        disabled={isRuntimeSetting}
       />
     </Dropdown>
   );

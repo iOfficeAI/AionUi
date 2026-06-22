@@ -184,6 +184,45 @@
   !insertmacro AIONUI_REPAIR_INSTALLED_UNINSTALLER
 !macroend
 
+!macro AIONUI_VERIFY_REQUIRED_FILE _PATH _LABEL
+  ${IfNot} ${FileExists} "${_PATH}"
+    !insertmacro AIONUI_LOG_EVENT "verify-required-file missing label=${_LABEL} path=${_PATH}"
+    MessageBox MB_OK|MB_ICONSTOP \
+      "AionUi installation is incomplete.$\n$\n\
+      Missing required file: ${_LABEL}$\n\
+      Path: ${_PATH}$\n$\n\
+      Please reinstall AionUi or download a newer installer." \
+      /SD IDOK
+    SetErrorLevel 3
+    Quit
+  ${Else}
+    !insertmacro AIONUI_LOG_EVENT "verify-required-file ok label=${_LABEL} path=${_PATH}"
+  ${EndIf}
+!macroend
+
+!macro AIONUI_VERIFY_ARM64_INSTALL
+  !insertmacro AIONUI_LOG_EVENT "verify-install start instDir=$INSTDIR"
+  !insertmacro AIONUI_VERIFY_REQUIRED_FILE "$INSTDIR\AionUi.exe" "AionUi.exe"
+  !insertmacro AIONUI_VERIFY_REQUIRED_FILE "$INSTDIR\ffmpeg.dll" "ffmpeg.dll"
+  !insertmacro AIONUI_VERIFY_REQUIRED_FILE "$INSTDIR\libEGL.dll" "libEGL.dll"
+  !insertmacro AIONUI_VERIFY_REQUIRED_FILE "$INSTDIR\libGLESv2.dll" "libGLESv2.dll"
+  !insertmacro AIONUI_VERIFY_REQUIRED_FILE "$INSTDIR\d3dcompiler_47.dll" "d3dcompiler_47.dll"
+  !insertmacro AIONUI_VERIFY_REQUIRED_FILE "$INSTDIR\dxcompiler.dll" "dxcompiler.dll"
+  !insertmacro AIONUI_VERIFY_REQUIRED_FILE "$INSTDIR\dxil.dll" "dxil.dll"
+  !insertmacro AIONUI_VERIFY_REQUIRED_FILE "$INSTDIR\vk_swiftshader.dll" "vk_swiftshader.dll"
+  !insertmacro AIONUI_VERIFY_REQUIRED_FILE "$INSTDIR\vulkan-1.dll" "vulkan-1.dll"
+  !insertmacro AIONUI_VERIFY_REQUIRED_FILE "$INSTDIR\resources\app.asar" "resources\app.asar"
+  !insertmacro AIONUI_VERIFY_REQUIRED_FILE "$INSTDIR\resources\bundled-aioncore\win32-arm64\aioncore.exe" "aioncore.exe"
+  !insertmacro AIONUI_VERIFY_REQUIRED_FILE "$INSTDIR\resources\bundled-aioncore\win32-arm64\managed-resources\node\node-v24.11.0-win-arm64\node.exe" "node.exe"
+  !insertmacro AIONUI_VERIFY_REQUIRED_FILE "$INSTDIR\resources\bundled-aioncore\win32-arm64\managed-resources\acp\codex-acp\0.16.0\win32-arm64\node_modules\@zed-industries\codex-acp-win32-arm64\bin\codex-acp.exe" "codex-acp.exe"
+  !insertmacro AIONUI_VERIFY_REQUIRED_FILE "$INSTDIR\resources\bundled-aioncore\win32-arm64\managed-resources\acp\claude-agent-acp\0.39.0\win32-arm64\node_modules\@anthropic-ai\claude-agent-sdk-win32-arm64\claude.exe" "claude.exe"
+  !insertmacro AIONUI_LOG_EVENT "verify-install ok instDir=$INSTDIR"
+!macroend
+
+!macro customInstall
+  !insertmacro AIONUI_VERIFY_ARM64_INSTALL
+!macroend
+
 !macro AIONUI_HANDLE_UNINSTALL_RESULT _ROOT_KEY
   ${If} ${Errors}
     StrCpy $AionUiUninstallHadErrors "1"

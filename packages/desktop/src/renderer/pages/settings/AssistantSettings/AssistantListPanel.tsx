@@ -325,7 +325,7 @@ const AssistantListPanel: React.FC<AssistantListPanelProps> = ({
 
       <div
         data-testid='assistant-list-body'
-        className={`min-h-0 flex-1 overflow-auto ${isMobile ? 'px-8px py-12px' : 'px-18px py-18px pb-24px'}`}
+        className={`min-h-0 flex-1 overflow-auto ${isMobile ? 'px-8px pt-0 pb-12px' : 'px-18px pt-0 pb-24px'}`}
       >
         <div className='mx-auto w-full max-w-760px'>
           {listAssistants.length > 0 ? (

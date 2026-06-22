@@ -1,0 +1,26 @@
+{
+  "pageTitle": "AionUi - Anmelden",
+  "brand": "AionUi",
+  "subtitle": "Willkommen zurück, bitte melde dich in deinem Konto an",
+  "username": "Benutzername",
+  "usernamePlaceholder": "Benutzernamen eingeben",
+  "password": "Passwort",
+  "passwordPlaceholder": "Passwort eingeben",
+  "rememberMe": "Angemeldet bleiben",
+  "submit": "Anmelden",
+  "submitting": "Wird angemeldet...",
+  "success": "Anmeldung erfolgreich! Weiterleitung...",
+  "showPassword": "Passwort anzeigen",
+  "hidePassword": "Passwort ausblenden",
+  "languageToggle": "Sprache ändern",
+  "footerPrimary": "Verwandle deine Kommandozeilen-KI",
+  "footerSecondary": "Modern & Effizient",
+  "errors": {
+    "empty": "Bitte Benutzername und Passwort eingeben",
+    "invalidCredentials": "Ungültiger Benutzername oder Passwort",
+    "tooManyAttempts": "Zu viele Versuche, bitte später erneut versuchen",
+    "networkError": "Verbindung fehlgeschlagen, bitte erneut versuchen",
+    "serverError": "Serverfehler, bitte später erneut versuchen",
+    "unknown": "Anmeldung fehlgeschlagen, bitte erneut versuchen"
+  }
+}

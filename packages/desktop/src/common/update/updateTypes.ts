@@ -53,6 +53,10 @@ export interface UpdateDownloadResult {
   file_path: string;
 }
 
+export interface UpdateDownloadCancelRequest {
+  downloadId: string;
+}
+
 export type UpdateDownloadStatus = 'starting' | 'downloading' | 'completed' | 'error' | 'cancelled';
 
 export interface UpdateDownloadProgressEvent {
@@ -93,4 +97,13 @@ export interface AutoUpdateStatus {
   releaseNotes?: string;
   progress?: AutoUpdateProgress;
   error?: string;
+}
+
+export interface AutoUpdateReadyResult {
+  ready: boolean;
+  version?: string;
+  currentVersion?: string;
+  releaseNotes?: string;
+  filePath?: string;
+  size?: number;
 }

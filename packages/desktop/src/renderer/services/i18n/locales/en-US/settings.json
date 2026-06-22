@@ -706,6 +706,7 @@
   "contactMe": "Contact Me",
   "officialWebsite": "Official Website",
   "checkForUpdates": "Check for updates",
+  "checkingForUpdates": "Checking for updates...",
   "includePrereleaseUpdates": "Include prerelease/dev builds",
   "saveModelConfigFailed": "Failed to save model configuration",
   "healthCheck": "Health Check",
@@ -1102,5 +1103,6 @@
     "conversation": "Conversation",
     "mcp": "MCP",
     "customAgent": "Custom Agent"
-  }
+  },
+  "updateReadyInstall": "{{version}} is ready, install now"
 }

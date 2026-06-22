@@ -4,7 +4,6 @@ import { isBackendHttpError } from '@/common/adapter/httpBridge';
 import { isSideQuestionSupported } from '@/common/chat/sideQuestion';
 import { parseError, uuid } from '@/common/utils';
 import AgentModeSelector from '@/renderer/components/agent/AgentModeSelector';
-import AcpThoughtLevelSelector from '@/renderer/components/agent/AcpThoughtLevelSelector';
 import CommandQueuePanel from '@/renderer/components/chat/CommandQueuePanel';
 import MobileActionSheet, {
   type MobileActionSheetEntry,
@@ -386,15 +385,12 @@ Please check your local CLI tool authentication status`,
 
   const {
     items: queuedCommands,
-    isPaused: isQueuePaused,
     isInteractionLocked: isQueueInteractionLocked,
     hasPendingCommands,
     enqueue,
     remove,
     clear,
     reorder,
-    pause,
-    resume,
     lockInteraction,
     unlockInteraction,
     resetActiveExecution,
@@ -403,6 +399,7 @@ Please check your local CLI tool authentication status`,
     enabled: true,
     isBusy,
     runtimeGate: commandQueueRuntimeGate,
+    teamUpgradeHandoffReady: Boolean(teamRuntime && teamSendMessage),
     onExecute: executeCommand,
   });
 
@@ -649,10 +646,7 @@ Please check your local CLI tool authentication status`,
     <div className='max-w-800px w-full mx-auto flex flex-col mt-auto mb-16px'>
       <CommandQueuePanel
         items={queuedCommands}
-        paused={isQueuePaused}
         interactionLocked={isQueueInteractionLocked}
-        onPause={pause}
-        onResume={resume}
         onInteractionLock={lockInteraction}
         onInteractionUnlock={unlockInteraction}
         onEdit={handleEditQueuedCommand}
@@ -697,14 +691,6 @@ Please check your local CLI tool authentication status`,
         }
         rightTools={
           <div className='flex items-center gap-8px min-w-0'>
-            {!isMobile && (
-              <AcpThoughtLevelSelector
-                thoughtLevel={runtimeThoughtLevel}
-                setStatus={runtimeConfig.setStatus}
-                onSetOption={handleThoughtLevelSetOption}
-                iconOnly={Boolean(teamPermission)}
-              />
-            )}
             {showModeSelector && (
               <AgentModeSelector
                 backend={backend}

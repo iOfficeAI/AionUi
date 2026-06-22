@@ -121,15 +121,33 @@ export interface ToolCallLocationItem {
   path: string;
 }
 
+export interface AcpImageOutput {
+  path: string;
+  mime_type?: string;
+  source?: string;
+}
+
+export interface AcpRawOutput {
+  saved_path?: string;
+  image?: AcpImageOutput;
+  result_omitted?: boolean;
+  result_omitted_reason?: string;
+  result_bytes?: number;
+  status?: string;
+  [key: string]: unknown;
+}
+
 /** Tool call session update */
 export interface ToolCallUpdate extends BaseSessionUpdate {
   update: {
-    sessionUpdate: 'tool_call';
+    sessionUpdate: 'tool_call' | 'tool_call_update';
     tool_call_id: string;
     status: 'pending' | 'in_progress' | 'completed' | 'failed';
     title: string;
     kind: 'read' | 'edit' | 'execute';
     rawInput?: Record<string, unknown>;
+    rawOutput?: AcpRawOutput;
+    raw_output?: AcpRawOutput;
     content?: ToolCallContentItem[];
     locations?: ToolCallLocationItem[];
   };

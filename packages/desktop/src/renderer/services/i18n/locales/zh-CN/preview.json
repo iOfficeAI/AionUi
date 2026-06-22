@@ -53,6 +53,10 @@
   "closeAll": "全部关闭",
   "readOnlyLabel": "只读预览",
   "pathLabel": "路径",
+  "missingFile": {
+    "title": "文件不存在",
+    "openInNewTab": "尝试在新的标签页打开"
+  },
   "noTabs": "暂无标签页",
   "openInPanelTooltip": "在预览面板中查看",
   "mermaidTitle": "Mermaid 图表",

@@ -10,6 +10,13 @@
   "sendbox": {
     "placeholder": "發送訊息到 {{backend}}..."
   },
+  "image": {
+    "download": "下載",
+    "download_aria": "下載圖片",
+    "download_success": "下載成功",
+    "download_error": "下載失敗",
+    "generated_alt": "生成的圖片"
+  },
   "status": {
     "connecting": "正在連線至 {{agent}}...",
     "connected": "已連線至 {{agent}}",

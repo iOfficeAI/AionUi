@@ -28,6 +28,14 @@ const isConversationBusyError = (error: unknown): boolean => {
   return error.backendMessage.toLowerCase().includes('already processing');
 };
 
+const isAgentDisconnectedError = (error: unknown): boolean => {
+  if (!isBackendHttpError(error)) return false;
+  const backendMessage = error.backendMessage.toLowerCase();
+  return (
+    backendMessage.includes('acp protocol is not connected') || backendMessage.includes('acp protocol not connected')
+  );
+};
+
 export const buildSendFailureError = (error: unknown, message: string): AgentStreamErrorInfo => {
   const workspacePathErrorCode = normalizeWorkspacePathErrorCode(error);
   if (workspacePathErrorCode) {
@@ -62,6 +70,18 @@ export const buildSendFailureError = (error: unknown, message: string): AgentStr
       detail: message,
       retryable: false,
       feedback_recommended: false,
+    };
+  }
+
+  if (isAgentDisconnectedError(error)) {
+    return {
+      message,
+      code: 'USER_AGENT_DISCONNECTED',
+      ownership: 'user_agent',
+      detail: message,
+      retryable: true,
+      feedback_recommended: false,
+      resolution: { kind: 'reconnect_agent', target: 'agent_settings' },
     };
   }
 

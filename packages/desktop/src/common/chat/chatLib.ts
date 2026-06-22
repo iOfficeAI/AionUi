@@ -8,6 +8,9 @@ import type { AcpPermissionRequest, PlanUpdate, ToolCallUpdate } from '@/common/
 import type { AcpAvailableCommand } from '@/common/chat/slash/types';
 import type { IResponseMessage } from '../adapter/ipcBridge';
 import { uuid } from '../utils';
+import { sanitizeAcpToolCallContent, sanitizeAcpToolUpdate } from './acpToolCallOutput';
+
+export { sanitizeAcpToolCallContent } from './acpToolCallOutput';
 
 /**
  * 安全的路径拼接函数，兼容Windows和Mac
@@ -280,10 +283,10 @@ export const mergeAcpToolCallContent = (
 ): IMessageAcpToolCall['content'] => ({
   ...existing,
   ...incoming,
-  update: {
+  update: sanitizeAcpToolUpdate({
     ...existing.update,
     ...incoming.update,
-  },
+  }),
 });
 
 export const isTextContentReplacement = (content: IMessageText['content'] | undefined): boolean =>
@@ -788,9 +791,13 @@ export const composeMessage = (
   messageHandler: (type: 'update' | 'insert', message: TMessage) => void = () => {}
 ): TMessage[] => {
   if (!message) return list || [];
+  const normalizedMessage =
+    message.type === 'acp_tool_call'
+      ? ({ ...message, content: sanitizeAcpToolCallContent(message.content) } as TMessage)
+      : message;
   if (!list?.length) {
-    messageHandler('insert', message);
-    return [message];
+    messageHandler('insert', normalizedMessage);
+    return [normalizedMessage];
   }
   const last = list[list.length - 1];
 
@@ -874,7 +881,7 @@ export const composeMessage = (
       }
     }
     // If no existing tool call found, add new one
-    return pushMessage(message);
+    return pushMessage(normalizedMessage);
   }
 
   if (message.type === 'plan') {

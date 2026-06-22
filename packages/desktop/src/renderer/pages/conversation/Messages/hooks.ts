@@ -13,6 +13,7 @@ import {
   normalizeAgentStreamError,
   normalizeTextMessageContent,
   preferTextMessageVersion,
+  sanitizeAcpToolCallContent,
 } from '@/common/chat/chatLib';
 import { useCallback, useEffect, useRef } from 'react';
 import { createContext } from '@renderer/utils/ui/createContext';
@@ -94,6 +95,11 @@ function getOrBuildIndex(list: TMessage[]): MessageIndex {
   return cached;
 }
 
+const sanitizeMessageForList = (message: TMessage): TMessage =>
+  message.type === 'acp_tool_call'
+    ? ({ ...message, content: sanitizeAcpToolCallContent(message.content) } as TMessage)
+    : message;
+
 // 使用索引优化的消息合并函数
 // Index-optimized message compose function
 function composeMessageWithIndex(message: TMessage | undefined, list: TMessage[], index: MessageIndex): TMessage[] {
@@ -104,12 +110,13 @@ function composeMessageWithIndex(message: TMessage | undefined, list: TMessage[]
   }
 
   if (!list?.length) {
+    const firstMessage = sanitizeMessageForList(message);
     // Update index when adding first message
-    const msgIndexKey = getMessageIndexKey(message);
+    const msgIndexKey = getMessageIndexKey(firstMessage);
     if (msgIndexKey) {
       index.msgIdIndex.set(msgIndexKey, 0);
     }
-    return [message];
+    return [firstMessage];
   }
 
   const last = list[list.length - 1];
@@ -169,7 +176,7 @@ function composeMessageWithIndex(message: TMessage | undefined, list: TMessage[]
     index.tool_call_idIndex.set(message.content.update.tool_call_id, newIdx);
     const msgIndexKey = getMessageIndexKey(message);
     if (msgIndexKey) index.msgIdIndex.set(msgIndexKey, newIdx);
-    return list.concat(message);
+    return list.concat(sanitizeMessageForList(message));
   }
 
   // permission: use call_id for recovery/live stream dedupe.
@@ -348,7 +355,7 @@ export const useAddOrUpdateMessage = () => {
         if (item.add) {
           // 新增消息，更新索引
           // New message, update index
-          const msg = item.message;
+          const msg = sanitizeMessageForList(item.message);
           const newIdx = newList.length;
           const msgIndexKey = getMessageIndexKey(msg);
           if (msgIndexKey) index.msgIdIndex.set(msgIndexKey, newIdx);

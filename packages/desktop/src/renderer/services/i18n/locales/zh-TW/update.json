@@ -1,15 +1,17 @@
 {
-  "modalTitle": "軟體更新",
+  "modalTitle": "發現新版本",
   "checking": "正在檢查更新...",
   "checkFailed": "檢查更新失敗",
   "upToDateTitle": "已是最新版本",
+  "alreadyLatest": "已經是最新版本了",
   "currentVersion": "目前版本：{{version}}",
   "availableTitle": "有新版本可用",
   "noReleaseNotes": "沒有提供更新說明。",
   "downloadingTitle": "正在下載更新...",
-  "downloadButton": "下載",
+  "downloadButton": "立即下載",
   "downloadAndInstall": "下載並安裝",
   "manualInstall": "手動安裝",
+  "later": "稍後",
   "downloadStartFailed": "啟動下載失敗",
   "downloadFailed": "下載失敗",
   "noCompatibleAsset": "找不到適用於此平台的安裝檔",
@@ -19,6 +21,7 @@
   "readyToInstall": "準備安裝",
   "readyToInstallDesc": "更新已下載完成，點擊下方按鈕重新啟動應用程式並安裝更新。",
   "installNow": "立即安裝並重新啟動",
+  "restartNow": "立即安裝",
   "installWarning": "安裝期間請勿手動開啟應用程式，應用程式將自動重新啟動。",
   "autoUpdateMode": "自動更新模式",
   "showInFolder": "在資料夾中顯示",
@@ -36,6 +39,14 @@
     "downloadFailed": "下載請求失敗（{{status}}）",
     "downloadNoBody": "下載回應沒有內容",
     "missingUrl": "缺少下載網址",
-    "checkReturnedNull": "更新檢查沒有回傳結果，需要打包應用程式或強制啟用開發更新設定。"
-  }
+    "checkReturnedNull": "更新檢查沒有回傳結果，需要打包應用程式或強制啟用開發更新設定。",
+    "missingDownloadId": "缺少下載 ID"
+  },
+  "releaseNotesLoading": "正在取得更新內容",
+  "releaseNotesFailed": "取得失敗，可",
+  "viewRelease": "前往查看",
+  "releaseLog": "更新日誌",
+  "cancel": "取消",
+  "minimize": "最小化",
+  "restoreUpdateNotification": "恢復更新進度"
 }

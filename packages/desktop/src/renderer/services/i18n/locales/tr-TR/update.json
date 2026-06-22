@@ -1,15 +1,17 @@
 {
-  "modalTitle": "Yazılım Güncellemesi",
+  "modalTitle": "Güncelleme hazır",
   "checking": "Güncellemeler kontrol ediliyor...",
   "checkFailed": "Güncellemeler kontrol edilemedi",
   "upToDateTitle": "Güncelsiniz",
+  "alreadyLatest": "Zaten en son sürümü kullanıyorsunuz",
   "currentVersion": "Mevcut sürüm: {{version}}",
   "availableTitle": "Güncelleme Mevcut",
   "noReleaseNotes": "Sürüm notu yok.",
   "downloadingTitle": "Güncelleme indiriliyor...",
-  "downloadButton": "İndir",
+  "downloadButton": "Şimdi indir",
   "downloadAndInstall": "İndir ve Yükle",
   "manualInstall": "Manuel yükle",
+  "later": "Daha sonra",
   "downloadStartFailed": "İndirme başlatılamadı",
   "downloadFailed": "İndirme başarısız",
   "noCompatibleAsset": "Bu platform için uyumlu indirme bulunamadı",
@@ -19,6 +21,7 @@
   "readyToInstall": "Yüklemeye hazır",
   "readyToInstallDesc": "Güncelleme indirildi. Yeniden başlatmak ve güncellemeyi yüklemek için aşağıdaki düğmeye tıklayın.",
   "installNow": "Şimdi yükle ve yeniden başlat",
+  "restartNow": "Şimdi yeniden başlat",
   "installWarning": "Kurulum sırasında uygulamayı manuel olarak açmayın. Uygulama otomatik olarak yeniden başlayacaktır.",
   "autoUpdateMode": "Otomatik güncelleme modu",
   "showInFolder": "Klasörde göster",
@@ -36,6 +39,14 @@
     "downloadFailed": "İndirme isteği başarısız oldu ({{status}})",
     "downloadNoBody": "İndirme yanıtında gövde yok",
     "missingUrl": "İndirme URL'si eksik",
-    "checkReturnedNull": "Güncelleme kontrolü sonuç döndürmedi. Paketlenmiş uygulama veya zorunlu geliştirme güncelleme yapılandırması gerekir."
-  }
+    "checkReturnedNull": "Güncelleme kontrolü sonuç döndürmedi. Paketlenmiş uygulama veya zorunlu geliştirme güncelleme yapılandırması gerekir.",
+    "missingDownloadId": "İndirme ID eksik"
+  },
+  "releaseNotesLoading": "Güncelleme ayrıntıları alınıyor...",
+  "releaseNotesFailed": "Ayrıntılar alınamadı.",
+  "viewRelease": "Sürümü görüntüle",
+  "releaseLog": "Sürüm günlüğü",
+  "cancel": "İptal",
+  "minimize": "Küçült",
+  "restoreUpdateNotification": "Güncelleme ilerlemesini geri yükle"
 }

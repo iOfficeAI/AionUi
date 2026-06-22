@@ -1,15 +1,17 @@
 {
-  "modalTitle": "Обновление ПО",
+  "modalTitle": "Доступно обновление",
   "checking": "Проверка обновлений...",
   "checkFailed": "Не удалось проверить обновления",
   "upToDateTitle": "У вас актуальная версия",
+  "alreadyLatest": "У вас уже последняя версия",
   "currentVersion": "Текущая версия: {{version}}",
   "availableTitle": "Доступно обновление",
   "noReleaseNotes": "Примечания к выпуску не предоставлены.",
   "downloadingTitle": "Загрузка обновления...",
-  "downloadButton": "Скачать",
+  "downloadButton": "Скачать сейчас",
   "downloadAndInstall": "Скачать и установить",
   "manualInstall": "Установить вручную",
+  "later": "Позже",
   "downloadStartFailed": "Не удалось начать загрузку",
   "downloadFailed": "Ошибка загрузки",
   "noCompatibleAsset": "Совместимая загрузка для этой платформы не найдена",
@@ -19,6 +21,7 @@
   "readyToInstall": "Готово к установке",
   "readyToInstallDesc": "Обновление загружено. Нажмите кнопку ниже для перезапуска и установки обновления.",
   "installNow": "Установить и перезапустить",
+  "restartNow": "Перезапустить",
   "installWarning": "Не открывайте приложение вручную во время установки. Оно перезапустится автоматически.",
   "autoUpdateMode": "Режим автообновления",
   "showInFolder": "Показать в папке",
@@ -36,6 +39,14 @@
     "downloadFailed": "Загрузка не удалась ({{status}})",
     "downloadNoBody": "Ответ загрузки не содержит данные",
     "missingUrl": "Отсутствует URL",
-    "checkReturnedNull": "Проверка обновлений не вернула результат (режим разработки)"
-  }
+    "checkReturnedNull": "Проверка обновлений не вернула результат (режим разработки)",
+    "missingDownloadId": "Отсутствует ID загрузки"
+  },
+  "releaseNotesLoading": "Получение сведений об обновлении...",
+  "releaseNotesFailed": "Не удалось получить сведения.",
+  "viewRelease": "Открыть релиз",
+  "releaseLog": "Журнал изменений",
+  "cancel": "Отмена",
+  "minimize": "Свернуть",
+  "restoreUpdateNotification": "Восстановить прогресс обновления"
 }

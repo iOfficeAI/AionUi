@@ -517,6 +517,8 @@ try {
           nsisInclude += ` --config.nsis.include="${arm64Script}"`;
           console.log(`📋 Including Windows ARM64 architecture check script`);
         }
+        nsisInclude += ' --config.nsis.useZip=true';
+        console.log('📋 Using ZIP payload for Windows ARM64 NSIS installer');
       } else if (targetArch === 'x64') {
         const x64Script = 'resources/windows-installer-x64.nsh';
         if (fs.existsSync(path.resolve(__dirname, '..', x64Script))) {
