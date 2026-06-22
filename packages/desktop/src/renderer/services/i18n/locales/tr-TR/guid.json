@@ -1,5 +1,10 @@
 {
-  "promptExamplesHint": "Try example prompts:",
+  "promptExamplesHint": "Bu talimatları deneyin",
+  "defaultPrompts": {
+    "capabilities": "Benim için neler yapabilirsin?",
+    "skills": "Hangi becerilere sahipsin?",
+    "tools": "Hangi araçlara sahipsin?"
+  },
   "selectAssistantHint": "Göreve başlamak için bir asistan seçin",
   "workspace": {
     "workInProject": "Projede çalış",

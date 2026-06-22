@@ -1,5 +1,10 @@
 {
-  "promptExamplesHint": "Experimente exemplos de prompt:",
+  "promptExamplesHint": "Experimente estas instruções",
+  "defaultPrompts": {
+    "capabilities": "O que você pode fazer por mim?",
+    "skills": "Quais habilidades você tem?",
+    "tools": "Quais ferramentas você tem?"
+  },
   "selectAssistantHint": "Selecione um assistente para iniciar uma tarefa",
   "workspace": {
     "workInProject": "Trabalhar em um projeto",

@@ -1,5 +1,10 @@
 {
-  "promptExamplesHint": "Try example prompts:",
+  "promptExamplesHint": "Try these instructions",
+  "defaultPrompts": {
+    "capabilities": "What can you do for me?",
+    "skills": "What skills do you have?",
+    "tools": "What tools do you have?"
+  },
   "selectAssistantHint": "Select an assistant to start a task",
   "workspace": {
     "workInProject": "Work in a project",

@@ -1,5 +1,10 @@
 {
-  "promptExamplesHint": "Try example prompts:",
+  "promptExamplesHint": "これらの指示を試す",
+  "defaultPrompts": {
+    "capabilities": "私のために何ができますか？",
+    "skills": "どのようなスキルがありますか？",
+    "tools": "どのようなツールがありますか？"
+  },
   "selectAssistantHint": "アシスタントを選択してタスクを開始",
   "workspace": {
     "workInProject": "プロジェクトで作業",

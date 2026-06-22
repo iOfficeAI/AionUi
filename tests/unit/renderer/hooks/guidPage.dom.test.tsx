@@ -387,4 +387,12 @@ describe('GuidPage', () => {
     expect(promptButton.className).toContain('!whitespace-normal');
     expect(promptButton.className).toContain('!break-words');
   });
+
+  it('falls back to default instruction prompts when the selected assistant has no recommendations', () => {
+    render(<GuidPage />);
+
+    expect(screen.getByRole('button', { name: 'guid.defaultPrompts.capabilities' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'guid.defaultPrompts.skills' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'guid.defaultPrompts.tools' })).toBeInTheDocument();
+  });
 });

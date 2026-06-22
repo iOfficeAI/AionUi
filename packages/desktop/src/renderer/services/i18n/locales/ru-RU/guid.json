@@ -1,5 +1,10 @@
 {
-  "promptExamplesHint": "Попробуйте примеры промптов:",
+  "promptExamplesHint": "Попробуйте эти инструкции",
+  "defaultPrompts": {
+    "capabilities": "Что ты можешь сделать для меня?",
+    "skills": "Какие у тебя есть навыки?",
+    "tools": "Какие у тебя есть инструменты?"
+  },
   "selectAssistantHint": "Выберите ассистента, чтобы начать задачу",
   "workspace": {
     "workInProject": "Работать в проекте",
