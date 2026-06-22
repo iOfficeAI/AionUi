@@ -16,7 +16,7 @@ import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { LayoutContext } from '@renderer/hooks/context/LayoutContext';
 import { NavigationHistoryProvider } from '@renderer/hooks/context/NavigationHistoryContext';
 import { useDeepLink } from '@renderer/hooks/system/useDeepLink';
-import { useNotificationClick } from '@renderer/hooks/system/useNotificationClick';
+import { useNotificationClick } from '@renderer/hooks/system/notification/useNotificationClick';
 import { useDirectorySelection } from '@renderer/hooks/file/useDirectorySelection';
 import { cleanupSiderTooltips } from '@renderer/utils/ui/siderTooltip';
 import { useConversationShortcuts } from '@renderer/hooks/ui/useConversationShortcuts';
