@@ -28,6 +28,7 @@ const localFileLinkMocks = vi.hoisted(() => ({
           rawReference: string;
           line?: number;
           column?: number;
+          endLine?: number;
         }
       | undefined,
   },
@@ -79,6 +80,7 @@ vi.mock('@/renderer/components/Markdown', () => ({
         rawReference: string;
         line?: number;
         column?: number;
+        endLine?: number;
       }
     ) => void | Promise<void>;
   }) => (
@@ -283,6 +285,46 @@ describe('MessageText attachment paths', () => {
         { replace: true }
       );
     });
+  });
+
+  it('opens hash range local markdown links with only the start line in preview metadata', async () => {
+    const filePath = '/workspace/demo/src/app.ts';
+    localFileLinkMocks.payload = {
+      path: filePath,
+      reference: {
+        filePath,
+        rawReference: `${filePath}#L10-L20`,
+        line: 10,
+        endLine: 20,
+      },
+    };
+    vi.mocked(ipcBridge.fs.getFileMetadata.invoke).mockResolvedValue(fileMetadata(filePath));
+    vi.mocked(ipcBridge.fs.readFile.invoke).mockResolvedValue('const value = 1;\n');
+
+    renderMessageWithLocalLink('[app.ts](/workspace/demo/src/app.ts#L10-L20)');
+
+    fireEvent.click(screen.getByRole('button', { name: 'open local file' }));
+
+    await waitFor(() => {
+      expect(previewMocks.openPreview).toHaveBeenCalledWith(
+        'const value = 1;\n',
+        'code',
+        expect.objectContaining({
+          file_name: 'app.ts',
+          file_path: filePath,
+          workspace: '/workspace/demo',
+          language: 'ts',
+          targetLine: 10,
+          targetColumn: undefined,
+          truncated: false,
+        }),
+        { replace: true }
+      );
+    });
+
+    const metadata = previewMocks.openPreview.mock.calls[0]?.[2];
+    expect(metadata).not.toHaveProperty('endLine');
+    expect(metadata).not.toHaveProperty('targetEndLine');
   });
 
   it('opens office and pdf local markdown links without reading file content', async () => {
