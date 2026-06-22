@@ -1,0 +1,32 @@
+{
+  "auth": {
+    "failed": "Error de autenticación en {{backend}}:\n\n{{error}}\n\nVerifica el estado de autenticación de tu herramienta CLI local",
+    "console_error": "Detalles del error de autenticación ACP:",
+    "failed_confirm": "Error de autenticación ACP en {{backend}}:\n\n{{error}}\n\n¿Deseas ir a la página de configuración ahora?"
+  },
+  "send": {
+    "failed": "Error al enviar mensaje: {{error}}"
+  },
+  "sendbox": {
+    "placeholder": "Enviar mensaje a {{backend}}..."
+  },
+  "image": {
+    "download": "Descargar",
+    "download_aria": "Descargar imagen",
+    "download_success": "Descarga exitosa",
+    "download_error": "Error al descargar",
+    "generated_alt": "Imagen generada"
+  },
+  "status": {
+    "connecting": "Conectando a {{agent}}...",
+    "connected": "Conectado a {{agent}}",
+    "authenticated": "Autenticado con {{agent}}",
+    "session_active": "Sesión activa con {{agent}}",
+    "error": "Error de conexión",
+    "unknown": "Estado desconocido"
+  },
+  "config": {
+    "reasoning_effort": "Esfuerzo de razonamiento",
+    "default": "Predeterminado"
+  }
+}
