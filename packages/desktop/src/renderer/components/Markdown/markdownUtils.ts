@@ -170,7 +170,10 @@ const splitLocationSuffix = (filePath: string): Omit<LocalFileLinkReference, 'ra
   };
 };
 
-const formatRawReference = (reference: Omit<LocalFileLinkReference, 'rawReference'>, source?: 'hash' | 'colon'): string => {
+const formatRawReference = (
+  reference: Omit<LocalFileLinkReference, 'rawReference'>,
+  source?: 'hash' | 'colon'
+): string => {
   if (reference.line == null) return reference.filePath;
 
   if (source === 'hash') {
