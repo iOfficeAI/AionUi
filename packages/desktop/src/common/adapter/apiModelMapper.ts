@@ -51,14 +51,7 @@ export type CreateConversationBodyInput = {
  * Build the HTTP body for `POST /api/conversations`.
  *
  * Top-level `model` is aionrs-only on the backend (spec 2026-05-12); other
- * agent types carry model info via `extra`. Assistant-first creates omit the
- * explicit `type`, so we must NOT gate the top-level `model` on `type ===
- * 'aionrs'`. Instead we forward the model whenever it carries a complete
- * identity: only aionrs flows produce a complete top-level model
- * (`useGuidModelSelection` is aionrs-only), while ACP flows pass an empty
- * placeholder that `toApiModelOptional` filters out. This keeps ACP creates
- * free of a top-level model (which the backend would reject) without dropping
- * the aionrs model the user actually selected.
+ * agent types carry model info via `extra`.
  */
 export function buildCreateConversationBody(p: CreateConversationBodyInput): Record<string, unknown> {
   const body: Record<string, unknown> = {
@@ -68,7 +61,7 @@ export function buildCreateConversationBody(p: CreateConversationBodyInput): Rec
     assistant: p.assistant,
     extra: p.extra,
   };
-  const model = toApiModelOptional(p.model);
+  const model = p.type === 'aionrs' ? toApiModelOptional(p.model) : undefined;
   if (model) body.model = model;
   return body;
 }

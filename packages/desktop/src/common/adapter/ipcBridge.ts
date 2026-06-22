@@ -1410,7 +1410,7 @@ export interface ICreateConversationParams {
   type?: 'acp' | 'aionrs';
   id?: string;
   name?: string;
-  model: TProviderWithModel;
+  model?: TProviderWithModel;
   assistant?: {
     id: string;
     locale?: string;

@@ -128,20 +128,33 @@ describe('apiModelMapper', () => {
       api_key: 'z',
     } as TProviderWithModel;
 
-    it('forwards a complete top-level model for assistant-first aionrs creates (no explicit type)', () => {
-      // Regression: assistant-first creates omit `type`. The body builder must
-      // not gate the top-level model on `type === 'aionrs'`, otherwise the
-      // aionrs model is dropped and the backend persists a NULL model, which
-      // later fails warmup with "Provider '' not found".
+    it('forwards a complete top-level model for aionrs creates', () => {
+      // Regression: aionrs creates must keep the selected top-level model,
+      // otherwise the backend persists a NULL model and warmup later fails with
+      // "Provider '' not found".
       const body = buildCreateConversationBody({
+        type: 'aionrs',
         name: 'hello',
         model: aionrsModel,
         assistant: { id: 'bare:aionrs' },
         extra: { workspace: '' },
       });
 
-      expect(body.type).toBeUndefined();
+      expect(body.type).toBe('aionrs');
       expect(body.model).toEqual({ provider_id: 'openai', model: 'gemini-2.5-pro' });
+    });
+
+    it('omits the top-level model for ACP creates even when a complete current model is present', () => {
+      const body = buildCreateConversationBody({
+        type: 'acp',
+        name: 'hello',
+        model: aionrsModel,
+        assistant: { id: 'bare:claude' },
+        extra: {},
+      });
+
+      expect(body.type).toBe('acp');
+      expect('model' in body).toBe(false);
     });
 
     it('omits the top-level model for ACP creates that pass an empty placeholder', () => {
