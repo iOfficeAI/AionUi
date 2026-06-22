@@ -1,9 +1,9 @@
 {
   "promptExamplesHint": "试试这些指令",
   "defaultPrompts": {
-    "capabilities": "你能为我做哪些事情",
-    "skills": "你有哪些技能",
-    "tools": "你有哪些工具"
+    "capabilities": "你能为我做哪些事情？",
+    "skills": "你有哪些技能？",
+    "tools": "你有哪些工具？"
   },
   "selectAssistantHint": "选择一位助手开始任务",
   "workspace": {
