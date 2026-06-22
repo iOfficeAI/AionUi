@@ -211,6 +211,14 @@
   "hardwareAccelerationAutoDisabled": "Автоматично вимкнено через повторні збої GPU.",
   "hardwareAccelerationRestartConfirm": "Перезапустити AionUi, щоб застосувати нові налаштування апаратного прискорення?",
   "hardwareAccelerationUpdateFailed": "Не вдалося оновити налаштування апаратного прискорення",
+  "browserNotification": {
+    "enable": "Увімкнути сповіщення браузера",
+    "granted": "Сповіщення браузера увімкнено",
+    "denied": "Сповіщення заблоковано — увімкніть їх у налаштуваннях сайту браузера",
+    "insecureContext": "Сповіщення браузера вимагають доступу через HTTPS або localhost",
+    "bodyConfirmation": "Агент чекає вашого підтвердження",
+    "bodyTurnCompleted": "Агент завершив відповідь"
+  },
   "notification": "Сповіщення",
   "cronNotificationEnabled": "Завершення запланованих завдань",
   "promptTimeout": "Таймаут промпту ШІ (с)",

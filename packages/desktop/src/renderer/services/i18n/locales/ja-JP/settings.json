@@ -211,6 +211,14 @@
   "hardwareAccelerationAutoDisabled": "GPU の繰り返しクラッシュにより自動的に無効化されました。",
   "hardwareAccelerationRestartConfirm": "新しいハードウェアアクセラレーション設定を反映するため AionUi を再起動しますか？",
   "hardwareAccelerationUpdateFailed": "ハードウェアアクセラレーション設定の更新に失敗しました",
+  "browserNotification": {
+    "enable": "ブラウザ通知を有効にする",
+    "granted": "ブラウザ通知が有効になりました",
+    "denied": "通知がブロックされています — ブラウザのサイト設定から有効にしてください",
+    "insecureContext": "ブラウザ通知には HTTPS または localhost からのアクセスが必要です",
+    "bodyConfirmation": "エージェントが確認を待っています",
+    "bodyTurnCompleted": "エージェントが応答を完了しました"
+  },
   "notification": "通知",
   "cronNotificationEnabled": "定期タスク完了通知",
   "promptTimeout": "LLM リクエストタイムアウト（秒）",

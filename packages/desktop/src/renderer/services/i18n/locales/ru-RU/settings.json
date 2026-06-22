@@ -211,6 +211,14 @@
   "hardwareAccelerationAutoDisabled": "Автоматически отключено из-за повторных сбоев GPU.",
   "hardwareAccelerationRestartConfirm": "Перезапустить AionUi, чтобы применить новые настройки аппаратного ускорения?",
   "hardwareAccelerationUpdateFailed": "Не удалось обновить настройку аппаратного ускорения",
+  "browserNotification": {
+    "enable": "Включить браузерные уведомления",
+    "granted": "Браузерные уведомления включены",
+    "denied": "Уведомления заблокированы — разрешите их в настройках сайта браузера",
+    "insecureContext": "Браузерные уведомления требуют доступа через HTTPS или localhost",
+    "bodyConfirmation": "Агент ожидает вашего подтверждения",
+    "bodyTurnCompleted": "Агент завершил ответ"
+  },
   "notification": "Уведомления",
   "cronNotificationEnabled": "Уведомление о завершении запланированных задач",
   "promptTimeout": "Таймаут запроса LLM (сек)",

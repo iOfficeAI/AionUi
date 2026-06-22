@@ -211,6 +211,14 @@
   "hardwareAccelerationAutoDisabled": "Desativado automaticamente após repetidas falhas na GPU.",
   "hardwareAccelerationRestartConfirm": "Reiniciar o AionUi para aplicar a nova configuração de aceleração de hardware?",
   "hardwareAccelerationUpdateFailed": "Falha ao atualizar a configuração de aceleração de hardware",
+  "browserNotification": {
+    "enable": "Ativar notificações do navegador",
+    "granted": "Notificações do navegador ativadas",
+    "denied": "Notificações bloqueadas — ative-as nas configurações de site do seu navegador",
+    "insecureContext": "As notificações do navegador exigem acesso via HTTPS ou localhost",
+    "bodyConfirmation": "Um agente está aguardando sua confirmação",
+    "bodyTurnCompleted": "O agente terminou de responder"
+  },
   "notification": "Notificações",
   "cronNotificationEnabled": "Conclusão de Tarefa Agendada",
   "promptTimeout": "Tempo Limite de Prompt LLM (s)",

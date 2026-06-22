@@ -211,6 +211,14 @@
   "hardwareAccelerationAutoDisabled": "因 GPU 反复崩溃已自动关闭。",
   "hardwareAccelerationRestartConfirm": "重启 AionUi 以应用新的硬件加速设置？",
   "hardwareAccelerationUpdateFailed": "更新硬件加速设置失败",
+  "browserNotification": {
+    "enable": "开启浏览器通知",
+    "granted": "浏览器通知已开启",
+    "denied": "通知已被拦截 —— 请在浏览器的网站设置中开启",
+    "insecureContext": "浏览器通知需要通过 HTTPS 或 localhost 访问",
+    "bodyConfirmation": "有一个 agent 正在等待你的确认",
+    "bodyTurnCompleted": "agent 已完成本轮回复"
+  },
   "notification": "通知",
   "cronNotificationEnabled": "定时任务完成通知",
   "promptTimeout": "LLM 请求超时时间（秒）",

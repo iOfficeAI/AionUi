@@ -211,6 +211,14 @@
   "hardwareAccelerationAutoDisabled": "Disabled automatically after repeated GPU crashes.",
   "hardwareAccelerationRestartConfirm": "Restart AionUi to apply the new hardware acceleration setting?",
   "hardwareAccelerationUpdateFailed": "Failed to update hardware acceleration setting",
+  "browserNotification": {
+    "enable": "Enable browser notifications",
+    "granted": "Browser notifications enabled",
+    "denied": "Notifications blocked — enable them in your browser's site settings",
+    "insecureContext": "Browser notifications require HTTPS or localhost access",
+    "bodyConfirmation": "An agent is waiting for your confirmation",
+    "bodyTurnCompleted": "The agent has finished responding"
+  },
   "notification": "Notifications",
   "cronNotificationEnabled": "Scheduled Task Completion",
   "promptTimeout": "LLM Prompt Timeout (s)",

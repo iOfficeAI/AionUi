@@ -211,6 +211,14 @@
   "hardwareAccelerationAutoDisabled": "因 GPU 反覆崩潰已自動關閉。",
   "hardwareAccelerationRestartConfirm": "重新啟動 AionUi 以套用新的硬體加速設定？",
   "hardwareAccelerationUpdateFailed": "更新硬體加速設定失敗",
+  "browserNotification": {
+    "enable": "開啟瀏覽器通知",
+    "granted": "瀏覽器通知已開啟",
+    "denied": "通知已被封鎖 —— 請在瀏覽器的網站設定中開啟",
+    "insecureContext": "瀏覽器通知需要透過 HTTPS 或 localhost 存取",
+    "bodyConfirmation": "有一個 agent 正在等待你的確認",
+    "bodyTurnCompleted": "agent 已完成本輪回覆"
+  },
   "notification": "通知",
   "cronNotificationEnabled": "定時任務完成通知",
   "promptTimeout": "LLM 請求逾時時間（秒）",
