@@ -1,0 +1,143 @@
+{
+  "historyVersions": "Versiones del historial",
+  "currentFile": "Archivo actual",
+  "loading": "Cargando...",
+  "loadHistoryFailed": "Error al cargar el historial",
+  "noHistory": "Sin versiones en el historial",
+  "snapshotSaved": "Instantánea guardada",
+  "snapshotSaveFailed": "Error al guardar la instantánea",
+  "historyLoaded": "Versión del historial cargada",
+  "historyLoadFailed": "Error al cargar la versión del historial",
+  "tooFrequent": "Demasiado frecuente, intenta más tarde",
+  "saveSnapshot": "Guardar instantánea actual",
+  "snapshotNotSupported": "El contenido actual no admite instantáneas",
+  "history": "Historial",
+  "historyNotSupported": "El contenido actual no admite historial",
+  "downloadFile": "Descargar archivo",
+  "closePreview": "Cerrar vista previa",
+  "collapsePanel": "Contraer panel",
+  "source": "Fuente",
+  "code": "Código",
+  "preview": "Vista previa",
+  "editor": "Editor",
+  "previewEffect": "Vista previa",
+  "snapshot": "Instantánea",
+  "downloadMarkdown": "Descargar archivo Markdown",
+  "downloadCode": "Descargar archivo {{language}}",
+  "downloadDiff": "Descargar archivo Diff",
+  "addToChat": "Agregar al chat",
+  "openSplitScreen": "Abrir pantalla dividida",
+  "closeSplitScreen": "Cerrar pantalla dividida",
+  "edit": "Editar",
+  "exitEdit": "Salir de edición",
+  "unsavedChangesTitle": "Cambios sin guardar",
+  "unsavedChangesMessage": "Tienes cambios sin guardar. ¿Estás seguro de que deseas salir de la edición?",
+  "confirmExit": "Confirmar salida",
+  "continueEdit": "Continuar editando",
+  "closeTabTitle": "Cerrar pestaña",
+  "closeTabMessage": "El contenido actual no se ha guardado. ¿Deseas guardarlo antes de cerrar?",
+  "saveAndClose": "Guardar y cerrar",
+  "closeWithoutSave": "No guardar",
+  "pptTitle": "Presentación de PowerPoint",
+  "pptOpenHint": "Haz clic en el botón para abrir en la aplicación del sistema y ver el contenido completo",
+  "pptOpenFile": "Abrir archivo",
+  "pptShowLocation": "Mostrar ubicación",
+  "pptSystemAppHint": "Se abrirá con la aplicación predeterminada del sistema (PowerPoint, Keynote o WPS)",
+  "openWithApp": "Abrir en {{app}}",
+  "openInSystemApp": "Abrir en aplicación del sistema",
+  "openInSystemSuccess": "Abierto en la aplicación predeterminada del sistema",
+  "openInSystemFailed": "Error al abrir con la aplicación del sistema",
+  "closeLeft": "Cerrar izquierda",
+  "closeRight": "Cerrar derecha",
+  "closeOthers": "Cerrar otros",
+  "closeAll": "Cerrar todo",
+  "readOnlyLabel": "Vista previa de solo lectura",
+  "pathLabel": "Ruta",
+  "missingFile": {
+    "title": "Archivo no encontrado",
+    "openInNewTab": "Intentar abrir en una nueva pestaña"
+  },
+  "noTabs": "Sin pestañas abiertas",
+  "openInPanelTooltip": "Ver en panel de vista previa",
+  "mermaidTitle": "Diagrama Mermaid",
+  "largeTextTruncatedHint": "Modo de vista previa de archivo grande: mostrando los primeros {{count}} caracteres por rendimiento.",
+  "truncatedBanner": "El contenido de la vista previa fue truncado. Haz clic en descargar para ver el archivo completo.",
+  "aiWriting": "La IA está escribiendo...",
+  "errors": {
+    "missingFilePath": "Falta la ruta del archivo",
+    "openWithoutPath": "No se puede abrir: no se proporcionó la ruta del archivo",
+    "conversionFailed": "Error de conversión",
+    "emptySnapshot": "El contenido de la instantánea está vacío"
+  },
+  "office": {
+    "installLinkText": "Abrir guía de instalación de officecli",
+    "errors": {
+      "officecliNotFound": "officecli no está instalado.",
+      "installFailed": "Error al instalar officecli automáticamente. Revisa los registros del backend y reintenta.",
+      "portTimeout": "El servicio de vista previa inició pero no estuvo listo a tiempo. Reintenta.",
+      "startFailed": "Error al iniciar el servicio de vista previa de Office.",
+      "outsideSandbox": "Este archivo está fuera del sandbox del proyecto actual."
+    },
+    "serverInstall": {
+      "hint": "AionUi se está ejecutando en un servidor. Instala el componente de vista previa en ese servidor y reintenta:",
+      "icuNote": "Si sigue sin iniciar, instala la biblioteca ICU en el servidor (Debian/Ubuntu: apt-get install -y libicu-dev)."
+    }
+  },
+  "word": {
+    "title": "Documento Word",
+    "loading": "Cargando documento Word...",
+    "invalid": "Confirma que el archivo es un documento Word válido",
+    "loadFailed": "Error al cargar el documento Word",
+    "watch": {
+      "loading": "Cargando documento Word...",
+      "installing": "Instalando officecli...",
+      "startFailed": "Error al iniciar la vista previa de Word",
+      "installHint": "Requiere officecli. Se instalará automáticamente."
+    }
+  },
+  "excel": {
+    "title": "Hoja de cálculo Excel",
+    "loading": "Cargando libro de Excel...",
+    "invalid": "Confirma que el archivo es un documento Excel válido",
+    "noSheets": "No se encontraron hojas en este archivo Excel",
+    "sheetCount": "{{count}} hoja(s)",
+    "convertFailed": "Error de conversión de Excel",
+    "loadFailed": "Error al cargar el libro de Excel",
+    "emptySheet": "Esta hoja no tiene datos",
+    "emptySheetHint": "Verifica si la hoja contiene datos o imágenes",
+    "watch": {
+      "loading": "Cargando archivo Excel...",
+      "installing": "Instalando officecli...",
+      "startFailed": "Error al iniciar la vista previa de Excel",
+      "installHint": "Requiere officecli. Se instalará automáticamente."
+    }
+  },
+  "pdf": {
+    "title": "Documento PDF",
+    "pathMissing": "Falta la ruta del archivo PDF",
+    "loadFailed": "Error al cargar el documento PDF",
+    "unableDisplay": "No se puede mostrar el archivo PDF"
+  },
+  "html": {
+    "elementSelected": "Elemento seleccionado: {{path}}",
+    "copySuccess": "Fragmento HTML copiado",
+    "inspectorEnabled": "Inspector de elementos activado. Haz clic en elementos de la vista previa para resaltarlos.",
+    "inspectorButton": "Inspector de elementos",
+    "inspecting": "Inspeccionando...",
+    "selectedLabel": "Seleccionado:",
+    "inspectorTooltip": "Haz clic en elementos de la vista previa para inspeccionar su HTML",
+    "downloadHtml": "Descargar archivo HTML",
+    "copyElementHtml": "Copiar HTML del elemento",
+    "viewElementInfo": "Ver información del elemento",
+    "printedToConsole": "Información del elemento registrada en consola",
+    "inspectElement": "Inspeccionar elemento",
+    "inspectElementEnable": "Activar inspector de elementos",
+    "inspectElementDisable": "Desactivar inspector de elementos"
+  },
+  "ppt": {
+    "loading": "Iniciando vista previa de PPT...",
+    "installing": "Instalando componente de vista previa...",
+    "startFailed": "Error al iniciar la vista previa de PPT",
+    "installHint": "Instala OfficeCLI desde la página oficial de versiones de iOfficeAI/OfficeCLI"
+  }
+}
