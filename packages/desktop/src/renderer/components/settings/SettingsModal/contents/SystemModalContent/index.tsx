@@ -17,6 +17,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
 import { useSettingsViewMode } from '../../settingsViewContext';
+import BrowserNotificationGrant from './BrowserNotificationGrant';
 import DevSettings from './DevSettings';
 import DirInputItem from './DirInputItem';
 import PreferenceRow from './PreferenceRow';
@@ -412,15 +413,19 @@ const SystemModalContent: React.FC = () => {
                   </div>
                 }
               >
-                <div className='pl-12px'>
-                  <PreferenceRow label={t('settings.cronNotificationEnabled')}>
-                    <Switch
-                      checked={cronNotificationEnabled}
-                      disabled={!notificationEnabled}
-                      onChange={handleCronNotificationEnabledChange}
-                    />
-                  </PreferenceRow>
-                </div>
+                {isDesktop ? (
+                  <div className='pl-12px'>
+                    <PreferenceRow label={t('settings.cronNotificationEnabled')}>
+                      <Switch
+                        checked={cronNotificationEnabled}
+                        disabled={!notificationEnabled}
+                        onChange={handleCronNotificationEnabledChange}
+                      />
+                    </PreferenceRow>
+                  </div>
+                ) : (
+                  <BrowserNotificationGrant />
+                )}
               </Collapse.Item>
             </Collapse>
             <Form form={form} layout='vertical' className='!mt-32px space-y-16px' onValuesChange={handleValuesChange}>
