@@ -4,7 +4,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import { describe, it, expect, vi } from 'vitest';
-import { shouldShowNotification, createBrowserNotificationController, type NotificationGate } from '@/renderer/hooks/system/notification/browserNotificationCore';
+import {
+  shouldShowNotification,
+  createBrowserNotificationController,
+  type NotificationGate,
+} from '@/renderer/hooks/system/notification/browserNotificationCore';
 
 const openGate: NotificationGate = {
   isElectron: false,
