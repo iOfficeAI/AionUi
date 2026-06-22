@@ -6,6 +6,7 @@
 
 import type { ICronAgentConfigWrite } from '@/common/adapter/ipcBridge';
 import type { Assistant } from '@/common/types/agent/assistantTypes';
+import { resolveAssistantName } from '@renderer/utils/model/assistantDisplay';
 
 type SelectedAionrsProvider = {
   id?: string;
@@ -19,6 +20,7 @@ type ResolveCronAgentConfigInput = {
   model_id?: string;
   config_options?: Record<string, string>;
   workspace?: string;
+  localeKey?: string;
   getMode: (backend: string) => string | undefined;
   aionrsModelRequiredMessage: string;
 };
@@ -35,6 +37,7 @@ export function resolveCronAgentConfig(input: ResolveCronAgentConfigInput): Reso
     model_id,
     config_options,
     workspace,
+    localeKey = 'en-US',
     getMode,
     aionrsModelRequiredMessage,
   } = input;
@@ -50,6 +53,7 @@ export function resolveCronAgentConfig(input: ResolveCronAgentConfigInput): Reso
 
   const assistant = assistantSelection;
   const presetBackend = assistant.preset_agent_type;
+  const assistantName = resolveAssistantName(assistant, localeKey, assistant.name);
 
   if (presetBackend === 'aionrs') {
     if (!selectedAionrsProvider?.id || !model_id) {
@@ -57,7 +61,7 @@ export function resolveCronAgentConfig(input: ResolveCronAgentConfigInput): Reso
     }
     agent_config = {
       backend: selectedAionrsProvider.id,
-      name: assistant.name,
+      name: assistantName,
       assistant_id: assistant.id,
       mode: getMode(presetBackend),
       model_id,
@@ -65,7 +69,7 @@ export function resolveCronAgentConfig(input: ResolveCronAgentConfigInput): Reso
     };
   } else {
     agent_config = {
-      name: assistant.name,
+      name: assistantName,
       assistant_id: assistant.id,
       mode: getMode(presetBackend),
       model_id,

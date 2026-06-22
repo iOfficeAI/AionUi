@@ -12,6 +12,20 @@ import {
 import type { Assistant } from '@/common/types/agent/assistantTypes';
 
 describe('assistantSelectUtils', () => {
+  it('localizes assistant option names for the active locale', () => {
+    const bareAssistant = makeAssistant({
+      id: 'bare-aionrs',
+      name: 'Aion CLI',
+      name_i18n: { 'zh-CN': 'Aion 命令行' },
+      source: 'bare',
+      preset_agent_type: 'aionrs',
+    });
+
+    const option = assistantToOption(bareAssistant, 'zh-CN');
+
+    expect(option.name).toBe('Aion 命令行');
+  });
+
   it('preserves backend-provided team availability for selectable assistants', () => {
     const remoteAssistant = makeAssistant({
       id: 'bare-remote',

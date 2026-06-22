@@ -7,7 +7,9 @@
 import type { IChannelPairingRequest, IChannelPluginStatus, IChannelUser } from '@/common/types/channel/channel';
 import { assistants, channel } from '@/common/adapter/ipcBridge';
 import type { Assistant } from '@/common/types/agent/assistantTypes';
+import { resolveLocaleKey } from '@/common/utils';
 import { getBaseUrl } from '@/common/adapter/httpBridge';
+import { resolveAssistantName } from '@/renderer/utils/model/assistantDisplay';
 import GoogleModelSelector from '@/renderer/pages/conversation/platforms/gemini/GoogleModelSelector';
 import type { GoogleModelSelection } from '@/renderer/pages/conversation/platforms/gemini/useGoogleModelSelection';
 import { Button, Dropdown, Empty, Menu, Message, Spin, Tooltip } from '@arco-design/web-react';
@@ -61,7 +63,8 @@ const getRemainingTime = (expiresAt: number) => {
 const formatTime = (timestamp: number) => new Date(timestamp).toLocaleString();
 
 const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({ pluginStatus, modelSelection, onStatusChange }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const localeKey = resolveLocaleKey(i18n?.language ?? 'en-US');
 
   const [loginState, setLoginState] = useState<LoginState>(
     pluginStatus?.hasToken && pluginStatus?.enabled ? 'connected' : 'idle'
@@ -300,6 +303,9 @@ const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({ pluginStatus, model
 
   const showModelSelector = selectedAssistant?.preset_agent_type === 'aionrs';
   const assistantOptions = availableAssistants;
+  const selectedAssistantName = selectedAssistant
+    ? resolveAssistantName(selectedAssistant, localeKey, selectedAssistant.name)
+    : t('settings.assistant.name', 'Assistant');
 
   const handleDisconnect = async () => {
     try {
@@ -403,6 +409,7 @@ const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({ pluginStatus, model
           droplist={
             <Menu selectedKeys={selectedAssistant ? [selectedAssistant.id] : []}>
               {assistantOptions.map((assistant) => {
+                const assistantName = resolveAssistantName(assistant, localeKey, assistant.name);
                 return (
                   <Menu.Item
                     key={assistant.id}
@@ -426,7 +433,7 @@ const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({ pluginStatus, model
                       }
                     }}
                   >
-                    {assistant.name}
+                    {assistantName}
                   </Menu.Item>
                 );
               })}
@@ -434,7 +441,7 @@ const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({ pluginStatus, model
           }
         >
           <Button type='secondary' className='min-w-160px flex items-center justify-between gap-8px'>
-            <span className='truncate'>{selectedAssistant?.name || t('settings.assistant.name', 'Assistant')}</span>
+            <span className='truncate'>{selectedAssistantName}</span>
             <Down theme='outline' size={14} />
           </Button>
         </Dropdown>

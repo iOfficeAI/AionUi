@@ -68,6 +68,25 @@ describe('resolveCronAgentConfig', () => {
     });
   });
 
+  it('stores localized assistant names when a locale key is provided', () => {
+    const result = resolveCronAgentConfig({
+      agentValue: 'assistant-2',
+      presetAssistants: [
+        assistant({
+          id: 'assistant-2',
+          name: 'Codex',
+          name_i18n: { 'zh-CN': '代码助手' },
+          preset_agent_type: 'codex',
+        }),
+      ],
+      localeKey: 'zh-CN',
+      getMode: () => 'full-access',
+      aionrsModelRequiredMessage: 'provider required',
+    });
+
+    expect(result.agent_config?.name).toBe('代码助手');
+  });
+
   it('omits backend for non-aionrs assistants and lets the backend derive runtime identity', () => {
     const result = resolveCronAgentConfig({
       agentValue: 'assistant-4',
@@ -127,7 +146,7 @@ describe('resolveCronAgentConfig', () => {
   });
 });
 
-function assistant(overrides: Pick<Assistant, 'id' | 'name' | 'preset_agent_type'>): Assistant {
+function assistant(overrides: Partial<Assistant> & Pick<Assistant, 'id' | 'name' | 'preset_agent_type'>): Assistant {
   return {
     id: overrides.id,
     source: 'user',
@@ -144,5 +163,6 @@ function assistant(overrides: Pick<Assistant, 'id' | 'name' | 'preset_agent_type
     prompts: [],
     prompts_i18n: {},
     models: [],
+    ...overrides,
   };
 }

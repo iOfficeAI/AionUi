@@ -16,6 +16,7 @@ let currentAssistants: Assistant[] = [];
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (key: string) => key,
+    i18n: { language: 'zh-CN' },
   }),
 }));
 
@@ -138,7 +139,8 @@ describe('CreateTaskDialog', () => {
 
     render(<CreateTaskDialog visible onClose={() => {}} editJob={legacyJobWithoutAssistantId()} />);
 
-    expect(await screen.findByText('Codex')).toBeInTheDocument();
+    expect(await screen.findByText('代码助手')).toBeInTheDocument();
+    expect(screen.queryByText('Codex')).not.toBeInTheDocument();
     expect(screen.queryByText('问好助手')).not.toBeInTheDocument();
   });
 });
@@ -228,7 +230,7 @@ function bareAssistant(): Assistant {
     id: 'bare-codex',
     source: 'bare',
     name: 'Codex',
-    name_i18n: {},
+    name_i18n: { 'zh-CN': '代码助手' },
     description_i18n: {},
     avatar: 'codex.svg',
     enabled: true,

@@ -29,6 +29,7 @@ Object.defineProperty(window, 'matchMedia', {
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (key: string, options?: { defaultValue?: string }) => options?.defaultValue || key,
+    i18n: { language: 'zh-CN' },
   }),
 }));
 
@@ -85,6 +86,8 @@ describe('TeamCreateModal', () => {
     render(<TeamCreateModal visible onClose={vi.fn()} onCreated={vi.fn()} />);
 
     expect(screen.getByTestId('team-create-agent-option-bare-aionrs')).toBeInTheDocument();
+    expect(screen.getByText('Aion 命令行')).toBeInTheDocument();
+    expect(screen.queryByText('Aion CLI')).not.toBeInTheDocument();
     expect(screen.getByTestId('team-create-agent-option-blocked-reviewer')).toBeInTheDocument();
     expect(screen.getByTestId('team-create-agent-option-remote-runner')).toBeInTheDocument();
     // The backend block reason is English; the UI shows a localized message instead.
@@ -118,7 +121,7 @@ describe('TeamCreateModal', () => {
     expect(payload.assistants[0]).toMatchObject({
       role: 'leader',
       assistant_id: 'bare-aionrs',
-      assistant_name: 'Aion CLI',
+      assistant_name: 'Aion 命令行',
     });
     // Runtime backend / conversation type are derived server-side from the
     // assistant, so the create payload no longer carries legacy agent fields.
@@ -135,6 +138,7 @@ function assistants(): Assistant[] {
     assistant({
       id: 'bare-aionrs',
       name: 'Aion CLI',
+      name_i18n: { 'zh-CN': 'Aion 命令行' },
       source: 'bare',
       preset_agent_type: 'aionrs',
       team_selectable: true,

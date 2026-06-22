@@ -4,6 +4,7 @@ import type { RefInputType } from '@arco-design/web-react/es/Input/interface';
 import { Close, Search, CloseSmall } from '@icon-park/react';
 import { useTranslation } from 'react-i18next';
 import { ipcBridge } from '@/common';
+import { resolveLocaleKey } from '@/common/utils';
 import type { TTeam } from '@/common/types/team/teamTypes';
 import type { TeamAssistantInput } from '@/common/adapter/teamMapper';
 import { useAuth } from '@renderer/hooks/context/AuthContext';
@@ -77,7 +78,8 @@ const AssistantRadioRow: React.FC<{
 };
 
 const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const localeKey = resolveLocaleKey(i18n?.language ?? 'en-US');
   const { user } = useAuth();
   const { presetAssistants } = useConversationAssistants();
   const [name, setName] = useState('');
@@ -100,8 +102,8 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
   };
 
   const allAssistants = useMemo(
-    () => filterTeamSupportedAssistants(presetAssistants.map((assistant) => assistantToOption(assistant))),
-    [presetAssistants]
+    () => filterTeamSupportedAssistants(presetAssistants.map((assistant) => assistantToOption(assistant, localeKey))),
+    [presetAssistants, localeKey]
   );
 
   const filteredAssistants = useMemo(() => {

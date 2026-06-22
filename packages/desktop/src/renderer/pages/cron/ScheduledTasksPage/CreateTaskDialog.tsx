@@ -10,6 +10,7 @@ import { Form, Input, Select, Message, TimePicker, Radio, Button } from '@arco-d
 import ModalWrapper from '@renderer/components/base/ModalWrapper';
 import { Down, Robot } from '@icon-park/react';
 import { ipcBridge } from '@/common';
+import { resolveLocaleKey } from '@/common/utils';
 import type { ICreateCronJobParams, ICronJob, ICronJobUpdateParams } from '@/common/adapter/ipcBridge';
 import { useConversationAssistants } from '@renderer/pages/conversation/hooks/useConversationAssistants';
 import { resolveAgentLogo, useAgentLogos } from '@renderer/utils/model/agentLogo';
@@ -24,6 +25,7 @@ import { WorkspaceFolderSelect } from '@renderer/components/workspace';
 import { createCronSchedule } from '@renderer/pages/cron/cronUtils';
 import { getConversationCreateErrorMessage } from '@renderer/pages/conversation/utils/conversationCreateError';
 import { resolveAssistantAvatar } from '@renderer/utils/model/assistantAvatar';
+import { resolveAssistantName } from '@renderer/utils/model/assistantDisplay';
 import { resolveSupportedConversationType } from '@renderer/utils/model/agentTypeSupportPolicy';
 import { resolveCronAgentConfig } from './resolveCronAgentConfig';
 
@@ -146,7 +148,8 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   conversation_id: _conversation_id,
   conversation_title,
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const localeKey = resolveLocaleKey(i18n?.language ?? 'en-US');
   const logos = useAgentLogos();
   const [form] = Form.useForm();
   const [submitting, setSubmitting] = useState(false);
@@ -394,6 +397,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
         model_id,
         config_options,
         workspace,
+        localeKey,
         getMode: getFullAutoMode,
         aionrsModelRequiredMessage: t('cron.page.form.aionrsModelRequired'),
       });
@@ -490,7 +494,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                 if (!assistantId) return '';
 
                 const assistant = presetAssistants.find((item) => item.id === assistantId);
-                const name = assistant?.name || assistantId;
+                const name = resolveAssistantName(assistant, localeKey, assistantId);
                 const avatar = resolveAssistantAvatar(assistant?.avatar);
                 const logo = resolveAgentLogo(logos, {
                   backend: assistant?.preset_agent_type,
@@ -513,6 +517,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
               }}
             >
               {presetAssistants.map((assistant) => {
+                const name = resolveAssistantName(assistant, localeKey, assistant.name);
                 const avatar = resolveAssistantAvatar(assistant.avatar);
                 const logo = resolveAgentLogo(logos, {
                   backend: assistant.preset_agent_type,
@@ -525,15 +530,15 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                       title={disabled ? t('cron.page.form.aionrsNoProvider') : undefined}
                     >
                       {avatar.kind === 'image' ? (
-                        <img src={avatar.value} alt={assistant.name} className='w-16px h-16px object-contain' />
+                        <img src={avatar.value} alt={name} className='w-16px h-16px object-contain' />
                       ) : avatar.kind === 'emoji' ? (
                         <span className='text-14px leading-16px'>{avatar.value}</span>
                       ) : logo ? (
-                        <img src={logo} alt={assistant.name} className='w-16px h-16px object-contain' />
+                        <img src={logo} alt={name} className='w-16px h-16px object-contain' />
                       ) : (
                         <Robot size='16' />
                       )}
-                      <span>{assistant.name}</span>
+                      <span>{name}</span>
                       {disabled && (
                         <span className='text-12px text-t-tertiary'>{t('cron.page.form.aionrsNoProvider')}</span>
                       )}

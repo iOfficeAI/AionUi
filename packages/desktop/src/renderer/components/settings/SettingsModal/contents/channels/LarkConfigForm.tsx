@@ -7,7 +7,9 @@
 import type { IChannelPairingRequest, IChannelPluginStatus, IChannelUser } from '@/common/types/channel/channel';
 import { assistants, channel } from '@/common/adapter/ipcBridge';
 import type { Assistant } from '@/common/types/agent/assistantTypes';
+import { resolveLocaleKey } from '@/common/utils';
 import { openExternalUrl } from '@/renderer/utils/platform';
+import { resolveAssistantName } from '@/renderer/utils/model/assistantDisplay';
 import GoogleModelSelector from '@/renderer/pages/conversation/platforms/gemini/GoogleModelSelector';
 import type { GoogleModelSelection } from '@/renderer/pages/conversation/platforms/gemini/useGoogleModelSelection';
 import { Button, Dropdown, Empty, Input, Menu, Message, Spin, Tooltip } from '@arco-design/web-react';
@@ -64,7 +66,8 @@ interface LarkConfigFormProps {
 const LARK_DEV_DOCS_URL = 'https://open.feishu.cn/document/develop-an-echo-bot/introduction';
 
 const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSelection, onStatusChange }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const localeKey = resolveLocaleKey(i18n?.language ?? 'en-US');
 
   // Lark credentials
   const [appId, setAppId] = useState('');
@@ -320,6 +323,9 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
   const hasExistingUsers = authorizedUsers.length > 0;
   const showModelSelector = selectedAssistant?.preset_agent_type === 'aionrs';
   const assistantOptions = availableAssistants;
+  const selectedAssistantName = selectedAssistant
+    ? resolveAssistantName(selectedAssistant, localeKey, selectedAssistant.name)
+    : t('settings.assistant.name', 'Assistant');
 
   return (
     <div className='flex flex-col gap-24px'>
@@ -594,6 +600,7 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
             droplist={
               <Menu selectedKeys={selectedAssistant ? [selectedAssistant.id] : []}>
                 {assistantOptions.map((assistant) => {
+                  const assistantName = resolveAssistantName(assistant, localeKey, assistant.name);
                   return (
                     <Menu.Item
                       key={assistant.id}
@@ -619,7 +626,7 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
                         }
                       }}
                     >
-                      {assistant.name}
+                      {assistantName}
                     </Menu.Item>
                   );
                 })}
@@ -627,7 +634,7 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
             }
           >
             <Button type='secondary' className='min-w-160px flex items-center justify-between gap-8px'>
-              <span className='truncate'>{selectedAssistant?.name || t('settings.assistant.name', 'Assistant')}</span>
+              <span className='truncate'>{selectedAssistantName}</span>
               <Down theme='outline' size={14} />
             </Button>
           </Dropdown>
