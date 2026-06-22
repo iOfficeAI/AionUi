@@ -201,6 +201,34 @@ describe('MarkdownViewer', () => {
     expect(metadata).not.toHaveProperty('targetEndLine');
   });
 
+  it('opens encoded file URL hash links in preview mode', async () => {
+    const filePath = '/Users/demo/Desktop/My File.ts';
+    vi.mocked(ipcBridge.fs.getFileMetadata.invoke).mockResolvedValue(fileMetadata(filePath));
+    vi.mocked(ipcBridge.fs.readFile.invoke).mockResolvedValue('const value = 1;\n');
+
+    render(<MarkdownViewer content='[encoded file](file:///Users/demo/Desktop/My%20File.ts#L1)' />);
+
+    expect(screen.queryByRole('link', { name: 'encoded file' })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /encoded file\s+L1/ }));
+
+    await waitFor(() => {
+      expect(previewMocks.openPreview).toHaveBeenCalledWith(
+        'const value = 1;\n',
+        'code',
+        expect.objectContaining({
+          file_name: 'My File.ts',
+          file_path: filePath,
+          language: 'ts',
+          targetLine: 1,
+          targetColumn: undefined,
+          truncated: false,
+        }),
+        { replace: true }
+      );
+    });
+  });
+
   it('keeps remote links as browser anchors', () => {
     render(<MarkdownViewer content='[docs](https://aionui.com/docs)' />);
 
