@@ -1,5 +1,33 @@
 # Changelog
 
+## [2.1.22](https://github.com/iOfficeAI/AionUi/compare/v2.1.21...v2.1.22) (2026-06-22)
+
+### Desktop
+
+#### Features
+
+- **acp:** preserve redacted raw error in AIONUI_INTERNAL_ERROR fallback (#3393)
+
+#### Bug Fixes
+
+- **markdown:** support local file hash line links (#3396)
+- **conversation:** localize OpenClaw Gateway startup error (#3392)
+- **mcp:** guard message calls against use-after-unmount crash (#3376)
+- **preview:** improve file diffs and local file links (#3379)
+- **installer:** harden win arm64 install (#3387)
+
+### Core ([v0.1.34](https://github.com/iOfficeAI/AionCore/releases/tag/v0.1.34))
+
+#### Bug Fixes
+
+- **agent:** expose aionrs mode config option (#501)
+- **agent:** surface OpenClaw Gateway unreachable errors (#498)
+- **aionrs:** classify engine errors structurally (#494)
+- **aionrs:** drop malformed tool-call events (#486)
+- **channel:** reuse stored credentials when re-enabling a plugin (#458)
+
+---
+
 ## [2.1.21](https://github.com/iOfficeAI/AionUi/compare/v2.1.20...v2.1.21) (2026-06-18)
 
 ### Desktop
