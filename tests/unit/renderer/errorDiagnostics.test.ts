@@ -37,8 +37,41 @@ describe('redactErrorText', () => {
     expect(redactErrorText('C:\\Users\\Carol\\AppData')).toBe('C:\\Users\\[user]\\AppData');
   });
 
+  it('masks Google API keys', () => {
+    const out = redactErrorText('quota error for AIzaSyA1B2c3D4e5F6g7H8i9J0k1L2m3N4o5P6');
+    expect(out).not.toContain('AIzaSyA1B2c3D4e5F6g7H8i9J0k1L2m3N4o5P6');
+    expect(out).toContain('[REDACTED_KEY]');
+  });
+
+  it('masks AWS access key ids', () => {
+    const out = redactErrorText('signature mismatch for AKIAIOSFODNN7EXAMPLE');
+    expect(out).not.toContain('AKIAIOSFODNN7EXAMPLE');
+    expect(out).toContain('[REDACTED_KEY]');
+  });
+
+  it('masks bare JWTs without a Bearer prefix', () => {
+    const jwt = 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHl0w5N_XgL0n3I9PlFUP0THsR8U';
+    const out = redactErrorText(`token rejected: ${jwt}`);
+    expect(out).not.toContain(jwt);
+    expect(out).toContain('[REDACTED]');
+  });
+
+  it('masks the password segment of connection strings', () => {
+    expect(redactErrorText('cannot connect to postgres://dbuser:s3cretP@db.host:5432/app')).toBe(
+      'cannot connect to postgres://dbuser:[REDACTED]@db.host:5432/app'
+    );
+  });
+
+  it('masks email addresses', () => {
+    expect(redactErrorText('account alice.smith@example.com not found')).toBe('account [email] not found');
+  });
+
   it('leaves benign text untouched', () => {
     expect(redactErrorText('Conflict: nothing to cancel')).toBe('Conflict: nothing to cancel');
+  });
+
+  it('does not corrupt a normal version-like dotted token', () => {
+    expect(redactErrorText('failed at step 1.2.3 of pipeline')).toBe('failed at step 1.2.3 of pipeline');
   });
 });
 

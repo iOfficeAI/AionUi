@@ -21,14 +21,25 @@ const MAX_STACK_LENGTH = 1000;
 const REDACTION_RULES: ReadonlyArray<readonly [RegExp, string]> = [
   // Provider api keys (OpenAI / Anthropic / generic sk- prefixed secrets).
   [/sk-[a-zA-Z0-9._-]{8,}/g, '[REDACTED_KEY]'],
+  // Google API keys (AIza...).
+  [/AIza[a-zA-Z0-9_-]{16,}/g, '[REDACTED_KEY]'],
+  // AWS access key ids (AKIA / ASIA + 16 uppercase alphanumerics).
+  [/\b(?:AKIA|ASIA)[A-Z0-9]{16}\b/g, '[REDACTED_KEY]'],
+  // JSON Web Tokens (three base64url segments). Runs before the Bearer rule so
+  // a bare token is caught even without the prefix.
+  [/\beyJ[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+/g, '[REDACTED]'],
   // Bearer tokens. Runs before the key=value rule so the "Bearer" keyword is
   // not mistaken for an `authorization` value.
   [/(Bearer\s+)[a-zA-Z0-9._\-+/=]+/gi, '$1[REDACTED]'],
+  // Connection-string credentials: scheme://user:password@host -> redact password.
+  [/(\b[a-z][a-z0-9+.-]*:\/\/[^:/\s@]+:)[^@\s/]+(@)/gi, '$1[REDACTED]$2'],
   // key=value / "key": "value" secrets (api key, token, password, secret).
   [
     /(["']?(?:api[_-]?key|access[_-]?token|token|password|passwd|secret)["']?\s*[=:]\s*)(["']?)[^\s"',}]+(\2)/gi,
     '$1$2[REDACTED]$3',
   ],
+  // Email addresses.
+  [/\b[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\b/g, '[email]'],
   // Unix home directories: keep the path shape, drop the username.
   [/(\/(?:Users|home)\/)[^/\s]+/g, '$1[user]'],
   // Windows home directories.
