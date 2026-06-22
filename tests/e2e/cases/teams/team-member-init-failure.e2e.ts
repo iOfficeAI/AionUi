@@ -20,7 +20,6 @@ type AgentPayload = {
   name: string;
   role: string;
   assistant_id?: string;
-  backend: string;
   model: string;
 };
 
@@ -54,7 +53,6 @@ test.describe('Team Member Init Failure UI', () => {
       name: 'FailedMember',
       role: 'teammate',
       assistant_id: failedAssistantId,
-      backend: 'claude',
       model: 'claude',
     };
 

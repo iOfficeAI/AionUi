@@ -14,7 +14,8 @@ import { invokeBridge } from '../helpers/bridge';
 import { goToGuid } from '../helpers/navigation';
 import {
   findAssistantIdForBackend,
-  presetPillById,
+  httpGet,
+  selectAssistantForBackend,
   sendMessageFromGuid,
   waitForSessionActive,
   waitForAiReply,
@@ -34,23 +35,24 @@ interface CronJob {
 
 async function pickAvailableBackend(page: import('@playwright/test').Page): Promise<string | null> {
   const preferredBackends = ['gemini', 'claude', 'codex', 'aionrs'];
-  for (let attempt = 0; attempt < 2; attempt++) {
-    for (const backend of preferredBackends) {
-      const assistantId = await findAssistantIdForBackend(page, backend);
-      if (!assistantId) continue;
-      const isVisible = await page
-        .locator(presetPillById(assistantId))
-        .isVisible()
-        .catch(() => false);
-      if (isVisible) return backend;
-    }
-    if (attempt === 0) {
-      await page.reload({ waitUntil: 'domcontentloaded' });
-      await goToGuid(page);
-    }
+  for (const backend of preferredBackends) {
+    const assistantId = await findAssistantIdForBackend(page, backend, { requireAvailable: true });
+    if (assistantId) return backend;
   }
   return null;
 }
+
+type CronAgentConfig = {
+  assistant_id?: string;
+  custom_agent_id?: string;
+  preset_agent_type?: string;
+};
+
+type ConversationWithAssistant = {
+  assistant?: {
+    id: string;
+  } | null;
+};
 
 // ── Bridge helpers ──────────────────────────────────────────────────────────
 
@@ -172,12 +174,11 @@ test.describe('Cron via AI conversation', () => {
       test.skip(true, 'No usable assistant available on guid page');
       return;
     }
-    const assistantId = await findAssistantIdForBackend(page, backend);
+    const assistantId = await selectAssistantForBackend(page, backend);
     if (!assistantId) {
-      test.skip(true, `No assistant projected for backend ${backend}`);
+      test.skip(true, `No selectable assistant for backend ${backend}`);
       return;
     }
-    await page.locator(presetPillById(assistantId)).click();
 
     // ── Step 2: Send message to create a scheduled task ──
     conversationId = await sendMessageFromGuid(
@@ -185,6 +186,9 @@ test.describe('Cron via AI conversation', () => {
       'Create a scheduled task named "E2E Morning Greeting" that runs every day at 9:00 AM. The task should reply with a friendly good morning greeting. Do it now, don\'t ask me for confirmation.'
     );
     expect(conversationId).toBeTruthy();
+    const conversation = await httpGet<ConversationWithAssistant>(page, `/api/conversations/${conversationId}`);
+    const conversationAssistantId = conversation.assistant?.id;
+    expect(conversationAssistantId).toBeTruthy();
 
     // Start auto-approving skill activation confirmations
     stopAutoApprove = startAutoApprovePermissionMessages(page);
@@ -198,6 +202,10 @@ test.describe('Cron via AI conversation', () => {
 
     expect(job.name).toBeTruthy();
     expect(job.schedule.expr).toBeTruthy();
+    const agentConfig = job.metadata.agent_config as CronAgentConfig | undefined;
+    expect(agentConfig?.assistant_id).toBe(conversationAssistantId);
+    expect(agentConfig?.custom_agent_id).toBeUndefined();
+    expect(agentConfig?.preset_agent_type).toBeUndefined();
 
     // ── Step 4: Verify task appears on the Scheduled Tasks page ──
     await navigateToScheduled(page);
@@ -311,12 +319,11 @@ test.describe('Cron via AI conversation', () => {
       test.skip(true, 'No usable assistant available on guid page');
       return;
     }
-    const assistantId = await findAssistantIdForBackend(page, backend);
+    const assistantId = await selectAssistantForBackend(page, backend);
     if (!assistantId) {
-      test.skip(true, `No assistant projected for backend ${backend}`);
+      test.skip(true, `No selectable assistant for backend ${backend}`);
       return;
     }
-    await page.locator(presetPillById(assistantId)).click();
 
     conversationId = await sendMessageFromGuid(
       page,

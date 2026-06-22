@@ -11,11 +11,9 @@ import {
   sendMessageFromGuid,
   waitForSessionActive,
   MODE_SELECTOR,
-  httpGet,
   httpDelete,
-  presetPillById,
+  selectAssistantForBackend,
 } from '../helpers';
-import type { Assistant } from '@/common/types/agent/assistantTypes';
 
 test.describe.configure({ timeout: 240_000 });
 
@@ -73,11 +71,15 @@ async function waitForConversationMode(
  */
 async function runModeVerificationCycle(
   page: import('@playwright/test').Page,
-  assistantId: string,
+  backend: string,
   targetMode: string
 ): Promise<void> {
   await goToGuid(page);
-  await page.locator(presetPillById(assistantId)).click();
+  const assistantId = await selectAssistantForBackend(page, backend);
+  if (!assistantId) {
+    test.skip(true, `${backend} assistant not available`);
+    return;
+  }
 
   const modeSelector = page.locator(MODE_SELECTOR);
   await modeSelector.waitFor({ state: 'visible', timeout: 10_000 });
@@ -95,18 +97,6 @@ async function runModeVerificationCycle(
   }
 }
 
-async function findAssistantIdForBackend(
-  page: import('@playwright/test').Page,
-  backend: string
-): Promise<string | null> {
-  const assistants = await httpGet<Assistant[]>(page, '/api/assistants');
-  const enabledAssistants = assistants.filter((assistant) => assistant.enabled !== false);
-  const preferred =
-    enabledAssistants.find((assistant) => assistant.source === 'bare' && assistant.preset_agent_type === backend) ??
-    enabledAssistants.find((assistant) => assistant.preset_agent_type === backend);
-  return preferred?.id ?? null;
-}
-
 const BACKENDS = ['gemini', 'aionrs', 'codex', 'claude'] as const;
 
 test.describe('Guid Mode → Conversation Sync', () => {
@@ -114,19 +104,11 @@ test.describe('Guid Mode → Conversation Sync', () => {
     test(`${backend}: two mode switches both carry into conversation`, async ({ page }) => {
       await goToGuid(page);
 
-      const assistantId = await findAssistantIdForBackend(page, backend);
+      const assistantId = await selectAssistantForBackend(page, backend);
       if (!assistantId) {
         test.skip(true, `${backend} assistant not available`);
         return;
       }
-
-      const assistantPill = page.locator(presetPillById(assistantId));
-      if (!(await assistantPill.isVisible().catch(() => false))) {
-        test.skip(true, `${backend} assistant pill not visible on guid`);
-        return;
-      }
-
-      await assistantPill.click();
 
       // Check mode selector visibility
       const modeSelector = page.locator(MODE_SELECTOR);
@@ -151,10 +133,10 @@ test.describe('Guid Mode → Conversation Sync', () => {
       const modeB = availableModes[0];
 
       // Cycle 1: set modeA → verify in conversation
-      await runModeVerificationCycle(page, assistantId, modeA);
+      await runModeVerificationCycle(page, backend, modeA);
 
       // Cycle 2: set modeB → verify in conversation
-      await runModeVerificationCycle(page, assistantId, modeB);
+      await runModeVerificationCycle(page, backend, modeB);
     });
   }
 });

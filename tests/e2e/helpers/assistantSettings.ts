@@ -7,6 +7,21 @@ import { goToAssistantSettings as goToAssistantSettingsRoute } from './navigatio
 
 const ASSISTANT_EDITOR = '[data-testid="assistant-editor-page"], [data-testid="assistant-edit-drawer"]';
 
+function waitForAssistantDetailResponse(page: Page, assistantId: string): Promise<unknown> {
+  return page
+    .waitForResponse(
+      (response) => {
+        const url = new URL(response.url());
+        return (
+          response.request().method() === 'GET' &&
+          decodeURIComponent(url.pathname).endsWith(`/api/assistants/${assistantId}`)
+        );
+      },
+      { timeout: 5_000 }
+    )
+    .catch(() => null);
+}
+
 // ── Navigation ──────────────────────────────────────────────────────────────
 
 /** Navigate to the assistant settings page via UI clicks. */
@@ -17,8 +32,11 @@ export async function goToAssistantSettings(page: Page): Promise<void> {
 /** Open the assistant editor surface by clicking on an assistant card. */
 export async function openAssistantEditor(page: Page, assistant_id: string): Promise<void> {
   const card = page.locator(`[data-testid="assistant-card-${assistant_id}"]`);
+  const detailResponse = waitForAssistantDetailResponse(page, assistant_id);
   await card.click();
   await page.locator(ASSISTANT_EDITOR).waitFor({ state: 'visible', timeout: 5_000 });
+  await detailResponse;
+  await page.locator('[data-testid="input-assistant-name"]').waitFor({ state: 'visible', timeout: 5_000 });
 }
 
 /** Click the Create Assistant button. */
@@ -78,8 +96,11 @@ export async function deleteAssistant(page: Page): Promise<void> {
 /** Click the Duplicate link for an assistant. */
 export async function duplicateAssistant(page: Page, assistant_id: string): Promise<void> {
   const dupBtn = page.locator(`[data-testid="btn-duplicate-${assistant_id}"]`);
+  const detailResponse = waitForAssistantDetailResponse(page, assistant_id);
   await dupBtn.click();
   await page.locator(ASSISTANT_EDITOR).waitFor({ state: 'visible', timeout: 5_000 });
+  await detailResponse;
+  await page.locator('[data-testid="input-assistant-name"]').waitFor({ state: 'visible', timeout: 5_000 });
 }
 
 /** Toggle the enabled/disabled switch for an assistant. */

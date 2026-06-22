@@ -138,9 +138,7 @@ const AgentRepairPanel: React.FC<AgentRepairPanelProps> = ({ agent, onSaved }) =
       </div>
 
       {/* Error Alert */}
-      {error && (
-        <Alert type='error' content={error} closable onClose={() => setError('')} className='!rounded-8px' />
-      )}
+      {error && <Alert type='error' content={error} closable onClose={() => setError('')} className='!rounded-8px' />}
 
       {/* Save Button */}
       <Button

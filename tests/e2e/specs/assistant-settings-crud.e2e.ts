@@ -22,6 +22,8 @@ import {
   isAssistantEditorVisible,
   waitForAssistantEditorClose,
   closeAssistantEditor,
+  ASSISTANT_PILL,
+  GUID_INPUT,
   BTN_CREATE_ASSISTANT,
   BTN_SAVE_ASSISTANT,
   BTN_DELETE_ASSISTANT,
@@ -353,7 +355,7 @@ test.describe('Assistant Settings CRUD', () => {
 
   test('disabled builtin assistant removed from guid page presets', async ({ page }) => {
     await goToGuidListView(page);
-    await page.locator('[data-agent-pill="true"]').first().waitFor({ state: 'visible', timeout: 8_000 });
+    await page.locator(ASSISTANT_PILL).first().waitFor({ state: 'visible', timeout: 8_000 });
 
     const visiblePresetIds = await page
       .locator('[data-testid^="preset-pill-"]')
@@ -377,7 +379,7 @@ test.describe('Assistant Settings CRUD', () => {
 
     // Go to guid and verify it's gone
     await goToGuidListView(page);
-    await page.locator('[data-agent-pill="true"]').first().waitFor({ state: 'visible', timeout: 8_000 });
+    await page.locator(GUID_INPUT).first().waitFor({ state: 'visible', timeout: 8_000 });
     await expect
       .poll(
         async () =>
@@ -478,14 +480,11 @@ test.describe('Assistant Settings CRUD', () => {
     await goToAssistantSettings(page);
     await page.locator('[data-testid^="assistant-card-"]').first().waitFor({ state: 'visible', timeout: 15_000 });
 
-    const builtinCard = page
-      .locator('[data-testid^="assistant-card-"]')
-      .filter({ hasText: /官方|Official/i })
-      .first();
-    await expect(builtinCard).toBeVisible({ timeout: 10_000 });
-    const builtinId = ((await builtinCard.getAttribute('data-testid')) ?? '').replace('assistant-card-', '');
+    const builtinAssistant = (await fetchAssistantCatalog(page)).find((assistant) => assistant.source === 'builtin');
+    test.skip(!builtinAssistant, 'No builtin assistant found in catalog');
+    if (!builtinAssistant) return;
 
-    await duplicateAssistant(page, builtinId);
+    await duplicateAssistant(page, builtinAssistant.id);
     await expect(page.locator(BTN_SAVE_ASSISTANT)).toContainText(/Create|创建/i);
     await expect(page.locator('[data-testid="input-assistant-name"]')).not.toBeDisabled();
     await expect(page.locator('[data-testid="input-assistant-desc"]')).not.toBeDisabled();

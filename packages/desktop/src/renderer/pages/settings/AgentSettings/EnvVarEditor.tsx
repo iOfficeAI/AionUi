@@ -64,7 +64,10 @@ const EnvVarEditor: React.FC<EnvVarEditorProps> = ({ value, onChange }) => {
         {value.map((envVar) => {
           const isVisible = visibleIds.has(envVar.id);
           return (
-            <div key={envVar.id} className='grid grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)_auto_auto] items-center gap-8px'>
+            <div
+              key={envVar.id}
+              className='grid grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)_auto_auto] items-center gap-8px'
+            >
               <Input
                 size='large'
                 value={envVar.key}
@@ -81,7 +84,9 @@ const EnvVarEditor: React.FC<EnvVarEditorProps> = ({ value, onChange }) => {
               <Button
                 type='text'
                 size='small'
-                icon={isVisible ? <PreviewClose theme='outline' size={16} /> : <PreviewOpen theme='outline' size={16} />}
+                icon={
+                  isVisible ? <PreviewClose theme='outline' size={16} /> : <PreviewOpen theme='outline' size={16} />
+                }
                 onClick={() => toggleVisibility(envVar.id)}
                 className='!h-36px !w-36px !rounded-10px !px-0 text-t-tertiary hover:text-t-secondary'
               />

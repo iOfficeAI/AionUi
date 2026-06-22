@@ -83,7 +83,12 @@ import type {
 import type { AgentMetadata } from '@/renderer/utils/model/agentTypes';
 import type { Theme } from '@/common/theme/types';
 import type { ProtocolDetectionRequest, ProtocolDetectionResponse } from '../utils/protocolDetector';
-import { buildCreateConversationBody, fromApiConversation, fromApiPaginatedConversations, toApiModelOptional } from './apiModelMapper';
+import {
+  buildCreateConversationBody,
+  fromApiConversation,
+  fromApiPaginatedConversations,
+  toApiModelOptional,
+} from './apiModelMapper';
 import {
   httpDelete,
   httpGet,
@@ -756,9 +761,10 @@ export const acpConversation = {
   getAgentLogos: httpGet<import('@/renderer/utils/model/agentLogo').AgentLogoEntry[], void>('/api/agents/logos'),
   /** Management view used by Agent settings. */
   getManagedAgents: httpGet<import('@/renderer/utils/model/agentTypes').ManagedAgent[], void>('/api/agents/management'),
-  getAgentOverrides: httpGet<{ command_override?: string; env_override: { name: string; value: string }[] }, { id: string }>(
-    (p) => `/api/agents/${encodeURIComponent(p.id)}/overrides`
-  ),
+  getAgentOverrides: httpGet<
+    { command_override?: string; env_override: { name: string; value: string }[] },
+    { id: string }
+  >((p) => `/api/agents/${encodeURIComponent(p.id)}/overrides`),
   setAgentOverrides: httpPut<
     import('@/renderer/utils/model/agentTypes').ManagedAgent,
     { id: string; command_override?: string | null; env_override?: { name: string; value: string }[] }

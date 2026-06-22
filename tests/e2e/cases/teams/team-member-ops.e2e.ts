@@ -94,7 +94,6 @@ test.describe('Team Member Ops', () => {
         name: memberName,
         role: 'teammate',
         assistant_id: memberAssistantId,
-        backend: 'claude',
         model: 'claude',
       },
     }).catch(() => null);

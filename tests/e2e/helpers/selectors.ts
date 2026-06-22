@@ -139,6 +139,18 @@ export function presetPillById(id: string): string {
   return `[data-testid="preset-pill-${id}"]`;
 }
 
+/** Overflow assistant pill by ID on guid page. */
+export function assistantOverflowPillById(id: string): string {
+  return `[data-testid="assistant-overflow-${id}"]`;
+}
+
+/** Stable selector for all assistant pills on guid page. */
+export const ASSISTANT_PILL = '[data-testid^="preset-pill-"], [data-testid^="assistant-overflow-"]';
+
+/** Match currently selected assistant pill. */
+export const ASSISTANT_PILL_SELECTED =
+  '[data-testid^="preset-pill-"][data-assistant-selected="true"], [data-testid^="assistant-overflow-"][data-assistant-selected="true"]';
+
 /** Assistant editor surface: full-page editor or legacy drawer wrapper. */
 export const ASSISTANT_EDITOR_SURFACE = '[data-testid="assistant-editor-page"], [data-testid="assistant-edit-drawer"]';
 

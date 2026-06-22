@@ -13,15 +13,14 @@ import {
   goToGuid,
   goToNewChat,
   selectAgent,
+  findAssistantIdForBackend,
   sendMessageFromGuid,
   waitForSessionActive,
   waitForAiReply,
   deleteConversation,
   waitForSettle,
-  AGENT_PILL,
-  AGENT_STATUS_MESSAGE,
   AGENT_BADGE,
-  agentPillByBackend,
+  ASSISTANT_PILL,
   SKILLS_INDICATOR,
   SKILLS_INDICATOR_COUNT,
   invokeBridge,
@@ -33,30 +32,13 @@ import {
 test.describe.configure({ timeout: 180_000 });
 
 /**
- * Pick the first available agent backend from the guid page pill bar.
+ * Pick the first available assistant backend from the unified assistant catalog.
  * Returns the backend name (e.g. 'gemini', 'claude') or null if none found.
- * If pills are missing (e.g. after many conversation cycles), reloads once to reset SWR.
  */
 async function pickAvailableBackend(page: import('@playwright/test').Page): Promise<string | null> {
-  for (let attempt = 0; attempt < 2; attempt++) {
-    const visible = await page
-      .locator(AGENT_PILL)
-      .first()
-      .waitFor({ state: 'visible', timeout: 15_000 })
-      .then(() => true)
-      .catch(() => false);
-    if (visible) {
-      const backends = await page
-        .locator(AGENT_PILL)
-        .evaluateAll((els) => els.map((el) => el.getAttribute('data-agent-backend')).filter(Boolean));
-      const found = ['gemini', 'claude', 'codex', 'aionrs'].find((b) => backends.includes(b));
-      if (found) return found;
-    }
-    if (attempt === 0) {
-      // Reload to reset stale SWR caches after conversation cycles
-      await page.reload({ waitUntil: 'domcontentloaded' });
-      await goToGuid(page);
-    }
+  for (const backend of ['gemini', 'claude', 'codex', 'aionrs']) {
+    const assistantId = await findAssistantIdForBackend(page, backend, { requireAvailable: true }).catch(() => null);
+    if (assistantId) return backend;
   }
   return null;
 }
@@ -71,6 +53,9 @@ type CronJobRecord = {
     agent_config?: {
       backend?: string;
       mode?: string;
+      assistant_id?: string;
+      custom_agent_id?: string;
+      preset_agent_type?: string;
     };
   };
 };
@@ -448,19 +433,9 @@ async function removeConversationViaBridge(
 test.describe('Conversation Full Cycle', () => {
   test('Gemini -- full conversation with AI reply', async ({ page }) => {
     await goToGuid(page);
-    const pill = page.locator(agentPillByBackend('gemini'));
-    const visible = await pill.isVisible().catch(() => false);
-    if (!visible) {
-      await page
-        .locator(AGENT_PILL)
-        .first()
-        .waitFor({ state: 'visible', timeout: 8_000 })
-        .catch(() => {});
-      const retryVisible = await pill.isVisible().catch(() => false);
-      if (!retryVisible) {
-        test.skip(true, 'Gemini agent not available');
-        return;
-      }
+    if (!(await findAssistantIdForBackend(page, 'gemini', { requireAvailable: true }))) {
+      test.skip(true, 'Gemini assistant not available');
+      return;
     }
 
     await selectAgent(page, 'gemini');
@@ -478,19 +453,9 @@ test.describe('Conversation Full Cycle', () => {
 
   test('Claude -- full conversation with AI reply', async ({ page }) => {
     await goToGuid(page);
-    const pill = page.locator(agentPillByBackend('claude'));
-    const visible = await pill.isVisible().catch(() => false);
-    if (!visible) {
-      await page
-        .locator(AGENT_PILL)
-        .first()
-        .waitFor({ state: 'visible', timeout: 8_000 })
-        .catch(() => {});
-      const retryVisible = await pill.isVisible().catch(() => false);
-      if (!retryVisible) {
-        test.skip(true, 'Claude agent not available -- CLI may not be installed');
-        return;
-      }
+    if (!(await findAssistantIdForBackend(page, 'claude', { requireAvailable: true }))) {
+      test.skip(true, 'Claude assistant not available -- CLI may not be installed');
+      return;
     }
 
     await selectAgent(page, 'claude');
@@ -508,19 +473,9 @@ test.describe('Conversation Full Cycle', () => {
 
   test('Codex -- full conversation with AI reply', async ({ page }) => {
     await goToGuid(page);
-    const pill = page.locator(agentPillByBackend('codex'));
-    const visible = await pill.isVisible().catch(() => false);
-    if (!visible) {
-      await page
-        .locator(AGENT_PILL)
-        .first()
-        .waitFor({ state: 'visible', timeout: 8_000 })
-        .catch(() => {});
-      const retryVisible = await pill.isVisible().catch(() => false);
-      if (!retryVisible) {
-        test.skip(true, 'Codex agent not available -- CLI may not be installed');
-        return;
-      }
+    if (!(await findAssistantIdForBackend(page, 'codex', { requireAvailable: true }))) {
+      test.skip(true, 'Codex assistant not available -- CLI may not be installed');
+      return;
     }
 
     await selectAgent(page, 'codex');
@@ -691,8 +646,8 @@ test.describe('Conversation Full Cycle', () => {
     const url = page.url();
     expect(url).toContain('guid');
 
-    // Can re-select an agent
-    const pills = page.locator(AGENT_PILL);
+    // Can still see assistant choices on Guid.
+    const pills = page.locator(ASSISTANT_PILL);
     await expect(pills.first()).toBeVisible({ timeout: 8_000 });
 
     await deleteConversation(page, conversationId);
@@ -720,9 +675,9 @@ test.describe('Conversation Full Cycle', () => {
     expect(url).toContain('guid');
   });
 
-  // -- Supplementary cases: Cron agent selection ----------------------------
+  // -- Supplementary cases: Cron assistant selection ----------------------------
 
-  test('cron -- create task with CLI agent, verify detail, then delete', async ({ page }) => {
+  test('cron -- create task with assistant, verify detail, then delete', async ({ page }) => {
     // Ensure the app is fully loaded (auth + React Router ready)
     await goToGuid(page);
     await page
@@ -763,23 +718,22 @@ test.describe('Conversation Full Cycle', () => {
     await dialog.locator('#name input').fill(taskName);
     await dialog.locator('#description input').fill('E2E test task');
 
-    // Select CLI agent — the Select wrapper is inside the form-item for field "agent"
+    // Select assistant — the Select wrapper is inside the form-item for field "agent"
     const agentFormItem = dialog.locator('.arco-form-item').filter({ has: page.locator('#agent') });
     const agentSelect = agentFormItem.locator('.arco-select').first();
     await agentSelect.click();
 
-    // CLI agents appear in OptGroup "CLI Agents"; pick the first one
-    const cliOptions = page.locator('.arco-select-option').filter({ hasText: /Claude|Codex|Gemini|Aion/ });
-    if ((await cliOptions.count()) === 0) {
+    const assistantOptions = page.locator('.arco-select-option').filter({ hasText: /Claude|Codex|Gemini|Aion/ });
+    if ((await assistantOptions.count()) === 0) {
       await page.keyboard.press('Escape');
       await page.keyboard.press('Escape');
-      test.skip(true, 'No CLI agents available in create task dialog');
+      test.skip(true, 'No assistants available in create task dialog');
       return;
     }
-    const selectedOptionText = await cliOptions.first().textContent();
-    await cliOptions.first().click();
+    const selectedOptionText = await assistantOptions.first().textContent();
+    await assistantOptions.first().click();
 
-    // Verify agent name shows in select trigger
+    // Verify assistant name shows in select trigger
     await expect(agentSelect).toContainText(selectedOptionText!.trim(), { timeout: 3_000 });
 
     // Fill prompt
@@ -1112,17 +1066,11 @@ test.describe('Conversation Full Cycle', () => {
         await page
           .waitForFunction(() => (document.body.textContent?.length ?? 0) > 200, { timeout: 15_000 })
           .catch(() => {});
-        await page
-          .locator(AGENT_PILL)
-          .first()
-          .waitFor({ state: 'visible', timeout: 30_000 })
-          .catch(() => {});
-
-        const agentPill = page.locator(agentPillByBackend(backend));
-        if (!(await agentPill.isVisible().catch(() => false))) {
-          test.skip(true, `${backend} agent not available on guid page`);
+        if (!(await findAssistantIdForBackend(page, backend, { requireAvailable: true }))) {
+          test.skip(true, `${backend} assistant not available on guid page`);
           return;
         }
+        const selectedAssistantId = await findAssistantIdForBackend(page, backend, { requireAvailable: true });
 
         await expectCronBuiltinAutoSkill(page);
         await selectAgent(page, backend);
@@ -1153,11 +1101,9 @@ test.describe('Conversation Full Cycle', () => {
 
         expect(job.name).toContain(taskName);
         expect(job.metadata?.created_by).toBe('agent');
-        if (backend === 'aionrs') {
-          expect(job.metadata?.agent_type).toBe('aionrs');
-        } else {
-          expect(job.metadata?.agent_config?.backend).toBe(backend);
-        }
+        expect(job.metadata?.agent_config?.assistant_id).toBe(selectedAssistantId);
+        expect(job.metadata?.agent_config?.custom_agent_id).toBeUndefined();
+        expect(job.metadata?.agent_config?.preset_agent_type).toBeUndefined();
         expect(job.metadata?.agent_config?.mode).toBe(getFullAutoMode(backend));
         await expect
           .poll(
@@ -1514,13 +1460,13 @@ test.describe('Conversation Full Cycle', () => {
   test('AgentBadge click navigates to AssistantSettings', async ({ page }) => {
     await goToGuid(page);
     const pillVisible = await page
-      .locator(AGENT_PILL)
+      .locator(ASSISTANT_PILL)
       .first()
       .waitFor({ state: 'visible', timeout: 15_000 })
       .then(() => true)
       .catch(() => false);
     if (!pillVisible) {
-      test.skip(true, 'Agent pills not visible on guid page');
+      test.skip(true, 'Assistant pills not visible on guid page');
       return;
     }
 

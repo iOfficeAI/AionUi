@@ -11,7 +11,7 @@ import { invokeBridge } from '../helpers';
 type TTeamBackendAgent = {
   role: string;
   name: string;
-  backend: string;
+  assistant_backend: string;
   assistant_id?: string;
   custom_agent_id?: string;
 };
@@ -19,7 +19,7 @@ type TTeamBackendAgent = {
 type TTeam = {
   id: string;
   name: string;
-  agents: TTeamBackendAgent[];
+  assistants: TTeamBackendAgent[];
 };
 
 test.describe('Team Create - assistant leader', () => {
@@ -77,12 +77,12 @@ test.describe('Team Create - assistant leader', () => {
 
       const team = await invokeBridge<TTeam | null>(page, 'team.get', { id: createdTeamId });
       expect(team).toBeTruthy();
-      expect(team!.agents.length).toBe(1);
+      expect(team!.assistants.length).toBe(1);
 
-      const leader = team!.agents[0];
-      expect(leader.role).toBe('lead');
+      const leader = team!.assistants[0];
+      expect(['lead', 'leader']).toContain(leader.role);
       expect(leader.assistant_id).toBe(expectedAssistantId);
-      expect(leader.backend).toBeTruthy();
+      expect(leader.assistant_backend).toBeTruthy();
     } finally {
       if (createdTeamId) {
         await invokeBridge(page, 'team.remove', { id: createdTeamId }).catch(() => {});

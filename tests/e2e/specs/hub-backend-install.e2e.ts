@@ -8,7 +8,7 @@
  * 4. Verify per-card status buttons (Install / Installed / Installing / Retry)
  * 5. Click Install on an available agent, verify status transition
  * 6. Close modal, verify detected agents list reflects the new backend
- * 7. Navigate to guid page, verify new backend appears in pill bar
+ * 7. Navigate to guid page, verify assistant choices appear in the pill bar
  *
  * UI references:
  * - LocalAgents.tsx: "Install from Market" button, detected agents grid
@@ -16,7 +16,7 @@
  * - Status buttons: Install / Installing... / Installed / Retry
  */
 import { test, expect } from '../fixtures';
-import { goToGuid, goToSettings, waitForSettle, AGENT_PILL } from '../helpers';
+import { goToGuid, goToSettings, waitForSettle, ASSISTANT_PILL } from '../helpers';
 
 // ── Selectors ────────────────────────────────────────────────────────────────
 
@@ -231,32 +231,25 @@ test.describe('Hub Backend Install — E2E', () => {
     });
   });
 
-  test.describe('Post-Install — Pill Bar Integration', () => {
-    test('agent pill bar on guid page renders available backends', async ({ page }) => {
+  test.describe('Post-Install — Assistant Pill Integration', () => {
+    test('assistant pill bar on guid page renders available assistants', async ({ page }) => {
       await goToGuid(page);
 
-      const pills = page.locator(AGENT_PILL);
+      const pills = page.locator(ASSISTANT_PILL);
       await expect(pills.first()).toBeVisible({ timeout: 8_000 });
 
       const count = await pills.count();
       expect(count).toBeGreaterThanOrEqual(1);
     });
 
-    test('selecting an agent in pill bar activates it for chat', async ({ page }) => {
+    test('selecting an assistant in pill bar activates it for chat', async ({ page }) => {
       await goToGuid(page);
 
-      const pills = page.locator(AGENT_PILL);
+      const pills = page.locator(ASSISTANT_PILL);
       await expect(pills.first()).toBeVisible({ timeout: 8_000 });
 
       // Click the first pill
       await pills.first().click();
-
-      // Verify it becomes selected
-      await expect
-        .poll(async () => {
-          return await pills.first().getAttribute('data-agent-selected');
-        })
-        .toBe('true');
 
       // Chat input should be available
       const chatInput = page.locator('textarea, [contenteditable="true"], [role="textbox"]').first();

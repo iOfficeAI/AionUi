@@ -54,6 +54,7 @@ type TTeamBackendAgent = {
   role: string;
   name: string;
   backend: string;
+  assistant_backend?: string;
   model: string;
   status: string;
   assistant_id?: string;
@@ -62,7 +63,8 @@ type TTeamBackendAgent = {
 type TTeam = {
   id: string;
   name: string;
-  agents: TTeamBackendAgent[];
+  assistants?: TTeamBackendAgent[];
+  agents?: TTeamBackendAgent[];
 };
 
 // Preferred presets to probe (in priority order). The test resolves to
@@ -224,7 +226,8 @@ test.describe('Team MCP - team_describe_assistant', () => {
       // ── 2. Read the port + auth token from the leader conversation ───────
       const team = await invokeBridge<TTeam | null>(page, 'team.get', { id: createdTeamId });
       expect(team, 'team.get should return the freshly-created team').toBeTruthy();
-      const leader = team!.agents.find((a) => a.role === 'lead');
+      const teamAssistants = team!.assistants ?? team!.agents ?? [];
+      const leader = teamAssistants.find((a) => a.role === 'lead' || a.role === 'leader');
       expect(leader?.conversation_id, 'leader must have a conversation id').toBeTruthy();
 
       const leaderConv = await invokeBridge<LeaderConversation>(page, 'get-conversation', {
@@ -316,11 +319,13 @@ test.describe('Team MCP - team_describe_assistant', () => {
         // Backend verification: team now has two agents, and the new one
         // carries the expected preset metadata.
         const teamAfterSpawn = await invokeBridge<TTeam | null>(page, 'team.get', { id: createdTeamId });
-        expect(teamAfterSpawn?.agents.length).toBe(2);
-        const spawned = teamAfterSpawn!.agents.find((a) => a.name === teammateName);
+        const assistantsAfterSpawn = teamAfterSpawn?.assistants ?? teamAfterSpawn?.agents ?? [];
+        expect(assistantsAfterSpawn.length).toBe(2);
+        const spawned = assistantsAfterSpawn.find((a) => a.name === teammateName);
         expect(spawned, 'spawned teammate must be present').toBeTruthy();
-        expect(spawned!.assistant_id ?? spawned!.custom_agent_id).toBe(presetId);
-        expect(spawned!.backend).toBe('aionrs'); // preset backend wins
+        expect(spawned!.assistant_id).toBe(presetId);
+        expect(spawned!.custom_agent_id).toBeUndefined();
+        expect(spawned!.assistant_backend ?? spawned!.backend).toBe('aionrs'); // preset backend wins
       } finally {
         client.close();
       }

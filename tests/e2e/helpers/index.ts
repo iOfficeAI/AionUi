@@ -38,6 +38,9 @@ export {
   channelItemById,
   channelSwitchById,
   webuiTabByKey,
+  assistantOverflowPillById,
+  ASSISTANT_PILL,
+  ASSISTANT_PILL_SELECTED,
   type ChannelId,
 } from './selectors';
 export { expectBodyContainsAny, expectUrlContains, createErrorCollector } from './assertions';

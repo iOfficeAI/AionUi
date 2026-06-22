@@ -78,6 +78,9 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
       <Button
         key={assistant.id}
         data-testid={testId}
+        data-assistant-id={assistant.id}
+        data-assistant-backend={assistant.preset_agent_type}
+        data-assistant-selected={isSelected ? 'true' : 'false'}
         type='text'
         className={`!inline-flex !min-w-0 !h-auto !items-center !gap-6px !rounded-999px !border-none !px-12px !py-8px !text-13px transition-all ${
           isSelected ? 'font-600 text-t-primary shadow-sm' : 'text-t-secondary opacity-75 hover:opacity-100'
