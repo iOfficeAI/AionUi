@@ -153,6 +153,10 @@
         "title": "所选 Agent 启动失败",
         "body": "Agent 进程在准备完成前退出了。请检查安装、登录状态和本地命令配置。"
       },
+      "USER_AGENT_OPENCLAW_GATEWAY_UNREACHABLE": {
+        "title": "OpenClaw Gateway 未运行",
+        "body": "OpenClaw Gateway 未运行，或无法连接到 127.0.0.1:18789。\n\n请启动 OpenClaw Gateway 后重试。你可以在终端运行：\nopenclaw gateway status\nopenclaw gateway start"
+      },
       "USER_AGENT_DISCONNECTED": {
         "title": "所选 Agent 已断开连接",
         "body": "Agent 在处理本次消息时断开了连接。请重启或重新连接 Agent 后重试。"

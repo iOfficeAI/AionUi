@@ -153,6 +153,10 @@
         "title": "선택한 에이전트 시작에 실패했습니다",
         "body": "에이전트 프로세스가 준비되기 전에 종료되었습니다. 설치, 로그인 상태, 로컬 명령 설정을 확인하세요."
       },
+      "USER_AGENT_OPENCLAW_GATEWAY_UNREACHABLE": {
+        "title": "OpenClaw Gateway에 연결할 수 없음",
+        "body": "OpenClaw Gateway가 실행 중이 아니거나 127.0.0.1:18789에 연결할 수 없습니다.\n\nOpenClaw Gateway를 시작한 뒤 다시 시도하세요. 다음 명령을 실행할 수 있습니다:\nopenclaw gateway status\nopenclaw gateway start"
+      },
       "USER_AGENT_DISCONNECTED": {
         "title": "선택한 에이전트 연결이 끊어졌습니다",
         "body": "이 메시지를 처리하는 동안 에이전트 연결이 닫혔습니다. 에이전트를 다시 시작하거나 다시 연결한 뒤 재시도하세요."

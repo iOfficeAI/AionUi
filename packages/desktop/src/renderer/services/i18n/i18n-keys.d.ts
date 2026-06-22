@@ -307,6 +307,8 @@ export type I18nKey =
   | 'conversation.agentError.codes.USER_AGENT_NOT_INSTALLED.title'
   | 'conversation.agentError.codes.USER_AGENT_NO_PREVIOUS_SESSION.body'
   | 'conversation.agentError.codes.USER_AGENT_NO_PREVIOUS_SESSION.title'
+  | 'conversation.agentError.codes.USER_AGENT_OPENCLAW_GATEWAY_UNREACHABLE.body'
+  | 'conversation.agentError.codes.USER_AGENT_OPENCLAW_GATEWAY_UNREACHABLE.title'
   | 'conversation.agentError.codes.USER_AGENT_PROTOCOL_MISMATCH.body'
   | 'conversation.agentError.codes.USER_AGENT_PROTOCOL_MISMATCH.title'
   | 'conversation.agentError.codes.USER_AGENT_SESSION_NOT_FOUND.body'

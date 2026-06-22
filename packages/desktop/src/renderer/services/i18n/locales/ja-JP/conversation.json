@@ -153,6 +153,10 @@
         "title": "選択したエージェントの起動に失敗しました",
         "body": "準備が完了する前にエージェントプロセスが終了しました。インストール、ログイン状態、ローカルコマンド設定を確認してください。"
       },
+      "USER_AGENT_OPENCLAW_GATEWAY_UNREACHABLE": {
+        "title": "OpenClaw Gateway に接続できません",
+        "body": "OpenClaw Gateway が実行されていないか、127.0.0.1:18789 に接続できません。\n\nOpenClaw Gateway を起動してから再試行してください。次のコマンドを実行できます:\nopenclaw gateway status\nopenclaw gateway start"
+      },
       "USER_AGENT_DISCONNECTED": {
         "title": "選択したエージェントが切断されました",
         "body": "このメッセージの処理中にエージェント接続が閉じられました。エージェントを再起動または再接続してから再試行してください。"
