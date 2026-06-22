@@ -145,8 +145,8 @@ function areStringArraysEqual(left?: string[], right?: string[]): boolean {
 function areStringRecordsEqual(left?: Record<string, string>, right?: Record<string, string>): boolean {
   const leftValue = left || {};
   const rightValue = right || {};
-  const leftKeys = Object.keys(leftValue).sort();
-  const rightKeys = Object.keys(rightValue).sort();
+  const leftKeys = Object.keys(leftValue).toSorted();
+  const rightKeys = Object.keys(rightValue).toSorted();
   return areStringArraysEqual(leftKeys, rightKeys) && leftKeys.every((key) => leftValue[key] === rightValue[key]);
 }
 

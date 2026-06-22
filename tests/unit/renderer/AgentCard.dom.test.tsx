@@ -17,6 +17,15 @@ vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (k: string) => k, i18n: { language: 'en' } }),
 }));
 
+const navigateMock = vi.fn();
+vi.mock('react-router-dom', async () => {
+  const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
+  return {
+    ...actual,
+    useNavigate: () => navigateMock,
+  };
+});
+
 import AgentCard from '@renderer/pages/settings/AgentSettings/AgentCard';
 
 const baseAgent = {
@@ -30,31 +39,30 @@ const renderCustom = (enabled: boolean, handlers: Partial<{ onToggle: (v: boolea
   render(
     <AgentCard
       type='custom'
-      agent={{ ...baseAgent, enabled, agent_type: 'acp', agent_source: 'custom', installed: true, status: 'available' }}
+      agent={{ ...baseAgent, enabled, agent_type: 'acp', agent_source: 'custom', installed: true, status: 'online' }}
       onEdit={vi.fn()}
       onDelete={vi.fn()}
       onToggle={handlers.onToggle ?? vi.fn()}
-      onTestConnection={vi.fn()}
     />
   );
 
 describe('AgentCard (custom variant)', () => {
-  it('greys the identity block and keeps test-connection available when the agent is disabled', () => {
+  it('greys the identity block and keeps the configure action available when the agent is disabled', () => {
     const { container } = renderCustom(false);
 
     // Disabled => identity block carries the opacity treatment.
     expect(container.querySelector('.opacity-50')).toBeTruthy();
-    const testConnection = screen
-      .getByText('settings.agentManagement.testConnection')
+    const configure = screen
+      .getByText('settings.agentManagement.configureConnection')
       .closest('button') as HTMLButtonElement;
-    expect(testConnection.disabled).toBe(false);
+    expect(configure.disabled).toBe(false);
   });
 
-  it('renders at full opacity with test-connection visible when the agent is enabled', () => {
+  it('renders at full opacity with the configure action visible when the agent is enabled', () => {
     const { container } = renderCustom(true);
 
     expect(container.querySelector('.opacity-50')).toBeNull();
-    expect(screen.getByText('settings.agentManagement.testConnection')).toBeTruthy();
+    expect(screen.getByText('settings.agentManagement.configureConnection')).toBeTruthy();
   });
 
   it('fires onToggle when the switch is clicked', () => {
@@ -69,7 +77,7 @@ describe('AgentCard (custom variant)', () => {
 });
 
 describe('AgentCard (official variant)', () => {
-  it('shows backend/type metadata and the latest localized diagnostic key', () => {
+  it('shows status tag and troubleshoot action for a missing official agent', () => {
     render(
       <AgentCard
         type='official'
@@ -86,17 +94,14 @@ describe('AgentCard (official variant)', () => {
           last_check_error_details: { command: 'claude' },
           last_check_error_message: 'CLI command not found',
         }}
-        onTestConnection={vi.fn()}
       />
     );
 
-    expect(screen.getByText('CLAUDE · ACP')).toBeInTheDocument();
-    expect(screen.getByText('settings.agentManagement.errorCodes.command_not_found')).toBeInTheDocument();
+    expect(screen.getByText('settings.agentManagement.statusMissing')).toBeInTheDocument();
+    expect(screen.getByText('settings.agentManagement.configureConnection')).toBeInTheDocument();
   });
 
-  it('shows the last check timestamp when a health snapshot is present', () => {
-    const checkedAt = Date.UTC(2026, 5, 17, 8, 30, 0);
-
+  it('navigates to the repair page when the configure action is clicked', () => {
     render(
       <AgentCard
         type='official'
@@ -108,54 +113,12 @@ describe('AgentCard (official variant)', () => {
           backend: 'gemini',
           enabled: true,
           installed: true,
-          status: 'available',
-          last_check_at: checkedAt,
+          status: 'online',
         }}
-        onTestConnection={vi.fn()}
       />
     );
 
-    expect(screen.getByText(`settings.mcpCheckedAtLabel ${new Date(checkedAt).toLocaleString()}`)).toBeInTheDocument();
-  });
-
-  it('shows a status summary even when no diagnostics text is present', () => {
-    render(
-      <AgentCard
-        type='official'
-        agent={{
-          id: 'aionrs',
-          name: 'Aion CLI',
-          agent_type: 'aionrs',
-          agent_source: 'internal',
-          backend: 'aionrs',
-          enabled: true,
-          installed: true,
-          status: 'available',
-        }}
-        onTestConnection={vi.fn()}
-      />
-    );
-
-    expect(screen.getByText('settings.agentManagement.testConnectionAvailable')).toBeInTheDocument();
-  });
-
-  it('renders needs_auth as a distinct yellow state with login guidance', () => {
-    render(
-      <AgentCard
-        type='official'
-        agent={{
-          id: 'test-agent',
-          name: 'Test Agent',
-          agent_type: 'acp',
-          agent_source: 'builtin',
-          enabled: true,
-          installed: true,
-          status: 'needs_auth',
-        }}
-        onTestConnection={vi.fn()}
-      />
-    );
-
-    expect(screen.getByText('settings.agentManagement.statusNeedsAuth')).toBeInTheDocument();
+    fireEvent.click(screen.getByText('settings.agentManagement.configureConnection'));
+    expect(navigateMock).toHaveBeenCalledWith('/settings/agent/gemini/repair');
   });
 });

@@ -5,7 +5,7 @@
  * than a business-facing picker. These tests lock the page to that contract:
  * - sections come from `/api/agents/management`
  * - official/custom buckets stay visible
- * - test-connection affordances exist
+ * - a troubleshoot/repair affordance exists per agent
  * - legacy market/chat/preset affordances do not reappear
  */
 import { test, expect } from '../fixtures';
@@ -15,7 +15,7 @@ type ManagedAgent = {
   id: string;
   name: string;
   agent_source: 'internal' | 'builtin' | 'extension' | 'custom';
-  status?: 'available' | 'unavailable' | 'missing';
+  status?: 'online' | 'offline' | 'missing';
 };
 
 const TEXT = {
@@ -23,14 +23,14 @@ const TEXT = {
   customAgents: ['Custom Agents', '自定义 Agents'],
   setupGuide: ['Setup guide', '查看安装指南'],
   detectCustomAgent: ['Detect Custom Agent', '识别自定义 Agent'],
-  testConnection: ['Test Connection', '测试连接'],
+  configureConnection: ['Configure', '配置'],
   commandLabel: ['Command', '命令'],
   commandPlaceholder: ['e.g. my-agent or /usr/local/bin/my-agent', '例如 my-agent 或 /usr/local/bin/my-agent'],
   installFromMarket: ['Install from Market', '从市场安装'],
   discoverMoreAgents: ['Discover More Agents', '发现更多 Agent'],
   startChat: ['Start Chat', '开始对话'],
-  statusAvailable: ['Available', '可用'],
-  statusUnavailable: ['Unavailable', '不可用'],
+  statusOnline: ['Online', '在线'],
+  statusOffline: ['Offline', '离线'],
   statusMissing: ['Missing', '未找到'],
 } as const;
 

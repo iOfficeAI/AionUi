@@ -8,7 +8,7 @@
 // Any shape change on either side requires a same-PR update on the other.
 
 export type AssistantSource = 'builtin' | 'bare' | 'user';
-export type AssistantAgentStatus = 'missing' | 'available' | 'unavailable';
+export type AssistantAgentStatus = 'missing' | 'online' | 'offline';
 
 export interface Assistant {
   id: string;

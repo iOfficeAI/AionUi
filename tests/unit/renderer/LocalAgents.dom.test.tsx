@@ -104,7 +104,7 @@ const makeAgents = () => [
     enabled: true,
     available: true,
     installed: true,
-    status: 'available',
+    status: 'online',
   },
   {
     id: 'acp-claude',
@@ -137,34 +137,11 @@ const makeAgents = () => [
     enabled: true,
     available: true,
     installed: true,
-    status: 'unavailable',
+    status: 'offline',
   },
 ];
 
 describe('LocalAgents', () => {
-  it('shows a success toast and refreshes the assistant catalog after an official-agent health check succeeds', async () => {
-    const revalidate = vi.fn().mockResolvedValue(undefined);
-    const refreshCatalog = vi.fn().mockResolvedValue(undefined);
-    useManagedAgents.mockReturnValue({ agents: makeAgents(), revalidate, refreshCatalog });
-    vi.mocked(ipcBridge.acpConversation.checkManagedAgentHealthById.invoke).mockResolvedValue({
-      ...makeAgents()[1],
-      status: 'available',
-    });
-
-    render(<LocalAgents />);
-
-    fireEvent.click(screen.getAllByText('settings.agentManagement.testConnection')[0]);
-
-    await waitFor(() => {
-      expect(ipcBridge.acpConversation.checkManagedAgentHealthById.invoke).toHaveBeenCalledWith({ id: 'aionrs' });
-    });
-    await waitFor(() => {
-      expect(refreshCatalog).toHaveBeenCalled();
-      expect(revalidate).not.toHaveBeenCalled();
-      expect(messageSuccess).toHaveBeenCalledWith('settings.agentManagement.testConnectionAvailable');
-    });
-  });
-
   it('reads the managed-agents view and renders detected + custom sections', () => {
     useManagedAgents.mockReturnValue({
       agents: makeAgents(),
@@ -202,9 +179,12 @@ describe('LocalAgents', () => {
 
     expect(screen.getByText('settings.agentManagement.officialAgents')).toBeTruthy();
     expect(screen.getByText('settings.agentManagement.customAgents')).toBeTruthy();
-    expect(screen.getAllByText('settings.agentManagement.statusMissing')).toHaveLength(2);
-    expect(screen.getByText('settings.agentManagement.statusUnavailable')).toBeTruthy();
+    // Only Claude Code shows 'missing' now; openclaw-gateway is filtered out as deprecated
+    expect(screen.getByText('settings.agentManagement.statusMissing')).toBeTruthy();
+    expect(screen.getByText('settings.agentManagement.statusOffline')).toBeTruthy();
     expect(screen.queryByText('settings.agentManagement.goToChat')).toBeNull();
+    // Verify deprecated agent is filtered out
+    expect(screen.queryByText('OpenClaw Gateway')).toBeNull();
   });
 
   it('shows a lightweight refresh hint while the management view is revalidating', () => {
@@ -221,7 +201,7 @@ describe('LocalAgents', () => {
     expect(screen.getByText('Aion CLI')).toBeInTheDocument();
   });
 
-  it('renders official agents as diagnostics cards with backend/type metadata', () => {
+  it('renders official agents as diagnostics cards and filters out deprecated types', () => {
     useManagedAgents.mockReturnValue({
       agents: makeAgents(),
       revalidate: vi.fn(),
@@ -230,9 +210,14 @@ describe('LocalAgents', () => {
 
     render(<LocalAgents />);
 
-    expect(screen.getByText('AIONRS · AIONRS')).toBeInTheDocument();
-    expect(screen.getByText('CLAUDE · ACP')).toBeInTheDocument();
-    expect(screen.getByText('OPENCLAW-GATEWAY · OPENCLAW-GATEWAY')).toBeInTheDocument();
+    // Agent names render
+    expect(screen.getByText('Aion CLI')).toBeInTheDocument();
+    expect(screen.getByText('Claude Code')).toBeInTheDocument();
+    // Deprecated openclaw-gateway agent is filtered out
+    expect(screen.queryByText('OpenClaw Gateway')).toBeNull();
+    // Status tags render
+    expect(screen.getByText('settings.agentManagement.statusOnline')).toBeInTheDocument();
+    expect(screen.getByText('settings.agentManagement.statusMissing')).toBeInTheDocument();
   });
 
   it('does not render the market-install CTA in the diagnostics-only agent page', () => {

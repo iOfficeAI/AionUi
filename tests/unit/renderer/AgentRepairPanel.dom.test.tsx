@@ -38,7 +38,7 @@ describe('AgentRepairPanel', () => {
     command: '/usr/local/bin/test-cli',
     enabled: true,
     installed: true,
-    status: 'needs_auth',
+    status: 'offline',
     env_override_key_count: 2,
     has_command_override: true,
   };
@@ -47,14 +47,22 @@ describe('AgentRepairPanel', () => {
     vi.clearAllMocks();
   });
 
-  it('does not fetch env plaintext until unlock', () => {
+  it('loads current overrides on mount without an unlock step', async () => {
     const getMock = vi.mocked(acpConversation.getAgentOverrides.invoke);
+    getMock.mockResolvedValue({
+      command_override: '/custom/path/cli',
+      env_override: [{ name: 'API_KEY', value: 'secret123' }],
+    });
     const onSaved = vi.fn();
 
     render(<AgentRepairPanel agent={mockAgent} onSaved={onSaved} />);
 
-    expect(getMock).not.toHaveBeenCalled();
-    expect(screen.getByText(/repair\.configuredVarsCount/)).toBeInTheDocument();
+    await waitFor(() => {
+      expect(getMock).toHaveBeenCalledWith({ id: 'test-agent-1' });
+    });
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText(/repair\.pathPlaceholder/)).toHaveValue('/custom/path/cli');
+    });
   });
 
   it('saves overrides then triggers test connection once', async () => {
@@ -79,15 +87,10 @@ describe('AgentRepairPanel', () => {
 
     render(<AgentRepairPanel agent={mockAgent} onSaved={onSaved} />);
 
-    // Unlock
-    const unlockButton = screen.getByRole('button', { name: /repair\.unlockAndEdit/ });
-    await user.click(unlockButton);
-
+    // Overrides load on mount — wait for the path input to fill.
     await waitFor(() => {
       expect(getMock).toHaveBeenCalledWith({ id: 'test-agent-1' });
     });
-
-    // Verify path input is filled
     await waitFor(() => {
       const pathInput = screen.getByPlaceholderText(/repair\.pathPlaceholder/);
       expect(pathInput).toHaveValue('/custom/path/cli');
@@ -130,10 +133,7 @@ describe('AgentRepairPanel', () => {
 
     render(<AgentRepairPanel agent={mockAgent} onSaved={onSaved} />);
 
-    // Unlock
-    const unlockButton = screen.getByRole('button', { name: /repair\.unlockAndEdit/ });
-    await user.click(unlockButton);
-
+    // Wait for the mount-time load to populate the duplicate env rows.
     await waitFor(() => {
       expect(getMock).toHaveBeenCalledWith({ id: 'test-agent-1' });
     });
@@ -149,5 +149,30 @@ describe('AgentRepairPanel', () => {
 
     expect(setMock).not.toHaveBeenCalled();
     expect(onSaved).not.toHaveBeenCalled();
+  });
+
+  it('shows the offline diagnostic banner and the launch path for an offline agent', async () => {
+    vi.mocked(acpConversation.getAgentOverrides.invoke).mockResolvedValue({});
+
+    render(<AgentRepairPanel agent={mockAgent} onSaved={vi.fn()} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('settings.repair.offlineTitle')).toBeInTheDocument();
+    });
+    // Non-online agents expose the launch path as the primary lever.
+    expect(screen.getByText('settings.repair.pathLabel')).toBeInTheDocument();
+  });
+
+  it('shows the online banner and hides the launch path entirely when online', async () => {
+    vi.mocked(acpConversation.getAgentOverrides.invoke).mockResolvedValue({});
+
+    render(<AgentRepairPanel agent={{ ...mockAgent, status: 'online' }} onSaved={vi.fn()} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('settings.repair.onlineTitle')).toBeInTheDocument();
+    });
+    // Online: only environment variables are shown; the launch path is hidden.
+    expect(screen.getByText('settings.repair.envLabel')).toBeInTheDocument();
+    expect(screen.queryByText('settings.repair.pathLabel')).toBeNull();
   });
 });

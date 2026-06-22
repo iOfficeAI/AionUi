@@ -32,7 +32,7 @@ vi.mock('@/renderer/pages/guid/hooks/useCustomAgentsLoader', () => ({
         prompts: [],
         prompts_i18n: {},
         models: ['claude-opus', 'claude-sonnet'],
-        agent_status: 'available',
+        agent_status: 'online',
         team_selectable: true,
         deletable: false,
       } satisfies Assistant,

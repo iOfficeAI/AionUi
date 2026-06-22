@@ -6,7 +6,7 @@
 
 import { ipcBridge } from '@/common';
 import { parseError } from '@/common/utils';
-import { formatManagedAgentDiagnosticMessage, type ManagedAgent } from '@/renderer/utils/model/agentTypes';
+import { type ManagedAgent } from '@/renderer/utils/model/agentTypes';
 import AionModal from '@/renderer/components/base/AionModal';
 import { useManagedAgents } from '@/renderer/hooks/agent/useManagedAgents';
 import { openExternalUrl } from '@/renderer/utils/platform';
@@ -14,13 +14,13 @@ import { Button, Message, Typography } from '@arco-design/web-react';
 import React, { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import AgentCard from './AgentCard';
+import { isDeprecatedRuntimeAgentType } from '@/renderer/utils/model/agentTypeSupportPolicy';
 import InlineAgentEditor, { type CustomAgentDraft } from './InlineAgentEditor';
 
 const LOCAL_AGENT_SETUP_GUIDE_URL = 'https://github.com/iOfficeAI/AionUi/wiki/Getting-Started';
 
 const LocalAgents: React.FC = () => {
   const { t } = useTranslation();
-  const [testingAgentId, setTestingAgentId] = useState<string | null>(null);
 
   // Management view: includes user-disabled custom agents so they stay
   // listed (greyed) with a working re-enable toggle. `refreshCatalog`
@@ -28,7 +28,11 @@ const LocalAgents: React.FC = () => {
   // can change after health checks or custom-agent mutations.
   const { agents: allAgents, isRefreshing, refreshCatalog } = useManagedAgents();
 
-  const officialAgents = allAgents.filter((a) => a.agent_source !== 'custom');
+  // Hide deprecated runtime backends (nanobot / openclaw-gateway / remote / gemini)
+  // — they are no longer offered as agents and shouldn't appear on the detection page.
+  const officialAgents = allAgents.filter(
+    (a) => a.agent_source !== 'custom' && !isDeprecatedRuntimeAgentType(a.agent_type)
+  );
 
   const customAgents: ManagedAgent[] = allAgents.filter((a) => a.agent_source === 'custom');
 
@@ -88,7 +92,7 @@ const LocalAgents: React.FC = () => {
     [refreshCatalog]
   );
 
-  const sortedOfficialAgents = [...officialAgents].sort((left, right) => {
+  const sortedOfficialAgents = [...officialAgents].toSorted((left, right) => {
     const leftIsAionrs = left.agent_type === 'aionrs' || left.backend === 'aionrs';
     const rightIsAionrs = right.agent_type === 'aionrs' || right.backend === 'aionrs';
     if (leftIsAionrs !== rightIsAionrs) {
@@ -101,38 +105,6 @@ const LocalAgents: React.FC = () => {
     setEditingAgent(null);
     setEditorVisible(true);
   }, []);
-
-  const handleTestConnection = useCallback(
-    async (agentId: string) => {
-      try {
-        setTestingAgentId(agentId);
-        const result = await ipcBridge.acpConversation.checkManagedAgentHealthById.invoke({ id: agentId });
-        await refreshCatalog();
-        switch (result.status) {
-          case 'available':
-            Message.success(t('settings.agentManagement.testConnectionAvailable', { name: result.name }));
-            break;
-          case 'missing':
-            Message.warning(t('settings.agentManagement.testConnectionMissing', { name: result.name }));
-            break;
-          case 'unavailable':
-            Message.warning(
-              formatManagedAgentDiagnosticMessage(t, result) ||
-                t('settings.agentManagement.testConnectionUnavailable', { name: result.name })
-            );
-            break;
-          default:
-            break;
-        }
-      } catch (error) {
-        console.error('test managed agent failed:', error);
-        Message.error(t('settings.agentManagement.testConnectionError'));
-      } finally {
-        setTestingAgentId(null);
-      }
-    },
-    [refreshCatalog, t]
-  );
 
   return (
     <div className='flex flex-col gap-8px py-16px'>
@@ -169,13 +141,7 @@ const LocalAgents: React.FC = () => {
       </div>
       <div className='grid grid-cols-2 gap-10px px-16px md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5'>
         {sortedOfficialAgents.map((agent) => (
-          <AgentCard
-            key={agent.id}
-            type='official'
-            agent={agent}
-            onTestConnection={() => void handleTestConnection(agent.id)}
-            isTesting={testingAgentId === agent.id}
-          />
+          <AgentCard key={agent.id} type='official' agent={agent} />
         ))}
       </div>
       {(!officialAgents || officialAgents.length === 0) && (
@@ -236,14 +202,12 @@ const LocalAgents: React.FC = () => {
             key={agent.id}
             type='custom'
             agent={agent}
-            onTestConnection={() => void handleTestConnection(agent.id)}
             onEdit={() => {
               setEditingAgent(agent);
               setEditorVisible(true);
             }}
             onDelete={() => void handleDeleteCustomAgent(agent.id)}
             onToggle={(enabled) => void handleToggleCustomAgent(agent.id, enabled)}
-            isTesting={testingAgentId === agent.id}
           />
         ))}
         {customAgents.length === 0 ? (

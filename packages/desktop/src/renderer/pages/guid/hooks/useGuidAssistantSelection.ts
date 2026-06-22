@@ -184,7 +184,7 @@ export const useGuidAssistantSelection = ({
   const selectedAssistantModels = selectedAssistant?.models ?? [];
 
   const selectedAssistantAvailable = useMemo(() => {
-    return selectedAssistant?.agent_status === 'available';
+    return selectedAssistant?.agent_status === 'online';
   }, [selectedAssistant]);
 
   useEffect(() => {

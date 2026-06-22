@@ -37,7 +37,7 @@ function readDirectories(root) {
     .readdirSync(root, { withFileTypes: true })
     .filter((entry) => entry.isDirectory())
     .map((entry) => entry.name)
-    .sort();
+    .toSorted();
 }
 
 function isFile(filePath) {

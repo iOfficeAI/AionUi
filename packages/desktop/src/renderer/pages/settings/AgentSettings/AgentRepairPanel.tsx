@@ -4,11 +4,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, Button, Input, Typography } from '@arco-design/web-react';
 import { useTranslation } from 'react-i18next';
 import { acpConversation } from '@/common/adapter/ipcBridge';
-import type { ManagedAgent } from '@/renderer/utils/model/agentTypes';
+import { formatManagedAgentDiagnosticMessage, type ManagedAgent } from '@/renderer/utils/model/agentTypes';
 import EnvVarEditor, { type EnvVarRow } from './EnvVarEditor';
 import { uuid } from '@/common/utils';
 
@@ -17,31 +17,67 @@ type AgentRepairPanelProps = {
   onSaved: () => void;
 };
 
+// The diagnostic banner gives the page context: what state the agent is in,
+// why, and which field below to act on. It also corrects the common
+// misconception that "online" means "ready to use" — online only means a
+// connection handshake succeeded, not that the agent is logged in/authorized.
+type DiagnosticBanner = {
+  type: 'success' | 'warning' | 'error';
+  title: string;
+  content: string;
+};
+
+const resolveDiagnosticBanner = (t: ReturnType<typeof useTranslation>['t'], agent: ManagedAgent): DiagnosticBanner => {
+  const diagnostics = formatManagedAgentDiagnosticMessage(t, agent);
+  switch (agent.status) {
+    case 'missing':
+      return {
+        type: 'error',
+        title: t('settings.repair.missingTitle'),
+        content: diagnostics || t('settings.repair.missingHint'),
+      };
+    case 'offline':
+      return {
+        type: 'warning',
+        title: t('settings.repair.offlineTitle'),
+        content: diagnostics || t('settings.repair.offlineHint'),
+      };
+    default:
+      return {
+        type: 'success',
+        title: t('settings.repair.onlineTitle'),
+        content: t('settings.repair.onlineHint'),
+      };
+  }
+};
+
 const AgentRepairPanel: React.FC<AgentRepairPanelProps> = ({ agent, onSaved }) => {
   const { t } = useTranslation();
-  const [isUnlocked, setIsUnlocked] = useState(false);
   const [commandOverride, setCommandOverride] = useState('');
   const [envRows, setEnvRows] = useState<EnvVarRow[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
   const savingRef = useRef(false);
 
-  const handleUnlock = useCallback(async () => {
-    try {
-      const overrides = await acpConversation.getAgentOverrides.invoke({ id: agent.id });
-      setCommandOverride(overrides.command_override || '');
-      const rows = (overrides.env_override || []).map((env) => ({
-        id: uuid(),
-        key: env.name,
-        value: env.value,
-      }));
-      setEnvRows(rows);
-      setIsUnlocked(true);
-      setError('');
-    } catch (err) {
-      console.error('Failed to fetch agent overrides:', err);
-      setError(err instanceof Error ? err.message : String(err));
-    }
+  // Load current overrides on mount. The repair page is itself the explicit
+  // entry point, so there's no separate unlock step.
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const overrides = await acpConversation.getAgentOverrides.invoke({ id: agent.id });
+        if (cancelled) return;
+        setCommandOverride(overrides.command_override || '');
+        setEnvRows((overrides.env_override || []).map((env) => ({ id: uuid(), key: env.name, value: env.value })));
+      } catch (err) {
+        if (cancelled) return;
+        console.error('Failed to fetch agent overrides:', err);
+        setError(err instanceof Error ? err.message : String(err));
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [agent.id]);
 
   const handleReset = useCallback(() => {
@@ -87,55 +123,57 @@ const AgentRepairPanel: React.FC<AgentRepairPanelProps> = ({ agent, onSaved }) =
     }
   }, [agent.id, commandOverride, envRows, isSaving, onSaved, t]);
 
-  if (!isUnlocked) {
-    return (
-      <div className='mt-10px flex flex-col gap-10px rounded-10px bg-aou-1 px-12px py-10px'>
-        <div className='text-12px text-t-secondary'>
-          {agent.env_override_key_count !== undefined && agent.env_override_key_count > 0 && (
-            <div>{t('settings.repair.configuredVarsCount', { count: agent.env_override_key_count })}</div>
-          )}
-          {agent.has_command_override && <div>{t('settings.repair.hasPathOverride')}</div>}
-        </div>
-        <Button size='small' type='secondary' onClick={handleUnlock} className='!rounded-8px'>
-          {t('settings.repair.unlockAndEdit')}
+  const banner = resolveDiagnosticBanner(t, agent);
+
+  // When the agent is online, the launch path was already resolved correctly,
+  // so showing it only invites confusion ("it's connected, why edit the path?").
+  // Lead with environment variables (where API keys/auth tokens go) and hide the
+  // path field entirely. When the agent is missing/offline, the launch path is
+  // the primary lever, so show it first.
+  const showPath = agent.status !== 'online';
+
+  const pathBlock = (
+    <div>
+      <div className='mb-6px flex items-center justify-between'>
+        <Typography.Text className='block text-13px font-medium text-t-primary'>
+          {t('settings.repair.pathLabel')}
+        </Typography.Text>
+        <Button type='text' size='mini' onClick={handleReset} className='!h-auto !px-0 text-12px text-t-secondary'>
+          {t('settings.repair.resetPath')}
         </Button>
       </div>
-    );
-  }
+      <Input
+        size='large'
+        value={commandOverride}
+        onChange={setCommandOverride}
+        placeholder={t('settings.repair.pathPlaceholder', { command: agent.command || '' })}
+      />
+      <Typography.Text type='secondary' className='mt-4px block text-11px leading-16px text-t-tertiary'>
+        {t('settings.repair.pathHelp')}
+      </Typography.Text>
+    </div>
+  );
+
+  const envBlock = (
+    <div>
+      <Typography.Text className='mb-6px block text-13px font-medium text-t-primary'>
+        {t('settings.repair.envLabel')}
+      </Typography.Text>
+      <Typography.Text type='secondary' className='mb-8px block text-11px leading-16px text-t-tertiary'>
+        {t('settings.repair.envHelp')}
+      </Typography.Text>
+      <EnvVarEditor value={envRows} onChange={setEnvRows} />
+    </div>
+  );
 
   return (
     <div className='mt-10px flex flex-col gap-12px rounded-10px bg-aou-1 px-12px py-12px'>
-      {/* Path Override */}
-      <div>
-        <div className='mb-6px flex items-center justify-between'>
-          <Typography.Text className='block text-13px font-medium text-t-primary'>
-            {t('settings.repair.pathLabel')}
-          </Typography.Text>
-          <Button type='text' size='mini' onClick={handleReset} className='!h-auto !px-0 text-12px text-t-secondary'>
-            {t('settings.repair.resetPath')}
-          </Button>
-        </div>
-        <Input
-          size='large'
-          value={commandOverride}
-          onChange={setCommandOverride}
-          placeholder={t('settings.repair.pathPlaceholder', { command: agent.command || '' })}
-        />
-        <Typography.Text type='secondary' className='mt-4px block text-11px leading-16px text-t-tertiary'>
-          {t('settings.repair.pathHelp')}
-        </Typography.Text>
-      </div>
+      {/* Status-aware diagnostic banner: explains where the agent stands and
+          which field below to use. */}
+      <Alert type={banner.type} title={banner.title} content={banner.content} className='!rounded-8px' />
 
-      {/* Environment Variables */}
-      <div>
-        <Typography.Text className='mb-6px block text-13px font-medium text-t-primary'>
-          {t('settings.repair.envLabel')}
-        </Typography.Text>
-        <Typography.Text type='secondary' className='mb-8px block text-11px leading-16px text-t-tertiary'>
-          {t('settings.repair.envHelp')}
-        </Typography.Text>
-        <EnvVarEditor value={envRows} onChange={setEnvRows} />
-      </div>
+      {showPath ? pathBlock : null}
+      {envBlock}
 
       {/* Error Alert */}
       {error && <Alert type='error' content={error} closable onClose={() => setError('')} className='!rounded-8px' />}

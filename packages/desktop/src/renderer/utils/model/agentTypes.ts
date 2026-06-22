@@ -22,8 +22,8 @@ export type AgentType = 'acp' | 'remote' | 'aionrs' | 'openclaw-gateway' | 'nano
 /** Source tier of an agent row, mirroring backend `agent_source` enum. */
 export type AgentSource = 'internal' | 'builtin' | 'extension' | 'custom';
 
-export type AgentManagementStatus = 'available' | 'unavailable' | 'missing' | 'needs_auth';
-export type AgentSnapshotCheckStatus = 'available' | 'unavailable';
+export type AgentManagementStatus = 'online' | 'offline' | 'missing';
+export type AgentSnapshotCheckStatus = 'online' | 'offline';
 export type AgentSnapshotCheckKind = 'startup' | 'scheduled' | 'manual' | 'session';
 export type AgentManagementErrorDetails = {
   code?: string;

@@ -106,7 +106,7 @@ function makeConversation(
     extra: {
       backend: 'claude',
       ...extraOverrides,
-      ...(overrides.extra || {}),
+      ...overrides.extra,
     },
     ...overrides,
   } as TChatConversation;
