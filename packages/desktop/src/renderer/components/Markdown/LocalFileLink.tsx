@@ -27,7 +27,10 @@ const LocalFileLink: React.FC<LocalFileLinkProps> = ({ reference, children, onOp
     React.Children.toArray(children)
       .map((child) => (typeof child === 'string' || typeof child === 'number' ? String(child) : ''))
       .join('') || fallbackLabel;
-  const locationLabel = line == null ? null : `L${line}${reference.column == null ? '' : `:${reference.column}`}`;
+  const locationLabel =
+    line == null
+      ? null
+      : `L${line}${reference.endLine == null ? (reference.column == null ? '' : `:${reference.column}`) : `-L${reference.endLine}`}`;
   const canOpen = Boolean(onOpen);
 
   const handleOpen = useCallback(

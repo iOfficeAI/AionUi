@@ -144,6 +144,34 @@ describe('MarkdownView local file links', () => {
     expect(copyTextMock).toHaveBeenCalledWith('C:/Users/Administrator/AppData/Roaming/AionUi/logs/app.log:1421:7');
   });
 
+  it('renders hash range references as file chips and copies normalized local references', () => {
+    const onLocalFileLink = vi.fn();
+
+    render(
+      <MarkdownView onLocalFileLink={onLocalFileLink}>
+        {'[user.js 1-260行](/Users/demo/project/user.js#L1-L260)'}
+      </MarkdownView>
+    );
+
+    expect(screen.queryByRole('link', { name: /user\.js/ })).not.toBeInTheDocument();
+
+    const fileButton = screen.getByRole('button', { name: /user\.js 1-260行\s+L1-L260/ });
+    fireEvent.click(fileButton);
+
+    expect(onLocalFileLink).toHaveBeenCalledWith(
+      '/Users/demo/project/user.js',
+      expect.objectContaining({
+        filePath: '/Users/demo/project/user.js',
+        rawReference: '/Users/demo/project/user.js#L1-L260',
+        line: 1,
+        endLine: 260,
+      })
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Copy' }));
+    expect(copyTextMock).toHaveBeenCalledWith('/Users/demo/project/user.js#L1-L260');
+  });
+
   it('does not render a no-op open button when no local file handler is provided', () => {
     render(<MarkdownView>{'[report.xlsx](/C:/Users/Administrator/AppData/Roaming/AionUi/report.xlsx)'}</MarkdownView>);
 
@@ -159,5 +187,12 @@ describe('MarkdownView local file links', () => {
 
     const link = screen.getByRole('link', { name: 'docs' });
     expect(link).toHaveAttribute('href', 'https://aionui.com/docs');
+  });
+
+  it('keeps http hash links as browser anchors', () => {
+    render(<MarkdownView>{'[docs](https://aionui.com/docs#L10)'}</MarkdownView>);
+
+    const link = screen.getByRole('link', { name: 'docs' });
+    expect(link).toHaveAttribute('href', 'https://aionui.com/docs#L10');
   });
 });
