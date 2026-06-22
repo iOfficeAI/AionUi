@@ -61,6 +61,82 @@ describe('resolveLocalFileLinkPath', () => {
     );
   });
 
+  it('recognizes POSIX hash line references', () => {
+    expect(resolveLocalFileLinkReference('/Users/demo/file.ts#L10')).toEqual({
+      filePath: '/Users/demo/file.ts',
+      rawReference: '/Users/demo/file.ts#L10',
+      line: 10,
+    });
+
+    expect(resolveLocalFileLinkReference('/Users/demo/file.ts#L10-L20')).toEqual({
+      filePath: '/Users/demo/file.ts',
+      rawReference: '/Users/demo/file.ts#L10-L20',
+      line: 10,
+      endLine: 20,
+    });
+  });
+
+  it('recognizes file URL hash line references and normalizes raw references', () => {
+    expect(resolveLocalFileLinkReference('file:///Users/demo/file.ts#L10')).toEqual({
+      filePath: '/Users/demo/file.ts',
+      rawReference: '/Users/demo/file.ts#L10',
+      line: 10,
+    });
+
+    expect(resolveLocalFileLinkReference('file:///Users/demo/file.ts#L10-L20')).toEqual({
+      filePath: '/Users/demo/file.ts',
+      rawReference: '/Users/demo/file.ts#L10-L20',
+      line: 10,
+      endLine: 20,
+    });
+
+    expect(resolveLocalFileLinkReference('file:///Users/demo/My%20File.ts#L10')).toEqual({
+      filePath: '/Users/demo/My File.ts',
+      rawReference: '/Users/demo/My File.ts#L10',
+      line: 10,
+    });
+
+    expect(resolveLocalFileLinkReference('file:///Users/demo/%E6%96%87%E4%BB%B6.ts#L10')).toEqual({
+      filePath: '/Users/demo/文件.ts',
+      rawReference: '/Users/demo/文件.ts#L10',
+      line: 10,
+    });
+  });
+
+  it('recognizes Windows file URL hash lines and ranges', () => {
+    expect(resolveLocalFileLinkReference('file:///C:/Users/demo/file.ts#L10')).toEqual({
+      filePath: 'C:/Users/demo/file.ts',
+      rawReference: 'C:/Users/demo/file.ts#L10',
+      line: 10,
+    });
+
+    expect(resolveLocalFileLinkReference('file:///C:/Users/demo/file.ts#L10-L20')).toEqual({
+      filePath: 'C:/Users/demo/file.ts',
+      rawReference: 'C:/Users/demo/file.ts#L10-L20',
+      line: 10,
+      endLine: 20,
+    });
+  });
+
+  it('prioritizes hash line references over colon suffixes', () => {
+    expect(resolveLocalFileLinkReference('/Users/demo/file.ts:10#L20')).toEqual({
+      filePath: '/Users/demo/file.ts',
+      rawReference: '/Users/demo/file.ts#L20',
+      line: 20,
+    });
+  });
+
+  it('rejects unsupported hash line formats and remote hash links', () => {
+    expect(resolveLocalFileLinkReference('user.ts')).toBeNull();
+    expect(resolveLocalFileLinkReference('./user.ts')).toBeNull();
+    expect(resolveLocalFileLinkReference('../user.ts')).toBeNull();
+    expect(resolveLocalFileLinkReference('/settings')).toBeNull();
+    expect(resolveLocalFileLinkReference('https://aionui.com/docs#L10')).toBeNull();
+    expect(resolveLocalFileLinkReference('https://github.com/org/repo/blob/main/file.ts#L10')).toBeNull();
+    expect(resolveLocalFileLinkReference('/Users/demo/file.ts#l10')).toBeNull();
+    expect(resolveLocalFileLinkReference('/Users/demo/file.ts#L10-l20')).toBeNull();
+  });
+
   it('does not treat normal web links or app routes as local files', () => {
     expect(resolveLocalFileLinkPath('https://aionui.com/docs')).toBeNull();
     expect(resolveLocalFileLinkPath('/settings')).toBeNull();
