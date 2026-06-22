@@ -21,19 +21,45 @@ type AgentCardProps =
   | {
       type: 'official';
       agent: ManagedAgent;
+      onTestConnection: () => void;
+      isTesting?: boolean;
     }
   | {
       type: 'custom';
       agent: ManagedAgent;
+      onTestConnection: () => void;
+      isTesting?: boolean;
       onEdit: () => void;
       onDelete: () => void;
       onToggle: (enabled: boolean) => void;
     };
 
-const statusColor = (status?: AgentManagementStatus): 'green' | 'orange' | 'red' | 'gray' => {
+// Card-facing status, finer-grained than the backend's management status:
+// the probe reaches `session/new`, so an offline agent that returned
+// `auth_required` is "reachable but not signed in" — distinct from a truly
+// unreachable agent. We surface that as its own `needs_auth` chip so users
+// see "one step away (log in)" vs "broken" vs "not installed".
+type DisplayStatus = 'online' | 'needs_auth' | 'offline' | 'missing' | 'unknown';
+
+const resolveDisplayStatus = (status?: AgentManagementStatus, errorCode?: string): DisplayStatus => {
   switch (status) {
     case 'online':
+      return 'online';
+    case 'offline':
+      return errorCode === 'auth_required' ? 'needs_auth' : 'offline';
+    case 'missing':
+      return 'missing';
+    default:
+      return 'unknown';
+  }
+};
+
+const statusColor = (display: DisplayStatus): 'green' | 'gold' | 'orange' | 'red' | 'gray' => {
+  switch (display) {
+    case 'online':
       return 'green';
+    case 'needs_auth':
+      return 'gold';
     case 'offline':
       return 'orange';
     case 'missing':
@@ -43,10 +69,12 @@ const statusColor = (status?: AgentManagementStatus): 'green' | 'orange' | 'red'
   }
 };
 
-const statusLabelKey = (status?: AgentManagementStatus) => {
-  switch (status) {
+const statusLabelKey = (display: DisplayStatus) => {
+  switch (display) {
     case 'online':
       return 'settings.agentManagement.statusOnline';
+    case 'needs_auth':
+      return 'settings.agentManagement.statusNeedsAuth';
     case 'offline':
       return 'settings.agentManagement.statusOffline';
     case 'missing':
@@ -62,7 +90,7 @@ const AgentCard: React.FC<AgentCardProps> = (props) => {
   const logos = useAgentLogos();
 
   if (props.type === 'official') {
-    const { agent } = props;
+    const { agent, onTestConnection, isTesting } = props;
     const extensionAvatar = resolveExtensionAssetUrl(agent.isExtension ? agent.avatar : undefined);
     const logo =
       extensionAvatar ||
@@ -74,6 +102,7 @@ const AgentCard: React.FC<AgentCardProps> = (props) => {
       });
 
     const diagnostics = formatManagedAgentDiagnosticMessage(t, agent);
+    const displayStatus = resolveDisplayStatus(agent.status, agent.last_check_error_code);
 
     return (
       <div className='flex min-h-[154px] flex-col rounded-12px border border-solid border-[var(--color-border-2)] bg-[var(--color-bg-2)] p-12px transition-colors hover:border-[var(--color-border-3)]'>
@@ -88,8 +117,8 @@ const AgentCard: React.FC<AgentCardProps> = (props) => {
             {agent.name}
           </Typography.Text>
           <div className='mt-6px flex items-center justify-center gap-6px'>
-            <Tag size='small' color={statusColor(agent.status)}>
-              {t(statusLabelKey(agent.status))}
+            <Tag size='small' color={statusColor(displayStatus)}>
+              {t(statusLabelKey(displayStatus))}
             </Tag>
             {diagnostics && (
               <Tooltip content={diagnostics}>
@@ -99,21 +128,22 @@ const AgentCard: React.FC<AgentCardProps> = (props) => {
           </div>
         </div>
 
-        <Button
-          size='small'
-          type='secondary'
-          onClick={() => navigate(`/settings/agent/${agent.id}/repair`)}
-          className='w-full'
-        >
-          {t('settings.agentManagement.configureConnection')}
-        </Button>
+        <div className='flex gap-6px'>
+          <Button size='small' type='primary' onClick={onTestConnection} loading={isTesting} className='flex-1'>
+            {t('settings.agentManagement.testConnection')}
+          </Button>
+          <Button size='small' type='secondary' onClick={() => navigate(`/settings/agent/${agent.id}/repair`)}>
+            {t('settings.agentManagement.configureConnection')}
+          </Button>
+        </div>
       </div>
     );
   }
 
-  const { agent, onEdit, onDelete, onToggle } = props;
+  const { agent, onTestConnection, isTesting, onEdit, onDelete, onToggle } = props;
   const isDisabled = agent.enabled === false;
   const diagnostics = formatManagedAgentDiagnosticMessage(t, agent);
+  const displayStatus = resolveDisplayStatus(agent.status, agent.last_check_error_code);
 
   return (
     <div className='flex flex-col px-16px py-10px rd-8px bg-aou-1 hover:bg-aou-2'>
@@ -133,8 +163,8 @@ const AgentCard: React.FC<AgentCardProps> = (props) => {
               {agent.args && agent.args.length > 0 ? ` ${agent.args.join(' ')}` : ''}
             </div>
             <div className='mt-6px flex items-center gap-6px'>
-              <Tag size='small' color={statusColor(agent.status)}>
-                {t(statusLabelKey(agent.status))}
+              <Tag size='small' color={statusColor(displayStatus)}>
+                {t(statusLabelKey(displayStatus))}
               </Tag>
               {diagnostics && (
                 <Tooltip content={diagnostics}>
@@ -146,6 +176,9 @@ const AgentCard: React.FC<AgentCardProps> = (props) => {
         </div>
         <div className='flex items-center gap-8px'>
           <Switch size='small' checked={agent.enabled !== false} onChange={onToggle} />
+          <Button size='small' type='text' onClick={onTestConnection} loading={isTesting}>
+            {t('settings.agentManagement.testConnection')}
+          </Button>
           <Button size='small' type='text' onClick={() => navigate(`/settings/agent/${agent.id}/repair`)}>
             {t('settings.agentManagement.configureConnection')}
           </Button>

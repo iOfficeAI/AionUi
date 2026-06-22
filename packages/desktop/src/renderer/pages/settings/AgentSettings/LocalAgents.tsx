@@ -6,7 +6,7 @@
 
 import { ipcBridge } from '@/common';
 import { parseError } from '@/common/utils';
-import { type ManagedAgent } from '@/renderer/utils/model/agentTypes';
+import { formatManagedAgentDiagnosticMessage, type ManagedAgent } from '@/renderer/utils/model/agentTypes';
 import AionModal from '@/renderer/components/base/AionModal';
 import { useManagedAgents } from '@/renderer/hooks/agent/useManagedAgents';
 import { openExternalUrl } from '@/renderer/utils/platform';
@@ -21,6 +21,7 @@ const LOCAL_AGENT_SETUP_GUIDE_URL = 'https://github.com/iOfficeAI/AionUi/wiki/Ge
 
 const LocalAgents: React.FC = () => {
   const { t } = useTranslation();
+  const [testingAgentId, setTestingAgentId] = useState<string | null>(null);
 
   // Management view: includes user-disabled custom agents so they stay
   // listed (greyed) with a working re-enable toggle. `refreshCatalog`
@@ -106,6 +107,46 @@ const LocalAgents: React.FC = () => {
     setEditorVisible(true);
   }, []);
 
+  // Manual "test connection": runs the live ACP probe (initialize +
+  // session/new) and refreshes the catalog so the card reflects the new
+  // status immediately (F2-02: three states stay clickable, in-progress
+  // feedback, recover-on-success).
+  const handleTestConnection = useCallback(
+    async (agentId: string) => {
+      try {
+        setTestingAgentId(agentId);
+        const result = await ipcBridge.acpConversation.checkManagedAgentHealthById.invoke({ id: agentId });
+        await refreshCatalog();
+        switch (result.status) {
+          case 'online':
+            Message.success(t('settings.agentManagement.testConnectionOnline', { name: result.name }));
+            break;
+          case 'missing':
+            Message.warning(t('settings.agentManagement.testConnectionMissing', { name: result.name }));
+            break;
+          case 'offline':
+            // auth_required is offline-with-a-reason: surface the diagnostic
+            // (which carries the "needs sign-in" guidance) when present.
+            Message.warning(
+              formatManagedAgentDiagnosticMessage(t, result) ||
+                (result.last_check_error_code === 'auth_required'
+                  ? t('settings.agentManagement.testConnectionAuth', { name: result.name })
+                  : t('settings.agentManagement.testConnectionOffline', { name: result.name }))
+            );
+            break;
+          default:
+            break;
+        }
+      } catch (error) {
+        console.error('test managed agent failed:', error);
+        Message.error(t('settings.agentManagement.testConnectionError'));
+      } finally {
+        setTestingAgentId(null);
+      }
+    },
+    [refreshCatalog, t]
+  );
+
   return (
     <div className='flex flex-col gap-8px py-16px'>
       <div className='px-16px text-12px text-t-secondary'>
@@ -141,7 +182,13 @@ const LocalAgents: React.FC = () => {
       </div>
       <div className='grid grid-cols-2 gap-10px px-16px md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5'>
         {sortedOfficialAgents.map((agent) => (
-          <AgentCard key={agent.id} type='official' agent={agent} />
+          <AgentCard
+            key={agent.id}
+            type='official'
+            agent={agent}
+            onTestConnection={() => void handleTestConnection(agent.id)}
+            isTesting={testingAgentId === agent.id}
+          />
         ))}
       </div>
       {(!officialAgents || officialAgents.length === 0) && (
@@ -202,6 +249,8 @@ const LocalAgents: React.FC = () => {
             key={agent.id}
             type='custom'
             agent={agent}
+            onTestConnection={() => void handleTestConnection(agent.id)}
+            isTesting={testingAgentId === agent.id}
             onEdit={() => {
               setEditingAgent(agent);
               setEditorVisible(true);

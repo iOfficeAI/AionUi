@@ -142,6 +142,46 @@ const makeAgents = () => [
 ];
 
 describe('LocalAgents', () => {
+  it('runs the health probe and shows a success toast after an official-agent test connection succeeds', async () => {
+    const refreshCatalog = vi.fn().mockResolvedValue(undefined);
+    useManagedAgents.mockReturnValue({ agents: makeAgents(), revalidate: vi.fn(), refreshCatalog });
+    vi.mocked(ipcBridge.acpConversation.checkManagedAgentHealthById.invoke).mockResolvedValue({
+      ...makeAgents()[0],
+      status: 'online',
+    });
+
+    render(<LocalAgents />);
+
+    fireEvent.click(screen.getAllByText('settings.agentManagement.testConnection')[0]);
+
+    await waitFor(() => {
+      expect(ipcBridge.acpConversation.checkManagedAgentHealthById.invoke).toHaveBeenCalledWith({ id: 'aionrs' });
+    });
+    await waitFor(() => {
+      expect(refreshCatalog).toHaveBeenCalled();
+      expect(messageSuccess).toHaveBeenCalledWith('settings.agentManagement.testConnectionOnline');
+    });
+  });
+
+  it('warns with the auth guidance when a test connection reports auth_required', async () => {
+    const refreshCatalog = vi.fn().mockResolvedValue(undefined);
+    useManagedAgents.mockReturnValue({ agents: makeAgents(), revalidate: vi.fn(), refreshCatalog });
+    vi.mocked(ipcBridge.acpConversation.checkManagedAgentHealthById.invoke).mockResolvedValue({
+      ...makeAgents()[0],
+      status: 'offline',
+      last_check_error_code: 'auth_required',
+    });
+
+    render(<LocalAgents />);
+
+    fireEvent.click(screen.getAllByText('settings.agentManagement.testConnection')[0]);
+
+    await waitFor(() => {
+      // formatManagedAgentDiagnosticMessage maps auth_required → its errorCodes key.
+      expect(messageWarning).toHaveBeenCalledWith('settings.agentManagement.errorCodes.auth_required');
+    });
+  });
+
   it('reads the managed-agents view and renders detected + custom sections', () => {
     useManagedAgents.mockReturnValue({
       agents: makeAgents(),

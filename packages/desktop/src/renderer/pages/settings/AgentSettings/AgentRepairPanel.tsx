@@ -159,9 +159,25 @@ const AgentRepairPanel: React.FC<AgentRepairPanelProps> = ({ agent, onSaved }) =
       <Typography.Text className='mb-6px block text-13px font-medium text-t-primary'>
         {t('settings.repair.envLabel')}
       </Typography.Text>
-      <Typography.Text type='secondary' className='mb-8px block text-11px leading-16px text-t-tertiary'>
+      <Typography.Text type='secondary' className='mb-6px block text-11px leading-16px text-t-tertiary'>
         {t('settings.repair.envHelp')}
       </Typography.Text>
+      {/* What configuring env vars can fix — grounded in how AionUi injects them
+          per-agent at spawn time. Deliberately excludes OAuth login (stored in
+          the CLI's own config, not reachable via env), called out in envOauthNote. */}
+      <div className='mb-8px rounded-6px bg-aou-2 px-10px py-8px'>
+        <Typography.Text className='block text-11px font-medium text-t-secondary'>
+          {t('settings.repair.envScenariosTitle')}
+        </Typography.Text>
+        <ul className='my-4px pl-16px text-11px leading-18px text-t-tertiary'>
+          <li>{t('settings.repair.envScenarioApiKey')}</li>
+          <li>{t('settings.repair.envScenarioBaseUrl')}</li>
+          <li>{t('settings.repair.envScenarioProxy')}</li>
+        </ul>
+        <Typography.Text className='block text-11px leading-16px text-t-tertiary'>
+          {t('settings.repair.envOauthNote')}
+        </Typography.Text>
+      </div>
       <EnvVarEditor value={envRows} onChange={setEnvRows} />
     </div>
   );

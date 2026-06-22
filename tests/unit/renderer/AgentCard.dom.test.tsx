@@ -35,7 +35,10 @@ const baseAgent = {
   args: ['--remote'],
 };
 
-const renderCustom = (enabled: boolean, handlers: Partial<{ onToggle: (v: boolean) => void }> = {}) =>
+const renderCustom = (
+  enabled: boolean,
+  handlers: Partial<{ onToggle: (v: boolean) => void; onTestConnection: () => void }> = {}
+) =>
   render(
     <AgentCard
       type='custom'
@@ -43,26 +46,36 @@ const renderCustom = (enabled: boolean, handlers: Partial<{ onToggle: (v: boolea
       onEdit={vi.fn()}
       onDelete={vi.fn()}
       onToggle={handlers.onToggle ?? vi.fn()}
+      onTestConnection={handlers.onTestConnection ?? vi.fn()}
     />
   );
 
 describe('AgentCard (custom variant)', () => {
-  it('greys the identity block and keeps the configure action available when the agent is disabled', () => {
+  it('greys the identity block and keeps the test-connection action available when the agent is disabled', () => {
     const { container } = renderCustom(false);
 
     // Disabled => identity block carries the opacity treatment.
     expect(container.querySelector('.opacity-50')).toBeTruthy();
-    const configure = screen
-      .getByText('settings.agentManagement.configureConnection')
+    const testConnection = screen
+      .getByText('settings.agentManagement.testConnection')
       .closest('button') as HTMLButtonElement;
-    expect(configure.disabled).toBe(false);
+    expect(testConnection.disabled).toBe(false);
   });
 
-  it('renders at full opacity with the configure action visible when the agent is enabled', () => {
+  it('renders at full opacity with both test-connection and configure actions when enabled', () => {
     const { container } = renderCustom(true);
 
     expect(container.querySelector('.opacity-50')).toBeNull();
+    expect(screen.getByText('settings.agentManagement.testConnection')).toBeTruthy();
     expect(screen.getByText('settings.agentManagement.configureConnection')).toBeTruthy();
+  });
+
+  it('fires onTestConnection when the test-connection button is clicked', () => {
+    const onTestConnection = vi.fn();
+    renderCustom(true, { onTestConnection });
+
+    fireEvent.click(screen.getByText('settings.agentManagement.testConnection'));
+    expect(onTestConnection).toHaveBeenCalled();
   });
 
   it('fires onToggle when the switch is clicked', () => {
@@ -77,7 +90,7 @@ describe('AgentCard (custom variant)', () => {
 });
 
 describe('AgentCard (official variant)', () => {
-  it('shows status tag and troubleshoot action for a missing official agent', () => {
+  it('shows status tag plus test-connection and configure actions for a missing official agent', () => {
     render(
       <AgentCard
         type='official'
@@ -94,11 +107,84 @@ describe('AgentCard (official variant)', () => {
           last_check_error_details: { command: 'claude' },
           last_check_error_message: 'CLI command not found',
         }}
+        onTestConnection={vi.fn()}
       />
     );
 
     expect(screen.getByText('settings.agentManagement.statusMissing')).toBeInTheDocument();
+    // F2-02: test-connection stays available in every state, including missing.
+    expect(screen.getByText('settings.agentManagement.testConnection')).toBeInTheDocument();
     expect(screen.getByText('settings.agentManagement.configureConnection')).toBeInTheDocument();
+  });
+
+  it('shows the needs-sign-in status when an offline agent reports auth_required', () => {
+    render(
+      <AgentCard
+        type='official'
+        agent={{
+          id: 'kimi',
+          name: 'Kimi',
+          agent_type: 'acp',
+          agent_source: 'builtin',
+          backend: 'kimi',
+          enabled: true,
+          installed: true,
+          status: 'offline',
+          last_check_error_code: 'auth_required',
+        }}
+        onTestConnection={vi.fn()}
+      />
+    );
+
+    // auth_required is split out of the generic offline label.
+    expect(screen.getByText('settings.agentManagement.statusNeedsAuth')).toBeInTheDocument();
+    expect(screen.queryByText('settings.agentManagement.statusOffline')).toBeNull();
+  });
+
+  it('shows the generic unavailable status for a non-auth offline agent', () => {
+    render(
+      <AgentCard
+        type='official'
+        agent={{
+          id: 'droid',
+          name: 'Droid',
+          agent_type: 'acp',
+          agent_source: 'builtin',
+          backend: 'droid',
+          enabled: true,
+          installed: true,
+          status: 'offline',
+          last_check_error_code: 'acp_init_failed',
+        }}
+        onTestConnection={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText('settings.agentManagement.statusOffline')).toBeInTheDocument();
+    expect(screen.queryByText('settings.agentManagement.statusNeedsAuth')).toBeNull();
+  });
+
+  it('fires onTestConnection when an online official agent is tested', () => {
+    const onTestConnection = vi.fn();
+    render(
+      <AgentCard
+        type='official'
+        agent={{
+          id: 'gemini',
+          name: 'Gemini CLI',
+          agent_type: 'acp',
+          agent_source: 'builtin',
+          backend: 'gemini',
+          enabled: true,
+          installed: true,
+          status: 'online',
+        }}
+        onTestConnection={onTestConnection}
+      />
+    );
+
+    fireEvent.click(screen.getByText('settings.agentManagement.testConnection'));
+    expect(onTestConnection).toHaveBeenCalled();
   });
 
   it('navigates to the repair page when the configure action is clicked', () => {
@@ -115,6 +201,7 @@ describe('AgentCard (official variant)', () => {
           installed: true,
           status: 'online',
         }}
+        onTestConnection={vi.fn()}
       />
     );
 

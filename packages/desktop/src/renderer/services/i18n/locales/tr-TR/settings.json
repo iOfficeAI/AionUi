@@ -968,10 +968,17 @@
     "editCustomAgent": "Özel Ajanı Düzenle",
     "officialAgents": "Resmi Ajanlar",
     "configureConnection": "Yapılandır",
+    "testConnection": "Bağlantıyı Test Et",
+    "testConnectionOnline": "{{name}} başarıyla bağlandı.",
+    "testConnectionOffline": "{{name}} çevrimdışı.",
+    "testConnectionMissing": "{{name}} henüz yüklenmedi.",
+    "testConnectionAuth": "{{name}} erişilebilir ancak oturum açılması gerekiyor.",
+    "testConnectionError": "Aracı bağlantısı test edilemedi.",
     "refreshingStatuses": "Algılama durumu yenileniyor...",
-    "statusOnline": "Çevrimiçi",
-    "statusOffline": "Çevrimdışı",
-    "statusMissing": "Bulunamadı",
+    "statusOnline": "Kullanılabilir",
+    "statusNeedsAuth": "Giriş Gerekli",
+    "statusOffline": "Kullanılamıyor",
+    "statusMissing": "Yüklü Değil",
     "statusUnknown": "Bilinmiyor",
     "localAgentsEmpty": "Yerel ajan algılanmadı",
     "detected": "Algılanan",
@@ -989,7 +996,9 @@
       "bridge_missing": "Install {{command}} and retry the connection test.",
       "primary_missing": "Install {{command}} and retry the connection test.",
       "command_missing": "Install {{command}} and retry the connection test.",
-      "managed_runtime_unavailable": "Repair or reinstall {{resource}}, then retry the connection test."
+      "managed_runtime_unavailable": "Repair or reinstall {{resource}}, then retry the connection test.",
+      "auth_required": "Aracıya erişilebilir ancak oturum açılması gerekiyor. CLI üzerinden giriş yapın veya gerekli API anahtarını Ortam Değişkenleri altına ekleyin, ardından bağlantı testini yeniden deneyin.",
+      "no_provider": "Yapılandırılmış bir model sağlayıcısı yok. Ayarlar'da bir sağlayıcı ekleyip etkinleştirin, ardından bağlantı testini yeniden deneyin."
     }
   },
   "repair": {
@@ -1006,7 +1015,12 @@
     "offlineTitle": "Bağlantı başarısız",
     "offlineHint": "Komut bulundu ancak bağlantı başarısız oldu. Yukarıdaki hatayı kontrol edin, ardından aşağıdaki başlatma yolunu veya ortam değişkenlerini ayarlayın.",
     "missingTitle": "Algılanmadı",
-    "missingHint": "Komut varsayılan yolda bulunamadı. Kuruluysa, tam başlatma yolunu aşağıda belirtin."
+    "missingHint": "Komut varsayılan yolda bulunamadı. Kuruluysa, tam başlatma yolunu aşağıda belirtin.",
+    "envScenariosTitle": "Ortam değişkenlerini yapılandırmak şunları çözebilir:",
+    "envScenarioApiKey": "Eksik API anahtarı veya erişim belirteci (ör. ANTHROPIC_API_KEY, OPENAI_API_KEY) — \"giriş gerekli\" / bağlantı hatalarının en yaygın nedeni",
+    "envScenarioBaseUrl": "Özel API uç noktası veya ağ geçidi (ör. ANTHROPIC_BASE_URL, OPENAI_BASE_URL); kendi barındırılan veya proxy hizmetler için",
+    "envScenarioProxy": "Ağ proxy ayarları (ör. HTTPS_PROXY, HTTP_PROXY); aracı internete doğrudan erişemediğinde",
+    "envOauthNote": "Not: Bu, CLI içindeki hesap girişinin yerini tutmaz (ör. Gemini'ye Google hesabıyla giriş). OAuth girişi için bir terminalde CLI üzerinden giriş yapın."
   },
   "remoteAgent": {
     "title": "Uzak Ajanlar",

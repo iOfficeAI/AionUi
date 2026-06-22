@@ -23,6 +23,7 @@ const TEXT = {
   customAgents: ['Custom Agents', '自定义 Agents'],
   setupGuide: ['Setup guide', '查看安装指南'],
   detectCustomAgent: ['Detect Custom Agent', '识别自定义 Agent'],
+  testConnection: ['Test Connection', '测试连接'],
   configureConnection: ['Configure', '配置'],
   commandLabel: ['Command', '命令'],
   commandPlaceholder: ['e.g. my-agent or /usr/local/bin/my-agent', '例如 my-agent 或 /usr/local/bin/my-agent'],
@@ -68,11 +69,11 @@ test.describe('Agent Settings Detection', () => {
       await expect(page.getByText(agent.name, { exact: false }).first()).toBeVisible({ timeout: 8_000 });
     }
 
-    if (managedAgents.some((agent) => agent.status === 'available')) {
-      await expectAnyText(page, TEXT.statusAvailable);
+    if (managedAgents.some((agent) => agent.status === 'online')) {
+      await expectAnyText(page, TEXT.statusOnline);
     }
-    if (managedAgents.some((agent) => agent.status === 'unavailable')) {
-      await expectAnyText(page, TEXT.statusUnavailable);
+    if (managedAgents.some((agent) => agent.status === 'offline')) {
+      await expectAnyText(page, TEXT.statusOffline);
     }
     if (managedAgents.some((agent) => agent.status === 'missing')) {
       await expectAnyText(page, TEXT.statusMissing);

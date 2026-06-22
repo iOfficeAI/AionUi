@@ -980,10 +980,17 @@
     "editCustomAgent": "Edit Custom Agent",
     "officialAgents": "Official Agents",
     "configureConnection": "Configure",
+    "testConnection": "Test Connection",
+    "testConnectionOnline": "{{name}} connected successfully.",
+    "testConnectionOffline": "{{name}} is offline.",
+    "testConnectionMissing": "{{name}} is not installed yet.",
+    "testConnectionAuth": "{{name}} is reachable but needs sign-in.",
+    "testConnectionError": "Failed to test agent connection.",
     "refreshingStatuses": "Refreshing detection status...",
-    "statusOnline": "Online",
-    "statusOffline": "Offline",
-    "statusMissing": "Missing",
+    "statusOnline": "Available",
+    "statusNeedsAuth": "Needs Sign-in",
+    "statusOffline": "Unavailable",
+    "statusMissing": "Not Installed",
     "statusUnknown": "Unknown",
     "localAgentsEmpty": "No local agents detected",
     "detected": "Detected",
@@ -1001,7 +1008,9 @@
       "bridge_missing": "Install {{command}} and retry the connection test.",
       "primary_missing": "Install {{command}} and retry the connection test.",
       "command_missing": "Install {{command}} and retry the connection test.",
-      "managed_runtime_unavailable": "Repair or reinstall {{resource}}, then retry the connection test."
+      "managed_runtime_unavailable": "Repair or reinstall {{resource}}, then retry the connection test.",
+      "auth_required": "The agent is reachable but requires sign-in. Log in via the CLI, or add the required API key under Environment Variables, then retry the connection test.",
+      "no_provider": "No model provider is configured. Add and enable a provider in Settings, then retry the connection test."
     }
   },
   "repair": {
@@ -1018,7 +1027,12 @@
     "offlineTitle": "Connection failed",
     "offlineHint": "The command was found but the connection failed. Check the error above, then adjust the launch path or environment variables below.",
     "missingTitle": "Not detected",
-    "missingHint": "The command wasn't found on the default path. If it is installed, specify its full launch path below."
+    "missingHint": "The command wasn't found on the default path. If it is installed, specify its full launch path below.",
+    "envScenariosTitle": "Configuring environment variables can fix:",
+    "envScenarioApiKey": "Missing API key or access token (e.g. ANTHROPIC_API_KEY, OPENAI_API_KEY) — the common cause of \"needs sign-in\" / connection failures",
+    "envScenarioBaseUrl": "Custom API endpoint or gateway (e.g. ANTHROPIC_BASE_URL, OPENAI_BASE_URL) for self-hosted or proxied services",
+    "envScenarioProxy": "Network proxy settings (e.g. HTTPS_PROXY, HTTP_PROXY) when the agent cannot reach the internet directly",
+    "envOauthNote": "Note: this cannot replace an account login inside the CLI (e.g. signing in to Gemini with a Google account). For OAuth-based login, sign in via the CLI in a terminal."
   },
   "remoteAgent": {
     "title": "Remote Agents",

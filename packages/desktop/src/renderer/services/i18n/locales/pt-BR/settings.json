@@ -980,10 +980,17 @@
     "editCustomAgent": "Editar Agente Personalizado",
     "officialAgents": "Agentes Oficiais",
     "configureConnection": "Configurar",
+    "testConnection": "Testar Conexão",
+    "testConnectionOnline": "{{name}} conectado com sucesso.",
+    "testConnectionOffline": "{{name}} está offline.",
+    "testConnectionMissing": "{{name}} ainda não está instalado.",
+    "testConnectionAuth": "{{name}} está acessível, mas precisa de login.",
+    "testConnectionError": "Falha ao testar a conexão do agente.",
     "refreshingStatuses": "Atualizando o status de detecção...",
-    "statusOnline": "Online",
-    "statusOffline": "Offline",
-    "statusMissing": "Não encontrado",
+    "statusOnline": "Disponível",
+    "statusNeedsAuth": "Requer Login",
+    "statusOffline": "Indisponível",
+    "statusMissing": "Não Instalado",
     "statusUnknown": "Desconhecido",
     "localAgentsEmpty": "Nenhum agente local detectado",
     "detected": "Detectado",
@@ -1001,7 +1008,9 @@
       "bridge_missing": "Install {{command}} and retry the connection test.",
       "primary_missing": "Install {{command}} and retry the connection test.",
       "command_missing": "Install {{command}} and retry the connection test.",
-      "managed_runtime_unavailable": "Repair or reinstall {{resource}}, then retry the connection test."
+      "managed_runtime_unavailable": "Repair or reinstall {{resource}}, then retry the connection test.",
+      "auth_required": "O agente está acessível, mas requer login. Faça login pelo CLI ou adicione a chave de API necessária em Variáveis de Ambiente e tente o teste de conexão novamente.",
+      "no_provider": "Nenhum provedor de modelo está configurado. Adicione e ative um provedor nas Configurações e tente o teste de conexão novamente."
     }
   },
   "repair": {
@@ -1018,7 +1027,12 @@
     "offlineTitle": "Falha na conexão",
     "offlineHint": "O comando foi encontrado, mas a conexão falhou. Verifique o erro acima e ajuste o caminho de inicialização ou as variáveis de ambiente abaixo.",
     "missingTitle": "Não detectado",
-    "missingHint": "O comando não foi encontrado no caminho padrão. Se estiver instalado, especifique o caminho de inicialização completo abaixo."
+    "missingHint": "O comando não foi encontrado no caminho padrão. Se estiver instalado, especifique o caminho de inicialização completo abaixo.",
+    "envScenariosTitle": "Configurar variáveis de ambiente pode resolver:",
+    "envScenarioApiKey": "Falta de chave de API ou token de acesso (ex. ANTHROPIC_API_KEY, OPENAI_API_KEY) — a causa mais comum de \"requer login\" / falhas de conexão",
+    "envScenarioBaseUrl": "Endpoint de API ou gateway personalizado (ex. ANTHROPIC_BASE_URL, OPENAI_BASE_URL) para serviços auto-hospedados ou com proxy",
+    "envScenarioProxy": "Configurações de proxy de rede (ex. HTTPS_PROXY, HTTP_PROXY) quando o agente não consegue acessar a internet diretamente",
+    "envOauthNote": "Observação: isto não substitui o login de conta dentro do CLI (ex. entrar no Gemini com uma conta Google). Para login via OAuth, faça login pelo CLI em um terminal."
   },
   "remoteAgent": {
     "title": "Agentes Remotos",

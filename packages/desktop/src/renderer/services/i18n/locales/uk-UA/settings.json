@@ -888,10 +888,17 @@
     "editCustomAgent": "Редагувати власного агента",
     "officialAgents": "Офіційні агенти",
     "configureConnection": "Налаштувати",
+    "testConnection": "Перевірити підключення",
+    "testConnectionOnline": "«{{name}}» успішно підключено.",
+    "testConnectionOffline": "«{{name}}» не в мережі.",
+    "testConnectionMissing": "«{{name}}» ще не встановлено.",
+    "testConnectionAuth": "«{{name}}» доступний, але потрібен вхід.",
+    "testConnectionError": "Не вдалося перевірити підключення агента.",
     "refreshingStatuses": "Оновлюємо статус виявлення...",
-    "statusOnline": "В мережі",
-    "statusOffline": "Не в мережі",
-    "statusMissing": "Не знайдено",
+    "statusOnline": "Доступний",
+    "statusNeedsAuth": "Потрібен вхід",
+    "statusOffline": "Недоступний",
+    "statusMissing": "Не встановлено",
     "statusUnknown": "Невідомо",
     "localAgentsEmpty": "Локальні агенти не виявлені",
     "detected": "Виявлено",
@@ -909,7 +916,9 @@
       "bridge_missing": "Install {{command}} and retry the connection test.",
       "primary_missing": "Install {{command}} and retry the connection test.",
       "command_missing": "Install {{command}} and retry the connection test.",
-      "managed_runtime_unavailable": "Repair or reinstall {{resource}}, then retry the connection test."
+      "managed_runtime_unavailable": "Repair or reinstall {{resource}}, then retry the connection test.",
+      "auth_required": "Агент доступний, але потребує входу. Увійдіть через CLI або додайте потрібний ключ API в розділі «Змінні середовища», потім повторіть перевірку підключення.",
+      "no_provider": "Не налаштовано жодного постачальника моделей. Додайте та увімкніть постачальника в налаштуваннях, потім повторіть перевірку підключення."
     }
   },
   "repair": {
@@ -926,7 +935,12 @@
     "offlineTitle": "Помилка підключення",
     "offlineHint": "Команду знайдено, але підключення не вдалося. Перевірте помилку вище, потім налаштуйте шлях запуску або змінні середовища нижче.",
     "missingTitle": "Не виявлено",
-    "missingHint": "Команду не знайдено за шляхом за замовчуванням. Якщо її встановлено, вкажіть повний шлях запуску нижче."
+    "missingHint": "Команду не знайдено за шляхом за замовчуванням. Якщо її встановлено, вкажіть повний шлях запуску нижче.",
+    "envScenariosTitle": "Налаштування змінних середовища може вирішити:",
+    "envScenarioApiKey": "Відсутність ключа API або токена доступу (наприклад, ANTHROPIC_API_KEY, OPENAI_API_KEY) — найчастіша причина «потрібен вхід» / збоїв підключення",
+    "envScenarioBaseUrl": "Власна адреса API або шлюз (наприклад, ANTHROPIC_BASE_URL, OPENAI_BASE_URL) для власних або проксованих сервісів",
+    "envScenarioProxy": "Налаштування мережевого проксі (наприклад, HTTPS_PROXY, HTTP_PROXY), коли агент не може вийти в інтернет напряму",
+    "envOauthNote": "Примітка: це не замінює вхід в обліковий запис у CLI (наприклад, вхід у Gemini через обліковий запис Google). Для входу через OAuth виконайте вхід через CLI у терміналі."
   },
   "remoteAgent": {
     "title": "Віддалені агенти",

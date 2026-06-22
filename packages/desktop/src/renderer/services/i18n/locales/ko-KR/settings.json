@@ -970,10 +970,17 @@
     "editCustomAgent": "커스텀 에이전트 편집",
     "officialAgents": "공식 에이전트",
     "configureConnection": "구성",
+    "testConnection": "연결 테스트",
+    "testConnectionOnline": "\"{{name}}\"에 성공적으로 연결되었습니다.",
+    "testConnectionOffline": "\"{{name}}\"이(가) 오프라인입니다.",
+    "testConnectionMissing": "\"{{name}}\"이(가) 아직 설치되지 않았습니다.",
+    "testConnectionAuth": "\"{{name}}\"에 연결할 수 있지만 로그인이 필요합니다.",
+    "testConnectionError": "에이전트 연결 테스트에 실패했습니다.",
     "refreshingStatuses": "감지 상태를 새로 고치는 중...",
-    "statusOnline": "온라인",
-    "statusOffline": "오프라인",
-    "statusMissing": "찾을 수 없음",
+    "statusOnline": "사용 가능",
+    "statusNeedsAuth": "로그인 필요",
+    "statusOffline": "사용 불가",
+    "statusMissing": "미설치",
     "statusUnknown": "알 수 없음",
     "localAgentsEmpty": "로컬 에이전트가 감지되지 않았습니다",
     "detected": "감지됨",
@@ -991,7 +998,9 @@
       "bridge_missing": "Install {{command}} and retry the connection test.",
       "primary_missing": "Install {{command}} and retry the connection test.",
       "command_missing": "Install {{command}} and retry the connection test.",
-      "managed_runtime_unavailable": "Repair or reinstall {{resource}}, then retry the connection test."
+      "managed_runtime_unavailable": "Repair or reinstall {{resource}}, then retry the connection test.",
+      "auth_required": "에이전트에 연결할 수 있지만 로그인이 필요합니다. CLI에서 로그인하거나 「환경 변수」에 필요한 API 키를 추가한 후 연결 테스트를 다시 시도하세요.",
+      "no_provider": "모델 제공자가 구성되지 않았습니다. 설정에서 제공자를 추가하고 활성화한 후 연결 테스트를 다시 시도하세요."
     }
   },
   "repair": {
@@ -1008,7 +1017,12 @@
     "offlineTitle": "연결 실패",
     "offlineHint": "명령은 찾았지만 연결에 실패했습니다. 위의 오류를 확인한 후 아래에서 실행 경로나 환경 변수를 조정하세요.",
     "missingTitle": "감지되지 않음",
-    "missingHint": "기본 경로에서 명령을 찾을 수 없습니다. 이미 설치되어 있다면 아래에 전체 실행 경로를 지정하세요."
+    "missingHint": "기본 경로에서 명령을 찾을 수 없습니다. 이미 설치되어 있다면 아래에 전체 실행 경로를 지정하세요.",
+    "envScenariosTitle": "환경 변수 구성으로 해결할 수 있는 것:",
+    "envScenarioApiKey": "API 키 또는 액세스 토큰 누락(ANTHROPIC_API_KEY, OPENAI_API_KEY 등) — \"로그인 필요\" / 연결 실패의 가장 흔한 원인",
+    "envScenarioBaseUrl": "사용자 지정 API 엔드포인트 또는 게이트웨이(ANTHROPIC_BASE_URL, OPENAI_BASE_URL 등). 자체 호스팅 또는 프록시 서비스용",
+    "envScenarioProxy": "네트워크 프록시 설정(HTTPS_PROXY, HTTP_PROXY 등). 에이전트가 인터넷에 직접 연결할 수 없을 때",
+    "envOauthNote": "참고: CLI 내의 계정 로그인(예: Google 계정으로 Gemini 로그인)을 대체할 수 없습니다. OAuth 로그인은 터미널에서 CLI로 진행하세요."
   },
   "remoteAgent": {
     "title": "원격 에이전트",

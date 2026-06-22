@@ -982,10 +982,17 @@
     "editCustomAgent": "編輯自訂 Agent",
     "officialAgents": "官方 Agents",
     "configureConnection": "設定",
+    "testConnection": "測試連線",
+    "testConnectionOnline": "「{{name}}」連線成功。",
+    "testConnectionOffline": "「{{name}}」目前離線。",
+    "testConnectionMissing": "「{{name}}」尚未安裝。",
+    "testConnectionAuth": "「{{name}}」可連線，但需要先登入。",
+    "testConnectionError": "測試 Agent 連線失敗。",
     "refreshingStatuses": "正在重新整理偵測狀態...",
-    "statusOnline": "在線",
-    "statusOffline": "離線",
-    "statusMissing": "未找到",
+    "statusOnline": "可用",
+    "statusNeedsAuth": "需登入",
+    "statusOffline": "不可用",
+    "statusMissing": "未安裝",
     "statusUnknown": "未知",
     "localAgentsEmpty": "未檢測到本機 Agent",
     "detected": "已偵測",
@@ -1003,7 +1010,9 @@
       "bridge_missing": "請安裝 {{command}}，然後重新測試連線。",
       "primary_missing": "請安裝 {{command}}，然後重新測試連線。",
       "command_missing": "請安裝 {{command}}，然後重新測試連線。",
-      "managed_runtime_unavailable": "請修復或重新安裝 {{resource}}，然後重新測試連線。"
+      "managed_runtime_unavailable": "請修復或重新安裝 {{resource}}，然後重新測試連線。",
+      "auth_required": "Agent 可連線，但需要先登入。請在 CLI 中登入，或在「環境變數」中補充所需的 API 金鑰，然後重新測試連線。",
+      "no_provider": "尚未設定模型供應商。請在設定中新增並啟用一個供應商，然後重新測試連線。"
     }
   },
   "repair": {
@@ -1020,7 +1029,12 @@
     "offlineTitle": "連線失敗",
     "offlineHint": "已找到命令，但連線失敗。請查看上方的錯誤訊息，然後在下方調整啟動路徑或環境變數。",
     "missingTitle": "未偵測到",
-    "missingHint": "未在預設路徑找到該命令。如果已經安裝，請在下方指定完整的啟動路徑。"
+    "missingHint": "未在預設路徑找到該命令。如果已經安裝，請在下方指定完整的啟動路徑。",
+    "envScenariosTitle": "設定環境變數可以解決：",
+    "envScenarioApiKey": "缺少 API 金鑰或存取權杖（如 ANTHROPIC_API_KEY、OPENAI_API_KEY）——這是「需登入」/ 連線失敗最常見的原因",
+    "envScenarioBaseUrl": "自訂 API 位址或閘道（如 ANTHROPIC_BASE_URL、OPENAI_BASE_URL），用於自建或代理的服務",
+    "envScenarioProxy": "網路代理設定（如 HTTPS_PROXY、HTTP_PROXY），當 Agent 無法直接存取網路時",
+    "envOauthNote": "注意：這無法取代在 CLI 中的帳號登入（例如用 Google 帳號登入 Gemini）。OAuth 登入請在終端機裡透過 CLI 完成。"
   },
   "remoteAgent": {
     "title": "遠端 Agent",

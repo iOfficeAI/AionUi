@@ -189,8 +189,10 @@ export function formatManagedAgentDiagnosticMessage(t: TFunction, agent: Managed
         defaultValue: fallback,
       });
     case 'acp_init_failed':
+    case 'auth_required':
     case 'health_check_failed':
     case 'session_send_failed':
+    case 'no_provider':
     case 'disabled':
     case 'no_command':
       return t(`settings.agentManagement.errorCodes.${agent.last_check_error_code}`, {

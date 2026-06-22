@@ -970,10 +970,17 @@
     "editCustomAgent": "カスタムエージェントを編集",
     "officialAgents": "公式エージェント",
     "configureConnection": "設定",
+    "testConnection": "接続テスト",
+    "testConnectionOnline": "「{{name}}」に正常に接続しました。",
+    "testConnectionOffline": "「{{name}}」はオフラインです。",
+    "testConnectionMissing": "「{{name}}」はまだインストールされていません。",
+    "testConnectionAuth": "「{{name}}」に接続できますが、サインインが必要です。",
+    "testConnectionError": "エージェントの接続テストに失敗しました。",
     "refreshingStatuses": "検出状態を更新しています...",
-    "statusOnline": "オンライン",
-    "statusOffline": "オフライン",
-    "statusMissing": "未検出",
+    "statusOnline": "利用可能",
+    "statusNeedsAuth": "要サインイン",
+    "statusOffline": "利用不可",
+    "statusMissing": "未インストール",
     "statusUnknown": "不明",
     "localAgentsEmpty": "ローカルエージェントが検出されていません",
     "detected": "検出済み",
@@ -991,7 +998,9 @@
       "bridge_missing": "Install {{command}} and retry the connection test.",
       "primary_missing": "Install {{command}} and retry the connection test.",
       "command_missing": "Install {{command}} and retry the connection test.",
-      "managed_runtime_unavailable": "Repair or reinstall {{resource}}, then retry the connection test."
+      "managed_runtime_unavailable": "Repair or reinstall {{resource}}, then retry the connection test.",
+      "auth_required": "エージェントに接続できますが、サインインが必要です。CLI でログインするか、「環境変数」に必要な API キーを追加してから、接続テストを再実行してください。",
+      "no_provider": "モデルプロバイダーが設定されていません。設定でプロバイダーを追加して有効にしてから、接続テストを再実行してください。"
     }
   },
   "repair": {
@@ -1008,7 +1017,12 @@
     "offlineTitle": "接続に失敗しました",
     "offlineHint": "コマンドは見つかりましたが、接続に失敗しました。上のエラーを確認し、下の起動パスまたは環境変数を調整してください。",
     "missingTitle": "検出されません",
-    "missingHint": "デフォルトのパスでコマンドが見つかりませんでした。インストール済みの場合は、下に完全な起動パスを指定してください。"
+    "missingHint": "デフォルトのパスでコマンドが見つかりませんでした。インストール済みの場合は、下に完全な起動パスを指定してください。",
+    "envScenariosTitle": "環境変数の設定で解決できること：",
+    "envScenarioApiKey": "API キーまたはアクセストークンの不足（ANTHROPIC_API_KEY、OPENAI_API_KEY など）——「要サインイン」/ 接続失敗の最も一般的な原因",
+    "envScenarioBaseUrl": "カスタム API エンドポイントまたはゲートウェイ（ANTHROPIC_BASE_URL、OPENAI_BASE_URL など）。自己ホストまたはプロキシ経由のサービス向け",
+    "envScenarioProxy": "ネットワークプロキシ設定（HTTPS_PROXY、HTTP_PROXY など）。エージェントが直接インターネットに接続できない場合",
+    "envOauthNote": "注意：CLI 内でのアカウントログイン（例：Google アカウントで Gemini にサインイン）の代わりにはなりません。OAuth ログインはターミナルで CLI から行ってください。"
   },
   "remoteAgent": {
     "title": "リモートエージェント",
