@@ -1,0 +1,46 @@
+{
+  "health": {
+    "detectedError": "Se detectó un error con el agente actual ({{agent}})",
+    "autoSwitching": ". El sistema intentará cambiar automáticamente.",
+    "evaluating": "Evaluando latencia de red y disponibilidad del modelo...",
+    "checking": "Verificando endpoint de {{agent}}...",
+    "foundBest": "Se encontró la mejor alternativa",
+    "recommendSwitch": "Recomendado",
+    "available": "Disponible",
+    "lowLatency": "Baja latencia",
+    "mediumLatency": "Latencia media",
+    "highLatency": "Alta latencia",
+    "bestMatch": "Mejor coincidencia",
+    "noAvailable": "No hay agentes disponibles en el entorno actual",
+    "checkConfig": "Verifica la configuración o intenta más tarde"
+  },
+  "setup": {
+    "connectionError": "Error de conexión",
+    "notConfigured": "{{agent}} no está configurado",
+    "authRequired": "Se requiere autenticación o clave API para usar este agente.",
+    "findingAlternatives": "Buscando alternativas disponibles...",
+    "checkingAgent": "Verificando {{agent}}...",
+    "alternativesFound": "Se encontraron {{count}} alternativas disponibles",
+    "autoSwitching": "Cambiando automáticamente al mejor agente disponible...",
+    "configError": "Error de configuración. Verifica tu configuración o selecciona una alternativa:",
+    "noAlternatives": "No se encontraron agentes disponibles",
+    "configureFirst": "Primero configura un agente en Configuración.",
+    "switching": "Cambiando agente..."
+  },
+  "model": {
+    "switchSuccess": "Modelo cambiado correctamente",
+    "switchFailed": "Error al cambiar el modelo"
+  },
+  "config": {
+    "setting": "Aplicando configuración...",
+    "commandAck": "Comando enviado, pero el estado no está confirmado. Actualiza o intenta de nuevo.",
+    "timeout": "Confirmación de configuración expirada. Se muestra el estado anterior.",
+    "busy": "Se está aplicando otra configuración. Intenta más tarde.",
+    "failed": "Error al aplicar la configuración. Se muestra el estado anterior."
+  },
+  "thoughtLevel": {
+    "label": "Nivel de razonamiento",
+    "switchSuccess": "Nivel de razonamiento cambiado",
+    "switchFailed": "Error al cambiar el nivel de razonamiento"
+  }
+}
