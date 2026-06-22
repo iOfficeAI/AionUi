@@ -40,23 +40,44 @@ export type BrowserNotificationDeps = {
   bodyFor: (kind: 'confirmation' | 'turnCompleted') => string;
 };
 
+/**
+ * Shape of a conversation response-stream message (`message.stream`). Both the
+ * turn-finish and permission-request signals ride this single channel, keyed
+ * by `type` — there is no separate `confirmation.add` / `turn.completed`
+ * channel in a real conversation.
+ */
+export type StreamMessage = {
+  type?: string;
+  conversation_id?: string;
+  turn_id?: string;
+};
+
+// Stream `type` values that represent an agent asking the user to confirm a
+// permission. ACP emits `acp_permission`; aionrs emits both `acp_permission`
+// and `permission`.
+const PERMISSION_TYPES = new Set(['acp_permission', 'permission']);
+
 export const createBrowserNotificationController = (deps: BrowserNotificationDeps) => {
-  // Track the last turn we actually notified for, so repeated finished events
+  // Track the last turn we actually notified for, so repeated finish events
   // for the same turn don't fire duplicate notifications.
   let lastNotifiedTurnId: string | null = null;
 
-  const onConfirmation = (event: { conversation_id?: string }): void => {
-    if (!shouldShowNotification(deps.readGate())) return;
-    deps.show({ body: deps.bodyFor('confirmation'), conversationId: event.conversation_id });
+  const onStreamMessage = (message: StreamMessage): void => {
+    if (!message?.type) return;
+
+    if (PERMISSION_TYPES.has(message.type)) {
+      if (!shouldShowNotification(deps.readGate())) return;
+      deps.show({ body: deps.bodyFor('confirmation'), conversationId: message.conversation_id });
+      return;
+    }
+
+    if (message.type === 'finish') {
+      if (message.turn_id && message.turn_id === lastNotifiedTurnId) return;
+      if (!shouldShowNotification(deps.readGate())) return;
+      lastNotifiedTurnId = message.turn_id ?? null;
+      deps.show({ body: deps.bodyFor('turnCompleted'), conversationId: message.conversation_id });
+    }
   };
 
-  const onTurnCompleted = (event: { status?: string; session_id?: string; turn_id?: string }): void => {
-    if (event.status !== 'finished') return;
-    if (event.turn_id && event.turn_id === lastNotifiedTurnId) return;
-    if (!shouldShowNotification(deps.readGate())) return;
-    lastNotifiedTurnId = event.turn_id ?? null;
-    deps.show({ body: deps.bodyFor('turnCompleted'), conversationId: event.session_id });
-  };
-
-  return { onConfirmation, onTurnCompleted };
+  return { onStreamMessage };
 };

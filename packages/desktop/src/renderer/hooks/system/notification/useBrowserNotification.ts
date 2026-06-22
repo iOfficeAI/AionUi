@@ -25,9 +25,11 @@ export const useBrowserNotification = (): void => {
     if (isElectronDesktop()) return;
     if (typeof window === 'undefined' || !('Notification' in window) || !window.isSecureContext) return;
 
-    const confirmationEmitter = ipcBridge.conversation.confirmation.add;
-    const turnCompletedEmitter = ipcBridge.conversation.turnCompleted;
-    if (!confirmationEmitter || !turnCompletedEmitter) return;
+    // Both signals (turn finish, permission request) ride the conversation
+    // response stream (`message.stream`), keyed by message `type`. There is no
+    // separate confirmation/turn-completed channel in a real conversation.
+    const streamEmitter = ipcBridge.conversation.responseStream;
+    if (!streamEmitter) return;
 
     // The controller's turn_id dedup is best-effort per effect lifetime: it
     // resets if this effect re-runs (e.g. on a language change). Acceptable —
@@ -59,11 +61,9 @@ export const useBrowserNotification = (): void => {
       },
     });
 
-    const disposeConfirmation = confirmationEmitter.on(controller.onConfirmation);
-    const disposeTurnCompleted = turnCompletedEmitter.on(controller.onTurnCompleted);
+    const disposeStream = streamEmitter.on(controller.onStreamMessage);
     return () => {
-      disposeConfirmation();
-      disposeTurnCompleted();
+      disposeStream();
     };
   }, [navigate, t]);
 };
