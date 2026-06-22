@@ -1107,5 +1107,7 @@
     "claudeAgentAcp": "the Claude ACP runtime component"
   },
   "updateReadyInstall": "{{version}} готова, установить сейчас",
-  "assistantAgentUnavailable": "Требуемый агент сейчас недоступен."
+  "assistantAgentUnavailable": "Требуемый агент сейчас недоступен.",
+  "assistantAgentMissing": "Требуемый агент не установлен.",
+  "assistantTeamUnsupported": "Этот ассистент сейчас нельзя использовать в командном режиме."
 }

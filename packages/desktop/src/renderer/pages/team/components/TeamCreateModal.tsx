@@ -37,7 +37,13 @@ const AssistantRadioRow: React.FC<{
   isSelected: boolean;
   onClick: () => void;
 }> = ({ assistant, isSelected, onClick }) => {
+  const { t } = useTranslation();
   const disabled = assistant.team_capable === false;
+  // `team_block_reason` is a backend-authored English string; surface a
+  // localized message instead of rendering it raw in a non-English UI.
+  const blockReason = disabled
+    ? t('settings.assistantTeamUnsupported', { defaultValue: 'This assistant cannot be used in team mode right now.' })
+    : null;
   const row = (
     <div
       className={`flex items-center gap-12px rounded-8px px-12px py-9px transition-colors ${
@@ -58,15 +64,13 @@ const AssistantRadioRow: React.FC<{
       />
       <div className='min-w-0 flex-1 overflow-hidden'>
         <AssistantOptionLabel assistant={assistant} />
-        {assistant.team_block_reason ? (
-          <div className='mt-4px truncate text-11px text-t-tertiary'>{assistant.team_block_reason}</div>
-        ) : null}
+        {blockReason ? <div className='mt-4px truncate text-11px text-t-tertiary'>{blockReason}</div> : null}
       </div>
     </div>
   );
 
-  if (assistant.team_block_reason) {
-    return <Tooltip content={assistant.team_block_reason}>{row}</Tooltip>;
+  if (blockReason) {
+    return <Tooltip content={blockReason}>{row}</Tooltip>;
   }
 
   return row;

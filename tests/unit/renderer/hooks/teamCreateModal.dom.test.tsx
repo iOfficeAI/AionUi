@@ -87,7 +87,8 @@ describe('TeamCreateModal', () => {
     expect(screen.getByTestId('team-create-agent-option-bare-aionrs')).toBeInTheDocument();
     expect(screen.getByTestId('team-create-agent-option-blocked-reviewer')).toBeInTheDocument();
     expect(screen.getByTestId('team-create-agent-option-remote-runner')).toBeInTheDocument();
-    expect(screen.getByText('Temporarily unavailable for team mode')).toBeInTheDocument();
+    // The backend block reason is English; the UI shows a localized message instead.
+    expect(screen.getByText('This assistant cannot be used in team mode right now.')).toBeInTheDocument();
 
     const createButton = screen.getByRole('button', { name: 'Create Team' });
     fireEvent.change(screen.getByPlaceholderText('Team name'), {

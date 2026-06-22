@@ -1107,5 +1107,7 @@
     "claudeAgentAcp": "Claude ACP 執行元件"
   },
   "updateReadyInstall": "{{version}} 已就緒, 立即安裝",
-  "assistantAgentUnavailable": "所依賴的 Agent 目前不可用。"
+  "assistantAgentUnavailable": "所依賴的 Agent 目前不可用。",
+  "assistantAgentMissing": "所依賴的 Agent 尚未安裝。",
+  "assistantTeamUnsupported": "該助手目前無法在團隊模式中使用。"
 }

@@ -1108,5 +1108,7 @@
     "title": "CDP (Chrome DevTools Protocol)"
   },
   "updateReadyInstall": "{{version}} está pronto, instalar agora",
-  "assistantAgentUnavailable": "O agente necessário está indisponível no momento."
+  "assistantAgentUnavailable": "O agente necessário está indisponível no momento.",
+  "assistantAgentMissing": "O agente necessário não está instalado.",
+  "assistantTeamUnsupported": "Este assistente não pode ser usado no modo de equipe no momento."
 }

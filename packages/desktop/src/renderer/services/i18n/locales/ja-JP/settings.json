@@ -1107,5 +1107,7 @@
     "claudeAgentAcp": "the Claude ACP runtime component"
   },
   "updateReadyInstall": "{{version}} の準備ができました。今すぐインストール",
-  "assistantAgentUnavailable": "依存しているエージェントは現在利用できません。"
+  "assistantAgentUnavailable": "依存しているエージェントは現在利用できません。",
+  "assistantAgentMissing": "依存しているエージェントがインストールされていません。",
+  "assistantTeamUnsupported": "このアシスタントは現在チームモードで使用できません。"
 }

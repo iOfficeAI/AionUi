@@ -1105,5 +1105,7 @@
     "claudeAgentAcp": "the Claude ACP runtime component"
   },
   "updateReadyInstall": "{{version}} hazır, şimdi yükle",
-  "assistantAgentUnavailable": "Gereken aracı şu anda kullanılamıyor."
+  "assistantAgentUnavailable": "Gereken aracı şu anda kullanılamıyor.",
+  "assistantAgentMissing": "Gereken aracı yüklü değil.",
+  "assistantTeamUnsupported": "Bu asistan şu anda takım modunda kullanılamıyor."
 }

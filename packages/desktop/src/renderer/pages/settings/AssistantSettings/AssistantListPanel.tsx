@@ -112,10 +112,13 @@ const SortableAssistantCard: React.FC<SortableAssistantCardProps> = ({
             {assistant.agent_status !== 'online' && (
               <Tooltip
                 content={
-                  assistant.agent_status_message ||
-                  t('settings.assistantAgentUnavailable', {
-                    defaultValue: 'The required agent is currently unavailable.',
-                  })
+                  assistant.agent_status === 'missing'
+                    ? t('settings.assistantAgentMissing', {
+                        defaultValue: 'The required agent is not installed.',
+                      })
+                    : t('settings.assistantAgentUnavailable', {
+                        defaultValue: 'The required agent is currently unavailable.',
+                      })
                 }
               >
                 <span
