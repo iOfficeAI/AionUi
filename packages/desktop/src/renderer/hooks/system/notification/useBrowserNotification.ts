@@ -29,6 +29,9 @@ export const useBrowserNotification = (): void => {
     const turnCompletedEmitter = ipcBridge.conversation.turnCompleted;
     if (!confirmationEmitter || !turnCompletedEmitter) return;
 
+    // The controller's turn_id dedup is best-effort per effect lifetime: it
+    // resets if this effect re-runs (e.g. on a language change). Acceptable —
+    // worst case is one duplicate notification across a locale switch.
     const controller = createBrowserNotificationController({
       readGate: () => ({
         isElectron: isElectronDesktop(),

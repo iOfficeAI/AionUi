@@ -41,6 +41,12 @@ describe('BrowserNotificationGrant', () => {
     expect(screen.getByText('settings.browserNotification.granted')).toBeInTheDocument();
   });
 
+  it('shows the denied state when permission is denied', () => {
+    setNotification('denied');
+    render(<BrowserNotificationGrant />);
+    expect(screen.getByText('settings.browserNotification.denied')).toBeInTheDocument();
+  });
+
   it('shows the insecure-context hint when not a secure context', () => {
     setNotification('default', false);
     render(<BrowserNotificationGrant />);
