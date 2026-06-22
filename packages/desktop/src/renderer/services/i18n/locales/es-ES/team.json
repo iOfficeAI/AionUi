@@ -1,0 +1,60 @@
+{
+  "sider": {
+    "title": "Equipos",
+    "createTeam": "Nuevo equipo",
+    "pin": "Fijar",
+    "unpin": "Desfijar",
+    "rename": "Renombrar",
+    "delete": "Eliminar",
+    "renameTitle": "Renombrar equipo",
+    "renamePlaceholder": "Nombre del equipo",
+    "deleteConfirm": "¿Eliminar este equipo?",
+    "deleteConfirmContent": "Esta acción no se puede deshacer.",
+    "deleteOk": "Eliminar",
+    "deleteCancel": "Cancelar",
+    "renameOk": "Guardar",
+    "renameCancel": "Cancelar",
+    "renameSuccess": "Equipo renombrado",
+    "deleteSuccess": "Equipo eliminado"
+  },
+  "newAgent": "Nuevo agente",
+  "noMessages": "Sin mensajes aún.",
+  "agentNotConfigured": "Agente aún no configurado.",
+  "stopAgentFailed": "Error al detener este agente. Por favor intenta de nuevo.",
+  "sendBox": {
+    "placeholder": "Mensaje al agente coordinador..."
+  },
+  "create": {
+    "title": "Crear equipo",
+    "namePlaceholder": "Nombre del equipo",
+    "dispatchAgentPlaceholder": "Seleccionar líder del equipo",
+    "subAgentsPlaceholder": "Seleccionar sub agentes",
+    "confirm": "Crear equipo",
+    "noSupportedAgents": "No hay agentes compatibles instalados",
+    "supportedAgentsHint": "Actualmente compatible con Claude y Codex. Más agentes próximamente.",
+    "leaderDesc": "Comprende tus objetivos y coordina a los agentes para completar tareas",
+    "step": {
+      "dispatch": "Líder del equipo",
+      "subAgents": "Sub agentes",
+      "workspace": "Proyecto"
+    },
+    "nameRequired": "Ingresa un nombre para el equipo",
+    "leaderRequired": "Selecciona un líder de equipo",
+    "selectFolder": "Seleccionar carpeta",
+    "recentLabel": "Recientes",
+    "chooseDifferentFolder": "Elegir otra carpeta",
+    "error": "Error al crear el equipo"
+  },
+  "removeAgent": {
+    "confirmTitle": "Quitar miembro del equipo",
+    "confirmContent": "Este miembro está actualmente activo. ¿Forzar eliminación?"
+  },
+  "emptyState": {
+    "subtitle": "Describe tu objetivo y haré que el equipo trabaje en ello",
+    "suggestions": {
+      "debate": "Organizar un debate con agentes tomando diferentes posiciones",
+      "interview": "Planificar una entrevista en profundidad entre agentes",
+      "expert_review": "Hacer que varios expertos analicen el mismo problema"
+    }
+  }
+}
