@@ -19,12 +19,12 @@ type ManagedAgent = {
 };
 
 const TEXT = {
-  officialAgents: ['Official Agents', '官方 Agents'],
   customAgents: ['Custom Agents', '自定义 Agents'],
   setupGuide: ['Setup guide', '查看安装指南'],
-  detectCustomAgent: ['Detect Custom Agent', '识别自定义 Agent'],
+  // The custom-agent editor is now opened from an "Add" button in the
+  // custom-agents section header (was a "Detect Custom Agent" text link).
+  addCustomAgent: ['Add', '添加'],
   testConnection: ['Test Connection', '测试连接'],
-  configureConnection: ['Configure', '配置'],
   commandLabel: ['Command', '命令'],
   commandPlaceholder: ['e.g. my-agent or /usr/local/bin/my-agent', '例如 my-agent 或 /usr/local/bin/my-agent'],
   installFromMarket: ['Install from Market', '从市场安装'],
@@ -59,10 +59,8 @@ test.describe('Agent Settings Detection', () => {
     await expectUrlContains(page, 'agent');
     await expect(page.locator(settingsSiderItemById('agent')).first()).toBeVisible({ timeout: 8_000 });
 
-    await expectAnyText(page, TEXT.officialAgents);
     await expectAnyText(page, TEXT.customAgents);
     await expectAnyText(page, TEXT.setupGuide);
-    await expectAnyText(page, TEXT.detectCustomAgent);
     await expect(page.getByRole('button', { name: new RegExp(TEXT.testConnection.join('|')) }).first()).toBeVisible();
 
     for (const agent of managedAgents.slice(0, 4)) {
@@ -83,7 +81,6 @@ test.describe('Agent Settings Detection', () => {
   test('keeps the page diagnostics-only and removes legacy market/chat affordances', async ({ page }) => {
     await goToSettings(page, 'agent');
 
-    await expectAnyText(page, TEXT.officialAgents);
     await expectAnyText(page, TEXT.customAgents);
     await expectNoText(page, TEXT.installFromMarket);
     await expectNoText(page, TEXT.discoverMoreAgents);
@@ -93,7 +90,7 @@ test.describe('Agent Settings Detection', () => {
   test('opens the custom agent editor from the diagnostics page', async ({ page }) => {
     await goToSettings(page, 'agent');
 
-    await page.getByRole('button', { name: new RegExp(TEXT.detectCustomAgent.join('|')) }).click();
+    await page.getByRole('button', { name: new RegExp(`^(${TEXT.addCustomAgent.join('|')})$`) }).click();
 
     await expectAnyText(page, TEXT.commandLabel);
     await expect(page.getByPlaceholder(new RegExp(TEXT.commandPlaceholder.join('|'))).first()).toBeVisible({
@@ -109,9 +106,8 @@ test.describe('Agent Settings Detection', () => {
     await goToSettings(page, 'about');
     await goToSettings(page, 'agent');
 
-    await expectAnyText(page, TEXT.officialAgents);
     await expectAnyText(page, TEXT.customAgents);
-    await expectAnyText(page, TEXT.detectCustomAgent);
+    await expectAnyText(page, TEXT.setupGuide);
     await expectNoText(page, TEXT.installFromMarket);
     await expectNoText(page, TEXT.discoverMoreAgents);
   });

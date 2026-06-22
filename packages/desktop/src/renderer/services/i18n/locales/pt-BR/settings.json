@@ -1006,7 +1006,7 @@
     "customAgents": "Agentes Personalizados",
     "custom": "Personalizado",
     "addCustomAgent": "Adicionar Agente Personalizado",
-    "customEmpty": "Nenhum agente personalizado configurado. Clique em \"Adicionar Agente Personalizado\" para criar um.",
+    "customEmpty": "Nenhum agente personalizado ainda. Clique em \"Adicionar\" no canto superior direito para criar um.",
     "errorCodes": {
       "command_not_found": "Install {{command}} and retry the connection test.",
       "acp_init_failed": "The CLI started but failed during initialization. Complete sign-in or first-run setup, then retry the connection test.",
@@ -1020,7 +1020,11 @@
       "managed_runtime_unavailable": "Repair or reinstall {{resource}}, then retry the connection test.",
       "auth_required": "O agente está acessível, mas requer login. Faça login pelo CLI ou adicione a chave de API necessária em Variáveis de Ambiente e tente o teste de conexão novamente.",
       "no_provider": "Nenhum provedor de modelo está configurado. Adicione e ative um provedor nas Configurações e tente o teste de conexão novamente."
-    }
+    },
+    "boundAssistantsTitle": "Assistentes que usam este agente",
+    "boundAssistantsCount": "{{count}} assistente(s)",
+    "boundAssistantsEmpty": "Nenhum assistente está vinculado a este agente ainda.",
+    "viewAssistant": "Ver"
   },
   "repair": {
     "pathLabel": "Caminho de Inicialização",

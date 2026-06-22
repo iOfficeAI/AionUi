@@ -72,6 +72,10 @@ vi.mock('@/common', () => ({
       setAgentEnabled: { invoke: vi.fn() },
       checkManagedAgentHealthById: { invoke: vi.fn() },
     },
+    // Bound-assistant avatar stacks fetch the assistant list via SWR.
+    assistants: {
+      list: { invoke: vi.fn().mockResolvedValue([]) },
+    },
   },
 }));
 
@@ -217,7 +221,7 @@ describe('LocalAgents', () => {
 
     render(<LocalAgents />);
 
-    expect(screen.getByText('settings.agentManagement.officialAgents')).toBeTruthy();
+    expect(screen.getByText('settings.agents')).toBeTruthy();
     expect(screen.getByText('settings.agentManagement.customAgents')).toBeTruthy();
     // Only Claude Code shows 'missing' now; openclaw-gateway is filtered out as deprecated
     expect(screen.getByText('settings.agentManagement.statusMissing')).toBeTruthy();
@@ -284,7 +288,7 @@ describe('LocalAgents', () => {
 
     fireEvent.click(screen.getByText('settings.agentManagement.localAgentsSetupLink'));
 
-    expect(openExternalUrl).toHaveBeenCalledWith('https://github.com/iOfficeAI/AionUi/wiki/Getting-Started');
+    expect(openExternalUrl).toHaveBeenCalledWith('https://github.com/iOfficeAI/AionUi/wiki/ACP-Setup');
   });
 
   it('renders agent management as a single diagnostics page without local/remote tabs', () => {

@@ -996,7 +996,7 @@
     "customAgents": "커스텀 에이전트",
     "custom": "사용자 정의",
     "addCustomAgent": "사용자 정의 에이전트 추가",
-    "customEmpty": "구성된 사용자 정의 에이전트가 없습니다. \"사용자 정의 에이전트 추가\"를 클릭하여 생성하세요.",
+    "customEmpty": "사용자 정의 에이전트가 없습니다. 오른쪽 상단의 \"추가\"를 클릭하여 생성하세요.",
     "errorCodes": {
       "command_not_found": "Install {{command}} and retry the connection test.",
       "acp_init_failed": "The CLI started but failed during initialization. Complete sign-in or first-run setup, then retry the connection test.",
@@ -1010,7 +1010,11 @@
       "managed_runtime_unavailable": "Repair or reinstall {{resource}}, then retry the connection test.",
       "auth_required": "에이전트에 연결할 수 있지만 로그인이 필요합니다. CLI에서 로그인하거나 「환경 변수」에 필요한 API 키를 추가한 후 연결 테스트를 다시 시도하세요.",
       "no_provider": "모델 제공자가 구성되지 않았습니다. 설정에서 제공자를 추가하고 활성화한 후 연결 테스트를 다시 시도하세요."
-    }
+    },
+    "boundAssistantsTitle": "이 에이전트를 사용하는 어시스턴트",
+    "boundAssistantsCount": "어시스턴트 {{count}}개",
+    "boundAssistantsEmpty": "이 에이전트에 연결된 어시스턴트가 아직 없습니다.",
+    "viewAssistant": "보기"
   },
   "repair": {
     "pathLabel": "시작 경로",

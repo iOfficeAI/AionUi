@@ -1006,7 +1006,7 @@
     "customAgents": "Custom Agents",
     "custom": "Custom",
     "addCustomAgent": "Add Custom Agent",
-    "customEmpty": "No custom agents configured. Click \"Add Custom Agent\" to create one.",
+    "customEmpty": "No custom agents yet. Click Add in the top right to create one.",
     "errorCodes": {
       "command_not_found": "Install {{command}} and retry the connection test.",
       "acp_init_failed": "The CLI started but failed during initialization. Complete sign-in or first-run setup, then retry the connection test.",
@@ -1020,7 +1020,11 @@
       "managed_runtime_unavailable": "Repair or reinstall {{resource}}, then retry the connection test.",
       "auth_required": "The agent is reachable but requires sign-in. Log in via the CLI, or add the required API key under Environment Variables, then retry the connection test.",
       "no_provider": "No model provider is configured. Add and enable a provider in Settings, then retry the connection test."
-    }
+    },
+    "boundAssistantsTitle": "Assistants using this agent",
+    "boundAssistantsCount": "{{count}} assistant(s)",
+    "boundAssistantsEmpty": "No assistants are bound to this agent yet.",
+    "viewAssistant": "View"
   },
   "repair": {
     "pathLabel": "Launch Path",

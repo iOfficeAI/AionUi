@@ -11,17 +11,22 @@ import AionModal from '@/renderer/components/base/AionModal';
 import { useManagedAgents } from '@/renderer/hooks/agent/useManagedAgents';
 import { openExternalUrl } from '@/renderer/utils/platform';
 import { Button, Message, Typography } from '@arco-design/web-react';
+import { Plus } from '@icon-park/react';
 import React, { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import AgentCard from './AgentCard';
 import { isDeprecatedRuntimeAgentType } from '@/renderer/utils/model/agentTypeSupportPolicy';
 import InlineAgentEditor, { type CustomAgentDraft } from './InlineAgentEditor';
+import { getBoundAssistants, useAssistantsForAgents } from './BoundAssistants';
+import { useNavigate } from 'react-router-dom';
 
-const LOCAL_AGENT_SETUP_GUIDE_URL = 'https://github.com/iOfficeAI/AionUi/wiki/Getting-Started';
+const LOCAL_AGENT_SETUP_GUIDE_URL = 'https://github.com/iOfficeAI/AionUi/wiki/ACP-Setup';
 
 const LocalAgents: React.FC = () => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [testingAgentId, setTestingAgentId] = useState<string | null>(null);
+  const { assistants } = useAssistantsForAgents();
 
   // Management view: includes user-disabled custom agents so they stay
   // listed (greyed) with a working re-enable toggle. `refreshCatalog`
@@ -107,6 +112,13 @@ const LocalAgents: React.FC = () => {
     setEditorVisible(true);
   }, []);
 
+  const openAgentConfig = useCallback(
+    (agentId: string) => {
+      navigate(`/settings/agent/${agentId}/repair`);
+    },
+    [navigate]
+  );
+
   // Manual "test connection": runs the live ACP probe (initialize +
   // session/new) and refreshes the catalog so the card reflects the new
   // status immediately (F2-02: three states stay clickable, in-progress
@@ -149,59 +161,65 @@ const LocalAgents: React.FC = () => {
 
   return (
     <div className='flex flex-col gap-8px py-16px'>
-      <div className='px-16px text-12px text-t-secondary'>
-        <span>{t('settings.agentManagement.localAgentsDescription')} </span>
-        <Button
-          type='text'
-          size='mini'
-          className='!mr-8px !h-auto !p-0 !align-baseline !text-12px !font-normal !text-primary-6 hover:!text-primary-7 hover:!underline underline-offset-2'
-          onClick={() => {
-            void openExternalUrl(LOCAL_AGENT_SETUP_GUIDE_URL).catch(console.error);
-          }}
-        >
-          {t('settings.agentManagement.localAgentsSetupLink')}
-        </Button>
-        <Button
-          type='text'
-          size='mini'
-          className='!h-auto !p-0 !align-baseline !text-12px !font-normal !text-primary-6 hover:!text-primary-7 hover:!underline underline-offset-2'
-          onClick={openCustomAgentEditor}
-        >
-          {t('settings.agentManagement.detectCustomAgent')}
-        </Button>
+      {/* Page title header, mirroring the assistant settings page. */}
+      <div className='px-16px'>
+        <h2 className='m-0 text-16px font-600 leading-[1.2] text-t-primary'>
+          {t('settings.agents', { defaultValue: 'Agents' })}
+        </h2>
+        <p className='mt-4px text-12px text-t-tertiary'>
+          <span>{t('settings.agentManagement.localAgentsDescription')} </span>
+          <Button
+            type='text'
+            size='mini'
+            className='!h-auto !p-0 !align-baseline !text-12px !font-normal !text-primary-6 hover:!text-primary-7 hover:!underline underline-offset-2'
+            onClick={() => {
+              void openExternalUrl(LOCAL_AGENT_SETUP_GUIDE_URL).catch(console.error);
+            }}
+          >
+            {t('settings.agentManagement.localAgentsSetupLink')}
+          </Button>
+        </p>
       </div>
       {isRefreshing ? (
         <div className='px-16px text-11px text-t-tertiary'>{t('settings.agentManagement.refreshingStatuses')}</div>
       ) : null}
 
-      {/* Detected Agents section */}
+      {/* Detected Agents section — row list, mirroring the assistant list style */}
       <div className='px-16px mt-8px'>
-        <Typography.Text className='text-12px font-medium text-t-secondary mb-4px block'>
-          {t('settings.agentManagement.officialAgents')}
-        </Typography.Text>
+        <div className='flex flex-col gap-8px rounded-12px border border-border-2 bg-2 p-8px md:rounded-16px md:p-10px'>
+          {sortedOfficialAgents.map((agent) => (
+            <AgentCard
+              key={agent.id}
+              type='official'
+              agent={agent}
+              boundAssistants={getBoundAssistants(agent, assistants)}
+              onTestConnection={() => void handleTestConnection(agent.id)}
+              onConfigure={() => openAgentConfig(agent.id)}
+              isTesting={testingAgentId === agent.id}
+            />
+          ))}
+          {(!officialAgents || officialAgents.length === 0) && (
+            <Typography.Text type='secondary' className='block py-16px text-center text-12px'>
+              {t('settings.agentManagement.localAgentsEmpty')}
+            </Typography.Text>
+          )}
+        </div>
       </div>
-      <div className='grid grid-cols-2 gap-10px px-16px md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5'>
-        {sortedOfficialAgents.map((agent) => (
-          <AgentCard
-            key={agent.id}
-            type='official'
-            agent={agent}
-            onTestConnection={() => void handleTestConnection(agent.id)}
-            isTesting={testingAgentId === agent.id}
-          />
-        ))}
-      </div>
-      {(!officialAgents || officialAgents.length === 0) && (
-        <Typography.Text type='secondary' className='block px-16px py-16px text-center text-12px'>
-          {t('settings.agentManagement.localAgentsEmpty')}
-        </Typography.Text>
-      )}
 
-      {/* Custom Agents section */}
-      <div className='px-16px mt-16px'>
-        <Typography.Text className='text-12px font-medium text-t-secondary mb-4px block'>
+      {/* Custom Agents section — header carries the "add custom agent" action */}
+      <div className='px-16px mt-16px flex items-center justify-between'>
+        <Typography.Text className='text-12px font-medium text-t-secondary block'>
           {t('settings.agentManagement.customAgents', { defaultValue: 'Custom Agents' })}
         </Typography.Text>
+        <Button
+          type='primary'
+          size='small'
+          icon={<Plus size={14} fill='currentColor' />}
+          className='!h-32px !rounded-8px !px-14px'
+          onClick={openCustomAgentEditor}
+        >
+          {t('common.add', { defaultValue: 'Add' })}
+        </Button>
       </div>
 
       <AionModal
@@ -243,29 +261,31 @@ const LocalAgents: React.FC = () => {
         )}
       </AionModal>
 
-      <div className='flex flex-col gap-4px px-0'>
-        {customAgents?.map((agent) => (
-          <AgentCard
-            key={agent.id}
-            type='custom'
-            agent={agent}
-            onTestConnection={() => void handleTestConnection(agent.id)}
-            isTesting={testingAgentId === agent.id}
-            onEdit={() => {
-              setEditingAgent(agent);
-              setEditorVisible(true);
-            }}
-            onDelete={() => void handleDeleteCustomAgent(agent.id)}
-            onToggle={(enabled) => void handleToggleCustomAgent(agent.id, enabled)}
-          />
-        ))}
-        {customAgents.length === 0 ? (
-          <Typography.Text type='secondary' className='block px-16px py-12px text-center text-12px'>
-            {t('settings.agentManagement.customEmpty', {
-              defaultValue: 'No custom agents yet. Click "Detect Custom Agent" to create one.',
-            })}
-          </Typography.Text>
-        ) : null}
+      <div className='px-16px'>
+        <div className='flex flex-col gap-8px rounded-12px border border-border-2 bg-2 p-8px md:rounded-16px md:p-10px'>
+          {customAgents?.map((agent) => (
+            <AgentCard
+              key={agent.id}
+              type='custom'
+              agent={agent}
+              boundAssistants={getBoundAssistants(agent, assistants)}
+              onTestConnection={() => void handleTestConnection(agent.id)}
+              onConfigure={() => openAgentConfig(agent.id)}
+              isTesting={testingAgentId === agent.id}
+              onEdit={() => {
+                setEditingAgent(agent);
+                setEditorVisible(true);
+              }}
+              onDelete={() => void handleDeleteCustomAgent(agent.id)}
+              onToggle={(enabled) => void handleToggleCustomAgent(agent.id, enabled)}
+            />
+          ))}
+          {customAgents.length === 0 ? (
+            <Typography.Text type='secondary' className='block py-12px text-center text-12px'>
+              {t('settings.agentManagement.customEmpty')}
+            </Typography.Text>
+          ) : null}
+        </div>
       </div>
     </div>
   );
