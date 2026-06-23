@@ -211,6 +211,14 @@
   "hardwareAccelerationAutoDisabled": "GPU가 반복적으로 충돌하여 자동으로 비활성화되었습니다.",
   "hardwareAccelerationRestartConfirm": "새 하드웨어 가속 설정을 적용하려면 AionUi를 다시 시작하시겠습니까?",
   "hardwareAccelerationUpdateFailed": "하드웨어 가속 설정을 업데이트하지 못했습니다",
+  "browserNotification": {
+    "enable": "브라우저 알림 활성화",
+    "granted": "브라우저 알림이 활성화되었습니다",
+    "denied": "알림이 차단되었습니다 — 브라우저 사이트 설정에서 허용해 주세요",
+    "insecureContext": "브라우저 알림은 HTTPS 또는 localhost 접속이 필요합니다",
+    "bodyConfirmation": "에이전트가 확인을 기다리고 있습니다",
+    "bodyTurnCompleted": "에이전트가 응답을 완료했습니다"
+  },
   "notification": "알림",
   "cronNotificationEnabled": "예약 작업 완료 알림",
   "promptTimeout": "LLM 요청 시간 초과 (초)",

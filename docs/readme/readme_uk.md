@@ -86,12 +86,12 @@ AionUi постачається з повноцінним рушієм AI-аге
 
 ### **Офісні асистенти — PPT, Word та Excel**
 
-Ці напрямки відповідають реальним можливостям додатка: пресети **Morph PPT** та навички **`pptx` / `docx` / `xlsx`** (див. пресети `assistant/` та `skills/` у репозиторії). Потрібні документи чи таблиці? Вбудований **[OfficeCLI](https://github.com/iOfficeAI/OfficeCli)** допомагає створювати PPT (Morph), Word (`.docx`) та Excel (`.xlsx/.xlsm/.csv`) швидше та надійніше.
+Ці напрямки відповідають реальним можливостям додатка: пресети **Morph PPT** та навички **`pptx` / `docx` / `xlsx`** (див. пресети `assistant/` та `skills/` у репозиторії). Потрібні документи чи таблиці? Вбудований **[OfficeCLI](https://github.com/iOfficeAI/OfficeCLI)** допомагає створювати PPT (Morph), Word (`.docx`) та Excel (`.xlsx/.xlsm/.csv`) швидше та надійніше.
 
 #### **Асистент PPT**
 
 > **Результат:** редагований Morph PPT (`.pptx`)
-> Плавні переходи між слайдами з анімацією Morph та цілісним сюжетом; працює на базі [OfficeCLI](https://github.com/iOfficeAI/OfficeCli).
+> Плавні переходи між слайдами з анімацією Morph та цілісним сюжетом; працює на базі [OfficeCLI](https://github.com/iOfficeAI/OfficeCLI).
 
 <table>
   <tr>
@@ -107,7 +107,7 @@ AionUi постачається з повноцінним рушієм AI-аге
 #### **Асистент Word**
 
 > **Результат:** редагований Word (`.docx`)
-> Написання статей/дисертацій та редагування документів через навичку `docx`; працює на базі [OfficeCLI](https://github.com/iOfficeAI/OfficeCli).
+> Написання статей/дисертацій та редагування документів через навичку `docx`; працює на базі [OfficeCLI](https://github.com/iOfficeAI/OfficeCLI).
 
 <table>
   <tr>
@@ -123,7 +123,7 @@ AionUi постачається з повноцінним рушієм AI-аге
 #### **Асистент Excel**
 
 > **Результат:** готовий Excel (`.xlsx/.xlsm/.csv`)
-> Генерація та оновлення таблиць через `xlsx` для аналізу, автоформатування та графіків; працює на базі [OfficeCLI](https://github.com/iOfficeAI/OfficeCli).
+> Генерація та оновлення таблиць через `xlsx` для аналізу, автоформатування та графіків; працює на базі [OfficeCLI](https://github.com/iOfficeAI/OfficeCLI).
 
 <table>
   <tr>

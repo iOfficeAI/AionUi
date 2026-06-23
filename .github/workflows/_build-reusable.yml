@@ -197,6 +197,60 @@ jobs:
           echo "Commit: ${{ steps.commit.outputs.short }}"
           echo "=========================================="
 
+      - name: Resolve Sentry release name
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION=$(node -p "require('./package.json').version")
+
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            RELEASE_NAME="${GITHUB_REF_NAME}"
+          elif [[ "$GITHUB_REF_NAME" == "dev" ]]; then
+            RELEASE_NAME="v${VERSION}-dev-${{ steps.commit.outputs.short }}"
+          else
+            RELEASE_NAME="v${VERSION}-${{ steps.commit.outputs.short }}"
+          fi
+
+          echo "SENTRY_RELEASE=$RELEASE_NAME" >> "$GITHUB_ENV"
+          echo "Sentry release: $RELEASE_NAME"
+
+      - name: Configure Sentry source map upload owner
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ "${{ matrix.platform }}" == "linux-x64" ]]; then
+            echo "SENTRY_UPLOAD_SOURCE_MAPS=true" >> "$GITHUB_ENV"
+            echo "Sentry source maps will be uploaded by linux-x64"
+          else
+            echo "SENTRY_UPLOAD_SOURCE_MAPS=false" >> "$GITHUB_ENV"
+            echo "Sentry source map upload skipped for ${{ matrix.platform }}"
+          fi
+
+      - name: Validate Sentry source map upload configuration
+        if: matrix.platform == 'linux-x64'
+        shell: bash
+        run: |
+          set -euo pipefail
+          missing=0
+
+          for name in SENTRY_AUTH_TOKEN SENTRY_ORG SENTRY_PROJECT SENTRY_RELEASE; do
+            if [ -z "${!name:-}" ]; then
+              echo "::error title=Sentry configuration missing::$name is required for desktop source map uploads"
+              missing=1
+            fi
+          done
+
+          if [ "$missing" -ne 0 ]; then
+            exit 1
+          fi
+
+          echo "Sentry source map upload configured for $SENTRY_ORG/$SENTRY_PROJECT ($SENTRY_RELEASE)"
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
+
       # macOS code signing certificate installation
       - name: Setup macOS code signing (macOS only)
         if: startsWith(matrix.platform, 'macos')

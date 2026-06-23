@@ -177,6 +177,10 @@ const rewriteExternalMediaUrls = (markdown: string): string => {
   });
 };
 
+const normalizeLocalFileSchemeLinks = (markdown: string): string => {
+  return markdown.replace(/file:\/\//gi, '');
+};
+
 /**
  * Markdown 预览组件
  * Markdown preview component
@@ -206,7 +210,10 @@ const MarkdownPreview: React.FC<MarkdownPreviewProps> = ({
   const viewMode = externalViewMode ?? 'preview';
 
   // 预览源：转换 LaTeX 分隔符并重写外部媒体 URL / Preview source: convert LaTeX delimiters and rewrite external media URLs
-  const previewSource = useMemo(() => convertLatexDelimiters(rewriteExternalMediaUrls(content)), [content]);
+  const previewSource = useMemo(
+    () => convertLatexDelimiters(normalizeLocalFileSchemeLinks(rewriteExternalMediaUrls(content))),
+    [content]
+  );
 
   // 监听文本选择 / Monitor text selection
   const { selectedText, selectionPosition, clearSelection } = useTextSelection(containerRef);

@@ -203,6 +203,38 @@ describe('MessageTips — FeedbackButton wiring', () => {
     });
   });
 
+  it('carries the rawError diagnostic summary into the feedback extra for internal errors', async () => {
+    const user = userEvent.setup();
+    render(
+      <MessageTips
+        message={buildTips('error', 'Something went wrong, please try again.', {
+          message: 'Something went wrong, please try again.',
+          code: 'AIONUI_INTERNAL_ERROR',
+          ownership: 'aionui',
+          detail: 'Something went wrong, please try again.',
+          retryable: true,
+          feedback_recommended: true,
+          rawError: {
+            name: 'Error',
+            message: 'connect ECONNREFUSED 127.0.0.1:8080',
+            code: 'ECONNREFUSED',
+            stack: 'Error: connect ECONNREFUSED\n    at frame',
+          },
+        })}
+      />
+    );
+
+    await user.click(screen.getByText('settings.oneClickFeedback'));
+
+    const call = openFeedbackMock.mock.calls[0][0] as { extra: { agent_error: { rawError?: unknown } } };
+    expect(call.extra.agent_error.rawError).toEqual({
+      name: 'Error',
+      message: 'connect ECONNREFUSED 127.0.0.1:8080',
+      code: 'ECONNREFUSED',
+      stack: 'Error: connect ECONNREFUSED\n    at frame',
+    });
+  });
+
   it('renders HTML-like error text as literal text', () => {
     const { container } = render(<MessageTips message={buildTips('error', '<strong>boom</strong>')} />);
 

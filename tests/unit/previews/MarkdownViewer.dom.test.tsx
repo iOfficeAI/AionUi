@@ -169,6 +169,66 @@ describe('MarkdownViewer', () => {
     expect(ipcBridge.fs.readFile.invoke).not.toHaveBeenCalled();
   });
 
+  it('opens hash range local file links at the start line in preview mode', async () => {
+    const filePath = '/Users/demo/Desktop/app.ts';
+    vi.mocked(ipcBridge.fs.getFileMetadata.invoke).mockResolvedValue(fileMetadata(filePath));
+    vi.mocked(ipcBridge.fs.readFile.invoke).mockResolvedValue('const value = 1;\n');
+
+    render(<MarkdownViewer content={`[app.ts](${filePath}#L10-L20)`} file_path='/Users/demo/Desktop/test.md' />);
+
+    expect(screen.queryByRole('link', { name: /app\.ts/ })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /app\.ts\s+L10-L20/ }));
+
+    await waitFor(() => {
+      expect(previewMocks.openPreview).toHaveBeenCalledWith(
+        'const value = 1;\n',
+        'code',
+        expect.objectContaining({
+          file_name: 'app.ts',
+          file_path: filePath,
+          language: 'ts',
+          targetLine: 10,
+          targetColumn: undefined,
+          truncated: false,
+        }),
+        { replace: true }
+      );
+    });
+
+    const metadata = previewMocks.openPreview.mock.calls[0]?.[2];
+    expect(metadata).not.toHaveProperty('endLine');
+    expect(metadata).not.toHaveProperty('targetEndLine');
+  });
+
+  it('opens encoded file URL hash links in preview mode', async () => {
+    const filePath = '/Users/demo/Desktop/My File.ts';
+    vi.mocked(ipcBridge.fs.getFileMetadata.invoke).mockResolvedValue(fileMetadata(filePath));
+    vi.mocked(ipcBridge.fs.readFile.invoke).mockResolvedValue('const value = 1;\n');
+
+    render(<MarkdownViewer content='[encoded file](file:///Users/demo/Desktop/My%20File.ts#L1)' />);
+
+    expect(screen.queryByRole('link', { name: 'encoded file' })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /encoded file\s+L1/ }));
+
+    await waitFor(() => {
+      expect(previewMocks.openPreview).toHaveBeenCalledWith(
+        'const value = 1;\n',
+        'code',
+        expect.objectContaining({
+          file_name: 'My File.ts',
+          file_path: filePath,
+          language: 'ts',
+          targetLine: 1,
+          targetColumn: undefined,
+          truncated: false,
+        }),
+        { replace: true }
+      );
+    });
+  });
+
   it('keeps remote links as browser anchors', () => {
     render(<MarkdownViewer content='[docs](https://aionui.com/docs)' />);
 

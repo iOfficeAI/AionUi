@@ -138,6 +138,6 @@
     "loading": "Запуск предпросмотра PPT...",
     "installing": "Установка компонента предпросмотра...",
     "startFailed": "Не удалось запустить предпросмотр PPT",
-    "installHint": "Установите OfficeCLI со страницы официальных выпусков iOfficeAI/OfficeCli"
+    "installHint": "Установите OfficeCLI со страницы официальных выпусков iOfficeAI/OfficeCLI"
   }
 }

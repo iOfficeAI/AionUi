@@ -138,6 +138,6 @@
     "loading": "正在启动 PPT 预览...",
     "installing": "正在安装预览组件...",
     "startFailed": "启动 PPT 预览失败",
-    "installHint": "请从官方 iOfficeAI/OfficeCli releases 页面安装 OfficeCLI"
+    "installHint": "请从官方 iOfficeAI/OfficeCLI releases 页面安装 OfficeCLI"
   }
 }

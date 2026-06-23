@@ -69,7 +69,7 @@ const OFFICE_ERROR_I18N_KEYS: Record<OfficeWatchErrorCode, string> = {
   PATH_OUTSIDE_SANDBOX: 'preview.office.errors.outsideSandbox',
 };
 
-export const OFFICECLI_INSTALL_URL = 'https://github.com/iOfficeAI/OfficeCli/releases';
+export const OFFICECLI_INSTALL_URL = 'https://github.com/iOfficeAI/OfficeCLI/releases';
 
 interface OfficeWatchViewerProps {
   docType: DocType;

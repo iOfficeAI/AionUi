@@ -138,6 +138,6 @@
     "loading": "Запуск перегляду PPT...",
     "installing": "Встановлення компонента перегляду...",
     "startFailed": "Не вдалося запустити перегляд PPT",
-    "installHint": "Встановіть OfficeCLI зі сторінки офіційних релізів iOfficeAI/OfficeCli"
+    "installHint": "Встановіть OfficeCLI зі сторінки офіційних релізів iOfficeAI/OfficeCLI"
   }
 }

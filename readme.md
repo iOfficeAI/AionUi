@@ -86,13 +86,13 @@ AionUi ships with a complete AI agent engine. Unlike tools that require you to i
 
 ### **Office assistants — PPT, Word & Excel**
 
-These tracks match what the app actually ships: **Morph PPT** presets and the **`pptx` / `docx` / `xlsx` skills** (see `assistant/` presets and `skills/` in the repo). Want document/table output? AionUi’s built-in **[OfficeCLI](https://github.com/iOfficeAI/OfficeCli)** helps PPT (Morph), Word (`.docx`), and Excel (`.xlsx/.xlsm/.csv`) go from request to deliverable faster and more reliably.
+These tracks match what the app actually ships: **Morph PPT** presets and the **`pptx` / `docx` / `xlsx` skills** (see `assistant/` presets and `skills/` in the repo). Want document/table output? AionUi’s built-in **[OfficeCLI](https://github.com/iOfficeAI/OfficeCLI)** helps PPT (Morph), Word (`.docx`), and Excel (`.xlsx/.xlsm/.csv`) go from request to deliverable faster and more reliably.
 The three assistant types map to file workflows, and the final outputs are directly editable and reusable.
 
 #### **PPT assistant**
 
 > **Output:** editable Morph PPT (`.pptx`)
-> Morph-animated slide-to-slide transitions with coherent story pacing; powered by [OfficeCLI](https://github.com/iOfficeAI/OfficeCli).
+> Morph-animated slide-to-slide transitions with coherent story pacing; powered by [OfficeCLI](https://github.com/iOfficeAI/OfficeCLI).
 
 <table>
   <tr>
@@ -108,7 +108,7 @@ The three assistant types map to file workflows, and the final outputs are direc
 #### **Word assistant**
 
 > **Output:** editable Word (`.docx`)
-> Paper/thesis writing and production-ready document editing via the `docx` skill; powered by [OfficeCLI](https://github.com/iOfficeAI/OfficeCli).
+> Paper/thesis writing and production-ready document editing via the `docx` skill; powered by [OfficeCLI](https://github.com/iOfficeAI/OfficeCLI).
 
 <table>
   <tr>
@@ -124,7 +124,7 @@ The three assistant types map to file workflows, and the final outputs are direc
 #### **Excel assistant**
 
 > **Output:** usable Excel (`.xlsx/.xlsm/.csv`)
-> Generate/refresh spreadsheets with `xlsx` for analysis, auto-formatting, and charts; powered by [OfficeCLI](https://github.com/iOfficeAI/OfficeCli).
+> Generate/refresh spreadsheets with `xlsx` for analysis, auto-formatting, and charts; powered by [OfficeCLI](https://github.com/iOfficeAI/OfficeCLI).
 
 <table>
   <tr>

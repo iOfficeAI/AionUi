@@ -138,6 +138,6 @@
     "loading": "PPT-Vorschau wird gestartet...",
     "installing": "Vorschau-Komponente wird installiert...",
     "startFailed": "PPT-Vorschau konnte nicht gestartet werden",
-    "installHint": "Stelle sicher, dass officecli installiert ist: npm run postinstall"
+    "installHint": "Installiere OfficeCLI über die offizielle iOfficeAI/OfficeCLI releases-Seite"
   }
 }

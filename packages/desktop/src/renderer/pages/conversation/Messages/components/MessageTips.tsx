@@ -142,6 +142,7 @@ const MessageTips: React.FC<{ message: IMessageTips }> = ({ message }) => {
           ? { feedback_recommended: structuredError.feedback_recommended }
           : {}),
         ...(structuredError.resolution ? { resolution: structuredError.resolution } : {}),
+        ...(structuredError.rawError ? { rawError: structuredError.rawError } : {}),
       },
     };
 

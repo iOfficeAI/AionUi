@@ -67,12 +67,22 @@ const mainAliases = {
 
 export default defineConfig(({ mode }) => {
   const isDevelopment = mode === 'development';
-  const enableSentrySourceMaps = !isDevelopment && !!process.env.SENTRY_AUTH_TOKEN;
+  const enableSentrySourceMaps =
+    !isDevelopment &&
+    !!process.env.SENTRY_AUTH_TOKEN &&
+    (process.env.CI !== 'true' || process.env.SENTRY_UPLOAD_SOURCE_MAPS === 'true');
+  const sentryReleaseName = process.env.SENTRY_RELEASE ?? `v${rootPackageJson.version}`;
 
   const sentryPluginOptions = {
     org: process.env.SENTRY_ORG,
     project: process.env.SENTRY_PROJECT,
     authToken: process.env.SENTRY_AUTH_TOKEN,
+    release: {
+      name: sentryReleaseName,
+    },
+    errorHandler: (error: Error) => {
+      throw error;
+    },
     sourcemaps: {
       filesToDeleteAfterUpload: ['./out/**/*.map'],
       rewriteSources: (source: string) => {

@@ -138,6 +138,6 @@
     "loading": "Iniciando visualização do PPT...",
     "installing": "Instalando componente de visualização...",
     "startFailed": "Falha ao iniciar a visualização do PPT",
-    "installHint": "Instale o OfficeCLI pela página oficial de releases iOfficeAI/OfficeCli"
+    "installHint": "Instale o OfficeCLI pela página oficial de releases iOfficeAI/OfficeCLI"
   }
 }

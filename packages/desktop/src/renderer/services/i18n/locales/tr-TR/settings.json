@@ -211,6 +211,14 @@
   "hardwareAccelerationAutoDisabled": "Tekrarlanan GPU çökmeleri nedeniyle otomatik olarak devre dışı bırakıldı.",
   "hardwareAccelerationRestartConfirm": "Yeni donanım hızlandırma ayarını uygulamak için AionUi yeniden başlatılsın mı?",
   "hardwareAccelerationUpdateFailed": "Donanım hızlandırma ayarı güncellenemedi",
+  "browserNotification": {
+    "enable": "Tarayıcı bildirimlerini etkinleştir",
+    "granted": "Tarayıcı bildirimleri etkinleştirildi",
+    "denied": "Bildirimler engellendi — tarayıcınızın site ayarlarından etkinleştirin",
+    "insecureContext": "Tarayıcı bildirimleri için HTTPS veya localhost erişimi gereklidir",
+    "bodyConfirmation": "Bir agent onayınızı bekliyor",
+    "bodyTurnCompleted": "Agent yanıtlamayı tamamladı"
+  },
   "notification": "Bildirimler",
   "cronNotificationEnabled": "Zamanlanmış Görev Tamamlanma",
   "promptTimeout": "LLM İstek Zaman Aşımı (sn)",

@@ -138,6 +138,6 @@
     "loading": "Starting PPT preview...",
     "installing": "Installing preview component...",
     "startFailed": "Failed to start PPT preview",
-    "installHint": "Install OfficeCLI from the official iOfficeAI/OfficeCli releases page"
+    "installHint": "Install OfficeCLI from the official iOfficeAI/OfficeCLI releases page"
   }
 }
