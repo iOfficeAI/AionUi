@@ -987,7 +987,7 @@
     "customAgents": "Пользовательские агенты",
     "custom": "Пользовательский",
     "addCustomAgent": "Добавить пользовательского агента",
-    "customEmpty": "Пользовательские агенты не настроены. Нажмите «Добавить пользовательского агента» для создания.",
+    "customEmpty": "Пользовательских агентов пока нет. Нажмите «Добавить» в правом верхнем углу, чтобы создать.",
     "errorCodes": {
       "command_not_found": "Install {{command}} and retry the connection test.",
       "acp_init_failed": "The CLI started but failed during initialization. Complete sign-in or first-run setup, then retry the connection test.",
@@ -1001,7 +1001,11 @@
       "managed_runtime_unavailable": "Repair or reinstall {{resource}}, then retry the connection test.",
       "auth_required": "Агент доступен, но требует входа. Войдите через CLI или добавьте нужный ключ API в разделе «Переменные среды», затем повторите проверку подключения.",
       "no_provider": "Не настроен ни один поставщик моделей. Добавьте и включите поставщика в настройках, затем повторите проверку подключения."
-    }
+    },
+    "boundAssistantsTitle": "Ассистенты, использующие этого агента",
+    "boundAssistantsCount": "Ассистентов: {{count}}",
+    "boundAssistantsEmpty": "С этим агентом пока не связан ни один ассистент.",
+    "viewAssistant": "Открыть"
   },
   "repair": {
     "pathLabel": "Путь запуска",

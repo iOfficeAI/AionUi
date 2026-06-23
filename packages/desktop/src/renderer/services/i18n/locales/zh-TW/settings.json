@@ -1008,7 +1008,7 @@
     "customAgents": "自訂 Agents",
     "custom": "自訂",
     "addCustomAgent": "新增自訂 Agent",
-    "customEmpty": "尚無自訂 Agent，點擊「新增自訂 Agent」建立。",
+    "customEmpty": "尚無自訂 Agent，點擊右上角「新增」建立。",
     "errorCodes": {
       "command_not_found": "請安裝 {{command}}，然後重新測試連線。",
       "acp_init_failed": "CLI 已啟動，但初始化失敗。請先完成登入或首次設定，然後重新測試連線。",
@@ -1022,7 +1022,11 @@
       "managed_runtime_unavailable": "請修復或重新安裝 {{resource}}，然後重新測試連線。",
       "auth_required": "Agent 可連線，但需要先登入。請在 CLI 中登入，或在「環境變數」中補充所需的 API 金鑰，然後重新測試連線。",
       "no_provider": "尚未設定模型供應商。請在設定中新增並啟用一個供應商，然後重新測試連線。"
-    }
+    },
+    "boundAssistantsTitle": "綁定此 Agent 的助手",
+    "boundAssistantsCount": "{{count}} 個助手",
+    "boundAssistantsEmpty": "暫無助手綁定此 Agent。",
+    "viewAssistant": "查看詳情"
   },
   "repair": {
     "pathLabel": "啟動路徑",

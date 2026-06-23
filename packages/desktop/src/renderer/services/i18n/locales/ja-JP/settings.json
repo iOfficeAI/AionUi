@@ -996,7 +996,7 @@
     "customAgents": "カスタムエージェント",
     "custom": "カスタム",
     "addCustomAgent": "カスタムエージェントを追加",
-    "customEmpty": "カスタムエージェントが設定されていません。「カスタムエージェントを追加」をクリックして作成してください。",
+    "customEmpty": "カスタムエージェントがありません。右上の「追加」をクリックして作成してください。",
     "errorCodes": {
       "command_not_found": "Install {{command}} and retry the connection test.",
       "acp_init_failed": "The CLI started but failed during initialization. Complete sign-in or first-run setup, then retry the connection test.",
@@ -1010,7 +1010,11 @@
       "managed_runtime_unavailable": "Repair or reinstall {{resource}}, then retry the connection test.",
       "auth_required": "エージェントに接続できますが、サインインが必要です。CLI でログインするか、「環境変数」に必要な API キーを追加してから、接続テストを再実行してください。",
       "no_provider": "モデルプロバイダーが設定されていません。設定でプロバイダーを追加して有効にしてから、接続テストを再実行してください。"
-    }
+    },
+    "boundAssistantsTitle": "このエージェントを使用するアシスタント",
+    "boundAssistantsCount": "{{count}} 個のアシスタント",
+    "boundAssistantsEmpty": "このエージェントにバインドされたアシスタントはまだありません。",
+    "viewAssistant": "詳細"
   },
   "repair": {
     "pathLabel": "起動パス",

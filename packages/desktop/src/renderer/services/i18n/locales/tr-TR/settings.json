@@ -994,7 +994,7 @@
     "customAgents": "Özel Ajanlar",
     "custom": "Özel",
     "addCustomAgent": "Özel Ajan Ekle",
-    "customEmpty": "Yapılandırılmış özel ajan yok. Oluşturmak için \"Özel Ajan Ekle\"ye tıklayın.",
+    "customEmpty": "Henüz özel ajan yok. Oluşturmak için sağ üstteki \"Ekle\" düğmesine tıklayın.",
     "errorCodes": {
       "command_not_found": "Install {{command}} and retry the connection test.",
       "acp_init_failed": "The CLI started but failed during initialization. Complete sign-in or first-run setup, then retry the connection test.",
@@ -1008,7 +1008,11 @@
       "managed_runtime_unavailable": "Repair or reinstall {{resource}}, then retry the connection test.",
       "auth_required": "Aracıya erişilebilir ancak oturum açılması gerekiyor. CLI üzerinden giriş yapın veya gerekli API anahtarını Ortam Değişkenleri altına ekleyin, ardından bağlantı testini yeniden deneyin.",
       "no_provider": "Yapılandırılmış bir model sağlayıcısı yok. Ayarlar'da bir sağlayıcı ekleyip etkinleştirin, ardından bağlantı testini yeniden deneyin."
-    }
+    },
+    "boundAssistantsTitle": "Bu ajanı kullanan asistanlar",
+    "boundAssistantsCount": "{{count}} asistan",
+    "boundAssistantsEmpty": "Bu ajana henüz bağlı asistan yok.",
+    "viewAssistant": "Görüntüle"
   },
   "repair": {
     "pathLabel": "Başlatma Yolu",
