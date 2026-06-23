@@ -1,5 +1,27 @@
 # Changelog
 
+## [2.1.23](https://github.com/iOfficeAI/AionUi/compare/v2.1.22...v2.1.23) (2026-06-23)
+
+### Desktop
+
+#### Features
+
+- **webui:** add browser notifications for permission requests and turn completion (#3401)
+
+#### Bug Fixes
+
+- **preview:** correct OfficeCLI repo slug casing and de-DE install hint (#3399)
+
+### Core ([v0.1.36](https://github.com/iOfficeAI/AionCore/releases/tag/v0.1.36))
+
+#### Bug Fixes
+
+- **deps:** update quinn-proto for RustSec advisory (#508)
+- load skills in custom workspaces (#506)
+- **agent:** support aionrs 0.1.31 (#503)
+
+---
+
 ## [2.1.22](https://github.com/iOfficeAI/AionUi/compare/v2.1.21...v2.1.22) (2026-06-22)
 
 ### Desktop
