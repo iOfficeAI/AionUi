@@ -30,7 +30,7 @@ function pickAssistantForBackend(assistants: Assistant[], backend: string, optio
   const enabledAssistants = assistants.filter((assistant) => assistant.enabled !== false);
   const candidates = enabledAssistants.filter((assistant) => assistantMatchesBackend(assistant, backend));
   const availabilityFiltered = options.requireAvailable
-    ? candidates.filter((assistant) => assistant.agent_status === 'available')
+    ? candidates.filter((assistant) => assistant.agent_status === 'online')
     : candidates;
   const selectableCandidates = options.requireAvailable ? availabilityFiltered : candidates;
 

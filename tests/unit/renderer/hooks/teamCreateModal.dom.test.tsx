@@ -182,7 +182,7 @@ function assistant(
     prompts_i18n: {},
     models: [],
     avatar: undefined,
-    agent_status: 'available',
+    agent_status: 'online',
     team_selectable: true,
     team_block_reason: undefined,
     deletable: false,

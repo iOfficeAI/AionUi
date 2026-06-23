@@ -48,7 +48,7 @@ function assistant(overrides: Partial<Assistant> & Pick<Assistant, 'id' | 'sourc
     prompts: [],
     prompts_i18n: {},
     models: [],
-    agent_status: 'available',
+    agent_status: 'online',
     team_selectable: true,
     deletable: overrides.source === 'user',
     ...overrides,
