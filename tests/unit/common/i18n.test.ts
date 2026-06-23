@@ -38,7 +38,7 @@ describe('i18n', () => {
 
     it('falls back to the default language for unsupported codes', () => {
       expect(normalizeLanguageCode('fr')).toBe(DEFAULT_LANGUAGE);
-      expect(normalizeLanguageCode('es')).toBe(DEFAULT_LANGUAGE);
+      expect(normalizeLanguageCode('ja')).toBe(DEFAULT_LANGUAGE);
       expect(normalizeLanguageCode('')).toBe(DEFAULT_LANGUAGE);
     });
   });
