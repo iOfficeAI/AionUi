@@ -1,0 +1,69 @@
+{
+  "title": "Kütüphane",
+  "totalAssets": "{{count}} varlık",
+  "totalFiles": "{{count}} dosya",
+  "singleFile": "Tek dosya",
+  "fileCount": "{{count}} dosya",
+  "searchPlaceholder": "Dosya adı / sohbet / istem ara…",
+  "loading": "Geçmiş taranıyor…",
+  "empty": "Filtreyle eşleşen varlık yok.",
+  "view": {
+    "conversation": "Sohbete göre",
+    "file": "Dosyaya göre",
+    "list": "Liste görünümü"
+  },
+  "tabs": {
+    "all": "Tümü",
+    "doc": "Belgeler",
+    "slide": "Sunumlar",
+    "sheet": "Sayfalar",
+    "image": "Görseller",
+    "code": "Kod",
+    "html": "HTML"
+  },
+  "bucket": {
+    "today": "Bugün",
+    "yesterday": "Dün",
+    "week": "Bu hafta",
+    "month": "Bu ay",
+    "older": "Daha eski"
+  },
+  "time": {
+    "minutesAgo": "{{count}} dk önce",
+    "hoursAgo": "{{count}} sa önce",
+    "daysAgo": "{{count}} gün önce",
+    "weeksAgo": "{{count}} hf önce",
+    "monthsAgo": "{{count}} ay önce"
+  },
+  "drawer": {
+    "createdAt": "Oluşturuldu",
+    "updatedAt": "Güncellendi",
+    "agent": "Agent",
+    "prompt": "İstem",
+    "fromConversation": "Konuşmadan",
+    "generatedFrom": "Şuradan oluşturuldu",
+    "alsoInConversation": "Bu konuşmadaki diğer dosyalar",
+    "close": "Kapat",
+    "viewInConversation": "Sohbette görüntüle",
+    "showInFinder": "Finder'da Göster",
+    "showInExplorer": "Dosya Gezgini'nde Göster",
+    "showInFileManager": "Dosya Yöneticisi'nde Göster"
+  },
+  "toast": {
+    "mockJump": "mock: ({{id}}) sohbetine atla",
+    "mockOpen": "mock: {{name}} aç",
+    "mockMenu": "mock: işlem menüsü"
+  },
+  "filter": {
+    "button": "Filtrele",
+    "agent": "Asistan / Agent",
+    "time": "Dönem",
+    "clear": "Filtreleri temizle"
+  },
+  "subtitle": "AI tarafından oluşturulan tüm dosyalar burada.",
+  "tooltip": {
+    "from": "Kaynak: "
+  },
+  "search": "Ara",
+  "refresh": "Yenile"
+}

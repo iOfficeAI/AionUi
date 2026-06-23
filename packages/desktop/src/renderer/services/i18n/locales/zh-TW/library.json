@@ -1,0 +1,69 @@
+{
+  "title": "資產庫",
+  "totalAssets": "{{count}} 項資產",
+  "totalFiles": "{{count}} 個檔案",
+  "singleFile": "單一檔案",
+  "fileCount": "{{count}} 個檔案",
+  "searchPlaceholder": "搜尋檔名 / 對話 / Prompt…",
+  "loading": "正在掃描歷史對話…",
+  "empty": "沒有符合條件的資產",
+  "view": {
+    "conversation": "依對話",
+    "file": "依檔案",
+    "list": "列表檢視"
+  },
+  "tabs": {
+    "all": "全部",
+    "doc": "文件",
+    "slide": "簡報",
+    "sheet": "試算表",
+    "image": "圖像",
+    "code": "程式碼",
+    "html": "HTML"
+  },
+  "bucket": {
+    "today": "今天",
+    "yesterday": "昨天",
+    "week": "本週",
+    "month": "本月",
+    "older": "更早"
+  },
+  "time": {
+    "minutesAgo": "{{count}} 分鐘前",
+    "hoursAgo": "{{count}} 小時前",
+    "daysAgo": "{{count}} 天前",
+    "weeksAgo": "{{count}} 週前",
+    "monthsAgo": "{{count}} 個月前"
+  },
+  "drawer": {
+    "createdAt": "建立時間",
+    "updatedAt": "最近活動",
+    "agent": "使用 Agent",
+    "prompt": "提示詞",
+    "fromConversation": "來自對話",
+    "generatedFrom": "生成自",
+    "alsoInConversation": "該對話中的其他檔案",
+    "close": "關閉",
+    "viewInConversation": "前往對話",
+    "showInFinder": "在 Finder 中顯示",
+    "showInExplorer": "在檔案總管中顯示",
+    "showInFileManager": "在檔案管理器中顯示"
+  },
+  "toast": {
+    "mockJump": "mock:跳轉至對話 ({{id}})",
+    "mockOpen": "mock:開啟 {{name}}",
+    "mockMenu": "mock:動作選單"
+  },
+  "filter": {
+    "button": "篩選",
+    "agent": "助手 / Agent",
+    "time": "時間",
+    "clear": "清除篩選"
+  },
+  "subtitle": "AI 為你生成的檔案，都在這裡。",
+  "tooltip": {
+    "from": "來自："
+  },
+  "search": "搜尋",
+  "refresh": "重新整理"
+}

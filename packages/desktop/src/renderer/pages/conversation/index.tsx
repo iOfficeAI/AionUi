@@ -2,10 +2,11 @@ import { ipcBridge } from '@/common';
 import { Message, Spin } from '@arco-design/web-react';
 import React, { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import useSWR from 'swr';
 import ChatConversation from './components/ChatConversation';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
+import { getContentTypeByExtension } from '@/renderer/pages/conversation/Preview/fileUtils';
 import { useAutoTitle } from '@/renderer/hooks/chat/useAutoTitle';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
 
@@ -13,7 +14,8 @@ const ChatConversationIndex: React.FC = () => {
   const { id } = useParams();
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { closePreview } = usePreviewContext();
+  const location = useLocation();
+  const { closePreview, openPreview } = usePreviewContext();
   const { syncTitleFromHistory } = useAutoTitle();
   const previousConversationIdRef = useRef<string | undefined>(undefined);
   const notFoundHandledIdRef = useRef<string | undefined>(undefined);
@@ -27,10 +29,47 @@ const ChatConversationIndex: React.FC = () => {
     // (component may remount via React Router, resetting the ref to undefined)
     if (previousConversationIdRef.current !== id) {
       closePreview();
+      previousConversationIdRef.current = id;
     }
 
-    previousConversationIdRef.current = id;
-  }, [id, closePreview]);
+    // 从 Library 跳转时，state 携带目标文件路径
+    const filePath = (location.state as { previewFilePath?: string } | null)?.previewFilePath;
+    if (!filePath) return;
+
+    const contentType = getContentTypeByExtension(filePath);
+    const fileName = filePath.split('/').pop() ?? filePath;
+    const isOfficeType = contentType === 'word' || contentType === 'excel' || contentType === 'ppt';
+
+    // Office 文件需要等待：
+    // 1. React 完成 unmount（OfficeWatchViewer cleanup 调用后端 stop）
+    // 2. 后端 stop 的 500ms intentional delay 完成后才 kill 旧进程
+    // 非 Office 文件无进程竞态，直接打开。
+    const delay = isOfficeType ? 650 : 0;
+
+    const timer = window.setTimeout(() => {
+      void (async () => {
+        try {
+          let content: string;
+          if (contentType === 'image') {
+            content = await ipcBridge.fs.getImageBase64.invoke({ path: filePath, workspace: undefined });
+          } else if (contentType === 'pdf' || isOfficeType) {
+            content = '';
+          } else {
+            content = await ipcBridge.fs.readFile.invoke({ path: filePath, workspace: undefined });
+          }
+          openPreview(content, contentType, {
+            title: fileName,
+            file_name: fileName,
+            file_path: filePath,
+            editable: false,
+          });
+        } catch {
+          // 文件读取失败时静默处理，不影响对话加载
+        }
+      })();
+    }, delay);
+    return () => window.clearTimeout(timer);
+  }, [id, location.state, closePreview, openPreview]);
 
   const { data, isLoading, mutate } = useSWR(id ? `conversation/${id}` : null, () => {
     return getConversationOrNull(id!);

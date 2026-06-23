@@ -1,0 +1,69 @@
+{
+  "title": "라이브러리",
+  "totalAssets": "{{count}}개의 자산",
+  "totalFiles": "{{count}}개의 파일",
+  "singleFile": "단일 파일",
+  "fileCount": "{{count}}개의 파일",
+  "searchPlaceholder": "파일명 / 대화 / 프롬프트 검색…",
+  "loading": "히스토리 로딩 중…",
+  "empty": "조건에 맞는 자산이 없습니다",
+  "view": {
+    "conversation": "대화별",
+    "file": "파일별",
+    "list": "목록 보기"
+  },
+  "tabs": {
+    "all": "전체",
+    "doc": "문서",
+    "slide": "슬라이드",
+    "sheet": "시트",
+    "image": "이미지",
+    "code": "코드",
+    "html": "HTML"
+  },
+  "bucket": {
+    "today": "오늘",
+    "yesterday": "어제",
+    "week": "이번 주",
+    "month": "이번 달",
+    "older": "그 이전"
+  },
+  "time": {
+    "minutesAgo": "{{count}}분 전",
+    "hoursAgo": "{{count}}시간 전",
+    "daysAgo": "{{count}}일 전",
+    "weeksAgo": "{{count}}주 전",
+    "monthsAgo": "{{count}}개월 전"
+  },
+  "drawer": {
+    "createdAt": "생성 시간",
+    "updatedAt": "최근 활동",
+    "agent": "사용 Agent",
+    "prompt": "프롬프트",
+    "fromConversation": "대화에서",
+    "generatedFrom": "생성 원본",
+    "alsoInConversation": "이 대화의 다른 파일",
+    "close": "닫기",
+    "viewInConversation": "대화에서 보기",
+    "showInFinder": "Finder에서 보기",
+    "showInExplorer": "탐색기에서 보기",
+    "showInFileManager": "파일 관리자에서 보기"
+  },
+  "toast": {
+    "mockJump": "mock: 대화({{id}})로 이동",
+    "mockOpen": "mock: {{name}} 열기",
+    "mockMenu": "mock: 작업 메뉴"
+  },
+  "filter": {
+    "button": "필터",
+    "agent": "어시스턴트 / Agent",
+    "time": "기간",
+    "clear": "필터 초기화"
+  },
+  "subtitle": "AI가 생성한 파일, 모두 여기에 있습니다.",
+  "tooltip": {
+    "from": "출처："
+  },
+  "search": "검색",
+  "refresh": "새로고침"
+}

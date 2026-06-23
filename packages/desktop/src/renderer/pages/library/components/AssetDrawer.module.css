@@ -1,0 +1,287 @@
+/* Scoped Arco Drawer overrides */
+.drawer :global(.arco-drawer-header) {
+  display: none;
+}
+
+.drawer :global(.arco-drawer-content) {
+  padding: 24px 20px 16px;
+}
+
+.drawer :global(.arco-drawer-footer) {
+  padding: 12px 20px;
+}
+
+@media (max-width: 480px) {
+  .drawer :global(.arco-drawer-content) {
+    padding: 20px 16px 12px;
+  }
+  .drawer :global(.arco-drawer-footer) {
+    padding: 10px 16px;
+  }
+}
+
+/* 文件主角区 */
+.fileHero {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding-bottom: 20px;
+}
+
+.fileHeroIcon {
+  flex-shrink: 0;
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+  background: var(--color-fill-2);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.heroIconEmoji {
+  font-size: 24px;
+  line-height: 1;
+}
+
+.heroIconCode {
+  font-size: 13px;
+  font-weight: 700;
+  font-family: monospace;
+  color: var(--color-text-2);
+  line-height: 1;
+}
+
+.heroExtBadge {
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #fff;
+  border-radius: 3px;
+  padding: 2px 4px;
+  line-height: 1.4;
+}
+
+.fileHeroMeta {
+  flex: 1;
+  min-width: 0;
+}
+
+.fileHeroName {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text-1);
+  word-break: break-all;
+  line-height: 1.4;
+}
+
+.fileHeroSub {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--color-text-3);
+}
+
+/* 分隔线 */
+.divider {
+  height: 1px;
+  background: var(--color-border-2);
+  margin: 0 0 20px;
+}
+
+/* 通用 section */
+.section {
+  margin-bottom: 20px;
+}
+
+.sectionLabel {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 10px;
+}
+
+/* 对话信息容器 */
+.conversationCard {
+  background: var(--color-fill-1);
+  border: 1px solid var(--color-border-2);
+  border-radius: 10px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.conversationName {
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--color-text-1);
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.conversationMeta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.dot {
+  color: var(--color-text-4);
+  font-size: 12px;
+}
+
+.conversationTime {
+  font-size: 12px;
+  color: var(--color-text-3);
+}
+
+/* prompt */
+.prompt {
+  border-left: 2px solid var(--color-border-3);
+  padding: 6px 10px;
+  font-size: 13px;
+  color: var(--color-text-2);
+  line-height: 1.6;
+  font-style: italic;
+  word-break: break-word;
+  display: -webkit-box;
+  -webkit-line-clamp: 6;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* 折叠 toggle */
+.collapseToggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  margin-bottom: 0;
+}
+
+.otherCount {
+  margin-left: 6px;
+  color: var(--color-text-4);
+  font-weight: 400;
+}
+
+.chevron {
+  font-size: 16px;
+  color: var(--color-text-3);
+  transition: transform 0.2s;
+  line-height: 1;
+  display: inline-block;
+  transform: rotate(0deg);
+}
+
+.chevronOpen {
+  transform: rotate(90deg);
+}
+
+/* 其他文件列表 */
+.otherFileList {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.otherFileRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 6px;
+  border-radius: 6px;
+}
+
+.otherFileRow:hover {
+  background: var(--color-fill-1);
+}
+
+.otherFileIcon {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 5px;
+  background: var(--color-fill-2);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+}
+
+.otherIconEmoji {
+  font-size: 12px;
+  line-height: 1;
+}
+
+.otherIconCode {
+  font-size: 8px;
+  font-weight: 700;
+  font-family: monospace;
+  color: var(--color-text-2);
+  line-height: 1;
+}
+
+.otherExtBadge {
+  font-size: 6px;
+  font-weight: 700;
+  color: #fff;
+  border-radius: 2px;
+  padding: 1px 2px;
+  line-height: 1.4;
+}
+
+.otherFileName {
+  font-size: 12.5px;
+  color: var(--color-text-1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+}
+
+/* Agent 胶囊 — pill 风格 */
+.agentBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border-radius: 20px;
+  padding: 3px 10px 3px 7px;
+  border: 1px solid var(--color-border-2);
+  background: var(--color-bg-1);
+  white-space: nowrap;
+}
+
+.agentLogo {
+  width: 15px;
+  height: 15px;
+  border-radius: 3px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.agentDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-text-3);
+  flex-shrink: 0;
+}
+
+.agentBadge span:last-child {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-text-2);
+}

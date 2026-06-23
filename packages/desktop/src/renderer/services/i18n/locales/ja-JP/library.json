@@ -1,0 +1,69 @@
+{
+  "title": "ライブラリ",
+  "totalAssets": "{{count}} 件のアセット",
+  "totalFiles": "{{count}} 件のファイル",
+  "singleFile": "ファイル 1 件",
+  "fileCount": "{{count}} 件のファイル",
+  "searchPlaceholder": "ファイル名 / 会話 / プロンプトを検索…",
+  "loading": "履歴を読み込み中…",
+  "empty": "条件に一致するアセットはありません",
+  "view": {
+    "conversation": "会話別",
+    "file": "ファイル別",
+    "list": "リスト表示"
+  },
+  "tabs": {
+    "all": "すべて",
+    "doc": "ドキュメント",
+    "slide": "スライド",
+    "sheet": "表計算",
+    "image": "画像",
+    "code": "コード",
+    "html": "HTML"
+  },
+  "bucket": {
+    "today": "今日",
+    "yesterday": "昨日",
+    "week": "今週",
+    "month": "今月",
+    "older": "それ以前"
+  },
+  "time": {
+    "minutesAgo": "{{count}} 分前",
+    "hoursAgo": "{{count}} 時間前",
+    "daysAgo": "{{count}} 日前",
+    "weeksAgo": "{{count}} 週間前",
+    "monthsAgo": "{{count}} か月前"
+  },
+  "drawer": {
+    "createdAt": "作成日時",
+    "updatedAt": "更新日時",
+    "agent": "使用 Agent",
+    "prompt": "プロンプト",
+    "fromConversation": "会話から",
+    "generatedFrom": "生成元",
+    "alsoInConversation": "この会話の他のファイル",
+    "close": "閉じる",
+    "viewInConversation": "会話を開く",
+    "showInFinder": "Finderで表示",
+    "showInExplorer": "エクスプローラーで表示",
+    "showInFileManager": "ファイルマネージャーで表示"
+  },
+  "toast": {
+    "mockJump": "mock: 会話 ({{id}}) を開く",
+    "mockOpen": "mock: {{name}} を開く",
+    "mockMenu": "mock: アクションメニュー"
+  },
+  "filter": {
+    "button": "絞り込み",
+    "agent": "アシスタント / Agent",
+    "time": "期間",
+    "clear": "絞り込みを解除"
+  },
+  "subtitle": "AI が生成したファイルは、すべてここに。",
+  "tooltip": {
+    "from": "元の会話："
+  },
+  "search": "検索",
+  "refresh": "更新"
+}

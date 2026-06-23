@@ -1,0 +1,122 @@
+.row {
+  --library-cover-slide-bg: #faf4f2;
+  --library-cover-slide: #b05a3d;
+  --library-cover-doc-bg: #f2f5fc;
+  --library-cover-doc: #3a5fa0;
+  --library-cover-sheet-bg: #f1f9f4;
+  --library-cover-sheet: #2e7a4e;
+  --library-cover-image-bg: #f5f2fc;
+  --library-cover-image: #6040a8;
+  --library-cover-code-bg: #f6f6f7;
+  --library-cover-code: #505a68;
+  --library-cover-html-bg: #f1f7fc;
+  --library-cover-html: #2c6e96;
+
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 12px 6px 0;
+  border: none;
+  border-bottom: 1px solid var(--color-border-1);
+  cursor: pointer;
+  transition: background 0.12s;
+  border-radius: 0;
+}
+
+.row:last-child {
+  border-bottom: none;
+}
+
+.row:hover {
+  background: var(--color-fill-2);
+}
+
+/* 左侧色块 */
+.typeBlock {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.iconEmoji {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.iconCode {
+  font-size: 10px;
+  font-weight: 700;
+  font-family: monospace;
+  color: var(--color-text-2);
+  opacity: 0.7;
+  line-height: 1;
+}
+
+/* 文件名区 */
+.nameWrap {
+  flex: 1;
+  min-width: 0;
+}
+
+.name {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--color-text-1);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.4;
+}
+
+/* agent 区 */
+.agentWrap {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 120px;
+}
+
+.agentLogo {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.agentDot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--color-text-3);
+  flex-shrink: 0;
+}
+
+.agentName {
+  font-size: 11px;
+  color: var(--color-text-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+[data-theme='dark'] .row {
+  --library-cover-slide-bg: rgba(176, 90, 61, 0.18);
+  --library-cover-slide: #d4886a;
+  --library-cover-doc-bg: rgba(58, 95, 160, 0.18);
+  --library-cover-doc: #6d96d4;
+  --library-cover-sheet-bg: rgba(46, 122, 78, 0.18);
+  --library-cover-sheet: #5ab882;
+  --library-cover-image-bg: rgba(96, 64, 168, 0.18);
+  --library-cover-image: #9d7ee0;
+  --library-cover-code-bg: rgba(80, 90, 104, 0.22);
+  --library-cover-code: #9aa4b2;
+  --library-cover-html-bg: rgba(44, 110, 150, 0.18);
+  --library-cover-html: #5aaed4;
+  border-bottom-color: #2e2e2e;
+}
