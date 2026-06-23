@@ -1125,6 +1125,10 @@ export const theme = {
 // System Settings — routed to /api/settings/* unless they need Electron-native side effects.
 // ---------------------------------------------------------------------------
 
+type BackendSystemSettings = {
+  save_upload_to_workspace?: boolean;
+};
+
 export const systemSettings = {
   getCloseToTray: bridge.buildProvider<boolean, void>('system-settings:get-close-to-tray'),
   setCloseToTray: bridge.buildProvider<void, { enabled: boolean }>('system-settings:set-close-to-tray'),
@@ -1140,9 +1144,12 @@ export const systemSettings = {
   setKeepAwake: httpPut<void, { enabled: boolean }>('/api/settings/client', (p) => ({ keepAwake: p.enabled })),
   changeLanguage: httpPatch<void, { language: string }>('/api/settings', (p) => ({ language: p.language })),
   languageChanged: wsEmitter<{ language: string }>('system-settings:language-changed'),
-  getSaveUploadToWorkspace: httpGet<boolean, void>('/api/settings/client?key=saveUploadToWorkspace'),
-  setSaveUploadToWorkspace: httpPut<void, { enabled: boolean }>('/api/settings/client', (p) => ({
-    saveUploadToWorkspace: p.enabled,
+  getSaveUploadToWorkspace: withResponseMap(
+    httpGet<BackendSystemSettings, void>('/api/settings'),
+    (settings) => settings?.save_upload_to_workspace ?? false
+  ),
+  setSaveUploadToWorkspace: httpPatch<void, { enabled: boolean }>('/api/settings', (p) => ({
+    save_upload_to_workspace: p.enabled,
   })),
   getAutoPreviewOfficeFiles: httpGet<boolean, void>('/api/settings/client?key=autoPreviewOfficeFiles'),
   setAutoPreviewOfficeFiles: httpPut<void, { enabled: boolean }>('/api/settings/client', (p) => ({
