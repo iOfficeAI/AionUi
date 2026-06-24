@@ -69,9 +69,12 @@ export const HTTP_ROUTES: Record<string, HttpRoute> = {
     method: 'GET',
     path: (p) => {
       const qs = new URLSearchParams();
-      qs.set('page', String(p.page ?? 1));
-      qs.set('page_size', String(p.page_size ?? 50));
-      if (p.order) qs.set('order', String(p.order));
+      const limit = p.limit ?? p.page_size ?? p.pageSize;
+      if (limit) qs.set('limit', String(limit));
+      if (p.before) qs.set('before', String(p.before));
+      if (p.after) qs.set('after', String(p.after));
+      if (p.anchor_message_id) qs.set('anchor_message_id', String(p.anchor_message_id));
+      if (p.content_mode) qs.set('content_mode', String(p.content_mode));
       return `/api/conversations/${encodeURIComponent(String(p.conversation_id))}/messages?${qs.toString()}`;
     },
   },

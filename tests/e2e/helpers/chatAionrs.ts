@@ -277,7 +277,7 @@ export async function getAionrsMessages(page: Page, conversationId: string): Pro
     const result = await invokeBridge<any>(
       page,
       'database.get-conversation-messages',
-      { conversation_id: conversationId, page: 0, pageSize: 100 },
+      { conversation_id: conversationId, limit: 100 },
       10_000
     );
     return Array.isArray(result) ? result : (result?.data ?? []);

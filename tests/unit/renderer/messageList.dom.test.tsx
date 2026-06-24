@@ -8,7 +8,11 @@ import React, { type PropsWithChildren } from 'react';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import type { IMessageText } from '@/common/chat/chatLib';
-import { MessageListLoadingProvider, MessageListProvider } from '@/renderer/pages/conversation/Messages/hooks';
+import {
+  MessageListLoadingProvider,
+  MessageListProvider,
+  MessagePaginationProvider,
+} from '@/renderer/pages/conversation/Messages/hooks';
 import MessageList from '@/renderer/pages/conversation/Messages/MessageList';
 
 vi.mock('react-i18next', () => ({
@@ -152,7 +156,11 @@ function Wrapper({
 }: PropsWithChildren<{ messages?: IMessageText[]; loading?: boolean }>): JSX.Element {
   return (
     <MessageListLoadingProvider value={loading}>
-      <MessageListProvider value={messages}>{children}</MessageListProvider>
+      <MessagePaginationProvider
+        value={{ hasMoreBefore: false, hasMoreAfter: false, isLoadingBefore: false, isLoadingAnchor: false }}
+      >
+        <MessageListProvider value={messages}>{children}</MessageListProvider>
+      </MessagePaginationProvider>
     </MessageListLoadingProvider>
   );
 }

@@ -980,14 +980,37 @@ export type PaginatedResult<T> = {
   has_more: boolean;
 };
 
+export type MessageCursorPage<T> = {
+  items: T[];
+  oldest_cursor: string | null;
+  newest_cursor: string | null;
+  has_more_before: boolean;
+  has_more_after: boolean;
+};
+
+export type GetConversationMessagesParams = {
+  conversation_id: string;
+  limit?: number;
+  before?: string;
+  after?: string;
+  anchor_message_id?: string;
+  content_mode?: 'compact' | 'full';
+};
+
 export const database = {
   getConversationMessages: httpGet<
-    PaginatedResult<import('@/common/chat/chatLib').TMessage>,
-    { conversation_id: string; page?: number; page_size?: number; order?: string; content_mode?: 'compact' | 'full' }
-  >(
-    (p) =>
-      `/api/conversations/${p.conversation_id}/messages?page=${p.page ?? 1}&page_size=${p.page_size ?? 50}${p.order ? `&order=${p.order}` : ''}${p.content_mode ? `&content_mode=${p.content_mode}` : ''}`
-  ),
+    MessageCursorPage<import('@/common/chat/chatLib').TMessage>,
+    GetConversationMessagesParams
+  >((p) => {
+    const params = new URLSearchParams();
+    if (p.limit !== undefined) params.set('limit', String(p.limit));
+    if (p.before) params.set('before', p.before);
+    if (p.after) params.set('after', p.after);
+    if (p.anchor_message_id) params.set('anchor_message_id', p.anchor_message_id);
+    if (p.content_mode) params.set('content_mode', p.content_mode);
+    const qs = params.toString();
+    return `/api/conversations/${p.conversation_id}/messages${qs ? `?${qs}` : ''}`;
+  }),
   getConversationMessage: httpGet<
     import('@/common/chat/chatLib').TMessage,
     { conversation_id: string; message_id: string }

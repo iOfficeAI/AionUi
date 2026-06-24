@@ -308,7 +308,7 @@ async function getConversationMessages(
   const result = await invokeBridge<{ items?: ConversationMessageRecord[] } | ConversationMessageRecord[]>(
     page,
     'database.get-conversation-messages',
-    { conversation_id: conversationId, page: 1, page_size: 100, order: 'ASC' },
+    { conversation_id: conversationId, limit: 100 },
     10_000
   );
   if (Array.isArray(result)) return result;

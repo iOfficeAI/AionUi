@@ -12,6 +12,7 @@ import type { IMessageAcpToolCall, IMessageText, IMessageThinking } from '@/comm
 import {
   MessageListLoadingProvider,
   MessageListProvider,
+  MessagePaginationProvider,
   useAddOrUpdateMessage,
   useMessageLstCache,
   useMessageList,
@@ -103,7 +104,11 @@ function TestWrapper({ children }: PropsWithChildren): JSX.Element {
 function CacheWrapper({ children }: PropsWithChildren): JSX.Element {
   return (
     <MessageListLoadingProvider value={false}>
-      <MessageListProvider value={[]}>{children}</MessageListProvider>
+      <MessagePaginationProvider
+        value={{ hasMoreBefore: false, hasMoreAfter: false, isLoadingBefore: false, isLoadingAnchor: false }}
+      >
+        <MessageListProvider value={[]}>{children}</MessageListProvider>
+      </MessagePaginationProvider>
     </MessageListLoadingProvider>
   );
 }
@@ -216,7 +221,13 @@ describe('message merging', () => {
   it('requests compact tool content when hydrating historical messages', async () => {
     const invoke = vi.mocked(ipcBridge.database.getConversationMessages.invoke);
     invoke.mockClear();
-    invoke.mockResolvedValue({ items: [], total: 0, has_more: false });
+    invoke.mockResolvedValue({
+      items: [],
+      oldest_cursor: null,
+      newest_cursor: null,
+      has_more_before: false,
+      has_more_after: false,
+    });
 
     renderHook(() => useMessageLstCache(CONVERSATION_ID), {
       wrapper: CacheWrapper,
@@ -228,8 +239,7 @@ describe('message merging', () => {
 
     expect(invoke).toHaveBeenCalledWith({
       conversation_id: CONVERSATION_ID,
-      page: 0,
-      page_size: 10000,
+      limit: 50,
       content_mode: 'compact',
     });
   });
