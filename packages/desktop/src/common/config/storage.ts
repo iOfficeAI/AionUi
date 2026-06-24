@@ -157,7 +157,7 @@ export interface IConfigStorageRefer {
     custom_agent_id?: string;
     name?: string;
   };
-  // Skills Market: whether the aionui-skills builtin skill is enabled
+  // Skills Market: whether the external skills market source is enabled
   'skillsMarket.enabled'?: boolean;
   /**
    * One-shot completion flag for the legacy `model.config` → backend providers

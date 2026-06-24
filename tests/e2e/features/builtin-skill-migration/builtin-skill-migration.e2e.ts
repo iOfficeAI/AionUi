@@ -39,7 +39,9 @@ const SIBLING_BACKEND_PORT = 25903;
  * corpus. These come from the SKILL.md frontmatter, not the directory name
  * (e.g. `auto-inject/office-cli/SKILL.md` emits `name: officecli`).
  */
-const AUTO_INJECT_EXPECTED_NAMES = ['aionui-skills', 'cron', 'officecli', 'skill-creator'] as const;
+const REMOVED_AUTO_INJECT_NAME = 'aionui-skills';
+const REMOVED_AUTO_INJECT_DIR_NAME = 'aionui-skills';
+const AUTO_INJECT_EXPECTED_NAMES = ['cron', 'officecli', 'skill-creator'] as const;
 
 /**
  * Directory-name tokens used by the per-conversation materialize flow —
@@ -47,7 +49,7 @@ const AUTO_INJECT_EXPECTED_NAMES = ['aionui-skills', 'cron', 'officecli', 'skill
  * the parent folder name, not the frontmatter name. The top-level flatten
  * of `auto-inject/cron/SKILL.md` lands at `{dir}/cron/SKILL.md`.
  */
-const AUTO_INJECT_DIR_NAMES = ['aionui-skills', 'cron', 'office-cli', 'skill-creator'] as const;
+const AUTO_INJECT_DIR_NAMES = ['cron', 'office-cli', 'skill-creator'] as const;
 
 /** An opt-in skill that lives at the top level of the embedded corpus. */
 const OPT_IN_PROBE_NAME = 'mermaid';
@@ -107,6 +109,7 @@ test.describe('Built-in Skill Migration (T3)', () => {
     for (const expected of AUTO_INJECT_EXPECTED_NAMES) {
       expect(names).toContain(expected);
     }
+    expect(names).not.toContain(REMOVED_AUTO_INJECT_NAME);
 
     // Each entry must carry a relative `location` pointing under auto-inject/.
     for (const entry of list) {
@@ -167,6 +170,7 @@ test.describe('Built-in Skill Migration (T3)', () => {
       for (const expected of AUTO_INJECT_DIR_NAMES) {
         expect(entries).toContain(expected);
       }
+      expect(entries).not.toContain(REMOVED_AUTO_INJECT_DIR_NAME);
       expect(entries).toContain(OPT_IN_PROBE_NAME);
 
       // The opt-in skill must actually contain its SKILL.md content.
