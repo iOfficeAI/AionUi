@@ -11,10 +11,10 @@
  */
 
 import { vi } from 'vitest';
-import { BackendHttpError, isBackendHttpError } from '@/common/adapter/httpBridge';
+import { BackendHttpError, BackendHttpTimeoutError, isBackendHttpError } from '@/common/adapter/httpBridge';
 
 // Re-export error classes from source to preserve instanceof checks
-export { BackendHttpError, isBackendHttpError };
+export { BackendHttpError, BackendHttpTimeoutError, isBackendHttpError };
 
 /**
  * ProviderLike / EmitterLike types match httpBridge source.
@@ -109,6 +109,7 @@ export interface MockHttpBridge {
     httpRequest: typeof import('@/common/adapter/httpBridge').httpRequest;
     getBaseUrl: typeof import('@/common/adapter/httpBridge').getBaseUrl;
     BackendHttpError: typeof import('@/common/adapter/httpBridge').BackendHttpError;
+    BackendHttpTimeoutError: typeof import('@/common/adapter/httpBridge').BackendHttpTimeoutError;
     isBackendHttpError: typeof import('@/common/adapter/httpBridge').isBackendHttpError;
   };
 }
@@ -247,6 +248,7 @@ class MockHttpBridgeImpl implements MockHttpBridge {
     httpRequest: typeof import('@/common/adapter/httpBridge').httpRequest;
     getBaseUrl: typeof import('@/common/adapter/httpBridge').getBaseUrl;
     BackendHttpError: typeof import('@/common/adapter/httpBridge').BackendHttpError;
+    BackendHttpTimeoutError: typeof import('@/common/adapter/httpBridge').BackendHttpTimeoutError;
     isBackendHttpError: typeof import('@/common/adapter/httpBridge').isBackendHttpError;
   } {
     // Strip query string from path for matching
@@ -418,6 +420,7 @@ class MockHttpBridgeImpl implements MockHttpBridge {
 
       // Re-export actual classes to preserve instanceof
       BackendHttpError,
+      BackendHttpTimeoutError,
       isBackendHttpError,
     };
   }
