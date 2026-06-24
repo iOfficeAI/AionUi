@@ -64,13 +64,22 @@ describe('httpBridge', () => {
       delete (globalThis as { __backendPort?: number }).__backendPort;
     });
 
-    it('returns empty string in WebUI mode (window + document, no __backendPort)', () => {
-      vi.stubGlobal('window', {});
+    it('returns empty public base path in WebUI mode at URL root', () => {
+      vi.stubGlobal('window', { location: { pathname: '/' } });
       vi.stubGlobal('document', {});
 
       const result = getBaseUrl();
 
       expect(result).toBe('');
+    });
+
+    it('returns configured public base path in WebUI mode', () => {
+      vi.stubGlobal('window', { __basePath: '/prefix', location: { pathname: '/' } });
+      vi.stubGlobal('document', {});
+
+      const result = getBaseUrl();
+
+      expect(result).toBe('/prefix');
     });
   });
 

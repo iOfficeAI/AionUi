@@ -1,4 +1,5 @@
 import type { ConfigKey, ConfigKeyMap } from './configKeys';
+import { getPublicBasePath, isWebUiBrowserMode, joinPublicPath } from '@/common/publicPath';
 
 type Subscriber = (value: unknown) => void;
 
@@ -9,17 +10,15 @@ declare global {
 }
 
 function getBaseUrl(): string {
-  // WebUI browser mode: no preload, fetch same-origin so web-host's
-  // static-server reverse-proxies /api/* to the backend.
-  if (typeof window !== 'undefined' && typeof document !== 'undefined' && !(window as Window).__backendPort) {
-    return '';
+  if (isWebUiBrowserMode()) {
+    return getPublicBasePath();
   }
   const port = typeof window !== 'undefined' ? (window as Window).__backendPort || 13400 : 13400;
   return `http://127.0.0.1:${port}`;
 }
 
 async function fetchJson<T>(method: string, path: string, body?: unknown): Promise<T> {
-  const url = `${getBaseUrl()}${path}`;
+  const url = isWebUiBrowserMode() ? joinPublicPath(path) : `${getBaseUrl()}${path}`;
   const headers: Record<string, string> = {};
   if (body !== undefined) {
     headers['Content-Type'] = 'application/json';

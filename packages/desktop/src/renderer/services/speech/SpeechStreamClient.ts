@@ -16,6 +16,7 @@
  */
 
 import { STREAM_SAMPLE_RATE } from './pcmRecorder';
+import { joinPublicPath } from '@/common/adapter/httpBridge';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -108,7 +109,7 @@ const isWebUiBrowserMode = (): boolean =>
 export const getSpeechStreamUrl = (): string => {
   if (isWebUiBrowserMode()) {
     const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    return `${proto}//${window.location.host}/api/stt/stream`;
+    return `${proto}//${window.location.host}${joinPublicPath('/api/stt/stream')}`;
   }
   return `ws://127.0.0.1:${getBackendPort()}/api/stt/stream`;
 };

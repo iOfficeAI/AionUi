@@ -59,6 +59,7 @@ import {
   loadUserWebUIConfig,
   resolveRemoteAccess,
   resolveWebUIPort,
+  resolveWebUIBasePath,
   restoreDesktopWebUIFromPreferences,
 } from './process/utils/webuiConfig';
 import {
@@ -710,6 +711,7 @@ const handleAppReady = async (): Promise<void> => {
     }
     const resolvedPort = resolveWebUIPort(userConfigInfo.config, getSwitchValue);
     const allowRemote = resolveRemoteAccess(userConfigInfo.config, isRemoteMode);
+    const publicBasePath = resolveWebUIBasePath(userConfigInfo.config, getSwitchValue);
     try {
       // Inside Electron (`AionUi --webui` or packaged `aionui-web` mode that
       // launches via the Electron shell), reuse the desktop app's data-dir so
@@ -733,6 +735,7 @@ const handleAppReady = async (): Promise<void> => {
         staticDir: path.join(__dirname, '../renderer'),
         port: resolvedPort,
         allowRemote,
+        publicBasePath,
         dataDir: getDataPath(),
         logDir: sysDirWebUI.logDir,
         // Expose the same AIONUI_{CACHE,WORK,LOG}_DIR env the desktop IPC path

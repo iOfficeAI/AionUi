@@ -9,7 +9,7 @@
  * 平台检测工具函数
  */
 
-import { getBaseUrl } from '@/common/adapter/httpBridge';
+import { getBaseUrl, joinPublicPath } from '@/common/adapter/httpBridge';
 
 /**
  * Check if running in Electron desktop environment
@@ -56,7 +56,7 @@ export const resolveBackendAssetUrl = (url: string | undefined): string | undefi
   if (!url) return url;
   if (isAbsoluteAssetUrl(url) || /^data:/i.test(url)) return url;
   if (url.startsWith('/')) {
-    return isElectronDesktop() ? `${getBaseUrl()}${url}` : url;
+    return isElectronDesktop() ? `${getBaseUrl()}${url}` : joinPublicPath(url);
   }
   return url;
 };

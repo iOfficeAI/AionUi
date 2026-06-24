@@ -13,13 +13,23 @@
 import http, { type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 import { networkInterfaces } from 'node:os';
 import net, { type Socket } from 'node:net';
+import { promises as fs } from 'node:fs';
+import path from 'node:path';
 import serveHandler from 'serve-handler';
+import {
+  injectBasePathScript,
+  normalizeBasePath,
+  stripBasePathFromRequestLine,
+  stripPublicBasePath,
+} from './public-path.js';
 
 export type StaticServerOptions = {
   staticDir: string;
   backendPort: number;
   port?: number;
   allowRemote?: boolean;
+  /** Normalized public URL prefix (e.g. `/sandbox/proxy/25808`). */
+  publicBasePath?: string;
 };
 
 export type StaticServerHandle = {
@@ -41,6 +51,38 @@ function getLanIP(): string | null {
     }
   }
   return null;
+}
+
+function splitUrl(url: string): { path: string; search: string } {
+  const q = url.indexOf('?');
+  if (q < 0) return { path: url, search: '' };
+  return { path: url.slice(0, q), search: url.slice(q) };
+}
+
+function rewriteRequestUrl(url: string, publicBasePath: string): string | null {
+  const { path: urlPath, search } = splitUrl(url);
+  const stripped = stripPublicBasePath(urlPath, publicBasePath);
+  if (stripped === null) return null;
+  return `${stripped}${search}`;
+}
+
+function looksLikeStaticAsset(urlPath: string): boolean {
+  const last = urlPath.split('/').pop() || '';
+  return /\.[a-z0-9]+$/i.test(last);
+}
+
+async function serveIndexHtml(
+  res: ServerResponse,
+  staticDir: string,
+  publicBasePath: string
+): Promise<void> {
+  const indexPath = path.join(staticDir, 'index.html');
+  let html = await fs.readFile(indexPath, 'utf8');
+  if (publicBasePath) {
+    html = injectBasePathScript(html, publicBasePath);
+  }
+  res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
+  res.end(html);
 }
 
 function forwardToBackend(req: IncomingMessage, res: ServerResponse, backendPort: number): void {
@@ -110,17 +152,35 @@ function spliceToTcpEndpoint(client: Socket, targetPort: number, initialBytes: B
  * Keeping the rule simple means we can decide after the first ~50 bytes
  * instead of waiting for the full header block.
  */
-function peekWsRoute(buf: Buffer): boolean | null {
+function isWsOrStreamPath(pathOnly: string): boolean {
+  return (
+    pathOnly === '/ws' ||
+    pathOnly.startsWith('/ws/') ||
+    pathOnly === '/api/stt/stream' ||
+    pathOnly.startsWith('/api/stt/stream/')
+  );
+}
+
+function peekWsRoute(buf: Buffer, publicBasePath = ''): boolean | null {
   const newlineIdx = buf.indexOf(0x0a); // \n
   if (newlineIdx < 0) return null;
   const firstLine = buf.slice(0, newlineIdx).toString('ascii');
-  return /^GET\s+\/(?:ws|api\/stt\/stream)(?:\?[^\s]*)?\s+HTTP\/1\.[01]\r?$/.test(firstLine);
+  const match = /^GET\s+(\S+)\s+HTTP\/1\.[01]\r?$/i.exec(firstLine);
+  if (!match) return false;
+  const pathOnly = match[1].split('?')[0] || '/';
+  if (isWsOrStreamPath(pathOnly)) return true;
+  if (publicBasePath) {
+    const stripped = stripPublicBasePath(pathOnly, publicBasePath);
+    if (stripped && isWsOrStreamPath(stripped)) return true;
+  }
+  return false;
 }
 
 export async function startStaticServer(opts: StaticServerOptions): Promise<StaticServerHandle> {
   const port = opts.port ?? DEFAULT_PORT;
   const allowRemote = opts.allowRemote === true;
   const host = allowRemote ? '0.0.0.0' : '127.0.0.1';
+  const publicBasePath = normalizeBasePath(opts.publicBasePath ?? '');
 
   // The HTTP server listens only on loopback — user traffic hits the outer
   // net.Server first. We route to this server for everything except WS
@@ -138,11 +198,34 @@ export async function startStaticServer(opts: StaticServerOptions): Promise<Stat
         return;
       }
 
+      const routedUrl = publicBasePath ? rewriteRequestUrl(req.url, publicBasePath) : req.url;
+      if (routedUrl === null) {
+        res.writeHead(404).end();
+        return;
+      }
+      req.url = routedUrl;
+      const { path: urlPath } = splitUrl(routedUrl);
+
       // /api/* — reverse proxy to backend (includes /api/auth/*).
       // /login and /logout are aionui-auth's top-level auth endpoints: proxy them too
       // so WebUI browser clients reach the backend without a path-rewrite.
-      if (req.url.startsWith('/api/') || req.url.startsWith('/api?') || req.url === '/login' || req.url === '/logout') {
+      if (
+        routedUrl.startsWith('/api/') ||
+        routedUrl.startsWith('/api?') ||
+        routedUrl === '/login' ||
+        routedUrl === '/logout'
+      ) {
         forwardToBackend(req, res, opts.backendPort);
+        return;
+      }
+
+      if (publicBasePath && (urlPath === '/' || !looksLikeStaticAsset(urlPath))) {
+        try {
+          await serveIndexHtml(res, opts.staticDir, publicBasePath);
+        } catch {
+          res.writeHead(500, { 'content-type': 'application/json' });
+          res.end(JSON.stringify({ error: 'INTERNAL_ERROR' }));
+        }
         return;
       }
 
@@ -190,11 +273,15 @@ export async function startStaticServer(opts: StaticServerOptions): Promise<Stat
     };
     const onData = (chunk: Buffer): void => {
       peeked = Buffer.concat([peeked, chunk]);
-      const decision = peekWsRoute(peeked);
+      const decision = peekWsRoute(peeked, publicBasePath);
       if (decision === null && peeked.length < PEEK_LIMIT_BYTES) return;
       cleanup();
+      const forwardedBytes =
+        decision === true && publicBasePath
+          ? stripBasePathFromRequestLine(peeked, publicBasePath)
+          : peeked;
       const target = decision === true ? opts.backendPort : internalPort;
-      spliceToTcpEndpoint(client, target, peeked);
+      spliceToTcpEndpoint(client, target, forwardedBytes);
     };
     const onEarlyError = (): void => {
       cleanup();

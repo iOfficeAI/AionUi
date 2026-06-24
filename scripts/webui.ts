@@ -112,6 +112,34 @@ function resolveAllowRemote(): boolean {
   return parseBoolean(process.env.AIONUI_ALLOW_REMOTE ?? process.env.AIONUI_REMOTE);
 }
 
+function resolvePublicBasePath(workDir: string): string | undefined {
+  const cli = getFlag('--base-path') ?? getFlag('--webui-base-path');
+  const raw = cli ?? process.env.AIONUI_BASE_PATH;
+  if (raw === undefined) {
+    try {
+      const configPath = path.join(workDir, 'webui.config.json');
+      if (fs.existsSync(configPath)) {
+        const parsed = JSON.parse(fs.readFileSync(configPath, 'utf8')) as { basePath?: string };
+        if (parsed.basePath !== undefined) {
+          const fromConfig = String(parsed.basePath).trim();
+          if (!fromConfig || fromConfig.toLowerCase() === 'auto') return undefined;
+          let value = fromConfig;
+          if (!value.startsWith('/')) value = `/${value}`;
+          return value.replace(/\/+$/, '') || '';
+        }
+      }
+    } catch {
+      /* ignore malformed config */
+    }
+    return undefined;
+  }
+  const trimmed = raw.trim();
+  if (!trimmed || trimmed.toLowerCase() === 'auto') return undefined;
+  let value = trimmed;
+  if (!value.startsWith('/')) value = `/${value}`;
+  return value.replace(/\/+$/, '') || '';
+}
+
 function resolveStaticDir(): string {
   if (process.env.AIONUI_STATIC_DIR) return process.env.AIONUI_STATIC_DIR;
   const candidate = path.join(repoRoot, 'out', 'renderer');
@@ -217,11 +245,12 @@ async function main(): Promise<void> {
   const staticDir = resolveStaticDir();
   const backendBin = resolveBackendBinary();
   const logDir = process.env.AIONUI_LOG_DIR ?? path.join(workDir, 'logs');
+  const publicBasePath = resolvePublicBasePath(workDir);
 
   console.log('[webui] work dir   :', workDir);
   console.log('[webui] static dir :', staticDir);
   console.log('[webui] backend bin:', backendBin);
-  console.log(`[webui] launching  : port=${port} allowRemote=${allowRemote}`);
+  console.log(`[webui] launching  : port=${port} allowRemote=${allowRemote} basePath=${publicBasePath ?? '(auto)'}`);
 
   const handle = await startWebHost({
     app: {
@@ -233,6 +262,7 @@ async function main(): Promise<void> {
     staticDir,
     port,
     allowRemote,
+    publicBasePath,
     dataDir: workDir,
     logDir,
     // Surface the same work dir on /api/system/info so the browser UI shows

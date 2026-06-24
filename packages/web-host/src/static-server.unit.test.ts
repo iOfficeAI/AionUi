@@ -357,4 +357,28 @@ describe('static-server', () => {
     expect(typeof h2.networkUrl === 'string' || h2.networkUrl === undefined).toBe(true);
     await h2.stop();
   });
+
+  it('serves and proxies under a configured public base path', async () => {
+    const backend = await startMockBackend((req, res) => {
+      res.writeHead(200, { 'content-type': 'application/json' });
+      res.end(JSON.stringify({ path: req.url, method: req.method }));
+    });
+    stopBackend = backend.close;
+    handle = await startStaticServer({
+      staticDir,
+      backendPort: backend.port,
+      port: 0,
+      publicBasePath: '/prefix',
+    });
+
+    const index = await fetch(`${handle.localUrl}/prefix/`);
+    expect(index.status).toBe(200);
+    const html = await index.text();
+    expect(html).toContain('window.__basePath="/prefix"');
+
+    const api = await fetch(`${handle.localUrl}/prefix/api/ping`);
+    expect(api.status).toBe(200);
+    const json = (await api.json()) as { path: string };
+    expect(json.path).toBe('/api/ping');
+  });
 });
