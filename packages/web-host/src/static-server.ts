@@ -71,11 +71,7 @@ function looksLikeStaticAsset(urlPath: string): boolean {
   return /\.[a-z0-9]+$/i.test(last);
 }
 
-async function serveIndexHtml(
-  res: ServerResponse,
-  staticDir: string,
-  publicBasePath: string
-): Promise<void> {
+async function serveIndexHtml(res: ServerResponse, staticDir: string, publicBasePath: string): Promise<void> {
   const indexPath = path.join(staticDir, 'index.html');
   let html = await fs.readFile(indexPath, 'utf8');
   if (publicBasePath) {
@@ -277,9 +273,7 @@ export async function startStaticServer(opts: StaticServerOptions): Promise<Stat
       if (decision === null && peeked.length < PEEK_LIMIT_BYTES) return;
       cleanup();
       const forwardedBytes =
-        decision === true && publicBasePath
-          ? stripBasePathFromRequestLine(peeked, publicBasePath)
-          : peeked;
+        decision === true && publicBasePath ? stripBasePathFromRequestLine(peeked, publicBasePath) : peeked;
       const target = decision === true ? opts.backendPort : internalPort;
       spliceToTcpEndpoint(client, target, forwardedBytes);
     };

@@ -187,7 +187,9 @@ async function runStart(flags: Map<string, string | true>): Promise<void> {
   console.log(`[aionui-web] log dir    : ${logDir}`);
   console.log(`[aionui-web] static dir : ${staticDir}`);
   console.log(`[aionui-web] backend bin: ${backendBin}`);
-  console.log(`[aionui-web] launching  : port=${port} allowRemote=${allowRemote} basePath=${publicBasePath ?? '(auto)'}`);
+  console.log(
+    `[aionui-web] launching  : port=${port} allowRemote=${allowRemote} basePath=${publicBasePath ?? '(auto)'}`
+  );
 
   const backendAvailable = fs.existsSync(backendBin);
 
