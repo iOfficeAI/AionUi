@@ -214,15 +214,15 @@ function formatExecError(error) {
   return [error?.message, error?.stdout?.toString?.(), error?.stderr?.toString?.()].filter(Boolean).join('\n').trim();
 }
 
-// Create DMG using electron-builder --prepackaged with .app path
-// This preserves DMG styling from electron-builder.yml (window size, icon positions, background)
-function createDmgWithPrepackaged(appDir, targetArch) {
+// Create macOS distributables using electron-builder --prepackaged with .app path.
+// This preserves DMG styling and still emits the zip required by MacUpdater.
+function createMacArtifactsWithPrepackaged(appDir, targetArch) {
   const appName = fs.readdirSync(appDir).find((f) => f.endsWith('.app'));
   if (!appName) throw new Error(`No .app found in ${appDir}`);
   const appPath = path.join(appDir, appName);
 
   execSync(
-    `bunx electron-builder --config packages/desktop/electron-builder.yml --mac dmg --${targetArch} --prepackaged "${appPath}" --publish=never`,
+    `bunx electron-builder --config packages/desktop/electron-builder.yml --mac dmg zip --${targetArch} --prepackaged "${appPath}" --publish=never`,
     {
       stdio: 'inherit',
       shell: process.platform === 'win32',
@@ -244,7 +244,7 @@ function buildWithDmgRetry(cmd, targetArch) {
 
     // .app exists but no .dmg → DMG creation failed
     console.log('\n🔄 Build failed during DMG creation (.app exists, .dmg missing)');
-    console.log('   Retrying DMG creation with --prepackaged...');
+    console.log('   Retrying macOS distributable creation with --prepackaged...');
 
     for (let attempt = 1; attempt <= DMG_RETRY_MAX; attempt++) {
       cleanupDiskImages();
@@ -252,8 +252,8 @@ function buildWithDmgRetry(cmd, targetArch) {
 
       try {
         console.log(`\n📀 DMG retry attempt ${attempt}/${DMG_RETRY_MAX}...`);
-        createDmgWithPrepackaged(appDir, targetArch);
-        console.log('✅ DMG created successfully on retry');
+        createMacArtifactsWithPrepackaged(appDir, targetArch);
+        console.log('✅ macOS distributables created successfully on retry');
         return;
       } catch (retryError) {
         console.log(`   ⚠️  DMG retry ${attempt}/${DMG_RETRY_MAX} failed`);
