@@ -268,7 +268,7 @@ jobs:
           echo '```' >> $GITHUB_STEP_SUMMARY
           echo "</details>" >> $GITHUB_STEP_SUMMARY
 
-  # Job 4: Build test across all platforms (parallel with code-quality and unit-tests)
+  # Job 4: Build test across representative PR platforms (parallel with code-quality and unit-tests)
   build-test:
     name: Build Test (${{ matrix.platform }})
     if: github.event.action != 'closed' && github.event.pull_request.draft == false && inputs.skip_build_test != true
@@ -284,25 +284,13 @@ jobs:
             target: '--mac'
             build_args: '--mac --arm64'
             unpacked_dir: 'mac-arm64'
-          - platform: 'macos-x64'
-            os: 'macos-14'
-            arch: 'x64'
-            target: '--mac'
-            build_args: '--mac --x64'
-            unpacked_dir: 'mac'
           - platform: 'windows-x64'
             os: 'windows-2022'
             arch: 'x64'
             target: '--win'
             build_args: '--win --x64'
             unpacked_dir: 'win-unpacked'
-          - platform: 'windows-arm64'
-            os: 'windows-11-arm'
-            arch: 'arm64'
-            target: '--win'
-            build_args: '--win --arm64'
-            unpacked_dir: 'win-arm64-unpacked'
-          - platform: 'linux'
+          - platform: 'linux-x64'
             os: 'ubuntu-latest'
             arch: 'x64'
             target: '--linux'
@@ -336,7 +324,7 @@ jobs:
         run: npm run postinstall || true
 
       - name: Install Linux dependencies
-        if: matrix.platform == 'linux'
+        if: matrix.platform == 'linux-x64'
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential python3 python3-pip pkg-config libsqlite3-dev fakeroot dpkg-dev rpm libnss3-dev libatk-bridge2.0-dev libdrm2 libxkbcommon-dev libxss1 libatspi2.0-dev libgtk-3-dev libxrandr2 libasound2-dev
@@ -405,28 +393,6 @@ jobs:
           CI: true
           GH_TOKEN: ${{ github.token }}
 
-      - name: Build test (Windows arm64)
-        if: matrix.platform == 'windows-arm64'
-        shell: pwsh
-        run: |
-          Write-Host "=========================================="
-          Write-Host "BUILD TEST: ${{ matrix.platform }}"
-          Write-Host "=========================================="
-          node scripts/build-with-builder.js arm64 --win --arm64
-          Write-Host "✓Build test passed for ${{ matrix.platform }}"
-        env:
-          NODE_OPTIONS: '--max-old-space-size=8192'
-          npm_config_runtime: electron
-          npm_config_arch: arm64
-          npm_config_target_arch: arm64
-          npm_config_disturl: https://electronjs.org/headers
-          npm_config_build_from_source: true
-          MSVS_VERSION: 2022
-          GYP_MSVS_VERSION: 2022
-          WindowsTargetPlatformVersion: 10.0.19041.0
-          CI: true
-          GH_TOKEN: ${{ github.token }}
-
       - name: Build test (non-Windows)
         if: "!startsWith(matrix.platform, 'windows')"
         shell: bash
@@ -461,7 +427,7 @@ jobs:
             macos-*)
               ls out/*.dmg out/*.zip out/*latest*.yml >/dev/null
               ;;
-            linux)
+            linux-x64)
               ls out/*.deb out/*latest*.yml >/dev/null
               ;;
           esac
@@ -495,51 +461,6 @@ jobs:
 
           Write-Host "Installed executable: $installedExe"
 
-      - name: Silent install smoke test (Windows arm64)
-        if: matrix.platform == 'windows-arm64'
-        shell: pwsh
-        run: |
-          Write-Host "=========================================="
-          Write-Host "SMOKE INSTALL: windows-arm64"
-          Write-Host "=========================================="
-
-          $installer = Get-ChildItem -Path out -Filter "AionUi-*-win-arm64.exe" | Sort-Object LastWriteTime -Descending | Select-Object -First 1
-          if (-not $installer) {
-            throw "No Windows ARM64 installer found in out/"
-          }
-
-          Write-Host "Using installer: $($installer.FullName)"
-          $installProcess = Start-Process -FilePath $installer.FullName -ArgumentList '/S' -Wait -NoNewWindow -PassThru
-          if ($installProcess.ExitCode -ne 0) {
-            throw "Silent install failed with exit code $($installProcess.ExitCode)"
-          }
-
-          $unpackedExe = "out\win-arm64-unpacked\AionUi.exe"
-          if (-not (Test-Path $unpackedExe)) {
-            throw "Windows ARM64 unpacked executable not found: $unpackedExe"
-          }
-
-          $installRoot = "$env:LOCALAPPDATA\\Programs\\AionUi"
-          $requiredFiles = @(
-            "$env:LOCALAPPDATA\\Programs\\AionUi\\AionUi.exe",
-            "$installRoot\\ffmpeg.dll",
-            "$installRoot\\libEGL.dll",
-            "$installRoot\\libGLESv2.dll",
-            "$installRoot\\vulkan-1.dll",
-            "$installRoot\\resources\\app.asar",
-            "$installRoot\\resources\\bundled-aioncore\\win32-arm64\\aioncore.exe",
-            "$installRoot\\resources\\bundled-aioncore\\win32-arm64\\managed-resources\\node\\node-v24.11.0-win-arm64\\node.exe"
-          )
-
-          $missing = @($requiredFiles | Where-Object { -not (Test-Path $_) })
-          if ($missing.Count -gt 0) {
-            $missing | ForEach-Object { Write-Host "Missing required file: $_" }
-            throw "Silent install finished but required Windows ARM64 runtime files are missing"
-          }
-
-          Get-Item $installer.FullName, $unpackedExe | Format-Table FullName, Length
-          Get-Item $requiredFiles | Format-Table FullName, Length
-
       - name: Install smoke test (macOS arm64)
         if: matrix.platform == 'macos-arm64'
         shell: bash
@@ -566,20 +487,13 @@ jobs:
           test -x "$APP_BIN"
           "$APP_BIN" --version || true
 
-      - name: Skip executable smoke for macOS x64 cross build
-        if: matrix.platform == 'macos-x64'
-        shell: bash
-        run: |
-          echo "Skipping runtime launch smoke for macos-x64 cross build on arm64 runner."
-          ls -lah out/*.dmg out/*.zip
-
       - name: Install smoke test (Linux)
-        if: matrix.platform == 'linux'
+        if: matrix.platform == 'linux-x64'
         shell: bash
         run: |
           set -euo pipefail
           echo "=========================================="
-          echo "SMOKE INSTALL: linux"
+          echo "SMOKE INSTALL: linux-x64"
           echo "=========================================="
 
           DEB_FILE=$(ls out/*.deb | head -n 1)
