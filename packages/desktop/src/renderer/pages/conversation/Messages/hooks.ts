@@ -681,8 +681,8 @@ export const usePrependHistoryPage = () => {
 export const useReplaceWithAnchorWindow = () => {
   const update = useUpdateMessageList();
   return useCallback(
-    (messages: TMessage[]) => {
-      update(() => messages);
+    (conversationId: string, messages: TMessage[]) => {
+      update((list) => mergeLoadedPageWithCurrent(conversationId, messages, list));
     },
     [update]
   );
@@ -745,7 +745,7 @@ export const useLoadAnchorMessageWindow = (conversationId?: string) => {
           limit: DEFAULT_MESSAGE_PAGE_LIMIT,
           contentMode: 'compact',
         });
-        replaceWithAnchorWindow(page.items.map(normalizeDbMessage));
+        replaceWithAnchorWindow(conversationId, page.items.map(normalizeDbMessage));
         setPagination({
           oldestCursor: page.oldest_cursor ?? undefined,
           newestCursor: page.newest_cursor ?? undefined,

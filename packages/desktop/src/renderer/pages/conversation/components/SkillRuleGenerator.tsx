@@ -188,7 +188,7 @@ const SkillRuleGenerator: React.FC<SkillRuleGeneratorProps> = ({ conversation_id
 
       const messages = await loadLatestConversationMessages(conversation_id, {
         limit: page_size,
-        contentMode: 'full',
+        contentMode: 'compact',
       });
 
       if (!messages || messages.items.length === 0) {

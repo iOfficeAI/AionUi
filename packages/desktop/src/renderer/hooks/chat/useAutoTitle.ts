@@ -2,7 +2,7 @@ import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ipcBridge } from '@/common';
 import { deriveAutoTitleFromMessages } from '@/renderer/utils/chat/autoTitle';
-import { loadAllConversationMessagesPaged } from '@/renderer/utils/chat/messagePagination';
+import { DEFAULT_MESSAGE_PAGE_LIMIT, loadLatestConversationMessages } from '@/renderer/utils/chat/messagePagination';
 import { emitter } from '@/renderer/utils/emitter';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
 
@@ -18,8 +18,11 @@ export const useAutoTitle = () => {
           return;
         }
 
-        const messages = await loadAllConversationMessagesPaged(conversation_id);
-        const newTitle = deriveAutoTitleFromMessages(messages, fallbackContent);
+        const messages = await loadLatestConversationMessages(conversation_id, {
+          limit: DEFAULT_MESSAGE_PAGE_LIMIT,
+          contentMode: 'compact',
+        });
+        const newTitle = deriveAutoTitleFromMessages(messages.items, fallbackContent);
         if (!newTitle) {
           return;
         }

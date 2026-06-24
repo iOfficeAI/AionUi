@@ -16,6 +16,7 @@ import {
   useAddOrUpdateMessage,
   useMessageLstCache,
   useMessageList,
+  useReplaceWithAnchorWindow,
 } from '@/renderer/pages/conversation/Messages/hooks';
 
 vi.mock('@/common', () => ({
@@ -120,6 +121,14 @@ function useMessageHarness() {
   };
 }
 
+function useAnchorMessageHarness() {
+  return {
+    addOrUpdateMessage: useAddOrUpdateMessage(),
+    replaceWithAnchorWindow: useReplaceWithAnchorWindow(),
+    messages: useMessageList(),
+  };
+}
+
 async function flushMessageQueue(): Promise<void> {
   await act(async () => {
     vi.runAllTimers();
@@ -216,6 +225,29 @@ describe('message merging', () => {
     await flushMessageQueue();
 
     expect(result.current.messages).toEqual([]);
+  });
+
+  it('keeps live-only and richer streaming messages when replacing with an anchor window', async () => {
+    const { result } = renderHook(() => useAnchorMessageHarness(), {
+      wrapper: TestWrapper,
+    });
+
+    act(() => {
+      result.current.addOrUpdateMessage(createTextMessage('agent-1', 'partial streaming response'));
+      result.current.addOrUpdateMessage(createTextMessage('agent-2', 'live tail'));
+    });
+    await flushMessageQueue();
+
+    act(() => {
+      result.current.replaceWithAnchorWindow(CONVERSATION_ID, [
+        createTextMessage('user-anchor', 'anchor'),
+        createTextMessage('agent-1', 'partial'),
+      ]);
+    });
+
+    expect(result.current.messages.map((message) => message.msg_id)).toEqual(['user-anchor', 'agent-1', 'agent-2']);
+    expect((result.current.messages[1] as IMessageText).content.content).toBe('partial streaming response');
+    expect((result.current.messages[2] as IMessageText).content.content).toBe('live tail');
   });
 
   it('requests compact tool content when hydrating historical messages', async () => {
