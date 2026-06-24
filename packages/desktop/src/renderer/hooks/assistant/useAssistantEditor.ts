@@ -69,7 +69,7 @@ export const useAssistantEditor = ({
   const [editContext, setEditContext] = useState('');
   const [editAvatar, setEditAvatar] = useState('');
   const [editAvatarPreview, setEditAvatarPreview] = useState<string | undefined>(undefined);
-  const [editAgent, setEditAgentState] = useState<string>('claude');
+  const [editAgent, setEditAgentState] = useState<string>('');
   const [editRecommendedPromptsText, setEditRecommendedPromptsText] = useState('');
   const [defaultModelMode, setDefaultModelMode] = useState<AssistantScalarDefaultMode>('auto');
   const [defaultModelValue, setDefaultModelValue] = useState('');
@@ -213,7 +213,7 @@ export const useAssistantEditor = ({
     setEditDescription(assistant.description || '');
     setEditAvatar(assistant.avatar || '');
     setEditAvatarPreview(undefined);
-    setEditAgent(assistant.preset_agent_type || 'claude');
+    setEditAgent(assistant.agent_id || '');
     resetDefaultConfigState();
     resetSkillEditorState();
 
@@ -232,7 +232,7 @@ export const useAssistantEditor = ({
       );
       setEditAvatar(detail.profile.avatar || '');
       setEditAvatarPreview(undefined);
-      setEditAgent(detail.engine.agent_backend || assistant.preset_agent_type || 'claude');
+      setEditAgent(detail.engine.agent_id || assistant.agent_id || '');
       setEditContext(detail.rules.content || '');
       setEditRecommendedPromptsText(resolveLocalizedRecommendedPrompts(detail, localeKey).join('\n'));
       setDefaultModelMode(detail.defaults.model.mode === 'fixed' ? 'fixed' : 'auto');
@@ -269,7 +269,7 @@ export const useAssistantEditor = ({
     setEditContext('');
     setEditAvatar('\u{1F916}');
     setEditAvatarPreview(undefined);
-    setEditAgent('claude');
+    setEditAgent('');
     resetDefaultConfigState();
     resetSkillEditorState();
 
@@ -299,7 +299,7 @@ export const useAssistantEditor = ({
     setEditDescription(assistant.description_i18n?.[localeKey] || assistant.description || '');
     setEditAvatar(assistant.avatar || '\u{1F916}');
     setEditAvatarPreview(undefined);
-    setEditAgent(assistant.preset_agent_type || 'claude');
+    setEditAgent(assistant.agent_id || '');
     resetDefaultConfigState();
     resetSkillEditorState();
 
@@ -418,7 +418,7 @@ export const useAssistantEditor = ({
           name: editName,
           description: editDescription || undefined,
           avatar: editAvatar || undefined,
-          preset_agent_type: editAgent,
+          agent_id: editAgent || undefined,
           enabled_skills: selectedSkills,
           custom_skill_names: finalCustomSkills,
           disabled_builtin_skills: disabledBuiltinSkills.length > 0 ? disabledBuiltinSkills : undefined,
@@ -441,7 +441,7 @@ export const useAssistantEditor = ({
         const updateRequest: UpdateAssistantRequest = isBuiltinAssistant(activeAssistant)
           ? {
               id: activeAssistant.id,
-              preset_agent_type: editAgent,
+              agent_id: editAgent || undefined,
               defaults: {
                 model:
                   defaultModelMode === 'fixed'
@@ -458,7 +458,7 @@ export const useAssistantEditor = ({
               name: editName,
               description: editDescription || undefined,
               avatar: editAvatar || undefined,
-              preset_agent_type: editAgent,
+              agent_id: editAgent || undefined,
               enabled_skills: selectedSkills,
               custom_skill_names: finalCustomSkills,
               disabled_builtin_skills: disabledBuiltinSkills.length > 0 ? disabledBuiltinSkills : undefined,

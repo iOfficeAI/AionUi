@@ -1,5 +1,6 @@
 import { ipcBridge } from '@/common';
 import { httpRequest } from '@/common/adapter/httpBridge';
+import { assistantRuntimeKey, type AssistantAgent } from '@/common/types/agent/assistantTypes';
 import type { CreateProviderRequest } from '@/common/types/provider/providerApi';
 
 import type { ConfigKey } from './configKeys';
@@ -50,7 +51,8 @@ type LegacyChannelConfigFile = ConfigFile & {
 type ChannelAssistantCandidate = {
   id: string;
   source: string;
-  preset_agent_type: string;
+  agent_id: string;
+  agent?: AssistantAgent;
 };
 
 const ALL_LEGACY_KEYS: LegacyConfigKey[] = [
@@ -295,8 +297,8 @@ function findAssistantIdByBackend(
   if (!backend) return undefined;
 
   return (
-    assistants.find((assistant) => assistant.source === 'bare' && assistant.preset_agent_type === backend)?.id ||
-    assistants.find((assistant) => assistant.preset_agent_type === backend)?.id
+    assistants.find((assistant) => assistant.source === 'bare' && assistantRuntimeKey(assistant) === backend)?.id ||
+    assistants.find((assistant) => assistantRuntimeKey(assistant) === backend)?.id
   );
 }
 

@@ -5,7 +5,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import type { Assistant } from '@/common/types/agent/assistantTypes';
+import type { Assistant, AssistantAgent } from '@/common/types/agent/assistantTypes';
 import { resolveCronAgentConfig } from '@/renderer/pages/cron/ScheduledTasksPage/resolveCronAgentConfig';
 
 describe('resolveCronAgentConfig', () => {
@@ -16,7 +16,8 @@ describe('resolveCronAgentConfig', () => {
         assistant({
           id: 'assistant-1',
           name: '文件规划助手',
-          preset_agent_type: 'aionrs',
+          agent_id: 'agent-aionrs',
+          agent: agent('agent-aionrs', 'aionrs'),
         }),
       ],
       selectedAionrsProvider: {
@@ -31,11 +32,16 @@ describe('resolveCronAgentConfig', () => {
 
     expect(result).toEqual({
       agent_config: {
-        backend: 'provider-gemini',
         name: '文件规划助手',
         assistant_id: 'assistant-1',
         mode: 'yolo',
         model_id: 'gemini-3.1-pro-preview',
+        model: {
+          provider_id: 'provider-gemini',
+          model: 'gemini-3.1-pro-preview',
+          use_model: 'gemini-3.1-pro-preview',
+        },
+        config_options: undefined,
         workspace: '/tmp/project',
       },
     });
@@ -48,7 +54,8 @@ describe('resolveCronAgentConfig', () => {
         assistant({
           id: 'assistant-2',
           name: 'Codex 助手',
-          preset_agent_type: 'codex',
+          agent_id: 'agent-codex',
+          agent: agent('agent-codex', 'acp', 'codex'),
         }),
       ],
       config_options: { reasoning_effort: 'high' },
@@ -76,7 +83,8 @@ describe('resolveCronAgentConfig', () => {
           id: 'assistant-2',
           name: 'Codex',
           name_i18n: { 'zh-CN': '代码助手' },
-          preset_agent_type: 'codex',
+          agent_id: 'agent-codex',
+          agent: agent('agent-codex', 'acp', 'codex'),
         }),
       ],
       localeKey: 'zh-CN',
@@ -94,7 +102,8 @@ describe('resolveCronAgentConfig', () => {
         assistant({
           id: 'assistant-4',
           name: 'Claude 助手',
-          preset_agent_type: 'claude',
+          agent_id: 'agent-claude',
+          agent: agent('agent-claude', 'acp', 'claude'),
         }),
       ],
       getMode: () => 'default',
@@ -121,7 +130,8 @@ describe('resolveCronAgentConfig', () => {
         assistant({
           id: 'assistant-3',
           name: '社媒发布助手',
-          preset_agent_type: 'claude',
+          agent_id: 'agent-claude',
+          agent: agent('agent-claude', 'acp', 'claude'),
         }),
       ],
       getMode: () => 'default',
@@ -146,7 +156,7 @@ describe('resolveCronAgentConfig', () => {
   });
 });
 
-function assistant(overrides: Partial<Assistant> & Pick<Assistant, 'id' | 'name' | 'preset_agent_type'>): Assistant {
+function assistant(overrides: Partial<Assistant> & Pick<Assistant, 'id' | 'name' | 'agent_id'>): Assistant {
   return {
     id: overrides.id,
     source: 'user',
@@ -155,7 +165,7 @@ function assistant(overrides: Partial<Assistant> & Pick<Assistant, 'id' | 'name'
     description_i18n: {},
     enabled: true,
     sort_order: 0,
-    preset_agent_type: overrides.preset_agent_type,
+    agent_id: overrides.agent_id,
     enabled_skills: [],
     custom_skill_names: [],
     disabled_builtin_skills: [],
@@ -164,5 +174,14 @@ function assistant(overrides: Partial<Assistant> & Pick<Assistant, 'id' | 'name'
     prompts_i18n: {},
     models: [],
     ...overrides,
+  };
+}
+
+function agent(id: string, type: string, backend?: string): AssistantAgent {
+  return {
+    id,
+    type,
+    source: type === 'aionrs' ? 'internal' : 'builtin',
+    acp_backend: backend,
   };
 }

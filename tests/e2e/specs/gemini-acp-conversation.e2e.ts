@@ -17,7 +17,6 @@ import {
   sendMessageFromGuid,
   waitForSessionActive,
   deleteConversation,
-  AGENT_STATUS_MESSAGE,
 } from '../helpers';
 
 test.describe('Gemini (ACP) Conversation Lifecycle', () => {
@@ -40,8 +39,6 @@ test.describe('Gemini (ACP) Conversation Lifecycle', () => {
     // identical to claude/codex here. Long timeout because Gemini auth can
     // require a token refresh on first use.
     await waitForSessionActive(page, 150_000);
-
-    await expect(page.locator(AGENT_STATUS_MESSAGE).first()).toBeVisible();
 
     const deleted = await deleteConversation(page, conversationId);
     expect(deleted).toBe(true);

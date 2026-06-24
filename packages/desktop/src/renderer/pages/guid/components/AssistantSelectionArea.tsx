@@ -5,7 +5,7 @@
  */
 
 import styles from '../index.module.css';
-import type { Assistant } from '@/common/types/agent/assistantTypes';
+import { assistantRuntimeKey, type Assistant } from '@/common/types/agent/assistantTypes';
 import { Down, Robot, Search } from '@icon-park/react';
 import { Button, Dropdown, Input } from '@arco-design/web-react';
 import React, { useMemo, useState } from 'react';
@@ -79,7 +79,7 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
         key={assistant.id}
         data-testid={testId}
         data-assistant-id={assistant.id}
-        data-assistant-backend={assistant.preset_agent_type}
+        data-assistant-backend={assistantRuntimeKey(assistant)}
         data-assistant-selected={isSelected ? 'true' : 'false'}
         type='text'
         className={`!inline-flex !min-w-0 !h-auto !items-center !gap-6px !rounded-999px !border-none !px-12px !py-8px !text-13px transition-all ${

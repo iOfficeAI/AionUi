@@ -129,6 +129,18 @@ export const TeamTabsProvider: React.FC<{
     });
   }, []);
 
+  const handleRenameAssistant = useCallback(
+    async (slot_id: string, new_name: string) => {
+      await renameAssistant?.(slot_id, new_name);
+      setLocalAssistants((prev) =>
+        prev.map((assistant) =>
+          assistant.slot_id === slot_id ? { ...assistant, assistant_name: new_name } : assistant
+        )
+      );
+    },
+    [renameAssistant]
+  );
+
   const contextValue = useMemo(
     () => ({
       assistants,
@@ -136,11 +148,21 @@ export const TeamTabsProvider: React.FC<{
       statusMap,
       team_id,
       switchTab,
-      renameAssistant,
+      renameAssistant: renameAssistant ? handleRenameAssistant : undefined,
       removeAssistant,
       reorderAssistants,
     }),
-    [assistants, activeSlotId, statusMap, team_id, switchTab, renameAssistant, removeAssistant, reorderAssistants]
+    [
+      assistants,
+      activeSlotId,
+      statusMap,
+      team_id,
+      switchTab,
+      renameAssistant,
+      handleRenameAssistant,
+      removeAssistant,
+      reorderAssistants,
+    ]
   );
 
   return <TeamTabsContext.Provider value={contextValue}>{children}</TeamTabsContext.Provider>;

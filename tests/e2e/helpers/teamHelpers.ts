@@ -27,6 +27,11 @@ export async function createTeam(page: Page, name: string, leaderType?: string):
     throw new Error('No supported team backends available — skip this test');
   }
 
+  await page.evaluate(() => {
+    window.location.hash = '#/team';
+  });
+  await page.waitForFunction(() => window.location.hash === '#/team', { timeout: 10_000 }).catch(() => {});
+
   const createBtn = page.locator('[data-testid="team-create-btn"]').first();
   await createBtn.waitFor({ state: 'visible', timeout: 10_000 });
   await createBtn.click();
@@ -48,7 +53,7 @@ export async function createTeam(page: Page, name: string, leaderType?: string):
   await expect(confirmBtn).toBeEnabled({ timeout: 5_000 });
   await confirmBtn.click();
 
-  await page.waitForURL(/\/team\//, { timeout: 15_000 });
+  await page.waitForURL(/\/team\/[^/?#]+/, { timeout: 15_000 });
 
   const hash = await page.evaluate(() => window.location.hash);
   const match = hash.match(/#\/team\/([^/?#]+)/);

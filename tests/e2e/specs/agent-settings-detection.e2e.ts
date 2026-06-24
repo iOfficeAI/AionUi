@@ -14,9 +14,13 @@ import { goToSettings, expectUrlContains, settingsSiderItemById, httpGet } from 
 type ManagedAgent = {
   id: string;
   name: string;
+  agent_type?: string;
+  backend?: string;
   agent_source: 'internal' | 'builtin' | 'extension' | 'custom';
   status?: 'online' | 'offline' | 'missing';
 };
+
+const DEPRECATED_RUNTIME_AGENT_TYPES = new Set(['nanobot', 'openclaw-gateway', 'remote', 'gemini']);
 
 const TEXT = {
   customAgents: ['Custom Agents', '自定义 Agents'],
@@ -30,9 +34,6 @@ const TEXT = {
   installFromMarket: ['Install from Market', '从市场安装'],
   discoverMoreAgents: ['Discover More Agents', '发现更多 Agent'],
   startChat: ['Start Chat', '开始对话'],
-  statusOnline: ['Online', '在线'],
-  statusOffline: ['Offline', '离线'],
-  statusMissing: ['Missing', '未找到'],
 } as const;
 
 async function expectAnyText(page: Parameters<typeof test>[0]['page'], candidates: readonly string[]) {
@@ -58,23 +59,21 @@ test.describe('Agent Settings Detection', () => {
     await goToSettings(page, 'agent');
     await expectUrlContains(page, 'agent');
     await expect(page.locator(settingsSiderItemById('agent')).first()).toBeVisible({ timeout: 8_000 });
+    await expect(page.locator('[data-testid="agent-management-page"]')).toBeVisible({ timeout: 8_000 });
+    await expect(page.locator('[data-testid="agent-management-custom-section"]')).toBeVisible({ timeout: 8_000 });
 
     await expectAnyText(page, TEXT.customAgents);
     await expectAnyText(page, TEXT.setupGuide);
-    await expect(page.getByRole('button', { name: new RegExp(TEXT.testConnection.join('|')) }).first()).toBeVisible();
 
-    for (const agent of managedAgents.slice(0, 4)) {
-      await expect(page.getByText(agent.name, { exact: false }).first()).toBeVisible({ timeout: 8_000 });
-    }
+    const visibleManagedAgents = managedAgents.filter(
+      (agent) =>
+        agent.agent_source === 'custom' || !DEPRECATED_RUNTIME_AGENT_TYPES.has(agent.agent_type ?? agent.backend ?? '')
+    );
 
-    if (managedAgents.some((agent) => agent.status === 'online')) {
-      await expectAnyText(page, TEXT.statusOnline);
-    }
-    if (managedAgents.some((agent) => agent.status === 'offline')) {
-      await expectAnyText(page, TEXT.statusOffline);
-    }
-    if (managedAgents.some((agent) => agent.status === 'missing')) {
-      await expectAnyText(page, TEXT.statusMissing);
+    for (const agent of visibleManagedAgents.slice(0, 4)) {
+      await expect(page.locator(`[data-testid="agent-row-${agent.id}"]`)).toBeVisible({ timeout: 8_000 });
+      await expect(page.locator(`[data-testid="agent-row-status-${agent.id}"]`)).toBeVisible({ timeout: 8_000 });
+      await expect(page.locator(`[data-testid="agent-row-test-${agent.id}"]`)).toBeVisible({ timeout: 8_000 });
     }
   });
 

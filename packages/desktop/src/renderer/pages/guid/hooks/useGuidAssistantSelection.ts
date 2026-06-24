@@ -5,7 +5,7 @@
  */
 
 import { DEFAULT_CODEX_MODELS } from '@/common/types/codex/codexModels';
-import type { Assistant } from '@/common/types/agent/assistantTypes';
+import { assistantRuntimeKey, isAionrsAssistant, type Assistant } from '@/common/types/agent/assistantTypes';
 import type { AcpModelInfo } from '../types';
 import { getAgentModes } from '@/renderer/utils/model/agentModes';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
@@ -88,8 +88,8 @@ export function resolveAssistantSelectionKey(
 export function pickDefaultAssistantSelectionKey(assistants: Assistant[]): string | null {
   const enabledAssistants = assistants.filter((assistant) => assistant.enabled !== false);
   const preferred =
-    enabledAssistants.find((assistant) => assistant.source === 'bare' && assistant.preset_agent_type === 'aionrs') ??
-    enabledAssistants.find((assistant) => assistant.preset_agent_type === 'aionrs') ??
+    enabledAssistants.find((assistant) => assistant.source === 'bare' && isAionrsAssistant(assistant)) ??
+    enabledAssistants.find((assistant) => isAionrsAssistant(assistant)) ??
     enabledAssistants[0];
   return preferred?.id ?? null;
 }
@@ -180,7 +180,7 @@ export const useGuidAssistantSelection = ({
     [assistants, selectedAssistantIdState]
   );
   const selectedAssistantId = selectedAssistant?.id ?? null;
-  const selectedAssistantBackend = selectedAssistant?.preset_agent_type || '';
+  const selectedAssistantBackend = assistantRuntimeKey(selectedAssistant);
   const selectedAssistantModels = selectedAssistant?.models ?? [];
 
   const selectedAssistantAvailable = useMemo(() => {

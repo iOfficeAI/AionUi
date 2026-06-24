@@ -32,21 +32,18 @@ test.describe('Team Member Ops', () => {
     const tabBar = page.locator('[data-testid="team-tab-bar"]');
     await expect(tabBar).toBeVisible({ timeout: 15_000 });
 
-    // Identify the leader tab — it is the first tab inside the bar
-    const firstTab = tabBar.locator('> div > div > div').first();
-    await expect(firstTab).toBeVisible({ timeout: 10_000 });
+    const leaderTab = tabBar.locator('[data-team-tab-role="leader"]').first();
+    await expect(leaderTab).toBeVisible({ timeout: 10_000 });
 
-    // Grab the original name text from the tab
-    const originalName = await firstTab.locator('span').last().textContent();
+    const originalName = await leaderTab.locator('[data-testid^="team-tab-name-"]').first().textContent();
     expect(originalName?.trim()).toBeTruthy();
 
     await page.screenshot({ path: 'tests/e2e/results/member-ops-01-before-rename.png' });
 
     // Double-click the tab to enter edit mode
-    await firstTab.dblclick();
+    await leaderTab.dblclick();
 
-    // An input should appear inside the tab
-    const renameInput = firstTab.locator('input');
+    const renameInput = leaderTab.locator('input');
     await expect(renameInput).toBeVisible({ timeout: 5_000 });
 
     await page.screenshot({ path: 'tests/e2e/results/member-ops-02-editing.png' });
@@ -60,7 +57,7 @@ test.describe('Team Member Ops', () => {
     await expect(renameInput).toBeHidden({ timeout: 5_000 });
 
     // Tab should now display the new name
-    await expect(tabBar.locator(`text=${newName}`).first()).toBeVisible({ timeout: 10_000 });
+    await expect(leaderTab.locator('[data-testid^="team-tab-name-"]').first()).toHaveText(newName, { timeout: 10_000 });
 
     await page.screenshot({ path: 'tests/e2e/results/member-ops-03-renamed.png' });
   });
@@ -112,27 +109,18 @@ test.describe('Team Member Ops', () => {
     await expect(tabBar).toBeVisible({ timeout: 15_000 });
 
     // Verify the member tab appeared
-    const memberTab = tabBar.locator('span').filter({ hasText: memberName }).first();
+    const memberTab = page.locator(`[data-testid="team-tab-${addResult.slot_id}"]`);
     await expect(memberTab).toBeVisible({ timeout: 10_000 });
 
     await page.screenshot({ path: 'tests/e2e/results/member-ops-04-member-added.png' });
 
     // Count tabs before removal
-    const tabsBefore = await tabBar.locator('> div > div > div').count();
+    const tabsBefore = await tabBar.locator('[data-testid^="team-tab-"][data-team-tab-role]').count();
     expect(tabsBefore).toBeGreaterThanOrEqual(2);
 
-    // Find the member tab's container div (has the close button)
-    const memberTabContainer = tabBar.locator('> div > div > div').filter({ hasText: memberName }).first();
-    await expect(memberTabContainer).toBeVisible({ timeout: 5_000 });
+    await memberTab.hover();
 
-    // Hover to reveal the close button
-    await memberTabContainer.hover();
-
-    // CloseSmall icon renders as svg inside a span; it is the last such span for non-leader tabs
-    const closeBtn = memberTabContainer
-      .locator('span')
-      .filter({ has: page.locator('svg') })
-      .last();
+    const closeBtn = memberTab.locator(`[data-testid="team-tab-remove-${addResult.slot_id}"]`);
     await expect(closeBtn).toBeVisible({ timeout: 3_000 });
     await closeBtn.click();
 
@@ -153,10 +141,9 @@ test.describe('Team Member Ops', () => {
     await page.screenshot({ path: 'tests/e2e/results/member-ops-05-after-remove.png' });
 
     // Member tab should be gone
-    await expect(tabBar.locator('span').filter({ hasText: memberName })).toHaveCount(0, { timeout: 10_000 });
+    await expect(page.locator(`[data-testid="team-tab-${addResult.slot_id}"]`)).toHaveCount(0, { timeout: 10_000 });
 
-    // Tab count should have decreased
-    const tabsAfter = await tabBar.locator('> div > div > div').count();
+    const tabsAfter = await tabBar.locator('[data-testid^="team-tab-"][data-team-tab-role]').count();
     expect(tabsAfter).toBeLessThan(tabsBefore);
   });
 });

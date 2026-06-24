@@ -49,6 +49,7 @@ export type AvailableBackendModelOption = {
 export type AvailableBackend = {
   id: string;
   name: string;
+  runtimeKey: string;
   isExtension?: boolean;
   modelOptions: AvailableBackendModelOption[];
 };

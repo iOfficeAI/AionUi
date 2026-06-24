@@ -13,41 +13,44 @@ import { buildAssistantEditorBackends } from '@/renderer/pages/settings/Assistan
 describe('buildAssistantEditorBackends', () => {
   it('derives editor backends from bare assistants only', () => {
     const assistants: Assistant[] = [
-      assistant({ id: 'bare-claude', source: 'bare', preset_agent_type: 'claude', name: 'Claude Code' }),
-      assistant({ id: 'user-writer', source: 'user', preset_agent_type: 'claude', name: 'Writer' }),
-      assistant({ id: 'builtin-research', source: 'builtin', preset_agent_type: 'gemini', name: 'Researcher' }),
+      assistant({ id: 'bare-claude', source: 'bare', runtimeKey: 'claude', name: 'Claude Code' }),
+      assistant({ id: 'user-writer', source: 'user', runtimeKey: 'claude', name: 'Writer' }),
+      assistant({ id: 'builtin-research', source: 'builtin', runtimeKey: 'gemini', name: 'Researcher' }),
     ];
 
     expect(buildAssistantEditorBackends(assistants, 'en-US')).toEqual([
       {
-        id: 'claude',
+        id: 'agent-claude',
         name: 'Claude Code',
+        runtimeKey: 'claude',
         modelOptions: [],
       },
     ]);
   });
 
-  it('uses localized bare assistant names and deduplicates by backend', () => {
+  it('uses localized bare assistant names and deduplicates by agent identity', () => {
     const assistants: Assistant[] = [
       assistant({
         id: 'bare-gemini',
         source: 'bare',
-        preset_agent_type: 'gemini',
+        runtimeKey: 'gemini',
         name: 'Gemini',
         name_i18n: { 'zh-CN': '双子星' },
       }),
       assistant({
         id: 'bare-gemini-second',
         source: 'bare',
-        preset_agent_type: 'gemini',
+        runtimeKey: 'gemini',
+        agentId: 'agent-gemini',
         name: 'Gemini 2',
       }),
     ];
 
     expect(buildAssistantEditorBackends(assistants, 'zh-CN')).toEqual([
       {
-        id: 'gemini',
+        id: 'agent-gemini',
         name: '双子星',
+        runtimeKey: 'gemini',
         modelOptions: [],
       },
     ]);
@@ -58,30 +61,32 @@ describe('buildAssistantEditorBackends', () => {
       assistant({
         id: 'bare-claude',
         source: 'bare',
-        preset_agent_type: 'claude',
+        runtimeKey: 'claude',
         name: 'Claude Code',
         models: ['claude-sonnet-4', 'claude-opus-4'],
       }),
       assistant({
         id: 'bare-codex',
         source: 'bare',
-        preset_agent_type: 'codex',
+        runtimeKey: 'codex',
         name: 'Codex',
       }),
     ];
 
     expect(buildAssistantEditorBackends(assistants, 'en-US')).toEqual([
       {
-        id: 'claude',
+        id: 'agent-claude',
         name: 'Claude Code',
+        runtimeKey: 'claude',
         modelOptions: [
           { value: 'claude-sonnet-4', label: 'claude-sonnet-4' },
           { value: 'claude-opus-4', label: 'claude-opus-4' },
         ],
       },
       {
-        id: 'codex',
+        id: 'agent-codex',
         name: 'Codex',
+        runtimeKey: 'codex',
         modelOptions: DEFAULT_CODEX_MODELS.map((model) => ({ value: model.id, label: model.label })),
       },
     ]);
@@ -92,7 +97,7 @@ describe('buildAssistantEditorBackends', () => {
       assistant({
         id: 'bare-droid',
         source: 'bare',
-        preset_agent_type: 'droid',
+        runtimeKey: 'droid',
         name: 'droid',
         models: undefined,
       }),
@@ -100,15 +105,25 @@ describe('buildAssistantEditorBackends', () => {
 
     expect(buildAssistantEditorBackends(assistants, 'en-US')).toEqual([
       {
-        id: 'droid',
+        id: 'agent-droid',
         name: 'droid',
+        runtimeKey: 'droid',
         modelOptions: [],
       },
     ]);
   });
 });
 
-function assistant(overrides: Partial<Assistant> & Pick<Assistant, 'id' | 'source' | 'preset_agent_type' | 'name'>) {
+function assistant(
+  overrides: Partial<Assistant> & {
+    id: string;
+    source: Assistant['source'];
+    runtimeKey: string;
+    name: string;
+    agentId?: string;
+  }
+) {
+  const agentId = overrides.agentId ?? `agent-${overrides.runtimeKey}`;
   return {
     id: overrides.id,
     source: overrides.source,
@@ -117,7 +132,8 @@ function assistant(overrides: Partial<Assistant> & Pick<Assistant, 'id' | 'sourc
     description_i18n: {},
     enabled: true,
     sort_order: 0,
-    preset_agent_type: overrides.preset_agent_type,
+    agent_id: agentId,
+    agent: { id: agentId, type: 'acp', source: 'builtin', acp_backend: overrides.runtimeKey },
     enabled_skills: [],
     custom_skill_names: [],
     disabled_builtin_skills: [],

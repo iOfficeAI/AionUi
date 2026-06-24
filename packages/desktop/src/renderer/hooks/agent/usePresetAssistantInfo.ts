@@ -8,7 +8,7 @@ import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { TChatConversation } from '@/common/config/storage';
 import { ipcBridge } from '@/common';
-import type { Assistant } from '@/common/types/agent/assistantTypes';
+import { assistantRuntimeKey, type Assistant } from '@/common/types/agent/assistantTypes';
 import { resolveLocaleKey } from '@/common/utils';
 import type { AgentLogoMap } from '@/renderer/utils/model/agentLogo';
 import { resolveAgentLogo, useAgentLogos } from '@/renderer/utils/model/agentLogo';
@@ -224,7 +224,7 @@ function buildPresetInfoFromAssistant(assistant: Assistant, locale: string): Pre
     name,
     logo: normalized.logo,
     isEmoji: normalized.isEmoji,
-    backend: assistant.preset_agent_type,
+    backend: assistantRuntimeKey(assistant) || undefined,
     assistantId: assistant.id,
   };
 }

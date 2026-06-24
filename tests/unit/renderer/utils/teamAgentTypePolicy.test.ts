@@ -60,8 +60,10 @@ function assistant(
   id: string,
   team_selectable: boolean,
   team_block_reason?: string,
-  preset_agent_type = 'claude'
+  runtimeKey = 'claude'
 ): Assistant {
+  const agentId = `agent-${runtimeKey}`;
+  const isAionrs = runtimeKey === 'aionrs';
   return {
     id,
     source: 'bare',
@@ -70,7 +72,10 @@ function assistant(
     description_i18n: {},
     enabled: true,
     sort_order: 0,
-    preset_agent_type,
+    agent_id: agentId,
+    agent: isAionrs
+      ? { id: agentId, type: 'aionrs', source: 'internal' }
+      : { id: agentId, type: 'acp', source: 'builtin', acp_backend: runtimeKey },
     enabled_skills: [],
     custom_skill_names: [],
     disabled_builtin_skills: [],

@@ -20,6 +20,9 @@ vi.mock('@/common', () => ({
       list: { invoke: vi.fn(async () => []) },
       get: { invoke: vi.fn() },
     },
+    acpConversation: {
+      getManagedAgents: { invoke: vi.fn(async () => []) },
+    },
     fs: {
       writeAssistantRule: { invoke: vi.fn(async () => true) },
       readAssistantRule: { invoke: vi.fn(async () => '') },
@@ -59,6 +62,7 @@ describe('migrateAssistants', () => {
     vi.clearAllMocks();
     (ipcBridge.assistants.list.invoke as any).mockResolvedValue([]);
     (ipcBridge.assistants.get.invoke as any).mockResolvedValue(undefined);
+    (ipcBridge.acpConversation.getManagedAgents.invoke as any).mockResolvedValue([]);
     (ipcBridge.fs.readAssistantRule.invoke as any).mockResolvedValue('');
   });
 
@@ -71,10 +75,10 @@ describe('migrateAssistants', () => {
         presetAgentType: 'claude',
         avatar: '🤖',
       };
-      const result = legacyAssistantToCreateRequest(legacy);
+      const result = legacyAssistantToCreateRequest(legacy, new Map([['claude', '2d23ff1c']]));
       expect(result.id).toBe('my-assistant');
       expect(result.name).toBe('MyAssistant');
-      expect(result.preset_agent_type).toBe('claude');
+      expect(result.agent_id).toBe('2d23ff1c');
     });
 
     it('renames colliding preset ids to avoid overwrite', () => {
@@ -106,25 +110,28 @@ describe('migrateAssistants', () => {
       expect(result.description_i18n).toEqual({ zh: '描述' });
     });
 
-    it('rewrites legacy default gemini to current default aionrs', () => {
+    it('omits legacy default gemini so the backend applies its current default', () => {
       // Legacy Electron shipped 'gemini' as the global default; the current
       // backend default is 'aionrs' (the internal gemini engine was removed).
       // Treat a legacy 'gemini' value as "no explicit choice" so users who
       // never touched the picker get the current default, not a broken one.
       const result = legacyAssistantToCreateRequest({ id: 'x', presetAgentType: 'gemini' });
-      expect(result.preset_agent_type).toBe('aionrs');
+      expect(result.agent_id).toBeUndefined();
     });
 
-    it('defaults to aionrs when presetAgentType missing', () => {
+    it('omits agent_id when presetAgentType is missing', () => {
       const result = legacyAssistantToCreateRequest({ id: 'x' });
-      expect(result.preset_agent_type).toBe('aionrs');
+      expect(result.agent_id).toBeUndefined();
     });
 
-    it('preserves non-default preset_agent_type verbatim', () => {
+    it('maps non-default legacy backend choices to agent_id', () => {
       // Users who actually picked a backend keep their choice across the
       // gemini → aionrs default migration.
-      const result = legacyAssistantToCreateRequest({ id: 'x', presetAgentType: 'codex' });
-      expect(result.preset_agent_type).toBe('codex');
+      const result = legacyAssistantToCreateRequest(
+        { id: 'x', presetAgentType: 'codex' },
+        new Map([['codex', '8e1acf31']])
+      );
+      expect(result.agent_id).toBe('8e1acf31');
     });
   });
 
@@ -209,7 +216,7 @@ describe('migrateAssistants', () => {
         source: 'builtin',
         profile: { name: 'Morph PPT', name_i18n: {}, description_i18n: {} },
         state: { enabled: true, sort_order: 0 },
-        engine: { agent_backend: 'aionrs' },
+        engine: { agent_id: '632f31d2' },
         rules: { content: '', storage_mode: 'builtin_asset' },
         prompts: { recommended: [], recommended_i18n: {} },
         defaults: {
@@ -251,7 +258,7 @@ describe('migrateAssistants', () => {
 
     /** Minimal Assistant shape for `assistants.list` mock; only the fields the
      *  migration inspects need to be real. */
-    function builtinListStub(rows: Array<{ id: string; preset_agent_type: string }>) {
+    function builtinListStub(rows: Array<{ id: string; agent_id: string }>) {
       return rows.map((r) => ({ ...r, source: 'builtin' }));
     }
 
@@ -263,8 +270,11 @@ describe('migrateAssistants', () => {
       });
 
       (ipcBridge.assistants.list.invoke as any).mockResolvedValue(
-        builtinListStub([{ id: 'word-creator', preset_agent_type: 'aionrs' }])
+        builtinListStub([{ id: 'word-creator', agent_id: '632f31d2' }])
       );
+      (ipcBridge.acpConversation.getManagedAgents.invoke as any).mockResolvedValue([
+        { id: '8e1acf31', backend: 'codex', agent_type: 'acp' },
+      ]);
       (ipcBridge.assistants.update.invoke as any).mockResolvedValue({});
 
       const result = await migrateAssistantsToBackend(config as any);
@@ -273,7 +283,7 @@ describe('migrateAssistants', () => {
       expect(ipcBridge.assistants.update.invoke).toHaveBeenCalledTimes(1);
       expect(ipcBridge.assistants.update.invoke).toHaveBeenCalledWith({
         id: 'word-creator',
-        preset_agent_type: 'codex',
+        agent_id: '8e1acf31',
       });
     });
 
@@ -285,7 +295,7 @@ describe('migrateAssistants', () => {
       });
 
       (ipcBridge.assistants.list.invoke as any).mockResolvedValue(
-        builtinListStub([{ id: 'word-creator', preset_agent_type: 'aionrs' }])
+        builtinListStub([{ id: 'word-creator', agent_id: '632f31d2' }])
       );
 
       const result = await migrateAssistantsToBackend(config as any);
@@ -302,7 +312,7 @@ describe('migrateAssistants', () => {
       });
 
       (ipcBridge.assistants.list.invoke as any).mockResolvedValue(
-        builtinListStub([{ id: 'word-creator', preset_agent_type: 'aionrs' }])
+        builtinListStub([{ id: 'word-creator', agent_id: '632f31d2' }])
       );
 
       const result = await migrateAssistantsToBackend(config as any);
@@ -319,7 +329,7 @@ describe('migrateAssistants', () => {
       });
 
       (ipcBridge.assistants.list.invoke as any).mockResolvedValue(
-        builtinListStub([{ id: 'word-creator', preset_agent_type: 'aionrs' }]) // no pdf-to-ppt
+        builtinListStub([{ id: 'word-creator', agent_id: '632f31d2' }]) // no pdf-to-ppt
       );
 
       const result = await migrateAssistantsToBackend(config as any);

@@ -68,7 +68,13 @@ describe('resolveDefaultTeamAgentModel', () => {
         last_model_id: undefined,
       },
       engine: {
-        agent_backend: 'gemini',
+        agent_id: 'cc126dd5',
+        agent: {
+          id: 'cc126dd5',
+          type: 'acp',
+          source: 'builtin',
+          acp_backend: 'gemini',
+        },
       },
     });
 

@@ -28,6 +28,7 @@ import { resolveAssistantAvatar } from '@renderer/utils/model/assistantAvatar';
 import { resolveAssistantName } from '@renderer/utils/model/assistantDisplay';
 import { resolveSupportedConversationType } from '@renderer/utils/model/agentTypeSupportPolicy';
 import { resolveCronAgentConfig } from './resolveCronAgentConfig';
+import { assistantRuntimeKey, isAionrsAssistant } from '@/common/types/agent/assistantTypes';
 
 const FormItem = Form.Item;
 const TextArea = Input.TextArea;
@@ -119,26 +120,17 @@ function getDescriptionInitialValue(job: ICronJob): string {
 /**
  * Infer the assistant selection key from an ICronJob's agent_config.
  *
- * New jobs persist `assistant_id`; legacy jobs may only carry a backend slug.
- * For those rows we map back to a stable bare assistant for the backend.
+ * New jobs persist `assistant_id`; legacy rows fall back to their derived runtime type.
  */
 function getAssistantSelectionFromJob(
   job: ICronJob,
-  presetAssistants: { id: string; preset_agent_type: string; source: string }[]
+  _presetAssistants: { id: string; agent_id: string; source: string }[]
 ): string | undefined {
   const config = job.metadata.agent_config;
   if (config) {
     if (config.assistant_id) return config.assistant_id;
   }
-
-  const backend =
-    config?.preset_agent_type || (job.metadata.agent_type === 'acp' ? config?.backend : job.metadata.agent_type);
-  if (!backend) return undefined;
-
-  return (
-    presetAssistants.find((assistant) => assistant.source === 'bare' && assistant.preset_agent_type === backend)?.id ||
-    presetAssistants.find((assistant) => assistant.preset_agent_type === backend)?.id
-  );
+  return undefined;
 }
 
 const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
@@ -197,7 +189,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
         prompt: editJob.target.payload.text,
       });
       // Populate advanced settings from editJob
-      setModelId(editJob.metadata.agent_config?.model_id);
+      setModelId(editJob.metadata.agent_config?.model_id ?? editJob.metadata.agent_config?.model?.model);
       setConfigOptions(editJob.metadata.agent_config?.config_options);
       setWorkspace(editJob.metadata.agent_config?.workspace);
     } else {
@@ -232,7 +224,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
     [presetAssistants, selectedAssistantId]
   );
 
-  const resolvedBackend = selectedAssistant?.preset_agent_type;
+  const resolvedBackend = assistantRuntimeKey(selectedAssistant);
   const selectedAssistantModels = selectedAssistant?.models ?? [];
 
   const isGeminiMode = resolvedBackend === 'gemini' || resolvedBackend === 'aionrs';
@@ -252,13 +244,14 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   );
 
   // Build Gemini current_model from model_id for GuidModelSelector.
-  // For aionrs edit mode, prefer the exact provider_id stored on the job —
+  // For aionrs edit mode, prefer the exact provider_id stored in model —
   // the same model name may exist across multiple providers, so fuzzy match
   // would pick the wrong provider.
   const geminiCurrentModel = useMemo<TProviderWithModel | undefined>(() => {
     if (resolvedBackend !== 'aionrs' || !model_id) return undefined;
 
-    const editedProviderId = resolvedBackend === 'aionrs' ? editJob?.metadata.agent_config?.backend : undefined;
+    const editedProviderId =
+      resolvedBackend === 'aionrs' ? editJob?.metadata.agent_config?.model?.provider_id : undefined;
     if (editedProviderId) {
       const byId = filteredProviders.find((p) => p.id === editedProviderId);
       if (byId && getAvailableModels(byId).includes(model_id)) {
@@ -487,6 +480,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
             rules={[{ required: true, message: t('cron.page.form.assistantRequired') }]}
           >
             <Select
+              data-testid='cron-assistant-select'
               placeholder={t('cron.page.form.assistantPlaceholder')}
               onChange={handleAssistantChange}
               renderFormat={(_option, value) => {
@@ -497,7 +491,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                 const name = resolveAssistantName(assistant, localeKey, assistantId);
                 const avatar = resolveAssistantAvatar(assistant?.avatar);
                 const logo = resolveAgentLogo(logos, {
-                  backend: assistant?.preset_agent_type,
+                  backend: assistantRuntimeKey(assistant),
                 });
 
                 return (
@@ -519,10 +513,11 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
               {presetAssistants.map((assistant) => {
                 const name = resolveAssistantName(assistant, localeKey, assistant.name);
                 const avatar = resolveAssistantAvatar(assistant.avatar);
+                const runtimeKey = assistantRuntimeKey(assistant);
                 const logo = resolveAgentLogo(logos, {
-                  backend: assistant.preset_agent_type,
+                  backend: runtimeKey,
                 });
-                const disabled = assistant.preset_agent_type === 'aionrs' && !hasAionrsProvider;
+                const disabled = isAionrsAssistant(assistant) && !hasAionrsProvider;
                 return (
                   <Option key={assistant.id} value={assistant.id} disabled={disabled}>
                     <div

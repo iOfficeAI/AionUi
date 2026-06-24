@@ -1330,26 +1330,31 @@ export interface ICronJob {
 }
 
 export interface ICronAgentConfigRead {
-  backend?: string;
   name: string;
   cli_path?: string;
   is_preset?: boolean;
   assistant_id?: string;
   /** @deprecated Legacy assistant identity kept for read compatibility only. */
   custom_agent_id?: string;
-  preset_agent_type?: string;
   mode?: string;
   model_id?: string;
+  model?: ICronProviderModel;
   config_options?: Record<string, string>;
   workspace?: string;
 }
 
+export interface ICronProviderModel {
+  provider_id: string;
+  model: string;
+  use_model?: string;
+}
+
 export interface ICronAgentConfigWrite {
-  backend?: string;
   name: string;
   assistant_id?: string;
   mode?: string;
   model_id?: string;
+  model?: ICronProviderModel;
   config_options?: Record<string, string>;
   workspace?: string;
 }

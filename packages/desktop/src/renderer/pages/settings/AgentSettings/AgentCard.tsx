@@ -138,7 +138,12 @@ const AgentCard: React.FC<AgentCardProps> = (props) => {
         <div className='min-w-0 flex-1'>
           <div className='flex min-w-0 items-center gap-8px'>
             <Typography.Text className='truncate text-14px font-medium text-t-primary'>{agent.name}</Typography.Text>
-            <Tag size='small' color={statusColor(displayStatus)} className='flex-shrink-0'>
+            <Tag
+              data-testid={`agent-row-status-${agent.id}`}
+              size='small'
+              color={statusColor(displayStatus)}
+              className='flex-shrink-0'
+            >
               {t(statusLabelKey(displayStatus))}
             </Tag>
             {diagnostics && (
@@ -153,6 +158,7 @@ const AgentCard: React.FC<AgentCardProps> = (props) => {
       <div className='ml-12px flex flex-shrink-0 items-center gap-8px' onClick={stop}>
         <BoundAssistantStack assistants={boundAssistants} />
         <Button
+          data-testid={`agent-row-test-${agent.id}`}
           size='small'
           type='outline'
           loading={isTesting}
@@ -165,6 +171,7 @@ const AgentCard: React.FC<AgentCardProps> = (props) => {
             configuration page the whole row links to (status, path/env
             overrides, bound assistants). */}
         <Button
+          data-testid={`agent-row-edit-${agent.id}`}
           size='small'
           type='outline'
           onClick={onConfigure}

@@ -17,6 +17,7 @@ type Props = {
   /** Used for emoji presets (text-based avatar) and the first-letter fallback circle. */
   avatarClassName?: string;
   nameClassName?: string;
+  nameTestId?: string;
   crownClassName?: string;
 };
 
@@ -30,6 +31,7 @@ const TeamAgentIdentity: React.FC<Props> = ({
   logoClassName,
   avatarClassName,
   nameClassName,
+  nameTestId,
   crownClassName,
 }) => {
   const logos = useAgentLogos();
@@ -38,7 +40,7 @@ const TeamAgentIdentity: React.FC<Props> = ({
     getConversationOrNull(conversation_id!)
   );
   const { info: presetInfo } = usePresetAssistantInfo(conversation ?? undefined);
-  const displayName = presetInfo?.name || assistant_name || 'Assistant';
+  const displayName = assistant_name || presetInfo?.name || 'Assistant';
   const explicitLogo = resolveBackendAssetUrl(icon) ?? icon;
   const backendLogo = resolveAgentLogo(logos, { backend: assistant_backend });
 
@@ -87,7 +89,9 @@ const TeamAgentIdentity: React.FC<Props> = ({
   return (
     <div className={['flex items-center gap-8px', className].filter(Boolean).join(' ')}>
       {renderAvatar()}
-      <span className={['min-w-0 flex-1 truncate', nameClassName].filter(Boolean).join(' ')}>{displayName}</span>
+      <span data-testid={nameTestId} className={['min-w-0 flex-1 truncate', nameClassName].filter(Boolean).join(' ')}>
+        {displayName}
+      </span>
       {isLeader && (
         <span
           data-testid='team-leader-crown'

@@ -134,12 +134,13 @@ describe('CreateTaskDialog', () => {
     await waitFor(() => expect(screen.getByDisplayValue('edited prompt')).toBeInTheDocument());
   });
 
-  it('maps legacy cron jobs without assistant_id to the backend bare assistant instead of custom_agent_id', async () => {
+  it('does not infer assistant identity from legacy backend fields after migration ownership moved server-side', async () => {
     currentAssistants = [bareAssistant(), ...assistants()];
 
     render(<CreateTaskDialog visible onClose={() => {}} editJob={legacyJobWithoutAssistantId()} />);
 
-    expect(await screen.findByText('代码助手')).toBeInTheDocument();
+    expect(await screen.findByDisplayValue('original prompt')).toBeInTheDocument();
+    expect(screen.queryByText('代码助手')).not.toBeInTheDocument();
     expect(screen.queryByText('Codex')).not.toBeInTheDocument();
     expect(screen.queryByText('问好助手')).not.toBeInTheDocument();
   });
@@ -213,7 +214,8 @@ function assistants(): Assistant[] {
       avatar: '🤖',
       enabled: true,
       sort_order: 0,
-      preset_agent_type: 'codex',
+      agent_id: 'agent-codex',
+      agent: { id: 'agent-codex', type: 'acp', source: 'builtin', acp_backend: 'codex' },
       enabled_skills: [],
       custom_skill_names: [],
       disabled_builtin_skills: [],
@@ -235,7 +237,8 @@ function bareAssistant(): Assistant {
     avatar: 'codex.svg',
     enabled: true,
     sort_order: 1,
-    preset_agent_type: 'codex',
+    agent_id: 'agent-codex',
+    agent: { id: 'agent-codex', type: 'acp', source: 'builtin', acp_backend: 'codex' },
     enabled_skills: [],
     custom_skill_names: [],
     disabled_builtin_skills: [],

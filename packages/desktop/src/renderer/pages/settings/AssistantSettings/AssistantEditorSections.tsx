@@ -77,6 +77,7 @@ const AssistantEditorSections: React.FC<AssistantEditorSectionsProps> = ({ edito
   const isReadOnlyAssistant = isBuiltin || isBare;
   const showSkills = isCreating || activeAssistant !== null;
   const currentBackend = availableBackends.find((option) => option.id === editAgent);
+  const editAgentRuntimeKey = currentBackend?.runtimeKey || '';
   const providerModelOptions = providers.flatMap((provider) =>
     getAvailableModels(provider).map((modelName) => ({
       key: `${provider.id}-${modelName}`,
@@ -85,7 +86,7 @@ const AssistantEditorSections: React.FC<AssistantEditorSectionsProps> = ({ edito
     }))
   );
   const modelOptions = useMemo(() => {
-    if (editAgent === 'aionrs') {
+    if (editAgentRuntimeKey === 'aionrs') {
       return providerModelOptions;
     }
 
@@ -98,14 +99,14 @@ const AssistantEditorSections: React.FC<AssistantEditorSectionsProps> = ({ edito
     }
 
     return [];
-  }, [currentBackend, editAgent, providerModelOptions]);
+  }, [currentBackend, editAgent, editAgentRuntimeKey, providerModelOptions]);
   const permissionOptions = useMemo(
     () =>
-      getAgentModes(editAgent).map((option) => ({
+      getAgentModes(editAgentRuntimeKey).map((option) => ({
         ...option,
         label: t(`agentMode.${option.value}`, { defaultValue: option.label }),
       })),
-    [editAgent, localeKey, t]
+    [editAgentRuntimeKey, localeKey, t]
   );
   const recommendedPromptItems = useMemo(
     () =>

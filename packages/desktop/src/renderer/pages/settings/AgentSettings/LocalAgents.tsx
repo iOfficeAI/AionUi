@@ -160,7 +160,7 @@ const LocalAgents: React.FC = () => {
   );
 
   return (
-    <div className='flex flex-col gap-8px py-16px'>
+    <div data-testid='agent-management-page' className='flex flex-col gap-8px py-16px'>
       {/* Page title header, mirroring the assistant settings page. */}
       <div className='px-16px'>
         <h2 className='m-0 text-16px font-600 leading-[1.2] text-t-primary'>
@@ -185,7 +185,7 @@ const LocalAgents: React.FC = () => {
       ) : null}
 
       {/* Detected Agents section — row list, mirroring the assistant list style */}
-      <div className='px-16px mt-8px'>
+      <div data-testid='agent-management-official-section' className='px-16px mt-8px'>
         <div className='flex flex-col gap-8px rounded-12px border border-border-2 bg-2 p-8px md:rounded-16px md:p-10px'>
           {sortedOfficialAgents.map((agent) => (
             <AgentCard
@@ -207,7 +207,7 @@ const LocalAgents: React.FC = () => {
       </div>
 
       {/* Custom Agents section — header carries the "add custom agent" action */}
-      <div className='px-16px mt-16px flex items-center justify-between'>
+      <div data-testid='agent-management-custom-header' className='px-16px mt-16px flex items-center justify-between'>
         <Typography.Text className='text-12px font-medium text-t-secondary block'>
           {t('settings.agentManagement.customAgents', { defaultValue: 'Custom Agents' })}
         </Typography.Text>
@@ -261,7 +261,7 @@ const LocalAgents: React.FC = () => {
         )}
       </AionModal>
 
-      <div className='px-16px'>
+      <div data-testid='agent-management-custom-section' className='px-16px'>
         <div className='flex flex-col gap-8px rounded-12px border border-border-2 bg-2 p-8px md:rounded-16px md:p-10px'>
           {customAgents?.map((agent) => (
             <AgentCard

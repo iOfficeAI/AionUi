@@ -97,6 +97,8 @@ import AgentModalContent from '@renderer/components/settings/SettingsModal/conte
 import { SettingsViewModeProvider } from '@renderer/components/settings/SettingsModal/settingsViewContext';
 import { ipcBridge } from '@/common';
 import { MemoryRouter } from 'react-router-dom';
+import { getBoundAssistants } from '@renderer/pages/settings/AgentSettings/BoundAssistants';
+import type { Assistant } from '@/common/types/agent/assistantTypes';
 
 const makeAgents = () => [
   {
@@ -289,6 +291,59 @@ describe('LocalAgents', () => {
     fireEvent.click(screen.getByText('settings.agentManagement.localAgentsSetupLink'));
 
     expect(openExternalUrl).toHaveBeenCalledWith('https://github.com/iOfficeAI/AionUi/wiki/ACP-Setup');
+  });
+
+  it('binds assistants to managed agents by agent_id instead of runtime backend', () => {
+    const [aionrsAgent, claudeAgent] = makeAgents();
+    const assistants: Assistant[] = [
+      {
+        id: 'assistant-on-claude-runtime',
+        source: 'bare',
+        name: 'Claude Runtime',
+        name_i18n: {},
+        description_i18n: {},
+        enabled: true,
+        sort_order: 1,
+        agent_id: 'acp-other-claude',
+        preset_agent_type: 'claude',
+        enabled_skills: [],
+        custom_skill_names: [],
+        disabled_builtin_skills: [],
+        context_i18n: {},
+        prompts: [],
+        prompts_i18n: {},
+        models: [],
+        agent_status: 'online',
+        team_selectable: true,
+        deletable: true,
+      },
+      {
+        id: 'assistant-on-claude-agent',
+        source: 'bare',
+        name: 'Claude Agent',
+        name_i18n: {},
+        description_i18n: {},
+        enabled: true,
+        sort_order: 2,
+        agent_id: 'acp-claude',
+        preset_agent_type: 'claude',
+        enabled_skills: [],
+        custom_skill_names: [],
+        disabled_builtin_skills: [],
+        context_i18n: {},
+        prompts: [],
+        prompts_i18n: {},
+        models: [],
+        agent_status: 'online',
+        team_selectable: true,
+        deletable: true,
+      },
+    ];
+
+    expect(getBoundAssistants(claudeAgent, assistants).map((assistant) => assistant.id)).toEqual([
+      'assistant-on-claude-agent',
+    ]);
+    expect(getBoundAssistants(aionrsAgent, assistants)).toEqual([]);
   });
 
   it('renders agent management as a single diagnostics page without local/remote tabs', () => {

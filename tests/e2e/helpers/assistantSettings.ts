@@ -33,7 +33,13 @@ export async function goToAssistantSettings(page: Page): Promise<void> {
 export async function openAssistantEditor(page: Page, assistant_id: string): Promise<void> {
   const card = page.locator(`[data-testid="assistant-card-${assistant_id}"]`);
   const detailResponse = waitForAssistantDetailResponse(page, assistant_id);
-  await card.click();
+  await expect(card).toBeVisible({ timeout: 8_000 });
+  const editButton = page.locator(`[data-testid="btn-edit-${assistant_id}"]`).first();
+  if (await editButton.isVisible().catch(() => false)) {
+    await editButton.click();
+  } else {
+    await card.click();
+  }
   await page.locator(ASSISTANT_EDITOR).waitFor({ state: 'visible', timeout: 5_000 });
   await detailResponse;
   await page.locator('[data-testid="input-assistant-name"]').waitFor({ state: 'visible', timeout: 5_000 });

@@ -59,9 +59,11 @@ const TeamTabView: React.FC<TeamTabViewProps> = ({
   }, [editing]);
 
   const commitRename = useCallback(() => {
-    const trimmed = editValue.trim();
+    const nextValue = inputRef.current?.value ?? editValue;
+    const trimmed = nextValue.trim();
     setEditing(false);
     if (trimmed && trimmed !== assistant_name && onRename) {
+      setEditValue(trimmed);
       onRename(slot_id, trimmed);
     } else {
       setEditValue(assistant_name);
@@ -93,6 +95,8 @@ const TeamTabView: React.FC<TeamTabViewProps> = ({
 
   return (
     <div
+      data-testid={`team-tab-${slot_id}`}
+      data-team-tab-role={isLeader ? 'leader' : 'teammate'}
       draggable={!isLeader}
       className={`relative group flex items-center gap-8px px-12px h-full max-w-240px cursor-pointer transition-all duration-200 shrink-0 border-r border-[color:var(--border-base)] ${
         isActive
@@ -146,12 +150,14 @@ const TeamTabView: React.FC<TeamTabViewProps> = ({
             logoClassName={`w-14px h-14px object-contain rounded-2px ${isActive ? 'opacity-100' : 'opacity-70'}`}
             avatarClassName={`w-14px h-14px rounded-2px flex items-center justify-center text-11px leading-none bg-fill-2 shrink-0 ${isActive ? 'opacity-100' : 'opacity-80'}`}
             nameClassName='text-15px whitespace-nowrap overflow-hidden text-ellipsis select-none'
+            nameTestId={`team-tab-name-${slot_id}`}
           />
         </div>
       )}
-      <AgentStatusBadge status={status} />
+      <AgentStatusBadge status={status} testId={`team-tab-status-${slot_id}`} />
       {!editing && onRename && (
         <span
+          data-testid={`team-tab-edit-${slot_id}`}
           className='opacity-0 group-hover:opacity-60 hover:!opacity-100 transition-opacity duration-150 shrink-0 flex items-center'
           onClick={startEditing}
         >
@@ -160,6 +166,7 @@ const TeamTabView: React.FC<TeamTabViewProps> = ({
       )}
       {!editing && !isLeader && onRemove && (
         <span
+          data-testid={`team-tab-remove-${slot_id}`}
           className='opacity-0 group-hover:opacity-60 hover:!opacity-100 transition-opacity duration-150 shrink-0 flex items-center text-[color:var(--color-text-3)] hover:text-[color:var(--color-danger-6)]'
           onClick={(e) => {
             e.stopPropagation();

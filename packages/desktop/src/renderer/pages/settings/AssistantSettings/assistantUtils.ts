@@ -1,4 +1,5 @@
 import { DEFAULT_CODEX_MODELS } from '@/common/types/codex/codexModels';
+import { assistantRuntimeKey } from '@/common/types/agent/assistantTypes';
 import { resolveExtensionAssetUrl } from '@/renderer/utils/platform';
 import type { AssistantListItem, AvailableBackend } from './types';
 
@@ -175,8 +176,9 @@ export const buildAssistantEditorBackends = (
       continue;
     }
 
-    const backend = assistant.preset_agent_type?.trim();
-    if (!backend || backendMap.has(backend)) {
+    const runtimeKey = assistantRuntimeKey(assistant).trim();
+    const agentId = assistant.agent_id?.trim() || '';
+    if (!agentId || backendMap.has(agentId)) {
       continue;
     }
 
@@ -184,13 +186,14 @@ export const buildAssistantEditorBackends = (
     const modelOptions =
       models.length > 0
         ? models.map((model) => ({ value: model, label: model }))
-        : backend === 'codex'
+        : runtimeKey === 'codex'
           ? DEFAULT_CODEX_MODELS.map((model) => ({ value: model.id, label: model.label }))
           : [];
 
-    backendMap.set(backend, {
-      id: backend,
+    backendMap.set(agentId, {
+      id: agentId,
       name: assistant.name_i18n?.[localeKey] || assistant.name,
+      runtimeKey,
       modelOptions,
     });
   }

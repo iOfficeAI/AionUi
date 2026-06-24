@@ -140,14 +140,16 @@ function assistants(): Assistant[] {
       name: 'Aion CLI',
       name_i18n: { 'zh-CN': 'Aion 命令行' },
       source: 'bare',
-      preset_agent_type: 'aionrs',
+      agent_id: 'agent-aionrs',
+      agent: { id: 'agent-aionrs', type: 'aionrs', source: 'internal' },
       team_selectable: true,
     }),
     assistant({
       id: 'blocked-reviewer',
       name: 'Reviewer',
       source: 'user',
-      preset_agent_type: 'claude',
+      agent_id: 'agent-claude',
+      agent: { id: 'agent-claude', type: 'acp', source: 'builtin', acp_backend: 'claude' },
       team_selectable: false,
       team_block_reason: 'Temporarily unavailable for team mode',
       deletable: true,
@@ -156,15 +158,14 @@ function assistants(): Assistant[] {
       id: 'remote-runner',
       name: 'Remote Runner',
       source: 'bare',
-      preset_agent_type: 'remote',
+      agent_id: 'agent-remote',
+      agent: { id: 'agent-remote', type: 'remote', source: 'custom' },
       team_selectable: true,
     }),
   ];
 }
 
-function assistant(
-  overrides: Partial<Assistant> & Pick<Assistant, 'id' | 'name' | 'source' | 'preset_agent_type'>
-): Assistant {
+function assistant(overrides: Partial<Assistant> & Pick<Assistant, 'id' | 'name' | 'source' | 'agent_id'>): Assistant {
   return {
     id: overrides.id,
     source: overrides.source,
@@ -173,7 +174,7 @@ function assistant(
     description_i18n: {},
     enabled: true,
     sort_order: 0,
-    preset_agent_type: overrides.preset_agent_type,
+    agent_id: overrides.agent_id,
     enabled_skills: [],
     custom_skill_names: [],
     disabled_builtin_skills: [],

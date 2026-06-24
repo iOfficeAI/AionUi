@@ -19,7 +19,6 @@ describe('getJobAgentMeta', () => {
           agent_type: 'acp',
           agent_config: {
             assistant_id: 'assistant-1',
-            backend: 'codex',
             name: 'Legacy name',
           },
         },
@@ -46,7 +45,6 @@ describe('getJobAgentMeta', () => {
         metadata: {
           agent_type: 'acp',
           agent_config: {
-            backend: 'codex',
             name: 'Codex 助手',
           },
         },
@@ -56,7 +54,7 @@ describe('getJobAgentMeta', () => {
     );
 
     expect(meta.name).toBe('Codex 助手');
-    expect(meta.logo).toBe('/api/assets/logos/tools/coding/codex.svg');
+    expect(meta.logo).toBeNull();
   });
 
   it('falls back to cron payload metadata for legacy custom_agent_id rows without assistant_id', () => {
@@ -66,7 +64,6 @@ describe('getJobAgentMeta', () => {
           agent_type: 'acp',
           agent_config: {
             custom_agent_id: 'assistant-1',
-            backend: 'codex',
             name: 'Legacy name',
           },
         },
@@ -82,7 +79,7 @@ describe('getJobAgentMeta', () => {
     );
 
     expect(meta.name).toBe('Legacy name');
-    expect(meta.logo).toBe('/api/assets/logos/tools/coding/codex.svg');
+    expect(meta.logo).toBeNull();
   });
 
   it('does not fall back to legacy cron metadata when assistant_id is present but the assistant is missing', () => {
@@ -92,7 +89,6 @@ describe('getJobAgentMeta', () => {
           agent_type: 'acp',
           agent_config: {
             assistant_id: 'missing-assistant',
-            backend: 'codex',
             name: 'Legacy name',
           },
         },
@@ -134,7 +130,8 @@ function assistant(overrides: Partial<Assistant> & Pick<Assistant, 'id' | 'name'
     description_i18n: {},
     enabled: true,
     sort_order: 1,
-    preset_agent_type: 'codex',
+    agent_id: 'agent-codex',
+    agent: { id: 'agent-codex', type: 'acp', source: 'builtin', acp_backend: 'codex' },
     enabled_skills: [],
     custom_skill_names: [],
     disabled_builtin_skills: [],

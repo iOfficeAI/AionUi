@@ -253,6 +253,7 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
               unmountOnExit={false}
             >
               <span
+                data-testid={`conversation-row-menu-${conversation.id}`}
                 className={classNames(
                   'flex-center cursor-pointer transition-colors text-t-secondary hover:text-t-primary size-20px rd-4px sider-action-btn',
                   {

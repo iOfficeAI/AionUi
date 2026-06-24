@@ -166,6 +166,14 @@ const createEditor = (overrides: Partial<AssistantEditorViewModel> = {}): Assist
   };
 };
 
+const backendOption = (id: string, runtimeKey: string, name = runtimeKey) => ({
+  id,
+  name,
+  runtimeKey,
+  isExtension: false,
+  modelOptions: [],
+});
+
 describe('AssistantEditorSections', () => {
   beforeEach(() => {
     mockLanguage = 'en-US';
@@ -271,9 +279,9 @@ describe('AssistantEditorSections', () => {
   it('refreshes default permission labels when the language changes', async () => {
     const editor = createEditor({
       agent: {
-        value: 'codex',
+        value: 'agent-codex',
         setValue: vi.fn(),
-        availableBackends: [],
+        availableBackends: [backendOption('agent-codex', 'codex', 'Codex')],
       },
     });
 
@@ -309,9 +317,9 @@ describe('AssistantEditorSections', () => {
       <AssistantEditorSections
         editor={createEditor({
           agent: {
-            value: 'codex',
+            value: 'agent-codex',
             setValue: vi.fn(),
-            availableBackends: [],
+            availableBackends: [backendOption('agent-codex', 'codex', 'Codex')],
           },
         })}
         activeAssistant={null}
@@ -334,9 +342,9 @@ describe('AssistantEditorSections', () => {
       <AssistantEditorSections
         editor={createEditor({
           agent: {
-            value: 'codex',
+            value: 'agent-codex',
             setValue: vi.fn(),
-            availableBackends: [],
+            availableBackends: [backendOption('agent-codex', 'codex', 'Codex')],
           },
         })}
         activeAssistant={null}
@@ -354,9 +362,9 @@ describe('AssistantEditorSections', () => {
   it('refreshes default permission labels when the active language changes before resolvedLanguage catches up', async () => {
     const editor = createEditor({
       agent: {
-        value: 'codex',
+        value: 'agent-codex',
         setValue: vi.fn(),
-        availableBackends: [],
+        availableBackends: [backendOption('agent-codex', 'codex', 'Codex')],
       },
     });
 
@@ -413,7 +421,8 @@ describe('AssistantEditorSections', () => {
           avatar: '🤖',
           enabled: true,
           sort_order: 1,
-          preset_agent_type: 'claude',
+          agent_id: 'agent-claude',
+          agent: { id: 'agent-claude', type: 'acp', source: 'builtin', acp_backend: 'claude' },
         }}
       />
     );
@@ -432,12 +441,14 @@ describe('AssistantEditorSections', () => {
       <AssistantEditorSections
         editor={createEditor({
           agent: {
-            value: 'aionrs',
+            value: 'agent-aionrs',
             setValue: vi.fn(),
             availableBackends: [
               {
-                id: 'aionrs',
+                id: 'agent-aionrs',
                 name: 'Aionrs',
+                runtimeKey: 'aionrs',
+                isExtension: false,
                 modelOptions: [{ value: 'handshake-model', label: 'Handshake Model' }],
               },
             ],
@@ -577,9 +588,9 @@ describe('AssistantEditorSections', () => {
             setDisabledBuiltinSkills: vi.fn(),
           },
           agent: {
-            value: 'claude',
+            value: 'agent-claude',
             setValue: vi.fn(),
-            availableBackends: [{ id: 'claude', name: 'Claude', isExtension: false, modelOptions: [] }],
+            availableBackends: [backendOption('agent-claude', 'claude', 'Claude')],
           },
         })}
         activeAssistant={{
@@ -588,7 +599,8 @@ describe('AssistantEditorSections', () => {
           sort_order: 1,
           source: 'builtin',
           enabled: true,
-          preset_agent_type: 'claude',
+          agent_id: 'agent-claude',
+          agent: { id: 'agent-claude', type: 'acp', source: 'builtin', acp_backend: 'claude' },
         }}
       />
     );
@@ -654,9 +666,9 @@ describe('AssistantEditorSections', () => {
             setDisabledBuiltinSkills: vi.fn(),
           },
           agent: {
-            value: 'droid',
+            value: 'agent-droid',
             setValue: vi.fn(),
-            availableBackends: [{ id: 'droid', name: 'droid', isExtension: false, modelOptions: [] }],
+            availableBackends: [backendOption('agent-droid', 'droid', 'droid')],
           },
         })}
         activeAssistant={{
@@ -665,7 +677,8 @@ describe('AssistantEditorSections', () => {
           sort_order: 1,
           source: 'bare',
           enabled: true,
-          preset_agent_type: 'droid',
+          agent_id: 'agent-droid',
+          agent: { id: 'agent-droid', type: 'droid', source: 'custom' },
         }}
       />
     );

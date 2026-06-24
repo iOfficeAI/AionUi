@@ -27,12 +27,17 @@ test.describe('Team Assistant Leader Options', () => {
 
     const modal = page.locator('.team-create-modal');
     await expect(modal).toBeVisible({ timeout: 5000 });
-    const firstOption = modal.locator('[data-testid^="team-create-agent-option-"]').first();
-    await expect(firstOption).toBeVisible({ timeout: 5000 });
+    const allOptions = modal.locator('[data-testid^="team-create-agent-option-"]');
+    await expect
+      .poll(async () => allOptions.count(), {
+        timeout: 5000,
+        message: 'Waiting for team assistant options to render',
+      })
+      .toBeGreaterThan(0);
+    await expect(allOptions.first()).toBeVisible({ timeout: 5000 });
 
     await page.screenshot({ path: 'tests/e2e/results/team-assistant-options-01-list.png' });
 
-    const allOptions = modal.locator('[data-testid^="team-create-agent-option-"]');
     const totalCount = await allOptions.count();
     expect(totalCount).toBeGreaterThan(0);
 

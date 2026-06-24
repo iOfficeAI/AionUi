@@ -213,23 +213,35 @@ test.describe('Assistant Settings CRUD', () => {
     const agentSelect = page.locator(SELECT_ASSISTANT_AGENT);
     const selectVisible = await agentSelect.isVisible().catch(() => false);
     if (selectVisible) {
+      const initialSelectText = ((await agentSelect.textContent()) ?? '').trim();
       await agentSelect.click();
-      // Pick a different agent from the dropdown
-      const option = page
-        .locator('.arco-select-option')
-        .filter({ hasText: /gemini/i })
-        .first();
-      const optionVisible = await option.isVisible().catch(() => false);
-      if (optionVisible) {
-        await option.click();
+      const options = page.locator('.arco-select-option:not(.arco-select-option-disabled)');
+      await options
+        .first()
+        .waitFor({ state: 'visible', timeout: 5_000 })
+        .catch(() => {});
+      const optionCount = await options.count();
+      let selectedAgentLabel = '';
+      for (let index = 0; index < optionCount; index += 1) {
+        const option = options.nth(index);
+        const label = ((await option.textContent()) ?? '').trim();
+        if (label && label !== initialSelectText && /Codex|Gemini/i.test(label)) {
+          selectedAgentLabel = label;
+          await option.click();
+          break;
+        }
+      }
+      if (selectedAgentLabel) {
         await saveAssistant(page);
-        // Edit save keeps the editor open — close it before the assertion
-        await closeAssistantEditor(page);
+        await waitForAssistantEditorClose(page);
 
         // Reopen and verify agent changed
         await openAssistantEditor(page, targetId);
         const selectText = await agentSelect.textContent();
-        expect(selectText?.toLowerCase()).toContain('gemini');
+        expect(selectText?.trim()).toContain(selectedAgentLabel);
+      } else {
+        await page.keyboard.press('Escape').catch(() => {});
+        test.skip(true, 'No alternate main agent option available');
       }
     }
 

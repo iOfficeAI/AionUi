@@ -8,7 +8,7 @@ import type { ICronJob } from '@/common/adapter/ipcBridge';
 import type { AgentLogoMap } from '@renderer/utils/model/agentLogo';
 import { resolveAgentLogo } from '@renderer/utils/model/agentLogo';
 import { resolveAssistantAvatar } from '@renderer/utils/model/assistantAvatar';
-import type { Assistant } from '@/common/types/agent/assistantTypes';
+import { assistantRuntimeKey, type Assistant } from '@/common/types/agent/assistantTypes';
 
 function normalizeAgentBackend(agent: string | undefined): string | undefined {
   if (!agent) return undefined;
@@ -22,11 +22,8 @@ function resolveCronAssistantId(config: ICronJob['metadata']['agent_config']): s
 /**
  * Resolve the display name and logo for a cron job's agent.
  *
- * ACP jobs store the literal string "acp" in `agent_type`; the real vendor id
- * (claude/gemini/codex/…) and the human-readable label live in `agent_config`.
- * Non-ACP agents (aionrs, remote, nanobot, openclaw-gateway, …) use
- * `agent_type` directly — aionrs in particular reuses `agent_config.backend`
- * for provider_id, so we must not fall back to it there.
+ * Assistant-backed jobs display from the assistant catalog. Non-assistant
+ * legacy jobs fall back to the derived runtime type.
  */
 export function getJobAgentMeta(
   job: ICronJob,
@@ -51,7 +48,7 @@ export function getJobAgentMeta(
       return { name: displayName, emoji: avatar.value };
     }
 
-    const presetBackend = assistant.preset_agent_type || rawType;
+    const presetBackend = assistantRuntimeKey(assistant) || rawType;
     return {
       name: displayName,
       logo: resolveAgentLogo(logos, { backend: presetBackend }),
@@ -60,17 +57,17 @@ export function getJobAgentMeta(
 
   const rawType = normalizeAgentBackend(job.metadata.agent_type);
   if (!rawType) return {};
+  const logoBackend = rawType;
 
   if (rawType === 'acp') {
-    const backend = config?.backend;
     return {
-      name: config?.name || backend || rawType,
-      logo: resolveAgentLogo(logos, { backend }),
+      name: config?.name || rawType,
+      logo: resolveAgentLogo(logos, { backend: logoBackend }),
     };
   }
 
   return {
     name: config?.name || rawType,
-    logo: resolveAgentLogo(logos, { backend: rawType }),
+    logo: resolveAgentLogo(logos, { backend: logoBackend }),
   };
 }

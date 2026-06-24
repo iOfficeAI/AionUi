@@ -3,7 +3,7 @@ import { Robot } from '@icon-park/react';
 import { resolveAgentLogo, useAgentLogos } from '@renderer/utils/model/agentLogo';
 import { resolveAssistantAvatar } from '@renderer/utils/model/assistantAvatar';
 import { resolveAssistantName } from '@renderer/utils/model/assistantDisplay';
-import type { Assistant } from '@/common/types/agent/assistantTypes';
+import { assistantRuntimeKey, type Assistant } from '@/common/types/agent/assistantTypes';
 
 /** Team leader selector entry derived from the unified assistant catalog. */
 export type TeamAssistantOption = {
@@ -23,7 +23,7 @@ export function assistantToOption(assistant: Assistant, localeKey = 'en-US'): Te
   return {
     id: assistant.id,
     name: resolveAssistantName(assistant, localeKey, assistant.name),
-    backend: assistant.preset_agent_type,
+    backend: assistantRuntimeKey(assistant),
     icon: assistant.avatar,
     team_capable: assistant.team_selectable,
     team_block_reason: assistant.team_block_reason,

@@ -18,27 +18,12 @@ import useSWR from 'swr';
 const BOUND_ASSISTANTS_SWR_KEY = 'agents.boundAssistants.list';
 
 /**
- * Key an assistant uses to bind to a managed agent. Assistants store the
- * vendor label in `preset_agent_type` (e.g. "claude", "aionrs"); managed
- * agents expose the same label as `backend`, falling back to the runtime
- * `agent_type` for vendorless engines like aionrs (whose `backend` is null).
+ * Assistants bound to this managed agent. `agent_id` is the backend
+ * `agent_metadata.id`; runtime backend labels are intentionally ignored here
+ * because multiple agent rows can share a backend.
  */
-export const agentBindingKey = (agent: Pick<ManagedAgent, 'backend' | 'agent_type'>): string =>
-  (agent.backend || agent.agent_type || '').trim();
-
-/**
- * Assistants bound to this agent — those whose `preset_agent_type` matches the
- * agent's binding key. Used both for the list-row avatar stack and the
- * configuration page's bound-assistant list.
- */
-export const getBoundAssistants = (
-  agent: Pick<ManagedAgent, 'backend' | 'agent_type'>,
-  assistants: Assistant[]
-): Assistant[] => {
-  const key = agentBindingKey(agent);
-  if (!key) return [];
-  return assistants.filter((assistant) => assistant.preset_agent_type?.trim() === key);
-};
+export const getBoundAssistants = (agent: Pick<ManagedAgent, 'id'>, assistants: Assistant[]): Assistant[] =>
+  assistants.filter((assistant) => assistant.agent_id === agent.id);
 
 /**
  * Read-only assistant catalog for the Agent settings surface. Shares a single

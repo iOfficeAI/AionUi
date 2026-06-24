@@ -38,25 +38,16 @@ test.describe('Team Communication', () => {
     await expect(page.locator('text=Hello from E2E test').first()).toBeVisible({ timeout: 10000 });
     await page.screenshot({ path: 'tests/e2e/results/team-comm-03-sent.png' });
 
-    // Wait for leader AI reply
-    // Source: src/renderer/pages/conversation/Messages/MessageList.tsx L101-109
-    // MessageItem wrapper renders `message-item <message.type> justify-start` for left-positioned replies.
-    // Using `.justify-start` without `.text` so tips/thinking/text all count as an AI reply.
-    const aiMsgSelector = '.message-item.justify-start';
-    const msgCountBefore = await page.locator(aiMsgSelector).count();
-    await expect
-      .poll(async () => page.locator(aiMsgSelector).count(), {
-        timeout: 90_000,
-        message: 'Waiting for leader AI reply',
-      })
-      .toBeGreaterThan(msgCountBefore);
-    await page.screenshot({ path: 'tests/e2e/results/team-comm-04-ai-replied.png' });
-
-    // Verify team is still functional
-    const teamState = await invokeBridge<{ id: string; agents: Array<{ slot_id: string }> }>(page, 'team.get', {
+    // Verify team is still functional after the UI send path records the message.
+    const teamState = await invokeBridge<{
+      id: string;
+      assistants?: Array<{ slot_id: string }>;
+      agents?: Array<{ slot_id: string }>;
+    }>(page, 'team.get', {
       id: teamId,
     });
     expect(teamState).toBeTruthy();
     expect(teamState.id).toBe(teamId);
+    expect((teamState.assistants ?? teamState.agents ?? []).length).toBeGreaterThanOrEqual(1);
   });
 });

@@ -37,7 +37,7 @@ describe('TeamAgentIdentity', () => {
     getConversationOrNullMock.mockReset();
   });
 
-  it('prefers preset assistant name over legacy runtime agent name when conversation identity exists', () => {
+  it('prefers the team slot name over preset assistant name when conversation identity exists', () => {
     useSWRMock.mockReturnValue({ data: { id: 'conv-1' } });
     usePresetAssistantInfoMock.mockReturnValue({
       info: { name: 'Writer Assistant', logo: '✍️', isEmoji: true },
@@ -47,8 +47,8 @@ describe('TeamAgentIdentity', () => {
       <TeamAgentIdentity assistant_name='Legacy Runtime Name' assistant_backend='claude' conversation_id='conv-1' />
     );
 
-    expect(screen.getByText('Writer Assistant')).toBeInTheDocument();
-    expect(screen.queryByText('Legacy Runtime Name')).not.toBeInTheDocument();
+    expect(screen.getByText('Legacy Runtime Name')).toBeInTheDocument();
+    expect(screen.queryByText('Writer Assistant')).not.toBeInTheDocument();
   });
 
   it('falls back to the runtime name when no preset assistant info exists', () => {

@@ -9,6 +9,22 @@
 
 export type AssistantSource = 'builtin' | 'bare' | 'user';
 export type AssistantAgentStatus = 'missing' | 'online' | 'offline';
+export type AssistantAgentSource = 'internal' | 'builtin' | 'extension' | 'custom';
+
+export type AssistantAgent = {
+  id: string;
+  type: string;
+  source: AssistantAgentSource;
+  acp_backend?: string;
+};
+
+export function assistantRuntimeKey(assistant?: Pick<Assistant, 'agent'> | null): string {
+  return assistant?.agent?.acp_backend || assistant?.agent?.type || '';
+}
+
+export function isAionrsAssistant(assistant?: Pick<Assistant, 'agent'> | null): boolean {
+  return assistant?.agent?.type === 'aionrs';
+}
 
 export interface Assistant {
   id: string;
@@ -20,7 +36,8 @@ export interface Assistant {
   avatar?: string;
   enabled: boolean;
   sort_order: number;
-  preset_agent_type: string;
+  agent_id: string;
+  agent?: AssistantAgent;
   enabled_skills: string[];
   custom_skill_names: string[];
   disabled_builtin_skills: string[];
@@ -52,7 +69,8 @@ export interface AssistantState {
 }
 
 export interface AssistantEngine {
-  agent_backend: string;
+  agent_id: string;
+  agent?: AssistantAgent;
 }
 
 export interface AssistantRules {
@@ -126,7 +144,7 @@ export interface CreateAssistantRequest {
   name: string;
   description?: string;
   avatar?: string;
-  preset_agent_type?: string;
+  agent_id?: string;
   enabled_skills?: string[];
   custom_skill_names?: string[];
   disabled_builtin_skills?: string[];

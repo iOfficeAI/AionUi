@@ -5,7 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
-import type { AssistantDetail } from '@/common/types/agent/assistantTypes';
+import { assistantRuntimeKey, type AssistantDetail } from '@/common/types/agent/assistantTypes';
 
 /**
  * Resolve the `model` value a team agent should send to `POST /api/teams`.
@@ -36,7 +36,7 @@ export async function resolveDefaultTeamAgentModel(params: {
       return assistantModel;
     }
 
-    return resolveBackendDefaultModel(assistantDetail.engine.agent_backend);
+    return resolveBackendDefaultModel(assistantRuntimeKey({ agent: assistantDetail.engine.agent }));
   }
 
   return resolveBackendDefaultModel(assistant_backend);

@@ -8,9 +8,9 @@ import {
 
 describe('guid assistant selection helpers', () => {
   const assistants: Assistant[] = [
-    assistant({ id: 'builtin-writer', source: 'builtin', preset_agent_type: 'claude', sort_order: 20 }),
-    assistant({ id: 'bare-aionrs', source: 'bare', preset_agent_type: 'aionrs', sort_order: 10 }),
-    assistant({ id: 'user-research', source: 'user', preset_agent_type: 'gemini', sort_order: 30 }),
+    assistant({ id: 'builtin-writer', source: 'builtin', runtimeKey: 'claude', sort_order: 20 }),
+    assistant({ id: 'bare-aionrs', source: 'bare', runtimeKey: 'aionrs', sort_order: 10 }),
+    assistant({ id: 'user-research', source: 'user', runtimeKey: 'gemini', sort_order: 30 }),
   ];
 
   it('prefers explicit custom assistant keys when the assistant exists', () => {
@@ -31,7 +31,11 @@ describe('guid assistant selection helpers', () => {
   });
 });
 
-function assistant(overrides: Partial<Assistant> & Pick<Assistant, 'id' | 'source' | 'preset_agent_type'>): Assistant {
+function assistant(
+  overrides: Partial<Assistant> & { id: string; source: Assistant['source']; runtimeKey: string }
+): Assistant {
+  const agentId = `agent-${overrides.runtimeKey}`;
+  const isAionrs = overrides.runtimeKey === 'aionrs';
   return {
     id: overrides.id,
     source: overrides.source,
@@ -40,7 +44,10 @@ function assistant(overrides: Partial<Assistant> & Pick<Assistant, 'id' | 'sourc
     description_i18n: {},
     enabled: true,
     sort_order: overrides.sort_order ?? 0,
-    preset_agent_type: overrides.preset_agent_type,
+    agent_id: agentId,
+    agent: isAionrs
+      ? { id: agentId, type: 'aionrs', source: 'internal' }
+      : { id: agentId, type: 'acp', source: 'builtin', acp_backend: overrides.runtimeKey },
     enabled_skills: [],
     custom_skill_names: [],
     disabled_builtin_skills: [],
