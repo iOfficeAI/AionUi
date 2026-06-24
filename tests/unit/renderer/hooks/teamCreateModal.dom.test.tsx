@@ -141,7 +141,7 @@ function assistants(): Assistant[] {
       name_i18n: { 'zh-CN': 'Aion 命令行' },
       source: 'bare',
       agent_id: 'agent-aionrs',
-      agent: { id: 'agent-aionrs', type: 'aionrs', source: 'internal' },
+      agent: { type: 'aionrs', source: 'internal' },
       team_selectable: true,
     }),
     assistant({
@@ -149,7 +149,7 @@ function assistants(): Assistant[] {
       name: 'Reviewer',
       source: 'user',
       agent_id: 'agent-claude',
-      agent: { id: 'agent-claude', type: 'acp', source: 'builtin', acp_backend: 'claude' },
+      agent: { type: 'acp', source: 'builtin', acp_backend: 'claude' },
       team_selectable: false,
       team_block_reason: 'Temporarily unavailable for team mode',
       deletable: true,
@@ -159,7 +159,7 @@ function assistants(): Assistant[] {
       name: 'Remote Runner',
       source: 'bare',
       agent_id: 'agent-remote',
-      agent: { id: 'agent-remote', type: 'remote', source: 'custom' },
+      agent: { type: 'remote', source: 'custom' },
       team_selectable: true,
     }),
   ];

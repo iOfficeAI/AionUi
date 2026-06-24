@@ -46,8 +46,8 @@ function assistant(
     sort_order: overrides.sort_order ?? 0,
     agent_id: agentId,
     agent: isAionrs
-      ? { id: agentId, type: 'aionrs', source: 'internal' }
-      : { id: agentId, type: 'acp', source: 'builtin', acp_backend: overrides.runtimeKey },
+      ? { type: 'aionrs', source: 'internal' }
+      : { type: 'acp', source: 'builtin', acp_backend: overrides.runtimeKey },
     enabled_skills: [],
     custom_skill_names: [],
     disabled_builtin_skills: [],

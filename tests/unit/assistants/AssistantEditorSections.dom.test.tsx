@@ -422,7 +422,7 @@ describe('AssistantEditorSections', () => {
           enabled: true,
           sort_order: 1,
           agent_id: 'agent-claude',
-          agent: { id: 'agent-claude', type: 'acp', source: 'builtin', acp_backend: 'claude' },
+          agent: { type: 'acp', source: 'builtin', acp_backend: 'claude' },
         }}
       />
     );
@@ -600,7 +600,7 @@ describe('AssistantEditorSections', () => {
           source: 'builtin',
           enabled: true,
           agent_id: 'agent-claude',
-          agent: { id: 'agent-claude', type: 'acp', source: 'builtin', acp_backend: 'claude' },
+          agent: { type: 'acp', source: 'builtin', acp_backend: 'claude' },
         }}
       />
     );
@@ -678,7 +678,7 @@ describe('AssistantEditorSections', () => {
           source: 'bare',
           enabled: true,
           agent_id: 'agent-droid',
-          agent: { id: 'agent-droid', type: 'droid', source: 'custom' },
+          agent: { type: 'droid', source: 'custom' },
         }}
       />
     );

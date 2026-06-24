@@ -133,7 +133,7 @@ function assistant(
     enabled: true,
     sort_order: 0,
     agent_id: agentId,
-    agent: { id: agentId, type: 'acp', source: 'builtin', acp_backend: overrides.runtimeKey },
+    agent: { type: 'acp', source: 'builtin', acp_backend: overrides.runtimeKey },
     enabled_skills: [],
     custom_skill_names: [],
     disabled_builtin_skills: [],

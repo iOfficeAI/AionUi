@@ -27,7 +27,9 @@ type TeamState = {
 async function getLeaderConversationId(page: import('@playwright/test').Page, teamId: string): Promise<string> {
   const teamState = await invokeBridge<TeamState>(page, 'team.get', { id: teamId });
   const assistants = teamState.assistants ?? teamState.agents ?? [];
-  return assistants.find((assistant) => assistant.role === 'leader' || assistant.role === 'lead')?.conversation_id ?? '';
+  return (
+    assistants.find((assistant) => assistant.role === 'leader' || assistant.role === 'lead')?.conversation_id ?? ''
+  );
 }
 
 async function waitForConversationMessage(

@@ -12,7 +12,6 @@ export type AssistantAgentStatus = 'missing' | 'online' | 'offline';
 export type AssistantAgentSource = 'internal' | 'builtin' | 'extension' | 'custom';
 
 export type AssistantAgent = {
-  id: string;
   type: string;
   source: AssistantAgentSource;
   acp_backend?: string;

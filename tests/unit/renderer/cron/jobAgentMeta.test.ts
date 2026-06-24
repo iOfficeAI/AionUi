@@ -131,7 +131,7 @@ function assistant(overrides: Partial<Assistant> & Pick<Assistant, 'id' | 'name'
     enabled: true,
     sort_order: 1,
     agent_id: 'agent-codex',
-    agent: { id: 'agent-codex', type: 'acp', source: 'builtin', acp_backend: 'codex' },
+    agent: { type: 'acp', source: 'builtin', acp_backend: 'codex' },
     enabled_skills: [],
     custom_skill_names: [],
     disabled_builtin_skills: [],

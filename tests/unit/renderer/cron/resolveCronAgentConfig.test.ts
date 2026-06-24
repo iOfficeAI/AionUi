@@ -177,9 +177,8 @@ function assistant(overrides: Partial<Assistant> & Pick<Assistant, 'id' | 'name'
   };
 }
 
-function agent(id: string, type: string, backend?: string): AssistantAgent {
+function agent(_id: string, type: string, backend?: string): AssistantAgent {
   return {
-    id,
     type,
     source: type === 'aionrs' ? 'internal' : 'builtin',
     acp_backend: backend,

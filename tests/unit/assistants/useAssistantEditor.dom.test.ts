@@ -76,7 +76,7 @@ describe('useAssistantEditor', () => {
     },
     engine: {
       agent_id: 'agent-claude',
-      agent: { id: 'agent-claude', type: 'acp', source: 'builtin', acp_backend: 'claude' },
+      agent: { type: 'acp', source: 'builtin', acp_backend: 'claude' },
     },
     rules: {
       content: 'Rule content',
@@ -152,7 +152,7 @@ describe('useAssistantEditor', () => {
       description: 'Test desc',
       avatar: '🤖',
       agent_id: 'agent-claude',
-      agent: { id: 'agent-claude', type: 'acp', source: 'builtin', acp_backend: 'claude' },
+      agent: { type: 'acp', source: 'builtin', acp_backend: 'claude' },
       sort_order: 1,
       source: 'user',
       enabled: true,
@@ -190,7 +190,7 @@ describe('useAssistantEditor', () => {
       description_i18n: { 'en-US': 'English description', 'zh-CN': '中文描述' },
       avatar: '📚',
       agent_id: 'agent-claude',
-      agent: { id: 'agent-claude', type: 'acp', source: 'builtin', acp_backend: 'claude' },
+      agent: { type: 'acp', source: 'builtin', acp_backend: 'claude' },
       sort_order: 1,
       source: 'builtin',
       enabled: true,
@@ -269,7 +269,7 @@ describe('useAssistantEditor', () => {
       description_i18n: { 'en-US': 'English description', 'zh-CN': '中文描述' },
       avatar: '📊',
       agent_id: 'agent-claude',
-      agent: { id: 'agent-claude', type: 'acp', source: 'builtin', acp_backend: 'claude' },
+      agent: { type: 'acp', source: 'builtin', acp_backend: 'claude' },
       sort_order: 1,
       source: 'builtin',
       enabled: true,
@@ -419,7 +419,7 @@ describe('useAssistantEditor', () => {
       description: 'Test desc',
       avatar: '🤖',
       agent_id: 'agent-claude',
-      agent: { id: 'agent-claude', type: 'acp', source: 'builtin', acp_backend: 'claude' },
+      agent: { type: 'acp', source: 'builtin', acp_backend: 'claude' },
       sort_order: 1,
       source: 'user',
       enabled: true,
@@ -472,7 +472,7 @@ describe('useAssistantEditor', () => {
       source: 'builtin',
       enabled: true,
       agent_id: 'agent-claude',
-      agent: { id: 'agent-claude', type: 'acp', source: 'builtin', acp_backend: 'claude' },
+      agent: { type: 'acp', source: 'builtin', acp_backend: 'claude' },
     };
 
     const { result } = renderHook(() =>
@@ -531,7 +531,7 @@ describe('useAssistantEditor', () => {
       source: 'builtin',
       enabled: true,
       agent_id: 'agent-claude',
-      agent: { id: 'agent-claude', type: 'acp', source: 'builtin', acp_backend: 'claude' },
+      agent: { type: 'acp', source: 'builtin', acp_backend: 'claude' },
     };
 
     const { result } = renderHook(() =>

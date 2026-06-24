@@ -56,12 +56,7 @@ describe('team agent type policy', () => {
   });
 });
 
-function assistant(
-  id: string,
-  team_selectable: boolean,
-  team_block_reason?: string,
-  runtimeKey = 'claude'
-): Assistant {
+function assistant(id: string, team_selectable: boolean, team_block_reason?: string, runtimeKey = 'claude'): Assistant {
   const agentId = `agent-${runtimeKey}`;
   const isAionrs = runtimeKey === 'aionrs';
   return {
@@ -74,8 +69,8 @@ function assistant(
     sort_order: 0,
     agent_id: agentId,
     agent: isAionrs
-      ? { id: agentId, type: 'aionrs', source: 'internal' }
-      : { id: agentId, type: 'acp', source: 'builtin', acp_backend: runtimeKey },
+      ? { type: 'aionrs', source: 'internal' }
+      : { type: 'acp', source: 'builtin', acp_backend: runtimeKey },
     enabled_skills: [],
     custom_skill_names: [],
     disabled_builtin_skills: [],

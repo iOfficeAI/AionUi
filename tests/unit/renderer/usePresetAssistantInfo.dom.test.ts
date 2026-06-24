@@ -218,7 +218,7 @@ describe('usePresetAssistantInfo', () => {
               name: 'Social Job Publisher',
               avatar: '🦜',
               agent_id: 'agent-gemini',
-              agent: { id: 'agent-gemini', type: 'acp', source: 'builtin', acp_backend: 'gemini' },
+              agent: { type: 'acp', source: 'builtin', acp_backend: 'gemini' },
               name_i18n: {},
             },
           ],

@@ -221,7 +221,7 @@ describe('configMigration', () => {
           id: 'bare_codex',
           source: 'bare',
           agent_id: 'agent-codex',
-          agent: { id: 'agent-codex', type: 'acp', source: 'builtin', acp_backend: 'codex' },
+          agent: { type: 'acp', source: 'builtin', acp_backend: 'codex' },
         },
       ]);
       vi.spyOn(console, 'info').mockImplementation(() => {});
@@ -265,7 +265,7 @@ describe('configMigration', () => {
           id: 'bare_codex',
           source: 'bare',
           agent_id: 'agent-codex',
-          agent: { id: 'agent-codex', type: 'acp', source: 'builtin', acp_backend: 'codex' },
+          agent: { type: 'acp', source: 'builtin', acp_backend: 'codex' },
         },
       ]);
       (ipcBridge.channel.getPlatformSettings.invoke as ReturnType<typeof vi.fn>).mockResolvedValue({
