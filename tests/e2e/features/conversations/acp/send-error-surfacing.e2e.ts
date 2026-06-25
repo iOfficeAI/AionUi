@@ -34,7 +34,6 @@ async function createAcpConversation(page: import('@playwright/test').Page): Pro
   if (!assistantId) return '';
 
   const conversation = await httpPost<CreatedConversation>(page, '/api/conversations', {
-    type: 'acp',
     name: `E2E ACP send error ${Date.now()}`,
     assistant: {
       id: assistantId,

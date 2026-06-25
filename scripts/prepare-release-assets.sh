@@ -23,7 +23,10 @@ mkdir -p "$OUTPUT_DIR"
 # 1) Copy all distributables (unique file names)
 # ---------------------------------------------------------------------------
 echo "==> Copying distributables from $ARTIFACTS_DIR ..."
-mapfile -t DISTRIBUTABLES < <(find "$ARTIFACTS_DIR" -type f \( \
+DISTRIBUTABLES=()
+while IFS= read -r file; do
+  DISTRIBUTABLES+=("$file")
+done < <(find "$ARTIFACTS_DIR" -type f \( \
   -name "*.exe" -o \
   -name "*.msi" -o \
   -name "*.dmg" -o \
@@ -46,7 +49,10 @@ done
 # 1b) Copy web-cli tarballs (+ sha256 checksums)
 # ---------------------------------------------------------------------------
 echo "==> Copying web-cli tarballs from $ARTIFACTS_DIR ..."
-mapfile -t WEB_CLI_FILES < <(find "$ARTIFACTS_DIR" -type f \( \
+WEB_CLI_FILES=()
+while IFS= read -r file; do
+  WEB_CLI_FILES+=("$file")
+done < <(find "$ARTIFACTS_DIR" -type f \( \
   -name "aionui-web-*.tar.gz" -o \
   -name "aionui-web-*.tar.gz.sha256" \
 \) | sort)
@@ -111,6 +117,7 @@ echo "==> Writing architecture-specific updater metadata ..."
 # ---------------------------------------------------------------------------
 echo "==> Validating required metadata ..."
 
+VERSION="${MOCK_VERSION:-$(node -p "require('./package.json').version")}"
 MISSING=0
 for required in latest.yml latest-mac.yml latest-linux.yml latest-linux-arm64.yml; do
   if [ ! -f "$OUTPUT_DIR/$required" ]; then
@@ -120,11 +127,29 @@ for required in latest.yml latest-mac.yml latest-linux.yml latest-linux-arm64.ym
 done
 
 # ---------------------------------------------------------------------------
-# 5b) Hard validation for web-cli release assets
+# 5b) Hard validation for desktop release assets
+# ---------------------------------------------------------------------------
+echo "==> Validating desktop release assets ..."
+
+for arch in x64 arm64; do
+  for ext in dmg zip; do
+    asset="AionUi-${VERSION}-mac-${arch}.${ext}"
+    if [ ! -f "$OUTPUT_DIR/$asset" ]; then
+      if [ "$ext" = "zip" ]; then
+        echo "::error::Missing macOS zip artifact: $asset"
+      else
+        echo "::error::Missing macOS DMG artifact: $asset"
+      fi
+      MISSING=1
+    fi
+  done
+done
+
+# ---------------------------------------------------------------------------
+# 5c) Hard validation for web-cli release assets
 # ---------------------------------------------------------------------------
 echo "==> Validating web-cli assets ..."
 
-VERSION="${MOCK_VERSION:-$(node -p "require('./package.json').version")}"
 WEB_PLATFORMS=(
   "darwin-arm64"
   "darwin-x86_64"

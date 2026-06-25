@@ -27,6 +27,7 @@ export type BackendStartupFailureReason =
   | 'backend_incompatible_runtime'
   | 'backend_incomplete_installation'
   | 'backend_package_architecture_mismatch'
+  | 'backend_data_migration_failed'
   | 'backend_startup_failed';
 
 export type BackendIncompleteInstallationKind = 'missing_backend_binary' | 'missing_directory_resources';

@@ -44,10 +44,18 @@ vi.mock('@process/services/database/migrations', () => ({
   runMigrations: vi.fn(),
 }));
 
+vi.mock('@process/services/database/repairLegacyHandoffSchema', () => ({
+  repairLegacyHandoffSchema: vi.fn(() => ({
+    repairedColumns: [{ table: 'teams', column: 'session_mode' }],
+    skippedTables: [],
+  })),
+}));
+
 import { existsSync } from 'fs';
 import { runLegacyDatabaseMigrations } from '@process/services/database/runLegacyDatabaseMigrations';
 import { getDatabaseVersion, setDatabaseVersion } from '@process/services/database/schema';
 import { runMigrations } from '@process/services/database/migrations';
+import { repairLegacyHandoffSchema } from '@process/services/database/repairLegacyHandoffSchema';
 
 describe('configMigrationIntegration', () => {
   beforeEach(() => {
@@ -73,7 +81,20 @@ describe('configMigrationIntegration', () => {
 
     expect(result.skipped).toBe(true);
     expect(result.migrated).toBe(false);
+    expect(result.handoffRepair).toEqual({ repairedColumns: [], skippedTables: [] });
     expect(runMigrations).not.toHaveBeenCalled();
+  });
+
+  it('runs handoff repair even when database version is current', async () => {
+    (getDatabaseVersion as any).mockReturnValue(26);
+
+    const result = await runLegacyDatabaseMigrations('/test/aionui.db');
+
+    expect(runMigrations).not.toHaveBeenCalled();
+    expect(setDatabaseVersion).not.toHaveBeenCalled();
+    expect(repairLegacyHandoffSchema).toHaveBeenCalledWith(mockDriver);
+    expect(result.migrated).toBe(false);
+    expect(result.handoffRepair.repairedColumns).toEqual([{ table: 'teams', column: 'session_mode' }]);
   });
 
   it('closes driver after migration completes', async () => {

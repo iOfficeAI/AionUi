@@ -36,7 +36,6 @@ function createFakeClaudeConversation(id: string, assistantId: string) {
   return {
     id,
     name: `E2E MessageList ${id}`,
-    type: 'acp' as const,
     assistant: {
       id: assistantId,
     },

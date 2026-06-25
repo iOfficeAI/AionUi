@@ -12,6 +12,7 @@ import { ConversationArtifactProvider } from '@renderer/pages/conversation/Messa
 import {
   MessageListLoadingProvider,
   MessageListProvider,
+  MessagePaginationProvider,
   useMessageLstCache,
 } from '@renderer/pages/conversation/Messages/hooks';
 import HOC from '@renderer/utils/ui/HOC';
@@ -45,4 +46,8 @@ const LegacyReadOnlyConversation: React.FC<{
   );
 };
 
-export default HOC.Wrapper(MessageListProvider, MessageListLoadingProvider)(LegacyReadOnlyConversation);
+export default HOC.Wrapper(
+  MessageListProvider,
+  MessageListLoadingProvider,
+  MessagePaginationProvider
+)(LegacyReadOnlyConversation);

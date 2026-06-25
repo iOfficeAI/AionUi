@@ -54,14 +54,15 @@ export type CreateConversationBodyInput = {
  * agent types carry model info via `extra`.
  */
 export function buildCreateConversationBody(p: CreateConversationBodyInput): Record<string, unknown> {
+  const hasAssistant = p.assistant !== undefined && p.assistant !== null;
   const body: Record<string, unknown> = {
-    type: p.type,
+    type: hasAssistant ? undefined : p.type,
     id: p.id,
     name: p.name,
     assistant: p.assistant,
     extra: p.extra,
   };
-  const model = p.type === 'aionrs' ? toApiModelOptional(p.model) : undefined;
+  const model = p.type === 'acp' ? undefined : toApiModelOptional(p.model);
   if (model) body.model = model;
   return body;
 }

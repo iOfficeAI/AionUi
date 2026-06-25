@@ -4,6 +4,7 @@ import type { TChatConversation } from '@/common/config/storage';
 import { Button } from '@arco-design/web-react';
 import type { SlashCommandMenuItem } from '@/renderer/components/chat/SlashCommandMenu';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
+import { loadAllConversationMessagesPaged } from '@/renderer/utils/chat/messagePagination';
 import {
   type ExportTranscriptLabels,
   buildConversationExportText,
@@ -117,15 +118,7 @@ export function useConversationExport(options: UseConversationExportOptions): Us
       return null;
     }
 
-    const messages =
-      messagesRef.current ??
-      (
-        await ipcBridge.database.getConversationMessages.invoke({
-          conversation_id: conversation_id,
-          page: 0,
-          page_size: 10000,
-        })
-      ).items;
+    const messages = messagesRef.current ?? (await loadAllConversationMessagesPaged(conversation_id));
     messagesRef.current = messages;
     const transcript = buildConversationExportText(conversation, messages, transcriptLabels);
     transcriptRef.current = transcript;
@@ -158,15 +151,9 @@ export function useConversationExport(options: UseConversationExportOptions): Us
       }
 
       baseDirectoryRef.current = resolveExportBaseDirectory(workspace, desktopPath);
-      const messagesResult = await ipcBridge.database.getConversationMessages.invoke({
-        conversation_id: conversation_id,
-        page: 0,
-        page_size: 10000,
-      });
-      messagesRef.current = messagesResult.items;
-      setFilename(
-        buildDefaultExportFileName(conversation.id, getDefaultExportFileNameSource(conversation, messagesResult.items))
-      );
+      const messages = await loadAllConversationMessagesPaged(conversation_id);
+      messagesRef.current = messages;
+      setFilename(buildDefaultExportFileName(conversation.id, getDefaultExportFileNameSource(conversation, messages)));
       setActiveIndex(0);
       setStep('menu');
     } catch (error) {
