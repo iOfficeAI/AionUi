@@ -1,5 +1,38 @@
 # Changelog
 
+## [2.1.24](https://github.com/iOfficeAI/AionUi/compare/v2.1.23...v2.1.24) (2026-06-25)
+
+### Desktop
+
+#### Features
+
+- **agent:** connection testing and assistant availability surfacing (phase 2) (#3395)
+- **conversation:** add cursor message pagination (#3422)
+
+#### Bug Fixes
+
+- **conversation:** localize structured agent errors (#3426)
+- **desktop:** repair legacy database handoff startup (#3423)
+- **release:** restore mac zip artifacts (#3415)
+- **settings:** prevent capabilities tab flicker (#3414)
+
+### Core ([v0.1.37](https://github.com/iOfficeAI/AionCore/releases/tag/v0.1.37))
+
+#### Features
+
+- **agent:** detect availability via session/new probe and assistant-first identity (#500)
+- **conversation:** add cursor pagination for messages (#515)
+
+#### Bug Fixes
+
+- **agent:** classify ACP and provider errors (#518)
+- **aionrs:** adapt runtime guard config (#510)
+- **conversation:** recover dead ACP turns after agent process loss (#514)
+- **db:** repair legacy handoff schema drift (#516)
+- validate skill frontmatter as yaml (#512)
+
+---
+
 ## [2.1.23](https://github.com/iOfficeAI/AionUi/compare/v2.1.22...v2.1.23) (2026-06-23)
 
 ### Desktop
