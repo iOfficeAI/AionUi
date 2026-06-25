@@ -405,12 +405,15 @@ const initStorage = async () => {
   //    users may still have a pre-v26 Electron-managed catalog, so we upgrade
   //    that file here, close it, and only then allow the backend to start.
   const legacyDbMigration = await runLegacyDatabaseMigrations();
+  const repaired = legacyDbMigration.handoffRepair.repairedColumns.length;
   if (legacyDbMigration.skipped) {
     mark('6. legacyDbMigrations skipped');
   } else if (legacyDbMigration.migrated) {
-    mark(`6. legacyDbMigrations v${legacyDbMigration.fromVersion}->v${legacyDbMigration.toVersion}`);
+    mark(
+      `6. legacyDbMigrations v${legacyDbMigration.fromVersion}->v${legacyDbMigration.toVersion} handoffRepair=${repaired}`
+    );
   } else {
-    mark(`6. legacyDbMigrations noop(v${legacyDbMigration.fromVersion})`);
+    mark(`6. legacyDbMigrations noop(v${legacyDbMigration.fromVersion}) handoffRepair=${repaired}`);
   }
 
   if (hasElectronAppPath()) {

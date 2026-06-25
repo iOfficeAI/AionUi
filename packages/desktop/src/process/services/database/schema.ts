@@ -7,7 +7,10 @@
 import type { ISqliteDriver } from './drivers/ISqliteDriver';
 
 /**
- * Initialize database schema with all tables and indexes
+ * Initialize the current legacy DB baseline for newly-created Electron DBs.
+ *
+ * `CREATE TABLE IF NOT EXISTS` does not repair existing tables. Keep
+ * `repairLegacyHandoffSchema()` as the handoff contract enforcement path.
  */
 export function initSchema(db: ISqliteDriver): void {
   // Enable foreign keys
@@ -45,9 +48,13 @@ export function initSchema(db: ISqliteDriver): void {
     user_id TEXT NOT NULL,
     name TEXT NOT NULL,
     type TEXT NOT NULL,
-    extra TEXT NOT NULL,
+    extra TEXT NOT NULL DEFAULT '{}',
     model TEXT,
-    status TEXT CHECK(status IN ('pending', 'running', 'finished')),
+    status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending', 'running', 'finished')),
+    source TEXT,
+    channel_chat_id TEXT,
+    pinned INTEGER NOT NULL DEFAULT 0,
+    pinned_at INTEGER,
     created_at INTEGER NOT NULL,
     updated_at INTEGER NOT NULL,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
@@ -82,8 +89,10 @@ export function initSchema(db: ISqliteDriver): void {
     name TEXT NOT NULL,
     workspace TEXT NOT NULL,
     workspace_mode TEXT NOT NULL DEFAULT 'shared',
-    lead_agent_id TEXT NOT NULL DEFAULT '',
     agents TEXT NOT NULL DEFAULT '[]',
+    lead_agent_id TEXT,
+    session_mode TEXT,
+    agents_version TEXT NOT NULL DEFAULT '1.0.0',
     created_at INTEGER NOT NULL,
     updated_at INTEGER NOT NULL,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE

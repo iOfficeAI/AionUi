@@ -44,8 +44,13 @@ vi.mock('@process/services/database/migrations', () => ({
   runMigrations: vi.fn(),
 }));
 
+vi.mock('@process/services/database/repairLegacyHandoffSchema', () => ({
+  repairLegacyHandoffSchema: vi.fn(() => ({ repairedColumns: [], skippedTables: [] })),
+}));
+
 import { runLegacyDatabaseMigrations } from '@process/services/database/runLegacyDatabaseMigrations';
 import { runMigrations } from '@process/services/database/migrations';
+import { repairLegacyHandoffSchema } from '@process/services/database/repairLegacyHandoffSchema';
 import { initSchema, setDatabaseVersion } from '@process/services/database/schema';
 
 describe('migrationErrorRecovery', () => {
@@ -53,6 +58,7 @@ describe('migrationErrorRecovery', () => {
     vi.clearAllMocks();
     (initSchema as any).mockImplementation(() => {});
     (runMigrations as any).mockImplementation(() => {});
+    (repairLegacyHandoffSchema as any).mockImplementation(() => ({ repairedColumns: [], skippedTables: [] }));
     (setDatabaseVersion as any).mockImplementation(() => {});
     mockDriver.prepare.mockImplementation(() => ({
       run: vi.fn(),
@@ -85,6 +91,15 @@ describe('migrationErrorRecovery', () => {
     });
 
     await expect(runLegacyDatabaseMigrations('/test/aionui.db')).rejects.toThrow('Set version failed');
+    expect(mockDriver.close).toHaveBeenCalled();
+  });
+
+  it('closes driver when handoff repair throws', async () => {
+    (repairLegacyHandoffSchema as any).mockImplementation(() => {
+      throw new Error('Handoff repair failed');
+    });
+
+    await expect(runLegacyDatabaseMigrations('/test/aionui.db')).rejects.toThrow('Handoff repair failed');
     expect(mockDriver.close).toHaveBeenCalled();
   });
 
