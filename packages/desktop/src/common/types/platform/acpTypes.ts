@@ -223,6 +223,15 @@ export type SetConfigOptionResponse = {
   config_options: AcpConfigOptionDto[] | null;
 };
 
+export type AgentModeResponse = {
+  mode: string;
+  initialized: boolean;
+};
+
+export type SetModeRequest = {
+  mode: string;
+};
+
 // ===== ACP Mode / Model types (unstable API) =====
 
 /** Mode entry in the top-level `modes` object of session/new response */
