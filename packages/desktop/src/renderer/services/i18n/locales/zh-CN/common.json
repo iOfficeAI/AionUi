@@ -90,6 +90,14 @@
     "packageArchitectureMismatch": {
       "title": "AionUi 安装包架构不匹配",
       "description": "当前 AionUi 安装包是 {{packageArch}}，但这台 Mac 是 {{deviceArch}}。你可能下载了错误的安装包，请重新下载并安装 {{expectedArch}} 版本。"
+    },
+    "dataMigration": {
+      "title": "本地数据迁移失败",
+      "description": "AionUi 已打开，但 AionCore 在初始化本地数据时停止。重复安装 AionUi 未必能解决此问题。请发送诊断报告或联系支持，以便检查本地数据库迁移状态。",
+      "sendDiagnostics": "发送诊断报告",
+      "diagnosticsSent": "诊断报告已发送",
+      "diagnosticsReportSuccess": "诊断报告已发送",
+      "diagnosticsReportFailed": "诊断报告发送失败"
     }
   },
   "fileAttach.addFiles": "添加文件",
