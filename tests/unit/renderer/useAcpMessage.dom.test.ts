@@ -20,6 +20,7 @@ const { addOrUpdateMessageMock, responseStreamOnMock, responseStreamHandlerRef }
 
 vi.mock('@/renderer/pages/conversation/Messages/hooks', () => ({
   useAddOrUpdateMessage: () => addOrUpdateMessageMock,
+  useMergeLiveMessage: () => addOrUpdateMessageMock,
 }));
 
 vi.mock('@/renderer/pages/conversation/utils/conversationCache', () => ({
