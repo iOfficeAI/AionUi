@@ -228,6 +228,26 @@ describe('captureBackendStartupFailure', () => {
     expect(scopeSetTag).toHaveBeenCalledWith('aionui.backend_startup.health_timeout_overrun_bucket', 'over_60s');
     expect(scopeSetTag).toHaveBeenCalledWith('aionui.backend_startup.health_max_attempt_gap_bucket', '0ms');
   });
+
+  it('sets backend data migration reason and boundary tags', async () => {
+    scopeSetTag.mockClear();
+    const error = new Error('aioncore exited before health check passed') as Error & {
+      details?: Record<string, unknown>;
+    };
+    error.details = {
+      stage: 'early_exit',
+      backendBoundaryCode: 'BOOTSTRAP_DATA_INIT_FAILED',
+      backendBoundaryStage: 'database.migration',
+      stderrTail:
+        'BOOTSTRAP_DATA_INIT_FAILED stage=database.migration databasePath=/db/aionui-backend.db: failed to initialize application data',
+    };
+
+    await captureBackendStartupFailure(error);
+
+    expect(scopeSetTag).toHaveBeenCalledWith('aionui.backend_startup.reason', 'backend_data_migration_failed');
+    expect(scopeSetTag).toHaveBeenCalledWith('aionui.backend_startup.boundary_code', 'BOOTSTRAP_DATA_INIT_FAILED');
+    expect(scopeSetTag).toHaveBeenCalledWith('aionui.backend_startup.boundary_stage', 'database.migration');
+  });
 });
 
 describe('initSentry beforeSend', () => {

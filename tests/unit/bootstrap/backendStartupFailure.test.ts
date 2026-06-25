@@ -54,6 +54,42 @@ describe('classifyBackendStartupFailure', () => {
     });
   });
 
+  it('classifies database migration boundary failures as local data migration failures', () => {
+    const error = new Error('aioncore exited before health check passed') as Error & {
+      details?: Record<string, unknown>;
+    };
+    error.details = {
+      stage: 'early_exit',
+      backendBoundaryCode: 'BOOTSTRAP_DATA_INIT_FAILED',
+      backendBoundaryStage: 'database.migration',
+      stderrTail:
+        'BOOTSTRAP_DATA_INIT_FAILED stage=database.migration databasePath=/db/aionui-backend.db: failed to initialize application data',
+    };
+
+    expect(classifyBackendStartupFailure(error)).toEqual({
+      reason: 'backend_data_migration_failed',
+      backendBoundaryCode: 'BOOTSTRAP_DATA_INIT_FAILED',
+      backendBoundaryStage: 'database.migration',
+    });
+  });
+
+  it('classifies database schema repair boundary failures as local data migration failures', () => {
+    const error = new Error('aioncore exited before health check passed') as Error & {
+      details?: Record<string, unknown>;
+    };
+    error.details = {
+      stage: 'early_exit',
+      backendBoundaryCode: 'BOOTSTRAP_DATA_INIT_FAILED',
+      backendBoundaryStage: 'database.schema_repair',
+    };
+
+    expect(classifyBackendStartupFailure(error)).toEqual({
+      reason: 'backend_data_migration_failed',
+      backendBoundaryCode: 'BOOTSTRAP_DATA_INIT_FAILED',
+      backendBoundaryStage: 'database.schema_repair',
+    });
+  });
+
   it('classifies packaged app resources missing from installation as incomplete installation', () => {
     const error = new Error('aioncore startup failed while resolving backend binary') as Error & {
       details?: Record<string, unknown>;
@@ -219,5 +255,22 @@ describe('getInstallationIntegrityModalActions', () => {
 
     actions.onReportDiagnostics();
     expect(onReportDiagnostics).toHaveBeenCalledOnce();
+  });
+
+  it('uses data migration copy and diagnostics-only actions for local data migration failures', () => {
+    const t = vi.fn((key: string) => key) as any;
+    const failure = {
+      reason: 'backend_data_migration_failed',
+      backendBoundaryCode: 'BOOTSTRAP_DATA_INIT_FAILED',
+      backendBoundaryStage: 'database.migration',
+    };
+
+    const actions = getInstallationIntegrityModalActions(t, {
+      diagnosticsKind: 'data_migration',
+    } as any);
+
+    expect(actions.reportText).toBe('common.backendStartup.dataMigration.sendDiagnostics');
+    expect(actions.downloadText).toBeUndefined();
+    expect(failure.backendBoundaryStage).toBe('database.migration');
   });
 });

@@ -9,6 +9,8 @@ import path from 'path';
 import { ensureDirectory, getDataPath } from '@process/utils';
 import type { ISqliteDriver } from '@process/services/database/drivers/ISqliteDriver';
 import { runMigrations } from '@process/services/database/migrations';
+import type { LegacyHandoffRepairResult } from '@process/services/database/repairLegacyHandoffSchema';
+import { repairLegacyHandoffSchema } from '@process/services/database/repairLegacyHandoffSchema';
 import {
   CURRENT_DB_VERSION,
   getDatabaseVersion,
@@ -25,6 +27,7 @@ export type LegacyDatabaseMigrationResult = {
   toVersion: number;
   migrated: boolean;
   skipped: boolean;
+  handoffRepair: LegacyHandoffRepairResult;
 };
 
 export function resolveLegacyDatabasePath(dataDir = getDataPath()): string {
@@ -54,6 +57,7 @@ export async function runLegacyDatabaseMigrations(
       toVersion: CURRENT_DB_VERSION,
       migrated: false,
       skipped: true,
+      handoffRepair: { repairedColumns: [], skippedTables: [] },
     };
   }
 
@@ -71,6 +75,8 @@ export async function runLegacyDatabaseMigrations(
       setDatabaseVersion(driver, CURRENT_DB_VERSION);
     }
 
+    const handoffRepair = repairLegacyHandoffSchema(driver);
+
     ensureSystemUser(driver);
 
     return {
@@ -79,6 +85,7 @@ export async function runLegacyDatabaseMigrations(
       toVersion: CURRENT_DB_VERSION,
       migrated: currentVersion < CURRENT_DB_VERSION,
       skipped: false,
+      handoffRepair,
     };
   } finally {
     driver.close();

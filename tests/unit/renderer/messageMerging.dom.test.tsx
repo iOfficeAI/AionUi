@@ -12,9 +12,11 @@ import type { IMessageAcpToolCall, IMessageText, IMessageThinking } from '@/comm
 import {
   MessageListLoadingProvider,
   MessageListProvider,
+  MessagePaginationProvider,
   useAddOrUpdateMessage,
   useMessageLstCache,
   useMessageList,
+  useReplaceWithAnchorWindow,
 } from '@/renderer/pages/conversation/Messages/hooks';
 
 vi.mock('@/common', () => ({
@@ -103,7 +105,11 @@ function TestWrapper({ children }: PropsWithChildren): JSX.Element {
 function CacheWrapper({ children }: PropsWithChildren): JSX.Element {
   return (
     <MessageListLoadingProvider value={false}>
-      <MessageListProvider value={[]}>{children}</MessageListProvider>
+      <MessagePaginationProvider
+        value={{ hasMoreBefore: false, hasMoreAfter: false, isLoadingBefore: false, isLoadingAnchor: false }}
+      >
+        <MessageListProvider value={[]}>{children}</MessageListProvider>
+      </MessagePaginationProvider>
     </MessageListLoadingProvider>
   );
 }
@@ -111,6 +117,14 @@ function CacheWrapper({ children }: PropsWithChildren): JSX.Element {
 function useMessageHarness() {
   return {
     addOrUpdateMessage: useAddOrUpdateMessage(),
+    messages: useMessageList(),
+  };
+}
+
+function useAnchorMessageHarness() {
+  return {
+    addOrUpdateMessage: useAddOrUpdateMessage(),
+    replaceWithAnchorWindow: useReplaceWithAnchorWindow(),
     messages: useMessageList(),
   };
 }
@@ -213,10 +227,39 @@ describe('message merging', () => {
     expect(result.current.messages).toEqual([]);
   });
 
+  it('keeps live-only and richer streaming messages when replacing with an anchor window', async () => {
+    const { result } = renderHook(() => useAnchorMessageHarness(), {
+      wrapper: TestWrapper,
+    });
+
+    act(() => {
+      result.current.addOrUpdateMessage(createTextMessage('agent-1', 'partial streaming response'));
+      result.current.addOrUpdateMessage(createTextMessage('agent-2', 'live tail'));
+    });
+    await flushMessageQueue();
+
+    act(() => {
+      result.current.replaceWithAnchorWindow(CONVERSATION_ID, [
+        createTextMessage('user-anchor', 'anchor'),
+        createTextMessage('agent-1', 'partial'),
+      ]);
+    });
+
+    expect(result.current.messages.map((message) => message.msg_id)).toEqual(['user-anchor', 'agent-1', 'agent-2']);
+    expect((result.current.messages[1] as IMessageText).content.content).toBe('partial streaming response');
+    expect((result.current.messages[2] as IMessageText).content.content).toBe('live tail');
+  });
+
   it('requests compact tool content when hydrating historical messages', async () => {
     const invoke = vi.mocked(ipcBridge.database.getConversationMessages.invoke);
     invoke.mockClear();
-    invoke.mockResolvedValue({ items: [], total: 0, has_more: false });
+    invoke.mockResolvedValue({
+      items: [],
+      oldest_cursor: null,
+      newest_cursor: null,
+      has_more_before: false,
+      has_more_after: false,
+    });
 
     renderHook(() => useMessageLstCache(CONVERSATION_ID), {
       wrapper: CacheWrapper,
@@ -228,8 +271,7 @@ describe('message merging', () => {
 
     expect(invoke).toHaveBeenCalledWith({
       conversation_id: CONVERSATION_ID,
-      page: 0,
-      page_size: 10000,
+      limit: 50,
       content_mode: 'compact',
     });
   });

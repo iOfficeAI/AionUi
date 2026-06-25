@@ -16,6 +16,7 @@ vi.mock('@/renderer/pages/conversation/Messages/MessageList', () => ({
 vi.mock('@/renderer/pages/conversation/Messages/hooks', () => ({
   MessageListLoadingProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   MessageListProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  MessagePaginationProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   useMessageLstCache: vi.fn(),
 }));
 

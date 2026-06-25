@@ -10,7 +10,7 @@ import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 import type { TChatConversation, TokenUsageData } from '@/common/config/storage';
 import { uuid } from '@/common/utils';
 import type { ThoughtData } from '@/renderer/components/chat/ThoughtDisplay';
-import { useAddOrUpdateMessage } from '@/renderer/pages/conversation/Messages/hooks';
+import { useMergeLiveMessage } from '@/renderer/pages/conversation/Messages/hooks';
 import { logStreamTerminalObserved } from '@/renderer/pages/conversation/runtime/useConversationRuntimeView';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
 import { isConversationProcessing } from '@/renderer/pages/conversation/utils/conversationRuntime';
@@ -32,7 +32,7 @@ export const useAionrsMessage = (
   const onError = options?.onError;
   const onConfigChanged = options?.onConfigChanged;
   const onConfigChangedRef = useRef(onConfigChanged);
-  const addOrUpdateMessage = useAddOrUpdateMessage();
+  const mergeLiveMessage = useMergeLiveMessage();
   const [streamRunning, setStreamRunning] = useState(false);
   const [hasActiveTools, setHasActiveTools] = useState(false);
   const [waitingResponse, setWaitingResponse] = useState(false);
@@ -139,7 +139,7 @@ export const useAionrsMessage = (
       try {
         const result = await processLocalCronResponse(conversation_id, rawContent);
         if (result.displayContent !== undefined && result.displayContent !== rawContent) {
-          addOrUpdateMessage({
+          mergeLiveMessage({
             id: uuid(),
             msg_id: msgId,
             type: 'text',
@@ -154,7 +154,7 @@ export const useAionrsMessage = (
         }
 
         for (const response of result.systemResponses) {
-          addOrUpdateMessage(
+          mergeLiveMessage(
             {
               id: uuid(),
               msg_id: `cron-local-${uuid()}`,
@@ -174,7 +174,7 @@ export const useAionrsMessage = (
         processedCronMsgIdsRef.current.delete(msgId);
       }
     },
-    [addOrUpdateMessage, conversation_id]
+    [mergeLiveMessage, conversation_id]
   );
 
   useEffect(() => {
@@ -194,7 +194,7 @@ export const useAionrsMessage = (
         hasContentInTurnRef.current = false;
         const transformedMessage = transformMessage(message);
         if (transformedMessage) {
-          addOrUpdateMessage(transformedMessage);
+          mergeLiveMessage(transformedMessage);
         }
         return;
       }
@@ -313,7 +313,7 @@ export const useAionrsMessage = (
             }
 
             // Continue passing message to message list update
-            addOrUpdateMessage(transformMessage(message));
+            mergeLiveMessage(transformMessage(message));
           }
           break;
         case 'permission':
@@ -325,7 +325,7 @@ export const useAionrsMessage = (
           // Backend aionrs emits wire type 'acp_permission' but the payload is
           // Confirmation-shaped (legacy), which matches MessagePermission, not
           // MessageAcpPermission. Re-tag so transformMessage routes it correctly.
-          addOrUpdateMessage(transformMessage({ ...message, type: 'permission' }));
+          mergeLiveMessage(transformMessage({ ...message, type: 'permission' }));
           break;
         case 'config_changed':
           onConfigChangedRef.current?.(message.data as Record<string, unknown>);
@@ -354,13 +354,13 @@ export const useAionrsMessage = (
             }
           }
           // Backend handles persistence, Frontend only updates UI
-          addOrUpdateMessage(transformMessage(message));
+          mergeLiveMessage(transformMessage(message));
           break;
         }
       }
     });
     // Note: hasActiveTools and streamRunning are accessed via refs to avoid re-subscription
-  }, [conversation_id, addOrUpdateMessage, onError, processCompletedAssistantMessage]);
+  }, [conversation_id, mergeLiveMessage, onError, processCompletedAssistantMessage]);
 
   useEffect(() => {
     let cancelled = false;

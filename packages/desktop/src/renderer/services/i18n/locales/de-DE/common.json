@@ -90,6 +90,14 @@
     "packageArchitectureMismatch": {
       "title": "AionUi-Paket-Architektur-Fehlanpassung",
       "description": "Dieses AionUi-Paket ist für {{packageArch}}, aber dieser Mac ist {{deviceArch}}. Möglicherweise hast du das falsche Paket heruntergeladen. Bitte lade das {{expectedArch}}-Paket herunter und installiere es."
+    },
+    "dataMigration": {
+      "title": "Local data migration failed",
+      "description": "AionUi opened, but AionCore stopped while initializing local data. Reinstalling AionUi may not fix this. Send a diagnostics report or contact support so the local database migration can be inspected.",
+      "sendDiagnostics": "Send diagnostics",
+      "diagnosticsSent": "Diagnostics sent",
+      "diagnosticsReportSuccess": "Diagnostics report sent",
+      "diagnosticsReportFailed": "Failed to send diagnostics report"
     }
   },
   "fileAttach.addFiles": "Dateien hinzufügen",

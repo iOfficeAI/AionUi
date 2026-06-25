@@ -31,6 +31,7 @@ type ErrorWithDetails = Error & {
 const GLIBC_VERSION_RE = /GLIBC_(\d+\.\d+)/g;
 const GLIBC_NOT_FOUND_RE = /GLIBC_\d+\.\d+[\s\S]{0,160}not found|not found[\s\S]{0,160}GLIBC_\d+\.\d+/i;
 const PACKAGED_APP_MARKER_ENTRIES = new Set(['app.asar', 'app.asar.unpacked/']);
+const DATA_MIGRATION_BOUNDARY_STAGES = new Set(['database.migration', 'database.schema_repair']);
 const MAX_REPORTED_DIR_ENTRIES = 20;
 
 function collectBackendStartupText(error: unknown): string {
@@ -171,6 +172,18 @@ export function classifyBackendStartupFailure(error: unknown): BackendStartupFai
     typeof details?.backendBoundaryCode === 'string' ? details.backendBoundaryCode : undefined;
   const backendBoundaryStage =
     typeof details?.backendBoundaryStage === 'string' ? details.backendBoundaryStage : undefined;
+
+  if (
+    backendBoundaryCode === 'BOOTSTRAP_DATA_INIT_FAILED' &&
+    backendBoundaryStage &&
+    DATA_MIGRATION_BOUNDARY_STAGES.has(backendBoundaryStage)
+  ) {
+    return {
+      reason: 'backend_data_migration_failed',
+      backendBoundaryCode,
+      backendBoundaryStage,
+    };
+  }
 
   return {
     reason: 'backend_startup_failed',
