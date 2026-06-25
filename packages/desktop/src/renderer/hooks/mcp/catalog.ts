@@ -111,7 +111,19 @@ export const ensureBackendMcpCatalog = async (): Promise<{
     }
   }
 
-  const allServers = dedupeServers([...userServers, ...builtinServers]);
+  const rawAllServers = dedupeServers([...userServers, ...builtinServers]);
+
+  // Preserve last_test_status and last_connected from local config across page
+  // navigation. The backend catalog has no knowledge of these UI-only fields, so
+  // without this merge they reset to undefined every time the page remounts.
+  const prevStatusById = new Map(
+    localServers.map((s) => [s.id, { last_test_status: s.last_test_status, last_connected: s.last_connected }])
+  );
+  const allServers = rawAllServers.map((s) => ({
+    ...s,
+    ...prevStatusById.get(s.id),
+  }));
+
   configService.setLocal('mcp.config', allServers);
 
   return {
