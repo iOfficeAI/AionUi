@@ -97,7 +97,7 @@
       "reconnect_agent": "Seçili ajanı yeniden başlatın veya yeniden bağlayın, ardından tekrar deneyin.",
       "check_agent_login": "Seçili ajanda oturum açın veya kimlik bilgilerini yenileyin.",
       "check_agent_installation": "Ajan kurulumunu ve yerel komut yapılandırmasını kontrol edin.",
-      "check_agent_version": "Ajanı güncelleyin veya protokol sürümü uyumsuzluğunu düzeltin.",
+      "check_agent_version": "Ajan protokolü ve sürüm uyumluluğunu kontrol edin.",
       "check_local_command": "Eksik komutu yükleyin veya PATH içinde olduğundan emin olun.",
       "check_provider_credentials": "Ayarlar bölümünde model sağlayıcının API anahtarını veya hesap kimlik bilgilerini kontrol edin.",
       "check_provider_billing": "Model sağlayıcının bakiyesini, kredilerini veya kotasını kontrol edin.",
@@ -155,15 +155,15 @@
       },
       "USER_AGENT_SESSION_NOT_FOUND": {
         "title": "Ajan oturumu kayboldu",
-        "body": "Ajan artık bu oturumu tanımıyor. Yeni bir sohbet başlatın veya ajanı yeniden bağlayın."
+        "body": "Ajan bu oturumun bulunamadığını veya artık bilinmediğini bildirdi."
       },
       "USER_AGENT_UNSUPPORTED_METHOD": {
         "title": "Seçili ajan bu işlemi desteklemiyor",
-        "body": "Bu ajan istenen işlemi gerçekleştiremiyor. Başka bir ajan deneyin veya mevcut ajanı güncelleyin."
+        "body": "Ajan, istenen ACP yönteminin desteklenmediğini veya kullanılamadığını bildirdi."
       },
       "USER_AGENT_INVALID_PARAMS": {
         "title": "Seçili ajan isteği reddetti",
-        "body": "Ajan istek biçiminin geçersiz olduğunu bildirdi. Mesajı sadeleştirin veya başka bir ajana geçin."
+        "body": "Ajan, istek parametrelerinin geçersiz olduğunu bildirdi."
       },
       "USER_AGENT_HANDSHAKE_FAILED": {
         "title": "Ajan el sıkışması başarısız oldu",
@@ -175,11 +175,27 @@
       },
       "USER_AGENT_ACP_INIT_FAILED": {
         "title": "Ajan protokolü başlatılamadı",
-        "body": "Uygulama bu ajan ile Agent Client Protocol oturumunu başlatamadı. Ajan sürümünü kontrol edip yeniden bağlayın."
+        "body": "Uygulama bu ajan ile Agent Client Protocol oturumunu başlatamadı."
+      },
+      "USER_AGENT_PROTOCOL_PARSE_ERROR": {
+        "title": "Agent bir protokol ayrıştırma hatası bildirdi",
+        "body": "Seçili Agent, bir ACP/JSON-RPC mesajının ayrıştırılamadığını bildirdi."
+      },
+      "USER_AGENT_INVALID_REQUEST": {
+        "title": "Agent geçersiz bir protokol isteği bildirdi",
+        "body": "Seçili Agent, ACP/JSON-RPC istek nesnesinin geçersiz olduğunu bildirdi."
+      },
+      "USER_AGENT_RESOURCE_NOT_FOUND": {
+        "title": "Agent gerekli kaynağı bulamadı",
+        "body": "Seçili Agent, dosya gibi gerekli bir kaynağın bulunamadığını bildirdi."
+      },
+      "USER_AGENT_PROTOCOL_ERROR": {
+        "title": "Agent protokol hatası döndürdü",
+        "body": "Seçili Agent standart dışı bir ACP hata kodu döndürdü."
       },
       "USER_AGENT_PROTOCOL_MISMATCH": {
         "title": "Ajan protokol sürümleri uyumsuz",
-        "body": "Seçili ajan uyumsuz bir protokol sürümü kullanıyor. Ajanı güncelleyin veya uyumlu bir ajana geçin."
+        "body": "Uygulama ve seçili ajan uyumlu bir ACP protokol sürümü kullanamadı."
       },
       "USER_AGENT_NO_PREVIOUS_SESSION": {
         "title": "Önceki ajan oturumu kullanılamıyor",
@@ -196,6 +212,10 @@
       "USER_LLM_PROVIDER_AUTH_FAILED": {
         "title": "Model sağlayıcı kimlik doğrulaması başarısız oldu",
         "body": "Seçili sağlayıcı API anahtarını veya hesap kimlik bilgilerini reddetti. Sağlayıcı ayarlarını kontrol edip tekrar deneyin."
+      },
+      "USER_LLM_PROVIDER_AWS_SSO_EXPIRED": {
+        "title": "AWS SSO oturumunun süresi doldu",
+        "body": "AWS SSO oturumunuzun süresi doldu. Eşleşen profile için 'aws sso login' komutunu çalıştırın, ardından mesajı yeniden gönderin."
       },
       "USER_LLM_PROVIDER_CONFIG_ERROR": {
         "title": "Model sağlayıcı yapılandırması geçersiz",
@@ -260,7 +280,7 @@
       },
       "UNKNOWN_UPSTREAM_ERROR": {
         "title": "Üst ajan veya sağlayıcı başarısız oldu",
-        "body": "Uygulama bir üst hata aldı ancak güvenle sınıflandıramadı. Aşağıdaki ayrıntıları inceleyin veya geri bildirim gönderin."
+        "body": "Uygulama bir üst hata aldı ancak bunun ajandan, sağlayıcıdan, ağdan veya yerel ortamdan gelip gelmediğini belirleyemedi."
       },
       "MCP_HTTP_RESPONSE_READ_FAILED": {
         "title": "Failed to read the team helper response",

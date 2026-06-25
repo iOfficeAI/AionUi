@@ -115,7 +115,7 @@
       "reconnect_agent": "Reinicie ou reconecte o agente selecionado e tente novamente.",
       "check_agent_login": "Entre no agente selecionado ou atualize as credenciais.",
       "check_agent_installation": "Verifique a instalação do agente e a configuração do comando local.",
-      "check_agent_version": "Atualize o agente ou corrija a incompatibilidade da versão do protocolo.",
+      "check_agent_version": "Verifique a compatibilidade de protocolo e versão do agente.",
       "check_local_command": "Instale o comando ausente ou confirme que ele foi adicionado ao PATH.",
       "check_provider_credentials": "Verifique a chave de API ou as credenciais da conta do provedor de modelos nas configurações.",
       "check_provider_billing": "Verifique saldo, créditos ou cota do provedor de modelos.",
@@ -173,15 +173,15 @@
       },
       "USER_AGENT_SESSION_NOT_FOUND": {
         "title": "A sessão do agente foi perdida",
-        "body": "O agente não reconhece mais esta sessão. Inicie um novo chat ou reconecte o agente."
+        "body": "O agente informou que esta sessão não foi encontrada ou não é mais conhecida por ele."
       },
       "USER_AGENT_UNSUPPORTED_METHOD": {
         "title": "O agente selecionado não oferece suporte a esta ação",
-        "body": "Este agente não consegue lidar com a operação solicitada. Tente outro agente ou atualize o atual."
+        "body": "O agente informou que o método ACP solicitado não é suportado ou não está disponível."
       },
       "USER_AGENT_INVALID_PARAMS": {
         "title": "O agente selecionado rejeitou a solicitação",
-        "body": "O agente informou que o formato da solicitação é inválido. Tente simplificar a mensagem ou trocar de agente."
+        "body": "O agente informou que os parâmetros da solicitação são inválidos."
       },
       "USER_AGENT_HANDSHAKE_FAILED": {
         "title": "Falha no handshake do agente",
@@ -193,11 +193,27 @@
       },
       "USER_AGENT_ACP_INIT_FAILED": {
         "title": "Falha ao inicializar o protocolo do agente",
-        "body": "O aplicativo não conseguiu inicializar a sessão do Agent Client Protocol com este agente. Verifique a versão do agente e reconecte."
+        "body": "O aplicativo não conseguiu inicializar uma sessão do Agent Client Protocol com este agente."
+      },
+      "USER_AGENT_PROTOCOL_PARSE_ERROR": {
+        "title": "Agent informou um erro de análise de protocolo",
+        "body": "O Agent selecionado informou que uma mensagem ACP/JSON-RPC não pôde ser analisada."
+      },
+      "USER_AGENT_INVALID_REQUEST": {
+        "title": "Agent informou uma solicitação de protocolo inválida",
+        "body": "O Agent selecionado informou que o objeto de solicitação ACP/JSON-RPC é inválido."
+      },
+      "USER_AGENT_RESOURCE_NOT_FOUND": {
+        "title": "Agent não encontrou um recurso necessário",
+        "body": "O Agent selecionado informou que um recurso necessário, como um arquivo, não foi encontrado."
+      },
+      "USER_AGENT_PROTOCOL_ERROR": {
+        "title": "Agent retornou um erro de protocolo",
+        "body": "O Agent selecionado retornou um código de erro ACP fora do padrão."
       },
       "USER_AGENT_PROTOCOL_MISMATCH": {
         "title": "As versões do protocolo do agente são incompatíveis",
-        "body": "O agente selecionado está usando uma versão de protocolo incompatível. Atualize o agente ou troque para um compatível."
+        "body": "O aplicativo e o agente selecionado não puderam usar uma versão compatível do protocolo ACP."
       },
       "USER_AGENT_NO_PREVIOUS_SESSION": {
         "title": "A sessão anterior do agente não está disponível",
@@ -214,6 +230,10 @@
       "USER_LLM_PROVIDER_AUTH_FAILED": {
         "title": "Falha de autenticação do provedor de modelo",
         "body": "O provedor selecionado rejeitou a chave de API ou as credenciais da conta. Verifique as configurações do provedor e tente novamente."
+      },
+      "USER_LLM_PROVIDER_AWS_SSO_EXPIRED": {
+        "title": "Sessão do AWS SSO expirada",
+        "body": "Sua sessão do AWS SSO expirou. Execute 'aws sso login' para o profile correspondente e envie a mensagem novamente."
       },
       "USER_LLM_PROVIDER_CONFIG_ERROR": {
         "title": "A configuração do provedor de modelo é inválida",
@@ -283,7 +303,7 @@
       },
       "UNKNOWN_UPSTREAM_ERROR": {
         "title": "O agente ou provedor upstream falhou",
-        "body": "O aplicativo recebeu um erro upstream, mas não conseguiu classificá-lo com confiança. Revise os detalhes abaixo ou envie feedback."
+        "body": "O aplicativo recebeu um erro upstream, mas não conseguiu determinar se ele veio do agente, provedor, rede ou ambiente local."
       },
       "MCP_HTTP_RESPONSE_READ_FAILED": {
         "title": "Failed to read the team helper response",

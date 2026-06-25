@@ -79,7 +79,7 @@ const MessageTips: React.FC<{ message: IMessageTips }> = ({ message }) => {
   const { json, data } = useFormatContent(localizedTipBody);
 
   const displayContent = json ? '' : localizedTipBody;
-  const shouldShowFeedback = type === 'error';
+  const shouldShowFeedback = type === 'error' && structuredError?.feedback_recommended !== false;
 
   if (structuredError) {
     const errorCode = structuredError.code;

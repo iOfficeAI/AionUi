@@ -114,7 +114,7 @@
       "reconnect_agent": "選択したエージェントを再起動または再接続してから再試行してください。",
       "check_agent_login": "選択したエージェントにログインするか、認証情報を更新してください。",
       "check_agent_installation": "エージェントのインストール状態とローカルコマンド設定を確認してください。",
-      "check_agent_version": "エージェントを更新するか、プロトコルバージョンの不一致を修正してください。",
+      "check_agent_version": "エージェントのプロトコルとバージョンの互換性を確認してください。",
       "check_local_command": "不足しているコマンドをインストールするか、PATH に追加されていることを確認してください。",
       "check_provider_credentials": "設定でモデルプロバイダーの API キーまたはアカウント認証情報を確認してください。",
       "check_provider_billing": "モデルプロバイダーの残高、クレジット、またはクォータを確認してください。",
@@ -172,15 +172,15 @@
       },
       "USER_AGENT_SESSION_NOT_FOUND": {
         "title": "エージェントセッションが失われました",
-        "body": "エージェントがこのセッションを認識できなくなりました。新しいチャットを開始するか、エージェントを再接続してください。"
+        "body": "エージェントは、このセッションが見つからない、または認識されていないと報告しました。"
       },
       "USER_AGENT_UNSUPPORTED_METHOD": {
         "title": "選択したエージェントはこの操作に対応していません",
-        "body": "このエージェントは要求された操作を処理できません。別のエージェントを試すか、現在のエージェントを更新してください。"
+        "body": "エージェントは、要求された ACP メソッドがサポートされていない、または利用できないと報告しました。"
       },
       "USER_AGENT_INVALID_PARAMS": {
         "title": "選択したエージェントがリクエストを拒否しました",
-        "body": "エージェントはリクエスト形式が無効だと報告しました。メッセージを簡略化するか、別のエージェントに切り替えてください。"
+        "body": "エージェントはリクエストパラメータが無効だと報告しました。"
       },
       "USER_AGENT_HANDSHAKE_FAILED": {
         "title": "エージェントのハンドシェイクに失敗しました",
@@ -192,11 +192,27 @@
       },
       "USER_AGENT_ACP_INIT_FAILED": {
         "title": "エージェントプロトコルの初期化に失敗しました",
-        "body": "アプリはこのエージェントとの Agent Client Protocol セッションを初期化できませんでした。エージェントのバージョンを確認して再接続してください。"
+        "body": "アプリはこのエージェントとの Agent Client Protocol セッションを初期化できませんでした。"
+      },
+      "USER_AGENT_PROTOCOL_PARSE_ERROR": {
+        "title": "Agent がプロトコル解析エラーを報告しました",
+        "body": "選択した Agent は、ACP/JSON-RPC メッセージを解析できなかったと報告しました。"
+      },
+      "USER_AGENT_INVALID_REQUEST": {
+        "title": "Agent が無効なプロトコルリクエストを報告しました",
+        "body": "選択した Agent は、ACP/JSON-RPC リクエストオブジェクトが無効だと報告しました。"
+      },
+      "USER_AGENT_RESOURCE_NOT_FOUND": {
+        "title": "Agent が必要なリソースを見つけられません",
+        "body": "選択した Agent は、ファイルなどの必要なリソースが見つからないと報告しました。"
+      },
+      "USER_AGENT_PROTOCOL_ERROR": {
+        "title": "Agent がプロトコルエラーを返しました",
+        "body": "選択した Agent は非標準の ACP エラーコードを返しました。"
       },
       "USER_AGENT_PROTOCOL_MISMATCH": {
         "title": "エージェントプロトコルのバージョンに互換性がありません",
-        "body": "選択したエージェントは互換性のないプロトコルバージョンを使用しています。エージェントを更新するか、互換性のあるエージェントに切り替えてください。"
+        "body": "アプリと選択したエージェントは互換性のある ACP プロトコルバージョンを使用できませんでした。"
       },
       "USER_AGENT_NO_PREVIOUS_SESSION": {
         "title": "以前のエージェントセッションを利用できません",
@@ -213,6 +229,10 @@
       "USER_LLM_PROVIDER_AUTH_FAILED": {
         "title": "モデルプロバイダーの認証に失敗しました",
         "body": "選択したプロバイダーが API キーまたはアカウント認証情報を拒否しました。プロバイダー設定を確認してから再試行してください。"
+      },
+      "USER_LLM_PROVIDER_AWS_SSO_EXPIRED": {
+        "title": "AWS SSO セッションの有効期限が切れています",
+        "body": "AWS SSO セッションの有効期限が切れています。対応する profile で 'aws sso login' を実行してから、もう一度メッセージを送信してください。"
       },
       "USER_LLM_PROVIDER_CONFIG_ERROR": {
         "title": "モデルプロバイダーの設定が無効です",
@@ -277,7 +297,7 @@
       },
       "UNKNOWN_UPSTREAM_ERROR": {
         "title": "上流のエージェントまたはプロバイダーで失敗しました",
-        "body": "アプリは上流エラーを受け取りましたが、確実には分類できませんでした。下の詳細を確認するか、フィードバックを送信してください。"
+        "body": "アプリは上流エラーを受け取りましたが、エージェント、プロバイダー、ネットワーク、ローカル環境のどこから来たかを判定できませんでした。"
       },
       "MCP_HTTP_RESPONSE_READ_FAILED": {
         "title": "Failed to read the team helper response",

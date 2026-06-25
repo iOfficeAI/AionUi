@@ -114,7 +114,7 @@
       "reconnect_agent": "Restart or reconnect the selected agent, then retry.",
       "check_agent_login": "Log in to the selected agent, or refresh its credentials.",
       "check_agent_installation": "Check the agent installation and local command configuration.",
-      "check_agent_version": "Update the agent, or fix the protocol version incompatibility.",
+      "check_agent_version": "Check the agent protocol and version compatibility.",
       "check_local_command": "Install the missing command, or confirm it has been added to PATH.",
       "check_provider_credentials": "Check the model provider API key or account credentials in settings.",
       "check_provider_billing": "Check the model provider balance, credits, or quota.",
@@ -172,15 +172,15 @@
       },
       "USER_AGENT_SESSION_NOT_FOUND": {
         "title": "The agent session was lost",
-        "body": "The agent no longer recognizes this session. Start a new chat or reconnect the agent."
+        "body": "The agent reported that this session was not found or is no longer known to it."
       },
       "USER_AGENT_UNSUPPORTED_METHOD": {
         "title": "The selected agent does not support this action",
-        "body": "This agent cannot handle the requested operation. Try another agent or update the current one."
+        "body": "The agent reported that the requested ACP method is not supported or is not available."
       },
       "USER_AGENT_INVALID_PARAMS": {
         "title": "The selected agent rejected the request",
-        "body": "The agent reported that the request format was invalid. Try simplifying the message or switching agents."
+        "body": "The agent reported that the request parameters were invalid."
       },
       "USER_AGENT_HANDSHAKE_FAILED": {
         "title": "Agent handshake failed",
@@ -192,11 +192,27 @@
       },
       "USER_AGENT_ACP_INIT_FAILED": {
         "title": "Agent protocol initialization failed",
-        "body": "The app could not initialize the Agent Client Protocol session with this agent. Check the agent version and reconnect."
+        "body": "The app could not initialize an Agent Client Protocol session with this agent."
+      },
+      "USER_AGENT_PROTOCOL_PARSE_ERROR": {
+        "title": "Agent reported a protocol parse error",
+        "body": "The selected agent reported that an ACP/JSON-RPC message could not be parsed."
+      },
+      "USER_AGENT_INVALID_REQUEST": {
+        "title": "Agent reported an invalid protocol request",
+        "body": "The selected agent reported that the ACP/JSON-RPC request object was invalid."
+      },
+      "USER_AGENT_RESOURCE_NOT_FOUND": {
+        "title": "Agent could not find a required resource",
+        "body": "The selected agent reported that a required resource, such as a file, was not found."
+      },
+      "USER_AGENT_PROTOCOL_ERROR": {
+        "title": "Agent returned a protocol error",
+        "body": "The selected agent returned a non-standard ACP error code."
       },
       "USER_AGENT_PROTOCOL_MISMATCH": {
         "title": "Agent protocol versions are incompatible",
-        "body": "The selected agent is using an incompatible protocol version. Update the agent or switch to a compatible one."
+        "body": "The app and selected agent could not use a compatible ACP protocol version."
       },
       "USER_AGENT_NO_PREVIOUS_SESSION": {
         "title": "Previous agent session is unavailable",
@@ -213,6 +229,10 @@
       "USER_LLM_PROVIDER_AUTH_FAILED": {
         "title": "Model provider authentication failed",
         "body": "The selected provider rejected the API key or account credentials. Check the provider settings and try again."
+      },
+      "USER_LLM_PROVIDER_AWS_SSO_EXPIRED": {
+        "title": "AWS SSO session expired",
+        "body": "Your AWS SSO session has expired. Run 'aws sso login' for the matching profile, then send the message again."
       },
       "USER_LLM_PROVIDER_CONFIG_ERROR": {
         "title": "Model provider configuration is invalid",
@@ -277,7 +297,7 @@
       },
       "UNKNOWN_UPSTREAM_ERROR": {
         "title": "The upstream agent or provider failed",
-        "body": "The app received an upstream error but could not classify it confidently. Review the details below or send feedback."
+        "body": "The app received an upstream error but could not classify whether it came from the agent, provider, network, or local environment."
       },
       "MCP_HTTP_RESPONSE_READ_FAILED": {
         "title": "Failed to read the team helper response",

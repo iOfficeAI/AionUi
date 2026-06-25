@@ -114,7 +114,7 @@
       "reconnect_agent": "선택한 에이전트를 다시 시작하거나 다시 연결한 뒤 재시도하세요.",
       "check_agent_login": "선택한 에이전트에 로그인하거나 인증 정보를 새로 고치세요.",
       "check_agent_installation": "에이전트 설치 상태와 로컬 명령 설정을 확인하세요.",
-      "check_agent_version": "에이전트를 업데이트하거나 프로토콜 버전 호환성 문제를 해결하세요.",
+      "check_agent_version": "에이전트 프로토콜 및 버전 호환성을 확인하세요.",
       "check_local_command": "누락된 명령을 설치하거나 PATH에 추가되어 있는지 확인하세요.",
       "check_provider_credentials": "설정에서 모델 제공자의 API 키 또는 계정 인증 정보를 확인하세요.",
       "check_provider_billing": "모델 제공자의 잔액, 크레딧 또는 할당량을 확인하세요.",
@@ -172,15 +172,15 @@
       },
       "USER_AGENT_SESSION_NOT_FOUND": {
         "title": "에이전트 세션을 찾을 수 없습니다",
-        "body": "에이전트가 더 이상 이 세션을 인식하지 못합니다. 새 채팅을 시작하거나 에이전트를 다시 연결하세요."
+        "body": "에이전트가 이 세션을 찾을 수 없거나 더 이상 알 수 없다고 보고했습니다."
       },
       "USER_AGENT_UNSUPPORTED_METHOD": {
         "title": "선택한 에이전트가 이 작업을 지원하지 않습니다",
-        "body": "이 에이전트는 요청한 작업을 처리할 수 없습니다. 다른 에이전트를 사용하거나 현재 에이전트를 업데이트하세요."
+        "body": "에이전트가 요청한 ACP 메서드가 지원되지 않거나 사용할 수 없다고 보고했습니다."
       },
       "USER_AGENT_INVALID_PARAMS": {
         "title": "선택한 에이전트가 요청을 거부했습니다",
-        "body": "에이전트가 요청 형식이 잘못되었다고 보고했습니다. 메시지를 단순화하거나 다른 에이전트로 전환하세요."
+        "body": "에이전트가 요청 매개변수가 잘못되었다고 보고했습니다."
       },
       "USER_AGENT_HANDSHAKE_FAILED": {
         "title": "에이전트 핸드셰이크에 실패했습니다",
@@ -192,11 +192,27 @@
       },
       "USER_AGENT_ACP_INIT_FAILED": {
         "title": "에이전트 프로토콜 초기화에 실패했습니다",
-        "body": "앱이 이 에이전트와 Agent Client Protocol 세션을 초기화하지 못했습니다. 에이전트 버전을 확인하고 다시 연결하세요."
+        "body": "앱이 이 에이전트와 Agent Client Protocol 세션을 초기화하지 못했습니다."
+      },
+      "USER_AGENT_PROTOCOL_PARSE_ERROR": {
+        "title": "Agent가 프로토콜 구문 분석 오류를 보고했습니다",
+        "body": "선택한 Agent가 ACP/JSON-RPC 메시지를 구문 분석할 수 없다고 보고했습니다."
+      },
+      "USER_AGENT_INVALID_REQUEST": {
+        "title": "Agent가 잘못된 프로토콜 요청을 보고했습니다",
+        "body": "선택한 Agent가 ACP/JSON-RPC 요청 객체가 잘못되었다고 보고했습니다."
+      },
+      "USER_AGENT_RESOURCE_NOT_FOUND": {
+        "title": "Agent가 필요한 리소스를 찾지 못했습니다",
+        "body": "선택한 Agent가 파일 같은 필요한 리소스를 찾을 수 없다고 보고했습니다."
+      },
+      "USER_AGENT_PROTOCOL_ERROR": {
+        "title": "Agent가 프로토콜 오류를 반환했습니다",
+        "body": "선택한 Agent가 비표준 ACP 오류 코드를 반환했습니다."
       },
       "USER_AGENT_PROTOCOL_MISMATCH": {
         "title": "에이전트 프로토콜 버전이 호환되지 않습니다",
-        "body": "선택한 에이전트가 호환되지 않는 프로토콜 버전을 사용하고 있습니다. 에이전트를 업데이트하거나 호환되는 에이전트로 전환하세요."
+        "body": "앱과 선택한 에이전트가 호환되는 ACP 프로토콜 버전을 사용할 수 없었습니다."
       },
       "USER_AGENT_NO_PREVIOUS_SESSION": {
         "title": "이전 에이전트 세션을 사용할 수 없습니다",
@@ -213,6 +229,10 @@
       "USER_LLM_PROVIDER_AUTH_FAILED": {
         "title": "모델 제공자 인증에 실패했습니다",
         "body": "선택한 제공자가 API 키 또는 계정 인증 정보를 거부했습니다. 제공자 설정을 확인하고 다시 시도하세요."
+      },
+      "USER_LLM_PROVIDER_AWS_SSO_EXPIRED": {
+        "title": "AWS SSO 세션이 만료되었습니다",
+        "body": "AWS SSO 세션이 만료되었습니다. 해당 profile로 'aws sso login'을 실행한 뒤 메시지를 다시 보내세요."
       },
       "USER_LLM_PROVIDER_CONFIG_ERROR": {
         "title": "모델 제공자 설정이 올바르지 않습니다",
@@ -277,7 +297,7 @@
       },
       "UNKNOWN_UPSTREAM_ERROR": {
         "title": "상위 에이전트 또는 제공자에서 오류가 발생했습니다",
-        "body": "앱이 상위 오류를 받았지만 확실하게 분류할 수 없습니다. 아래 세부 정보를 확인하거나 피드백을 보내세요."
+        "body": "앱이 상위 오류를 받았지만 에이전트, 제공자, 네트워크 또는 로컬 환경 중 어디에서 발생했는지 판단할 수 없었습니다."
       },
       "MCP_HTTP_RESPONSE_READ_FAILED": {
         "title": "Failed to read the team helper response",

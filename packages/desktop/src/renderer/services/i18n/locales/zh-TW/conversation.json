@@ -114,7 +114,7 @@
       "reconnect_agent": "Restart or reconnect the selected agent, then retry.",
       "check_agent_login": "Log in to the selected agent, or refresh its credentials.",
       "check_agent_installation": "Check the agent installation and local command configuration.",
-      "check_agent_version": "Update the agent, or fix the protocol version incompatibility.",
+      "check_agent_version": "請檢查 Agent 協議和版本相容性。",
       "check_local_command": "Install the missing command, or confirm it has been added to PATH.",
       "check_provider_credentials": "Check the model provider API key or account credentials in settings.",
       "check_provider_billing": "Check the model provider balance, credits, or quota.",
@@ -172,15 +172,15 @@
       },
       "USER_AGENT_SESSION_NOT_FOUND": {
         "title": "Agent 會話已遺失",
-        "body": "Agent 已無法識別目前會話。請建立新對話或重新連線 Agent。"
+        "body": "Agent 回報找不到目前會話，或已不再識別該會話。"
       },
       "USER_AGENT_UNSUPPORTED_METHOD": {
         "title": "所選 Agent 不支援該操作",
-        "body": "目前 Agent 無法處理這個請求。可以嘗試切換 Agent 或升級目前 Agent。"
+        "body": "Agent 回報請求的 ACP 方法不受支援，或目前不可用。"
       },
       "USER_AGENT_INVALID_PARAMS": {
         "title": "所選 Agent 拒絕了請求",
-        "body": "Agent 認為請求格式無效。可以簡化訊息內容，或切換到其他 Agent。"
+        "body": "Agent 回報請求參數無效。"
       },
       "USER_AGENT_HANDSHAKE_FAILED": {
         "title": "Agent 握手失敗",
@@ -192,11 +192,27 @@
       },
       "USER_AGENT_ACP_INIT_FAILED": {
         "title": "Agent 協議初始化失敗",
-        "body": "應用程式無法和該 Agent 初始化 Agent Client Protocol 會話。請檢查 Agent 版本並重新連線。"
+        "body": "應用程式無法和該 Agent 初始化 Agent Client Protocol 會話。"
+      },
+      "USER_AGENT_PROTOCOL_PARSE_ERROR": {
+        "title": "Agent 回報了協議解析錯誤",
+        "body": "所選 Agent 回報某則 ACP/JSON-RPC 訊息無法解析。"
+      },
+      "USER_AGENT_INVALID_REQUEST": {
+        "title": "Agent 回報協議請求無效",
+        "body": "所選 Agent 回報 ACP/JSON-RPC 請求物件無效。"
+      },
+      "USER_AGENT_RESOURCE_NOT_FOUND": {
+        "title": "Agent 找不到所需資源",
+        "body": "所選 Agent 回報找不到所需資源，例如某個檔案。"
+      },
+      "USER_AGENT_PROTOCOL_ERROR": {
+        "title": "Agent 回傳了協議錯誤",
+        "body": "所選 Agent 回傳了非標準 ACP 錯誤碼。"
       },
       "USER_AGENT_PROTOCOL_MISMATCH": {
         "title": "Agent 協議版本不相容",
-        "body": "所選 Agent 使用的協議版本不相容。請升級 Agent，或切換到相容的 Agent。"
+        "body": "應用程式和所選 Agent 無法使用相容的 ACP 協議版本。"
       },
       "USER_AGENT_NO_PREVIOUS_SESSION": {
         "title": "無法恢復上一次 Agent 會話",
@@ -213,6 +229,10 @@
       "USER_LLM_PROVIDER_AUTH_FAILED": {
         "title": "模型服務商驗證失敗",
         "body": "所選服務商拒絕了 API Key 或帳號憑證。請檢查模型設定後重試。"
+      },
+      "USER_LLM_PROVIDER_AWS_SSO_EXPIRED": {
+        "title": "AWS SSO 工作階段已過期",
+        "body": "AWS SSO 工作階段已過期。請在終端機為對應的 profile 執行 'aws sso login'，然後重新傳送訊息。"
       },
       "USER_LLM_PROVIDER_CONFIG_ERROR": {
         "title": "模型服務商設定無效",
@@ -277,7 +297,7 @@
       },
       "UNKNOWN_UPSTREAM_ERROR": {
         "title": "上游 Agent 或模型服務商出錯",
-        "body": "收到上游錯誤，但暫時無法準確分類。可以查看下方詳情或提交回饋。"
+        "body": "收到上游錯誤，但暫時無法判斷它來自 Agent、模型服務商、網路還是本機環境。"
       },
       "MCP_HTTP_RESPONSE_READ_FAILED": {
         "title": "讀取團隊輔助程序回應失敗",

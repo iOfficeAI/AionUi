@@ -114,7 +114,7 @@
       "reconnect_agent": "请重启或重新连接所选 Agent 后重试。",
       "check_agent_login": "请先登录所选 Agent，或刷新它的凭证。",
       "check_agent_installation": "请检查 Agent 的安装状态和本地命令配置。",
-      "check_agent_version": "请更新 Agent，或修复协议版本不兼容问题。",
+      "check_agent_version": "请检查 Agent 协议和版本兼容性。",
       "check_local_command": "请安装缺失的命令，或确认它已经加入 PATH。",
       "check_provider_credentials": "请在设置中检查模型服务商的 API Key 或账号凭证。",
       "check_provider_billing": "请检查模型服务商的余额、额度或配额。",
@@ -172,15 +172,15 @@
       },
       "USER_AGENT_SESSION_NOT_FOUND": {
         "title": "Agent 会话已丢失",
-        "body": "Agent 已无法识别当前会话。请新建对话或重新连接 Agent。"
+        "body": "Agent 报告找不到当前会话，或已不再识别该会话。"
       },
       "USER_AGENT_UNSUPPORTED_METHOD": {
         "title": "所选 Agent 不支持该操作",
-        "body": "当前 Agent 无法处理这个请求。可以尝试切换 Agent 或升级当前 Agent。"
+        "body": "Agent 报告请求的 ACP 方法不受支持，或当前不可用。"
       },
       "USER_AGENT_INVALID_PARAMS": {
         "title": "所选 Agent 拒绝了请求",
-        "body": "Agent 认为请求格式无效。可以简化消息内容，或切换到其他 Agent。"
+        "body": "Agent 报告请求参数无效。"
       },
       "USER_AGENT_HANDSHAKE_FAILED": {
         "title": "Agent 握手失败",
@@ -192,11 +192,27 @@
       },
       "USER_AGENT_ACP_INIT_FAILED": {
         "title": "Agent 协议初始化失败",
-        "body": "应用无法和该 Agent 初始化 Agent Client Protocol 会话。请检查 Agent 版本并重新连接。"
+        "body": "应用无法和该 Agent 初始化 Agent Client Protocol 会话。"
+      },
+      "USER_AGENT_PROTOCOL_PARSE_ERROR": {
+        "title": "Agent 报告了协议解析错误",
+        "body": "所选 Agent 报告某条 ACP/JSON-RPC 消息无法解析。"
+      },
+      "USER_AGENT_INVALID_REQUEST": {
+        "title": "Agent 报告协议请求无效",
+        "body": "所选 Agent 报告 ACP/JSON-RPC 请求对象无效。"
+      },
+      "USER_AGENT_RESOURCE_NOT_FOUND": {
+        "title": "Agent 找不到所需资源",
+        "body": "所选 Agent 报告找不到所需资源，例如某个文件。"
+      },
+      "USER_AGENT_PROTOCOL_ERROR": {
+        "title": "Agent 返回了协议错误",
+        "body": "所选 Agent 返回了非标准 ACP 错误码。"
       },
       "USER_AGENT_PROTOCOL_MISMATCH": {
         "title": "Agent 协议版本不兼容",
-        "body": "所选 Agent 使用的协议版本不兼容。请升级 Agent，或切换到兼容的 Agent。"
+        "body": "应用和所选 Agent 无法使用兼容的 ACP 协议版本。"
       },
       "USER_AGENT_NO_PREVIOUS_SESSION": {
         "title": "无法恢复上一次 Agent 会话",
@@ -213,6 +229,10 @@
       "USER_LLM_PROVIDER_AUTH_FAILED": {
         "title": "模型服务商鉴权失败",
         "body": "所选服务商拒绝了 API Key 或账号凭证。请检查模型设置后重试。"
+      },
+      "USER_LLM_PROVIDER_AWS_SSO_EXPIRED": {
+        "title": "AWS SSO 会话已过期",
+        "body": "AWS SSO 会话已过期。请在终端为对应 profile 运行 'aws sso login'，然后重新发送消息。"
       },
       "USER_LLM_PROVIDER_CONFIG_ERROR": {
         "title": "模型服务商配置无效",
@@ -277,7 +297,7 @@
       },
       "UNKNOWN_UPSTREAM_ERROR": {
         "title": "上游 Agent 或模型服务商出错",
-        "body": "收到上游错误，但暂时无法准确分类。可以查看下方详情或提交反馈。"
+        "body": "收到上游错误，但暂时无法判断它来自 Agent、模型服务商、网络还是本地环境。"
       },
       "MCP_HTTP_RESPONSE_READ_FAILED": {
         "title": "读取团队辅助进程响应失败",

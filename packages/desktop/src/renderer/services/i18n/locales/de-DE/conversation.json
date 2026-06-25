@@ -109,7 +109,7 @@
       "reconnect_agent": "Starte den ausgewählten Agent neu oder verbinde ihn erneut, dann versuche es nochmal.",
       "check_agent_login": "Melde dich beim ausgewählten Agent an oder aktualisiere seine Anmeldedaten.",
       "check_agent_installation": "Überprüfe die Agent-Installation und die lokale Befehlskonfiguration.",
-      "check_agent_version": "Aktualisiere den Agent oder behebe die Inkompatibilität der Protokollversion.",
+      "check_agent_version": "Prüfe die Protokoll- und Versionskompatibilität des Agenten.",
       "check_local_command": "Installiere den fehlenden Befehl oder stelle sicher, dass er zu PATH hinzugefügt wurde.",
       "check_provider_credentials": "Überprüfe den API-Schlüssel des Modellanbieters oder die Kontoanmeldedaten in den Einstellungen.",
       "check_provider_billing": "Überprüfe das Guthaben, die Credits oder das Kontingent des Modellanbieters.",
@@ -167,15 +167,15 @@
       },
       "USER_AGENT_SESSION_NOT_FOUND": {
         "title": "Die Agent-Sitzung ging verloren",
-        "body": "Der Agent erkennt diese Sitzung nicht mehr. Starten einen neuen Chat oder verbinde den Agenten neu."
+        "body": "Der Agent meldete, dass diese Sitzung nicht gefunden wurde oder ihm nicht mehr bekannt ist."
       },
       "USER_AGENT_UNSUPPORTED_METHOD": {
         "title": "Der ausgewählte Agent unterstützt diese Aktion nicht",
-        "body": "Dieser Agent kann die angeforderte Operation nicht ausführen. Versuche einen anderen Agenten oder aktualisiere den aktuellen."
+        "body": "Der Agent meldete, dass die angeforderte ACP-Methode nicht unterstützt wird oder nicht verfügbar ist."
       },
       "USER_AGENT_INVALID_PARAMS": {
         "title": "Der ausgewählte Agent lehnte die Anfrage ab",
-        "body": "Der Agent meldete, dass das Anforderungsformat ungültig ist. Versuche, die Nachricht zu vereinfachen oder wechsle Agenten."
+        "body": "Der Agent meldete, dass die Anfrageparameter ungültig sind."
       },
       "USER_AGENT_HANDSHAKE_FAILED": {
         "title": "Agent-Handshake fehlgeschlagen",
@@ -187,11 +187,27 @@
       },
       "USER_AGENT_ACP_INIT_FAILED": {
         "title": "Agent-Protokoll-Initialisierung fehlgeschlagen",
-        "body": "Die App konnte die Agent Client Protocol-Sitzung mit diesem Agenten nicht initialisieren. Überprüfe die Agent-Version und verbinde dich neu."
+        "body": "Die App konnte mit diesem Agenten keine Agent Client Protocol-Sitzung initialisieren."
+      },
+      "USER_AGENT_PROTOCOL_PARSE_ERROR": {
+        "title": "Agent meldete einen Protokoll-Parse-Fehler",
+        "body": "Der ausgewählte Agent meldete, dass eine ACP/JSON-RPC-Nachricht nicht geparst werden konnte."
+      },
+      "USER_AGENT_INVALID_REQUEST": {
+        "title": "Agent meldete eine ungültige Protokollanfrage",
+        "body": "Der ausgewählte Agent meldete, dass das ACP/JSON-RPC-Anfrageobjekt ungültig ist."
+      },
+      "USER_AGENT_RESOURCE_NOT_FOUND": {
+        "title": "Agent konnte eine benötigte Ressource nicht finden",
+        "body": "Der ausgewählte Agent meldete, dass eine benötigte Ressource, z. B. eine Datei, nicht gefunden wurde."
+      },
+      "USER_AGENT_PROTOCOL_ERROR": {
+        "title": "Agent hat einen Protokollfehler zurückgegeben",
+        "body": "Der ausgewählte Agent hat einen nicht standardmäßigen ACP-Fehlercode zurückgegeben."
       },
       "USER_AGENT_PROTOCOL_MISMATCH": {
         "title": "Agent-Protokollversionen sind inkompatibel",
-        "body": "Der ausgewählte Agent verwendet eine inkompatible Protokollversion. Aktualisiere den Agenten oder wechsle zu einem kompatiblen."
+        "body": "Die App und der ausgewählte Agent konnten keine kompatible ACP-Protokollversion verwenden."
       },
       "USER_AGENT_NO_PREVIOUS_SESSION": {
         "title": "Vorherige Agent-Sitzung nicht verfügbar",
@@ -208,6 +224,10 @@
       "USER_LLM_PROVIDER_AUTH_FAILED": {
         "title": "Authentifizierung des Modellanbieters fehlgeschlagen",
         "body": "Der ausgewählte Anbieter lehnte den API-Schlüssel oder die Kontoanmeldedaten ab. Überprüfe die Anbietereinstellungen und versuche es erneut."
+      },
+      "USER_LLM_PROVIDER_AWS_SSO_EXPIRED": {
+        "title": "AWS-SSO-Sitzung abgelaufen",
+        "body": "Deine AWS-SSO-Sitzung ist abgelaufen. Führe 'aws sso login' für das passende profile aus und sende die Nachricht anschließend erneut."
       },
       "USER_LLM_PROVIDER_CONFIG_ERROR": {
         "title": "Konfiguration des Modellanbieters ist ungültig",
@@ -272,7 +292,7 @@
       },
       "UNKNOWN_UPSTREAM_ERROR": {
         "title": "Der Upstream-Agent oder Provider ist fehlgeschlagen",
-        "body": "Die App hat einen Upstream-Fehler erhalten, konnte ihn aber nicht zuverlässig klassifizieren. Überprüfe die Details unten oder sende Feedback."
+        "body": "Die App hat einen Upstream-Fehler erhalten, konnte aber nicht sicher bestimmen, ob er vom Agenten, Provider, Netzwerk oder der lokalen Umgebung kam."
       }
     }
   },
