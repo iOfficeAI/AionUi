@@ -94,7 +94,7 @@ describe('useGuidSend', () => {
 
     expect(createConversationInvokeMock).toHaveBeenCalledTimes(1);
     const payload = createConversationInvokeMock.mock.calls[0][0];
-    expect(payload.type).toBe('acp');
+    expect(payload.type).toBeUndefined();
     expect('model' in payload).toBe(false);
     expect(payload.assistant?.conversation_overrides?.permission).toBe('bypassPermissions');
     expect(payload.assistant?.conversation_overrides?.model).toBe('claude-opus');
@@ -199,7 +199,7 @@ describe('useGuidSend', () => {
     });
 
     const payload = createConversationInvokeMock.mock.calls[0][0];
-    expect(payload.type).toBe('aionrs');
+    expect(payload.type).toBeUndefined();
     expect(payload.model).toBe(deps.current_model);
     expect(payload.assistant?.id).toBe('bare:aionrs');
     expect(payload.assistant?.conversation_overrides?.skill_ids).toEqual(['pdf-reader']);
@@ -238,7 +238,7 @@ describe('useGuidSend', () => {
 
     const payload = createConversationInvokeMock.mock.calls[0][0];
     expect(payload.assistant?.id).toBe('bare:claude');
-    expect(payload.type).toBe('acp');
+    expect(payload.type).toBeUndefined();
     expect('model' in payload).toBe(false);
     expect(payload.extra.preset_assistant_id).toBeUndefined();
     expect(payload.extra.backend).toBeUndefined();

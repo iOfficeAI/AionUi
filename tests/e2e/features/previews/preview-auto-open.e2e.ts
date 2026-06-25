@@ -171,7 +171,6 @@ async function createConversationWithWorkspace(
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          type: 'acp',
           name: `E2E preview auto-open ${Date.now()}`,
           assistant: {
             id: selectedAssistantId,

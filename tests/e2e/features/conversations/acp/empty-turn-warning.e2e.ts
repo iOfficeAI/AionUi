@@ -38,7 +38,6 @@ async function createAcpConversation(page: Page): Promise<string> {
   if (!assistantId) return '';
 
   const conversation = await httpPost<CreatedConversation>(page, '/api/conversations', {
-    type: 'acp',
     name: `E2E ACP empty turn info ${Date.now()}`,
     assistant: {
       id: assistantId,
