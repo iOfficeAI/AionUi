@@ -8,9 +8,11 @@ import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { setSearchParamsMock, searchParamsMock } = vi.hoisted(() => ({
+const { setSearchParamsMock, searchParamsMock, navigateMock, locationMock } = vi.hoisted(() => ({
   setSearchParamsMock: vi.fn(),
   searchParamsMock: { current: new URLSearchParams('tab=skills&highlight=sample') },
+  navigateMock: vi.fn(),
+  locationMock: { pathname: '/settings/capabilities' },
 }));
 
 vi.mock('react-i18next', () => ({
@@ -23,6 +25,8 @@ vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
   return {
     ...actual,
+    useLocation: () => locationMock,
+    useNavigate: () => navigateMock,
     useSearchParams: () => [searchParamsMock.current, setSearchParamsMock],
   };
 });
@@ -74,6 +78,7 @@ describe('CapabilitiesSettings', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     searchParamsMock.current = new URLSearchParams('tab=skills&highlight=sample');
+    locationMock.pathname = '/settings/capabilities';
   });
 
   it('does not rewrite the URL when clicking the already active tab', () => {
@@ -106,5 +111,17 @@ describe('CapabilitiesSettings', () => {
     const [next, options] = setSearchParamsMock.mock.calls[0] as [URLSearchParams, { replace?: boolean }];
     expect(next.toString()).toBe('tab=tools&highlight=sample');
     expect(options).toEqual({ replace: true });
+  });
+
+  it('leaves the import history route when switching to tools', () => {
+    locationMock.pathname = '/settings/capabilities/skills/import-history';
+    render(<CapabilitiesSettings />);
+
+    expect(screen.getByTestId('tabs')).toHaveAttribute('data-active-tab', 'skills');
+
+    fireEvent.click(screen.getByText('Tools'));
+
+    expect(navigateMock).toHaveBeenCalledWith('/settings/capabilities?tab=tools', { replace: true });
+    expect(setSearchParamsMock).not.toHaveBeenCalled();
   });
 });

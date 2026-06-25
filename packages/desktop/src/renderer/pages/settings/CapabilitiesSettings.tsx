@@ -17,7 +17,7 @@
 
 import { Tabs } from '@arco-design/web-react';
 import React from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import SkillsHubSettings from './SkillsHubSettings';
 import ToolsModalContent from '@/renderer/components/settings/SettingsModal/contents/ToolsModalContent';
@@ -29,12 +29,22 @@ const isCapabilitiesTab = (value: string | null): value is CapabilitiesTab => va
 
 const CapabilitiesSettings: React.FC = () => {
   const { t } = useTranslation();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get('tab');
-  const activeTab: CapabilitiesTab = isCapabilitiesTab(tabParam) ? tabParam : 'skills';
+  const activeTab: CapabilitiesTab =
+    location.pathname.startsWith('/settings/capabilities/skills/') || !isCapabilitiesTab(tabParam)
+      ? 'skills'
+      : tabParam;
 
   const handleTabChange = (key: string) => {
     if (!isCapabilitiesTab(key) || key === activeTab) {
+      return;
+    }
+
+    if (location.pathname !== '/settings/capabilities') {
+      void navigate(`/settings/capabilities?tab=${key}`, { replace: true });
       return;
     }
 

@@ -68,11 +68,22 @@ interface SkillInfo {
   location: string;
   relative_location?: string;
   is_custom: boolean;
-  source: 'builtin' | 'custom' | 'extension';
+  source: 'builtin' | 'custom' | 'cron' | 'extension';
 }
 
 interface MaterializeResponse {
   dir_path: string;
+}
+
+async function listAutoInjectBuiltinSkills(page: Parameters<typeof httpGet>[0]): Promise<BuiltinAutoSkill[]> {
+  const skills = await httpGet<SkillInfo[]>(page, '/api/skills');
+  return skills
+    .filter((skill) => skill.source === 'builtin' && (skill.relative_location ?? '').startsWith('auto-inject/'))
+    .map((skill) => ({
+      name: skill.name,
+      description: skill.description,
+      location: skill.relative_location!,
+    }));
 }
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
@@ -92,16 +103,16 @@ function resolveBackendBinary(): string {
 test.describe('Built-in Skill Migration (T3)', () => {
   test.setTimeout(120_000);
 
-  // ── Scenario 1 — `GET /api/skills/builtin-auto` is non-empty ──────────────
+  // ── Scenario 1 — unified `GET /api/skills` exposes auto-inject builtins ───
   // The original packaging bug class: a packaged app previously shipped no
-  // `builtin-skills/` sibling dir, so this endpoint returned `[]`. With
+  // `builtin-skills/` sibling dir, so auto-inject discovery returned `[]`. With
   // `include_dir!` embedding, the endpoint must always be non-empty.
   //
   // Dev-binary coverage today; T4 coordinator re-runs against a packaged
   // `.app` bundle to close the full loop (per plan §4.2).
 
-  test('S1: GET /api/skills/builtin-auto returns the embedded auto-inject corpus', async ({ page }) => {
-    const list = await httpGet<BuiltinAutoSkill[]>(page, '/api/skills/builtin-auto');
+  test('S1: GET /api/skills returns the embedded auto-inject corpus', async ({ page }) => {
+    const list = await listAutoInjectBuiltinSkills(page);
     expect(Array.isArray(list)).toBe(true);
     expect(list.length).toBeGreaterThanOrEqual(AUTO_INJECT_EXPECTED_NAMES.length);
 
@@ -131,14 +142,14 @@ test.describe('Built-in Skill Migration (T3)', () => {
 
   // ── Scenario 2 — ACP runtime auto-injects builtin auto-inject skills ──────
   // Real ACP conversations boot the `AcpSkillManager` via
-  // `discoverAutoSkills`, which in the new architecture is the
-  // `/api/skills/builtin-auto` endpoint. If that endpoint returns a
+  // `discoverAutoSkills`, which now derives auto-inject entries from the
+  // unified `/api/skills` catalog. If that catalog returns a
   // non-empty, well-formed list *and* individual bodies resolve, the
   // manager can inject every skill it was handed. The manager itself
   // is covered by Vitest (tests/unit/acpSkillManager.test.ts).
 
   test('S2: AcpSkillManager data-source (auto-inject list + body round-trip)', async ({ page }) => {
-    const list = await httpGet<BuiltinAutoSkill[]>(page, '/api/skills/builtin-auto');
+    const list = await listAutoInjectBuiltinSkills(page);
     expect(list.length).toBeGreaterThan(0);
 
     // Pull bodies for every entry — discovery failure for even one skill
@@ -325,6 +336,17 @@ test.describe('Built-in Skill Migration (T3)', () => {
       return json.data;
     }
 
+    async function httpBuiltinAutoSkills(): Promise<BuiltinAutoSkill[]> {
+      const skills = await httpJson<SkillInfo[]>('GET', '/api/skills');
+      return skills
+        .filter((skill) => skill.source === 'builtin' && (skill.relative_location ?? '').startsWith('auto-inject/'))
+        .map((skill) => ({
+          name: skill.name,
+          description: skill.description,
+          location: skill.relative_location!,
+        }));
+    }
+
     async function stopBackend(): Promise<void> {
       if (!backend) return;
       const p = backend;
@@ -411,9 +433,9 @@ test.describe('Built-in Skill Migration (T3)', () => {
       // subdirs are swept.
       expect(fs.existsSync(agentSkillsDir)).toBe(true);
 
-      // And `/api/skills/builtin-auto` still works (sweeping has no side
+      // And auto-inject discovery through `/api/skills` still works (sweeping has no side
       // effects on the embedded corpus).
-      const list = await httpJson<BuiltinAutoSkill[]>('GET', '/api/skills/builtin-auto');
+      const list = await httpBuiltinAutoSkills();
       expect(list.length).toBeGreaterThan(0);
     });
 
@@ -439,7 +461,7 @@ test.describe('Built-in Skill Migration (T3)', () => {
       // We probe the live Electron backend's `/api/system/info` for its
       // data-dir-ish path as a sanity check that the boot took the new
       // code path; the helper itself is best-verified by the fact that
-      // the live backend exposes the new `/api/skills/builtin-auto` and
+      // the live backend exposes auto-inject builtins through `/api/skills` and
       // a read of a builtin returns non-empty.
       //
       // Then, on the host side, we check the most likely cache locations
@@ -458,8 +480,8 @@ test.describe('Built-in Skill Migration (T3)', () => {
 
       await startBackend();
 
-      // Backend is healthy and serving the new endpoints.
-      const list = await httpJson<BuiltinAutoSkill[]>('GET', '/api/skills/builtin-auto');
+      // Backend is healthy and serving the unified skill catalog.
+      const list = await httpBuiltinAutoSkills();
       expect(list.length).toBeGreaterThan(0);
 
       // Backend does NOT touch `{data_dir}/builtin-skills/` — that dir

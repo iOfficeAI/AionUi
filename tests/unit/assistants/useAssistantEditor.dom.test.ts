@@ -26,10 +26,9 @@ vi.mock('@/common', () => ({
     fs: {
       readAssistantRule: { invoke: vi.fn() },
       listAvailableSkills: { invoke: vi.fn() },
-      listBuiltinAutoSkills: { invoke: vi.fn() },
       writeAssistantRule: { invoke: vi.fn() },
       deleteAssistantRule: { invoke: vi.fn() },
-      importSkillWithSymlink: { invoke: vi.fn() },
+      importSkills: { invoke: vi.fn() },
     },
   },
 }));
@@ -125,13 +124,12 @@ describe('useAssistantEditor', () => {
     vi.clearAllMocks();
     (ipcBridge.assistants.get.invoke as any).mockResolvedValue(mockAssistantDetail);
     (ipcBridge.fs.listAvailableSkills.invoke as any).mockResolvedValue([]);
-    (ipcBridge.fs.listBuiltinAutoSkills.invoke as any).mockResolvedValue([]);
     (ipcBridge.mcpService.listServers.invoke as any).mockResolvedValue([
       { id: 'mcp-a', name: 'Server A', enabled: true },
     ]);
     (ipcBridge.fs.writeAssistantRule.invoke as any).mockResolvedValue(true);
     (ipcBridge.fs.deleteAssistantRule.invoke as any).mockResolvedValue(true);
-    (ipcBridge.fs.importSkillWithSymlink.invoke as any).mockResolvedValue(true);
+    (ipcBridge.fs.importSkills.invoke as any).mockResolvedValue(true);
   });
 
   it('initializes with default state (no active assistant)', () => {
@@ -624,6 +622,34 @@ describe('useAssistantEditor', () => {
 
     await waitFor(() => expect(consoleErrorSpy).toHaveBeenCalled());
     expect(mockMessage.error).toHaveBeenCalled();
+
+    consoleErrorSpy.mockRestore();
+  });
+
+  it('shows backend skill import failure detail while saving pending skills', async () => {
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    (ipcBridge.fs.importSkills.invoke as any).mockRejectedValue(
+      Object.assign(new Error('wrapped import failure'), {
+        name: 'BackendHttpError',
+        status: 400,
+        code: 'SKILL_IMPORT_FILE_TOO_LARGE',
+      })
+    );
+
+    const { result } = renderHook(() => useAssistantEditor(defaultParams));
+
+    act(() => {
+      result.current.handleCreate();
+      result.current.setEditName('NewAssistant');
+      result.current.setPendingSkills([{ name: 'huge-skill', path: '/tmp/huge-skill' }]);
+    });
+
+    await act(async () => {
+      await result.current.handleSave();
+    });
+
+    expect(mockMessage.error).toHaveBeenCalledWith('settings.skillsHub.importErrors.SKILL_IMPORT_FILE_TOO_LARGE');
+    expect(ipcBridge.assistants.create.invoke).not.toHaveBeenCalled();
 
     consoleErrorSpy.mockRestore();
   });

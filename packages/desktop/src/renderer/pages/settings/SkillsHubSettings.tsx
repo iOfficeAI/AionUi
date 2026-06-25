@@ -1,10 +1,11 @@
 import { ipcBridge } from '@/common';
-import { Button, Message, Modal, Typography } from '@arco-design/web-react';
-import { Delete, FolderOpen, Info, Lightning, Puzzle, Search, Refresh } from '@icon-park/react';
+import { Message, Modal } from '@arco-design/web-react';
+import { Delete, FolderOpen, Lightning, Puzzle, Search, Refresh } from '@icon-park/react';
 import React, { useCallback, useEffect, useRef, useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import SettingsPageWrapper from './components/SettingsPageWrapper';
+import { buildSkillImportNotice, getSkillImportErrorMessage } from './skillImportMessages';
 
 // Skill 信息类型 / Skill info type
 interface SkillInfo {
@@ -13,12 +14,46 @@ interface SkillInfo {
   location: string;
   /**
    * Relative location under the builtin-skills corpus (e.g.
-   * `auto-inject/cron/SKILL.md`). Present only for `source=builtin`; the
+   * `auto-inject/cron/SKILL.md`). Present only for built-in sources; the
    * export-to-external-source flow still uses absolute `location` paths.
    */
   relative_location?: string;
   is_custom: boolean;
-  source?: 'builtin' | 'custom' | 'extension';
+  source?: 'builtin' | 'custom' | 'cron' | 'extension';
+}
+
+const isAutoInjectedBuiltinSkill = (skill: SkillInfo) =>
+  skill.source === 'builtin' && (skill.relative_location ?? '').startsWith('auto-inject/');
+
+interface SkillImportRecord {
+  id: string;
+  operation_id: string;
+  source_label: string;
+  source_path?: string;
+  source_name: string;
+  skill_name?: string;
+  status: 'imported' | 'failed' | 'overwritten' | string;
+  error_code?: string;
+  error_path?: string;
+  actual_bytes?: number;
+  limit_bytes?: number;
+  line?: number;
+  column?: number;
+  created_at: number;
+}
+
+interface SkillImportLimits {
+  max_file_bytes: number;
+  max_total_bytes: number;
+}
+
+interface SkillImportHistoryGroup {
+  operationId: string;
+  sourceLabel: string;
+  createdAt: number;
+  importedCount: number;
+  failedCount: number;
+  records: SkillImportRecord[];
 }
 
 // Normalize skill name for data-testid usage
@@ -43,6 +78,44 @@ const getAvatarColorClass = (name: string) => {
   return colors[Math.abs(hash) % colors.length];
 };
 
+const formatBytes = (bytes?: number): string | null => {
+  if (typeof bytes !== 'number' || !Number.isFinite(bytes)) return null;
+  if (bytes < 1024) return `${bytes} B`;
+  const mb = bytes / (1024 * 1024);
+  if (mb >= 1) return `${mb.toFixed(mb >= 10 ? 0 : 1)} MB`;
+  const kb = bytes / 1024;
+  return `${kb.toFixed(kb >= 10 ? 0 : 1)} KB`;
+};
+
+const buildImportHistoryGroups = (records: SkillImportRecord[]): SkillImportHistoryGroup[] => {
+  const byOperation = new Map<string, SkillImportHistoryGroup>();
+  for (const record of records) {
+    const existing = byOperation.get(record.operation_id);
+    const group =
+      existing ??
+      ({
+        operationId: record.operation_id,
+        sourceLabel: record.source_label,
+        createdAt: record.created_at,
+        importedCount: 0,
+        failedCount: 0,
+        records: [],
+      } satisfies SkillImportHistoryGroup);
+    group.records.push(record);
+    group.createdAt = Math.max(group.createdAt, record.created_at);
+    if (record.status === 'failed') {
+      group.failedCount += 1;
+    } else {
+      group.importedCount += 1;
+    }
+    byOperation.set(record.operation_id, group);
+  }
+  return Array.from(byOperation.values()).sort((a, b) => b.createdAt - a.createdAt);
+};
+
+const hasImportedRecords = (group: SkillImportHistoryGroup): boolean =>
+  group.records.some((r) => r.status !== 'failed');
+
 interface SkillsHubSettingsProps {
   /** When false, renders without SettingsPageWrapper — useful for embedding in a tab */
   withWrapper?: boolean;
@@ -50,18 +123,29 @@ interface SkillsHubSettingsProps {
 
 const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = true }) => {
   const { t } = useTranslation();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const highlightName = searchParams.get('highlight');
+  const isImportHistoryView =
+    location.pathname === '/settings/capabilities/skills/import-history' ||
+    searchParams.get('view') === 'import-history';
   const [highlightedSkill, setHighlightedSkill] = useState<string | null>(null);
   const skillRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const [loading, setLoading] = useState(false);
   const [availableSkills, setAvailableSkills] = useState<SkillInfo[]>([]);
-  const [skillPaths, setSkillPaths] = useState<{ user_skills_dir: string; builtin_skills_dir: string } | null>(null);
   const [search_query, setSearchQuery] = useState('');
-  const [builtinAutoSkills, setBuiltinAutoSkills] = useState<Array<{ name: string; description: string }>>([]);
+  const [importHistory, setImportHistory] = useState<SkillImportRecord[]>([]);
+  const [importLimits, setImportLimits] = useState<SkillImportLimits | null>(null);
 
-  const mySkills = useMemo(() => availableSkills.filter((s) => s.source !== 'extension'), [availableSkills]);
+  const mySkills = useMemo(
+    () =>
+      availableSkills.filter((s) => s.source !== 'extension' && s.source !== 'cron' && !isAutoInjectedBuiltinSkill(s)),
+    [availableSkills]
+  );
+  const builtinAutoSkills = useMemo(() => availableSkills.filter(isAutoInjectedBuiltinSkill), [availableSkills]);
   const extensionSkills = useMemo(() => availableSkills.filter((s) => s.source === 'extension'), [availableSkills]);
+  const importHistoryGroups = useMemo(() => buildImportHistoryGroups(importHistory), [importHistory]);
 
   const filteredSkills = useMemo(() => {
     if (!search_query.trim()) return mySkills;
@@ -78,11 +162,11 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
       const skills = await ipcBridge.fs.listAvailableSkills.invoke();
       setAvailableSkills(skills);
 
-      const paths = await ipcBridge.fs.getSkillPaths.invoke();
-      setSkillPaths(paths);
+      const history = await ipcBridge.fs.listSkillImportHistory.invoke();
+      setImportHistory(history as SkillImportRecord[]);
 
-      const autoSkills = await ipcBridge.fs.listBuiltinAutoSkills.invoke();
-      setBuiltinAutoSkills(autoSkills);
+      const limits = await ipcBridge.fs.getSkillImportLimits.invoke();
+      setImportLimits(limits);
     } catch (error) {
       console.error('Failed to fetch skills:', error);
       Message.error(t('settings.skillsHub.fetchError', { defaultValue: 'Failed to fetch skills' }));
@@ -113,28 +197,34 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
     }
   }, [highlightName, loading, availableSkills, setSearchParams]);
 
+  const showImportHistory = useCallback(() => {
+    void navigate('/settings/capabilities/skills/import-history');
+  }, [navigate]);
+
+  const showSkillList = useCallback(() => {
+    void navigate('/settings/capabilities?tab=skills');
+  }, [navigate]);
+
   const handleImport = async (skillPath: string) => {
     try {
-      const result = await ipcBridge.fs.importSkillWithSymlink.invoke({ skill_path: skillPath });
-      const importedNames = result.skill_names?.length
-        ? result.skill_names
-        : result.skill_name
-          ? [result.skill_name]
-          : [];
-      const count = importedNames.length;
-      const names = importedNames.join(', ');
-      Message.success(
-        t('settings.skillsHub.importSuccessDetailed', {
-          count,
-          names,
-          defaultValue: count > 1 ? `Imported ${count} skills: ${names}` : `Imported skill: ${names}`,
-        })
-      );
-      setSearchQuery('');
-      void fetchData();
+      const result = await ipcBridge.fs.importSkills.invoke({ skill_path: skillPath });
+      const notice = buildSkillImportNotice(result, t);
+      if (notice.type === 'error') {
+        Message.error(notice.message);
+      } else if (notice.type === 'warning') {
+        Message.warning(notice.message);
+      } else {
+        Message.success(notice.message);
+      }
+      if (notice.importedNames.length > 0) {
+        setSearchQuery('');
+        void fetchData();
+      } else if (notice.type !== 'success') {
+        void fetchData();
+      }
     } catch (error) {
       console.error('Failed to import skill:', error);
-      Message.error(t('settings.skillsHub.importError', { defaultValue: 'Error importing skill' }));
+      Message.error(getSkillImportErrorMessage(error, t));
     }
   };
 
@@ -163,7 +253,274 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
     }
   };
 
-  const mainContent = (
+  const getImportHistoryStatusLabel = (group: SkillImportHistoryGroup) => {
+    if (group.failedCount > 0 && hasImportedRecords(group)) {
+      return t('settings.skillsHub.importHistoryStatusPartial', { defaultValue: 'Partial' });
+    }
+    if (group.failedCount > 0) {
+      return t('settings.skillsHub.importHistoryStatusFailed', { defaultValue: 'Failed' });
+    }
+    if (group.records.some((record) => record.status === 'overwritten')) {
+      return t('settings.skillsHub.importHistoryStatusOverwritten', { defaultValue: 'Overwritten' });
+    }
+    return t('settings.skillsHub.importHistoryStatusSuccess', { defaultValue: 'Success' });
+  };
+
+  const getImportHistoryStatusClass = (group: SkillImportHistoryGroup) => {
+    if (group.failedCount > 0) {
+      return 'bg-[rgba(var(--warning-6),0.10)] text-warning-6 border-[rgba(var(--warning-6),0.20)]';
+    }
+    if (group.records.some((record) => record.status === 'overwritten')) {
+      return 'bg-[rgba(var(--warning-6),0.10)] text-warning-6 border-[rgba(var(--warning-6),0.20)]';
+    }
+    return 'bg-[rgba(var(--success-6),0.10)] text-[rgb(var(--success-6))] border-[rgba(var(--success-6),0.20)]';
+  };
+
+  const getFailedImportRepairTitle = (record: SkillImportRecord) => {
+    switch (record.error_code) {
+      case 'SKILL_IMPORT_FILE_TOO_LARGE':
+        return t('settings.skillsHub.importHistoryRepairFileTooLarge', {
+          defaultValue: 'Repair: remove the oversized file and import again',
+        });
+      case 'SKILL_IMPORT_TOTAL_TOO_LARGE':
+        return t('settings.skillsHub.importHistoryRepairTotalTooLarge', {
+          defaultValue: 'Repair: remove unrelated large files and import again',
+        });
+      case 'SKILL_INVALID_FRONTMATTER':
+        return t('settings.skillsHub.importHistoryRepairFrontmatter', {
+          defaultValue: 'Repair: update the SKILL.md header and import again',
+        });
+      case 'SKILL_IMPORT_NO_SKILL_FOUND':
+        return t('settings.skillsHub.importHistoryRepairNoSkillFound', {
+          defaultValue: 'Repair: choose a folder or zip that contains SKILL.md',
+        });
+      case 'SKILL_IMPORT_INVALID_SOURCE':
+        return t('settings.skillsHub.importHistoryRepairInvalidSource', {
+          defaultValue: 'Repair: choose a skill folder, parent folder, or zip file',
+        });
+      case 'SKILL_IMPORT_INVALID_ZIP':
+        return t('settings.skillsHub.importHistoryRepairInvalidZip', {
+          defaultValue: 'Repair: create the zip again and import it',
+        });
+      case 'SKILL_IMPORT_SYMLINK_ENTRY':
+        return t('settings.skillsHub.importHistoryRepairSymlinkEntry', {
+          defaultValue: 'Repair: replace linked files with real files and import again',
+        });
+      case 'SKILL_IMPORT_INVALID_NAME':
+        return t('settings.skillsHub.importHistoryRepairInvalidName', {
+          defaultValue: 'Repair: rename the skill using lowercase letters, numbers, and hyphens',
+        });
+      default:
+        return t('settings.skillsHub.importHistoryRepairFailed', {
+          defaultValue: 'Repair: check this skill package and import again',
+        });
+    }
+  };
+
+  const getFailedImportDescription = (record: SkillImportRecord) => {
+    const actual = formatBytes(record.actual_bytes);
+    const limit = formatBytes(record.limit_bytes);
+    switch (record.error_code) {
+      case 'SKILL_IMPORT_FILE_TOO_LARGE':
+        if (record.error_path && actual && limit) {
+          return t('settings.skillsHub.importHistoryFileTooLargeDescription', {
+            path: record.error_path,
+            actual,
+            limit,
+            defaultValue: `${record.error_path} is ${actual}, over the ${limit} per-file limit. This file will not be copied into the skill directory.`,
+          });
+        }
+        break;
+      case 'SKILL_IMPORT_TOTAL_TOO_LARGE':
+        if (actual && limit) {
+          return t('settings.skillsHub.importHistoryTotalTooLargeDescription', {
+            actual,
+            limit,
+            defaultValue: `This skill is ${actual}, over the ${limit} total size limit.`,
+          });
+        }
+        break;
+      case 'SKILL_INVALID_FRONTMATTER':
+        return t('settings.skillsHub.importHistoryFrontmatterDescription', {
+          defaultValue: 'The SKILL.md header could not be parsed, so the skill description could not be read.',
+        });
+      case 'SKILL_IMPORT_NO_SKILL_FOUND':
+        return t('settings.skillsHub.importHistoryNoSkillFoundDescription', {
+          defaultValue: 'The selected location does not contain a valid SKILL.md file.',
+        });
+      case 'SKILL_IMPORT_INVALID_SOURCE':
+        return t('settings.skillsHub.importHistoryInvalidSourceDescription', {
+          defaultValue: 'The selected item is not a folder or zip file that can be imported as a skill.',
+        });
+      case 'SKILL_IMPORT_INVALID_ZIP':
+        return t('settings.skillsHub.importHistoryInvalidZipDescription', {
+          defaultValue: 'The zip file could not be opened or extracted.',
+        });
+      case 'SKILL_IMPORT_SYMLINK_ENTRY':
+        return t('settings.skillsHub.importHistorySymlinkEntryDescription', {
+          defaultValue: 'This package contains linked files, which are not copied during import.',
+        });
+      case 'SKILL_IMPORT_INVALID_NAME':
+        return t('settings.skillsHub.importHistoryInvalidNameDescription', {
+          defaultValue: 'The skill name cannot be used as a folder name.',
+        });
+      default:
+        break;
+    }
+    return t('settings.skillsHub.importHistoryFailedDescription', {
+      defaultValue: 'This skill package could not be imported.',
+    });
+  };
+
+  const renderFailedImportDetails = (record: SkillImportRecord) => {
+    const actual = formatBytes(record.actual_bytes);
+    const limit = formatBytes(record.limit_bytes);
+    const detailLines: string[] = [];
+    if (record.error_path) {
+      detailLines.push(
+        t('settings.skillsHub.importHistoryFileLine', {
+          path: record.error_path,
+          defaultValue: `File: ${record.error_path}`,
+        })
+      );
+    }
+    if (actual && limit) {
+      detailLines.push(
+        t('settings.skillsHub.importHistorySizeLine', {
+          actual,
+          limit,
+          defaultValue: `Size: ${actual}, limit: ${limit}`,
+        })
+      );
+    }
+    if (typeof record.line === 'number' && typeof record.column === 'number') {
+      detailLines.push(
+        t('settings.skillsHub.importHistoryLocationLine', {
+          line: record.line,
+          column: record.column,
+          defaultValue: `Location: line ${record.line}, column ${record.column}`,
+        })
+      );
+    }
+    const source = record.source_path || record.source_name;
+    if (source) {
+      detailLines.push(
+        t('settings.skillsHub.importHistorySourceLine', {
+          source,
+          defaultValue: `Source: ${source}`,
+        })
+      );
+    }
+
+    return (
+      <div className='mt-10px border border-[rgba(var(--warning-6),0.24)] bg-[rgba(var(--warning-6),0.08)] rd-10px px-12px py-10px'>
+        <div className='flex items-start gap-8px'>
+          <span className='shrink-0 mt-1px text-warning-6 text-13px'>!</span>
+          <div className='min-w-0 text-12px leading-relaxed text-warning-6'>
+            <div className='font-semibold text-warning-6'>{getFailedImportRepairTitle(record)}</div>
+            <div className='mt-2px'>{getFailedImportDescription(record)}</div>
+            {detailLines.length > 0 && (
+              <ul className='mt-6px m-0 p-0 list-none flex flex-col gap-2px'>
+                {detailLines.map((line) => (
+                  <li key={line} className='truncate' title={line}>
+                    {line}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const importHistoryContent = (
+    <div data-testid='skill-import-history-page' className='flex flex-col h-full w-full'>
+      <div className='space-y-16px pb-24px'>
+        <div className='px-[16px] md:px-[32px] py-20px bg-base rd-16px md:rd-24px shadow-sm border border-b-base'>
+          <div className='flex flex-col sm:flex-row sm:items-start justify-between gap-12px'>
+            <div>
+              <div className='flex items-center gap-10px'>
+                <span className='text-16px md:text-18px text-t-primary font-bold tracking-tight'>
+                  {t('settings.skillsHub.importHistoryTitle', { defaultValue: 'Import history' })}
+                </span>
+              </div>
+              <p className='mt-6px text-12px text-t-tertiary leading-relaxed'>
+                {t('settings.skillsHub.importHistoryDescription', {
+                  defaultValue: 'If an import fails, follow the note in the record and import again.',
+                })}
+              </p>
+            </div>
+            <button
+              data-testid='btn-back-to-skills'
+              className='flex items-center justify-center px-14px py-7px bg-base border border-border-1 hover:border-border-2 hover:bg-fill-1 text-t-primary rd-8px shadow-sm transition-all focus:outline-none shrink-0 cursor-pointer whitespace-nowrap text-13px font-medium'
+              onClick={showSkillList}
+            >
+              {t('settings.skillsHub.backToSkills', { defaultValue: 'Back to skills' })}
+            </button>
+          </div>
+        </div>
+
+        <div className='px-[16px] md:px-[32px] py-16px bg-base rd-16px md:rd-24px shadow-sm border border-b-base'>
+          {importHistoryGroups.length === 0 ? (
+            <div className='border border-dashed border-border-1 bg-fill-1 rd-10px px-12px py-14px text-12px text-t-tertiary'>
+              {t('settings.skillsHub.importHistoryEmpty', { defaultValue: 'No import records yet.' })}
+            </div>
+          ) : (
+            <div className='flex flex-col gap-8px'>
+              {importHistoryGroups.map((group) => {
+                const failedRecords = group.records.filter((record) => record.status === 'failed');
+                const importedNames = group.records
+                  .filter((record) => record.status !== 'failed')
+                  .map((record) => record.skill_name || record.source_name)
+                  .filter(Boolean)
+                  .join(', ');
+
+                return (
+                  <div
+                    key={group.operationId}
+                    data-testid={`skill-import-history-record-${normalizeTestId(group.sourceLabel)}`}
+                    className={`border rd-12px px-12px py-10px ${
+                      failedRecords.length > 0
+                        ? 'border-[rgba(var(--warning-6),0.28)] bg-[rgba(var(--warning-6),0.03)]'
+                        : 'border-border-1 bg-fill-1'
+                    }`}
+                  >
+                    <div className='flex flex-col sm:flex-row sm:items-start justify-between gap-8px'>
+                      <div className='min-w-0'>
+                        <div className='flex items-center gap-8px min-w-0'>
+                          <span className='text-13px font-semibold text-t-primary truncate' title={group.sourceLabel}>
+                            {group.sourceLabel}
+                          </span>
+                          <span
+                            className={`shrink-0 border text-11px px-6px py-1px rd-4px font-medium ${getImportHistoryStatusClass(group)}`}
+                          >
+                            {getImportHistoryStatusLabel(group)}
+                          </span>
+                        </div>
+                        <div className='mt-5px flex flex-wrap gap-x-8px gap-y-2px text-12px text-t-tertiary'>
+                          <span>{new Date(group.createdAt).toLocaleString()}</span>
+                          {importedNames && <span>{importedNames}</span>}
+                        </div>
+                      </div>
+                    </div>
+
+                    {failedRecords.map((record) => (
+                      <div key={record.id}>{renderFailedImportDetails(record)}</div>
+                    ))}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+
+  const mainContent = isImportHistoryView ? (
+    importHistoryContent
+  ) : (
     <div className='flex flex-col h-full w-full'>
       <div className='space-y-16px pb-24px'>
         {/* ======== 我的技能 / My Skills ======== */}
@@ -194,14 +551,24 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
             </div>
 
             <div className='flex flex-col sm:flex-row items-stretch sm:items-center gap-12px w-full lg:w-auto shrink-0'>
+              <button
+                data-testid='btn-open-import-history'
+                className='flex items-center justify-center gap-6px px-14px py-6px bg-base border border-border-1 hover:border-border-2 hover:bg-fill-1 text-t-primary rd-8px shadow-sm transition-all focus:outline-none shrink-0 cursor-pointer whitespace-nowrap'
+                onClick={showImportHistory}
+              >
+                <span className='text-13px font-medium'>
+                  {t('settings.skillsHub.importHistoryTitle', { defaultValue: 'Import history' })}
+                </span>
+              </button>
+
               <div className='relative group shrink-0 w-full sm:w-[200px] lg:w-[240px]'>
-                <div className='absolute left-12px top-1/2 -translate-y-1/2 text-t-tertiary group-focus-within:text-primary-6 flex pointer-events-none transition-colors'>
+                <div className='absolute left-12px top-0 bottom-0 text-t-tertiary group-focus-within:text-primary-6 flex items-center pointer-events-none transition-colors'>
                   <Search size={15} />
                 </div>
                 <input
                   data-testid='input-search-my-skills'
                   type='text'
-                  className='w-full bg-fill-1 hover:bg-fill-2 border border-border-1 focus:border-primary-5 focus:bg-base outline-none rd-8px py-6px pl-36px pr-12px text-13px text-t-primary placeholder:text-t-tertiary transition-all shadow-sm box-border m-0'
+                  className='w-full h-36px bg-fill-1 hover:bg-fill-2 border border-border-1 focus:border-primary-5 focus:bg-base outline-none rd-8px py-0 pl-36px pr-12px text-13px leading-36px text-t-primary placeholder:text-t-tertiary transition-all shadow-sm box-border m-0'
                   placeholder={t('settings.skillsHub.searchPlaceholder', { defaultValue: 'Search skills...' })}
                   value={search_query}
                   onChange={(e) => setSearchQuery(e.target.value)}
@@ -221,15 +588,23 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
             </div>
           </div>
 
-          {/* Path Display moved below the toolbar */}
-          {skillPaths && (
-            <div className='flex items-center gap-8px text-12px text-t-tertiary font-mono bg-transparent py-4px mb-16px relative z-10 pt-4px border-t border-t-transparent'>
-              <FolderOpen size={16} className='shrink-0' />
-              <span className='truncate' title={skillPaths.user_skills_dir}>
-                {skillPaths.user_skills_dir}
-              </span>
-            </div>
-          )}
+          <div className='flex items-center gap-8px min-h-36px mb-12px px-10px py-8px border border-border-1 bg-fill-1 rd-10px text-12px text-t-tertiary leading-relaxed relative z-10'>
+            <span className='font-medium text-t-secondary shrink-0'>
+              {t('settings.skillsHub.importHelpCompactLabel', { defaultValue: 'Import rules' })}:
+            </span>
+            <span>
+              {t('settings.skillsHub.importHelpCompactText', {
+                maxFileSize:
+                  formatBytes(importLimits?.max_file_bytes) ??
+                  t('settings.skillsHub.importHelpConfiguredLimit', { defaultValue: 'configured limit' }),
+                maxTotalSize:
+                  formatBytes(importLimits?.max_total_bytes) ??
+                  t('settings.skillsHub.importHelpConfiguredLimit', { defaultValue: 'configured limit' }),
+                defaultValue:
+                  'Skill folder, parent folder, or zip; {{maxFileSize}} per file, {{maxTotalSize}} per skill; same-name imports replace existing skills.',
+              })}
+            </span>
+          </div>
 
           {mySkills.length > 0 ? (
             <div className='w-full flex flex-col gap-6px relative z-10'>
@@ -402,17 +777,6 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
             </div>
           </div>
         )}
-
-        {/* ======== Usage Tip ======== */}
-        <div className='px-16px md:px-[24px] py-20px bg-base border border-b-base shadow-sm rd-16px flex items-start gap-12px text-t-secondary'>
-          <Info size={18} className='text-primary-6 mt-2px shrink-0' />
-          <div className='flex flex-col gap-4px'>
-            <span className='font-bold text-t-primary text-14px'>
-              {t('settings.skillsHub.tipTitle', { defaultValue: 'Usage Tip:' })}
-            </span>
-            <span className='text-13px leading-relaxed'>{t('settings.skillsHub.tipContent')}</span>
-          </div>
-        </div>
       </div>
     </div>
   );

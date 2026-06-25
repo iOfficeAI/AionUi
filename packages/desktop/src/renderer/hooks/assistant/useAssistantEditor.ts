@@ -9,6 +9,7 @@ import type {
   SkillInfo,
 } from '@/renderer/pages/settings/AssistantSettings/types';
 import { ensureBackendMcpCatalog } from '@/renderer/hooks/mcp/catalog';
+import { getSkillImportErrorMessage } from '@/renderer/pages/settings/skillImportMessages';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { mutate as swrMutate } from 'swr';
@@ -48,6 +49,15 @@ const resolveLocalizedProfileField = (
   localeKey: string,
   fallbackValue = ''
 ): string => localizedValues?.[localeKey] ?? localizedValues?.['en-US'] ?? baseValue ?? fallbackValue;
+
+const isAutoInjectedBuiltinSkill = (skill: SkillInfo): boolean =>
+  skill.source === 'builtin' && (skill.relative_location ?? '').startsWith('auto-inject/');
+
+const deriveBuiltinAutoSkills = (skills: SkillInfo[]): BuiltinAutoSkill[] =>
+  skills.filter(isAutoInjectedBuiltinSkill).map((skill) => ({
+    name: skill.name,
+    description: skill.description,
+  }));
 
 /**
  * Manages all assistant editing state and handlers:
@@ -112,13 +122,12 @@ export const useAssistantEditor = ({
 
   const loadEditorResources = useCallback(
     async (assistantId: string) => {
-      const [detail, skillsList, autoSkills, mcpServers] = await Promise.all([
+      const [detail, skillsList, mcpServers] = await Promise.all([
         loadAssistantDetail(assistantId),
         ipcBridge.fs.listAvailableSkills.invoke(),
-        ipcBridge.fs.listBuiltinAutoSkills.invoke(),
         ensureBackendMcpCatalog().then(({ allServers }) => allServers),
       ]);
-      return { detail, skillsList, autoSkills, mcpServers };
+      return { detail, skillsList, autoSkills: deriveBuiltinAutoSkills(skillsList), mcpServers };
     },
     [loadAssistantDetail]
   );
@@ -274,13 +283,12 @@ export const useAssistantEditor = ({
     resetSkillEditorState();
 
     try {
-      const [skillsList, autoSkills, mcpServers] = await Promise.all([
+      const [skillsList, mcpServers] = await Promise.all([
         ipcBridge.fs.listAvailableSkills.invoke(),
-        ipcBridge.fs.listBuiltinAutoSkills.invoke(),
         ensureBackendMcpCatalog().then(({ allServers }) => allServers),
       ]);
       setAvailableSkills(skillsList);
-      setBuiltinAutoSkills(autoSkills);
+      setBuiltinAutoSkills(deriveBuiltinAutoSkills(skillsList));
       setAvailableMcpServers(mcpServers);
     } catch (error) {
       console.error('Failed to load skills:', error);
@@ -380,10 +388,10 @@ export const useAssistantEditor = ({
 
         for (const pendingSkill of skillsToImport) {
           try {
-            await ipcBridge.fs.importSkillWithSymlink.invoke({ skill_path: pendingSkill.path });
+            await ipcBridge.fs.importSkills.invoke({ skill_path: pendingSkill.path });
           } catch (error) {
             console.error(`Failed to import skill "${pendingSkill.name}":`, error);
-            message.error(t('settings.skillsHub.importError', { defaultValue: 'Error importing skill' }));
+            message.error(getSkillImportErrorMessage(error, t));
             return;
           }
         }

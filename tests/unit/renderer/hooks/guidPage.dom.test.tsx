@@ -129,7 +129,6 @@ vi.mock('react-router-dom', () => ({
 vi.mock('@/common', () => ({
   ipcBridge: {
     fs: {
-      listBuiltinAutoSkills: { invoke: vi.fn().mockResolvedValue([]) },
       listAvailableSkills: { invoke: vi.fn().mockResolvedValue([]) },
     },
   },

@@ -581,19 +581,31 @@ export const fs = {
       location: string;
       relative_location?: string;
       is_custom: boolean;
-      source: 'builtin' | 'custom' | 'extension';
+      source: 'builtin' | 'custom' | 'cron' | 'extension';
     }>,
     void
   >('/api/skills'),
-  listBuiltinAutoSkills: httpGet<Array<{ name: string; description: string; location: string }>, void>(
-    '/api/skills/builtin-auto'
-  ),
   materializeSkillsForAgent: httpPost<
     { skills: Array<{ name: string; source_path: string }> },
     { conversation_id: string; skills: string[] }
   >('/api/skills/materialize-for-agent'),
   readSkillInfo: httpPost<{ name: string; description: string }, { skill_path: string }>('/api/skills/info'),
-  importSkill: httpPost<{ skill_name: string }, { skill_path: string }>('/api/skills/import'),
+  importSkill: httpPost<
+    {
+      skill_name: string;
+      skill_names?: string[];
+      failed?: Array<{
+        source_name: string;
+        code: string;
+        error_path?: string;
+        actual_bytes?: number;
+        limit_bytes?: number;
+        line?: number;
+        column?: number;
+      }>;
+    },
+    { skill_path: string }
+  >('/api/skills/import'),
   scanForSkills: httpPost<Array<{ name: string; description: string; path: string }>, { folder_path: string }>(
     '/api/skills/scan'
   ),
@@ -607,9 +619,43 @@ export const fs = {
     }>,
     void
   >('/api/skills/detect-external'),
-  importSkillWithSymlink: httpPost<{ skill_name: string; skill_names?: string[] }, { skill_path: string }>(
-    '/api/skills/import-symlink'
-  ),
+  importSkills: httpPost<
+    {
+      skill_name: string;
+      skill_names?: string[];
+      failed?: Array<{
+        source_name: string;
+        code: string;
+        error_path?: string;
+        actual_bytes?: number;
+        limit_bytes?: number;
+        line?: number;
+        column?: number;
+      }>;
+    },
+    { skill_path: string }
+  >('/api/skills/import'),
+  listSkillImportHistory: httpGet<
+    Array<{
+      id: string;
+      operation_id: string;
+      source_label: string;
+      source_path?: string;
+      source_name: string;
+      skill_id?: string;
+      skill_name?: string;
+      status: string;
+      error_code?: string;
+      error_path?: string;
+      actual_bytes?: number;
+      limit_bytes?: number;
+      line?: number;
+      column?: number;
+      created_at: number;
+    }>,
+    void
+  >('/api/skills/import-history'),
+  getSkillImportLimits: httpGet<{ max_file_bytes: number; max_total_bytes: number }, void>('/api/skills/import-limits'),
   deleteSkill: httpDelete<void, { skill_name: string }>((p) => `/api/skills/${p.skill_name}`),
   getSkillPaths: httpGet<{ user_skills_dir: string; builtin_skills_dir: string }, void>('/api/skills/paths'),
   getCustomExternalPaths: httpGet<Array<{ name: string; path: string }>, void>('/api/skills/external-paths'),

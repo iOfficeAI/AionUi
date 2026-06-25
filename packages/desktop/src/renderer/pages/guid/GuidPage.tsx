@@ -54,10 +54,9 @@ const GuidPage: React.FC = () => {
   }, []);
 
   // --- Skills state ---
-  // All available skills (builtin auto-injected + user-imported custom) merged
-  // into one catalog for the action-row menu. Auto-injected skills default to
-  // checked; the rest are opt-in per conversation (or pre-checked when the
-  // active assistant declares them in `enabled_skills`).
+  // Skill metadata comes from the database-backed catalog. Built-in auto-inject
+  // skills default checked; the rest are opt-in per conversation or pre-checked
+  // by assistant defaults.
   const [allSkills, setAllSkills] = useState<Array<{ name: string; description: string; isAuto: boolean }>>([]);
   const [guidDisabledBuiltinSkills, setGuidDisabledBuiltinSkills] = useState<string[] | undefined>(undefined);
   const [guidEnabledSkills, setGuidEnabledSkills] = useState<string[] | undefined>(undefined);
@@ -65,16 +64,16 @@ const GuidPage: React.FC = () => {
   const [guidSelectedMcpServerIds, setGuidSelectedMcpServerIds] = useState<string[] | undefined>(undefined);
 
   useEffect(() => {
-    Promise.all([ipcBridge.fs.listBuiltinAutoSkills.invoke(), ipcBridge.fs.listAvailableSkills.invoke()])
-      .then(([autoSkills, availableSkills]) => {
-        const autoNames = new Set(autoSkills.map((s) => s.name));
-        const merged: Array<{ name: string; description: string; isAuto: boolean }> = [
-          ...autoSkills.map((s) => ({ name: s.name, description: s.description, isAuto: true })),
-          ...availableSkills
-            .filter((s) => !autoNames.has(s.name))
-            .map((s) => ({ name: s.name, description: s.description, isAuto: false })),
-        ];
-        setAllSkills(merged);
+    ipcBridge.fs.listAvailableSkills
+      .invoke()
+      .then((availableSkills) => {
+        setAllSkills(
+          availableSkills.map((s) => ({
+            name: s.name,
+            description: s.description,
+            isAuto: s.source === 'builtin' && (s.relative_location ?? '').startsWith('auto-inject/'),
+          }))
+        );
       })
       .catch(() => setAllSkills([]));
   }, []);

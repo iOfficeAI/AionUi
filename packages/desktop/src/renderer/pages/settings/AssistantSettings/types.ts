@@ -2,12 +2,13 @@ import type { Assistant } from '@/common/types/agent/assistantTypes';
 import type { IMcpServer } from '@/common/config/storage';
 
 // Skill info type
-export type SkillSource = 'builtin' | 'custom' | 'extension';
+export type SkillSource = 'builtin' | 'custom' | 'cron' | 'extension';
 
 export type SkillInfo = {
   name: string;
   description: string;
   location: string;
+  relative_location?: string;
   is_custom: boolean;
   source: SkillSource;
 };

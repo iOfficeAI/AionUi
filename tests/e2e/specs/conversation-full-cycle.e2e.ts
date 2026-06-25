@@ -243,28 +243,20 @@ async function findCronJobByName(
   throw new Error(`Cron job ${taskName} not found within ${timeoutMs}ms`);
 }
 
-async function listBuiltinAutoSkills(page: import('@playwright/test').Page): Promise<Array<{ name: string }>> {
-  return page.evaluate(async () => {
-    const port = (window as unknown as { __backendPort?: number }).__backendPort;
-    if (!port) throw new Error('window.__backendPort is not available');
-    const res = await fetch(`http://127.0.0.1:${port}/api/skills/builtin-auto`);
-    if (!res.ok) {
-      const body = await res.text();
-      throw new Error(`GET /api/skills/builtin-auto failed (${res.status}): ${body}`);
-    }
-    const json = (await res.json()) as
-      | { data?: Array<{ name: string }> }
-      | Array<{ name: string }>
-      | { items?: Array<{ name: string }> };
-    if (Array.isArray(json)) return json;
-    if (Array.isArray(json.data)) return json.data;
-    if (Array.isArray(json.items)) return json.items;
-    return [];
-  });
+async function listAutoInjectBuiltinSkills(
+  page: import('@playwright/test').Page
+): Promise<Array<{ name: string; relative_location?: string; source?: string }>> {
+  const skills = await httpGet<Array<{ name: string; relative_location?: string; source?: string }>>(
+    page,
+    '/api/skills'
+  );
+  return (skills ?? []).filter(
+    (skill) => skill.source === 'builtin' && (skill.relative_location ?? '').startsWith('auto-inject/')
+  );
 }
 
 async function expectCronBuiltinAutoSkill(page: import('@playwright/test').Page): Promise<void> {
-  const skills = await listBuiltinAutoSkills(page);
+  const skills = await listAutoInjectBuiltinSkills(page);
   const hasCron = skills.some((skill) => skill.name === 'cron');
   expect(hasCron).toBeTruthy();
 }
