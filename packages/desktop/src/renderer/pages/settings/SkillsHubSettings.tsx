@@ -18,12 +18,12 @@ interface SkillInfo {
    * export-to-external-source flow still uses absolute `location` paths.
    */
   relative_location?: string;
+  is_auto_inject: boolean;
   is_custom: boolean;
   source?: 'builtin' | 'custom' | 'cron' | 'extension';
 }
 
-const isAutoInjectedBuiltinSkill = (skill: SkillInfo) =>
-  skill.source === 'builtin' && (skill.relative_location ?? '').startsWith('auto-inject/');
+const isAutoInjectedBuiltinSkill = (skill: SkillInfo) => skill.source === 'builtin' && skill.is_auto_inject;
 
 interface SkillImportRecord {
   id: string;

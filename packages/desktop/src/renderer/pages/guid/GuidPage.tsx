@@ -71,7 +71,7 @@ const GuidPage: React.FC = () => {
           availableSkills.map((s) => ({
             name: s.name,
             description: s.description,
-            isAuto: s.source === 'builtin' && (s.relative_location ?? '').startsWith('auto-inject/'),
+            isAuto: s.source === 'builtin' && s.is_auto_inject,
           }))
         );
       })
@@ -242,29 +242,18 @@ const GuidPage: React.FC = () => {
     return [t('guid.defaultPrompts.capabilities'), t('guid.defaultPrompts.skills'), t('guid.defaultPrompts.tools')];
   }, [localeKey, selectedAssistantDetail, selectedAssistantRecord, selectedAssistantId, t]);
 
-  // Sync disabledBuiltinSkills + enabledSkills from preset assistant config
+  // Sync disabledBuiltinSkills + enabledSkills from assistant detail defaults.
   useEffect(() => {
-    if (!selectedAssistantId) {
+    if (!selectedAssistantId || !selectedAssistantDetail) {
       setGuidDisabledBuiltinSkills(undefined);
       setGuidEnabledSkills(undefined);
       return;
     }
 
-    if (selectedAssistantDetail) {
-      const resolvedDefaults = resolveGuidAssistantDefaults(selectedAssistantDetail);
-      setGuidDisabledBuiltinSkills(resolvedDefaults.disabledBuiltinSkillIds);
-      setGuidEnabledSkills(resolvedDefaults.skillIds);
-      return;
-    }
-
-    if (selectedAssistantRecord) {
-      setGuidDisabledBuiltinSkills(selectedAssistantRecord.disabled_builtin_skills ?? []);
-      setGuidEnabledSkills(selectedAssistantRecord.enabled_skills ?? []);
-    } else {
-      setGuidDisabledBuiltinSkills(undefined);
-      setGuidEnabledSkills(undefined);
-    }
-  }, [selectedAssistantDetail, selectedAssistantId, selectedAssistantRecord]);
+    const resolvedDefaults = resolveGuidAssistantDefaults(selectedAssistantDetail);
+    setGuidDisabledBuiltinSkills(resolvedDefaults.disabledBuiltinSkillIds);
+    setGuidEnabledSkills(resolvedDefaults.skillIds);
+  }, [selectedAssistantDetail, selectedAssistantId]);
 
   const appliedAssistantDefaultsKeyRef = useRef<string | null>(null);
   useEffect(() => {

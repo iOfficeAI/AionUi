@@ -106,6 +106,31 @@ describe('resolveGuidAssistantDefaults', () => {
     });
   });
 
+  it('uses fixed generated assistant skill defaults instead of remembered disabled builtins', () => {
+    const detail = {
+      ...buildDetail(
+        {
+          skills: { mode: 'fixed', value: [] },
+        },
+        {
+          last_skill_ids: ['custom-skill'],
+          last_disabled_builtin_skill_ids: ['todo-tracker'],
+        }
+      ),
+      source: 'generated',
+    } satisfies AssistantDetail;
+
+    const resolved = resolveGuidAssistantDefaults(detail);
+
+    expect(resolved).toEqual({
+      modelId: undefined,
+      permissionMode: undefined,
+      skillIds: [],
+      disabledBuiltinSkillIds: [],
+      mcpIds: [],
+    });
+  });
+
   it('returns empty values when auto defaults have no remembered values yet', () => {
     const resolved = resolveGuidAssistantDefaults(buildDetail());
 

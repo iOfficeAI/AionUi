@@ -48,8 +48,7 @@ const resolveLocalizedProfileField = (
   fallbackValue = ''
 ): string => localizedValues?.[localeKey] ?? localizedValues?.['en-US'] ?? baseValue ?? fallbackValue;
 
-const isAutoInjectedBuiltinSkill = (skill: SkillInfo): boolean =>
-  skill.source === 'builtin' && (skill.relative_location ?? '').startsWith('auto-inject/');
+const isAutoInjectedBuiltinSkill = (skill: SkillInfo): boolean => skill.source === 'builtin' && skill.is_auto_inject;
 
 const deriveBuiltinAutoSkills = (skills: SkillInfo[]): BuiltinAutoSkill[] =>
   skills.filter(isAutoInjectedBuiltinSkill).map((skill) => ({

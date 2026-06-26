@@ -16,6 +16,7 @@ const {
   capturedGuidActionRowProps,
   capturedAssistantSelectionAreaProps,
   capturedGuidInputCardProps,
+  capturedGuidSendDeps,
   resolveGuidAssistantDefaultsMock,
   sendMock,
 } = vi.hoisted(() => ({
@@ -108,6 +109,7 @@ const {
   capturedGuidActionRowProps: [] as Array<Record<string, unknown>>,
   capturedAssistantSelectionAreaProps: [] as Array<Record<string, unknown>>,
   capturedGuidInputCardProps: [] as Array<Record<string, unknown>>,
+  capturedGuidSendDeps: [] as Array<Record<string, unknown>>,
   resolveGuidAssistantDefaultsMock: vi.fn(() => ({
     disabledBuiltinSkillIds: [],
     skillIds: [],
@@ -169,7 +171,10 @@ vi.mock('@/renderer/pages/guid/hooks/useGuidInput', () => ({
 }));
 
 vi.mock('@/renderer/pages/guid/hooks/useGuidSend', () => ({
-  useGuidSend: () => sendMock,
+  useGuidSend: (deps: Record<string, unknown>) => {
+    capturedGuidSendDeps.push(deps);
+    return sendMock;
+  },
 }));
 
 vi.mock('@/renderer/pages/guid/hooks/useTypewriterPlaceholder', () => ({
@@ -277,6 +282,7 @@ describe('GuidPage', () => {
     capturedGuidActionRowProps.length = 0;
     capturedAssistantSelectionAreaProps.length = 0;
     capturedGuidInputCardProps.length = 0;
+    capturedGuidSendDeps.length = 0;
     useGuidAssistantSelectionMock.mockClear();
     resolveGuidAssistantDefaultsMock.mockReturnValue({
       disabledBuiltinSkillIds: [],
@@ -407,6 +413,42 @@ describe('GuidPage', () => {
     expect(screen.getByRole('button', { name: 'guid.defaultPrompts.capabilities' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'guid.defaultPrompts.skills' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'guid.defaultPrompts.tools' })).toBeInTheDocument();
+  });
+
+  it('does not seed skill defaults from the assistant list while detail is loading', async () => {
+    agentSelectionMock.assistants = [
+      {
+        id: 'bare-aionrs',
+        source: 'generated',
+        name: 'Aion CLI',
+        name_i18n: {},
+        description_i18n: {},
+        enabled: true,
+        sort_order: 10,
+        preset_agent_type: 'aionrs',
+        enabled_skills: ['stale-list-skill'],
+        custom_skill_names: [],
+        disabled_builtin_skills: ['stale-disabled-builtin'],
+        context_i18n: {},
+        prompts: [],
+        prompts_i18n: {},
+        models: [],
+        agent_status: 'online',
+        team_selectable: true,
+        deletable: false,
+      },
+    ];
+    swrMock.useSWRMock.mockReturnValue({ data: null });
+
+    render(<GuidPage />);
+
+    await vi.waitFor(() => {
+      const latestDeps = capturedGuidSendDeps.at(-1);
+      expect(latestDeps).toMatchObject({
+        guidEnabledSkills: undefined,
+        guidDisabledBuiltinSkills: undefined,
+      });
+    });
   });
 
   it('applies an aionrs assistant default model after provider models load', async () => {

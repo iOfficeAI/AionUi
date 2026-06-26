@@ -254,14 +254,11 @@ async function findCronJobByName(
 
 async function listAutoInjectBuiltinSkills(
   page: import('@playwright/test').Page
-): Promise<Array<{ name: string; relative_location?: string; source?: string }>> {
-  const skills = await httpGet<Array<{ name: string; relative_location?: string; source?: string }>>(
-    page,
-    '/api/skills'
-  );
-  return (skills ?? []).filter(
-    (skill) => skill.source === 'builtin' && (skill.relative_location ?? '').startsWith('auto-inject/')
-  );
+): Promise<Array<{ name: string; relative_location?: string; is_auto_inject: boolean; source?: string }>> {
+  const skills = await httpGet<
+    Array<{ name: string; relative_location?: string; is_auto_inject: boolean; source?: string }>
+  >(page, '/api/skills');
+  return (skills ?? []).filter((skill) => skill.source === 'builtin' && skill.is_auto_inject);
 }
 
 async function expectCronBuiltinAutoSkill(page: import('@playwright/test').Page): Promise<void> {

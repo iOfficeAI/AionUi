@@ -67,6 +67,7 @@ interface SkillInfo {
   description: string;
   location: string;
   relative_location?: string;
+  is_auto_inject: boolean;
   is_custom: boolean;
   source: 'builtin' | 'custom' | 'cron' | 'extension';
 }
@@ -78,11 +79,11 @@ interface MaterializeResponse {
 async function listAutoInjectBuiltinSkills(page: Parameters<typeof httpGet>[0]): Promise<BuiltinAutoSkill[]> {
   const skills = await httpGet<SkillInfo[]>(page, '/api/skills');
   return skills
-    .filter((skill) => skill.source === 'builtin' && (skill.relative_location ?? '').startsWith('auto-inject/'))
+    .filter((skill) => skill.source === 'builtin' && skill.is_auto_inject)
     .map((skill) => ({
       name: skill.name,
       description: skill.description,
-      location: skill.relative_location!,
+      location: skill.relative_location ?? skill.location,
     }));
 }
 
@@ -339,11 +340,11 @@ test.describe('Built-in Skill Migration (T3)', () => {
     async function httpBuiltinAutoSkills(): Promise<BuiltinAutoSkill[]> {
       const skills = await httpJson<SkillInfo[]>('GET', '/api/skills');
       return skills
-        .filter((skill) => skill.source === 'builtin' && (skill.relative_location ?? '').startsWith('auto-inject/'))
+        .filter((skill) => skill.source === 'builtin' && skill.is_auto_inject)
         .map((skill) => ({
           name: skill.name,
           description: skill.description,
-          location: skill.relative_location!,
+          location: skill.relative_location ?? skill.location,
         }));
     }
 

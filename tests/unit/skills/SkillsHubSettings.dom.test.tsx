@@ -313,7 +313,7 @@ describe('SkillsHubSettings', () => {
         name: 'cron',
         description: 'Auto injected cron skill.',
         location: '/tmp/builtin-skills/auto-inject/cron/SKILL.md',
-        relative_location: 'auto-inject/cron/SKILL.md',
+        is_auto_inject: true,
         is_custom: false,
         source: 'builtin',
       },

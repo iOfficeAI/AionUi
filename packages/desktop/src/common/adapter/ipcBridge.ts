@@ -580,6 +580,7 @@ export const fs = {
       description: string;
       location: string;
       relative_location?: string;
+      is_auto_inject: boolean;
       is_custom: boolean;
       source: 'builtin' | 'custom' | 'cron' | 'extension';
     }>,
