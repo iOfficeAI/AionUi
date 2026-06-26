@@ -17,7 +17,6 @@ import FilePreview from '@/renderer/components/media/FilePreview';
 import HorizontalFileList from '@/renderer/components/media/HorizontalFileList';
 import { classifyConfigSetError, useAcpConfigOptions } from '@/renderer/hooks/agent/useAcpConfigOptions';
 import { useAcpModelInfo } from '@/renderer/hooks/agent/useAcpModelInfo';
-import { useAgentModesForBackend } from '@/renderer/hooks/agent/useAgentModesForBackend';
 import { useAutoTitle } from '@/renderer/hooks/chat/useAutoTitle';
 import { getSendBoxDraftHook, type FileOrFolderItem } from '@/renderer/hooks/chat/useSendBoxDraft';
 import { createSetUploadFile, useSendBoxFiles } from '@/renderer/hooks/chat/useSendBoxFiles';
@@ -172,8 +171,6 @@ const AcpSendBox: React.FC<{
     onSelectModelSuccess: () => Message.success(t('agent.model.switchSuccess')),
     onSelectModelFailed: (_modelId, error) => Message.error(t(configErrorMessageKey(error))),
   });
-  const availableAgentModes = useAgentModesForBackend(backend);
-
   useEffect(() => {
     if (!runtimeMode?.currentValue) return;
     setCurrentMode(runtimeMode.currentValue);
@@ -458,7 +455,7 @@ Please check your local CLI tool authentication status`,
         value: item.value,
         label: item.label,
         description: item.description ?? undefined,
-      })) ?? availableAgentModes;
+      })) ?? [];
     const modeOptions: MobileActionSheetOption[] = availableModes.map((mode) => ({
       key: mode.value,
       label: t(`agentMode.${mode.value}`, { defaultValue: mode.label }),
@@ -593,7 +590,6 @@ Please check your local CLI tool authentication status`,
     return entries;
   }, [
     attachEntries,
-    availableAgentModes,
     canSwitchModel,
     currentMode,
     handleSheetModeChange,

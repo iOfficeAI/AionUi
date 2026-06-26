@@ -106,9 +106,6 @@ vi.mock('@/renderer/hooks/agent/useAcpConfigOptions', () => ({
   classifyConfigSetError: () => 'unknown',
   useAcpConfigOptions: useAcpConfigOptionsMock,
 }));
-vi.mock('@/renderer/hooks/agent/useAgentModesForBackend', () => ({
-  useAgentModesForBackend: () => [],
-}));
 vi.mock('@/renderer/hooks/chat/useSendBoxDraft', () => ({
   getSendBoxDraftHook: () => () => ({
     data: {

@@ -8,7 +8,6 @@
  * These tests require real API keys and CLI agents installed.
  */
 import { test, expect } from '../fixtures';
-import { getFullAutoMode } from '@/common/types/agent/agentModes';
 import {
   goToGuid,
   goToNewChat,
@@ -48,6 +47,16 @@ async function pickAvailableBackend(page: import('@playwright/test').Page): Prom
     await page.waitForTimeout(500);
   }
   return null;
+}
+
+async function resolveFullAutoModeFromAgentMetadata(
+  page: import('@playwright/test').Page,
+  backend: string
+): Promise<string> {
+  const agents = await httpGet<Array<{ backend?: string; yolo_id?: string }>>(page, '/api/agents/management').catch(
+    () => []
+  );
+  return agents.find((agent) => agent.backend === backend)?.yolo_id || 'yolo';
 }
 
 type CronJobRecord = {
@@ -1086,7 +1095,7 @@ test.describe('Conversation Full Cycle', () => {
         await expectCronBuiltinAutoSkill(page);
         await selectAgent(page, backend);
 
-        const selectedMode = getFullAutoMode(backend);
+        const selectedMode = await resolveFullAutoModeFromAgentMetadata(page, backend);
         const modeSelector = page.locator(MODE_SELECTOR);
         if (await modeSelector.isVisible().catch(() => false)) {
           const availableModes = await getAvailableModes(page);

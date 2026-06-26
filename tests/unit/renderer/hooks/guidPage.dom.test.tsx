@@ -16,6 +16,7 @@ const {
   capturedGuidActionRowProps,
   capturedAssistantSelectionAreaProps,
   capturedGuidInputCardProps,
+  resolveGuidAssistantDefaultsMock,
   sendMock,
 } = vi.hoisted(() => ({
   modelSelectionMock: {
@@ -107,6 +108,11 @@ const {
   capturedGuidActionRowProps: [] as Array<Record<string, unknown>>,
   capturedAssistantSelectionAreaProps: [] as Array<Record<string, unknown>>,
   capturedGuidInputCardProps: [] as Array<Record<string, unknown>>,
+  resolveGuidAssistantDefaultsMock: vi.fn(() => ({
+    disabledBuiltinSkillIds: [],
+    skillIds: [],
+    mcpIds: [],
+  })),
   sendMock: {
     handleSend: vi.fn(),
     sendMessageHandler: vi.fn(),
@@ -222,11 +228,7 @@ vi.mock('@/renderer/utils/platform', () => ({
 }));
 
 vi.mock('@/renderer/pages/guid/utils/assistantDefaults', () => ({
-  resolveGuidAssistantDefaults: () => ({
-    disabledBuiltinSkillIds: [],
-    skillIds: [],
-    mcpIds: [],
-  }),
+  resolveGuidAssistantDefaults: (...args: unknown[]) => resolveGuidAssistantDefaultsMock(...args),
 }));
 
 const swrMock = vi.hoisted(() => ({
@@ -276,6 +278,18 @@ describe('GuidPage', () => {
     capturedAssistantSelectionAreaProps.length = 0;
     capturedGuidInputCardProps.length = 0;
     useGuidAssistantSelectionMock.mockClear();
+    resolveGuidAssistantDefaultsMock.mockReturnValue({
+      disabledBuiltinSkillIds: [],
+      skillIds: [],
+      mcpIds: [],
+    });
+    modelSelectionMock.modelList = [];
+    modelSelectionMock.setCurrentModel.mockReset();
+    modelSelectionMock.resetCurrentModel.mockReset();
+    agentSelectionMock.currentAgentModeOptions = [];
+    agentSelectionMock.currentAcpCachedModelInfo = null;
+    agentSelectionMock.setSelectedAcpModel.mockReset();
+    agentSelectionMock.setSelectedMode.mockReset();
     agentSelectionMock.assistants = [
       {
         id: 'bare-aionrs',
@@ -393,5 +407,41 @@ describe('GuidPage', () => {
     expect(screen.getByRole('button', { name: 'guid.defaultPrompts.capabilities' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'guid.defaultPrompts.skills' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'guid.defaultPrompts.tools' })).toBeInTheDocument();
+  });
+
+  it('applies an aionrs assistant default model after provider models load', async () => {
+    swrMock.useSWRMock.mockReturnValue({ data: assistantDetailFixture });
+    resolveGuidAssistantDefaultsMock.mockReturnValue({
+      modelId: 'gpt-4.1',
+      disabledBuiltinSkillIds: [],
+      skillIds: [],
+      mcpIds: [],
+    });
+
+    const { rerender } = render(<GuidPage />);
+
+    expect(modelSelectionMock.setCurrentModel).not.toHaveBeenCalled();
+
+    modelSelectionMock.modelList = [
+      {
+        id: 'provider-openai',
+        name: 'OpenAI',
+        models: ['gpt-4.1'],
+        use_model: 'gpt-4o',
+        enabled: true,
+      },
+    ];
+
+    rerender(<GuidPage />);
+
+    await vi.waitFor(() => {
+      expect(modelSelectionMock.setCurrentModel).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: 'provider-openai',
+          use_model: 'gpt-4.1',
+        }),
+        { persistPreference: false }
+      );
+    });
   });
 });

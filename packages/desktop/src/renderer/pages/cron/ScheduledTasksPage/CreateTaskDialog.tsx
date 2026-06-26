@@ -15,9 +15,9 @@ import type { ICreateCronJobParams, ICronJob, ICronJobUpdateParams } from '@/com
 import { useConversationAssistants } from '@renderer/pages/conversation/hooks/useConversationAssistants';
 import { resolveAgentLogo, useAgentLogos } from '@renderer/utils/model/agentLogo';
 import dayjs from 'dayjs';
-import { getFullAutoMode } from '@renderer/utils/model/agentModes';
 import type { TProviderWithModel } from '@/common/config/storage';
 import { type AcpModelInfo } from '@/common/types/platform/acpTypes';
+import { useManagedAgentRuntimeCatalog } from '@/renderer/hooks/agent/useManagedAgents';
 import { useModelProviderList } from '@renderer/hooks/agent/useModelProviderList';
 import GuidModelSelector from '@renderer/pages/guid/components/GuidModelSelector';
 import { buildAssistantModelInfo } from '@renderer/pages/guid/hooks/useGuidAssistantSelection';
@@ -146,6 +146,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   const [form] = Form.useForm();
   const [submitting, setSubmitting] = useState(false);
   const { presetAssistants } = useConversationAssistants();
+  const managedAgentRuntimeCatalog = useManagedAgentRuntimeCatalog();
   const { providers, getAvailableModels, formatModelLabel } = useModelProviderList();
   const [frequency, setFrequency] = useState<FrequencyType>('manual');
   const [time, setTime] = useState('09:00');
@@ -226,6 +227,13 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
 
   const resolvedBackend = assistantRuntimeKey(selectedAssistant);
   const selectedAssistantModels = selectedAssistant?.models ?? [];
+  const resolveAutoApproveModeFromAgentMetadata = useCallback(
+    (assistant: (typeof presetAssistants)[number]): string => {
+      const agent = managedAgentRuntimeCatalog.find((item) => item.id === assistant.agent_id);
+      return agent?.yolo_id || 'yolo';
+    },
+    [managedAgentRuntimeCatalog]
+  );
 
   const isGeminiMode = resolvedBackend === 'gemini' || resolvedBackend === 'aionrs';
 
@@ -391,7 +399,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
         config_options,
         workspace,
         localeKey,
-        getMode: getFullAutoMode,
+        getMode: resolveAutoApproveModeFromAgentMetadata,
         aionrsModelRequiredMessage: t('cron.page.form.aionrsModelRequired'),
       });
 

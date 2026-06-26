@@ -7,7 +7,7 @@
 import { ipcBridge } from '@/common';
 import type { IMcpServer, TProviderWithModel } from '@/common/config/storage';
 import { resolveLocaleKey } from '@/common/utils';
-import type { Assistant, AssistantDetail } from '@/common/types/agent/assistantTypes';
+import type { AssistantDetail } from '@/common/types/agent/assistantTypes';
 
 import { useInputFocusRing } from '@/renderer/hooks/chat/useInputFocusRing';
 import { openExternalUrl } from '@/renderer/utils/platform';
@@ -27,7 +27,7 @@ import { resolveGuidAssistantDefaults } from './utils/assistantDefaults';
 import SpeechInputButton from '@/renderer/components/chat/SpeechInputButton';
 import { appendSpeechTranscript } from '@/renderer/hooks/system/useSpeechInput';
 import { useLiveTranscriptInsertion } from '@/renderer/hooks/system/useLiveTranscriptInsertion';
-import { Button, ConfigProvider, Dropdown, Menu } from '@arco-design/web-react';
+import { Button, ConfigProvider } from '@arco-design/web-react';
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -282,6 +282,14 @@ const GuidPage: React.FC = () => {
         last_permission_value: selectedAssistantDetail.preferences.last_permission_value,
         last_mcp_ids: selectedAssistantDetail.preferences.last_mcp_ids,
       },
+      availableModels: {
+        acp: agentSelection.currentAcpCachedModelInfo?.available_models.map((model) => model.id) ?? [],
+        aionrs: modelSelection.modelList.map((provider) => ({
+          id: provider.id,
+          models: provider.models,
+        })),
+      },
+      availableModes: agentSelection.currentAgentModeOptions.map((mode) => mode.value),
     });
     if (appliedAssistantDefaultsKeyRef.current === signature) {
       return;
@@ -310,13 +318,27 @@ const GuidPage: React.FC = () => {
           await modelSelection.resetCurrentModel({ persistPreference: false });
         }
       } else if (resolvedDefaults.modelId) {
-        agentSelection.setSelectedAcpModel(resolvedDefaults.modelId ?? null, { persistPreference: false });
+        const availableModelIds = new Set(agentSelection.currentAcpCachedModelInfo?.available_models.map((m) => m.id));
+        agentSelection.setSelectedAcpModel(
+          availableModelIds.size === 0 || availableModelIds.has(resolvedDefaults.modelId)
+            ? resolvedDefaults.modelId
+            : null,
+          { persistPreference: false }
+        );
       } else {
         agentSelection.setSelectedAcpModel(null, { persistPreference: false });
       }
 
       if (resolvedDefaults.permissionMode) {
-        agentSelection.setSelectedMode(resolvedDefaults.permissionMode, { persistPreference: false });
+        const availableModeIds = new Set(agentSelection.currentAgentModeOptions.map((mode) => mode.value));
+        if (availableModeIds.size === 0 || availableModeIds.has(resolvedDefaults.permissionMode)) {
+          agentSelection.setSelectedMode(resolvedDefaults.permissionMode, { persistPreference: false });
+        } else {
+          const fallbackMode = agentSelection.currentAgentModeOptions[0]?.value;
+          if (fallbackMode) {
+            agentSelection.setSelectedMode(fallbackMode, { persistPreference: false });
+          }
+        }
       }
       setGuidSelectedMcpServerIds(resolvedDefaults.mcpIds);
     };
@@ -325,6 +347,8 @@ const GuidPage: React.FC = () => {
       console.error('[GuidPage] Failed to apply assistant defaults:', error);
     });
   }, [
+    agentSelection.currentAcpCachedModelInfo?.available_models,
+    agentSelection.currentAgentModeOptions,
     agentSelection.selectedAssistantBackend,
     agentSelection.setSelectedAcpModel,
     agentSelection.setSelectedMode,
@@ -413,6 +437,7 @@ const GuidPage: React.FC = () => {
       modelSelectorNode={modelSelectorNode}
       modeBackend={agentSelection.selectedAssistantBackend}
       selectedMode={agentSelection.selectedMode}
+      dynamicModes={agentSelection.currentAgentModeOptions}
       onModeSelect={setGuidSelectedMode}
       allSkills={allSkills}
       disabledBuiltinSkills={guidDisabledBuiltinSkills ?? []}

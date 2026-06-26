@@ -64,6 +64,16 @@ export const useManagedAgents = (): UseManagedAgentsResult => {
 };
 
 /**
+ * Lightweight runtime catalog read model for assistant-bound agent rows.
+ * Uses the same `/api/agents/management` payload because that endpoint is
+ * backed by `agent_metadata`, where ACP catalog snapshots are persisted.
+ */
+export const useManagedAgentRuntimeCatalog = (): ManagedAgent[] => {
+  const { data } = useSWR<ManagedAgent[]>(MANAGED_AGENTS_SWR_KEY, fetchManagedAgents);
+  return data ?? [];
+};
+
+/**
  * Non-hook entry point for settings/tooling surfaces that need the management
  * diagnostics catalog rather than the business-facing detected agent list.
  * Writes the result into the shared management cache only. Callers that

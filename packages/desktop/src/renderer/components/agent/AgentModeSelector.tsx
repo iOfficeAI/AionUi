@@ -5,7 +5,7 @@
  */
 
 import { classifyConfigSetError, useAcpConfigOptions } from '@/renderer/hooks/agent/useAcpConfigOptions';
-import { getAgentModes, supportsModeSwitch, type AgentModeOption } from '@/renderer/utils/model/agentModes';
+import type { AgentModeOption } from '@/renderer/utils/model/agentTypes';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { AgentLogoIcon } from './AgentBadge';
 import { Dropdown, Menu, Message } from '@arco-design/web-react';
@@ -107,13 +107,13 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
     [runtimeMode?.options]
   );
 
-  // Priority: observed config_options > dynamicModes (runtime) > static fallback
+  // Priority: observed config_options > dynamic modes from persisted agent_metadata.
   const modes = useMemo(() => {
     if (runtimeModes && runtimeModes.length > 0) return runtimeModes;
     if (dynamicModes && dynamicModes.length > 0) return dynamicModes;
-    return getAgentModes(backend);
-  }, [runtimeModes, dynamicModes, backend]);
-  const defaultMode = modes[0]?.value ?? 'default';
+    return [];
+  }, [runtimeModes, dynamicModes]);
+  const defaultMode = modes[0]?.value ?? initialMode ?? 'default';
   // Validate initialMode against available modes; fall back to backend's default
   // when the provided value doesn't match (e.g. opencode has 'build'/'plan', not 'default')
   const validInitialMode = initialMode && modes.some((m) => m.value === initialMode) ? initialMode : defaultMode;
@@ -125,7 +125,7 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
     [modeLabelFormatter]
   );
 
-  const can_switchMode = (supportsModeSwitch(backend) || modes.length > 0) && (conversation_id || onModeSelect);
+  const can_switchMode = modes.length > 0 && Boolean(conversation_id || onModeSelect);
   // Mobile conversation header agent pill is display-only by design.
   const canInteract = can_switchMode && !(compact && compactLabelType === 'agent');
 
@@ -182,17 +182,7 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
         setIsLoading(false);
       }
     },
-    [
-      backend,
-      beforeRuntimeSync,
-      conversation_id,
-      current_mode,
-      onModeChanged,
-      onModeSelect,
-      runtimeConfig,
-      runtimeMode,
-      t,
-    ]
+    [beforeRuntimeSync, conversation_id, current_mode, onModeChanged, onModeSelect, runtimeConfig, runtimeMode, t]
   );
 
   const renderLogo = () => (

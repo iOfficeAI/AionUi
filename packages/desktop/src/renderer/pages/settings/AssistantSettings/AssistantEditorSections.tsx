@@ -1,7 +1,9 @@
 import { ipcBridge } from '@/common';
 import type { AssistantEditorViewModel, AssistantListItem } from './types';
+import { useManagedAgentRuntimeCatalog } from '@/renderer/hooks/agent/useManagedAgents';
 import { useModelProviderList } from '@/renderer/hooks/agent/useModelProviderList';
-import { getAgentModes } from '@/renderer/utils/model/agentModes';
+import { buildAgentRuntimeModeState } from '@/renderer/utils/model/agentRuntimeCatalog';
+import type { AgentModeOption } from '@/renderer/utils/model/agentTypes';
 import { Button, Select, Tag } from '@arco-design/web-react';
 import { Info, Robot } from '@icon-park/react';
 import React, { useMemo, useState } from 'react';
@@ -19,6 +21,7 @@ export type AssistantEditorSectionsProps = {
 const AssistantEditorSections: React.FC<AssistantEditorSectionsProps> = ({ editor, activeAssistant }) => {
   const { t, i18n } = useTranslation();
   const localeKey = i18n.language;
+  const managedAgentRuntimeCatalog = useManagedAgentRuntimeCatalog();
   const { providers, getAvailableModels } = useModelProviderList();
   const [rulesExpanded, setRulesExpanded] = useState(false);
   const [addingPrompt, setAddingPrompt] = useState(false);
@@ -102,13 +105,20 @@ const AssistantEditorSections: React.FC<AssistantEditorSectionsProps> = ({ edito
 
     return [];
   }, [currentBackend, editAgent, editAgentRuntimeKey, providerModelOptions]);
-  const permissionOptions = useMemo(
+  const currentAgentRuntimeCatalog = useMemo(
     () =>
-      getAgentModes(editAgentRuntimeKey).map((option) => ({
+      currentBackend
+        ? managedAgentRuntimeCatalog.find((agentMetadata) => agentMetadata.id === currentBackend.id)
+        : null,
+    [currentBackend, managedAgentRuntimeCatalog]
+  );
+  const permissionOptions = useMemo<AgentModeOption[]>(
+    () =>
+      buildAgentRuntimeModeState(currentAgentRuntimeCatalog).options.map((option) => ({
         ...option,
         label: t(`agentMode.${option.value}`, { defaultValue: option.label }),
       })),
-    [editAgentRuntimeKey, localeKey, t]
+    [currentAgentRuntimeCatalog, localeKey, t]
   );
   const recommendedPromptItems = useMemo(
     () =>
