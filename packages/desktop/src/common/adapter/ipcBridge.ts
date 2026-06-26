@@ -1910,6 +1910,8 @@ export const hub = {
 
 export type { IAddTeamAssistantParams, ICreateTeamParams } from './teamMapper';
 
+const TEAM_MESSAGE_REQUEST_TIMEOUT_MS = 60_000;
+
 export const team = {
   create: withResponseMap(
     httpPost<TTeam, ICreateTeamParams>('/api/teams', (p) => ({
@@ -1939,7 +1941,9 @@ export const team = {
     (p) => `/api/teams/${p.team_id}/agents/${p.slot_id}`
   ),
   stop: httpDelete<void, { team_id: string }>((p) => `/api/teams/${p.team_id}/session`),
-  ensureSession: httpPost<void, { team_id: string }>((p) => `/api/teams/${p.team_id}/session`),
+  ensureSession: httpPost<void, { team_id: string }>((p) => `/api/teams/${p.team_id}/session`, undefined, {
+    timeoutMs: TEAM_MESSAGE_REQUEST_TIMEOUT_MS,
+  }),
   renameAgent: httpPatch<void, { team_id: string; slot_id: string; new_name: string }>(
     (p) => `/api/teams/${p.team_id}/agents/${p.slot_id}/name`,
     (p) => ({ name: p.new_name })
@@ -1957,14 +1961,16 @@ export const team = {
     (p) => ({
       content: p.input,
       files: p.files,
-    })
+    }),
+    { timeoutMs: TEAM_MESSAGE_REQUEST_TIMEOUT_MS }
   ),
   sendMessageToAgent: httpPost<ITeamRunAck, ISendTeamAgentMessageParams>(
     (p) => `/api/teams/${p.team_id}/agents/${p.slot_id}/messages`,
     (p) => ({
       content: p.input,
       files: p.files,
-    })
+    }),
+    { timeoutMs: TEAM_MESSAGE_REQUEST_TIMEOUT_MS }
   ),
   cancelRun: httpPost<void, ICancelTeamRunParams>(
     (p) => `/api/teams/${p.team_id}/runs/${p.team_run_id}/cancel`,

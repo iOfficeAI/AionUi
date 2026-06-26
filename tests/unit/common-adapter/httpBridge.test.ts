@@ -20,6 +20,7 @@ import {
   stubProvider,
   withResponseMap,
   BackendHttpError,
+  BackendHttpTimeoutError,
   isBackendHttpError,
   wsEmitter,
   wsMappedEmitter,
@@ -115,7 +116,9 @@ describe('httpBridge', () => {
       vi.stubGlobal('fetch', fetchSpy);
       vi.spyOn(console, 'debug').mockImplementation(() => {});
 
-      const result = await httpPost<{ created: boolean }, { k: string }>('/api/x').invoke({ k: 'v' });
+      const result = await httpPost<{ created: boolean }, { k: string }>('/api/x').invoke({
+        k: 'v',
+      });
 
       expect(result).toEqual({ created: true });
       expect(fetchSpy).toHaveBeenCalledTimes(1);
@@ -137,6 +140,70 @@ describe('httpBridge', () => {
       await httpPost('/api/x', (p: string) => ({ wrapped: p })).invoke('raw');
 
       expect(fetchSpy.mock.calls[0][1]?.body).toBe('{"wrapped":"raw"}');
+    });
+
+    it('aborts provider requests after timeoutMs elapses', async () => {
+      vi.useFakeTimers();
+      const fetchSpy = vi.fn((_url: string, init?: RequestInit) => {
+        return new Promise<Response>((_resolve, reject) => {
+          init?.signal?.addEventListener('abort', () => {
+            reject(new Error('aborted'));
+          });
+        });
+      });
+      vi.stubGlobal('fetch', fetchSpy);
+      vi.spyOn(console, 'debug').mockImplementation(() => {});
+
+      try {
+        const promise = httpPost<void, { k: string }>('/api/slow', (p) => p, {
+          timeoutMs: 500,
+        }).invoke({ k: 'v' });
+        const assertion = expect(promise).rejects.toBeInstanceOf(BackendHttpTimeoutError);
+
+        await vi.advanceTimersByTimeAsync(500);
+
+        await assertion;
+        expect(fetchSpy).toHaveBeenCalledTimes(1);
+        expect(fetchSpy.mock.calls[0][1]?.signal).toBeDefined();
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('keeps timeout active while reading the response body', async () => {
+      vi.useFakeTimers();
+      const fetchSpy = vi.fn((_url: string, init?: RequestInit) => {
+        const response = {
+          ok: true,
+          status: 200,
+          headers: {
+            get: () => 'application/json',
+          },
+          json: () =>
+            new Promise<unknown>((_resolve, reject) => {
+              init?.signal?.addEventListener('abort', () => {
+                reject(new Error('body aborted'));
+              });
+            }),
+        } as Response;
+        return Promise.resolve(response);
+      });
+      vi.stubGlobal('fetch', fetchSpy);
+      vi.spyOn(console, 'debug').mockImplementation(() => {});
+
+      try {
+        const promise = httpPost<void, { k: string }>('/api/slow-body', (p) => p, {
+          timeoutMs: 500,
+        }).invoke({ k: 'v' });
+        const assertion = expect(promise).rejects.toBeInstanceOf(BackendHttpTimeoutError);
+
+        await vi.advanceTimersByTimeAsync(500);
+
+        await assertion;
+        expect(fetchSpy).toHaveBeenCalledTimes(1);
+      } finally {
+        vi.useRealTimers();
+      }
     });
   });
 

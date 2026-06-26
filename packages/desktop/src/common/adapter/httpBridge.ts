@@ -115,6 +115,21 @@ export class BackendHttpError extends Error {
   }
 }
 
+export class BackendHttpTimeoutError extends Error {
+  readonly method: string;
+  readonly path: string;
+  readonly timeoutMs: number;
+
+  constructor(params: { method: string; path: string; timeoutMs: number }) {
+    const { method, path, timeoutMs } = params;
+    super(`Backend ${method} ${path} timed out after ${timeoutMs}ms`);
+    this.name = 'BackendHttpTimeoutError';
+    this.method = method;
+    this.path = path;
+    this.timeoutMs = timeoutMs;
+  }
+}
+
 export function isBackendHttpError(error: unknown): error is BackendHttpError {
   // Prefer instanceof — fast path in production/bundled contexts.
   if (error instanceof BackendHttpError) return true;
@@ -150,6 +165,7 @@ export function isBackendHttpError(error: unknown): error is BackendHttpError {
  */
 export type HttpRequestOptions = {
   silentStatuses?: number[];
+  timeoutMs?: number;
 };
 
 const SENSITIVE_LOG_KEY_PATTERN = /api[_-]?key|authorization|auth[_-]?token|access[_-]?token|refresh[_-]?token|secret/i;
@@ -178,6 +194,9 @@ export async function httpRequest<T>(
 ): Promise<T> {
   const url = `${getBaseUrl()}${path}`;
   const headers: Record<string, string> = {};
+  const timeoutMs = options?.timeoutMs;
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  let controller: AbortController | undefined;
 
   if (body !== undefined) {
     headers['Content-Type'] = 'application/json';
@@ -188,42 +207,65 @@ export async function httpRequest<T>(
     body !== undefined ? JSON.stringify(redactForLog(body)).slice(0, 500) : '(no body)'
   );
 
-  const response = await fetch(url, {
+  if (timeoutMs && timeoutMs > 0) {
+    controller = new AbortController();
+    timeoutId = setTimeout(() => {
+      controller?.abort();
+    }, timeoutMs);
+  }
+
+  const init: RequestInit = {
     method,
     headers,
     body: body !== undefined ? JSON.stringify(body) : undefined,
-  });
+  };
+  if (controller) {
+    init.signal = controller.signal;
+  }
 
-  if (!response.ok) {
-    // Response body can only be consumed once — read as text, then try JSON
-    const rawText = await response.text().catch(() => '');
-    let errorBody: unknown;
-    try {
-      errorBody = JSON.parse(rawText);
-    } catch {
-      errorBody = rawText;
+  try {
+    const response = await fetch(url, init);
+
+    if (!response.ok) {
+      // Response body can only be consumed once — read as text, then try JSON
+      const rawText = await response.text().catch(() => '');
+      let errorBody: unknown;
+      try {
+        errorBody = JSON.parse(rawText);
+      } catch {
+        errorBody = rawText;
+      }
+      if (options?.silentStatuses?.includes(response.status)) {
+        console.debug(`[httpBridge] ${method} ${path} → ${response.status} (silenced)`, errorBody);
+      } else {
+        console.error(`[httpBridge] ${method} ${path} → ${response.status}`, errorBody);
+      }
+      throw new BackendHttpError({ method, path, status: response.status, body: errorBody });
     }
-    if (options?.silentStatuses?.includes(response.status)) {
-      console.debug(`[httpBridge] ${method} ${path} → ${response.status} (silenced)`, errorBody);
-    } else {
-      console.error(`[httpBridge] ${method} ${path} → ${response.status}`, errorBody);
+
+    console.debug(`[httpBridge] ${method} ${path} → ${response.status} OK`);
+
+    const contentType = response.headers.get('Content-Type');
+    if (!contentType?.includes('application/json')) {
+      return undefined as T;
     }
-    throw new BackendHttpError({ method, path, status: response.status, body: errorBody });
-  }
 
-  console.debug(`[httpBridge] ${method} ${path} → ${response.status} OK`);
-
-  const contentType = response.headers.get('Content-Type');
-  if (!contentType?.includes('application/json')) {
-    return undefined as T;
+    const json = await response.json();
+    // Backend wraps in { success, data, ... } — unwrap when present
+    if (json && typeof json === 'object' && 'data' in json) {
+      return json.data as T;
+    }
+    return json as T;
+  } catch (error) {
+    if (controller?.signal.aborted) {
+      throw new BackendHttpTimeoutError({ method, path, timeoutMs });
+    }
+    throw error;
+  } finally {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
   }
-
-  const json = await response.json();
-  // Backend wraps in { success, data, ... } — unwrap when present
-  if (json && typeof json === 'object' && 'data' in json) {
-    return json.data as T;
-  }
-  return json as T;
 }
 
 // ---------------------------------------------------------------------------
@@ -263,14 +305,15 @@ export function httpGet<Data, Params = undefined>(
 
 export function httpPost<Data, Params = undefined>(
   path: string | ((params: Params) => string),
-  mapBody?: (params: Params) => unknown
+  mapBody?: (params: Params) => unknown,
+  options?: HttpRequestOptions
 ): ProviderLike<Data, Params> {
   return {
     provider: () => {},
     invoke: (async (params?: Params) => {
       const resolvedPath = typeof path === 'function' ? path(params!) : path;
       const body = mapBody ? mapBody(params!) : params;
-      return httpRequest<Data>('POST', resolvedPath, body);
+      return httpRequest<Data>('POST', resolvedPath, body, options);
     }) as ProviderLike<Data, Params>['invoke'],
   };
 }
