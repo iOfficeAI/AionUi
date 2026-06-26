@@ -4,7 +4,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { DEFAULT_CODEX_MODELS } from '@/common/types/codex/codexModels';
 import { assistantRuntimeKey, isAionrsAssistant, type Assistant } from '@/common/types/agent/assistantTypes';
 import type { AcpModelInfo } from '../types';
 import type { AgentModeOption } from '@/renderer/utils/model/agentTypes';
@@ -40,10 +39,6 @@ export function resolveInitialAssistantModel(backend: string, models: string[]):
     return models[0];
   }
 
-  if (backend === 'codex' && DEFAULT_CODEX_MODELS.length > 0) {
-    return DEFAULT_CODEX_MODELS[0]?.id ?? null;
-  }
-
   return null;
 }
 
@@ -53,14 +48,6 @@ export function buildAssistantModelInfo(backend: string, models: string[]): AcpM
       current_model_id: models[0],
       current_model_label: models[0],
       available_models: models.map((model) => ({ id: model, label: model })),
-    } satisfies AcpModelInfo;
-  }
-
-  if (backend === 'codex' && DEFAULT_CODEX_MODELS.length > 0) {
-    return {
-      current_model_id: DEFAULT_CODEX_MODELS[0].id,
-      current_model_label: DEFAULT_CODEX_MODELS[0].label,
-      available_models: DEFAULT_CODEX_MODELS.map((model) => ({ id: model.id, label: model.label })),
     } satisfies AcpModelInfo;
   }
 

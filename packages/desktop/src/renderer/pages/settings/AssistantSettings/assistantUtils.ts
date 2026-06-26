@@ -1,4 +1,3 @@
-import { DEFAULT_CODEX_MODELS } from '@/common/types/codex/codexModels';
 import { assistantRuntimeKey } from '@/common/types/agent/assistantTypes';
 import { resolveExtensionAssetUrl } from '@/renderer/utils/platform';
 import { isBackendRelativeAssetPath, isLikelyLocalFilePath } from '@/renderer/utils/model/assistantAvatar';
@@ -163,12 +162,7 @@ export const buildAssistantEditorBackends = (
     }
 
     const models = Array.isArray(assistant.models) ? assistant.models : [];
-    const modelOptions =
-      models.length > 0
-        ? models.map((model) => ({ value: model, label: model }))
-        : runtimeKey === 'codex'
-          ? DEFAULT_CODEX_MODELS.map((model) => ({ value: model.id, label: model.label }))
-          : [];
+    const modelOptions = models.map((model) => ({ value: model, label: model }));
 
     backendMap.set(agentId, {
       id: agentId,

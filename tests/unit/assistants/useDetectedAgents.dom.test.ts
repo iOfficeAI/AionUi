@@ -7,7 +7,6 @@
 import { describe, expect, it } from 'vitest';
 
 import type { Assistant } from '@/common/types/agent/assistantTypes';
-import { DEFAULT_CODEX_MODELS } from '@/common/types/codex/codexModels';
 import { buildAssistantEditorBackends } from '@/renderer/pages/settings/AssistantSettings/assistantUtils';
 
 describe('buildAssistantEditorBackends', () => {
@@ -56,7 +55,7 @@ describe('buildAssistantEditorBackends', () => {
     ]);
   });
 
-  it('uses generated assistant models and codex fallback models for editor backend options', () => {
+  it('uses generated assistant models for editor backend options', () => {
     const assistants: Assistant[] = [
       assistant({
         id: 'bare-claude',
@@ -87,7 +86,7 @@ describe('buildAssistantEditorBackends', () => {
         id: 'agent-codex',
         name: 'Codex',
         runtimeKey: 'codex',
-        modelOptions: DEFAULT_CODEX_MODELS.map((model) => ({ value: model.id, label: model.label })),
+        modelOptions: [],
       },
     ]);
   });
