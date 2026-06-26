@@ -11,6 +11,7 @@
 !ifndef BUILD_UNINSTALLER
   Var /GLOBAL AionUiUninstallHadErrors
   Var /GLOBAL AionUiUninstallLogResult
+  Var /GLOBAL AionUiVerifyResourceResult
 !endif
 
 !macro AIONUI_LOG_UNINSTALLER_REPAIR _PHASE
@@ -44,6 +45,9 @@
     CopyFiles /SILENT "$AionUiBundledUninstaller" "$AionUiInstalledUninstaller"
     ${If} ${Errors}
       !insertmacro AIONUI_LOG_UNINSTALLER_REPAIR "copy-failed"
+      MessageBox MB_OK|MB_ICONEXCLAMATION "AionUi cannot update because the existing uninstaller is locked.$\r$\n$\r$\nPlease close AionUi completely and try again. If it still fails, restart Windows and run this installer again.$\r$\n$\r$\nIf the problem continues, uninstall the old AionUi from Windows Settings, then run this installer again."
+      SetErrorLevel 2
+      Quit
     ${Else}
       !insertmacro AIONUI_LOG_UNINSTALLER_REPAIR "after-copy"
     ${EndIf}
@@ -88,6 +92,26 @@
   }"`
   Pop $9
   Pop $9
+!macroend
+
+!macro AIONUI_REMOVE_INSTALL_DIR
+  nsExec::Exec `"$SYSDIR\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -Command "& { \
+    $$ErrorActionPreference = 'Stop'; \
+    $$log = Join-Path $$env:TEMP '${AIONUI_PROCESS_CHECK_LOG}'; \
+    $$path = [System.IO.Path]::GetFullPath('$INSTDIR'); \
+    try { \
+      if (Test-Path -LiteralPath $$path) { \
+        $$deletePath = if ($$path.StartsWith('\\')) { '\\?\UNC\' + $$path.TrimStart('\') } else { '\\?\' + $$path }; \
+        [System.IO.Directory]::Delete($$deletePath, $$true); \
+      } \
+      Add-Content -LiteralPath $$log -Encoding UTF8 -Value ('[' + (Get-Date -Format o) + '] remove-longpath result=0 instDir=' + $$path); \
+      exit 0 \
+    } catch { \
+      Add-Content -LiteralPath $$log -Encoding UTF8 -Value ('[' + (Get-Date -Format o) + '] remove-longpath result=1 instDir=' + $$path + ' error=' + $$_.Exception.GetType().FullName + ': ' + $$_.Exception.Message); \
+      exit 1 \
+    } \
+  }"`
+  Pop $AionUiRemoveDirResult
 !macroend
 
 !macro AIONUI_FIND_APP_PROCESS _RETURN
@@ -200,7 +224,7 @@
   ${EndIf}
 !macroend
 
-!macro AIONUI_VERIFY_ARM64_INSTALL
+!macro AIONUI_VERIFY_ARM64_APP_FILES
   !insertmacro AIONUI_LOG_EVENT "verify-install start instDir=$INSTDIR"
   !insertmacro AIONUI_VERIFY_REQUIRED_FILE "$INSTDIR\AionUi.exe" "AionUi.exe"
   !insertmacro AIONUI_VERIFY_REQUIRED_FILE "$INSTDIR\ffmpeg.dll" "ffmpeg.dll"
@@ -212,15 +236,23 @@
   !insertmacro AIONUI_VERIFY_REQUIRED_FILE "$INSTDIR\vk_swiftshader.dll" "vk_swiftshader.dll"
   !insertmacro AIONUI_VERIFY_REQUIRED_FILE "$INSTDIR\vulkan-1.dll" "vulkan-1.dll"
   !insertmacro AIONUI_VERIFY_REQUIRED_FILE "$INSTDIR\resources\app.asar" "resources\app.asar"
-  !insertmacro AIONUI_VERIFY_REQUIRED_FILE "$INSTDIR\resources\bundled-aioncore\win32-arm64\aioncore.exe" "aioncore.exe"
-  !insertmacro AIONUI_VERIFY_REQUIRED_FILE "$INSTDIR\resources\bundled-aioncore\win32-arm64\managed-resources\node\node-v24.11.0-win-arm64\node.exe" "node.exe"
-  !insertmacro AIONUI_VERIFY_REQUIRED_FILE "$INSTDIR\resources\bundled-aioncore\win32-arm64\managed-resources\acp\codex-acp\0.16.0\win32-arm64\node_modules\@zed-industries\codex-acp-win32-arm64\bin\codex-acp.exe" "codex-acp.exe"
-  !insertmacro AIONUI_VERIFY_REQUIRED_FILE "$INSTDIR\resources\bundled-aioncore\win32-arm64\managed-resources\acp\claude-agent-acp\0.39.0\win32-arm64\node_modules\@anthropic-ai\claude-agent-sdk-win32-arm64\claude.exe" "claude.exe"
-  !insertmacro AIONUI_LOG_EVENT "verify-install ok instDir=$INSTDIR"
+!macroend
+
+!macro AIONUI_VERIFY_BUNDLED_AIONCORE_RESOURCES _RUNTIME_KEY
+  InitPluginsDir
+  File "/oname=$PLUGINSDIR\verify-bundled-aioncore-install.ps1" "${PROJECT_DIR}\resources\verify-bundled-aioncore-install.ps1"
+  nsExec::Exec `"$SYSDIR\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -File "$PLUGINSDIR\verify-bundled-aioncore-install.ps1" -InstallDir "$INSTDIR" -RuntimeKey "${_RUNTIME_KEY}" -LogPath "$TEMP\${AIONUI_PROCESS_CHECK_LOG}"`
+  Pop $AionUiVerifyResourceResult
+
+  ${If} $AionUiVerifyResourceResult != 0
+    Abort `Bundled AionCore resources are incomplete after installation.`
+  ${EndIf}
 !macroend
 
 !macro customInstall
-  !insertmacro AIONUI_VERIFY_ARM64_INSTALL
+  !insertmacro AIONUI_VERIFY_ARM64_APP_FILES
+  !insertmacro AIONUI_VERIFY_BUNDLED_AIONCORE_RESOURCES "win32-arm64"
+  !insertmacro AIONUI_LOG_EVENT "verify-install ok instDir=$INSTDIR"
 !macroend
 
 !macro AIONUI_HANDLE_UNINSTALL_RESULT _ROOT_KEY
@@ -263,6 +295,8 @@
 
 !macro customRemoveFiles
   !insertmacro AIONUI_LOG_EVENT "remove-start instDir=$INSTDIR"
+  StrCpy $R1 ""
+  Var /GLOBAL AionUiRemoveDirResult
 
   ${if} ${isUpdated}
     CreateDirectory "$PLUGINSDIR\old-install"
@@ -273,8 +307,9 @@
     !insertmacro AIONUI_LOG_EVENT "remove-atomic result=$R0"
 
     ${if} $R0 != 0
-      DetailPrint "Atomic update cleanup failed; falling back to recursive removal: $R0"
+      DetailPrint "Atomic update cleanup failed; restoring previous installation before recursive cleanup: $R0"
       !insertmacro AIONUI_LOG_ATOMIC_REMOVE_FAILURE
+      StrCpy $R1 $R0
 
       Push ""
       Call un.restoreFiles
@@ -284,13 +319,17 @@
   ${endif}
 
   SetOutPath $TEMP
-  ClearErrors
-  RMDir /r "$INSTDIR"
-  ${if} ${Errors}
-    !insertmacro AIONUI_LOG_EVENT "remove-rmdir errors=1 instDir=$INSTDIR"
-    ClearErrors
+  !insertmacro AIONUI_REMOVE_INSTALL_DIR
+  ${if} $AionUiRemoveDirResult != 0
+    ${if} $R1 != ""
+      DetailPrint `Can't safely remove previous installation after atomic cleanup failed. First failed path: $R1`
+    ${else}
+      DetailPrint `Can't safely remove previous installation: $INSTDIR`
+    ${endif}
+    SetErrorLevel 2
+    Quit
   ${else}
-    !insertmacro AIONUI_LOG_EVENT "remove-rmdir errors=0 instDir=$INSTDIR"
+    !insertmacro AIONUI_LOG_EVENT "remove-final errors=0 instDir=$INSTDIR"
   ${endif}
 !macroend
 !endif
