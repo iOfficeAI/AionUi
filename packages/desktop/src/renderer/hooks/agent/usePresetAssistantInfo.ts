@@ -229,8 +229,8 @@ function buildPresetInfoFromConversationAssistant(
   logos: AgentLogoMap
 ): PresetAssistantInfo {
   // Generated assistants reconciled from agent rows can have an empty avatar
-  // or a legacy svg filename. In that legacy case, fall back to the backend
-  // logo catalog instead of showing the generic robot.
+  // or a legacy svg filename such as `claude.svg`. In that case, fall back to
+  // the backend logo catalog instead of showing the generic robot.
   const normalized = normalizeAvatar(assistant.avatar);
   const isUnresolvedSvgFallback =
     normalized.isEmoji &&
