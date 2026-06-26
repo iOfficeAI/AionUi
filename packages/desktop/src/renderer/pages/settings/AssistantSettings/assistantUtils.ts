@@ -1,6 +1,7 @@
 import { DEFAULT_CODEX_MODELS } from '@/common/types/codex/codexModels';
 import { assistantRuntimeKey } from '@/common/types/agent/assistantTypes';
 import { resolveExtensionAssetUrl } from '@/renderer/utils/platform';
+import { isBackendRelativeAssetPath, isLikelyLocalFilePath } from '@/renderer/utils/model/assistantAvatar';
 import type { AssistantListItem, AvailableBackend } from './types';
 
 export type AssistantListFilter = 'all' | 'enabled' | 'disabled' | 'builtin' | 'user';
@@ -37,32 +38,12 @@ export const resolveAvatarImageSrc = (avatar: string | undefined): string | unde
   const value = avatar?.trim();
   if (!value) return undefined;
 
-  const isLocalAbsolutePath = isLikelyLocalFilePath(value);
-  if (isLocalAbsolutePath) {
-    const isImageLocalPath = /\.(svg|png|jpe?g|webp|gif)$/i.test(value) || isLikelyLocalFilePath(value);
-    return isImageLocalPath ? toFileUrl(value) : undefined;
-  }
+  if (isLikelyLocalFilePath(value)) return undefined;
+  if (value.startsWith('/') && !isBackendRelativeAssetPath(value)) return undefined;
 
   const resolved = resolveExtensionAssetUrl(value) || value;
   const isImage = /\.(svg|png|jpe?g|webp|gif)$/i.test(resolved) || /^(https?:|file:\/\/|data:|\/)/i.test(resolved);
   return isImage ? resolved : undefined;
-};
-
-const toFileUrl = (path: string): string => {
-  if (path.startsWith('file://')) return path;
-  if (/^[A-Za-z]:[\\/]/.test(path)) {
-    return `file:///${encodeURI(path.replace(/\\/g, '/'))}`;
-  }
-  return `file://${encodeURI(path)}`;
-};
-
-const isLikelyLocalFilePath = (value: string): boolean => {
-  if (value.startsWith('file://')) return true;
-  if (/^[A-Za-z]:[\\/]/.test(value)) return true;
-
-  const unixLocalPathPrefixes = ['/Users/', '/home/', '/var/', '/tmp/', '/private/', '/Volumes/', '/mnt/'];
-
-  return unixLocalPathPrefixes.some((prefix) => value.startsWith(prefix));
 };
 
 /**

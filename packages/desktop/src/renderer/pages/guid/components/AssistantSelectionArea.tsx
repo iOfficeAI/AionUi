@@ -9,7 +9,7 @@ import { assistantRuntimeKey, type Assistant } from '@/common/types/agent/assist
 import { Down, Robot, Search } from '@icon-park/react';
 import { Button, Dropdown, Input } from '@arco-design/web-react';
 import React, { useMemo, useState } from 'react';
-import { resolveExtensionAssetUrl } from '@/renderer/utils/platform';
+import { resolveAssistantAvatar } from '@/renderer/utils/model/assistantAvatar';
 import { useTranslation } from 'react-i18next';
 
 type AssistantSelectionAreaProps = {
@@ -65,12 +65,7 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
   if (enabledAssistants.length === 0) return null;
 
   const renderAssistantPill = (assistant: Assistant, testId: string) => {
-    const avatarValue = assistant.avatar?.trim();
-    const avatarImage = avatarValue ? resolveExtensionAssetUrl(avatarValue) : undefined;
-    const isImageAvatar = Boolean(
-      avatarImage &&
-      (/\.(svg|png|jpe?g|webp|gif)$/i.test(avatarImage) || /^(https?:|file:\/\/|data:|\/)/i.test(avatarImage))
-    );
+    const avatar = resolveAssistantAvatar(assistant.avatar);
     const isSelected = selectedId === assistant.id;
     const label = assistant.name_i18n?.[localeKey] || assistant.name;
 
@@ -92,10 +87,10 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
         }}
       >
         <span className='inline-flex h-20px w-20px items-center justify-center overflow-hidden rounded-999px bg-fill-2'>
-          {isImageAvatar ? (
-            <img src={avatarImage} alt='' className='h-full w-full object-contain' />
-          ) : avatarValue ? (
-            <span className={styles.assistantCardEmoji}>{avatarValue}</span>
+          {avatar.kind === 'image' ? (
+            <img src={avatar.value} alt='' className='h-full w-full object-contain' />
+          ) : avatar.kind === 'emoji' ? (
+            <span className={styles.assistantCardEmoji}>{avatar.value}</span>
           ) : (
             <Robot theme='outline' size={14} />
           )}

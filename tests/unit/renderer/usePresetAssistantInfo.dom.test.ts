@@ -176,6 +176,82 @@ describe('usePresetAssistantInfo', () => {
     });
   });
 
+  it('restores local absolute assistant snapshot avatars from the backend assistant catalog', () => {
+    useSWRMock.mockImplementation((key: unknown) => {
+      if (key === 'assistants') {
+        return {
+          data: [
+            {
+              id: 'assistant-local-avatar',
+              name: 'Local Avatar',
+              avatar: '/api/assistants/assistant-local-avatar/avatar',
+              name_i18n: {},
+            },
+          ],
+          isLoading: false,
+        };
+      }
+      if (key === 'extensions.acpAdapters') return { data: [], isLoading: false };
+      return { data: undefined, isLoading: false };
+    });
+
+    const conversation = {
+      ...makeConversation({
+        assistant_id: 'assistant-local-avatar',
+        backend: 'codex',
+      }),
+      assistant: {
+        id: 'assistant-local-avatar',
+        source: 'user',
+        name: 'Local Avatar',
+        avatar: '/Users/demo/.aionui/assistant-avatars/assistant-local-avatar.jpg',
+        backend: 'codex',
+      },
+    } as TChatConversation;
+
+    const { result } = renderHook(() => usePresetAssistantInfo(conversation));
+
+    expect(result.current.info).toEqual({
+      name: 'Local Avatar',
+      logo: '/api/assistants/assistant-local-avatar/avatar',
+      isEmoji: false,
+      backend: undefined,
+      assistantId: 'assistant-local-avatar',
+    });
+  });
+
+  it('does not expose local absolute assistant snapshot avatars when the catalog cannot restore them', () => {
+    useSWRMock.mockImplementation((key: unknown) => {
+      if (key === 'assistants') return { data: [], isLoading: false };
+      if (key === 'extensions.acpAdapters') return { data: [], isLoading: false };
+      return { data: undefined, isLoading: false };
+    });
+
+    const conversation = {
+      ...makeConversation({
+        assistant_id: 'assistant-local-avatar',
+        backend: 'codex',
+      }),
+      assistant: {
+        id: 'assistant-local-avatar',
+        source: 'user',
+        name: 'Local Avatar',
+        avatar: '/Users/demo/.aionui/assistant-avatars/assistant-local-avatar.jpg',
+        backend: 'codex',
+      },
+    } as TChatConversation;
+
+    const { result } = renderHook(() => usePresetAssistantInfo(conversation));
+
+    expect(result.current.info).toEqual({
+      name: 'Local Avatar',
+      logo: '🤖',
+      isEmoji: true,
+      backend: 'codex',
+      assistantId: 'assistant-local-avatar',
+    });
+  });
+
   it('falls back to the backend logo for generated assistants whose avatar is empty', () => {
     useSWRMock.mockImplementation((key: unknown) => {
       if (key === 'assistants') return { data: [], isLoading: false };

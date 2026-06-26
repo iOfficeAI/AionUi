@@ -1,8 +1,7 @@
 import React from 'react';
 import useSWR from 'swr';
-import { resolveAgentLogo, useAgentLogos } from '@renderer/utils/model/agentLogo';
+import { resolveAgentAvatar, useAgentLogos } from '@renderer/utils/model/agentLogo';
 import { usePresetAssistantInfo } from '@renderer/hooks/agent/usePresetAssistantInfo';
-import { resolveBackendAssetUrl } from '@renderer/utils/platform';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
 
 type Props = {
@@ -41,8 +40,7 @@ const TeamAgentIdentity: React.FC<Props> = ({
   );
   const { info: presetInfo } = usePresetAssistantInfo(conversation ?? undefined);
   const displayName = assistant_name || presetInfo?.name || 'Assistant';
-  const explicitLogo = resolveBackendAssetUrl(icon) ?? icon;
-  const backendLogo = resolveAgentLogo(logos, { backend: assistant_backend });
+  const agentAvatar = resolveAgentAvatar(logos, { icon, backend: assistant_backend });
 
   const defaultLogoClassName = 'w-16px h-16px object-contain rounded-2px opacity-80';
   const resolvedLogoClassName = logoClassName ?? defaultLogoClassName;
@@ -57,11 +55,11 @@ const TeamAgentIdentity: React.FC<Props> = ({
       }
       return <img src={presetInfo.logo} alt={displayName} className={resolvedLogoClassName} />;
     }
-    if (explicitLogo) {
-      return <img src={explicitLogo} alt={displayName} className={resolvedLogoClassName} />;
+    if (agentAvatar.kind === 'image') {
+      return <img src={agentAvatar.value} alt={displayName} className={resolvedLogoClassName} />;
     }
-    if (backendLogo) {
-      return <img src={backendLogo} alt={displayName} className={resolvedLogoClassName} />;
+    if (agentAvatar.kind === 'emoji') {
+      return <span className={resolvedAvatarClassName}>{agentAvatar.value}</span>;
     }
     return <span className={resolvedAvatarClassName}>{displayName.charAt(0).toUpperCase() || '🤖'}</span>;
   };

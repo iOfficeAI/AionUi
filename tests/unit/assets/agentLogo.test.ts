@@ -6,7 +6,25 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import type { AgentLogoMap } from '@/renderer/utils/model/agentLogo';
-import { resolveAgentLogo, isDefaultModel, getModelDisplayLabel } from '@/renderer/utils/model/agentLogo';
+import {
+  fetchAgentLogos,
+  resolveAgentAvatar,
+  resolveAgentLogo,
+  isDefaultModel,
+  getModelDisplayLabel,
+} from '@/renderer/utils/model/agentLogo';
+
+const bridgeMocks = vi.hoisted(() => ({
+  getManagedAgents: vi.fn(),
+}));
+
+vi.mock('@/common', () => ({
+  ipcBridge: {
+    acpConversation: {
+      getManagedAgents: { invoke: bridgeMocks.getManagedAgents },
+    },
+  },
+}));
 
 vi.mock('@/renderer/utils/platform', () => ({
   resolveBackendAssetUrl: (url: string) => url,
@@ -16,6 +34,7 @@ vi.mock('@/renderer/utils/platform', () => ({
 // test passes it explicitly to the pure `resolveAgentLogo`.
 const LOGOS: AgentLogoMap = {
   claude: '/api/assets/logos/ai-major/claude.svg',
+  emojiagent: '🧠',
   gemini: '/api/assets/logos/ai-major/gemini.svg',
   opencode: '/api/assets/logos/tools/coding/opencode-light.svg',
   'openclaw-gateway': '/api/assets/logos/tools/openclaw.svg',
@@ -25,6 +44,7 @@ describe('agentLogo', () => {
   let originalDocument: Document | undefined;
 
   beforeEach(() => {
+    bridgeMocks.getManagedAgents.mockReset();
     if (typeof document !== 'undefined') {
       originalDocument = document;
     }
@@ -64,15 +84,71 @@ describe('agentLogo', () => {
       expect(resolveAgentLogo(undefined as unknown as AgentLogoMap, { backend: 'claude' })).toBeNull();
     });
 
-    it('applies dark theme variant for opencode', () => {
+    it('uses the backend-provided opencode logo without applying a theme variant', () => {
       (global.document.documentElement.getAttribute as any).mockReturnValue('dark');
-      expect(resolveAgentLogo(LOGOS, { backend: 'opencode' })).toContain('opencode-dark.svg');
+      expect(resolveAgentLogo(LOGOS, { backend: 'opencode' })).toContain('opencode-light.svg');
+    });
+
+    it('does not expose local absolute paths as logo sources', () => {
+      expect(resolveAgentLogo(LOGOS, { icon: '/Users/demo/.aionui/agent-avatars/custom.png' })).toBeNull();
+    });
+  });
+
+  describe('resolveAgentAvatar', () => {
+    it('keeps explicit emoji avatars as emoji', () => {
+      expect(resolveAgentAvatar(LOGOS, { icon: '🧠', backend: 'claude' })).toEqual({
+        kind: 'emoji',
+        value: '🧠',
+      });
+    });
+
+    it('falls back to backend catalog logos when explicit local paths leak through', () => {
+      expect(
+        resolveAgentAvatar(LOGOS, { icon: '/Users/demo/.aionui/agent-avatars/custom.png', backend: 'claude' })
+      ).toEqual({
+        kind: 'image',
+        value: '/api/assets/logos/ai-major/claude.svg',
+      });
+    });
+
+    it('keeps backend catalog emoji avatars as emoji', () => {
+      expect(resolveAgentAvatar(LOGOS, { backend: 'emojiagent' })).toEqual({
+        kind: 'emoji',
+        value: '🧠',
+      });
+    });
+  });
+
+  describe('fetchAgentLogos', () => {
+    it('builds the logo catalog from /api/agents/management rows', async () => {
+      bridgeMocks.getManagedAgents.mockResolvedValue([
+        {
+          id: 'agent-claude',
+          name: 'Claude',
+          agent_type: 'acp',
+          agent_source: 'builtin',
+          backend: 'claude',
+          enabled: true,
+          installed: true,
+          status: 'online',
+          icon: '/api/assets/logos/ai-major/claude.svg',
+        },
+      ]);
+
+      await expect(fetchAgentLogos()).resolves.toEqual({
+        acp: '/api/assets/logos/ai-major/claude.svg',
+        'agent-claude': '/api/assets/logos/ai-major/claude.svg',
+        claude: '/api/assets/logos/ai-major/claude.svg',
+      });
+      expect(bridgeMocks.getManagedAgents).toHaveBeenCalledTimes(1);
     });
   });
 
   describe('resolveAgentLogo (priority)', () => {
     it('prioritizes explicit icon', () => {
-      expect(resolveAgentLogo(LOGOS, { icon: '/custom/icon.svg', backend: 'claude' })).toContain('/custom/icon.svg');
+      expect(resolveAgentLogo(LOGOS, { icon: '/api/custom/icon.svg', backend: 'claude' })).toContain(
+        '/api/custom/icon.svg'
+      );
     });
 
     it('falls back to backend ID', () => {

@@ -9,8 +9,7 @@ import { Avatar, Button, Switch, Tag, Tooltip, Typography } from '@arco-design/w
 import { Delete, EditTwo, Robot } from '@icon-park/react';
 import { useTranslation } from 'react-i18next';
 import type { Assistant } from '@/common/types/agent/assistantTypes';
-import { resolveAgentLogo, useAgentLogos } from '@/renderer/utils/model/agentLogo';
-import { resolveExtensionAssetUrl } from '@/renderer/utils/platform';
+import { resolveAgentAvatar, useAgentLogos } from '@/renderer/utils/model/agentLogo';
 import {
   type AgentManagementStatus,
   type ManagedAgent,
@@ -105,15 +104,12 @@ const AgentCard: React.FC<AgentCardProps> = (props) => {
   const diagnostics = formatManagedAgentDiagnosticMessage(t, agent);
   const displayStatus = resolveDisplayStatus(agent.status, agent.last_check_error_code);
 
-  const extensionAvatar = resolveExtensionAssetUrl(agent.isExtension ? agent.avatar : undefined);
-  const logo =
-    extensionAvatar ||
-    resolveAgentLogo(logos, {
-      icon: agent.icon,
-      backend: agent.backend || agent.agent_type,
-      custom_agent_id: agent.custom_agent_id,
-      isExtension: agent.isExtension,
-    });
+  const avatar = resolveAgentAvatar(logos, {
+    icon: agent.avatar || agent.icon,
+    backend: agent.backend || agent.agent_type,
+    custom_agent_id: agent.custom_agent_id,
+    isExtension: agent.isExtension,
+  });
 
   const stop = (event: React.MouseEvent) => event.stopPropagation();
 
@@ -127,10 +123,12 @@ const AgentCard: React.FC<AgentCardProps> = (props) => {
         <Avatar
           size={32}
           shape='square'
-          style={{ flexShrink: 0, backgroundColor: logo ? 'transparent' : 'var(--color-fill-2)' }}
+          style={{ flexShrink: 0, backgroundColor: avatar.kind === 'image' ? 'transparent' : 'var(--color-fill-2)' }}
         >
-          {logo ? (
-            <img src={logo} alt={agent.name} className='h-full w-full object-contain' />
+          {avatar.kind === 'image' ? (
+            <img src={avatar.value} alt={agent.name} className='h-full w-full object-contain' />
+          ) : avatar.kind === 'emoji' ? (
+            <span className='text-18px leading-none'>{avatar.value}</span>
           ) : (
             <Robot theme='outline' size='18' />
           )}

@@ -6,44 +6,54 @@
  * 统一的 Agent Logo 工具
  * Unified Agent Logo utility
  *
- * Logo 真值由后端 `/api/agents/logos` 提供（投影自 agent_metadata.icon）。
+ * Logo 真值由后端 `/api/agents/management` 提供（投影自 agent_metadata.icon/avatar）。
  * 前端不再维护任何 backend -> 资源路径的硬编码映射。
  *
  * 使用方式：组件用 {@link useAgentLogos} 取得 `backend -> url` 映射，再用纯函数
  * {@link resolveAgentLogo} 解析。非组件的工具函数应把映射作为参数传入。
  *
- * Logo truth lives in the backend (`/api/agents/logos`, projected from
- * `agent_metadata.icon`); the frontend owns no path map. Components read the
+ * Logo truth lives in the backend (`/api/agents/management`, projected from
+ * `agent_metadata.icon/avatar`); the frontend owns no path map. Components read the
  * `backend -> url` map via {@link useAgentLogos} and resolve with the pure
  * {@link resolveAgentLogo}; non-React utilities receive the map as an argument.
  */
 
 import { ipcBridge } from '@/common';
+import type { AssistantAvatar } from '@/renderer/utils/model/assistantAvatar';
+import {
+  isBackendRelativeAssetPath,
+  isLikelyLocalFilePath,
+  resolveAssistantAvatar,
+} from '@/renderer/utils/model/assistantAvatar';
+import type { ManagedAgent } from '@/renderer/utils/model/agentTypes';
 import { resolveBackendAssetUrl } from '@/renderer/utils/platform';
 import useSWR from 'swr';
-
-export type AgentLogoEntry = {
-  backend: string;
-  logo: string;
-};
 
 /** Map of lowercased backend id -> logo URL. */
 export type AgentLogoMap = Record<string, string>;
 
 export const AGENT_LOGOS_SWR_KEY = 'agents.logos';
 
-const OPEN_CODE_LIGHT_FILE_NAME = 'opencode-light.svg';
-const OPEN_CODE_DARK_FILE_NAME = 'opencode-dark.svg';
+function collectManagedAgentLogoKeys(agent: ManagedAgent): string[] {
+  const keys = [agent.backend, agent.agent_type, agent.id, agent.custom_agent_id];
+  return keys
+    .filter((key): key is string => typeof key === 'string' && key.trim().length > 0)
+    .map((key) => key.trim().toLowerCase())
+    .filter((key, index, values) => values.indexOf(key) === index);
+}
 
-/** Shared fetcher for the backend logo catalog, keyed into a backend->url map. */
+/** Shared fetcher for the backend management catalog, keyed into a backend->url map. */
 export async function fetchAgentLogos(): Promise<AgentLogoMap> {
   try {
-    const entries = await ipcBridge.acpConversation.getAgentLogos.invoke();
-    if (Array.isArray(entries)) {
+    const agents = await ipcBridge.acpConversation.getManagedAgents.invoke();
+    if (Array.isArray(agents)) {
       const map: AgentLogoMap = {};
-      for (const entry of entries as AgentLogoEntry[]) {
-        if (entry?.backend && entry.logo) {
-          map[entry.backend.toLowerCase()] = entry.logo;
+      for (const agent of agents as ManagedAgent[]) {
+        const logo = agent.avatar || agent.icon;
+        if (!logo) continue;
+
+        for (const key of collectManagedAgentLogoKeys(agent)) {
+          map[key] = logo;
         }
       }
       return map;
@@ -67,31 +77,29 @@ export function useAgentLogos(): AgentLogoMap {
   return data ?? {};
 }
 
-function isDarkTheme(): boolean {
-  if (typeof document === 'undefined') return false;
-  const theme = document.documentElement.getAttribute('data-theme');
-  if (theme === 'dark') return true;
-  if (theme === 'light') return false;
-  if (typeof window !== 'undefined' && typeof window.matchMedia === 'function') {
-    return window.matchMedia('(prefers-color-scheme: dark)').matches;
-  }
-  return false;
+function normalizeLogoUrl(logo: string): string | null {
+  const value = logo.trim();
+  if (!value || isLikelyLocalFilePath(value)) return null;
+  if (value.startsWith('/') && !isBackendRelativeAssetPath(value)) return null;
+
+  const resolved = resolveBackendAssetUrl(value) ?? value;
+  const isImage = /\.(svg|png|jpe?g|webp|gif)$/i.test(resolved) || /^(https?:|data:|\/)/i.test(resolved);
+  return isImage ? resolved : null;
 }
 
-function applyThemeVariant(logo: string): string {
-  if (!isDarkTheme()) return logo;
-  if (!logo.endsWith(OPEN_CODE_LIGHT_FILE_NAME)) return logo;
-  return logo.replace(new RegExp(`${OPEN_CODE_LIGHT_FILE_NAME}$`), OPEN_CODE_DARK_FILE_NAME);
-}
-
-function normalizeLogoUrl(logo: string): string {
-  return applyThemeVariant(resolveBackendAssetUrl(logo) ?? logo);
+function lookupBackendLogoValue(logos: AgentLogoMap, backend: string | undefined | null): string | null {
+  if (!backend || typeof backend !== 'string') return null;
+  return logos?.[backend.toLowerCase()] ?? null;
 }
 
 function lookupBackendLogo(logos: AgentLogoMap, backend: string | undefined | null): string | null {
-  if (!backend || typeof backend !== 'string') return null;
-  const logo = logos?.[backend.toLowerCase()];
+  const logo = lookupBackendLogoValue(logos, backend);
   return logo ? normalizeLogoUrl(logo) : null;
+}
+
+function lookupBackendAvatar(logos: AgentLogoMap, backend: string | undefined | null): AssistantAvatar {
+  const logo = lookupBackendLogoValue(logos, backend);
+  return resolveAssistantAvatar(logo || undefined);
 }
 
 /**
@@ -121,6 +129,27 @@ export function resolveAgentLogo(
   }
 
   return lookupBackendLogo(logos, opts.backend);
+}
+
+export function resolveAgentAvatar(
+  logos: AgentLogoMap,
+  opts: {
+    icon?: string | null;
+    backend?: string | null;
+    custom_agent_id?: string | null;
+    isExtension?: boolean;
+  }
+): AssistantAvatar {
+  const explicitAvatar = resolveAssistantAvatar(opts.icon || undefined);
+  if (explicitAvatar.kind !== 'fallback') return explicitAvatar;
+
+  if (opts.isExtension && opts.custom_agent_id) {
+    const adapterId = opts.custom_agent_id.split(':').pop();
+    const adapterAvatar = lookupBackendAvatar(logos, adapterId);
+    if (adapterAvatar.kind !== 'fallback') return adapterAvatar;
+  }
+
+  return lookupBackendAvatar(logos, opts.backend);
 }
 
 /**

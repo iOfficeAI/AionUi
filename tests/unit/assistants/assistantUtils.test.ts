@@ -60,10 +60,13 @@ describe('assistantUtils', () => {
 
     it('returns valid image URLs', () => {
       expect(resolveAvatarImageSrc('logo.png')).toBe('logo.png');
-      expect(resolveAvatarImageSrc('/path/icon.svg')).toBe('/path/icon.svg');
-      expect(resolveAvatarImageSrc('/Users/demo/avatar.png')).toBe('file:///Users/demo/avatar.png');
       expect(resolveAvatarImageSrc('https://example.com/icon.jpg')).toBe('https://example.com/icon.jpg');
       expect(resolveAvatarImageSrc('data:image/png;base64,xyz')).toBe('data:image/png;base64,xyz');
+    });
+
+    it('does not expose local absolute paths as image sources', () => {
+      expect(resolveAvatarImageSrc('/Users/demo/avatar.png')).toBeUndefined();
+      expect(resolveAvatarImageSrc('/path/icon.svg')).toBeUndefined();
     });
 
     it('resolves backend-served assistant avatar routes', () => {
