@@ -7,7 +7,7 @@ import { type FeedbackEventTags, submitFeedbackReport } from '@/renderer/service
 const AIONUI_DOWNLOAD_URL = 'https://www.aionui.com/';
 const INSTALLATION_INTEGRITY_REPORT_FLUSH_TIMEOUT_MS = 2000;
 
-type InstallationIntegrityDialogKind = 'incomplete_installation' | 'data_migration';
+type InstallationIntegrityDialogKind = 'incomplete_installation' | 'data_migration' | 'local_data_repair';
 
 export type InstallationIntegrityDiagnostics = {
   source: 'backend_startup_failure' | 'runtime_status';
@@ -32,6 +32,7 @@ export function getInstallationIntegrityTitle(
   t: TFunction,
   diagnosticsKind: InstallationIntegrityDialogKind = 'incomplete_installation'
 ): string {
+  if (diagnosticsKind === 'local_data_repair') return t('common.backendStartup.localDataRepair.title');
   return diagnosticsKind === 'data_migration'
     ? t('common.backendStartup.dataMigration.title')
     : t('common.backendStartup.incompleteInstallation.title');
@@ -57,6 +58,7 @@ export function getInstallationIntegrityDiagnosticsSentText(
   t: TFunction,
   diagnosticsKind: InstallationIntegrityDialogKind = 'incomplete_installation'
 ): string {
+  if (diagnosticsKind === 'local_data_repair') return t('common.backendStartup.localDataRepair.diagnosticsSent');
   return diagnosticsKind === 'data_migration'
     ? t('common.backendStartup.dataMigration.diagnosticsSent')
     : t('common.backendStartup.incompleteInstallation.diagnosticsSent');
@@ -139,9 +141,11 @@ export function getInstallationIntegrityModalActions(
     onDownloadLatest: options.onDownloadLatest ?? openDownloadLatest,
     onReportDiagnostics: options.onReportDiagnostics ?? (() => Promise.resolve()),
     reportText:
-      diagnosticsKind === 'data_migration'
-        ? t('common.backendStartup.dataMigration.sendDiagnostics')
-        : getInstallationIntegritySendDiagnosticsText(t),
+      diagnosticsKind === 'local_data_repair'
+        ? t('common.backendStartup.localDataRepair.sendDiagnostics')
+        : diagnosticsKind === 'data_migration'
+          ? t('common.backendStartup.dataMigration.sendDiagnostics')
+          : getInstallationIntegritySendDiagnosticsText(t),
   };
 }
 
@@ -194,15 +198,19 @@ const InstallationIntegrityFooter: React.FC<{
       await actions.onReportDiagnostics();
       setReported(true);
       Message.success(
-        diagnosticsKind === 'data_migration'
-          ? t('common.backendStartup.dataMigration.diagnosticsReportSuccess')
-          : t('common.backendStartup.incompleteInstallation.diagnosticsReportSuccess')
+        diagnosticsKind === 'local_data_repair'
+          ? t('common.backendStartup.localDataRepair.diagnosticsReportSuccess')
+          : diagnosticsKind === 'data_migration'
+            ? t('common.backendStartup.dataMigration.diagnosticsReportSuccess')
+            : t('common.backendStartup.incompleteInstallation.diagnosticsReportSuccess')
       );
     } catch {
       Message.error(
-        diagnosticsKind === 'data_migration'
-          ? t('common.backendStartup.dataMigration.diagnosticsReportFailed')
-          : t('common.backendStartup.incompleteInstallation.diagnosticsReportFailed')
+        diagnosticsKind === 'local_data_repair'
+          ? t('common.backendStartup.localDataRepair.diagnosticsReportFailed')
+          : diagnosticsKind === 'data_migration'
+            ? t('common.backendStartup.dataMigration.diagnosticsReportFailed')
+            : t('common.backendStartup.incompleteInstallation.diagnosticsReportFailed')
       );
     } finally {
       setReporting(false);

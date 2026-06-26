@@ -99,6 +99,14 @@
       "diagnosticsSent": "诊断报告已发送",
       "diagnosticsReportSuccess": "诊断报告已发送",
       "diagnosticsReportFailed": "诊断报告发送失败"
+    },
+    "localDataRepair": {
+      "title": "本地数据修复失败",
+      "description": "AionUi 已打开，但 AionCore 在修复本地智能体缓存数据时停止。重新安装 AionUi 可能无法解决此问题。请发送诊断报告或联系支持，以便检查本地数据库。",
+      "sendDiagnostics": "发送诊断",
+      "diagnosticsSent": "诊断已发送",
+      "diagnosticsReportSuccess": "诊断报告已发送",
+      "diagnosticsReportFailed": "诊断报告发送失败"
     }
   },
   "fileAttach.addFiles": "添加文件",

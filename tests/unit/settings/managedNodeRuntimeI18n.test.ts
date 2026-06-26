@@ -64,4 +64,19 @@ describe('managed node runtime settings copy', () => {
       expect(incompleteInstallation.runtimeComponentDescription).not.toMatch(/^This installation is missing/);
     }
   });
+
+  it('defines local data repair startup copy in every common locale', () => {
+    for (const language of ['de-DE', 'en-US', 'ja-JP', 'ko-KR', 'pt-BR', 'ru-RU', 'tr-TR', 'uk-UA', 'zh-CN', 'zh-TW']) {
+      const common = loadCommonLocale(language);
+      const backendStartup = common.backendStartup as Record<string, unknown>;
+      const localDataRepair = backendStartup.localDataRepair as Record<string, string>;
+
+      expect(localDataRepair.title).toBeTruthy();
+      expect(localDataRepair.description).toBeTruthy();
+      expect(localDataRepair.sendDiagnostics).toBeTruthy();
+      expect(localDataRepair.diagnosticsSent).toBeTruthy();
+      expect(localDataRepair.diagnosticsReportSuccess).toBeTruthy();
+      expect(localDataRepair.diagnosticsReportFailed).toBeTruthy();
+    }
+  });
 });

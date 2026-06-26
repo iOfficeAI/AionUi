@@ -248,6 +248,30 @@ describe('captureBackendStartupFailure', () => {
     expect(scopeSetTag).toHaveBeenCalledWith('aionui.backend_startup.boundary_code', 'BOOTSTRAP_DATA_INIT_FAILED');
     expect(scopeSetTag).toHaveBeenCalledWith('aionui.backend_startup.boundary_stage', 'database.migration');
   });
+
+  it('sets local data repair reason and issue-kind tags', async () => {
+    scopeSetTag.mockClear();
+    const error = new Error('aioncore exited before health check passed') as Error & {
+      details?: Record<string, unknown>;
+    };
+    error.details = {
+      stage: 'early_exit',
+      backendBoundaryCode: 'BOOTSTRAP_SERVICE_INIT_FAILED',
+      backendBoundaryStage: 'services.init',
+      stderrTail:
+        'Failed to hydrate agent registry: Internal error: load agent_metadata: Database query failed: error occurred while decoding column "config_options": invalid utf-8 sequence of 1 bytes from index 793',
+    };
+
+    await captureBackendStartupFailure(error);
+
+    expect(scopeSetTag).toHaveBeenCalledWith('aionui.backend_startup.reason', 'backend_local_data_repair_failed');
+    expect(scopeSetTag).toHaveBeenCalledWith(
+      'aionui.backend_startup.local_data_issue_kind',
+      'agent_metadata_invalid_utf8'
+    );
+    expect(scopeSetTag).toHaveBeenCalledWith('aionui.backend_startup.boundary_code', 'BOOTSTRAP_SERVICE_INIT_FAILED');
+    expect(scopeSetTag).toHaveBeenCalledWith('aionui.backend_startup.boundary_stage', 'services.init');
+  });
 });
 
 describe('initSentry beforeSend', () => {

@@ -99,6 +99,14 @@
       "diagnosticsSent": "Diagnostics sent",
       "diagnosticsReportSuccess": "Diagnostics report sent",
       "diagnosticsReportFailed": "Failed to send diagnostics report"
+    },
+    "localDataRepair": {
+      "title": "Local data repair failed",
+      "description": "AionUi opened, but AionCore stopped while repairing local agent cache data. Reinstalling AionUi may not fix this. Send a diagnostics report or contact support so the local database can be inspected.",
+      "sendDiagnostics": "Send diagnostics",
+      "diagnosticsSent": "Diagnostics sent",
+      "diagnosticsReportSuccess": "Diagnostics report sent",
+      "diagnosticsReportFailed": "Failed to send diagnostics report"
     }
   },
   "fileAttach.addFiles": "ファイルを追加",

@@ -28,12 +28,15 @@ export type BackendStartupFailureReason =
   | 'backend_incomplete_installation'
   | 'backend_package_architecture_mismatch'
   | 'backend_data_migration_failed'
+  | 'backend_local_data_repair_failed'
   | 'backend_startup_failed';
 
 export type BackendIncompleteInstallationKind = 'missing_backend_binary' | 'missing_directory_resources';
+export type BackendLocalDataIssueKind = 'agent_metadata_invalid_utf8';
 
 export interface BackendStartupFailureInfo {
   incompleteInstallationKind?: BackendIncompleteInstallationKind;
+  localDataIssueKind?: BackendLocalDataIssueKind;
   missingBackendBinary?: boolean;
   missingBundledAioncoreDir?: boolean;
   missingHubDir?: boolean;
