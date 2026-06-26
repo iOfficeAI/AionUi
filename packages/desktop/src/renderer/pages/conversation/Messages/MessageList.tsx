@@ -108,6 +108,8 @@ const getUnhandledMessageType = (_message: never): string => 'unknown';
 // Image preview context
 export const ImagePreviewContext = createContext<{ inPreviewGroup: boolean }>({ inPreviewGroup: false });
 
+const MESSAGE_ROW_WIDTH_CLASS = 'w-[calc(100%-24px)] md:w-[calc(100%-clamp(80px,10vw,240px))] max-w-none mx-auto';
+
 const MessageListSkeleton: React.FC = () => {
   const rows = [
     { align: 'left', bubbleWidth: '100%', lines: [72, 58, 64] },
@@ -131,13 +133,10 @@ const MessageListSkeleton: React.FC = () => {
         {rows.map((row, index) => (
           <div
             key={index}
-            className={classNames(
-              'w-full min-w-0 flex items-start message-item px-8px m-t-10px max-w-full md:max-w-780px mx-auto',
-              {
-                'justify-start': row.align === 'left',
-                'justify-end': row.align === 'right',
-              }
-            )}
+            className={classNames(`${MESSAGE_ROW_WIDTH_CLASS} min-w-0 flex items-start message-item px-8px m-t-10px`, {
+              'justify-start': row.align === 'left',
+              'justify-end': row.align === 'right',
+            })}
           >
             <div
               className='flex-none min-w-0 rd-16px p-14px'
@@ -187,7 +186,7 @@ const MessageItem: React.FC<{ message: TMessage; highlighted?: boolean; showCopy
         data-message-type={message.type}
         data-message-position={message.position}
         className={classNames(
-          'min-w-0 flex items-start message-item [&>div]:max-w-full px-8px m-t-10px max-w-full md:max-w-780px mx-auto',
+          `${MESSAGE_ROW_WIDTH_CLASS} min-w-0 flex items-start message-item [&>div]:max-w-full px-8px m-t-10px`,
           message.type,
           {
             'justify-center': message.position === 'center',
@@ -575,7 +574,7 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
           id={`message-${getProcessedItemAnchorId(item)}`}
           data-conversation-artifact-kind={item.artifact.kind}
           data-testid={`conversation-artifact-${item.artifact.kind}`}
-          className='min-w-0 message-item px-8px m-t-10px max-w-full md:max-w-780px mx-auto'
+          className={`${MESSAGE_ROW_WIDTH_CLASS} min-w-0 message-item px-8px m-t-10px`}
           style={highlighted ? highlightStyle : undefined}
         >
           {item.artifact.kind === 'cron_trigger' ? (
@@ -591,7 +590,7 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
         <div
           key={item.id}
           id={`message-${getProcessedItemAnchorId(item)}`}
-          className={'min-w-0 message-item px-8px m-t-10px max-w-full md:max-w-780px mx-auto ' + item.type}
+          className={`${MESSAGE_ROW_WIDTH_CLASS} min-w-0 message-item px-8px m-t-10px ${item.type}`}
           style={highlighted ? highlightStyle : undefined}
         >
           {item.type === 'file_summary' && <MessageFileChanges diffsChanges={item.diffs} />}

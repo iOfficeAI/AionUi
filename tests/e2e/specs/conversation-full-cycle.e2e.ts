@@ -1269,7 +1269,10 @@ test.describe('Conversation Full Cycle', () => {
       const firstSuggestion = await waitForSkillSuggestMessage(page, firstConversationId, 150_000);
       expect(firstSuggestion.skillContent.length).toBeGreaterThan(0);
 
-      const firstSkillCard = page.locator('div.max-w-780px').filter({ hasText: firstSuggestion.name }).last();
+      const firstSkillCard = page
+        .locator('[data-testid="message-skill-suggest"]')
+        .filter({ hasText: firstSuggestion.name })
+        .last();
       const firstSkillCardVisible = await firstSkillCard
         .waitFor({ state: 'visible', timeout: 10_000 })
         .then(() => true)

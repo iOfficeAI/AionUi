@@ -600,7 +600,7 @@ const AionrsSendBox: React.FC<{
   const effectiveHandleStop = teamRuntime?.onStop ?? handleStop;
 
   return (
-    <div className='max-w-800px w-full mx-auto flex flex-col mt-auto mb-16px'>
+    <div className='w-[calc(100%-24px)] md:w-[calc(100%-clamp(80px,10vw,240px))] max-w-none mx-auto flex flex-col mt-auto mb-16px'>
       <CommandQueuePanel
         items={queuedCommands}
         interactionLocked={isQueueInteractionLocked}

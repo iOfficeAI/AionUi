@@ -46,7 +46,7 @@ const MessageCronTrigger: React.FC<{ artifact: ICronTriggerArtifact }> = ({ arti
   return (
     <div
       data-testid='message-cron-trigger'
-      className='max-w-780px w-full mx-auto cursor-pointer'
+      className='w-full mx-auto cursor-pointer'
       onClick={() => navigate(`/scheduled/${cron_job_id}`)}
     >
       <div
