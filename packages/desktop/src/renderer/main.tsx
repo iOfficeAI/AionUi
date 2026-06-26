@@ -326,7 +326,11 @@ const BackendStartupFailureDialog: React.FC<{ failure: BackendStartupFailureInfo
         <InstallationIntegrityModalHost
           description={description}
           diagnosticsKind={
-            isLocalDataRepairFailure ? 'local_data_repair' : isDataMigrationFailure ? 'data_migration' : 'incomplete_installation'
+            isLocalDataRepairFailure
+              ? 'local_data_repair'
+              : isDataMigrationFailure
+                ? 'data_migration'
+                : 'incomplete_installation'
           }
           diagnostics={{
             source: 'backend_startup_failure',
