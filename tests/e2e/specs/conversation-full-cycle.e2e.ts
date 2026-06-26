@@ -8,7 +8,6 @@
  * These tests require real API keys and CLI agents installed.
  */
 import { test, expect } from '../fixtures';
-import { getFullAutoMode } from '@/common/types/agent/agentModes';
 import {
   goToGuid,
   goToNewChat,
@@ -48,6 +47,16 @@ async function pickAvailableBackend(page: import('@playwright/test').Page): Prom
     await page.waitForTimeout(500);
   }
   return null;
+}
+
+async function resolveFullAutoModeFromAgentMetadata(
+  page: import('@playwright/test').Page,
+  backend: string
+): Promise<string> {
+  const agents = await httpGet<Array<{ backend?: string; yolo_id?: string }>>(page, '/api/agents/management').catch(
+    () => []
+  );
+  return agents.find((agent) => agent.backend === backend)?.yolo_id || 'yolo';
 }
 
 type CronJobRecord = {
@@ -245,14 +254,11 @@ async function findCronJobByName(
 
 async function listAutoInjectBuiltinSkills(
   page: import('@playwright/test').Page
-): Promise<Array<{ name: string; relative_location?: string; source?: string }>> {
-  const skills = await httpGet<Array<{ name: string; relative_location?: string; source?: string }>>(
-    page,
-    '/api/skills'
-  );
-  return (skills ?? []).filter(
-    (skill) => skill.source === 'builtin' && (skill.relative_location ?? '').startsWith('auto-inject/')
-  );
+): Promise<Array<{ name: string; relative_location?: string; is_auto_inject: boolean; source?: string }>> {
+  const skills = await httpGet<
+    Array<{ name: string; relative_location?: string; is_auto_inject: boolean; source?: string }>
+  >(page, '/api/skills');
+  return (skills ?? []).filter((skill) => skill.source === 'builtin' && skill.is_auto_inject);
 }
 
 async function expectCronBuiltinAutoSkill(page: import('@playwright/test').Page): Promise<void> {
@@ -1086,7 +1092,7 @@ test.describe('Conversation Full Cycle', () => {
         await expectCronBuiltinAutoSkill(page);
         await selectAgent(page, backend);
 
-        const selectedMode = getFullAutoMode(backend);
+        const selectedMode = await resolveFullAutoModeFromAgentMetadata(page, backend);
         const modeSelector = page.locator(MODE_SELECTOR);
         if (await modeSelector.isVisible().catch(() => false)) {
           const availableModes = await getAvailableModes(page);
@@ -1269,7 +1275,10 @@ test.describe('Conversation Full Cycle', () => {
       const firstSuggestion = await waitForSkillSuggestMessage(page, firstConversationId, 150_000);
       expect(firstSuggestion.skillContent.length).toBeGreaterThan(0);
 
-      const firstSkillCard = page.locator('div.max-w-780px').filter({ hasText: firstSuggestion.name }).last();
+      const firstSkillCard = page
+        .locator('[data-testid="message-skill-suggest"]')
+        .filter({ hasText: firstSuggestion.name })
+        .last();
       const firstSkillCardVisible = await firstSkillCard
         .waitFor({ state: 'visible', timeout: 10_000 })
         .then(() => true)

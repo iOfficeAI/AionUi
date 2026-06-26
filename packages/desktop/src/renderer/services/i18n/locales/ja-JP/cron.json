@@ -13,8 +13,6 @@
     "error": "エラー",
     "unread": "新しい実行",
     "unconfigured": "スケジュールタスク未設定",
-    "unconfiguredHint": "このチャットにはまだスケジュールタスクがありません。アシスタントと一緒に作成しましょう！",
-    "createNow": "今すぐ作成",
     "defaultPrompt": "毎日午前10時に、最新のAIニュースを検索し、まとめてインサイトレポートを出力してください。"
   },
   "actions": {
@@ -66,6 +64,8 @@
   },
   "page": {
     "newTask": "新規タスク",
+    "createViaChat": "チャットで作成",
+    "createManually": "手動で作成",
     "description": "タスクをスケジュールで自動実行できます。どの会話でも AionUi に依頼して定期タスクを作成することもできます。",
     "awakeBanner": "スケジュールタスクはコンピュータが起動している間のみ実行されます。",
     "keepAwake": "スリープを防止",

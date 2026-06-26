@@ -580,6 +580,7 @@ export const fs = {
       description: string;
       location: string;
       relative_location?: string;
+      is_auto_inject: boolean;
       is_custom: boolean;
       source: 'builtin' | 'custom' | 'cron' | 'extension';
     }>,
@@ -810,8 +811,6 @@ export const mode = {
 export const acpConversation = {
   sendMessage: conversation.sendMessage,
   responseStream: conversation.responseStream,
-  /** Backend -> logo URL catalog for business surfaces. */
-  getAgentLogos: httpGet<import('@/renderer/utils/model/agentLogo').AgentLogoEntry[], void>('/api/agents/logos'),
   /** Management view used by Agent settings. */
   getManagedAgents: httpGet<import('@/renderer/utils/model/agentTypes').ManagedAgent[], void>('/api/agents/management'),
   getAgentOverrides: httpGet<

@@ -4,12 +4,19 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { DEFAULT_CODEX_MODELS } from '@/common/types/codex/codexModels';
 import { assistantRuntimeKey, isAionrsAssistant, type Assistant } from '@/common/types/agent/assistantTypes';
 import type { AcpModelInfo } from '../types';
-import { getAgentModes } from '@/renderer/utils/model/agentModes';
+import type { AgentModeOption } from '@/renderer/utils/model/agentTypes';
+import {
+  buildAgentRuntimeModeState,
+  buildAgentRuntimeModelInfo,
+  type AgentRuntimeCatalog,
+} from '@/renderer/utils/model/agentRuntimeCatalog';
+import { useManagedAgentRuntimeCatalog } from '@/renderer/hooks/agent/useManagedAgents';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useCustomAgentsLoader } from './useCustomAgentsLoader';
+
+export { buildAgentRuntimeModeState, buildAgentRuntimeModelInfo, type AgentRuntimeCatalog };
 
 export type GuidAssistantSelectionResult = {
   selectedAssistantId: string | null;
@@ -24,43 +31,23 @@ export type GuidAssistantSelectionResult = {
   selectedAcpModel: string | null;
   setSelectedAcpModel: (model: React.SetStateAction<string | null>, options?: { persistPreference?: boolean }) => void;
   currentAcpCachedModelInfo: AcpModelInfo | null;
+  currentAgentModeOptions: AgentModeOption[];
 };
 
-function resolveDefaultMode(backend: string | undefined): string {
-  if (!backend) return 'default';
-
-  const staticModes = getAgentModes(backend);
-  if (staticModes.length > 0) return staticModes[0].value;
-
-  return 'default';
-}
-
-export function resolveInitialAssistantModel(backend: string, models: string[]): string | null {
+export function resolveInitialAssistantModel(models: string[]): string | null {
   if (models.length > 0) {
     return models[0];
-  }
-
-  if (backend === 'codex' && DEFAULT_CODEX_MODELS.length > 0) {
-    return DEFAULT_CODEX_MODELS[0]?.id ?? null;
   }
 
   return null;
 }
 
-export function buildAssistantModelInfo(backend: string, models: string[]): AcpModelInfo | null {
+export function buildAssistantModelInfo(models: string[]): AcpModelInfo | null {
   if (models.length > 0) {
     return {
       current_model_id: models[0],
       current_model_label: models[0],
       available_models: models.map((model) => ({ id: model, label: model })),
-    } satisfies AcpModelInfo;
-  }
-
-  if (backend === 'codex' && DEFAULT_CODEX_MODELS.length > 0) {
-    return {
-      current_model_id: DEFAULT_CODEX_MODELS[0].id,
-      current_model_label: DEFAULT_CODEX_MODELS[0].label,
-      available_models: DEFAULT_CODEX_MODELS.map((model) => ({ id: model.id, label: model.label })),
     } satisfies AcpModelInfo;
   }
 
@@ -88,7 +75,7 @@ export function resolveAssistantSelectionKey(
 export function pickDefaultAssistantSelectionKey(assistants: Assistant[]): string | null {
   const enabledAssistants = assistants.filter((assistant) => assistant.enabled !== false);
   const preferred =
-    enabledAssistants.find((assistant) => assistant.source === 'bare' && isAionrsAssistant(assistant)) ??
+    enabledAssistants.find((assistant) => assistant.source === 'generated' && isAionrsAssistant(assistant)) ??
     enabledAssistants.find((assistant) => isAionrsAssistant(assistant)) ??
     enabledAssistants[0];
   return preferred?.id ?? null;
@@ -109,6 +96,7 @@ export const useGuidAssistantSelection = ({
   const [selectedMode, _setSelectedMode] = useState<string>('default');
   const [selectedAcpModel, _setSelectedAcpModel] = useState<string | null>(null);
   const { assistants } = useCustomAgentsLoader();
+  const managedAgentRuntimeCatalog = useManagedAgentRuntimeCatalog();
 
   const setSelectedMode = useCallback(
     (mode: React.SetStateAction<string>, _options?: { persistPreference?: boolean }) => {
@@ -182,25 +170,56 @@ export const useGuidAssistantSelection = ({
   const selectedAssistantId = selectedAssistant?.id ?? null;
   const selectedAssistantBackend = assistantRuntimeKey(selectedAssistant);
   const selectedAssistantModels = selectedAssistant?.models ?? [];
+  const selectedManagedAgentRuntimeCatalog = useMemo(
+    () =>
+      selectedAssistant?.agent_id
+        ? managedAgentRuntimeCatalog.find((agent) => agent.id === selectedAssistant.agent_id)
+        : undefined,
+    [managedAgentRuntimeCatalog, selectedAssistant?.agent_id]
+  );
+  const selectedAgentRuntimeModelInfo = useMemo(
+    () => buildAgentRuntimeModelInfo(selectedManagedAgentRuntimeCatalog),
+    [selectedManagedAgentRuntimeCatalog]
+  );
+  const selectedAgentRuntimeModeState = useMemo(
+    () => buildAgentRuntimeModeState(selectedManagedAgentRuntimeCatalog),
+    [selectedManagedAgentRuntimeCatalog]
+  );
+  const currentAgentModeOptions = selectedAgentRuntimeModeState.options;
 
   const selectedAssistantAvailable = useMemo(() => {
     return selectedAssistant?.agent_status === 'online';
   }, [selectedAssistant]);
 
   useEffect(() => {
-    const backend = selectedAssistantBackend;
-    _setSelectedAcpModel(resolveInitialAssistantModel(backend, selectedAssistantModels));
-  }, [selectedAssistantBackend, selectedAssistantModels]);
+    const runtimeModelId =
+      selectedAgentRuntimeModelInfo?.current_model_id || selectedAgentRuntimeModelInfo?.available_models[0]?.id;
+    if (runtimeModelId) {
+      _setSelectedAcpModel(runtimeModelId);
+      return;
+    }
+
+    if (selectedAssistantModels.length > 0) {
+      _setSelectedAcpModel(resolveInitialAssistantModel(selectedAssistantModels));
+      return;
+    }
+
+    _setSelectedAcpModel(resolveInitialAssistantModel([]));
+  }, [selectedAssistantModels, selectedAgentRuntimeModelInfo]);
 
   useEffect(() => {
-    const backend = selectedAssistantBackend;
-    const fallbackMode = resolveDefaultMode(backend);
+    const fallbackMode =
+      selectedAgentRuntimeModeState.currentMode || selectedAgentRuntimeModeState.options[0]?.value || 'default';
     _setSelectedMode(fallbackMode);
-  }, [selectedAssistantBackend]);
+  }, [selectedAgentRuntimeModeState]);
 
   const currentAcpCachedModelInfo = useMemo(() => {
-    return buildAssistantModelInfo(selectedAssistantBackend, selectedAssistantModels);
-  }, [selectedAssistantBackend, selectedAssistantModels]);
+    if (selectedAgentRuntimeModelInfo) {
+      return selectedAgentRuntimeModelInfo;
+    }
+
+    return buildAssistantModelInfo(selectedAssistantModels);
+  }, [selectedAssistantModels, selectedAgentRuntimeModelInfo]);
 
   const defaultAssistantId = useMemo(() => pickDefaultAssistantSelectionKey(assistants), [assistants]);
 
@@ -217,5 +236,6 @@ export const useGuidAssistantSelection = ({
     selectedAcpModel,
     setSelectedAcpModel,
     currentAcpCachedModelInfo,
+    currentAgentModeOptions,
   };
 };

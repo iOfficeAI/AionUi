@@ -17,7 +17,7 @@ describe('assistantSelectUtils', () => {
       id: 'bare-aionrs',
       name: 'Aion CLI',
       name_i18n: { 'zh-CN': 'Aion 命令行' },
-      source: 'bare',
+      source: 'generated',
       preset_agent_type: 'aionrs',
     });
 
@@ -30,7 +30,7 @@ describe('assistantSelectUtils', () => {
     const remoteAssistant = makeAssistant({
       id: 'bare-remote',
       name: 'Remote Runner',
-      source: 'bare',
+      source: 'generated',
       preset_agent_type: 'remote',
       team_selectable: true,
       team_block_reason: undefined,

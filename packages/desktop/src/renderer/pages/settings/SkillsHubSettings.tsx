@@ -1,10 +1,11 @@
 import { ipcBridge } from '@/common';
 import { Message, Modal } from '@arco-design/web-react';
-import { Delete, FolderOpen, Lightning, Puzzle, Search, Refresh } from '@icon-park/react';
+import { Delete, Lightning, Puzzle, Search, Refresh } from '@icon-park/react';
 import React, { useCallback, useEffect, useRef, useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import SettingsPageWrapper from './components/SettingsPageWrapper';
+import TalkToButlerButton from '@/renderer/components/base/TalkToButlerButton';
 import { buildSkillImportNotice, getSkillImportErrorMessage } from './skillImportMessages';
 
 // Skill 信息类型 / Skill info type
@@ -18,12 +19,12 @@ interface SkillInfo {
    * export-to-external-source flow still uses absolute `location` paths.
    */
   relative_location?: string;
+  is_auto_inject: boolean;
   is_custom: boolean;
   source?: 'builtin' | 'custom' | 'cron' | 'extension';
 }
 
-const isAutoInjectedBuiltinSkill = (skill: SkillInfo) =>
-  skill.source === 'builtin' && (skill.relative_location ?? '').startsWith('auto-inject/');
+const isAutoInjectedBuiltinSkill = (skill: SkillInfo) => skill.source === 'builtin' && skill.is_auto_inject;
 
 interface SkillImportRecord {
   id: string;
@@ -553,7 +554,7 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
             <div className='flex flex-col sm:flex-row items-stretch sm:items-center gap-12px w-full lg:w-auto shrink-0'>
               <button
                 data-testid='btn-open-import-history'
-                className='flex items-center justify-center gap-6px px-14px py-6px bg-base border border-border-1 hover:border-border-2 hover:bg-fill-1 text-t-primary rd-8px shadow-sm transition-all focus:outline-none shrink-0 cursor-pointer whitespace-nowrap'
+                className='flex items-center justify-center gap-6px px-8px py-6px bg-transparent border-none text-t-secondary hover:text-t-primary transition-colors focus:outline-none shrink-0 cursor-pointer whitespace-nowrap'
                 onClick={showImportHistory}
               >
                 <span className='text-13px font-medium'>
@@ -575,16 +576,16 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
                 />
               </div>
 
-              <button
-                data-testid='btn-manual-import'
-                className='flex items-center justify-center gap-6px px-16px py-6px bg-base border border-border-1 hover:border-border-2 hover:bg-fill-1 text-t-primary rd-8px shadow-sm transition-all focus:outline-none shrink-0 cursor-pointer whitespace-nowrap'
-                onClick={handleManualImport}
-              >
-                <FolderOpen size={15} className='text-t-secondary' />
-                <span className='text-13px font-medium'>
-                  {t('settings.skillsHub.manualImport', { defaultValue: 'Import Skills' })}
-                </span>
-              </button>
+              <TalkToButlerButton
+                label={t('settings.skillsHub.addSkill', { defaultValue: 'Add Skill' })}
+                chatLabel={t('settings.talkToButler.addViaChat', { defaultValue: 'Add via chat' })}
+                onManual={handleManualImport}
+                manualLabel={t('settings.skillsHub.manualImport', { defaultValue: 'Import Skills' })}
+                prompt={t('settings.talkToButler.prompt.addSkill', {
+                  defaultValue: 'Help me import a skill and attach it to an assistant.',
+                })}
+                data-testid='btn-add-skill'
+              />
             </div>
           </div>
 

@@ -17,7 +17,6 @@ import FilePreview from '@/renderer/components/media/FilePreview';
 import HorizontalFileList from '@/renderer/components/media/HorizontalFileList';
 import { classifyConfigSetError, useAcpConfigOptions } from '@/renderer/hooks/agent/useAcpConfigOptions';
 import { useAcpModelInfo } from '@/renderer/hooks/agent/useAcpModelInfo';
-import { useAgentModesForBackend } from '@/renderer/hooks/agent/useAgentModesForBackend';
 import { useAutoTitle } from '@/renderer/hooks/chat/useAutoTitle';
 import { getSendBoxDraftHook, type FileOrFolderItem } from '@/renderer/hooks/chat/useSendBoxDraft';
 import { createSetUploadFile, useSendBoxFiles } from '@/renderer/hooks/chat/useSendBoxFiles';
@@ -172,8 +171,6 @@ const AcpSendBox: React.FC<{
     onSelectModelSuccess: () => Message.success(t('agent.model.switchSuccess')),
     onSelectModelFailed: (_modelId, error) => Message.error(t(configErrorMessageKey(error))),
   });
-  const availableAgentModes = useAgentModesForBackend(backend);
-
   useEffect(() => {
     if (!runtimeMode?.currentValue) return;
     setCurrentMode(runtimeMode.currentValue);
@@ -399,7 +396,6 @@ Please check your local CLI tool authentication status`,
     enabled: true,
     isBusy,
     runtimeGate: commandQueueRuntimeGate,
-    teamUpgradeHandoffReady: Boolean(teamRuntime && teamSendMessage),
     onExecute: executeCommand,
   });
 
@@ -458,7 +454,7 @@ Please check your local CLI tool authentication status`,
         value: item.value,
         label: item.label,
         description: item.description ?? undefined,
-      })) ?? availableAgentModes;
+      })) ?? [];
     const modeOptions: MobileActionSheetOption[] = availableModes.map((mode) => ({
       key: mode.value,
       label: t(`agentMode.${mode.value}`, { defaultValue: mode.label }),
@@ -593,7 +589,6 @@ Please check your local CLI tool authentication status`,
     return entries;
   }, [
     attachEntries,
-    availableAgentModes,
     canSwitchModel,
     currentMode,
     handleSheetModeChange,
@@ -643,7 +638,7 @@ Please check your local CLI tool authentication status`,
   const effectiveHandleStop = teamRuntime?.onStop ?? handleStop;
 
   return (
-    <div className='max-w-800px w-full mx-auto flex flex-col mt-auto mb-16px'>
+    <div className='w-[calc(100%-24px)] md:w-[calc(100%-clamp(80px,10vw,240px))] max-w-none mx-auto flex flex-col mt-auto mb-16px'>
       <CommandQueuePanel
         items={queuedCommands}
         interactionLocked={isQueueInteractionLocked}

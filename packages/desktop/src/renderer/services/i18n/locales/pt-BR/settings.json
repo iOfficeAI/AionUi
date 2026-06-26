@@ -78,7 +78,8 @@
     "importHistoryFileLine": "File: {{path}}",
     "importHistorySizeLine": "Size: {{actual}}, limit: {{limit}}",
     "importHistoryLocationLine": "Location: line {{line}}, column {{column}}",
-    "importHistorySourceLine": "Source: {{source}}"
+    "importHistorySourceLine": "Source: {{source}}",
+    "addSkill": "Adicionar skill"
   },
   "authMethod": "Autenticação",
   "geminiApiKey": "Chave de API Gemini",
@@ -123,6 +124,7 @@
   "assistantFilterCustom": "Custom",
   "assistantSourceCustom": "Personalizado",
   "assistantSourceOfficial": "Oficial",
+  "assistantSourceCli": "CLI",
   "assistantSectionEnabled": "Ativado",
   "assistantSectionDisabled": "Desativado",
   "searchAssistants": "Pesquisar assistentes por nome ou descrição",
@@ -186,6 +188,7 @@
   "assistantBuiltinReadonlyTip": "Este é um assistente integrado. Você pode alterar o Agente Principal, o Modelo Padrão e a Permissão Padrão. Para personalizar outros campos,",
   "assistantBuiltinReadonlyDuplicateLink": "duplique-o",
   "assistantBuiltinReadonlyTipSuffix": ".",
+  "assistantCliReadonlyTip": "Este assistente é gerado automaticamente por Agents e vinculado um a um ao CLI correspondente. Nome, avatar e agente principal ficam bloqueados; as demais configurações podem ser editadas localmente e não serão sobrescritas por atualizações.",
   "addSkills": "Adicionar Habilidades",
   "customSkills": "Habilidades Personalizadas",
   "builtinSkills": "Habilidades Integradas",
@@ -1045,6 +1048,9 @@
     "testConnectionAuth": "{{name}} está acessível, mas precisa de login.",
     "testConnectionError": "Falha ao testar a conexão do agente.",
     "refreshingStatuses": "Atualizando o status de detecção...",
+    "filterAll": "Todos ({{count}})",
+    "filterAvailable": "Disponíveis ({{count}})",
+    "filterUnavailable": "Indisponíveis ({{count}})",
     "statusOnline": "Disponível",
     "statusNeedsAuth": "Requer Login",
     "statusOffline": "Indisponível",
@@ -1171,5 +1177,23 @@
   "updateReadyInstall": "{{version}} está pronto, instalar agora",
   "assistantAgentUnavailable": "O agente necessário está indisponível no momento.",
   "assistantAgentMissing": "O agente necessário não está instalado.",
-  "assistantTeamUnsupported": "Este assistente não pode ser usado no modo de equipe no momento."
+  "assistantTeamUnsupported": "Este assistente não pode ser usado no modo de equipe no momento.",
+  "webui.letButlerSetup": "Deixe o mordomo configurar",
+  "talkToButler": {
+    "createViaChat": "Criar via chat",
+    "createManually": "Criar manualmente",
+    "addViaChat": "Adicionar via chat",
+    "addManually": "Adicionar manualmente",
+    "solveViaChat": "Resolver via chat",
+    "enabledToast": "Mordomo do AionUi ativado para você",
+    "prompt": {
+      "createAssistant": "Ajude-me a criar um novo assistente e me oriente na configuração.",
+      "addCustomAgent": "Ajude-me a adicionar um Agent personalizado.",
+      "addModel": "Ajude-me a adicionar um novo provedor de LLM e chave de API e defina-o como modelo padrão.",
+      "addMcp": "Ajude-me a configurar um servidor MCP.",
+      "addSkill": "Ajude-me a importar uma skill e vinculá-la a um assistente.",
+      "setupRemote": "Ajude-me a configurar o acesso remoto para abrir o AionUi do celular ou pela internet.",
+      "diagnose": "Tive um problema com o AionUi, ajude-me a diagnosticá-lo.\n\n[Módulo] {{module}}\n[Descrição] {{description}}\n[Anexos] veja as capturas de tela na entrada.\n\nDiagnostique a causa e me diga como corrigir."
+    }
+  }
 }

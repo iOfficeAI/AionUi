@@ -8,7 +8,7 @@ import classNames from 'classnames';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { Button, Switch, Message, Empty, Spin, Tooltip } from '@arco-design/web-react';
+import { Switch, Message, Empty, Spin, Tooltip } from '@arco-design/web-react';
 import { useLayoutContext } from '@renderer/hooks/context/LayoutContext';
 import { useAllCronJobs } from '@renderer/pages/cron/useCronJobs';
 import { formatSchedule, formatNextRun } from '@renderer/pages/cron/cronUtils';
@@ -19,6 +19,7 @@ import CronStatusTag from './CronStatusTag';
 import CreateTaskDialog from './CreateTaskDialog';
 import { getJobAgentMeta } from './jobAgentMeta';
 import { useAgentLogos } from '@renderer/utils/model/agentLogo';
+import TalkToButlerButton from '@/renderer/components/base/TalkToButlerButton';
 
 const ScheduledTasksPage: React.FC = () => {
   const layout = useLayoutContext();
@@ -53,6 +54,17 @@ const ScheduledTasksPage: React.FC = () => {
     },
     [navigate]
   );
+
+  // "Create via chat": jump to the home page with the default cron prompt
+  // pre-filled. The assistant selection is left to the home page's existing
+  // logic (it restores the user's last-used assistant).
+  const handleCreateViaChat = useCallback(() => {
+    navigate('/guid', { state: { prefillPrompt: t('cron.status.defaultPrompt') } });
+  }, [navigate, t]);
+
+  const handleCreateManually = useCallback(() => {
+    setCreateDialogVisible(true);
+  }, []);
 
   const handleToggleEnabled = useCallback(
     async (job: ICronJob) => {
@@ -94,9 +106,13 @@ const ScheduledTasksPage: React.FC = () => {
             >
               {t('cron.scheduledTasks')}
             </h1>
-            <Button type='primary' shape='round' className='shrink-0' onClick={() => setCreateDialogVisible(true)}>
-              {t('cron.page.newTask')}
-            </Button>
+            <TalkToButlerButton
+              label={t('cron.page.newTask')}
+              onChat={handleCreateViaChat}
+              chatLabel={t('cron.page.createViaChat')}
+              onManual={handleCreateManually}
+              manualLabel={t('cron.page.createManually')}
+            />
           </div>
           <p
             className={classNames(

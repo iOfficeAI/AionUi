@@ -21,16 +21,15 @@ describe('Windows ARM64 installer hardening', () => {
     expect(x64Branch).not.toContain('--config.nsis.useZip=true');
   });
 
-  it('fails the ARM64 installer when required runtime files are missing after install', () => {
+  it('fails the ARM64 installer when required app or bundled runtime files are missing after install', () => {
     expect(arm64NsisScript).toContain('!macro customInstall');
     expect(arm64NsisScript).toContain('AIONUI_VERIFY_REQUIRED_FILE');
+    expect(arm64NsisScript).toContain('AIONUI_VERIFY_BUNDLED_AIONCORE_RESOURCES "win32-arm64"');
+    expect(arm64NsisScript).toContain('verify-bundled-aioncore-install.ps1');
     expect(arm64NsisScript).toContain('$INSTDIR\\AionUi.exe');
     expect(arm64NsisScript).toContain('$INSTDIR\\ffmpeg.dll');
     expect(arm64NsisScript).toContain('$INSTDIR\\vulkan-1.dll');
-    expect(arm64NsisScript).toContain('$INSTDIR\\resources\\bundled-aioncore\\win32-arm64\\aioncore.exe');
-    expect(arm64NsisScript).toContain(
-      '$INSTDIR\\resources\\bundled-aioncore\\win32-arm64\\managed-resources\\node\\node-v24.11.0-win-arm64\\node.exe'
-    );
+    expect(arm64NsisScript).toContain('Bundled AionCore resources are incomplete after installation.');
     expect(arm64NsisScript).toMatch(/SetErrorLevel\s+3/);
     expect(arm64NsisScript).toContain('Quit');
   });

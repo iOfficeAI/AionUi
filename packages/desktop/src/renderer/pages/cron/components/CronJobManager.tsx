@@ -5,13 +5,12 @@
  */
 
 import { iconColors } from '@/renderer/styles/colors';
-import { emitter } from '@/renderer/utils/emitter';
 import { ipcBridge } from '@/common';
 import type { ICronJob } from '@/common/adapter/ipcBridge';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
-import { Button, Popover, Tooltip } from '@arco-design/web-react';
+import { Button, Tooltip } from '@arco-design/web-react';
 import { AlarmClock } from '@icon-park/react';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useCronJobs } from '../useCronJobs';
@@ -21,15 +20,14 @@ interface CronJobManagerProps {
   conversation_id: string;
   /** When provided (e.g. from conversation.extra.cron_job_id), fetch the job directly */
   cron_job_id?: string;
-  /** Whether the cron skill is loaded for this conversation. When false and no jobs exist, the component is hidden. */
-  hasCronSkill?: boolean;
 }
 
 /**
  * Cron job manager component for ChatLayout headerExtra
- * Shows a single job per conversation with navigation to task detail
+ * Shows a single job per conversation with navigation to task detail.
+ * Renders nothing when the conversation has no associated cron job.
  */
-const CronJobManager: React.FC<CronJobManagerProps> = ({ conversation_id, cron_job_id, hasCronSkill = true }) => {
+const CronJobManager: React.FC<CronJobManagerProps> = ({ conversation_id, cron_job_id }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const layout = useLayoutContext();
@@ -83,53 +81,19 @@ const CronJobManager: React.FC<CronJobManagerProps> = ({ conversation_id, cron_j
   }, [cron_job_id]);
 
   // For regular conversations, use the existing hook
-  const { jobs, loading: listLoading, hasJobs } = useCronJobs(cron_job_id ? undefined : conversation_id);
+  const { jobs, loading: listLoading } = useCronJobs(cron_job_id ? undefined : conversation_id);
 
   const job = cron_job_id ? directJob : (jobs[0] ?? null);
   const loading = cron_job_id ? directLoading : listLoading;
-  const found = cron_job_id ? !!directJob : hasJobs;
 
-  // Handle unconfigured state (no jobs)
-  // If cron skill is not loaded for this conversation, hide entirely
-  if (!found && !loading && !hasCronSkill) return null;
+  // No job associated with this conversation: render nothing. The unconfigured
+  // "create now" affordance has been removed to keep the titlebar uncluttered;
+  // scheduling stays accessible via the sidebar entry and the list page.
+  if (loading || !job) return null;
 
   // Hide on mobile/narrow widths to keep the titlebar slot uncluttered;
   // scheduling stays accessible via the sidebar entry.
   if (layout?.isMobile) return null;
-
-  if (!found && !loading) {
-    const handleCreateClick = () => {
-      emitter.emit('sendbox.fill', t('cron.status.defaultPrompt'));
-    };
-
-    return (
-      <Popover
-        trigger='hover'
-        position='bottom'
-        content={
-          <div className='flex flex-col gap-8px p-4px max-w-240px'>
-            <div className='text-13px text-t-secondary'>{t('cron.status.unconfiguredHint')}</div>
-            <Button type='primary' size='mini' onClick={handleCreateClick}>
-              {t('cron.status.createNow')}
-            </Button>
-          </div>
-        }
-      >
-        <Button
-          type='text'
-          size='small'
-          className='cron-job-manager-button chat-header-cron-pill !h-auto !w-auto !min-w-0 !px-0 !py-0'
-        >
-          <span className='inline-flex items-center gap-2px rounded-full px-8px py-2px bg-2'>
-            <AlarmClock theme='outline' size={16} fill={iconColors.disabled} />
-            <span className='ml-4px w-8px h-8px rounded-full bg-[#86909c]' />
-          </span>
-        </Button>
-      </Popover>
-    );
-  }
-
-  if (loading || !job) return null;
 
   const { hasError, isPaused } = getJobStatusFlags(job);
   const tooltipContent = isPaused ? t('cron.status.paused') : hasError ? t('cron.status.error') : job.name;

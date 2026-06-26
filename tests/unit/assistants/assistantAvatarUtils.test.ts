@@ -12,8 +12,13 @@ import { resolveAvatarImageSrc } from '@/renderer/pages/settings/AssistantSettin
 
 describe('assistantAvatarUtils', () => {
   describe('resolveAvatarImageSrc', () => {
-    it('returns an image path as-is', () => {
-      expect(resolveAvatarImageSrc('/path/to/avatar.png')).toBe('/path/to/avatar.png');
+    it('returns backend image paths as-is', () => {
+      expect(resolveAvatarImageSrc('/api/assistants/custom-1/avatar')).toBe('/api/assistants/custom-1/avatar');
+      expect(resolveAvatarImageSrc('/assets/avatar.png')).toBe('/assets/avatar.png');
+    });
+
+    it('does not expose arbitrary absolute image paths', () => {
+      expect(resolveAvatarImageSrc('/path/to/avatar.png')).toBeUndefined();
     });
 
     it('returns undefined for a non-image identifier', () => {

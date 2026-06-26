@@ -78,7 +78,8 @@
     "importHistoryFileLine": "File: {{path}}",
     "importHistorySizeLine": "Size: {{actual}}, limit: {{limit}}",
     "importHistoryLocationLine": "Location: line {{line}}, column {{column}}",
-    "importHistorySourceLine": "Source: {{source}}"
+    "importHistorySourceLine": "Source: {{source}}",
+    "addSkill": "Добавить навык"
   },
   "authMethod": "Аутентификация",
   "geminiApiKey": "API-ключ Gemini",
@@ -123,6 +124,7 @@
   "assistantFilterCustom": "Пользовательские",
   "assistantSourceCustom": "Пользовательский",
   "assistantSourceOfficial": "Официальный",
+  "assistantSourceCli": "CLI",
   "assistantSectionEnabled": "Включено",
   "assistantSectionDisabled": "Отключено",
   "searchAssistants": "Поиск ассистентов по названию или описанию",
@@ -186,6 +188,7 @@
   "assistantBuiltinReadonlyTip": "Это встроенный ассистент. Можно изменить «Основной агент», «Модель по умолчанию» и «Разрешение по умолчанию». Чтобы настроить остальные поля, ",
   "assistantBuiltinReadonlyDuplicateLink": "продублируйте его",
   "assistantBuiltinReadonlyTipSuffix": ".",
+  "assistantCliReadonlyTip": "Этот ассистент автоматически создан Agents и связан один к одному с соответствующим CLI. Имя, аватар и основной агент заблокированы; остальные настройки можно редактировать локально, и обновления их не перезапишут.",
   "addSkills": "Добавить навыки",
   "customSkills": "Пользовательские навыки",
   "builtinSkills": "Встроенные навыки",
@@ -1026,6 +1029,9 @@
     "testConnectionAuth": "«{{name}}» доступен, но требуется вход.",
     "testConnectionError": "Не удалось проверить подключение агента.",
     "refreshingStatuses": "Обновляем статус обнаружения...",
+    "filterAll": "Все ({{count}})",
+    "filterAvailable": "Доступно ({{count}})",
+    "filterUnavailable": "Недоступно ({{count}})",
     "statusOnline": "Доступен",
     "statusNeedsAuth": "Требуется вход",
     "statusOffline": "Недоступен",
@@ -1170,5 +1176,23 @@
   "updateReadyInstall": "{{version}} готова, установить сейчас",
   "assistantAgentUnavailable": "Требуемый агент сейчас недоступен.",
   "assistantAgentMissing": "Требуемый агент не установлен.",
-  "assistantTeamUnsupported": "Этот ассистент сейчас нельзя использовать в командном режиме."
+  "assistantTeamUnsupported": "Этот ассистент сейчас нельзя использовать в командном режиме.",
+  "webui.letButlerSetup": "Пусть дворецкий настроит",
+  "talkToButler": {
+    "createViaChat": "Создать через чат",
+    "createManually": "Создать вручную",
+    "addViaChat": "Добавить через чат",
+    "addManually": "Добавить вручную",
+    "solveViaChat": "Решить через чат",
+    "enabledToast": "Дворецкий AionUi включён для вас",
+    "prompt": {
+      "createAssistant": "Помоги создать нового ассистента и проведи меня по его настройке.",
+      "addCustomAgent": "Помоги добавить пользовательский Agent.",
+      "addModel": "Помоги добавить нового провайдера LLM и API-ключ, затем сделай его моделью по умолчанию.",
+      "addMcp": "Помоги настроить сервер MCP.",
+      "addSkill": "Помоги импортировать навык и привязать его к ассистенту.",
+      "setupRemote": "Помоги настроить удалённый доступ, чтобы открывать AionUi с телефона или через интернет.",
+      "diagnose": "У меня возникла проблема с AionUi, помоги её диагностировать.\n\n[Модуль] {{module}}\n[Описание] {{description}}\n[Вложения] см. скриншоты в поле ввода.\n\nПожалуйста, определи причину и подскажи, как исправить."
+    }
+  }
 }

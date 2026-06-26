@@ -4,9 +4,8 @@ import useSWR from 'swr';
 import type { TChatConversation } from '@/common/config/storage';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
 import { getSendBoxDraftHook } from '@renderer/hooks/chat/useSendBoxDraft';
-import { resolveAgentLogo, useAgentLogos } from '@renderer/utils/model/agentLogo';
+import { resolveAgentAvatar, useAgentLogos } from '@renderer/utils/model/agentLogo';
 import { usePresetAssistantInfo } from '@renderer/hooks/agent/usePresetAssistantInfo';
-import { resolveBackendAssetUrl } from '@renderer/utils/platform';
 import { resolveConversationBackend } from '@/renderer/pages/conversation/utils/conversationAssistantIdentity';
 
 const useAcpDraft = getSendBoxDraftHook('acp', { _type: 'acp', atPath: [], content: '', uploadFile: [] });
@@ -97,8 +96,7 @@ const TeamChatEmptyState: React.FC<Props> = ({
 
   const assistantBackend = resolveConversationBackend(conversation, assistant_backend || presetInfo?.backend) || 'acp';
   const assistantName = resolveAssistantName(conversation, presetInfo?.name ?? null, assistant_name);
-  const explicitLogo = resolveBackendAssetUrl(icon) ?? icon;
-  const backendLogo = resolveAgentLogo(logos, { backend: assistantBackend });
+  const agentAvatar = resolveAgentAvatar(logos, { icon, backend: assistantBackend });
 
   const renderAvatar = () => {
     if (presetInfo) {
@@ -117,14 +115,20 @@ const TeamChatEmptyState: React.FC<Props> = ({
         />
       );
     }
-    if (explicitLogo) {
+    if (agentAvatar.kind === 'image') {
       return (
-        <img src={explicitLogo} alt={assistantName} className='w-48px h-48px object-contain rounded-8px opacity-80' />
+        <img
+          src={agentAvatar.value}
+          alt={assistantName}
+          className='w-48px h-48px object-contain rounded-8px opacity-80'
+        />
       );
     }
-    if (backendLogo) {
+    if (agentAvatar.kind === 'emoji') {
       return (
-        <img src={backendLogo} alt={assistantName} className='w-48px h-48px object-contain rounded-8px opacity-80' />
+        <span className='w-48px h-48px rounded-8px flex items-center justify-center text-32px leading-none bg-fill-2'>
+          {agentAvatar.value}
+        </span>
       );
     }
     return (

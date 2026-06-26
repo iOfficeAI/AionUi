@@ -59,7 +59,7 @@ describe('resolveCronAgentConfig', () => {
         }),
       ],
       config_options: { reasoning_effort: 'high' },
-      getMode: (backend) => (backend === 'codex' ? 'full-access' : 'yolo'),
+      getMode: (selectedAssistant) => (selectedAssistant.agent_id === 'agent-codex' ? 'full-access' : 'yolo'),
       aionrsModelRequiredMessage: 'provider required',
     });
 

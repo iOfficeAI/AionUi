@@ -31,6 +31,7 @@ export interface Skill {
   source: SkillSource;
   location?: string;
   relative_location?: string;
+  is_auto_inject: boolean;
 }
 
 export interface ExternalSource {
@@ -138,9 +139,7 @@ export async function getExternalSources(page: Page): Promise<ExternalSource[]> 
  */
 export async function getAutoSkills(page: Page): Promise<Skill[]> {
   const skills = await httpGet<Skill[]>(page, '/api/skills');
-  return (skills ?? []).filter(
-    (skill) => skill.source === 'builtin' && (skill.relative_location ?? '').startsWith('auto-inject/')
-  );
+  return (skills ?? []).filter((skill) => skill.source === 'builtin' && skill.is_auto_inject);
 }
 
 /**

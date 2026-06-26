@@ -7,7 +7,7 @@
 // Mirror of aionui-api-types/src/assistant.rs.
 // Any shape change on either side requires a same-PR update on the other.
 
-export type AssistantSource = 'builtin' | 'bare' | 'user';
+export type AssistantSource = 'builtin' | 'generated' | 'user';
 export type AssistantAgentStatus = 'missing' | 'online' | 'offline';
 export type AssistantAgentSource = 'internal' | 'builtin' | 'extension' | 'custom';
 

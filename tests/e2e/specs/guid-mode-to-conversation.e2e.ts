@@ -1,7 +1,7 @@
 /**
  * Guid assistant mode → conversation mode sync — E2E tests.
  *
- * For each backend, selects the matching assistant (prefer the bare assistant)
+ * For each backend, selects the matching assistant (prefer the generated assistant)
  * and verifies the permission mode set on the Guid page is correctly carried
  * into the conversation page.
  */

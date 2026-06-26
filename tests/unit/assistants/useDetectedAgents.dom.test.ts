@@ -7,13 +7,12 @@
 import { describe, expect, it } from 'vitest';
 
 import type { Assistant } from '@/common/types/agent/assistantTypes';
-import { DEFAULT_CODEX_MODELS } from '@/common/types/codex/codexModels';
 import { buildAssistantEditorBackends } from '@/renderer/pages/settings/AssistantSettings/assistantUtils';
 
 describe('buildAssistantEditorBackends', () => {
-  it('derives editor backends from bare assistants only', () => {
+  it('derives editor backends from generated assistants only', () => {
     const assistants: Assistant[] = [
-      assistant({ id: 'bare-claude', source: 'bare', runtimeKey: 'claude', name: 'Claude Code' }),
+      assistant({ id: 'bare-claude', source: 'generated', runtimeKey: 'claude', name: 'Claude Code' }),
       assistant({ id: 'user-writer', source: 'user', runtimeKey: 'claude', name: 'Writer' }),
       assistant({ id: 'builtin-research', source: 'builtin', runtimeKey: 'gemini', name: 'Researcher' }),
     ];
@@ -28,18 +27,18 @@ describe('buildAssistantEditorBackends', () => {
     ]);
   });
 
-  it('uses localized bare assistant names and deduplicates by agent identity', () => {
+  it('uses localized generated assistant names and deduplicates by agent identity', () => {
     const assistants: Assistant[] = [
       assistant({
         id: 'bare-gemini',
-        source: 'bare',
+        source: 'generated',
         runtimeKey: 'gemini',
         name: 'Gemini',
         name_i18n: { 'zh-CN': '双子星' },
       }),
       assistant({
         id: 'bare-gemini-second',
-        source: 'bare',
+        source: 'generated',
         runtimeKey: 'gemini',
         agentId: 'agent-gemini',
         name: 'Gemini 2',
@@ -56,18 +55,18 @@ describe('buildAssistantEditorBackends', () => {
     ]);
   });
 
-  it('uses bare assistant models and codex fallback models for editor backend options', () => {
+  it('uses generated assistant models for editor backend options', () => {
     const assistants: Assistant[] = [
       assistant({
         id: 'bare-claude',
-        source: 'bare',
+        source: 'generated',
         runtimeKey: 'claude',
         name: 'Claude Code',
         models: ['claude-sonnet-4', 'claude-opus-4'],
       }),
       assistant({
         id: 'bare-codex',
-        source: 'bare',
+        source: 'generated',
         runtimeKey: 'codex',
         name: 'Codex',
       }),
@@ -87,16 +86,16 @@ describe('buildAssistantEditorBackends', () => {
         id: 'agent-codex',
         name: 'Codex',
         runtimeKey: 'codex',
-        modelOptions: DEFAULT_CODEX_MODELS.map((model) => ({ value: model.id, label: model.label })),
+        modelOptions: [],
       },
     ]);
   });
 
-  it('tolerates bare assistants with missing models arrays', () => {
+  it('tolerates generated assistants with missing models arrays', () => {
     const assistants = [
       assistant({
         id: 'bare-droid',
-        source: 'bare',
+        source: 'generated',
         runtimeKey: 'droid',
         name: 'droid',
         models: undefined,

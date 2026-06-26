@@ -33,6 +33,12 @@ export type AgentManagementErrorDetails = {
   backend?: string;
 };
 
+export type AgentModeOption = {
+  value: string;
+  label: string;
+  description?: string;
+};
+
 /** Source-specific bookkeeping (how to probe, how to upgrade). */
 export type AgentSourceInfo = {
   binary_name?: string;
@@ -145,6 +151,9 @@ export type AgentMetadata = {
 export type ManagedAgent = Omit<AgentMetadata, 'available' | 'handshake'> & {
   installed: boolean;
   status: AgentManagementStatus;
+  config_options?: unknown;
+  available_modes?: unknown;
+  available_models?: unknown;
 };
 
 /**

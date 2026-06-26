@@ -84,6 +84,14 @@ vi.mock('react-i18next', () => ({
 import SkillsHubSettings from '@/renderer/pages/settings/SkillsHubSettings';
 
 describe('SkillsHubSettings', () => {
+  // The import action is now a TalkToButlerButton: open the menu, then click
+  // "Import Skills" (the manual item) to run the manual import.
+  const triggerManualImport = async () => {
+    fireEvent.click(screen.getByTestId('btn-add-skill'));
+    const marker = await screen.findByTestId('btn-add-skill-manual');
+    fireEvent.click((marker.closest('[role="menuitem"]') ?? marker) as HTMLElement);
+  };
+
   beforeEach(() => {
     vi.clearAllMocks();
     searchParamsMock.current = new URLSearchParams();
@@ -127,7 +135,7 @@ describe('SkillsHubSettings', () => {
     render(<SkillsHubSettings withWrapper={false} />);
 
     await waitFor(() => expect(mocks.listAvailableSkills).toHaveBeenCalled());
-    fireEvent.click(screen.getByTestId('btn-manual-import'));
+    await triggerManualImport();
 
     await waitFor(() =>
       expect(mocks.messageError).toHaveBeenCalledWith(
@@ -148,7 +156,7 @@ describe('SkillsHubSettings', () => {
 
     await waitFor(() => expect(mocks.listAvailableSkills).toHaveBeenCalled());
     const initialFetchCount = mocks.listAvailableSkills.mock.calls.length;
-    fireEvent.click(screen.getByTestId('btn-manual-import'));
+    await triggerManualImport();
 
     await waitFor(() =>
       expect(mocks.messageWarning).toHaveBeenCalledWith(
@@ -313,7 +321,7 @@ describe('SkillsHubSettings', () => {
         name: 'cron',
         description: 'Auto injected cron skill.',
         location: '/tmp/builtin-skills/auto-inject/cron/SKILL.md',
-        relative_location: 'auto-inject/cron/SKILL.md',
+        is_auto_inject: true,
         is_custom: false,
         source: 'builtin',
       },

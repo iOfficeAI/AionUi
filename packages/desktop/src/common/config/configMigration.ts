@@ -297,8 +297,8 @@ function findAssistantIdByBackend(
   if (!backend) return undefined;
 
   return (
-    assistants.find((assistant) => assistant.source === 'bare' && assistantRuntimeKey(assistant) === backend)?.id ||
-    assistants.find((assistant) => assistantRuntimeKey(assistant) === backend)?.id
+    assistants.find((assistant) => assistant.source === 'generated' && assistantRuntimeKey(assistant) === backend)
+      ?.id || assistants.find((assistant) => assistantRuntimeKey(assistant) === backend)?.id
   );
 }
 

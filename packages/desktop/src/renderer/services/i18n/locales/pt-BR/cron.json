@@ -13,8 +13,6 @@
     "error": "Erro",
     "unread": "Nova execução",
     "unconfigured": "Sem tarefa agendada",
-    "unconfiguredHint": "Nenhuma tarefa agendada ainda. Crie uma com seu assistente!",
-    "createNow": "Criar Agora",
     "defaultPrompt": "Todos os dias às 10h, pesquise as últimas notícias sobre IA, resuma e gere um relatório de insights."
   },
   "actions": {
@@ -53,6 +51,8 @@
   },
   "page": {
     "newTask": "Nova tarefa",
+    "createViaChat": "Criar via chat",
+    "createManually": "Criar manualmente",
     "description": "Execute tarefas agendadas. Você também pode pedir ao AionUi em qualquer conversa para criar uma para você.",
     "awakeBanner": "As tarefas agendadas são executadas apenas enquanto o computador está ativo.",
     "keepAwake": "Manter ativo",

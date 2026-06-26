@@ -37,12 +37,6 @@ import { resolveConversationBackend } from '../utils/conversationAssistantIdenti
 import LegacyReadOnlyConversation from '../platforms/legacy/LegacyReadOnlyConversation';
 // import SkillRuleGenerator from './components/SkillRuleGenerator'; // Temporarily hidden
 
-/** Check whether a specific skill is mounted on the conversation. */
-const hasLoadedSkill = (conversation: TChatConversation | undefined, skillName: string): boolean => {
-  const skills = (conversation?.extra as { skills?: string[] } | undefined)?.skills;
-  return skills?.includes(skillName) ?? false;
-};
-
 const configErrorMessageKey = (error: unknown) => {
   const errorKind = classifyConfigSetError(error);
   if (errorKind === 'command_ack') return 'agent.config.commandAck';
@@ -209,7 +203,6 @@ const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; slid
         <CronJobManager
           conversation_id={conversation.id}
           cron_job_id={conversation.extra?.cron_job_id as string | undefined}
-          hasCronSkill={hasLoadedSkill(conversation, 'cron')}
         />
         {!isMobile && (
           <AionrsModelSelector
@@ -356,7 +349,6 @@ const ChatConversation: React.FC<{
           <CronJobManager
             conversation_id={conversation.id}
             cron_job_id={conversation.extra?.cron_job_id as string | undefined}
-            hasCronSkill={hasLoadedSkill(conversation, 'cron')}
           />
         </div>
       )}

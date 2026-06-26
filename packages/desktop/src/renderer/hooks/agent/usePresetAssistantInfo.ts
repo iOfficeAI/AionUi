@@ -12,7 +12,7 @@ import { assistantRuntimeKey, type Assistant } from '@/common/types/agent/assist
 import { resolveLocaleKey } from '@/common/utils';
 import type { AgentLogoMap } from '@/renderer/utils/model/agentLogo';
 import { resolveAgentLogo, useAgentLogos } from '@/renderer/utils/model/agentLogo';
-import { resolveExtensionAssetUrl } from '@/renderer/utils/platform';
+import { isLikelyLocalFilePath, resolveAssistantAvatar } from '@/renderer/utils/model/assistantAvatar';
 import useSWR from 'swr';
 export interface PresetAssistantInfo {
   name: string;
@@ -132,21 +132,16 @@ function resolveLegacyRuntimeDisplayName(conversation: TChatConversation): strin
  * Normalize avatar to either emoji text or a renderable image URL
  */
 function normalizeAvatar(avatar: string | undefined): { logo: string; isEmoji: boolean } {
-  const value = (avatar || '').trim();
-  if (!value) return { logo: '🤖', isEmoji: true };
-
-  const resolved = resolveExtensionAssetUrl(value) || value;
-  const isImage = /\.(svg|png|jpe?g|webp|gif)$/i.test(resolved) || /^(https?:|file:\/\/|data:|\/)/i.test(resolved);
-  if (isImage) {
-    return { logo: resolved, isEmoji: false };
+  const resolved = resolveAssistantAvatar(avatar);
+  if (resolved.kind === 'image') {
+    return { logo: resolved.value, isEmoji: false };
   }
 
-  // Unknown svg identifiers fallback to default emoji to avoid broken icons.
-  if (value.endsWith('.svg')) {
+  if (resolved.kind === 'fallback') {
     return { logo: '🤖', isEmoji: true };
   }
 
-  return { logo: value, isEmoji: true };
+  return { logo: resolved.value, isEmoji: true };
 }
 
 function normalizeAssistantLabel(value: string | undefined): string {
@@ -233,11 +228,9 @@ function buildPresetInfoFromConversationAssistant(
   assistant: NonNullable<TChatConversation['assistant']>,
   logos: AgentLogoMap
 ): PresetAssistantInfo {
-  // Generated assistants (bare assistants reconciled from agent rows) get
-  // their avatar from the agent's `icon` field — typically a cli logo
-  // filename like `claude.svg` or `codex.svg`. `normalizeAvatar` cannot
-  // resolve those and would fall through to the default robot emoji. When
-  // that happens, look up the backend's logo so the row keeps its real icon.
+  // Generated assistants reconciled from agent rows can have an empty avatar
+  // or a legacy svg filename such as `claude.svg`. In that case, fall back to
+  // the backend logo catalog instead of showing the generic robot.
   const normalized = normalizeAvatar(assistant.avatar);
   const isUnresolvedSvgFallback =
     normalized.isEmoji &&
@@ -329,6 +322,21 @@ export function usePresetAssistantInfo(conversation: TChatConversation | undefin
     const locale = i18n.language || 'en-US';
 
     if (conversation.assistant) {
+      const snapshotAvatar =
+        typeof conversation.assistant.avatar === 'string' ? conversation.assistant.avatar.trim() : '';
+      if (snapshotAvatar && isLikelyLocalFilePath(snapshotAvatar)) {
+        const snapshotCandidates = [
+          conversation.assistant.id,
+          ...collectExplicitAssistantIdentityCandidates(conversation),
+          ...collectLegacyAssistantIdentityCandidates(conversation),
+        ].filter((value, index, values) => Boolean(value) && values.indexOf(value) === index);
+        const catalogAssistant = findAssistantByIdentityCandidates(assistantsList, snapshotCandidates);
+        if (catalogAssistant) {
+          return { info: buildPresetInfoFromAssistant(catalogAssistant, locale), isLoading: false };
+        }
+        if (isLoadingAssistants) return { info: null, isLoading: true };
+      }
+
       return {
         info: buildPresetInfoFromConversationAssistant(conversation.assistant, logos),
         isLoading: false,
@@ -363,10 +371,6 @@ export function usePresetAssistantInfo(conversation: TChatConversation | undefin
       if (!runtimeRowAgentId) return null;
       const name = resolveLegacyRuntimeDisplayName(conversation);
       if (!name) return null;
-      // Legacy ACP rows persist `backend` (e.g. "claude", "codex") without
-      // an assistant id or snapshot. Resolve the cli logo from the backend
-      // slug so upgraded conversations keep their real icon instead of the
-      // generic robot emoji.
       const legacyBackend =
         typeof (conversation.extra as { backend?: unknown })?.backend === 'string'
           ? ((conversation.extra as { backend?: string }).backend ?? '').trim()

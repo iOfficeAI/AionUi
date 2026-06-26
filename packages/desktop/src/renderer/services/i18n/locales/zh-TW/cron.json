@@ -13,8 +13,6 @@
     "error": "執行出錯",
     "unread": "有新執行",
     "unconfigured": "未配置定時任務",
-    "unconfiguredHint": "目前對話暫無定時任務，和助手一起建立一個吧",
-    "createNow": "立即建立",
     "defaultPrompt": "每天早上10點，為我搜尋AI最新的新聞動向，彙總並輸出洞察報告。"
   },
   "actions": {
@@ -54,6 +52,8 @@
   },
   "page": {
     "newTask": "新建任務",
+    "createViaChat": "透過對話建立",
+    "createManually": "手動建立",
     "description": "按計畫自動執行任務。你也可以在任意對話中直接讓 AionUi 幫你建立一個定時任務。",
     "awakeBanner": "定時任務僅在電腦喚醒狀態下運行。",
     "keepAwake": "保持喚醒",

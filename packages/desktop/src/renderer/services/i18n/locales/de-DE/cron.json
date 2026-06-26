@@ -13,8 +13,6 @@
     "error": "Fehler",
     "unread": "Neue Ausführung",
     "unconfigured": "Keine geplante Aufgabe",
-    "unconfiguredHint": "Noch keine geplante Aufgabe. Erstelle eine mit deinem Agenten!",
-    "createNow": "Jetzt erstellen",
     "defaultPrompt": "Täglich um 10 Uhr die neuesten KI-Nachrichten suchen, zusammenfassen und einen Erkenntnisbericht ausgeben."
   },
   "actions": {
@@ -52,6 +50,8 @@
   },
   "page": {
     "newTask": "Neue Aufgabe",
+    "createViaChat": "Per Chat erstellen",
+    "createManually": "Manuell erstellen",
     "description": "Aufgaben nach Zeitplan ausführen. Du kannst AionUi auch in jedem Gespräch bitten, eine zu erstellen.",
     "awakeBanner": "Geplante Aufgaben werden nur ausgeführt, wenn dein Computer aktiv ist.",
     "keepAwake": "Aktiv halten",

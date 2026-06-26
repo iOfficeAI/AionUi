@@ -230,7 +230,7 @@ function assistants(): Assistant[] {
 function bareAssistant(): Assistant {
   return {
     id: 'bare-codex',
-    source: 'bare',
+    source: 'generated',
     name: 'Codex',
     name_i18n: { 'zh-CN': '代码助手' },
     description_i18n: {},

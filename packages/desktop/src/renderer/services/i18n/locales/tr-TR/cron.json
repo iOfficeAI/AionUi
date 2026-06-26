@@ -13,8 +13,6 @@
     "error": "Error",
     "unread": "New execution",
     "unconfigured": "No scheduled task",
-    "unconfiguredHint": "Henüz zamanlanmış görev yok. Asistanınızla bir tane oluşturun!",
-    "createNow": "Create Now",
     "defaultPrompt": "Every day at 10am, search for the latest AI news, summarize and output an insight report."
   },
   "actions": {
@@ -66,6 +64,8 @@
   },
   "page": {
     "newTask": "Yeni görev",
+    "createViaChat": "Sohbetle oluştur",
+    "createManually": "Manuel oluştur",
     "description": "Görevleri bir zamanlamayla çalıştırın. Ayrıca herhangi bir konuşmada AionUi'den sizin için bir görev oluşturmasını isteyebilirsiniz.",
     "awakeBanner": "Zamanlanmış görevler yalnızca bilgisayarınız açıkken çalışır.",
     "keepAwake": "Uyanık tut",

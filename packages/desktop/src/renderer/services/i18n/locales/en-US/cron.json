@@ -13,8 +13,6 @@
     "error": "Error",
     "unread": "New execution",
     "unconfigured": "No scheduled task",
-    "unconfiguredHint": "No scheduled task yet. Create one with your assistant!",
-    "createNow": "Create Now",
     "defaultPrompt": "Every day at 10am, search for the latest AI news, summarize and output an insight report."
   },
   "actions": {
@@ -53,6 +51,8 @@
   },
   "page": {
     "newTask": "New task",
+    "createViaChat": "Create via chat",
+    "createManually": "Create manually",
     "description": "Run tasks on a schedule. You can also ask AionUi in any conversation to create one for you.",
     "awakeBanner": "Scheduled tasks only run while your computer is awake.",
     "keepAwake": "Keep awake",

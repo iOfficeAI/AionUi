@@ -39,7 +39,7 @@ export async function refreshManagedAgentCatalogAndAssistants(): Promise<Managed
  * shared detected-agent catalog.
  *
  * `refreshCatalog` refreshes the management catalog plus assistant list caches
- * after structural or health changes that can affect generated bare assistants.
+ * after structural or health changes that can affect generated generated assistants.
  * Business assistant pickers must not depend on this hook or on `/api/agents`.
  *
  * Do not use this anywhere other than `AgentSettings`.
@@ -61,6 +61,16 @@ export const useManagedAgents = (): UseManagedAgentsResult => {
       await refreshManagedAgentCatalogAndAssistants();
     },
   };
+};
+
+/**
+ * Lightweight runtime catalog read model for assistant-bound agent rows.
+ * Uses the same `/api/agents/management` payload because that endpoint is
+ * backed by `agent_metadata`, where ACP catalog snapshots are persisted.
+ */
+export const useManagedAgentRuntimeCatalog = (): ManagedAgent[] => {
+  const { data } = useSWR<ManagedAgent[]>(MANAGED_AGENTS_SWR_KEY, fetchManagedAgents);
+  return data ?? [];
 };
 
 /**

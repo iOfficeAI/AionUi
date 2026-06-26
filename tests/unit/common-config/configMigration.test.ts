@@ -219,7 +219,7 @@ describe('configMigration', () => {
       (ipcBridge.assistants.list.invoke as ReturnType<typeof vi.fn>).mockResolvedValue([
         {
           id: 'bare_codex',
-          source: 'bare',
+          source: 'generated',
           agent_id: 'agent-codex',
           agent: { type: 'acp', source: 'builtin', acp_backend: 'codex' },
         },
@@ -263,7 +263,7 @@ describe('configMigration', () => {
       (ipcBridge.assistants.list.invoke as ReturnType<typeof vi.fn>).mockResolvedValue([
         {
           id: 'bare_codex',
-          source: 'bare',
+          source: 'generated',
           agent_id: 'agent-codex',
           agent: { type: 'acp', source: 'builtin', acp_backend: 'codex' },
         },

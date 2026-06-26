@@ -183,6 +183,18 @@ describe('MessageList', () => {
     expect(messageRow.className).not.toContain('pt-10px');
   });
 
+  it('uses fluid golden-ratio side inset for message rows', () => {
+    render(<MessageList />, {
+      wrapper: ({ children }) => <Wrapper>{children}</Wrapper>,
+    });
+
+    const messageRow = screen.getByTestId('message-text-left');
+    expect(messageRow.className).toContain('w-[calc(100%-24px)]');
+    expect(messageRow.className).toContain('md:w-[calc(100%-clamp(80px,10vw,240px))]');
+    expect(messageRow.className).toContain('max-w-none');
+    expect(messageRow.className).not.toContain('max-w-780px');
+  });
+
   it('shows the copy row only on the last AI text of each turn', () => {
     // Turn 1: thinking + text(a) + tool + text(b) -> row only on text(b).
     // A user message ends the turn. Turn 2: text(c) -> row on text(c).

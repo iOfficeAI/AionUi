@@ -15,6 +15,7 @@ import AddPlatformModal from '@/renderer/pages/settings/components/AddPlatformMo
 import { isNewApiPlatform, NEW_API_PROTOCOL_OPTIONS } from '@/renderer/utils/model/modelPlatforms';
 import EditModeModal from '@/renderer/pages/settings/components/EditModeModal';
 import AionScrollArea from '@/renderer/components/base/AionScrollArea';
+import TalkToButlerButton from '@/renderer/components/base/TalkToButlerButton';
 import { useProvidersQuery } from '@/renderer/hooks/agent/useModelProviderList';
 import { useSettingsViewMode } from '../settingsViewContext';
 import { consumePendingDeepLink } from '@/renderer/hooks/system/useDeepLink';
@@ -336,23 +337,22 @@ const ModelModalContent: React.FC = () => {
           <div className='text-20px font-600 text-t-primary leading-34px'>{t('settings.model')}</div>
           <div className='flex items-center gap-8px flex-wrap'>
             <Button
-              type='outline'
-              shape='round'
+              type='text'
               size='small'
               onClick={clearAllHealthData}
-              className='rd-100px border-1 border-solid border-[var(--color-border-2)] h-34px px-14px text-t-secondary hover:text-t-primary'
+              className='!text-t-secondary hover:!text-t-primary'
             >
               {t('settings.clearStatus')}
             </Button>
-            <Button
-              type='outline'
-              shape='round'
-              icon={<Plus size='16' />}
-              onClick={() => addPlatformModalCtrl.open()}
-              className='rd-100px border-1 border-solid border-[var(--color-border-2)] h-34px px-14px text-t-secondary hover:text-t-primary'
-            >
-              {t('settings.addModel')}
-            </Button>
+            <TalkToButlerButton
+              label={t('settings.addModel')}
+              chatLabel={t('settings.talkToButler.addViaChat', { defaultValue: 'Add via chat' })}
+              onManual={() => addPlatformModalCtrl.open()}
+              manualLabel={t('settings.talkToButler.addManually', { defaultValue: 'Add manually' })}
+              prompt={t('settings.talkToButler.prompt.addModel', {
+                defaultValue: 'Help me add a new LLM provider and API key, then set it as the default model.',
+              })}
+            />
           </div>
         </div>
         <div

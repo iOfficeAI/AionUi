@@ -7,7 +7,7 @@
 import { ipcBridge } from '@/common';
 import type { IMcpServer, TProviderWithModel } from '@/common/config/storage';
 import { resolveLocaleKey } from '@/common/utils';
-import type { Assistant, AssistantDetail } from '@/common/types/agent/assistantTypes';
+import type { AssistantDetail } from '@/common/types/agent/assistantTypes';
 
 import { useInputFocusRing } from '@/renderer/hooks/chat/useInputFocusRing';
 import { openExternalUrl } from '@/renderer/utils/platform';
@@ -27,7 +27,7 @@ import { resolveGuidAssistantDefaults } from './utils/assistantDefaults';
 import SpeechInputButton from '@/renderer/components/chat/SpeechInputButton';
 import { appendSpeechTranscript } from '@/renderer/hooks/system/useSpeechInput';
 import { useLiveTranscriptInsertion } from '@/renderer/hooks/system/useLiveTranscriptInsertion';
-import { Button, ConfigProvider, Dropdown, Menu } from '@arco-design/web-react';
+import { Button, ConfigProvider } from '@arco-design/web-react';
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -71,7 +71,7 @@ const GuidPage: React.FC = () => {
           availableSkills.map((s) => ({
             name: s.name,
             description: s.description,
-            isAuto: s.source === 'builtin' && (s.relative_location ?? '').startsWith('auto-inject/'),
+            isAuto: s.source === 'builtin' && s.is_auto_inject,
           }))
         );
       })
@@ -242,29 +242,18 @@ const GuidPage: React.FC = () => {
     return [t('guid.defaultPrompts.capabilities'), t('guid.defaultPrompts.skills'), t('guid.defaultPrompts.tools')];
   }, [localeKey, selectedAssistantDetail, selectedAssistantRecord, selectedAssistantId, t]);
 
-  // Sync disabledBuiltinSkills + enabledSkills from preset assistant config
+  // Sync disabledBuiltinSkills + enabledSkills from assistant detail defaults.
   useEffect(() => {
-    if (!selectedAssistantId) {
+    if (!selectedAssistantId || !selectedAssistantDetail) {
       setGuidDisabledBuiltinSkills(undefined);
       setGuidEnabledSkills(undefined);
       return;
     }
 
-    if (selectedAssistantDetail) {
-      const resolvedDefaults = resolveGuidAssistantDefaults(selectedAssistantDetail);
-      setGuidDisabledBuiltinSkills(resolvedDefaults.disabledBuiltinSkillIds);
-      setGuidEnabledSkills(resolvedDefaults.skillIds);
-      return;
-    }
-
-    if (selectedAssistantRecord) {
-      setGuidDisabledBuiltinSkills(selectedAssistantRecord.disabled_builtin_skills ?? []);
-      setGuidEnabledSkills(selectedAssistantRecord.enabled_skills ?? []);
-    } else {
-      setGuidDisabledBuiltinSkills(undefined);
-      setGuidEnabledSkills(undefined);
-    }
-  }, [selectedAssistantDetail, selectedAssistantId, selectedAssistantRecord]);
+    const resolvedDefaults = resolveGuidAssistantDefaults(selectedAssistantDetail);
+    setGuidDisabledBuiltinSkills(resolvedDefaults.disabledBuiltinSkillIds);
+    setGuidEnabledSkills(resolvedDefaults.skillIds);
+  }, [selectedAssistantDetail, selectedAssistantId]);
 
   const appliedAssistantDefaultsKeyRef = useRef<string | null>(null);
   useEffect(() => {
@@ -282,6 +271,14 @@ const GuidPage: React.FC = () => {
         last_permission_value: selectedAssistantDetail.preferences.last_permission_value,
         last_mcp_ids: selectedAssistantDetail.preferences.last_mcp_ids,
       },
+      availableModels: {
+        acp: agentSelection.currentAcpCachedModelInfo?.available_models.map((model) => model.id) ?? [],
+        aionrs: modelSelection.modelList.map((provider) => ({
+          id: provider.id,
+          models: provider.models,
+        })),
+      },
+      availableModes: agentSelection.currentAgentModeOptions.map((mode) => mode.value),
     });
     if (appliedAssistantDefaultsKeyRef.current === signature) {
       return;
@@ -310,13 +307,27 @@ const GuidPage: React.FC = () => {
           await modelSelection.resetCurrentModel({ persistPreference: false });
         }
       } else if (resolvedDefaults.modelId) {
-        agentSelection.setSelectedAcpModel(resolvedDefaults.modelId ?? null, { persistPreference: false });
+        const availableModelIds = new Set(agentSelection.currentAcpCachedModelInfo?.available_models.map((m) => m.id));
+        agentSelection.setSelectedAcpModel(
+          availableModelIds.size === 0 || availableModelIds.has(resolvedDefaults.modelId)
+            ? resolvedDefaults.modelId
+            : null,
+          { persistPreference: false }
+        );
       } else {
         agentSelection.setSelectedAcpModel(null, { persistPreference: false });
       }
 
       if (resolvedDefaults.permissionMode) {
-        agentSelection.setSelectedMode(resolvedDefaults.permissionMode, { persistPreference: false });
+        const availableModeIds = new Set(agentSelection.currentAgentModeOptions.map((mode) => mode.value));
+        if (availableModeIds.size === 0 || availableModeIds.has(resolvedDefaults.permissionMode)) {
+          agentSelection.setSelectedMode(resolvedDefaults.permissionMode, { persistPreference: false });
+        } else {
+          const fallbackMode = agentSelection.currentAgentModeOptions[0]?.value;
+          if (fallbackMode) {
+            agentSelection.setSelectedMode(fallbackMode, { persistPreference: false });
+          }
+        }
       }
       setGuidSelectedMcpServerIds(resolvedDefaults.mcpIds);
     };
@@ -325,6 +336,8 @@ const GuidPage: React.FC = () => {
       console.error('[GuidPage] Failed to apply assistant defaults:', error);
     });
   }, [
+    agentSelection.currentAcpCachedModelInfo?.available_models,
+    agentSelection.currentAgentModeOptions,
     agentSelection.selectedAssistantBackend,
     agentSelection.setSelectedAcpModel,
     agentSelection.setSelectedMode,
@@ -355,10 +368,39 @@ const GuidPage: React.FC = () => {
   );
 
   // Reset guid-local UI state before paint so same-route navigations do not
-  // briefly show the previous draft or preset assistant layout.
+  // briefly show the previous draft or preset assistant layout. When a caller
+  // navigates here with a `prefillPrompt` (e.g. "Create via chat" from the
+  // scheduled tasks page), seed the input with it instead of clearing.
+  //
+  // The prefill is consumed once per navigation: a ref keyed on location.key
+  // guards against re-seeding if the user later clears the input and returns to
+  // this history entry (e.g. via back navigation), which would otherwise revive
+  // the prompt from the still-present location.state.
+  const consumedPrefillKeyRef = useRef<string | null>(null);
+  // When a "via chat" navigation also pins an assistant (selectedAssistantId),
+  // the assistant-selection cleanup effect below fires a state-clearing
+  // replace() that churns location.key. That second pass has no prefillPrompt
+  // and would otherwise wipe the freshly seeded input. This flag lets exactly
+  // one such follow-up pass skip the clear, preserving the seeded prompt.
+  const skipNextClearRef = useRef(false);
   useLayoutEffect(() => {
-    guidInput.setInput('');
-    guidInput.setFiles([]);
+    const prefillState = location.state as { prefillPrompt?: string; prefillFiles?: string[] } | null;
+    const prefillPrompt = prefillState?.prefillPrompt;
+    const prefillFiles = prefillState?.prefillFiles;
+    if (prefillPrompt && consumedPrefillKeyRef.current !== location.key) {
+      // Consume prompt + optional attachments (e.g. bug-report screenshots) once.
+      consumedPrefillKeyRef.current = location.key;
+      skipNextClearRef.current = true;
+      guidInput.setInput(prefillPrompt);
+      guidInput.setFiles(prefillFiles && prefillFiles.length > 0 ? prefillFiles : []);
+    } else if (skipNextClearRef.current) {
+      // This pass is the state-clearing replace() right after a prefill — keep
+      // the seeded input instead of clearing it.
+      skipNextClearRef.current = false;
+    } else {
+      guidInput.setInput('');
+      guidInput.setFiles([]);
+    }
     guidInput.setLoading(false);
     if (!(location.state as { workspace?: string } | null)?.workspace) {
       guidInput.setDir('');
@@ -413,6 +455,7 @@ const GuidPage: React.FC = () => {
       modelSelectorNode={modelSelectorNode}
       modeBackend={agentSelection.selectedAssistantBackend}
       selectedMode={agentSelection.selectedMode}
+      dynamicModes={agentSelection.currentAgentModeOptions}
       onModeSelect={setGuidSelectedMode}
       allSkills={allSkills}
       disabledBuiltinSkills={guidDisabledBuiltinSkills ?? []}

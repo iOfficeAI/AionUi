@@ -78,7 +78,8 @@
     "importHistoryFileLine": "File: {{path}}",
     "importHistorySizeLine": "Size: {{actual}}, limit: {{limit}}",
     "importHistoryLocationLine": "Location: line {{line}}, column {{column}}",
-    "importHistorySourceLine": "Source: {{source}}"
+    "importHistorySourceLine": "Source: {{source}}",
+    "addSkill": "Beceri ekle"
   },
   "authMethod": "Kimlik Doğrulama",
   "geminiApiKey": "Gemini API Anahtarı",
@@ -123,6 +124,7 @@
   "assistantFilterCustom": "Özel",
   "assistantSourceCustom": "Özel",
   "assistantSourceOfficial": "Resmi",
+  "assistantSourceCli": "CLI",
   "assistantSectionEnabled": "Etkin",
   "assistantSectionDisabled": "Devre Dışı",
   "searchAssistants": "Ada veya açıklamaya göre asistan ara",
@@ -186,6 +188,7 @@
   "assistantBuiltinReadonlyTip": "Bu yerleşik bir asistandır. «Ana Ajan», «Varsayılan Model» ve «Varsayılan İzin» değiştirilebilir. Diğer alanları özelleştirmek için ",
   "assistantBuiltinReadonlyDuplicateLink": "kopyalayın",
   "assistantBuiltinReadonlyTipSuffix": ".",
+  "assistantCliReadonlyTip": "Bu asistan Agents tarafından otomatik oluşturulur ve ilgili CLI ile bire bir bağlıdır. Ad, avatar ve ana ajan kilitlidir; diğer ayarlar yerel olarak düzenlenebilir ve güncellemelerle üzerine yazılmaz.",
   "addSkills": "Yetenek Ekle",
   "customSkills": "Özel Yetenekler",
   "builtinSkills": "Yerleşik Yetenekler",
@@ -1033,6 +1036,9 @@
     "testConnectionAuth": "{{name}} erişilebilir ancak oturum açılması gerekiyor.",
     "testConnectionError": "Aracı bağlantısı test edilemedi.",
     "refreshingStatuses": "Algılama durumu yenileniyor...",
+    "filterAll": "Tümü ({{count}})",
+    "filterAvailable": "Kullanılabilir ({{count}})",
+    "filterUnavailable": "Kullanılamaz ({{count}})",
     "statusOnline": "Kullanılabilir",
     "statusNeedsAuth": "Giriş Gerekli",
     "statusOffline": "Kullanılamıyor",
@@ -1168,5 +1174,23 @@
   "updateReadyInstall": "{{version}} hazır, şimdi yükle",
   "assistantAgentUnavailable": "Gereken aracı şu anda kullanılamıyor.",
   "assistantAgentMissing": "Gereken aracı yüklü değil.",
-  "assistantTeamUnsupported": "Bu asistan şu anda takım modunda kullanılamıyor."
+  "assistantTeamUnsupported": "Bu asistan şu anda takım modunda kullanılamıyor.",
+  "webui.letButlerSetup": "Kâhya ayarlasın",
+  "talkToButler": {
+    "createViaChat": "Sohbetle oluştur",
+    "createManually": "Elle oluştur",
+    "addViaChat": "Sohbetle ekle",
+    "addManually": "Elle ekle",
+    "solveViaChat": "Sohbetle çöz",
+    "enabledToast": "AionUi Kâhyası sizin için etkinleştirildi",
+    "prompt": {
+      "createAssistant": "Yeni bir asistan oluşturmama ve kurulumunda bana yol göstermene yardım et.",
+      "addCustomAgent": "Özel bir Agent eklememe yardım et.",
+      "addModel": "Yeni bir LLM sağlayıcısı ve API anahtarı ekle, ardından varsayılan model olarak ayarla.",
+      "addMcp": "Bir MCP sunucusu kurmama yardım et.",
+      "addSkill": "Bir beceri içe aktarıp bir asistana eklememe yardım et.",
+      "setupRemote": "Telefonumdan veya internetten AionUi’yi açabilmem için uzaktan erişimi ayarlamama yardım et.",
+      "diagnose": "AionUi kullanırken bir sorunla karşılaştım, teşhis etmeme yardım et.\n\n[Modül] {{module}}\n[Açıklama] {{description}}\n[Ekler] giriş alanındaki ekran görüntülerine bakın.\n\nLütfen nedenini teşhis et ve nasıl düzelteceğimi söyle."
+    }
+  }
 }

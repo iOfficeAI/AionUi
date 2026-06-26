@@ -7,7 +7,7 @@
 import { ipcBridge } from '@/common';
 import type { IMcpServer } from '@/common/config/storage';
 import AgentModeSelector from '@/renderer/components/agent/AgentModeSelector';
-import { supportsModeSwitch, type AgentModeOption } from '@/renderer/utils/model/agentModes';
+import type { AgentModeOption } from '@/renderer/utils/model/agentTypes';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { getCleanFileNames, FileService } from '@/renderer/services/FileService';
 import { iconColors } from '@/renderer/styles/colors';
@@ -29,6 +29,7 @@ type GuidActionRowProps = {
   // Agent mode
   modeBackend?: string;
   selectedMode: string;
+  dynamicModes?: AgentModeOption[];
   onModeSelect: (mode: string) => void;
 
   // Skills management
@@ -53,6 +54,7 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
   modelSelectorNode,
   modeBackend,
   selectedMode,
+  dynamicModes = [],
   onModeSelect,
   allSkills,
   disabledBuiltinSkills,
@@ -70,7 +72,7 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
   const layout = useLayoutContext();
   const isMobile = layout?.isMobile ?? false;
   const [isPlusDropdownOpen, setIsPlusDropdownOpen] = useState(false);
-  const showModeSwitch = supportsModeSwitch(modeBackend);
+  const showModeSwitch = dynamicModes.length > 0;
   const configOptionCount = (modelSelectorNode ? 1 : 0) + (showModeSwitch ? 1 : 0);
 
   // Browser file picker ref (WebUI only)
@@ -281,6 +283,7 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
                 compact
                 initialMode={selectedMode}
                 onModeSelect={onModeSelect}
+                dynamicModes={dynamicModes}
                 compactLeadingIcon={<Shield theme='outline' size='14' fill={iconColors.secondary} />}
                 modeLabelFormatter={getModeDisplayLabel}
               />

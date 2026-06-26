@@ -106,9 +106,6 @@ vi.mock('@/renderer/hooks/agent/useAcpConfigOptions', () => ({
   classifyConfigSetError: () => 'unknown',
   useAcpConfigOptions: useAcpConfigOptionsMock,
 }));
-vi.mock('@/renderer/hooks/agent/useAgentModesForBackend', () => ({
-  useAgentModesForBackend: () => [],
-}));
 vi.mock('@/renderer/hooks/chat/useSendBoxDraft', () => ({
   getSendBoxDraftHook: () => () => ({
     data: {
@@ -267,6 +264,23 @@ describe('AcpSendBox', () => {
     await waitFor(() => {
       expect(resetStateMock).toHaveBeenCalledTimes(1);
     });
+  });
+
+  it('uses fluid golden-ratio side inset instead of a fixed max width', () => {
+    render(
+      <AcpSendBox
+        conversation_id='conv-1'
+        backend='codex'
+        workspacePath='/tmp/workspace'
+        messageState={makeMessageState()}
+      />
+    );
+
+    const wrapper = screen.getByRole('button', { name: 'send' }).parentElement?.parentElement;
+    expect(wrapper?.className).toContain('w-[calc(100%-24px)]');
+    expect(wrapper?.className).toContain('md:w-[calc(100%-clamp(80px,10vw,240px))]');
+    expect(wrapper?.className).toContain('max-w-none');
+    expect(wrapper?.className).not.toContain('max-w-800px');
   });
 
   it('keeps ACP config options enabled on desktop without rendering a standalone thought selector', () => {

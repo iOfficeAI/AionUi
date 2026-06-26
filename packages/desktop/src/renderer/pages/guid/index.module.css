@@ -434,6 +434,11 @@
   animation: agentSelectPop 0.4s ease-out forwards;
 }
 
+:global([data-theme='dark']) .assistantSelectorInactive {
+  opacity: 1;
+  color: var(--aou-9) !important;
+}
+
 /* 底部快捷按钮：基础间距 + 安全区 */
 .guidQuickActions {
   bottom: calc(32px + env(safe-area-inset-bottom, 0px));

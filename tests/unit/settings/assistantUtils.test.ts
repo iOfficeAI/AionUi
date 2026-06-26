@@ -85,8 +85,8 @@ describe('resolveAvatarImageSrc', () => {
     expect(resolveAvatarImageSrc(dataUrl)).toBe(dataUrl);
   });
 
-  it('returns file URLs as-is', () => {
-    expect(resolveAvatarImageSrc('file:///path/to/avatar.png')).toBe('file:///path/to/avatar.png');
+  it('does not expose file URLs as image sources', () => {
+    expect(resolveAvatarImageSrc('file:///path/to/avatar.png')).toBeUndefined();
   });
 
   it('returns absolute paths starting with slash', () => {
@@ -235,7 +235,7 @@ describe('resolveAssistantSourceTag', () => {
     expect(resolveAssistantSourceTag('user')).toBe('custom');
   });
 
-  it('shows no tag for bare (agent-generated) assistants', () => {
-    expect(resolveAssistantSourceTag('bare')).toBeNull();
+  it('shows the CLI tag for generated assistants', () => {
+    expect(resolveAssistantSourceTag('generated')).toBe('cli');
   });
 });

@@ -10,6 +10,11 @@ const mockUseModelProviderList = vi.fn(() => ({
   providers: [],
   getAvailableModels: () => [],
 }));
+let mockManagedAgentRuntimeCatalog: Array<{
+  id: string;
+  available_modes?: unknown;
+  config_options?: unknown;
+}> = [];
 const showOpenInvokeMock = vi.fn();
 const getImageBase64InvokeMock = vi.fn();
 let mockLanguage = 'en-US';
@@ -62,6 +67,10 @@ vi.mock('react-i18next', () => ({
 
 vi.mock('@/renderer/hooks/agent/useModelProviderList', () => ({
   useModelProviderList: () => mockUseModelProviderList(),
+}));
+
+vi.mock('@/renderer/hooks/agent/useManagedAgents', () => ({
+  useManagedAgentRuntimeCatalog: () => mockManagedAgentRuntimeCatalog,
 }));
 
 vi.mock('@/renderer/components/chat/EmojiPicker', () => ({
@@ -185,6 +194,19 @@ describe('AssistantEditorSections', () => {
       providers: [],
       getAvailableModels: () => [],
     });
+    mockManagedAgentRuntimeCatalog = [
+      {
+        id: 'agent-codex',
+        available_modes: {
+          current_mode_id: 'auto',
+          available_modes: [
+            { id: 'read-only', name: 'Read Only' },
+            { id: 'auto', name: 'Auto' },
+            { id: 'full-access', name: 'Full Access' },
+          ],
+        },
+      },
+    ];
   });
 
   it('renders all default configuration rows in a single card', () => {
@@ -465,6 +487,57 @@ describe('AssistantEditorSections', () => {
     expect(screen.getByTestId('select-assistant-default-model')).not.toHaveTextContent('Handshake Model');
   });
 
+  it('uses aionrs runtime catalog for default permission options', async () => {
+    mockManagedAgentRuntimeCatalog = [
+      {
+        id: 'agent-aionrs',
+        available_modes: {
+          current_mode_id: 'default',
+          available_modes: [
+            { id: 'default', name: 'Default' },
+            { id: 'auto_edit', name: 'Auto Edit' },
+            { id: 'yolo', name: 'YOLO' },
+          ],
+        },
+        config_options: {
+          config_options: [
+            {
+              id: 'mode',
+              category: 'mode',
+              type: 'select',
+              current_value: 'default',
+              options: [
+                { value: 'default', name: 'Default' },
+                { value: 'auto_edit', name: 'Auto Edit' },
+                { value: 'yolo', name: 'YOLO' },
+              ],
+            },
+          ],
+        },
+      },
+    ];
+
+    renderWithProviders(
+      <AssistantEditorSections
+        editor={createEditor({
+          agent: {
+            value: 'agent-aionrs',
+            setValue: vi.fn(),
+            availableBackends: [backendOption('agent-aionrs', 'aionrs', 'Aion CLI')],
+          },
+        })}
+        activeAssistant={null}
+      />
+    );
+
+    fireEvent.click(screen.getByTestId('select-assistant-default-permission'));
+    await waitFor(() => {
+      expect(screen.getByText('Default')).toBeInTheDocument();
+      expect(screen.getByText('Auto Edit')).toBeInTheDocument();
+      expect(screen.getByText('YOLO')).toBeInTheDocument();
+    });
+  });
+
   it('renders recommended prompts as a list with actions', () => {
     renderWithProviders(
       <AssistantEditorSections
@@ -625,7 +698,7 @@ describe('AssistantEditorSections', () => {
     expect(promptScope.queryByRole('button', { name: 'Add' })).not.toBeInTheDocument();
   });
 
-  it('renders bare assistants as fully read-only in the editor', () => {
+  it('renders generated assistants with locked identity and editable local configuration', () => {
     const { container } = renderWithProviders(
       <AssistantEditorSections
         editor={createEditor({
@@ -672,10 +745,10 @@ describe('AssistantEditorSections', () => {
           },
         })}
         activeAssistant={{
-          id: 'bare-assistant',
+          id: 'generated-assistant',
           name: 'Droid',
           sort_order: 1,
-          source: 'bare',
+          source: 'generated',
           enabled: true,
           agent_id: 'agent-droid',
           agent: { type: 'droid', source: 'custom' },
@@ -683,21 +756,26 @@ describe('AssistantEditorSections', () => {
       />
     );
 
-    expect(screen.queryByTestId('assistant-builtin-readonly-banner')).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Add' })).not.toBeInTheDocument();
+    expect(screen.getByTestId('assistant-cli-readonly-banner')).toBeInTheDocument();
 
     expect(screen.getByTestId('input-assistant-name')).toBeDisabled();
-    expect(screen.getByTestId('input-assistant-desc')).toBeDisabled();
+    expect(screen.getByTestId('input-assistant-desc')).not.toBeDisabled();
 
     const agentSelect = container.querySelector('[data-testid="select-assistant-agent"]');
     const modelSelect = container.querySelector('[data-testid="select-assistant-default-model"]');
     const permissionSelect = container.querySelector('[data-testid="select-assistant-default-permission"]');
 
     expect(agentSelect?.className).toContain('arco-select-disabled');
-    expect(modelSelect?.className).toContain('arco-select-disabled');
-    expect(permissionSelect?.className).toContain('arco-select-disabled');
-    expect(screen.queryByTestId('select-assistant-default-skills')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('select-assistant-default-mcp')).not.toBeInTheDocument();
+    expect(modelSelect?.className).not.toContain('arco-select-disabled');
+    expect(permissionSelect?.className).not.toContain('arco-select-disabled');
+    expect(screen.getByTestId('select-assistant-default-skills')).toBeInTheDocument();
+    expect(screen.getByTestId('select-assistant-default-mcp')).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId('assistant-card-prompts')).getByRole('button', { name: 'Add' })
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId('assistant-card-rules')).getByRole('button', { name: 'Edit' })
+    ).toBeInTheDocument();
   });
 
   it('renders single default-skill and default-mcp controls with hub links', () => {

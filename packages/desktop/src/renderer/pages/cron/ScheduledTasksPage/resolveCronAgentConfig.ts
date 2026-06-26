@@ -5,7 +5,7 @@
  */
 
 import type { ICronAgentConfigWrite } from '@/common/adapter/ipcBridge';
-import { assistantRuntimeKey, isAionrsAssistant, type Assistant } from '@/common/types/agent/assistantTypes';
+import { isAionrsAssistant, type Assistant } from '@/common/types/agent/assistantTypes';
 import { resolveAssistantName } from '@renderer/utils/model/assistantDisplay';
 
 type SelectedAionrsProvider = {
@@ -21,7 +21,7 @@ type ResolveCronAgentConfigInput = {
   config_options?: Record<string, string>;
   workspace?: string;
   localeKey?: string;
-  getMode: (backend: string) => string | undefined;
+  getMode: (assistant: Assistant) => string | undefined;
   aionrsModelRequiredMessage: string;
 };
 
@@ -52,8 +52,8 @@ export function resolveCronAgentConfig(input: ResolveCronAgentConfigInput): Reso
   let agent_config: ICronAgentConfigWrite | undefined;
 
   const assistant = assistantSelection;
-  const runtimeKey = assistantRuntimeKey(assistant);
   const assistantName = resolveAssistantName(assistant, localeKey, assistant.name);
+  const mode = getMode(assistant);
 
   if (isAionrsAssistant(assistant)) {
     if (!selectedAionrsProvider?.id || !model_id) {
@@ -62,7 +62,7 @@ export function resolveCronAgentConfig(input: ResolveCronAgentConfigInput): Reso
     agent_config = {
       name: assistantName,
       assistant_id: assistant.id,
-      mode: getMode(runtimeKey),
+      mode,
       model_id,
       model: {
         provider_id: selectedAionrsProvider.id,
@@ -75,7 +75,7 @@ export function resolveCronAgentConfig(input: ResolveCronAgentConfigInput): Reso
     agent_config = {
       name: assistantName,
       assistant_id: assistant.id,
-      mode: getMode(runtimeKey),
+      mode,
       model_id,
       config_options,
       workspace,

@@ -78,7 +78,8 @@
     "importHistoryFileLine": "File: {{path}}",
     "importHistorySizeLine": "Size: {{actual}}, limit: {{limit}}",
     "importHistoryLocationLine": "Location: line {{line}}, column {{column}}",
-    "importHistorySourceLine": "Source: {{source}}"
+    "importHistorySourceLine": "Source: {{source}}",
+    "addSkill": "Skill hinzufügen"
   },
   "authMethod": "Authentifizierung",
   "geminiApiKey": "Gemini-API-Schlüssel",
@@ -123,6 +124,7 @@
   "assistantFilterCustom": "Benutzerdefiniert",
   "assistantSourceCustom": "Benutzerdefiniert",
   "assistantSourceOfficial": "Offiziell",
+  "assistantSourceCli": "CLI",
   "assistantSectionEnabled": "Aktiviert",
   "assistantSectionDisabled": "Deaktiviert",
   "searchAssistants": "Assistenten nach Name oder Beschreibung suchen",
@@ -186,6 +188,7 @@
   "assistantBuiltinReadonlyTip": "Dies ist ein eingebauter Assistent. Du kannst Haupt-Agent, Standardmodell und Standardberechtigung ändern. Um andere Felder anzupassen, ",
   "assistantBuiltinReadonlyDuplicateLink": "duplizieren",
   "assistantBuiltinReadonlyTipSuffix": ".",
+  "assistantCliReadonlyTip": "Dieser Assistent wird automatisch von Agents erzeugt und ist eins zu eins mit der passenden CLI verknüpft. Name, Avatar und Haupt-Agent sind gesperrt; andere Einstellungen können lokal bearbeitet werden und werden durch Updates nicht überschrieben.",
   "addSkills": "Skills hinzufügen",
   "customSkills": "Benutzerdefinierte Skills",
   "builtinSkills": "Eingebaute Skills",
@@ -1037,7 +1040,10 @@
     "boundAssistantsTitle": "Assistenten, die diesen Agenten verwenden",
     "boundAssistantsCount": "{{count}} Assistent(en)",
     "boundAssistantsEmpty": "Diesem Agenten sind noch keine Assistenten zugeordnet.",
-    "viewAssistant": "Anzeigen"
+    "viewAssistant": "Anzeigen",
+    "filterAll": "Alle ({{count}})",
+    "filterAvailable": "Verfügbar ({{count}})",
+    "filterUnavailable": "Nicht verfügbar ({{count}})"
   },
   "remoteAgent": {
     "title": "Remote-Agenten",
@@ -1111,5 +1117,23 @@
   "updateReadyInstall": "{{version}} ist bereit, jetzt installieren",
   "assistantAgentUnavailable": "Der benötigte Agent ist derzeit nicht verfügbar.",
   "assistantAgentMissing": "Der benötigte Agent ist nicht installiert.",
-  "assistantTeamUnsupported": "Dieser Assistent kann derzeit nicht im Teammodus verwendet werden."
+  "assistantTeamUnsupported": "Dieser Assistent kann derzeit nicht im Teammodus verwendet werden.",
+  "webui.letButlerSetup": "Vom Butler einrichten lassen",
+  "talkToButler": {
+    "createViaChat": "Per Chat erstellen",
+    "createManually": "Manuell erstellen",
+    "addViaChat": "Per Chat hinzufügen",
+    "addManually": "Manuell hinzufügen",
+    "solveViaChat": "Per Chat lösen",
+    "enabledToast": "AionUi-Butler für dich aktiviert",
+    "prompt": {
+      "createAssistant": "Hilf mir, einen neuen Assistenten zu erstellen, und führe mich durch die Einrichtung.",
+      "addCustomAgent": "Hilf mir, einen benutzerdefinierten Agent hinzuzufügen.",
+      "addModel": "Hilf mir, einen neuen LLM-Anbieter und API-Schlüssel hinzuzufügen, und lege ihn als Standardmodell fest.",
+      "addMcp": "Hilf mir, einen MCP-Server einzurichten.",
+      "addSkill": "Hilf mir, einen Skill zu importieren und einem Assistenten zuzuordnen.",
+      "setupRemote": "Hilf mir, den Fernzugriff einzurichten, damit ich AionUi vom Handy oder über das Internet öffnen kann.",
+      "diagnose": "Ich habe ein Problem mit AionUi, hilf mir bei der Diagnose.\n\n[Modul] {{module}}\n[Beschreibung] {{description}}\n[Anhänge] siehe die Screenshots im Eingabefeld.\n\nBitte diagnostiziere die Ursache und sag mir, wie ich es behebe."
+    }
+  }
 }

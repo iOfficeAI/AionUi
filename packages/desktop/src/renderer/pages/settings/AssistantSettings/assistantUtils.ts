@@ -1,6 +1,6 @@
-import { DEFAULT_CODEX_MODELS } from '@/common/types/codex/codexModels';
 import { assistantRuntimeKey } from '@/common/types/agent/assistantTypes';
 import { resolveExtensionAssetUrl } from '@/renderer/utils/platform';
+import { isBackendRelativeAssetPath, isLikelyLocalFilePath } from '@/renderer/utils/model/assistantAvatar';
 import type { AssistantListItem, AvailableBackend } from './types';
 
 export type AssistantListFilter = 'all' | 'enabled' | 'disabled' | 'builtin' | 'user';
@@ -11,14 +11,13 @@ export const ASSISTANT_SORT_ORDER_GAP = 1000;
  *
  * - `builtin` → "Built-in" tag
  * - `user` → "Custom" tag
- * - `bare` (agent-generated) → no tag, since it is neither built-in nor
- *   user-authored; surfacing "Custom" for it is misleading.
+ * - `generated` (agent-generated) → "CLI" tag, matching the product terminology.
  */
-export type AssistantSourceTag = 'builtin' | 'custom' | null;
+export type AssistantSourceTag = 'builtin' | 'custom' | 'cli' | null;
 
 export const resolveAssistantSourceTag = (source: string): AssistantSourceTag => {
   if (source === 'builtin') return 'builtin';
-  if (source === 'bare') return null;
+  if (source === 'generated') return 'cli';
   return 'custom';
 };
 
@@ -38,32 +37,12 @@ export const resolveAvatarImageSrc = (avatar: string | undefined): string | unde
   const value = avatar?.trim();
   if (!value) return undefined;
 
-  const isLocalAbsolutePath = isLikelyLocalFilePath(value);
-  if (isLocalAbsolutePath) {
-    const isImageLocalPath = /\.(svg|png|jpe?g|webp|gif)$/i.test(value) || isLikelyLocalFilePath(value);
-    return isImageLocalPath ? toFileUrl(value) : undefined;
-  }
+  if (isLikelyLocalFilePath(value)) return undefined;
+  if (value.startsWith('/') && !isBackendRelativeAssetPath(value)) return undefined;
 
   const resolved = resolveExtensionAssetUrl(value) || value;
   const isImage = /\.(svg|png|jpe?g|webp|gif)$/i.test(resolved) || /^(https?:|file:\/\/|data:|\/)/i.test(resolved);
   return isImage ? resolved : undefined;
-};
-
-const toFileUrl = (path: string): string => {
-  if (path.startsWith('file://')) return path;
-  if (/^[A-Za-z]:[\\/]/.test(path)) {
-    return `file:///${encodeURI(path.replace(/\\/g, '/'))}`;
-  }
-  return `file://${encodeURI(path)}`;
-};
-
-const isLikelyLocalFilePath = (value: string): boolean => {
-  if (value.startsWith('file://')) return true;
-  if (/^[A-Za-z]:[\\/]/.test(value)) return true;
-
-  const unixLocalPathPrefixes = ['/Users/', '/home/', '/var/', '/tmp/', '/private/', '/Volumes/', '/mnt/'];
-
-  return unixLocalPathPrefixes.some((prefix) => value.startsWith(prefix));
 };
 
 /**
@@ -172,7 +151,7 @@ export const buildAssistantEditorBackends = (
   const backendMap = new Map<string, AvailableBackend>();
 
   for (const assistant of assistants) {
-    if (assistant.source !== 'bare') {
+    if (assistant.source !== 'generated') {
       continue;
     }
 
@@ -183,12 +162,7 @@ export const buildAssistantEditorBackends = (
     }
 
     const models = Array.isArray(assistant.models) ? assistant.models : [];
-    const modelOptions =
-      models.length > 0
-        ? models.map((model) => ({ value: model, label: model }))
-        : runtimeKey === 'codex'
-          ? DEFAULT_CODEX_MODELS.map((model) => ({ value: model.id, label: model.label }))
-          : [];
+    const modelOptions = models.map((model) => ({ value: model, label: model }));
 
     backendMap.set(agentId, {
       id: agentId,

@@ -78,7 +78,8 @@
     "importHistoryFileLine": "File: {{path}}",
     "importHistorySizeLine": "Size: {{actual}}, limit: {{limit}}",
     "importHistoryLocationLine": "Location: line {{line}}, column {{column}}",
-    "importHistorySourceLine": "Source: {{source}}"
+    "importHistorySourceLine": "Source: {{source}}",
+    "addSkill": "スキルを追加"
   },
   "authMethod": "認証",
   "geminiApiKey": "Gemini API キー",
@@ -123,6 +124,7 @@
   "assistantFilterCustom": "カスタム",
   "assistantSourceCustom": "カスタム",
   "assistantSourceOfficial": "公式",
+  "assistantSourceCli": "CLI",
   "assistantSectionEnabled": "有効",
   "assistantSectionDisabled": "無効",
   "searchAssistants": "名前または説明でアシスタントを検索",
@@ -186,6 +188,7 @@
   "assistantBuiltinReadonlyTip": "これはビルトインアシスタントです。「メインエージェント」「デフォルトモデル」「デフォルト権限」を変更できます。その他をカスタマイズするには、",
   "assistantBuiltinReadonlyDuplicateLink": "複製して作成",
   "assistantBuiltinReadonlyTipSuffix": "。",
+  "assistantCliReadonlyTip": "このアシスタントは Agents によって自動生成され、対応する CLI と 1 対 1 で関連付けられています。名前、アバター、メインエージェントは変更できません。その他の設定はローカルで編集でき、更新で上書きされません。",
   "addSkills": "スキルを追加",
   "customSkills": "カスタムスキル",
   "builtinSkills": "ビルトインスキル",
@@ -1035,6 +1038,9 @@
     "testConnectionAuth": "「{{name}}」に接続できますが、サインインが必要です。",
     "testConnectionError": "エージェントの接続テストに失敗しました。",
     "refreshingStatuses": "検出状態を更新しています...",
+    "filterAll": "すべて ({{count}})",
+    "filterAvailable": "利用可能 ({{count}})",
+    "filterUnavailable": "利用不可 ({{count}})",
     "statusOnline": "利用可能",
     "statusNeedsAuth": "要サインイン",
     "statusOffline": "利用不可",
@@ -1170,5 +1176,23 @@
   "updateReadyInstall": "{{version}} の準備ができました。今すぐインストール",
   "assistantAgentUnavailable": "依存しているエージェントは現在利用できません。",
   "assistantAgentMissing": "依存しているエージェントがインストールされていません。",
-  "assistantTeamUnsupported": "このアシスタントは現在チームモードで使用できません。"
+  "assistantTeamUnsupported": "このアシスタントは現在チームモードで使用できません。",
+  "webui.letButlerSetup": "執事に設定してもらう",
+  "talkToButler": {
+    "createViaChat": "チャットで作成",
+    "createManually": "手動で作成",
+    "addViaChat": "チャットで追加",
+    "addManually": "手動で追加",
+    "solveViaChat": "チャットで解決",
+    "enabledToast": "AionUi 執事を有効にしました",
+    "prompt": {
+      "createAssistant": "新しいアシスタントの作成と初期設定を手伝ってください。",
+      "addCustomAgent": "カスタム Agent の追加を手伝ってください。",
+      "addModel": "新しい LLM プロバイダーと API キーを追加し、デフォルトモデルに設定してください。",
+      "addMcp": "MCP サーバーの設定を手伝ってください。",
+      "addSkill": "スキルをインポートしてアシスタントに紐付けてください。",
+      "setupRemote": "スマホや外部ネットワークから AionUi を開けるよう、リモートアクセスを設定してください。",
+      "diagnose": "AionUi で問題が発生しました。診断を手伝ってください。\n\n【モジュール】{{module}}\n【問題の説明】{{description}}\n【添付】入力欄のスクリーンショットを参照。\n\n原因を診断し、解決方法を教えてください。"
+    }
+  }
 }

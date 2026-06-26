@@ -9,7 +9,7 @@ import {
 describe('guid assistant selection helpers', () => {
   const assistants: Assistant[] = [
     assistant({ id: 'builtin-writer', source: 'builtin', runtimeKey: 'claude', sort_order: 20 }),
-    assistant({ id: 'bare-aionrs', source: 'bare', runtimeKey: 'aionrs', sort_order: 10 }),
+    assistant({ id: 'bare-aionrs', source: 'generated', runtimeKey: 'aionrs', sort_order: 10 }),
     assistant({ id: 'user-research', source: 'user', runtimeKey: 'gemini', sort_order: 30 }),
   ];
 
@@ -22,7 +22,7 @@ describe('guid assistant selection helpers', () => {
     expect(resolveAssistantSelectionKey('aionrs', assistants)).toBeUndefined();
   });
 
-  it('defaults to the bare aionrs assistant when available', () => {
+  it('defaults to the generated aionrs assistant when available', () => {
     expect(pickDefaultAssistantSelectionKey(assistants)).toBe('bare-aionrs');
   });
 

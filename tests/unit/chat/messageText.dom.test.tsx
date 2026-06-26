@@ -197,6 +197,30 @@ describe('MessageText attachment paths', () => {
     expect(screen.getByTestId('file-preview')).toHaveTextContent('/workspace/demo/uploads/photo.png');
   });
 
+  it('lets text message content use the available row width on desktop', () => {
+    const message: IMessageText = {
+      id: 'msg-width',
+      msg_id: 'msg-width',
+      conversation_id: 'conv-1',
+      type: 'text',
+      position: 'left',
+      createdAt: Date.now(),
+      content: {
+        content: 'wide content',
+      },
+    };
+
+    render(
+      <ConversationProvider value={{ conversationId: 'conv-1', workspace: '/workspace/demo', type: 'acp' }}>
+        <MessageText message={message} />
+      </ConversationProvider>
+    );
+
+    const content = screen.getByTestId('message-text-content');
+    expect(content.parentElement?.className).toContain('min-w-0');
+    expect(content.parentElement?.className).not.toContain('max-w-780px');
+  });
+
   it('keeps absolute attachment paths unchanged before previewing', () => {
     const message: IMessageText = {
       id: 'msg-2',

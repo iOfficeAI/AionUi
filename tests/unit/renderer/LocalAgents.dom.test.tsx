@@ -298,7 +298,7 @@ describe('LocalAgents', () => {
     const assistants: Assistant[] = [
       {
         id: 'assistant-on-claude-runtime',
-        source: 'bare',
+        source: 'generated',
         name: 'Claude Runtime',
         name_i18n: {},
         description_i18n: {},
@@ -319,7 +319,7 @@ describe('LocalAgents', () => {
       },
       {
         id: 'assistant-on-claude-agent',
-        source: 'bare',
+        source: 'generated',
         name: 'Claude Agent',
         name_i18n: {},
         description_i18n: {},

@@ -78,7 +78,8 @@
     "importHistoryFileLine": "文件：{{path}}",
     "importHistorySizeLine": "大小：{{actual}}，限制：{{limit}}",
     "importHistoryLocationLine": "位置：第 {{line}} 行，第 {{column}} 列",
-    "importHistorySourceLine": "来源：{{source}}"
+    "importHistorySourceLine": "来源：{{source}}",
+    "addSkill": "添加技能"
   },
   "authMethod": "认证",
   "geminiApiKey": "Gemini API 密钥",
@@ -123,6 +124,7 @@
   "assistantFilterCustom": "自定义",
   "assistantSourceCustom": "自定义",
   "assistantSourceOfficial": "官方",
+  "assistantSourceCli": "CLI",
   "assistantSectionEnabled": "已启用",
   "assistantSectionDisabled": "已禁用",
   "searchAssistants": "按名称或描述搜索助手",
@@ -186,6 +188,7 @@
   "assistantBuiltinReadonlyTip": "这是内置助手，可修改「主代理」「默认模型」和「默认权限」。如需自定义其他配置，请",
   "assistantBuiltinReadonlyDuplicateLink": "复制新建",
   "assistantBuiltinReadonlyTipSuffix": "。",
+  "assistantCliReadonlyTip": "该助手由 Agents 自动生成，与对应 CLI 一对一关联。名称、头像、主代理不可修改；其余配置可自由编辑，并仅保存在本地，不会被更新覆盖。",
   "addSkills": "添加技能",
   "customSkills": "自定义技能",
   "builtinSkills": "内置技能",
@@ -1046,6 +1049,9 @@
     "testConnectionAuth": "“{{name}}”可连接，但需要先登录。",
     "testConnectionError": "测试 Agent 连接失败。",
     "refreshingStatuses": "正在刷新检测状态...",
+    "filterAll": "全部 ({{count}})",
+    "filterAvailable": "可用 ({{count}})",
+    "filterUnavailable": "不可用 ({{count}})",
     "statusOnline": "可用",
     "statusNeedsAuth": "需登录",
     "statusOffline": "不可用",
@@ -1169,5 +1175,23 @@
   "updateReadyInstall": "{{version}} 已就绪, 立即安装",
   "assistantAgentUnavailable": "所依赖的 Agent 当前不可用。",
   "assistantAgentMissing": "所依赖的 Agent 尚未安装。",
-  "assistantTeamUnsupported": "该助手目前无法在团队模式中使用。"
+  "assistantTeamUnsupported": "该助手目前无法在团队模式中使用。",
+  "webui.letButlerSetup": "让管家帮我设置",
+  "talkToButler": {
+    "createViaChat": "通过对话创建",
+    "createManually": "手动创建",
+    "addViaChat": "通过对话添加",
+    "addManually": "手动添加",
+    "solveViaChat": "通过对话排查",
+    "enabledToast": "已为你启用 AionUi 管家",
+    "prompt": {
+      "createAssistant": "帮我创建一个新助手，并引导我完成设置。",
+      "addCustomAgent": "帮我添加一个自定义 Agent。",
+      "addModel": "帮我添加一个新的 LLM 模型和 API Key，并设为默认模型。",
+      "addMcp": "帮我配置一个 MCP 服务器。",
+      "addSkill": "帮我导入一个技能，并绑定到助手上。",
+      "setupRemote": "帮我配置远程访问，让我在手机或外网也能打开 AionUi。",
+      "diagnose": "我在使用 AionUi 时遇到问题，帮我排查一下。\n\n【模块】{{module}}\n【问题描述】{{description}}\n【附件】见输入框中的截图。\n\n请帮我诊断原因并给出解决办法。"
+    }
+  }
 }
