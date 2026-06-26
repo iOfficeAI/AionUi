@@ -44,7 +44,7 @@ export function useHubAgents() {
       );
 
       // Hub installs can change both the management diagnostics view and
-      // the generated bare-assistant catalog, so refresh both through the
+      // the generated generated-assistant catalog, so refresh both through the
       // shared helper used by AgentSettings.
       if (payload.status === 'installed') {
         void refreshManagedAgentCatalogAndAssistants();

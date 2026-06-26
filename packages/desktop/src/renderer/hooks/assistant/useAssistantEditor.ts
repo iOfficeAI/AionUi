@@ -26,10 +26,8 @@ type AssistantScalarDefaultMode = 'auto' | 'fixed';
 type AssistantSkillsDefaultMode = 'auto' | 'fixed';
 type AssistantMcpDefaultMode = 'auto' | 'fixed';
 
-const isSystemAssistant = (assistant: Assistant | null | undefined): boolean =>
-  assistant?.source === 'builtin' || assistant?.source === 'bare';
 const isBuiltinAssistant = (assistant: Assistant | null | undefined): boolean => assistant?.source === 'builtin';
-const isBareAssistant = (assistant: Assistant | null | undefined): boolean => assistant?.source === 'bare';
+const isGeneratedAssistant = (assistant: Assistant | null | undefined): boolean => assistant?.source === 'generated';
 
 const resolveLocalizedRecommendedPrompts = (
   detail: Awaited<ReturnType<typeof ipcBridge.assistants.get.invoke>>,
@@ -217,7 +215,7 @@ export const useAssistantEditor = ({
     setIsCreating(false);
     setActiveAssistantId(assistant.id);
     setEditVisible(true);
-    setPromptViewMode(isSystemAssistant(assistant) ? 'preview' : 'edit');
+    setPromptViewMode(isBuiltinAssistant(assistant) ? 'preview' : 'edit');
     setEditName(assistant.name || '');
     setEditDescription(assistant.description || '');
     setEditAvatar(assistant.avatar || '');
@@ -255,7 +253,7 @@ export const useAssistantEditor = ({
       setBuiltinAutoSkills(autoSkills);
       setAvailableMcpServers(mcpServers);
       setSelectedSkills(detail.capabilities.default_skill_ids ?? []);
-      setCustomSkills(isSystemAssistant(assistant) ? [] : (detail.capabilities.custom_skill_names ?? []));
+      setCustomSkills(isBuiltinAssistant(assistant) ? [] : (detail.capabilities.custom_skill_names ?? []));
       setDisabledBuiltinSkills(detail.capabilities.default_disabled_builtin_skill_ids ?? []);
     } catch (error) {
       console.error('Failed to load assistant detail:', error);
@@ -442,37 +440,46 @@ export const useAssistantEditor = ({
       } else {
         if (!activeAssistant) return;
 
-        if (isBareAssistant(activeAssistant)) {
-          return;
+        let updateRequest: UpdateAssistantRequest;
+        if (isBuiltinAssistant(activeAssistant)) {
+          updateRequest = {
+            id: activeAssistant.id,
+            agent_id: editAgent || undefined,
+            defaults: {
+              model:
+                defaultModelMode === 'fixed'
+                  ? { mode: 'fixed', value: defaultModelValue.trim() }
+                  : { mode: defaultModelMode },
+              permission:
+                defaultPermissionMode === 'fixed'
+                  ? { mode: 'fixed', value: defaultPermissionValue.trim() }
+                  : { mode: defaultPermissionMode },
+            },
+          };
+        } else if (isGeneratedAssistant(activeAssistant)) {
+          updateRequest = {
+            id: activeAssistant.id,
+            description: editDescription || undefined,
+            enabled_skills: selectedSkills,
+            custom_skill_names: finalCustomSkills,
+            disabled_builtin_skills: disabledBuiltinSkills.length > 0 ? disabledBuiltinSkills : undefined,
+            recommended_prompts: recommendedPrompts,
+            defaults,
+          };
+        } else {
+          updateRequest = {
+            id: activeAssistant.id,
+            name: editName,
+            description: editDescription || undefined,
+            avatar: editAvatar || undefined,
+            agent_id: editAgent || undefined,
+            enabled_skills: selectedSkills,
+            custom_skill_names: finalCustomSkills,
+            disabled_builtin_skills: disabledBuiltinSkills.length > 0 ? disabledBuiltinSkills : undefined,
+            recommended_prompts: recommendedPrompts,
+            defaults,
+          };
         }
-
-        const updateRequest: UpdateAssistantRequest = isBuiltinAssistant(activeAssistant)
-          ? {
-              id: activeAssistant.id,
-              agent_id: editAgent || undefined,
-              defaults: {
-                model:
-                  defaultModelMode === 'fixed'
-                    ? { mode: 'fixed', value: defaultModelValue.trim() }
-                    : { mode: defaultModelMode },
-                permission:
-                  defaultPermissionMode === 'fixed'
-                    ? { mode: 'fixed', value: defaultPermissionValue.trim() }
-                    : { mode: defaultPermissionMode },
-              },
-            }
-          : {
-              id: activeAssistant.id,
-              name: editName,
-              description: editDescription || undefined,
-              avatar: editAvatar || undefined,
-              agent_id: editAgent || undefined,
-              enabled_skills: selectedSkills,
-              custom_skill_names: finalCustomSkills,
-              disabled_builtin_skills: disabledBuiltinSkills.length > 0 ? disabledBuiltinSkills : undefined,
-              recommended_prompts: recommendedPrompts,
-              defaults,
-            };
         await ipcBridge.assistants.update.invoke(updateRequest);
 
         if (!isBuiltinAssistant(activeAssistant)) {

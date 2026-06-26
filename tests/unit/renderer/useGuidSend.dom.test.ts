@@ -184,7 +184,7 @@ describe('useGuidSend', () => {
     expect(payload.assistant?.conversation_overrides?.disabled_builtin_skill_ids).toEqual(['todo-tracker']);
   });
 
-  it('forwards local skill overrides for bare Aion CLI assistants through assistant conversation overrides', async () => {
+  it('forwards local skill overrides for generated Aion CLI assistants through assistant conversation overrides', async () => {
     const deps = createDeps();
     deps.selectedAssistantId = 'bare:aionrs';
     deps.selectedAssistantBackend = 'aionrs';
@@ -207,7 +207,7 @@ describe('useGuidSend', () => {
     expect(payload.extra.session_mode).toBeUndefined();
   });
 
-  it('does not write legacy preset_assistant_id for bare Aion CLI assistant conversations', async () => {
+  it('does not write legacy preset_assistant_id for generated Aion CLI assistant conversations', async () => {
     const deps = createDeps();
     deps.selectedAssistantId = 'bare:aionrs';
     deps.selectedAssistantBackend = 'aionrs';
@@ -224,7 +224,7 @@ describe('useGuidSend', () => {
     expect(payload.extra.preset_assistant_id).toBeUndefined();
   });
 
-  it('does not write legacy preset_assistant_id for bare ACP assistant conversations', async () => {
+  it('does not write legacy preset_assistant_id for generated ACP assistant conversations', async () => {
     const deps = createDeps();
     deps.selectedAssistantId = 'bare:claude';
     deps.selectedAssistantBackend = 'claude';

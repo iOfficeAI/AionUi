@@ -128,7 +128,7 @@ describe('AssistantEditorPage', () => {
     expect(screen.queryByText('Academic Paper')).not.toBeInTheDocument();
   });
 
-  it('disables save and hides delete for bare assistants', () => {
+  it('allows saving and hides delete for generated assistants', () => {
     const editor = createEditor();
     editor.isCreating = false;
     editor.profile.name = 'Droid';
@@ -140,7 +140,7 @@ describe('AssistantEditorPage', () => {
           activeAssistant={{
             id: 'bare-1',
             name: 'Droid',
-            source: 'bare',
+            source: 'generated',
             enabled: true,
             sort_order: 1,
             name_i18n: {},
@@ -159,6 +159,6 @@ describe('AssistantEditorPage', () => {
     );
 
     expect(screen.queryByTestId('btn-delete-assistant')).not.toBeInTheDocument();
-    expect(screen.getByTestId('btn-save-assistant')).toBeDisabled();
+    expect(screen.getByTestId('btn-save-assistant')).not.toBeDisabled();
   });
 });

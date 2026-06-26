@@ -8,7 +8,7 @@
  * The Agent settings management surface must read the
  * `include_disabled=true` view (a SEPARATE SWR key from any detected-agent
  * cache). Diagnostics-only actions can refresh the management cache only;
- * catalog-changing or health actions that affect bare assistants must also
+ * catalog-changing or health actions that affect generated assistants must also
  * invalidate assistant list caches.
  */
 

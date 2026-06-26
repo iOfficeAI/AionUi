@@ -10,8 +10,8 @@ import AssistantAvatar from './AssistantAvatar';
 import { DndContext, PointerSensor, closestCenter, useSensor, useSensors } from '@dnd-kit/core';
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Button, Switch, Tag, Tooltip } from '@arco-design/web-react';
-import { Attention, Drag, Plus } from '@icon-park/react';
+import { Button, Dropdown, Menu, Switch, Tag, Tooltip } from '@arco-design/web-react';
+import { Attention, Drag, MoreOne, Plus } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -61,6 +61,46 @@ const SortableAssistantCard: React.FC<SortableAssistantCardProps> = ({
   const { t } = useTranslation();
   const canDelete = assistant.source === 'user';
   const canDuplicate = assistant.source !== 'user';
+  const actionMenu = (
+    <Menu
+      onClickMenuItem={(key) => {
+        if (key === 'edit') {
+          onEdit(assistant);
+          return;
+        }
+        if (key === 'duplicate') {
+          onDuplicate(assistant);
+          return;
+        }
+        if (key === 'delete') {
+          onDelete(assistant);
+        }
+      }}
+    >
+      <Menu.Item key='edit'>
+        <div data-testid={`menu-edit-${assistant.id}`} className='flex items-center gap-8px'>
+          <span>{t('common.edit', { defaultValue: 'Edit' })}</span>
+        </div>
+      </Menu.Item>
+      {canDuplicate ? (
+        <Menu.Item key='duplicate'>
+          <div data-testid={`menu-duplicate-${assistant.id}`} className='flex items-center gap-8px'>
+            <span>{t('settings.duplicateAssistant', { defaultValue: 'Duplicate' })}</span>
+          </div>
+        </Menu.Item>
+      ) : null}
+      {canDelete ? (
+        <Menu.Item key='delete'>
+          <div
+            data-testid={`menu-delete-${assistant.id}`}
+            className='flex items-center gap-8px text-[rgb(var(--danger-6))]'
+          >
+            <span>{t('common.delete', { defaultValue: 'Delete' })}</span>
+          </div>
+        </Menu.Item>
+      ) : null}
+    </Menu>
+  );
   const { attributes, listeners, setActivatorNodeRef, setNodeRef, transform, transition, isDragging } = useSortable({
     id: assistant.id,
     disabled: !sortingEnabled,
@@ -148,44 +188,18 @@ const SortableAssistantCard: React.FC<SortableAssistantCardProps> = ({
             onToggleEnabled(assistant, checked);
           }}
         />
-        <Button
-          type='outline'
-          size='small'
-          className='!h-30px !rounded-8px !border-border-2 !bg-base !px-10px !text-12px !font-500 !text-t-primary hover:!border-border-1 hover:!bg-fill-1'
-          data-testid={`btn-edit-${assistant.id}`}
-          onClick={() => {
-            onEdit(assistant);
-          }}
-        >
-          {t('common.edit', { defaultValue: 'Edit' })}
-        </Button>
-        {canDuplicate ? (
+        <Dropdown droplist={actionMenu} trigger='click' position='br' getPopupContainer={() => document.body}>
           <Button
             type='outline'
             size='small'
-            className='!h-30px !rounded-8px !border-border-2 !bg-base !px-8px !text-12px !font-500 !text-t-primary hover:!border-border-1 hover:!bg-fill-1'
-            data-testid={`btn-duplicate-${assistant.id}`}
-            onClick={() => {
-              onDuplicate(assistant);
-            }}
+            icon={<MoreOne theme='outline' size='14' fill='currentColor' />}
+            aria-label={t('common.more', { defaultValue: 'More' })}
+            className='!h-30px !rounded-8px !border-border-2 !bg-base !px-8px !text-t-primary hover:!border-border-1 hover:!bg-fill-1'
+            data-testid={`btn-assistant-more-${assistant.id}`}
           >
-            {t('settings.duplicateAssistant', { defaultValue: 'Duplicate' })}
+            {null}
           </Button>
-        ) : null}
-        {canDelete ? (
-          <Button
-            type='outline'
-            size='small'
-            status='danger'
-            className='!h-30px !rounded-8px !border-danger-2 !bg-base !px-8px !text-12px !font-500'
-            data-testid={`btn-delete-${assistant.id}`}
-            onClick={() => {
-              onDelete(assistant);
-            }}
-          >
-            {t('common.delete', { defaultValue: 'Delete' })}
-          </Button>
-        ) : null}
+        </Dropdown>
       </div>
     </div>
   );
@@ -248,7 +262,6 @@ const AssistantListPanel: React.FC<AssistantListPanelProps> = ({
   const renderSourceTag = (assistant: AssistantListItem) => {
     const tag = resolveAssistantSourceTag(assistant.source);
     if (tag === null) {
-      // Bare assistants are system-generated from agents and carry no source tag.
       return null;
     }
     if (tag === 'builtin') {
@@ -259,6 +272,17 @@ const AssistantListPanel: React.FC<AssistantListPanelProps> = ({
           className='!rounded-10px !bg-fill-1 !px-8px !py-1px !text-10px !font-600 !leading-16px !text-primary-6'
         >
           {t('settings.builtin', { defaultValue: 'Built-in' })}
+        </Tag>
+      );
+    }
+    if (tag === 'cli') {
+      return (
+        <Tag
+          size='small'
+          bordered={false}
+          className='!rounded-10px !bg-fill-1 !px-8px !py-1px !text-10px !font-600 !leading-16px !text-[rgb(var(--arcoblue-6))]'
+        >
+          {t('settings.assistantSourceCli', { defaultValue: 'CLI' })}
         </Tag>
       );
     }

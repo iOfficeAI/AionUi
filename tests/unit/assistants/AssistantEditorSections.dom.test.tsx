@@ -625,7 +625,7 @@ describe('AssistantEditorSections', () => {
     expect(promptScope.queryByRole('button', { name: 'Add' })).not.toBeInTheDocument();
   });
 
-  it('renders bare assistants as fully read-only in the editor', () => {
+  it('renders generated assistants with locked identity and editable local configuration', () => {
     const { container } = renderWithProviders(
       <AssistantEditorSections
         editor={createEditor({
@@ -672,10 +672,10 @@ describe('AssistantEditorSections', () => {
           },
         })}
         activeAssistant={{
-          id: 'bare-assistant',
+          id: 'generated-assistant',
           name: 'Droid',
           sort_order: 1,
-          source: 'bare',
+          source: 'generated',
           enabled: true,
           agent_id: 'agent-droid',
           agent: { type: 'droid', source: 'custom' },
@@ -683,21 +683,26 @@ describe('AssistantEditorSections', () => {
       />
     );
 
-    expect(screen.queryByTestId('assistant-builtin-readonly-banner')).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Add' })).not.toBeInTheDocument();
+    expect(screen.getByTestId('assistant-cli-readonly-banner')).toBeInTheDocument();
 
     expect(screen.getByTestId('input-assistant-name')).toBeDisabled();
-    expect(screen.getByTestId('input-assistant-desc')).toBeDisabled();
+    expect(screen.getByTestId('input-assistant-desc')).not.toBeDisabled();
 
     const agentSelect = container.querySelector('[data-testid="select-assistant-agent"]');
     const modelSelect = container.querySelector('[data-testid="select-assistant-default-model"]');
     const permissionSelect = container.querySelector('[data-testid="select-assistant-default-permission"]');
 
     expect(agentSelect?.className).toContain('arco-select-disabled');
-    expect(modelSelect?.className).toContain('arco-select-disabled');
-    expect(permissionSelect?.className).toContain('arco-select-disabled');
-    expect(screen.queryByTestId('select-assistant-default-skills')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('select-assistant-default-mcp')).not.toBeInTheDocument();
+    expect(modelSelect?.className).not.toContain('arco-select-disabled');
+    expect(permissionSelect?.className).not.toContain('arco-select-disabled');
+    expect(screen.getByTestId('select-assistant-default-skills')).toBeInTheDocument();
+    expect(screen.getByTestId('select-assistant-default-mcp')).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId('assistant-card-prompts')).getByRole('button', { name: 'Add' })
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId('assistant-card-rules')).getByRole('button', { name: 'Edit' })
+    ).toBeInTheDocument();
   });
 
   it('renders single default-skill and default-mcp controls with hub links', () => {

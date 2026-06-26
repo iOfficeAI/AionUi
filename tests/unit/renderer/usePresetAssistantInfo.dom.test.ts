@@ -12,7 +12,7 @@ import { resolveAssistantConfigId, usePresetAssistantInfo } from '@/renderer/hoo
 const useSWRMock = vi.fn();
 let currentLanguage = 'en-US';
 
-// Backend logo catalog stub. The hook resolves bare/legacy backends to their
+// Backend logo catalog stub. The hook resolves generated/legacy backends to their
 // logo via `resolveAgentLogo(useAgentLogos(), ...)`, so the test mirrors the
 // backend-provided map here.
 const TEST_LOGOS: Record<string, string> = {
@@ -158,7 +158,7 @@ describe('usePresetAssistantInfo', () => {
       }),
       assistant: {
         id: 'assistant-social',
-        source: 'bare',
+        source: 'generated',
         name: 'Social Job Publisher',
         avatar: '/api/assistants/assistant-social/avatar',
         backend: 'gemini',
@@ -176,7 +176,7 @@ describe('usePresetAssistantInfo', () => {
     });
   });
 
-  it('falls back to the backend logo for bare assistants whose avatar is empty', () => {
+  it('falls back to the backend logo for generated assistants whose avatar is empty', () => {
     useSWRMock.mockImplementation((key: unknown) => {
       if (key === 'assistants') return { data: [], isLoading: false };
       if (key === 'extensions.acpAdapters') return { data: [], isLoading: false };
@@ -190,7 +190,7 @@ describe('usePresetAssistantInfo', () => {
       }),
       assistant: {
         id: 'bare-codex',
-        source: 'bare',
+        source: 'generated',
         name: 'codex',
         avatar: '',
         backend: 'codex',

@@ -155,7 +155,7 @@ function assistants(): Assistant[] {
   return [
     {
       id: 'bare-aionrs',
-      source: 'bare',
+      source: 'generated',
       name: 'Aion CLI',
       name_i18n: {},
       description_i18n: {},

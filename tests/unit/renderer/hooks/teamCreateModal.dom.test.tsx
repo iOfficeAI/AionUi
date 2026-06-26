@@ -139,7 +139,7 @@ function assistants(): Assistant[] {
       id: 'bare-aionrs',
       name: 'Aion CLI',
       name_i18n: { 'zh-CN': 'Aion 命令行' },
-      source: 'bare',
+      source: 'generated',
       agent_id: 'agent-aionrs',
       agent: { type: 'aionrs', source: 'internal' },
       team_selectable: true,
@@ -157,7 +157,7 @@ function assistants(): Assistant[] {
     assistant({
       id: 'remote-runner',
       name: 'Remote Runner',
-      source: 'bare',
+      source: 'generated',
       agent_id: 'agent-remote',
       agent: { type: 'remote', source: 'custom' },
       team_selectable: true,

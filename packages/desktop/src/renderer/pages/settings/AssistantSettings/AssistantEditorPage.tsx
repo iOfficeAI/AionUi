@@ -15,7 +15,7 @@ const AssistantEditorPage: React.FC<AssistantEditorPageProps> = ({ editor, activ
   const { t } = useTranslation();
   const { isCreating, actions, profile } = editor;
   const canDelete = !isCreating && activeAssistant?.source === 'user';
-  const canSave = isCreating || activeAssistant?.source !== 'bare';
+  const canSave = isCreating || Boolean(activeAssistant);
 
   return (
     <div data-testid='assistant-editor-page' className='flex h-full min-h-0 flex-col overflow-hidden bg-transparent'>

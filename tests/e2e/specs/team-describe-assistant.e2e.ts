@@ -214,7 +214,7 @@ test.describe('Team MCP - team_describe_assistant', () => {
       } catch (error) {
         test.skip(
           true,
-          `Could not create a gemini bare-assistant led team (gemini assistant likely unavailable): ${(error as Error).message}`
+          `Could not create a gemini generated-assistant led team (gemini assistant likely unavailable): ${(error as Error).message}`
         );
         return;
       }

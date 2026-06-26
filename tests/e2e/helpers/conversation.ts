@@ -35,7 +35,7 @@ function pickAssistantForBackend(assistants: Assistant[], backend: string, optio
   const selectableCandidates = options.requireAvailable ? availabilityFiltered : candidates;
 
   return (
-    selectableCandidates.find((assistant) => assistant.source === 'bare') ??
+    selectableCandidates.find((assistant) => assistant.source === 'generated') ??
     selectableCandidates.find((assistant) => assistant.source === 'user') ??
     selectableCandidates[0] ??
     null

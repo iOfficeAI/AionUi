@@ -61,7 +61,7 @@ function assistant(id: string, team_selectable: boolean, team_block_reason?: str
   const isAionrs = runtimeKey === 'aionrs';
   return {
     id,
-    source: 'bare',
+    source: 'generated',
     name: id,
     name_i18n: {},
     description_i18n: {},

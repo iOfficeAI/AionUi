@@ -235,7 +235,7 @@ describe('resolveAssistantSourceTag', () => {
     expect(resolveAssistantSourceTag('user')).toBe('custom');
   });
 
-  it('shows no tag for bare (agent-generated) assistants', () => {
-    expect(resolveAssistantSourceTag('bare')).toBeNull();
+  it('shows the CLI tag for generated assistants', () => {
+    expect(resolveAssistantSourceTag('generated')).toBe('cli');
   });
 });

@@ -233,7 +233,7 @@ function buildPresetInfoFromConversationAssistant(
   assistant: NonNullable<TChatConversation['assistant']>,
   logos: AgentLogoMap
 ): PresetAssistantInfo {
-  // Generated assistants (bare assistants reconciled from agent rows) get
+  // Generated assistants (generated assistants reconciled from agent rows) get
   // their avatar from the agent's `icon` field — typically a cli logo
   // filename like `claude.svg` or `codex.svg`. `normalizeAvatar` cannot
   // resolve those and would fall through to the default robot emoji. When

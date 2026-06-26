@@ -22,7 +22,7 @@ export type ResolvedChannelAssistantSelection = {
 
 export function getDefaultChannelAssistant(assistants: Assistant[]): Assistant | undefined {
   return (
-    assistants.find((assistant) => assistant.source === 'bare' && isAionrsAssistant(assistant)) ||
+    assistants.find((assistant) => assistant.source === 'generated' && isAionrsAssistant(assistant)) ||
     assistants.find((assistant) => isAionrsAssistant(assistant)) ||
     assistants[0]
   );

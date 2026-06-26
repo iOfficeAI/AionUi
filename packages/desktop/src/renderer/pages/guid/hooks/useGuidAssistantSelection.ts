@@ -88,7 +88,7 @@ export function resolveAssistantSelectionKey(
 export function pickDefaultAssistantSelectionKey(assistants: Assistant[]): string | null {
   const enabledAssistants = assistants.filter((assistant) => assistant.enabled !== false);
   const preferred =
-    enabledAssistants.find((assistant) => assistant.source === 'bare' && isAionrsAssistant(assistant)) ??
+    enabledAssistants.find((assistant) => assistant.source === 'generated' && isAionrsAssistant(assistant)) ??
     enabledAssistants.find((assistant) => isAionrsAssistant(assistant)) ??
     enabledAssistants[0];
   return preferred?.id ?? null;

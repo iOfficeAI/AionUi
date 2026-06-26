@@ -39,7 +39,7 @@ export async function refreshManagedAgentCatalogAndAssistants(): Promise<Managed
  * shared detected-agent catalog.
  *
  * `refreshCatalog` refreshes the management catalog plus assistant list caches
- * after structural or health changes that can affect generated bare assistants.
+ * after structural or health changes that can affect generated generated assistants.
  * Business assistant pickers must not depend on this hook or on `/api/agents`.
  *
  * Do not use this anywhere other than `AgentSettings`.

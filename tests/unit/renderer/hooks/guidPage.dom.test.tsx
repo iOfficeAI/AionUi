@@ -29,7 +29,7 @@ const {
     selectedAssistantId: 'bare-aionrs',
     selectedAssistant: {
       id: 'bare-aionrs',
-      source: 'bare',
+      source: 'generated',
       name: 'Aion CLI',
       name_i18n: {},
       description_i18n: {},
@@ -50,7 +50,7 @@ const {
     assistants: [
       {
         id: 'bare-aionrs',
-        source: 'bare',
+        source: 'generated',
         name: 'Aion CLI',
         name_i18n: {},
         description_i18n: {},
@@ -279,7 +279,7 @@ describe('GuidPage', () => {
     agentSelectionMock.assistants = [
       {
         id: 'bare-aionrs',
-        source: 'bare',
+        source: 'generated',
         name: 'Aion CLI',
         name_i18n: {},
         description_i18n: {},
@@ -344,7 +344,7 @@ describe('GuidPage', () => {
     agentSelectionMock.assistants = [
       {
         id: 'bare-aionrs',
-        source: 'bare',
+        source: 'generated',
         name: 'Aion CLI',
         name_i18n: {},
         description_i18n: {},

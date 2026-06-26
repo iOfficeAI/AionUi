@@ -11,14 +11,13 @@ export const ASSISTANT_SORT_ORDER_GAP = 1000;
  *
  * - `builtin` → "Built-in" tag
  * - `user` → "Custom" tag
- * - `bare` (agent-generated) → no tag, since it is neither built-in nor
- *   user-authored; surfacing "Custom" for it is misleading.
+ * - `generated` (agent-generated) → "CLI" tag, matching the product terminology.
  */
-export type AssistantSourceTag = 'builtin' | 'custom' | null;
+export type AssistantSourceTag = 'builtin' | 'custom' | 'cli' | null;
 
 export const resolveAssistantSourceTag = (source: string): AssistantSourceTag => {
   if (source === 'builtin') return 'builtin';
-  if (source === 'bare') return null;
+  if (source === 'generated') return 'cli';
   return 'custom';
 };
 
@@ -172,7 +171,7 @@ export const buildAssistantEditorBackends = (
   const backendMap = new Map<string, AvailableBackend>();
 
   for (const assistant of assistants) {
-    if (assistant.source !== 'bare') {
+    if (assistant.source !== 'generated') {
       continue;
     }
 

@@ -9,7 +9,7 @@ import React from 'react';
  */
 
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
-import { render, screen, cleanup } from '@testing-library/react';
+import { render, screen, cleanup, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ConfigProvider } from '@arco-design/web-react';
 
@@ -35,6 +35,13 @@ import type { AssistantListItem } from '@/renderer/pages/settings/AssistantSetti
 const renderWithProviders = (ui: React.ReactElement) => render(<ConfigProvider>{ui}</ConfigProvider>);
 
 describe('AssistantListPanel', () => {
+  const clickMenuItem = async (testId: string) => {
+    const marker = await screen.findByTestId(testId);
+    const item = marker.closest('[role="menuitem"]');
+    expect(item).not.toBeNull();
+    fireEvent.click(item as HTMLElement);
+  };
+
   const mockAssistants: AssistantListItem[] = [
     {
       id: '1',
@@ -102,13 +109,13 @@ describe('AssistantListPanel', () => {
     expect(onCreateSpy).toHaveBeenCalledTimes(1);
   });
 
-  it('calls onEdit when edit button is clicked (callback spy)', async () => {
+  it('calls onEdit from the row more menu (callback spy)', async () => {
     const user = userEvent.setup();
     const onEditSpy = vi.fn();
     renderWithProviders(<AssistantListPanel {...defaultProps} onEdit={onEditSpy} />);
 
-    const editButton = screen.getByTestId('btn-edit-1');
-    await user.click(editButton);
+    await user.click(screen.getByTestId('btn-assistant-more-1'));
+    await clickMenuItem('menu-edit-1');
 
     expect(onEditSpy).toHaveBeenCalledTimes(1);
     expect(onEditSpy).toHaveBeenCalledWith(mockAssistants[0]);
@@ -125,38 +132,46 @@ describe('AssistantListPanel', () => {
     expect(onToggleSpy).toHaveBeenCalledTimes(1);
   });
 
-  it('shows delete only for custom assistants and calls onDelete', async () => {
+  it('shows delete only for custom assistants in the more menu and calls onDelete', async () => {
     const user = userEvent.setup();
     const onDeleteSpy = vi.fn();
     renderWithProviders(<AssistantListPanel {...defaultProps} onDelete={onDeleteSpy} />);
 
-    expect(screen.queryByTestId('btn-delete-1')).not.toBeInTheDocument();
-    const deleteButton = screen.getByTestId('btn-delete-2');
-    await user.click(deleteButton);
+    await user.click(screen.getByTestId('btn-assistant-more-1'));
+    expect(screen.queryByTestId('menu-delete-1')).not.toBeInTheDocument();
+
+    await user.keyboard('{Escape}');
+    await user.click(screen.getByTestId('btn-assistant-more-2'));
+    await clickMenuItem('menu-delete-2');
 
     expect(onDeleteSpy).toHaveBeenCalledTimes(1);
     expect(onDeleteSpy).toHaveBeenCalledWith(mockAssistants[1]);
   });
 
-  it('shows duplicate only for builtin assistants and calls onDuplicate', async () => {
+  it('shows duplicate only for non-custom assistants in the more menu and calls onDuplicate', async () => {
     const user = userEvent.setup();
     const onDuplicateSpy = vi.fn();
     renderWithProviders(<AssistantListPanel {...defaultProps} onDuplicate={onDuplicateSpy} />);
 
-    const duplicateButton = screen.getByTestId('btn-duplicate-1');
-    expect(screen.queryByTestId('btn-duplicate-2')).not.toBeInTheDocument();
-    await user.click(duplicateButton);
+    await user.click(screen.getByTestId('btn-assistant-more-1'));
+    await clickMenuItem('menu-duplicate-1');
 
     expect(onDuplicateSpy).toHaveBeenCalledTimes(1);
     expect(onDuplicateSpy).toHaveBeenCalledWith(mockAssistants[0]);
+
+    await user.click(screen.getByTestId('btn-assistant-more-2'));
+    expect(screen.queryByTestId('menu-duplicate-2')).not.toBeInTheDocument();
   });
 
-  it('renders the single-list layout without legacy filter tabs', () => {
+  it('renders the single-list layout without legacy filter tabs and keeps actions in the more menu', () => {
     renderWithProviders(<AssistantListPanel {...defaultProps} />);
     expect(screen.queryByText('settings.assistantFilterAll')).not.toBeInTheDocument();
     expect(screen.queryByText('settings.assistantSectionEnabled')).not.toBeInTheDocument();
-    expect(screen.getByTestId('btn-duplicate-1')).toBeInTheDocument();
-    expect(screen.queryByTestId('btn-duplicate-2')).not.toBeInTheDocument();
+    expect(screen.getByTestId('btn-assistant-more-1')).toBeInTheDocument();
+    expect(screen.getByTestId('btn-assistant-more-2')).toBeInTheDocument();
+    expect(screen.queryByTestId('btn-edit-1')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('btn-duplicate-1')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('btn-delete-2')).not.toBeInTheDocument();
   });
 
   it('does not render the legacy reorder hint copy', () => {
@@ -166,12 +181,11 @@ describe('AssistantListPanel', () => {
     expect(screen.getByTestId('assistant-list-body')).not.toHaveTextContent('settings.assistantListHint');
   });
 
-  it('uses smaller action button typography on the right-side action rail', () => {
+  it('uses compact typography on the right-side action rail', () => {
     renderWithProviders(<AssistantListPanel {...defaultProps} />);
 
-    expect(screen.getByTestId('btn-edit-1')).toHaveClass('!h-30px', '!rounded-8px', '!text-12px', '!font-500');
-    expect(screen.getByTestId('btn-duplicate-1')).toHaveClass('!h-30px', '!rounded-8px', '!text-12px', '!font-500');
-    expect(screen.getByTestId('btn-delete-2')).toHaveClass('!h-30px', '!rounded-8px', '!text-12px', '!font-500');
+    expect(screen.getByTestId('btn-assistant-more-1')).toHaveClass('!h-30px', '!rounded-8px');
+    expect(screen.getByTestId('btn-assistant-more-2')).toHaveClass('!h-30px', '!rounded-8px');
   });
 
   // F2-05: flag assistants whose underlying agent is not online.

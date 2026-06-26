@@ -123,6 +123,7 @@
   "assistantFilterCustom": "Benutzerdefiniert",
   "assistantSourceCustom": "Benutzerdefiniert",
   "assistantSourceOfficial": "Offiziell",
+  "assistantSourceCli": "CLI",
   "assistantSectionEnabled": "Aktiviert",
   "assistantSectionDisabled": "Deaktiviert",
   "searchAssistants": "Assistenten nach Name oder Beschreibung suchen",
@@ -186,6 +187,7 @@
   "assistantBuiltinReadonlyTip": "Dies ist ein eingebauter Assistent. Du kannst Haupt-Agent, Standardmodell und Standardberechtigung ändern. Um andere Felder anzupassen, ",
   "assistantBuiltinReadonlyDuplicateLink": "duplizieren",
   "assistantBuiltinReadonlyTipSuffix": ".",
+  "assistantCliReadonlyTip": "Dieser Assistent wird automatisch von Agents erzeugt und ist eins zu eins mit der passenden CLI verknüpft. Name, Avatar und Haupt-Agent sind gesperrt; andere Einstellungen können lokal bearbeitet werden und werden durch Updates nicht überschrieben.",
   "addSkills": "Skills hinzufügen",
   "customSkills": "Benutzerdefinierte Skills",
   "builtinSkills": "Eingebaute Skills",
@@ -1037,7 +1039,10 @@
     "boundAssistantsTitle": "Assistenten, die diesen Agenten verwenden",
     "boundAssistantsCount": "{{count}} Assistent(en)",
     "boundAssistantsEmpty": "Diesem Agenten sind noch keine Assistenten zugeordnet.",
-    "viewAssistant": "Anzeigen"
+    "viewAssistant": "Anzeigen",
+    "filterAll": "Alle ({{count}})",
+    "filterAvailable": "Verfügbar ({{count}})",
+    "filterUnavailable": "Nicht verfügbar ({{count}})"
   },
   "remoteAgent": {
     "title": "Remote-Agenten",

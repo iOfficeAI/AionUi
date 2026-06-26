@@ -10,7 +10,7 @@ import { formatManagedAgentDiagnosticMessage, type ManagedAgent } from '@/render
 import AionModal from '@/renderer/components/base/AionModal';
 import { useManagedAgents } from '@/renderer/hooks/agent/useManagedAgents';
 import { openExternalUrl } from '@/renderer/utils/platform';
-import { Button, Message, Typography } from '@arco-design/web-react';
+import { Button, Message, Radio, Typography } from '@arco-design/web-react';
 import { Plus } from '@icon-park/react';
 import React, { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -19,6 +19,11 @@ import { isDeprecatedRuntimeAgentType } from '@/renderer/utils/model/agentTypeSu
 import InlineAgentEditor, { type CustomAgentDraft } from './InlineAgentEditor';
 import { getBoundAssistants, useAssistantsForAgents } from './BoundAssistants';
 import { useNavigate } from 'react-router-dom';
+import {
+  filterAgentsByAvailability,
+  getAgentAvailabilityFilterStats,
+  type AgentAvailabilityFilter,
+} from './agentFilters';
 
 const LOCAL_AGENT_SETUP_GUIDE_URL = 'https://github.com/iOfficeAI/AionUi/wiki/ACP-Setup';
 
@@ -26,11 +31,12 @@ const LocalAgents: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [testingAgentId, setTestingAgentId] = useState<string | null>(null);
+  const [agentFilter, setAgentFilter] = useState<AgentAvailabilityFilter>('all');
   const { assistants } = useAssistantsForAgents();
 
   // Management view: includes user-disabled custom agents so they stay
   // listed (greyed) with a working re-enable toggle. `refreshCatalog`
-  // also refreshes assistant list caches because bare-assistant availability
+  // also refreshes assistant list caches because generated-assistant availability
   // can change after health checks or custom-agent mutations.
   const { agents: allAgents, isRefreshing, refreshCatalog } = useManagedAgents();
 
@@ -106,6 +112,8 @@ const LocalAgents: React.FC = () => {
     }
     return left.name.localeCompare(right.name);
   });
+  const officialFilterStats = getAgentAvailabilityFilterStats(sortedOfficialAgents);
+  const visibleOfficialAgents = filterAgentsByAvailability(sortedOfficialAgents, agentFilter);
 
   const openCustomAgentEditor = useCallback(() => {
     setEditingAgent(null);
@@ -186,8 +194,35 @@ const LocalAgents: React.FC = () => {
 
       {/* Detected Agents section — row list, mirroring the assistant list style */}
       <div data-testid='agent-management-official-section' className='px-16px mt-8px'>
+        <Radio.Group
+          type='button'
+          size='small'
+          value={agentFilter}
+          onChange={(value) => setAgentFilter(value as AgentAvailabilityFilter)}
+          className='mb-8px'
+          data-testid='agent-availability-filter'
+        >
+          <Radio value='all'>
+            {t('settings.agentManagement.filterAll', {
+              defaultValue: 'All ({{count}})',
+              count: officialFilterStats.all,
+            })}
+          </Radio>
+          <Radio value='available'>
+            {t('settings.agentManagement.filterAvailable', {
+              defaultValue: 'Available ({{count}})',
+              count: officialFilterStats.available,
+            })}
+          </Radio>
+          <Radio value='unavailable'>
+            {t('settings.agentManagement.filterUnavailable', {
+              defaultValue: 'Unavailable ({{count}})',
+              count: officialFilterStats.unavailable,
+            })}
+          </Radio>
+        </Radio.Group>
         <div className='flex flex-col gap-8px rounded-12px border border-border-2 bg-2 p-8px md:rounded-16px md:p-10px'>
-          {sortedOfficialAgents.map((agent) => (
+          {visibleOfficialAgents.map((agent) => (
             <AgentCard
               key={agent.id}
               type='official'
@@ -198,7 +233,7 @@ const LocalAgents: React.FC = () => {
               isTesting={testingAgentId === agent.id}
             />
           ))}
-          {(!officialAgents || officialAgents.length === 0) && (
+          {visibleOfficialAgents.length === 0 && (
             <Typography.Text type='secondary' className='block py-16px text-center text-12px'>
               {t('settings.agentManagement.localAgentsEmpty')}
             </Typography.Text>
