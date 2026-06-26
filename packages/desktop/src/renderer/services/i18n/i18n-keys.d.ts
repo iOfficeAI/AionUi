@@ -1122,6 +1122,7 @@ export type I18nKey =
   | 'settings.agentManagement.custom'
   | 'settings.agentManagement.customAgents'
   | 'settings.agentManagement.customEmpty'
+  | 'settings.agentManagement.customEmptyDescription'
   | 'settings.agentManagement.detectCustomAgent'
   | 'settings.agentManagement.detected'
   | 'settings.agentManagement.discoverMoreAgents'

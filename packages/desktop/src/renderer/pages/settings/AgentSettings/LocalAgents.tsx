@@ -242,10 +242,18 @@ const LocalAgents: React.FC = () => {
       </div>
 
       {/* Custom Agents section — header carries the "add custom agent" action */}
-      <div data-testid='agent-management-custom-header' className='px-16px mt-16px flex items-center justify-between'>
-        <Typography.Text className='text-12px font-medium text-t-secondary block'>
-          {t('settings.agentManagement.customAgents', { defaultValue: 'Custom Agents' })}
-        </Typography.Text>
+      <div
+        data-testid='agent-management-custom-header'
+        className='px-16px mt-16px flex items-start justify-between gap-12px'
+      >
+        <div className='min-w-0 flex flex-col gap-2px'>
+          <Typography.Text className='text-12px font-medium text-t-secondary block'>
+            {t('settings.agentManagement.customAgents', { defaultValue: 'Custom Agents' })}
+          </Typography.Text>
+          <Typography.Text className='block text-11px text-t-tertiary'>
+            {t('settings.agentManagement.customEmptyDescription')}
+          </Typography.Text>
+        </div>
         <TalkToButlerButton
           label={t('common.add', { defaultValue: 'Add' })}
           chatLabel={t('settings.talkToButler.addViaChat', { defaultValue: 'Add via chat' })}

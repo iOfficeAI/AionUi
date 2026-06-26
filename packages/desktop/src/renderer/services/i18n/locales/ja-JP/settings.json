@@ -1051,7 +1051,8 @@
     "customAgents": "カスタムエージェント",
     "custom": "カスタム",
     "addCustomAgent": "カスタムエージェントを追加",
-    "customEmpty": "カスタムエージェントがありません。右上の「追加」をクリックして作成してください。",
+    "customEmpty": "カスタムエージェントがありません。",
+    "customEmptyDescription": "カスタムエージェントは ACP に対応している必要があります。",
     "errorCodes": {
       "command_not_found": "Install {{command}} and retry the connection test.",
       "acp_init_failed": "The CLI started but failed during initialization. Complete sign-in or first-run setup, then retry the connection test.",

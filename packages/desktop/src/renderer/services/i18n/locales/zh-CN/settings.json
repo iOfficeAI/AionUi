@@ -1062,7 +1062,8 @@
     "customAgents": "自定义 Agents",
     "custom": "自定义",
     "addCustomAgent": "添加自定义 Agent",
-    "customEmpty": "暂无自定义 Agent，点击右上角「添加」创建。",
+    "customEmpty": "暂无自定义 Agent",
+    "customEmptyDescription": "自定义 Agent 需要支持 ACP 协议。",
     "errorCodes": {
       "command_not_found": "请安装 {{command}}，然后重新测试连接。",
       "acp_init_failed": "CLI 已启动，但初始化失败。请先完成登录或首次设置，然后重新测试连接。",

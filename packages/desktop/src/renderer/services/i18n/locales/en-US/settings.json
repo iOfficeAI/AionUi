@@ -1061,7 +1061,8 @@
     "customAgents": "Custom Agents",
     "custom": "Custom",
     "addCustomAgent": "Add Custom Agent",
-    "customEmpty": "No custom agents yet. Click Add in the top right to create one.",
+    "customEmpty": "No custom agents yet.",
+    "customEmptyDescription": "Custom agents must support ACP.",
     "errorCodes": {
       "command_not_found": "Install {{command}} and retry the connection test.",
       "acp_init_failed": "The CLI started but failed during initialization. Complete sign-in or first-run setup, then retry the connection test.",

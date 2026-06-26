@@ -1051,7 +1051,8 @@
     "customAgents": "커스텀 에이전트",
     "custom": "사용자 정의",
     "addCustomAgent": "사용자 정의 에이전트 추가",
-    "customEmpty": "사용자 정의 에이전트가 없습니다. 오른쪽 상단의 \"추가\"를 클릭하여 생성하세요.",
+    "customEmpty": "사용자 정의 에이전트가 없습니다.",
+    "customEmptyDescription": "사용자 정의 에이전트는 ACP를 지원해야 합니다.",
     "errorCodes": {
       "command_not_found": "Install {{command}} and retry the connection test.",
       "acp_init_failed": "The CLI started but failed during initialization. Complete sign-in or first-run setup, then retry the connection test.",

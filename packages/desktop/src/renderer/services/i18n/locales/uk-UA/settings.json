@@ -969,7 +969,8 @@
     "customAgents": "Власні агенти",
     "custom": "Власний",
     "addCustomAgent": "Додати власного агента",
-    "customEmpty": "Власних агентів ще немає. Натисніть «Додати» у верхньому правому куті, щоб створити.",
+    "customEmpty": "Власних агентів ще немає.",
+    "customEmptyDescription": "Власні агенти мають підтримувати ACP.",
     "errorCodes": {
       "command_not_found": "Install {{command}} and retry the connection test.",
       "acp_init_failed": "The CLI started but failed during initialization. Complete sign-in or first-run setup, then retry the connection test.",

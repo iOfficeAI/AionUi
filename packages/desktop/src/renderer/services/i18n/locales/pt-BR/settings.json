@@ -1061,7 +1061,8 @@
     "customAgents": "Agentes Personalizados",
     "custom": "Personalizado",
     "addCustomAgent": "Adicionar Agente Personalizado",
-    "customEmpty": "Nenhum agente personalizado ainda. Clique em \"Adicionar\" no canto superior direito para criar um.",
+    "customEmpty": "Nenhum agente personalizado ainda.",
+    "customEmptyDescription": "Agentes personalizados precisam oferecer suporte a ACP.",
     "errorCodes": {
       "command_not_found": "Install {{command}} and retry the connection test.",
       "acp_init_failed": "The CLI started but failed during initialization. Complete sign-in or first-run setup, then retry the connection test.",

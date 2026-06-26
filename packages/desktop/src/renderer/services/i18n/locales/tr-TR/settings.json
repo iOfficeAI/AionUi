@@ -1049,7 +1049,8 @@
     "customAgents": "Özel Ajanlar",
     "custom": "Özel",
     "addCustomAgent": "Özel Ajan Ekle",
-    "customEmpty": "Henüz özel ajan yok. Oluşturmak için sağ üstteki \"Ekle\" düğmesine tıklayın.",
+    "customEmpty": "Henüz özel ajan yok.",
+    "customEmptyDescription": "Özel ajanlar ACP desteği gerektirir.",
     "errorCodes": {
       "command_not_found": "Install {{command}} and retry the connection test.",
       "acp_init_failed": "The CLI started but failed during initialization. Complete sign-in or first-run setup, then retry the connection test.",
