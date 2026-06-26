@@ -310,7 +310,6 @@ const AionrsSendBox: React.FC<{
     enabled: true,
     isBusy,
     runtimeGate: commandQueueRuntimeGate,
-    teamUpgradeHandoffReady: Boolean(teamRuntime && teamSendMessage),
     onExecute: executeCommand,
   });
 
