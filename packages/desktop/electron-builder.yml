@@ -179,7 +179,7 @@ linux:
     entry:
       Name: AionUi
       Comment: ${description}
-      Icon: aionui
+      Icon: AionUi
       Categories: Office;Utility;
       MimeType: x-scheme-handler/aionui;
 
