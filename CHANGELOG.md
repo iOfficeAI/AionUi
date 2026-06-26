@@ -1,5 +1,52 @@
 # Changelog
 
+## [2.1.25](https://github.com/iOfficeAI/AionUi/compare/v2.1.24...v2.1.25) (2026-06-26)
+
+### Desktop
+
+#### Features
+
+- **assistant:** add TalkToButler entry-point infrastructure
+- **cron:** add create-via-chat path to scheduled tasks page
+- **cron:** use TalkToButlerButton for create + align button styles
+- **feedback:** add "solve via chat" to bug report
+- **settings:** wire "via chat" into create/add flows
+- **web-host:** remove single-chat team upgrade path (#3441)
+
+#### Bug Fixes
+
+- **avatar:** prevent local avatar path rendering (#3439)
+- **conversation:** make chat width fluid (#3436)
+- **cron:** consume create-via-chat prefill only once per navigation
+- **desktop:** classify agent metadata cache repair failures (#3450)
+- **guid:** improve dark-mode contrast for inactive agent selector labels (#3430)
+- **guid:** load runtime catalog from agent metadata (#3440)
+- **guid:** remove static codex runtime catalog (#3443)
+- **guid:** resolve assistant skill defaults from config (#3445)
+- **guid:** stop showing stale Codex model fallback (#3432)
+- **installer:** verify bundled resources (#3444)
+- **linux:** align desktop icon name (#3449)
+- **settings:** clarify custom agent acp requirement (#3448)
+
+#### Refactoring
+
+- **cron:** hide conversation header entry when no scheduled task exists
+
+### Core ([v0.1.38](https://github.com/iOfficeAI/AionCore/releases/tag/v0.1.38))
+
+#### Features
+
+- remove single-chat team upgrade path (#524)
+
+#### Bug Fixes
+
+- **agent:** expose runtime catalogs from metadata (#523)
+- **assistant:** expose auto-inject skills and preserve assistant rules (#525)
+- repair invalid UTF-8 agent metadata cache fields (#526)
+- **skills:** sync AionUi Butler skills + rule with current backend (#520)
+
+---
+
 ## [2.1.24](https://github.com/iOfficeAI/AionUi/compare/v2.1.23...v2.1.24) (2026-06-25)
 
 ### Desktop
