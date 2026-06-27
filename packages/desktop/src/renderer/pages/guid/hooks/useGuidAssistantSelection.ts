@@ -5,6 +5,7 @@
  */
 
 import { assistantRuntimeKey, isAionrsAssistant, type Assistant } from '@/common/types/agent/assistantTypes';
+import { STORAGE_KEYS } from '@/common/config/storageKeys';
 import type { AcpModelInfo } from '../types';
 import type { AgentModeOption } from '@/renderer/utils/model/agentTypes';
 import {
@@ -81,6 +82,31 @@ export function pickDefaultAssistantSelectionKey(assistants: Assistant[]): strin
   return preferred?.id ?? null;
 }
 
+function readLastSelectedAssistantId(): string | undefined {
+  if (typeof localStorage === 'undefined') return undefined;
+
+  try {
+    return localStorage.getItem(STORAGE_KEYS.GUID_LAST_SELECTED_ASSISTANT_ID) || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function writeLastSelectedAssistantId(assistantId: string): void {
+  if (typeof localStorage === 'undefined') return;
+
+  try {
+    localStorage.setItem(STORAGE_KEYS.GUID_LAST_SELECTED_ASSISTANT_ID, assistantId);
+  } catch {
+    // Ignore storage failures; the current in-memory selection should still work.
+  }
+}
+
+function pickInitialAssistantSelectionKey(assistants: Assistant[]): string | null {
+  const lastSelectedAssistantId = resolveAssistantSelectionKey(readLastSelectedAssistantId(), assistants);
+  return lastSelectedAssistantId ?? pickDefaultAssistantSelectionKey(assistants);
+}
+
 type UseGuidAssistantSelectionOptions = {
   resetAssistant?: boolean;
   preselectAssistantId?: string;
@@ -122,6 +148,7 @@ export const useGuidAssistantSelection = ({
     (assistantId: string) => {
       const normalizedId = resolveAssistantSelectionKey(assistantId, assistants) ?? assistantId;
       _setSelectedAssistantId(normalizedId);
+      writeLastSelectedAssistantId(normalizedId);
     },
     [assistants]
   );
@@ -148,8 +175,11 @@ export const useGuidAssistantSelection = ({
 
     if (resetAssistant) {
       resetHandledRef.current = true;
-      const fallbackId = pickDefaultAssistantSelectionKey(assistants);
+      const fallbackId = pickInitialAssistantSelectionKey(assistants);
       _setSelectedAssistantId(fallbackId);
+      if (fallbackId) {
+        writeLastSelectedAssistantId(fallbackId);
+      }
     }
   }, [assistants, preselectAssistantId, resetAssistant]);
 
@@ -158,7 +188,7 @@ export const useGuidAssistantSelection = ({
     if (resetAssistant) return;
     if (preselectAssistantId && resolveAssistantSelectionKey(preselectAssistantId, assistants)) return;
     if (!selectedAssistantIdState || !assistants.some((assistant) => assistant.id === selectedAssistantIdState)) {
-      _setSelectedAssistantId(pickDefaultAssistantSelectionKey(assistants));
+      _setSelectedAssistantId(pickInitialAssistantSelectionKey(assistants));
     }
   }, [assistants, preselectAssistantId, resetAssistant, selectedAssistantIdState]);
 

@@ -25,6 +25,9 @@ export const STORAGE_KEYS = {
 
   /** Language preference / 语言偏好 */
   LANGUAGE: 'aionui_language',
+
+  /** Last assistant selected on the guide home screen / 引导首页上次选择的助手 */
+  GUID_LAST_SELECTED_ASSISTANT_ID: 'aionui_guid_last_selected_assistant_id',
 } as const;
 
 export type StorageKey = (typeof STORAGE_KEYS)[keyof typeof STORAGE_KEYS];

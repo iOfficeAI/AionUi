@@ -4,8 +4,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { renderHook, waitFor } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { STORAGE_KEYS } from '@/common/config/storageKeys';
 import type { Assistant } from '@/common/types/agent/assistantTypes';
 import type { ManagedAgent } from '@/renderer/utils/model/agentTypes';
 import {
@@ -19,6 +20,28 @@ import {
 let mockAssistants: Assistant[] = [];
 let mockManagedAgents: ManagedAgent[] = [];
 
+function makeAssistant(overrides: Partial<Assistant> & Pick<Assistant, 'id' | 'name' | 'agent_id'>): Assistant {
+  return {
+    source: 'generated',
+    name_i18n: {},
+    description_i18n: {},
+    enabled: true,
+    sort_order: 1,
+    agent: { type: 'acp', source: 'builtin', acp_backend: 'claude' },
+    enabled_skills: [],
+    custom_skill_names: [],
+    disabled_builtin_skills: [],
+    context_i18n: {},
+    prompts: [],
+    prompts_i18n: {},
+    models: [],
+    agent_status: 'online',
+    team_selectable: true,
+    deletable: false,
+    ...overrides,
+  };
+}
+
 vi.mock('@/renderer/pages/guid/hooks/useCustomAgentsLoader', () => ({
   useCustomAgentsLoader: () => ({
     assistants: mockAssistants,
@@ -31,30 +54,114 @@ vi.mock('@/renderer/hooks/agent/useManagedAgents', () => ({
 
 describe('useGuidAssistantSelection', () => {
   beforeEach(() => {
+    localStorage.clear();
     mockManagedAgents = [];
     mockAssistants = [
-      {
+      makeAssistant({
         id: 'assistant-claude',
         source: 'builtin',
         name: 'Claude Assistant',
-        name_i18n: {},
-        description_i18n: {},
-        enabled: true,
-        sort_order: 1,
         agent_id: 'agent-claude',
         agent: { type: 'acp', source: 'builtin', acp_backend: 'claude' },
-        enabled_skills: [],
-        custom_skill_names: [],
-        disabled_builtin_skills: [],
-        context_i18n: {},
-        prompts: [],
-        prompts_i18n: {},
         models: ['claude-opus', 'claude-sonnet'],
-        agent_status: 'online',
-        team_selectable: true,
-        deletable: false,
-      } satisfies Assistant,
+      }),
     ];
+  });
+
+  it('uses the last selected home assistant when it is still available', async () => {
+    mockAssistants = [
+      makeAssistant({
+        id: 'assistant-aionrs',
+        name: 'Aion CLI',
+        sort_order: 1,
+        agent_id: 'agent-aionrs',
+        agent: { type: 'aionrs', source: 'internal' },
+      }),
+      makeAssistant({
+        id: 'assistant-opencode',
+        name: 'OpenCode',
+        sort_order: 2,
+        agent_id: 'agent-opencode',
+        agent: { type: 'acp', source: 'builtin', acp_backend: 'opencode' },
+      }),
+    ];
+    localStorage.setItem(STORAGE_KEYS.GUID_LAST_SELECTED_ASSISTANT_ID, 'assistant-opencode');
+
+    const { result } = renderHook(() =>
+      useGuidAssistantSelection({
+        resetAssistant: false,
+      })
+    );
+
+    await waitFor(() => {
+      expect(result.current.selectedAssistantId).toBe('assistant-opencode');
+    });
+  });
+
+  it('keeps the last selected home assistant when starting a new chat', async () => {
+    mockAssistants = [
+      makeAssistant({
+        id: 'assistant-aionrs',
+        name: 'Aion CLI',
+        sort_order: 1,
+        agent_id: 'agent-aionrs',
+        agent: { type: 'aionrs', source: 'internal' },
+      }),
+      makeAssistant({
+        id: 'assistant-opencode',
+        name: 'OpenCode',
+        sort_order: 2,
+        agent_id: 'agent-opencode',
+        agent: { type: 'acp', source: 'builtin', acp_backend: 'opencode' },
+      }),
+    ];
+    localStorage.setItem(STORAGE_KEYS.GUID_LAST_SELECTED_ASSISTANT_ID, 'assistant-opencode');
+
+    const { result } = renderHook(() =>
+      useGuidAssistantSelection({
+        resetAssistant: true,
+        locationKey: 'new-chat',
+      })
+    );
+
+    await waitFor(() => {
+      expect(result.current.selectedAssistantId).toBe('assistant-opencode');
+    });
+  });
+
+  it('persists the assistant selected from the home screen', async () => {
+    mockAssistants = [
+      makeAssistant({
+        id: 'assistant-aionrs',
+        name: 'Aion CLI',
+        sort_order: 1,
+        agent_id: 'agent-aionrs',
+        agent: { type: 'aionrs', source: 'internal' },
+      }),
+      makeAssistant({
+        id: 'assistant-opencode',
+        name: 'OpenCode',
+        sort_order: 2,
+        agent_id: 'agent-opencode',
+        agent: { type: 'acp', source: 'builtin', acp_backend: 'opencode' },
+      }),
+    ];
+
+    const { result } = renderHook(() =>
+      useGuidAssistantSelection({
+        resetAssistant: false,
+      })
+    );
+
+    await waitFor(() => {
+      expect(result.current.selectedAssistantId).toBe('assistant-aionrs');
+    });
+
+    act(() => {
+      result.current.setSelectedAssistantId('assistant-opencode');
+    });
+
+    expect(localStorage.getItem(STORAGE_KEYS.GUID_LAST_SELECTED_ASSISTANT_ID)).toBe('assistant-opencode');
   });
 
   it('derives availability and model info from assistant catalog data', async () => {
