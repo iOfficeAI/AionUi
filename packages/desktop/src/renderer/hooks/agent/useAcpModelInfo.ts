@@ -39,7 +39,7 @@ function sameModelInfo(a: AcpModelInfo | null, b: AcpModelInfo | null): boolean 
     a.available_models.length === b.available_models.length &&
     a.available_models.every((item, index) => {
       const other = b.available_models[index];
-      return other?.id === item.id && other.label === item.label;
+      return other?.id === item.id && other.label === item.label && other.description === item.description;
     })
   );
 }
@@ -77,7 +77,11 @@ export const useAcpModelInfo = ({
     return {
       current_model_id: currentModelId,
       current_model_label: model.options.find((item) => item.value === currentModelId)?.label || currentModelId || null,
-      available_models: model.options.map((item) => ({ id: item.value, label: item.label })),
+      available_models: model.options.map((item) => ({
+        id: item.value,
+        label: item.label,
+        description: item.description ?? undefined,
+      })),
     };
   }, [initialModelId, model]);
 

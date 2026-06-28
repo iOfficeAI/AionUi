@@ -194,6 +194,35 @@ describe('AcpModelSelector runtime options', () => {
     expect(otherModelItem).not.toHaveTextContent('\u2713');
   });
 
+  it('shows model descriptions as secondary option text', () => {
+    useAcpModelInfoMock.mockReturnValue(
+      makeResult({
+        model_info: {
+          current_model_id: 'default',
+          current_model_label: 'Default',
+          available_models: [
+            {
+              id: 'default',
+              label: 'Default',
+              description: 'Sonnet 4.6 · Best for everyday tasks',
+            },
+            {
+              id: 'opus',
+              label: 'Opus',
+              description: 'Opus 4.8 · Most capable for complex work',
+            },
+          ],
+        },
+      })
+    );
+
+    render(<AcpModelSelector conversation_id='conversation-1' backend='codex' />);
+
+    const modelGroup = screen.getByRole('group', { name: 'Model' });
+    expect(within(modelGroup).getByText('Sonnet 4.6 · Best for everyday tasks')).toBeInTheDocument();
+    expect(within(modelGroup).getByText('Opus 4.8 · Most capable for complex work')).toBeInTheDocument();
+  });
+
   it('omits the thought level label and group when the runtime has no thought option', () => {
     useAcpModelInfoMock.mockReturnValue(makeResult({ thoughtLevel: null }));
 

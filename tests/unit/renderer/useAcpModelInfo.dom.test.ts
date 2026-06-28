@@ -138,6 +138,52 @@ describe('useAcpModelInfo', () => {
     expect(result.current.canSwitch).toBe(true);
   });
 
+  it('preserves model option descriptions from config options', async () => {
+    getConfigOptionsInvokeMock.mockResolvedValue({
+      config_options: [
+        {
+          id: 'model',
+          category: 'model',
+          type: 'select',
+          current_value: 'default',
+          options: [
+            {
+              value: 'default',
+              name: 'Default (recommended)',
+              description: 'Use the default model (currently Opus 4.8) · $5/$25 per Mtok',
+            },
+            {
+              value: 'opus',
+              name: 'claude-opus-4-8',
+              description: 'Custom Opus model (1M context)',
+            },
+          ],
+        },
+      ],
+    });
+
+    const { result } = renderUseAcpModelInfo({
+      conversation_id: 'conv-1',
+      backend: 'claude',
+    });
+
+    await waitFor(() => {
+      expect(result.current.model_info?.current_model_id).toBe('default');
+    });
+    expect(result.current.model_info?.available_models).toEqual([
+      {
+        id: 'default',
+        label: 'Default (recommended)',
+        description: 'Use the default model (currently Opus 4.8) · $5/$25 per Mtok',
+      },
+      {
+        id: 'opus',
+        label: 'claude-opus-4-8',
+        description: 'Custom Opus model (1M context)',
+      },
+    ]);
+  });
+
   it('waits for observed confirmation before updating selected model without persisting a global preference', async () => {
     const setConfigDeferred = deferred<{
       confirmation: 'observed';

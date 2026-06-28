@@ -172,6 +172,7 @@ export interface AcpConfigSelectOption {
   value: string;
   name?: string;
   label?: string; // Some agents may use label instead of name
+  description?: string;
 }
 
 /** A configuration option returned by session/new */
@@ -246,7 +247,7 @@ export interface AcpModelInfo {
   /** Display label for the current model */
   current_model_label: string | null;
   /** Available models for switching */
-  available_models: Array<{ id: string; label: string }>;
+  available_models: Array<{ id: string; label: string; description?: string }>;
 }
 
 // ===== Permission request (session/request_permission) =====

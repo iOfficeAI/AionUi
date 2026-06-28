@@ -143,7 +143,10 @@ const AcpModelSelector: React.FC<{
                   if (!isRuntimeSetting) selectModel(model.id);
                 }}
               >
-                <RuntimeSelectorCheckedItem selected={model.id === model_info.current_model_id}>
+                <RuntimeSelectorCheckedItem
+                  selected={model.id === model_info.current_model_id}
+                  description={model.description}
+                >
                   {model.label || model.id}
                 </RuntimeSelectorCheckedItem>
               </Menu.Item>

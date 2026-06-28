@@ -466,6 +466,7 @@ Please check your local CLI tool authentication status`,
       ? (model_info?.available_models ?? []).map((model) => ({
           key: model.id,
           label: model.label || model.id,
+          description: model.description,
           active: model_info?.current_model_id === model.id,
         }))
       : [];

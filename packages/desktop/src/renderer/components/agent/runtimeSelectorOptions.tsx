@@ -37,13 +37,19 @@ export const RuntimeSelectorMenuDivider: React.FC = () => (
 
 export const RuntimeSelectorCheckedItem: React.FC<{
   selected: boolean;
+  description?: React.ReactNode;
   children: React.ReactNode;
-}> = ({ selected, children }) => (
+}> = ({ selected, description, children }) => (
   <div className='flex items-center gap-8px w-full'>
     <span aria-hidden='true' className='w-16px shrink-0 text-primary'>
       {selected ? '\u2713' : ''}
     </span>
-    <span className='min-w-0 truncate'>{children}</span>
+    <span className='min-w-0 flex flex-col gap-2px'>
+      <span className='truncate'>{children}</span>
+      {description ? (
+        <span className='text-12px leading-16px text-t-tertiary whitespace-normal'>{description}</span>
+      ) : null}
+    </span>
   </div>
 );
 

@@ -348,8 +348,12 @@ describe('assistant model helpers', () => {
         current_model_id: 'global.anthropic.claude-opus-4-8',
         current_model_label: 'Opus 4.8',
         available_models: [
-          { id: 'default', label: 'Default' },
-          { id: 'global.anthropic.claude-opus-4-8', label: 'Opus 4.8' },
+          { id: 'default', label: 'Default', description: 'Sonnet 4.6 · Best for everyday tasks' },
+          {
+            id: 'global.anthropic.claude-opus-4-8',
+            label: 'Opus 4.8',
+            description: 'Most capable for complex work',
+          },
         ],
       }),
       available_modes: JSON.stringify({
@@ -365,8 +369,12 @@ describe('assistant model helpers', () => {
       current_model_id: 'global.anthropic.claude-opus-4-8',
       current_model_label: 'Opus 4.8',
       available_models: [
-        { id: 'default', label: 'Default' },
-        { id: 'global.anthropic.claude-opus-4-8', label: 'Opus 4.8' },
+        { id: 'default', label: 'Default', description: 'Sonnet 4.6 · Best for everyday tasks' },
+        {
+          id: 'global.anthropic.claude-opus-4-8',
+          label: 'Opus 4.8',
+          description: 'Most capable for complex work',
+        },
       ],
     });
     expect(buildAgentRuntimeModeState(agent)).toEqual({
