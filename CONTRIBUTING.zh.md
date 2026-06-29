@@ -8,6 +8,7 @@
 
 - Node.js 22+
 - [bun](https://bun.sh)
+- [Rust stable + Cargo](https://rustup.rs)，用于构建本地 AionCore 后端
 - [prek](https://github.com/j178/prek)（`npm install -g @j178/prek`）
 
 ## 规则一：原子化 PR

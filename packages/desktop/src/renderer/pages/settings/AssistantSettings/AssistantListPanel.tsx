@@ -191,15 +191,13 @@ const SortableAssistantCard: React.FC<SortableAssistantCardProps> = ({
         />
         <Dropdown droplist={actionMenu} trigger='click' position='br' getPopupContainer={() => document.body}>
           <Button
-            type='outline'
+            type='text'
             size='small'
-            icon={<MoreOne theme='outline' size='14' fill='currentColor' />}
+            icon={<MoreOne theme='outline' size='16' fill='currentColor' />}
             aria-label={t('common.more', { defaultValue: 'More' })}
-            className='!h-30px !rounded-8px !border-border-2 !bg-base !px-8px !text-t-primary hover:!border-border-1 hover:!bg-fill-1'
+            className='!flex !h-30px !w-30px !items-center !justify-center !rounded-8px !p-0 !text-t-secondary hover:!bg-fill-2 hover:!text-t-primary'
             data-testid={`btn-assistant-more-${assistant.id}`}
-          >
-            {null}
-          </Button>
+          />
         </Dropdown>
       </div>
     </div>

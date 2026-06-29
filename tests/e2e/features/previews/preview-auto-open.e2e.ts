@@ -247,7 +247,9 @@ test.describe('Preview auto-open for Office files', () => {
       try {
         conversationId = await createConversationWithWorkspace(page, workspace);
         await expect
-          .poll(async () => (await getWorkspaceOfficeWatchDebug(page, workspace)).wsStatus, { timeout: 10_000 })
+          .poll(async () => (await getWorkspaceOfficeWatchDebug(page, workspace)).wsStatus, {
+            timeout: 10_000,
+          })
           .toBe('open');
 
         // Give the renderer enough time to start the backend watcher and record

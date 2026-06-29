@@ -468,6 +468,7 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
           const success = await ipcBridge.fs.writeFile.invoke({
             path: file_path,
             data: tab.content,
+            workspace: tab.metadata.workspace,
           });
 
           if (success) {

@@ -629,13 +629,7 @@ Por favor, lee [CONTRIBUTING.md](../../CONTRIBUTING.md) antes de abrir un PR.
 
 ### Configuración de desarrollo
 
-Stack tecnológico: Electron · Vite · React · Bun
-
-```bash
-bun install        # instalar dependencias
-bun run dev        # iniciar servidor de desarrollo
-bun run test       # ejecutar pruebas unitarias
-```
+El desarrollo local de AionUi usa dos repositorios: AionUi para el frontend de Electron y AionCore para el backend local. Consulta la [guía de desarrollo](../contributing/development.md) para la configuración completa en macOS, Linux y Windows.
 
 ---
 

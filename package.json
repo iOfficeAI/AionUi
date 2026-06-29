@@ -263,7 +263,7 @@
   "engines": {
     "node": ">=22 <25"
   },
-  "aioncoreVersion": "v0.1.38",
+  "aioncoreVersion": "v0.1.38-test",
   "electronRebuild": {
     "electronVersion": "^37.3.1"
   },

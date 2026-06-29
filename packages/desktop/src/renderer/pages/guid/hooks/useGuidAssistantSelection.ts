@@ -5,6 +5,7 @@
  */
 
 import { assistantRuntimeKey, isAionrsAssistant, type Assistant } from '@/common/types/agent/assistantTypes';
+import { configService } from '@/common/config/configService';
 import type { AcpModelInfo } from '../types';
 import type { AgentModeOption } from '@/renderer/utils/model/agentTypes';
 import {
@@ -72,6 +73,18 @@ export function resolveAssistantSelectionKey(
   return undefined;
 }
 
+function readPersistedGuidAssistantSelectionKey(assistants: Assistant[]): string | undefined {
+  const savedKey = configService.get('guid.lastAssistantId');
+  const enabledAssistants = assistants.filter((assistant) => assistant.enabled !== false);
+  return resolveAssistantSelectionKey(savedKey, enabledAssistants);
+}
+
+function persistGuidAssistantSelectionKey(assistantId: string): void {
+  void configService.set('guid.lastAssistantId', assistantId).catch((error) => {
+    console.error('[Guid] Failed to persist selected assistant:', error);
+  });
+}
+
 export function pickDefaultAssistantSelectionKey(assistants: Assistant[]): string | null {
   const enabledAssistants = assistants.filter((assistant) => assistant.enabled !== false);
   const preferred =
@@ -122,6 +135,7 @@ export const useGuidAssistantSelection = ({
     (assistantId: string) => {
       const normalizedId = resolveAssistantSelectionKey(assistantId, assistants) ?? assistantId;
       _setSelectedAssistantId(normalizedId);
+      persistGuidAssistantSelectionKey(normalizedId);
     },
     [assistants]
   );
@@ -148,7 +162,8 @@ export const useGuidAssistantSelection = ({
 
     if (resetAssistant) {
       resetHandledRef.current = true;
-      const fallbackId = pickDefaultAssistantSelectionKey(assistants);
+      const fallbackId =
+        readPersistedGuidAssistantSelectionKey(assistants) ?? pickDefaultAssistantSelectionKey(assistants);
       _setSelectedAssistantId(fallbackId);
     }
   }, [assistants, preselectAssistantId, resetAssistant]);
@@ -158,7 +173,9 @@ export const useGuidAssistantSelection = ({
     if (resetAssistant) return;
     if (preselectAssistantId && resolveAssistantSelectionKey(preselectAssistantId, assistants)) return;
     if (!selectedAssistantIdState || !assistants.some((assistant) => assistant.id === selectedAssistantIdState)) {
-      _setSelectedAssistantId(pickDefaultAssistantSelectionKey(assistants));
+      _setSelectedAssistantId(
+        readPersistedGuidAssistantSelectionKey(assistants) ?? pickDefaultAssistantSelectionKey(assistants)
+      );
     }
   }, [assistants, preselectAssistantId, resetAssistant, selectedAssistantIdState]);
 
@@ -191,21 +208,33 @@ export const useGuidAssistantSelection = ({
     return selectedAssistant?.agent_status === 'online';
   }, [selectedAssistant]);
 
+  const modelSelectionScopeRef = useRef<string | null>(null);
   useEffect(() => {
     const runtimeModelId =
       selectedAgentRuntimeModelInfo?.current_model_id || selectedAgentRuntimeModelInfo?.available_models[0]?.id;
-    if (runtimeModelId) {
-      _setSelectedAcpModel(runtimeModelId);
-      return;
-    }
+    const fallbackModelId =
+      runtimeModelId ||
+      (selectedAssistantModels.length > 0 ? resolveInitialAssistantModel(selectedAssistantModels) : null);
+    const availableModelIds = new Set(
+      selectedAgentRuntimeModelInfo?.available_models.map((model) => model.id) ?? selectedAssistantModels
+    );
+    const selectionScope = selectedAssistantId ?? '';
 
-    if (selectedAssistantModels.length > 0) {
-      _setSelectedAcpModel(resolveInitialAssistantModel(selectedAssistantModels));
-      return;
-    }
+    _setSelectedAcpModel((previousModelId) => {
+      const scopeChanged = modelSelectionScopeRef.current !== selectionScope;
+      modelSelectionScopeRef.current = selectionScope;
 
-    _setSelectedAcpModel(resolveInitialAssistantModel([]));
-  }, [selectedAssistantModels, selectedAgentRuntimeModelInfo]);
+      if (
+        !scopeChanged &&
+        previousModelId &&
+        (availableModelIds.size === 0 || availableModelIds.has(previousModelId))
+      ) {
+        return previousModelId;
+      }
+
+      return fallbackModelId;
+    });
+  }, [selectedAssistantId, selectedAssistantModels, selectedAgentRuntimeModelInfo]);
 
   useEffect(() => {
     const fallbackMode =

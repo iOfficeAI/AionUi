@@ -256,9 +256,11 @@ const GuidPage: React.FC = () => {
   }, [selectedAssistantDetail, selectedAssistantId]);
 
   const appliedAssistantDefaultsKeyRef = useRef<string | null>(null);
+  const manualModelSelectionAssistantRef = useRef<string | null>(null);
   useEffect(() => {
     if (!selectedAssistantId || !selectedAssistantDetail) {
       appliedAssistantDefaultsKeyRef.current = null;
+      manualModelSelectionAssistantRef.current = null;
       return;
     }
 
@@ -288,8 +290,9 @@ const GuidPage: React.FC = () => {
     const applyAssistantDefaults = async () => {
       const resolvedDefaults = resolveGuidAssistantDefaults(selectedAssistantDetail);
       const effectiveBackend = agentSelection.selectedAssistantBackend;
+      const shouldApplyDefaultModel = manualModelSelectionAssistantRef.current !== selectedAssistantId;
 
-      if (effectiveBackend === 'aionrs') {
+      if (shouldApplyDefaultModel && effectiveBackend === 'aionrs') {
         if (resolvedDefaults.modelId) {
           const matchedProvider = modelSelection.modelList.find((provider) =>
             provider.models.includes(resolvedDefaults.modelId!)
@@ -306,7 +309,7 @@ const GuidPage: React.FC = () => {
         } else {
           await modelSelection.resetCurrentModel({ persistPreference: false });
         }
-      } else if (resolvedDefaults.modelId) {
+      } else if (shouldApplyDefaultModel && resolvedDefaults.modelId) {
         const availableModelIds = new Set(agentSelection.currentAcpCachedModelInfo?.available_models.map((m) => m.id));
         agentSelection.setSelectedAcpModel(
           availableModelIds.size === 0 || availableModelIds.has(resolvedDefaults.modelId)
@@ -314,7 +317,7 @@ const GuidPage: React.FC = () => {
             : null,
           { persistPreference: false }
         );
-      } else {
+      } else if (shouldApplyDefaultModel) {
         agentSelection.setSelectedAcpModel(null, { persistPreference: false });
       }
 
@@ -356,15 +359,17 @@ const GuidPage: React.FC = () => {
   );
   const setGuidSelectedAcpModel = useCallback(
     (model: React.SetStateAction<string | null>) => {
+      manualModelSelectionAssistantRef.current = selectedAssistantId;
       agentSelection.setSelectedAcpModel(model, { persistPreference: !hasSelectedAssistant });
     },
-    [agentSelection, hasSelectedAssistant]
+    [agentSelection, hasSelectedAssistant, selectedAssistantId]
   );
   const setGuidCurrentModel = useCallback(
     (model: TProviderWithModel) => {
+      manualModelSelectionAssistantRef.current = selectedAssistantId;
       return modelSelection.setCurrentModel(model, { persistPreference: !hasSelectedAssistant });
     },
-    [hasSelectedAssistant, modelSelection]
+    [hasSelectedAssistant, modelSelection, selectedAssistantId]
   );
 
   // Reset guid-local UI state before paint so same-route navigations do not

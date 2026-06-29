@@ -24,6 +24,11 @@ import {
   withTimeout,
 } from '../utils/exportHelpers';
 
+const parentDirectoryOf = (filePath: string): string | undefined => {
+  const index = Math.max(filePath.lastIndexOf('/'), filePath.lastIndexOf('\\'));
+  return index > 0 ? filePath.slice(0, index) : undefined;
+};
+
 type UseExportParams = {
   conversations: TChatConversation[];
   selectedConversationIds: Set<string>;
@@ -202,7 +207,7 @@ export const useExport = ({
     async (path: string, files: ExportZipFile[], request_id: string): Promise<boolean> => {
       try {
         return await withTimeout(
-          ipcBridge.fs.createZip.invoke({ path, files, request_id }),
+          ipcBridge.fs.createZip.invoke({ path, workspace: parentDirectoryOf(path), files, request_id }),
           EXPORT_IO_TIMEOUT_MS * 8,
           `createZip:${request_id}`
         );

@@ -544,11 +544,13 @@ export const fs = {
   readFile: httpPost<string | null, { path: string; workspace?: string }>('/api/fs/read'),
   readFileBuffer: httpPost<string | null, { path: string; workspace?: string }>('/api/fs/read-buffer'),
   createTempFile: httpPost<string, { file_name: string }>('/api/fs/temp'),
-  writeFile: httpPost<boolean, { path: string; data: string }>('/api/fs/write'),
+  writeFile: httpPost<boolean, { path: string; data: string; workspace?: string }>('/api/fs/write'),
   createZip: httpPost<
     boolean,
     {
       path: string;
+      workspace?: string;
+      source_root?: string;
       request_id?: string;
       files: Array<{
         name: string;
@@ -563,8 +565,8 @@ export const fs = {
     { copied_files: string[]; failed_files?: Array<{ path: string; error: string }> },
     { file_paths: string[]; workspace: string; source_root?: string }
   >('/api/fs/copy'),
-  removeEntry: httpPost<void, { path: string }>('/api/fs/remove'),
-  renameEntry: httpPost<{ new_path: string }, { path: string; new_name: string }>('/api/fs/rename'),
+  removeEntry: httpPost<void, { path: string; workspace?: string }>('/api/fs/remove'),
+  renameEntry: httpPost<{ new_path: string }, { path: string; new_name: string; workspace?: string }>('/api/fs/rename'),
   readBuiltinRule: httpPost<string, { file_name: string }>('/api/skills/builtin-rule'),
   readBuiltinSkill: httpPost<string, { file_name: string }>('/api/skills/builtin-skill'),
   readAssistantRule: httpPost<string, { assistant_id: string; locale?: string }>('/api/skills/assistant-rule/read'),

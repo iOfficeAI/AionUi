@@ -683,13 +683,7 @@ brew install aionui
 
 ### 开发环境搭建
 
-技术栈：Electron · Vite · React · Bun
-
-```bash
-bun install        # 安装依赖
-bun run dev        # 启动开发服务器
-bun run test       # 运行单元测试
-```
+AionUi 本地开发涉及两个仓库：AionUi 负责 Electron 前端，AionCore 负责本地后端。完整的 macOS、Linux 和 Windows 搭建流程请看 [开发指南](../contributing/development.md)。
 
 ---
 

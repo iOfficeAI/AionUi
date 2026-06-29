@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { renderHook, waitFor } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Assistant } from '@/common/types/agent/assistantTypes';
 import type { ManagedAgent } from '@/renderer/utils/model/agentTypes';
@@ -19,6 +19,18 @@ import {
 let mockAssistants: Assistant[] = [];
 let mockManagedAgents: ManagedAgent[] = [];
 
+const { configGetMock, configSetMock } = vi.hoisted(() => ({
+  configGetMock: vi.fn(),
+  configSetMock: vi.fn(),
+}));
+
+vi.mock('@/common/config/configService', () => ({
+  configService: {
+    get: configGetMock,
+    set: configSetMock,
+  },
+}));
+
 vi.mock('@/renderer/pages/guid/hooks/useCustomAgentsLoader', () => ({
   useCustomAgentsLoader: () => ({
     assistants: mockAssistants,
@@ -31,6 +43,8 @@ vi.mock('@/renderer/hooks/agent/useManagedAgents', () => ({
 
 describe('useGuidAssistantSelection', () => {
   beforeEach(() => {
+    configGetMock.mockReturnValue(undefined);
+    configSetMock.mockResolvedValue(undefined);
     mockManagedAgents = [];
     mockAssistants = [
       {
@@ -77,6 +91,90 @@ describe('useGuidAssistantSelection', () => {
         { id: 'claude-opus', label: 'claude-opus' },
         { id: 'claude-sonnet', label: 'claude-sonnet' },
       ],
+    });
+  });
+
+  it('restores the last selected guid assistant before falling back to the aionrs default', async () => {
+    mockAssistants = [
+      assistantFixture({ id: 'bare-aionrs', runtimeKey: 'aionrs', source: 'generated', sortOrder: 1 }),
+      assistantFixture({ id: 'assistant-claude', runtimeKey: 'claude', source: 'builtin', sortOrder: 2 }),
+    ];
+    configGetMock.mockImplementation((key: string) =>
+      key === 'guid.lastAssistantId' ? 'assistant-claude' : undefined
+    );
+
+    const { result } = renderHook(() =>
+      useGuidAssistantSelection({
+        resetAssistant: false,
+      })
+    );
+
+    await waitFor(() => {
+      expect(result.current.selectedAssistantId).toBe('assistant-claude');
+    });
+  });
+
+  it('restores the last selected guid assistant when the guid page resets for a new chat', async () => {
+    mockAssistants = [
+      assistantFixture({ id: 'bare-aionrs', runtimeKey: 'aionrs', source: 'generated', sortOrder: 1 }),
+      assistantFixture({ id: 'assistant-claude', runtimeKey: 'claude', source: 'builtin', sortOrder: 2 }),
+    ];
+    configGetMock.mockImplementation((key: string) =>
+      key === 'guid.lastAssistantId' ? 'assistant-claude' : undefined
+    );
+
+    const { result } = renderHook(() =>
+      useGuidAssistantSelection({
+        resetAssistant: true,
+        locationKey: 'new-chat',
+      })
+    );
+
+    await waitFor(() => {
+      expect(result.current.selectedAssistantId).toBe('assistant-claude');
+    });
+  });
+
+  it('persists manual guid assistant selections for the next visit', async () => {
+    mockAssistants = [
+      assistantFixture({ id: 'bare-aionrs', runtimeKey: 'aionrs', source: 'generated', sortOrder: 1 }),
+      assistantFixture({ id: 'assistant-claude', runtimeKey: 'claude', source: 'builtin', sortOrder: 2 }),
+    ];
+
+    const { result } = renderHook(() =>
+      useGuidAssistantSelection({
+        resetAssistant: false,
+      })
+    );
+
+    await waitFor(() => {
+      expect(result.current.selectedAssistantId).toBe('bare-aionrs');
+    });
+
+    act(() => {
+      result.current.setSelectedAssistantId('assistant-claude');
+    });
+
+    expect(configSetMock).toHaveBeenCalledWith('guid.lastAssistantId', 'assistant-claude');
+  });
+
+  it('falls back to the default assistant when the persisted guid assistant no longer exists', async () => {
+    mockAssistants = [
+      assistantFixture({ id: 'bare-aionrs', runtimeKey: 'aionrs', source: 'generated', sortOrder: 1 }),
+      assistantFixture({ id: 'assistant-claude', runtimeKey: 'claude', source: 'builtin', sortOrder: 2 }),
+    ];
+    configGetMock.mockImplementation((key: string) =>
+      key === 'guid.lastAssistantId' ? 'removed-assistant' : undefined
+    );
+
+    const { result } = renderHook(() =>
+      useGuidAssistantSelection({
+        resetAssistant: false,
+      })
+    );
+
+    await waitFor(() => {
+      expect(result.current.selectedAssistantId).toBe('bare-aionrs');
     });
   });
 
@@ -246,6 +344,71 @@ describe('useGuidAssistantSelection', () => {
     ]);
   });
 
+  it('keeps a guid-page model selection in memory across same-assistant runtime catalog refreshes', async () => {
+    mockAssistants = [
+      {
+        id: 'assistant-with-runtime-models',
+        source: 'user',
+        name: 'Runtime Model Assistant',
+        name_i18n: {},
+        description_i18n: {},
+        enabled: true,
+        sort_order: 1,
+        agent_id: 'agent-claude',
+        agent: {
+          type: 'acp',
+          source: 'builtin',
+          acp_backend: 'claude',
+        },
+        enabled_skills: [],
+        custom_skill_names: [],
+        disabled_builtin_skills: [],
+        context_i18n: {},
+        prompts: [],
+        prompts_i18n: {},
+        models: [],
+        agent_status: 'online',
+        team_selectable: true,
+        deletable: true,
+      } satisfies Assistant,
+    ];
+    const buildManagedAgent = () =>
+      ({
+        id: 'agent-claude',
+        backend: 'claude',
+        available_models: {
+          current_model_id: 'default',
+          current_model_label: 'Default',
+          available_models: [
+            { id: 'default', label: 'Default' },
+            { id: 'global.anthropic.claude-opus-4-8', label: 'Opus 4.8' },
+          ],
+        },
+      }) as unknown as ManagedAgent;
+    mockManagedAgents = [buildManagedAgent()];
+
+    const { result, rerender } = renderHook(() =>
+      useGuidAssistantSelection({
+        resetAssistant: false,
+      })
+    );
+
+    await waitFor(() => {
+      expect(result.current.selectedAcpModel).toBe('default');
+    });
+
+    act(() => {
+      result.current.setSelectedAcpModel('global.anthropic.claude-opus-4-8');
+    });
+
+    expect(result.current.selectedAcpModel).toBe('global.anthropic.claude-opus-4-8');
+
+    mockManagedAgents = [buildManagedAgent()];
+    rerender();
+
+    expect(result.current.selectedAcpModel).toBe('global.anthropic.claude-opus-4-8');
+  });
+
   it('does not fall back to historical static modes when managed agent catalog has no modes', async () => {
     mockAssistants = [
       {
@@ -341,6 +504,43 @@ describe('useGuidAssistantSelection', () => {
   });
 });
 
+function assistantFixture({
+  id,
+  runtimeKey,
+  source,
+  sortOrder,
+}: {
+  id: string;
+  runtimeKey: string;
+  source: Assistant['source'];
+  sortOrder: number;
+}): Assistant {
+  const isAionrs = runtimeKey === 'aionrs';
+  return {
+    id,
+    source,
+    name: id,
+    name_i18n: {},
+    description_i18n: {},
+    enabled: true,
+    sort_order: sortOrder,
+    agent_id: `agent-${runtimeKey}`,
+    agent: isAionrs
+      ? { type: 'aionrs', source: 'internal' }
+      : { type: 'acp', source: 'builtin', acp_backend: runtimeKey },
+    enabled_skills: [],
+    custom_skill_names: [],
+    disabled_builtin_skills: [],
+    context_i18n: {},
+    prompts: [],
+    prompts_i18n: {},
+    models: [],
+    agent_status: 'online',
+    team_selectable: true,
+    deletable: source === 'user',
+  };
+}
+
 describe('assistant model helpers', () => {
   it('builds model and mode info from agent runtime payloads', () => {
     const agent = {
@@ -382,6 +582,69 @@ describe('assistant model helpers', () => {
       options: [
         { value: 'default', label: 'Default', description: undefined },
         { value: 'bypassPermissions', label: 'Bypass Permissions', description: undefined },
+      ],
+    });
+  });
+
+  it('prefers model config_options before falling back to available_models', () => {
+    const agent = {
+      config_options: {
+        config_options: [
+          {
+            id: 'model',
+            category: 'model',
+            type: 'select',
+            currentValue: 'gpt-5.5',
+            options: [
+              { value: 'gpt-5.5', name: 'GPT-5.5' },
+              { value: 'gpt-5.2', name: 'gpt-5.2' },
+            ],
+          },
+        ],
+      },
+      available_models: {
+        current_model_id: 'legacy-model',
+        available_models: [{ id: 'legacy-model', label: 'Legacy Model' }],
+      },
+    };
+
+    expect(buildAgentRuntimeModelInfo(agent)).toEqual({
+      current_model_id: 'gpt-5.5',
+      current_model_label: 'GPT-5.5',
+      available_models: [
+        { id: 'gpt-5.5', label: 'GPT-5.5' },
+        { id: 'gpt-5.2', label: 'gpt-5.2' },
+      ],
+    });
+  });
+
+  it('prefers mode config_options before falling back to available_modes', () => {
+    const agent = {
+      config_options: {
+        config_options: [
+          {
+            id: 'mode',
+            category: 'mode',
+            type: 'select',
+            currentValue: 'full-access',
+            options: [
+              { value: 'read-only', name: 'Read Only' },
+              { value: 'full-access', name: 'Full Access' },
+            ],
+          },
+        ],
+      },
+      available_modes: {
+        current_mode_id: 'legacy-mode',
+        available_modes: [{ id: 'legacy-mode', name: 'Legacy Mode' }],
+      },
+    };
+
+    expect(buildAgentRuntimeModeState(agent)).toEqual({
+      currentMode: 'full-access',
+      options: [
+        { value: 'read-only', label: 'Read Only', description: undefined },
+        { value: 'full-access', label: 'Full Access', description: undefined },
       ],
     });
   });

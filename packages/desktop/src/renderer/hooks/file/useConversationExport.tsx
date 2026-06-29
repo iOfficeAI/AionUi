@@ -197,6 +197,7 @@ export function useConversationExport(options: UseConversationExportOptions): Us
       const success = await ipcBridge.fs.writeFile.invoke({
         path: targetPath,
         data: transcript,
+        workspace: baseDirectoryRef.current,
       });
 
       if (!success) {

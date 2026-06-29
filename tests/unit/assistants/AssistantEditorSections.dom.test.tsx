@@ -487,6 +487,54 @@ describe('AssistantEditorSections', () => {
     expect(screen.getByTestId('select-assistant-default-model')).not.toHaveTextContent('Handshake Model');
   });
 
+  it('uses runtime config_options for default model options when assistant models are empty', () => {
+    mockManagedAgentRuntimeCatalog = [
+      {
+        id: 'agent-codex',
+        config_options: {
+          config_options: [
+            {
+              id: 'model',
+              category: 'model',
+              type: 'select',
+              currentValue: 'gpt-5.5',
+              options: [
+                { value: 'gpt-5.5', name: 'GPT-5.5' },
+                { value: 'gpt-5.2', name: 'gpt-5.2' },
+              ],
+            },
+          ],
+        },
+        available_models: {
+          current_model_id: 'legacy-model',
+          available_models: [{ id: 'legacy-model', label: 'Legacy Model' }],
+        },
+      },
+    ];
+
+    renderWithProviders(
+      <AssistantEditorSections
+        editor={createEditor({
+          agent: {
+            value: 'agent-codex',
+            setValue: vi.fn(),
+            availableBackends: [backendOption('agent-codex', 'codex', 'Codex')],
+          },
+          defaults: {
+            model: { mode: 'fixed', setMode: vi.fn(), value: 'gpt-5.2', setValue: vi.fn() },
+          },
+        })}
+        activeAssistant={null}
+      />
+    );
+
+    fireEvent.click(screen.getByTestId('select-assistant-default-model'));
+
+    expect(screen.getByText('GPT-5.5')).toBeInTheDocument();
+    expect(screen.getAllByText('gpt-5.2').length).toBeGreaterThan(0);
+    expect(screen.queryByText('Legacy Model')).toBeNull();
+  });
+
   it('uses aionrs runtime catalog for default permission options', async () => {
     mockManagedAgentRuntimeCatalog = [
       {
