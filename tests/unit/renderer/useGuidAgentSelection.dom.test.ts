@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { renderHook, waitFor } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Assistant } from '@/common/types/agent/assistantTypes';
 import type { ManagedAgent } from '@/renderer/utils/model/agentTypes';
@@ -244,6 +244,71 @@ describe('useGuidAssistantSelection', () => {
       'claude-opus',
       'claude-sonnet',
     ]);
+  });
+
+  it('keeps a guid-page model selection in memory across same-assistant runtime catalog refreshes', async () => {
+    mockAssistants = [
+      {
+        id: 'assistant-with-runtime-models',
+        source: 'user',
+        name: 'Runtime Model Assistant',
+        name_i18n: {},
+        description_i18n: {},
+        enabled: true,
+        sort_order: 1,
+        agent_id: 'agent-claude',
+        agent: {
+          type: 'acp',
+          source: 'builtin',
+          acp_backend: 'claude',
+        },
+        enabled_skills: [],
+        custom_skill_names: [],
+        disabled_builtin_skills: [],
+        context_i18n: {},
+        prompts: [],
+        prompts_i18n: {},
+        models: [],
+        agent_status: 'online',
+        team_selectable: true,
+        deletable: true,
+      } satisfies Assistant,
+    ];
+    const buildManagedAgent = () =>
+      ({
+        id: 'agent-claude',
+        backend: 'claude',
+        available_models: {
+          current_model_id: 'default',
+          current_model_label: 'Default',
+          available_models: [
+            { id: 'default', label: 'Default' },
+            { id: 'global.anthropic.claude-opus-4-8', label: 'Opus 4.8' },
+          ],
+        },
+      }) as unknown as ManagedAgent;
+    mockManagedAgents = [buildManagedAgent()];
+
+    const { result, rerender } = renderHook(() =>
+      useGuidAssistantSelection({
+        resetAssistant: false,
+      })
+    );
+
+    await waitFor(() => {
+      expect(result.current.selectedAcpModel).toBe('default');
+    });
+
+    act(() => {
+      result.current.setSelectedAcpModel('global.anthropic.claude-opus-4-8');
+    });
+
+    expect(result.current.selectedAcpModel).toBe('global.anthropic.claude-opus-4-8');
+
+    mockManagedAgents = [buildManagedAgent()];
+    rerender();
+
+    expect(result.current.selectedAcpModel).toBe('global.anthropic.claude-opus-4-8');
   });
 
   it('does not fall back to historical static modes when managed agent catalog has no modes', async () => {

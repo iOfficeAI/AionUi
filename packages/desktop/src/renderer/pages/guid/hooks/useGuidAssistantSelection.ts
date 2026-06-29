@@ -191,21 +191,33 @@ export const useGuidAssistantSelection = ({
     return selectedAssistant?.agent_status === 'online';
   }, [selectedAssistant]);
 
+  const modelSelectionScopeRef = useRef<string | null>(null);
   useEffect(() => {
     const runtimeModelId =
       selectedAgentRuntimeModelInfo?.current_model_id || selectedAgentRuntimeModelInfo?.available_models[0]?.id;
-    if (runtimeModelId) {
-      _setSelectedAcpModel(runtimeModelId);
-      return;
-    }
+    const fallbackModelId =
+      runtimeModelId ||
+      (selectedAssistantModels.length > 0 ? resolveInitialAssistantModel(selectedAssistantModels) : null);
+    const availableModelIds = new Set(
+      selectedAgentRuntimeModelInfo?.available_models.map((model) => model.id) ?? selectedAssistantModels
+    );
+    const selectionScope = selectedAssistantId ?? '';
 
-    if (selectedAssistantModels.length > 0) {
-      _setSelectedAcpModel(resolveInitialAssistantModel(selectedAssistantModels));
-      return;
-    }
+    _setSelectedAcpModel((previousModelId) => {
+      const scopeChanged = modelSelectionScopeRef.current !== selectionScope;
+      modelSelectionScopeRef.current = selectionScope;
 
-    _setSelectedAcpModel(resolveInitialAssistantModel([]));
-  }, [selectedAssistantModels, selectedAgentRuntimeModelInfo]);
+      if (
+        !scopeChanged &&
+        previousModelId &&
+        (availableModelIds.size === 0 || availableModelIds.has(previousModelId))
+      ) {
+        return previousModelId;
+      }
+
+      return fallbackModelId;
+    });
+  }, [selectedAssistantId, selectedAssistantModels, selectedAgentRuntimeModelInfo]);
 
   useEffect(() => {
     const fallbackMode =

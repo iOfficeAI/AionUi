@@ -294,6 +294,7 @@ describe('GuidPage', () => {
     modelSelectionMock.resetCurrentModel.mockReset();
     agentSelectionMock.currentAgentModeOptions = [];
     agentSelectionMock.currentAcpCachedModelInfo = null;
+    agentSelectionMock.selectedAssistantBackend = 'aionrs';
     agentSelectionMock.setSelectedAcpModel.mockReset();
     agentSelectionMock.setSelectedMode.mockReset();
     agentSelectionMock.assistants = [
@@ -484,6 +485,59 @@ describe('GuidPage', () => {
         }),
         { persistPreference: false }
       );
+    });
+  });
+
+  it('does not reapply assistant default model over a guid-page model selection', async () => {
+    swrMock.useSWRMock.mockReturnValue({ data: assistantDetailFixture });
+    resolveGuidAssistantDefaultsMock.mockReturnValue({
+      modelId: 'default',
+      disabledBuiltinSkillIds: [],
+      skillIds: [],
+      mcpIds: [],
+    });
+    agentSelectionMock.selectedAssistantBackend = 'claude';
+    agentSelectionMock.currentAcpCachedModelInfo = {
+      current_model_id: 'default',
+      current_model_label: 'Default',
+      available_models: [
+        { id: 'default', label: 'Default' },
+        { id: 'global.anthropic.claude-opus-4-8', label: 'Opus 4.8' },
+      ],
+    };
+
+    const { rerender } = render(<GuidPage />);
+
+    await vi.waitFor(() => {
+      expect(agentSelectionMock.setSelectedAcpModel).toHaveBeenCalledWith('default', { persistPreference: false });
+    });
+    agentSelectionMock.setSelectedAcpModel.mockClear();
+
+    const latestActionRowProps = capturedGuidActionRowProps.at(-1);
+    const modelSelectorNode = latestActionRowProps?.modelSelectorNode as React.ReactElement<{
+      setSelectedAcpModel: (model: string) => void;
+    }>;
+    const setSelectedAcpModel = modelSelectorNode.props.setSelectedAcpModel;
+    setSelectedAcpModel('global.anthropic.claude-opus-4-8');
+
+    expect(agentSelectionMock.setSelectedAcpModel).toHaveBeenCalledWith('global.anthropic.claude-opus-4-8', {
+      persistPreference: false,
+    });
+    agentSelectionMock.setSelectedAcpModel.mockClear();
+
+    agentSelectionMock.currentAcpCachedModelInfo = {
+      current_model_id: 'default',
+      current_model_label: 'Default',
+      available_models: [
+        { id: 'default', label: 'Default' },
+        { id: 'global.anthropic.claude-opus-4-8', label: 'Opus 4.8' },
+        { id: 'global.anthropic.claude-sonnet-4-8', label: 'Sonnet 4.8' },
+      ],
+    };
+    rerender(<GuidPage />);
+
+    expect(agentSelectionMock.setSelectedAcpModel).not.toHaveBeenCalledWith('default', {
+      persistPreference: false,
     });
   });
 });
