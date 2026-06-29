@@ -8,6 +8,8 @@ import type { IConversationArtifact } from '@/common/adapter/ipcBridge';
 import type { IMessageAcpToolCall, IMessageToolCall, IMessageToolGroup, TMessage } from '@/common/chat/chatLib';
 import { useConversationContextSafe } from '@/renderer/hooks/context/ConversationContext';
 import { useConversationRuntimeView } from '@/renderer/pages/conversation/runtime/useConversationRuntimeView';
+import { getChatSurfaceWidthClass } from '@/renderer/pages/conversation/utils/chatSurfaceWidth';
+import { useTeamPermission } from '@/renderer/pages/team/hooks/TeamPermissionContext';
 import { iconColors } from '@/renderer/styles/colors';
 import { CHAT_MESSAGE_JUMP_EVENT, type ChatMessageJumpDetail } from '@/renderer/utils/chat/chatMinimapEvents';
 import { Image } from '@arco-design/web-react';
@@ -108,9 +110,7 @@ const getUnhandledMessageType = (_message: never): string => 'unknown';
 // Image preview context
 export const ImagePreviewContext = createContext<{ inPreviewGroup: boolean }>({ inPreviewGroup: false });
 
-const MESSAGE_ROW_WIDTH_CLASS = 'w-[calc(100%-24px)] md:w-[calc(100%-clamp(80px,10vw,240px))] max-w-none mx-auto';
-
-const MessageListSkeleton: React.FC = () => {
+const MessageListSkeleton: React.FC<{ rowWidthClass: string }> = ({ rowWidthClass }) => {
   const rows = [
     { align: 'left', bubbleWidth: '100%', lines: [72, 58, 64] },
     { align: 'right', bubbleWidth: '82%', lines: [54, 48] },
@@ -133,7 +133,7 @@ const MessageListSkeleton: React.FC = () => {
         {rows.map((row, index) => (
           <div
             key={index}
-            className={classNames(`${MESSAGE_ROW_WIDTH_CLASS} min-w-0 flex items-start message-item px-8px m-t-10px`, {
+            className={classNames(`${rowWidthClass} min-w-0 flex items-start message-item px-8px m-t-10px`, {
               'justify-start': row.align === 'left',
               'justify-end': row.align === 'right',
             })}
@@ -176,9 +176,18 @@ const MessageListSkeleton: React.FC = () => {
   );
 };
 
-const MessageItem: React.FC<{ message: TMessage; highlighted?: boolean; showCopyRow?: boolean }> = React.memo(
+const MessageItem: React.FC<{
+  message: TMessage;
+  highlighted?: boolean;
+  rowWidthClass: string;
+  showCopyRow?: boolean;
+}> = React.memo(
   HOC((props) => {
-    const { message, highlighted } = props as { message: TMessage; highlighted?: boolean };
+    const { message, highlighted, rowWidthClass } = props as {
+      message: TMessage;
+      highlighted?: boolean;
+      rowWidthClass: string;
+    };
     return (
       <div
         id={`message-${message.id}`}
@@ -186,7 +195,7 @@ const MessageItem: React.FC<{ message: TMessage; highlighted?: boolean; showCopy
         data-message-type={message.type}
         data-message-position={message.position}
         className={classNames(
-          `${MESSAGE_ROW_WIDTH_CLASS} min-w-0 flex items-start message-item [&>div]:max-w-full px-8px m-t-10px`,
+          `${rowWidthClass} min-w-0 flex items-start message-item [&>div]:max-w-full px-8px m-t-10px`,
           message.type,
           {
             'justify-center': message.position === 'center',
@@ -199,41 +208,52 @@ const MessageItem: React.FC<{ message: TMessage; highlighted?: boolean; showCopy
         {props.children}
       </div>
     );
-  })(({ message, showCopyRow }: { message: TMessage; highlighted?: boolean; showCopyRow?: boolean }) => {
-    const { t } = useTranslation();
-    switch (message.type) {
-      case 'text':
-        return <MessageText message={message} showCopyRow={showCopyRow}></MessageText>;
-      case 'tips':
-        return <MessageTips message={message}></MessageTips>;
-      case 'tool_call':
-        return <MessageToolCall message={message}></MessageToolCall>;
-      case 'tool_group':
-        return <MessageToolGroup message={message}></MessageToolGroup>;
-      case 'agent_status':
-        return <MessageAgentStatus message={message}></MessageAgentStatus>;
-      case 'permission':
-        return <MessagePermission message={message}></MessagePermission>;
-      case 'acp_permission':
-        return <MessageAcpPermission message={message}></MessageAcpPermission>;
-      case 'acp_tool_call':
-        return <MessageAcpToolCall message={message}></MessageAcpToolCall>;
-      case 'plan':
-        return <MessagePlan message={message}></MessagePlan>;
-      case 'thinking':
-        return <MessageThinking message={message}></MessageThinking>;
-      case 'available_commands':
-        return null;
-      default:
-        return <div>{t('messages.unknownMessageType', { type: getUnhandledMessageType(message) })}</div>;
+  })(
+    ({
+      message,
+      showCopyRow,
+    }: {
+      message: TMessage;
+      highlighted?: boolean;
+      rowWidthClass: string;
+      showCopyRow?: boolean;
+    }) => {
+      const { t } = useTranslation();
+      switch (message.type) {
+        case 'text':
+          return <MessageText message={message} showCopyRow={showCopyRow}></MessageText>;
+        case 'tips':
+          return <MessageTips message={message}></MessageTips>;
+        case 'tool_call':
+          return <MessageToolCall message={message}></MessageToolCall>;
+        case 'tool_group':
+          return <MessageToolGroup message={message}></MessageToolGroup>;
+        case 'agent_status':
+          return <MessageAgentStatus message={message}></MessageAgentStatus>;
+        case 'permission':
+          return <MessagePermission message={message}></MessagePermission>;
+        case 'acp_permission':
+          return <MessageAcpPermission message={message}></MessageAcpPermission>;
+        case 'acp_tool_call':
+          return <MessageAcpToolCall message={message}></MessageAcpToolCall>;
+        case 'plan':
+          return <MessagePlan message={message}></MessagePlan>;
+        case 'thinking':
+          return <MessageThinking message={message}></MessageThinking>;
+        case 'available_commands':
+          return null;
+        default:
+          return <div>{t('messages.unknownMessageType', { type: getUnhandledMessageType(message) })}</div>;
+      }
     }
-  }),
+  ),
   (prev, next) =>
     prev.message.id === next.message.id &&
     prev.message.content === next.message.content &&
     prev.message.position === next.message.position &&
     prev.message.type === next.message.type &&
     prev.highlighted === next.highlighted &&
+    prev.rowWidthClass === next.rowWidthClass &&
     prev.showCopyRow === next.showCopyRow
 );
 
@@ -243,6 +263,8 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
   const pagination = useMessagePaginationState();
   const artifacts = useConversationArtifacts();
   const conversationContext = useConversationContextSafe();
+  const teamPermission = useTeamPermission();
+  const rowWidthClass = getChatSurfaceWidthClass(Boolean(teamPermission));
   const loadPreviousMessagePage = useLoadPreviousMessagePage(conversationContext?.conversation_id);
   const loadAnchorMessageWindow = useLoadAnchorMessageWindow(conversationContext?.conversation_id);
   useAutoPreviewOfficeFiles(conversationContext);
@@ -574,7 +596,7 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
           id={`message-${getProcessedItemAnchorId(item)}`}
           data-conversation-artifact-kind={item.artifact.kind}
           data-testid={`conversation-artifact-${item.artifact.kind}`}
-          className={`${MESSAGE_ROW_WIDTH_CLASS} min-w-0 message-item px-8px m-t-10px`}
+          className={`${rowWidthClass} min-w-0 message-item px-8px m-t-10px`}
           style={highlighted ? highlightStyle : undefined}
         >
           {item.artifact.kind === 'cron_trigger' ? (
@@ -590,7 +612,7 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
         <div
           key={item.id}
           id={`message-${getProcessedItemAnchorId(item)}`}
-          className={`${MESSAGE_ROW_WIDTH_CLASS} min-w-0 message-item px-8px m-t-10px ${item.type}`}
+          className={`${rowWidthClass} min-w-0 message-item px-8px m-t-10px ${item.type}`}
           style={highlighted ? highlightStyle : undefined}
         >
           {item.type === 'file_summary' && <MessageFileChanges diffsChanges={item.diffs} />}
@@ -602,12 +624,18 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
     // User messages keep their own copy row; AI text only shows it at the turn end.
     const showCopyRow = message.position !== 'left' || message.type !== 'text' || aiCopyRowTextIds.has(message.id);
     return (
-      <MessageItem message={message} key={message.id} highlighted={highlighted} showCopyRow={showCopyRow}></MessageItem>
+      <MessageItem
+        message={message}
+        key={message.id}
+        highlighted={highlighted}
+        rowWidthClass={rowWidthClass}
+        showCopyRow={showCopyRow}
+      ></MessageItem>
     );
   };
 
   if (processedList.length === 0 && isMessageListLoading) {
-    return <MessageListSkeleton />;
+    return <MessageListSkeleton rowWidthClass={rowWidthClass} />;
   }
 
   if (processedList.length === 0 && emptySlot) {

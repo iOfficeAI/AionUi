@@ -283,6 +283,32 @@ describe('AcpSendBox', () => {
     expect(wrapper?.className).not.toContain('max-w-800px');
   });
 
+  it('uses the full available width in team mode', () => {
+    useTeamPermissionMock.mockReturnValue({
+      isTeamMode: true,
+      isLeaderAgent: true,
+      leaderConversationId: 'conv-1',
+      allConversationIds: ['conv-1'],
+      propagateMode: vi.fn(),
+      warmupSession: vi.fn().mockResolvedValue(undefined),
+    });
+
+    render(
+      <AcpSendBox
+        conversation_id='conv-1'
+        backend='codex'
+        workspacePath='/tmp/workspace'
+        messageState={makeMessageState()}
+      />
+    );
+
+    const wrapper = screen.getByRole('button', { name: 'send' }).parentElement?.parentElement;
+    expect(wrapper?.className).toContain('w-full');
+    expect(wrapper?.className).toContain('max-w-full');
+    expect(wrapper?.className).not.toContain('w-[calc(100%-24px)]');
+    expect(wrapper?.className).not.toContain('md:w-[calc(100%-clamp(80px,10vw,240px))]');
+  });
+
   it('keeps ACP config options enabled on desktop without rendering a standalone thought selector', () => {
     useAcpConfigOptionsMock.mockReturnValue({
       setStatus: { state: 'idle' },
