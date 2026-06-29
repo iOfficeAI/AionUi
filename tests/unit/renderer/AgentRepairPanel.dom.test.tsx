@@ -8,6 +8,7 @@ import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { Message } from '@arco-design/web-react';
 import AgentRepairPanel from '@/renderer/pages/settings/AgentSettings/AgentRepairPanel';
 import type { ManagedAgent } from '@/renderer/utils/model/agentTypes';
 import { acpConversation } from '@/common/adapter/ipcBridge';
@@ -45,6 +46,7 @@ describe('AgentRepairPanel', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.spyOn(Message, 'success').mockImplementation(() => undefined as never);
   });
 
   it('loads current overrides on mount without an unlock step', async () => {
@@ -81,6 +83,7 @@ describe('AgentRepairPanel', () => {
 
     setMock.mockResolvedValue({
       ...mockAgent,
+      status: 'online',
       has_command_override: true,
       env_override_key_count: 2,
     });
@@ -114,6 +117,7 @@ describe('AgentRepairPanel', () => {
           { name: 'FACTORY_URL', value: 'http://localhost:8080' },
         ],
       });
+      expect(Message.success).toHaveBeenCalledWith('settings.agentManagement.testConnectionOnline');
       expect(onSaved).toHaveBeenCalledTimes(1);
     });
   });
@@ -151,6 +155,31 @@ describe('AgentRepairPanel', () => {
     expect(onSaved).not.toHaveBeenCalled();
   });
 
+  it('does not save when no override value was entered', async () => {
+    const user = userEvent.setup();
+    const getMock = vi.mocked(acpConversation.getAgentOverrides.invoke);
+    const setMock = vi.mocked(acpConversation.setAgentOverrides.invoke);
+    const onSaved = vi.fn();
+
+    getMock.mockResolvedValue({});
+
+    render(<AgentRepairPanel agent={mockAgent} onSaved={onSaved} />);
+
+    await waitFor(() => {
+      expect(getMock).toHaveBeenCalledWith({ id: 'test-agent-1' });
+    });
+
+    const saveButton = screen.getByRole('button', { name: /repair\.saveAndTest/ });
+    await user.click(saveButton);
+
+    await waitFor(() => {
+      expect(screen.getByText(/repair\.emptyOverridesError/)).toBeInTheDocument();
+    });
+
+    expect(setMock).not.toHaveBeenCalled();
+    expect(onSaved).not.toHaveBeenCalled();
+  });
+
   it('shows the offline diagnostic banner and the launch path for an offline agent', async () => {
     vi.mocked(acpConversation.getAgentOverrides.invoke).mockResolvedValue({});
 
@@ -174,5 +203,35 @@ describe('AgentRepairPanel', () => {
     // Online: only environment variables are shown; the launch path is hidden.
     expect(screen.getByText('settings.repair.envLabel')).toBeInTheDocument();
     expect(screen.queryByText('settings.repair.pathLabel')).toBeNull();
+  });
+
+  it('does not expose override editing for the internal Aion CLI agent', async () => {
+    vi.mocked(acpConversation.getAgentOverrides.invoke).mockResolvedValue({
+      command_override: '/bad/path',
+      env_override: [{ name: 'ANTHROPIC_API_KEY', value: 'sk-x' }],
+    });
+
+    render(
+      <AgentRepairPanel
+        agent={{
+          ...mockAgent,
+          id: '632f31d2',
+          name: 'Aion CLI',
+          agent_type: 'aionrs',
+          agent_source: 'internal',
+          status: 'online',
+        }}
+        onSaved={vi.fn()}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('settings.repair.onlineTitle')).toBeInTheDocument();
+    });
+
+    expect(acpConversation.getAgentOverrides.invoke).not.toHaveBeenCalled();
+    expect(screen.queryByText('settings.repair.pathLabel')).toBeNull();
+    expect(screen.queryByText('settings.repair.envLabel')).toBeNull();
+    expect(screen.queryByRole('button', { name: /repair\.saveAndTest/ })).toBeNull();
   });
 });

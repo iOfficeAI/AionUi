@@ -1101,7 +1101,8 @@
     "envScenarioApiKey": "Missing API key or access token (e.g. ANTHROPIC_API_KEY, OPENAI_API_KEY) — the common cause of \"needs sign-in\" / connection failures",
     "envScenarioBaseUrl": "Custom API endpoint or gateway (e.g. ANTHROPIC_BASE_URL, OPENAI_BASE_URL) for self-hosted or proxied services",
     "envScenarioProxy": "Network proxy settings (e.g. HTTPS_PROXY, HTTP_PROXY) when the agent cannot reach the internet directly",
-    "envOauthNote": "Note: this cannot replace an account login inside the CLI (e.g. signing in to Gemini with a Google account). For OAuth-based login, sign in via the CLI in a terminal."
+    "envOauthNote": "Note: this cannot replace an account login inside the CLI (e.g. signing in to Gemini with a Google account). For OAuth-based login, sign in via the CLI in a terminal.",
+    "emptyOverridesError": "Enter a launch path or at least one environment variable before saving."
   },
   "remoteAgent": {
     "title": "Remote Agents",

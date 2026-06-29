@@ -1102,7 +1102,8 @@
     "envScenarioApiKey": "缺少 API 密钥或访问令牌（如 ANTHROPIC_API_KEY、OPENAI_API_KEY）——这是「需登录」/ 连接失败最常见的原因",
     "envScenarioBaseUrl": "自定义 API 地址或网关（如 ANTHROPIC_BASE_URL、OPENAI_BASE_URL），用于自建或代理的服务",
     "envScenarioProxy": "网络代理设置（如 HTTPS_PROXY、HTTP_PROXY），当 Agent 无法直接访问网络时",
-    "envOauthNote": "注意：这无法替代在 CLI 中的账号登录（例如用 Google 账号登录 Gemini）。OAuth 登录请在终端里通过 CLI 完成。"
+    "envOauthNote": "注意：这无法替代在 CLI 中的账号登录（例如用 Google 账号登录 Gemini）。OAuth 登录请在终端里通过 CLI 完成。",
+    "emptyOverridesError": "请先填写启动路径或至少一个环境变量。"
   },
   "remoteAgent": {
     "title": "远程 Agent",

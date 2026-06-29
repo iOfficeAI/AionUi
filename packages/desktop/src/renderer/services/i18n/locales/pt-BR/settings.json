@@ -1101,7 +1101,8 @@
     "envScenarioApiKey": "Falta de chave de API ou token de acesso (ex. ANTHROPIC_API_KEY, OPENAI_API_KEY) — a causa mais comum de \"requer login\" / falhas de conexão",
     "envScenarioBaseUrl": "Endpoint de API ou gateway personalizado (ex. ANTHROPIC_BASE_URL, OPENAI_BASE_URL) para serviços auto-hospedados ou com proxy",
     "envScenarioProxy": "Configurações de proxy de rede (ex. HTTPS_PROXY, HTTP_PROXY) quando o agente não consegue acessar a internet diretamente",
-    "envOauthNote": "Observação: isto não substitui o login de conta dentro do CLI (ex. entrar no Gemini com uma conta Google). Para login via OAuth, faça login pelo CLI em um terminal."
+    "envOauthNote": "Observação: isto não substitui o login de conta dentro do CLI (ex. entrar no Gemini com uma conta Google). Para login via OAuth, faça login pelo CLI em um terminal.",
+    "emptyOverridesError": "Informe um caminho de inicialização ou pelo menos uma variável de ambiente antes de salvar."
   },
   "remoteAgent": {
     "title": "Agentes Remotos",

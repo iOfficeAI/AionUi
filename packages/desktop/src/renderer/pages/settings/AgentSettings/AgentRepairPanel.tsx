@@ -5,7 +5,7 @@
  */
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Alert, Button, Input, Typography } from '@arco-design/web-react';
+import { Alert, Button, Input, Message, Typography } from '@arco-design/web-react';
 import { useTranslation } from 'react-i18next';
 import { acpConversation } from '@/common/adapter/ipcBridge';
 import { formatManagedAgentDiagnosticMessage, type ManagedAgent } from '@/renderer/utils/model/agentTypes';
@@ -51,6 +51,27 @@ const resolveDiagnosticBanner = (t: ReturnType<typeof useTranslation>['t'], agen
   }
 };
 
+const showSaveAndTestResult = (t: ReturnType<typeof useTranslation>['t'], result: ManagedAgent) => {
+  switch (result.status) {
+    case 'online':
+      Message.success(t('settings.agentManagement.testConnectionOnline', { name: result.name }));
+      break;
+    case 'missing':
+      Message.warning(t('settings.agentManagement.testConnectionMissing', { name: result.name }));
+      break;
+    case 'offline':
+      Message.warning(
+        formatManagedAgentDiagnosticMessage(t, result) ||
+          (result.last_check_error_code === 'auth_required'
+            ? t('settings.agentManagement.testConnectionAuth', { name: result.name })
+            : t('settings.agentManagement.testConnectionOffline', { name: result.name }))
+      );
+      break;
+    default:
+      break;
+  }
+};
+
 const AgentRepairPanel: React.FC<AgentRepairPanelProps> = ({ agent, onSaved }) => {
   const { t } = useTranslation();
   const [commandOverride, setCommandOverride] = useState('');
@@ -58,17 +79,25 @@ const AgentRepairPanel: React.FC<AgentRepairPanelProps> = ({ agent, onSaved }) =
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
   const savingRef = useRef(false);
+  const initialHasOverridesRef = useRef(false);
+  const isInternalAionCli = agent.agent_type === 'aionrs' && agent.agent_source === 'internal';
 
   // Load current overrides on mount. The repair page is itself the explicit
   // entry point, so there's no separate unlock step.
   useEffect(() => {
+    if (isInternalAionCli) return;
+
     let cancelled = false;
     void (async () => {
       try {
         const overrides = await acpConversation.getAgentOverrides.invoke({ id: agent.id });
         if (cancelled) return;
-        setCommandOverride(overrides.command_override || '');
-        setEnvRows((overrides.env_override || []).map((env) => ({ id: uuid(), key: env.name, value: env.value })));
+        const loadedCommandOverride = overrides.command_override || '';
+        const loadedEnvOverride = overrides.env_override || [];
+        initialHasOverridesRef.current =
+          Boolean(loadedCommandOverride.trim()) || loadedEnvOverride.some((env) => Boolean(env.name.trim()));
+        setCommandOverride(loadedCommandOverride);
+        setEnvRows(loadedEnvOverride.map((env) => ({ id: uuid(), key: env.name, value: env.value })));
       } catch (err) {
         if (cancelled) return;
         console.error('Failed to fetch agent overrides:', err);
@@ -78,7 +107,7 @@ const AgentRepairPanel: React.FC<AgentRepairPanelProps> = ({ agent, onSaved }) =
     return () => {
       cancelled = true;
     };
-  }, [agent.id]);
+  }, [agent.id, isInternalAionCli]);
 
   const handleReset = useCallback(() => {
     setCommandOverride('');
@@ -95,24 +124,30 @@ const AgentRepairPanel: React.FC<AgentRepairPanelProps> = ({ agent, onSaved }) =
       return;
     }
 
+    const envOverride = envRows
+      .filter((row) => row.key.trim())
+      .map((row) => ({ name: row.key.trim(), value: row.value }));
+    const hasCurrentOverrides = Boolean(commandOverride.trim()) || envOverride.length > 0;
+    if (!hasCurrentOverrides && !initialHasOverridesRef.current) {
+      setError(t('settings.repair.emptyOverridesError'));
+      return;
+    }
+
     savingRef.current = true;
     setIsSaving(true);
     setError('');
 
     try {
-      const envOverride = envRows
-        .filter((row) => row.key.trim())
-        .map((row) => ({ name: row.key.trim(), value: row.value }));
-
       // Backend uses whole-replace semantics: setAgentOverrides overwrites BOTH command_override
       // and env_override columns from the request body. Missing/empty/null command_override is
       // written as None (cleared), so reset-path-then-save correctly clears the override.
-      await acpConversation.setAgentOverrides.invoke({
+      const result = await acpConversation.setAgentOverrides.invoke({
         id: agent.id,
         command_override: commandOverride.trim() || undefined,
         env_override: envOverride.length > 0 ? envOverride : undefined,
       });
 
+      showSaveAndTestResult(t, result);
       onSaved();
     } catch (err) {
       console.error('Failed to save agent overrides:', err);
@@ -188,23 +223,25 @@ const AgentRepairPanel: React.FC<AgentRepairPanelProps> = ({ agent, onSaved }) =
           which field below to use. */}
       <Alert type={banner.type} title={banner.title} content={banner.content} className='!rounded-8px' />
 
-      {showPath ? pathBlock : null}
-      {envBlock}
+      {!isInternalAionCli && showPath ? pathBlock : null}
+      {!isInternalAionCli ? envBlock : null}
 
       {/* Error Alert */}
       {error && <Alert type='error' content={error} closable onClose={() => setError('')} className='!rounded-8px' />}
 
       {/* Save Button */}
-      <Button
-        type='primary'
-        size='large'
-        disabled={isSaving}
-        loading={isSaving}
-        onClick={handleSave}
-        className='!rounded-8px'
-      >
-        {t('settings.repair.saveAndTest')}
-      </Button>
+      {!isInternalAionCli ? (
+        <Button
+          type='primary'
+          size='large'
+          disabled={isSaving}
+          loading={isSaving}
+          onClick={handleSave}
+          className='!rounded-8px'
+        >
+          {t('settings.repair.saveAndTest')}
+        </Button>
+      ) : null}
     </div>
   );
 };

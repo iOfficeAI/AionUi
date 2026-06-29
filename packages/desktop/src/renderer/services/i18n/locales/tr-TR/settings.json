@@ -1089,7 +1089,8 @@
     "envScenarioApiKey": "Eksik API anahtarı veya erişim belirteci (ör. ANTHROPIC_API_KEY, OPENAI_API_KEY) — \"giriş gerekli\" / bağlantı hatalarının en yaygın nedeni",
     "envScenarioBaseUrl": "Özel API uç noktası veya ağ geçidi (ör. ANTHROPIC_BASE_URL, OPENAI_BASE_URL); kendi barındırılan veya proxy hizmetler için",
     "envScenarioProxy": "Ağ proxy ayarları (ör. HTTPS_PROXY, HTTP_PROXY); aracı internete doğrudan erişemediğinde",
-    "envOauthNote": "Not: Bu, CLI içindeki hesap girişinin yerini tutmaz (ör. Gemini'ye Google hesabıyla giriş). OAuth girişi için bir terminalde CLI üzerinden giriş yapın."
+    "envOauthNote": "Not: Bu, CLI içindeki hesap girişinin yerini tutmaz (ör. Gemini'ye Google hesabıyla giriş). OAuth girişi için bir terminalde CLI üzerinden giriş yapın.",
+    "emptyOverridesError": "Kaydetmeden önce bir başlatma yolu veya en az bir ortam değişkeni girin."
   },
   "remoteAgent": {
     "title": "Uzak Ajanlar",

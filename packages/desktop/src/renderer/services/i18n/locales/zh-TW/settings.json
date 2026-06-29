@@ -1103,7 +1103,8 @@
     "envScenarioApiKey": "缺少 API 金鑰或存取權杖（如 ANTHROPIC_API_KEY、OPENAI_API_KEY）——這是「需登入」/ 連線失敗最常見的原因",
     "envScenarioBaseUrl": "自訂 API 位址或閘道（如 ANTHROPIC_BASE_URL、OPENAI_BASE_URL），用於自建或代理的服務",
     "envScenarioProxy": "網路代理設定（如 HTTPS_PROXY、HTTP_PROXY），當 Agent 無法直接存取網路時",
-    "envOauthNote": "注意：這無法取代在 CLI 中的帳號登入（例如用 Google 帳號登入 Gemini）。OAuth 登入請在終端機裡透過 CLI 完成。"
+    "envOauthNote": "注意：這無法取代在 CLI 中的帳號登入（例如用 Google 帳號登入 Gemini）。OAuth 登入請在終端機裡透過 CLI 完成。",
+    "emptyOverridesError": "請先填寫啟動路徑或至少一個環境變數。"
   },
   "remoteAgent": {
     "title": "遠端 Agent",

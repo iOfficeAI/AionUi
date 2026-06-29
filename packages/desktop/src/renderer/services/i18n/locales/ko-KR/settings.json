@@ -1091,7 +1091,8 @@
     "envScenarioApiKey": "API 키 또는 액세스 토큰 누락(ANTHROPIC_API_KEY, OPENAI_API_KEY 등) — \"로그인 필요\" / 연결 실패의 가장 흔한 원인",
     "envScenarioBaseUrl": "사용자 지정 API 엔드포인트 또는 게이트웨이(ANTHROPIC_BASE_URL, OPENAI_BASE_URL 등). 자체 호스팅 또는 프록시 서비스용",
     "envScenarioProxy": "네트워크 프록시 설정(HTTPS_PROXY, HTTP_PROXY 등). 에이전트가 인터넷에 직접 연결할 수 없을 때",
-    "envOauthNote": "참고: CLI 내의 계정 로그인(예: Google 계정으로 Gemini 로그인)을 대체할 수 없습니다. OAuth 로그인은 터미널에서 CLI로 진행하세요."
+    "envOauthNote": "참고: CLI 내의 계정 로그인(예: Google 계정으로 Gemini 로그인)을 대체할 수 없습니다. OAuth 로그인은 터미널에서 CLI로 진행하세요.",
+    "emptyOverridesError": "저장하기 전에 시작 경로 또는 환경 변수 하나 이상을 입력하세요."
   },
   "remoteAgent": {
     "title": "원격 에이전트",

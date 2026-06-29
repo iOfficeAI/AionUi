@@ -1091,7 +1091,8 @@
     "envScenarioApiKey": "API キーまたはアクセストークンの不足（ANTHROPIC_API_KEY、OPENAI_API_KEY など）——「要サインイン」/ 接続失敗の最も一般的な原因",
     "envScenarioBaseUrl": "カスタム API エンドポイントまたはゲートウェイ（ANTHROPIC_BASE_URL、OPENAI_BASE_URL など）。自己ホストまたはプロキシ経由のサービス向け",
     "envScenarioProxy": "ネットワークプロキシ設定（HTTPS_PROXY、HTTP_PROXY など）。エージェントが直接インターネットに接続できない場合",
-    "envOauthNote": "注意：CLI 内でのアカウントログイン（例：Google アカウントで Gemini にサインイン）の代わりにはなりません。OAuth ログインはターミナルで CLI から行ってください。"
+    "envOauthNote": "注意：CLI 内でのアカウントログイン（例：Google アカウントで Gemini にサインイン）の代わりにはなりません。OAuth ログインはターミナルで CLI から行ってください。",
+    "emptyOverridesError": "保存する前に、起動パスまたは少なくとも 1 つの環境変数を入力してください。"
   },
   "remoteAgent": {
     "title": "リモートエージェント",
