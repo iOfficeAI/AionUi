@@ -2,7 +2,7 @@ import { ipcBridge } from '@/common';
 import type { AssistantEditorViewModel, AssistantListItem } from './types';
 import { useManagedAgentRuntimeCatalog } from '@/renderer/hooks/agent/useManagedAgents';
 import { useModelProviderList } from '@/renderer/hooks/agent/useModelProviderList';
-import { buildAgentRuntimeModeState } from '@/renderer/utils/model/agentRuntimeCatalog';
+import { buildAgentRuntimeModeState, buildAgentRuntimeModelInfo } from '@/renderer/utils/model/agentRuntimeCatalog';
 import type { AgentModeOption } from '@/renderer/utils/model/agentTypes';
 import { Button, Select, Tag } from '@arco-design/web-react';
 import { Info, Robot } from '@icon-park/react';
@@ -90,9 +90,28 @@ const AssistantEditorSections: React.FC<AssistantEditorSectionsProps> = ({ edito
       label: `${provider.name || provider.id} · ${modelName}`,
     }))
   );
+  const currentAgentRuntimeCatalog = useMemo(
+    () =>
+      currentBackend
+        ? managedAgentRuntimeCatalog.find((agentMetadata) => agentMetadata.id === currentBackend.id)
+        : null,
+    [currentBackend, managedAgentRuntimeCatalog]
+  );
+  const currentAgentRuntimeModelInfo = useMemo(
+    () => buildAgentRuntimeModelInfo(currentAgentRuntimeCatalog),
+    [currentAgentRuntimeCatalog]
+  );
   const modelOptions = useMemo(() => {
     if (editAgentRuntimeKey === 'aionrs') {
       return providerModelOptions;
+    }
+
+    if (currentAgentRuntimeModelInfo && currentAgentRuntimeModelInfo.available_models.length > 0) {
+      return currentAgentRuntimeModelInfo.available_models.map((model) => ({
+        key: `${editAgent}-${model.id}`,
+        value: model.id,
+        label: model.label,
+      }));
     }
 
     if (currentBackend && currentBackend.modelOptions.length > 0) {
@@ -104,14 +123,7 @@ const AssistantEditorSections: React.FC<AssistantEditorSectionsProps> = ({ edito
     }
 
     return [];
-  }, [currentBackend, editAgent, editAgentRuntimeKey, providerModelOptions]);
-  const currentAgentRuntimeCatalog = useMemo(
-    () =>
-      currentBackend
-        ? managedAgentRuntimeCatalog.find((agentMetadata) => agentMetadata.id === currentBackend.id)
-        : null,
-    [currentBackend, managedAgentRuntimeCatalog]
-  );
+  }, [currentAgentRuntimeModelInfo, currentBackend, editAgent, editAgentRuntimeKey, providerModelOptions]);
   const permissionOptions = useMemo<AgentModeOption[]>(
     () =>
       buildAgentRuntimeModeState(currentAgentRuntimeCatalog).options.map((option) => ({

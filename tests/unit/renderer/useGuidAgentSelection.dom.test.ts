@@ -443,6 +443,69 @@ describe('assistant model helpers', () => {
     });
   });
 
+  it('prefers model config_options before falling back to available_models', () => {
+    const agent = {
+      config_options: {
+        config_options: [
+          {
+            id: 'model',
+            category: 'model',
+            type: 'select',
+            currentValue: 'gpt-5.5',
+            options: [
+              { value: 'gpt-5.5', name: 'GPT-5.5' },
+              { value: 'gpt-5.2', name: 'gpt-5.2' },
+            ],
+          },
+        ],
+      },
+      available_models: {
+        current_model_id: 'legacy-model',
+        available_models: [{ id: 'legacy-model', label: 'Legacy Model' }],
+      },
+    };
+
+    expect(buildAgentRuntimeModelInfo(agent)).toEqual({
+      current_model_id: 'gpt-5.5',
+      current_model_label: 'GPT-5.5',
+      available_models: [
+        { id: 'gpt-5.5', label: 'GPT-5.5' },
+        { id: 'gpt-5.2', label: 'gpt-5.2' },
+      ],
+    });
+  });
+
+  it('prefers mode config_options before falling back to available_modes', () => {
+    const agent = {
+      config_options: {
+        config_options: [
+          {
+            id: 'mode',
+            category: 'mode',
+            type: 'select',
+            currentValue: 'full-access',
+            options: [
+              { value: 'read-only', name: 'Read Only' },
+              { value: 'full-access', name: 'Full Access' },
+            ],
+          },
+        ],
+      },
+      available_modes: {
+        current_mode_id: 'legacy-mode',
+        available_modes: [{ id: 'legacy-mode', name: 'Legacy Mode' }],
+      },
+    };
+
+    expect(buildAgentRuntimeModeState(agent)).toEqual({
+      currentMode: 'full-access',
+      options: [
+        { value: 'read-only', label: 'Read Only', description: undefined },
+        { value: 'full-access', label: 'Full Access', description: undefined },
+      ],
+    });
+  });
+
   it('builds ACP model info from assistant models', () => {
     expect(buildAssistantModelInfo(['claude-opus', 'claude-sonnet'])).toEqual({
       current_model_id: 'claude-opus',

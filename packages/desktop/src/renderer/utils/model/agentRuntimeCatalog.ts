@@ -109,8 +109,8 @@ export function buildAgentRuntimeModelInfo(agent: AgentRuntimeCatalog | null | u
   if (!agent) return null;
 
   return (
-    buildModelInfoFromPayload(agent.available_models) ??
-    buildModelInfoFromConfigOptions(normalizeConfigOptions(agent.config_options))
+    buildModelInfoFromConfigOptions(normalizeConfigOptions(agent.config_options)) ??
+    buildModelInfoFromPayload(agent.available_models)
   );
 }
 
@@ -175,8 +175,11 @@ export function buildAgentRuntimeModeState(agent: AgentRuntimeCatalog | null | u
 } {
   if (!agent) return { options: [] };
 
+  const fromConfigOptions = buildModeStateFromConfigOptions(normalizeConfigOptions(agent.config_options));
+  if (fromConfigOptions.options.length > 0) return fromConfigOptions;
+
   const fromTopLevelModes = buildModeStateFromPayload(agent.available_modes);
   if (fromTopLevelModes.options.length > 0) return fromTopLevelModes;
 
-  return buildModeStateFromConfigOptions(normalizeConfigOptions(agent.config_options));
+  return { options: [] };
 }
