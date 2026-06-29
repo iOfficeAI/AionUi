@@ -683,13 +683,7 @@ brew install aionui
 
 ### 開發環境設定
 
-技術棧：Electron · Vite · React · Bun
-
-```bash
-bun install        # 安裝相依套件
-bun run dev        # 啟動開發伺服器
-bun run test       # 執行單元測試
-```
+AionUi 本機開發涉及兩個倉庫：AionUi 負責 Electron 前端，AionCore 負責本機後端。完整的 macOS、Linux 和 Windows 設定流程請見 [開發指南](../contributing/development.md)。
 
 ---
 

@@ -627,13 +627,7 @@ brew install aionui
 
 ### Geliştirme Ortamı
 
-Teknoloji yığını: Electron · Vite · React · Bun
-
-```bash
-bun install        # bağımlılıkları yükle
-bun run dev        # geliştirme sunucusunu başlat
-bun run test       # birim testlerini çalıştır
-```
+AionUi yerel geliştirme iki depo kullanır: Electron frontend için AionUi ve yerel backend için AionCore. macOS, Linux ve Windows için tam kurulum adımları için [Development Guide](../contributing/development.md) belgesine bakın.
 
 ---
 

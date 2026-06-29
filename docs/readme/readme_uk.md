@@ -406,13 +406,7 @@ brew install aionui
 
 ### Налаштування середовища розробки
 
-Технологічний стек: Electron · Vite · React · Bun
-
-```bash
-bun install        # встановити залежності
-bun run dev        # запустити dev-сервер
-bun run test       # запустити юніт-тести
-```
+Локальна розробка AionUi використовує два репозиторії: AionUi для Electron-фронтенду та AionCore для локального backend. Повні інструкції для macOS, Linux і Windows наведені в [Development Guide](../contributing/development.md).
 
 ---
 
