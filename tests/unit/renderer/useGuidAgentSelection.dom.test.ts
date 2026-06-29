@@ -19,6 +19,18 @@ import {
 let mockAssistants: Assistant[] = [];
 let mockManagedAgents: ManagedAgent[] = [];
 
+const { configGetMock, configSetMock } = vi.hoisted(() => ({
+  configGetMock: vi.fn(),
+  configSetMock: vi.fn(),
+}));
+
+vi.mock('@/common/config/configService', () => ({
+  configService: {
+    get: configGetMock,
+    set: configSetMock,
+  },
+}));
+
 vi.mock('@/renderer/pages/guid/hooks/useCustomAgentsLoader', () => ({
   useCustomAgentsLoader: () => ({
     assistants: mockAssistants,
@@ -31,6 +43,8 @@ vi.mock('@/renderer/hooks/agent/useManagedAgents', () => ({
 
 describe('useGuidAssistantSelection', () => {
   beforeEach(() => {
+    configGetMock.mockReturnValue(undefined);
+    configSetMock.mockResolvedValue(undefined);
     mockManagedAgents = [];
     mockAssistants = [
       {
@@ -77,6 +91,90 @@ describe('useGuidAssistantSelection', () => {
         { id: 'claude-opus', label: 'claude-opus' },
         { id: 'claude-sonnet', label: 'claude-sonnet' },
       ],
+    });
+  });
+
+  it('restores the last selected guid assistant before falling back to the aionrs default', async () => {
+    mockAssistants = [
+      assistantFixture({ id: 'bare-aionrs', runtimeKey: 'aionrs', source: 'generated', sortOrder: 1 }),
+      assistantFixture({ id: 'assistant-claude', runtimeKey: 'claude', source: 'builtin', sortOrder: 2 }),
+    ];
+    configGetMock.mockImplementation((key: string) =>
+      key === 'guid.lastAssistantId' ? 'assistant-claude' : undefined
+    );
+
+    const { result } = renderHook(() =>
+      useGuidAssistantSelection({
+        resetAssistant: false,
+      })
+    );
+
+    await waitFor(() => {
+      expect(result.current.selectedAssistantId).toBe('assistant-claude');
+    });
+  });
+
+  it('restores the last selected guid assistant when the guid page resets for a new chat', async () => {
+    mockAssistants = [
+      assistantFixture({ id: 'bare-aionrs', runtimeKey: 'aionrs', source: 'generated', sortOrder: 1 }),
+      assistantFixture({ id: 'assistant-claude', runtimeKey: 'claude', source: 'builtin', sortOrder: 2 }),
+    ];
+    configGetMock.mockImplementation((key: string) =>
+      key === 'guid.lastAssistantId' ? 'assistant-claude' : undefined
+    );
+
+    const { result } = renderHook(() =>
+      useGuidAssistantSelection({
+        resetAssistant: true,
+        locationKey: 'new-chat',
+      })
+    );
+
+    await waitFor(() => {
+      expect(result.current.selectedAssistantId).toBe('assistant-claude');
+    });
+  });
+
+  it('persists manual guid assistant selections for the next visit', async () => {
+    mockAssistants = [
+      assistantFixture({ id: 'bare-aionrs', runtimeKey: 'aionrs', source: 'generated', sortOrder: 1 }),
+      assistantFixture({ id: 'assistant-claude', runtimeKey: 'claude', source: 'builtin', sortOrder: 2 }),
+    ];
+
+    const { result } = renderHook(() =>
+      useGuidAssistantSelection({
+        resetAssistant: false,
+      })
+    );
+
+    await waitFor(() => {
+      expect(result.current.selectedAssistantId).toBe('bare-aionrs');
+    });
+
+    act(() => {
+      result.current.setSelectedAssistantId('assistant-claude');
+    });
+
+    expect(configSetMock).toHaveBeenCalledWith('guid.lastAssistantId', 'assistant-claude');
+  });
+
+  it('falls back to the default assistant when the persisted guid assistant no longer exists', async () => {
+    mockAssistants = [
+      assistantFixture({ id: 'bare-aionrs', runtimeKey: 'aionrs', source: 'generated', sortOrder: 1 }),
+      assistantFixture({ id: 'assistant-claude', runtimeKey: 'claude', source: 'builtin', sortOrder: 2 }),
+    ];
+    configGetMock.mockImplementation((key: string) =>
+      key === 'guid.lastAssistantId' ? 'removed-assistant' : undefined
+    );
+
+    const { result } = renderHook(() =>
+      useGuidAssistantSelection({
+        resetAssistant: false,
+      })
+    );
+
+    await waitFor(() => {
+      expect(result.current.selectedAssistantId).toBe('bare-aionrs');
     });
   });
 
@@ -405,6 +503,43 @@ describe('useGuidAssistantSelection', () => {
     expect(result.current.currentAgentModeOptions.map((mode) => mode.value)).toEqual(['default', 'auto_edit', 'yolo']);
   });
 });
+
+function assistantFixture({
+  id,
+  runtimeKey,
+  source,
+  sortOrder,
+}: {
+  id: string;
+  runtimeKey: string;
+  source: Assistant['source'];
+  sortOrder: number;
+}): Assistant {
+  const isAionrs = runtimeKey === 'aionrs';
+  return {
+    id,
+    source,
+    name: id,
+    name_i18n: {},
+    description_i18n: {},
+    enabled: true,
+    sort_order: sortOrder,
+    agent_id: `agent-${runtimeKey}`,
+    agent: isAionrs
+      ? { type: 'aionrs', source: 'internal' }
+      : { type: 'acp', source: 'builtin', acp_backend: runtimeKey },
+    enabled_skills: [],
+    custom_skill_names: [],
+    disabled_builtin_skills: [],
+    context_i18n: {},
+    prompts: [],
+    prompts_i18n: {},
+    models: [],
+    agent_status: 'online',
+    team_selectable: true,
+    deletable: source === 'user',
+  };
+}
 
 describe('assistant model helpers', () => {
   it('builds model and mode info from agent runtime payloads', () => {

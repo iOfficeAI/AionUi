@@ -5,6 +5,7 @@
  */
 
 import { assistantRuntimeKey, isAionrsAssistant, type Assistant } from '@/common/types/agent/assistantTypes';
+import { configService } from '@/common/config/configService';
 import type { AcpModelInfo } from '../types';
 import type { AgentModeOption } from '@/renderer/utils/model/agentTypes';
 import {
@@ -72,6 +73,18 @@ export function resolveAssistantSelectionKey(
   return undefined;
 }
 
+function readPersistedGuidAssistantSelectionKey(assistants: Assistant[]): string | undefined {
+  const savedKey = configService.get('guid.lastAssistantId');
+  const enabledAssistants = assistants.filter((assistant) => assistant.enabled !== false);
+  return resolveAssistantSelectionKey(savedKey, enabledAssistants);
+}
+
+function persistGuidAssistantSelectionKey(assistantId: string): void {
+  void configService.set('guid.lastAssistantId', assistantId).catch((error) => {
+    console.error('[Guid] Failed to persist selected assistant:', error);
+  });
+}
+
 export function pickDefaultAssistantSelectionKey(assistants: Assistant[]): string | null {
   const enabledAssistants = assistants.filter((assistant) => assistant.enabled !== false);
   const preferred =
@@ -122,6 +135,7 @@ export const useGuidAssistantSelection = ({
     (assistantId: string) => {
       const normalizedId = resolveAssistantSelectionKey(assistantId, assistants) ?? assistantId;
       _setSelectedAssistantId(normalizedId);
+      persistGuidAssistantSelectionKey(normalizedId);
     },
     [assistants]
   );
@@ -148,7 +162,8 @@ export const useGuidAssistantSelection = ({
 
     if (resetAssistant) {
       resetHandledRef.current = true;
-      const fallbackId = pickDefaultAssistantSelectionKey(assistants);
+      const fallbackId =
+        readPersistedGuidAssistantSelectionKey(assistants) ?? pickDefaultAssistantSelectionKey(assistants);
       _setSelectedAssistantId(fallbackId);
     }
   }, [assistants, preselectAssistantId, resetAssistant]);
@@ -158,7 +173,9 @@ export const useGuidAssistantSelection = ({
     if (resetAssistant) return;
     if (preselectAssistantId && resolveAssistantSelectionKey(preselectAssistantId, assistants)) return;
     if (!selectedAssistantIdState || !assistants.some((assistant) => assistant.id === selectedAssistantIdState)) {
-      _setSelectedAssistantId(pickDefaultAssistantSelectionKey(assistants));
+      _setSelectedAssistantId(
+        readPersistedGuidAssistantSelectionKey(assistants) ?? pickDefaultAssistantSelectionKey(assistants)
+      );
     }
   }, [assistants, preselectAssistantId, resetAssistant, selectedAssistantIdState]);
 
