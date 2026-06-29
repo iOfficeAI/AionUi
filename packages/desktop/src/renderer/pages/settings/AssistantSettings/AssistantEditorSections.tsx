@@ -111,14 +111,16 @@ const AssistantEditorSections: React.FC<AssistantEditorSectionsProps> = ({ edito
         key: `${editAgent}-${model.id}`,
         value: model.id,
         label: model.label,
+        description: model.description,
       }));
     }
 
     if (currentBackend && currentBackend.modelOptions.length > 0) {
-      return currentBackend.modelOptions.map((model: { value: string; label: string }) => ({
+      return currentBackend.modelOptions.map((model: { value: string; label: string; description?: string }) => ({
         key: `${editAgent}-${model.value}`,
         value: model.value,
         label: model.label,
+        description: model.description,
       }));
     }
 

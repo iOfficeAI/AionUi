@@ -212,14 +212,13 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
                       {healthStatus !== 'unknown' && (
                         <div className={`w-6px h-6px rounded-full shrink-0 ${healthColor}`} />
                       )}
-                      <span className='min-w-0 flex flex-col gap-2px'>
-                        <span className='truncate'>{model.label}</span>
-                        {model.description ? (
-                          <span className='text-12px leading-16px text-t-tertiary whitespace-normal'>
-                            {model.description}
-                          </span>
-                        ) : null}
-                      </span>
+                      {model.description ? (
+                        <Tooltip content={model.description} position='right'>
+                          <span className='min-w-0 truncate'>{model.label}</span>
+                        </Tooltip>
+                      ) : (
+                        <span className='min-w-0 truncate'>{model.label}</span>
+                      )}
                     </div>
                   </Menu.Item>
                 );

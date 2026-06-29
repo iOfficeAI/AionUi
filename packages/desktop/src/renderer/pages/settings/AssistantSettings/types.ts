@@ -46,6 +46,7 @@ export type BuiltinAvatarOption = {
 export type AvailableBackendModelOption = {
   value: string;
   label: string;
+  description?: string;
 };
 
 export type AvailableBackend = {

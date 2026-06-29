@@ -8,7 +8,7 @@ import { classifyConfigSetError, useAcpConfigOptions } from '@/renderer/hooks/ag
 import type { AgentModeOption } from '@/renderer/utils/model/agentTypes';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { AgentLogoIcon } from './AgentBadge';
-import { Dropdown, Menu, Message } from '@arco-design/web-react';
+import { Dropdown, Menu, Message, Tooltip } from '@arco-design/web-react';
 import { Down } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -211,8 +211,16 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
               data-mode-value={mode.value}
               data-testid={`aionrs-mode-option-${mode.value}`}
             >
-              {current_mode === mode.value && <span className='text-primary'>✓</span>}
-              <span className={current_mode !== mode.value ? 'ml-16px' : ''}>{getDisplayModeLabel(mode)}</span>
+              <span aria-hidden='true' className='w-16px shrink-0 text-primary'>
+                {current_mode === mode.value ? '✓' : ''}
+              </span>
+              {mode.description ? (
+                <Tooltip content={mode.description} position='right'>
+                  <span className='min-w-0 truncate'>{getDisplayModeLabel(mode)}</span>
+                </Tooltip>
+              ) : (
+                <span className='min-w-0 truncate'>{getDisplayModeLabel(mode)}</span>
+              )}
             </div>
           </Menu.Item>
         ))}

@@ -1,13 +1,13 @@
 import type { BuiltinAutoSkill, SkillInfo } from '../types';
 import type { IMcpServer } from '@/common/config/storage';
-import { Button, Select } from '@arco-design/web-react';
+import { Button, Select, Tooltip } from '@arco-design/web-react';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { ConfigRow, ReadonlySelectionField, SectionCard } from './editorSectionPrimitives';
 import styles from './DefaultsSection.module.css';
 
-type SelectOption = { key: string; value: string; label: string };
+type SelectOption = { key: string; value: string; label: string; description?: string };
 type EditableSkillOption = { value: string; label: string; isAuto?: boolean; disabled?: boolean };
 
 const getEditorSelectPopupContainer = (node: HTMLElement) =>
@@ -38,7 +38,7 @@ type DefaultsSectionProps = {
   defaultMcpMode: 'auto' | 'fixed';
   setDefaultMcpMode: (value: 'auto' | 'fixed') => void;
   modelOptions: SelectOption[];
-  permissionOptions: Array<{ value: string; label: string }>;
+  permissionOptions: Array<{ value: string; label: string; description?: string }>;
   editableSkillOptions: EditableSkillOption[];
   selectedSkillValues: string[];
   enabledMcpServers: IMcpServer[];
@@ -126,7 +126,13 @@ const DefaultsSection: React.FC<DefaultsSectionProps> = ({
             <Select.Option value={AUTO_SELECT_VALUE}>{autoDefaultOptionLabel}</Select.Option>
             {modelOptions.map((option) => (
               <Select.Option key={`${localeKey}-${option.key}`} value={option.value}>
-                {option.label}
+                {option.description ? (
+                  <Tooltip content={option.description} position='right'>
+                    <span className='block min-w-0 truncate'>{option.label}</span>
+                  </Tooltip>
+                ) : (
+                  <span className='block min-w-0 truncate'>{option.label}</span>
+                )}
               </Select.Option>
             ))}
           </Select>
@@ -162,7 +168,17 @@ const DefaultsSection: React.FC<DefaultsSectionProps> = ({
             <Select.Option value={AUTO_SELECT_VALUE}>{autoDefaultOptionLabel}</Select.Option>
             {permissionOptions.map((option) => (
               <Select.Option key={`${localeKey}-${option.value}`} value={option.value}>
-                {t(`agentMode.${option.value}`, { defaultValue: option.label })}
+                {option.description ? (
+                  <Tooltip content={option.description} position='right'>
+                    <span className='block min-w-0 truncate'>
+                      {t(`agentMode.${option.value}`, { defaultValue: option.label })}
+                    </span>
+                  </Tooltip>
+                ) : (
+                  <span className='block min-w-0 truncate'>
+                    {t(`agentMode.${option.value}`, { defaultValue: option.label })}
+                  </span>
+                )}
               </Select.Option>
             ))}
           </Select>

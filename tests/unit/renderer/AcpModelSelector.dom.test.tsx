@@ -41,8 +41,8 @@ const thoughtLevel: AcpDerivedOption = {
   category: 'thought_level',
   currentValue: 'high',
   options: [
-    { value: 'low', label: 'Low' },
-    { value: 'high', label: 'High' },
+    { value: 'low', label: 'Low', description: 'Quick checks with minimal reasoning' },
+    { value: 'high', label: 'High', description: 'More reasoning for complex work' },
   ],
 };
 
@@ -108,7 +108,11 @@ vi.mock('react-i18next', () => ({
 
 vi.mock('@arco-design/web-react', () => {
   const Menu = Object.assign(
-    ({ children }: { children?: React.ReactNode }) => <div data-testid='dropdown-menu'>{children}</div>,
+    ({ children, className }: { children?: React.ReactNode; className?: string }) => (
+      <div data-testid='dropdown-menu' className={className}>
+        {children}
+      </div>
+    ),
     {
       Item: ({
         children,
@@ -157,7 +161,9 @@ vi.mock('@arco-design/web-react', () => {
       success: messageSuccessMock,
       error: messageErrorMock,
     },
-    Tooltip: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
+    Tooltip: ({ children, content }: { children?: React.ReactNode; content?: React.ReactNode }) => (
+      <span data-tooltip-content={typeof content === 'string' ? content : undefined}>{children}</span>
+    ),
   };
 });
 
@@ -194,7 +200,7 @@ describe('AcpModelSelector runtime options', () => {
     expect(otherModelItem).not.toHaveTextContent('\u2713');
   });
 
-  it('shows model descriptions as secondary option text', () => {
+  it('shows model descriptions in option tooltips', () => {
     useAcpModelInfoMock.mockReturnValue(
       makeResult({
         model_info: {
@@ -219,8 +225,27 @@ describe('AcpModelSelector runtime options', () => {
     render(<AcpModelSelector conversation_id='conversation-1' backend='codex' />);
 
     const modelGroup = screen.getByRole('group', { name: 'Model' });
-    expect(within(modelGroup).getByText('Sonnet 4.6 · Best for everyday tasks')).toBeInTheDocument();
-    expect(within(modelGroup).getByText('Opus 4.8 · Most capable for complex work')).toBeInTheDocument();
+    expect(screen.queryByText('Sonnet 4.6 · Best for everyday tasks')).not.toBeInTheDocument();
+    expect(screen.queryByText('Opus 4.8 · Most capable for complex work')).not.toBeInTheDocument();
+    expect(within(modelGroup).getByText('Default').closest('[data-tooltip-content]')).toHaveAttribute(
+      'data-tooltip-content',
+      'Sonnet 4.6 · Best for everyday tasks'
+    );
+    expect(within(modelGroup).getByText('Opus').closest('[data-tooltip-content]')).toHaveAttribute(
+      'data-tooltip-content',
+      'Opus 4.8 · Most capable for complex work'
+    );
+  });
+
+  it('shows thought level descriptions in option tooltips', () => {
+    render(<AcpModelSelector conversation_id='conversation-1' backend='codex' />);
+
+    const thoughtGroup = screen.getByRole('group', { name: 'Thinking Level' });
+    expect(screen.queryByText('More reasoning for complex work')).not.toBeInTheDocument();
+    expect(within(thoughtGroup).getByText('High').closest('[data-tooltip-content]')).toHaveAttribute(
+      'data-tooltip-content',
+      'More reasoning for complex work'
+    );
   });
 
   it('omits the thought level label and group when the runtime has no thought option', () => {

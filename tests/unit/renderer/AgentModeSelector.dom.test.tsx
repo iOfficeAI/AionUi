@@ -70,6 +70,9 @@ vi.mock('@arco-design/web-react', () => {
       success: vi.fn(),
       error: vi.fn(),
     },
+    Tooltip: ({ children, content }: { children?: React.ReactNode; content?: React.ReactNode }) => (
+      <span data-tooltip-content={typeof content === 'string' ? content : undefined}>{children}</span>
+    ),
   };
 });
 
@@ -91,8 +94,8 @@ const runtimeMode = () => ({
   category: 'mode',
   currentValue: 'default',
   options: [
-    { value: 'default', label: 'Default' },
-    { value: 'bypassPermissions', label: 'Bypass Permissions' },
+    { value: 'default', label: 'Default', description: 'Ask before sensitive changes' },
+    { value: 'bypassPermissions', label: 'Bypass Permissions', description: 'Run without permission prompts' },
   ],
 });
 
@@ -184,5 +187,15 @@ describe('AgentModeSelector', () => {
     await waitFor(() => {
       expect(setConfigOption).toHaveBeenCalledWith('mode', 'bypassPermissions');
     });
+  });
+
+  it('shows runtime mode descriptions in option tooltips', () => {
+    render(<AgentModeSelector backend='claude' conversation_id='conv-1' />);
+
+    expect(screen.queryByText('Run without permission prompts')).not.toBeInTheDocument();
+    expect(screen.getByText('Bypass Permissions').closest('[data-tooltip-content]')).toHaveAttribute(
+      'data-tooltip-content',
+      'Run without permission prompts'
+    );
   });
 });

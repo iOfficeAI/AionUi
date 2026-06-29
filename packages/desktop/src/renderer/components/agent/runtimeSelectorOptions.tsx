@@ -5,7 +5,7 @@
  */
 
 import type { AcpConfigSetStatus, AcpDerivedOption } from '@/renderer/hooks/agent/useAcpConfigOptions';
-import { Menu } from '@arco-design/web-react';
+import { Menu, Tooltip } from '@arco-design/web-react';
 import React from 'react';
 
 export const getCurrentThoughtLevelLabel = (thoughtLevel: AcpDerivedOption | null | undefined): string => {
@@ -39,19 +39,24 @@ export const RuntimeSelectorCheckedItem: React.FC<{
   selected: boolean;
   description?: React.ReactNode;
   children: React.ReactNode;
-}> = ({ selected, description, children }) => (
-  <div className='flex items-center gap-8px w-full'>
-    <span aria-hidden='true' className='w-16px shrink-0 text-primary'>
-      {selected ? '\u2713' : ''}
-    </span>
-    <span className='min-w-0 flex flex-col gap-2px'>
-      <span className='truncate'>{children}</span>
-      {description ? (
-        <span className='text-12px leading-16px text-t-tertiary whitespace-normal'>{description}</span>
-      ) : null}
-    </span>
-  </div>
-);
+}> = ({ selected, description, children }) => {
+  const content = (
+    <div className='flex items-center gap-8px w-full min-w-0'>
+      <span aria-hidden='true' className='w-16px shrink-0 text-primary'>
+        {selected ? '\u2713' : ''}
+      </span>
+      <span className='min-w-0 truncate'>{children}</span>
+    </div>
+  );
+
+  return description ? (
+    <Tooltip content={description} position='right'>
+      {content}
+    </Tooltip>
+  ) : (
+    content
+  );
+};
 
 export const renderThoughtLevelMenuGroup = ({
   thoughtLevel,
@@ -76,7 +81,10 @@ export const renderThoughtLevelMenuGroup = ({
             if (!setting) onSelect(item.value);
           }}
         >
-          <RuntimeSelectorCheckedItem selected={item.value === thoughtLevel.currentValue}>
+          <RuntimeSelectorCheckedItem
+            selected={item.value === thoughtLevel.currentValue}
+            description={item.description}
+          >
             {item.label}
           </RuntimeSelectorCheckedItem>
         </Menu.Item>
