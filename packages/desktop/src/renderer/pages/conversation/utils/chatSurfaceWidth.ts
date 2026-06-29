@@ -1,5 +1,6 @@
-export const STANDALONE_CHAT_SURFACE_WIDTH_CLASS =
-  'w-[calc(100%-24px)] md:w-[calc(100%-clamp(80px,10vw,240px))] max-w-none mx-auto';
+export const CHAT_SURFACE_CONTAINER_CLASS = 'chat-surface-container';
+
+export const STANDALONE_CHAT_SURFACE_WIDTH_CLASS = 'chat-surface-fluid';
 
 export const TEAM_CHAT_SURFACE_WIDTH_CLASS = 'w-full max-w-full';
 

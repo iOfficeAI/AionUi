@@ -1,3 +1,24 @@
+/* Standalone chats keep comfortable side insets only when the chat column itself
+   has enough room. Split preview/project layouts can make the column narrow even
+   on wide screens, so this must key off container width instead of viewport. */
+.chat-surface-container {
+  container-type: inline-size;
+}
+
+.chat-surface-fluid {
+  width: 100%;
+  max-width: 100%;
+}
+
+@container (min-width: 720px) {
+  .chat-surface-fluid {
+    width: calc(100% - clamp(80px, 10cqw, 240px));
+    max-width: none;
+    margin-left: auto;
+    margin-right: auto;
+  }
+}
+
 /* Mobile typography tuning: conversation readability */
 @media (max-width: 767px) {
   /* Message body — keep body type compact so messages don't dominate the screen */

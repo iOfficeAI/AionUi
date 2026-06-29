@@ -192,15 +192,15 @@ describe('MessageList', () => {
     expect(messageRow.className).not.toContain('pt-10px');
   });
 
-  it('uses fluid golden-ratio side inset for message rows', () => {
+  it('uses container-responsive fluid width for standalone message rows', () => {
     render(<MessageList />, {
       wrapper: ({ children }) => <Wrapper>{children}</Wrapper>,
     });
 
     const messageRow = screen.getByTestId('message-text-left');
-    expect(messageRow.className).toContain('w-[calc(100%-24px)]');
-    expect(messageRow.className).toContain('md:w-[calc(100%-clamp(80px,10vw,240px))]');
-    expect(messageRow.className).toContain('max-w-none');
+    expect(messageRow.className).toContain('chat-surface-fluid');
+    expect(messageRow.className).not.toContain('w-[calc(100%-24px)]');
+    expect(messageRow.className).not.toContain('md:w-[calc(100%-clamp(80px,10vw,240px))]');
     expect(messageRow.className).not.toContain('max-w-780px');
   });
 
