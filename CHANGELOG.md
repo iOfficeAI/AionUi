@@ -1,5 +1,33 @@
 # Changelog
 
+## [2.1.26](https://github.com/iOfficeAI/AionUi/compare/v2.1.25...v2.1.26) (2026-06-29)
+
+### Desktop
+
+#### Bug Fixes
+
+- **agent:** tighten repair save and test flow (#3470)
+- **guid:** remember last selected assistant (#3468)
+- **assistant:** prefer runtime config options for defaults (#3466)
+- **conversation:** restore team chat full width (#3464)
+- **fs:** pass workspace roots to local fs routes (#3451)
+
+#### Styling
+
+- **settings:** clean up assistant card more-button
+
+### Core ([v0.1.39](https://github.com/iOfficeAI/AionCore/releases/tag/v0.1.39))
+
+#### Bug Fixes
+
+- **agent:** adapt aionrs compat API (#528)
+- **agent:** guard internal Aion CLI command overrides (#538)
+- **app:** reuse conversation service for channel messages (#531)
+- **assistant:** preserve builtin override selections (#535)
+- **file:** trust local workspace roots for fs routes (#527)
+
+---
+
 ## [2.1.25](https://github.com/iOfficeAI/AionUi/compare/v2.1.24...v2.1.25) (2026-06-26)
 
 ### Desktop
