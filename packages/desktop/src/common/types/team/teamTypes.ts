@@ -112,6 +112,10 @@ export type ITeamRunEvent = {
   slot_work?: ITeamSlotWork[];
 };
 
+export type ITeamRunStateResponse = {
+  active_run: ITeamRunEvent | null;
+};
+
 export type ITeamChildTurnEvent = {
   team_id: string;
   team_run_id: string;

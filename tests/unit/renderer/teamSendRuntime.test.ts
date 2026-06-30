@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { BackendHttpError } from '@/common/adapter/httpBridge';
 import {
   buildTeamSendRuntime,
   buildTeamStopHandler,
@@ -252,6 +253,128 @@ describe('buildTeamSendRuntime', () => {
     expect(onStopFailed).toHaveBeenCalledTimes(1);
     expect(onStopFailed).toHaveBeenCalledWith();
     expect(warn).toHaveBeenCalledWith('[TeamChatView] pause slot work failed', expect.any(Error));
+    warn.mockRestore();
+  });
+
+  it('triggers reconcile for stale pause errors without calling generic failure callback', async () => {
+    const pauseSlotWork = vi.fn().mockRejectedValue(
+      new BackendHttpError({
+        method: 'POST',
+        path: '/api/teams/team-1/runs/run-1/agents/lead/pause',
+        status: 400,
+        body: {
+          success: false,
+          code: 'BAD_REQUEST',
+          error: 'no active team run to pause',
+        },
+      })
+    );
+    const onStopFailed = vi.fn();
+    const onRunStateStale = vi.fn().mockResolvedValue(true);
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const handler = buildTeamStopHandler({
+      team_id: 'team-1',
+      slot_id: 'lead',
+      runView: {
+        activeRun: activeRunView.activeRun,
+        childTurnsBySlot: {},
+        slotWorkBySlot: {
+          lead: {
+            slot_id: 'lead',
+            role: 'lead',
+            pending_wake_count: 0,
+            starting_child_count: 0,
+            active_turn_id: 'turn-lead',
+          },
+        },
+      },
+      pauseSlotWork,
+      onStopFailed,
+      onRunStateStale,
+    });
+
+    await handler();
+
+    expect(onRunStateStale).toHaveBeenCalledTimes(1);
+    expect(onStopFailed).not.toHaveBeenCalled();
+    expect(warn).toHaveBeenCalledWith('[TeamChatView] pause slot work failed', expect.any(BackendHttpError));
+    warn.mockRestore();
+  });
+
+  it('shows generic failure callback for stale pause errors when reconcile fails', async () => {
+    const pauseSlotWork = vi.fn().mockRejectedValue(
+      new BackendHttpError({
+        method: 'POST',
+        path: '/api/teams/team-1/runs/run-1/agents/lead/pause',
+        status: 400,
+        body: {
+          success: false,
+          code: 'BAD_REQUEST',
+          error: 'no active team run to pause',
+        },
+      })
+    );
+    const onStopFailed = vi.fn();
+    const onRunStateStale = vi.fn().mockResolvedValue(false);
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const handler = buildTeamStopHandler({
+      team_id: 'team-1',
+      slot_id: 'lead',
+      runView: {
+        activeRun: activeRunView.activeRun,
+        childTurnsBySlot: {},
+        slotWorkBySlot: {
+          lead: {
+            slot_id: 'lead',
+            role: 'lead',
+            pending_wake_count: 0,
+            starting_child_count: 0,
+            active_turn_id: 'turn-lead',
+          },
+        },
+      },
+      pauseSlotWork,
+      onStopFailed,
+      onRunStateStale,
+    });
+
+    await handler();
+
+    expect(onRunStateStale).toHaveBeenCalledTimes(1);
+    expect(onStopFailed).toHaveBeenCalledTimes(1);
+    warn.mockRestore();
+  });
+
+  it('does not reconcile non-stale pause errors', async () => {
+    const pauseSlotWork = vi.fn().mockRejectedValue(new Error('other'));
+    const onStopFailed = vi.fn();
+    const onRunStateStale = vi.fn();
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const handler = buildTeamStopHandler({
+      team_id: 'team-1',
+      slot_id: 'lead',
+      runView: {
+        activeRun: activeRunView.activeRun,
+        childTurnsBySlot: {},
+        slotWorkBySlot: {
+          lead: {
+            slot_id: 'lead',
+            role: 'lead',
+            pending_wake_count: 0,
+            starting_child_count: 0,
+            active_turn_id: 'turn-lead',
+          },
+        },
+      },
+      pauseSlotWork,
+      onStopFailed,
+      onRunStateStale,
+    });
+
+    await handler();
+
+    expect(onRunStateStale).not.toHaveBeenCalled();
+    expect(onStopFailed).toHaveBeenCalledTimes(1);
     warn.mockRestore();
   });
 });

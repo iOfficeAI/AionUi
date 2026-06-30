@@ -108,6 +108,7 @@ const AssistantChatSlot: React.FC<{
   onRemove?: () => void;
   teamRunView: TeamRunViewState;
   onTeamRunAck: ReturnType<typeof useTeamRunView>['applyAck'];
+  onRunStateStale: ReturnType<typeof useTeamRunView>['reconcile'];
 }> = ({
   assistant,
   team_id,
@@ -117,6 +118,7 @@ const AssistantChatSlot: React.FC<{
   onRemove,
   teamRunView,
   onTeamRunAck,
+  onRunStateStale,
 }) => {
   const layout = useLayoutContext();
   const isMobile = layout?.isMobile ?? false;
@@ -206,6 +208,7 @@ const AssistantChatSlot: React.FC<{
             isLeader={isLeader}
             teamRunView={teamRunView}
             onTeamRunAck={onTeamRunAck}
+            onRunStateStale={() => onRunStateStale('pause.stale')}
           />
         ) : (
           <div className='flex flex-1 items-center justify-center'>
@@ -451,6 +454,7 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onRenameTeam })
                     onRemove={() => handleRemoveAssistant(assistant.slot_id)}
                     teamRunView={teamRun.state}
                     onTeamRunAck={teamRun.applyAck}
+                    onRunStateStale={teamRun.reconcile}
                   />
                 </div>
               );
@@ -507,6 +511,7 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onRenameTeam })
                         onRemove={() => handleRemoveAssistant(assistant.slot_id)}
                         teamRunView={teamRun.state}
                         onTeamRunAck={teamRun.applyAck}
+                        onRunStateStale={teamRun.reconcile}
                       />
                     </div>
                   );

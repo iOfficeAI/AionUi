@@ -6,7 +6,7 @@ import type {
   ITeamSlotWork,
   TeamRunStatus,
 } from '@/common/types/team/teamTypes';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 export type TeamRunViewRun = ITeamRunEvent;
 export type TeamRunViewChildTurn = ITeamChildTurnEvent;
@@ -85,8 +85,10 @@ const indexSlotWork = (slotWork: ITeamSlotWork[] | undefined): Record<string, IT
 
 export const useTeamRunView = (team_id: string) => {
   const [state, setState] = useState<TeamRunViewState>(emptyState);
+  const reconcileSeq = useRef(0);
 
   useEffect(() => {
+    reconcileSeq.current += 1;
     setState(emptyState);
   }, [team_id]);
 
@@ -114,6 +116,31 @@ export const useTeamRunView = (team_id: string) => {
       applyRunEvent(event, 'ack');
     },
     [applyRunEvent]
+  );
+
+  const reconcile = useCallback(
+    async (source = 'manual'): Promise<boolean> => {
+      const seq = ++reconcileSeq.current;
+      try {
+        const snapshot = await ipcBridge.team.getRunState.invoke({ team_id });
+        setState((prev) => {
+          if (seq !== reconcileSeq.current) return prev;
+          const activeRun = snapshot.active_run ?? undefined;
+          if (!activeRun) return emptyState;
+          debugTeamRunEvent(`reconcile:${source}`, activeRun);
+          return {
+            activeRun,
+            childTurnsBySlot: {},
+            slotWorkBySlot: indexSlotWork(activeRun.slot_work),
+          };
+        });
+        return true;
+      } catch (error) {
+        console.warn('[Renderer:teamRunView] run_state_reconcile_failed', { source, team_id, error });
+        return false;
+      }
+    },
+    [team_id]
   );
 
   const applyChildStarted = useCallback(
@@ -179,6 +206,10 @@ export const useTeamRunView = (team_id: string) => {
   );
 
   useEffect(() => {
+    void reconcile('load');
+  }, [reconcile]);
+
+  useEffect(() => {
     const unsubs = [
       ipcBridge.team.runAccepted.on(applyRunEvent),
       ipcBridge.team.runStarted.on(applyRunEvent),
@@ -189,17 +220,36 @@ export const useTeamRunView = (team_id: string) => {
       ipcBridge.team.childTurnStarted.on(applyChildStarted),
       ipcBridge.team.childTurnCompleted.on(applyChildTerminal),
       ipcBridge.team.childTurnCancelled.on(applyChildTerminal),
+      ipcBridge.realtime.reconnected.on(() => {
+        void reconcile('realtime.reconnected');
+      }),
+      ipcBridge.team.listChanged.on((event) => {
+        if (event.team_id === team_id) void reconcile('team.listChanged');
+      }),
+      ipcBridge.team.sessionChanged.on((event) => {
+        if (event.team_id === team_id) void reconcile('team.sessionChanged');
+      }),
+      ipcBridge.team.agentSpawned.on((event) => {
+        if (event.team_id === team_id) void reconcile('team.agentSpawned');
+      }),
+      ipcBridge.team.agentRemoved.on((event) => {
+        if (event.team_id === team_id) void reconcile('team.agentRemoved');
+      }),
+      ipcBridge.team.agentRenamed.on((event) => {
+        if (event.team_id === team_id) void reconcile('team.agentRenamed');
+      }),
     ];
     return () => {
       unsubs.forEach((unsubscribe) => unsubscribe());
     };
-  }, [applyChildStarted, applyChildTerminal, applyRunEvent]);
+  }, [applyChildStarted, applyChildTerminal, applyRunEvent, reconcile, team_id]);
 
   return useMemo(
     () => ({
       state,
       applyAck,
+      reconcile,
     }),
-    [applyAck, state]
+    [applyAck, reconcile, state]
   );
 };

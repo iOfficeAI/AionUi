@@ -1,3 +1,4 @@
+import { isBackendHttpError } from '@/common/adapter/httpBridge';
 import type { ConversationCommandQueueRuntimeGate } from '@/renderer/pages/conversation/platforms/useConversationCommandQueue';
 import type { TeamRunViewState } from '../hooks/useTeamRunView';
 
@@ -26,6 +27,7 @@ type BuildTeamStopHandlerOptions = {
   runView: TeamRunViewState;
   pauseSlotWork: (params: PauseSlotWorkParams) => Promise<void>;
   onStopFailed?: () => void;
+  onRunStateStale?: () => Promise<boolean>;
 };
 
 const isSlotWorkProcessing = (runView: TeamRunViewState, slot_id: string): boolean => {
@@ -40,12 +42,22 @@ const isSlotWorkProcessing = (runView: TeamRunViewState, slot_id: string): boole
   return childStatus === 'accepted' || childStatus === 'running' || childStatus === 'cancelling';
 };
 
+export const isStaleTeamRunPauseError = (error: unknown): boolean => {
+  return (
+    isBackendHttpError(error) &&
+    error.status === 400 &&
+    error.code === 'BAD_REQUEST' &&
+    error.backendMessage.includes('no active team run to pause')
+  );
+};
+
 export const buildTeamStopHandler = ({
   team_id,
   slot_id,
   runView,
   pauseSlotWork,
   onStopFailed,
+  onRunStateStale,
 }: BuildTeamStopHandlerOptions): (() => Promise<void>) => {
   return async () => {
     const activeRun = runView.activeRun;
@@ -69,6 +81,11 @@ export const buildTeamStopHandler = ({
       });
     } catch (error) {
       console.warn('[TeamChatView] pause slot work failed', error);
+      if (isStaleTeamRunPauseError(error)) {
+        const reconciled = await onRunStateStale?.();
+        if (!reconciled) onStopFailed?.();
+        return;
+      }
       onStopFailed?.();
     }
   };

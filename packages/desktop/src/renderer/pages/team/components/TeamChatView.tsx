@@ -84,6 +84,7 @@ type TeamChatViewProps = {
   isLeader?: boolean;
   teamRunView?: TeamRunViewState;
   onTeamRunAck?: (ack: ITeamRunAck) => void;
+  onRunStateStale?: () => Promise<boolean>;
 };
 
 /**
@@ -101,6 +102,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({
   isLeader,
   teamRunView = EMPTY_TEAM_RUN_VIEW,
   onTeamRunAck,
+  onRunStateStale,
 }) => {
   const { t } = useTranslation();
   const { info: presetAssistantInfo } = usePresetAssistantInfo(conversation);
@@ -155,6 +157,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({
                 t('team.stopAgentFailed', { defaultValue: 'Failed to stop this agent. Please try again.' })
               );
             },
+            onRunStateStale,
           }),
         })
       : undefined;

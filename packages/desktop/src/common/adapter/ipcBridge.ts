@@ -61,6 +61,7 @@ import type {
   ITeamRenamedEvent,
   ITeamRunAck,
   ITeamRunEvent,
+  ITeamRunStateResponse,
   ITeamSessionChangedEvent,
   ITeamTaskChangedEvent,
   ICancelTeamChildTurnParams,
@@ -1913,6 +1914,14 @@ export const hub = {
 
 export type { IAddTeamAssistantParams, ICreateTeamParams } from './teamMapper';
 
+export type IRealtimeReconnectedEvent = {
+  timestamp: number;
+};
+
+export const realtime = {
+  reconnected: wsEmitter<IRealtimeReconnectedEvent>('realtime.reconnected'),
+};
+
 export const team = {
   create: withResponseMap(
     httpPost<TTeam, ICreateTeamParams>('/api/teams', (p) => ({
@@ -1955,6 +1964,7 @@ export const team = {
     (p) => `/api/teams/${p.team_id}/session-mode`,
     (p) => ({ mode: p.session_mode })
   ),
+  getRunState: httpGet<ITeamRunStateResponse, { team_id: string }>((p) => `/api/teams/${p.team_id}/run-state`),
   sendMessage: httpPost<ITeamRunAck, ISendTeamMessageParams>(
     (p) => `/api/teams/${p.team_id}/messages`,
     (p) => ({

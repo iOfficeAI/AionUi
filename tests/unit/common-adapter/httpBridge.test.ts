@@ -27,6 +27,51 @@ import {
   httpRequest,
 } from '@/common/adapter/httpBridge';
 
+type FakeSocketEventMap = {
+  open: () => void;
+  message: (event: MessageEvent<string>) => void;
+  close: (event: CloseEvent) => void;
+  error: () => void;
+};
+
+class FakeWebSocket {
+  static readonly CONNECTING = 0;
+  static readonly OPEN = 1;
+  static readonly CLOSING = 2;
+  static readonly CLOSED = 3;
+  static instances: FakeWebSocket[] = [];
+
+  readyState = FakeWebSocket.CONNECTING;
+  private readonly listeners: { [K in keyof FakeSocketEventMap]: FakeSocketEventMap[K][] } = {
+    open: [],
+    message: [],
+    close: [],
+    error: [],
+  };
+
+  constructor(readonly url: string) {
+    FakeWebSocket.instances.push(this);
+  }
+
+  addEventListener<K extends keyof FakeSocketEventMap>(type: K, listener: FakeSocketEventMap[K]) {
+    this.listeners[type].push(listener);
+  }
+
+  close() {
+    this.readyState = FakeWebSocket.CLOSED;
+  }
+
+  dispatchOpen() {
+    this.readyState = FakeWebSocket.OPEN;
+    for (const listener of this.listeners.open) listener();
+  }
+
+  dispatchClose() {
+    this.readyState = FakeWebSocket.CLOSED;
+    for (const listener of this.listeners.close) listener({ code: 1006, reason: '' } as CloseEvent);
+  }
+}
+
 describe('httpBridge', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -318,6 +363,32 @@ describe('httpBridge', () => {
   });
 
   describe('wsEmitter', () => {
+    it('emits realtime.reconnected only after a prior websocket open', () => {
+      vi.useFakeTimers();
+      vi.stubGlobal('window', { __backendPort: 13400 });
+      vi.stubGlobal('WebSocket', FakeWebSocket as unknown as typeof WebSocket);
+      vi.spyOn(console, 'debug').mockImplementation(() => {});
+      FakeWebSocket.instances = [];
+
+      const events: unknown[] = [];
+      const unsubscribe = wsEmitter('realtime.reconnected').on((payload: unknown) => events.push(payload));
+
+      FakeWebSocket.instances[0].dispatchOpen();
+      expect(events).toEqual([]);
+
+      FakeWebSocket.instances[0].dispatchClose();
+      vi.advanceTimersByTime(1000);
+      FakeWebSocket.instances[1].dispatchOpen();
+
+      expect(events).toHaveLength(1);
+      expect(events[0]).toEqual({ timestamp: expect.any(Number) });
+
+      FakeWebSocket.instances[1].dispatchClose();
+      vi.clearAllTimers();
+      unsubscribe();
+      vi.useRealTimers();
+    });
+
     it('on returns unsubscribe function that removes listener', () => {
       const events: unknown[] = [];
 
