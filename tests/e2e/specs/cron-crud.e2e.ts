@@ -4,7 +4,7 @@
  * Verifies the full lifecycle of scheduled tasks via real AI conversations:
  * 1. Send a message asking AI to create a scheduled task
  * 2. AI outputs [CRON_LIST] → system responds → AI outputs [CRON_CREATE]
- * 3. Verify task appears in sidebar and scheduled tasks page
+ * 3. Verify task appears in the scheduled tasks page and conversation remains in normal history
  * 4. Send a follow-up message to modify the task
  * 5. AI outputs [CRON_UPDATE] preserving conversations
  * 6. Delete task from detail page, verify conversation still accessible
@@ -308,7 +308,7 @@ test.describe('Cron via AI conversation', () => {
     createdJobId = null;
   });
 
-  test('AI creates task in conversation — sidebar shows task with child conversation', async ({ page }) => {
+  test('AI creates task in conversation — sidebar keeps conversation in normal history', async ({ page }) => {
     await goToGuid(page);
     await page
       .waitForFunction(() => (document.body.textContent?.length ?? 0) > 200, { timeout: 45_000 })
@@ -339,22 +339,13 @@ test.describe('Cron via AI conversation', () => {
     const job = await waitForCronJobCreated(page, conversationId, 120_000);
     createdJobId = job.id;
 
-    // Expand the scheduled-task sidebar section when needed.
-    const childEntry = page.locator(`[data-testid="cron-child-sortable-${conversationId}"]`);
-    if (!(await childEntry.isVisible().catch(() => false))) {
-      const scheduledSection = page
-        .locator('.sider-section-label')
-        .filter({ hasText: /Scheduled Tasks|定时任务/ })
-        .first();
-      await expect(scheduledSection).toBeVisible({ timeout: 10_000 });
-      await scheduledSection.click();
-    }
+    // The scheduled task still has a management page, while the originating
+    // conversation stays in the regular conversation/project history.
+    await expect(page.locator(`#c-${conversationId}`).first()).toBeVisible({ timeout: 15_000 });
+    await expect(page.locator(`[data-testid="cron-child-sortable-${conversationId}"]`)).toHaveCount(0);
 
-    // Verify the sidebar shows the cron job with child conversation
-    const siderJobName = page.locator('.cron-job-name').filter({ hasText: job.name }).first();
-    await expect(siderJobName).toBeVisible({ timeout: 15_000 });
-
-    // The child conversation should appear under the cron job in sidebar
-    await expect(childEntry).toBeVisible({ timeout: 10_000 });
+    await page.evaluate(() => window.location.assign('#/scheduled'));
+    await page.waitForFunction(() => window.location.hash === '#/scheduled', { timeout: 10_000 });
+    await expect(page.getByText(job.name).first()).toBeVisible({ timeout: 15_000 });
   });
 });
