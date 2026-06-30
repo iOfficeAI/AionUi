@@ -1,5 +1,33 @@
 # Changelog
 
+## [2.1.27](https://github.com/iOfficeAI/AionUi/compare/v2.1.26...v2.1.27) (2026-06-30)
+
+### Desktop
+
+#### Bug Fixes
+
+- **team:** reconcile stale run state (#3480)
+- **cron:** preserve scheduled task conversations (#3479)
+- **cron:** restore scheduled conversations to history (#3478)
+- **mcp:** isolate backend cwd for stdio tools (#3476)
+- **agent:** show ACP model descriptions (#3463)
+
+### Core ([v0.1.40](https://github.com/iOfficeAI/AionCore/releases/tag/v0.1.40))
+
+#### Features
+
+- **team:** add run state snapshot endpoint (#549)
+
+#### Bug Fixes
+
+- **acp:** preserve selectors for partial config snapshots (#548)
+- **cron:** restore create command heading (#547)
+- **cron:** run jobs through conversation service (#546)
+- **skills:** repair butler endpoint drift + add cron scheduling (#550)
+- **windows:** handle runtime process lifecycle
+
+---
+
 ## [2.1.26](https://github.com/iOfficeAI/AionUi/compare/v2.1.25...v2.1.26) (2026-06-29)
 
 ### Desktop
