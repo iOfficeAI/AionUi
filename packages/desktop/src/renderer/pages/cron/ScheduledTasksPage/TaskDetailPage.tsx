@@ -7,7 +7,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Button, Message, Switch, Popconfirm, Spin, Empty } from '@arco-design/web-react';
+import { Button, Message, Switch, Popconfirm, Spin, Empty, Tooltip } from '@arco-design/web-react';
 import { Left, Delete, Write, Attention, Robot } from '@icon-park/react';
 import { ipcBridge } from '@/common';
 import type { ICronJob } from '@/common/adapter/ipcBridge';
@@ -201,6 +201,8 @@ const TaskDetailPage: React.FC = () => {
   const executionModeExplanation = isNewConversationMode
     ? t('cron.detail.executionModeDescriptionNew')
     : t('cron.detail.executionModeDescriptionExisting');
+  const latestExecutionError = job.state.last_status === 'error' ? job.state.last_error?.trim() || '' : '';
+  const statusTag = <CronStatusTag job={job} />;
 
   return (
     <div className='w-full min-h-full box-border overflow-y-auto px-14px pt-28px pb-24px md:px-40px md:pt-52px md:pb-42px'>
@@ -256,7 +258,21 @@ const TaskDetailPage: React.FC = () => {
             )}
           </div>
           <div className='flex flex-wrap items-center gap-10px md:gap-12px'>
-            <CronStatusTag job={job} />
+            {latestExecutionError ? (
+              <Tooltip
+                position='top'
+                content={
+                  <div className='max-w-360px whitespace-pre-wrap break-words'>
+                    <div className='mb-4px text-12px font-medium'>{t('cron.lastError')}</div>
+                    <div className='text-12px leading-18px'>{latestExecutionError}</div>
+                  </div>
+                }
+              >
+                <span className='inline-flex cursor-help'>{statusTag}</span>
+              </Tooltip>
+            ) : (
+              statusTag
+            )}
             {job.state.next_run_at_ms && (
               <span className='text-14px text-t-secondary'>
                 {t('cron.nextRun')} {formatNextRun(job.state.next_run_at_ms)}

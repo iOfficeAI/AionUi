@@ -106,7 +106,8 @@
       "clearFolder": "Clear",
       "model": "Model",
       "aionrsModelRequired": "Please select a model for Aion CLI",
-      "aionrsNoProvider": "No available models"
+      "aionrsNoProvider": "No available models",
+      "assistantLockedExistingConversation": "Ongoing conversation tasks must keep their original assistant. Create a new task to use another assistant."
     },
     "freq": {
       "manual": "Manual",

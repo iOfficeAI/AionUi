@@ -106,7 +106,8 @@
       "clearFolder": "[Clear]",
       "model": "[Model]",
       "aionrsModelRequired": "Выберите модель для Aion CLI",
-      "aionrsNoProvider": "Нет доступных моделей"
+      "aionrsNoProvider": "Нет доступных моделей",
+      "assistantLockedExistingConversation": "Задачи продолжающегося диалога должны сохранять исходного помощника. Чтобы использовать другого помощника, создайте новую задачу."
     },
     "freq": {
       "manual": "Вручную",

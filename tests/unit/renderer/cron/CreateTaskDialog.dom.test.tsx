@@ -20,6 +20,17 @@ vi.mock('react-i18next', () => ({
   }),
 }));
 
+vi.mock('@arco-design/web-react', async () => {
+  const actual = await vi.importActual<typeof import('@arco-design/web-react')>('@arco-design/web-react');
+  return {
+    ...actual,
+    Message: {
+      success: vi.fn(),
+      error: vi.fn(),
+    },
+  };
+});
+
 vi.mock('@/common', () => ({
   ipcBridge: {
     cron: {
@@ -31,8 +42,15 @@ vi.mock('@/common', () => ({
 
 vi.mock('@renderer/components/base/ModalWrapper', () => ({
   __esModule: true,
-  default: ({ visible, children }: { visible: boolean; children: React.ReactNode }) =>
-    visible ? <div>{children}</div> : null,
+  default: ({ visible, children, onOk }: { visible: boolean; children: React.ReactNode; onOk?: () => void }) =>
+    visible ? (
+      <div>
+        {children}
+        <button type='button' data-testid='modal-ok' onClick={onOk}>
+          OK
+        </button>
+      </div>
+    ) : null,
 }));
 
 vi.mock('@renderer/pages/conversation/hooks/useConversationAssistants', () => ({
@@ -85,16 +103,18 @@ vi.mock('@renderer/utils/model/agentTypeSupportPolicy', () => ({
 }));
 
 vi.mock('@renderer/pages/cron/ScheduledTasksPage/resolveCronAgentConfig', () => ({
-  resolveCronAgentConfig: () => ({
-    assistant_id: 'assistant-1',
-    backend: 'codex',
-    model_id: undefined,
-    workspace: undefined,
-    config_options: undefined,
-  }),
+  resolveCronAgentConfig: vi.fn(() => ({
+    agent_config: {
+      assistant_id: 'assistant-1',
+      name: '问好助手',
+      mode: 'default',
+    },
+  })),
 }));
 
+import { ipcBridge } from '@/common';
 import CreateTaskDialog from '@/renderer/pages/cron/ScheduledTasksPage/CreateTaskDialog';
+import { resolveCronAgentConfig } from '@/renderer/pages/cron/ScheduledTasksPage/resolveCronAgentConfig';
 
 describe('CreateTaskDialog', () => {
   beforeAll(() => {
@@ -114,7 +134,10 @@ describe('CreateTaskDialog', () => {
   });
 
   beforeEach(() => {
+    vi.clearAllMocks();
     currentAssistants = assistants();
+    vi.mocked(ipcBridge.cron.updateJob.invoke).mockResolvedValue(job());
+    vi.mocked(ipcBridge.cron.createJob.invoke).mockResolvedValue(job());
   });
 
   it('does not render the task description field', async () => {
@@ -141,6 +164,12 @@ describe('CreateTaskDialog', () => {
     await waitFor(() => expect(screen.getByDisplayValue('edited prompt')).toBeInTheDocument());
   });
 
+  it('shows the current task assistant by default in edit mode', async () => {
+    render(<CreateTaskDialog visible onClose={() => {}} editJob={job()} />);
+
+    expect(await screen.findByText('问好助手')).toBeInTheDocument();
+  });
+
   it('does not infer assistant identity from legacy backend fields after migration ownership moved server-side', async () => {
     currentAssistants = [bareAssistant(), ...assistants()];
 
@@ -150,6 +179,39 @@ describe('CreateTaskDialog', () => {
     expect(screen.queryByText('代码助手')).not.toBeInTheDocument();
     expect(screen.queryByText('Codex')).not.toBeInTheDocument();
     expect(screen.queryByText('问好助手')).not.toBeInTheDocument();
+  });
+
+  it('locks assistant selection when editing an ongoing conversation task', async () => {
+    render(<CreateTaskDialog visible onClose={() => {}} editJob={ongoingConversationJob()} />);
+
+    const assistantSelect = await screen.findByTestId('cron-assistant-select');
+    expect(assistantSelect).toHaveClass('arco-select-disabled');
+    expect(screen.getByText('cron.page.form.assistantLockedExistingConversation')).toBeInTheDocument();
+  });
+
+  it('keeps assistant selection locked when an ongoing conversation task is temporarily switched to new conversation', async () => {
+    const user = userEvent.setup();
+
+    render(<CreateTaskDialog visible onClose={() => {}} editJob={ongoingConversationJob()} />);
+
+    await user.click(await screen.findByText('cron.page.form.newConversation'));
+
+    const assistantSelect = screen.getByTestId('cron-assistant-select');
+    expect(assistantSelect).toHaveClass('arco-select-disabled');
+    expect(screen.getByText('cron.page.form.assistantLockedExistingConversation')).toBeInTheDocument();
+  });
+
+  it('does not send agent config when updating an ongoing conversation task', async () => {
+    const user = userEvent.setup();
+
+    render(<CreateTaskDialog visible onClose={() => {}} editJob={ongoingConversationJob()} />);
+
+    await user.click(await screen.findByTestId('modal-ok'));
+
+    await waitFor(() => expect(ipcBridge.cron.updateJob.invoke).toHaveBeenCalledTimes(1));
+    expect(resolveCronAgentConfig).not.toHaveBeenCalled();
+    const [{ updates }] = vi.mocked(ipcBridge.cron.updateJob.invoke).mock.calls[0];
+    expect(updates.metadata).not.toHaveProperty('agent_config');
   });
 });
 
@@ -206,6 +268,16 @@ function legacyJobWithoutAssistantId(): ICronJob {
         preset_agent_type: 'codex',
         is_preset: false,
       },
+    },
+  } as ICronJob;
+}
+
+function ongoingConversationJob(): ICronJob {
+  return {
+    ...job(),
+    target: {
+      ...job().target,
+      execution_mode: 'existing',
     },
   } as ICronJob;
 }

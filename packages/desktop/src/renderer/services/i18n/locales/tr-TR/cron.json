@@ -119,7 +119,8 @@
       "clearFolder": "Temizle",
       "model": "Model",
       "aionrsModelRequired": "Aion CLI için bir model seçin",
-      "aionrsNoProvider": "Kullanılabilir model yok"
+      "aionrsNoProvider": "Kullanılabilir model yok",
+      "assistantLockedExistingConversation": "Aynı konuşma görevleri özgün yürütme asistanını korumalıdır. Başka bir asistan kullanmak için yeni bir görev oluşturun."
     },
     "freq": {
       "manual": "Manuel",

@@ -726,6 +726,7 @@ export type I18nKey =
   | 'cron.page.form.aionrsModelRequired'
   | 'cron.page.form.aionrsNoProvider'
   | 'cron.page.form.assistant'
+  | 'cron.page.form.assistantLockedExistingConversation'
   | 'cron.page.form.assistantPlaceholder'
   | 'cron.page.form.assistantRequired'
   | 'cron.page.form.clearFolder'

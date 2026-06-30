@@ -119,7 +119,8 @@
       "clearFolder": "クリア",
       "model": "モデル",
       "aionrsModelRequired": "Aion CLI のモデルを選択してください",
-      "aionrsNoProvider": "利用可能なモデルがありません"
+      "aionrsNoProvider": "利用可能なモデルがありません",
+      "assistantLockedExistingConversation": "同じ会話で実行するタスクは元のアシスタントを維持する必要があります。別のアシスタントを使うには新しいタスクを作成してください。"
     },
     "freq": {
       "manual": "手動",

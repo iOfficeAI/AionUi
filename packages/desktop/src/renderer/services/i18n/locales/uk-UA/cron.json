@@ -105,7 +105,8 @@
       "clearFolder": "Очистити",
       "model": "Модель",
       "aionrsModelRequired": "Виберіть модель для Aion CLI",
-      "aionrsNoProvider": "Немає доступних моделей"
+      "aionrsNoProvider": "Немає доступних моделей",
+      "assistantLockedExistingConversation": "Завдання поточного діалогу мають зберігати початкового помічника. Щоб використати іншого помічника, створіть нове завдання."
     },
     "freq": {
       "manual": "Вручну",

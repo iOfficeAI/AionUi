@@ -117,6 +117,38 @@ describe('TaskDetailPage', () => {
     expect(screen.queryByText('Codex CLI')).not.toBeInTheDocument();
   });
 
+  it('shows the latest execution error when hovering the failed status', async () => {
+    getJobInvokeMock.mockResolvedValue(
+      job({
+        enabled: true,
+        state: {
+          last_status: 'error',
+          last_error: 'ACP init failed: config file is invalid',
+        },
+      })
+    );
+
+    render(
+      <MemoryRouter initialEntries={['/scheduled/job-1']}>
+        <Routes>
+          <Route path='/scheduled/:job_id' element={<TaskDetailPage />} />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    await waitFor(() => expect(getJobInvokeMock).toHaveBeenCalledWith({ job_id: 'job-1' }));
+
+    const status = await screen.findByText('cron.status.error');
+
+    expect(screen.queryByText('cron.lastError')).not.toBeInTheDocument();
+    expect(screen.queryByText('ACP init failed: config file is invalid')).not.toBeInTheDocument();
+
+    fireEvent.mouseEnter(status);
+
+    expect(await screen.findByText('cron.lastError')).toBeInTheDocument();
+    expect(screen.getByText('ACP init failed: config file is invalid')).toBeInTheDocument();
+  });
+
   it('still renders assistant identity when legacy agent_type is absent but assistant_id exists', async () => {
     getJobInvokeMock.mockResolvedValue(
       job({

@@ -106,7 +106,8 @@
       "clearFolder": "Limpar",
       "model": "Modelo",
       "aionrsModelRequired": "Por favor, selecione um modelo para a CLI do Aion",
-      "aionrsNoProvider": "Nenhum modelo disponível"
+      "aionrsNoProvider": "Nenhum modelo disponível",
+      "assistantLockedExistingConversation": "Tarefas de conversa em andamento devem manter o assistente original. Crie uma nova tarefa para usar outro assistente."
     },
     "freq": {
       "manual": "Manual",

@@ -102,7 +102,8 @@
       "clearFolder": "Leeren",
       "model": "Modell",
       "aionrsModelRequired": "Bitte wähle ein Modell für Aion CLI",
-      "aionrsNoProvider": "Keine verfügbaren Modelle"
+      "aionrsNoProvider": "Keine verfügbaren Modelle",
+      "assistantLockedExistingConversation": "Aufgaben mit laufendem Gespräch müssen den ursprünglichen Assistenten behalten. Erstelle eine neue Aufgabe, um einen anderen Assistenten zu verwenden."
     },
     "freq": {
       "manual": "Manuell",
