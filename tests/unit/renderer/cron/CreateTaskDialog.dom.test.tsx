@@ -117,6 +117,13 @@ describe('CreateTaskDialog', () => {
     currentAssistants = assistants();
   });
 
+  it('does not render the task description field', async () => {
+    render(<CreateTaskDialog visible onClose={() => {}} />);
+
+    expect(await screen.findByText('cron.page.form.name')).toBeInTheDocument();
+    expect(screen.queryByText('cron.page.form.description')).not.toBeInTheDocument();
+  });
+
   it('does not reset edited prompt text when the assistant catalog refreshes in edit mode', async () => {
     const user = userEvent.setup();
     const editJob = job();

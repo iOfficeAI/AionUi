@@ -26,7 +26,6 @@ import { createCronSchedule } from '@renderer/pages/cron/cronUtils';
 import { getConversationCreateErrorMessage } from '@renderer/pages/conversation/utils/conversationCreateError';
 import { resolveAssistantAvatar } from '@renderer/utils/model/assistantAvatar';
 import { resolveAssistantName } from '@renderer/utils/model/assistantDisplay';
-import { resolveSupportedConversationType } from '@renderer/utils/model/agentTypeSupportPolicy';
 import { resolveCronAgentConfig } from './resolveCronAgentConfig';
 import { assistantRuntimeKey, isAionrsAssistant } from '@/common/types/agent/assistantTypes';
 
@@ -111,12 +110,6 @@ function parseCronExpr(expr: string): { frequency: FrequencyType; time: string; 
   return { frequency: 'custom', time: '09:00', weekday: 'MON' };
 }
 
-function getDescriptionInitialValue(job: ICronJob): string {
-  const storedDescription = job.description?.trim();
-  if (storedDescription) return storedDescription;
-  return '';
-}
-
 /**
  * Infer the assistant selection key from an ICronJob's agent_config.
  *
@@ -147,7 +140,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   const [submitting, setSubmitting] = useState(false);
   const { presetAssistants } = useConversationAssistants();
   const managedAgentRuntimeCatalog = useManagedAgentRuntimeCatalog();
-  const { providers, getAvailableModels, formatModelLabel } = useModelProviderList();
+  const { providers, getAvailableModels } = useModelProviderList();
   const [frequency, setFrequency] = useState<FrequencyType>('manual');
   const [time, setTime] = useState('09:00');
   const [weekday, setWeekday] = useState('MON');
@@ -186,7 +179,6 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
       );
       form.setFieldsValue({
         name: editJob.name,
-        description: getDescriptionInitialValue(editJob),
         prompt: editJob.target.payload.text,
       });
       // Populate advanced settings from editJob
@@ -407,7 +399,6 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
         // Edit mode: update existing job
         const updates: ICronJobUpdateParams = {
           name: values.name,
-          description: values.description,
           schedule,
           target: {
             payload: { kind: 'message', text: values.prompt },
@@ -431,7 +422,6 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
         // Create mode
         const params: ICreateCronJobParams = {
           name: values.name,
-          description: values.description,
           schedule,
           prompt: values.prompt,
           conversation_id: _conversation_id ?? '',
@@ -472,14 +462,6 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
             rules={[{ required: true, message: t('cron.page.form.nameRequired') }]}
           >
             <Input placeholder={t('cron.page.form.namePlaceholder')} />
-          </FormItem>
-
-          <FormItem
-            label={t('cron.page.form.description')}
-            field='description'
-            rules={[{ required: true, message: t('cron.page.form.descriptionRequired') }]}
-          >
-            <Input placeholder={t('cron.page.form.descriptionPlaceholder')} />
           </FormItem>
 
           <FormItem
