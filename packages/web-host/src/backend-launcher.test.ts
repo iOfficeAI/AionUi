@@ -357,7 +357,8 @@ describe('BackendLifecycleManager.start (success path)', () => {
         '/w',
         '--local',
       ]);
-      const opts = spawnCall[2] as { env: NodeJS.ProcessEnv };
+      const opts = spawnCall[2] as { cwd?: string; env: NodeJS.ProcessEnv };
+      expect(opts.cwd).toBe('/w');
       expect(opts.env.AIONUI_CACHE_DIR).toBe('/c');
       expect(opts.env.AIONUI_WORK_DIR).toBe('/w');
       expect(opts.env.AIONUI_LOG_DIR).toBe('/l');
