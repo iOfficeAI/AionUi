@@ -12,6 +12,7 @@ import { useTranslation } from 'react-i18next';
 import {
   initialUpdateNotificationState,
   updateNotificationReducer,
+  type UpdateNotificationEvent,
   type UpdateNotificationActiveTask,
   type UpdateNotificationOpenSource,
   type UpdateNotificationProgress,
@@ -64,17 +65,21 @@ const createInitialState = (): UpdateNotificationState => ({
 
 const reduceNotificationState = (
   current: UpdateNotificationState,
-  event: Parameters<typeof updateNotificationReducer>[1]
+  event: UpdateNotificationEvent
 ): UpdateNotificationState => updateNotificationReducer(current, event).state;
 
 const RELEASES_PAGE_URL = 'https://github.com/iOfficeAI/AionUi/releases';
 
 export const useUpdateNotificationController = () => {
   const { t } = useTranslation();
-  const [state, dispatch] = useReducer(reduceNotificationState, undefined, createInitialState);
+  const [state, dispatchState] = useReducer(reduceNotificationState, undefined, createInitialState);
   const stateRef = useRef(state);
   const restoreDownloadedPendingRef = useRef(true);
   const pendingAutoAvailableRef = useRef<AutoUpdateStatus | null>(null);
+  const dispatch = useCallback((event: UpdateNotificationEvent) => {
+    stateRef.current = reduceNotificationState(stateRef.current, event);
+    dispatchState(event);
+  }, []);
 
   useEffect(() => {
     stateRef.current = state;

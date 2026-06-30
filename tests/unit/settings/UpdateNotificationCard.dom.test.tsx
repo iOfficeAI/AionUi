@@ -180,6 +180,38 @@ describe('UpdateNotificationCard', () => {
     expect(mocks.updateCheckMock).not.toHaveBeenCalled();
   });
 
+  it('keeps a restored auto-update ready when opened before effects flush', async () => {
+    let resolveRestore!: (value: { success: boolean; data: { ready: boolean; version: string } }) => void;
+    mocks.autoUpdateRestoreDownloadedMock.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveRestore = resolve;
+        })
+    );
+
+    render(<UpdateNotificationCard />);
+
+    await waitFor(() => {
+      expect(mocks.updateOpenHandler).toBeTruthy();
+    });
+
+    await act(async () => {
+      resolveRestore({
+        success: true,
+        data: {
+          ready: true,
+          version: '2.1.14',
+        },
+      });
+      await Promise.resolve();
+      mocks.updateOpenHandler?.({ source: 'menu' });
+    });
+
+    expect(await screen.findByText('update.restartNow')).toBeInTheDocument();
+    expect(mocks.autoUpdateCheckMock).not.toHaveBeenCalled();
+    expect(mocks.updateCheckMock).not.toHaveBeenCalled();
+  });
+
   it('does not flash the initial available state while cached restore is pending', async () => {
     let resolveRestore!: (value: { success: boolean; data: { ready: boolean; version: string } }) => void;
     mocks.autoUpdateRestoreDownloadedMock.mockImplementation(
