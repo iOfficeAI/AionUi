@@ -156,10 +156,9 @@ const AionrsSendBox: React.FC<{
 
   const handleContentChange = useCallback(
     (val: string) => {
-      if (val && teamPermission) teamPermission.warmupSession();
       setContent(val);
     },
-    [teamPermission, setContent]
+    [setContent]
   );
 
   const [agentWarmed, setAgentWarmed] = useState(false);

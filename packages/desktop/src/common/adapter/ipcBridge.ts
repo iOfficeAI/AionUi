@@ -225,6 +225,10 @@ export const conversation = {
   ),
   reset: httpPost<void, IResetConversationParams>((p) => `/api/conversations/${p.id}/reset`),
   warmup: httpPost<void, { conversation_id: string }>((p) => `/api/conversations/${p.conversation_id}/warmup`),
+  activeLease: httpPost<void, { conversation_id: string }>(
+    (p) => `/api/conversations/${p.conversation_id}/active-lease`,
+    () => undefined
+  ),
   stop: httpPost<{ runtime: TConversationRuntimeSummary }, { conversation_id: string; turn_id: string }>(
     (p) => `/api/conversations/${p.conversation_id}/cancel`,
     (p) => ({ turn_id: p.turn_id })
@@ -1952,6 +1956,10 @@ export const team = {
   ),
   stop: httpDelete<void, { team_id: string }>((p) => `/api/teams/${p.team_id}/session`),
   ensureSession: httpPost<void, { team_id: string }>((p) => `/api/teams/${p.team_id}/session`),
+  activeLease: httpPost<void, { team_id: string }>(
+    (p) => `/api/teams/${p.team_id}/active-lease`,
+    () => undefined
+  ),
   renameAgent: httpPatch<void, { team_id: string; slot_id: string; new_name: string }>(
     (p) => `/api/teams/${p.team_id}/agents/${p.slot_id}/name`,
     (p) => ({ name: p.new_name })

@@ -35,6 +35,7 @@ import { useConversationRuntimeView } from '../runtime/useConversationRuntimeVie
 import { isLegacyReadOnlyConversationType } from '../utils/conversationRuntime';
 import { resolveConversationBackend } from '../utils/conversationAssistantIdentity';
 import LegacyReadOnlyConversation from '../platforms/legacy/LegacyReadOnlyConversation';
+import { useActiveLease } from '../hooks/useActiveLease';
 // import SkillRuleGenerator from './components/SkillRuleGenerator'; // Temporarily hidden
 
 const configErrorMessageKey = (error: unknown) => {
@@ -247,6 +248,7 @@ const ChatConversation: React.FC<{
   hideSendBox?: boolean;
 }> = ({ conversation, hideSendBox }) => {
   const { t } = useTranslation();
+  useActiveLease({ type: 'conversation', id: conversation?.id });
   const workspaceEnabled = Boolean(conversation?.extra?.workspace);
   const layout = useLayoutContext();
   const isMobile = Boolean(layout?.isMobile);
