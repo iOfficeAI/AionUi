@@ -28,6 +28,12 @@
   "showInFolder": "在文件夹中显示",
   "openFile": "打开文件",
   "errorTitle": "更新失败",
+  "installerLastFailure": {
+    "title": "上次更新未完成",
+    "description": "上次静默更新时未能关闭 AionUi。你可以重试更新、查看安装日志，或发送反馈。",
+    "retryUpdate": "重试更新",
+    "viewLog": "查看日志"
+  },
   "errors": {
     "invalidUrl": "下载地址无效",
     "httpsOnly": "只允许使用 HTTPS 下载地址",

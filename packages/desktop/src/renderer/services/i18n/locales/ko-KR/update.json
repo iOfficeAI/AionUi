@@ -28,6 +28,12 @@
   "showInFolder": "폴더에서 보기",
   "openFile": "파일 열기",
   "errorTitle": "업데이트 실패",
+  "installerLastFailure": {
+    "title": "이전 업데이트가 완료되지 않았습니다",
+    "description": "이전 무음 업데이트 중 AionUi를 닫지 못했습니다. 업데이트를 다시 시도하거나 설치 로그를 확인하거나 피드백을 보낼 수 있습니다.",
+    "retryUpdate": "업데이트 다시 시도",
+    "viewLog": "로그 보기"
+  },
   "errors": {
     "invalidUrl": "다운로드 URL이 올바르지 않습니다",
     "httpsOnly": "HTTPS 다운로드 URL만 허용됩니다",

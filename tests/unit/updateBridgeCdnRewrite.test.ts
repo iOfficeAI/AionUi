@@ -299,7 +299,7 @@ describe('autoUpdate quitAndInstall lifecycle', () => {
     cleanup.resolve();
     await installPromise;
 
-    expect(autoUpdater.quitAndInstall).toHaveBeenCalledWith(true, true);
+    expect(autoUpdater.quitAndInstall).toHaveBeenCalledWith(false, true);
   });
 
   it('does not start the installer when the pre-install cleanup fails', async () => {

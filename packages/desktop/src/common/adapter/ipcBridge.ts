@@ -76,6 +76,7 @@ import type {
 import type {
   AutoUpdateReadyResult,
   AutoUpdateStatus,
+  InstallerLastFailureMarker,
   UpdateCheckRequest,
   UpdateCheckResult,
   UpdateDownloadCancelRequest,
@@ -506,6 +507,9 @@ export const application = {
 export const update = {
   open: bridge.buildEmitter<{ source?: 'menu' | 'about' | 'tray' }>('update.open'),
   check: bridge.buildProvider<IBridgeResponse<UpdateCheckResult>, UpdateCheckRequest>('update.check'),
+  consumeInstallerLastFailure: bridge.buildProvider<IBridgeResponse<InstallerLastFailureMarker | null>, void>(
+    'update.installer-last-failure.consume'
+  ),
   download: bridge.buildProvider<IBridgeResponse<UpdateDownloadResult>, UpdateDownloadRequest>('update.download'),
   cancelDownload: bridge.buildProvider<IBridgeResponse, UpdateDownloadCancelRequest>('update.download.cancel'),
   downloadProgress: bridge.buildEmitter<UpdateDownloadProgressEvent>('update.download.progress'),

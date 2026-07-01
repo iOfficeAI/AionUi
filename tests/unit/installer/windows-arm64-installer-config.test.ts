@@ -2,7 +2,8 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
 const buildScript = readFileSync('scripts/build-with-builder.js', 'utf8');
-const arm64NsisScript = readFileSync('resources/windows-installer-arm64.nsh', 'utf8');
+const arm64NsisScript = readFileSync('resources/windows/windows-installer-arm64.nsh', 'utf8');
+const updateVerifyNsisScript = readFileSync('resources/windows/installer-update-verify.nsh', 'utf8');
 const prChecksWorkflow = readFileSync('.github/workflows/pr-checks.yml', 'utf8');
 const releaseWorkflow = readFileSync('.github/workflows/build-and-release.yml', 'utf8');
 
@@ -22,16 +23,18 @@ describe('Windows ARM64 installer hardening', () => {
   });
 
   it('fails the ARM64 installer when required app or bundled runtime files are missing after install', () => {
-    expect(arm64NsisScript).toContain('!macro customInstall');
-    expect(arm64NsisScript).toContain('AIONUI_VERIFY_REQUIRED_FILE');
-    expect(arm64NsisScript).toContain('AIONUI_VERIFY_BUNDLED_AIONCORE_RESOURCES "win32-arm64"');
-    expect(arm64NsisScript).toContain('verify-bundled-aioncore-install.ps1');
-    expect(arm64NsisScript).toContain('$INSTDIR\\AionUi.exe');
-    expect(arm64NsisScript).toContain('$INSTDIR\\ffmpeg.dll');
-    expect(arm64NsisScript).toContain('$INSTDIR\\vulkan-1.dll');
-    expect(arm64NsisScript).toContain('Bundled AionCore resources are incomplete after installation.');
-    expect(arm64NsisScript).toMatch(/SetErrorLevel\s+3/);
-    expect(arm64NsisScript).toContain('Quit');
+    expect(arm64NsisScript).toContain('!define AIONUI_RUNTIME_KEY "win32-arm64"');
+    expect(updateVerifyNsisScript).toContain('!macro customInstall');
+    expect(updateVerifyNsisScript).toContain('AIONUI_VERIFY_CORE_APP_FILES');
+    expect(updateVerifyNsisScript).toContain('AIONUI_VERIFY_REQUIRED_FILE');
+    expect(updateVerifyNsisScript).toContain('AIONUI_VERIFY_BUNDLED_AIONCORE_RESOURCES "${AIONUI_RUNTIME_KEY}"');
+    expect(updateVerifyNsisScript).toContain('verify-bundled-aioncore-install.ps1');
+    expect(updateVerifyNsisScript).toContain('$INSTDIR\\AionUi.exe');
+    expect(updateVerifyNsisScript).toContain('$INSTDIR\\ffmpeg.dll');
+    expect(updateVerifyNsisScript).toContain('$INSTDIR\\vulkan-1.dll');
+    expect(updateVerifyNsisScript).toContain('Bundled AionCore resources are incomplete after installation.');
+    expect(updateVerifyNsisScript).toContain('AIONUI_FAIL_UX');
+    expect(updateVerifyNsisScript).toContain('${AIONUI_E_CORE_APP_FILES_INCOMPLETE}');
   });
 
   it('keeps PR build tests focused on representative platforms', () => {

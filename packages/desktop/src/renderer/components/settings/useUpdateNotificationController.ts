@@ -211,6 +211,22 @@ export const useUpdateNotificationController = () => {
     void restoreDownloadedUpdate();
   }, [restoreDownloadedUpdate]);
 
+  useEffect(() => {
+    let cancelled = false;
+    void ipcBridge.update.consumeInstallerLastFailure
+      .invoke()
+      .then((res) => {
+        if (cancelled || !res?.success || !res.data) return;
+        dispatch({ type: 'installerLastFailureConsumed', marker: res.data });
+      })
+      .catch((error) => {
+        console.warn('Consume installer last failure marker error:', error);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [dispatch]);
+
   const openUpdateNotification = useCallback(
     (source: UpdateNotificationOpenSource, userInitiated: boolean) => {
       const current = stateRef.current;
@@ -387,6 +403,12 @@ export const useUpdateNotificationController = () => {
     void ipcBridge.shell.showItemInFolder.invoke(state.downloadPath);
   }, [state.downloadPath]);
 
+  const viewInstallerLastFailureLog = useCallback(() => {
+    const logPath = state.installerLastFailure?.logPath;
+    if (!logPath) return;
+    void ipcBridge.shell.showItemInFolder.invoke(logPath);
+  }, [state.installerLastFailure?.logPath]);
+
   const dismiss = useCallback((reason: 'later' | 'close') => {
     dispatch({ type: 'dismissRequested', reason });
   }, []);
@@ -452,6 +474,7 @@ export const useUpdateNotificationController = () => {
       quitAndInstall,
       openFile,
       showInFolder,
+      viewInstallerLastFailureLog,
       dismiss,
       cancelDownload,
       minimize,

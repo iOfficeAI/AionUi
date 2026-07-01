@@ -214,6 +214,16 @@ function formatExecError(error) {
   return [error?.message, error?.stdout?.toString?.(), error?.stderr?.toString?.()].filter(Boolean).join('\n').trim();
 }
 
+function escapeNsisDefineValue(value) {
+  return String(value ?? '').replace(/\\/g, '\\\\').replace(/"/g, '$\\"');
+}
+
+function writeGeneratedSentryDsnInclude(projectRoot) {
+  const generatedInclude = path.join(projectRoot, 'resources/windows/support/_sentry-dsn.generated.nsh');
+  fs.mkdirSync(path.dirname(generatedInclude), { recursive: true });
+  fs.writeFileSync(generatedInclude, `!define AIONUI_SENTRY_DSN "${escapeNsisDefineValue(process.env.SENTRY_DSN || '')}"\n`);
+}
+
 // Create macOS distributables using electron-builder --prepackaged with .app path.
 // This preserves DMG styling and still emits the zip required by MacUpdater.
 function createMacArtifactsWithPrepackaged(appDir, targetArch) {
@@ -459,6 +469,7 @@ try {
   const { prepareAioncore } = require('../packages/shared-scripts/src/prepare-aioncore.js');
   const { resolveAioncoreVersion } = require('./resolveAioncoreVersion.js');
   const projectRoot = path.resolve(__dirname, '..');
+  writeGeneratedSentryDsnInclude(projectRoot);
   prepareAioncore({
     projectRoot,
     platform: process.platform,
@@ -512,7 +523,7 @@ try {
       // 单架构构建：添加对应架构的检测脚本
       // Single-arch build: Add architecture-specific detection script
       if (targetArch === 'arm64') {
-        const arm64Script = 'resources/windows-installer-arm64.nsh';
+        const arm64Script = 'resources/windows/windows-installer-arm64.nsh';
         if (fs.existsSync(path.resolve(__dirname, '..', arm64Script))) {
           nsisInclude += ` --config.nsis.include="${arm64Script}"`;
           console.log(`📋 Including Windows ARM64 architecture check script`);
@@ -520,7 +531,7 @@ try {
         nsisInclude += ' --config.nsis.useZip=true';
         console.log('📋 Using ZIP payload for Windows ARM64 NSIS installer');
       } else if (targetArch === 'x64') {
-        const x64Script = 'resources/windows-installer-x64.nsh';
+        const x64Script = 'resources/windows/windows-installer-x64.nsh';
         if (fs.existsSync(path.resolve(__dirname, '..', x64Script))) {
           nsisInclude += ` --config.nsis.include="${x64Script}"`;
           console.log(`📋 Including Windows x64 architecture check script`);
