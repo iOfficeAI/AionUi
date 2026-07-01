@@ -210,10 +210,7 @@ const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; slid
     sider: <ChatSlider conversation={conversation} />,
     headerExtra: (
       <div className='flex items-center gap-8px'>
-        <CronJobManager
-          conversation_id={conversation.id}
-          cron_job_id={cronJobId}
-        />
+        <CronJobManager conversation_id={conversation.id} cron_job_id={cronJobId} />
         {!isMobile && (
           <AionrsModelSelector
             selection={modelSelection}
@@ -366,10 +363,7 @@ const ChatConversation: React.FC<{
     <div className='flex items-center gap-8px'>
       {conversation && (
         <div className='shrink-0'>
-          <CronJobManager
-            conversation_id={conversation.id}
-            cron_job_id={cronJobId}
-          />
+          <CronJobManager conversation_id={conversation.id} cron_job_id={cronJobId} />
         </div>
       )}
       {modelSelector && <div className='shrink-0'>{modelSelector}</div>}
