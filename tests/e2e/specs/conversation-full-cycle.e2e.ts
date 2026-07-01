@@ -174,6 +174,7 @@ async function requireOnlineAssistantForBackend(
 type ConversationMessageRecord = {
   type?: string;
   content?: unknown;
+  position?: string;
 };
 
 type ConversationArtifactRecord = {
@@ -397,6 +398,47 @@ async function getConversationMessages(
   );
   if (Array.isArray(result)) return result;
   return Array.isArray(result?.items) ? result.items : [];
+}
+
+function messageContentText(message: ConversationMessageRecord): string {
+  const parsed = parseJsonish<{ content?: unknown }>(message.content);
+  return typeof parsed?.content === 'string' ? parsed.content : '';
+}
+
+async function waitForCronCreationConfirmation(
+  page: import('@playwright/test').Page,
+  conversationId: string,
+  taskName: string,
+  timeoutMs = 180_000
+): Promise<string> {
+  let lastAssistantText = '';
+  await expect
+    .poll(
+      async () => {
+        const messages = await getConversationMessages(page, conversationId);
+        const assistantTexts = messages
+          .filter((message) => message.type === 'text' && message.position !== 'right')
+          .map(messageContentText)
+          .filter(Boolean);
+        lastAssistantText = assistantTexts.at(-1) ?? '';
+        return assistantTexts.some((text) => {
+          const lower = text.toLowerCase();
+          return (
+            text.includes(taskName) &&
+            /created|success|done/.test(lower) &&
+            !/cron_[0-9a-f-]+/i.test(text) &&
+            !/failed|error|cannot|can't/.test(lower)
+          );
+        });
+      },
+      {
+        timeout: timeoutMs,
+        message: `Waiting for user-friendly cron creation confirmation for task ${taskName}. Last assistant text: ${lastAssistantText}`,
+      }
+    )
+    .toBe(true);
+
+  return lastAssistantText;
 }
 
 async function waitForSkillSuggestMessage(
@@ -1193,7 +1235,7 @@ test.describe('Conversation Full Cycle', () => {
           'Cron schedule: 30 9 * * 1-5',
           'Schedule description: Every weekday at 9:30 AM',
           `Task message: Reply with a short ${backend} cron greeting.`,
-          'After the HTTP helper returns success, reply with a short confirmation.',
+          'After the HTTP helper returns success, reply with a short user-friendly confirmation that includes the task name. Do not show internal ids.',
         ];
         conversationId = await sendMessageFromGuid(page, cronPromptLines.join(' '));
         expect(conversationId).toBeTruthy();
@@ -1232,9 +1274,9 @@ test.describe('Conversation Full Cycle', () => {
           )
           .toBe(job.id);
 
-        await waitForSessionActive(page, 180_000);
-        const reply = await waitForAiReply(page, 180_000);
-        expect(reply.length).toBeGreaterThan(0);
+        const reply = await waitForCronCreationConfirmation(page, conversationId, taskName, 180_000);
+        expect(reply).toContain(taskName);
+        expect(reply).not.toContain(job.id);
 
         await page.evaluate((jobId) => window.location.assign(`#/scheduled/${jobId}`), job.id);
         await page.waitForFunction((jobId) => window.location.hash.includes(`/scheduled/${jobId}`), job.id, {
