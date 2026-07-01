@@ -496,7 +496,8 @@ describe('UpdateNotificationCard', () => {
 
     fireEvent.click(await screen.findByText('update.restartNow'));
 
-    expect(await screen.findAllByText('update.preparingInstall')).toHaveLength(2);
+    expect(await screen.findByText('update.preparingInstall')).toBeInTheDocument();
+    expect(screen.getByText('update.downloadCompleteTitle')).toBeInTheDocument();
     expect(screen.queryByText('update.later')).not.toBeInTheDocument();
     expect(mocks.autoUpdateQuitAndInstallMock).toHaveBeenCalledTimes(1);
 

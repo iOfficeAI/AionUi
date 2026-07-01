@@ -127,7 +127,12 @@ const UpdateNotificationCard: React.FC = () => {
           </div>
         );
       case 'preparing-install':
-        return <div className='py-16px text-13px text-t-secondary'>{t('update.preparingInstall')}</div>;
+        return (
+          <div className='flex items-start gap-10px text-13px text-t-secondary leading-relaxed'>
+            <CheckOne theme='filled' size='18' fill='rgb(var(--success-6))' className='mt-2px shrink-0' />
+            <span>{t('update.downloadCompleteTitle')}</span>
+          </div>
+        );
       case 'success':
         return <div className='py-16px text-13px text-t-secondary break-all'>{state.downloadPath}</div>;
       case 'error':
