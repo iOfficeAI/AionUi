@@ -388,7 +388,7 @@ function sDecouple(opt){
 function sOverview(){
   return `<div class="ov">
     <h2>定时任务优化</h2>
-    <div class="lead">把 6 条用户反馈整理成可开发、可验收的定时任务优化。截至 2.1.27：3 条已落地，3 条待开发（含 1 条 bug）。</div>
+    <div class="lead">把 6 条用户反馈整理成可开发、可验收的定时任务优化。截至 2.1.27：2 条已完成、1 条部分完成，其余待开发（含 2 条 bug）。</div>
 
     <h3>要解决的问题</h3>
     <p>定时任务已经能用，但攒下一批体验坑：对话里让 AI 建任务时多行指令会被截断；「描述」必填卡住自然语言建的任务；侧边栏两处都在管定时任务、职责重叠；任务跑完没有从外层就能看到的提醒；历史会话标题分不清哪天跑的、也没法批量清理；最严重的是删一条旧对话会把整个任务连带删掉。</p>
@@ -396,7 +396,7 @@ function sOverview(){
     <h3>功能一览与实现状态（2.1.27）</h3>
     <table>
       <tr><th>编号</th><th>反馈</th><th>状态</th><th>说明</th></tr>
-      <tr><td><code>F-CRON-01</code></td><td>创建走后端接口</td><td><span class="tagb par">🟡 部分</span></td><td>入口已切到统一「找管家」引导创建；底层旧的 AI 文本解析通道未移除，多行截断隐患未根除</td></tr>
+      <tr><td><code>F-CRON-01</code></td><td>创建走后端接口</td><td><span class="tagb td">⬜ 待开发</span></td><td>对话内创建仍靠解析 AI 文本，多行指令截断隐患还在（2.1.27 仅做了创建按钮 UI 样式统一，无关本条）</td></tr>
       <tr><td><code>F-CRON-02</code></td><td>描述改可选</td><td><span class="tagb dn">✅ 完成</span></td><td>做法更彻底：直接把「描述」字段从表单移除，由系统自动生成</td></tr>
       <tr><td><code>F-CRON-03</code></td><td>侧边栏分类重构</td><td><span class="tagb dn">✅ 完成</span></td><td>取消会话列表里的定时任务分类，会话回归普通列表；聚合页仍在</td></tr>
       <tr><td><code>F-CRON-04</code></td><td>未读蓝点冒泡</td><td><span class="tagb par">🟡 部分</span></td><td>底层已识别未读，但侧边栏入口/聚合页卡片的蓝点展示未接</td></tr>
@@ -409,7 +409,7 @@ function sOverview(){
     <table>
       <tr><th>顺序</th><th>项</th><th>理由</th></tr>
       <tr><td>1</td><td>F-CRON-07 数据解耦</td><td>数据安全，优先；放开任务-对话强绑定</td></tr>
-      <tr><td>2</td><td>F-CRON-01 收尾</td><td>移除旧 AI 文本解析通道，确认多行指令不再截断</td></tr>
+      <tr><td>2</td><td>F-CRON-01</td><td>对话内创建改走后端接口，不再解析 AI 文本，根除多行指令截断</td></tr>
       <tr><td>3</td><td>F-CRON-04 收尾 + F-CRON-06</td><td>都依赖已完成的 F-CRON-03，可一起做</td></tr>
       <tr><td>4</td><td>F-CRON-05</td><td>独立，随时可做</td></tr>
     </table>
@@ -421,7 +421,7 @@ function sOverview(){
 const FEATS=[
   {id:'ov',code:'',name:'总览',full:true,render:sOverview,req:null},
 
-  {id:'f01',code:'F-CRON-01',name:'创建走后端接口',type:'bug',status:'partial',statusNote:'创建入口已切到统一的「找管家」引导创建；但底层仍保留旧的解析 AI 文本通道，多行截断隐患未彻底根除。剩余：移除旧解析通道。',
+  {id:'f01',code:'F-CRON-01',name:'创建走后端接口',type:'bug',status:'todev',statusNote:'待开发（2.1.27 未做）。对话内创建仍靠解析 AI 回复文本，多行指令截断隐患还在。（2.1.27 有一次创建按钮的 UI 样式统一，与本条后端接口改造无关）',
    render:()=>sChatCreate({multiline:true}),
    req:{title:'对话内创建改为直接调用后端接口',type:'bug',
     story:'作为用户，我在对话里说的多行任务指令，希望被完整建进定时任务，而不是只留开头一句。',
