@@ -49,6 +49,7 @@
   .tag-status{font-size:10px;font-weight:600;padding:2px 8px;border-radius:9px;}
   .tag-status.ready{background:#e8f9ee;color:#0a8a2c;}
   .tag-status.doing{background:#fff3e0;color:#cc7000;}
+  .tag-status.todev{background:#eef2ff;color:#4959a8;}
   .tag-status.hold{background:var(--bg);color:var(--t3);}
   .owner{font-size:10px;font-weight:600;color:var(--aou-7);background:var(--aou-1);border-radius:9px;padding:2px 8px;}
   .foot{text-align:center;font-size:12px;color:var(--t3);margin-top:44px;}
@@ -79,7 +80,7 @@
 <script>
 /* ============================================================
    PRD 清单 —— 更新站点：改这里即可（状态 status / 执行人 owner）
-   status: doing(进行中) | ready(可做) | hold(暂缓)
+   status: doing(进行中) | todev(待开发) | ready(待评估) | hold(暂缓)
    owner:  执行人，如 '@zhoukai'；留空则不显示
    ============================================================ */
 const DOMAINS = [
@@ -117,7 +118,7 @@ const DOMAINS = [
   {
     name: '⏰ 定时任务 Scheduled', desc: '按时间/频率自动执行任务的能力',
     cards: [
-      { status:'doing', owner:'@zynx',
+      { status:'todev', owner:'@zynx',
         code:'F-CRON', title:'⏰ 定时任务优化 · 6 项反馈',
         desc:'把 6 条用户反馈整理成需求：2 个 Bug（多行指令截断、删对话误删任务）+ 5 项优化（描述可选、侧边栏重构、未读冒泡、标题带日期、多选删除）。',
         doc:'scheduled/scheduled.md', wf:'scheduled/wireframe.html' },
@@ -134,7 +135,7 @@ const DOMAINS = [
   },
 ];
 
-const STATUS_LABEL = { doing:'进行中', ready:'可做', hold:'暂缓' };
+const STATUS_LABEL = { doing:'进行中', todev:'待开发', ready:'待评估', hold:'暂缓' };
 
 function cardHtml(c){
   const statusTag = c.status ? `<span class="tag-status ${c.status}">${STATUS_LABEL[c.status]||c.status}</span>` : '';
