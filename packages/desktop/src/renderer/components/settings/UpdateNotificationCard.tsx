@@ -126,6 +126,8 @@ const UpdateNotificationCard: React.FC = () => {
             <span>{t('update.downloadCompleteTitle')}</span>
           </div>
         );
+      case 'preparing-install':
+        return <div className='py-16px text-13px text-t-secondary'>{t('update.preparingInstall')}</div>;
       case 'success':
         return <div className='py-16px text-13px text-t-secondary break-all'>{state.downloadPath}</div>;
       case 'error':
@@ -136,6 +138,13 @@ const UpdateNotificationCard: React.FC = () => {
   };
 
   const renderActions = () => {
+    if (state.status === 'preparing-install') {
+      return (
+        <Button type='primary' size='small' className={ACTION_BTN_CLASS} loading disabled>
+          {t('update.preparingInstall')}
+        </Button>
+      );
+    }
     if (state.status === 'downloaded') {
       return (
         <>

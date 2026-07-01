@@ -22,6 +22,7 @@
   "readyToInstallDesc": "更新已下载完成，点击下方按钮重启应用并安装更新。",
   "installNow": "立即安装",
   "restartNow": "立即安装",
+  "preparingInstall": "准备安装...",
   "installWarning": "安装期间请勿手动打开应用，应用将自动重启。",
   "autoUpdateMode": "自动更新模式",
   "showInFolder": "在文件夹中显示",
@@ -40,7 +41,9 @@
     "downloadNoBody": "下载响应没有内容",
     "missingUrl": "缺少下载地址",
     "checkReturnedNull": "更新检查没有返回结果，需要打包应用或强制启用开发更新配置。",
-    "missingDownloadId": "缺少下载 ID"
+    "missingDownloadId": "缺少下载 ID",
+    "prepareInstallTimeout": "准备安装超时，请稍后重试。",
+    "prepareInstallFailed": "准备安装失败，请稍后重试。"
   },
   "releaseNotesLoading": "更新内容获取中",
   "releaseNotesFailed": "获取失败，可",

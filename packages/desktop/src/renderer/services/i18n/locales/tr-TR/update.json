@@ -22,6 +22,7 @@
   "readyToInstallDesc": "Güncelleme indirildi. Yeniden başlatmak ve güncellemeyi yüklemek için aşağıdaki düğmeye tıklayın.",
   "installNow": "Şimdi yükle ve yeniden başlat",
   "restartNow": "Şimdi yeniden başlat",
+  "preparingInstall": "Hazırlanıyor...",
   "installWarning": "Kurulum sırasında uygulamayı manuel olarak açmayın. Uygulama otomatik olarak yeniden başlayacaktır.",
   "autoUpdateMode": "Otomatik güncelleme modu",
   "showInFolder": "Klasörde göster",
@@ -40,7 +41,9 @@
     "downloadNoBody": "İndirme yanıtında gövde yok",
     "missingUrl": "İndirme URL'si eksik",
     "checkReturnedNull": "Güncelleme kontrolü sonuç döndürmedi. Paketlenmiş uygulama veya zorunlu geliştirme güncelleme yapılandırması gerekir.",
-    "missingDownloadId": "İndirme ID eksik"
+    "missingDownloadId": "İndirme ID eksik",
+    "prepareInstallTimeout": "Kurulum hazırlığı zaman aşımına uğradı. Lütfen daha sonra tekrar deneyin.",
+    "prepareInstallFailed": "Kurulum hazırlığı başarısız oldu. Lütfen daha sonra tekrar deneyin."
   },
   "releaseNotesLoading": "Güncelleme ayrıntıları alınıyor...",
   "releaseNotesFailed": "Ayrıntılar alınamadı.",

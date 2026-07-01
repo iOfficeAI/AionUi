@@ -22,6 +22,7 @@
   "readyToInstallDesc": "Update wurde heruntergeladen. Klicke auf die Schaltfläche unten, um neu zu starten und das Update zu installieren.",
   "installNow": "Installieren und neu starten",
   "restartNow": "Jetzt neu starten",
+  "preparingInstall": "Wird vorbereitet...",
   "installWarning": "Öffne die App während der Installation nicht erneut. Sie wird automatisch neu gestartet.",
   "autoUpdateMode": "Automatischer Update-Modus",
   "showInFolder": "Im Ordner anzeigen",
@@ -40,7 +41,9 @@
     "downloadNoBody": "Download-Antwort enthielt keinen Body",
     "missingUrl": "Download-URL fehlt",
     "checkReturnedNull": "Update-Prüfung hat kein Ergebnis zurückgegeben. Verpackte App oder erzwungene Dev-Update-Konfiguration erforderlich.",
-    "missingDownloadId": "Download-ID fehlt"
+    "missingDownloadId": "Download-ID fehlt",
+    "prepareInstallTimeout": "Zeitüberschreitung beim Vorbereiten der Installation. Bitte später erneut versuchen.",
+    "prepareInstallFailed": "Vorbereiten der Installation fehlgeschlagen. Bitte später erneut versuchen."
   },
   "releaseNotesLoading": "Update-Details werden abgerufen...",
   "releaseNotesFailed": "Update-Details konnten nicht abgerufen werden.",

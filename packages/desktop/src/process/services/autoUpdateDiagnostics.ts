@@ -11,11 +11,20 @@ import type { AutoUpdateStatus } from './autoUpdaterService';
 const AUTO_UPDATE_DIAGNOSTICS_FILE = 'auto-update-diagnostics.json';
 const MAX_AUTO_UPDATE_EVENTS = 20;
 
+export type AutoUpdateDiagnosticStatus =
+  | AutoUpdateStatus['status']
+  | 'quit-and-install'
+  | 'native-update-ready'
+  | 'native-update-error'
+  | 'native-update-timeout';
+
 export type AutoUpdateDiagnosticEvent = {
   at: string;
+  elapsedMs?: number;
   error?: string;
+  platform?: NodeJS.Platform;
   progressPercent?: number;
-  status: AutoUpdateStatus['status'] | 'quit-and-install';
+  status: AutoUpdateDiagnosticStatus;
   total?: number;
   transferred?: number;
   version?: string;
@@ -116,6 +125,58 @@ export function recordAutoUpdateStatus(status: AutoUpdateStatus, options: AutoUp
 export function recordAutoUpdateQuitAndInstall(options: AutoUpdateDiagnosticOptions): void {
   const at = (options.now ?? (() => new Date()))().toISOString();
   updateAutoUpdateDiagnostics({ at, status: 'quit-and-install' }, options);
+}
+
+export function recordAutoUpdateNativeInstallReady(
+  event: { elapsedMs?: number; version?: string },
+  options: AutoUpdateDiagnosticOptions
+): void {
+  const at = (options.now ?? (() => new Date()))().toISOString();
+  updateAutoUpdateDiagnostics(
+    {
+      at,
+      elapsedMs: event.elapsedMs,
+      platform: 'darwin',
+      status: 'native-update-ready',
+      version: event.version,
+    },
+    options
+  );
+}
+
+export function recordAutoUpdateNativeInstallError(
+  event: { elapsedMs?: number; error: string; version?: string },
+  options: AutoUpdateDiagnosticOptions
+): void {
+  const at = (options.now ?? (() => new Date()))().toISOString();
+  updateAutoUpdateDiagnostics(
+    {
+      at,
+      elapsedMs: event.elapsedMs,
+      error: event.error,
+      platform: 'darwin',
+      status: 'native-update-error',
+      version: event.version,
+    },
+    options
+  );
+}
+
+export function recordAutoUpdateNativeInstallTimeout(
+  event: { elapsedMs: number; version?: string },
+  options: AutoUpdateDiagnosticOptions
+): void {
+  const at = (options.now ?? (() => new Date()))().toISOString();
+  updateAutoUpdateDiagnostics(
+    {
+      at,
+      elapsedMs: event.elapsedMs,
+      platform: 'darwin',
+      status: 'native-update-timeout',
+      version: event.version,
+    },
+    options
+  );
 }
 
 export function readAutoUpdateDiagnostics(userDataPath: string): AutoUpdateDiagnostics | undefined {
