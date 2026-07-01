@@ -29,6 +29,15 @@
   .feat-btn.on{background:var(--aou-1);color:var(--aou-7);font-weight:600;}
   .feat-btn .fc{font-family:ui-monospace,monospace;font-size:10.5px;opacity:.65;margin-right:4px;}
   .feat-btn .bug{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--danger);margin-right:4px;vertical-align:middle;}
+  .feat-btn .st{display:inline-block;width:7px;height:7px;border-radius:50%;margin-left:5px;vertical-align:middle;}
+  .feat-btn .st.done{background:var(--success);}
+  .feat-btn .st.partial{background:var(--warning);}
+  .feat-btn .st.todev{background:var(--t4);}
+  .statusline{display:flex;align-items:center;gap:8px;font-size:12px;margin:2px 0 10px;padding:8px 12px;border-radius:9px;font-weight:600;}
+  .statusline.done{background:#e8f9ee;color:#0a8a2c;}
+  .statusline.partial{background:#fff8f0;color:#cc7000;}
+  .statusline.todev{background:var(--bg-2);color:var(--t3);}
+  .statusline .sd{font-weight:400;font-size:11.5px;opacity:.9;}
 
   .split{flex:1 1 auto;display:flex;min-height:0;}
   .left{flex:1 1 60%;min-width:0;overflow:auto;padding:24px;background:var(--bg-2);}
@@ -177,6 +186,9 @@
   .ov .tagb{display:inline-block;font-size:10px;padding:1px 7px;border-radius:8px;font-weight:600;}
   .ov .tagb.bug{background:#ffece8;color:#d4380d;}
   .ov .tagb.opt{background:#eef2ff;color:#4959a8;}
+  .ov .tagb.dn{background:#e8f9ee;color:#0a8a2c;}
+  .ov .tagb.par{background:#fff3e0;color:#cc7000;}
+  .ov .tagb.td{background:var(--bg-2);color:var(--t3);}
 </style>
 </head>
 <body>
@@ -376,30 +388,32 @@ function sDecouple(opt){
 function sOverview(){
   return `<div class="ov">
     <h2>定时任务优化</h2>
-    <div class="lead">把 6 条用户反馈整理成可开发、可验收的定时任务优化：2 条 Bug 修复 + 5 条体验优化。</div>
+    <div class="lead">把 6 条用户反馈整理成可开发、可验收的定时任务优化。截至 2.1.27：3 条已落地，3 条待开发（含 1 条 bug）。</div>
 
     <h3>要解决的问题</h3>
     <p>定时任务已经能用，但攒下一批体验坑：对话里让 AI 建任务时多行指令会被截断；「描述」必填卡住自然语言建的任务；侧边栏两处都在管定时任务、职责重叠；任务跑完没有从外层就能看到的提醒；历史会话标题分不清哪天跑的、也没法批量清理；最严重的是删一条旧对话会把整个任务连带删掉。</p>
 
-    <h3>功能一览</h3>
+    <h3>功能一览与实现状态（2.1.27）</h3>
     <table>
-      <tr><th>编号</th><th>反馈</th><th>类型</th><th>一句话</th></tr>
-      <tr><td><code>F-CRON-01</code></td><td>创建走后端接口</td><td><span class="tagb bug">Bug/重构</span></td><td>对话内创建复用后端接口，不再解析 AI 文本，多行指令不再丢</td></tr>
-      <tr><td><code>F-CRON-02</code></td><td>描述改可选</td><td><span class="tagb opt">优化·动DB</span></td><td>「描述」全程可选，不再卡住自然语言建的任务</td></tr>
-      <tr><td><code>F-CRON-03</code></td><td>侧边栏分类重构</td><td><span class="tagb opt">优化</span></td><td>取消会话列表里的定时任务分类，会话回归普通列表；聚合页仍在</td></tr>
-      <tr><td><code>F-CRON-04</code></td><td>未读蓝点冒泡</td><td><span class="tagb opt">优化</span></td><td>蓝点逐级冒泡到侧边栏入口，最外层就能感知有任务跑完</td></tr>
-      <tr><td><code>F-CRON-05</code></td><td>会话标题带日期</td><td><span class="tagb opt">优化</span></td><td>每次新建会话模式，新建会话标题带执行日期 DD-MM-YY</td></tr>
-      <tr><td><code>F-CRON-06</code></td><td>详情页多选删除</td><td><span class="tagb opt">优化</span></td><td>详情页会话列表支持多选批量删除</td></tr>
-      <tr><td><code>F-CRON-07</code></td><td>删对话误删任务</td><td><span class="tagb bug">Bug</span></td><td>任务与对话彻底解耦，删对话永不删任务</td></tr>
+      <tr><th>编号</th><th>反馈</th><th>状态</th><th>说明</th></tr>
+      <tr><td><code>F-CRON-01</code></td><td>创建走后端接口</td><td><span class="tagb par">🟡 部分</span></td><td>入口已切到统一「找管家」引导创建；底层旧的 AI 文本解析通道未移除，多行截断隐患未根除</td></tr>
+      <tr><td><code>F-CRON-02</code></td><td>描述改可选</td><td><span class="tagb dn">✅ 完成</span></td><td>做法更彻底：直接把「描述」字段从表单移除，由系统自动生成</td></tr>
+      <tr><td><code>F-CRON-03</code></td><td>侧边栏分类重构</td><td><span class="tagb dn">✅ 完成</span></td><td>取消会话列表里的定时任务分类，会话回归普通列表；聚合页仍在</td></tr>
+      <tr><td><code>F-CRON-04</code></td><td>未读蓝点冒泡</td><td><span class="tagb par">🟡 部分</span></td><td>底层已识别未读，但侧边栏入口/聚合页卡片的蓝点展示未接</td></tr>
+      <tr><td><code>F-CRON-05</code></td><td>会话标题带日期</td><td><span class="tagb td">⬜ 待开发</span></td><td>每次新建会话模式，新建会话标题带执行日期 DD-MM-YY</td></tr>
+      <tr><td><code>F-CRON-06</code></td><td>详情页多选删除</td><td><span class="tagb td">⬜ 待开发</span></td><td>详情页会话列表支持多选批量删除（主列表已有逻辑可复用）</td></tr>
+      <tr><td><code>F-CRON-07</code></td><td>删对话误删任务</td><td><span class="tagb td">⬜ 待开发</span></td><td>Bug 仍在：任务与对话仍强绑定。2.1.27「保留会话+助手配置」是另一件事，未解决本条</td></tr>
     </table>
 
-    <h3>依赖关系</h3>
+    <h3>剩余待开发建议顺序</h3>
     <table>
-      <tr><th>先做</th><th>后做</th></tr>
-      <tr><td>F-CRON-03 侧边栏重构</td><td>F-CRON-04 未读冒泡、F-CRON-06 多选删除</td></tr>
-      <tr><td>F-CRON-07 数据解耦</td><td>约束 F-CRON-06 的删除行为（删会话不碰任务）</td></tr>
+      <tr><th>顺序</th><th>项</th><th>理由</th></tr>
+      <tr><td>1</td><td>F-CRON-07 数据解耦</td><td>数据安全，优先；放开任务-对话强绑定</td></tr>
+      <tr><td>2</td><td>F-CRON-01 收尾</td><td>移除旧 AI 文本解析通道，确认多行指令不再截断</td></tr>
+      <tr><td>3</td><td>F-CRON-04 收尾 + F-CRON-06</td><td>都依赖已完成的 F-CRON-03，可一起做</td></tr>
+      <tr><td>4</td><td>F-CRON-05</td><td>独立，随时可做</td></tr>
     </table>
-    <p style="color:var(--t3);font-size:12px;">涉及数据层改动：F-CRON-02（描述约束）、F-CRON-07（任务-对话绑定约束），需工程侧先做兼容性评估。</p>
+    <p style="color:var(--t3);font-size:12px;">涉及数据约束改动的是 F-CRON-07（放开任务-对话强绑定），需工程侧先做兼容性评估。F-CRON-02 已用「移除描述字段」方式完成，不涉及数据迁移。</p>
   </div>`;
 }
 
@@ -407,7 +421,7 @@ function sOverview(){
 const FEATS=[
   {id:'ov',code:'',name:'总览',full:true,render:sOverview,req:null},
 
-  {id:'f01',code:'F-CRON-01',name:'创建走后端接口',type:'bug',
+  {id:'f01',code:'F-CRON-01',name:'创建走后端接口',type:'bug',status:'partial',statusNote:'创建入口已切到统一的「找管家」引导创建；但底层仍保留旧的解析 AI 文本通道，多行截断隐患未彻底根除。剩余：移除旧解析通道。',
    render:()=>sChatCreate({multiline:true}),
    req:{title:'对话内创建改为直接调用后端接口',type:'bug',
     story:'作为用户，我在对话里说的多行任务指令，希望被完整建进定时任务，而不是只留开头一句。',
@@ -420,7 +434,7 @@ const FEATS=[
     ac:['多行/多条要求的指令，建出的任务指令与用户所说一致，无截断、无丢行',
       '对话内创建与手动创建在字段完整度上无差异']}},
 
-  {id:'f02',code:'F-CRON-02',name:'描述改可选',type:'db',
+  {id:'f02',code:'F-CRON-02',name:'描述改可选',type:'db',status:'done',statusNote:'已完成（2.1.27），做法更彻底：直接把「描述」字段从创建/编辑表单移除，由系统自动生成，卡住问题从根上消失。',
    render:sDescOptional,
    req:{title:'「描述」字段改为可选',type:'db',
     story:'作为用户，我在对话里建的任务从没让我填过描述，之后编辑时不该因为「描述必填」把我卡住。',
@@ -433,7 +447,7 @@ const FEATS=[
       '对话内创建的空描述任务，进编辑页不改描述也能保存成功',
       '已有描述的历史任务不受影响']}},
 
-  {id:'f03',code:'F-CRON-03',name:'侧边栏重构',type:'opt',
+  {id:'f03',code:'F-CRON-03',name:'侧边栏重构',type:'opt',status:'done',statusNote:'已完成（2.1.27）：取消侧边栏定时任务会话分类，会话回归普通列表；顶部聚合入口保留。',
    render:()=>shell(sAggBodyPlaceholder(),{scheduledOn:false,cronConvInList:true}),
    req:{title:'取消会话列表里的定时任务分类',type:'opt',
     story:'作为用户，定时任务产生的会话也是正常对话，我希望在熟悉的会话列表里就能找到它们。',
@@ -446,7 +460,7 @@ const FEATS=[
       '定时任务产生的会话出现在普通会话列表中',
       '顶部入口 → 聚合页 → 详情页 查看路径保持可用']}},
 
-  {id:'f04',code:'F-CRON-04',name:'未读蓝点冒泡',type:'opt',
+  {id:'f04',code:'F-CRON-04',name:'未读蓝点冒泡',type:'opt',status:'partial',statusNote:'底层已能识别「某会话有未读」，但蓝点尚未在侧边栏入口、聚合页卡片上显示。剩余：接展示层，让蓝点逐级冒泡。',
    render:()=>sAgg({card1Unread:true}),
    req:{title:'未读蓝点逐级冒泡',type:'opt',
     story:'作为用户，我希望在最外层的侧边栏入口就能看到「有任务跑完了」，不用逐层点进去才发现。',
@@ -459,7 +473,7 @@ const FEATS=[
       '查看该会话后若名下已无其他未读，各层蓝点消失',
       '名下有多个未读时，看完部分上层蓝点不提前消失']}},
 
-  {id:'f05',code:'F-CRON-05',name:'标题带日期',type:'opt',
+  {id:'f05',code:'F-CRON-05',name:'标题带日期',type:'opt',status:'todev',statusNote:'待开发（2.1.27 未做）。',
    render:sTitle,
    req:{title:'新建会话标题带执行日期',type:'opt',
     story:'作为用户，定时任务跑多次攒下一串会话，我希望凭标题上的日期就能区分是哪天跑的。',
@@ -471,7 +485,7 @@ const FEATS=[
       '不同天执行产生的会话标题日期不同、可区分',
       '「延用同一会话」模式的会话标题不受影响']}},
 
-  {id:'f06',code:'F-CRON-06',name:'详情页多选删除',type:'opt',
+  {id:'f06',code:'F-CRON-06',name:'详情页多选删除',type:'opt',status:'todev',statusNote:'待开发（2.1.27 未做）。主会话列表已有多选删除逻辑，详情页可复用。',
    render:()=>sDetail({batch:true,selected:[0,2]}),
    req:{title:'详情页会话列表支持多选删除',type:'opt',
     story:'作为用户，任务跑久了攒下大量会话，我想一次勾选多个批量删，而不是一条条删。',
@@ -484,7 +498,7 @@ const FEATS=[
     ac:['详情页会话列表可进入多选模式，支持勾选、全选、批量删除并二次确认',
       '批量删除后定时任务本身及调度不受影响']}},
 
-  {id:'f07',code:'F-CRON-07',name:'删对话误删任务',type:'bug',
+  {id:'f07',code:'F-CRON-07',name:'删对话误删任务',type:'bug',status:'todev',statusNote:'待开发（2.1.27 未做）。Bug 仍在：任务与对话仍强绑定。注意 2.1.27 有名字相近的改动（让定时任务会话重新显示在历史里 + 保留助手配置），那是另一件事，未解决本条误删。',
    render:()=>sDecouple({modal:true}),
    req:{title:'Bug：删除关联对话导致整个定时任务被删',type:'bug',
     story:'作为用户，我删掉一条用不上的旧对话，定时任务应该还在 —— 它现在明明关联的是新对话、新配置。',
@@ -518,10 +532,14 @@ function sAggBodyPlaceholder(){
 
 /* ====== 渲染右侧需求 ====== */
 const TYPE_BADGE={bug:['badge bug','Bug 修复'],opt:['badge opt','优化'],db:['badge db','优化 · 动 DB']};
-function renderReq(r){
+const STATUS_TEXT={done:'✅ 已完成（2.1.27）',partial:'🟡 部分完成（2.1.27）',todev:'⬜ 待开发'};
+function renderReq(r,feat){
   if(!r) return '';
   const tb=TYPE_BADGE[r.type]||['badge new','新增'];
   let h=`<div class="req"><h2>${r.title}</h2><div class="flags"><span class="${tb[0]}">${tb[1]}</span></div>`;
+  if(feat&&feat.status){
+    h+=`<div class="statusline ${feat.status}"><span>${STATUS_TEXT[feat.status]||''}</span>${feat.statusNote?`<span class="sd">· ${feat.statusNote}</span>`:''}</div>`;
+  }
   if(r.story) h+=`<div class="story">${r.story}</div>`;
   if(r.now) h+=`<h3>现状</h3><p>${r.now}</p>`;
   h+=`<h3>需求</h3><ul>`+r.need.map(n=>`<li>${n}</li>`).join('')+`</ul>`;
@@ -540,12 +558,12 @@ const rightEl=document.getElementById('right');
 let cur='ov';
 function build(){
   tabsEl.innerHTML=FEATS.map(f=>`<button class="feat-btn ${f.id===cur?'on':''}" data-id="${f.id}">
-    ${f.type==='bug'?'<span class="bug"></span>':''}${f.code?`<span class="fc">${f.code}</span>`:''}${f.name}</button>`).join('');
+    ${f.type==='bug'?'<span class="bug"></span>':''}${f.code?`<span class="fc">${f.code}</span>`:''}${f.name}${f.status?`<span class="st ${f.status}"></span>`:''}</button>`).join('');
   tabsEl.querySelectorAll('.feat-btn').forEach(b=>b.onclick=()=>{cur=b.dataset.id;build();});
   const f=FEATS.find(x=>x.id===cur);
   leftEl.innerHTML=f.render();
   if(f.full){splitEl.classList.add('full');rightEl.innerHTML='';}
-  else{splitEl.classList.remove('full');rightEl.innerHTML=renderReq(f.req);}
+  else{splitEl.classList.remove('full');rightEl.innerHTML=renderReq(f.req,f);}
 }
 build();
 </script>
