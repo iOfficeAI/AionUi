@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>定时任务优化 · 线框图</title>
+<style>
+  :root{
+    --bg-base:#ffffff; --bg-1:#f9fafb; --bg-2:#f2f3f5; --bg-3:#e5e6eb;
+    --t1:#1d2129; --t2:#454d5f; --t3:#86909c; --t4:#c9cdd4;
+    --border:#e5e6eb; --border-light:#f2f3f5;
+    --aou-1:#eff0f6; --aou-2:#e5e7f0; --aou-6:#7583b2; --aou-7:#596590;
+    --primary:#165dff; --success:#00b42a; --warning:#ff7d00; --danger:#f53f3f;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;height:100%;}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    background:var(--bg-2); color:var(--t1); font-size:13px; line-height:1.5;
+    display:flex;flex-direction:column;height:100vh;overflow:hidden;}
+
+  .topbar{flex:0 0 auto;background:var(--bg-base);border-bottom:1px solid var(--border);}
+  .topbar-row{display:flex;align-items:center;gap:8px;padding:8px 14px;}
+  .topbar-row.phases{border-bottom:1px solid var(--border-light);}
+  .doc-title{font-weight:600;font-size:13px;color:var(--aou-7);margin-right:8px;white-space:nowrap;}
+  .feat-tabs{display:flex;align-items:center;gap:2px;padding:7px 14px;overflow-x:auto;}
+  .feat-btn{flex:0 0 auto;border:none;background:transparent;cursor:pointer;padding:5px 10px;border-radius:7px;
+    font-size:12px;color:var(--t3);white-space:nowrap;}
+  .feat-btn:hover{background:var(--bg-2);}
+  .feat-btn.on{background:var(--aou-1);color:var(--aou-7);font-weight:600;}
+  .feat-btn .fc{font-family:ui-monospace,monospace;font-size:10.5px;opacity:.65;margin-right:4px;}
+  .feat-btn .bug{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--danger);margin-right:4px;vertical-align:middle;}
+
+  .split{flex:1 1 auto;display:flex;min-height:0;}
+  .left{flex:1 1 60%;min-width:0;overflow:auto;padding:24px;background:var(--bg-2);}
+  .right{flex:0 0 40%;max-width:540px;min-width:0;overflow:auto;background:var(--bg-base);border-left:1px solid var(--border);padding:24px 26px;}
+  .split.full .left{flex:1 1 100%;}
+  .split.full .right{display:none;}
+  @media(max-width:920px){.split{flex-direction:column;}.right{flex:none;max-width:none;border-left:none;border-top:1px solid var(--border);}}
+
+  .req .fcode{font-family:ui-monospace,monospace;font-size:12px;color:var(--aou-6);font-weight:600;}
+  .req h2{font-size:17px;margin:3px 0 0;}
+  .req .flags{margin:9px 0 16px;display:flex;gap:6px;}
+  .badge{display:inline-block;font-size:11px;padding:2px 9px;border-radius:20px;font-weight:500;}
+  .badge.new{background:#e8f9ee;color:#0a8a2c;}
+  .badge.bug{background:#ffece8;color:#d4380d;}
+  .badge.opt{background:#eef2ff;color:#4959a8;}
+  .badge.db{background:#fff3e0;color:#cc7000;}
+  .req h3{font-size:12px;margin:20px 0 7px;color:var(--t3);text-transform:uppercase;letter-spacing:.04em;font-weight:600;}
+  .req p,.req li{font-size:13px;color:var(--t2);}
+  .req ul{margin:6px 0;padding-left:18px;}
+  .req li{margin-bottom:5px;}
+  .story{background:var(--aou-1);border-radius:10px;padding:12px 14px;font-size:13px;color:var(--t2);margin:2px 0 4px;}
+  .story b{color:var(--aou-7);}
+  .ac div{font-size:12.5px;color:var(--t2);padding:3px 0 3px 22px;position:relative;}
+  .ac div:before{content:"";position:absolute;left:4px;top:8px;width:11px;height:11px;border:1.5px solid var(--t4);border-radius:3px;}
+  .disc{background:#fff8f0;border:1px solid #ffe0b3;border-radius:9px;padding:10px 13px;font-size:12.5px;color:#8a5a00;margin:6px 0;}
+  .disc b{color:#cc7000;}
+
+  .app{position:relative;background:var(--bg-base);border:1px solid var(--border);border-radius:14px;overflow:hidden;
+    box-shadow:0 4px 20px rgba(29,33,41,.06);max-width:940px;margin:0 auto;}
+  .titlebar{height:36px;background:var(--bg-2);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 12px;gap:12px;}
+  .tb-dots{display:flex;gap:7px;}
+  .tb-dots i{width:11px;height:11px;border-radius:50%;display:block;}
+  .tb-dots .r{background:#ff5f57;}.tb-dots .y{background:#febc2e;}.tb-dots .g{background:#28c840;}
+  .tb-ico{color:var(--t3);font-size:14px;}
+  .tb-brand{flex:1;text-align:center;font-weight:600;font-size:12.5px;color:var(--t2);}
+  .body{display:flex;height:560px;}
+  .sider{flex:0 0 190px;background:var(--bg-2);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:10px 8px;}
+  .logo{display:flex;align-items:center;gap:9px;font-weight:700;font-size:14px;color:var(--aou-7);padding:5px 8px 12px;}
+  .logo .sq{width:24px;height:24px;border-radius:7px;background:linear-gradient(135deg,var(--aou-6),var(--aou-7));}
+  .si{height:32px;display:flex;align-items:center;gap:9px;padding:0 10px;border-radius:8px;font-size:13px;color:var(--t2);cursor:pointer;font-weight:500;position:relative;}
+  .si:hover{background:var(--bg-3);}
+  .si.on{background:var(--bg-3);font-weight:600;color:var(--t1);}
+  .si .di{width:18px;text-align:center;font-size:14px;color:var(--t3);}
+  .si-div{height:1px;background:var(--border);margin:8px 6px;}
+  .si-grp{font-size:11px;color:var(--t3);padding:10px 10px 3px;font-weight:600;}
+  .si-sp{flex:1;}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--primary);display:inline-block;}
+  .dot-abs{position:absolute;right:10px;top:12px;}
+  .main{flex:1;min-width:0;overflow:hidden;display:flex;flex-direction:column;}
+
+  /* 通用页头 */
+  .page-h{flex:0 0 auto;height:46px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:9px;padding:0 16px;}
+  .page-h .bk{color:var(--aou-7);cursor:pointer;font-size:13px;}
+  .page-h .tt{font-weight:600;font-size:14px;}
+  .page-h .sp{flex:1;}
+  .page-b{flex:1;overflow:auto;padding:16px;background:var(--bg-1);}
+
+  .btn{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--border);background:var(--bg-base);
+    border-radius:8px;padding:6px 13px;font-size:12.5px;color:var(--t1);cursor:pointer;white-space:nowrap;}
+  .btn:hover{background:var(--bg-1);}
+  .btn.pri-b{background:var(--aou-6);border-color:var(--aou-6);color:#fff;}
+  .btn.sm{padding:4px 10px;font-size:12px;border-radius:6px;}
+  .btn.danger{background:var(--danger);border-color:var(--danger);color:#fff;}
+
+  /* 聚合页任务卡网格 */
+  .jgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .jcard{background:var(--bg-base);border:1px solid var(--border);border-radius:11px;padding:13px 15px;cursor:pointer;position:relative;}
+  .jcard:hover{border-color:var(--aou-6);box-shadow:0 2px 10px rgba(117,131,178,.1);}
+  .jcard .jt{font-size:13.5px;font-weight:600;margin-bottom:5px;display:flex;align-items:center;gap:7px;}
+  .jcard .jmeta{font-size:11.5px;color:var(--t3);line-height:1.7;}
+  .jcard .jstate{position:absolute;top:12px;right:13px;font-size:10px;padding:2px 8px;border-radius:9px;font-weight:600;}
+  .jstate.active{background:#e8f9ee;color:#0a8a2c;}
+  .jstate.paused{background:var(--bg-2);color:var(--t3);}
+
+  /* 详情页 */
+  .dsec{background:var(--bg-base);border:1px solid var(--border);border-radius:11px;padding:14px 16px;margin-bottom:12px;}
+  .dsec h4{font-size:12px;margin:0 0 9px;color:var(--t3);text-transform:uppercase;letter-spacing:.04em;font-weight:600;}
+  .drow{display:flex;font-size:12.5px;padding:4px 0;}
+  .drow .dk{flex:0 0 92px;color:var(--t3);}
+  .drow .dv{color:var(--t2);}
+  .conv-list-h{display:flex;align-items:center;gap:9px;margin-bottom:9px;}
+  .conv-list-h .clt{font-size:12px;color:var(--t3);text-transform:uppercase;letter-spacing:.04em;font-weight:600;}
+  .conv-list-h .sp{flex:1;}
+  .crow{display:flex;align-items:center;gap:10px;background:var(--bg-base);border:1px solid var(--border);border-radius:9px;padding:9px 12px;margin-bottom:7px;}
+  .crow:hover{border-color:var(--t4);}
+  .crow .chk{width:15px;height:15px;border:1.5px solid var(--t4);border-radius:4px;flex:0 0 auto;}
+  .crow .chk.on{background:var(--aou-6);border-color:var(--aou-6);position:relative;}
+  .crow .chk.on:after{content:"✓";color:#fff;font-size:10px;position:absolute;left:2px;top:-1px;}
+  .crow .cnm{font-size:12.5px;color:var(--t1);flex:1;}
+  .crow .ctime{font-size:11px;color:var(--t4);font-family:ui-monospace,monospace;}
+  .crow.sel{background:var(--aou-1);border-color:var(--aou-6);}
+  .batchbar{display:flex;align-items:center;gap:10px;background:var(--aou-1);border:1px solid var(--aou-2);border-radius:9px;padding:8px 13px;margin-bottom:10px;font-size:12.5px;color:var(--aou-7);}
+  .batchbar .sp{flex:1;}
+
+  /* 对话页（对话内创建 / 标题） */
+  .conv-wrap{display:flex;height:100%;flex-direction:column;}
+  .conv-h{flex:0 0 auto;height:42px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:9px;padding:0 14px;font-size:13px;}
+  .conv-h .av{width:22px;height:22px;border-radius:6px;background:var(--aou-1);display:flex;align-items:center;justify-content:center;font-size:12px;}
+  .conv-h .nm{font-weight:600;}
+  .conv-b{flex:1;overflow:auto;padding:14px;display:flex;flex-direction:column;gap:11px;}
+  .msg{max-width:84%;font-size:12px;line-height:1.55;padding:8px 11px;border-radius:11px;white-space:pre-line;}
+  .msg.u{align-self:flex-end;background:var(--aou-6);color:#fff;border-bottom-right-radius:4px;}
+  .msg.a{align-self:flex-start;background:var(--bg-2);color:var(--t1);border-bottom-left-radius:4px;}
+  .sysline{align-self:center;font-size:11px;color:var(--aou-7);background:var(--aou-1);border:1px solid var(--aou-2);
+    border-radius:18px;padding:5px 12px;display:flex;align-items:center;gap:6px;max-width:94%;}
+  .sysline.ok{color:#0a8a2c;background:#e8f9ee;border-color:#c5ecd0;}
+  .sysline .si2{font-size:12px;}
+  .task-recap{align-self:center;background:var(--bg-base);border:1px solid var(--border);border-radius:11px;padding:11px 14px;max-width:94%;font-size:12px;}
+  .task-recap .trh{font-weight:600;color:var(--aou-7);margin-bottom:6px;display:flex;align-items:center;gap:6px;}
+  .task-recap .trrow{display:flex;padding:2px 0;}
+  .task-recap .trk{flex:0 0 66px;color:var(--t3);}
+  .task-recap .trv{color:var(--t2);white-space:pre-line;}
+
+  /* 会话列表（侧栏内含定时任务会话回归普通列表） */
+  .si-sub{font-size:12px;color:var(--t2);padding:5px 10px 5px 22px;border-radius:7px;cursor:pointer;display:flex;align-items:center;gap:7px;position:relative;}
+  .si-sub:hover{background:var(--bg-3);}
+  .si-clock{font-size:11px;opacity:.7;}
+
+  /* 空状态 */
+  .empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;text-align:center;padding:30px 22px;color:var(--t3);}
+  .empty .ei{font-size:32px;margin-bottom:12px;opacity:.5;}
+  .empty .eh{font-size:13.5px;color:var(--t2);font-weight:600;margin-bottom:6px;}
+  .empty .ed{font-size:12px;color:var(--t4);max-width:280px;line-height:1.6;}
+
+  /* 弹窗 */
+  .modal-stage{position:absolute;inset:0;background:rgba(29,33,41,.28);display:flex;align-items:center;justify-content:center;padding:24px;}
+  .modal{width:100%;max-width:380px;background:var(--bg-base);border-radius:14px;border:1px solid var(--border);overflow:hidden;box-shadow:0 16px 48px rgba(29,33,41,.22);}
+  .modal-h{padding:16px 18px 4px;font-weight:600;font-size:15px;}
+  .modal-b{padding:8px 18px 12px;}
+  .modal-b p{font-size:12.5px;color:var(--t2);margin:6px 0;}
+  .flabel{font-size:11.5px;font-weight:600;color:var(--t2);margin:11px 0 5px;}
+  .flabel:first-child{margin-top:0;}
+  .flabel .opt{color:var(--t4);font-weight:400;}
+  .finput{border:1px solid var(--border);border-radius:8px;padding:8px 11px;font-size:12.5px;color:var(--t3);}
+  .modal-f{padding:12px 18px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:9px;}
+
+  /* overview */
+  .ov{max-width:880px;margin:0 auto;}
+  .ov h2{font-size:19px;margin:0 0 4px;}
+  .ov .lead{color:var(--t3);font-size:13px;margin-bottom:20px;}
+  .ov h3{font-size:14px;margin:22px 0 9px;color:var(--t1);border-left:3px solid var(--aou-6);padding-left:9px;}
+  .ov table{width:100%;border-collapse:collapse;margin:8px 0;font-size:12.5px;}
+  .ov th,.ov td{border:1px solid var(--border);padding:7px 10px;text-align:left;vertical-align:top;}
+  .ov th{background:var(--bg-2);font-weight:600;}
+  .ov code{font-family:ui-monospace,monospace;background:var(--bg-2);padding:1px 5px;border-radius:4px;font-size:11.5px;color:var(--aou-7);}
+  .ov .tagb{display:inline-block;font-size:10px;padding:1px 7px;border-radius:8px;font-weight:600;}
+  .ov .tagb.bug{background:#ffece8;color:#d4380d;}
+  .ov .tagb.opt{background:#eef2ff;color:#4959a8;}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="topbar-row phases"><a href="../../index.html" style="font-size:13px;color:var(--aou-7);text-decoration:none;white-space:nowrap;">← 文档首页</a><span style="color:var(--border);">|</span><span class="doc-title">定时任务优化 · 线框图</span></div>
+  <div class="feat-tabs" id="featTabs"></div>
+</div>
+<div class="split" id="split">
+  <div class="left" id="left"></div>
+  <div class="right" id="right"></div>
+</div>
+
+<script>
+/* ====== 外壳 ======
+   opt.siderUnread: 侧栏「定时任务」入口是否带蓝点
+   opt.cronConvInList: 定时任务会话是否回归普通会话列表
+*/
+function shell(inner,opt){
+  opt=opt||{};
+  const unread = opt.siderUnread ? '<span class="dot dot-abs"></span>' : '';
+  const cronInList = opt.cronConvInList ? `
+        <div class="si-sub"><span class="si-clock">⏰</span>日报汇总 01-07-26</div>
+        <div class="si-sub"><span class="si-clock">⏰</span>日报汇总 30-06-26</div>` : '';
+  return `<div class="app">
+    <div class="titlebar"><span class="tb-dots"><i class="r"></i><i class="y"></i><i class="g"></i></span>
+      <span class="tb-ico">☰</span><span class="tb-brand">AionUi</span><span class="tb-ico">⤢</span></div>
+    <div class="body">
+      <div class="sider"><div class="logo"><span class="sq"></span>AionUi</div>
+        <div class="si"><span class="di">＋</span>新建会话</div>
+        <div class="si"><span class="di">🔍</span>搜索</div>
+        <div class="si-div"></div>
+        <div class="si ${opt.scheduledOn?'on':''}"><span class="di">⏰</span>定时任务${unread}</div>
+        <div class="si-div"></div>
+        <div class="si-grp">📁 AionUi 工作区</div>
+        <div class="si-sub">重构方案讨论</div>
+        ${cronInList}
+        <div class="si-sub">修复登录 bug</div>
+        <div class="si-sp"></div>
+        <div class="si"><span class="di">⚙️</span>设置</div>
+      </div>
+      <div class="main">${inner}</div></div></div>`;
+}
+
+/* ====== 聚合页 ====== */
+function sAgg(opt){
+  opt=opt||{};
+  const c1dot = opt.card1Unread ? '<span class="dot"></span>' : '';
+  const inner=`<div class="conv-wrap"><div style="height:100%;display:flex;flex-direction:column;">
+    <div class="page-h"><span class="tt">⏰ 定时任务</span><span class="sp"></span>
+      <span class="btn sm pri-b">＋ 新建定时任务</span></div>
+    <div class="page-b">
+      <div class="jgrid">
+        <div class="jcard"><span class="jstate active">运行中</span>
+          <div class="jt">${c1dot}每日邮件日报</div>
+          <div class="jmeta">每天 09:00 · 下次 明天 09:00<br>助手：邮件管家 · 每次新建会话</div></div>
+        <div class="jcard"><span class="jstate active">运行中</span>
+          <div class="jt">周报草稿生成</div>
+          <div class="jmeta">每周一 18:00 · 下次 周一 18:00<br>助手：写作助手 · 延用同一会话</div></div>
+        <div class="jcard"><span class="jstate paused">已暂停</span>
+          <div class="jt">竞品动态巡检</div>
+          <div class="jmeta">每天 20:00 · 已暂停<br>助手：调研助手 · 每次新建会话</div></div>
+        <div class="jcard"><span class="jstate active">运行中</span>
+          <div class="jt">依赖更新检查</div>
+          <div class="jmeta">每周五 10:00 · 下次 周五 10:00<br>助手：开发助手 · 每次新建会话</div></div>
+      </div>
+    </div>
+  </div></div>`;
+  return shell(inner,{scheduledOn:true,siderUnread:opt.card1Unread});
+}
+
+/* ====== 详情页 ====== */
+function sDetail(opt){
+  opt=opt||{};
+  const convDot = (i)=> (opt.convUnread && i===0) ? '<span class="dot"></span>' : '';
+  const batch = opt.batch;
+  const sel = opt.selected||[];
+  const chk = (i)=> batch ? `<div class="chk ${sel.includes(i)?'on':''}"></div>` : '';
+  const rowCls=(i)=> (batch && sel.includes(i)) ? 'crow sel' : 'crow';
+  const convs=[
+    ['日报汇总 01-07-26','01-07 09:00'],
+    ['日报汇总 30-06-26','30-06 09:00'],
+    ['日报汇总 29-06-26','29-06 09:00'],
+    ['日报汇总 28-06-26','28-06 09:00'],
+  ];
+  const listHead = batch
+    ? `<div class="batchbar"><span>已选 ${sel.length} 项</span><span class="sp"></span>
+        <span class="btn sm">全选</span><span class="btn sm danger">🗑 删除所选</span><span class="btn sm">取消</span></div>`
+    : `<div class="conv-list-h"><span class="clt">执行记录（会话）</span><span class="sp"></span>
+        <span class="btn sm">多选</span></div>`;
+  const rows = convs.map((c,i)=>`<div class="${rowCls(i)}">${chk(i)}
+      <span class="cnm">${convDot(i)}${c[0]}</span><span class="ctime">${c[1]}</span></div>`).join('');
+  const inner=`<div class="conv-wrap"><div style="height:100%;display:flex;flex-direction:column;">
+    <div class="page-h"><span class="bk">← 定时任务</span><span class="tt">每日邮件日报</span><span class="sp"></span>
+      <span class="btn sm">立即执行</span><span class="btn sm">编辑</span></div>
+    <div class="page-b">
+      <div class="dsec"><h4>配置</h4>
+        <div class="drow"><span class="dk">执行时间</span><span class="dv">每天 09:00（下次 明天 09:00）</span></div>
+        <div class="drow"><span class="dk">助手</span><span class="dv">邮件管家</span></div>
+        <div class="drow"><span class="dk">执行方式</span><span class="dv">每次新建会话</span></div>
+        <div class="drow"><span class="dk">工作目录</span><span class="dv">~/work/daily-report</span></div>
+        <div class="drow"><span class="dk">描述</span><span class="dv" style="color:var(--t4);">（未填写）</span></div>
+      </div>
+      ${listHead}
+      ${rows}
+    </div>
+  </div></div>`;
+  return shell(inner,{scheduledOn:true,siderUnread:opt.convUnread});
+}
+
+/* ====== 对话内创建 ====== */
+function sChatCreate(opt){
+  opt=opt||{};
+  const recap = opt.multiline ? `
+    <div class="task-recap"><div class="trh"><span>✅</span>定时任务已创建</div>
+      <div class="trrow"><span class="trk">名称</span><span class="trv">每日邮件日报</span></div>
+      <div class="trrow"><span class="trk">时间</span><span class="trv">每天 09:00</span></div>
+      <div class="trrow"><span class="trk">指令</span><span class="trv">汇总昨天的邮件，分三点：
+1. 未读
+2. 待回复
+3. 已归档</span></div></div>`
+    : `<div class="sysline ok"><span class="si2">✅</span>已创建定时任务「每日邮件日报」</div>`;
+  const userMsg = opt.multiline
+    ? `每天早上 9 点帮我汇总昨天的邮件，分三点：
+1. 未读
+2. 待回复
+3. 已归档`
+    : `每天早上 9 点帮我汇总昨天的邮件。`;
+  const inner=`<div class="conv-wrap">
+    <div class="conv-h"><span class="av">📮</span><span class="nm">邮件管家</span>
+      <span style="font-size:11px;color:var(--t4);margin-left:4px;">· Claude</span></div>
+    <div class="conv-b">
+      <div class="msg u">${userMsg}</div>
+      <div class="msg a">好的，我来帮你建一个每天 9 点执行的定时任务，指令会完整保留你说的三点要求。</div>
+      ${recap}
+    </div>
+  </div>`;
+  return shell(inner,{});
+}
+
+/* ====== 描述可选（编辑表单弹窗） ====== */
+function sDescOptional(){
+  const inner=`<div class="conv-wrap"><div style="height:100%;display:flex;flex-direction:column;">
+    <div class="page-h"><span class="bk">← 定时任务</span><span class="tt">每日邮件日报</span></div>
+    <div class="page-b"></div>
+  </div></div>`;
+  let html=shell(inner,{scheduledOn:true});
+  html=html.replace('</div></div></div>',
+    `</div></div>
+     <div class="modal-stage"><div class="modal">
+       <div class="modal-h">编辑定时任务</div>
+       <div class="modal-b">
+         <div class="flabel">任务名称</div><div class="finput">每日邮件日报</div>
+         <div class="flabel">描述 <span class="opt">（可选）</span></div>
+         <div class="finput" style="min-height:38px;color:var(--t4);">留空即可保存 —— 对话内创建的任务描述为空，也能在这里正常保存</div>
+         <div class="flabel">执行指令</div><div class="finput" style="min-height:38px;">汇总昨天的邮件，分未读/待回复/已归档三点</div>
+       </div>
+       <div class="modal-f"><span class="btn sm">取消</span><span class="btn sm pri-b">保存</span></div>
+     </div></div></div>`);
+  return html;
+}
+
+/* ====== 会话标题（每次新建会话，标题带日期） ====== */
+function sTitle(){
+  const inner=`<div class="conv-wrap"><div style="height:100%;display:flex;flex-direction:column;">
+    <div class="page-h"><span class="bk">← 定时任务</span><span class="tt">每日邮件日报</span></div>
+    <div class="page-b">
+      <div class="conv-list-h"><span class="clt">执行记录（每次新建会话）</span></div>
+      <div class="crow"><span class="cnm">日报汇总 <b style="color:var(--aou-7);">01-07-26</b></span><span class="ctime">今天 09:00</span></div>
+      <div class="crow"><span class="cnm">日报汇总 <b style="color:var(--aou-7);">30-06-26</b></span><span class="ctime">昨天 09:00</span></div>
+      <div class="crow"><span class="cnm">日报汇总 <b style="color:var(--aou-7);">29-06-26</b></span><span class="ctime">前天 09:00</span></div>
+      <div class="crow"><span class="cnm">日报汇总 <b style="color:var(--aou-7);">28-06-26</b></span><span class="ctime">6-28 09:00</span></div>
+    </div>
+  </div></div>`;
+  return shell(inner,{scheduledOn:true});
+}
+
+/* ====== 删对话解耦（弹窗 + 任务仍在） ====== */
+function sDecouple(opt){
+  opt=opt||{};
+  let html=sDetail({});
+  if(opt.modal){
+    html=html.replace('</div></div></div>',
+     `</div></div>
+      <div class="modal-stage"><div class="modal">
+        <div class="modal-h">删除会话</div>
+        <div class="modal-b">
+          <p>确定删除会话「日报汇总 28-06-26」？</p>
+          <p style="color:var(--success);">✓ 只删除这条会话，定时任务「每日邮件日报」保留、继续按时执行。</p>
+        </div>
+        <div class="modal-f"><span class="btn sm">取消</span><span class="btn sm danger">删除会话</span></div>
+      </div></div></div>`);
+  }
+  return html;
+}
+
+/* ====== 总览 ====== */
+function sOverview(){
+  return `<div class="ov">
+    <h2>定时任务优化</h2>
+    <div class="lead">把 6 条用户反馈整理成可开发、可验收的定时任务优化：2 条 Bug 修复 + 5 条体验优化。</div>
+
+    <h3>要解决的问题</h3>
+    <p>定时任务已经能用，但攒下一批体验坑：对话里让 AI 建任务时多行指令会被截断；「描述」必填卡住自然语言建的任务；侧边栏两处都在管定时任务、职责重叠；任务跑完没有从外层就能看到的提醒；历史会话标题分不清哪天跑的、也没法批量清理；最严重的是删一条旧对话会把整个任务连带删掉。</p>
+
+    <h3>功能一览</h3>
+    <table>
+      <tr><th>编号</th><th>反馈</th><th>类型</th><th>一句话</th></tr>
+      <tr><td><code>F-CRON-01</code></td><td>创建走后端接口</td><td><span class="tagb bug">Bug/重构</span></td><td>对话内创建复用后端接口，不再解析 AI 文本，多行指令不再丢</td></tr>
+      <tr><td><code>F-CRON-02</code></td><td>描述改可选</td><td><span class="tagb opt">优化·动DB</span></td><td>「描述」全程可选，不再卡住自然语言建的任务</td></tr>
+      <tr><td><code>F-CRON-03</code></td><td>侧边栏分类重构</td><td><span class="tagb opt">优化</span></td><td>取消会话列表里的定时任务分类，会话回归普通列表；聚合页仍在</td></tr>
+      <tr><td><code>F-CRON-04</code></td><td>未读蓝点冒泡</td><td><span class="tagb opt">优化</span></td><td>蓝点逐级冒泡到侧边栏入口，最外层就能感知有任务跑完</td></tr>
+      <tr><td><code>F-CRON-05</code></td><td>会话标题带日期</td><td><span class="tagb opt">优化</span></td><td>每次新建会话模式，新建会话标题带执行日期 DD-MM-YY</td></tr>
+      <tr><td><code>F-CRON-06</code></td><td>详情页多选删除</td><td><span class="tagb opt">优化</span></td><td>详情页会话列表支持多选批量删除</td></tr>
+      <tr><td><code>F-CRON-07</code></td><td>删对话误删任务</td><td><span class="tagb bug">Bug</span></td><td>任务与对话彻底解耦，删对话永不删任务</td></tr>
+    </table>
+
+    <h3>依赖关系</h3>
+    <table>
+      <tr><th>先做</th><th>后做</th></tr>
+      <tr><td>F-CRON-03 侧边栏重构</td><td>F-CRON-04 未读冒泡、F-CRON-06 多选删除</td></tr>
+      <tr><td>F-CRON-07 数据解耦</td><td>约束 F-CRON-06 的删除行为（删会话不碰任务）</td></tr>
+    </table>
+    <p style="color:var(--t3);font-size:12px;">涉及数据层改动：F-CRON-02（描述约束）、F-CRON-07（任务-对话绑定约束），需工程侧先做兼容性评估。</p>
+  </div>`;
+}
+
+/* ====== 功能点 ====== */
+const FEATS=[
+  {id:'ov',code:'',name:'总览',full:true,render:sOverview,req:null},
+
+  {id:'f01',code:'F-CRON-01',name:'创建走后端接口',type:'bug',
+   render:()=>sChatCreate({multiline:true}),
+   req:{title:'对话内创建改为直接调用后端接口',type:'bug',
+    story:'作为用户，我在对话里说的多行任务指令，希望被完整建进定时任务，而不是只留开头一句。',
+    now:'对话内创建靠解析助手回复里的一段标记文本来建任务。助手把指令分多行写时，系统只能可靠拿到开头部分，后面丢失。用户要等任务跑出错才发现指令被截断。根因：手动创建走可靠的后端接口，对话内创建绕开它、改用脆弱的文本解析。',
+    need:['对话内创建<b>复用手动创建已在用的那套后端接口</b>，不再依赖解析助手回复文本。',
+      '用户在对话里说的完整指令（多行、多条要求）被<b>完整、逐字</b>建进定时任务。',
+      '创建成功后给出明确确认：任务名、执行时间、完整指令。'],
+    flow:['用户用自然语言描述定时任务（可多行、多条要求）','系统通过后端接口完整创建任务','回显任务名、时间、完整指令确认'],
+    exc:['缺必要信息（如没说时间）：向用户追问，不用默认值静默创建','接口调用失败：明确告知失败，不留半成品任务'],
+    ac:['多行/多条要求的指令，建出的任务指令与用户所说一致，无截断、无丢行',
+      '对话内创建与手动创建在字段完整度上无差异']}},
+
+  {id:'f02',code:'F-CRON-02',name:'描述改可选',type:'db',
+   render:sDescOptional,
+   req:{title:'「描述」字段改为可选',type:'db',
+    story:'作为用户，我在对话里建的任务从没让我填过描述，之后编辑时不该因为「描述必填」把我卡住。',
+    now:'手动创建时「描述」必填，但对话内创建没有填描述这一步，建出的任务描述天然为空。之后编辑这个任务，表单又用「描述必填」阻断保存 —— 一个从没让填的字段却不让保存。',
+    need:['「描述」全程改为<b>可选</b>：手动创建、对话内创建、后续编辑，描述为空都不阻断保存。',
+      '手动创建/编辑时「描述」不再标必填，留空可直接保存。',
+      '已有描述的历史任务：编辑时原描述照常带出、可改、可清空。'],
+    disc:'待讨论（数据兼容）：任务表描述列本身允许为空，大概率放开前端校验即可。需工程确认是否有别处假设「描述非空」（列表/搜索展示），空描述用任务名兜底。产品倾向「改可选、不做强制数据迁移」。',
+    ac:['手动创建时描述留空能成功保存',
+      '对话内创建的空描述任务，进编辑页不改描述也能保存成功',
+      '已有描述的历史任务不受影响']}},
+
+  {id:'f03',code:'F-CRON-03',name:'侧边栏重构',type:'opt',
+   render:()=>shell(sAggBodyPlaceholder(),{scheduledOn:false,cronConvInList:true}),
+   req:{title:'取消会话列表里的定时任务分类',type:'opt',
+    story:'作为用户，定时任务产生的会话也是正常对话，我希望在熟悉的会话列表里就能找到它们。',
+    now:'侧边栏会话记录里，定时任务产生的会话被单独归到「定时任务」分类下、和普通会话隔开。同时顶部有聚合入口、列表里又有分类，两处都在管定时任务，职责重叠。',
+    need:['取消侧边栏<b>会话记录里</b>的「定时任务」分类。',
+      '定时任务创建的会话，回到普通会话列表（按工作目录/时间正常归类）。',
+      '保留顶部「定时任务」聚合入口：按「每个任务」维度查看走 聚合页 → 详情页。'],
+    exc:['一个任务名下多个会话：普通列表里各自独立出现；详情页里仍聚合在该任务名下。两处都能看到，不冲突'],
+    ac:['侧边栏会话列表不再有独立的「定时任务」分类',
+      '定时任务产生的会话出现在普通会话列表中',
+      '顶部入口 → 聚合页 → 详情页 查看路径保持可用']}},
+
+  {id:'f04',code:'F-CRON-04',name:'未读蓝点冒泡',type:'opt',
+   render:()=>sAgg({card1Unread:true}),
+   req:{title:'未读蓝点逐级冒泡',type:'opt',
+    story:'作为用户，我希望在最外层的侧边栏入口就能看到「有任务跑完了」，不用逐层点进去才发现。',
+    now:'任务跑完后对应会话上有蓝点，但只停在会话本身。做完 F-CRON-03 后侧边栏不再平铺每个任务会话，更需要一个从外层就能看到的提醒。',
+    need:['未读蓝点从最内层逐级向上冒泡：<br><b>任务会话 → 详情页对应会话 → 聚合页任务卡片 → 侧边栏「定时任务」入口</b>。',
+      '任意一层只要下面有未读，这一层就带蓝点。'],
+    flow:['某任务会话跑完产生新结果 → 该会话标记未读','未读向上冒泡：聚合页该任务卡片带蓝点，侧边栏入口也带蓝点','用户点入 → 详情页看到哪个会话有蓝点 → 点开查看，该会话未读消除','名下所有未读看完，各层蓝点消失'],
+    exc:['名下多个未读：看完部分、还剩其他时上层蓝点仍在，直到全部看完','用户正停留在某会话页时，该会话新结果不再标为未读'],
+    ac:['任务会话产生新结果后，侧边栏「定时任务」入口出现蓝点',
+      '查看该会话后若名下已无其他未读，各层蓝点消失',
+      '名下有多个未读时，看完部分上层蓝点不提前消失']}},
+
+  {id:'f05',code:'F-CRON-05',name:'标题带日期',type:'opt',
+   render:sTitle,
+   req:{title:'新建会话标题带执行日期',type:'opt',
+    story:'作为用户，定时任务跑多次攒下一串会话，我希望凭标题上的日期就能区分是哪天跑的。',
+    now:'「每次新建会话」模式跑多次后，会话标题看起来几乎一样，只有任务名、没有日期，翻历史无法定位到某个具体日期。',
+    need:['<b>只针对「每次新建会话」模式</b>：每次执行新建的那个会话，标题带执行日期，格式 <code>DD-MM-YY</code>（如「日报汇总 01-07-26」）。',
+      '<b>不在范围内</b>：「延用同一会话」模式不动；已存在会话标题不改（只在新建那刻决定标题，不事后回填，因此不涉及覆盖用户自定义标题）。'],
+    exc:['同一天多次执行：多个会话标题日期相同。本需求只保证「能区分到天」'],
+    ac:['「每次新建会话」模式下，新建会话标题带该次执行日期（DD-MM-YY）',
+      '不同天执行产生的会话标题日期不同、可区分',
+      '「延用同一会话」模式的会话标题不受影响']}},
+
+  {id:'f06',code:'F-CRON-06',name:'详情页多选删除',type:'opt',
+   render:()=>sDetail({batch:true,selected:[0,2]}),
+   req:{title:'详情页会话列表支持多选删除',type:'opt',
+    story:'作为用户，任务跑久了攒下大量会话，我想一次勾选多个批量删，而不是一条条删。',
+    now:'F-CRON-03 取消了侧边栏的定时任务会话分类（那里本来也没有多选删除），用户没有顺手的地方批量清理某个任务的历史会话。',
+    need:['在<b>定时任务详情页</b>的会话列表处，增加多选删除交互。',
+      '支持进入多选模式、勾选若干会话、<b>全选</b>、批量删除，并有二次确认。',
+      '删除某会话<b>不影响定时任务本身</b>（配置、下次执行都不变）。'],
+    flow:['进入详情页，看到该任务名下会话列表','进入多选模式，勾选若干会话（可全选）','点删除，二次确认后批量删除','列表刷新显示剩余会话'],
+    exc:['删的会话含当前正打开的那个：删除后妥善处理当前视图（跳回详情页/列表）','全选删除：删空该任务名下所有会话，任务本身保留'],
+    ac:['详情页会话列表可进入多选模式，支持勾选、全选、批量删除并二次确认',
+      '批量删除后定时任务本身及调度不受影响']}},
+
+  {id:'f07',code:'F-CRON-07',name:'删对话误删任务',type:'bug',
+   render:()=>sDecouple({modal:true}),
+   req:{title:'Bug：删除关联对话导致整个定时任务被删',type:'bug',
+    story:'作为用户，我删掉一条用不上的旧对话，定时任务应该还在 —— 它现在明明关联的是新对话、新配置。',
+    now:'任务由某对话创建时记下这条对话的 id 作为「归属对话」。即使用户后来把任务切到别的对话、甚至换了工作目录，任务记的还是最初那条对话的 id。删那条旧对话时，整个定时任务跟着一起消失。复现：任务最初绑对话 A → 改成每次新建对话并触发一次（产生对话 B）→ 改掉工作目录 → 删旧对话 A → 整个任务被删掉。',
+    need:['<b>定时任务与对话彻底解耦</b>：删除对话只删对话，永不影响定时任务。',
+      '任务的存续不依赖任何一条对话，包括最初创建它的、以及名下最后一条。',
+      '即使删光名下所有对话，任务仍保留，进入「无关联对话」状态，下次执行按配置正常运行（需要时新建对话）。'],
+    flow:['用户删除某条与任务相关的对话','只有这条对话被删，任务保留、调度继续','即使删的是最后一条对话，任务仍在，进入「无关联对话」状态'],
+    exc:['任务已切新对话/新工作目录后删旧对话：任务保留','删光名下所有对话：任务保留，聚合页/详情页正常展示，不因缺对话报错或消失'],
+    disc:'影响范围（数据层）：彻底解耦需放开当前「任务必须绑一个对话 id」的约束（任务表该字段目前为必填）。需工程处理：删对话时不再反向删任务；「无关联对话」状态下详情页/聚合页的展示兜底。',
+    ac:['复现上报路径（切新对话+改工作目录+删旧对话），任务不消失',
+      '删除任务名下任意会话（含删到一条不剩），任务保留、调度不变',
+      '无关联对话的任务在聚合页/详情页能正常展示，下次执行正常运行']}},
+];
+
+/* 侧边栏重构场景：主区放一个简单的普通会话视图占位 */
+function sAggBodyPlaceholder(){
+  return `<div class="conv-wrap">
+    <div class="conv-h"><span class="av">📮</span><span class="nm">日报汇总 01-07-26</span>
+      <span style="font-size:11px;color:var(--t4);margin-left:4px;">· 定时任务会话（已回归普通列表）</span></div>
+    <div class="conv-b">
+      <div class="sysline"><span class="si2">⏰</span>由定时任务「每日邮件日报」于 01-07 09:00 执行</div>
+      <div class="msg a">已汇总昨天邮件：未读 12 封、待回复 3 封、已归档 40 封。详情如下…</div>
+      <div class="task-recap" style="align-self:flex-start;">
+        <div class="trh"><span>💡</span>这条会话现在出现在左侧「AionUi 工作区」的普通列表里</div>
+        <div style="font-size:11.5px;color:var(--t3);">不再单列「定时任务」分类；要按任务维度看，点顶部「定时任务」入口进聚合页。</div>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ====== 渲染右侧需求 ====== */
+const TYPE_BADGE={bug:['badge bug','Bug 修复'],opt:['badge opt','优化'],db:['badge db','优化 · 动 DB']};
+function renderReq(r){
+  if(!r) return '';
+  const tb=TYPE_BADGE[r.type]||['badge new','新增'];
+  let h=`<div class="req"><h2>${r.title}</h2><div class="flags"><span class="${tb[0]}">${tb[1]}</span></div>`;
+  if(r.story) h+=`<div class="story">${r.story}</div>`;
+  if(r.now) h+=`<h3>现状</h3><p>${r.now}</p>`;
+  h+=`<h3>需求</h3><ul>`+r.need.map(n=>`<li>${n}</li>`).join('')+`</ul>`;
+  if(r.flow){h+=`<h3>正常流程</h3><ul>`+r.flow.map((f,i)=>`<li>${i+1}. ${f}</li>`).join('')+`</ul>`;}
+  if(r.exc){h+=`<h3>异常情况</h3><ul>`+r.exc.map(e=>`<li>${e}</li>`).join('')+`</ul>`;}
+  if(r.disc){h+=`<h3>待讨论 / 影响范围</h3><div class="disc">${r.disc}</div>`;}
+  h+=`<h3>验收标准</h3><div class="ac">`+r.ac.map(a=>`<div>${a}</div>`).join('')+`</div></div>`;
+  return h;
+}
+
+/* ====== 控制器 ====== */
+const tabsEl=document.getElementById('featTabs');
+const splitEl=document.getElementById('split');
+const leftEl=document.getElementById('left');
+const rightEl=document.getElementById('right');
+let cur='ov';
+function build(){
+  tabsEl.innerHTML=FEATS.map(f=>`<button class="feat-btn ${f.id===cur?'on':''}" data-id="${f.id}">
+    ${f.type==='bug'?'<span class="bug"></span>':''}${f.code?`<span class="fc">${f.code}</span>`:''}${f.name}</button>`).join('');
+  tabsEl.querySelectorAll('.feat-btn').forEach(b=>b.onclick=()=>{cur=b.dataset.id;build();});
+  const f=FEATS.find(x=>x.id===cur);
+  leftEl.innerHTML=f.render();
+  if(f.full){splitEl.classList.add('full');rightEl.innerHTML='';}
+  else{splitEl.classList.remove('full');rightEl.innerHTML=renderReq(f.req);}
+}
+build();
+</script>
+</body>
+</html>
