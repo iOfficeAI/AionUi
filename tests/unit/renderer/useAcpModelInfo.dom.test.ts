@@ -291,6 +291,35 @@ describe('useAcpModelInfo', () => {
     });
   });
 
+  it('deduplicates initial config option loads across hook instances for the same conversation', async () => {
+    const configOptionsDeferred = deferred<{ config_options: AcpConfigOptionDto[] }>();
+    getConfigOptionsInvokeMock.mockReturnValue(configOptionsDeferred.promise);
+    const wrapper = createSwrWrapper();
+
+    const first = renderHook(
+      () => useAcpModelInfo({ conversation_id: 'conv-1', backend: 'claude', initialModelId: 'sonnet-4' }),
+      { wrapper }
+    );
+    const second = renderHook(
+      () => useAcpModelInfo({ conversation_id: 'conv-1', backend: 'claude', initialModelId: 'sonnet-4' }),
+      { wrapper }
+    );
+
+    await waitFor(() => {
+      expect(getConfigOptionsInvokeMock).toHaveBeenCalledTimes(1);
+    });
+
+    await act(async () => {
+      configOptionsDeferred.resolve({ config_options: buildConfigOptions() });
+      await configOptionsDeferred.promise;
+    });
+
+    await waitFor(() => {
+      expect(first.result.current.canSwitch).toBe(true);
+      expect(second.result.current.canSwitch).toBe(true);
+    });
+  });
+
   it('uses legacy acp_model_info stream only before config options are available', async () => {
     getConfigOptionsInvokeMock.mockResolvedValue({ config_options: [] });
 

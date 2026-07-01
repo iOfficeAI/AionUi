@@ -10,13 +10,15 @@ import { useAcpMessage } from '@/renderer/pages/conversation/platforms/acp/useAc
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 
-const { addOrUpdateMessageMock, responseStreamOnMock, responseStreamHandlerRef } = vi.hoisted(() => ({
-  addOrUpdateMessageMock: vi.fn(),
-  responseStreamOnMock: vi.fn(),
-  responseStreamHandlerRef: {
-    current: undefined as ((message: IResponseMessage) => void) | undefined,
-  },
-}));
+const { addOrUpdateMessageMock, getSlashCommandsInvokeMock, responseStreamOnMock, responseStreamHandlerRef } =
+  vi.hoisted(() => ({
+    addOrUpdateMessageMock: vi.fn(),
+    getSlashCommandsInvokeMock: vi.fn(),
+    responseStreamOnMock: vi.fn(),
+    responseStreamHandlerRef: {
+      current: undefined as ((message: IResponseMessage) => void) | undefined,
+    },
+  }));
 
 vi.mock('@/renderer/pages/conversation/Messages/hooks', () => ({
   useAddOrUpdateMessage: () => addOrUpdateMessageMock,
@@ -42,16 +44,27 @@ vi.mock('@/common', () => ({
         invoke: vi.fn().mockResolvedValue(undefined),
       },
       getSlashCommands: {
-        invoke: vi.fn().mockResolvedValue([]),
+        invoke: getSlashCommandsInvokeMock,
       },
     },
   },
 }));
 
+function deferred<T>() {
+  let resolve!: (value: T | PromiseLike<T>) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+  return { promise, resolve, reject };
+}
+
 describe('useAcpMessage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     responseStreamHandlerRef.current = undefined;
+    getSlashCommandsInvokeMock.mockResolvedValue([]);
   });
 
   it('completes hydration when the conversation lookup fails', async () => {
@@ -215,6 +228,53 @@ describe('useAcpMessage', () => {
           emptyTurnTipParams: {
             command_count: 1,
           },
+        },
+      ]);
+    });
+  });
+
+  it('deduplicates slash command fetches while a request is in flight', async () => {
+    vi.mocked(getConversationOrNull).mockResolvedValue(null);
+    const slashCommandsDeferred = deferred<
+      Array<{
+        command: string;
+        description: string;
+      }>
+    >();
+    getSlashCommandsInvokeMock.mockReturnValue(slashCommandsDeferred.promise);
+
+    const { result } = renderHook(() => useAcpMessage('conv-1'));
+
+    await waitFor(() => {
+      expect(getSlashCommandsInvokeMock).toHaveBeenCalledTimes(1);
+    });
+
+    act(() => {
+      result.current.fetchSlashCommands();
+    });
+
+    await waitFor(() => {
+      expect(getSlashCommandsInvokeMock).toHaveBeenCalledTimes(1);
+    });
+
+    await act(async () => {
+      slashCommandsDeferred.resolve([
+        {
+          command: 'review',
+          description: 'Review the current diff',
+        },
+      ]);
+      await slashCommandsDeferred.promise;
+    });
+
+    await waitFor(() => {
+      expect(result.current.slashCommands).toEqual([
+        {
+          name: 'review',
+          description: 'Review the current diff',
+          kind: 'template',
+          source: 'acp',
+          selectionBehavior: 'insert',
         },
       ]);
     });

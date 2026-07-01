@@ -35,6 +35,27 @@ export type UseAcpMessageReturn = {
   fetchSlashCommands: () => void;
 };
 
+const slashCommandsInFlight = new Map<string, Promise<SlashCommandItem[]>>();
+
+function fetchAcpSlashCommands(conversation_id: string): Promise<SlashCommandItem[]> {
+  const existing = slashCommandsInFlight.get(conversation_id);
+  if (existing) return existing;
+
+  const promise = ipcBridge.conversation.getSlashCommands
+    .invoke({ conversation_id })
+    .then((result) => {
+      if (!result || !Array.isArray(result) || result.length === 0) return [];
+      return mapAcpCommandsToSlashCommands(result);
+    })
+    .finally(() => {
+      if (slashCommandsInFlight.get(conversation_id) === promise) {
+        slashCommandsInFlight.delete(conversation_id);
+      }
+    });
+  slashCommandsInFlight.set(conversation_id, promise);
+  return promise;
+}
+
 export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: boolean }): UseAcpMessageReturn => {
   const mergeLiveMessage = useMergeLiveMessage();
   const [running, setRunning] = useState(false);
@@ -535,12 +556,12 @@ export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: 
     void warmupConversation(conversation_id)
       .then(() => {
         if (cancelled) return;
-        return ipcBridge.conversation.getSlashCommands.invoke({ conversation_id });
+        return fetchAcpSlashCommands(conversation_id);
       })
-      .then((result) => {
+      .then((commands) => {
         if (cancelled) return;
-        if (!result || !Array.isArray(result) || result.length === 0) return;
-        setSlashCommands(mapAcpCommandsToSlashCommands(result));
+        if (!commands?.length) return;
+        setSlashCommands(commands);
       })
       .catch(() => {});
     return () => {
@@ -562,11 +583,10 @@ export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: 
   }, []);
 
   const fetchSlashCommands = useCallback(() => {
-    void ipcBridge.conversation.getSlashCommands
-      .invoke({ conversation_id })
-      .then((result) => {
-        if (!result || !Array.isArray(result) || result.length === 0) return;
-        setSlashCommands(mapAcpCommandsToSlashCommands(result));
+    void fetchAcpSlashCommands(conversation_id)
+      .then((commands) => {
+        if (!commands.length) return;
+        setSlashCommands(commands);
       })
       .catch(() => {});
   }, [conversation_id]);
