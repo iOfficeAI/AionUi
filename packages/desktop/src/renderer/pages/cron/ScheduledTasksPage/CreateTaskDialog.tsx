@@ -359,13 +359,17 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
     }
   };
 
-  const handleAssistantChange = useCallback((value: string) => {
-    setSelectedAssistantId(value);
-    // Reset model and config_options when agent changes
-    setModelId(undefined);
-    setConfigOptions(undefined);
-    // Workspace remains unchanged (agent-agnostic)
-  }, []);
+  const handleAssistantChange = useCallback(
+    (value: string) => {
+      setSelectedAssistantId(value);
+      form.setFieldsValue({ assistant: value });
+      // Reset model and config_options when agent changes
+      setModelId(undefined);
+      setConfigOptions(undefined);
+      // Workspace remains unchanged (agent-agnostic)
+    },
+    [form]
+  );
 
   const handleWorkspaceClear = useCallback(() => {
     setWorkspace(undefined);
@@ -379,25 +383,30 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
       const scheduleExpr = scheduleInfo.expr;
       const scheduleDesc = scheduleInfo.description;
       const schedule = createCronSchedule(scheduleExpr, scheduleDesc);
+      const assistantValue = typeof values.assistant === 'string' ? values.assistant : selectedAssistantId;
 
-      const agent_config = canEditAgentConfig
-        ? resolveCronAgentConfig({
-            agentValue: values.assistant,
-            presetAssistants,
-            selectedAionrsProvider: geminiCurrentModel
-              ? {
-                  id: geminiCurrentModel.id as string | undefined,
-                  name: geminiCurrentModel.name,
-                }
-              : undefined,
-            model_id,
-            config_options,
-            workspace,
-            localeKey,
-            getMode: resolveAutoApproveModeFromAgentMetadata,
-            aionrsModelRequiredMessage: t('cron.page.form.aionrsModelRequired'),
-          }).agent_config
-        : undefined;
+      let agent_config: ICreateCronJobParams['agent_config'] | ICronJobUpdateParams['metadata']['agent_config'];
+      if (canEditAgentConfig) {
+        if (!assistantValue) {
+          throw new Error(t('cron.page.form.assistantRequired'));
+        }
+        agent_config = resolveCronAgentConfig({
+          agentValue: assistantValue,
+          presetAssistants,
+          selectedAionrsProvider: geminiCurrentModel
+            ? {
+                id: geminiCurrentModel.id as string | undefined,
+                name: geminiCurrentModel.name,
+              }
+            : undefined,
+          model_id,
+          config_options,
+          workspace,
+          localeKey,
+          getMode: resolveAutoApproveModeFromAgentMetadata,
+          aionrsModelRequiredMessage: t('cron.page.form.aionrsModelRequired'),
+        }).agent_config;
+      }
 
       if (isEditMode) {
         const metadata: ICronJobUpdateParams['metadata'] = {

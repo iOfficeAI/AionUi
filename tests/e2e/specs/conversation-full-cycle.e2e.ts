@@ -210,8 +210,8 @@ async function selectCronDialogAgentByPattern(
 ): Promise<string | null> {
   const agentSelect = dialog.locator('[data-testid="cron-assistant-select"]').first();
   await agentSelect.click();
-  const anyOptionVisible = await page
-    .locator('.arco-select-option')
+  const selectableOptions = page.locator('.arco-select-option:not(.arco-select-option-disabled)');
+  const anyOptionVisible = await selectableOptions
     .first()
     .waitFor({ state: 'visible', timeout: 5_000 })
     .then(() => true)
@@ -223,7 +223,7 @@ async function selectCronDialogAgentByPattern(
   }
 
   for (const pattern of preferredPatterns) {
-    const option = page.locator('.arco-select-option').filter({ hasText: pattern }).first();
+    const option = selectableOptions.filter({ hasText: pattern }).first();
     if (await option.isVisible().catch(() => false)) {
       const label = (await option.textContent())?.trim() ?? null;
       await option.click();
@@ -231,7 +231,7 @@ async function selectCronDialogAgentByPattern(
     }
   }
 
-  const fallback = page.locator('.arco-select-option').first();
+  const fallback = selectableOptions.first();
   if (!(await fallback.isVisible().catch(() => false))) {
     await page.keyboard.press('Escape').catch(() => {});
     await page.keyboard.press('Escape').catch(() => {});
@@ -240,6 +240,42 @@ async function selectCronDialogAgentByPattern(
   const label = (await fallback.textContent())?.trim() ?? null;
   await fallback.click();
   return label;
+}
+
+async function waitForCronCreateDialogToClose(
+  page: import('@playwright/test').Page,
+  dialog: import('@playwright/test').Locator
+): Promise<void> {
+  const closed = await dialog
+    .waitFor({ state: 'hidden', timeout: 10_000 })
+    .then(() => true)
+    .catch(() => false);
+  if (closed) return;
+
+  const diagnostics = await page.evaluate(() => {
+    const messages = Array.from(document.querySelectorAll('.arco-message, .arco-message-wrapper'))
+      .map((el) => el.textContent?.trim())
+      .filter(Boolean);
+    const formErrors = Array.from(document.querySelectorAll('.arco-form-message, .arco-form-item-error'))
+      .map((el) => el.textContent?.trim())
+      .filter(Boolean);
+    const selectedAssistant = Array.from(document.querySelectorAll('[data-testid="cron-assistant-select"]'))
+      .map((el) => el.textContent?.trim())
+      .filter(Boolean);
+    const modalText = Array.from(document.querySelectorAll('.arco-modal'))
+      .map((el) => el.textContent?.trim())
+      .filter(Boolean)
+      .join('\n')
+      .slice(0, 2000);
+    return {
+      messages,
+      formErrors,
+      selectedAssistant,
+      modalText,
+    };
+  });
+
+  throw new Error(`CreateTaskDialog did not close after save: ${JSON.stringify(diagnostics)}`);
 }
 
 async function getAvailableModes(page: import('@playwright/test').Page): Promise<string[]> {
@@ -845,6 +881,12 @@ test.describe('Conversation Full Cycle', () => {
       return;
     }
     await createBtn.click();
+    const manualCreateItem = page
+      .locator('.arco-dropdown-menu-item')
+      .filter({ hasText: /Create manually|手动创建/ })
+      .first();
+    await manualCreateItem.waitFor({ state: 'visible', timeout: 5_000 });
+    await manualCreateItem.click();
 
     // Wait for CreateTaskDialog
     const dialog = page.locator('.arco-modal').first();
@@ -858,12 +900,13 @@ test.describe('Conversation Full Cycle', () => {
     // so target the inner input/textarea via "#<field> input" / "#<field> textarea"
     const taskName = `E2E-CLI-${Date.now()}`;
     await dialog.locator('#name input').fill(taskName);
-    await dialog.locator('#description input').fill('E2E test task');
 
     const agentSelect = dialog.locator('[data-testid="cron-assistant-select"]').first();
     await agentSelect.click();
 
-    const assistantOptions = page.locator('.arco-select-option').filter({ hasText: /Claude|Codex|Gemini|Aion/ });
+    const assistantOptions = page
+      .locator('.arco-select-option:not(.arco-select-option-disabled)')
+      .filter({ hasText: /Claude|Codex|Gemini|Aion/ });
     if ((await assistantOptions.count()) === 0) {
       await page.keyboard.press('Escape');
       await page.keyboard.press('Escape');
@@ -883,7 +926,7 @@ test.describe('Conversation Full Cycle', () => {
     await page.locator('.arco-modal-footer .arco-btn-primary').first().click();
 
     // Dialog should close after successful creation
-    await dialog.waitFor({ state: 'hidden', timeout: 10_000 });
+    await waitForCronCreateDialogToClose(page, dialog);
 
     // Verify the new task card appears on the Scheduled Tasks list
     const taskCard = page.locator('span').filter({ hasText: taskName }).first();
@@ -893,11 +936,8 @@ test.describe('Conversation Full Cycle', () => {
     await taskCard.click();
     await page.waitForFunction(() => window.location.hash.includes('/scheduled/'), { timeout: 10_000 });
 
-    // Verify detail page: title, description, prompt
+    // Verify detail page: title and prompt
     await expect(page.locator('h1').filter({ hasText: taskName }).first()).toBeVisible({ timeout: 5_000 });
-    await expect(page.locator('[data-testid="task-detail-summary"]')).toContainText('E2E test task', {
-      timeout: 5_000,
-    });
     await expect(page.locator('[data-testid="task-detail-sidebar-column"]')).toContainText('Say hello', {
       timeout: 5_000,
     });
@@ -945,6 +985,11 @@ test.describe('Conversation Full Cycle', () => {
       return;
     }
     await createBtn.click();
+    await page
+      .locator('.arco-dropdown-menu-item')
+      .filter({ hasText: /Create manually|手动创建/ })
+      .first()
+      .click();
 
     const dialog = page.locator('.arco-modal').first();
     await dialog.waitFor({ state: 'visible', timeout: 5_000 }).catch(() => {});
@@ -956,7 +1001,6 @@ test.describe('Conversation Full Cycle', () => {
     // Fill form fields
     const taskName = `E2E-Preset-${Date.now()}`;
     await dialog.locator('#name input').fill(taskName);
-    await dialog.locator('#description input').fill('E2E preset test');
 
     const agentSelect = dialog.locator('[data-testid="cron-assistant-select"]').first();
     await agentSelect.click();
@@ -974,13 +1018,19 @@ test.describe('Conversation Full Cycle', () => {
     }
 
     // Click the first option after the preset group title (next sibling li.arco-select-option)
-    const firstPresetOption = presetGroupTitle.first().locator('~ .arco-select-option').first();
+    const firstPresetOption = presetGroupTitle
+      .first()
+      .locator('~ .arco-select-option:not(.arco-select-option-disabled)')
+      .first();
     if (!(await firstPresetOption.isVisible().catch(() => false))) {
       // Fallback: use evaluate to find next sibling
       const clicked = await presetGroupTitle.first().evaluate((el) => {
         let next = el.nextElementSibling;
         while (next) {
-          if (next.classList.contains('arco-select-option')) {
+          if (
+            next.classList.contains('arco-select-option') &&
+            !next.classList.contains('arco-select-option-disabled')
+          ) {
             (next as HTMLElement).click();
             return next.textContent;
           }
@@ -1022,9 +1072,6 @@ test.describe('Conversation Full Cycle', () => {
 
     // Verify detail page
     await expect(page.locator('h1').filter({ hasText: taskName }).first()).toBeVisible({ timeout: 5_000 });
-    await expect(page.locator('[data-testid="task-detail-summary"]')).toContainText('E2E preset test', {
-      timeout: 5_000,
-    });
     await expect(page.locator('[data-testid="task-detail-sidebar-column"]')).toContainText('Summarize news', {
       timeout: 5_000,
     });
@@ -1072,6 +1119,11 @@ test.describe('Conversation Full Cycle', () => {
       return;
     }
     await createBtn.click();
+    await page
+      .locator('.arco-dropdown-menu-item')
+      .filter({ hasText: /Create manually|手动创建/ })
+      .first()
+      .click();
 
     const dialog = page.locator('.arco-modal').first();
     await dialog.waitFor({ state: 'visible', timeout: 5_000 }).catch(() => {});
@@ -1082,7 +1134,6 @@ test.describe('Conversation Full Cycle', () => {
 
     const taskName = `E2E-RunNow-${Date.now()}`;
     await dialog.locator('#name input').fill(taskName);
-    await dialog.locator('#description input').fill('E2E run now test');
 
     if (!(await selectPreferredCronDialogAgent(page, dialog))) {
       test.skip(true, 'No usable agent available in create task dialog');
@@ -1354,6 +1405,11 @@ test.describe('Conversation Full Cycle', () => {
         return;
       }
       await createBtn.click();
+      await page
+        .locator('.arco-dropdown-menu-item')
+        .filter({ hasText: /Create manually|手动创建/ })
+        .first()
+        .click();
 
       const dialog = page.locator('.arco-modal').first();
       await dialog.waitFor({ state: 'visible', timeout: 5_000 }).catch(() => {});
@@ -1365,7 +1421,6 @@ test.describe('Conversation Full Cycle', () => {
 
       const taskName = `E2E-SkillSuggest-${Date.now()}`;
       await dialog.locator('#name input').fill(taskName);
-      await dialog.locator('#description input').fill('E2E cron skill suggest flow');
 
       if (!(await selectPreferredCronDialogAgent(page, dialog))) {
         console.log('[cron-skill-suggest-e2e] skip: no usable agent in dialog');

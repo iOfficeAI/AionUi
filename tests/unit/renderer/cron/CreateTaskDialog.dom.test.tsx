@@ -5,7 +5,7 @@
  */
 
 import userEvent from '@testing-library/user-event';
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Assistant } from '@/common/types/agent/assistantTypes';
@@ -34,6 +34,7 @@ vi.mock('@arco-design/web-react', async () => {
 vi.mock('@/common', () => ({
   ipcBridge: {
     cron: {
+      addJob: { invoke: vi.fn() },
       createJob: { invoke: vi.fn() },
       updateJob: { invoke: vi.fn() },
     },
@@ -136,6 +137,7 @@ describe('CreateTaskDialog', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     currentAssistants = assistants();
+    vi.mocked(ipcBridge.cron.addJob.invoke).mockResolvedValue(job());
     vi.mocked(ipcBridge.cron.updateJob.invoke).mockResolvedValue(job());
     vi.mocked(ipcBridge.cron.createJob.invoke).mockResolvedValue(job());
   });
@@ -212,6 +214,30 @@ describe('CreateTaskDialog', () => {
     expect(resolveCronAgentConfig).not.toHaveBeenCalled();
     const [{ updates }] = vi.mocked(ipcBridge.cron.updateJob.invoke).mock.calls[0];
     expect(updates.metadata).not.toHaveProperty('agent_config');
+  });
+
+  it('passes the selected assistant id when manually creating a task', async () => {
+    const user = userEvent.setup();
+
+    render(<CreateTaskDialog visible onClose={() => {}} />);
+
+    await user.type(await screen.findByPlaceholderText('cron.page.form.namePlaceholder'), 'manual task');
+    await user.type(screen.getByPlaceholderText('cron.page.form.promptPlaceholder'), 'Say hello');
+
+    await user.click(screen.getByTestId('cron-assistant-select'));
+    const assistantOption = await waitFor(() => {
+      const option = document.querySelector('.arco-select-option');
+      if (!option) throw new Error('assistant option not found');
+      return option;
+    });
+    fireEvent.click(assistantOption);
+    await user.click(screen.getByTestId('modal-ok'));
+
+    await waitFor(() => expect(resolveCronAgentConfig).toHaveBeenCalledTimes(1));
+    expect(vi.mocked(resolveCronAgentConfig).mock.calls[0][0]).toMatchObject({
+      agentValue: 'assistant-1',
+    });
+    await waitFor(() => expect(ipcBridge.cron.addJob.invoke).toHaveBeenCalledTimes(1));
   });
 });
 
