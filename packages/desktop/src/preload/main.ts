@@ -48,6 +48,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Feedback: forward diagnostics logs to the main process console
   logFeedbackEvent: (payload: { details?: unknown; level: 'info' | 'warn' | 'error'; message: string }) =>
     ipcRenderer.send('feedback:renderer-log', payload),
+  recoverCorruptedDatabase: () => ipcRenderer.invoke('backend:recover-corrupted-database'),
 });
 
 // Synchronously fetch the aioncore port and expose it to the renderer

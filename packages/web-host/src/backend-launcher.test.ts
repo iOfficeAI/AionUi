@@ -157,6 +157,19 @@ describe('buildSpawnArgs', () => {
     expect(args).not.toContain('--dump-prompts');
   });
 
+  it('passes corrupted database recovery authorization only when requested', () => {
+    const args = buildSpawnArgs({
+      port: 1,
+      dbPath: '/d',
+      local: true,
+      appVersion: '0.0.1',
+      isPackaged: true,
+      recoverCorruptedDatabase: true,
+    });
+
+    expect(args).toContain('--recover-corrupted-database');
+  });
+
   it('respects AIONUI_LOG_LEVEL override', () => {
     const prev = process.env.AIONUI_LOG_LEVEL;
     process.env.AIONUI_LOG_LEVEL = 'trace';
@@ -1042,6 +1055,36 @@ describe('BackendLifecycleManager crash restart', () => {
     });
 
     warnSpy.mockRestore();
+    fetchSpy.mockRestore();
+  }, 5_000);
+
+  it('does not reuse corrupted database recovery authorization during crash restart', async () => {
+    const child1 = makeFakeChild();
+    const child2 = makeFakeChild();
+    vi.mocked(spawn)
+      .mockReturnValueOnce(child1 as unknown as ChildProcess)
+      .mockReturnValueOnce(child2 as unknown as ChildProcess);
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValue(new Response('ok', { status: 200 }) as unknown as Response);
+
+    const mgr = new BackendLifecycleManager(APP_META_PACKAGED, () => '/x');
+    const startPromise = mgr.start('/db', undefined, undefined, undefined, undefined, {
+      recoverCorruptedDatabase: true,
+    });
+    await Promise.resolve();
+    emitListening(child1, 65303);
+    await startPromise;
+
+    (child1 as unknown as EventEmitter).emit('exit', 1, 'SIGABRT');
+    await new Promise((r) => setTimeout(r, 1_200));
+
+    const firstSpawnArgs = vi.mocked(spawn).mock.calls[0]?.[1] as string[];
+    const restartSpawnArgs = vi.mocked(spawn).mock.calls[1]?.[1] as string[];
+    expect(firstSpawnArgs).toContain('--recover-corrupted-database');
+    expect(restartSpawnArgs).not.toContain('--recover-corrupted-database');
+
     fetchSpy.mockRestore();
   }, 5_000);
 

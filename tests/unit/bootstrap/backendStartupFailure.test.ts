@@ -73,6 +73,25 @@ describe('classifyBackendStartupFailure', () => {
     });
   });
 
+  it('classifies recoverable database corruption boundary failures separately from data migration failures', () => {
+    const error = new Error('aioncore exited before health check passed') as Error & {
+      details?: Record<string, unknown>;
+    };
+    error.details = {
+      stage: 'early_exit',
+      backendBoundaryCode: 'BOOTSTRAP_DATA_INIT_FAILED',
+      backendBoundaryStage: 'database.recoverable_corruption',
+      stderrTail:
+        'BOOTSTRAP_DATA_INIT_FAILED stage=database.recoverable_corruption databasePath=/db/aionui-backend.db: failed to initialize application data',
+    };
+
+    expect(classifyBackendStartupFailure(error)).toEqual({
+      reason: 'backend_recoverable_database_corruption',
+      backendBoundaryCode: 'BOOTSTRAP_DATA_INIT_FAILED',
+      backendBoundaryStage: 'database.recoverable_corruption',
+    });
+  });
+
   it('classifies database schema repair boundary failures as local data migration failures', () => {
     const error = new Error('aioncore exited before health check passed') as Error & {
       details?: Record<string, unknown>;
@@ -339,5 +358,38 @@ describe('getInstallationIntegrityModalActions', () => {
 
     expect(actions.reportText).toBe('common.backendStartup.localDataRepair.sendDiagnostics');
     expect(actions.downloadText).toBeUndefined();
+  });
+
+  it('uses recoverable database corruption copy and rebuild action', () => {
+    const t = vi.fn((key: string) => key) as any;
+    const onRecoverCorruptedDatabase = vi.fn();
+
+    const actions = getInstallationIntegrityModalActions(t, {
+      diagnosticsKind: 'recoverable_database_corruption',
+      onRecoverCorruptedDatabase,
+    } as any);
+
+    expect(actions.reportText).toBe('common.backendStartup.recoverableDatabaseCorruption.sendDiagnostics');
+    expect(actions.downloadText).toBeUndefined();
+    expect((actions as any).recoverText).toBe('common.backendStartup.recoverableDatabaseCorruption.confirmRebuild');
+    (actions as any).onRecoverCorruptedDatabase();
+    expect(onRecoverCorruptedDatabase).toHaveBeenCalledOnce();
+  });
+
+  it('does not invoke recover corrupted database action from diagnostics reporting', async () => {
+    const t = vi.fn((key: string) => key) as any;
+    const onReportDiagnostics = vi.fn();
+    const onRecoverCorruptedDatabase = vi.fn();
+
+    const actions = getInstallationIntegrityModalActions(t, {
+      diagnosticsKind: 'recoverable_database_corruption',
+      onRecoverCorruptedDatabase,
+      onReportDiagnostics,
+    } as any);
+
+    await actions.onReportDiagnostics();
+
+    expect(onReportDiagnostics).toHaveBeenCalledOnce();
+    expect(onRecoverCorruptedDatabase).not.toHaveBeenCalled();
   });
 });

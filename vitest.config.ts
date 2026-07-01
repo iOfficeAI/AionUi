@@ -27,6 +27,7 @@ export default defineConfig({
           name: 'node',
           environment: 'node',
           include: [
+            'packages/web-host/src/**/*.test.ts',
             'tests/unit/**/*.test.ts',
             'tests/unit/**/test_*.ts',
             'tests/integration/**/*.test.ts',

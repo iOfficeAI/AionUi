@@ -304,6 +304,7 @@ const BackendStartupFailureDialog: React.FC<{ failure: BackendStartupFailureInfo
   const isPackageArchitectureMismatch = failure.reason === 'backend_package_architecture_mismatch';
   const isDataMigrationFailure = failure.reason === 'backend_data_migration_failed';
   const isLocalDataRepairFailure = failure.reason === 'backend_local_data_repair_failed';
+  const isRecoverableDatabaseCorruption = failure.reason === 'backend_recoverable_database_corruption';
   const title = t('common.backendStartup.incompatibleRuntime.title');
   const description = isIncompatibleRuntime
     ? t('common.backendStartup.incompatibleRuntime.description')
@@ -317,7 +318,9 @@ const BackendStartupFailureDialog: React.FC<{ failure: BackendStartupFailureInfo
         ? t('common.backendStartup.dataMigration.description')
         : isLocalDataRepairFailure
           ? t('common.backendStartup.localDataRepair.description')
-          : getBackendStartupInstallationDescription(t);
+          : isRecoverableDatabaseCorruption
+            ? t('common.backendStartup.recoverableDatabaseCorruption.description')
+            : getBackendStartupInstallationDescription(t);
   const requiredVersions = failure.requiredVersions?.map((version) => `GLIBC_${version}`).join(', ');
 
   if (!isIncompatibleRuntime && !isPackageArchitectureMismatch) {
@@ -326,11 +329,13 @@ const BackendStartupFailureDialog: React.FC<{ failure: BackendStartupFailureInfo
         <InstallationIntegrityModalHost
           description={description}
           diagnosticsKind={
-            isLocalDataRepairFailure
-              ? 'local_data_repair'
-              : isDataMigrationFailure
-                ? 'data_migration'
-                : 'incomplete_installation'
+            isRecoverableDatabaseCorruption
+              ? 'recoverable_database_corruption'
+              : isLocalDataRepairFailure
+                ? 'local_data_repair'
+                : isDataMigrationFailure
+                  ? 'data_migration'
+                  : 'incomplete_installation'
           }
           diagnostics={{
             source: 'backend_startup_failure',
@@ -384,6 +389,7 @@ const shouldShowBackendStartupFailureDialog =
   backendStartupFailure?.reason === 'backend_package_architecture_mismatch' ||
   backendStartupFailure?.reason === 'backend_data_migration_failed' ||
   backendStartupFailure?.reason === 'backend_local_data_repair_failed' ||
+  backendStartupFailure?.reason === 'backend_recoverable_database_corruption' ||
   backendStartupFailure?.reason === 'backend_startup_failed';
 if (backendStartupFailure && shouldShowBackendStartupFailureDialog) {
   root.render(

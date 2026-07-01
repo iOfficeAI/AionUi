@@ -107,6 +107,17 @@
       "diagnosticsSent": "Diagnostics sent",
       "diagnosticsReportSuccess": "Diagnostics report sent",
       "diagnosticsReportFailed": "Failed to send diagnostics report"
+    },
+    "recoverableDatabaseCorruption": {
+      "title": "ローカルデータが破損しています",
+      "description": "ローカルデータベースの破損を検出したため、AionUi は起動を続行できません。確認後、古いデータベースをバックアップし、新しいローカルデータベースを作成して起動を続行します。過去のローカルデータは当面表示されず、古いデータベースはバックアップとして保持されます。",
+      "confirmRebuild": "古いDBをバックアップして新しいDBを再作成",
+      "sendDiagnostics": "診断レポートを送信",
+      "diagnosticsHint": "診断レポートの送信ではローカルデータベースは変更されません。",
+      "diagnosticsSent": "診断レポートを送信しました",
+      "diagnosticsReportSuccess": "診断レポートを送信しました",
+      "diagnosticsReportFailed": "診断レポートの送信に失敗しました",
+      "rebuildFailed": "古いDBのバックアップと新しいDBの再作成に失敗しました"
     }
   },
   "fileAttach.addFiles": "ファイルを追加",

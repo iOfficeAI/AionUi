@@ -21,6 +21,7 @@ export interface ElectronBridgeAPI {
   captureFeedbackScreenshot?: () => Promise<{ filename: string; data: number[] } | null>;
   // Forward feedback diagnostics logs to the main process console / 转发反馈诊断日志到主进程控制台
   logFeedbackEvent?: (payload: { details?: unknown; level: 'info' | 'warn' | 'error'; message: string }) => void;
+  recoverCorruptedDatabase?: () => Promise<void>;
 }
 
 export type BackendStartupFailureReason =
@@ -29,6 +30,7 @@ export type BackendStartupFailureReason =
   | 'backend_package_architecture_mismatch'
   | 'backend_data_migration_failed'
   | 'backend_local_data_repair_failed'
+  | 'backend_recoverable_database_corruption'
   | 'backend_startup_failed';
 
 export type BackendIncompleteInstallationKind = 'missing_backend_binary' | 'missing_directory_resources';

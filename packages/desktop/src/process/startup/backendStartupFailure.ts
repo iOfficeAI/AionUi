@@ -32,6 +32,7 @@ const GLIBC_VERSION_RE = /GLIBC_(\d+\.\d+)/g;
 const GLIBC_NOT_FOUND_RE = /GLIBC_\d+\.\d+[\s\S]{0,160}not found|not found[\s\S]{0,160}GLIBC_\d+\.\d+/i;
 const PACKAGED_APP_MARKER_ENTRIES = new Set(['app.asar', 'app.asar.unpacked/']);
 const DATA_MIGRATION_BOUNDARY_STAGES = new Set(['database.migration', 'database.schema_repair']);
+const RECOVERABLE_DATABASE_CORRUPTION_BOUNDARY_STAGE = 'database.recoverable_corruption';
 const LOCAL_DATA_REPAIR_BOUNDARY_CODE = 'BOOTSTRAP_SERVICE_INIT_FAILED';
 const LOCAL_DATA_REPAIR_BOUNDARY_STAGE = 'services.init';
 const LOAD_AGENT_METADATA_RE = /\bload agent_metadata\b/i;
@@ -202,6 +203,17 @@ export function classifyBackendStartupFailure(error: unknown): BackendStartupFai
 
   const localDataRepairFailure = classifyLocalDataRepairFailure(backendBoundaryCode, backendBoundaryStage, text);
   if (localDataRepairFailure) return localDataRepairFailure;
+
+  if (
+    backendBoundaryCode === 'BOOTSTRAP_DATA_INIT_FAILED' &&
+    backendBoundaryStage === RECOVERABLE_DATABASE_CORRUPTION_BOUNDARY_STAGE
+  ) {
+    return {
+      reason: 'backend_recoverable_database_corruption',
+      backendBoundaryCode,
+      backendBoundaryStage,
+    };
+  }
 
   if (
     backendBoundaryCode === 'BOOTSTRAP_DATA_INIT_FAILED' &&

@@ -107,6 +107,17 @@
       "diagnosticsSent": "Diagnostics sent",
       "diagnosticsReportSuccess": "Diagnostics report sent",
       "diagnosticsReportFailed": "Failed to send diagnostics report"
+    },
+    "recoverableDatabaseCorruption": {
+      "title": "Local data is corrupted",
+      "description": "AionUi detected that the local database is corrupted and cannot continue startup. After confirmation, AionUi will back up the old database and create a new local database to continue startup. Historical local data will not be shown for now, and the old database will be kept as a backup.",
+      "confirmRebuild": "Back up old DB and rebuild new DB",
+      "sendDiagnostics": "Send diagnostics",
+      "diagnosticsHint": "Sending diagnostics will not modify the local database.",
+      "diagnosticsSent": "Diagnostics sent",
+      "diagnosticsReportSuccess": "Diagnostics report sent",
+      "diagnosticsReportFailed": "Failed to send diagnostics report",
+      "rebuildFailed": "Failed to back up old DB and rebuild new DB"
     }
   },
   "fileAttach.addFiles": "Add files",

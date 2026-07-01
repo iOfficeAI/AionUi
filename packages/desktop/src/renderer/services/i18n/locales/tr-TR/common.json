@@ -107,6 +107,17 @@
       "diagnosticsSent": "Diagnostics sent",
       "diagnosticsReportSuccess": "Diagnostics report sent",
       "diagnosticsReportFailed": "Failed to send diagnostics report"
+    },
+    "recoverableDatabaseCorruption": {
+      "title": "Yerel veriler bozulmuş",
+      "description": "AionUi yerel veritabanının bozulduğunu algıladı ve başlatmaya devam edemiyor. Onaydan sonra eski veritabanı yedeklenecek ve başlatmaya devam etmek için yeni bir yerel veritabanı oluşturulacak. Geçmiş yerel veriler şimdilik gösterilmeyecek, eski veritabanı yedek olarak saklanacak.",
+      "confirmRebuild": "Eski DB'yi yedekle ve yeni DB oluştur",
+      "sendDiagnostics": "Tanılama gönder",
+      "diagnosticsHint": "Tanılama göndermek yerel veritabanını değiştirmez.",
+      "diagnosticsSent": "Tanılama gönderildi",
+      "diagnosticsReportSuccess": "Tanılama raporu gönderildi",
+      "diagnosticsReportFailed": "Tanılama raporu gönderilemedi",
+      "rebuildFailed": "Eski DB yedeklenip yeni DB oluşturulamadı"
     }
   },
   "fileAttach.addFiles": "Dosya ekle",

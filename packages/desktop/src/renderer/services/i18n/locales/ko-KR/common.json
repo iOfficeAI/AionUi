@@ -107,6 +107,17 @@
       "diagnosticsSent": "Diagnostics sent",
       "diagnosticsReportSuccess": "Diagnostics report sent",
       "diagnosticsReportFailed": "Failed to send diagnostics report"
+    },
+    "recoverableDatabaseCorruption": {
+      "title": "로컬 데이터가 손상되었습니다",
+      "description": "로컬 데이터베이스 손상이 감지되어 AionUi가 시작을 계속할 수 없습니다. 확인하면 이전 데이터베이스를 백업하고 새 로컬 데이터베이스를 만들어 시작을 계속합니다. 기존 로컬 데이터는 당분간 표시되지 않으며 이전 데이터베이스는 백업으로 보관됩니다.",
+      "confirmRebuild": "이전 DB 백업 후 새 DB 재생성",
+      "sendDiagnostics": "진단 보고서 보내기",
+      "diagnosticsHint": "진단 보고서를 보내도 로컬 데이터베이스는 수정되지 않습니다.",
+      "diagnosticsSent": "진단 보고서가 전송되었습니다",
+      "diagnosticsReportSuccess": "진단 보고서가 전송되었습니다",
+      "diagnosticsReportFailed": "진단 보고서 전송 실패",
+      "rebuildFailed": "이전 DB 백업 및 새 DB 재생성 실패"
     }
   },
   "fileAttach.addFiles": "파일 추가",

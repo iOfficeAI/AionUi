@@ -107,6 +107,17 @@
       "diagnosticsSent": "診斷已傳送",
       "diagnosticsReportSuccess": "診斷報告已傳送",
       "diagnosticsReportFailed": "診斷報告傳送失敗"
+    },
+    "recoverableDatabaseCorruption": {
+      "title": "本機資料已損壞",
+      "description": "偵測到本機資料庫損壞，AionUi 無法繼續啟動。確認後將備份舊資料庫，並建立新的本機資料庫繼續啟動。歷史本機資料暫時不會顯示，舊資料庫會保留為備份。",
+      "confirmRebuild": "備份舊資料庫並重建新資料庫",
+      "sendDiagnostics": "傳送診斷報告",
+      "diagnosticsHint": "傳送診斷報告不會修改本機資料庫。",
+      "diagnosticsSent": "診斷報告已傳送",
+      "diagnosticsReportSuccess": "診斷報告已傳送",
+      "diagnosticsReportFailed": "診斷報告傳送失敗",
+      "rebuildFailed": "備份舊資料庫並重建新資料庫失敗"
     }
   },
   "fileAttach.addFiles": "新增檔案",

@@ -106,6 +106,17 @@
       "diagnosticsSent": "Diagnostics sent",
       "diagnosticsReportSuccess": "Diagnostics report sent",
       "diagnosticsReportFailed": "Failed to send diagnostics report"
+    },
+    "recoverableDatabaseCorruption": {
+      "title": "Lokale Daten sind beschädigt",
+      "description": "AionUi hat erkannt, dass die lokale Datenbank beschädigt ist und den Start nicht fortsetzen kann. Nach der Bestätigung wird die alte Datenbank gesichert und eine neue lokale Datenbank erstellt, um den Start fortzusetzen. Frühere lokale Daten werden vorerst nicht angezeigt, und die alte Datenbank bleibt als Sicherung erhalten.",
+      "confirmRebuild": "Alte DB sichern und neue DB erstellen",
+      "sendDiagnostics": "Diagnose senden",
+      "diagnosticsHint": "Das Senden der Diagnose ändert die lokale Datenbank nicht.",
+      "diagnosticsSent": "Diagnose gesendet",
+      "diagnosticsReportSuccess": "Diagnosebericht gesendet",
+      "diagnosticsReportFailed": "Diagnosebericht konnte nicht gesendet werden",
+      "rebuildFailed": "Alte DB konnte nicht gesichert und neue DB nicht erstellt werden"
     }
   },
   "fileAttach.addFiles": "Dateien hinzufügen",

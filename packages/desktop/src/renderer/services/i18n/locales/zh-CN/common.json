@@ -107,6 +107,17 @@
       "diagnosticsSent": "诊断已发送",
       "diagnosticsReportSuccess": "诊断报告已发送",
       "diagnosticsReportFailed": "诊断报告发送失败"
+    },
+    "recoverableDatabaseCorruption": {
+      "title": "本地数据已损坏",
+      "description": "检测到本地数据库损坏，AionUi 无法继续启动。确认后将备份旧数据库，并创建新的本地数据库继续启动。历史本地数据暂时不会显示，旧数据库会保留为备份。",
+      "confirmRebuild": "备份旧库并重建新库",
+      "sendDiagnostics": "发送诊断报告",
+      "diagnosticsHint": "发送诊断报告不会修改本地数据库。",
+      "diagnosticsSent": "诊断报告已发送",
+      "diagnosticsReportSuccess": "诊断报告已发送",
+      "diagnosticsReportFailed": "诊断报告发送失败",
+      "rebuildFailed": "备份旧库并重建新库失败"
     }
   },
   "fileAttach.addFiles": "添加文件",

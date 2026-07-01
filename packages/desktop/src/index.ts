@@ -227,6 +227,59 @@ ipcMain.on('get-backend-startup-failure', (event) => {
   event.returnValue = backendStartupFailureInfo;
 });
 
+ipcMain.handle('backend:recover-corrupted-database', async () => {
+  const { recoverCorruptedDatabaseAfterUserConfirmation } = await import('./process/startup/recoverCorruptedDatabase');
+
+  await recoverCorruptedDatabaseAfterUserConfirmation({
+    getFailure: () => backendStartupFailureInfo,
+    stopBackend: () => backendManager.stop(),
+    startBackendWithRecovery: async () => {
+      try {
+        const { getDataPath } = await import('./process/utils/utils');
+        const { getSystemDir } = await import('./process/utils/initStorage');
+        const sysDir = getSystemDir();
+        return await backendManager.start(
+          getDataPath(),
+          sysDir.logDir,
+          {
+            cacheDir: sysDir.cacheDir,
+            workDir: sysDir.workDir,
+            logDir: sysDir.logDir,
+          },
+          {
+            allowPendingOnHealthTimeout: false,
+            onHealthTimeout: async (error) => {
+              markBackendStartupFailed(error);
+              await captureBackendStartupFailure(error);
+            },
+            onPendingExit: async (error) => {
+              markBackendStartupFailed(error);
+              await captureBackendStartupFailure(error);
+            },
+            onReady: (backendPort) => {
+              markBackendReady(backendPort, 'backendManager.recoverCorruptedDatabase.lateReady');
+            },
+          },
+          undefined,
+          { recoverCorruptedDatabase: true }
+        );
+      } catch (error) {
+        markBackendStartupFailed(error);
+        await captureBackendStartupFailure(error);
+        throw error;
+      }
+    },
+    markReady: markBackendReady,
+    reloadMainWindow: () => {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.reload();
+      }
+    },
+    logInfo: console.info,
+    logWarn: console.warn,
+  });
+});
+
 function markBackendStartupFailed(error: unknown): void {
   backendStartupFailed = true;
   backendStartupFailureInfo = classifyBackendStartupFailure(error);

@@ -107,6 +107,17 @@
       "diagnosticsSent": "Diagnostics sent",
       "diagnosticsReportSuccess": "Diagnostics report sent",
       "diagnosticsReportFailed": "Failed to send diagnostics report"
+    },
+    "recoverableDatabaseCorruption": {
+      "title": "Локальні дані пошкоджено",
+      "description": "AionUi виявив пошкодження локальної бази даних і не може продовжити запуск. Після підтвердження стару базу даних буде збережено як резервну копію, а для продовження запуску буде створено нову локальну базу даних. Історичні локальні дані поки не відображатимуться, стара база даних збережеться як резервна копія.",
+      "confirmRebuild": "Зберегти стару БД і створити нову",
+      "sendDiagnostics": "Надіслати діагностику",
+      "diagnosticsHint": "Надсилання діагностики не змінить локальну базу даних.",
+      "diagnosticsSent": "Діагностику надіслано",
+      "diagnosticsReportSuccess": "Діагностичний звіт надіслано",
+      "diagnosticsReportFailed": "Не вдалося надіслати діагностичний звіт",
+      "rebuildFailed": "Не вдалося зберегти стару БД і створити нову"
     }
   },
   "fileAttach.addFiles": "Додати файли",

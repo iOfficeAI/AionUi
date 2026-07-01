@@ -107,6 +107,17 @@
       "diagnosticsSent": "Diagnostics sent",
       "diagnosticsReportSuccess": "Diagnostics report sent",
       "diagnosticsReportFailed": "Failed to send diagnostics report"
+    },
+    "recoverableDatabaseCorruption": {
+      "title": "Os dados locais estão corrompidos",
+      "description": "O AionUi detectou que o banco de dados local está corrompido e não pode continuar a inicialização. Após a confirmação, o banco de dados antigo será salvo como backup e um novo banco de dados local será criado para continuar a inicialização. Os dados locais históricos não serão exibidos por enquanto, e o banco antigo será mantido como backup.",
+      "confirmRebuild": "Fazer backup do DB antigo e criar novo DB",
+      "sendDiagnostics": "Enviar diagnóstico",
+      "diagnosticsHint": "Enviar diagnóstico não modificará o banco de dados local.",
+      "diagnosticsSent": "Diagnóstico enviado",
+      "diagnosticsReportSuccess": "Relatório de diagnóstico enviado",
+      "diagnosticsReportFailed": "Falha ao enviar relatório de diagnóstico",
+      "rebuildFailed": "Falha ao fazer backup do DB antigo e criar novo DB"
     }
   },
   "fileAttach.addFiles": "Adicionar arquivos",
