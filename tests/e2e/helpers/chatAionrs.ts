@@ -3,6 +3,7 @@
  */
 import type { Page } from '@playwright/test';
 import { invokeBridge } from './bridge';
+import { httpGet } from './httpBridge';
 import { selectAssistantForBackend } from './conversation';
 import { goToGuid } from './navigation';
 import fs from 'fs';
@@ -17,12 +18,45 @@ export type TProviderWithModel = {
   name: string;
   platform: string;
   apiKey?: string;
+  api_key?: string;
   baseUrl?: string;
+  base_url?: string;
   model: string[];
+  models?: string[];
   useModel: string;
   enabled?: boolean;
   [key: string]: any;
 };
+
+type ProviderResponse = {
+  id: string;
+  name: string;
+  platform: string;
+  api_key?: string;
+  apiKey?: string;
+  base_url?: string;
+  baseUrl?: string;
+  models?: string[];
+  model?: string[];
+  enabled?: boolean;
+  [key: string]: unknown;
+};
+
+function normalizeProvider(provider: ProviderResponse): TProviderWithModel {
+  const models = Array.isArray(provider.models) ? provider.models : Array.isArray(provider.model) ? provider.model : [];
+  const apiKey = provider.apiKey ?? provider.api_key;
+  const baseUrl = provider.baseUrl ?? provider.base_url;
+  return {
+    ...provider,
+    apiKey,
+    api_key: provider.api_key ?? apiKey,
+    baseUrl,
+    base_url: provider.base_url ?? baseUrl,
+    model: models,
+    models,
+    useModel: models[0] ?? '',
+  };
+}
 
 /**
  * Aionrs test models structure.
@@ -55,10 +89,10 @@ export function resolveAionrsBinary(): string | null {
  */
 export async function getAionrsTestModels(page: Page): Promise<AionrsTestModels | null> {
   try {
-    const providers = await invokeBridge<any[]>(page, 'mode.get-model-config', {});
+    const providers = (await httpGet<ProviderResponse[]>(page, '/api/providers')).map(normalizeProvider);
     if (!Array.isArray(providers)) return null;
 
-    const isAionrsCompatible = (p: any): boolean => {
+    const isAionrsCompatible = (p: TProviderWithModel): boolean => {
       const platform = String(p.platform || '').toLowerCase();
       if (platform.includes('gemini-with-google-auth')) return false;
       // `gemini` (OpenAI-compat via /v1beta/openai) has a known aionrs first-send

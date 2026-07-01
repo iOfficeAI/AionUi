@@ -45,6 +45,15 @@ const configErrorMessageKey = (error: unknown) => {
   return 'agent.config.failed';
 };
 
+const resolveCronJobId = (extra: TChatConversation['extra'] | undefined): string | undefined => {
+  const maybeExtra = extra as { cron_job_id?: unknown; cronJobId?: unknown } | undefined;
+  const snakeCase = maybeExtra?.cron_job_id;
+  if (typeof snakeCase === 'string' && snakeCase.trim()) return snakeCase;
+  const camelCase = maybeExtra?.cronJobId;
+  if (typeof camelCase === 'string' && camelCase.trim()) return camelCase;
+  return undefined;
+};
+
 const _AssociatedConversation: React.FC<{ conversation_id: string }> = ({ conversation_id }) => {
   const { data } = useSWR(['getAssociateConversation', conversation_id], () =>
     ipcBridge.conversation.getAssociateConversation.invoke({ conversation_id })
@@ -167,6 +176,7 @@ const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; slid
     onSelectModel,
   });
   const workspaceEnabled = Boolean(conversation.extra?.workspace);
+  const cronJobId = resolveCronJobId(conversation.extra);
   const { info: presetAssistantInfo } = usePresetAssistantInfo(conversation);
   const aionrsAssistantId = presetAssistantInfo?.assistantId;
   const layout = useLayoutContext();
@@ -202,7 +212,7 @@ const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; slid
       <div className='flex items-center gap-8px'>
         <CronJobManager
           conversation_id={conversation.id}
-          cron_job_id={conversation.extra?.cron_job_id as string | undefined}
+          cron_job_id={cronJobId}
         />
         {!isMobile && (
           <AionrsModelSelector
@@ -229,7 +239,7 @@ const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; slid
         workspace={conversation.extra.workspace}
         modelSelection={modelSelection}
         session_mode={conversation.extra?.session_mode}
-        cron_job_id={(conversation.extra as { cron_job_id?: string })?.cron_job_id}
+        cron_job_id={cronJobId}
         loadedSkills={(conversation.extra as { skills?: string[] } | undefined)?.skills}
         loadedMcpServers={(conversation.extra as { mcp_servers?: string[] } | undefined)?.mcp_servers}
         loadedMcpStatuses={
@@ -248,6 +258,7 @@ const ChatConversation: React.FC<{
 }> = ({ conversation, hideSendBox }) => {
   const { t } = useTranslation();
   const workspaceEnabled = Boolean(conversation?.extra?.workspace);
+  const cronJobId = resolveCronJobId(conversation?.extra);
   const layout = useLayoutContext();
   const isMobile = Boolean(layout?.isMobile);
 
@@ -280,7 +291,7 @@ const ChatConversation: React.FC<{
             backend={resolvedConversationBackend || 'claude'}
             session_mode={conversation.extra?.session_mode}
             agent_name={assistantDisplayName}
-            cron_job_id={(conversation.extra as { cron_job_id?: string })?.cron_job_id}
+            cron_job_id={cronJobId}
             hideSendBox={resolvedHideSendBox}
             loadedSkills={(conversation.extra as { skills?: string[] } | undefined)?.skills}
             loadedMcpServers={(conversation.extra as { mcp_servers?: string[] } | undefined)?.mcp_servers}
@@ -293,7 +304,16 @@ const ChatConversation: React.FC<{
       default:
         return null;
     }
-  }, [conversation, isAionrsConversation, isLegacyReadOnlyConversation, assistantDisplayName, resolvedHideSendBox]);
+  }, [
+    conversation,
+    isAionrsConversation,
+    isLegacyReadOnlyConversation,
+    resolvedConversationBackend,
+    assistantDisplayName,
+    cronJobId,
+    resolvedHideSendBox,
+    acpAssistantId,
+  ]);
 
   const sliderTitle = useMemo(() => {
     return (
@@ -348,7 +368,7 @@ const ChatConversation: React.FC<{
         <div className='shrink-0'>
           <CronJobManager
             conversation_id={conversation.id}
-            cron_job_id={conversation.extra?.cron_job_id as string | undefined}
+            cron_job_id={cronJobId}
           />
         </div>
       )}

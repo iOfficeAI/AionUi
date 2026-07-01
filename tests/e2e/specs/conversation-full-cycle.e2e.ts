@@ -27,6 +27,8 @@ import {
   startAutoApprovePermissionMessages,
   MODE_SELECTOR,
   httpGet,
+  httpPost,
+  httpDelete,
   resolveAionrsPreconditions,
 } from '../helpers';
 
@@ -80,12 +82,94 @@ type AssistantRecord = {
   id: string;
 };
 
+type ManagedAgentRecord = {
+  id: string;
+  name?: string;
+  backend?: string | null;
+  agent_type?: string;
+  enabled?: boolean;
+  installed?: boolean;
+  status?: string;
+  last_check_status?: string;
+  last_check_error_code?: string;
+  last_check_error_message?: string;
+};
+
 type ConversationWithAssistant = {
   assistant?: {
     id: string;
     backend?: string;
   } | null;
 };
+
+function agentMatchesBackend(agent: ManagedAgentRecord, backend: string): boolean {
+  return agent.backend === backend || (!agent.backend && agent.agent_type === backend);
+}
+
+function formatAgentHealthFailure(backend: string, agent: ManagedAgentRecord | null): string {
+  if (!agent) return `${backend} agent row was not found after refresh`;
+  const fields = [
+    `id=${agent.id}`,
+    `name=${agent.name ?? ''}`,
+    `status=${agent.status ?? ''}`,
+    `last_check_status=${agent.last_check_status ?? ''}`,
+    `last_check_error_code=${agent.last_check_error_code ?? ''}`,
+    `last_check_error_message=${agent.last_check_error_message ?? ''}`,
+  ];
+  return `${backend} assistant did not become online after health-check (${fields.join(', ')})`;
+}
+
+async function refreshAssistantForBackend(
+  page: import('@playwright/test').Page,
+  backend: string
+): Promise<ManagedAgentRecord | null> {
+  await httpPost(page, '/api/agents/refresh', {}).catch(() => undefined);
+  const agents = await httpGet<ManagedAgentRecord[]>(page, '/api/agents/management').catch(() => []);
+  const agent = agents.find((item) => item.enabled !== false && agentMatchesBackend(item, backend)) ?? null;
+  if (!agent || agent.installed === false) return agent;
+
+  return httpPost<ManagedAgentRecord>(page, `/api/agents/${encodeURIComponent(agent.id)}/health-check`, {}).catch(
+    () => agent
+  );
+}
+
+async function requireOnlineAssistantForBackend(
+  page: import('@playwright/test').Page,
+  backend: string
+): Promise<string> {
+  const checkedAgent = await refreshAssistantForBackend(page, backend);
+  if (!checkedAgent || checkedAgent.installed === false || checkedAgent.enabled === false) {
+    test.skip(true, `${backend} assistant is not installed or enabled`);
+    throw new Error(`${backend} assistant is not installed or enabled`);
+  }
+
+  let lastAgent: ManagedAgentRecord | null = checkedAgent;
+  let onlineAssistantId: string | null = null;
+  await expect
+    .poll(
+      async () => {
+        const id = await findAssistantIdForBackend(page, backend, { requireAvailable: true }).catch(() => null);
+        if (id) {
+          onlineAssistantId = id;
+          return id;
+        }
+
+        const agents = await httpGet<ManagedAgentRecord[]>(page, '/api/agents/management').catch(() => []);
+        lastAgent = agents.find((item) => agentMatchesBackend(item, backend)) ?? lastAgent;
+        return null;
+      },
+      {
+        timeout: 60_000,
+        message: formatAgentHealthFailure(backend, lastAgent),
+      }
+    )
+    .not.toBeNull();
+
+  if (!onlineAssistantId) {
+    throw new Error(formatAgentHealthFailure(backend, lastAgent));
+  }
+  return onlineAssistantId;
+}
 
 type ConversationMessageRecord = {
   type?: string;
@@ -1062,7 +1146,7 @@ test.describe('Conversation Full Cycle', () => {
     stopAutoApprove?.();
   });
 
-  const cronConversationAgents = ['claude', 'codex', 'gemini', 'aionrs'] as const;
+  const cronConversationAgents = ['claude', 'codex', 'gemini', 'aionrs', 'opencode'] as const;
 
   for (const backend of cronConversationAgents) {
     test(`cron -- ${backend} conversation skill creates task with full-auto job mode`, async ({ page }) => {
@@ -1078,10 +1162,6 @@ test.describe('Conversation Full Cycle', () => {
         await page
           .waitForFunction(() => (document.body.textContent?.length ?? 0) > 200, { timeout: 15_000 })
           .catch(() => {});
-        if (!(await findAssistantIdForBackend(page, backend, { requireAvailable: true }))) {
-          test.skip(true, `${backend} assistant not available on guid page`);
-          return;
-        }
         if (backend === 'aionrs') {
           const preconditions = await resolveAionrsPreconditions(page);
           if (!preconditions.binary || !preconditions.models) {
@@ -1089,6 +1169,7 @@ test.describe('Conversation Full Cycle', () => {
             return;
           }
         }
+        await requireOnlineAssistantForBackend(page, backend);
         await expectCronBuiltinAutoSkill(page);
         await selectAgent(page, backend);
 
@@ -1106,13 +1187,13 @@ test.describe('Conversation Full Cycle', () => {
         const taskName = `E2E-${backend}-Cron-${Date.now()}`;
         const cronPromptLines = [
           'Use the cron skill.',
-          'Reply with only a single CRON_CREATE command block and no extra prose.',
-          '[CRON_CREATE]',
-          `name: ${taskName}`,
-          'schedule: 30 9 * * 1-5',
-          'schedule_description: Every weekday at 9:30 AM',
-          `message: Reply with a short ${backend} cron greeting.`,
-          '[/CRON_CREATE]',
+          'Create the scheduled task by calling the cron HTTP helper provided by the skill.',
+          'Do not print or use the legacy bracket command protocol.',
+          `Name: ${taskName}`,
+          'Cron schedule: 30 9 * * 1-5',
+          'Schedule description: Every weekday at 9:30 AM',
+          `Task message: Reply with a short ${backend} cron greeting.`,
+          'After the HTTP helper returns success, reply with a short confirmation.',
         ];
         conversationId = await sendMessageFromGuid(page, cronPromptLines.join(' '));
         expect(conversationId).toBeTruthy();
@@ -1154,13 +1235,41 @@ test.describe('Conversation Full Cycle', () => {
         await waitForSessionActive(page, 180_000);
         const reply = await waitForAiReply(page, 180_000);
         expect(reply.length).toBeGreaterThan(0);
+
+        await page.evaluate((jobId) => window.location.assign(`#/scheduled/${jobId}`), job.id);
+        await page.waitForFunction((jobId) => window.location.hash.includes(`/scheduled/${jobId}`), job.id, {
+          timeout: 10_000,
+        });
+        await expect(page.locator('h1').filter({ hasText: taskName }).first()).toBeVisible({ timeout: 10_000 });
+
+        const historyColumn = page.locator('[data-testid="task-detail-history-column"]');
+        await expect
+          .poll(
+            async () => {
+              return historyColumn.locator('.cursor-pointer').count();
+            },
+            {
+              timeout: 15_000,
+              message: `Waiting for cron job ${job.id} to show associated conversation ${conversationId}`,
+            }
+          )
+          .toBeGreaterThanOrEqual(1);
+
+        await historyColumn.locator('.cursor-pointer').first().click();
+        await page.waitForFunction((cid) => window.location.hash.includes(`/conversation/${cid}`), conversationId, {
+          timeout: 10_000,
+        });
+        await expect(page.locator('.chat-header-cron-pill')).toBeVisible({ timeout: 15_000 });
       } finally {
         stopAutoApprove?.();
-        if (createdJobId) {
-          await invokeBridge(page, 'cron.remove-job', { job_id: createdJobId }).catch(() => {});
-        }
+        let conversationDeleted = false;
         if (conversationId) {
-          await deleteConversation(page, conversationId).catch(() => {});
+          conversationDeleted = await httpDelete(page, `/api/conversations/${encodeURIComponent(conversationId)}`)
+            .then(() => true)
+            .catch(() => false);
+        }
+        if (createdJobId && !conversationDeleted) {
+          await invokeBridge(page, 'cron.remove-job', { job_id: createdJobId }).catch(() => {});
         }
         await goToGuid(page).catch(() => {});
       }
