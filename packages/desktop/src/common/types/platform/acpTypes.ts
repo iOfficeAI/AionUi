@@ -213,10 +213,6 @@ export type AcpConfigOptionDto = {
   options: AcpConfigSelectOptionDto[];
 };
 
-export type GetConfigOptionsResponse = {
-  config_options: AcpConfigOptionDto[];
-};
-
 export type EnsureConversationRuntimeResponse = {
   recovered: boolean;
   config_options: AcpConfigOptionDto[];

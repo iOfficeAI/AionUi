@@ -101,7 +101,7 @@ export function classifyConfigSetError(error: unknown): AcpConfigSetErrorKind {
 
 type AcpConfigOptionsKey = readonly ['acp-config-options', string];
 
-const getConfigOptionsKey = (conversation_id: string): AcpConfigOptionsKey =>
+const getRuntimeConfigOptionsKey = (conversation_id: string): AcpConfigOptionsKey =>
   ['acp-config-options', conversation_id] as const;
 
 const statusByConversation = new Map<string, AcpConfigSetStatus>();
@@ -143,7 +143,7 @@ export function useAcpConfigOptions({
 }) {
   const [setStatus, setSetStatus] = useState<AcpConfigSetStatus>(() => getConversationSetStatus(conversation_id));
   const optionsRef = useRef<AcpConfigOptionDto[] | null>(null);
-  const key = useMemo(() => getConfigOptionsKey(conversation_id), [conversation_id]);
+  const key = useMemo(() => getRuntimeConfigOptionsKey(conversation_id), [conversation_id]);
   const {
     data: snapshotData,
     mutate,

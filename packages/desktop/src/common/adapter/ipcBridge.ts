@@ -37,7 +37,6 @@ import type {
 import type { PreviewHistoryTarget, PreviewSnapshotInfo } from '../types/office/preview';
 import type {
   EnsureConversationRuntimeResponse,
-  GetConfigOptionsResponse,
   SetConfigOptionRequest,
   SetConfigOptionResponse,
 } from '../types/platform/acpTypes';
@@ -890,10 +889,6 @@ export const acpConversation = {
   ),
   checkProviderHealth: httpPost<ProviderHealthCheckResponse, ProviderHealthCheckRequest>(
     '/api/agents/provider-health-check'
-  ),
-  getConfigOptions: httpGet<GetConfigOptionsResponse, { conversation_id: string }>(
-    (p) => `/api/conversations/${p.conversation_id}/config-options`,
-    { silentStatuses: [404] }
   ),
   setConfigOption: httpPut<SetConfigOptionResponse, { conversation_id: string; option_id: string; value: string }>(
     (p) => `/api/conversations/${p.conversation_id}/config-options/${encodeURIComponent(p.option_id)}`,
