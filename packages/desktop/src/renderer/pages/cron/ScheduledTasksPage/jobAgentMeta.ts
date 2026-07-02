@@ -8,7 +8,7 @@ import type { ICronJob } from '@/common/adapter/ipcBridge';
 import type { AgentLogoMap } from '@renderer/utils/model/agentLogo';
 import { resolveAgentLogo } from '@renderer/utils/model/agentLogo';
 import { resolveAssistantAvatar } from '@renderer/utils/model/assistantAvatar';
-import { assistantRuntimeKey, type Assistant } from '@/common/types/agent/assistantTypes';
+import type { Assistant } from '@/common/types/agent/assistantTypes';
 
 function normalizeAgentBackend(agent: string | undefined): string | undefined {
   if (!agent) return undefined;
@@ -29,13 +29,13 @@ export function getJobAgentMeta(
   job: ICronJob,
   presetAssistants: Assistant[],
   logos: AgentLogoMap
-): { name?: string; logo?: string | null; emoji?: string } {
+): { name?: string; logo?: string | null; emoji?: string; assistantFallback?: boolean } {
   const config = job.metadata.agent_config;
   const assistantId = resolveCronAssistantId(config);
   if (assistantId) {
     const assistant = presetAssistants.find((item) => item.id === assistantId);
     if (!assistant) {
-      return {};
+      return { name: config?.name || normalizeAgentBackend(job.metadata.agent_type), assistantFallback: true };
     }
 
     const rawType = normalizeAgentBackend(job.metadata.agent_type);
@@ -48,11 +48,7 @@ export function getJobAgentMeta(
       return { name: displayName, emoji: avatar.value };
     }
 
-    const presetBackend = assistantRuntimeKey(assistant) || rawType;
-    return {
-      name: displayName,
-      logo: resolveAgentLogo(logos, { backend: presetBackend }),
-    };
+    return { name: displayName, assistantFallback: true };
   }
 
   const rawType = normalizeAgentBackend(job.metadata.agent_type);

@@ -12,7 +12,7 @@ import { useAgentLogos } from '@/renderer/utils/model/agentLogo';
 import { resolveConversationLeadingMark } from '@/renderer/pages/conversation/utils/conversationAssistantIdentity';
 import { blockMobileInputFocus, blurActiveElement } from '@/renderer/utils/ui/focus';
 import { Empty, Spin, Typography } from '@arco-design/web-react';
-import { Close, CloseSmall, MessageOne, Search } from '@icon-park/react';
+import { Close, CloseSmall, MessageOne, Robot, Search } from '@icon-park/react';
 import classNames from 'classnames';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { flushSync } from 'react-dom';
@@ -118,6 +118,9 @@ const ConversationAgentMark: React.FC<{ conversation: IMessageSearchItem['conver
         className='w-18px h-18px rounded-50% flex-shrink-0'
       />
     );
+  }
+  if (leadingMark.kind === 'assistant_fallback') {
+    return <Robot theme='outline' size='18' className='line-height-0 flex-shrink-0 text-t-secondary' />;
   }
 
   return <MessageOne theme='outline' size='18' className='line-height-0 flex-shrink-0 text-t-secondary' />;

@@ -82,7 +82,7 @@ describe('getJobAgentMeta', () => {
     expect(meta.logo).toBeNull();
   });
 
-  it('does not fall back to legacy cron metadata when assistant_id is present but the assistant is missing', () => {
+  it('uses assistant fallback when assistant_id is present but the assistant is missing', () => {
     const meta = getJobAgentMeta(
       cronJob({
         metadata: {
@@ -97,7 +97,10 @@ describe('getJobAgentMeta', () => {
       LOGOS
     );
 
-    expect(meta).toEqual({});
+    expect(meta).toEqual({
+      name: 'Legacy name',
+      assistantFallback: true,
+    });
   });
 });
 

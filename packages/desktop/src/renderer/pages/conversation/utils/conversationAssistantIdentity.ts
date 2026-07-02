@@ -1,5 +1,6 @@
 import type { TChatConversation } from '@/common/config/storage';
 import type { PresetAssistantInfo } from '@/renderer/hooks/agent/usePresetAssistantInfo';
+import { resolveAssistantAvatar } from '@/renderer/utils/model/assistantAvatar';
 import { resolveAgentLogo } from '@/renderer/utils/model/agentLogo';
 import type { AgentLogoMap } from '@/renderer/utils/model/agentLogo';
 
@@ -54,6 +55,10 @@ export type ConversationLeadingMark =
   | {
       kind: 'fallback';
       label: string;
+    }
+  | {
+      kind: 'assistant_fallback';
+      label: string;
     };
 
 export function resolveConversationLeadingMark(
@@ -62,6 +67,13 @@ export function resolveConversationLeadingMark(
   logos: AgentLogoMap
 ): ConversationLeadingMark {
   if (assistantInfo) {
+    if (assistantInfo.isFallback) {
+      return {
+        kind: 'assistant_fallback',
+        label: assistantInfo.name,
+      };
+    }
+
     return assistantInfo.isEmoji
       ? {
           kind: 'emoji',
@@ -73,6 +85,30 @@ export function resolveConversationLeadingMark(
           value: assistantInfo.logo,
           label: assistantInfo.name,
         };
+  }
+
+  if (conversation.assistant) {
+    const assistantLabel = conversation.assistant.name.trim() || conversation.assistant.id;
+    const assistantAvatar = resolveAssistantAvatar(conversation.assistant.avatar);
+    if (assistantAvatar.kind === 'emoji') {
+      return {
+        kind: 'emoji',
+        value: assistantAvatar.value,
+        label: assistantLabel,
+      };
+    }
+    if (assistantAvatar.kind === 'image') {
+      return {
+        kind: 'image',
+        value: assistantAvatar.value,
+        label: assistantLabel,
+      };
+    }
+
+    return {
+      kind: 'assistant_fallback',
+      label: assistantLabel,
+    };
   }
 
   const backendKey = resolveConversationBackend(conversation)?.trim() || 'agent';

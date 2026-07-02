@@ -35,6 +35,7 @@ const MobileConversationBrand: React.FC<MobileConversationBrandProps> = ({ conve
           agent_name={title}
           agentLogo={presetAssistant?.logo}
           agentLogoIsEmoji={presetAssistant?.isEmoji}
+          agentLogoIsFallback={presetAssistant?.isFallback}
         />
       )}
       <span className='app-titlebar__brand-text'>{title}</span>

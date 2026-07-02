@@ -18,6 +18,7 @@ export interface PresetAssistantInfo {
   name: string;
   logo: string;
   isEmoji: boolean;
+  isFallback?: boolean;
   backend?: string;
   assistantId?: string;
 }
@@ -131,14 +132,14 @@ function resolveLegacyRuntimeDisplayName(conversation: TChatConversation): strin
  * 规范化头像：支持 emoji / 内置 svg / 扩展资源 URL
  * Normalize avatar to either emoji text or a renderable image URL
  */
-function normalizeAvatar(avatar: string | undefined): { logo: string; isEmoji: boolean } {
+function normalizeAvatar(avatar: string | undefined): { logo: string; isEmoji: boolean; isFallback?: boolean } {
   const resolved = resolveAssistantAvatar(avatar);
   if (resolved.kind === 'image') {
     return { logo: resolved.value, isEmoji: false };
   }
 
   if (resolved.kind === 'fallback') {
-    return { logo: '🤖', isEmoji: true };
+    return { logo: '', isEmoji: false, isFallback: true };
   }
 
   return { logo: resolved.value, isEmoji: true };
@@ -219,40 +220,21 @@ function buildPresetInfoFromAssistant(assistant: Assistant, locale: string): Pre
     name,
     logo: normalized.logo,
     isEmoji: normalized.isEmoji,
+    isFallback: normalized.isFallback,
     backend: assistantRuntimeKey(assistant) || undefined,
     assistantId: assistant.id,
   };
 }
 
 function buildPresetInfoFromConversationAssistant(
-  assistant: NonNullable<TChatConversation['assistant']>,
-  logos: AgentLogoMap
+  assistant: NonNullable<TChatConversation['assistant']>
 ): PresetAssistantInfo {
-  // Generated assistants reconciled from agent rows can have an empty avatar
-  // or a legacy svg filename such as `claude.svg`. In that case, fall back to
-  // the backend logo catalog instead of showing the generic robot.
   const normalized = normalizeAvatar(assistant.avatar);
-  const isUnresolvedSvgFallback =
-    normalized.isEmoji &&
-    typeof assistant.avatar === 'string' &&
-    assistant.avatar.trim().toLowerCase().endsWith('.svg');
-  const isEmptyAvatarFallback = normalized.isEmoji && (!assistant.avatar || assistant.avatar.trim().length === 0);
-  if (isUnresolvedSvgFallback || isEmptyAvatarFallback) {
-    const backendLogo = resolveAgentLogo(logos, { backend: assistant.backend });
-    if (backendLogo) {
-      return {
-        name: assistant.name,
-        logo: backendLogo,
-        isEmoji: false,
-        backend: assistant.backend,
-        assistantId: assistant.id,
-      };
-    }
-  }
   return {
     name: assistant.name,
     logo: normalized.logo,
     isEmoji: normalized.isEmoji,
+    isFallback: normalized.isFallback,
     backend: assistant.backend,
     assistantId: assistant.id,
   };
@@ -338,7 +320,7 @@ export function usePresetAssistantInfo(conversation: TChatConversation | undefin
       }
 
       return {
-        info: buildPresetInfoFromConversationAssistant(conversation.assistant, logos),
+        info: buildPresetInfoFromConversationAssistant(conversation.assistant),
         isLoading: false,
       };
     }
@@ -349,7 +331,12 @@ export function usePresetAssistantInfo(conversation: TChatConversation | undefin
       if (remoteAgent) {
         const normalized = normalizeAvatar(remoteAgent.avatar);
         return {
-          info: { name: remoteAgent.name, logo: normalized.logo, isEmoji: normalized.isEmoji },
+          info: {
+            name: remoteAgent.name,
+            logo: normalized.logo,
+            isEmoji: normalized.isEmoji,
+            isFallback: normalized.isFallback,
+          },
           isLoading: false,
         };
       }
@@ -382,7 +369,7 @@ export function usePresetAssistantInfo(conversation: TChatConversation | undefin
           isLoading: false,
         };
       }
-      return { info: { name, logo: '🤖', isEmoji: true }, isLoading: false };
+      return { info: { name, logo: '', isEmoji: false, isFallback: true }, isLoading: false };
     };
 
     if (assistantMatch) {
@@ -417,7 +404,15 @@ export function usePresetAssistantInfo(conversation: TChatConversation | undefin
           const name = typeof adapter.name === 'string' ? adapter.name : adapterId;
           const avatar = typeof adapter.avatar === 'string' ? adapter.avatar : '';
           const normalized = normalizeAvatar(avatar);
-          return { info: { name, logo: normalized.logo, isEmoji: normalized.isEmoji }, isLoading: false };
+          return {
+            info: {
+              name,
+              logo: normalized.logo,
+              isEmoji: normalized.isEmoji,
+              isFallback: normalized.isFallback,
+            },
+            isLoading: false,
+          };
         }
       }
     }

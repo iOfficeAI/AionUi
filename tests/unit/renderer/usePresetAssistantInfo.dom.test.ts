@@ -245,14 +245,15 @@ describe('usePresetAssistantInfo', () => {
 
     expect(result.current.info).toEqual({
       name: 'Local Avatar',
-      logo: '🤖',
-      isEmoji: true,
+      logo: '',
+      isEmoji: false,
+      isFallback: true,
       backend: 'codex',
       assistantId: 'assistant-local-avatar',
     });
   });
 
-  it('falls back to the backend logo for generated assistants whose avatar is empty', () => {
+  it('returns assistant fallback for generated assistants whose avatar is empty', () => {
     useSWRMock.mockImplementation((key: unknown) => {
       if (key === 'assistants') return { data: [], isLoading: false };
       if (key === 'extensions.acpAdapters') return { data: [], isLoading: false };
@@ -277,8 +278,9 @@ describe('usePresetAssistantInfo', () => {
 
     expect(result.current.info).toEqual({
       name: 'codex',
-      logo: getAgentLogo('codex'),
+      logo: '',
       isEmoji: false,
+      isFallback: true,
       backend: 'codex',
       assistantId: 'bare-codex',
     });

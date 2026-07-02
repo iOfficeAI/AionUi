@@ -8,7 +8,7 @@ import type { TChatConversation } from '@/common/config/storage';
 import { usePresetAssistantInfo } from '@/renderer/hooks/agent/usePresetAssistantInfo';
 import { resolveConversationLeadingMark } from '@/renderer/pages/conversation/utils/conversationAssistantIdentity';
 import { useAgentLogos } from '@/renderer/utils/model/agentLogo';
-import { MessageOne } from '@icon-park/react';
+import { MessageOne, Robot } from '@icon-park/react';
 import React from 'react';
 
 type DragOverlayContentProps = {
@@ -36,6 +36,8 @@ const DragOverlayContent: React.FC<DragOverlayContentProps> = ({ conversation })
         <span className='text-18px leading-none flex-shrink-0'>{leadingMark.value}</span>
       ) : leadingMark.kind === 'image' ? (
         <img src={leadingMark.value} alt={leadingMark.label} className='w-18px h-18px rounded-50% flex-shrink-0' />
+      ) : leadingMark.kind === 'assistant_fallback' ? (
+        <Robot theme='outline' size='20' className='line-height-0 flex-shrink-0' />
       ) : (
         <MessageOne theme='outline' size='20' className='line-height-0 flex-shrink-0' />
       )}
