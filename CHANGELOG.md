@@ -1,5 +1,52 @@
 # Changelog
 
+## [2.1.28](https://github.com/iOfficeAI/AionUi/compare/v2.1.27...v2.1.28) (2026-07-02)
+
+### Desktop
+
+#### Bug Fixes
+
+- **i18n:** resolve main locale gaps (#3503)
+- **startup:** confirm corrupted database rebuild (#3502)
+- **team:** pass capabilities to team chat send box (#3501)
+- **runtime:** coordinate foreground leases and runtime ensure (#3497)
+- **cron:** lock team cron task editing (#3496)
+- **desktop:** support dated frontend log layout (#3495)
+- **assistant:** render empty avatars consistently (#3493)
+- **cron:** support team context job navigation (#3492)
+- **acp:** dedupe runtime option requests (#3490)
+- **assistant:** correct engine section badge tone to warning
+- **cron:** sync manual task assistant selection (#3485)
+- **desktop:** wait for macOS update install readiness (#3484)
+
+#### Features
+
+- **i18n:** add Persian (fa-IR) locale support (#3284)
+- **i18n:** add complete Spanish (es-ES) translation (#3402)
+- **conversation:** keep batch-selection panel pinned while scrolling
+- **conversation:** keep project folder header sticky while scrolling
+- **conversation:** reveal active conversation by expanding its section and folder
+- **conversation:** surface session skills in slash command menu
+
+### Core ([v0.1.41](https://github.com/iOfficeAI/AionCore/releases/tag/v0.1.41))
+
+#### Bug Fixes
+
+- **assistant:** normalize avatar storage and identity (#558)
+- **conversation:** derive assistant runtime type from metadata (#555)
+- **conversation:** partition temp workspaces and logs by date (#560)
+- **cron:** apply custom assistant rules in scheduled runs (#495)
+- **cron:** lock team cron execution mode (#562)
+- **cron:** route skill scheduling through helper (#553)
+- **database:** require explicit corrupted database recovery (#563)
+- resolve ACP backends from metadata (#559)
+- **runtime:** harden managed Node command resolution (#565)
+- **runtime:** protect active ACP tasks from idle cleanup (#561)
+- **skill:** raise import size limits (#564)
+- **skills:** correct AionUi Butler skill drift against current backend (#557)
+
+---
+
 ## [2.1.27](https://github.com/iOfficeAI/AionUi/compare/v2.1.26...v2.1.27) (2026-06-30)
 
 ### Desktop
