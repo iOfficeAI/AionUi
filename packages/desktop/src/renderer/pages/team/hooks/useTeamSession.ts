@@ -15,6 +15,8 @@ import type {
 } from '@/common/types/team/teamTypes';
 import { useCallback, useEffect, useState } from 'react';
 import useSWR from 'swr';
+import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
+import { removeTeamAssistantWithCronCleanup } from '../utils/removeTeamAssistantWithCronCleanup';
 
 type AgentStatusInfo = {
   slot_id: string;
@@ -103,10 +105,16 @@ export function useTeamSession(team: TTeam) {
 
   const removeAssistant = useCallback(
     async (slot_id: string) => {
-      await ipcBridge.team.removeAgent.invoke({ team_id: team.id, slot_id });
+      await removeTeamAssistantWithCronCleanup({
+        team,
+        slot_id,
+        getConversation: getConversationOrNull,
+        removeCronJob: (job_id) => ipcBridge.cron.removeJob.invoke({ job_id }),
+        removeAgent: (params) => ipcBridge.team.removeAgent.invoke(params),
+      });
       await mutateTeam();
     },
-    [team.id, mutateTeam]
+    [team, mutateTeam]
   );
 
   return { statusMap, addAssistant, renameAssistant, removeAssistant, mutateTeam };

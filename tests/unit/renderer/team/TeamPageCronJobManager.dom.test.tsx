@@ -1,5 +1,6 @@
 import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import type { TChatConversation } from '@/common/config/storage';
@@ -17,6 +18,18 @@ vi.mock('react-i18next', () => ({
     i18n: { language: 'en' },
   }),
 }));
+
+vi.mock('@arco-design/web-react', async () => {
+  const actual = await vi.importActual<typeof import('@arco-design/web-react')>('@arco-design/web-react');
+  return {
+    ...actual,
+    Message: {
+      success: vi.fn(),
+      error: vi.fn(),
+      useMessage: () => [null, null],
+    },
+  };
+});
 
 vi.mock('@/renderer/hooks/context/AuthContext', () => ({
   useAuth: () => ({ user: { id: 'user-1' } }),
@@ -51,6 +64,9 @@ vi.mock('@/common', () => ({
       childTurnCompleted: eventChannel,
       childTurnCancelled: eventChannel,
       listChanged: eventChannel,
+    },
+    cron: {
+      removeJob: { invoke: vi.fn() },
     },
     conversation: {
       confirmation: {
@@ -103,12 +119,16 @@ vi.mock('@/renderer/pages/cron', () => ({
   },
 }));
 
+import { ipcBridge } from '@/common';
 import TeamPage from '@/renderer/pages/team/TeamPage';
 
 describe('TeamPage cron job manager', () => {
   beforeEach(() => {
+    vi.clearAllMocks();
     getConversationOrNullMock.mockReset();
     cronJobManagerMock.mockClear();
+    vi.mocked(ipcBridge.cron.removeJob.invoke).mockResolvedValue(undefined);
+    vi.mocked(ipcBridge.team.removeAgent.invoke).mockResolvedValue(undefined);
     localStorage.clear();
   });
 
@@ -140,6 +160,38 @@ describe('TeamPage cron job manager', () => {
         conversation_id: 'member-conv',
         cron_job_id: 'cron-member-1',
       })
+    );
+  });
+
+  it('removes a member cron job before removing the team member', async () => {
+    const user = userEvent.setup();
+    getConversationOrNullMock.mockImplementation(async (conversationId: string) => {
+      if (conversationId === 'leader-conv') return conversation({ id: conversationId, name: 'Leader' });
+      if (conversationId === 'member-conv') {
+        return conversation({
+          id: conversationId,
+          name: 'Member',
+          extra: {
+            team_id: 'team-1',
+            cron_job_id: 'cron-member-1',
+          },
+        });
+      }
+      return null;
+    });
+
+    render(
+      <MemoryRouter>
+        <TeamPage team={team()} />
+      </MemoryRouter>
+    );
+
+    await user.click(await screen.findByTestId('team-remove-assistant-member-slot'));
+
+    await waitFor(() => expect(ipcBridge.cron.removeJob.invoke).toHaveBeenCalledWith({ job_id: 'cron-member-1' }));
+    expect(ipcBridge.team.removeAgent.invoke).toHaveBeenCalledWith({ team_id: 'team-1', slot_id: 'member-slot' });
+    expect(vi.mocked(ipcBridge.cron.removeJob.invoke).mock.invocationCallOrder[0]).toBeLessThan(
+      vi.mocked(ipcBridge.team.removeAgent.invoke).mock.invocationCallOrder[0]
     );
   });
 });

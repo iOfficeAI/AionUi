@@ -27,6 +27,7 @@ import { useTeamRunView, type TeamRunViewState } from './hooks/useTeamRunView';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
 import { warmupConversation } from '@/renderer/pages/conversation/utils/warmupConversation';
 import { resolveTeamWorkspaceView } from './utils/teamWorkspaceView';
+import { removeTeamAssistantWithCronCleanup } from './utils/removeTeamAssistantWithCronCleanup';
 
 type Props = {
   team: TTeam;
@@ -186,6 +187,7 @@ const AssistantChatSlot: React.FC<{
           )}
           {!isLeader && onRemove && (
             <div
+              data-testid={`team-remove-assistant-${assistant.slot_id}`}
               className='shrink-0 cursor-pointer hover:bg-[var(--fill-3)] p-4px rd-4px text-[color:var(--color-text-3)] hover:text-[color:var(--color-danger-6)] transition-colors'
               onClick={onRemove}
             >
@@ -243,7 +245,13 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onRenameTeam })
   const doRemoveAssistant = useCallback(
     async (slot_id: string) => {
       try {
-        await ipcBridge.team.removeAgent.invoke({ team_id: team.id, slot_id });
+        await removeTeamAssistantWithCronCleanup({
+          team,
+          slot_id,
+          getConversation: getConversationOrNull,
+          removeCronJob: (job_id) => ipcBridge.cron.removeJob.invoke({ job_id }),
+          removeAgent: (params) => ipcBridge.team.removeAgent.invoke(params),
+        });
         Message.success(t('common.deleteSuccess'));
         // Only switch tab when removing the currently active tab
         if (slot_id === activeSlotId && leadAssistant?.slot_id) switchTab(leadAssistant.slot_id);
@@ -253,7 +261,7 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onRenameTeam })
         Message.error(String(error));
       }
     },
-    [team.id, activeSlotId, leadAssistant?.slot_id, switchTab, fullscreenSlotId, t]
+    [team, activeSlotId, leadAssistant?.slot_id, switchTab, fullscreenSlotId, t]
   );
 
   const handleRemoveAssistant = useCallback(

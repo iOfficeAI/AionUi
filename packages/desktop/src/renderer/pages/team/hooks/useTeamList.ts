@@ -4,6 +4,8 @@ import { useAuth } from '@renderer/hooks/context/AuthContext';
 import type { TTeam } from '@/common/types/team/teamTypes';
 import { useCallback, useEffect } from 'react';
 import useSWR from 'swr';
+import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
+import { removeTeamWithCronCleanup } from '../utils/removeTeamAssistantWithCronCleanup';
 
 export function useTeamList() {
   const { user } = useAuth();
@@ -39,11 +41,21 @@ export function useTeamList() {
 
   const removeTeam = useCallback(
     async (id: string) => {
-      await ipcBridge.team.remove.invoke({ id });
+      const team = teams.find((item) => item.id === id);
+      if (team) {
+        await removeTeamWithCronCleanup({
+          team,
+          getConversation: getConversationOrNull,
+          removeCronJob: (job_id) => ipcBridge.cron.removeJob.invoke({ job_id }),
+          removeTeam: (params) => ipcBridge.team.remove.invoke(params),
+        });
+      } else {
+        await ipcBridge.team.remove.invoke({ id });
+      }
       localStorage.removeItem(`team-active-slot-${id}`);
       await mutate();
     },
-    [mutate]
+    [teams, mutate]
   );
 
   return { teams, mutate, removeTeam };
