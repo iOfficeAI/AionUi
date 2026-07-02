@@ -298,6 +298,40 @@ describe('useAcpModelInfo', () => {
     });
   });
 
+  it('coalesces concurrent runtime ensure loads for the same conversation', async () => {
+    const ensureDeferred = deferred<{
+      recovered: boolean;
+      config_options: AcpConfigOptionDto[];
+      runtime: null;
+    }>();
+    ensureRuntimeInvokeMock.mockReturnValue(ensureDeferred.promise);
+
+    const wrapper = createSwrWrapper();
+    const first = renderHook(
+      () => useAcpModelInfo({ conversation_id: 'conv-1', backend: 'claude', initialModelId: 'sonnet-4' }),
+      { wrapper }
+    );
+    const second = renderHook(
+      () => useAcpModelInfo({ conversation_id: 'conv-1', backend: 'claude', initialModelId: 'sonnet-4' }),
+      { wrapper }
+    );
+
+    await waitFor(() => {
+      expect(ensureRuntimeInvokeMock).toHaveBeenCalledTimes(1);
+    });
+
+    await act(async () => {
+      ensureDeferred.resolve({ recovered: true, config_options: buildConfigOptions(), runtime: null });
+      await ensureDeferred.promise;
+    });
+
+    await waitFor(() => {
+      expect(first.result.current.canSwitch).toBe(true);
+      expect(second.result.current.canSwitch).toBe(true);
+    });
+    expect(ensureRuntimeInvokeMock).toHaveBeenCalledTimes(1);
+  });
+
   it('uses legacy acp_model_info stream only before config options are available', async () => {
     ensureRuntimeInvokeMock.mockResolvedValue({ recovered: true, config_options: [], runtime: null });
 

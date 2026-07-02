@@ -15,7 +15,7 @@ import { useMergeLiveMessage } from '@/renderer/pages/conversation/Messages/hook
 import { logStreamTerminalObserved } from '@/renderer/pages/conversation/runtime/useConversationRuntimeView';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
 import { isConversationProcessing } from '@/renderer/pages/conversation/utils/conversationRuntime';
-import { warmupConversation } from '@/renderer/pages/conversation/utils/warmupConversation';
+import { ensureConversationRuntime } from '@/renderer/pages/conversation/utils/ensureConversationRuntime';
 import type { ThoughtData } from '@/renderer/components/chat/ThoughtDisplay';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
@@ -524,15 +524,14 @@ export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: 
     };
   }, [conversation_id]);
 
-  // Fetch slash commands via HTTP after warmup completes.
+  // Fetch slash commands via HTTP after runtime ensure completes.
   // WebSocket push of available_commands arrives during warmup when no
   // StreamRelay is listening, so the initial load must come from HTTP.
-  // Mirrors the aionrs pattern: warmup first, then fetch.
-  // In team mode, warmup is deferred to first user input — skip here.
+  // In team mode, runtime preparation is coordinated by the team send box.
   useEffect(() => {
     if (options?.skipWarmup) return;
     let cancelled = false;
-    void warmupConversation(conversation_id)
+    void ensureConversationRuntime(conversation_id)
       .then(() => {
         if (cancelled) return;
         return ipcBridge.conversation.getSlashCommands.invoke({ conversation_id });
@@ -562,8 +561,8 @@ export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: 
   }, []);
 
   const fetchSlashCommands = useCallback(() => {
-    void ipcBridge.conversation.getSlashCommands
-      .invoke({ conversation_id })
+    void ensureConversationRuntime(conversation_id)
+      .then(() => ipcBridge.conversation.getSlashCommands.invoke({ conversation_id }))
       .then((result) => {
         if (!result || !Array.isArray(result) || result.length === 0) return;
         setSlashCommands(mapAcpCommandsToSlashCommands(result));

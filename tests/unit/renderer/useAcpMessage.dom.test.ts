@@ -10,12 +10,22 @@ import { useAcpMessage } from '@/renderer/pages/conversation/platforms/acp/useAc
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 
-const { addOrUpdateMessageMock, responseStreamOnMock, responseStreamHandlerRef } = vi.hoisted(() => ({
+const {
+  addOrUpdateMessageMock,
+  ensureRuntimeInvokeMock,
+  getSlashCommandsInvokeMock,
+  responseStreamOnMock,
+  responseStreamHandlerRef,
+  warmupInvokeMock,
+} = vi.hoisted(() => ({
   addOrUpdateMessageMock: vi.fn(),
+  ensureRuntimeInvokeMock: vi.fn(),
+  getSlashCommandsInvokeMock: vi.fn(),
   responseStreamOnMock: vi.fn(),
   responseStreamHandlerRef: {
     current: undefined as ((message: IResponseMessage) => void) | undefined,
   },
+  warmupInvokeMock: vi.fn(),
 }));
 
 vi.mock('@/renderer/pages/conversation/Messages/hooks', () => ({
@@ -39,10 +49,13 @@ vi.mock('@/common', () => ({
     },
     conversation: {
       warmup: {
-        invoke: vi.fn().mockResolvedValue(undefined),
+        invoke: warmupInvokeMock,
+      },
+      ensureRuntime: {
+        invoke: ensureRuntimeInvokeMock,
       },
       getSlashCommands: {
-        invoke: vi.fn().mockResolvedValue([]),
+        invoke: getSlashCommandsInvokeMock,
       },
     },
   },
@@ -51,7 +64,10 @@ vi.mock('@/common', () => ({
 describe('useAcpMessage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    ensureRuntimeInvokeMock.mockResolvedValue({ recovered: false, config_options: [], runtime: null });
+    getSlashCommandsInvokeMock.mockResolvedValue([]);
     responseStreamHandlerRef.current = undefined;
+    warmupInvokeMock.mockResolvedValue(undefined);
   });
 
   it('completes hydration when the conversation lookup fails', async () => {
@@ -218,6 +234,35 @@ describe('useAcpMessage', () => {
         },
       ]);
     });
+  });
+
+  it('loads initial slash commands after runtime ensure without legacy warmup', async () => {
+    vi.mocked(getConversationOrNull).mockResolvedValue(null);
+    getSlashCommandsInvokeMock.mockResolvedValue([
+      {
+        command: 'review',
+        description: 'Review the current diff',
+        completion_behavior: 'neutral_tip_on_empty',
+      },
+    ]);
+
+    const { result } = renderHook(() => useAcpMessage('conv-1'));
+
+    await waitFor(() => {
+      expect(ensureRuntimeInvokeMock).toHaveBeenCalledWith({ conversation_id: 'conv-1' });
+      expect(result.current.slashCommands).toEqual([
+        {
+          name: 'review',
+          description: 'Review the current diff',
+          kind: 'template',
+          source: 'acp',
+          selectionBehavior: 'insert',
+          completionBehavior: 'neutral_tip_on_empty',
+        },
+      ]);
+    });
+    expect(warmupInvokeMock).not.toHaveBeenCalled();
+    expect(getSlashCommandsInvokeMock).toHaveBeenCalledWith({ conversation_id: 'conv-1' });
   });
 
   it('normalizes team teammate messages before inserting them into the message list', async () => {

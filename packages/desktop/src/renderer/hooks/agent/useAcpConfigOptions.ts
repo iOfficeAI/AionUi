@@ -12,6 +12,7 @@ import type {
   AcpConfigSelectOptionDto,
   SetConfigOptionResponse,
 } from '@/common/types/platform/acpTypes';
+import { ensureConversationRuntime } from '@/renderer/pages/conversation/utils/ensureConversationRuntime';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import useSWR from 'swr';
 
@@ -128,10 +129,8 @@ function subscribeConversationSetStatus(
   };
 }
 
-const ensureRuntimeConfigOptions = async ([, conversation_id]: AcpConfigOptionsKey): Promise<AcpConfigOptionDto[]> => {
-  const result = await ipcBridge.conversation.ensureRuntime.invoke({ conversation_id });
-  return result.config_options;
-};
+const ensureRuntimeConfigOptions = async ([, conversation_id]: AcpConfigOptionsKey): Promise<AcpConfigOptionDto[]> =>
+  (await ensureConversationRuntime(conversation_id)).config_options;
 
 export function useAcpConfigOptions({
   conversation_id,

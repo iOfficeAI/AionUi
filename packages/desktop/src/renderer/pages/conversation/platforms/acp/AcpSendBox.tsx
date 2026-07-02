@@ -34,7 +34,6 @@ import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import { useConversationRuntimeView } from '@/renderer/pages/conversation/runtime/useConversationRuntimeView';
 import { getConversationRuntimeWorkspaceErrorMessage } from '@/renderer/pages/conversation/utils/conversationCreateError';
 import { getChatSurfaceWidthClass } from '@/renderer/pages/conversation/utils/chatSurfaceWidth';
-import { warmupConversation } from '@/renderer/pages/conversation/utils/warmupConversation';
 import { useTeamPermission } from '@/renderer/pages/team/hooks/TeamPermissionContext';
 import type { TeamSendBoxRuntime } from '@/renderer/pages/team/components/teamSendRuntime';
 import { allSupportedExts } from '@/renderer/services/FileService';
@@ -197,14 +196,13 @@ const AcpSendBox: React.FC<{
     if (!teamPermission) return;
     void teamPermission
       .warmupSession()
-      .then(() => warmupConversation(conversation_id))
       .then(() => {
         fetchSlashCommands();
       })
       .catch((error) => {
         Message.error(getConversationRuntimeWorkspaceErrorMessage(error, t));
       });
-  }, [teamPermission, conversation_id, fetchSlashCommands, t]);
+  }, [teamPermission, fetchSlashCommands, t]);
 
   const handleContentChange = useCallback(
     (val: string) => {

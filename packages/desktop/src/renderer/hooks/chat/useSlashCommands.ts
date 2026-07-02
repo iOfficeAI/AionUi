@@ -2,6 +2,7 @@ import { mapAcpCommandsToSlashCommands } from '@/common/chat/slash/acpMapping';
 import { isSlashCommandListEnabled } from '@/common/chat/slash/availability';
 import type { SlashCommandItem } from '@/common/chat/slash/types';
 import { ipcBridge } from '@/common';
+import { ensureConversationRuntime } from '@/renderer/pages/conversation/utils/ensureConversationRuntime';
 import { useEffect, useRef, useState } from 'react';
 
 interface CacheEntry {
@@ -78,8 +79,8 @@ export function useSlashCommands(conversation_id: string, options: UseSlashComma
       setCommands(cached);
     }
 
-    void ipcBridge.conversation.getSlashCommands
-      .invoke({ conversation_id: conversation_id })
+    void ensureConversationRuntime(conversation_id)
+      .then(() => ipcBridge.conversation.getSlashCommands.invoke({ conversation_id: conversation_id }))
       .then((result) => {
         if (isCancelled || requestId !== requestIdRef.current) {
           return;
