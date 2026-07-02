@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const usePresetAssistantInfoMock = vi.fn();
 const acpChatMock = vi.fn(() => <div data-testid='mock-acp-chat' />);
+const aionrsChatMock = vi.fn(() => <div data-testid='mock-aionrs-chat' />);
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -22,7 +23,7 @@ vi.mock('@/renderer/pages/conversation/platforms/acp/AcpChat', () => ({
 
 vi.mock('@/renderer/pages/conversation/platforms/aionrs/AionrsChat', () => ({
   __esModule: true,
-  default: () => <div data-testid='mock-aionrs-chat' />,
+  default: (props: unknown) => aionrsChatMock(props),
 }));
 
 vi.mock('@/renderer/pages/conversation/platforms/legacy/LegacyReadOnlyConversation', () => ({
@@ -36,6 +37,7 @@ describe('TeamChatView', () => {
   beforeEach(() => {
     usePresetAssistantInfoMock.mockReset();
     acpChatMock.mockClear();
+    aionrsChatMock.mockClear();
   });
 
   it('prefers preset assistant backend over legacy conversation extra backend', async () => {
@@ -105,6 +107,78 @@ describe('TeamChatView', () => {
     expect(acpChatMock.mock.calls[0]?.[0]).toEqual(
       expect.objectContaining({
         agent_name: 'Planner Assistant',
+      })
+    );
+  });
+
+  it('passes loaded skills and MCP snapshot to ACP team chat', async () => {
+    usePresetAssistantInfoMock.mockReturnValue({ info: null });
+    const mcpStatuses = [{ id: 'office', name: 'office', status: 'loaded' as const }];
+
+    render(
+      <TeamChatView
+        conversation={{
+          id: 'conv-1',
+          type: 'acp',
+          name: 'Team - Planner',
+          created_at: Date.now(),
+          updated_at: Date.now(),
+          extra: {
+            workspace: '/tmp',
+            skills: ['excel'],
+            mcp_servers: ['office'],
+            mcp_statuses: mcpStatuses,
+          },
+        }}
+      />
+    );
+
+    expect(await screen.findByTestId('mock-acp-chat')).toBeInTheDocument();
+    expect(acpChatMock.mock.calls[0]?.[0]).toEqual(
+      expect.objectContaining({
+        loadedSkills: ['excel'],
+        loadedMcpServers: ['office'],
+        loadedMcpStatuses: mcpStatuses,
+      })
+    );
+  });
+
+  it('passes loaded skills and MCP snapshot to AionRS team chat', async () => {
+    usePresetAssistantInfoMock.mockReturnValue({ info: null });
+    const mcpStatuses = [{ id: 'office', name: 'office', status: 'loaded' as const }];
+
+    render(
+      <TeamChatView
+        conversation={{
+          id: 'conv-1',
+          type: 'aionrs',
+          name: 'Team - AionRS',
+          created_at: Date.now(),
+          updated_at: Date.now(),
+          extra: {
+            workspace: '/tmp',
+            skills: ['excel'],
+            mcp_servers: ['office'],
+            mcp_statuses: mcpStatuses,
+          },
+          model: {
+            id: 'provider-1',
+            name: 'Provider',
+            type: 'openai',
+            api_key: '',
+            api_base_url: '',
+            use_model: 'model-1',
+          },
+        }}
+      />
+    );
+
+    expect(await screen.findByTestId('mock-aionrs-chat')).toBeInTheDocument();
+    expect(aionrsChatMock.mock.calls[0]?.[0]).toEqual(
+      expect.objectContaining({
+        loadedSkills: ['excel'],
+        loadedMcpServers: ['office'],
+        loadedMcpStatuses: mcpStatuses,
       })
     );
   });
