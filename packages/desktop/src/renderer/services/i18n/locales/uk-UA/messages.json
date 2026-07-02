@@ -65,5 +65,8 @@
     "yesAlwaysAllowTool": "Так, завжди дозволяти інструмент «{{toolName}}» із сервера «{{serverName}}»",
     "yesAlwaysAllowServer": "Так, завжди дозволяти всі інструменти із сервера «{{serverName}}»",
     "no": "Ні (esc)"
+  },
+  "copyLastOutput": {
+    "empty": "No response to copy yet"
   }
 }

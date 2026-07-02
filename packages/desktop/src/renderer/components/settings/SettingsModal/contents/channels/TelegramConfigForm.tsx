@@ -393,7 +393,7 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({
               {hasBrokenSavedAssistant && (
                 <span className='text-orange-6'>
                   {t(
-                    'conversation.errors.TEAM_ASSISTANT_NOT_FOUND.title',
+                    'conversation.agentError.codes.TEAM_ASSISTANT_NOT_FOUND.title',
                     'The selected assistant is no longer available'
                   )}
                 </span>

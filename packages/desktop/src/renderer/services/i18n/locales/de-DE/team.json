@@ -43,7 +43,9 @@
     "selectFolder": "Ordner auswählen",
     "recentLabel": "Zuletzt",
     "chooseDifferentFolder": "Anderen Ordner wählen",
-    "error": "Team erstellen fehlgeschlagen"
+    "error": "Team erstellen fehlgeschlagen",
+    "searchPlaceholder": "Search assistants...",
+    "noSearchResults": "No results found"
   },
   "removeAgent": {
     "confirmTitle": "Teammitglied entfernen",

@@ -69,7 +69,7 @@ export function useConversationExport(options: UseConversationExportOptions): Us
   const transcriptLabels = useMemo<ExportTranscriptLabels>(
     () => ({
       conversation: t('messages.export.conversationLabel'),
-      conversation_id: t('messages.export.conversation_idLabel'),
+      conversation_id: t('messages.export.conversationIdLabel'),
       exportedAt: t('messages.export.exportedAtLabel'),
       type: t('messages.export.typeLabel'),
       noMessages: t('messages.export.noMessages'),

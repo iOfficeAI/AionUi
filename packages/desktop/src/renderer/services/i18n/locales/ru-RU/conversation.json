@@ -71,7 +71,8 @@
     "removeProjectTitle": "Удалить проект",
     "removeProject": "Удалить проект",
     "removeProjectConfirm": "Удалить проект «{{name}}»? Будет также удалено {{count}} бесед(ы) в нём.",
-    "newConversationInProject": "Новая беседа в этом проекте"
+    "newConversationInProject": "Новая беседа в этом проекте",
+    "deleting": "Удаление..."
   },
   "historySearch": {
     "tooltip": "Поиск сообщений",

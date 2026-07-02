@@ -71,7 +71,8 @@
     "removeProjectTitle": "Projekt entfernen",
     "removeProject": "Projekt entfernen",
     "removeProjectConfirm": "Projekt \"{{name}}\" entfernen? Die {{count}} zugehörige(n) Unterhaltung(en) werden ebenfalls entfernt.",
-    "newConversationInProject": "Neuer Chat in diesem Projekt"
+    "newConversationInProject": "Neuer Chat in diesem Projekt",
+    "deleting": "Wird gelöscht..."
   },
   "historySearch": {
     "tooltip": "Nachrichten durchsuchen",
@@ -94,6 +95,11 @@
   "createError": {
     "pathVariants": {
       "WORKSPACE_PATH_UNAVAILABLE": "Der ausgewählte Arbeitsbereichspfad ist nicht verfügbar. Stelle sicher, dass der Arbeitsbereichspfad \"{{workspacePath}}\" vorhanden und zugänglich ist."
+    },
+    "codes": {
+      "TEAM_ASSISTANT_ID_REQUIRED": "Please select an assistant before creating the team.",
+      "TEAM_ASSISTANT_NOT_FOUND": "Assistant {{assistantId}} is no longer available. Refresh the assistant list and choose another one.",
+      "TEAM_ASSISTANT_FIELD_UNSUPPORTED": "Use assistant_id instead of {{field}}."
     }
   },
   "agentError": {
@@ -293,6 +299,38 @@
       "UNKNOWN_UPSTREAM_ERROR": {
         "title": "Der Upstream-Agent oder Provider ist fehlgeschlagen",
         "body": "Die App hat einen Upstream-Fehler erhalten, konnte aber nicht sicher bestimmen, ob er vom Agenten, Provider, Netzwerk oder der lokalen Umgebung kam."
+      },
+      "MCP_HTTP_RESPONSE_READ_FAILED": {
+        "title": "Failed to read the team helper response",
+        "body": "AionUi could not read the local team helper response. Retry once, and if it keeps happening, restart the app."
+      },
+      "MCP_TOOL_REMOTE_ERROR": {
+        "title": "The local team helper rejected the request",
+        "body": "The local team helper returned an error while processing this request. Review the details below and retry after adjusting the team action."
+      },
+      "MCP_TOOL_RESPONSE_UNEXPECTED": {
+        "title": "The team helper returned an unexpected response",
+        "body": "AionUi received an unexpected response from the local team helper. Retry once, and report it if the problem persists."
+      },
+      "MCP_TCP_READ_FAILED": {
+        "title": "Failed to read from the local team helper",
+        "body": "AionUi could not read the local team helper TCP response. Retry once, and restart the app if it keeps failing."
+      },
+      "TEAM_SERVICE_UNAVAILABLE": {
+        "title": "Team service is not ready yet",
+        "body": "The local team session is still starting or has been interrupted. Wait a moment and retry."
+      },
+      "TEAM_ASSISTANT_ID_REQUIRED": {
+        "title": "A teammate assistant must be selected",
+        "body": "Choose a real assistant from the available assistant catalog before creating or spawning a teammate."
+      },
+      "TEAM_ASSISTANT_NOT_FOUND": {
+        "title": "The selected assistant is no longer available",
+        "body": "Refresh the assistant catalog, then choose another assistant for this teammate."
+      },
+      "TEAM_ASSISTANT_FIELD_UNSUPPORTED": {
+        "title": "The request used a legacy team identity field",
+        "body": "This team action must use assistant_id instead of legacy backend or agent fields."
       }
     }
   },

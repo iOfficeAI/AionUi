@@ -40,7 +40,8 @@
     "noHistory": "Noch keine Ausführungen",
     "notFound": "Aufgabe nicht gefunden",
     "executionModeDescriptionNew": "Jede Ausführung startet ein neues Gespräch, der vorherige Kontext wird nicht übernommen. Ideal für wiederkehrende Berichte oder Prüfungen, die unabhängig bleiben sollen.",
-    "executionModeDescriptionExisting": "Jede Ausführung setzt das gleiche Gespräch fort, frühere Ergebnisse bleiben verfügbar. Ideal für Folgeaufgaben, die auf früheren Ausführungen aufbauen."
+    "executionModeDescriptionExisting": "Jede Ausführung setzt das gleiche Gespräch fort, frühere Ergebnisse bleiben verfügbar. Ideal für Folgeaufgaben, die auf früheren Ausführungen aufbauen.",
+    "assistant": "Assistant"
   },
   "notification": {
     "taskComplete": "Aufgabe abgeschlossen",
@@ -104,7 +105,10 @@
       "aionrsModelRequired": "Bitte wähle ein Modell für Aion CLI",
       "aionrsNoProvider": "Keine verfügbaren Modelle",
       "assistantLockedExistingConversation": "Aufgaben mit laufendem Gespräch müssen den ursprünglichen Assistenten behalten. Erstelle eine neue Aufgabe, um einen anderen Assistenten zu verwenden.",
-      "teamTaskExecutionModeLockedReason": "Geplante Team-Aufgaben müssen im zugehörigen Team-Gespräch weiterlaufen, deshalb kann der Ausführungsmodus nicht geändert werden."
+      "teamTaskExecutionModeLockedReason": "Geplante Team-Aufgaben müssen im zugehörigen Team-Gespräch weiterlaufen, deshalb kann der Ausführungsmodus nicht geändert werden.",
+      "assistant": "Assistant",
+      "assistantRequired": "Please select an assistant",
+      "assistantPlaceholder": "Select the assistant to execute this task"
     },
     "freq": {
       "manual": "Manuell",

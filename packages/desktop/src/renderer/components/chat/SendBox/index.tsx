@@ -623,12 +623,12 @@ const SendBox: React.FC<{
           WebkitBackdropFilter: 'blur(14px) saturate(1.1)',
         }}
       >
-        <div className='text-13px font-semibold text-t-primary'>{t('messages.export.file_nameLabel')}</div>
+        <div className='text-13px font-semibold text-t-primary'>{t('messages.export.fileNameLabel')}</div>
         <Input
           autoFocus
           value={conversationExport.filename}
           onChange={conversationExport.setFilename}
-          placeholder={t('messages.export.file_namePlaceholder')}
+          placeholder={t('messages.export.fileNamePlaceholder')}
           disabled={conversationExport.loading}
           onKeyDown={(event) => {
             conversationExport.handleKeyDown(event);

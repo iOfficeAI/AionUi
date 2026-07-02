@@ -123,7 +123,8 @@
       "dailyAt": "Щодня о {{time}}",
       "weekdaysAt": "У будні о {{time}}",
       "weeklyAt": "Що{{day}} о {{time}}"
-    }
+    },
+    "customCronWarning": "This task has a custom schedule that can't be edited here. Changing the frequency will replace it."
   },
   "trigger": {
     "runScheduledTask": "Запустити заплановане завдання: {{name}}"

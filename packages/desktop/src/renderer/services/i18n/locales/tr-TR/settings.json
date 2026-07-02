@@ -887,7 +887,8 @@
     "agentDescTelegram": "Telegram sohbetleri icin kullanilir",
     "autoFollowCliModel": "CLI calisirken modeli otomatik olarak takip et",
     "agentSwitched": "Asistan basariyla degistirildi",
-    "modelSwitched": "Model basariyla degistirildi"
+    "modelSwitched": "Model basariyla degistirildi",
+    "name": "Asistan"
   },
   "lark": {
     "appId": "App ID",
@@ -1003,7 +1004,15 @@
     "step4": "Onaydan sonra WeCom üzerinden AI asistanı ile sohbet edebilirsiniz",
     "waitingConnection": "WeCom'un geri aramaya ulaşabilmesi için WebUI'nin çalıştığından emin olun",
     "agent": "Ajan",
-    "agentDesc": "WeCom sohbetleri için kullanılır"
+    "agentDesc": "WeCom sohbetleri için kullanılır",
+    "wsTitle": "WeCom WebSocket bağlantısı",
+    "wsHint": "WeCom Intelligent Bot “Long Connection (WebSocket)” modunu kullanın. Callback URL, alan adı veya genel IP gerekmez.",
+    "botId": "Bot ID",
+    "botIdDesc": "WeCom Intelligent Bot (Long Connection modu) Bot ID değeri",
+    "secret": "Secret",
+    "secretDesc": "WeCom Intelligent Bot (Long Connection modu) Secret değeri",
+    "callbackPublic": "Genel",
+    "callbackRecommendation": "Öneri: sertifikalı ters proxy kullanın veya Cloudflare Tunnel / ngrok ile bu makineye yönlendirin."
   },
   "agentManagement": {
     "localAgents": "Yerel Ajanlar",
@@ -1194,5 +1203,6 @@
       "setupRemote": "Telefonumdan veya internetten AionUi’yi açabilmem için uzaktan erişimi ayarlamama yardım et.",
       "diagnose": "AionUi kullanırken bir sorunla karşılaştım, teşhis etmeme yardım et.\n\n[Modül] {{module}}\n[Açıklama] {{description}}\n[Ekler] giriş alanındaki ekran görüntülerine bakın.\n\nLütfen nedenini teşhis et ve nasıl düzelteceğimi söyle."
     }
-  }
+  },
+  "providerIdConflict": "Provider ID zaten var. Lütfen tekrar deneyin."
 }

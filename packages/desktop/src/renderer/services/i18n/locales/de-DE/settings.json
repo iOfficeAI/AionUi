@@ -891,7 +891,8 @@
     "agentDescTelegram": "Für Telegram-Gespräche",
     "autoFollowCliModel": "Modell automatisch folgen, wenn CLI läuft",
     "agentSwitched": "Agent erfolgreich gewechselt",
-    "modelSwitched": "Modell erfolgreich gewechselt"
+    "modelSwitched": "Modell erfolgreich gewechselt",
+    "name": "Assistent"
   },
   "lark": {
     "appId": "App-ID",
@@ -1007,7 +1008,15 @@
     "step4": "Nach der Genehmigung kannst du über WeCom mit dem KI-Assistenten chatten.",
     "waitingConnection": "Sicherstellen, dass WebUI läuft, damit WeCom die Callback-URL erreichen kann.",
     "agent": "Agent",
-    "agentDesc": "Für WeCom-Gespräche"
+    "agentDesc": "Für WeCom-Gespräche",
+    "wsTitle": "WeCom-WebSocket-Verbindung",
+    "wsHint": "Verwende den Modus „Long Connection (WebSocket)“ des WeCom Intelligent Bot. Callback-URL, Domain oder öffentliche IP sind nicht erforderlich.",
+    "botId": "Bot ID",
+    "botIdDesc": "Bot ID aus WeCom Intelligent Bot (Long-Connection-Modus)",
+    "secret": "Secret",
+    "secretDesc": "Secret aus WeCom Intelligent Bot (Long-Connection-Modus)",
+    "callbackPublic": "Öffentlich",
+    "callbackRecommendation": "Empfehlung: Reverse Proxy mit Zertifikat verwenden oder mit Cloudflare Tunnel / ngrok auf diesen Rechner weiterleiten."
   },
   "agentManagement": {
     "localAgents": "Lokale Agenten",
@@ -1044,7 +1053,35 @@
     "viewAssistant": "Anzeigen",
     "filterAll": "Alle ({{count}})",
     "filterAvailable": "Verfügbar ({{count}})",
-    "filterUnavailable": "Nicht verfügbar ({{count}})"
+    "filterUnavailable": "Nicht verfügbar ({{count}})",
+    "officialAgents": "Official Agents",
+    "configureConnection": "Configure",
+    "testConnection": "Test Connection",
+    "testConnectionOnline": "{{name}} connected successfully.",
+    "testConnectionOffline": "{{name}} is offline.",
+    "testConnectionMissing": "{{name}} is not installed yet.",
+    "testConnectionAuth": "{{name}} is reachable but needs sign-in.",
+    "testConnectionError": "Failed to test agent connection.",
+    "refreshingStatuses": "Refreshing detection status...",
+    "statusOnline": "Available",
+    "statusNeedsAuth": "Needs Sign-in",
+    "statusOffline": "Unavailable",
+    "statusMissing": "Not Installed",
+    "statusUnknown": "Unknown",
+    "errorCodes": {
+      "command_not_found": "Install {{command}} and retry the connection test.",
+      "acp_init_failed": "The CLI started but failed during initialization. Complete sign-in or first-run setup, then retry the connection test.",
+      "health_check_failed": "Open {{name}} once to finish setup or sign-in, then retry the connection test.",
+      "session_send_failed": "Fix the credentials or network issue affecting {{name}}, then start a new conversation or retry the connection test.",
+      "disabled": "Enable this agent, then retry the connection test.",
+      "no_command": "Configure a launch command for this agent, then retry the connection test.",
+      "bridge_missing": "Install {{command}} and retry the connection test.",
+      "primary_missing": "Install {{command}} and retry the connection test.",
+      "command_missing": "Install {{command}} and retry the connection test.",
+      "managed_runtime_unavailable": "Repair or reinstall {{resource}}, then retry the connection test.",
+      "auth_required": "The agent is reachable but requires sign-in. Log in via the CLI, or add the required API key under Environment Variables, then retry the connection test.",
+      "no_provider": "No model provider is configured. Add and enable a provider in Settings, then retry the connection test."
+    }
   },
   "remoteAgent": {
     "title": "Remote-Agenten",
@@ -1136,5 +1173,36 @@
       "setupRemote": "Hilf mir, den Fernzugriff einzurichten, damit ich AionUi vom Handy oder über das Internet öffnen kann.",
       "diagnose": "Ich habe ein Problem mit AionUi, hilf mir bei der Diagnose.\n\n[Modul] {{module}}\n[Beschreibung] {{description}}\n[Anhänge] siehe die Screenshots im Eingabefeld.\n\nBitte diagnostiziere die Ursache und sag mir, wie ich es behebe."
     }
-  }
+  },
+  "browserNotification": {
+    "enable": "Enable browser notifications",
+    "granted": "Browser notifications enabled",
+    "denied": "Notifications blocked — enable them in your browser's site settings",
+    "insecureContext": "Browser notifications require HTTPS or localhost access",
+    "bodyConfirmation": "An agent is waiting for your confirmation",
+    "bodyTurnCompleted": "The agent has finished responding"
+  },
+  "repair": {
+    "pathLabel": "Launch Path",
+    "pathPlaceholder": "Currently using: {{command}}",
+    "pathHelp": "If the default path cannot be found, specify the full path here. Leave blank to use the default.",
+    "resetPath": "Reset to Default",
+    "envLabel": "Environment Variables",
+    "envHelp": "Some tools require API keys or access tokens to run, such as ANTHROPIC_API_KEY or FACTORY_API_KEY. Add one variable per row.",
+    "saveAndTest": "Save & Test",
+    "duplicateKeysError": "Duplicate environment variable names found. Please check and try again.",
+    "onlineTitle": "Connected",
+    "onlineHint": "A connection was established successfully. Note: \"online\" only means the agent is reachable — it does not mean it is logged in or authorized. If this tool needs an API key or access token, add it under Environment Variables below.",
+    "offlineTitle": "Connection failed",
+    "offlineHint": "The command was found but the connection failed. Check the error above, then adjust the launch path or environment variables below.",
+    "missingTitle": "Not detected",
+    "missingHint": "The command wasn't found on the default path. If it is installed, specify its full launch path below.",
+    "envScenariosTitle": "Configuring environment variables can fix:",
+    "envScenarioApiKey": "Missing API key or access token (e.g. ANTHROPIC_API_KEY, OPENAI_API_KEY) — the common cause of \"needs sign-in\" / connection failures",
+    "envScenarioBaseUrl": "Custom API endpoint or gateway (e.g. ANTHROPIC_BASE_URL, OPENAI_BASE_URL) for self-hosted or proxied services",
+    "envScenarioProxy": "Network proxy settings (e.g. HTTPS_PROXY, HTTP_PROXY) when the agent cannot reach the internet directly",
+    "envOauthNote": "Note: this cannot replace an account login inside the CLI (e.g. signing in to Gemini with a Google account). For OAuth-based login, sign in via the CLI in a terminal.",
+    "emptyOverridesError": "Enter a launch path or at least one environment variable before saving."
+  },
+  "providerIdConflict": "Provider-ID existiert bereits. Bitte erneut versuchen."
 }

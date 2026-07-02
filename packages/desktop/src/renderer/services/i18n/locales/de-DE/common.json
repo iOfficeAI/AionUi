@@ -138,5 +138,6 @@
   "unit": {
     "minute_short": "Min",
     "second_short": "Sek"
-  }
+  },
+  "goBack": "Zurück"
 }

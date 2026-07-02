@@ -71,7 +71,8 @@
     "removeProjectTitle": "Видалити проєкт",
     "removeProject": "Видалити проєкт",
     "removeProjectConfirm": "Видалити проєкт «{{name}}»? Також буде видалено {{count}} розмов у ньому.",
-    "newConversationInProject": "Нова розмова в цьому проєкті"
+    "newConversationInProject": "Нова розмова в цьому проєкті",
+    "deleting": "Видалення..."
   },
   "historySearch": {
     "tooltip": "Пошук повідомлень",
@@ -453,7 +454,8 @@
       "permissionDenied": "Доступ до мікрофона відхилено",
       "recordingUnsupported": "Запис у реальному часі не підтримується. Будь ласка, завантажте аудіофайл",
       "transcriptionFailed": "Не вдалося транскрибувати аудіо",
-      "genericError": "Помилка голосового введення. Спробуйте ще раз"
+      "genericError": "Помилка голосового введення. Спробуйте ще раз",
+      "emptyTranscript": "No speech was detected"
     }
   },
   "sideQuestion": {

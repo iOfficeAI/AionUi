@@ -68,7 +68,7 @@ const PasteConfirmModal: React.FC<PasteConfirmModalProps> = ({
             <FileText theme='outline' size='18' fill='var(--color-text-2)' style={{ marginTop: '2px' }} />
             <div className='flex-1'>
               <div className='text-13px mb-4px' style={{ color: 'var(--color-text-3)' }}>
-                {t('conversation.workspace.pasteConfirm_file_name')}
+                {t('conversation.workspace.pasteConfirm_fileName')}
               </div>
               <div className='text-14px font-medium break-all' style={{ color: 'var(--color-text-1)' }}>
                 {pasteConfirm.file_name}

@@ -899,7 +899,8 @@
     "agentDescTelegram": "Used for Telegram conversations",
     "autoFollowCliModel": "Automatically follow the model when CLI is running",
     "agentSwitched": "Assistant switched successfully",
-    "modelSwitched": "Model switched successfully"
+    "modelSwitched": "Model switched successfully",
+    "name": "Assistant"
   },
   "lark": {
     "appId": "App ID",
@@ -1015,7 +1016,15 @@
     "step4": "Once approved, you can chat with the AI assistant through WeCom.",
     "waitingConnection": "Ensure WebUI is running so WeCom can reach the callback URL.",
     "agent": "Agent",
-    "agentDesc": "Used for WeCom conversations"
+    "agentDesc": "Used for WeCom conversations",
+    "wsTitle": "WeCom WebSocket connection",
+    "wsHint": "Use the WeCom Intelligent Bot “Long Connection (WebSocket)” mode. No callback URL, domain, or public IP is required.",
+    "botId": "Bot ID",
+    "botIdDesc": "Bot ID from WeCom Intelligent Bot (Long Connection mode)",
+    "secret": "Secret",
+    "secretDesc": "Secret from WeCom Intelligent Bot (Long Connection mode)",
+    "callbackPublic": "Public",
+    "callbackRecommendation": "Recommendation: use a reverse proxy with a certificate, or map to this machine with Cloudflare Tunnel / ngrok."
   },
   "agentManagement": {
     "localAgents": "Local Agents",
@@ -1194,5 +1203,6 @@
       "setupRemote": "Help me set up remote access so I can open AionUi from my phone or over the internet.",
       "diagnose": "I ran into a problem with AionUi, please help me diagnose it.\n\n[Module] {{module}}\n[Description] {{description}}\n[Attachments] see the screenshots in the input.\n\nPlease diagnose the cause and tell me how to fix it."
     }
-  }
+  },
+  "providerIdConflict": "Provider ID already exists. Please try again."
 }

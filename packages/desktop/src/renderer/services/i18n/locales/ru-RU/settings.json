@@ -879,7 +879,8 @@
     "agentDescTelegram": "Для диалогов через Channel",
     "autoFollowCliModel": "Автоматически следовать модели при работе CLI",
     "agentSwitched": "Ассистент успешно переключён",
-    "modelSwitched": "Модель успешно переключена"
+    "modelSwitched": "Модель успешно переключена",
+    "name": "Ассистент"
   },
   "lark": {
     "appId": "App ID",
@@ -995,7 +996,15 @@
     "step4": "После одобрения можно общаться с AI-ассистентом через WeCom",
     "waitingConnection": "Убедитесь, что WebUI запущен, чтобы WeCom мог достучаться до обратного вызова",
     "agent": "Агент",
-    "agentDesc": "Для диалогов WeCom"
+    "agentDesc": "Для диалогов WeCom",
+    "wsTitle": "WebSocket-подключение WeCom",
+    "wsHint": "Используйте режим WeCom Intelligent Bot “Long Connection (WebSocket)”. Callback URL, домен или публичный IP не требуются.",
+    "botId": "Bot ID",
+    "botIdDesc": "Bot ID из WeCom Intelligent Bot (режим Long Connection)",
+    "secret": "Secret",
+    "secretDesc": "Secret из WeCom Intelligent Bot (режим Long Connection)",
+    "callbackPublic": "Публичный",
+    "callbackRecommendation": "Рекомендация: используйте обратный прокси с сертификатом или Cloudflare Tunnel / ngrok для перенаправления на этот компьютер."
   },
   "addAssistant": "Добавить ассистента",
   "agentManagement": {
@@ -1196,5 +1205,6 @@
       "setupRemote": "Помоги настроить удалённый доступ, чтобы открывать AionUi с телефона или через интернет.",
       "diagnose": "У меня возникла проблема с AionUi, помоги её диагностировать.\n\n[Модуль] {{module}}\n[Описание] {{description}}\n[Вложения] см. скриншоты в поле ввода.\n\nПожалуйста, определи причину и подскажи, как исправить."
     }
-  }
+  },
+  "providerIdConflict": "Provider ID уже существует. Повторите попытку."
 }

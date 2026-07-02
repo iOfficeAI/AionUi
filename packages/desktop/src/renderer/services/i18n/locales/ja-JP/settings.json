@@ -889,7 +889,8 @@
     "agentSwitched": "アシスタントの切り替えに成功しました",
     "modelSwitched": "モデルの切り替えに成功しました",
     "tokenLocked": "設定を変更する前に、Channel を閉じてすべての承認済みユーザーを削除してください",
-    "tokenValid": "Token が有効です"
+    "tokenValid": "Token が有効です",
+    "name": "アシスタント"
   },
   "lark": {
     "appId": "App ID",
@@ -1005,7 +1006,15 @@
     "step4": "承認後、WeCom から AI アシスタントとチャットできます",
     "waitingConnection": "WeCom がコールバックに到達できるよう WebUI を実行してください",
     "agent": "エージェント",
-    "agentDesc": "WeCom の会話に使用"
+    "agentDesc": "WeCom の会話に使用",
+    "wsTitle": "WeCom WebSocket 接続",
+    "wsHint": "WeCom Intelligent Bot の「長接続（WebSocket）」モードを使用します。コールバック URL、ドメイン、公開 IP は不要です。",
+    "botId": "Bot ID",
+    "botIdDesc": "WeCom Intelligent Bot（長接続モード）の Bot ID",
+    "secret": "Secret",
+    "secretDesc": "WeCom Intelligent Bot（長接続モード）の Secret",
+    "callbackPublic": "公開",
+    "callbackRecommendation": "推奨: 証明書付きリバースプロキシ、または Cloudflare Tunnel / ngrok でこのマシンへ転送してください。"
   },
   "agentManagement": {
     "localAgents": "ローカルエージェント",
@@ -1196,5 +1205,6 @@
       "setupRemote": "スマホや外部ネットワークから AionUi を開けるよう、リモートアクセスを設定してください。",
       "diagnose": "AionUi で問題が発生しました。診断を手伝ってください。\n\n【モジュール】{{module}}\n【問題の説明】{{description}}\n【添付】入力欄のスクリーンショットを参照。\n\n原因を診断し、解決方法を教えてください。"
     }
-  }
+  },
+  "providerIdConflict": "Provider ID は既に存在します。もう一度お試しください。"
 }

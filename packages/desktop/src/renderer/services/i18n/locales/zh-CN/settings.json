@@ -899,7 +899,8 @@
     "agentDescTelegram": "用于与Channel进行对话",
     "autoFollowCliModel": "自动跟随CLI运行时的模型",
     "agentSwitched": "助手切换成功",
-    "modelSwitched": "模型切换成功"
+    "modelSwitched": "模型切换成功",
+    "name": "助手"
   },
   "lark": {
     "appId": "App ID",
@@ -1015,7 +1016,15 @@
     "step4": "授权成功后，即可通过企业微信与 AI 助手对话",
     "waitingConnection": "请确保 WebUI 已运行，以便企微能访问回调地址",
     "agent": "对话 Agent",
-    "agentDesc": "用于企业微信对话"
+    "agentDesc": "用于企业微信对话",
+    "wsTitle": "企业微信 WebSocket 连接",
+    "wsHint": "使用企业微信智能机器人「长连接（WebSocket）」模式。无需回调 URL、域名或公网 IP。",
+    "botId": "Bot ID",
+    "botIdDesc": "企业微信智能机器人（长连接模式）的 Bot ID",
+    "secret": "Secret",
+    "secretDesc": "企业微信智能机器人（长连接模式）的 Secret",
+    "callbackPublic": "公网",
+    "callbackRecommendation": "建议：使用反向代理 + 证书，或 Cloudflare Tunnel / ngrok 映射到本机。"
   },
   "addAssistant": "添加助手",
   "agentManagement": {
@@ -1195,5 +1204,6 @@
       "setupRemote": "帮我配置远程访问，让我在手机或外网也能打开 AionUi。",
       "diagnose": "我在使用 AionUi 时遇到问题，帮我排查一下。\n\n【模块】{{module}}\n【问题描述】{{description}}\n【附件】见输入框中的截图。\n\n请帮我诊断原因并给出解决办法。"
     }
-  }
+  },
+  "providerIdConflict": "Provider ID 已存在，请重试。"
 }

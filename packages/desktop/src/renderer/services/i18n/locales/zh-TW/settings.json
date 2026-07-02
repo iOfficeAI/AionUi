@@ -901,7 +901,8 @@
     "agentSwitched": "助手切換成功",
     "modelSwitched": "模型切換成功",
     "tokenLocked": "請先關閉 Channel 並刪除所有已授權用戶後，再嘗試修改",
-    "tokenValid": "Token 有效"
+    "tokenValid": "Token 有效",
+    "name": "助手"
   },
   "lark": {
     "appId": "App ID",
@@ -1017,7 +1018,15 @@
     "step4": "授權成功後，即可透過企業微信與 AI 助手對話",
     "waitingConnection": "請確保 WebUI 已執行，以便企微能存取回調位址",
     "agent": "對話 Agent",
-    "agentDesc": "用於企業微信對話"
+    "agentDesc": "用於企業微信對話",
+    "wsTitle": "企業微信 WebSocket 連線",
+    "wsHint": "使用企業微信智慧機器人「長連線（WebSocket）」模式。無需回呼 URL、網域或公網 IP。",
+    "botId": "Bot ID",
+    "botIdDesc": "企業微信智慧機器人（長連線模式）的 Bot ID",
+    "secret": "Secret",
+    "secretDesc": "企業微信智慧機器人（長連線模式）的 Secret",
+    "callbackPublic": "公網",
+    "callbackRecommendation": "建議：使用反向代理 + 憑證，或 Cloudflare Tunnel / ngrok 對應到本機。"
   },
   "agentManagement": {
     "localAgents": "本機 Agents",
@@ -1196,5 +1205,6 @@
       "setupRemote": "幫我設定遠端存取，讓我在手機或外網也能開啟 AionUi。",
       "diagnose": "我在使用 AionUi 時遇到問題，幫我排查一下。\n\n【模組】{{module}}\n【問題描述】{{description}}\n【附件】見輸入框中的截圖。\n\n請幫我診斷原因並給出解決辦法。"
     }
-  }
+  },
+  "providerIdConflict": "Provider ID 已存在，請重試。"
 }

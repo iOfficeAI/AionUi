@@ -21,5 +21,12 @@
   "config": {
     "reasoning_effort": "Esforço de Raciocínio",
     "default": "Padrão"
+  },
+  "image": {
+    "download": "Baixar",
+    "download_aria": "Baixar imagem",
+    "download_success": "Download concluído",
+    "download_error": "Falha ao baixar",
+    "generated_alt": "Imagem gerada"
   }
 }
