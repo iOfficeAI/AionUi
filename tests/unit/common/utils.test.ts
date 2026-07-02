@@ -147,7 +147,7 @@ describe('utils', () => {
       expect(resolveLocaleKey('tr-TR')).toBe('tr-TR');
     });
 
-    it('resolves ru, uk, pt, and de variants to supported locales', () => {
+    it('resolves ru, uk, pt, de, and es variants to supported locales', () => {
       expect(resolveLocaleKey('ru')).toBe('ru-RU');
       expect(resolveLocaleKey('ru-RU')).toBe('ru-RU');
       expect(resolveLocaleKey('uk')).toBe('uk-UA');
@@ -156,13 +156,15 @@ describe('utils', () => {
       expect(resolveLocaleKey('pt-BR')).toBe('pt-BR');
       expect(resolveLocaleKey('de')).toBe('de-DE');
       expect(resolveLocaleKey('de-DE')).toBe('de-DE');
+      expect(resolveLocaleKey('es')).toBe('es-ES');
+      expect(resolveLocaleKey('es-ES')).toBe('es-ES');
     });
 
     it('resolves unknown languages to en-US', () => {
       expect(resolveLocaleKey('en')).toBe('en-US');
       expect(resolveLocaleKey('en-US')).toBe('en-US');
       expect(resolveLocaleKey('fr')).toBe('en-US');
-      expect(resolveLocaleKey('es')).toBe('en-US');
+      expect(resolveLocaleKey('it')).toBe('en-US');
     });
 
     it('is case-insensitive', () => {
@@ -173,6 +175,7 @@ describe('utils', () => {
       expect(resolveLocaleKey('RU')).toBe('ru-RU');
       expect(resolveLocaleKey('UK')).toBe('uk-UA');
       expect(resolveLocaleKey('PT')).toBe('pt-BR');
+      expect(resolveLocaleKey('ES')).toBe('es-ES');
     });
 
     it('handles empty string', () => {

@@ -29,6 +29,7 @@ describe('i18n', () => {
       expect(normalizeLanguageCode('uk')).toBe('uk-UA');
       expect(normalizeLanguageCode('pt')).toBe('pt-BR');
       expect(normalizeLanguageCode('de')).toBe('de-DE');
+      expect(normalizeLanguageCode('es')).toBe('es-ES');
     });
 
     it('resolves German regional variants to de-DE', () => {

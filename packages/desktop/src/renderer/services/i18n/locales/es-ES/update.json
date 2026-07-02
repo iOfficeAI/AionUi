@@ -40,7 +40,9 @@
     "downloadNoBody": "La respuesta de descarga no incluyó un cuerpo",
     "missingUrl": "URL de descarga faltante",
     "checkReturnedNull": "La verificación de actualización no devolvió resultado. Se requiere una app empaquetada o configuración de actualización forzada en desarrollo.",
-    "missingDownloadId": "ID de descarga faltante"
+    "missingDownloadId": "ID de descarga faltante",
+    "prepareInstallTimeout": "Preparing installation timed out. Please try again later.",
+    "prepareInstallFailed": "Preparing installation failed. Please try again later."
   },
   "releaseNotesLoading": "Obteniendo detalles de la actualización...",
   "releaseNotesFailed": "Error al obtener detalles de la actualización.",
@@ -48,5 +50,6 @@
   "releaseLog": "Registro de versiones",
   "cancel": "Cancelar",
   "minimize": "Minimizar",
-  "restoreUpdateNotification": "Restaurar progreso de actualización"
+  "restoreUpdateNotification": "Restaurar progreso de actualización",
+  "preparingInstall": "Preparing..."
 }

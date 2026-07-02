@@ -43,7 +43,9 @@
     "selectFolder": "Seleccionar carpeta",
     "recentLabel": "Recientes",
     "chooseDifferentFolder": "Elegir otra carpeta",
-    "error": "Error al crear el equipo"
+    "error": "Error al crear el equipo",
+    "searchPlaceholder": "Search assistants...",
+    "noSearchResults": "No results found"
   },
   "removeAgent": {
     "confirmTitle": "Quitar miembro del equipo",

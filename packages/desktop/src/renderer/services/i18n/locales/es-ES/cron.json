@@ -42,7 +42,8 @@
     "noHistory": "Sin ejecuciones aún",
     "notFound": "Tarea no encontrada",
     "executionModeDescriptionNew": "Cada ejecución inicia una conversación nueva, por lo que el contexto anterior no se lleva. Ideal para informes o verificaciones periódicas que deben ser independientes.",
-    "executionModeDescriptionExisting": "Cada ejecución continúa en la misma conversación, por lo que el contexto y los resultados anteriores están disponibles. Ideal para tareas de seguimiento que se basan en ejecuciones previas."
+    "executionModeDescriptionExisting": "Cada ejecución continúa en la misma conversación, por lo que el contexto y los resultados anteriores están disponibles. Ideal para tareas de seguimiento que se basan en ejecuciones previas.",
+    "assistant": "Assistant"
   },
   "notification": {
     "taskComplete": "Tarea completada",
@@ -105,7 +106,12 @@
       "clearFolder": "Limpiar",
       "model": "Modelo",
       "aionrsModelRequired": "Por favor selecciona un modelo para Aion CLI",
-      "aionrsNoProvider": "No hay modelos disponibles"
+      "aionrsNoProvider": "No hay modelos disponibles",
+      "assistant": "Assistant",
+      "assistantRequired": "Please select an assistant",
+      "assistantPlaceholder": "Select the assistant to execute this task",
+      "assistantLockedExistingConversation": "Ongoing conversation tasks must keep their original assistant. Create a new task to use another assistant.",
+      "teamTaskExecutionModeLockedReason": "Team scheduled tasks must keep running in the owning team conversation, so the execution mode cannot be changed."
     },
     "freq": {
       "manual": "Manual",
@@ -121,7 +127,9 @@
       "dailyAt": "Todos los días a las {{time}}",
       "weekdaysAt": "Días hábiles a las {{time}}",
       "weeklyAt": "Cada {{day}} a las {{time}}"
-    }
+    },
+    "createViaChat": "Create via chat",
+    "createManually": "Create manually"
   },
   "trigger": {
     "runScheduledTask": "Ejecutar tarea programada: {{name}}"

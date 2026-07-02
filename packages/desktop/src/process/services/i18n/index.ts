@@ -26,6 +26,7 @@ import ruRU from '@renderer/services/i18n/locales/ru-RU/index';
 import ukUA from '@renderer/services/i18n/locales/uk-UA/index';
 import ptBR from '@renderer/services/i18n/locales/pt-BR/index';
 import deDE from '@renderer/services/i18n/locales/de-DE/index';
+import esES from '@renderer/services/i18n/locales/es-ES/index';
 
 // All locale data keyed by language code.
 // NOTE: When adding a new language, add a static import above and an entry here.
@@ -42,6 +43,7 @@ const localeData: LocaleData = {
   'uk-UA': ukUA,
   'pt-BR': ptBR,
   'de-DE': deDE,
+  'es-ES': esES,
 };
 
 const fallbackData = localeData[DEFAULT_LANGUAGE] ?? {};

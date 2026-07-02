@@ -94,6 +94,11 @@
   "createError": {
     "pathVariants": {
       "WORKSPACE_PATH_UNAVAILABLE": "La ruta del área de trabajo seleccionada no está disponible. Asegúrate de que la ruta \"{{workspacePath}}\" exista y sea accesible."
+    },
+    "codes": {
+      "TEAM_ASSISTANT_ID_REQUIRED": "Please select an assistant before creating the team.",
+      "TEAM_ASSISTANT_NOT_FOUND": "Assistant {{assistantId}} is no longer available. Refresh the assistant list and choose another one.",
+      "TEAM_ASSISTANT_FIELD_UNSUPPORTED": "Use assistant_id instead of {{field}}."
     }
   },
   "agentError": {
@@ -273,6 +278,58 @@
       "UNKNOWN_UPSTREAM_ERROR": {
         "title": "El agente o proveedor upstream falló",
         "body": "La aplicación recibió un error upstream pero no pudo clasificarlo con certeza. Revisa los detalles a continuación o envía comentarios."
+      },
+      "USER_AGENT_PROTOCOL_PARSE_ERROR": {
+        "title": "Agent reported a protocol parse error",
+        "body": "The selected agent reported that an ACP/JSON-RPC message could not be parsed."
+      },
+      "USER_AGENT_INVALID_REQUEST": {
+        "title": "Agent reported an invalid protocol request",
+        "body": "The selected agent reported that the ACP/JSON-RPC request object was invalid."
+      },
+      "USER_AGENT_RESOURCE_NOT_FOUND": {
+        "title": "Agent could not find a required resource",
+        "body": "The selected agent reported that a required resource, such as a file, was not found."
+      },
+      "USER_AGENT_PROTOCOL_ERROR": {
+        "title": "Agent returned a protocol error",
+        "body": "The selected agent returned a non-standard ACP error code."
+      },
+      "USER_LLM_PROVIDER_AWS_SSO_EXPIRED": {
+        "title": "AWS SSO session expired",
+        "body": "Your AWS SSO session has expired. Run 'aws sso login' for the matching profile, then send the message again."
+      },
+      "MCP_HTTP_RESPONSE_READ_FAILED": {
+        "title": "Failed to read the team helper response",
+        "body": "AionUi could not read the local team helper response. Retry once, and if it keeps happening, restart the app."
+      },
+      "MCP_TOOL_REMOTE_ERROR": {
+        "title": "The local team helper rejected the request",
+        "body": "The local team helper returned an error while processing this request. Review the details below and retry after adjusting the team action."
+      },
+      "MCP_TOOL_RESPONSE_UNEXPECTED": {
+        "title": "The team helper returned an unexpected response",
+        "body": "AionUi received an unexpected response from the local team helper. Retry once, and report it if the problem persists."
+      },
+      "MCP_TCP_READ_FAILED": {
+        "title": "Failed to read from the local team helper",
+        "body": "AionUi could not read the local team helper TCP response. Retry once, and restart the app if it keeps failing."
+      },
+      "TEAM_SERVICE_UNAVAILABLE": {
+        "title": "Team service is not ready yet",
+        "body": "The local team session is still starting or has been interrupted. Wait a moment and retry."
+      },
+      "TEAM_ASSISTANT_ID_REQUIRED": {
+        "title": "A teammate assistant must be selected",
+        "body": "Choose a real assistant from the available assistant catalog before creating or spawning a teammate."
+      },
+      "TEAM_ASSISTANT_NOT_FOUND": {
+        "title": "The selected assistant is no longer available",
+        "body": "Refresh the assistant catalog, then choose another assistant for this teammate."
+      },
+      "TEAM_ASSISTANT_FIELD_UNSUPPORTED": {
+        "title": "The request used a legacy team identity field",
+        "body": "This team action must use assistant_id instead of legacy backend or agent fields."
       }
     }
   },
@@ -466,7 +523,8 @@
     "label": "Pensando..."
   },
   "skills": {
-    "loaded": "Habilidades cargadas"
+    "loaded": "Habilidades cargadas",
+    "slashHint": "Skill"
   },
   "mcp": {
     "loaded": "MCP cargado",

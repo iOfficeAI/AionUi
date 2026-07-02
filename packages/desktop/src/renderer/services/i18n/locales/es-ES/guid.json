@@ -26,5 +26,10 @@
     "statusTesting": "Probando latencia...",
     "statusUnreachable": "Inaccesible",
     "statusAvailable": "Disponible"
+  },
+  "defaultPrompts": {
+    "capabilities": "What can you do for me?",
+    "skills": "What skills do you have?",
+    "tools": "What tools do you have?"
   }
 }
