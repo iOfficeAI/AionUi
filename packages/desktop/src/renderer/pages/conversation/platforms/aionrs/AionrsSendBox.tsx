@@ -439,7 +439,7 @@ const AionrsSendBox: React.FC<{
           ]);
     const modeOptions: MobileActionSheetOption[] = availableModes.map((mode) => ({
       key: mode.value,
-      label: t(`agentMode.${mode.value}`, { defaultValue: mode.label }),
+      label: t(`agentMode.${mode.labelKey ?? mode.value}`, { defaultValue: mode.label }),
       description: mode.description,
       active: (runtimeMode?.currentValue ?? currentMode) === mode.value,
     }));
@@ -666,7 +666,7 @@ const AionrsSendBox: React.FC<{
               initialMode={session_mode}
               dynamicModes={dynamicModes}
               compactLeadingIcon={<Shield theme='outline' size='14' fill={iconColors.secondary} />}
-              modeLabelFormatter={(mode) => t(`agentMode.${mode.value}`, { defaultValue: mode.label })}
+              modeLabelFormatter={(mode) => t(`agentMode.${mode.labelKey ?? mode.value}`, { defaultValue: mode.label })}
               compactLabelPrefix={t('agentMode.permission')}
               hideCompactLabelPrefixOnMobile
               onModeChanged={propagateMode}

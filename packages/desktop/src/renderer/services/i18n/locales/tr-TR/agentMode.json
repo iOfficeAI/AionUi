@@ -17,5 +17,7 @@
   "permission": "İzin",
   "switchMode": "İzin Modu",
   "switchSuccess": "Mode switched successfully",
-  "switchFailed": "Failed to switch mode"
+  "switchFailed": "Failed to switch mode",
+  "readOnly": "Salt okunur",
+  "fullAccess": "Tam erişim"
 }

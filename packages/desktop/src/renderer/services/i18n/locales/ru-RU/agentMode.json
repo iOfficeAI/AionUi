@@ -17,5 +17,7 @@
   "permission": "Разрешение",
   "switchMode": "Режим разрешений",
   "switchSuccess": "Режим успешно сменён",
-  "switchFailed": "Не удалось сменить режим"
+  "switchFailed": "Не удалось сменить режим",
+  "readOnly": "Только чтение",
+  "fullAccess": "Полный доступ"
 }

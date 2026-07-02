@@ -101,7 +101,7 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
   );
 
   const getModeDisplayLabel = (mode: AgentModeOption): string =>
-    t(`agentMode.${mode.value}`, { defaultValue: mode.label });
+    t(`agentMode.${mode.labelKey ?? mode.value}`, { defaultValue: mode.label });
 
   const isWebUI = !isElectronDesktop();
 

@@ -17,5 +17,7 @@
   "permission": "Permission",
   "switchMode": "Permission Mode",
   "switchSuccess": "Mode switched successfully",
-  "switchFailed": "Failed to switch mode"
+  "switchFailed": "Failed to switch mode",
+  "readOnly": "Read Only",
+  "fullAccess": "Full Access"
 }

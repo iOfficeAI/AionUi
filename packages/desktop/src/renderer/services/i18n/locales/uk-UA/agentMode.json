@@ -17,5 +17,7 @@
   "permission": "Дозвіл",
   "switchMode": "Режим дозволів",
   "switchSuccess": "Режим успішно змінено",
-  "switchFailed": "Не вдалося змінити режим"
+  "switchFailed": "Не вдалося змінити режим",
+  "readOnly": "Лише читання",
+  "fullAccess": "Повний доступ"
 }

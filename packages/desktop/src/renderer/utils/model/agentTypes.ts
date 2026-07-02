@@ -36,6 +36,13 @@ export type AgentManagementErrorDetails = {
 export type AgentModeOption = {
   value: string;
   label: string;
+  /**
+   * Override key used to resolve the i18n translation under `agentMode.*`.
+   * Falls back to `value` when omitted. Use this when the mode value collides
+   * with another semantic (e.g. codex `auto` is shown as "Default") or is not
+   * a valid camelCase key (e.g. codex `read-only` / `full-access`).
+   */
+  labelKey?: string;
   description?: string;
 };
 
