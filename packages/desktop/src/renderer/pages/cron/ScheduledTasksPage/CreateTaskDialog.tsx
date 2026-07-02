@@ -612,6 +612,11 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
             <div className='mt-10px rounded-12px border border-solid border-[var(--color-border-2)] bg-fill-2 px-14px py-12px'>
               <p className='m-0 text-12px leading-18px text-t-primary'>{selectedExecutionModeOption.description}</p>
             </div>
+            {isTeamOwnedTask && (
+              <p className='mb-0 mt-8px text-12px leading-18px text-t-secondary'>
+                {t('cron.page.form.teamTaskExecutionModeLockedReason')}
+              </p>
+            )}
           </FormItem>
 
           <FormItem

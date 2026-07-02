@@ -108,7 +108,8 @@
       "model": "모델",
       "aionrsModelRequired": "Aion CLI의 모델을 선택하세요",
       "aionrsNoProvider": "사용 가능한 모델 없음",
-      "assistantLockedExistingConversation": "동일 대화 작업은 원래 실행 어시스턴트를 유지해야 합니다. 다른 어시스턴트를 사용하려면 새 작업을 만드세요."
+      "assistantLockedExistingConversation": "동일 대화 작업은 원래 실행 어시스턴트를 유지해야 합니다. 다른 어시스턴트를 사용하려면 새 작업을 만드세요.",
+      "teamTaskExecutionModeLockedReason": "Team 예약 작업은 소속 Team 대화에서 계속 실행되어야 하므로 실행 모드를 변경할 수 없습니다."
     },
     "freq": {
       "manual": "수동",

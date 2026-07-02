@@ -107,7 +107,8 @@
       "model": "Modelo",
       "aionrsModelRequired": "Por favor, selecione um modelo para a CLI do Aion",
       "aionrsNoProvider": "Nenhum modelo disponível",
-      "assistantLockedExistingConversation": "Tarefas de conversa em andamento devem manter o assistente original. Crie uma nova tarefa para usar outro assistente."
+      "assistantLockedExistingConversation": "Tarefas de conversa em andamento devem manter o assistente original. Crie uma nova tarefa para usar outro assistente.",
+      "teamTaskExecutionModeLockedReason": "Tarefas agendadas de Team devem continuar executando na conversa de Team proprietária, por isso o modo de execução não pode ser alterado."
     },
     "freq": {
       "manual": "Manual",

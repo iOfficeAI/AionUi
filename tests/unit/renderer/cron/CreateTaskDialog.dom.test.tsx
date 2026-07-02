@@ -277,6 +277,7 @@ describe('CreateTaskDialog', () => {
     expect(assistantSelect).toHaveClass('arco-select-disabled');
     expect(executionModeInputs()).toHaveLength(2);
     expect(executionModeInputs().every((input) => input.disabled)).toBe(true);
+    expect(screen.getByText('cron.page.form.teamTaskExecutionModeLockedReason')).toBeInTheDocument();
 
     await user.click(await screen.findByText('cron.page.form.newConversation'));
     await user.click(screen.getByTestId('modal-ok'));

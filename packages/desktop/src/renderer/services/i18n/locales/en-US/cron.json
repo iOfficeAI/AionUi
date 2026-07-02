@@ -107,7 +107,8 @@
       "model": "Model",
       "aionrsModelRequired": "Please select a model for Aion CLI",
       "aionrsNoProvider": "No available models",
-      "assistantLockedExistingConversation": "Ongoing conversation tasks must keep their original assistant. Create a new task to use another assistant."
+      "assistantLockedExistingConversation": "Ongoing conversation tasks must keep their original assistant. Create a new task to use another assistant.",
+      "teamTaskExecutionModeLockedReason": "Team scheduled tasks must keep running in the owning team conversation, so the execution mode cannot be changed."
     },
     "freq": {
       "manual": "Manual",

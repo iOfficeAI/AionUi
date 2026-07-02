@@ -751,6 +751,7 @@ export type I18nKey =
   | 'cron.page.form.scheduleDescPlaceholder'
   | 'cron.page.form.scheduleDescRequired'
   | 'cron.page.form.selectFolder'
+  | 'cron.page.form.teamTaskExecutionModeLockedReason'
   | 'cron.page.form.workspace'
   | 'cron.page.form.workspaceHint'
   | 'cron.page.freq.custom'

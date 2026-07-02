@@ -108,7 +108,8 @@
       "model": "模型",
       "aionrsModelRequired": "請為 Aion CLI 選擇模型",
       "aionrsNoProvider": "暫無可用模型",
-      "assistantLockedExistingConversation": "持續對話任務必須保留原執行助手。如需更換助手，請建立新任務。"
+      "assistantLockedExistingConversation": "持續對話任務必須保留原執行助手。如需更換助手，請建立新任務。",
+      "teamTaskExecutionModeLockedReason": "Team 定時任務必須在所屬 Team 對話中持續執行，因此不能修改執行模式。"
     },
     "freq": {
       "manual": "手動觸發",
