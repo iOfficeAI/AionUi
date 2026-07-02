@@ -65,10 +65,6 @@ vi.mock('@/renderer/hooks/context/LayoutContext', () => ({
   useLayoutContext: () => ({ isMobile: false }),
 }));
 
-vi.mock('@/renderer/pages/conversation/utils/warmupConversation', () => ({
-  warmupConversation: vi.fn().mockResolvedValue(undefined),
-}));
-
 vi.mock('@/renderer/components/agent/MarqueePillLabel', () => ({
   default: ({ children }: { children?: React.ReactNode }) => <span>{children}</span>,
 }));

@@ -10,14 +10,12 @@ const {
   translateMock,
   useTeamPermissionMock,
   setSendBoxHandlerMock,
-  warmupConversationMock,
 } = vi.hoisted(() => ({
   ensureConversationRuntimeMock: vi.fn().mockResolvedValue({ recovered: false, config_options: [], runtime: null }),
   sendMessageInvokeMock: vi.fn().mockResolvedValue(undefined),
   translateMock: (key: string, options?: { defaultValue?: string }) => options?.defaultValue ?? key,
   useTeamPermissionMock: vi.fn(),
   setSendBoxHandlerMock: vi.fn(),
-  warmupConversationMock: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock('@/common', () => ({
@@ -165,9 +163,6 @@ vi.mock('@/renderer/pages/conversation/Preview', () => ({
     setSendBoxHandler: setSendBoxHandlerMock,
   }),
 }));
-vi.mock('@/renderer/pages/conversation/utils/warmupConversation', () => ({
-  warmupConversation: warmupConversationMock,
-}));
 vi.mock('@/renderer/pages/team/hooks/TeamPermissionContext', () => ({
   useTeamPermission: useTeamPermissionMock,
 }));
@@ -226,7 +221,6 @@ describe('AionrsSendBox', () => {
     vi.clearAllMocks();
     ensureConversationRuntimeMock.mockResolvedValue({ recovered: false, config_options: [], runtime: null });
     useTeamPermissionMock.mockReturnValue(null);
-    warmupConversationMock.mockResolvedValue(undefined);
   });
 
   it('does not warm up team session when draft content changes', async () => {
@@ -285,6 +279,5 @@ describe('AionrsSendBox', () => {
     await waitFor(() => {
       expect(ensureConversationRuntimeMock).toHaveBeenCalledWith('conv-1');
     });
-    expect(warmupConversationMock).not.toHaveBeenCalled();
   });
 });

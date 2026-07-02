@@ -180,9 +180,6 @@ vi.mock('@/renderer/pages/conversation/Preview', () => ({
     setSendBoxHandler: setSendBoxHandlerMock,
   }),
 }));
-vi.mock('@/renderer/pages/conversation/utils/warmupConversation', () => ({
-  warmupConversation: vi.fn().mockResolvedValue(undefined),
-}));
 vi.mock('@/renderer/pages/team/hooks/TeamPermissionContext', () => ({
   useTeamPermission: useTeamPermissionMock,
 }));

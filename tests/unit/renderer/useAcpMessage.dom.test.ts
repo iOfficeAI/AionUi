@@ -16,7 +16,6 @@ const {
   getSlashCommandsInvokeMock,
   responseStreamOnMock,
   responseStreamHandlerRef,
-  warmupInvokeMock,
 } = vi.hoisted(() => ({
   addOrUpdateMessageMock: vi.fn(),
   ensureRuntimeInvokeMock: vi.fn(),
@@ -25,7 +24,6 @@ const {
   responseStreamHandlerRef: {
     current: undefined as ((message: IResponseMessage) => void) | undefined,
   },
-  warmupInvokeMock: vi.fn(),
 }));
 
 vi.mock('@/renderer/pages/conversation/Messages/hooks', () => ({
@@ -48,9 +46,6 @@ vi.mock('@/common', () => ({
       },
     },
     conversation: {
-      warmup: {
-        invoke: warmupInvokeMock,
-      },
       ensureRuntime: {
         invoke: ensureRuntimeInvokeMock,
       },
@@ -67,7 +62,6 @@ describe('useAcpMessage', () => {
     ensureRuntimeInvokeMock.mockResolvedValue({ recovered: false, config_options: [], runtime: null });
     getSlashCommandsInvokeMock.mockResolvedValue([]);
     responseStreamHandlerRef.current = undefined;
-    warmupInvokeMock.mockResolvedValue(undefined);
   });
 
   it('completes hydration when the conversation lookup fails', async () => {
@@ -261,7 +255,6 @@ describe('useAcpMessage', () => {
         },
       ]);
     });
-    expect(warmupInvokeMock).not.toHaveBeenCalled();
     expect(getSlashCommandsInvokeMock).toHaveBeenCalledWith({ conversation_id: 'conv-1' });
   });
 
