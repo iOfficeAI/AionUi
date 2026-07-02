@@ -10,10 +10,14 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Assistant } from '@/common/types/agent/assistantTypes';
 import type { ICronJob } from '@/common/adapter/ipcBridge';
+import type { TChatConversation } from '@/common/config/storage';
 
 const getJobInvokeMock = vi.fn();
 const runNowInvokeMock = vi.fn();
 const navigateMock = vi.fn();
+const { useCronJobConversationsMock } = vi.hoisted(() => ({
+  useCronJobConversationsMock: vi.fn(),
+}));
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -52,7 +56,7 @@ vi.mock('@renderer/pages/conversation/hooks/useConversationAssistants', () => ({
 }));
 
 vi.mock('@renderer/pages/cron/useCronJobs', () => ({
-  useCronJobConversations: () => ({ conversations: [] }),
+  useCronJobConversations: (...args: unknown[]) => useCronJobConversationsMock(...args),
 }));
 
 vi.mock('@renderer/pages/cron/repairCronJobTimeZone', () => ({
@@ -72,6 +76,8 @@ describe('TaskDetailPage', () => {
     runNowInvokeMock.mockReset();
     runNowInvokeMock.mockResolvedValue({});
     navigateMock.mockReset();
+    useCronJobConversationsMock.mockReset();
+    useCronJobConversationsMock.mockReturnValue({ conversations: [] });
   });
 
   it('triggers run-now only once when the button is clicked twice in quick succession', async () => {
@@ -202,7 +208,72 @@ describe('TaskDetailPage', () => {
     expect(screen.getByText('cron.detail.assistant')).toBeInTheDocument();
     expect(screen.getByAltText('问好助手')).toHaveAttribute('src', 'data:image/svg+xml;base64,assistant-avatar');
   });
+
+  it('opens the owning team from execution history when the conversation belongs to a team', async () => {
+    useCronJobConversationsMock.mockReturnValue({
+      conversations: [
+        conversation({
+          id: 'conv-team-member',
+          name: 'Team member run',
+          extra: {
+            team_id: 'team-1',
+          },
+        }),
+      ],
+    });
+
+    render(
+      <MemoryRouter initialEntries={['/scheduled/job-1']}>
+        <Routes>
+          <Route path='/scheduled/:job_id' element={<TaskDetailPage />} />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    await waitFor(() => expect(getJobInvokeMock).toHaveBeenCalledWith({ job_id: 'job-1' }));
+
+    fireEvent.click(await screen.findByText('Team member run'));
+
+    expect(navigateMock).toHaveBeenCalledWith('/team/team-1');
+  });
+
+  it('keeps opening non-team execution history conversations directly', async () => {
+    useCronJobConversationsMock.mockReturnValue({
+      conversations: [
+        conversation({
+          id: 'conv-standalone',
+          name: 'Standalone run',
+        }),
+      ],
+    });
+
+    render(
+      <MemoryRouter initialEntries={['/scheduled/job-1']}>
+        <Routes>
+          <Route path='/scheduled/:job_id' element={<TaskDetailPage />} />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    await waitFor(() => expect(getJobInvokeMock).toHaveBeenCalledWith({ job_id: 'job-1' }));
+
+    fireEvent.click(await screen.findByText('Standalone run'));
+
+    expect(navigateMock).toHaveBeenCalledWith('/conversation/conv-standalone');
+  });
 });
+
+function conversation(overrides?: Partial<TChatConversation>): TChatConversation {
+  return {
+    id: 'conv-1',
+    type: 'acp',
+    name: 'Cron run',
+    created_at: 1,
+    updated_at: 1,
+    extra: {},
+    ...overrides,
+  } as TChatConversation;
+}
 
 function job(overrides?: Partial<ICronJob>): ICronJob {
   const metadataOverrides = overrides?.metadata;

@@ -528,7 +528,8 @@
     "label": "Pensando..."
   },
   "skills": {
-    "loaded": "Habilidades Carregadas"
+    "loaded": "Habilidades Carregadas",
+    "slashHint": "Habilidade"
   },
   "mcp": {
     "loaded": "MCP carregado",

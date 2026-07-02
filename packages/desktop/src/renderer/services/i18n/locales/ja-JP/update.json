@@ -22,6 +22,7 @@
   "readyToInstallDesc": "更新のダウンロードが完了しました。下のボタンをクリックして再起動し、更新をインストールしてください。",
   "installNow": "今すぐインストール",
   "restartNow": "今すぐ再起動",
+  "preparingInstall": "準備中...",
   "installWarning": "インストール中はアプリを手動で開かないでください。自動的に再起動されます。",
   "autoUpdateMode": "自動更新モード",
   "showInFolder": "フォルダーで表示",
@@ -40,7 +41,9 @@
     "downloadNoBody": "ダウンロード応答に本文がありません",
     "missingUrl": "ダウンロード URL がありません",
     "checkReturnedNull": "更新確認が結果を返しませんでした。パッケージ済みアプリ、または開発用更新設定の強制有効化が必要です。",
-    "missingDownloadId": "ダウンロード ID がありません"
+    "missingDownloadId": "ダウンロード ID がありません",
+    "prepareInstallTimeout": "インストールの準備がタイムアウトしました。後でもう一度お試しください。",
+    "prepareInstallFailed": "インストールの準備に失敗しました。後でもう一度お試しください。"
   },
   "releaseNotesLoading": "更新内容を取得中",
   "releaseNotesFailed": "取得に失敗しました。",

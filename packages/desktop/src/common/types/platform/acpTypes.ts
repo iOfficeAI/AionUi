@@ -4,6 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import type { TConversationRuntimeSummary } from '@/common/config/storage';
+
 /**
  * Advanced overrides exposed through the JSON panel of the custom agent
  * editor. These map directly onto backend `AgentMetadata` columns that
@@ -211,8 +213,10 @@ export type AcpConfigOptionDto = {
   options: AcpConfigSelectOptionDto[];
 };
 
-export type GetConfigOptionsResponse = {
+export type EnsureConversationRuntimeResponse = {
+  recovered: boolean;
   config_options: AcpConfigOptionDto[];
+  runtime: TConversationRuntimeSummary;
 };
 
 export type SetConfigOptionRequest = {

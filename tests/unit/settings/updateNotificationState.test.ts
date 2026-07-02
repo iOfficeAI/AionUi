@@ -216,6 +216,73 @@ describe('updateNotificationReducer', () => {
     expect(result.effects).toEqual([]);
   });
 
+  it('enters preparing-install after an auto-update install request', () => {
+    const downloadedState: UpdateNotificationState = {
+      ...initialUpdateNotificationState,
+      visible: true,
+      status: 'downloaded',
+      autoUpdateAvailable: true,
+      autoUpdateInfo: { version: '2.2.0' },
+      progress: {
+        percent: 100,
+        transferred: 100,
+        total: 100,
+        speed: '',
+      },
+    };
+
+    const result = updateNotificationReducer(downloadedState, {
+      type: 'autoPreparingInstall',
+      version: '2.2.0',
+    } as never);
+
+    expect(result.state.visible).toBe(true);
+    expect(result.state.status).toBe('preparing-install');
+    expect(result.state.autoUpdateInfo?.version).toBe('2.2.0');
+    expect(result.state.progress.percent).toBe(100);
+    expect(result.effects).toEqual([]);
+  });
+
+  it('shows an error when preparing-install fails before app exit', () => {
+    const preparingState: UpdateNotificationState = {
+      ...initialUpdateNotificationState,
+      visible: true,
+      status: 'preparing-install',
+      autoUpdateAvailable: true,
+      autoUpdateInfo: { version: '2.2.0' },
+    };
+
+    const result = updateNotificationReducer(preparingState, {
+      type: 'autoError',
+      message: 'Preparing installation timed out. Please try again later.',
+    });
+
+    expect(result.state.status).toBe('error');
+    expect(result.state.activeTask).toBeNull();
+    expect(result.state.errorMsg).toBe('Preparing installation timed out. Please try again later.');
+    expect(result.effects).toEqual([]);
+  });
+
+  it('shows an error when native readiness fails after auto download completes', () => {
+    const downloadedState: UpdateNotificationState = {
+      ...initialUpdateNotificationState,
+      visible: true,
+      status: 'downloaded',
+      autoUpdateAvailable: true,
+      autoUpdateInfo: { version: '2.2.0' },
+    };
+
+    const result = updateNotificationReducer(downloadedState, {
+      type: 'autoError',
+      message: 'Preparing installation failed. Please try again later.',
+    });
+
+    expect(result.state.status).toBe('error');
+    expect(result.state.activeTask).toBeNull();
+    expect(result.state.errorMsg).toBe('Preparing installation failed. Please try again later.');
+    expect(result.effects).toEqual([]);
+  });
+
   it('ignores stale manual progress from a different download id', () => {
     const downloadingState: UpdateNotificationState = {
       ...initialUpdateNotificationState,

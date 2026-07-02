@@ -8,13 +8,17 @@ import { renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useSlashCommands } from '@/renderer/hooks/chat/useSlashCommands';
 
-const { getSlashCommandsInvokeMock } = vi.hoisted(() => ({
+const { ensureRuntimeInvokeMock, getSlashCommandsInvokeMock } = vi.hoisted(() => ({
+  ensureRuntimeInvokeMock: vi.fn(),
   getSlashCommandsInvokeMock: vi.fn(),
 }));
 
 vi.mock('@/common', () => ({
   ipcBridge: {
     conversation: {
+      ensureRuntime: {
+        invoke: ensureRuntimeInvokeMock,
+      },
       getSlashCommands: {
         invoke: getSlashCommandsInvokeMock,
       },
@@ -25,6 +29,7 @@ vi.mock('@/common', () => ({
 describe('useSlashCommands', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    ensureRuntimeInvokeMock.mockResolvedValue({ recovered: false, config_options: [], runtime: null });
     getSlashCommandsInvokeMock.mockResolvedValue([]);
   });
 
@@ -104,5 +109,29 @@ describe('useSlashCommands', () => {
         },
       ]);
     });
+  });
+
+  it('ensures the conversation runtime before loading slash commands', async () => {
+    getSlashCommandsInvokeMock.mockResolvedValue([
+      {
+        command: 'review',
+        description: 'Review the current diff',
+      },
+    ]);
+
+    renderHook(() =>
+      useSlashCommands('conv-1', {
+        conversation_type: 'acp',
+        agentStatus: 'session_active',
+      })
+    );
+
+    await waitFor(() => {
+      expect(ensureRuntimeInvokeMock).toHaveBeenCalledWith({ conversation_id: 'conv-1' });
+      expect(getSlashCommandsInvokeMock).toHaveBeenCalledWith({ conversation_id: 'conv-1' });
+    });
+    expect(ensureRuntimeInvokeMock.mock.invocationCallOrder[0]).toBeLessThan(
+      getSlashCommandsInvokeMock.mock.invocationCallOrder[0]
+    );
   });
 });

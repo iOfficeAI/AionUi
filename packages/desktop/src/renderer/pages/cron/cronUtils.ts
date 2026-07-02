@@ -5,6 +5,7 @@
  */
 
 import type { ICronJob } from '@/common/adapter/ipcBridge';
+import type { TChatConversation } from '@/common/config/storage';
 import type { TFunction } from 'i18next';
 
 const WEEKDAY_LABEL_KEY_BY_VALUE: Record<string, string> = {
@@ -111,4 +112,13 @@ export function getJobStatusFlags(job: ICronJob): { hasError: boolean; isPaused:
     hasError: job.state.last_status === 'error' || job.state.last_status === 'missed',
     isPaused: !job.enabled,
   };
+}
+
+export function resolveCronJobId(extra: TChatConversation['extra'] | undefined): string | undefined {
+  const maybeExtra = extra as { cron_job_id?: unknown; cronJobId?: unknown } | undefined;
+  const snakeCase = maybeExtra?.cron_job_id;
+  if (typeof snakeCase === 'string' && snakeCase.trim()) return snakeCase;
+  const camelCase = maybeExtra?.cronJobId;
+  if (typeof camelCase === 'string' && camelCase.trim()) return camelCase;
+  return undefined;
 }

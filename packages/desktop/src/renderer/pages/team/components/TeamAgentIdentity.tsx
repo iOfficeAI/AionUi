@@ -3,6 +3,7 @@ import useSWR from 'swr';
 import { resolveAgentAvatar, useAgentLogos } from '@renderer/utils/model/agentLogo';
 import { usePresetAssistantInfo } from '@renderer/hooks/agent/usePresetAssistantInfo';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
+import { Robot } from '@icon-park/react';
 
 type Props = {
   assistant_name: string;
@@ -50,6 +51,13 @@ const TeamAgentIdentity: React.FC<Props> = ({
 
   const renderAvatar = () => {
     if (presetInfo) {
+      if (presetInfo.isFallback) {
+        return (
+          <span className={resolvedAvatarClassName}>
+            <Robot theme='outline' size={12} />
+          </span>
+        );
+      }
       if (presetInfo.isEmoji) {
         return <span className={resolvedAvatarClassName}>{presetInfo.logo}</span>;
       }
@@ -61,7 +69,11 @@ const TeamAgentIdentity: React.FC<Props> = ({
     if (agentAvatar.kind === 'emoji') {
       return <span className={resolvedAvatarClassName}>{agentAvatar.value}</span>;
     }
-    return <span className={resolvedAvatarClassName}>{displayName.charAt(0).toUpperCase() || '🤖'}</span>;
+    return (
+      <span className={resolvedAvatarClassName}>
+        <Robot theme='outline' size={12} />
+      </span>
+    );
   };
 
   const crownIcon = (

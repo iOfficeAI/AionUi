@@ -522,7 +522,8 @@
     "label": "思考中..."
   },
   "skills": {
-    "loaded": "ロード済みスキル"
+    "loaded": "ロード済みスキル",
+    "slashHint": "スキル"
   },
   "mcp": {
     "loaded": "ロード済み MCP",

@@ -750,10 +750,6 @@ export function initUpdateBridge(): void {
   });
 
   ipcBridge.autoUpdate.quitAndInstall.provider(async (): Promise<void> => {
-    try {
-      await autoUpdaterService.quitAndInstall();
-    } catch (err: unknown) {
-      console.error('quitAndInstall failed:', err);
-    }
+    await autoUpdaterService.quitAndInstall();
   });
 }

@@ -15,7 +15,7 @@ import { useMergeLiveMessage } from '@/renderer/pages/conversation/Messages/hook
 import { logStreamTerminalObserved } from '@/renderer/pages/conversation/runtime/useConversationRuntimeView';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
 import { isConversationProcessing } from '@/renderer/pages/conversation/utils/conversationRuntime';
-import { warmupConversation } from '@/renderer/pages/conversation/utils/warmupConversation';
+import { ensureConversationRuntime } from '@/renderer/pages/conversation/utils/ensureConversationRuntime';
 import type { ThoughtData } from '@/renderer/components/chat/ThoughtDisplay';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
@@ -34,6 +34,27 @@ export type UseAcpMessageReturn = {
   slashCommands: SlashCommandItem[];
   fetchSlashCommands: () => void;
 };
+
+const slashCommandsInFlight = new Map<string, Promise<SlashCommandItem[]>>();
+
+function fetchAcpSlashCommands(conversation_id: string): Promise<SlashCommandItem[]> {
+  const existing = slashCommandsInFlight.get(conversation_id);
+  if (existing) return existing;
+
+  const promise = ipcBridge.conversation.getSlashCommands
+    .invoke({ conversation_id })
+    .then((result) => {
+      if (!result || !Array.isArray(result) || result.length === 0) return [];
+      return mapAcpCommandsToSlashCommands(result);
+    })
+    .finally(() => {
+      if (slashCommandsInFlight.get(conversation_id) === promise) {
+        slashCommandsInFlight.delete(conversation_id);
+      }
+    });
+  slashCommandsInFlight.set(conversation_id, promise);
+  return promise;
+}
 
 export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: boolean }): UseAcpMessageReturn => {
   const mergeLiveMessage = useMergeLiveMessage();
@@ -524,23 +545,22 @@ export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: 
     };
   }, [conversation_id]);
 
-  // Fetch slash commands via HTTP after warmup completes.
+  // Fetch slash commands via HTTP after runtime ensure completes.
   // WebSocket push of available_commands arrives during warmup when no
   // StreamRelay is listening, so the initial load must come from HTTP.
-  // Mirrors the aionrs pattern: warmup first, then fetch.
-  // In team mode, warmup is deferred to first user input — skip here.
+  // In team mode, runtime preparation is coordinated by the team send box.
   useEffect(() => {
     if (options?.skipWarmup) return;
     let cancelled = false;
-    void warmupConversation(conversation_id)
+    void ensureConversationRuntime(conversation_id)
       .then(() => {
         if (cancelled) return;
-        return ipcBridge.conversation.getSlashCommands.invoke({ conversation_id });
+        return fetchAcpSlashCommands(conversation_id);
       })
-      .then((result) => {
+      .then((commands) => {
         if (cancelled) return;
-        if (!result || !Array.isArray(result) || result.length === 0) return;
-        setSlashCommands(mapAcpCommandsToSlashCommands(result));
+        if (!commands?.length) return;
+        setSlashCommands(commands);
       })
       .catch(() => {});
     return () => {
@@ -562,11 +582,11 @@ export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: 
   }, []);
 
   const fetchSlashCommands = useCallback(() => {
-    void ipcBridge.conversation.getSlashCommands
-      .invoke({ conversation_id })
-      .then((result) => {
-        if (!result || !Array.isArray(result) || result.length === 0) return;
-        setSlashCommands(mapAcpCommandsToSlashCommands(result));
+    void ensureConversationRuntime(conversation_id)
+      .then(() => fetchAcpSlashCommands(conversation_id))
+      .then((commands) => {
+        if (!commands.length) return;
+        setSlashCommands(commands);
       })
       .catch(() => {});
   }, [conversation_id]);

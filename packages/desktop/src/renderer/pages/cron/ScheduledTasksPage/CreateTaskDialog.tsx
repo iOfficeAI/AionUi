@@ -13,7 +13,6 @@ import { ipcBridge } from '@/common';
 import { resolveLocaleKey } from '@/common/utils';
 import type { ICreateCronJobParams, ICronJob, ICronJobUpdateParams } from '@/common/adapter/ipcBridge';
 import { useConversationAssistants } from '@renderer/pages/conversation/hooks/useConversationAssistants';
-import { resolveAgentLogo, useAgentLogos } from '@renderer/utils/model/agentLogo';
 import dayjs from 'dayjs';
 import type { TProviderWithModel } from '@/common/config/storage';
 import { type AcpModelInfo } from '@/common/types/platform/acpTypes';
@@ -132,7 +131,6 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
 }) => {
   const { t, i18n } = useTranslation();
   const localeKey = resolveLocaleKey(i18n?.language ?? 'en-US');
-  const logos = useAgentLogos();
   const [form] = Form.useForm();
   const [submitting, setSubmitting] = useState(false);
   const { presetAssistants } = useConversationAssistants();
@@ -359,13 +357,17 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
     }
   };
 
-  const handleAssistantChange = useCallback((value: string) => {
-    setSelectedAssistantId(value);
-    // Reset model and config_options when agent changes
-    setModelId(undefined);
-    setConfigOptions(undefined);
-    // Workspace remains unchanged (agent-agnostic)
-  }, []);
+  const handleAssistantChange = useCallback(
+    (value: string) => {
+      setSelectedAssistantId(value);
+      form.setFieldsValue({ assistant: value });
+      // Reset model and config_options when agent changes
+      setModelId(undefined);
+      setConfigOptions(undefined);
+      // Workspace remains unchanged (agent-agnostic)
+    },
+    [form]
+  );
 
   const handleWorkspaceClear = useCallback(() => {
     setWorkspace(undefined);
@@ -379,25 +381,30 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
       const scheduleExpr = scheduleInfo.expr;
       const scheduleDesc = scheduleInfo.description;
       const schedule = createCronSchedule(scheduleExpr, scheduleDesc);
+      const assistantValue = typeof values.assistant === 'string' ? values.assistant : selectedAssistantId;
 
-      const agent_config = canEditAgentConfig
-        ? resolveCronAgentConfig({
-            agentValue: values.assistant,
-            presetAssistants,
-            selectedAionrsProvider: geminiCurrentModel
-              ? {
-                  id: geminiCurrentModel.id as string | undefined,
-                  name: geminiCurrentModel.name,
-                }
-              : undefined,
-            model_id,
-            config_options,
-            workspace,
-            localeKey,
-            getMode: resolveAutoApproveModeFromAgentMetadata,
-            aionrsModelRequiredMessage: t('cron.page.form.aionrsModelRequired'),
-          }).agent_config
-        : undefined;
+      let agent_config: ICreateCronJobParams['agent_config'] | ICronJobUpdateParams['metadata']['agent_config'];
+      if (canEditAgentConfig) {
+        if (!assistantValue) {
+          throw new Error(t('cron.page.form.assistantRequired'));
+        }
+        agent_config = resolveCronAgentConfig({
+          agentValue: assistantValue,
+          presetAssistants,
+          selectedAionrsProvider: geminiCurrentModel
+            ? {
+                id: geminiCurrentModel.id as string | undefined,
+                name: geminiCurrentModel.name,
+              }
+            : undefined,
+          model_id,
+          config_options,
+          workspace,
+          localeKey,
+          getMode: resolveAutoApproveModeFromAgentMetadata,
+          aionrsModelRequiredMessage: t('cron.page.form.aionrsModelRequired'),
+        }).agent_config;
+      }
 
       if (isEditMode) {
         const metadata: ICronJobUpdateParams['metadata'] = {
@@ -490,9 +497,6 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                 const assistant = presetAssistants.find((item) => item.id === assistantId);
                 const name = resolveAssistantName(assistant, localeKey, assistantId);
                 const avatar = resolveAssistantAvatar(assistant?.avatar);
-                const logo = resolveAgentLogo(logos, {
-                  backend: assistantRuntimeKey(assistant),
-                });
 
                 return (
                   <div className='flex items-center gap-8px'>
@@ -500,8 +504,6 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                       <img src={avatar.value} alt={name} className='w-16px h-16px object-contain' />
                     ) : avatar.kind === 'emoji' ? (
                       <span className='text-14px leading-16px'>{avatar.value}</span>
-                    ) : logo ? (
-                      <img src={logo} alt={name} className='w-16px h-16px object-contain' />
                     ) : (
                       <Robot size='16' />
                     )}
@@ -513,10 +515,6 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
               {presetAssistants.map((assistant) => {
                 const name = resolveAssistantName(assistant, localeKey, assistant.name);
                 const avatar = resolveAssistantAvatar(assistant.avatar);
-                const runtimeKey = assistantRuntimeKey(assistant);
-                const logo = resolveAgentLogo(logos, {
-                  backend: runtimeKey,
-                });
                 const disabled = isAionrsAssistant(assistant) && !hasAionrsProvider;
                 return (
                   <Option key={assistant.id} value={assistant.id} disabled={disabled}>
@@ -528,8 +526,6 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                         <img src={avatar.value} alt={name} className='w-16px h-16px object-contain' />
                       ) : avatar.kind === 'emoji' ? (
                         <span className='text-14px leading-16px'>{avatar.value}</span>
-                      ) : logo ? (
-                        <img src={logo} alt={name} className='w-16px h-16px object-contain' />
                       ) : (
                         <Robot size='16' />
                       )}

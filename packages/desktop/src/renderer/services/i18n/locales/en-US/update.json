@@ -22,6 +22,7 @@
   "readyToInstallDesc": "Update has been downloaded. Click the button below to restart and install the update.",
   "installNow": "Install and restart",
   "restartNow": "Restart Now",
+  "preparingInstall": "Preparing...",
   "installWarning": "Do not reopen the app during installation. It will restart automatically.",
   "autoUpdateMode": "Auto-update mode",
   "showInFolder": "Show in folder",
@@ -40,7 +41,9 @@
     "downloadNoBody": "Download response did not include a body",
     "missingUrl": "Missing download URL",
     "checkReturnedNull": "Update check returned no result. Packaged app or forced dev update config is required.",
-    "missingDownloadId": "Missing download ID"
+    "missingDownloadId": "Missing download ID",
+    "prepareInstallTimeout": "Preparing installation timed out. Please try again later.",
+    "prepareInstallFailed": "Preparing installation failed. Please try again later."
   },
   "releaseNotesLoading": "Fetching update details...",
   "releaseNotesFailed": "Failed to fetch update details.",

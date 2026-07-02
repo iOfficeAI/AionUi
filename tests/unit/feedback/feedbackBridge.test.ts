@@ -189,4 +189,34 @@ describe('feedback logs', () => {
       rmSync(logsDir, { recursive: true, force: true });
     }
   });
+
+  it('collects recent logs from dated year/month/day directories', () => {
+    const logsDir = mkdtempSync(path.join(tmpdir(), 'aionui-feedback-dated-logs-'));
+    try {
+      const recentDir = path.join(logsDir, '2026', '07', '02');
+      const previousDir = path.join(logsDir, '2026', '07', '01');
+      const oldDir = path.join(logsDir, '2026', '06', '30');
+      mkdirSync(recentDir, { recursive: true });
+      mkdirSync(previousDir, { recursive: true });
+      mkdirSync(oldDir, { recursive: true });
+      writeFileSync(path.join(recentDir, '2026-07-02.log'), 'today frontend nested\n');
+      writeFileSync(path.join(recentDir, '2026-07-02.aioncore.log'), 'today backend nested\n');
+      writeFileSync(path.join(previousDir, '2026-07-01.aionrs.log'), 'yesterday rust nested\n');
+      writeFileSync(path.join(oldDir, '2026-06-30.log'), 'third day frontend nested\n');
+      writeFileSync(path.join(logsDir, '2026-06-29.log'), 'too old flat\n');
+
+      const attachment = collectFeedbackLogAttachment(logsDir);
+
+      expect(attachment).not.toBeNull();
+      const content = gunzipSync(attachment!.data).toString('utf8');
+      expect(content).toContain('today frontend nested');
+      expect(content).toContain('today backend nested');
+      expect(content).toContain('yesterday rust nested');
+      expect(content).toContain('third day frontend nested');
+      expect(content).not.toContain('too old flat');
+      expect(content).toContain('2026/07/02/2026-07-02.aioncore.log');
+    } finally {
+      rmSync(logsDir, { recursive: true, force: true });
+    }
+  });
 });

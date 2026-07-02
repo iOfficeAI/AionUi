@@ -13,6 +13,7 @@ type UpdateNotificationStatus =
   | 'available'
   | 'downloading'
   | 'downloaded'
+  | 'preparing-install'
   | 'success'
   | 'error';
 
@@ -143,6 +144,10 @@ export type UpdateNotificationEvent =
       currentVersion?: string;
       releaseNotes?: string;
       size?: number;
+    }
+  | {
+      type: 'autoPreparingInstall';
+      version?: string;
     }
   | {
       type: 'autoError';
@@ -451,8 +456,25 @@ export const updateNotificationReducer = (
         },
         effects: [],
       };
+    case 'autoPreparingInstall':
+      return {
+        state: {
+          ...state,
+          visible: true,
+          status: 'preparing-install',
+          activeTask: null,
+          autoUpdateInfo: event.version
+            ? {
+                version: event.version,
+                releaseNotes: state.autoUpdateInfo?.releaseNotes,
+              }
+            : state.autoUpdateInfo,
+          presentation: 'card',
+        },
+        effects: [],
+      };
     case 'autoError':
-      if (state.activeTask?.kind !== 'auto') {
+      if (state.activeTask?.kind !== 'auto' && state.status !== 'preparing-install' && state.status !== 'downloaded') {
         return { state, effects: [] };
       }
       return {
@@ -461,6 +483,7 @@ export const updateNotificationReducer = (
           status: 'error',
           activeTask: null,
           errorMsg: event.message,
+          presentation: 'card',
         },
         effects: [],
       };

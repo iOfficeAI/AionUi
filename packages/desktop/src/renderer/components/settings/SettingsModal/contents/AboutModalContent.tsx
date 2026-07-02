@@ -17,6 +17,7 @@ import { getIncludePrerelease, runUpdateCheck } from '@/renderer/components/sett
 import { UPDATE_AVAILABLE_EVENT } from '@/renderer/components/settings/useUpdateNotificationController';
 import {
   getUpdateReadyState,
+  setUpdateReadyState,
   subscribeUpdateReadyState,
   type UpdateReadyState,
 } from '@/renderer/components/settings/updateReadyState';
@@ -39,7 +40,7 @@ const AboutModalContent: React.FC = () => {
 
   const [includePrerelease, setIncludePrerelease] = useState(false);
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
-  const [updateReadyState, setUpdateReadyState] = useState<UpdateReadyState>(() => getUpdateReadyState());
+  const [updateReadyState, setLocalUpdateReadyState] = useState<UpdateReadyState>(() => getUpdateReadyState());
   const [checking, setChecking] = useState(false);
 
   useEffect(() => {
@@ -47,7 +48,7 @@ const AboutModalContent: React.FC = () => {
     setIncludePrerelease(saved === 'true');
   }, []);
 
-  useEffect(() => subscribeUpdateReadyState(setUpdateReadyState), []);
+  useEffect(() => subscribeUpdateReadyState(setLocalUpdateReadyState), []);
 
   const handlePrereleaseChange = (val: boolean) => {
     setIncludePrerelease(val);
@@ -64,11 +65,16 @@ const AboutModalContent: React.FC = () => {
 
   const checkUpdate = async () => {
     if (updateReadyState.ready) {
+      if (updateReadyState.preparing) return;
       if (updateReadyState.filePath) {
         void ipcBridge.shell.openFile.invoke(updateReadyState.filePath);
         return;
       }
-      void ipcBridge.autoUpdate.quitAndInstall.invoke();
+      setUpdateReadyState({ ...updateReadyState, preparing: true });
+      void ipcBridge.autoUpdate.quitAndInstall.invoke().catch(() => {
+        Message.error(t('update.errors.prepareInstallFailed'));
+        setUpdateReadyState({ ...updateReadyState, preparing: false });
+      });
       return;
     }
 
@@ -159,12 +165,20 @@ const AboutModalContent: React.FC = () => {
             {/* Check Update Section */}
             {isElectron && (
               <div className='flex flex-col items-center gap-12px w-full max-w-300px bg-fill-2 p-16px rounded-lg'>
-                <Button type='primary' long loading={checking} onClick={() => void checkUpdate()}>
-                  {updateReadyState.ready
-                    ? t('settings.updateReadyInstall', { version: updateReadyState.version })
-                    : checking
-                      ? t('settings.checkingForUpdates')
-                      : t('settings.checkForUpdates')}
+                <Button
+                  type='primary'
+                  long
+                  loading={checking || updateReadyState.preparing}
+                  disabled={updateReadyState.preparing}
+                  onClick={() => void checkUpdate()}
+                >
+                  {updateReadyState.preparing
+                    ? t('update.preparingInstall')
+                    : updateReadyState.ready
+                      ? t('settings.updateReadyInstall', { version: updateReadyState.version })
+                      : checking
+                        ? t('settings.checkingForUpdates')
+                        : t('settings.checkForUpdates')}
                 </Button>
                 <div className='flex items-center justify-between w-full'>
                   <Typography.Text className='text-12px text-t-secondary'>

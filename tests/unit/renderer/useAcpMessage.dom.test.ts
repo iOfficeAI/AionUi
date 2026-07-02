@@ -8,10 +8,19 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useAcpMessage } from '@/renderer/pages/conversation/platforms/acp/useAcpMessage';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
+import { resetEnsureConversationRuntimeStateForTests } from '@/renderer/pages/conversation/utils/ensureConversationRuntime';
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 
-const { addOrUpdateMessageMock, responseStreamOnMock, responseStreamHandlerRef } = vi.hoisted(() => ({
+const {
+  addOrUpdateMessageMock,
+  ensureRuntimeInvokeMock,
+  getSlashCommandsInvokeMock,
+  responseStreamOnMock,
+  responseStreamHandlerRef,
+} = vi.hoisted(() => ({
   addOrUpdateMessageMock: vi.fn(),
+  ensureRuntimeInvokeMock: vi.fn(),
+  getSlashCommandsInvokeMock: vi.fn(),
   responseStreamOnMock: vi.fn(),
   responseStreamHandlerRef: {
     current: undefined as ((message: IResponseMessage) => void) | undefined,
@@ -38,19 +47,32 @@ vi.mock('@/common', () => ({
       },
     },
     conversation: {
-      warmup: {
-        invoke: vi.fn().mockResolvedValue(undefined),
+      ensureRuntime: {
+        invoke: ensureRuntimeInvokeMock,
       },
       getSlashCommands: {
-        invoke: vi.fn().mockResolvedValue([]),
+        invoke: getSlashCommandsInvokeMock,
       },
     },
   },
 }));
 
+function deferred<T>() {
+  let resolve!: (value: T | PromiseLike<T>) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+  return { promise, resolve, reject };
+}
+
 describe('useAcpMessage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    resetEnsureConversationRuntimeStateForTests();
+    ensureRuntimeInvokeMock.mockResolvedValue({ recovered: false, config_options: [], runtime: null });
+    getSlashCommandsInvokeMock.mockResolvedValue([]);
     responseStreamHandlerRef.current = undefined;
   });
 
@@ -215,6 +237,83 @@ describe('useAcpMessage', () => {
           emptyTurnTipParams: {
             command_count: 1,
           },
+        },
+      ]);
+    });
+  });
+
+  it('loads initial slash commands after runtime ensure without legacy warmup', async () => {
+    vi.mocked(getConversationOrNull).mockResolvedValue(null);
+    getSlashCommandsInvokeMock.mockResolvedValue([
+      {
+        command: 'review',
+        description: 'Review the current diff',
+        completion_behavior: 'neutral_tip_on_empty',
+      },
+    ]);
+
+    const { result } = renderHook(() => useAcpMessage('conv-1'));
+
+    await waitFor(() => {
+      expect(ensureRuntimeInvokeMock).toHaveBeenCalledWith({ conversation_id: 'conv-1' });
+      expect(getSlashCommandsInvokeMock).toHaveBeenCalledWith({ conversation_id: 'conv-1' });
+    });
+    await waitFor(() => {
+      expect(result.current.slashCommands).toEqual([
+        {
+          name: 'review',
+          description: 'Review the current diff',
+          kind: 'template',
+          source: 'acp',
+          selectionBehavior: 'insert',
+          completionBehavior: 'neutral_tip_on_empty',
+        },
+      ]);
+    });
+  });
+
+  it('deduplicates slash command fetches while a request is in flight', async () => {
+    vi.mocked(getConversationOrNull).mockResolvedValue(null);
+    const slashCommandsDeferred = deferred<
+      Array<{
+        command: string;
+        description: string;
+      }>
+    >();
+    getSlashCommandsInvokeMock.mockReturnValue(slashCommandsDeferred.promise);
+
+    const { result } = renderHook(() => useAcpMessage('conv-1'));
+
+    await waitFor(() => {
+      expect(getSlashCommandsInvokeMock).toHaveBeenCalledTimes(1);
+    });
+
+    act(() => {
+      result.current.fetchSlashCommands();
+    });
+
+    await waitFor(() => {
+      expect(getSlashCommandsInvokeMock).toHaveBeenCalledTimes(1);
+    });
+
+    await act(async () => {
+      slashCommandsDeferred.resolve([
+        {
+          command: 'review',
+          description: 'Review the current diff',
+        },
+      ]);
+      await slashCommandsDeferred.promise;
+    });
+
+    await waitFor(() => {
+      expect(result.current.slashCommands).toEqual([
+        {
+          name: 'review',
+          description: 'Review the current diff',
+          kind: 'template',
+          source: 'acp',
+          selectionBehavior: 'insert',
         },
       ]);
     });

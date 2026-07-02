@@ -11,17 +11,24 @@ import type { DownloadedUpdateHelper } from 'electron-updater/out/DownloadedUpda
 import { findFile } from 'electron-updater/out/providers/Provider';
 import { CancellationError, CancellationToken } from 'builder-util-runtime';
 import type { AutoUpdateReadyResult } from '@/common/update/updateTypes';
-import { app } from 'electron';
+import { app, autoUpdater as nativeAutoUpdater } from 'electron';
 import log from 'electron-log';
 import { EventEmitter } from 'events';
 import fs from 'fs';
 import path from 'path';
 import { parse } from 'semver';
-import { recordAutoUpdateQuitAndInstall, recordAutoUpdateStatus } from './autoUpdateDiagnostics';
+import {
+  recordAutoUpdateNativeInstallError,
+  recordAutoUpdateNativeInstallReady,
+  recordAutoUpdateNativeInstallTimeout,
+  recordAutoUpdateQuitAndInstall,
+  recordAutoUpdateStatus,
+} from './autoUpdateDiagnostics';
 import { buildCdnFeedOptions } from './updateFeed';
 
 const FORCE_DEV_AUTO_UPDATE_ENV = 'AIONUI_FORCE_DEV_AUTO_UPDATE';
 const DEBUG_AUTO_UPDATE_CURRENT_VERSION_ENV = 'AIONUI_DEBUG_AUTO_UPDATE_CURRENT_VERSION';
+const MAC_NATIVE_INSTALL_READY_TIMEOUT_MS = 60_000;
 
 /**
  * Returns the appropriate update channel name based on the current platform and architecture.
@@ -54,7 +61,15 @@ export function getUpdateChannel(): string | undefined {
 }
 
 export interface AutoUpdateStatus {
-  status: 'checking' | 'available' | 'not-available' | 'downloading' | 'downloaded' | 'error' | 'cancelled';
+  status:
+    | 'checking'
+    | 'available'
+    | 'not-available'
+    | 'downloading'
+    | 'downloaded'
+    | 'preparing-install'
+    | 'error'
+    | 'cancelled';
   version?: string;
   /** Current installed version — reflects the dev debug override when set. */
   currentVersion?: string;
@@ -93,8 +108,18 @@ class AutoUpdaterService extends EventEmitter {
   private _activeDownloadPromise: Promise<{ success: boolean; error?: string }> | null = null;
   private _activeDownloadCancellationToken: CancellationToken | null = null;
   private _ignoreActiveDownloadEvents = false;
+  private _nativeInstallReady = process.platform !== 'darwin';
+  private _nativeInstallReadyWait: {
+    promise: Promise<void>;
+    reject: (error: Error) => void;
+    resolve: () => void;
+    startedAt: number;
+    timer: ReturnType<typeof setTimeout>;
+  } | null = null;
+  private _downloadedUpdateVersion: string | undefined;
   /** Stores registered autoUpdater event handlers for cleanup and test access */
   private readonly _autoUpdaterHandlers = new Map<string, (...args: unknown[]) => void>();
+  private readonly _nativeAutoUpdaterHandlers = new Map<string, (...args: unknown[]) => void>();
 
   constructor() {
     super();
@@ -230,6 +255,9 @@ class AutoUpdaterService extends EventEmitter {
     this._activeDownloadPromise = null;
     this._activeDownloadCancellationToken = null;
     this._ignoreActiveDownloadEvents = false;
+    this.clearNativeInstallReadyWait();
+    this._nativeInstallReady = process.platform !== 'darwin';
+    this._downloadedUpdateVersion = undefined;
   }
 
   /**
@@ -245,6 +273,9 @@ class AutoUpdaterService extends EventEmitter {
     this._activeDownloadPromise = null;
     this._activeDownloadCancellationToken = null;
     this._ignoreActiveDownloadEvents = false;
+    this.clearNativeInstallReadyWait();
+    this._nativeInstallReady = process.platform !== 'darwin';
+    this._downloadedUpdateVersion = undefined;
     // Remove listeners from this EventEmitter instance
     this.removeAllListeners();
     // Remove each registered handler from autoUpdater to prevent
@@ -256,6 +287,13 @@ class AutoUpdaterService extends EventEmitter {
       );
     }
     this._autoUpdaterHandlers.clear();
+    for (const [event, handler] of this._nativeAutoUpdaterHandlers) {
+      nativeAutoUpdater.removeListener(
+        event as Parameters<typeof nativeAutoUpdater.removeListener>[0],
+        handler as Parameters<typeof nativeAutoUpdater.removeListener>[1]
+      );
+    }
+    this._nativeAutoUpdaterHandlers.clear();
   }
 
   /**
@@ -300,13 +338,32 @@ class AutoUpdaterService extends EventEmitter {
       this._autoUpdaterHandlers.set(event, handler as (...args: unknown[]) => void);
     };
 
+    const registerNative = <T extends unknown[]>(event: string, handler: (...args: T) => void) => {
+      nativeAutoUpdater.on(
+        event as Parameters<typeof nativeAutoUpdater.on>[0],
+        handler as Parameters<typeof nativeAutoUpdater.on>[1]
+      );
+      this._nativeAutoUpdaterHandlers.set(event, handler as (...args: unknown[]) => void);
+    };
+
+    if (process.platform === 'darwin') {
+      registerNative('update-downloaded', () => {
+        this.handleNativeInstallReady();
+      });
+      registerNative('error', (error: Error) => {
+        void this.handleNativeInstallError(error);
+      });
+    }
+
     register('checking-for-update', () => {
       log.info('Checking for updates...');
+      this.resetNativeInstallReady();
       this.broadcastStatus({ status: 'checking' });
     });
 
     register('update-available', (info: UpdateInfo) => {
       log.info(`Update available: ${info.version}`);
+      this.resetNativeInstallReady(info.version);
       this.broadcastStatus({
         status: 'available',
         version: info.version,
@@ -348,6 +405,12 @@ class AutoUpdaterService extends EventEmitter {
       log.info('Update downloaded');
       this._activeDownloadPromise = null;
       this._activeDownloadCancellationToken = null;
+      this._downloadedUpdateVersion = info.version;
+      if (process.platform === 'darwin' && !this._nativeInstallReady) {
+        log.debug('[auto-update] macOS service-level update-downloaded received before native install readiness', {
+          version: info.version,
+        });
+      }
       this.broadcastStatus({
         status: 'downloaded',
         version: info.version,
@@ -392,14 +455,127 @@ class AutoUpdaterService extends EventEmitter {
     return message;
   }
 
+  private resetNativeInstallReady(version?: string): void {
+    void this.rejectNativeInstallReadyWaitWithLocalizedError('update.errors.prepareInstallFailed');
+    this._nativeInstallReady = process.platform !== 'darwin';
+    this._downloadedUpdateVersion = version;
+  }
+
+  private getAutoUpdateDiagnosticOptions() {
+    return {
+      currentAppVersion: app.getVersion(),
+      userDataPath: app.getPath('userData'),
+    };
+  }
+
+  private getNativeInstallReadyElapsedMs(): number | undefined {
+    return this._nativeInstallReadyWait ? Date.now() - this._nativeInstallReadyWait.startedAt : undefined;
+  }
+
+  private clearNativeInstallReadyWait(): void {
+    if (!this._nativeInstallReadyWait) return;
+    clearTimeout(this._nativeInstallReadyWait.timer);
+    this._nativeInstallReadyWait = null;
+  }
+
+  private async rejectNativeInstallReadyWaitWithLocalizedError(i18nKey: string): Promise<void> {
+    const wait = this._nativeInstallReadyWait;
+    if (!wait) return;
+    this.clearNativeInstallReadyWait();
+    const { default: i18n } = await import('./i18n');
+    wait.reject(new Error(i18n.t(i18nKey)));
+  }
+
+  private handleNativeInstallReady(): void {
+    this._nativeInstallReady = true;
+    const elapsedMs = this.getNativeInstallReadyElapsedMs();
+    log.info('[auto-update] Native Squirrel update ready; continuing install', {
+      elapsedMs,
+      platform: process.platform,
+      version: this._downloadedUpdateVersion,
+    });
+    recordAutoUpdateNativeInstallReady(
+      { elapsedMs, version: this._downloadedUpdateVersion },
+      this.getAutoUpdateDiagnosticOptions()
+    );
+    const wait = this._nativeInstallReadyWait;
+    this.clearNativeInstallReadyWait();
+    wait?.resolve();
+  }
+
+  private async handleNativeInstallError(error: Error): Promise<void> {
+    const elapsedMs = this.getNativeInstallReadyElapsedMs();
+    const message = this.describeAutoUpdateError(error);
+    log.error('[auto-update] Native updater readiness failed', {
+      elapsedMs,
+      error: message,
+      platform: process.platform,
+      version: this._downloadedUpdateVersion,
+    });
+    recordAutoUpdateNativeInstallError(
+      { elapsedMs, error: message, version: this._downloadedUpdateVersion },
+      this.getAutoUpdateDiagnosticOptions()
+    );
+    const { default: i18n } = await import('./i18n');
+    const userMessage = i18n.t('update.errors.prepareInstallFailed');
+    this.broadcastStatus({
+      status: 'error',
+      error: userMessage,
+    });
+    const wait = this._nativeInstallReadyWait;
+    this.clearNativeInstallReadyWait();
+    wait?.reject(new Error(userMessage));
+  }
+
+  private async waitForNativeInstallReady(): Promise<void> {
+    if (process.platform !== 'darwin' || this._nativeInstallReady) return;
+    if (this._nativeInstallReadyWait) return this._nativeInstallReadyWait.promise;
+
+    log.info('[auto-update] macOS install requested before native readiness; waiting for native updater', {
+      platform: process.platform,
+      timeoutMs: MAC_NATIVE_INSTALL_READY_TIMEOUT_MS,
+      version: this._downloadedUpdateVersion,
+    });
+    this.broadcastStatus({ status: 'preparing-install', version: this._downloadedUpdateVersion });
+
+    const startedAt = Date.now();
+    let resolveWait!: () => void;
+    let rejectWait!: (error: Error) => void;
+    const promise = new Promise<void>((resolve, reject) => {
+      resolveWait = resolve;
+      rejectWait = reject;
+    });
+    const timer = setTimeout(async () => {
+      const elapsedMs = Date.now() - startedAt;
+      log.warn('[auto-update] Timed out waiting for native Squirrel update readiness', {
+        elapsedMs,
+        platform: process.platform,
+        version: this._downloadedUpdateVersion,
+      });
+      recordAutoUpdateNativeInstallTimeout(
+        { elapsedMs, version: this._downloadedUpdateVersion },
+        this.getAutoUpdateDiagnosticOptions()
+      );
+      const { default: i18n } = await import('./i18n');
+      const userMessage = i18n.t('update.errors.prepareInstallTimeout');
+      this.broadcastStatus({
+        status: 'error',
+        error: userMessage,
+      });
+      const wait = this._nativeInstallReadyWait;
+      this.clearNativeInstallReadyWait();
+      wait?.reject(new Error(userMessage));
+    }, MAC_NATIVE_INSTALL_READY_TIMEOUT_MS);
+
+    this._nativeInstallReadyWait = { promise, reject: rejectWait, resolve: resolveWait, startedAt, timer };
+    return promise;
+  }
+
   /**
    * Broadcast status to both EventEmitter listeners and the registered callback
    */
   private broadcastStatus(status: AutoUpdateStatus): void {
-    recordAutoUpdateStatus(status, {
-      currentAppVersion: app.getVersion(),
-      userDataPath: app.getPath('userData'),
-    });
+    recordAutoUpdateStatus(status, this.getAutoUpdateDiagnosticOptions());
 
     // Emit to internal listeners (for testing and extensibility)
     this.emit('update-status', status);
@@ -635,22 +811,54 @@ class AutoUpdaterService extends EventEmitter {
   }
 
   async quitAndInstall(): Promise<void> {
+    await this.waitForNativeInstallReady();
+
     if (this._beforeQuitAndInstallCallback) {
       log.info('Running pre-install cleanup before quitAndInstall...');
-      await this._beforeQuitAndInstallCallback();
+      try {
+        await this._beforeQuitAndInstallCallback();
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        log.error('[auto-update] pre-install cleanup failed', {
+          error: message,
+          platform: process.platform,
+          version: this._downloadedUpdateVersion,
+        });
+        if (process.platform === 'darwin') {
+          const { default: i18n } = await import('./i18n');
+          this.broadcastStatus({
+            status: 'error',
+            error: i18n.t('update.errors.prepareInstallFailed'),
+          });
+        }
+        throw error;
+      }
     }
 
     log.info('Quitting and installing update...');
-    recordAutoUpdateQuitAndInstall({
-      currentAppVersion: app.getVersion(),
-      userDataPath: app.getPath('userData'),
-    });
+    try {
+      autoUpdater.quitAndInstall(true, true);
+      recordAutoUpdateQuitAndInstall(this.getAutoUpdateDiagnosticOptions());
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      log.error('[auto-update] quitAndInstall handoff failed', {
+        error: message,
+        platform: process.platform,
+        version: this._downloadedUpdateVersion,
+      });
+      const { default: i18n } = await import('./i18n');
+      const userMessage = i18n.t('update.errors.prepareInstallFailed');
+      this.broadcastStatus({
+        status: 'error',
+        error: userMessage,
+      });
+      throw new Error(userMessage);
+    }
     // On macOS, autoUpdater.quitAndInstall() closes all windows but the
     // 'window-all-closed' handler does NOT call app.quit() (standard macOS
     // behavior + close-to-tray). This leaves the process alive and Squirrel
     // cannot finish replacing the app bundle. Force-exit after a short delay
     // to let Squirrel receive the install signal.
-    autoUpdater.quitAndInstall(true, true);
     setTimeout(() => {
       app.exit(0);
     }, 1000);

@@ -70,6 +70,9 @@ const reduceNotificationState = (
 
 const RELEASES_PAGE_URL = 'https://github.com/iOfficeAI/AionUi/releases';
 
+const getVersionLabelFromState = (state: UpdateNotificationState): string =>
+  state.updateInfo?.version || state.autoUpdateInfo?.version || '';
+
 export const useUpdateNotificationController = () => {
   const { t } = useTranslation();
   const [state, dispatchState] = useReducer(reduceNotificationState, undefined, createInitialState);
@@ -158,7 +161,7 @@ export const useUpdateNotificationController = () => {
   // background download is never clobbered by a fresh available result.
   const presentAvailableOutcome = useCallback((outcome: AvailableOutcome) => {
     const current = stateRef.current;
-    if (current.status === 'downloading' || current.status === 'downloaded') {
+    if (current.status === 'downloading' || current.status === 'downloaded' || current.status === 'preparing-install') {
       dispatch({ type: 'openRequested', source: 'about', userInitiated: true });
       return;
     }
@@ -212,7 +215,11 @@ export const useUpdateNotificationController = () => {
     (source: UpdateNotificationOpenSource, userInitiated: boolean) => {
       const current = stateRef.current;
       dispatch({ type: 'openRequested', source, userInitiated });
-      if (current.status !== 'downloading' && current.status !== 'downloaded') {
+      if (
+        current.status !== 'downloading' &&
+        current.status !== 'downloaded' &&
+        current.status !== 'preparing-install'
+      ) {
         void checkForUpdates();
       }
     },
@@ -267,6 +274,9 @@ export const useUpdateNotificationController = () => {
         }
         case 'downloaded':
           dispatch({ type: 'autoDownloaded' });
+          break;
+        case 'preparing-install':
+          dispatch({ type: 'autoPreparingInstall', version: evt.version });
           break;
         case 'error':
           dispatch({ type: 'autoError', message: evt.error || t('update.downloadFailed') });
@@ -345,12 +355,27 @@ export const useUpdateNotificationController = () => {
   }, [startAutoDownload, startManualInstallDownload, state.autoUpdateAvailable]);
 
   const quitAndInstall = useCallback(() => {
-    if (stateRef.current.downloadPath) {
-      void ipcBridge.shell.openFile.invoke(stateRef.current.downloadPath);
+    const current = stateRef.current;
+    if (current.status === 'preparing-install') return;
+    if (current.downloadPath) {
+      void ipcBridge.shell.openFile.invoke(current.downloadPath);
       return;
     }
-    void ipcBridge.autoUpdate.quitAndInstall.invoke();
-  }, []);
+    const version = getVersionLabelFromState(current);
+    dispatch({ type: 'autoPreparingInstall', version });
+    setUpdateReadyState({
+      ready: true,
+      version,
+      preparing: true,
+    });
+    void ipcBridge.autoUpdate.quitAndInstall.invoke().catch(() => {
+      if (stateRef.current.status !== 'preparing-install') return;
+      dispatch({
+        type: 'autoError',
+        message: t('update.errors.prepareInstallFailed'),
+      });
+    });
+  }, [dispatch, t]);
 
   const openFile = useCallback(() => {
     if (!state.downloadPath) return;
@@ -394,15 +419,16 @@ export const useUpdateNotificationController = () => {
     dispatch({ type: 'restoreRequested' });
   }, []);
 
-  const versionLabel = useMemo(() => state.updateInfo?.version || state.autoUpdateInfo?.version || '', [state]);
+  const versionLabel = useMemo(() => getVersionLabelFromState(state), [state]);
   const showManualInstallFallback = Boolean(state.autoUpdateAvailable && state.updateInfo?.recommendedAsset);
 
   useEffect(() => {
-    if (state.status === 'downloaded' && versionLabel) {
+    if ((state.status === 'downloaded' || state.status === 'preparing-install') && versionLabel) {
       setUpdateReadyState({
         ready: true,
         version: versionLabel,
         filePath: state.downloadPath || undefined,
+        preparing: state.status === 'preparing-install',
       });
       return;
     }

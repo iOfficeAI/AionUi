@@ -522,7 +522,8 @@
     "label": "Thinking..."
   },
   "skills": {
-    "loaded": "Loaded Skills"
+    "loaded": "Loaded Skills",
+    "slashHint": "Skill"
   },
   "mcp": {
     "loaded": "Loaded MCP",

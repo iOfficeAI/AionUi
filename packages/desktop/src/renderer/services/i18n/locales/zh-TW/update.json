@@ -22,6 +22,7 @@
   "readyToInstallDesc": "更新已下載完成，點擊下方按鈕重新啟動應用程式並安裝更新。",
   "installNow": "立即安裝並重新啟動",
   "restartNow": "立即安裝",
+  "preparingInstall": "準備安裝...",
   "installWarning": "安裝期間請勿手動開啟應用程式，應用程式將自動重新啟動。",
   "autoUpdateMode": "自動更新模式",
   "showInFolder": "在資料夾中顯示",
@@ -40,7 +41,9 @@
     "downloadNoBody": "下載回應沒有內容",
     "missingUrl": "缺少下載網址",
     "checkReturnedNull": "更新檢查沒有回傳結果，需要打包應用程式或強制啟用開發更新設定。",
-    "missingDownloadId": "缺少下載 ID"
+    "missingDownloadId": "缺少下載 ID",
+    "prepareInstallTimeout": "準備安裝逾時，請稍後重試。",
+    "prepareInstallFailed": "準備安裝失敗，請稍後重試。"
   },
   "releaseNotesLoading": "正在取得更新內容",
   "releaseNotesFailed": "取得失敗，可",
