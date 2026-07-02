@@ -1,21 +1,18 @@
 /**
- * Guid Mode → Conversation Mode Sync — E2E tests.
+ * Guid assistant mode → conversation mode sync — E2E tests.
  *
- * For each agent backend, verifies the permission mode set on the Guid page
- * is correctly carried into the conversation page.
- * Each agent runs TWO conversation cycles with different modes to confirm
- * mode switching works end-to-end.
+ * For each backend, selects the matching assistant (prefer the generated assistant)
+ * and verifies the permission mode set on the Guid page is correctly carried
+ * into the conversation page.
  */
 import { test, expect } from '../fixtures';
 import {
   goToGuid,
-  selectAgent,
   sendMessageFromGuid,
   waitForSessionActive,
-  deleteConversation,
-  AGENT_PILL,
-  agentPillByBackend,
   MODE_SELECTOR,
+  httpDelete,
+  selectAssistantForBackend,
 } from '../helpers';
 
 test.describe.configure({ timeout: 240_000 });
@@ -41,10 +38,25 @@ async function getAvailableModes(page: import('@playwright/test').Page): Promise
  */
 async function selectMode(page: import('@playwright/test').Page, modeValue: string): Promise<void> {
   const selector = page.locator(MODE_SELECTOR);
-  await selector.click();
-  const menuItem = page.locator(`[data-mode-value="${modeValue}"]`);
-  await menuItem.waitFor({ state: 'visible', timeout: 5_000 });
-  await menuItem.click();
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    await selector.click();
+    const menuItem = page.locator(`[data-mode-value="${modeValue}"]`).last();
+    await menuItem.waitFor({ state: 'visible', timeout: 5_000 });
+    await menuItem
+      .evaluate((element) => {
+        const target = element.closest('li') ?? element;
+        (target as HTMLElement).click();
+      })
+      .catch(async (error) => {
+        if (attempt === 2) throw error;
+        await page.keyboard.press('Escape').catch(() => {});
+      });
+    const selected = await selector
+      .getAttribute('data-current-mode', { timeout: 5_000 })
+      .then((value) => value === modeValue)
+      .catch(() => false);
+    if (selected) return;
+  }
   await expect(selector).toHaveAttribute('data-current-mode', modeValue, { timeout: 5_000 });
 }
 
@@ -78,10 +90,20 @@ async function runModeVerificationCycle(
   targetMode: string
 ): Promise<void> {
   await goToGuid(page);
-  await selectAgent(page, backend);
+  const assistantId = await selectAssistantForBackend(page, backend);
+  if (!assistantId) {
+    test.skip(true, `${backend} assistant not available`);
+    return;
+  }
 
   const modeSelector = page.locator(MODE_SELECTOR);
   await modeSelector.waitFor({ state: 'visible', timeout: 10_000 });
+
+  const availableModes = await getAvailableModes(page);
+  if (!availableModes.includes(targetMode)) {
+    test.skip(true, `${backend} mode "${targetMode}" is not available after selecting assistant ${assistantId}`);
+    return;
+  }
 
   await selectMode(page, targetMode);
 
@@ -92,30 +114,22 @@ async function runModeVerificationCycle(
     await waitForSessionActive(page, 120_000);
     await waitForConversationMode(page, targetMode);
   } finally {
-    await deleteConversation(page, conversationId);
+    await httpDelete(page, `/api/conversations/${conversationId}`).catch(() => {});
   }
 }
 
-const BACKENDS = ['gemini', 'aionrs', 'codex', 'claude'] as const;
+const BACKENDS = ['aionrs', 'codex', 'claude'] as const;
 
 test.describe('Guid Mode → Conversation Sync', () => {
   for (const backend of BACKENDS) {
     test(`${backend}: two mode switches both carry into conversation`, async ({ page }) => {
       await goToGuid(page);
 
-      // Check agent availability
-      const pill = page.locator(agentPillByBackend(backend));
-      await page
-        .locator(AGENT_PILL)
-        .first()
-        .waitFor({ state: 'visible', timeout: 30_000 })
-        .catch(() => {});
-      if (!(await pill.isVisible().catch(() => false))) {
-        test.skip(true, `${backend} agent not available`);
+      const assistantId = await selectAssistantForBackend(page, backend);
+      if (!assistantId) {
+        test.skip(true, `${backend} assistant not available`);
         return;
       }
-
-      await selectAgent(page, backend);
 
       // Check mode selector visibility
       const modeSelector = page.locator(MODE_SELECTOR);

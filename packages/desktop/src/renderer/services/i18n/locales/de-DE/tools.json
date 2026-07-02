@@ -1,0 +1,69 @@
+{
+  "unknownFile": "Unbekannte Datei",
+  "newFile": "Neue Datei",
+  "deletedFile": "Gelöschte Datei",
+  "modified": "Geändert",
+  "fileChanges": "Dateiänderungen",
+  "shell": {
+    "displayName": "Shell-Befehl",
+    "description": "Shell-Befehle ausführen"
+  },
+  "fileOps": {
+    "displayName": "Dateioperationen",
+    "description": "Dateien lesen, schreiben und ändern"
+  },
+  "webSearch": {
+    "displayName": "Websuche",
+    "description": "Webinhalte durchsuchen"
+  },
+  "mcp": {
+    "generic": {
+      "displayName": "MCP-Tool: {{toolName}}",
+      "description": "MCP-Tool-Aufruf: {{toolName}}"
+    }
+  },
+  "unknown": {
+    "displayName": "Unbekanntes Tool",
+    "description": "Unbekannter Tool-Typ"
+  },
+  "status": {
+    "pending": "Ausstehend",
+    "executing": "Wird ausgeführt",
+    "success": "Erfolgreich",
+    "error": "Fehler",
+    "canceled": "Abgebrochen"
+  },
+  "titles": {
+    "web_search_started": "Websuche gestartet",
+    "web_search_completed": "Websuche abgeschlossen",
+    "web_search": "Websuche",
+    "applying_patch": "Patch wird angewendet",
+    "patch_applied": "Patch angewendet",
+    "file_patch": "Datei-Patch",
+    "mcp_tool_starting": "MCP-Tool: {{toolName}} (wird gestartet)",
+    "mcp_tool": "MCP-Tool: {{toolName}}",
+    "execute_command": "Ausführen: {{command}}",
+    "command_output": "Befehlsausgabe",
+    "command_completed": "Befehl abgeschlossen",
+    "shell_command": "Shell-Befehl"
+  },
+  "labels": {
+    "search_query": "Suchanfrage:",
+    "file_changes": "Dateiänderungen:",
+    "tool_details": "Tool-Details:",
+    "tool": "Tool",
+    "arguments": "Argumente:",
+    "result": "Ergebnis:",
+    "command": "Befehl:",
+    "working_directory": "Arbeitsverzeichnis:",
+    "exit_code": "Beendet: {{code}}",
+    "duration": "Dauer: {{seconds}}",
+    "auto_approved": "Automatisch genehmigt",
+    "manual_approval": "Manuelle Genehmigung"
+  },
+  "actions": {
+    "create": "erstellen",
+    "modify": "ändern",
+    "delete": "löschen"
+  }
+}

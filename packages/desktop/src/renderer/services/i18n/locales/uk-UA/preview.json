@@ -53,6 +53,10 @@
   "closeAll": "Закрити всі",
   "readOnlyLabel": "Перегляд лише для читання",
   "pathLabel": "Шлях",
+  "missingFile": {
+    "title": "Файл не знайдено",
+    "openInNewTab": "Спробувати відкрити в новій вкладці"
+  },
   "noTabs": "Немає відкритих вкладок",
   "openInPanelTooltip": "Переглянути в панелі попереднього перегляду",
   "mermaidTitle": "Діаграма Mermaid",
@@ -134,6 +138,6 @@
     "loading": "Запуск перегляду PPT...",
     "installing": "Встановлення компонента перегляду...",
     "startFailed": "Не вдалося запустити перегляд PPT",
-    "installHint": "Встановіть OfficeCLI зі сторінки офіційних релізів iOfficeAI/OfficeCli"
+    "installHint": "Встановіть OfficeCLI зі сторінки офіційних релізів iOfficeAI/OfficeCLI"
   }
 }

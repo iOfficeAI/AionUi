@@ -1,14 +1,11 @@
 {
-  "agentFallbackNotice": "{{original}} is unavailable, using {{fallback}} instead.",
-  "noAgentAvailable": "目前沒有可用的主代理。請登入 Google 或安裝 Claude/Codex CLI。要前往設定嗎？",
-  "noAgentAvailableShort": "No Main Agent available. Click to configure.",
-  "agentTabAutoSwitch": "Model not compatible with Gemini, auto-switched to {{fallback}}",
-  "autoSwitchToAgent": "Gemini is not configured, auto-switching to {{agent}}",
-  "autoSwitchedAgent": "{{from}} is not available, switched to {{to}}",
-  "promptExamplesHint": "試試這些可點擊的案例提示詞：",
+  "promptExamplesHint": "試試這些指令",
+  "defaultPrompts": {
+    "capabilities": "你能為我做哪些事情？",
+    "skills": "你有哪些技能？",
+    "tools": "你有哪些工具？"
+  },
   "selectAssistantHint": "選擇一位助手開始任務",
-  "agentSwitcherLabel": "Agent",
-  "switchedToAgent": "已切換到 {{agent}}",
   "workspace": {
     "workInProject": "在專案中工作",
     "optional": "可選",
@@ -16,15 +13,5 @@
     "specifyWorkspace": "選擇專案資料夾",
     "searchPlaceholder": "搜尋專案…",
     "noProject": "不使用專案"
-  },
-  "scanning": {
-    "initialMessage": "Current Agent is unavailable, detecting other available agents...",
-    "scanningMessage": "Scanning local available agents...",
-    "connectingMessage": "Connected successfully, please wait...",
-    "establishingConnection": "Establishing connection...",
-    "statusQueued": "Queued",
-    "statusTesting": "Testing latency...",
-    "statusUnreachable": "Unreachable",
-    "statusAvailable": "Available"
   }
 }

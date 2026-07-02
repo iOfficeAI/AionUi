@@ -5,39 +5,65 @@
  */
 
 import type { ICronJob } from '@/common/adapter/ipcBridge';
-import { getAgentLogo } from '@renderer/utils/model/agentLogo';
-import type { AgentMetadata } from '@renderer/utils/model/agentTypes';
+import type { AgentLogoMap } from '@renderer/utils/model/agentLogo';
+import { resolveAgentLogo } from '@renderer/utils/model/agentLogo';
+import { resolveAssistantAvatar } from '@renderer/utils/model/assistantAvatar';
+import type { Assistant } from '@/common/types/agent/assistantTypes';
 
 function normalizeAgentBackend(agent: string | undefined): string | undefined {
   if (!agent) return undefined;
   return agent.replace(/^cli:/, '').replace(/^preset:/, '');
 }
 
+function resolveCronAssistantId(config: ICronJob['metadata']['agent_config']): string | undefined {
+  return config?.assistant_id;
+}
+
 /**
  * Resolve the display name and logo for a cron job's agent.
  *
- * ACP jobs store the literal string "acp" in `agent_type`; the real vendor id
- * (claude/gemini/codex/…) and the human-readable label live in `agent_config`.
- * Non-ACP agents (aionrs, remote, nanobot, openclaw-gateway, …) use
- * `agent_type` directly — aionrs in particular reuses `agent_config.backend`
- * for provider_id, so we must not fall back to it there.
+ * Assistant-backed jobs display from the assistant catalog. Non-assistant
+ * legacy jobs fall back to the derived runtime type.
  */
-export function getJobAgentMeta(job: ICronJob, cliAgents: AgentMetadata[]): { name?: string; logo?: string | null } {
+export function getJobAgentMeta(
+  job: ICronJob,
+  presetAssistants: Assistant[],
+  logos: AgentLogoMap
+): { name?: string; logo?: string | null; emoji?: string; assistantFallback?: boolean } {
+  const config = job.metadata.agent_config;
+  const assistantId = resolveCronAssistantId(config);
+  if (assistantId) {
+    const assistant = presetAssistants.find((item) => item.id === assistantId);
+    if (!assistant) {
+      return { name: config?.name || normalizeAgentBackend(job.metadata.agent_type), assistantFallback: true };
+    }
+
+    const rawType = normalizeAgentBackend(job.metadata.agent_type);
+    const displayName = assistant.name || rawType;
+    const avatar = resolveAssistantAvatar(assistant.avatar);
+    if (avatar.kind === 'image') {
+      return { name: displayName, logo: avatar.value };
+    }
+    if (avatar.kind === 'emoji') {
+      return { name: displayName, emoji: avatar.value };
+    }
+
+    return { name: displayName, assistantFallback: true };
+  }
+
   const rawType = normalizeAgentBackend(job.metadata.agent_type);
   if (!rawType) return {};
+  const logoBackend = rawType;
 
   if (rawType === 'acp') {
-    const backend = job.metadata.agent_config?.backend;
-    const detected = backend ? cliAgents.find((a) => (a.backend || a.agent_type) === backend) : undefined;
     return {
-      name: detected?.name || job.metadata.agent_config?.name || backend || rawType,
-      logo: getAgentLogo(backend),
+      name: config?.name || rawType,
+      logo: resolveAgentLogo(logos, { backend: logoBackend }),
     };
   }
 
-  const detected = cliAgents.find((a) => (a.backend || a.agent_type) === rawType);
   return {
-    name: detected?.name || rawType,
-    logo: getAgentLogo(rawType),
+    name: config?.name || rawType,
+    logo: resolveAgentLogo(logos, { backend: logoBackend }),
   };
 }

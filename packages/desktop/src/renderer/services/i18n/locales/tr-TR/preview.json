@@ -53,6 +53,10 @@
   "closeAll": "Tümünü Kapat",
   "readOnlyLabel": "Salt okunur önizleme",
   "pathLabel": "Yol",
+  "missingFile": {
+    "title": "Dosya bulunamadı",
+    "openInNewTab": "Yeni sekmede açmayı dene"
+  },
   "noTabs": "Açık sekme yok",
   "openInPanelTooltip": "Önizleme panelinde görüntüle",
   "mermaidTitle": "Mermaid Diyagramı",
@@ -134,6 +138,6 @@
     "loading": "PPT önizlemesi başlatılıyor...",
     "installing": "Önizleme bileşeni yükleniyor...",
     "startFailed": "PPT önizlemesi başlatılamadı",
-    "installHint": "OfficeCLI'yi resmi iOfficeAI/OfficeCli releases sayfasından yükleyin"
+    "installHint": "OfficeCLI'yi resmi iOfficeAI/OfficeCLI releases sayfasından yükleyin"
   }
 }

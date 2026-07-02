@@ -35,7 +35,11 @@ import type {
   UpdateAssistantRequest,
 } from '../types/agent/assistantTypes';
 import type { PreviewHistoryTarget, PreviewSnapshotInfo } from '../types/office/preview';
-import type { AcpModelInfo } from '../types/platform/acpTypes';
+import type {
+  GetConfigOptionsResponse,
+  SetConfigOptionRequest,
+  SetConfigOptionResponse,
+} from '../types/platform/acpTypes';
 import type {
   CreateProviderRequest,
   FetchModelsAnonymousRequest,
@@ -57,27 +61,37 @@ import type {
   ITeamRenamedEvent,
   ITeamRunAck,
   ITeamRunEvent,
+  ITeamRunStateResponse,
   ITeamSessionChangedEvent,
   ITeamTaskChangedEvent,
   ICancelTeamChildTurnParams,
   ICancelTeamRunParams,
+  IPauseTeamSlotParams,
   ISendTeamAgentMessageParams,
   ISendTeamMessageParams,
   ITeamTeammateMessageEvent,
   TTeam,
-  TeamAgent,
+  TeamAssistant,
 } from '../types/team/teamTypes';
 import type {
+  AutoUpdateReadyResult,
   AutoUpdateStatus,
   UpdateCheckRequest,
   UpdateCheckResult,
+  UpdateDownloadCancelRequest,
   UpdateDownloadProgressEvent,
   UpdateDownloadRequest,
   UpdateDownloadResult,
 } from '../update/updateTypes';
+import type { AgentMetadata } from '@/renderer/utils/model/agentTypes';
 import type { Theme } from '@/common/theme/types';
 import type { ProtocolDetectionRequest, ProtocolDetectionResponse } from '../utils/protocolDetector';
-import { fromApiConversation, fromApiPaginatedConversations, toApiModelOptional } from './apiModelMapper';
+import {
+  buildCreateConversationBody,
+  fromApiConversation,
+  fromApiPaginatedConversations,
+  toApiModelOptional,
+} from './apiModelMapper';
 import {
   httpDelete,
   httpGet,
@@ -91,13 +105,13 @@ import {
   wsMappedEmitter,
 } from './httpBridge';
 import { fromApiSearchResult, type ApiMessageSearchItem } from './searchMapper';
-import type { IAddTeamAgentParams, ICreateTeamParams } from './teamMapper';
+import type { IAddTeamAssistantParams, ICreateTeamParams } from './teamMapper';
 import {
-  fromBackendAgent,
+  fromBackendAssistant,
   fromBackendTeam,
   fromBackendTeamList,
   fromBackendTeamOptional,
-  toBackendAgent,
+  toBackendAssistant,
 } from './teamMapper';
 import { fromBackendCompareResult, type RawCompareResult } from './fileSnapshotMapper';
 import {
@@ -106,6 +120,17 @@ import {
   fromBackendWorkspaceList,
   type RawWorkspaceFlatFile,
 } from './workspaceMapper';
+
+const httpGetClientSetting = <T>(key: string) => ({
+  provider: () => {},
+  invoke: (async () => {
+    const data = await httpRequest<Record<string, T | undefined>>(
+      'GET',
+      `/api/settings/client?keys=${encodeURIComponent(key)}`
+    );
+    return data?.[key];
+  }) as () => Promise<T | undefined>,
+});
 
 // ---------------------------------------------------------------------------
 // Shell — routed to POST /api/shell/*
@@ -150,23 +175,7 @@ export const assistants = {
 
 export const conversation = {
   create: withResponseMap(
-    httpPost<TChatConversation, ICreateConversationParams>('/api/conversations', (p) => {
-      // Top-level `model` is aionrs-only on the backend (spec 2026-05-12).
-      // Other agent types carry model info via `extra`.
-      const isAionrs = p.type === 'aionrs';
-      const body: Record<string, unknown> = {
-        type: p.type,
-        id: p.id,
-        name: p.name,
-        assistant: p.assistant,
-        extra: p.extra,
-      };
-      if (isAionrs) {
-        const model = toApiModelOptional(p.model);
-        if (model) body.model = model;
-      }
-      return body;
-    }),
+    httpPost<TChatConversation, ICreateConversationParams>('/api/conversations', (p) => buildCreateConversationBody(p)),
     fromApiConversation
   ),
   createWithConversation: withResponseMap(
@@ -429,7 +438,7 @@ export interface IAppRestartResult {
   reason?: 'dev-mode';
 }
 
-export type IRendererLogLevel = 'info' | 'warn' | 'error';
+export type IRendererLogLevel = 'debug' | 'info' | 'warn' | 'error';
 
 export interface IRendererLogEntry {
   level: IRendererLogLevel;
@@ -488,9 +497,10 @@ export const application = {
 // ---------------------------------------------------------------------------
 
 export const update = {
-  open: bridge.buildEmitter<{ source?: 'menu' | 'about' }>('update.open'),
+  open: bridge.buildEmitter<{ source?: 'menu' | 'about' | 'tray' }>('update.open'),
   check: bridge.buildProvider<IBridgeResponse<UpdateCheckResult>, UpdateCheckRequest>('update.check'),
   download: bridge.buildProvider<IBridgeResponse<UpdateDownloadResult>, UpdateDownloadRequest>('update.download'),
+  cancelDownload: bridge.buildProvider<IBridgeResponse, UpdateDownloadCancelRequest>('update.download.cancel'),
   downloadProgress: bridge.buildEmitter<UpdateDownloadProgressEvent>('update.download.progress'),
 };
 
@@ -499,19 +509,13 @@ export const autoUpdate = {
     IBridgeResponse<{ updateInfo?: { version: string; releaseDate?: string; releaseNotes?: string } }>,
     { includePrerelease?: boolean }
   >('auto-update.check'),
+  restoreDownloaded: bridge.buildProvider<IBridgeResponse<AutoUpdateReadyResult>, void>(
+    'auto-update.restore-downloaded'
+  ),
   download: bridge.buildProvider<IBridgeResponse, void>('auto-update.download'),
+  cancelDownload: bridge.buildProvider<IBridgeResponse, void>('auto-update.download.cancel'),
   quitAndInstall: bridge.buildProvider<void, void>('auto-update.quit-and-install'),
   status: bridge.buildEmitter<AutoUpdateStatus>('auto-update.status'),
-};
-
-// ---------------------------------------------------------------------------
-// Star Office — routed to backend
-// ---------------------------------------------------------------------------
-
-export const starOffice = {
-  detectUrl: httpPost<{ url: string | null }, { preferredUrl?: string; force?: boolean; timeoutMs?: number }>(
-    '/api/star-office/detect'
-  ),
 };
 
 // ---------------------------------------------------------------------------
@@ -541,11 +545,13 @@ export const fs = {
   readFile: httpPost<string | null, { path: string; workspace?: string }>('/api/fs/read'),
   readFileBuffer: httpPost<string | null, { path: string; workspace?: string }>('/api/fs/read-buffer'),
   createTempFile: httpPost<string, { file_name: string }>('/api/fs/temp'),
-  writeFile: httpPost<boolean, { path: string; data: string }>('/api/fs/write'),
+  writeFile: httpPost<boolean, { path: string; data: string; workspace?: string }>('/api/fs/write'),
   createZip: httpPost<
     boolean,
     {
       path: string;
+      workspace?: string;
+      source_root?: string;
       request_id?: string;
       files: Array<{
         name: string;
@@ -560,8 +566,8 @@ export const fs = {
     { copied_files: string[]; failed_files?: Array<{ path: string; error: string }> },
     { file_paths: string[]; workspace: string; source_root?: string }
   >('/api/fs/copy'),
-  removeEntry: httpPost<void, { path: string }>('/api/fs/remove'),
-  renameEntry: httpPost<{ new_path: string }, { path: string; new_name: string }>('/api/fs/rename'),
+  removeEntry: httpPost<void, { path: string; workspace?: string }>('/api/fs/remove'),
+  renameEntry: httpPost<{ new_path: string }, { path: string; new_name: string; workspace?: string }>('/api/fs/rename'),
   readBuiltinRule: httpPost<string, { file_name: string }>('/api/skills/builtin-rule'),
   readBuiltinSkill: httpPost<string, { file_name: string }>('/api/skills/builtin-skill'),
   readAssistantRule: httpPost<string, { assistant_id: string; locale?: string }>('/api/skills/assistant-rule/read'),
@@ -577,20 +583,33 @@ export const fs = {
       description: string;
       location: string;
       relative_location?: string;
+      is_auto_inject: boolean;
       is_custom: boolean;
-      source: 'builtin' | 'custom' | 'extension';
+      source: 'builtin' | 'custom' | 'cron' | 'extension';
     }>,
     void
   >('/api/skills'),
-  listBuiltinAutoSkills: httpGet<Array<{ name: string; description: string; location: string }>, void>(
-    '/api/skills/builtin-auto'
-  ),
   materializeSkillsForAgent: httpPost<
     { skills: Array<{ name: string; source_path: string }> },
     { conversation_id: string; skills: string[] }
   >('/api/skills/materialize-for-agent'),
   readSkillInfo: httpPost<{ name: string; description: string }, { skill_path: string }>('/api/skills/info'),
-  importSkill: httpPost<{ skill_name: string }, { skill_path: string }>('/api/skills/import'),
+  importSkill: httpPost<
+    {
+      skill_name: string;
+      skill_names?: string[];
+      failed?: Array<{
+        source_name: string;
+        code: string;
+        error_path?: string;
+        actual_bytes?: number;
+        limit_bytes?: number;
+        line?: number;
+        column?: number;
+      }>;
+    },
+    { skill_path: string }
+  >('/api/skills/import'),
   scanForSkills: httpPost<Array<{ name: string; description: string; path: string }>, { folder_path: string }>(
     '/api/skills/scan'
   ),
@@ -604,9 +623,43 @@ export const fs = {
     }>,
     void
   >('/api/skills/detect-external'),
-  importSkillWithSymlink: httpPost<{ skill_name: string; skill_names?: string[] }, { skill_path: string }>(
-    '/api/skills/import-symlink'
-  ),
+  importSkills: httpPost<
+    {
+      skill_name: string;
+      skill_names?: string[];
+      failed?: Array<{
+        source_name: string;
+        code: string;
+        error_path?: string;
+        actual_bytes?: number;
+        limit_bytes?: number;
+        line?: number;
+        column?: number;
+      }>;
+    },
+    { skill_path: string }
+  >('/api/skills/import'),
+  listSkillImportHistory: httpGet<
+    Array<{
+      id: string;
+      operation_id: string;
+      source_label: string;
+      source_path?: string;
+      source_name: string;
+      skill_id?: string;
+      skill_name?: string;
+      status: string;
+      error_code?: string;
+      error_path?: string;
+      actual_bytes?: number;
+      limit_bytes?: number;
+      line?: number;
+      column?: number;
+      created_at: number;
+    }>,
+    void
+  >('/api/skills/import-history'),
+  getSkillImportLimits: httpGet<{ max_file_bytes: number; max_total_bytes: number }, void>('/api/skills/import-limits'),
   deleteSkill: httpDelete<void, { skill_name: string }>((p) => `/api/skills/${p.skill_name}`),
   getSkillPaths: httpGet<{ user_skills_dir: string; builtin_skills_dir: string }, void>('/api/skills/paths'),
   getCustomExternalPaths: httpGet<Array<{ name: string; path: string }>, void>('/api/skills/external-paths'),
@@ -761,15 +814,19 @@ export const mode = {
 export const acpConversation = {
   sendMessage: conversation.sendMessage,
   responseStream: conversation.responseStream,
-  getAvailableAgents: httpGet<AgentMetadata[], void>('/api/agents'),
-  /**
-   * Management view of `/api/agents` (`?include_disabled=true`). Returns the
-   * picker-safe list plus agents hidden solely because the user disabled
-   * them (still installed). Used only by the Agent settings screen so a
-   * disabled custom agent stays listed with a working re-enable toggle.
-   * Pickers must keep using `getAvailableAgents` (default filtered view).
-   */
-  getManagedAgents: httpGet<AgentMetadata[], void>('/api/agents?include_disabled=true'),
+  /** Management view used by Agent settings. */
+  getManagedAgents: httpGet<import('@/renderer/utils/model/agentTypes').ManagedAgent[], void>('/api/agents/management'),
+  getAgentOverrides: httpGet<
+    { command_override?: string; env_override: { name: string; value: string }[] },
+    { id: string }
+  >((p) => `/api/agents/${encodeURIComponent(p.id)}/overrides`),
+  setAgentOverrides: httpPut<
+    import('@/renderer/utils/model/agentTypes').ManagedAgent,
+    { id: string; command_override?: string | null; env_override?: { name: string; value: string }[] }
+  >(
+    (p) => `/api/agents/${encodeURIComponent(p.id)}/overrides`,
+    (p) => ({ command_override: p.command_override, env_override: p.env_override })
+  ),
   refreshCustomAgents: httpPost<void, void>('/api/agents/refresh'),
   testCustomAgent: httpPost<
     { step: 'success' } | { step: 'fail_cli'; error: string } | { step: 'fail_acp'; error: string },
@@ -819,32 +876,20 @@ export const acpConversation = {
     (p) => `/api/agents/${p.id}/enabled`,
     (p) => ({ enabled: p.enabled })
   ),
-  checkAgentHealth: httpPost<{ available: boolean; latency?: number; error?: string }, { backend: string }>(
-    '/api/agents/health-check'
+  checkManagedAgentHealthById: httpPost<import('@/renderer/utils/model/agentTypes').ManagedAgent, { id: string }>(
+    (p) => `/api/agents/${p.id}/health-check`,
+    () => undefined
   ),
   checkProviderHealth: httpPost<ProviderHealthCheckResponse, ProviderHealthCheckRequest>(
     '/api/agents/provider-health-check'
   ),
-  setMode: httpPut<{ mode: string; initialized: boolean }, { conversation_id: string; mode: string }>(
-    (p) => `/api/conversations/${p.conversation_id}/mode`,
-    (p) => ({ mode: p.mode })
-  ),
-  // 404 is the expected pre-warmup response from `/api/conversations/:id/mode`
-  // and `/api/conversations/:id/model` — the agent has not attached yet, so
-  // we have nothing to read. AcpModeSelector / AcpModelSelector both fall back
-  // to handshake metadata in that case. Silence the bridge log so this
-  // ordinary state doesn't pollute Sentry breadcrumbs (ELECTRON-1BT).
-  getMode: httpGet<{ mode: string; initialized: boolean }, { conversation_id: string }>(
-    (p) => `/api/conversations/${p.conversation_id}/mode`,
+  getConfigOptions: httpGet<GetConfigOptionsResponse, { conversation_id: string }>(
+    (p) => `/api/conversations/${p.conversation_id}/config-options`,
     { silentStatuses: [404] }
   ),
-  getModel: httpGet<{ model_info: AcpModelInfo | null }, { conversation_id: string }>(
-    (p) => `/api/conversations/${p.conversation_id}/model`,
-    { silentStatuses: [404] }
-  ),
-  setModel: httpPut<{ model_info: AcpModelInfo | null }, { conversation_id: string; model_id: string }>(
-    (p) => `/api/conversations/${p.conversation_id}/model`,
-    (p) => ({ model_id: p.model_id })
+  setConfigOption: httpPut<SetConfigOptionResponse, { conversation_id: string; option_id: string; value: string }>(
+    (p) => `/api/conversations/${p.conversation_id}/config-options/${encodeURIComponent(p.option_id)}`,
+    (p): SetConfigOptionRequest => ({ value: p.value })
   ),
 };
 
@@ -891,7 +936,7 @@ export const mcpService = {
         }
       >;
     }>,
-    Array<{ agent_type: string; backend?: string; name: string; cli_path?: string }>
+    void
   >('/api/mcp/agent-configs'),
   testMcpConnection: httpPost<
     {
@@ -991,14 +1036,37 @@ export type PaginatedResult<T> = {
   has_more: boolean;
 };
 
+export type MessageCursorPage<T> = {
+  items: T[];
+  oldest_cursor: string | null;
+  newest_cursor: string | null;
+  has_more_before: boolean;
+  has_more_after: boolean;
+};
+
+export type GetConversationMessagesParams = {
+  conversation_id: string;
+  limit?: number;
+  before?: string;
+  after?: string;
+  anchor_message_id?: string;
+  content_mode?: 'compact' | 'full';
+};
+
 export const database = {
   getConversationMessages: httpGet<
-    PaginatedResult<import('@/common/chat/chatLib').TMessage>,
-    { conversation_id: string; page?: number; page_size?: number; order?: string; content_mode?: 'compact' | 'full' }
-  >(
-    (p) =>
-      `/api/conversations/${p.conversation_id}/messages?page=${p.page ?? 1}&page_size=${p.page_size ?? 50}${p.order ? `&order=${p.order}` : ''}${p.content_mode ? `&content_mode=${p.content_mode}` : ''}`
-  ),
+    MessageCursorPage<import('@/common/chat/chatLib').TMessage>,
+    GetConversationMessagesParams
+  >((p) => {
+    const params = new URLSearchParams();
+    if (p.limit !== undefined) params.set('limit', String(p.limit));
+    if (p.before) params.set('before', p.before);
+    if (p.after) params.set('after', p.after);
+    if (p.anchor_message_id) params.set('anchor_message_id', p.anchor_message_id);
+    if (p.content_mode) params.set('content_mode', p.content_mode);
+    const qs = params.toString();
+    return `/api/conversations/${p.conversation_id}/messages${qs ? `?${qs}` : ''}`;
+  }),
   getConversationMessage: httpGet<
     import('@/common/chat/chatLib').TMessage,
     { conversation_id: string; message_id: string }
@@ -1139,23 +1207,23 @@ export const theme = {
 export const systemSettings = {
   getCloseToTray: bridge.buildProvider<boolean, void>('system-settings:get-close-to-tray'),
   setCloseToTray: bridge.buildProvider<void, { enabled: boolean }>('system-settings:set-close-to-tray'),
-  getNotificationEnabled: httpGet<boolean, void>('/api/settings/client?key=notificationEnabled'),
+  getNotificationEnabled: httpGetClientSetting<boolean>('notificationEnabled'),
   setNotificationEnabled: httpPut<void, { enabled: boolean }>('/api/settings/client', (p) => ({
     notificationEnabled: p.enabled,
   })),
-  getCronNotificationEnabled: httpGet<boolean, void>('/api/settings/client?key=cronNotificationEnabled'),
+  getCronNotificationEnabled: httpGetClientSetting<boolean>('cronNotificationEnabled'),
   setCronNotificationEnabled: httpPut<void, { enabled: boolean }>('/api/settings/client', (p) => ({
     cronNotificationEnabled: p.enabled,
   })),
-  getKeepAwake: httpGet<boolean, void>('/api/settings/client?key=keepAwake'),
+  getKeepAwake: httpGetClientSetting<boolean>('keepAwake'),
   setKeepAwake: httpPut<void, { enabled: boolean }>('/api/settings/client', (p) => ({ keepAwake: p.enabled })),
   changeLanguage: httpPatch<void, { language: string }>('/api/settings', (p) => ({ language: p.language })),
   languageChanged: wsEmitter<{ language: string }>('system-settings:language-changed'),
-  getSaveUploadToWorkspace: httpGet<boolean, void>('/api/settings/client?key=saveUploadToWorkspace'),
+  getSaveUploadToWorkspace: httpGetClientSetting<boolean>('saveUploadToWorkspace'),
   setSaveUploadToWorkspace: httpPut<void, { enabled: boolean }>('/api/settings/client', (p) => ({
     saveUploadToWorkspace: p.enabled,
   })),
-  getAutoPreviewOfficeFiles: httpGet<boolean, void>('/api/settings/client?key=autoPreviewOfficeFiles'),
+  getAutoPreviewOfficeFiles: httpGetClientSetting<boolean>('autoPreviewOfficeFiles'),
   setAutoPreviewOfficeFiles: httpPut<void, { enabled: boolean }>('/api/settings/client', (p) => ({
     autoPreviewOfficeFiles: p.enabled,
   })),
@@ -1260,7 +1328,7 @@ export const cron = {
   ),
   getJob: httpGet<ICronJob | null, { job_id: string }>((p) => `/api/cron/jobs/${p.job_id}`),
   addJob: httpPost<ICronJob, ICreateCronJobParams>('/api/cron/jobs'),
-  updateJob: httpPut<ICronJob, { job_id: string; updates: Partial<ICronJob> }>(
+  updateJob: httpPut<ICronJob, { job_id: string; updates: ICronJobUpdateParams }>(
     (p) => `/api/cron/jobs/${p.job_id}`,
     (p) => ({
       name: p.updates.name,
@@ -1319,7 +1387,7 @@ export interface ICronJob {
     created_by: 'user' | 'agent';
     created_at: number;
     updated_at: number;
-    agent_config?: ICronAgentConfig;
+    agent_config?: ICronAgentConfigRead;
   };
   state: {
     next_run_at_ms?: number;
@@ -1332,15 +1400,32 @@ export interface ICronJob {
   };
 }
 
-export interface ICronAgentConfig {
-  backend: string;
+export interface ICronAgentConfigRead {
   name: string;
   cli_path?: string;
   is_preset?: boolean;
+  assistant_id?: string;
+  /** @deprecated Legacy assistant identity kept for read compatibility only. */
   custom_agent_id?: string;
-  preset_agent_type?: string;
   mode?: string;
   model_id?: string;
+  model?: ICronProviderModel;
+  config_options?: Record<string, string>;
+  workspace?: string;
+}
+
+export interface ICronProviderModel {
+  provider_id: string;
+  model: string;
+  use_model?: string;
+}
+
+export interface ICronAgentConfigWrite {
+  name: string;
+  assistant_id?: string;
+  mode?: string;
+  model_id?: string;
+  model?: ICronProviderModel;
   config_options?: Record<string, string>;
   workspace?: string;
 }
@@ -1353,10 +1438,27 @@ export interface ICreateCronJobParams {
   message?: string;
   conversation_id: string;
   conversation_title?: string;
-  agent_type: string;
   created_by: 'user' | 'agent';
   execution_mode?: 'existing' | 'new_conversation';
-  agent_config?: ICronAgentConfig;
+  agent_config?: ICronAgentConfigWrite;
+}
+
+export interface ICronJobUpdateParams {
+  name?: string;
+  description?: string;
+  enabled?: boolean;
+  schedule?: ICronSchedule;
+  target?: {
+    payload?: { kind: 'message'; text: string };
+    execution_mode?: 'existing' | 'new_conversation';
+  };
+  metadata?: {
+    conversation_title?: string;
+    agent_config?: ICronAgentConfigWrite;
+  };
+  state?: {
+    max_retries?: number;
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -1388,10 +1490,10 @@ export interface IConfirmMessageParams {
 }
 
 export interface ICreateConversationParams {
-  type: 'acp' | 'aionrs';
+  type?: 'acp' | 'aionrs';
   id?: string;
   name?: string;
-  model: TProviderWithModel;
+  model?: TProviderWithModel;
   assistant?: {
     id: string;
     locale?: string;
@@ -1407,7 +1509,6 @@ export interface ICreateConversationParams {
     workspace?: string;
     custom_workspace?: boolean;
     default_files?: string[];
-    backend?: string;
     cli_path?: string;
     gateway?: {
       host?: string;
@@ -1418,25 +1519,18 @@ export interface ICreateConversationParams {
       cli_path?: string;
     };
     web_search_engine?: 'google' | 'default';
-    agent_name?: string;
-    agent_id?: string;
-    custom_agent_id?: string;
     context?: string;
     context_file_name?: string;
-    preset_rules?: string;
     /** Transient: preset opt-in skills. Consumed by backend create handler
      *  and stripped before persistence. */
     preset_enabled_skills?: string[];
     /** Transient: auto-inject skills the user opted out of on the Guid page.
      *  Consumed by backend create handler and stripped before persistence. */
     exclude_auto_inject_skills?: string[];
-    preset_context?: string;
-    preset_assistant_id?: string;
     selected_mcp_server_ids?: string[];
     selected_session_mcp_servers?: ISessionMcpServer[];
-    session_mode?: string;
     codex_model?: string;
-    current_model_id?: string;
+    thought_level?: string;
     cached_config_options?: import('../types/platform/acpTypes').AcpSessionConfigOption[];
     pending_config_options?: Record<string, string>;
     runtime_validation?: {
@@ -1684,7 +1778,10 @@ export const extensions = {
 // ---------------------------------------------------------------------------
 
 import type {
+  IChannelAssistantBindingWrite,
+  IChannelDefaultModelSetting,
   IChannelPairingRequest,
+  IChannelPlatformSettings,
   IChannelPluginStatus,
   IChannelSession,
   IChannelUser,
@@ -1768,6 +1865,17 @@ export const channel = {
   getActiveSessions: withResponseMap(httpGet<RawSession[], void>('/api/channel/sessions'), (raw) =>
     raw.map(toChannelSession)
   ),
+  getPlatformSettings: httpGet<IChannelPlatformSettings, { platform: string }>(
+    (p) => `/api/channel/settings/${encodeURIComponent(p.platform)}`
+  ),
+  setAssistantSetting: httpPut<void, { platform: string; assistant: IChannelAssistantBindingWrite }>(
+    (p) => `/api/channel/settings/${encodeURIComponent(p.platform)}/assistant`,
+    (p) => p.assistant
+  ),
+  setDefaultModelSetting: httpPut<void, { platform: string; default_model: IChannelDefaultModelSetting }>(
+    (p) => `/api/channel/settings/${encodeURIComponent(p.platform)}/default-model`,
+    (p) => p.default_model
+  ),
   syncChannelSettings: httpPost<void, { platform: string }>('/api/channel/settings/sync'),
   pairingRequested: wsMappedEmitter<IChannelPairingRequest>('channel.pairing-requested', (raw) =>
     toPairing(raw as RawPairing)
@@ -1790,8 +1898,6 @@ export const channel = {
 // ---------------------------------------------------------------------------
 
 import type { HubExtensionStatus, IHubAgentItem } from '@/common/types/agent/hub';
-import type { AgentMetadata } from '@/renderer/utils/model/agentTypes';
-
 export const hub = {
   getExtensionList: httpGet<IHubAgentItem[], void>('/api/hub/extensions'),
   install: httpPost<void, { name: string }>('/api/hub/install'),
@@ -1806,13 +1912,21 @@ export const hub = {
 // Team Mode API — routed to /api/teams/*
 // ---------------------------------------------------------------------------
 
-export type { IAddTeamAgentParams, ICreateTeamParams } from './teamMapper';
+export type { IAddTeamAssistantParams, ICreateTeamParams } from './teamMapper';
+
+export type IRealtimeReconnectedEvent = {
+  timestamp: number;
+};
+
+export const realtime = {
+  reconnected: wsEmitter<IRealtimeReconnectedEvent>('realtime.reconnected'),
+};
 
 export const team = {
   create: withResponseMap(
     httpPost<TTeam, ICreateTeamParams>('/api/teams', (p) => ({
       name: p.name,
-      agents: p.agents.map(toBackendAgent),
+      assistants: p.assistants.map(toBackendAssistant),
       ...(p.workspace ? { workspace: p.workspace } : {}),
     })),
     fromBackendTeam
@@ -1827,11 +1941,11 @@ export const team = {
   ),
   remove: httpDelete<void, { id: string }>((p) => `/api/teams/${p.id}`),
   addAgent: withResponseMap(
-    httpPost<TeamAgent, IAddTeamAgentParams>(
+    httpPost<TeamAssistant, IAddTeamAssistantParams>(
       (p) => `/api/teams/${p.team_id}/agents`,
-      (p) => toBackendAgent(p.agent)
+      (p) => ({ assistant: toBackendAssistant(p.assistant) })
     ),
-    fromBackendAgent
+    fromBackendAssistant
   ),
   removeAgent: httpDelete<void, { team_id: string; slot_id: string }>(
     (p) => `/api/teams/${p.team_id}/agents/${p.slot_id}`
@@ -1850,6 +1964,7 @@ export const team = {
     (p) => `/api/teams/${p.team_id}/session-mode`,
     (p) => ({ mode: p.session_mode })
   ),
+  getRunState: httpGet<ITeamRunStateResponse, { team_id: string }>((p) => `/api/teams/${p.team_id}/run-state`),
   sendMessage: httpPost<ITeamRunAck, ISendTeamMessageParams>(
     (p) => `/api/teams/${p.team_id}/messages`,
     (p) => ({
@@ -1873,6 +1988,12 @@ export const team = {
   ),
   cancelChildTurn: httpPost<void, ICancelTeamChildTurnParams>(
     (p) => `/api/teams/${p.team_id}/runs/${p.team_run_id}/agents/${p.slot_id}/cancel`,
+    (p) => ({
+      reason: p.reason,
+    })
+  ),
+  pauseSlotWork: httpPost<void, IPauseTeamSlotParams>(
+    (p) => `/api/teams/${p.team_id}/runs/${p.team_run_id}/agents/${p.slot_id}/pause`,
     (p) => ({
       reason: p.reason,
     })

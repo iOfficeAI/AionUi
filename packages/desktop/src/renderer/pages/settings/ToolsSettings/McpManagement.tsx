@@ -3,7 +3,6 @@ import { Down, Plus } from '@icon-park/react';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { BUILTIN_IMAGE_GEN_ID, BUILTIN_IMAGE_GEN_NAME, type IMcpServer } from '@/common/config/storage';
-import { getAgents } from '@/renderer/hooks/agent/useAgents';
 import { useMcpConnection, useMcpModal, useMcpOAuth, useMcpServerCRUD, useMcpServers } from '@/renderer/hooks/mcp';
 import AddMcpServerModal from '../components/AddMcpServerModal';
 import McpServerItem from './McpServerItem';
@@ -108,21 +107,7 @@ const McpManagement: React.FC<McpManagementProps> = ({ message }) => {
     [handleBatchImportMcpServers, handleTestMcpConnections]
   );
 
-  const [detectedAgents, setDetectedAgents] = React.useState<Array<{ backend: string; name: string }>>([]);
   const [importMode, setImportMode] = React.useState<'json' | 'oneclick'>('json');
-
-  React.useEffect(() => {
-    const loadAgents = async () => {
-      try {
-        const agents = await getAgents();
-        setDetectedAgents(agents.map((agent) => ({ backend: agent.backend, name: agent.name })));
-      } catch (error) {
-        console.error('Failed to load agents:', error);
-      }
-    };
-
-    void loadAgents();
-  }, []);
 
   React.useEffect(() => {
     mcpServers.filter(isOAuthCapableServer).forEach((server) => {
@@ -146,52 +131,37 @@ const McpManagement: React.FC<McpManagementProps> = ({ message }) => {
         header={
           <div className='flex items-center justify-between'>
             {t('settings.mcpSettings')}
-            {detectedAgents.length > 0 ? (
-              <Dropdown
-                trigger='click'
-                droplist={
-                  <Menu>
-                    <Menu.Item
-                      key='json'
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setImportMode('json');
-                        showAddMcpModal();
-                      }}
-                    >
-                      {t('settings.mcpImportFromJSON')}
-                    </Menu.Item>
-                    <Menu.Item
-                      key='oneclick'
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setImportMode('oneclick');
-                        showAddMcpModal();
-                      }}
-                    >
-                      {t('settings.mcpOneKeyImport')}
-                    </Menu.Item>
-                  </Menu>
-                }
-              >
-                <Button type='outline' icon={<Plus size='14' />} shape='round' onClick={(e) => e.stopPropagation()}>
-                  {t('settings.mcpAddServer')} <Down size='12' />
-                </Button>
-              </Dropdown>
-            ) : (
-              <Button
-                type='outline'
-                icon={<Plus size='16' />}
-                shape='round'
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setImportMode('json');
-                  showAddMcpModal();
-                }}
-              >
-                {t('settings.mcpAddServer')}
+            <Dropdown
+              trigger='click'
+              droplist={
+                <Menu>
+                  <Menu.Item
+                    key='json'
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setImportMode('json');
+                      showAddMcpModal();
+                    }}
+                  >
+                    {t('settings.mcpImportFromJSON')}
+                  </Menu.Item>
+                  <Menu.Item
+                    key='oneclick'
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setImportMode('oneclick');
+                      showAddMcpModal();
+                    }}
+                  >
+                    {t('settings.mcpOneKeyImport')}
+                  </Menu.Item>
+                </Menu>
+              }
+            >
+              <Button type='outline' icon={<Plus size='14' />} shape='round' onClick={(e) => e.stopPropagation()}>
+                {t('settings.mcpAddServer')} <Down size='12' />
               </Button>
-            )}
+            </Dropdown>
           </div>
         }
         name='mcp-servers'

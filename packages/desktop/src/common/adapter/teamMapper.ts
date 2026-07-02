@@ -6,7 +6,7 @@
 
 import type {
   BackendTeammateStatus,
-  TeamAgent,
+  TeamAssistant,
   TeammateRole,
   TeammateStatus,
   TTeam,
@@ -15,17 +15,24 @@ import type {
 
 // ── Parameter types for team API calls ─────────────────────────────────
 
+/**
+ * Fields the backend actually consumes when creating a team member. The
+ * runtime backend / conversation type are derived server-side from the
+ * assistant, so callers only supply assistant identity, role, and model.
+ */
+export type TeamAssistantInput = Pick<TeamAssistant, 'role' | 'assistant_name' | 'assistant_id' | 'model'>;
+
 export type ICreateTeamParams = {
   user_id: string;
   name: string;
   workspace: string;
   workspace_mode: WorkspaceMode;
-  agents: Omit<TeamAgent, 'slot_id' | 'conversation_id'>[];
+  assistants: TeamAssistantInput[];
 };
 
-export type IAddTeamAgentParams = {
+export type IAddTeamAssistantParams = {
   team_id: string;
-  agent: Omit<TeamAgent, 'slot_id' | 'conversation_id'>;
+  assistant: TeamAssistantInput;
 };
 
 // ── Backend → Frontend ─────────────────────────────────────────────────
@@ -55,28 +62,24 @@ function toWorkspaceMode(raw: string | undefined): WorkspaceMode {
   return VALID_WORKSPACE_MODES.has(raw as WorkspaceMode) ? (raw as WorkspaceMode) : 'shared';
 }
 
-const NON_ACP_BACKENDS = new Set(['aionrs', 'openclaw-gateway', 'nanobot', 'remote']);
-
-function resolveConversationType(backend: string): string {
-  return NON_ACP_BACKENDS.has(backend) ? backend : 'acp';
-}
-
-export function fromBackendAgent(raw: unknown): TeamAgent {
+export function fromBackendAssistant(raw: unknown): TeamAssistant {
   const r = (raw ?? {}) as Record<string, unknown>;
   const agentType = (r.agent_type as string | undefined) ?? (r.backend as string | undefined) ?? '';
-  const backend = (r.backend as string | undefined) ?? agentType;
-  const conversationType = resolveConversationType(backend);
+  const backend = (r.assistant_backend as string | undefined) ?? (r.backend as string | undefined) ?? agentType;
   return {
     slot_id: (r.slot_id as string | undefined) ?? '',
     conversation_id: (r.conversation_id as string | undefined) ?? '',
     role: toRole(r.role as string | undefined),
-    agent_type: agentType,
+    assistant_backend: backend,
     icon: r.icon as string | undefined,
-    agent_name: (r.agent_name as string | undefined) ?? (r.name as string | undefined) ?? '',
-    conversation_type: conversationType,
+    assistant_name:
+      (r.assistant_name as string | undefined) ??
+      (r.agent_name as string | undefined) ??
+      (r.name as string | undefined) ??
+      '',
     status: normalizeTeamStatus(r.status as BackendTeammateStatus | undefined),
     cli_path: r.cli_path as string | undefined,
-    custom_agent_id: r.custom_agent_id as string | undefined,
+    assistant_id: r.assistant_id as string | undefined,
     model: r.model as string | undefined,
     pending_confirmations: (r.pending_confirmations ?? r.pendingConfirmations ?? 0) as number,
   };
@@ -84,15 +87,24 @@ export function fromBackendAgent(raw: unknown): TeamAgent {
 
 export function fromBackendTeam(raw: unknown): TTeam {
   const r = (raw ?? {}) as Record<string, unknown>;
-  const agents = Array.isArray(r.agents) ? (r.agents as unknown[]).map(fromBackendAgent) : [];
+  const rawAssistants = Array.isArray(r.assistants)
+    ? (r.assistants as unknown[])
+    : Array.isArray(r.agents)
+      ? (r.agents as unknown[])
+      : [];
+  const assistants = rawAssistants.map(fromBackendAssistant);
+  const leaderAssistantId =
+    (r.leader_assistant_id as string | undefined) ?? (r.leader_agent_id as string | undefined) ?? '';
   return {
     id: (r.id as string | undefined) ?? '',
     user_id: (r.user_id as string | undefined) ?? '',
     name: (r.name as string | undefined) ?? '',
     workspace: (r.workspace as string | undefined) ?? '',
     workspace_mode: toWorkspaceMode(r.workspace_mode as string | undefined),
-    leader_agent_id: (r.leader_agent_id as string | undefined) ?? '',
-    agents,
+    leader_assistant_id: leaderAssistantId,
+    assistants,
+    leader_agent_id: leaderAssistantId,
+    agents: assistants,
     session_mode: r.session_mode as string | undefined,
     created_at: (r.created_at as number | undefined) ?? 0,
     updated_at: (r.updated_at as number | undefined) ?? 0,
@@ -109,12 +121,15 @@ export function fromBackendTeamOptional(raw: unknown): TTeam | null {
 
 // ── Frontend → Backend ─────────────────────────────────────────────────
 
-export function toBackendAgent(a: Omit<TeamAgent, 'slot_id' | 'conversation_id'>): Record<string, unknown> {
+export function toBackendAssistant(a: TeamAssistantInput): Record<string, unknown> {
+  if (!a.assistant_id) {
+    throw new Error('assistant_id is required');
+  }
+
   return {
-    name: a.agent_name,
+    name: a.assistant_name,
     role: a.role === 'leader' ? 'lead' : a.role,
-    backend: a.agent_type,
     model: a.model || 'default',
-    ...(a.custom_agent_id ? { custom_agent_id: a.custom_agent_id } : {}),
+    assistant_id: a.assistant_id,
   };
 }

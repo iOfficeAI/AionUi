@@ -13,14 +13,40 @@ import {
   normalizeAgentStreamError,
   normalizeTextMessageContent,
   preferTextMessageVersion,
+  sanitizeAcpToolCallContent,
 } from '@/common/chat/chatLib';
 import { useCallback, useEffect, useRef } from 'react';
 import { createContext } from '@renderer/utils/ui/createContext';
+import {
+  DEFAULT_MESSAGE_PAGE_LIMIT,
+  loadConversationAnchorWindow,
+  loadConversationMessagePage,
+  loadLatestConversationMessages,
+} from '@/renderer/utils/chat/messagePagination';
 
 const [useMessageList, MessageListProvider, useUpdateMessageList] = createContext([] as TMessage[]);
 const [useMessageListLoading, MessageListLoadingProvider, useUpdateMessageListLoading] = createContext(false);
 
 const [useChatKey, ChatKeyProvider] = createContext('');
+
+export type MessagePaginationState = {
+  oldestCursor?: string;
+  newestCursor?: string;
+  hasMoreBefore: boolean;
+  hasMoreAfter: boolean;
+  isLoadingBefore: boolean;
+  isLoadingAnchor: boolean;
+};
+
+const EMPTY_MESSAGE_PAGINATION_STATE: MessagePaginationState = {
+  hasMoreBefore: false,
+  hasMoreAfter: false,
+  isLoadingBefore: false,
+  isLoadingAnchor: false,
+};
+
+const [useMessagePaginationState, MessagePaginationProvider, useUpdateMessagePaginationState] =
+  createContext<MessagePaginationState>(EMPTY_MESSAGE_PAGINATION_STATE);
 
 const beforeUpdateMessageListStack: Array<(list: TMessage[]) => TMessage[]> = [];
 
@@ -94,6 +120,11 @@ function getOrBuildIndex(list: TMessage[]): MessageIndex {
   return cached;
 }
 
+const sanitizeMessageForList = (message: TMessage): TMessage =>
+  message.type === 'acp_tool_call'
+    ? ({ ...message, content: sanitizeAcpToolCallContent(message.content) } as TMessage)
+    : message;
+
 // 使用索引优化的消息合并函数
 // Index-optimized message compose function
 function composeMessageWithIndex(message: TMessage | undefined, list: TMessage[], index: MessageIndex): TMessage[] {
@@ -104,12 +135,13 @@ function composeMessageWithIndex(message: TMessage | undefined, list: TMessage[]
   }
 
   if (!list?.length) {
+    const firstMessage = sanitizeMessageForList(message);
     // Update index when adding first message
-    const msgIndexKey = getMessageIndexKey(message);
+    const msgIndexKey = getMessageIndexKey(firstMessage);
     if (msgIndexKey) {
       index.msgIdIndex.set(msgIndexKey, 0);
     }
-    return [message];
+    return [firstMessage];
   }
 
   const last = list[list.length - 1];
@@ -169,7 +201,7 @@ function composeMessageWithIndex(message: TMessage | undefined, list: TMessage[]
     index.tool_call_idIndex.set(message.content.update.tool_call_id, newIdx);
     const msgIndexKey = getMessageIndexKey(message);
     if (msgIndexKey) index.msgIdIndex.set(msgIndexKey, newIdx);
-    return list.concat(message);
+    return list.concat(sanitizeMessageForList(message));
   }
 
   // permission: use call_id for recovery/live stream dedupe.
@@ -319,7 +351,7 @@ function composeMessageWithIndex(message: TMessage | undefined, list: TMessage[]
   return newList;
 }
 
-export const useAddOrUpdateMessage = () => {
+export const useMergeLiveMessage = () => {
   const update = useUpdateMessageList();
   const pendingRef = useRef<Array<{ message: TMessage; add: boolean }>>([]);
   const rafRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -348,7 +380,7 @@ export const useAddOrUpdateMessage = () => {
         if (item.add) {
           // 新增消息，更新索引
           // New message, update index
-          const msg = item.message;
+          const msg = sanitizeMessageForList(item.message);
           const newIdx = newList.length;
           const msgIndexKey = getMessageIndexKey(msg);
           if (msgIndexKey) index.msgIdIndex.set(msgIndexKey, newIdx);
@@ -399,6 +431,8 @@ export const useAddOrUpdateMessage = () => {
     [flush]
   );
 };
+
+export const useAddOrUpdateMessage = useMergeLiveMessage;
 
 export const useRemoveMessageByMsgId = () => {
   const update = useUpdateMessageList();
@@ -468,6 +502,47 @@ const classifyPersistedSendFailure = (
   }
 
   const persistedCode = typeof parsed.code === 'string' ? parsed.code : undefined;
+  const structuredContent = isRecord(parsed.structuredContent) ? parsed.structuredContent : undefined;
+  const domainCode =
+    typeof structuredContent?.domainCode === 'string'
+      ? structuredContent.domainCode
+      : typeof parsed.domainCode === 'string'
+        ? parsed.domainCode
+        : undefined;
+  const effectiveCode = domainCode || persistedCode;
+
+  if (
+    effectiveCode === 'MCP_HTTP_RESPONSE_READ_FAILED' ||
+    effectiveCode === 'MCP_TOOL_REMOTE_ERROR' ||
+    effectiveCode === 'MCP_TOOL_RESPONSE_UNEXPECTED' ||
+    effectiveCode === 'MCP_TCP_READ_FAILED' ||
+    effectiveCode === 'TEAM_SERVICE_UNAVAILABLE'
+  ) {
+    return {
+      message,
+      code: effectiveCode,
+      ownership: 'aionui',
+      detail: message,
+      retryable: true,
+      feedback_recommended: true,
+    };
+  }
+
+  if (
+    effectiveCode === 'TEAM_ASSISTANT_ID_REQUIRED' ||
+    effectiveCode === 'TEAM_ASSISTANT_NOT_FOUND' ||
+    effectiveCode === 'TEAM_ASSISTANT_FIELD_UNSUPPORTED'
+  ) {
+    return {
+      message,
+      code: effectiveCode,
+      ownership: 'aionui',
+      detail: message,
+      retryable: false,
+      feedback_recommended: false,
+    };
+  }
+
   if (persistedCode === 'BAD_GATEWAY') {
     return {
       message,
@@ -589,56 +664,178 @@ export function normalizeDbMessage(msg: TMessage): TMessage {
   };
 }
 
+const getMessageMergeKey = (message: TMessage): string => {
+  if (message.msg_id) return `${message.type}:${message.msg_id}`;
+  return `id:${message.id}`;
+};
+
+const preferPersistedOrLiveMessage = (persisted: TMessage, live: TMessage): TMessage => {
+  if (persisted.type === 'text' && live.type === 'text') {
+    return preferTextMessageVersion(persisted, live);
+  }
+  return persisted;
+};
+
+function mergeLoadedPageWithCurrent(conversationId: string, messages: TMessage[], currentList: TMessage[]): TMessage[] {
+  if (!currentList.length) return messages;
+
+  const sameConversation = currentList.filter((message) => message.conversation_id === conversationId);
+  if (!sameConversation.length) return messages;
+
+  const currentById = new Map(sameConversation.map((message) => [message.id, message]));
+  const currentByKey = new Map(sameConversation.map((message) => [getMessageMergeKey(message), message]));
+  const loadedIds = new Set(messages.map((message) => message.id));
+  const loadedKeys = new Set(messages.map(getMessageMergeKey));
+
+  const mergedMessages = messages.map((message) => {
+    const live = currentById.get(message.id) ?? currentByKey.get(getMessageMergeKey(message));
+    return live ? preferPersistedOrLiveMessage(message, live) : message;
+  });
+  const liveOnly = sameConversation.filter(
+    (message) => !loadedIds.has(message.id) && !loadedKeys.has(getMessageMergeKey(message))
+  );
+
+  return liveOnly.length ? [...mergedMessages, ...liveOnly] : mergedMessages;
+}
+
+export function prependHistoryMessages(currentList: TMessage[], messages: TMessage[]): TMessage[] {
+  if (!messages.length) return currentList;
+
+  const currentIds = new Set(currentList.map((message) => message.id));
+  const currentKeys = new Set(currentList.map(getMessageMergeKey));
+  const uniqueHistory = messages.filter(
+    (message) => !currentIds.has(message.id) && !currentKeys.has(getMessageMergeKey(message))
+  );
+  return uniqueHistory.length ? [...uniqueHistory, ...currentList] : currentList;
+}
+
+export const usePrependHistoryPage = () => {
+  const update = useUpdateMessageList();
+  return useCallback(
+    (messages: TMessage[]) => {
+      update((list) => prependHistoryMessages(list, messages));
+    },
+    [update]
+  );
+};
+
+export const useReplaceWithAnchorWindow = () => {
+  const update = useUpdateMessageList();
+  return useCallback(
+    (conversationId: string, messages: TMessage[]) => {
+      update((list) => mergeLoadedPageWithCurrent(conversationId, messages, list));
+    },
+    [update]
+  );
+};
+
+export const useLoadPreviousMessagePage = (conversationId?: string) => {
+  const pagination = useMessagePaginationState();
+  const setPagination = useUpdateMessagePaginationState();
+  const prependHistoryPage = usePrependHistoryPage();
+
+  return useCallback(async () => {
+    if (!conversationId || !pagination.oldestCursor || !pagination.hasMoreBefore || pagination.isLoadingBefore) {
+      return false;
+    }
+
+    setPagination((current) => ({ ...current, isLoadingBefore: true }));
+    try {
+      const page = await loadConversationMessagePage(conversationId, {
+        limit: DEFAULT_MESSAGE_PAGE_LIMIT,
+        before: pagination.oldestCursor,
+        contentMode: 'compact',
+      });
+      const messages = page.items.map(normalizeDbMessage);
+      prependHistoryPage(messages);
+      setPagination((current) => ({
+        ...current,
+        oldestCursor: page.oldest_cursor ?? current.oldestCursor,
+        newestCursor: current.newestCursor ?? page.newest_cursor ?? undefined,
+        hasMoreBefore: page.has_more_before,
+        hasMoreAfter: current.hasMoreAfter || page.has_more_after,
+        isLoadingBefore: false,
+      }));
+      return true;
+    } catch (error) {
+      console.error('[useLoadPreviousMessagePage] Failed to load previous messages:', error);
+      setPagination((current) => ({ ...current, isLoadingBefore: false }));
+      return false;
+    }
+  }, [
+    conversationId,
+    pagination.hasMoreBefore,
+    pagination.isLoadingBefore,
+    pagination.oldestCursor,
+    prependHistoryPage,
+    setPagination,
+  ]);
+};
+
+export const useLoadAnchorMessageWindow = (conversationId?: string) => {
+  const setPagination = useUpdateMessagePaginationState();
+  const replaceWithAnchorWindow = useReplaceWithAnchorWindow();
+
+  return useCallback(
+    async (messageId: string) => {
+      if (!conversationId || !messageId) return false;
+
+      setPagination((current) => ({ ...current, isLoadingAnchor: true }));
+      try {
+        const page = await loadConversationAnchorWindow(conversationId, messageId, {
+          limit: DEFAULT_MESSAGE_PAGE_LIMIT,
+          contentMode: 'compact',
+        });
+        replaceWithAnchorWindow(conversationId, page.items.map(normalizeDbMessage));
+        setPagination({
+          oldestCursor: page.oldest_cursor ?? undefined,
+          newestCursor: page.newest_cursor ?? undefined,
+          hasMoreBefore: page.has_more_before,
+          hasMoreAfter: page.has_more_after,
+          isLoadingBefore: false,
+          isLoadingAnchor: false,
+        });
+        return true;
+      } catch (error) {
+        console.error('[useLoadAnchorMessageWindow] Failed to load anchor messages:', error);
+        setPagination((current) => ({ ...current, isLoadingAnchor: false }));
+        return false;
+      }
+    },
+    [conversationId, replaceWithAnchorWindow, setPagination]
+  );
+};
+
 export const useMessageLstCache = (key: string) => {
   const update = useUpdateMessageList();
   const setLoading = useUpdateMessageListLoading();
+  const setPagination = useUpdateMessagePaginationState();
   const loadMessages = useCallback(async (): Promise<TMessage[]> => {
-    const result = await ipcBridge.database.getConversationMessages.invoke({
-      conversation_id: key,
-      page: 0,
-      page_size: 10000,
-      content_mode: 'compact',
+    const result = await loadLatestConversationMessages(key, {
+      limit: DEFAULT_MESSAGE_PAGE_LIMIT,
+      contentMode: 'compact',
     });
     const messages = result?.items?.map(normalizeDbMessage);
     if (messages && Array.isArray(messages)) {
-      update((currentList) => {
-        if (!currentList.length) return messages;
-        const sameConversation = currentList.filter((m) => m.conversation_id === key);
-        if (!sameConversation.length) return messages;
-        const dbIds = new Set(messages.map((m) => m.id));
-        const dbMsgIds = new Set(messages.map((m) => m.msg_id).filter(Boolean));
-
-        // Build a map of streaming messages by msg_id for content-length comparison.
-        // During streaming, the DB may have an older snapshot (due to 2000ms save debounce),
-        // so we keep whichever version has more content to avoid losing streamed data.
-        const streamingByMsgId = new Map<string, IMessageText>();
-        for (const m of sameConversation) {
-          if (m.msg_id && m.type === 'text' && dbMsgIds.has(m.msg_id)) {
-            streamingByMsgId.set(m.msg_id, m);
-          }
-        }
-
-        // Replace DB messages with streaming versions when streaming has more content
-        const mergedMessages = messages.map((dbMsg) => {
-          if (!dbMsg.msg_id || dbMsg.type !== 'text') return dbMsg;
-          const streamMsg = streamingByMsgId.get(dbMsg.msg_id);
-          if (!streamMsg) return dbMsg;
-          return preferTextMessageVersion(dbMsg, streamMsg);
-        });
-
-        const streamingOnly = sameConversation.filter((m) => !dbIds.has(m.id) && !(m.msg_id && dbMsgIds.has(m.msg_id)));
-        if (!streamingOnly.length && !streamingByMsgId.size) return messages;
-        return [...mergedMessages, ...streamingOnly];
+      update((currentList) => mergeLoadedPageWithCurrent(key, messages, currentList));
+      setPagination({
+        oldestCursor: result.oldest_cursor ?? undefined,
+        newestCursor: result.newest_cursor ?? undefined,
+        hasMoreBefore: result.has_more_before,
+        hasMoreAfter: result.has_more_after,
+        isLoadingBefore: false,
+        isLoadingAnchor: false,
       });
       return messages;
     }
     return [];
-  }, [key, update]);
+  }, [key, setPagination, update]);
 
   useEffect(() => {
     if (!key) return;
     let cancelled = false;
     setLoading(true);
+    setPagination({ ...EMPTY_MESSAGE_PAGINATION_STATE });
     void loadMessages()
       .catch((error) => {
         console.error('[useMessageLstCache] Failed to load messages from database:', error);
@@ -651,7 +848,7 @@ export const useMessageLstCache = (key: string) => {
     return () => {
       cancelled = true;
     };
-  }, [key, loadMessages, setLoading]);
+  }, [key, loadMessages, setLoading, setPagination]);
 
   useEffect(() => {
     if (!key) {
@@ -695,10 +892,13 @@ export const beforeUpdateMessageList = (fn: (list: TMessage[]) => TMessage[]) =>
 };
 export {
   ChatKeyProvider,
+  MessagePaginationProvider,
   MessageListLoadingProvider,
   MessageListProvider,
   useChatKey,
+  useMessagePaginationState,
   useMessageList,
   useMessageListLoading,
+  useUpdateMessagePaginationState,
   useUpdateMessageList,
 };

@@ -13,7 +13,6 @@ import AssistantSettings from '@/renderer/pages/settings/AssistantSettings';
 
 const useAssistantListMock = vi.fn();
 const useAssistantEditorMock = vi.fn();
-const useDetectedAgentsMock = vi.fn();
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -34,7 +33,6 @@ vi.mock('@arco-design/web-react', async () => {
 vi.mock('@/renderer/hooks/assistant', () => ({
   useAssistantList: () => useAssistantListMock(),
   useAssistantEditor: (params: unknown) => useAssistantEditorMock(params),
-  useDetectedAgents: () => useDetectedAgentsMock(),
 }));
 
 vi.mock('@/renderer/pages/settings/components/SettingsPageWrapper', () => ({
@@ -57,9 +55,16 @@ vi.mock('@/renderer/pages/settings/AssistantSettings/SkillConfirmModals', () => 
   default: () => null,
 }));
 
-vi.mock('@/renderer/pages/settings/AssistantSettings/assistantUtils', () => ({
-  resolveAvatarImageSrc: () => undefined,
-}));
+vi.mock('@/renderer/pages/settings/AssistantSettings/assistantUtils', async () => {
+  const actual = await vi.importActual<typeof import('@/renderer/pages/settings/AssistantSettings/assistantUtils')>(
+    '@/renderer/pages/settings/AssistantSettings/assistantUtils'
+  );
+
+  return {
+    ...actual,
+    resolveAvatarImageSrc: () => undefined,
+  };
+});
 
 describe('AssistantSettings', () => {
   beforeEach(() => {
@@ -71,11 +76,6 @@ describe('AssistantSettings', () => {
       loadAssistants: vi.fn(),
       reorderAssistants: vi.fn(),
       localeKey: 'en-US',
-    });
-
-    useDetectedAgentsMock.mockReturnValue({
-      availableBackends: [],
-      refreshAgentDetection: vi.fn(),
     });
 
     useAssistantEditorMock.mockReturnValue({

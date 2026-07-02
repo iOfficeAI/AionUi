@@ -141,7 +141,7 @@ test.describe('Feature Name', () => {
 | `invokeBridge(page, key, data)`  | Call main process IPC                              | `../helpers` |
 | `navigateTo(page, hash)`         | Navigate via sidebar UI                            | `../helpers` |
 | `waitForAiReply(page)`           | Wait for AI response (handles Shadow DOM)          | `../helpers` |
-| `selectAgent(page, backend)`     | Select agent pill by backend                       | `../helpers` |
+| `selectAgent(page, backend)`     | Select an available assistant for a backend        | `../helpers` |
 | `sendMessageFromGuid(page, msg)` | Send message and get conversation ID               | `../helpers` |
 | `deleteConversation(page, id)`   | Delete conversation by ID (cleanup)                | `../helpers` |
 | `MODE_SELECTOR`                  | Mode selector pill `[data-testid="mode-selector"]` | `../helpers` |

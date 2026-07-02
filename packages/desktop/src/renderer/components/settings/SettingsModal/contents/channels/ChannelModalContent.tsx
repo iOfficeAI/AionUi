@@ -7,7 +7,6 @@
 import type { IChannelPluginStatus } from '@/common/types/channel/channel';
 import type { IProvider, TProviderWithModel } from '@/common/config/storage';
 import { channel, webui, type IWebUIStatus } from '@/common/adapter/ipcBridge';
-import { configService } from '@/common/config/configService';
 import AionScrollArea from '@/renderer/components/base/AionScrollArea';
 import { useModelProviderList } from '@/renderer/hooks/agent/useModelProviderList';
 import type { GoogleModelSelection } from '@/renderer/pages/conversation/platforms/gemini/useGoogleModelSelection';
@@ -25,12 +24,7 @@ import TelegramConfigForm from './TelegramConfigForm';
 import WeixinConfigForm from './WeixinConfigForm';
 import WecomConfigForm from './WecomConfigForm';
 
-type ChannelModelConfigKey =
-  | 'assistant.telegram.defaultModel'
-  | 'assistant.lark.defaultModel'
-  | 'assistant.dingtalk.defaultModel'
-  | 'assistant.weixin.defaultModel'
-  | 'assistant.wecom.defaultModel';
+type ChannelSettingsPlatform = 'telegram' | 'lark' | 'dingtalk' | 'weixin' | 'wecom';
 
 type ExtensionFieldType = 'text' | 'password' | 'select' | 'number' | 'boolean';
 
@@ -48,14 +42,14 @@ type ExtensionFieldValues = Record<string, Record<string, string | number | bool
 const BUILTIN_CHANNEL_TYPES = new Set(['telegram', 'lark', 'dingtalk', 'weixin', 'wecom', 'slack', 'discord']);
 
 /**
- * Internal hook: wraps useGoogleModelSelection with configService persistence
- * for a specific channel config key (e.g. 'assistant.telegram.defaultModel').
+ * Internal hook: wraps useGoogleModelSelection with backend-owned channel settings
+ * for a specific platform (e.g. 'telegram').
  *
  * Restoration is done by resolving the saved model reference into a full
  * TProviderWithModel and passing it as `initialModel` — this avoids triggering
  * the onSelectModel callback (and its toast) on mount.
  */
-const useChannelModelSelection = (configKey: ChannelModelConfigKey): GoogleModelSelection => {
+const useChannelModelSelection = (platform: ChannelSettingsPlatform): GoogleModelSelection => {
   const { t } = useTranslation();
 
   // Resolve persisted model into a full TProviderWithModel for initialModel.
@@ -76,7 +70,8 @@ const useChannelModelSelection = (configKey: ChannelModelConfigKey): GoogleModel
 
     const restore = async () => {
       try {
-        const saved = configService.get(configKey) as { id: string; use_model: string } | undefined;
+        const settings = await channel.getPlatformSettings.invoke({ platform });
+        const saved = settings.default_model ?? undefined;
         if (!saved?.id || !saved?.use_model) {
           // Nothing saved — mark restored so we don't keep retrying
           setRestored(true);
@@ -107,40 +102,30 @@ const useChannelModelSelection = (configKey: ChannelModelConfigKey): GoogleModel
         }
         setRestored(true);
       } catch (error) {
-        console.error(`[ChannelSettings] Failed to restore model for ${configKey}:`, error);
+        console.error(`[ChannelSettings] Failed to restore model for ${platform}:`, error);
         setRestored(true);
       }
     };
 
     void restore();
-  }, [configKey, providers, restored]);
+  }, [platform, providers, restored]);
 
   // Only called on explicit user selection — not during restoration
   const onSelectModel = useCallback(
     async (provider: IProvider, modelName: string) => {
       try {
         const modelRef = { id: provider.id, use_model: modelName };
-        await configService.set(configKey, modelRef);
-
-        const platform = configKey.replace('assistant.', '').replace('.defaultModel', '') as
-          | 'telegram'
-          | 'lark'
-          | 'dingtalk'
-          | 'weixin'
-          | 'wecom';
-        await channel.syncChannelSettings
-          .invoke({ platform })
-          .catch((err) => console.warn(`[ChannelSettings] syncChannelSettings failed for ${platform}:`, err));
+        await channel.setDefaultModelSetting.invoke({ platform, default_model: modelRef });
 
         Message.success(t('settings.assistant.modelSwitched', 'Model switched successfully'));
         return true;
       } catch (error) {
-        console.error(`[ChannelSettings] Failed to save model for ${configKey}:`, error);
+        console.error(`[ChannelSettings] Failed to save model for ${platform}:`, error);
         Message.error(t('settings.assistant.modelSaveFailed', 'Failed to save model'));
         return false;
       }
     },
-    [configKey, t]
+    [platform, t]
   );
 
   return useGoogleModelSelection({
@@ -187,12 +172,12 @@ const ChannelModalContent: React.FC = () => {
     wecom: true,
   });
 
-  // Model selection state — uses unified hook with configService persistence
-  const telegramModelSelection = useChannelModelSelection('assistant.telegram.defaultModel');
-  const larkModelSelection = useChannelModelSelection('assistant.lark.defaultModel');
-  const dingtalkModelSelection = useChannelModelSelection('assistant.dingtalk.defaultModel');
-  const weixinModelSelection = useChannelModelSelection('assistant.weixin.defaultModel');
-  const wecomModelSelection = useChannelModelSelection('assistant.wecom.defaultModel');
+  // Model selection state — uses unified hook with backend-owned channel settings
+  const telegramModelSelection = useChannelModelSelection('telegram');
+  const larkModelSelection = useChannelModelSelection('lark');
+  const dingtalkModelSelection = useChannelModelSelection('dingtalk');
+  const weixinModelSelection = useChannelModelSelection('weixin');
+  const wecomModelSelection = useChannelModelSelection('wecom');
 
   // Load plugin status
   const loadPluginStatus = useCallback(async () => {
@@ -840,7 +825,7 @@ const ChannelModalContent: React.FC = () => {
       defaultValue: 'Select a channel and configure credentials.',
     }),
     t('settings.channels.enableAfterConfig', {
-      defaultValue: 'Enable it and start chatting with your AI agent.',
+      defaultValue: 'Enable it and start chatting with your AI assistant.',
     }),
   ];
 

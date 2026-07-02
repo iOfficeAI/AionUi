@@ -15,41 +15,6 @@ export const ConfigStorage = storage.buildStorage<IConfigStorageRefer>('agent.co
 export const EnvStorage = storage.buildStorage<IEnvStorageRefer>('agent.env');
 
 export interface IConfigStorageRefer {
-  'google.config': {
-    /** Proxy URL for Google OAuth endpoint reachability / Google OAuth 端点代理 */
-    proxy?: string;
-  };
-  'codex.config'?: {
-    cli_path?: string;
-    yoloMode?: boolean;
-    sandboxMode?: 'read-only' | 'workspace-write' | 'danger-full-access';
-  };
-  'acp.config': {
-    [backend: string]: {
-      auth_methodId?: string;
-      authToken?: string;
-      lastAuthTime?: number;
-      cli_path?: string;
-      yoloMode?: boolean;
-      /** Preferred session mode for new conversations / 新会话的默认模式 */
-      preferredMode?: string;
-      /** Preferred model ID for new conversations / 新会话的默认模型 */
-      preferredModelId?: string;
-      /** LLM prompt timeout in seconds (default: 300) / LLM 请求超时时间（秒，默认 300） */
-      promptTimeout?: number;
-    };
-  };
-  /** Global LLM prompt timeout in seconds (default: 300). Per-backend promptTimeout overrides this. */
-  'acp.promptTimeout'?: number;
-  /** Idle timeout in minutes before an ACP agent process is killed to reclaim memory (default: 5). */
-  'acp.agentIdleTimeout'?: number;
-  // Cached initialize results per ACP backend (persisted across sessions)
-  'acp.cachedInitializeResult'?: Record<string, import('@/common/types/platform/acpTypes').AcpInitializeResult>;
-  // Cached config options per ACP backend for Guid page pre-selection
-  'acp.cached_config_options'?: Record<string, import('@/common/types/platform/acpTypes').AcpSessionConfigOption[]>;
-  // Cached modes per ACP backend for Guid page / AgentModeSelector
-  'acp.cachedModes'?: Record<string, import('@/common/types/platform/acpTypes').AcpSessionModes>;
-  'mcp.config'?: IMcpServer[];
   language: string;
   theme: string; // @deprecated migrated to theme.activeId/theme.userThemes
   colorScheme: string; // @deprecated migrated to theme.activeId/theme.userThemes
@@ -74,22 +39,10 @@ export interface IConfigStorageRefer {
   'theme.activeId': string;
   /** User-created themes */
   'theme.userThemes': Theme[];
-  'aionrs.config'?: {
-    /** Preferred session mode for new conversations / 新会话的默认模式 */
-    preferredMode?: string;
-  };
-  'aionrs.defaultModel'?: { id: string; use_model: string };
-  'tools.imageGenerationModel': TProviderWithModel & {
-    /** @deprecated Image generation is now controlled via built-in MCP server toggle */
-    switch?: boolean;
-  };
-  'tools.speechToText'?: SpeechToTextConfig;
   // 是否在粘贴文件到工作区时询问确认（true = 不再询问）
   'workspace.pasteConfirm'?: boolean;
   // 上传的文件是否保存到工作区目录（true = 保存到工作区，false = 保存到缓存目录）
   'upload.saveToWorkspace'?: boolean;
-  // guid 页面上次选择的 agent 类型 / Last selected agent type on guid page
-  'guid.lastSelectedAgent'?: string;
   // 关闭窗口时最小化到系统托盘 / Minimize to system tray when closing window
   'system.closeToTray'?: boolean;
   // 任务完成时显示系统通知 / Show system notification when task completes
@@ -100,62 +53,7 @@ export interface IConfigStorageRefer {
   'system.keepAwake'?: boolean;
   // Automatically preview newly created Office files in the current workspace
   'system.autoPreviewOfficeFiles'?: boolean;
-  // Telegram assistant default model / Telegram 助手默认模型
-  'assistant.telegram.defaultModel'?: {
-    id: string;
-    use_model: string;
-  };
-  // Telegram assistant agent selection / Telegram 助手所使用的 Agent
-  'assistant.telegram.agent'?: {
-    backend: string;
-    custom_agent_id?: string;
-    name?: string;
-  };
-  // Lark assistant default model / Lark 助手默认模型
-  'assistant.lark.defaultModel'?: {
-    id: string;
-    use_model: string;
-  };
-  // Lark assistant agent selection / Lark 助手所使用的 Agent
-  'assistant.lark.agent'?: {
-    backend: string;
-    custom_agent_id?: string;
-    name?: string;
-  };
-  // DingTalk assistant default model / DingTalk 助手默认模型
-  'assistant.dingtalk.defaultModel'?: {
-    id: string;
-    use_model: string;
-  };
-  // DingTalk assistant agent selection / DingTalk 助手所使用的 Agent
-  'assistant.dingtalk.agent'?: {
-    backend: string;
-    custom_agent_id?: string;
-    name?: string;
-  };
-  // WeChat assistant default model / WeChat 助手默认模型
-  'assistant.weixin.defaultModel'?: {
-    id: string;
-    use_model: string;
-  };
-  // WeChat assistant agent selection / WeChat 助手所使用的 Agent
-  'assistant.weixin.agent'?: {
-    backend: string;
-    custom_agent_id?: string;
-    name?: string;
-  };
-  // WeCom assistant default model / 企业微信助手默认模型
-  'assistant.wecom.defaultModel'?: {
-    id: string;
-    use_model: string;
-  };
-  // WeCom assistant agent selection / 企业微信助手所使用的 Agent
-  'assistant.wecom.agent'?: {
-    backend: string;
-    custom_agent_id?: string;
-    name?: string;
-  };
-  // Skills Market: whether the aionui-skills builtin skill is enabled
+  // Skills Market: whether the external skills market source is enabled
   'skillsMarket.enabled'?: boolean;
   /**
    * One-shot completion flag for the legacy `model.config` → backend providers
@@ -185,6 +83,31 @@ export interface IConfigStorageRefer {
   'pet.confirmEnabled'?: boolean;
 }
 
+/**
+ * Legacy config keys that may still exist on disk from the pre-aionCore era.
+ *
+ * New business truth must not be added here. Keep this surface migration-only:
+ * renderer/process code may read these keys during one-shot imports into the
+ * backend, but all current writes should go through aionCore-owned storage.
+ */
+export interface ILegacyConfigStorageRefer extends IConfigStorageRefer {
+  'google.config'?: {
+    /** Proxy URL for Google OAuth endpoint reachability / Google OAuth 端点代理 */
+    proxy?: string;
+  };
+  /** Global LLM prompt timeout in seconds (default: 300). Per-backend promptTimeout overrides this. */
+  'acp.promptTimeout'?: number;
+  /** Idle timeout in minutes before an ACP agent process is killed to reclaim memory (default: 5). */
+  'acp.agentIdleTimeout'?: number;
+  'mcp.config'?: IMcpServer[];
+  'tools.imageGenerationModel'?: TProviderWithModel & {
+    /** @deprecated Image generation is now controlled via built-in MCP server toggle */
+    switch?: boolean;
+  };
+  'tools.speechToText'?: SpeechToTextConfig;
+  'model.config'?: unknown;
+}
+
 export interface IEnvStorageRefer {
   'aionui.dir': {
     workDir: string;
@@ -212,6 +135,14 @@ export type TConversationRuntimeSummary = {
   turn_id: string | null;
 };
 
+export type TConversationAssistantIdentity = {
+  id: string;
+  source: string;
+  name: string;
+  avatar: string;
+  backend: string;
+};
+
 interface IChatConversation<T, Extra> {
   created_at: number;
   modified_at: number;
@@ -227,6 +158,8 @@ interface IChatConversation<T, Extra> {
   source?: ConversationSource;
   /** Channel chat isolation ID (e.g. user:xxx, group:xxx) */
   channel_chat_id?: string;
+  /** Explicit assistant identity for assistant-led conversations */
+  assistant?: TConversationAssistantIdentity;
 }
 
 // Token 使用统计数据类型

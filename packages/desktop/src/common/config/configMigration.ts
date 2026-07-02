@@ -1,31 +1,63 @@
 import { ipcBridge } from '@/common';
 import { httpRequest } from '@/common/adapter/httpBridge';
+import { assistantRuntimeKey, type AssistantAgent } from '@/common/types/agent/assistantTypes';
 import type { CreateProviderRequest } from '@/common/types/provider/providerApi';
 
-import type { ConfigKey, ConfigKeyMap } from './configKeys';
-import type { IConfigStorageRefer, IMcpServer } from './storage';
+import type { ConfigKey } from './configKeys';
+import type { ILegacyConfigStorageRefer, IMcpServer } from './storage';
 import { BUILTIN_IMAGE_GEN_ID, BUILTIN_IMAGE_GEN_LEGACY_NAMES, BUILTIN_IMAGE_GEN_NAME } from './storage';
 
 export type ConfigFile = {
-  get<K extends keyof IConfigStorageRefer>(key: K): Promise<IConfigStorageRefer[K]>;
-  set<K extends keyof IConfigStorageRefer>(key: K, value: IConfigStorageRefer[K]): Promise<unknown>;
+  get<K extends keyof ILegacyConfigStorageRefer>(key: K): Promise<ILegacyConfigStorageRefer[K]>;
+  set<K extends keyof ILegacyConfigStorageRefer>(key: K, value: ILegacyConfigStorageRefer[K]): Promise<unknown>;
 };
 
 const LEGACY_MCP_CONFIG_KEY = 'mcp.config' as const;
+const LEGACY_CHANNEL_KEYS = [
+  'assistant.telegram.defaultModel',
+  'assistant.telegram.agent',
+  'assistant.lark.defaultModel',
+  'assistant.lark.agent',
+  'assistant.dingtalk.defaultModel',
+  'assistant.dingtalk.agent',
+  'assistant.weixin.defaultModel',
+  'assistant.weixin.agent',
+  'assistant.wecom.defaultModel',
+  'assistant.wecom.agent',
+] as const;
+
+const LEGACY_CHANNEL_PLATFORMS = ['telegram', 'lark', 'dingtalk', 'weixin', 'wecom'] as const;
+
+type LegacyChannelConfigKey = (typeof LEGACY_CHANNEL_KEYS)[number];
+type LegacyChannelPlatform = (typeof LEGACY_CHANNEL_PLATFORMS)[number];
+type LegacyBusinessConfigKey =
+  | 'google.config'
+  | 'acp.promptTimeout'
+  | 'acp.agentIdleTimeout'
+  | 'mcp.config'
+  | 'tools.imageGenerationModel'
+  | 'tools.speechToText';
+type LegacyConfigKey = ConfigKey | LegacyBusinessConfigKey | LegacyChannelConfigKey;
 
 type LegacyMcpConfigFile = ConfigFile & {
   get(key: typeof LEGACY_MCP_CONFIG_KEY): Promise<unknown>;
   set(key: typeof LEGACY_MCP_CONFIG_KEY, value: unknown): Promise<unknown>;
 };
 
-const ALL_LEGACY_KEYS: ConfigKey[] = [
-  'codex.config',
-  'acp.config',
+type LegacyChannelConfigFile = ConfigFile & {
+  get(key: LegacyConfigKey): Promise<unknown>;
+};
+
+type ChannelAssistantCandidate = {
+  id: string;
+  source: string;
+  agent_id: string;
+  agent?: AssistantAgent;
+};
+
+const ALL_LEGACY_KEYS: LegacyConfigKey[] = [
   'acp.promptTimeout',
   'acp.agentIdleTimeout',
-  'acp.cachedInitializeResult',
-  'acp.cached_config_options',
-  'acp.cachedModes',
   'language',
   'theme',
   'colorScheme',
@@ -39,13 +71,10 @@ const ALL_LEGACY_KEYS: ConfigKey[] = [
   'customCss',
   'css.themes',
   'css.activeThemeId',
-  'aionrs.config',
-  'aionrs.defaultModel',
   'tools.imageGenerationModel',
   'tools.speechToText',
   'workspace.pasteConfirm',
   'upload.saveToWorkspace',
-  'guid.lastSelectedAgent',
   'skillsMarket.enabled',
   'pet.enabled',
   'pet.size',
@@ -56,25 +85,18 @@ const ALL_LEGACY_KEYS: ConfigKey[] = [
   'system.cronNotificationEnabled',
   'system.keepAwake',
   'system.autoPreviewOfficeFiles',
-  'assistant.telegram.defaultModel',
-  'assistant.telegram.agent',
-  'assistant.lark.defaultModel',
-  'assistant.lark.agent',
-  'assistant.dingtalk.defaultModel',
-  'assistant.dingtalk.agent',
-  'assistant.weixin.defaultModel',
-  'assistant.weixin.agent',
-  'assistant.wecom.defaultModel',
-  'assistant.wecom.agent',
 ];
 
 export async function migrateConfigStorage(configFile: ConfigFile): Promise<void> {
+  const legacyConfigFile = configFile as LegacyChannelConfigFile;
   const entries: Record<string, unknown> = {};
 
   const legacyEntries = await Promise.all(
     ALL_LEGACY_KEYS.map(async (key) => {
       try {
-        const value = await configFile.get(key as keyof IConfigStorageRefer);
+        const value = LEGACY_CHANNEL_KEYS.includes(key as LegacyChannelConfigKey)
+          ? await legacyConfigFile.get(key as LegacyChannelConfigKey)
+          : await legacyConfigFile.get(key as LegacyConfigKey);
         return [key, value] as const;
       } catch {
         return [key, undefined] as const;
@@ -90,33 +112,34 @@ export async function migrateConfigStorage(configFile: ConfigFile): Promise<void
 
   if (Object.keys(entries).length === 0) {
     console.info('[Migration] configStorage migration skipped — no legacy keys found');
-    return;
-  }
+  } else {
+    // Merge strategy: only write keys that don't already exist in the backend DB.
+    // This prevents overwriting user's runtime changes on repeated migrations.
+    const existing = await fetchExistingClientKeys();
+    const newEntries: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(entries)) {
+      if (!(key in existing)) {
+        newEntries[key] = value;
+      }
+    }
 
-  // Merge strategy: only write keys that don't already exist in the backend DB.
-  // This prevents overwriting user's runtime changes on repeated migrations.
-  const existing = await fetchExistingClientKeys();
-  const newEntries: Record<string, unknown> = {};
-  for (const [key, value] of Object.entries(entries)) {
-    if (!(key in existing)) {
-      newEntries[key] = value;
+    if (Object.keys(newEntries).length > 0) {
+      await setBackendClientPreferences(newEntries);
+      console.info(
+        '[Migration] configStorage migration completed, migrated %d/%d keys (skipped %d existing)',
+        Object.keys(newEntries).length,
+        Object.keys(entries).length,
+        Object.keys(entries).length - Object.keys(newEntries).length
+      );
+    } else {
+      console.info(
+        '[Migration] configStorage migration skipped — all %d keys already exist in backend',
+        Object.keys(entries).length
+      );
     }
   }
 
-  if (Object.keys(newEntries).length > 0) {
-    await setBackendClientPreferences(newEntries);
-    console.info(
-      '[Migration] configStorage migration completed, migrated %d/%d keys (skipped %d existing)',
-      Object.keys(newEntries).length,
-      Object.keys(entries).length,
-      Object.keys(entries).length - Object.keys(newEntries).length
-    );
-  } else {
-    console.info(
-      '[Migration] configStorage migration skipped — all %d keys already exist in backend',
-      Object.keys(entries).length
-    );
-  }
+  await migrateLegacyChannelSettings(legacyConfigFile);
 }
 
 export async function migrateLegacyMcpConfigToDb(configFile: ConfigFile): Promise<void> {
@@ -175,6 +198,108 @@ function normalizeLegacyMcpServer(
     name: BUILTIN_IMAGE_GEN_NAME,
     builtin: true,
   };
+}
+
+async function migrateLegacyChannelSettings(configFile: LegacyChannelConfigFile): Promise<void> {
+  const assistants: ChannelAssistantCandidate[] = await ipcBridge.assistants.list
+    .invoke()
+    .catch((): ChannelAssistantCandidate[] => []);
+  if (!Array.isArray(assistants) || assistants.length === 0) {
+    console.info('[Migration] channel settings migration skipped — no assistants available');
+    return;
+  }
+
+  for (const platform of LEGACY_CHANNEL_PLATFORMS) {
+    const assistantKey = `assistant.${platform}.agent` as const;
+    const defaultModelKey = `assistant.${platform}.defaultModel` as const;
+
+    const [legacyAssistant, legacyDefaultModel, currentSettings] = await Promise.all([
+      configFile.get(assistantKey).catch((): undefined => undefined),
+      configFile.get(defaultModelKey).catch((): undefined => undefined),
+      ipcBridge.channel.getPlatformSettings.invoke({ platform }).catch((): null => null),
+    ]);
+
+    const nextAssistantId =
+      currentSettings?.assistant?.assistant_id ?? resolveLegacyChannelAssistantId(legacyAssistant, assistants);
+
+    let changed = false;
+
+    if (!currentSettings?.assistant?.assistant_id && nextAssistantId) {
+      await ipcBridge.channel.setAssistantSetting.invoke({
+        platform,
+        assistant: { assistant_id: nextAssistantId },
+      });
+      changed = true;
+    }
+
+    const nextDefaultModel =
+      currentSettings?.default_model ?? normalizeLegacyChannelDefaultModelSetting(legacyDefaultModel);
+
+    if (!currentSettings?.default_model && nextDefaultModel) {
+      await ipcBridge.channel.setDefaultModelSetting.invoke({
+        platform,
+        default_model: nextDefaultModel,
+      });
+      changed = true;
+    }
+
+    if (changed) {
+      await ipcBridge.channel.syncChannelSettings.invoke({ platform });
+    }
+  }
+}
+
+function normalizeLegacyChannelDefaultModelSetting(value: unknown):
+  | {
+      id: string;
+      use_model: string;
+    }
+  | undefined {
+  if (!value || typeof value !== 'object') return undefined;
+  const candidate = value as Record<string, unknown>;
+  return typeof candidate.id === 'string' && typeof candidate.use_model === 'string'
+    ? {
+        id: candidate.id,
+        use_model: candidate.use_model,
+      }
+    : undefined;
+}
+
+function resolveLegacyChannelAssistantId(saved: unknown, assistants: ChannelAssistantCandidate[]): string | undefined {
+  if (!saved) return undefined;
+
+  if (typeof saved === 'string') {
+    return findAssistantIdByBackend(saved, assistants);
+  }
+
+  if (typeof saved !== 'object') return undefined;
+
+  const record = saved as Record<string, unknown>;
+  const explicitAssistantId =
+    (typeof record.assistant_id === 'string' ? record.assistant_id : undefined) ||
+    (typeof record.custom_agent_id === 'string' ? record.custom_agent_id : undefined);
+
+  if (explicitAssistantId && assistants.some((assistant) => assistant.id === explicitAssistantId)) {
+    return explicitAssistantId;
+  }
+
+  const backend =
+    (typeof record.backend === 'string' ? record.backend : undefined) ||
+    (typeof record.agent_type === 'string' ? record.agent_type : undefined);
+
+  return findAssistantIdByBackend(backend, assistants);
+}
+
+function findAssistantIdByBackend(
+  backend: string | undefined,
+  assistants: ChannelAssistantCandidate[]
+): string | undefined {
+  if (!backend) return undefined;
+
+  return (
+    assistants.find((assistant) => assistant.source === 'generated' && assistantRuntimeKey(assistant) === backend)
+      ?.id || assistants.find((assistant) => assistantRuntimeKey(assistant) === backend)?.id
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -259,7 +384,7 @@ export async function migrateProviders(configFile: ConfigFile): Promise<void> {
   let legacyProviders: LegacyProvider[];
   try {
     legacyProviders = (await configFile.get(
-      'model.config' as keyof IConfigStorageRefer
+      'model.config' as keyof ILegacyConfigStorageRefer
     )) as unknown as LegacyProvider[];
   } catch (err) {
     console.info('[Migration] providers migration skipped — no model.config in config file', err);
@@ -357,7 +482,7 @@ async function markProvidersMigrationDone(configFile: ConfigFile): Promise<void>
   }
 }
 
-type BackendClientPreferences = Partial<{ [K in ConfigKey]: ConfigKeyMap[K] | null }> & Record<string, unknown>;
+type BackendClientPreferences = Record<string, unknown>;
 
 async function fetchExistingClientKeys(): Promise<Record<string, unknown>> {
   try {

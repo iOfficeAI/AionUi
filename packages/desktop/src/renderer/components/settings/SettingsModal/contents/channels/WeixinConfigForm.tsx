@@ -5,21 +5,23 @@
  */
 
 import type { IChannelPairingRequest, IChannelPluginStatus, IChannelUser } from '@/common/types/channel/channel';
-import { channel } from '@/common/adapter/ipcBridge';
-import { getAgents } from '@/renderer/hooks/agent/useAgents';
+import { assistants, channel } from '@/common/adapter/ipcBridge';
+import { isAionrsAssistant, type Assistant } from '@/common/types/agent/assistantTypes';
+import { resolveLocaleKey } from '@/common/utils';
 import { getBaseUrl } from '@/common/adapter/httpBridge';
-import { configService } from '@/common/config/configService';
+import { resolveAssistantName } from '@/renderer/utils/model/assistantDisplay';
 import GoogleModelSelector from '@/renderer/pages/conversation/platforms/gemini/GoogleModelSelector';
 import type { GoogleModelSelection } from '@/renderer/pages/conversation/platforms/gemini/useGoogleModelSelection';
-import {
-  isSupportedNewConversationAgent,
-  normalizeSupportedAgentSelection,
-} from '@/renderer/utils/model/agentTypeSupportPolicy';
 import { Button, Dropdown, Empty, Menu, Message, Spin, Tooltip } from '@arco-design/web-react';
 import { CheckOne, CloseOne, Copy, Delete, Down, Refresh } from '@icon-park/react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { QRCodeSVG } from 'qrcode.react';
+import {
+  buildChannelAssistantBinding,
+  getDefaultChannelAssistant,
+  resolveChannelAssistantSelection,
+} from './assistantBinding';
 
 type LoginState = 'idle' | 'loading_qr' | 'showing_qr' | 'scanned' | 'connected';
 
@@ -61,7 +63,8 @@ const getRemainingTime = (expiresAt: number) => {
 const formatTime = (timestamp: number) => new Date(timestamp).toLocaleString();
 
 const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({ pluginStatus, modelSelection, onStatusChange }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const localeKey = resolveLocaleKey(i18n?.language ?? 'en-US');
 
   const [loginState, setLoginState] = useState<LoginState>(
     pluginStatus?.hasToken && pluginStatus?.enabled ? 'connected' : 'idle'
@@ -76,16 +79,9 @@ const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({ pluginStatus, model
   const [pendingPairings, setPendingPairings] = useState<IChannelPairingRequest[]>([]);
   const [authorizedUsers, setAuthorizedUsers] = useState<IChannelUser[]>([]);
 
-  // Agent selection
-  const [availableAgents, setAvailableAgents] = useState<
-    Array<{ agent_type: string; backend?: string; name: string; id?: string }>
-  >([]);
-  const [selectedAgent, setSelectedAgent] = useState<{
-    agent_type: string;
-    backend?: string;
-    name?: string;
-    id?: string;
-  }>({ agent_type: 'aionrs' });
+  const [availableAssistants, setAvailableAssistants] = useState<Assistant[]>([]);
+  const [selectedAssistant, setSelectedAssistant] = useState<Assistant | null>(null);
+  const [hasBrokenSavedAssistant, setHasBrokenSavedAssistant] = useState(false);
 
   // Close EventSource on unmount to prevent connection leaks.
   useEffect(() => {
@@ -200,64 +196,41 @@ const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({ pluginStatus, model
     Message.success(t('common.copySuccess', 'Copied'));
   };
 
-  // Load agents + saved selection
+  // Load assistants + saved selection
   useEffect(() => {
     const load = async () => {
       try {
-        const [agentsResp, saved] = await Promise.all([getAgents(), configService.get('assistant.weixin.agent')]);
-        if (Array.isArray(agentsResp)) {
-          setAvailableAgents(
-            agentsResp.filter(isSupportedNewConversationAgent).map((a) => ({
-              agent_type: a.agent_type,
-              backend: a.backend,
-              name: a.name,
-              id: a.id,
-            }))
-          );
-        }
-        if (saved && typeof saved === 'object') {
-          const s = saved as Record<string, unknown>;
-          const backend = typeof s.backend === 'string' ? s.backend : undefined;
+        const [assistantList, saved] = await Promise.all([
+          assistants.list.invoke(),
+          channel.getPlatformSettings.invoke({ platform: 'weixin' }),
+        ]);
 
-          const normalized = normalizeSupportedAgentSelection(
-            typeof s.agent_type === 'string' ? s.agent_type : undefined,
-            backend
-          );
-          if (normalized) {
-            setSelectedAgent({
-              ...normalized,
-              // Legacy rows persist `custom_agent_id`; new rows write `id`.
-              id: (s.id as string | undefined) ?? (s.custom_agent_id as string | undefined),
-              name: s.name as string | undefined,
-            });
-          }
-        }
+        setAvailableAssistants(assistantList);
+
+        const selection = resolveChannelAssistantSelection(saved.assistant ?? undefined, assistantList);
+        const nextAssistant =
+          assistantList.find((assistant) => assistant.id === selection.assistantId) ||
+          (!selection.hasBrokenSavedAssistant ? getDefaultChannelAssistant(assistantList) : undefined) ||
+          null;
+
+        setHasBrokenSavedAssistant(selection.hasBrokenSavedAssistant);
+        setSelectedAssistant(nextAssistant);
       } catch (error) {
-        console.error('[WeixinConfig] Failed to load agents:', error);
+        console.error('[WeixinConfig] Failed to load assistants:', error);
       }
     };
     void load();
   }, []);
 
-  const persistSelectedAgent = async (agent: { agent_type: string; backend?: string; id?: string; name?: string }) => {
-    // Write both `id` (new unified AgentMetadata field) and
-    // `custom_agent_id` (legacy channel-plugin field) so older reads
-    // keep working until every consumer migrates off the legacy name.
-    const payload = {
-      agent_type: agent.agent_type,
-      backend: agent.backend,
-      id: agent.id,
-      custom_agent_id: agent.id,
-      name: agent.name,
-    };
+  const persistSelectedAssistant = async (assistant: Assistant) => {
     try {
-      await configService.set('assistant.weixin.agent', payload);
-      await channel.syncChannelSettings
-        .invoke({ platform: 'weixin' })
-        .catch((err) => console.warn('[WeixinConfig] syncChannelSettings failed:', err));
-      Message.success(t('settings.assistant.agentSwitched', 'Agent switched successfully'));
+      await channel.setAssistantSetting.invoke({
+        platform: 'weixin',
+        assistant: buildChannelAssistantBinding(assistant),
+      });
+      Message.success(t('settings.assistant.agentSwitched', 'Assistant switched successfully'));
     } catch (error) {
-      console.error('[WeixinConfig] Failed to save agent:', error);
+      console.error('[WeixinConfig] Failed to save assistant:', error);
       Message.error(t('common.saveFailed', 'Failed to save'));
     }
   };
@@ -328,13 +301,11 @@ const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({ pluginStatus, model
     handleLoginWebUI();
   };
 
-  const showModelSelector = selectedAgent.agent_type === 'aionrs';
-  const agentOptions: Array<{
-    agent_type: string;
-    backend?: string;
-    name: string;
-    id?: string;
-  }> = availableAgents.length > 0 ? availableAgents : [{ agent_type: 'aionrs', name: 'Aion CLI' }];
+  const showModelSelector = isAionrsAssistant(selectedAssistant);
+  const assistantOptions = availableAssistants;
+  const selectedAssistantName = selectedAssistant
+    ? resolveAssistantName(selectedAssistant, localeKey, selectedAssistant.name)
+    : t('settings.assistant.name', 'Assistant');
 
   const handleDisconnect = async () => {
     try {
@@ -415,45 +386,44 @@ const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({ pluginStatus, model
         {renderLoginArea()}
       </PreferenceRow>
 
-      {/* Agent Selection */}
+      {/* Assistant Selection */}
       <PreferenceRow
-        label={t('settings.weixin.agent', 'Agent')}
-        description={t('settings.weixin.agentDesc', 'Used for WeChat conversations')}
+        label={t('settings.assistant.name', 'Assistant')}
+        description={
+          <div className='flex flex-col gap-4px'>
+            <span>{t('settings.weixin.agentDesc', 'Used for WeChat conversations')}</span>
+            {hasBrokenSavedAssistant && (
+              <span className='text-orange-6'>
+                {t(
+                  'conversation.errors.TEAM_ASSISTANT_NOT_FOUND.title',
+                  'The selected assistant is no longer available'
+                )}
+              </span>
+            )}
+          </div>
+        }
       >
         <Dropdown
           trigger='click'
           position='br'
           droplist={
-            <Menu
-              selectedKeys={[
-                selectedAgent.id
-                  ? `${selectedAgent.agent_type}|${selectedAgent.id}`
-                  : selectedAgent.backend || selectedAgent.agent_type,
-              ]}
-            >
-              {agentOptions.map((a) => {
-                const key = a.id ? `${a.agent_type}|${a.id}` : a.backend || a.agent_type;
+            <Menu selectedKeys={selectedAssistant ? [selectedAssistant.id] : []}>
+              {assistantOptions.map((assistant) => {
+                const assistantName = resolveAssistantName(assistant, localeKey, assistant.name);
                 return (
                   <Menu.Item
-                    key={key}
+                    key={assistant.id}
                     onClick={() => {
-                      const currentKey = selectedAgent.id
-                        ? `${selectedAgent.agent_type}|${selectedAgent.id}`
-                        : selectedAgent.backend || selectedAgent.agent_type;
-                      if (key === currentKey) return;
-                      const next = {
-                        agent_type: a.agent_type,
-                        backend: a.backend,
-                        id: a.id,
-                        name: a.name,
-                      };
-                      setSelectedAgent(next);
-                      void persistSelectedAgent(next);
+                      if (assistant.id === selectedAssistant?.id) return;
+                      setHasBrokenSavedAssistant(false);
+                      setSelectedAssistant(assistant);
+                      void persistSelectedAssistant(assistant);
 
-                      if (next.agent_type === 'aionrs') {
-                        const savedModel = configService.get('assistant.weixin.defaultModel');
+                      if (isAionrsAssistant(assistant)) {
                         const providers = modelSelection.providers;
-                        const savedProviderExists = savedModel?.id && providers.some((p) => p.id === savedModel.id);
+                        const savedProviderExists =
+                          modelSelection.current_model?.id &&
+                          providers.some((p) => p.id === modelSelection.current_model?.id);
                         if (!savedProviderExists && providers.length > 0) {
                           const firstProvider = providers[0];
                           if (firstProvider.id && firstProvider.models?.[0]) {
@@ -463,7 +433,7 @@ const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({ pluginStatus, model
                       }
                     }}
                   >
-                    {a.name}
+                    {assistantName}
                   </Menu.Item>
                 );
               })}
@@ -471,17 +441,7 @@ const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({ pluginStatus, model
           }
         >
           <Button type='secondary' className='min-w-160px flex items-center justify-between gap-8px'>
-            <span className='truncate'>
-              {selectedAgent.name ||
-                availableAgents.find(
-                  (a) =>
-                    (a.id ? `${a.agent_type}|${a.id}` : a.backend || a.agent_type) ===
-                    (selectedAgent.id
-                      ? `${selectedAgent.agent_type}|${selectedAgent.id}`
-                      : selectedAgent.backend || selectedAgent.agent_type)
-                )?.name ||
-                selectedAgent.agent_type}
-            </span>
+            <span className='truncate'>{selectedAssistantName}</span>
             <Down theme='outline' size={14} />
           </Button>
         </Dropdown>

@@ -1,8 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
-import { mutate } from 'swr';
 import type { IHubAgentItem } from '@/common/types/agent/hub';
 import { ipcBridge } from '@/common';
-import { DETECTED_AGENTS_SWR_KEY } from '@renderer/utils/model/agentTypes';
+import { refreshManagedAgentCatalogAndAssistants } from './useManagedAgents';
 
 export function useHubAgents() {
   const [agents, setAgents] = useState<IHubAgentItem[]>([]);
@@ -44,10 +43,11 @@ export function useHubAgents() {
         })
       );
 
-      // After install completes, revalidate agent list so home page & settings reflect new agent
+      // Hub installs can change both the management diagnostics view and
+      // the generated generated-assistant catalog, so refresh both through the
+      // shared helper used by AgentSettings.
       if (payload.status === 'installed') {
-        mutate(DETECTED_AGENTS_SWR_KEY);
-        mutate('acp.agents.available.settings');
+        void refreshManagedAgentCatalogAndAssistants();
       }
     });
 

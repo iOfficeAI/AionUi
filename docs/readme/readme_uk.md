@@ -34,7 +34,7 @@
 </p>
 
 <p align="center">
-  <strong>💬 Спільнота:</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (English)</a> | <a href="../../resources/wx-11.png" target="_blank">微信 (中文群)</a> | <a href="https://twitter.com/AionUI" target="_blank">Twitter</a>
+  <strong>💬 Спільнота:</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (English)</a> | <a href="../../resources/wx-14.png" target="_blank">微信 (中文群)</a> | <a href="https://twitter.com/AionUI" target="_blank">Twitter</a>
 </p>
 
 ---
@@ -86,12 +86,12 @@ AionUi постачається з повноцінним рушієм AI-аге
 
 ### **Офісні асистенти — PPT, Word та Excel**
 
-Ці напрямки відповідають реальним можливостям додатка: пресети **Morph PPT** та навички **`pptx` / `docx` / `xlsx`** (див. пресети `assistant/` та `skills/` у репозиторії). Потрібні документи чи таблиці? Вбудований **[OfficeCLI](https://github.com/iOfficeAI/OfficeCli)** допомагає створювати PPT (Morph), Word (`.docx`) та Excel (`.xlsx/.xlsm/.csv`) швидше та надійніше.
+Ці напрямки відповідають реальним можливостям додатка: пресети **Morph PPT** та навички **`pptx` / `docx` / `xlsx`** (див. пресети `assistant/` та `skills/` у репозиторії). Потрібні документи чи таблиці? Вбудований **[OfficeCLI](https://github.com/iOfficeAI/OfficeCLI)** допомагає створювати PPT (Morph), Word (`.docx`) та Excel (`.xlsx/.xlsm/.csv`) швидше та надійніше.
 
 #### **Асистент PPT**
 
 > **Результат:** редагований Morph PPT (`.pptx`)
-> Плавні переходи між слайдами з анімацією Morph та цілісним сюжетом; працює на базі [OfficeCLI](https://github.com/iOfficeAI/OfficeCli).
+> Плавні переходи між слайдами з анімацією Morph та цілісним сюжетом; працює на базі [OfficeCLI](https://github.com/iOfficeAI/OfficeCLI).
 
 <table>
   <tr>
@@ -107,7 +107,7 @@ AionUi постачається з повноцінним рушієм AI-аге
 #### **Асистент Word**
 
 > **Результат:** редагований Word (`.docx`)
-> Написання статей/дисертацій та редагування документів через навичку `docx`; працює на базі [OfficeCLI](https://github.com/iOfficeAI/OfficeCli).
+> Написання статей/дисертацій та редагування документів через навичку `docx`; працює на базі [OfficeCLI](https://github.com/iOfficeAI/OfficeCLI).
 
 <table>
   <tr>
@@ -123,7 +123,7 @@ AionUi постачається з повноцінним рушієм AI-аге
 #### **Асистент Excel**
 
 > **Результат:** готовий Excel (`.xlsx/.xlsm/.csv`)
-> Генерація та оновлення таблиць через `xlsx` для аналізу, автоформатування та графіків; працює на базі [OfficeCLI](https://github.com/iOfficeAI/OfficeCli).
+> Генерація та оновлення таблиць через `xlsx` для аналізу, автоформатування та графіків; працює на базі [OfficeCLI](https://github.com/iOfficeAI/OfficeCLI).
 
 <table>
   <tr>
@@ -244,7 +244,6 @@ _Система асистентів із 21 вбудованим професі
 - **📗 Excel Creator** — Генерація електронних таблиць із аналізом, графіками та автоформатуванням
 - **🎓 Academic Paper Writer** — Структуроване написання наукових статей
 - **💰 Financial Model Creator** — Фінансові моделі та прогнози
-- **⭐ Star Office Helper** — Асистент для офісної продуктивності
 - **🎮 3D Game** — Створення 3D ігор в одному файлі
 - **🎨 UI/UX Pro Max** — Професійний дизайн (57 стилів, 95 палітр)
 - **📋 Planning with Files** — Планування на основі файлів (у стилі Manus)
@@ -407,13 +406,7 @@ brew install aionui
 
 ### Налаштування середовища розробки
 
-Технологічний стек: Electron · Vite · React · Bun
-
-```bash
-bun install        # встановити залежності
-bun run dev        # запустити dev-сервер
-bun run test       # запустити юніт-тести
-```
+Локальна розробка AionUi використовує два репозиторії: AionUi для Electron-фронтенду та AionCore для локального backend. Повні інструкції для macOS, Linux і Windows наведені в [Development Guide](../contributing/development.md).
 
 ---
 

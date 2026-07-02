@@ -158,20 +158,11 @@ export async function goToGuid(page: Page): Promise<void> {
   await navigateWithRetry(page, ROUTES.guid);
 }
 
-/** Reset Guid's persisted last-selected agent so the assistant list view renders on next visit. */
-export async function resetGuidLastSelectedAgent(page: Page, agentKey = 'aionrs'): Promise<void> {
-  await page.evaluate(async (nextAgentKey) => {
-    const port = (window as Window & { __backendPort?: number }).__backendPort || 13400;
-    const response = await fetch(`http://127.0.0.1:${port}/api/settings/client`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 'guid.lastSelectedAgent': nextAgentKey }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to reset guid.lastSelectedAgent: ${response.status}`);
-    }
-  }, agentKey);
+/** Compatibility helper kept for older specs; Guid selection is now assistant-first and local-state free. */
+export async function resetGuidLastSelectedAgent(page: Page, _agentKey = 'aionrs'): Promise<void> {
+  await page.evaluate(() => {
+    sessionStorage.removeItem('guid.openAssistantEditorIntent');
+  });
 }
 
 /** Navigate to a settings tab. */

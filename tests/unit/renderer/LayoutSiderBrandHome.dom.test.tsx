@@ -16,6 +16,9 @@ vi.mock('react-i18next', () => ({
 // react-router-dom: control location, capture navigate.
 const navigate = vi.fn();
 let currentPathname = '/guid';
+const platformMocks = vi.hoisted(() => ({
+  isElectronDesktopMock: vi.fn(() => false),
+}));
 vi.mock('react-router-dom', () => ({
   useNavigate: () => navigate,
   useLocation: () => ({ pathname: currentPathname, search: '', hash: '' }),
@@ -41,13 +44,14 @@ vi.mock('@/renderer/components/layout/PwaPullToRefresh', () => ({ default: () =>
 vi.mock('@/renderer/components/layout/Titlebar', () => ({ default: () => null }));
 vi.mock('@/renderer/components/settings/UpdateModal', () => ({ default: () => null }));
 vi.mock('@renderer/hooks/system/useDeepLink', () => ({ useDeepLink: () => {} }));
-vi.mock('@renderer/hooks/system/useNotificationClick', () => ({ useNotificationClick: () => {} }));
+vi.mock('@renderer/hooks/system/notification/useNotificationClick', () => ({ useNotificationClick: () => {} }));
+vi.mock('@renderer/hooks/system/notification/useBrowserNotification', () => ({ useBrowserNotification: () => {} }));
 vi.mock('@renderer/hooks/file/useDirectorySelection', () => ({
   useDirectorySelection: () => ({ contextHolder: null }),
 }));
 vi.mock('@renderer/utils/ui/siderTooltip', () => ({ cleanupSiderTooltips: () => {} }));
 vi.mock('@renderer/hooks/ui/useConversationShortcuts', () => ({ useConversationShortcuts: () => {} }));
-vi.mock('@renderer/utils/platform', () => ({ isElectronDesktop: () => false }));
+vi.mock('@renderer/utils/platform', () => ({ isElectronDesktop: platformMocks.isElectronDesktopMock }));
 
 import Layout from '@renderer/components/layout/Layout';
 
@@ -72,6 +76,7 @@ describe('Layout sider brand Home button', () => {
     });
     navigate.mockClear();
     openDevTools.mockClear();
+    platformMocks.isElectronDesktopMock.mockReturnValue(false);
     sessionStorage.clear();
     currentPathname = '/guid';
   });
@@ -159,5 +164,24 @@ describe('Layout sider brand Home button', () => {
     for (let i = 0; i < 4; i++) fireEvent.click(icon);
     expect(openDevTools).toHaveBeenCalled();
     expect(navigate).not.toHaveBeenCalled();
+  });
+
+  it('opens the update notification directly for tray update checks', () => {
+    platformMocks.isElectronDesktopMock.mockReturnValue(true);
+    const openListener = vi.fn();
+    window.addEventListener('aionui-open-update-modal', openListener);
+
+    try {
+      renderLayout();
+
+      window.dispatchEvent(new Event('tray:check-update'));
+
+      expect(navigate).not.toHaveBeenCalled();
+      expect(openListener).toHaveBeenCalledTimes(1);
+      const event = openListener.mock.calls[0][0] as CustomEvent;
+      expect(event.detail).toEqual({ source: 'tray' });
+    } finally {
+      window.removeEventListener('aionui-open-update-modal', openListener);
+    }
   });
 });

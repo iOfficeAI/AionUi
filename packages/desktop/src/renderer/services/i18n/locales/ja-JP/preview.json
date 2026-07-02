@@ -53,6 +53,10 @@
   "closeAll": "すべて閉じる",
   "readOnlyLabel": "閲覧専用",
   "pathLabel": "パス",
+  "missingFile": {
+    "title": "ファイルが見つかりません",
+    "openInNewTab": "新しいタブで開いてみる"
+  },
   "noTabs": "タブはありません",
   "openInPanelTooltip": "プレビューパネルで表示",
   "mermaidTitle": "Mermaid 図",
@@ -134,6 +138,6 @@
     "loading": "PPTプレビューを起動中...",
     "installing": "プレビューコンポーネントをインストール中...",
     "startFailed": "PPTプレビューの起動に失敗しました",
-    "installHint": "公式 iOfficeAI/OfficeCli releases ページから OfficeCLI をインストールしてください"
+    "installHint": "公式 iOfficeAI/OfficeCLI releases ページから OfficeCLI をインストールしてください"
   }
 }

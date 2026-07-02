@@ -1,6 +1,7 @@
 // src/renderer/pages/team/hooks/useTeamSession.ts
 import { ipcBridge } from '@/common';
 import { normalizeTeamStatus } from '@/common/adapter/teamMapper';
+import type { TeamAssistantInput } from '@/common/adapter/teamMapper';
 import type {
   ITeamAgentRemovedEvent,
   ITeamAgentRenamedEvent,
@@ -9,7 +10,6 @@ import type {
   ITeamMcpStatusEvent,
   ITeamSessionChangedEvent,
   ITeamTaskChangedEvent,
-  TeamAgent,
   TeammateStatus,
   TTeam,
 } from '@/common/types/team/teamTypes';
@@ -28,7 +28,7 @@ export function useTeamSession(team: TTeam) {
   );
 
   const [statusMap, setStatusMap] = useState<Map<string, AgentStatusInfo>>(() => {
-    return new Map(team.agents.map((a) => [a.slot_id, { slot_id: a.slot_id, status: a.status }]));
+    return new Map(team.assistants.map((a) => [a.slot_id, { slot_id: a.slot_id, status: a.status }]));
   });
 
   useEffect(() => {
@@ -85,15 +85,15 @@ export function useTeamSession(team: TTeam) {
     };
   }, [team.id, mutateTeam]);
 
-  const addAgent = useCallback(
-    async (agent: Omit<TeamAgent, 'slot_id'>) => {
-      await ipcBridge.team.addAgent.invoke({ team_id: team.id, agent });
+  const addAssistant = useCallback(
+    async (assistant: TeamAssistantInput) => {
+      await ipcBridge.team.addAgent.invoke({ team_id: team.id, assistant });
       await mutateTeam();
     },
     [team.id, mutateTeam]
   );
 
-  const renameAgent = useCallback(
+  const renameAssistant = useCallback(
     async (slot_id: string, new_name: string) => {
       await ipcBridge.team.renameAgent.invoke({ team_id: team.id, slot_id, new_name });
       await mutateTeam();
@@ -101,7 +101,7 @@ export function useTeamSession(team: TTeam) {
     [team.id, mutateTeam]
   );
 
-  const removeAgent = useCallback(
+  const removeAssistant = useCallback(
     async (slot_id: string) => {
       await ipcBridge.team.removeAgent.invoke({ team_id: team.id, slot_id });
       await mutateTeam();
@@ -109,5 +109,5 @@ export function useTeamSession(team: TTeam) {
     [team.id, mutateTeam]
   );
 
-  return { statusMap, addAgent, renameAgent, removeAgent, mutateTeam };
+  return { statusMap, addAssistant, renameAssistant, removeAssistant, mutateTeam };
 }

@@ -53,6 +53,10 @@
   "closeAll": "Close All",
   "readOnlyLabel": "Read-only preview",
   "pathLabel": "Path",
+  "missingFile": {
+    "title": "File not found",
+    "openInNewTab": "Try opening in a new tab"
+  },
   "noTabs": "No tabs open",
   "openInPanelTooltip": "View in preview panel",
   "mermaidTitle": "Mermaid Diagram",
@@ -134,6 +138,6 @@
     "loading": "Starting PPT preview...",
     "installing": "Installing preview component...",
     "startFailed": "Failed to start PPT preview",
-    "installHint": "Install OfficeCLI from the official iOfficeAI/OfficeCli releases page"
+    "installHint": "Install OfficeCLI from the official iOfficeAI/OfficeCLI releases page"
   }
 }

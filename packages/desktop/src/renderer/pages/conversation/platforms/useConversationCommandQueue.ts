@@ -46,7 +46,6 @@ const summarizeQueuedCommand = (item: ConversationCommandQueueItem): Record<stri
   created_at: item.created_at,
   inputLength: item.input.length,
   fileCount: item.files.length,
-  preview: item.input.replace(/\s+/g, ' ').trim().slice(0, 120),
 });
 
 const logCommandQueue = (conversation_id: string, event: string, payload: Record<string, unknown> = {}): void => {
@@ -739,6 +738,7 @@ export const useConversationCommandQueue = ({
     executionGateVersion,
     executionGate.canExecute,
     executionGate.hydrated,
+    executionGate.isProcessing,
     isInteractionLocked,
     onExecute,
     t,

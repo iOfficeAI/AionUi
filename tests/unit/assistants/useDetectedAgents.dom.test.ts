@@ -2,142 +2,147 @@
  * @license
  * Copyright 2025 AionUi (aionui.com)
  * SPDX-License-Identifier: Apache-2.0
- *
- * Unit tests for renderer/hooks/assistant/useDetectedAgents.ts (A4 in N4a).
- * Tests useDetectedAgents hook: agent detection via SWR and refresh trigger.
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { renderHook, act, waitFor } from '@testing-library/react';
+import { describe, expect, it } from 'vitest';
 
-// Mock SWR
-vi.mock('swr', () => ({
-  default: vi.fn((key, fetcher) => {
-    // Return mock data immediately for simplicity
-    return { data: [], error: null, isLoading: false };
-  }),
-  mutate: vi.fn(),
-}));
+import type { Assistant } from '@/common/types/agent/assistantTypes';
+import { buildAssistantEditorBackends } from '@/renderer/pages/settings/AssistantSettings/assistantUtils';
 
-// Mock @/common
-vi.mock('@/common', () => ({
-  ipcBridge: {
-    acpConversation: {
-      refreshCustomAgents: { invoke: vi.fn() },
-    },
-  },
-}));
-
-// Mock agentTypes module
-vi.mock('@/renderer/utils/model/agentTypes', () => ({
-  DETECTED_AGENTS_SWR_KEY: 'detected-agents',
-  fetchDetectedAgents: vi.fn(),
-}));
-
-import { useDetectedAgents } from '@/renderer/hooks/assistant/useDetectedAgents';
-import { ipcBridge } from '@/common';
-import useSWR, { mutate } from 'swr';
-import type { AgentMetadata } from '@/renderer/utils/model/agentTypes';
-
-describe('useDetectedAgents', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
-  it('returns empty availableBackends when no agents detected', () => {
-    (useSWR as any).mockReturnValue({ data: [], error: null });
-
-    const { result } = renderHook(() => useDetectedAgents());
-
-    expect(result.current.availableBackends).toEqual([]);
-  });
-
-  it('filters and maps detected agents to availableBackends', () => {
-    // Option `id` must be the backend slug (what `preset_agent_type` stores),
-    // not the AgentMetadata row id — otherwise the assistant editor saves a row
-    // id (e.g. "2d23ff1c") as `preset_agent_type`, which later resolves to no
-    // agent.
-    const mockAgents: AgentMetadata[] = [
-      { id: 'a1', name: 'ClaudeCode', agent_type: 'acp', agent_source: 'builtin', backend: 'claude' },
-      { id: 'a2', name: 'ExtAgent', agent_type: 'local', agent_source: 'extension' },
-      { id: 'a3', name: 'RemoteAgent', agent_type: 'remote', agent_source: 'builtin' },
+describe('buildAssistantEditorBackends', () => {
+  it('derives editor backends from generated assistants only', () => {
+    const assistants: Assistant[] = [
+      assistant({ id: 'bare-claude', source: 'generated', runtimeKey: 'claude', name: 'Claude Code' }),
+      assistant({ id: 'user-writer', source: 'user', runtimeKey: 'claude', name: 'Writer' }),
+      assistant({ id: 'builtin-research', source: 'builtin', runtimeKey: 'gemini', name: 'Researcher' }),
     ];
-    (useSWR as any).mockReturnValue({ data: mockAgents, error: null });
 
-    const { result } = renderHook(() => useDetectedAgents());
-
-    expect(result.current.availableBackends).toHaveLength(2); // 'remote' excluded
-    // backend slug wins when present
-    expect(result.current.availableBackends[0]).toEqual({
-      id: 'claude',
-      name: 'ClaudeCode',
-      isExtension: false,
-      modelOptions: [],
-    });
-    // falls back to agent_type when backend is absent (e.g. internal engines)
-    expect(result.current.availableBackends[1]).toEqual({
-      id: 'local',
-      name: 'ExtAgent',
-      isExtension: true,
-      modelOptions: [],
-    });
-  });
-
-  it('derives backend-scoped model options from handshake available_models', () => {
-    const mockAgents: AgentMetadata[] = [
+    expect(buildAssistantEditorBackends(assistants, 'en-US')).toEqual([
       {
-        id: 'a1',
-        name: 'ClaudeCode',
-        agent_type: 'acp',
-        agent_source: 'builtin',
-        backend: 'claude',
-        handshake: {
-          available_models: {
-            current_model_id: 'claude-sonnet-4',
-            current_model_label: 'Claude Sonnet 4',
-            available_models: [
-              { id: 'claude-sonnet-4', label: 'Claude Sonnet 4' },
-              { id: 'claude-opus-4', label: 'Claude Opus 4' },
-            ],
-          },
-        },
+        id: 'agent-claude',
+        name: 'Claude Code',
+        runtimeKey: 'claude',
+        modelOptions: [],
       },
-    ];
-    (useSWR as any).mockReturnValue({ data: mockAgents, error: null });
-
-    const { result } = renderHook(() => useDetectedAgents());
-
-    expect(result.current.availableBackends[0]?.modelOptions).toEqual([
-      { value: 'claude-sonnet-4', label: 'Claude Sonnet 4' },
-      { value: 'claude-opus-4', label: 'Claude Opus 4' },
     ]);
   });
 
-  it('calls refreshCustomAgents and mutate on refreshAgentDetection', async () => {
-    (useSWR as any).mockReturnValue({ data: [], error: null });
-    (ipcBridge.acpConversation.refreshCustomAgents.invoke as any).mockResolvedValue(undefined);
+  it('uses localized generated assistant names and deduplicates by agent identity', () => {
+    const assistants: Assistant[] = [
+      assistant({
+        id: 'bare-gemini',
+        source: 'generated',
+        runtimeKey: 'gemini',
+        name: 'Gemini',
+        name_i18n: { 'zh-CN': '双子星' },
+      }),
+      assistant({
+        id: 'bare-gemini-second',
+        source: 'generated',
+        runtimeKey: 'gemini',
+        agentId: 'agent-gemini',
+        name: 'Gemini 2',
+      }),
+    ];
 
-    const { result } = renderHook(() => useDetectedAgents());
-
-    await act(async () => {
-      await result.current.refreshAgentDetection();
-    });
-
-    expect(ipcBridge.acpConversation.refreshCustomAgents.invoke).toHaveBeenCalled();
-    expect(mutate).toHaveBeenCalledWith('detected-agents');
+    expect(buildAssistantEditorBackends(assistants, 'zh-CN')).toEqual([
+      {
+        id: 'agent-gemini',
+        name: '双子星',
+        runtimeKey: 'gemini',
+        modelOptions: [],
+      },
+    ]);
   });
 
-  it('ignores error during refreshAgentDetection', async () => {
-    (useSWR as any).mockReturnValue({ data: [], error: null });
-    (ipcBridge.acpConversation.refreshCustomAgents.invoke as any).mockRejectedValue(new Error('Refresh failed'));
+  it('uses generated assistant models for editor backend options', () => {
+    const assistants: Assistant[] = [
+      assistant({
+        id: 'bare-claude',
+        source: 'generated',
+        runtimeKey: 'claude',
+        name: 'Claude Code',
+        models: ['claude-sonnet-4', 'claude-opus-4'],
+      }),
+      assistant({
+        id: 'bare-codex',
+        source: 'generated',
+        runtimeKey: 'codex',
+        name: 'Codex',
+      }),
+    ];
 
-    const { result } = renderHook(() => useDetectedAgents());
+    expect(buildAssistantEditorBackends(assistants, 'en-US')).toEqual([
+      {
+        id: 'agent-claude',
+        name: 'Claude Code',
+        runtimeKey: 'claude',
+        modelOptions: [
+          { value: 'claude-sonnet-4', label: 'claude-sonnet-4' },
+          { value: 'claude-opus-4', label: 'claude-opus-4' },
+        ],
+      },
+      {
+        id: 'agent-codex',
+        name: 'Codex',
+        runtimeKey: 'codex',
+        modelOptions: [],
+      },
+    ]);
+  });
 
-    await act(async () => {
-      await result.current.refreshAgentDetection();
-    });
+  it('tolerates generated assistants with missing models arrays', () => {
+    const assistants = [
+      assistant({
+        id: 'bare-droid',
+        source: 'generated',
+        runtimeKey: 'droid',
+        name: 'droid',
+        models: undefined,
+      }),
+    ] as Assistant[];
 
-    // Should not throw or log error (hook ignores it)
-    expect(ipcBridge.acpConversation.refreshCustomAgents.invoke).toHaveBeenCalled();
+    expect(buildAssistantEditorBackends(assistants, 'en-US')).toEqual([
+      {
+        id: 'agent-droid',
+        name: 'droid',
+        runtimeKey: 'droid',
+        modelOptions: [],
+      },
+    ]);
   });
 });
+
+function assistant(
+  overrides: Partial<Assistant> & {
+    id: string;
+    source: Assistant['source'];
+    runtimeKey: string;
+    name: string;
+    agentId?: string;
+  }
+) {
+  const agentId = overrides.agentId ?? `agent-${overrides.runtimeKey}`;
+  return {
+    id: overrides.id,
+    source: overrides.source,
+    name: overrides.name,
+    name_i18n: overrides.name_i18n ?? {},
+    description_i18n: {},
+    enabled: true,
+    sort_order: 0,
+    agent_id: agentId,
+    agent: { type: 'acp', source: 'builtin', acp_backend: overrides.runtimeKey },
+    enabled_skills: [],
+    custom_skill_names: [],
+    disabled_builtin_skills: [],
+    context_i18n: {},
+    prompts: [],
+    prompts_i18n: {},
+    models: overrides.models ?? [],
+    agent_status: 'online',
+    team_selectable: true,
+    deletable: overrides.source === 'user',
+    ...overrides,
+  } satisfies Assistant;
+}

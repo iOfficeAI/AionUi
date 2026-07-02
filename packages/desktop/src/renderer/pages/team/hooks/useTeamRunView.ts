@@ -1,6 +1,12 @@
 import { ipcBridge } from '@/common';
-import type { ITeamChildTurnEvent, ITeamRunAck, ITeamRunEvent, TeamRunStatus } from '@/common/types/team/teamTypes';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import type {
+  ITeamChildTurnEvent,
+  ITeamRunAck,
+  ITeamRunEvent,
+  ITeamSlotWork,
+  TeamRunStatus,
+} from '@/common/types/team/teamTypes';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 export type TeamRunViewRun = ITeamRunEvent;
 export type TeamRunViewChildTurn = ITeamChildTurnEvent;
@@ -10,11 +16,13 @@ const TERMINAL_RUN_STATUSES = new Set<TeamRunStatus>(['completed', 'cancelled', 
 export type TeamRunViewState = {
   activeRun?: TeamRunViewRun;
   childTurnsBySlot: Record<string, TeamRunViewChildTurn | undefined>;
+  slotWorkBySlot: Record<string, ITeamSlotWork | undefined>;
 };
 
 const emptyState: TeamRunViewState = {
   activeRun: undefined,
   childTurnsBySlot: {},
+  slotWorkBySlot: {},
 };
 
 const isTeamRunDebugEnabled = process.env.NODE_ENV !== 'production';
@@ -57,12 +65,30 @@ const ackToRunEvent = (ack: ITeamRunAck): ITeamRunEvent => ({
   active_child_count: 0,
   pending_wake_count: 0,
   starting_child_count: 0,
+  slot_work: [
+    {
+      slot_id: ack.accepted_slot_id || ack.target_slot_id,
+      role: ack.accepted_role || ack.target_role,
+      pending_wake_count: 1,
+      starting_child_count: 0,
+    },
+  ],
 });
+
+const indexSlotWork = (slotWork: ITeamSlotWork[] | undefined): Record<string, ITeamSlotWork | undefined> => {
+  const indexed: Record<string, ITeamSlotWork | undefined> = {};
+  for (const work of slotWork ?? []) {
+    indexed[work.slot_id] = work;
+  }
+  return indexed;
+};
 
 export const useTeamRunView = (team_id: string) => {
   const [state, setState] = useState<TeamRunViewState>(emptyState);
+  const reconcileSeq = useRef(0);
 
   useEffect(() => {
+    reconcileSeq.current += 1;
     setState(emptyState);
   }, [team_id]);
 
@@ -70,10 +96,16 @@ export const useTeamRunView = (team_id: string) => {
     (event: ITeamRunEvent, source = 'websocket') => {
       if (event.team_id !== team_id) return;
       debugTeamRunEvent(source, event);
-      setState((prev) => ({
-        activeRun: TERMINAL_RUN_STATUSES.has(event.status) ? undefined : event,
-        childTurnsBySlot: TERMINAL_RUN_STATUSES.has(event.status) ? {} : prev.childTurnsBySlot,
-      }));
+      setState((prev) => {
+        if (TERMINAL_RUN_STATUSES.has(event.status)) {
+          return emptyState;
+        }
+        return {
+          activeRun: event,
+          childTurnsBySlot: prev.childTurnsBySlot,
+          slotWorkBySlot: indexSlotWork(event.slot_work),
+        };
+      });
     },
     [team_id]
   );
@@ -86,6 +118,31 @@ export const useTeamRunView = (team_id: string) => {
     [applyRunEvent]
   );
 
+  const reconcile = useCallback(
+    async (source = 'manual'): Promise<boolean> => {
+      const seq = ++reconcileSeq.current;
+      try {
+        const snapshot = await ipcBridge.team.getRunState.invoke({ team_id });
+        setState((prev) => {
+          if (seq !== reconcileSeq.current) return prev;
+          const activeRun = snapshot.active_run ?? undefined;
+          if (!activeRun) return emptyState;
+          debugTeamRunEvent(`reconcile:${source}`, activeRun);
+          return {
+            activeRun,
+            childTurnsBySlot: {},
+            slotWorkBySlot: indexSlotWork(activeRun.slot_work),
+          };
+        });
+        return true;
+      } catch (error) {
+        console.warn('[Renderer:teamRunView] run_state_reconcile_failed', { source, team_id, error });
+        return false;
+      }
+    },
+    [team_id]
+  );
+
   const applyChildStarted = useCallback(
     (event: ITeamChildTurnEvent) => {
       if (event.team_id !== team_id) return;
@@ -95,6 +152,17 @@ export const useTeamRunView = (team_id: string) => {
         childTurnsBySlot: {
           ...prev.childTurnsBySlot,
           [event.slot_id]: event,
+        },
+        slotWorkBySlot: {
+          ...prev.slotWorkBySlot,
+          [event.slot_id]: {
+            ...prev.slotWorkBySlot[event.slot_id],
+            slot_id: event.slot_id,
+            role: event.role,
+            pending_wake_count: prev.slotWorkBySlot[event.slot_id]?.pending_wake_count ?? 0,
+            starting_child_count: 0,
+            active_turn_id: event.turn_id,
+          },
         },
       }));
     },
@@ -106,16 +174,40 @@ export const useTeamRunView = (team_id: string) => {
       if (event.team_id !== team_id) return;
       debugTeamChildTurnEvent('websocket', event);
       setState((prev) => {
-        const next = { ...prev.childTurnsBySlot };
-        delete next[event.slot_id];
+        const nextChildTurns = { ...prev.childTurnsBySlot };
+        delete nextChildTurns[event.slot_id];
+        const nextSlotWork = { ...prev.slotWorkBySlot };
+        if (nextSlotWork[event.slot_id]) {
+          nextSlotWork[event.slot_id] = {
+            ...nextSlotWork[event.slot_id],
+            active_turn_id: undefined,
+            active_turn_started_at_ms: undefined,
+            active_turn_elapsed_ms: undefined,
+            active_turn_slow: undefined,
+            active_turn_slow_threshold_ms: undefined,
+          };
+          const hasRemainingWork =
+            (nextSlotWork[event.slot_id]?.pending_wake_count ?? 0) > 0 ||
+            (nextSlotWork[event.slot_id]?.starting_child_count ?? 0) > 0 ||
+            Boolean(nextSlotWork[event.slot_id]?.paused) ||
+            (nextSlotWork[event.slot_id]?.suppressed_wake_count ?? 0) > 0;
+          if (!hasRemainingWork) {
+            delete nextSlotWork[event.slot_id];
+          }
+        }
         return {
           ...prev,
-          childTurnsBySlot: next,
+          childTurnsBySlot: nextChildTurns,
+          slotWorkBySlot: nextSlotWork,
         };
       });
     },
     [team_id]
   );
+
+  useEffect(() => {
+    void reconcile('load');
+  }, [reconcile]);
 
   useEffect(() => {
     const unsubs = [
@@ -128,17 +220,36 @@ export const useTeamRunView = (team_id: string) => {
       ipcBridge.team.childTurnStarted.on(applyChildStarted),
       ipcBridge.team.childTurnCompleted.on(applyChildTerminal),
       ipcBridge.team.childTurnCancelled.on(applyChildTerminal),
+      ipcBridge.realtime.reconnected.on(() => {
+        void reconcile('realtime.reconnected');
+      }),
+      ipcBridge.team.listChanged.on((event) => {
+        if (event.team_id === team_id) void reconcile('team.listChanged');
+      }),
+      ipcBridge.team.sessionChanged.on((event) => {
+        if (event.team_id === team_id) void reconcile('team.sessionChanged');
+      }),
+      ipcBridge.team.agentSpawned.on((event) => {
+        if (event.team_id === team_id) void reconcile('team.agentSpawned');
+      }),
+      ipcBridge.team.agentRemoved.on((event) => {
+        if (event.team_id === team_id) void reconcile('team.agentRemoved');
+      }),
+      ipcBridge.team.agentRenamed.on((event) => {
+        if (event.team_id === team_id) void reconcile('team.agentRenamed');
+      }),
     ];
     return () => {
       unsubs.forEach((unsubscribe) => unsubscribe());
     };
-  }, [applyChildStarted, applyChildTerminal, applyRunEvent]);
+  }, [applyChildStarted, applyChildTerminal, applyRunEvent, reconcile, team_id]);
 
   return useMemo(
     () => ({
       state,
       applyAck,
+      reconcile,
     }),
-    [applyAck, state]
+    [applyAck, reconcile, state]
   );
 };

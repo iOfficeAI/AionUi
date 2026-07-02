@@ -13,8 +13,6 @@
     "error": "Ошибка",
     "unread": "Новое выполнение",
     "unconfigured": "Нет запланированной задачи",
-    "unconfiguredHint": "Запланированных задач пока нет. Создайте с вашим агентом!",
-    "createNow": "Создать сейчас",
     "defaultPrompt": "Каждый день в 10 утра искать последние новости ИИ, обобщать и выводить аналитический отчёт."
   },
   "actions": {
@@ -35,7 +33,8 @@
     "backToAll": "Все запланированные задачи",
     "runNow": "Запустить сейчас",
     "description": "Описание",
-    "agent": "Агент",
+    "agent": "Ассистент",
+    "assistant": "Ассистент",
     "instructions": "Инструкции",
     "repeats": "Повторяется",
     "history": "История",
@@ -52,6 +51,8 @@
   },
   "page": {
     "newTask": "Новая задача",
+    "createViaChat": "Создать через чат",
+    "createManually": "Создать вручную",
     "description": "Выполняйте задачи по расписанию. Также можно попросить AionUi в любом диалоге создать задачу.",
     "awakeBanner": "Запланированные задачи выполняются только пока компьютер активен.",
     "keepAwake": "Не спать",
@@ -77,8 +78,6 @@
       "name": "Название",
       "nameRequired": "Название обязательно",
       "namePlaceholder": "Введите название задачи",
-      "description": "Описание",
-      "descriptionPlaceholder": "Краткое описание задачи",
       "prompt": "Промпт",
       "promptRequired": "Промпт обязателен",
       "promptPlaceholder": "Инструкции для выполнения агентом",
@@ -88,10 +87,12 @@
       "scheduleDesc": "Описание расписания",
       "scheduleDescRequired": "Описание расписания обязательно",
       "scheduleDescPlaceholder": "например, Каждый понедельник в 9:00",
-      "descriptionRequired": "Описание обязательно",
-      "agent": "Агент",
-      "agentRequired": "Выберите агента",
-      "agentPlaceholder": "Выберите агента для выполнения этой задачи",
+      "agent": "Ассистент",
+      "assistant": "Ассистент",
+      "agentRequired": "Выберите ассистента",
+      "assistantRequired": "Выберите ассистента",
+      "agentPlaceholder": "Выберите ассистента для выполнения этой задачи",
+      "assistantPlaceholder": "Выберите ассистента для выполнения этой задачи",
       "executionMode": "Режим выполнения",
       "newConversation": "Новый диалог",
       "existingConversation": "Продолжающийся диалог",
@@ -105,7 +106,8 @@
       "clearFolder": "[Clear]",
       "model": "[Model]",
       "aionrsModelRequired": "Выберите модель для Aion CLI",
-      "aionrsNoProvider": "Нет доступных моделей"
+      "aionrsNoProvider": "Нет доступных моделей",
+      "assistantLockedExistingConversation": "Задачи продолжающегося диалога должны сохранять исходного помощника. Чтобы использовать другого помощника, создайте новую задачу."
     },
     "freq": {
       "manual": "Вручную",

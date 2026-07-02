@@ -94,6 +94,11 @@
   "createError": {
     "pathVariants": {
       "WORKSPACE_PATH_UNAVAILABLE": "The selected workspace path is unavailable. Make sure the workspace path \"{{workspacePath}}\" exists and is accessible."
+    },
+    "codes": {
+      "TEAM_ASSISTANT_ID_REQUIRED": "Please select an assistant before creating the team.",
+      "TEAM_ASSISTANT_NOT_FOUND": "Assistant {{assistantId}} is no longer available. Refresh the assistant list and choose another one.",
+      "TEAM_ASSISTANT_FIELD_UNSUPPORTED": "Use assistant_id instead of {{field}}."
     }
   },
   "agentError": {
@@ -109,7 +114,7 @@
       "reconnect_agent": "Restart or reconnect the selected agent, then retry.",
       "check_agent_login": "Log in to the selected agent, or refresh its credentials.",
       "check_agent_installation": "Check the agent installation and local command configuration.",
-      "check_agent_version": "Update the agent, or fix the protocol version incompatibility.",
+      "check_agent_version": "Check the agent protocol and version compatibility.",
       "check_local_command": "Install the missing command, or confirm it has been added to PATH.",
       "check_provider_credentials": "Check the model provider API key or account credentials in settings.",
       "check_provider_billing": "Check the model provider balance, credits, or quota.",
@@ -153,6 +158,10 @@
         "title": "The selected agent failed to start",
         "body": "The agent process exited before it was ready. Check its installation, login status, and local command configuration."
       },
+      "USER_AGENT_OPENCLAW_GATEWAY_UNREACHABLE": {
+        "title": "OpenClaw Gateway is not reachable",
+        "body": "OpenClaw Gateway is not running or cannot be reached at 127.0.0.1:18789.\n\nStart OpenClaw Gateway and try again. You can run:\nopenclaw gateway status\nopenclaw gateway start"
+      },
       "USER_AGENT_DISCONNECTED": {
         "title": "The selected agent disconnected",
         "body": "The agent connection closed while handling this message. Restart or reconnect the agent, then retry."
@@ -163,15 +172,15 @@
       },
       "USER_AGENT_SESSION_NOT_FOUND": {
         "title": "The agent session was lost",
-        "body": "The agent no longer recognizes this session. Start a new chat or reconnect the agent."
+        "body": "The agent reported that this session was not found or is no longer known to it."
       },
       "USER_AGENT_UNSUPPORTED_METHOD": {
         "title": "The selected agent does not support this action",
-        "body": "This agent cannot handle the requested operation. Try another agent or update the current one."
+        "body": "The agent reported that the requested ACP method is not supported or is not available."
       },
       "USER_AGENT_INVALID_PARAMS": {
         "title": "The selected agent rejected the request",
-        "body": "The agent reported that the request format was invalid. Try simplifying the message or switching agents."
+        "body": "The agent reported that the request parameters were invalid."
       },
       "USER_AGENT_HANDSHAKE_FAILED": {
         "title": "Agent handshake failed",
@@ -183,11 +192,27 @@
       },
       "USER_AGENT_ACP_INIT_FAILED": {
         "title": "Agent protocol initialization failed",
-        "body": "The app could not initialize the Agent Client Protocol session with this agent. Check the agent version and reconnect."
+        "body": "The app could not initialize an Agent Client Protocol session with this agent."
+      },
+      "USER_AGENT_PROTOCOL_PARSE_ERROR": {
+        "title": "Agent reported a protocol parse error",
+        "body": "The selected agent reported that an ACP/JSON-RPC message could not be parsed."
+      },
+      "USER_AGENT_INVALID_REQUEST": {
+        "title": "Agent reported an invalid protocol request",
+        "body": "The selected agent reported that the ACP/JSON-RPC request object was invalid."
+      },
+      "USER_AGENT_RESOURCE_NOT_FOUND": {
+        "title": "Agent could not find a required resource",
+        "body": "The selected agent reported that a required resource, such as a file, was not found."
+      },
+      "USER_AGENT_PROTOCOL_ERROR": {
+        "title": "Agent returned a protocol error",
+        "body": "The selected agent returned a non-standard ACP error code."
       },
       "USER_AGENT_PROTOCOL_MISMATCH": {
         "title": "Agent protocol versions are incompatible",
-        "body": "The selected agent is using an incompatible protocol version. Update the agent or switch to a compatible one."
+        "body": "The app and selected agent could not use a compatible ACP protocol version."
       },
       "USER_AGENT_NO_PREVIOUS_SESSION": {
         "title": "Previous agent session is unavailable",
@@ -204,6 +229,10 @@
       "USER_LLM_PROVIDER_AUTH_FAILED": {
         "title": "Model provider authentication failed",
         "body": "The selected provider rejected the API key or account credentials. Check the provider settings and try again."
+      },
+      "USER_LLM_PROVIDER_AWS_SSO_EXPIRED": {
+        "title": "AWS SSO session expired",
+        "body": "Your AWS SSO session has expired. Run 'aws sso login' for the matching profile, then send the message again."
       },
       "USER_LLM_PROVIDER_CONFIG_ERROR": {
         "title": "Model provider configuration is invalid",
@@ -268,7 +297,39 @@
       },
       "UNKNOWN_UPSTREAM_ERROR": {
         "title": "The upstream agent or provider failed",
-        "body": "The app received an upstream error but could not classify it confidently. Review the details below or send feedback."
+        "body": "The app received an upstream error but could not classify whether it came from the agent, provider, network, or local environment."
+      },
+      "MCP_HTTP_RESPONSE_READ_FAILED": {
+        "title": "Failed to read the team helper response",
+        "body": "AionUi could not read the local team helper response. Retry once, and if it keeps happening, restart the app."
+      },
+      "MCP_TOOL_REMOTE_ERROR": {
+        "title": "The local team helper rejected the request",
+        "body": "The local team helper returned an error while processing this request. Review the details below and retry after adjusting the team action."
+      },
+      "MCP_TOOL_RESPONSE_UNEXPECTED": {
+        "title": "The team helper returned an unexpected response",
+        "body": "AionUi received an unexpected response from the local team helper. Retry once, and report it if the problem persists."
+      },
+      "MCP_TCP_READ_FAILED": {
+        "title": "Failed to read from the local team helper",
+        "body": "AionUi could not read the local team helper TCP response. Retry once, and restart the app if it keeps failing."
+      },
+      "TEAM_SERVICE_UNAVAILABLE": {
+        "title": "Team service is not ready yet",
+        "body": "The local team session is still starting or has been interrupted. Wait a moment and retry."
+      },
+      "TEAM_ASSISTANT_ID_REQUIRED": {
+        "title": "A teammate assistant must be selected",
+        "body": "Choose a real assistant from the available assistant catalog before creating or spawning a teammate."
+      },
+      "TEAM_ASSISTANT_NOT_FOUND": {
+        "title": "The selected assistant is no longer available",
+        "body": "Refresh the assistant catalog, then choose another assistant for this teammate."
+      },
+      "TEAM_ASSISTANT_FIELD_UNSUPPORTED": {
+        "title": "The request used a legacy team identity field",
+        "body": "This team action must use assistant_id instead of legacy backend or agent fields."
       }
     }
   },
@@ -375,7 +436,6 @@
     "apiErrorSwitched": "API error, auto-switched to {{cli}} CLI",
     "confirmationLoadError": "Failed to load confirmation dialog",
     "tryAnotherAgent": "Try another agent:",
-    "switchedToAgent": "Switched to {{agent}}",
     "switchAgentFailed": "Failed to switch agent",
     "speech": {
       "recordTooltip": "Start voice input",
@@ -462,7 +522,8 @@
     "label": "Thinking..."
   },
   "skills": {
-    "loaded": "Loaded Skills"
+    "loaded": "Loaded Skills",
+    "slashHint": "Skill"
   },
   "mcp": {
     "loaded": "Loaded MCP",

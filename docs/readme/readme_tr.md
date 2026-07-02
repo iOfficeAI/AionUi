@@ -34,7 +34,7 @@
 </p>
 
 <p align="center">
-  <strong>💬 Topluluk:</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (English)</a> | <a href="../../resources/wx-11.png" target="_blank">微信 (中文群)</a> | <a href="https://twitter.com/AionUI" target="_blank">Twitter</a>
+  <strong>💬 Topluluk:</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (English)</a> | <a href="../../resources/wx-14.png" target="_blank">微信 (中文群)</a> | <a href="https://twitter.com/AionUI" target="_blank">Twitter</a>
 </p>
 
 ---
@@ -194,7 +194,6 @@ AionUi önceden tanımlanmış yeteneklere sahip **21 profesyonel asistan** içe
 - **📗 Excel Creator** — Analiz, grafikler ve otomatik biçimlendirme ile elektronik tablo oluşturma
 - **🎓 Academic Paper Writer** — Yapılandırılmış akademik makale yazımı
 - **💰 Financial Model Creator** — Finansal modeller ve projeksiyonlar
-- **⭐ Star Office Helper** — Ofis üretkenlik asistanı
 - **🎮 3D Oyun** — Tek dosya 3D oyun oluşturma
 - **🎨 UI/UX Pro Max** — Profesyonel UI/UX tasarımı (57 stil, 95 renk paleti)
 - **📋 Dosyalarla Planlama** — Karmaşık görevler için dosya tabanlı planlama (Manus tarzı kalıcı Markdown planlama)
@@ -616,7 +615,7 @@ brew install aionui
 - [Sorun Bildir](https://github.com/iOfficeAI/AionUi/issues) — hatalar ve özellik istekleri
 - [Sürüm Güncellemeleri](https://github.com/iOfficeAI/AionUi/releases) — en son sürümü alın
 - [Discord Topluluğu](https://discord.gg/2QAwJn7Egx) — İngilizce topluluk
-- [WeChat Grubu](../../resources/wx-11.png) — Çince topluluk
+- [WeChat Grubu](../../resources/wx-14.png) — Çince topluluk
 
 ### Katkıda Bulunma
 
@@ -628,13 +627,7 @@ brew install aionui
 
 ### Geliştirme Ortamı
 
-Teknoloji yığını: Electron · Vite · React · Bun
-
-```bash
-bun install        # bağımlılıkları yükle
-bun run dev        # geliştirme sunucusunu başlat
-bun run test       # birim testlerini çalıştır
-```
+AionUi yerel geliştirme iki depo kullanır: Electron frontend için AionUi ve yerel backend için AionCore. macOS, Linux ve Windows için tam kurulum adımları için [Development Guide](../contributing/development.md) belgesine bakın.
 
 ---
 

@@ -41,7 +41,7 @@ describe('OfficeWatchViewer module shape', () => {
 
   it('uses official iOfficeAI OfficeCLI releases page', async () => {
     const mod = await import('@/renderer/pages/conversation/Preview/components/viewers/OfficeWatchViewer');
-    expect(mod.OFFICECLI_INSTALL_URL).toBe('https://github.com/iOfficeAI/OfficeCli/releases');
+    expect(mod.OFFICECLI_INSTALL_URL).toBe('https://github.com/iOfficeAI/OfficeCLI/releases');
   });
 });
 

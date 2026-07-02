@@ -10,9 +10,9 @@
  * daily log files on disk.
  *
  * Log file location (managed by electron-log):
- *   - macOS:   ~/Library/Logs/AionUi/YYYY-MM-DD.log
- *   - Windows: %USERPROFILE%\AppData\Roaming\AionUi\logs\YYYY-MM-DD.log
- *   - Linux:   ~/.config/AionUi/logs/YYYY-MM-DD.log
+ *   - macOS:   ~/Library/Logs/AionUi/YYYY/MM/DD/YYYY-MM-DD.log
+ *   - Windows: %USERPROFILE%\AppData\Roaming\AionUi\logs\YYYY\MM\DD\YYYY-MM-DD.log
+ *   - Linux:   ~/.config/AionUi/logs/YYYY/MM/DD/YYYY-MM-DD.log
  *
  * Users can share the relevant date's file for debugging (#1157).
  *
@@ -22,14 +22,37 @@
 
 import { app } from 'electron';
 import log from 'electron-log/main';
+import fs from 'node:fs';
+import path from 'node:path';
 
 const FILE_SIZE_LIMIT = 10 * 1024 * 1024; // 10 MB
 const FILE_LOG_LEVEL = 'info';
 const CONSOLE_LOG_LEVEL = 'silly';
 
-// Daily log file: e.g. 2026-03-12.log
-const today = new Date().toISOString().slice(0, 10);
-log.transports.file.fileName = `${today}.log`;
+function formatLocalDateParts(date: Date): { year: string; month: string; day: string; dateStr: string } {
+  const year = String(date.getFullYear()).padStart(4, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return {
+    year,
+    month,
+    day,
+    dateStr: `${year}-${month}-${day}`,
+  };
+}
+
+export function buildDatedLogFileName(date = new Date()): string {
+  const { year, month, day, dateStr } = formatLocalDateParts(date);
+  return `${year}/${month}/${day}/${dateStr}.log`;
+}
+
+// Daily log file: e.g. 2026/03/12/2026-03-12.log
+log.transports.file.fileName = buildDatedLogFileName();
+log.transports.file.resolvePathFn = (variables) => {
+  const filePath = path.join(variables.libraryDefaultDir, variables.fileName);
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
+  return filePath;
+};
 
 // --- Main-process logger (frontend) ---
 log.transports.file.level = FILE_LOG_LEVEL;

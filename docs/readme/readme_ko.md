@@ -34,7 +34,7 @@
 </p>
 
 <p align="center">
-  <strong>💬 커뮤니티:</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (English)</a> | <a href="../../resources/wx-11.png" target="_blank">微信 (中文群)</a> | <a href="https://twitter.com/AionUI" target="_blank">Twitter</a>
+  <strong>💬 커뮤니티:</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (English)</a> | <a href="../../resources/wx-14.png" target="_blank">微信 (中文群)</a> | <a href="https://twitter.com/AionUI" target="_blank">Twitter</a>
 </p>
 
 ---
@@ -194,7 +194,6 @@ AionUi는 사전 정의된 기능을 가진 **21개의 전문 어시스턴트**�
 - **📗 Excel Creator** — 분석, 차트, 자동 서식이 포함된 스프레드시트 생성
 - **🎓 Academic Paper Writer** — 구조화된 학술 논문 작성
 - **💰 Financial Model Creator** — 재무 모델 및 예측
-- **⭐ Star Office Helper** — 오피스 생산성 어시스턴트
 - **🎮 3D 게임** — 단일 파일 3D 게임 생성
 - **🎨 UI/UX Pro Max** — 전문 UI/UX 디자인(57 스타일, 95 컬러 팔레트)
 - **📋 파일로 계획하기** — 복잡한 작업을 위한 파일 기반 계획(Manus 스타일의 지속적인 Markdown 계획)
@@ -616,7 +615,7 @@ brew install aionui
 - [문제 보고](https://github.com/iOfficeAI/AionUi/issues) — 버그 및 기능 요청
 - [릴리스 업데이트](https://github.com/iOfficeAI/AionUi/releases) — 최신 버전 받기
 - [Discord 커뮤니티](https://discord.gg/2QAwJn7Egx) — 영어 커뮤니티
-- [WeChat 그룹](../../resources/wx-11.png) — 중국어 커뮤니티
+- [WeChat 그룹](../../resources/wx-14.png) — 중국어 커뮤니티
 
 ### 기여하기
 
@@ -630,13 +629,7 @@ PR을 열기 전에 [CONTRIBUTING.md](../../CONTRIBUTING.md)를 읽어주세요.
 
 ### 개발 환경 설정
 
-기술 스택: Electron · Vite · React · Bun
-
-```bash
-bun install        # 의존성 설치
-bun run dev        # 개발 서버 시작
-bun run test       # 단위 테스트 실행
-```
+AionUi 로컬 개발은 Electron 프런트엔드용 AionUi와 로컬 백엔드용 AionCore 두 저장소를 사용합니다. macOS, Linux, Windows 전체 설정 절차는 [Development Guide](../contributing/development.md)를 참고하세요.
 
 ---
 

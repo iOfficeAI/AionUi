@@ -79,18 +79,6 @@ repos:
         files: ^packages/desktop/src/renderer/services/i18n/locales/
         pass_filenames: false
 
-  # Forbid direct `acpConversation.getAvailableAgents.invoke` — route all
-  # /api/agents reads through `useAgents()` / `getAgents()` so every call site
-  # shares the SWR cache (DETECTED_AGENTS_SWR_KEY).
-  - repo: local
-    hooks:
-      - id: agents-invoke-check
-        name: Agents invoke check
-        entry: node scripts/check-agents-invoke.js
-        language: system
-        files: ^packages/desktop/src/renderer/.*\.(ts|tsx)$
-        pass_filenames: false
-
   # Commit message format (Conventional Commits)
   - repo: https://github.com/compilerla/conventional-pre-commit
     rev: v4.2.0

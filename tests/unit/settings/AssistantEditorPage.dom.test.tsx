@@ -127,4 +127,38 @@ describe('AssistantEditorPage', () => {
     expect(screen.getByText('学术论文助手')).toBeInTheDocument();
     expect(screen.queryByText('Academic Paper')).not.toBeInTheDocument();
   });
+
+  it('allows saving and hides delete for generated assistants', () => {
+    const editor = createEditor();
+    editor.isCreating = false;
+    editor.profile.name = 'Droid';
+
+    render(
+      <ConfigProvider>
+        <AssistantEditorPage
+          editor={editor}
+          activeAssistant={{
+            id: 'bare-1',
+            name: 'Droid',
+            source: 'generated',
+            enabled: true,
+            sort_order: 1,
+            name_i18n: {},
+            description_i18n: {},
+            context_i18n: {},
+            prompts_i18n: {},
+            enabled_skills: [],
+            custom_skill_names: [],
+            disabled_builtin_skills: [],
+            preset_agent_type: 'droid',
+            models: [],
+          }}
+          onBack={vi.fn()}
+        />
+      </ConfigProvider>
+    );
+
+    expect(screen.queryByTestId('btn-delete-assistant')).not.toBeInTheDocument();
+    expect(screen.getByTestId('btn-save-assistant')).not.toBeDisabled();
+  });
 });

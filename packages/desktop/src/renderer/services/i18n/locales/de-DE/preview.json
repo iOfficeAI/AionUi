@@ -1,0 +1,143 @@
+{
+  "historyVersions": "Versionshistorie",
+  "currentFile": "Aktuelle Datei",
+  "loading": "Wird geladen...",
+  "loadHistoryFailed": "Verlauf konnte nicht geladen werden",
+  "noHistory": "Keine Versionshistorie",
+  "snapshotSaved": "Schnappschuss gespeichert",
+  "snapshotSaveFailed": "Schnappschuss speichern fehlgeschlagen",
+  "historyLoaded": "Verlaufsversion geladen",
+  "historyLoadFailed": "Verlaufsversion konnte nicht geladen werden",
+  "tooFrequent": "Zu häufig, bitte später versuchen",
+  "saveSnapshot": "Aktuellen Schnappschuss speichern",
+  "snapshotNotSupported": "Aktueller Inhalt unterstützt keine Schnappschüsse",
+  "history": "Verlauf",
+  "historyNotSupported": "Aktueller Inhalt unterstützt keinen Verlauf",
+  "downloadFile": "Datei herunterladen",
+  "closePreview": "Vorschau schließen",
+  "collapsePanel": "Panel einklappen",
+  "source": "Quelle",
+  "code": "Code",
+  "preview": "Vorschau",
+  "editor": "Editor",
+  "previewEffect": "Vorschau",
+  "snapshot": "Schnappschuss",
+  "downloadMarkdown": "Markdown-Datei herunterladen",
+  "downloadCode": "{{language}}-Datei herunterladen",
+  "downloadDiff": "Diff-Datei herunterladen",
+  "addToChat": "Zum Chat hinzufügen",
+  "openSplitScreen": "Geteilte Ansicht öffnen",
+  "closeSplitScreen": "Geteilte Ansicht schließen",
+  "edit": "Bearbeiten",
+  "exitEdit": "Bearbeitung beenden",
+  "unsavedChangesTitle": "Ungespeicherte Änderungen",
+  "unsavedChangesMessage": "Es gibt ungespeicherte Änderungen. Bearbeitung wirklich beenden?",
+  "confirmExit": "Beenden bestätigen",
+  "continueEdit": "Weiter bearbeiten",
+  "closeTabTitle": "Tab schließen",
+  "closeTabMessage": "Der aktuelle Inhalt wurde nicht gespeichert. Vor dem Schließen speichern?",
+  "saveAndClose": "Speichern und schließen",
+  "closeWithoutSave": "Nicht speichern",
+  "pptTitle": "PowerPoint-Präsentation",
+  "pptOpenHint": "Klicke auf die Schaltfläche unten, um es in der Systemanwendung zu öffnen und den vollständigen Inhalt anzuzeigen",
+  "pptOpenFile": "Datei öffnen",
+  "pptShowLocation": "Speicherort anzeigen",
+  "pptSystemAppHint": "Wird mit der Standard-Systemanwendung geöffnet (PowerPoint, Keynote oder WPS)",
+  "openWithApp": "In {{app}} öffnen",
+  "openInSystemApp": "In Systemanwendung öffnen",
+  "openInSystemSuccess": "In Standard-Systemanwendung geöffnet",
+  "openInSystemFailed": "Öffnen mit Systemanwendung fehlgeschlagen",
+  "closeLeft": "Links schließen",
+  "closeRight": "Rechts schließen",
+  "closeOthers": "Andere schließen",
+  "closeAll": "Alle schließen",
+  "readOnlyLabel": "Schreibgeschützte Vorschau",
+  "pathLabel": "Pfad",
+  "missingFile": {
+    "title": "Datei nicht gefunden",
+    "openInNewTab": "In neuem Tab öffnen versuchen"
+  },
+  "noTabs": "Keine Tabs geöffnet",
+  "openInPanelTooltip": "Im Vorschau-Panel anzeigen",
+  "mermaidTitle": "Mermaid-Diagramm",
+  "largeTextTruncatedHint": "Großdatei-Vorschaumodus: Die ersten {{count}} Zeichen werden aus Leistungsgründen angezeigt.",
+  "truncatedBanner": "Vorschau-Inhalt wurde gekürzt. Klicke auf Download, um die vollständige Datei anzuzeigen.",
+  "aiWriting": "KI schreibt…",
+  "errors": {
+    "missingFilePath": "Dateipfad fehlt",
+    "openWithoutPath": "Öffnen nicht möglich: Dateipfad ist nicht angegeben",
+    "conversionFailed": "Konvertierung fehlgeschlagen",
+    "emptySnapshot": "Schnappschuss-Inhalt ist leer"
+  },
+  "office": {
+    "installLinkText": "officecli-Installationsanleitung öffnen",
+    "errors": {
+      "officecliNotFound": "officecli ist nicht installiert.",
+      "installFailed": "Automatische Installation von officecli fehlgeschlagen. Überprüfe Backend-Logs und versuche es erneut.",
+      "portTimeout": "Vorschau-Dienst gestartet, wurde aber nicht rechtzeitig bereit. Versuche es erneut.",
+      "startFailed": "Office-Vorschau-Dienst konnte nicht gestartet werden.",
+      "outsideSandbox": "Diese Datei befindet sich außerhalb der aktuellen Projekt-Sandbox."
+    },
+    "serverInstall": {
+      "hint": "AionUi läuft auf einem Server. Installiere die Vorschau-Komponente auf diesem Server und versuche es erneut:",
+      "icuNote": "Falls es immer noch nicht startet, installiere die ICU-Bibliothek auf dem Server (Debian/Ubuntu: apt-get install -y libicu-dev)."
+    }
+  },
+  "word": {
+    "title": "Word-Dokument",
+    "loading": "Word-Dokument wird geladen...",
+    "invalid": "Bitte bestätige, dass die Datei ein gültiges Word-Dokument ist",
+    "loadFailed": "Word-Dokument konnte nicht geladen werden",
+    "watch": {
+      "loading": "Word-Dokument wird geladen...",
+      "installing": "officecli wird installiert...",
+      "startFailed": "Word-Vorschau konnte nicht gestartet werden",
+      "installHint": "Erfordert officecli. Wird automatisch installiert."
+    }
+  },
+  "excel": {
+    "title": "Excel-Tabelle",
+    "loading": "Excel-Arbeitsmappe wird geladen...",
+    "invalid": "Bitte bestätige, dass die Datei ein gültiges Excel-Dokument ist",
+    "noSheets": "Keine Arbeitsblätter in dieser Excel-Datei gefunden",
+    "sheetCount": "{{count}} Arbeitsblatt/Arbeitsblätter",
+    "convertFailed": "Excel-Konvertierung fehlgeschlagen",
+    "loadFailed": "Excel-Arbeitsmappe konnte nicht geladen werden",
+    "emptySheet": "Dieses Arbeitsblatt enthält keine Daten",
+    "emptySheetHint": "Prüfe ob das Blatt Daten oder Bilder enthält",
+    "watch": {
+      "loading": "Excel-Datei wird geladen...",
+      "installing": "officecli wird installiert...",
+      "startFailed": "Excel-Vorschau konnte nicht gestartet werden",
+      "installHint": "Erfordert officecli. Wird automatisch installiert."
+    }
+  },
+  "pdf": {
+    "title": "PDF-Dokument",
+    "pathMissing": "PDF-Dateipfad fehlt",
+    "loadFailed": "PDF-Dokument konnte nicht geladen werden",
+    "unableDisplay": "PDF-Datei kann nicht angezeigt werden"
+  },
+  "html": {
+    "elementSelected": "Ausgewähltes Element: {{path}}",
+    "copySuccess": "HTML-Snippet kopiert",
+    "inspectorEnabled": "Element-Inspektor aktiviert. Klicke auf Elemente in der Vorschau, um sie hervorzuheben.",
+    "inspectorButton": "Element-Inspektor",
+    "inspecting": "Wird inspiziert...",
+    "selectedLabel": "Ausgewählt:",
+    "inspectorTooltip": "Klicke auf Vorschau-Elemente, um deren HTML zu inspizieren",
+    "downloadHtml": "HTML-Datei herunterladen",
+    "copyElementHtml": "Element-HTML kopieren",
+    "viewElementInfo": "Element-Info anzeigen",
+    "printedToConsole": "Element-Info in der Konsole ausgegeben",
+    "inspectElement": "Element inspizieren",
+    "inspectElementEnable": "Element-Inspektor aktivieren",
+    "inspectElementDisable": "Element-Inspektor deaktivieren"
+  },
+  "ppt": {
+    "loading": "PPT-Vorschau wird gestartet...",
+    "installing": "Vorschau-Komponente wird installiert...",
+    "startFailed": "PPT-Vorschau konnte nicht gestartet werden",
+    "installHint": "Installiere OfficeCLI über die offizielle iOfficeAI/OfficeCLI releases-Seite"
+  }
+}

@@ -11,7 +11,7 @@ import { mapAcpCommandsToSlashCommands } from '@/common/chat/slash/acpMapping';
 import type { SlashCommandItem } from '@/common/chat/slash/types';
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 import type { TokenUsageData } from '@/common/config/storage';
-import { useAddOrUpdateMessage } from '@/renderer/pages/conversation/Messages/hooks';
+import { useMergeLiveMessage } from '@/renderer/pages/conversation/Messages/hooks';
 import { logStreamTerminalObserved } from '@/renderer/pages/conversation/runtime/useConversationRuntimeView';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
 import { isConversationProcessing } from '@/renderer/pages/conversation/utils/conversationRuntime';
@@ -35,8 +35,29 @@ export type UseAcpMessageReturn = {
   fetchSlashCommands: () => void;
 };
 
+const slashCommandsInFlight = new Map<string, Promise<SlashCommandItem[]>>();
+
+function fetchAcpSlashCommands(conversation_id: string): Promise<SlashCommandItem[]> {
+  const existing = slashCommandsInFlight.get(conversation_id);
+  if (existing) return existing;
+
+  const promise = ipcBridge.conversation.getSlashCommands
+    .invoke({ conversation_id })
+    .then((result) => {
+      if (!result || !Array.isArray(result) || result.length === 0) return [];
+      return mapAcpCommandsToSlashCommands(result);
+    })
+    .finally(() => {
+      if (slashCommandsInFlight.get(conversation_id) === promise) {
+        slashCommandsInFlight.delete(conversation_id);
+      }
+    });
+  slashCommandsInFlight.set(conversation_id, promise);
+  return promise;
+}
+
 export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: boolean }): UseAcpMessageReturn => {
-  const addOrUpdateMessage = useAddOrUpdateMessage();
+  const mergeLiveMessage = useMergeLiveMessage();
   const [running, setRunning] = useState(false);
   const [hasHydratedRunningState, setHasHydratedRunningState] = useState(false);
   const [thought, setThought] = useState<ThoughtData>({
@@ -136,7 +157,7 @@ export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: 
       const endTime = boundaryMessage.created_at ?? Date.now();
       const duration = completeOptions?.duration ?? Math.max(0, endTime - activeThinking.startedAt);
 
-      addOrUpdateMessage({
+      mergeLiveMessage({
         id: `${activeThinking.msgId}-thinking-done`,
         type: 'thinking',
         msg_id: activeThinking.msgId,
@@ -152,7 +173,7 @@ export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: 
 
       activeThinkingRef.current = null;
     },
-    [addOrUpdateMessage]
+    [mergeLiveMessage]
   );
 
   const handleResponseMessage = useCallback(
@@ -178,7 +199,7 @@ export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: 
         setHasThinkingMessage(false);
         const transformedMessage = transformMessage(message);
         if (transformedMessage) {
-          addOrUpdateMessage(transformedMessage);
+          mergeLiveMessage(transformedMessage);
         }
         return;
       }
@@ -243,7 +264,7 @@ export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: 
           }
           hasThinkingMessageRef.current = true;
           setHasThinkingMessage(true);
-          addOrUpdateMessage(transformedMessage);
+          mergeLiveMessage(transformedMessage);
           break;
         }
         case 'start':
@@ -296,7 +317,7 @@ export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: 
           }
           // Clear thought when final answer arrives
           setThought({ subject: '', description: '' });
-          addOrUpdateMessage(transformedMessage);
+          mergeLiveMessage(transformedMessage);
           break;
         }
         case 'agent_status': {
@@ -325,16 +346,16 @@ export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: 
               aiProcessingRef.current = false;
             }
           }
-          addOrUpdateMessage(transformedMessage);
+          mergeLiveMessage(transformedMessage);
           break;
         }
         case 'user_content':
-          addOrUpdateMessage(transformedMessage);
+          mergeLiveMessage(transformedMessage);
           break;
         case 'teammate_message': {
           const tmMsg = message.data as TMessage;
           if (tmMsg && tmMsg.conversation_id === conversation_id) {
-            addOrUpdateMessage(
+            mergeLiveMessage(
               tmMsg.type === 'text'
                 ? {
                     ...tmMsg,
@@ -351,7 +372,7 @@ export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: 
             setRunning(true);
             runningRef.current = true;
           }
-          addOrUpdateMessage(transformedMessage);
+          mergeLiveMessage(transformedMessage);
           break;
         case 'acp_model_info':
           // Model info updates are handled by AcpModelSelector, no action needed here
@@ -405,7 +426,7 @@ export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: 
           setAiProcessing(false);
           aiProcessingRef.current = false;
           activeThinkingRef.current = null;
-          addOrUpdateMessage(transformedMessage);
+          mergeLiveMessage(transformedMessage);
           // Log request error
           if (requestTraceRef.current) {
             const duration = Date.now() - requestTraceRef.current.startTime;
@@ -424,13 +445,13 @@ export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: 
             setRunning(true);
             runningRef.current = true;
           }
-          addOrUpdateMessage(transformedMessage);
+          mergeLiveMessage(transformedMessage);
           break;
       }
     },
     [
       conversation_id,
-      addOrUpdateMessage,
+      mergeLiveMessage,
       completeActiveThinking,
       throttledSetThought,
       setThought,
@@ -535,12 +556,12 @@ export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: 
     void warmupConversation(conversation_id)
       .then(() => {
         if (cancelled) return;
-        return ipcBridge.conversation.getSlashCommands.invoke({ conversation_id });
+        return fetchAcpSlashCommands(conversation_id);
       })
-      .then((result) => {
+      .then((commands) => {
         if (cancelled) return;
-        if (!result || !Array.isArray(result) || result.length === 0) return;
-        setSlashCommands(mapAcpCommandsToSlashCommands(result));
+        if (!commands?.length) return;
+        setSlashCommands(commands);
       })
       .catch(() => {});
     return () => {
@@ -562,11 +583,10 @@ export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: 
   }, []);
 
   const fetchSlashCommands = useCallback(() => {
-    void ipcBridge.conversation.getSlashCommands
-      .invoke({ conversation_id })
-      .then((result) => {
-        if (!result || !Array.isArray(result) || result.length === 0) return;
-        setSlashCommands(mapAcpCommandsToSlashCommands(result));
+    void fetchAcpSlashCommands(conversation_id)
+      .then((commands) => {
+        if (!commands.length) return;
+        setSlashCommands(commands);
       })
       .catch(() => {});
   }, [conversation_id]);

@@ -63,3 +63,34 @@ export interface IChannelSession {
   created_at: number;
   lastActivity: number;
 }
+
+/**
+ * Channel assistant binding shape returned by existing backend/config records.
+ * Legacy rows may still carry `custom_agent_id`, `backend`, or `agent_type`;
+ * new writes must use {@link IChannelAssistantBindingWrite} instead.
+ */
+export interface IChannelAssistantBindingRead {
+  assistant_id?: string;
+  /** @deprecated Legacy assistant identity written before assistant-first migration. */
+  custom_agent_id?: string;
+  /** @deprecated Legacy backend-only binding kept for read compatibility. */
+  backend?: string;
+  /** @deprecated Legacy conversation type / backend marker kept for read compatibility. */
+  agent_type?: string;
+  name?: string;
+}
+
+export interface IChannelAssistantBindingWrite {
+  assistant_id: string;
+}
+
+export interface IChannelDefaultModelSetting {
+  id: string;
+  use_model: string;
+}
+
+export interface IChannelPlatformSettings {
+  platform: string;
+  assistant: IChannelAssistantBindingRead | null;
+  default_model: IChannelDefaultModelSetting | null;
+}

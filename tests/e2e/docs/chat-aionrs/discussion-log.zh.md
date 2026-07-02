@@ -287,7 +287,7 @@ test.beforeAll(async () => {
 
 **关键设计决策**:
 
-1. **权限命名统一**：使用 `auto_edit`（源码：`agentModes.ts:65-69`），避免与 Gemini 的 `autoEdit` 混淆
+1. **权限命名统一**：使用 aionrs runtime capabilities 上报的 `auto_edit`，避免与 Gemini 的 `autoEdit` 混淆
 2. **模型选择回退**：TC-A-04 若 guid 页模型选择器未启用，改为对话页切换模型（见 TC-A-07）
 3. **组合矩阵收敛**：原 30+ 用例 → 15 用例，优先覆盖单维度 + 代表性组合
 4. **异常场景简化**：P2 用例只覆盖 binary 检查 + 大文件限制 + 不存在路径（并发对话延后）

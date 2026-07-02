@@ -14,10 +14,12 @@ import {
 } from '@arco-design/web-react';
 import { Magic, FolderOpen, Lightning } from '@icon-park/react';
 import { useTranslation } from 'react-i18next';
+import { mutate } from 'swr';
 import { ipcBridge } from '@/common';
 import { uuid } from '@/common/utils';
 import type { TMessage } from '@/common/chat/chatLib';
 import type { IDirOrFile } from '@/common/adapter/ipcBridge';
+import { loadLatestConversationMessages } from '@/renderer/utils/chat/messagePagination';
 
 interface SkillRuleGeneratorProps {
   conversation_id: string;
@@ -185,10 +187,9 @@ const SkillRuleGenerator: React.FC<SkillRuleGeneratorProps> = ({ conversation_id
       const page_size = 50;
       const MAX_CHARS = 30000;
 
-      const messages = await ipcBridge.database.getConversationMessages.invoke({
-        conversation_id: conversation_id,
-        page_size: page_size,
-        order: 'DESC',
+      const messages = await loadLatestConversationMessages(conversation_id, {
+        limit: page_size,
+        contentMode: 'compact',
       });
 
       if (!messages || messages.items.length === 0) {
@@ -277,7 +278,8 @@ Requirements:
           content,
         });
       }
-      await ipcBridge.acpConversation.refreshCustomAgents.invoke();
+      await mutate('assistants');
+      await mutate('assistants.list');
       Message.success(
         t('conversation.skill_generator.preset_registered', { defaultValue: 'Agent preset registered successfully!' })
       );

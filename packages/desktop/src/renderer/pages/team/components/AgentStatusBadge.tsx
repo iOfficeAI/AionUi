@@ -3,6 +3,7 @@ import type { TeammateStatus } from '@/common/types/team/teamTypes';
 
 type Props = {
   status: TeammateStatus;
+  testId?: string;
 };
 
 const STATUS_CONFIG: Record<TeammateStatus, { color: string }> = {
@@ -15,10 +16,11 @@ const STATUS_CONFIG: Record<TeammateStatus, { color: string }> = {
 
 const FALLBACK_COLOR = 'bg-gray-400';
 
-const AgentStatusBadge: React.FC<Props> = ({ status }) => {
+const AgentStatusBadge: React.FC<Props> = ({ status, testId }) => {
   const color = STATUS_CONFIG[status]?.color ?? FALLBACK_COLOR;
   return (
     <span
+      data-testid={testId}
       className={`inline-block w-2 h-2 rounded-full ${color} ${status === 'active' ? 'animate-pulse' : ''}`}
       aria-label={status}
     />

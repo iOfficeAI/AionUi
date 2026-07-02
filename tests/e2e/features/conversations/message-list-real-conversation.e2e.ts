@@ -8,6 +8,7 @@
 
 import type { Page } from '@playwright/test';
 import { test, expect } from '../../fixtures';
+import { findAssistantIdForBackend, goToGuid } from '../../helpers';
 
 type ScrollProbeSample = {
   aiTextLength: number;
@@ -31,21 +32,27 @@ type StreamRegistry = {
 const ENABLED_CONVERSATION_KEY = 'aionui:e2e-message-stream-conversation-id';
 const BACKGROUND_STREAM_PROMISE_KEY = '__messageListStreamRunPromise';
 
-function createFakeClaudeConversation(id: string) {
+function createFakeClaudeConversation(id: string, assistantId: string) {
   return {
     id,
     name: `E2E MessageList ${id}`,
-    type: 'acp' as const,
+    assistant: {
+      id: assistantId,
+    },
     extra: {
       workspace: '/tmp',
       custom_workspace: true,
-      backend: 'claude',
       session_mode: 'default',
     },
   };
 }
 
 async function createConversation(page: Page, conversationId: string): Promise<string> {
+  await goToGuid(page);
+  const assistantId = await findAssistantIdForBackend(page, 'claude', { requireAvailable: true });
+  test.skip(!assistantId, 'No available Claude assistant for message list conversation');
+  if (!assistantId) return '';
+
   return page.evaluate(
     async ({ conversation }) => {
       const port = (window as unknown as { __backendPort?: number }).__backendPort;
@@ -75,7 +82,7 @@ async function createConversation(page: Page, conversationId: string): Promise<s
       return id;
     },
     {
-      conversation: createFakeClaudeConversation(conversationId),
+      conversation: createFakeClaudeConversation(conversationId, assistantId),
     }
   );
 }

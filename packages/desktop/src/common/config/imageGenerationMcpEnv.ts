@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { ConfigKeyMap } from './configKeys';
+import type { ImageGenerationModelSetting } from './clientSettings';
 import type { IProvider } from './storage';
 
 export const IMAGE_GEN_ENV_KEYS = {
@@ -15,7 +15,7 @@ export const IMAGE_GEN_ENV_KEYS = {
   model: 'AIONUI_IMG_MODEL',
 } as const;
 
-type ImageGenerationSelection = Partial<ConfigKeyMap['tools.imageGenerationModel']>;
+type ImageGenerationSelection = Partial<ImageGenerationModelSetting>;
 
 export type ImageGenerationMcpEnvResolveSource = 'provider-id' | 'field-match';
 

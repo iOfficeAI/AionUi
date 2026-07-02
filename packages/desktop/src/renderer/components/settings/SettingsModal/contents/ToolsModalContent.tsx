@@ -4,23 +4,34 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { configService } from '@/common/config/configService';
-import type { ConfigKeyMap } from '@/common/config/configKeys';
+import type { ImageGenerationModelSetting } from '@/common/config/clientSettings';
 import { removeImageGenerationEnvKeys, resolveImageGenerationMcpEnv } from '@/common/config/imageGenerationMcpEnv';
 import { mcpService } from '@/common/adapter/ipcBridge';
 import { type IMcpServer, BUILTIN_IMAGE_GEN_ID, BUILTIN_IMAGE_GEN_NAME } from '@/common/config/storage';
 import { isImageGenSupported } from '@/common/utils/imageModelAllowlist';
-import { getAgents } from '@/renderer/hooks/agent/useAgents';
-import { Divider, Form, Tooltip, Message, Button, Dropdown, Menu, Modal, Switch } from '@arco-design/web-react';
-import { Help, Down, Plus } from '@icon-park/react';
+import { Divider, Form, Tooltip, Message, Modal, Switch } from '@arco-design/web-react';
+import { Help } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useConfigModelListWithImage from '@/renderer/hooks/agent/useConfigModelListWithImage';
 import AionScrollArea from '@/renderer/components/base/AionScrollArea';
 import AionSelect from '@/renderer/components/base/AionSelect';
+import TalkToButlerButton from '@/renderer/components/base/TalkToButlerButton';
 import AddMcpServerModal from '@/renderer/pages/settings/components/AddMcpServerModal';
 import McpServerItem from '@/renderer/pages/settings/ToolsSettings/McpServerItem';
-import { useMcpServers, useMcpConnection, useMcpModal, useMcpServerCRUD, useMcpOAuth } from '@/renderer/hooks/mcp';
+import {
+  useMcpServers,
+  useMcpConnection,
+  useMcpModal,
+  useMcpServerCRUD,
+  useMcpOAuth,
+  useMountedMessage,
+} from '@/renderer/hooks/mcp';
+import {
+  getClientBusinessSetting,
+  removeClientBusinessSetting,
+  setClientBusinessSetting,
+} from '@/renderer/services/clientBusinessSettings';
 import classNames from 'classnames';
 import { useSettingsViewMode } from '../settingsViewContext';
 
@@ -128,25 +139,7 @@ const ModalMcpManagementSection: React.FC<{
     [handleBatchImportMcpServers, handleTestMcpConnections]
   );
 
-  const [detectedAgents, setDetectedAgents] = useState<Array<{ backend: string; name: string }>>([]);
   const [importMode, setImportMode] = useState<'json' | 'oneclick'>('json');
-
-  useEffect(() => {
-    const loadAgents = async () => {
-      try {
-        const agents = await getAgents();
-        setDetectedAgents(
-          agents.map((agent) => ({
-            backend: agent.backend,
-            name: agent.name,
-          }))
-        );
-      } catch (error) {
-        console.error('Failed to load agents:', error);
-      }
-    };
-    void loadAgents();
-  }, []);
 
   useEffect(() => {
     const httpServers = mcpServers.filter(
@@ -166,54 +159,30 @@ const ModalMcpManagementSection: React.FC<{
   }, [serverToDelete, hideDeleteConfirm, handleDeleteMcpServer]);
 
   const renderAddButton = () => {
-    if (detectedAgents.length > 0) {
-      return (
-        <Dropdown
-          trigger='click'
-          droplist={
-            <Menu>
-              <Menu.Item
-                key='json'
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setImportMode('json');
-                  showAddMcpModal();
-                }}
-              >
-                {t('settings.mcpImportFromJSON')}
-              </Menu.Item>
-              <Menu.Item
-                key='oneclick'
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setImportMode('oneclick');
-                  showAddMcpModal();
-                }}
-              >
-                {t('settings.mcpOneKeyImport')}
-              </Menu.Item>
-            </Menu>
-          }
-        >
-          <Button type='outline' icon={<Plus size={'16'} />} shape='round' onClick={(e) => e.stopPropagation()}>
-            {t('settings.mcpAddServer')} <Down size='12' />
-          </Button>
-        </Dropdown>
-      );
-    }
-
     return (
-      <Button
-        type='outline'
-        icon={<Plus size={'16'} />}
-        shape='round'
-        onClick={() => {
-          setImportMode('json');
-          showAddMcpModal();
-        }}
-      >
-        {t('settings.mcpAddServer')}
-      </Button>
+      <TalkToButlerButton
+        label={t('settings.mcpAddServer')}
+        chatLabel={t('settings.talkToButler.addViaChat', { defaultValue: 'Add via chat' })}
+        prompt={t('settings.talkToButler.prompt.addMcp', { defaultValue: 'Help me set up an MCP server.' })}
+        extraActions={[
+          {
+            key: 'json',
+            label: t('settings.mcpImportFromJSON'),
+            onClick: () => {
+              setImportMode('json');
+              showAddMcpModal();
+            },
+          },
+          {
+            key: 'oneclick',
+            label: t('settings.mcpOneKeyImport'),
+            onClick: () => {
+              setImportMode('oneclick');
+              showAddMcpModal();
+            },
+          },
+        ]}
+      />
     );
   };
 
@@ -299,10 +268,11 @@ const ModalMcpManagementSection: React.FC<{
 
 const ToolsModalContent: React.FC = () => {
   const { t } = useTranslation();
-  const [mcpMessage, mcpMessageContext] = Message.useMessage({ maxCount: 10 });
-  const [imageGenerationModel, setImageGenerationModel] = useState<
-    ConfigKeyMap['tools.imageGenerationModel'] | undefined
-  >();
+  const [rawMcpMessage, mcpMessageContext] = Message.useMessage({ maxCount: 10 });
+  // ELECTRON-1A1: guard message calls so async MCP callbacks that resolve after this
+  // component unmounts don't hit a null Arco context holder (null.addInstance crash).
+  const mcpMessage = useMountedMessage(rawMcpMessage);
+  const [imageGenerationModel, setImageGenerationModel] = useState<ImageGenerationModelSetting | undefined>();
   const [isUpdatingImageGeneration, setIsUpdatingImageGeneration] = useState(false);
   const { modelListWithImage: data } = useConfigModelListWithImage();
   const { mcpServers, extensionMcpServers, saveMcpServers, setMcpServers, isMcpServersLoading } = useMcpServers();
@@ -322,7 +292,7 @@ const ToolsModalContent: React.FC = () => {
   useEffect(() => {
     const loadConfigs = async () => {
       try {
-        const storedModel = configService.get('tools.imageGenerationModel');
+        const storedModel = await getClientBusinessSetting('tools.imageGenerationModel');
         if (storedModel) {
           setImageGenerationModel(storedModel);
         }
@@ -336,7 +306,7 @@ const ToolsModalContent: React.FC = () => {
 
   // Sync image generation model config to the built-in MCP server's transport.env
   const syncMcpServerEnv = useCallback(
-    async (model: Partial<ConfigKeyMap['tools.imageGenerationModel']>) => {
+    async (model: Partial<ImageGenerationModelSetting>) => {
       const builtinServer = mcpServers.find(isBuiltinImageGenServer);
       if (!builtinServer || builtinServer.transport.type !== 'stdio') return;
 
@@ -412,7 +382,7 @@ const ToolsModalContent: React.FC = () => {
 
     if (!currentProvider) {
       setImageGenerationModel(undefined);
-      configService.remove('tools.imageGenerationModel').catch((error) => {
+      removeClientBusinessSetting('tools.imageGenerationModel').catch((error) => {
         console.error('Failed to remove image generation model config:', error);
       });
       void syncMcpServerEnv({}).catch((error) => {
@@ -431,7 +401,7 @@ const ToolsModalContent: React.FC = () => {
 
     if (imageGenerationModel.api_key || imageGenerationModel.base_url) {
       setImageGenerationModel(sanitizedModel);
-      configService.set('tools.imageGenerationModel', sanitizedModel).catch((error) => {
+      setClientBusinessSetting('tools.imageGenerationModel', sanitizedModel).catch((error) => {
         console.error('Failed to sanitize image generation model config:', error);
       });
     }
@@ -442,7 +412,7 @@ const ToolsModalContent: React.FC = () => {
   }, [data, imageGenerationModel, syncMcpServerEnv]);
 
   const handleImageGenerationModelChange = useCallback(
-    (value: Partial<ConfigKeyMap['tools.imageGenerationModel']>) => {
+    (value: Partial<ImageGenerationModelSetting>) => {
       setImageGenerationModel((prev) => {
         const newImageGenerationModel = {
           ...prev,
@@ -452,8 +422,8 @@ const ToolsModalContent: React.FC = () => {
           base_url: '',
           api_key: '',
           use_model: value.use_model,
-        } as ConfigKeyMap['tools.imageGenerationModel'];
-        configService.set('tools.imageGenerationModel', newImageGenerationModel).catch((error) => {
+        } as ImageGenerationModelSetting;
+        setClientBusinessSetting('tools.imageGenerationModel', newImageGenerationModel).catch((error) => {
           console.error('Failed to update image generation model config:', error);
         });
         // Sync env vars to the built-in MCP server
@@ -493,7 +463,7 @@ const ToolsModalContent: React.FC = () => {
         setImageGenerationModel((prev) => {
           if (!prev) return prev;
           const next = { ...prev, switch: checked };
-          configService.set('tools.imageGenerationModel', next).catch((error) => {
+          setClientBusinessSetting('tools.imageGenerationModel', next).catch((error) => {
             console.error('Failed to sync image generation switch state:', error);
           });
           return next;

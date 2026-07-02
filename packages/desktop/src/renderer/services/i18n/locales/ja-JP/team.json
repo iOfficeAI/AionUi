@@ -17,24 +17,27 @@
     "renameSuccess": "チーム名を変更しました",
     "deleteSuccess": "チームを削除しました"
   },
-  "newAgent": "New Agent",
+  "newAgent": "新しいアシスタント",
   "noMessages": "No messages yet.",
-  "agentNotConfigured": "エージェントはまだ設定されていません。",
+  "agentNotConfigured": "アシスタントはまだ設定されていません。",
+  "stopAgentFailed": "このアシスタントを停止できませんでした。もう一度お試しください。",
   "sendBox": {
-    "placeholder": "ディスパッチエージェントにメッセージを送信..."
+    "placeholder": "チームリーダーアシスタントにメッセージを送信..."
   },
   "create": {
     "title": "Create Team",
     "namePlaceholder": "Team name",
     "dispatchAgentPlaceholder": "チームリーダーを選択",
-    "subAgentsPlaceholder": "Select sub agents",
+    "subAgentsPlaceholder": "チームメンバーのアシスタントを選択",
     "confirm": "Create Team",
-    "noSupportedAgents": "対応する Agent が見つかりません",
-    "supportedAgentsHint": "現在 Claude と Codex に対応しています。他の Agent は順次対応予定です。",
-    "leaderDesc": "目標を理解し、エージェントを調整してタスクを完了します",
+    "noSupportedAgents": "利用可能なアシスタントが見つかりません",
+    "supportedAgentsHint": "現在 Claude と Aion CLI のアシスタントに対応しています。ほかのアシスタントも順次追加予定です。",
+    "leaderDesc": "目標を理解し、アシスタントを調整してタスクを完了します",
+    "searchPlaceholder": "アシスタントを検索...",
+    "noSearchResults": "結果が見つかりません",
     "step": {
       "dispatch": "チームリーダー",
-      "subAgents": "Sub Agents",
+      "subAgents": "チームメンバー",
       "workspace": "プロジェクト"
     },
     "nameRequired": "チーム名を入力してください",
@@ -51,8 +54,8 @@
   "emptyState": {
     "subtitle": "目標を教えてください。チームを調整してタスクを完了します",
     "suggestions": {
-      "debate": "Agentが異なる立場をとるディベートを開催する",
-      "interview": "Agentによる深層インタビューを企画する",
+      "debate": "異なる立場をとるアシスタント同士でディベートを開催する",
+      "interview": "アシスタント同士による深掘りインタビューを企画する",
       "expert_review": "複数の専門家が同じ問題を分析する"
     }
   }

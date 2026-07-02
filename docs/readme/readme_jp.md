@@ -34,7 +34,7 @@
 </p>
 
 <p align="center">
-  <strong>💬 コミュニティ：</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (English)</a> | <a href="../../resources/wx-11.png" target="_blank">微信 (中文群)</a> | <a href="https://twitter.com/AionUI" target="_blank">Twitter</a>
+  <strong>💬 コミュニティ：</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (English)</a> | <a href="../../resources/wx-14.png" target="_blank">微信 (中文群)</a> | <a href="https://twitter.com/AionUI" target="_blank">Twitter</a>
 </p>
 
 ---
@@ -86,7 +86,7 @@ AionUi には完全な AI Agent エンジンが内蔵されています。CLI Ag
 
 ### **Morph PPT アニメーションデモ — 一言で滑らかな遷移**
 
-_AionUi には専用の Morph PPT アシスタントが内蔵されています。静的なスライドを作るだけでなく、内容を“語れる”動的プレゼンに変えます。テーマ/アウトライン（または参考スタイル）を入力するだけで、連続感のある Morph プレゼンを生成できます。基盤は [OfficeCLI](https://github.com/iOfficeAI/OfficeCli#) で動作します。_
+_AionUi には専用の Morph PPT アシスタントが内蔵されています。静的なスライドを作るだけでなく、内容を“語れる”動的プレゼンに変えます。テーマ/アウトライン（または参考スタイル）を入力するだけで、連続感のある Morph プレゼンを生成できます。基盤は [OfficeCLI](https://github.com/iOfficeAI/OfficeCLI#) で動作します。_
 
 - **普通の PPT 生成とは違う** — Morph によるストーリー表現とスライド間の連続的な動きに特化
 - **ワークフローを内蔵** — 企画、生成、品質チェック、反復を一体化
@@ -207,7 +207,6 @@ AionUi には、事前定義された機能を持つ **21 個のプロフェッ�
 - **📗 Excel Creator** — 分析・グラフ・自動フォーマット付きスプレッドシート生成
 - **🎓 Academic Paper Writer** — 構造化した学術論文作成
 - **💰 Financial Model Creator** — 財務モデルと予測
-- **⭐ Star Office Helper** — オフィス生産性アシスタント
 - **🎮 3D ゲーム** — 単一ファイル 3D ゲーム生成
 - **🎨 UI/UX Pro Max** — プロフェッショナル UI/UX デザイン（57 スタイル、95 カラーパレット）
 - **📋 ファイルでの計画** — 複雑なタスクのファイルベース計画（Manus スタイルの永続的 Markdown 計画）
@@ -629,7 +628,7 @@ brew install aionui
 - [問題を報告](https://github.com/iOfficeAI/AionUi/issues) — バグと機能リクエスト
 - [リリース更新](https://github.com/iOfficeAI/AionUi/releases) — 最新版を取得
 - [Discord コミュニティ](https://discord.gg/2QAwJn7Egx) — 英語コミュニティ
-- [WeChat グループ](../../resources/wx-11.png) — 中国語コミュニティ
+- [WeChat グループ](../../resources/wx-14.png) — 中国語コミュニティ
 
 ### 貢献
 
@@ -643,13 +642,7 @@ PR を開く前に [CONTRIBUTING.md](../../CONTRIBUTING.md) をお読みくだ�
 
 ### 開発環境セットアップ
 
-技術スタック：Electron · Vite · React · Bun
-
-```bash
-bun install        # 依存関係をインストール
-bun run dev        # 開発サーバーを起動
-bun run test       # ユニットテストを実行
-```
+AionUi のローカル開発では、Electron フロントエンド用の AionUi とローカルバックエンド用の AionCore の 2 つのリポジトリを使います。macOS、Linux、Windows の完全なセットアップ手順は [Development Guide](../contributing/development.md) を参照してください。
 
 ---
 

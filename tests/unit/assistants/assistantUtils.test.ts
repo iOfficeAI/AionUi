@@ -49,37 +49,35 @@ describe('assistantUtils', () => {
 
   describe('resolveAvatarImageSrc', () => {
     it('returns undefined for empty/undefined avatar', () => {
-      expect(resolveAvatarImageSrc(undefined, {})).toBeUndefined();
-      expect(resolveAvatarImageSrc('', {})).toBeUndefined();
-      expect(resolveAvatarImageSrc('   ', {})).toBeUndefined();
-    });
-
-    it('returns mapped image URL from avatarImageMap', () => {
-      const map = { claude: '/assets/claude.svg' };
-      expect(resolveAvatarImageSrc('claude', map)).toBe('/assets/claude.svg');
+      expect(resolveAvatarImageSrc(undefined)).toBeUndefined();
+      expect(resolveAvatarImageSrc('')).toBeUndefined();
+      expect(resolveAvatarImageSrc('   ')).toBeUndefined();
     });
 
     it('resolves extension asset URLs', () => {
-      expect(resolveAvatarImageSrc('ext://my-extension/icon.svg', {})).toBe('resolved-ext://my-extension/icon.svg');
+      expect(resolveAvatarImageSrc('ext://my-extension/icon.svg')).toBe('resolved-ext://my-extension/icon.svg');
     });
 
     it('returns valid image URLs', () => {
-      expect(resolveAvatarImageSrc('logo.png', {})).toBe('logo.png');
-      expect(resolveAvatarImageSrc('/path/icon.svg', {})).toBe('/path/icon.svg');
-      expect(resolveAvatarImageSrc('/Users/demo/avatar.png', {})).toBe('file:///Users/demo/avatar.png');
-      expect(resolveAvatarImageSrc('https://example.com/icon.jpg', {})).toBe('https://example.com/icon.jpg');
-      expect(resolveAvatarImageSrc('data:image/png;base64,xyz', {})).toBe('data:image/png;base64,xyz');
+      expect(resolveAvatarImageSrc('logo.png')).toBe('logo.png');
+      expect(resolveAvatarImageSrc('https://example.com/icon.jpg')).toBe('https://example.com/icon.jpg');
+      expect(resolveAvatarImageSrc('data:image/png;base64,xyz')).toBe('data:image/png;base64,xyz');
+    });
+
+    it('does not expose local absolute paths as image sources', () => {
+      expect(resolveAvatarImageSrc('/Users/demo/avatar.png')).toBeUndefined();
+      expect(resolveAvatarImageSrc('/path/icon.svg')).toBeUndefined();
     });
 
     it('resolves backend-served assistant avatar routes', () => {
-      expect(resolveAvatarImageSrc('/api/assistants/u1/avatar', {})).toBe(
+      expect(resolveAvatarImageSrc('/api/assistants/u1/avatar')).toBe(
         'http://127.0.0.1:13400/api/assistants/u1/avatar'
       );
     });
 
     it('returns undefined for non-image strings', () => {
-      expect(resolveAvatarImageSrc('not-an-image', {})).toBeUndefined();
-      expect(resolveAvatarImageSrc('text', {})).toBeUndefined();
+      expect(resolveAvatarImageSrc('not-an-image')).toBeUndefined();
+      expect(resolveAvatarImageSrc('text')).toBeUndefined();
     });
   });
 

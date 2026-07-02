@@ -7,8 +7,8 @@ import { test, expect } from '../../fixtures';
 import { TEAM_SUPPORTED_BACKENDS, cleanupTeamsByName } from '../../helpers';
 
 /**
- * UI label patterns for each backend. Used to match the agent option in the
- * Create Team dropdown. Falls back to a case-insensitive backend name match.
+ * UI label patterns for each backend. Used to match the assistant option in
+ * the Create Team list. Falls back to a case-insensitive backend name match.
  */
 const BACKEND_UI_PATTERN: Record<string, RegExp> = {
   claude: /Claude Code/i,
@@ -48,12 +48,15 @@ test.describe('Team Create', () => {
     const nameInput = modal.getByRole('textbox').first();
     await expect(nameInput).toBeVisible();
 
-    // Verify the leader AionSelect trigger exists (agent picker is a searchable dropdown)
-    const leaderSelect = page.locator('[data-testid="team-create-leader-select"]');
-    const noAgentsMsg = page.locator('.arco-modal').getByText(/No supported agents installed|没有支持的 agent/i);
-    const hasSelect = await leaderSelect.isVisible({ timeout: 3000 }).catch(() => false);
-    const hasNoAgentsMsg = await noAgentsMsg.isVisible({ timeout: 1000 }).catch(() => false);
-    expect(hasSelect || hasNoAgentsMsg).toBeTruthy();
+    // Verify assistant leader choices render, or the empty-state appears.
+    const leaderOptions = modal.locator('[data-testid^="team-create-agent-option-"]');
+    const noAssistantsMsg = page.locator('.arco-modal').getByText(/No supported assistants available|没有支持的助手/i);
+    const hasOptions = await leaderOptions
+      .first()
+      .isVisible({ timeout: 3000 })
+      .catch(() => false);
+    const hasNoAssistantsMsg = await noAssistantsMsg.isVisible({ timeout: 1000 }).catch(() => false);
+    expect(hasOptions || hasNoAssistantsMsg).toBeTruthy();
 
     // Verify Create button exists (disabled until agent is selected and name is filled)
     const confirmBtn = page.locator('.arco-modal .arco-btn-primary');
@@ -79,18 +82,12 @@ test.describe('Team Create', () => {
     const nameInput = modal.getByRole('textbox').first();
     await nameInput.fill('E2E Test Team');
 
-    // Open the leader select dropdown (AionSelect portals to document.body)
-    const leaderSelect = modal.locator('[data-testid="team-create-leader-select"]');
-    const hasSelect = await leaderSelect.isVisible({ timeout: 3000 }).catch(() => false);
+    const firstOption = modal.locator('[data-testid^="team-create-agent-option-"]').first();
+    const hasOption = await firstOption.isVisible({ timeout: 3000 }).catch(() => false);
 
-    // Screenshot: select trigger visible
-    await page.screenshot({ path: 'tests/e2e/results/team-03-agent-dropdown.png' });
+    await page.screenshot({ path: 'tests/e2e/results/team-03-assistant-list.png' });
 
-    if (hasSelect) {
-      await leaderSelect.click();
-
-      // Options are portaled to document.body — query at page scope
-      const firstOption = page.locator('[data-testid^="team-create-agent-option-"]').first();
+    if (hasOption) {
       await expect(firstOption).toBeVisible({ timeout: 5000 });
       await firstOption.click();
 
@@ -116,17 +113,17 @@ test.describe('Team Create', () => {
       await cleanupTeamsByName(page, 'E2E Test Team');
     } else {
       // No supported agents installed — screenshot and skip
-      await page.screenshot({ path: 'tests/e2e/results/team-03-no-agents.png' });
-      console.log('[E2E] No supported agents available for team creation');
+      await page.screenshot({ path: 'tests/e2e/results/team-03-no-assistants.png' });
+      console.log('[E2E] No supported assistants available for team creation');
       test.skip();
     }
   });
 });
 
 /**
- * Helper: open the Create Team modal, fill a team name, select the agent whose
- * option text matches `agentTextPattern`, click Create, and verify the team
- * was created. Skips gracefully if the agent is not installed.
+ * Helper: open the Create Team modal, fill a team name, select the assistant
+ * whose option text matches `agentTextPattern`, click Create, and verify the
+ * team was created. Skips gracefully if the assistant is unavailable.
  */
 async function createTeamWithAgent(
   page: import('@playwright/test').Page,
@@ -148,15 +145,10 @@ async function createTeamWithAgent(
   const nameInput = modal.getByRole('textbox').first();
   await nameInput.fill(teamName);
 
-  // Open the leader select dropdown (AionSelect portals options to document.body)
-  const leaderSelect = modal.locator('[data-testid="team-create-leader-select"]');
-  await expect(leaderSelect).toBeVisible({ timeout: 5000 });
-  await leaderSelect.click();
+  await page.screenshot({ path: `tests/e2e/results/${screenshotPrefix}-assistant-list.png` });
 
-  await page.screenshot({ path: `tests/e2e/results/${screenshotPrefix}-dropdown.png` });
-
-  // Find the agent option matching the text pattern (options are at page scope, not inside .arco-modal)
-  const allOptions = page.locator('[data-testid^="team-create-agent-option-"]');
+  // Find the assistant option matching the text pattern.
+  const allOptions = modal.locator('[data-testid^="team-create-agent-option-"]');
   await expect(allOptions.first())
     .toBeVisible({ timeout: 5000 })
     .catch(() => {});
@@ -173,11 +165,9 @@ async function createTeamWithAgent(
   }
 
   if (!matchingOption) {
-    // Agent not installed — close dropdown and modal, skip test
-    await page.keyboard.press('Escape').catch(() => {});
     await page.locator('.arco-modal .arco-btn-text').first().click({ force: true });
     await expect(page.locator('.arco-modal')).toBeHidden({ timeout: 5000 });
-    console.log(`[E2E] Agent matching ${agentTextPattern} not found — skipping`);
+    console.log(`[E2E] Assistant matching ${agentTextPattern} not found — skipping`);
     test.skip();
     return;
   }

@@ -94,6 +94,11 @@
   "createError": {
     "pathVariants": {
       "WORKSPACE_PATH_UNAVAILABLE": "所選工作區路徑不可用。請確認工作區路徑「{{workspacePath}}」確實存在且可存取。"
+    },
+    "codes": {
+      "TEAM_ASSISTANT_ID_REQUIRED": "建立團隊前請先選擇助手。",
+      "TEAM_ASSISTANT_NOT_FOUND": "助手 {{assistantId}} 已不可用。請重新整理助手列表後再選擇。",
+      "TEAM_ASSISTANT_FIELD_UNSUPPORTED": "請使用 assistant_id，不要再傳 {{field}}。"
     }
   },
   "agentError": {
@@ -109,7 +114,7 @@
       "reconnect_agent": "Restart or reconnect the selected agent, then retry.",
       "check_agent_login": "Log in to the selected agent, or refresh its credentials.",
       "check_agent_installation": "Check the agent installation and local command configuration.",
-      "check_agent_version": "Update the agent, or fix the protocol version incompatibility.",
+      "check_agent_version": "請檢查 Agent 協議和版本相容性。",
       "check_local_command": "Install the missing command, or confirm it has been added to PATH.",
       "check_provider_credentials": "Check the model provider API key or account credentials in settings.",
       "check_provider_billing": "Check the model provider balance, credits, or quota.",
@@ -153,6 +158,10 @@
         "title": "所選 Agent 啟動失敗",
         "body": "Agent 程序在準備完成前退出了。請檢查安裝、登入狀態和本機命令設定。"
       },
+      "USER_AGENT_OPENCLAW_GATEWAY_UNREACHABLE": {
+        "title": "OpenClaw Gateway 未執行",
+        "body": "OpenClaw Gateway 未執行，或無法連線到 127.0.0.1:18789。\n\n請啟動 OpenClaw Gateway 後重試。你可以在終端機執行：\nopenclaw gateway status\nopenclaw gateway start"
+      },
       "USER_AGENT_DISCONNECTED": {
         "title": "所選 Agent 已中斷連線",
         "body": "Agent 在處理本次訊息時中斷了連線。請重新啟動或重新連線 Agent 後重試。"
@@ -163,15 +172,15 @@
       },
       "USER_AGENT_SESSION_NOT_FOUND": {
         "title": "Agent 會話已遺失",
-        "body": "Agent 已無法識別目前會話。請建立新對話或重新連線 Agent。"
+        "body": "Agent 回報找不到目前會話，或已不再識別該會話。"
       },
       "USER_AGENT_UNSUPPORTED_METHOD": {
         "title": "所選 Agent 不支援該操作",
-        "body": "目前 Agent 無法處理這個請求。可以嘗試切換 Agent 或升級目前 Agent。"
+        "body": "Agent 回報請求的 ACP 方法不受支援，或目前不可用。"
       },
       "USER_AGENT_INVALID_PARAMS": {
         "title": "所選 Agent 拒絕了請求",
-        "body": "Agent 認為請求格式無效。可以簡化訊息內容，或切換到其他 Agent。"
+        "body": "Agent 回報請求參數無效。"
       },
       "USER_AGENT_HANDSHAKE_FAILED": {
         "title": "Agent 握手失敗",
@@ -183,11 +192,27 @@
       },
       "USER_AGENT_ACP_INIT_FAILED": {
         "title": "Agent 協議初始化失敗",
-        "body": "應用程式無法和該 Agent 初始化 Agent Client Protocol 會話。請檢查 Agent 版本並重新連線。"
+        "body": "應用程式無法和該 Agent 初始化 Agent Client Protocol 會話。"
+      },
+      "USER_AGENT_PROTOCOL_PARSE_ERROR": {
+        "title": "Agent 回報了協議解析錯誤",
+        "body": "所選 Agent 回報某則 ACP/JSON-RPC 訊息無法解析。"
+      },
+      "USER_AGENT_INVALID_REQUEST": {
+        "title": "Agent 回報協議請求無效",
+        "body": "所選 Agent 回報 ACP/JSON-RPC 請求物件無效。"
+      },
+      "USER_AGENT_RESOURCE_NOT_FOUND": {
+        "title": "Agent 找不到所需資源",
+        "body": "所選 Agent 回報找不到所需資源，例如某個檔案。"
+      },
+      "USER_AGENT_PROTOCOL_ERROR": {
+        "title": "Agent 回傳了協議錯誤",
+        "body": "所選 Agent 回傳了非標準 ACP 錯誤碼。"
       },
       "USER_AGENT_PROTOCOL_MISMATCH": {
         "title": "Agent 協議版本不相容",
-        "body": "所選 Agent 使用的協議版本不相容。請升級 Agent，或切換到相容的 Agent。"
+        "body": "應用程式和所選 Agent 無法使用相容的 ACP 協議版本。"
       },
       "USER_AGENT_NO_PREVIOUS_SESSION": {
         "title": "無法恢復上一次 Agent 會話",
@@ -204,6 +229,10 @@
       "USER_LLM_PROVIDER_AUTH_FAILED": {
         "title": "模型服務商驗證失敗",
         "body": "所選服務商拒絕了 API Key 或帳號憑證。請檢查模型設定後重試。"
+      },
+      "USER_LLM_PROVIDER_AWS_SSO_EXPIRED": {
+        "title": "AWS SSO 工作階段已過期",
+        "body": "AWS SSO 工作階段已過期。請在終端機為對應的 profile 執行 'aws sso login'，然後重新傳送訊息。"
       },
       "USER_LLM_PROVIDER_CONFIG_ERROR": {
         "title": "模型服務商設定無效",
@@ -268,7 +297,39 @@
       },
       "UNKNOWN_UPSTREAM_ERROR": {
         "title": "上游 Agent 或模型服務商出錯",
-        "body": "收到上游錯誤，但暫時無法準確分類。可以查看下方詳情或提交回饋。"
+        "body": "收到上游錯誤，但暫時無法判斷它來自 Agent、模型服務商、網路還是本機環境。"
+      },
+      "MCP_HTTP_RESPONSE_READ_FAILED": {
+        "title": "讀取團隊輔助程序回應失敗",
+        "body": "AionUi 無法讀取本地團隊輔助程序的回應。請先重試一次，若持續發生再重新啟動應用。"
+      },
+      "MCP_TOOL_REMOTE_ERROR": {
+        "title": "本地團隊輔助程序拒絕了這次請求",
+        "body": "本地團隊輔助程序在處理這次請求時回傳了錯誤。請查看下方詳情，調整團隊操作後再重試。"
+      },
+      "MCP_TOOL_RESPONSE_UNEXPECTED": {
+        "title": "團隊輔助程序回傳了異常回應",
+        "body": "AionUi 收到了本地團隊輔助程序的異常回應。請先重試一次，若持續發生再回報問題。"
+      },
+      "MCP_TCP_READ_FAILED": {
+        "title": "讀取本地團隊輔助程序失敗",
+        "body": "AionUi 無法讀取本地團隊輔助程序的 TCP 回應。請先重試一次，如仍失敗可重新啟動應用。"
+      },
+      "TEAM_SERVICE_UNAVAILABLE": {
+        "title": "團隊服務尚未就緒",
+        "body": "本地團隊對話仍在啟動中，或剛剛被中斷。請稍候再試。"
+      },
+      "TEAM_ASSISTANT_ID_REQUIRED": {
+        "title": "必須先選擇隊友助手",
+        "body": "建立或拉起隊友前，請先從可用助手目錄選擇一個真實 assistant。"
+      },
+      "TEAM_ASSISTANT_NOT_FOUND": {
+        "title": "所選助手已不可用",
+        "body": "請重新整理助手目錄，然後為這位隊友重新選擇一個助手。"
+      },
+      "TEAM_ASSISTANT_FIELD_UNSUPPORTED": {
+        "title": "請求仍在使用舊的團隊身份欄位",
+        "body": "這個團隊操作必須使用 assistant_id，不能再使用舊的 backend 或 agent 欄位。"
       }
     }
   },
@@ -375,7 +436,6 @@
     "apiErrorSwitched": "API 錯誤，已自動切換到 {{cli}} CLI",
     "confirmationLoadError": "確認對話框載入失敗",
     "tryAnotherAgent": "嘗試其他 Agent：",
-    "switchedToAgent": "已切換到 {{agent}}",
     "switchAgentFailed": "切換 Agent 失敗",
     "speech": {
       "recordTooltip": "開始語音輸入",
@@ -462,7 +522,8 @@
     "label": "思考中..."
   },
   "skills": {
-    "loaded": "已載入技能"
+    "loaded": "已載入技能",
+    "slashHint": "技能"
   },
   "mcp": {
     "loaded": "已載入 MCP",

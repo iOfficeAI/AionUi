@@ -5,38 +5,51 @@
  */
 
 import { ipcBridge } from '@/common';
-import type { AgentMetadata } from '@/renderer/utils/model/agentTypes';
+import { parseError } from '@/common/utils';
+import { formatManagedAgentDiagnosticMessage, type ManagedAgent } from '@/renderer/utils/model/agentTypes';
 import AionModal from '@/renderer/components/base/AionModal';
-import { useManagedAgents } from '@/renderer/hooks/agent/useAgents';
-import { Button, Typography } from '@arco-design/web-react';
-import { Home, Plus } from '@icon-park/react';
+import { useManagedAgents } from '@/renderer/hooks/agent/useManagedAgents';
+import { openExternalUrl } from '@/renderer/utils/platform';
+import { Button, Message, Radio, Typography } from '@arco-design/web-react';
+import TalkToButlerButton from '@/renderer/components/base/TalkToButlerButton';
 import React, { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
 import AgentCard from './AgentCard';
-import { AgentHubModal } from './AgentHubModal';
+import { isDeprecatedRuntimeAgentType } from '@/renderer/utils/model/agentTypeSupportPolicy';
 import InlineAgentEditor, { type CustomAgentDraft } from './InlineAgentEditor';
-import { getAgentKey } from '@/renderer/pages/guid/hooks/agentSelectionUtils';
+import { getBoundAssistants, useAssistantsForAgents } from './BoundAssistants';
+import { useNavigate } from 'react-router-dom';
+import {
+  filterAgentsByAvailability,
+  getAgentAvailabilityFilterStats,
+  type AgentAvailabilityFilter,
+} from './agentFilters';
+
+const LOCAL_AGENT_SETUP_GUIDE_URL = 'https://github.com/iOfficeAI/AionUi/wiki/ACP-Setup';
 
 const LocalAgents: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const [hubModalVisible, setHubModalVisible] = useState(false);
+  const [testingAgentId, setTestingAgentId] = useState<string | null>(null);
+  const [agentFilter, setAgentFilter] = useState<AgentAvailabilityFilter>('all');
+  const { assistants } = useAssistantsForAgents();
 
   // Management view: includes user-disabled custom agents so they stay
-  // listed (greyed) with a working re-enable toggle. `revalidate` here
-  // refreshes both the management cache and the shared detected cache, so
-  // toggling an agent on/off is reflected in the pickers too.
-  const { agents: allAgents, revalidate: mutateAgents } = useManagedAgents();
+  // listed (greyed) with a working re-enable toggle. `refreshCatalog`
+  // also refreshes assistant list caches because generated-assistant availability
+  // can change after health checks or custom-agent mutations.
+  const { agents: allAgents, isRefreshing, refreshCatalog } = useManagedAgents();
 
-  const detectedAgents = allAgents.filter(
-    (a) => (a.agent_type === 'acp' || a.agent_type === 'aionrs') && a.agent_source !== 'custom'
+  // Hide deprecated runtime backends (nanobot / openclaw-gateway / remote / gemini)
+  // — they are no longer offered as agents and shouldn't appear on the detection page.
+  const officialAgents = allAgents.filter(
+    (a) => a.agent_source !== 'custom' && !isDeprecatedRuntimeAgentType(a.agent_type)
   );
 
-  const customAgents: AgentMetadata[] = allAgents.filter((a) => a.agent_source === 'custom');
+  const customAgents: ManagedAgent[] = allAgents.filter((a) => a.agent_source === 'custom');
 
   const [editorVisible, setEditorVisible] = useState(false);
-  const [editingAgent, setEditingAgent] = useState<AgentMetadata | null>(null);
+  const [editingAgent, setEditingAgent] = useState<ManagedAgent | null>(null);
 
   const handleSaveCustomAgent = useCallback(
     async (draft: CustomAgentDraft) => {
@@ -54,134 +67,203 @@ const LocalAgents: React.FC = () => {
         } else {
           await ipcBridge.acpConversation.createCustomAgent.invoke(body);
         }
-        await mutateAgents();
+        await refreshCatalog();
         setEditorVisible(false);
         setEditingAgent(null);
       } catch (err) {
-        // Surface backend rejection (e.g. cli_not_found / acp_init_failed) without crashing.
         console.error('save custom agent failed:', err);
+        Message.error(parseError(err));
       }
     },
-    [editingAgent, mutateAgents]
+    [editingAgent, refreshCatalog]
   );
 
   const handleDeleteCustomAgent = useCallback(
     async (agentId: string) => {
       try {
         await ipcBridge.acpConversation.deleteCustomAgent.invoke({ id: agentId });
-        await mutateAgents();
+        await refreshCatalog();
       } catch (err) {
         console.error('delete custom agent failed:', err);
+        Message.error(parseError(err));
       }
     },
-    [mutateAgents]
+    [refreshCatalog]
   );
 
   const handleToggleCustomAgent = useCallback(
     async (agentId: string, enabled: boolean) => {
       try {
         await ipcBridge.acpConversation.setAgentEnabled.invoke({ id: agentId, enabled });
-        await mutateAgents();
+        await refreshCatalog();
       } catch (err) {
         console.error('toggle custom agent failed:', err);
+        Message.error(parseError(err));
       }
     },
-    [mutateAgents]
+    [refreshCatalog]
   );
 
-  // Aion CLI first among detected agents
-  const aionrsAgent = detectedAgents?.find((a) => a.agent_type === 'aionrs' || a.backend === 'aionrs');
-  const otherDetected = detectedAgents?.filter((a) => a.agent_type !== 'aionrs' && a.backend !== 'aionrs') ?? [];
+  const sortedOfficialAgents = [...officialAgents].toSorted((left, right) => {
+    const leftIsAionrs = left.agent_type === 'aionrs' || left.backend === 'aionrs';
+    const rightIsAionrs = right.agent_type === 'aionrs' || right.backend === 'aionrs';
+    if (leftIsAionrs !== rightIsAionrs) {
+      return leftIsAionrs ? -1 : 1;
+    }
+    return left.name.localeCompare(right.name);
+  });
+  const officialFilterStats = getAgentAvailabilityFilterStats(sortedOfficialAgents);
+  const visibleOfficialAgents = filterAgentsByAvailability(sortedOfficialAgents, agentFilter);
 
   const openCustomAgentEditor = useCallback(() => {
     setEditingAgent(null);
     setEditorVisible(true);
   }, []);
 
-  const goToChatWithAgent = useCallback(
-    (agent: AgentMetadata) => {
-      navigate('/guid', { state: { selectedAgentKey: getAgentKey(agent) } });
+  const openAgentConfig = useCallback(
+    (agentId: string) => {
+      navigate(`/settings/agent/${agentId}/repair`);
     },
     [navigate]
   );
 
+  // Manual "test connection": runs the live ACP probe (initialize +
+  // session/new) and refreshes the catalog so the card reflects the new
+  // status immediately (F2-02: three states stay clickable, in-progress
+  // feedback, recover-on-success).
+  const handleTestConnection = useCallback(
+    async (agentId: string) => {
+      try {
+        setTestingAgentId(agentId);
+        const result = await ipcBridge.acpConversation.checkManagedAgentHealthById.invoke({ id: agentId });
+        await refreshCatalog();
+        switch (result.status) {
+          case 'online':
+            Message.success(t('settings.agentManagement.testConnectionOnline', { name: result.name }));
+            break;
+          case 'missing':
+            Message.warning(t('settings.agentManagement.testConnectionMissing', { name: result.name }));
+            break;
+          case 'offline':
+            // auth_required is offline-with-a-reason: surface the diagnostic
+            // (which carries the "needs sign-in" guidance) when present.
+            Message.warning(
+              formatManagedAgentDiagnosticMessage(t, result) ||
+                (result.last_check_error_code === 'auth_required'
+                  ? t('settings.agentManagement.testConnectionAuth', { name: result.name })
+                  : t('settings.agentManagement.testConnectionOffline', { name: result.name }))
+            );
+            break;
+          default:
+            break;
+        }
+      } catch (error) {
+        console.error('test managed agent failed:', error);
+        Message.error(t('settings.agentManagement.testConnectionError'));
+      } finally {
+        setTestingAgentId(null);
+      }
+    },
+    [refreshCatalog, t]
+  );
+
   return (
-    <div className='flex flex-col gap-8px py-16px'>
-      <div className='px-16px text-12px text-t-secondary'>
-        <span>{t('settings.agentManagement.localAgentsDescription')} </span>
-        <Button
-          type='text'
-          size='mini'
-          className='!h-auto !p-0 !align-baseline !text-12px !font-normal !text-primary-6 hover:!text-primary-7 hover:!underline underline-offset-2'
-          onClick={openCustomAgentEditor}
+    <div data-testid='agent-management-page' className='flex flex-col gap-8px py-16px'>
+      {/* Page title header, mirroring the assistant settings page. */}
+      <div className='px-16px'>
+        <h2 className='m-0 text-16px font-600 leading-[1.2] text-t-primary'>
+          {t('settings.agents', { defaultValue: 'Agents' })}
+        </h2>
+        <p className='mt-4px text-12px text-t-tertiary'>
+          <span>{t('settings.agentManagement.localAgentsDescription')} </span>
+          <Button
+            type='text'
+            size='mini'
+            className='!h-auto !p-0 !align-baseline !text-12px !font-normal !text-primary-6 hover:!text-primary-7 hover:!underline underline-offset-2'
+            onClick={() => {
+              void openExternalUrl(LOCAL_AGENT_SETUP_GUIDE_URL).catch(console.error);
+            }}
+          >
+            {t('settings.agentManagement.localAgentsSetupLink')}
+          </Button>
+        </p>
+      </div>
+      {isRefreshing ? (
+        <div className='px-16px text-11px text-t-tertiary'>{t('settings.agentManagement.refreshingStatuses')}</div>
+      ) : null}
+
+      {/* Detected Agents section — row list, mirroring the assistant list style */}
+      <div data-testid='agent-management-official-section' className='px-16px mt-8px'>
+        <Radio.Group
+          type='button'
+          size='small'
+          value={agentFilter}
+          onChange={(value) => setAgentFilter(value as AgentAvailabilityFilter)}
+          className='mb-8px'
+          data-testid='agent-availability-filter'
         >
-          {t('settings.agentManagement.detectCustomAgent')}
-        </Button>
-      </div>
-
-      {process.env.NODE_ENV === 'development' && (
-        <div className='px-16px mt-8px'>
-          <div className='flex flex-col gap-14px rounded-16px border border-solid border-[rgba(var(--primary-6),0.18)] bg-[rgba(var(--primary-6),0.06)] p-16px md:flex-row md:items-center md:justify-between'>
-            <div className='flex items-center gap-12px'>
-              <div className='flex h-40px w-40px items-center justify-center leading-none rounded-12px border border-solid border-[rgba(var(--primary-6),0.12)] bg-[rgba(var(--primary-6),0.10)] text-primary-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.28)]'>
-                <Home theme='outline' size='20' strokeWidth={2} className='block' />
-              </div>
-              <div className='min-w-0'>
-                <Typography.Text className='mb-4px block text-15px font-medium text-t-primary'>
-                  {t('settings.agentManagement.installFromMarket')}
-                </Typography.Text>
-                <Typography.Text className='block text-12px leading-18px text-t-secondary'>
-                  {t('settings.agentManagement.discoverMoreAgents')}
-                </Typography.Text>
-              </div>
-            </div>
-
-            <Button
-              type='primary'
-              size='small'
-              icon={<Plus size='14' />}
-              className='!rounded-10px md:!min-w-144px'
-              onClick={() => setHubModalVisible(true)}
-            >
-              {t('settings.agentManagement.installFromMarket')}
-            </Button>
-          </div>
+          <Radio value='all'>
+            {t('settings.agentManagement.filterAll', {
+              defaultValue: 'All ({{count}})',
+              count: officialFilterStats.all,
+            })}
+          </Radio>
+          <Radio value='available'>
+            {t('settings.agentManagement.filterAvailable', {
+              defaultValue: 'Available ({{count}})',
+              count: officialFilterStats.available,
+            })}
+          </Radio>
+          <Radio value='unavailable'>
+            {t('settings.agentManagement.filterUnavailable', {
+              defaultValue: 'Unavailable ({{count}})',
+              count: officialFilterStats.unavailable,
+            })}
+          </Radio>
+        </Radio.Group>
+        <div className='flex flex-col gap-8px rounded-12px border border-border-2 bg-2 p-8px md:rounded-16px md:p-10px'>
+          {visibleOfficialAgents.map((agent) => (
+            <AgentCard
+              key={agent.id}
+              type='official'
+              agent={agent}
+              boundAssistants={getBoundAssistants(agent, assistants)}
+              onTestConnection={() => void handleTestConnection(agent.id)}
+              onConfigure={() => openAgentConfig(agent.id)}
+              isTesting={testingAgentId === agent.id}
+            />
+          ))}
+          {visibleOfficialAgents.length === 0 && (
+            <Typography.Text type='secondary' className='block py-16px text-center text-12px'>
+              {t('settings.agentManagement.localAgentsEmpty')}
+            </Typography.Text>
+          )}
         </div>
-      )}
-
-      {/* Detected Agents section */}
-      <div className='px-16px mt-8px'>
-        <Typography.Text className='text-12px font-medium text-t-secondary mb-4px block'>
-          {t('settings.agentManagement.detected')}
-        </Typography.Text>
       </div>
-      <div className='grid grid-cols-2 gap-10px px-16px md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5'>
-        {aionrsAgent && (
-          <AgentCard type='detected' agent={aionrsAgent} onGoToChat={() => goToChatWithAgent(aionrsAgent)} />
-        )}
-        {otherDetected.map((agent) => (
-          <AgentCard
-            key={agent.backend || agent.agent_type}
-            type='detected'
-            agent={agent}
-            onGoToChat={() => goToChatWithAgent(agent)}
-          />
-        ))}
-      </div>
-      {(!detectedAgents || detectedAgents.length === 0) && (
-        <Typography.Text type='secondary' className='block px-16px py-16px text-center text-12px'>
-          {t('settings.agentManagement.localAgentsEmpty')}
-        </Typography.Text>
-      )}
 
-      {/* Custom Agents section */}
-      {(editorVisible || (customAgents && customAgents.length > 0)) && (
-        <div className='px-16px mt-16px'>
-          <Typography.Text className='text-12px font-medium text-t-secondary mb-4px block'>
+      {/* Custom Agents section — header carries the "add custom agent" action */}
+      <div
+        data-testid='agent-management-custom-header'
+        className='px-16px mt-16px flex items-start justify-between gap-12px'
+      >
+        <div className='min-w-0 flex flex-col gap-2px'>
+          <Typography.Text className='text-12px font-medium text-t-secondary block'>
             {t('settings.agentManagement.customAgents', { defaultValue: 'Custom Agents' })}
           </Typography.Text>
+          <Typography.Text className='block text-11px text-t-tertiary'>
+            {t('settings.agentManagement.customEmptyDescription')}
+          </Typography.Text>
         </div>
-      )}
+        <TalkToButlerButton
+          label={t('common.add', { defaultValue: 'Add' })}
+          chatLabel={t('settings.talkToButler.addViaChat', { defaultValue: 'Add via chat' })}
+          onManual={openCustomAgentEditor}
+          manualLabel={t('settings.talkToButler.addManually', { defaultValue: 'Add manually' })}
+          prompt={t('settings.talkToButler.prompt.addCustomAgent', {
+            defaultValue: 'Help me add a custom Agent.',
+          })}
+        />
+      </div>
 
       <AionModal
         visible={editorVisible}
@@ -222,24 +304,32 @@ const LocalAgents: React.FC = () => {
         )}
       </AionModal>
 
-      <div className='flex flex-col gap-4px px-0'>
-        {customAgents?.map((agent) => (
-          <AgentCard
-            key={agent.id}
-            type='custom'
-            agent={agent}
-            onGoToChat={() => goToChatWithAgent(agent)}
-            onEdit={() => {
-              setEditingAgent(agent);
-              setEditorVisible(true);
-            }}
-            onDelete={() => void handleDeleteCustomAgent(agent.id)}
-            onToggle={(enabled) => void handleToggleCustomAgent(agent.id, enabled)}
-          />
-        ))}
+      <div data-testid='agent-management-custom-section' className='px-16px'>
+        <div className='flex flex-col gap-8px rounded-12px border border-border-2 bg-2 p-8px md:rounded-16px md:p-10px'>
+          {customAgents?.map((agent) => (
+            <AgentCard
+              key={agent.id}
+              type='custom'
+              agent={agent}
+              boundAssistants={getBoundAssistants(agent, assistants)}
+              onTestConnection={() => void handleTestConnection(agent.id)}
+              onConfigure={() => openAgentConfig(agent.id)}
+              isTesting={testingAgentId === agent.id}
+              onEdit={() => {
+                setEditingAgent(agent);
+                setEditorVisible(true);
+              }}
+              onDelete={() => void handleDeleteCustomAgent(agent.id)}
+              onToggle={(enabled) => void handleToggleCustomAgent(agent.id, enabled)}
+            />
+          ))}
+          {customAgents.length === 0 ? (
+            <Typography.Text type='secondary' className='block py-12px text-center text-12px'>
+              {t('settings.agentManagement.customEmpty')}
+            </Typography.Text>
+          ) : null}
+        </div>
       </div>
-
-      {hubModalVisible && <AgentHubModal visible={hubModalVisible} onCancel={() => setHubModalVisible(false)} />}
     </div>
   );
 };

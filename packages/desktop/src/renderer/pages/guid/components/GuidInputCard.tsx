@@ -31,11 +31,6 @@ type GuidInputCardProps = {
   activeShadow: string;
   dragHandlers: React.HTMLAttributes<HTMLDivElement>;
 
-  // Mention state
-  mentionOpen: boolean;
-  mentionSelectorBadge: React.ReactNode;
-  mentionDropdown: React.ReactNode;
-
   // Files
   files: string[];
   onRemoveFile: (path: string) => void;
@@ -63,9 +58,6 @@ const GuidInputCard: React.FC<GuidInputCardProps> = ({
   inactiveBorderColor,
   activeShadow,
   dragHandlers,
-  mentionOpen,
-  mentionSelectorBadge,
-  mentionDropdown,
   files,
   onRemoveFile,
   actionRow,
@@ -91,7 +83,7 @@ const GuidInputCard: React.FC<GuidInputCardProps> = ({
 
   return (
     <div
-      className={`${styles.guidInputCardWrap} guid-input-card-shell relative rd-24px flex flex-col ${mentionOpen ? 'overflow-visible' : 'overflow-hidden'} transition-all duration-200 ${isFileDragging ? 'b b-solid border-dashed guid-input-card-shell--dragging' : ''}`}
+      className={`${styles.guidInputCardWrap} guid-input-card-shell relative rd-24px flex flex-col overflow-hidden transition-all duration-200 ${isFileDragging ? 'b b-solid border-dashed guid-input-card-shell--dragging' : ''}`}
       style={{
         zIndex: 1,
         transition: 'box-shadow 0.25s ease',
@@ -119,7 +111,6 @@ const GuidInputCard: React.FC<GuidInputCardProps> = ({
           boxShadow: isInputActive && !isFileDragging ? activeShadow : 'none',
         }}
       >
-        {mentionSelectorBadge}
         <Input.TextArea
           autoSize={textareaAutoSize}
           placeholder={placeholder}
@@ -135,11 +126,6 @@ const GuidInputCard: React.FC<GuidInputCardProps> = ({
           data-testid='guid-input'
         />
         <div style={{ height: 12, flexShrink: 0 }} aria-hidden='true' />
-        {mentionOpen && (
-          <div className='absolute z-50' style={{ left: 16, top: 44 }}>
-            {mentionDropdown}
-          </div>
-        )}
         {files.length > 0 && (
           <div className='flex flex-wrap items-center gap-8px mt-12px mb-12px'>
             {files.map((path) => (

@@ -6,7 +6,8 @@ import { useTranslation } from 'react-i18next';
 import { FieldLabel, SectionCard } from './editorSectionPrimitives';
 
 type IdentitySectionProps = {
-  isBuiltin: boolean;
+  isIdentityLocked: boolean;
+  isDescriptionReadOnly: boolean;
   editAvatar: string;
   editName: string;
   setEditName: (value: string) => void;
@@ -21,7 +22,8 @@ type IdentitySectionProps = {
 };
 
 const IdentitySection: React.FC<IdentitySectionProps> = ({
-  isBuiltin,
+  isIdentityLocked,
+  isDescriptionReadOnly,
   editAvatar,
   editName,
   setEditName,
@@ -35,7 +37,8 @@ const IdentitySection: React.FC<IdentitySectionProps> = ({
   readOnlyLabel,
 }) => {
   const { t } = useTranslation();
-  const isProfileEditable = !isBuiltin;
+  const isIdentityEditable = !isIdentityLocked;
+  const isDescriptionEditable = !isDescriptionReadOnly;
 
   return (
     <SectionCard
@@ -44,12 +47,12 @@ const IdentitySection: React.FC<IdentitySectionProps> = ({
         label: t('settings.assistantEffectiveImmediately', { defaultValue: 'Applies immediately' }),
         tone: 'now',
       }}
-      readOnly={isBuiltin}
+      readOnly={isIdentityLocked && isDescriptionReadOnly}
       readOnlyLabel={readOnlyLabel}
       testId='assistant-card-identity'
     >
       <div className='flex items-start gap-14px'>
-        {!isProfileEditable ? (
+        {!isIdentityEditable ? (
           <Avatar shape='square' size={42} className='!rounded-10px bg-fill-1'>
             {renderAvatarPreview()}
           </Avatar>
@@ -91,7 +94,7 @@ const IdentitySection: React.FC<IdentitySectionProps> = ({
             <Input
               value={editName}
               onChange={(value) => setEditName(value)}
-              disabled={!isProfileEditable}
+              disabled={!isIdentityEditable}
               placeholder={t('settings.agentNamePlaceholder', { defaultValue: 'Enter a name for this agent' })}
               data-testid='input-assistant-name'
               className='rounded-8px border-border-2 bg-bg-0'
@@ -102,7 +105,7 @@ const IdentitySection: React.FC<IdentitySectionProps> = ({
             <Input
               value={editDescription}
               onChange={(value) => setEditDescription(value)}
-              disabled={!isProfileEditable}
+              disabled={!isDescriptionEditable}
               data-testid='input-assistant-desc'
               placeholder={t('settings.assistantDescriptionPlaceholder', {
                 defaultValue: 'What can this assistant help with?',

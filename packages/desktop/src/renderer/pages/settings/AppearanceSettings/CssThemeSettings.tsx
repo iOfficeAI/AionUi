@@ -10,7 +10,7 @@ import { ipcBridge } from '@/common';
 import { uuid } from '@/common/utils';
 import { useThemeContext } from '@renderer/hooks/context/ThemeContext.tsx';
 import { Button, Message, Modal } from '@arco-design/web-react';
-import { EditTwo, Plus, CheckOne } from '@icon-park/react';
+import { EditTwo, CheckOne } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import CssThemeModal from './CssThemeModal.tsx';
@@ -440,13 +440,7 @@ const CssThemeSettings: React.FC = () => {
       {/* 标题栏 / Header */}
       <div className='flex items-start md:items-center justify-between gap-8px flex-wrap'>
         <span className='text-14px text-t-secondary leading-22px'>{t('settings.cssTheme.selectOrCustomize')}</span>
-        <Button
-          type='outline'
-          size='small'
-          className='rd-18px h-34px px-14px !m-0'
-          icon={<Plus theme='outline' size='14' />}
-          onClick={handleAddTheme}
-        >
+        <Button type='primary' size='small' className='!h-32px !rounded-8px !px-14px !m-0' onClick={handleAddTheme}>
           {t('settings.cssTheme.addManually')}
         </Button>
       </div>

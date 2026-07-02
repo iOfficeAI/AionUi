@@ -1,6 +1,5 @@
 import type { IMcpServer, IMcpTool } from '@/common/config/storage';
 import { mcpService } from '@/common/adapter/ipcBridge';
-import { getAgents } from '@/renderer/hooks/agent/useAgents';
 import { Button, Select, Spin, Tag, Tooltip } from '@arco-design/web-react';
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -204,8 +203,7 @@ const OneClickImportModal: React.FC<OneClickImportModalProps> = ({
   const handleImportFromCLI = async () => {
     setLoadingImport(true);
     try {
-      const agents = await getAgents();
-      const mcpConfigs = await mcpService.getAgentMcpConfigs.invoke(agents);
+      const mcpConfigs = await mcpService.getAgentMcpConfigs.invoke();
       const selectedConfig = mcpConfigs.find((agentConfig) => agentConfig.source === selectedAgent);
       const allServers = (selectedConfig?.servers ?? []) as DetectedMcpServer[];
       setFetchedServers(allServers);

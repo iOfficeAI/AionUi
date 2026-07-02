@@ -6,7 +6,7 @@ All contributors (human and AI) must follow [CONTRIBUTING.md](CONTRIBUTING.md) b
 
 ### File & Directory Structure
 
-- **Directory size limit**: A single directory must not exceed **10** direct children (files + subdirectories). Split by responsibility when approaching this limit.
+- **Directory size limit**: Prefer ≤ **10** direct children per directory; new or substantially reorganized directories must satisfy this.
 
 See [docs/contributing/file-structure.md](docs/contributing/file-structure.md) for complete rules. Agents must also follow the `architecture` skill (`.claude/skills/architecture/SKILL.md`) when creating files or modules.
 
@@ -47,7 +47,7 @@ Formatting rules (Oxfmt, Prettier-compatible):
 
 ### Internationalization (i18n)
 
-All user-facing text must use i18n keys — never hardcode strings. Languages and modules are defined in `packages/desktop/src/common/config/i18n-config.json`.
+New or changed user-facing text must use i18n keys; do not introduce hardcoded strings. Languages and modules are defined in `packages/desktop/src/common/config/i18n-config.json`.
 
 See the `i18n` skill (`.claude/skills/i18n/SKILL.md`) for complete workflow, key naming, and validation steps.
 
@@ -65,7 +65,7 @@ See [docs/architecture/overview.md](docs/architecture/overview.md) for details.
 
 ## Testing
 
-**Framework**: Vitest 4 (`vitest.config.ts`). Coverage target ≥ 80%.
+**Framework**: Vitest 4 (`vitest.config.ts`). Project coverage target is ≥ 80%; ordinary changes should add focused tests for changed behavior.
 
 ```bash
 bun run test              # run all tests
@@ -75,6 +75,13 @@ bun run test:coverage     # with coverage report
 See the `testing` skill (`.claude/skills/testing/SKILL.md`) for complete workflow and quality rules.
 
 ## Workflow
+
+### Scope & Enforcement
+
+- **Hard blockers**: process boundary violations, TypeScript errors, failing tests, unsafe IPC usage, missing i18n for new or changed user-facing text, and raw interactive HTML in new UI.
+- **Current-change requirements**: naming, CSS, file placement, tests, docs, directory size, and single-file-directory rules apply to files created or meaningfully modified by the current change.
+- **Ratchet rules**: existing directory size or single-file-directory violations do not require cleanup during ordinary feature work or bugfixes, but the current change must not make them worse.
+- **No scope expansion**: implementation plans and reviews must not create extra tasks, phases, or acceptance criteria for cleanup unless the user asks for that scope.
 
 ### During Development
 
@@ -95,7 +102,7 @@ node scripts/check-i18n.js
 
 ### Before Pushing
 
-Always use `just push` instead of `git push`:
+AI agents must not push unless explicitly asked. When pushing, use `just push`, never `git push`:
 
 ```bash
 just push                          # lint → format-check → typecheck → test → git push
@@ -120,29 +127,25 @@ prek run --from-ref origin/main --to-ref HEAD
 
 > `prek` is read-only — it reports but does not fix. If it reports issues, run the auto-fix commands above, commit, then re-run.
 
-The `oss-pr` skill runs this automatically during PR creation.
-
 ### Commit & PR Format
 
-Commit format: `<type>(<scope>): <subject>` in English. Types: feat, fix, refactor, chore, docs, test, style, perf.
+Commits and PR titles must follow the Conventional Commit format defined in [CONTRIBUTING.md](CONTRIBUTING.md):
+
+```text
+<type>(<scope>): <subject>
+```
+
+Allowed types: `feat`, `fix`, `perf`, `refactor`, `docs`, `style`, `chore`, `test`, `ci`, `build`.
 
 **NEVER add AI signatures** (Co-Authored-By, Generated with, etc.).
 
-For pull request creation, see the `oss-pr` skill (`.claude/skills/oss-pr/SKILL.md`).
-
 ## Skills Index
 
-| Skill             | Purpose                                                                               | Triggers                                                                                   |
-| ----------------- | ------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| **architecture**  | File & directory structure conventions for all process types                          | Creating files, adding modules, architectural decisions                                    |
-| **i18n**          | Internationalization workflow and standards                                           | Adding user-facing text, modifying `locales/` or `packages/desktop/src/common/config/i18n` |
-| **testing**       | Testing workflow and quality standards                                                | Writing tests, adding features, before claiming completion                                 |
-| **oss-pr**        | Full commit + PR workflow: branch management, quality checks, issue linking, PR       | Creating pull requests, after committing, `/oss-pr`                                        |
-| **bump-version**  | Version bump workflow: update package.json, checks, branch, PR, tag release           | Bumping version, `/bump-version`                                                           |
-| **pr-review**     | Local PR code review with full project context, no truncation limits                  | Reviewing a PR, user says "review PR", `/pr-review`                                        |
-| **pr-fix**        | Fix all issues from a pr-review report, create a follow-up PR, and verify each fix    | After pr-review, user says "fix all issues", `/pr-fix`                                     |
-| **pr-verify**     | Verify and merge bot:ready-to-merge PRs with impact analysis and test supplementation | Verifying PRs, merging ready PRs, `/pr-verify`                                             |
-| **pr-ship**       | End-to-end PR lifecycle: create, CI wait, review, fix, merge in one invocation        | `/pr-ship`, after development is done, resume shepherding a PR                             |
-| **pr-automation** | PR automation orchestrator: poll PRs, review, fix, and merge via label state machine  | Invoked by daemon script (`pr-automation.sh`), `/pr-automation`                            |
+| Skill            | Purpose                                                                     | Triggers                                                                                               |
+| ---------------- | --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| **architecture** | File & directory structure conventions for all process types                | Creating files, adding modules, architectural decisions                                                |
+| **i18n**         | Internationalization workflow and standards                                 | Adding or changing user-facing text, modifying `locales/` or `packages/desktop/src/common/config/i18n` |
+| **testing**      | Testing workflow and quality standards                                      | Writing tests, changing runtime behavior, fixing bugs, or claiming behavior is verified                |
+| **bump-version** | Version bump workflow: update package.json, checks, branch, PR, tag release | Bumping version, `/bump-version`                                                                       |
 
 > Skills are located in `.claude/skills/` and contain project conventions that apply to **all** agents and contributors.

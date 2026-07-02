@@ -86,8 +86,12 @@ function isBackendStartupFailureEvent(event: { tags?: Record<string, unknown> })
   return event.tags?.['aionui.failure'] === 'backend_startup';
 }
 
+function isUserFeedbackEvent(event: { tags?: Record<string, unknown> }): boolean {
+  return event.tags?.type === 'user-feedback' || event.tags?.['aionui.installation_integrity.user_report'] === 'true';
+}
+
 function isBackendStartupSecondaryEvent(event: { tags?: Record<string, unknown> }, haystacks: string[]): boolean {
-  if (isBackendStartupFailureEvent(event)) {
+  if (isBackendStartupFailureEvent(event) || isUserFeedbackEvent(event)) {
     return false;
   }
   return (
@@ -249,6 +253,15 @@ export async function captureBackendStartupFailure(error: unknown): Promise<void
     if (typeof details?.stage === 'string') {
       scope.setTag('aionui.backend_startup.stage', details.stage);
     }
+    if (failureInfo.backendBoundaryCode) {
+      scope.setTag('aionui.backend_startup.boundary_code', failureInfo.backendBoundaryCode);
+    }
+    if (failureInfo.backendBoundaryStage) {
+      scope.setTag('aionui.backend_startup.boundary_stage', failureInfo.backendBoundaryStage);
+    }
+    if (failureInfo.localDataIssueKind) {
+      scope.setTag('aionui.backend_startup.local_data_issue_kind', failureInfo.localDataIssueKind);
+    }
     if (failureInfo.incompleteInstallationKind) {
       scope.setTag('aionui.backend_startup.incomplete_installation_kind', failureInfo.incompleteInstallationKind);
     }
@@ -399,25 +412,41 @@ function writeState(state: State): void {
   }
 }
 
-function listLogFilesSync(dir: string): LogFileMeta[] {
-  let entries: string[];
-  try {
-    entries = fs.readdirSync(dir);
-  } catch {
-    return [];
-  }
+const DATED_LOG_DIR_PATTERNS = [/^\d{4}$/, /^\d{2}$/, /^\d{2}$/] as const;
+
+function isDatedLogDirSegment(name: string, depth: number): boolean {
+  return DATED_LOG_DIR_PATTERNS[depth]?.test(name) === true;
+}
+
+export function listLogFilesSync(dir: string): LogFileMeta[] {
   const out: LogFileMeta[] = [];
-  for (const name of entries) {
-    const full = path.join(dir, name);
+
+  const scan = (currentDir: string, depth: number): void => {
+    let entries: string[];
     try {
-      const stat = fs.statSync(full);
-      if (stat.isFile() && name.endsWith('.log')) {
-        out.push({ path: full, mtime: stat.mtimeMs, size: stat.size });
-      }
+      entries = fs.readdirSync(currentDir);
     } catch {
-      // skip unreadable entries
+      return;
     }
-  }
+
+    for (const name of entries) {
+      const full = path.join(currentDir, name);
+      try {
+        const stat = fs.statSync(full);
+        if (stat.isFile() && name.endsWith('.log')) {
+          out.push({ path: full, mtime: stat.mtimeMs, size: stat.size });
+          continue;
+        }
+        if (stat.isDirectory() && depth < DATED_LOG_DIR_PATTERNS.length && isDatedLogDirSegment(name, depth)) {
+          scan(full, depth + 1);
+        }
+      } catch {
+        // skip unreadable entries
+      }
+    }
+  };
+
+  scan(dir, 0);
   return out;
 }
 

@@ -16,8 +16,8 @@
  */
 
 import { Tabs } from '@arco-design/web-react';
-import React, { useEffect, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import React from 'react';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import SkillsHubSettings from './SkillsHubSettings';
 import ToolsModalContent from '@/renderer/components/settings/SettingsModal/contents/ToolsModalContent';
@@ -29,29 +29,29 @@ const isCapabilitiesTab = (value: string | null): value is CapabilitiesTab => va
 
 const CapabilitiesSettings: React.FC = () => {
   const { t } = useTranslation();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  // Initialize from URL synchronously to avoid a flash of the default tab.
-  const [activeTab, setActiveTab] = useState<CapabilitiesTab>(() => {
-    const tabParam = searchParams.get('tab');
-    return isCapabilitiesTab(tabParam) ? tabParam : 'skills';
-  });
-
-  // Re-sync if the URL changes externally (e.g. browser back/forward).
-  useEffect(() => {
-    const tabParam = searchParams.get('tab');
-    if (isCapabilitiesTab(tabParam) && tabParam !== activeTab) {
-      setActiveTab(tabParam);
-    }
-  }, [searchParams, activeTab]);
+  const tabParam = searchParams.get('tab');
+  const activeTab: CapabilitiesTab =
+    location.pathname.startsWith('/settings/capabilities/skills/') || !isCapabilitiesTab(tabParam)
+      ? 'skills'
+      : tabParam;
 
   const handleTabChange = (key: string) => {
-    if (isCapabilitiesTab(key)) {
-      setActiveTab(key);
-      // Preserve any other query params the embedded content may rely on.
-      const next = new URLSearchParams(searchParams);
-      next.set('tab', key);
-      setSearchParams(next, { replace: true });
+    if (!isCapabilitiesTab(key) || key === activeTab) {
+      return;
     }
+
+    if (location.pathname !== '/settings/capabilities') {
+      void navigate(`/settings/capabilities?tab=${key}`, { replace: true });
+      return;
+    }
+
+    // Preserve any other query params the embedded content may rely on.
+    const next = new URLSearchParams(searchParams);
+    next.set('tab', key);
+    setSearchParams(next, { replace: true });
   };
 
   return (
@@ -60,6 +60,7 @@ const CapabilitiesSettings: React.FC = () => {
         activeTab={activeTab}
         onChange={handleTabChange}
         type='line'
+        animation={{ tabPane: false, inkBar: true }}
         className='flex flex-col flex-1 min-h-0 [&>.arco-tabs-content]:pt-0'
       >
         <Tabs.TabPane key='skills' title={t('settings.capabilitiesTab.skills', { defaultValue: 'Skills' })}>

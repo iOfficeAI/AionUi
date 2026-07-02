@@ -30,5 +30,17 @@
   "model": {
     "switchSuccess": "模型切换成功",
     "switchFailed": "模型切换失败"
+  },
+  "config": {
+    "setting": "正在应用设置...",
+    "commandAck": "命令已发送，但状态尚未确认，请稍后刷新或重试",
+    "timeout": "设置确认超时，界面已保留原状态",
+    "busy": "已有设置正在应用，请稍后再试",
+    "failed": "设置失败，界面已保留原状态"
+  },
+  "thoughtLevel": {
+    "label": "思考强度",
+    "switchSuccess": "思考强度切换成功",
+    "switchFailed": "思考强度切换失败"
   }
 }

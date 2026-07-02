@@ -3,13 +3,13 @@
  * Copyright 2025 AionUi (aionui.com)
  * SPDX-License-Identifier: Apache-2.0
  *
- * Unit tests for renderer/hooks/agent/useAgents.ts → useManagedAgents.
+ * Unit tests for renderer/hooks/agent/useManagedAgents.ts.
  *
  * The Agent settings management surface must read the
- * `include_disabled=true` view (a SEPARATE SWR key from the pickers) and,
- * when an agent is toggled, revalidate BOTH the management key and the
- * shared detected key — otherwise re-enabling an agent in settings would
- * not make it reappear in the pickers.
+ * `include_disabled=true` view (a SEPARATE SWR key from any detected-agent
+ * cache). Diagnostics-only actions can refresh the management cache only;
+ * catalog-changing or health actions that affect generated assistants must also
+ * invalidate assistant list caches.
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
@@ -29,13 +29,11 @@ vi.mock('@/common', () => ({
 }));
 
 vi.mock('@/renderer/utils/model/agentTypes', () => ({
-  DETECTED_AGENTS_SWR_KEY: 'agents.detected',
   MANAGED_AGENTS_SWR_KEY: 'agents.managed',
-  fetchDetectedAgents: vi.fn(),
   fetchManagedAgents: vi.fn(),
 }));
 
-import { useManagedAgents } from '@/renderer/hooks/agent/useAgents';
+import { getManagedAgents, useManagedAgents } from '@/renderer/hooks/agent/useManagedAgents';
 import { ipcBridge } from '@/common';
 import useSWR, { mutate } from 'swr';
 import { fetchManagedAgents } from '@/renderer/utils/model/agentTypes';
@@ -72,7 +70,7 @@ describe('useManagedAgents', () => {
     expect(result.current.agents).toEqual([]);
   });
 
-  it('revalidate refreshes BOTH the management and the shared detected key', async () => {
+  it('revalidate refreshes only the management key', async () => {
     (useSWR as any).mockReturnValue({ data: [], error: null, isLoading: false });
 
     const { result } = renderHook(() => useManagedAgents());
@@ -82,10 +80,24 @@ describe('useManagedAgents', () => {
     });
 
     expect(mutate).toHaveBeenCalledWith('agents.managed');
-    expect(mutate).toHaveBeenCalledWith('agents.detected');
+    expect(mutate).not.toHaveBeenCalledWith('agents.detected');
   });
 
-  it('refreshCustomAgents triggers a backend rescan then revalidates both keys', async () => {
+  it('refreshCatalog refreshes the management key and assistant list caches', async () => {
+    (useSWR as any).mockReturnValue({ data: [], error: null, isLoading: false });
+
+    const { result } = renderHook(() => useManagedAgents());
+
+    await act(async () => {
+      await result.current.refreshCatalog();
+    });
+
+    expect(mutate).toHaveBeenCalledWith('agents.managed');
+    expect(mutate).toHaveBeenCalledWith('assistants.list');
+    expect(mutate).toHaveBeenCalledWith('assistants');
+  });
+
+  it('refreshCustomAgents triggers a backend rescan then refreshes management and assistant caches', async () => {
     (useSWR as any).mockReturnValue({ data: [], error: null, isLoading: false });
 
     const { result } = renderHook(() => useManagedAgents());
@@ -96,6 +108,21 @@ describe('useManagedAgents', () => {
 
     expect(ipcBridge.acpConversation.refreshCustomAgents.invoke).toHaveBeenCalled();
     expect(mutate).toHaveBeenCalledWith('agents.managed');
-    expect(mutate).toHaveBeenCalledWith('agents.detected');
+    expect(mutate).toHaveBeenCalledWith('assistants.list');
+    expect(mutate).toHaveBeenCalledWith('assistants');
+  });
+
+  it('getManagedAgents fetches the management catalog without invalidating the detected cache', async () => {
+    const managedAgents = [
+      { id: 'managed-1', name: 'Managed Agent', agent_type: 'acp', agent_source: 'builtin', enabled: true },
+    ];
+    (fetchManagedAgents as any).mockResolvedValue(managedAgents);
+
+    const result = await getManagedAgents();
+
+    expect(fetchManagedAgents).toHaveBeenCalledTimes(1);
+    expect(mutate).toHaveBeenCalledWith('agents.managed', managedAgents, { revalidate: false });
+    expect(mutate).not.toHaveBeenCalledWith('agents.detected');
+    expect(result).toEqual(managedAgents);
   });
 });

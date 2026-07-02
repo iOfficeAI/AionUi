@@ -53,6 +53,10 @@
   "closeAll": "Fechar Todas",
   "readOnlyLabel": "Pré-visualização somente leitura",
   "pathLabel": "Caminho",
+  "missingFile": {
+    "title": "Arquivo não encontrado",
+    "openInNewTab": "Tentar abrir em uma nova aba"
+  },
   "noTabs": "Nenhuma guia aberta",
   "openInPanelTooltip": "Ver no painel de visualização",
   "mermaidTitle": "Diagrama Mermaid",
@@ -134,6 +138,6 @@
     "loading": "Iniciando visualização do PPT...",
     "installing": "Instalando componente de visualização...",
     "startFailed": "Falha ao iniciar a visualização do PPT",
-    "installHint": "Instale o OfficeCLI pela página oficial de releases iOfficeAI/OfficeCli"
+    "installHint": "Instale o OfficeCLI pela página oficial de releases iOfficeAI/OfficeCLI"
   }
 }

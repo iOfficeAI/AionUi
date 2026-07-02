@@ -22,18 +22,18 @@ const team = {
   name: 'Alpha',
   workspace: '/tmp/workspace',
   workspace_mode: 'shared',
+  leader_assistant_id: 'slot-1',
   leader_agent_id: 'slot-1',
   session_mode: undefined,
   created_at: 1,
   updated_at: 1,
-  agents: [
+  assistants: [
     {
       slot_id: 'slot-1',
       conversation_id: 'conv-1',
       role: 'leader',
-      agent_type: 'acp',
-      agent_name: 'Lead',
-      conversation_type: 'acp',
+      assistant_backend: 'claude',
+      assistant_name: 'Lead',
       status: 'idle',
       pending_confirmations: 2,
     },
@@ -41,13 +41,13 @@ const team = {
       slot_id: 'slot-2',
       conversation_id: 'conv-2',
       role: 'teammate',
-      agent_type: 'acp',
-      agent_name: 'Worker',
-      conversation_type: 'acp',
+      assistant_backend: 'claude',
+      assistant_name: 'Worker',
       status: 'idle',
       pending_confirmations: 1,
     },
   ],
+  agents: [],
 } as TTeam;
 
 describe('useSiderTeamBadges', () => {

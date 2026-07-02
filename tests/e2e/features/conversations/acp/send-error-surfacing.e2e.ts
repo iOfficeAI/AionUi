@@ -7,7 +7,7 @@
 
 import os from 'os';
 import { test, expect } from '../../../fixtures';
-import { CHAT_INPUT, goToGuid } from '../../../helpers';
+import { CHAT_INPUT, findAssistantIdForBackend, goToGuid } from '../../../helpers';
 import { httpDelete, httpPost } from '../../../helpers/httpBridge';
 
 const RAW_BACKEND_ERROR =
@@ -29,14 +29,18 @@ async function ensureRendererReady(page: import('@playwright/test').Page): Promi
 async function createAcpConversation(page: import('@playwright/test').Page): Promise<string> {
   await goToGuid(page);
   await ensureRendererReady(page);
+  const assistantId = await findAssistantIdForBackend(page, 'codex', { requireAvailable: true });
+  test.skip(!assistantId, 'No available Codex assistant for ACP send-error test');
+  if (!assistantId) return '';
 
   const conversation = await httpPost<CreatedConversation>(page, '/api/conversations', {
-    type: 'acp',
     name: `E2E ACP send error ${Date.now()}`,
+    assistant: {
+      id: assistantId,
+    },
     extra: {
       workspace: os.tmpdir(),
       custom_workspace: true,
-      backend: 'codex',
       session_mode: 'full-access',
     },
   });

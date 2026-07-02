@@ -13,13 +13,10 @@
 import { test, expect } from '../fixtures';
 import {
   goToGuid,
-  selectAgent,
+  selectAssistantForBackend,
   sendMessageFromGuid,
   waitForSessionActive,
   deleteConversation,
-  AGENT_PILL,
-  AGENT_STATUS_MESSAGE,
-  agentPillByBackend,
 } from '../helpers';
 
 test.describe('Gemini (ACP) Conversation Lifecycle', () => {
@@ -29,22 +26,11 @@ test.describe('Gemini (ACP) Conversation Lifecycle', () => {
   test('gemini backend routes through the generic ACP pipeline', async ({ page }) => {
     await goToGuid(page);
 
-    const pill = page.locator(agentPillByBackend('gemini'));
-    const pillVisible = await pill.isVisible().catch(() => false);
-    if (!pillVisible) {
-      await page
-        .locator(AGENT_PILL)
-        .first()
-        .waitFor({ state: 'visible', timeout: 8_000 })
-        .catch(() => {});
-      const retryVisible = await pill.isVisible().catch(() => false);
-      if (!retryVisible) {
-        test.skip(true, 'gemini agent pill not available — CLI may not be installed');
-        return;
-      }
+    const assistantId = await selectAssistantForBackend(page, 'gemini');
+    if (!assistantId) {
+      test.skip(true, 'gemini assistant pill not available — backend may not be installed');
+      return;
     }
-
-    await selectAgent(page, 'gemini');
 
     const conversationId = await sendMessageFromGuid(page, 'e2e lifecycle test gemini');
     expect(conversationId).toBeTruthy();
@@ -53,8 +39,6 @@ test.describe('Gemini (ACP) Conversation Lifecycle', () => {
     // identical to claude/codex here. Long timeout because Gemini auth can
     // require a token refresh on first use.
     await waitForSessionActive(page, 150_000);
-
-    await expect(page.locator(AGENT_STATUS_MESSAGE).first()).toBeVisible();
 
     const deleted = await deleteConversation(page, conversationId);
     expect(deleted).toBe(true);

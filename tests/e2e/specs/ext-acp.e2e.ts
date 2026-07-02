@@ -5,7 +5,14 @@
  * and guid pages.
  */
 import { test, expect } from '../fixtures';
-import { goToGuid, goToSettings, expectBodyContainsAny, takeScreenshot, waitForSettle } from '../helpers';
+import {
+  goToGuid,
+  goToSettings,
+  expectBodyContainsAny,
+  takeScreenshot,
+  waitForSettle,
+  ASSISTANT_PILL,
+} from '../helpers';
 
 test.describe('Extension: ACP Adapters', () => {
   test('agent settings page loads with extension agents', async ({ page }) => {
@@ -22,25 +29,23 @@ test.describe('Extension: ACP Adapters', () => {
     expect(body!.length).toBeGreaterThan(50);
   });
 
-  test('agent pill bar on guid page still works with extensions', async ({ page }) => {
+  test('assistant pill bar on guid page still works with extensions', async ({ page }) => {
     await goToGuid(page);
 
-    // At least one agent logo should appear (built-in backends)
-    const logos = page.locator('img[alt$=" logo"]');
-    await expect(logos.first()).toBeVisible({ timeout: 5000 });
-    const count = await logos.count();
+    const assistantPills = page.locator(ASSISTANT_PILL);
+    await expect(assistantPills.first()).toBeVisible({ timeout: 5000 });
+    const count = await assistantPills.count();
     expect(count).toBeGreaterThanOrEqual(1);
   });
 
-  test('clicking an agent pill does not crash with extensions loaded', async ({ page }) => {
+  test('clicking an assistant pill does not crash with extensions loaded', async ({ page }) => {
     await goToGuid(page);
 
-    const logos = page.locator('img[alt$=" logo"]');
-    await expect(logos.first()).toBeVisible({ timeout: 5000 });
+    const assistantPills = page.locator(ASSISTANT_PILL);
+    await expect(assistantPills.first()).toBeVisible({ timeout: 5000 });
 
-    // Click first available agent
-    await logos.first().click();
-    await expect(logos.first()).toBeVisible();
+    await assistantPills.first().click();
+    await expect(assistantPills.first()).toBeVisible();
 
     // Page should still be stable
     const body = await page.locator('body').textContent();

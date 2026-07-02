@@ -12,7 +12,8 @@ export type ResponseMapperKey =
   | 'snapshotCompare'
   | 'renameResult'
   | 'previewSnapshotInfo'
-  | 'previewSnapshotContent';
+  | 'previewSnapshotContent'
+  | 'conversation';
 
 type DirOrFileRaw = {
   name: string;
@@ -51,6 +52,53 @@ function mapFileChange(entry: Record<string, unknown>): Record<string, unknown> 
     ...entry,
     filePath: (entry.file_path as string | undefined) ?? (entry.filePath as string | undefined),
     relativePath: (entry.relative_path as string | undefined) ?? (entry.relativePath as string | undefined),
+  };
+}
+
+function mapConversation(data: unknown): unknown {
+  if (!data || typeof data !== 'object') return data;
+  const d = data as Record<string, unknown>;
+  const extra = d.extra as Record<string, unknown> | undefined;
+  const rawTeamMcp =
+    (extra?.team_mcp_stdio_config as Record<string, unknown> | undefined) ??
+    (extra?.teamMcpStdioConfig as Record<string, unknown> | undefined);
+  const teamMcpStdioConfig = rawTeamMcp
+    ? {
+        ...rawTeamMcp,
+        env: [
+          { name: 'TEAM_MCP_PORT', value: String(rawTeamMcp.port ?? '') },
+          { name: 'TEAM_MCP_TOKEN', value: String(rawTeamMcp.token ?? '') },
+          { name: 'TEAM_AGENT_SLOT_ID', value: String(rawTeamMcp.slot_id ?? rawTeamMcp.slotId ?? '') },
+        ].filter((entry) => entry.value.length > 0),
+      }
+    : undefined;
+
+  return {
+    ...d,
+    model:
+      d.model && typeof d.model === 'object'
+        ? {
+            ...(d.model as Record<string, unknown>),
+            id:
+              ((d.model as Record<string, unknown>).provider_id as string | undefined) ??
+              ((d.model as Record<string, unknown>).id as string | undefined),
+            use_model:
+              ((d.model as Record<string, unknown>).use_model as string | undefined) ??
+              ((d.model as Record<string, unknown>).model as string | undefined),
+          }
+        : d.model,
+    extra:
+      extra && typeof extra === 'object'
+        ? {
+            ...extra,
+            teamMcpStdioConfig,
+            custom_workspace:
+              (extra.custom_workspace as boolean | undefined) ??
+              (typeof extra.workspace === 'string' &&
+                extra.workspace.length > 0 &&
+                extra.is_temporary_workspace !== true),
+          }
+        : extra,
   };
 }
 
@@ -98,4 +146,5 @@ export const RESPONSE_MAPPERS: Record<ResponseMapperKey, (data: unknown) => unkn
         : snapshot,
     };
   },
+  conversation: (data) => mapConversation(data),
 };

@@ -1,7 +1,6 @@
-import { httpRequest } from '@/common/adapter/httpBridge';
 import { mcpService } from '@/common/adapter/ipcBridge';
-import { configService } from '@/common/config/configService';
 import type { IMcpServer, IMcpServerTransport, ISessionMcpServer } from '@/common/config/storage';
+import { getClientBusinessSetting } from '@/renderer/services/clientBusinessSettings';
 
 type BackendMcpTransport = Exclude<IMcpServerTransport, { type: 'streamable_http' }>;
 
@@ -68,51 +67,17 @@ export const toSessionMcpServer = (server: Pick<IMcpServer, 'id' | 'name' | 'tra
   transport: server.transport,
 });
 
-const toggleImportedEnabledServers = async (servers: IMcpServer[], imported: IMcpServer[]) => {
-  const enabledNames = new Set(servers.filter((server) => server.enabled).map((server) => server.name));
-  const toggledServers: IMcpServer[] = [];
-
-  for (const server of imported) {
-    if (!enabledNames.has(server.name) || server.enabled) {
-      toggledServers.push(server);
-      continue;
-    }
-
-    const toggled = await mcpService.toggleServer.invoke({ id: server.id });
-    toggledServers.push(toggled);
-  }
-
-  return toggledServers;
-};
-
 export const ensureBackendMcpCatalog = async (): Promise<{
   userServers: IMcpServer[];
   builtinServers: IMcpServer[];
   allServers: IMcpServer[];
 }> => {
-  const settings: Record<string, unknown> =
-    (await httpRequest<Record<string, unknown>>('GET', '/api/settings/client').catch(
-      () => ({}) as Record<string, unknown>
-    )) || {};
-  const localServers = Array.isArray(settings['mcp.config'])
-    ? (settings['mcp.config'] as IMcpServer[])
-    : (configService.get('mcp.config') ?? []);
+  const localServers = ((await getClientBusinessSetting('mcp.config').catch((): IMcpServer[] => [])) ||
+    []) as IMcpServer[];
   const builtinServers = dedupeServers(localServers.filter(isBuiltinServer));
-  let userServers = dedupeServers(await mcpService.listServers.invoke());
-
-  if (userServers.length === 0) {
-    const legacyUserServers = localServers.filter((server) => !isBuiltinServer(server));
-    if (legacyUserServers.length > 0) {
-      const imported = await mcpService.importServers.invoke({
-        servers: legacyUserServers.map((server) => toBackendMcpPayload(server)),
-      });
-      await toggleImportedEnabledServers(legacyUserServers, imported);
-      userServers = dedupeServers(await mcpService.listServers.invoke());
-    }
-  }
+  const userServers = dedupeServers(await mcpService.listServers.invoke());
 
   const allServers = dedupeServers([...userServers, ...builtinServers]);
-  configService.setLocal('mcp.config', allServers);
 
   return {
     userServers,

@@ -11,7 +11,7 @@ vi.mock('react-i18next', () => ({
 }));
 
 describe('EmojiPicker', () => {
-  it('renders a builtin avatar tab and returns the selected builtin avatar route', async () => {
+  it('renders the builtin avatar tab first with iconized labels and returns the selected builtin avatar route', async () => {
     const onChange = vi.fn();
 
     render(
@@ -32,7 +32,11 @@ describe('EmojiPicker', () => {
     );
 
     fireEvent.click(screen.getByText('Open picker'));
-    fireEvent.click(screen.getByText('Built-in'));
+    const tabs = screen.getAllByRole('tab');
+    const tabTitles = tabs.map((tab) => tab.textContent);
+    expect(tabTitles).toEqual(['👤 Built-in', '🙂 Emoji']);
+
+    fireEvent.click(tabs[0]!);
     fireEvent.click(screen.getByAltText('Dashboard Creator'));
 
     await waitFor(() => {

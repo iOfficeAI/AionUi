@@ -45,7 +45,7 @@ export async function getAionrsTestModels(page: Page): Promise<{
 | 关联文件夹 | 无 / 单 / 多               | `atPath` 数组（源码：`AionrsSendBox.tsx:331-337`）                                                 |
 | 上传文件   | 无 / 单 / 多               | `uploadFile` 数组（源码：`useSendBoxFiles.ts`）                                                    |
 | 模型       | 默认 / 自选                | 从用户配置的 provider 列表选择（源码：`ipcBridge.mode.getModelConfig.invoke()`，过滤 Google Auth） |
-| 权限       | default / auto_edit / yolo | 源码：`agentModes.ts:65-69`                                                                        |
+| 权限       | default / auto_edit / yolo | 来源：aionrs runtime capabilities                                                                  |
 | 对话中操作 | 切换模型 / 切换权限 / 无   | 对话页 `AionrsModelSelector` / `AgentModeSelector`                                                 |
 
 ### 1.4 清理约定
@@ -1064,19 +1064,19 @@ SELECT status FROM conversations WHERE id = ?;
 
 ## 附录 A: 关键源码参考
 
-| 文件                                                                          | 关键行号 | 说明                                              |
-| ----------------------------------------------------------------------------- | -------- | ------------------------------------------------- |
-| `src/renderer/pages/guid/GuidPage.tsx`                                        | 465-469  | guid 页模型选择器可见性（`isGeminiMode`）         |
-| `src/renderer/pages/guid/components/AgentPillBar.tsx`                         | 58-122   | agent pill 点击事件                               |
-| `src/renderer/pages/conversation/platforms/aionrs/AionrsSendBox.tsx`          | 331-337  | `atPath` 状态（关联文件夹数组）                   |
-| `src/renderer/pages/conversation/platforms/aionrs/AionrsSendBox.tsx`          | 103-125  | 文件上传 handler                                  |
-| `src/renderer/pages/conversation/platforms/aionrs/AionrsSendBox.tsx`          | 206-212  | 发送消息（传递 `files` 参数）                     |
-| `src/renderer/pages/conversation/platforms/aionrs/useAionrsModelSelection.ts` | 36-40    | 过滤 Google Auth 模型                             |
-| `src/renderer/utils/model/agentModes.ts`                                      | 65-69    | aionrs 权限枚举（`default`, `auto_edit`, `yolo`） |
-| `src/process/task/AionrsManager.ts`                                           | 250-259  | 权限模式自动批准逻辑                              |
-| `src/process/task/AionrsManager.ts`                                           | 727-737  | `setMode()` 持久化                                |
-| `src/process/task/AionrsManager.ts`                                           | 452-489  | missing finish fallback（15s 超时）               |
-| `aioncore aionui.db`                                                          | —        | conversations + messages 由 backend 独占持久化    |
+| 文件                                                                          | 关键行号 | 说明                                           |
+| ----------------------------------------------------------------------------- | -------- | ---------------------------------------------- |
+| `src/renderer/pages/guid/GuidPage.tsx`                                        | 465-469  | guid 页模型选择器可见性（`isGeminiMode`）      |
+| `src/renderer/pages/guid/components/AgentPillBar.tsx`                         | 58-122   | agent pill 点击事件                            |
+| `src/renderer/pages/conversation/platforms/aionrs/AionrsSendBox.tsx`          | 331-337  | `atPath` 状态（关联文件夹数组）                |
+| `src/renderer/pages/conversation/platforms/aionrs/AionrsSendBox.tsx`          | 103-125  | 文件上传 handler                               |
+| `src/renderer/pages/conversation/platforms/aionrs/AionrsSendBox.tsx`          | 206-212  | 发送消息（传递 `files` 参数）                  |
+| `src/renderer/pages/conversation/platforms/aionrs/useAionrsModelSelection.ts` | 36-40    | 过滤 Google Auth 模型                          |
+| `src/renderer/pages/conversation/platforms/aionrs/AionrsSendBox.tsx`          | —        | aionrs runtime capabilities 转换为权限选项     |
+| `src/process/task/AionrsManager.ts`                                           | 250-259  | 权限模式自动批准逻辑                           |
+| `src/process/task/AionrsManager.ts`                                           | 727-737  | `setMode()` 持久化                             |
+| `src/process/task/AionrsManager.ts`                                           | 452-489  | missing finish fallback（15s 超时）            |
+| `aioncore aionui.db`                                                          | —        | conversations + messages 由 backend 独占持久化 |
 
 ---
 

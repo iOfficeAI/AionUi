@@ -12,8 +12,8 @@ import { application } from '@/common/adapter/ipcBridge';
 import type { TMessage } from '@/common/chat/chatLib';
 import type {
   IChatConversationRefer,
-  IConfigStorageRefer,
   IEnvStorageRefer,
+  ILegacyConfigStorageRefer,
   TChatConversation,
   TProviderWithModel,
 } from '@/common/config/storage';
@@ -240,7 +240,7 @@ const dirConfig = envFile.getSync('aionui.dir');
 
 const cacheDir = dirConfig?.cacheDir || getHomePage();
 
-const configFile = JsonFileBuilder<IConfigStorageRefer>(path.join(cacheDir, STORAGE_PATH.config));
+const configFile = JsonFileBuilder<ILegacyConfigStorageRefer>(path.join(cacheDir, STORAGE_PATH.config));
 type ConversationHistoryData = Record<string, TMessage[]>;
 
 const _chatMessageFile = JsonFileBuilder<ConversationHistoryData>(path.join(cacheDir, STORAGE_PATH.chatMessage));
@@ -405,12 +405,15 @@ const initStorage = async () => {
   //    users may still have a pre-v26 Electron-managed catalog, so we upgrade
   //    that file here, close it, and only then allow the backend to start.
   const legacyDbMigration = await runLegacyDatabaseMigrations();
+  const repaired = legacyDbMigration.handoffRepair.repairedColumns.length;
   if (legacyDbMigration.skipped) {
     mark('6. legacyDbMigrations skipped');
   } else if (legacyDbMigration.migrated) {
-    mark(`6. legacyDbMigrations v${legacyDbMigration.fromVersion}->v${legacyDbMigration.toVersion}`);
+    mark(
+      `6. legacyDbMigrations v${legacyDbMigration.fromVersion}->v${legacyDbMigration.toVersion} handoffRepair=${repaired}`
+    );
   } else {
-    mark(`6. legacyDbMigrations noop(v${legacyDbMigration.fromVersion})`);
+    mark(`6. legacyDbMigrations noop(v${legacyDbMigration.fromVersion}) handoffRepair=${repaired}`);
   }
 
   if (hasElectronAppPath()) {

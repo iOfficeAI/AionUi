@@ -4,24 +4,34 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Button, Message, Switch, Popconfirm, Spin, Empty } from '@arco-design/web-react';
+import { Button, Message, Switch, Popconfirm, Spin, Empty, Tooltip } from '@arco-design/web-react';
 import { Left, Delete, Write, Attention, Robot } from '@icon-park/react';
 import { ipcBridge } from '@/common';
 import type { ICronJob } from '@/common/adapter/ipcBridge';
 import type { TChatConversation } from '@/common/config/storage';
-import { useConversationAgents } from '@renderer/pages/conversation/hooks/useConversationAgents';
+import { useConversationAssistants } from '@renderer/pages/conversation/hooks/useConversationAssistants';
 import CronStatusTag from './CronStatusTag';
 import CreateTaskDialog from './CreateTaskDialog';
 import { getJobAgentMeta } from './jobAgentMeta';
+import { useAgentLogos } from '@renderer/utils/model/agentLogo';
 import { formatSchedule, formatNextRun } from '@renderer/pages/cron/cronUtils';
 import { useCronJobConversations } from '@renderer/pages/cron/useCronJobs';
 import { repairCronJobTimeZone } from '@renderer/pages/cron/repairCronJobTimeZone';
 import { getActivityTime } from '@/renderer/utils/chat/timeline';
 import { mutate } from 'swr';
 import { getConversationRuntimeWorkspaceErrorMessage } from '@renderer/pages/conversation/utils/conversationCreateError';
+
+const resolveTeamId = (conversation: TChatConversation): string | undefined => {
+  const extra = conversation.extra as { team_id?: unknown; teamId?: unknown } | undefined;
+  const snakeCase = extra?.team_id;
+  if (typeof snakeCase === 'string' && snakeCase.trim()) return snakeCase;
+  const camelCase = extra?.teamId;
+  if (typeof camelCase === 'string' && camelCase.trim()) return camelCase;
+  return undefined;
+};
 
 const TaskDetailPage: React.FC = () => {
   const { t } = useTranslation();
@@ -31,11 +41,17 @@ const TaskDetailPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [editDialogVisible, setEditDialogVisible] = useState(false);
   const [runningNow, setRunningNow] = useState(false);
+  // Synchronous re-entry guard: `setRunningNow` is async, so two rapid clicks
+  // can both pass a state-based check before the first re-render disables the
+  // button. The ref blocks the second invocation immediately.
+  const runningNowRef = useRef(false);
 
   const isNewConversationMode = job?.target.execution_mode === 'new_conversation';
   const isManualOnly = job?.schedule.kind === 'cron' && !job.schedule.expr;
   const { conversations } = useCronJobConversations(job_id);
-  const { cliAgents } = useConversationAgents();
+  const { presetAssistants } = useConversationAssistants();
+  const logos = useAgentLogos();
+  const assistantIdentity = job ? getJobAgentMeta(job, presetAssistants, logos) : null;
 
   const fetchJob = useCallback(async () => {
     if (!job_id) return;
@@ -86,6 +102,8 @@ const TaskDetailPage: React.FC = () => {
 
   const handleRunNow = useCallback(async () => {
     if (!job) return;
+    if (runningNowRef.current) return;
+    runningNowRef.current = true;
     setRunningNow(true);
     try {
       const result = await ipcBridge.cron.runNow.invoke({ job_id: job.id });
@@ -140,6 +158,7 @@ const TaskDetailPage: React.FC = () => {
     } catch (err) {
       Message.error(getConversationRuntimeWorkspaceErrorMessage(err, t));
     } finally {
+      runningNowRef.current = false;
       setRunningNow(false);
     }
   }, [job, t, navigate]);
@@ -191,6 +210,8 @@ const TaskDetailPage: React.FC = () => {
   const executionModeExplanation = isNewConversationMode
     ? t('cron.detail.executionModeDescriptionNew')
     : t('cron.detail.executionModeDescriptionExisting');
+  const latestExecutionError = job.state.last_status === 'error' ? job.state.last_error?.trim() || '' : '';
+  const statusTag = <CronStatusTag job={job} />;
 
   return (
     <div className='w-full min-h-full box-border overflow-y-auto px-14px pt-28px pb-24px md:px-40px md:pt-52px md:pb-42px'>
@@ -227,7 +248,14 @@ const TaskDetailPage: React.FC = () => {
                     icon={<Delete theme='outline' size={16} fill='currentColor' />}
                   />
                 </Popconfirm>
-                <Button type='primary' shape='round' loading={runningNow} onClick={handleRunNow}>
+                <Button
+                  type='primary'
+                  size='small'
+                  className='!h-32px !rounded-8px !px-14px'
+                  loading={runningNow}
+                  disabled={runningNow}
+                  onClick={handleRunNow}
+                >
                   {t('cron.detail.runNow')}
                 </Button>
               </div>
@@ -239,7 +267,21 @@ const TaskDetailPage: React.FC = () => {
             )}
           </div>
           <div className='flex flex-wrap items-center gap-10px md:gap-12px'>
-            <CronStatusTag job={job} />
+            {latestExecutionError ? (
+              <Tooltip
+                position='top'
+                content={
+                  <div className='max-w-360px whitespace-pre-wrap break-words'>
+                    <div className='mb-4px text-12px font-medium'>{t('cron.lastError')}</div>
+                    <div className='text-12px leading-18px'>{latestExecutionError}</div>
+                  </div>
+                }
+              >
+                <span className='inline-flex cursor-help'>{statusTag}</span>
+              </Tooltip>
+            ) : (
+              statusTag
+            )}
             {job.state.next_run_at_ms && (
               <span className='text-14px text-t-secondary'>
                 {t('cron.nextRun')} {formatNextRun(job.state.next_run_at_ms)}
@@ -261,7 +303,10 @@ const TaskDetailPage: React.FC = () => {
                     <React.Fragment key={conv.id}>
                       <div
                         className='flex cursor-pointer items-center justify-between gap-14px py-15px transition-colors hover:text-t-primary'
-                        onClick={() => navigate(`/conversation/${conv.id}`)}
+                        onClick={() => {
+                          const teamId = resolveTeamId(conv);
+                          navigate(teamId ? `/team/${teamId}` : `/conversation/${conv.id}`);
+                        }}
                       >
                         <span className='min-w-0 flex-1 truncate text-14px text-t-primary'>{conv.name || conv.id}</span>
                         <span className='shrink-0 text-13px text-t-secondary'>
@@ -295,23 +340,24 @@ const TaskDetailPage: React.FC = () => {
               </div>
             </section>
 
-            {job.metadata.agent_type && (
+            {assistantIdentity?.name && (
               <section className='flex flex-col gap-10px'>
-                <h2 className='m-0 text-13px font-medium text-t-secondary'>{t('cron.detail.agent')}</h2>
+                <h2 className='m-0 text-13px font-medium text-t-secondary'>{t('cron.detail.assistant')}</h2>
                 <div className='flex items-center gap-10px'>
-                  {(() => {
-                    const { name: displayName, logo } = getJobAgentMeta(job, cliAgents);
-                    return (
-                      <>
-                        {logo ? (
-                          <img src={logo} alt={displayName} className='h-28px w-28px rounded-50%' />
-                        ) : (
-                          <Robot size='28' className='shrink-0 text-t-secondary' />
-                        )}
-                        <span className='min-w-0 text-14px font-medium text-t-primary'>{displayName}</span>
-                      </>
-                    );
-                  })()}
+                  {assistantIdentity.logo ? (
+                    <img
+                      src={assistantIdentity.logo}
+                      alt={assistantIdentity.name}
+                      className='h-28px w-28px rounded-50%'
+                    />
+                  ) : assistantIdentity.emoji ? (
+                    <span className='inline-flex h-28px w-28px items-center justify-center text-20px'>
+                      {assistantIdentity.emoji}
+                    </span>
+                  ) : (
+                    <Robot size='28' className='shrink-0 text-t-secondary' />
+                  )}
+                  <span className='min-w-0 text-14px font-medium text-t-primary'>{assistantIdentity.name}</span>
                 </div>
               </section>
             )}

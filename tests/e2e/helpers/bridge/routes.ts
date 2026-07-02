@@ -59,19 +59,35 @@ export const HTTP_ROUTES: Record<string, HttpRoute> = {
   'team.add-agent': {
     method: 'POST',
     path: (p) => `/api/teams/${encodeURIComponent(String(p.team_id))}/agents`,
-    mapBody: (p) => p.agent,
+    mapBody: (p) => ({ assistant: p.agent ?? p.assistant }),
   },
   'team.ensure-session': {
     method: 'POST',
     path: (p) => `/api/teams/${encodeURIComponent(String(p.team_id))}/session`,
   },
+  'team.send-message': {
+    method: 'POST',
+    path: (p) => `/api/teams/${encodeURIComponent(String(p.team_id))}/messages`,
+    mapBody: (p) => ({
+      content: p.input,
+      files: p.files,
+    }),
+  },
+  'get-conversation': {
+    method: 'GET',
+    path: (p) => `/api/conversations/${encodeURIComponent(String(p.id))}`,
+    mapResponse: 'conversation',
+  },
   'database.get-conversation-messages': {
     method: 'GET',
     path: (p) => {
       const qs = new URLSearchParams();
-      qs.set('page', String(p.page ?? 1));
-      qs.set('page_size', String(p.page_size ?? 50));
-      if (p.order) qs.set('order', String(p.order));
+      const limit = p.limit ?? p.page_size ?? p.pageSize;
+      if (limit) qs.set('limit', String(limit));
+      if (p.before) qs.set('before', String(p.before));
+      if (p.after) qs.set('after', String(p.after));
+      if (p.anchor_message_id) qs.set('anchor_message_id', String(p.anchor_message_id));
+      if (p.content_mode) qs.set('content_mode', String(p.content_mode));
       return `/api/conversations/${encodeURIComponent(String(p.conversation_id))}/messages?${qs.toString()}`;
     },
   },

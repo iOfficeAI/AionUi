@@ -168,7 +168,11 @@ export const useMcpConnection = (
           await updateServerStatus('disconnected');
           if (notify) {
             await globalMessageQueue.add(() => {
-              message.warning(`${server.name}: ${t('settings.mcpAuthRequired') || 'Authentication required'}`);
+              try {
+                message.warning(`${server.name}: ${t('settings.mcpAuthRequired') || 'Authentication required'}`);
+              } catch {
+                // ELECTRON-1A1: host component unmounted, Arco message context is gone — drop silently.
+              }
             });
           }
 
@@ -196,7 +200,11 @@ export const useMcpConnection = (
           });
           if (notify) {
             await globalMessageQueue.add(() => {
-              message.success(`${server.name}: ${t('settings.mcpTestConnectionSuccess')}`);
+              try {
+                message.success(`${server.name}: ${t('settings.mcpTestConnectionSuccess')}`);
+              } catch {
+                // ELECTRON-1A1: host component unmounted, Arco message context is gone — drop silently.
+              }
             });
           }
 
@@ -207,14 +215,18 @@ export const useMcpConnection = (
           const errorMsg = truncateErrorMessage(formatMcpErrorMessage(t, result));
           if (notify) {
             await globalMessageQueue.add(() => {
-              message.error({
-                content: t('settings.mcpTestConnectionFailedWithHint', {
-                  name: server.name,
-                  error: errorMsg,
-                  defaultValue: `${server.name}: ${errorMsg}. Please review the MCP JSON configuration and test again.`,
-                }),
-                duration: 5000,
-              });
+              try {
+                message.error({
+                  content: t('settings.mcpTestConnectionFailedWithHint', {
+                    name: server.name,
+                    error: errorMsg,
+                    defaultValue: `${server.name}: ${errorMsg}. Please review the MCP JSON configuration and test again.`,
+                  }),
+                  duration: 5000,
+                });
+              } catch {
+                // ELECTRON-1A1: host component unmounted, Arco message context is gone — drop silently.
+              }
             });
           }
         }
@@ -224,14 +236,18 @@ export const useMcpConnection = (
         const errorMsg = truncateErrorMessage(formatThrownMcpErrorMessage(t, error));
         if (notify) {
           await globalMessageQueue.add(() => {
-            message.error({
-              content: t('settings.mcpTestConnectionFailedWithHint', {
-                name: server.name,
-                error: errorMsg,
-                defaultValue: `${server.name}: ${errorMsg}. Please review the MCP JSON configuration and test again.`,
-              }),
-              duration: 5000,
-            });
+            try {
+              message.error({
+                content: t('settings.mcpTestConnectionFailedWithHint', {
+                  name: server.name,
+                  error: errorMsg,
+                  defaultValue: `${server.name}: ${errorMsg}. Please review the MCP JSON configuration and test again.`,
+                }),
+                duration: 5000,
+              });
+            } catch {
+              // ELECTRON-1A1: host component unmounted, Arco message context is gone — drop silently.
+            }
           });
         }
       } finally {

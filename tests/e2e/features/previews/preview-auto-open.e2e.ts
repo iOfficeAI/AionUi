@@ -16,7 +16,7 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import { test, expect } from '../../fixtures';
-import { goToGuid } from '../../helpers';
+import { findAssistantIdForBackend, goToGuid } from '../../helpers';
 
 async function enableAutoPreviewOfficeFiles(page: import('@playwright/test').Page): Promise<void> {
   await page.evaluate(async () => {
@@ -156,9 +156,12 @@ async function createConversationWithWorkspace(
   await goToGuid(page);
   await enableAutoPreviewOfficeFiles(page);
   await installWorkspaceOfficeWatchDebug(page);
+  const assistantId = await findAssistantIdForBackend(page, 'claude', { requireAvailable: true });
+  test.skip(!assistantId, 'No available Claude assistant for preview auto-open conversation');
+  if (!assistantId) return '';
 
   const conversationId = await page.evaluate(
-    async ({ workspacePath }) => {
+    async ({ selectedAssistantId, workspacePath }) => {
       const port = (window as unknown as { __backendPort?: number }).__backendPort;
       if (!port) {
         throw new Error('window.__backendPort is not available');
@@ -168,12 +171,13 @@ async function createConversationWithWorkspace(
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          type: 'acp',
           name: `E2E preview auto-open ${Date.now()}`,
+          assistant: {
+            id: selectedAssistantId,
+          },
           extra: {
             workspace: workspacePath,
             custom_workspace: true,
-            backend: 'claude',
           },
         }),
       });
@@ -192,7 +196,7 @@ async function createConversationWithWorkspace(
       window.location.assign(`#/conversation/${id}`);
       return id;
     },
-    { workspacePath: workspace }
+    { selectedAssistantId: assistantId, workspacePath: workspace }
   );
 
   await page.waitForFunction((id) => window.location.hash === `#/conversation/${id}`, conversationId, {
@@ -243,7 +247,9 @@ test.describe('Preview auto-open for Office files', () => {
       try {
         conversationId = await createConversationWithWorkspace(page, workspace);
         await expect
-          .poll(async () => (await getWorkspaceOfficeWatchDebug(page, workspace)).wsStatus, { timeout: 10_000 })
+          .poll(async () => (await getWorkspaceOfficeWatchDebug(page, workspace)).wsStatus, {
+            timeout: 10_000,
+          })
           .toBe('open');
 
         // Give the renderer enough time to start the backend watcher and record

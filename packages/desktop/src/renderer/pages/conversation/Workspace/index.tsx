@@ -98,9 +98,7 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
     eventPrefix,
     messageApi,
     t,
-    setFiles: treeHook.setFiles,
     setSelected: treeHook.setSelected,
-    setExpandedKeys: treeHook.setExpandedKeys,
     selectedKeysRef: treeHook.selectedKeysRef,
     selectedNodeRef: treeHook.selectedNodeRef,
     ensureNodeSelected: treeHook.ensureNodeSelected,
@@ -447,7 +445,17 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
                     if (nodeData) {
                       treeHook.ensureNodeSelected(nodeData);
                     }
-                    if (nodeData && clickedKey && !wasSelected) {
+                    if (nodeData) {
+                      void ipcBridge.application?.writeRendererLog.invoke({
+                        level: 'debug',
+                        tag: 'Workspace',
+                        message: 'workspace_file_preview_requested',
+                        data: {
+                          fileName: nodeData.name,
+                          wasSelected,
+                          hasKey: Boolean(clickedKey),
+                        },
+                      });
                       void fileOpsHook.handlePreviewFile(nodeData);
                     }
                     return;

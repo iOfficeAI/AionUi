@@ -1,0 +1,35 @@
+{
+  "agentFallbackNotice": "{{original}} ist nicht verfügbar, stattdessen wird {{fallback}} verwendet.",
+  "noAgentAvailable": "Kein Hauptagent verfügbar. Bitte bei Google anmelden oder Claude/Codex CLI installieren. Zu den Einstellungen?",
+  "noAgentAvailableShort": "Kein Hauptagent verfügbar. Zum Konfigurieren klicken.",
+  "agentTabAutoSwitch": "Modell nicht kompatibel mit Gemini, automatisch zu {{fallback}} gewechselt",
+  "autoSwitchToAgent": "Gemini ist nicht konfiguriert, automatischer Wechsel zu {{agent}}",
+  "autoSwitchedAgent": "{{from}} ist nicht verfügbar, zu {{to}} gewechselt",
+  "promptExamplesHint": "Diese Anweisungen ausprobieren",
+  "defaultPrompts": {
+    "capabilities": "Was kannst du für mich tun?",
+    "skills": "Welche Fähigkeiten hast du?",
+    "tools": "Welche Werkzeuge hast du?"
+  },
+  "selectAssistantHint": "Wähle einen Assistenten, um eine Aufgabe zu starten",
+  "agentSwitcherLabel": "Agent",
+  "switchedToAgent": "Zu {{agent}} gewechselt",
+  "workspace": {
+    "workInProject": "In einem Projekt arbeiten",
+    "optional": "Optional",
+    "clearWorkspace": "Löschen",
+    "specifyWorkspace": "Projektordner wählen",
+    "searchPlaceholder": "Projekte suchen…",
+    "noProject": "Kein Projekt"
+  },
+  "scanning": {
+    "initialMessage": "Aktueller Agent nicht verfügbar, andere verfügbare Agenten werden gesucht...",
+    "scanningMessage": "Lokale verfügbare Agenten werden gescannt...",
+    "connectingMessage": "Verbindung erfolgreich, bitte warten...",
+    "establishingConnection": "Verbindung wird hergestellt...",
+    "statusQueued": "In der Warteschlange",
+    "statusTesting": "Latenz wird gemessen...",
+    "statusUnreachable": "Nicht erreichbar",
+    "statusAvailable": "Verfügbar"
+  }
+}

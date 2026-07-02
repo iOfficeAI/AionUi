@@ -8,6 +8,9 @@ import type { AcpPermissionRequest, PlanUpdate, ToolCallUpdate } from '@/common/
 import type { AcpAvailableCommand } from '@/common/chat/slash/types';
 import type { IResponseMessage } from '../adapter/ipcBridge';
 import { uuid } from '../utils';
+import { sanitizeAcpToolCallContent, sanitizeAcpToolUpdate } from './acpToolCallOutput';
+
+export { sanitizeAcpToolCallContent } from './acpToolCallOutput';
 
 /**
  * 安全的路径拼接函数，兼容Windows和Mac
@@ -151,6 +154,15 @@ export type AgentErrorResolution = {
   target?: AgentErrorResolutionTarget;
 };
 
+/** Redacted, size-bounded summary of the original error, for telemetry only. */
+export type AgentStreamRawErrorSummary = {
+  name?: string;
+  message?: string;
+  code?: string;
+  status?: number;
+  stack?: string;
+};
+
 export type AgentStreamErrorInfo = {
   message: string;
   code?: string;
@@ -160,6 +172,12 @@ export type AgentStreamErrorInfo = {
   retryable?: boolean;
   feedback_recommended?: boolean;
   resolution?: AgentErrorResolution;
+  /**
+   * Diagnostic summary of the original underlying error, preserved on
+   * unclassified ("internal") failures so they can be located in telemetry.
+   * Redacted of secrets/PII before it reaches here.
+   */
+  rawError?: AgentStreamRawErrorSummary;
 };
 
 export type IMessageTips = IMessage<
@@ -280,10 +298,10 @@ export const mergeAcpToolCallContent = (
 ): IMessageAcpToolCall['content'] => ({
   ...existing,
   ...incoming,
-  update: {
+  update: sanitizeAcpToolUpdate({
     ...existing.update,
     ...incoming.update,
-  },
+  }),
 });
 
 export const isTextContentReplacement = (content: IMessageText['content'] | undefined): boolean =>
@@ -528,6 +546,34 @@ export const normalizeAgentErrorResolution = (value: unknown): AgentErrorResolut
   };
 };
 
+const normalizeRawErrorSummary = (value: unknown): AgentStreamRawErrorSummary | undefined => {
+  if (!isObject(value)) return undefined;
+
+  const name = typeof value.name === 'string' ? value.name : undefined;
+  const message = typeof value.message === 'string' ? value.message : undefined;
+  const code = typeof value.code === 'string' ? value.code : undefined;
+  const status = typeof value.status === 'number' && Number.isFinite(value.status) ? value.status : undefined;
+  const stack = typeof value.stack === 'string' ? value.stack : undefined;
+
+  if (
+    name === undefined &&
+    message === undefined &&
+    code === undefined &&
+    status === undefined &&
+    stack === undefined
+  ) {
+    return undefined;
+  }
+
+  return {
+    ...(name !== undefined ? { name } : {}),
+    ...(message !== undefined ? { message } : {}),
+    ...(code !== undefined ? { code } : {}),
+    ...(status !== undefined ? { status } : {}),
+    ...(stack !== undefined ? { stack } : {}),
+  };
+};
+
 export const normalizeAgentStreamError = (value: unknown): AgentStreamErrorInfo | undefined => {
   if (!isObject(value) || typeof value.message !== 'string') {
     return undefined;
@@ -543,6 +589,7 @@ export const normalizeAgentStreamError = (value: unknown): AgentStreamErrorInfo 
   const retryable = typeof value.retryable === 'boolean' ? value.retryable : undefined;
   const feedback_recommended = typeof value.feedback_recommended === 'boolean' ? value.feedback_recommended : undefined;
   const resolution = normalizeAgentErrorResolution(value.resolution);
+  const rawError = normalizeRawErrorSummary(value.rawError);
 
   if (
     !code &&
@@ -551,7 +598,8 @@ export const normalizeAgentStreamError = (value: unknown): AgentStreamErrorInfo 
     !workspacePath &&
     retryable === undefined &&
     feedback_recommended === undefined &&
-    !resolution
+    !resolution &&
+    !rawError
   ) {
     return undefined;
   }
@@ -565,6 +613,7 @@ export const normalizeAgentStreamError = (value: unknown): AgentStreamErrorInfo 
     ...(retryable !== undefined ? { retryable } : {}),
     ...(feedback_recommended !== undefined ? { feedback_recommended } : {}),
     ...(resolution ? { resolution } : {}),
+    ...(rawError ? { rawError } : {}),
   };
 };
 
@@ -788,9 +837,13 @@ export const composeMessage = (
   messageHandler: (type: 'update' | 'insert', message: TMessage) => void = () => {}
 ): TMessage[] => {
   if (!message) return list || [];
+  const normalizedMessage =
+    message.type === 'acp_tool_call'
+      ? ({ ...message, content: sanitizeAcpToolCallContent(message.content) } as TMessage)
+      : message;
   if (!list?.length) {
-    messageHandler('insert', message);
-    return [message];
+    messageHandler('insert', normalizedMessage);
+    return [normalizedMessage];
   }
   const last = list[list.length - 1];
 
@@ -874,7 +927,7 @@ export const composeMessage = (
       }
     }
     // If no existing tool call found, add new one
-    return pushMessage(message);
+    return pushMessage(normalizedMessage);
   }
 
   if (message.type === 'plan') {

@@ -12,7 +12,6 @@ type DeleteAssistantModalProps = {
   onCancel: () => void;
   onConfirm: () => void;
   activeAssistant: AssistantListItem | null;
-  avatarImageMap: Record<string, string>;
 };
 
 const DeleteAssistantModal: React.FC<DeleteAssistantModalProps> = ({
@@ -20,7 +19,6 @@ const DeleteAssistantModal: React.FC<DeleteAssistantModalProps> = ({
   onCancel,
   onConfirm,
   activeAssistant,
-  avatarImageMap,
 }) => {
   const { t } = useTranslation();
 
@@ -46,7 +44,7 @@ const DeleteAssistantModal: React.FC<DeleteAssistantModalProps> = ({
       </p>
       {activeAssistant && (
         <div className='mt-12px p-12px bg-fill-2 rounded-lg flex items-center gap-12px'>
-          <AssistantAvatar assistant={activeAssistant} size={32} avatarImageMap={avatarImageMap} />
+          <AssistantAvatar assistant={activeAssistant} size={32} />
           <div>
             <div className='font-medium'>{activeAssistant.name}</div>
             <div className='text-12px text-t-secondary'>{activeAssistant.description}</div>

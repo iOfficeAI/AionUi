@@ -17,24 +17,27 @@
     "renameSuccess": "Equipe renomeada",
     "deleteSuccess": "Equipe excluída"
   },
-  "newAgent": "Novo Agente",
+  "newAgent": "Novo Assistente",
   "noMessages": "Nenhuma mensagem ainda.",
-  "agentNotConfigured": "Agente ainda não configurado.",
+  "agentNotConfigured": "Assistente ainda não configurado.",
+  "stopAgentFailed": "Falha ao parar este assistente. Tente novamente.",
   "sendBox": {
-    "placeholder": "Despachar mensagem para o agente..."
+    "placeholder": "Enviar mensagem ao assistente líder da equipe..."
   },
   "create": {
     "title": "Criar Equipe",
     "namePlaceholder": "Nome da equipe",
     "dispatchAgentPlaceholder": "Selecione o líder da equipe",
-    "subAgentsPlaceholder": "Selecione sub-agentes",
+    "subAgentsPlaceholder": "Selecione os assistentes da equipe",
     "confirm": "Criar Equipe",
-    "noSupportedAgents": "Nenhum agente suportado instalado",
-    "supportedAgentsHint": "Atualmente suporta Claude e Codex. Mais agentes em breve.",
-    "leaderDesc": "Entende seus objetivos e coordena agentes para concluir tarefas",
+    "noSupportedAgents": "Nenhum assistente compatível disponível",
+    "supportedAgentsHint": "Atualmente oferece suporte a assistentes Claude e Aion CLI. Mais assistentes em breve.",
+    "leaderDesc": "Entende seus objetivos e coordena assistentes para concluir tarefas",
+    "searchPlaceholder": "Buscar assistentes...",
+    "noSearchResults": "Nenhum resultado encontrado",
     "step": {
       "dispatch": "Líder da Equipe",
-      "subAgents": "Sub-Agentes",
+      "subAgents": "Membros da equipe",
       "workspace": "Projeto"
     },
     "nameRequired": "Por favor, insira o nome da equipe",
@@ -51,8 +54,8 @@
   "emptyState": {
     "subtitle": "Descreva seu objetivo e farei a equipe trabalhar nisso",
     "suggestions": {
-      "debate": "Organizar um debate com agentes tomando lados diferentes",
-      "interview": "Planejar uma entrevista aprofundada entre os agentes",
+      "debate": "Organizar um debate com assistentes defendendo lados diferentes",
+      "interview": "Planejar uma entrevista aprofundada entre assistentes",
       "expert_review": "Ter vários especialistas analisando o mesmo problema"
     }
   }

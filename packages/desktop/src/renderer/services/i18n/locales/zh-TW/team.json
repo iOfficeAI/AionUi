@@ -17,24 +17,27 @@
     "renameSuccess": "團隊已重新命名",
     "deleteSuccess": "團隊已刪除"
   },
-  "newAgent": "New Agent",
+  "newAgent": "新助手",
   "noMessages": "No messages yet.",
-  "agentNotConfigured": "Agent 尚未設定。",
+  "agentNotConfigured": "助手尚未設定。",
+  "stopAgentFailed": "停止該成員失敗，請稍後再試",
   "sendBox": {
-    "placeholder": "向調度 Agent 發訊息..."
+    "placeholder": "向團隊 Leader 助手發訊息..."
   },
   "create": {
     "title": "Create Team",
     "namePlaceholder": "Team name",
-    "dispatchAgentPlaceholder": "選擇團隊 Leader",
-    "subAgentsPlaceholder": "Select sub agents",
+    "dispatchAgentPlaceholder": "選擇團隊 Leader 助手",
+    "subAgentsPlaceholder": "選擇協作助手",
     "confirm": "Create Team",
-    "noSupportedAgents": "未偵測到支援的 Agent",
-    "supportedAgentsHint": "目前支援 Claude 和 Codex，更多 Agent 適配中",
-    "leaderDesc": "接收你的指令，拆解任務並分配給團隊中的 Agent",
+    "noSupportedAgents": "未偵測到可用的助手",
+    "supportedAgentsHint": "目前支援 Claude 和 Aion CLI 助手，更多助手適配中",
+    "leaderDesc": "接收你的指令，拆解任務並分配給團隊中的助手",
+    "searchPlaceholder": "搜尋助手...",
+    "noSearchResults": "未找到結果",
     "step": {
       "dispatch": "團隊 Leader",
-      "subAgents": "Sub Agents",
+      "subAgents": "團隊成員",
       "workspace": "專案"
     },
     "nameRequired": "請輸入團隊名稱",
@@ -51,7 +54,7 @@
   "emptyState": {
     "subtitle": "描述你的目標，我來協調團隊搞定它",
     "suggestions": {
-      "debate": "組織一場辯論賽，讓 Agent 各持立場",
+      "debate": "組織一場辯論賽，讓不同助手各持立場",
       "interview": "策劃一場深度訪談",
       "expert_review": "多位專家會診同一個問題"
     }

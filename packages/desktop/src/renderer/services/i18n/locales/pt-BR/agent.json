@@ -30,5 +30,17 @@
   "model": {
     "switchSuccess": "Modelo alterado com sucesso",
     "switchFailed": "Falha ao alternar o modelo"
+  },
+  "config": {
+    "setting": "Aplicando configuração...",
+    "commandAck": "Comando enviado, mas o estado ainda não foi confirmado. Atualize ou tente novamente mais tarde.",
+    "timeout": "A confirmação da configuração expirou. O estado anterior continua sendo exibido.",
+    "busy": "Outra configuração está sendo aplicada. Tente novamente mais tarde.",
+    "failed": "Falha ao aplicar a configuração. O estado anterior continua sendo exibido."
+  },
+  "thoughtLevel": {
+    "label": "Nível de raciocínio",
+    "switchSuccess": "Nível de raciocínio alterado",
+    "switchFailed": "Falha ao alterar o nível de raciocínio"
   }
 }

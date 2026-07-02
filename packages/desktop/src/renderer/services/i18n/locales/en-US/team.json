@@ -17,24 +17,27 @@
     "renameSuccess": "Team renamed",
     "deleteSuccess": "Team deleted"
   },
-  "newAgent": "New Agent",
+  "newAgent": "New Assistant",
   "noMessages": "No messages yet.",
-  "agentNotConfigured": "Agent not configured yet.",
+  "agentNotConfigured": "Assistant not configured yet.",
+  "stopAgentFailed": "Failed to stop this assistant. Please try again.",
   "sendBox": {
-    "placeholder": "Message dispatch agent..."
+    "placeholder": "Message the team leader assistant..."
   },
   "create": {
     "title": "Create Team",
     "namePlaceholder": "Team name",
-    "dispatchAgentPlaceholder": "Select team leader",
-    "subAgentsPlaceholder": "Select sub agents",
+    "dispatchAgentPlaceholder": "Select team leader assistant",
+    "subAgentsPlaceholder": "Select teammate assistants",
     "confirm": "Create Team",
-    "noSupportedAgents": "No supported agents installed",
-    "supportedAgentsHint": "Currently supports Claude and Codex. More agents coming soon.",
-    "leaderDesc": "Understands your goals and coordinates agents to complete tasks",
+    "noSupportedAgents": "No supported assistants available",
+    "supportedAgentsHint": "Currently supports Claude and Aion CLI assistants. More assistants coming soon.",
+    "leaderDesc": "Understands your goals and coordinates assistants to complete tasks",
+    "searchPlaceholder": "Search assistants...",
+    "noSearchResults": "No results found",
     "step": {
       "dispatch": "Team Leader",
-      "subAgents": "Sub Agents",
+      "subAgents": "Team Members",
       "workspace": "Project"
     },
     "nameRequired": "Please enter a team name",
@@ -51,8 +54,8 @@
   "emptyState": {
     "subtitle": "Describe your goal and I'll get the team working on it",
     "suggestions": {
-      "debate": "Organize a debate with agents taking different sides",
-      "interview": "Plan an in-depth interview between agents",
+      "debate": "Organize a debate with assistants taking different sides",
+      "interview": "Plan an in-depth interview between assistants",
       "expert_review": "Have multiple experts analyze the same problem"
     }
   }

@@ -5,10 +5,10 @@
  */
 
 import type { CustomAgentAdvancedOverrides } from '@/common/types/platform/acpTypes';
-import type { AgentMetadata } from '@/renderer/utils/model/agentTypes';
+import type { AgentMetadata, ManagedAgent } from '@/renderer/utils/model/agentTypes';
 import { acpConversation } from '@/common/adapter/ipcBridge';
 import { Alert, Avatar, Button, Collapse, Input, Typography } from '@arco-design/web-react';
-import { Plus, Delete, CheckOne, CloseOne } from '@icon-park/react';
+import { CheckOne, CloseOne } from '@icon-park/react';
 import EmojiPicker from '@/renderer/components/chat/EmojiPicker';
 import CodeMirror from '@uiw/react-codemirror';
 import { json } from '@codemirror/lang-json';
@@ -16,6 +16,7 @@ import { useThemeContext } from '@/renderer/hooks/context/ThemeContext';
 import { uuid } from '@/common/utils';
 import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
+import EnvVarEditor, { type EnvVarRow } from './EnvVarEditor';
 
 type TestStatus = 'idle' | 'testing' | 'success' | 'fail_cli' | 'fail_acp';
 
@@ -46,7 +47,7 @@ export interface CustomAgentDraft {
 }
 
 interface InlineAgentEditorProps {
-  agent?: AgentMetadata | null;
+  agent?: AgentMetadata | ManagedAgent | null;
   onSave: (agent: CustomAgentDraft) => void;
   onCancel: () => void;
 }
@@ -95,7 +96,9 @@ export function objectToEnvVars(obj: Record<string, string> | undefined): EnvVar
 
 /** Convert the backend `AgentMetadata.env` array form into the flat record the
  *  form's `{key,value}` rows expect. */
-function agentEnvToRecord(entries: AgentMetadata['env'] | undefined): Record<string, string> | undefined {
+function agentEnvToRecord(
+  entries: Array<{ name: string; value: string }> | undefined
+): Record<string, string> | undefined {
   if (!entries || entries.length === 0) return undefined;
   const out: Record<string, string> = {};
   for (const e of entries) {
@@ -105,7 +108,7 @@ function agentEnvToRecord(entries: AgentMetadata['env'] | undefined): Record<str
 }
 
 /** Rebuild the editor's `advanced` override bag from an `AgentMetadata` row. */
-function agentToAdvanced(agent: AgentMetadata): CustomAgentAdvancedOverrides {
+function agentToAdvanced(agent: AgentMetadata | ManagedAgent): CustomAgentAdvancedOverrides {
   const advanced: CustomAgentAdvancedOverrides = {};
   if (agent.yolo_id) advanced.yolo_id = agent.yolo_id;
   if (agent.native_skills_dirs && agent.native_skills_dirs.length > 0) {
@@ -229,17 +232,9 @@ const InlineAgentEditor: React.FC<InlineAgentEditorProps> = ({ agent, onSave, on
     setArgsString(v);
   }, []);
 
-  const addEnvVar = useCallback(() => {
+  const handleEnvVarsChange = useCallback((rows: EnvVarRow[]) => {
     isJsonEditingRef.current = false;
-    setEnvVars((prev) => [...prev, { id: uuid(), key: '', value: '' }]);
-  }, []);
-  const removeEnvVar = useCallback((id: string) => {
-    isJsonEditingRef.current = false;
-    setEnvVars((prev) => prev.filter((v) => v.id !== id));
-  }, []);
-  const updateEnvVar = useCallback((id: string, field: 'key' | 'value', val: string) => {
-    isJsonEditingRef.current = false;
-    setEnvVars((prev) => prev.map((v) => (v.id === id ? { ...v, [field]: val } : v)));
+    setEnvVars(rows);
   }, []);
 
   const handleTestConnection = useCallback(async () => {
@@ -325,7 +320,7 @@ const InlineAgentEditor: React.FC<InlineAgentEditorProps> = ({ agent, onSave, on
             size='large'
             value={name}
             onChange={handleNameChange}
-            placeholder={t('settings.agent_namePlaceholder')}
+            placeholder={t('settings.agentNamePlaceholder')}
           />
         </div>
       </div>
@@ -361,40 +356,7 @@ const InlineAgentEditor: React.FC<InlineAgentEditorProps> = ({ agent, onSave, on
       {/* Environment Variables */}
       <div>
         <Typography.Text className={fieldLabelClassName}>{t('settings.envLabel')}</Typography.Text>
-        <div className='flex flex-col gap-10px'>
-          {envVars.map((envVar) => (
-            <div key={envVar.id} className='grid grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)_auto] items-center gap-8px'>
-              <Input
-                size='large'
-                value={envVar.key}
-                onChange={(v) => updateEnvVar(envVar.id, 'key', v)}
-                placeholder={t('settings.envKeyPlaceholder')}
-              />
-              <Input
-                size='large'
-                value={envVar.value}
-                onChange={(v) => updateEnvVar(envVar.id, 'value', v)}
-                placeholder={t('settings.envValuePlaceholder')}
-              />
-              <Button
-                type='text'
-                size='small'
-                icon={<Delete theme='outline' size={16} />}
-                onClick={() => removeEnvVar(envVar.id)}
-                className='!h-36px !w-36px !rounded-10px !px-0 text-t-tertiary hover:text-danger'
-              />
-            </div>
-          ))}
-        </div>
-        <Button
-          type='text'
-          size='small'
-          icon={<Plus theme='outline' size={14} />}
-          onClick={addEnvVar}
-          className='mt-8px !px-0 text-t-secondary hover:!text-primary-6'
-        >
-          {t('settings.addEnvVar')}
-        </Button>
+        <EnvVarEditor value={envVars} onChange={handleEnvVarsChange} />
       </div>
 
       {/* Test Connection */}

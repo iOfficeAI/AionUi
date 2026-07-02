@@ -34,7 +34,7 @@
 </p>
 
 <p align="center">
-  <strong>💬 社区：</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (English)</a> | <a href="../../resources/wx-11.png" target="_blank">微信 (中文群)</a> | <a href="https://twitter.com/AionUI" target="_blank">Twitter</a>
+  <strong>💬 社区：</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (English)</a> | <a href="../../resources/wx-14.png" target="_blank">微信 (中文群)</a> | <a href="https://twitter.com/AionUI" target="_blank">Twitter</a>
 </p>
 
 ---
@@ -86,13 +86,13 @@ AionUi 自带完整的 AI Agent。不像其他工具需要你手动安装各种 
 
 ### **办公助手（PPT / Word / Excel）**
 
-想把文档/表格直接交给 Agent？AionUi 内置 **[OfficeCLI](https://github.com/iOfficeAI/OfficeCli)**，让 PPT（Morph 转场）、Word（`.docx`）与 Excel（`.xlsx/.xlsm/.csv`）从需求到可交付结果更高效、更稳定。
+想把文档/表格直接交给 Agent？AionUi 内置 **[OfficeCLI](https://github.com/iOfficeAI/OfficeCLI)**，让 PPT（Morph 转场）、Word（`.docx`）与 Excel（`.xlsx/.xlsm/.csv`）从需求到可交付结果更高效、更稳定。
 三类助手对应各自的文件工作流：生成的成稿可直接编辑、可复用。
 
 #### **PPT 助手**
 
 > **输出：可编辑 Morph PPT（`.pptx`）**
-> 页间转场连贯、风格统一；底层由 [OfficeCLI](https://github.com/iOfficeAI/OfficeCli) 驱动。
+> 页间转场连贯、风格统一；底层由 [OfficeCLI](https://github.com/iOfficeAI/OfficeCLI) 驱动。
 
 <table>
   <tr>
@@ -108,7 +108,7 @@ AionUi 自带完整的 AI Agent。不像其他工具需要你手动安装各种 
 #### **Word 助手**
 
 > **输出：可编辑 Word（`.docx`）**
-> 支持论文/写作的结构、段落与格式组织；底层由 [OfficeCLI](https://github.com/iOfficeAI/OfficeCli) 驱动。
+> 支持论文/写作的结构、段落与格式组织；底层由 [OfficeCLI](https://github.com/iOfficeAI/OfficeCLI) 驱动。
 
 <table>
   <tr>
@@ -124,7 +124,7 @@ AionUi 自带完整的 AI Agent。不像其他工具需要你手动安装各种 
 #### **Excel 助手**
 
 > **输出：可直接复算的 Excel（`.xlsx/.xlsm/.csv`）**
-> 用 `xlsx` 生成/更新表格，自动美化并完成数据分析；底层由 [OfficeCLI](https://github.com/iOfficeAI/OfficeCli) 驱动。
+> 用 `xlsx` 生成/更新表格，自动美化并完成数据分析；底层由 [OfficeCLI](https://github.com/iOfficeAI/OfficeCLI) 驱动。
 
 <table>
   <tr>
@@ -248,7 +248,6 @@ AionUi 内置 **21 个专业助手**，每个都有独特能力，还能通过�
 - **📗 Excel 生成器** — 带分析、图表和自动格式化的表格生成
 - **🎓 学术论文写作助手** — 结构化学术论文写作
 - **💰 财务模型生成器** — 财务模型与预测
-- **⭐ Star Office 助手** — 办公效率助手
 - **🎮 3D 游戏** — 单文件 3D 游戏生成
 - **🎨 UI/UX Pro Max** — 专业 UI/UX 设计（57 种风格，95 个调色板）
 - **📋 文件规划助手** — 用文件管理复杂任务（Manus 风格的持久化 Markdown 规划）
@@ -670,7 +669,7 @@ brew install aionui
 - [报告问题](https://github.com/iOfficeAI/AionUi/issues) — 遇到 bug 或有新功能想法？告诉我们
 - [发布更新](https://github.com/iOfficeAI/AionUi/releases) — 获取最新版本
 - [Discord 社区](https://discord.gg/2QAwJn7Egx) — 英语社区
-- [微信群](../../resources/wx-11.png) — 中文社区
+- [微信群](../../resources/wx-14.png) — 中文社区
 
 ### 贡献
 
@@ -684,13 +683,7 @@ brew install aionui
 
 ### 开发环境搭建
 
-技术栈：Electron · Vite · React · Bun
-
-```bash
-bun install        # 安装依赖
-bun run dev        # 启动开发服务器
-bun run test       # 运行单元测试
-```
+AionUi 本地开发涉及两个仓库：AionUi 负责 Electron 前端，AionCore 负责本地后端。完整的 macOS、Linux 和 Windows 搭建流程请看 [开发指南](../contributing/development.md)。
 
 ---
 

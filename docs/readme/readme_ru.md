@@ -34,7 +34,7 @@
 </p>
 
 <p align="center">
-  <strong>💬 Сообщество:</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (English)</a> | <a href="./resources/wx-11.png" target="_blank">微信 (中文群)</a> | <a href="https://twitter.com/AionUI" target="_blank">Twitter</a>
+  <strong>💬 Сообщество:</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (English)</a> | <a href="./resources/wx-14.png" target="_blank">微信 (中文群)</a> | <a href="https://twitter.com/AionUI" target="_blank">Twitter</a>
 </p>
 
 ---
@@ -86,13 +86,13 @@ AionUi поставляется с полноценным движком ИИ-а
 
 ### **Офисные ассистенты — PPT, Word и Excel**
 
-Эти направления соответствуют тому, что приложение действительно предоставляет: предустановки **Morph PPT** и навыки **`pptx` / `docx` / `xlsx`** (см. предустановки `assistant/` и `skills/` в репозитории). Нужен вывод в документы или таблицы? Встроенный **[OfficeCLI](https://github.com/iOfficeAI/OfficeCli)** помогает превратить запрос в готовый PPT (Morph), Word (`.docx`) и Excel (`.xlsx/.xlsm/.csv`) быстрее и надёжнее.
+Эти направления соответствуют тому, что приложение действительно предоставляет: предустановки **Morph PPT** и навыки **`pptx` / `docx` / `xlsx`** (см. предустановки `assistant/` и `skills/` в репозитории). Нужен вывод в документы или таблицы? Встроенный **[OfficeCLI](https://github.com/iOfficeAI/OfficeCLI)** помогает превратить запрос в готовый PPT (Morph), Word (`.docx`) и Excel (`.xlsx/.xlsm/.csv`) быстрее и надёжнее.
 Три типа ассистентов соответствуют файловым рабочим процессам, а итоговые файлы можно сразу редактировать и использовать повторно.
 
 #### **Ассистент PPT**
 
 > **Результат:** редактируемый Morph PPT (`.pptx`)
-> Морфированные переходы между слайдами с согласованным повествованием; на базе [OfficeCLI](https://github.com/iOfficeAI/OfficeCli).
+> Морфированные переходы между слайдами с согласованным повествованием; на базе [OfficeCLI](https://github.com/iOfficeAI/OfficeCLI).
 
 <table>
   <tr>
@@ -108,7 +108,7 @@ AionUi поставляется с полноценным движком ИИ-а
 #### **Ассистент Word**
 
 > **Результат:** редактируемый Word (`.docx`)
-> Написание статей/диссертаций и готовое редактирование документов через навык `docx`; на базе [OfficeCLI](https://github.com/iOfficeAI/OfficeCli).
+> Написание статей/диссертаций и готовое редактирование документов через навык `docx`; на базе [OfficeCLI](https://github.com/iOfficeAI/OfficeCLI).
 
 <table>
   <tr>
@@ -124,7 +124,7 @@ AionUi поставляется с полноценным движком ИИ-а
 #### **Ассистент Excel**
 
 > **Результат:** готовый Excel (`.xlsx/.xlsm/.csv`)
-> Генерация/обновление таблиц через `xlsx` для анализа, автоформатирования и диаграмм; на базе [OfficeCLI](https://github.com/iOfficeAI/OfficeCli).
+> Генерация/обновление таблиц через `xlsx` для анализа, автоформатирования и диаграмм; на базе [OfficeCLI](https://github.com/iOfficeAI/OfficeCLI).
 
 <table>
   <tr>
@@ -247,7 +247,6 @@ AionUi включает **21 профессиональный ассистент
 - **📗 Excel Creator** — генерация электронных таблиц с анализом, диаграммами и автоформатированием
 - **🎓 Academic Paper Writer** — структурированное написание академических статей
 - **💰 Financial Model Creator** — финансовые модели и прогнозы
-- **⭐ Star Office Helper** — ассистент для офисной продуктивности
 - **🎮 3D Game** — генерация 3D-игр в одном файле
 - **🎨 UI/UX Pro Max** — профессиональный UI/UX дизайн (57 стилей, 95 цветовых палитр)
 - **📋 Planning with Files** — планирование на основе файлов для сложных задач (постоянное markdown-планирование в стиле Manus)
@@ -669,7 +668,7 @@ brew install aionui
 - [Сообщить о проблемах](https://github.com/iOfficeAI/AionUi/issues) — ошибки и запросы функций
 - [Обновления релизов](https://github.com/iOfficeAI/AionUi/releases) — получите последнюю версию
 - [Сообщество Discord](https://discord.gg/2QAwJn7Egx) — англоязычное сообщество
-- [Группа WeChat](./resources/wx-11.png) — русскоязычное сообщество
+- [Группа WeChat](./resources/wx-14.png) — русскоязычное сообщество
 
 ### Вклад в проект
 
@@ -681,13 +680,7 @@ brew install aionui
 
 ### Настройка среды разработки
 
-Технологический стек: Electron · Vite · React · Bun
-
-```bash
-bun install        # установить зависимости
-bun run dev        # запустить dev-сервер
-bun run test       # запустить юнит-тесты
-```
+Локальная разработка AionUi использует два репозитория: AionUi для Electron-фронтенда и AionCore для локального backend. Полная настройка для macOS, Linux и Windows описана в [Development Guide](../contributing/development.md).
 
 ---
 

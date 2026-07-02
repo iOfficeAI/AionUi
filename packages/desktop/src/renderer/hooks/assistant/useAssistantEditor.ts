@@ -9,6 +9,8 @@ import type {
   SkillInfo,
 } from '@/renderer/pages/settings/AssistantSettings/types';
 import { ensureBackendMcpCatalog } from '@/renderer/hooks/mcp/catalog';
+import { getSkillImportErrorMessage } from '@/renderer/pages/settings/skillImportMessages';
+import { emitter } from '@/renderer/utils/emitter';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { mutate as swrMutate } from 'swr';
@@ -18,7 +20,6 @@ type UseAssistantEditorParams = {
   activeAssistant: AssistantListItem | null;
   setActiveAssistantId: (id: string | null) => void;
   loadAssistants: () => Promise<void>;
-  refreshAgentDetection: () => Promise<void>;
   message: ReturnType<typeof Message.useMessage>[0];
 };
 
@@ -27,6 +28,7 @@ type AssistantSkillsDefaultMode = 'auto' | 'fixed';
 type AssistantMcpDefaultMode = 'auto' | 'fixed';
 
 const isBuiltinAssistant = (assistant: Assistant | null | undefined): boolean => assistant?.source === 'builtin';
+const isGeneratedAssistant = (assistant: Assistant | null | undefined): boolean => assistant?.source === 'generated';
 
 const resolveLocalizedRecommendedPrompts = (
   detail: Awaited<ReturnType<typeof ipcBridge.assistants.get.invoke>>,
@@ -47,6 +49,14 @@ const resolveLocalizedProfileField = (
   fallbackValue = ''
 ): string => localizedValues?.[localeKey] ?? localizedValues?.['en-US'] ?? baseValue ?? fallbackValue;
 
+const isAutoInjectedBuiltinSkill = (skill: SkillInfo): boolean => skill.source === 'builtin' && skill.is_auto_inject;
+
+const deriveBuiltinAutoSkills = (skills: SkillInfo[]): BuiltinAutoSkill[] =>
+  skills.filter(isAutoInjectedBuiltinSkill).map((skill) => ({
+    name: skill.name,
+    description: skill.description,
+  }));
+
 /**
  * Manages all assistant editing state and handlers:
  * create, edit, duplicate, save, delete, and toggle enabled.
@@ -56,7 +66,6 @@ export const useAssistantEditor = ({
   activeAssistant,
   setActiveAssistantId,
   loadAssistants,
-  refreshAgentDetection,
   message,
 }: UseAssistantEditorParams) => {
   const { t } = useTranslation();
@@ -68,7 +77,7 @@ export const useAssistantEditor = ({
   const [editContext, setEditContext] = useState('');
   const [editAvatar, setEditAvatar] = useState('');
   const [editAvatarPreview, setEditAvatarPreview] = useState<string | undefined>(undefined);
-  const [editAgent, setEditAgentState] = useState<string>('claude');
+  const [editAgent, setEditAgentState] = useState<string>('');
   const [editRecommendedPromptsText, setEditRecommendedPromptsText] = useState('');
   const [defaultModelMode, setDefaultModelMode] = useState<AssistantScalarDefaultMode>('auto');
   const [defaultModelValue, setDefaultModelValue] = useState('');
@@ -111,13 +120,12 @@ export const useAssistantEditor = ({
 
   const loadEditorResources = useCallback(
     async (assistantId: string) => {
-      const [detail, skillsList, autoSkills, mcpServers] = await Promise.all([
+      const [detail, skillsList, mcpServers] = await Promise.all([
         loadAssistantDetail(assistantId),
         ipcBridge.fs.listAvailableSkills.invoke(),
-        ipcBridge.fs.listBuiltinAutoSkills.invoke(),
         ensureBackendMcpCatalog().then(({ allServers }) => allServers),
       ]);
-      return { detail, skillsList, autoSkills, mcpServers };
+      return { detail, skillsList, autoSkills: deriveBuiltinAutoSkills(skillsList), mcpServers };
     },
     [loadAssistantDetail]
   );
@@ -212,7 +220,7 @@ export const useAssistantEditor = ({
     setEditDescription(assistant.description || '');
     setEditAvatar(assistant.avatar || '');
     setEditAvatarPreview(undefined);
-    setEditAgent(assistant.preset_agent_type || 'claude');
+    setEditAgent(assistant.agent_id || '');
     resetDefaultConfigState();
     resetSkillEditorState();
 
@@ -231,7 +239,7 @@ export const useAssistantEditor = ({
       );
       setEditAvatar(detail.profile.avatar || '');
       setEditAvatarPreview(undefined);
-      setEditAgent(detail.engine.agent_backend || assistant.preset_agent_type || 'claude');
+      setEditAgent(detail.engine.agent_id || assistant.agent_id || '');
       setEditContext(detail.rules.content || '');
       setEditRecommendedPromptsText(resolveLocalizedRecommendedPrompts(detail, localeKey).join('\n'));
       setDefaultModelMode(detail.defaults.model.mode === 'fixed' ? 'fixed' : 'auto');
@@ -268,18 +276,17 @@ export const useAssistantEditor = ({
     setEditContext('');
     setEditAvatar('\u{1F916}');
     setEditAvatarPreview(undefined);
-    setEditAgent('claude');
+    setEditAgent('');
     resetDefaultConfigState();
     resetSkillEditorState();
 
     try {
-      const [skillsList, autoSkills, mcpServers] = await Promise.all([
+      const [skillsList, mcpServers] = await Promise.all([
         ipcBridge.fs.listAvailableSkills.invoke(),
-        ipcBridge.fs.listBuiltinAutoSkills.invoke(),
         ensureBackendMcpCatalog().then(({ allServers }) => allServers),
       ]);
       setAvailableSkills(skillsList);
-      setBuiltinAutoSkills(autoSkills);
+      setBuiltinAutoSkills(deriveBuiltinAutoSkills(skillsList));
       setAvailableMcpServers(mcpServers);
     } catch (error) {
       console.error('Failed to load skills:', error);
@@ -298,7 +305,7 @@ export const useAssistantEditor = ({
     setEditDescription(assistant.description_i18n?.[localeKey] || assistant.description || '');
     setEditAvatar(assistant.avatar || '\u{1F916}');
     setEditAvatarPreview(undefined);
-    setEditAgent(assistant.preset_agent_type || 'claude');
+    setEditAgent(assistant.agent_id || '');
     resetDefaultConfigState();
     resetSkillEditorState();
 
@@ -379,10 +386,10 @@ export const useAssistantEditor = ({
 
         for (const pendingSkill of skillsToImport) {
           try {
-            await ipcBridge.fs.importSkillWithSymlink.invoke({ skill_path: pendingSkill.path });
+            await ipcBridge.fs.importSkills.invoke({ skill_path: pendingSkill.path });
           } catch (error) {
             console.error(`Failed to import skill "${pendingSkill.name}":`, error);
-            message.error(t('settings.skillsHub.importError', { defaultValue: 'Error importing skill' }));
+            message.error(getSkillImportErrorMessage(error, t));
             return;
           }
         }
@@ -417,7 +424,7 @@ export const useAssistantEditor = ({
           name: editName,
           description: editDescription || undefined,
           avatar: editAvatar || undefined,
-          preset_agent_type: editAgent,
+          agent_id: editAgent || undefined,
           enabled_skills: selectedSkills,
           custom_skill_names: finalCustomSkills,
           disabled_builtin_skills: disabledBuiltinSkills.length > 0 ? disabledBuiltinSkills : undefined,
@@ -433,33 +440,46 @@ export const useAssistantEditor = ({
       } else {
         if (!activeAssistant) return;
 
-        const updateRequest: UpdateAssistantRequest = isBuiltinAssistant(activeAssistant)
-          ? {
-              id: activeAssistant.id,
-              preset_agent_type: editAgent,
-              defaults: {
-                model:
-                  defaultModelMode === 'fixed'
-                    ? { mode: 'fixed', value: defaultModelValue.trim() }
-                    : { mode: defaultModelMode },
-                permission:
-                  defaultPermissionMode === 'fixed'
-                    ? { mode: 'fixed', value: defaultPermissionValue.trim() }
-                    : { mode: defaultPermissionMode },
-              },
-            }
-          : {
-              id: activeAssistant.id,
-              name: editName,
-              description: editDescription || undefined,
-              avatar: editAvatar || undefined,
-              preset_agent_type: editAgent,
-              enabled_skills: selectedSkills,
-              custom_skill_names: finalCustomSkills,
-              disabled_builtin_skills: disabledBuiltinSkills.length > 0 ? disabledBuiltinSkills : undefined,
-              recommended_prompts: recommendedPrompts,
-              defaults,
-            };
+        let updateRequest: UpdateAssistantRequest;
+        if (isBuiltinAssistant(activeAssistant)) {
+          updateRequest = {
+            id: activeAssistant.id,
+            agent_id: editAgent || undefined,
+            defaults: {
+              model:
+                defaultModelMode === 'fixed'
+                  ? { mode: 'fixed', value: defaultModelValue.trim() }
+                  : { mode: defaultModelMode },
+              permission:
+                defaultPermissionMode === 'fixed'
+                  ? { mode: 'fixed', value: defaultPermissionValue.trim() }
+                  : { mode: defaultPermissionMode },
+            },
+          };
+        } else if (isGeneratedAssistant(activeAssistant)) {
+          updateRequest = {
+            id: activeAssistant.id,
+            description: editDescription || undefined,
+            enabled_skills: selectedSkills,
+            custom_skill_names: finalCustomSkills,
+            disabled_builtin_skills: disabledBuiltinSkills.length > 0 ? disabledBuiltinSkills : undefined,
+            recommended_prompts: recommendedPrompts,
+            defaults,
+          };
+        } else {
+          updateRequest = {
+            id: activeAssistant.id,
+            name: editName,
+            description: editDescription || undefined,
+            avatar: editAvatar || undefined,
+            agent_id: editAgent || undefined,
+            enabled_skills: selectedSkills,
+            custom_skill_names: finalCustomSkills,
+            disabled_builtin_skills: disabledBuiltinSkills.length > 0 ? disabledBuiltinSkills : undefined,
+            recommended_prompts: recommendedPrompts,
+            defaults,
+          };
+        }
         await ipcBridge.assistants.update.invoke(updateRequest);
 
         if (!isBuiltinAssistant(activeAssistant)) {
@@ -468,12 +488,12 @@ export const useAssistantEditor = ({
 
         await refreshAssistantCatalog();
         await refreshAssistantDetailCaches(activeAssistant.id);
+        emitter.emit('chat.history.refresh');
         message.success(t('common.saveSuccess', { defaultValue: 'Saved successfully' }));
       }
 
       setEditVisible(false);
       setPendingSkills([]);
-      await refreshAgentDetection();
     } catch (error) {
       console.error('Failed to save assistant:', error);
       message.error(t('common.failed', { defaultValue: 'Failed' }));
@@ -483,7 +503,7 @@ export const useAssistantEditor = ({
   const handleDeleteClick = () => {
     if (!activeAssistant) return;
 
-    if (isBuiltinAssistant(activeAssistant)) {
+    if (activeAssistant?.source !== 'user') {
       message.warning(t('settings.cannotDeleteBuiltin', { defaultValue: 'Cannot delete builtin assistants' }));
       return;
     }
@@ -494,7 +514,7 @@ export const useAssistantEditor = ({
   const handleDeleteRequest = (assistant: AssistantListItem) => {
     setActiveAssistantId(assistant.id);
 
-    if (isBuiltinAssistant(assistant)) {
+    if (assistant.source !== 'user') {
       message.warning(t('settings.cannotDeleteBuiltin', { defaultValue: 'Cannot delete builtin assistants' }));
       return;
     }
@@ -511,7 +531,6 @@ export const useAssistantEditor = ({
       setDeleteConfirmVisible(false);
       setEditVisible(false);
       message.success(t('common.success', { defaultValue: 'Success' }));
-      await refreshAgentDetection();
     } catch (error) {
       console.error('Failed to delete assistant:', error);
       message.error(t('common.failed', { defaultValue: 'Failed' }));
@@ -531,7 +550,6 @@ export const useAssistantEditor = ({
       await ipcBridge.assistants.setState.invoke({ id: assistant.id, enabled });
       await refreshAssistantCatalog();
       await refreshAssistantDetailCaches(assistant.id);
-      await refreshAgentDetection();
     } catch (error) {
       console.error('Failed to toggle assistant:', error);
       await Promise.all([swrMutate('assistants.list'), swrMutate('assistants')]);

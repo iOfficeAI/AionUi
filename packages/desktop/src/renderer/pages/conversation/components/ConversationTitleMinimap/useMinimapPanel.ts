@@ -4,8 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { ipcBridge } from '@/common';
 import { dispatchChatMessageJump } from '@/renderer/utils/chat/chatMinimapEvents';
+import { loadAllConversationMessagesPaged } from '@/renderer/utils/chat/messagePagination';
 import type { RefInputType } from '@arco-design/web-react/es/Input/interface';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { MinimapVisualStyle, TurnPreviewItem } from './minimapTypes';
@@ -110,12 +110,8 @@ export const useMinimapPanel = (conversation_id?: string): UseMinimapPanelReturn
     }
     setLoading(true);
     try {
-      const messages = await ipcBridge.database.getConversationMessages.invoke({
-        conversation_id: conversation_id,
-        page: 0,
-        page_size: 10000,
-      });
-      setItems(buildTurnPreview(messages?.items || []));
+      const messages = await loadAllConversationMessagesPaged(conversation_id);
+      setItems(buildTurnPreview(messages));
     } catch (error) {
       console.error('[ConversationTitleMinimap] Failed to load conversation messages:', error);
       setItems([]);

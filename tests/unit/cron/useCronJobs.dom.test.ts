@@ -640,115 +640,94 @@ describe('useCronJobsMap', () => {
   });
 });
 
+// Mock the shared conversation list store for the cron jobs map tests.
+let conversationListSyncSnapshot: { conversations: TChatConversation[] } = { conversations: [] };
+vi.mock('@renderer/pages/conversation/GroupedHistory/hooks/useConversationListSync', () => ({
+  useConversationListSync: () => conversationListSyncSnapshot,
+}));
+
 describe('useCronJobConversations', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    conversationListSyncSnapshot = { conversations: [] };
+    vi.mocked(ipcBridge.conversation.listByCronJob.invoke).mockResolvedValue([]);
+    vi.mocked(ipcBridge.conversation.listChanged.on).mockReturnValue(() => {});
+    vi.mocked(ipcBridge.cron.onJobCreated.on).mockReturnValue(() => {});
+    vi.mocked(ipcBridge.cron.onJobUpdated.on).mockReturnValue(() => {});
+    vi.mocked(ipcBridge.cron.onJobRemoved.on).mockReturnValue(() => {});
+    vi.mocked(ipcBridge.cron.onJobExecuted.on).mockReturnValue(() => {});
   });
 
-  it('fetches conversations for job_id', async () => {
-    const conversations = [mockConversation('conv-1'), mockConversation('conv-2')];
-    vi.mocked(ipcBridge.conversation.listByCronJob.invoke).mockResolvedValue(conversations);
-    vi.mocked(ipcBridge.cron.onJobExecuted.on).mockReturnValue(() => {});
-    vi.mocked(ipcBridge.conversation.listChanged.on).mockReturnValue(() => {});
-    vi.mocked(emitter.on).mockReturnValue(undefined);
+  const mockCronConversation = (id: string, cronJobId: string): TChatConversation =>
+    ({
+      ...mockConversation(id),
+      extra: { cron_job_id: cronJobId },
+    }) as TChatConversation;
+
+  it('fetches associated conversations from the backend instead of relying on stale sidebar cache', async () => {
+    const owned1 = mockCronConversation('conv-1', 'job-1');
+    const owned2 = mockCronConversation('conv-2', 'job-1');
+    const other = mockCronConversation('conv-3', 'job-2');
+    conversationListSyncSnapshot = { conversations: [other] };
+    vi.mocked(ipcBridge.conversation.listByCronJob.invoke).mockResolvedValue([owned1, owned2]);
 
     const { result } = renderHook(() => useCronJobConversations('job-1'));
 
     expect(result.current.loading).toBe(true);
-
     await waitFor(() => expect(result.current.loading).toBe(false));
 
+    expect(result.current.conversations.map((c) => c.id)).toEqual(['conv-1', 'conv-2']);
     expect(ipcBridge.conversation.listByCronJob.invoke).toHaveBeenCalledWith({ cron_job_id: 'job-1' });
-    expect(result.current.conversations).toEqual(conversations);
   });
 
-  it('clears conversations when job_id is undefined', async () => {
-    vi.mocked(ipcBridge.cron.onJobExecuted.on).mockReturnValue(() => {});
-    vi.mocked(ipcBridge.conversation.listChanged.on).mockReturnValue(() => {});
-    vi.mocked(emitter.on).mockReturnValue(undefined);
+  it('refreshes when the matching cron job changes', async () => {
+    const legacy = {
+      ...mockConversation('conv-legacy'),
+      extra: { cronJobId: 'job-1' },
+    } as TChatConversation;
+    let onJobUpdated: ((job: ICronJob) => void) | undefined;
+    vi.mocked(ipcBridge.cron.onJobUpdated.on).mockImplementation((handler) => {
+      onJobUpdated = handler;
+      return () => {};
+    });
+    vi.mocked(ipcBridge.conversation.listByCronJob.invoke).mockResolvedValueOnce([]).mockResolvedValueOnce([legacy]);
 
-    const { result } = renderHook(() => useCronJobConversations(undefined));
+    const { result } = renderHook(() => useCronJobConversations('job-1'));
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.conversations).toEqual([]);
+
+    onJobUpdated?.(mockJob({ id: 'job-1' }));
+
+    await waitFor(() => expect(result.current.conversations.map((c) => c.id)).toEqual(['conv-legacy']));
+    expect(ipcBridge.conversation.listByCronJob.invoke).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not refresh for unrelated cron job changes', async () => {
+    let onJobUpdated: ((job: ICronJob) => void) | undefined;
+    vi.mocked(ipcBridge.cron.onJobUpdated.on).mockImplementation((handler) => {
+      onJobUpdated = handler;
+      return () => {};
+    });
+
+    const { result } = renderHook(() => useCronJobConversations('job-1'));
 
     await waitFor(() => expect(result.current.loading).toBe(false));
 
-    expect(ipcBridge.conversation.listByCronJob.invoke).not.toHaveBeenCalled();
+    onJobUpdated?.(mockJob({ id: 'job-2' }));
+
+    expect(ipcBridge.conversation.listByCronJob.invoke).toHaveBeenCalledTimes(1);
     expect(result.current.conversations).toEqual([]);
   });
 
-  it('refetches on job executed event', async () => {
-    let onJobExecutedHandler: ((data: { job_id: string }) => void) | null = null;
-    vi.mocked(ipcBridge.conversation.listByCronJob.invoke).mockResolvedValue([]);
-    vi.mocked(ipcBridge.cron.onJobExecuted.on).mockImplementation((handler) => {
-      onJobExecutedHandler = handler;
-      return () => {};
-    });
-    vi.mocked(ipcBridge.conversation.listChanged.on).mockReturnValue(() => {});
-    vi.mocked(emitter.on).mockReturnValue(undefined);
+  it('returns an empty list when job_id is undefined', () => {
+    conversationListSyncSnapshot = {
+      conversations: [mockCronConversation('conv-1', 'job-1')],
+    };
 
-    renderHook(() => useCronJobConversations('job-1'));
+    const { result } = renderHook(() => useCronJobConversations(undefined));
 
-    await waitFor(() => {
-      /* wait for initial fetch */
-    });
-
-    vi.mocked(ipcBridge.conversation.listByCronJob.invoke).mockClear();
-
-    onJobExecutedHandler!({ job_id: 'job-1' });
-
-    await waitFor(() =>
-      expect(ipcBridge.conversation.listByCronJob.invoke).toHaveBeenCalledWith({ cron_job_id: 'job-1' })
-    );
-  });
-
-  it('refetches on conversation list changed', async () => {
-    let onListChangedHandler: ((data: { action: string }) => void) | null = null;
-    vi.mocked(ipcBridge.conversation.listByCronJob.invoke).mockResolvedValue([]);
-    vi.mocked(ipcBridge.cron.onJobExecuted.on).mockReturnValue(() => {});
-    vi.mocked(ipcBridge.conversation.listChanged.on).mockImplementation((handler) => {
-      onListChangedHandler = handler;
-      return () => {};
-    });
-    vi.mocked(emitter.on).mockReturnValue(undefined);
-
-    renderHook(() => useCronJobConversations('job-1'));
-
-    await waitFor(() => {
-      /* wait for initial fetch */
-    });
-
-    vi.mocked(ipcBridge.conversation.listByCronJob.invoke).mockClear();
-
-    onListChangedHandler!({ action: 'created' });
-
-    await waitFor(() =>
-      expect(ipcBridge.conversation.listByCronJob.invoke).toHaveBeenCalledWith({ cron_job_id: 'job-1' })
-    );
-  });
-
-  it('refetches on chat.history.refresh event', async () => {
-    let emitterHandler: (() => void) | null = null;
-    vi.mocked(ipcBridge.conversation.listByCronJob.invoke).mockResolvedValue([]);
-    vi.mocked(ipcBridge.cron.onJobExecuted.on).mockReturnValue(() => {});
-    vi.mocked(ipcBridge.conversation.listChanged.on).mockReturnValue(() => {});
-    vi.mocked(emitter.on).mockImplementation((event, handler) => {
-      if (event === 'chat.history.refresh') {
-        emitterHandler = handler as () => void;
-      }
-      return undefined;
-    });
-
-    renderHook(() => useCronJobConversations('job-1'));
-
-    await waitFor(() => {
-      /* wait for initial fetch */
-    });
-
-    vi.mocked(ipcBridge.conversation.listByCronJob.invoke).mockClear();
-
-    emitterHandler!();
-
-    await waitFor(() =>
-      expect(ipcBridge.conversation.listByCronJob.invoke).toHaveBeenCalledWith({ cron_job_id: 'job-1' })
-    );
+    expect(result.current.conversations).toEqual([]);
+    expect(ipcBridge.conversation.listByCronJob.invoke).not.toHaveBeenCalled();
   });
 });

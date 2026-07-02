@@ -49,7 +49,7 @@
 | **文件夹关联** | 2 档 | 无关联 / 关联                          | `AionrsSendBox.tsx:331-337` atPath 状态 + event listener |
 | **文件上传**   | 2 档 | 无上传 / 上传                          | `AionrsSendBox.tsx:103-125` file input handler           |
 | **模型**       | 2 档 | 从 ACP 模型列表挑 2 个（推荐配置见下） | `GuidModelSelector.tsx` + `useGuidModelSelection.ts`     |
-| **权限模式**   | 3 档 | default / auto_edit / yolo             | `agentModes.ts:65-69` aionrs 分支                        |
+| **权限模式**   | 3 档 | default / auto_edit / yolo             | aionrs runtime capabilities + `AgentModeSelector`        |
 | **对话中切换** | 必测 | 切换模型 + 切换权限                    | `AionrsModelSelector.tsx` + `AgentModeSelector`          |
 
 ### 2.2 维度详细说明
@@ -159,7 +159,7 @@
 
 #### 权限模式（3 档）
 
-**档位枚举**（源码 `src/renderer/utils/model/agentModes.ts:65-69`）:
+**档位枚举**（由 aionrs runtime capabilities 上报）:
 
 ```typescript
 aionrs: [
@@ -936,7 +936,7 @@ test.beforeAll(async ({ page }) => {
 | `src/renderer/pages/conversation/platforms/aionrs/AionrsModelSelector.tsx`    | 19-135 | 模型选择器（对话页）                                                |
 | `src/renderer/pages/conversation/platforms/aionrs/useAionrsModelSelection.ts` | 24-73  | 模型选择 hook（过滤 google auth）                                   |
 | `src/renderer/pages/conversation/platforms/aionrs/useAionrsMessage.ts`        | 20-321 | 流式消息处理 + 工具状态                                             |
-| `src/renderer/utils/model/agentModes.ts`                                      | 65-69  | aionrs 权限模式枚举                                                 |
+| `src/renderer/pages/conversation/platforms/aionrs/AionrsSendBox.tsx`          | —      | aionrs runtime capabilities 转换为权限选项                          |
 | `src/process/task/AionrsManager.ts`                                           | 78-781 | 进程管理 + 权限审批 + DB 持久化                                     |
 | `src/process/agent/aionrs/index.ts`                                           | 54-450 | binary 启动 + stdin/stdout 协议                                     |
 | `src/process/agent/aionrs/binaryResolver.ts`                                  | —      | binary 路径解析逻辑                                                 |

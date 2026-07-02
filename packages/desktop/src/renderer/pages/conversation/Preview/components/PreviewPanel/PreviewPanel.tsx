@@ -7,9 +7,11 @@
 import { ipcBridge } from '@/common';
 import { downloadFileFromPath, downloadTextContent } from '@/renderer/utils/file/download';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
+import { toLocalFileHref } from '@/renderer/components/Markdown/markdownUtils';
 import { PreviewToolbarExtrasProvider, type PreviewToolbarExtras } from '../../context/PreviewToolbarExtrasContext';
 import { usePreviewContext } from '../../context/PreviewContext';
 import { useResizableSplit } from '@/renderer/hooks/ui/useResizableSplit';
+import { Link } from '@arco-design/web-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import DiffPreview from '../viewers/DiffViewer';
 import ExcelPreview from '../viewers/ExcelViewer';
@@ -397,8 +399,31 @@ const PreviewPanel: React.FC = () => {
     );
   };
 
+  const renderMissingFile = () => {
+    const filePath = metadata?.file_path;
+    const externalHref = filePath ? toLocalFileHref(filePath) : undefined;
+
+    return (
+      <div className='flex flex-1 flex-col items-center justify-center gap-10px px-24px text-center'>
+        <div className='text-15px font-medium text-t-primary'>
+          {t('preview.missingFile.title', { defaultValue: 'File not found' })}
+        </div>
+        <div className='max-w-560px break-all text-12px leading-18px text-t-secondary'>
+          {filePath || t('preview.errors.missingFilePath')}
+        </div>
+        {externalHref && (
+          <Link href={externalHref} target='_blank' rel='noreferrer' className='text-13px'>
+            {t('preview.missingFile.openInNewTab', { defaultValue: 'Try opening in a new tab' })}
+          </Link>
+        )}
+      </div>
+    );
+  };
+
   // 渲染预览内容 / Render preview content
   const renderContent = () => {
+    if (metadata?.missingFile) return renderMissingFile();
+
     // Markdown 模式 / Markdown mode
     if (isMarkdown) {
       // 分屏模式：左右分割（编辑器 + 预览）/ Split-screen mode: Editor + Preview
@@ -477,6 +502,7 @@ const PreviewPanel: React.FC = () => {
                 content={content}
                 file_path={metadata?.file_path}
                 workspace={metadata?.workspace}
+                isDirty={activeTab?.isDirty}
                 copySuccessMessage={t('preview.html.copySuccess')}
                 inspectMode={inspectMode}
                 onElementSelected={handleElementSelected}
@@ -519,6 +545,7 @@ const PreviewPanel: React.FC = () => {
                   content={content}
                   file_path={metadata?.file_path}
                   workspace={metadata?.workspace}
+                  isDirty={activeTab?.isDirty}
                   containerRef={previewContainerRef}
                   onScroll={handlePreviewScroll}
                   inspectMode={inspectMode}
@@ -551,6 +578,7 @@ const PreviewPanel: React.FC = () => {
               content={content}
               file_path={metadata?.file_path}
               workspace={metadata?.workspace}
+              isDirty={activeTab?.isDirty}
               inspectMode={inspectMode}
               copySuccessMessage={t('preview.html.copySuccess')}
               onElementSelected={handleElementSelected}
@@ -582,6 +610,8 @@ const PreviewPanel: React.FC = () => {
             language={metadata?.language}
             fileName={metadata?.file_name}
             readOnly={isEditable === false}
+            targetLine={metadata?.targetLine}
+            targetColumn={metadata?.targetColumn}
           />
         </div>
       );
@@ -645,7 +675,7 @@ const PreviewPanel: React.FC = () => {
         />
 
         {/* 工具栏（URL 类型不显示工具栏，因为不需要下载/编辑等功能）/ Toolbar (hidden for URL type as it doesn't need download/edit features) */}
-        {content_type !== 'url' && (
+        {content_type !== 'url' && !metadata?.missingFile && (
           <PreviewToolbar
             content_type={content_type}
             isMarkdown={isMarkdown}

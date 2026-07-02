@@ -4,32 +4,23 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { ipcBridge } from '@/common';
-import { configService } from '@/common/config/configService';
-import type { AcpSessionConfigOption } from '@/common/types/platform/acpTypes';
-import { savePreferredMode } from '@/renderer/pages/guid/hooks/agentSelectionUtils';
-import { getAgentModes, supportsModeSwitch, type AgentModeOption } from '@/renderer/utils/model/agentModes';
+import { classifyConfigSetError, useAcpConfigOptions } from '@/renderer/hooks/agent/useAcpConfigOptions';
+import type { AgentModeOption } from '@/renderer/utils/model/agentTypes';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { AgentLogoIcon } from './AgentBadge';
-import { Button, Dropdown, Menu, Message } from '@arco-design/web-react';
+import { Dropdown, Menu, Message, Tooltip } from '@arco-design/web-react';
 import { Down } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import MarqueePillLabel from './MarqueePillLabel';
+import RuntimeSelectorPill from './RuntimeSelectorPill';
 
-/**
- * Extract mode options from cached ACP config_options.
- * Looks for a select-type option with category === 'mode' and converts
- * its choices to AgentModeOption[] format.
- */
-function extractModesFromConfigOptions(config_options: AcpSessionConfigOption[]): AgentModeOption[] {
-  const modeOption = config_options.find((opt) => opt.category === 'mode' && opt.type === 'select' && opt.options);
-  if (!modeOption?.options || modeOption.options.length === 0) return [];
-  return modeOption.options.map((opt) => ({
-    value: opt.value,
-    label: opt.name || opt.label || opt.value,
-  }));
-}
+const configErrorMessageKey = (error: unknown) => {
+  const errorKind = classifyConfigSetError(error);
+  if (errorKind === 'command_ack') return 'agent.config.commandAck';
+  if (errorKind === 'confirmation_timeout') return 'agent.config.timeout';
+  if (errorKind === 'config_update_in_progress') return 'agent.config.busy';
+  return 'agent.config.failed';
+};
 
 export interface AgentModeSelectorProps {
   /** Agent backend type / 代理后端类型 */
@@ -40,6 +31,8 @@ export interface AgentModeSelectorProps {
   agentLogo?: string;
   /** Whether the logo is an emoji / logo 是否为 emoji */
   agentLogoIsEmoji?: boolean;
+  /** Whether the explicit assistant logo is intentionally empty. */
+  agentLogoIsFallback?: boolean;
   /** Conversation ID for mode switching / 用于切换模式的会话 ID */
   conversation_id?: string;
   /** Compact mode: only show mode label + dropdown, no logo/name / 紧凑模式：仅显示模式标签和下拉 */
@@ -68,8 +61,6 @@ export interface AgentModeSelectorProps {
   dynamicModes?: AgentModeOption[];
   /** Optional runtime preparation before reading active-session mode. */
   beforeRuntimeSync?: () => Promise<void>;
-  /** Whether switching mode should persist into the backend-wide preference key. */
-  persistGlobalPreference?: boolean;
 }
 
 /**
@@ -84,6 +75,7 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
   agent_name,
   agentLogo,
   agentLogoIsEmoji,
+  agentLogoIsFallback,
   conversation_id,
   compact,
   showLogoInCompact = false,
@@ -98,47 +90,33 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
   onModeChanged,
   dynamicModes,
   beforeRuntimeSync,
-  persistGlobalPreference = true,
 }) => {
   const { t } = useTranslation();
   const layout = useLayoutContext();
   const isMobile = Boolean(layout?.isMobile);
-  const [cachedModes, setCachedModes] = useState<AgentModeOption[]>([]);
+  const runtimeConfig = useAcpConfigOptions({
+    conversation_id: conversation_id ?? '',
+    prepareRuntime: beforeRuntimeSync,
+    enabled: Boolean(conversation_id),
+  });
+  const runtimeMode = runtimeConfig.mode;
+  const runtimeModes = useMemo(
+    () =>
+      runtimeMode?.options.map((item) => ({
+        value: item.value,
+        label: item.label,
+        description: item.description ?? undefined,
+      })),
+    [runtimeMode?.options]
+  );
 
-  // Load modes from cache: try top-level `acp.cachedModes` first (qoder, opencode),
-  // then fall back to `acp.cached_config_options` category=mode (codex)
-  useEffect(() => {
-    if (!backend) return;
-
-    const cachedModes = configService.get('acp.cachedModes');
-    const session_modes = cachedModes?.[backend];
-    if (session_modes?.available_modes && session_modes.available_modes.length > 0) {
-      setCachedModes(
-        session_modes.available_modes.map((m) => ({
-          value: m.id,
-          label: m.name ?? m.id,
-        }))
-      );
-      return;
-    }
-
-    const cached = configService.get('acp.cached_config_options');
-    const options = cached?.[backend];
-    if (Array.isArray(options)) {
-      const modes = extractModesFromConfigOptions(options as AcpSessionConfigOption[]);
-      if (modes.length > 0) {
-        setCachedModes(modes);
-      }
-    }
-  }, [backend]);
-
-  // Priority: dynamicModes (runtime) > cachedModes (from cache) > getAgentModes (static fallback)
+  // Priority: observed config_options > dynamic modes from persisted agent_metadata.
   const modes = useMemo(() => {
+    if (runtimeModes && runtimeModes.length > 0) return runtimeModes;
     if (dynamicModes && dynamicModes.length > 0) return dynamicModes;
-    if (cachedModes.length > 0) return cachedModes;
-    return getAgentModes(backend);
-  }, [dynamicModes, cachedModes, backend]);
-  const defaultMode = modes[0]?.value ?? 'default';
+    return [];
+  }, [runtimeModes, dynamicModes]);
+  const defaultMode = modes[0]?.value ?? initialMode ?? 'default';
   // Validate initialMode against available modes; fall back to backend's default
   // when the provided value doesn't match (e.g. opencode has 'build'/'plan', not 'default')
   const validInitialMode = initialMode && modes.some((m) => m.value === initialMode) ? initialMode : defaultMode;
@@ -150,7 +128,7 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
     [modeLabelFormatter]
   );
 
-  const can_switchMode = (supportsModeSwitch(backend) || modes.length > 0) && (conversation_id || onModeSelect);
+  const can_switchMode = modes.length > 0 && Boolean(conversation_id || onModeSelect);
   // Mobile conversation header agent pill is display-only by design.
   const canInteract = can_switchMode && !(compact && compactLabelType === 'agent');
 
@@ -158,39 +136,16 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
   // Validate against available modes to handle backends with non-standard default
   // (e.g. opencode uses 'build' instead of 'default').
   useEffect(() => {
-    if (initialMode !== undefined) {
+    if (initialMode !== undefined && !runtimeMode?.currentValue) {
       const valid = modes.some((m) => m.value === initialMode) ? initialMode : defaultMode;
       setCurrentMode(valid);
     }
-  }, [initialMode, modes, defaultMode]);
+  }, [initialMode, modes, defaultMode, runtimeMode?.currentValue]);
 
-  // Sync mode from backend when mounting or switching conversation tabs
   useEffect(() => {
-    if (!conversation_id || !can_switchMode) return;
-    let cancelled = false;
-
-    void (async () => {
-      await beforeRuntimeSync?.();
-      return ipcBridge.acpConversation.getMode.invoke({ conversation_id });
-    })()
-      .then((result) => {
-        if (!cancelled && result) {
-          // Only sync from backend when manager is initialized;
-          // before first message, getMode returns { mode: 'default', initialized: false }
-          // which would overwrite the correct initialMode (e.g. opencode has no 'default').
-          if (result.initialized !== false) {
-            setCurrentMode(result.mode);
-          }
-        }
-      })
-      .catch(() => {
-        // Silent fail, keep current state
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [conversation_id, can_switchMode, beforeRuntimeSync]);
+    if (!runtimeMode?.currentValue) return;
+    setCurrentMode(runtimeMode.currentValue);
+  }, [runtimeMode?.currentValue]);
 
   const handleModeChange = useCallback(
     async (mode: string) => {
@@ -209,31 +164,28 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
 
       if (!conversation_id) return;
 
+      const setActiveMode = async () => {
+        if (!runtimeMode) {
+          throw new Error('config_not_observed');
+        }
+        await runtimeConfig.setConfigOption(runtimeMode.id, mode);
+      };
+
       setIsLoading(true);
       try {
         await beforeRuntimeSync?.();
-        const confirmed = await ipcBridge.acpConversation.setMode.invoke({
-          conversation_id,
-          mode,
-        });
-        const confirmedMode = confirmed.mode || mode;
-
-        setCurrentMode(confirmedMode);
-        onModeChanged?.(confirmedMode);
-        if (backend && persistGlobalPreference) {
-          // Mirror Guid page behaviour so a switch made inside the
-          // conversation also becomes the next-session default.
-          void savePreferredMode(backend, confirmedMode);
-        }
+        await setActiveMode();
+        setCurrentMode(mode);
+        onModeChanged?.(mode);
         Message.success(t('agentMode.switchSuccess'));
       } catch (error) {
         console.error('[AgentModeSelector] Failed to switch mode:', error);
-        Message.error(t('agentMode.switchFailed'));
+        Message.error(t(configErrorMessageKey(error)));
       } finally {
         setIsLoading(false);
       }
     },
-    [backend, beforeRuntimeSync, conversation_id, current_mode, onModeChanged, onModeSelect, persistGlobalPreference, t]
+    [beforeRuntimeSync, conversation_id, current_mode, onModeChanged, onModeSelect, runtimeConfig, runtimeMode, t]
   );
 
   const renderLogo = () => (
@@ -242,6 +194,7 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
       agent_name={agent_name}
       agentLogo={agentLogo}
       agentLogoIsEmoji={agentLogoIsEmoji}
+      agentLogoIsFallback={agentLogoIsFallback}
     />
   );
 
@@ -262,8 +215,16 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
               data-mode-value={mode.value}
               data-testid={`aionrs-mode-option-${mode.value}`}
             >
-              {current_mode === mode.value && <span className='text-primary'>✓</span>}
-              <span className={current_mode !== mode.value ? 'ml-16px' : ''}>{getDisplayModeLabel(mode)}</span>
+              <span aria-hidden='true' className='w-16px shrink-0 text-primary'>
+                {current_mode === mode.value ? '✓' : ''}
+              </span>
+              {mode.description ? (
+                <Tooltip content={mode.description} position='right'>
+                  <span className='min-w-0 truncate'>{getDisplayModeLabel(mode)}</span>
+                </Tooltip>
+              ) : (
+                <span className='min-w-0 truncate'>{getDisplayModeLabel(mode)}</span>
+              )}
             </div>
           </Menu.Item>
         ))}
@@ -273,6 +234,7 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
 
   // Compact mode: render only mode label chip in sendbox area
   if (compact) {
+    const isSetting = isLoading || runtimeConfig.setStatus.state === 'setting';
     const legacyCompactBehavior = !showLogoInCompact && compactLabelType === 'mode';
     const baseCompactLabel =
       compactLabelType === 'agent'
@@ -293,25 +255,26 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
 
     const compactContent = (
       <span data-testid='mode-selector' data-current-mode={current_mode} className='inline-flex'>
-        <Button
-          data-testid={backend ? `agent-mode-selector-${backend}` : 'agent-mode-selector'}
+        <RuntimeSelectorPill
+          testId={backend ? `agent-mode-selector-${backend}` : 'agent-mode-selector'}
           className={`sendbox-model-btn agent-mode-compact-pill ${canInteract ? '' : 'agent-mode-compact-pill--readonly'}`}
-          shape='round'
-          size='small'
-          onClick={canInteract ? () => !isLoading && setDropdownVisible((visible) => !visible) : undefined}
+          label={compactLabel}
+          leading={
+            <>
+              {compactLeadingIcon && <span className='shrink-0 inline-flex items-center'>{compactLeadingIcon}</span>}
+              {showLogoInCompact && <span className='shrink-0 inline-flex items-center'>{renderLogo()}</span>}
+            </>
+          }
+          trailing={canInteract ? <Down size={12} className='text-t-tertiary shrink-0' /> : null}
+          loading={isSetting}
+          disabled={isSetting}
+          onClick={canInteract ? () => !isSetting && setDropdownVisible((visible) => !visible) : undefined}
           style={{
-            opacity: isLoading ? 0.6 : 1,
+            opacity: isSetting ? 0.6 : 1,
             transition: 'opacity 0.2s',
             cursor: canInteract ? 'pointer' : 'default',
           }}
-        >
-          <span className='flex items-center gap-6px min-w-0 leading-none'>
-            {compactLeadingIcon && <span className='shrink-0 inline-flex items-center'>{compactLeadingIcon}</span>}
-            {showLogoInCompact && <span className='shrink-0 inline-flex items-center'>{renderLogo()}</span>}
-            <MarqueePillLabel>{compactLabel}</MarqueePillLabel>
-            {canInteract && <Down size={12} className='text-t-tertiary shrink-0' />}
-          </span>
-        </Button>
+        />
       </span>
     );
 
@@ -323,7 +286,7 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
       <Dropdown
         trigger='click'
         popupVisible={dropdownVisible}
-        onVisibleChange={(visible) => !isLoading && setDropdownVisible(visible)}
+        onVisibleChange={(visible) => !isSetting && setDropdownVisible(visible)}
         droplist={dropdownMenu}
       >
         {compactContent}
@@ -335,7 +298,10 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
   const content = (
     <div
       className={`flex items-center gap-2 bg-2 w-fit rounded-full px-[8px] py-[2px] ${can_switchMode ? 'cursor-pointer hover:bg-3' : ''}`}
-      style={{ opacity: isLoading ? 0.6 : 1, transition: 'opacity 0.2s' }}
+      style={{
+        opacity: isLoading || runtimeConfig.setStatus.state === 'setting' ? 0.6 : 1,
+        transition: 'opacity 0.2s',
+      }}
     >
       {renderLogo()}
       <span className='text-sm text-t-primary'>{agent_name || backend}</span>
@@ -359,7 +325,9 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
       <Dropdown
         trigger='click'
         popupVisible={dropdownVisible}
-        onVisibleChange={(visible) => !isLoading && setDropdownVisible(visible)}
+        onVisibleChange={(visible) =>
+          !isLoading && runtimeConfig.setStatus.state !== 'setting' && setDropdownVisible(visible)
+        }
         droplist={dropdownMenu}
       >
         {content}

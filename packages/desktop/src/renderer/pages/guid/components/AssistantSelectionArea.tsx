@@ -4,253 +4,153 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { CUSTOM_AVATAR_IMAGE_MAP } from '../constants';
 import styles from '../index.module.css';
-import type { AvailableAgent, EffectiveAgentInfo } from '../types';
-import type { Assistant } from '@/common/types/agent/assistantTypes';
-import type { AssistantDetail } from '@/common/types/agent/assistantTypes';
-import { Message } from '@arco-design/web-react';
-import { Plus, Robot } from '@icon-park/react';
-import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { resolveExtensionAssetUrl } from '@/renderer/utils/platform';
+import { assistantRuntimeKey, type Assistant } from '@/common/types/agent/assistantTypes';
+import { Down, Robot, Search } from '@icon-park/react';
+import { Button, Dropdown, Input } from '@arco-design/web-react';
+import React, { useMemo, useState } from 'react';
+import { resolveAssistantAvatar } from '@/renderer/utils/model/assistantAvatar';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
 
 type AssistantSelectionAreaProps = {
-  is_presetAgent: boolean;
-  selectedAgentKey?: string;
-  selectedAgentInfo: AvailableAgent | undefined;
-  /**
-   * Backend-merged preset catalog. Renders as the pill bar and drives the
-   * selected-preset prompt examples. Does NOT include ACP engine configs —
-   * those are a separate concept sourced from the AgentRegistry.
-   */
+  selectedAssistantId?: string | null;
   assistants: Assistant[];
-  selectedAssistantDetail?: AssistantDetail | null;
   localeKey: string;
-  currentEffectiveAgentInfo: EffectiveAgentInfo;
   onSelectAssistant: (assistantId: string) => void;
-  onSetInput: (text: string) => void;
-  onFocusInput: () => void;
-  onRegisterOpenDetails?: (openDetails: (() => void) | null) => void;
 };
-
-const resolveAssistantCandidateIds = (assistantId: string): string[] => {
-  const stripped = assistantId.replace(/^builtin-/, '');
-  return Array.from(new Set([assistantId, `builtin-${stripped}`, stripped]));
-};
-
-const OPEN_ASSISTANT_EDITOR_INTENT_KEY = 'guid.openAssistantEditorIntent';
 
 const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
-  is_presetAgent,
-  selectedAgentKey,
-  selectedAgentInfo,
+  selectedAssistantId,
   assistants,
-  selectedAssistantDetail,
   localeKey,
-  currentEffectiveAgentInfo,
   onSelectAssistant,
-  onSetInput,
-  onFocusInput,
-  onRegisterOpenDetails,
 }) => {
   const { t } = useTranslation();
-  const navigate = useNavigate();
-  const [agentMessage, agentMessageContext] = Message.useMessage({ maxCount: 10 });
+  const [moreVisible, setMoreVisible] = useState(false);
+  const [search, setSearch] = useState('');
+  const selectedId = selectedAssistantId || undefined;
+  const enabledAssistants = useMemo(
+    () =>
+      [...assistants]
+        .filter((assistant) => assistant.enabled !== false)
+        .sort((left, right) => left.sort_order - right.sort_order),
+    [assistants]
+  );
+  const visibleAssistants = useMemo(() => {
+    if (enabledAssistants.length <= 4 || !selectedId) {
+      return enabledAssistants.slice(0, 4);
+    }
 
-  const resolveOpenAssistantId = (): string | null => {
-    if (selectedAgentInfo?.custom_agent_id) return selectedAgentInfo.custom_agent_id;
-    if (selectedAgentKey?.startsWith('custom:')) return selectedAgentKey.slice(7);
-    return null;
+    const selectedIndex = enabledAssistants.findIndex((assistant) => assistant.id === selectedId);
+    if (selectedIndex < 0 || selectedIndex < 4) {
+      return enabledAssistants.slice(0, 4);
+    }
+
+    return [...enabledAssistants.slice(0, 3), enabledAssistants[selectedIndex]];
+  }, [enabledAssistants, selectedId]);
+  const hasOverflow = enabledAssistants.length > visibleAssistants.length;
+  const overflowAssistants = useMemo(() => {
+    const visibleIds = new Set(visibleAssistants.map((assistant) => assistant.id));
+    return enabledAssistants.filter((assistant) => !visibleIds.has(assistant.id));
+  }, [enabledAssistants, visibleAssistants]);
+  const filteredOverflowAssistants = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    if (!query) return overflowAssistants;
+    return overflowAssistants.filter((assistant) => {
+      const label = assistant.name_i18n?.[localeKey] || assistant.name;
+      return label.toLowerCase().includes(query);
+    });
+  }, [localeKey, overflowAssistants, search]);
+
+  if (enabledAssistants.length === 0) return null;
+
+  const renderAssistantPill = (assistant: Assistant, testId: string) => {
+    const avatar = resolveAssistantAvatar(assistant.avatar);
+    const isSelected = selectedId === assistant.id;
+    const label = assistant.name_i18n?.[localeKey] || assistant.name;
+
+    return (
+      <Button
+        key={assistant.id}
+        data-testid={testId}
+        data-assistant-id={assistant.id}
+        data-assistant-backend={assistantRuntimeKey(assistant)}
+        data-assistant-selected={isSelected ? 'true' : 'false'}
+        type='text'
+        className={`!inline-flex !min-w-0 !h-auto !items-center !gap-6px !rounded-999px !border-none !px-12px !py-8px !text-13px transition-all ${
+          isSelected
+            ? 'font-600 text-t-primary shadow-sm'
+            : `text-t-secondary opacity-75 hover:opacity-100 ${styles.assistantSelectorInactive}`
+        }`}
+        style={isSelected ? { background: 'var(--bg-base, #fff)' } : { background: 'transparent' }}
+        onClick={() => {
+          onSelectAssistant(assistant.id);
+          setMoreVisible(false);
+        }}
+      >
+        <span className='inline-flex h-20px w-20px items-center justify-center overflow-hidden rounded-999px bg-fill-2'>
+          {avatar.kind === 'image' ? (
+            <img src={avatar.value} alt='' className='h-full w-full object-contain' />
+          ) : avatar.kind === 'emoji' ? (
+            <span className={styles.assistantCardEmoji}>{avatar.value}</span>
+          ) : (
+            <Robot theme='outline' size={14} />
+          )}
+        </span>
+        <span className='max-w-180px truncate whitespace-nowrap'>{label}</span>
+      </Button>
+    );
   };
 
-  const openAssistantDetails = useCallback(() => {
-    const assistantId = resolveOpenAssistantId();
-    if (!assistantId) {
-      agentMessage.warning(
-        t('common.failed', { defaultValue: 'Failed' }) +
-          `: ${t('settings.editAssistant', { defaultValue: 'Assistant Details' })}`
-      );
-      return;
-    }
-
-    const candidates = resolveAssistantCandidateIds(assistantId);
-    // `assistants` is the backend-merged catalog (builtin + user)
-    // and is the only list that yields the Assistant shape the editor expects.
-    const targetAssistant = assistants.find((assistant) => candidates.includes(assistant.id));
-    if (!targetAssistant) {
-      agentMessage.warning(
-        t('common.failed', { defaultValue: 'Failed' }) +
-          `: ${t('settings.editAssistant', { defaultValue: 'Assistant Details' })}`
-      );
-      return;
-    }
-
-    const intent = {
-      assistantId: targetAssistant.id,
-      openAssistantEditor: true,
-    };
-
-    try {
-      sessionStorage.setItem(OPEN_ASSISTANT_EDITOR_INTENT_KEY, JSON.stringify(intent));
-    } catch (error) {
-      console.error('[AssistantSelectionArea] Failed to persist assistant open intent:', error);
-    }
-
-    navigate('/settings/assistants', {
-      state: {
-        openAssistantId: targetAssistant.id,
-        openAssistantEditor: true,
-      },
-    });
-  }, [agentMessage, assistants, navigate, selectedAgentInfo?.custom_agent_id, selectedAgentKey, t]);
-
-  useLayoutEffect(() => {
-    if (!onRegisterOpenDetails) return;
-    onRegisterOpenDetails(openAssistantDetails);
-  }, [onRegisterOpenDetails, openAssistantDetails]);
-
-  const scrollWrapRef = useRef<HTMLDivElement>(null);
-  const [isScrollable, setIsScrollable] = useState(false);
-
-  useEffect(() => {
-    const el = scrollWrapRef.current;
-    if (!el) return;
-    const measure = () => setIsScrollable(el.scrollHeight > el.clientHeight + 1);
-    measure();
-    const observer = new ResizeObserver(measure);
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [assistants]);
-
-  // Render only if the backend catalog has at least one assistant.
-  if (!assistants || assistants.length === 0) return null;
-
-  if (is_presetAgent && selectedAgentInfo) {
-    // Selected Assistant View
-    return (
-      <div className='mt-20px w-full'>
-        <div className='flex flex-col w-full animate-fade-in'>
-          {/* Main Agent Fallback Notice */}
-          {currentEffectiveAgentInfo.isFallback && (
-            <div
-              className='mb-12px px-12px py-8px rd-8px text-12px flex items-center gap-8px'
-              style={{
-                background: 'rgb(var(--warning-1))',
-                border: '1px solid rgb(var(--warning-3))',
-                color: 'rgb(var(--warning-6))',
-              }}
-            >
-              <span>
-                {t('guid.agentFallbackNotice', {
-                  original:
-                    currentEffectiveAgentInfo.originalType.charAt(0).toUpperCase() +
-                    currentEffectiveAgentInfo.originalType.slice(1),
-                  fallback:
-                    currentEffectiveAgentInfo.agent_type.charAt(0).toUpperCase() +
-                    currentEffectiveAgentInfo.agent_type.slice(1),
-                  defaultValue: `${currentEffectiveAgentInfo.originalType.charAt(0).toUpperCase() + currentEffectiveAgentInfo.originalType.slice(1)} is unavailable, using ${currentEffectiveAgentInfo.agent_type.charAt(0).toUpperCase() + currentEffectiveAgentInfo.agent_type.slice(1)} instead.`,
-                })}
-              </span>
-            </div>
-          )}
-          {/* Prompts Section */}
-          {(() => {
-            const agent = assistants.find((a) => a.id === selectedAgentInfo.custom_agent_id);
-            const prompts =
-              selectedAssistantDetail?.prompts.recommended_i18n?.[localeKey] ||
-              selectedAssistantDetail?.prompts.recommended_i18n?.['en-US'] ||
-              selectedAssistantDetail?.prompts.recommended ||
-              agent?.prompts_i18n?.[localeKey] ||
-              agent?.prompts_i18n?.['en-US'] ||
-              agent?.prompts;
-            if (prompts && prompts.length > 0) {
-              return (
-                <div className='mt-16px'>
-                  <div className={styles.assistantPromptHint}>
-                    {t('guid.promptExamplesHint', { defaultValue: 'Try these example prompts:' })}
-                  </div>
-                  <div className='flex flex-wrap gap-8px mt-12px'>
-                    {prompts.map((prompt: string, index: number) => (
-                      <div
-                        key={index}
-                        className={`${styles.assistantPromptChip} px-12px py-6px text-2 text-13px rd-16px cursor-pointer transition-colors shadow-sm`}
-                        onClick={() => {
-                          onSetInput(prompt);
-                          onFocusInput();
-                        }}
-                      >
-                        {prompt}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              );
-            }
-            return null;
-          })()}
-        </div>
+  const overflowDroplist = (
+    <div
+      className='min-w-240px rounded-12px border border-border-2 p-8px shadow-lg'
+      style={{ background: 'var(--bg-base, #fff)' }}
+    >
+      <div className='mb-8px'>
+        <Input
+          size='small'
+          value={search}
+          onChange={setSearch}
+          prefix={<Search theme='outline' size={14} />}
+          placeholder={t('team.create.searchPlaceholder', { defaultValue: 'Search assistants...' })}
+        />
       </div>
-    );
-  }
+      <div className='flex max-h-260px flex-col gap-4px overflow-y-auto'>
+        {filteredOverflowAssistants.map((assistant) => (
+          <div key={assistant.id}>{renderAssistantPill(assistant, `assistant-overflow-${assistant.id}`)}</div>
+        ))}
+      </div>
+    </div>
+  );
 
-  // Assistant List View
   return (
-    <div className='mt-32px w-full'>
-      <div className={`${styles.assistantPromptHint} text-center mb-12px`}>
-        {t('guid.selectAssistantHint', { defaultValue: 'Select an assistant to start a task' })}
-      </div>
-      <div
-        ref={scrollWrapRef}
-        className={`${styles.assistantCardScrollWrap} ${isScrollable ? styles.assistantCardScrollWrapScrollable : ''}`}
-      >
-        <div className={styles.assistantCardGrid}>
-          {assistants
-            .filter((a) => a.enabled !== false)
-            .map((assistant) => {
-              const avatarValue = assistant.avatar?.trim();
-              const mappedAvatar = avatarValue ? CUSTOM_AVATAR_IMAGE_MAP[avatarValue] : undefined;
-              const resolvedAvatar = avatarValue ? resolveExtensionAssetUrl(avatarValue) : undefined;
-              const avatarImage = mappedAvatar || resolvedAvatar;
-              const isImageAvatar = Boolean(
-                avatarImage &&
-                (/\.(svg|png|jpe?g|webp|gif)$/i.test(avatarImage) || /^(https?:|file:\/\/|data:|\/)/i.test(avatarImage))
-              );
-              const description =
-                assistant.description_i18n?.[localeKey] ||
-                assistant.description_i18n?.['en-US'] ||
-                assistant.description ||
-                '';
-              return (
-                <div
-                  key={assistant.id}
-                  data-testid={`preset-pill-${assistant.id}`}
-                  className={styles.assistantCard}
-                  onClick={() => onSelectAssistant(`custom:${assistant.id}`)}
+    <div className='mt-18px mb-16px w-full'>
+      <div className='flex w-full justify-center'>
+        <div
+          className='inline-flex max-w-full items-center rounded-999px px-6px py-6px'
+          style={{ background: 'var(--color-guid-agent-bar, var(--aou-2))' }}
+        >
+          <div className='flex min-w-0 max-w-full items-center gap-6px'>
+            {visibleAssistants.map((assistant) => renderAssistantPill(assistant, `preset-pill-${assistant.id}`))}
+            {hasOverflow ? (
+              <Dropdown
+                trigger='click'
+                position='bl'
+                droplist={overflowDroplist}
+                popupVisible={moreVisible}
+                onVisibleChange={setMoreVisible}
+              >
+                <Button
+                  data-testid='assistant-more-btn'
+                  type='text'
+                  className={`!ml-6px !inline-flex !h-34px !shrink-0 !items-center !gap-4px !rounded-999px !border-none !px-12px !py-8px !text-13px !text-t-secondary opacity-75 transition-opacity hover:opacity-100 ${styles.assistantSelectorInactive}`}
                 >
-                  <div className={styles.assistantCardAvatar}>
-                    {isImageAvatar ? (
-                      <img src={avatarImage} alt='' />
-                    ) : avatarValue ? (
-                      <span className={styles.assistantCardEmoji}>{avatarValue}</span>
-                    ) : (
-                      <Robot theme='outline' size={18} />
-                    )}
-                  </div>
-                  <div className={styles.assistantCardMeta}>
-                    <div className={styles.assistantCardName}>{assistant.name_i18n?.[localeKey] || assistant.name}</div>
-                    {description && <div className={styles.assistantCardDesc}>{description}</div>}
-                  </div>
-                </div>
-              );
-            })}
-          <div
-            data-testid='btn-add-preset'
-            className={styles.assistantCardAdd}
-            onClick={() => navigate('/settings/assistants')}
-          >
-            <Plus theme='outline' size={20} />
+                  <span>{t('common.more', { defaultValue: 'More' })}</span>
+                  <Down theme='outline' size={14} />
+                </Button>
+              </Dropdown>
+            ) : null}
           </div>
         </div>
       </div>

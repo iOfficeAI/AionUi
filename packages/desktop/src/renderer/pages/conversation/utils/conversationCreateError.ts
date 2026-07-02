@@ -9,8 +9,12 @@ import { parseError } from '@/common/utils';
 import type { TFunction } from 'i18next';
 
 export type WorkspacePathErrorCode = 'WORKSPACE_PATH_UNAVAILABLE' | 'WORKSPACE_PATH_RUNTIME_UNAVAILABLE';
+export type TeamAssistantCreateErrorCode =
+  | 'TEAM_ASSISTANT_ID_REQUIRED'
+  | 'TEAM_ASSISTANT_NOT_FOUND'
+  | 'TEAM_ASSISTANT_FIELD_UNSUPPORTED';
 
-export type ConversationCreateErrorCode = 'WORKSPACE_PATH_UNAVAILABLE';
+export type ConversationCreateErrorCode = 'WORKSPACE_PATH_UNAVAILABLE' | TeamAssistantCreateErrorCode;
 export type ConversationRuntimeWorkspaceErrorCode = 'WORKSPACE_PATH_RUNTIME_UNAVAILABLE';
 
 const BACKEND_ERROR_CODE_MAP: Record<string, WorkspacePathErrorCode> = {
@@ -21,11 +25,17 @@ const BACKEND_ERROR_CODE_MAP: Record<string, WorkspacePathErrorCode> = {
   WORKSPACE_TRAILING_WHITESPACE_UNSUPPORTED: 'WORKSPACE_PATH_UNAVAILABLE',
 };
 
+const TEAM_BACKEND_ERROR_CODE_MAP: Record<string, TeamAssistantCreateErrorCode> = {
+  TEAM_ASSISTANT_ID_REQUIRED: 'TEAM_ASSISTANT_ID_REQUIRED',
+  TEAM_ASSISTANT_NOT_FOUND: 'TEAM_ASSISTANT_NOT_FOUND',
+  TEAM_ASSISTANT_FIELD_UNSUPPORTED: 'TEAM_ASSISTANT_FIELD_UNSUPPORTED',
+};
+
 // Temporary fallback for older AionCore builds that still return BAD_REQUEST
 // plus a human-readable message. Remove after the dedicated backend code has
 // shipped everywhere we support.
 const LEGACY_BACKEND_MESSAGE_PATTERNS: Array<{
-  code: ConversationCreateErrorCode;
+  code: WorkspacePathErrorCode;
   pattern: RegExp;
 }> = [
   {
@@ -47,6 +57,11 @@ type EmbeddedBackendErrorPayload = {
 
 type WorkspacePathErrorDetails = {
   workspace_path?: string;
+};
+
+type TeamAssistantErrorDetails = {
+  assistant_id?: string;
+  field?: string;
 };
 
 const getEmbeddedBackendErrorPayload = (error: unknown): EmbeddedBackendErrorPayload | undefined => {
@@ -127,8 +142,16 @@ export const normalizeWorkspacePathErrorCode = (error: unknown): WorkspacePathEr
 };
 
 export const normalizeConversationCreateErrorCode = (error: unknown): ConversationCreateErrorCode | undefined => {
-  const code = normalizeWorkspacePathErrorCode(error);
-  return code === 'WORKSPACE_PATH_UNAVAILABLE' ? code : undefined;
+  const workspaceCode = normalizeWorkspacePathErrorCode(error);
+  if (workspaceCode === 'WORKSPACE_PATH_UNAVAILABLE') {
+    return workspaceCode;
+  }
+
+  const payload = getWorkspacePathErrorPayload(error);
+  if (!payload?.code) {
+    return undefined;
+  }
+  return TEAM_BACKEND_ERROR_CODE_MAP[payload.code];
 };
 
 export const normalizeConversationRuntimeWorkspaceErrorCode = (
@@ -147,6 +170,28 @@ export const getConversationCreateErrorMessage = (error: unknown, t: TFunction):
   if (normalizedCode && workspacePath) {
     return t(`conversation.createError.pathVariants.${normalizedCode}`, {
       workspacePath,
+      defaultValue: rawMessage,
+    });
+  }
+
+  const details =
+    payload?.details && typeof payload.details === 'object' && !Array.isArray(payload.details)
+      ? (payload.details as TeamAssistantErrorDetails)
+      : undefined;
+  if (normalizedCode === 'TEAM_ASSISTANT_ID_REQUIRED') {
+    return t('conversation.createError.codes.TEAM_ASSISTANT_ID_REQUIRED', {
+      defaultValue: rawMessage,
+    });
+  }
+  if (normalizedCode === 'TEAM_ASSISTANT_NOT_FOUND') {
+    return t('conversation.createError.codes.TEAM_ASSISTANT_NOT_FOUND', {
+      assistantId: details?.assistant_id,
+      defaultValue: rawMessage,
+    });
+  }
+  if (normalizedCode === 'TEAM_ASSISTANT_FIELD_UNSUPPORTED') {
+    return t('conversation.createError.codes.TEAM_ASSISTANT_FIELD_UNSUPPORTED', {
+      field: details?.field || 'backend',
       defaultValue: rawMessage,
     });
   }

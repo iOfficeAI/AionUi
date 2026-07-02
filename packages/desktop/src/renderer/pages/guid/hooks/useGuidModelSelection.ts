@@ -5,7 +5,6 @@
  */
 
 import type { IProvider, TProviderWithModel } from '@/common/config/storage';
-import { configService } from '@/common/config/configService';
 import { useGoogleAuthModels } from '@/renderer/hooks/agent/useGoogleAuthModels';
 import { useProvidersQuery } from '@/renderer/hooks/agent/useModelProviderList';
 import { hasAvailableModels } from '../utils/modelUtils';
@@ -33,11 +32,6 @@ const isModelKeyAvailable = (key: string | null, providers?: IProvider[]) => {
 /** Provider-based agent keys that share the model list UI */
 type ProviderAgentKey = 'aionrs';
 
-/** Map agent key → storage key for persisting default model */
-const MODEL_STORAGE_KEY: Record<ProviderAgentKey, 'aionrs.defaultModel'> = {
-  aionrs: 'aionrs.defaultModel',
-};
-
 export type GuidModelSelectionResult = {
   modelList: IProvider[];
   isGoogleAuth: boolean;
@@ -48,7 +42,9 @@ export type GuidModelSelectionResult = {
 };
 
 /**
- * Hook that manages the model list and selection state for the Guid page.
+ * Hook that manages the provider-backed model selection state for the Guid page.
+ * Assistant-driven defaults are applied by the caller; this hook only owns the
+ * transient in-page selection.
  * @param agentKey - current provider-based agent (currently only 'aionrs')
  */
 export const useGuidModelSelection = (agentKey: ProviderAgentKey = 'aionrs'): GuidModelSelectionResult => {
@@ -67,21 +63,13 @@ export const useGuidModelSelection = (agentKey: ProviderAgentKey = 'aionrs'): Gu
 
   const [current_model, _setCurrentModel] = useState<TProviderWithModel>();
   const selectedModelKeyRef = useRef<string | null>(null);
-  const prevStorageKeyRef = useRef<string | null>(null);
-
-  const storageKey = MODEL_STORAGE_KEY[agentKey];
 
   const setCurrentModel = useCallback(
-    async (model_info: TProviderWithModel, options?: { persistPreference?: boolean }) => {
+    async (model_info: TProviderWithModel, _options?: { persistPreference?: boolean }) => {
       selectedModelKeyRef.current = buildModelKey(model_info.id, model_info.use_model);
-      if (options?.persistPreference !== false) {
-        await configService.set(storageKey, { id: model_info.id, use_model: model_info.use_model }).catch((error) => {
-          console.error('Failed to save default model:', error);
-        });
-      }
       _setCurrentModel(model_info);
     },
-    [storageKey]
+    []
   );
 
   const resetCurrentModel = useCallback(
@@ -92,29 +80,8 @@ export const useGuidModelSelection = (agentKey: ProviderAgentKey = 'aionrs'): Gu
 
       selectedModelKeyRef.current = null;
 
-      const savedModel = configService.get(storageKey);
-      const isNewFormat = savedModel && typeof savedModel === 'object' && 'id' in savedModel;
-
-      let defaultModel: IProvider | undefined;
-      let resolvedUseModel: string;
-
-      if (isNewFormat) {
-        const { id, use_model } = savedModel;
-        const exactMatch = modelList.find((m) => m.id === id);
-        if (exactMatch && exactMatch.models.includes(use_model)) {
-          defaultModel = exactMatch;
-          resolvedUseModel = use_model;
-        } else {
-          defaultModel = modelList[0];
-          resolvedUseModel = defaultModel?.models[0] ?? '';
-        }
-      } else if (typeof savedModel === 'string') {
-        defaultModel = modelList.find((m) => m.models.includes(savedModel)) || modelList[0];
-        resolvedUseModel = defaultModel?.models.includes(savedModel) ? savedModel : (defaultModel?.models[0] ?? '');
-      } else {
-        defaultModel = modelList[0];
-        resolvedUseModel = defaultModel?.models[0] ?? '';
-      }
+      const defaultModel = modelList[0];
+      const resolvedUseModel = defaultModel?.models[0] ?? '';
 
       if (!defaultModel || !resolvedUseModel) return;
 
@@ -126,7 +93,7 @@ export const useGuidModelSelection = (agentKey: ProviderAgentKey = 'aionrs'): Gu
         options
       );
     },
-    [modelList, setCurrentModel, storageKey]
+    [modelList, setCurrentModel]
   );
 
   // Set default model when modelList or agent changes
@@ -135,15 +102,8 @@ export const useGuidModelSelection = (agentKey: ProviderAgentKey = 'aionrs'): Gu
       if (!modelList || modelList.length === 0) {
         return;
       }
-      // When agent switches, reset selection so we reload from the new storage key
-      const agentChanged = prevStorageKeyRef.current !== null && prevStorageKeyRef.current !== storageKey;
-      prevStorageKeyRef.current = storageKey;
-      if (agentChanged) {
-        selectedModelKeyRef.current = null;
-      }
-
       const currentKey = selectedModelKeyRef.current || buildModelKey(current_model?.id, current_model?.use_model);
-      if (!agentChanged && isModelKeyAvailable(currentKey, modelList)) {
+      if (isModelKeyAvailable(currentKey, modelList)) {
         if (!selectedModelKeyRef.current && currentKey) {
           selectedModelKeyRef.current = currentKey;
         }
@@ -155,7 +115,7 @@ export const useGuidModelSelection = (agentKey: ProviderAgentKey = 'aionrs'): Gu
     setDefaultModel().catch((error) => {
       console.error('Failed to set default model:', error);
     });
-  }, [current_model?.id, current_model?.use_model, modelList, resetCurrentModel, storageKey]);
+  }, [agentKey, current_model?.id, current_model?.use_model, modelList, resetCurrentModel]);
   return {
     modelList,
     isGoogleAuth,

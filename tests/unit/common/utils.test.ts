@@ -147,20 +147,21 @@ describe('utils', () => {
       expect(resolveLocaleKey('tr-TR')).toBe('tr-TR');
     });
 
-    it('resolves ru, uk, and pt variants to supported locales', () => {
+    it('resolves ru, uk, pt, and de variants to supported locales', () => {
       expect(resolveLocaleKey('ru')).toBe('ru-RU');
       expect(resolveLocaleKey('ru-RU')).toBe('ru-RU');
       expect(resolveLocaleKey('uk')).toBe('uk-UA');
       expect(resolveLocaleKey('uk-UA')).toBe('uk-UA');
       expect(resolveLocaleKey('pt')).toBe('pt-BR');
       expect(resolveLocaleKey('pt-BR')).toBe('pt-BR');
+      expect(resolveLocaleKey('de')).toBe('de-DE');
+      expect(resolveLocaleKey('de-DE')).toBe('de-DE');
     });
 
     it('resolves unknown languages to en-US', () => {
       expect(resolveLocaleKey('en')).toBe('en-US');
       expect(resolveLocaleKey('en-US')).toBe('en-US');
       expect(resolveLocaleKey('fr')).toBe('en-US');
-      expect(resolveLocaleKey('de')).toBe('en-US');
       expect(resolveLocaleKey('es')).toBe('en-US');
     });
 

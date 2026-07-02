@@ -160,6 +160,66 @@ describe('normalizeAgentStreamError', () => {
       workspacePath: '/tmp/Archive ',
     });
   });
+
+  it('preserves the rawError diagnostic summary on internal errors', () => {
+    expect(
+      normalizeAgentStreamError({
+        message: 'Something went wrong, please try again.',
+        code: 'AIONUI_INTERNAL_ERROR',
+        rawError: {
+          name: 'Error',
+          message: 'connect ECONNREFUSED',
+          code: 'ECONNREFUSED',
+          status: 500,
+          stack: 'Error: connect ECONNREFUSED\n    at frame',
+        },
+      })
+    ).toEqual({
+      message: 'Something went wrong, please try again.',
+      code: 'AIONUI_INTERNAL_ERROR',
+      rawError: {
+        name: 'Error',
+        message: 'connect ECONNREFUSED',
+        code: 'ECONNREFUSED',
+        status: 500,
+        stack: 'Error: connect ECONNREFUSED\n    at frame',
+      },
+    });
+  });
+
+  it('drops malformed rawError fields and keeps only valid ones', () => {
+    expect(
+      normalizeAgentStreamError({
+        message: 'Something went wrong, please try again.',
+        code: 'AIONUI_INTERNAL_ERROR',
+        rawError: {
+          name: 'Error',
+          message: 42,
+          status: 'not-a-number',
+          extra: 'ignored',
+        },
+      })
+    ).toEqual({
+      message: 'Something went wrong, please try again.',
+      code: 'AIONUI_INTERNAL_ERROR',
+      rawError: {
+        name: 'Error',
+      },
+    });
+  });
+
+  it('omits rawError when it has no usable fields', () => {
+    expect(
+      normalizeAgentStreamError({
+        message: 'Something went wrong, please try again.',
+        code: 'AIONUI_INTERNAL_ERROR',
+        rawError: { unrelated: true },
+      })
+    ).toEqual({
+      message: 'Something went wrong, please try again.',
+      code: 'AIONUI_INTERNAL_ERROR',
+    });
+  });
 });
 
 describe('normalizeTextMessageContent', () => {

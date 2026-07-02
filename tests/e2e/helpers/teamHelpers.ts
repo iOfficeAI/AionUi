@@ -27,6 +27,11 @@ export async function createTeam(page: Page, name: string, leaderType?: string):
     throw new Error('No supported team backends available — skip this test');
   }
 
+  await page.evaluate(() => {
+    window.location.hash = '#/team';
+  });
+  await page.waitForFunction(() => window.location.hash === '#/team', { timeout: 10_000 }).catch(() => {});
+
   const createBtn = page.locator('[data-testid="team-create-btn"]').first();
   await createBtn.waitFor({ state: 'visible', timeout: 10_000 });
   await createBtn.click();
@@ -37,19 +42,10 @@ export async function createTeam(page: Page, name: string, leaderType?: string):
   const nameInput = modal.getByRole('textbox').first();
   await nameInput.fill(name);
 
-  const leaderSelect = modal.locator('[data-testid="team-create-leader-select"]');
-  const hasLeaderSelect = await leaderSelect.isVisible({ timeout: 3_000 }).catch(() => false);
-  if (!hasLeaderSelect) {
-    await closeModal(page, modal);
-    throw new Error('No supported agents installed — skip this test');
-  }
-  await leaderSelect.click();
-
   const option = await pickLeaderOption(page, leaderType);
   if (!option) {
-    await page.keyboard.press('Escape').catch(() => {});
     await closeModal(page, modal);
-    throw new Error(`No agent option matched leader type "${leaderType ?? 'any'}" — skip this test`);
+    throw new Error(`No assistant option matched leader type "${leaderType ?? 'any'}" — skip this test`);
   }
   await option.click();
 
@@ -57,7 +53,7 @@ export async function createTeam(page: Page, name: string, leaderType?: string):
   await expect(confirmBtn).toBeEnabled({ timeout: 5_000 });
   await confirmBtn.click();
 
-  await page.waitForURL(/\/team\//, { timeout: 15_000 });
+  await page.waitForURL(/\/team\/[^/?#]+/, { timeout: 15_000 });
 
   const hash = await page.evaluate(() => window.location.hash);
   const match = hash.match(/#\/team\/([^/?#]+)/);
@@ -68,21 +64,28 @@ export async function createTeam(page: Page, name: string, leaderType?: string):
 }
 
 async function pickLeaderOption(page: Page, leaderType?: string): Promise<Locator | null> {
-  const options = page.locator('[data-testid^="team-create-agent-option-"]');
+  const options = page.locator('.team-create-modal [data-testid^="team-create-agent-option-"]');
   await options
     .first()
     .waitFor({ state: 'visible', timeout: 5_000 })
     .catch(() => {});
 
   if (!leaderType) {
-    const first = options.first();
-    return (await first.count().catch(() => 0)) > 0 ? first : null;
+    const count = await options.count().catch(() => 0);
+    for (let i = 0; i < count; i++) {
+      const option = options.nth(i);
+      const classes = (await option.getAttribute('class').catch(() => '')) ?? '';
+      if (!classes.includes('cursor-not-allowed')) return option;
+    }
+    return null;
   }
 
   const pattern = BACKEND_UI_PATTERN[leaderType] ?? new RegExp(leaderType, 'i');
   const count = await options.count().catch(() => 0);
   for (let i = 0; i < count; i++) {
     const option = options.nth(i);
+    const classes = (await option.getAttribute('class').catch(() => '')) ?? '';
+    if (classes.includes('cursor-not-allowed')) continue;
     const text = await option.textContent().catch(() => '');
     if (pattern.test(text ?? '')) return option;
   }

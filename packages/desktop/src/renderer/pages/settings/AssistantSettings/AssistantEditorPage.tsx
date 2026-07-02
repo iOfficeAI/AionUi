@@ -14,6 +14,8 @@ type AssistantEditorPageProps = {
 const AssistantEditorPage: React.FC<AssistantEditorPageProps> = ({ editor, activeAssistant, onBack }) => {
   const { t } = useTranslation();
   const { isCreating, actions, profile } = editor;
+  const canDelete = !isCreating && activeAssistant?.source === 'user';
+  const canSave = isCreating || Boolean(activeAssistant);
 
   return (
     <div data-testid='assistant-editor-page' className='flex h-full min-h-0 flex-col overflow-hidden bg-transparent'>
@@ -39,7 +41,7 @@ const AssistantEditorPage: React.FC<AssistantEditorPageProps> = ({ editor, activ
           </div>
         </div>
         <div className='ml-auto flex items-center gap-8px'>
-          {!isCreating && activeAssistant?.source !== 'builtin' && (
+          {canDelete && (
             <Button
               status='danger'
               className='!rounded-8px'
@@ -53,7 +55,13 @@ const AssistantEditorPage: React.FC<AssistantEditorPageProps> = ({ editor, activ
           <Button onClick={onBack} className='!rounded-8px bg-fill-1' data-testid='btn-cancel-assistant-editor'>
             {t('common.cancel', { defaultValue: 'Cancel' })}
           </Button>
-          <Button type='primary' onClick={actions.save} data-testid='btn-save-assistant' className='!rounded-8px'>
+          <Button
+            type='primary'
+            onClick={actions.save}
+            data-testid='btn-save-assistant'
+            className='!rounded-8px'
+            disabled={!canSave}
+          >
             {isCreating ? t('common.create', { defaultValue: 'Create' }) : t('common.save', { defaultValue: 'Save' })}
           </Button>
         </div>

@@ -14,6 +14,7 @@
   "system": "系統",
   "about": "關於我們",
   "back": "返回聊天",
+  "goBack": "返回",
   "add": "新增",
   "edit": "編輯",
   "website": "官網",
@@ -82,11 +83,30 @@
       "description": "目前安裝缺少必要的本機資源，AionCore 無法啟動。請下載並重新安裝最新版 AionUi；如果重新安裝後仍然出現，請檢查系統安全軟體或防毒軟體是否隔離了 AionCore。",
       "downloadLatest": "下載最新版",
       "sendDiagnostics": "傳送診斷報告",
+      "diagnosticsSent": "診斷報告已傳送",
+      "diagnosticsReportSuccess": "診斷報告已傳送",
+      "diagnosticsReportFailed": "診斷報告傳送失敗",
       "runtimeComponentDescription": "目前安裝缺少必要的內建執行元件，{{resource}} 無法啟動。請重新安裝最新版 AionUi；如果重新安裝後仍然出現，請檢查系統安全軟體或防毒軟體是否隔離了 AionUi 元件。"
     },
     "packageArchitectureMismatch": {
       "title": "AionUi 安裝包架構不相符",
       "description": "目前 AionUi 安裝包是 {{packageArch}}，但這台 Mac 是 {{deviceArch}}。你可能下載了錯誤的安裝包，請重新下載並安裝 {{expectedArch}} 版本。"
+    },
+    "dataMigration": {
+      "title": "本地資料遷移失敗",
+      "description": "AionUi 已開啟，但 AionCore 在初始化本地資料時停止。重新安裝 AionUi 未必能解決此問題。請傳送診斷報告或聯絡支援，以便檢查本地資料庫遷移狀態。",
+      "sendDiagnostics": "傳送診斷報告",
+      "diagnosticsSent": "診斷報告已傳送",
+      "diagnosticsReportSuccess": "診斷報告已傳送",
+      "diagnosticsReportFailed": "診斷報告傳送失敗"
+    },
+    "localDataRepair": {
+      "title": "本機資料修復失敗",
+      "description": "AionUi 已開啟，但 AionCore 在修復本機代理快取資料時停止。重新安裝 AionUi 可能無法解決此問題。請傳送診斷報告或聯絡支援，以便檢查本機資料庫。",
+      "sendDiagnostics": "傳送診斷",
+      "diagnosticsSent": "診斷已傳送",
+      "diagnosticsReportSuccess": "診斷報告已傳送",
+      "diagnosticsReportFailed": "診斷報告傳送失敗"
     }
   },
   "fileAttach.addFiles": "新增檔案",

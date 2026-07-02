@@ -1,7 +1,7 @@
 import os from 'os';
 import type { Page } from '@playwright/test';
 import { test, expect } from '../../../fixtures';
-import { goToGuid } from '../../../helpers';
+import { findAssistantIdForBackend, goToGuid } from '../../../helpers';
 import { takeScreenshot } from '../../../helpers/screenshots';
 import { httpDelete, httpPost } from '../../../helpers/httpBridge';
 
@@ -33,14 +33,18 @@ async function ensureRendererReady(page: Page): Promise<void> {
 async function createAcpConversation(page: Page): Promise<string> {
   await goToGuid(page);
   await ensureRendererReady(page);
+  const assistantId = await findAssistantIdForBackend(page, 'codex', { requireAvailable: true });
+  test.skip(!assistantId, 'No available Codex assistant for ACP empty-turn test');
+  if (!assistantId) return '';
 
   const conversation = await httpPost<CreatedConversation>(page, '/api/conversations', {
-    type: 'acp',
     name: `E2E ACP empty turn info ${Date.now()}`,
+    assistant: {
+      id: assistantId,
+    },
     extra: {
       workspace: os.tmpdir(),
       custom_workspace: true,
-      backend: 'codex',
       session_mode: 'full-access',
     },
   });

@@ -31,6 +31,14 @@ type ErrorWithDetails = Error & {
 const GLIBC_VERSION_RE = /GLIBC_(\d+\.\d+)/g;
 const GLIBC_NOT_FOUND_RE = /GLIBC_\d+\.\d+[\s\S]{0,160}not found|not found[\s\S]{0,160}GLIBC_\d+\.\d+/i;
 const PACKAGED_APP_MARKER_ENTRIES = new Set(['app.asar', 'app.asar.unpacked/']);
+const DATA_MIGRATION_BOUNDARY_STAGES = new Set(['database.migration', 'database.schema_repair']);
+const LOCAL_DATA_REPAIR_BOUNDARY_CODE = 'BOOTSTRAP_SERVICE_INIT_FAILED';
+const LOCAL_DATA_REPAIR_BOUNDARY_STAGE = 'services.init';
+const LOAD_AGENT_METADATA_RE = /\bload agent_metadata\b/i;
+const DATABASE_QUERY_FAILED_RE = /\bDatabase query failed\b/i;
+const INVALID_UTF8_RE = /\binvalid utf-?8\b/i;
+const AGENT_METADATA_CACHE_FIELD_RE =
+  /\b(agent_capabilities|auth_methods|config_options|available_modes|available_models|available_commands)\b/i;
 const MAX_REPORTED_DIR_ENTRIES = 20;
 
 function collectBackendStartupText(error: unknown): string {
@@ -149,6 +157,26 @@ function classifyIncompleteInstallation(details: ErrorWithDetails['details']): B
   };
 }
 
+function classifyLocalDataRepairFailure(
+  backendBoundaryCode: string | undefined,
+  backendBoundaryStage: string | undefined,
+  text: string
+): BackendStartupFailureInfo | undefined {
+  if (backendBoundaryCode !== LOCAL_DATA_REPAIR_BOUNDARY_CODE) return undefined;
+  if (backendBoundaryStage !== LOCAL_DATA_REPAIR_BOUNDARY_STAGE) return undefined;
+  if (!LOAD_AGENT_METADATA_RE.test(text)) return undefined;
+  if (!DATABASE_QUERY_FAILED_RE.test(text)) return undefined;
+  if (!INVALID_UTF8_RE.test(text)) return undefined;
+  if (!AGENT_METADATA_CACHE_FIELD_RE.test(text)) return undefined;
+
+  return {
+    reason: 'backend_local_data_repair_failed',
+    backendBoundaryCode,
+    backendBoundaryStage,
+    localDataIssueKind: 'agent_metadata_invalid_utf8',
+  };
+}
+
 export function classifyBackendStartupFailure(error: unknown): BackendStartupFailureInfo {
   const details = getBackendStartupDetails(error);
   const packageArchitectureMismatch = classifyPackageArchitectureMismatch(details);
@@ -171,6 +199,21 @@ export function classifyBackendStartupFailure(error: unknown): BackendStartupFai
     typeof details?.backendBoundaryCode === 'string' ? details.backendBoundaryCode : undefined;
   const backendBoundaryStage =
     typeof details?.backendBoundaryStage === 'string' ? details.backendBoundaryStage : undefined;
+
+  const localDataRepairFailure = classifyLocalDataRepairFailure(backendBoundaryCode, backendBoundaryStage, text);
+  if (localDataRepairFailure) return localDataRepairFailure;
+
+  if (
+    backendBoundaryCode === 'BOOTSTRAP_DATA_INIT_FAILED' &&
+    backendBoundaryStage &&
+    DATA_MIGRATION_BOUNDARY_STAGES.has(backendBoundaryStage)
+  ) {
+    return {
+      reason: 'backend_data_migration_failed',
+      backendBoundaryCode,
+      backendBoundaryStage,
+    };
+  }
 
   return {
     reason: 'backend_startup_failed',

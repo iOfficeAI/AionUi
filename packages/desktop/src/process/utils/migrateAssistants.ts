@@ -36,31 +36,27 @@ const RULE_FILE_RE = /^(.+?)\.([a-zA-Z-]+)\.md$/;
  * the current default, so users who never touched the agent picker don't find
  * all their assistants pointing at a backend that is no longer there on boot.
  * Users who *explicitly* picked `'codex' / 'claude' / 'qwen' / …` keep their
- * choice (see `collectBuiltinPresetAgentTypeOverrides`).
+ * choice (see `collectBuiltinAgentIdOverrides`).
  */
 const LEGACY_DEFAULT_PRESET_AGENT_TYPE = 'gemini';
-const CURRENT_DEFAULT_PRESET_AGENT_TYPE = 'aionrs';
-
 /**
  * Normalise a legacy `presetAgentType` for migration. Absent / non-string /
  * the legacy default → current default. Everything else is preserved verbatim.
  */
-function normalisePresetAgentType(raw: unknown): string {
+function normaliseLegacyAgentId(raw: unknown, agentIdByRuntimeKey: Map<string, string>): string | undefined {
   if (typeof raw !== 'string' || raw.length === 0 || raw === LEGACY_DEFAULT_PRESET_AGENT_TYPE) {
-    return CURRENT_DEFAULT_PRESET_AGENT_TYPE;
+    return undefined;
   }
-  return raw;
+  return agentIdByRuntimeKey.get(raw);
 }
 
 /**
- * Frozen snapshot of built-in assistant ids. Must stay in sync with the
- * backend manifest at
- * `AionCore/crates/aionui-app/assets/builtin-assistants/preset-id-whitelist.json`
- * — add/remove ids in the same PR. Drift means a user-authored assistant
- * whose id accidentally matches a built-in slug will be imported into the
- * user table and then silently overwritten the next time the backend ships
- * a matching built-in. The legacy `builtin-` prefix check handles the common
- * case; this whitelist is the guard for unprefixed ids.
+ * Frozen snapshot of legacy built-in assistant ids that shipped without the
+ * historical `builtin-` prefix. This migration still needs them so a
+ * user-authored assistant whose id accidentally matches one of these slugs is
+ * not imported into the user table and later overwritten by the backend's
+ * built-in bootstrap. The prefix check handles the common case; this set is
+ * only the guard for those older unprefixed ids.
  */
 const PRESET_ID_WHITELIST = new Set<string>([
   'word-creator',
@@ -73,7 +69,6 @@ const PRESET_ID_WHITELIST = new Set<string>([
   'dashboard-creator',
   'academic-paper',
   'financial-model-creator',
-  'star-office-helper',
   'openclaw-setup',
   'cowork',
   'game-3d',
@@ -136,7 +131,10 @@ function asStringArray(value: unknown): string[] | undefined {
  * its historical camelCase shape; output matches the backend snake_case wire
  * contract.
  */
-export function legacyAssistantToCreateRequest(legacy: Record<string, unknown>): CreateAssistantRequest {
+export function legacyAssistantToCreateRequest(
+  legacy: Record<string, unknown>,
+  agentIdByRuntimeKey = new Map<string, string>()
+): CreateAssistantRequest {
   const legacyId = typeof legacy.id === 'string' ? legacy.id : '';
 
   // Rename colliding user-authored ids to preserve data (spec §8.1).
@@ -145,14 +143,14 @@ export function legacyAssistantToCreateRequest(legacy: Record<string, unknown>):
   const name = typeof legacy.name === 'string' && legacy.name.trim().length > 0 ? legacy.name : 'Untitled';
   const description = typeof legacy.description === 'string' ? legacy.description : undefined;
   const avatar = typeof legacy.avatar === 'string' ? legacy.avatar : undefined;
-  const preset_agent_type = normalisePresetAgentType(legacy.presetAgentType);
+  const agent_id = normaliseLegacyAgentId(legacy.presetAgentType, agentIdByRuntimeKey);
 
   return {
     id,
     name,
     description,
     avatar,
-    preset_agent_type,
+    agent_id,
     enabled_skills: asStringArray(legacy.enabledSkills),
     custom_skill_names: asStringArray(legacy.customSkillNames),
     disabled_builtin_skills: asStringArray(legacy.disabledBuiltinSkills),
@@ -167,7 +165,7 @@ export function legacyAssistantToCreateRequest(legacy: Record<string, unknown>):
 type ConfigFile = typeof ProcessConfigType;
 
 type BuiltinOverride = { id: string; enabled: false };
-type BuiltinAgentTypeOverride = { id: string; preset_agent_type: string };
+type BuiltinAgentIdOverride = { id: string; agent_id: string };
 
 /**
  * Local config file key that records "the legacy → backend assistant migration
@@ -293,16 +291,17 @@ async function applyBuiltinOverrides(overrides: BuiltinOverride[]): Promise<numb
  *   - The id is no longer in the backend manifest — the PUT would 404; we
  *     filter here so the apply step doesn't have to.
  *
- * `currentBuiltinAgentTypes` is a `Map<builtin-id, preset_agent_type>` sourced
+ * `currentBuiltinAgentIds` is a `Map<builtin-id, agent_id>` sourced
  * from `GET /api/assistants` at migration time, so we stay aligned with
  * whatever manifest the running backend ships (e.g. current is `aionrs`, but
  * a future manifest could pin a specific built-in back to `claude`).
  */
-function collectBuiltinPresetAgentTypeOverrides(
+function collectBuiltinAgentIdOverrides(
   legacy: Record<string, unknown>[],
-  currentBuiltinAgentTypes: Map<string, string>
-): BuiltinAgentTypeOverride[] {
-  const overrides: BuiltinAgentTypeOverride[] = [];
+  currentBuiltinAgentIds: Map<string, string>,
+  agentIdByRuntimeKey: Map<string, string>
+): BuiltinAgentIdOverride[] {
+  const overrides: BuiltinAgentIdOverride[] = [];
   for (const row of legacy) {
     const id = typeof row.id === 'string' ? row.id : '';
     if (!id) continue;
@@ -316,32 +315,36 @@ function collectBuiltinPresetAgentTypeOverrides(
     }
 
     const backendId = id.startsWith(BUILTIN_ID_PREFIX) ? id.slice(BUILTIN_ID_PREFIX.length) : id;
-    const current = currentBuiltinAgentTypes.get(backendId);
+    const requestedAgentId = agentIdByRuntimeKey.get(raw);
+    if (!requestedAgentId) {
+      continue;
+    }
+    const current = currentBuiltinAgentIds.get(backendId);
     if (current === undefined) {
       // Built-in id was retired from the manifest; nothing to override.
       continue;
     }
-    if (current === raw) {
+    if (current === requestedAgentId) {
       // User's choice already matches the built-in default.
       continue;
     }
 
-    overrides.push({ id: backendId, preset_agent_type: raw });
+    overrides.push({ id: backendId, agent_id: requestedAgentId });
   }
   return overrides;
 }
 
 /**
- * Replay user-picked `preset_agent_type` choices onto `assistant_overrides`
- * via `PUT /api/assistants/{id}`. The backend accepts only `preset_agent_type`
+ * Replay user-picked legacy backend choices onto `assistant_overrides`
+ * via `PUT /api/assistants/{id}`. The backend accepts only `agent_id`
  * on built-in rows (see `aionui-assistant/src/service.rs`). 404 is treated as
  * skip for the same reason as {@link applyBuiltinOverrides}: the built-in was
  * retired between versions and the user preference is moot.
  */
-async function applyBuiltinPresetAgentTypeOverrides(overrides: BuiltinAgentTypeOverride[]): Promise<number> {
+async function applyBuiltinAgentIdOverrides(overrides: BuiltinAgentIdOverride[]): Promise<number> {
   if (overrides.length === 0) return 0;
   const results = await Promise.allSettled(
-    overrides.map((ov) => ipcBridge.assistants.update.invoke({ id: ov.id, preset_agent_type: ov.preset_agent_type }))
+    overrides.map((ov) => ipcBridge.assistants.update.invoke({ id: ov.id, agent_id: ov.agent_id }))
   );
   let failed = 0;
   let skipped = 0;
@@ -351,43 +354,67 @@ async function applyBuiltinPresetAgentTypeOverrides(overrides: BuiltinAgentTypeO
       if (isBackendHttpError(reason) && reason.status === 404) {
         skipped += 1;
         console.warn(
-          `[AionUi] Skipped preset_agent_type override for retired built-in '${overrides[i].id}' (no longer in backend manifest)`
+          `[AionUi] Skipped agent_id override for retired built-in '${overrides[i].id}' (no longer in backend manifest)`
         );
         return;
       }
       failed += 1;
-      console.error(`[AionUi] Failed to apply preset_agent_type override for ${overrides[i].id}:`, reason);
+      console.error(`[AionUi] Failed to apply agent_id override for ${overrides[i].id}:`, reason);
     }
   });
   const applied = overrides.length - failed - skipped;
   if (failed === 0) {
-    console.log(`[AionUi] Applied ${applied} builtin preset_agent_type override(s) (skipped ${skipped} retired id(s))`);
+    console.log(`[AionUi] Applied ${applied} builtin agent_id override(s) (skipped ${skipped} retired id(s))`);
   } else {
     console.error(
-      `[AionUi] Builtin preset_agent_type override partial: ${failed}/${overrides.length} failed, ${skipped} skipped, ${applied} applied`
+      `[AionUi] Builtin agent_id override partial: ${failed}/${overrides.length} failed, ${skipped} skipped, ${applied} applied`
     );
   }
   return failed;
 }
 
 /**
- * Snapshot of the current built-in `preset_agent_type` defaults, keyed by
+ * Snapshot of the current built-in `agent_id` defaults, keyed by
  * built-in id (no `builtin-` prefix). Used by Phase 3 to decide whether a
  * legacy user choice differs from the current default and needs overriding.
  * Empty map on error — callers treat that as "no overrides needed" to avoid
  * writing stale choices when we can't see what the backend thinks is current.
  */
-async function fetchCurrentBuiltinAgentTypes(): Promise<Map<string, string>> {
+async function fetchCurrentBuiltinAgentIds(): Promise<Map<string, string>> {
   try {
     const list = await ipcBridge.assistants.list.invoke();
     const map = new Map<string, string>();
     for (const a of list) {
       if (a.source !== 'builtin') continue;
-      map.set(a.id, a.preset_agent_type);
+      map.set(a.id, a.agent_id);
     }
     return map;
   } catch (error) {
-    console.error('[AionUi] Failed to fetch current builtin preset_agent_type map:', error);
+    console.error('[AionUi] Failed to fetch current builtin agent_id map:', error);
+    return new Map();
+  }
+}
+
+async function fetchAgentIdByRuntimeKey(): Promise<Map<string, string>> {
+  try {
+    const agents = await ipcBridge.acpConversation.getManagedAgents.invoke();
+    const map = new Map<string, string>();
+    for (const agent of Array.isArray(agents) ? agents : []) {
+      const record = agent as Record<string, unknown>;
+      const id = typeof record.id === 'string' ? record.id : '';
+      if (!id) continue;
+      const backend = typeof record.backend === 'string' ? record.backend : undefined;
+      const agentType = typeof record.agent_type === 'string' ? record.agent_type : undefined;
+      if (backend) {
+        map.set(backend, id);
+      }
+      if (agentType) {
+        map.set(agentType, id);
+      }
+    }
+    return map;
+  } catch (error) {
+    console.error('[AionUi] Failed to fetch agent runtime identity map:', error);
     return new Map();
   }
 }
@@ -548,18 +575,19 @@ export async function migrateAssistantsToBackend(configFile: ConfigFile): Promis
   const legacyValue = await rawConfigFile.get('assistants').catch(() => [] as unknown);
   const legacy = (Array.isArray(legacyValue) ? legacyValue : []) as Record<string, unknown>[];
   const supportsAssistantDefinitions = await backendSupportsAssistantDefinitions();
+  const agentIdByRuntimeKey = await fetchAgentIdByRuntimeKey();
 
   const userAssistants = legacy.filter((a) => !isLegacyBuiltin(a));
   const builtinDisabledOverrides = supportsAssistantDefinitions ? [] : collectBuiltinOverrides(legacy);
   // Once the backend exposes unified assistant detail, built-in state and
   // agent overrides already flow through the backend bootstrap / legacy mirror.
   // Replaying stale Electron config on top would clobber newer backend state.
-  const currentBuiltinAgentTypes = supportsAssistantDefinitions
+  const currentBuiltinAgentIds = supportsAssistantDefinitions
     ? new Map<string, string>()
-    : await fetchCurrentBuiltinAgentTypes();
-  const builtinAgentTypeOverrides = supportsAssistantDefinitions
+    : await fetchCurrentBuiltinAgentIds();
+  const builtinAgentIdOverrides = supportsAssistantDefinitions
     ? []
-    : collectBuiltinPresetAgentTypeOverrides(legacy, currentBuiltinAgentTypes);
+    : collectBuiltinAgentIdOverrides(legacy, currentBuiltinAgentIds, agentIdByRuntimeKey);
 
   // Phase 4 keys off the *legacy* custom-assistant id (the file name on
   // disk). The collision-rename path in `legacyAssistantToCreateRequest`
@@ -577,7 +605,7 @@ export async function migrateAssistantsToBackend(configFile: ConfigFile): Promis
   if (
     userAssistants.length === 0 &&
     builtinDisabledOverrides.length === 0 &&
-    builtinAgentTypeOverrides.length === 0 &&
+    builtinAgentIdOverrides.length === 0 &&
     customAssistantIds.size === 0
   ) {
     // Nothing to do — no-op success. Flag it so future launches don't even
@@ -590,7 +618,7 @@ export async function migrateAssistantsToBackend(configFile: ConfigFile): Promis
   if (userAssistants.length > 0) {
     try {
       const result = await ipcBridge.assistants.import.invoke({
-        assistants: userAssistants.map(legacyAssistantToCreateRequest),
+        assistants: userAssistants.map((assistant) => legacyAssistantToCreateRequest(assistant, agentIdByRuntimeKey)),
       });
       if (result.failed !== 0) {
         console.error(`[AionUi] Assistant migration partial: ${result.failed} failed`, result.errors);
@@ -613,11 +641,11 @@ export async function migrateAssistantsToBackend(configFile: ConfigFile): Promis
     return false;
   }
 
-  // Phase 3: replay preset_agent_type overrides for built-ins whose user
-  // picked a non-default backend (e.g. 'codex' / 'claude'). Skipped built-ins
+  // Phase 3: replay agent_id overrides for built-ins whose user picked a
+  // non-default legacy backend (e.g. 'codex' / 'claude'). Skipped built-ins
   // and identical-to-default values were already filtered in collect.
-  const agentTypeOverrideFailures = await applyBuiltinPresetAgentTypeOverrides(builtinAgentTypeOverrides);
-  if (agentTypeOverrideFailures > 0) {
+  const agentIdOverrideFailures = await applyBuiltinAgentIdOverrides(builtinAgentIdOverrides);
+  if (agentIdOverrideFailures > 0) {
     return false;
   }
 

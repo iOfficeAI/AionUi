@@ -193,6 +193,7 @@ export function buildSpawnArgs(config: SpawnConfig): string[] {
     config.appVersion,
   ];
   if (config.isPackaged) args.push('--managed-resources-mode', 'bundled');
+  if (!config.isPackaged) args.push('--dump-prompts');
   if (config.logDir) args.push('--log-dir', config.logDir);
   if (config.workDir) args.push('--work-dir', config.workDir);
   if (config.local) args.push('--local');
@@ -571,6 +572,7 @@ export class BackendLifecycleManager {
       this.childProcess = spawn(binaryPath, args, {
         stdio: ['pipe', 'pipe', 'pipe'],
         env: dirs ? buildSpawnEnv(dirs) : process.env,
+        cwd: dirs?.workDir ?? dbPath,
         detached: process.platform !== 'win32',
       });
     } catch (error) {

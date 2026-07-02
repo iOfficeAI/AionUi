@@ -19,7 +19,6 @@ import { removeWorkspaceEntry, renameWorkspaceEntry } from '@/renderer/utils/fil
 import { useCallback } from 'react';
 import type { MessageApi, RenameModalState, DeleteModalState } from '../types';
 import type { FileOrFolderItem } from '@/renderer/utils/file/fileTypes';
-import { getPathSeparator, replacePathInList, updateTreeForRename } from '../utils/treeHelpers';
 
 interface UseWorkspaceFileOpsOptions {
   workspace: string;
@@ -28,9 +27,7 @@ interface UseWorkspaceFileOpsOptions {
   t: (key: string) => string;
 
   // Dependencies from useWorkspaceTree
-  setFiles: React.Dispatch<React.SetStateAction<IDirOrFile[]>>;
   setSelected: React.Dispatch<React.SetStateAction<string[]>>;
-  setExpandedKeys: React.Dispatch<React.SetStateAction<string[]>>;
   selectedKeysRef: React.MutableRefObject<string[]>;
   selectedNodeRef: React.MutableRefObject<{ relativePath: string; fullPath: string } | null>;
   ensureNodeSelected: (nodeData: IDirOrFile, options?: { emit?: boolean }) => void;
@@ -61,9 +58,7 @@ export function useWorkspaceFileOps(options: UseWorkspaceFileOpsOptions) {
     eventPrefix,
     messageApi,
     t,
-    setFiles,
     setSelected,
-    setExpandedKeys,
     selectedKeysRef,
     selectedNodeRef,
     ensureNodeSelected,
@@ -134,7 +129,7 @@ export function useWorkspaceFileOps(options: UseWorkspaceFileOpsOptions) {
     if (!deleteModal.target) return;
     try {
       setDeleteModal((prev) => ({ ...prev, loading: true }));
-      await removeWorkspaceEntry(deleteModal.target.fullPath);
+      await removeWorkspaceEntry(deleteModal.target.fullPath, workspace);
 
       messageApi.success(t('conversation.workspace.contextMenu.deleteSuccess'));
       setSelected([]);
@@ -202,43 +197,16 @@ export function useWorkspaceFileOps(options: UseWorkspaceFileOpsOptions) {
       return;
     }
 
-    const sep = getPathSeparator(target.fullPath);
-    const parentFull = target.fullPath.slice(0, target.fullPath.lastIndexOf(sep));
-    const newFullPath = parentFull ? `${parentFull}${sep}${trimmedName}` : trimmedName;
-
-    const newRelativePath = (() => {
-      if (!target.relativePath) {
-        return target.isFile ? trimmedName : '';
-      }
-      const segments = target.relativePath.split('/');
-      segments[segments.length - 1] = trimmedName;
-      return segments.join('/');
-    })();
-
     try {
       setRenameLoading(true);
-      await waitWithTimeout(renameWorkspaceEntry(target.fullPath, trimmedName));
+      await waitWithTimeout(renameWorkspaceEntry(target.fullPath, trimmedName, workspace));
 
       closeRenameModal();
-
-      setFiles((prev) => updateTreeForRename(prev, target.relativePath ?? '', trimmedName, newFullPath));
-
-      const oldRelativePath = target.relativePath ?? '';
-      setExpandedKeys((prev) => replacePathInList(prev, oldRelativePath, newRelativePath));
-
-      setSelected((prev) => replacePathInList(prev, oldRelativePath, newRelativePath));
-      selectedKeysRef.current = replacePathInList(selectedKeysRef.current, oldRelativePath, newRelativePath);
-
-      if (!target.isFile) {
-        selectedNodeRef.current = {
-          relativePath: newRelativePath,
-          fullPath: newFullPath,
-        };
-        emitter.emit(`${eventPrefix}.selected.file`, []);
-      } else {
-        selectedNodeRef.current = null;
-      }
-
+      setSelected([]);
+      selectedKeysRef.current = [];
+      selectedNodeRef.current = null;
+      emitter.emit(`${eventPrefix}.selected.file`, []);
+      refreshWorkspace();
       messageApi.success(t('conversation.workspace.contextMenu.renameSuccess'));
     } catch (error) {
       if (error instanceof Error && error.message === 'timeout') {
@@ -255,10 +223,9 @@ export function useWorkspaceFileOps(options: UseWorkspaceFileOpsOptions) {
     messageApi,
     renameLoading,
     renameModal,
+    refreshWorkspace,
     t,
     waitWithTimeout,
-    setFiles,
-    setExpandedKeys,
     setSelected,
     selectedKeysRef,
     selectedNodeRef,

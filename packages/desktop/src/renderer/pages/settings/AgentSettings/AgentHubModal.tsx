@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import ModalWrapper from '@/renderer/components/base/ModalWrapper';
 import { useHubAgents } from '@/renderer/hooks/agent/useHubAgents';
 import type { IHubAgentItem } from '@/common/types/agent/hub';
-import { resolveAgentLogo } from '@renderer/utils/model/agentLogo';
+import { resolveAgentAvatar, useAgentLogos } from '@renderer/utils/model/agentLogo';
 import { openExternalUrl } from '@/renderer/utils/platform';
 
 interface AgentHubModalProps {
@@ -17,6 +17,7 @@ const AION_HUB_REPO_URL = 'https://github.com/iOfficeAI/AionHub';
 
 export const AgentHubModal: React.FC<AgentHubModalProps> = ({ visible, onCancel }) => {
   const { t } = useTranslation();
+  const logos = useAgentLogos();
   const { agents, loading, error, install, retryInstall, update } = useHubAgents();
   const actionButtonClassName = '!min-w-80px !rounded-9px !px-10px';
   const openAionHubRepo = () => {
@@ -126,7 +127,7 @@ export const AgentHubModal: React.FC<AgentHubModalProps> = ({ visible, onCancel 
         ) : (
           <div data-testid='agent-hub-grid' className='grid grid-cols-1 gap-10px sm:grid-cols-2 lg:grid-cols-4'>
             {agents.map((agent) => {
-              const logo = resolveAgentLogo({
+              const avatar = resolveAgentAvatar(logos, {
                 icon: agent.icon,
                 backend: agent.contributes?.acpAdapters?.[0],
               });
@@ -145,8 +146,16 @@ export const AgentHubModal: React.FC<AgentHubModalProps> = ({ visible, onCancel 
                   </Typography.Text>
 
                   <div className='mb-6px flex h-40px items-center justify-center'>
-                    {logo ? (
-                      <img src={logo} alt={agent.display_name} className='h-36px w-36px rounded-10px object-contain' />
+                    {avatar.kind === 'image' ? (
+                      <img
+                        src={avatar.value}
+                        alt={agent.display_name}
+                        className='h-36px w-36px rounded-10px object-contain'
+                      />
+                    ) : avatar.kind === 'emoji' ? (
+                      <span className='flex h-36px w-36px items-center justify-center text-22px leading-none'>
+                        {avatar.value}
+                      </span>
                     ) : (
                       <div className='flex h-36px w-36px items-center justify-center rounded-10px bg-fill-2 text-16px font-bold text-t-secondary'>
                         {agent.display_name.charAt(0)}

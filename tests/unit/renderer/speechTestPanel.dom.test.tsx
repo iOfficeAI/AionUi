@@ -9,8 +9,14 @@ import React from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import type { SpeechToTextConfig } from '@/common/types/provider/speech';
 
-vi.mock('@/common/config/configService', () => ({
-  configService: { get: vi.fn(), set: vi.fn(() => Promise.resolve()) },
+const speechSettingsMocks = vi.hoisted(() => ({
+  setClientBusinessSetting: vi.fn(() => Promise.resolve()),
+}));
+
+vi.mock('@/renderer/services/clientBusinessSettings', () => ({
+  getClientBusinessSetting: vi.fn(),
+  setClientBusinessSetting: speechSettingsMocks.setClientBusinessSetting,
+  removeClientBusinessSetting: vi.fn(() => Promise.resolve()),
 }));
 
 vi.mock('react-i18next', () => ({
@@ -52,12 +58,13 @@ describe('SpeechTestPanel', () => {
   });
 
   it('saves config before starting a test when validation passes', async () => {
-    const { configService } = await import('@/common/config/configService');
     const config = makeConfig({
       openai: { api_key: 'sk-test', base_url: '', model: 'gpt-4o-transcribe', language: '' },
     });
     render(<SpeechTestPanel config={config} source='openai' />);
     fireEvent.click(screen.getByText('settings.speechToTextTest'));
-    await waitFor(() => expect(configService.set).toHaveBeenCalledWith('tools.speechToText', config));
+    await waitFor(() =>
+      expect(speechSettingsMocks.setClientBusinessSetting).toHaveBeenCalledWith('tools.speechToText', config)
+    );
   });
 });

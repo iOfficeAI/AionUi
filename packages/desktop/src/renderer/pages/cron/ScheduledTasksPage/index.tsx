@@ -8,16 +8,19 @@ import classNames from 'classnames';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { Button, Switch, Message, Empty, Spin, Tooltip } from '@arco-design/web-react';
+import { Switch, Message, Empty, Spin, Tooltip } from '@arco-design/web-react';
 import { useLayoutContext } from '@renderer/hooks/context/LayoutContext';
 import { useAllCronJobs } from '@renderer/pages/cron/useCronJobs';
 import { formatSchedule, formatNextRun } from '@renderer/pages/cron/cronUtils';
 import { systemSettings, type ICronJob } from '@/common/adapter/ipcBridge';
 import { configService } from '@/common/config/configService';
-import { useConversationAgents } from '@renderer/pages/conversation/hooks/useConversationAgents';
+import { useConversationAssistants } from '@renderer/pages/conversation/hooks/useConversationAssistants';
 import CronStatusTag from './CronStatusTag';
 import CreateTaskDialog from './CreateTaskDialog';
 import { getJobAgentMeta } from './jobAgentMeta';
+import { useAgentLogos } from '@renderer/utils/model/agentLogo';
+import TalkToButlerButton from '@/renderer/components/base/TalkToButlerButton';
+import { Robot } from '@icon-park/react';
 
 const ScheduledTasksPage: React.FC = () => {
   const layout = useLayoutContext();
@@ -25,7 +28,8 @@ const ScheduledTasksPage: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { jobs, loading, pauseJob, resumeJob } = useAllCronJobs();
-  const { cliAgents } = useConversationAgents();
+  const { presetAssistants } = useConversationAssistants();
+  const logos = useAgentLogos();
   const [createDialogVisible, setCreateDialogVisible] = useState(false);
   const [keepAwake, setKeepAwake] = useState(false);
 
@@ -51,6 +55,17 @@ const ScheduledTasksPage: React.FC = () => {
     },
     [navigate]
   );
+
+  // "Create via chat": jump to the home page with the default cron prompt
+  // pre-filled. The assistant selection is left to the home page's existing
+  // logic (it restores the user's last-used assistant).
+  const handleCreateViaChat = useCallback(() => {
+    navigate('/guid', { state: { prefillPrompt: t('cron.status.defaultPrompt') } });
+  }, [navigate, t]);
+
+  const handleCreateManually = useCallback(() => {
+    setCreateDialogVisible(true);
+  }, []);
 
   const handleToggleEnabled = useCallback(
     async (job: ICronJob) => {
@@ -92,9 +107,13 @@ const ScheduledTasksPage: React.FC = () => {
             >
               {t('cron.scheduledTasks')}
             </h1>
-            <Button type='primary' shape='round' className='shrink-0' onClick={() => setCreateDialogVisible(true)}>
-              {t('cron.page.newTask')}
-            </Button>
+            <TalkToButlerButton
+              label={t('cron.page.newTask')}
+              onChat={handleCreateViaChat}
+              chatLabel={t('cron.page.createViaChat')}
+              onManual={handleCreateManually}
+              manualLabel={t('cron.page.createManually')}
+            />
           </div>
           <p
             className={classNames(
@@ -141,7 +160,7 @@ const ScheduledTasksPage: React.FC = () => {
             )}
           >
             {jobs.map((job) => {
-              const agentMeta = getJobAgentMeta(job, cliAgents);
+              const agentMeta = getJobAgentMeta(job, presetAssistants, logos);
               const isManualOnly = job.schedule.kind === 'cron' && !job.schedule.expr;
               const executionModeLabel =
                 job.target.execution_mode === 'new_conversation'
@@ -199,10 +218,10 @@ const ScheduledTasksPage: React.FC = () => {
                                 alt={agentMeta.name}
                                 className='h-16px w-16px shrink-0 rounded-50%'
                               />
+                            ) : agentMeta.assistantFallback ? (
+                              <Robot size='16' className='shrink-0 text-t-secondary' />
                             ) : (
-                              <span className='flex h-16px w-16px items-center justify-center rounded-50% text-10px font-medium text-t-secondary'>
-                                {agentMeta.name.slice(0, 1)}
-                              </span>
+                              <Robot size='16' className='shrink-0 text-t-secondary' />
                             )}
                           </div>
                         </Tooltip>

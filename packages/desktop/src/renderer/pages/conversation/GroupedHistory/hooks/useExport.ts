@@ -12,6 +12,7 @@ import { Message } from '@arco-design/web-react';
 import { useCallback, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { formatTimestamp, joinFilePath, sanitizeFileName } from '@/renderer/utils/chat/conversationExport';
+import { loadAllConversationMessagesPaged } from '@/renderer/utils/chat/messagePagination';
 
 import type { ExportTask, ExportZipFile } from '../types';
 import {
@@ -22,6 +23,11 @@ import {
   EXPORT_IO_TIMEOUT_MS,
   withTimeout,
 } from '../utils/exportHelpers';
+
+const parentDirectoryOf = (filePath: string): string | undefined => {
+  const index = Math.max(filePath.lastIndexOf('/'), filePath.lastIndexOf('\\'));
+  return index > 0 ? filePath.slice(0, index) : undefined;
+};
 
 type UseExportParams = {
   conversations: TChatConversation[];
@@ -140,16 +146,11 @@ export const useExport = ({
 
   const fetchConversationMessages = useCallback(async (conversation_id: string): Promise<TMessage[]> => {
     try {
-      const result = await withTimeout(
-        ipcBridge.database.getConversationMessages.invoke({
-          conversation_id: conversation_id,
-          page: 0,
-          page_size: 10000,
-        }),
+      return await withTimeout(
+        loadAllConversationMessagesPaged(conversation_id),
         EXPORT_IO_TIMEOUT_MS,
         `getConversationMessages:${conversation_id}`
       );
-      return result.items;
     } catch (error) {
       console.warn('[WorkspaceGroupedHistory] Export message fetch timeout/failure:', conversation_id, error);
       return [];
@@ -206,7 +207,7 @@ export const useExport = ({
     async (path: string, files: ExportZipFile[], request_id: string): Promise<boolean> => {
       try {
         return await withTimeout(
-          ipcBridge.fs.createZip.invoke({ path, files, request_id }),
+          ipcBridge.fs.createZip.invoke({ path, workspace: parentDirectoryOf(path), files, request_id }),
           EXPORT_IO_TIMEOUT_MS * 8,
           `createZip:${request_id}`
         );

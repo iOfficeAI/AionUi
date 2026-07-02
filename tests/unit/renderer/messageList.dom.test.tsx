@@ -8,8 +8,16 @@ import React, { type PropsWithChildren } from 'react';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import type { IMessageText } from '@/common/chat/chatLib';
-import { MessageListLoadingProvider, MessageListProvider } from '@/renderer/pages/conversation/Messages/hooks';
+import {
+  MessageListLoadingProvider,
+  MessageListProvider,
+  MessagePaginationProvider,
+} from '@/renderer/pages/conversation/Messages/hooks';
 import MessageList from '@/renderer/pages/conversation/Messages/MessageList';
+
+const { useTeamPermissionMock } = vi.hoisted(() => ({
+  useTeamPermissionMock: vi.fn(),
+}));
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -31,7 +39,16 @@ vi.mock('@arco-design/web-react', () => ({
 }));
 
 vi.mock('@/renderer/hooks/context/ConversationContext', () => ({
-  useConversationContextSafe: () => null,
+  useConversationContextSafe: () => ({ conversation_id: 'conversation-1', type: 'aionrs' }),
+}));
+
+vi.mock('@/renderer/pages/team/hooks/TeamPermissionContext', () => ({
+  useTeamPermission: useTeamPermissionMock,
+}));
+
+let mockIsProcessing = false;
+vi.mock('@/renderer/pages/conversation/runtime/useConversationRuntimeView', () => ({
+  useConversationRuntimeView: () => ({ isProcessing: mockIsProcessing }),
 }));
 
 vi.mock('@/renderer/hooks/file/useAutoPreviewOfficeFiles', () => ({
@@ -147,12 +164,21 @@ function Wrapper({
 }: PropsWithChildren<{ messages?: IMessageText[]; loading?: boolean }>): JSX.Element {
   return (
     <MessageListLoadingProvider value={loading}>
-      <MessageListProvider value={messages}>{children}</MessageListProvider>
+      <MessagePaginationProvider
+        value={{ hasMoreBefore: false, hasMoreAfter: false, isLoadingBefore: false, isLoadingAnchor: false }}
+      >
+        <MessageListProvider value={messages}>{children}</MessageListProvider>
+      </MessagePaginationProvider>
     </MessageListLoadingProvider>
   );
 }
 
 describe('MessageList', () => {
+  beforeEach(() => {
+    mockIsProcessing = false;
+    useTeamPermissionMock.mockReturnValue(null);
+  });
+
   it('renders message rows with external margin spacing in the plain scroll list', () => {
     render(<MessageList />, {
       wrapper: ({ children }) => <Wrapper>{children}</Wrapper>,
@@ -164,6 +190,39 @@ describe('MessageList', () => {
     const messageRow = screen.getByTestId('message-text-left');
     expect(messageRow.className).toContain('m-t-10px');
     expect(messageRow.className).not.toContain('pt-10px');
+  });
+
+  it('uses container-responsive fluid width for standalone message rows', () => {
+    render(<MessageList />, {
+      wrapper: ({ children }) => <Wrapper>{children}</Wrapper>,
+    });
+
+    const messageRow = screen.getByTestId('message-text-left');
+    expect(messageRow.className).toContain('chat-surface-fluid');
+    expect(messageRow.className).not.toContain('w-[calc(100%-24px)]');
+    expect(messageRow.className).not.toContain('md:w-[calc(100%-clamp(80px,10vw,240px))]');
+    expect(messageRow.className).not.toContain('max-w-780px');
+  });
+
+  it('uses the full available row width in team mode', () => {
+    useTeamPermissionMock.mockReturnValue({
+      isTeamMode: true,
+      isLeaderAgent: true,
+      leaderConversationId: 'conversation-1',
+      allConversationIds: ['conversation-1'],
+      propagateMode: vi.fn(),
+      warmupSession: vi.fn().mockResolvedValue(undefined),
+    });
+
+    render(<MessageList />, {
+      wrapper: ({ children }) => <Wrapper>{children}</Wrapper>,
+    });
+
+    const messageRow = screen.getByTestId('message-text-left');
+    expect(messageRow.className).toContain('w-full');
+    expect(messageRow.className).toContain('max-w-full');
+    expect(messageRow.className).not.toContain('w-[calc(100%-24px)]');
+    expect(messageRow.className).not.toContain('md:w-[calc(100%-clamp(80px,10vw,240px))]');
   });
 
   it('shows the copy row only on the last AI text of each turn', () => {
@@ -190,6 +249,25 @@ describe('MessageList', () => {
     expect(screen.getByTestId('msgtext-user-1').getAttribute('data-copy-row')).toBe('true');
     // Turn 2's only/last text keeps the row.
     expect(screen.getByTestId('msgtext-text-c').getAttribute('data-copy-row')).toBe('true');
+  });
+
+  it('withholds the streaming turn copy row but keeps earlier finished turns', () => {
+    mockIsProcessing = true;
+    // Turn 1 finished (text-a), then a user message, then turn 2 still streaming (text-b).
+    const messages = [
+      { id: 'text-a', type: 'text', position: 'left', content: { content: 'a' }, created_at: 1 },
+      { id: 'user-1', type: 'text', position: 'right', content: { content: 'q' }, created_at: 2 },
+      { id: 'text-b', type: 'text', position: 'left', content: { content: 'b' }, created_at: 3 },
+    ] as unknown as IMessageText[];
+
+    render(<MessageList />, {
+      wrapper: ({ children }) => <Wrapper messages={messages}>{children}</Wrapper>,
+    });
+
+    // Earlier finished turn keeps its row even while a later turn streams.
+    expect(screen.getByTestId('msgtext-text-a').getAttribute('data-copy-row')).toBe('true');
+    // The in-progress final turn withholds its row until streaming ends.
+    expect(screen.getByTestId('msgtext-text-b').getAttribute('data-copy-row')).toBe('false');
   });
 
   it('renders the empty slot when there are no messages', () => {

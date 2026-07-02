@@ -53,6 +53,10 @@
   "closeAll": "全部關閉",
   "readOnlyLabel": "唯讀預覽",
   "pathLabel": "路徑",
+  "missingFile": {
+    "title": "檔案不存在",
+    "openInNewTab": "嘗試在新分頁開啟"
+  },
   "noTabs": "尚無標籤",
   "openInPanelTooltip": "在預覽面板中查看",
   "mermaidTitle": "Mermaid 圖表",
@@ -134,6 +138,6 @@
     "loading": "正在啟動 PPT 預覽...",
     "installing": "正在安裝預覽元件...",
     "startFailed": "啟動 PPT 預覽失敗",
-    "installHint": "請從官方 iOfficeAI/OfficeCli releases 頁面安裝 OfficeCLI"
+    "installHint": "請從官方 iOfficeAI/OfficeCLI releases 頁面安裝 OfficeCLI"
   }
 }

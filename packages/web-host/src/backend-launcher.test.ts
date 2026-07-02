@@ -138,6 +138,7 @@ describe('buildSpawnArgs', () => {
       isPackaged: false,
     });
     expect(args).toContain('debug');
+    expect(args).toContain('--dump-prompts');
     expect(args).not.toContain('--managed-resources-mode');
     expect(args).not.toContain('--log-dir');
     expect(args).not.toContain('--local');
@@ -153,6 +154,7 @@ describe('buildSpawnArgs', () => {
     });
     expect(args).toContain('--managed-resources-mode');
     expect(args).toContain('bundled');
+    expect(args).not.toContain('--dump-prompts');
   });
 
   it('respects AIONUI_LOG_LEVEL override', () => {
@@ -355,7 +357,8 @@ describe('BackendLifecycleManager.start (success path)', () => {
         '/w',
         '--local',
       ]);
-      const opts = spawnCall[2] as { env: NodeJS.ProcessEnv };
+      const opts = spawnCall[2] as { cwd?: string; env: NodeJS.ProcessEnv };
+      expect(opts.cwd).toBe('/w');
       expect(opts.env.AIONUI_CACHE_DIR).toBe('/c');
       expect(opts.env.AIONUI_WORK_DIR).toBe('/w');
       expect(opts.env.AIONUI_LOG_DIR).toBe('/l');

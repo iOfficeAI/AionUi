@@ -6,6 +6,8 @@
 
 import { joinPath } from '@/common/chat/chatLib';
 import { ipcBridge } from '@/common';
+import LocalFileLink from '@/renderer/components/Markdown/LocalFileLink';
+import { resolveLocalFileLinkReference } from '@/renderer/components/Markdown/markdownUtils';
 import { useTextSelection } from '@/renderer/hooks/ui/useTextSelection';
 import 'katex/dist/katex.min.css';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -14,7 +16,7 @@ import { Streamdown, defaultRehypePlugins, defaultRemarkPlugins } from 'streamdo
 import MarkdownEditor from '../editors/MarkdownEditor';
 import SelectionToolbar from '../renderers/SelectionToolbar';
 import { useContainerScroll, useContainerScrollTarget } from '../../hooks/useScrollSyncHelpers';
-import { useThemeDetection } from '../../hooks';
+import { useLocalFilePreview, useThemeDetection } from '../../hooks';
 import { getMarkdownShikiThemes, getMermaidTheme } from '../../theme';
 import { convertLatexDelimiters } from '@/renderer/utils/chat/latexDelimiters';
 
@@ -175,6 +177,10 @@ const rewriteExternalMediaUrls = (markdown: string): string => {
   });
 };
 
+const normalizeLocalFileSchemeLinks = (markdown: string): string => {
+  return markdown.replace(/file:\/\//gi, '');
+};
+
 /**
  * Markdown 预览组件
  * Markdown preview component
@@ -194,6 +200,7 @@ const MarkdownPreview: React.FC<MarkdownPreviewProps> = ({
   const internalContainerRef = useRef<HTMLDivElement>(null);
   const containerRef = externalContainerRef || internalContainerRef; // 使用外部 ref 或内部 ref / Use external ref or internal ref
   const currentTheme = useThemeDetection();
+  const handleLocalFileLink = useLocalFilePreview(workspace);
 
   // 使用滚动同步 Hooks / Use scroll sync hooks
   useContainerScroll(containerRef, externalOnScroll);
@@ -203,7 +210,10 @@ const MarkdownPreview: React.FC<MarkdownPreviewProps> = ({
   const viewMode = externalViewMode ?? 'preview';
 
   // 预览源：转换 LaTeX 分隔符并重写外部媒体 URL / Preview source: convert LaTeX delimiters and rewrite external media URLs
-  const previewSource = useMemo(() => convertLatexDelimiters(rewriteExternalMediaUrls(content)), [content]);
+  const previewSource = useMemo(
+    () => convertLatexDelimiters(normalizeLocalFileSchemeLinks(rewriteExternalMediaUrls(content))),
+    [content]
+  );
 
   // 监听文本选择 / Monitor text selection
   const { selectedText, selectionPosition, clearSelection } = useTextSelection(containerRef);
@@ -248,6 +258,21 @@ const MarkdownPreview: React.FC<MarkdownPreviewProps> = ({
               remarkPlugins={[...Object.values(defaultRemarkPlugins), remarkBreaks]}
               rehypePlugins={[defaultRehypePlugins.raw, defaultRehypePlugins.sanitize, defaultRehypePlugins.katex]}
               components={{
+                a({ href, children, ...props }: React.AnchorHTMLAttributes<HTMLAnchorElement>) {
+                  const localFileReference = resolveLocalFileLinkReference(typeof href === 'string' ? href : '');
+                  if (localFileReference) {
+                    return (
+                      <LocalFileLink reference={localFileReference} onOpen={handleLocalFileLink}>
+                        {children}
+                      </LocalFileLink>
+                    );
+                  }
+                  return (
+                    <a href={href} target='_blank' rel='noreferrer' {...props}>
+                      {children}
+                    </a>
+                  );
+                },
                 img({ src, alt, ...props }: React.ImgHTMLAttributes<HTMLImageElement>) {
                   return <MarkdownImage src={src} alt={alt} baseDir={baseDir} workspace={workspace} {...props} />;
                 },

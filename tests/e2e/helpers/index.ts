@@ -38,6 +38,9 @@ export {
   channelItemById,
   channelSwitchById,
   webuiTabByKey,
+  assistantOverflowPillById,
+  ASSISTANT_PILL,
+  ASSISTANT_PILL_SELECTED,
   type ChannelId,
 } from './selectors';
 export { expectBodyContainsAny, expectUrlContains, createErrorCollector } from './assertions';
@@ -52,6 +55,8 @@ export { invokeBridge } from './bridge';
 export { httpInvoke, httpGet, httpPost, httpDelete } from './httpBridge';
 export {
   selectAgent,
+  findAssistantIdForBackend,
+  selectAssistantForBackend,
   selectModel,
   sendMessageFromGuid,
   waitForSessionActive,

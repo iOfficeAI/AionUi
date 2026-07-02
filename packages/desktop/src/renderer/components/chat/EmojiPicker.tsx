@@ -599,11 +599,27 @@ const EmojiPicker: React.FC<EmojiPickerProps> = ({
     builtinAvatars.length > 0 ? (
       <div className='w-280px'>
         <Tabs activeTab={activeTab} onChange={(key) => setActiveTab(key as 'emoji' | 'builtin')} size='small'>
-          <Tabs.TabPane key='emoji' title={t('settings.assistantAvatarEmojiTab', { defaultValue: 'Emoji' })}>
-            {emojiPickerContent}
-          </Tabs.TabPane>
-          <Tabs.TabPane key='builtin' title={t('settings.assistantAvatarBuiltinTab', { defaultValue: 'Built-in' })}>
+          <Tabs.TabPane
+            key='builtin'
+            title={
+              <span className='flex items-center gap-4px'>
+                <span aria-hidden='true'>👤</span>{' '}
+                <span>{t('settings.assistantAvatarBuiltinTab', { defaultValue: 'Built-in' })}</span>
+              </span>
+            }
+          >
             {builtinAvatarContent}
+          </Tabs.TabPane>
+          <Tabs.TabPane
+            key='emoji'
+            title={
+              <span className='flex items-center gap-4px'>
+                <span aria-hidden='true'>🙂</span>{' '}
+                <span>{t('settings.assistantAvatarEmojiTab', { defaultValue: 'Emoji' })}</span>
+              </span>
+            }
+          >
+            {emojiPickerContent}
           </Tabs.TabPane>
         </Tabs>
       </div>

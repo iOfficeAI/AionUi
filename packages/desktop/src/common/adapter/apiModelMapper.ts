@@ -37,6 +37,36 @@ export function toApiModelOptional(m?: TProviderWithModel): ApiProviderWithModel
   return hasCompleteModelIdentity(m) ? toApiModel(m) : undefined;
 }
 
+/** Minimal shape of a create-conversation request consumed by the body builder. */
+export type CreateConversationBodyInput = {
+  type?: 'acp' | 'aionrs';
+  id?: string;
+  name?: string;
+  model?: TProviderWithModel;
+  assistant?: unknown;
+  extra?: unknown;
+};
+
+/**
+ * Build the HTTP body for `POST /api/conversations`.
+ *
+ * Top-level `model` is aionrs-only on the backend (spec 2026-05-12); other
+ * agent types carry model info via `extra`.
+ */
+export function buildCreateConversationBody(p: CreateConversationBodyInput): Record<string, unknown> {
+  const hasAssistant = p.assistant !== undefined && p.assistant !== null;
+  const body: Record<string, unknown> = {
+    type: hasAssistant ? undefined : p.type,
+    id: p.id,
+    name: p.name,
+    assistant: p.assistant,
+    extra: p.extra,
+  };
+  const model = p.type === 'acp' ? undefined : toApiModelOptional(p.model);
+  if (model) body.model = model;
+  return body;
+}
+
 // ── Backend → Frontend ──────────────────────────────────────────────────
 
 export function fromApiModel(raw: ApiProviderWithModel): TProviderWithModel {

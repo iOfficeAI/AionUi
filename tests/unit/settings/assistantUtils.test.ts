@@ -11,6 +11,7 @@ import {
   sortAssistants,
   filterAssistants,
   groupAssistantsByEnabled,
+  resolveAssistantSourceTag,
 } from '@/renderer/pages/settings/AssistantSettings/assistantUtils';
 import type { AssistantListItem } from '@/renderer/pages/settings/AssistantSettings/types';
 
@@ -64,61 +65,47 @@ describe('isEmoji', () => {
 });
 
 describe('resolveAvatarImageSrc', () => {
-  const avatarImageMap = {
-    placeholder: 'https://example.com/placeholder.png',
-    avatar1: 'https://example.com/avatar1.png',
-  };
-
-  it('returns mapped value if avatar matches map key', () => {
-    expect(resolveAvatarImageSrc('placeholder', avatarImageMap)).toBe('https://example.com/placeholder.png');
-    expect(resolveAvatarImageSrc('avatar1', avatarImageMap)).toBe('https://example.com/avatar1.png');
-  });
-
   it('returns undefined for empty or whitespace-only input', () => {
-    expect(resolveAvatarImageSrc('', avatarImageMap)).toBeUndefined();
-    expect(resolveAvatarImageSrc('   ', avatarImageMap)).toBeUndefined();
-    expect(resolveAvatarImageSrc(undefined, avatarImageMap)).toBeUndefined();
+    expect(resolveAvatarImageSrc('')).toBeUndefined();
+    expect(resolveAvatarImageSrc('   ')).toBeUndefined();
+    expect(resolveAvatarImageSrc(undefined)).toBeUndefined();
   });
 
   it('resolves extension URLs', () => {
-    expect(resolveAvatarImageSrc('ext://icon.png', avatarImageMap)).toBe('https://extension.local/icon.png');
+    expect(resolveAvatarImageSrc('ext://icon.png')).toBe('https://extension.local/icon.png');
   });
 
   it('returns absolute HTTP URLs as-is', () => {
-    expect(resolveAvatarImageSrc('https://example.com/avatar.png', avatarImageMap)).toBe(
-      'https://example.com/avatar.png'
-    );
-    expect(resolveAvatarImageSrc('http://example.com/avatar.jpg', avatarImageMap)).toBe(
-      'http://example.com/avatar.jpg'
-    );
+    expect(resolveAvatarImageSrc('https://example.com/avatar.png')).toBe('https://example.com/avatar.png');
+    expect(resolveAvatarImageSrc('http://example.com/avatar.jpg')).toBe('http://example.com/avatar.jpg');
   });
 
   it('returns data URLs as-is', () => {
     const dataUrl = 'data:image/png;base64,iVBORw0KGg';
-    expect(resolveAvatarImageSrc(dataUrl, avatarImageMap)).toBe(dataUrl);
+    expect(resolveAvatarImageSrc(dataUrl)).toBe(dataUrl);
   });
 
-  it('returns file URLs as-is', () => {
-    expect(resolveAvatarImageSrc('file:///path/to/avatar.png', avatarImageMap)).toBe('file:///path/to/avatar.png');
+  it('does not expose file URLs as image sources', () => {
+    expect(resolveAvatarImageSrc('file:///path/to/avatar.png')).toBeUndefined();
   });
 
   it('returns absolute paths starting with slash', () => {
-    expect(resolveAvatarImageSrc('/assets/avatar.png', avatarImageMap)).toBe('/assets/avatar.png');
+    expect(resolveAvatarImageSrc('/assets/avatar.png')).toBe('/assets/avatar.png');
   });
 
   it('returns valid image extensions', () => {
-    expect(resolveAvatarImageSrc('avatar.svg', avatarImageMap)).toBe('avatar.svg');
-    expect(resolveAvatarImageSrc('avatar.png', avatarImageMap)).toBe('avatar.png');
-    expect(resolveAvatarImageSrc('avatar.jpg', avatarImageMap)).toBe('avatar.jpg');
-    expect(resolveAvatarImageSrc('avatar.jpeg', avatarImageMap)).toBe('avatar.jpeg');
-    expect(resolveAvatarImageSrc('avatar.webp', avatarImageMap)).toBe('avatar.webp');
-    expect(resolveAvatarImageSrc('avatar.gif', avatarImageMap)).toBe('avatar.gif');
+    expect(resolveAvatarImageSrc('avatar.svg')).toBe('avatar.svg');
+    expect(resolveAvatarImageSrc('avatar.png')).toBe('avatar.png');
+    expect(resolveAvatarImageSrc('avatar.jpg')).toBe('avatar.jpg');
+    expect(resolveAvatarImageSrc('avatar.jpeg')).toBe('avatar.jpeg');
+    expect(resolveAvatarImageSrc('avatar.webp')).toBe('avatar.webp');
+    expect(resolveAvatarImageSrc('avatar.gif')).toBe('avatar.gif');
   });
 
   it('returns undefined for non-image strings', () => {
-    expect(resolveAvatarImageSrc('😀', avatarImageMap)).toBeUndefined();
-    expect(resolveAvatarImageSrc('SomeText', avatarImageMap)).toBeUndefined();
-    expect(resolveAvatarImageSrc('avatar.txt', avatarImageMap)).toBeUndefined();
+    expect(resolveAvatarImageSrc('😀')).toBeUndefined();
+    expect(resolveAvatarImageSrc('SomeText')).toBeUndefined();
+    expect(resolveAvatarImageSrc('avatar.txt')).toBeUndefined();
   });
 });
 
@@ -236,5 +223,19 @@ describe('groupAssistantsByEnabled', () => {
     const { enabledAssistants, disabledAssistants } = groupAssistantsByEnabled(assistants);
     expect(enabledAssistants).toEqual([]);
     expect(disabledAssistants.map((a) => a.id)).toEqual(['a1', 'a2']);
+  });
+});
+
+describe('resolveAssistantSourceTag', () => {
+  it('shows the built-in tag for builtin assistants', () => {
+    expect(resolveAssistantSourceTag('builtin')).toBe('builtin');
+  });
+
+  it('shows the custom tag for user assistants', () => {
+    expect(resolveAssistantSourceTag('user')).toBe('custom');
+  });
+
+  it('shows the CLI tag for generated assistants', () => {
+    expect(resolveAssistantSourceTag('generated')).toBe('cli');
   });
 });

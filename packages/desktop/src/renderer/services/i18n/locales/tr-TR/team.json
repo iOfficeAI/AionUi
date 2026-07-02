@@ -17,24 +17,27 @@
     "renameSuccess": "Takım yeniden adlandırıldı",
     "deleteSuccess": "Takım silindi"
   },
-  "newAgent": "New Agent",
+  "newAgent": "Yeni Asistan",
   "noMessages": "No messages yet.",
-  "agentNotConfigured": "Ajan henüz yapılandırılmadı.",
+  "agentNotConfigured": "Asistan henüz yapılandırılmadı.",
+  "stopAgentFailed": "Bu asistan durdurulamadı. Lütfen tekrar deneyin.",
   "sendBox": {
-    "placeholder": "Dağıtım ajanına mesaj gönder..."
+    "placeholder": "Takım lideri asistana mesaj gönder..."
   },
   "create": {
     "title": "Create Team",
     "namePlaceholder": "Team name",
     "dispatchAgentPlaceholder": "Takım liderini seçin",
-    "subAgentsPlaceholder": "Select sub agents",
+    "subAgentsPlaceholder": "Takım üyesi asistanları seçin",
     "confirm": "Create Team",
-    "noSupportedAgents": "Desteklenen agent bulunamadı",
-    "supportedAgentsHint": "Şu anda Claude ve Codex desteklenmektedir. Daha fazla agent yakında eklenecek.",
-    "leaderDesc": "Hedeflerinizi anlayarak görevleri tamamlamak için ajanları koordine eder",
+    "noSupportedAgents": "Desteklenen uygun asistan bulunamadı",
+    "supportedAgentsHint": "Şu anda Claude ve Aion CLI asistanları desteklenmektedir. Daha fazla asistan yakında eklenecek.",
+    "leaderDesc": "Hedeflerinizi anlayarak görevleri tamamlamak için asistanları koordine eder",
+    "searchPlaceholder": "Asistan ara...",
+    "noSearchResults": "Sonuç bulunamadı",
     "step": {
       "dispatch": "Takım Lideri",
-      "subAgents": "Sub Agents",
+      "subAgents": "Takım Üyeleri",
       "workspace": "Proje"
     },
     "nameRequired": "Takım adı girin",
@@ -51,10 +54,9 @@
   "emptyState": {
     "subtitle": "Hedefini söyle, ekibi koordine ederek tamamlayayım",
     "suggestions": {
-      "help_build": "Sıfırdan yeni bir özellik oluşturmama yardım et",
-      "analyze_code": "Bu kod tabanını analiz et ve iyileştirmeler öner",
-      "write_report": "Bir konuyu araştır ve ayrıntılı rapor yaz",
-      "fix_bug": "Projemizdeki hataları bul ve düzelt"
+      "debate": "Farklı tarafları savunan asistanlarla bir tartışma düzenle",
+      "interview": "Asistanlar arasında derinlemesine bir röportaj planla",
+      "expert_review": "Aynı problemi birden fazla uzmanın analiz etmesini sağla"
     }
   }
 }

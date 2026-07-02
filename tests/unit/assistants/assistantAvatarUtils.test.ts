@@ -12,21 +12,22 @@ import { resolveAvatarImageSrc } from '@/renderer/pages/settings/AssistantSettin
 
 describe('assistantAvatarUtils', () => {
   describe('resolveAvatarImageSrc', () => {
-    it('returns mapped src string when id is present in the map', () => {
-      const map = { 'test-id': '/path/to/avatar.png' };
-      const result = resolveAvatarImageSrc('test-id', map);
-      expect(result).toBe('/path/to/avatar.png');
+    it('returns backend image paths as-is', () => {
+      expect(resolveAvatarImageSrc('/api/assistants/custom-1/avatar')).toBe('/api/assistants/custom-1/avatar');
+      expect(resolveAvatarImageSrc('/assets/avatar.png')).toBe('/assets/avatar.png');
     });
 
-    it('returns undefined when ID not in map', () => {
-      const result = resolveAvatarImageSrc('test-id', {});
-      expect(result).toBeUndefined();
+    it('does not expose arbitrary absolute image paths', () => {
+      expect(resolveAvatarImageSrc('/path/to/avatar.png')).toBeUndefined();
     });
 
-    it('returns mapped value when assistant ID exists', () => {
-      const map = { 'my-id': 'my-avatar.png' };
-      const result = resolveAvatarImageSrc('my-id', map);
-      expect(result).toBe('my-avatar.png');
+    it('returns undefined for a non-image identifier', () => {
+      expect(resolveAvatarImageSrc('test-id')).toBeUndefined();
+    });
+
+    it('returns undefined for empty input', () => {
+      expect(resolveAvatarImageSrc('')).toBeUndefined();
+      expect(resolveAvatarImageSrc(undefined)).toBeUndefined();
     });
   });
 });

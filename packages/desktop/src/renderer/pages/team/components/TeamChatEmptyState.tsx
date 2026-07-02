@@ -4,15 +4,18 @@ import useSWR from 'swr';
 import type { TChatConversation } from '@/common/config/storage';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
 import { getSendBoxDraftHook } from '@renderer/hooks/chat/useSendBoxDraft';
-import { getAgentLogo } from '@renderer/utils/model/agentLogo';
+import { resolveAgentAvatar, useAgentLogos } from '@renderer/utils/model/agentLogo';
 import { usePresetAssistantInfo } from '@renderer/hooks/agent/usePresetAssistantInfo';
-import { resolveBackendAssetUrl } from '@renderer/utils/platform';
+import { resolveConversationBackend } from '@/renderer/pages/conversation/utils/conversationAssistantIdentity';
+import { Robot } from '@icon-park/react';
 
 const useAcpDraft = getSendBoxDraftHook('acp', { _type: 'acp', atPath: [], content: '', uploadFile: [] });
 const useAionrsDraft = getSendBoxDraftHook('aionrs', { _type: 'aionrs', atPath: [], content: '', uploadFile: [] });
 
 type Props = {
   conversation_id: string;
+  assistant_name?: string;
+  assistant_backend?: string;
   icon?: string;
   isLeader?: boolean;
 };
@@ -24,8 +27,8 @@ const SUGGESTIONS = [
 ];
 
 const SUGGESTION_DEFAULTS: Record<string, string> = {
-  debate: 'Organize a debate with agents taking different sides',
-  interview: 'Plan an in-depth interview between agents',
+  debate: 'Organize a debate with assistants taking different sides',
+  interview: 'Plan an in-depth interview between assistants',
   expert_review: 'Have multiple experts analyze the same problem',
 };
 
@@ -36,18 +39,14 @@ const toDraftKind = (type: TChatConversation['type']): TeamDraftKind => {
   return type === 'aionrs' ? 'aionrs' : 'acp';
 };
 
-const resolveAgentTypeFromConversation = (conversation: TChatConversation): string => {
-  if (conversation.type === 'acp') {
-    return (conversation.extra as { backend?: string } | undefined)?.backend ?? 'acp';
-  }
-  if (conversation.type === 'openclaw-gateway') {
-    return (conversation.extra as { backend?: string } | undefined)?.backend ?? 'openclaw-gateway';
-  }
-  return conversation.type;
-};
-
-const resolveAgentName = (conversation: TChatConversation, presetName: string | null): string => {
+const resolveAssistantName = (
+  conversation: TChatConversation,
+  presetName: string | null,
+  explicitAssistantName?: string
+): string => {
   if (presetName) return presetName;
+  const trimmedExplicitName = explicitAssistantName?.trim();
+  if (trimmedExplicitName) return trimmedExplicitName;
   const extraAgentName = (conversation.extra as { agent_name?: string } | undefined)?.agent_name;
   if (extraAgentName && extraAgentName.trim()) return extraAgentName.trim();
   // conversation.name is typically "teamName - agentRole"
@@ -57,8 +56,15 @@ const resolveAgentName = (conversation: TChatConversation, presetName: string | 
   return 'Leader';
 };
 
-const TeamChatEmptyState: React.FC<Props> = ({ conversation_id, icon, isLeader = false }) => {
+const TeamChatEmptyState: React.FC<Props> = ({
+  conversation_id,
+  assistant_name,
+  assistant_backend,
+  icon,
+  isLeader = false,
+}) => {
   const { t } = useTranslation();
+  const logos = useAgentLogos();
 
   // Reuse the same SWR key as AgentChatSlot so this hits cache instead of a new fetch.
   const { data: conversation } = useSWR(conversation_id ? ['team-conversation', conversation_id] : null, () =>
@@ -89,13 +95,19 @@ const TeamChatEmptyState: React.FC<Props> = ({ conversation_id, icon, isLeader =
   )?.trim();
   if (!team_id) return null;
 
-  const agent_type = resolveAgentTypeFromConversation(conversation);
-  const agent_name = resolveAgentName(conversation, presetInfo?.name ?? null);
-  const explicitLogo = resolveBackendAssetUrl(icon) ?? icon;
-  const backendLogo = getAgentLogo(agent_type);
+  const assistantBackend = resolveConversationBackend(conversation, assistant_backend || presetInfo?.backend) || 'acp';
+  const assistantName = resolveAssistantName(conversation, presetInfo?.name ?? null, assistant_name);
+  const agentAvatar = resolveAgentAvatar(logos, { icon, backend: assistantBackend });
 
   const renderAvatar = () => {
     if (presetInfo) {
+      if (presetInfo.isFallback) {
+        return (
+          <span className='w-48px h-48px rounded-8px flex items-center justify-center bg-fill-2'>
+            <Robot theme='outline' size={24} />
+          </span>
+        );
+      }
       if (presetInfo.isEmoji) {
         return (
           <span className='w-48px h-48px rounded-8px flex items-center justify-center text-32px leading-none bg-fill-2'>
@@ -111,17 +123,25 @@ const TeamChatEmptyState: React.FC<Props> = ({ conversation_id, icon, isLeader =
         />
       );
     }
-    if (explicitLogo) {
+    if (agentAvatar.kind === 'image') {
       return (
-        <img src={explicitLogo} alt={agent_name} className='w-48px h-48px object-contain rounded-8px opacity-80' />
+        <img
+          src={agentAvatar.value}
+          alt={assistantName}
+          className='w-48px h-48px object-contain rounded-8px opacity-80'
+        />
       );
     }
-    if (backendLogo) {
-      return <img src={backendLogo} alt={agent_name} className='w-48px h-48px object-contain rounded-8px opacity-80' />;
+    if (agentAvatar.kind === 'emoji') {
+      return (
+        <span className='w-48px h-48px rounded-8px flex items-center justify-center text-32px leading-none bg-fill-2'>
+          {agentAvatar.value}
+        </span>
+      );
     }
     return (
       <div className='w-48px h-48px rounded-full bg-fill-3 flex items-center justify-center text-20px font-medium text-t-secondary'>
-        {agent_name.charAt(0).toUpperCase()}
+        <Robot theme='outline' size={24} />
       </div>
     );
   };
@@ -133,7 +153,7 @@ const TeamChatEmptyState: React.FC<Props> = ({ conversation_id, icon, isLeader =
     >
       {renderAvatar()}
       <div className='flex flex-col gap-6px'>
-        <span className='text-16px font-semibold text-t-primary'>{agent_name}</span>
+        <span className='text-16px font-semibold text-t-primary'>{assistantName}</span>
         {isLeader && (
           <span data-testid='team-chat-empty-state-subtitle' className='text-13px text-t-secondary'>
             {t('team.emptyState.subtitle', { defaultValue: "Describe your goal and I'll get the team working on it" })}

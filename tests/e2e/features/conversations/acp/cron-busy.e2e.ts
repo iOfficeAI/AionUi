@@ -3,16 +3,15 @@ import path from 'node:path';
 import type { ElectronApplication, Page } from '@playwright/test';
 import { test, expect } from '../../../fixtures';
 import {
-  AGENT_PILL,
   MODE_SELECTOR,
-  agentPillByBackend,
   deleteConversation,
+  findAssistantIdForBackend,
   goToGuid,
   httpDelete,
   httpGet,
   httpInvoke,
   httpPost,
-  selectAgent,
+  selectAssistantForBackend,
   sendMessageFromGuid,
   waitForPermissionMessageCard,
 } from '../../../helpers';
@@ -25,7 +24,17 @@ type CronJobResponse = {
   name: string;
   metadata: {
     conversation_id: string;
+    agent_config?: {
+      assistant_id?: string;
+      custom_agent_id?: string;
+      preset_agent_type?: string;
+    };
   };
+};
+
+type AssistantListItem = {
+  id: string;
+  name: string;
 };
 
 type ConversationResponse = {
@@ -85,18 +94,9 @@ function queryCronRow(dbPath: string, jobId: string): CronDbRow {
 }
 
 async function pickAvailableBackend(page: Page): Promise<(typeof PREFERRED_ACP_BACKENDS)[number] | null> {
-  await page
-    .locator(AGENT_PILL)
-    .first()
-    .waitFor({ state: 'visible', timeout: 30_000 })
-    .catch(() => {});
-
   for (const backend of PREFERRED_ACP_BACKENDS) {
-    const visible = await page
-      .locator(agentPillByBackend(backend))
-      .isVisible()
-      .catch(() => false);
-    if (visible) {
+    const assistantId = await findAssistantIdForBackend(page, backend, { requireAvailable: true });
+    if (assistantId) {
       return backend;
     }
   }
@@ -239,17 +239,28 @@ test.describe('ACP cron busy handling', () => {
 
       const backend = await pickAvailableBackend(page);
       if (!backend) {
-        test.skip(true, 'No ACP backend pill available on the guid page');
+        test.skip(true, 'No ACP-backed assistant pill available on the guid page');
         return;
       }
 
-      await selectAgent(page, backend);
+      const selectedAssistantId = await selectAssistantForBackend(page, backend);
+      if (!selectedAssistantId) {
+        test.skip(true, `No selectable assistant for backend ${backend}`);
+        return;
+      }
+      const assistants = await httpGet<AssistantListItem[]>(page, '/api/assistants');
+      const assistant = assistants.find((item) => item.id === selectedAssistantId);
+      if (!assistant) {
+        test.skip(true, `Assistant ${selectedAssistantId} missing from catalog`);
+        return;
+      }
 
       const readOnlyModeReady = await ensureReadOnlyMode(page);
       if (!readOnlyModeReady) {
         test.skip(true, `${backend} does not expose a usable read-only mode on the guid page`);
         return;
       }
+      const selectedMode = (await page.locator(MODE_SELECTOR).first().getAttribute('data-current-mode')) ?? undefined;
 
       const busyPrompt = `Create a file named e2e-cron-busy-${Date.now()}.txt in the current workspace and write the text "busy" into it. If approval is required, ask for it and wait for my response.`;
       conversationId = await sendMessageFromGuid(page, busyPrompt);
@@ -272,13 +283,20 @@ test.describe('ACP cron busy handling', () => {
         prompt: 'CRON BUSY E2E',
         conversation_id: conversationId,
         conversation_title: conversationTitle,
-        agent_type: 'acp',
         created_by: 'user',
         execution_mode: 'existing',
+        agent_config: {
+          assistant_id: selectedAssistantId,
+          name: assistant.name,
+          mode: selectedMode,
+        },
       });
       cronJobId = job.id;
 
       expect(job.metadata.conversation_id).toBe(conversationId);
+      expect(job.metadata.agent_config?.assistant_id).toBe(selectedAssistantId);
+      expect(job.metadata.agent_config?.custom_agent_id).toBeUndefined();
+      expect(job.metadata.agent_config?.preset_agent_type).toBeUndefined();
 
       const userDataPath = await getUserDataPath(electronApp);
       const dbPath = path.join(userDataPath, 'aionui', 'aionui-backend.db');

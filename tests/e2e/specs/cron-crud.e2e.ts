@@ -3,18 +3,19 @@
  *
  * Verifies the full lifecycle of scheduled tasks via real AI conversations:
  * 1. Send a message asking AI to create a scheduled task
- * 2. AI outputs [CRON_LIST] → system responds → AI outputs [CRON_CREATE]
- * 3. Verify task appears in sidebar and scheduled tasks page
+ * 2. AI uses the injected cron HTTP helper to create the task
+ * 3. Verify task appears in the scheduled tasks page and conversation remains in normal history
  * 4. Send a follow-up message to modify the task
- * 5. AI outputs [CRON_UPDATE] preserving conversations
+ * 5. AI uses the injected cron HTTP helper to update the task while preserving conversations
  * 6. Delete task from detail page, verify conversation still accessible
  */
 import { test, expect } from '../fixtures';
 import { invokeBridge } from '../helpers/bridge';
 import { goToGuid } from '../helpers/navigation';
 import {
-  AGENT_PILL,
-  selectAgent,
+  findAssistantIdForBackend,
+  httpGet,
+  selectAssistantForBackend,
   sendMessageFromGuid,
   waitForSessionActive,
   waitForAiReply,
@@ -33,28 +34,25 @@ interface CronJob {
 }
 
 async function pickAvailableBackend(page: import('@playwright/test').Page): Promise<string | null> {
-  for (let attempt = 0; attempt < 2; attempt++) {
-    const visible = await page
-      .locator(AGENT_PILL)
-      .first()
-      .waitFor({ state: 'visible', timeout: 45_000 })
-      .then(() => true)
-      .catch(() => false);
-    if (visible) {
-      const backends = await page
-        .locator(AGENT_PILL)
-        .evaluateAll((els) => els.map((el) => el.getAttribute('data-agent-backend')).filter(Boolean));
-      const preferred = ['gemini', 'claude', 'codex', 'aionrs'].find((backend) => backends.includes(backend));
-      const found = preferred ?? backends[0] ?? null;
-      if (found) return found;
-    }
-    if (attempt === 0) {
-      await page.reload({ waitUntil: 'domcontentloaded' });
-      await goToGuid(page);
-    }
+  const preferredBackends = ['gemini', 'claude', 'codex', 'aionrs'];
+  for (const backend of preferredBackends) {
+    const assistantId = await findAssistantIdForBackend(page, backend, { requireAvailable: true });
+    if (assistantId) return backend;
   }
   return null;
 }
+
+type CronAgentConfig = {
+  assistant_id?: string;
+  custom_agent_id?: string;
+  preset_agent_type?: string;
+};
+
+type ConversationWithAssistant = {
+  assistant?: {
+    id: string;
+  } | null;
+};
 
 // ── Bridge helpers ──────────────────────────────────────────────────────────
 
@@ -173,10 +171,14 @@ test.describe('Cron via AI conversation', () => {
 
     const backend = await pickAvailableBackend(page);
     if (!backend) {
-      test.skip(true, 'No usable agent available on guid page');
+      test.skip(true, 'No usable assistant available on guid page');
       return;
     }
-    await selectAgent(page, backend);
+    const assistantId = await selectAssistantForBackend(page, backend);
+    if (!assistantId) {
+      test.skip(true, `No selectable assistant for backend ${backend}`);
+      return;
+    }
 
     // ── Step 2: Send message to create a scheduled task ──
     conversationId = await sendMessageFromGuid(
@@ -184,6 +186,9 @@ test.describe('Cron via AI conversation', () => {
       'Create a scheduled task named "E2E Morning Greeting" that runs every day at 9:00 AM. The task should reply with a friendly good morning greeting. Do it now, don\'t ask me for confirmation.'
     );
     expect(conversationId).toBeTruthy();
+    const conversation = await httpGet<ConversationWithAssistant>(page, `/api/conversations/${conversationId}`);
+    const conversationAssistantId = conversation.assistant?.id;
+    expect(conversationAssistantId).toBeTruthy();
 
     // Start auto-approving skill activation confirmations
     stopAutoApprove = startAutoApprovePermissionMessages(page);
@@ -197,6 +202,10 @@ test.describe('Cron via AI conversation', () => {
 
     expect(job.name).toBeTruthy();
     expect(job.schedule.expr).toBeTruthy();
+    const agentConfig = job.metadata.agent_config as CronAgentConfig | undefined;
+    expect(agentConfig?.assistant_id).toBe(conversationAssistantId);
+    expect(agentConfig?.custom_agent_id).toBeUndefined();
+    expect(agentConfig?.preset_agent_type).toBeUndefined();
 
     // ── Step 4: Verify task appears on the Scheduled Tasks page ──
     await navigateToScheduled(page);
@@ -299,7 +308,7 @@ test.describe('Cron via AI conversation', () => {
     createdJobId = null;
   });
 
-  test('AI creates task in conversation — sidebar shows task with child conversation', async ({ page }) => {
+  test('AI creates task in conversation — sidebar keeps conversation in normal history', async ({ page }) => {
     await goToGuid(page);
     await page
       .waitForFunction(() => (document.body.textContent?.length ?? 0) > 200, { timeout: 45_000 })
@@ -307,10 +316,14 @@ test.describe('Cron via AI conversation', () => {
 
     const backend = await pickAvailableBackend(page);
     if (!backend) {
-      test.skip(true, 'No usable agent available on guid page');
+      test.skip(true, 'No usable assistant available on guid page');
       return;
     }
-    await selectAgent(page, backend);
+    const assistantId = await selectAssistantForBackend(page, backend);
+    if (!assistantId) {
+      test.skip(true, `No selectable assistant for backend ${backend}`);
+      return;
+    }
 
     conversationId = await sendMessageFromGuid(
       page,
@@ -326,12 +339,13 @@ test.describe('Cron via AI conversation', () => {
     const job = await waitForCronJobCreated(page, conversationId, 120_000);
     createdJobId = job.id;
 
-    // Verify the sidebar shows the cron job with child conversation
-    const siderJobName = page.locator('.font-medium.truncate').filter({ hasText: job.name }).first();
-    await expect(siderJobName).toBeVisible({ timeout: 15_000 });
+    // The scheduled task still has a management page, while the originating
+    // conversation stays in the regular conversation/project history.
+    await expect(page.locator(`#c-${conversationId}`).first()).toBeVisible({ timeout: 15_000 });
+    await expect(page.locator(`[data-testid="cron-child-sortable-${conversationId}"]`)).toHaveCount(0);
 
-    // The child conversation should appear under the cron job in sidebar
-    const childEntry = page.locator(`[data-testid="cron-child-sortable-${conversationId}"]`);
-    await expect(childEntry).toBeVisible({ timeout: 10_000 });
+    await page.evaluate(() => window.location.assign('#/scheduled'));
+    await page.waitForFunction(() => window.location.hash === '#/scheduled', { timeout: 10_000 });
+    await expect(page.getByText(job.name).first()).toBeVisible({ timeout: 15_000 });
   });
 });

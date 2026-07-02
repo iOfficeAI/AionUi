@@ -10,6 +10,7 @@ import { configService } from '@/common/config/configService';
 import AionScrollArea from '@/renderer/components/base/AionScrollArea';
 import FeedbackButton from '@/renderer/components/base/FeedbackButton';
 import LanguageSwitcher from '@/renderer/components/settings/LanguageSwitcher';
+import { getClientBusinessSetting, setClientBusinessSetting } from '@/renderer/services/clientBusinessSettings';
 import { notifyManualRestartRequired } from '@/renderer/utils/appRestart';
 import { isElectronDesktop } from '@/renderer/utils/platform';
 import { Alert, Collapse, Form, InputNumber, Message, Modal, Switch } from '@arco-design/web-react';
@@ -17,6 +18,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
 import { useSettingsViewMode } from '../../settingsViewContext';
+import BrowserNotificationGrant from './BrowserNotificationGrant';
 import DevSettings from './DevSettings';
 import DirInputItem from './DirInputItem';
 import PreferenceRow from './PreferenceRow';
@@ -92,11 +94,38 @@ const SystemModalContent: React.FC = () => {
     setCronNotificationEnabled(configService.get('system.cronNotificationEnabled') ?? false);
     setSaveUploadToWorkspace(configService.get('upload.saveToWorkspace') ?? false);
     setAutoPreviewOfficeFiles(configService.get('system.autoPreviewOfficeFiles') ?? true);
-    const pt = configService.get('acp.promptTimeout');
-    if (pt && pt > 0) setPromptTimeout(pt);
-    const ait = configService.get('acp.agentIdleTimeout');
-    if (ait && ait > 0) setAgentIdleTimeout(ait);
   }, [isDesktop]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadAcpTimeouts = async () => {
+      try {
+        const [storedPromptTimeout, storedAgentIdleTimeout] = await Promise.all([
+          getClientBusinessSetting('acp.promptTimeout'),
+          getClientBusinessSetting('acp.agentIdleTimeout'),
+        ]);
+        if (cancelled) {
+          return;
+        }
+
+        if (typeof storedPromptTimeout === 'number' && storedPromptTimeout > 0) {
+          setPromptTimeout(storedPromptTimeout);
+        }
+        if (typeof storedAgentIdleTimeout === 'number' && storedAgentIdleTimeout > 0) {
+          setAgentIdleTimeout(storedAgentIdleTimeout);
+        }
+      } catch {
+        // Keep the in-memory defaults when backend settings are unavailable.
+      }
+    };
+
+    void loadAcpTimeouts();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const handleCloseToTrayChange = useCallback(
     (checked: boolean) => {
@@ -209,7 +238,7 @@ const SystemModalContent: React.FC = () => {
   const handlePromptTimeoutBlur = useCallback(() => {
     const clamped = Math.max(30, Math.min(3600, promptTimeout || 300));
     setPromptTimeout(clamped);
-    configService.set('acp.promptTimeout', clamped).catch(() => {});
+    void setClientBusinessSetting('acp.promptTimeout', clamped).catch(() => {});
   }, [promptTimeout]);
 
   const handleAgentIdleTimeoutChange = useCallback((val: number | undefined) => {
@@ -219,7 +248,7 @@ const SystemModalContent: React.FC = () => {
   const handleAgentIdleTimeoutBlur = useCallback(() => {
     const clamped = Math.max(1, Math.min(60, agentIdleTimeout || 5));
     setAgentIdleTimeout(clamped);
-    configService.set('acp.agentIdleTimeout', clamped).catch(() => {});
+    void setClientBusinessSetting('acp.agentIdleTimeout', clamped).catch(() => {});
   }, [agentIdleTimeout]);
 
   const handleSaveUploadToWorkspaceChange = useCallback((checked: boolean) => {
@@ -412,15 +441,19 @@ const SystemModalContent: React.FC = () => {
                   </div>
                 }
               >
-                <div className='pl-12px'>
-                  <PreferenceRow label={t('settings.cronNotificationEnabled')}>
-                    <Switch
-                      checked={cronNotificationEnabled}
-                      disabled={!notificationEnabled}
-                      onChange={handleCronNotificationEnabledChange}
-                    />
-                  </PreferenceRow>
-                </div>
+                {isDesktop ? (
+                  <div className='pl-12px'>
+                    <PreferenceRow label={t('settings.cronNotificationEnabled')}>
+                      <Switch
+                        checked={cronNotificationEnabled}
+                        disabled={!notificationEnabled}
+                        onChange={handleCronNotificationEnabledChange}
+                      />
+                    </PreferenceRow>
+                  </div>
+                ) : (
+                  <BrowserNotificationGrant />
+                )}
               </Collapse.Item>
             </Collapse>
             <Form form={form} layout='vertical' className='!mt-32px space-y-16px' onValuesChange={handleValuesChange}>

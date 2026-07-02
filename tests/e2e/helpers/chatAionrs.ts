@@ -3,6 +3,8 @@
  */
 import type { Page } from '@playwright/test';
 import { invokeBridge } from './bridge';
+import { httpGet } from './httpBridge';
+import { selectAssistantForBackend } from './conversation';
 import { goToGuid } from './navigation';
 import fs from 'fs';
 import path from 'path';
@@ -16,12 +18,45 @@ export type TProviderWithModel = {
   name: string;
   platform: string;
   apiKey?: string;
+  api_key?: string;
   baseUrl?: string;
+  base_url?: string;
   model: string[];
+  models?: string[];
   useModel: string;
   enabled?: boolean;
   [key: string]: any;
 };
+
+type ProviderResponse = {
+  id: string;
+  name: string;
+  platform: string;
+  api_key?: string;
+  apiKey?: string;
+  base_url?: string;
+  baseUrl?: string;
+  models?: string[];
+  model?: string[];
+  enabled?: boolean;
+  [key: string]: unknown;
+};
+
+function normalizeProvider(provider: ProviderResponse): TProviderWithModel {
+  const models = Array.isArray(provider.models) ? provider.models : Array.isArray(provider.model) ? provider.model : [];
+  const apiKey = provider.apiKey ?? provider.api_key;
+  const baseUrl = provider.baseUrl ?? provider.base_url;
+  return {
+    ...provider,
+    apiKey,
+    api_key: provider.api_key ?? apiKey,
+    baseUrl,
+    base_url: provider.base_url ?? baseUrl,
+    model: models,
+    models,
+    useModel: models[0] ?? '',
+  };
+}
 
 /**
  * Aionrs test models structure.
@@ -54,10 +89,10 @@ export function resolveAionrsBinary(): string | null {
  */
 export async function getAionrsTestModels(page: Page): Promise<AionrsTestModels | null> {
   try {
-    const providers = await invokeBridge<any[]>(page, 'mode.get-model-config', {});
+    const providers = (await httpGet<ProviderResponse[]>(page, '/api/providers')).map(normalizeProvider);
     if (!Array.isArray(providers)) return null;
 
-    const isAionrsCompatible = (p: any): boolean => {
+    const isAionrsCompatible = (p: TProviderWithModel): boolean => {
       const platform = String(p.platform || '').toLowerCase();
       if (platform.includes('gemini-with-google-auth')) return false;
       // `gemini` (OpenAI-compat via /v1beta/openai) has a known aionrs first-send
@@ -277,7 +312,7 @@ export async function getAionrsMessages(page: Page, conversationId: string): Pro
     const result = await invokeBridge<any>(
       page,
       'database.get-conversation-messages',
-      { conversation_id: conversationId, page: 0, pageSize: 100 },
+      { conversation_id: conversationId, limit: 100 },
       10_000
     );
     return Array.isArray(result) ? result : (result?.data ?? []);
@@ -336,18 +371,13 @@ export function createTempWorkspace(scenario: string): { path: string; cleanup: 
   };
 }
 
-/**
- * Select aionrs agent on guid page.
- * @param page Playwright page
- */
+/** Select an available aionrs assistant on the guid page. */
 export async function selectAionrsAgent(page: Page): Promise<void> {
   await goToGuid(page);
-  const pill = page.locator('[data-agent-pill="true"][data-agent-backend="aionrs"]');
-  await pill.waitFor({ state: 'visible', timeout: 15_000 });
-  await pill.click();
-  await page.waitForSelector('[data-agent-pill="true"][data-agent-backend="aionrs"][data-agent-selected="true"]', {
-    timeout: 5_000,
-  });
+  const assistantId = await selectAssistantForBackend(page, 'aionrs');
+  if (!assistantId) {
+    throw new Error('No available aionrs assistant found on guid page');
+  }
 }
 
 /**

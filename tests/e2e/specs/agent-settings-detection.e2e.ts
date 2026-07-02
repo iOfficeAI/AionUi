@@ -1,77 +1,113 @@
 /**
- * Agent Settings Detection — E2E tests.
+ * Agent Settings Detection — diagnostics-only E2E tests.
  *
- * Covers: LocalAgents component rendering, CLI agent detection,
- * Gemini presence, agent status, PresetManagement sync, refresh.
+ * Phase 2 turns Agent Settings into a management/diagnostics surface rather
+ * than a business-facing picker. These tests lock the page to that contract:
+ * - sections come from `/api/agents/management`
+ * - official/custom buckets stay visible
+ * - a troubleshoot/repair affordance exists per agent
+ * - legacy market/chat/preset affordances do not reappear
  */
 import { test, expect } from '../fixtures';
-import { goToSettings, expectUrlContains, expectBodyContainsAny, settingsSiderItemById } from '../helpers';
+import { goToSettings, expectUrlContains, settingsSiderItemById, httpGet } from '../helpers';
+
+type ManagedAgent = {
+  id: string;
+  name: string;
+  agent_type?: string;
+  backend?: string;
+  agent_source: 'internal' | 'builtin' | 'extension' | 'custom';
+  status?: 'online' | 'offline' | 'missing';
+};
+
+const DEPRECATED_RUNTIME_AGENT_TYPES = new Set(['nanobot', 'openclaw-gateway', 'remote', 'gemini']);
+
+const TEXT = {
+  customAgents: ['Custom Agents', '自定义 Agents'],
+  setupGuide: ['Setup guide', '查看安装指南'],
+  // The custom-agent editor is now opened from an "Add" button in the
+  // custom-agents section header (was a "Detect Custom Agent" text link).
+  addCustomAgent: ['Add', '添加'],
+  testConnection: ['Test Connection', '测试连接'],
+  commandLabel: ['Command', '命令'],
+  commandPlaceholder: ['e.g. my-agent or /usr/local/bin/my-agent', '例如 my-agent 或 /usr/local/bin/my-agent'],
+  installFromMarket: ['Install from Market', '从市场安装'],
+  discoverMoreAgents: ['Discover More Agents', '发现更多 Agent'],
+  startChat: ['Start Chat', '开始对话'],
+} as const;
+
+async function expectAnyText(page: Parameters<typeof test>[0]['page'], candidates: readonly string[]) {
+  await expect
+    .poll(async () => {
+      const body = await page.locator('body').textContent();
+      return candidates.some((candidate) => body?.includes(candidate));
+    })
+    .toBeTruthy();
+}
+
+async function expectNoText(page: Parameters<typeof test>[0]['page'], candidates: readonly string[]) {
+  const body = (await page.locator('body').textContent()) ?? '';
+  for (const candidate of candidates) {
+    expect(body).not.toContain(candidate);
+  }
+}
 
 test.describe('Agent Settings Detection', () => {
-  test('LocalAgents page renders', async ({ page }) => {
+  test('renders the management catalog buckets and mirrors diagnostics rows', async ({ page }) => {
+    const managedAgents = await httpGet<ManagedAgent[]>(page, '/api/agents/management');
+
     await goToSettings(page, 'agent');
     await expectUrlContains(page, 'agent');
-    await expectBodyContainsAny(page, ['Agent', 'agent', '助手', '代理']);
-  });
+    await expect(page.locator(settingsSiderItemById('agent')).first()).toBeVisible({ timeout: 8_000 });
+    await expect(page.locator('[data-testid="agent-management-page"]')).toBeVisible({ timeout: 8_000 });
+    await expect(page.locator('[data-testid="agent-management-custom-section"]')).toBeVisible({ timeout: 8_000 });
 
-  test('detected CLI agents displayed', async ({ page }) => {
-    await goToSettings(page, 'agent');
+    await expectAnyText(page, TEXT.customAgents);
+    await expectAnyText(page, TEXT.setupGuide);
 
-    // At least one detected agent card should be visible
-    // Agent cards use AgentCard component in a grid
-    const agentGrid = page.locator('.grid');
-    await expect(agentGrid.first()).toBeVisible({ timeout: 8_000 });
-
-    // Check for known backend names
-    const body = await page.locator('body').textContent();
-    const hasKnownAgent = ['Claude', 'Codex', 'Gemini', 'Aion', 'OpenCode', 'Qwen'].some((name) =>
-      body?.includes(name)
+    const visibleManagedAgents = managedAgents.filter(
+      (agent) =>
+        agent.agent_source === 'custom' || !DEPRECATED_RUNTIME_AGENT_TYPES.has(agent.agent_type ?? agent.backend ?? '')
     );
-    expect(hasKnownAgent).toBeTruthy();
+
+    for (const agent of visibleManagedAgents.slice(0, 4)) {
+      await expect(page.locator(`[data-testid="agent-row-${agent.id}"]`)).toBeVisible({ timeout: 8_000 });
+      await expect(page.locator(`[data-testid="agent-row-status-${agent.id}"]`)).toBeVisible({ timeout: 8_000 });
+      await expect(page.locator(`[data-testid="agent-row-test-${agent.id}"]`)).toBeVisible({ timeout: 8_000 });
+    }
   });
 
-  test('Gemini agent is present in detected list', async ({ page }) => {
+  test('keeps the page diagnostics-only and removes legacy market/chat affordances', async ({ page }) => {
     await goToSettings(page, 'agent');
 
-    // Gemini or Aion RS should be in the agent list
-    await expectBodyContainsAny(page, ['Gemini', 'gemini', 'Aion']);
+    await expectAnyText(page, TEXT.customAgents);
+    await expectNoText(page, TEXT.installFromMarket);
+    await expectNoText(page, TEXT.discoverMoreAgents);
+    await expectNoText(page, TEXT.startChat);
   });
 
-  test('agent settings page has sidebar navigation item', async ({ page }) => {
+  test('opens the custom agent editor from the diagnostics page', async ({ page }) => {
     await goToSettings(page, 'agent');
 
-    const siderItem = page.locator(settingsSiderItemById('agent')).first();
-    await expect(siderItem).toBeVisible({ timeout: 8_000 });
+    await page.getByRole('button', { name: new RegExp(`^(${TEXT.addCustomAgent.join('|')})$`) }).click();
+
+    await expectAnyText(page, TEXT.commandLabel);
+    await expect(page.getByPlaceholder(new RegExp(TEXT.commandPlaceholder.join('|'))).first()).toBeVisible({
+      timeout: 8_000,
+    });
+
+    await page.getByRole('button', { name: /Cancel|取消/ }).click();
+    await expect(page.getByPlaceholder(new RegExp(TEXT.commandPlaceholder.join('|')))).toHaveCount(0);
   });
 
-  test('preset management section is visible', async ({ page }) => {
+  test('re-entering the page keeps the diagnostics surface instead of legacy picker content', async ({ page }) => {
     await goToSettings(page, 'agent');
-
-    // The agent settings page includes preset management area
-    // Look for text indicating presets or assistants
-    await expectBodyContainsAny(page, [
-      'Preset',
-      'preset',
-      'Custom',
-      'custom',
-      '预设',
-      '自定义',
-      'Assistants',
-      'assistants',
-      '助手',
-    ]);
-  });
-
-  test('detected agents section refreshes without error', async ({ page }) => {
-    await goToSettings(page, 'agent');
-
-    // Navigate away and back to trigger a refresh
     await goToSettings(page, 'about');
     await goToSettings(page, 'agent');
 
-    // Page should still render correctly
-    await expectBodyContainsAny(page, ['Agent', 'agent', '助手', '代理']);
-    const agentGrid = page.locator('.grid');
-    await expect(agentGrid.first()).toBeVisible({ timeout: 8_000 });
+    await expectAnyText(page, TEXT.customAgents);
+    await expectAnyText(page, TEXT.setupGuide);
+    await expectNoText(page, TEXT.installFromMarket);
+    await expectNoText(page, TEXT.discoverMoreAgents);
   });
 });

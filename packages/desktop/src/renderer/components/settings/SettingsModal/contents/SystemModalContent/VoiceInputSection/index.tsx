@@ -4,10 +4,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { configService } from '@/common/config/configService';
 import type { SpeechToTextConfig } from '@/common/types/provider/speech';
 import AionSelect from '@/renderer/components/base/AionSelect';
 import { SPEECH_TO_TEXT_CONFIG_CHANGED_EVENT } from '@/renderer/services/SpeechToTextService';
+import { getClientBusinessSetting, setClientBusinessSetting } from '@/renderer/services/clientBusinessSettings';
 import { getModelStreamCapability } from '@/renderer/services/speech/speechStreamPolicy';
 import { Divider, Form, Input, Switch } from '@arco-design/web-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
@@ -56,23 +56,36 @@ const VoiceInputSection: React.FC = () => {
   const lastCustomBaseUrlRef = useRef('');
 
   useEffect(() => {
-    try {
-      const stored = configService.get('tools.speechToText');
-      const normalized = migrateSpeechLanguage(normalizeSpeechToTextConfig(stored));
-      setConfig(normalized);
-      setSource(deriveSpeechSource(normalized));
-      if (deriveSpeechSource(normalized) === 'custom') {
-        lastCustomBaseUrlRef.current = normalized.openai?.base_url ?? '';
+    let cancelled = false;
+
+    const loadSpeechConfig = async () => {
+      try {
+        const stored = await getClientBusinessSetting('tools.speechToText');
+        if (cancelled) {
+          return;
+        }
+        const normalized = migrateSpeechLanguage(normalizeSpeechToTextConfig(stored));
+        setConfig(normalized);
+        setSource(deriveSpeechSource(normalized));
+        if (deriveSpeechSource(normalized) === 'custom') {
+          lastCustomBaseUrlRef.current = normalized.openai?.base_url ?? '';
+        }
+      } catch (error) {
+        console.error('Failed to load speech-to-text config:', error);
       }
-    } catch (error) {
-      console.error('Failed to load speech-to-text config:', error);
-    }
+    };
+
+    void loadSpeechConfig();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const updateConfig = useCallback((updater: (current: SpeechToTextConfig) => SpeechToTextConfig) => {
     setConfig((current) => {
       const next = normalizeSpeechToTextConfig(updater(current));
-      configService.set('tools.speechToText', next).catch((error) => {
+      void setClientBusinessSetting('tools.speechToText', next).catch((error) => {
         console.error('Failed to save speech-to-text config:', error);
       });
       if (typeof window !== 'undefined') {

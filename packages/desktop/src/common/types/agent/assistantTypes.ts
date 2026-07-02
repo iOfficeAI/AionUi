@@ -7,7 +7,23 @@
 // Mirror of aionui-api-types/src/assistant.rs.
 // Any shape change on either side requires a same-PR update on the other.
 
-export type AssistantSource = 'builtin' | 'user';
+export type AssistantSource = 'builtin' | 'generated' | 'user';
+export type AssistantAgentStatus = 'missing' | 'online' | 'offline';
+export type AssistantAgentSource = 'internal' | 'builtin' | 'extension' | 'custom';
+
+export type AssistantAgent = {
+  type: string;
+  source: AssistantAgentSource;
+  acp_backend?: string;
+};
+
+export function assistantRuntimeKey(assistant?: Pick<Assistant, 'agent'> | null): string {
+  return assistant?.agent?.acp_backend || assistant?.agent?.type || '';
+}
+
+export function isAionrsAssistant(assistant?: Pick<Assistant, 'agent'> | null): boolean {
+  return assistant?.agent?.type === 'aionrs';
+}
 
 export interface Assistant {
   id: string;
@@ -19,7 +35,8 @@ export interface Assistant {
   avatar?: string;
   enabled: boolean;
   sort_order: number;
-  preset_agent_type: string;
+  agent_id: string;
+  agent?: AssistantAgent;
   enabled_skills: string[];
   custom_skill_names: string[];
   disabled_builtin_skills: string[];
@@ -29,6 +46,11 @@ export interface Assistant {
   prompts_i18n: Record<string, string[]>;
   models: string[];
   last_used_at?: number;
+  agent_status: AssistantAgentStatus;
+  agent_status_message?: string;
+  team_selectable: boolean;
+  team_block_reason?: string;
+  deletable: boolean;
 }
 
 export interface AssistantProfile {
@@ -46,7 +68,8 @@ export interface AssistantState {
 }
 
 export interface AssistantEngine {
-  agent_backend: string;
+  agent_id: string;
+  agent?: AssistantAgent;
 }
 
 export interface AssistantRules {
@@ -100,6 +123,11 @@ export interface AssistantPreferences {
 export interface AssistantDetail {
   id: string;
   source: AssistantSource;
+  agent_status: AssistantAgentStatus;
+  agent_status_message?: string;
+  team_selectable: boolean;
+  team_block_reason?: string;
+  deletable: boolean;
   profile: AssistantProfile;
   state: AssistantState;
   engine: AssistantEngine;
@@ -115,7 +143,7 @@ export interface CreateAssistantRequest {
   name: string;
   description?: string;
   avatar?: string;
-  preset_agent_type?: string;
+  agent_id?: string;
   enabled_skills?: string[];
   custom_skill_names?: string[];
   disabled_builtin_skills?: string[];

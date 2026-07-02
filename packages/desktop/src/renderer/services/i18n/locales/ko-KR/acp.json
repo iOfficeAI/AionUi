@@ -10,6 +10,13 @@
   "sendbox": {
     "placeholder": "{{backend}}에게 메시지 보내기..."
   },
+  "image": {
+    "download": "다운로드",
+    "download_aria": "이미지 다운로드",
+    "download_success": "다운로드 성공",
+    "download_error": "다운로드 실패",
+    "generated_alt": "생성된 이미지"
+  },
   "status": {
     "connecting": "{{agent}}에 연결 중...",
     "connected": "{{agent}}에 연결됨",

@@ -14,6 +14,7 @@ import {
   fromApiModel,
   fromApiConversation,
   fromApiPaginatedConversations,
+  buildCreateConversationBody,
   type ApiProviderWithModel,
 } from '@/common/adapter/apiModelMapper';
 import type { TProviderWithModel } from '@/common/config/storage';
@@ -114,6 +115,76 @@ describe('apiModelMapper', () => {
         provider_id: 'x',
         model: 'gpt',
       });
+    });
+  });
+
+  describe('buildCreateConversationBody', () => {
+    const aionrsModel = {
+      id: 'openai',
+      use_model: 'gemini-2.5-pro',
+      platform: 'openai',
+      name: 'x',
+      base_url: 'y',
+      api_key: 'z',
+    } as TProviderWithModel;
+
+    it('keeps top-level model for assistant-first creates without forwarding type', () => {
+      // Regression: aionrs creates must keep the selected top-level model,
+      // otherwise the backend persists a NULL model and warmup later fails with
+      // "Provider '' not found".
+      const body = buildCreateConversationBody({
+        name: 'hello',
+        model: aionrsModel,
+        assistant: { id: 'bare:aionrs' },
+        extra: { workspace: '' },
+      });
+
+      expect(body.type).toBeUndefined();
+      expect(body.model).toEqual({ provider_id: 'openai', model: 'gemini-2.5-pro' });
+    });
+
+    it('omits type for assistant-first ACP creates', () => {
+      const body = buildCreateConversationBody({
+        name: 'hello',
+        assistant: { id: 'bare:claude' },
+        extra: {},
+      });
+
+      expect(body.type).toBeUndefined();
+      expect('model' in body).toBe(false);
+    });
+
+    it('strips legacy type when assistant identity is present', () => {
+      const body = buildCreateConversationBody({
+        type: 'acp',
+        name: 'hello',
+        assistant: { id: 'bare:claude' },
+        extra: {},
+      });
+
+      expect(body.type).toBeUndefined();
+    });
+
+    it('omits the top-level model for ACP creates that pass an empty placeholder', () => {
+      const body = buildCreateConversationBody({
+        name: 'hello',
+        model: {} as TProviderWithModel,
+        assistant: { id: 'bare:claude' },
+        extra: {},
+      });
+
+      expect(body.type).toBeUndefined();
+      expect('model' in body).toBe(false);
+    });
+
+    it('omits the top-level model when no model is provided', () => {
+      const body = buildCreateConversationBody({
+        name: 'hello',
+        assistant: { id: 'bare:claude' },
+        extra: {},
+      });
+
+      expect('model' in body).toBe(false);
     });
   });
 

@@ -9,7 +9,7 @@
  * The test skips when no qualifying backend is available.
  */
 import { test, expect } from '../../fixtures';
-import { invokeBridge, navigateTo, TEAM_SUPPORTED_BACKENDS, MODE_SELECTOR } from '../../helpers';
+import { ensureTeam, invokeBridge, navigateTo, TEAM_SUPPORTED_BACKENDS, MODE_SELECTOR } from '../../helpers';
 
 const TEAM_NAME = 'E2E Session Mode Team';
 
@@ -42,33 +42,12 @@ test.describe('Team Session Mode Propagation', () => {
       return;
     }
 
-    // [setup] Find or create the E2E team.
-    const teams = await invokeBridge<TeamRecord[]>(page, 'team.list', {
-      user_id: 'system_default_user',
-    });
-    const existing = teams.find((t) => t.name === TEAM_NAME);
     let teamId: string;
-
-    if (existing) {
-      teamId = existing.id;
-    } else {
-      const created = await invokeBridge<TeamRecord | null>(page, 'team.create', {
-        name: TEAM_NAME,
-        agents: [
-          {
-            name: 'Leader',
-            role: 'lead',
-            backend: 'acp',
-            model: leaderBackend,
-          },
-        ],
-      }).catch(() => null);
-
-      if (!created?.id) {
-        test.skip(true, `Team "${TEAM_NAME}" could not be created — agent may not be installed`);
-        return;
-      }
-      teamId = created.id;
+    try {
+      teamId = await ensureTeam(page, TEAM_NAME, leaderBackend);
+    } catch (error) {
+      test.skip(true, `Team "${TEAM_NAME}" could not be created — ${(error as Error).message}`);
+      return;
     }
 
     // [navigate] Go to team page and wait for the send-box to mount.
