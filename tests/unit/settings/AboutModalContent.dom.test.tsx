@@ -19,7 +19,11 @@ const mocks = vi.hoisted(() => ({
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (key: string, params?: Record<string, string>) =>
-      key === 'settings.updateReadyInstall' ? `${params?.version} 已就绪, 立即安装` : key,
+      key === 'update.preparingInstall'
+        ? '准备安装...'
+        : key === 'settings.updateReadyInstall'
+          ? `${params?.version} 已就绪, 立即安装`
+          : key,
   }),
 }));
 
@@ -59,6 +63,7 @@ vi.mock('@/renderer/components/settings/SettingsModal/contents/FeedbackReportMod
 }));
 
 import AboutModalContent from '@/renderer/components/settings/SettingsModal/contents/AboutModalContent';
+import { setUpdateReadyState } from '@/renderer/components/settings/updateReadyState';
 
 describe('AboutModalContent update ready state', () => {
   beforeEach(() => {
@@ -72,6 +77,7 @@ describe('AboutModalContent update ready state', () => {
   });
 
   afterEach(() => {
+    setUpdateReadyState({ ready: false, version: '' });
     cleanup();
     vi.clearAllMocks();
     vi.unstubAllGlobals();
@@ -96,6 +102,40 @@ describe('AboutModalContent update ready state', () => {
     fireEvent.click(await screen.findByRole('button', { name: '2.1.14 已就绪, 立即安装' }));
 
     expect(mocks.quitAndInstallMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows preparing loading state for ready auto-update install from About', async () => {
+    let rejectInstall!: (error: Error) => void;
+    mocks.quitAndInstallMock.mockImplementation(
+      () =>
+        new Promise<void>((_resolve, reject) => {
+          rejectInstall = reject;
+        })
+    );
+
+    render(<AboutModalContent />);
+
+    await act(async () => {
+      window.dispatchEvent(
+        new CustomEvent('aionui-update-ready-state-changed', {
+          detail: {
+            ready: true,
+            version: '2.1.14',
+          },
+        })
+      );
+    });
+
+    fireEvent.click(await screen.findByRole('button', { name: '2.1.14 已就绪, 立即安装' }));
+
+    expect(await screen.findByRole('button', { name: '准备安装...' })).toBeDisabled();
+    expect(mocks.quitAndInstallMock).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      rejectInstall(new Error('prepare failed'));
+    });
+
+    expect(await screen.findByRole('button', { name: '2.1.14 已就绪, 立即安装' })).not.toBeDisabled();
   });
 
   it('reveals the notification card only when an update is available, with no toast', async () => {

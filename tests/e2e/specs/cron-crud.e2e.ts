@@ -3,10 +3,10 @@
  *
  * Verifies the full lifecycle of scheduled tasks via real AI conversations:
  * 1. Send a message asking AI to create a scheduled task
- * 2. AI outputs [CRON_LIST] → system responds → AI outputs [CRON_CREATE]
+ * 2. AI uses the injected cron HTTP helper to create the task
  * 3. Verify task appears in the scheduled tasks page and conversation remains in normal history
  * 4. Send a follow-up message to modify the task
- * 5. AI outputs [CRON_UPDATE] preserving conversations
+ * 5. AI uses the injected cron HTTP helper to update the task while preserving conversations
  * 6. Delete task from detail page, verify conversation still accessible
  */
 import { test, expect } from '../fixtures';

@@ -8,6 +8,7 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useAcpMessage } from '@/renderer/pages/conversation/platforms/acp/useAcpMessage';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
+import { resetEnsureConversationRuntimeStateForTests } from '@/renderer/pages/conversation/utils/ensureConversationRuntime';
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 
 const {
@@ -56,9 +57,20 @@ vi.mock('@/common', () => ({
   },
 }));
 
+function deferred<T>() {
+  let resolve!: (value: T | PromiseLike<T>) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+  return { promise, resolve, reject };
+}
+
 describe('useAcpMessage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    resetEnsureConversationRuntimeStateForTests();
     ensureRuntimeInvokeMock.mockResolvedValue({ recovered: false, config_options: [], runtime: null });
     getSlashCommandsInvokeMock.mockResolvedValue([]);
     responseStreamHandlerRef.current = undefined;
@@ -244,6 +256,9 @@ describe('useAcpMessage', () => {
 
     await waitFor(() => {
       expect(ensureRuntimeInvokeMock).toHaveBeenCalledWith({ conversation_id: 'conv-1' });
+      expect(getSlashCommandsInvokeMock).toHaveBeenCalledWith({ conversation_id: 'conv-1' });
+    });
+    await waitFor(() => {
       expect(result.current.slashCommands).toEqual([
         {
           name: 'review',
@@ -255,7 +270,53 @@ describe('useAcpMessage', () => {
         },
       ]);
     });
-    expect(getSlashCommandsInvokeMock).toHaveBeenCalledWith({ conversation_id: 'conv-1' });
+  });
+
+  it('deduplicates slash command fetches while a request is in flight', async () => {
+    vi.mocked(getConversationOrNull).mockResolvedValue(null);
+    const slashCommandsDeferred = deferred<
+      Array<{
+        command: string;
+        description: string;
+      }>
+    >();
+    getSlashCommandsInvokeMock.mockReturnValue(slashCommandsDeferred.promise);
+
+    const { result } = renderHook(() => useAcpMessage('conv-1'));
+
+    await waitFor(() => {
+      expect(getSlashCommandsInvokeMock).toHaveBeenCalledTimes(1);
+    });
+
+    act(() => {
+      result.current.fetchSlashCommands();
+    });
+
+    await waitFor(() => {
+      expect(getSlashCommandsInvokeMock).toHaveBeenCalledTimes(1);
+    });
+
+    await act(async () => {
+      slashCommandsDeferred.resolve([
+        {
+          command: 'review',
+          description: 'Review the current diff',
+        },
+      ]);
+      await slashCommandsDeferred.promise;
+    });
+
+    await waitFor(() => {
+      expect(result.current.slashCommands).toEqual([
+        {
+          name: 'review',
+          description: 'Review the current diff',
+          kind: 'template',
+          source: 'acp',
+          selectionBehavior: 'insert',
+        },
+      ]);
+    });
   });
 
   it('normalizes team teammate messages before inserting them into the message list', async () => {

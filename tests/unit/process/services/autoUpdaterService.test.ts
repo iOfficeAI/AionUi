@@ -6,7 +6,7 @@
 
 import path from 'path';
 
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const autoUpdaterMock = vi.hoisted(() => ({
   logger: null as unknown,
@@ -27,6 +27,11 @@ const autoUpdaterMock = vi.hoisted(() => ({
   checkForUpdatesAndNotify: vi.fn(),
 }));
 
+const nativeAutoUpdaterMock = vi.hoisted(() => ({
+  on: vi.fn(),
+  removeListener: vi.fn(),
+}));
+
 const appMock = vi.hoisted(() => ({
   isPackaged: false,
   getVersion: vi.fn(() => '2.1.13'),
@@ -40,6 +45,14 @@ vi.mock('electron-updater', () => ({
 
 vi.mock('electron', () => ({
   app: appMock,
+  autoUpdater: nativeAutoUpdaterMock,
+}));
+
+vi.mock('@/process/services/i18n', () => ({
+  default: {
+    t: (key: string) => key,
+  },
+  i18nReady: Promise.resolve(),
 }));
 
 vi.mock('electron-log', () => ({
@@ -53,9 +66,19 @@ vi.mock('electron-log', () => ({
 }));
 
 describe('AutoUpdaterService', () => {
+  const originalPlatform = process.platform;
+
+  const setPlatform = (platform: NodeJS.Platform): void => {
+    Object.defineProperty(process, 'platform', {
+      configurable: true,
+      value: platform,
+    });
+  };
+
   beforeEach(() => {
     vi.resetModules();
     vi.clearAllMocks();
+    setPlatform(originalPlatform);
     autoUpdaterMock.logger = null;
     autoUpdaterMock.autoDownload = true;
     autoUpdaterMock.autoInstallOnAppQuit = false;
@@ -67,10 +90,18 @@ describe('AutoUpdaterService', () => {
     appMock.isPackaged = false;
     delete process.env.AIONUI_FORCE_DEV_AUTO_UPDATE;
     delete process.env.AIONUI_DEBUG_AUTO_UPDATE_CURRENT_VERSION;
+    nativeAutoUpdaterMock.on.mockReset();
+    nativeAutoUpdaterMock.removeListener.mockReset();
     Object.defineProperty(autoUpdaterMock, 'currentVersion', {
       configurable: true,
       value: { version: '2.1.13' },
     });
+  });
+
+  afterEach(() => {
+    vi.clearAllTimers();
+    vi.useRealTimers();
+    setPlatform(originalPlatform);
   });
 
   it('does not use the stable CDN updater when prerelease manual mode is enabled', async () => {
@@ -147,6 +178,24 @@ describe('AutoUpdaterService', () => {
     const entry = autoUpdaterMock.on.mock.calls.find(([event]) => event === 'update-downloaded');
     if (!entry) throw new Error('update-downloaded handler not registered');
     return entry[1] as (info: { version: string }) => void;
+  };
+
+  const getNativeUpdateDownloadedHandler = (): (() => void) => {
+    const entry = nativeAutoUpdaterMock.on.mock.calls.find(([event]) => event === 'update-downloaded');
+    if (!entry) throw new Error('native update-downloaded handler not registered');
+    return entry[1] as () => void;
+  };
+
+  const getNativeErrorHandler = (): ((error: Error) => void) => {
+    const entry = nativeAutoUpdaterMock.on.mock.calls.find(([event]) => event === 'error');
+    if (!entry) throw new Error('native error handler not registered');
+    return entry[1] as (error: Error) => void;
+  };
+
+  const getCheckingForUpdateHandler = (): (() => void) => {
+    const entry = autoUpdaterMock.on.mock.calls.find(([event]) => event === 'checking-for-update');
+    if (!entry) throw new Error('checking-for-update handler not registered');
+    return entry[1] as () => void;
   };
 
   it('clarifies the Squirrel bundle error in dev mode', async () => {
@@ -319,5 +368,178 @@ describe('AutoUpdaterService', () => {
       data: { ready: false },
     });
     expect(autoUpdaterMock.downloadUpdate).not.toHaveBeenCalled();
+  });
+
+  it('waits on macOS when service downloaded but native install readiness has not arrived', async () => {
+    setPlatform('darwin');
+    const cleanup = vi.fn();
+    const statuses: Array<{ status: string; error?: string }> = [];
+    const { autoUpdaterService } = await import('@/process/services/autoUpdaterService');
+
+    autoUpdaterService.initialize();
+    autoUpdaterService.setBeforeQuitAndInstall(cleanup);
+    autoUpdaterService.on('update-status', (status: { status: string; error?: string }) => statuses.push(status));
+    getUpdateDownloadedHandler()({ version: '2.2.0' });
+
+    const installPromise = autoUpdaterService.quitAndInstall();
+    await Promise.resolve();
+
+    expect(statuses.some((status) => status.status === 'preparing-install')).toBe(true);
+    expect(cleanup).not.toHaveBeenCalled();
+    expect(autoUpdaterMock.quitAndInstall).not.toHaveBeenCalled();
+
+    getNativeUpdateDownloadedHandler()();
+    await installPromise;
+
+    expect(cleanup).toHaveBeenCalledTimes(1);
+    expect(autoUpdaterMock.quitAndInstall).toHaveBeenCalledWith(true, true);
+  });
+
+  it('does not quit on macOS when native updater reports readiness error first', async () => {
+    setPlatform('darwin');
+    const statuses: Array<{ status: string; error?: string }> = [];
+    const { autoUpdaterService } = await import('@/process/services/autoUpdaterService');
+
+    autoUpdaterService.initialize();
+    autoUpdaterService.on('update-status', (status: { status: string; error?: string }) => statuses.push(status));
+    getUpdateDownloadedHandler()({ version: '2.2.0' });
+
+    const installPromise = autoUpdaterService.quitAndInstall();
+    await Promise.resolve();
+    getNativeErrorHandler()(new Error('native failed'));
+
+    await expect(installPromise).rejects.toThrow('update.errors.prepareInstallFailed');
+    expect(autoUpdaterMock.quitAndInstall).not.toHaveBeenCalled();
+    expect(statuses.at(-1)).toEqual({
+      status: 'error',
+      error: 'update.errors.prepareInstallFailed',
+    });
+  });
+
+  it('does not quit on macOS when native updater readiness times out', async () => {
+    setPlatform('darwin');
+    vi.useFakeTimers();
+    const statuses: Array<{ status: string; error?: string }> = [];
+    const { autoUpdaterService } = await import('@/process/services/autoUpdaterService');
+
+    autoUpdaterService.initialize();
+    autoUpdaterService.on('update-status', (status: { status: string; error?: string }) => statuses.push(status));
+    getUpdateDownloadedHandler()({ version: '2.2.0' });
+
+    const installPromise = autoUpdaterService.quitAndInstall();
+    await Promise.resolve();
+    const installRejection = expect(installPromise).rejects.toThrow('update.errors.prepareInstallTimeout');
+    await vi.advanceTimersByTimeAsync(60_000);
+
+    await installRejection;
+    expect(autoUpdaterMock.quitAndInstall).not.toHaveBeenCalled();
+    expect(statuses.at(-1)).toEqual({
+      status: 'error',
+      error: 'update.errors.prepareInstallTimeout',
+    });
+  });
+
+  it('resets macOS native readiness when a new update check starts', async () => {
+    setPlatform('darwin');
+    const cleanup = vi.fn();
+    const { autoUpdaterService } = await import('@/process/services/autoUpdaterService');
+
+    autoUpdaterService.initialize();
+    autoUpdaterService.setBeforeQuitAndInstall(cleanup);
+    getUpdateDownloadedHandler()({ version: '2.2.0' });
+    getNativeUpdateDownloadedHandler()();
+    getCheckingForUpdateHandler()();
+    getUpdateDownloadedHandler()({ version: '2.3.0' });
+
+    const installPromise = autoUpdaterService.quitAndInstall();
+    await Promise.resolve();
+
+    expect(cleanup).not.toHaveBeenCalled();
+    expect(autoUpdaterMock.quitAndInstall).not.toHaveBeenCalled();
+
+    getNativeUpdateDownloadedHandler()();
+    await installPromise;
+
+    expect(cleanup).toHaveBeenCalledTimes(1);
+    expect(autoUpdaterMock.quitAndInstall).toHaveBeenCalledWith(true, true);
+  });
+
+  it('rejects a pending macOS install wait when a new update check starts', async () => {
+    setPlatform('darwin');
+    const { autoUpdaterService } = await import('@/process/services/autoUpdaterService');
+
+    autoUpdaterService.initialize();
+    getUpdateDownloadedHandler()({ version: '2.2.0' });
+
+    const installPromise = autoUpdaterService.quitAndInstall();
+    await Promise.resolve();
+    const installRejection = expect(installPromise).rejects.toThrow('update.errors.prepareInstallFailed');
+
+    getCheckingForUpdateHandler()();
+
+    await installRejection;
+    expect(autoUpdaterMock.quitAndInstall).not.toHaveBeenCalled();
+  });
+
+  it('broadcasts an error when pre-install cleanup fails after macOS readiness', async () => {
+    setPlatform('darwin');
+    const cleanupError = new Error('cleanup failed');
+    const statuses: Array<{ status: string; error?: string }> = [];
+    const { autoUpdaterService } = await import('@/process/services/autoUpdaterService');
+
+    autoUpdaterService.initialize();
+    autoUpdaterService.setBeforeQuitAndInstall(async () => {
+      throw cleanupError;
+    });
+    autoUpdaterService.on('update-status', (status: { status: string; error?: string }) => statuses.push(status));
+    getUpdateDownloadedHandler()({ version: '2.2.0' });
+
+    const installPromise = autoUpdaterService.quitAndInstall();
+    await Promise.resolve();
+    getNativeUpdateDownloadedHandler()();
+
+    await expect(installPromise).rejects.toThrow('cleanup failed');
+    expect(autoUpdaterMock.quitAndInstall).not.toHaveBeenCalled();
+    expect(statuses.at(-1)).toEqual({
+      status: 'error',
+      error: 'update.errors.prepareInstallFailed',
+    });
+  });
+
+  it('does not force exit when quitAndInstall handoff throws', async () => {
+    setPlatform('darwin');
+    const statuses: Array<{ status: string; error?: string }> = [];
+    const { autoUpdaterService } = await import('@/process/services/autoUpdaterService');
+
+    autoUpdaterMock.quitAndInstall.mockImplementationOnce(() => {
+      throw new Error('handoff failed');
+    });
+    autoUpdaterService.initialize();
+    autoUpdaterService.on('update-status', (status: { status: string; error?: string }) => statuses.push(status));
+    getUpdateDownloadedHandler()({ version: '2.2.0' });
+    getNativeUpdateDownloadedHandler()();
+
+    await expect(autoUpdaterService.quitAndInstall()).rejects.toThrow('update.errors.prepareInstallFailed');
+
+    expect(appMock.exit).not.toHaveBeenCalled();
+    expect(statuses.at(-1)).toEqual({
+      status: 'error',
+      error: 'update.errors.prepareInstallFailed',
+    });
+  });
+
+  it('keeps non-macOS quitAndInstall behavior immediate', async () => {
+    setPlatform('win32');
+    const cleanup = vi.fn();
+    const { autoUpdaterService } = await import('@/process/services/autoUpdaterService');
+
+    autoUpdaterService.initialize();
+    autoUpdaterService.setBeforeQuitAndInstall(cleanup);
+
+    await autoUpdaterService.quitAndInstall();
+
+    expect(cleanup).toHaveBeenCalledTimes(1);
+    expect(autoUpdaterMock.quitAndInstall).toHaveBeenCalledWith(true, true);
+    expect(nativeAutoUpdaterMock.on).not.toHaveBeenCalled();
   });
 });

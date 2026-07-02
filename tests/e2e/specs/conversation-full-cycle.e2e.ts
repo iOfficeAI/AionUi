@@ -27,6 +27,8 @@ import {
   startAutoApprovePermissionMessages,
   MODE_SELECTOR,
   httpGet,
+  httpPost,
+  httpDelete,
   resolveAionrsPreconditions,
 } from '../helpers';
 
@@ -80,6 +82,19 @@ type AssistantRecord = {
   id: string;
 };
 
+type ManagedAgentRecord = {
+  id: string;
+  name?: string;
+  backend?: string | null;
+  agent_type?: string;
+  enabled?: boolean;
+  installed?: boolean;
+  status?: string;
+  last_check_status?: string;
+  last_check_error_code?: string;
+  last_check_error_message?: string;
+};
+
 type ConversationWithAssistant = {
   assistant?: {
     id: string;
@@ -87,9 +102,79 @@ type ConversationWithAssistant = {
   } | null;
 };
 
+function agentMatchesBackend(agent: ManagedAgentRecord, backend: string): boolean {
+  return agent.backend === backend || (!agent.backend && agent.agent_type === backend);
+}
+
+function formatAgentHealthFailure(backend: string, agent: ManagedAgentRecord | null): string {
+  if (!agent) return `${backend} agent row was not found after refresh`;
+  const fields = [
+    `id=${agent.id}`,
+    `name=${agent.name ?? ''}`,
+    `status=${agent.status ?? ''}`,
+    `last_check_status=${agent.last_check_status ?? ''}`,
+    `last_check_error_code=${agent.last_check_error_code ?? ''}`,
+    `last_check_error_message=${agent.last_check_error_message ?? ''}`,
+  ];
+  return `${backend} assistant did not become online after health-check (${fields.join(', ')})`;
+}
+
+async function refreshAssistantForBackend(
+  page: import('@playwright/test').Page,
+  backend: string
+): Promise<ManagedAgentRecord | null> {
+  await httpPost(page, '/api/agents/refresh', {}).catch(() => undefined);
+  const agents = await httpGet<ManagedAgentRecord[]>(page, '/api/agents/management').catch(() => []);
+  const agent = agents.find((item) => item.enabled !== false && agentMatchesBackend(item, backend)) ?? null;
+  if (!agent || agent.installed === false) return agent;
+
+  return httpPost<ManagedAgentRecord>(page, `/api/agents/${encodeURIComponent(agent.id)}/health-check`, {}).catch(
+    () => agent
+  );
+}
+
+async function requireOnlineAssistantForBackend(
+  page: import('@playwright/test').Page,
+  backend: string
+): Promise<string> {
+  const checkedAgent = await refreshAssistantForBackend(page, backend);
+  if (!checkedAgent || checkedAgent.installed === false || checkedAgent.enabled === false) {
+    test.skip(true, `${backend} assistant is not installed or enabled`);
+    throw new Error(`${backend} assistant is not installed or enabled`);
+  }
+
+  let lastAgent: ManagedAgentRecord | null = checkedAgent;
+  let onlineAssistantId: string | null = null;
+  await expect
+    .poll(
+      async () => {
+        const id = await findAssistantIdForBackend(page, backend, { requireAvailable: true }).catch(() => null);
+        if (id) {
+          onlineAssistantId = id;
+          return id;
+        }
+
+        const agents = await httpGet<ManagedAgentRecord[]>(page, '/api/agents/management').catch(() => []);
+        lastAgent = agents.find((item) => agentMatchesBackend(item, backend)) ?? lastAgent;
+        return null;
+      },
+      {
+        timeout: 60_000,
+        message: formatAgentHealthFailure(backend, lastAgent),
+      }
+    )
+    .not.toBeNull();
+
+  if (!onlineAssistantId) {
+    throw new Error(formatAgentHealthFailure(backend, lastAgent));
+  }
+  return onlineAssistantId;
+}
+
 type ConversationMessageRecord = {
   type?: string;
   content?: unknown;
+  position?: string;
 };
 
 type ConversationArtifactRecord = {
@@ -125,8 +210,8 @@ async function selectCronDialogAgentByPattern(
 ): Promise<string | null> {
   const agentSelect = dialog.locator('[data-testid="cron-assistant-select"]').first();
   await agentSelect.click();
-  const anyOptionVisible = await page
-    .locator('.arco-select-option')
+  const selectableOptions = page.locator('.arco-select-option:not(.arco-select-option-disabled)');
+  const anyOptionVisible = await selectableOptions
     .first()
     .waitFor({ state: 'visible', timeout: 5_000 })
     .then(() => true)
@@ -138,7 +223,7 @@ async function selectCronDialogAgentByPattern(
   }
 
   for (const pattern of preferredPatterns) {
-    const option = page.locator('.arco-select-option').filter({ hasText: pattern }).first();
+    const option = selectableOptions.filter({ hasText: pattern }).first();
     if (await option.isVisible().catch(() => false)) {
       const label = (await option.textContent())?.trim() ?? null;
       await option.click();
@@ -146,7 +231,7 @@ async function selectCronDialogAgentByPattern(
     }
   }
 
-  const fallback = page.locator('.arco-select-option').first();
+  const fallback = selectableOptions.first();
   if (!(await fallback.isVisible().catch(() => false))) {
     await page.keyboard.press('Escape').catch(() => {});
     await page.keyboard.press('Escape').catch(() => {});
@@ -155,6 +240,42 @@ async function selectCronDialogAgentByPattern(
   const label = (await fallback.textContent())?.trim() ?? null;
   await fallback.click();
   return label;
+}
+
+async function waitForCronCreateDialogToClose(
+  page: import('@playwright/test').Page,
+  dialog: import('@playwright/test').Locator
+): Promise<void> {
+  const closed = await dialog
+    .waitFor({ state: 'hidden', timeout: 10_000 })
+    .then(() => true)
+    .catch(() => false);
+  if (closed) return;
+
+  const diagnostics = await page.evaluate(() => {
+    const messages = Array.from(document.querySelectorAll('.arco-message, .arco-message-wrapper'))
+      .map((el) => el.textContent?.trim())
+      .filter(Boolean);
+    const formErrors = Array.from(document.querySelectorAll('.arco-form-message, .arco-form-item-error'))
+      .map((el) => el.textContent?.trim())
+      .filter(Boolean);
+    const selectedAssistant = Array.from(document.querySelectorAll('[data-testid="cron-assistant-select"]'))
+      .map((el) => el.textContent?.trim())
+      .filter(Boolean);
+    const modalText = Array.from(document.querySelectorAll('.arco-modal'))
+      .map((el) => el.textContent?.trim())
+      .filter(Boolean)
+      .join('\n')
+      .slice(0, 2000);
+    return {
+      messages,
+      formErrors,
+      selectedAssistant,
+      modalText,
+    };
+  });
+
+  throw new Error(`CreateTaskDialog did not close after save: ${JSON.stringify(diagnostics)}`);
 }
 
 async function getAvailableModes(page: import('@playwright/test').Page): Promise<string[]> {
@@ -313,6 +434,47 @@ async function getConversationMessages(
   );
   if (Array.isArray(result)) return result;
   return Array.isArray(result?.items) ? result.items : [];
+}
+
+function messageContentText(message: ConversationMessageRecord): string {
+  const parsed = parseJsonish<{ content?: unknown }>(message.content);
+  return typeof parsed?.content === 'string' ? parsed.content : '';
+}
+
+async function waitForCronCreationConfirmation(
+  page: import('@playwright/test').Page,
+  conversationId: string,
+  taskName: string,
+  timeoutMs = 180_000
+): Promise<string> {
+  let lastAssistantText = '';
+  await expect
+    .poll(
+      async () => {
+        const messages = await getConversationMessages(page, conversationId);
+        const assistantTexts = messages
+          .filter((message) => message.type === 'text' && message.position !== 'right')
+          .map(messageContentText)
+          .filter(Boolean);
+        lastAssistantText = assistantTexts.at(-1) ?? '';
+        return assistantTexts.some((text) => {
+          const lower = text.toLowerCase();
+          return (
+            text.includes(taskName) &&
+            /created|success|done/.test(lower) &&
+            !/cron_[0-9a-f-]+/i.test(text) &&
+            !/failed|error|cannot|can't/.test(lower)
+          );
+        });
+      },
+      {
+        timeout: timeoutMs,
+        message: `Waiting for user-friendly cron creation confirmation for task ${taskName}. Last assistant text: ${lastAssistantText}`,
+      }
+    )
+    .toBe(true);
+
+  return lastAssistantText;
 }
 
 async function waitForSkillSuggestMessage(
@@ -719,6 +881,12 @@ test.describe('Conversation Full Cycle', () => {
       return;
     }
     await createBtn.click();
+    const manualCreateItem = page
+      .locator('.arco-dropdown-menu-item')
+      .filter({ hasText: /Create manually|手动创建/ })
+      .first();
+    await manualCreateItem.waitFor({ state: 'visible', timeout: 5_000 });
+    await manualCreateItem.click();
 
     // Wait for CreateTaskDialog
     const dialog = page.locator('.arco-modal').first();
@@ -732,12 +900,13 @@ test.describe('Conversation Full Cycle', () => {
     // so target the inner input/textarea via "#<field> input" / "#<field> textarea"
     const taskName = `E2E-CLI-${Date.now()}`;
     await dialog.locator('#name input').fill(taskName);
-    await dialog.locator('#description input').fill('E2E test task');
 
     const agentSelect = dialog.locator('[data-testid="cron-assistant-select"]').first();
     await agentSelect.click();
 
-    const assistantOptions = page.locator('.arco-select-option').filter({ hasText: /Claude|Codex|Gemini|Aion/ });
+    const assistantOptions = page
+      .locator('.arco-select-option:not(.arco-select-option-disabled)')
+      .filter({ hasText: /Claude|Codex|Gemini|Aion/ });
     if ((await assistantOptions.count()) === 0) {
       await page.keyboard.press('Escape');
       await page.keyboard.press('Escape');
@@ -757,7 +926,7 @@ test.describe('Conversation Full Cycle', () => {
     await page.locator('.arco-modal-footer .arco-btn-primary').first().click();
 
     // Dialog should close after successful creation
-    await dialog.waitFor({ state: 'hidden', timeout: 10_000 });
+    await waitForCronCreateDialogToClose(page, dialog);
 
     // Verify the new task card appears on the Scheduled Tasks list
     const taskCard = page.locator('span').filter({ hasText: taskName }).first();
@@ -767,11 +936,8 @@ test.describe('Conversation Full Cycle', () => {
     await taskCard.click();
     await page.waitForFunction(() => window.location.hash.includes('/scheduled/'), { timeout: 10_000 });
 
-    // Verify detail page: title, description, prompt
+    // Verify detail page: title and prompt
     await expect(page.locator('h1').filter({ hasText: taskName }).first()).toBeVisible({ timeout: 5_000 });
-    await expect(page.locator('[data-testid="task-detail-summary"]')).toContainText('E2E test task', {
-      timeout: 5_000,
-    });
     await expect(page.locator('[data-testid="task-detail-sidebar-column"]')).toContainText('Say hello', {
       timeout: 5_000,
     });
@@ -819,6 +985,11 @@ test.describe('Conversation Full Cycle', () => {
       return;
     }
     await createBtn.click();
+    await page
+      .locator('.arco-dropdown-menu-item')
+      .filter({ hasText: /Create manually|手动创建/ })
+      .first()
+      .click();
 
     const dialog = page.locator('.arco-modal').first();
     await dialog.waitFor({ state: 'visible', timeout: 5_000 }).catch(() => {});
@@ -830,7 +1001,6 @@ test.describe('Conversation Full Cycle', () => {
     // Fill form fields
     const taskName = `E2E-Preset-${Date.now()}`;
     await dialog.locator('#name input').fill(taskName);
-    await dialog.locator('#description input').fill('E2E preset test');
 
     const agentSelect = dialog.locator('[data-testid="cron-assistant-select"]').first();
     await agentSelect.click();
@@ -848,13 +1018,19 @@ test.describe('Conversation Full Cycle', () => {
     }
 
     // Click the first option after the preset group title (next sibling li.arco-select-option)
-    const firstPresetOption = presetGroupTitle.first().locator('~ .arco-select-option').first();
+    const firstPresetOption = presetGroupTitle
+      .first()
+      .locator('~ .arco-select-option:not(.arco-select-option-disabled)')
+      .first();
     if (!(await firstPresetOption.isVisible().catch(() => false))) {
       // Fallback: use evaluate to find next sibling
       const clicked = await presetGroupTitle.first().evaluate((el) => {
         let next = el.nextElementSibling;
         while (next) {
-          if (next.classList.contains('arco-select-option')) {
+          if (
+            next.classList.contains('arco-select-option') &&
+            !next.classList.contains('arco-select-option-disabled')
+          ) {
             (next as HTMLElement).click();
             return next.textContent;
           }
@@ -896,9 +1072,6 @@ test.describe('Conversation Full Cycle', () => {
 
     // Verify detail page
     await expect(page.locator('h1').filter({ hasText: taskName }).first()).toBeVisible({ timeout: 5_000 });
-    await expect(page.locator('[data-testid="task-detail-summary"]')).toContainText('E2E preset test', {
-      timeout: 5_000,
-    });
     await expect(page.locator('[data-testid="task-detail-sidebar-column"]')).toContainText('Summarize news', {
       timeout: 5_000,
     });
@@ -946,6 +1119,11 @@ test.describe('Conversation Full Cycle', () => {
       return;
     }
     await createBtn.click();
+    await page
+      .locator('.arco-dropdown-menu-item')
+      .filter({ hasText: /Create manually|手动创建/ })
+      .first()
+      .click();
 
     const dialog = page.locator('.arco-modal').first();
     await dialog.waitFor({ state: 'visible', timeout: 5_000 }).catch(() => {});
@@ -956,7 +1134,6 @@ test.describe('Conversation Full Cycle', () => {
 
     const taskName = `E2E-RunNow-${Date.now()}`;
     await dialog.locator('#name input').fill(taskName);
-    await dialog.locator('#description input').fill('E2E run now test');
 
     if (!(await selectPreferredCronDialogAgent(page, dialog))) {
       test.skip(true, 'No usable agent available in create task dialog');
@@ -1062,7 +1239,7 @@ test.describe('Conversation Full Cycle', () => {
     stopAutoApprove?.();
   });
 
-  const cronConversationAgents = ['claude', 'codex', 'gemini', 'aionrs'] as const;
+  const cronConversationAgents = ['claude', 'codex', 'gemini', 'aionrs', 'opencode'] as const;
 
   for (const backend of cronConversationAgents) {
     test(`cron -- ${backend} conversation skill creates task with full-auto job mode`, async ({ page }) => {
@@ -1078,10 +1255,6 @@ test.describe('Conversation Full Cycle', () => {
         await page
           .waitForFunction(() => (document.body.textContent?.length ?? 0) > 200, { timeout: 15_000 })
           .catch(() => {});
-        if (!(await findAssistantIdForBackend(page, backend, { requireAvailable: true }))) {
-          test.skip(true, `${backend} assistant not available on guid page`);
-          return;
-        }
         if (backend === 'aionrs') {
           const preconditions = await resolveAionrsPreconditions(page);
           if (!preconditions.binary || !preconditions.models) {
@@ -1089,6 +1262,7 @@ test.describe('Conversation Full Cycle', () => {
             return;
           }
         }
+        await requireOnlineAssistantForBackend(page, backend);
         await expectCronBuiltinAutoSkill(page);
         await selectAgent(page, backend);
 
@@ -1106,13 +1280,13 @@ test.describe('Conversation Full Cycle', () => {
         const taskName = `E2E-${backend}-Cron-${Date.now()}`;
         const cronPromptLines = [
           'Use the cron skill.',
-          'Reply with only a single CRON_CREATE command block and no extra prose.',
-          '[CRON_CREATE]',
-          `name: ${taskName}`,
-          'schedule: 30 9 * * 1-5',
-          'schedule_description: Every weekday at 9:30 AM',
-          `message: Reply with a short ${backend} cron greeting.`,
-          '[/CRON_CREATE]',
+          'Create the scheduled task by calling the cron HTTP helper provided by the skill.',
+          'Do not print or use the legacy bracket command protocol.',
+          `Name: ${taskName}`,
+          'Cron schedule: 30 9 * * 1-5',
+          'Schedule description: Every weekday at 9:30 AM',
+          `Task message: Reply with a short ${backend} cron greeting.`,
+          'After the HTTP helper returns success, reply with a short user-friendly confirmation that includes the task name. Do not show internal ids.',
         ];
         conversationId = await sendMessageFromGuid(page, cronPromptLines.join(' '));
         expect(conversationId).toBeTruthy();
@@ -1151,16 +1325,44 @@ test.describe('Conversation Full Cycle', () => {
           )
           .toBe(job.id);
 
-        await waitForSessionActive(page, 180_000);
-        const reply = await waitForAiReply(page, 180_000);
-        expect(reply.length).toBeGreaterThan(0);
+        const reply = await waitForCronCreationConfirmation(page, conversationId, taskName, 180_000);
+        expect(reply).toContain(taskName);
+        expect(reply).not.toContain(job.id);
+
+        await page.evaluate((jobId) => window.location.assign(`#/scheduled/${jobId}`), job.id);
+        await page.waitForFunction((jobId) => window.location.hash.includes(`/scheduled/${jobId}`), job.id, {
+          timeout: 10_000,
+        });
+        await expect(page.locator('h1').filter({ hasText: taskName }).first()).toBeVisible({ timeout: 10_000 });
+
+        const historyColumn = page.locator('[data-testid="task-detail-history-column"]');
+        await expect
+          .poll(
+            async () => {
+              return historyColumn.locator('.cursor-pointer').count();
+            },
+            {
+              timeout: 15_000,
+              message: `Waiting for cron job ${job.id} to show associated conversation ${conversationId}`,
+            }
+          )
+          .toBeGreaterThanOrEqual(1);
+
+        await historyColumn.locator('.cursor-pointer').first().click();
+        await page.waitForFunction((cid) => window.location.hash.includes(`/conversation/${cid}`), conversationId, {
+          timeout: 10_000,
+        });
+        await expect(page.locator('.chat-header-cron-pill')).toBeVisible({ timeout: 15_000 });
       } finally {
         stopAutoApprove?.();
-        if (createdJobId) {
-          await invokeBridge(page, 'cron.remove-job', { job_id: createdJobId }).catch(() => {});
-        }
+        let conversationDeleted = false;
         if (conversationId) {
-          await deleteConversation(page, conversationId).catch(() => {});
+          conversationDeleted = await httpDelete(page, `/api/conversations/${encodeURIComponent(conversationId)}`)
+            .then(() => true)
+            .catch(() => false);
+        }
+        if (createdJobId && !conversationDeleted) {
+          await invokeBridge(page, 'cron.remove-job', { job_id: createdJobId }).catch(() => {});
         }
         await goToGuid(page).catch(() => {});
       }
@@ -1203,6 +1405,11 @@ test.describe('Conversation Full Cycle', () => {
         return;
       }
       await createBtn.click();
+      await page
+        .locator('.arco-dropdown-menu-item')
+        .filter({ hasText: /Create manually|手动创建/ })
+        .first()
+        .click();
 
       const dialog = page.locator('.arco-modal').first();
       await dialog.waitFor({ state: 'visible', timeout: 5_000 }).catch(() => {});
@@ -1214,7 +1421,6 @@ test.describe('Conversation Full Cycle', () => {
 
       const taskName = `E2E-SkillSuggest-${Date.now()}`;
       await dialog.locator('#name input').fill(taskName);
-      await dialog.locator('#description input').fill('E2E cron skill suggest flow');
 
       if (!(await selectPreferredCronDialogAgent(page, dialog))) {
         console.log('[cron-skill-suggest-e2e] skip: no usable agent in dialog');

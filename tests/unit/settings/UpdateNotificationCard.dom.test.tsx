@@ -17,6 +17,7 @@ const mocks = vi.hoisted(() => ({
   autoUpdateRestoreDownloadedMock: vi.fn(),
   autoUpdateDownloadMock: vi.fn(),
   autoUpdateCancelDownloadMock: vi.fn(),
+  autoUpdateQuitAndInstallMock: vi.fn(),
   updateCheckMock: vi.fn(),
   updateDownloadMock: vi.fn(),
   updateCancelDownloadMock: vi.fn(),
@@ -37,7 +38,7 @@ vi.mock('@/common', () => ({
       restoreDownloaded: { invoke: mocks.autoUpdateRestoreDownloadedMock },
       download: { invoke: mocks.autoUpdateDownloadMock },
       cancelDownload: { invoke: mocks.autoUpdateCancelDownloadMock },
-      quitAndInstall: { invoke: vi.fn() },
+      quitAndInstall: { invoke: mocks.autoUpdateQuitAndInstallMock },
       status: {
         on: vi.fn((handler: (evt: AutoUpdateStatus) => void) => {
           mocks.autoStatusHandler = handler;
@@ -82,6 +83,7 @@ describe('UpdateNotificationCard', () => {
     mocks.autoUpdateRestoreDownloadedMock.mockResolvedValue({ success: true, data: { ready: false } });
     mocks.autoUpdateDownloadMock.mockResolvedValue({ success: true });
     mocks.autoUpdateCancelDownloadMock.mockResolvedValue({ success: true });
+    mocks.autoUpdateQuitAndInstallMock.mockResolvedValue(undefined);
     mocks.updateCancelDownloadMock.mockResolvedValue({ success: true });
     mocks.updateCheckMock.mockResolvedValue({
       success: true,
@@ -448,6 +450,63 @@ describe('UpdateNotificationCard', () => {
     expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
     expect(screen.getByText('update.later')).toBeInTheDocument();
     expect(screen.getByText('update.restartNow')).toBeInTheDocument();
+  });
+
+  it('shows preparing install loading state after restart is clicked and hides later action', async () => {
+    let resolveInstall!: () => void;
+    mocks.autoUpdateQuitAndInstallMock.mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveInstall = resolve;
+        })
+    );
+
+    render(<UpdateNotificationCard />);
+
+    await waitFor(() => {
+      expect(mocks.autoStatusHandler).toBeTruthy();
+    });
+
+    await act(async () => {
+      mocks.autoStatusHandler?.({
+        status: 'available',
+        version: '2.1.14',
+        currentVersion: '2.1.13',
+        releaseNotes: 'auto notes',
+      });
+    });
+
+    fireEvent.click(await screen.findByText('update.downloadButton'));
+
+    await act(async () => {
+      mocks.autoStatusHandler?.({
+        status: 'downloading',
+        progress: {
+          bytesPerSecond: 1048576,
+          percent: 100,
+          transferred: 4194304,
+          total: 4194304,
+        },
+      });
+      mocks.autoStatusHandler?.({
+        status: 'downloaded',
+        version: '2.1.14',
+      });
+    });
+
+    fireEvent.click(await screen.findByText('update.restartNow'));
+
+    expect(await screen.findByText('update.preparingInstall')).toBeInTheDocument();
+    expect(screen.getByText('update.downloadCompleteTitle')).toBeInTheDocument();
+    expect(screen.queryByText('update.later')).not.toBeInTheDocument();
+    expect(mocks.autoUpdateQuitAndInstallMock).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(screen.getByRole('button', { name: 'update.preparingInstall' }));
+    expect(mocks.autoUpdateQuitAndInstallMock).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      resolveInstall();
+    });
   });
 
   it('does not render a close button in the error state', async () => {

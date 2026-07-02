@@ -522,7 +522,8 @@
     "label": "思考中..."
   },
   "skills": {
-    "loaded": "已載入技能"
+    "loaded": "已載入技能",
+    "slashHint": "技能"
   },
   "mcp": {
     "loaded": "已載入 MCP",

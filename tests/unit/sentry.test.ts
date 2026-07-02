@@ -11,6 +11,9 @@
 import { describe, it, expect, vi } from 'vitest';
 import { gunzipSync } from 'node:zlib';
 import { randomBytes } from 'node:crypto';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import * as path from 'node:path';
 
 vi.mock('electron', () => ({
   app: { getVersion: () => '0.0.0-test', getPath: () => '/tmp', isPackaged: false },
@@ -52,7 +55,7 @@ vi.mock('@/process/services/autoUpdateDiagnostics', () => ({
 }));
 
 import * as Sentry from '@sentry/electron/main';
-import { selectRecentLogFiles, packAndCap, captureBackendStartupFailure, initSentry } from '@/sentry';
+import { listLogFilesSync, selectRecentLogFiles, packAndCap, captureBackendStartupFailure, initSentry } from '@/sentry';
 
 describe('selectRecentLogFiles', () => {
   it('returns every file from the N most recent non-empty days', () => {
@@ -81,6 +84,30 @@ describe('selectRecentLogFiles', () => {
     ];
     const picked = selectRecentLogFiles(files, 7);
     expect(picked).toHaveLength(2);
+  });
+});
+
+describe('listLogFilesSync', () => {
+  it('finds log files under dated year/month/day directories', () => {
+    const logsDir = mkdtempSync(path.join(tmpdir(), 'aionui-sentry-logs-'));
+    try {
+      const datedDir = path.join(logsDir, '2026', '07', '02');
+      mkdirSync(datedDir, { recursive: true });
+      writeFileSync(path.join(datedDir, '2026-07-02.aioncore.log'), 'backend\n');
+      writeFileSync(path.join(datedDir, '2026-07-02.aionrs.log'), 'aionrs\n');
+      writeFileSync(path.join(logsDir, '2026-07-02.log'), 'frontend\n');
+
+      const files = listLogFilesSync(logsDir);
+      const relative = files.map((file) => path.relative(logsDir, file.path).split(path.sep).join('/')).toSorted();
+
+      expect(relative).toEqual([
+        '2026-07-02.log',
+        '2026/07/02/2026-07-02.aioncore.log',
+        '2026/07/02/2026-07-02.aionrs.log',
+      ]);
+    } finally {
+      rmSync(logsDir, { recursive: true, force: true });
+    }
   });
 });
 

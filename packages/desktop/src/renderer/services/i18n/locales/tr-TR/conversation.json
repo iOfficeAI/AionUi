@@ -524,7 +524,8 @@
     "label": "Düşünüyor..."
   },
   "skills": {
-    "loaded": "Yüklenen Beceriler"
+    "loaded": "Yüklenen Beceriler",
+    "slashHint": "Beceri"
   },
   "mcp": {
     "loaded": "Yüklü MCP",

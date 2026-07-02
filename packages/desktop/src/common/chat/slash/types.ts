@@ -27,8 +27,9 @@ export type SlashCommandCompletionBehavior = 'normal' | 'neutral_tip_on_empty';
  * Indicates where the slash command originates from.
  * - `acp`: Provided by the ACP agent (e.g., Claude)
  * - `builtin`: Built into the application
+ * - `skill`: A skill loaded into the current conversation
  */
-export type SlashCommandSource = 'acp' | 'builtin';
+export type SlashCommandSource = 'acp' | 'builtin' | 'skill';
 
 /**
  * Live ACP available_commands payload as it appears on the websocket stream.

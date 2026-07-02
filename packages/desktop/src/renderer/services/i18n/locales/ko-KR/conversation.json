@@ -522,7 +522,8 @@
     "label": "생각 중..."
   },
   "skills": {
-    "loaded": "로드된 스킬"
+    "loaded": "로드된 스킬",
+    "slashHint": "스킬"
   },
   "mcp": {
     "loaded": "로드된 MCP",

@@ -412,25 +412,41 @@ function writeState(state: State): void {
   }
 }
 
-function listLogFilesSync(dir: string): LogFileMeta[] {
-  let entries: string[];
-  try {
-    entries = fs.readdirSync(dir);
-  } catch {
-    return [];
-  }
+const DATED_LOG_DIR_PATTERNS = [/^\d{4}$/, /^\d{2}$/, /^\d{2}$/] as const;
+
+function isDatedLogDirSegment(name: string, depth: number): boolean {
+  return DATED_LOG_DIR_PATTERNS[depth]?.test(name) === true;
+}
+
+export function listLogFilesSync(dir: string): LogFileMeta[] {
   const out: LogFileMeta[] = [];
-  for (const name of entries) {
-    const full = path.join(dir, name);
+
+  const scan = (currentDir: string, depth: number): void => {
+    let entries: string[];
     try {
-      const stat = fs.statSync(full);
-      if (stat.isFile() && name.endsWith('.log')) {
-        out.push({ path: full, mtime: stat.mtimeMs, size: stat.size });
-      }
+      entries = fs.readdirSync(currentDir);
     } catch {
-      // skip unreadable entries
+      return;
     }
-  }
+
+    for (const name of entries) {
+      const full = path.join(currentDir, name);
+      try {
+        const stat = fs.statSync(full);
+        if (stat.isFile() && name.endsWith('.log')) {
+          out.push({ path: full, mtime: stat.mtimeMs, size: stat.size });
+          continue;
+        }
+        if (stat.isDirectory() && depth < DATED_LOG_DIR_PATTERNS.length && isDatedLogDirSegment(name, depth)) {
+          scan(full, depth + 1);
+        }
+      } catch {
+        // skip unreadable entries
+      }
+    }
+  };
+
+  scan(dir, 0);
   return out;
 }
 

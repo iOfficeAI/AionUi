@@ -9,6 +9,7 @@ import type { IConversationMcpStatus, IProvider, TChatConversation, TProviderWit
 import { uuid } from '@/common/utils';
 import addChatIcon from '@/renderer/assets/icons/add-chat.svg';
 import { CronJobManager } from '@/renderer/pages/cron';
+import { resolveCronJobId } from '@/renderer/pages/cron/cronUtils';
 import { classifyConfigSetError, useAcpConfigOptions } from '@/renderer/hooks/agent/useAcpConfigOptions';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { usePresetAssistantInfo } from '@/renderer/hooks/agent/usePresetAssistantInfo';
@@ -167,6 +168,7 @@ const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; slid
     onSelectModel,
   });
   const workspaceEnabled = Boolean(conversation.extra?.workspace);
+  const cronJobId = resolveCronJobId(conversation.extra);
   const { info: presetAssistantInfo } = usePresetAssistantInfo(conversation);
   const aionrsAssistantId = presetAssistantInfo?.assistantId;
   const layout = useLayoutContext();
@@ -198,10 +200,7 @@ const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; slid
     sider: <ChatSlider conversation={conversation} />,
     headerExtra: (
       <div className='flex items-center gap-8px'>
-        <CronJobManager
-          conversation_id={conversation.id}
-          cron_job_id={conversation.extra?.cron_job_id as string | undefined}
-        />
+        <CronJobManager conversation_id={conversation.id} cron_job_id={cronJobId} />
         {!isMobile && (
           <AionrsModelSelector
             selection={modelSelection}
@@ -227,7 +226,7 @@ const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; slid
         workspace={conversation.extra.workspace}
         modelSelection={modelSelection}
         session_mode={conversation.extra?.session_mode}
-        cron_job_id={(conversation.extra as { cron_job_id?: string })?.cron_job_id}
+        cron_job_id={cronJobId}
         loadedSkills={(conversation.extra as { skills?: string[] } | undefined)?.skills}
         loadedMcpServers={(conversation.extra as { mcp_servers?: string[] } | undefined)?.mcp_servers}
         loadedMcpStatuses={
@@ -247,6 +246,7 @@ const ChatConversation: React.FC<{
   const { t } = useTranslation();
   useActiveLease({ type: 'conversation', id: conversation?.id });
   const workspaceEnabled = Boolean(conversation?.extra?.workspace);
+  const cronJobId = resolveCronJobId(conversation?.extra);
   const layout = useLayoutContext();
   const isMobile = Boolean(layout?.isMobile);
 
@@ -279,7 +279,7 @@ const ChatConversation: React.FC<{
             backend={resolvedConversationBackend || 'claude'}
             session_mode={conversation.extra?.session_mode}
             agent_name={assistantDisplayName}
-            cron_job_id={(conversation.extra as { cron_job_id?: string })?.cron_job_id}
+            cron_job_id={cronJobId}
             hideSendBox={resolvedHideSendBox}
             loadedSkills={(conversation.extra as { skills?: string[] } | undefined)?.skills}
             loadedMcpServers={(conversation.extra as { mcp_servers?: string[] } | undefined)?.mcp_servers}
@@ -292,7 +292,16 @@ const ChatConversation: React.FC<{
       default:
         return null;
     }
-  }, [conversation, isAionrsConversation, isLegacyReadOnlyConversation, assistantDisplayName, resolvedHideSendBox]);
+  }, [
+    conversation,
+    isAionrsConversation,
+    isLegacyReadOnlyConversation,
+    resolvedConversationBackend,
+    assistantDisplayName,
+    cronJobId,
+    resolvedHideSendBox,
+    acpAssistantId,
+  ]);
 
   const sliderTitle = useMemo(() => {
     return (
@@ -345,10 +354,7 @@ const ChatConversation: React.FC<{
     <div className='flex items-center gap-8px'>
       {conversation && (
         <div className='shrink-0'>
-          <CronJobManager
-            conversation_id={conversation.id}
-            cron_job_id={conversation.extra?.cron_job_id as string | undefined}
-          />
+          <CronJobManager conversation_id={conversation.id} cron_job_id={cronJobId} />
         </div>
       )}
       {modelSelector && <div className='shrink-0'>{modelSelector}</div>}

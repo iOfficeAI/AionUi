@@ -11,6 +11,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 import type { AcpConfigOptionDto, AcpModelInfo } from '@/common/types/platform/acpTypes';
 import { useAcpModelInfo } from '@/renderer/hooks/agent/useAcpModelInfo';
+import { resetEnsureConversationRuntimeStateForTests } from '@/renderer/pages/conversation/utils/ensureConversationRuntime';
 
 const { ensureRuntimeInvokeMock, setConfigOptionInvokeMock, responseStreamHandlers } = vi.hoisted(() => ({
   ensureRuntimeInvokeMock: vi.fn(),
@@ -113,6 +114,7 @@ describe('useAcpModelInfo', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     responseStreamHandlers.length = 0;
+    resetEnsureConversationRuntimeStateForTests();
     ensureRuntimeInvokeMock.mockReset();
     setConfigOptionInvokeMock.mockReset();
     ensureRuntimeInvokeMock.mockResolvedValue({ recovered: true, config_options: buildConfigOptions(), runtime: null });

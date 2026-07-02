@@ -10,6 +10,7 @@ export type UpdateReadyState = {
   ready: boolean;
   version: string;
   filePath?: string;
+  preparing?: boolean;
 };
 
 let currentUpdateReadyState: UpdateReadyState = {

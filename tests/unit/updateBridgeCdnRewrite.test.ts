@@ -41,6 +41,10 @@ vi.mock('electron', () => ({
     exit: vi.fn(),
     isPackaged: true,
   },
+  autoUpdater: {
+    on: vi.fn(),
+    removeListener: vi.fn(),
+  },
 }));
 
 vi.mock('electron-updater', () => ({
@@ -257,15 +261,26 @@ describe('updateBridge allowlist includes CDN host', () => {
 });
 
 describe('autoUpdate quitAndInstall lifecycle', () => {
+  const originalPlatform = process.platform;
+
+  const setPlatform = (platform: NodeJS.Platform): void => {
+    Object.defineProperty(process, 'platform', {
+      configurable: true,
+      value: platform,
+    });
+  };
+
   beforeEach(() => {
     vi.resetModules();
     vi.clearAllMocks();
     vi.useFakeTimers();
+    setPlatform('win32');
   });
 
   afterEach(() => {
     vi.clearAllTimers();
     vi.useRealTimers();
+    setPlatform(originalPlatform);
   });
 
   it('waits for the pre-install cleanup before starting the installer', async () => {
@@ -322,5 +337,19 @@ describe('autoUpdate quitAndInstall lifecycle', () => {
     await handlerPromise;
 
     expect(handlerSettled).toBe(true);
+  });
+
+  it('propagates quitAndInstall failures through IPC', async () => {
+    const cleanupError = new Error('native readiness failed');
+    const { autoUpdaterService } = await import('@process/services/autoUpdaterService');
+
+    autoUpdaterService.resetForTest();
+    autoUpdaterService.setBeforeQuitAndInstall(async () => {
+      throw cleanupError;
+    });
+
+    const handler = await getAutoUpdateQuitAndInstallHandler();
+
+    await expect(handler()).rejects.toThrow('native readiness failed');
   });
 });

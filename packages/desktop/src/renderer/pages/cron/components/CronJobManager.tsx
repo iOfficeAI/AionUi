@@ -80,11 +80,13 @@ const CronJobManager: React.FC<CronJobManagerProps> = ({ conversation_id, cron_j
     };
   }, [cron_job_id]);
 
-  // For regular conversations, use the existing hook
-  const { jobs, loading: listLoading } = useCronJobs(cron_job_id ? undefined : conversation_id);
+  // Always keep the conversation lookup active. The conversation header may
+  // mount after the job-created event has already fired, while the conversation
+  // prop may still carry a stale extra snapshot.
+  const { jobs, loading: listLoading } = useCronJobs(conversation_id);
 
-  const job = cron_job_id ? directJob : (jobs[0] ?? null);
-  const loading = cron_job_id ? directLoading : listLoading;
+  const job = cron_job_id ? (directJob ?? jobs[0] ?? null) : (jobs[0] ?? null);
+  const loading = cron_job_id ? directLoading && listLoading : listLoading;
 
   // No job associated with this conversation: render nothing. The unconfigured
   // "create now" affordance has been removed to keep the titlebar uncluttered;
@@ -106,7 +108,10 @@ const CronJobManager: React.FC<CronJobManagerProps> = ({ conversation_id, cron_j
         className='cron-job-manager-button chat-header-cron-pill !h-auto !w-auto !min-w-0 !px-0 !py-0'
         onClick={() => navigate(`/scheduled/${job.id}`)}
       >
-        <span className='inline-flex items-center gap-2px rounded-full px-8px py-2px bg-2'>
+        <span
+          data-testid='cron-job-manager'
+          className='inline-flex items-center gap-2px rounded-full px-8px py-2px bg-2'
+        >
           <AlarmClock theme='outline' size={16} fill={iconColors.primary} />
           <span
             className={`ml-4px w-8px h-8px rounded-full ${hasError ? 'bg-[#f53f3f]' : isPaused ? 'bg-[#ff7d00]' : 'bg-[#00b42a]'}`}

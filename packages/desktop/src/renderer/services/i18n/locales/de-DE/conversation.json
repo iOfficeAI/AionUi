@@ -486,7 +486,8 @@
     "label": "Wird gedacht..."
   },
   "skills": {
-    "loaded": "Geladene Skills"
+    "loaded": "Geladene Skills",
+    "slashHint": "Skill"
   },
   "mcp": {
     "loaded": "MCP geladen",

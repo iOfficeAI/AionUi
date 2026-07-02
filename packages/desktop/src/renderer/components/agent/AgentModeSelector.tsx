@@ -31,6 +31,8 @@ export interface AgentModeSelectorProps {
   agentLogo?: string;
   /** Whether the logo is an emoji / logo 是否为 emoji */
   agentLogoIsEmoji?: boolean;
+  /** Whether the explicit assistant logo is intentionally empty. */
+  agentLogoIsFallback?: boolean;
   /** Conversation ID for mode switching / 用于切换模式的会话 ID */
   conversation_id?: string;
   /** Compact mode: only show mode label + dropdown, no logo/name / 紧凑模式：仅显示模式标签和下拉 */
@@ -73,6 +75,7 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
   agent_name,
   agentLogo,
   agentLogoIsEmoji,
+  agentLogoIsFallback,
   conversation_id,
   compact,
   showLogoInCompact = false,
@@ -191,6 +194,7 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
       agent_name={agent_name}
       agentLogo={agentLogo}
       agentLogoIsEmoji={agentLogoIsEmoji}
+      agentLogoIsFallback={agentLogoIsFallback}
     />
   );
 

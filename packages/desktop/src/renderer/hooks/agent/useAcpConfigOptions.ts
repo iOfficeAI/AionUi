@@ -132,6 +132,22 @@ function subscribeConversationSetStatus(
 const ensureRuntimeConfigOptions = async ([, conversation_id]: AcpConfigOptionsKey): Promise<AcpConfigOptionDto[]> =>
   (await ensureConversationRuntime(conversation_id)).config_options;
 
+const configOptionsInFlight = new Map<string, Promise<AcpConfigOptionDto[]>>();
+
+function fetchConfigOptionsOnce(key: AcpConfigOptionsKey): Promise<AcpConfigOptionDto[]> {
+  const [, conversation_id] = key;
+  const existing = configOptionsInFlight.get(conversation_id);
+  if (existing) return existing;
+
+  const promise = ensureRuntimeConfigOptions(key).finally(() => {
+    if (configOptionsInFlight.get(conversation_id) === promise) {
+      configOptionsInFlight.delete(conversation_id);
+    }
+  });
+  configOptionsInFlight.set(conversation_id, promise);
+  return promise;
+}
+
 export function useAcpConfigOptions({
   conversation_id,
   prepareRuntime,
@@ -148,7 +164,7 @@ export function useAcpConfigOptions({
     data: snapshotData,
     mutate,
     isLoading,
-  } = useSWR<AcpConfigOptionDto[] | null>(enabled ? key : null, ensureRuntimeConfigOptions, {
+  } = useSWR<AcpConfigOptionDto[] | null>(enabled ? key : null, fetchConfigOptionsOnce, {
     revalidateOnMount: false,
   });
   const configOptions = enabled ? (snapshotData ?? null) : null;
@@ -172,7 +188,7 @@ export function useAcpConfigOptions({
 
   const reload = useCallback(async () => {
     await prepareRuntime?.();
-    const next = await ensureRuntimeConfigOptions(key);
+    const next = await fetchConfigOptionsOnce(key);
     replaceSnapshot(next);
     return next;
   }, [key, prepareRuntime, replaceSnapshot]);

@@ -200,6 +200,7 @@ const ChatLayout: React.FC<{
                 agent_name={display_name}
                 agentLogo={presetAssistant?.logo}
                 agentLogoIsEmoji={presetAssistant?.isEmoji}
+                agentLogoIsFallback={presetAssistant?.isFallback}
               />
             ))
           }

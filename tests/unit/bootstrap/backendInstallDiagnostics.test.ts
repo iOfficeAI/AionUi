@@ -68,6 +68,31 @@ describe('collectBackendInstallDiagnostics', () => {
 });
 
 describe('appendAutoUpdateDiagnosticEvent', () => {
+  it('records macOS native updater readiness events with platform and elapsed time', () => {
+    const state = appendAutoUpdateDiagnosticEvent(
+      {
+        currentAppVersion: '2.1.27',
+        events: [],
+      },
+      {
+        at: '2026-07-01T09:40:33.000Z',
+        elapsedMs: 1234,
+        platform: 'darwin',
+        status: 'native-update-ready',
+        version: '2.1.28',
+      }
+    );
+
+    expect(state.lastEvent).toEqual({
+      at: '2026-07-01T09:40:33.000Z',
+      elapsedMs: 1234,
+      platform: 'darwin',
+      status: 'native-update-ready',
+      version: '2.1.28',
+    });
+    expect(state.lastQuitAndInstallAt).toBeUndefined();
+  });
+
   it('keeps recent updater events and records quitAndInstall separately', () => {
     const state = appendAutoUpdateDiagnosticEvent(
       {

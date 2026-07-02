@@ -1,6 +1,5 @@
 import React from 'react';
 import { Robot } from '@icon-park/react';
-import { resolveAgentLogo, useAgentLogos } from '@renderer/utils/model/agentLogo';
 import { resolveAssistantAvatar } from '@renderer/utils/model/assistantAvatar';
 import { resolveAssistantName } from '@renderer/utils/model/assistantDisplay';
 import { assistantRuntimeKey, type Assistant } from '@/common/types/agent/assistantTypes';
@@ -47,8 +46,6 @@ export function filterTeamSupportedAssistants(assistants: TeamAssistantOption[])
 }
 
 export const AssistantOptionLabel: React.FC<{ assistant: TeamAssistantOption }> = ({ assistant }) => {
-  const logos = useAgentLogos();
-  const logo = resolveAgentLogo(logos, { backend: assistant.backend });
   const avatar = resolveAssistantAvatar(assistant.icon);
   return (
     <div className='flex items-center gap-8px'>
@@ -56,8 +53,6 @@ export const AssistantOptionLabel: React.FC<{ assistant: TeamAssistantOption }> 
         <img src={avatar.value} alt={assistant.name} style={{ width: 16, height: 16, objectFit: 'contain' }} />
       ) : avatar.kind === 'emoji' ? (
         <span style={{ fontSize: 14, lineHeight: '16px' }}>{avatar.value}</span>
-      ) : logo ? (
-        <img src={logo} alt={assistant.name} style={{ width: 16, height: 16, objectFit: 'contain' }} />
       ) : (
         <Robot size='16' />
       )}

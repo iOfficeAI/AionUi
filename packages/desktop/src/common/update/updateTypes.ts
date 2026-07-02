@@ -77,6 +77,7 @@ export type AutoUpdateStatusType =
   | 'not-available'
   | 'downloading'
   | 'downloaded'
+  | 'preparing-install'
   | 'error'
   | 'cancelled';
 
