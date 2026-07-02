@@ -4,10 +4,20 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import AionrsSendBox from '@/renderer/pages/conversation/platforms/aionrs/AionrsSendBox';
 import type { AionrsModelSelection } from '@/renderer/pages/conversation/platforms/aionrs/useAionrsModelSelection';
 
-const { sendMessageInvokeMock, useTeamPermissionMock, setSendBoxHandlerMock } = vi.hoisted(() => ({
+const {
+  ensureConversationRuntimeMock,
+  sendMessageInvokeMock,
+  translateMock,
+  useTeamPermissionMock,
+  setSendBoxHandlerMock,
+  warmupConversationMock,
+} = vi.hoisted(() => ({
+  ensureConversationRuntimeMock: vi.fn().mockResolvedValue({ recovered: false, config_options: [], runtime: null }),
   sendMessageInvokeMock: vi.fn().mockResolvedValue(undefined),
+  translateMock: (key: string, options?: { defaultValue?: string }) => options?.defaultValue ?? key,
   useTeamPermissionMock: vi.fn(),
   setSendBoxHandlerMock: vi.fn(),
+  warmupConversationMock: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock('@/common', () => ({
@@ -147,13 +157,16 @@ vi.mock('@/renderer/pages/conversation/utils/conversationCache', () => ({
 vi.mock('@/renderer/pages/conversation/utils/conversationCreateError', () => ({
   getConversationRuntimeWorkspaceErrorMessage: () => 'workspace failed',
 }));
+vi.mock('@/renderer/pages/conversation/utils/ensureConversationRuntime', () => ({
+  ensureConversationRuntime: ensureConversationRuntimeMock,
+}));
 vi.mock('@/renderer/pages/conversation/Preview', () => ({
   usePreviewContext: () => ({
     setSendBoxHandler: setSendBoxHandlerMock,
   }),
 }));
 vi.mock('@/renderer/pages/conversation/utils/warmupConversation', () => ({
-  warmupConversation: vi.fn().mockResolvedValue(undefined),
+  warmupConversation: warmupConversationMock,
 }));
 vi.mock('@/renderer/pages/team/hooks/TeamPermissionContext', () => ({
   useTeamPermission: useTeamPermissionMock,
@@ -188,10 +201,7 @@ vi.mock('@icon-park/react', () => ({
   Shield: () => null,
 }));
 vi.mock('react-i18next', () => ({
-  useTranslation: (() => {
-    const t = (key: string, options?: { defaultValue?: string }) => options?.defaultValue ?? key;
-    return () => ({ t });
-  })(),
+  useTranslation: () => ({ t: translateMock }),
 }));
 vi.mock('@/renderer/pages/conversation/platforms/aionrs/useAionrsMessage', () => ({
   useAionrsMessage: () => ({
@@ -214,7 +224,9 @@ const modelSelection = {
 describe('AionrsSendBox', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    ensureConversationRuntimeMock.mockResolvedValue({ recovered: false, config_options: [], runtime: null });
     useTeamPermissionMock.mockReturnValue(null);
+    warmupConversationMock.mockResolvedValue(undefined);
   });
 
   it('does not warm up team session when draft content changes', async () => {
@@ -265,5 +277,14 @@ describe('AionrsSendBox', () => {
     await waitFor(() => {
       expect(warmupSession).toHaveBeenCalledTimes(1);
     });
+  });
+
+  it('uses runtime ensure instead of legacy warmup for standalone runtime preparation', async () => {
+    render(<AionrsSendBox conversation_id='conv-1' modelSelection={modelSelection} />);
+
+    await waitFor(() => {
+      expect(ensureConversationRuntimeMock).toHaveBeenCalledWith('conv-1');
+    });
+    expect(warmupConversationMock).not.toHaveBeenCalled();
   });
 });
