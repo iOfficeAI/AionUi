@@ -141,15 +141,14 @@ const AcpSendBox: React.FC<{
     }));
   const [isMobileSheetOpen, setIsMobileSheetOpen] = useState(false);
   const [currentMode, setCurrentMode] = useState<string | undefined>(session_mode);
-  const prepareRuntimeSync = useCallback(async () => {
+  const prepareRuntimeConfig = useCallback(async () => {
     if (teamPermission) {
       await teamPermission.warmupSession();
     }
-    await warmupConversation(conversation_id);
-  }, [conversation_id, teamPermission]);
+  }, [teamPermission]);
   const runtimeConfig = useAcpConfigOptions({
     conversation_id,
-    prepareRuntime: prepareRuntimeSync,
+    prepareRuntime: prepareRuntimeConfig,
     enabled: true,
   });
   const runtimeMode = runtimeConfig.mode;
@@ -167,7 +166,7 @@ const AcpSendBox: React.FC<{
   } = useAcpModelInfo({
     conversation_id,
     backend,
-    prepareRuntime: prepareRuntimeSync,
+    prepareRuntime: prepareRuntimeConfig,
     enabled: isMobile,
     onSelectModelSuccess: () => Message.success(t('agent.model.switchSuccess')),
     onSelectModelFailed: (_modelId, error) => Message.error(t(configErrorMessageKey(error))),
@@ -699,7 +698,7 @@ Please check your local CLI tool authentication status`,
                 compactLabelPrefix={t('agentMode.permission')}
                 hideCompactLabelPrefixOnMobile
                 onModeChanged={isLeaderInTeam ? teamPermission?.propagateMode : undefined}
-                beforeRuntimeSync={prepareRuntimeSync}
+                beforeRuntimeSync={prepareRuntimeConfig}
               />
             )}
           </div>

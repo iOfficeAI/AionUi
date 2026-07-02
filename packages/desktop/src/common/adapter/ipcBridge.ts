@@ -36,6 +36,7 @@ import type {
 } from '../types/agent/assistantTypes';
 import type { PreviewHistoryTarget, PreviewSnapshotInfo } from '../types/office/preview';
 import type {
+  EnsureConversationRuntimeResponse,
   GetConfigOptionsResponse,
   SetConfigOptionRequest,
   SetConfigOptionResponse,
@@ -225,6 +226,10 @@ export const conversation = {
   ),
   reset: httpPost<void, IResetConversationParams>((p) => `/api/conversations/${p.id}/reset`),
   warmup: httpPost<void, { conversation_id: string }>((p) => `/api/conversations/${p.conversation_id}/warmup`),
+  ensureRuntime: httpPost<EnsureConversationRuntimeResponse, { conversation_id: string }>(
+    (p) => `/api/conversations/${p.conversation_id}/runtime/ensure`,
+    () => undefined
+  ),
   activeLease: httpPost<void, { conversation_id: string }>(
     (p) => `/api/conversations/${p.conversation_id}/active-lease`,
     () => undefined

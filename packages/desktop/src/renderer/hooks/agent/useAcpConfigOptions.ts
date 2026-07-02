@@ -128,14 +128,9 @@ function subscribeConversationSetStatus(
   };
 }
 
-const fetchConfigOptions = async ([, conversation_id]: AcpConfigOptionsKey): Promise<AcpConfigOptionDto[] | null> => {
-  try {
-    const result = await ipcBridge.acpConversation.getConfigOptions.invoke({ conversation_id });
-    return result.config_options;
-  } catch (error) {
-    if (isBackendHttpError(error) && error.status === 404) return null;
-    throw error;
-  }
+const ensureRuntimeConfigOptions = async ([, conversation_id]: AcpConfigOptionsKey): Promise<AcpConfigOptionDto[]> => {
+  const result = await ipcBridge.conversation.ensureRuntime.invoke({ conversation_id });
+  return result.config_options;
 };
 
 export function useAcpConfigOptions({
@@ -154,7 +149,7 @@ export function useAcpConfigOptions({
     data: snapshotData,
     mutate,
     isLoading,
-  } = useSWR<AcpConfigOptionDto[] | null>(enabled ? key : null, fetchConfigOptions, {
+  } = useSWR<AcpConfigOptionDto[] | null>(enabled ? key : null, ensureRuntimeConfigOptions, {
     revalidateOnMount: false,
   });
   const configOptions = enabled ? (snapshotData ?? null) : null;
@@ -178,8 +173,8 @@ export function useAcpConfigOptions({
 
   const reload = useCallback(async () => {
     await prepareRuntime?.();
-    const next = await fetchConfigOptions(key);
-    if (next) replaceSnapshot(next);
+    const next = await ensureRuntimeConfigOptions(key);
+    replaceSnapshot(next);
     return next;
   }, [key, prepareRuntime, replaceSnapshot]);
 
@@ -191,6 +186,7 @@ export function useAcpConfigOptions({
       setConversationSetStatus(conversation_id, { state: 'setting', optionId, requestedValue: value });
       try {
         await prepareRuntime?.();
+        replaceSnapshot(await ensureRuntimeConfigOptions(key));
         const response = await ipcBridge.acpConversation.setConfigOption.invoke({
           conversation_id,
           option_id: optionId,
@@ -206,7 +202,7 @@ export function useAcpConfigOptions({
         setConversationSetStatus(conversation_id, { state: 'idle' });
       }
     },
-    [conversation_id, prepareRuntime, replaceSnapshot]
+    [conversation_id, key, prepareRuntime, replaceSnapshot]
   );
 
   useEffect(() => {

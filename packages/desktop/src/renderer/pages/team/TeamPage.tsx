@@ -23,7 +23,6 @@ import { TeamPermissionProvider, useTeamPermission } from './hooks/TeamPermissio
 import { useTeamSession } from './hooks/useTeamSession';
 import { useTeamRunView, type TeamRunViewState } from './hooks/useTeamRunView';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
-import { warmupConversation } from '@/renderer/pages/conversation/utils/warmupConversation';
 import { useActiveLease } from '@/renderer/pages/conversation/hooks/useActiveLease';
 import { resolveTeamWorkspaceView } from './utils/teamWorkspaceView';
 
@@ -69,8 +68,7 @@ const AionrsHeaderModelSelector: React.FC<{ conversation_id: string; initialMode
   const modelSelection = useAionrsModelSelection({ initialModel, onSelectModel });
   const prepareRuntimeConfig = useCallback(async () => {
     await teamPermission?.warmupSession();
-    await warmupConversation(conversation_id);
-  }, [conversation_id, teamPermission]);
+  }, [teamPermission]);
   const runtimeConfig = useAcpConfigOptions({
     conversation_id,
     prepareRuntime: prepareRuntimeConfig,
