@@ -1,8 +1,10 @@
 !ifndef AIONUI_INSTALLER_PROCESS_CONTROL_NSH
 !define AIONUI_INSTALLER_PROCESS_CONTROL_NSH
 
+Var /GLOBAL AionUiStopResult
+
 !macro AIONUI_FIND_APP_PROCESS _RETURN
-  nsExec::Exec `"$PowerShellPath" -NoProfile -ExecutionPolicy Bypass -Command "& { \
+  nsExec::Exec `"$SYSDIR\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -Command "& { \
     $$ErrorActionPreference = 'SilentlyContinue'; \
     $$log = Join-Path $$env:TEMP '${AIONUI_PROCESS_CHECK_LOG}'; \
     $$instDir = [System.IO.Path]::GetFullPath('$INSTDIR'); \
@@ -25,7 +27,7 @@
 !macroend
 
 !macro AIONUI_STOP_APP_PROCESSES
-  nsExec::Exec `"$PowerShellPath" -NoProfile -ExecutionPolicy Bypass -Command "& { \
+  nsExec::Exec `"$SYSDIR\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -Command "& { \
     $$ErrorActionPreference = 'SilentlyContinue'; \
     $$log = Join-Path $$env:TEMP '${AIONUI_PROCESS_CHECK_LOG}'; \
     $$instDir = [System.IO.Path]::GetFullPath('$INSTDIR'); \
@@ -58,7 +60,7 @@
 !macroend
 
 !macro AIONUI_QUERY_LOCKERS _RETURN
-  nsExec::Exec `"$PowerShellPath" -NoProfile -ExecutionPolicy Bypass -Command "& { \
+  nsExec::Exec `"$SYSDIR\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -Command "& { \
     $$ErrorActionPreference = 'SilentlyContinue'; \
     $$log = Join-Path $$env:TEMP '${AIONUI_PROCESS_CHECK_LOG}'; \
     $$instDir = [System.IO.Path]::GetFullPath('$INSTDIR'); \
@@ -107,7 +109,7 @@
   Push $9
   ${If} $AionUiIsUpdated == "1"
     ${If} ${Silent}
-      nsExec::Exec `"$PowerShellPath" -NoProfile -ExecutionPolicy Bypass -Command "& { \
+      nsExec::Exec `"$SYSDIR\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -Command "& { \
         $$ErrorActionPreference = 'Stop'; \
         $$appDir = Join-Path $$env:APPDATA 'AionUi'; \
         $$marker = Join-Path $$appDir 'installer-last-failure.json'; \
@@ -141,7 +143,6 @@
 !macro customCheckAppRunning
   Var /GLOBAL AionUiCheckResult
   Var /GLOBAL AionUiCloseRetries
-  Var /GLOBAL AionUiStopResult
   Var /GLOBAL AionUiLockerResult
   Var /GLOBAL AionUiLockerList
   Var /GLOBAL AionUiLockerListFile

@@ -43,26 +43,89 @@ describe('Windows NSIS update race hardening', () => {
     expect(updateVerify).toContain('!macro AIONUI_CLEAR_ACTIVE_INSTALLER_MARKER');
     expect(updateVerify).toContain('event=installer-active-marker state=active');
     expect(updateVerify).toContain('event=installer-active-marker state=stale');
-    expect(updateVerify).toContain('event=installer-reentry');
-    expect(updateVerify).toContain('!macroundef ALLOW_ONLY_ONE_INSTALLER_INSTANCE');
-    expect(updateVerify).toContain('Abort');
     expect(x64).toContain('AIONUI_INSTALLER_CUSTOM_HEADER');
     expect(arm64).toContain('AIONUI_INSTALLER_CUSTOM_HEADER');
   });
 
-  it('captures active marker stdout with ExecToStack and cleans markers before reentry aborts', () => {
+  it('captures active marker stdout with ExecToStack and keeps marker cleanup wired', () => {
     const updateVerify = read(join(windowsResourcesDir, 'installer-update-verify.nsh'));
     const recordMarker = macroBody(updateVerify, 'AIONUI_RECORD_ACTIVE_INSTALLER_MARKER');
-    const singleInstance = macroBody(updateVerify, 'AIONUI_OVERRIDE_SINGLE_INSTANCE');
-    const clearIndex = singleInstance.indexOf('AIONUI_CLEAR_ACTIVE_INSTALLER_MARKER');
-    const abortIndex = singleInstance.indexOf('Abort');
+    const failCleanupIndex = updateVerify.indexOf('AIONUI_CLEAR_ACTIVE_INSTALLER_MARKER');
 
     expect(recordMarker).toContain('nsExec::ExecToStack');
     expect(recordMarker).toContain('Pop $AionUiActiveMarkerExecResult');
     expect(recordMarker).toContain('Pop $AionUiActiveMarkerResult');
     expect(recordMarker).not.toContain('nsExec::Exec `');
-    expect(clearIndex).toBeGreaterThanOrEqual(0);
-    expect(clearIndex).toBeLessThan(abortIndex);
+    expect(failCleanupIndex).toBeGreaterThanOrEqual(0);
+  });
+
+  it('does not define electron-builder single-instance macro in the custom include', () => {
+    const updateVerify = read(join(windowsResourcesDir, 'installer-update-verify.nsh'));
+
+    expect(updateVerify).not.toContain('!macro ALLOW_ONLY_ONE_INSTALLER_INSTANCE');
+    expect(updateVerify).not.toContain('!macroundef ALLOW_ONLY_ONE_INSTALLER_INSTANCE');
+  });
+
+  it('keeps customHeader free of runtime stack commands', () => {
+    const updateVerify = read(join(windowsResourcesDir, 'installer-update-verify.nsh'));
+    const customHeader = macroBody(updateVerify, 'AIONUI_INSTALLER_CUSTOM_HEADER');
+
+    expect(customHeader).not.toContain('AIONUI_SESSION_HEADER');
+    expect(customHeader).not.toContain('AIONUI_SLOG');
+  });
+
+  it('uses an explicit PowerShell path in process-control macros', () => {
+    const processControl = read(join(windowsResourcesDir, 'installer-process-control.nsh'));
+
+    expect(processControl).not.toContain('$PowerShellPath');
+    expect(processControl).toContain('$SYSDIR\\WindowsPowerShell\\v1.0\\powershell.exe');
+  });
+
+  it('declares process-stop result before shared process-stop macro use', () => {
+    const processControl = read(join(windowsResourcesDir, 'installer-process-control.nsh'));
+
+    expect(processControl.indexOf('Var /GLOBAL AionUiStopResult')).toBeLessThan(
+      processControl.indexOf('!macro AIONUI_STOP_APP_PROCESSES'),
+    );
+  });
+
+  it('does not pop active marker variables while compiling the uninstaller', () => {
+    const updateVerify = read(join(windowsResourcesDir, 'installer-update-verify.nsh'));
+    const clearMarker = macroBody(updateVerify, 'AIONUI_CLEAR_ACTIVE_INSTALLER_MARKER');
+    const preInit = macroBody(updateVerify, 'AIONUI_INSTALLER_PREINIT');
+
+    expect(clearMarker.indexOf('!ifndef BUILD_UNINSTALLER')).toBeGreaterThanOrEqual(0);
+    expect(clearMarker.indexOf('!ifndef BUILD_UNINSTALLER')).toBeLessThan(
+      clearMarker.indexOf('Pop $AionUiActiveMarkerResult'),
+    );
+    expect(preInit.indexOf('!ifdef BUILD_UNINSTALLER')).toBeGreaterThanOrEqual(0);
+    expect(preInit.indexOf('!else')).toBeLessThan(preInit.indexOf('AIONUI_RECORD_ACTIVE_INSTALLER_MARKER'));
+  });
+
+  it('initializes installer-only global variables while compiling the uninstaller', () => {
+    const updateVerify = read(join(windowsResourcesDir, 'installer-update-verify.nsh'));
+    const preInit = macroBody(updateVerify, 'AIONUI_INSTALLER_PREINIT');
+    const uninstallerBranchIndex = preInit.indexOf('!ifdef BUILD_UNINSTALLER');
+    const installerBranchIndex = preInit.indexOf('!else');
+    const initializedVariables = [
+      'AionUiSessionId',
+      'AionUiIsUpdated',
+      'AionUiSessionLogResult',
+      'AionUiUninstallHadErrors',
+      'AionUiUninstallLogResult',
+      'AionUiVerifyResourceResult',
+      'AionUiUpdatedAppExitWaitResult',
+      'AionUiActiveMarkerExecResult',
+      'AionUiActiveMarkerResult',
+      'AionUiStopResult',
+    ];
+
+    expect(uninstallerBranchIndex).toBeGreaterThanOrEqual(0);
+    for (const variable of initializedVariables) {
+      const resetIndex = preInit.indexOf(`StrCpy $${variable}`);
+      expect(resetIndex).toBeGreaterThan(uninstallerBranchIndex);
+      expect(resetIndex).toBeLessThan(installerBranchIndex);
+    }
   });
 
   it('does not add a private updater launcher or cache rewrite', () => {

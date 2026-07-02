@@ -1,14 +1,12 @@
 !ifndef AIONUI_INSTALLER_UPDATE_VERIFY_NSH
 !define AIONUI_INSTALLER_UPDATE_VERIFY_NSH
 
-!ifndef BUILD_UNINSTALLER
-  Var /GLOBAL AionUiUninstallHadErrors
-  Var /GLOBAL AionUiUninstallLogResult
-  Var /GLOBAL AionUiVerifyResourceResult
-  Var /GLOBAL AionUiUpdatedAppExitWaitResult
-  Var /GLOBAL AionUiActiveMarkerExecResult
-  Var /GLOBAL AionUiActiveMarkerResult
-!endif
+Var /GLOBAL AionUiUninstallHadErrors
+Var /GLOBAL AionUiUninstallLogResult
+Var /GLOBAL AionUiVerifyResourceResult
+Var /GLOBAL AionUiUpdatedAppExitWaitResult
+Var /GLOBAL AionUiActiveMarkerExecResult
+Var /GLOBAL AionUiActiveMarkerResult
 
 !define AIONUI_ACTIVE_INSTALLER_MARKER "aionui-installer-active.marker"
 
@@ -74,36 +72,39 @@
 !macroend
 
 !macro AIONUI_CLEAR_ACTIVE_INSTALLER_MARKER
-  nsExec::Exec `"$SYSDIR\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -Command "& { \
-    $$ErrorActionPreference = 'SilentlyContinue'; \
-    Remove-Item -LiteralPath (Join-Path $$env:TEMP '${AIONUI_ACTIVE_INSTALLER_MARKER}') -Force \
-  }"`
-  Pop $AionUiActiveMarkerResult
+  !ifndef BUILD_UNINSTALLER
+    nsExec::Exec `"$SYSDIR\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -Command "& { \
+      $$ErrorActionPreference = 'SilentlyContinue'; \
+      Remove-Item -LiteralPath (Join-Path $$env:TEMP '${AIONUI_ACTIVE_INSTALLER_MARKER}') -Force \
+    }"`
+    Pop $AionUiActiveMarkerResult
+  !endif
 !macroend
 
 !macro AIONUI_OVERRIDE_SINGLE_INSTANCE
-  !macroundef ALLOW_ONLY_ONE_INSTALLER_INSTANCE
-  !macro ALLOW_ONLY_ONE_INSTALLER_INSTANCE
-    System::Call 'kernel32::CreateMutexW(p 0, i 0, w "AionUiInstaller-${APP_ID}") p .r8 ?e'
-    Pop $R0
-    ${If} $R0 == 183
-      !insertmacro AIONUI_SLOG "event=installer-reentry action=abort"
-      MessageBox MB_OK|MB_ICONEXCLAMATION "An AionUi installer is already running. Close the existing installer before starting another one." /SD IDOK
-      !insertmacro AIONUI_CLEAR_ACTIVE_INSTALLER_MARKER
-      Abort
-    ${EndIf}
-  !macroend
 !macroend
 
 !macro AIONUI_INSTALLER_CUSTOM_HEADER
-  !insertmacro AIONUI_SESSION_HEADER
   !insertmacro AIONUI_OVERRIDE_SINGLE_INSTANCE
 !macroend
 
 !macro AIONUI_INSTALLER_PREINIT
-  !insertmacro AIONUI_SESSION_BEGIN
-  !insertmacro AIONUI_RECORD_ACTIVE_INSTALLER_MARKER
-  !insertmacro AIONUI_WRITE_ACTIVE_INSTALLER_MARKER
+  !ifdef BUILD_UNINSTALLER
+    StrCpy $AionUiSessionId ""
+    StrCpy $AionUiIsUpdated "0"
+    StrCpy $AionUiSessionLogResult ""
+    StrCpy $AionUiUninstallHadErrors "0"
+    StrCpy $AionUiUninstallLogResult ""
+    StrCpy $AionUiVerifyResourceResult ""
+    StrCpy $AionUiUpdatedAppExitWaitResult ""
+    StrCpy $AionUiActiveMarkerExecResult ""
+    StrCpy $AionUiActiveMarkerResult ""
+    StrCpy $AionUiStopResult ""
+  !else
+    !insertmacro AIONUI_SESSION_BEGIN
+    !insertmacro AIONUI_RECORD_ACTIVE_INSTALLER_MARKER
+    !insertmacro AIONUI_WRITE_ACTIVE_INSTALLER_MARKER
+  !endif
 !macroend
 
 !macro AIONUI_VERIFY_REQUIRED_FILE _PATH _LABEL

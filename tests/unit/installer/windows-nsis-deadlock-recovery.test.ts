@@ -65,10 +65,9 @@ describe('Windows NSIS deadlock recovery', () => {
     expect(repairHeal).not.toMatch(/installDirectory|\/D=/i);
   });
 
-  it('diagnoses reentry without allowing a second instance to write the install directory', () => {
-    expect(updateVerify).toContain('event=installer-reentry');
-    expect(updateVerify).toContain('already running');
-    expect(updateVerify).toContain('Abort');
+  it('leaves installer reentry blocking to electron-builder without overriding its macro', () => {
+    expect(updateVerify).not.toContain('!macro ALLOW_ONLY_ONE_INSTALLER_INSTANCE');
+    expect(updateVerify).not.toContain('!macroundef ALLOW_ONLY_ONE_INSTALLER_INSTANCE');
     expect(updateVerify).not.toMatch(/ClearErrors\s+.*ALLOW_ONLY_ONE_INSTALLER_INSTANCE/s);
   });
 });
