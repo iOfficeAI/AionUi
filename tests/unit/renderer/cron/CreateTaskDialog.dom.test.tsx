@@ -5,11 +5,12 @@
  */
 
 import userEvent from '@testing-library/user-event';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Assistant } from '@/common/types/agent/assistantTypes';
 import type { ICronJob } from '@/common/adapter/ipcBridge';
+import type { TChatConversation } from '@/common/config/storage';
 
 let currentAssistants: Assistant[] = [];
 
@@ -37,6 +38,9 @@ vi.mock('@/common', () => ({
       addJob: { invoke: vi.fn() },
       createJob: { invoke: vi.fn() },
       updateJob: { invoke: vi.fn() },
+    },
+    conversation: {
+      get: { invoke: vi.fn() },
     },
   },
 }));
@@ -140,6 +144,7 @@ describe('CreateTaskDialog', () => {
     vi.mocked(ipcBridge.cron.addJob.invoke).mockResolvedValue(job());
     vi.mocked(ipcBridge.cron.updateJob.invoke).mockResolvedValue(job());
     vi.mocked(ipcBridge.cron.createJob.invoke).mockResolvedValue(job());
+    vi.mocked(ipcBridge.conversation.get.invoke).mockRejectedValue(new Error('not found'));
   });
 
   it('does not render the task description field', async () => {
@@ -213,6 +218,73 @@ describe('CreateTaskDialog', () => {
     await waitFor(() => expect(ipcBridge.cron.updateJob.invoke).toHaveBeenCalledTimes(1));
     expect(resolveCronAgentConfig).not.toHaveBeenCalled();
     const [{ updates }] = vi.mocked(ipcBridge.cron.updateJob.invoke).mock.calls[0];
+    expect(updates.metadata).not.toHaveProperty('agent_config');
+  });
+
+  it('locks execution mode while resolving team ownership', async () => {
+    let resolveConversation: (value: TChatConversation) => void = () => {};
+    vi.mocked(ipcBridge.conversation.get.invoke).mockReturnValue(
+      new Promise((resolve) => {
+        resolveConversation = resolve;
+      })
+    );
+
+    render(<CreateTaskDialog visible onClose={() => {}} editJob={teamOwnedJob()} />);
+
+    await waitFor(() =>
+      expect(ipcBridge.conversation.get.invoke).toHaveBeenCalledWith({
+        id: 'team-conv-1',
+      })
+    );
+
+    expect(executionModeInputs()).toHaveLength(2);
+    expect(executionModeInputs().every((input) => input.disabled)).toBe(true);
+
+    await act(async () => {
+      resolveConversation({
+        id: 'team-conv-1',
+        type: 'acp',
+        name: 'Standalone conversation',
+        created_at: 1,
+        updated_at: 1,
+        extra: {},
+      });
+    });
+  });
+
+  it('locks execution mode and assistant when editing a team-owned task', async () => {
+    const user = userEvent.setup();
+    vi.mocked(ipcBridge.conversation.get.invoke).mockResolvedValue({
+      id: 'team-conv-1',
+      type: 'acp',
+      name: 'Team member conversation',
+      created_at: 1,
+      updated_at: 1,
+      extra: {
+        teamId: 'team-1',
+      },
+    });
+
+    render(<CreateTaskDialog visible onClose={() => {}} editJob={teamOwnedJob()} />);
+
+    await waitFor(() =>
+      expect(ipcBridge.conversation.get.invoke).toHaveBeenCalledWith({
+        id: 'team-conv-1',
+      })
+    );
+
+    const assistantSelect = await screen.findByTestId('cron-assistant-select');
+    expect(assistantSelect).toHaveClass('arco-select-disabled');
+    expect(executionModeInputs()).toHaveLength(2);
+    expect(executionModeInputs().every((input) => input.disabled)).toBe(true);
+
+    await user.click(await screen.findByText('cron.page.form.newConversation'));
+    await user.click(screen.getByTestId('modal-ok'));
+
+    await waitFor(() => expect(ipcBridge.cron.updateJob.invoke).toHaveBeenCalledTimes(1));
+    expect(resolveCronAgentConfig).not.toHaveBeenCalled();
+    const [{ updates }] = vi.mocked(ipcBridge.cron.updateJob.invoke).mock.calls[0];
+    expect(updates.target?.execution_mode).toBe('existing');
     expect(updates.metadata).not.toHaveProperty('agent_config');
   });
 
@@ -306,6 +378,20 @@ function ongoingConversationJob(): ICronJob {
       execution_mode: 'existing',
     },
   } as ICronJob;
+}
+
+function teamOwnedJob(): ICronJob {
+  return {
+    ...ongoingConversationJob(),
+    metadata: {
+      ...ongoingConversationJob().metadata,
+      conversation_id: 'team-conv-1',
+    },
+  } as ICronJob;
+}
+
+function executionModeInputs(): HTMLInputElement[] {
+  return Array.from(document.querySelectorAll<HTMLInputElement>('.arco-radio input[type="radio"]'));
 }
 
 function assistants(): Assistant[] {
