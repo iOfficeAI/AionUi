@@ -24,6 +24,15 @@ import { getActivityTime } from '@/renderer/utils/chat/timeline';
 import { mutate } from 'swr';
 import { getConversationRuntimeWorkspaceErrorMessage } from '@renderer/pages/conversation/utils/conversationCreateError';
 
+const resolveTeamId = (conversation: TChatConversation): string | undefined => {
+  const extra = conversation.extra as { team_id?: unknown; teamId?: unknown } | undefined;
+  const snakeCase = extra?.team_id;
+  if (typeof snakeCase === 'string' && snakeCase.trim()) return snakeCase;
+  const camelCase = extra?.teamId;
+  if (typeof camelCase === 'string' && camelCase.trim()) return camelCase;
+  return undefined;
+};
+
 const TaskDetailPage: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -294,7 +303,10 @@ const TaskDetailPage: React.FC = () => {
                     <React.Fragment key={conv.id}>
                       <div
                         className='flex cursor-pointer items-center justify-between gap-14px py-15px transition-colors hover:text-t-primary'
-                        onClick={() => navigate(`/conversation/${conv.id}`)}
+                        onClick={() => {
+                          const teamId = resolveTeamId(conv);
+                          navigate(teamId ? `/team/${teamId}` : `/conversation/${conv.id}`);
+                        }}
                       >
                         <span className='min-w-0 flex-1 truncate text-14px text-t-primary'>{conv.name || conv.id}</span>
                         <span className='shrink-0 text-13px text-t-secondary'>
