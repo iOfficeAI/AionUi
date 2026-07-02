@@ -20,6 +20,7 @@
   "newAgent": "عامل جدید",
   "noMessages": "هنوز پیامی وجود ندارد.",
   "agentNotConfigured": "عامل هنوز پیکربندی نشده است.",
+  "stopAgentFailed": "توقف این دستیار ناموفق بود. لطفاً دوباره تلاش کنید.",
   "sendBox": {
     "placeholder": "ارسال پیام به عامل ارسال..."
   },
@@ -28,11 +29,12 @@
     "namePlaceholder": "نام تیم",
     "dispatchAgentPlaceholder": "انتخاب سرتیم",
     "subAgentsPlaceholder": "انتخاب عامل‌های فرعی",
-    "workspacePlaceholder": "مسیر پوشه پروژه (اختیاری)",
     "confirm": "ایجاد تیم",
     "noSupportedAgents": "عامل پشتیبانی‌شده‌ای نصب نشده است",
     "supportedAgentsHint": "در حال حاضر از Claude و Codex پشتیبانی می‌شود. عامل‌های بیشتر به‌زودی اضافه خواهند شد.",
     "leaderDesc": "اهداف شما را درک می‌کند و عامل‌ها را برای تکمیل وظایف هماهنگ می‌کند",
+    "searchPlaceholder": "جستجوی دستیارها...",
+    "noSearchResults": "نتیجه‌ای یافت نشد",
     "step": {
       "dispatch": "سرتیم",
       "subAgents": "عامل‌های فرعی",

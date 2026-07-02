@@ -13,10 +13,12 @@ describe('i18n', () => {
       expect(normalizeLanguageCode('en-US')).toBe('en-US');
       expect(normalizeLanguageCode('zh-CN')).toBe('zh-CN');
       expect(normalizeLanguageCode('de-DE')).toBe('de-DE');
+      expect(normalizeLanguageCode('fa-IR')).toBe('fa-IR');
     });
 
     it('normalizes underscores to hyphens', () => {
       expect(normalizeLanguageCode('de_DE')).toBe('de-DE');
+      expect(normalizeLanguageCode('fa_IR')).toBe('fa-IR');
       expect(normalizeLanguageCode('pt_BR')).toBe('pt-BR');
     });
 
@@ -30,6 +32,7 @@ describe('i18n', () => {
       expect(normalizeLanguageCode('pt')).toBe('pt-BR');
       expect(normalizeLanguageCode('de')).toBe('de-DE');
       expect(normalizeLanguageCode('es')).toBe('es-ES');
+      expect(normalizeLanguageCode('fa')).toBe('fa-IR');
     });
 
     it('resolves German regional variants to de-DE', () => {

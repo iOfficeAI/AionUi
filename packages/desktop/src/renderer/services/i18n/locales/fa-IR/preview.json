@@ -53,6 +53,10 @@
   "closeAll": "بستن همه",
   "readOnlyLabel": "پیش‌نمایش فقط‌خواندنی",
   "pathLabel": "مسیر",
+  "missingFile": {
+    "title": "فایل یافت نشد",
+    "openInNewTab": "در تب جدید باز کنید"
+  },
   "noTabs": "تبی باز نیست",
   "openInPanelTooltip": "مشاهده در پنل پیش‌نمایش",
   "mermaidTitle": "نمودار Mermaid",
@@ -73,6 +77,10 @@
       "portTimeout": "سرویس پیش‌نمایش شروع شد اما به‌موقع آماده نشد. دوباره تلاش کنید.",
       "startFailed": "شروع سرویس پیش‌نمایش Office ناموفق بود.",
       "outsideSandbox": "این فایل خارج از سندباکس پروژه فعلی است."
+    },
+    "serverInstall": {
+      "hint": "AionUi روی سرور اجرا می‌شود. مؤلفه پیش‌نمایش را روی همان سرور نصب کنید، سپس دوباره تلاش کنید:",
+      "icuNote": "اگر همچنان شروع نشد، کتابخانه ICU را روی سرور نصب کنید (Debian/Ubuntu: apt-get install -y libicu-dev)."
     }
   },
   "word": {

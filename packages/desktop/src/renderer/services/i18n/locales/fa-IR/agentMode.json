@@ -4,6 +4,8 @@
   "acceptEdits": "تأیید ویرایش‌ها",
   "autoEdit": "ویرایش خودکار",
   "auto_edit": "ویرایش خودکار",
+  "read-only": "فقط خواندنی",
+  "full-access": "دسترسی کامل",
   "yolo": "YOLO",
   "yoloNoSandbox": "خودکار کامل (بدون سندباکس)",
   "auto": "خودکار",

@@ -10,6 +10,13 @@
   "sendbox": {
     "placeholder": "ارسال پیام به {{backend}}..."
   },
+  "image": {
+    "download": "دانلود",
+    "download_aria": "دانلود تصویر",
+    "download_success": "دانلود موفق بود",
+    "download_error": "دانلود ناموفق بود",
+    "generated_alt": "تصویر ساخته‌شده"
+  },
   "status": {
     "connecting": "در حال اتصال به {{agent}}...",
     "connected": "متصل به {{agent}}",
