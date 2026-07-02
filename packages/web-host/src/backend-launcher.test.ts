@@ -459,6 +459,7 @@ describe('BackendLifecycleManager.start (health timeout)', () => {
 
   it('kills child and reports listen_timeout when aioncore never reports a port', async () => {
     vi.useFakeTimers();
+    const platformSpy = vi.spyOn(process, 'platform', 'get').mockReturnValue('darwin');
     const child = makeFakeChild();
     vi.mocked(spawn).mockReturnValue(child as unknown as ChildProcess);
     const killSpy = vi.spyOn(process, 'kill').mockImplementation(() => true);
@@ -480,10 +481,12 @@ describe('BackendLifecycleManager.start (health timeout)', () => {
     expect(killSpy).toHaveBeenCalled();
 
     killSpy.mockRestore();
+    platformSpy.mockRestore();
   }, 15_000);
 
   it('kills child and throws when /health never responds OK within timeout', async () => {
     vi.useFakeTimers();
+    const platformSpy = vi.spyOn(process, 'platform', 'get').mockReturnValue('darwin');
     vi.mocked(createServer).mockImplementation(
       () => makeFakeServer(33333) as unknown as ReturnType<typeof createServer>
     );
@@ -510,6 +513,7 @@ describe('BackendLifecycleManager.start (health timeout)', () => {
 
     fetchSpy.mockRestore();
     killSpy.mockRestore();
+    platformSpy.mockRestore();
     vi.useRealTimers();
   }, 15_000);
 
@@ -841,6 +845,7 @@ describe('BackendLifecycleManager.stop', () => {
   });
 
   it('sends SIGTERM then resolves when child emits exit', async () => {
+    const platformSpy = vi.spyOn(process, 'platform', 'get').mockReturnValue('darwin');
     vi.mocked(createServer).mockImplementation(
       () => makeFakeServer(22222) as unknown as ReturnType<typeof createServer>
     );
@@ -869,9 +874,11 @@ describe('BackendLifecycleManager.stop', () => {
 
     fetchSpy.mockRestore();
     killSpy.mockRestore();
+    platformSpy.mockRestore();
   });
 
   it('escalates to SIGKILL when SIGTERM times out', async () => {
+    const platformSpy = vi.spyOn(process, 'platform', 'get').mockReturnValue('darwin');
     vi.mocked(createServer).mockImplementation(
       () => makeFakeServer(22223) as unknown as ReturnType<typeof createServer>
     );
@@ -900,6 +907,7 @@ describe('BackendLifecycleManager.stop', () => {
 
     fetchSpy.mockRestore();
     killSpy.mockRestore();
+    platformSpy.mockRestore();
   }, 7_000);
 
   it('waits for Windows taskkill to finish before cleaning registered agent processes', async () => {
