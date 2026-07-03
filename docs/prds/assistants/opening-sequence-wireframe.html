@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AionUi · 开屏三页动画规格</title>
+<style>
+  :root{
+    --aou-1:#eff0f6;--aou-2:#e5e7f0;--aou-3:#d1d5e5;--aou-4:#b5bcd6;--aou-5:#97a0c5;
+    --aou-6:#7583b2;--aou-7:#596590;--aou-8:#3f4868;--aou-9:#262c41;
+    --brand:#7583b2;--brand-light:#eff0f6;
+    --bg-base:#fff;--bg-1:#f9fafb;--bg-2:#f2f3f5;--bg-3:#e5e6eb;--bg-4:#c9cdd4;
+    --t1:#1d2129;--t2:#454d5f;--t3:#86909c;--t-dis:#c9cdd4;
+    --primary:#165dff;--primary-1:#e8f3ff;--success:#00b42a;--success-1:#e8ffea;
+    --warning:#ff7d00;--warning-1:#fff7e8;
+    --border-base:#e5e6eb;--border-light:#f2f3f5;--msg-user:#e9efff;
+    --r-lg:16px;--r:12px;--r-s:8px;--r-xs:6px;
+    --sh-1:0 1px 3px rgba(29,33,41,.05),0 0 1px rgba(29,33,41,.08);
+    --sh-2:0 4px 10px rgba(29,33,41,.08);
+    --sh-3:0 8px 24px rgba(29,33,41,.10);
+    --sh-brand:0 10px 30px rgba(117,131,178,.28);
+    --sh-primary:0 8px 20px rgba(22,93,255,.22);
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei","Segoe UI",sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:#dcdfe6;color:var(--t1);padding:24px 18px 70px;display:flex;flex-direction:column;align-items:center;gap:5px;-webkit-font-smoothing:antialiased;}
+  .doc-title{font-size:16px;font-weight:700;color:var(--aou-8);}
+  .doc-sub{font-size:12px;color:var(--t3);margin-bottom:14px;}
+
+  .layout{display:flex;gap:20px;align-items:flex-start;max-width:1340px;width:100%;justify-content:center;}
+  .stage-col{flex-shrink:0;}
+
+  .persona-switch{display:flex;gap:7px;align-items:center;justify-content:center;margin-bottom:12px;font-size:12px;color:var(--t2);}
+  .persona-switch .pill{border:1px solid var(--border-base);background:#fff;padding:6px 12px;border-radius:999px;cursor:pointer;transition:.15s;font-weight:500;}
+  .persona-switch .pill.on{background:var(--aou-8);color:#fff;border-color:var(--aou-8);}
+
+  .steptabs{display:flex;gap:6px;justify-content:center;margin-bottom:12px;}
+  .steptabs button{border:1px solid var(--border-base);background:#fff;color:var(--t2);padding:8px 14px;border-radius:999px;cursor:pointer;font-size:12px;font-weight:500;transition:.15s;display:flex;gap:6px;align-items:center;}
+  .steptabs button .n{width:17px;height:17px;border-radius:50%;background:var(--bg-2);color:var(--t3);font-size:10px;display:inline-flex;align-items:center;justify-content:center;font-weight:700;}
+  .steptabs button.on{background:var(--primary);color:#fff;border-color:var(--primary);box-shadow:var(--sh-primary);}
+  .steptabs button.on .n{background:rgba(255,255,255,.26);color:#fff;}
+
+  .window{width:680px;height:560px;background:var(--bg-base);border-radius:14px;box-shadow:0 22px 60px rgba(29,33,41,.22);overflow:hidden;display:flex;flex-direction:column;position:relative;}
+  .titlebar{height:38px;background:linear-gradient(#fdfdfe,#f7f8fa);border-bottom:1px solid var(--border-base);display:flex;align-items:center;padding:0 14px;gap:8px;flex-shrink:0;}
+  .dot{width:11px;height:11px;border-radius:50%;}
+  .dot.r{background:#ff5f57;}.dot.y{background:#febc2e;}.dot.g{background:#28c840;}
+  .titlebar .t{font-size:11px;color:var(--t3);margin-left:8px;}
+  .titlebar .badge{margin-left:auto;font-size:10px;color:var(--t3);border:1px solid var(--border-base);padding:2px 8px;border-radius:6px;background:#fff;}
+
+  .canvas{flex:1;position:relative;overflow:hidden;display:flex;flex-direction:column;background:
+    radial-gradient(900px 380px at 50% -16%,var(--aou-1),transparent),
+    radial-gradient(560px 320px at 92% 116%,#eaf0ff,transparent),
+    linear-gradient(175deg,#f7f8fc,#fff 66%);}
+  .op-top{display:flex;justify-content:flex-end;padding:12px 16px 0;flex-shrink:0;}
+  .op-top .skip{border:none;background:transparent;color:var(--t3);font-size:12px;cursor:pointer;padding:4px 8px;}
+  .ostage{flex:1;position:relative;min-height:0;}
+  .ostep{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 44px;}
+  .ostep.on{display:flex;animation:fade .4s;}
+  @keyframes fade{from{opacity:0;transform:translateY(10px);}to{opacity:1;}}
+  .kick{font-size:10px;font-weight:700;letter-spacing:1.6px;color:var(--aou-6);margin-bottom:14px;text-transform:uppercase;display:flex;align-items:center;gap:7px;}
+  .kick::before,.kick::after{content:"";width:16px;height:1px;background:var(--aou-4);}
+  h2.ttl{font-size:19px;font-weight:750;margin-bottom:8px;letter-spacing:-.3px;}
+  p.sub{font-size:12.5px;color:var(--t2);max-width:420px;line-height:1.7;}
+  p.sub b{color:var(--t1);}
+
+  /* ---------- page 1 scan ---------- */
+  .scanbox{width:330px;background:#fff;border:1px solid var(--border-base);border-radius:var(--r-lg);box-shadow:var(--sh-3);padding:14px;margin-bottom:22px;}
+  .scanhd{font-size:11.5px;color:var(--t3);display:flex;align-items:center;gap:8px;margin-bottom:11px;font-weight:500;}
+  .radar{width:13px;height:13px;border-radius:50%;border:2px solid var(--primary);border-top-color:transparent;animation:spin .8s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .clirow{display:flex;align-items:center;gap:10px;padding:8px;border-radius:var(--r-s);font-size:12.5px;opacity:0;transform:translateY(6px);}
+  .clirow.in{opacity:1;transform:none;transition:.42s;}
+  .clirow.builtin{background:var(--brand-light);}
+  .clirow .logo{width:26px;height:26px;border-radius:var(--r-xs);display:flex;align-items:center;justify-content:center;font-size:14px;background:var(--bg-2);flex-shrink:0;}
+  .clirow.builtin .logo{background:#fff;border:1px solid var(--aou-3);}
+  .clirow .nm{font-weight:600;}
+  .clirow .ver{font-size:10px;color:var(--t3);margin-left:3px;font-weight:400;}
+  .clirow .role{margin-left:auto;font-size:9.5px;color:var(--aou-7);background:#fff;border:1px solid var(--aou-3);padding:1px 6px;border-radius:5px;}
+  .clirow .chk{margin-left:auto;color:var(--success);font-size:15px;font-weight:700;}
+  .scan-count{font-size:11.5px;color:var(--success);font-weight:600;margin-top:8px;padding-left:2px;opacity:0;transition:.4s;}
+  .scan-count.in{opacity:1;}
+
+  /* ---------- page 2 (源码套自 activation-flow.html): source --wire--> assistant + buddies burst ---------- */
+  .swarm{position:relative;width:490px;height:220px;margin-bottom:24px;}
+  .wire{position:absolute;inset:0;z-index:1;pointer-events:none;overflow:visible;}
+  .wire path{fill:none;stroke:var(--aou-5);stroke-width:2.5;stroke-linecap:round;stroke-dasharray:var(--len);stroke-dashoffset:var(--len);filter:drop-shadow(0 0 3px rgba(117,131,178,.55));}
+  .swarm.draw .wire path{transition:stroke-dashoffset .6s ease;stroke-dashoffset:0;}
+  .spark{position:absolute;z-index:2;width:10px;height:10px;border-radius:50%;background:#fff;box-shadow:0 0 12px 4px rgba(117,131,178,.95);opacity:0;}
+  .swarm.draw .spark{animation:spark .62s ease .06s forwards;}
+  @keyframes spark{0%{opacity:1;left:var(--sx);top:var(--sy);}100%{opacity:0;left:var(--tx);top:var(--ty);}}
+  .source{position:absolute;left:6px;top:50%;transform:translateY(-50%);z-index:3;width:122px;background:#fff;border:1px solid var(--border-base);border-radius:var(--r);padding:14px;text-align:center;box-shadow:var(--sh-1);}
+  .source .lg{font-size:27px;}
+  .source .t{font-size:12px;margin-top:8px;font-weight:600;color:var(--t1);}
+  .source .sub{font-size:9.5px;color:var(--t3);margin-top:3px;}
+  .seed{position:absolute;right:4px;top:50%;transform:translateY(-50%) scale(.4);transform-origin:center;z-index:5;width:184px;background:linear-gradient(140deg,#fff,var(--brand-light));border:1.5px solid var(--aou-6);border-radius:var(--r);padding:14px 15px;box-shadow:var(--sh-brand);opacity:0;transition:opacity .35s,transform .55s cubic-bezier(.2,.9,.3,1.4);}
+  .swarm.grown .seed{opacity:1;transform:translateY(-50%) scale(1);}
+  .seed .r1{display:flex;align-items:center;gap:9px;}
+  .seed .av{width:32px;height:32px;border-radius:9px;background:#fff;border:1px solid var(--aou-3);display:flex;align-items:center;justify-content:center;font-size:17px;}
+  .seed .nm{font-size:13px;font-weight:700;color:var(--t1);}
+  .seed .tag{font-size:8.5px;background:var(--aou-6);color:#fff;padding:1px 6px;border-radius:4px;display:inline-block;margin-top:3px;}
+  .seed .k{margin-top:10px;font-size:10px;color:var(--t2);border-top:1px solid var(--aou-2);padding-top:9px;}
+  .buddy{position:absolute;background:#fff;border:1px solid var(--border-base);border-radius:10px;padding:7px 11px;display:flex;align-items:center;gap:7px;font-size:11px;color:var(--t2);box-shadow:var(--sh-1);opacity:0;transform:translate(var(--fx,60px),var(--fy,0)) scale(.3);transition:opacity .38s,transform .52s cubic-bezier(.25,.9,.3,1.4);white-space:nowrap;z-index:4;font-weight:500;}
+  .buddy.in{opacity:1;transform:translate(0,0) scale(1);}
+  .buddy .e{font-size:15px;}
+  .buddy.b0{right:150px;top:2px;--fx:70px;--fy:34px;}
+  .buddy.b1{right:34px;top:-16px;--fx:20px;--fy:50px;}
+  .buddy.b2{right:176px;bottom:8px;--fx:80px;--fy:-30px;}
+  .buddy.b3{right:40px;bottom:-14px;--fx:24px;--fy:-46px;}
+  .buddy.b4{right:214px;top:42%;--fx:96px;--fy:6px;}
+  .buddy.b5{right:120px;bottom:-20px;--fx:60px;--fy:-40px;}
+
+  /* ---------- page 3 notebook ---------- */
+  .nb{width:340px;background:#fff;border:1px solid var(--border-base);border-radius:var(--r-lg);box-shadow:var(--sh-3);overflow:hidden;text-align:left;margin-bottom:20px;}
+  .nb-say{background:var(--primary);color:#fff;border-radius:11px 11px 4px 11px;padding:8px 12px;font-size:12px;margin:13px 13px 0 auto;max-width:80%;box-shadow:var(--sh-primary);}
+  .nb-book{margin:13px;border:1px solid var(--aou-2);border-radius:var(--r);background:linear-gradient(180deg,#fcfdff,#fff);overflow:hidden;}
+  .nb-owner{display:flex;align-items:center;gap:9px;padding:10px 13px;border-bottom:1px dashed var(--border-base);background:linear-gradient(180deg,var(--brand-light),#fff);}
+  .nb-av{width:28px;height:28px;border-radius:8px;background:#fff;border:1px solid var(--aou-3);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;}
+  .nb-name{font-size:12px;font-weight:700;}
+  .nb-role{font-size:9.5px;color:var(--t3);margin-top:1px;}
+  .nb-line{display:flex;align-items:center;gap:9px;font-size:11.5px;color:var(--t2);padding:8px 13px;border-bottom:1px dashed var(--border-light);opacity:0;transform:translateX(-8px);}
+  .nb-line:last-of-type{border-bottom:none;}
+  .nb-line.in{opacity:1;transform:none;transition:.45s;}
+  .nb-line .pen{color:var(--success);}
+  .nb-line.fresh{background:var(--success-1);}
+  .nb-engine{display:flex;align-items:center;gap:9px;padding:10px 13px;border-top:1px solid var(--aou-2);background:var(--bg-1);}
+  .nb-engine-label{font-size:10px;color:var(--t3);flex-shrink:0;}
+  .nb-engine-chip{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;color:var(--t2);background:#fff;border:1px solid var(--border-base);border-radius:7px;padding:4px 10px;transition:.3s;}
+  .nb-engine-chip .lg{font-size:13px;}
+  .nb-engine-chip.flip{transform:translateY(-3px);opacity:.3;}
+  .nb-engine-chip.pending{color:var(--t3);border-style:dashed;background:var(--bg-1);}
+  .nb-engine-chip .pend-tag{font-size:9px;color:var(--t3);border:1px solid var(--border-base);border-radius:4px;padding:0 4px;margin-left:2px;}
+
+  .op-foot{flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:10px;padding:8px 40px 18px;}
+  .odots{display:flex;gap:6px;justify-content:center;}
+  .odots i{width:6px;height:6px;border-radius:50%;background:var(--aou-3);transition:.25s;}
+  .odots i.on{background:var(--primary);width:20px;border-radius:4px;}
+  .btn{border:none;border-radius:9px;padding:9px 26px;font-size:13px;cursor:pointer;font-weight:600;background:var(--primary);color:#fff;box-shadow:var(--sh-primary);transition:.15s;}
+  .btn:hover{background:#0e4fdd;}
+  .replay{margin-top:12px;text-align:center;}
+  .replay button{border:1px solid var(--border-base);background:#fff;color:var(--t2);font-size:12px;padding:7px 16px;border-radius:8px;cursor:pointer;}
+
+  /* right: spec */
+  .spec{flex:1;min-width:360px;max-width:520px;display:flex;flex-direction:column;gap:14px;}
+  .spec-card{background:#fff;border:1px solid var(--border-base);border-radius:var(--r);box-shadow:var(--sh-1);overflow:hidden;}
+  .spec-hd{padding:12px 15px;border-bottom:1px solid var(--border-light);display:flex;align-items:center;gap:9px;background:var(--bg-1);}
+  .spec-hd .idx{width:22px;height:22px;border-radius:6px;background:var(--primary);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;}
+  .spec-hd b{font-size:13.5px;}
+  .spec-hd .code{margin-left:auto;font-size:10px;color:var(--t3);font-family:ui-monospace,Menlo,monospace;}
+  .spec-body{padding:13px 15px;}
+  .spec-row{display:flex;gap:10px;font-size:12px;line-height:1.6;padding:6px 0;border-bottom:1px dashed var(--border-light);}
+  .spec-row:last-child{border-bottom:none;}
+  .spec-row .lab{flex-shrink:0;width:56px;font-weight:600;color:var(--aou-7);font-size:11px;}
+  .spec-row .val{color:var(--t2);}
+  .spec-row .val b{color:var(--t1);}
+  .auto{display:inline-block;font-size:9.5px;font-weight:700;color:#fff;border-radius:4px;padding:1px 6px;margin-right:5px;}
+  .data{background:var(--primary);}.branch{background:var(--aou-6);}.loop{background:var(--success);}
+  .tl{font-family:ui-monospace,Menlo,monospace;font-size:10.5px;color:var(--t2);background:var(--bg-1);border:1px solid var(--border-light);border-radius:8px;padding:10px 12px;line-height:1.9;white-space:pre-wrap;}
+  .legend{display:flex;flex-wrap:wrap;gap:8px;font-size:11px;color:var(--t3);}
+  .legend span{display:inline-flex;align-items:center;gap:5px;}
+</style>
+</head>
+<body>
+
+<div class="doc-title">AionUi · 首启开屏三页动画规格 (F-OPEN)</div>
+<div class="doc-sub">左＝动画预览（可播放 / 重播 / 切换用户）　·　右＝这一页背后的自动逻辑</div>
+
+<div class="persona-switch">
+  <span>模拟用户：</span>
+  <span class="pill on" data-persona="cli">扫到外部工具（主力）</span>
+  <span class="pill" data-persona="new">没扫到外部工具</span>
+</div>
+
+<div class="layout">
+  <div class="stage-col">
+    <div class="steptabs">
+      <button data-s="0" class="on"><span class="n">1</span>扫描工具</button>
+      <button data-s="1"><span class="n">2</span>派生助手</button>
+      <button data-s="2"><span class="n">3</span>记住你</button>
+    </div>
+
+    <div class="window">
+      <div class="titlebar"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span class="t">AionUi</span><span class="badge">首启 · 第 1 次打开</span></div>
+      <div class="canvas">
+        <div class="op-top"><button class="skip">跳过</button></div>
+        <div class="ostage" id="ostage">
+
+          <!-- page 1 -->
+          <div class="ostep on" data-step="0">
+            <div class="kick">正在认识你的电脑</div>
+            <div class="scanbox">
+              <div class="scanhd"><span class="radar" id="radar"></span><span id="scan-label">正在扫描本地的 AI 工具…</span></div>
+              <div class="clirow builtin in"><span class="logo">◆</span><span class="nm">AionCLI<span class="ver"> 内置</span></span><span class="role">自带</span></div>
+              <div class="clirow ext" data-cli="0"><span class="logo">🟠</span><span class="nm">Claude Code<span class="ver"> v1.2</span></span><span class="chk">✓</span></div>
+              <div class="clirow ext" data-cli="1"><span class="logo">⚫</span><span class="nm">Codex CLI<span class="ver"> v0.9</span></span><span class="chk">✓</span></div>
+              <div class="clirow ext" data-cli="2"><span class="logo">🔷</span><span class="nm">Gemini CLI<span class="ver"> v0.4</span></span><span class="chk">✓</span></div>
+              <div class="scan-count" id="scan-count">共 4 个已就位（含内置 AionCLI）</div>
+            </div>
+            <h2 class="ttl" id="s0-ttl">正在扫描你的本地工具…</h2>
+            <p class="sub" id="s0-sub">AionUi 自带 AionCLI，还会认出你装好的其它 AI 工具，一起接管进来。</p>
+          </div>
+
+          <!-- page 2 -->
+          <div class="ostep" data-step="1">
+            <div class="kick">它们不只是工具</div>
+            <div class="swarm" id="swarm">
+              <svg class="wire" id="wire"><path id="wire-path" d=""/></svg>
+              <span class="spark" id="spark"></span>
+              <div class="source" id="src-node"><div class="lg" id="d-lg">🟠</div><div class="t" id="d-nm">Claude Code</div><div class="sub">你的命令行工具</div></div>
+              <div class="seed" id="seed-node">
+                <div class="r1"><span class="av" id="d-av">🟠</span><div><div class="nm" id="d-anm">Claude Code</div><span class="tag">你的助手</span></div></div>
+                <div class="k">🧠 会记住你 · 越用越懂你</div>
+              </div>
+              <div class="buddy b0"><span class="e">💻</span>代码开发</div>
+              <div class="buddy b1"><span class="e">🧪</span>测试用例</div>
+              <div class="buddy b2"><span class="e">🎨</span>UI 设计</div>
+              <div class="buddy b3"><span class="e">✍️</span>公众号写作</div>
+              <div class="buddy b4"><span class="e">📊</span>数据分析</div>
+              <div class="buddy b5"><span class="e">🔍</span>竞品调研</div>
+            </div>
+            <h2 class="ttl">它们不只是工具，还能变成你的专属助手</h2>
+            <p class="sub">用着用着，你的工具就<b>长成一个个为你量身定制的专家</b>——研发、测试、设计、写作、分析…各管一摊。</p>
+          </div>
+
+          <!-- page 3 -->
+          <div class="ostep" data-step="2">
+            <div class="kick">越用越懂你</div>
+            <div class="nb" id="nb">
+              <div class="nb-say">"记住：以后写稿都别用感叹号。"</div>
+              <div class="nb-book">
+                <div class="nb-owner"><span class="nb-av">✍️</span><div><div class="nb-name">Patrick · 你的写作助手</div><div class="nb-role">正在记它的笔记</div></div></div>
+                <div class="nb-line" data-nb="0"><span class="pen">🖊️</span>写稿不用感叹号</div>
+                <div class="nb-line" data-nb="1"><span class="pen">✓</span>标题偏口语、有网感</div>
+                <div class="nb-line" data-nb="2"><span class="pen">✓</span>结尾带一句行动号召</div>
+                <div class="nb-engine"><span class="nb-engine-label">当前工具</span><span class="nb-engine-chip" id="nb-eng"><span class="lg">🟠</span>Claude Code</span></div>
+              </div>
+            </div>
+            <h2 class="ttl">助手越用越懂你，换个工具也不丢</h2>
+            <p class="sub">跟它说一句 <b>"记住这个"</b>，它就记进笔记，下次自动照做。哪怕换个底层工具，也一条不丢。</p>
+          </div>
+
+        </div>
+        <div class="op-foot">
+          <div class="odots" id="odots"><i class="on"></i><i></i><i></i></div>
+          <button class="btn" id="opnext">下一步</button>
+        </div>
+      </div>
+    </div>
+    <div class="replay"><button id="replay">↻ 重播这一页动画</button></div>
+  </div>
+
+  <!-- right spec -->
+  <div class="spec">
+    <div class="legend">
+      <span><i class="auto data">数据驱动</i>内容来自真实扫描</span>
+      <span><i class="auto branch">自动分支</i>有/无工具走不同线</span>
+      <span><i class="auto loop">循环</i>持续播放</span>
+    </div>
+
+    <div class="spec-card" data-spec="0">
+      <div class="spec-hd"><span class="idx">1</span><b>扫描并点亮你的工具</b><span class="code">F-OPEN-01</span></div>
+      <div class="spec-body">
+        <div class="spec-row"><span class="lab">要传达</span><span class="val">"我没干嘛，它就认识我电脑里的 AI 工具了。"</span></div>
+        <div class="spec-row"><span class="lab">自动</span><span class="val"><span class="auto data">数据驱动</span>列表来自<b>对本机的真实扫描</b>。扫到几个、是什么，决定后两页主角。</span></div>
+        <div class="spec-row"><span class="lab">自动</span><span class="val"><b>AionCLI 始终在列、标"自带"</b>——不参与扫描，保证一开始就不空手。</span></div>
+        <div class="spec-row"><span class="lab">动画</span><span class="val">外部工具<b>逐个点亮</b>（依次出现＋勾选），结束给数量汇总。</span></div>
+        <div class="spec-row"><span class="lab">自动</span><span class="val"><span class="auto branch">自动分支</span><b>有工具</b>→"你装的它都认识"；<b>无工具</b>→"AionCLI 已自带、以后可持续接入"。</span></div>
+      </div>
+    </div>
+
+    <div class="spec-card" data-spec="1" style="display:none;">
+      <div class="spec-hd"><span class="idx">2</span><b>工具派生出一群助手</b><span class="code">F-OPEN-02</span></div>
+      <div class="spec-body">
+        <div class="spec-row"><span class="lab">要传达</span><span class="val">"这些不只是工具，能变成一个个帮我干活的助手，而且有一大批。"</span></div>
+        <div class="spec-row"><span class="lab">自动</span><span class="val"><span class="auto branch">选主角</span>主角＝第一页扫到的<b>主角工具</b>：有工具取 Claude Code，无工具取 AionCLI，随实际而变。</span></div>
+        <div class="spec-row"><span class="lab">动画</span><span class="val">主角工具经连线<b>派生出</b>同名助手，再<b>扩散出一排专家助手</b>。</span></div>
+        <div class="spec-row"><span class="lab">内容</span><span class="val">专家<b>覆盖研发与办公</b>：代码 / 测试 / 设计 / 写作 / 分析 / 调研。</span></div>
+      </div>
+    </div>
+
+    <div class="spec-card" data-spec="2" style="display:none;">
+      <div class="spec-hd"><span class="idx">3</span><b>助手记住你，换工具也不丢</b><span class="code">F-OPEN-03</span></div>
+      <div class="spec-body">
+        <div class="spec-row"><span class="lab">要传达</span><span class="val">"我教它的它记住了；底层工具随便换，都不丢。"</span></div>
+        <div class="spec-row"><span class="lab">区分</span><span class="val">笔记本主人＝有名字的<b>助手</b>（Patrick）；底部"当前工具"＝它底层用的 CLI。两者分开。</span></div>
+        <div class="spec-row"><span class="lab">动画</span><span class="val">用户一句话<b>逐行写入</b>助手笔记本。</span></div>
+        <div class="spec-row"><span class="lab">自动</span><span class="val"><span class="auto loop">循环</span>底部"当前工具"<b>持续切换</b>，而助手与笔记始终不变。</span></div>
+        <div class="spec-row"><span class="lab">自动</span><span class="val"><span class="auto branch">分支</span><b>无工具</b>时其它工具以<b>"待接入"</b>态参与，不伪装成已拥有。</span></div>
+      </div>
+    </div>
+
+    <div class="spec-card">
+      <div class="spec-hd"><span class="idx">⏱</span><b>整体时间轴</b></div>
+      <div class="spec-body"><div class="tl" id="tl"></div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  let persona='cli', step=0, engineTimer=null;
+  const STAR={cli:{lg:'🟠',nm:'Claude Code'},new:{lg:'◆',nm:'AionCLI'}};
+  const ENG_CLI=[['🟠','Claude Code',0],['⚫','Codex CLI',0],['🔷','Gemini CLI',0]];
+  const ENG_NEW=[['◆','AionCLI',0],['🟠','Claude Code',1],['⚫','Codex CLI',1]];
+  const TL=[
+`[进入] → 扫描中(转圈)
+   → 外部工具逐个点亮(依次)     ← 内容由真实扫描决定
+   → 完成 + 数量汇总
+（有/无外部工具在此自动分流）`,
+`[进入] → 主角工具出现
+   → 连线派生出"主角助手"       ← 主角随扫描结果而变
+   → 一排专家依次扩散出现`,
+`[进入] → 用户那句话出现
+   → 逐行写入助手笔记本
+   → 底部"当前工具"【持续循环切换】←┐
+      助手与笔记始终不动          └ 循环到离开本页`,
+  ];
+
+  const osteps=[...document.querySelectorAll('.ostep')];
+  const odots=[...document.querySelectorAll('#odots i')];
+  const steptabs=[...document.querySelectorAll('.steptabs button')];
+  const specs=[...document.querySelectorAll('.spec-card[data-spec]')];
+  const opnext=document.getElementById('opnext');
+
+  function renderStar(){
+    const s=STAR[persona];
+    document.getElementById('d-lg').textContent=s.lg;
+    document.getElementById('d-nm').textContent=s.nm;
+    document.getElementById('d-av').textContent=s.lg;
+    document.getElementById('d-anm').textContent=s.nm;
+    const chip=document.getElementById('nb-eng');
+    chip.classList.remove('pending');
+    chip.innerHTML=`<span class="lg">${s.lg}</span>${s.nm}`;
+  }
+
+  function playScan(){
+    const ext=[...document.querySelectorAll('.clirow.ext')];
+    const radar=document.getElementById('radar'),label=document.getElementById('scan-label');
+    const count=document.getElementById('scan-count'),t=document.getElementById('s0-ttl'),sb=document.getElementById('s0-sub');
+    ext.forEach(r=>r.classList.remove('in'));count.classList.remove('in');
+    if(persona==='cli'){
+      radar.style.display='';label.textContent='正在扫描本地的 AI 工具…';
+      ext.forEach((r,i)=>setTimeout(()=>r.classList.add('in'),400+i*480));
+      setTimeout(()=>{radar.style.display='none';label.textContent='扫描完成';count.classList.add('in');
+        t.textContent='你装的 AI 工具，它都认识';
+        sb.innerHTML='已装的 Claude Code、Codex、Gemini <b>不用重新配置</b>，直接接管——加上内置 AionCLI，现在就能用。';
+      },400+ext.length*480+300);
+    }else{
+      radar.style.display='none';label.textContent='没有找到其他 AI 工具';
+      t.textContent='没装别的工具？照样开箱即用';
+      sb.innerHTML='AionUi <b>自带一个 AionCLI</b>，现在就能用。以后你装了 Claude Code、Codex 之类的工具，也会<b>随时被认出、接进来</b>。';
+    }
+  }
+  function playDerive(){
+    const swarm=document.getElementById('swarm'),src=document.getElementById('src-node'),seed=document.getElementById('seed-node');
+    const wirePath=document.getElementById('wire-path'),spark=document.getElementById('spark');
+    const buddies=[...document.querySelectorAll('#swarm .buddy')];
+    if(!swarm) return;
+    swarm.classList.remove('draw','grown');buddies.forEach(b=>b.classList.remove('in'));
+    const draw=()=>{
+      const sw=swarm.getBoundingClientRect(),s=src.getBoundingClientRect(),d=seed.getBoundingClientRect();
+      if(sw.width===0){ requestAnimationFrame(draw); return; } // layout not ready — retry
+      const x1=s.right-sw.left,y1=s.top+s.height/2-sw.top,x2=d.left-sw.left,y2=d.top+d.height/2-sw.top,midx=(x1+x2)/2;
+      wirePath.setAttribute('d',`M ${x1} ${y1} C ${midx} ${y1}, ${midx} ${y2}, ${x2} ${y2}`);
+      const len=wirePath.getTotalLength();wirePath.style.setProperty('--len',len);
+      spark.style.setProperty('--sx',x1+'px');spark.style.setProperty('--sy',y1+'px');
+      spark.style.setProperty('--tx',x2+'px');spark.style.setProperty('--ty',y2+'px');
+      setTimeout(()=>swarm.classList.add('draw'),380);
+      setTimeout(()=>swarm.classList.add('grown'),380+600);
+      const start=380+600+380, gap=150;
+      buddies.forEach((b,i)=>setTimeout(()=>b.classList.add('in'),start+i*gap));
+    };
+    requestAnimationFrame(draw);
+  }
+  function playNotebook(){
+    const lines=[...document.querySelectorAll('.nb-line')];
+    lines.forEach(l=>l.classList.remove('in','fresh'));
+    setTimeout(()=>lines[0].classList.add('in','fresh'),450);
+    setTimeout(()=>lines[1].classList.add('in'),1080);
+    setTimeout(()=>lines[2].classList.add('in'),1420);
+    const chip=document.getElementById('nb-eng'),list=persona==='cli'?ENG_CLI:ENG_NEW;
+    let ei=0;if(engineTimer)clearInterval(engineTimer);
+    const setEng=()=>{chip.classList.add('flip');setTimeout(()=>{const[lg,nm,pd]=list[ei];chip.classList.toggle('pending',!!pd);chip.innerHTML=`<span class="lg">${lg}</span>${nm}${pd?'<span class="pend-tag">待接入</span>':''}`;chip.classList.remove('flip');ei=(ei+1)%list.length;},280);};
+    setTimeout(()=>{ei=1;setEng();engineTimer=setInterval(setEng,1800);},2100);
+  }
+  function playStep(i){
+    if(engineTimer&&i!==2){clearInterval(engineTimer);engineTimer=null;}
+    if(i===0)playScan();if(i===1)playDerive();if(i===2)playNotebook();
+  }
+  function go(i){
+    step=i;
+    osteps.forEach((s,k)=>s.classList.toggle('on',k===i));
+    odots.forEach((d,k)=>d.classList.toggle('on',k===i));
+    steptabs.forEach((t,k)=>t.classList.toggle('on',k===i));
+    specs.forEach((s,k)=>s.style.display=(k===i)?'block':'none');
+    document.getElementById('tl').textContent=TL[i];
+    opnext.textContent=(i>=2)?'开始使用 →':'下一步';
+    playStep(i);
+  }
+  steptabs.forEach(t=>t.addEventListener('click',()=>go(+t.dataset.s)));
+  odots.forEach((d,k)=>d.addEventListener('click',()=>go(k)));
+  opnext.addEventListener('click',()=>go(step<2?step+1:0));
+  document.getElementById('replay').addEventListener('click',()=>playStep(step));
+  document.querySelectorAll('.persona-switch .pill').forEach(p=>p.addEventListener('click',()=>{
+    document.querySelectorAll('.persona-switch .pill').forEach(x=>x.classList.remove('on'));
+    p.classList.add('on');persona=p.dataset.persona;renderStar();go(step);
+  }));
+
+  renderStar();go(0);
+</script>
+</body>
+</html>
