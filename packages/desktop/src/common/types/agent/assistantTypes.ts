@@ -8,7 +8,7 @@
 // Any shape change on either side requires a same-PR update on the other.
 
 export type AssistantSource = 'builtin' | 'generated' | 'user';
-export type AssistantAgentStatus = 'missing' | 'online' | 'offline';
+export type AssistantAgentStatus = 'missing' | 'online' | 'offline' | 'unchecked';
 export type AssistantAgentSource = 'internal' | 'builtin' | 'extension' | 'custom';
 
 export type AssistantAgent = {
