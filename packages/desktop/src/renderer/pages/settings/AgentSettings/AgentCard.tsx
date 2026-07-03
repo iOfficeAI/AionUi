@@ -43,7 +43,7 @@ type AgentCardProps =
 // `auth_required` is "reachable but not signed in" — distinct from a truly
 // unreachable agent. We surface that as its own `needs_auth` chip so users
 // see "one step away (log in)" vs "broken" vs "not installed".
-type DisplayStatus = 'online' | 'needs_auth' | 'offline' | 'missing' | 'unknown';
+type DisplayStatus = 'online' | 'needs_auth' | 'offline' | 'missing' | 'unchecked' | 'unknown';
 
 const resolveDisplayStatus = (status?: AgentManagementStatus, errorCode?: string): DisplayStatus => {
   switch (status) {
@@ -53,6 +53,8 @@ const resolveDisplayStatus = (status?: AgentManagementStatus, errorCode?: string
       return errorCode === 'auth_required' ? 'needs_auth' : 'offline';
     case 'missing':
       return 'missing';
+    case 'unchecked':
+      return 'unchecked';
     default:
       return 'unknown';
   }
@@ -68,6 +70,8 @@ const statusColor = (display: DisplayStatus): 'green' | 'gold' | 'orange' | 'red
       return 'orange';
     case 'missing':
       return 'red';
+    case 'unchecked':
+      return 'gray';
     default:
       return 'gray';
   }
@@ -83,6 +87,8 @@ const statusLabelKey = (display: DisplayStatus) => {
       return 'settings.agentManagement.statusOffline';
     case 'missing':
       return 'settings.agentManagement.statusMissing';
+    case 'unchecked':
+      return 'settings.agentManagement.statusUnchecked';
     default:
       return 'settings.agentManagement.statusUnknown';
   }

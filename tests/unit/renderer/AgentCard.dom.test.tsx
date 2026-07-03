@@ -137,6 +137,22 @@ describe('AgentCard (official variant)', () => {
     expect(screen.queryByText('settings.agentManagement.statusOffline')).toBeNull();
   });
 
+  it('shows the unchecked status before an agent has been manually tested', () => {
+    renderOfficial({
+      id: 'qwen',
+      name: 'Qwen',
+      agent_type: 'acp',
+      agent_source: 'builtin',
+      backend: 'qwen',
+      enabled: true,
+      installed: false,
+      status: 'unchecked',
+    });
+
+    expect(screen.getByText('settings.agentManagement.statusUnchecked')).toBeInTheDocument();
+    expect(screen.queryByText('settings.agentManagement.statusUnknown')).toBeNull();
+  });
+
   it('shows the generic unavailable status for a non-auth offline agent', () => {
     renderOfficial({
       id: 'droid',

@@ -1180,6 +1180,7 @@ export type I18nKey =
   | 'settings.agentManagement.statusNeedsAuth'
   | 'settings.agentManagement.statusOffline'
   | 'settings.agentManagement.statusOnline'
+  | 'settings.agentManagement.statusUnchecked'
   | 'settings.agentManagement.statusUnknown'
   | 'settings.agentManagement.testConnection'
   | 'settings.agentManagement.testConnectionAuth'

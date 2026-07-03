@@ -1064,6 +1064,7 @@
     "statusNeedsAuth": "نیاز به ورود",
     "statusOffline": "در دسترس نیست",
     "statusMissing": "نصب نشده",
+    "statusUnchecked": "بررسی نشده",
     "statusUnknown": "نامشخص",
     "localAgentsEmpty": "ایجنت محلی شناسایی نشد",
     "detected": "شناسایی شده",

@@ -1079,6 +1079,7 @@
     "statusNeedsAuth": "로그인 필요",
     "statusOffline": "사용 불가",
     "statusMissing": "미설치",
+    "statusUnchecked": "미확인",
     "statusUnknown": "알 수 없음",
     "localAgentsEmpty": "로컬 에이전트가 감지되지 않았습니다",
     "detected": "감지됨",

@@ -1092,6 +1092,7 @@
     "statusNeedsAuth": "Needs Sign-in",
     "statusOffline": "Unavailable",
     "statusMissing": "Not Installed",
+    "statusUnchecked": "Not Checked",
     "statusUnknown": "Unknown",
     "errorCodes": {
       "command_not_found": "Install {{command}} and retry the connection test.",

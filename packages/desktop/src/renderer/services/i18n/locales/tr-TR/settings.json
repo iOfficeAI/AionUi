@@ -1077,6 +1077,7 @@
     "statusNeedsAuth": "Giriş Gerekli",
     "statusOffline": "Kullanılamıyor",
     "statusMissing": "Yüklü Değil",
+    "statusUnchecked": "Kontrol Edilmedi",
     "statusUnknown": "Bilinmiyor",
     "localAgentsEmpty": "Yerel ajan algılanmadı",
     "detected": "Algılanan",

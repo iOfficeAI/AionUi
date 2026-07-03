@@ -1060,6 +1060,7 @@
     "statusNeedsAuth": "Needs Sign-in",
     "statusOffline": "Unavailable",
     "statusMissing": "Not Installed",
+    "statusUnchecked": "Not Checked",
     "statusUnknown": "Unknown",
     "customEmptyDescription": "Custom agents must support ACP.",
     "errorCodes": {

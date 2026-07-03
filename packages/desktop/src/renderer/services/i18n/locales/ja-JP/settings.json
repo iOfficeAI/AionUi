@@ -1079,6 +1079,7 @@
     "statusNeedsAuth": "要サインイン",
     "statusOffline": "利用不可",
     "statusMissing": "未インストール",
+    "statusUnchecked": "未確認",
     "statusUnknown": "不明",
     "localAgentsEmpty": "ローカルエージェントが検出されていません",
     "detected": "検出済み",

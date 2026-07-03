@@ -989,6 +989,7 @@
     "statusNeedsAuth": "Потрібен вхід",
     "statusOffline": "Недоступний",
     "statusMissing": "Не встановлено",
+    "statusUnchecked": "Не перевірено",
     "statusUnknown": "Невідомо",
     "localAgentsEmpty": "Локальні агенти не виявлені",
     "detected": "Виявлено",

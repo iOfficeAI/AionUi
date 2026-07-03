@@ -1091,6 +1091,7 @@
     "statusNeedsAuth": "需登入",
     "statusOffline": "不可用",
     "statusMissing": "未安裝",
+    "statusUnchecked": "未檢測",
     "statusUnknown": "未知",
     "localAgentsEmpty": "未檢測到本機 Agent",
     "detected": "已偵測",
