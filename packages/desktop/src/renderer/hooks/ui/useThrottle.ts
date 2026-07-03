@@ -1,5 +1,5 @@
 import type React from 'react';
-import { useCallback, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 
 /**
  * 节流 Hook
@@ -10,6 +10,16 @@ import { useCallback, useRef } from 'react';
 function useThrottle<T extends (...args: any[]) => any>(callback: T, delay: number, deps: React.DependencyList): T {
   const lastExecTime = useRef<number>(0);
   const timeoutId = useRef<NodeJS.Timeout | null>(null);
+
+  // 组件卸载时清理
+  useEffect(() => {
+    return () => {
+      if (timeoutId.current) {
+        clearTimeout(timeoutId.current);
+        timeoutId.current = null;
+      }
+    };
+  }, []);
 
   const throttledFunction = useCallback(
     (...args: Parameters<T>) => {
