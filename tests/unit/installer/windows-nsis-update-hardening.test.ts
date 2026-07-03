@@ -102,6 +102,21 @@ describe('Windows NSIS update race hardening', () => {
     expect(preInit.indexOf('!else')).toBeLessThan(preInit.indexOf('AIONUI_RECORD_ACTIVE_INSTALLER_MARKER'));
   });
 
+  it('brings non-silent update installers to the foreground during preInit', () => {
+    const updateVerify = read(join(windowsResourcesDir, 'installer-update-verify.nsh'));
+    const focusMacro = macroBody(updateVerify, 'AIONUI_BRING_UPDATED_INSTALLER_TO_FRONT');
+    const preInit = macroBody(updateVerify, 'AIONUI_INSTALLER_PREINIT');
+    const installerBranchIndex = preInit.indexOf('!else');
+
+    expect(focusMacro).toContain('${isUpdated}');
+    expect(focusMacro).toContain('BringToFront');
+    expect(focusMacro).toContain('event=updated-installer-foreground');
+    expect(preInit.indexOf('AIONUI_BRING_UPDATED_INSTALLER_TO_FRONT')).toBeGreaterThan(installerBranchIndex);
+    expect(preInit.indexOf('AIONUI_BRING_UPDATED_INSTALLER_TO_FRONT')).toBeLessThan(
+      preInit.indexOf('AIONUI_RECORD_ACTIVE_INSTALLER_MARKER'),
+    );
+  });
+
   it('initializes installer-only global variables while compiling the uninstaller', () => {
     const updateVerify = read(join(windowsResourcesDir, 'installer-update-verify.nsh'));
     const preInit = macroBody(updateVerify, 'AIONUI_INSTALLER_PREINIT');

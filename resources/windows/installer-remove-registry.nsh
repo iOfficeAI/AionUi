@@ -11,10 +11,11 @@
   Push $9
   nsExec::Exec `"$SYSDIR\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -Command "& { \
     $$ErrorActionPreference = 'SilentlyContinue'; \
-    $$log = Join-Path $$env:TEMP '${AIONUI_PROCESS_CHECK_LOG}'; \
+    $$log = '$AionUiSessionLogPath'; \
+    if (-not $$log) { $$log = Join-Path $$env:TEMP '${AIONUI_FALLBACK_LOG}' }; \
     $$failed = '$AionUiAtomicFailedPath'; \
     $$instDir = '$INSTDIR'; \
-    $$oldInstallDir = '$PLUGINSDIR\old-install'; \
+    $$oldInstallDir = '$AionUiAtomicStagingDir'; \
     $$relative = $$failed; \
     if ($$failed.StartsWith($$instDir, [System.StringComparison]::CurrentCultureIgnoreCase)) { $$relative = $$failed.Substring($$instDir.Length).TrimStart('\') }; \
     $$tempCandidate = if ($$relative -and $$relative -ne $$failed) { Join-Path $$oldInstallDir $$relative } else { '' }; \
@@ -28,10 +29,14 @@
 !macro AIONUI_REMOVE_INSTALL_DIR
   StrCpy $AionUiRemoveResidueCount "0"
   StrCpy $AionUiRemoveResidueRoot "$INSTDIR"
+  StrCpy $AionUiRemoveFirstFailedPath ""
   nsExec::Exec `"$SYSDIR\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -Command "& { \
     $$ErrorActionPreference = 'Continue'; \
-    $$log = Join-Path $$env:TEMP '${AIONUI_PROCESS_CHECK_LOG}'; \
-    $$path = [System.IO.Path]::GetFullPath('$INSTDIR'); \
+    $$log = '$AionUiSessionLogPath'; \
+    if (-not $$log) { $$log = Join-Path $$env:TEMP '${AIONUI_FALLBACK_LOG}' }; \
+    $$path = [System.IO.Path]::GetFullPath('$AionUiRemoveResidueRoot'); \
+    $$firstFailedFile = '$PLUGINSDIR\aionui-remove-first-failed.txt'; \
+    Set-Content -LiteralPath $$firstFailedFile -Encoding UTF8 -NoNewline -Value ''; \
     function Write-InstallerLog($$message) { Add-Content -LiteralPath $$log -Encoding UTF8 -Value ('[' + (Get-Date -Format o) + '] ' + $$message) } \
     function Convert-LongPath($$itemPath) { if ($$itemPath.StartsWith('\\')) { return '\\?\UNC\' + $$itemPath.TrimStart('\') } return '\\?\' + $$itemPath } \
     function Remove-WithRetries($$item, $$isDir) { \
@@ -53,7 +58,7 @@
       foreach ($$dir in @(Get-ChildItem -LiteralPath $$path -Force -Recurse -Directory -ErrorAction SilentlyContinue | Sort-Object FullName -Descending)) { if (-not (Remove-WithRetries $$dir.FullName $$true)) { $$failed.Add($$dir.FullName) } } \
       if (-not (Remove-WithRetries $$path $$true)) { $$failed.Add($$path) } \
       Write-InstallerLog ('event=remove-resilient-summary failedCount=' + $$failed.Count + ' root=' + $$path); \
-      if ($$failed.Count -gt 0) { exit $$failed.Count } \
+      if ($$failed.Count -gt 0) { Set-Content -LiteralPath $$firstFailedFile -Encoding UTF8 -NoNewline -Value $$failed[0]; exit $$failed.Count } \
       Write-InstallerLog ('remove-longpath result=0 instDir=' + $$path); \
       exit 0 \
     } catch { \
@@ -63,10 +68,19 @@
   }"`
   Pop $AionUiRemoveDirResult
 
+  ClearErrors
+  SetDetailsPrint none
+  FileOpen $AionUiRemoveFirstFailedFile "$PLUGINSDIR\aionui-remove-first-failed.txt" r
+  ${IfNot} ${Errors}
+    FileRead $AionUiRemoveFirstFailedFile $AionUiRemoveFirstFailedPath
+    FileClose $AionUiRemoveFirstFailedFile
+  ${EndIf}
+  SetDetailsPrint lastused
+
   ${If} $AionUiRemoveDirResult == "error"
     !insertmacro AIONUI_LOG_EVENT "event=remove-longpath fallback=RMDir reason=no-powershell root=$INSTDIR"
-    RMDir /r "$INSTDIR"
-    ${If} ${FileExists} "$INSTDIR\*.*"
+    RMDir /r "$AionUiRemoveResidueRoot"
+    ${If} ${FileExists} "$AionUiRemoveResidueRoot\*.*"
       StrCpy $AionUiRemoveDirResult "1"
     ${Else}
       StrCpy $AionUiRemoveDirResult "0"
@@ -83,49 +97,73 @@
   Var /GLOBAL AionUiRemoveDirResult
   Var /GLOBAL AionUiAtomicFailedPath
   Var /GLOBAL AionUiAtomicRemoveSucceeded
+  Var /GLOBAL AionUiAtomicStagingDir
   Var /GLOBAL AionUiRemoveResidueCount
   Var /GLOBAL AionUiRemoveResidueRoot
+  Var /GLOBAL AionUiRemoveFirstFailedPath
+  Var /GLOBAL AionUiRemoveFirstFailedFile
   StrCpy $AionUiAtomicFailedPath ""
   StrCpy $AionUiAtomicRemoveSucceeded "0"
+  StrCpy $AionUiAtomicStagingDir ""
   StrCpy $AionUiRemoveResidueCount "0"
   StrCpy $AionUiRemoveResidueRoot "$INSTDIR"
+  StrCpy $AionUiRemoveFirstFailedPath ""
 
   ${if} ${isUpdated}
-    CreateDirectory "$PLUGINSDIR\old-install"
+    StrCpy $AionUiAtomicStagingDir "$INSTDIR.__old"
+    ${If} ${FileExists} "$AionUiAtomicStagingDir\*.*"
+      StrCpy $AionUiRemoveResidueRoot "$AionUiAtomicStagingDir"
+      !insertmacro AIONUI_LOG_EVENT "remove-stale-staging start root=$AionUiRemoveResidueRoot"
+      !insertmacro AIONUI_REMOVE_INSTALL_DIR
+      StrCpy $AionUiRemoveResidueRoot "$INSTDIR"
+    ${EndIf}
 
-    Push ""
-    Call un.atomicRMDir
-    Pop $R0
-    !insertmacro AIONUI_LOG_EVENT "remove-atomic result=$R0"
-
-    ${if} $R0 == 0
-      StrCpy $AionUiAtomicRemoveSucceeded "1"
-    ${else}
-      DetailPrint "Atomic update cleanup failed; restoring previous installation before quitting: $R0"
-      StrCpy $AionUiAtomicFailedPath $R0
+    aionui_retry_atomic_rename:
+      ClearErrors
+      Rename "$INSTDIR" "$AionUiAtomicStagingDir"
+    ${if} ${Errors}
+      DetailPrint "Atomic update cleanup failed before replacing previous installation: $INSTDIR"
+      StrCpy $AionUiAtomicFailedPath "$INSTDIR"
       !insertmacro AIONUI_LOG_ATOMIC_REMOVE_FAILURE
-
-      Push ""
-      Call un.restoreFiles
-      Pop $R0
-      !insertmacro AIONUI_LOG_EVENT "remove-restore result=$R0"
+      ${IfNot} ${Silent}
+        !insertmacro AIONUI_PROMPT_FAILED_PATH_LOCKERS "$AionUiAtomicFailedPath" "atomic-failed" aionui_retry_atomic_rename aionui_cancel_atomic_rename aionui_continue_atomic_failed
+        aionui_cancel_atomic_rename:
+      ${EndIf}
+      aionui_continue_atomic_failed:
       !insertmacro AIONUI_LOG_EVENT "code=${AIONUI_E_INSTALL_DIR_REMOVE_OR_LOCKED} phase=atomic-failed fatal=1 degraded=none firstFailed=$AionUiAtomicFailedPath atomicFailedPath=$AionUiAtomicFailedPath"
       !insertmacro AIONUI_CLEAR_INSTALL_REGISTRY "remove-failed-before-quit"
-      !insertmacro AIONUI_FAIL_REPORTABLE ${AIONUI_E_INSTALL_DIR_REMOVE_OR_LOCKED} "event=session-end result=fail code=${AIONUI_E_INSTALL_DIR_REMOVE_OR_LOCKED} phase=atomic-failed fatal=1 firstFailed=$AionUiAtomicFailedPath" "AionUi could not safely replace the previous installation." "Close AionUi and any file browsers in the install directory, then run this installer again."
+      !insertmacro AIONUI_FAIL_REPORTABLE ${AIONUI_E_INSTALL_DIR_REMOVE_OR_LOCKED} "event=session-end result=fail code=${AIONUI_E_INSTALL_DIR_REMOVE_OR_LOCKED} phase=atomic-failed fatal=1 firstFailed=$AionUiAtomicFailedPath lockers=$AionUiLockerList" "AionUi could not safely replace the previous installation because files are still open." "Close the application using the file shown in the previous message, then run this installer again. If you are not sure what to close, restart Windows and run this installer again."
+    ${else}
+      !insertmacro AIONUI_LOG_EVENT "remove-atomic result=0 staging=$AionUiAtomicStagingDir"
+      StrCpy $AionUiAtomicRemoveSucceeded "1"
+      StrCpy $AionUiRemoveResidueRoot "$AionUiAtomicStagingDir"
     ${endif}
   ${endif}
 
   SetOutPath $TEMP
-  !insertmacro AIONUI_REMOVE_INSTALL_DIR
+  aionui_retry_remove_install_dir:
+    !insertmacro AIONUI_REMOVE_INSTALL_DIR
   ${if} $AionUiRemoveDirResult != 0
     ${if} $AionUiAtomicRemoveSucceeded == "1"
+      ${IfNot} ${Silent}
+        !insertmacro AIONUI_PROMPT_FAILED_PATH_LOCKERS "$AionUiRemoveFirstFailedPath" "residual-delete-failed" aionui_retry_remove_install_dir aionui_cancel_remove_after_rm aionui_continue_after_rm
+        aionui_cancel_remove_after_rm:
+          !insertmacro AIONUI_LOG_EVENT "code=${AIONUI_E_INSTALL_DIR_REMOVE_OR_LOCKED} phase=residual-delete-failed userAction=cancel fatal=1 residueRoot=$AionUiRemoveResidueRoot failedCount=$AionUiRemoveResidueCount firstFailed=$AionUiRemoveFirstFailedPath removeDirResult=$AionUiRemoveDirResult removeResidueCount=$AionUiRemoveResidueCount atomicFailedPath=$AionUiAtomicFailedPath atomicSucceeded=$AionUiAtomicRemoveSucceeded"
+          !insertmacro AIONUI_FAIL_REPORTABLE ${AIONUI_E_INSTALL_DIR_REMOVE_OR_LOCKED} "event=session-end result=fail code=${AIONUI_E_INSTALL_DIR_REMOVE_OR_LOCKED} phase=residual-delete-failed userAction=cancel fatal=1 firstFailed=$AionUiRemoveFirstFailedPath lockers=$AionUiLockerList" "AionUi cannot continue because a file in the previous installation is still open." "Close the application using the file shown in the previous message, then run this installer again. If you are not sure what to close, restart Windows and run this installer again."
+      ${EndIf}
+      aionui_continue_after_rm:
       DetailPrint `AionUi previous installation had locked residual files; continuing after atomic cleanup succeeded: $INSTDIR`
-      !insertmacro AIONUI_LOG_EVENT "code=${AIONUI_E_INSTALL_DIR_REMOVE_OR_LOCKED} phase=residual-delete-failed degraded=continue fatal=0 residueRoot=$AionUiRemoveResidueRoot failedCount=$AionUiRemoveResidueCount removeDirResult=$AionUiRemoveDirResult removeResidueCount=$AionUiRemoveResidueCount atomicFailedPath=$AionUiAtomicFailedPath atomicSucceeded=$AionUiAtomicRemoveSucceeded"
+      !insertmacro AIONUI_LOG_EVENT "code=${AIONUI_E_INSTALL_DIR_REMOVE_OR_LOCKED} phase=residual-delete-failed degraded=continue fatal=0 residueRoot=$AionUiRemoveResidueRoot failedCount=$AionUiRemoveResidueCount firstFailed=$AionUiRemoveFirstFailedPath removeDirResult=$AionUiRemoveDirResult removeResidueCount=$AionUiRemoveResidueCount atomicFailedPath=$AionUiAtomicFailedPath atomicSucceeded=$AionUiAtomicRemoveSucceeded"
     ${else}
       DetailPrint `Can't safely remove previous installation without atomic cleanup proof: $INSTDIR`
-      !insertmacro AIONUI_LOG_EVENT "code=${AIONUI_E_INSTALL_DIR_REMOVE_OR_LOCKED} phase=residual-delete-failed-no-atomic-proof degraded=none fatal=1 residueRoot=$AionUiRemoveResidueRoot failedCount=$AionUiRemoveResidueCount removeDirResult=$AionUiRemoveDirResult removeResidueCount=$AionUiRemoveResidueCount atomicFailedPath=$AionUiAtomicFailedPath atomicSucceeded=$AionUiAtomicRemoveSucceeded"
+      ${IfNot} ${Silent}
+        !insertmacro AIONUI_PROMPT_FAILED_PATH_LOCKERS "$AionUiRemoveFirstFailedPath" "residual-delete-failed-no-atomic-proof" aionui_retry_remove_install_dir aionui_cancel_remove_no_atomic aionui_continue_remove_no_atomic
+        aionui_cancel_remove_no_atomic:
+      ${EndIf}
+      aionui_continue_remove_no_atomic:
+      !insertmacro AIONUI_LOG_EVENT "code=${AIONUI_E_INSTALL_DIR_REMOVE_OR_LOCKED} phase=residual-delete-failed-no-atomic-proof degraded=none fatal=1 residueRoot=$AionUiRemoveResidueRoot failedCount=$AionUiRemoveResidueCount firstFailed=$AionUiRemoveFirstFailedPath removeDirResult=$AionUiRemoveDirResult removeResidueCount=$AionUiRemoveResidueCount atomicFailedPath=$AionUiAtomicFailedPath atomicSucceeded=$AionUiAtomicRemoveSucceeded"
       !insertmacro AIONUI_CLEAR_INSTALL_REGISTRY "remove-failed-before-quit"
-      !insertmacro AIONUI_FAIL_REPORTABLE ${AIONUI_E_INSTALL_DIR_REMOVE_OR_LOCKED} "event=session-end result=fail code=${AIONUI_E_INSTALL_DIR_REMOVE_OR_LOCKED} phase=residual-delete-failed-no-atomic-proof fatal=1 removeDirResult=$AionUiRemoveDirResult" "AionUi could not remove the previous installation directory." "Close AionUi and any file browsers in the install directory, then run this installer again."
+      !insertmacro AIONUI_FAIL_REPORTABLE ${AIONUI_E_INSTALL_DIR_REMOVE_OR_LOCKED} "event=session-end result=fail code=${AIONUI_E_INSTALL_DIR_REMOVE_OR_LOCKED} phase=residual-delete-failed-no-atomic-proof fatal=1 firstFailed=$AionUiRemoveFirstFailedPath removeDirResult=$AionUiRemoveDirResult lockers=$AionUiLockerList" "AionUi could not remove the previous installation directory." "Close AionUi and any file browsers in the install directory, then run this installer again."
     ${endif}
   ${else}
     !insertmacro AIONUI_LOG_EVENT "remove-final errors=0 instDir=$INSTDIR removeDirResult=$AionUiRemoveDirResult removeResidueCount=$AionUiRemoveResidueCount removeResidueRoot=$AionUiRemoveResidueRoot atomicFailedPath=$AionUiAtomicFailedPath atomicSucceeded=$AionUiAtomicRemoveSucceeded"

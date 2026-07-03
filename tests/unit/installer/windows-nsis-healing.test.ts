@@ -35,6 +35,19 @@ describe('Windows NSIS uninstaller and registry healing', () => {
     expect(repairHeal).toContain('AIONUI_FAIL_REPORTABLE ${AIONUI_E_UNINSTALLER_COPY_OR_REBUILD_FAILED}');
   });
 
+  it('shows Restart Manager diagnostics and retries the old uninstaller after an uninstall error', () => {
+    const repairHeal = read(join(windowsResourcesDir, 'installer-repair-heal.nsh'));
+    const uninstallResult = macroBody(repairHeal, 'AIONUI_HANDLE_UNINSTALL_RESULT');
+
+    expect(uninstallResult).toContain('aionui_${_LABEL_PREFIX}_old_uninstaller_failed:');
+    expect(uninstallResult).toContain('!insertmacro AIONUI_PROMPT_FAILED_PATH_LOCKERS "$INSTDIR" "old-uninstaller-failed" aionui_${_LABEL_PREFIX}_retry_old_uninstaller aionui_${_LABEL_PREFIX}_cancel_old_uninstaller aionui_${_LABEL_PREFIX}_continue_old_uninstaller_failed');
+    expect(uninstallResult).toContain('ExecWait \'"$INSTDIR\\${UNINSTALL_FILENAME}" /S --updated\' $R0');
+    expect(uninstallResult).toContain('AIONUI_LOG_UNINSTALL_RESULT "retry-${_ROOT_KEY}"');
+    expect(uninstallResult).toContain('lockers=$AionUiLockerList');
+    expect(repairHeal).toContain('AIONUI_HANDLE_UNINSTALL_RESULT "SHELL_CONTEXT" "shctx"');
+    expect(repairHeal).toContain('AIONUI_HANDLE_UNINSTALL_RESULT "HKEY_CURRENT_USER" "hkcu"');
+  });
+
   it('clears empty or stale registry keys and only repairs valid install locations', () => {
     const repairHeal = read(join(windowsResourcesDir, 'installer-repair-heal.nsh'));
     const removeRegistry = read(join(windowsResourcesDir, 'installer-remove-registry.nsh'));

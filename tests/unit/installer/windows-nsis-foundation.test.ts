@@ -63,6 +63,7 @@ describe('Windows NSIS foundation layout', () => {
     const common = read(join(windowsResourcesDir, 'installer-common.nsh'));
     const observability = read(join(windowsResourcesDir, 'installer-observability.nsh'));
     const errorsSentry = read(join(windowsResourcesDir, 'installer-errors-sentry.nsh'));
+    const reportScript = read(join(windowsResourcesDir, 'support/report-installer-failure.ps1'));
     const updateVerify = read(join(windowsResourcesDir, 'installer-update-verify.nsh'));
 
     expect(common).toContain('!ifndef AIONUI_INSTALLER_COMMON_NSH');
@@ -71,7 +72,11 @@ describe('Windows NSIS foundation layout', () => {
     }
 
     expect(observability).toContain('!macro AIONUI_SLOG');
-    expect(observability).toContain('aionui-installer-session.log');
+    expect(observability).toContain('aionui-installer-${VERSION}-');
+    expect(observability).toContain('yyyyMMdd-HHmmss');
+    expect(observability).toContain('AionUiSessionLogPath');
+    expect(observability).toContain('[Console]::Out.Write($$id + \'|\' + $$log)');
+    expect(observability).toContain('${If} $AionUiSessionLogPath == ""');
     expect(observability).toContain('event=session-begin');
     expect(observability).toContain('event=extract result=ok');
     expect(observability).toContain('event=session-end result=success');
@@ -83,7 +88,9 @@ describe('Windows NSIS foundation layout', () => {
     expect(errorsSentry).toContain('!macro AIONUI_FAIL_UX ');
     expect(errorsSentry).toContain('!macro AIONUI_REPORT_TO_SENTRY ');
     expect(errorsSentry).toContain('AIONUI_SENTRY_DSN');
-    expect(errorsSentry).toContain('report-skipped reason=empty-dsn');
+    expect(errorsSentry).toContain('report-installer-failure.ps1');
+    expect(reportScript).toContain('report-skipped reason=empty-dsn');
+    expect(reportScript).toContain('aionui-installer-report.json');
 
     expect(updateVerify).toContain('verify-bundled-aioncore-install.ps1');
     expect(updateVerify).toContain('resources\\windows\\support');

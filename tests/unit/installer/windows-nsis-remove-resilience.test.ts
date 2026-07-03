@@ -9,6 +9,7 @@ describe('Windows NSIS resilient install-dir removal', () => {
   it('preserves the atomic failure boundary separately from residual delete failures', () => {
     expect(removeRegistry).toContain('Var /GLOBAL AionUiAtomicFailedPath');
     expect(removeRegistry).toContain('Var /GLOBAL AionUiAtomicRemoveSucceeded');
+    expect(removeRegistry).toContain('Var /GLOBAL AionUiAtomicStagingDir');
     expect(removeRegistry).toContain('StrCpy $AionUiAtomicRemoveSucceeded "0"');
     expect(removeRegistry).toContain('StrCpy $AionUiAtomicRemoveSucceeded "1"');
     expect(removeRegistry).toContain('Var /GLOBAL AionUiRemoveResidueCount');
@@ -55,12 +56,25 @@ describe('Windows NSIS resilient install-dir removal', () => {
     expect(fatalBranch).toContain('${AIONUI_E_INSTALL_DIR_REMOVE_OR_LOCKED}');
   });
 
+  it('runs Restart Manager diagnostics after atomic rename failure before showing the fatal report', () => {
+    const atomicBranch = removeRegistry.slice(
+      removeRegistry.indexOf('aionui_retry_atomic_rename:'),
+      removeRegistry.indexOf('remove-atomic result=0')
+    );
+
+    expect(atomicBranch).toContain('Rename "$INSTDIR" "$AionUiAtomicStagingDir"');
+    expect(atomicBranch).toContain('!insertmacro AIONUI_PROMPT_FAILED_PATH_LOCKERS "$AionUiAtomicFailedPath" "atomic-failed" aionui_retry_atomic_rename aionui_cancel_atomic_rename aionui_continue_atomic_failed');
+    expect(atomicBranch).toContain('aionui_cancel_atomic_rename:');
+    expect(atomicBranch).toContain('aionui_continue_atomic_failed:');
+    expect(atomicBranch).toContain('lockers=$AionUiLockerList');
+  });
+
   it('has long-path PowerShell deletion retries and an RMDir fallback', () => {
     expect(removeRegistry).toContain('200,500,1000');
     expect(removeRegistry).toContain('remove-resilient-leftover');
     expect(removeRegistry).toContain('remove-resilient-summary');
     expect(removeRegistry).toContain('fallback=RMDir');
-    expect(removeRegistry).toContain('RMDir /r "$INSTDIR"');
+    expect(removeRegistry).toContain('RMDir /r "$AionUiRemoveResidueRoot"');
   });
 
   it('defines shared remove macros only in the common remove include', () => {

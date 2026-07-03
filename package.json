@@ -36,6 +36,7 @@
     "build-win:arm64": "node scripts/build-with-builder.js arm64 --win --arm64",
     "build-win:x64": "node scripts/build-with-builder.js x64 --win --x64",
     "build-win:x64:fast": "cross-env ELECTRON_BUILDER_COMPRESSION_LEVEL=1 node scripts/build-with-builder.js x64 --win --x64 --config.win.signAndEditExecutable=false",
+    "build-win:x64:debug-versions": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-fast-debug-versions.ps1",
     "build": "node scripts/build-with-builder.js auto --mac --arm64 --x64",
     "lint": "oxlint",
     "lint:fix": "oxlint --fix",
@@ -65,6 +66,8 @@
     "test:e2e:team:lifecycle": "playwright test --config playwright.config.ts tests/e2e/cases/teams/team-agent-lifecycle.e2e.ts --reporter=list",
     "test:e2e:team:whitelist": "playwright test --config playwright.config.ts tests/e2e/cases/teams/team-whitelist.e2e.ts --reporter=list",
     "test:e2e:team:comm": "playwright test --config playwright.config.ts tests/e2e/cases/teams/team-communication.e2e.ts --reporter=list",
+    "test:e2e:installer:locks": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/e2e-installer-locks.ps1",
+    "test:smoke:installer:rstrtmgr-ui": "node scripts/smoke-installer-rstrtmgr-ui.js",
     "prepare": "husky",
     "postinstall": "node scripts/postinstall.js",
     "test:bun": "bun test packages/desktop/src/process/services/database/drivers/*.bun.test.ts"

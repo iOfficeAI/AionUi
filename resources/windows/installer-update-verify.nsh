@@ -10,6 +10,13 @@ Var /GLOBAL AionUiActiveMarkerResult
 
 !define AIONUI_ACTIVE_INSTALLER_MARKER "aionui-installer-active.marker"
 
+!macro AIONUI_BRING_UPDATED_INSTALLER_TO_FRONT
+  ${If} ${isUpdated}
+    BringToFront
+    !insertmacro AIONUI_SLOG "event=updated-installer-foreground action=bring-to-front"
+  ${EndIf}
+!macroend
+
 !macro AIONUI_WAIT_FOR_UPDATED_APP_EXIT
   ${If} ${isUpdated}
     !insertmacro AIONUI_SLOG "event=updated-app-exit-wait phase=start"
@@ -93,6 +100,7 @@ Var /GLOBAL AionUiActiveMarkerResult
     StrCpy $AionUiSessionId ""
     StrCpy $AionUiIsUpdated "0"
     StrCpy $AionUiSessionLogResult ""
+    StrCpy $AionUiSessionLogPath "$TEMP\${AIONUI_FALLBACK_LOG}"
     StrCpy $AionUiUninstallHadErrors "0"
     StrCpy $AionUiUninstallLogResult ""
     StrCpy $AionUiVerifyResourceResult ""
@@ -102,6 +110,7 @@ Var /GLOBAL AionUiActiveMarkerResult
     StrCpy $AionUiStopResult ""
   !else
     !insertmacro AIONUI_SESSION_BEGIN
+    !insertmacro AIONUI_BRING_UPDATED_INSTALLER_TO_FRONT
     !insertmacro AIONUI_RECORD_ACTIVE_INSTALLER_MARKER
     !insertmacro AIONUI_WRITE_ACTIVE_INSTALLER_MARKER
   !endif
@@ -139,7 +148,7 @@ Var /GLOBAL AionUiActiveMarkerResult
 !macro AIONUI_VERIFY_BUNDLED_AIONCORE_RESOURCES _RUNTIME_KEY
   InitPluginsDir
   File "/oname=$PLUGINSDIR\verify-bundled-aioncore-install.ps1" "${PROJECT_DIR}\resources\windows\support\verify-bundled-aioncore-install.ps1"
-  nsExec::Exec `"$SYSDIR\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -File "$PLUGINSDIR\verify-bundled-aioncore-install.ps1" -InstallDir "$INSTDIR" -RuntimeKey "${_RUNTIME_KEY}" -LogPath "$TEMP\${AIONUI_PROCESS_CHECK_LOG}"`
+  nsExec::Exec `"$SYSDIR\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -File "$PLUGINSDIR\verify-bundled-aioncore-install.ps1" -InstallDir "$INSTDIR" -RuntimeKey "${_RUNTIME_KEY}" -LogPath "$AionUiSessionLogPath"`
   Pop $AionUiVerifyResourceResult
 
   ${If} $AionUiVerifyResourceResult != 0

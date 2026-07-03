@@ -2,22 +2,24 @@
 !define AIONUI_INSTALLER_OBSERVABILITY_NSH
 
 !define AIONUI_APP_EXECUTABLE_FILENAME "AionUi.exe"
-!define AIONUI_PROCESS_CHECK_LOG "aionui-installer-process-check.log"
-!define AIONUI_SESSION_LOG "aionui-installer-session.log"
+!define AIONUI_FALLBACK_LOG "aionui-installer-${VERSION}-fallback.log"
 
+!pragma warning disable 6001
 Var /GLOBAL AionUiSessionId
 Var /GLOBAL AionUiIsUpdated
 Var /GLOBAL AionUiSessionLogResult
+Var /GLOBAL AionUiSessionLogPath
 
 !macro AIONUI_SESSION_HEADER
-  !insertmacro AIONUI_SLOG "event=header arch=${AIONUI_TARGET_ARCH} updated=$AionUiIsUpdated instDir=$INSTDIR version=${VERSION} detail=customHeader"
+  !insertmacro AIONUI_SLOG "event=header arch=${AIONUI_TARGET_ARCH} updated=$AionUiIsUpdated instDir=$INSTDIR version=${VERSION} log=$AionUiSessionLogPath detail=customHeader"
 !macroend
 
 !macro AIONUI_SLOG _MESSAGE
   Push $9
   nsExec::Exec `"$SYSDIR\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -Command "& { \
     $$ErrorActionPreference = 'SilentlyContinue'; \
-    $$log = Join-Path $$env:TEMP '${AIONUI_SESSION_LOG}'; \
+    $$log = '$AionUiSessionLogPath'; \
+    if (-not $$log) { $$log = Join-Path $$env:TEMP '${AIONUI_FALLBACK_LOG}' }; \
     $$session = '$AionUiSessionId'; \
     if (-not $$session) { $$session = 'uninitialized' }; \
     Add-Content -LiteralPath $$log -Encoding UTF8 -Value ('[' + (Get-Date -Format o) + '] session=' + $$session + ' arch=${AIONUI_TARGET_ARCH} updated=$AionUiIsUpdated instDir=$INSTDIR version=${VERSION} ${_MESSAGE}') \
@@ -30,7 +32,8 @@ Var /GLOBAL AionUiSessionLogResult
   Push $9
   nsExec::Exec `"$SYSDIR\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -Command "& { \
     $$ErrorActionPreference = 'SilentlyContinue'; \
-    $$log = Join-Path $$env:TEMP '${AIONUI_PROCESS_CHECK_LOG}'; \
+    $$log = '$AionUiSessionLogPath'; \
+    if (-not $$log) { $$log = Join-Path $$env:TEMP '${AIONUI_FALLBACK_LOG}' }; \
     Add-Content -LiteralPath $$log -Encoding UTF8 -Value ('[' + (Get-Date -Format o) + '] ${_MESSAGE}') \
   }"`
   Pop $9
@@ -38,10 +41,13 @@ Var /GLOBAL AionUiSessionLogResult
 !macroend
 
 !macro AIONUI_SESSION_BEGIN
-  nsExec::ExecToStack `"$SYSDIR\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -Command "[guid]::NewGuid().ToString('N').Substring(0,12)"`
-  Pop $AionUiSessionLogResult
-  Pop $AionUiSessionId
-  StrCpy $AionUiSessionId $AionUiSessionId 12
+  ${If} $AionUiSessionLogPath == ""
+    nsExec::ExecToStack `"$SYSDIR\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -Command "$$id = [guid]::NewGuid().ToString('N').Substring(0,12); $$stamp = Get-Date -Format 'yyyyMMdd-HHmmss'; $$name = 'aionui-installer-${VERSION}-' + $$stamp + '-' + $$id + '.log'; $$log = Join-Path $$env:TEMP $$name; [Console]::Out.Write($$id + '|' + $$log)"`
+    Pop $AionUiSessionLogResult
+    Pop $AionUiSessionLogResult
+    StrCpy $AionUiSessionId $AionUiSessionLogResult 12
+    StrCpy $AionUiSessionLogPath $AionUiSessionLogResult 1024 13
+  ${EndIf}
 
   ${GetParameters} $R9
   ClearErrors

@@ -26,6 +26,7 @@ const DMG_RETRY_DELAY_SEC = 30;
 
 // Incremental build: hash of source files to detect changes
 const INCREMENTAL_CACHE_FILE = 'out/.build-hash';
+const DEBUG_AUTO_UPDATE_CURRENT_VERSION_ENV = 'AIONUI_DEBUG_AUTO_UPDATE_CURRENT_VERSION';
 
 function walkFiles(dir, acc = []) {
   const entries = fs.readdirSync(dir, { withFileTypes: true });
@@ -224,6 +225,43 @@ function writeGeneratedSentryDsnInclude(projectRoot) {
   fs.writeFileSync(generatedInclude, `!define AIONUI_SENTRY_DSN "${escapeNsisDefineValue(process.env.SENTRY_DSN || '')}"\n`);
 }
 
+function isValidPackageVersion(value) {
+  return /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/.test(
+    value
+  );
+}
+
+function applyDebugAutoUpdateVersionOverride(packageJsonPath) {
+  const debugAutoUpdateCurrentVersion = process.env[DEBUG_AUTO_UPDATE_CURRENT_VERSION_ENV]?.trim();
+  if (!debugAutoUpdateCurrentVersion) {
+    return () => {};
+  }
+  if (!isValidPackageVersion(debugAutoUpdateCurrentVersion)) {
+    throw new Error(`${DEBUG_AUTO_UPDATE_CURRENT_VERSION_ENV} must be a valid semver version`);
+  }
+
+  const originalPackageJsonText = fs.readFileSync(packageJsonPath, 'utf8');
+  const packageJson = JSON.parse(originalPackageJsonText);
+  const originalPackageVersion = packageJson.version;
+  if (originalPackageVersion === debugAutoUpdateCurrentVersion) {
+    console.log(`Debug auto-update build version already set to ${debugAutoUpdateCurrentVersion}`);
+    return () => {};
+  }
+
+  packageJson.version = debugAutoUpdateCurrentVersion;
+  fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2) + '\n');
+  console.log(
+    `Debug auto-update build version override: ${originalPackageVersion} -> ${debugAutoUpdateCurrentVersion}`
+  );
+
+  return () => {
+    if (fs.readFileSync(packageJsonPath, 'utf8') !== originalPackageJsonText) {
+      fs.writeFileSync(packageJsonPath, originalPackageJsonText);
+      console.log(`Restored package.json version to ${originalPackageVersion}`);
+    }
+  };
+}
+
 // Create macOS distributables using electron-builder --prepackaged with .app path.
 // This preserves DMG styling and still emits the zip required by MacUpdater.
 function createMacArtifactsWithPrepackaged(appDir, targetArch) {
@@ -399,8 +437,12 @@ if (packOnly) console.log('⚡ --pack-only: Will skip electron-builder distribut
 if (forceBuild) console.log('⚡ --force: Force full rebuild');
 
 const packageJsonPath = path.resolve(__dirname, '../package.json');
+let restorePackageVersionOverride = () => {};
+let buildFailed = false;
 
 try {
+  restorePackageVersionOverride = applyDebugAutoUpdateVersionOverride(packageJsonPath);
+
   // 1. Ensure package.json main entry is correct for electron-vite
   const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
   if (packageJson.main !== './out/main/index.js') {
@@ -611,6 +653,16 @@ try {
 
   console.log('✅ Build completed!');
 } catch (error) {
+  buildFailed = true;
   console.error('❌ Build failed:', error.message);
-  process.exit(1);
+  process.exitCode = 1;
+} finally {
+  try {
+    restorePackageVersionOverride();
+  } catch (restoreError) {
+    console.error('❌ Failed to restore package.json version:', restoreError.message);
+    if (!buildFailed) {
+      process.exitCode = 1;
+    }
+  }
 }

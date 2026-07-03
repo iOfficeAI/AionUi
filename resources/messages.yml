@@ -1,0 +1,3 @@
+appCannotBeClosed:
+  en: "AionUi could not finish closing or removing the previous version.\n\nClose AionUi and any app that may be using files in the install folder, then click Retry.\n\nIf Retry keeps returning here, click Cancel to show the app using the file and send the installer log."
+  zh_CN: "AionUi 无法完成关闭或移除旧版本。\n\n请关闭 AionUi，以及可能正在使用安装目录文件的应用，然后点击“重试”。\n\n如果重试后仍回到这里，请点击“取消”，安装器会显示正在占用文件的应用，并可发送安装日志。"

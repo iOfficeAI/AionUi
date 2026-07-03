@@ -22,14 +22,30 @@
 
 !macro AIONUI_FAIL_UX _CODE _DETAIL _MSG_ZH _MSG_EN _ACTION_ZH _ACTION_EN
   !insertmacro AIONUI_SLOG "event=session-end result=fail code=${_CODE} detail=${_DETAIL}"
-  MessageBox MB_YESNO|MB_ICONSTOP \
-    "AionUi installation failed (${_CODE})$\r$\n$\r$\n\
-    ${_MSG_EN}$\r$\n${_MSG_ZH}$\r$\n$\r$\n\
-    Suggested action:$\r$\n${_ACTION_EN}$\r$\n${_ACTION_ZH}$\r$\n$\r$\n\
-    Installer log: %TEMP%\${AIONUI_SESSION_LOG}$\r$\n$\r$\n\
-    Send this installer failure report to the AionUi team? The report includes error code ${_CODE} and installer-session.log." \
-    /SD IDNO IDYES +1 IDNO +2
-  !insertmacro AIONUI_REPORT_TO_SENTRY "${_CODE}" "${_DETAIL}"
+  Push $9
+  ${If} ${Silent}
+    StrCpy $9 "auto"
+  ${Else}
+    StrCpy $9 "yes"
+    MessageBox MB_YESNO|MB_ICONSTOP \
+      "AionUi installation failed (${_CODE})$\r$\n$\r$\n\
+      ${_MSG_EN}$\r$\n${_MSG_ZH}$\r$\n$\r$\n\
+      Suggested action:$\r$\n${_ACTION_EN}$\r$\n${_ACTION_ZH}$\r$\n$\r$\n\
+      Installer log: $AionUiSessionLogPath$\r$\n$\r$\n\
+      Send this installer failure report to the AionUi team? The report includes error code ${_CODE} and the current installer log." \
+      /SD IDNO IDNO +2
+    Goto +2
+    StrCpy $9 "no"
+  ${EndIf}
+  ${If} $9 == "no"
+    !insertmacro AIONUI_SLOG "event=report-skipped reason=user-declined code=${_CODE}"
+  ${ElseIf} $9 == "auto"
+    !insertmacro AIONUI_SLOG "event=report-auto reason=silent code=${_CODE}"
+    !insertmacro AIONUI_REPORT_TO_SENTRY_NOUI "${_CODE}" "${_DETAIL}"
+  ${Else}
+    !insertmacro AIONUI_REPORT_TO_SENTRY "${_CODE}" "${_DETAIL}"
+  ${EndIf}
+  Pop $9
   !insertmacro AIONUI_CLEAR_ACTIVE_INSTALLER_MARKER
   SetErrorLevel 2
   Quit
@@ -40,29 +56,18 @@
 !macroend
 
 !macro AIONUI_REPORT_TO_SENTRY _CODE _DETAIL
+  !insertmacro AIONUI_REPORT_TO_SENTRY_IMPL "${_CODE}" "${_DETAIL}" ""
+!macroend
+
+!macro AIONUI_REPORT_TO_SENTRY_NOUI _CODE _DETAIL
+  !insertmacro AIONUI_REPORT_TO_SENTRY_IMPL "${_CODE}" "${_DETAIL}" "-NoUi"
+!macroend
+
+!macro AIONUI_REPORT_TO_SENTRY_IMPL _CODE _DETAIL _NO_UI
   Push $9
-  nsExec::Exec `"$SYSDIR\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -Command "& { \
-    $$ErrorActionPreference = 'SilentlyContinue'; \
-    $$dsn = '${AIONUI_SENTRY_DSN}'; \
-    $$log = Join-Path $$env:TEMP '${AIONUI_SESSION_LOG}'; \
-    if (-not $$dsn) { Add-Content -LiteralPath $$log -Encoding UTF8 -Value ('[' + (Get-Date -Format o) + '] event=report-skipped reason=empty-dsn code=${_CODE}'); exit 0 }; \
-    try { \
-      $$uri = [Uri]$$dsn; \
-      $$projectId = $$uri.AbsolutePath.Trim('/'); \
-      $$endpoint = $$uri.Scheme + '://' + $$uri.Host + '/api/' + $$projectId + '/envelope/'; \
-      $$logText = if (Test-Path -LiteralPath $$log) { Get-Content -LiteralPath $$log -Raw } else { '' }; \
-      $$eventId = [guid]::NewGuid().ToString('N'); \
-      $$event = @{ message = 'installer-failure ${_CODE}'; level = 'error'; platform = 'other'; release = '${VERSION}'; tags = @{ code = '${_CODE}'; detail = '${_DETAIL}'; phase = 'installer'; arch = '${AIONUI_TARGET_ARCH}' } } | ConvertTo-Json -Compress -Depth 4; \
-      $$header = @{ event_id = $$eventId; dsn = $$dsn } | ConvertTo-Json -Compress; \
-      $$eventHeader = @{ type = 'event'; length = [Text.Encoding]::UTF8.GetByteCount($$event); content_type = 'application/json' } | ConvertTo-Json -Compress; \
-      $$attachmentHeader = @{ type = 'attachment'; length = [Text.Encoding]::UTF8.GetByteCount($$logText); filename = 'installer-session.log' } | ConvertTo-Json -Compress; \
-      $$body = $$header + \"`n\" + $$eventHeader + \"`n\" + $$event + \"`n\" + $$attachmentHeader + \"`n\" + $$logText; \
-      Invoke-RestMethod -Uri $$endpoint -Method Post -ContentType 'application/x-sentry-envelope' -Body $$body -TimeoutSec 10 | Out-Null; \
-      Add-Content -LiteralPath $$log -Encoding UTF8 -Value ('[' + (Get-Date -Format o) + '] event=report-sent code=${_CODE} eventId=' + $$eventId) \
-    } catch { \
-      Add-Content -LiteralPath $$log -Encoding UTF8 -Value ('[' + (Get-Date -Format o) + '] event=report-failed code=${_CODE} error=' + $$_.Exception.GetType().FullName + ': ' + $$_.Exception.Message) \
-    } \
-  }"`
+  InitPluginsDir
+  File /oname=$PLUGINSDIR\aionui-report-installer-failure.ps1 "${PROJECT_DIR}\resources\windows\support\report-installer-failure.ps1"
+  nsExec::Exec `"$SYSDIR\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -File "$PLUGINSDIR\aionui-report-installer-failure.ps1" -Dsn "${AIONUI_SENTRY_DSN}" -LogPath "$AionUiSessionLogPath" -Code "${_CODE}" -Detail "${_DETAIL}" -Release "${VERSION}" -Arch "${AIONUI_TARGET_ARCH}" -Session "$AionUiSessionId" -Updated "$AionUiIsUpdated" ${_NO_UI}`
   Pop $9
   Pop $9
 !macroend

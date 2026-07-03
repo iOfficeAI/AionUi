@@ -1,10 +1,13 @@
 !ifndef AIONUI_INSTALLER_REPAIR_HEAL_NSH
 !define AIONUI_INSTALLER_REPAIR_HEAL_NSH
 
+Var /GLOBAL AionUiRegistryInstallIsValid
+
 !macro AIONUI_LOG_UNINSTALLER_REPAIR _PHASE
   nsExec::Exec `"$SYSDIR\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -Command "& { \
     $$ErrorActionPreference = 'SilentlyContinue'; \
-    $$log = Join-Path $$env:TEMP '${AIONUI_PROCESS_CHECK_LOG}'; \
+    $$log = '$AionUiSessionLogPath'; \
+    if (-not $$log) { $$log = Join-Path $$env:TEMP '${AIONUI_FALLBACK_LOG}' }; \
     $$path = '$INSTDIR\${UNINSTALL_FILENAME}'; \
     $$item = Get-Item -LiteralPath $$path -ErrorAction SilentlyContinue; \
     $$version = if ($$item) { $$item.VersionInfo.ProductVersion } else { '' }; \
@@ -66,7 +69,6 @@
   Var /GLOBAL AionUiRegInstallLocation
   Var /GLOBAL AionUiRegUninstallString
   Var /GLOBAL AionUiRegInstallExe
-  Var /GLOBAL AionUiRegistryInstallIsValid
 
   StrCpy $AionUiRegistryInstallIsValid "0"
 
@@ -92,13 +94,14 @@
 !macro AIONUI_LOG_UNINSTALL_RESULT _ROOT_KEY _HAD_ERRORS
   nsExec::Exec `"$SYSDIR\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -Command "& { \
     $$ErrorActionPreference = 'SilentlyContinue'; \
-    $$log = Join-Path $$env:TEMP '${AIONUI_PROCESS_CHECK_LOG}'; \
+    $$log = '$AionUiSessionLogPath'; \
+    if (-not $$log) { $$log = Join-Path $$env:TEMP '${AIONUI_FALLBACK_LOG}' }; \
     Add-Content -LiteralPath $$log -Encoding UTF8 -Value ('[' + (Get-Date -Format o) + '] uninstall-result root=${_ROOT_KEY} launchErrors=${_HAD_ERRORS} exitCode=$R0 instDir=$INSTDIR') \
   }"`
   Pop $AionUiUninstallLogResult
 !macroend
 
-!macro AIONUI_HANDLE_UNINSTALL_RESULT _ROOT_KEY
+!macro AIONUI_HANDLE_UNINSTALL_RESULT _ROOT_KEY _LABEL_PREFIX
   ${If} ${Errors}
     StrCpy $AionUiUninstallHadErrors "1"
   ${Else}
@@ -113,9 +116,34 @@
   ${EndIf}
 
   ${If} $R0 != 0
-    MessageBox MB_OK|MB_ICONEXCLAMATION "$(uninstallFailed): $R0"
-    DetailPrint `Uninstall was not successful. Uninstaller error code: $R0.`
-    !insertmacro AIONUI_FAIL_REPORTABLE ${AIONUI_E_OLD_UNINSTALL_FAILED} "old-uninstaller exitCode=$R0" "The previous AionUi uninstaller returned an error." "Restart Windows and run this installer again. If it still fails, remove AionUi from Windows Settings first."
+    aionui_${_LABEL_PREFIX}_old_uninstaller_failed:
+      ${IfNot} ${Silent}
+        !insertmacro AIONUI_PROMPT_FAILED_PATH_LOCKERS "$INSTDIR" "old-uninstaller-failed" aionui_${_LABEL_PREFIX}_retry_old_uninstaller aionui_${_LABEL_PREFIX}_cancel_old_uninstaller aionui_${_LABEL_PREFIX}_continue_old_uninstaller_failed
+        aionui_${_LABEL_PREFIX}_cancel_old_uninstaller:
+      ${EndIf}
+      aionui_${_LABEL_PREFIX}_continue_old_uninstaller_failed:
+      DetailPrint `Uninstall was not successful. Uninstaller error code: $R0.`
+      !insertmacro AIONUI_LOG_EVENT "event=old-uninstaller-failed action=report exitCode=$R0 lockers=$AionUiLockerList"
+      !insertmacro AIONUI_FAIL_REPORTABLE ${AIONUI_E_OLD_UNINSTALL_FAILED} "old-uninstaller exitCode=$R0 lockers=$AionUiLockerList" "The previous AionUi uninstaller returned an error." "Close the application using the file shown in the previous message, then run this installer again. If it still fails, remove AionUi from Windows Settings first."
+
+    aionui_${_LABEL_PREFIX}_retry_old_uninstaller:
+      DetailPrint `Retrying previous AionUi uninstaller after user closed locking applications.`
+      ClearErrors
+      ExecWait '"$INSTDIR\${UNINSTALL_FILENAME}" /S --updated' $R0
+      ${If} ${Errors}
+        StrCpy $AionUiUninstallHadErrors "1"
+      ${Else}
+        StrCpy $AionUiUninstallHadErrors "0"
+      ${EndIf}
+      !insertmacro AIONUI_LOG_UNINSTALL_RESULT "retry-${_ROOT_KEY}" "$AionUiUninstallHadErrors"
+      ${If} $AionUiUninstallHadErrors == "1"
+        DetailPrint `Uninstall retry was not successful. Not able to launch uninstaller!`
+        Return
+      ${EndIf}
+      ${If} $R0 == 0
+        Return
+      ${EndIf}
+      Goto aionui_${_LABEL_PREFIX}_old_uninstaller_failed
   ${EndIf}
 !macroend
 
@@ -127,11 +155,11 @@
 !macroend
 
 !macro customUnInstallCheck
-  !insertmacro AIONUI_HANDLE_UNINSTALL_RESULT "SHELL_CONTEXT"
+  !insertmacro AIONUI_HANDLE_UNINSTALL_RESULT "SHELL_CONTEXT" "shctx"
 !macroend
 
 !macro customUnInstallCheckCurrentUser
-  !insertmacro AIONUI_HANDLE_UNINSTALL_RESULT "HKEY_CURRENT_USER"
+  !insertmacro AIONUI_HANDLE_UNINSTALL_RESULT "HKEY_CURRENT_USER" "hkcu"
 !macroend
 
 !endif
