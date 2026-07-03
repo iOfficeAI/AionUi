@@ -9,11 +9,38 @@ import type { ICronJob, ICronJobUpdateParams } from '@/common/adapter/ipcBridge'
 import type { TChatConversation } from '@/common/config/storage';
 import { emitter } from '@/renderer/utils/emitter';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useConversationListSync } from '@renderer/pages/conversation/GroupedHistory/hooks/useConversationListSync';
 import { repairCronJobTimeZones } from '@renderer/pages/cron/repairCronJobTimeZone';
+import { formatCronRunConversationTitle } from '@renderer/pages/cron/cronUtils';
+import { getActivityTime } from '@/renderer/utils/chat/timeline';
 
 const isJobErrorLike = (job: ICronJob): boolean => {
   return job.state.last_status === 'error' || job.state.last_status === 'missed';
+};
+
+const renameLatestNewConversationRun = async (job: ICronJob): Promise<void> => {
+  if (job.target?.execution_mode !== 'new_conversation' || !job.state.last_run_at_ms) {
+    return;
+  }
+
+  try {
+    const conversations = await ipcBridge.conversation.listByCronJob.invoke({ cron_job_id: job.id });
+    const latestConversation = (conversations ?? []).toSorted((a, b) => getActivityTime(b) - getActivityTime(a))[0];
+    if (!latestConversation) return;
+
+    const nextName = formatCronRunConversationTitle(
+      job.name,
+      latestConversation.created_at || job.state.last_run_at_ms
+    );
+    if (latestConversation.name === nextName) return;
+
+    await ipcBridge.conversation.update.invoke({
+      id: latestConversation.id,
+      updates: { name: nextName },
+    });
+    emitter.emit('chat.history.refresh');
+  } catch (error) {
+    console.error('[useCronJobsMap] Failed to rename cron run conversation:', error);
+  }
 };
 
 /**
@@ -332,6 +359,7 @@ export function useCronJobsMap() {
         const newLastRunAt = job.state.last_run_at_ms;
         if (newLastRunAt && newLastRunAt !== prevLastRunAt) {
           lastRunAtMapRef.current.set(job.id, newLastRunAt);
+          void renameLatestNewConversationRun(job);
 
           // Mark as unread only if user is not currently viewing this conversation
           // Use ref to access the latest activeConversationId value

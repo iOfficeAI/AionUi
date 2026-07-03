@@ -14,6 +14,10 @@ import type { TChatConversation } from '@/common/config/storage';
 
 const getJobInvokeMock = vi.fn();
 const runNowInvokeMock = vi.fn();
+const removeJobInvokeMock = vi.fn();
+const getConversationInvokeMock = vi.fn();
+const removeConversationInvokeMock = vi.fn();
+const updateConversationInvokeMock = vi.fn();
 const navigateMock = vi.fn();
 const { useCronJobConversationsMock } = vi.hoisted(() => ({
   useCronJobConversationsMock: vi.fn(),
@@ -33,6 +37,28 @@ vi.mock('react-router-dom', async () => {
   };
 });
 
+vi.mock('@arco-design/web-react', async () => {
+  const actual = await vi.importActual<typeof import('@arco-design/web-react')>('@arco-design/web-react');
+  const Modal = Object.assign(actual.Modal, {
+    confirm: vi.fn((config: { onOk?: () => unknown }) => {
+      void config.onOk?.();
+      return {
+        close: vi.fn(),
+        update: vi.fn(),
+      };
+    }),
+  });
+  return {
+    ...actual,
+    Modal,
+    Message: {
+      success: vi.fn(),
+      error: vi.fn(),
+      warning: vi.fn(),
+    },
+  };
+});
+
 vi.mock('@/common', () => ({
   ipcBridge: {
     cron: {
@@ -41,10 +67,13 @@ vi.mock('@/common', () => ({
       onJobExecuted: { on: () => vi.fn() },
       updateJob: { invoke: vi.fn() },
       runNow: { invoke: (...args: unknown[]) => runNowInvokeMock(...args) },
-      removeJob: { invoke: vi.fn() },
+      removeJob: { invoke: (...args: unknown[]) => removeJobInvokeMock(...args) },
     },
     conversation: {
-      get: { invoke: vi.fn() },
+      get: { invoke: (...args: unknown[]) => getConversationInvokeMock(...args) },
+      remove: { invoke: (...args: unknown[]) => removeConversationInvokeMock(...args) },
+      update: { invoke: (...args: unknown[]) => updateConversationInvokeMock(...args) },
+      listChanged: { on: () => vi.fn() },
     },
   },
 }));
@@ -60,7 +89,7 @@ vi.mock('@renderer/pages/cron/useCronJobs', () => ({
 }));
 
 vi.mock('@renderer/pages/cron/repairCronJobTimeZone', () => ({
-  repairCronJobTimeZone: async (job: ICronJob) => job,
+  repairCronJobTimeZone: async (cronJob: ICronJob) => cronJob,
 }));
 
 vi.mock('@renderer/pages/conversation/utils/conversationCreateError', () => ({
@@ -75,6 +104,14 @@ describe('TaskDetailPage', () => {
     getJobInvokeMock.mockResolvedValue(job());
     runNowInvokeMock.mockReset();
     runNowInvokeMock.mockResolvedValue({});
+    removeJobInvokeMock.mockReset();
+    removeJobInvokeMock.mockResolvedValue(undefined);
+    getConversationInvokeMock.mockReset();
+    getConversationInvokeMock.mockResolvedValue(null);
+    removeConversationInvokeMock.mockReset();
+    removeConversationInvokeMock.mockResolvedValue(true);
+    updateConversationInvokeMock.mockReset();
+    updateConversationInvokeMock.mockResolvedValue(true);
     navigateMock.mockReset();
     useCronJobConversationsMock.mockReset();
     useCronJobConversationsMock.mockReturnValue({ conversations: [] });
@@ -121,6 +158,41 @@ describe('TaskDetailPage', () => {
     const assistantAvatar = screen.getByAltText('问好助手');
     expect(assistantAvatar).toHaveAttribute('src', 'data:image/svg+xml;base64,assistant-avatar');
     expect(screen.queryByText('Codex CLI')).not.toBeInTheDocument();
+  });
+
+  it('renames run-now conversations with the execution date in new conversation mode', async () => {
+    runNowInvokeMock.mockResolvedValue({ conversation_id: 'conv-run' });
+    getConversationInvokeMock.mockResolvedValue(
+      conversation({
+        id: 'conv-run',
+        name: '问好',
+        created_at: Date.UTC(2026, 6, 1, 12, 0, 0),
+        updated_at: Date.UTC(2026, 6, 1, 12, 0, 0),
+        extra: {
+          workspace: '/tmp/project',
+        },
+      })
+    );
+
+    render(
+      <MemoryRouter initialEntries={['/scheduled/job-1']}>
+        <Routes>
+          <Route path='/scheduled/:job_id' element={<TaskDetailPage />} />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    await waitFor(() => expect(getJobInvokeMock).toHaveBeenCalledWith({ job_id: 'job-1' }));
+
+    fireEvent.click(await screen.findByText('cron.detail.runNow'));
+
+    await waitFor(() =>
+      expect(updateConversationInvokeMock).toHaveBeenCalledWith({
+        id: 'conv-run',
+        updates: { name: '问好 01-07-26' },
+      })
+    );
+    expect(navigateMock).toHaveBeenCalledWith('/conversation/conv-run');
   });
 
   it('shows the latest execution error when hovering the failed status', async () => {
@@ -260,6 +332,38 @@ describe('TaskDetailPage', () => {
     fireEvent.click(await screen.findByText('Standalone run'));
 
     expect(navigateMock).toHaveBeenCalledWith('/conversation/conv-standalone');
+  });
+
+  it('batch deletes execution history conversations without deleting the scheduled task', async () => {
+    useCronJobConversationsMock.mockReturnValue({
+      conversations: [
+        conversation({ id: 'conv-run-1', name: 'Run 1' }),
+        conversation({ id: 'conv-run-2', name: 'Run 2' }),
+      ],
+      refetch: vi.fn(),
+    });
+
+    render(
+      <MemoryRouter initialEntries={['/scheduled/job-1']}>
+        <Routes>
+          <Route path='/scheduled/:job_id' element={<TaskDetailPage />} />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    await waitFor(() => expect(getJobInvokeMock).toHaveBeenCalledWith({ job_id: 'job-1' }));
+
+    fireEvent.click(await screen.findByText('conversation.history.batchManage'));
+    fireEvent.click(screen.getByText('conversation.history.selectAll'));
+    const batchDeleteButton = screen.getByText('conversation.history.batchDelete').closest('button');
+    await waitFor(() => expect(batchDeleteButton).not.toBeDisabled());
+    fireEvent.click(batchDeleteButton!);
+
+    await waitFor(() => {
+      expect(removeConversationInvokeMock).toHaveBeenCalledWith({ id: 'conv-run-1' });
+      expect(removeConversationInvokeMock).toHaveBeenCalledWith({ id: 'conv-run-2' });
+    });
+    expect(removeJobInvokeMock).not.toHaveBeenCalled();
   });
 });
 

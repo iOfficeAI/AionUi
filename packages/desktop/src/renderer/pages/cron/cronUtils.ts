@@ -104,6 +104,18 @@ export function formatNextRun(next_run_at_ms?: number): string {
   return date.toLocaleString();
 }
 
+function formatTwoDigit(value: number): string {
+  return String(value).padStart(2, '0');
+}
+
+export function formatCronRunConversationTitle(jobName: string, runAtMs: number): string {
+  const date = new Date(runAtMs);
+  const day = formatTwoDigit(date.getDate());
+  const month = formatTwoDigit(date.getMonth() + 1);
+  const year = formatTwoDigit(date.getFullYear() % 100);
+  return `${jobName.trim()} ${day}-${month}-${year}`;
+}
+
 /**
  * Get job status flags
  */

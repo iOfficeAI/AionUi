@@ -5,7 +5,11 @@
  */
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { createCronSchedule, getCurrentCronTimeZone } from '@/renderer/pages/cron/cronUtils';
+import {
+  createCronSchedule,
+  formatCronRunConversationTitle,
+  getCurrentCronTimeZone,
+} from '@/renderer/pages/cron/cronUtils';
 
 const originalDateTimeFormat = Intl.DateTimeFormat;
 
@@ -37,5 +41,11 @@ describe('cronUtils', () => {
     }) as unknown as typeof Intl.DateTimeFormat;
 
     expect(getCurrentCronTimeZone()).toBe('UTC');
+  });
+
+  it('formats new cron run conversation titles with the execution date', () => {
+    expect(formatCronRunConversationTitle('Daily report', Date.UTC(2026, 6, 1, 12, 0, 0))).toBe(
+      'Daily report 01-07-26'
+    );
   });
 });
