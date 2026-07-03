@@ -1,5 +1,49 @@
 # Changelog
 
+## [2.1.29](https://github.com/iOfficeAI/AionUi/compare/v2.1.28...v2.1.29) (2026-07-03)
+
+### Desktop
+
+#### Bug Fixes
+
+- **assistant:** use management catalog for editor engines (#3511)
+- **cron:** improve scheduled task conversation history (#3510)
+- show unchecked agents and rotate frontend logs by message date (#3507)
+- **assistant:** return to My Assistants after duplicating/creating
+
+#### Features
+
+- **assistant:** promote assistants to a top-level sidebar entry
+- **assistant:** unify selection-list ordering, keep CLI agents on top
+- **assistant:** rebuild management page into My / Official tabs
+- **assistant:** reword official read-only banner and make copy link inline
+- **assistant:** custom-empty state, return-to-official on save, field polish
+
+#### Refactoring
+
+- **layout:** move conversation search into the titlebar toolbar
+
+#### Styling
+
+- **assistant:** apply oxfmt formatting to assistant home components
+
+### Core ([v0.1.42](https://github.com/iOfficeAI/AionCore/releases/tag/v0.1.42))
+
+#### Bug Fixes
+
+- **agent:** align unchecked availability with team runtime selection (#571)
+- **agent:** avoid full availability refresh on reads (#566)
+- **cron:** preserve existing conversation jobs across lifecycle changes (#572)
+- **mcp:** support aionrs config path subcommand with legacy fallback (#568)
+- preserve ACP config catalogs on resume (#570)
+- preserve Linux GLIBC baselines (#573)
+
+#### Features
+
+- **assistant:** 官方助手默认关闭 + 固定顺序 + 一次性重置迁移 (#567)
+
+---
+
 ## [2.1.28](https://github.com/iOfficeAI/AionUi/compare/v2.1.27...v2.1.28) (2026-07-02)
 
 ### Desktop
