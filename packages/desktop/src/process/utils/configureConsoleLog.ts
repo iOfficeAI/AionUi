@@ -29,6 +29,10 @@ const FILE_SIZE_LIMIT = 10 * 1024 * 1024; // 10 MB
 const FILE_LOG_LEVEL = 'info';
 const CONSOLE_LOG_LEVEL = 'silly';
 
+type LogPathMessage = {
+  date?: Date | number | string;
+};
+
 function formatLocalDateParts(date: Date): { year: string; month: string; day: string; dateStr: string } {
   const year = String(date.getFullYear()).padStart(4, '0');
   const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -46,10 +50,16 @@ export function buildDatedLogFileName(date = new Date()): string {
   return `${year}/${month}/${day}/${dateStr}.log`;
 }
 
+function resolveMessageDate(message?: LogPathMessage): Date {
+  const rawDate = message?.date;
+  const date = rawDate instanceof Date ? rawDate : rawDate ? new Date(rawDate) : new Date();
+  return Number.isNaN(date.getTime()) ? new Date() : date;
+}
+
 // Daily log file: e.g. 2026/03/12/2026-03-12.log
 log.transports.file.fileName = buildDatedLogFileName();
-log.transports.file.resolvePathFn = (variables) => {
-  const filePath = path.join(variables.libraryDefaultDir, variables.fileName);
+log.transports.file.resolvePathFn = (variables, message?: LogPathMessage) => {
+  const filePath = path.join(variables.libraryDefaultDir, buildDatedLogFileName(resolveMessageDate(message)));
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
   return filePath;
 };
