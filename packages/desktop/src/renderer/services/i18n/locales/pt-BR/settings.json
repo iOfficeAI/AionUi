@@ -1213,6 +1213,7 @@
   },
   "updateReadyInstall": "{{version}} está pronto, instalar agora",
   "assistantAgentUnavailable": "O agente necessário está indisponível no momento.",
+  "assistantAgentUnchecked": "O agente necessário ainda não foi verificado.",
   "assistantAgentMissing": "O agente necessário não está instalado.",
   "assistantTeamUnsupported": "Este assistente não pode ser usado no modo de equipe no momento.",
   "webui.letButlerSetup": "Deixe o mordomo configurar",

@@ -1210,6 +1210,7 @@
   },
   "updateReadyInstall": "{{version}} is ready, install now",
   "assistantAgentUnavailable": "The required agent is currently unavailable.",
+  "assistantAgentUnchecked": "The required agent has not been checked yet.",
   "assistantAgentMissing": "The required agent is not installed.",
   "assistantTeamUnsupported": "This assistant cannot be used in team mode right now.",
   "webui.letButlerSetup": "Let the butler set it up",

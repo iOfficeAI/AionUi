@@ -5,13 +5,20 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
+
+function localeRoot(): URL {
+  return new URL('../../../packages/desktop/src/renderer/services/i18n/locales/', import.meta.url);
+}
+
+function settingsLanguages(): string[] {
+  return readdirSync(localeRoot(), { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => entry.name);
+}
 
 function loadSettingsLocale(language: string): Record<string, string> {
-  const url = new URL(
-    `../../../packages/desktop/src/renderer/services/i18n/locales/${language}/settings.json`,
-    import.meta.url
-  );
+  const url = new URL(`${language}/settings.json`, localeRoot());
   return JSON.parse(readFileSync(url, 'utf8')) as Record<string, string>;
 }
 
@@ -32,6 +39,16 @@ function loadConversationLocale(language: string): Record<string, unknown> {
 }
 
 describe('managed node runtime settings copy', () => {
+  it('defines assistant agent status tooltip copy in every settings locale', () => {
+    for (const language of settingsLanguages()) {
+      const settings = loadSettingsLocale(language);
+
+      expect(settings.assistantAgentUnavailable, language).toBeTruthy();
+      expect(settings.assistantAgentUnchecked, language).toBeTruthy();
+      expect(settings.assistantAgentMissing, language).toBeTruthy();
+    }
+  });
+
   it('does not tell MCP users to install Node.js when npx/node preparation fails', () => {
     const en = loadSettingsLocale('en-US');
     const zh = loadSettingsLocale('zh-CN');

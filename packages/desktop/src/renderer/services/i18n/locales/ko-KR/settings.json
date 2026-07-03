@@ -1212,6 +1212,7 @@
   },
   "updateReadyInstall": "{{version}} 준비 완료, 지금 설치",
   "assistantAgentUnavailable": "필요한 에이전트를 현재 사용할 수 없습니다.",
+  "assistantAgentUnchecked": "필요한 에이전트는 아직 확인되지 않았습니다.",
   "assistantAgentMissing": "필요한 에이전트가 설치되지 않았습니다.",
   "assistantTeamUnsupported": "이 어시스턴트는 현재 팀 모드에서 사용할 수 없습니다.",
   "webui.letButlerSetup": "집사에게 설정 맡기기",

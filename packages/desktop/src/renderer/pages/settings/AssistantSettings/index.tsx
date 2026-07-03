@@ -19,6 +19,7 @@
  */
 import { Message } from '@arco-design/web-react';
 import { useAssistantEditor, useAssistantList } from '@/renderer/hooks/assistant';
+import { useManagedAgentRuntimeCatalog } from '@/renderer/hooks/agent/useManagedAgents';
 import { buildAssistantEditorBackends, resolveAvatarImageSrc } from './assistantUtils';
 import AssistantEditorPage from './AssistantEditorPage';
 import AssistantHomeTabs from './home/AssistantHomeTabs';
@@ -62,6 +63,7 @@ const AssistantSettings: React.FC = () => {
     reorderAssistants,
     localeKey,
   } = useAssistantList();
+  const managedAgentRuntimeCatalog = useManagedAgentRuntimeCatalog();
   const builtinAvatarOptions = useMemo(
     () =>
       assistants
@@ -81,8 +83,6 @@ const AssistantSettings: React.FC = () => {
         .filter((option): option is NonNullable<typeof option> => option !== null),
     [assistants, localeKey]
   );
-  const availableBackends = useMemo(() => buildAssistantEditorBackends(assistants, localeKey), [assistants, localeKey]);
-
   const editor = useAssistantEditor({
     localeKey,
     activeAssistant,
@@ -90,6 +90,10 @@ const AssistantSettings: React.FC = () => {
     loadAssistants,
     message,
   });
+  const availableBackends = useMemo(
+    () => buildAssistantEditorBackends(managedAgentRuntimeCatalog, localeKey, editor.editAgent),
+    [editor.editAgent, localeKey, managedAgentRuntimeCatalog]
+  );
 
   const editAvatarImage = editor.editAvatarPreview || resolveAvatarImageSrc(editor.editAvatar);
   const hasConsumedNavigationIntentRef = useRef(false);

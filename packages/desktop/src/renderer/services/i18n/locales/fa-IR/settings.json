@@ -1185,6 +1185,7 @@
   },
   "updateReadyInstall": "{{version}} آماده است، اکنون نصب کنید",
   "assistantAgentUnavailable": "ایجنت مورد نیاز فعلاً در دسترس نیست.",
+  "assistantAgentUnchecked": "ایجنت مورد نیاز هنوز بررسی نشده است.",
   "assistantAgentMissing": "ایجنت مورد نیاز نصب نشده است.",
   "assistantTeamUnsupported": "این دستیار فعلاً در حالت تیم قابل استفاده نیست.",
   "webui.letButlerSetup": "اجازه دهید Butler آن را تنظیم کند",

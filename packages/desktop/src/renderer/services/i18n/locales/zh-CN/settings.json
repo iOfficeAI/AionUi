@@ -1211,6 +1211,7 @@
   },
   "updateReadyInstall": "{{version}} 已就绪, 立即安装",
   "assistantAgentUnavailable": "所依赖的 Agent 当前不可用。",
+  "assistantAgentUnchecked": "所依赖的 Agent 尚未检测。",
   "assistantAgentMissing": "所依赖的 Agent 尚未安装。",
   "assistantTeamUnsupported": "该助手目前无法在团队模式中使用。",
   "webui.letButlerSetup": "让管家帮我设置",

@@ -1185,6 +1185,7 @@
     "emptyOverridesError": "Enter a launch path or at least one environment variable before saving."
   },
   "assistantAgentUnavailable": "The required agent is currently unavailable.",
+  "assistantAgentUnchecked": "The required agent has not been checked yet.",
   "assistantAgentMissing": "The required agent is not installed.",
   "assistantTeamUnsupported": "This assistant cannot be used in team mode right now.",
   "webui.letButlerSetup": "Let the butler set it up",

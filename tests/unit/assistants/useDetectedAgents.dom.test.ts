@@ -6,18 +6,46 @@
 
 import { describe, expect, it } from 'vitest';
 
-import type { Assistant } from '@/common/types/agent/assistantTypes';
 import { buildAssistantEditorBackends } from '@/renderer/pages/settings/AssistantSettings/assistantUtils';
+import type { ManagedAgent } from '@/renderer/utils/model/agentTypes';
 
 describe('buildAssistantEditorBackends', () => {
-  it('derives editor backends from generated assistants only', () => {
-    const assistants: Assistant[] = [
-      assistant({ id: 'bare-claude', source: 'generated', runtimeKey: 'claude', name: 'Claude Code' }),
-      assistant({ id: 'user-writer', source: 'user', runtimeKey: 'claude', name: 'Writer' }),
-      assistant({ id: 'builtin-research', source: 'builtin', runtimeKey: 'gemini', name: 'Researcher' }),
+  it('derives editor backends from supported management agents and allows unchecked agents', () => {
+    const agents: ManagedAgent[] = [
+      managedAgent({ id: 'agent-cursor', backend: 'cursor', name: 'Cursor', status: 'unchecked' }),
+      managedAgent({ id: 'agent-claude', backend: 'claude', name: 'Claude Code', status: 'online' }),
+      managedAgent({
+        id: 'agent-nanobot',
+        backend: 'nanobot',
+        agent_type: 'nanobot',
+        name: 'Nanobot',
+        status: 'online',
+      }),
+      managedAgent({
+        id: 'agent-openclaw',
+        backend: 'openclaw-gateway',
+        agent_type: 'openclaw-gateway',
+        name: 'OpenClaw Gateway',
+        status: 'unchecked',
+      }),
+      managedAgent({
+        id: 'agent-remote',
+        backend: 'remote',
+        agent_type: 'remote',
+        name: 'Remote',
+        status: 'online',
+      }),
+      managedAgent({ id: 'agent-goose', backend: 'goose', name: 'Goose', status: 'offline' }),
+      managedAgent({ id: 'agent-snow', backend: 'snow', name: 'Snow', status: 'missing' }),
     ];
 
-    expect(buildAssistantEditorBackends(assistants, 'en-US')).toEqual([
+    expect(buildAssistantEditorBackends(agents, 'en-US')).toEqual([
+      {
+        id: 'agent-cursor',
+        name: 'Cursor',
+        runtimeKey: 'cursor',
+        modelOptions: [],
+      },
       {
         id: 'agent-claude',
         name: 'Claude Code',
@@ -27,122 +55,72 @@ describe('buildAssistantEditorBackends', () => {
     ]);
   });
 
-  it('uses localized generated assistant names and deduplicates by agent identity', () => {
-    const assistants: Assistant[] = [
-      assistant({
-        id: 'bare-gemini',
-        source: 'generated',
-        runtimeKey: 'gemini',
-        name: 'Gemini',
-        name_i18n: { 'zh-CN': '双子星' },
-      }),
-      assistant({
-        id: 'bare-gemini-second',
-        source: 'generated',
-        runtimeKey: 'gemini',
-        agentId: 'agent-gemini',
-        name: 'Gemini 2',
+  it('uses localized management names and falls back to agent_type when backend is empty', () => {
+    const agents: ManagedAgent[] = [
+      managedAgent({
+        id: 'agent-aionrs',
+        backend: undefined,
+        agent_type: 'aionrs',
+        name: 'Aion CLI',
+        name_i18n: { 'zh-CN': 'Aion 命令行' },
+        status: 'online',
       }),
     ];
 
-    expect(buildAssistantEditorBackends(assistants, 'zh-CN')).toEqual([
+    expect(buildAssistantEditorBackends(agents, 'zh-CN')).toEqual([
       {
-        id: 'agent-gemini',
-        name: '双子星',
-        runtimeKey: 'gemini',
+        id: 'agent-aionrs',
+        name: 'Aion 命令行',
+        runtimeKey: 'aionrs',
         modelOptions: [],
       },
     ]);
   });
 
-  it('uses generated assistant models for editor backend options', () => {
-    const assistants: Assistant[] = [
-      assistant({
-        id: 'bare-claude',
-        source: 'generated',
-        runtimeKey: 'claude',
-        name: 'Claude Code',
-        models: ['claude-sonnet-4', 'claude-opus-4'],
-      }),
-      assistant({
-        id: 'bare-codex',
-        source: 'generated',
-        runtimeKey: 'codex',
-        name: 'Codex',
-      }),
+  it('keeps the current binding visible even when it is known unavailable', () => {
+    const agents: ManagedAgent[] = [
+      managedAgent({ id: 'agent-claude', backend: 'claude', name: 'Claude Code', status: 'online' }),
+      managedAgent({ id: 'agent-goose', backend: 'goose', name: 'Goose', status: 'offline' }),
     ];
 
-    expect(buildAssistantEditorBackends(assistants, 'en-US')).toEqual([
+    expect(buildAssistantEditorBackends(agents, 'en-US', 'agent-goose')).toEqual([
       {
         id: 'agent-claude',
         name: 'Claude Code',
         runtimeKey: 'claude',
-        modelOptions: [
-          { value: 'claude-sonnet-4', label: 'claude-sonnet-4' },
-          { value: 'claude-opus-4', label: 'claude-opus-4' },
-        ],
-      },
-      {
-        id: 'agent-codex',
-        name: 'Codex',
-        runtimeKey: 'codex',
         modelOptions: [],
       },
-    ]);
-  });
-
-  it('tolerates generated assistants with missing models arrays', () => {
-    const assistants = [
-      assistant({
-        id: 'bare-droid',
-        source: 'generated',
-        runtimeKey: 'droid',
-        name: 'droid',
-        models: undefined,
-      }),
-    ] as Assistant[];
-
-    expect(buildAssistantEditorBackends(assistants, 'en-US')).toEqual([
       {
-        id: 'agent-droid',
-        name: 'droid',
-        runtimeKey: 'droid',
+        id: 'agent-goose',
+        name: 'Goose',
+        runtimeKey: 'goose',
         modelOptions: [],
       },
     ]);
   });
 });
 
-function assistant(
-  overrides: Partial<Assistant> & {
-    id: string;
-    source: Assistant['source'];
-    runtimeKey: string;
-    name: string;
-    agentId?: string;
-  }
-) {
-  const agentId = overrides.agentId ?? `agent-${overrides.runtimeKey}`;
+function managedAgent(overrides: Partial<ManagedAgent> & { id: string; name: string }): ManagedAgent {
   return {
     id: overrides.id,
-    source: overrides.source,
+    icon: undefined,
     name: overrides.name,
-    name_i18n: overrides.name_i18n ?? {},
-    description_i18n: {},
-    enabled: true,
-    sort_order: 0,
-    agent_id: agentId,
-    agent: { type: 'acp', source: 'builtin', acp_backend: overrides.runtimeKey },
-    enabled_skills: [],
-    custom_skill_names: [],
-    disabled_builtin_skills: [],
-    context_i18n: {},
-    prompts: [],
-    prompts_i18n: {},
-    models: overrides.models ?? [],
-    agent_status: 'online',
-    team_selectable: true,
-    deletable: overrides.source === 'user',
+    name_i18n: overrides.name_i18n,
+    description: undefined,
+    description_i18n: undefined,
+    backend: overrides.backend ?? 'claude',
+    agent_type: overrides.agent_type ?? 'acp',
+    agent_source: overrides.agent_source ?? 'builtin',
+    agent_source_info: {},
+    enabled: overrides.enabled ?? true,
+    installed: overrides.installed ?? true,
+    command: overrides.command ?? overrides.backend ?? 'claude',
+    args: [],
+    env: [],
+    behavior_policy: { supports_team: true },
+    sort_order: overrides.sort_order ?? 0,
+    team_capable: overrides.team_capable ?? true,
+    status: overrides.status ?? 'online',
     ...overrides,
-  } satisfies Assistant;
+  } as ManagedAgent;
 }

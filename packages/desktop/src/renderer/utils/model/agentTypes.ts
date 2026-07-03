@@ -159,9 +159,9 @@ export type ManagedAgent = Omit<AgentMetadata, 'available' | 'handshake'> & {
 /**
  * Fetcher for MANAGED_AGENTS_SWR_KEY — the Agent settings management view.
  * Hits `/api/agents/management` so user-disabled and missing rows remain
- * visible for diagnostics and re-enable/test-connection actions. Must only be
- * used by the settings surface; user-facing business pickers must not depend
- * on `/api/agents`.
+ * visible for diagnostics and re-enable/test-connection actions. Engine
+ * selectors also use this catalog so `online` / `unchecked` / `missing` /
+ * `offline` semantics stay consistent with the Agent settings page.
  */
 export async function fetchManagedAgents(): Promise<ManagedAgent[]> {
   try {

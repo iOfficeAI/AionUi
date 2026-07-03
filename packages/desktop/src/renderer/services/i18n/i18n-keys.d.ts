@@ -1266,6 +1266,7 @@ export type I18nKey =
   | 'settings.assistant.tokenValid'
   | 'settings.assistant.userRevoked'
   | 'settings.assistantAgentMissing'
+  | 'settings.assistantAgentUnchecked'
   | 'settings.assistantAgentUnavailable'
   | 'settings.assistantAvatarBuiltinTab'
   | 'settings.assistantAvatarEmojiTab'

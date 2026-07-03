@@ -1212,6 +1212,7 @@
   },
   "updateReadyInstall": "{{version}} готова, установить сейчас",
   "assistantAgentUnavailable": "Требуемый агент сейчас недоступен.",
+  "assistantAgentUnchecked": "Требуемый агент еще не проверен.",
   "assistantAgentMissing": "Требуемый агент не установлен.",
   "assistantTeamUnsupported": "Этот ассистент сейчас нельзя использовать в командном режиме.",
   "webui.letButlerSetup": "Пусть дворецкий настроит",

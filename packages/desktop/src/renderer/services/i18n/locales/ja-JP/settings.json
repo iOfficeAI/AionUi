@@ -1212,6 +1212,7 @@
   },
   "updateReadyInstall": "{{version}} の準備ができました。今すぐインストール",
   "assistantAgentUnavailable": "依存しているエージェントは現在利用できません。",
+  "assistantAgentUnchecked": "依存しているエージェントはまだ確認されていません。",
   "assistantAgentMissing": "依存しているエージェントがインストールされていません。",
   "assistantTeamUnsupported": "このアシスタントは現在チームモードで使用できません。",
   "webui.letButlerSetup": "執事に設定してもらう",

@@ -1210,6 +1210,7 @@
   },
   "updateReadyInstall": "{{version}} hazır, şimdi yükle",
   "assistantAgentUnavailable": "Gereken aracı şu anda kullanılamıyor.",
+  "assistantAgentUnchecked": "Gereken aracı henüz denetlenmedi.",
   "assistantAgentMissing": "Gereken aracı yüklü değil.",
   "assistantTeamUnsupported": "Bu asistan şu anda takım modunda kullanılamıyor.",
   "webui.letButlerSetup": "Kâhya ayarlasın",

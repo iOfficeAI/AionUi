@@ -104,9 +104,13 @@ const MyAssistantRow: React.FC<MyAssistantRowProps> = ({
                 content={
                   assistant.agent_status === 'missing'
                     ? t('settings.assistantAgentMissing', { defaultValue: 'The required agent is not installed.' })
-                    : t('settings.assistantAgentUnavailable', {
-                        defaultValue: 'The required agent is currently unavailable.',
-                      })
+                    : assistant.agent_status === 'unchecked'
+                      ? t('settings.assistantAgentUnchecked', {
+                          defaultValue: 'The required agent has not been checked yet.',
+                        })
+                      : t('settings.assistantAgentUnavailable', {
+                          defaultValue: 'The required agent is currently unavailable.',
+                        })
                 }
               >
                 <span
