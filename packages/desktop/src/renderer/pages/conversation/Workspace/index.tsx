@@ -496,7 +496,7 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
 
         {/* Changes tab content */}
         {!isWorkspaceCollapsed && activeTab === 'changes' && (
-          <FlexFullContainer containerClassName='overflow-y-auto'>
+          <FlexFullContainer containerClassName='overflow-hidden'>
             <FileChangeList
               t={t}
               workspace={workspace}

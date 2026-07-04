@@ -38,7 +38,15 @@ export function fromBackendFsEntry(item: RawFsEntry, workspace: string, parentRe
   const ws = stripTrailingSlash(workspace);
   const name = item.name || '';
   const isDir = item.type === 'directory';
-  const relativePath = parentRelPath ? `${parentRelPath}/${name}` : name;
+  const normalizedName = normalizeSlashes(name);
+  const normalizedParent = stripTrailingSlash(normalizeSlashes(parentRelPath));
+  const isWorkspaceRelativeResult =
+    normalizedName.includes('/') && (!normalizedParent || normalizedName.startsWith(`${normalizedParent}/`));
+  const relativePath = isWorkspaceRelativeResult
+    ? normalizedName
+    : normalizedParent
+      ? `${normalizedParent}/${normalizedName}`
+      : normalizedName;
   return {
     name,
     fullPath: `${ws}/${relativePath}`,
