@@ -28,6 +28,93 @@ const DMG_RETRY_DELAY_SEC = 30;
 const INCREMENTAL_CACHE_FILE = 'out/.build-hash';
 const DEBUG_AUTO_UPDATE_CURRENT_VERSION_ENV = 'AIONUI_DEBUG_AUTO_UPDATE_CURRENT_VERSION';
 
+function patchElectronBuilderNsisInstaller() {
+  const rootDir = path.resolve(__dirname, '..');
+  let appBuilderDir = '';
+  try {
+    appBuilderDir = path.dirname(require.resolve('app-builder-lib/package.json'));
+  } catch (error) {
+    const bunModulesDir = path.join(rootDir, 'node_modules', '.bun');
+    if (fs.existsSync(bunModulesDir)) {
+      const candidates = fs
+        .readdirSync(bunModulesDir, { withFileTypes: true })
+        .filter((entry) => entry.isDirectory() && entry.name.startsWith('app-builder-lib@'))
+        .map((entry) => path.join(bunModulesDir, entry.name, 'node_modules', 'app-builder-lib'))
+        .filter((candidate) => fs.existsSync(path.join(candidate, 'package.json')))
+        .sort();
+      appBuilderDir = candidates[0] || '';
+    }
+    if (!appBuilderDir) {
+      console.warn(`Warning: app-builder-lib is not resolvable; skipping NSIS template patch: ${error.message}`);
+      return;
+    }
+  }
+
+  const installUtilPath = path.join(appBuilderDir, 'templates', 'nsis', 'include', 'installUtil.nsh');
+  if (!fs.existsSync(installUtilPath)) {
+    console.warn(`Warning: electron-builder NSIS installUtil.nsh not found: ${installUtilPath}`);
+    return;
+  }
+
+  const original = fs.readFileSync(installUtilPath, 'utf8');
+  let patched = original;
+
+  const retryPrompt = [
+    '    ${if} $R5 > 5',
+    '      MessageBox MB_RETRYCANCEL|MB_ICONEXCLAMATION "$(appCannotBeClosed)" /SD IDCANCEL IDRETRY OneMoreAttempt',
+    '      Return',
+    '    ${endIf}',
+  ].join('\n');
+  const retryHandoff = [
+    '    ${if} $R5 > 5',
+    '      DetailPrint `Previous uninstaller did not finish after retry limit; deferring to customUnInstallCheck.`',
+    '      Return',
+    '    ${endIf}',
+  ].join('\n');
+
+  if (patched.includes(retryPrompt)) {
+    patched = patched.replace(retryPrompt, retryHandoff);
+  } else if (!patched.includes(retryHandoff)) {
+    throw new Error('electron-builder NSIS uninstall retry prompt template changed; update patchElectronBuilderNsisInstaller.');
+  }
+
+  const oneMoreAttemptLabel = '  OneMoreAttempt:\n';
+  if (patched.includes(oneMoreAttemptLabel)) {
+    patched = patched.replace(oneMoreAttemptLabel, '');
+  }
+
+  const copiedUninstallerExec = `ExecWait '"$uninstallerFileNameTemp" /S /KEEP_APP_DATA $0 _?=$installationDir' $R0`;
+  const copiedUninstallerExecWithLog = `ExecWait '"$uninstallerFileNameTemp" /S /KEEP_APP_DATA $0 --installer-log="$AionUiSessionLogPath" --installer-session="$AionUiSessionId" _?=$installationDir' $R0`;
+  if (patched.includes(copiedUninstallerExec)) {
+    patched = patched.replace(copiedUninstallerExec, copiedUninstallerExecWithLog);
+  } else if (patched.includes(`ExecWait '"$uninstallerFileNameTemp" /S /KEEP_APP_DATA $0 --installer-log="$AionUiSessionLogPath" _?=$installationDir' $R0`)) {
+    patched = patched.replace(
+      `ExecWait '"$uninstallerFileNameTemp" /S /KEEP_APP_DATA $0 --installer-log="$AionUiSessionLogPath" _?=$installationDir' $R0`,
+      copiedUninstallerExecWithLog
+    );
+  } else if (!patched.includes(copiedUninstallerExecWithLog)) {
+    throw new Error('electron-builder copied-uninstaller ExecWait template changed; update patchElectronBuilderNsisInstaller.');
+  }
+
+  const inPlaceUninstallerExec = `ExecWait '"$uninstallerFileName" /S /KEEP_APP_DATA $0 _?=$installationDir' $R0`;
+  const inPlaceUninstallerExecWithLog = `ExecWait '"$uninstallerFileName" /S /KEEP_APP_DATA $0 --installer-log="$AionUiSessionLogPath" --installer-session="$AionUiSessionId" _?=$installationDir' $R0`;
+  if (patched.includes(inPlaceUninstallerExec)) {
+    patched = patched.replace(inPlaceUninstallerExec, inPlaceUninstallerExecWithLog);
+  } else if (patched.includes(`ExecWait '"$uninstallerFileName" /S /KEEP_APP_DATA $0 --installer-log="$AionUiSessionLogPath" _?=$installationDir' $R0`)) {
+    patched = patched.replace(
+      `ExecWait '"$uninstallerFileName" /S /KEEP_APP_DATA $0 --installer-log="$AionUiSessionLogPath" _?=$installationDir' $R0`,
+      inPlaceUninstallerExecWithLog
+    );
+  } else if (!patched.includes(inPlaceUninstallerExecWithLog)) {
+    throw new Error('electron-builder in-place uninstaller ExecWait template changed; update patchElectronBuilderNsisInstaller.');
+  }
+
+  if (patched !== original) {
+    fs.writeFileSync(installUtilPath, patched);
+    console.log('Patched electron-builder NSIS uninstall failure handoff.');
+  }
+}
+
 function walkFiles(dir, acc = []) {
   const entries = fs.readdirSync(dir, { withFileTypes: true });
   for (const entry of entries) {
@@ -603,6 +690,7 @@ try {
 
   const isWindowsBuild = builderArgs.includes('--win') || builderArgs.includes('--all');
   if (isWindowsBuild) {
+    patchElectronBuilderNsisInstaller();
     cleanupWindowsPackOutput();
   }
 

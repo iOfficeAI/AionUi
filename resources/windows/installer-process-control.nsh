@@ -23,8 +23,9 @@ Var /GLOBAL AionUiLockerListFile
       return $$proc.ProcessId -ne $$installerPid -and $$full.StartsWith($$ownedPrefix, [System.StringComparison]::CurrentCultureIgnoreCase) \
     } \
     $$hits = @(Get-CimInstance -ClassName Win32_Process | Where-Object { Test-AionUiOwnedProcess $$_ }); \
-    Add-Content -LiteralPath $$log -Encoding UTF8 -Value ('[' + (Get-Date -Format o) + '] event=process-find instDir=' + $$instDir + ' ownedPrefix=' + $$ownedPrefix + ' installerPid=' + $$installerPid + ' hits=' + $$hits.Count + ' owned=' + ($$hits.Count -gt 0)); \
-    if ($$hits.Count -gt 0) { $$hits | Select-Object ProcessId,ParentProcessId,Name,ExecutablePath,Path,CommandLine | ConvertTo-Json -Compress | Add-Content -LiteralPath $$log -Encoding UTF8; exit 0 } \
+    $$payload = [ordered]@{ schemaVersion = 1; ts = (Get-Date -Format o); session = '$AionUiSessionId'; version = '${VERSION}'; arch = '${AIONUI_TARGET_ARCH}'; updated = ('$AionUiIsUpdated' -eq '1'); instDir = '$INSTDIR'; event = 'process-find'; ownedPrefix = $$ownedPrefix; installerPid = $$installerPid; hits = $$hits.Count; owned = ($$hits.Count -gt 0) }; \
+    Add-Content -LiteralPath $$log -Encoding UTF8 -Value ($$payload | ConvertTo-Json -Compress -Depth 8); \
+    if ($$hits.Count -gt 0) { $$hitPayload = [ordered]@{ schemaVersion = 1; ts = (Get-Date -Format o); session = '$AionUiSessionId'; version = '${VERSION}'; arch = '${AIONUI_TARGET_ARCH}'; updated = ('$AionUiIsUpdated' -eq '1'); instDir = '$INSTDIR'; event = 'process-find-hits'; processes = @($$hits | Select-Object ProcessId,ParentProcessId,Name,ExecutablePath,Path,CommandLine) }; Add-Content -LiteralPath $$log -Encoding UTF8 -Value ($$hitPayload | ConvertTo-Json -Compress -Depth 10); exit 0 } \
     exit 1 \
   }"`
   Pop ${_RETURN}
@@ -56,9 +57,11 @@ Var /GLOBAL AionUiLockerListFile
       $$ids = @($$ids + $$childIds | Select-Object -Unique); \
       $$frontier = $$childIds; \
     } \
-    Add-Content -LiteralPath $$log -Encoding UTF8 -Value ('[' + (Get-Date -Format o) + '] event=process-stop ids=' + ($$ids -join ',') + ' result=start instDir=' + $$instDir); \
+    $$payload = [ordered]@{ schemaVersion = 1; ts = (Get-Date -Format o); session = '$AionUiSessionId'; version = '${VERSION}'; arch = '${AIONUI_TARGET_ARCH}'; updated = ('$AionUiIsUpdated' -eq '1'); instDir = '$INSTDIR'; event = 'process-stop'; ids = @($$ids); result = 'start' }; \
+    Add-Content -LiteralPath $$log -Encoding UTF8 -Value ($$payload | ConvertTo-Json -Compress -Depth 8); \
     foreach ($$id in ($$ids | Sort-Object -Descending)) { Stop-Process -Id $$id -Force -ErrorAction SilentlyContinue } \
-    Add-Content -LiteralPath $$log -Encoding UTF8 -Value ('[' + (Get-Date -Format o) + '] event=process-stop ids=' + ($$ids -join ',') + ' result=done instDir=' + $$instDir); \
+    $$payload = [ordered]@{ schemaVersion = 1; ts = (Get-Date -Format o); session = '$AionUiSessionId'; version = '${VERSION}'; arch = '${AIONUI_TARGET_ARCH}'; updated = ('$AionUiIsUpdated' -eq '1'); instDir = '$INSTDIR'; event = 'process-stop'; ids = @($$ids); result = 'done' }; \
+    Add-Content -LiteralPath $$log -Encoding UTF8 -Value ($$payload | ConvertTo-Json -Compress -Depth 8); \
     exit 0 \
   }"`
   Pop $AionUiStopResult
@@ -92,8 +95,9 @@ Var /GLOBAL AionUiLockerListFile
           $$known = @($$knownRelative | ForEach-Object { Join-Path $$root $$_ } | Where-Object { Test-Path -LiteralPath $$_ -PathType Leaf }); \
           $$resources = @($$topLevel + $$known | Where-Object { $$_ -and $$_.Trim().Length -gt 0 } | Select-Object -Unique | Select-Object -First 512); \
         } \
-        Add-Content -LiteralPath $$log -Encoding UTF8 -Value ('[' + (Get-Date -Format o) + '] event=rm-query-start target=' + $$targetPath + ' instDir=' + $$instDir + ' resources=' + $$resources.Count); \
-        if ($$resources.Count -eq 0) { Add-Content -LiteralPath $$log -Encoding UTF8 -Value ('[' + (Get-Date -Format o) + '] event=rm-lockers target=' + $$targetPath + ' instDir=' + $$instDir + ' resources=0 count=0 lockers='); exit 1 } \
+        $$payload = [ordered]@{ schemaVersion = 1; ts = (Get-Date -Format o); session = '$AionUiSessionId'; version = '${VERSION}'; arch = '${AIONUI_TARGET_ARCH}'; updated = ('$AionUiIsUpdated' -eq '1'); instDir = '$INSTDIR'; event = 'rm-query-start'; target = $$targetPath; resources = $$resources.Count }; \
+        Add-Content -LiteralPath $$log -Encoding UTF8 -Value ($$payload | ConvertTo-Json -Compress -Depth 8); \
+        if ($$resources.Count -eq 0) { $$payload = [ordered]@{ schemaVersion = 1; ts = (Get-Date -Format o); session = '$AionUiSessionId'; version = '${VERSION}'; arch = '${AIONUI_TARGET_ARCH}'; updated = ('$AionUiIsUpdated' -eq '1'); instDir = '$INSTDIR'; event = 'rm-lockers'; target = $$targetPath; resources = 0; count = 0; blockingProcesses = @(); fallbackReason = 'restart-manager-no-resources'; message = 'Restart Manager had no existing files to query for this path.' }; Add-Content -LiteralPath $$log -Encoding UTF8 -Value ($$payload | ConvertTo-Json -Compress -Depth 8); exit 1 } \
         for ($$i = 0; $$i -lt $$resources.Count; $$i += 256) { \
           $$end = [Math]::Min($$i + 255, $$resources.Count - 1); \
           $$chunk = [string[]]$$resources[$$i..$$end]; \
@@ -122,37 +126,49 @@ Var /GLOBAL AionUiLockerListFile
             $$name = $$_.strAppName; \
             if (-not $$name) { $$proc = Get-Process -Id $$_.Process.dwProcessId -ErrorAction SilentlyContinue; if ($$proc) { $$name = $$proc.ProcessName } } \
             if (-not $$name) { $$name = 'unknown' } \
-            $$name + '(' + $$_.Process.dwProcessId + ')' \
+            [pscustomobject]@{ name = $$name; pid = [int]$$_.Process.dwProcessId } \
           }); \
         } \
-        [System.IO.File]::WriteAllText($$lockerListPath, ($$lockers -join ', '), (New-Object System.Text.UTF8Encoding $$false)); \
-        Add-Content -LiteralPath $$log -Encoding UTF8 -Value ('[' + (Get-Date -Format o) + '] event=rm-lockers target=' + $$targetPath + ' instDir=' + $$instDir + ' resources=' + $$resources.Count + ' count=' + $$needed + ' lockers=' + ($$lockers -join ',')); \
+        $$lockerText = @($$lockers | ForEach-Object { $$_.name + '(' + $$_.pid + ')' }) -join ', '; \
+        [System.IO.File]::WriteAllText($$lockerListPath, $$lockerText, (New-Object System.Text.UTF8Encoding $$false)); \
+        $$payload = [ordered]@{ schemaVersion = 1; ts = (Get-Date -Format o); session = '$AionUiSessionId'; version = '${VERSION}'; arch = '${AIONUI_TARGET_ARCH}'; updated = ('$AionUiIsUpdated' -eq '1'); instDir = '$INSTDIR'; event = 'rm-lockers'; target = $$targetPath; resources = $$resources.Count; count = $$needed; blockingProcesses = @($$lockers); fallbackReason = ''; message = '' }; \
+        if ($$lockers.Count -eq 0) { $$payload.fallbackReason = 'restart-manager-no-process'; $$payload.message = 'Windows did not identify a specific locking process. Close terminals, editors, and file managers opened in the install folder.' }; \
+        Add-Content -LiteralPath $$log -Encoding UTF8 -Value ($$payload | ConvertTo-Json -Compress -Depth 10); \
         if ($$lockers.Count -gt 0) { exit 0 } else { exit 1 } \
       } finally { [void][AionUi.RestartManager.Native]::RmEndSession($$session) } \
     } catch { \
-      Add-Content -LiteralPath $$log -Encoding UTF8 -Value ('[' + (Get-Date -Format o) + '] event=rm-error target=' + $$targetPath + ' instDir=' + $$instDir + ' error=' + $$_.Exception.Message); \
+      $$payload = [ordered]@{ schemaVersion = 1; ts = (Get-Date -Format o); session = '$AionUiSessionId'; version = '${VERSION}'; arch = '${AIONUI_TARGET_ARCH}'; updated = ('$AionUiIsUpdated' -eq '1'); instDir = '$INSTDIR'; event = 'rm-error'; target = $$targetPath; error = $$_.Exception.Message }; \
+      Add-Content -LiteralPath $$log -Encoding UTF8 -Value ($$payload | ConvertTo-Json -Compress -Depth 8); \
       exit 1 \
     } \
   }"`
   Pop ${_RETURN}
 !macroend
 
-!macro AIONUI_PROMPT_FAILED_PATH_LOCKERS _FAILED_PATH _PHASE _RETRY_LABEL _CANCEL_LABEL _CONTINUE_LABEL
+!macro AIONUI_CAPTURE_FAILED_PATH_LOCKERS _FAILED_PATH
   !insertmacro AIONUI_QUERY_LOCKERS "${_FAILED_PATH}" $AionUiLockerResult
+  StrCpy $AionUiLockerList ""
+  ClearErrors
+  SetDetailsPrint none
+  FileOpen $AionUiLockerListFile "$PLUGINSDIR\aionui-rm-lockers.txt" r
+  ${IfNot} ${Errors}
+    FileRead $AionUiLockerListFile $AionUiLockerList
+    FileClose $AionUiLockerListFile
+  ${EndIf}
+  SetDetailsPrint lastused
+  ${If} $AionUiLockerList == ""
+    ${If} $AionUiLockerResult == 0
+      StrCpy $AionUiLockerList "unknown process"
+    ${Else}
+      StrCpy $AionUiLockerList "Windows did not identify a specific locking process. Close terminals, editors, and file managers opened in the install folder."
+    ${EndIf}
+  ${EndIf}
+!macroend
+
+!macro AIONUI_PROMPT_FAILED_PATH_LOCKERS _FAILED_PATH _PHASE _RETRY_LABEL _CANCEL_LABEL _CONTINUE_LABEL
+  !insertmacro AIONUI_CAPTURE_FAILED_PATH_LOCKERS "${_FAILED_PATH}"
   ${If} $AionUiLockerResult == 0
     ${IfNot} ${Silent}
-      StrCpy $AionUiLockerList ""
-      ClearErrors
-      SetDetailsPrint none
-      FileOpen $AionUiLockerListFile "$PLUGINSDIR\aionui-rm-lockers.txt" r
-      ${IfNot} ${Errors}
-        FileRead $AionUiLockerListFile $AionUiLockerList
-        FileClose $AionUiLockerListFile
-      ${EndIf}
-      SetDetailsPrint lastused
-      ${If} $AionUiLockerList == ""
-        StrCpy $AionUiLockerList "unknown process"
-      ${EndIf}
       MessageBox MB_RETRYCANCEL|MB_ICONEXCLAMATION "AionUi cannot continue because a file or folder in the install directory is still in use:$\r$\n${_FAILED_PATH}$\r$\n$\r$\nApplication using it:$\r$\n$AionUiLockerList$\r$\n$\r$\nClose the application listed above, then click Retry. If you are not sure what to close, click Cancel to send the installer log to the AionUi team.$\r$\n$\r$\nInstaller log:$\r$\n$AionUiSessionLogPath" /SD IDCANCEL IDRETRY ${_RETRY_LABEL} IDCANCEL ${_CANCEL_LABEL}
     ${EndIf}
   ${EndIf}
@@ -184,9 +200,11 @@ Var /GLOBAL AionUiLockerListFile
           }; \
           $$json = $$payload | ConvertTo-Json -Compress -Depth 4; \
           [System.IO.File]::WriteAllText($$marker, $$json, (New-Object System.Text.UTF8Encoding $$false)); \
-          Add-Content -LiteralPath $$log -Encoding UTF8 -Value ('[' + (Get-Date -Format o) + '] marker-write ok path=' + $$marker + ' json={\"schemaVersion\":1,\"kind\":\"app-cannot-be-closed\",\"phase\":\"customCheckAppRunning\",\"silent\":true,\"updated\":true,\"retryCount\":3}') \
+          $$logPayload = [ordered]@{ schemaVersion = 1; ts = (Get-Date -Format o); session = '$AionUiSessionId'; version = '${VERSION}'; arch = '${AIONUI_TARGET_ARCH}'; updated = ('$AionUiIsUpdated' -eq '1'); instDir = '$INSTDIR'; event = 'marker-write'; result = 'ok'; path = $$marker; marker = $$payload }; \
+          Add-Content -LiteralPath $$log -Encoding UTF8 -Value ($$logPayload | ConvertTo-Json -Compress -Depth 8) \
         } catch { \
-          Add-Content -LiteralPath $$log -Encoding UTF8 -Value ('[' + (Get-Date -Format o) + '] marker-write failed path=' + $$marker + ' error=' + $$_.Exception.Message) \
+          $$logPayload = [ordered]@{ schemaVersion = 1; ts = (Get-Date -Format o); session = '$AionUiSessionId'; version = '${VERSION}'; arch = '${AIONUI_TARGET_ARCH}'; updated = ('$AionUiIsUpdated' -eq '1'); instDir = '$INSTDIR'; event = 'marker-write'; result = 'failed'; path = $$marker; error = $$_.Exception.Message }; \
+          Add-Content -LiteralPath $$log -Encoding UTF8 -Value ($$logPayload | ConvertTo-Json -Compress -Depth 8) \
         } \
       }"`
       Pop $9
@@ -219,7 +237,7 @@ Var /GLOBAL AionUiLockerListFile
       ${If} $AionUiCheckResult == 0
         IntOp $AionUiCloseRetries $AionUiCloseRetries + 1
         ${If} $AionUiCloseRetries > 10
-          MessageBox MB_RETRYCANCEL|MB_ICONEXCLAMATION "$(appCannotBeClosed)" /SD IDCANCEL IDRETRY aionui_wait_for_close
+          MessageBox MB_RETRYCANCEL|MB_ICONEXCLAMATION "AionUi could not finish closing or removing the previous version.$\r$\n$\r$\nAnother program may still be using files in:$\r$\n$INSTDIR$\r$\n$\r$\nClick Retry after closing AionUi and any program using that folder. Click Cancel to show the blocking diagnostics and installer log." /SD IDCANCEL IDRETRY aionui_wait_for_close
           !insertmacro AIONUI_WRITE_INSTALLER_LAST_FAILURE_MARKER
           !insertmacro AIONUI_CLEAR_ACTIVE_INSTALLER_MARKER
           Quit

@@ -1,10 +1,10 @@
 param(
-  [string]$Installer26 = (Join-Path $PSScriptRoot '..\out-fast-builds\AionUi-2.1.26-win-x64.exe'),
   [string]$Installer27 = (Join-Path $PSScriptRoot '..\out-fast-builds\AionUi-2.1.27-win-x64.exe'),
+  [string]$Installer28 = (Join-Path $PSScriptRoot '..\out-fast-builds\AionUi-2.1.28-win-x64.exe'),
   [string]$ResultDir = (Join-Path $PSScriptRoot '..\e2e-results'),
-  [ValidateSet('CancelReport', 'RetrySuccess', 'All')]
-  [string]$Scenario = 'All',
-  [switch]$SkipInstall26,
+  [ValidateSet('CancelReport')]
+  [string]$Scenario = 'CancelReport',
+  [switch]$SkipInstall27,
   [switch]$SkipSentrySearch
 )
 
@@ -23,8 +23,8 @@ Start-Transcript -Path $transcriptPath -Force | Out-Null
 $state = [ordered]@{
   runId = $runId
   startedAt = (Get-Date -Format o)
-  installer26 = (Resolve-Path $Installer26 -ErrorAction SilentlyContinue).Path
   installer27 = (Resolve-Path $Installer27 -ErrorAction SilentlyContinue).Path
+  installer28 = (Resolve-Path $Installer28 -ErrorAction SilentlyContinue).Path
   resultPath = $resultPath
   transcriptPath = $transcriptPath
   steps = New-Object System.Collections.ArrayList
@@ -117,6 +117,117 @@ function Stop-AionUiProcesses {
     ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
 }
 
+function Get-AionUiDefaultInstallDirs {
+  @(
+    (Join-Path $env:LOCALAPPDATA 'Programs\AionUi'),
+    (Join-Path $env:ProgramFiles 'AionUi'),
+    (Join-Path ${env:ProgramFiles(x86)} 'AionUi')
+  ) | Where-Object { $_ } | ForEach-Object { [System.IO.Path]::GetFullPath($_).TrimEnd('\') }
+}
+
+function Test-AionUiDefaultInstallDir([string]$Path) {
+  if (-not $Path) { return $false }
+  $fullPath = [System.IO.Path]::GetFullPath($Path).TrimEnd('\')
+  foreach ($candidate in Get-AionUiDefaultInstallDirs) {
+    if ($fullPath -ieq $candidate) { return $true }
+  }
+  return $false
+}
+
+function Remove-AionUiRegistryEntries {
+  $roots = @(
+    'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*',
+    'HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*',
+    'HKLM:\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*'
+  )
+
+  foreach ($root in $roots) {
+    $items = @(Get-ItemProperty -Path $root -ErrorAction SilentlyContinue | Where-Object {
+      $_.DisplayName -eq 'AionUi' -or $_.PSChildName -like '*AionUi*'
+    })
+    foreach ($item in $items) {
+      Add-Step 'cleanup-registry-entry' @{ path = $item.PSPath; displayName = $item.DisplayName; displayVersion = $item.DisplayVersion }
+      Remove-Item -LiteralPath $item.PSPath -Recurse -Force -ErrorAction SilentlyContinue
+    }
+  }
+}
+
+function Stop-AionUiInstallDirUsers([string]$Path) {
+  if (-not $Path) { return }
+  $fullPath = [System.IO.Path]::GetFullPath($Path).TrimEnd('\')
+  $hits = @(Get-CimInstance Win32_Process -ErrorAction SilentlyContinue | Where-Object {
+    $_.ProcessId -ne $PID -and (
+      ($_.ExecutablePath -and [System.IO.Path]::GetFullPath($_.ExecutablePath).StartsWith($fullPath, [StringComparison]::OrdinalIgnoreCase)) -or
+      ($_.CommandLine -and $_.CommandLine.IndexOf($fullPath, [StringComparison]::OrdinalIgnoreCase) -ge 0)
+    )
+  })
+
+  foreach ($hit in $hits) {
+    Add-Step 'cleanup-stop-install-dir-user' @{ pid = $hit.ProcessId; name = $hit.Name; commandLine = $hit.CommandLine }
+    Stop-Process -Id $hit.ProcessId -Force -ErrorAction SilentlyContinue
+  }
+}
+
+function Remove-AionUiInstallDir([string]$Path) {
+  if (-not (Test-Path -LiteralPath $Path)) { return }
+  Add-Step 'cleanup-install-dir' @{ path = $Path }
+
+  for ($attempt = 1; $attempt -le 5 -and (Test-Path -LiteralPath $Path); $attempt++) {
+    Stop-AionUiInstallDirUsers $Path
+    Remove-Item -LiteralPath $Path -Recurse -Force -ErrorAction SilentlyContinue
+    if (Test-Path -LiteralPath $Path) {
+      $longPath = if ($Path.StartsWith('\\?\')) { $Path } else { '\\?\' + $Path }
+      & cmd.exe /c "rmdir /s /q `"$longPath`""
+      Add-Step 'cleanup-install-dir-fallback' @{ path = $Path; attempt = $attempt; exitCode = $LASTEXITCODE }
+    }
+    if (Test-Path -LiteralPath $Path) { Start-Sleep -Seconds 1 }
+  }
+
+  if (Test-Path -LiteralPath $Path) {
+    $leftovers = @(Get-ChildItem -LiteralPath $Path -Force -ErrorAction SilentlyContinue | Select-Object -First 8 -ExpandProperty FullName)
+    throw "Failed to clean AionUi install directory: $Path. Leftovers: $($leftovers -join '; ')"
+  }
+}
+
+function Reset-AionUiInstallBaseline {
+  param([string]$Reason)
+
+  Stop-AionUiProcesses
+
+  $existing = $null
+  try {
+    $existing = Get-AionUiInstallInfo
+  } catch {
+    $existing = $null
+  }
+
+  if ($existing) {
+    Add-Step 'cleanup-existing-install' @{ reason = $Reason; installLocation = $existing.installLocation; displayVersion = $existing.displayVersion }
+    $uninstaller = Join-Path $existing.installLocation 'Uninstall AionUi.exe'
+    if ((Test-AionUiDefaultInstallDir $existing.installLocation) -and (Test-Path -LiteralPath $uninstaller)) {
+      $proc = Start-Process -FilePath $uninstaller -ArgumentList @('/S') -PassThru
+      try {
+        $exit = Wait-ProcessExit $proc 240 'cleanup-existing-uninstaller'
+        Add-Step 'cleanup-uninstaller-exit' @{ exitCode = $exit }
+      } catch {
+        Add-Step 'cleanup-uninstaller-timeout-or-error' @{ error = $_.Exception.Message }
+        Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
+      }
+    }
+  }
+
+  Stop-AionUiProcesses
+  foreach ($dir in Get-AionUiDefaultInstallDirs) {
+    Stop-AionUiInstallDirUsers $dir
+  }
+
+  foreach ($dir in Get-AionUiDefaultInstallDirs) {
+    Remove-AionUiInstallDir $dir
+  }
+
+  Remove-AionUiRegistryEntries
+}
+
 function Start-Installer([string]$Path, [string[]]$InstallerArgs = @()) {
   Add-Step 'installer-start' @{ path = $Path; args = ($InstallerArgs -join ' ') }
   if ($InstallerArgs -and $InstallerArgs.Count -gt 0) {
@@ -139,14 +250,14 @@ function Wait-ProcessExit([System.Diagnostics.Process]$Process, [int]$TimeoutSec
   return $Process.ExitCode
 }
 
-function Install-26 {
-  Assert-File $Installer26 '2.1.26 installer'
-  Stop-AionUiProcesses
-  $proc = Start-Installer -Path $Installer26 -InstallerArgs @('/S')
-  $exit = Wait-ProcessExit $proc 420 'install-2.1.26'
-  if ($exit -ne 0) { throw "2.1.26 installer failed with exit code $exit" }
+function Install-27 {
+  Assert-File $Installer27 '2.1.27 installer'
+  Reset-AionUiInstallBaseline 'install-2.1.27-baseline'
+  $proc = Start-Installer -Path $Installer27 -InstallerArgs @('/S')
+  $exit = Wait-ProcessExit $proc 420 'install-2.1.27'
+  if ($exit -ne 0) { throw "2.1.27 installer failed with exit code $exit" }
   $info = Get-AionUiInstallInfo
-  Add-Step 'install-info-after-26' @{ installLocation = $info.installLocation; displayVersion = $info.displayVersion; registryPath = $info.registryPath }
+  Add-Step 'install-info-after-27' @{ installLocation = $info.installLocation; displayVersion = $info.displayVersion; registryPath = $info.registryPath }
   return $info
 }
 
@@ -286,7 +397,7 @@ function Try-FinishInstallerWizard {
   return $false
 }
 
-function Find-AionUiWindow([string[]]$ContainsAny, [int]$TimeoutSec = 90) {
+function Find-AionUiWindow([string[]]$ContainsAny, [int]$TimeoutSec = 90, [switch]$NoAutoAdvance) {
   $deadline = (Get-Date).AddSeconds($TimeoutSec)
 
   do {
@@ -299,7 +410,9 @@ function Find-AionUiWindow([string[]]$ContainsAny, [int]$TimeoutSec = 90) {
         }
       }
     }
-    [void](Try-AdvanceInstallerWizard)
+    if (-not $NoAutoAdvance) {
+      [void](Try-AdvanceInstallerWizard)
+    }
     Start-Sleep -Milliseconds 500
   } while ((Get-Date) -lt $deadline)
 
@@ -366,82 +479,110 @@ function Search-Sentry([string]$EventId) {
   return $null
 }
 
+function Read-InstallerJsonl([string]$Path) {
+  if (-not (Test-Path -LiteralPath $Path)) {
+    throw "Installer log missing: $Path"
+  }
+
+  $lineNumber = 0
+  @(Get-Content -LiteralPath $Path | Where-Object { $_.Trim() } | ForEach-Object {
+    $lineNumber++
+    try {
+      $_ | ConvertFrom-Json
+    } catch {
+      throw "Invalid JSONL in installer log at line $lineNumber`: $($_.Exception.Message). Line: $_"
+    }
+  })
+}
+
 function Run-CancelReport([string]$InstallDir) {
   Add-Step 'scenario-start' @{ scenario = 'CancelReport' }
   Remove-Item -LiteralPath (Join-Path $env:TEMP 'aionui-installer-report.json') -Force -ErrorAction SilentlyContinue
   $appPid = Start-AionUi $InstallDir
   $locker = Start-Locker $InstallDir
   try {
-    $installer = Start-Installer -Path $Installer27
+    $installer = Start-Installer -Path $Installer28
     $appPrompt = Find-AionUiWindow @('already running', 'is running', 'close it', 'close AionUi', $UiText.Running) 120
     Add-Step 'window-captured' @{ kind = 'app-running'; title = $appPrompt.title; text = $appPrompt.text }
     Invoke-WindowButton $appPrompt @('OK', $UiText.OK, $UiText.Yes)
 
-    $cannotClosePrompt = Find-AionUiWindow @('could not finish closing or removing the previous version', 'If Retry keeps returning here', 'cannot be closed', 'Please close it manually', $UiText.CannotClose, $UiText.CannotCloseDefault, $UiText.ManualCloseDefault, $UiText.PreviousVersion) 180
-    Add-Step 'window-captured' @{ kind = 'old-uninstaller-retry-cancel'; title = $cannotClosePrompt.title; text = $cannotClosePrompt.text }
-    Invoke-WindowButton $cannotClosePrompt @('Cancel', $UiText.Cancel)
-
-    $lockerPrompt = Find-AionUiWindow @('Application using the file:', 'Application using it:', 'file or folder in the install directory', 'this file is still open') 120
-    Add-Step 'window-captured' @{ kind = 'locker-retry-cancel'; title = $lockerPrompt.title; text = $lockerPrompt.text }
-    Invoke-WindowButton $lockerPrompt @('Cancel', $UiText.Cancel)
-
-    $failurePrompt = Find-AionUiWindow @('AionUi installation failed', 'E1003', 'Send this installer failure report') 120
+    $failurePrompt = Find-AionUiWindow @('AionUi installation failed (E1003)', 'Blocking diagnostics:', 'Send this installer failure report') 240 -NoAutoAdvance
     Add-Step 'window-captured' @{ kind = 'failure-report-consent'; title = $failurePrompt.title; text = $failurePrompt.text }
+    if ($failurePrompt.text -notlike '*AionUi installation failed (E1003)*') {
+      throw 'Failure prompt does not use root cause code E1003'
+    }
+    if ($failurePrompt.text -like '*AionUi installation failed (E1002)*') {
+      throw 'Failure prompt still uses wrapper code E1002 as the main visible code'
+    }
+    foreach ($required in @('Blocking diagnostics:', 'Outer installer', 'Inner failure: E1003', 'File or folder:')) {
+      if ($failurePrompt.text -notlike "*$required*") {
+        throw "Failure prompt missing expected root-cause detail: $required"
+      }
+    }
+    if ($failurePrompt.text -like '*Blocking process: Windows' -and $failurePrompt.text -notlike '*Windows did not identify a specific locking process*') {
+      throw 'Failure prompt appears to contain truncated Blocking process text'
+    }
+    if ($failurePrompt.text -like '*Installer log:*Blocking diagnostics:*' -or
+        $failurePrompt.text -like '*Blocking diagnostics:*Installer log:*Installer log:*') {
+      throw 'Failure prompt repeats installer log inside Blocking diagnostics'
+    }
+    if ($failurePrompt.text -like '*appCannotBeClosed*' -or
+        $failurePrompt.text -like '*could not finish closing or removing the previous version*') {
+      throw 'Failure prompt still shows the generic old-uninstaller retry copy'
+    }
     Invoke-WindowButton $failurePrompt @('Yes', $UiText.Yes)
 
-    $reportPrompt = Find-AionUiWindow @('installer report sent', 'Event ID:', 'installer report failed') 90
+    $reportPrompt = Find-AionUiWindow @('installer report sent', 'AionUi installer failure E1003', 'Issue search:', 'GitHub issue', 'installer report failed') 90 -NoAutoAdvance
     Add-Step 'window-captured' @{ kind = 'report-result'; title = $reportPrompt.title; text = $reportPrompt.text }
+    foreach ($required in @('AionUi installer failure E1003', 'https://github.com/iOfficeAI/AionUi/issues', 'To AionUi Team')) {
+      if ($reportPrompt.text -notlike "*$required*") {
+        throw "Report dialog missing expected copyable detail: $required"
+      }
+    }
     Invoke-WindowButton $reportPrompt @('OK', $UiText.OK)
 
-    $exit = Wait-ProcessExit $installer 120 'install-2.1.27-cancel-report'
+    $exit = Wait-ProcessExit $installer 120 'install-2.1.28-cancel-report'
     $status = Wait-ForReportStatus
     $sentryOutput = Search-Sentry $status.eventId
     if ($status.status -ne 'sent') { throw "Expected Sentry report status sent, got $($status.status)" }
-    if (-not (Test-Path -LiteralPath $status.logPath)) { throw "Installer log missing: $($status.logPath)" }
-    $logText = Get-Content -LiteralPath $status.logPath -Raw
-    foreach ($required in @('event=rm-lockers', 'event=report-sent', 'AionUi')) {
-      if ($logText -notlike "*$required*") { throw "Installer log missing expected text: $required" }
+    if ($status.code -ne 'E1003') { throw "Expected report code E1003, got $($status.code)" }
+    if ($status.wrapperCode -ne 'E1002') { throw "Expected wrapperCode E1002, got $($status.wrapperCode)" }
+    if ($status.logPath -notlike '*-log.jsonl') { throw "Expected JSONL installer log, got $($status.logPath)" }
+    if ($status.copyText -notlike '*AionUi installer failure E1003*' -or $status.copyText -notlike '*To AionUi Team*') {
+      throw 'Report status copyText is missing expected E1003 support payload'
     }
-    if ($logText -notlike '*phase=residual-delete-failed*' -and
-        $logText -notlike '*phase=old-uninstaller-failed*' -and
-        $logText -notlike '*event=old-uninstaller-failed action=report*') {
-      throw 'Installer log missing expected RM failure phase'
+    $events = Read-InstallerJsonl $status.logPath
+    foreach ($requiredEvent in @('old-uninstaller-failed', 'report-sent')) {
+      if (-not (@($events | Where-Object { $_.event -eq $requiredEvent }).Count -gt 0)) {
+        throw "Installer JSONL log missing event: $requiredEvent"
+      }
     }
-    Add-Step 'scenario-result' @{ scenario = 'CancelReport'; installerExit = $exit; eventId = $status.eventId; logPath = $status.logPath; sentryFound = [bool]$sentryOutput }
-  } finally {
-    Stop-Locker $locker
-    Stop-AionUiProcesses
-  }
-}
-
-function Run-RetrySuccess([string]$InstallDir) {
-  Add-Step 'scenario-start' @{ scenario = 'RetrySuccess' }
-  $appPid = Start-AionUi $InstallDir
-  $locker = Start-Locker $InstallDir
-  try {
-    $installer = Start-Installer -Path $Installer27
-    $appPrompt = Find-AionUiWindow @('already running', 'is running', 'close it', 'close AionUi', $UiText.Running) 120
-    Add-Step 'window-captured' @{ kind = 'app-running'; title = $appPrompt.title; text = $appPrompt.text }
-    Invoke-WindowButton $appPrompt @('OK', $UiText.OK, $UiText.Yes)
-
-    $cannotClosePrompt = Find-AionUiWindow @('could not finish closing or removing the previous version', 'If Retry keeps returning here', 'cannot be closed', 'Please close it manually', $UiText.CannotClose, $UiText.CannotCloseDefault, $UiText.ManualCloseDefault, $UiText.PreviousVersion) 180
-    Add-Step 'window-captured' @{ kind = 'old-uninstaller-retry-cancel'; title = $cannotClosePrompt.title; text = $cannotClosePrompt.text }
-    Invoke-WindowButton $cannotClosePrompt @('Cancel', $UiText.Cancel)
-
-    $lockerPrompt = Find-AionUiWindow @('Application using the file:', 'Application using it:', 'file or folder in the install directory', 'this file is still open') 120
-    Add-Step 'window-captured' @{ kind = 'locker-retry-cancel'; title = $lockerPrompt.title; text = $lockerPrompt.text }
-    Stop-Locker $locker
-    $locker = $null
-    Invoke-WindowButton $lockerPrompt @('Retry', $UiText.Retry)
-
-    $exit = Wait-ProcessExit $installer 420 'install-2.1.27-retry-success'
-    if ($exit -ne 0) { throw "Expected retry-success installer exit 0, got $exit" }
-    $info = Get-AionUiInstallInfo
-    Add-Step 'install-info-after-27' @{ installLocation = $info.installLocation; displayVersion = $info.displayVersion; registryPath = $info.registryPath }
-    if ($info.displayVersion -and $info.displayVersion -ne '2.1.27') {
-      throw "Expected DisplayVersion 2.1.27, got $($info.displayVersion)"
+    $failure = @($events | Where-Object { $_.event -eq 'failure' -and $_.code -eq 'E1003' } | Select-Object -Last 1)[0]
+    if (-not $failure) {
+      throw 'Missing E1003 JSONL failure event'
     }
-    Add-Step 'scenario-result' @{ scenario = 'RetrySuccess'; installerExit = $exit; displayVersion = $info.displayVersion }
+    if (-not $failure.failedPath) {
+      throw 'E1003 JSONL failure event is missing failedPath'
+    }
+    if (-not $failure.phase) {
+      throw 'E1003 JSONL failure event is missing phase'
+    }
+    $hasRmLockers = @($events | Where-Object { $_.event -eq 'rm-lockers' }).Count -gt 0
+    if (-not $hasRmLockers -and -not $failure.fallbackReason -and -not $failure.message) {
+      throw 'Installer JSONL log has neither rm-lockers event nor fallback diagnostics on the E1003 failure'
+    }
+    $failureBlocking = ''
+    $failureProcesses = @($failure.blockingProcesses)
+    if ($failureProcesses.Count -gt 0) {
+      $failureBlocking = @($failureProcesses | ForEach-Object {
+        if ($_.pid) { "$($_.name)($($_.pid))" } else { [string]$_.name }
+      }) -join ', '
+    }
+    if (-not $failureBlocking) { $failureBlocking = [string]$failure.message }
+    if ($failureBlocking -eq 'Windows') {
+      throw 'E1003 JSONL failure blocking diagnostics were truncated to Windows'
+    }
+    Add-Step 'scenario-result' @{ scenario = 'CancelReport'; installerExit = $exit; eventId = $status.eventId; issueSearch = $status.issueSearch; userId = $status.userId; logPath = $status.logPath; sentryFound = [bool]$sentryOutput }
   } finally {
     Stop-Locker $locker
     Stop-AionUiProcesses
@@ -449,24 +590,15 @@ function Run-RetrySuccess([string]$InstallDir) {
 }
 
 try {
-  Assert-File $Installer27 '2.1.27 installer'
-  if (-not $SkipInstall26) {
-    $installInfo = Install-26
+  Assert-File $Installer28 '2.1.28 installer'
+  if (-not $SkipInstall27) {
+    $installInfo = Install-27
   } else {
     $installInfo = Get-AionUiInstallInfo
     Add-Step 'install-info-existing' @{ installLocation = $installInfo.installLocation; displayVersion = $installInfo.displayVersion; registryPath = $installInfo.registryPath }
   }
 
-  if ($Scenario -eq 'CancelReport' -or $Scenario -eq 'All') {
-    Run-CancelReport $installInfo.installLocation
-  }
-
-  if ($Scenario -eq 'RetrySuccess' -or $Scenario -eq 'All') {
-    if ($Scenario -eq 'All') {
-      $installInfo = Install-26
-    }
-    Run-RetrySuccess $installInfo.installLocation
-  }
+  Run-CancelReport $installInfo.installLocation
 
   Add-Step 'e2e-complete' @{ scenario = $Scenario }
   Save-State

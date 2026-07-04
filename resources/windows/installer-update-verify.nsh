@@ -91,8 +91,16 @@ Var /GLOBAL AionUiActiveMarkerResult
 !macro AIONUI_OVERRIDE_SINGLE_INSTANCE
 !macroend
 
+!macro AIONUI_OVERRIDE_APP_CANNOT_BE_CLOSED_MESSAGE
+  !pragma warning disable 6030
+  LangString appCannotBeClosed 1033 "AionUi could not finish closing or removing the previous version.$\r$\n$\r$\nClose AionUi and any program that may be using files in the install folder, then click Retry.$\r$\n$\r$\nIf Retry keeps returning here, click Cancel. The installer will show the failed path, any program reported by Windows Restart Manager, and the installer log."
+  LangString appCannotBeClosed 2052 "AionUi could not finish closing or removing the previous version.$\r$\n$\r$\nClose AionUi and any program that may be using files in the install folder, then click Retry.$\r$\n$\r$\nIf Retry keeps returning here, click Cancel. The installer will show the failed path, any program reported by Windows Restart Manager, and the installer log."
+  !pragma warning default 6030
+!macroend
+
 !macro AIONUI_INSTALLER_CUSTOM_HEADER
   !insertmacro AIONUI_OVERRIDE_SINGLE_INSTANCE
+  !insertmacro AIONUI_OVERRIDE_APP_CANNOT_BE_CLOSED_MESSAGE
 !macroend
 
 !macro AIONUI_INSTALLER_PREINIT

@@ -2,6 +2,49 @@
 !define AIONUI_INSTALLER_REPAIR_HEAL_NSH
 
 Var /GLOBAL AionUiRegistryInstallIsValid
+Var /GLOBAL AionUiInnerFailureSummary
+Var /GLOBAL AionUiInnerRootCode
+Var /GLOBAL AionUiInnerFailureReadResult
+
+!macro AIONUI_READ_LAST_INNER_FAILURE
+  InitPluginsDir
+  StrCpy $AionUiInnerRootCode ""
+  StrCpy $AionUiInnerFailureSummary "No specific locking process was identified. Close AionUi, terminals, editors, and file managers opened in the install folder."
+  nsExec::ExecToStack `"$SYSDIR\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -Command "& { \
+    $$ErrorActionPreference = 'SilentlyContinue'; \
+    $$logPath = '$AionUiSessionLogPath'; \
+    $$summary = 'No specific locking process was identified. Close AionUi, terminals, editors, and file managers opened in the install folder.'; \
+    $$code = ''; \
+    if ($$logPath -and (Test-Path -LiteralPath $$logPath)) { \
+      $$events = @(Get-Content -LiteralPath $$logPath -ErrorAction SilentlyContinue | ForEach-Object { try { $$_ | ConvertFrom-Json } catch { $$null } } | Where-Object { $$_ }); \
+      $$failure = @($$events | Where-Object { $$_.event -eq 'failure' -and $$_.updated -eq $$true } | Select-Object -Last 1)[0]; \
+      if (-not $$failure) { $$failure = @($$events | Where-Object { $$_.event -eq 'failure' } | Select-Object -Last 1)[0] }; \
+      if ($$failure) { \
+        $$code = ([string]$$failure.code).Trim(); \
+        $$phase = ([string]$$failure.phase).Trim(); \
+        $$path = ([string]$$failure.failedPath).Trim(); \
+        $$blocking = ''; \
+        $$processes = @($$failure.blockingProcesses); \
+        if ($$processes.Count -gt 0) { $$blocking = (@($$processes | ForEach-Object { if ($$_.pid) { [string]$$_.name + '(' + [string]$$_.pid + ')' } else { [string]$$_.name } }) -join ', ') }; \
+        if (-not $$blocking) { $$blocking = ([string]$$failure.message).Trim() }; \
+        if (-not $$blocking) { $$blocking = 'Windows did not identify a specific locking process. Close terminals, editors, and file managers opened in the install folder.' }; \
+        $$parts = @('- Outer installer: previous uninstaller exited with code $R0', ('- Inner failure: ' + $$code + ' phase ' + $$phase)); \
+        if ($$path) { $$parts += ('- File or folder: ' + $$path) }; \
+        $$parts += ('- Blocking process: ' + $$blocking); \
+        $$summary = $$parts -join [Environment]::NewLine; \
+      } \
+    }; \
+    if (-not $$code) { $$code = '-----' }; \
+    [Console]::Out.Write($$code + '|' + $$summary) \
+  }"`
+  Pop $AionUiInnerFailureReadResult
+  Pop $AionUiInnerFailureReadResult
+  StrCpy $AionUiInnerRootCode $AionUiInnerFailureReadResult 5
+  ${If} $AionUiInnerRootCode == "-----"
+    StrCpy $AionUiInnerRootCode ""
+  ${EndIf}
+  StrCpy $AionUiInnerFailureSummary $AionUiInnerFailureReadResult 4096 6
+!macroend
 
 !macro AIONUI_LOG_UNINSTALLER_REPAIR _PHASE
   nsExec::Exec `"$SYSDIR\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -Command "& { \
@@ -12,7 +55,8 @@ Var /GLOBAL AionUiRegistryInstallIsValid
     $$item = Get-Item -LiteralPath $$path -ErrorAction SilentlyContinue; \
     $$version = if ($$item) { $$item.VersionInfo.ProductVersion } else { '' }; \
     $$length = if ($$item) { $$item.Length } else { '' }; \
-    Add-Content -LiteralPath $$log -Encoding UTF8 -Value ('[' + (Get-Date -Format o) + '] uninstaller-repair phase=${_PHASE} instDir=$INSTDIR path=' + $$path + ' exists=' + [bool]$$item + ' version=' + $$version + ' length=' + $$length) \
+    $$payload = [ordered]@{ schemaVersion = 1; ts = (Get-Date -Format o); session = '$AionUiSessionId'; version = '${VERSION}'; arch = '${AIONUI_TARGET_ARCH}'; updated = ('$AionUiIsUpdated' -eq '1'); instDir = '$INSTDIR'; event = 'uninstaller-repair'; phase = '${_PHASE}'; path = $$path; exists = [bool]$$item; productVersion = $$version; length = $$length }; \
+    Add-Content -LiteralPath $$log -Encoding UTF8 -Value ($$payload | ConvertTo-Json -Compress -Depth 8) \
   }"`
   Pop $AionUiRepairLogResult
 !macroend
@@ -96,7 +140,8 @@ Var /GLOBAL AionUiRegistryInstallIsValid
     $$ErrorActionPreference = 'SilentlyContinue'; \
     $$log = '$AionUiSessionLogPath'; \
     if (-not $$log) { $$log = Join-Path $$env:TEMP '${AIONUI_FALLBACK_LOG}' }; \
-    Add-Content -LiteralPath $$log -Encoding UTF8 -Value ('[' + (Get-Date -Format o) + '] uninstall-result root=${_ROOT_KEY} launchErrors=${_HAD_ERRORS} exitCode=$R0 instDir=$INSTDIR') \
+    $$payload = [ordered]@{ schemaVersion = 1; ts = (Get-Date -Format o); session = '$AionUiSessionId'; version = '${VERSION}'; arch = '${AIONUI_TARGET_ARCH}'; updated = ('$AionUiIsUpdated' -eq '1'); instDir = '$INSTDIR'; event = 'uninstall-result'; root = '${_ROOT_KEY}'; launchErrors = '${_HAD_ERRORS}'; exitCode = '$R0' }; \
+    Add-Content -LiteralPath $$log -Encoding UTF8 -Value ($$payload | ConvertTo-Json -Compress -Depth 8) \
   }"`
   Pop $AionUiUninstallLogResult
 !macroend
@@ -116,34 +161,17 @@ Var /GLOBAL AionUiRegistryInstallIsValid
   ${EndIf}
 
   ${If} $R0 != 0
-    aionui_${_LABEL_PREFIX}_old_uninstaller_failed:
-      ${IfNot} ${Silent}
-        !insertmacro AIONUI_PROMPT_FAILED_PATH_LOCKERS "$INSTDIR" "old-uninstaller-failed" aionui_${_LABEL_PREFIX}_retry_old_uninstaller aionui_${_LABEL_PREFIX}_cancel_old_uninstaller aionui_${_LABEL_PREFIX}_continue_old_uninstaller_failed
-        aionui_${_LABEL_PREFIX}_cancel_old_uninstaller:
-      ${EndIf}
-      aionui_${_LABEL_PREFIX}_continue_old_uninstaller_failed:
       DetailPrint `Uninstall was not successful. Uninstaller error code: $R0.`
-      !insertmacro AIONUI_LOG_EVENT "event=old-uninstaller-failed action=report exitCode=$R0 lockers=$AionUiLockerList"
-      !insertmacro AIONUI_FAIL_REPORTABLE ${AIONUI_E_OLD_UNINSTALL_FAILED} "old-uninstaller exitCode=$R0 lockers=$AionUiLockerList" "The previous AionUi uninstaller returned an error." "Close the application using the file shown in the previous message, then run this installer again. If it still fails, remove AionUi from Windows Settings first."
-
-    aionui_${_LABEL_PREFIX}_retry_old_uninstaller:
-      DetailPrint `Retrying previous AionUi uninstaller after user closed locking applications.`
-      ClearErrors
-      ExecWait '"$INSTDIR\${UNINSTALL_FILENAME}" /S --updated' $R0
-      ${If} ${Errors}
-        StrCpy $AionUiUninstallHadErrors "1"
+      !insertmacro AIONUI_READ_LAST_INNER_FAILURE
+      ${If} $AionUiLockerList != ""
+        StrCpy $AionUiInnerFailureSummary "- Failure: previous uninstaller failed with exit code $R0$\r$\n- File or folder: $INSTDIR$\r$\n- Blocking process: $AionUiLockerList"
+      ${EndIf}
+      !insertmacro AIONUI_LOG_EVENT "event=old-uninstaller-failed action=report exitCode=$R0 lockers=$AionUiLockerList uninstallerDetail=$AionUiInnerFailureSummary"
+      ${If} $AionUiInnerRootCode != ""
+        !insertmacro AIONUI_FAIL_REPORTABLE_ROOTED "$AionUiInnerRootCode" ${AIONUI_E_OLD_UNINSTALL_FAILED} "old-uninstaller exitCode=$R0 lockers=$AionUiLockerList uninstallerDetail=$AionUiInnerFailureSummary" "The previous AionUi uninstaller returned an error.$\r$\n$\r$\nBlocking diagnostics:$\r$\n$AionUiInnerFailureSummary" "Close the program listed above, then run this installer again. If no program is listed, restart Windows and run this installer again."
       ${Else}
-        StrCpy $AionUiUninstallHadErrors "0"
+        !insertmacro AIONUI_FAIL_REPORTABLE ${AIONUI_E_OLD_UNINSTALL_FAILED} "old-uninstaller exitCode=$R0 lockers=$AionUiLockerList uninstallerDetail=$AionUiInnerFailureSummary" "The previous AionUi uninstaller returned an error.$\r$\n$\r$\nBlocking diagnostics:$\r$\n$AionUiInnerFailureSummary" "Close the program listed above, then run this installer again. If no program is listed, restart Windows and run this installer again."
       ${EndIf}
-      !insertmacro AIONUI_LOG_UNINSTALL_RESULT "retry-${_ROOT_KEY}" "$AionUiUninstallHadErrors"
-      ${If} $AionUiUninstallHadErrors == "1"
-        DetailPrint `Uninstall retry was not successful. Not able to launch uninstaller!`
-        Return
-      ${EndIf}
-      ${If} $R0 == 0
-        Return
-      ${EndIf}
-      Goto aionui_${_LABEL_PREFIX}_old_uninstaller_failed
   ${EndIf}
 !macroend
 

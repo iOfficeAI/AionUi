@@ -1,5 +1,5 @@
 param(
-  [string[]]$Versions = @('2.1.26', '2.1.27'),
+  [string[]]$Versions = @('2.1.27', '2.1.28'),
   [string]$SentryDsnFile = '',
   [string]$OutputDir = (Join-Path $PSScriptRoot '..\out-fast-builds')
 )

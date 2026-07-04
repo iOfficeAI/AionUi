@@ -55,6 +55,10 @@
   !insertmacro AIONUI_FAIL_UX ${_CODE} "${_DETAIL}" "" "${_MSG_EN}" "" "${_ACTION_EN}"
 !macroend
 
+!macro AIONUI_FAIL_REPORTABLE_ROOTED _ROOT_CODE _WRAPPER_CODE _DETAIL _MSG_EN _ACTION_EN
+  !insertmacro AIONUI_FAIL_UX "${_ROOT_CODE}" "wrapperCode=${_WRAPPER_CODE} ${_DETAIL}" "" "${_MSG_EN}" "" "${_ACTION_EN}"
+!macroend
+
 !macro AIONUI_REPORT_TO_SENTRY _CODE _DETAIL
   !insertmacro AIONUI_REPORT_TO_SENTRY_IMPL "${_CODE}" "${_DETAIL}" ""
 !macroend
