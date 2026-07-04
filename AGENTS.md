@@ -138,6 +138,8 @@ Commits and PR titles must follow the Conventional Commit format defined in [CON
 
 Allowed types: `feat`, `fix`, `perf`, `refactor`, `docs`, `style`, `chore`, `test`, `ci`, `build`.
 
+When opening a PR, fill in the PR body using [.github/pull_request_template.md](.github/pull_request_template.md) and complete its checklists honestly (only check items you actually ran or verified).
+
 **NEVER add AI signatures** (Co-Authored-By, Generated with, etc.).
 
 ## Skills Index
