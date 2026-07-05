@@ -400,6 +400,15 @@
       "vscode": "VS Code",
       "terminal": "Terminal",
       "explorer": "Dosya Gezgini"
+    },
+    "searchScope": {
+      "workspace": "Proje",
+      "currentFolder": "Klasor: {{folder}}"
+    },
+    "searchMode": {
+      "all": "Tumu",
+      "name": "Adlar",
+      "content": "Icerik"
     }
   },
   "minimap": {

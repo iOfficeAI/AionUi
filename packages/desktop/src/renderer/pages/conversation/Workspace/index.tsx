@@ -91,7 +91,19 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
     conversation_id: conversation_id,
   });
 
-  const searchHook = useWorkspaceSearch({ workspace, loadWorkspace: treeHook.loadWorkspace });
+  // Get target folder path for paste, import, and scoped workspace search.
+  const targetFolderPathForModal = getTargetFolderPath(
+    treeHook.selectedNodeRef.current,
+    treeHook.selected,
+    treeHook.files,
+    workspace
+  );
+
+  const searchHook = useWorkspaceSearch({
+    workspace,
+    currentFolderPath: targetFolderPathForModal.fullPath,
+    loadWorkspace: treeHook.loadWorkspace,
+  });
 
   const fileOpsHook = useWorkspaceFileOps({
     workspace,
@@ -191,13 +203,7 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
     }
   }, [activeTab, fileChangesHook.refreshChanges]);
 
-  // Get target folder path for paste confirm modal
-  const targetFolderPathForModal = getTargetFolderPath(
-    treeHook.selectedNodeRef.current,
-    treeHook.selected,
-    treeHook.files,
-    workspace
-  );
+  const searchCurrentFolderLabel = targetFolderPathForModal.relativePath || workspaceDisplayName;
 
   return (
     <>
@@ -292,6 +298,11 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
             setSearchText={searchHook.setSearchText}
             onSearch={searchHook.onSearch}
             searchInputRef={searchHook.searchInputRef}
+            searchScope={searchHook.searchScope}
+            setSearchScope={searchHook.setSearchScope}
+            searchMode={searchHook.searchMode}
+            setSearchMode={searchHook.setSearchMode}
+            currentFolderLabel={searchCurrentFolderLabel}
             loading={treeHook.loading}
             refreshWorkspace={treeHook.refreshWorkspace}
             handleSelectHostFiles={pasteHook.handleSelectHostFiles}

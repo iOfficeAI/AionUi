@@ -415,6 +415,15 @@
       "vscode": "VS Code",
       "terminal": "ترمینال",
       "explorer": "فایل اکسپلورر"
+    },
+    "searchScope": {
+      "workspace": "پروژه",
+      "currentFolder": "پوشه: {{folder}}"
+    },
+    "searchMode": {
+      "all": "همه",
+      "name": "نام ها",
+      "content": "محتوا"
     }
   },
   "minimap": {

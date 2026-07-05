@@ -8,19 +8,25 @@ import type { IDirOrFile } from '@/common/adapter/ipcBridge';
 import useDebounce from '@/renderer/hooks/ui/useDebounce';
 import type { RefInputType } from '@arco-design/web-react/es/Input/interface';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import type { WorkspaceSearchMode } from './useWorkspaceTree';
+
+export type WorkspaceSearchScope = 'workspace' | 'currentFolder';
 
 type UseWorkspaceSearchParams = {
   workspace: string;
-  loadWorkspace: (path: string, search?: string) => Promise<IDirOrFile[]>;
+  currentFolderPath: string;
+  loadWorkspace: (path: string, search?: string, searchMode?: WorkspaceSearchMode) => Promise<IDirOrFile[]>;
 };
 
 /**
  * Manages workspace search state, debounced search callback, focus behavior,
  * and host file selector state (WebUI).
  */
-export function useWorkspaceSearch({ workspace, loadWorkspace }: UseWorkspaceSearchParams) {
+export function useWorkspaceSearch({ workspace, currentFolderPath, loadWorkspace }: UseWorkspaceSearchParams) {
   const [searchText, setSearchText] = useState('');
   const [showSearch, setShowSearch] = useState(true);
+  const [searchScope, setSearchScope] = useState<WorkspaceSearchScope>('workspace');
+  const [searchMode, setSearchMode] = useState<WorkspaceSearchMode>('all');
   const searchInputRef = useRef<RefInputType | null>(null);
 
   // Host file selector state (WebUI: use DirectorySelectionModal instead of native dialog)
@@ -49,16 +55,54 @@ export function useWorkspaceSearch({ workspace, loadWorkspace }: UseWorkspaceSea
     previousShowSearchRef.current = showSearch;
   }, [showSearch]);
 
-  // Debounced search handler
-  const onSearch = useDebounce(
-    (value: string) => {
-      void loadWorkspace(workspace, value).then((files) => {
+  const getSearchPath = useCallback(
+    (scope: WorkspaceSearchScope) => (scope === 'currentFolder' ? currentFolderPath : workspace),
+    [currentFolderPath, workspace]
+  );
+
+  const runSearch = useCallback(
+    (value: string, scope: WorkspaceSearchScope, mode: WorkspaceSearchMode) => {
+      void loadWorkspace(getSearchPath(scope), value, mode).then((files) => {
         setShowSearch(files.length > 0 && files[0]?.children?.length > 0);
       });
     },
-    200,
-    [workspace, loadWorkspace]
+    [getSearchPath, loadWorkspace]
   );
+
+  // Debounced search handler
+  const onSearch = useDebounce(
+    (value: string) => {
+      runSearch(value, searchScope, searchMode);
+    },
+    200,
+    [runSearch, searchMode, searchScope]
+  );
+
+  const updateSearchScope = useCallback(
+    (scope: WorkspaceSearchScope) => {
+      setSearchScope(scope);
+      if (searchText) {
+        runSearch(searchText, scope, searchMode);
+      }
+    },
+    [runSearch, searchMode, searchText]
+  );
+
+  const updateSearchMode = useCallback(
+    (mode: WorkspaceSearchMode) => {
+      setSearchMode(mode);
+      if (searchText) {
+        runSearch(searchText, searchScope, mode);
+      }
+    },
+    [runSearch, searchScope, searchText]
+  );
+
+  useEffect(() => {
+    if (searchScope === 'currentFolder' && searchText) {
+      runSearch(searchText, searchScope, searchMode);
+    }
+  }, [currentFolderPath, runSearch, searchMode, searchScope, searchText]);
 
   // Handle host file selection callback (WebUI)
   const handleHostFileSelected = useCallback(
@@ -79,6 +123,10 @@ export function useWorkspaceSearch({ workspace, loadWorkspace }: UseWorkspaceSea
     setSearchText,
     showSearch,
     setShowSearch,
+    searchScope,
+    setSearchScope: updateSearchScope,
+    searchMode,
+    setSearchMode: updateSearchMode,
     searchInputRef,
     onSearch,
     showHostFileSelector,

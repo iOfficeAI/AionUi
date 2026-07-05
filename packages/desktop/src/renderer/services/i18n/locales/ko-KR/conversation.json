@@ -415,6 +415,15 @@
       "vscode": "VS Code",
       "terminal": "터미널",
       "explorer": "파일 탐색기"
+    },
+    "searchScope": {
+      "workspace": "프로젝트",
+      "currentFolder": "폴더: {{folder}}"
+    },
+    "searchMode": {
+      "all": "전체",
+      "name": "이름",
+      "content": "내용"
     }
   },
   "minimap": {

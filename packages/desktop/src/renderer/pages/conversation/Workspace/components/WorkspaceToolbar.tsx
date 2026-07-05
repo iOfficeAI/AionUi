@@ -6,12 +6,14 @@
 
 import { iconColors } from '@/renderer/styles/colors';
 import { isElectronDesktop } from '@/renderer/utils/platform';
-import { Dropdown, Input, Menu, Tooltip } from '@arco-design/web-react';
+import { Button, Dropdown, Input, Menu, Tooltip } from '@arco-design/web-react';
 import { Down, Plus, Refresh, Search } from '@icon-park/react';
 import React from 'react';
 import UploadProgressBar from '@/renderer/components/media/UploadProgressBar';
 import type { TFunction } from 'i18next';
 import type { RefInputType } from '@arco-design/web-react/es/Input/interface';
+import type { WorkspaceSearchScope } from '../hooks/useWorkspaceSearch';
+import type { WorkspaceSearchMode } from '../hooks/useWorkspaceTree';
 
 type WorkspaceToolbarProps = {
   t: TFunction;
@@ -24,6 +26,11 @@ type WorkspaceToolbarProps = {
   setSearchText: (v: string) => void;
   onSearch: (v: string) => void;
   searchInputRef: React.RefObject<RefInputType | null>;
+  searchScope: WorkspaceSearchScope;
+  setSearchScope: (v: WorkspaceSearchScope) => void;
+  searchMode: WorkspaceSearchMode;
+  setSearchMode: (v: WorkspaceSearchMode) => void;
+  currentFolderLabel: string;
   // Tree state
   loading: boolean;
   refreshWorkspace: () => void;
@@ -44,6 +51,11 @@ const WorkspaceToolbar: React.FC<WorkspaceToolbarProps> = ({
   setSearchText,
   onSearch,
   searchInputRef,
+  searchScope,
+  setSearchScope,
+  searchMode,
+  setSearchMode,
+  currentFolderLabel,
   loading,
   refreshWorkspace,
   handleSelectHostFiles,
@@ -70,6 +82,27 @@ const WorkspaceToolbar: React.FC<WorkspaceToolbarProps> = ({
     </Menu>
   );
 
+  const scopeLabel =
+    searchScope === 'currentFolder'
+      ? t('conversation.workspace.searchScope.currentFolder', { folder: currentFolderLabel })
+      : t('conversation.workspace.searchScope.workspace');
+  const modeLabel = t(`conversation.workspace.searchMode.${searchMode}`);
+  const searchScopeMenu = (
+    <Menu selectedKeys={[searchScope]} onClickMenuItem={(key) => setSearchScope(key as WorkspaceSearchScope)}>
+      <Menu.Item key='workspace'>{t('conversation.workspace.searchScope.workspace')}</Menu.Item>
+      <Menu.Item key='currentFolder'>
+        {t('conversation.workspace.searchScope.currentFolder', { folder: currentFolderLabel })}
+      </Menu.Item>
+    </Menu>
+  );
+  const searchModeMenu = (
+    <Menu selectedKeys={[searchMode]} onClickMenuItem={(key) => setSearchMode(key as WorkspaceSearchMode)}>
+      <Menu.Item key='all'>{t('conversation.workspace.searchMode.all')}</Menu.Item>
+      <Menu.Item key='name'>{t('conversation.workspace.searchMode.name')}</Menu.Item>
+      <Menu.Item key='content'>{t('conversation.workspace.searchMode.content')}</Menu.Item>
+    </Menu>
+  );
+
   return (
     <div className='px-12px'>
       {/* Search Input */}
@@ -87,6 +120,28 @@ const WorkspaceToolbar: React.FC<WorkspaceToolbarProps> = ({
             allowClear
             prefix={<Search theme='outline' size='14' fill={iconColors.primary} />}
           />
+          <div className='mt-6px flex items-center gap-6px overflow-hidden'>
+            <Dropdown droplist={searchScopeMenu} trigger='click' position='bl'>
+              <Button
+                size='mini'
+                type='text'
+                className='!px-4px min-w-0 flex-shrink-0'
+                icon={<Search theme='outline' size='12' fill={iconColors.secondary} />}
+              >
+                <span className='block max-w-140px overflow-hidden text-ellipsis whitespace-nowrap'>{scopeLabel}</span>
+              </Button>
+            </Dropdown>
+            <Dropdown droplist={searchModeMenu} trigger='click' position='bl'>
+              <Button
+                size='mini'
+                type='text'
+                className='!px-4px min-w-0 flex-shrink-0'
+                icon={<Search theme='outline' size='12' fill={iconColors.secondary} />}
+              >
+                <span className='block max-w-100px overflow-hidden text-ellipsis whitespace-nowrap'>{modeLabel}</span>
+              </Button>
+            </Dropdown>
+          </div>
         </div>
       )}
 

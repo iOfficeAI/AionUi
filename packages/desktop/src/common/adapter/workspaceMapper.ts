@@ -6,7 +6,7 @@
 
 import type { IDirOrFile, IWorkspaceFlatFile } from './ipcBridge';
 
-type RawFsEntry = { name: string; type: string };
+type RawFsEntry = { name: string; type: string; match_kind?: 'name' | 'content' };
 export type RawWorkspaceFlatFile = { name: string; full_path: string; relative_path: string };
 
 // ── Path helpers ───────────────────────────────────────────────────────
@@ -53,6 +53,7 @@ export function fromBackendFsEntry(item: RawFsEntry, workspace: string, parentRe
     relativePath,
     isDir,
     isFile: !isDir,
+    searchMatchKind: item.match_kind,
   };
 }
 

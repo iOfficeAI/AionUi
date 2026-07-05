@@ -421,6 +421,15 @@
       "vscode": "VS Code",
       "terminal": "Terminal",
       "explorer": "Explorador de Arquivos"
+    },
+    "searchScope": {
+      "workspace": "Projeto",
+      "currentFolder": "Pasta: {{folder}}"
+    },
+    "searchMode": {
+      "all": "Tudo",
+      "name": "Nomes",
+      "content": "Conteudo"
     }
   },
   "minimap": {

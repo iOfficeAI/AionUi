@@ -52,6 +52,7 @@ describe('workspaceMapper', () => {
         {
           name: 'src/components/SearchPanel.tsx',
           type: 'file',
+          match_kind: 'name',
         },
       ],
       '/workspace',
@@ -63,6 +64,26 @@ describe('workspaceMapper', () => {
       fullPath: '/workspace/src/components/SearchPanel.tsx',
       relativePath: 'src/components/SearchPanel.tsx',
       isFile: true,
+      searchMatchKind: 'name',
+    });
+  });
+
+  it('maps content search match kind from backend results', () => {
+    const [root] = fromBackendWorkspaceList(
+      [
+        {
+          name: 'docs/notes.md',
+          type: 'file',
+          match_kind: 'content',
+        },
+      ],
+      '/workspace',
+      '.'
+    );
+
+    expect(root?.children?.[0]).toMatchObject({
+      relativePath: 'docs/notes.md',
+      searchMatchKind: 'content',
     });
   });
 

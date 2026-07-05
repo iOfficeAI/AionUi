@@ -415,6 +415,15 @@
       "vscode": "VS Code",
       "terminal": "Терминал",
       "explorer": "Проводник"
+    },
+    "searchScope": {
+      "workspace": "Проект",
+      "currentFolder": "Папка: {{folder}}"
+    },
+    "searchMode": {
+      "all": "Все",
+      "name": "Имена",
+      "content": "Содержимое"
     }
   },
   "minimap": {

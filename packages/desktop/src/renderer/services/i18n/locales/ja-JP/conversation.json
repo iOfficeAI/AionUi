@@ -415,6 +415,15 @@
       "vscode": "VS Code",
       "terminal": "ターミナル",
       "explorer": "エクスプローラー"
+    },
+    "searchScope": {
+      "workspace": "プロジェクト",
+      "currentFolder": "フォルダー: {{folder}}"
+    },
+    "searchMode": {
+      "all": "すべて",
+      "name": "名前",
+      "content": "内容"
     }
   },
   "minimap": {

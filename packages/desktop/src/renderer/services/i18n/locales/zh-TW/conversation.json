@@ -415,6 +415,15 @@
       "vscode": "VS Code",
       "terminal": "終端機",
       "explorer": "檔案總管"
+    },
+    "searchScope": {
+      "workspace": "整個專案",
+      "currentFolder": "資料夾：{{folder}}"
+    },
+    "searchMode": {
+      "all": "全部",
+      "name": "檔名",
+      "content": "內容"
     }
   },
   "minimap": {

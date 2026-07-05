@@ -18,6 +18,8 @@ interface UseWorkspaceTreeOptions {
   eventPrefix: 'acp' | 'codex' | 'aionrs';
 }
 
+export type WorkspaceSearchMode = 'all' | 'name' | 'content';
+
 /**
  * useWorkspaceTree - 合并树状态管理和选择逻辑
  * Merge tree state management and selection logic
@@ -69,11 +71,11 @@ export function useWorkspaceTree({ workspace, conversation_id, eventPrefix }: Us
   const loadSeqRef = useRef(0);
 
   const loadWorkspace = useCallback(
-    (path: string, search?: string) => {
+    (path: string, search?: string, searchMode?: WorkspaceSearchMode) => {
       const seq = ++loadSeqRef.current;
       setLoadingHandler(true);
       return ipcBridge.conversation.getWorkspace
-        .invoke({ path, workspace, conversation_id, search: search || '' })
+        .invoke({ path, workspace, conversation_id, search: search || '', searchMode })
         .then((res) => {
           // Ignore stale responses from aborted requests:
           // The backend aborts previous getWorkspace calls, returning [].
