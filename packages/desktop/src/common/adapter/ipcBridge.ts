@@ -37,6 +37,7 @@ import type {
 import type { PreviewHistoryTarget, PreviewSnapshotInfo } from '../types/office/preview';
 import type {
   EnsureConversationRuntimeResponse,
+  GetConfigOptionsResponse,
   SetConfigOptionRequest,
   SetConfigOptionResponse,
 } from '../types/platform/acpTypes';
@@ -1955,6 +1956,9 @@ export const team = {
   ),
   stop: httpDelete<void, { team_id: string }>((p) => `/api/teams/${p.team_id}/session`),
   ensureSession: httpPost<void, { team_id: string }>((p) => `/api/teams/${p.team_id}/session`),
+  getConfigOptions: httpGet<GetConfigOptionsResponse, { team_id: string; conversation_id: string }>(
+    (p) => `/api/teams/${p.team_id}/conversations/${encodeURIComponent(p.conversation_id)}/config-options`
+  ),
   activeLease: httpPost<void, { team_id: string }>(
     (p) => `/api/teams/${p.team_id}/active-lease`,
     () => undefined

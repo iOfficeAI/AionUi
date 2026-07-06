@@ -72,11 +72,10 @@ const AionrsHeaderModelSelector: React.FC<{ conversation_id: string; initialMode
   const prepareRuntimeConfig = useCallback(async () => {
     await teamPermission?.warmupSession();
   }, [teamPermission]);
-  const loadTeamConfigOptions = useCallback(async () => null, []);
   const runtimeConfig = useAcpConfigOptions({
     conversation_id,
     prepareRuntime: prepareRuntimeConfig,
-    loadConfigOptions: teamPermission ? loadTeamConfigOptions : undefined,
+    loadConfigOptions: teamPermission?.loadConfigOptions,
     enabled: Boolean(conversation_id),
   });
   const handleThoughtLevelSetOption = useCallback(
@@ -139,7 +138,6 @@ const AssistantChatSlot: React.FC<{
   const prepareRuntimeConfig = useCallback(async () => {
     await teamPermission?.warmupSession();
   }, [teamPermission]);
-  const loadTeamConfigOptions = useCallback(async () => null, []);
 
   return (
     <div
@@ -180,7 +178,7 @@ const AssistantChatSlot: React.FC<{
                 backend={assistant.assistant_backend}
                 initialModelId={initialModelId}
                 prepareRuntime={prepareRuntimeConfig}
-                loadConfigOptions={teamPermission ? loadTeamConfigOptions : undefined}
+                loadConfigOptions={teamPermission?.loadConfigOptions}
               />
             </div>
           )}

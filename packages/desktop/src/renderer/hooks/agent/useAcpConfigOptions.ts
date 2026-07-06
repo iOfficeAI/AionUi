@@ -173,7 +173,7 @@ export function useAcpConfigOptions({
     data: snapshotData,
     mutate,
     isLoading,
-  } = useSWR<AcpConfigOptionDto[] | null>(
+  } = useSWR<AcpConfigOptionDto[] | null, unknown, AcpConfigOptionsKey | null>(
     enabled ? key : null,
     (runtimeKey) => fetchConfigOptionsOnce(runtimeKey, loadConfigOptions),
     {

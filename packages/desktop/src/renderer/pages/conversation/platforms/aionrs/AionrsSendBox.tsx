@@ -167,7 +167,6 @@ const AionrsSendBox: React.FC<{
       await teamPermission.warmupSession();
     }
   }, [teamPermission]);
-  const loadTeamConfigOptions = useCallback(async () => null, []);
   const prepareRuntimeSync = useCallback(async () => {
     if (teamPermission) {
       await teamPermission.warmupSession();
@@ -178,7 +177,7 @@ const AionrsSendBox: React.FC<{
   const runtimeConfig = useAcpConfigOptions({
     conversation_id,
     prepareRuntime: prepareRuntimeConfig,
-    loadConfigOptions: teamPermission ? loadTeamConfigOptions : undefined,
+    loadConfigOptions: teamPermission?.loadConfigOptions,
     enabled: Boolean(conversation_id),
   });
   const runtimeMode = runtimeConfig.mode;
@@ -679,7 +678,7 @@ const AionrsSendBox: React.FC<{
               hideCompactLabelPrefixOnMobile
               onModeChanged={propagateMode}
               beforeRuntimeSync={prepareRuntimeConfig}
-              loadConfigOptions={teamPermission ? loadTeamConfigOptions : undefined}
+              loadConfigOptions={teamPermission?.loadConfigOptions}
             />
           </div>
         }
