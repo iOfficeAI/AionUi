@@ -1,6 +1,6 @@
 param(
   [string[]]$Versions = @(),
-  [string]$SentryDsnFile = 'D:\CODE\SENTRY_DSN',
+  [string]$SentryDsnFile = '',
   [string]$OutputDir = (Join-Path $PSScriptRoot '..\out-fast-builds'),
   [string]$WorktreeRoot = (Join-Path $PSScriptRoot '..\..\aionui-build-worktrees'),
   [int]$TimeoutSeconds = 1800,
@@ -22,23 +22,22 @@ function Get-PackageVersion([string]$RepoRoot) {
   return [string]$packageJson.version
 }
 
-function Resolve-SentryDsnFile([string]$Path) {
-  if ($Path -and (Test-Path -LiteralPath $Path)) {
-    return (Resolve-Path -LiteralPath $Path).Path
+function Resolve-SentryDsn([string]$Path) {
+  if ($env:SENTRY_DSN) {
+    Write-Host 'Using SENTRY_DSN from the current environment.'
+    return $env:SENTRY_DSN.Trim()
   }
 
-  $candidates = @(
-    (Join-Path $PSScriptRoot '..\SENTRY_DSN'),
-    (Join-Path $PSScriptRoot '..\..\SENTRY_DSN')
-  )
-
-  foreach ($candidate in $candidates) {
-    if (Test-Path -LiteralPath $candidate) {
-      return (Resolve-Path -LiteralPath $candidate).Path
+  if ($Path) {
+    if (-not (Test-Path -LiteralPath $Path)) {
+      throw "SENTRY_DSN file not found: $Path"
     }
+    Write-Host "Using SENTRY_DSN from file: $Path"
+    return (Get-Content -LiteralPath $Path -Raw).Trim()
   }
 
-  throw "SENTRY_DSN file not found: $Path"
+  Write-Warning 'SENTRY_DSN is not set. Building without installer/app Sentry reporting.'
+  return ''
 }
 
 function ConvertTo-ProcessArgument([string]$Value) {
@@ -214,8 +213,7 @@ function Wait-BuildProcess($Build, [int]$TimeoutSeconds) {
 }
 
 $repoRoot = Resolve-RepoRoot
-$dsnPath = Resolve-SentryDsnFile $SentryDsnFile
-$dsn = (Get-Content -LiteralPath $dsnPath -Raw).Trim()
+$dsn = Resolve-SentryDsn $SentryDsnFile
 $runId = Get-Date -Format 'yyyyMMdd-HHmmss'
 $runRoot = Join-Path $WorktreeRoot $runId
 $patchPath = Join-Path $runRoot 'current-worktree.patch'

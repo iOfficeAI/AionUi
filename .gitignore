@@ -134,6 +134,7 @@ Thumbs.db
 dist/
 build/
 out/
+out-fast-builds/
 
 # Keep extension example dist (pre-built distributable assets)
 !examples/**/dist/

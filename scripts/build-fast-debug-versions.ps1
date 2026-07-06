@@ -6,26 +6,22 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
-function Find-SentryDsnFile {
+function Resolve-SentryDsn {
+  if ($env:SENTRY_DSN) {
+    Write-Host 'Using SENTRY_DSN from the current environment.'
+    return $env:SENTRY_DSN.Trim()
+  }
+
   if ($SentryDsnFile) {
     if (-not (Test-Path -LiteralPath $SentryDsnFile)) {
       throw "SENTRY_DSN file not found: $SentryDsnFile"
     }
-    return (Resolve-Path -LiteralPath $SentryDsnFile).Path
+    Write-Host "Using SENTRY_DSN from file: $SentryDsnFile"
+    return (Get-Content -LiteralPath $SentryDsnFile -Raw).Trim()
   }
 
-  $candidates = @(
-    (Join-Path $PSScriptRoot '..\SENTRY_DSN'),
-    (Join-Path $PSScriptRoot '..\..\SENTRY_DSN')
-  )
-
-  foreach ($candidate in $candidates) {
-    if (Test-Path -LiteralPath $candidate) {
-      return (Resolve-Path -LiteralPath $candidate).Path
-    }
-  }
-
-  throw 'SENTRY_DSN file not found. Pass -SentryDsnFile or place SENTRY_DSN at repo root/parent.'
+  Write-Warning 'SENTRY_DSN is not set. Building without installer/app Sentry reporting.'
+  return ''
 }
 
 function Get-PackageVersion([string]$RepoRoot) {
@@ -38,8 +34,7 @@ function Get-PackageVersion([string]$RepoRoot) {
 }
 
 $repoRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..')).Path
-$dsnPath = Find-SentryDsnFile
-$env:SENTRY_DSN = (Get-Content -LiteralPath $dsnPath -Raw).Trim()
+$env:SENTRY_DSN = Resolve-SentryDsn
 $env:ELECTRON_BUILDER_COMPRESSION_LEVEL = '1'
 New-Item -ItemType Directory -Force -Path $OutputDir | Out-Null
 $buildVersions = @($Versions | ForEach-Object { $_ -split ',' } | ForEach-Object { $_.Trim() } | Where-Object { $_ })
