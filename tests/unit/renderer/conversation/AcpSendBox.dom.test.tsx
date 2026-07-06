@@ -317,7 +317,7 @@ describe('AcpSendBox', () => {
     expect(wrapper?.className).not.toContain('md:w-[calc(100%-clamp(80px,10vw,240px))]');
   });
 
-  it('does not warm up team session when draft content changes', async () => {
+  it('does not warm up team session on mount or draft content changes', async () => {
     const warmupSession = vi.fn().mockResolvedValue(undefined);
     useTeamPermissionMock.mockReturnValue({
       isTeamMode: true,
@@ -336,10 +336,8 @@ describe('AcpSendBox', () => {
         messageState={makeMessageState()}
       />
     );
-    await waitFor(() => {
-      expect(warmupSession).toHaveBeenCalled();
-    });
-    warmupSession.mockClear();
+
+    expect(warmupSession).not.toHaveBeenCalled();
 
     await act(async () => {
       screen.getByRole('button', { name: 'change' }).click();

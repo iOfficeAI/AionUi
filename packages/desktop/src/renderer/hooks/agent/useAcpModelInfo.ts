@@ -7,7 +7,12 @@
 import { ipcBridge } from '@/common';
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 import type { AcpConfigOptionDto, AcpModelInfo } from '@/common/types/platform/acpTypes';
-import { type AcpConfigSetStatus, type AcpDerivedOption, useAcpConfigOptions } from './useAcpConfigOptions';
+import {
+  type AcpConfigOptionsLoader,
+  type AcpConfigSetStatus,
+  type AcpDerivedOption,
+  useAcpConfigOptions,
+} from './useAcpConfigOptions';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 type UseAcpModelInfoArgs = {
@@ -15,6 +20,7 @@ type UseAcpModelInfoArgs = {
   backend?: string;
   initialModelId?: string;
   prepareRuntime?: () => Promise<void>;
+  loadConfigOptions?: AcpConfigOptionsLoader;
   enabled?: boolean;
   onSelectModelSuccess?: (model_id: string) => void;
   onSelectModelFailed?: (model_id: string, error: unknown) => void;
@@ -60,6 +66,7 @@ export const useAcpModelInfo = ({
   backend: _backend,
   initialModelId,
   prepareRuntime,
+  loadConfigOptions,
   enabled = true,
   onSelectModelSuccess,
   onSelectModelFailed,
@@ -67,6 +74,7 @@ export const useAcpModelInfo = ({
   const { model, thoughtLevel, setStatus, setConfigOption } = useAcpConfigOptions({
     conversation_id,
     prepareRuntime,
+    loadConfigOptions,
     enabled,
   });
   const [legacyModelInfo, setLegacyModelInfo] = useState<AcpModelInfo | null>(null);

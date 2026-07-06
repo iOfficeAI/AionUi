@@ -134,4 +134,31 @@ describe('useSlashCommands', () => {
       getSlashCommandsInvokeMock.mock.invocationCallOrder[0]
     );
   });
+
+  it('uses injected runtime preparation instead of standalone ensure', async () => {
+    const prepareRuntime = vi.fn().mockResolvedValue(undefined);
+    getSlashCommandsInvokeMock.mockResolvedValue([
+      {
+        command: 'review',
+        description: 'Review the current diff',
+      },
+    ]);
+
+    renderHook(() =>
+      useSlashCommands('conv-1', {
+        conversation_type: 'acp',
+        agentStatus: 'session_active',
+        prepareRuntime,
+      })
+    );
+
+    await waitFor(() => {
+      expect(prepareRuntime).toHaveBeenCalled();
+      expect(getSlashCommandsInvokeMock).toHaveBeenCalledWith({ conversation_id: 'conv-1' });
+    });
+    expect(ensureRuntimeInvokeMock).not.toHaveBeenCalled();
+    expect(prepareRuntime.mock.invocationCallOrder[0]).toBeLessThan(
+      getSlashCommandsInvokeMock.mock.invocationCallOrder[0]
+    );
+  });
 });

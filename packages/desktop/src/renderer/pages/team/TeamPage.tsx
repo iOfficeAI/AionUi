@@ -72,9 +72,11 @@ const AionrsHeaderModelSelector: React.FC<{ conversation_id: string; initialMode
   const prepareRuntimeConfig = useCallback(async () => {
     await teamPermission?.warmupSession();
   }, [teamPermission]);
+  const loadTeamConfigOptions = useCallback(async () => null, []);
   const runtimeConfig = useAcpConfigOptions({
     conversation_id,
     prepareRuntime: prepareRuntimeConfig,
+    loadConfigOptions: teamPermission ? loadTeamConfigOptions : undefined,
     enabled: Boolean(conversation_id),
   });
   const handleThoughtLevelSetOption = useCallback(
@@ -123,6 +125,7 @@ const AssistantChatSlot: React.FC<{
   onRunStateStale,
 }) => {
   const layout = useLayoutContext();
+  const teamPermission = useTeamPermission();
   const isMobile = layout?.isMobile ?? false;
   const { data: conversation } = useSWR(
     assistant.conversation_id ? ['team-conversation', assistant.conversation_id] : null,
@@ -133,6 +136,10 @@ const AssistantChatSlot: React.FC<{
   const initialModelId = (conversation?.extra as { current_model_id?: string })?.current_model_id;
   const isAcpLike = conversation?.type === 'acp' || isAcpLikeBackend(assistant.assistant_backend);
   const cronJobId = resolveCronJobId(conversation?.extra);
+  const prepareRuntimeConfig = useCallback(async () => {
+    await teamPermission?.warmupSession();
+  }, [teamPermission]);
+  const loadTeamConfigOptions = useCallback(async () => null, []);
 
   return (
     <div
@@ -172,6 +179,8 @@ const AssistantChatSlot: React.FC<{
                 conversation_id={assistant.conversation_id}
                 backend={assistant.assistant_backend}
                 initialModelId={initialModelId}
+                prepareRuntime={prepareRuntimeConfig}
+                loadConfigOptions={teamPermission ? loadTeamConfigOptions : undefined}
               />
             </div>
           )}

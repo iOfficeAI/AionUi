@@ -118,8 +118,7 @@ const AcpSendBox: React.FC<{
   teamSendMessage,
   teamRuntime,
 }) => {
-  const { aiProcessing, setAiProcessing, resetState, hasThinkingMessage, slashCommands, fetchSlashCommands } =
-    messageState;
+  const { aiProcessing, setAiProcessing, resetState, hasThinkingMessage, slashCommands } = messageState;
   const { t } = useTranslation();
   const teamPermission = useTeamPermission();
   // In team mode, all agents show the permission mode selector (members don't propagate)
@@ -145,9 +144,11 @@ const AcpSendBox: React.FC<{
       await teamPermission.warmupSession();
     }
   }, [teamPermission]);
+  const loadTeamConfigOptions = useCallback(async () => null, []);
   const runtimeConfig = useAcpConfigOptions({
     conversation_id,
     prepareRuntime: prepareRuntimeConfig,
+    loadConfigOptions: teamPermission ? loadTeamConfigOptions : undefined,
     enabled: true,
   });
   const runtimeMode = runtimeConfig.mode;
@@ -166,6 +167,7 @@ const AcpSendBox: React.FC<{
     conversation_id,
     backend,
     prepareRuntime: prepareRuntimeConfig,
+    loadConfigOptions: teamPermission ? loadTeamConfigOptions : undefined,
     enabled: isMobile,
     onSelectModelSuccess: () => Message.success(t('agent.model.switchSuccess')),
     onSelectModelFailed: (_modelId, error) => Message.error(t(configErrorMessageKey(error))),
@@ -190,19 +192,6 @@ const AcpSendBox: React.FC<{
     },
     [isLeaderInTeam, runtimeConfig, runtimeMode, t, teamPermission]
   );
-
-  // In team mode, warmup the agent then fetch slash commands
-  useEffect(() => {
-    if (!teamPermission) return;
-    void teamPermission
-      .warmupSession()
-      .then(() => {
-        fetchSlashCommands();
-      })
-      .catch((error) => {
-        Message.error(getConversationRuntimeWorkspaceErrorMessage(error, t));
-      });
-  }, [teamPermission, fetchSlashCommands, t]);
 
   const handleContentChange = useCallback(
     (val: string) => {
@@ -697,6 +686,7 @@ Please check your local CLI tool authentication status`,
                 hideCompactLabelPrefixOnMobile
                 onModeChanged={isLeaderInTeam ? teamPermission?.propagateMode : undefined}
                 beforeRuntimeSync={prepareRuntimeConfig}
+                loadConfigOptions={teamPermission ? loadTeamConfigOptions : undefined}
               />
             )}
           </div>

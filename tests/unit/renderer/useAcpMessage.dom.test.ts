@@ -272,6 +272,34 @@ describe('useAcpMessage', () => {
     });
   });
 
+  it('uses injected runtime preparation for initial slash commands in team mode', async () => {
+    vi.mocked(getConversationOrNull).mockResolvedValue(null);
+    const prepareRuntime = vi.fn().mockResolvedValue(undefined);
+    getSlashCommandsInvokeMock.mockResolvedValue([
+      {
+        command: 'review',
+        description: 'Review the current diff',
+      },
+    ]);
+
+    const { result } = renderHook(() => useAcpMessage('conv-1', { prepareRuntime }));
+
+    await waitFor(() => {
+      expect(prepareRuntime).toHaveBeenCalled();
+      expect(getSlashCommandsInvokeMock).toHaveBeenCalledWith({ conversation_id: 'conv-1' });
+    });
+    expect(ensureRuntimeInvokeMock).not.toHaveBeenCalled();
+
+    act(() => {
+      result.current.fetchSlashCommands();
+    });
+
+    await waitFor(() => {
+      expect(prepareRuntime).toHaveBeenCalledTimes(2);
+    });
+    expect(ensureRuntimeInvokeMock).not.toHaveBeenCalled();
+  });
+
   it('deduplicates slash command fetches while a request is in flight', async () => {
     vi.mocked(getConversationOrNull).mockResolvedValue(null);
     const slashCommandsDeferred = deferred<

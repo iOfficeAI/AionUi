@@ -145,6 +145,25 @@ describe('useAcpModelInfo', () => {
     expect(ensureRuntimeInvokeMock).toHaveBeenCalledWith({ conversation_id: 'conv-1' });
   });
 
+  it('uses an injected config option loader without starting standalone runtime', async () => {
+    const prepareRuntime = vi.fn().mockResolvedValue(undefined);
+    const loadConfigOptions = vi.fn().mockResolvedValue(buildConfigOptions('opus-4'));
+
+    const { result } = renderUseAcpModelInfo({
+      conversation_id: 'conv-1',
+      backend: 'claude',
+      prepareRuntime,
+      loadConfigOptions,
+    });
+
+    await waitFor(() => {
+      expect(result.current.model_info?.current_model_id).toBe('opus-4');
+    });
+    expect(prepareRuntime).toHaveBeenCalled();
+    expect(loadConfigOptions).toHaveBeenCalledWith('conv-1');
+    expect(ensureRuntimeInvokeMock).not.toHaveBeenCalled();
+  });
+
   it('preserves model option descriptions from config options', async () => {
     ensureRuntimeInvokeMock.mockResolvedValue({
       recovered: true,

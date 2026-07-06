@@ -5,7 +5,7 @@
  */
 
 import { useAcpModelInfo } from '@/renderer/hooks/agent/useAcpModelInfo';
-import { classifyConfigSetError } from '@/renderer/hooks/agent/useAcpConfigOptions';
+import { classifyConfigSetError, type AcpConfigOptionsLoader } from '@/renderer/hooks/agent/useAcpConfigOptions';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { getModelDisplayLabel } from '@/renderer/utils/model/agentLogo';
 import { iconColors } from '@/renderer/styles/colors';
@@ -45,9 +45,11 @@ const AcpModelSelector: React.FC<{
   backend?: string;
   /** Pre-selected model ID from Guid page */
   initialModelId?: string;
+  prepareRuntime?: () => Promise<void>;
+  loadConfigOptions?: AcpConfigOptionsLoader;
   /** Deprecated: runtime config loading now ensures the conversation runtime. */
   waitForWarmup?: boolean;
-}> = ({ conversation_id, backend, initialModelId }) => {
+}> = ({ conversation_id, backend, initialModelId, prepareRuntime, loadConfigOptions }) => {
   const { t } = useTranslation();
   const layout = useLayoutContext();
   const isMobileHeaderCompact = Boolean(layout?.isMobile);
@@ -55,6 +57,8 @@ const AcpModelSelector: React.FC<{
     conversation_id,
     backend,
     initialModelId,
+    prepareRuntime,
+    loadConfigOptions,
     onSelectModelSuccess: () => Message.success(t('agent.model.switchSuccess')),
     onSelectModelFailed: (_modelId, error) => Message.error(t(configErrorMessageKey(error))),
   });
