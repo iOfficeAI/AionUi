@@ -7,6 +7,7 @@
 import type { IProvider, TProviderWithModel } from '@/common/config/storage';
 import { iconColors } from '@/renderer/styles/colors';
 import { getModelDisplayLabel } from '@/renderer/utils/model/agentLogo';
+import type { AgentRuntimeDerivedOption } from '@/renderer/utils/model/agentRuntimeCatalog';
 import type { AcpModelInfo } from '../types';
 import { getAvailableModels } from '../utils/modelUtils';
 import { Button, Dropdown, Menu, Tooltip } from '@arco-design/web-react';
@@ -15,6 +16,12 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useProvidersQuery } from '@/renderer/hooks/agent/useModelProviderList';
+import {
+  composeRuntimeSelectorLabel,
+  RuntimeSelectorCheckedItem,
+  RuntimeSelectorMenuDivider,
+  renderThoughtLevelMenuGroup,
+} from '@/renderer/components/agent/runtimeSelectorOptions';
 
 type GuidModelSelectorProps = {
   // Gemini model state
@@ -27,6 +34,8 @@ type GuidModelSelectorProps = {
   currentAcpCachedModelInfo: AcpModelInfo | null;
   selectedAcpModel: string | null;
   setSelectedAcpModel: React.Dispatch<React.SetStateAction<string | null>>;
+  thoughtLevelOption?: AgentRuntimeDerivedOption | null;
+  onThoughtLevelSelect?: (value: string) => void;
 };
 
 const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
@@ -37,6 +46,8 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
   currentAcpCachedModelInfo,
   selectedAcpModel,
   setSelectedAcpModel,
+  thoughtLevelOption,
+  onThoughtLevelSelect,
 }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -86,6 +97,18 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
       fallbackLabel: defaultModelLabel,
     });
   }, [acpSelectedLabel, currentAcpCachedModelInfo?.current_model_id, defaultModelLabel, selectedAcpModel]);
+  const selectedThoughtLevelValue = thoughtLevelOption?.currentValue || thoughtLevelOption?.options[0]?.value || '';
+  const normalizedThoughtLevelOption =
+    thoughtLevelOption && thoughtLevelOption.options.length > 0
+      ? {
+          ...thoughtLevelOption,
+          currentValue: selectedThoughtLevelValue || null,
+        }
+      : null;
+  const combinedAcpButtonLabel = composeRuntimeSelectorLabel({
+    modelLabel: acpButtonLabel,
+    thoughtLevel: normalizedThoughtLevelOption,
+  });
 
   if (isGeminiMode) {
     return (
@@ -191,45 +214,52 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
           trigger='click'
           droplist={
             <Menu selectedKeys={selectedAcpModel ? [selectedAcpModel] : []}>
-              {currentAcpCachedModelInfo.available_models.map((model) => {
-                // 获取模型健康状态
-                const providerConfig = modelConfig?.find((p) => p.platform?.includes(''));
-                const healthStatus = providerConfig?.model_health?.[model.id]?.status || 'unknown';
-                const healthColor =
-                  healthStatus === 'healthy'
-                    ? 'bg-green-500'
-                    : healthStatus === 'unhealthy'
-                      ? 'bg-red-500'
-                      : 'bg-gray-400';
-
-                return (
-                  <Menu.Item
-                    key={model.id}
-                    className={model.id === selectedAcpModel ? '!bg-2' : ''}
-                    onClick={() => setSelectedAcpModel(model.id)}
-                  >
-                    <div className='flex items-center gap-8px w-full'>
-                      {healthStatus !== 'unknown' && (
-                        <div className={`w-6px h-6px rounded-full shrink-0 ${healthColor}`} />
-                      )}
-                      {model.description ? (
-                        <Tooltip content={model.description} position='right'>
-                          <span className='min-w-0 truncate'>{model.label}</span>
-                        </Tooltip>
-                      ) : (
-                        <span className='min-w-0 truncate'>{model.label}</span>
-                      )}
-                    </div>
-                  </Menu.Item>
-                );
+              {renderThoughtLevelMenuGroup({
+                thoughtLevel: normalizedThoughtLevelOption,
+                title: t('agent.thoughtLevel.label'),
+                onSelect: (value) => onThoughtLevelSelect?.(value),
               })}
+              {normalizedThoughtLevelOption ? <RuntimeSelectorMenuDivider /> : null}
+              <Menu.ItemGroup title={t('common.model', { defaultValue: 'Model' })}>
+                {currentAcpCachedModelInfo.available_models.map((model) => {
+                  // 获取模型健康状态
+                  const providerConfig = modelConfig?.find((p) => p.platform?.includes(''));
+                  const healthStatus = providerConfig?.model_health?.[model.id]?.status || 'unknown';
+                  const healthColor =
+                    healthStatus === 'healthy'
+                      ? 'bg-green-500'
+                      : healthStatus === 'unhealthy'
+                        ? 'bg-red-500'
+                        : 'bg-gray-400';
+
+                  return (
+                    <Menu.Item
+                      key={model.id}
+                      className={model.id === selectedAcpModel ? '!bg-2' : ''}
+                      onClick={() => setSelectedAcpModel(model.id)}
+                    >
+                      <div className='flex items-center gap-8px w-full'>
+                        {healthStatus !== 'unknown' && (
+                          <div className={`w-6px h-6px rounded-full shrink-0 ${healthColor}`} />
+                        )}
+                        <RuntimeSelectorCheckedItem
+                          selected={model.id === selectedAcpModel}
+                          description={model.description}
+                        >
+                          {model.label}
+                        </RuntimeSelectorCheckedItem>
+                      </div>
+                    </Menu.Item>
+                  );
+                })}
+              </Menu.ItemGroup>
             </Menu>
           }
         >
           <Button className={'sendbox-model-btn guid-config-btn'} shape='round' size='small'>
             <span className='flex items-center gap-6px min-w-0'>
               <Brain theme='outline' size='14' fill={iconColors.secondary} className='shrink-0' />
-              <span>{acpButtonLabel}</span>
+              <span>{combinedAcpButtonLabel}</span>
               <Down theme='outline' size='12' fill={iconColors.secondary} className='shrink-0' />
             </span>
           </Button>

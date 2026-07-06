@@ -40,6 +40,7 @@ const buildDetail = (
     defaults: {
       model: { mode: 'auto' },
       permission: { mode: 'auto' },
+      thought_level: { mode: 'auto' },
       skills: { mode: 'fixed', value: [] },
       mcps: { mode: 'auto', value: [] },
       ...overrides,
@@ -52,6 +53,7 @@ const buildDetail = (
     preferences: {
       last_model_id: undefined,
       last_permission_value: undefined,
+      last_thought_level_value: undefined,
       last_skill_ids: [],
       last_disabled_builtin_skill_ids: [],
       last_mcp_ids: [],
@@ -65,6 +67,7 @@ describe('resolveGuidAssistantDefaults', () => {
       buildDetail({
         model: { mode: 'fixed', value: 'gemini-2.5-pro' },
         permission: { mode: 'fixed', value: 'yolo' },
+        thought_level: { mode: 'fixed', value: 'medium' },
         mcps: { mode: 'fixed', value: ['mcp-a', 'mcp-b'] },
       })
     );
@@ -72,6 +75,7 @@ describe('resolveGuidAssistantDefaults', () => {
     expect(resolved).toEqual({
       modelId: 'gemini-2.5-pro',
       permissionMode: 'yolo',
+      thoughtLevel: 'medium',
       skillIds: [],
       disabledBuiltinSkillIds: [],
       mcpIds: ['mcp-a', 'mcp-b'],
@@ -90,6 +94,7 @@ describe('resolveGuidAssistantDefaults', () => {
         {
           last_model_id: 'claude-sonnet-4',
           last_permission_value: 'plan',
+          last_thought_level_value: 'high',
           last_skill_ids: ['skill-a'],
           last_disabled_builtin_skill_ids: ['skill-b'],
           last_mcp_ids: ['mcp-1'],
@@ -100,6 +105,7 @@ describe('resolveGuidAssistantDefaults', () => {
     expect(resolved).toEqual({
       modelId: 'claude-sonnet-4',
       permissionMode: 'plan',
+      thoughtLevel: 'high',
       skillIds: ['skill-a'],
       disabledBuiltinSkillIds: ['skill-b'],
       mcpIds: ['mcp-1'],
@@ -125,6 +131,7 @@ describe('resolveGuidAssistantDefaults', () => {
     expect(resolved).toEqual({
       modelId: undefined,
       permissionMode: undefined,
+      thoughtLevel: undefined,
       skillIds: [],
       disabledBuiltinSkillIds: [],
       mcpIds: [],
@@ -137,6 +144,7 @@ describe('resolveGuidAssistantDefaults', () => {
     expect(resolved).toEqual({
       modelId: undefined,
       permissionMode: undefined,
+      thoughtLevel: undefined,
       skillIds: [],
       disabledBuiltinSkillIds: [],
       mcpIds: [],
@@ -153,6 +161,7 @@ describe('resolveGuidAssistantDefaults', () => {
     expect(resolved).toEqual({
       modelId: undefined,
       permissionMode: undefined,
+      thoughtLevel: undefined,
       skillIds: ['skill-fixed'],
       disabledBuiltinSkillIds: [],
       mcpIds: [],

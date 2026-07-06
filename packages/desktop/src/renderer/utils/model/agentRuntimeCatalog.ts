@@ -13,6 +13,19 @@ export type AgentRuntimeCatalog = {
   config_options?: unknown;
 };
 
+export type AgentRuntimeSelectOption = {
+  value: string;
+  label: string;
+  description?: string;
+};
+
+export type AgentRuntimeDerivedOption = {
+  id: string;
+  category: string;
+  currentValue?: string;
+  options: AgentRuntimeSelectOption[];
+};
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 }
@@ -86,6 +99,32 @@ function buildModelInfoFromPayload(value: unknown): AcpModelInfo | null {
 function getConfigOptionCurrentValue(option: AcpSessionConfigOption): string | undefined {
   const optionRecord = option as AcpSessionConfigOption & { currentValue?: string };
   return option.current_value || option.selected_value || optionRecord.currentValue;
+}
+
+function buildSelectOptionFromConfigOptions(
+  configOptions: AcpSessionConfigOption[],
+  category: string,
+  fallbackIds: string[] = []
+): AgentRuntimeDerivedOption | null {
+  const option =
+    configOptions.find((item) => item.category === category) ||
+    configOptions.find((item) => fallbackIds.includes(item.id));
+  if (!option || option.type !== 'select') return null;
+
+  const options = (option.options ?? [])
+    .filter((item) => typeof item.value === 'string' && item.value.trim())
+    .map((item) => ({
+      value: item.value,
+      label: item.label || item.name || item.value,
+      description: item.description || undefined,
+    }));
+
+  return {
+    id: option.id,
+    category,
+    currentValue: getConfigOptionCurrentValue(option),
+    options,
+  };
 }
 
 function buildModelInfoFromConfigOptions(configOptions: AcpSessionConfigOption[]): AcpModelInfo | null {
@@ -184,4 +223,14 @@ export function buildAgentRuntimeModeState(agent: AgentRuntimeCatalog | null | u
   if (fromTopLevelModes.options.length > 0) return fromTopLevelModes;
 
   return { options: [] };
+}
+
+export function buildAgentRuntimeThoughtLevelOption(
+  agent: AgentRuntimeCatalog | null | undefined
+): AgentRuntimeDerivedOption | null {
+  if (!agent) return null;
+  return buildSelectOptionFromConfigOptions(normalizeConfigOptions(agent.config_options), 'thought_level', [
+    'thought_level',
+    'reasoning_effort',
+  ]);
 }

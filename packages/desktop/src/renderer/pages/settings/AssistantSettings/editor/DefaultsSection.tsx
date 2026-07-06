@@ -33,12 +33,18 @@ type DefaultsSectionProps = {
   setDefaultPermissionMode: (value: 'auto' | 'fixed') => void;
   defaultPermissionValue: string;
   setDefaultPermissionValue: (value: string) => void;
+  defaultThoughtLevelMode: 'auto' | 'fixed';
+  setDefaultThoughtLevelMode: (value: 'auto' | 'fixed') => void;
+  defaultThoughtLevelValue: string;
+  setDefaultThoughtLevelValue: (value: string) => void;
   defaultSkillsMode: 'auto' | 'fixed';
   setDefaultSkillsMode: (value: 'auto' | 'fixed') => void;
   defaultMcpMode: 'auto' | 'fixed';
   setDefaultMcpMode: (value: 'auto' | 'fixed') => void;
   modelOptions: SelectOption[];
   permissionOptions: Array<{ value: string; label: string; description?: string }>;
+  showThoughtLevelDefault: boolean;
+  thoughtLevelOptions: Array<{ value: string; label: string; description?: string }>;
   editableSkillOptions: EditableSkillOption[];
   selectedSkillValues: string[];
   enabledMcpServers: IMcpServer[];
@@ -63,12 +69,18 @@ const DefaultsSection: React.FC<DefaultsSectionProps> = ({
   setDefaultPermissionMode,
   defaultPermissionValue,
   setDefaultPermissionValue,
+  defaultThoughtLevelMode,
+  setDefaultThoughtLevelMode,
+  defaultThoughtLevelValue,
+  setDefaultThoughtLevelValue,
   defaultSkillsMode,
   setDefaultSkillsMode,
   defaultMcpMode,
   setDefaultMcpMode,
   modelOptions,
   permissionOptions,
+  showThoughtLevelDefault,
+  thoughtLevelOptions,
   editableSkillOptions,
   selectedSkillValues,
   enabledMcpServers,
@@ -83,6 +95,10 @@ const DefaultsSection: React.FC<DefaultsSectionProps> = ({
   const navigate = useNavigate();
   const canEditDefaultModelAndPermission = !isReadOnlyAssistant || isBuiltin;
   const canEditDefaultSkillsAndMcps = !isReadOnlyAssistant;
+  const hasFixedThoughtLevelValue =
+    defaultThoughtLevelMode === 'fixed' &&
+    defaultThoughtLevelValue &&
+    thoughtLevelOptions.some((option) => option.value === defaultThoughtLevelValue);
 
   return (
     <SectionCard
@@ -183,6 +199,45 @@ const DefaultsSection: React.FC<DefaultsSectionProps> = ({
             ))}
           </Select>
         </ConfigRow>
+
+        {showThoughtLevelDefault ? (
+          <ConfigRow label={t('settings.assistantDefaultThoughtLevelLabel', { defaultValue: 'Default Thought Level' })}>
+            <Select
+              key={`assistant-default-thought-level-${localeKey}-${defaultThoughtLevelMode}`}
+              getPopupContainer={getEditorSelectPopupContainer}
+              value={hasFixedThoughtLevelValue ? defaultThoughtLevelValue : AUTO_SELECT_VALUE}
+              onChange={(value) => {
+                const nextValue = value as string;
+                if (nextValue === AUTO_SELECT_VALUE) {
+                  setDefaultThoughtLevelMode('auto');
+                  setDefaultThoughtLevelValue('');
+                  return;
+                }
+                setDefaultThoughtLevelMode('fixed');
+                setDefaultThoughtLevelValue(nextValue);
+              }}
+              disabled={!canEditDefaultModelAndPermission}
+              allowClear={false}
+              placeholder={t('settings.assistantSelectDefaultThoughtLevel', {
+                defaultValue: 'Select a thought level',
+              })}
+              data-testid='select-assistant-default-thought-level'
+            >
+              <Select.Option value={AUTO_SELECT_VALUE}>{autoDefaultOptionLabel}</Select.Option>
+              {thoughtLevelOptions.map((option) => (
+                <Select.Option key={`${localeKey}-${option.value}`} value={option.value}>
+                  {option.description ? (
+                    <Tooltip content={option.description} position='right'>
+                      <span className='block min-w-0 truncate'>{option.label}</span>
+                    </Tooltip>
+                  ) : (
+                    <span className='block min-w-0 truncate'>{option.label}</span>
+                  )}
+                </Select.Option>
+              ))}
+            </Select>
+          </ConfigRow>
+        ) : null}
 
         {showSkills ? (
           <ConfigRow

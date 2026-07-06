@@ -165,6 +165,7 @@ const GuidPage: React.FC = () => {
     selectedAssistantBackend: agentSelection.selectedAssistantBackend,
     selectedMode: agentSelection.selectedMode,
     selectedAcpModel: agentSelection.selectedAcpModel,
+    selectedThoughtLevelValue: agentSelection.selectedThoughtLevelValue,
     currentAcpCachedModelInfo: agentSelection.currentAcpCachedModelInfo,
     current_model: modelSelection.current_model,
 
@@ -257,10 +258,12 @@ const GuidPage: React.FC = () => {
 
   const appliedAssistantDefaultsKeyRef = useRef<string | null>(null);
   const manualModelSelectionAssistantRef = useRef<string | null>(null);
+  const manualThoughtLevelSelectionAssistantRef = useRef<string | null>(null);
   useEffect(() => {
     if (!selectedAssistantId || !selectedAssistantDetail) {
       appliedAssistantDefaultsKeyRef.current = null;
       manualModelSelectionAssistantRef.current = null;
+      manualThoughtLevelSelectionAssistantRef.current = null;
       return;
     }
 
@@ -271,6 +274,7 @@ const GuidPage: React.FC = () => {
       preferences: {
         last_model_id: selectedAssistantDetail.preferences.last_model_id,
         last_permission_value: selectedAssistantDetail.preferences.last_permission_value,
+        last_thought_level_value: selectedAssistantDetail.preferences.last_thought_level_value,
         last_mcp_ids: selectedAssistantDetail.preferences.last_mcp_ids,
       },
       availableModels: {
@@ -281,6 +285,7 @@ const GuidPage: React.FC = () => {
         })),
       },
       availableModes: agentSelection.currentAgentModeOptions.map((mode) => mode.value),
+      availableThoughtLevels: agentSelection.currentThoughtLevelOption?.options.map((option) => option.value) ?? [],
     });
     if (appliedAssistantDefaultsKeyRef.current === signature) {
       return;
@@ -291,6 +296,7 @@ const GuidPage: React.FC = () => {
       const resolvedDefaults = resolveGuidAssistantDefaults(selectedAssistantDetail);
       const effectiveBackend = agentSelection.selectedAssistantBackend;
       const shouldApplyDefaultModel = manualModelSelectionAssistantRef.current !== selectedAssistantId;
+      const shouldApplyDefaultThoughtLevel = manualThoughtLevelSelectionAssistantRef.current !== selectedAssistantId;
 
       if (shouldApplyDefaultModel && effectiveBackend === 'aionrs') {
         if (resolvedDefaults.modelId) {
@@ -332,6 +338,20 @@ const GuidPage: React.FC = () => {
           }
         }
       }
+      if (shouldApplyDefaultThoughtLevel && agentSelection.currentThoughtLevelOption) {
+        const availableThoughtLevelValues = new Set(
+          agentSelection.currentThoughtLevelOption.options.map((option) => option.value)
+        );
+        if (resolvedDefaults.thoughtLevel && availableThoughtLevelValues.has(resolvedDefaults.thoughtLevel)) {
+          agentSelection.setSelectedThoughtLevelValue(resolvedDefaults.thoughtLevel, { persistPreference: false });
+        } else {
+          const fallbackThoughtLevel =
+            agentSelection.currentThoughtLevelOption.currentValue ||
+            agentSelection.currentThoughtLevelOption.options[0]?.value ||
+            '';
+          agentSelection.setSelectedThoughtLevelValue(fallbackThoughtLevel, { persistPreference: false });
+        }
+      }
       setGuidSelectedMcpServerIds(resolvedDefaults.mcpIds);
     };
 
@@ -341,9 +361,11 @@ const GuidPage: React.FC = () => {
   }, [
     agentSelection.currentAcpCachedModelInfo?.available_models,
     agentSelection.currentAgentModeOptions,
+    agentSelection.currentThoughtLevelOption,
     agentSelection.selectedAssistantBackend,
     agentSelection.setSelectedAcpModel,
     agentSelection.setSelectedMode,
+    agentSelection.setSelectedThoughtLevelValue,
     modelSelection.modelList,
     modelSelection.resetCurrentModel,
     modelSelection.setCurrentModel,
@@ -361,6 +383,13 @@ const GuidPage: React.FC = () => {
     (model: React.SetStateAction<string | null>) => {
       manualModelSelectionAssistantRef.current = selectedAssistantId;
       agentSelection.setSelectedAcpModel(model, { persistPreference: !hasSelectedAssistant });
+    },
+    [agentSelection, hasSelectedAssistant, selectedAssistantId]
+  );
+  const setGuidSelectedThoughtLevel = useCallback(
+    (value: string) => {
+      manualThoughtLevelSelectionAssistantRef.current = selectedAssistantId;
+      agentSelection.setSelectedThoughtLevelValue(value, { persistPreference: !hasSelectedAssistant });
     },
     [agentSelection, hasSelectedAssistant, selectedAssistantId]
   );
@@ -441,6 +470,8 @@ const GuidPage: React.FC = () => {
       currentAcpCachedModelInfo={agentSelection.currentAcpCachedModelInfo}
       selectedAcpModel={agentSelection.selectedAcpModel}
       setSelectedAcpModel={setGuidSelectedAcpModel}
+      thoughtLevelOption={isGeminiMode ? null : agentSelection.currentThoughtLevelOption}
+      onThoughtLevelSelect={setGuidSelectedThoughtLevel}
     />
   );
 

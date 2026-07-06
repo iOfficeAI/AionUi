@@ -2,7 +2,11 @@ import { ipcBridge } from '@/common';
 import type { AssistantEditorViewModel, AssistantListItem } from './types';
 import { useManagedAgentRuntimeCatalog } from '@/renderer/hooks/agent/useManagedAgents';
 import { useModelProviderList } from '@/renderer/hooks/agent/useModelProviderList';
-import { buildAgentRuntimeModeState, buildAgentRuntimeModelInfo } from '@/renderer/utils/model/agentRuntimeCatalog';
+import {
+  buildAgentRuntimeModeState,
+  buildAgentRuntimeModelInfo,
+  buildAgentRuntimeThoughtLevelOption,
+} from '@/renderer/utils/model/agentRuntimeCatalog';
 import type { AgentModeOption } from '@/renderer/utils/model/agentTypes';
 import { Select, Tag } from '@arco-design/web-react';
 import { Info, Robot } from '@icon-park/react';
@@ -53,6 +57,10 @@ const AssistantEditorSections: React.FC<AssistantEditorSectionsProps> = ({ edito
   const setDefaultPermissionMode = defaults.permission.setMode;
   const defaultPermissionValue = defaults.permission.value;
   const setDefaultPermissionValue = defaults.permission.setValue;
+  const defaultThoughtLevelMode = defaults.thoughtLevel.mode;
+  const setDefaultThoughtLevelMode = defaults.thoughtLevel.setMode;
+  const defaultThoughtLevelValue = defaults.thoughtLevel.value;
+  const setDefaultThoughtLevelValue = defaults.thoughtLevel.setValue;
   const defaultSkillsMode = defaults.skills.mode;
   const setDefaultSkillsMode = defaults.skills.setMode;
   const defaultMcpMode = defaults.mcps.mode;
@@ -134,6 +142,11 @@ const AssistantEditorSections: React.FC<AssistantEditorSectionsProps> = ({ edito
       })),
     [currentAgentRuntimeCatalog, localeKey, t]
   );
+  const thoughtLevelOption = useMemo(
+    () => buildAgentRuntimeThoughtLevelOption(currentAgentRuntimeCatalog),
+    [currentAgentRuntimeCatalog]
+  );
+  const thoughtLevelOptions = thoughtLevelOption?.options ?? [];
   const recommendedPromptItems = useMemo(
     () =>
       editRecommendedPromptsText
@@ -428,12 +441,18 @@ const AssistantEditorSections: React.FC<AssistantEditorSectionsProps> = ({ edito
         setDefaultPermissionMode={setDefaultPermissionMode}
         defaultPermissionValue={defaultPermissionValue}
         setDefaultPermissionValue={setDefaultPermissionValue}
+        defaultThoughtLevelMode={defaultThoughtLevelMode}
+        setDefaultThoughtLevelMode={setDefaultThoughtLevelMode}
+        defaultThoughtLevelValue={defaultThoughtLevelValue}
+        setDefaultThoughtLevelValue={setDefaultThoughtLevelValue}
         defaultSkillsMode={defaultSkillsMode}
         setDefaultSkillsMode={setDefaultSkillsMode}
         defaultMcpMode={defaultMcpMode}
         setDefaultMcpMode={setDefaultMcpMode}
         modelOptions={modelOptions}
         permissionOptions={permissionOptions}
+        showThoughtLevelDefault={thoughtLevelOption !== null}
+        thoughtLevelOptions={thoughtLevelOptions}
         editableSkillOptions={editableSkillOptions}
         selectedSkillValues={selectedSkillValues}
         enabledMcpServers={availableMcpServers}

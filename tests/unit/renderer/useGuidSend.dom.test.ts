@@ -85,6 +85,7 @@ describe('useGuidSend', () => {
 
   it('passes selected mode into assistant conversation overrides when creating a preset ACP conversation', async () => {
     const deps = createDeps();
+    (deps as any).selectedThoughtLevelValue = 'high';
 
     const { result } = renderHook(() => useGuidSend(deps));
 
@@ -98,6 +99,7 @@ describe('useGuidSend', () => {
     expect('model' in payload).toBe(false);
     expect(payload.assistant?.conversation_overrides?.permission).toBe('bypassPermissions');
     expect(payload.assistant?.conversation_overrides?.model).toBe('claude-opus');
+    expect(payload.assistant?.conversation_overrides?.thought_level).toBe('high');
     expect(payload.extra.backend).toBeUndefined();
     expect(payload.extra.agent_name).toBeUndefined();
     expect(payload.extra.agent_id).toBeUndefined();

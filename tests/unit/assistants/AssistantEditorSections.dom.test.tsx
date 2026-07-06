@@ -128,6 +128,7 @@ const createEditor = (overrides: Partial<AssistantEditorViewModel> = {}): Assist
     defaults: {
       model: { mode: 'auto', setMode: vi.fn(), value: '', setValue: vi.fn() },
       permission: { mode: 'auto', setMode: vi.fn(), value: '', setValue: vi.fn() },
+      thoughtLevel: { mode: 'auto', setMode: vi.fn(), value: '', setValue: vi.fn() },
       skills: { mode: 'fixed', setMode: vi.fn() },
       mcps: { mode: 'fixed', setMode: vi.fn(), availableServers: [], selectedIds: [], setSelectedIds: vi.fn() },
     },
@@ -166,6 +167,7 @@ const createEditor = (overrides: Partial<AssistantEditorViewModel> = {}): Assist
       ...overrides.defaults,
       model: { ...base.defaults.model, ...overrides.defaults?.model },
       permission: { ...base.defaults.permission, ...overrides.defaults?.permission },
+      thoughtLevel: { ...base.defaults.thoughtLevel, ...overrides.defaults?.thoughtLevel },
       skills: { ...base.defaults.skills, ...overrides.defaults?.skills },
       mcps: { ...base.defaults.mcps, ...overrides.defaults?.mcps },
     },
@@ -533,6 +535,121 @@ describe('AssistantEditorSections', () => {
     expect(screen.getByText('GPT-5.5')).toBeInTheDocument();
     expect(screen.getAllByText('gpt-5.2').length).toBeGreaterThan(0);
     expect(screen.queryByText('Legacy Model')).toBeNull();
+  });
+
+  it('renders thought level defaults only when the selected agent advertises thought_level options', () => {
+    const setDefaultThoughtLevelMode = vi.fn();
+    const setDefaultThoughtLevelValue = vi.fn();
+    mockManagedAgentRuntimeCatalog = [
+      {
+        id: 'agent-codex',
+        config_options: {
+          config_options: [
+            {
+              id: 'reasoning_effort',
+              category: 'thought_level',
+              type: 'select',
+              current_value: 'medium',
+              options: [
+                { value: 'low', name: 'Low' },
+                { value: 'medium', name: 'Medium' },
+                { value: 'high', name: 'High' },
+              ],
+            },
+          ],
+        },
+      },
+    ];
+
+    renderWithProviders(
+      <AssistantEditorSections
+        editor={
+          createEditor({
+            agent: {
+              value: 'agent-codex',
+              setValue: vi.fn(),
+              availableBackends: [backendOption('agent-codex', 'codex', 'Codex')],
+            },
+            defaults: {
+              thoughtLevel: {
+                mode: 'fixed',
+                setMode: setDefaultThoughtLevelMode,
+                value: 'high',
+                setValue: setDefaultThoughtLevelValue,
+              },
+            } as any,
+          }) as any
+        }
+        activeAssistant={null}
+      />
+    );
+
+    expect(screen.getByText('Default Thought Level')).toBeInTheDocument();
+    expect(screen.getByTestId('select-assistant-default-thought-level')).toHaveTextContent('High');
+
+    fireEvent.click(screen.getByTestId('select-assistant-default-thought-level'));
+    fireEvent.click(screen.getByText('Low'));
+
+    expect(setDefaultThoughtLevelMode).toHaveBeenCalledWith('fixed');
+    expect(setDefaultThoughtLevelValue).toHaveBeenCalledWith('low');
+  });
+
+  it('hides thought level defaults when the selected agent has no thought_level catalog', () => {
+    renderWithProviders(
+      <AssistantEditorSections
+        editor={
+          createEditor({
+            agent: {
+              value: 'agent-codex',
+              setValue: vi.fn(),
+              availableBackends: [backendOption('agent-codex', 'codex', 'Codex')],
+            },
+          }) as any
+        }
+        activeAssistant={null}
+      />
+    );
+
+    expect(screen.queryByTestId('select-assistant-default-thought-level')).not.toBeInTheDocument();
+  });
+
+  it('renders only the auto thought level default when the thought_level catalog has no concrete option values', () => {
+    mockManagedAgentRuntimeCatalog = [
+      {
+        id: 'agent-codex',
+        config_options: {
+          config_options: [
+            {
+              id: 'reasoning_effort',
+              category: 'thought_level',
+              type: 'select',
+              current_value: '',
+              options: [{ value: '', name: '' }],
+            },
+          ],
+        },
+      },
+    ];
+
+    renderWithProviders(
+      <AssistantEditorSections
+        editor={
+          createEditor({
+            agent: {
+              value: 'agent-codex',
+              setValue: vi.fn(),
+              availableBackends: [backendOption('agent-codex', 'codex', 'Codex')],
+            },
+          }) as any
+        }
+        activeAssistant={null}
+      />
+    );
+
+    expect(screen.getByText('Default Thought Level')).toBeInTheDocument();
+    expect(screen.getByTestId('select-assistant-default-thought-level')).toHaveTextContent(
+      'Remember last used automatically'
+    );
   });
 
   it('uses aionrs runtime catalog for default permission options', async () => {
