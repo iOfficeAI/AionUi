@@ -15,7 +15,6 @@ function Find-SentryDsnFile {
   }
 
   $candidates = @(
-    (Join-Path $PSScriptRoot '..\..\e2e\SENTRY_DSN'),
     (Join-Path $PSScriptRoot '..\SENTRY_DSN'),
     (Join-Path $PSScriptRoot '..\..\SENTRY_DSN')
   )
@@ -26,7 +25,7 @@ function Find-SentryDsnFile {
     }
   }
 
-  throw 'SENTRY_DSN file not found. Pass -SentryDsnFile or place SENTRY_DSN at D:\CODE\e2e\SENTRY_DSN.'
+  throw 'SENTRY_DSN file not found. Pass -SentryDsnFile or place SENTRY_DSN at repo root/parent.'
 }
 
 function Get-PackageVersion([string]$RepoRoot) {
