@@ -153,7 +153,11 @@ export function getDatabaseVersion(db: ISqliteDriver): number {
  * Uses SQLite's built-in user_version pragma
  */
 export function setDatabaseVersion(db: ISqliteDriver, version: number): void {
-  db.pragma(`user_version = ${version}`);
+  const safeVersion = Math.floor(version);
+  if (!Number.isInteger(safeVersion) || safeVersion < 0 || safeVersion > Number.MAX_SAFE_INTEGER) {
+    throw new Error(`Invalid database version: ${version}`);
+  }
+  db.pragma(`user_version = ${safeVersion}`);
 }
 
 /**

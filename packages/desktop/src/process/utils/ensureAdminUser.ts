@@ -45,6 +45,13 @@ export async function ensureAdminUser(backendPort: number): Promise<void> {
       return;
     }
 
+    // Validate legacy hash format before migration
+    const hashRegex = /^[a-fA-F0-9]+$/;
+    if (!hashRegex.test(legacyHash) || legacyHash.length < 32 || legacyHash.length > 128) {
+      console.error('Invalid legacy password hash format — skipping migration');
+      return;
+    }
+
     console.info('[WebUI Migration] Seeding system_default_user from legacy webui.config.json hash');
 
     // 3. Hand the legacy hash to backend. Idempotent: backend does

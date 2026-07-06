@@ -74,6 +74,21 @@ export const parsePortValue = (value: unknown): number | null => {
   if (!Number.isFinite(portNumber) || portNumber < 1 || portNumber > 65535) {
     return null;
   }
+
+  // Warn for privileged ports (<1024) and well-known port conflicts
+  if (portNumber < 1024) {
+    console.warn(
+      `[WebUI] Port ${portNumber} is a privileged port (<1024). Consider using a non-privileged port (>=1024) for better security.`
+    );
+  }
+
+  const wellKnownPorts = [80, 443, 8080, 8443, 3000, 5000];
+  if (wellKnownPorts.includes(portNumber)) {
+    console.warn(
+      `[WebUI] Port ${portNumber} is a well-known port. Consider using a custom port to avoid conflicts with other services.`
+    );
+  }
+
   return portNumber;
 };
 

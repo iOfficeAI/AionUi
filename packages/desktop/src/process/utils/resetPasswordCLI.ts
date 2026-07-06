@@ -39,8 +39,25 @@ export function resolveResetPasswordUsername(argv: string[]): string {
 // index.ts:487 already started a backend for every mode including --resetpass,
 // so we reuse __backendPort instead of spawning a short-lived one. username arg
 // is advisory; backend operates on get_primary_webui_user() == system_default_user.
+const MAX_RESET_ATTEMPTS = 5;
+const RESET_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
+
+const resetAttemptHistory: Array<{ timestamp: number }> = [];
+
 export async function resetPasswordCLI(username: string): Promise<void> {
   log.info(`Target user: ${username} (advisory — operates on system_default_user)`);
+
+  // Rate limiting: 5 attempts per 15-minute window
+  const now = Date.now();
+  const recentAttempts = resetAttemptHistory.filter((attempt) => now - attempt.timestamp < RESET_WINDOW_MS);
+
+  if (recentAttempts.length >= MAX_RESET_ATTEMPTS) {
+    log.error(`Password reset rate limit exceeded: ${MAX_RESET_ATTEMPTS} attempts in the last 15 minutes`);
+    process.exit(1);
+  }
+
+  resetAttemptHistory.push({ timestamp: now });
+
   const port = (globalThis as typeof globalThis & { __backendPort?: number }).__backendPort;
   if (!port) {
     log.error('Backend did not start — cannot reset password');
