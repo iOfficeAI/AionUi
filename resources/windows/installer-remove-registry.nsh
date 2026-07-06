@@ -33,7 +33,9 @@
 
 !macro AIONUI_REMOVE_INSTALL_DIR
   StrCpy $AionUiRemoveResidueCount "0"
-  StrCpy $AionUiRemoveResidueRoot "$INSTDIR"
+  ${If} $AionUiRemoveResidueRoot == ""
+    StrCpy $AionUiRemoveResidueRoot "$INSTDIR"
+  ${EndIf}
   StrCpy $AionUiRemoveFirstFailedPath ""
   nsExec::Exec `"$SYSDIR\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -Command "& { \
     $$ErrorActionPreference = 'Continue'; \
@@ -114,6 +116,8 @@
   StrCpy $AionUiRemoveResidueRoot "$INSTDIR"
   StrCpy $AionUiRemoveFirstFailedPath ""
 
+  SetOutPath $TEMP
+
   ${if} ${isUpdated}
     StrCpy $AionUiAtomicStagingDir "$INSTDIR.__old"
     ${If} ${FileExists} "$AionUiAtomicStagingDir\*.*"
@@ -147,7 +151,6 @@
     ${endif}
   ${endif}
 
-  SetOutPath $TEMP
   aionui_retry_remove_install_dir:
     !insertmacro AIONUI_REMOVE_INSTALL_DIR
   ${if} $AionUiRemoveDirResult != 0
