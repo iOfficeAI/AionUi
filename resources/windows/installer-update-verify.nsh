@@ -135,7 +135,9 @@ Var /GLOBAL AionUiActiveMarkerResult
       "${AIONUI_MSG_VERIFY_REQUIRED_FILE_ZH} ${_LABEL}" \
       "${AIONUI_MSG_VERIFY_REQUIRED_FILE_EN} ${_LABEL}" \
       "${AIONUI_MSG_VERIFY_REQUIRED_FILE_ACTION_ZH}" \
-      "${AIONUI_MSG_VERIFY_REQUIRED_FILE_ACTION_EN}"
+      "${AIONUI_MSG_VERIFY_REQUIRED_FILE_ACTION_EN}" \
+      "verify-required-file missing label=${_LABEL} path=${_PATH}" \
+      "verify-required-file missing label=${_LABEL} path=${_PATH}"
   ${Else}
     !insertmacro AIONUI_LOG_EVENT "verify-required-file ok label=${_LABEL} path=${_PATH}"
   ${EndIf}

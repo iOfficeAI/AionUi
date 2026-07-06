@@ -160,7 +160,7 @@ function New-ReportDetailsText(
     $lines.Add('')
   }
   if ($blockingDiagnostics) {
-    $lines.Add('Blocking diagnostics:')
+    $lines.Add('Diagnostics:')
     foreach ($line in ($blockingDiagnostics -split "\r?\n")) {
       $trimmed = $line.Trim()
       if ($trimmed) {

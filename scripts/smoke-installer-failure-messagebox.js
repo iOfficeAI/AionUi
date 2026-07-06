@@ -115,7 +115,7 @@ Section
   StrCpy $AionUiIsUpdated "1"
   StrCpy $AionUiSessionLogPath "${nsisQuote(logPath)}"
   BringToFront
-  !insertmacro AIONUI_FAIL_REPORTABLE_ROOTED_BILINGUAL "${nsisQuote(code)}" "${nsisQuote(wrapperCode)}" "smoke-messagebox failedPath=$INSTDIR blockingProcess=Code.exe" "\${AIONUI_MSG_OLD_UNINSTALL_FAILED_EN}- Failure: previous uninstaller failed with ${nsisQuote(code)}$\\r$\\n- File or folder: $INSTDIR$\\r$\\n- Blocking process: Code.exe" "\${AIONUI_MSG_OLD_UNINSTALL_FAILED_ZH}" "\${AIONUI_MSG_OLD_UNINSTALL_ACTION_EN}" "\${AIONUI_MSG_OLD_UNINSTALL_ACTION_ZH}"
+  !insertmacro AIONUI_FAIL_REPORTABLE_ROOTED_BILINGUAL_DIAGNOSTICS "${nsisQuote(code)}" "${nsisQuote(wrapperCode)}" "smoke-messagebox failedPath=$INSTDIR blockingProcess=Code.exe" "\${AIONUI_MSG_OLD_UNINSTALL_FAILED_EN}" "\${AIONUI_MSG_OLD_UNINSTALL_FAILED_ZH}" "\${AIONUI_MSG_OLD_UNINSTALL_ACTION_EN}" "\${AIONUI_MSG_OLD_UNINSTALL_ACTION_ZH}" "- Failure: previous uninstaller failed with ${nsisQuote(code)}$\\r$\\n- File or folder: $INSTDIR$\\r$\\n- Blocking process: Code.exe" "- Failure: previous uninstaller failed with ${nsisQuote(code)}$\\r$\\n- File or folder: $INSTDIR$\\r$\\n- Blocking process: Code.exe"
 SectionEnd
 `;
 

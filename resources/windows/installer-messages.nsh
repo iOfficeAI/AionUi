@@ -7,6 +7,9 @@
 !define AIONUI_MSG_SUGGESTED_ACTION_ZH "建议操作"
 !define AIONUI_MSG_SUGGESTED_ACTION_EN "Suggested action"
 
+!define AIONUI_MSG_DIAGNOSTICS_ZH "诊断信息"
+!define AIONUI_MSG_DIAGNOSTICS_EN "Diagnostics"
+
 !define AIONUI_MSG_INSTALLER_LOG_ZH "安装日志"
 !define AIONUI_MSG_INSTALLER_LOG_EN "Installer log"
 !define AIONUI_MSG_BLOCK_SEPARATOR "----------------------------------------"
@@ -14,7 +17,7 @@
 !define AIONUI_MSG_SEND_REPORT_ZH "是否将此安装失败报告发送给 AionUi 团队？报告会包含错误码和当前安装日志。"
 !define AIONUI_MSG_SEND_REPORT_EN "Send this installer failure report to the AionUi team? The report includes the error code and the current installer log."
 
-!define AIONUI_MSG_GENERIC_FAILURE_ZH "安装器无法继续。请查看上面的英文诊断信息、安装日志路径，或将失败报告发送给 AionUi 团队。"
+!define AIONUI_MSG_GENERIC_FAILURE_ZH "安装器无法继续。请查看诊断信息、安装日志路径，或将失败报告发送给 AionUi 团队。"
 !define AIONUI_MSG_GENERIC_ACTION_ZH "请关闭上面列出的程序后重新运行安装器。如果没有列出具体程序，请重启 Windows 后再次运行安装器。"
 
 !define AIONUI_MSG_VERIFY_REQUIRED_FILE_EN "AionUi installation is incomplete. Missing required file:"
@@ -34,8 +37,8 @@
 !define AIONUI_MSG_UNINSTALLER_REPAIR_ACTION_EN "Close AionUi, restart Windows if needed, then run this installer again."
 !define AIONUI_MSG_UNINSTALLER_REPAIR_ACTION_ZH "请关闭 AionUi，必要时重启 Windows，然后再次运行此安装器。"
 
-!define AIONUI_MSG_OLD_UNINSTALL_FAILED_EN "The previous AionUi uninstaller returned an error.$\r$\n$\r$\nBlocking diagnostics:$\r$\n"
-!define AIONUI_MSG_OLD_UNINSTALL_FAILED_ZH "之前的 AionUi 卸载器返回错误。$\r$\n$\r$\n占用诊断信息:$\r$\n"
+!define AIONUI_MSG_OLD_UNINSTALL_FAILED_EN "The previous AionUi uninstaller returned an error."
+!define AIONUI_MSG_OLD_UNINSTALL_FAILED_ZH "之前的 AionUi 卸载器返回错误。"
 !define AIONUI_MSG_OLD_UNINSTALL_ACTION_EN "Close the program listed above, then run this installer again. If no program is listed, restart Windows and run this installer again."
 !define AIONUI_MSG_OLD_UNINSTALL_ACTION_ZH "请关闭上面列出的程序后重新运行安装器。如果没有列出具体程序，请重启 Windows 后再次运行安装器。"
 
@@ -69,7 +72,7 @@
 !define AIONUI_MSG_CLOSE_OR_REMOVE_PREVIOUS_ZH "AionUi 无法完成关闭或移除旧版本。"
 !define AIONUI_MSG_MAY_USE_INSTALL_DIR_EN "Another program may still be using files in:"
 !define AIONUI_MSG_MAY_USE_INSTALL_DIR_ZH "另一个程序可能仍在使用此目录中的文件："
-!define AIONUI_MSG_RETRY_AFTER_CLOSING_DIR_EN "Click Retry after closing AionUi and any program using that folder. Click Cancel to show the blocking diagnostics and installer log."
-!define AIONUI_MSG_RETRY_AFTER_CLOSING_DIR_ZH "请关闭 AionUi 以及任何使用该文件夹的程序后点击重试。点击取消会显示占用诊断信息和安装日志。"
+!define AIONUI_MSG_RETRY_AFTER_CLOSING_DIR_EN "Click Retry after closing AionUi and any program using that folder. Click Cancel to show the diagnostics and installer log."
+!define AIONUI_MSG_RETRY_AFTER_CLOSING_DIR_ZH "请关闭 AionUi 以及任何使用该文件夹的程序后点击重试。点击取消会显示诊断信息和安装日志。"
 
 !endif

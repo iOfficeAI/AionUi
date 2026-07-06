@@ -46,7 +46,7 @@ if (-not $blocking) {
 }
 
 if ($blocking -eq 'Windows') {
-  throw 'Blocking diagnostics were truncated to "Windows"'
+  throw 'Diagnostics were truncated to "Windows"'
 }
 
 Write-Output "rootCode=$($failure.code)"
