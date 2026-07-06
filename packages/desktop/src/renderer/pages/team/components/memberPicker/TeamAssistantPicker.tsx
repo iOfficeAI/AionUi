@@ -28,6 +28,7 @@ const TeamAssistantPicker: React.FC<Props> = ({
   const { t } = useTranslation();
   const isModalDensity = density === 'modal';
   const [query, setQuery] = useState('');
+  const searchPlaceholder = t('team.create.searchPlaceholder', { defaultValue: 'Search assistants...' });
   const filteredAssistants = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return assistants;
@@ -37,28 +38,37 @@ const TeamAssistantPicker: React.FC<Props> = ({
   return (
     <div className={`flex min-h-0 flex-col ${isModalDensity ? 'gap-12px' : ''} ${className ?? ''}`}>
       <div
-        className={isModalDensity ? undefined : 'border-b border-border-1 bg-dialog-fill-0 px-22px'}
+        className={isModalDensity ? undefined : 'border-b border-border-1 bg-dialog-fill-0 px-14px'}
         data-testid={`${testIdPrefix}-search-shell`}
       >
-        <Input
-          prefix={<Search size={isModalDensity ? '14' : '16'} fill='currentColor' />}
-          value={query}
-          onChange={setQuery}
-          placeholder={t('team.create.searchPlaceholder', { defaultValue: 'Search assistants...' })}
-          data-testid={`${testIdPrefix}-search`}
-          className={
-            isModalDensity
-              ? '!h-40px !rounded-8px !text-14px'
-              : '!h-48px !rounded-none !border-0 !bg-transparent !pl-0 !text-14px'
-          }
-        />
+        {isModalDensity ? (
+          <Input
+            prefix={<Search size='14' fill='currentColor' />}
+            value={query}
+            onChange={setQuery}
+            placeholder={searchPlaceholder}
+            data-testid={`${testIdPrefix}-search`}
+            className='!h-40px !rounded-8px !text-14px'
+          />
+        ) : (
+          <div className='flex h-50px items-center gap-10px text-t-secondary'>
+            <Search size='16' fill='currentColor' className='shrink-0' />
+            <input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder={searchPlaceholder}
+              data-testid={`${testIdPrefix}-search`}
+              className='min-w-0 flex-1 border-0 bg-transparent p-0 text-14px leading-20px text-t-primary outline-none placeholder:text-t-tertiary'
+            />
+          </div>
+        )}
       </div>
       <div
         data-testid={`${testIdPrefix}-picker-body`}
         className={
           isModalDensity
             ? 'min-h-0 flex-1 overflow-y-auto rounded-8px bg-dialog-fill-0'
-            : 'max-h-300px overflow-y-auto border-b border-border-1 bg-dialog-fill-0 px-14px py-10px'
+            : 'max-h-300px overflow-y-auto border-b border-border-1 bg-dialog-fill-0 px-8px py-10px'
         }
       >
         {filteredAssistants.length === 0 ? (
@@ -84,7 +94,7 @@ const TeamAssistantPicker: React.FC<Props> = ({
                   className={
                     isModalDensity
                       ? '!h-48px !justify-start !rounded-8px !px-10px !py-0 hover:!bg-fill-2'
-                      : '!h-48px !justify-start !rounded-8px !px-10px !py-0 hover:!bg-fill-2'
+                      : '!h-48px !justify-start !rounded-8px !px-6px !py-0 hover:!bg-fill-2'
                   }
                   onClick={() => onSelect(assistant)}
                   data-testid={`${testIdPrefix}-option-${assistantKey(assistant)}`}

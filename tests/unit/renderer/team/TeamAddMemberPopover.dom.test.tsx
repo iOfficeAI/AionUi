@@ -118,19 +118,25 @@ describe('TeamAddMemberPopover', () => {
     expect(screen.getByTestId('team-add-member-popover-shell')).toHaveAttribute('data-padding', '0');
     expect(screen.getByTestId('team-add-member-popover-shell')).toHaveAttribute('data-max-width', 'none');
     expect(screen.getByTestId('team-add-member-panel')).toHaveClass('w-300px');
-    expect(screen.getByTestId('team-add-member-search-shell')).toHaveClass('border-b', 'border-border-1', 'px-22px');
-    expect(screen.getByTestId('team-add-member-search').closest('.arco-input-group-wrapper')).toHaveClass('!pl-0');
+    expect(screen.getByTestId('team-add-member-search-shell')).toHaveClass('border-b', 'border-border-1', 'px-14px');
+    expect(screen.getByTestId('team-add-member-search').closest('.arco-input-group-wrapper')).toBeNull();
+    expect(screen.getByTestId('team-add-member-search')).toHaveClass('border-0', 'outline-none');
     expect(screen.getByTestId('team-add-member-picker-body')).toHaveClass(
       'max-h-300px',
       'border-b',
       'border-border-1',
       'bg-dialog-fill-0',
-      'px-14px'
+      'px-8px'
     );
     expect(screen.getByTestId('team-add-member-picker-body')).not.toHaveClass('bg-fill-1');
     expect(screen.getByTestId('team-add-member-footer')).not.toHaveClass('border-t');
+    expect(screen.getByTestId('team-add-member-footer')).toHaveClass('px-14px');
     expect(screen.getByTestId('team-add-member-footer')).toHaveClass('text-12px', 'leading-18px');
-    expect(screen.getAllByTestId('team-add-member-option-writer')[0]).toHaveClass('!h-48px', 'hover:!bg-fill-2');
+    expect(screen.getAllByTestId('team-add-member-option-writer')[0]).toHaveClass(
+      '!h-48px',
+      '!px-6px',
+      'hover:!bg-fill-2'
+    );
     expect(
       screen.getAllByTestId('team-add-member-option-writer')[0].querySelector('[data-testid="assistant-avatar"]')
     ).toHaveClass('bg-fill-2');
