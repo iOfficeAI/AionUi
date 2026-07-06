@@ -170,7 +170,7 @@
   .prov.open .prov-c{display:block;}
 
   /* 模型行 */
-  .mrow{display:flex;align-items:center;gap:10px;padding:11px 8px;}
+  .mrow{display:flex;align-items:center;gap:8px;padding:11px 8px;flex-wrap:nowrap;white-space:nowrap;}
   .mrow + .mrow{border-top:1px solid rgba(229,230,235,.7);}
   .mrow .dot{width:8px;height:8px;border-radius:50%;flex:0 0 auto;}
   .mrow .dot.ok{background:var(--success);}
@@ -193,13 +193,10 @@
   .aflag.testing{border-color:var(--warning);background:#fff7ed;}
   .aflag.testing:after{content:"…";position:absolute;right:-4px;bottom:-5px;width:13px;height:13px;border-radius:50%;
     background:var(--warning);color:#fff;font-size:10px;display:flex;align-items:center;justify-content:center;border:1.5px solid #fff;line-height:1;}
-  .mrow .hb{width:28px;height:28px;border-radius:7px;display:flex;align-items:center;justify-content:center;color:var(--t3);font-size:14px;cursor:pointer;background:var(--bg-base);}
-  .mrow .hb:hover{background:var(--bg-2);color:var(--t1);}
-  .mrow .btn-detect{display:inline-flex;align-items:center;gap:4px;height:28px;padding:0 11px;font-size:11.5px;color:var(--t2);
-    border:1px solid var(--border);border-radius:100px;cursor:pointer;background:var(--bg-base);}
-  .mrow .btn-detect:hover{border-color:var(--aou-6);color:var(--aou-7);}
-  .btn-detect-all{display:inline-flex;align-items:center;gap:4px;height:26px;padding:0 10px;font-size:11px;color:var(--primary);
-    border:1px solid rgba(22,93,255,.3);border-radius:100px;cursor:pointer;background:rgba(22,93,255,.06);}
+  .mrow .hb{width:28px;height:28px;border-radius:7px;display:flex;align-items:center;justify-content:center;color:var(--t3);font-size:15px;cursor:pointer;background:var(--bg-base);flex:0 0 auto;border:1px solid var(--border);}
+  .mrow .hb:hover{background:var(--bg-2);color:var(--danger);border-color:var(--aou-6);}
+  .mrow .hb.busy{color:var(--warning);border-color:var(--warning);background:#fff7ed;}
+  .mrow .act{flex:0 0 auto;}
 
   /* 检测选择 Agent 弹层（居中，避免被裁） */
   .detect-stage{position:absolute;inset:0;background:rgba(29,33,41,.3);display:flex;align-items:center;justify-content:center;z-index:60;}
@@ -320,7 +317,7 @@ function sSettings(opt){
   opt=opt||{};
   const t = opt.testing;
   const pop = opt.pop ? `<div class="detect-stage"><div class="detect-pop">
-      <div class="dp-h">检测「deepseek-v4-pro」在哪些 Agent 上可用？</div>
+      <div class="dp-h">♡ 检测「deepseek-v4-pro」在哪些 Agent 上可用？</div>
       <div class="dp-item"><span class="ck on">✓</span>🤖 Claude Code</div>
       <div class="dp-item"><span class="ck on">✓</span>⚙️ Codex</div>
       <div class="dp-item"><span class="ck">　</span>🐦 AionCLI</div>
@@ -349,7 +346,6 @@ function sSettings(opt){
           <div class="prov open">
             <div class="prov-h"><span class="caret">▶</span><span class="pn">DeepSeek（我的供应商）</span>
               <span class="meter">2 个模型 · 1 个密钥</span><span class="sp"></span>
-              <span class="btn-detect-all">🔎 批量检测</span>
               <span class="toggle"></span>
               <span class="act">＋</span><span class="act">−</span><span class="act">✎</span></div>
             <div class="prov-c">
@@ -357,18 +353,16 @@ function sSettings(opt){
                 <span class="dot ${t?'':'ok'}"></span><span class="mn">deepseek-v4-pro</span>
                 ${agentFlags(t?'testing':'ok', t?'testing':'ok')}
                 <span class="sp"></span>
-                <span class="btn-detect">检测可用性 ▾</span>
                 <span class="msw"></span>
-                <span class="hb">♡</span>
+                <span class="hb ${t?'busy':''}" title="检测可用性">♡</span>
                 <span class="act">🗑</span>
               </div>
               <div class="mrow">
                 <span class="dot ok"></span><span class="mn">deepseek-v4-lite</span>
                 ${agentFlags('ok','no')}
                 <span class="sp"></span>
-                <span class="btn-detect">检测可用性 ▾</span>
                 <span class="msw"></span>
-                <span class="hb">♡</span>
+                <span class="hb" title="检测可用性">♡</span>
                 <span class="act">🗑</span>
               </div>
             </div>
@@ -376,7 +370,6 @@ function sSettings(opt){
           <div class="prov">
             <div class="prov-h"><span class="caret">▶</span><span class="pn">智谱 GLM</span>
               <span class="meter">1 个模型 · 1 个密钥</span><span class="sp"></span>
-              <span class="btn-detect-all">🔎 批量检测</span>
               <span class="toggle"></span>
               <span class="act">＋</span><span class="act">−</span><span class="act">✎</span></div>
           </div>
@@ -504,12 +497,12 @@ const FEATS=[
    req:{title:'可用性检测：按 Agent 分别测、图标标结果', kind:'改造',
     story:'作为用户，我配了一个模型但不确定 Claude Code、Codex 能不能用它，希望能主动测一下，测通过的地方给我标清楚，别让我选了才发现用不了。',
     now:'模型列表已有检测（心跳按钮 + 绿/红健康点），但只测「模型本身通不通」，<b>一个模型一个结果，不区分 Agent</b>。',
-    need:['把现有检测<b>扩展为按 Agent 分别测</b>：检测入口沿用现有检测按钮位置。',
-      '检测可选<b>单个</b> Agent，或<b>一次性批量多个</b> Agent（供应商级也有「批量检测」）。',
+    need:['把现有检测<b>扩展为按 Agent 分别测</b>——<b>入口就是现有的心跳 ♡ 按钮</b>，不新增按钮。',
+      '点心跳后弹出 Agent 选择：可勾选<b>单个</b>或<b>多个</b> Agent 一起测（多选即等于批量）。',
       '检测实质是「拿这个模型、通过所选 Agent 真跑一次」，过程有进行中/成功/失败反馈。',
       '结果<b>按 Agent 分别保存</b>；通过的 Agent <b>图标点亮</b>在该模型旁，未通过/未检测灰态。',
       '图标 = <b>最近一次检测通过</b>；结果一直保存，再次对话或更新配置后刷新（沿用现有检测的保存/刷新方式）。'],
-    flow:['在模型上点「检测可用性」','勾选要检测的 Agent（单个或多选）','逐个跑通，实时反馈结果','通过的 Agent 图标点亮'],
+    flow:['点该模型行的心跳 ♡ 按钮','弹层里勾选要检测的 Agent（单个或多选）','逐个跑通，实时反馈结果','通过的 Agent 图标点亮'],
     exc:['某 Agent 检测失败：明确标未通过（灰态），不影响其他 Agent',
       '检测耗时长：给「检测中」状态，不让用户以为卡死',
       '全部未勾选就点开始：按钮不可用或提示至少选一个'],
@@ -525,10 +518,10 @@ const FEATS=[
    req:{title:'检测：选择 Agent 与检测中状态', kind:'新增',
     story:'作为用户，点检测时我要能挑「只测 Claude Code」还是「几个一起测」，测的时候能看到它在转。',
     now:'',
-    need:['点「检测可用性」弹出<b>Agent 选择</b>：可勾选一个或多个（Claude Code / Codex / …）。',
-      '点「开始检测」后，被测 Agent 的图标进入<b>检测中</b>状态（如 …/转圈）。',
+    need:['点心跳 ♡ 弹出<b>Agent 选择</b>：可勾选一个或多个（Claude Code / Codex / …）。',
+      '点「开始检测」后，心跳按钮与被测 Agent 图标进入<b>检测中</b>状态。',
       '每个 Agent 独立返回结果，先出的先点亮，互不阻塞。'],
-    flow:['点「检测可用性 ▾」','弹层勾选目标 Agent','点「开始检测」','图标逐个从「检测中」变为「通过/未通过」'],
+    flow:['点该模型的心跳 ♡','弹层勾选目标 Agent','点「开始检测」','图标逐个从「检测中」变为「通过/未通过」'],
     exc:['全部未勾选就点开始：按钮不可用或提示至少选一个'],
     ac:['检测入口能选单个/多个 Agent',
       '检测中有明确的进行状态',
