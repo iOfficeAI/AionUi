@@ -1,5 +1,44 @@
 # Changelog
 
+## [2.1.30](https://github.com/iOfficeAI/AionUi/compare/v2.1.29...v2.1.30) (2026-07-06)
+
+### Desktop
+
+#### Bug Fixes
+
+- wrong OpenAI SDK param name, throttle cleanup leak, missing alt text (#3512)
+- **installer:** harden Windows NSIS update failure handling (#3523)
+
+#### Features
+
+- **guid:** add slash command menu (#3524)
+- **assistant:** add thought level defaults to assistant UI (#3522)
+- **settings:** add inline link to model config when no image model is available
+- **settings:** default to the Agents tab when opening settings
+
+#### Refactoring
+
+- **settings:** describe skill origins per tab instead of per-card badges
+- **settings:** split skills/tools entries and unify page header paradigm
+
+#### Styling
+
+- **settings:** match agent availability filter to assistant home tabs
+
+### Core ([v0.1.43](https://github.com/iOfficeAI/AionCore/releases/tag/v0.1.43))
+
+#### Features
+
+- **assistant:** persist thought-level defaults (#574)
+
+#### Bug Fixes
+
+- **agent:** project available commands in management rows (#579)
+- **assistant:** filter generated assistants by installed agents (#578)
+- **cron:** enforce full-auto mode for scheduled tasks (#576)
+
+---
+
 ## [2.1.29](https://github.com/iOfficeAI/AionUi/compare/v2.1.28...v2.1.29) (2026-07-03)
 
 ### Desktop
