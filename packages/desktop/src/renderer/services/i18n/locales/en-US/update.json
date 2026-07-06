@@ -28,6 +28,12 @@
   "showInFolder": "Show in folder",
   "openFile": "Open file",
   "errorTitle": "Update failed",
+  "installerLastFailure": {
+    "title": "Last update did not finish",
+    "description": "AionUi could not be closed during the previous silent update. You can retry the update, view the installer log, or send feedback.",
+    "retryUpdate": "Retry update",
+    "viewLog": "View log"
+  },
   "errors": {
     "invalidUrl": "Invalid download URL",
     "httpsOnly": "Only HTTPS download URLs are allowed",

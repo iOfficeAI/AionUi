@@ -14,7 +14,18 @@ $ErrorActionPreference = 'SilentlyContinue'
 
 function Write-VerifyLog {
   param([string]$Message)
-  Add-Content -LiteralPath $LogPath -Encoding UTF8 -Value ("[{0}] {1}" -f (Get-Date -Format o), $Message)
+  $payload = [ordered]@{
+    schemaVersion = 1
+    ts = (Get-Date -Format o)
+    session = ''
+    version = ''
+    arch = $RuntimeKey
+    updated = $false
+    instDir = $InstallDir
+    event = 'verify-bundled-aioncore'
+    message = $Message
+  }
+  Add-Content -LiteralPath $LogPath -Encoding UTF8 -Value ($payload | ConvertTo-Json -Compress -Depth 8)
 }
 
 function ConvertTo-RelativeResourcePath {

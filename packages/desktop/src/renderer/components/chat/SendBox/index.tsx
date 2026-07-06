@@ -10,7 +10,7 @@ import BtwOverlay from '@/renderer/components/chat/BtwOverlay';
 import { useInputFocusRing } from '@/renderer/hooks/chat/useInputFocusRing';
 import SlashCommandMenu, { type SlashCommandMenuItem } from '@/renderer/components/chat/SlashCommandMenu';
 import { useBtwCommand } from '@/renderer/components/chat/BtwOverlay/useBtwCommand';
-import { useSlashCommandController } from '@/renderer/hooks/chat/useSlashCommandController';
+import { getFuzzyMatchIndices, useSlashCommandController } from '@/renderer/hooks/chat/useSlashCommandController';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { useConversationContextSafe } from '@/renderer/hooks/context/ConversationContext';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
@@ -516,8 +516,11 @@ const SendBox: React.FC<{
         label: `/${command.name}`,
         description: command.description,
         badge: command.hint,
+        highlightIndices: slashController.query
+          ? getFuzzyMatchIndices(command.name, slashController.query)?.map((index) => index + 1)
+          : undefined,
       })),
-    [slashController.filteredCommands]
+    [slashController.filteredCommands, slashController.query]
   );
 
   const isCommandMenuOpen = conversationExport.isOpen || slashController.isOpen;

@@ -13,14 +13,14 @@ import { describe, expect, it } from 'vitest';
 const repoRoot = resolve(__dirname, '../../..');
 
 describe('build-with-builder', () => {
-  it.each(['x64', 'arm64'])('uses exact app process checks in the Windows %s NSIS include', (arch) => {
-    const script = readFileSync(resolve(repoRoot, `resources/windows-installer-${arch}.nsh`), 'utf8');
+  it('uses install-directory ownership checks in the shared Windows NSIS include', () => {
+    const script = readFileSync(resolve(repoRoot, 'resources/windows/installer-process-control.nsh'), 'utf8');
 
     expect(script).toContain('!macro customCheckAppRunning');
-    expect(script).toContain('${AIONUI_APP_EXECUTABLE_FILENAME}');
-    expect(script).toContain('Join-Path $$instDir');
+    expect(script).toContain('$$ownedPrefix');
+    expect(script).toContain('StartsWith($$ownedPrefix');
     expect(script).toContain('[System.IO.Path]::GetFullPath($$path)');
-    expect(script).not.toContain("StartsWith('$INSTDIR'");
+    expect(script).not.toContain("Name -ieq '${AIONUI_APP_EXECUTABLE_FILENAME}'");
   });
 
   it.each([
@@ -106,6 +106,9 @@ childProcess.execSync = function mockedExecSync(command) {
       });
 
       expect(result.status, result.stderr || result.stdout).toBe(0);
+      expect(readFileSync(resolve(repoRoot, 'resources/windows/support/_sentry-dsn.generated.nsh'), 'utf8')).toBe(
+        '!define AIONUI_SENTRY_DSN ""\n'
+      );
 
       const calls = JSON.parse(readFileSync(callsPath, 'utf8')) as Array<{ arch?: string } | null>;
       expect(calls).toContainEqual(expect.objectContaining({ arch: expectedArch }));

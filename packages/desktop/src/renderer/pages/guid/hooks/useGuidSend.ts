@@ -33,6 +33,7 @@ export type GuidSendDeps = {
   selectedAssistantBackend: string;
   selectedMode: string;
   selectedAcpModel: string | null;
+  selectedThoughtLevelValue?: string;
   currentAcpCachedModelInfo: AcpModelInfo | null;
   current_model: TProviderWithModel | undefined;
 
@@ -80,6 +81,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
     selectedAssistantBackend,
     selectedMode,
     selectedAcpModel,
+    selectedThoughtLevelValue,
     currentAcpCachedModelInfo,
     current_model,
     guidDisabledBuiltinSkills,
@@ -142,6 +144,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
     const assistantOverrides = {
       model: assistantOverrideModel,
       permission: selectedMode || undefined,
+      thought_level: selectedThoughtLevelValue || undefined,
       skill_ids: enabled_skills_to_send,
       disabled_builtin_skill_ids: excludeBuiltinSkills,
       mcp_ids: assistantOverrideMcpIds,
@@ -256,6 +259,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
     selectedAssistantBackend,
     selectedMode,
     selectedAcpModel,
+    selectedThoughtLevelValue,
     currentAcpCachedModelInfo,
     current_model,
     guidDisabledBuiltinSkills,

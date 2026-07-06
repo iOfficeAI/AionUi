@@ -10,7 +10,7 @@ import { formatManagedAgentDiagnosticMessage, type ManagedAgent } from '@/render
 import AionModal from '@/renderer/components/base/AionModal';
 import { useManagedAgents } from '@/renderer/hooks/agent/useManagedAgents';
 import { openExternalUrl } from '@/renderer/utils/platform';
-import { Button, Message, Radio, Typography } from '@arco-design/web-react';
+import { Button, Message, Typography } from '@arco-design/web-react';
 import TalkToButlerButton from '@/renderer/components/base/TalkToButlerButton';
 import React, { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -18,6 +18,7 @@ import AgentCard from './AgentCard';
 import { isDeprecatedRuntimeAgentType } from '@/renderer/utils/model/agentTypeSupportPolicy';
 import InlineAgentEditor, { type CustomAgentDraft } from './InlineAgentEditor';
 import { getBoundAssistants, useAssistantsForAgents } from './BoundAssistants';
+import SettingsPageHeader from '../components/SettingsPageHeader';
 import { useNavigate } from 'react-router-dom';
 import {
   filterAgentsByAvailability,
@@ -168,59 +169,64 @@ const LocalAgents: React.FC = () => {
   );
 
   return (
-    <div data-testid='agent-management-page' className='flex flex-col gap-8px py-16px'>
-      {/* Page title header, mirroring the assistant settings page. */}
-      <div className='px-16px'>
-        <h2 className='m-0 text-16px font-600 leading-[1.2] text-t-primary'>
-          {t('settings.agents', { defaultValue: 'Agents' })}
-        </h2>
-        <p className='mt-4px text-12px text-t-tertiary'>
-          <span>{t('settings.agentManagement.localAgentsDescription')} </span>
-          <Button
-            type='text'
-            size='mini'
-            className='!h-auto !p-0 !align-baseline !text-12px !font-normal !text-primary-6 hover:!text-primary-7 hover:!underline underline-offset-2'
-            onClick={() => {
-              void openExternalUrl(LOCAL_AGENT_SETUP_GUIDE_URL).catch(console.error);
-            }}
-          >
-            {t('settings.agentManagement.localAgentsSetupLink')}
-          </Button>
-        </p>
-      </div>
+    <div data-testid='agent-management-page' className='flex flex-col gap-16px py-16px px-16px'>
+      <SettingsPageHeader
+        data-testid='agent-management-header'
+        title={t('settings.agents', { defaultValue: 'Agents' })}
+        description={
+          <>
+            <span>{t('settings.agentManagement.localAgentsDescription')} </span>
+            <Button
+              type='text'
+              size='mini'
+              className='!h-auto !p-0 !align-baseline !text-13px !font-normal !text-primary-6 hover:!text-primary-7 hover:!underline underline-offset-2'
+              onClick={() => {
+                void openExternalUrl(LOCAL_AGENT_SETUP_GUIDE_URL).catch(console.error);
+              }}
+            >
+              {t('settings.agentManagement.localAgentsSetupLink')}
+            </Button>
+          </>
+        }
+        actions={
+          <TalkToButlerButton
+            label={t('settings.agentManagement.addCustomAgent', { defaultValue: 'Add custom Agent' })}
+            chatLabel={t('settings.talkToButler.addViaChat', { defaultValue: 'Add via chat' })}
+            onManual={openCustomAgentEditor}
+            manualLabel={t('settings.talkToButler.addManually', { defaultValue: 'Add manually' })}
+            prompt={t('settings.talkToButler.prompt.addCustomAgent', {
+              defaultValue: 'Help me add a custom Agent.',
+            })}
+            data-testid='btn-add-custom-agent'
+          />
+        }
+        tabs={[
+          {
+            key: 'all',
+            label: t('settings.agentManagement.filterAll', { defaultValue: 'All' }),
+            count: officialFilterStats.all,
+          },
+          {
+            key: 'available',
+            label: t('settings.agentManagement.filterAvailable', { defaultValue: 'Available' }),
+            count: officialFilterStats.available,
+          },
+          {
+            key: 'unavailable',
+            label: t('settings.agentManagement.filterUnavailable', { defaultValue: 'Unavailable' }),
+            count: officialFilterStats.unavailable,
+          },
+        ]}
+        activeTab={agentFilter}
+        onTabChange={(key) => setAgentFilter(key as AgentAvailabilityFilter)}
+      />
+
       {isRefreshing ? (
-        <div className='px-16px text-11px text-t-tertiary'>{t('settings.agentManagement.refreshingStatuses')}</div>
+        <div className='text-11px text-t-tertiary'>{t('settings.agentManagement.refreshingStatuses')}</div>
       ) : null}
 
-      {/* Detected Agents section — row list, mirroring the assistant list style */}
-      <div data-testid='agent-management-official-section' className='px-16px mt-8px'>
-        <Radio.Group
-          type='button'
-          size='small'
-          value={agentFilter}
-          onChange={(value) => setAgentFilter(value as AgentAvailabilityFilter)}
-          className='mb-8px'
-          data-testid='agent-availability-filter'
-        >
-          <Radio value='all'>
-            {t('settings.agentManagement.filterAll', {
-              defaultValue: 'All ({{count}})',
-              count: officialFilterStats.all,
-            })}
-          </Radio>
-          <Radio value='available'>
-            {t('settings.agentManagement.filterAvailable', {
-              defaultValue: 'Available ({{count}})',
-              count: officialFilterStats.available,
-            })}
-          </Radio>
-          <Radio value='unavailable'>
-            {t('settings.agentManagement.filterUnavailable', {
-              defaultValue: 'Unavailable ({{count}})',
-              count: officialFilterStats.unavailable,
-            })}
-          </Radio>
-        </Radio.Group>
+      {/* Detected Agents section */}
+      <div data-testid='agent-management-official-section'>
         <div className='flex flex-col gap-8px rounded-12px border border-border-2 bg-2 p-8px md:rounded-16px md:p-10px'>
           {visibleOfficialAgents.map((agent) => (
             <AgentCard
@@ -241,28 +247,14 @@ const LocalAgents: React.FC = () => {
         </div>
       </div>
 
-      {/* Custom Agents section — header carries the "add custom agent" action */}
-      <div
-        data-testid='agent-management-custom-header'
-        className='px-16px mt-16px flex items-start justify-between gap-12px'
-      >
-        <div className='min-w-0 flex flex-col gap-2px'>
-          <Typography.Text className='text-12px font-medium text-t-secondary block'>
-            {t('settings.agentManagement.customAgents', { defaultValue: 'Custom Agents' })}
-          </Typography.Text>
-          <Typography.Text className='block text-11px text-t-tertiary'>
-            {t('settings.agentManagement.customEmptyDescription')}
-          </Typography.Text>
-        </div>
-        <TalkToButlerButton
-          label={t('common.add', { defaultValue: 'Add' })}
-          chatLabel={t('settings.talkToButler.addViaChat', { defaultValue: 'Add via chat' })}
-          onManual={openCustomAgentEditor}
-          manualLabel={t('settings.talkToButler.addManually', { defaultValue: 'Add manually' })}
-          prompt={t('settings.talkToButler.prompt.addCustomAgent', {
-            defaultValue: 'Help me add a custom Agent.',
-          })}
-        />
+      {/* Custom Agents section */}
+      <div data-testid='agent-management-custom-header' className='flex flex-col gap-2px'>
+        <Typography.Text className='text-13px font-medium text-t-secondary block'>
+          {t('settings.agentManagement.customAgents', { defaultValue: 'Custom Agents' })}
+        </Typography.Text>
+        <Typography.Text className='block text-12px text-t-tertiary'>
+          {t('settings.agentManagement.customEmptyDescription')}
+        </Typography.Text>
       </div>
 
       <AionModal
@@ -304,7 +296,7 @@ const LocalAgents: React.FC = () => {
         )}
       </AionModal>
 
-      <div data-testid='agent-management-custom-section' className='px-16px'>
+      <div data-testid='agent-management-custom-section'>
         <div className='flex flex-col gap-8px rounded-12px border border-border-2 bg-2 p-8px md:rounded-16px md:p-10px'>
           {customAgents?.map((agent) => (
             <AgentCard

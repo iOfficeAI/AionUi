@@ -11,13 +11,22 @@ import type { AgentModeOption } from '@/renderer/utils/model/agentTypes';
 import {
   buildAgentRuntimeModeState,
   buildAgentRuntimeModelInfo,
+  buildAgentRuntimeSlashCommands,
+  buildAgentRuntimeThoughtLevelOption,
   type AgentRuntimeCatalog,
+  type AgentRuntimeDerivedOption,
 } from '@/renderer/utils/model/agentRuntimeCatalog';
+import type { SlashCommandItem } from '@/common/chat/slash/types';
 import { useManagedAgentRuntimeCatalog } from '@/renderer/hooks/agent/useManagedAgents';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useCustomAgentsLoader } from './useCustomAgentsLoader';
 
-export { buildAgentRuntimeModeState, buildAgentRuntimeModelInfo, type AgentRuntimeCatalog };
+export {
+  buildAgentRuntimeModeState,
+  buildAgentRuntimeModelInfo,
+  buildAgentRuntimeSlashCommands,
+  type AgentRuntimeCatalog,
+};
 
 export type GuidAssistantSelectionResult = {
   selectedAssistantId: string | null;
@@ -32,7 +41,14 @@ export type GuidAssistantSelectionResult = {
   selectedAcpModel: string | null;
   setSelectedAcpModel: (model: React.SetStateAction<string | null>, options?: { persistPreference?: boolean }) => void;
   currentAcpCachedModelInfo: AcpModelInfo | null;
+  currentAgentAvailableCommands: SlashCommandItem[];
   currentAgentModeOptions: AgentModeOption[];
+  currentThoughtLevelOption: AgentRuntimeDerivedOption | null;
+  selectedThoughtLevelValue: string;
+  setSelectedThoughtLevelValue: (
+    value: React.SetStateAction<string>,
+    options?: { persistPreference?: boolean }
+  ) => void;
 };
 
 export function resolveInitialAssistantModel(models: string[]): string | null {
@@ -108,6 +124,7 @@ export const useGuidAssistantSelection = ({
   const [selectedAssistantIdState, _setSelectedAssistantId] = useState<string | null>(null);
   const [selectedMode, _setSelectedMode] = useState<string>('default');
   const [selectedAcpModel, _setSelectedAcpModel] = useState<string | null>(null);
+  const [selectedThoughtLevelValue, _setSelectedThoughtLevelValue] = useState<string>('');
   const { assistants } = useCustomAgentsLoader();
   const managedAgentRuntimeCatalog = useManagedAgentRuntimeCatalog();
 
@@ -126,6 +143,16 @@ export const useGuidAssistantSelection = ({
       _setSelectedAcpModel((prev) => {
         const nextModelId = typeof modelId === 'function' ? modelId(prev) : modelId;
         return nextModelId;
+      });
+    },
+    []
+  );
+
+  const setSelectedThoughtLevelValue = useCallback(
+    (value: React.SetStateAction<string>, _options?: { persistPreference?: boolean }) => {
+      _setSelectedThoughtLevelValue((prev) => {
+        const nextValue = typeof value === 'function' ? value(prev) : value;
+        return nextValue;
       });
     },
     []
@@ -198,10 +225,25 @@ export const useGuidAssistantSelection = ({
     () => buildAgentRuntimeModelInfo(selectedManagedAgentRuntimeCatalog),
     [selectedManagedAgentRuntimeCatalog]
   );
+  const currentAgentAvailableCommands = useMemo(
+    () => buildAgentRuntimeSlashCommands(selectedManagedAgentRuntimeCatalog),
+    [selectedManagedAgentRuntimeCatalog]
+  );
   const selectedAgentRuntimeModeState = useMemo(
     () => buildAgentRuntimeModeState(selectedManagedAgentRuntimeCatalog),
     [selectedManagedAgentRuntimeCatalog]
   );
+  const selectedAgentRuntimeThoughtLevelOption = useMemo(
+    () => buildAgentRuntimeThoughtLevelOption(selectedManagedAgentRuntimeCatalog),
+    [selectedManagedAgentRuntimeCatalog]
+  );
+  const currentThoughtLevelOption = useMemo<AgentRuntimeDerivedOption | null>(() => {
+    if (!selectedAgentRuntimeThoughtLevelOption) return null;
+    return {
+      ...selectedAgentRuntimeThoughtLevelOption,
+      currentValue: selectedThoughtLevelValue || selectedAgentRuntimeThoughtLevelOption.currentValue,
+    };
+  }, [selectedAgentRuntimeThoughtLevelOption, selectedThoughtLevelValue]);
   const currentAgentModeOptions = selectedAgentRuntimeModeState.options;
 
   const selectedAssistantAvailable = useMemo(() => {
@@ -242,6 +284,31 @@ export const useGuidAssistantSelection = ({
     _setSelectedMode(fallbackMode);
   }, [selectedAgentRuntimeModeState]);
 
+  const thoughtLevelSelectionScopeRef = useRef<string | null>(null);
+  useEffect(() => {
+    const optionValues = new Set(selectedAgentRuntimeThoughtLevelOption?.options.map((option) => option.value) ?? []);
+    const fallbackThoughtLevel =
+      selectedAgentRuntimeThoughtLevelOption?.currentValue ||
+      selectedAgentRuntimeThoughtLevelOption?.options[0]?.value ||
+      '';
+    const selectionScope = selectedAssistantId ?? '';
+
+    _setSelectedThoughtLevelValue((previousValue) => {
+      const scopeChanged = thoughtLevelSelectionScopeRef.current !== selectionScope;
+      thoughtLevelSelectionScopeRef.current = selectionScope;
+
+      if (!selectedAgentRuntimeThoughtLevelOption) {
+        return '';
+      }
+
+      if (!scopeChanged && previousValue && optionValues.has(previousValue)) {
+        return previousValue;
+      }
+
+      return fallbackThoughtLevel;
+    });
+  }, [selectedAgentRuntimeThoughtLevelOption, selectedAssistantId]);
+
   const currentAcpCachedModelInfo = useMemo(() => {
     if (selectedAgentRuntimeModelInfo) {
       return selectedAgentRuntimeModelInfo;
@@ -265,6 +332,10 @@ export const useGuidAssistantSelection = ({
     selectedAcpModel,
     setSelectedAcpModel,
     currentAcpCachedModelInfo,
+    currentAgentAvailableCommands,
     currentAgentModeOptions,
+    currentThoughtLevelOption,
+    selectedThoughtLevelValue,
+    setSelectedThoughtLevelValue,
   };
 };

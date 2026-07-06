@@ -134,6 +134,7 @@ Thumbs.db
 dist/
 build/
 out/
+out-fast-builds/
 
 # Keep extension example dist (pre-built distributable assets)
 !examples/**/dist/
@@ -204,6 +205,7 @@ docs/superpowers/
 resources/bundled-bun
 resources/bundled-aioncore
 resources/hub
+/resources/windows/support/_sentry-dsn.generated.nsh
 
 # Server build output
 dist-server/

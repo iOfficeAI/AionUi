@@ -5,12 +5,31 @@
  */
 
 import type { AcpModelInfo, AcpSessionConfigOption } from '@/common/types/platform/acpTypes';
+import { mapAgentAvailableCommandsToSlashCommands } from '@/common/chat/slash/guidSlashCommands';
+import type { SlashCommandItem } from '@/common/chat/slash/types';
 import type { AgentModeOption } from './agentTypes';
 
 export type AgentRuntimeCatalog = {
   available_models?: unknown;
   available_modes?: unknown;
+  available_commands?: unknown;
   config_options?: unknown;
+  handshake?: {
+    available_commands?: unknown;
+  };
+};
+
+export type AgentRuntimeSelectOption = {
+  value: string;
+  label: string;
+  description?: string;
+};
+
+export type AgentRuntimeDerivedOption = {
+  id: string;
+  category: string;
+  currentValue?: string;
+  options: AgentRuntimeSelectOption[];
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -86,6 +105,32 @@ function buildModelInfoFromPayload(value: unknown): AcpModelInfo | null {
 function getConfigOptionCurrentValue(option: AcpSessionConfigOption): string | undefined {
   const optionRecord = option as AcpSessionConfigOption & { currentValue?: string };
   return option.current_value || option.selected_value || optionRecord.currentValue;
+}
+
+function buildSelectOptionFromConfigOptions(
+  configOptions: AcpSessionConfigOption[],
+  category: string,
+  fallbackIds: string[] = []
+): AgentRuntimeDerivedOption | null {
+  const option =
+    configOptions.find((item) => item.category === category) ||
+    configOptions.find((item) => fallbackIds.includes(item.id));
+  if (!option || option.type !== 'select') return null;
+
+  const options = (option.options ?? [])
+    .filter((item) => typeof item.value === 'string' && item.value.trim())
+    .map((item) => ({
+      value: item.value,
+      label: item.label || item.name || item.value,
+      description: item.description || undefined,
+    }));
+
+  return {
+    id: option.id,
+    category,
+    currentValue: getConfigOptionCurrentValue(option),
+    options,
+  };
 }
 
 function buildModelInfoFromConfigOptions(configOptions: AcpSessionConfigOption[]): AcpModelInfo | null {
@@ -184,4 +229,20 @@ export function buildAgentRuntimeModeState(agent: AgentRuntimeCatalog | null | u
   if (fromTopLevelModes.options.length > 0) return fromTopLevelModes;
 
   return { options: [] };
+}
+
+export function buildAgentRuntimeThoughtLevelOption(
+  agent: AgentRuntimeCatalog | null | undefined
+): AgentRuntimeDerivedOption | null {
+  if (!agent) return null;
+  return buildSelectOptionFromConfigOptions(normalizeConfigOptions(agent.config_options), 'thought_level', [
+    'thought_level',
+    'reasoning_effort',
+  ]);
+}
+
+export function buildAgentRuntimeSlashCommands(agent: AgentRuntimeCatalog | null | undefined): SlashCommandItem[] {
+  if (!agent) return [];
+
+  return mapAgentAvailableCommandsToSlashCommands(agent.available_commands ?? agent.handshake?.available_commands);
 }

@@ -5,6 +5,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
+import { buildGuidSlashCommands } from '@/common/chat/slash/guidSlashCommands';
 import { buildSkillSlashCommands, mergeSlashCommands } from '@/common/chat/slash/mergeSlashCommands';
 import type { SlashCommandItem } from '@/common/chat/slash/types';
 
@@ -54,5 +55,38 @@ describe('mergeSlashCommands', () => {
 
     expect(merged).toHaveLength(1);
     expect(merged[0]).toMatchObject({ name: 'cron', source: 'skill', selectionBehavior: 'insert' });
+  });
+});
+
+describe('buildGuidSlashCommands', () => {
+  it('uses agent metadata commands before selected skill fallbacks', () => {
+    const commands = buildGuidSlashCommands({
+      builtinCommands: [builtin('open')],
+      agentCommands: [acp('review'), acp('cron')],
+      selectedSkills: ['cron', 'officecli'],
+      descriptionByName: new Map([
+        ['cron', 'Scheduled tasks'],
+        ['officecli', 'Office automation'],
+      ]),
+      skillFallbackDescription: 'Skill',
+    });
+
+    expect(commands.map((command) => `${command.source}:${command.name}`)).toEqual([
+      'builtin:open',
+      'acp:review',
+      'acp:cron',
+    ]);
+  });
+
+  it('falls back to selected skills when agent metadata has no commands', () => {
+    const commands = buildGuidSlashCommands({
+      builtinCommands: [builtin('open')],
+      agentCommands: [],
+      selectedSkills: ['cron'],
+      descriptionByName: new Map([['cron', 'Scheduled tasks']]),
+      skillFallbackDescription: 'Skill',
+    });
+
+    expect(commands.map((command) => `${command.source}:${command.name}`)).toEqual(['builtin:open', 'skill:cron']);
   });
 });

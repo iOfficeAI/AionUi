@@ -330,4 +330,91 @@ describe('updateNotificationReducer', () => {
       manualDownloadDedupe: true,
     });
   });
+
+  it('shows a one-shot installer failure marker without clobbering update download state', () => {
+    const marker = {
+      schemaVersion: 1,
+      kind: 'app-cannot-be-closed' as const,
+      phase: 'customCheckAppRunning' as const,
+      silent: true,
+      updated: true,
+      retryCount: 3,
+      instDir: 'D:\\AionUi',
+      logPath: 'C:\\Users\\me\\AppData\\Local\\Temp\\aionui-installer-2.1.27-20260702-151830-ab12cd34ef56.log',
+      at: '2026-07-01T00:00:00.000Z',
+    };
+
+    const result = updateNotificationReducer(initialUpdateNotificationState, {
+      type: 'installerLastFailureConsumed',
+      marker,
+    } as never);
+
+    expect(result.state.visible).toBe(true);
+    expect(result.state.status).toBe('installer-last-failure');
+    expect(result.state.installerLastFailure).toEqual(marker);
+    expect(result.state.activeTask).toBeNull();
+    expect(result.effects).toEqual([]);
+
+    const downloadingState: UpdateNotificationState = {
+      ...initialUpdateNotificationState,
+      visible: true,
+      status: 'downloading',
+      activeTask: { kind: 'auto', id: 'auto' },
+    };
+    const ignored = updateNotificationReducer(downloadingState, {
+      type: 'installerLastFailureConsumed',
+      marker,
+    } as never);
+
+    expect(ignored.state.status).toBe('downloading');
+    expect(ignored.state.installerLastFailure).toBeUndefined();
+  });
+
+  it('queues an installer failure marker during downloaded and preparing states until it can be displayed', () => {
+    const marker = {
+      schemaVersion: 1,
+      kind: 'app-cannot-be-closed' as const,
+      phase: 'customCheckAppRunning' as const,
+      silent: true,
+      updated: true,
+      retryCount: 3,
+      instDir: 'D:\\AionUi',
+      logPath: 'C:\\Users\\me\\AppData\\Local\\Temp\\aionui-installer-2.1.27-20260702-151830-ab12cd34ef56.log',
+      at: '2026-07-01T00:00:00.000Z',
+    };
+    const downloadedState: UpdateNotificationState = {
+      ...initialUpdateNotificationState,
+      visible: true,
+      status: 'downloaded',
+      autoUpdateAvailable: true,
+      autoUpdateInfo: { version: '2.2.0' },
+    };
+
+    const queued = updateNotificationReducer(downloadedState, {
+      type: 'installerLastFailureConsumed',
+      marker,
+    } as never);
+
+    expect(queued.state.status).toBe('downloaded');
+    expect(queued.state.installerLastFailure).toBeUndefined();
+    expect(queued.state.pendingInstallerLastFailure).toEqual(marker);
+
+    const preparing = updateNotificationReducer(queued.state, {
+      type: 'autoPreparingInstall',
+      version: '2.2.0',
+    } as never);
+
+    expect(preparing.state.status).toBe('preparing-install');
+    expect(preparing.state.pendingInstallerLastFailure).toEqual(marker);
+
+    const displayed = updateNotificationReducer(preparing.state, {
+      type: 'autoError',
+      message: 'Preparing installation failed. Please try again later.',
+    });
+
+    expect(displayed.state.visible).toBe(true);
+    expect(displayed.state.status).toBe('installer-last-failure');
+    expect(displayed.state.installerLastFailure).toEqual(marker);
+    expect(displayed.state.pendingInstallerLastFailure).toBeUndefined();
+  });
 });

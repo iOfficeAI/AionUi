@@ -55,6 +55,7 @@ vi.mock('@/common', () => ({
           return vi.fn();
         }),
       },
+      consumeInstallerLastFailure: { invoke: vi.fn().mockResolvedValue({ success: true, data: null }) },
       open: { on: vi.fn(() => vi.fn()) },
     },
     shell: {

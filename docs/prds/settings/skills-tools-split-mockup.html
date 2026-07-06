@@ -1,0 +1,618 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Skills / Tools 拆分 — 交互原型</title>
+    <style>
+      :root {
+        --primary-6: 22, 93, 255;
+        --success-6: 0, 180, 42;
+        --t-primary: #1d2129;
+        --t-secondary: #4e5969;
+        --t-tertiary: #86909c;
+        --t-quaternary: #c9cdd4;
+        --border-2: #e5e6eb;
+        --fill-1: #f7f8fa;
+        --fill-2: #f2f3f5;
+        --bg-0: #fff;
+        --bg-page: #f2f3f5;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family: -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+        background: var(--bg-page);
+        color: var(--t-primary);
+        font-size: 14px;
+      }
+      .note {
+        max-width: 1180px;
+        margin: 20px auto 0;
+        padding: 12px 16px;
+        background: #fff7e8;
+        border: 1px solid #ffcf8b;
+        border-radius: 8px;
+        color: #86520a;
+        font-size: 13px;
+        line-height: 1.6;
+      }
+      .app {
+        max-width: 1180px;
+        margin: 16px auto 48px;
+        height: 720px;
+        display: flex;
+        background: var(--bg-0);
+        border: 1px solid var(--border-2);
+        border-radius: 14px;
+        overflow: hidden;
+        box-shadow: 0 6px 24px rgba(0, 0, 0, 0.06);
+      }
+      /* ---------- Settings sider ---------- */
+      .sider {
+        width: 216px;
+        flex-shrink: 0;
+        border-right: 1px solid var(--border-2);
+        padding: 16px 10px;
+        overflow-y: auto;
+        background: var(--bg-0);
+      }
+      .sider .group {
+        font-size: 12px;
+        color: var(--t-tertiary);
+        padding: 8px 12px 4px;
+        font-weight: 500;
+      }
+      .sider .item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        height: 34px;
+        padding: 0 10px;
+        border-radius: 8px;
+        cursor: pointer;
+        color: var(--t-primary);
+        font-weight: 500;
+        margin-bottom: 2px;
+        transition: background 0.15s;
+      }
+      .sider .item:hover {
+        background: var(--fill-1);
+      }
+      .sider .item.active {
+        background: var(--fill-2);
+      }
+      .sider .item .ico {
+        width: 18px;
+        height: 18px;
+        flex-shrink: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--t-secondary);
+      }
+      .sider .item.active .ico {
+        color: rgb(var(--primary-6));
+      }
+      .badge-new {
+        margin-left: auto;
+        font-size: 10px;
+        background: rgba(var(--primary-6), 0.1);
+        color: rgb(var(--primary-6));
+        padding: 1px 6px;
+        border-radius: 100px;
+        font-weight: 600;
+      }
+      /* ---------- Content ---------- */
+      .content {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+      }
+      .panel {
+        display: none;
+        flex-direction: column;
+        height: 100%;
+      }
+      .panel.show {
+        display: flex;
+      }
+      .page-head {
+        padding: 28px 40px 0;
+      }
+      .page-head h1 {
+        margin: 0;
+        font-size: 26px;
+        font-weight: 700;
+      }
+      .page-head p {
+        margin: 8px 0 0;
+        color: var(--t-secondary);
+        font-size: 14px;
+      }
+      /* ---------- Underline tabs (same as assistant home tabs) ---------- */
+      .tabs {
+        display: flex;
+        gap: 26px;
+        padding: 0 40px;
+        border-bottom: 1px solid var(--border-2);
+        margin-top: 18px;
+      }
+      .tab {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 0 2px 12px;
+        font-size: 14px;
+        color: var(--t-tertiary);
+        font-weight: 500;
+      }
+      .tab:hover {
+        color: var(--t-secondary);
+      }
+      .tab.active {
+        color: var(--t-primary);
+        font-weight: 600;
+      }
+      .tab .cnt {
+        margin-left: 6px;
+        min-width: 16px;
+        height: 16px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 100px;
+        padding: 0 5px;
+        font-size: 10px;
+        font-weight: 500;
+        background: var(--fill-2);
+        color: var(--t-quaternary);
+      }
+      .tab.active .cnt {
+        background: rgba(var(--primary-6), 0.12);
+        color: rgb(var(--primary-6));
+      }
+      .tab.active::after {
+        content: '';
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: -1px;
+        height: 2px;
+        border-radius: 2px;
+        background: rgb(var(--primary-6));
+      }
+      .tab-body {
+        flex: 1;
+        overflow-y: auto;
+        padding: 24px 40px 40px;
+      }
+      .tab-pane {
+        display: none;
+      }
+      .tab-pane.show {
+        display: block;
+      }
+      /* ---------- Toolbar (search + actions) ---------- */
+      .toolbar {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 20px;
+      }
+      .search {
+        flex: 1;
+        height: 34px;
+        border: 1px solid var(--border-2);
+        border-radius: 8px;
+        padding: 0 12px;
+        color: var(--t-tertiary);
+        display: flex;
+        align-items: center;
+        background: var(--fill-1);
+      }
+      .btn {
+        height: 34px;
+        padding: 0 14px;
+        border-radius: 999px;
+        border: 1px solid var(--border-2);
+        background: #fff;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        cursor: pointer;
+        font-weight: 500;
+        color: var(--t-primary);
+      }
+      .btn.primary {
+        background: rgb(var(--primary-6));
+        color: #fff;
+        border-color: rgb(var(--primary-6));
+      }
+      /* ---------- Skill card ---------- */
+      .section-title {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin: 8px 0 16px;
+        font-size: 15px;
+        font-weight: 700;
+      }
+      .section-title .cnt {
+        min-width: 20px;
+        height: 20px;
+        border-radius: 100px;
+        padding: 0 8px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        font-weight: 500;
+      }
+      .section-sub {
+        color: var(--t-tertiary);
+        font-size: 12px;
+        font-weight: 400;
+        margin-left: 4px;
+      }
+      .card {
+        display: flex;
+        gap: 14px;
+        padding: 14px;
+        border: 1px solid var(--border-2);
+        border-radius: 12px;
+        margin-bottom: 8px;
+        background: #fff;
+      }
+      .card .avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        color: #fff;
+      }
+      .card .meta {
+        flex: 1;
+        min-width: 0;
+      }
+      .card .meta .name {
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .card .meta .desc {
+        color: var(--t-secondary);
+        font-size: 13px;
+        margin-top: 4px;
+        line-height: 1.5;
+      }
+      .chip {
+        font-size: 10px;
+        padding: 1px 6px;
+        border-radius: 4px;
+        font-weight: 600;
+        text-transform: uppercase;
+      }
+      .chip.custom {
+        background: #fff3e8;
+        color: #d25f00;
+        border: 1px solid #ffd6ad;
+      }
+      .chip.official {
+        background: rgba(var(--primary-6), 0.08);
+        color: rgb(var(--primary-6));
+        border: 1px solid rgba(var(--primary-6), 0.2);
+      }
+      .chip.ext {
+        background: rgba(var(--primary-6), 0.08);
+        color: rgb(var(--primary-6));
+        border: 1px solid rgba(var(--primary-6), 0.2);
+      }
+      .chip.auto {
+        background: rgba(var(--success-6), 0.08);
+        color: rgb(var(--success-6));
+        border: 1px solid rgba(var(--success-6), 0.2);
+      }
+      .del {
+        margin-left: auto;
+        align-self: center;
+        color: var(--t-tertiary);
+        cursor: pointer;
+        padding: 4px 8px;
+      }
+      .subsection {
+        margin-top: 28px;
+        padding-top: 24px;
+        border-top: 1px dashed var(--border-2);
+      }
+      /* ---------- Tools page ---------- */
+      .block {
+        border: 1px solid var(--border-2);
+        border-radius: 14px;
+        padding: 24px;
+        margin-bottom: 16px;
+      }
+      .block .bt {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 16px;
+        font-weight: 600;
+      }
+      .switch {
+        width: 40px;
+        height: 22px;
+        border-radius: 999px;
+        background: rgb(var(--primary-6));
+        position: relative;
+      }
+      .switch::after {
+        content: '';
+        position: absolute;
+        top: 2px;
+        right: 2px;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        background: #fff;
+      }
+      .row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 0;
+        border-top: 1px solid var(--fill-2);
+      }
+      .muted {
+        color: var(--t-tertiary);
+      }
+      .legend {
+        max-width: 1180px;
+        margin: 0 auto;
+        padding: 8px 4px;
+        color: var(--t-tertiary);
+        font-size: 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="note">
+      <b>交互原型（示意，非最终视觉）。</b> 改动点：① 设置侧边栏把原「能力扩展」拆成 <b>技能 Skills</b> 与
+      <b>工具 Tools</b> 两个一级入口；② Skills 页内部分「自定义 / 官方」两个
+      tab（下划线样式，与助手首页一致）；③「官方」tab 下方保留 <b>扩展技能</b> 与
+      <b>自动注入技能</b> 两个只读分区。点侧边栏、点 tab 都可切换。
+    </div>
+
+    <div class="app">
+      <!-- ============ Settings Sider ============ -->
+      <div class="sider">
+        <div class="group">AI 核心</div>
+        <div class="item" data-nav="agent"><span class="ico">🤖</span> Agents</div>
+        <div class="item" data-nav="model"><span class="ico">☁️</span> 模型</div>
+        <div class="item active" data-nav="skills">
+          <span class="ico">⚡</span> 技能 Skills <span class="badge-new">新</span>
+        </div>
+        <div class="item" data-nav="tools">
+          <span class="ico">🧰</span> 工具 Tools <span class="badge-new">新</span>
+        </div>
+        <div class="group">应用</div>
+        <div class="item" data-nav="appearance"><span class="ico">🖥️</span> 外观</div>
+        <div class="item" data-nav="webui"><span class="ico">🌐</span> WebUI</div>
+        <div class="item" data-nav="system"><span class="ico">⚙️</span> 系统</div>
+        <div class="group">关于</div>
+        <div class="item" data-nav="about"><span class="ico">ℹ️</span> 关于</div>
+      </div>
+
+      <!-- ============ Content ============ -->
+      <div class="content">
+        <!-- ---------- Skills panel ---------- -->
+        <div class="panel show" data-panel="skills">
+          <div class="page-head">
+            <h1>技能 Skills</h1>
+            <p>为你的助手装备可复用的技能包。自定义技能可导入、删除；官方技能由系统提供。</p>
+          </div>
+          <div class="tabs">
+            <button class="tab active" data-tab="skills-custom">自定义 <span class="cnt">3</span></button>
+            <button class="tab" data-tab="skills-official">官方 <span class="cnt">6</span></button>
+          </div>
+          <div class="tab-body">
+            <!-- 自定义 tab -->
+            <div class="tab-pane show" data-pane="skills-custom">
+              <div class="toolbar">
+                <div class="search">🔍 搜索技能…</div>
+                <div class="btn">↻ 刷新</div>
+                <div class="btn">🕘 导入记录</div>
+                <div class="btn primary">＋ 添加技能</div>
+              </div>
+              <div class="card">
+                <div class="avatar" style="background: #7c3aed">P</div>
+                <div class="meta">
+                  <div class="name">pptx-maker <span class="chip custom">自定义</span></div>
+                  <div class="desc">从大纲一键生成 PPT，支持模板与图表。</div>
+                </div>
+                <div class="del">🗑</div>
+              </div>
+              <div class="card">
+                <div class="avatar" style="background: #0891b2">X</div>
+                <div class="meta">
+                  <div class="name">xlsx-report <span class="chip custom">自定义</span></div>
+                  <div class="desc">读取数据源并输出带公式的 Excel 报表。</div>
+                </div>
+                <div class="del">🗑</div>
+              </div>
+              <div class="card">
+                <div class="avatar" style="background: #ca8a04">R</div>
+                <div class="meta">
+                  <div class="name">release-note <span class="chip custom">自定义</span></div>
+                  <div class="desc">根据提交记录自动撰写发布说明。</div>
+                </div>
+                <div class="del">🗑</div>
+              </div>
+            </div>
+
+            <!-- 官方 tab -->
+            <div class="tab-pane" data-pane="skills-official">
+              <div class="toolbar">
+                <div class="search">🔍 搜索官方技能…</div>
+                <div class="btn">↻ 刷新</div>
+              </div>
+
+              <!-- 官方内置 skills -->
+              <div class="card">
+                <div class="avatar" style="background: rgb(22, 93, 255)">O</div>
+                <div class="meta">
+                  <div class="name">officecli <span class="chip official">官方</span></div>
+                  <div class="desc">Office 文档处理官方技能集。</div>
+                </div>
+              </div>
+              <div class="card">
+                <div class="avatar" style="background: rgb(22, 93, 255)">D</div>
+                <div class="meta">
+                  <div class="name">deep-research <span class="chip official">官方</span></div>
+                  <div class="desc">多源检索 + 事实核验的深度研究。</div>
+                </div>
+              </div>
+
+              <!-- 扩展技能分区 -->
+              <div class="subsection">
+                <div class="section-title">
+                  🧩 扩展技能
+                  <span class="cnt" style="background: rgba(22, 93, 255, 0.08); color: rgb(22, 93, 255)">2</span>
+                  <span class="section-sub">由已安装扩展提供，只读</span>
+                </div>
+                <div class="card">
+                  <div class="avatar" style="background: rgba(22, 93, 255, 0.12); color: rgb(22, 93, 255)">🧩</div>
+                  <div class="meta">
+                    <div class="name">figma-export <span class="chip ext">Extension</span></div>
+                    <div class="desc">来自 Figma 扩展的导出技能。</div>
+                  </div>
+                </div>
+                <div class="card">
+                  <div class="avatar" style="background: rgba(22, 93, 255, 0.12); color: rgb(22, 93, 255)">🧩</div>
+                  <div class="meta">
+                    <div class="name">notion-sync <span class="chip ext">Extension</span></div>
+                    <div class="desc">来自 Notion 扩展的同步技能。</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 自动注入技能分区 -->
+              <div class="subsection">
+                <div class="section-title">
+                  ⚡ 自动注入技能
+                  <span class="cnt" style="background: rgba(0, 180, 42, 0.08); color: rgb(0, 180, 42)">2</span>
+                  <span class="section-sub">系统默认随会话注入，无需手动开启</span>
+                </div>
+                <div class="card">
+                  <div class="avatar" style="background: rgba(0, 180, 42, 0.08); color: rgb(0, 180, 42)">⚡</div>
+                  <div class="meta">
+                    <div class="name">cron <span class="chip auto">Auto</span></div>
+                    <div class="desc">定时任务管理技能，自动可用。</div>
+                  </div>
+                </div>
+                <div class="card">
+                  <div class="avatar" style="background: rgba(0, 180, 42, 0.08); color: rgb(0, 180, 42)">⚡</div>
+                  <div class="meta">
+                    <div class="name">skill-creator <span class="chip auto">Auto</span></div>
+                    <div class="desc">引导创建新技能，自动可用。</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ---------- Tools panel ---------- -->
+        <div class="panel" data-panel="tools">
+          <div class="page-head">
+            <h1>工具 Tools</h1>
+            <p>配置 MCP 服务器与内置工具（如图像生成）。</p>
+          </div>
+          <div class="tab-body" style="padding-top: 24px">
+            <div class="block">
+              <div class="bt">
+                <span>MCP 工具配置</span>
+                <div class="btn primary">＋ 添加 MCP 服务器 ▾</div>
+              </div>
+              <div class="row">
+                <span>filesystem <span class="muted">· stdio</span></span
+                ><span class="muted">已连接</span>
+              </div>
+              <div class="row">
+                <span>playwright <span class="muted">· stdio</span></span
+                ><span class="muted">已连接</span>
+              </div>
+              <div class="row">
+                <span>context7 <span class="muted">· http</span></span
+                ><span class="muted">未测试</span>
+              </div>
+            </div>
+            <div class="block">
+              <div class="bt">
+                <span>图像生成</span>
+                <div class="switch"></div>
+              </div>
+              <div class="row"><span>图像模型</span><span class="muted">gemini-2.5-flash-image-preview ▾</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ---------- placeholder for other nav ---------- -->
+        <div class="panel" data-panel="other">
+          <div class="page-head">
+            <h1 id="other-title">其他设置</h1>
+            <p class="muted">（此原型仅演示 技能 / 工具 两个入口的改版，其他页面保持现状）</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="legend">
+      对比：改版前 = 侧边栏一个「能力扩展」→ 进去 Skills / Tools 两个 arco tab；改版后 = 侧边栏两个一级入口，Skills
+      内部再分 自定义 / 官方 两个下划线 tab。
+    </div>
+
+    <script>
+      const items = document.querySelectorAll('.sider .item');
+      const panels = document.querySelectorAll('.panel');
+      function showPanel(name) {
+        panels.forEach((p) => p.classList.toggle('show', p.dataset.panel === name));
+      }
+      items.forEach((it) => {
+        it.addEventListener('click', () => {
+          items.forEach((x) => x.classList.remove('active'));
+          it.classList.add('active');
+          const nav = it.dataset.nav;
+          if (nav === 'skills') showPanel('skills');
+          else if (nav === 'tools') showPanel('tools');
+          else {
+            showPanel('other');
+            document.getElementById('other-title').textContent = it.textContent.trim().replace('新', '');
+          }
+        });
+      });
+      document.querySelectorAll('.tab').forEach((tab) => {
+        tab.addEventListener('click', () => {
+          const group = tab.closest('.tabs');
+          group.querySelectorAll('.tab').forEach((t) => t.classList.remove('active'));
+          tab.classList.add('active');
+          const target = tab.dataset.tab;
+          document.querySelectorAll('[data-pane]').forEach((p) => {
+            p.classList.toggle('show', p.dataset.pane === target);
+          });
+        });
+      });
+    </script>
+  </body>
+</html>

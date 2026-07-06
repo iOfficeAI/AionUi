@@ -167,7 +167,7 @@ describe('SkillsHubSettings', () => {
   });
 
   it('renders import history failure detail in the secondary view', async () => {
-    searchParamsMock.pathname = '/settings/capabilities/skills/import-history';
+    searchParamsMock.pathname = '/settings/skills/import-history';
     mocks.listSkillImportHistory.mockResolvedValue([
       {
         id: 'record-1',
@@ -199,7 +199,7 @@ describe('SkillsHubSettings', () => {
   });
 
   it('renders import history as a secondary view without search or category filters', async () => {
-    searchParamsMock.pathname = '/settings/capabilities/skills/import-history';
+    searchParamsMock.pathname = '/settings/skills/import-history';
     mocks.listSkillImportHistory.mockResolvedValue([
       {
         id: 'record-1',
@@ -226,7 +226,7 @@ describe('SkillsHubSettings', () => {
   });
 
   it('shows concise repair instructions for failed import history records', async () => {
-    searchParamsMock.pathname = '/settings/capabilities/skills/import-history';
+    searchParamsMock.pathname = '/settings/skills/import-history';
     mocks.listSkillImportHistory.mockResolvedValue([
       {
         id: 'record-1',
@@ -253,7 +253,7 @@ describe('SkillsHubSettings', () => {
   });
 
   it('does not expose technical error details in import history', async () => {
-    searchParamsMock.pathname = '/settings/capabilities/skills/import-history';
+    searchParamsMock.pathname = '/settings/skills/import-history';
     mocks.listSkillImportHistory.mockResolvedValue([
       {
         id: 'record-1',
@@ -277,7 +277,7 @@ describe('SkillsHubSettings', () => {
   });
 
   it('shows specific repair instructions for known non-size import errors', async () => {
-    searchParamsMock.pathname = '/settings/capabilities/skills/import-history';
+    searchParamsMock.pathname = '/settings/skills/import-history';
     mocks.listSkillImportHistory.mockResolvedValue([
       {
         id: 'record-zip',
@@ -310,18 +310,28 @@ describe('SkillsHubSettings', () => {
 
     render(<SkillsHubSettings withWrapper={false} />);
 
-    await waitFor(() => expect(screen.getByTestId('my-skill-card-sample-single')).toBeInTheDocument());
-    expect(screen.getByText('Custom')).toBeInTheDocument();
+    const card = await screen.findByTestId('my-skill-card-sample-single');
+    // Per-card source badges were removed (the tab/section already conveys origin);
+    // the card shows only the name + description, no "Custom" / "Available" tag.
+    expect(card.textContent).not.toContain('Custom');
     expect(screen.queryByText('Available')).not.toBeInTheDocument();
   });
 
-  it('renders auto-injected skills from the main catalog and keeps cron-source skills out of my skills', async () => {
+  it('splits custom and official skills into two tabs, with auto-injected under Official', async () => {
     mocks.listAvailableSkills.mockResolvedValue([
       {
         name: 'cron',
         description: 'Auto injected cron skill.',
         location: '/tmp/builtin-skills/auto-inject/cron/SKILL.md',
         is_auto_inject: true,
+        is_custom: false,
+        source: 'builtin',
+      },
+      {
+        name: 'officecli',
+        description: 'Official builtin skill.',
+        location: '/tmp/builtin-skills/officecli/SKILL.md',
+        is_auto_inject: false,
         is_custom: false,
         source: 'builtin',
       },
@@ -343,10 +353,20 @@ describe('SkillsHubSettings', () => {
 
     render(<SkillsHubSettings withWrapper={false} />);
 
-    await waitFor(() => expect(screen.getByTestId('auto-skills-section')).toBeInTheDocument());
+    // Custom tab is active by default: shows the imported skill, not the builtin/auto ones.
+    await waitFor(() => expect(screen.getByTestId('my-skill-card-sample-single')).toBeInTheDocument());
+    expect(screen.queryByTestId('auto-skills-section')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('official-skill-card-officecli')).not.toBeInTheDocument();
+
+    // Switch to the Official tab: official builtin list + auto-injected section appear.
+    fireEvent.click(screen.getByTestId('settings-tab-official'));
+    expect(screen.getByTestId('official-skill-card-officecli')).toBeInTheDocument();
+    expect(screen.getByTestId('auto-skills-section')).toBeInTheDocument();
     expect(screen.getByText('cron')).toBeInTheDocument();
+    // cron-source skills are never listed.
     expect(screen.queryByText('job-generated')).not.toBeInTheDocument();
-    expect(screen.getByTestId('my-skill-card-sample-single')).toBeInTheDocument();
+    // The custom skill is not in the Official tab.
+    expect(screen.queryByTestId('my-skill-card-sample-single')).not.toBeInTheDocument();
   });
 
   it('does not expose the local skills directory path on the skills page', async () => {
@@ -356,10 +376,10 @@ describe('SkillsHubSettings', () => {
     expect(screen.queryByText('/tmp/user-skills')).not.toBeInTheDocument();
   });
 
-  it('renders import rules with server-provided size limits', async () => {
+  it('surfaces server-provided size limits in the page description', async () => {
     render(<SkillsHubSettings withWrapper={false} />);
 
     await waitFor(() => expect(mocks.getSkillImportLimits).toHaveBeenCalled());
-    expect(screen.getByText(/12 MB per file, 64 MB per skill/)).toBeInTheDocument();
+    expect(screen.getByText(/12 MB per file and 64 MB per skill/)).toBeInTheDocument();
   });
 });

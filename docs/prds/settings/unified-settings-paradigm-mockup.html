@@ -1,0 +1,580 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>设置页统一范式 — 交互原型</title>
+    <style>
+      :root {
+        --primary-6: 22, 93, 255;
+        --success-6: 0, 180, 42;
+        --orange-6: 247, 114, 52;
+        --t-primary: #1d2129;
+        --t-secondary: #4e5969;
+        --t-tertiary: #86909c;
+        --t-quaternary: #c9cdd4;
+        --border-2: #e5e6eb;
+        --fill-1: #f7f8fa;
+        --fill-2: #f2f3f5;
+        --bg-0: #fff;
+        --bg-2: #f7f8fa;
+        --bg-page: #f2f3f5;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family: -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+        background: var(--bg-page);
+        color: var(--t-primary);
+        font-size: 14px;
+      }
+      .note {
+        max-width: 1180px;
+        margin: 20px auto 0;
+        padding: 12px 16px;
+        background: #fff7e8;
+        border: 1px solid #ffcf8b;
+        border-radius: 8px;
+        color: #86520a;
+        font-size: 13px;
+        line-height: 1.7;
+      }
+      .switcher {
+        max-width: 1180px;
+        margin: 14px auto 0;
+        display: flex;
+        gap: 8px;
+      }
+      .switcher button {
+        padding: 7px 16px;
+        border-radius: 999px;
+        border: 1px solid var(--border-2);
+        background: #fff;
+        cursor: pointer;
+        font-weight: 500;
+        font-size: 13px;
+        color: var(--t-secondary);
+      }
+      .switcher button.active {
+        background: rgb(var(--primary-6));
+        color: #fff;
+        border-color: rgb(var(--primary-6));
+      }
+      .app {
+        max-width: 1180px;
+        margin: 14px auto 48px;
+        height: 720px;
+        display: flex;
+        background: var(--bg-0);
+        border: 1px solid var(--border-2);
+        border-radius: 14px;
+        overflow: hidden;
+        box-shadow: 0 6px 24px rgba(0, 0, 0, 0.06);
+      }
+      /* ---------- sider ---------- */
+      .sider {
+        width: 210px;
+        flex-shrink: 0;
+        border-right: 1px solid var(--border-2);
+        padding: 16px 10px;
+      }
+      .sider .group {
+        font-size: 12px;
+        color: var(--t-tertiary);
+        padding: 8px 12px 4px;
+        font-weight: 500;
+      }
+      .sider .item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        height: 34px;
+        padding: 0 10px;
+        border-radius: 8px;
+        cursor: pointer;
+        color: var(--t-primary);
+        font-weight: 500;
+        margin-bottom: 2px;
+      }
+      .sider .item:hover {
+        background: var(--fill-1);
+      }
+      .sider .item.active {
+        background: var(--fill-2);
+      }
+      .sider .item.active .ico {
+        color: rgb(var(--primary-6));
+      }
+      .sider .ico {
+        width: 18px;
+        text-align: center;
+        color: var(--t-secondary);
+      }
+
+      /* ---------- content ---------- */
+      .content {
+        flex: 1;
+        min-width: 0;
+        overflow-y: auto;
+      }
+      .page {
+        display: none;
+        padding: 32px 40px 40px;
+        max-width: 900px;
+        margin: 0 auto;
+      }
+      .page.show {
+        display: block;
+      }
+
+      /* ====== 1. 统一页头 ====== */
+      .pagehead {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+      }
+      .pagehead .titlebox {
+        min-width: 0;
+        flex: 1;
+      }
+      .pagehead h1 {
+        margin: 0;
+        font-size: 24px;
+        font-weight: 700;
+        line-height: 1.2;
+        color: var(--t-primary);
+      }
+      .pagehead .desc {
+        margin: 8px 0 0;
+        font-size: 13px;
+        line-height: 1.6;
+        color: var(--t-secondary);
+      }
+      .pagehead .desc a {
+        color: rgb(var(--primary-6));
+        text-decoration: none;
+      }
+      .pagehead .desc a:hover {
+        text-decoration: underline;
+      }
+      .pagehead .actions {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-shrink: 0;
+      }
+      .search {
+        height: 34px;
+        width: 200px;
+        border: 1px solid var(--border-2);
+        border-radius: 8px;
+        padding: 0 12px;
+        color: var(--t-tertiary);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        background: var(--fill-1);
+        font-size: 13px;
+      }
+      .btn {
+        height: 34px;
+        padding: 0 16px;
+        border-radius: 999px;
+        border: 1px solid var(--border-2);
+        background: #fff;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        cursor: pointer;
+        font-weight: 500;
+        font-size: 13px;
+        color: var(--t-primary);
+        white-space: nowrap;
+      }
+      .btn.primary {
+        background: rgb(var(--primary-6));
+        color: #fff;
+        border-color: rgb(var(--primary-6));
+      }
+
+      /* ====== 2. 统一 Tab ====== */
+      .tabs {
+        display: flex;
+        gap: 26px;
+        border-bottom: 1px solid var(--border-2);
+        margin-top: 20px;
+      }
+      .tab {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 0 2px 12px;
+        font-size: 14px;
+        color: var(--t-tertiary);
+        font-weight: 500;
+      }
+      .tab:hover {
+        color: var(--t-secondary);
+      }
+      .tab.active {
+        color: var(--t-primary);
+        font-weight: 600;
+      }
+      .tab .cnt {
+        margin-left: 6px;
+        min-width: 16px;
+        height: 16px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 100px;
+        padding: 0 5px;
+        font-size: 10px;
+        font-weight: 500;
+        background: var(--fill-2);
+        color: var(--t-quaternary);
+      }
+      .tab.active .cnt {
+        background: rgba(var(--primary-6), 0.12);
+        color: rgb(var(--primary-6));
+      }
+      .tab.active::after {
+        content: '';
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: -1px;
+        height: 2px;
+        border-radius: 2px;
+        background: rgb(var(--primary-6));
+      }
+
+      /* ====== 3. 统一列表容器（Agent 那套：圆角边框 + 行卡片） ====== */
+      .list {
+        margin-top: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        border: 1px solid var(--border-2);
+        border-radius: 16px;
+        background: var(--bg-2);
+        padding: 10px;
+      }
+      .row {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 14px;
+        background: var(--bg-0);
+        border: 1px solid transparent;
+        border-radius: 12px;
+      }
+      .row:hover {
+        border-color: var(--border-2);
+      }
+      .row .avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        color: #fff;
+        font-size: 16px;
+      }
+      .row .meta {
+        flex: 1;
+        min-width: 0;
+      }
+      .row .meta .name {
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .row .meta .sub {
+        color: var(--t-secondary);
+        font-size: 13px;
+        margin-top: 3px;
+      }
+      .row .right {
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--t-tertiary);
+      }
+      .chip {
+        font-size: 10px;
+        padding: 1px 6px;
+        border-radius: 4px;
+        font-weight: 600;
+        text-transform: uppercase;
+      }
+      .chip.custom {
+        background: rgba(var(--orange-6), 0.1);
+        color: rgb(var(--orange-6));
+      }
+      .chip.official {
+        background: rgba(var(--primary-6), 0.1);
+        color: rgb(var(--primary-6));
+      }
+      .chip.auto {
+        background: rgba(var(--success-6), 0.1);
+        color: rgb(var(--success-6));
+      }
+      .chip.ok {
+        background: rgba(var(--success-6), 0.1);
+        color: rgb(var(--success-6));
+      }
+      .chip.off {
+        background: var(--fill-2);
+        color: var(--t-tertiary);
+      }
+      .toggle {
+        width: 38px;
+        height: 22px;
+        border-radius: 999px;
+        background: rgb(var(--primary-6));
+        position: relative;
+      }
+      .toggle::after {
+        content: '';
+        position: absolute;
+        top: 2px;
+        right: 2px;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        background: #fff;
+      }
+      .toggle.off {
+        background: var(--fill-2);
+      }
+      .toggle.off::after {
+        left: 2px;
+        right: auto;
+      }
+      /* subsection inside a tab (extension / auto-injected) */
+      .subhead {
+        margin-top: 28px;
+        margin-bottom: 12px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 14px;
+        font-weight: 700;
+      }
+      .subhead .cnt {
+        min-width: 20px;
+        height: 20px;
+        border-radius: 100px;
+        padding: 0 8px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        font-weight: 500;
+      }
+      .subhead .subtip {
+        font-size: 12px;
+        color: var(--t-tertiary);
+        font-weight: 400;
+      }
+      .legend {
+        max-width: 1180px;
+        margin: 0 auto 40px;
+        color: var(--t-tertiary);
+        font-size: 12px;
+        line-height: 1.7;
+        padding: 0 4px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="note">
+      <b>设置页统一范式（示意图）。</b> 三段固定结构：<b>① 页头</b>（大标题 + 描述在左，操作按钮在右上）→
+      <b>② Tab</b>（有则显示，下划线+徽章）→ <b>③ 列表</b>（统一的圆角边框容器 + 行卡片，沿用 Agent
+      列表外观）。点上方按钮切换 Agent / 技能 / 工具 三个页面看统一效果。
+    </div>
+
+    <div class="switcher">
+      <button class="active" data-go="agent">Agent 页</button>
+      <button data-go="skills">技能页</button>
+      <button data-go="tools">工具页</button>
+    </div>
+
+    <div class="app">
+      <div class="sider">
+        <div class="group">AI 核心</div>
+        <div class="item"><span class="ico">🤖</span> Agents</div>
+        <div class="item"><span class="ico">☁️</span> 模型</div>
+        <div class="item"><span class="ico">⚡</span> 技能</div>
+        <div class="item"><span class="ico">🧰</span> 工具</div>
+        <div class="group">应用</div>
+        <div class="item"><span class="ico">🖥️</span> 外观</div>
+        <div class="item"><span class="ico">⚙️</span> 系统</div>
+      </div>
+
+      <div class="content">
+        <!-- ===================== Agent 页 ===================== -->
+        <div class="page show" data-page="agent">
+          <div class="pagehead">
+            <div class="titlebox">
+              <h1>Agents</h1>
+              <p class="desc">管理本地检测到的 AI 编程 Agent 及其连接状态。<a href="#">查看配置指南</a></p>
+            </div>
+            <div class="actions">
+              <div class="btn">＋ 添加自定义 Agent</div>
+            </div>
+          </div>
+
+          <div class="tabs">
+            <button class="tab active">全部 <span class="cnt">5</span></button>
+            <button class="tab">可用 <span class="cnt">3</span></button>
+            <button class="tab">不可用 <span class="cnt">2</span></button>
+          </div>
+
+          <div class="list">
+            <div class="row">
+              <div class="avatar" style="background: #165dff">A</div>
+              <div class="meta">
+                <div class="name">Aion CLI <span class="chip ok">在线</span></div>
+                <div class="sub">内置 Agent · 已连接</div>
+              </div>
+              <div class="right"><span class="btn">测试连接</span></div>
+            </div>
+            <div class="row">
+              <div class="avatar" style="background: #722ed1">C</div>
+              <div class="meta">
+                <div class="name">Claude Code <span class="chip off">缺失</span></div>
+                <div class="sub">未检测到可执行文件</div>
+              </div>
+              <div class="right"><span class="btn">测试连接</span></div>
+            </div>
+            <div class="row">
+              <div class="avatar" style="background: #00b42a">G</div>
+              <div class="meta">
+                <div class="name">Gemini CLI <span class="chip ok">在线</span></div>
+                <div class="sub">内置 Agent · 已连接</div>
+              </div>
+              <div class="right"><span class="btn">测试连接</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===================== 技能页 ===================== -->
+        <div class="page" data-page="skills">
+          <div class="pagehead">
+            <div class="titlebox">
+              <h1>技能</h1>
+              <p class="desc">集中管理 AI 技能包，安装一次即可在所有助手中启用。</p>
+            </div>
+            <div class="actions">
+              <div class="search">🔍 搜索技能</div>
+              <div class="btn">🕘 导入记录</div>
+              <div class="btn primary">＋ 添加技能</div>
+            </div>
+          </div>
+
+          <div class="tabs">
+            <button class="tab active">自定义 <span class="cnt">3</span></button>
+            <button class="tab">官方 <span class="cnt">6</span></button>
+          </div>
+
+          <div class="list">
+            <div class="row">
+              <div class="avatar" style="background: #7c3aed">P</div>
+              <div class="meta">
+                <div class="name">pptx-maker <span class="chip custom">自定义</span></div>
+                <div class="sub">从大纲一键生成 PPT。</div>
+              </div>
+              <div class="right">🗑</div>
+            </div>
+            <div class="row">
+              <div class="avatar" style="background: #0891b2">X</div>
+              <div class="meta">
+                <div class="name">xlsx-report <span class="chip custom">自定义</span></div>
+                <div class="sub">输出带公式的 Excel 报表。</div>
+              </div>
+              <div class="right">🗑</div>
+            </div>
+          </div>
+          <div style="color: var(--t-tertiary); font-size: 12px; margin-top: 14px">
+            ▲ 切到「官方」tab 时，列表下方会追加「扩展技能」「自动注入技能」两个只读分区（同样用上面这套列表容器）。
+          </div>
+        </div>
+
+        <!-- ===================== 工具页 ===================== -->
+        <div class="page" data-page="tools">
+          <div class="pagehead">
+            <div class="titlebox">
+              <h1>工具</h1>
+              <p class="desc">配置 MCP 服务器与内置工具（如图像生成）。</p>
+            </div>
+            <div class="actions">
+              <div class="btn primary">＋ 添加 MCP 服务器</div>
+            </div>
+          </div>
+
+          <!-- 工具页没有 Tab，直接就是列表（范式允许：没 Tab 就不显示） -->
+          <div class="list">
+            <div class="row">
+              <div class="avatar" style="background: #14c9c9">M</div>
+              <div class="meta">
+                <div class="name">filesystem <span class="chip ok">已连接</span></div>
+                <div class="sub">stdio · 本地文件访问</div>
+              </div>
+              <div class="right"><span class="toggle"></span></div>
+            </div>
+            <div class="row">
+              <div class="avatar" style="background: #f77234">P</div>
+              <div class="meta">
+                <div class="name">playwright <span class="chip ok">已连接</span></div>
+                <div class="sub">stdio · 浏览器自动化</div>
+              </div>
+              <div class="right"><span class="toggle"></span></div>
+            </div>
+          </div>
+
+          <div class="subhead">图像生成 <span class="subtip">内置工具</span></div>
+          <div class="list" style="margin-top: 0">
+            <div class="row">
+              <div class="avatar" style="background: #f5319d">🖼</div>
+              <div class="meta">
+                <div class="name">图像模型</div>
+                <div class="sub">gemini-2.5-flash-image-preview ▾</div>
+              </div>
+              <div class="right"><span class="toggle"></span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="legend">
+      统一后：① 三页标题字号/描述/间距一致；② 操作按钮（搜索、创建、导入记录）一律在标题右上角，窄屏时整块收缩不错位；③
+      列表一律「圆角边框容器 + 行卡片」；④ Tab 有则显示、无则跳过（工具页就没 Tab）。这套抽成一个公用
+      <code>SettingsPageHeader</code> 组件，三页共用。
+    </div>
+
+    <script>
+      document.querySelectorAll('.switcher button').forEach((b) => {
+        b.addEventListener('click', () => {
+          document.querySelectorAll('.switcher button').forEach((x) => x.classList.remove('active'));
+          b.classList.add('active');
+          const go = b.dataset.go;
+          document.querySelectorAll('.page').forEach((p) => p.classList.toggle('show', p.dataset.page === go));
+        });
+      });
+    </script>
+  </body>
+</html>

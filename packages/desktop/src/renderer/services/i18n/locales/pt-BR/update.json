@@ -28,6 +28,12 @@
   "showInFolder": "Mostrar na pasta",
   "openFile": "Abrir arquivo",
   "errorTitle": "A atualização falhou",
+  "installerLastFailure": {
+    "title": "A última atualização não foi concluída",
+    "description": "O AionUi não pôde ser fechado durante a atualização silenciosa anterior. Você pode tentar atualizar novamente, ver o log do instalador ou enviar feedback.",
+    "retryUpdate": "Tentar atualizar novamente",
+    "viewLog": "Ver log"
+  },
   "errors": {
     "invalidUrl": "URL de download inválida",
     "httpsOnly": "Somente URLs de download HTTPS são permitidas",

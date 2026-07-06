@@ -392,7 +392,7 @@ describe('AutoUpdaterService', () => {
     await installPromise;
 
     expect(cleanup).toHaveBeenCalledTimes(1);
-    expect(autoUpdaterMock.quitAndInstall).toHaveBeenCalledWith(true, true);
+    expect(autoUpdaterMock.quitAndInstall).toHaveBeenCalledWith(false, true);
   });
 
   it('does not quit on macOS when native updater reports readiness error first', async () => {
@@ -461,7 +461,7 @@ describe('AutoUpdaterService', () => {
     await installPromise;
 
     expect(cleanup).toHaveBeenCalledTimes(1);
-    expect(autoUpdaterMock.quitAndInstall).toHaveBeenCalledWith(true, true);
+    expect(autoUpdaterMock.quitAndInstall).toHaveBeenCalledWith(false, true);
   });
 
   it('rejects a pending macOS install wait when a new update check starts', async () => {
@@ -539,7 +539,22 @@ describe('AutoUpdaterService', () => {
     await autoUpdaterService.quitAndInstall();
 
     expect(cleanup).toHaveBeenCalledTimes(1);
-    expect(autoUpdaterMock.quitAndInstall).toHaveBeenCalledWith(true, true);
+    expect(autoUpdaterMock.quitAndInstall).toHaveBeenCalledWith(false, true);
     expect(nativeAutoUpdaterMock.on).not.toHaveBeenCalled();
+  });
+
+  it('uses a non-silent handoff for user-initiated Windows installs without changing app-quit installs', async () => {
+    setPlatform('win32');
+    const cleanup = vi.fn();
+    const { autoUpdaterService } = await import('@/process/services/autoUpdaterService');
+
+    autoUpdaterService.initialize();
+    autoUpdaterService.setBeforeQuitAndInstall(cleanup);
+
+    await autoUpdaterService.quitAndInstall();
+
+    expect(cleanup).toHaveBeenCalledTimes(1);
+    expect(autoUpdaterMock.autoInstallOnAppQuit).toBe(true);
+    expect(autoUpdaterMock.quitAndInstall).toHaveBeenCalledWith(false, true);
   });
 });

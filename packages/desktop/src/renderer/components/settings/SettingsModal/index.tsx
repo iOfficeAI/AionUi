@@ -23,7 +23,7 @@ import ModelModalContent from './contents/ModelModalContent';
 import SystemModalContent from './contents/SystemModalContent';
 import ToolsModalContent from './contents/ToolsModalContent';
 import WebuiModalContent from './contents/WebuiModalContent';
-import { SettingsViewModeProvider } from './settingsViewContext';
+import { SettingsTabNavigateProvider, SettingsViewModeProvider } from './settingsViewContext';
 import { LEGACY_ANCHOR_REMAP } from '@/renderer/pages/settings/components/SettingsSider';
 
 // ==================== 常量定义 / Constants ====================
@@ -384,37 +384,39 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onCancel, defaul
 
   return (
     <SettingsViewModeProvider value='modal'>
-      <AionModal
-        visible={visible}
-        onCancel={onCancel}
-        footer={null}
-        className='settings-modal'
-        style={{
-          width: isMobile
-            ? `min(calc(100vw - 32px), ${MODAL_WIDTH.mobile}px)`
-            : `clamp(var(--app-min-width, 360px), 100vw, ${MODAL_WIDTH.desktop}px)`,
-          maxHeight: isMobile ? MODAL_HEIGHT.mobile : undefined,
-          borderRadius: '16px',
-        }}
-        contentStyle={{ padding: isMobile ? '16px' : '24px 24px 32px' }}
-        title={t('settings.title')}
-      >
-        <div
-          className={classNames('overflow-hidden gap-0', isMobile ? 'flex flex-col min-h-0' : 'flex mt-20px')}
+      <SettingsTabNavigateProvider value={handleTabChange}>
+        <AionModal
+          visible={visible}
+          onCancel={onCancel}
+          footer={null}
+          className='settings-modal'
           style={{
-            height: isMobile ? MODAL_HEIGHT.mobileContent : `${MODAL_HEIGHT.desktop}px`,
+            width: isMobile
+              ? `min(calc(100vw - 32px), ${MODAL_WIDTH.mobile}px)`
+              : `clamp(var(--app-min-width, 360px), 100vw, ${MODAL_WIDTH.desktop}px)`,
+            maxHeight: isMobile ? MODAL_HEIGHT.mobile : undefined,
+            borderRadius: '16px',
           }}
+          contentStyle={{ padding: isMobile ? '16px' : '24px 24px 32px' }}
+          title={t('settings.title')}
         >
-          {isMobile ? mobileMenu : desktopMenu}
-
-          <AionScrollArea
-            className={classNames('flex-1 min-h-0', isMobile ? 'overflow-y-auto' : 'flex flex-col pl-24px gap-16px')}
+          <div
+            className={classNames('overflow-hidden gap-0', isMobile ? 'flex flex-col min-h-0' : 'flex mt-20px')}
+            style={{
+              height: isMobile ? MODAL_HEIGHT.mobileContent : `${MODAL_HEIGHT.desktop}px`,
+            }}
           >
-            {renderBuiltinContent()}
-            {renderExtensionTabs()}
-          </AionScrollArea>
-        </div>
-      </AionModal>
+            {isMobile ? mobileMenu : desktopMenu}
+
+            <AionScrollArea
+              className={classNames('flex-1 min-h-0', isMobile ? 'overflow-y-auto' : 'flex flex-col pl-24px gap-16px')}
+            >
+              {renderBuiltinContent()}
+              {renderExtensionTabs()}
+            </AionScrollArea>
+          </div>
+        </AionModal>
+      </SettingsTabNavigateProvider>
     </SettingsViewModeProvider>
   );
 };

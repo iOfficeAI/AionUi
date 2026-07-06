@@ -837,7 +837,10 @@ class AutoUpdaterService extends EventEmitter {
 
     log.info('Quitting and installing update...');
     try {
-      autoUpdater.quitAndInstall(true, true);
+      // The first argument maps to electron-updater's silent installer flag.
+      // User-clicked "install now" should show NSIS progress/completion pages;
+      // autoInstallOnAppQuit remains true for background app-quit installs.
+      autoUpdater.quitAndInstall(false, true);
       recordAutoUpdateQuitAndInstall(this.getAutoUpdateDiagnosticOptions());
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);

@@ -33,7 +33,7 @@ import {
   setClientBusinessSetting,
 } from '@/renderer/services/clientBusinessSettings';
 import classNames from 'classnames';
-import { useSettingsViewMode } from '../settingsViewContext';
+import { useSettingsTabNavigate, useSettingsViewMode } from '../settingsViewContext';
 
 type MessageInstance = ReturnType<typeof Message.useMessage>[0];
 
@@ -480,6 +480,7 @@ const ToolsModalContent: React.FC = () => {
 
   const viewMode = useSettingsViewMode();
   const isPageMode = viewMode === 'page';
+  const navigateToSettingsTab = useSettingsTabNavigate();
   const isImageGenerationModelUnavailable = !imageGenerationModelList.length || !imageGenerationModel?.use_model;
 
   return (
@@ -572,6 +573,16 @@ const ToolsModalContent: React.FC = () => {
                 ) : (
                   <div className='text-t-secondary flex items-center'>
                     {t('settings.noAvailable')}
+                    {navigateToSettingsTab ? (
+                      <a
+                        className='text-inherit underline underline-offset-2 cursor-pointer'
+                        onClick={() => navigateToSettingsTab('model')}
+                      >
+                        {t('settings.goToModelSettings')}
+                      </a>
+                    ) : (
+                      t('settings.goToModelSettings')
+                    )}
                     <Tooltip
                       content={
                         <div>

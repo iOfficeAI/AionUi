@@ -389,4 +389,34 @@ describe('LocalAgents', () => {
     });
     expect(refreshCatalog).not.toHaveBeenCalled();
   });
+
+  it('renders the availability filter as underline tabs and switches the visible official agents', () => {
+    useManagedAgents.mockReturnValue({
+      agents: makeAgents(),
+      revalidate: vi.fn(),
+      refreshCatalog: vi.fn(),
+    });
+
+    render(<LocalAgents />);
+
+    // Filter tabs render as buttons (underline-tab style), not an Arco radio group.
+    const allTab = screen.getByTestId('settings-tab-all');
+    const availableTab = screen.getByTestId('settings-tab-available');
+    const unavailableTab = screen.getByTestId('settings-tab-unavailable');
+    expect(allTab.tagName).toBe('BUTTON');
+
+    // Default "all": both official agents visible (Aion CLI online, Claude Code missing).
+    expect(screen.getByText('Aion CLI')).toBeInTheDocument();
+    expect(screen.getByText('Claude Code')).toBeInTheDocument();
+
+    // "available" keeps only the online agent.
+    fireEvent.click(availableTab);
+    expect(screen.getByText('Aion CLI')).toBeInTheDocument();
+    expect(screen.queryByText('Claude Code')).toBeNull();
+
+    // "unavailable" keeps only the non-online agent.
+    fireEvent.click(unavailableTab);
+    expect(screen.queryByText('Aion CLI')).toBeNull();
+    expect(screen.getByText('Claude Code')).toBeInTheDocument();
+  });
 });

@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { UpdateReleaseInfo } from '@/common/update/updateTypes';
+import type { InstallerLastFailureMarker, UpdateReleaseInfo } from '@/common/update/updateTypes';
 
 type UpdateNotificationStatus =
   | 'idle'
@@ -15,7 +15,8 @@ type UpdateNotificationStatus =
   | 'downloaded'
   | 'preparing-install'
   | 'success'
-  | 'error';
+  | 'error'
+  | 'installer-last-failure';
 
 export type UpdateNotificationPresentation = 'card' | 'mini';
 
@@ -52,6 +53,8 @@ export type UpdateNotificationState = {
   progress: UpdateNotificationProgress;
   presentation: UpdateNotificationPresentation;
   releaseNotesStatus: ReleaseNotesStatus;
+  installerLastFailure?: InstallerLastFailureMarker;
+  pendingInstallerLastFailure?: InstallerLastFailureMarker;
 };
 
 export type UpdateNotificationOpenSource = 'menu' | 'about' | 'tray' | 'startup';
@@ -152,6 +155,10 @@ export type UpdateNotificationEvent =
   | {
       type: 'autoError';
       message: string;
+    }
+  | {
+      type: 'installerLastFailureConsumed';
+      marker: InstallerLastFailureMarker;
     };
 
 export type UpdateNotificationEffect =
@@ -216,6 +223,21 @@ const completeProgress = (progress: UpdateNotificationProgress): UpdateNotificat
   transferred: progress.total > 0 ? Math.max(progress.transferred, progress.total) : progress.transferred,
 });
 
+const showInstallerLastFailure = (
+  state: UpdateNotificationState,
+  marker: InstallerLastFailureMarker
+): UpdateNotificationState => ({
+  ...state,
+  visible: true,
+  status: 'installer-last-failure',
+  installerLastFailure: marker,
+  pendingInstallerLastFailure: undefined,
+  activeTask: null,
+  errorMsg: '',
+  presentation: 'card',
+  releaseNotesStatus: 'idle',
+});
+
 export const updateNotificationReducer = (
   state: UpdateNotificationState,
   event: UpdateNotificationEvent
@@ -228,6 +250,8 @@ export const updateNotificationReducer = (
           visible: true,
           status: 'checking',
           errorMsg: '',
+          installerLastFailure: undefined,
+          pendingInstallerLastFailure: undefined,
           presentation: 'card',
           releaseNotesStatus: 'idle',
         },
@@ -245,6 +269,8 @@ export const updateNotificationReducer = (
             version: event.version,
             releaseNotes: event.releaseNotes,
           },
+          installerLastFailure: undefined,
+          pendingInstallerLastFailure: undefined,
           presentation: 'card',
           releaseNotesStatus: event.releaseNotes ? 'loaded' : 'loading',
         },
@@ -262,6 +288,8 @@ export const updateNotificationReducer = (
           autoUpdateAvailable: event.autoUpdateAvailable,
           autoUpdateInfo: event.autoUpdateInfo,
           errorMsg: '',
+          installerLastFailure: undefined,
+          pendingInstallerLastFailure: undefined,
           presentation: 'card',
           releaseNotesStatus: event.updateInfo?.body || event.autoUpdateInfo?.releaseNotes ? 'loaded' : 'failed',
         },
@@ -277,6 +305,8 @@ export const updateNotificationReducer = (
           updateInfo: event.updateInfo,
           releasePageUrl: event.releasePageUrl,
           errorMsg: '',
+          installerLastFailure: undefined,
+          pendingInstallerLastFailure: undefined,
           presentation: 'card',
           releaseNotesStatus: 'idle',
         },
@@ -289,6 +319,8 @@ export const updateNotificationReducer = (
           visible: true,
           status: 'error',
           errorMsg: event.message,
+          installerLastFailure: undefined,
+          pendingInstallerLastFailure: undefined,
           presentation: 'card',
         },
         effects: [],
@@ -345,6 +377,8 @@ export const updateNotificationReducer = (
           progress: emptyProgress(),
           presentation: 'card',
           errorMsg: '',
+          installerLastFailure: undefined,
+          pendingInstallerLastFailure: undefined,
         },
         effects: [{ type: 'cancelDownload', task: state.activeTask }],
       };
@@ -373,6 +407,7 @@ export const updateNotificationReducer = (
           ...state,
           status: 'downloading',
           activeTask: { kind: 'auto', id: 'auto' },
+          installerLastFailure: undefined,
           progress: emptyProgress(),
           presentation: 'card',
         },
@@ -384,6 +419,7 @@ export const updateNotificationReducer = (
           ...state,
           status: 'downloading',
           activeTask: { kind: 'manual', id: event.downloadId },
+          installerLastFailure: undefined,
           progress: emptyProgress(),
           presentation: 'card',
         },
@@ -429,6 +465,7 @@ export const updateNotificationReducer = (
           ...state,
           status: 'downloaded',
           activeTask: null,
+          installerLastFailure: undefined,
           progress: completeProgress(state.progress),
         },
         effects: [],
@@ -440,6 +477,8 @@ export const updateNotificationReducer = (
           visible: true,
           status: 'downloaded',
           autoUpdateAvailable: true,
+          installerLastFailure: undefined,
+          pendingInstallerLastFailure: undefined,
           currentVersion: event.currentVersion ?? state.currentVersion,
           autoUpdateInfo: {
             version: event.version,
@@ -463,6 +502,7 @@ export const updateNotificationReducer = (
           visible: true,
           status: 'preparing-install',
           activeTask: null,
+          installerLastFailure: undefined,
           autoUpdateInfo: event.version
             ? {
                 version: event.version,
@@ -477,12 +517,20 @@ export const updateNotificationReducer = (
       if (state.activeTask?.kind !== 'auto' && state.status !== 'preparing-install' && state.status !== 'downloaded') {
         return { state, effects: [] };
       }
+      if (state.pendingInstallerLastFailure) {
+        return {
+          state: showInstallerLastFailure(state, state.pendingInstallerLastFailure),
+          effects: [],
+        };
+      }
       return {
         state: {
           ...state,
           status: 'error',
           activeTask: null,
           errorMsg: event.message,
+          installerLastFailure: undefined,
+          pendingInstallerLastFailure: undefined,
           presentation: 'card',
         },
         effects: [],
@@ -497,6 +545,7 @@ export const updateNotificationReducer = (
             ...state,
             status: 'downloaded',
             activeTask: null,
+            installerLastFailure: undefined,
             progress: completeProgress({
               ...event.progress,
               percent: Math.max(state.progress.percent, event.progress.percent),
@@ -512,6 +561,7 @@ export const updateNotificationReducer = (
             ...state,
             status: 'available',
             activeTask: null,
+            installerLastFailure: undefined,
             progress: emptyProgress(),
             presentation: 'card',
           },
@@ -525,6 +575,8 @@ export const updateNotificationReducer = (
             status: 'error',
             activeTask: null,
             errorMsg: event.error ?? state.errorMsg,
+            installerLastFailure: undefined,
+            pendingInstallerLastFailure: undefined,
           },
           effects: [],
         };
@@ -533,11 +585,31 @@ export const updateNotificationReducer = (
         state: {
           ...state,
           status: 'downloading',
+          installerLastFailure: undefined,
           progress: {
             ...event.progress,
             percent: Math.max(state.progress.percent, event.progress.percent),
           },
         },
+        effects: [],
+      };
+    case 'installerLastFailureConsumed':
+      if (
+        state.activeTask ||
+        state.status === 'downloading' ||
+        state.status === 'downloaded' ||
+        state.status === 'preparing-install'
+      ) {
+        return {
+          state: {
+            ...state,
+            pendingInstallerLastFailure: event.marker,
+          },
+          effects: [],
+        };
+      }
+      return {
+        state: showInstallerLastFailure(state, event.marker),
         effects: [],
       };
   }

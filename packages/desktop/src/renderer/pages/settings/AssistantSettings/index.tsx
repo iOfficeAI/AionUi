@@ -133,6 +133,12 @@ const AssistantSettings: React.FC = () => {
         value: editor.defaultPermissionValue,
         setValue: editor.setDefaultPermissionValue,
       },
+      thoughtLevel: {
+        mode: editor.defaultThoughtLevelMode,
+        setMode: editor.setDefaultThoughtLevelMode,
+        value: editor.defaultThoughtLevelValue,
+        setValue: editor.setDefaultThoughtLevelValue,
+      },
       skills: {
         mode: editor.defaultSkillsMode,
         setMode: editor.setDefaultSkillsMode,

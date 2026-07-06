@@ -26,6 +26,108 @@ const DMG_RETRY_DELAY_SEC = 30;
 
 // Incremental build: hash of source files to detect changes
 const INCREMENTAL_CACHE_FILE = 'out/.build-hash';
+const DEBUG_AUTO_UPDATE_CURRENT_VERSION_ENV = 'AIONUI_DEBUG_AUTO_UPDATE_CURRENT_VERSION';
+
+function patchElectronBuilderNsisInstaller() {
+  const rootDir = path.resolve(__dirname, '..');
+  let appBuilderDir = '';
+  try {
+    appBuilderDir = path.dirname(require.resolve('app-builder-lib/package.json'));
+  } catch (error) {
+    const bunModulesDir = path.join(rootDir, 'node_modules', '.bun');
+    if (fs.existsSync(bunModulesDir)) {
+      const candidates = fs
+        .readdirSync(bunModulesDir, { withFileTypes: true })
+        .filter((entry) => entry.isDirectory() && entry.name.startsWith('app-builder-lib@'))
+        .map((entry) => path.join(bunModulesDir, entry.name, 'node_modules', 'app-builder-lib'))
+        .filter((candidate) => fs.existsSync(path.join(candidate, 'package.json')))
+        .sort();
+      appBuilderDir = candidates[0] || '';
+    }
+    if (!appBuilderDir) {
+      console.warn(`Warning: app-builder-lib is not resolvable; skipping NSIS template patch: ${error.message}`);
+      return;
+    }
+  }
+
+  const installUtilPath = path.join(appBuilderDir, 'templates', 'nsis', 'include', 'installUtil.nsh');
+  if (!fs.existsSync(installUtilPath)) {
+    console.warn(`Warning: electron-builder NSIS installUtil.nsh not found: ${installUtilPath}`);
+    return;
+  }
+
+  const original = fs.readFileSync(installUtilPath, 'utf8');
+  let patched = original;
+
+  const retryPrompt = [
+    '    ${if} $R5 > 5',
+    '      MessageBox MB_RETRYCANCEL|MB_ICONEXCLAMATION "$(appCannotBeClosed)" /SD IDCANCEL IDRETRY OneMoreAttempt',
+    '      Return',
+    '    ${endIf}',
+  ].join('\n');
+  const retryHandoff = [
+    '    ${if} $R5 > 5',
+    '      DetailPrint `Previous uninstaller did not finish after retry limit; deferring to customUnInstallCheck.`',
+    '      Return',
+    '    ${endIf}',
+  ].join('\n');
+
+  if (patched.includes(retryPrompt)) {
+    patched = patched.replace(retryPrompt, retryHandoff);
+  } else if (!patched.includes(retryHandoff)) {
+    throw new Error(
+      'electron-builder NSIS uninstall retry prompt template changed; update patchElectronBuilderNsisInstaller.'
+    );
+  }
+
+  const oneMoreAttemptLabel = '  OneMoreAttempt:\n';
+  if (patched.includes(oneMoreAttemptLabel)) {
+    patched = patched.replace(oneMoreAttemptLabel, '');
+  }
+
+  const copiedUninstallerExec = `ExecWait '"$uninstallerFileNameTemp" /S /KEEP_APP_DATA $0 _?=$installationDir' $R0`;
+  const copiedUninstallerExecWithLog = `ExecWait '"$uninstallerFileNameTemp" /S /KEEP_APP_DATA $0 --installer-log="$AionUiSessionLogPath" --installer-session="$AionUiSessionId" _?=$installationDir' $R0`;
+  if (patched.includes(copiedUninstallerExec)) {
+    patched = patched.replace(copiedUninstallerExec, copiedUninstallerExecWithLog);
+  } else if (
+    patched.includes(
+      `ExecWait '"$uninstallerFileNameTemp" /S /KEEP_APP_DATA $0 --installer-log="$AionUiSessionLogPath" _?=$installationDir' $R0`
+    )
+  ) {
+    patched = patched.replace(
+      `ExecWait '"$uninstallerFileNameTemp" /S /KEEP_APP_DATA $0 --installer-log="$AionUiSessionLogPath" _?=$installationDir' $R0`,
+      copiedUninstallerExecWithLog
+    );
+  } else if (!patched.includes(copiedUninstallerExecWithLog)) {
+    throw new Error(
+      'electron-builder copied-uninstaller ExecWait template changed; update patchElectronBuilderNsisInstaller.'
+    );
+  }
+
+  const inPlaceUninstallerExec = `ExecWait '"$uninstallerFileName" /S /KEEP_APP_DATA $0 _?=$installationDir' $R0`;
+  const inPlaceUninstallerExecWithLog = `ExecWait '"$uninstallerFileName" /S /KEEP_APP_DATA $0 --installer-log="$AionUiSessionLogPath" --installer-session="$AionUiSessionId" _?=$installationDir' $R0`;
+  if (patched.includes(inPlaceUninstallerExec)) {
+    patched = patched.replace(inPlaceUninstallerExec, inPlaceUninstallerExecWithLog);
+  } else if (
+    patched.includes(
+      `ExecWait '"$uninstallerFileName" /S /KEEP_APP_DATA $0 --installer-log="$AionUiSessionLogPath" _?=$installationDir' $R0`
+    )
+  ) {
+    patched = patched.replace(
+      `ExecWait '"$uninstallerFileName" /S /KEEP_APP_DATA $0 --installer-log="$AionUiSessionLogPath" _?=$installationDir' $R0`,
+      inPlaceUninstallerExecWithLog
+    );
+  } else if (!patched.includes(inPlaceUninstallerExecWithLog)) {
+    throw new Error(
+      'electron-builder in-place uninstaller ExecWait template changed; update patchElectronBuilderNsisInstaller.'
+    );
+  }
+
+  if (patched !== original) {
+    fs.writeFileSync(installUtilPath, patched);
+    console.log('Patched electron-builder NSIS uninstall failure handoff.');
+  }
+}
 
 function walkFiles(dir, acc = []) {
   const entries = fs.readdirSync(dir, { withFileTypes: true });
@@ -214,6 +316,58 @@ function formatExecError(error) {
   return [error?.message, error?.stdout?.toString?.(), error?.stderr?.toString?.()].filter(Boolean).join('\n').trim();
 }
 
+function escapeNsisDefineValue(value) {
+  return String(value ?? '')
+    .replace(/\\/g, '\\\\')
+    .replace(/"/g, '$\\"');
+}
+
+function writeGeneratedSentryDsnInclude(projectRoot) {
+  const generatedInclude = path.join(projectRoot, 'resources/windows/support/_sentry-dsn.generated.nsh');
+  fs.mkdirSync(path.dirname(generatedInclude), { recursive: true });
+  fs.writeFileSync(
+    generatedInclude,
+    `!define AIONUI_SENTRY_DSN "${escapeNsisDefineValue(process.env.SENTRY_DSN || '')}"\n`
+  );
+}
+
+function isValidPackageVersion(value) {
+  return /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/.test(
+    value
+  );
+}
+
+function applyDebugAutoUpdateVersionOverride(packageJsonPath) {
+  const debugAutoUpdateCurrentVersion = process.env[DEBUG_AUTO_UPDATE_CURRENT_VERSION_ENV]?.trim();
+  if (!debugAutoUpdateCurrentVersion) {
+    return () => {};
+  }
+  if (!isValidPackageVersion(debugAutoUpdateCurrentVersion)) {
+    throw new Error(`${DEBUG_AUTO_UPDATE_CURRENT_VERSION_ENV} must be a valid semver version`);
+  }
+
+  const originalPackageJsonText = fs.readFileSync(packageJsonPath, 'utf8');
+  const packageJson = JSON.parse(originalPackageJsonText);
+  const originalPackageVersion = packageJson.version;
+  if (originalPackageVersion === debugAutoUpdateCurrentVersion) {
+    console.log(`Debug auto-update build version already set to ${debugAutoUpdateCurrentVersion}`);
+    return () => {};
+  }
+
+  packageJson.version = debugAutoUpdateCurrentVersion;
+  fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2) + '\n');
+  console.log(
+    `Debug auto-update build version override: ${originalPackageVersion} -> ${debugAutoUpdateCurrentVersion}`
+  );
+
+  return () => {
+    if (fs.readFileSync(packageJsonPath, 'utf8') !== originalPackageJsonText) {
+      fs.writeFileSync(packageJsonPath, originalPackageJsonText);
+      console.log(`Restored package.json version to ${originalPackageVersion}`);
+    }
+  };
+}
+
 // Create macOS distributables using electron-builder --prepackaged with .app path.
 // This preserves DMG styling and still emits the zip required by MacUpdater.
 function createMacArtifactsWithPrepackaged(appDir, targetArch) {
@@ -389,8 +543,12 @@ if (packOnly) console.log('⚡ --pack-only: Will skip electron-builder distribut
 if (forceBuild) console.log('⚡ --force: Force full rebuild');
 
 const packageJsonPath = path.resolve(__dirname, '../package.json');
+let restorePackageVersionOverride = () => {};
+let buildFailed = false;
 
 try {
+  restorePackageVersionOverride = applyDebugAutoUpdateVersionOverride(packageJsonPath);
+
   // 1. Ensure package.json main entry is correct for electron-vite
   const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
   if (packageJson.main !== './out/main/index.js') {
@@ -459,6 +617,7 @@ try {
   const { prepareAioncore } = require('../packages/shared-scripts/src/prepare-aioncore.js');
   const { resolveAioncoreVersion } = require('./resolveAioncoreVersion.js');
   const projectRoot = path.resolve(__dirname, '..');
+  writeGeneratedSentryDsnInclude(projectRoot);
   prepareAioncore({
     projectRoot,
     platform: process.platform,
@@ -512,7 +671,7 @@ try {
       // 单架构构建：添加对应架构的检测脚本
       // Single-arch build: Add architecture-specific detection script
       if (targetArch === 'arm64') {
-        const arm64Script = 'resources/windows-installer-arm64.nsh';
+        const arm64Script = 'resources/windows/windows-installer-arm64.nsh';
         if (fs.existsSync(path.resolve(__dirname, '..', arm64Script))) {
           nsisInclude += ` --config.nsis.include="${arm64Script}"`;
           console.log(`📋 Including Windows ARM64 architecture check script`);
@@ -520,7 +679,7 @@ try {
         nsisInclude += ' --config.nsis.useZip=true';
         console.log('📋 Using ZIP payload for Windows ARM64 NSIS installer');
       } else if (targetArch === 'x64') {
-        const x64Script = 'resources/windows-installer-x64.nsh';
+        const x64Script = 'resources/windows/windows-installer-x64.nsh';
         if (fs.existsSync(path.resolve(__dirname, '..', x64Script))) {
           nsisInclude += ` --config.nsis.include="${x64Script}"`;
           console.log(`📋 Including Windows x64 architecture check script`);
@@ -550,6 +709,7 @@ try {
 
   const isWindowsBuild = builderArgs.includes('--win') || builderArgs.includes('--all');
   if (isWindowsBuild) {
+    patchElectronBuilderNsisInstaller();
     cleanupWindowsPackOutput();
   }
 
@@ -600,6 +760,16 @@ try {
 
   console.log('✅ Build completed!');
 } catch (error) {
+  buildFailed = true;
   console.error('❌ Build failed:', error.message);
-  process.exit(1);
+  process.exitCode = 1;
+} finally {
+  try {
+    restorePackageVersionOverride();
+  } catch (restoreError) {
+    console.error('❌ Failed to restore package.json version:', restoreError.message);
+    if (!buildFailed) {
+      process.exitCode = 1;
+    }
+  }
 }

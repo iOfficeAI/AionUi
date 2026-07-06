@@ -7,7 +7,12 @@
 import React from 'react';
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { AutoUpdateStatus, UpdateDownloadProgressEvent, UpdateDownloadRequest } from '@/common/update/updateTypes';
+import type {
+  AutoUpdateStatus,
+  InstallerLastFailureMarker,
+  UpdateDownloadProgressEvent,
+  UpdateDownloadRequest,
+} from '@/common/update/updateTypes';
 
 const mocks = vi.hoisted(() => ({
   manualProgressHandler: null as ((evt: UpdateDownloadProgressEvent) => void) | null,
@@ -18,9 +23,14 @@ const mocks = vi.hoisted(() => ({
   autoUpdateDownloadMock: vi.fn(),
   autoUpdateCancelDownloadMock: vi.fn(),
   autoUpdateQuitAndInstallMock: vi.fn(),
+  consumeInstallerLastFailureMock: vi.fn(),
   updateCheckMock: vi.fn(),
   updateDownloadMock: vi.fn(),
   updateCancelDownloadMock: vi.fn(),
+  openFeedbackMock: vi.fn(),
+  shellOpenExternalMock: vi.fn(),
+  shellOpenFileMock: vi.fn(),
+  shellShowItemInFolderMock: vi.fn(),
 }));
 
 vi.mock('react-i18next', () => ({
@@ -29,6 +39,10 @@ vi.mock('react-i18next', () => ({
 
 vi.mock('@/renderer/components/Markdown', () => ({
   default: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+}));
+
+vi.mock('@/renderer/hooks/context/FeedbackContext', () => ({
+  useFeedback: () => ({ openFeedback: mocks.openFeedbackMock }),
 }));
 
 vi.mock('@/common', () => ({
@@ -48,6 +62,7 @@ vi.mock('@/common', () => ({
     },
     update: {
       check: { invoke: mocks.updateCheckMock },
+      consumeInstallerLastFailure: { invoke: mocks.consumeInstallerLastFailureMock },
       download: { invoke: mocks.updateDownloadMock },
       cancelDownload: { invoke: mocks.updateCancelDownloadMock },
       downloadProgress: {
@@ -64,9 +79,9 @@ vi.mock('@/common', () => ({
       },
     },
     shell: {
-      openExternal: { invoke: vi.fn() },
-      openFile: { invoke: vi.fn() },
-      showItemInFolder: { invoke: vi.fn() },
+      openExternal: { invoke: mocks.shellOpenExternalMock },
+      openFile: { invoke: mocks.shellOpenFileMock },
+      showItemInFolder: { invoke: mocks.shellShowItemInFolderMock },
     },
   },
 }));
@@ -84,6 +99,7 @@ describe('UpdateNotificationCard', () => {
     mocks.autoUpdateDownloadMock.mockResolvedValue({ success: true });
     mocks.autoUpdateCancelDownloadMock.mockResolvedValue({ success: true });
     mocks.autoUpdateQuitAndInstallMock.mockResolvedValue(undefined);
+    mocks.consumeInstallerLastFailureMock.mockResolvedValue({ success: true, data: null });
     mocks.updateCancelDownloadMock.mockResolvedValue({ success: true });
     mocks.updateCheckMock.mockResolvedValue({
       success: true,
@@ -523,5 +539,53 @@ describe('UpdateNotificationCard', () => {
 
     expect(await screen.findByText('network failed')).toBeInTheDocument();
     expect(screen.queryByLabelText('common.close')).not.toBeInTheDocument();
+  });
+
+  it('shows consumed silent installer failure marker with retry, log, and feedback actions', async () => {
+    const marker: InstallerLastFailureMarker = {
+      schemaVersion: 1,
+      kind: 'app-cannot-be-closed',
+      phase: 'customCheckAppRunning',
+      silent: true,
+      updated: true,
+      retryCount: 3,
+      instDir: 'D:\\AionUi',
+      logPath: 'C:\\Users\\me\\AppData\\Local\\Temp\\aionui-installer-2.1.27-20260702-151830-ab12cd34ef56.log',
+      at: '2026-07-01T00:00:00.000Z',
+    };
+    mocks.consumeInstallerLastFailureMock.mockResolvedValue({ success: true, data: marker });
+
+    render(<UpdateNotificationCard />);
+
+    expect(await screen.findByText('update.installerLastFailure.title')).toBeInTheDocument();
+    expect(screen.getByText('update.installerLastFailure.description')).toBeInTheDocument();
+    expect(screen.getByText('update.installerLastFailure.retryUpdate')).toBeInTheDocument();
+    expect(screen.getByText('update.installerLastFailure.viewLog')).toBeInTheDocument();
+    expect(screen.getByText('settings.oneClickFeedback')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText('update.installerLastFailure.viewLog'));
+    await waitFor(() => {
+      expect(mocks.shellShowItemInFolderMock).toHaveBeenCalledWith(marker.logPath);
+    });
+
+    fireEvent.click(screen.getByText('settings.oneClickFeedback'));
+    await waitFor(() => {
+      expect(mocks.openFeedbackMock).toHaveBeenCalledWith({
+        module: 'installer-update',
+        autoScreenshot: true,
+        tags: {
+          kind: 'app-cannot-be-closed',
+          message: 'installer-last-failure',
+        },
+        extra: {
+          installerLastFailure: marker,
+        },
+      });
+    });
+
+    fireEvent.click(screen.getByText('update.installerLastFailure.retryUpdate'));
+    await waitFor(() => {
+      expect(mocks.autoUpdateCheckMock).toHaveBeenCalled();
+    });
   });
 });

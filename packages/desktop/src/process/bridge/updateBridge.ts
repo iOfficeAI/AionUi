@@ -14,6 +14,7 @@ import type {
   UpdateDownloadResult,
   UpdateReleaseInfo,
   GitHubReleaseAsset,
+  InstallerLastFailureMarker,
 } from '@/common/update/updateTypes';
 import { uuid } from '@/common/utils';
 import { app } from 'electron';
@@ -22,6 +23,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import semver from 'semver';
 import { autoUpdaterService } from '../services/autoUpdaterService';
+import { consumeInstallerLastFailure } from '../services/installerLastFailure';
 
 /** Lazily loads i18n to avoid pulling in initStorage chain at module load time */
 let _i18nCache: Promise<typeof import('../services/i18n')> | null = null;
@@ -551,6 +553,19 @@ export function createAutoUpdateStatusBroadcast(): (
 }
 
 export function initUpdateBridge(): void {
+  ipcBridge.update.consumeInstallerLastFailure.provider(
+    async (): Promise<{ success: boolean; data: InstallerLastFailureMarker | null; msg?: string }> => {
+      try {
+        return {
+          success: true,
+          data: await consumeInstallerLastFailure({ appDataDir: app.getPath('appData') }),
+        };
+      } catch (err: unknown) {
+        return { success: false, data: null, msg: err instanceof Error ? err.message : String(err) };
+      }
+    }
+  );
+
   ipcBridge.update.check.provider(
     async (params): Promise<{ success: boolean; data?: UpdateCheckResult; msg?: string }> => {
       try {

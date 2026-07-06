@@ -18,7 +18,7 @@ export class OpenAIRotatingClient extends RotatingApiClient<OpenAI> {
       const cleanedApiKey = api_key.replace(/[\s\r\n\t]/g, '').trim();
       const openaiConfig: any = {
         baseURL: config.baseURL,
-        api_key: cleanedApiKey,
+        apiKey: cleanedApiKey,
         defaultHeaders: config.defaultHeaders,
       };
 

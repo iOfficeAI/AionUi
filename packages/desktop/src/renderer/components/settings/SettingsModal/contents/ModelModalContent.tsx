@@ -18,6 +18,7 @@ import AionScrollArea from '@/renderer/components/base/AionScrollArea';
 import TalkToButlerButton from '@/renderer/components/base/TalkToButlerButton';
 import { useProvidersQuery } from '@/renderer/hooks/agent/useModelProviderList';
 import { useSettingsViewMode } from '../settingsViewContext';
+import SettingsPageHeader from '@/renderer/pages/settings/components/SettingsPageHeader';
 import { consumePendingDeepLink } from '@/renderer/hooks/system/useDeepLink';
 import '../model-provider.css';
 
@@ -324,48 +325,68 @@ const ModelModalContent: React.FC = () => {
     },
   });
 
+  const headerActions = (
+    <>
+      <Button type='text' size='small' onClick={clearAllHealthData} className='!text-t-secondary hover:!text-t-primary'>
+        {t('settings.clearStatus')}
+      </Button>
+      <TalkToButlerButton
+        label={t('settings.addModel')}
+        chatLabel={t('settings.talkToButler.addViaChat', { defaultValue: 'Add via chat' })}
+        onManual={() => addPlatformModalCtrl.open()}
+        manualLabel={t('settings.talkToButler.addManually', { defaultValue: 'Add manually' })}
+        prompt={t('settings.talkToButler.prompt.addModel', {
+          defaultValue: 'Help me add a new LLM provider and API key, then set it as the default model.',
+        })}
+      />
+    </>
+  );
+
+  const supportNote = (
+    <div
+      className='rd-8px px-12px py-8px text-12px leading-5 border border-solid'
+      style={{
+        borderColor: 'rgba(var(--primary-6),0.32)',
+        backgroundColor: 'rgba(var(--primary-6),0.08)',
+        color: 'rgb(var(--primary-6))',
+      }}
+    >
+      {t('settings.customModelSupportNote')}
+    </div>
+  );
+
   return (
-    <div className='flex flex-col bg-2 rd-16px px-16px md:px-24px lg:px-28px py-16px md:py-18px'>
+    <div
+      className={
+        isPageMode
+          ? 'flex flex-col gap-16px'
+          : 'flex flex-col bg-2 rd-16px px-16px md:px-24px lg:px-28px py-16px md:py-18px'
+      }
+    >
       {messageContext}
       {addPlatformModalContext}
       {editModalContext}
       {addModelModalContext}
 
-      {/* Header with Add Button */}
-      <div className='flex-shrink-0 border-b border-[var(--color-border-2)] pb-12px mb-14px flex flex-col gap-10px'>
-        <div className='flex items-center justify-between gap-8px flex-wrap'>
-          <div className='text-20px font-600 text-t-primary leading-34px'>{t('settings.model')}</div>
-          <div className='flex items-center gap-8px flex-wrap'>
-            <Button
-              type='text'
-              size='small'
-              onClick={clearAllHealthData}
-              className='!text-t-secondary hover:!text-t-primary'
-            >
-              {t('settings.clearStatus')}
-            </Button>
-            <TalkToButlerButton
-              label={t('settings.addModel')}
-              chatLabel={t('settings.talkToButler.addViaChat', { defaultValue: 'Add via chat' })}
-              onManual={() => addPlatformModalCtrl.open()}
-              manualLabel={t('settings.talkToButler.addManually', { defaultValue: 'Add manually' })}
-              prompt={t('settings.talkToButler.prompt.addModel', {
-                defaultValue: 'Help me add a new LLM provider and API key, then set it as the default model.',
-              })}
-            />
+      {isPageMode ? (
+        <SettingsPageHeader
+          data-testid='model-header'
+          title={t('settings.model')}
+          description={t('settings.modelDescription', {
+            defaultValue: 'Configure LLM providers and API keys for use across all assistants.',
+          })}
+          actions={headerActions}
+        />
+      ) : (
+        /* Modal mode keeps its compact self-contained header. */
+        <div className='flex-shrink-0 border-b border-[var(--color-border-2)] pb-12px mb-14px flex flex-col gap-10px'>
+          <div className='flex items-center justify-between gap-8px flex-wrap'>
+            <div className='text-20px font-600 text-t-primary leading-34px'>{t('settings.model')}</div>
+            <div className='flex items-center gap-8px flex-wrap'>{headerActions}</div>
           </div>
+          {supportNote}
         </div>
-        <div
-          className='rd-8px px-12px py-8px text-12px leading-5 border border-solid'
-          style={{
-            borderColor: 'rgba(var(--primary-6),0.32)',
-            backgroundColor: 'rgba(var(--primary-6),0.08)',
-            color: 'rgb(var(--primary-6))',
-          }}
-        >
-          {t('settings.customModelSupportNote')}
-        </div>
-      </div>
+      )}
 
       {/* Content Area */}
       <AionScrollArea className='flex-1 min-h-0' disableOverflow={isPageMode}>

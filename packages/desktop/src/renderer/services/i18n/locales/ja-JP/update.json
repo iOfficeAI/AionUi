@@ -28,6 +28,12 @@
   "showInFolder": "フォルダーで表示",
   "openFile": "ファイルを開く",
   "errorTitle": "更新に失敗しました",
+  "installerLastFailure": {
+    "title": "前回の更新が完了しませんでした",
+    "description": "前回のサイレント更新中に AionUi を閉じられませんでした。更新を再試行するか、インストーラーログを確認するか、フィードバックを送信できます。",
+    "retryUpdate": "更新を再試行",
+    "viewLog": "ログを表示"
+  },
   "errors": {
     "invalidUrl": "ダウンロード URL が無効です",
     "httpsOnly": "HTTPS のダウンロード URL のみ許可されています",

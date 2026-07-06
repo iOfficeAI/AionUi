@@ -4,6 +4,8 @@
  * Resolution order:
  *  1. GitHub Actions artifact download when AIONUI_BACKEND_RUN_ID is set
  *  2. GitHub release download (requires version or defaults to "latest")
+ *  3. Complete local bundle from AIONUI_BACKEND_LOCAL_BUNDLE_DIR
+ *  4. Local binary fallback from AIONUI_BACKEND_LOCAL_BINARY
  *
  * Output: {projectRoot}/resources/bundled-aioncore/{platform}-{arch}/
  *   - aioncore[.exe]
@@ -65,6 +67,11 @@ function removeDirectorySafe(dirPath) {
 function copyFileSafe(sourcePath, targetPath) {
   ensureDirectory(path.dirname(targetPath));
   fs.copyFileSync(sourcePath, targetPath);
+}
+
+function copyDirectorySafe(sourcePath, targetPath) {
+  ensureDirectory(path.dirname(targetPath));
+  fs.cpSync(sourcePath, targetPath, { recursive: true, force: true });
 }
 
 function ensureExecutableMode(filePath) {
@@ -450,6 +457,35 @@ function prepareAioncore(options) {
   removeDirectorySafe(targetDir);
   ensureDirectory(targetDir);
 
+  const localBundleDir = (process.env.AIONUI_BACKEND_LOCAL_BUNDLE_DIR || '').trim();
+  if (localBundleDir) {
+    const resolvedLocalBundleDir = path.resolve(localBundleDir);
+    const localBinaryPath = path.join(resolvedLocalBundleDir, binaryName);
+    const localManagedResourcesDir = path.join(resolvedLocalBundleDir, 'managed-resources');
+    if (
+      fs.existsSync(resolvedLocalBundleDir) &&
+      fs.statSync(resolvedLocalBundleDir).isDirectory() &&
+      fs.existsSync(localBinaryPath) &&
+      fs.existsSync(localManagedResourcesDir)
+    ) {
+      copyDirectorySafe(resolvedLocalBundleDir, targetDir);
+      ensureExecutableMode(targetBinaryPath);
+      const manifest = {
+        platform,
+        arch,
+        version: tag || `actions-run-${actionsRunId}` || 'local-bundle',
+        generatedAt: new Date().toISOString(),
+        sourceType: 'local-bundle',
+        source: { path: resolvedLocalBundleDir },
+        files: [binaryName, 'managed-resources/'],
+      };
+      writeJson(path.join(targetDir, 'manifest.json'), manifest);
+      console.log(`  Using local aioncore bundle: ${resolvedLocalBundleDir}`);
+      return { prepared: true, dir: targetDir, sourceType: 'local-bundle' };
+    }
+    console.warn(`  Local aioncore bundle is incomplete or missing: ${resolvedLocalBundleDir}`);
+  }
+
   let sourcePath = null;
   let sourceType = 'none';
   let sourceDetail = {};
@@ -480,6 +516,22 @@ function prepareAioncore(options) {
       console.log(`  Downloaded from GitHub releases`);
     } catch (error) {
       console.warn(`  Download failed: ${error.message}`);
+    }
+  }
+
+  // 3. Use an explicitly supplied local cache when network download is unavailable.
+  if (!sourcePath) {
+    const localBinary = (process.env.AIONUI_BACKEND_LOCAL_BINARY || '').trim();
+    if (localBinary) {
+      const resolvedLocalBinary = path.resolve(localBinary);
+      if (fs.existsSync(resolvedLocalBinary) && fs.statSync(resolvedLocalBinary).isFile()) {
+        sourcePath = resolvedLocalBinary;
+        sourceType = 'local-binary';
+        sourceDetail = { path: resolvedLocalBinary };
+        console.log(`  Using local aioncore binary: ${resolvedLocalBinary}`);
+      } else {
+        console.warn(`  Local aioncore binary not found: ${resolvedLocalBinary}`);
+      }
     }
   }
 

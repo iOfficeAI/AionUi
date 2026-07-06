@@ -37,6 +37,7 @@ type GuidInputCardProps = {
 
   // Action row
   actionRow: React.ReactNode;
+  slashCommandMenu?: React.ReactNode;
 
   // Workspace
   workspaceDir: string;
@@ -61,6 +62,7 @@ const GuidInputCard: React.FC<GuidInputCardProps> = ({
   files,
   onRemoveFile,
   actionRow,
+  slashCommandMenu,
   workspaceDir,
   onSelectWorkspace,
   onClearWorkspace,
@@ -83,7 +85,7 @@ const GuidInputCard: React.FC<GuidInputCardProps> = ({
 
   return (
     <div
-      className={`${styles.guidInputCardWrap} guid-input-card-shell relative rd-24px flex flex-col overflow-hidden transition-all duration-200 ${isFileDragging ? 'b b-solid border-dashed guid-input-card-shell--dragging' : ''}`}
+      className={`${styles.guidInputCardWrap} guid-input-card-shell relative rd-24px flex flex-col ${slashCommandMenu ? 'overflow-visible' : 'overflow-hidden'} transition-all duration-200 ${isFileDragging ? 'b b-solid border-dashed guid-input-card-shell--dragging' : ''}`}
       style={{
         zIndex: 1,
         transition: 'box-shadow 0.25s ease',
@@ -102,6 +104,9 @@ const GuidInputCard: React.FC<GuidInputCardProps> = ({
       }}
       {...dragHandlers}
     >
+      {slashCommandMenu && (
+        <div className='absolute left-12px right-12px bottom-[calc(100%+8px)] z-70'>{slashCommandMenu}</div>
+      )}
       {/* inner white card — narrower than outer wrap */}
       <div
         className={`${styles.guidInputInner} p-12px flex flex-col bg-dialog-fill-0`}

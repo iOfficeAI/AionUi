@@ -5,6 +5,7 @@
  */
 
 import MarkdownView from '@/renderer/components/Markdown';
+import { useFeedback } from '@/renderer/hooks/context/FeedbackContext';
 import { Button, Modal, Progress } from '@arco-design/web-react';
 import { CheckOne, Close, Download } from '@icon-park/react';
 import React from 'react';
@@ -23,6 +24,7 @@ const renderNotificationLayer = (node: React.ReactElement) => {
 const UpdateNotificationCard: React.FC = () => {
   const { t } = useTranslation();
   const { state, versionLabel, actions } = useUpdateNotificationController();
+  const { openFeedback } = useFeedback();
   const [releaseLogVisible, setReleaseLogVisible] = React.useState(false);
 
   if (!state.visible) return null;
@@ -137,6 +139,15 @@ const UpdateNotificationCard: React.FC = () => {
         return <div className='py-16px text-13px text-t-secondary break-all'>{state.downloadPath}</div>;
       case 'error':
         return <div className='py-16px text-13px text-[rgb(var(--danger-6))]'>{state.errorMsg}</div>;
+      case 'installer-last-failure':
+        return (
+          <div className='py-6px text-13px text-t-secondary leading-relaxed max-w-360px'>
+            <div>{t('update.installerLastFailure.description')}</div>
+            {state.installerLastFailure?.logPath ? (
+              <div className='mt-6px text-12px text-t-tertiary break-all'>{state.installerLastFailure.logPath}</div>
+            ) : null}
+          </div>
+        );
       case 'idle':
         return null;
     }
@@ -188,6 +199,40 @@ const UpdateNotificationCard: React.FC = () => {
         </>
       );
     }
+    if (state.status === 'installer-last-failure') {
+      return (
+        <>
+          <Button size='small' className={ACTION_BTN_CLASS} onClick={() => void actions.checkForUpdates()}>
+            {t('update.installerLastFailure.retryUpdate')}
+          </Button>
+          {state.installerLastFailure?.logPath && (
+            <Button size='small' className={ACTION_BTN_CLASS} onClick={actions.viewInstallerLastFailureLog}>
+              {t('update.installerLastFailure.viewLog')}
+            </Button>
+          )}
+          <Button
+            type='primary'
+            size='small'
+            className={ACTION_BTN_CLASS}
+            onClick={() =>
+              void openFeedback({
+                module: 'installer-update',
+                autoScreenshot: true,
+                tags: {
+                  kind: 'app-cannot-be-closed',
+                  message: 'installer-last-failure',
+                },
+                extra: {
+                  installerLastFailure: state.installerLastFailure,
+                },
+              })
+            }
+          >
+            {t('settings.oneClickFeedback')}
+          </Button>
+        </>
+      );
+    }
     if (state.status === 'available') {
       return (
         <>
@@ -216,8 +261,15 @@ const UpdateNotificationCard: React.FC = () => {
         className='fixed right-24px bottom-24px z-1000 w-max min-w-300px max-w-[calc(100vw-32px)] bg-1 border border-border-2 rd-8px shadow-[0_2px_16px_rgba(0,0,0,0.12)] overflow-hidden'
       >
         <div className='flex items-center gap-10px px-16px pt-12px pb-6px min-w-0'>
-          <Download size='18' fill='rgb(var(--primary-6))' />
-          <div className='text-14px text-t-primary font-600 truncate flex-1'>{t('update.modalTitle')}</div>
+          <Download
+            size='18'
+            fill={state.status === 'installer-last-failure' ? 'rgb(var(--warning-6))' : 'rgb(var(--primary-6))'}
+          />
+          <div className='text-14px text-t-primary font-600 truncate flex-1'>
+            {state.status === 'installer-last-failure'
+              ? t('update.installerLastFailure.title')
+              : t('update.modalTitle')}
+          </div>
           {state.status === 'downloading' && (
             <button
               type='button'

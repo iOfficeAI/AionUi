@@ -1,0 +1,3 @@
+appCannotBeClosed:
+  en: "AionUi could not finish closing or removing the previous version.\n\nClose AionUi and any program that may be using files in the install folder, then click Retry.\n\nIf Retry keeps returning here, click Cancel. The installer will show the failed path, any program reported by Windows Restart Manager, and the installer log."
+  zh_CN: "AionUi 无法完成关闭或移除旧版本。\n\n请关闭 AionUi，以及任何可能正在使用安装目录中文件的程序，然后点击“重试”。\n\n如果重试后仍返回此处，请点击“取消”。安装器会显示失败路径、Windows Restart Manager 报告的占用程序以及安装日志。"

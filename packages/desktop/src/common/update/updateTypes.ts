@@ -57,6 +57,22 @@ export interface UpdateDownloadCancelRequest {
   downloadId: string;
 }
 
+export type InstallerLastFailureKind = 'app-cannot-be-closed';
+export type InstallerLastFailurePhase = 'customCheckAppRunning';
+
+export interface InstallerLastFailureMarker {
+  schemaVersion: 1;
+  kind: InstallerLastFailureKind;
+  phase: InstallerLastFailurePhase;
+  silent: true;
+  updated: true;
+  retryCount: number;
+  instDir: string;
+  logPath: string;
+  at: string;
+  blockers?: unknown[];
+}
+
 export type UpdateDownloadStatus = 'starting' | 'downloading' | 'completed' | 'error' | 'cancelled';
 
 export interface UpdateDownloadProgressEvent {

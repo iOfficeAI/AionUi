@@ -38,6 +38,31 @@ export function getScrollTopForActiveItem(input: ActiveItemScrollInput): number 
   return containerScrollTop;
 }
 
+export function getFuzzyMatchIndices(value: string, query: string): number[] | null {
+  const keyword = query.trim();
+  if (!keyword) {
+    return [];
+  }
+
+  const valueLower = value.toLowerCase();
+  const keywordLower = keyword.toLowerCase();
+  const startIndex = valueLower.indexOf(keywordLower);
+  if (startIndex < 0) {
+    return null;
+  }
+
+  return Array.from({ length: keywordLower.length }, (_item, index) => startIndex + index);
+}
+
+export function filterSlashCommands(commands: SlashCommandItem[], query: string): SlashCommandItem[] {
+  const keyword = query.trim();
+  if (!keyword) {
+    return commands;
+  }
+
+  return commands.filter((command) => getFuzzyMatchIndices(command.name, keyword) !== null);
+}
+
 function getSelectionBehavior(command: SlashCommandItem): 'execute' | 'insert' {
   if (command.selectionBehavior) {
     return command.selectionBehavior;
@@ -70,11 +95,7 @@ export function useSlashCommandController(options: UseSlashCommandControllerOpti
     if (query === null) {
       return [];
     }
-    const keyword = query.trim().toLowerCase();
-    if (!keyword) {
-      return commands;
-    }
-    return commands.filter((command) => command.name.toLowerCase().startsWith(keyword));
+    return filterSlashCommands(commands, query);
   }, [commands, query]);
 
   const isOpen = query !== null && !dismissed && filteredCommands.length > 0;
@@ -133,6 +154,7 @@ export function useSlashCommandController(options: UseSlashCommandControllerOpti
   );
 
   return {
+    query,
     isOpen,
     activeIndex,
     filteredCommands,

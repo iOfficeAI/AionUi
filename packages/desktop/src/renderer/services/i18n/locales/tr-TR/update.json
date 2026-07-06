@@ -28,6 +28,12 @@
   "showInFolder": "Klasörde göster",
   "openFile": "Dosyayı aç",
   "errorTitle": "Güncelleme başarısız",
+  "installerLastFailure": {
+    "title": "Son güncelleme tamamlanmadı",
+    "description": "Önceki sessiz güncelleme sırasında AionUi kapatılamadı. Güncellemeyi yeniden deneyebilir, kurulum günlüğünü görüntüleyebilir veya geri bildirim gönderebilirsiniz.",
+    "retryUpdate": "Güncellemeyi yeniden dene",
+    "viewLog": "Günlüğü görüntüle"
+  },
   "errors": {
     "invalidUrl": "Geçersiz indirme URL'si",
     "httpsOnly": "Yalnızca HTTPS indirme URL'lerine izin verilir",

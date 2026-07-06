@@ -1,7 +1,10 @@
 import classNames from 'classnames';
 import React from 'react';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
-import { SettingsViewModeProvider } from '@/renderer/components/settings/SettingsModal/settingsViewContext';
+import {
+  SettingsTabNavigateProvider,
+  SettingsViewModeProvider,
+} from '@/renderer/components/settings/SettingsModal/settingsViewContext';
 import { isElectronDesktop, resolveExtensionAssetUrl } from '@/renderer/utils/platform';
 import { type IExtensionSettingsTab } from '@/common/adapter/ipcBridge';
 import { useExtensionSettingsTabs } from '@/renderer/hooks/system/useExtensionSettingsTabs';
@@ -16,6 +19,7 @@ import {
   Puzzle,
   Robot,
   System,
+  Toolkit,
 } from '@icon-park/react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -48,11 +52,17 @@ export function getBuiltinSettingsNavItems(isDesktop: boolean, t: TranslateFn): 
       icon: <Robot theme='outline' size='16' />,
       path: 'agent',
     },
-    capabilities: {
-      id: 'capabilities',
-      label: t('settings.capabilities', { defaultValue: 'Capabilities' }),
+    skills: {
+      id: 'skills',
+      label: t('settings.skills', { defaultValue: 'Skills' }),
       icon: <Lightning theme='outline' size='16' />,
-      path: 'capabilities',
+      path: 'skills',
+    },
+    tools: {
+      id: 'tools',
+      label: t('settings.tools', { defaultValue: 'Tools' }),
+      icon: <Toolkit theme='outline' size='16' />,
+      path: 'tools',
     },
     appearance: {
       id: 'appearance',
@@ -154,33 +164,42 @@ const SettingsPageWrapper: React.FC<SettingsPageWrapperProps> = ({ children, cla
 
   const contentClass = classNames('settings-page-content mx-auto w-full md:max-w-1024px', contentClassName);
 
+  const navigateToTab = React.useCallback(
+    (tabId: string) => {
+      void navigate(`/settings/${tabId}`, { replace: true });
+    },
+    [navigate]
+  );
+
   return (
     <SettingsViewModeProvider value='page'>
-      <div className={containerClass}>
-        {isMobile && (
-          <div className='settings-mobile-top-nav'>
-            {menuItems.map((item) => {
-              const active = pathname.includes(`/settings/${item.path}`);
-              return (
-                <button
-                  key={item.path}
-                  type='button'
-                  className={classNames('settings-mobile-top-nav__item', {
-                    'settings-mobile-top-nav__item--active': active,
-                  })}
-                  onClick={() => {
-                    void navigate(`/settings/${item.path}`, { replace: true });
-                  }}
-                >
-                  <span className='settings-mobile-top-nav__icon'>{item.icon}</span>
-                  <span className='settings-mobile-top-nav__label'>{item.label}</span>
-                </button>
-              );
-            })}
-          </div>
-        )}
-        <div className={contentClass}>{children}</div>
-      </div>
+      <SettingsTabNavigateProvider value={navigateToTab}>
+        <div className={containerClass}>
+          {isMobile && (
+            <div className='settings-mobile-top-nav'>
+              {menuItems.map((item) => {
+                const active = pathname.includes(`/settings/${item.path}`);
+                return (
+                  <button
+                    key={item.path}
+                    type='button'
+                    className={classNames('settings-mobile-top-nav__item', {
+                      'settings-mobile-top-nav__item--active': active,
+                    })}
+                    onClick={() => {
+                      void navigate(`/settings/${item.path}`, { replace: true });
+                    }}
+                  >
+                    <span className='settings-mobile-top-nav__icon'>{item.icon}</span>
+                    <span className='settings-mobile-top-nav__label'>{item.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+          <div className={contentClass}>{children}</div>
+        </div>
+      </SettingsTabNavigateProvider>
     </SettingsViewModeProvider>
   );
 };
