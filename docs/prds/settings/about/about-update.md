@@ -572,6 +572,7 @@
 | 6   | F-ABOUT-10    | "问题报告"与外部链接视觉无差异；链接打开失败无用户提示     |
 | 7   | F-ABOUT-11    | 截图无文件大小限制，超大文件可能导致内存压力或 Sentry 拒绝 |
 | 8   | F-ABOUT-12    | 启动自动检查与手动检查并发时事件可能互相干扰               |
+
 ---
 
 ## Windows NSIS Final Verification Runbook
@@ -579,6 +580,7 @@
 Scope: PR4 final verification for Windows NSIS updates.
 
 Implemented behavior:
+
 - Both x64 and arm64 installers run the shared `AIONUI_VERIFY_CORE_APP_FILES` macro before bundled AionCore verification.
 - Missing `AionUi.exe`, core DLLs, or `resources\app.asar` fails through `AIONUI_FAIL_UX` with code `E1031` and logs the missing label and path.
 - Bundled AionCore verification remains `E1030`.
@@ -602,6 +604,7 @@ Marker schema:
 ```
 
 Manual verification:
+
 - Build an x64 installer with `ffmpeg.dll` removed from the unpacked app payload. Expected: installer fails with `E1031`, and logs include `missing label=ffmpeg.dll path=...`.
 - Build an x64 installer with `resources\app.asar` removed. Expected: same `E1031` path.
 - Run normal x64 and arm64 installs. Expected: shared core verification runs before bundled AionCore verification and installation succeeds.

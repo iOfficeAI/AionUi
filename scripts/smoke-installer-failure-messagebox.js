@@ -88,7 +88,10 @@ function main() {
   const projectRoot = path.join(root, 'project');
   const nsiPath = path.join(root, 'aionui-failure-messagebox-smoke.nsi');
   const exePath = path.join(root, 'aionui-failure-messagebox-smoke.exe');
-  const logPath = path.join(process.env.TEMP || tmpdir(), `aionui-installer-messagebox-smoke-${new Date().toISOString().replace(/[-:]/g, '').replace(/\..+$/, '').replace('T', '-')}-log.jsonl`);
+  const logPath = path.join(
+    process.env.TEMP || tmpdir(),
+    `aionui-installer-messagebox-smoke-${new Date().toISOString().replace(/[-:]/g, '').replace(/\..+$/, '').replace('T', '-')}-log.jsonl`
+  );
 
   copyHarnessProject(projectRoot);
 

@@ -53,7 +53,8 @@ export function parseInstallerLastFailureMarker(raw: unknown): InstallerLastFail
 const stripUtf8Bom = (text: string): string => (text.charCodeAt(0) === 0xfeff ? text.slice(1) : text);
 
 export async function consumeInstallerLastFailure(options: ConsumeOptions): Promise<InstallerLastFailureMarker | null> {
-  const markerPath = options.markerPath ?? (options.appDataDir ? getInstallerLastFailureMarkerPath(options.appDataDir) : '');
+  const markerPath =
+    options.markerPath ?? (options.appDataDir ? getInstallerLastFailureMarkerPath(options.appDataDir) : '');
   if (!markerPath) return null;
 
   let text: string;

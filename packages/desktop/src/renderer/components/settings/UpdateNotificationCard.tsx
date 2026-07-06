@@ -266,7 +266,9 @@ const UpdateNotificationCard: React.FC = () => {
             fill={state.status === 'installer-last-failure' ? 'rgb(var(--warning-6))' : 'rgb(var(--primary-6))'}
           />
           <div className='text-14px text-t-primary font-600 truncate flex-1'>
-            {state.status === 'installer-last-failure' ? t('update.installerLastFailure.title') : t('update.modalTitle')}
+            {state.status === 'installer-last-failure'
+              ? t('update.installerLastFailure.title')
+              : t('update.modalTitle')}
           </div>
           {state.status === 'downloading' && (
             <button

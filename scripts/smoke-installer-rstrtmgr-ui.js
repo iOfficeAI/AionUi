@@ -88,7 +88,10 @@ function main() {
   let locker = null;
   const nsiPath = path.join(root, 'aionui-rstrtmgr-ui-smoke.nsi');
   const exePath = path.join(root, 'aionui-rstrtmgr-ui-smoke.exe');
-  const logPath = path.join(process.env.TEMP || tmpdir(), `aionui-installer-smoke-${new Date().toISOString().replace(/[-:]/g, '').replace(/\..+$/, '').replace('T', '-')}.log`);
+  const logPath = path.join(
+    process.env.TEMP || tmpdir(),
+    `aionui-installer-smoke-${new Date().toISOString().replace(/[-:]/g, '').replace(/\..+$/, '').replace('T', '-')}.log`
+  );
   const processControlPath = path.join(repoRoot, 'resources', 'windows', 'installer-process-control.nsh');
   const messagesPath = path.join(repoRoot, 'resources', 'windows', 'installer-messages.nsh');
 
@@ -153,10 +156,14 @@ SectionEnd
       console.log(`[rstrtmgr-ui] compile-only ok: ${exePath}`);
     } else {
       locker = spawnLocker(lockedFile);
-      require('node:child_process').spawnSync('powershell.exe', ['-NoProfile', '-Command', 'Start-Sleep -Milliseconds 800'], {
-        stdio: 'ignore',
-        windowsHide: true,
-      });
+      require('node:child_process').spawnSync(
+        'powershell.exe',
+        ['-NoProfile', '-Command', 'Start-Sleep -Milliseconds 800'],
+        {
+          stdio: 'ignore',
+          windowsHide: true,
+        }
+      );
       console.log('[rstrtmgr-ui] launching harness. Click Cancel to finish; Retry re-runs locker detection.');
       const run = spawnSync(exePath, [], { stdio: 'inherit' });
       if (run.status !== 0) {

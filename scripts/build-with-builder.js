@@ -75,7 +75,9 @@ function patchElectronBuilderNsisInstaller() {
   if (patched.includes(retryPrompt)) {
     patched = patched.replace(retryPrompt, retryHandoff);
   } else if (!patched.includes(retryHandoff)) {
-    throw new Error('electron-builder NSIS uninstall retry prompt template changed; update patchElectronBuilderNsisInstaller.');
+    throw new Error(
+      'electron-builder NSIS uninstall retry prompt template changed; update patchElectronBuilderNsisInstaller.'
+    );
   }
 
   const oneMoreAttemptLabel = '  OneMoreAttempt:\n';
@@ -87,26 +89,38 @@ function patchElectronBuilderNsisInstaller() {
   const copiedUninstallerExecWithLog = `ExecWait '"$uninstallerFileNameTemp" /S /KEEP_APP_DATA $0 --installer-log="$AionUiSessionLogPath" --installer-session="$AionUiSessionId" _?=$installationDir' $R0`;
   if (patched.includes(copiedUninstallerExec)) {
     patched = patched.replace(copiedUninstallerExec, copiedUninstallerExecWithLog);
-  } else if (patched.includes(`ExecWait '"$uninstallerFileNameTemp" /S /KEEP_APP_DATA $0 --installer-log="$AionUiSessionLogPath" _?=$installationDir' $R0`)) {
+  } else if (
+    patched.includes(
+      `ExecWait '"$uninstallerFileNameTemp" /S /KEEP_APP_DATA $0 --installer-log="$AionUiSessionLogPath" _?=$installationDir' $R0`
+    )
+  ) {
     patched = patched.replace(
       `ExecWait '"$uninstallerFileNameTemp" /S /KEEP_APP_DATA $0 --installer-log="$AionUiSessionLogPath" _?=$installationDir' $R0`,
       copiedUninstallerExecWithLog
     );
   } else if (!patched.includes(copiedUninstallerExecWithLog)) {
-    throw new Error('electron-builder copied-uninstaller ExecWait template changed; update patchElectronBuilderNsisInstaller.');
+    throw new Error(
+      'electron-builder copied-uninstaller ExecWait template changed; update patchElectronBuilderNsisInstaller.'
+    );
   }
 
   const inPlaceUninstallerExec = `ExecWait '"$uninstallerFileName" /S /KEEP_APP_DATA $0 _?=$installationDir' $R0`;
   const inPlaceUninstallerExecWithLog = `ExecWait '"$uninstallerFileName" /S /KEEP_APP_DATA $0 --installer-log="$AionUiSessionLogPath" --installer-session="$AionUiSessionId" _?=$installationDir' $R0`;
   if (patched.includes(inPlaceUninstallerExec)) {
     patched = patched.replace(inPlaceUninstallerExec, inPlaceUninstallerExecWithLog);
-  } else if (patched.includes(`ExecWait '"$uninstallerFileName" /S /KEEP_APP_DATA $0 --installer-log="$AionUiSessionLogPath" _?=$installationDir' $R0`)) {
+  } else if (
+    patched.includes(
+      `ExecWait '"$uninstallerFileName" /S /KEEP_APP_DATA $0 --installer-log="$AionUiSessionLogPath" _?=$installationDir' $R0`
+    )
+  ) {
     patched = patched.replace(
       `ExecWait '"$uninstallerFileName" /S /KEEP_APP_DATA $0 --installer-log="$AionUiSessionLogPath" _?=$installationDir' $R0`,
       inPlaceUninstallerExecWithLog
     );
   } else if (!patched.includes(inPlaceUninstallerExecWithLog)) {
-    throw new Error('electron-builder in-place uninstaller ExecWait template changed; update patchElectronBuilderNsisInstaller.');
+    throw new Error(
+      'electron-builder in-place uninstaller ExecWait template changed; update patchElectronBuilderNsisInstaller.'
+    );
   }
 
   if (patched !== original) {
@@ -303,13 +317,18 @@ function formatExecError(error) {
 }
 
 function escapeNsisDefineValue(value) {
-  return String(value ?? '').replace(/\\/g, '\\\\').replace(/"/g, '$\\"');
+  return String(value ?? '')
+    .replace(/\\/g, '\\\\')
+    .replace(/"/g, '$\\"');
 }
 
 function writeGeneratedSentryDsnInclude(projectRoot) {
   const generatedInclude = path.join(projectRoot, 'resources/windows/support/_sentry-dsn.generated.nsh');
   fs.mkdirSync(path.dirname(generatedInclude), { recursive: true });
-  fs.writeFileSync(generatedInclude, `!define AIONUI_SENTRY_DSN "${escapeNsisDefineValue(process.env.SENTRY_DSN || '')}"\n`);
+  fs.writeFileSync(
+    generatedInclude,
+    `!define AIONUI_SENTRY_DSN "${escapeNsisDefineValue(process.env.SENTRY_DSN || '')}"\n`
+  );
 }
 
 function isValidPackageVersion(value) {
