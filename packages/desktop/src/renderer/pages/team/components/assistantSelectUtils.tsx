@@ -54,6 +54,7 @@ export const AssistantOptionLabel: React.FC<AssistantOptionLabelProps> = ({ assi
   const avatar = resolveAssistantAvatar(assistant.icon);
   const isLarge = size === 'large';
   const iconSize = isLarge ? 20 : 16;
+  const avatarClass = 'flex h-32px w-32px shrink-0 items-center justify-center rounded-8px bg-fill-2 text-t-primary';
   const avatarNode =
     avatar.kind === 'image' ? (
       <img
@@ -69,13 +70,9 @@ export const AssistantOptionLabel: React.FC<AssistantOptionLabelProps> = ({ assi
 
   return (
     <div className={isLarge ? 'flex min-w-0 items-center gap-12px' : 'flex min-w-0 items-center gap-8px'}>
-      {isLarge ? (
-        <span className='flex h-32px w-32px shrink-0 items-center justify-center rounded-8px bg-fill-2 text-t-primary'>
-          {avatarNode}
-        </span>
-      ) : (
-        avatarNode
-      )}
+      <span className={avatarClass} data-testid='assistant-avatar'>
+        {avatarNode}
+      </span>
       <span
         className={isLarge ? 'min-w-0 truncate text-15px font-500 leading-22px text-t-primary' : 'min-w-0 truncate'}
       >

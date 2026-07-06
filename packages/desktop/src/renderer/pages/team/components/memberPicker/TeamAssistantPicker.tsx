@@ -37,7 +37,7 @@ const TeamAssistantPicker: React.FC<Props> = ({
   return (
     <div className={`flex min-h-0 flex-col ${isModalDensity ? 'gap-12px' : ''} ${className ?? ''}`}>
       <div
-        className={isModalDensity ? undefined : 'border-b border-border-1 bg-dialog-fill-0 px-14px'}
+        className={isModalDensity ? undefined : 'border-b border-border-1 bg-dialog-fill-0 px-22px'}
         data-testid={`${testIdPrefix}-search-shell`}
       >
         <Input
@@ -49,7 +49,7 @@ const TeamAssistantPicker: React.FC<Props> = ({
           className={
             isModalDensity
               ? '!h-40px !rounded-8px !text-14px'
-              : '!h-48px !rounded-none !border-0 !bg-transparent !text-14px'
+              : '!h-48px !rounded-none !border-0 !bg-transparent !pl-0 !text-14px'
           }
         />
       </div>
@@ -58,7 +58,7 @@ const TeamAssistantPicker: React.FC<Props> = ({
         className={
           isModalDensity
             ? 'min-h-0 flex-1 overflow-y-auto rounded-8px bg-dialog-fill-0'
-            : 'max-h-300px overflow-y-auto bg-dialog-fill-0 px-8px py-10px'
+            : 'max-h-300px overflow-y-auto border-b border-border-1 bg-dialog-fill-0 px-14px py-10px'
         }
       >
         {filteredAssistants.length === 0 ? (
@@ -110,7 +110,7 @@ const TeamAssistantPicker: React.FC<Props> = ({
       </div>
       {footer ? (
         <div
-          className='border-t border-border-1 bg-dialog-fill-0 px-14px py-10px text-13px font-600 leading-21px text-t-tertiary'
+          className='bg-dialog-fill-0 px-14px py-10px text-12px font-600 leading-18px text-t-tertiary'
           data-testid={`${testIdPrefix}-footer`}
         >
           {footer}
