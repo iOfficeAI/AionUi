@@ -195,4 +195,14 @@ describe('MarkdownView local file links', () => {
     const link = screen.getByRole('link', { name: 'docs' });
     expect(link).toHaveAttribute('href', 'https://aionui.com/docs#L10');
   });
+
+  it('adds empty alt text to external raw HTML images without alt text', () => {
+    const { container } = render(
+      <MarkdownView allowHtml>{'<img src="https://example.com/generated.png" />'}</MarkdownView>
+    );
+
+    const image = container.querySelector('img');
+    expect(image).toHaveAttribute('src', 'https://example.com/generated.png');
+    expect(image).toHaveAttribute('alt', '');
+  });
 });
