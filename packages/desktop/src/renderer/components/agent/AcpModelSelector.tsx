@@ -97,12 +97,14 @@ const AcpModelSelector: React.FC<{
 
   if (!model_info && isLoading) {
     return (
-      <span
+      <div
         data-testid='acp-model-selector-loading'
-        className='header-model-loading-slot inline-flex h-28px w-28px items-center justify-center align-middle leading-none text-t-secondary'
+        className='header-model-loading-slot flex h-28px w-28px shrink-0 items-center justify-center leading-none text-t-secondary'
       >
-        <Spin size={14} />
-      </span>
+        <span className='flex h-14px w-14px items-center justify-center leading-none'>
+          <Spin size={14} />
+        </span>
+      </div>
     );
   }
 

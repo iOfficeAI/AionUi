@@ -185,6 +185,7 @@ describe('AcpModelSelector runtime options', () => {
 
     const slot = screen.getByTestId('acp-model-selector-loading');
     expect(screen.getByTestId('model-selector-loading-spin')).toHaveAttribute('data-size', '14');
+    expect(slot.tagName).toBe('DIV');
     expect(screen.queryByTestId('runtime-selector-loading-indicator')).not.toBeInTheDocument();
     expect(screen.queryByTestId('acp-model-selector')).not.toBeInTheDocument();
     expect(slot).not.toHaveTextContent('Use CLI model');
