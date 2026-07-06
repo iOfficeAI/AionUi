@@ -75,21 +75,27 @@ export const parsePortValue = (value: unknown): number | null => {
     return null;
   }
 
-  // Warn for privileged ports (<1024) and well-known port conflicts
-  if (portNumber < 1024) {
-    console.warn(
-      `[WebUI] Port ${portNumber} is a privileged port (<1024). Consider using a non-privileged port (>=1024) for better security.`
-    );
-  }
-
-  const wellKnownPorts = [80, 443, 8080, 8443, 3000, 5000];
-  if (wellKnownPorts.includes(portNumber)) {
-    console.warn(
-      `[WebUI] Port ${portNumber} is a well-known port. Consider using a custom port to avoid conflicts with other services.`
-    );
-  }
-
   return portNumber;
+};
+
+const WELL_KNOWN_PORTS = [80, 443, 8080, 8443, 3000, 5000];
+
+export const getPortSecurityWarnings = (port: number): string[] => {
+  const warnings: string[] = [];
+
+  if (port < 1024) {
+    warnings.push(
+      `Port ${port} is a privileged port (<1024). Consider using a non-privileged port (>=1024) for better security.`
+    );
+  }
+
+  if (WELL_KNOWN_PORTS.includes(port)) {
+    warnings.push(
+      `Port ${port} is a well-known port. Consider using a custom port to avoid conflicts with other services.`
+    );
+  }
+
+  return warnings;
 };
 
 export const parseBooleanEnv = (value?: string): boolean | null => {
@@ -154,15 +160,33 @@ export const resolveWebUIPort = (
   getSwitchValue: (flag: string) => string | undefined
 ): number => {
   const cliPort = parsePortValue(getSwitchValue('port') ?? getSwitchValue('webui-port'));
-  if (cliPort) return cliPort;
+  if (cliPort) {
+    logPortWarnings(cliPort);
+    return cliPort;
+  }
 
   const envPort = parsePortValue(process.env.AIONUI_PORT ?? process.env.PORT);
-  if (envPort) return envPort;
+  if (envPort) {
+    logPortWarnings(envPort);
+    return envPort;
+  }
 
   const configPort = parsePortValue(config.port);
-  if (configPort) return configPort;
+  if (configPort) {
+    logPortWarnings(configPort);
+    return configPort;
+  }
 
-  return DEFAULT_WEBUI_PORT;
+  const finalPort = DEFAULT_WEBUI_PORT;
+  logPortWarnings(finalPort);
+  return finalPort;
+};
+
+const logPortWarnings = (port: number): void => {
+  const warnings = getPortSecurityWarnings(port);
+  for (const warning of warnings) {
+    console.warn(`[WebUI] ${warning}`);
+  }
 };
 
 export const resolveRemoteAccess = (config: WebUIUserConfig, isRemoteMode: boolean): boolean => {

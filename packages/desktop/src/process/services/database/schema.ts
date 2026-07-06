@@ -149,14 +149,30 @@ export function getDatabaseVersion(db: ISqliteDriver): number {
 }
 
 /**
+ * Validate a database version value before use.
+ *
+ * Rejects NaN, Infinity, negative numbers, and non-integers (including floats).
+ * Returns the validated integer or throws.
+ */
+export function assertValidDatabaseVersion(version: number): number {
+  if (!Number.isFinite(version) || !Number.isInteger(version)) {
+    throw new Error(`Invalid database version: ${version}`);
+  }
+  if (version < 0) {
+    throw new Error(`Invalid database version: ${version} (must be >= 0)`);
+  }
+  if (version > Number.MAX_SAFE_INTEGER) {
+    throw new Error(`Invalid database version: ${version} (must be <= Number.MAX_SAFE_INTEGER)`);
+  }
+  return version;
+}
+
+/**
  * Set database version
  * Uses SQLite's built-in user_version pragma
  */
 export function setDatabaseVersion(db: ISqliteDriver, version: number): void {
-  const safeVersion = Math.floor(version);
-  if (!Number.isInteger(safeVersion) || safeVersion < 0 || safeVersion > Number.MAX_SAFE_INTEGER) {
-    throw new Error(`Invalid database version: ${version}`);
-  }
+  const safeVersion = assertValidDatabaseVersion(version);
   db.pragma(`user_version = ${safeVersion}`);
 }
 

@@ -7,6 +7,10 @@
  * 打包应用的密码重置命令行工具
  */
 
+import { app } from 'electron';
+import * as fs from 'fs';
+import * as path from 'path';
+
 // Color output
 const colors = {
   reset: '\x1b[0m',
@@ -39,24 +43,64 @@ export function resolveResetPasswordUsername(argv: string[]): string {
 // index.ts:487 already started a backend for every mode including --resetpass,
 // so we reuse __backendPort instead of spawning a short-lived one. username arg
 // is advisory; backend operates on get_primary_webui_user() == system_default_user.
+
 const MAX_RESET_ATTEMPTS = 5;
 const RESET_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
+const RESET_ATTEMPTS_FILE = 'reset-password-attempts.json';
 
-const resetAttemptHistory: Array<{ timestamp: number }> = [];
+interface ResetAttemptRecord {
+  timestamp: number;
+}
+
+const getResetAttemptsFilePath = (): string => {
+  const userDataPath = app.getPath('userData');
+  return path.join(userDataPath, RESET_ATTEMPTS_FILE);
+};
+
+const loadResetAttempts = (): ResetAttemptRecord[] => {
+  try {
+    const filePath = getResetAttemptsFilePath();
+    if (fs.existsSync(filePath)) {
+      const raw = fs.readFileSync(filePath, 'utf-8');
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        return parsed.filter((record: ResetAttemptRecord) => typeof record.timestamp === 'number');
+      }
+    }
+  } catch (error) {
+    console.error('[ResetPassword] Failed to load rate limit data:', error);
+  }
+  return [];
+};
+
+const saveResetAttempts = (attempts: ResetAttemptRecord[]): void => {
+  try {
+    const filePath = getResetAttemptsFilePath();
+    fs.writeFileSync(filePath, JSON.stringify(attempts), { encoding: 'utf-8', mode: 0o600 });
+  } catch (error) {
+    console.error('[ResetPassword] Failed to save rate limit data:', error);
+  }
+};
+
+const pruneExpiredAttempts = (attempts: ResetAttemptRecord[], now: number): ResetAttemptRecord[] => {
+  return attempts.filter((attempt) => now - attempt.timestamp < RESET_WINDOW_MS);
+};
 
 export async function resetPasswordCLI(username: string): Promise<void> {
   log.info(`Target user: ${username} (advisory — operates on system_default_user)`);
 
-  // Rate limiting: 5 attempts per 15-minute window
+  // Rate limiting: 5 attempts per 15-minute window (persisted across invocations)
   const now = Date.now();
-  const recentAttempts = resetAttemptHistory.filter((attempt) => now - attempt.timestamp < RESET_WINDOW_MS);
+  let resetAttempts = loadResetAttempts();
+  resetAttempts = pruneExpiredAttempts(resetAttempts, now);
 
-  if (recentAttempts.length >= MAX_RESET_ATTEMPTS) {
+  if (resetAttempts.length >= MAX_RESET_ATTEMPTS) {
     log.error(`Password reset rate limit exceeded: ${MAX_RESET_ATTEMPTS} attempts in the last 15 minutes`);
     process.exit(1);
   }
 
-  resetAttemptHistory.push({ timestamp: now });
+  resetAttempts.push({ timestamp: now });
+  saveResetAttempts(resetAttempts);
 
   const port = (globalThis as typeof globalThis & { __backendPort?: number }).__backendPort;
   if (!port) {
