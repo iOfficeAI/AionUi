@@ -164,7 +164,7 @@ describe('useAcpModelInfo', () => {
     expect(ensureRuntimeInvokeMock).not.toHaveBeenCalled();
   });
 
-  it('keeps loading while the initial config option snapshot is not ready yet', async () => {
+  it('falls back to the persisted model when the initial config option snapshot fails', async () => {
     const loadConfigOptions = vi
       .fn()
       .mockRejectedValueOnce(new Error('runtime not ready'))
@@ -173,14 +173,18 @@ describe('useAcpModelInfo', () => {
     const { result } = renderUseAcpModelInfo({
       conversation_id: 'conv-1',
       backend: 'claude',
+      initialModelId: 'sonnet-4',
       loadConfigOptions,
     });
 
     await waitFor(() => {
       expect(loadConfigOptions).toHaveBeenCalledTimes(1);
     });
-    expect(result.current.model_info).toBeNull();
-    expect(result.current.isLoading).toBe(true);
+    await waitFor(() => {
+      expect(result.current.model_info?.current_model_id).toBe('sonnet-4');
+      expect(result.current.isLoading).toBe(false);
+    });
+    expect(result.current.canSwitch).toBe(false);
 
     act(() => {
       emitStream({

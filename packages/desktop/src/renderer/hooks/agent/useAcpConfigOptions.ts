@@ -209,7 +209,7 @@ export function useAcpConfigOptions({
       setIsReloading(false);
       return next;
     } catch (error) {
-      if (optionsRef.current) setIsReloading(false);
+      setIsReloading(false);
       throw error;
     }
   }, [key, loadConfigOptions, prepareRuntime, replaceSnapshot]);

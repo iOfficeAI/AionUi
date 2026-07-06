@@ -93,6 +93,14 @@ export const useAcpModelInfo = ({
       })),
     };
   }, [initialModelId, model]);
+  const persistedModelInfo = useMemo<AcpModelInfo | null>(() => {
+    if (!initialModelId) return null;
+    return {
+      current_model_id: initialModelId,
+      current_model_label: initialModelId,
+      available_models: [],
+    };
+  }, [initialModelId]);
 
   useEffect(() => {
     if (!enabled) {
@@ -121,7 +129,7 @@ export const useAcpModelInfo = ({
     return ipcBridge.acpConversation.responseStream.on(handler);
   }, [conversation_id, enabled, initialModelId]);
 
-  const model_info = configModelInfo ?? legacyModelInfo;
+  const model_info = configModelInfo ?? legacyModelInfo ?? (!isLoading ? persistedModelInfo : null);
 
   const selectModel = useCallback(
     (model_id: string) => {
