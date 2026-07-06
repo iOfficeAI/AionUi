@@ -92,7 +92,7 @@ describe('getPortSecurityWarnings', () => {
     expect(warnings).toHaveLength(2);
   });
 
-  it('returns warning for privileged ports that are not well-known (e.g. port 443)', () => {
+  it('returns warning for privileged ports that are not well-known (e.g. port 79)', () => {
     const warnings = getPortSecurityWarnings(79);
     expect(warnings).toHaveLength(1);
   });
