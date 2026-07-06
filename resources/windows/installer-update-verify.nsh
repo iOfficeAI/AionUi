@@ -130,10 +130,10 @@ Var /GLOBAL AionUiActiveMarkerResult
     !insertmacro AIONUI_FAIL_UX \
       "${AIONUI_E_CORE_APP_FILES_INCOMPLETE}" \
       "verify-required-file missing label=${_LABEL} path=${_PATH}" \
-      "AionUi installation is incomplete. Missing required file: ${_LABEL}" \
-      "AionUi installation is incomplete. Missing required file: ${_LABEL}" \
-      "Please reinstall AionUi or download a newer installer." \
-      "Please reinstall AionUi or download a newer installer."
+      "${AIONUI_MSG_VERIFY_REQUIRED_FILE_ZH} ${_LABEL}" \
+      "${AIONUI_MSG_VERIFY_REQUIRED_FILE_EN} ${_LABEL}" \
+      "${AIONUI_MSG_VERIFY_REQUIRED_FILE_ACTION_ZH}" \
+      "${AIONUI_MSG_VERIFY_REQUIRED_FILE_ACTION_EN}"
   ${Else}
     !insertmacro AIONUI_LOG_EVENT "verify-required-file ok label=${_LABEL} path=${_PATH}"
   ${EndIf}

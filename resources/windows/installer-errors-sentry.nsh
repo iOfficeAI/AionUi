@@ -2,6 +2,7 @@
 !define AIONUI_INSTALLER_ERRORS_SENTRY_NSH
 
 !include "${PROJECT_DIR}\resources\windows\support\_sentry-dsn.generated.nsh"
+!include "${PROJECT_DIR}\resources\windows\installer-messages.nsh"
 
 !define AIONUI_E_UNINSTALLER_COPY_OR_REBUILD_FAILED "E1001"
 !define AIONUI_E_OLD_UNINSTALL_FAILED "E1002"
@@ -28,11 +29,11 @@
   ${Else}
     StrCpy $9 "yes"
     MessageBox MB_YESNO|MB_ICONSTOP \
-      "AionUi installation failed (${_CODE})$\r$\n$\r$\n\
+      "${AIONUI_MSG_INSTALL_FAILED_EN} (${_CODE}) / ${AIONUI_MSG_INSTALL_FAILED_ZH} (${_CODE})$\r$\n$\r$\n\
       ${_MSG_EN}$\r$\n${_MSG_ZH}$\r$\n$\r$\n\
-      Suggested action:$\r$\n${_ACTION_EN}$\r$\n${_ACTION_ZH}$\r$\n$\r$\n\
-      Installer log: $AionUiSessionLogPath$\r$\n$\r$\n\
-      Send this installer failure report to the AionUi team? The report includes error code ${_CODE} and the current installer log." \
+      ${AIONUI_MSG_SUGGESTED_ACTION_EN} / ${AIONUI_MSG_SUGGESTED_ACTION_ZH}:$\r$\n${_ACTION_EN}$\r$\n${_ACTION_ZH}$\r$\n$\r$\n\
+      ${AIONUI_MSG_INSTALLER_LOG_EN} / ${AIONUI_MSG_INSTALLER_LOG_ZH}:$\r$\n$AionUiSessionLogPath$\r$\n$\r$\n\
+      ${AIONUI_MSG_SEND_REPORT_EN}$\r$\n${AIONUI_MSG_SEND_REPORT_ZH}" \
       /SD IDNO IDNO +2
     Goto +2
     StrCpy $9 "no"
@@ -52,11 +53,19 @@
 !macroend
 
 !macro AIONUI_FAIL_REPORTABLE _CODE _DETAIL _MSG_EN _ACTION_EN
-  !insertmacro AIONUI_FAIL_UX ${_CODE} "${_DETAIL}" "" "${_MSG_EN}" "" "${_ACTION_EN}"
+  !insertmacro AIONUI_FAIL_UX ${_CODE} "${_DETAIL}" "${AIONUI_MSG_GENERIC_FAILURE_ZH}" "${_MSG_EN}" "${AIONUI_MSG_GENERIC_ACTION_ZH}" "${_ACTION_EN}"
 !macroend
 
 !macro AIONUI_FAIL_REPORTABLE_ROOTED _ROOT_CODE _WRAPPER_CODE _DETAIL _MSG_EN _ACTION_EN
-  !insertmacro AIONUI_FAIL_UX "${_ROOT_CODE}" "wrapperCode=${_WRAPPER_CODE} ${_DETAIL}" "" "${_MSG_EN}" "" "${_ACTION_EN}"
+  !insertmacro AIONUI_FAIL_UX "${_ROOT_CODE}" "wrapperCode=${_WRAPPER_CODE} ${_DETAIL}" "${AIONUI_MSG_GENERIC_FAILURE_ZH}" "${_MSG_EN}" "${AIONUI_MSG_GENERIC_ACTION_ZH}" "${_ACTION_EN}"
+!macroend
+
+!macro AIONUI_FAIL_REPORTABLE_BILINGUAL _CODE _DETAIL _MSG_EN _MSG_ZH _ACTION_EN _ACTION_ZH
+  !insertmacro AIONUI_FAIL_UX ${_CODE} "${_DETAIL}" "${_MSG_ZH}" "${_MSG_EN}" "${_ACTION_ZH}" "${_ACTION_EN}"
+!macroend
+
+!macro AIONUI_FAIL_REPORTABLE_ROOTED_BILINGUAL _ROOT_CODE _WRAPPER_CODE _DETAIL _MSG_EN _MSG_ZH _ACTION_EN _ACTION_ZH
+  !insertmacro AIONUI_FAIL_UX "${_ROOT_CODE}" "wrapperCode=${_WRAPPER_CODE} ${_DETAIL}" "${_MSG_ZH}" "${_MSG_EN}" "${_ACTION_ZH}" "${_ACTION_EN}"
 !macroend
 
 !macro AIONUI_REPORT_TO_SENTRY _CODE _DETAIL
