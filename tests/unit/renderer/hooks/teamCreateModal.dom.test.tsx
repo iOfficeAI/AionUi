@@ -56,9 +56,13 @@ vi.mock('@arco-design/web-react', async () => {
 });
 
 vi.mock('@renderer/components/base/AionModal', () => ({
-  default: ({ visible, header, footer, children }: Record<string, unknown>) =>
+  default: ({ visible, header, footer, children, style }: Record<string, unknown>) =>
     visible ? (
-      <div data-testid='team-create-modal'>
+      <div
+        data-testid='team-create-modal'
+        data-width={(style as React.CSSProperties | undefined)?.width}
+        data-max-width={(style as React.CSSProperties | undefined)?.maxWidth}
+      >
         {typeof header === 'object' && header && 'render' in header
           ? (header as { render: () => React.ReactNode }).render()
           : null}
@@ -121,23 +125,34 @@ describe('TeamCreateModal', () => {
     expect(
       screen.getByText('Choose members, and assign one Leader. The same assistant can be added multiple times.')
     ).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'New Team' })).toHaveClass('text-20px');
+    expect(screen.getByTestId('team-create-modal')).toHaveAttribute('data-width', '900');
+    expect(screen.getByTestId('team-create-modal')).toHaveAttribute('data-max-width', 'calc(100vw - 72px)');
+    expect(screen.getByRole('heading', { name: 'New Team' })).toHaveClass('text-18px');
+    expect(
+      screen.getByText('Choose members, and assign one Leader. The same assistant can be added multiple times.')
+    ).toHaveClass('text-13px', 'leading-20px');
 
     const assistantPane = screen.getByTestId('team-create-assistant-pane');
     const detailsPane = screen.getByTestId('team-create-details-pane');
+    const layout = screen.getByTestId('team-create-layout');
     const searchInput = within(assistantPane).getByPlaceholderText('Search assistants...');
     const nameInput = within(detailsPane).getByTestId('team-create-name-input');
 
+    expect(layout).toHaveStyle({ height: 'min(54vh, 470px)', minHeight: '390px' });
+    expect(assistantPane).toHaveClass('px-20px', 'py-18px');
+    expect(detailsPane).toHaveClass('px-20px', 'py-18px');
     expect(within(assistantPane).getByText('All assistants (3)')).toBeInTheDocument();
-    expect(searchInput.closest('.arco-input-group-wrapper')).toHaveClass('!h-40px');
+    expect(within(assistantPane).getByText('All assistants (3)')).toHaveClass('text-15px');
+    expect(searchInput.closest('.arco-input-group-wrapper')).toHaveClass('!h-38px', '!text-13px');
     expect(within(assistantPane).getByTestId('team-create-agent-picker-body')).not.toHaveClass('bg-fill-1');
     expect(within(assistantPane).getByTestId('team-create-agent-picker-body')).toHaveClass('bg-dialog-fill-0');
-    expect(within(assistantPane).getByTestId('team-create-agent-option-bare-aionrs')).toHaveClass('!h-48px');
+    expect(within(assistantPane).getByTestId('team-create-agent-option-bare-aionrs')).toHaveClass('!h-44px');
     expect(within(assistantPane).getByTestId('team-create-agent-option-bare-aionrs')).toHaveClass('hover:!bg-fill-2');
     expect(within(detailsPane).getByText('Selected members 0 · ⚑ = Leader')).toBeInTheDocument();
-    expect(nameInput).toHaveClass('!h-40px');
+    expect(within(detailsPane).getByText('Selected members 0 · ⚑ = Leader')).toHaveClass('text-15px');
+    expect(nameInput).toHaveClass('!h-38px', '!text-13px');
     expect(within(detailsPane).getByTestId('workspace-folder-select')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Confirm Create' })).toHaveClass('!h-40px');
+    expect(screen.getByRole('button', { name: 'Confirm Create' })).toHaveClass('!h-38px', '!text-13px');
   });
 
   it('passes assistant identity through when creating a team with an assistant leader', async () => {

@@ -48,7 +48,7 @@ const TeamAssistantPicker: React.FC<Props> = ({
             onChange={setQuery}
             placeholder={searchPlaceholder}
             data-testid={`${testIdPrefix}-search`}
-            className='!h-40px !rounded-8px !text-14px'
+            className='!h-38px !rounded-8px !text-13px'
           />
         ) : (
           <div className='flex h-50px items-center gap-10px text-t-secondary'>
@@ -93,7 +93,7 @@ const TeamAssistantPicker: React.FC<Props> = ({
                   loading={pendingAssistantId === assistant.id}
                   className={
                     isModalDensity
-                      ? '!h-48px !justify-start !rounded-8px !px-10px !py-0 hover:!bg-fill-2'
+                      ? '!h-44px !justify-start !rounded-8px !px-8px !py-0 hover:!bg-fill-2'
                       : '!h-48px !justify-start !rounded-8px !px-6px !py-0 hover:!bg-fill-2'
                   }
                   onClick={() => onSelect(assistant)}

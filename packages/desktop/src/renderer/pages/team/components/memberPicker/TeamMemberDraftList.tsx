@@ -21,15 +21,15 @@ const TeamMemberDraftList: React.FC<Props> = ({ members, leaderSelectionId, onLe
 
   return (
     <div className='flex min-h-0 flex-col'>
-      <div className='mb-14px text-16px font-600 leading-24px text-t-secondary'>
+      <div className='mb-12px text-15px font-600 leading-22px text-t-secondary'>
         {t('team.create.selectedMembersWithCount', {
           count: members.length,
           defaultValue: `Selected members ${members.length} · ⚑ = Leader`,
         })}
       </div>
-      <div className='flex min-h-126px flex-col gap-8px'>
+      <div className='flex min-h-112px flex-col gap-6px'>
         {members.length === 0 ? (
-          <div className='flex min-h-126px items-start rounded-8px bg-fill-1 px-16px py-14px text-14px leading-22px text-t-tertiary'>
+          <div className='flex min-h-112px items-start rounded-8px bg-fill-1 px-14px py-12px text-13px leading-20px text-t-tertiary'>
             {t('team.create.selectAtLeastOneMember', { defaultValue: 'Select at least one team member' })}
           </div>
         ) : (
@@ -41,19 +41,19 @@ const TeamMemberDraftList: React.FC<Props> = ({ members, leaderSelectionId, onLe
             return (
               <div
                 key={member.selectionId}
-                className='flex h-44px items-center gap-10px rounded-8px px-10px'
+                className='flex h-40px items-center gap-8px rounded-8px px-8px'
                 data-testid={`team-create-member-draft-${member.selectionId}`}
               >
                 <AssistantOptionLabel assistant={member.assistant} size='large' />
-                <div className='flex flex-1 items-center justify-end gap-12px'>
+                <div className='flex flex-1 items-center justify-end gap-10px'>
                   <Button
                     type='text'
-                    className={`!h-28px !w-28px !min-w-28px !rounded-6px !p-0 ${
+                    className={`!h-26px !w-26px !min-w-26px !rounded-6px !p-0 ${
                       isLeader
                         ? '!bg-[rgba(var(--success-6),0.14)] !text-[rgb(var(--success-6))] hover:!bg-[rgba(var(--success-6),0.20)]'
                         : '!bg-transparent !text-t-tertiary hover:!bg-fill-2 hover:!text-t-secondary'
                     }`}
-                    icon={<Flag theme={isLeader ? 'filled' : 'outline'} size='15' fill='currentColor' />}
+                    icon={<Flag theme={isLeader ? 'filled' : 'outline'} size='14' fill='currentColor' />}
                     onClick={() => onLeaderChange(member.selectionId)}
                     aria-label={leaderButtonLabel}
                     aria-pressed={isLeader}
@@ -61,7 +61,7 @@ const TeamMemberDraftList: React.FC<Props> = ({ members, leaderSelectionId, onLe
                   />
                   <Button
                     type='text'
-                    icon={<CloseSmall theme='outline' size='18' />}
+                    icon={<CloseSmall theme='outline' size='16' />}
                     className='!h-24px !w-24px !min-w-24px !p-0 text-t-tertiary'
                     onClick={() => onRemove(member.selectionId)}
                     data-testid={`team-create-member-remove-${member.selectionId}`}
@@ -71,7 +71,7 @@ const TeamMemberDraftList: React.FC<Props> = ({ members, leaderSelectionId, onLe
             );
           })
         )}
-        <div className='rounded-8px bg-fill-1 px-14px py-12px text-14px leading-22px text-t-tertiary'>
+        <div className='rounded-8px bg-fill-1 px-12px py-10px text-13px leading-20px text-t-tertiary'>
           {t('team.create.memberHint', {
             defaultValue:
               'No suitable assistant as a member? After creation, let the Leader create temporary team members in chat.',
