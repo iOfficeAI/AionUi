@@ -90,6 +90,7 @@ function main() {
   const exePath = path.join(root, 'aionui-rstrtmgr-ui-smoke.exe');
   const logPath = path.join(process.env.TEMP || tmpdir(), `aionui-installer-smoke-${new Date().toISOString().replace(/[-:]/g, '').replace(/\..+$/, '').replace('T', '-')}.log`);
   const processControlPath = path.join(repoRoot, 'resources', 'windows', 'installer-process-control.nsh');
+  const messagesPath = path.join(repoRoot, 'resources', 'windows', 'installer-messages.nsh');
 
   const nsi = `
 Unicode true
@@ -99,6 +100,7 @@ RequestExecutionLevel user
 SilentInstall normal
 !define AIONUI_FALLBACK_LOG "aionui-installer-smoke-fallback.log"
 !include LogicLib.nsh
+!include "${nsisQuote(messagesPath)}"
 !include "${nsisQuote(processControlPath)}"
 
 Var AionUiSessionLogPath
@@ -123,7 +125,7 @@ Section
     \${If} $AionUiLockerList == ""
       StrCpy $AionUiLockerList "unknown process"
     \${EndIf}
-    MessageBox MB_RETRYCANCEL|MB_ICONEXCLAMATION "AionUi cannot continue because this file is still open:$\\r$\\n${nsisQuote(lockedFile)}$\\r$\\n$\\r$\\nApplication using the file:$\\r$\\n$AionUiLockerList$\\r$\\n$\\r$\\nClose the application listed above, then click Retry. If you are not sure how to close it, click Cancel, restart Windows, and run this installer again.$\\r$\\n$\\r$\\nInstaller log:$\\r$\\n$AionUiSessionLogPath" /SD IDCANCEL IDRETRY aionui_query_lockers
+    MessageBox MB_RETRYCANCEL|MB_ICONEXCLAMATION "\${AIONUI_MSG_FILE_OR_FOLDER_IN_USE_EN}$\\r$\\n\${AIONUI_MSG_FILE_OR_FOLDER_IN_USE_ZH}$\\r$\\n${nsisQuote(lockedFile)}$\\r$\\n$\\r$\\n\${AIONUI_MSG_APPLICATION_USING_IT_EN} / \${AIONUI_MSG_APPLICATION_USING_IT_ZH}$\\r$\\n$AionUiLockerList$\\r$\\n$\\r$\\n\${AIONUI_MSG_CLOSE_LISTED_RETRY_EN}$\\r$\\n\${AIONUI_MSG_CLOSE_LISTED_RETRY_ZH}$\\r$\\n$\\r$\\n\${AIONUI_MSG_INSTALLER_LOG_EN} / \${AIONUI_MSG_INSTALLER_LOG_ZH}:$\\r$\\n$AionUiSessionLogPath" /SD IDCANCEL IDRETRY aionui_query_lockers
 SectionEnd
 `;
 

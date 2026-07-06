@@ -49,4 +49,24 @@
 !define AIONUI_MSG_CLOSE_INSTALL_DIR_ACTION_EN "Close AionUi and any file browsers in the install directory, then run this installer again."
 !define AIONUI_MSG_CLOSE_INSTALL_DIR_ACTION_ZH "请关闭 AionUi 以及任何打开安装目录的文件管理器，然后再次运行安装器。"
 
+!define AIONUI_MSG_APP_CANNOT_BE_CLOSED_EN "AionUi could not finish closing or removing the previous version.$\r$\n$\r$\nClose AionUi and any program that may be using files in the install folder, then click Retry.$\r$\n$\r$\nIf Retry keeps returning here, click Cancel. The installer will show the failed path, any program reported by Windows Restart Manager, and the installer log."
+!define AIONUI_MSG_APP_CANNOT_BE_CLOSED_ZH "AionUi 无法完成关闭或移除旧版本。$\r$\n$\r$\n请关闭 AionUi 以及任何可能正在使用安装目录中文件的程序，然后点击重试。$\r$\n$\r$\n如果重试后仍然回到这里，请点击取消。安装器会显示失败路径、Windows Restart Manager 报告的占用程序以及安装日志。"
+
+!define AIONUI_MSG_LOCKER_UNKNOWN_EN "Windows did not identify a specific locking process. Close terminals, editors, and file managers opened in the install folder."
+!define AIONUI_MSG_LOCKER_UNKNOWN_ZH "Windows 未识别出具体占用进程。请关闭打开安装目录的终端、编辑器和文件管理器。"
+
+!define AIONUI_MSG_FILE_OR_FOLDER_IN_USE_EN "AionUi cannot continue because a file or folder in the install directory is still in use:"
+!define AIONUI_MSG_FILE_OR_FOLDER_IN_USE_ZH "AionUi 无法继续，因为安装目录中的文件或文件夹仍被占用："
+!define AIONUI_MSG_APPLICATION_USING_IT_EN "Application using it:"
+!define AIONUI_MSG_APPLICATION_USING_IT_ZH "正在使用它的应用："
+!define AIONUI_MSG_CLOSE_LISTED_RETRY_EN "Close the application listed above, then click Retry. If you are not sure what to close, click Cancel to send the installer log to the AionUi team."
+!define AIONUI_MSG_CLOSE_LISTED_RETRY_ZH "请关闭上面列出的应用，然后点击重试。如果不确定要关闭哪个程序，请点击取消，将安装日志发送给 AionUi 团队。"
+
+!define AIONUI_MSG_CLOSE_OR_REMOVE_PREVIOUS_EN "AionUi could not finish closing or removing the previous version."
+!define AIONUI_MSG_CLOSE_OR_REMOVE_PREVIOUS_ZH "AionUi 无法完成关闭或移除旧版本。"
+!define AIONUI_MSG_MAY_USE_INSTALL_DIR_EN "Another program may still be using files in:"
+!define AIONUI_MSG_MAY_USE_INSTALL_DIR_ZH "另一个程序可能仍在使用此目录中的文件："
+!define AIONUI_MSG_RETRY_AFTER_CLOSING_DIR_EN "Click Retry after closing AionUi and any program using that folder. Click Cancel to show the blocking diagnostics and installer log."
+!define AIONUI_MSG_RETRY_AFTER_CLOSING_DIR_ZH "请关闭 AionUi 以及任何使用该文件夹的程序后点击重试。点击取消会显示占用诊断信息和安装日志。"
+
 !endif

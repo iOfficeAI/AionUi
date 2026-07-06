@@ -160,7 +160,7 @@ Var /GLOBAL AionUiLockerListFile
     ${If} $AionUiLockerResult == 0
       StrCpy $AionUiLockerList "unknown process"
     ${Else}
-      StrCpy $AionUiLockerList "Windows did not identify a specific locking process. Close terminals, editors, and file managers opened in the install folder."
+      StrCpy $AionUiLockerList "${AIONUI_MSG_LOCKER_UNKNOWN_EN} / ${AIONUI_MSG_LOCKER_UNKNOWN_ZH}"
     ${EndIf}
   ${EndIf}
 !macroend
@@ -169,7 +169,7 @@ Var /GLOBAL AionUiLockerListFile
   !insertmacro AIONUI_CAPTURE_FAILED_PATH_LOCKERS "${_FAILED_PATH}"
   ${If} $AionUiLockerResult == 0
     ${IfNot} ${Silent}
-      MessageBox MB_RETRYCANCEL|MB_ICONEXCLAMATION "AionUi cannot continue because a file or folder in the install directory is still in use:$\r$\n${_FAILED_PATH}$\r$\n$\r$\nApplication using it:$\r$\n$AionUiLockerList$\r$\n$\r$\nClose the application listed above, then click Retry. If you are not sure what to close, click Cancel to send the installer log to the AionUi team.$\r$\n$\r$\nInstaller log:$\r$\n$AionUiSessionLogPath" /SD IDCANCEL IDRETRY ${_RETRY_LABEL} IDCANCEL ${_CANCEL_LABEL}
+      MessageBox MB_RETRYCANCEL|MB_ICONEXCLAMATION "${AIONUI_MSG_FILE_OR_FOLDER_IN_USE_EN}$\r$\n${AIONUI_MSG_FILE_OR_FOLDER_IN_USE_ZH}$\r$\n${_FAILED_PATH}$\r$\n$\r$\n${AIONUI_MSG_APPLICATION_USING_IT_EN} / ${AIONUI_MSG_APPLICATION_USING_IT_ZH}$\r$\n$AionUiLockerList$\r$\n$\r$\n${AIONUI_MSG_CLOSE_LISTED_RETRY_EN}$\r$\n${AIONUI_MSG_CLOSE_LISTED_RETRY_ZH}$\r$\n$\r$\n${AIONUI_MSG_INSTALLER_LOG_EN} / ${AIONUI_MSG_INSTALLER_LOG_ZH}:$\r$\n$AionUiSessionLogPath" /SD IDCANCEL IDRETRY ${_RETRY_LABEL} IDCANCEL ${_CANCEL_LABEL}
     ${EndIf}
   ${EndIf}
   Goto ${_CONTINUE_LABEL}
@@ -237,7 +237,7 @@ Var /GLOBAL AionUiLockerListFile
       ${If} $AionUiCheckResult == 0
         IntOp $AionUiCloseRetries $AionUiCloseRetries + 1
         ${If} $AionUiCloseRetries > 10
-          MessageBox MB_RETRYCANCEL|MB_ICONEXCLAMATION "AionUi could not finish closing or removing the previous version.$\r$\n$\r$\nAnother program may still be using files in:$\r$\n$INSTDIR$\r$\n$\r$\nClick Retry after closing AionUi and any program using that folder. Click Cancel to show the blocking diagnostics and installer log." /SD IDCANCEL IDRETRY aionui_wait_for_close
+          MessageBox MB_RETRYCANCEL|MB_ICONEXCLAMATION "${AIONUI_MSG_CLOSE_OR_REMOVE_PREVIOUS_EN}$\r$\n${AIONUI_MSG_CLOSE_OR_REMOVE_PREVIOUS_ZH}$\r$\n$\r$\n${AIONUI_MSG_MAY_USE_INSTALL_DIR_EN}$\r$\n${AIONUI_MSG_MAY_USE_INSTALL_DIR_ZH}$\r$\n$INSTDIR$\r$\n$\r$\n${AIONUI_MSG_RETRY_AFTER_CLOSING_DIR_EN}$\r$\n${AIONUI_MSG_RETRY_AFTER_CLOSING_DIR_ZH}" /SD IDCANCEL IDRETRY aionui_wait_for_close
           !insertmacro AIONUI_WRITE_INSTALLER_LAST_FAILURE_MARKER
           !insertmacro AIONUI_CLEAR_ACTIVE_INSTALLER_MARKER
           Quit
