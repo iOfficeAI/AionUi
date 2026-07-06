@@ -76,6 +76,7 @@
     "title": "添加成员",
     "searchAssistants": "搜索助手...",
     "addFailed": "添加成员失败",
-    "noSearchResults": "未找到结果"
+    "noSearchResults": "未找到结果",
+    "footerHint": "显示所有助手；同一助手可反复添加，各自成为独立成员。"
   }
 }

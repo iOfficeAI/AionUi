@@ -2259,6 +2259,7 @@ export type I18nKey =
   | 'settings.workDir'
   | 'settings.yoloMode'
   | 'team.addMember.addFailed'
+  | 'team.addMember.footerHint'
   | 'team.addMember.noSearchResults'
   | 'team.addMember.searchAssistants'
   | 'team.addMember.title'

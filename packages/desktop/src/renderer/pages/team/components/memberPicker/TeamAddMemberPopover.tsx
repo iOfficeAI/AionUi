@@ -51,13 +51,19 @@ const TeamAddMemberPopover: React.FC<Props> = ({ children }) => {
       popupVisible={visible}
       onVisibleChange={setVisible}
       content={
-        <div className='w-320px'>
+        <div
+          className='w-360px overflow-hidden rounded-10px border border-border-2 bg-dialog-fill-0 shadow-lg'
+          data-testid='team-add-member-panel'
+        >
           <TeamAssistantPicker
             assistants={assistants}
             onSelect={handleSelect}
             disabled={!addAssistant}
             pendingAssistantId={pendingAssistantId}
             testIdPrefix='team-add-member'
+            footer={t('team.addMember.footerHint', {
+              defaultValue: 'Show all assistants. The same assistant can be added repeatedly as independent members.',
+            })}
           />
         </div>
       }

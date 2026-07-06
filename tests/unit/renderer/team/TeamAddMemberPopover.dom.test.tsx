@@ -92,6 +92,21 @@ describe('TeamAddMemberPopover', () => {
     expect(screen.getByText('blocked')).toBeInTheDocument();
   });
 
+  it('renders the design styled picker with a localized footer hint', () => {
+    render(
+      <TeamAddMemberPopover>
+        <button type='button'>add</button>
+      </TeamAddMemberPopover>
+    );
+
+    expect(screen.getByTestId('team-add-member-panel')).toHaveClass('w-360px');
+    expect(screen.getByTestId('team-add-member-picker-body')).toHaveClass('bg-fill-1');
+    expect(screen.getAllByTestId('team-add-member-option-writer')[0]).toHaveClass('hover:!bg-fill-2');
+    expect(
+      screen.getByText('Show all assistants. The same assistant can be added repeatedly as independent members.')
+    ).toBeInTheDocument();
+  });
+
   it('adds a teammate and switches to the returned slot', async () => {
     render(
       <TeamAddMemberPopover>
