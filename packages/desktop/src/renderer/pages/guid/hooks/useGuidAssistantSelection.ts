@@ -11,15 +11,22 @@ import type { AgentModeOption } from '@/renderer/utils/model/agentTypes';
 import {
   buildAgentRuntimeModeState,
   buildAgentRuntimeModelInfo,
+  buildAgentRuntimeSlashCommands,
   buildAgentRuntimeThoughtLevelOption,
   type AgentRuntimeCatalog,
   type AgentRuntimeDerivedOption,
 } from '@/renderer/utils/model/agentRuntimeCatalog';
+import type { SlashCommandItem } from '@/common/chat/slash/types';
 import { useManagedAgentRuntimeCatalog } from '@/renderer/hooks/agent/useManagedAgents';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useCustomAgentsLoader } from './useCustomAgentsLoader';
 
-export { buildAgentRuntimeModeState, buildAgentRuntimeModelInfo, type AgentRuntimeCatalog };
+export {
+  buildAgentRuntimeModeState,
+  buildAgentRuntimeModelInfo,
+  buildAgentRuntimeSlashCommands,
+  type AgentRuntimeCatalog,
+};
 
 export type GuidAssistantSelectionResult = {
   selectedAssistantId: string | null;
@@ -34,6 +41,7 @@ export type GuidAssistantSelectionResult = {
   selectedAcpModel: string | null;
   setSelectedAcpModel: (model: React.SetStateAction<string | null>, options?: { persistPreference?: boolean }) => void;
   currentAcpCachedModelInfo: AcpModelInfo | null;
+  currentAgentAvailableCommands: SlashCommandItem[];
   currentAgentModeOptions: AgentModeOption[];
   currentThoughtLevelOption: AgentRuntimeDerivedOption | null;
   selectedThoughtLevelValue: string;
@@ -217,6 +225,10 @@ export const useGuidAssistantSelection = ({
     () => buildAgentRuntimeModelInfo(selectedManagedAgentRuntimeCatalog),
     [selectedManagedAgentRuntimeCatalog]
   );
+  const currentAgentAvailableCommands = useMemo(
+    () => buildAgentRuntimeSlashCommands(selectedManagedAgentRuntimeCatalog),
+    [selectedManagedAgentRuntimeCatalog]
+  );
   const selectedAgentRuntimeModeState = useMemo(
     () => buildAgentRuntimeModeState(selectedManagedAgentRuntimeCatalog),
     [selectedManagedAgentRuntimeCatalog]
@@ -320,6 +332,7 @@ export const useGuidAssistantSelection = ({
     selectedAcpModel,
     setSelectedAcpModel,
     currentAcpCachedModelInfo,
+    currentAgentAvailableCommands,
     currentAgentModeOptions,
     currentThoughtLevelOption,
     selectedThoughtLevelValue,

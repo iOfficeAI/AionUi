@@ -11,6 +11,7 @@ import type { ManagedAgent } from '@/renderer/utils/model/agentTypes';
 import {
   buildAgentRuntimeModeState,
   buildAgentRuntimeModelInfo,
+  buildAgentRuntimeSlashCommands,
   buildAssistantModelInfo,
   resolveInitialAssistantModel,
   useGuidAssistantSelection,
@@ -647,6 +648,51 @@ describe('assistant model helpers', () => {
         { value: 'full-access', label: 'Full Access', description: undefined },
       ],
     });
+  });
+
+  it('builds slash commands from persisted agent available_commands metadata', () => {
+    const agent = {
+      available_commands: JSON.stringify({
+        available_commands: [
+          {
+            name: 'review',
+            description: 'Review the current diff',
+            input: {
+              hint: '⌘R',
+            },
+            _meta: {
+              completion_behavior: 'neutral_tip_on_empty',
+              empty_turn_tip_code: 'acp.empty_turn.choose_command',
+              empty_turn_tip_params: { command_count: 1 },
+            },
+          },
+        ],
+      }),
+    };
+
+    expect(buildAgentRuntimeSlashCommands(agent)).toEqual([
+      {
+        name: 'review',
+        description: 'Review the current diff',
+        hint: '⌘R',
+        kind: 'template',
+        source: 'acp',
+        selectionBehavior: 'insert',
+        completionBehavior: 'neutral_tip_on_empty',
+        emptyTurnTipCode: 'acp.empty_turn.choose_command',
+        emptyTurnTipParams: { command_count: 1 },
+      },
+    ]);
+  });
+
+  it('ignores malformed available_commands metadata', () => {
+    expect(
+      buildAgentRuntimeSlashCommands({
+        available_commands: JSON.stringify({
+          available_commands: [{ name: 'missing-description' }, null, 'bad'],
+        }),
+      })
+    ).toEqual([]);
   });
 
   it('builds ACP model info from assistant models', () => {

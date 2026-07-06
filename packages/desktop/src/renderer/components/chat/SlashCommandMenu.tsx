@@ -12,6 +12,7 @@ export interface SlashCommandMenuItem {
   label: string;
   description?: string;
   badge?: string;
+  highlightIndices?: number[];
 }
 
 interface SlashCommandMenuProps {
@@ -45,6 +46,43 @@ const SlashCommandMenu: React.FC<SlashCommandMenuProps> = ({
       current.scrollIntoView({ block: 'nearest' });
     }
   }, [activeIndex, items.length]);
+
+  const renderLabel = (item: SlashCommandMenuItem) => {
+    if (!item.highlightIndices?.length) {
+      return item.label;
+    }
+
+    const highlighted = new Set(item.highlightIndices);
+    const parts: Array<{ text: string; highlighted: boolean; start: number }> = [];
+    let current = '';
+    let currentHighlighted = highlighted.has(0);
+    let currentStart = 0;
+
+    Array.from(item.label).forEach((char, index) => {
+      const isHighlighted = highlighted.has(index);
+      if (index > 0 && isHighlighted !== currentHighlighted) {
+        parts.push({ text: current, highlighted: currentHighlighted, start: currentStart });
+        current = '';
+        currentStart = index;
+        currentHighlighted = isHighlighted;
+      }
+      current += char;
+    });
+
+    if (current) {
+      parts.push({ text: current, highlighted: currentHighlighted, start: currentStart });
+    }
+
+    return parts.map((part) => (
+      <span
+        key={`${part.start}-${part.text}`}
+        data-slash-highlight={part.highlighted ? 'true' : undefined}
+        className={part.highlighted ? 'rounded-3px bg-aou-2 px-1px text-aou-7 font-semibold' : undefined}
+      >
+        {part.text}
+      </span>
+    ));
+  };
 
   return (
     <div
@@ -109,7 +147,7 @@ const SlashCommandMenu: React.FC<SlashCommandMenuProps> = ({
                       index === activeIndex ? 'text-t-primary font-semibold' : 'text-t-primary font-medium'
                     )}
                   >
-                    {item.label}
+                    {renderLabel(item)}
                   </div>
                   {item.description && <div className='text-12px text-t-secondary truncate'>{item.description}</div>}
                 </div>

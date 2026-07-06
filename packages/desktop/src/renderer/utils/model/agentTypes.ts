@@ -154,6 +154,8 @@ export type ManagedAgent = Omit<AgentMetadata, 'available' | 'handshake'> & {
   config_options?: unknown;
   available_modes?: unknown;
   available_models?: unknown;
+  available_commands?: unknown;
+  handshake?: AgentHandshake;
 };
 
 /**

@@ -5,12 +5,18 @@
  */
 
 import type { AcpModelInfo, AcpSessionConfigOption } from '@/common/types/platform/acpTypes';
+import { mapAgentAvailableCommandsToSlashCommands } from '@/common/chat/slash/guidSlashCommands';
+import type { SlashCommandItem } from '@/common/chat/slash/types';
 import type { AgentModeOption } from './agentTypes';
 
 export type AgentRuntimeCatalog = {
   available_models?: unknown;
   available_modes?: unknown;
+  available_commands?: unknown;
   config_options?: unknown;
+  handshake?: {
+    available_commands?: unknown;
+  };
 };
 
 export type AgentRuntimeSelectOption = {
@@ -233,4 +239,10 @@ export function buildAgentRuntimeThoughtLevelOption(
     'thought_level',
     'reasoning_effort',
   ]);
+}
+
+export function buildAgentRuntimeSlashCommands(agent: AgentRuntimeCatalog | null | undefined): SlashCommandItem[] {
+  if (!agent) return [];
+
+  return mapAgentAvailableCommandsToSlashCommands(agent.available_commands ?? agent.handshake?.available_commands);
 }

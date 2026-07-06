@@ -5,12 +5,16 @@
  */
 
 import { ipcBridge } from '@/common';
+import { buildGuidSlashCommands } from '@/common/chat/slash/guidSlashCommands';
+import type { SlashCommandItem } from '@/common/chat/slash/types';
 import type { IMcpServer, TProviderWithModel } from '@/common/config/storage';
 import { resolveLocaleKey } from '@/common/utils';
 import type { AssistantDetail } from '@/common/types/agent/assistantTypes';
 
 import { useInputFocusRing } from '@/renderer/hooks/chat/useInputFocusRing';
+import { getFuzzyMatchIndices, useSlashCommandController } from '@/renderer/hooks/chat/useSlashCommandController';
 import { openExternalUrl } from '@/renderer/utils/platform';
+import SlashCommandMenu, { type SlashCommandMenuItem } from '@/renderer/components/chat/SlashCommandMenu';
 import AssistantSelectionArea from './components/AssistantSelectionArea';
 import GuidActionRow from './components/GuidActionRow';
 import GuidInputCard from './components/GuidInputCard';
@@ -25,6 +29,7 @@ import { useTypewriterPlaceholder } from './hooks/useTypewriterPlaceholder';
 import { ensureBackendMcpCatalog } from '@/renderer/hooks/mcp/catalog';
 import { resolveGuidAssistantDefaults } from './utils/assistantDefaults';
 import SpeechInputButton from '@/renderer/components/chat/SpeechInputButton';
+import { useOpenFileSelector } from '@/renderer/hooks/file/useOpenFileSelector';
 import { appendSpeechTranscript } from '@/renderer/hooks/system/useSpeechInput';
 import { useLiveTranscriptInsertion } from '@/renderer/hooks/system/useLiveTranscriptInsertion';
 import { Button, ConfigProvider } from '@arco-design/web-react';
@@ -130,6 +135,15 @@ const GuidPage: React.FC = () => {
   const guidInput = useGuidInput({
     locationState: location.state as { workspace?: string } | null,
   });
+  const appendSelectedFiles = useCallback(
+    (files: string[]) => {
+      guidInput.setFiles((prevFiles) => [...prevFiles, ...files]);
+    },
+    [guidInput.setFiles]
+  );
+  const { onSlashBuiltinCommand } = useOpenFileSelector({
+    onFilesSelected: appendSelectedFiles,
+  });
 
   const resetMentionOpen = useCallback<React.Dispatch<React.SetStateAction<boolean>>>(() => {}, []);
   const resetMentionQuery = useCallback<React.Dispatch<React.SetStateAction<string | null>>>(() => {}, []);
@@ -147,6 +161,78 @@ const GuidPage: React.FC = () => {
   const resolvedAssistantDefaults = useMemo(
     () => resolveGuidAssistantDefaults(selectedAssistantDetail),
     [selectedAssistantDetail]
+  );
+  const selectedSkillNames = useMemo(() => {
+    const disabledBuiltinSkillSet = new Set(
+      guidDisabledBuiltinSkills ?? resolvedAssistantDefaults.disabledBuiltinSkillIds
+    );
+    const enabledSkillSet = new Set(guidEnabledSkills ?? resolvedAssistantDefaults.skillIds);
+
+    return allSkills
+      .filter((skill) => (skill.isAuto ? !disabledBuiltinSkillSet.has(skill.name) : enabledSkillSet.has(skill.name)))
+      .map((skill) => skill.name);
+  }, [
+    allSkills,
+    guidDisabledBuiltinSkills,
+    guidEnabledSkills,
+    resolvedAssistantDefaults.disabledBuiltinSkillIds,
+    resolvedAssistantDefaults.skillIds,
+  ]);
+  const skillDescriptionByName = useMemo(
+    () => new Map(allSkills.map((skill) => [skill.name, skill.description])),
+    [allSkills]
+  );
+  const guidBuiltinSlashCommands = useMemo<SlashCommandItem[]>(
+    () => [
+      {
+        name: 'open',
+        description: t('conversation.workspace.addFile', { defaultValue: 'Add File' }),
+        kind: 'builtin',
+        source: 'builtin',
+      },
+    ],
+    [t]
+  );
+  const guidSlashCommands = useMemo(
+    () =>
+      buildGuidSlashCommands({
+        builtinCommands: guidBuiltinSlashCommands,
+        agentCommands: agentSelection.currentAgentAvailableCommands,
+        selectedSkills: selectedSkillNames,
+        descriptionByName: skillDescriptionByName,
+        skillFallbackDescription: t('conversation.skills.slashHint', { defaultValue: 'Skill' }),
+      }),
+    [
+      agentSelection.currentAgentAvailableCommands,
+      guidBuiltinSlashCommands,
+      selectedSkillNames,
+      skillDescriptionByName,
+      t,
+    ]
+  );
+  const slashController = useSlashCommandController({
+    input: guidInput.input,
+    commands: guidSlashCommands,
+    onExecuteBuiltin: (name) => {
+      onSlashBuiltinCommand(name);
+      guidInput.setInput('');
+    },
+    onSelectTemplate: (name) => {
+      guidInput.setInput(`/${name} `);
+    },
+  });
+  const slashMenuItems = useMemo<SlashCommandMenuItem[]>(
+    () =>
+      slashController.filteredCommands.map((command) => ({
+        key: command.name,
+        label: `/${command.name}`,
+        description: command.description,
+        badge: command.hint,
+        highlightIndices: slashController.query
+          ? getFuzzyMatchIndices(command.name, slashController.query)?.map((index) => index + 1)
+          : undefined,
+      })),
+    [slashController.filteredCommands, slashController.query]
   );
 
   const send = useGuidSend({
@@ -200,13 +286,17 @@ const GuidPage: React.FC = () => {
 
   const handleInputKeyDown = useCallback(
     (event: React.KeyboardEvent) => {
+      if (slashController.onKeyDown(event)) {
+        return;
+      }
+
       if (event.key === 'Enter' && !event.shiftKey) {
         event.preventDefault();
         if (!guidInput.input.trim()) return;
         send.sendMessageHandler();
       }
     },
-    [guidInput.input, send.sendMessageHandler]
+    [guidInput.input, send.sendMessageHandler, slashController]
   );
 
   const handleSelectAssistant = useCallback(
@@ -512,6 +602,23 @@ const GuidPage: React.FC = () => {
       onSend={send.sendMessageHandler}
     />
   );
+  const slashCommandMenuNode = slashController.isOpen ? (
+    <SlashCommandMenu
+      title={t('messages.slash.title', { defaultValue: 'Commands' })}
+      hint={t('messages.slash.hint', { defaultValue: 'Type / to open command menu' })}
+      items={slashMenuItems}
+      activeIndex={slashController.activeIndex}
+      loading={false}
+      onHoverItem={slashController.setActiveIndex}
+      onSelectItem={(item) => {
+        const targetIndex = slashController.filteredCommands.findIndex((command) => command.name === item.key);
+        if (targetIndex >= 0) {
+          slashController.onSelectByIndex(targetIndex);
+        }
+      }}
+      emptyText={t('messages.slash.empty', { defaultValue: 'No commands found' })}
+    />
+  ) : null;
 
   return (
     <ConfigProvider getPopupContainer={() => guidContainerRef.current || document.body}>
@@ -545,6 +652,7 @@ const GuidPage: React.FC = () => {
             files={guidInput.files}
             onRemoveFile={guidInput.handleRemoveFile}
             actionRow={actionRowNode}
+            slashCommandMenu={slashCommandMenuNode}
             workspaceDir={guidInput.dir}
             onSelectWorkspace={(dir) => guidInput.setDir(dir)}
             onClearWorkspace={() => guidInput.setDir('')}
