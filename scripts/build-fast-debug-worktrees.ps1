@@ -1,6 +1,6 @@
 param(
   [string[]]$Versions = @(),
-  [string]$SentryDsnFile = 'D:\CODE\SENTRY_DSN',
+  [string]$SentryDsnFile = 'D:\CODE\e2e\SENTRY_DSN',
   [string]$OutputDir = (Join-Path $PSScriptRoot '..\out-fast-builds'),
   [string]$WorktreeRoot = (Join-Path $PSScriptRoot '..\..\aionui-build-worktrees'),
   [int]$TimeoutSeconds = 1800,
@@ -28,6 +28,7 @@ function Resolve-SentryDsnFile([string]$Path) {
   }
 
   $candidates = @(
+    (Join-Path $PSScriptRoot '..\..\e2e\SENTRY_DSN'),
     (Join-Path $PSScriptRoot '..\SENTRY_DSN'),
     (Join-Path $PSScriptRoot '..\..\SENTRY_DSN')
   )
