@@ -45,7 +45,12 @@
     "selectFolder": "انتخاب پوشه",
     "recentLabel": "اخیر",
     "chooseDifferentFolder": "انتخاب پوشه دیگر",
-    "error": "ایجاد تیم ناموفق بود"
+    "error": "ایجاد تیم ناموفق بود",
+    "selectedMembers": "Selected members",
+    "teamLeader": "Team Leader",
+    "teammate": "Teammate",
+    "selectAtLeastOneMember": "Select at least one team member",
+    "selectOneLeader": "Select one Team Leader"
   },
   "removeAgent": {
     "confirmTitle": "حذف عضو تیم",
@@ -58,5 +63,11 @@
       "interview": "برنامه‌ریزی یک مصاحبه عمیق بین عامل‌ها",
       "expert_review": "تحلیل یک مسئله واحد توسط چندین متخصص"
     }
+  },
+  "addMember": {
+    "title": "Add member",
+    "searchAssistants": "Search assistants...",
+    "addFailed": "Failed to add member",
+    "noSearchResults": "No results found"
   }
 }

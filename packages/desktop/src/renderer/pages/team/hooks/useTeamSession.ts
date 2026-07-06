@@ -10,6 +10,7 @@ import type {
   ITeamMcpStatusEvent,
   ITeamSessionChangedEvent,
   ITeamTaskChangedEvent,
+  TeamAssistant,
   TeammateStatus,
   TTeam,
 } from '@/common/types/team/teamTypes';
@@ -88,9 +89,10 @@ export function useTeamSession(team: TTeam) {
   }, [team.id, mutateTeam]);
 
   const addAssistant = useCallback(
-    async (assistant: TeamAssistantInput) => {
-      await ipcBridge.team.addAgent.invoke({ team_id: team.id, assistant });
+    async (assistant: TeamAssistantInput): Promise<TeamAssistant> => {
+      const created = await ipcBridge.team.addAgent.invoke({ team_id: team.id, assistant });
       await mutateTeam();
+      return created;
     },
     [team.id, mutateTeam]
   );

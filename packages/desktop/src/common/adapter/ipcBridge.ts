@@ -1929,7 +1929,7 @@ export const team = {
   create: withResponseMap(
     httpPost<TTeam, ICreateTeamParams>('/api/teams', (p) => ({
       name: p.name,
-      assistants: p.assistants.map(toBackendAssistant),
+      agents: p.agents.map(toBackendAssistant),
       ...(p.workspace ? { workspace: p.workspace } : {}),
     })),
     fromBackendTeam

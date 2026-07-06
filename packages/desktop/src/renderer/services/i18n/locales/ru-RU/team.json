@@ -45,7 +45,12 @@
     "selectFolder": "Выбрать папку",
     "recentLabel": "Недавние",
     "chooseDifferentFolder": "Выбрать другую папку",
-    "error": "Не удалось создать команду"
+    "error": "Не удалось создать команду",
+    "selectedMembers": "Selected members",
+    "teamLeader": "Team Leader",
+    "teammate": "Teammate",
+    "selectAtLeastOneMember": "Select at least one team member",
+    "selectOneLeader": "Select one Team Leader"
   },
   "removeAgent": {
     "confirmTitle": "Удалить участника команды",
@@ -58,5 +63,11 @@
       "interview": "Спланировать глубокое интервью между ассистентами",
       "expert_review": "Несколько экспертов анализируют одну проблему"
     }
+  },
+  "addMember": {
+    "title": "Add member",
+    "searchAssistants": "Search assistants...",
+    "addFailed": "Failed to add member",
+    "noSearchResults": "No results found"
   }
 }

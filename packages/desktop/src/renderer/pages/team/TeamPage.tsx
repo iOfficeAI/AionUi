@@ -553,7 +553,7 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onRenameTeam })
 
 const TeamPage: React.FC<Props> = ({ team }) => {
   const { t } = useTranslation();
-  const { statusMap, renameAssistant, removeAssistant, mutateTeam } = useTeamSession(team);
+  const { statusMap, addAssistant, renameAssistant, removeAssistant, mutateTeam } = useTeamSession(team);
   const { user } = useAuth();
   const { mutate: globalMutate } = useSWRConfig();
   const defaultSlotId = team.assistants[0]?.slot_id ?? '';
@@ -603,6 +603,7 @@ const TeamPage: React.FC<Props> = ({ team }) => {
       statusMap={statusMap}
       defaultActiveSlotId={defaultSlotId}
       team_id={team.id}
+      addAssistant={addAssistant}
       renameAssistant={renameAssistant}
       removeAssistant={handleRemoveAssistantWithConfirm}
     >

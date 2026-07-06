@@ -118,18 +118,40 @@ describe('TeamCreateModal', () => {
       assistant_id: 'bare-aionrs',
       assistant_backend: 'aionrs',
     });
-    expect(payload.assistants[0]).toMatchObject({
+    expect(payload.agents[0]).toMatchObject({
       role: 'leader',
       assistant_id: 'bare-aionrs',
       assistant_name: 'Aion 命令行',
     });
     // Runtime backend / conversation type are derived server-side from the
     // assistant, so the create payload no longer carries legacy agent fields.
-    expect(payload.assistants[0]).not.toHaveProperty('assistant_backend');
-    expect(payload.assistants[0]).not.toHaveProperty('conversation_type');
-    expect(payload.assistants[0]).not.toHaveProperty('custom_agent_id');
-    expect(payload.assistants[0]).not.toHaveProperty('agent_name');
-    expect(payload.assistants[0]).not.toHaveProperty('agent_type');
+    expect(payload.agents[0]).not.toHaveProperty('assistant_backend');
+    expect(payload.agents[0]).not.toHaveProperty('conversation_type');
+    expect(payload.agents[0]).not.toHaveProperty('custom_agent_id');
+    expect(payload.agents[0]).not.toHaveProperty('agent_name');
+    expect(payload.agents[0]).not.toHaveProperty('agent_type');
+    expect(payload).not.toHaveProperty('assistants');
+  });
+
+  it('selectedMembers_allows_duplicate_assistant_instances', async () => {
+    render(<TeamCreateModal visible onClose={vi.fn()} onCreated={vi.fn()} />);
+
+    fireEvent.change(screen.getByPlaceholderText('Team name'), {
+      target: { value: 'Duplicate Team' },
+    });
+    fireEvent.click(screen.getByTestId('team-create-agent-option-bare-aionrs'));
+    fireEvent.click(screen.getByTestId('team-create-agent-option-bare-aionrs'));
+    fireEvent.click(screen.getByRole('button', { name: 'Create Team' }));
+
+    await waitFor(() => expect(createTeamInvokeMock).toHaveBeenCalledTimes(1));
+
+    const payload = createTeamInvokeMock.mock.calls[0][0];
+    expect(payload.agents).toHaveLength(2);
+    expect(payload.agents.map((agent: { assistant_id?: string }) => agent.assistant_id)).toEqual([
+      'bare-aionrs',
+      'bare-aionrs',
+    ]);
+    expect(payload.agents.filter((agent: { role: string }) => agent.role === 'leader')).toHaveLength(1);
   });
 });
 

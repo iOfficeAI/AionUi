@@ -1,9 +1,11 @@
-import { CloseSmall, Edit } from '@icon-park/react';
+import { CloseSmall, Edit, Plus } from '@icon-park/react';
+import { Button } from '@arco-design/web-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import type { TeammateStatus } from '@/common/types/team/teamTypes';
 import AgentStatusBadge from './AgentStatusBadge';
 import TeamAgentIdentity from './TeamAgentIdentity';
 import { useTeamTabs } from '../hooks/TeamTabsContext';
+import TeamAddMemberPopover from './memberPicker/TeamAddMemberPopover';
 
 const DRAG_OVER_CLASS = 'border-l-2 border-[color:var(--color-primary-6)]';
 
@@ -191,8 +193,16 @@ type TeamTabsProps = {
  * Supports scroll overflow with fade indicators.
  */
 const TeamTabs: React.FC<TeamTabsProps> = ({ onTabClick, pendingCounts }) => {
-  const { assistants, activeSlotId, statusMap, switchTab, renameAssistant, removeAssistant, reorderAssistants } =
-    useTeamTabs();
+  const {
+    assistants,
+    activeSlotId,
+    statusMap,
+    switchTab,
+    renameAssistant,
+    removeAssistant,
+    reorderAssistants,
+    addAssistant,
+  } = useTeamTabs();
   const tabsContainerRef = useRef<HTMLDivElement>(null);
   const [showLeftFade, setShowLeftFade] = useState(false);
   const [showRightFade, setShowRightFade] = useState(false);
@@ -282,6 +292,16 @@ const TeamTabs: React.FC<TeamTabsProps> = ({ onTabClick, pendingCounts }) => {
               />
             );
           })}
+          {addAssistant ? (
+            <TeamAddMemberPopover>
+              <Button
+                type='text'
+                className='!h-full !w-40px !min-w-40px !shrink-0 !rounded-none !border-r !border-[color:var(--border-base)] !p-0'
+                icon={<Plus theme='outline' size='14' />}
+                data-testid='team-tab-add-member'
+              />
+            </TeamAddMemberPopover>
+          ) : null}
         </div>
         {showLeftFade && (
           <div

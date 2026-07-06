@@ -38,8 +38,23 @@ describe('assistantSelectUtils', () => {
 
     const [option] = filterTeamSupportedAssistants([assistantToOption(remoteAssistant)]);
 
-    expect(option.team_capable).toBe(true);
+    expect(option.team_selectable).toBe(true);
     expect(option.team_block_reason).toBeUndefined();
+  });
+
+  it('keeps unchecked assistants selectable when backend projection allows team use', () => {
+    const assistant = makeAssistant({
+      id: 'unchecked',
+      name: 'Unchecked',
+      source: 'generated',
+      preset_agent_type: 'aionrs',
+      agent_status: 'unchecked',
+      team_selectable: true,
+    });
+
+    const option = assistantToOption(assistant);
+
+    expect(option.team_selectable).toBe(true);
   });
 });
 

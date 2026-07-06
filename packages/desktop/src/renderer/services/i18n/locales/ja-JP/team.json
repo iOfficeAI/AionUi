@@ -45,7 +45,12 @@
     "selectFolder": "フォルダを選択",
     "recentLabel": "最近使用",
     "chooseDifferentFolder": "別のフォルダを選択",
-    "error": "チームの作成に失敗しました"
+    "error": "チームの作成に失敗しました",
+    "selectedMembers": "Selected members",
+    "teamLeader": "Team Leader",
+    "teammate": "Teammate",
+    "selectAtLeastOneMember": "Select at least one team member",
+    "selectOneLeader": "Select one Team Leader"
   },
   "removeAgent": {
     "confirmTitle": "チームメンバーを削除",
@@ -58,5 +63,11 @@
       "interview": "アシスタント同士による深掘りインタビューを企画する",
       "expert_review": "複数の専門家が同じ問題を分析する"
     }
+  },
+  "addMember": {
+    "title": "Add member",
+    "searchAssistants": "Search assistants...",
+    "addFailed": "Failed to add member",
+    "noSearchResults": "No results found"
   }
 }

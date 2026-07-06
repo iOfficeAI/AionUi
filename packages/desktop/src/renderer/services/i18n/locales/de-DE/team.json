@@ -45,7 +45,12 @@
     "chooseDifferentFolder": "Anderen Ordner wählen",
     "error": "Team erstellen fehlgeschlagen",
     "searchPlaceholder": "Search assistants...",
-    "noSearchResults": "No results found"
+    "noSearchResults": "No results found",
+    "selectedMembers": "Selected members",
+    "teamLeader": "Team Leader",
+    "teammate": "Teammate",
+    "selectAtLeastOneMember": "Select at least one team member",
+    "selectOneLeader": "Select one Team Leader"
   },
   "removeAgent": {
     "confirmTitle": "Teammitglied entfernen",
@@ -58,5 +63,11 @@
       "interview": "Ein eingehendes Interview zwischen Agenten planen",
       "expert_review": "Mehrere Experten das gleiche Problem analysieren lassen"
     }
+  },
+  "addMember": {
+    "title": "Add member",
+    "searchAssistants": "Search assistants...",
+    "addFailed": "Failed to add member",
+    "noSearchResults": "No results found"
   }
 }

@@ -1,5 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import type { TeamAssistant, TeammateStatus } from '@/common/types/team/teamTypes';
+import type { TeamAssistantInput } from '@/common/adapter/teamMapper';
 import {
   readStoredSiderOrder,
   sortSiderItemsByStoredOrder,
@@ -20,6 +21,7 @@ export type TeamTabsContextValue = {
   switchTab: (slot_id: string) => void;
   renameAssistant?: (slot_id: string, new_name: string) => Promise<void>;
   removeAssistant?: (slot_id: string) => void;
+  addAssistant?: (assistant: TeamAssistantInput) => Promise<TeamAssistant>;
   reorderAssistants: (fromSlotId: string, toSlotId: string) => void;
 };
 
@@ -53,6 +55,7 @@ export const TeamTabsProvider: React.FC<{
   team_id: string;
   renameAssistant?: (slot_id: string, new_name: string) => Promise<void>;
   removeAssistant?: (slot_id: string) => void;
+  addAssistant?: (assistant: TeamAssistantInput) => Promise<TeamAssistant>;
 }> = ({
   children,
   assistants: externalAssistants,
@@ -61,6 +64,7 @@ export const TeamTabsProvider: React.FC<{
   team_id,
   renameAssistant,
   removeAssistant,
+  addAssistant,
 }) => {
   const storageKey = `team-active-slot-${team_id}`;
   const savedSlotId = localStorage.getItem(storageKey);
@@ -150,6 +154,7 @@ export const TeamTabsProvider: React.FC<{
       switchTab,
       renameAssistant: renameAssistant ? handleRenameAssistant : undefined,
       removeAssistant,
+      addAssistant,
       reorderAssistants,
     }),
     [
@@ -161,6 +166,7 @@ export const TeamTabsProvider: React.FC<{
       renameAssistant,
       handleRenameAssistant,
       removeAssistant,
+      addAssistant,
       reorderAssistants,
     ]
   );

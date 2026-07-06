@@ -45,7 +45,12 @@
     "selectFolder": "选择项目文件夹",
     "recentLabel": "最近使用",
     "chooseDifferentFolder": "选择其他目录",
-    "error": "创建团队失败"
+    "error": "创建团队失败",
+    "selectedMembers": "Selected members",
+    "teamLeader": "Team Leader",
+    "teammate": "Teammate",
+    "selectAtLeastOneMember": "Select at least one team member",
+    "selectOneLeader": "Select one Team Leader"
   },
   "removeAgent": {
     "confirmTitle": "移除团队成员",
@@ -58,5 +63,11 @@
       "interview": "策划一场深度访谈",
       "expert_review": "多位专家会诊同一个问题"
     }
+  },
+  "addMember": {
+    "title": "Add member",
+    "searchAssistants": "Search assistants...",
+    "addFailed": "Failed to add member",
+    "noSearchResults": "No results found"
   }
 }

@@ -45,7 +45,12 @@
     "selectFolder": "選擇專案資料夾",
     "recentLabel": "最近使用",
     "chooseDifferentFolder": "選擇其他目錄",
-    "error": "建立團隊失敗"
+    "error": "建立團隊失敗",
+    "selectedMembers": "Selected members",
+    "teamLeader": "Team Leader",
+    "teammate": "Teammate",
+    "selectAtLeastOneMember": "Select at least one team member",
+    "selectOneLeader": "Select one Team Leader"
   },
   "removeAgent": {
     "confirmTitle": "移除團隊成員",
@@ -58,5 +63,11 @@
       "interview": "策劃一場深度訪談",
       "expert_review": "多位專家會診同一個問題"
     }
+  },
+  "addMember": {
+    "title": "Add member",
+    "searchAssistants": "Search assistants...",
+    "addFailed": "Failed to add member",
+    "noSearchResults": "No results found"
   }
 }

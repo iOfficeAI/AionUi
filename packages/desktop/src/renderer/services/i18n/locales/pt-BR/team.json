@@ -45,7 +45,12 @@
     "selectFolder": "Selecionar pasta",
     "recentLabel": "Recente",
     "chooseDifferentFolder": "Escolher uma pasta diferente",
-    "error": "Falha ao criar equipe"
+    "error": "Falha ao criar equipe",
+    "selectedMembers": "Selected members",
+    "teamLeader": "Team Leader",
+    "teammate": "Teammate",
+    "selectAtLeastOneMember": "Select at least one team member",
+    "selectOneLeader": "Select one Team Leader"
   },
   "removeAgent": {
     "confirmTitle": "Remover Membro da Equipe",
@@ -58,5 +63,11 @@
       "interview": "Planejar uma entrevista aprofundada entre assistentes",
       "expert_review": "Ter vários especialistas analisando o mesmo problema"
     }
+  },
+  "addMember": {
+    "title": "Add member",
+    "searchAssistants": "Search assistants...",
+    "addFailed": "Failed to add member",
+    "noSearchResults": "No results found"
   }
 }

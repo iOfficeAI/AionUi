@@ -45,7 +45,12 @@
     "chooseDifferentFolder": "Elegir otra carpeta",
     "error": "Error al crear el equipo",
     "searchPlaceholder": "Search assistants...",
-    "noSearchResults": "No results found"
+    "noSearchResults": "No results found",
+    "selectedMembers": "Selected members",
+    "teamLeader": "Team Leader",
+    "teammate": "Teammate",
+    "selectAtLeastOneMember": "Select at least one team member",
+    "selectOneLeader": "Select one Team Leader"
   },
   "removeAgent": {
     "confirmTitle": "Quitar miembro del equipo",
@@ -58,5 +63,11 @@
       "interview": "Planificar una entrevista en profundidad entre agentes",
       "expert_review": "Hacer que varios expertos analicen el mismo problema"
     }
+  },
+  "addMember": {
+    "title": "Add member",
+    "searchAssistants": "Search assistants...",
+    "addFailed": "Failed to add member",
+    "noSearchResults": "No results found"
   }
 }

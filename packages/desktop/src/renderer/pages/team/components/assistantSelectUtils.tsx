@@ -13,7 +13,7 @@ export type TeamAssistantOption = {
   /** Avatar token — a backend-resolved URL or an emoji. */
   icon?: string;
   /** Whether this assistant can currently be used in team mode. */
-  team_capable?: boolean;
+  team_selectable?: boolean;
   /** Why this assistant cannot currently be used in team mode. */
   team_block_reason?: string;
 };
@@ -24,7 +24,7 @@ export function assistantToOption(assistant: Assistant, localeKey = 'en-US'): Te
     name: resolveAssistantName(assistant, localeKey, assistant.name),
     backend: assistantRuntimeKey(assistant),
     icon: assistant.avatar,
-    team_capable: assistant.team_selectable,
+    team_selectable: assistant.team_selectable,
     team_block_reason: assistant.team_block_reason,
   };
 }
