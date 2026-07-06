@@ -35,6 +35,9 @@ const TeamMemberDraftList: React.FC<Props> = ({ members, leaderSelectionId, onLe
         ) : (
           members.map((member) => {
             const isLeader = leaderSelectionId === member.selectionId;
+            const leaderButtonLabel = isLeader
+              ? t('team.create.currentLeader', { defaultValue: 'Current Leader' })
+              : t('team.create.setAsLeader', { defaultValue: 'Set as Leader' });
             return (
               <div
                 key={member.selectionId}
@@ -45,14 +48,16 @@ const TeamMemberDraftList: React.FC<Props> = ({ members, leaderSelectionId, onLe
                 <div className='flex flex-1 items-center justify-end gap-12px'>
                   <Button
                     type='text'
-                    className={`!h-24px !w-24px !min-w-24px !p-0 ${isLeader ? 'text-success-6' : 'text-t-tertiary'}`}
-                    icon={<Flag theme='filled' size='14' fill='currentColor' />}
-                    onClick={() => onLeaderChange(member.selectionId)}
-                    aria-label={
+                    className={`!h-28px !w-28px !min-w-28px !rounded-6px !p-0 ${
                       isLeader
-                        ? t('team.create.teamLeader', { defaultValue: 'Team Leader' })
-                        : t('team.create.teammate', { defaultValue: 'Teammate' })
-                    }
+                        ? '!bg-[rgba(var(--success-6),0.14)] !text-[rgb(var(--success-6))] hover:!bg-[rgba(var(--success-6),0.20)]'
+                        : '!bg-transparent !text-t-tertiary hover:!bg-fill-2 hover:!text-t-secondary'
+                    }`}
+                    icon={<Flag theme={isLeader ? 'filled' : 'outline'} size='15' fill='currentColor' />}
+                    onClick={() => onLeaderChange(member.selectionId)}
+                    aria-label={leaderButtonLabel}
+                    aria-pressed={isLeader}
+                    data-leader-state={isLeader ? 'active' : 'inactive'}
                   />
                   <Button
                     type='text'

@@ -213,7 +213,7 @@ describe('TeamCreateModal', () => {
     });
     fireEvent.click(screen.getByTestId('team-create-agent-option-bare-aionrs'));
     fireEvent.click(screen.getByTestId('team-create-agent-option-remote-runner'));
-    fireEvent.click(screen.getByRole('button', { name: 'Teammate' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Set as Leader' }));
     fireEvent.click(screen.getByRole('button', { name: 'Confirm Create' }));
 
     await waitFor(() => expect(createTeamInvokeMock).toHaveBeenCalledTimes(1));
@@ -221,6 +221,28 @@ describe('TeamCreateModal', () => {
     const payload = createTeamInvokeMock.mock.calls[0][0];
     expect(payload.agents.map((agent: { role: string }) => agent.role)).toEqual(['teammate', 'leader']);
     expect(payload.agents.filter((agent: { role: string }) => agent.role === 'leader')).toHaveLength(1);
+  });
+
+  it('leader_flag_controls_show_and_switch_a_single_active_leader', () => {
+    render(<TeamCreateModal visible onClose={vi.fn()} onCreated={vi.fn()} />);
+
+    fireEvent.click(screen.getByTestId('team-create-agent-option-bare-aionrs'));
+    fireEvent.click(screen.getByTestId('team-create-agent-option-remote-runner'));
+    fireEvent.click(screen.getByTestId('team-create-agent-option-remote-runner'));
+
+    const rows = screen.getAllByTestId(/team-create-member-draft-/);
+    expect(rows).toHaveLength(3);
+    expect(screen.getAllByRole('button', { name: 'Current Leader' })).toHaveLength(1);
+    expect(screen.getAllByRole('button', { name: 'Set as Leader' })).toHaveLength(2);
+    expect(within(rows[0]).getByRole('button', { name: 'Current Leader' })).toHaveAttribute('aria-pressed', 'true');
+    expect(within(rows[1]).getByRole('button', { name: 'Set as Leader' })).toHaveAttribute('aria-pressed', 'false');
+
+    fireEvent.click(within(rows[2]).getByRole('button', { name: 'Set as Leader' }));
+
+    expect(screen.getAllByRole('button', { name: 'Current Leader' })).toHaveLength(1);
+    expect(screen.getAllByRole('button', { name: 'Set as Leader' })).toHaveLength(2);
+    expect(within(rows[0]).getByRole('button', { name: 'Set as Leader' })).toHaveAttribute('aria-pressed', 'false');
+    expect(within(rows[2]).getByRole('button', { name: 'Current Leader' })).toHaveAttribute('aria-pressed', 'true');
   });
 
   it('removing_leader_promotes_first_remaining_member', async () => {

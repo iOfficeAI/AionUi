@@ -48,6 +48,8 @@
     "error": "创建团队失败",
     "selectedMembers": "已选成员",
     "teamLeader": "Team Leader",
+    "currentLeader": "当前 Leader",
+    "setAsLeader": "设为 Leader",
     "teammate": "队员",
     "selectAtLeastOneMember": "请选择至少一个团队成员",
     "selectOneLeader": "请选择一个 Team Leader",

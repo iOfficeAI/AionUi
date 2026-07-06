@@ -48,6 +48,8 @@
     "error": "建立團隊失敗",
     "selectedMembers": "已選成員",
     "teamLeader": "Team Leader",
+    "currentLeader": "目前 Leader",
+    "setAsLeader": "設為 Leader",
     "teammate": "隊員",
     "selectAtLeastOneMember": "請選擇至少一個團隊成員",
     "selectOneLeader": "請選擇一個 Team Leader",

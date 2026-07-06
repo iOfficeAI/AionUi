@@ -48,6 +48,8 @@
     "error": "팀 생성에 실패했습니다",
     "selectedMembers": "Selected members",
     "teamLeader": "Team Leader",
+    "currentLeader": "Current Leader",
+    "setAsLeader": "Set as Leader",
     "teammate": "Teammate",
     "selectAtLeastOneMember": "Select at least one team member",
     "selectOneLeader": "Select one Team Leader",

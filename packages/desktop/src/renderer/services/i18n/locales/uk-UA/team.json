@@ -48,6 +48,8 @@
     "error": "Не вдалося створити команду",
     "selectedMembers": "Selected members",
     "teamLeader": "Team Leader",
+    "currentLeader": "Current Leader",
+    "setAsLeader": "Set as Leader",
     "teammate": "Teammate",
     "selectAtLeastOneMember": "Select at least one team member",
     "selectOneLeader": "Select one Team Leader",
