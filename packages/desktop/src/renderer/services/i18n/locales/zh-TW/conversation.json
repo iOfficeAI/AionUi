@@ -379,7 +379,8 @@
       "revealFailed": "無法開啟所在資料夾",
       "download": "下載",
       "downloadSuccess": "下載成功",
-      "downloadFailed": "下載失敗"
+      "downloadFailed": "下載失敗",
+      "searchInFolder": "在此資料夾下搜尋"
     },
     "preview": {
       "errors": {
@@ -418,7 +419,9 @@
     },
     "searchScope": {
       "workspace": "整個專案",
-      "currentFolder": "資料夾：{{folder}}"
+      "currentFolder": "資料夾",
+      "folderHintDesktop": "右鍵選擇在指定資料夾下搜尋",
+      "folderHintMobile": "長按選擇在指定資料夾下搜尋"
     },
     "searchMode": {
       "all": "全部",

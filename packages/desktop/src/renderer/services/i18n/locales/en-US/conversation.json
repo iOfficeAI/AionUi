@@ -379,7 +379,8 @@
       "revealFailed": "Failed to open containing folder",
       "download": "Download",
       "downloadSuccess": "Download successful",
-      "downloadFailed": "Download failed"
+      "downloadFailed": "Download failed",
+      "searchInFolder": "Search in this folder"
     },
     "preview": {
       "errors": {
@@ -418,7 +419,9 @@
     },
     "searchScope": {
       "workspace": "Project",
-      "currentFolder": "Folder: {{folder}}"
+      "currentFolder": "Folder",
+      "folderHintDesktop": "Right-click a folder to search within it",
+      "folderHintMobile": "Long-press a folder to search within it"
     },
     "searchMode": {
       "all": "All",

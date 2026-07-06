@@ -81,6 +81,13 @@
   white-space: nowrap;
 }
 
+.chat-workspace .workspace-search-folder-hint {
+  color: var(--color-text-3);
+  font-size: 12px;
+  line-height: 18px;
+  padding: 0 2px;
+}
+
 /* Full-row hover & selection backgrounds live in styles/arco-override.css
    (.workspace-tree ...), the project's home for Arco theme overrides. */
 

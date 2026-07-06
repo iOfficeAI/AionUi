@@ -379,7 +379,8 @@
       "revealFailed": "Enthaltenden Ordner öffnen fehlgeschlagen",
       "download": "Herunterladen",
       "downloadSuccess": "Download erfolgreich",
-      "downloadFailed": "Download fehlgeschlagen"
+      "downloadFailed": "Download fehlgeschlagen",
+      "searchInFolder": "In diesem Ordner suchen"
     },
     "preview": {
       "errors": {
@@ -418,7 +419,9 @@
     },
     "searchScope": {
       "workspace": "Projekt",
-      "currentFolder": "Ordner: {{folder}}"
+      "currentFolder": "Ordner",
+      "folderHintDesktop": "Klicken Sie mit der rechten Maustaste auf einen Ordner, um darin zu suchen",
+      "folderHintMobile": "Halten Sie einen Ordner gedrückt, um darin zu suchen"
     },
     "searchMode": {
       "all": "Alle",

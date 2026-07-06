@@ -14,7 +14,6 @@ export type WorkspaceSearchScope = 'workspace' | 'currentFolder';
 
 type UseWorkspaceSearchParams = {
   workspace: string;
-  currentFolderPath: string;
   loadWorkspace: (path: string, search?: string, searchMode?: WorkspaceSearchMode) => Promise<IDirOrFile[]>;
 };
 
@@ -22,11 +21,12 @@ type UseWorkspaceSearchParams = {
  * Manages workspace search state, debounced search callback, focus behavior,
  * and host file selector state (WebUI).
  */
-export function useWorkspaceSearch({ workspace, currentFolderPath, loadWorkspace }: UseWorkspaceSearchParams) {
+export function useWorkspaceSearch({ workspace, loadWorkspace }: UseWorkspaceSearchParams) {
   const [searchText, setSearchText] = useState('');
   const [showSearch, setShowSearch] = useState(true);
   const [searchScope, setSearchScope] = useState<WorkspaceSearchScope>('workspace');
   const [searchMode, setSearchMode] = useState<WorkspaceSearchMode>('all');
+  const [searchFolderPath, setSearchFolderPath] = useState(workspace);
   const searchInputRef = useRef<RefInputType | null>(null);
 
   // Host file selector state (WebUI: use DirectorySelectionModal instead of native dialog)
@@ -55,18 +55,14 @@ export function useWorkspaceSearch({ workspace, currentFolderPath, loadWorkspace
     previousShowSearchRef.current = showSearch;
   }, [showSearch]);
 
-  const getSearchPath = useCallback(
-    (scope: WorkspaceSearchScope) => (scope === 'currentFolder' ? currentFolderPath : workspace),
-    [currentFolderPath, workspace]
-  );
-
   const runSearch = useCallback(
-    (value: string, scope: WorkspaceSearchScope, mode: WorkspaceSearchMode) => {
-      void loadWorkspace(getSearchPath(scope), value, mode).then((files) => {
+    (value: string, scope: WorkspaceSearchScope, mode: WorkspaceSearchMode, folderPath = searchFolderPath) => {
+      const path = scope === 'currentFolder' ? folderPath : workspace;
+      void loadWorkspace(path, value, mode).then((files) => {
         setShowSearch(files.length > 0 && files[0]?.children?.length > 0);
       });
     },
-    [getSearchPath, loadWorkspace]
+    [loadWorkspace, searchFolderPath, workspace]
   );
 
   // Debounced search handler
@@ -99,10 +95,20 @@ export function useWorkspaceSearch({ workspace, currentFolderPath, loadWorkspace
   );
 
   useEffect(() => {
-    if (searchScope === 'currentFolder' && searchText) {
-      runSearch(searchText, searchScope, searchMode);
-    }
-  }, [currentFolderPath, runSearch, searchMode, searchScope, searchText]);
+    setSearchFolderPath(workspace);
+    setSearchScope('workspace');
+  }, [workspace]);
+
+  const selectSearchFolder = useCallback(
+    (folderPath: string) => {
+      setSearchFolderPath(folderPath);
+      setSearchScope('currentFolder');
+      if (searchText) {
+        runSearch(searchText, 'currentFolder', searchMode, folderPath);
+      }
+    },
+    [runSearch, searchMode, searchText]
+  );
 
   // Handle host file selection callback (WebUI)
   const handleHostFileSelected = useCallback(
@@ -125,6 +131,7 @@ export function useWorkspaceSearch({ workspace, currentFolderPath, loadWorkspace
     setShowSearch,
     searchScope,
     setSearchScope: updateSearchScope,
+    selectSearchFolder,
     searchMode,
     setSearchMode: updateSearchMode,
     searchInputRef,

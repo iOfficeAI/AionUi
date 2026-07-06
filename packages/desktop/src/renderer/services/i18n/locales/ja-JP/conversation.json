@@ -379,7 +379,8 @@
       "revealFailed": "フォルダーを開けませんでした",
       "download": "ダウンロード",
       "downloadSuccess": "ダウンロードしました",
-      "downloadFailed": "ダウンロードに失敗しました"
+      "downloadFailed": "ダウンロードに失敗しました",
+      "searchInFolder": "このフォルダ内を検索"
     },
     "preview": {
       "errors": {
@@ -418,7 +419,9 @@
     },
     "searchScope": {
       "workspace": "プロジェクト",
-      "currentFolder": "フォルダー: {{folder}}"
+      "currentFolder": "フォルダ",
+      "folderHintDesktop": "右クリックして指定フォルダ内を検索",
+      "folderHintMobile": "長押しして指定フォルダ内を検索"
     },
     "searchMode": {
       "all": "すべて",

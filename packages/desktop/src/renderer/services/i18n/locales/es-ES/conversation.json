@@ -379,7 +379,8 @@
       "revealFailed": "Error al abrir la carpeta contenedora",
       "download": "Descargar",
       "downloadSuccess": "Descarga exitosa",
-      "downloadFailed": "Error en la descarga"
+      "downloadFailed": "Error en la descarga",
+      "searchInFolder": "Buscar en esta carpeta"
     },
     "preview": {
       "errors": {
@@ -418,7 +419,9 @@
     },
     "searchScope": {
       "workspace": "Proyecto",
-      "currentFolder": "Carpeta: {{folder}}"
+      "currentFolder": "Carpeta",
+      "folderHintDesktop": "Haz clic derecho en una carpeta para buscar en ella",
+      "folderHintMobile": "Mantén pulsada una carpeta para buscar en ella"
     },
     "searchMode": {
       "all": "Todo",

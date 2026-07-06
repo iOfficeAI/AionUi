@@ -385,7 +385,8 @@
       "revealFailed": "Falha ao abrir a pasta que contém o arquivo",
       "download": "Baixar",
       "downloadSuccess": "Download concluído com sucesso",
-      "downloadFailed": "O download falhou"
+      "downloadFailed": "O download falhou",
+      "searchInFolder": "Pesquisar nesta pasta"
     },
     "preview": {
       "errors": {
@@ -424,7 +425,9 @@
     },
     "searchScope": {
       "workspace": "Projeto",
-      "currentFolder": "Pasta: {{folder}}"
+      "currentFolder": "Pasta",
+      "folderHintDesktop": "Clique com o botão direito em uma pasta para pesquisar nela",
+      "folderHintMobile": "Toque e segure uma pasta para pesquisar nela"
     },
     "searchMode": {
       "all": "Tudo",

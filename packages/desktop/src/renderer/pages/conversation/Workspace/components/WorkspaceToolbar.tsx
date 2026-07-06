@@ -6,31 +6,17 @@
 
 import { iconColors } from '@/renderer/styles/colors';
 import { isElectronDesktop } from '@/renderer/utils/platform';
-import { Dropdown, Input, Menu, Radio, Tooltip } from '@arco-design/web-react';
-import { Down, Plus, Refresh, Search } from '@icon-park/react';
+import { Dropdown, Menu, Tooltip } from '@arco-design/web-react';
+import { Down, Plus, Refresh } from '@icon-park/react';
 import React from 'react';
 import UploadProgressBar from '@/renderer/components/media/UploadProgressBar';
 import type { TFunction } from 'i18next';
-import type { RefInputType } from '@arco-design/web-react/es/Input/interface';
-import type { WorkspaceSearchScope } from '../hooks/useWorkspaceSearch';
-import type { WorkspaceSearchMode } from '../hooks/useWorkspaceTree';
 
 type WorkspaceToolbarProps = {
   t: TFunction;
   isWorkspaceCollapsed: boolean;
   setIsWorkspaceCollapsed: (v: boolean) => void;
   workspaceDisplayName: string;
-  // Search
-  showSearch: boolean;
-  searchText: string;
-  setSearchText: (v: string) => void;
-  onSearch: (v: string) => void;
-  searchInputRef: React.RefObject<RefInputType | null>;
-  searchScope: WorkspaceSearchScope;
-  setSearchScope: (v: WorkspaceSearchScope) => void;
-  searchMode: WorkspaceSearchMode;
-  setSearchMode: (v: WorkspaceSearchMode) => void;
-  currentFolderLabel: string;
   // Tree state
   loading: boolean;
   refreshWorkspace: () => void;
@@ -46,16 +32,6 @@ const WorkspaceToolbar: React.FC<WorkspaceToolbarProps> = ({
   isWorkspaceCollapsed,
   setIsWorkspaceCollapsed,
   workspaceDisplayName,
-  showSearch,
-  searchText,
-  setSearchText,
-  onSearch,
-  searchInputRef,
-  searchScope,
-  setSearchScope,
-  searchMode,
-  setSearchMode,
-  currentFolderLabel,
   loading,
   refreshWorkspace,
   handleSelectHostFiles,
@@ -84,52 +60,6 @@ const WorkspaceToolbar: React.FC<WorkspaceToolbarProps> = ({
 
   return (
     <div className='px-12px'>
-      {/* Search Input */}
-      {(showSearch || searchText) && (
-        <div className='py-8px workspace-toolbar-search'>
-          <Input
-            className='w-full workspace-search-input'
-            ref={searchInputRef}
-            placeholder={t('conversation.workspace.searchPlaceholder')}
-            value={searchText}
-            onChange={(value) => {
-              setSearchText(value);
-              onSearch(value);
-            }}
-            allowClear
-            prefix={<Search theme='outline' size='14' fill={iconColors.primary} />}
-          />
-          <div className='workspace-search-controls mt-6px'>
-            <Radio.Group
-              className='workspace-search-segment'
-              size='mini'
-              type='button'
-              value={searchScope}
-              onChange={(value) => setSearchScope(value as WorkspaceSearchScope)}
-            >
-              <Radio value='workspace'>{t('conversation.workspace.searchScope.workspace')}</Radio>
-              <Radio value='currentFolder'>
-                {t('conversation.workspace.searchScope.currentFolder', { folder: currentFolderLabel })}
-              </Radio>
-            </Radio.Group>
-            <Radio.Group
-              className='workspace-search-segment'
-              size='mini'
-              type='button'
-              value={searchMode}
-              onChange={(value) => setSearchMode(value as WorkspaceSearchMode)}
-            >
-              <Radio value='all'>{t('conversation.workspace.searchMode.all')}</Radio>
-              <Radio value='name'>{t('conversation.workspace.searchMode.name')}</Radio>
-              <Radio value='content'>{t('conversation.workspace.searchMode.content')}</Radio>
-            </Radio.Group>
-          </div>
-        </div>
-      )}
-
-      {/* Border divider below search */}
-      {!isWorkspaceCollapsed && (showSearch || searchText) && <div className='border-b border-b-base' />}
-
       {/* Directory name with collapse and action icons */}
       <div className='workspace-toolbar-row flex items-center justify-between gap-8px'>
         <div

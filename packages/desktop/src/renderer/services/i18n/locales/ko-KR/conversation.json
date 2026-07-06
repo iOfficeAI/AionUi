@@ -379,7 +379,8 @@
       "revealFailed": "포함 폴더 열기 실패",
       "download": "다운로드",
       "downloadSuccess": "다운로드 완료",
-      "downloadFailed": "다운로드 실패"
+      "downloadFailed": "다운로드 실패",
+      "searchInFolder": "이 폴더에서 검색"
     },
     "preview": {
       "errors": {
@@ -418,7 +419,9 @@
     },
     "searchScope": {
       "workspace": "프로젝트",
-      "currentFolder": "폴더: {{folder}}"
+      "currentFolder": "폴더",
+      "folderHintDesktop": "지정한 폴더에서 검색하려면 오른쪽 클릭하세요",
+      "folderHintMobile": "지정한 폴더에서 검색하려면 길게 누르세요"
     },
     "searchMode": {
       "all": "전체",

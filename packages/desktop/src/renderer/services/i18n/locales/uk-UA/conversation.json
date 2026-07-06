@@ -379,7 +379,8 @@
       "revealFailed": "Не вдалося відкрити папку з файлом",
       "download": "Завантажити",
       "downloadSuccess": "Завантаження успішне",
-      "downloadFailed": "Не вдалося завантажити"
+      "downloadFailed": "Не вдалося завантажити",
+      "searchInFolder": "Шукати в цій папці"
     },
     "preview": {
       "errors": {
@@ -418,7 +419,9 @@
     },
     "searchScope": {
       "workspace": "Проєкт",
-      "currentFolder": "Папка: {{folder}}"
+      "currentFolder": "Папка",
+      "folderHintDesktop": "Клацніть папку правою кнопкою, щоб шукати в ній",
+      "folderHintMobile": "Натисніть і утримуйте папку, щоб шукати в ній"
     },
     "searchMode": {
       "all": "Усе",

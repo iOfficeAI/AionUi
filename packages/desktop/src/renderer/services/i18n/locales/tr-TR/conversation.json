@@ -362,7 +362,8 @@
       "revealFailed": "İçeren klasör açılamadı",
       "download": "İndir",
       "downloadSuccess": "İndirme başarılı",
-      "downloadFailed": "İndirme başarısız"
+      "downloadFailed": "İndirme başarısız",
+      "searchInFolder": "Bu klasörde ara"
     },
     "preview": {
       "errors": {
@@ -403,7 +404,9 @@
     },
     "searchScope": {
       "workspace": "Proje",
-      "currentFolder": "Klasor: {{folder}}"
+      "currentFolder": "Klasör",
+      "folderHintDesktop": "Belirli bir klasörde aramak için sağ tıklayın",
+      "folderHintMobile": "Belirli bir klasörde aramak için uzun basın"
     },
     "searchMode": {
       "all": "Tumu",

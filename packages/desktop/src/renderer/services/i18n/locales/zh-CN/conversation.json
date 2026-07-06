@@ -379,7 +379,8 @@
       "revealFailed": "无法打开所在目录",
       "download": "下载",
       "downloadSuccess": "下载成功",
-      "downloadFailed": "下载失败"
+      "downloadFailed": "下载失败",
+      "searchInFolder": "在此文件夹下搜索"
     },
     "preview": {
       "errors": {
@@ -418,7 +419,9 @@
     },
     "searchScope": {
       "workspace": "整个项目",
-      "currentFolder": "文件夹：{{folder}}"
+      "currentFolder": "文件夹",
+      "folderHintDesktop": "右键选择在指定文件夹下搜索",
+      "folderHintMobile": "长按选择在指定文件夹下搜索"
     },
     "searchMode": {
       "all": "全部",

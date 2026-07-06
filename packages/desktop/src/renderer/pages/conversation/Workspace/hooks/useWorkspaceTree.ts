@@ -134,7 +134,7 @@ export function useWorkspaceTree({ workspace, conversation_id, eventPrefix }: Us
           // Only dispatch expand signal when there are files; never actively
           // collapse — avoids fighting with team mode's explicit expand and
           // prevents flicker when workspace starts empty.
-          if (hasFiles) {
+          if (hasFiles && !search) {
             dispatchWorkspaceHasFilesEvent(true, conversation_id, wasFirstLoad);
           }
 

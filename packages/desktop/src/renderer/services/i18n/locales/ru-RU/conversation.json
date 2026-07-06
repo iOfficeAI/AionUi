@@ -379,7 +379,8 @@
       "revealFailed": "Не удалось открыть содержащую папку",
       "download": "Скачать",
       "downloadSuccess": "Скачивание успешно",
-      "downloadFailed": "Не удалось скачать"
+      "downloadFailed": "Не удалось скачать",
+      "searchInFolder": "Искать в этой папке"
     },
     "preview": {
       "errors": {
@@ -418,7 +419,9 @@
     },
     "searchScope": {
       "workspace": "Проект",
-      "currentFolder": "Папка: {{folder}}"
+      "currentFolder": "Папка",
+      "folderHintDesktop": "Щелкните папку правой кнопкой, чтобы искать в ней",
+      "folderHintMobile": "Нажмите и удерживайте папку, чтобы искать в ней"
     },
     "searchMode": {
       "all": "Все",

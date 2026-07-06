@@ -7,21 +7,9 @@
 import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import WorkspaceToolbar from '@/renderer/pages/conversation/Workspace/components/WorkspaceToolbar';
-
-vi.mock('@/renderer/utils/platform', () => ({
-  isElectronDesktop: () => true,
-}));
-
-vi.mock('@/renderer/components/media/UploadProgressBar', () => ({
-  __esModule: true,
-  default: () => <div data-testid='upload-progress' />,
-}));
+import WorkspaceSearchBar from '@/renderer/pages/conversation/Workspace/components/WorkspaceSearchBar';
 
 vi.mock('@icon-park/react', () => ({
-  Down: () => <span data-testid='down-icon' />,
-  Plus: () => <span data-testid='plus-icon' />,
-  Refresh: () => <span data-testid='refresh-icon' />,
   Search: () => <span data-testid='search-icon' />,
 }));
 
@@ -33,7 +21,6 @@ type RadioProps = {
 };
 
 vi.mock('@arco-design/web-react', () => ({
-  Dropdown: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
   Input: ({
     onChange,
     placeholder,
@@ -43,9 +30,6 @@ vi.mock('@arco-design/web-react', () => ({
     placeholder?: string;
     value?: string;
   }) => <input aria-label={placeholder} value={value} onChange={(event) => onChange?.(event.target.value)} />,
-  Menu: Object.assign(({ children }: { children?: React.ReactNode }) => <div>{children}</div>, {
-    Item: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
-  }),
   Radio: Object.assign(
     ({ value, children, checked, onSelect }: RadioProps) => (
       <button type='button' aria-pressed={checked} onClick={() => onSelect?.(value)}>
@@ -74,7 +58,6 @@ vi.mock('@arco-design/web-react', () => ({
       ),
     }
   ),
-  Tooltip: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
 }));
 
 const labels: Record<string, string> = {
@@ -85,7 +68,9 @@ const labels: Record<string, string> = {
   'conversation.workspace.searchMode.content': '内容',
   'conversation.workspace.searchMode.name': '文件名',
   'conversation.workspace.searchPlaceholder': '搜索文件',
-  'conversation.workspace.searchScope.currentFolder': '当前文件夹',
+  'conversation.workspace.searchScope.currentFolder': '文件夹',
+  'conversation.workspace.searchScope.folderHintDesktop': '右键选择在指定文件夹下搜索',
+  'conversation.workspace.searchScope.folderHintMobile': '长按选择在指定文件夹下搜索',
   'conversation.workspace.searchScope.workspace': '整个项目',
 };
 
@@ -93,9 +78,7 @@ const t = ((key: string) => labels[key] ?? key) as never;
 
 const baseProps = {
   t,
-  isWorkspaceCollapsed: false,
-  setIsWorkspaceCollapsed: vi.fn(),
-  workspaceDisplayName: 'demo',
+  isMobile: false,
   showSearch: true,
   searchText: '',
   setSearchText: vi.fn(),
@@ -105,31 +88,35 @@ const baseProps = {
   setSearchScope: vi.fn(),
   searchMode: 'all' as const,
   setSearchMode: vi.fn(),
-  currentFolderLabel: 'src',
-  loading: false,
-  refreshWorkspace: vi.fn(),
-  handleSelectHostFiles: vi.fn(),
-  handleUploadDeviceFiles: vi.fn(),
-  setShowHostFileSelector: vi.fn(),
 };
 
-describe('WorkspaceToolbar', () => {
+describe('WorkspaceSearchBar', () => {
   it('renders visible workspace search scope and mode switches', () => {
     const setSearchScope = vi.fn();
     const setSearchMode = vi.fn();
 
-    render(<WorkspaceToolbar {...baseProps} setSearchScope={setSearchScope} setSearchMode={setSearchMode} />);
+    render(<WorkspaceSearchBar {...baseProps} setSearchScope={setSearchScope} setSearchMode={setSearchMode} />);
 
     expect(screen.getByText('整个项目')).toBeInTheDocument();
-    expect(screen.getByText('当前文件夹')).toBeInTheDocument();
+    expect(screen.getByText('文件夹')).toBeInTheDocument();
     expect(screen.getByText('全部')).toBeInTheDocument();
     expect(screen.getByText('文件名')).toBeInTheDocument();
     expect(screen.getByText('内容')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByText('当前文件夹'));
+    fireEvent.click(screen.getByText('文件夹'));
     fireEvent.click(screen.getByText('文件名'));
 
     expect(setSearchScope).toHaveBeenCalledWith('currentFolder');
     expect(setSearchMode).toHaveBeenCalledWith('name');
+  });
+
+  it('shows the platform-specific folder search hint when folder scope is selected', () => {
+    const { rerender } = render(<WorkspaceSearchBar {...baseProps} searchScope='currentFolder' />);
+
+    expect(screen.getByText('右键选择在指定文件夹下搜索')).toBeInTheDocument();
+
+    rerender(<WorkspaceSearchBar {...baseProps} isMobile searchScope='currentFolder' />);
+
+    expect(screen.getByText('长按选择在指定文件夹下搜索')).toBeInTheDocument();
   });
 });

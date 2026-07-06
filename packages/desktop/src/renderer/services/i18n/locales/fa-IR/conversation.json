@@ -379,7 +379,8 @@
       "revealFailed": "باز کردن پوشه حاوی ناموفق بود",
       "download": "دانلود",
       "downloadSuccess": "دانلود موفق بود",
-      "downloadFailed": "دانلود ناموفق بود"
+      "downloadFailed": "دانلود ناموفق بود",
+      "searchInFolder": "جستجو در این پوشه"
     },
     "preview": {
       "errors": {
@@ -418,7 +419,9 @@
     },
     "searchScope": {
       "workspace": "پروژه",
-      "currentFolder": "پوشه: {{folder}}"
+      "currentFolder": "پوشه",
+      "folderHintDesktop": "برای جستجو در یک پوشه، روی آن راست‌کلیک کنید",
+      "folderHintMobile": "برای جستجو در یک پوشه، آن را لمس کرده و نگه دارید"
     },
     "searchMode": {
       "all": "همه",

@@ -12,12 +12,13 @@ import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import { getWorkspaceDisplayName as getDisplayName } from '@/renderer/utils/workspace/workspace';
 import { Empty, Message, Tree } from '@arco-design/web-react';
 import { Right } from '@icon-park/react';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import FileChangeList from './components/FileChangeList';
 import PasteConfirmModal from './components/PasteConfirmModal';
 import WorkspaceContextMenu from './components/WorkspaceContextMenu';
 import WorkspaceDialogs from './components/WorkspaceDialogs';
+import WorkspaceSearchBar from './components/WorkspaceSearchBar';
 import WorkspaceTabBar from './components/WorkspaceTabBar';
 import WorkspaceToolbar from './components/WorkspaceToolbar';
 import FileTypeIcon from './components/FileTypeIcon';
@@ -52,6 +53,7 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
   const layout = useLayoutContext();
   const isMobile = layout?.isMobile ?? false;
   const { openPreview } = usePreviewContext();
+  const longPressTimerRef = useRef<number | null>(null);
 
   // Message API setup
   const [internalMessageApi, messageContext] = Message.useMessage();
@@ -101,7 +103,6 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
 
   const searchHook = useWorkspaceSearch({
     workspace,
-    currentFolderPath: targetFolderPathForModal.fullPath,
     loadWorkspace: treeHook.loadWorkspace,
   });
 
@@ -185,6 +186,38 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
     [treeHook.ensureNodeSelected, modalsHook.setContextMenu]
   );
 
+  const clearNodeLongPress = useCallback(() => {
+    if (longPressTimerRef.current == null) return;
+    window.clearTimeout(longPressTimerRef.current);
+    longPressTimerRef.current = null;
+  }, []);
+
+  const startNodeLongPress = useCallback(
+    (node: IDirOrFile, event: React.TouchEvent<HTMLDivElement>) => {
+      if (!isMobile || node.isFile) return;
+      const touch = event.touches[0];
+      if (!touch) return;
+      clearNodeLongPress();
+      longPressTimerRef.current = window.setTimeout(() => {
+        openNodeContextMenu(node, touch.clientX, touch.clientY);
+        longPressTimerRef.current = null;
+      }, 500);
+    },
+    [clearNodeLongPress, isMobile, openNodeContextMenu]
+  );
+
+  useEffect(() => clearNodeLongPress, [clearNodeLongPress]);
+
+  const handleSearchInFolder = useCallback(
+    (node: IDirOrFile) => {
+      if (node.isFile) return;
+      treeHook.ensureNodeSelected(node);
+      searchHook.selectSearchFolder(node.fullPath || workspace);
+      modalsHook.closeContextMenu();
+    },
+    [modalsHook.closeContextMenu, searchHook.selectSearchFolder, treeHook.ensureNodeSelected, workspace]
+  );
+
   const handleOpenChangeDiff = useCallback(
     (diffContent: string, file_name: string, file_path: string) => {
       openPreview(diffContent, 'diff', {
@@ -202,8 +235,6 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
       fileChangesHook.refreshChanges();
     }
   }, [activeTab, fileChangesHook.refreshChanges]);
-
-  const searchCurrentFolderLabel = targetFolderPathForModal.relativePath || workspaceDisplayName;
 
   return (
     <>
@@ -286,13 +317,11 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
           branch={fileChangesHook.snapshotInfo?.branch ?? null}
         />
 
-        {/* Toolbar: search input + directory name + action buttons */}
+        {/* Search input and controls */}
         {activeTab === 'files' && (
-          <WorkspaceToolbar
+          <WorkspaceSearchBar
             t={t}
-            isWorkspaceCollapsed={isWorkspaceCollapsed}
-            setIsWorkspaceCollapsed={setIsWorkspaceCollapsed}
-            workspaceDisplayName={workspaceDisplayName}
+            isMobile={isMobile}
             showSearch={searchHook.showSearch}
             searchText={searchHook.searchText}
             setSearchText={searchHook.setSearchText}
@@ -302,7 +331,16 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
             setSearchScope={searchHook.setSearchScope}
             searchMode={searchHook.searchMode}
             setSearchMode={searchHook.setSearchMode}
-            currentFolderLabel={searchCurrentFolderLabel}
+          />
+        )}
+
+        {/* Toolbar: directory name + action buttons */}
+        {activeTab === 'files' && (
+          <WorkspaceToolbar
+            t={t}
+            isWorkspaceCollapsed={isWorkspaceCollapsed}
+            setIsWorkspaceCollapsed={setIsWorkspaceCollapsed}
+            workspaceDisplayName={workspaceDisplayName}
             loading={treeHook.loading}
             refreshWorkspace={treeHook.refreshWorkspace}
             handleSelectHostFiles={pasteHook.handleSelectHostFiles}
@@ -326,6 +364,7 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
               handlePreviewFile={fileOpsHook.handlePreviewFile}
               handleDownloadFile={fileOpsHook.handleDownloadFile}
               handleDeleteNode={fileOpsHook.handleDeleteNode}
+              handleSearchInFolder={handleSearchInFolder}
               openRenameModal={fileOpsHook.openRenameModal}
               closeContextMenu={modalsHook.closeContextMenu}
             />
@@ -396,6 +435,10 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
                         event.stopPropagation();
                         openNodeContextMenu(nodeData, event.clientX, event.clientY);
                       }}
+                      onTouchStart={(event) => startNodeLongPress(nodeData, event)}
+                      onTouchEnd={clearNodeLongPress}
+                      onTouchMove={clearNodeLongPress}
+                      onTouchCancel={clearNodeLongPress}
                     >
                       <span className='flex items-center gap-4px min-w-0'>
                         <FileTypeIcon node={nodeData} expanded={treeHook.expandedKeys.includes(relativePath)} />
