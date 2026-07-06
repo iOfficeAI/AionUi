@@ -159,7 +159,6 @@ vi.mock('@arco-design/web-react', () => {
       success: messageSuccessMock,
       error: messageErrorMock,
     },
-    Spin: ({ size }: { size?: number }) => <span data-testid='model-selector-loading-spin' data-size={size} />,
     Tooltip: ({ children, content }: { children?: React.ReactNode; content?: React.ReactNode }) => (
       <span data-tooltip-content={typeof content === 'string' ? content : undefined}>{children}</span>
     ),
@@ -184,9 +183,9 @@ describe('AcpModelSelector runtime options', () => {
     render(<AcpModelSelector conversation_id='conversation-1' backend='codex' />);
 
     const slot = screen.getByTestId('acp-model-selector-loading');
-    expect(screen.getByTestId('model-selector-loading-spin')).toHaveAttribute('data-size', '14');
+    expect(screen.getByTestId('runtime-selector-loading-indicator')).toBeInTheDocument();
+    expect(screen.getByTestId('runtime-selector-loading-spinner')).toBeInTheDocument();
     expect(slot.tagName).toBe('DIV');
-    expect(screen.queryByTestId('runtime-selector-loading-indicator')).not.toBeInTheDocument();
     expect(screen.queryByTestId('acp-model-selector')).not.toBeInTheDocument();
     expect(slot).not.toHaveTextContent('Use CLI model');
     expect(slot.closest('[data-tooltip-content]')).toBeNull();

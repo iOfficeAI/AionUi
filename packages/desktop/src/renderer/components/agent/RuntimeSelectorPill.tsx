@@ -4,9 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { iconColors } from '@/renderer/styles/colors';
 import { Button } from '@arco-design/web-react';
-import { Loading } from '@icon-park/react';
 import React from 'react';
 import MarqueePillLabel from './MarqueePillLabel';
 
@@ -26,8 +24,19 @@ type RuntimeSelectorPillProps = Omit<
 };
 
 export const RuntimeSelectorLoadingIndicator: React.FC = () => (
-  <span data-testid='runtime-selector-loading-indicator' className='shrink-0 inline-flex items-center'>
-    <Loading theme='outline' size={12} fill={iconColors.secondary} className='animate-spin' />
+  <span
+    data-testid='runtime-selector-loading-indicator'
+    className='flex h-14px w-14px shrink-0 items-center justify-center leading-none text-t-secondary'
+    aria-hidden='true'
+  >
+    <span
+      data-testid='runtime-selector-loading-spinner'
+      className='block h-12px w-12px animate-spin rounded-full'
+      style={{
+        border: '1.5px solid currentColor',
+        borderRightColor: 'transparent',
+      }}
+    />
   </span>
 );
 

@@ -9,11 +9,11 @@ import { classifyConfigSetError, type AcpConfigOptionsLoader } from '@/renderer/
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { getModelDisplayLabel } from '@/renderer/utils/model/agentLogo';
 import { iconColors } from '@/renderer/styles/colors';
-import { Dropdown, Menu, Message, Spin, Tooltip } from '@arco-design/web-react';
+import { Dropdown, Menu, Message, Tooltip } from '@arco-design/web-react';
 import { Brain, Down } from '@icon-park/react';
 import React, { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import RuntimeSelectorPill from './RuntimeSelectorPill';
+import RuntimeSelectorPill, { RuntimeSelectorLoadingIndicator } from './RuntimeSelectorPill';
 import {
   composeRuntimeSelectorLabel,
   isConfigSetting,
@@ -101,9 +101,7 @@ const AcpModelSelector: React.FC<{
         data-testid='acp-model-selector-loading'
         className='header-model-loading-slot flex h-28px w-28px shrink-0 items-center justify-center leading-none text-t-secondary'
       >
-        <span className='flex h-14px w-14px items-center justify-center leading-none'>
-          <Spin size={14} />
-        </span>
+        <RuntimeSelectorLoadingIndicator />
       </div>
     );
   }
