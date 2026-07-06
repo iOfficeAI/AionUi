@@ -1,0 +1,135 @@
+/**
+ * @license
+ * Copyright 2025 AionUi (aionui.com)
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import React from 'react';
+import { fireEvent, render, screen } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
+import WorkspaceToolbar from '@/renderer/pages/conversation/Workspace/components/WorkspaceToolbar';
+
+vi.mock('@/renderer/utils/platform', () => ({
+  isElectronDesktop: () => true,
+}));
+
+vi.mock('@/renderer/components/media/UploadProgressBar', () => ({
+  __esModule: true,
+  default: () => <div data-testid='upload-progress' />,
+}));
+
+vi.mock('@icon-park/react', () => ({
+  Down: () => <span data-testid='down-icon' />,
+  Plus: () => <span data-testid='plus-icon' />,
+  Refresh: () => <span data-testid='refresh-icon' />,
+  Search: () => <span data-testid='search-icon' />,
+}));
+
+type RadioProps = {
+  value: string;
+  children?: React.ReactNode;
+  checked?: boolean;
+  onSelect?: (value: string) => void;
+};
+
+vi.mock('@arco-design/web-react', () => ({
+  Dropdown: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
+  Input: ({
+    onChange,
+    placeholder,
+    value,
+  }: {
+    onChange?: (value: string) => void;
+    placeholder?: string;
+    value?: string;
+  }) => <input aria-label={placeholder} value={value} onChange={(event) => onChange?.(event.target.value)} />,
+  Menu: Object.assign(({ children }: { children?: React.ReactNode }) => <div>{children}</div>, {
+    Item: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
+  }),
+  Radio: Object.assign(
+    ({ value, children, checked, onSelect }: RadioProps) => (
+      <button type='button' aria-pressed={checked} onClick={() => onSelect?.(value)}>
+        {children}
+      </button>
+    ),
+    {
+      Group: ({
+        children,
+        onChange,
+        value,
+      }: {
+        children?: React.ReactNode;
+        onChange?: (value: string) => void;
+        value?: string;
+      }) => (
+        <div role='group'>
+          {React.Children.map(children, (child) => {
+            if (!React.isValidElement<RadioProps>(child)) return child;
+            return React.cloneElement(child, {
+              checked: child.props.value === value,
+              onSelect: onChange,
+            });
+          })}
+        </div>
+      ),
+    }
+  ),
+  Tooltip: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
+}));
+
+const labels: Record<string, string> = {
+  'common.fileAttach.addFiles': '添加文件',
+  'common.fileAttach.myDevice': '我的设备',
+  'conversation.workspace.refresh': '刷新',
+  'conversation.workspace.searchMode.all': '全部',
+  'conversation.workspace.searchMode.content': '内容',
+  'conversation.workspace.searchMode.name': '文件名',
+  'conversation.workspace.searchPlaceholder': '搜索文件',
+  'conversation.workspace.searchScope.currentFolder': '当前文件夹',
+  'conversation.workspace.searchScope.workspace': '整个项目',
+};
+
+const t = ((key: string) => labels[key] ?? key) as never;
+
+const baseProps = {
+  t,
+  isWorkspaceCollapsed: false,
+  setIsWorkspaceCollapsed: vi.fn(),
+  workspaceDisplayName: 'demo',
+  showSearch: true,
+  searchText: '',
+  setSearchText: vi.fn(),
+  onSearch: vi.fn(),
+  searchInputRef: { current: null },
+  searchScope: 'workspace' as const,
+  setSearchScope: vi.fn(),
+  searchMode: 'all' as const,
+  setSearchMode: vi.fn(),
+  currentFolderLabel: 'src',
+  loading: false,
+  refreshWorkspace: vi.fn(),
+  handleSelectHostFiles: vi.fn(),
+  handleUploadDeviceFiles: vi.fn(),
+  setShowHostFileSelector: vi.fn(),
+};
+
+describe('WorkspaceToolbar', () => {
+  it('renders visible workspace search scope and mode switches', () => {
+    const setSearchScope = vi.fn();
+    const setSearchMode = vi.fn();
+
+    render(<WorkspaceToolbar {...baseProps} setSearchScope={setSearchScope} setSearchMode={setSearchMode} />);
+
+    expect(screen.getByText('整个项目')).toBeInTheDocument();
+    expect(screen.getByText('当前文件夹')).toBeInTheDocument();
+    expect(screen.getByText('全部')).toBeInTheDocument();
+    expect(screen.getByText('文件名')).toBeInTheDocument();
+    expect(screen.getByText('内容')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText('当前文件夹'));
+    fireEvent.click(screen.getByText('文件名'));
+
+    expect(setSearchScope).toHaveBeenCalledWith('currentFolder');
+    expect(setSearchMode).toHaveBeenCalledWith('name');
+  });
+});

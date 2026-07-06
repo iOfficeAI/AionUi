@@ -6,7 +6,7 @@
 
 import { iconColors } from '@/renderer/styles/colors';
 import { isElectronDesktop } from '@/renderer/utils/platform';
-import { Button, Dropdown, Input, Menu, Tooltip } from '@arco-design/web-react';
+import { Dropdown, Input, Menu, Radio, Tooltip } from '@arco-design/web-react';
 import { Down, Plus, Refresh, Search } from '@icon-park/react';
 import React from 'react';
 import UploadProgressBar from '@/renderer/components/media/UploadProgressBar';
@@ -82,27 +82,6 @@ const WorkspaceToolbar: React.FC<WorkspaceToolbarProps> = ({
     </Menu>
   );
 
-  const scopeLabel =
-    searchScope === 'currentFolder'
-      ? t('conversation.workspace.searchScope.currentFolder', { folder: currentFolderLabel })
-      : t('conversation.workspace.searchScope.workspace');
-  const modeLabel = t(`conversation.workspace.searchMode.${searchMode}`);
-  const searchScopeMenu = (
-    <Menu selectedKeys={[searchScope]} onClickMenuItem={(key) => setSearchScope(key as WorkspaceSearchScope)}>
-      <Menu.Item key='workspace'>{t('conversation.workspace.searchScope.workspace')}</Menu.Item>
-      <Menu.Item key='currentFolder'>
-        {t('conversation.workspace.searchScope.currentFolder', { folder: currentFolderLabel })}
-      </Menu.Item>
-    </Menu>
-  );
-  const searchModeMenu = (
-    <Menu selectedKeys={[searchMode]} onClickMenuItem={(key) => setSearchMode(key as WorkspaceSearchMode)}>
-      <Menu.Item key='all'>{t('conversation.workspace.searchMode.all')}</Menu.Item>
-      <Menu.Item key='name'>{t('conversation.workspace.searchMode.name')}</Menu.Item>
-      <Menu.Item key='content'>{t('conversation.workspace.searchMode.content')}</Menu.Item>
-    </Menu>
-  );
-
   return (
     <div className='px-12px'>
       {/* Search Input */}
@@ -120,27 +99,30 @@ const WorkspaceToolbar: React.FC<WorkspaceToolbarProps> = ({
             allowClear
             prefix={<Search theme='outline' size='14' fill={iconColors.primary} />}
           />
-          <div className='mt-6px flex items-center gap-6px overflow-hidden'>
-            <Dropdown droplist={searchScopeMenu} trigger='click' position='bl'>
-              <Button
-                size='mini'
-                type='text'
-                className='!px-4px min-w-0 flex-shrink-0'
-                icon={<Search theme='outline' size='12' fill={iconColors.secondary} />}
-              >
-                <span className='block max-w-140px overflow-hidden text-ellipsis whitespace-nowrap'>{scopeLabel}</span>
-              </Button>
-            </Dropdown>
-            <Dropdown droplist={searchModeMenu} trigger='click' position='bl'>
-              <Button
-                size='mini'
-                type='text'
-                className='!px-4px min-w-0 flex-shrink-0'
-                icon={<Search theme='outline' size='12' fill={iconColors.secondary} />}
-              >
-                <span className='block max-w-100px overflow-hidden text-ellipsis whitespace-nowrap'>{modeLabel}</span>
-              </Button>
-            </Dropdown>
+          <div className='workspace-search-controls mt-6px'>
+            <Radio.Group
+              className='workspace-search-segment'
+              size='mini'
+              type='button'
+              value={searchScope}
+              onChange={(value) => setSearchScope(value as WorkspaceSearchScope)}
+            >
+              <Radio value='workspace'>{t('conversation.workspace.searchScope.workspace')}</Radio>
+              <Radio value='currentFolder'>
+                {t('conversation.workspace.searchScope.currentFolder', { folder: currentFolderLabel })}
+              </Radio>
+            </Radio.Group>
+            <Radio.Group
+              className='workspace-search-segment'
+              size='mini'
+              type='button'
+              value={searchMode}
+              onChange={(value) => setSearchMode(value as WorkspaceSearchMode)}
+            >
+              <Radio value='all'>{t('conversation.workspace.searchMode.all')}</Radio>
+              <Radio value='name'>{t('conversation.workspace.searchMode.name')}</Radio>
+              <Radio value='content'>{t('conversation.workspace.searchMode.content')}</Radio>
+            </Radio.Group>
           </div>
         </div>
       )}

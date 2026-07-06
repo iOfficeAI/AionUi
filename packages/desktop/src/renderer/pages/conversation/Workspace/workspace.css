@@ -50,6 +50,37 @@
   align-items: center;
 }
 
+.chat-workspace .workspace-search-controls {
+  display: grid;
+  gap: 6px;
+}
+
+.chat-workspace .workspace-search-segment {
+  display: grid;
+  width: 100%;
+}
+
+.chat-workspace .workspace-search-segment:first-child {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+}
+
+.chat-workspace .workspace-search-segment:last-child {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.chat-workspace .workspace-search-segment .arco-radio-button {
+  min-width: 0;
+  padding: 0 6px;
+  text-align: center;
+}
+
+.chat-workspace .workspace-search-segment .arco-radio-button-content {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* Full-row hover & selection backgrounds live in styles/arco-override.css
    (.workspace-tree ...), the project's home for Arco theme overrides. */
 
