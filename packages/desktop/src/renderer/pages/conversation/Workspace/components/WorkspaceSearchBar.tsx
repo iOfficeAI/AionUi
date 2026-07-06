@@ -23,6 +23,7 @@ type WorkspaceSearchBarProps = {
   searchInputRef: React.RefObject<RefInputType | null>;
   searchScope: WorkspaceSearchScope;
   setSearchScope: (v: WorkspaceSearchScope) => void;
+  searchFolderLabel: string;
   searchMode: WorkspaceSearchMode;
   setSearchMode: (v: WorkspaceSearchMode) => void;
 };
@@ -37,6 +38,7 @@ const WorkspaceSearchBar: React.FC<WorkspaceSearchBarProps> = ({
   searchInputRef,
   searchScope,
   setSearchScope,
+  searchFolderLabel,
   searchMode,
   setSearchMode,
 }) => {
@@ -70,10 +72,17 @@ const WorkspaceSearchBar: React.FC<WorkspaceSearchBarProps> = ({
           </Radio.Group>
           {searchScope === 'currentFolder' && (
             <div className='workspace-search-folder-hint'>
-              {t(
-                isMobile
-                  ? 'conversation.workspace.searchScope.folderHintMobile'
-                  : 'conversation.workspace.searchScope.folderHintDesktop'
+              <span>
+                {t(
+                  isMobile
+                    ? 'conversation.workspace.searchScope.folderHintMobile'
+                    : 'conversation.workspace.searchScope.folderHintDesktop'
+                )}
+              </span>
+              {searchFolderLabel && (
+                <span className='workspace-search-folder-name'>
+                  {t('conversation.workspace.searchScope.selectedFolder', { folder: searchFolderLabel })}
+                </span>
               )}
             </div>
           )}

@@ -212,10 +212,16 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
     (node: IDirOrFile) => {
       if (node.isFile) return;
       treeHook.ensureNodeSelected(node);
-      searchHook.selectSearchFolder(node.fullPath || workspace);
+      searchHook.selectSearchFolder(node.fullPath || workspace, node.name || node.relativePath || workspaceDisplayName);
       modalsHook.closeContextMenu();
     },
-    [modalsHook.closeContextMenu, searchHook.selectSearchFolder, treeHook.ensureNodeSelected, workspace]
+    [
+      modalsHook.closeContextMenu,
+      searchHook.selectSearchFolder,
+      treeHook.ensureNodeSelected,
+      workspace,
+      workspaceDisplayName,
+    ]
   );
 
   const handleOpenChangeDiff = useCallback(
@@ -329,6 +335,7 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
             searchInputRef={searchHook.searchInputRef}
             searchScope={searchHook.searchScope}
             setSearchScope={searchHook.setSearchScope}
+            searchFolderLabel={searchHook.searchFolderLabel}
             searchMode={searchHook.searchMode}
             setSearchMode={searchHook.setSearchMode}
           />
@@ -550,7 +557,7 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
 
         {/* Changes tab content */}
         {!isWorkspaceCollapsed && activeTab === 'changes' && (
-          <FlexFullContainer containerClassName='overflow-hidden'>
+          <div className='min-h-0 flex-1 overflow-hidden'>
             <FileChangeList
               t={t}
               workspace={workspace}
@@ -567,7 +574,7 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
               onDiscardFile={fileChangesHook.discardFile}
               onResetFile={fileChangesHook.resetFile}
             />
-          </FlexFullContainer>
+          </div>
         )}
       </div>
     </>

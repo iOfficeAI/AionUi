@@ -421,7 +421,8 @@
       "workspace": "Proyecto",
       "currentFolder": "Carpeta",
       "folderHintDesktop": "Haz clic derecho en una carpeta para buscar en ella",
-      "folderHintMobile": "Mantén pulsada una carpeta para buscar en ella"
+      "folderHintMobile": "Mantén pulsada una carpeta para buscar en ella",
+      "selectedFolder": "Actual: {{folder}}"
     },
     "searchMode": {
       "all": "Todo",

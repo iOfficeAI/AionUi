@@ -421,7 +421,8 @@
       "workspace": "프로젝트",
       "currentFolder": "폴더",
       "folderHintDesktop": "지정한 폴더에서 검색하려면 오른쪽 클릭하세요",
-      "folderHintMobile": "지정한 폴더에서 검색하려면 길게 누르세요"
+      "folderHintMobile": "지정한 폴더에서 검색하려면 길게 누르세요",
+      "selectedFolder": "현재: {{folder}}"
     },
     "searchMode": {
       "all": "전체",

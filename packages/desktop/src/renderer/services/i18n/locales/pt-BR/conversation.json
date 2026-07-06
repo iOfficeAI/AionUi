@@ -427,7 +427,8 @@
       "workspace": "Projeto",
       "currentFolder": "Pasta",
       "folderHintDesktop": "Clique com o botão direito em uma pasta para pesquisar nela",
-      "folderHintMobile": "Toque e segure uma pasta para pesquisar nela"
+      "folderHintMobile": "Toque e segure uma pasta para pesquisar nela",
+      "selectedFolder": "Atual: {{folder}}"
     },
     "searchMode": {
       "all": "Tudo",

@@ -71,10 +71,14 @@ const labels: Record<string, string> = {
   'conversation.workspace.searchScope.currentFolder': '文件夹',
   'conversation.workspace.searchScope.folderHintDesktop': '右键选择在指定文件夹下搜索',
   'conversation.workspace.searchScope.folderHintMobile': '长按选择在指定文件夹下搜索',
+  'conversation.workspace.searchScope.selectedFolder': '当前：{{folder}}',
   'conversation.workspace.searchScope.workspace': '整个项目',
 };
 
-const t = ((key: string) => labels[key] ?? key) as never;
+const t = ((key: string, options?: { folder?: string }) => {
+  const label = labels[key] ?? key;
+  return options?.folder ? label.replace('{{folder}}', options.folder) : label;
+}) as never;
 
 const baseProps = {
   t,
@@ -86,6 +90,7 @@ const baseProps = {
   searchInputRef: { current: null },
   searchScope: 'workspace' as const,
   setSearchScope: vi.fn(),
+  searchFolderLabel: '',
   searchMode: 'all' as const,
   setSearchMode: vi.fn(),
 };
@@ -111,12 +116,16 @@ describe('WorkspaceSearchBar', () => {
   });
 
   it('shows the platform-specific folder search hint when folder scope is selected', () => {
-    const { rerender } = render(<WorkspaceSearchBar {...baseProps} searchScope='currentFolder' />);
+    const { rerender } = render(
+      <WorkspaceSearchBar {...baseProps} searchScope='currentFolder' searchFolderLabel='docker' />
+    );
 
     expect(screen.getByText('右键选择在指定文件夹下搜索')).toBeInTheDocument();
+    expect(screen.getByText('当前：docker')).toBeInTheDocument();
 
-    rerender(<WorkspaceSearchBar {...baseProps} isMobile searchScope='currentFolder' />);
+    rerender(<WorkspaceSearchBar {...baseProps} isMobile searchScope='currentFolder' searchFolderLabel='docker' />);
 
     expect(screen.getByText('长按选择在指定文件夹下搜索')).toBeInTheDocument();
+    expect(screen.getByText('当前：docker')).toBeInTheDocument();
   });
 });

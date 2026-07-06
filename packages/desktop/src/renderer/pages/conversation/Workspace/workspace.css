@@ -82,10 +82,26 @@
 }
 
 .chat-workspace .workspace-search-folder-hint {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
   color: var(--color-text-3);
   font-size: 12px;
   line-height: 18px;
   padding: 0 2px;
+}
+
+.chat-workspace .workspace-search-folder-name {
+  color: var(--color-text-2);
+  font-weight: 500;
+}
+
+.chat-workspace .workspace-changes-scroll {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* Full-row hover & selection backgrounds live in styles/arco-override.css

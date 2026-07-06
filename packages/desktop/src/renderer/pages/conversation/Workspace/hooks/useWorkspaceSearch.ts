@@ -27,6 +27,7 @@ export function useWorkspaceSearch({ workspace, loadWorkspace }: UseWorkspaceSea
   const [searchScope, setSearchScope] = useState<WorkspaceSearchScope>('workspace');
   const [searchMode, setSearchMode] = useState<WorkspaceSearchMode>('all');
   const [searchFolderPath, setSearchFolderPath] = useState(workspace);
+  const [searchFolderLabel, setSearchFolderLabel] = useState('');
   const searchInputRef = useRef<RefInputType | null>(null);
 
   // Host file selector state (WebUI: use DirectorySelectionModal instead of native dialog)
@@ -96,12 +97,14 @@ export function useWorkspaceSearch({ workspace, loadWorkspace }: UseWorkspaceSea
 
   useEffect(() => {
     setSearchFolderPath(workspace);
+    setSearchFolderLabel('');
     setSearchScope('workspace');
   }, [workspace]);
 
   const selectSearchFolder = useCallback(
-    (folderPath: string) => {
+    (folderPath: string, folderLabel: string) => {
       setSearchFolderPath(folderPath);
+      setSearchFolderLabel(folderLabel);
       setSearchScope('currentFolder');
       if (searchText) {
         runSearch(searchText, 'currentFolder', searchMode, folderPath);
@@ -131,6 +134,7 @@ export function useWorkspaceSearch({ workspace, loadWorkspace }: UseWorkspaceSea
     setShowSearch,
     searchScope,
     setSearchScope: updateSearchScope,
+    searchFolderLabel,
     selectSearchFolder,
     searchMode,
     setSearchMode: updateSearchMode,

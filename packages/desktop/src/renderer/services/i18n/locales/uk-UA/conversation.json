@@ -421,7 +421,8 @@
       "workspace": "Проєкт",
       "currentFolder": "Папка",
       "folderHintDesktop": "Клацніть папку правою кнопкою, щоб шукати в ній",
-      "folderHintMobile": "Натисніть і утримуйте папку, щоб шукати в ній"
+      "folderHintMobile": "Натисніть і утримуйте папку, щоб шукати в ній",
+      "selectedFolder": "Поточна: {{folder}}"
     },
     "searchMode": {
       "all": "Усе",

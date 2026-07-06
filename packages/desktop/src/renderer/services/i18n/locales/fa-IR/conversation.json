@@ -421,7 +421,8 @@
       "workspace": "پروژه",
       "currentFolder": "پوشه",
       "folderHintDesktop": "برای جستجو در یک پوشه، روی آن راست‌کلیک کنید",
-      "folderHintMobile": "برای جستجو در یک پوشه، آن را لمس کرده و نگه دارید"
+      "folderHintMobile": "برای جستجو در یک پوشه، آن را لمس کرده و نگه دارید",
+      "selectedFolder": "فعلی: {{folder}}"
     },
     "searchMode": {
       "all": "همه",

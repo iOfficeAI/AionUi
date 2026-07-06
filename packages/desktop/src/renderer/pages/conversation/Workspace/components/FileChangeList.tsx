@@ -403,7 +403,7 @@ const FileChangeList: React.FC<FileChangeListProps> = ({
           onClick={onRefresh}
         />
       </div>
-      <div className='min-h-0 flex-1 overflow-y-auto p-8px flex flex-col gap-10px'>
+      <div className='workspace-changes-scroll min-h-0 flex-1 p-8px flex flex-col gap-10px'>
         {groupedChanges.map((group) => (
           <div key={group.key} className='border border-base rounded-10px overflow-hidden bg-bg-1'>
             <PanelHeader title={group.title} count={group.count} actions={group.headerAction} />

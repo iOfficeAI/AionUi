@@ -406,7 +406,8 @@
       "workspace": "Proje",
       "currentFolder": "Klasör",
       "folderHintDesktop": "Belirli bir klasörde aramak için sağ tıklayın",
-      "folderHintMobile": "Belirli bir klasörde aramak için uzun basın"
+      "folderHintMobile": "Belirli bir klasörde aramak için uzun basın",
+      "selectedFolder": "Geçerli: {{folder}}"
     },
     "searchMode": {
       "all": "Tumu",

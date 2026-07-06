@@ -696,6 +696,7 @@ export type I18nKey =
   | 'conversation.workspace.searchScope.currentFolder'
   | 'conversation.workspace.searchScope.folderHintDesktop'
   | 'conversation.workspace.searchScope.folderHintMobile'
+  | 'conversation.workspace.searchScope.selectedFolder'
   | 'conversation.workspace.searchScope.workspace'
   | 'conversation.workspace.temporarySpace'
   | 'conversation.workspace.title'

@@ -421,7 +421,8 @@
       "workspace": "整个项目",
       "currentFolder": "文件夹",
       "folderHintDesktop": "右键选择在指定文件夹下搜索",
-      "folderHintMobile": "长按选择在指定文件夹下搜索"
+      "folderHintMobile": "长按选择在指定文件夹下搜索",
+      "selectedFolder": "当前：{{folder}}"
     },
     "searchMode": {
       "all": "全部",

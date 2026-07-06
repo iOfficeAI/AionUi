@@ -421,7 +421,8 @@
       "workspace": "Projekt",
       "currentFolder": "Ordner",
       "folderHintDesktop": "Klicken Sie mit der rechten Maustaste auf einen Ordner, um darin zu suchen",
-      "folderHintMobile": "Halten Sie einen Ordner gedrückt, um darin zu suchen"
+      "folderHintMobile": "Halten Sie einen Ordner gedrückt, um darin zu suchen",
+      "selectedFolder": "Aktuell: {{folder}}"
     },
     "searchMode": {
       "all": "Alle",

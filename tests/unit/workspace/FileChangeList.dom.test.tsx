@@ -114,6 +114,12 @@ describe('FileChangeList', () => {
     expect(screen.getByTestId('diff-viewer')).toHaveTextContent('+new line');
   });
 
+  it('renders changed files inside the scroll container', () => {
+    render(<FileChangeList {...baseProps} unstaged={[change()]} />);
+
+    expect(screen.getByText('src/app.ts').closest('.workspace-changes-scroll')).toBeInTheDocument();
+  });
+
   it('falls back to the backend file path when the normalized path cannot be read', async () => {
     vi.mocked(ipcBridge.fileSnapshot.getBaselineContent.invoke).mockResolvedValue('before\n');
     vi.mocked(ipcBridge.fs.readFile.invoke)

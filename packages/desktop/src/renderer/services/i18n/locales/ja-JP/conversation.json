@@ -421,7 +421,8 @@
       "workspace": "プロジェクト",
       "currentFolder": "フォルダ",
       "folderHintDesktop": "右クリックして指定フォルダ内を検索",
-      "folderHintMobile": "長押しして指定フォルダ内を検索"
+      "folderHintMobile": "長押しして指定フォルダ内を検索",
+      "selectedFolder": "現在: {{folder}}"
     },
     "searchMode": {
       "all": "すべて",
