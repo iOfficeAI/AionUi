@@ -130,7 +130,10 @@ describe('TeamCreateModal', () => {
 
     expect(within(assistantPane).getByText('All assistants (3)')).toBeInTheDocument();
     expect(searchInput.closest('.arco-input-group-wrapper')).toHaveClass('!h-40px');
+    expect(within(assistantPane).getByTestId('team-create-agent-picker-body')).not.toHaveClass('bg-fill-1');
+    expect(within(assistantPane).getByTestId('team-create-agent-picker-body')).toHaveClass('bg-dialog-fill-0');
     expect(within(assistantPane).getByTestId('team-create-agent-option-bare-aionrs')).toHaveClass('!h-48px');
+    expect(within(assistantPane).getByTestId('team-create-agent-option-bare-aionrs')).toHaveClass('hover:!bg-fill-2');
     expect(within(detailsPane).getByText('Selected members 0 · ⚑ = Leader')).toBeInTheDocument();
     expect(nameInput).toHaveClass('!h-40px');
     expect(within(detailsPane).getByTestId('workspace-folder-select')).toBeInTheDocument();

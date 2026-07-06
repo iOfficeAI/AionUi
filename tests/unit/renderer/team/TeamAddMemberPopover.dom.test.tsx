@@ -118,7 +118,10 @@ describe('TeamAddMemberPopover', () => {
     expect(screen.getByTestId('team-add-member-popover-shell')).toHaveAttribute('data-padding', '0');
     expect(screen.getByTestId('team-add-member-popover-shell')).toHaveAttribute('data-max-width', 'none');
     expect(screen.getByTestId('team-add-member-panel')).toHaveClass('w-300px');
-    expect(screen.getByTestId('team-add-member-picker-body')).toHaveClass('max-h-300px', 'bg-fill-1');
+    expect(screen.getByTestId('team-add-member-search-shell')).toHaveClass('border-b', 'border-border-1');
+    expect(screen.getByTestId('team-add-member-picker-body')).toHaveClass('max-h-300px', 'bg-dialog-fill-0');
+    expect(screen.getByTestId('team-add-member-picker-body')).not.toHaveClass('bg-fill-1');
+    expect(screen.getByTestId('team-add-member-footer')).toHaveClass('border-t', 'border-border-1');
     expect(screen.getAllByTestId('team-add-member-option-writer')[0]).toHaveClass('!h-48px', 'hover:!bg-fill-2');
     expect(
       screen.getByText('Show all assistants. The same assistant can be added repeatedly as independent members.')

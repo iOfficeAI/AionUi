@@ -36,7 +36,10 @@ const TeamAssistantPicker: React.FC<Props> = ({
 
   return (
     <div className={`flex min-h-0 flex-col ${isModalDensity ? 'gap-12px' : ''} ${className ?? ''}`}>
-      <div className={isModalDensity ? undefined : 'border-b border-border-1 bg-dialog-fill-0 px-14px'}>
+      <div
+        className={isModalDensity ? undefined : 'border-b border-border-1 bg-dialog-fill-0 px-14px'}
+        data-testid={`${testIdPrefix}-search-shell`}
+      >
         <Input
           prefix={<Search size={isModalDensity ? '14' : '16'} fill='currentColor' />}
           value={query}
@@ -54,8 +57,8 @@ const TeamAssistantPicker: React.FC<Props> = ({
         data-testid={`${testIdPrefix}-picker-body`}
         className={
           isModalDensity
-            ? 'min-h-0 flex-1 overflow-y-auto rounded-8px bg-fill-1 p-8px'
-            : 'max-h-300px overflow-y-auto bg-fill-1 px-8px py-10px'
+            ? 'min-h-0 flex-1 overflow-y-auto rounded-8px bg-dialog-fill-0'
+            : 'max-h-300px overflow-y-auto bg-dialog-fill-0 px-8px py-10px'
         }
       >
         {filteredAssistants.length === 0 ? (
@@ -80,7 +83,7 @@ const TeamAssistantPicker: React.FC<Props> = ({
                   loading={pendingAssistantId === assistant.id}
                   className={
                     isModalDensity
-                      ? '!h-48px !justify-start !rounded-8px !px-10px !py-0'
+                      ? '!h-48px !justify-start !rounded-8px !px-10px !py-0 hover:!bg-fill-2'
                       : '!h-48px !justify-start !rounded-8px !px-10px !py-0 hover:!bg-fill-2'
                   }
                   onClick={() => onSelect(assistant)}
@@ -106,7 +109,10 @@ const TeamAssistantPicker: React.FC<Props> = ({
         )}
       </div>
       {footer ? (
-        <div className='border-t border-border-1 bg-dialog-fill-0 px-14px py-10px text-13px font-600 leading-21px text-t-tertiary'>
+        <div
+          className='border-t border-border-1 bg-dialog-fill-0 px-14px py-10px text-13px font-600 leading-21px text-t-tertiary'
+          data-testid={`${testIdPrefix}-footer`}
+        >
           {footer}
         </div>
       ) : null}
