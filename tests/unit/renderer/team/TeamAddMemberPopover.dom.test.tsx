@@ -85,7 +85,11 @@ describe('TeamAddMemberPopover', () => {
     );
 
     expect(screen.queryByText(/already/i)).not.toBeInTheDocument();
+    expect(screen.getAllByTestId('team-add-member-option-writer')).toHaveLength(2);
+    expect(screen.getAllByTestId('team-add-member-option-writer')[0]).not.toBeDisabled();
+    expect(screen.getAllByTestId('team-add-member-option-writer')[1]).not.toBeDisabled();
     expect(screen.getByTestId('team-add-member-option-unchecked')).not.toBeDisabled();
+    expect(screen.getByText('blocked')).toBeInTheDocument();
   });
 
   it('adds a teammate and switches to the returned slot', async () => {
@@ -119,6 +123,22 @@ describe('TeamAddMemberPopover', () => {
 
     await waitFor(() => expect(messageErrorMock).toHaveBeenCalled());
     expect(screen.getAllByTestId('team-add-member-option-writer')).toHaveLength(2);
+    expect(switchTabMock).not.toHaveBeenCalled();
+  });
+
+  it('keeps the popover open and does not add when model resolution fails', async () => {
+    resolveDefaultTeamAgentModelMock.mockRejectedValueOnce(new Error('no model'));
+    render(
+      <TeamAddMemberPopover>
+        <button type='button'>add</button>
+      </TeamAddMemberPopover>
+    );
+
+    fireEvent.click(screen.getByTestId('team-add-member-option-unchecked'));
+
+    await waitFor(() => expect(messageErrorMock).toHaveBeenCalled());
+    expect(addAssistantMock).not.toHaveBeenCalled();
+    expect(screen.getByTestId('team-add-member-option-unchecked')).toBeInTheDocument();
     expect(switchTabMock).not.toHaveBeenCalled();
   });
 });

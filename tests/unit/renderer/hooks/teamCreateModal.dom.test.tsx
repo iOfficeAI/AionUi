@@ -11,6 +11,7 @@ import type { Assistant } from '@/common/types/agent/assistantTypes';
 
 const createTeamInvokeMock = vi.fn();
 const resolveDefaultTeamAgentModelMock = vi.fn();
+const messageErrorMock = vi.fn();
 
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
@@ -42,6 +43,17 @@ vi.mock('@renderer/pages/conversation/hooks/useConversationAssistants', () => ({
     presetAssistants: assistants(),
   }),
 }));
+
+vi.mock('@arco-design/web-react', async () => {
+  const actual = await vi.importActual<typeof import('@arco-design/web-react')>('@arco-design/web-react');
+  return {
+    ...actual,
+    Message: {
+      ...actual.Message,
+      error: (...args: unknown[]) => messageErrorMock(...args),
+    },
+  };
+});
 
 vi.mock('@renderer/components/base/AionModal', () => ({
   default: ({ visible, header, footer, children }: Record<string, unknown>) =>
@@ -80,6 +92,7 @@ describe('TeamCreateModal', () => {
     createTeamInvokeMock.mockResolvedValue({ id: 'team-1', assistants: [], agents: [] });
     resolveDefaultTeamAgentModelMock.mockReset();
     resolveDefaultTeamAgentModelMock.mockResolvedValue(undefined);
+    messageErrorMock.mockReset();
   });
 
   it('keeps blocked assistants visible with a reason and prevents selecting them', () => {
@@ -90,8 +103,7 @@ describe('TeamCreateModal', () => {
     expect(screen.queryByText('Aion CLI')).not.toBeInTheDocument();
     expect(screen.getByTestId('team-create-agent-option-blocked-reviewer')).toBeInTheDocument();
     expect(screen.getByTestId('team-create-agent-option-remote-runner')).toBeInTheDocument();
-    // The backend block reason is English; the UI shows a localized message instead.
-    expect(screen.getByText('This assistant cannot be used in team mode right now.')).toBeInTheDocument();
+    expect(screen.getByText('Temporarily unavailable for team mode')).toBeInTheDocument();
 
     const createButton = screen.getByRole('button', { name: 'Create Team' });
     fireEvent.change(screen.getByPlaceholderText('Team name'), {
@@ -152,6 +164,84 @@ describe('TeamCreateModal', () => {
       'bare-aionrs',
     ]);
     expect(payload.agents.filter((agent: { role: string }) => agent.role === 'leader')).toHaveLength(1);
+  });
+
+  it('first_selected_member_becomes_leader', async () => {
+    render(<TeamCreateModal visible onClose={vi.fn()} onCreated={vi.fn()} />);
+
+    fireEvent.change(screen.getByPlaceholderText('Team name'), {
+      target: { value: 'Manual Team' },
+    });
+    fireEvent.click(screen.getByTestId('team-create-agent-option-bare-aionrs'));
+    fireEvent.click(screen.getByTestId('team-create-agent-option-remote-runner'));
+    fireEvent.click(screen.getByRole('button', { name: 'Create Team' }));
+
+    await waitFor(() => expect(createTeamInvokeMock).toHaveBeenCalledTimes(1));
+
+    const payload = createTeamInvokeMock.mock.calls[0][0];
+    expect(payload.agents.map((agent: { role: string }) => agent.role)).toEqual(['leader', 'teammate']);
+  });
+
+  it('switching_leader_serializes_exactly_one_leader', async () => {
+    render(<TeamCreateModal visible onClose={vi.fn()} onCreated={vi.fn()} />);
+
+    fireEvent.change(screen.getByPlaceholderText('Team name'), {
+      target: { value: 'Switch Leader Team' },
+    });
+    fireEvent.click(screen.getByTestId('team-create-agent-option-bare-aionrs'));
+    fireEvent.click(screen.getByTestId('team-create-agent-option-remote-runner'));
+    fireEvent.click(screen.getAllByRole('radio')[1]);
+    fireEvent.click(screen.getByRole('button', { name: 'Create Team' }));
+
+    await waitFor(() => expect(createTeamInvokeMock).toHaveBeenCalledTimes(1));
+
+    const payload = createTeamInvokeMock.mock.calls[0][0];
+    expect(payload.agents.map((agent: { role: string }) => agent.role)).toEqual(['teammate', 'leader']);
+    expect(payload.agents.filter((agent: { role: string }) => agent.role === 'leader')).toHaveLength(1);
+  });
+
+  it('removing_leader_promotes_first_remaining_member', async () => {
+    render(<TeamCreateModal visible onClose={vi.fn()} onCreated={vi.fn()} />);
+
+    fireEvent.change(screen.getByPlaceholderText('Team name'), {
+      target: { value: 'Promote Leader Team' },
+    });
+    fireEvent.click(screen.getByTestId('team-create-agent-option-bare-aionrs'));
+    fireEvent.click(screen.getByTestId('team-create-agent-option-remote-runner'));
+    fireEvent.click(screen.getAllByTestId(/team-create-member-remove-/)[0]);
+    fireEvent.click(screen.getByRole('button', { name: 'Create Team' }));
+
+    await waitFor(() => expect(createTeamInvokeMock).toHaveBeenCalledTimes(1));
+
+    const payload = createTeamInvokeMock.mock.calls[0][0];
+    expect(payload.agents).toEqual([
+      expect.objectContaining({
+        role: 'leader',
+        assistant_id: 'remote-runner',
+      }),
+    ]);
+  });
+
+  it('model_resolution_failure_blocks_create_and_names_assistant', async () => {
+    resolveDefaultTeamAgentModelMock.mockImplementation(({ assistant_id }: { assistant_id: string }) => {
+      if (assistant_id === 'remote-runner') {
+        return Promise.reject(new Error('model unavailable'));
+      }
+      return Promise.resolve('model-ok');
+    });
+    render(<TeamCreateModal visible onClose={vi.fn()} onCreated={vi.fn()} />);
+
+    fireEvent.change(screen.getByPlaceholderText('Team name'), {
+      target: { value: 'Model Failure Team' },
+    });
+    fireEvent.click(screen.getByTestId('team-create-agent-option-bare-aionrs'));
+    fireEvent.click(screen.getByTestId('team-create-agent-option-remote-runner'));
+    fireEvent.click(screen.getByRole('button', { name: 'Create Team' }));
+
+    await waitFor(() => expect(messageErrorMock).toHaveBeenCalled());
+
+    expect(createTeamInvokeMock).not.toHaveBeenCalled();
+    expect(String(messageErrorMock.mock.calls[0][0])).toContain('Remote Runner');
   });
 });
 

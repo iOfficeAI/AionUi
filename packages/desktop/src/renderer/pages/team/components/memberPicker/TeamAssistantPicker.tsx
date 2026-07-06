@@ -46,7 +46,8 @@ const TeamAssistantPicker: React.FC<Props> = ({
               const rowDisabled = disabled || assistant.team_selectable === false;
               const blockReason =
                 assistant.team_selectable === false
-                  ? t('settings.assistantTeamUnsupported', {
+                  ? assistant.team_block_reason ||
+                    t('settings.assistantTeamUnsupported', {
                       defaultValue: 'This assistant cannot be used in team mode right now.',
                     })
                   : undefined;
