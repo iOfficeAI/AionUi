@@ -1,5 +1,5 @@
 param(
-  [string[]]$Versions = @('2.1.27', '2.1.28'),
+  [string[]]$Versions = @(),
   [string]$SentryDsnFile = 'D:\CODE\SENTRY_DSN',
   [string]$OutputDir = (Join-Path $PSScriptRoot '..\out-fast-builds'),
   [string]$WorktreeRoot = (Join-Path $PSScriptRoot '..\..\aionui-build-worktrees'),
@@ -11,6 +11,15 @@ $ErrorActionPreference = 'Stop'
 
 function Resolve-RepoRoot {
   return (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..')).Path
+}
+
+function Get-PackageVersion([string]$RepoRoot) {
+  $packageJsonPath = Join-Path $RepoRoot 'package.json'
+  $packageJson = Get-Content -LiteralPath $packageJsonPath -Raw | ConvertFrom-Json
+  if (-not $packageJson.version) {
+    throw "package.json is missing version: $packageJsonPath"
+  }
+  return [string]$packageJson.version
 }
 
 function Resolve-SentryDsnFile([string]$Path) {
@@ -213,7 +222,7 @@ $patchPath = Join-Path $runRoot 'current-worktree.patch'
 $buildVersions = @($Versions | ForEach-Object { $_ -split ',' } | ForEach-Object { $_.Trim() } | Where-Object { $_ })
 
 if ($buildVersions.Count -eq 0) {
-  throw 'No versions were provided.'
+  $buildVersions = @(Get-PackageVersion $repoRoot)
 }
 
 New-Item -ItemType Directory -Force -Path $runRoot, $OutputDir | Out-Null

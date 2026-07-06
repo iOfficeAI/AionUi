@@ -1,5 +1,5 @@
 param(
-  [string[]]$Versions = @('2.1.27', '2.1.28'),
+  [string[]]$Versions = @(),
   [string]$SentryDsnFile = '',
   [string]$OutputDir = (Join-Path $PSScriptRoot '..\out-fast-builds')
 )
@@ -28,12 +28,24 @@ function Find-SentryDsnFile {
   throw 'SENTRY_DSN file not found. Pass -SentryDsnFile or place SENTRY_DSN at repo root/parent.'
 }
 
+function Get-PackageVersion([string]$RepoRoot) {
+  $packageJsonPath = Join-Path $RepoRoot 'package.json'
+  $packageJson = Get-Content -LiteralPath $packageJsonPath -Raw | ConvertFrom-Json
+  if (-not $packageJson.version) {
+    throw "package.json is missing version: $packageJsonPath"
+  }
+  return [string]$packageJson.version
+}
+
 $repoRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..')).Path
 $dsnPath = Find-SentryDsnFile
 $env:SENTRY_DSN = (Get-Content -LiteralPath $dsnPath -Raw).Trim()
 $env:ELECTRON_BUILDER_COMPRESSION_LEVEL = '1'
 New-Item -ItemType Directory -Force -Path $OutputDir | Out-Null
 $buildVersions = @($Versions | ForEach-Object { $_ -split ',' } | ForEach-Object { $_.Trim() } | Where-Object { $_ })
+if ($buildVersions.Count -eq 0) {
+  $buildVersions = @(Get-PackageVersion $repoRoot)
+}
 
 foreach ($version in $buildVersions) {
   Write-Host "=== build $version start: $(Get-Date -Format o) ==="
