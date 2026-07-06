@@ -6,11 +6,14 @@
 <title>自定义模型跨 Agent 切换 · 线框图</title>
 <style>
   :root{
-    --bg-base:#ffffff; --bg-1:#f9fafb; --bg-2:#f2f3f5; --bg-3:#e5e6eb;
+    /* 取自 AionUi default-color-scheme.css（亮色） */
+    --bg-base:#ffffff; --bg-1:#f9fafb; --bg-2:#f2f3f5; --bg-3:#e5e6eb; --bg-4:#c9cdd4;
     --t1:#1d2129; --t2:#454d5f; --t3:#86909c; --t4:#c9cdd4;
     --border:#e5e6eb; --border-light:#f2f3f5;
     --aou-1:#eff0f6; --aou-2:#e5e7f0; --aou-6:#7583b2; --aou-7:#596590;
-    --primary:#165dff; --success:#00b42a; --warning:#ff7d00; --danger:#f53f3f;
+    --primary:#165dff; --primary-1:#e8f0ff; --primary-note-bg:#f0f4ff;
+    --success:#00b42a; --warning:#ff7d00; --danger:#f53f3f;
+    --msg-user:#e9efff;
   }
   *{box-sizing:border-box;}
   html,body{margin:0;height:100%;}
@@ -53,110 +56,164 @@
   .req th,.req td{border:1px solid var(--border);padding:6px 9px;text-align:left;vertical-align:top;}
   .req th{background:var(--bg-2);font-weight:600;}
 
-  .app{position:relative;background:var(--bg-base);border:1px solid var(--border);border-radius:14px;overflow:hidden;
-    box-shadow:0 4px 20px rgba(29,33,41,.06);max-width:940px;margin:0 auto;}
-  .titlebar{height:36px;background:var(--bg-2);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 12px;gap:12px;}
+  /* ===== App 外壳（贴近真实 AionUi） ===== */
+  .app{position:relative;background:var(--bg-base);border:1px solid var(--border);border-radius:12px;overflow:hidden;
+    box-shadow:0 4px 20px rgba(29,33,41,.08);max-width:960px;margin:0 auto;}
+  .titlebar{height:34px;background:var(--bg-1);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 12px;gap:12px;}
   .tb-dots{display:flex;gap:7px;}
   .tb-dots i{width:11px;height:11px;border-radius:50%;display:block;}
   .tb-dots .r{background:#ff5f57;}.tb-dots .y{background:#febc2e;}.tb-dots .g{background:#28c840;}
-  .tb-ico{color:var(--t3);font-size:14px;}
-  .tb-brand{flex:1;text-align:center;font-weight:600;font-size:12.5px;color:var(--t2);}
-  .body{display:flex;height:560px;}
-  .sider{flex:0 0 168px;background:var(--bg-2);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:10px 8px;}
-  .logo{display:flex;align-items:center;gap:9px;font-weight:700;font-size:14px;color:var(--aou-7);padding:5px 8px 12px;}
+  .tb-brand{flex:1;text-align:center;font-weight:600;font-size:12px;color:var(--t3);}
+  .body{display:flex;height:580px;}
+  .sider{flex:0 0 210px;background:var(--bg-1);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:10px 10px;}
+  .logo{display:flex;align-items:center;gap:9px;font-weight:700;font-size:14px;color:var(--aou-7);padding:4px 6px 12px;}
   .logo .sq{width:24px;height:24px;border-radius:7px;background:linear-gradient(135deg,var(--aou-6),var(--aou-7));}
-  .si{height:30px;display:flex;align-items:center;gap:8px;padding:0 10px;border-radius:8px;font-size:12.5px;color:var(--t2);cursor:pointer;font-weight:500;}
-  .si:hover{background:var(--bg-3);}
+  .snew{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:9px;font-size:13px;font-weight:600;color:#fff;
+    background:var(--aou-6);cursor:pointer;margin-bottom:4px;}
+  .ssearch{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:9px;font-size:12.5px;color:var(--t3);cursor:pointer;border:1px solid var(--border);margin-bottom:10px;}
+  .si-grp{font-size:11px;color:var(--t3);padding:8px 8px 4px;font-weight:600;}
+  .si{height:34px;display:flex;align-items:center;gap:9px;padding:0 10px;border-radius:9px;font-size:12.5px;color:var(--t2);cursor:pointer;}
+  .si:hover{background:var(--bg-2);}
   .si.on{background:var(--bg-3);font-weight:600;color:var(--t1);}
-  .si .di{width:16px;text-align:center;font-size:13px;color:var(--t3);}
-  .si-grp{font-size:11px;color:var(--t3);padding:10px 10px 3px;font-weight:600;}
+  .si .di{width:18px;height:18px;border-radius:6px;background:var(--aou-1);display:flex;align-items:center;justify-content:center;font-size:11px;flex:0 0 auto;}
   .si-sp{flex:1;}
-  .main{flex:1;min-width:0;background:var(--bg-base);overflow:hidden;}
+  .main{flex:1;min-width:0;background:var(--bg-base);overflow:hidden;position:relative;}
 
   /* 对话视图 */
   .conv{display:flex;flex-direction:column;height:100%;}
-  .conv-h{flex:0 0 auto;height:44px;display:flex;align-items:center;gap:10px;padding:0 14px;border-bottom:1px solid var(--border);background:var(--bg-1);}
-  .conv-h .agent{display:flex;align-items:center;gap:7px;font-size:13px;font-weight:600;color:var(--t1);}
-  .conv-h .agent .av{width:22px;height:22px;border-radius:6px;background:var(--aou-1);display:flex;align-items:center;justify-content:center;font-size:12px;}
+  .conv-h{flex:0 0 auto;height:48px;display:flex;align-items:center;gap:10px;padding:0 16px;border-bottom:1px solid var(--border);}
+  .conv-h .agent{display:flex;align-items:center;gap:8px;font-size:13.5px;font-weight:600;color:var(--t1);}
+  .conv-h .agent .av{width:24px;height:24px;border-radius:7px;background:var(--aou-1);display:flex;align-items:center;justify-content:center;font-size:13px;}
+  .conv-h .sub{font-size:11px;color:var(--t3);font-weight:400;}
   .conv-h .sp{flex:1;}
-  .conv-b{flex:1;overflow:auto;padding:16px;display:flex;flex-direction:column;gap:12px;}
-  .msg{font-size:12.5px;line-height:1.55;padding:9px 12px;border-radius:11px;max-width:80%;}
-  .msg.u{align-self:flex-end;background:var(--aou-6);color:#fff;}
+  .conv-h .hdot{color:var(--t4);font-size:15px;}
+  .conv-b{flex:1;overflow:auto;padding:18px 16px;display:flex;flex-direction:column;gap:14px;background:var(--bg-base);}
+  .msg{font-size:12.5px;line-height:1.6;padding:9px 13px;border-radius:12px;max-width:78%;}
+  .msg.u{align-self:flex-end;background:var(--msg-user);color:var(--t1);}
   .msg.a{align-self:flex-start;background:var(--bg-2);color:var(--t1);}
-  .msg.sys{align-self:center;font-size:11px;color:var(--aou-7);background:var(--aou-1);border:1px solid var(--aou-2);border-radius:16px;padding:4px 12px;}
-  .conv-f{flex:0 0 auto;border-top:1px solid var(--border);padding:12px 14px;display:flex;align-items:center;gap:10px;}
-  .composer{flex:1;border:1px solid var(--border);border-radius:10px;padding:9px 12px;font-size:12.5px;color:var(--t4);}
+  .msg.sys{align-self:center;font-size:11px;color:var(--aou-7);background:var(--aou-1);border-radius:16px;padding:4px 12px;}
+  /* 底部 composer / sendbox */
+  .sendbox{flex:0 0 auto;margin:0 14px 14px;border:1px solid var(--border);border-radius:14px;background:var(--bg-base);
+    box-shadow:0 2px 10px rgba(29,33,41,.04);display:flex;flex-direction:column;}
+  .sb-input{padding:12px 14px 6px;font-size:12.5px;color:var(--t4);}
+  .sb-tools{display:flex;align-items:center;gap:8px;padding:6px 10px 9px;}
+  .sb-ico{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--t3);font-size:14px;}
+  .sb-sp{flex:1;}
+  .sb-send{width:30px;height:30px;border-radius:9px;background:var(--aou-6);color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;}
 
-  /* 模型选择器 pill + 下拉 */
+  /* 模型选择 pill（Arco round Button, size small） */
   .model-pill{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--border);background:var(--bg-base);
-    border-radius:20px;padding:5px 12px;font-size:12px;color:var(--t2);cursor:pointer;position:relative;white-space:nowrap;}
+    border-radius:100px;padding:5px 11px;font-size:12px;color:var(--t2);cursor:pointer;position:relative;white-space:nowrap;line-height:1;}
   .model-pill:hover{border-color:var(--aou-6);}
-  .model-pill .brain{font-size:12px;}
-  .model-pill .cur{font-weight:600;color:var(--t1);}
-  .model-pill .chev{color:var(--t3);font-size:10px;}
-  .mdd{position:absolute;bottom:34px;right:0;width:278px;background:var(--bg-base);border:1px solid var(--border);
-    border-radius:12px;box-shadow:0 14px 40px rgba(29,33,41,.18);z-index:20;overflow:hidden;}
-  .mdd-grp{font-size:10.5px;color:var(--t3);font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:9px 13px 5px;
-    background:var(--bg-1);border-bottom:1px solid var(--border-light);display:flex;align-items:center;gap:6px;}
-  .mdd-grp .zone{margin-left:auto;font-weight:500;text-transform:none;letter-spacing:0;color:var(--t4);font-size:10px;}
-  .mdd-sub{font-size:10px;color:var(--t4);font-weight:600;padding:7px 13px 3px;}
-  .mdd-list{max-height:300px;overflow:auto;padding:4px;}
-  .mdd-item{display:flex;align-items:center;gap:9px;padding:7px 10px;border-radius:8px;cursor:pointer;font-size:12.5px;color:var(--t1);}
-  .mdd-item:hover{background:var(--bg-2);}
-  .mdd-item.on{background:var(--aou-1);}
-  .mdd-item .ck{width:14px;flex:0 0 auto;color:var(--aou-7);font-size:12px;text-align:center;}
-  .mdd-item .nm{flex:1;min-width:0;}
-  .mdd-item .badge-ok{font-size:9px;color:var(--success);background:#e8f9ee;border-radius:7px;padding:1px 6px;font-weight:600;}
-  .mdd-empty{padding:12px 13px;font-size:11.5px;color:var(--t4);line-height:1.6;text-align:center;}
-  .mdd-empty a{color:var(--aou-7);text-decoration:none;font-weight:600;}
+  .model-pill .brain{font-size:12px;color:var(--t3);}
+  .model-pill .cur{font-weight:500;color:var(--t1);max-width:150px;overflow:hidden;text-overflow:ellipsis;}
+  .model-pill .chev{color:var(--t3);font-size:9px;}
 
-  /* 设置 · 模型列表（F-MODEL-03） */
-  .settings{display:flex;flex-direction:column;height:100%;position:relative;}
-  .set-h{flex:0 0 auto;height:44px;display:flex;align-items:center;gap:10px;padding:0 16px;border-bottom:1px solid var(--border);}
-  .set-h .st{font-weight:600;font-size:14px;}
-  .set-tabs{display:flex;gap:4px;margin-left:12px;}
-  .set-tab{font-size:12px;color:var(--t3);padding:4px 10px;border-radius:7px;cursor:pointer;}
-  .set-tab.on{background:var(--aou-1);color:var(--aou-7);font-weight:600;}
-  .set-b{flex:1;overflow:auto;padding:16px;}
-  .prov{border:1px solid var(--border);border-radius:11px;margin-bottom:14px;overflow:hidden;}
-  .prov-h{display:flex;align-items:center;gap:9px;padding:11px 14px;background:var(--bg-1);border-bottom:1px solid var(--border-light);}
-  .prov-h .pn{font-weight:600;font-size:13px;}
-  .prov-h .pc{font-size:11px;color:var(--t3);}
+  /* Arco Dropdown Menu 风格 */
+  .mdd{position:absolute;bottom:38px;right:0;width:288px;background:var(--bg-base);border:1px solid var(--border);
+    border-radius:8px;box-shadow:0 8px 28px rgba(29,33,41,.16);z-index:20;overflow:hidden;padding:4px;}
+  .mdd-grp{font-size:12px;color:var(--t3);font-weight:600;padding:8px 12px 5px;display:flex;align-items:center;gap:6px;}
+  .mdd-grp .zone{margin-left:auto;font-weight:400;color:var(--t4);font-size:10.5px;}
+  .mdd-sub{font-size:11px;color:var(--t3);padding:6px 12px 2px 26px;}
+  .mdd-list{max-height:320px;overflow:auto;}
+  .mdd-item{display:flex;align-items:center;gap:8px;padding:7px 12px;border-radius:6px;cursor:pointer;font-size:13px;color:var(--t1);}
+  .mdd-item:hover{background:var(--bg-2);}
+  .mdd-item.on{background:var(--bg-2);}
+  .mdd-item .ck{width:16px;flex:0 0 auto;color:var(--primary);font-size:13px;text-align:center;}
+  .mdd-item .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .mdd-item .badge-ok{font-size:9px;color:var(--success);background:#e8f9ee;border-radius:6px;padding:1px 6px;font-weight:600;flex:0 0 auto;}
+  .mdd-div{height:1px;background:var(--border-light);margin:4px 8px;}
+  .mdd-empty{padding:14px 12px;font-size:11.5px;color:var(--t4);line-height:1.6;text-align:center;}
+  .mdd-empty a{color:var(--primary);text-decoration:none;font-weight:500;}
+
+  /* ===== 设置弹窗（880×459 modal 感） ===== */
+  .modal-mask{position:absolute;inset:0;background:rgba(29,33,41,.35);display:flex;align-items:center;justify-content:center;}
+  .modal{width:calc(100% - 40px);max-width:840px;height:490px;background:var(--bg-base);border-radius:16px;overflow:hidden;
+    box-shadow:0 20px 56px rgba(29,33,41,.3);display:flex;flex-direction:column;}
+  .modal-top{display:flex;align-items:center;padding:18px 22px 12px;}
+  .modal-top .mt{font-size:17px;font-weight:600;color:var(--t1);}
+  .modal-top .sp{flex:1;}
+  .modal-top .mx{color:var(--t3);font-size:16px;cursor:pointer;}
+  .modal-body{flex:1;display:flex;min-height:0;padding:0 22px 22px;gap:0;}
+  .set-rail{flex:0 0 190px;display:flex;flex-direction:column;gap:2px;border-right:1px solid var(--border);padding-right:12px;overflow:auto;}
+  .rail-i{display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:8px;font-size:14px;color:var(--t2);cursor:pointer;font-weight:500;}
+  .rail-i:hover{background:var(--bg-1);}
+  .rail-i.on{background:var(--aou-2);color:var(--t1);}
+  .rail-i .ri{width:16px;text-align:center;font-size:14px;color:var(--aou-7);}
+  .set-content{flex:1;min-width:0;padding-left:22px;display:flex;flex-direction:column;overflow:hidden;}
+
+  /* 模型页头部 */
+  .mc-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .mc-title{font-size:20px;font-weight:600;color:var(--t1);line-height:34px;}
+  .mc-head .sp{flex:1;}
+  .mc-btn{display:inline-flex;align-items:center;gap:5px;height:32px;padding:0 14px;border-radius:100px;border:1px solid var(--border);
+    background:var(--bg-base);font-size:12.5px;color:var(--t2);cursor:pointer;}
+  .mc-btn:hover{color:var(--t1);border-color:var(--aou-6);}
+  .mc-note{margin:12px 0 0;border:1px solid rgba(22,93,255,.32);background:rgba(22,93,255,.08);color:var(--primary);
+    border-radius:8px;padding:8px 12px;font-size:12px;line-height:1.5;}
+  .mc-sep{border-bottom:1px solid var(--border);margin:14px 0;}
+  .mc-list{flex:1;overflow:auto;display:flex;flex-direction:column;gap:14px;padding-right:2px;}
+
+  /* Provider Collapse */
+  .prov{border-radius:12px;overflow:hidden;background:var(--bg-2);}
+  .prov-h{display:flex;align-items:center;gap:8px;min-height:32px;padding:9px 12px 9px 34px;background:var(--bg-base);position:relative;cursor:pointer;}
+  .prov-h .caret{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--t3);font-size:11px;}
+  .prov.open .caret{transform:translateY(-50%) rotate(90deg);}
+  .prov-h .pn{font-size:14px;font-weight:500;color:var(--t2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .prov-h .meter{font-size:12px;color:var(--t3);white-space:nowrap;}
   .prov-h .sp{flex:1;}
-  .prov-h .btn-detect-all{font-size:11px;color:var(--aou-7);background:var(--aou-1);border-radius:7px;padding:4px 10px;cursor:pointer;font-weight:500;}
-  .mrow{display:flex;align-items:center;gap:11px;padding:11px 14px;border-bottom:1px solid var(--border-light);}
-  .mrow:last-child{border-bottom:none;}
-  .mrow .dot{width:7px;height:7px;border-radius:50%;background:var(--success);flex:0 0 auto;}
-  .mrow .mn{font-size:12.5px;color:var(--t1);min-width:150px;}
+  .prov-h .toggle{width:32px;height:18px;border-radius:10px;background:var(--primary);position:relative;flex:0 0 auto;}
+  .prov-h .toggle:after{content:"";position:absolute;right:2px;top:2px;width:14px;height:14px;border-radius:50%;background:#fff;}
+  .act{width:28px;height:28px;border-radius:7px;display:flex;align-items:center;justify-content:center;color:var(--t3);font-size:13px;cursor:pointer;}
+  .act:hover{background:var(--bg-2);color:var(--t1);}
+  .prov-c{border-top:1px solid var(--border);background:var(--bg-1);padding:8px 10px;display:none;}
+  .prov.open .prov-c{display:block;}
+
+  /* 模型行 */
+  .mrow{display:flex;align-items:center;gap:10px;padding:11px 8px;}
+  .mrow + .mrow{border-top:1px solid rgba(229,230,235,.7);}
+  .mrow .dot{width:8px;height:8px;border-radius:50%;flex:0 0 auto;}
+  .mrow .dot.ok{background:var(--success);}
+  .mrow .dot.bad{background:var(--danger);}
+  .mrow .mn{font-size:14px;color:var(--t1);white-space:nowrap;}
+  .mrow .tag{font-size:10px;border-radius:4px;padding:1px 7px;font-weight:500;}
+  .tag.oai{background:#e8f9ee;color:#0a8a2c;} .tag.ant{background:#fff3e0;color:#cc7000;} .tag.gem{background:#e8f0ff;color:var(--primary);}
+  .mrow .msw{width:32px;height:18px;border-radius:10px;background:var(--primary);position:relative;flex:0 0 auto;}
+  .mrow .msw:after{content:"";position:absolute;right:2px;top:2px;width:14px;height:14px;border-radius:50%;background:#fff;}
+  .mrow .msw.off{background:var(--bg-4);} .mrow .msw.off:after{right:auto;left:2px;}
+  .mrow .sp{flex:1;}
+  /* F-MODEL-03：可用 Agent 图标 */
   .agent-flags{display:flex;align-items:center;gap:5px;}
-  .aflag{width:24px;height:24px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:13px;position:relative;
+  .aflag{width:26px;height:26px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:13px;position:relative;
     border:1px solid var(--border);background:var(--bg-base);}
   .aflag.ok{border-color:#b7ebc6;background:#f2fcf5;}
   .aflag.ok:after{content:"✓";position:absolute;right:-4px;bottom:-4px;width:13px;height:13px;border-radius:50%;
     background:var(--success);color:#fff;font-size:8px;display:flex;align-items:center;justify-content:center;border:1.5px solid #fff;}
-  .aflag.no{opacity:.32;filter:grayscale(1);}
+  .aflag.no{opacity:.3;filter:grayscale(1);}
   .aflag.testing{border-color:var(--warning);background:#fff7ed;}
-  .aflag.testing:after{content:"…";position:absolute;right:-4px;bottom:-4px;width:13px;height:13px;border-radius:50%;
-    background:var(--warning);color:#fff;font-size:9px;display:flex;align-items:center;justify-content:center;border:1.5px solid #fff;line-height:1;}
-  .mrow .sp{flex:1;}
-  .mrow .btn-detect{font-size:11px;color:var(--t2);border:1px solid var(--border);border-radius:7px;padding:4px 11px;cursor:pointer;background:var(--bg-base);}
+  .aflag.testing:after{content:"…";position:absolute;right:-4px;bottom:-5px;width:13px;height:13px;border-radius:50%;
+    background:var(--warning);color:#fff;font-size:10px;display:flex;align-items:center;justify-content:center;border:1.5px solid #fff;line-height:1;}
+  .mrow .hb{width:28px;height:28px;border-radius:7px;display:flex;align-items:center;justify-content:center;color:var(--t3);font-size:14px;cursor:pointer;background:var(--bg-base);}
+  .mrow .hb:hover{background:var(--bg-2);color:var(--t1);}
+  .mrow .btn-detect{display:inline-flex;align-items:center;gap:4px;height:28px;padding:0 11px;font-size:11.5px;color:var(--t2);
+    border:1px solid var(--border);border-radius:100px;cursor:pointer;background:var(--bg-base);}
   .mrow .btn-detect:hover{border-color:var(--aou-6);color:var(--aou-7);}
-  .toggle{width:32px;height:18px;border-radius:10px;background:var(--aou-6);position:relative;flex:0 0 auto;}
-  .toggle:after{content:"";position:absolute;right:2px;top:2px;width:14px;height:14px;border-radius:50%;background:#fff;}
+  .btn-detect-all{display:inline-flex;align-items:center;gap:4px;height:26px;padding:0 10px;font-size:11px;color:var(--primary);
+    border:1px solid rgba(22,93,255,.3);border-radius:100px;cursor:pointer;background:rgba(22,93,255,.06);}
 
-  /* 检测选择 Agent 弹窗（居中浮层，避免被滚动容器裁切） */
-  .detect-stage{position:absolute;inset:0;background:rgba(29,33,41,.28);display:flex;align-items:center;justify-content:center;z-index:40;}
-  .detect-pop{width:250px;background:var(--bg-base);border:1px solid var(--border);
-    border-radius:12px;box-shadow:0 20px 50px rgba(29,33,41,.28);overflow:hidden;}
-  .dp-h{font-size:11.5px;font-weight:600;color:var(--t2);padding:12px 14px 8px;border-bottom:1px solid var(--border-light);}
-  .dp-item{display:flex;align-items:center;gap:9px;padding:8px 13px;font-size:12.5px;color:var(--t1);cursor:pointer;}
+  /* 检测选择 Agent 弹层（居中，避免被裁） */
+  .detect-stage{position:absolute;inset:0;background:rgba(29,33,41,.3);display:flex;align-items:center;justify-content:center;z-index:60;}
+  .detect-pop{width:264px;background:var(--bg-base);border:1px solid var(--border);border-radius:12px;box-shadow:0 20px 50px rgba(29,33,41,.3);overflow:hidden;}
+  .dp-h{font-size:12.5px;font-weight:600;color:var(--t1);padding:13px 15px 9px;border-bottom:1px solid var(--border-light);line-height:1.4;}
+  .dp-item{display:flex;align-items:center;gap:9px;padding:9px 15px;font-size:13px;color:var(--t1);cursor:pointer;}
   .dp-item:hover{background:var(--bg-2);}
-  .dp-item .ck{width:15px;height:15px;border-radius:4px;border:1.5px solid var(--t4);display:flex;align-items:center;justify-content:center;font-size:9px;color:#fff;flex:0 0 auto;}
-  .dp-item .ck.on{background:var(--aou-6);border-color:var(--aou-6);}
-  .dp-f{padding:9px 13px;border-top:1px solid var(--border-light);display:flex;justify-content:flex-end;}
-  .dp-btn{font-size:11.5px;background:var(--aou-6);color:#fff;border-radius:7px;padding:5px 13px;cursor:pointer;}
+  .dp-item .ck{width:16px;height:16px;border-radius:4px;border:1.5px solid var(--t4);display:flex;align-items:center;justify-content:center;font-size:9px;color:#fff;flex:0 0 auto;}
+  .dp-item .ck.on{background:var(--primary);border-color:var(--primary);}
+  .dp-f{padding:10px 15px;border-top:1px solid var(--border-light);display:flex;justify-content:flex-end;gap:8px;}
+  .dp-btn{font-size:12px;background:var(--aou-6);color:#fff;border-radius:8px;padding:6px 15px;cursor:pointer;}
+  .dp-btn.ghost{background:var(--bg-base);color:var(--t2);border:1px solid var(--border);}
 
-  .legend{max-width:940px;margin:12px auto 0;font-size:11px;color:var(--t3);text-align:center;line-height:1.6;}
+  .legend{max-width:960px;margin:12px auto 0;font-size:11px;color:var(--t3);text-align:center;line-height:1.6;}
 
   /* overview */
   .ov{max-width:880px;margin:0 auto;}
@@ -182,137 +239,166 @@
 </div>
 
 <script>
-/* 外壳 */
-function shell(inner, opt){
-  opt=opt||{};
+/* ===== App 外壳 ===== */
+function shell(inner){
   return `<div class="app">
     <div class="titlebar"><span class="tb-dots"><i class="r"></i><i class="y"></i><i class="g"></i></span>
-      <span class="tb-ico">☰</span><span class="tb-brand">AionUi</span><span class="tb-ico">⤢</span></div>
+      <span class="tb-brand">AionUi</span><span style="width:40px;"></span></div>
     <div class="body">
-      <div class="sider"><div class="logo"><span class="sq"></span>AionUi</div>
-        <div class="si"><span class="di">＋</span>新建会话</div>
-        <div class="si"><span class="di">🔍</span>搜索</div>
-        <div class="si-grp">会话</div>
-        <div class="si ${opt.convOn?'on':''}"><span class="di">🤖</span>Claude Code</div>
+      <div class="sider">
+        <div class="logo"><span class="sq"></span>AionUi</div>
+        <div class="snew">＋ 新建会话</div>
+        <div class="ssearch">🔍 搜索会话…</div>
+        <div class="si-grp">最近会话</div>
+        <div class="si on"><span class="di">🤖</span>Claude Code</div>
         <div class="si"><span class="di">⚙️</span>Codex</div>
         <div class="si"><span class="di">🐦</span>AionCLI</div>
+        <div class="si"><span class="di">💬</span>重构模块讨论</div>
         <div class="si-sp"></div>
-        <div class="si ${opt.setOn?'on':''}"><span class="di">⚙️</span>设置</div>
+        <div class="si"><span class="di">⚙️</span>设置</div>
       </div>
-      <div class="main">${inner}</div></div></div>`;
+      <div class="main">${inner}</div>
+    </div></div>`;
 }
 
-/* 模型下拉：two-zone */
+/* ===== 模型下拉：two-zone（Arco Menu 风格） ===== */
 function modelDropdown(opt){
   opt=opt||{};
-  // 上区：Agent 自带
   let builtin='';
   if(opt.hasBuiltin){
-    builtin = `<div class="mdd-grp">Agent 自带<span class="zone">来自 ${opt.agentName} 接口</span></div>
-      <div class="mdd-list" style="max-height:none;padding:4px 4px 0;">
-        <div class="mdd-item ${opt.cur==='b1'?'on':''}"><span class="ck">${opt.cur==='b1'?'✓':''}</span><span class="nm">Claude Opus</span></div>
-        <div class="mdd-item ${opt.cur==='b2'?'on':''}"><span class="ck">${opt.cur==='b2'?'✓':''}</span><span class="nm">Claude Sonnet</span></div>
-        <div class="mdd-item ${opt.cur==='b3'?'on':''}"><span class="ck">${opt.cur==='b3'?'✓':''}</span><span class="nm">Claude Haiku</span></div>
-      </div>`;
+    builtin = `<div class="mdd-grp">Agent 自带<span class="zone">${opt.agentName} 接口返回</span></div>
+      <div class="mdd-item ${opt.cur==='b1'?'on':''}"><span class="ck">${opt.cur==='b1'?'✓':''}</span><span class="nm">Claude Opus</span></div>
+      <div class="mdd-item ${opt.cur==='b2'?'on':''}"><span class="ck">${opt.cur==='b2'?'✓':''}</span><span class="nm">Claude Sonnet</span></div>
+      <div class="mdd-item ${opt.cur==='b3'?'on':''}"><span class="ck">${opt.cur==='b3'?'✓':''}</span><span class="nm">Claude Haiku</span></div>
+      <div class="mdd-div"></div>`;
   }
-  // 下区：我的模型（按 Provider 分组）
   const okBadge = opt.showDetect ? '<span class="badge-ok">✓ 本 Agent 可用</span>' : '';
-  const mine = `<div class="mdd-grp" style="margin-top:2px;">我的模型<span class="zone">来自「设置 → 模型」</span></div>
-    <div class="mdd-list" style="max-height:none;">
-      <div class="mdd-sub">DeepSeek（我的供应商）</div>
-      <div class="mdd-item ${opt.cur==='m1'?'on':''}"><span class="ck">${opt.cur==='m1'?'✓':''}</span><span class="nm">deepseek-v4-pro</span>${opt.cur==='m1'?'':okBadge}</div>
-      <div class="mdd-item ${opt.cur==='m2'?'on':''}"><span class="ck">${opt.cur==='m2'?'✓':''}</span><span class="nm">deepseek-v4-lite</span></div>
-      <div class="mdd-sub">智谱 GLM</div>
-      <div class="mdd-item ${opt.cur==='m3'?'on':''}"><span class="ck">${opt.cur==='m3'?'✓':''}</span><span class="nm">glm-5.1x</span></div>
-    </div>`;
-
-  const empty = `<div class="mdd-empty">还没有自定义模型。<br><a>前往「设置 → 模型」添加 →</a></div>`;
-
-  return `<div class="mdd">
-    ${builtin}
-    ${opt.noMine ? (opt.hasBuiltin?'':'') + `<div class="mdd-grp" style="margin-top:2px;">我的模型<span class="zone">来自「设置 → 模型」</span></div>`+empty : mine}
-  </div>`;
+  const mineBody = `
+    <div class="mdd-sub">DeepSeek（我的供应商）</div>
+    <div class="mdd-item ${opt.cur==='m1'?'on':''}"><span class="ck">${opt.cur==='m1'?'✓':''}</span><span class="nm">deepseek-v4-pro</span>${opt.cur==='m1'?'':okBadge}</div>
+    <div class="mdd-item ${opt.cur==='m2'?'on':''}"><span class="ck">${opt.cur==='m2'?'✓':''}</span><span class="nm">deepseek-v4-lite</span></div>
+    <div class="mdd-sub">智谱 GLM</div>
+    <div class="mdd-item ${opt.cur==='m3'?'on':''}"><span class="ck">${opt.cur==='m3'?'✓':''}</span><span class="nm">glm-5.1x</span></div>`;
+  const empty = `<div class="mdd-empty">还没有自定义模型<br><a>前往「设置 → 模型」添加 →</a></div>`;
+  const mine = `<div class="mdd-grp">我的模型<span class="zone">设置 → 模型</span></div>${opt.noMine?empty:mineBody}`;
+  return `<div class="mdd"><div class="mdd-list">${builtin}${mine}</div></div>`;
 }
 
-/* 对话场景 */
+/* ===== 对话场景 ===== */
 function sConv(opt){
   opt=opt||{};
   const curLabel = opt.curLabel || 'Claude Sonnet';
   const dd = opt.open ? modelDropdown(opt.dd||{}) : '';
   const inner = `<div class="conv">
-    <div class="conv-h"><span class="agent"><span class="av">${opt.agentIcon||'🤖'}</span>${opt.agentName||'Claude Code'}</span><span class="sp"></span></div>
+    <div class="conv-h"><span class="agent"><span class="av">${opt.agentIcon||'🤖'}</span>${opt.agentName||'Claude Code'}
+      ${opt.sub?`<span class="sub">· ${opt.sub}</span>`:''}</span><span class="sp"></span><span class="hdot">⋯</span></div>
     <div class="conv-b">
-      <div class="msg sys">${opt.sysNote||'ACP 已连接'}</div>
       ${opt.msgs||`<div class="msg u">帮我重构这个模块</div><div class="msg a">好的，我先读一下现有代码结构…</div>`}
     </div>
-    <div class="conv-f">
-      <span class="composer">输入消息…</span>
-      <span class="model-pill"><span class="brain">🧠</span><span class="cur">${curLabel}</span><span class="chev">▾</span>${dd}</span>
+    <div class="sendbox">
+      <div class="sb-input">输入消息，Enter 发送…</div>
+      <div class="sb-tools">
+        <span class="sb-ico">＋</span><span class="sb-ico">📎</span><span class="sb-ico">🖼️</span>
+        <span class="sb-sp"></span>
+        <span class="model-pill"><span class="brain">🧠</span><span class="cur">${curLabel}</span><span class="chev">▾</span>${dd}</span>
+        <span class="sb-send">↑</span>
+      </div>
     </div>
   </div>`;
-  return shell(inner,{convOn:true});
+  return shell(inner);
 }
 
-/* 设置 · 模型列表（检测） */
+/* ===== 设置弹窗 · 模型页 ===== */
+function agentFlags(claude,codex){
+  const cls=s=>s==='ok'?'aflag ok':s==='testing'?'aflag testing':'aflag no';
+  return `<div class="agent-flags">
+    <span class="${cls(claude)}" title="Claude Code">🤖</span>
+    <span class="${cls(codex)}" title="Codex">⚙️</span>
+  </div>`;
+}
 function sSettings(opt){
   opt=opt||{};
-  // 每个模型对 Claude / Codex 的检测状态：ok / no / testing / none
-  function flags(claude,codex){
-    const cls=s=>s==='ok'?'aflag ok':s==='no'?'aflag no':s==='testing'?'aflag testing':'aflag no';
-    return `<div class="agent-flags">
-      <span class="${cls(claude)}" title="Claude Code">🤖</span>
-      <span class="${cls(codex)}" title="Codex">⚙️</span>
-    </div>`;
-  }
+  const t = opt.testing;
   const pop = opt.pop ? `<div class="detect-stage"><div class="detect-pop">
       <div class="dp-h">检测「deepseek-v4-pro」在哪些 Agent 上可用？</div>
       <div class="dp-item"><span class="ck on">✓</span>🤖 Claude Code</div>
       <div class="dp-item"><span class="ck on">✓</span>⚙️ Codex</div>
       <div class="dp-item"><span class="ck">　</span>🐦 AionCLI</div>
-      <div class="dp-f"><span class="dp-btn">开始检测</span></div>
+      <div class="dp-f"><span class="dp-btn ghost">取消</span><span class="dp-btn">开始检测</span></div>
     </div></div>` : '';
 
-  const inner = `<div class="settings">
-    <div class="set-h"><span class="st">设置</span>
-      <div class="set-tabs"><span class="set-tab">通用</span><span class="set-tab on">模型</span><span class="set-tab">MCP</span></div>
-    </div>
-    <div class="set-b">
-      <div class="prov">
-        <div class="prov-h"><span class="pn">DeepSeek（我的供应商）</span><span class="pc">2 个模型 · 1 个密钥</span><span class="sp"></span><span class="btn-detect-all">批量检测本供应商</span></div>
-        <div class="mrow">
-          <span class="dot"></span><span class="mn">deepseek-v4-pro</span>
-          ${flags(opt.testing?'testing':'ok', opt.testing?'testing':'ok')}
-          <span class="sp"></span>
-          <span class="btn-detect">检测可用性 ▾</span>
-          <span class="toggle"></span>
-        </div>
-        <div class="mrow">
-          <span class="dot"></span><span class="mn">deepseek-v4-lite</span>
-          ${flags('ok','no')}
-          <span class="sp"></span>
-          <span class="btn-detect">检测可用性 ▾</span>
-          <span class="toggle"></span>
-        </div>
+  const model = `<div class="modal-mask"><div class="modal">
+    <div class="modal-top"><span class="mt">设置</span><span class="sp"></span><span class="mx">✕</span></div>
+    <div class="modal-body">
+      <div class="set-rail">
+        <div class="rail-i on"><span class="ri">☁️</span>模型</div>
+        <div class="rail-i"><span class="ri">🧰</span>工具</div>
+        <div class="rail-i"><span class="ri">🌐</span>网页</div>
+        <div class="rail-i"><span class="ri">🖥️</span>系统</div>
+        <div class="rail-i"><span class="ri">ℹ️</span>关于</div>
       </div>
-      <div class="prov">
-        <div class="prov-h"><span class="pn">智谱 GLM</span><span class="pc">1 个模型 · 1 个密钥</span><span class="sp"></span><span class="btn-detect-all">批量检测本供应商</span></div>
-        <div class="mrow">
-          <span class="dot"></span><span class="mn">glm-5.1x</span>
-          ${flags('ok','no')}
-          <span class="sp"></span>
-          <span class="btn-detect">检测可用性 ▾</span>
-          <span class="toggle"></span>
+      <div class="set-content">
+        <div class="mc-head">
+          <span class="mc-title">模型</span><span class="sp"></span>
+          <span class="mc-btn">清除状态</span>
+          <span class="mc-btn">＋ 添加模型</span>
+        </div>
+        <div class="mc-note">配好你自己的模型后，可在各 CLI Agent（Claude Code / Codex）的模型下拉里直接选用。用「检测可用性」确认某模型在哪些 Agent 上可跑通。</div>
+        <div class="mc-sep"></div>
+        <div class="mc-list">
+          <div class="prov open">
+            <div class="prov-h"><span class="caret">▶</span><span class="pn">DeepSeek（我的供应商）</span>
+              <span class="meter">2 个模型 · 1 个密钥</span><span class="sp"></span>
+              <span class="btn-detect-all">🔎 批量检测</span>
+              <span class="toggle"></span>
+              <span class="act">＋</span><span class="act">−</span><span class="act">✎</span></div>
+            <div class="prov-c">
+              <div class="mrow">
+                <span class="dot ${t?'':'ok'}"></span><span class="mn">deepseek-v4-pro</span>
+                ${agentFlags(t?'testing':'ok', t?'testing':'ok')}
+                <span class="sp"></span>
+                <span class="btn-detect">检测可用性 ▾</span>
+                <span class="msw"></span>
+                <span class="hb">♡</span>
+                <span class="act">🗑</span>
+              </div>
+              <div class="mrow">
+                <span class="dot ok"></span><span class="mn">deepseek-v4-lite</span>
+                ${agentFlags('ok','no')}
+                <span class="sp"></span>
+                <span class="btn-detect">检测可用性 ▾</span>
+                <span class="msw"></span>
+                <span class="hb">♡</span>
+                <span class="act">🗑</span>
+              </div>
+            </div>
+          </div>
+          <div class="prov">
+            <div class="prov-h"><span class="caret">▶</span><span class="pn">智谱 GLM</span>
+              <span class="meter">1 个模型 · 1 个密钥</span><span class="sp"></span>
+              <span class="btn-detect-all">🔎 批量检测</span>
+              <span class="toggle"></span>
+              <span class="act">＋</span><span class="act">−</span><span class="act">✎</span></div>
+          </div>
         </div>
       </div>
     </div>
     ${pop}
+  </div></div>`;
+
+  // 背景放一个对话，模拟弹窗浮在 App 上
+  const bg = `<div class="conv">
+    <div class="conv-h"><span class="agent"><span class="av">🤖</span>Claude Code</span><span class="sp"></span><span class="hdot">⋯</span></div>
+    <div class="conv-b"><div class="msg u">帮我重构这个模块</div><div class="msg a">好的…</div></div>
+    <div class="sendbox"><div class="sb-input">输入消息…</div><div class="sb-tools"><span class="sb-ico">＋</span><span class="sb-sp"></span><span class="model-pill"><span class="brain">🧠</span><span class="cur">Claude Sonnet</span><span class="chev">▾</span></span><span class="sb-send">↑</span></div></div>
   </div>`;
-  const html = shell(inner,{setOn:true});
-  const legend = `<div class="legend">图标 🤖 = Claude Code、⚙️ = Codex：<b style="color:var(--success)">亮+✓</b> 最近一次检测通过 · <span style="opacity:.5">灰</span> 未通过/未检测 · <b style="color:var(--warning)">…</b> 检测中。图标代表「最近一次检测通过」，可随时重测。</div>`;
+
+  const html = shell(bg + model);
+  const legend = `<div class="legend">🤖 Claude Code · ⚙️ Codex：<b style="color:var(--success)">亮+✓</b> 最近一次检测通过 · <span style="opacity:.5">灰</span> 未通过/未检测 · <b style="color:var(--warning)">…</b> 检测中。图标 = 「最近一次检测通过」，可随时重测。</div>`;
   return html + legend;
 }
 
-/* 总览 */
+/* ===== 总览 ===== */
 function sOverview(){
   return `<div class="ov">
     <h2>自定义模型跨 Agent 切换</h2>
@@ -334,7 +420,7 @@ function sOverview(){
       <tr><td>内置 AionCLI</td><td>无 → 隐藏</td><td>有</td><td>只显示「我的模型」</td></tr>
       <tr><td>Claude Code / Codex</td><td>有</td><td>有</td><td>两个区都显示</td></tr>
     </table>
-    <p>规则：<b>某个区没有内容就整块隐藏，不留空标题。</b> AionCLI 只是「上区天然为空」的特例，验证了这是<b>统一的一套逻辑</b>，不是给外部 Agent 单独写的。</p>
+    <p>规则：<b>某个区没有内容就整块隐藏，不留空标题。</b> AionCLI 只是「上区天然为空」的特例，验证了这是<b>统一的一套逻辑</b>。</p>
     <p style="color:var(--t3);">商业化前瞻（非本期）：未来内置的付费官方模型将归入某 Agent 的【Agent 自带】区，现有结构已能容纳。</p>
 
     <h3>核心概念三：借鉴 CC Switch，但更进一步</h3>
@@ -357,7 +443,7 @@ const FEATS=[
   {id:'ov',code:'',name:'总览',full:true,render:sOverview,req:null},
 
   {id:'f01',code:'F-MODEL-01',name:'下拉展示我的模型',
-   render:()=>sConv({agentName:'Claude Code',agentIcon:'🤖',curLabel:'Claude Sonnet',open:true,
+   render:()=>sConv({agentName:'Claude Code',agentIcon:'🤖',sub:'ACP',curLabel:'Claude Sonnet',open:true,
      dd:{hasBuiltin:true,agentName:'Claude Code',cur:'b2'}}),
    req:{title:'CLI Agent 下拉中展示「我的模型」', kind:'新增',
     story:'作为用户，我在 AionUi 配了自己的模型，希望在 Claude Code 的模型下拉里也能看到它们，而不只是 Claude 自带那几个。',
@@ -377,8 +463,7 @@ const FEATS=[
       '未配 Provider / 全停用时不出现空区']}},
 
   {id:'f01b',code:'F-MODEL-01',name:'· AionCLI 特例',
-   render:()=>sConv({agentName:'AionCLI',agentIcon:'🐦',curLabel:'deepseek-v4-pro',open:true,
-     sysNote:'内置引擎 · 无自带模型',
+   render:()=>sConv({agentName:'AionCLI',agentIcon:'🐦',sub:'内置引擎 · 无自带模型',curLabel:'deepseek-v4-pro',open:true,
      msgs:`<div class="msg u">总结一下这份文档</div><div class="msg a">好的，正在阅读…</div>`,
      dd:{hasBuiltin:false,cur:'m1'}}),
    req:{title:'一套逻辑的特例：内置 AionCLI（上区为空）', kind:'新增',
@@ -394,8 +479,7 @@ const FEATS=[
       '结构预留了未来官方模型填入自带区的可能']}},
 
   {id:'f02',code:'F-MODEL-02',name:'选中即用',
-   render:()=>sConv({agentName:'Claude Code',agentIcon:'🤖',curLabel:'deepseek-v4-pro',open:false,
-     sysNote:'ACP 已连接 · 当前模型：deepseek-v4-pro（我的模型）',
+   render:()=>sConv({agentName:'Claude Code',agentIcon:'🤖',sub:'当前模型：deepseek-v4-pro（我的模型）',curLabel:'deepseek-v4-pro',open:false,
      msgs:`<div class="msg u">帮我重构这个模块</div>
        <div class="msg a">好的，正在用 <b>deepseek-v4-pro</b> 分析代码…</div>`}),
    req:{title:'选中「我的模型」后，该 Agent 用它工作', kind:'新增',
@@ -420,8 +504,8 @@ const FEATS=[
    req:{title:'模型可用性检测：用户主动测、图标标结果', kind:'新增',
     story:'作为用户，我配了一个模型但不确定 Claude Code、Codex 能不能用它，希望能主动测一下，测通过的地方给我标清楚，别让我选了才发现用不了。',
     now:'配好模型后无法预知它在哪个 Agent 上能跑通，只能选了碰运气。',
-    need:['「设置 → 模型」列表里每个模型有<b>主动检测入口</b>。',
-      '检测可选<b>单个</b> Agent，或<b>一次性批量多个</b> Agent。',
+    need:['「设置 → 模型」列表里每个模型有<b>主动检测入口</b>（复用现有心跳检测的位置）。',
+      '检测可选<b>单个</b> Agent，或<b>一次性批量多个</b> Agent（供应商级也有「批量检测」）。',
       '检测实质是「拿这个模型、通过所选 Agent 真跑一次」，过程有进行中/成功/失败反馈。',
       '检测<b>通过</b>的 Agent，其<b>图标点亮</b>在该模型旁；未通过/未检测灰态。',
       '图标 = <b>最近一次检测通过</b>，可<b>随时重测</b>刷新。'],
@@ -442,7 +526,7 @@ const FEATS=[
     story:'作为用户，点检测时我要能挑「只测 Claude Code」还是「几个一起测」，测的时候能看到它在转。',
     now:'',
     need:['点「检测可用性」弹出<b>Agent 选择</b>：可勾选一个或多个（Claude Code / Codex / …）。',
-      '点「开始检测」后，被测 Agent 的图标进入<b>检测中</b>状态（如转圈/…）。',
+      '点「开始检测」后，被测 Agent 的图标进入<b>检测中</b>状态（如 …/转圈）。',
       '每个 Agent 独立返回结果，先出的先点亮，互不阻塞。'],
     flow:['点「检测可用性 ▾」','弹层勾选目标 Agent','点「开始检测」','图标逐个从「检测中」变为「通过/未通过」'],
     exc:['全部未勾选就点开始：按钮不可用或提示至少选一个'],
