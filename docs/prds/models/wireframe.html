@@ -111,7 +111,7 @@
   .mdd-empty a{color:var(--aou-7);text-decoration:none;font-weight:600;}
 
   /* 设置 · 模型列表（F-MODEL-03） */
-  .settings{display:flex;flex-direction:column;height:100%;}
+  .settings{display:flex;flex-direction:column;height:100%;position:relative;}
   .set-h{flex:0 0 auto;height:44px;display:flex;align-items:center;gap:10px;padding:0 16px;border-bottom:1px solid var(--border);}
   .set-h .st{font-weight:600;font-size:14px;}
   .set-tabs{display:flex;gap:4px;margin-left:12px;}
@@ -144,10 +144,11 @@
   .toggle{width:32px;height:18px;border-radius:10px;background:var(--aou-6);position:relative;flex:0 0 auto;}
   .toggle:after{content:"";position:absolute;right:2px;top:2px;width:14px;height:14px;border-radius:50%;background:#fff;}
 
-  /* 检测选择 Agent 弹窗 */
-  .detect-pop{position:absolute;top:0;right:0;width:220px;background:var(--bg-base);border:1px solid var(--border);
-    border-radius:11px;box-shadow:0 12px 36px rgba(29,33,41,.18);z-index:30;overflow:hidden;margin-top:34px;}
-  .dp-h{font-size:11.5px;font-weight:600;color:var(--t2);padding:10px 13px 7px;border-bottom:1px solid var(--border-light);}
+  /* 检测选择 Agent 弹窗（居中浮层，避免被滚动容器裁切） */
+  .detect-stage{position:absolute;inset:0;background:rgba(29,33,41,.28);display:flex;align-items:center;justify-content:center;z-index:40;}
+  .detect-pop{width:250px;background:var(--bg-base);border:1px solid var(--border);
+    border-radius:12px;box-shadow:0 20px 50px rgba(29,33,41,.28);overflow:hidden;}
+  .dp-h{font-size:11.5px;font-weight:600;color:var(--t2);padding:12px 14px 8px;border-bottom:1px solid var(--border-light);}
   .dp-item{display:flex;align-items:center;gap:9px;padding:8px 13px;font-size:12.5px;color:var(--t1);cursor:pointer;}
   .dp-item:hover{background:var(--bg-2);}
   .dp-item .ck{width:15px;height:15px;border-radius:4px;border:1.5px solid var(--t4);display:flex;align-items:center;justify-content:center;font-size:9px;color:#fff;flex:0 0 auto;}
@@ -263,13 +264,13 @@ function sSettings(opt){
       <span class="${cls(codex)}" title="Codex">⚙️</span>
     </div>`;
   }
-  const pop = opt.pop ? `<div class="detect-pop">
-      <div class="dp-h">检测在哪些 Agent 上可用？</div>
+  const pop = opt.pop ? `<div class="detect-stage"><div class="detect-pop">
+      <div class="dp-h">检测「deepseek-v4-pro」在哪些 Agent 上可用？</div>
       <div class="dp-item"><span class="ck on">✓</span>🤖 Claude Code</div>
       <div class="dp-item"><span class="ck on">✓</span>⚙️ Codex</div>
       <div class="dp-item"><span class="ck">　</span>🐦 AionCLI</div>
       <div class="dp-f"><span class="dp-btn">开始检测</span></div>
-    </div>` : '';
+    </div></div>` : '';
 
   const inner = `<div class="settings">
     <div class="set-h"><span class="st">设置</span>
@@ -278,13 +279,12 @@ function sSettings(opt){
     <div class="set-b">
       <div class="prov">
         <div class="prov-h"><span class="pn">DeepSeek（我的供应商）</span><span class="pc">2 个模型 · 1 个密钥</span><span class="sp"></span><span class="btn-detect-all">批量检测本供应商</span></div>
-        <div class="mrow" style="position:relative;">
+        <div class="mrow">
           <span class="dot"></span><span class="mn">deepseek-v4-pro</span>
           ${flags(opt.testing?'testing':'ok', opt.testing?'testing':'ok')}
           <span class="sp"></span>
           <span class="btn-detect">检测可用性 ▾</span>
           <span class="toggle"></span>
-          ${pop}
         </div>
         <div class="mrow">
           <span class="dot"></span><span class="mn">deepseek-v4-lite</span>
@@ -305,6 +305,7 @@ function sSettings(opt){
         </div>
       </div>
     </div>
+    ${pop}
   </div>`;
   const html = shell(inner,{setOn:true});
   const legend = `<div class="legend">图标 🤖 = Claude Code、⚙️ = Codex：<b style="color:var(--success)">亮+✓</b> 最近一次检测通过 · <span style="opacity:.5">灰</span> 未通过/未检测 · <b style="color:var(--warning)">…</b> 检测中。图标代表「最近一次检测通过」，可随时重测。</div>`;
