@@ -34,7 +34,6 @@ export const joinPath = (basePath: string, relativePath: string): string => {
 
   for (const part of parts) {
     if (part === '.' || part === '') {
-      continue; // 跳过 . 和空字符串
     } else if (part === '..') {
       // 处理上级目录
       if (resultParts.length > 0) {
@@ -69,7 +68,7 @@ type TMessageType =
   | 'thinking'
   | 'available_commands';
 
-interface IMessage<T extends TMessageType, Content extends Record<string, any>> {
+interface IMessage<T extends TMessageType, Content = any> {
   /**
    * 唯一ID
    */
@@ -214,7 +213,7 @@ export type IMessageToolCall = IMessage<
   }
 >;
 
-type IMessageToolGroupConfirmationDetailsBase<Type, Extra extends Record<string, any>> = {
+type IMessageToolGroupConfirmationDetailsBase<Type, Extra = any> = {
   type: Type;
   title: string;
 } & Extra;
@@ -268,6 +267,7 @@ export type IMessageToolGroup = IMessage<
             server_name: string;
           }
         >;
+    [key: string]: any;
   }>
 >;
 
@@ -376,7 +376,7 @@ export type TMessage =
   | IMessageAvailableCommands;
 
 // 统一所有需要用户交互的用户类型
-export interface IConfirmation<Option extends any = any> {
+export interface IConfirmation<Option = any> {
   title?: string;
   id: string;
   action?: string;
@@ -392,6 +392,7 @@ export interface IConfirmation<Option extends any = any> {
    * Used for "always allow" permission memory
    */
   command_type?: string;
+  [key: string]: unknown;
 }
 
 const isObject = (value: unknown): value is Record<string, unknown> =>
@@ -626,6 +627,13 @@ const isChatMessagePosition = (value: unknown): value is NonNullable<TMessage['p
 const isChatMessageStatus = (value: unknown): value is NonNullable<TMessage['status']> =>
   value === 'finish' || value === 'pending' || value === 'error' || value === 'work';
 
+/**
+ * Safely cast `unknown` data to a specific message content type.
+ * Used in transformMessage where each case knows the expected data shape
+ * based on message.type, but TypeScript can't narrow `data: unknown` automatically.
+ */
+const assertMessageData = <T>(data: unknown): T => (data as T);
+
 export const transformMessage = (message: IResponseMessage): TMessage | undefined => {
   const created_at = message.created_at ?? Date.now();
   switch (message.type) {
@@ -713,7 +721,7 @@ export const transformMessage = (message: IResponseMessage): TMessage | undefine
         conversation_id: message.conversation_id,
         position: 'left',
         created_at,
-        content: message.data as any,
+        content: assertMessageData<IMessageToolCall['content']>(message.data),
       };
     }
     case 'tool_group': {
@@ -723,7 +731,7 @@ export const transformMessage = (message: IResponseMessage): TMessage | undefine
         msg_id: message.msg_id,
         conversation_id: message.conversation_id,
         created_at,
-        content: message.data as any,
+        content: assertMessageData<IMessageToolGroup['content']>(message.data),
       };
     }
     case 'agent_status': {
@@ -734,7 +742,7 @@ export const transformMessage = (message: IResponseMessage): TMessage | undefine
         position: 'center',
         conversation_id: message.conversation_id,
         created_at,
-        content: message.data as any,
+        content: assertMessageData<IMessageAgentStatus['content']>(message.data),
       };
     }
     case 'permission': {
@@ -745,7 +753,7 @@ export const transformMessage = (message: IResponseMessage): TMessage | undefine
         position: 'left',
         conversation_id: message.conversation_id,
         created_at,
-        content: message.data as any,
+        content: assertMessageData<IMessagePermission['content']>(message.data),
       };
     }
     case 'acp_permission': {
@@ -756,7 +764,7 @@ export const transformMessage = (message: IResponseMessage): TMessage | undefine
         position: 'left',
         conversation_id: message.conversation_id,
         created_at,
-        content: message.data as any,
+        content: assertMessageData<AcpPermissionRequest>(message.data),
       };
     }
     case 'acp_tool_call': {
@@ -767,7 +775,7 @@ export const transformMessage = (message: IResponseMessage): TMessage | undefine
         position: 'left',
         conversation_id: message.conversation_id,
         created_at,
-        content: message.data as any,
+        content: assertMessageData<ToolCallUpdate>(message.data),
       };
     }
     case 'plan': {
@@ -778,7 +786,7 @@ export const transformMessage = (message: IResponseMessage): TMessage | undefine
         position: 'left',
         conversation_id: message.conversation_id,
         created_at,
-        content: message.data as any,
+        content: assertMessageData<IMessagePlan['content']>(message.data),
       };
     }
     case 'thinking': {

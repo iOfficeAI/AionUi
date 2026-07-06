@@ -153,6 +153,7 @@ export interface ToolCallUpdate extends BaseSessionUpdate {
     content?: ToolCallContentItem[];
     locations?: ToolCallLocationItem[];
   };
+  [key: string]: unknown;
 }
 
 /** Plan session update */
@@ -278,4 +279,5 @@ export interface AcpPermissionRequest {
     content?: ToolCallContentItem[];
     locations?: ToolCallLocationItem[];
   };
+  [key: string]: unknown;
 }
