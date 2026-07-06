@@ -9,6 +9,7 @@
 
 !define AIONUI_MSG_INSTALLER_LOG_ZH "安装日志"
 !define AIONUI_MSG_INSTALLER_LOG_EN "Installer log"
+!define AIONUI_MSG_BLOCK_SEPARATOR "----------------------------------------"
 
 !define AIONUI_MSG_SEND_REPORT_ZH "是否将此安装失败报告发送给 AionUi 团队？报告会包含错误码和当前安装日志。"
 !define AIONUI_MSG_SEND_REPORT_EN "Send this installer failure report to the AionUi team? The report includes the error code and the current installer log."
@@ -34,7 +35,7 @@
 !define AIONUI_MSG_UNINSTALLER_REPAIR_ACTION_ZH "请关闭 AionUi，必要时重启 Windows，然后再次运行此安装器。"
 
 !define AIONUI_MSG_OLD_UNINSTALL_FAILED_EN "The previous AionUi uninstaller returned an error.$\r$\n$\r$\nBlocking diagnostics:$\r$\n"
-!define AIONUI_MSG_OLD_UNINSTALL_FAILED_ZH "之前的 AionUi 卸载器返回错误。$\r$\n$\r$\n占用诊断信息请见上方 Blocking diagnostics。"
+!define AIONUI_MSG_OLD_UNINSTALL_FAILED_ZH "之前的 AionUi 卸载器返回错误。$\r$\n$\r$\n占用诊断信息:$\r$\n"
 !define AIONUI_MSG_OLD_UNINSTALL_ACTION_EN "Close the program listed above, then run this installer again. If no program is listed, restart Windows and run this installer again."
 !define AIONUI_MSG_OLD_UNINSTALL_ACTION_ZH "请关闭上面列出的程序后重新运行安装器。如果没有列出具体程序，请重启 Windows 后再次运行安装器。"
 
@@ -54,6 +55,8 @@
 
 !define AIONUI_MSG_LOCKER_UNKNOWN_EN "Windows did not identify a specific locking process. Close terminals, editors, and file managers opened in the install folder."
 !define AIONUI_MSG_LOCKER_UNKNOWN_ZH "Windows 未识别出具体占用进程。请关闭打开安装目录的终端、编辑器和文件管理器。"
+!define AIONUI_MSG_UNKNOWN_PROCESS_EN "unknown process"
+!define AIONUI_MSG_UNKNOWN_PROCESS_ZH "未知进程"
 
 !define AIONUI_MSG_FILE_OR_FOLDER_IN_USE_EN "AionUi cannot continue because a file or folder in the install directory is still in use:"
 !define AIONUI_MSG_FILE_OR_FOLDER_IN_USE_ZH "AionUi 无法继续，因为安装目录中的文件或文件夹仍被占用："

@@ -93,8 +93,8 @@ Var /GLOBAL AionUiActiveMarkerResult
 
 !macro AIONUI_OVERRIDE_APP_CANNOT_BE_CLOSED_MESSAGE
   !pragma warning disable 6030
-  LangString appCannotBeClosed 1033 "${AIONUI_MSG_APP_CANNOT_BE_CLOSED_EN}$\r$\n$\r$\n${AIONUI_MSG_APP_CANNOT_BE_CLOSED_ZH}"
-  LangString appCannotBeClosed 2052 "${AIONUI_MSG_APP_CANNOT_BE_CLOSED_EN}$\r$\n$\r$\n${AIONUI_MSG_APP_CANNOT_BE_CLOSED_ZH}"
+  LangString appCannotBeClosed 1033 "${AIONUI_MSG_APP_CANNOT_BE_CLOSED_ZH}$\r$\n$\r$\n${AIONUI_MSG_BLOCK_SEPARATOR}$\r$\n$\r$\n${AIONUI_MSG_APP_CANNOT_BE_CLOSED_EN}"
+  LangString appCannotBeClosed 2052 "${AIONUI_MSG_APP_CANNOT_BE_CLOSED_ZH}$\r$\n$\r$\n${AIONUI_MSG_BLOCK_SEPARATOR}$\r$\n$\r$\n${AIONUI_MSG_APP_CANNOT_BE_CLOSED_EN}"
   !pragma warning default 6030
 !macroend
 
@@ -116,6 +116,8 @@ Var /GLOBAL AionUiActiveMarkerResult
     StrCpy $AionUiActiveMarkerExecResult ""
     StrCpy $AionUiActiveMarkerResult ""
     StrCpy $AionUiStopResult ""
+    StrCpy $AionUiLockerListZh ""
+    StrCpy $AionUiLockerListEn ""
   !else
     !insertmacro AIONUI_SESSION_BEGIN
     !insertmacro AIONUI_BRING_UPDATED_INSTALLER_TO_FRONT

@@ -85,7 +85,7 @@ Var /GLOBAL AionUiInnerFailureReadResult
       ClearErrors
       CopyFiles /SILENT "$AionUiBundledUninstaller" "$AionUiInstalledUninstaller"
       ${If} ${Errors}
-        MessageBox MB_OK|MB_ICONEXCLAMATION "${AIONUI_MSG_UNINSTALLER_LOCKED_EN}$\r$\n$\r$\n${AIONUI_MSG_UNINSTALLER_LOCKED_ZH}"
+        MessageBox MB_OK|MB_ICONEXCLAMATION "${AIONUI_MSG_UNINSTALLER_LOCKED_ZH}$\r$\n$\r$\n${AIONUI_MSG_BLOCK_SEPARATOR}$\r$\n$\r$\n${AIONUI_MSG_UNINSTALLER_LOCKED_EN}"
         !insertmacro AIONUI_FAIL_REPORTABLE_BILINGUAL ${AIONUI_E_UNINSTALLER_COPY_OR_REBUILD_FAILED} "uninstaller-repair copy-failed-retry" "${AIONUI_MSG_UNINSTALLER_COPY_LOCKED_EN}" "${AIONUI_MSG_UNINSTALLER_COPY_LOCKED_ZH}" "${AIONUI_MSG_UNINSTALLER_REPAIR_ACTION_EN}" "${AIONUI_MSG_UNINSTALLER_REPAIR_ACTION_ZH}"
       ${Else}
         !insertmacro AIONUI_LOG_UNINSTALLER_REPAIR "after-copy-retry"
@@ -168,9 +168,9 @@ Var /GLOBAL AionUiInnerFailureReadResult
       ${EndIf}
       !insertmacro AIONUI_LOG_EVENT "event=old-uninstaller-failed action=report exitCode=$R0 lockers=$AionUiLockerList uninstallerDetail=$AionUiInnerFailureSummary"
       ${If} $AionUiInnerRootCode != ""
-        !insertmacro AIONUI_FAIL_REPORTABLE_ROOTED_BILINGUAL "$AionUiInnerRootCode" ${AIONUI_E_OLD_UNINSTALL_FAILED} "old-uninstaller exitCode=$R0 lockers=$AionUiLockerList uninstallerDetail=$AionUiInnerFailureSummary" "${AIONUI_MSG_OLD_UNINSTALL_FAILED_EN}$AionUiInnerFailureSummary" "${AIONUI_MSG_OLD_UNINSTALL_FAILED_ZH}" "${AIONUI_MSG_OLD_UNINSTALL_ACTION_EN}" "${AIONUI_MSG_OLD_UNINSTALL_ACTION_ZH}"
+        !insertmacro AIONUI_FAIL_REPORTABLE_ROOTED_BILINGUAL "$AionUiInnerRootCode" ${AIONUI_E_OLD_UNINSTALL_FAILED} "old-uninstaller exitCode=$R0 lockers=$AionUiLockerList uninstallerDetail=$AionUiInnerFailureSummary" "${AIONUI_MSG_OLD_UNINSTALL_FAILED_EN}$AionUiInnerFailureSummary" "${AIONUI_MSG_OLD_UNINSTALL_FAILED_ZH}$AionUiInnerFailureSummary" "${AIONUI_MSG_OLD_UNINSTALL_ACTION_EN}" "${AIONUI_MSG_OLD_UNINSTALL_ACTION_ZH}"
       ${Else}
-        !insertmacro AIONUI_FAIL_REPORTABLE_BILINGUAL ${AIONUI_E_OLD_UNINSTALL_FAILED} "old-uninstaller exitCode=$R0 lockers=$AionUiLockerList uninstallerDetail=$AionUiInnerFailureSummary" "${AIONUI_MSG_OLD_UNINSTALL_FAILED_EN}$AionUiInnerFailureSummary" "${AIONUI_MSG_OLD_UNINSTALL_FAILED_ZH}" "${AIONUI_MSG_OLD_UNINSTALL_ACTION_EN}" "${AIONUI_MSG_OLD_UNINSTALL_ACTION_ZH}"
+        !insertmacro AIONUI_FAIL_REPORTABLE_BILINGUAL ${AIONUI_E_OLD_UNINSTALL_FAILED} "old-uninstaller exitCode=$R0 lockers=$AionUiLockerList uninstallerDetail=$AionUiInnerFailureSummary" "${AIONUI_MSG_OLD_UNINSTALL_FAILED_EN}$AionUiInnerFailureSummary" "${AIONUI_MSG_OLD_UNINSTALL_FAILED_ZH}$AionUiInnerFailureSummary" "${AIONUI_MSG_OLD_UNINSTALL_ACTION_EN}" "${AIONUI_MSG_OLD_UNINSTALL_ACTION_ZH}"
       ${EndIf}
   ${EndIf}
 !macroend

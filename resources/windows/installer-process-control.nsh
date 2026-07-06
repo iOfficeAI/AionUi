@@ -4,6 +4,8 @@
 Var /GLOBAL AionUiStopResult
 Var /GLOBAL AionUiLockerResult
 Var /GLOBAL AionUiLockerList
+Var /GLOBAL AionUiLockerListZh
+Var /GLOBAL AionUiLockerListEn
 Var /GLOBAL AionUiLockerListFile
 
 !macro AIONUI_FIND_APP_PROCESS _RETURN
@@ -158,10 +160,17 @@ Var /GLOBAL AionUiLockerListFile
   SetDetailsPrint lastused
   ${If} $AionUiLockerList == ""
     ${If} $AionUiLockerResult == 0
-      StrCpy $AionUiLockerList "unknown process"
+      StrCpy $AionUiLockerList "${AIONUI_MSG_UNKNOWN_PROCESS_EN}"
+      StrCpy $AionUiLockerListZh "${AIONUI_MSG_UNKNOWN_PROCESS_ZH}"
+      StrCpy $AionUiLockerListEn "${AIONUI_MSG_UNKNOWN_PROCESS_EN}"
     ${Else}
-      StrCpy $AionUiLockerList "${AIONUI_MSG_LOCKER_UNKNOWN_EN} / ${AIONUI_MSG_LOCKER_UNKNOWN_ZH}"
+      StrCpy $AionUiLockerList "${AIONUI_MSG_LOCKER_UNKNOWN_EN}"
+      StrCpy $AionUiLockerListZh "${AIONUI_MSG_LOCKER_UNKNOWN_ZH}"
+      StrCpy $AionUiLockerListEn "${AIONUI_MSG_LOCKER_UNKNOWN_EN}"
     ${EndIf}
+  ${Else}
+    StrCpy $AionUiLockerListZh "$AionUiLockerList"
+    StrCpy $AionUiLockerListEn "$AionUiLockerList"
   ${EndIf}
 !macroend
 
@@ -169,7 +178,7 @@ Var /GLOBAL AionUiLockerListFile
   !insertmacro AIONUI_CAPTURE_FAILED_PATH_LOCKERS "${_FAILED_PATH}"
   ${If} $AionUiLockerResult == 0
     ${IfNot} ${Silent}
-      MessageBox MB_RETRYCANCEL|MB_ICONEXCLAMATION "${AIONUI_MSG_FILE_OR_FOLDER_IN_USE_EN}$\r$\n${AIONUI_MSG_FILE_OR_FOLDER_IN_USE_ZH}$\r$\n${_FAILED_PATH}$\r$\n$\r$\n${AIONUI_MSG_APPLICATION_USING_IT_EN} / ${AIONUI_MSG_APPLICATION_USING_IT_ZH}$\r$\n$AionUiLockerList$\r$\n$\r$\n${AIONUI_MSG_CLOSE_LISTED_RETRY_EN}$\r$\n${AIONUI_MSG_CLOSE_LISTED_RETRY_ZH}$\r$\n$\r$\n${AIONUI_MSG_INSTALLER_LOG_EN} / ${AIONUI_MSG_INSTALLER_LOG_ZH}:$\r$\n$AionUiSessionLogPath" /SD IDCANCEL IDRETRY ${_RETRY_LABEL} IDCANCEL ${_CANCEL_LABEL}
+      MessageBox MB_RETRYCANCEL|MB_ICONEXCLAMATION "${AIONUI_MSG_FILE_OR_FOLDER_IN_USE_ZH}$\r$\n${_FAILED_PATH}$\r$\n$\r$\n${AIONUI_MSG_APPLICATION_USING_IT_ZH}$\r$\n$AionUiLockerListZh$\r$\n$\r$\n${AIONUI_MSG_CLOSE_LISTED_RETRY_ZH}$\r$\n$\r$\n${AIONUI_MSG_INSTALLER_LOG_ZH}:$\r$\n$AionUiSessionLogPath$\r$\n$\r$\n${AIONUI_MSG_BLOCK_SEPARATOR}$\r$\n$\r$\n${AIONUI_MSG_FILE_OR_FOLDER_IN_USE_EN}$\r$\n${_FAILED_PATH}$\r$\n$\r$\n${AIONUI_MSG_APPLICATION_USING_IT_EN}$\r$\n$AionUiLockerListEn$\r$\n$\r$\n${AIONUI_MSG_CLOSE_LISTED_RETRY_EN}$\r$\n$\r$\n${AIONUI_MSG_INSTALLER_LOG_EN}:$\r$\n$AionUiSessionLogPath" /SD IDCANCEL IDRETRY ${_RETRY_LABEL} IDCANCEL ${_CANCEL_LABEL}
     ${EndIf}
   ${EndIf}
   Goto ${_CONTINUE_LABEL}
@@ -237,7 +246,7 @@ Var /GLOBAL AionUiLockerListFile
       ${If} $AionUiCheckResult == 0
         IntOp $AionUiCloseRetries $AionUiCloseRetries + 1
         ${If} $AionUiCloseRetries > 10
-          MessageBox MB_RETRYCANCEL|MB_ICONEXCLAMATION "${AIONUI_MSG_CLOSE_OR_REMOVE_PREVIOUS_EN}$\r$\n${AIONUI_MSG_CLOSE_OR_REMOVE_PREVIOUS_ZH}$\r$\n$\r$\n${AIONUI_MSG_MAY_USE_INSTALL_DIR_EN}$\r$\n${AIONUI_MSG_MAY_USE_INSTALL_DIR_ZH}$\r$\n$INSTDIR$\r$\n$\r$\n${AIONUI_MSG_RETRY_AFTER_CLOSING_DIR_EN}$\r$\n${AIONUI_MSG_RETRY_AFTER_CLOSING_DIR_ZH}" /SD IDCANCEL IDRETRY aionui_wait_for_close
+          MessageBox MB_RETRYCANCEL|MB_ICONEXCLAMATION "${AIONUI_MSG_CLOSE_OR_REMOVE_PREVIOUS_ZH}$\r$\n$\r$\n${AIONUI_MSG_MAY_USE_INSTALL_DIR_ZH}$\r$\n$INSTDIR$\r$\n$\r$\n${AIONUI_MSG_RETRY_AFTER_CLOSING_DIR_ZH}$\r$\n$\r$\n${AIONUI_MSG_BLOCK_SEPARATOR}$\r$\n$\r$\n${AIONUI_MSG_CLOSE_OR_REMOVE_PREVIOUS_EN}$\r$\n$\r$\n${AIONUI_MSG_MAY_USE_INSTALL_DIR_EN}$\r$\n$INSTDIR$\r$\n$\r$\n${AIONUI_MSG_RETRY_AFTER_CLOSING_DIR_EN}" /SD IDCANCEL IDRETRY aionui_wait_for_close
           !insertmacro AIONUI_WRITE_INSTALLER_LAST_FAILURE_MARKER
           !insertmacro AIONUI_CLEAR_ACTIVE_INSTALLER_MARKER
           Quit

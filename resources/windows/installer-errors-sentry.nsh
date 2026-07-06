@@ -29,11 +29,17 @@
   ${Else}
     StrCpy $9 "yes"
     MessageBox MB_YESNO|MB_ICONSTOP \
-      "${AIONUI_MSG_INSTALL_FAILED_EN} (${_CODE}) / ${AIONUI_MSG_INSTALL_FAILED_ZH} (${_CODE})$\r$\n$\r$\n\
-      ${_MSG_EN}$\r$\n${_MSG_ZH}$\r$\n$\r$\n\
-      ${AIONUI_MSG_SUGGESTED_ACTION_EN} / ${AIONUI_MSG_SUGGESTED_ACTION_ZH}:$\r$\n${_ACTION_EN}$\r$\n${_ACTION_ZH}$\r$\n$\r$\n\
-      ${AIONUI_MSG_INSTALLER_LOG_EN} / ${AIONUI_MSG_INSTALLER_LOG_ZH}:$\r$\n$AionUiSessionLogPath$\r$\n$\r$\n\
-      ${AIONUI_MSG_SEND_REPORT_EN}$\r$\n${AIONUI_MSG_SEND_REPORT_ZH}" \
+      "${AIONUI_MSG_INSTALL_FAILED_ZH} (${_CODE})$\r$\n$\r$\n\
+      ${_MSG_ZH}$\r$\n$\r$\n\
+      ${AIONUI_MSG_SUGGESTED_ACTION_ZH}:$\r$\n${_ACTION_ZH}$\r$\n$\r$\n\
+      ${AIONUI_MSG_INSTALLER_LOG_ZH}:$\r$\n$AionUiSessionLogPath$\r$\n$\r$\n\
+      ${AIONUI_MSG_SEND_REPORT_ZH}$\r$\n$\r$\n\
+      ${AIONUI_MSG_BLOCK_SEPARATOR}$\r$\n$\r$\n\
+      ${AIONUI_MSG_INSTALL_FAILED_EN} (${_CODE})$\r$\n$\r$\n\
+      ${_MSG_EN}$\r$\n$\r$\n\
+      ${AIONUI_MSG_SUGGESTED_ACTION_EN}:$\r$\n${_ACTION_EN}$\r$\n$\r$\n\
+      ${AIONUI_MSG_INSTALLER_LOG_EN}:$\r$\n$AionUiSessionLogPath$\r$\n$\r$\n\
+      ${AIONUI_MSG_SEND_REPORT_EN}" \
       /SD IDNO IDNO +2
     Goto +2
     StrCpy $9 "no"
