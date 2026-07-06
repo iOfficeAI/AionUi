@@ -25,11 +25,11 @@
     "placeholder": "ارسال پیام به عامل ارسال..."
   },
   "create": {
-    "title": "ایجاد تیم",
+    "title": "New Team",
     "namePlaceholder": "نام تیم",
     "dispatchAgentPlaceholder": "انتخاب سرتیم",
     "subAgentsPlaceholder": "انتخاب عامل‌های فرعی",
-    "confirm": "ایجاد تیم",
+    "confirm": "Confirm Create",
     "noSupportedAgents": "عامل پشتیبانی‌شده‌ای نصب نشده است",
     "supportedAgentsHint": "در حال حاضر از Claude و Codex پشتیبانی می‌شود. عامل‌های بیشتر به‌زودی اضافه خواهند شد.",
     "leaderDesc": "اهداف شما را درک می‌کند و عامل‌ها را برای تکمیل وظایف هماهنگ می‌کند",
@@ -42,7 +42,7 @@
     },
     "nameRequired": "لطفاً نام تیم را وارد کنید",
     "leaderRequired": "لطفاً یک سرتیم انتخاب کنید",
-    "selectFolder": "انتخاب پوشه",
+    "selectFolder": "Select folder",
     "recentLabel": "اخیر",
     "chooseDifferentFolder": "انتخاب پوشه دیگر",
     "error": "ایجاد تیم ناموفق بود",
@@ -50,7 +50,13 @@
     "teamLeader": "Team Leader",
     "teammate": "Teammate",
     "selectAtLeastOneMember": "Select at least one team member",
-    "selectOneLeader": "Select one Team Leader"
+    "selectOneLeader": "Select one Team Leader",
+    "subtitle": "Choose members, and assign one Leader. The same assistant can be added multiple times.",
+    "nameLabel": "Team name",
+    "workspaceLabel": "Workspace",
+    "allAssistantsWithCount": "All assistants ({{count}})",
+    "selectedMembersWithCount": "Selected members {{count}} · ⚑ = Leader",
+    "memberHint": "No suitable assistant as a member? After creation, let the Leader create temporary team members in chat."
   },
   "removeAgent": {
     "confirmTitle": "حذف عضو تیم",

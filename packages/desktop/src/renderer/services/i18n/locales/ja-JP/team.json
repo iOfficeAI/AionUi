@@ -25,11 +25,11 @@
     "placeholder": "チームリーダーアシスタントにメッセージを送信..."
   },
   "create": {
-    "title": "Create Team",
+    "title": "New Team",
     "namePlaceholder": "Team name",
     "dispatchAgentPlaceholder": "チームリーダーを選択",
     "subAgentsPlaceholder": "チームメンバーのアシスタントを選択",
-    "confirm": "Create Team",
+    "confirm": "Confirm Create",
     "noSupportedAgents": "利用可能なアシスタントが見つかりません",
     "supportedAgentsHint": "現在 Claude と Aion CLI のアシスタントに対応しています。ほかのアシスタントも順次追加予定です。",
     "leaderDesc": "目標を理解し、アシスタントを調整してタスクを完了します",
@@ -42,7 +42,7 @@
     },
     "nameRequired": "チーム名を入力してください",
     "leaderRequired": "チームリーダーを選択してください",
-    "selectFolder": "フォルダを選択",
+    "selectFolder": "Select folder",
     "recentLabel": "最近使用",
     "chooseDifferentFolder": "別のフォルダを選択",
     "error": "チームの作成に失敗しました",
@@ -50,7 +50,13 @@
     "teamLeader": "Team Leader",
     "teammate": "Teammate",
     "selectAtLeastOneMember": "Select at least one team member",
-    "selectOneLeader": "Select one Team Leader"
+    "selectOneLeader": "Select one Team Leader",
+    "subtitle": "Choose members, and assign one Leader. The same assistant can be added multiple times.",
+    "nameLabel": "Team name",
+    "workspaceLabel": "Workspace",
+    "allAssistantsWithCount": "All assistants ({{count}})",
+    "selectedMembersWithCount": "Selected members {{count}} · ⚑ = Leader",
+    "memberHint": "No suitable assistant as a member? After creation, let the Leader create temporary team members in chat."
   },
   "removeAgent": {
     "confirmTitle": "チームメンバーを削除",

@@ -10,6 +10,8 @@ type Props = {
   disabled?: boolean;
   pendingAssistantId?: string;
   testIdPrefix?: string;
+  density?: 'compact' | 'modal';
+  className?: string;
 };
 
 const TeamAssistantPicker: React.FC<Props> = ({
@@ -18,8 +20,11 @@ const TeamAssistantPicker: React.FC<Props> = ({
   disabled = false,
   pendingAssistantId,
   testIdPrefix = 'team-assistant-picker',
+  density = 'compact',
+  className,
 }) => {
   const { t } = useTranslation();
+  const isModalDensity = density === 'modal';
   const [query, setQuery] = useState('');
   const filteredAssistants = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -28,19 +33,26 @@ const TeamAssistantPicker: React.FC<Props> = ({
   }, [assistants, query]);
 
   return (
-    <div className='flex flex-col gap-8px'>
+    <div className={`flex min-h-0 flex-col ${isModalDensity ? 'gap-24px' : 'gap-8px'} ${className ?? ''}`}>
       <Input
         prefix={<Search size='14' fill='currentColor' />}
         value={query}
         onChange={setQuery}
         placeholder={t('team.create.searchPlaceholder', { defaultValue: 'Search assistants...' })}
         data-testid={`${testIdPrefix}-search`}
+        className={isModalDensity ? '!h-64px !rounded-8px !text-20px' : undefined}
       />
-      <div className='max-h-320px overflow-y-auto rounded-8px border border-border-2 bg-fill-1 p-6px'>
+      <div
+        className={
+          isModalDensity
+            ? 'min-h-0 flex-1 overflow-y-auto rounded-8px bg-fill-1 p-16px'
+            : 'max-h-320px overflow-y-auto rounded-8px border border-border-2 bg-fill-1 p-6px'
+        }
+      >
         {filteredAssistants.length === 0 ? (
           <Empty description={t('team.create.noSearchResults', { defaultValue: 'No results found' })} />
         ) : (
-          <div className='flex flex-col gap-6px'>
+          <div className={isModalDensity ? 'flex flex-col gap-10px' : 'flex flex-col gap-6px'}>
             {filteredAssistants.map((assistant, index) => {
               const rowKey = `${assistantKey(assistant)}-${index}`;
               const rowDisabled = disabled || assistant.team_selectable === false;
@@ -57,14 +69,25 @@ const TeamAssistantPicker: React.FC<Props> = ({
                   type='text'
                   disabled={rowDisabled}
                   loading={pendingAssistantId === assistant.id}
-                  className='!h-auto !justify-start !px-10px !py-8px'
-                  icon={<Plus theme='outline' size='14' />}
+                  className={
+                    isModalDensity
+                      ? '!h-76px !justify-start !rounded-8px !px-14px !py-0'
+                      : '!h-auto !justify-start !px-10px !py-8px'
+                  }
                   onClick={() => onSelect(assistant)}
                   data-testid={`${testIdPrefix}-option-${assistantKey(assistant)}`}
                 >
-                  <div className='min-w-0 flex flex-col items-start'>
-                    <AssistantOptionLabel assistant={assistant} />
-                    {blockReason ? <span className='mt-2px text-11px text-t-tertiary'>{blockReason}</span> : null}
+                  <div className='flex min-w-0 flex-1 items-center justify-between gap-12px'>
+                    <div className='min-w-0 flex flex-col items-start'>
+                      <AssistantOptionLabel assistant={assistant} size={isModalDensity ? 'large' : 'compact'} />
+                      {blockReason ? <span className='mt-2px text-11px text-t-tertiary'>{blockReason}</span> : null}
+                    </div>
+                    <Plus
+                      theme='outline'
+                      size={isModalDensity ? '20' : '14'}
+                      fill='currentColor'
+                      className='shrink-0 text-t-secondary'
+                    />
                   </div>
                 </Button>
               );

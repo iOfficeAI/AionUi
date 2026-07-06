@@ -25,11 +25,11 @@
     "placeholder": "Takım lideri asistana mesaj gönder..."
   },
   "create": {
-    "title": "Create Team",
+    "title": "New Team",
     "namePlaceholder": "Team name",
     "dispatchAgentPlaceholder": "Takım liderini seçin",
     "subAgentsPlaceholder": "Takım üyesi asistanları seçin",
-    "confirm": "Create Team",
+    "confirm": "Confirm Create",
     "noSupportedAgents": "Desteklenen uygun asistan bulunamadı",
     "supportedAgentsHint": "Şu anda Claude ve Aion CLI asistanları desteklenmektedir. Daha fazla asistan yakında eklenecek.",
     "leaderDesc": "Hedeflerinizi anlayarak görevleri tamamlamak için asistanları koordine eder",
@@ -42,7 +42,7 @@
     },
     "nameRequired": "Takım adı girin",
     "leaderRequired": "Takım lideri seçin",
-    "selectFolder": "Klasör seç",
+    "selectFolder": "Select folder",
     "recentLabel": "Son kullanılan",
     "chooseDifferentFolder": "Farklı klasör seç",
     "error": "Takım oluşturulamadı",
@@ -50,7 +50,13 @@
     "teamLeader": "Team Leader",
     "teammate": "Teammate",
     "selectAtLeastOneMember": "Select at least one team member",
-    "selectOneLeader": "Select one Team Leader"
+    "selectOneLeader": "Select one Team Leader",
+    "subtitle": "Choose members, and assign one Leader. The same assistant can be added multiple times.",
+    "nameLabel": "Team name",
+    "workspaceLabel": "Workspace",
+    "allAssistantsWithCount": "All assistants ({{count}})",
+    "selectedMembersWithCount": "Selected members {{count}} · ⚑ = Leader",
+    "memberHint": "No suitable assistant as a member? After creation, let the Leader create temporary team members in chat."
   },
   "removeAgent": {
     "confirmTitle": "Takım Üyesini Kaldır",

@@ -25,11 +25,11 @@
     "placeholder": "Повідомлення для диспетчера..."
   },
   "create": {
-    "title": "Створити команду",
+    "title": "New Team",
     "namePlaceholder": "Назва команди",
     "dispatchAgentPlaceholder": "Виберіть лідера команди",
     "subAgentsPlaceholder": "Виберіть асистентів команди",
-    "confirm": "Створити команду",
+    "confirm": "Confirm Create",
     "noSupportedAgents": "Немає доступних підтримуваних асистентів",
     "supportedAgentsHint": "Наразі підтримуються асистенти Claude та Aion CLI. Інші асистенти з'являться незабаром.",
     "leaderDesc": "Розуміє ваші цілі та координує асистентів для виконання завдань",
@@ -42,7 +42,7 @@
     },
     "nameRequired": "Будь ласка, введіть назву команди",
     "leaderRequired": "Будь ласка, виберіть лідера команди",
-    "selectFolder": "Вибрати папку",
+    "selectFolder": "Select folder",
     "recentLabel": "Недавні",
     "chooseDifferentFolder": "Виберіть іншу папку",
     "error": "Не вдалося створити команду",
@@ -50,7 +50,13 @@
     "teamLeader": "Team Leader",
     "teammate": "Teammate",
     "selectAtLeastOneMember": "Select at least one team member",
-    "selectOneLeader": "Select one Team Leader"
+    "selectOneLeader": "Select one Team Leader",
+    "subtitle": "Choose members, and assign one Leader. The same assistant can be added multiple times.",
+    "nameLabel": "Team name",
+    "workspaceLabel": "Workspace",
+    "allAssistantsWithCount": "All assistants ({{count}})",
+    "selectedMembersWithCount": "Selected members {{count}} · ⚑ = Leader",
+    "memberHint": "No suitable assistant as a member? After creation, let the Leader create temporary team members in chat."
   },
   "removeAgent": {
     "confirmTitle": "Видалити учасника команди",

@@ -25,11 +25,11 @@
     "placeholder": "Enviar mensagem ao assistente líder da equipe..."
   },
   "create": {
-    "title": "Criar Equipe",
+    "title": "New Team",
     "namePlaceholder": "Nome da equipe",
     "dispatchAgentPlaceholder": "Selecione o líder da equipe",
     "subAgentsPlaceholder": "Selecione os assistentes da equipe",
-    "confirm": "Criar Equipe",
+    "confirm": "Confirm Create",
     "noSupportedAgents": "Nenhum assistente compatível disponível",
     "supportedAgentsHint": "Atualmente oferece suporte a assistentes Claude e Aion CLI. Mais assistentes em breve.",
     "leaderDesc": "Entende seus objetivos e coordena assistentes para concluir tarefas",
@@ -42,7 +42,7 @@
     },
     "nameRequired": "Por favor, insira o nome da equipe",
     "leaderRequired": "Por favor, selecione um líder para a equipe",
-    "selectFolder": "Selecionar pasta",
+    "selectFolder": "Select folder",
     "recentLabel": "Recente",
     "chooseDifferentFolder": "Escolher uma pasta diferente",
     "error": "Falha ao criar equipe",
@@ -50,7 +50,13 @@
     "teamLeader": "Team Leader",
     "teammate": "Teammate",
     "selectAtLeastOneMember": "Select at least one team member",
-    "selectOneLeader": "Select one Team Leader"
+    "selectOneLeader": "Select one Team Leader",
+    "subtitle": "Choose members, and assign one Leader. The same assistant can be added multiple times.",
+    "nameLabel": "Team name",
+    "workspaceLabel": "Workspace",
+    "allAssistantsWithCount": "All assistants ({{count}})",
+    "selectedMembersWithCount": "Selected members {{count}} · ⚑ = Leader",
+    "memberHint": "No suitable assistant as a member? After creation, let the Leader create temporary team members in chat."
   },
   "removeAgent": {
     "confirmTitle": "Remover Membro da Equipe",

@@ -25,11 +25,11 @@
     "placeholder": "Message the team leader assistant..."
   },
   "create": {
-    "title": "Create Team",
+    "title": "New Team",
     "namePlaceholder": "Team name",
     "dispatchAgentPlaceholder": "Select team leader assistant",
     "subAgentsPlaceholder": "Select teammate assistants",
-    "confirm": "Create Team",
+    "confirm": "Confirm Create",
     "noSupportedAgents": "No supported assistants available",
     "supportedAgentsHint": "Currently supports Claude and Aion CLI assistants. More assistants coming soon.",
     "leaderDesc": "Understands your goals and coordinates assistants to complete tasks",
@@ -50,7 +50,13 @@
     "teamLeader": "Team Leader",
     "teammate": "Teammate",
     "selectAtLeastOneMember": "Select at least one team member",
-    "selectOneLeader": "Select one Team Leader"
+    "selectOneLeader": "Select one Team Leader",
+    "subtitle": "Choose members, and assign one Leader. The same assistant can be added multiple times.",
+    "nameLabel": "Team name",
+    "workspaceLabel": "Workspace",
+    "allAssistantsWithCount": "All assistants ({{count}})",
+    "selectedMembersWithCount": "Selected members {{count}} · ⚑ = Leader",
+    "memberHint": "No suitable assistant as a member? After creation, let the Leader create temporary team members in chat."
   },
   "removeAgent": {
     "confirmTitle": "Remove Team Member",

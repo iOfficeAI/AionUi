@@ -25,11 +25,11 @@
     "placeholder": "Mensaje al agente coordinador..."
   },
   "create": {
-    "title": "Crear equipo",
+    "title": "New Team",
     "namePlaceholder": "Nombre del equipo",
     "dispatchAgentPlaceholder": "Seleccionar líder del equipo",
     "subAgentsPlaceholder": "Seleccionar sub agentes",
-    "confirm": "Crear equipo",
+    "confirm": "Confirm Create",
     "noSupportedAgents": "No hay agentes compatibles instalados",
     "supportedAgentsHint": "Actualmente compatible con Claude y Codex. Más agentes próximamente.",
     "leaderDesc": "Comprende tus objetivos y coordina a los agentes para completar tareas",
@@ -40,7 +40,7 @@
     },
     "nameRequired": "Ingresa un nombre para el equipo",
     "leaderRequired": "Selecciona un líder de equipo",
-    "selectFolder": "Seleccionar carpeta",
+    "selectFolder": "Select folder",
     "recentLabel": "Recientes",
     "chooseDifferentFolder": "Elegir otra carpeta",
     "error": "Error al crear el equipo",
@@ -50,7 +50,13 @@
     "teamLeader": "Team Leader",
     "teammate": "Teammate",
     "selectAtLeastOneMember": "Select at least one team member",
-    "selectOneLeader": "Select one Team Leader"
+    "selectOneLeader": "Select one Team Leader",
+    "subtitle": "Choose members, and assign one Leader. The same assistant can be added multiple times.",
+    "nameLabel": "Team name",
+    "workspaceLabel": "Workspace",
+    "allAssistantsWithCount": "All assistants ({{count}})",
+    "selectedMembersWithCount": "Selected members {{count}} · ⚑ = Leader",
+    "memberHint": "No suitable assistant as a member? After creation, let the Leader create temporary team members in chat."
   },
   "removeAgent": {
     "confirmTitle": "Quitar miembro del equipo",
