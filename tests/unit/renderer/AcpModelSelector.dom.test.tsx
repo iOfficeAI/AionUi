@@ -20,6 +20,7 @@ const { messageSuccessMock, messageErrorMock, useAcpModelInfoMock } = vi.hoisted
 type MockAcpModelInfoResult = {
   model_info: AcpModelInfo | null;
   canSwitch: boolean;
+  isLoading: boolean;
   isSetting: boolean;
   selectModel: (modelId: string) => void;
   thoughtLevel: AcpDerivedOption | null;
@@ -49,6 +50,7 @@ const thoughtLevel: AcpDerivedOption = {
 const makeResult = (overrides: Partial<MockAcpModelInfoResult> = {}): MockAcpModelInfoResult => ({
   model_info: modelInfo,
   canSwitch: true,
+  isLoading: false,
   isSetting: false,
   selectModel: vi.fn(),
   thoughtLevel,
@@ -157,6 +159,7 @@ vi.mock('@arco-design/web-react', () => {
       success: messageSuccessMock,
       error: messageErrorMock,
     },
+    Spin: ({ size }: { size?: number }) => <span data-testid='model-selector-loading-spin' data-size={size} />,
     Tooltip: ({ children, content }: { children?: React.ReactNode; content?: React.ReactNode }) => (
       <span data-tooltip-content={typeof content === 'string' ? content : undefined}>{children}</span>
     ),
@@ -173,6 +176,19 @@ describe('AcpModelSelector runtime options', () => {
     render(<AcpModelSelector conversation_id='conversation-1' backend='codex' />);
 
     expect(screen.getByTestId('acp-model-selector')).toHaveTextContent('GPT-5.2 · High');
+  });
+
+  it('shows a plain loading slot while runtime config is initializing', () => {
+    useAcpModelInfoMock.mockReturnValue(makeResult({ model_info: null, canSwitch: false, isLoading: true }));
+
+    render(<AcpModelSelector conversation_id='conversation-1' backend='codex' />);
+
+    const slot = screen.getByTestId('acp-model-selector-loading');
+    expect(screen.getByTestId('model-selector-loading-spin')).toHaveAttribute('data-size', '14');
+    expect(screen.queryByTestId('runtime-selector-loading-indicator')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('acp-model-selector')).not.toBeInTheDocument();
+    expect(slot).not.toHaveTextContent('Use CLI model');
+    expect(slot.closest('[data-tooltip-content]')).toBeNull();
   });
 
   it('passes team runtime preparation through to model info loading', () => {

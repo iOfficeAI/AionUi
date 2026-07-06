@@ -29,6 +29,7 @@ type UseAcpModelInfoArgs = {
 export type UseAcpModelInfoResult = {
   model_info: AcpModelInfo | null;
   canSwitch: boolean;
+  isLoading: boolean;
   isSetting: boolean;
   selectModel: (model_id: string) => void;
   thoughtLevel: AcpDerivedOption | null;
@@ -71,7 +72,7 @@ export const useAcpModelInfo = ({
   onSelectModelSuccess,
   onSelectModelFailed,
 }: UseAcpModelInfoArgs): UseAcpModelInfoResult => {
-  const { model, thoughtLevel, setStatus, setConfigOption } = useAcpConfigOptions({
+  const { model, thoughtLevel, setStatus, setConfigOption, isLoading } = useAcpConfigOptions({
     conversation_id,
     prepareRuntime,
     loadConfigOptions,
@@ -139,6 +140,7 @@ export const useAcpModelInfo = ({
   return {
     model_info,
     canSwitch: Boolean(configModelInfo && configModelInfo.available_models.length > 0),
+    isLoading: !model_info && isLoading,
     isSetting: setStatus.state === 'setting' && setStatus.optionId === model?.id,
     selectModel,
     thoughtLevel,

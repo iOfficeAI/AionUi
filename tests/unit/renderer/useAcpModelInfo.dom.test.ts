@@ -164,6 +164,38 @@ describe('useAcpModelInfo', () => {
     expect(ensureRuntimeInvokeMock).not.toHaveBeenCalled();
   });
 
+  it('keeps loading while the initial config option snapshot is not ready yet', async () => {
+    const loadConfigOptions = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('runtime not ready'))
+      .mockResolvedValueOnce(buildConfigOptions('opus-4'));
+
+    const { result } = renderUseAcpModelInfo({
+      conversation_id: 'conv-1',
+      backend: 'claude',
+      loadConfigOptions,
+    });
+
+    await waitFor(() => {
+      expect(loadConfigOptions).toHaveBeenCalledTimes(1);
+    });
+    expect(result.current.model_info).toBeNull();
+    expect(result.current.isLoading).toBe(true);
+
+    act(() => {
+      emitStream({
+        type: 'agent_status',
+        conversation_id: 'conv-1',
+        data: { status: 'session_active' },
+      } as unknown as IResponseMessage);
+    });
+
+    await waitFor(() => {
+      expect(result.current.model_info?.current_model_id).toBe('opus-4');
+    });
+    expect(result.current.isLoading).toBe(false);
+  });
+
   it('preserves model option descriptions from config options', async () => {
     ensureRuntimeInvokeMock.mockResolvedValue({
       recovered: true,

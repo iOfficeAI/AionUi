@@ -167,6 +167,7 @@ export function useAcpConfigOptions({
   enabled?: boolean;
 }) {
   const [setStatus, setSetStatus] = useState<AcpConfigSetStatus>(() => getConversationSetStatus(conversation_id));
+  const [isReloading, setIsReloading] = useState(false);
   const optionsRef = useRef<AcpConfigOptionDto[] | null>(null);
   const key = useMemo(() => getRuntimeConfigOptionsKey(conversation_id), [conversation_id]);
   const {
@@ -200,10 +201,17 @@ export function useAcpConfigOptions({
   );
 
   const reload = useCallback(async () => {
-    await prepareRuntime?.();
-    const next = await fetchConfigOptionsOnce(key, loadConfigOptions);
-    if (next) replaceSnapshot(next);
-    return next;
+    setIsReloading(true);
+    try {
+      await prepareRuntime?.();
+      const next = await fetchConfigOptionsOnce(key, loadConfigOptions);
+      if (next) replaceSnapshot(next);
+      setIsReloading(false);
+      return next;
+    } catch (error) {
+      if (optionsRef.current) setIsReloading(false);
+      throw error;
+    }
   }, [key, loadConfigOptions, prepareRuntime, replaceSnapshot]);
 
   const setConfigOption = useCallback(
@@ -258,7 +266,7 @@ export function useAcpConfigOptions({
 
   return {
     configOptions,
-    isLoading,
+    isLoading: enabled && !configOptions && (isLoading || isReloading),
     setStatus,
     mode: deriveSelectOption(configOptions, 'mode', ['mode']),
     model: deriveSelectOption(configOptions, 'model', ['model']),

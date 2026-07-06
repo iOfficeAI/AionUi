@@ -9,7 +9,7 @@ import { classifyConfigSetError, type AcpConfigOptionsLoader } from '@/renderer/
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { getModelDisplayLabel } from '@/renderer/utils/model/agentLogo';
 import { iconColors } from '@/renderer/styles/colors';
-import { Dropdown, Menu, Message, Tooltip } from '@arco-design/web-react';
+import { Dropdown, Menu, Message, Spin, Tooltip } from '@arco-design/web-react';
 import { Brain, Down } from '@icon-park/react';
 import React, { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -53,15 +53,16 @@ const AcpModelSelector: React.FC<{
   const { t } = useTranslation();
   const layout = useLayoutContext();
   const isMobileHeaderCompact = Boolean(layout?.isMobile);
-  const { model_info, canSwitch, isSetting, selectModel, thoughtLevel, setStatus, setConfigOption } = useAcpModelInfo({
-    conversation_id,
-    backend,
-    initialModelId,
-    prepareRuntime,
-    loadConfigOptions,
-    onSelectModelSuccess: () => Message.success(t('agent.model.switchSuccess')),
-    onSelectModelFailed: (_modelId, error) => Message.error(t(configErrorMessageKey(error))),
-  });
+  const { model_info, canSwitch, isLoading, isSetting, selectModel, thoughtLevel, setStatus, setConfigOption } =
+    useAcpModelInfo({
+      conversation_id,
+      backend,
+      initialModelId,
+      prepareRuntime,
+      loadConfigOptions,
+      onSelectModelSuccess: () => Message.success(t('agent.model.switchSuccess')),
+      onSelectModelFailed: (_modelId, error) => Message.error(t(configErrorMessageKey(error))),
+    });
 
   const defaultModelLabel = t('common.defaultModel');
   const rawDisplayLabel =
@@ -93,6 +94,17 @@ const AcpModelSelector: React.FC<{
   const tooltipContent = combinedLabel;
 
   const renderLogo = () => <Brain theme='outline' size='14' fill={iconColors.secondary} className='shrink-0' />;
+
+  if (!model_info && isLoading) {
+    return (
+      <span
+        data-testid='acp-model-selector-loading'
+        className='header-model-loading-slot inline-flex h-28px w-28px items-center justify-center align-middle leading-none text-t-secondary'
+      >
+        <Spin size={14} />
+      </span>
+    );
+  }
 
   if (!model_info) {
     return (
