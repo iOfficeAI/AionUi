@@ -48,13 +48,12 @@ const TeamAddMemberPopover: React.FC<Props> = ({ children }) => {
   return (
     <Popover
       trigger='click'
+      position='br'
+      style={{ padding: 0, maxWidth: 'none' }}
       popupVisible={visible}
       onVisibleChange={setVisible}
       content={
-        <div
-          className='w-360px overflow-hidden rounded-10px border border-border-2 bg-dialog-fill-0 shadow-lg'
-          data-testid='team-add-member-panel'
-        >
+        <div className='w-300px overflow-hidden rounded-10px bg-dialog-fill-0' data-testid='team-add-member-panel'>
           <TeamAssistantPicker
             assistants={assistants}
             onSelect={handleSelect}

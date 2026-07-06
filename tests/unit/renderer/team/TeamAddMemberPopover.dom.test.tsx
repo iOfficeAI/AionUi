@@ -25,8 +25,23 @@ vi.mock('@arco-design/web-react', async () => {
   return {
     ...actual,
     Message: { error: (...args: unknown[]) => messageErrorMock(...args) },
-    Popover: ({ children, content }: { children: React.ReactNode; content: React.ReactNode }) => (
-      <div>
+    Popover: ({
+      children,
+      content,
+      position,
+      style,
+    }: {
+      children: React.ReactNode;
+      content: React.ReactNode;
+      position?: string;
+      style?: React.CSSProperties;
+    }) => (
+      <div
+        data-testid='team-add-member-popover-shell'
+        data-position={position}
+        data-padding={style?.padding}
+        data-max-width={style?.maxWidth}
+      >
         {children}
         {content}
       </div>
@@ -92,16 +107,19 @@ describe('TeamAddMemberPopover', () => {
     expect(screen.getByText('blocked')).toBeInTheDocument();
   });
 
-  it('renders the design styled picker with a localized footer hint', () => {
+  it('renders the right-aligned compact design styled picker with a localized footer hint', () => {
     render(
       <TeamAddMemberPopover>
         <button type='button'>add</button>
       </TeamAddMemberPopover>
     );
 
-    expect(screen.getByTestId('team-add-member-panel')).toHaveClass('w-360px');
-    expect(screen.getByTestId('team-add-member-picker-body')).toHaveClass('bg-fill-1');
-    expect(screen.getAllByTestId('team-add-member-option-writer')[0]).toHaveClass('hover:!bg-fill-2');
+    expect(screen.getByTestId('team-add-member-popover-shell')).toHaveAttribute('data-position', 'br');
+    expect(screen.getByTestId('team-add-member-popover-shell')).toHaveAttribute('data-padding', '0');
+    expect(screen.getByTestId('team-add-member-popover-shell')).toHaveAttribute('data-max-width', 'none');
+    expect(screen.getByTestId('team-add-member-panel')).toHaveClass('w-300px');
+    expect(screen.getByTestId('team-add-member-picker-body')).toHaveClass('max-h-300px', 'bg-fill-1');
+    expect(screen.getAllByTestId('team-add-member-option-writer')[0]).toHaveClass('!h-48px', 'hover:!bg-fill-2');
     expect(
       screen.getByText('Show all assistants. The same assistant can be added repeatedly as independent members.')
     ).toBeInTheDocument();

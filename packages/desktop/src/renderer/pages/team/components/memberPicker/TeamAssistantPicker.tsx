@@ -46,7 +46,7 @@ const TeamAssistantPicker: React.FC<Props> = ({
           className={
             isModalDensity
               ? '!h-40px !rounded-8px !text-14px'
-              : '!h-54px !rounded-none !border-0 !bg-transparent !text-15px'
+              : '!h-48px !rounded-none !border-0 !bg-transparent !text-14px'
           }
         />
       </div>
@@ -55,7 +55,7 @@ const TeamAssistantPicker: React.FC<Props> = ({
         className={
           isModalDensity
             ? 'min-h-0 flex-1 overflow-y-auto rounded-8px bg-fill-1 p-8px'
-            : 'max-h-420px overflow-y-auto bg-fill-1 px-10px py-12px'
+            : 'max-h-300px overflow-y-auto bg-fill-1 px-8px py-10px'
         }
       >
         {filteredAssistants.length === 0 ? (
@@ -81,7 +81,7 @@ const TeamAssistantPicker: React.FC<Props> = ({
                   className={
                     isModalDensity
                       ? '!h-48px !justify-start !rounded-8px !px-10px !py-0'
-                      : '!h-56px !justify-start !rounded-8px !px-12px !py-0 hover:!bg-fill-2'
+                      : '!h-48px !justify-start !rounded-8px !px-10px !py-0 hover:!bg-fill-2'
                   }
                   onClick={() => onSelect(assistant)}
                   data-testid={`${testIdPrefix}-option-${assistantKey(assistant)}`}
@@ -106,7 +106,7 @@ const TeamAssistantPicker: React.FC<Props> = ({
         )}
       </div>
       {footer ? (
-        <div className='border-t border-border-1 bg-dialog-fill-0 px-14px py-12px text-14px font-600 leading-22px text-t-tertiary'>
+        <div className='border-t border-border-1 bg-dialog-fill-0 px-14px py-10px text-13px font-600 leading-21px text-t-tertiary'>
           {footer}
         </div>
       ) : null}
