@@ -51,6 +51,7 @@
   .tag-status.doing{background:#fff3e0;color:#cc7000;}
   .tag-status.todev{background:#eef2ff;color:#4959a8;}
   .tag-status.hold{background:var(--bg);color:var(--t3);}
+  .tag-status.done{background:#0a8a2c;color:#fff;}
   .owner{font-size:10px;font-weight:600;color:var(--aou-7);background:var(--aou-1);border-radius:9px;padding:2px 8px;}
   .foot{text-align:center;font-size:12px;color:var(--t3);margin-top:44px;}
 </style>
@@ -96,7 +97,7 @@ const DOMAINS = [
           {label:'二期 · Agent 统一', doc:'assistants/phase-2-agent-unification.md'},
           {label:'三期 · 官方热更', doc:'assistants/phase-3-official-hot-update.md'},
         ] },
-      { status:'ready', owner:'@zyx',
+      { status:'ready', owner:'',
         code:'F-NOTE', title:'📓 笔记本 · 助手记忆',
         desc:'助手在对话中自动记录值得长期保留的事实，新对话自动读回，让用户"换 CLI 不失忆、换对话不失忆"。',
         doc:'assistants/memory/notebook.md', wf:'assistants/memory/wireframe.html' },
@@ -112,9 +113,18 @@ const DOMAINS = [
     ],
   },
   {
-    name: '📁 工作区 Workspace', desc: '围绕「Project / 工作区」组织对话与任务',
+    name: '🧩 模型 Model', desc: '大模型配置与在各 Agent 间的切换、复用',
     cards: [
       { status:'ready', owner:'',
+        code:'F-MODEL', title:'🧩 自定义模型跨 Agent 切换',
+        desc:'在 AionUi 配好自己的大模型后，能在各 CLI Agent（首期 Claude Code、Codex）的下拉里直接选到并用上——借鉴 CC Switch 但内建、且能直选具体模型。含两区下拉、选中即用、可用性检测＋Agent 图标。',
+        doc:'models/custom-model-cross-agent.md', wf:'models/wireframe.html' },
+    ],
+  },
+  {
+    name: '📁 工作区 Workspace', desc: '围绕「Project / 工作区」组织对话与任务',
+    cards: [
+      { status:'ready', owner:'@zyx',
         code:'F-KANBAN', title:'📋 任务看板 · Kanban',
         desc:'工作区级的任务看板，人和 AI 助手共同维护，跟踪"在同一个工作台里处理的多种活"的整体进度。',
         doc:'workspaces/kanban/kanban.md', wf:'workspaces/kanban/wireframe.html' },
@@ -144,7 +154,7 @@ const DOMAINS = [
   },
 ];
 
-const STATUS_LABEL = { doing:'进行中', todev:'待开发', ready:'待评估', hold:'暂缓' };
+const STATUS_LABEL = { ready:'待评估', todev:'待开发', doing:'进行中', done:'已完成', hold:'暂缓' };
 
 function cardHtml(c){
   const statusTag = c.status ? `<span class="tag-status ${c.status}">${STATUS_LABEL[c.status]||c.status}</span>` : '';
