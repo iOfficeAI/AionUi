@@ -121,15 +121,20 @@ describe('TeamCreateModal', () => {
     expect(
       screen.getByText('Choose members, and assign one Leader. The same assistant can be added multiple times.')
     ).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'New Team' })).toHaveClass('text-20px');
 
     const assistantPane = screen.getByTestId('team-create-assistant-pane');
     const detailsPane = screen.getByTestId('team-create-details-pane');
+    const searchInput = within(assistantPane).getByPlaceholderText('Search assistants...');
+    const nameInput = within(detailsPane).getByTestId('team-create-name-input');
 
     expect(within(assistantPane).getByText('All assistants (3)')).toBeInTheDocument();
-    expect(within(assistantPane).getByPlaceholderText('Search assistants...')).toBeInTheDocument();
+    expect(searchInput.closest('.arco-input-group-wrapper')).toHaveClass('!h-40px');
+    expect(within(assistantPane).getByTestId('team-create-agent-option-bare-aionrs')).toHaveClass('!h-48px');
     expect(within(detailsPane).getByText('Selected members 0 · ⚑ = Leader')).toBeInTheDocument();
-    expect(within(detailsPane).getByTestId('team-create-name-input')).toBeInTheDocument();
+    expect(nameInput).toHaveClass('!h-40px');
     expect(within(detailsPane).getByTestId('workspace-folder-select')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Confirm Create' })).toHaveClass('!h-40px');
   });
 
   it('passes assistant identity through when creating a team with an assistant leader', async () => {

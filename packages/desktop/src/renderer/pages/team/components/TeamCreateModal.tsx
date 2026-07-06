@@ -138,7 +138,7 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
       visible={visible}
       onCancel={handleClose}
       className='team-create-modal'
-      style={{ width: 1280, maxWidth: 'calc(100vw - 80px)' }}
+      style={{ width: 980, maxWidth: 'calc(100vw - 80px)' }}
       wrapStyle={{ zIndex: 10000 }}
       maskStyle={{ zIndex: 9999 }}
       autoFocus={false}
@@ -150,27 +150,27 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
       }}
       header={{
         render: () => (
-          <div className='relative bg-dialog-fill-0 px-40px pb-34px pt-36px'>
-            <h3 className='m-0 text-28px font-700 leading-36px text-t-primary'>
+          <div className='relative bg-dialog-fill-0 px-32px pb-22px pt-26px'>
+            <h3 className='m-0 text-20px font-700 leading-28px text-t-primary'>
               {t('team.create.title', { defaultValue: 'New Team' })}
             </h3>
-            <p className='m-0 mt-10px text-18px leading-28px text-t-secondary'>
+            <p className='m-0 mt-6px text-14px leading-22px text-t-secondary'>
               {t('team.create.subtitle', {
                 defaultValue: 'Choose members, and assign one Leader. The same assistant can be added multiple times.',
               })}
             </p>
             <Button
               type='text'
-              icon={<Close size='32' fill='currentColor' className='text-t-secondary' />}
+              icon={<Close size='24' fill='currentColor' className='text-t-secondary' />}
               onClick={handleClose}
-              className='absolute right-32px top-44px !h-44px !w-44px !min-w-44px !p-0 !rd-8px hover:!bg-fill-2'
+              className='absolute right-28px top-28px !h-32px !w-32px !min-w-32px !p-0 !rd-8px hover:!bg-fill-2'
             />
           </div>
         ),
       }}
       footer={
-        <div className='flex justify-end gap-18px border-t border-border-2 bg-dialog-fill-0 px-36px py-26px'>
-          <Button onClick={handleClose} className='!h-64px min-w-112px !rounded-8px !px-28px !text-20px'>
+        <div className='flex justify-end gap-12px border-t border-border-2 bg-dialog-fill-0 px-32px py-16px'>
+          <Button onClick={handleClose} className='!h-40px min-w-88px !rounded-8px !px-20px !text-14px'>
             {t('common.cancel', { defaultValue: 'Cancel' })}
           </Button>
           <Button
@@ -178,7 +178,7 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
             onClick={handleCreate}
             loading={loading}
             disabled={!name.trim() || selectedMembers.length === 0 || !hasOneLeader}
-            className='!h-64px min-w-136px !rounded-8px !px-28px !text-20px'
+            className='!h-40px min-w-104px !rounded-8px !px-20px !text-14px'
           >
             {t('team.create.confirm', { defaultValue: 'Confirm Create' })}
           </Button>
@@ -187,20 +187,20 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
     >
       <div
         className='grid min-h-0 grid-cols-[minmax(0,1fr)_minmax(0,1fr)] border-t border-border-2'
-        style={{ height: 'min(58vh, 660px)', minHeight: 560 }}
+        style={{ height: 'min(58vh, 520px)', minHeight: 430 }}
       >
         <section
-          className='flex min-h-0 flex-col border-r border-border-2 px-28px py-28px'
+          className='flex min-h-0 flex-col border-r border-border-2 px-24px py-22px'
           data-testid='team-create-assistant-pane'
         >
-          <div className='mb-22px text-20px font-700 leading-28px text-t-secondary'>
+          <div className='mb-14px text-16px font-600 leading-24px text-t-secondary'>
             {t('team.create.allAssistantsWithCount', {
               count: allAssistants.length,
               defaultValue: `All assistants (${allAssistants.length})`,
             })}
           </div>
           {allAssistants.length === 0 ? (
-            <div className='flex min-h-176px items-center justify-center rounded-8px border border-dashed border-border-2 bg-fill-1 py-20px text-18px text-t-tertiary'>
+            <div className='flex min-h-126px items-center justify-center rounded-8px border border-dashed border-border-2 bg-fill-1 py-16px text-14px text-t-tertiary'>
               {t('team.create.noSupportedAgents', { defaultValue: 'No supported assistants available' })}
             </div>
           ) : (
@@ -213,7 +213,7 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
           )}
         </section>
 
-        <section className='flex min-h-0 flex-col px-28px py-28px' data-testid='team-create-details-pane'>
+        <section className='flex min-h-0 flex-col px-24px py-22px' data-testid='team-create-details-pane'>
           <TeamMemberDraftList
             members={selectedMembers}
             leaderSelectionId={leaderSelectionId}
@@ -221,9 +221,9 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
             onRemove={handleRemoveDraft}
           />
 
-          <div className='mt-28px border-t border-border-2 pt-26px'>
-            <div className='grid grid-cols-[128px_minmax(0,1fr)] items-center gap-x-22px gap-y-18px'>
-              <div className='text-20px font-700 leading-28px text-t-secondary'>
+          <div className='mt-18px border-t border-border-2 pt-18px'>
+            <div className='grid grid-cols-[84px_minmax(0,1fr)] items-center gap-x-16px gap-y-12px'>
+              <div className='text-15px font-600 leading-22px text-t-secondary'>
                 {t('team.create.nameLabel', { defaultValue: 'Team name' })}
                 <span className='ml-4px text-danger-6'>*</span>
               </div>
@@ -234,11 +234,11 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
                   value={name}
                   onChange={setName}
                   data-testid='team-create-name-input'
-                  className='!h-64px !rounded-8px !text-20px'
+                  className='!h-40px !rounded-8px !text-14px'
                 />
               </div>
 
-              <div className='text-20px font-500 leading-28px text-t-secondary'>
+              <div className='text-15px font-500 leading-22px text-t-secondary'>
                 {t('team.create.workspaceLabel', { defaultValue: 'Workspace' })}
               </div>
               <div>

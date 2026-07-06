@@ -33,26 +33,26 @@ const TeamAssistantPicker: React.FC<Props> = ({
   }, [assistants, query]);
 
   return (
-    <div className={`flex min-h-0 flex-col ${isModalDensity ? 'gap-24px' : 'gap-8px'} ${className ?? ''}`}>
+    <div className={`flex min-h-0 flex-col ${isModalDensity ? 'gap-12px' : 'gap-8px'} ${className ?? ''}`}>
       <Input
         prefix={<Search size='14' fill='currentColor' />}
         value={query}
         onChange={setQuery}
         placeholder={t('team.create.searchPlaceholder', { defaultValue: 'Search assistants...' })}
         data-testid={`${testIdPrefix}-search`}
-        className={isModalDensity ? '!h-64px !rounded-8px !text-20px' : undefined}
+        className={isModalDensity ? '!h-40px !rounded-8px !text-14px' : undefined}
       />
       <div
         className={
           isModalDensity
-            ? 'min-h-0 flex-1 overflow-y-auto rounded-8px bg-fill-1 p-16px'
+            ? 'min-h-0 flex-1 overflow-y-auto rounded-8px bg-fill-1 p-8px'
             : 'max-h-320px overflow-y-auto rounded-8px border border-border-2 bg-fill-1 p-6px'
         }
       >
         {filteredAssistants.length === 0 ? (
           <Empty description={t('team.create.noSearchResults', { defaultValue: 'No results found' })} />
         ) : (
-          <div className={isModalDensity ? 'flex flex-col gap-10px' : 'flex flex-col gap-6px'}>
+          <div className={isModalDensity ? 'flex flex-col gap-6px' : 'flex flex-col gap-6px'}>
             {filteredAssistants.map((assistant, index) => {
               const rowKey = `${assistantKey(assistant)}-${index}`;
               const rowDisabled = disabled || assistant.team_selectable === false;
@@ -71,7 +71,7 @@ const TeamAssistantPicker: React.FC<Props> = ({
                   loading={pendingAssistantId === assistant.id}
                   className={
                     isModalDensity
-                      ? '!h-76px !justify-start !rounded-8px !px-14px !py-0'
+                      ? '!h-48px !justify-start !rounded-8px !px-10px !py-0'
                       : '!h-auto !justify-start !px-10px !py-8px'
                   }
                   onClick={() => onSelect(assistant)}
@@ -84,7 +84,7 @@ const TeamAssistantPicker: React.FC<Props> = ({
                     </div>
                     <Plus
                       theme='outline'
-                      size={isModalDensity ? '20' : '14'}
+                      size={isModalDensity ? '16' : '14'}
                       fill='currentColor'
                       className='shrink-0 text-t-secondary'
                     />

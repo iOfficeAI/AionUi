@@ -53,7 +53,7 @@ type AssistantOptionLabelProps = {
 export const AssistantOptionLabel: React.FC<AssistantOptionLabelProps> = ({ assistant, size = 'compact' }) => {
   const avatar = resolveAssistantAvatar(assistant.icon);
   const isLarge = size === 'large';
-  const iconSize = isLarge ? 24 : 16;
+  const iconSize = isLarge ? 20 : 16;
   const avatarNode =
     avatar.kind === 'image' ? (
       <img
@@ -62,22 +62,22 @@ export const AssistantOptionLabel: React.FC<AssistantOptionLabelProps> = ({ assi
         style={{ width: iconSize, height: iconSize, objectFit: 'contain' }}
       />
     ) : avatar.kind === 'emoji' ? (
-      <span style={{ fontSize: isLarge ? 24 : 14, lineHeight: `${iconSize}px` }}>{avatar.value}</span>
+      <span style={{ fontSize: isLarge ? 20 : 14, lineHeight: `${iconSize}px` }}>{avatar.value}</span>
     ) : (
       <Robot size={String(iconSize)} />
     );
 
   return (
-    <div className={isLarge ? 'flex min-w-0 items-center gap-16px' : 'flex min-w-0 items-center gap-8px'}>
+    <div className={isLarge ? 'flex min-w-0 items-center gap-12px' : 'flex min-w-0 items-center gap-8px'}>
       {isLarge ? (
-        <span className='flex h-52px w-52px shrink-0 items-center justify-center rounded-8px bg-fill-2 text-t-primary'>
+        <span className='flex h-32px w-32px shrink-0 items-center justify-center rounded-8px bg-fill-2 text-t-primary'>
           {avatarNode}
         </span>
       ) : (
         avatarNode
       )}
       <span
-        className={isLarge ? 'min-w-0 truncate text-20px font-500 leading-28px text-t-primary' : 'min-w-0 truncate'}
+        className={isLarge ? 'min-w-0 truncate text-15px font-500 leading-22px text-t-primary' : 'min-w-0 truncate'}
       >
         {assistant.name}
       </span>
