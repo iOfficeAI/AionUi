@@ -1,6 +1,7 @@
 export const WORKSPACE_TOGGLE_EVENT = 'aionui-workspace-toggle';
 export const WORKSPACE_STATE_EVENT = 'aionui-workspace-state';
 export const WORKSPACE_HAS_FILES_EVENT = 'aionui-workspace-has-files';
+export const WORKSPACE_REVEAL_FILE_EVENT = 'aionui-workspace-reveal-file';
 
 export interface WorkspaceStateDetail {
   collapsed: boolean;
@@ -19,6 +20,11 @@ export interface WorkspaceHasFilesDetail {
    * while the conversation was unmounted are not detectable here.
    */
   isInitial: boolean;
+}
+
+export interface WorkspaceRevealFileDetail {
+  workspace?: string;
+  filePath: string;
 }
 
 export function dispatchWorkspaceToggleEvent() {
@@ -46,4 +52,9 @@ export function dispatchWorkspaceHasFilesEvent(
       detail: { hasFiles, conversation_id, isInitial },
     })
   );
+}
+
+export function dispatchWorkspaceRevealFileEvent(detail: WorkspaceRevealFileDetail) {
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(new CustomEvent<WorkspaceRevealFileDetail>(WORKSPACE_REVEAL_FILE_EVENT, { detail }));
 }

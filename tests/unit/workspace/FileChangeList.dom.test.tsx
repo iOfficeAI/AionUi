@@ -120,6 +120,23 @@ describe('FileChangeList', () => {
     expect(screen.getByText('src/app.ts').closest('.workspace-changes-scroll')).toBeInTheDocument();
   });
 
+  it('renders unstaged and staged files inside separate group scroll containers', () => {
+    render(
+      <FileChangeList
+        {...baseProps}
+        unstaged={[change()]}
+        staged={[change({ file_path: 'C:\\Users\\demo\\repo\\src\\staged.ts', relativePath: 'src/staged.ts' })]}
+      />
+    );
+
+    const unstagedScroll = screen.getByText('src/app.ts').closest('.workspace-change-group__body');
+    const stagedScroll = screen.getByText('src/staged.ts').closest('.workspace-change-group__body');
+
+    expect(unstagedScroll).toBeInTheDocument();
+    expect(stagedScroll).toBeInTheDocument();
+    expect(unstagedScroll).not.toBe(stagedScroll);
+  });
+
   it('falls back to the backend file path when the normalized path cannot be read', async () => {
     vi.mocked(ipcBridge.fileSnapshot.getBaselineContent.invoke).mockResolvedValue('before\n');
     vi.mocked(ipcBridge.fs.readFile.invoke)

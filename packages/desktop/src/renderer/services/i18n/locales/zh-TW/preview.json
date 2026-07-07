@@ -139,5 +139,6 @@
     "installing": "正在安裝預覽元件...",
     "startFailed": "啟動 PPT 預覽失敗",
     "installHint": "請從官方 iOfficeAI/OfficeCLI releases 頁面安裝 OfficeCLI"
-  }
+  },
+  "revealInWorkspace": "定位到檔案欄"
 }

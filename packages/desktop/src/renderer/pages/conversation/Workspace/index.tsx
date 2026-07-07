@@ -6,10 +6,15 @@
 
 import { ipcBridge } from '@/common';
 import type { IDirOrFile } from '@/common/adapter/ipcBridge';
+import { absoluteToRelativePath } from '@/common/adapter/workspaceMapper';
 import FlexFullContainer from '@/renderer/components/layout/FlexFullContainer';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import { getWorkspaceDisplayName as getDisplayName } from '@/renderer/utils/workspace/workspace';
+import {
+  WORKSPACE_REVEAL_FILE_EVENT,
+  type WorkspaceRevealFileDetail,
+} from '@/renderer/utils/workspace/workspaceEvents';
 import { Empty, Message, Tree } from '@arco-design/web-react';
 import { Right } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -41,6 +46,19 @@ import {
   getTargetFolderPath,
 } from './utils/treeHelpers';
 import './workspace.css';
+
+const normalizeWorkspacePath = (value: string) => value.replace(/\\/g, '/').replace(/\/+$/, '');
+
+const replaceNodeChildren = (nodes: IDirOrFile[], relativePath: string, children: IDirOrFile[]): IDirOrFile[] =>
+  nodes.map((node) => {
+    if (node.relativePath === relativePath) {
+      return { ...node, children };
+    }
+    if (node.children?.length) {
+      return { ...node, children: replaceNodeChildren(node.children, relativePath, children) };
+    }
+    return node;
+  });
 
 const ChatWorkspace: React.FC<WorkspaceProps> = ({
   conversation_id,
@@ -235,6 +253,112 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
     [openPreview, workspace]
   );
 
+  const revealFileInWorkspace = useCallback(
+    async (filePath: string) => {
+      const relativePath = absoluteToRelativePath(filePath, workspace).replace(/\\/g, '/');
+      if (!relativePath || relativePath === '.' || relativePath.startsWith('..') || relativePath === filePath) {
+        messageApi.warning(t('conversation.workspace.revealInWorkspace.notInProject'));
+        return;
+      }
+
+      const parts = relativePath.split('/').filter(Boolean);
+      if (parts.length === 0) return;
+
+      setActiveTab('files');
+      setIsWorkspaceCollapsed(false);
+      searchHook.clearSearch();
+
+      let nextFiles = treeHook.files;
+      const expanded = new Set(treeHook.expandedKeys);
+      expanded.add('');
+
+      const loadChildren = async (parentRelativePath: string, parentFullPath: string) => {
+        const response = await ipcBridge.conversation.getWorkspace.invoke({
+          conversation_id,
+          workspace,
+          path: parentFullPath,
+        });
+        const parentNode = response[0];
+        const children = parentNode?.children ?? [];
+
+        if (!parentRelativePath) {
+          const rootNode = parentNode ??
+            nextFiles[0] ?? {
+              name: workspaceDisplayName,
+              fullPath: workspace,
+              relativePath: '',
+              isDir: true,
+              isFile: false,
+            };
+          nextFiles = [{ ...rootNode, children }];
+          return children;
+        }
+
+        nextFiles = replaceNodeChildren(nextFiles, parentRelativePath, children);
+        return children;
+      };
+
+      let parentRelativePath = '';
+      let parentFullPath = workspace;
+
+      for (const directoryName of parts.slice(0, -1)) {
+        expanded.add(parentRelativePath);
+        // Each level depends on the previous directory lookup, so this cannot be parallelized.
+        // eslint-disable-next-line no-await-in-loop
+        const children = await loadChildren(parentRelativePath, parentFullPath);
+        const directoryNode = children.find((child) => !child.isFile && child.name === directoryName);
+        if (!directoryNode) {
+          messageApi.warning(t('conversation.workspace.revealInWorkspace.notFound'));
+          return;
+        }
+        parentRelativePath = directoryNode.relativePath;
+        parentFullPath = directoryNode.fullPath;
+      }
+
+      expanded.add(parentRelativePath);
+      const siblings = await loadChildren(parentRelativePath, parentFullPath);
+      const fileNode = siblings.find((child) => child.isFile && child.relativePath === relativePath);
+      if (!fileNode) {
+        messageApi.warning(t('conversation.workspace.revealInWorkspace.notFound'));
+        return;
+      }
+
+      treeHook.setFiles(nextFiles);
+      treeHook.setExpandedKeys([...expanded]);
+      treeHook.ensureNodeSelected(fileNode);
+      window.setTimeout(() => {
+        document.querySelector('.chat-workspace .arco-tree-node-selected')?.scrollIntoView({
+          block: 'center',
+          behavior: 'smooth',
+        });
+      }, 0);
+    },
+    [
+      conversation_id,
+      messageApi,
+      searchHook.clearSearch,
+      setIsWorkspaceCollapsed,
+      t,
+      treeHook,
+      workspace,
+      workspaceDisplayName,
+    ]
+  );
+
+  useEffect(() => {
+    const handleRevealFile = (event: Event) => {
+      const detail = (event as CustomEvent<WorkspaceRevealFileDetail>).detail;
+      if (!detail?.filePath) return;
+      if (detail.workspace && normalizeWorkspacePath(detail.workspace) !== normalizeWorkspacePath(workspace)) return;
+      void revealFileInWorkspace(detail.filePath);
+    };
+
+    window.addEventListener(WORKSPACE_REVEAL_FILE_EVENT, handleRevealFile);
+    return () => {
+      window.removeEventListener(WORKSPACE_REVEAL_FILE_EVENT, handleRevealFile);
+    };
+  }, [revealFileInWorkspace, workspace]);
+
   // Auto-refresh changes when switching to changes tab
   useEffect(() => {
     if (activeTab === 'changes') {
@@ -336,6 +460,7 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
             searchScope={searchHook.searchScope}
             setSearchScope={searchHook.setSearchScope}
             searchFolderLabel={searchHook.searchFolderLabel}
+            searchStats={searchHook.searchStats}
             searchMode={searchHook.searchMode}
             setSearchMode={searchHook.setSearchMode}
           />
@@ -557,7 +682,7 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
 
         {/* Changes tab content */}
         {!isWorkspaceCollapsed && activeTab === 'changes' && (
-          <div className='min-h-0 flex-1 overflow-hidden'>
+          <FlexFullContainer containerClassName='overflow-y-auto'>
             <FileChangeList
               t={t}
               workspace={workspace}
@@ -574,7 +699,7 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
               onDiscardFile={fileChangesHook.discardFile}
               onResetFile={fileChangesHook.resetFile}
             />
-          </div>
+          </FlexFullContainer>
         )}
       </div>
     </>

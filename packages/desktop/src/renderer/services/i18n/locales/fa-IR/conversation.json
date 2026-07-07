@@ -428,6 +428,11 @@
       "all": "همه",
       "name": "نام ها",
       "content": "محتوا"
+    },
+    "searchStats": "{{fileCount}} فایل و {{contentBlockCount}} بلوک محتوا پیدا شد",
+    "revealInWorkspace": {
+      "notFound": "این فایل در پنل فایل‌ها پیدا نشد",
+      "notInProject": "این فایل در پروژه فعلی نیست"
     }
   },
   "minimap": {

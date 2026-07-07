@@ -5,9 +5,8 @@
  */
 
 import type { PreviewHistoryTarget } from '@/common/types/office/preview';
-import { iconColors } from '@/renderer/styles/colors';
 import { Dropdown } from '@arco-design/web-react';
-import { Close } from '@icon-park/react';
+import { FileFocus } from '@icon-park/react';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { shouldShowDownload } from './previewToolbarUtils';
@@ -55,16 +54,16 @@ interface PreviewToolbarProps {
   isSplitScreenEnabled: boolean;
 
   /**
-   * 文件名
-   * Filename
-   */
-  file_name?: string;
-
-  /**
    * 是否显示"在系统中打开"按钮
    * Whether to show "Open in System" button
    */
   showOpenInSystemButton: boolean;
+
+  /**
+   * 是否显示"定位到文件栏"按钮
+   * Whether to show "Reveal in workspace" button
+   */
+  showRevealInWorkspaceButton: boolean;
 
   /**
    * 历史目标
@@ -115,16 +114,16 @@ interface PreviewToolbarProps {
   onOpenInSystem: () => void;
 
   /**
+   * 定位到文件栏中的文件
+   * Reveal file in workspace panel
+   */
+  onRevealInWorkspace: () => void;
+
+  /**
    * 下载文件
    * Download file
    */
   onDownload: () => void;
-
-  /**
-   * 关闭预览面板
-   * Close preview panel
-   */
-  onClose: () => void;
 
   /**
    * HTML 审核元素模式（仅HTML类型使用）
@@ -165,8 +164,8 @@ const PreviewToolbar: React.FC<PreviewToolbarProps> = ({
   isHTML,
   viewMode,
   isSplitScreenEnabled,
-  file_name,
   showOpenInSystemButton,
+  showRevealInWorkspaceButton,
   historyTarget,
   snapshotSaving,
   onViewModeChange,
@@ -175,8 +174,8 @@ const PreviewToolbar: React.FC<PreviewToolbarProps> = ({
   onRefreshHistory,
   renderHistoryDropdown,
   onOpenInSystem,
+  onRevealInWorkspace,
   onDownload,
-  onClose,
   inspectMode,
   onInspectModeToggle,
   leftExtra,
@@ -190,6 +189,8 @@ const PreviewToolbar: React.FC<PreviewToolbarProps> = ({
 
   const toolbarBtn =
     'flex items-center gap-2px px-8px py-3px rd-4px cursor-pointer transition-colors duration-150 text-12px font-medium text-t-secondary hover:text-t-primary hover:bg-bg-3';
+  const toolbarIconBtn =
+    'flex items-center justify-center px-8px py-3px rd-4px cursor-pointer transition-colors duration-150 text-t-secondary hover:text-t-primary hover:bg-bg-3';
   const toolbarBtnActive = '!text-white bg-brand hover:!text-white hover:bg-brand-hover';
   const toolbarIconSize = 12;
 
@@ -254,24 +255,17 @@ const PreviewToolbar: React.FC<PreviewToolbarProps> = ({
             </>
           )}
 
-          {preferActionButtonsInFront && showOpenInSystemButton && (
-            <div className={toolbarBtn} onClick={onOpenInSystem} title={t('preview.openInSystemApp')}>
-              <svg
-                width={toolbarIconSize}
-                height={toolbarIconSize}
-                viewBox='0 0 24 24'
-                fill='none'
-                stroke='currentColor'
-                strokeWidth='2'
-                className='text-t-secondary'
-              >
-                <path d='M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6' />
-                <polyline points='15 3 21 3 21 9' />
-                <line x1='10' y1='14' x2='21' y2='3' />
-              </svg>
-              <span>{t('preview.openInSystemApp')}</span>
+          {showRevealInWorkspaceButton && (
+            <div
+              className={toolbarIconBtn}
+              onClick={onRevealInWorkspace}
+              title={t('preview.revealInWorkspace')}
+              aria-label={t('preview.revealInWorkspace')}
+            >
+              <FileFocus theme='outline' size={toolbarIconSize} fill='currentColor' />
             </div>
           )}
+
           {preferActionButtonsInFront && showDownload && (
             <div className={toolbarBtn} onClick={() => void onDownload()} title={t('preview.downloadFile')}>
               <svg
@@ -288,6 +282,24 @@ const PreviewToolbar: React.FC<PreviewToolbarProps> = ({
                 <line x1='12' y1='15' x2='12' y2='3' />
               </svg>
               <span>{t('common.download')}</span>
+            </div>
+          )}
+          {preferActionButtonsInFront && showOpenInSystemButton && (
+            <div className={toolbarBtn} onClick={onOpenInSystem} title={t('preview.openInSystemApp')}>
+              <svg
+                width={toolbarIconSize}
+                height={toolbarIconSize}
+                viewBox='0 0 24 24'
+                fill='none'
+                stroke='currentColor'
+                strokeWidth='2'
+                className='text-t-secondary'
+              >
+                <path d='M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6' />
+                <polyline points='15 3 21 3 21 9' />
+                <line x1='10' y1='14' x2='21' y2='3' />
+              </svg>
+              <span>{t('preview.openInSystemApp')}</span>
             </div>
           )}
           {leftExtra}
@@ -367,25 +379,6 @@ const PreviewToolbar: React.FC<PreviewToolbarProps> = ({
               </>
             )}
 
-          {!preferActionButtonsInFront && showOpenInSystemButton && (
-            <div className={toolbarBtn} onClick={onOpenInSystem} title={t('preview.openInSystemApp')}>
-              <svg
-                width={toolbarIconSize}
-                height={toolbarIconSize}
-                viewBox='0 0 24 24'
-                fill='none'
-                stroke='currentColor'
-                strokeWidth='2'
-                className='text-t-secondary'
-              >
-                <path d='M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6' />
-                <polyline points='15 3 21 3 21 9' />
-                <line x1='10' y1='14' x2='21' y2='3' />
-              </svg>
-              <span>{t('preview.openInSystemApp')}</span>
-            </div>
-          )}
-
           {!preferActionButtonsInFront && showDownload && (
             <div className={toolbarBtn} onClick={() => void onDownload()} title={t('preview.downloadFile')}>
               <svg
@@ -402,6 +395,25 @@ const PreviewToolbar: React.FC<PreviewToolbarProps> = ({
                 <line x1='12' y1='15' x2='12' y2='3' />
               </svg>
               <span>{t('common.download')}</span>
+            </div>
+          )}
+
+          {!preferActionButtonsInFront && showOpenInSystemButton && (
+            <div className={toolbarBtn} onClick={onOpenInSystem} title={t('preview.openInSystemApp')}>
+              <svg
+                width={toolbarIconSize}
+                height={toolbarIconSize}
+                viewBox='0 0 24 24'
+                fill='none'
+                stroke='currentColor'
+                strokeWidth='2'
+                className='text-t-secondary'
+              >
+                <path d='M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6' />
+                <polyline points='15 3 21 3 21 9' />
+                <line x1='10' y1='14' x2='21' y2='3' />
+              </svg>
+              <span>{t('preview.openInSystemApp')}</span>
             </div>
           )}
 

@@ -96,6 +96,37 @@
   font-weight: 500;
 }
 
+.chat-workspace .workspace-search-stats {
+  color: var(--color-text-3);
+  font-size: 12px;
+  line-height: 18px;
+  padding: 0 2px;
+}
+
+.chat-workspace .workspace-changes-groups {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.chat-workspace .workspace-change-group {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+}
+
+.chat-workspace .workspace-change-group--scrollable {
+  flex: 1 1 0;
+}
+
+.chat-workspace .workspace-change-group--empty {
+  flex: 0 0 auto;
+}
+
+.chat-workspace .workspace-change-group__body {
+  min-height: 0;
+  flex: 1 1 auto;
+}
+
 .chat-workspace .workspace-changes-scroll {
   min-height: 0;
   overflow-y: auto;

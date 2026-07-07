@@ -428,6 +428,11 @@
       "all": "Все",
       "name": "Имена",
       "content": "Содержимое"
+    },
+    "searchStats": "Совпало файлов: {{fileCount}}, блоков содержимого: {{contentBlockCount}}",
+    "revealInWorkspace": {
+      "notFound": "Не удалось найти этот файл на панели файлов",
+      "notInProject": "Этот файл не находится в текущем проекте"
     }
   },
   "minimap": {

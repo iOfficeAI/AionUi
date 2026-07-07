@@ -139,5 +139,6 @@
     "installing": "Installing preview component...",
     "startFailed": "Failed to start PPT preview",
     "installHint": "Install OfficeCLI from the official iOfficeAI/OfficeCLI releases page"
-  }
+  },
+  "revealInWorkspace": "Reveal in file panel"
 }

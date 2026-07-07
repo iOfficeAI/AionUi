@@ -139,5 +139,6 @@
     "installing": "Önizleme bileşeni yükleniyor...",
     "startFailed": "PPT önizlemesi başlatılamadı",
     "installHint": "OfficeCLI'yi resmi iOfficeAI/OfficeCLI releases sayfasından yükleyin"
-  }
+  },
+  "revealInWorkspace": "Dosya panelinde göster"
 }

@@ -413,6 +413,11 @@
       "all": "Tumu",
       "name": "Adlar",
       "content": "Icerik"
+    },
+    "searchStats": "{{fileCount}} dosya, {{contentBlockCount}} içerik bloğu eşleşti",
+    "revealInWorkspace": {
+      "notFound": "Bu dosya dosya panelinde bulunamadı",
+      "notInProject": "Bu dosya geçerli projede değil"
     }
   },
   "minimap": {

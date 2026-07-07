@@ -428,6 +428,11 @@
       "all": "Todo",
       "name": "Nombres",
       "content": "Contenido"
+    },
+    "searchStats": "{{fileCount}} archivo(s), {{contentBlockCount}} bloque(s) de contenido encontrados",
+    "revealInWorkspace": {
+      "notFound": "No se pudo localizar este archivo en el panel de archivos",
+      "notInProject": "Este archivo no está en el proyecto actual"
     }
   },
   "minimap": {

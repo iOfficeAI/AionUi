@@ -428,6 +428,11 @@
       "all": "전체",
       "name": "이름",
       "content": "내용"
+    },
+    "searchStats": "{{fileCount}}개 파일, {{contentBlockCount}}개 콘텐츠 블록 일치",
+    "revealInWorkspace": {
+      "notFound": "파일 패널에서 이 파일을 찾을 수 없습니다",
+      "notInProject": "이 파일은 현재 프로젝트에 없습니다"
     }
   },
   "minimap": {

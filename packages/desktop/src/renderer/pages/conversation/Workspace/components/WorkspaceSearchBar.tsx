@@ -10,7 +10,7 @@ import { Search } from '@icon-park/react';
 import React from 'react';
 import type { TFunction } from 'i18next';
 import type { RefInputType } from '@arco-design/web-react/es/Input/interface';
-import type { WorkspaceSearchScope } from '../hooks/useWorkspaceSearch';
+import type { WorkspaceSearchScope, WorkspaceSearchStats } from '../hooks/useWorkspaceSearch';
 import type { WorkspaceSearchMode } from '../hooks/useWorkspaceTree';
 
 type WorkspaceSearchBarProps = {
@@ -24,6 +24,7 @@ type WorkspaceSearchBarProps = {
   searchScope: WorkspaceSearchScope;
   setSearchScope: (v: WorkspaceSearchScope) => void;
   searchFolderLabel: string;
+  searchStats: WorkspaceSearchStats | null;
   searchMode: WorkspaceSearchMode;
   setSearchMode: (v: WorkspaceSearchMode) => void;
 };
@@ -39,6 +40,7 @@ const WorkspaceSearchBar: React.FC<WorkspaceSearchBarProps> = ({
   searchScope,
   setSearchScope,
   searchFolderLabel,
+  searchStats,
   searchMode,
   setSearchMode,
 }) => {
@@ -72,16 +74,17 @@ const WorkspaceSearchBar: React.FC<WorkspaceSearchBarProps> = ({
           </Radio.Group>
           {searchScope === 'currentFolder' && (
             <div className='workspace-search-folder-hint'>
-              <span>
-                {t(
-                  isMobile
-                    ? 'conversation.workspace.searchScope.folderHintMobile'
-                    : 'conversation.workspace.searchScope.folderHintDesktop'
-                )}
-              </span>
-              {searchFolderLabel && (
+              {searchFolderLabel ? (
                 <span className='workspace-search-folder-name'>
                   {t('conversation.workspace.searchScope.selectedFolder', { folder: searchFolderLabel })}
+                </span>
+              ) : (
+                <span>
+                  {t(
+                    isMobile
+                      ? 'conversation.workspace.searchScope.folderHintMobile'
+                      : 'conversation.workspace.searchScope.folderHintDesktop'
+                  )}
                 </span>
               )}
             </div>
@@ -97,6 +100,14 @@ const WorkspaceSearchBar: React.FC<WorkspaceSearchBarProps> = ({
             <Radio value='name'>{t('conversation.workspace.searchMode.name')}</Radio>
             <Radio value='content'>{t('conversation.workspace.searchMode.content')}</Radio>
           </Radio.Group>
+          {searchText.trim() && searchStats && (
+            <div className='workspace-search-stats'>
+              {t('conversation.workspace.searchStats', {
+                fileCount: searchStats.fileCount,
+                contentBlockCount: searchStats.contentBlockCount,
+              })}
+            </div>
+          )}
         </div>
       </div>
       <div className='border-b border-b-base' />

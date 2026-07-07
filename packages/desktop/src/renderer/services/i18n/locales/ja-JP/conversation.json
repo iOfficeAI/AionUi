@@ -428,6 +428,11 @@
       "all": "すべて",
       "name": "名前",
       "content": "内容"
+    },
+    "searchStats": "{{fileCount}} 個のファイル、{{contentBlockCount}} 個の内容ブロックが一致しました",
+    "revealInWorkspace": {
+      "notFound": "ファイル欄でこのファイルを特定できませんでした",
+      "notInProject": "このファイルは現在のプロジェクト内にありません"
     }
   },
   "minimap": {

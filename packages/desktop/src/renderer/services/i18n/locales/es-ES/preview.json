@@ -139,5 +139,6 @@
     "installing": "Instalando componente de vista previa...",
     "startFailed": "Error al iniciar la vista previa de PPT",
     "installHint": "Instala OfficeCLI desde la página oficial de versiones de iOfficeAI/OfficeCLI"
-  }
+  },
+  "revealInWorkspace": "Mostrar en el panel de archivos"
 }

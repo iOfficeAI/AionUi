@@ -428,6 +428,11 @@
       "all": "Alle",
       "name": "Namen",
       "content": "Inhalte"
+    },
+    "searchStats": "{{fileCount}} Datei(en), {{contentBlockCount}} Inhaltsblock/Blöcke gefunden",
+    "revealInWorkspace": {
+      "notFound": "Diese Datei konnte im Dateibereich nicht gefunden werden",
+      "notInProject": "Diese Datei gehört nicht zum aktuellen Projekt"
     }
   },
   "minimap": {

@@ -75,6 +75,7 @@ describe('workspaceMapper', () => {
           name: 'docs/notes.md',
           type: 'file',
           match_kind: 'content',
+          content_match_count: 3,
         },
       ],
       '/workspace',
@@ -84,6 +85,7 @@ describe('workspaceMapper', () => {
     expect(root?.children?.[0]).toMatchObject({
       relativePath: 'docs/notes.md',
       searchMatchKind: 'content',
+      searchContentMatchCount: 3,
     });
   });
 

@@ -428,6 +428,11 @@
       "all": "全部",
       "name": "檔名",
       "content": "內容"
+    },
+    "searchStats": "命中 {{fileCount}} 個檔案，{{contentBlockCount}} 個內容區塊",
+    "revealInWorkspace": {
+      "notFound": "無法在檔案欄中定位該檔案",
+      "notInProject": "該檔案不在目前專案中"
     }
   },
   "minimap": {

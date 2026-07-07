@@ -139,5 +139,6 @@
     "installing": "Встановлення компонента перегляду...",
     "startFailed": "Не вдалося запустити перегляд PPT",
     "installHint": "Встановіть OfficeCLI зі сторінки офіційних релізів iOfficeAI/OfficeCLI"
-  }
+  },
+  "revealInWorkspace": "Показати на панелі файлів"
 }

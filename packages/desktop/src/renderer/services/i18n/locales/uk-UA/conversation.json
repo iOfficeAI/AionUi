@@ -428,6 +428,11 @@
       "all": "Усе",
       "name": "Назви",
       "content": "Вміст"
+    },
+    "searchStats": "Збігів файлів: {{fileCount}}, блоків вмісту: {{contentBlockCount}}",
+    "revealInWorkspace": {
+      "notFound": "Не вдалося знайти цей файл на панелі файлів",
+      "notInProject": "Цей файл не належить до поточного проєкту"
     }
   },
   "minimap": {
