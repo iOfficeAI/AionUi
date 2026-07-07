@@ -14,7 +14,7 @@ import {
 const AddModelModal = ModalHOC<{ data?: IProvider; onSubmit: (model: IProvider) => void }>(
   ({ modalProps, data, onSubmit, modalCtrl }) => {
     const { t } = useTranslation();
-    const [model, setModel] = useState('');
+    const [models, setModels] = useState<string[]>([]);
     const [modelProtocol, setModelProtocol] = useState<string>('openai');
     const isNewApi = isNewApiPlatform(data?.platform ?? '');
     const { data: modelList, isLoading } = useModeModeList(data?.platform, data?.base_url, data?.api_key);
@@ -32,17 +32,20 @@ const AddModelModal = ModalHOC<{ data?: IProvider; onSubmit: (model: IProvider) 
       existingModels.length > previewModels.length ? existingModels.length - previewModels.length : 0;
 
     const handleConfirm = useCallback(() => {
-      if (!model) return;
-      const updatedData: IProvider = { ...data, models: [...existingModels, model] };
+      if (!models.length) return;
+      const updatedData: IProvider = { ...data, models: [...existingModels, ...models] };
 
-      // new-api 平台：添加模型协议配置 / new-api platform: add model protocol config
+      // new-api 平台：为每个选中的模型添加协议配置 / new-api platform: add protocol config for every selected model
       if (isNewApi) {
-        updatedData.model_protocols = { ...data?.model_protocols, [model]: modelProtocol };
+        updatedData.model_protocols = {
+          ...data?.model_protocols,
+          ...Object.fromEntries(models.map((m) => [m, modelProtocol])),
+        };
       }
 
       onSubmit(updatedData);
       modalCtrl.close();
-    }, [data, existingModels, model, modelProtocol, isNewApi, onSubmit, modalCtrl]);
+    }, [data, existingModels, models, modelProtocol, isNewApi, onSubmit, modalCtrl]);
 
     return (
       <AionModal
@@ -59,20 +62,22 @@ const AddModelModal = ModalHOC<{ data?: IProvider; onSubmit: (model: IProvider) 
         onOk={handleConfirm}
         okText={t('common.confirm')}
         cancelText={t('common.cancel')}
-        okButtonProps={{ disabled: !model }}
+        okButtonProps={{ disabled: !models.length }}
       >
         <div className='flex flex-col gap-16px pt-20px'>
           <div className='space-y-8px'>
             <div className='text-13px font-500 text-t-secondary'>{t('settings.addModelPlaceholder')}</div>
             <Select
+              mode='multiple'
               showSearch
               options={optionsList}
               loading={isLoading}
-              onChange={(value: string) => {
-                setModel(value);
-                if (isNewApi) setModelProtocol(detectNewApiProtocol(value));
+              onChange={(value: string[]) => {
+                setModels(value);
+                // new-api 平台：以最后选中的模型推断协议 / new-api: infer protocol from the last picked model
+                if (isNewApi && value.length > 0) setModelProtocol(detectNewApiProtocol(value[value.length - 1]));
               }}
-              value={model}
+              value={models}
               allowCreate
               placeholder={t('settings.addModelPlaceholder')}
             ></Select>
