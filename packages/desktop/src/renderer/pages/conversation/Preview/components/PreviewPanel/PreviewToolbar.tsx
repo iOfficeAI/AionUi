@@ -190,10 +190,9 @@ const PreviewToolbar: React.FC<PreviewToolbarProps> = ({
   const toolbarBtn =
     'flex items-center gap-2px px-8px py-3px rd-4px cursor-pointer transition-colors duration-150 text-12px font-medium text-t-secondary hover:text-t-primary hover:bg-bg-3';
   const toolbarIconBtn =
-    'flex items-center justify-center w-24px h-24px rd-4px cursor-pointer transition-colors duration-150 text-t-secondary hover:text-t-primary hover:bg-bg-3';
+    'flex items-center px-8px py-3px rd-4px cursor-pointer transition-colors duration-150 text-t-secondary hover:text-t-primary hover:bg-bg-3';
   const toolbarBtnActive = '!text-white bg-brand hover:!text-white hover:bg-brand-hover';
   const toolbarIconSize = 12;
-  const toolbarRevealIconSize = 14;
 
   return (
     <div className='flex items-center justify-between h-32px px-10px bg-bg-2 flex-shrink-0 border-b border-border-1 overflow-x-auto'>
@@ -263,7 +262,7 @@ const PreviewToolbar: React.FC<PreviewToolbarProps> = ({
               title={t('preview.revealInWorkspace')}
               aria-label={t('preview.revealInWorkspace')}
             >
-              <Aiming theme='outline' size={toolbarRevealIconSize} fill='currentColor' />
+              <Aiming theme='outline' size={toolbarIconSize} fill='currentColor' />
             </div>
           )}
 

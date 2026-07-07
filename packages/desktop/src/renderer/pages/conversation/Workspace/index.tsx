@@ -60,6 +60,22 @@ const replaceNodeChildren = (nodes: IDirOrFile[], relativePath: string, children
     return node;
   });
 
+const scrollSelectedWorkspaceNodeIntoView = (fileName: string, attempt = 0) => {
+  const selectedNodes = Array.from(document.querySelectorAll<HTMLElement>('.chat-workspace .arco-tree-node-selected'));
+  const targetNode = selectedNodes.find((node) => node.textContent?.includes(fileName));
+
+  if (targetNode) {
+    targetNode.scrollIntoView({
+      block: 'center',
+      behavior: 'smooth',
+    });
+    return;
+  }
+
+  if (attempt >= 8) return;
+  window.requestAnimationFrame(() => scrollSelectedWorkspaceNodeIntoView(fileName, attempt + 1));
+};
+
 const ChatWorkspace: React.FC<WorkspaceProps> = ({
   conversation_id,
   workspace,
@@ -326,12 +342,7 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
       treeHook.setFiles(nextFiles);
       treeHook.setExpandedKeys([...expanded]);
       treeHook.ensureNodeSelected(fileNode);
-      window.setTimeout(() => {
-        document.querySelector('.chat-workspace .arco-tree-node-selected')?.scrollIntoView({
-          block: 'center',
-          behavior: 'smooth',
-        });
-      }, 0);
+      window.requestAnimationFrame(() => scrollSelectedWorkspaceNodeIntoView(fileNode.name));
     },
     [
       conversation_id,

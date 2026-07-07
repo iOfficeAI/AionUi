@@ -60,11 +60,11 @@
   width: 100%;
 }
 
-.chat-workspace .workspace-search-segment:first-child {
+.chat-workspace .workspace-search-scope {
   grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
 }
 
-.chat-workspace .workspace-search-segment:last-child {
+.chat-workspace .workspace-search-mode {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 

@@ -65,7 +65,7 @@ const WorkspaceSearchBar: React.FC<WorkspaceSearchBarProps> = ({
         />
         <div className='workspace-search-controls mt-6px'>
           <Radio.Group
-            className='workspace-search-segment'
+            className='workspace-search-segment workspace-search-scope'
             size='mini'
             type='button'
             value={searchScope}
@@ -75,7 +75,7 @@ const WorkspaceSearchBar: React.FC<WorkspaceSearchBarProps> = ({
             <Radio value='currentFolder'>{t('conversation.workspace.searchScope.currentFolder')}</Radio>
           </Radio.Group>
           <Radio.Group
-            className='workspace-search-segment'
+            className='workspace-search-segment workspace-search-mode'
             size='mini'
             type='button'
             value={searchMode}
