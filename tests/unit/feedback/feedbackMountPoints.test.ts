@@ -55,9 +55,7 @@ describe('FeedbackButton mount points — source-level wiring', () => {
   });
 
   it('each referenced module tag exists in FEEDBACK_MODULES', () => {
-    const modulesSrc = read(
-      'packages/desktop/src/renderer/components/settings/SettingsModal/contents/feedbackModules.ts'
-    );
+    const modulesSrc = read('packages/desktop/src/common/types/feedbackDiagnostics.ts');
     const referencedTags = ['conversation-session', 'agent-detection', 'system-settings', 'mcp-tools'];
     for (const tag of referencedTags) {
       expect(modulesSrc).toContain(`tag: '${tag}'`);

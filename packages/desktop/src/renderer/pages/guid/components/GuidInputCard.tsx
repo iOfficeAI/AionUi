@@ -104,12 +104,9 @@ const GuidInputCard: React.FC<GuidInputCardProps> = ({
       }}
       {...dragHandlers}
     >
-      {slashCommandMenu && (
-        <div className='absolute left-12px right-12px bottom-[calc(100%+8px)] z-70'>{slashCommandMenu}</div>
-      )}
       {/* inner white card — narrower than outer wrap */}
       <div
-        className={`${styles.guidInputInner} p-12px flex flex-col bg-dialog-fill-0`}
+        className={`${styles.guidInputInner} relative p-12px flex flex-col bg-dialog-fill-0`}
         style={{
           transition: 'box-shadow 0.25s ease, border-color 0.25s ease',
           borderColor: isFileDragging ? 'rgb(var(--primary-3))' : borderColor,
@@ -140,6 +137,9 @@ const GuidInputCard: React.FC<GuidInputCardProps> = ({
         )}
         <UploadProgressBar source='sendbox' />
         {actionRow}
+        {slashCommandMenu && (
+          <div className='absolute left-0 right-0 top-[calc(100%+4px)] z-70'>{slashCommandMenu}</div>
+        )}
       </div>
       <GuidWorkspaceFootnote
         workspaceDir={workspaceDir}

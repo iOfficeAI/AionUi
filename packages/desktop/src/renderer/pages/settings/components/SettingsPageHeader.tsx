@@ -49,7 +49,7 @@ const SettingsPageHeader: React.FC<SettingsPageHeaderProps> = ({
   'data-testid': dataTestId,
 }) => {
   return (
-    <div data-testid={dataTestId}>
+    <div data-testid={dataTestId} className='sticky top-0 z-10 -mt-14px pt-14px md:-mt-32px md:pt-32px bg-1'>
       <div className='flex items-center justify-between gap-12px sm:gap-16px'>
         <h1 className='m-0 min-w-0 flex-1 text-22px md:text-24px font-bold leading-[1.2] text-t-primary'>{title}</h1>
         {actions ? <div className='shrink-0 flex flex-wrap items-center justify-end gap-8px'>{actions}</div> : null}

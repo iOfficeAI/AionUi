@@ -20,6 +20,11 @@ import {
   type FeedbackEventTags,
   submitFeedbackReport,
 } from '@/renderer/services/feedback/submitFeedbackReport';
+import type {
+  FeedbackDiagnosticsExplicitContext,
+  FeedbackDiagnosticsProfile,
+} from '@/common/types/feedbackDiagnostics';
+import { captureFeedbackRoute } from '@/renderer/services/feedback/routeContext';
 
 export type { FeedbackEventExtra, FeedbackEventTags } from '@/renderer/services/feedback/submitFeedbackReport';
 
@@ -53,6 +58,11 @@ type FeedbackReportModalProps = {
   prefilledScreenshots?: PrefilledScreenshot[];
   feedbackTags?: FeedbackEventTags;
   feedbackExtra?: FeedbackEventExtra;
+  feedbackDiagnosticsContext?: {
+    explicitContext?: FeedbackDiagnosticsExplicitContext;
+    explicitProfiles?: FeedbackDiagnosticsProfile[];
+    routeAtOpen?: string;
+  };
 };
 
 const FeedbackReportModal: React.FC<FeedbackReportModalProps> = ({
@@ -62,6 +72,7 @@ const FeedbackReportModal: React.FC<FeedbackReportModalProps> = ({
   prefilledScreenshots,
   feedbackTags,
   feedbackExtra,
+  feedbackDiagnosticsContext,
 }) => {
   const { t } = useTranslation();
   const talkToButler = useTalkToButler();
@@ -152,6 +163,13 @@ const FeedbackReportModal: React.FC<FeedbackReportModalProps> = ({
 
       await submitFeedbackReport({
         attachments,
+        collectDbDiagnostics: {
+          explicitContext: feedbackDiagnosticsContext?.explicitContext,
+          explicitProfiles: feedbackDiagnosticsContext?.explicitProfiles,
+          routeAtOpen: feedbackDiagnosticsContext?.routeAtOpen,
+          routeAtSubmit: captureFeedbackRoute(),
+          selectedModule: module,
+        },
         collectLogs: true,
         description,
         extra: feedbackExtra,
@@ -168,7 +186,18 @@ const FeedbackReportModal: React.FC<FeedbackReportModalProps> = ({
     } finally {
       setSubmitting(false);
     }
-  }, [module, description, screenshots, t, onCancel, resetForm, selectedModule, feedbackExtra, feedbackTags]);
+  }, [
+    module,
+    description,
+    screenshots,
+    t,
+    onCancel,
+    resetForm,
+    selectedModule,
+    feedbackExtra,
+    feedbackTags,
+    feedbackDiagnosticsContext,
+  ]);
 
   // "Solve via chat": hand the report to the AionUi Butler for on-the-spot
   // diagnosis instead of submitting to the team. The typed description + module

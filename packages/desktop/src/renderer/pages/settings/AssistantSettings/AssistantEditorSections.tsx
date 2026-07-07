@@ -8,7 +8,9 @@ import {
   buildAgentRuntimeThoughtLevelOption,
 } from '@/renderer/utils/model/agentRuntimeCatalog';
 import type { AgentModeOption } from '@/renderer/utils/model/agentTypes';
-import { Select, Tag } from '@arco-design/web-react';
+import { useAgentLogos, resolveAgentAvatar } from '@/renderer/utils/model/agentLogo';
+import type { AvailableBackend } from './types';
+import { Avatar, Select, Tag } from '@arco-design/web-react';
 import { Info, Robot } from '@icon-park/react';
 import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -26,6 +28,7 @@ const AssistantEditorSections: React.FC<AssistantEditorSectionsProps> = ({ edito
   const { t, i18n } = useTranslation();
   const localeKey = i18n.language;
   const managedAgentRuntimeCatalog = useManagedAgentRuntimeCatalog();
+  const agentLogos = useAgentLogos();
   const { providers, getAvailableModels } = useModelProviderList();
   const [rulesExpanded, setRulesExpanded] = useState(false);
   const [addingPrompt, setAddingPrompt] = useState(false);
@@ -47,6 +50,32 @@ const AssistantEditorSections: React.FC<AssistantEditorSectionsProps> = ({ edito
   const editAgent = agent.value;
   const setEditAgent = agent.setValue;
   const availableBackends = agent.availableBackends;
+
+  // Render the agent's own avatar (icon/logo) for a dropdown row. Falls back to
+  // a Robot glyph when the agent has neither an explicit icon nor a catalog logo.
+  const renderAgentAvatar = (option: AvailableBackend) => {
+    const avatar = resolveAgentAvatar(agentLogos, {
+      icon: option.icon,
+      backend: option.runtimeKey,
+      custom_agent_id: option.customAgentId,
+      isExtension: option.isExtension,
+    });
+    return (
+      <Avatar
+        size={20}
+        shape='square'
+        style={{ backgroundColor: avatar.kind === 'image' ? 'transparent' : 'var(--color-fill-2)' }}
+      >
+        {avatar.kind === 'image' ? (
+          <img src={avatar.value} alt={option.name} className='h-full w-full object-contain' />
+        ) : avatar.kind === 'emoji' ? (
+          <span className='text-14px leading-none'>{avatar.value}</span>
+        ) : (
+          <Robot theme='outline' size='14' />
+        )}
+      </Avatar>
+    );
+  };
   const editRecommendedPromptsText = prompts.text;
   const setEditRecommendedPromptsText = prompts.setText;
   const defaultModelMode = defaults.model.mode;
@@ -393,7 +422,12 @@ const AssistantEditorSections: React.FC<AssistantEditorSectionsProps> = ({ edito
         </div>
         <div className='flex items-center gap-12px'>
           <div className='w-86px flex-shrink-0 text-13px text-t-secondary'>
-            {t('settings.assistantMainAgent', { defaultValue: 'Main Agent' })}
+            <span className='flex items-center gap-6px leading-none'>
+              <span className='inline-flex shrink-0 items-center text-t-tertiary'>
+                <Robot theme='outline' size='14' />
+              </span>
+              <span>{t('settings.assistantMainAgent', { defaultValue: 'Agent' })}</span>
+            </span>
           </div>
           <div className='min-w-0 flex-1'>
             <Select
@@ -403,11 +437,22 @@ const AssistantEditorSections: React.FC<AssistantEditorSectionsProps> = ({ edito
               onChange={(value) => setEditAgent(value as string)}
               disabled={isGenerated}
               data-testid='select-assistant-agent'
+              renderFormat={(_option, value) => {
+                const selected = availableBackends.find((item) => item.id === value);
+                if (!selected) return (value as string) ?? '';
+                return (
+                  <span className='flex items-center gap-8px'>
+                    {renderAgentAvatar(selected)}
+                    <span className='truncate'>{selected.name}</span>
+                  </span>
+                );
+              }}
             >
               {availableBackends.map((option) => (
                 <Select.Option key={option.id} value={option.id}>
-                  <span className='flex items-center gap-6px'>
-                    {option.name}
+                  <span className='flex items-center gap-8px'>
+                    {renderAgentAvatar(option)}
+                    <span className='truncate'>{option.name}</span>
                     {option.isExtension ? (
                       <Tag size='small' color='arcoblue'>
                         ext

@@ -5,7 +5,7 @@ import { uuid } from '@/common/utils';
 import { isGoogleApisHost } from '@/common/utils/urlValidation';
 import ModalHOC from '@/renderer/utils/ui/ModalHOC';
 import { Form, Input, Message, Select, Switch } from '@arco-design/web-react';
-import { LinkCloud, Edit, Search, Loading } from '@icon-park/react';
+import { LinkCloud, Edit, Search, Loading, Refresh } from '@icon-park/react';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useModeModeList from '@renderer/hooks/agent/useModeModeList';
@@ -434,6 +434,10 @@ const AddPlatformModal = ModalHOC<{
                   // model is a multi-select field — reset to an empty array, not
                   // '' (which would surface as a stray empty tag).
                   form.setFieldValue('model', []);
+                  // Prefill the platform's default Base URL so users can see and
+                  // edit it. Custom / New API have no preset — clear the field so
+                  // it doesn't carry over the previously selected platform's URL.
+                  form.setFieldValue('base_url', plat.base_url ?? '');
                 }
               }}
               renderFormat={(option) => {
@@ -451,10 +455,30 @@ const AddPlatformModal = ModalHOC<{
             </Select>
           </Form.Item>
 
-          {/* Base URL - 自定义选项、标准 Gemini 和 New API 显示 / Base URL - for Custom, standard Gemini and New API */}
+          {/* Base URL - shown for every platform (except Bedrock) so users can
+              see and edit the endpoint. Preset platforms are prefilled with their
+              default URL and offer a reset button to restore it. */}
           <Form.Item
-            hidden={isBedrock || (!isCustom && !isNewApi && platformValue !== 'gemini')}
-            label={t('settings.apiEndpoint', 'API 请求地址')}
+            hidden={isBedrock}
+            label={
+              <span className='inline-flex items-center gap-4px'>
+                {t('settings.apiEndpoint', 'API 请求地址')}
+                {selectedPlatform?.base_url && !isFullUrl && (
+                  <button
+                    type='button'
+                    aria-label={t('settings.baseUrlResetToDefault', 'Reset to default')}
+                    title={t('settings.baseUrlResetToDefault', 'Reset to default')}
+                    className='inline-flex items-center justify-center border-none bg-transparent p-0 cursor-pointer text-t-tertiary hover:text-primary-6'
+                    onClick={() => {
+                      form.setFieldValue('base_url', selectedPlatform.base_url ?? '');
+                      void modelListState.mutate();
+                    }}
+                  >
+                    <Refresh theme='outline' size={14} />
+                  </button>
+                )}
+              </span>
+            }
             field={'base_url'}
             required={isCustom || isNewApi}
             rules={[{ required: isCustom || isNewApi }]}

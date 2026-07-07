@@ -54,6 +54,10 @@ export type AvailableBackend = {
   name: string;
   runtimeKey: string;
   isExtension?: boolean;
+  /** Agent icon/avatar (raw value from the backend catalog), for the dropdown. */
+  icon?: string;
+  /** Custom agent id (e.g. `ext:name:adapter`), used to resolve extension logos. */
+  customAgentId?: string;
   modelOptions: AvailableBackendModelOption[];
 };
 

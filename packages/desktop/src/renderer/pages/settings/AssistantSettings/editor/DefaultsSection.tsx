@@ -1,6 +1,7 @@
 import type { BuiltinAutoSkill, SkillInfo } from '../types';
 import type { IMcpServer } from '@/common/config/storage';
 import { Button, Select, Tooltip } from '@arco-design/web-react';
+import { Brain, Lightning, LinkCloud, Shield, Toolkit } from '@icon-park/react';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
@@ -111,7 +112,8 @@ const DefaultsSection: React.FC<DefaultsSectionProps> = ({
     >
       <div className='space-y-16px'>
         <ConfigRow
-          label={t('settings.assistantDefaultModelLabel', { defaultValue: 'Default Model' })}
+          icon={<LinkCloud theme='outline' size='14' />}
+          label={t('settings.assistantDefaultModelLabel', { defaultValue: 'Model' })}
           hint={t('settings.assistantDefaultConfigHint', {
             defaultValue:
               'Remember last used only takes effect after this assistant has recorded a previous selection.',
@@ -154,7 +156,10 @@ const DefaultsSection: React.FC<DefaultsSectionProps> = ({
           </Select>
         </ConfigRow>
 
-        <ConfigRow label={t('settings.assistantDefaultPermissionLabel', { defaultValue: 'Default Permission' })}>
+        <ConfigRow
+          icon={<Shield theme='outline' size='14' />}
+          label={t('settings.assistantDefaultPermissionLabel', { defaultValue: 'Permission' })}
+        >
           <Select
             key={`assistant-default-permission-${localeKey}-${defaultPermissionMode}`}
             getPopupContainer={getEditorSelectPopupContainer}
@@ -201,7 +206,10 @@ const DefaultsSection: React.FC<DefaultsSectionProps> = ({
         </ConfigRow>
 
         {showThoughtLevelDefault ? (
-          <ConfigRow label={t('settings.assistantDefaultThoughtLevelLabel', { defaultValue: 'Default Thought Level' })}>
+          <ConfigRow
+            icon={<Brain theme='outline' size='14' />}
+            label={t('settings.assistantDefaultThoughtLevelLabel', { defaultValue: 'Thought Level' })}
+          >
             <Select
               key={`assistant-default-thought-level-${localeKey}-${defaultThoughtLevelMode}`}
               getPopupContainer={getEditorSelectPopupContainer}
@@ -241,7 +249,8 @@ const DefaultsSection: React.FC<DefaultsSectionProps> = ({
 
         {showSkills ? (
           <ConfigRow
-            label={t('settings.assistantDefaultSkillsLabel', { defaultValue: 'Default Skills' })}
+            icon={<Lightning theme='outline' size='14' />}
+            label={t('settings.assistantDefaultSkillsLabel', { defaultValue: 'Skills' })}
             hint={
               <Button
                 type='text'
@@ -350,7 +359,8 @@ const DefaultsSection: React.FC<DefaultsSectionProps> = ({
         ) : null}
 
         <ConfigRow
-          label={t('settings.assistantDefaultMcpLabel', { defaultValue: 'Default MCP' })}
+          icon={<Toolkit theme='outline' size='14' />}
+          label={t('settings.assistantDefaultMcpLabel', { defaultValue: 'MCP' })}
           hint={
             <Button
               type='text'

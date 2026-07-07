@@ -128,6 +128,106 @@ describe('submitFeedbackReport', () => {
     );
   });
 
+  it('attaches db diagnostics when collection succeeds', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          success: true,
+          data: {
+            schema_version: 'feedback-diagnostics/v1',
+            profiles: [{ name: 'conversation-session', mode: 'detail', data: { conversation: { id: 'conv-1' } } }],
+            privacy: { raw_content_included: false, api_keys_included: false },
+          },
+        }),
+        {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      )
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    vi.stubGlobal('window', {
+      electronAPI: {
+        emit: vi.fn(),
+        on: vi.fn(),
+      },
+    });
+
+    await submitFeedbackReport({
+      collectDbDiagnostics: {
+        routeAtOpen: '#/conversation/conv-1',
+        routeAtSubmit: '#/conversation/conv-1',
+        selectedModule: 'conversation-session',
+        explicitContext: {
+          conversationId: 'conv-1',
+        },
+      },
+      collectLogs: false,
+      description: 'Conversation stuck',
+      module: 'conversation-session',
+      moduleLabel: 'Conversation & Sessions',
+    });
+
+    expect(fetchMock).toHaveBeenCalledOnce();
+    const [path, options] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(path).toContain('/api/system/diagnostics/feedback-report?');
+    expect(path).toContain('route_at_open=%23%2Fconversation%2Fconv-1');
+    expect(path).toContain('route_at_submit=%23%2Fconversation%2Fconv-1');
+    expect(path).toContain('selected_module=conversation-session');
+    expect(path).toContain('conversation_id=conv-1');
+    expect(options.method).toBe('GET');
+    expect(sentryMocks.captureEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        extra: {
+          description: 'Conversation stuck',
+        },
+      }),
+      {
+        attachments: [
+          expect.objectContaining({
+            filename: expect.stringMatching(/^db-diagnostics\.json(?:\.gz)?$/),
+            data: expect.any(Uint8Array),
+            contentType: expect.stringMatching(/^application\/(?:gzip|json)$/),
+          }),
+        ],
+      }
+    );
+  });
+
+  it('continues without db diagnostics when collection fails', async () => {
+    const fetchMock = vi.fn(async () => {
+      throw new Error('db locked');
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    vi.stubGlobal('window', {
+      electronAPI: {
+        emit: vi.fn(),
+        on: vi.fn(),
+      },
+    });
+
+    await submitFeedbackReport({
+      collectDbDiagnostics: {
+        routeAtOpen: '#/conversation/conv-1',
+        selectedModule: 'conversation-session',
+      },
+      collectLogs: false,
+      description: 'Conversation stuck',
+      module: 'conversation-session',
+      moduleLabel: 'Conversation & Sessions',
+    });
+
+    expect(fetchMock).toHaveBeenCalledOnce();
+    expect(sentryMocks.captureEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        extra: {
+          description: 'Conversation stuck',
+        },
+      }),
+      { attachments: [] }
+    );
+  });
+
   it('flushes when requested', async () => {
     await submitFeedbackReport({
       collectLogs: false,

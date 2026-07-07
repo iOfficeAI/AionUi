@@ -30,6 +30,11 @@ vi.mock('@/renderer/components/settings/SettingsModal/contents/FeedbackReportMod
     prefilledScreenshots?: Array<{ filename: string; data: Uint8Array; type: string }>;
     feedbackTags?: Record<string, string>;
     feedbackExtra?: Record<string, unknown>;
+    feedbackDiagnosticsContext?: {
+      explicitContext?: Record<string, string>;
+      explicitProfiles?: string[];
+      routeAtOpen?: string;
+    };
   }) => {
     modalSpy(props);
     if (!props.visible) return null;
@@ -57,15 +62,17 @@ function setElectronAPI(capture: CaptureFn | undefined) {
 const Trigger: React.FC<{
   module?: string;
   autoScreenshot?: boolean;
+  diagnosticsContext?: Record<string, string>;
+  diagnosticsProfiles?: string[];
   tags?: Record<string, string>;
   extra?: Record<string, unknown>;
-}> = ({ module, autoScreenshot, tags, extra }) => {
+}> = ({ module, autoScreenshot, diagnosticsContext, diagnosticsProfiles, tags, extra }) => {
   const { openFeedback } = useFeedback();
   return (
     <button
       type='button'
       onClick={() => {
-        openFeedback({ module, autoScreenshot, tags, extra });
+        openFeedback({ module, autoScreenshot, diagnosticsContext, diagnosticsProfiles, tags, extra });
       }}
     >
       open
@@ -79,6 +86,7 @@ describe('FeedbackProvider / useFeedback', () => {
   beforeEach(() => {
     modalSpy.mockClear();
     setElectronAPI(undefined);
+    window.location.hash = '';
   });
 
   afterEach(() => {
@@ -137,6 +145,29 @@ describe('FeedbackProvider / useFeedback', () => {
         code: 'USER_AGENT_ACP_INIT_FAILED',
         ownership: 'user_agent',
       },
+    });
+  });
+
+  it('captures route and explicit diagnostics context when opening feedback', async () => {
+    window.location.hash = '#/conversation/conv-1';
+    const user = userEvent.setup();
+    renderWithProvider(
+      <Trigger
+        module='system-settings'
+        autoScreenshot={false}
+        diagnosticsContext={{ conversationId: 'conv-1' }}
+        diagnosticsProfiles={['conversation-session']}
+      />
+    );
+
+    await user.click(document.querySelector('button')!);
+
+    const lastCall = modalSpy.mock.calls.at(-1)?.[0];
+    expect(lastCall.visible).toBe(true);
+    expect(lastCall.feedbackDiagnosticsContext).toEqual({
+      explicitContext: { conversationId: 'conv-1' },
+      explicitProfiles: ['conversation-session'],
+      routeAtOpen: '#/conversation/conv-1',
     });
   });
 
