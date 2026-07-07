@@ -209,6 +209,11 @@ export const buildAssistantEditorBackends = (
       id: agentId,
       name: agent.name_i18n?.[localeKey] || agent.name,
       runtimeKey,
+      isExtension: agent.isExtension,
+      // Prefer the agent's own avatar/icon; the dropdown falls back to the logo
+      // catalog (keyed by runtimeKey) when this is empty.
+      icon: agent.avatar || agent.icon,
+      customAgentId: agent.custom_agent_id,
       modelOptions: [],
     });
   }
