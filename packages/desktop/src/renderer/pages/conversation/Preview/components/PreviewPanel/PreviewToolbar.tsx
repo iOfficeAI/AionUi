@@ -6,7 +6,6 @@
 
 import type { PreviewHistoryTarget } from '@/common/types/office/preview';
 import { Dropdown } from '@arco-design/web-react';
-import { Aiming } from '@icon-park/react';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { shouldShowDownload } from './previewToolbarUtils';
@@ -262,7 +261,22 @@ const PreviewToolbar: React.FC<PreviewToolbarProps> = ({
               title={t('preview.revealInWorkspace')}
               aria-label={t('preview.revealInWorkspace')}
             >
-              <Aiming theme='outline' size={toolbarIconSize} fill='currentColor' />
+              <svg
+                width={toolbarIconSize}
+                height={toolbarIconSize}
+                viewBox='0 0 24 24'
+                fill='none'
+                stroke='currentColor'
+                strokeWidth='2'
+                strokeLinecap='round'
+                strokeLinejoin='round'
+              >
+                <circle cx='12' cy='12' r='3' />
+                <path d='M12 2v4' />
+                <path d='M12 18v4' />
+                <path d='M2 12h4' />
+                <path d='M18 12h4' />
+              </svg>
             </div>
           )}
 
