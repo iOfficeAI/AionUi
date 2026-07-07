@@ -14,7 +14,7 @@ import type {
 } from '@/common/types/platform/acpTypes';
 import { ensureConversationRuntime } from '@/renderer/pages/conversation/utils/ensureConversationRuntime';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import useSWR from 'swr';
+import useSWR, { mutate as swrMutate } from 'swr';
 
 export type AcpDerivedSelectOption = {
   value: string;
@@ -103,6 +103,10 @@ type AcpConfigOptionsKey = readonly ['acp-config-options', string];
 
 const getRuntimeConfigOptionsKey = (conversation_id: string): AcpConfigOptionsKey =>
   ['acp-config-options', conversation_id] as const;
+
+export function revalidateAcpConfigOptions(conversation_id: string): Promise<AcpConfigOptionDto[] | null | undefined> {
+  return swrMutate(getRuntimeConfigOptionsKey(conversation_id));
+}
 
 export type AcpConfigOptionsLoader = (conversation_id: string) => Promise<AcpConfigOptionDto[] | null | undefined>;
 

@@ -5,6 +5,7 @@ import type { TeamAssistantInput } from '@/common/adapter/teamMapper';
 import type {
   ITeamAgentRemovedEvent,
   ITeamAgentRenamedEvent,
+  ITeamAgentRuntimeStatusEvent,
   ITeamAgentSpawnedEvent,
   ITeamAgentStatusEvent,
   ITeamMcpStatusEvent,
@@ -16,6 +17,7 @@ import type {
 } from '@/common/types/team/teamTypes';
 import { useCallback, useEffect, useState } from 'react';
 import useSWR from 'swr';
+import { revalidateAcpConfigOptions } from '@/renderer/hooks/agent/useAcpConfigOptions';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
 import { removeTeamAssistantWithCronCleanup } from '../utils/removeTeamAssistantWithCronCleanup';
 
@@ -63,6 +65,12 @@ export function useTeamSession(team: TTeam) {
       void mutateTeam();
     });
 
+    const unsubRuntimeStatus = ipcBridge.team.agentRuntimeStatusChanged.on((event: ITeamAgentRuntimeStatusEvent) => {
+      if (event.team_id !== team.id) return;
+      if (event.status !== 'ready') return;
+      void revalidateAcpConfigOptions(event.conversation_id);
+    });
+
     const unsubMcpStatus = ipcBridge.team.mcpStatus.on((event: ITeamMcpStatusEvent) => {
       if (event.team_id !== team.id) return;
     });
@@ -82,6 +90,7 @@ export function useTeamSession(team: TTeam) {
       unsubSpawned();
       unsubRemoved();
       unsubRenamed();
+      unsubRuntimeStatus();
       unsubMcpStatus();
       unsubTaskChanged();
       unsubSessionChanged();

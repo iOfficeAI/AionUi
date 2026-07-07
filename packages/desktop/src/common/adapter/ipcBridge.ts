@@ -52,6 +52,7 @@ import type {
 import type {
   ITeamAgentRemovedEvent,
   ITeamAgentRenamedEvent,
+  ITeamAgentRuntimeStatusEvent,
   ITeamAgentSpawnedEvent,
   ITeamAgentStatusEvent,
   ITeamChildTurnEvent,
@@ -2017,6 +2018,7 @@ export const team = {
   agentSpawned: wsEmitter<ITeamAgentSpawnedEvent>('team.agentSpawned'),
   agentRemoved: wsEmitter<ITeamAgentRemovedEvent>('team.agentRemoved'),
   agentRenamed: wsEmitter<ITeamAgentRenamedEvent>('team.agentRenamed'),
+  agentRuntimeStatusChanged: wsEmitter<ITeamAgentRuntimeStatusEvent>('team.agentRuntimeStatusChanged'),
   listChanged: wsEmitter<ITeamListChangedEvent>('team.listChanged'),
   created: wsEmitter<ITeamCreatedEvent>('team.created'),
   removed: wsEmitter<ITeamRemovedEvent>('team.removed'),

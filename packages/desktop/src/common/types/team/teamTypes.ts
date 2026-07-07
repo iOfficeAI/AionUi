@@ -155,6 +155,17 @@ export type ITeamAgentRenamedEvent = {
   name: string;
 };
 
+export type TeamAgentRuntimeStatus = 'pending' | 'ready' | 'failed';
+
+/** IPC event pushed to renderer when a team member runtime attach/warmup status changes */
+export type ITeamAgentRuntimeStatusEvent = {
+  team_id: string;
+  slot_id: string;
+  conversation_id: string;
+  status: TeamAgentRuntimeStatus;
+  error?: string;
+};
+
 /** IPC event pushed to renderer when the team list changes (created/removed/agent changes) */
 export type ITeamListChangedEvent = {
   team_id: string;
