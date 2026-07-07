@@ -245,10 +245,10 @@ describe('AssistantEditorSections', () => {
 
     const defaultsCard = screen.getByTestId('assistant-card-defaults');
     const defaultsScope = within(defaultsCard);
-    expect(defaultsScope.getByText('Default Model')).toBeInTheDocument();
-    expect(defaultsScope.getByText('Default Permission')).toBeInTheDocument();
-    expect(defaultsScope.getByText('Default Skills')).toBeInTheDocument();
-    expect(defaultsScope.getByText('Default MCP')).toBeInTheDocument();
+    expect(defaultsScope.getByText('Model')).toBeInTheDocument();
+    expect(defaultsScope.getByText('Permission')).toBeInTheDocument();
+    expect(defaultsScope.getByText('Skills')).toBeInTheDocument();
+    expect(defaultsScope.getByText('MCP')).toBeInTheDocument();
     expect(
       defaultsScope.getByText(
         'Remember last used only takes effect after this assistant has recorded a previous selection.'
@@ -584,7 +584,7 @@ describe('AssistantEditorSections', () => {
       />
     );
 
-    expect(screen.getByText('Default Thought Level')).toBeInTheDocument();
+    expect(screen.getByText('Thought Level')).toBeInTheDocument();
     expect(screen.getByTestId('select-assistant-default-thought-level')).toHaveTextContent('High');
 
     fireEvent.click(screen.getByTestId('select-assistant-default-thought-level'));
@@ -646,7 +646,7 @@ describe('AssistantEditorSections', () => {
       />
     );
 
-    expect(screen.getByText('Default Thought Level')).toBeInTheDocument();
+    expect(screen.getByText('Thought Level')).toBeInTheDocument();
     expect(screen.getByTestId('select-assistant-default-thought-level')).toHaveTextContent(
       'Remember last used automatically'
     );
@@ -844,8 +844,8 @@ describe('AssistantEditorSections', () => {
     );
 
     const defaultsCard = screen.getByTestId('assistant-card-defaults');
-    expect(within(defaultsCard).getByText('Default Model')).toBeInTheDocument();
-    expect(within(defaultsCard).getByText('Default Permission')).toBeInTheDocument();
+    expect(within(defaultsCard).getByText('Model')).toBeInTheDocument();
+    expect(within(defaultsCard).getByText('Permission')).toBeInTheDocument();
 
     const modelSelect = container.querySelector('[data-testid="select-assistant-default-model"]');
     const permissionSelect = container.querySelector('[data-testid="select-assistant-default-permission"]');
