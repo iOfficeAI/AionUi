@@ -107,7 +107,7 @@ describe('TeamCreateModal', () => {
     expect(screen.queryByText('Aion CLI')).not.toBeInTheDocument();
     expect(screen.getByTestId('team-create-agent-option-blocked-reviewer')).toBeInTheDocument();
     expect(screen.getByTestId('team-create-agent-option-remote-runner')).toBeInTheDocument();
-    expect(screen.getByText('Temporarily unavailable for team mode')).toBeInTheDocument();
+    expect(screen.getByText('Agent internal error (code -32603)')).toBeInTheDocument();
 
     const createButton = screen.getByRole('button', { name: 'Confirm Create' });
     fireEvent.change(screen.getByPlaceholderText('Team name'), {
@@ -116,6 +116,19 @@ describe('TeamCreateModal', () => {
     fireEvent.click(screen.getByTestId('team-create-agent-option-blocked-reviewer'));
 
     expect(createButton).toBeDisabled();
+  });
+
+  it('keeps long blocked assistant reasons inside the left text column', () => {
+    render(<TeamCreateModal visible onClose={vi.fn()} onCreated={vi.fn()} />);
+
+    const blockedOption = screen.getByTestId('team-create-agent-option-blocked-reviewer');
+    const rowContent = blockedOption.querySelector('[data-testid="team-assistant-picker-row-content"]');
+    const textColumn = blockedOption.querySelector('[data-testid="team-assistant-picker-text"]');
+    const reason = screen.getByText('Agent internal error (code -32603)');
+
+    expect(rowContent).toHaveClass('!min-h-56px', '!h-auto');
+    expect(textColumn).toHaveClass('flex-1', 'overflow-hidden');
+    expect(reason).toHaveClass('max-w-full', 'truncate', 'text-left');
   });
 
   it('renders the reference two-column creation layout with details on the selected-member side', () => {
@@ -326,7 +339,7 @@ function assistants(): Assistant[] {
       agent_id: 'agent-claude',
       agent: { type: 'acp', source: 'builtin', acp_backend: 'claude' },
       team_selectable: false,
-      team_block_reason: 'Temporarily unavailable for team mode',
+      team_block_reason: 'Agent internal error (code -32603)',
       deletable: true,
     }),
     assistant({

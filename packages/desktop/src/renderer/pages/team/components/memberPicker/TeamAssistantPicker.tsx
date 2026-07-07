@@ -85,24 +85,37 @@ const TeamAssistantPicker: React.FC<Props> = ({
                       defaultValue: 'This assistant cannot be used in team mode right now.',
                     })
                   : undefined;
+              const rowClassName = isModalDensity
+                ? blockReason
+                  ? '!h-auto !min-h-56px !justify-start !rounded-8px !px-8px !py-6px hover:!bg-fill-2'
+                  : '!h-44px !justify-start !rounded-8px !px-8px !py-0 hover:!bg-fill-2'
+                : blockReason
+                  ? '!h-auto !min-h-58px !justify-start !rounded-8px !px-6px !py-6px hover:!bg-fill-2'
+                  : '!h-48px !justify-start !rounded-8px !px-6px !py-0 hover:!bg-fill-2';
               const row = (
                 <Button
                   long
                   type='text'
                   disabled={rowDisabled}
                   loading={pendingAssistantId === assistant.id}
-                  className={
-                    isModalDensity
-                      ? '!h-44px !justify-start !rounded-8px !px-8px !py-0 hover:!bg-fill-2'
-                      : '!h-48px !justify-start !rounded-8px !px-6px !py-0 hover:!bg-fill-2'
-                  }
+                  className={rowClassName}
                   onClick={() => onSelect(assistant)}
                   data-testid={`${testIdPrefix}-option-${assistantKey(assistant)}`}
                 >
-                  <div className='flex min-w-0 flex-1 items-center justify-between gap-12px'>
-                    <div className='min-w-0 flex flex-col items-start'>
+                  <div
+                    className={`flex min-w-0 flex-1 items-center justify-between gap-12px ${blockReason ? '!h-auto !min-h-56px' : ''}`}
+                    data-testid='team-assistant-picker-row-content'
+                  >
+                    <div
+                      className='min-w-0 flex flex-1 flex-col items-start overflow-hidden'
+                      data-testid='team-assistant-picker-text'
+                    >
                       <AssistantOptionLabel assistant={assistant} size={isModalDensity ? 'large' : 'compact'} />
-                      {blockReason ? <span className='mt-2px text-11px text-t-tertiary'>{blockReason}</span> : null}
+                      {blockReason ? (
+                        <span className='mt-2px max-w-full truncate text-left text-11px text-t-tertiary'>
+                          {blockReason}
+                        </span>
+                      ) : null}
                     </div>
                     <Plus
                       theme='outline'
