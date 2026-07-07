@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Message, Popover } from '@arco-design/web-react';
 import { useTranslation } from 'react-i18next';
 import type { TeamAssistant } from '@/common/types/team/teamTypes';
@@ -12,17 +12,22 @@ import TeamAssistantPicker from './TeamAssistantPicker';
 
 type Props = {
   children: React.ReactElement;
+  disabled?: boolean;
 };
 
-const TeamAddMemberPopover: React.FC<Props> = ({ children }) => {
+const TeamAddMemberPopover: React.FC<Props> = ({ children, disabled = false }) => {
   const { t, i18n } = useTranslation();
   const { assistants } = useTeamAssistantOptions(i18n?.language ?? 'en-US');
   const { addAssistant, switchTab } = useTeamTabs();
   const [visible, setVisible] = useState(false);
   const [pendingAssistantId, setPendingAssistantId] = useState<string | undefined>();
 
+  useEffect(() => {
+    if (disabled) setVisible(false);
+  }, [disabled]);
+
   const handleSelect = async (assistant: TeamAssistantOption) => {
-    if (!addAssistant || pendingAssistantId) return;
+    if (disabled || !addAssistant || pendingAssistantId) return;
     setPendingAssistantId(assistant.id);
     try {
       const model = await resolveDefaultTeamAgentModel({
@@ -51,13 +56,13 @@ const TeamAddMemberPopover: React.FC<Props> = ({ children }) => {
       position='br'
       style={{ padding: 0, maxWidth: 'none' }}
       popupVisible={visible}
-      onVisibleChange={setVisible}
+      onVisibleChange={(nextVisible) => setVisible(disabled ? false : nextVisible)}
       content={
         <div className='w-300px overflow-hidden rounded-10px bg-dialog-fill-0' data-testid='team-add-member-panel'>
           <TeamAssistantPicker
             assistants={assistants}
             onSelect={handleSelect}
-            disabled={!addAssistant}
+            disabled={disabled || !addAssistant}
             pendingAssistantId={pendingAssistantId}
             testIdPrefix='team-add-member'
             footer={t('team.addMember.footerHint', {

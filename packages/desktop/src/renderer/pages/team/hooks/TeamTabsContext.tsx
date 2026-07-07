@@ -22,6 +22,7 @@ export type TeamTabsContextValue = {
   renameAssistant?: (slot_id: string, new_name: string) => Promise<void>;
   removeAssistant?: (slot_id: string) => void;
   addAssistant?: (assistant: TeamAssistantInput) => Promise<TeamAssistant>;
+  membershipMutationBusy: boolean;
   reorderAssistants: (fromSlotId: string, toSlotId: string) => void;
 };
 
@@ -56,6 +57,7 @@ export const TeamTabsProvider: React.FC<{
   renameAssistant?: (slot_id: string, new_name: string) => Promise<void>;
   removeAssistant?: (slot_id: string) => void;
   addAssistant?: (assistant: TeamAssistantInput) => Promise<TeamAssistant>;
+  membershipMutationBusy?: boolean;
 }> = ({
   children,
   assistants: externalAssistants,
@@ -65,6 +67,7 @@ export const TeamTabsProvider: React.FC<{
   renameAssistant,
   removeAssistant,
   addAssistant,
+  membershipMutationBusy = false,
 }) => {
   const storageKey = `team-active-slot-${team_id}`;
   const savedSlotId = localStorage.getItem(storageKey);
@@ -155,6 +158,7 @@ export const TeamTabsProvider: React.FC<{
       renameAssistant: renameAssistant ? handleRenameAssistant : undefined,
       removeAssistant,
       addAssistant,
+      membershipMutationBusy,
       reorderAssistants,
     }),
     [
@@ -167,6 +171,7 @@ export const TeamTabsProvider: React.FC<{
       handleRenameAssistant,
       removeAssistant,
       addAssistant,
+      membershipMutationBusy,
       reorderAssistants,
     ]
   );

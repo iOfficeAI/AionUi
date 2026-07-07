@@ -25,6 +25,7 @@ type TeamTabViewProps = {
   onSwitch: (slot_id: string) => void;
   onRename?: (slot_id: string, new_name: string) => void;
   onRemove?: (slot_id: string) => void;
+  removeDisabled?: boolean;
   onDragStart: (slot_id: string) => void;
   onDragOver: (slot_id: string) => void;
   onDrop: () => void;
@@ -44,6 +45,7 @@ const TeamTabView: React.FC<TeamTabViewProps> = ({
   onSwitch,
   onRename,
   onRemove,
+  removeDisabled = false,
   onDragStart,
   onDragOver,
   onDrop,
@@ -169,9 +171,13 @@ const TeamTabView: React.FC<TeamTabViewProps> = ({
       {!editing && !isLeader && onRemove && (
         <span
           data-testid={`team-tab-remove-${slot_id}`}
-          className='opacity-0 group-hover:opacity-60 hover:!opacity-100 transition-opacity duration-150 shrink-0 flex items-center text-[color:var(--color-text-3)] hover:text-[color:var(--color-danger-6)]'
+          data-disabled={removeDisabled ? 'true' : 'false'}
+          className={`opacity-0 group-hover:opacity-60 transition-opacity duration-150 shrink-0 flex items-center text-[color:var(--color-text-3)] ${
+            removeDisabled ? 'cursor-not-allowed' : 'hover:!opacity-100 hover:text-[color:var(--color-danger-6)]'
+          }`}
           onClick={(e) => {
             e.stopPropagation();
+            if (removeDisabled) return;
             onRemove(slot_id);
           }}
         >
@@ -202,6 +208,7 @@ const TeamTabs: React.FC<TeamTabsProps> = ({ onTabClick, pendingCounts }) => {
     removeAssistant,
     reorderAssistants,
     addAssistant,
+    membershipMutationBusy,
   } = useTeamTabs();
   const tabsContainerRef = useRef<HTMLDivElement>(null);
   const [showLeftFade, setShowLeftFade] = useState(false);
@@ -285,6 +292,7 @@ const TeamTabs: React.FC<TeamTabsProps> = ({ onTabClick, pendingCounts }) => {
                 }}
                 onRename={renameAssistant ? (sid, name) => void renameAssistant(sid, name) : undefined}
                 onRemove={removeAssistant ? (sid) => void removeAssistant(sid) : undefined}
+                removeDisabled={membershipMutationBusy}
                 onDragStart={handleDragStart}
                 onDragOver={handleDragOver}
                 onDrop={handleDrop}
@@ -293,9 +301,10 @@ const TeamTabs: React.FC<TeamTabsProps> = ({ onTabClick, pendingCounts }) => {
             );
           })}
           {addAssistant ? (
-            <TeamAddMemberPopover>
+            <TeamAddMemberPopover disabled={membershipMutationBusy}>
               <Button
                 type='text'
+                disabled={membershipMutationBusy}
                 className='!h-full !w-40px !min-w-40px !shrink-0 !rounded-none !border-r !border-[color:var(--border-base)] !p-0'
                 icon={<Plus theme='outline' size='14' />}
                 data-testid='team-tab-add-member'

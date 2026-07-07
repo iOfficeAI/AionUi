@@ -20,6 +20,12 @@ import useSWR from 'swr';
 import { revalidateAcpConfigOptions } from '@/renderer/hooks/agent/useAcpConfigOptions';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
 import { removeTeamAssistantWithCronCleanup } from '../utils/removeTeamAssistantWithCronCleanup';
+import {
+  applyTeamMcpPhaseToMembershipMutationState,
+  applyTeamRuntimeStatusToMembershipMutationState,
+  createTeamMembershipMutationState,
+  isTeamMembershipMutationBusy,
+} from './teamMembershipMutationBusy';
 
 type AgentStatusInfo = {
   slot_id: string;
@@ -35,6 +41,8 @@ export function useTeamSession(team: TTeam) {
   const [statusMap, setStatusMap] = useState<Map<string, AgentStatusInfo>>(() => {
     return new Map(team.assistants.map((a) => [a.slot_id, { slot_id: a.slot_id, status: a.status }]));
   });
+  const [membershipMutationState, setMembershipMutationState] = useState(createTeamMembershipMutationState);
+  const membershipMutationBusy = isTeamMembershipMutationBusy(membershipMutationState);
 
   useEffect(() => {
     const unsubStatus = ipcBridge.team.agentStatusChanged.on((event: ITeamAgentStatusEvent) => {
@@ -67,12 +75,16 @@ export function useTeamSession(team: TTeam) {
 
     const unsubRuntimeStatus = ipcBridge.team.agentRuntimeStatusChanged.on((event: ITeamAgentRuntimeStatusEvent) => {
       if (event.team_id !== team.id) return;
+      setMembershipMutationState((prev) =>
+        applyTeamRuntimeStatusToMembershipMutationState(prev, event.slot_id, event.status)
+      );
       if (event.status !== 'ready') return;
       void revalidateAcpConfigOptions(event.conversation_id);
     });
 
     const unsubMcpStatus = ipcBridge.team.mcpStatus.on((event: ITeamMcpStatusEvent) => {
       if (event.team_id !== team.id) return;
+      setMembershipMutationState((prev) => applyTeamMcpPhaseToMembershipMutationState(prev, event.phase));
     });
 
     const unsubTaskChanged = ipcBridge.team.taskChanged.on((event: ITeamTaskChangedEvent) => {
@@ -128,5 +140,5 @@ export function useTeamSession(team: TTeam) {
     [team, mutateTeam]
   );
 
-  return { statusMap, addAssistant, renameAssistant, removeAssistant, mutateTeam };
+  return { statusMap, membershipMutationBusy, addAssistant, renameAssistant, removeAssistant, mutateTeam };
 }

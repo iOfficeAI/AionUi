@@ -551,7 +551,8 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onRenameTeam })
 
 const TeamPage: React.FC<Props> = ({ team }) => {
   const { t } = useTranslation();
-  const { statusMap, addAssistant, renameAssistant, removeAssistant, mutateTeam } = useTeamSession(team);
+  const { statusMap, membershipMutationBusy, addAssistant, renameAssistant, removeAssistant, mutateTeam } =
+    useTeamSession(team);
   const { user } = useAuth();
   const { mutate: globalMutate } = useSWRConfig();
   const defaultSlotId = team.assistants[0]?.slot_id ?? '';
@@ -604,6 +605,7 @@ const TeamPage: React.FC<Props> = ({ team }) => {
       addAssistant={addAssistant}
       renameAssistant={renameAssistant}
       removeAssistant={handleRemoveAssistantWithConfirm}
+      membershipMutationBusy={membershipMutationBusy}
     >
       <TeamPageContent team={team} onRenameTeam={handleRenameTeam} />
     </TeamTabsProvider>
