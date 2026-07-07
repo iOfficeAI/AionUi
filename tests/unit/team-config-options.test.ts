@@ -2,14 +2,15 @@ import { describe, expect, it, vi } from 'vitest';
 import { createTeamConfigOptionsLoader } from '@/renderer/pages/team/hooks/teamConfigOptions';
 
 describe('createTeamConfigOptionsLoader', () => {
-  it('starts team warmup without blocking a conversation config snapshot', async () => {
+  it('waits for team warmup before loading a conversation config snapshot', async () => {
     const calls: string[] = [];
-    const warmupSession = vi.fn(
-      () =>
-        new Promise<void>(() => {
-          calls.push('warmup');
-        })
-    );
+    let resolveWarmup!: () => void;
+    const warmupSession = vi.fn(() => {
+      calls.push('warmup');
+      return new Promise<void>((resolve) => {
+        resolveWarmup = resolve;
+      });
+    });
     const getConfigOptions = vi.fn(async (team_id: string, conversation_id: string) => {
       calls.push(`get:${team_id}:${conversation_id}`);
       return {
@@ -30,14 +31,17 @@ describe('createTeamConfigOptionsLoader', () => {
       getConfigOptions,
     });
 
-    const result = await Promise.race([
-      loader('conversation-1'),
-      new Promise<'blocked'>((resolve) => setTimeout(() => resolve('blocked'), 25)),
-    ]);
+    const pending = loader('conversation-1');
+    await Promise.resolve();
 
-    expect(result).not.toBe('blocked');
+    expect(calls).toEqual(['warmup']);
+    expect(getConfigOptions).not.toHaveBeenCalled();
+
+    resolveWarmup();
+    const result = await pending;
+
     expect(calls).toEqual(['warmup', 'get:team-1:conversation-1']);
-    expect(result && result !== 'blocked' ? result[0]?.current_value : null).toBe('gpt-5.5');
+    expect(result?.[0]?.current_value).toBe('gpt-5.5');
   });
 
   it('can await warmup explicitly when callers need the whole team ready', async () => {
