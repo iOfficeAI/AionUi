@@ -105,6 +105,7 @@ const AssistantChatSlot: React.FC<{
   isFullscreen?: boolean;
   onToggleFullscreen?: () => void;
   onRemove?: () => void;
+  removeDisabled?: boolean;
   teamRunView: TeamRunViewState;
   onTeamRunAck: ReturnType<typeof useTeamRunView>['applyAck'];
   onRunStateStale: ReturnType<typeof useTeamRunView>['reconcile'];
@@ -115,6 +116,7 @@ const AssistantChatSlot: React.FC<{
   isFullscreen = false,
   onToggleFullscreen,
   onRemove,
+  removeDisabled = false,
   teamRunView,
   onTeamRunAck,
   onRunStateStale,
@@ -185,8 +187,16 @@ const AssistantChatSlot: React.FC<{
           {!isLeader && onRemove && (
             <div
               data-testid={`team-remove-assistant-${assistant.slot_id}`}
-              className='shrink-0 cursor-pointer hover:bg-[var(--fill-3)] p-4px rd-4px text-[color:var(--color-text-3)] hover:text-[color:var(--color-danger-6)] transition-colors'
-              onClick={onRemove}
+              data-disabled={removeDisabled ? 'true' : 'false'}
+              className={`shrink-0 p-4px rd-4px text-[color:var(--color-text-3)] transition-colors ${
+                removeDisabled
+                  ? 'cursor-not-allowed opacity-45'
+                  : 'cursor-pointer hover:bg-[var(--fill-3)] hover:text-[color:var(--color-danger-6)]'
+              }`}
+              onClick={() => {
+                if (removeDisabled) return;
+                onRemove();
+              }}
             >
               <CloseSmall size='16' fill='currentColor' />
             </div>
@@ -227,7 +237,7 @@ const AssistantChatSlot: React.FC<{
 const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onRenameTeam }) => {
   const { t } = useTranslation();
   useActiveLease({ type: 'team', id: team.id });
-  const { assistants, activeSlotId, statusMap, switchTab } = useTeamTabs();
+  const { assistants, activeSlotId, statusMap, switchTab, membershipMutationBusy } = useTeamTabs();
   const [, messageContext] = Message.useMessage({ maxCount: 1 });
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -264,6 +274,8 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onRenameTeam })
 
   const handleRemoveAssistant = useCallback(
     (slot_id: string) => {
+      if (membershipMutationBusy) return;
+
       const status = statusMap.get(slot_id)?.status;
       if (status === 'active') {
         Modal.confirm({
@@ -275,7 +287,7 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onRenameTeam })
         void doRemoveAssistant(slot_id);
       }
     },
-    [statusMap, doRemoveAssistant, t]
+    [membershipMutationBusy, statusMap, doRemoveAssistant, t]
   );
   const leaderConversationId = leadAssistant?.conversation_id ?? '';
   const isLeaderAssistant = activeAssistant?.role === 'leader';
@@ -462,6 +474,7 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onRenameTeam })
                     isFullscreen
                     onToggleFullscreen={() => setFullscreenSlotId(null)}
                     onRemove={() => handleRemoveAssistant(assistant.slot_id)}
+                    removeDisabled={membershipMutationBusy}
                     teamRunView={teamRun.state}
                     onTeamRunAck={teamRun.applyAck}
                     onRunStateStale={teamRun.reconcile}
@@ -519,6 +532,7 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onRenameTeam })
                         isLeader={isLeaderSlot}
                         onToggleFullscreen={() => setFullscreenSlotId(assistant.slot_id)}
                         onRemove={() => handleRemoveAssistant(assistant.slot_id)}
+                        removeDisabled={membershipMutationBusy}
                         teamRunView={teamRun.state}
                         onTeamRunAck={teamRun.applyAck}
                         onRunStateStale={teamRun.reconcile}
@@ -559,6 +573,8 @@ const TeamPage: React.FC<Props> = ({ team }) => {
 
   const handleRemoveAssistantWithConfirm = useCallback(
     (slot_id: string) => {
+      if (membershipMutationBusy) return;
+
       const doRemoveAssistant = async () => {
         try {
           await removeAssistant(slot_id);
@@ -578,7 +594,7 @@ const TeamPage: React.FC<Props> = ({ team }) => {
         void doRemoveAssistant();
       }
     },
-    [statusMap, removeAssistant, t]
+    [membershipMutationBusy, statusMap, removeAssistant, t]
   );
 
   const handleRenameTeam = useCallback(
