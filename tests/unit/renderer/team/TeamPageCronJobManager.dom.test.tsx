@@ -52,6 +52,7 @@ vi.mock('@/common', () => ({
       agentSpawned: eventChannel,
       agentRemoved: eventChannel,
       agentRenamed: eventChannel,
+      agentRuntimeStatusChanged: eventChannel,
       mcpStatus: eventChannel,
       taskChanged: eventChannel,
       sessionChanged: eventChannel,

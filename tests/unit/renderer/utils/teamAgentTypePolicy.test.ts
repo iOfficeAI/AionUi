@@ -20,12 +20,12 @@ describe('team agent type policy', () => {
     ];
 
     expect(filterTeamSupportedAssistants(options)).toEqual([
-      expect.objectContaining({ backend: 'claude', team_capable: true }),
-      expect.objectContaining({ backend: 'aionrs', team_capable: true }),
-      expect.objectContaining({ backend: 'openclaw-gateway', team_capable: false }),
-      expect.objectContaining({ backend: 'nanobot', team_capable: false }),
-      expect.objectContaining({ backend: 'remote', team_capable: false }),
-      expect.objectContaining({ backend: 'gemini', team_capable: false }),
+      expect.objectContaining({ backend: 'claude', team_selectable: true }),
+      expect.objectContaining({ backend: 'aionrs', team_selectable: true }),
+      expect.objectContaining({ backend: 'openclaw-gateway', team_selectable: false }),
+      expect.objectContaining({ backend: 'nanobot', team_selectable: false }),
+      expect.objectContaining({ backend: 'remote', team_selectable: false }),
+      expect.objectContaining({ backend: 'gemini', team_selectable: false }),
     ]);
   });
 
@@ -33,9 +33,9 @@ describe('team agent type policy', () => {
     const selectable = assistantToOption(assistant('assistant-1', true, undefined));
     const blocked = assistantToOption(assistant('assistant-2', false, 'agent unavailable'));
 
-    expect(selectable.team_capable).toBe(true);
+    expect(selectable.team_selectable).toBe(true);
     expect(selectable.team_block_reason).toBeUndefined();
-    expect(blocked.team_capable).toBe(false);
+    expect(blocked.team_selectable).toBe(false);
     expect(blocked.team_block_reason).toBe('agent unavailable');
   });
 
