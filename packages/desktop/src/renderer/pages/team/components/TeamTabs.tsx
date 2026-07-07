@@ -290,7 +290,11 @@ const TeamTabs: React.FC<TeamTabsProps> = ({ onTabClick, pendingCounts }) => {
                   switchTab(slot_id);
                   onTabClick?.(slot_id);
                 }}
-                onRename={renameAssistant ? (sid, name) => void renameAssistant(sid, name) : undefined}
+                onRename={
+                  renameAssistant && !membershipMutationBusy
+                    ? (sid, name) => void renameAssistant(sid, name)
+                    : undefined
+                }
                 onRemove={removeAssistant ? (sid) => void removeAssistant(sid) : undefined}
                 removeDisabled={membershipMutationBusy}
                 onDragStart={handleDragStart}
