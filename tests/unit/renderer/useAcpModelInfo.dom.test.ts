@@ -200,6 +200,35 @@ describe('useAcpModelInfo', () => {
     expect(result.current.isLoading).toBe(false);
   });
 
+  it('shows the persisted model while an injected config option snapshot is still loading', async () => {
+    const configOptionsDeferred = deferred<AcpConfigOptionDto[]>();
+    const loadConfigOptions = vi.fn().mockReturnValue(configOptionsDeferred.promise);
+
+    const { result } = renderUseAcpModelInfo({
+      conversation_id: 'conv-1',
+      backend: 'claude',
+      initialModelId: 'sonnet-4',
+      loadConfigOptions,
+    });
+
+    await waitFor(() => {
+      expect(loadConfigOptions).toHaveBeenCalledWith('conv-1');
+    });
+    expect(result.current.model_info?.current_model_id).toBe('sonnet-4');
+    expect(result.current.canSwitch).toBe(false);
+    expect(result.current.isLoading).toBe(false);
+
+    await act(async () => {
+      configOptionsDeferred.resolve(buildConfigOptions('opus-4'));
+      await configOptionsDeferred.promise;
+    });
+
+    await waitFor(() => {
+      expect(result.current.model_info?.current_model_id).toBe('opus-4');
+      expect(result.current.canSwitch).toBe(true);
+    });
+  });
+
   it('preserves model option descriptions from config options', async () => {
     ensureRuntimeInvokeMock.mockResolvedValue({
       recovered: true,

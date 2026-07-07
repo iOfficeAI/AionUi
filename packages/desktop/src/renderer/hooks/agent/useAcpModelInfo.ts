@@ -129,7 +129,7 @@ export const useAcpModelInfo = ({
     return ipcBridge.acpConversation.responseStream.on(handler);
   }, [conversation_id, enabled, initialModelId]);
 
-  const model_info = configModelInfo ?? legacyModelInfo ?? (!isLoading ? persistedModelInfo : null);
+  const model_info = configModelInfo ?? legacyModelInfo ?? persistedModelInfo;
 
   const selectModel = useCallback(
     (model_id: string) => {
