@@ -58,6 +58,7 @@ describe('FeedbackReportModal — prefill', () => {
   beforeEach(() => {
     // Ensure no leftover global electronAPI from other tests interferes.
     (window as unknown as { electronAPI?: unknown }).electronAPI = undefined;
+    window.location.hash = '';
     sentryMocks.setTag.mockClear();
     sentryMocks.captureEvent.mockClear();
     sentryMocks.withScope.mockClear();
@@ -193,5 +194,55 @@ describe('FeedbackReportModal — prefill', () => {
       expect.objectContaining({ attachments: [] })
     );
     expect(onCancel).toHaveBeenCalledTimes(1);
+  });
+
+  it('submits route and module diagnostics context for DB attachment collection', async () => {
+    window.location.hash = '#/conversation/conv-1';
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          success: true,
+          data: {
+            schema_version: 'feedback-diagnostics/v1',
+            profiles: [],
+            privacy: { raw_content_included: false, api_keys_included: false },
+          },
+        }),
+        {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      )
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const user = userEvent.setup();
+    renderModal(
+      <FeedbackReportModal
+        visible={true}
+        onCancel={vi.fn()}
+        defaultModule='system-settings'
+        feedbackDiagnosticsContext={{
+          explicitContext: { conversationId: 'conv-1' },
+          explicitProfiles: ['conversation-session'],
+          routeAtOpen: '#/conversation/conv-1',
+        }}
+      />
+    );
+
+    await user.type(screen.getByPlaceholderText('settings.bugReportDescriptionPlaceholder'), 'wrong module selected');
+    await user.click(screen.getByText('settings.bugReportSubmit'));
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledOnce();
+    });
+    const [path, options] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(path).toContain('/api/system/diagnostics/feedback-report?');
+    expect(path).toContain('conversation_id=conv-1');
+    expect(path).toContain('profiles=conversation-session');
+    expect(path).toContain('route_at_open=%23%2Fconversation%2Fconv-1');
+    expect(path).toContain('route_at_submit=%23%2Fconversation%2Fconv-1');
+    expect(path).toContain('selected_module=system-settings');
+    expect(options.method).toBe('GET');
   });
 });
