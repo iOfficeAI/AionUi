@@ -81,14 +81,20 @@
   white-space: nowrap;
 }
 
-.chat-workspace .workspace-search-folder-hint {
+.chat-workspace .workspace-search-meta {
   display: flex;
+  min-height: 18px;
   flex-wrap: wrap;
   gap: 6px;
   color: var(--color-text-3);
   font-size: 12px;
   line-height: 18px;
   padding: 0 2px;
+}
+
+.chat-workspace .workspace-search-meta:empty::before {
+  content: '\00a0';
+  visibility: hidden;
 }
 
 .chat-workspace .workspace-search-folder-name {
@@ -98,9 +104,6 @@
 
 .chat-workspace .workspace-search-stats {
   color: var(--color-text-3);
-  font-size: 12px;
-  line-height: 18px;
-  padding: 0 2px;
 }
 
 .chat-workspace .workspace-changes-groups {

@@ -46,6 +46,8 @@ const WorkspaceSearchBar: React.FC<WorkspaceSearchBarProps> = ({
 }) => {
   if (!showSearch && !searchText) return null;
 
+  const hasSearchStats = Boolean(searchText.trim() && searchStats);
+
   return (
     <div className='px-12px'>
       <div className='py-8px workspace-toolbar-search'>
@@ -72,23 +74,6 @@ const WorkspaceSearchBar: React.FC<WorkspaceSearchBarProps> = ({
             <Radio value='workspace'>{t('conversation.workspace.searchScope.workspace')}</Radio>
             <Radio value='currentFolder'>{t('conversation.workspace.searchScope.currentFolder')}</Radio>
           </Radio.Group>
-          {searchScope === 'currentFolder' && (
-            <div className='workspace-search-folder-hint'>
-              {searchFolderLabel ? (
-                <span className='workspace-search-folder-name'>
-                  {t('conversation.workspace.searchScope.selectedFolder', { folder: searchFolderLabel })}
-                </span>
-              ) : (
-                <span>
-                  {t(
-                    isMobile
-                      ? 'conversation.workspace.searchScope.folderHintMobile'
-                      : 'conversation.workspace.searchScope.folderHintDesktop'
-                  )}
-                </span>
-              )}
-            </div>
-          )}
           <Radio.Group
             className='workspace-search-segment'
             size='mini'
@@ -100,14 +85,30 @@ const WorkspaceSearchBar: React.FC<WorkspaceSearchBarProps> = ({
             <Radio value='name'>{t('conversation.workspace.searchMode.name')}</Radio>
             <Radio value='content'>{t('conversation.workspace.searchMode.content')}</Radio>
           </Radio.Group>
-          {searchText.trim() && searchStats && (
-            <div className='workspace-search-stats'>
-              {t('conversation.workspace.searchStats', {
-                fileCount: searchStats.fileCount,
-                contentBlockCount: searchStats.contentBlockCount,
-              })}
-            </div>
-          )}
+          <div className='workspace-search-meta'>
+            {searchScope === 'currentFolder' &&
+              (searchFolderLabel ? (
+                <span className='workspace-search-folder-name'>
+                  {t('conversation.workspace.searchScope.selectedFolder', { folder: searchFolderLabel })}
+                </span>
+              ) : (
+                <span>
+                  {t(
+                    isMobile
+                      ? 'conversation.workspace.searchScope.folderHintMobile'
+                      : 'conversation.workspace.searchScope.folderHintDesktop'
+                  )}
+                </span>
+              ))}
+            {hasSearchStats && (
+              <span className='workspace-search-stats'>
+                {t('conversation.workspace.searchStats', {
+                  fileCount: searchStats?.fileCount ?? 0,
+                  contentBlockCount: searchStats?.contentBlockCount ?? 0,
+                })}
+              </span>
+            )}
+          </div>
         </div>
       </div>
       <div className='border-b border-b-base' />

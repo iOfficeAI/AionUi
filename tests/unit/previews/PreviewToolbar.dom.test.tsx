@@ -10,8 +10,8 @@ import { describe, expect, it, vi } from 'vitest';
 import PreviewToolbar from '@/renderer/pages/conversation/Preview/components/PreviewPanel/PreviewToolbar';
 
 vi.mock('@icon-park/react', () => ({
+  Aiming: () => <span data-testid='aiming-icon' />,
   Close: () => <span data-testid='close-icon' />,
-  FileFocus: () => <span data-testid='file-focus-icon' />,
 }));
 
 vi.mock('@arco-design/web-react', () => ({

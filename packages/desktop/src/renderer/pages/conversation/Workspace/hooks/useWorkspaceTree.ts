@@ -8,7 +8,7 @@ import { ipcBridge } from '@/common';
 import type { IDirOrFile } from '@/common/adapter/ipcBridge';
 import { emitter } from '@/renderer/utils/emitter';
 import { dispatchWorkspaceHasFilesEvent } from '@/renderer/utils/workspace/workspaceEvents';
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { SelectedNodeRef } from '../types';
 import { getFirstLevelKeys, mergeLoadedChildren } from '../utils/treeHelpers';
 
@@ -19,6 +19,11 @@ interface UseWorkspaceTreeOptions {
 }
 
 export type WorkspaceSearchMode = 'all' | 'name' | 'content';
+
+type LoadWorkspaceOptions = {
+  preserveLoadedChildren?: boolean;
+  resetExpandedKeys?: boolean;
+};
 
 /**
  * useWorkspaceTree - 合并树状态管理和选择逻辑
@@ -42,25 +47,42 @@ export function useWorkspaceTree({ workspace, conversation_id, eventPrefix }: Us
 
   // Loading time tracker / 加载时间追踪
   const lastLoadingTime = useRef(Date.now());
+  const loadingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   /**
    * 设置 loading 状态（带防抖，避免图标闪烁）
    * Set loading state with debounce to avoid icon flickering
    */
   const setLoadingHandler = useCallback((newState: boolean) => {
+    if (loadingTimerRef.current) {
+      clearTimeout(loadingTimerRef.current);
+      loadingTimerRef.current = null;
+    }
     if (newState) {
       lastLoadingTime.current = Date.now();
       setLoading(true);
-    } else {
-      // 确保loading动画保持至少1秒 / Ensure loading animation lasts at least 1 second
-      if (Date.now() - lastLoadingTime.current > 1000) {
-        setLoading(false);
-      } else {
-        setTimeout(() => {
-          setLoading(false);
-        }, 1000);
-      }
+      return;
     }
+
+    // Keep a tiny minimum duration to avoid flicker without making manual refresh feel stuck.
+    const remaining = Math.max(0, 250 - (Date.now() - lastLoadingTime.current));
+    if (remaining === 0) {
+      setLoading(false);
+      return;
+    }
+
+    loadingTimerRef.current = setTimeout(() => {
+      setLoading(false);
+      loadingTimerRef.current = null;
+    }, remaining);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (loadingTimerRef.current) {
+        clearTimeout(loadingTimerRef.current);
+      }
+    };
   }, []);
 
   /**
@@ -71,7 +93,7 @@ export function useWorkspaceTree({ workspace, conversation_id, eventPrefix }: Us
   const loadSeqRef = useRef(0);
 
   const loadWorkspace = useCallback(
-    (path: string, search?: string, searchMode?: WorkspaceSearchMode) => {
+    (path: string, search?: string, searchMode?: WorkspaceSearchMode, options: LoadWorkspaceOptions = {}) => {
       const seq = ++loadSeqRef.current;
       setLoadingHandler(true);
       return ipcBridge.conversation.getWorkspace
@@ -99,7 +121,8 @@ export function useWorkspaceTree({ workspace, conversation_id, eventPrefix }: Us
           // user had expanded via loadMore. Skipped for searches and the very
           // first load (no prior tree to merge). Functional setState reads the
           // latest files snapshot without a stale closure.
-          if (!search && !isFirstLoadRef.current) {
+          const shouldPreserveLoadedChildren = options.preserveLoadedChildren ?? (!search && !isFirstLoadRef.current);
+          if (shouldPreserveLoadedChildren) {
             setFiles((prev) => mergeLoadedChildren(res, prev));
           } else {
             setFiles(res);
@@ -112,7 +135,7 @@ export function useWorkspaceTree({ workspace, conversation_id, eventPrefix }: Us
 
           // 首次加载时展开第一层，后续刷新时保留用户已展开的目录
           // On first load expand first level; on subsequent refreshes preserve user-expanded dirs
-          if (isFirstLoadRef.current) {
+          if (isFirstLoadRef.current || options.resetExpandedKeys) {
             setExpandedKeys(getFirstLevelKeys(res));
           } else {
             setExpandedKeys((prev) => {
@@ -146,7 +169,9 @@ export function useWorkspaceTree({ workspace, conversation_id, eventPrefix }: Us
           return [] as IDirOrFile[];
         })
         .finally(() => {
-          setLoadingHandler(false);
+          if (seq === loadSeqRef.current) {
+            setLoadingHandler(false);
+          }
         });
     },
     [conversation_id, workspace, setLoadingHandler]
@@ -158,6 +183,17 @@ export function useWorkspaceTree({ workspace, conversation_id, eventPrefix }: Us
    */
   const refreshWorkspace = useCallback(() => {
     return loadWorkspace(workspace);
+  }, [workspace, loadWorkspace]);
+
+  /**
+   * Force-refresh workspace from disk for the explicit toolbar refresh button.
+   * This avoids reusing stale lazy-loaded children when the user asks for a manual refresh.
+   */
+  const forceRefreshWorkspace = useCallback(() => {
+    return loadWorkspace(workspace, undefined, undefined, {
+      preserveLoadedChildren: false,
+      resetExpandedKeys: true,
+    });
   }, [workspace, loadWorkspace]);
 
   /**
@@ -258,6 +294,7 @@ export function useWorkspaceTree({ workspace, conversation_id, eventPrefix }: Us
     setSelected,
     loadWorkspace,
     refreshWorkspace,
+    forceRefreshWorkspace,
     ensureNodeSelected,
     clearSelection,
   };
