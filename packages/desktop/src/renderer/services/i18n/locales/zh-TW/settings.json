@@ -326,6 +326,7 @@
   "modelName": "模型名稱",
   "baseUrl": "base url",
   "apiEndpoint": "API 請求地址",
+  "baseUrlResetToDefault": "重設為預設",
   "fullUrl": "完整URL",
   "fullUrlMode": "完整 URL",
   "fullUrlHint": "直接使用此地址，不拼接路徑",

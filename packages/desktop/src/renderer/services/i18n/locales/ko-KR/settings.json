@@ -326,6 +326,7 @@
   "modelName": "모델 이름",
   "baseUrl": "기본 URL",
   "apiEndpoint": "API 엔드포인트",
+  "baseUrlResetToDefault": "기본값으로 재설정",
   "fullUrl": "전체 URL",
   "fullUrlMode": "전체 URL",
   "fullUrlHint": "이 주소를 직접 사용하며 경로를 추가하지 않습니다",

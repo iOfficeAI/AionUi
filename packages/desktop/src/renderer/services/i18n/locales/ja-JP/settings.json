@@ -326,6 +326,7 @@
   "modelName": "モデル名",
   "baseUrl": "ベースURL",
   "apiEndpoint": "APIエンドポイント",
+  "baseUrlResetToDefault": "デフォルトに戻す",
   "fullUrl": "完全URL",
   "fullUrlMode": "完全URL",
   "fullUrlHint": "このアドレスをそのまま使用し、パスを追加しません",

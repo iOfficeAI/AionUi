@@ -326,6 +326,7 @@
   "modelName": "نام مدل",
   "baseUrl": "آدرس پایه",
   "apiEndpoint": "نقطه پایانی API",
+  "baseUrlResetToDefault": "بازنشانی به پیش‌فرض",
   "fullUrl": "آدرس کامل",
   "fullUrlMode": "آدرس کامل",
   "fullUrlHint": "از این آدرس مستقیماً استفاده می‌شود، مسیری اضافه نمی‌شود",

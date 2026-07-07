@@ -326,6 +326,7 @@
   "modelName": "Nome do Modelo",
   "baseUrl": "URL base",
   "apiEndpoint": "Ponto de Extremidade da API",
+  "baseUrlResetToDefault": "Redefinir para o padrão",
   "fullUrl": "URL Completa",
   "fullUrlMode": "URL Completa",
   "fullUrlHint": "Usa este endereço diretamente, nenhum caminho é adicionado",

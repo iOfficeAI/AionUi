@@ -1371,6 +1371,7 @@ export type I18nKey =
   | 'settings.baseUrl'
   | 'settings.baseUrlAutoFix'
   | 'settings.baseUrlHint'
+  | 'settings.baseUrlResetToDefault'
   | 'settings.bedrock.accessKeyId'
   | 'settings.bedrock.authMethod'
   | 'settings.bedrock.authMethodAccessKey'

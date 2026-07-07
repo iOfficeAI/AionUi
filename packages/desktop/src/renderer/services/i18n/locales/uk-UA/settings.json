@@ -326,6 +326,7 @@
   "modelName": "Назва моделі",
   "baseUrl": "base url",
   "apiEndpoint": "Адреса API",
+  "baseUrlResetToDefault": "Скинути до типового",
   "fullUrl": "Повний URL",
   "fullUrlMode": "Повний URL",
   "fullUrlHint": "Використовувати цю адресу безпосередньо, без додавання шляху",

@@ -326,6 +326,7 @@
   "modelName": "Model Name",
   "baseUrl": "base url",
   "apiEndpoint": "API Endpoint",
+  "baseUrlResetToDefault": "Reset to default",
   "fullUrl": "Full URL",
   "fullUrlMode": "Full URL",
   "fullUrlHint": "Use this address directly, no path appended",

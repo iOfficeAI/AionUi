@@ -326,6 +326,7 @@
   "modelName": "Model Adı",
   "baseUrl": "Temel URL",
   "apiEndpoint": "API Uç Noktası",
+  "baseUrlResetToDefault": "Varsayılana sıfırla",
   "fullUrl": "Tam URL",
   "fullUrlMode": "Tam URL",
   "fullUrlHint": "Bu adresi doğrudan kullan, yol ekleme",
