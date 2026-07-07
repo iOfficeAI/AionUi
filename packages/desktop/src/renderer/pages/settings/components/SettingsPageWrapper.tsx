@@ -156,13 +156,20 @@ const SettingsPageWrapper: React.FC<SettingsPageWrapperProps> = ({ children, cla
     return result;
   }, [isDesktop, t, extensionTabs, resolveExtTabName]);
 
+  // Keep only horizontal padding on the scroll container — vertical padding is
+  // moved to the content layer below. A sticky header inside a scroll container
+  // with top padding would otherwise stick 32px down, letting content peek
+  // through the gap above it.
   const containerClass = classNames(
     'settings-page-wrapper w-full min-h-full box-border overflow-y-auto',
-    isMobile ? 'px-16px py-14px' : 'px-12px md:px-40px py-32px',
+    isMobile ? 'px-16px' : 'px-12px md:px-40px',
     className
   );
 
-  const contentClass = classNames('settings-page-content mx-auto w-full md:max-w-1024px', contentClassName);
+  const contentClass = classNames(
+    'settings-page-content mx-auto w-full md:max-w-1024px py-14px md:py-32px',
+    contentClassName
+  );
 
   const navigateToTab = React.useCallback(
     (tabId: string) => {
