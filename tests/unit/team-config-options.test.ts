@@ -15,14 +15,11 @@ describe('createTeamConfigOptionsLoader', () => {
     ],
   };
 
-  it('waits for team warmup before loading a conversation config snapshot', async () => {
+  it('loads a conversation config snapshot without warming the whole team', async () => {
     const calls: string[] = [];
-    let resolveWarmup!: () => void;
     const warmupSession = vi.fn(() => {
       calls.push('warmup');
-      return new Promise<void>((resolve) => {
-        resolveWarmup = resolve;
-      });
+      return Promise.resolve();
     });
     const getConfigOptions = vi.fn(async (team_id: string, conversation_id: string) => {
       calls.push(`get:${team_id}:${conversation_id}`);
@@ -34,16 +31,10 @@ describe('createTeamConfigOptionsLoader', () => {
       getConfigOptions,
     });
 
-    const pending = loader('conversation-1');
-    await Promise.resolve();
+    const result = await loader('conversation-1');
 
-    expect(calls).toEqual(['warmup']);
-    expect(getConfigOptions).not.toHaveBeenCalled();
-
-    resolveWarmup();
-    const result = await pending;
-
-    expect(calls).toEqual(['warmup', 'get:team-1:conversation-1']);
+    expect(calls).toEqual(['get:team-1:conversation-1']);
+    expect(warmupSession).not.toHaveBeenCalled();
     expect(result?.[0]?.current_value).toBe('gpt-5.5');
   });
 
@@ -98,7 +89,7 @@ describe('createTeamConfigOptionsLoader', () => {
 
       await expectation;
       expect(getConfigOptions).toHaveBeenCalledTimes(1);
-      expect(warmupSession).toHaveBeenCalledTimes(1);
+      expect(warmupSession).not.toHaveBeenCalled();
     } finally {
       vi.useRealTimers();
     }

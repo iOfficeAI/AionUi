@@ -163,9 +163,7 @@ const AionrsSendBox: React.FC<{
 
   const [agentWarmed, setAgentWarmed] = useState(false);
   const prepareRuntimeConfig = useCallback(async () => {
-    if (teamPermission) {
-      await teamPermission.warmupSession();
-    }
+    if (teamPermission) return;
   }, [teamPermission]);
   const prepareRuntimeSync = useCallback(async () => {
     if (teamPermission) {

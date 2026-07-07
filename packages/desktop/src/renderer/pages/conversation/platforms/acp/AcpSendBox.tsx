@@ -140,9 +140,7 @@ const AcpSendBox: React.FC<{
   const [isMobileSheetOpen, setIsMobileSheetOpen] = useState(false);
   const [currentMode, setCurrentMode] = useState<string | undefined>(session_mode);
   const prepareRuntimeConfig = useCallback(async () => {
-    if (teamPermission) {
-      await teamPermission.warmupSession();
-    }
+    if (teamPermission) return;
   }, [teamPermission]);
   const runtimeConfig = useAcpConfigOptions({
     conversation_id,

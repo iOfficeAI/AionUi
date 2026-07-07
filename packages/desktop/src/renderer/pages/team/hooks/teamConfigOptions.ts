@@ -31,7 +31,6 @@ export function createTeamConfigOptionsLoader({
   };
 
   const load: TeamConfigOptionsLoad = async (conversation_id: string) => {
-    await warmup();
     const response = await getConfigOptions(team_id, conversation_id);
     return response.config_options ?? null;
   };

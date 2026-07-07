@@ -69,12 +69,8 @@ const AionrsHeaderModelSelector: React.FC<{ conversation_id: string; initialMode
     [conversation_id]
   );
   const modelSelection = useAionrsModelSelection({ initialModel, onSelectModel });
-  const prepareRuntimeConfig = useCallback(async () => {
-    await teamPermission?.warmupSession();
-  }, [teamPermission]);
   const runtimeConfig = useAcpConfigOptions({
     conversation_id,
-    prepareRuntime: prepareRuntimeConfig,
     loadConfigOptions: teamPermission?.loadConfigOptions,
     enabled: Boolean(conversation_id),
   });
@@ -135,10 +131,6 @@ const AssistantChatSlot: React.FC<{
   const initialModelId = (conversation?.extra as { current_model_id?: string })?.current_model_id;
   const isAcpLike = conversation?.type === 'acp' || isAcpLikeBackend(assistant.assistant_backend);
   const cronJobId = resolveCronJobId(conversation?.extra);
-  const prepareRuntimeConfig = useCallback(async () => {
-    await teamPermission?.warmupSession();
-  }, [teamPermission]);
-
   return (
     <div
       className='flex flex-col h-full'
@@ -177,7 +169,6 @@ const AssistantChatSlot: React.FC<{
                 conversation_id={assistant.conversation_id}
                 backend={assistant.assistant_backend}
                 initialModelId={initialModelId}
-                prepareRuntime={prepareRuntimeConfig}
                 loadConfigOptions={teamPermission?.loadConfigOptions}
               />
             </div>
