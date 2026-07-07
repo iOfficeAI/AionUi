@@ -213,6 +213,7 @@ export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: 
           'request_trace',
           'acp_context_usage',
           'acp_model_info',
+          'acp_config_option',
           'codex_model_info',
           'available_commands',
           'slash_commands_updated',
@@ -376,6 +377,12 @@ export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: 
           break;
         case 'acp_model_info':
           // Model info updates are handled by AcpModelSelector, no action needed here
+          break;
+        case 'acp_config_option':
+          // Config-options catalog updates (async model/mode discovery for the
+          // direct-CLI backends) are consumed by useAcpConfigOptions to re-project
+          // the picker. No turn-state change here — must NOT fall through to the
+          // default arm, which would setRunning(true) and light a spurious timer bar.
           break;
         case 'slash_commands_updated':
           // Slash commands became available (often during bootstrap when
