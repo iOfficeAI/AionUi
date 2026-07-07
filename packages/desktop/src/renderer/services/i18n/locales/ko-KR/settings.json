@@ -113,7 +113,7 @@
   "game3dAssistantDesc": "하나의 HTML 파일에 완전한 3D 플랫폼 수집 게임을 생성합니다.",
   "editAssistant": "어시스턴트 세부 정보",
   "assistantNameAvatar": "이름 및 아바타",
-  "assistantDescription": "어시스턴트 설명",
+  "assistantDescription": "설명",
   "assistantDescriptionPlaceholder": "이 어시스턴트는 무엇을 도와줄 수 있나요?",
   "assistantAvatarUploadImage": "이미지 업로드",
   "assistantAvatarImageFiles": "이미지 파일",

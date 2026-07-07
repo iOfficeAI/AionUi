@@ -113,7 +113,7 @@
   "game3dAssistantDesc": "用单个 HTML 文件生成完整的 3D 平台收集游戏。",
   "editAssistant": "助手详情",
   "assistantNameAvatar": "名称及头像",
-  "assistantDescription": "助手描述",
+  "assistantDescription": "描述",
   "assistantDescriptionPlaceholder": "帮你解决什么问题",
   "assistantAvatarUploadImage": "上传图片",
   "assistantAvatarImageFiles": "图片文件",

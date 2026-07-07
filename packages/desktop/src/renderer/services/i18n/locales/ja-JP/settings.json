@@ -113,7 +113,7 @@
   "game3dAssistantDesc": "単一のHTMLファイルで完全な3Dプラットフォーム収集ゲームを生成します。",
   "editAssistant": "アシスタント詳細",
   "assistantNameAvatar": "名前とアバター",
-  "assistantDescription": "アシスタントの説明",
+  "assistantDescription": "説明",
   "assistantDescriptionPlaceholder": "どんな支援ができるかを入力",
   "assistantAvatarUploadImage": "画像をアップロード",
   "assistantAvatarImageFiles": "画像ファイル",
