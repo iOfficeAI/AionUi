@@ -104,7 +104,7 @@ describe('TeamAddMemberPopover', () => {
     expect(screen.getAllByTestId('team-add-member-option-writer')[0]).not.toBeDisabled();
     expect(screen.getAllByTestId('team-add-member-option-writer')[1]).not.toBeDisabled();
     expect(screen.getByTestId('team-add-member-option-unchecked')).not.toBeDisabled();
-    expect(screen.getByText('blocked')).toBeInTheDocument();
+    expect(screen.queryByText('blocked')).not.toBeInTheDocument();
   });
 
   it('renders the right-aligned compact design styled picker with a localized footer hint', () => {
@@ -143,6 +143,34 @@ describe('TeamAddMemberPopover', () => {
     expect(
       screen.getByText('Show all assistants. The same assistant can be added repeatedly as independent members.')
     ).toBeInTheDocument();
+  });
+
+  it('renders blocked add-member rows as muted and non-actionable', () => {
+    render(
+      <TeamAddMemberPopover>
+        <button type='button'>add</button>
+      </TeamAddMemberPopover>
+    );
+
+    const blockedOption = screen.getByTestId('team-add-member-option-blocked');
+    const rowContent = blockedOption.querySelector('[data-testid="team-assistant-picker-row-content"]');
+    const optionName = blockedOption.querySelector('[data-testid="assistant-option-name"]');
+    const addIcon = blockedOption.querySelector('[data-testid="team-assistant-picker-add-icon"]');
+
+    expect(blockedOption.tagName).toBe('BUTTON');
+    expect(blockedOption).toHaveAttribute('aria-disabled', 'true');
+    expect(blockedOption).toHaveAttribute('tabindex', '-1');
+    expect(blockedOption).toHaveClass('w-full');
+    expect(blockedOption).toHaveClass('!h-48px');
+    expect(blockedOption).not.toHaveClass('!h-auto', '!min-h-58px');
+    expect(blockedOption).not.toHaveClass('hover:!bg-fill-2');
+    expect(rowContent).toHaveClass('cursor-not-allowed', 'text-t-tertiary');
+    expect(rowContent).toHaveClass('w-full', 'items-center', 'justify-between');
+    expect(rowContent).not.toHaveClass('flex-col');
+    expect(optionName).toHaveClass('text-t-tertiary');
+    expect(addIcon).toHaveClass('flex', 'h-32px', 'w-32px', 'items-center', 'justify-center', 'text-t-quaternary');
+    expect(addIcon).not.toHaveClass('mt-9px');
+    expect(screen.queryByText('blocked')).not.toBeInTheDocument();
   });
 
   it('adds a teammate and switches to the returned slot', async () => {

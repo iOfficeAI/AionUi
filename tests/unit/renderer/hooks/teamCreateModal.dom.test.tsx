@@ -99,7 +99,7 @@ describe('TeamCreateModal', () => {
     messageErrorMock.mockReset();
   });
 
-  it('keeps blocked assistants visible with a reason and prevents selecting them', () => {
+  it('keeps blocked assistants visible and prevents selecting them', () => {
     render(<TeamCreateModal visible onClose={vi.fn()} onCreated={vi.fn()} />);
 
     expect(screen.getByTestId('team-create-agent-option-bare-aionrs')).toBeInTheDocument();
@@ -107,7 +107,7 @@ describe('TeamCreateModal', () => {
     expect(screen.queryByText('Aion CLI')).not.toBeInTheDocument();
     expect(screen.getByTestId('team-create-agent-option-blocked-reviewer')).toBeInTheDocument();
     expect(screen.getByTestId('team-create-agent-option-remote-runner')).toBeInTheDocument();
-    expect(screen.getByText('Agent internal error (code -32603)')).toBeInTheDocument();
+    expect(screen.queryByText('Agent internal error (code -32603)')).not.toBeInTheDocument();
 
     const createButton = screen.getByRole('button', { name: 'Confirm Create' });
     fireEvent.change(screen.getByPlaceholderText('Team name'), {
@@ -118,17 +118,37 @@ describe('TeamCreateModal', () => {
     expect(createButton).toBeDisabled();
   });
 
-  it('keeps long blocked assistant reasons inside the left text column', () => {
+  it('keeps blocked assistant rows single-line while the reason stays out of the row', () => {
     render(<TeamCreateModal visible onClose={vi.fn()} onCreated={vi.fn()} />);
 
     const blockedOption = screen.getByTestId('team-create-agent-option-blocked-reviewer');
     const rowContent = blockedOption.querySelector('[data-testid="team-assistant-picker-row-content"]');
-    const textColumn = blockedOption.querySelector('[data-testid="team-assistant-picker-text"]');
-    const reason = screen.getByText('Agent internal error (code -32603)');
 
-    expect(rowContent).toHaveClass('!min-h-56px', '!h-auto');
-    expect(textColumn).toHaveClass('flex-1', 'overflow-hidden');
-    expect(reason).toHaveClass('max-w-full', 'truncate', 'text-left');
+    expect(blockedOption).toHaveClass('!h-44px');
+    expect(blockedOption).not.toHaveClass('!h-auto', '!min-h-56px');
+    expect(rowContent).toHaveClass('w-full', 'items-center', 'justify-between');
+    expect(rowContent).not.toHaveClass('flex-col');
+    expect(screen.queryByText('Agent internal error (code -32603)')).not.toBeInTheDocument();
+  });
+
+  it('renders blocked assistant rows as muted and non-actionable', () => {
+    render(<TeamCreateModal visible onClose={vi.fn()} onCreated={vi.fn()} />);
+
+    const blockedOption = screen.getByTestId('team-create-agent-option-blocked-reviewer');
+    const rowContent = blockedOption.querySelector('[data-testid="team-assistant-picker-row-content"]');
+    const optionName = blockedOption.querySelector('[data-testid="assistant-option-name"]');
+    const addIcon = blockedOption.querySelector('[data-testid="team-assistant-picker-add-icon"]');
+
+    expect(blockedOption.tagName).toBe('BUTTON');
+    expect(blockedOption).toHaveAttribute('aria-disabled', 'true');
+    expect(blockedOption).toHaveAttribute('tabindex', '-1');
+    expect(blockedOption).toHaveClass('w-full');
+    expect(blockedOption).not.toHaveClass('hover:!bg-fill-2');
+    expect(rowContent).toHaveClass('cursor-not-allowed', 'text-t-tertiary');
+    expect(rowContent).toHaveClass('w-full', 'items-center', 'justify-between');
+    expect(optionName).toHaveClass('text-t-tertiary');
+    expect(addIcon).toHaveClass('flex', 'h-30px', 'w-30px', 'items-center', 'justify-center', 'text-t-quaternary');
+    expect(addIcon).not.toHaveClass('mt-7px');
   });
 
   it('renders the reference two-column creation layout with details on the selected-member side', () => {

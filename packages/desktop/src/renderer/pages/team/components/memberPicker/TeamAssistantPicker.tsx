@@ -77,52 +77,76 @@ const TeamAssistantPicker: React.FC<Props> = ({
           <div className={isModalDensity ? 'flex flex-col gap-6px' : 'flex flex-col gap-6px'}>
             {filteredAssistants.map((assistant, index) => {
               const rowKey = `${assistantKey(assistant)}-${index}`;
-              const rowDisabled = disabled || assistant.team_selectable === false;
-              const blockReason =
-                assistant.team_selectable === false
-                  ? assistant.team_block_reason ||
-                    t('settings.assistantTeamUnsupported', {
-                      defaultValue: 'This assistant cannot be used in team mode right now.',
-                    })
-                  : undefined;
-              const rowClassName = isModalDensity
-                ? blockReason
-                  ? '!h-auto !min-h-56px !justify-start !rounded-8px !px-8px !py-6px hover:!bg-fill-2'
-                  : '!h-44px !justify-start !rounded-8px !px-8px !py-0 hover:!bg-fill-2'
-                : blockReason
-                  ? '!h-auto !min-h-58px !justify-start !rounded-8px !px-6px !py-6px hover:!bg-fill-2'
-                  : '!h-48px !justify-start !rounded-8px !px-6px !py-0 hover:!bg-fill-2';
-              const row = (
+              const rowBlocked = assistant.team_selectable === false;
+              const rowDisabled = disabled || rowBlocked;
+              const blockReason = rowBlocked
+                ? assistant.team_block_reason ||
+                  t('settings.assistantTeamUnsupported', {
+                    defaultValue: 'This assistant cannot be used in team mode right now.',
+                  })
+                : undefined;
+              const rowBaseClassName = isModalDensity
+                ? '!h-44px !justify-start !rounded-8px !px-8px !py-0'
+                : '!h-48px !justify-start !rounded-8px !px-6px !py-0';
+              const rowStateClassName = rowDisabled
+                ? '!cursor-not-allowed !text-t-tertiary hover:!bg-transparent'
+                : 'hover:!bg-fill-2';
+              const rowClassName = `w-full ${rowBaseClassName} ${rowStateClassName}`;
+              const rowContentClassName = `flex min-w-0 w-full flex-1 items-center justify-between gap-12px ${
+                rowDisabled ? 'cursor-not-allowed text-t-tertiary' : ''
+              }`;
+              const addIconBoxClassName = isModalDensity ? 'h-30px w-30px' : 'h-32px w-32px';
+              const addIcon = (
+                <span
+                  className={`flex ${addIconBoxClassName} shrink-0 items-center justify-center ${
+                    rowDisabled ? 'text-t-quaternary' : 'text-t-secondary'
+                  }`}
+                  data-testid='team-assistant-picker-add-icon'
+                >
+                  <Plus theme='outline' size={isModalDensity ? '16' : '14'} fill='currentColor' />
+                </span>
+              );
+              const row = blockReason ? (
                 <Button
                   long
                   type='text'
-                  disabled={rowDisabled}
+                  className={rowClassName}
+                  aria-disabled='true'
+                  tabIndex={-1}
+                  data-testid={`${testIdPrefix}-option-${assistantKey(assistant)}`}
+                >
+                  <div className={rowContentClassName} data-testid='team-assistant-picker-row-content'>
+                    <div
+                      className='min-w-0 flex flex-1 flex-col items-start overflow-hidden'
+                      data-testid='team-assistant-picker-text'
+                    >
+                      <AssistantOptionLabel assistant={assistant} size={isModalDensity ? 'large' : 'compact'} muted />
+                    </div>
+                    {addIcon}
+                  </div>
+                </Button>
+              ) : (
+                <Button
+                  long
+                  type='text'
+                  disabled={disabled}
                   loading={pendingAssistantId === assistant.id}
                   className={rowClassName}
                   onClick={() => onSelect(assistant)}
                   data-testid={`${testIdPrefix}-option-${assistantKey(assistant)}`}
                 >
-                  <div
-                    className={`flex min-w-0 flex-1 items-center justify-between gap-12px ${blockReason ? '!h-auto !min-h-56px' : ''}`}
-                    data-testid='team-assistant-picker-row-content'
-                  >
+                  <div className={rowContentClassName} data-testid='team-assistant-picker-row-content'>
                     <div
                       className='min-w-0 flex flex-1 flex-col items-start overflow-hidden'
                       data-testid='team-assistant-picker-text'
                     >
-                      <AssistantOptionLabel assistant={assistant} size={isModalDensity ? 'large' : 'compact'} />
-                      {blockReason ? (
-                        <span className='mt-2px max-w-full truncate text-left text-11px text-t-tertiary'>
-                          {blockReason}
-                        </span>
-                      ) : null}
+                      <AssistantOptionLabel
+                        assistant={assistant}
+                        size={isModalDensity ? 'large' : 'compact'}
+                        muted={disabled}
+                      />
                     </div>
-                    <Plus
-                      theme='outline'
-                      size={isModalDensity ? '16' : '14'}
-                      fill='currentColor'
-                      className='shrink-0 text-t-secondary'
-                    />
+                    {addIcon}
                   </div>
                 </Button>
               );

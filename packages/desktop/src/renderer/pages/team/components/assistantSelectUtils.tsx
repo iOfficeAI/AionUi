@@ -48,15 +48,22 @@ export function filterTeamSupportedAssistants(assistants: TeamAssistantOption[])
 type AssistantOptionLabelProps = {
   assistant: TeamAssistantOption;
   size?: 'compact' | 'large';
+  muted?: boolean;
 };
 
-export const AssistantOptionLabel: React.FC<AssistantOptionLabelProps> = ({ assistant, size = 'compact' }) => {
+export const AssistantOptionLabel: React.FC<AssistantOptionLabelProps> = ({
+  assistant,
+  size = 'compact',
+  muted = false,
+}) => {
   const avatar = resolveAssistantAvatar(assistant.icon);
   const isLarge = size === 'large';
   const iconSize = isLarge ? 18 : 16;
+  const avatarToneClass = muted ? 'bg-fill-1 text-t-tertiary opacity-75' : 'bg-fill-2 text-t-primary';
   const avatarClass = isLarge
-    ? 'flex h-30px w-30px shrink-0 items-center justify-center rounded-8px bg-fill-2 text-t-primary'
-    : 'flex h-32px w-32px shrink-0 items-center justify-center rounded-8px bg-fill-2 text-t-primary';
+    ? `flex h-30px w-30px shrink-0 items-center justify-center rounded-8px ${avatarToneClass}`
+    : `flex h-32px w-32px shrink-0 items-center justify-center rounded-8px ${avatarToneClass}`;
+  const nameClass = muted ? 'text-t-tertiary' : 'text-t-primary';
   const avatarNode =
     avatar.kind === 'image' ? (
       <img
@@ -76,7 +83,10 @@ export const AssistantOptionLabel: React.FC<AssistantOptionLabelProps> = ({ assi
         {avatarNode}
       </span>
       <span
-        className={isLarge ? 'min-w-0 truncate text-14px font-500 leading-21px text-t-primary' : 'min-w-0 truncate'}
+        data-testid='assistant-option-name'
+        className={
+          isLarge ? `min-w-0 truncate text-14px font-500 leading-21px ${nameClass}` : `min-w-0 truncate ${nameClass}`
+        }
       >
         {assistant.name}
       </span>
