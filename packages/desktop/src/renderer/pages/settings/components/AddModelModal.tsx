@@ -50,7 +50,6 @@ const AddModelModal = ModalHOC<{ data?: IProvider; onSubmit: (model: IProvider) 
         visible={modalProps.visible}
         onCancel={modalCtrl.close}
         header={{ title: t('settings.addModel'), showClose: true }}
-        style={{ maxHeight: '90vh' }}
         onOk={handleConfirm}
         okText={t('common.confirm')}
         cancelText={t('common.cancel')}

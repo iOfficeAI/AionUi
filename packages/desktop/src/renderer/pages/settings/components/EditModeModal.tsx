@@ -146,7 +146,7 @@ const EditModeModal = ModalHOC<{ data?: IProvider; onChange(data: IProvider): vo
         visible={modalProps.visible}
         onCancel={modalCtrl.close}
         header={{ title: t('settings.editModel'), showClose: true }}
-        style={{ minHeight: '400px', maxHeight: '90vh' }}
+        style={{ minHeight: '400px' }}
         onOk={async () => {
           try {
             const values = await form.validate();
