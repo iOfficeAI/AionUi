@@ -1,5 +1,5 @@
 import { Message, Modal, Spin } from '@arco-design/web-react';
-import { CloseSmall, FullScreen, Left, OffScreen, Peoples, Right } from '@icon-park/react';
+import { FullScreen, Left, OffScreen, Peoples, Right } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useSWR, { useSWRConfig } from 'swr';
@@ -21,6 +21,7 @@ import TeamTabs from './components/TeamTabs';
 import TeamChatView from './components/TeamChatView';
 import TeamAgentIdentity from './components/TeamAgentIdentity';
 import { TeamTabsProvider, useTeamTabs } from './hooks/TeamTabsContext';
+import { TeamIdentityProvider } from './identity/TeamIdentityContext';
 import { TeamPermissionProvider, useTeamPermission } from './hooks/TeamPermissionContext';
 import { useTeamSession } from './hooks/useTeamSession';
 import { useTeamRunView, type TeamRunViewState } from './hooks/useTeamRunView';
@@ -102,10 +103,12 @@ const AssistantChatSlot: React.FC<{
   assistant: TeamAssistant;
   team_id: string;
   isLeader: boolean;
+  /** 成员身份色（列高亮 / 列头淡底）。 */
+  color: string;
+  /** 是否为当前选中成员（并行视图下高亮该列、降饱和其余列）。 */
+  isSelected: boolean;
   isFullscreen?: boolean;
   onToggleFullscreen?: () => void;
-  onRemove?: () => void;
-  removeDisabled?: boolean;
   teamRunView: TeamRunViewState;
   onTeamRunAck: ReturnType<typeof useTeamRunView>['applyAck'];
   onRunStateStale: ReturnType<typeof useTeamRunView>['reconcile'];
@@ -113,10 +116,10 @@ const AssistantChatSlot: React.FC<{
   assistant,
   team_id,
   isLeader,
+  color,
+  isSelected,
   isFullscreen = false,
   onToggleFullscreen,
-  onRemove,
-  removeDisabled = false,
   teamRunView,
   onTeamRunAck,
   onRunStateStale,
@@ -133,25 +136,14 @@ const AssistantChatSlot: React.FC<{
   const initialModelId = (conversation?.extra as { current_model_id?: string })?.current_model_id;
   const isAcpLike = conversation?.type === 'acp' || isAcpLikeBackend(assistant.assistant_backend);
   const cronJobId = resolveCronJobId(conversation?.extra);
+  // 身份色只作弱提示：列/抬头保留很淡的身份色底，选中时略深一点点（仍很淡，不影响气泡可读）；
+  // 成员身份由抬头里的“彩色名字”承担。
+  const showSelection = isSelected && !isFullscreen;
   return (
-    <div
-      className='flex flex-col h-full'
-      style={
-        isLeader
-          ? {
-              borderLeft: '3px solid var(--color-primary-6)',
-              background: 'color-mix(in srgb, var(--color-primary-6) 3%, var(--color-bg-1))',
-            }
-          : { background: 'var(--color-bg-1)' }
-      }
-    >
+    <div className='flex flex-col h-full' style={{ background: `color-mix(in srgb, ${color} 4%, var(--bg-base))` }}>
       <div
         className='flex items-center justify-between gap-8px px-12px h-40px shrink-0 border-b border-solid border-[color:var(--border-base)] relative z-10'
-        style={
-          isLeader
-            ? { background: 'color-mix(in srgb, var(--color-primary-6) 8%, var(--color-bg-2))' }
-            : { background: 'var(--color-bg-2)' }
-        }
+        style={{ background: `color-mix(in srgb, ${color} ${showSelection ? 12 : 6}%, var(--bg-2))` }}
       >
         <TeamAgentIdentity
           assistant_name={assistant.assistant_name}
@@ -160,7 +152,8 @@ const AssistantChatSlot: React.FC<{
           conversation_id={assistant.conversation_id}
           isLeader={isLeader}
           className='min-w-0'
-          nameClassName='text-13px text-[color:var(--color-text-2)] font-medium'
+          nameClassName='text-13px font-600'
+          nameStyle={{ color }}
         />
         <div className='flex items-center gap-8px shrink-0'>
           {conversation && <CronJobManager conversation_id={conversation.id} cron_job_id={cronJobId} />}
@@ -184,25 +177,9 @@ const AssistantChatSlot: React.FC<{
               />
             </div>
           )}
-          {!isLeader && onRemove && (
-            <div
-              data-testid={`team-remove-assistant-${assistant.slot_id}`}
-              data-disabled={removeDisabled ? 'true' : 'false'}
-              className={`shrink-0 p-4px rd-4px text-[color:var(--color-text-3)] transition-colors ${
-                removeDisabled
-                  ? 'cursor-not-allowed opacity-45'
-                  : 'cursor-pointer hover:bg-[var(--fill-3)] hover:text-[color:var(--color-danger-6)]'
-              }`}
-              onClick={() => {
-                if (removeDisabled) return;
-                onRemove();
-              }}
-            >
-              <CloseSmall size='16' fill='currentColor' />
-            </div>
-          )}
+          {/* 移除入口统一到顶部胶囊（team-tab-remove-*），抬头这里不再重复放 X。 */}
           <div
-            className='shrink-0 cursor-pointer hover:bg-[var(--fill-3)] p-4px rd-4px text-[color:var(--color-text-3)] hover:text-[color:var(--color-text-1)] transition-colors'
+            className='shrink-0 flex items-center justify-center leading-none cursor-pointer hover:bg-[var(--fill-3)] p-4px rd-4px text-[color:var(--color-text-3)] hover:text-[color:var(--color-text-1)] transition-colors'
             onClick={() => onToggleFullscreen?.()}
           >
             {isFullscreen ? <OffScreen size='16' fill='currentColor' /> : <FullScreen size='16' fill='currentColor' />}
@@ -237,7 +214,7 @@ const AssistantChatSlot: React.FC<{
 const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onRenameTeam }) => {
   const { t } = useTranslation();
   useActiveLease({ type: 'team', id: team.id });
-  const { assistants, activeSlotId, statusMap, switchTab, membershipMutationBusy } = useTeamTabs();
+  const { assistants, activeSlotId, statusMap, switchTab, membershipMutationBusy, colorOf, colorOfConversation } = useTeamTabs();
   const [, messageContext] = Message.useMessage({ maxCount: 1 });
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -439,6 +416,7 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onRenameTeam })
       leaderConversationId={leaderConversationId}
       allConversationIds={allConversationIds}
     >
+      <TeamIdentityProvider colorOfConversation={colorOfConversation}>
       {messageContext}
       <ChatLayout
         title={team.name}
@@ -471,10 +449,10 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onRenameTeam })
                     assistant={assistant}
                     team_id={team.id}
                     isLeader={isLeaderSlot}
+                    color={colorOf(assistant.slot_id)}
+                    isSelected={assistant.slot_id === activeSlotId}
                     isFullscreen
                     onToggleFullscreen={() => setFullscreenSlotId(null)}
-                    onRemove={() => handleRemoveAssistant(assistant.slot_id)}
-                    removeDisabled={membershipMutationBusy}
                     teamRunView={teamRun.state}
                     onTeamRunAck={teamRun.applyAck}
                     onRunStateStale={teamRun.reconcile}
@@ -503,9 +481,10 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onRenameTeam })
                 className='flex h-full w-full overflow-x-auto overflow-y-hidden [scrollbar-width:none]'
                 style={{ scrollSnapType: 'x proximity' }}
               >
-                {assistants.map((assistant) => {
+                {assistants.map((assistant, index) => {
                   const isSingle = assistants.length <= 2;
                   const isLeaderSlot = assistant.slot_id === leadAssistant?.slot_id;
+                  const isLastColumn = index === assistants.length - 1;
                   return (
                     <div
                       key={assistant.slot_id}
@@ -514,7 +493,8 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onRenameTeam })
                       }}
                       data-slot-id={assistant.slot_id}
                       data-role={isLeaderSlot ? 'leader' : 'member'}
-                      className='relative h-full border-r border-solid border-[color:var(--border-base)]'
+                      // 列间灰色隔离线：除最后一列外，右侧加一条分隔线，避免多列浅底粘连看不清边界。
+                      className={`relative h-full ${isLastColumn ? '' : 'border-r border-solid border-[color:var(--border-base)]'}`}
                       style={{
                         // Always flex-grow to fill available space; each slot starts at 400px
                         // basis so the layout is stable, but spare room is distributed evenly
@@ -530,9 +510,9 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onRenameTeam })
                         assistant={assistant}
                         team_id={team.id}
                         isLeader={isLeaderSlot}
+                        color={colorOf(assistant.slot_id)}
+                        isSelected={assistant.slot_id === activeSlotId}
                         onToggleFullscreen={() => setFullscreenSlotId(assistant.slot_id)}
-                        onRemove={() => handleRemoveAssistant(assistant.slot_id)}
-                        removeDisabled={membershipMutationBusy}
                         teamRunView={teamRun.state}
                         onTeamRunAck={teamRun.applyAck}
                         onRunStateStale={teamRun.reconcile}
@@ -559,6 +539,7 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onRenameTeam })
           )}
         </div>
       </ChatLayout>
+      </TeamIdentityProvider>
     </TeamPermissionProvider>
   );
 };

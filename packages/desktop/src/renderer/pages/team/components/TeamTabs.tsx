@@ -1,6 +1,6 @@
 import { CloseSmall, Edit, Plus } from '@icon-park/react';
-import { Button } from '@arco-design/web-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { TeammateStatus } from '@/common/types/team/teamTypes';
 import AgentStatusBadge from './AgentStatusBadge';
 import TeamAgentIdentity from './TeamAgentIdentity';
@@ -20,6 +20,8 @@ type TeamTabViewProps = {
   isActive: boolean;
   status: TeammateStatus;
   isLeader: boolean;
+  /** 成员身份色 CSS 值（胶囊底色 / 选中描边）。 */
+  color: string;
   /** Number of pending permission confirmations for this agent */
   pendingCount?: number;
   onSwitch: (slot_id: string) => void;
@@ -41,6 +43,7 @@ const TeamTabView: React.FC<TeamTabViewProps> = ({
   isActive,
   status,
   isLeader,
+  color,
   pendingCount = 0,
   onSwitch,
   onRename,
@@ -53,6 +56,7 @@ const TeamTabView: React.FC<TeamTabViewProps> = ({
 }) => {
   const [editing, setEditing] = useState(false);
   const [editValue, setEditValue] = useState(assistant_name);
+  const [hovered, setHovered] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -95,19 +99,22 @@ const TeamTabView: React.FC<TeamTabViewProps> = ({
     [assistant_name]
   );
 
-  const isRunning = status === 'active';
+  // 胶囊底色用统一中性色（默认浅灰 / hover·选中深一档），不再着身份色；
+  // 身份色只落在名字文字上（见下方 nameStyle），干净不脏。
+  const isDark = isActive || hovered;
 
   return (
     <div
       data-testid={`team-tab-${slot_id}`}
       data-team-tab-role={isLeader ? 'leader' : 'teammate'}
+      data-active={isActive ? 'true' : 'false'}
       draggable={!isLeader}
-      className={`relative group flex items-center gap-8px px-12px h-full max-w-240px cursor-pointer transition-all duration-200 shrink-0 border-r border-[color:var(--border-base)] ${
-        isActive
-          ? 'bg-[color:var(--color-primary-1)] text-[color:var(--color-text-1)] border-t-2 border-t-solid border-t-[color:var(--color-primary-6)]'
-          : 'bg-2 text-[color:var(--color-text-3)] hover:text-[color:var(--color-text-2)] hover:bg-[color:var(--fill-2)] border-b border-[color:var(--border-base)]'
+      className={`relative flex items-center gap-6px pl-6px pr-10px h-34px max-w-220px cursor-pointer rounded-999px transition-all duration-150 shrink-0 ${
+        isDark ? 'bg-[color:var(--bg-3)]' : 'bg-[color:var(--bg-2)]'
       } ${isDragOver ? DRAG_OVER_CLASS : ''}`}
-      style={isRunning ? { animation: 'team-tab-breathe 2s ease-in-out infinite' } : undefined}
+      style={{ ['--mc' as string]: color }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
       onClick={() => !editing && onSwitch(slot_id)}
       onDoubleClick={onRename ? startEditing : undefined}
       onDragStart={(e) => {
@@ -150,30 +157,34 @@ const TeamTabView: React.FC<TeamTabViewProps> = ({
             icon={icon}
             conversation_id={conversation_id}
             isLeader={isLeader}
-            className='min-w-0 flex-1'
-            logoClassName={`w-14px h-14px object-contain rounded-2px ${isActive ? 'opacity-100' : 'opacity-70'}`}
-            avatarClassName={`w-14px h-14px rounded-2px flex items-center justify-center text-11px leading-none bg-fill-2 shrink-0 ${isActive ? 'opacity-100' : 'opacity-80'}`}
-            nameClassName='text-15px whitespace-nowrap overflow-hidden text-ellipsis select-none'
+            className='min-w-0 flex-1 !gap-6px'
+            logoClassName='w-22px h-22px object-cover rounded-full'
+            avatarClassName='w-22px h-22px rounded-full flex items-center justify-center text-12px leading-none bg-fill-2 shrink-0'
+            nameClassName='text-13px font-600 whitespace-nowrap overflow-hidden text-ellipsis select-none'
+            nameStyle={{ color }}
             nameTestId={`team-tab-name-${slot_id}`}
+            avatarOverlay={
+              <AgentStatusBadge status={status} testId={`team-tab-status-${slot_id}`} />
+            }
           />
         </div>
       )}
-      <AgentStatusBadge status={status} testId={`team-tab-status-${slot_id}`} />
-      {!editing && onRename && (
+      {/* hover 时胶囊变宽、露出操作按钮；失焦则收起（胶囊变窄，只剩头像+文字）。 */}
+      {!editing && hovered && onRename && (
         <span
           data-testid={`team-tab-edit-${slot_id}`}
-          className='opacity-0 group-hover:opacity-60 hover:!opacity-100 transition-opacity duration-150 shrink-0 flex items-center'
+          className='shrink-0 flex items-center opacity-70 hover:opacity-100 transition-opacity duration-150'
           onClick={startEditing}
         >
-          <Edit theme='outline' size='12' fill='currentColor' />
+          <Edit theme='outline' size='13' fill='currentColor' />
         </span>
       )}
-      {!editing && !isLeader && onRemove && (
+      {!editing && hovered && !isLeader && onRemove && (
         <span
           data-testid={`team-tab-remove-${slot_id}`}
           data-disabled={removeDisabled ? 'true' : 'false'}
-          className={`opacity-0 group-hover:opacity-60 transition-opacity duration-150 shrink-0 flex items-center text-[color:var(--color-text-3)] ${
-            removeDisabled ? 'cursor-not-allowed' : 'hover:!opacity-100 hover:text-[color:var(--color-danger-6)]'
+          className={`shrink-0 flex items-center transition-opacity duration-150 text-[color:var(--color-text-3)] ${
+            removeDisabled ? 'cursor-not-allowed opacity-40' : 'opacity-70 hover:opacity-100 hover:text-[color:var(--color-danger-6)]'
           }`}
           onClick={(e) => {
             e.stopPropagation();
@@ -199,6 +210,7 @@ type TeamTabsProps = {
  * Supports scroll overflow with fade indicators.
  */
 const TeamTabs: React.FC<TeamTabsProps> = ({ onTabClick, pendingCounts }) => {
+  const { t } = useTranslation();
   const {
     assistants,
     activeSlotId,
@@ -209,6 +221,7 @@ const TeamTabs: React.FC<TeamTabsProps> = ({ onTabClick, pendingCounts }) => {
     reorderAssistants,
     addAssistant,
     membershipMutationBusy,
+    colorOf,
   } = useTeamTabs();
   const tabsContainerRef = useRef<HTMLDivElement>(null);
   const [showLeftFade, setShowLeftFade] = useState(false);
@@ -266,11 +279,12 @@ const TeamTabs: React.FC<TeamTabsProps> = ({ onTabClick, pendingCounts }) => {
   if (assistants.length === 0) return null;
 
   return (
-    <div data-testid='team-tab-bar' className='relative shrink-0 bg-2 min-h-40px'>
-      <div className='relative flex items-center h-40px w-full border-t border-x border-solid border-[color:var(--border-base)]'>
+    <div data-testid='team-tab-bar' className='relative shrink-0 bg-1 border-t border-x border-solid border-[color:var(--border-base)]'>
+      <div className='relative flex items-stretch min-h-48px'>
+        {/* 可横向滚动的成员胶囊列表 */}
         <div
           ref={tabsContainerRef}
-          className='flex items-center h-full flex-1 overflow-x-auto overflow-y-hidden [scrollbar-width:none]'
+          className='flex items-center gap-6px flex-1 min-w-0 overflow-x-auto overflow-y-hidden py-8px px-12px [scrollbar-width:none]'
         >
           {assistants.map((assistant) => {
             const statusInfo = statusMap.get(assistant.slot_id);
@@ -285,6 +299,7 @@ const TeamTabs: React.FC<TeamTabsProps> = ({ onTabClick, pendingCounts }) => {
                 isActive={assistant.slot_id === activeSlotId}
                 status={statusInfo?.status ?? assistant.status}
                 isLeader={assistant.role === 'leader'}
+                color={colorOf(assistant.slot_id)}
                 pendingCount={pendingCounts?.get(assistant.slot_id) ?? 0}
                 onSwitch={(slot_id) => {
                   switchTab(slot_id);
@@ -304,30 +319,40 @@ const TeamTabs: React.FC<TeamTabsProps> = ({ onTabClick, pendingCounts }) => {
               />
             );
           })}
-          {addAssistant ? (
-            <TeamAddMemberPopover disabled={membershipMutationBusy}>
-              <Button
-                type='text'
-                disabled={membershipMutationBusy}
-                className='!h-full !w-40px !min-w-40px !shrink-0 !rounded-none !border-r !border-[color:var(--border-base)] !p-0'
-                icon={<Plus theme='outline' size='14' />}
-                data-testid='team-tab-add-member'
-              />
-            </TeamAddMemberPopover>
-          ) : null}
         </div>
+        {/* 两侧渐隐提示「还有更多」，只覆盖滚动区、不盖固定的添加入口 */}
         {showLeftFade && (
           <div
-            className='pointer-events-none absolute left-0 top-0 bottom-0 w-32px z-10'
-            style={{ background: 'linear-gradient(90deg, var(--color-bg-2), transparent)' }}
+            className='pointer-events-none absolute left-0 top-0 bottom-0 w-28px z-10'
+            style={{ background: 'linear-gradient(90deg, var(--color-bg-1), transparent)' }}
           />
         )}
         {showRightFade && (
           <div
-            className='pointer-events-none absolute top-0 bottom-0 w-32px z-10'
-            style={{ right: '40px', background: 'linear-gradient(270deg, var(--color-bg-2), transparent)' }}
+            className='pointer-events-none absolute top-0 bottom-0 w-28px z-10'
+            style={{ right: 'var(--team-add-w, 132px)', background: 'linear-gradient(270deg, var(--color-bg-1), transparent)' }}
           />
         )}
+        {/* 固定在最右、不随列表滚动的「添加成员」；左侧一根分隔线与成员列表隔开，按钮本身无边框。 */}
+        {addAssistant ? (
+          <div className='flex items-center shrink-0 border-l border-solid border-[color:var(--border-base)] px-8px'>
+            <TeamAddMemberPopover disabled={membershipMutationBusy}>
+              <button
+                type='button'
+                disabled={membershipMutationBusy}
+                data-testid='team-tab-add-member'
+                className={`flex items-center gap-6px h-32px px-10px rounded-8px border-none bg-transparent text-13px font-500 whitespace-nowrap transition-colors duration-150 ${
+                  membershipMutationBusy
+                    ? 'text-[color:var(--color-text-4)] cursor-not-allowed opacity-60'
+                    : 'text-[color:var(--color-text-2)] hover:text-[color:var(--brand)] hover:bg-[color:var(--bg-2)] cursor-pointer'
+                }`}
+              >
+                <Plus theme='outline' size='15' fill='currentColor' className='leading-none' />
+                {t('team.addMember.title', { defaultValue: 'Add member' })}
+              </button>
+            </TeamAddMemberPopover>
+          </div>
+        ) : null}
       </div>
     </div>
   );

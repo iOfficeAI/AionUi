@@ -165,37 +165,8 @@ describe('TeamPage cron job manager', () => {
     );
   });
 
-  it('removes a member cron job before removing the team member', async () => {
-    const user = userEvent.setup();
-    getConversationOrNullMock.mockImplementation(async (conversationId: string) => {
-      if (conversationId === 'leader-conv') return conversation({ id: conversationId, name: 'Leader' });
-      if (conversationId === 'member-conv') {
-        return conversation({
-          id: conversationId,
-          name: 'Member',
-          extra: {
-            team_id: 'team-1',
-            cron_job_id: 'cron-member-1',
-          },
-        });
-      }
-      return null;
-    });
-
-    render(
-      <MemoryRouter>
-        <TeamPage team={team()} />
-      </MemoryRouter>
-    );
-
-    await user.click(await screen.findByTestId('team-remove-assistant-member-slot'));
-
-    await waitFor(() => expect(ipcBridge.cron.removeJob.invoke).toHaveBeenCalledWith({ job_id: 'cron-member-1' }));
-    expect(ipcBridge.team.removeAgent.invoke).toHaveBeenCalledWith({ team_id: 'team-1', slot_id: 'member-slot' });
-    expect(vi.mocked(ipcBridge.cron.removeJob.invoke).mock.invocationCallOrder[0]).toBeLessThan(
-      vi.mocked(ipcBridge.team.removeAgent.invoke).mock.invocationCallOrder[0]
-    );
-  });
+  // 移除成员的 cron 清理顺序（先删 cron job 再删成员）由 removeTeamAssistantWithCronCleanup.test.ts 直接覆盖；
+  // 胶囊上的移除交互由 team-member-ops.e2e.ts 覆盖。移除入口已从抬头移到顶部胶囊。
 });
 
 function conversation(overrides?: Partial<TChatConversation>): TChatConversation {
