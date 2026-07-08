@@ -17,9 +17,7 @@ function findMakensis() {
   }
 
   const candidates = [];
-  const cacheRoot = process.env.LOCALAPPDATA
-    ? path.join(process.env.LOCALAPPDATA, 'electron-builder', 'Cache')
-    : '';
+  const cacheRoot = process.env.LOCALAPPDATA ? path.join(process.env.LOCALAPPDATA, 'electron-builder', 'Cache') : '';
 
   function walk(dir, depth = 0) {
     if (!dir || depth > 5 || !existsSync(dir)) {
@@ -85,10 +83,7 @@ function main() {
       .replace(/\..+$/, '')
       .replace('T', '-')}-log.jsonl`
   );
-  const resultPath = path.join(
-    process.env.TEMP || tmpdir(),
-    `aionui-installer-self-lock-${process.pid}-result.txt`
-  );
+  const resultPath = path.join(process.env.TEMP || tmpdir(), `aionui-installer-self-lock-${process.pid}-result.txt`);
   const processControlPath = path.join(repoRoot, 'resources', 'windows', 'installer-process-control.nsh');
 
   const nsi = `
@@ -151,8 +146,9 @@ SectionEnd
     }
 
     const events = readJsonl(logPath);
-    const lockers = events.findLast?.((event) => event.event === 'rm-lockers')
-      ?? events.filter((event) => event.event === 'rm-lockers').at(-1);
+    const lockers =
+      events.findLast?.((event) => event.event === 'rm-lockers') ??
+      events.filter((event) => event.event === 'rm-lockers').at(-1);
     if (!lockers) {
       throw new Error(`rm-lockers event missing: ${logPath}`);
     }
