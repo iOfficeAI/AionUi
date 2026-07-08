@@ -1,5 +1,5 @@
 import { ipcBridge } from '@/common';
-import { Button, Message, Modal, Tooltip } from '@arco-design/web-react';
+import { Button, Message, Modal } from '@arco-design/web-react';
 import { Delete, Help, Lightning, Puzzle, Search } from '@icon-park/react';
 import React, { useCallback, useEffect, useRef, useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -619,9 +619,9 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
         {icon}
         <span className='text-14px font-bold text-t-primary'>{title}</span>
         {hint ? (
-          <Tooltip content={hint}>
+          <span className='inline-flex shrink-0' title={typeof hint === 'string' ? hint : undefined}>
             <Help theme='outline' size={14} className='text-t-tertiary hover:text-t-secondary cursor-help shrink-0' />
-          </Tooltip>
+          </span>
         ) : null}
         <span className={`text-12px px-10px py-2px rd-[100px] font-medium ${countClass}`}>{count}</span>
       </div>
