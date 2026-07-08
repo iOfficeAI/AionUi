@@ -228,12 +228,8 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onRenameTeam })
   const leadAssistant = assistants.find((assistant) => assistant.role === 'leader');
   const teamRun = useTeamRunView(team.id);
 
-  // 进团队 warmup：以 Leader 运行时就绪为闸门，遮罩覆盖对话区并禁用改成员/发消息。
-  const { phase: warmupPhase } = useTeamWarmup({
-    team_id: team.id,
-    leaderSlotId: leadAssistant?.slot_id,
-    leaderInitialStatus: statusMap.get(leadAssistant?.slot_id ?? '')?.status ?? leadAssistant?.status,
-  });
+  // 进团队 warmup：以团队会话运行时就绪为闸门，遮罩覆盖对话区并禁用改成员/发消息。
+  const { phase: warmupPhase } = useTeamWarmup(team.id);
 
   const doRemoveAssistant = useCallback(
     async (slot_id: string) => {

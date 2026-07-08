@@ -6,58 +6,58 @@
 
 import { useEffect, useState } from 'react';
 import { ipcBridge } from '@/common';
-import type { ITeamAgentRuntimeStatusEvent, TeammateStatus } from '@/common/types/team/teamTypes';
 
 /**
- * 团队进入时的 warmup 状态机 —— 以 Leader 运行时就绪为闸门。
+ * 团队进入时的 warmup 状态机 —— 以团队会话运行时就绪为闸门。
  *
- * - warming：Leader 运行时尚未就绪（进团队初始化中）。
- * - ready：Leader 就绪，用户可以开始使用（撤除遮罩）。teammate 仍可能在各自初始化 / 失败，不阻塞。
- * - error：Leader 启动失败。
- * - timeout：超时仍未收到 Leader 就绪/失败（防后端不发事件卡死）。
+ * - warming：团队运行时尚未就绪（进团队初始化中）。
+ * - ready：就绪，用户可以开始使用（撤除遮罩）。
+ * - error：运行时启动失败（如 Leader 后端启动失败）。
+ * - timeout：超时仍未就绪（防后端不返回卡死）。
  *
- * 撤遮罩闸门用 Leader 而非全员：用户进团队第一件事是跟 Leader 说目标，Leader 一好就能开工，
- * 也从根本上避免「某个成员起不来就卡死整个团队」。
+ * 就绪信号用 `team.ensureSession`（POST /api/teams/{id}/session）：该调用拉起团队运行时并在其就绪时
+ * resolve、失败时 reject。这是进团队时后端真正拉起运行时的入口（未就绪时相关请求返回
+ * TEAM_RUNTIME_NOT_READY），也是前端可观测的可靠就绪信号；团队会话由后端按 team 去重，重复调用安全。
+ * 纯前端，不改后端。
+ *
+ * 注意：不能用 conversation.ensureRuntime —— 后端对「团队所属会话」的 standalone runtime ensure
+ * 会以 TEAM_RUNTIME_REQUIRED（409）拒绝，必须走团队会话入口。
  */
 export type TeamWarmupPhase = 'warming' | 'ready' | 'error' | 'timeout';
 
-/** Leader 超时兜底时限（ms）。 */
+/** 超时兜底时限（ms）。 */
 export const WARMUP_TIMEOUT_MS = 20_000;
 
-type Args = {
-  team_id: string;
-  leaderSlotId: string | undefined;
-  /** 进入时 Leader 的初始状态（来自 team.assistants[].status），用于判断是否已就绪。 */
-  leaderInitialStatus: TeammateStatus | undefined;
-};
-
-// 进入团队时若 Leader 已不是「初始化中」状态，视为已就绪（无需再等事件）。
-const isReadyStatus = (status: TeammateStatus | undefined): boolean =>
-  status !== undefined && status !== 'pending';
-
-export function useTeamWarmup({ team_id, leaderSlotId, leaderInitialStatus }: Args): { phase: TeamWarmupPhase } {
-  const initiallyReady = isReadyStatus(leaderInitialStatus);
-  const [leaderReady, setLeaderReady] = useState(initiallyReady);
-  const [leaderFailed, setLeaderFailed] = useState(false);
-  const [timedOut, setTimedOut] = useState(false);
+export function useTeamWarmup(team_id: string): { phase: TeamWarmupPhase } {
+  const [phase, setPhase] = useState<TeamWarmupPhase>(team_id ? 'warming' : 'ready');
 
   useEffect(() => {
-    // 已就绪则无需订阅/计时。
-    if (leaderReady || !leaderSlotId) return;
+    if (!team_id) {
+      setPhase('ready');
+      return;
+    }
 
-    const unsub = ipcBridge.team.agentRuntimeStatusChanged.on((event: ITeamAgentRuntimeStatusEvent) => {
-      if (event.team_id !== team_id || event.slot_id !== leaderSlotId) return;
-      if (event.status === 'ready') setLeaderReady(true);
-      else if (event.status === 'failed') setLeaderFailed(true);
-    });
-    const timer = setTimeout(() => setTimedOut(true), WARMUP_TIMEOUT_MS);
+    let cancelled = false;
+    setPhase('warming');
+
+    const timer = setTimeout(() => {
+      if (!cancelled) setPhase((prev) => (prev === 'warming' ? 'timeout' : prev));
+    }, WARMUP_TIMEOUT_MS);
+
+    ipcBridge.team.ensureSession
+      .invoke({ team_id })
+      .then(() => {
+        if (!cancelled) setPhase('ready');
+      })
+      .catch(() => {
+        if (!cancelled) setPhase('error');
+      });
 
     return () => {
-      unsub();
+      cancelled = true;
       clearTimeout(timer);
     };
-  }, [team_id, leaderSlotId, leaderReady]);
+  }, [team_id]);
 
-  const phase: TeamWarmupPhase = leaderReady ? 'ready' : leaderFailed ? 'error' : timedOut ? 'timeout' : 'warming';
   return { phase };
 }

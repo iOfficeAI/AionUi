@@ -48,6 +48,7 @@ vi.mock('@/common', () => ({
       pauseSlotWork: { invoke: vi.fn() },
       getRunState: { invoke: vi.fn(async () => ({ active_run: null })) },
       activeLease: { invoke: vi.fn(async () => ({ renewed_count: 2 })) },
+      ensureSession: { invoke: vi.fn(async () => undefined) },
       agentStatusChanged: eventChannel,
       agentSpawned: eventChannel,
       agentRemoved: eventChannel,
