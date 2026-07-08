@@ -73,14 +73,18 @@
       "debate": "组织一场辩论赛，让不同助手各持立场",
       "interview": "策划一场深度访谈",
       "expert_review": "多位专家会诊同一个问题"
-    }
+    },
+    "leaderGreeting": "你好，我是 Leader，负责理解你的目标并协调团队。描述你想做的事，我来安排。"
   },
   "addMember": {
     "title": "添加成员",
     "subtitle": "同一助手可被反复添加",
     "searchAssistants": "搜索助手...",
     "addFailed": "添加成员失败",
-    "noSearchResults": "未找到结果"
+    "noSearchResults": "未找到结果",
+    "tellLeaderHint": "没有合适的？也可以直接让 Leader 帮你安排。",
+    "tellLeaderCta": "告诉 Leader →",
+    "tellLeaderPrefill": "帮我在团队里加一个擅长 ___ 的成员"
   },
   "view": {
     "label": "视图",

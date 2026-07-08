@@ -68,6 +68,9 @@ vi.mock('@/renderer/pages/team/hooks/TeamTabsContext', () => ({
   useTeamTabs: () => ({
     addAssistant: addAssistantMock,
     switchTab: switchTabMock,
+    assistants: [
+      { slot_id: 'leader-slot', conversation_id: 'leader-conv', role: 'leader', assistant_backend: 'claude', assistant_name: 'Leader', status: 'idle' },
+    ],
   }),
 }));
 
@@ -200,5 +203,22 @@ describe('TeamAddMemberPopover', () => {
     expect(addAssistantMock).not.toHaveBeenCalled();
     expect(screen.getByTestId('team-add-member-option-unchecked')).toBeInTheDocument();
     expect(switchTabMock).not.toHaveBeenCalled();
+  });
+
+  it('shows a "tell the Leader" guidance and switches to the leader on click', () => {
+    render(
+      <TeamAddMemberPopover>
+        <button type='button'>add</button>
+      </TeamAddMemberPopover>
+    );
+
+    const tellLeader = screen.getByTestId('team-add-member-tell-leader');
+    expect(tellLeader).toBeInTheDocument();
+
+    fireEvent.click(tellLeader);
+    // Clicking the guidance switches to the leader tab (prefill happens on the leader's draft).
+    expect(switchTabMock).toHaveBeenCalledWith('leader-slot');
+    // It must not add a member.
+    expect(addAssistantMock).not.toHaveBeenCalled();
   });
 });

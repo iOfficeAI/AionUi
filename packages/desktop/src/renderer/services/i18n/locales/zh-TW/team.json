@@ -73,14 +73,18 @@
       "debate": "組織一場辯論賽，讓不同助手各持立場",
       "interview": "策劃一場深度訪談",
       "expert_review": "多位專家會診同一個問題"
-    }
+    },
+    "leaderGreeting": "你好，我是 Leader，負責理解你的目標並協調團隊。描述你想做的事，我來安排。"
   },
   "addMember": {
     "title": "新增成員",
     "subtitle": "同一助手可被反覆新增",
     "searchAssistants": "搜尋助手...",
     "addFailed": "新增成員失敗",
-    "noSearchResults": "未找到結果"
+    "noSearchResults": "未找到結果",
+    "tellLeaderHint": "沒有合適的？也可以直接讓 Leader 幫你安排。",
+    "tellLeaderCta": "告訴 Leader →",
+    "tellLeaderPrefill": "幫我在團隊裡加一個擅長 ___ 的成員"
   },
   "view": {
     "label": "檢視",

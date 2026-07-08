@@ -156,7 +156,9 @@ const TeamChatEmptyState: React.FC<Props> = ({
         <span className='text-16px font-semibold text-t-primary'>{assistantName}</span>
         {isLeader && (
           <span data-testid='team-chat-empty-state-subtitle' className='text-13px text-t-secondary'>
-            {t('team.emptyState.subtitle', { defaultValue: "Describe your goal and I'll get the team working on it" })}
+            {t('team.emptyState.leaderGreeting', {
+              defaultValue: "Hi, I'm the Leader. I understand your goal and coordinate the team — describe what you want and I'll arrange it.",
+            })}
           </span>
         )}
       </div>

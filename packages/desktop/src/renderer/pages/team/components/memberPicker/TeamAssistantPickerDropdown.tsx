@@ -32,13 +32,15 @@ type Props = {
   subtitle?: React.ReactNode;
   /** 列表底部的辅助说明（如“同一助手可重复添加”）。 */
   footer?: React.ReactNode;
+  /** 列表下方常驻的引导区（带上分隔线），如「找 Leader 拉人」。 */
+  guidanceFooter?: React.ReactNode;
   /** 助手列表为空时展示的文案；不传则由内部 picker 展示默认空状态。 */
   emptyText?: React.ReactNode;
   /** 行密度，透传给内部 picker。默认 'modal'（较紧凑、无内部边框，适合浮层）。 */
   density?: 'compact' | 'modal';
 };
 
-const TeamAssistantPickerDropdown: React.FC<Props> = ({ children, assistants, onSelect, visible, onVisibleChange, disabled = false, pendingAssistantId, testIdPrefix, panelTestId, title, subtitle, footer, emptyText, density = 'modal' }) => {
+const TeamAssistantPickerDropdown: React.FC<Props> = ({ children, assistants, onSelect, visible, onVisibleChange, disabled = false, pendingAssistantId, testIdPrefix, panelTestId, title, subtitle, footer, guidanceFooter, emptyText, density = 'modal' }) => {
   const showEmpty = emptyText !== undefined && assistants.length === 0;
 
   return (
@@ -76,6 +78,14 @@ const TeamAssistantPickerDropdown: React.FC<Props> = ({ children, assistants, on
               footer={footer}
             />
           )}
+          {guidanceFooter ? (
+            <div
+              className='shrink-0 mt-6px pt-8px px-4px border-t border-solid border-3'
+              data-testid={panelTestId ? `${panelTestId}-guidance` : undefined}
+            >
+              {guidanceFooter}
+            </div>
+          ) : null}
         </div>
       )}
     >

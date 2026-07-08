@@ -73,14 +73,18 @@
       "debate": "Organizar um debate com assistentes defendendo lados diferentes",
       "interview": "Planejar uma entrevista aprofundada entre assistentes",
       "expert_review": "Ter vários especialistas analisando o mesmo problema"
-    }
+    },
+    "leaderGreeting": "Hi, I'm the Leader. I understand your goal and coordinate the team — describe what you want and I'll arrange it."
   },
   "addMember": {
     "title": "Add member",
     "subtitle": "The same assistant can be added repeatedly",
     "searchAssistants": "Search assistants...",
     "addFailed": "Failed to add member",
-    "noSearchResults": "No results found"
+    "noSearchResults": "No results found",
+    "tellLeaderHint": "Not a good fit? You can also ask the Leader to arrange it.",
+    "tellLeaderCta": "Tell the Leader →",
+    "tellLeaderPrefill": "Help me add a member good at ___ to the team"
   },
   "view": {
     "label": "View",
