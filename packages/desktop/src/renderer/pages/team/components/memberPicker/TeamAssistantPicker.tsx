@@ -140,7 +140,22 @@ const TeamAssistantPicker: React.FC<Props> = ({
                   </div>
                 </Button>
               );
-              return <div key={rowKey}>{blockReason ? <Tooltip content={blockReason}>{row}</Tooltip> : row}</div>;
+              return (
+                <div key={rowKey}>
+                  {blockReason ? (
+                    // The picker can live inside a high z-index dropdown that is portaled to
+                    // document.body (e.g. the mobile add-member dropdown at z-index ~10020).
+                    // Mount the tooltip on document.body too — otherwise it stays trapped in the
+                    // modal's stacking context and its z-index can't beat the sibling dropdown —
+                    // and raise its z-index above the dropdown so the block reason shows on top.
+                    <Tooltip content={blockReason} getPopupContainer={() => document.body} triggerProps={{ style: { zIndex: 10060 } }}>
+                      {row}
+                    </Tooltip>
+                  ) : (
+                    row
+                  )}
+                </div>
+              );
             })}
           </div>
         )}
