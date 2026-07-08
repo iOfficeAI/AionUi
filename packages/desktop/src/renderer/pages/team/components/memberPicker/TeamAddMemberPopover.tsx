@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Message, Popover } from '@arco-design/web-react';
+import { Message } from '@arco-design/web-react';
 import { useTranslation } from 'react-i18next';
 import type { TeamAssistant } from '@/common/types/team/teamTypes';
 import type { TeamAssistantInput } from '@/common/adapter/teamMapper';
@@ -8,7 +8,7 @@ import { useTeamAssistantOptions } from '../../hooks/useTeamAssistantOptions';
 import { useTeamTabs } from '../../hooks/TeamTabsContext';
 import type { TeamAssistantOption } from '../assistantSelectUtils';
 import { resolveDefaultTeamAgentModel } from '../teamCreateModelResolver';
-import TeamAssistantPicker from './TeamAssistantPicker';
+import TeamAssistantPickerDropdown from './TeamAssistantPickerDropdown';
 
 type Props = {
   children: React.ReactElement;
@@ -51,30 +51,20 @@ const TeamAddMemberPopover: React.FC<Props> = ({ children, disabled = false }) =
   };
 
   return (
-    <Popover
-      trigger='click'
-      position='br'
-      style={{ padding: 0, maxWidth: 'none' }}
-      popupVisible={visible}
-      onVisibleChange={(nextVisible) => setVisible(disabled ? false : nextVisible)}
-      content={
-        <div className='w-300px overflow-hidden rounded-10px bg-dialog-fill-0' data-testid='team-add-member-panel'>
-          <TeamAssistantPicker
-            assistants={assistants}
-            onSelect={handleSelect}
-            disabled={disabled || !addAssistant}
-            pendingAssistantId={pendingAssistantId}
-            testIdPrefix='team-add-member'
-            searchVariant='inline'
-            footer={t('team.addMember.footerHint', {
-              defaultValue: 'Show all assistants. The same assistant can be added repeatedly as independent members.',
-            })}
-          />
-        </div>
-      }
+    <TeamAssistantPickerDropdown
+      assistants={assistants}
+      onSelect={handleSelect}
+      visible={visible}
+      onVisibleChange={setVisible}
+      disabled={disabled || !addAssistant}
+      pendingAssistantId={pendingAssistantId}
+      testIdPrefix='team-add-member'
+      panelTestId='team-add-member-panel'
+      title={t('team.addMember.title', { defaultValue: 'Add member' })}
+      subtitle={t('team.addMember.subtitle', { defaultValue: 'The same assistant can be added repeatedly' })}
     >
       {children}
-    </Popover>
+    </TeamAssistantPickerDropdown>
   );
 };
 

@@ -77,9 +77,9 @@
   },
   "addMember": {
     "title": "新增成員",
+    "subtitle": "同一助手可被反覆新增",
     "searchAssistants": "搜尋助手...",
     "addFailed": "新增成員失敗",
-    "noSearchResults": "未找到結果",
-    "footerHint": "顯示所有助手；同一助手可重複新增，各自成為獨立成員。"
+    "noSearchResults": "未找到結果"
   }
 }

@@ -77,9 +77,9 @@
   },
   "addMember": {
     "title": "Add member",
+    "subtitle": "The same assistant can be added repeatedly",
     "searchAssistants": "Search assistants...",
     "addFailed": "Failed to add member",
-    "noSearchResults": "No results found",
-    "footerHint": "Show all assistants. The same assistant can be added repeatedly as independent members."
+    "noSearchResults": "No results found"
   }
 }

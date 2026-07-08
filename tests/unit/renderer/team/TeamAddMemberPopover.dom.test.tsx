@@ -25,25 +25,20 @@ vi.mock('@arco-design/web-react', async () => {
   return {
     ...actual,
     Message: { error: (...args: unknown[]) => messageErrorMock(...args) },
-    Popover: ({
+    // The dropdown is built on Arco Trigger; render the popup inline so the
+    // picker is queryable in tests regardless of open state.
+    Trigger: ({
       children,
-      content,
+      popup,
       position,
-      style,
     }: {
       children: React.ReactNode;
-      content: React.ReactNode;
+      popup?: () => React.ReactNode;
       position?: string;
-      style?: React.CSSProperties;
     }) => (
-      <div
-        data-testid='team-add-member-popover-shell'
-        data-position={position}
-        data-padding={style?.padding}
-        data-max-width={style?.maxWidth}
-      >
+      <div data-testid='team-add-member-popover-shell' data-position={position}>
         {children}
-        {content}
+        {popup ? popup() : null}
       </div>
     ),
   };
@@ -107,41 +102,26 @@ describe('TeamAddMemberPopover', () => {
     expect(screen.queryByText('blocked')).not.toBeInTheDocument();
   });
 
-  it('renders the right-aligned compact design styled picker with a localized footer hint', () => {
+  it('renders the shared right-aligned dropdown picker with a header title + subtitle', () => {
     render(
       <TeamAddMemberPopover>
         <button type='button'>add</button>
       </TeamAddMemberPopover>
     );
 
+    // Shared TeamAssistantPickerDropdown: right-aligned popup, 260px panel, modal density rows.
     expect(screen.getByTestId('team-add-member-popover-shell')).toHaveAttribute('data-position', 'br');
-    expect(screen.getByTestId('team-add-member-popover-shell')).toHaveAttribute('data-padding', '0');
-    expect(screen.getByTestId('team-add-member-popover-shell')).toHaveAttribute('data-max-width', 'none');
-    expect(screen.getByTestId('team-add-member-panel')).toHaveClass('w-300px');
-    expect(screen.getByTestId('team-add-member-search-shell')).toHaveClass('px-12px', 'pt-12px');
+    expect(screen.getByTestId('team-add-member-panel')).toHaveClass('w-260px');
     expect(screen.getByTestId('team-add-member-search').tagName).toBe('INPUT');
-    expect(screen.getByTestId('team-add-member-picker-body')).toHaveClass(
-      'max-h-300px',
-      'border-b',
-      'border-border-1',
-      'bg-dialog-fill-0',
-      'px-8px'
-    );
+    expect(screen.getByTestId('team-add-member-picker-body')).toHaveClass('bg-dialog-fill-0');
     expect(screen.getByTestId('team-add-member-picker-body')).not.toHaveClass('bg-fill-1');
-    expect(screen.getByTestId('team-add-member-footer')).not.toHaveClass('border-t');
-    expect(screen.getByTestId('team-add-member-footer')).toHaveClass('px-14px');
-    expect(screen.getByTestId('team-add-member-footer')).toHaveClass('text-12px', 'leading-18px');
-    expect(screen.getAllByTestId('team-add-member-option-writer')[0]).toHaveClass(
-      '!h-48px',
-      '!px-6px',
-      'hover:!bg-fill-2'
-    );
-    expect(
-      screen.getAllByTestId('team-add-member-option-writer')[0].querySelector('[data-testid="assistant-avatar"]')
-    ).toHaveClass('bg-fill-2');
-    expect(
-      screen.getByText('Show all assistants. The same assistant can be added repeatedly as independent members.')
-    ).toBeInTheDocument();
+    expect(screen.getAllByTestId('team-add-member-option-writer')[0]).toHaveClass('!h-44px', '!px-8px', 'hover:!bg-fill-2');
+    // Header replaces the old footer hint: title on top, short subtitle beneath it.
+    const header = screen.getByTestId('team-add-member-panel-header');
+    expect(header).toBeInTheDocument();
+    expect(header).toHaveTextContent('Add member');
+    expect(header).toHaveTextContent('The same assistant can be added repeatedly');
+    expect(screen.queryByTestId('team-add-member-footer')).not.toBeInTheDocument();
   });
 
   it('renders blocked add-member rows as muted and non-actionable', () => {
@@ -160,14 +140,14 @@ describe('TeamAddMemberPopover', () => {
     expect(blockedOption).toHaveAttribute('aria-disabled', 'true');
     expect(blockedOption).toHaveAttribute('tabindex', '-1');
     expect(blockedOption).toHaveClass('w-full');
-    expect(blockedOption).toHaveClass('!h-48px');
+    expect(blockedOption).toHaveClass('!h-44px');
     expect(blockedOption).not.toHaveClass('!h-auto', '!min-h-58px');
     expect(blockedOption).not.toHaveClass('hover:!bg-fill-2');
     expect(rowContent).toHaveClass('cursor-not-allowed', 'text-t-tertiary');
     expect(rowContent).toHaveClass('w-full', 'items-center', 'justify-between');
     expect(rowContent).not.toHaveClass('flex-col');
     expect(optionName).toHaveClass('text-t-tertiary');
-    expect(addIcon).toHaveClass('flex', 'h-32px', 'w-32px', 'items-center', 'justify-center', 'text-t-quaternary');
+    expect(addIcon).toHaveClass('flex', 'h-30px', 'w-30px', 'items-center', 'justify-center', 'text-t-quaternary');
     expect(addIcon).not.toHaveClass('mt-9px');
     expect(screen.queryByText('blocked')).not.toBeInTheDocument();
   });

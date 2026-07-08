@@ -1,5 +1,5 @@
 import React, { useMemo, useRef, useState } from 'react';
-import { Button, Input, Message, Trigger } from '@arco-design/web-react';
+import { Button, Input, Message } from '@arco-design/web-react';
 import type { RefInputType } from '@arco-design/web-react/es/Input/interface';
 import { Plus } from '@icon-park/react';
 import { useTranslation } from 'react-i18next';
@@ -15,6 +15,7 @@ import { useTeamAssistantOptions } from '../hooks/useTeamAssistantOptions';
 import type { TeamAssistantOption } from './assistantSelectUtils';
 import { resolveDefaultTeamAgentModel } from './teamCreateModelResolver';
 import TeamAssistantPicker from './memberPicker/TeamAssistantPicker';
+import TeamAssistantPickerDropdown from './memberPicker/TeamAssistantPickerDropdown';
 import TeamMemberDraftList, { type TeamMemberDraft } from './memberPicker/TeamMemberDraftList';
 
 // [E2E SYNC] 修改此组件的 DOM 结构（class、标题、关闭按钮等）时，
@@ -224,35 +225,14 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
     setAssistantDropdownOpen(false);
   };
   const addMemberDropdown = (
-    <Trigger
-      popupVisible={assistantDropdownOpen}
+    <TeamAssistantPickerDropdown
+      assistants={allAssistants}
+      onSelect={handleSelectFromDropdown}
+      visible={assistantDropdownOpen}
       onVisibleChange={setAssistantDropdownOpen}
-      trigger='click'
-      position='br'
-      popupAlign={{ bottom: 8 }}
-      getPopupContainer={() => document.body}
-      classNames='team-create-assistant-dropdown'
-      popup={() => (
-        <div
-          data-testid='team-create-assistant-pane'
-          className='flex max-h-280px w-240px min-h-0 flex-col rounded-8px border border-solid border-3 bg-dialog-fill-0 p-8px shadow-[0_4px_12px_rgba(0,0,0,0.1)]'
-          style={{ zIndex: 10020 }}
-        >
-          {allAssistants.length === 0 ? (
-            <div className='flex items-center justify-center px-12px py-12px text-center text-13px text-t-tertiary'>
-              {t('team.create.noSupportedAgents', { defaultValue: 'No supported assistants available' })}
-            </div>
-          ) : (
-            <TeamAssistantPicker
-              assistants={allAssistants}
-              onSelect={handleSelectFromDropdown}
-              testIdPrefix='team-create-agent'
-              density='modal'
-              searchVariant='inline'
-            />
-          )}
-        </div>
-      )}
+      testIdPrefix='team-create-agent'
+      panelTestId='team-create-assistant-pane'
+      emptyText={t('team.create.noSupportedAgents', { defaultValue: 'No supported assistants available' })}
     >
       <Button
         type='outline'
@@ -263,7 +243,7 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
       >
         {t('team.addMember.title', { defaultValue: 'Add member' })}
       </Button>
-    </Trigger>
+    </TeamAssistantPickerDropdown>
   );
   const mobileBody = (
     <div data-testid='team-create-layout-mobile' className='flex min-h-0 flex-col gap-16px px-20px py-16px'>
