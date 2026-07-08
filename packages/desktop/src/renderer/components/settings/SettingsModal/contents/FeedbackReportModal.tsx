@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import ModalWrapper from '@renderer/components/base/ModalWrapper';
+import AionModal from '@renderer/components/base/AionModal';
 import { FEEDBACK_MODULES } from './feedbackModules';
 import { useTalkToButler } from '@/renderer/hooks/assistant/useTalkToButler';
 import { uploadFileViaHttp } from '@/renderer/services/FileService';
@@ -318,8 +318,9 @@ const FeedbackReportModal: React.FC<FeedbackReportModalProps> = ({
   }, [handlePaste, visible]);
 
   return (
-    <ModalWrapper
-      title={t('settings.bugReportTitle')}
+    <AionModal
+      variant='standard'
+      header={{ title: t('settings.bugReportTitle'), showClose: true }}
       visible={visible}
       onCancel={handleCancel}
       onOk={handleSubmit}
@@ -328,35 +329,41 @@ const FeedbackReportModal: React.FC<FeedbackReportModalProps> = ({
       cancelText={t('settings.bugReportCancel')}
       okButtonProps={{ disabled: !isFormValid }}
       alignCenter
-      footer={
-        <div className='flex items-center justify-between gap-8px'>
-          {/* "Solve via chat" is an alternative self-service path — kept on the
-              left as a borderless text action so it reads as secondary to the
-              primary submit, not as a competing filled button. */}
-          <Button
-            type='text'
-            loading={diagnosing}
-            disabled={!description.trim() || submitting}
-            onClick={() => void handleDiagnose()}
-            data-testid='btn-feedback-diagnose'
-            className='!text-primary-6 hover:!text-primary-5'
-          >
-            {t('settings.talkToButler.solveViaChat', { defaultValue: 'Solve via chat' })}
-          </Button>
-          <div className='flex items-center gap-8px'>
-            <Button onClick={handleCancel}>{t('settings.bugReportCancel')}</Button>
+      footer={{
+        render: () => (
+          <div className='flex items-center justify-between gap-8px'>
+            {/* "Solve via chat" is an alternative self-service path — kept on the
+                left as a borderless text action so it reads as secondary to the
+                primary submit, not as a competing filled button. */}
             <Button
-              type='primary'
-              loading={submitting}
-              disabled={!isFormValid || diagnosing}
-              onClick={() => void handleSubmit()}
+              type='text'
+              loading={diagnosing}
+              disabled={!description.trim() || submitting}
+              onClick={() => void handleDiagnose()}
+              data-testid='btn-feedback-diagnose'
+              className='!text-primary-6 hover:!text-primary-5'
             >
-              {t('settings.bugReportSubmit')}
+              {t('settings.talkToButler.solveViaChat', { defaultValue: 'Solve via chat' })}
             </Button>
+            <div className='flex items-center gap-8px'>
+              <Button onClick={handleCancel} className='px-20px min-w-80px' style={{ borderRadius: 8 }}>
+                {t('settings.bugReportCancel')}
+              </Button>
+              <Button
+                type='primary'
+                loading={submitting}
+                disabled={!isFormValid || diagnosing}
+                onClick={() => void handleSubmit()}
+                className='px-20px min-w-80px'
+                style={{ borderRadius: 8 }}
+              >
+                {t('settings.bugReportSubmit')}
+              </Button>
+            </div>
           </div>
-        </div>
-      }
-      className='w-[min(600px,calc(100vw-32px))] max-w-600px rd-16px'
+        ),
+      }}
+      className='w-[min(600px,calc(100vw-32px))] max-w-600px'
       autoFocus={false}
       // The feedback modal is global and may be opened from inside another
       // AionModal (e.g. the Agent editor). Arco's default z-index stacks
@@ -366,10 +373,7 @@ const FeedbackReportModal: React.FC<FeedbackReportModalProps> = ({
       wrapStyle={{ zIndex: 1050 }}
       maskStyle={{ zIndex: 1050 }}
     >
-      <div
-        data-testid='feedback-report-scroll-body'
-        className='overflow-y-auto overflow-x-hidden px-24px pb-12px pr-18px max-h-[min(66vh,520px)]'
-      >
+      <div data-testid='feedback-report-scroll-body' className='overflow-x-hidden'>
         <div className='flex flex-col gap-16px'>
           {/* Description */}
           <div className='flex flex-col gap-4px'>
@@ -454,7 +458,7 @@ const FeedbackReportModal: React.FC<FeedbackReportModalProps> = ({
           ) : null}
         </div>
       </div>
-    </ModalWrapper>
+    </AionModal>
   );
 };
 

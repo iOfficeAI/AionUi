@@ -29,6 +29,13 @@ vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (k: string) => k, i18n: { language: 'en' } }),
 }));
 
+// FeedbackReportModal now renders through AionModal, which reads ThemeContext
+// for font scaling. Provide a minimal theme so the modal mounts without a full
+// ThemeProvider (which pulls in IPC-backed theme loading).
+vi.mock('@/renderer/hooks/context/ThemeContext', () => ({
+  useThemeContext: () => ({ theme: 'light', fontScale: 1 }),
+}));
+
 const sentryMocks = vi.hoisted(() => {
   const setTag = vi.fn();
   return {
@@ -142,7 +149,7 @@ describe('FeedbackReportModal — prefill', () => {
     const user = userEvent.setup();
     renderModal(<FeedbackReportModal visible={true} onCancel={onCancel} defaultModule='agent-detection' />);
 
-    const closeBtn = document.querySelector('.aionui-modal-close-btn') as HTMLElement | null;
+    const closeBtn = document.querySelector('button[aria-label="Close"]') as HTMLElement | null;
     expect(closeBtn).not.toBeNull();
     await user.click(closeBtn!);
 
