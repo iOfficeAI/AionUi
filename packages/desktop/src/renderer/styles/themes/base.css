@@ -66,6 +66,26 @@ body,
   }
 }
 
+/* 团队 warmup 进度条：无确定进度时来回扫动 */
+@keyframes team-warmup-sweep {
+  0% {
+    width: 20%;
+    margin-left: 0;
+  }
+  50% {
+    width: 60%;
+    margin-left: 40%;
+  }
+  100% {
+    width: 20%;
+    margin-left: 0;
+  }
+}
+
+.team-warmup-sweep {
+  animation: team-warmup-sweep 1.4s ease-in-out infinite;
+}
+
 .collapsed {
   .collapsed-hidden {
     display: none;

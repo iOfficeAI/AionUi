@@ -86,5 +86,12 @@
     "label": "檢視",
     "parallel": "並行",
     "single": "單聊"
+  },
+  "warmup": {
+    "title": "正在喚醒團隊…",
+    "progress": "喚醒成員中（{{ready}}/{{total}}）",
+    "timeout": "團隊啟動逾時",
+    "leaderFailed": "團隊啟動失敗",
+    "retry": "重試"
   }
 }

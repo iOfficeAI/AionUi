@@ -21,7 +21,9 @@ import TeamTabs from './components/TeamTabs';
 import TeamChatView from './components/TeamChatView';
 import TeamAgentIdentity from './components/TeamAgentIdentity';
 import TeamViewToggle from './components/TeamViewToggle';
+import TeamWarmupOverlay from './components/TeamWarmupOverlay';
 import { useTeamViewMode } from './hooks/useTeamViewMode';
+import { useTeamWarmup } from './hooks/useTeamWarmup';
 import { TeamTabsProvider, useTeamTabs } from './hooks/TeamTabsContext';
 import { TeamIdentityProvider } from './identity/TeamIdentityContext';
 import { TeamPermissionProvider, useTeamPermission } from './hooks/TeamPermissionContext';
@@ -225,6 +227,13 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onRenameTeam })
   const activeAssistant = assistants.find((assistant) => assistant.slot_id === activeSlotId);
   const leadAssistant = assistants.find((assistant) => assistant.role === 'leader');
   const teamRun = useTeamRunView(team.id);
+
+  // 进团队 warmup：以 Leader 运行时就绪为闸门，遮罩覆盖对话区并禁用改成员/发消息。
+  const { phase: warmupPhase } = useTeamWarmup({
+    team_id: team.id,
+    leaderSlotId: leadAssistant?.slot_id,
+    leaderInitialStatus: statusMap.get(leadAssistant?.slot_id ?? '')?.status ?? leadAssistant?.status,
+  });
 
   const doRemoveAssistant = useCallback(
     async (slot_id: string) => {
@@ -437,6 +446,13 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onRenameTeam })
         }
       >
         <div className='relative flex h-full'>
+          <TeamWarmupOverlay
+            phase={warmupPhase}
+            assistants={assistants}
+            statusMap={statusMap}
+            colorOf={colorOf}
+            onRetry={() => window.location.reload()}
+          />
           {isSingleView ? (
             // 单聊视图：全屏显示当前选中成员（activeSlotId），找不到时回退到 Leader。
             (() => {

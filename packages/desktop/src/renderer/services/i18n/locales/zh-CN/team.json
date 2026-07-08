@@ -86,5 +86,12 @@
     "label": "视图",
     "parallel": "并行",
     "single": "单聊"
+  },
+  "warmup": {
+    "title": "正在唤醒团队…",
+    "progress": "唤醒成员中（{{ready}}/{{total}}）",
+    "timeout": "团队启动超时",
+    "leaderFailed": "团队启动失败",
+    "retry": "重试"
   }
 }
