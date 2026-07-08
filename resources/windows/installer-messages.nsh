@@ -25,8 +25,20 @@
 !define AIONUI_MSG_VERIFY_REQUIRED_FILE_ACTION_EN "Please reinstall AionUi or download a newer installer."
 !define AIONUI_MSG_VERIFY_REQUIRED_FILE_ACTION_ZH "请重新安装 AionUi，或下载更新版本的安装器。"
 
-!define AIONUI_MSG_UNINSTALLER_LOCKED_EN "AionUi cannot update because the existing uninstaller is locked.$\r$\n$\r$\nPlease close AionUi completely and try again. If it still fails, restart Windows and run this installer again.$\r$\n$\r$\nIf the problem continues, uninstall the old AionUi from Windows Settings, then run this installer again."
-!define AIONUI_MSG_UNINSTALLER_LOCKED_ZH "AionUi 无法更新，因为现有卸载器文件被占用。$\r$\n$\r$\n请完全关闭 AionUi 后重试。如果仍然失败，请重启 Windows 后再次运行安装器。$\r$\n$\r$\n如果问题持续存在，请先从 Windows 设置中卸载旧版 AionUi，然后再次运行此安装器。"
+!define AIONUI_MSG_EXTRACT_FAILED_EN "AionUi could not extract the application files correctly."
+!define AIONUI_MSG_EXTRACT_FAILED_ZH "AionUi 无法正确解压应用文件。"
+!define AIONUI_MSG_EXTRACT_FAILED_ACTION_EN "Download a fresh installer and run it again. If it still fails, send the installer report to the AionUi team."
+!define AIONUI_MSG_EXTRACT_FAILED_ACTION_ZH "请重新下载安装器后再次运行。如果仍然失败，请将安装失败报告发送给 AionUi 团队。"
+
+!define AIONUI_MSG_BUNDLED_AIONCORE_INCOMPLETE_EN "AionUi installed, but the bundled AionCore resources are incomplete."
+!define AIONUI_MSG_BUNDLED_AIONCORE_INCOMPLETE_ZH "AionUi 已安装部分文件，但内置 AionCore 资源不完整。"
+!define AIONUI_MSG_BUNDLED_AIONCORE_INCOMPLETE_ACTION_EN "Download a fresh installer and run it again. If it still fails, send the installer report to the AionUi team."
+!define AIONUI_MSG_BUNDLED_AIONCORE_INCOMPLETE_ACTION_ZH "请重新下载安装器后再次运行。如果仍然失败，请将安装失败报告发送给 AionUi 团队。"
+
+!define AIONUI_MSG_ARCH_MISMATCH_EN "Installation package architecture mismatch."
+!define AIONUI_MSG_ARCH_MISMATCH_ZH "安装包架构不匹配。"
+!define AIONUI_MSG_ARCH_MISMATCH_ACTION_EN "Download the AionUi installer that matches this Windows architecture, then run it again."
+!define AIONUI_MSG_ARCH_MISMATCH_ACTION_ZH "请下载与当前 Windows 架构匹配的 AionUi 安装器，然后再次运行。"
 
 !define AIONUI_MSG_UNINSTALLER_COPY_LOCKED_EN "AionUi could not overwrite the installed uninstaller because it is locked."
 !define AIONUI_MSG_UNINSTALLER_COPY_LOCKED_ZH "AionUi 无法覆盖已安装的卸载器，因为该文件被占用。"

@@ -40,6 +40,10 @@ const DATABASE_QUERY_FAILED_RE = /\bDatabase query failed\b/i;
 const INVALID_UTF8_RE = /\binvalid utf-?8\b/i;
 const AGENT_METADATA_CACHE_FIELD_RE =
   /\b(agent_capabilities|auth_methods|config_options|available_modes|available_models|available_commands)\b/i;
+const STARTUP_DIRECTORY_FAILURE_STAGES = new Set(['spawn']);
+const STARTUP_DIRECTORY_PERMISSION_RE = /\b(?:EACCES|EPERM)\b|permission denied|operation not permitted/i;
+const STARTUP_DIRECTORY_UNAVAILABLE_RE =
+  /startup directory preparation failed|(?:\b(?:ENOENT|ENOTDIR|EEXIST)\b[\s\S]{0,160}\bmkdir\b)|(?:\bmkdir\b[\s\S]{0,160}\b(?:ENOENT|ENOTDIR|EEXIST)\b)/i;
 const MAX_REPORTED_DIR_ENTRIES = 20;
 
 function collectBackendStartupText(error: unknown): string {
@@ -178,6 +182,30 @@ function classifyLocalDataRepairFailure(
   };
 }
 
+function classifyStartupDirectoryFailure(
+  details: ErrorWithDetails['details'],
+  text: string
+): BackendStartupFailureInfo | undefined {
+  if (!details || typeof details.stage !== 'string') return undefined;
+  if (!STARTUP_DIRECTORY_FAILURE_STAGES.has(details.stage)) return undefined;
+
+  if (STARTUP_DIRECTORY_PERMISSION_RE.test(text)) {
+    return {
+      reason: 'backend_startup_directory_unavailable',
+      startupDirectoryIssueKind: 'permission_denied',
+    };
+  }
+
+  if (STARTUP_DIRECTORY_UNAVAILABLE_RE.test(text)) {
+    return {
+      reason: 'backend_startup_directory_unavailable',
+      startupDirectoryIssueKind: 'missing_or_unavailable_directory',
+    };
+  }
+
+  return undefined;
+}
+
 export function classifyBackendStartupFailure(error: unknown): BackendStartupFailureInfo {
   const details = getBackendStartupDetails(error);
   const packageArchitectureMismatch = classifyPackageArchitectureMismatch(details);
@@ -187,6 +215,9 @@ export function classifyBackendStartupFailure(error: unknown): BackendStartupFai
   if (incompleteInstallation) return incompleteInstallation;
 
   const text = collectBackendStartupText(error);
+  const startupDirectoryFailure = classifyStartupDirectoryFailure(details, text);
+  if (startupDirectoryFailure) return startupDirectoryFailure;
+
   const requiredVersions = extractMissingGlibcVersions(text);
   if (requiredVersions.length > 0) {
     return {

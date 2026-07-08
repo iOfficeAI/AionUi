@@ -8,7 +8,10 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import React from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import type { Assistant } from '@/common/types/agent/assistantTypes';
-import AssistantSelectionArea from '@/renderer/pages/guid/components/AssistantSelectionArea';
+import AssistantSelectionArea, {
+  hasTruncatedAssistantLabels,
+  resolveAssistantVisibleLimit,
+} from '@/renderer/pages/guid/components/AssistantSelectionArea';
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -31,6 +34,28 @@ vi.mock('@arco-design/web-react', async () => {
 });
 
 describe('AssistantSelectionArea', () => {
+  it('maps available width to 4, 3, 2, then 1 visible assistant slots', () => {
+    expect(resolveAssistantVisibleLimit(800)).toBe(4);
+    expect(resolveAssistantVisibleLimit(680)).toBe(3);
+    expect(resolveAssistantVisibleLimit(520)).toBe(2);
+    expect(resolveAssistantVisibleLimit(390)).toBe(1);
+  });
+
+  it('detects labels that are visually truncated', () => {
+    const root = document.createElement('div');
+    const label = document.createElement('span');
+    label.setAttribute('data-assistant-label', 'true');
+    Object.defineProperty(label, 'clientWidth', { configurable: true, value: 80 });
+    Object.defineProperty(label, 'scrollWidth', { configurable: true, value: 120 });
+    root.appendChild(label);
+
+    expect(hasTruncatedAssistantLabels(root)).toBe(true);
+
+    Object.defineProperty(label, 'scrollWidth', { configurable: true, value: 80 });
+
+    expect(hasTruncatedAssistantLabels(root)).toBe(false);
+  });
+
   it('keeps the assistant picker visible after an assistant is selected', () => {
     render(
       <AssistantSelectionArea
@@ -73,6 +98,27 @@ describe('AssistantSelectionArea', () => {
     expect(screen.getByTestId('assistant-overflow-builtin-writer')).toBeInTheDocument();
     expect(screen.queryByTestId('assistant-overflow-bare-aionrs')).not.toBeInTheDocument();
     expect(screen.queryByTestId('assistant-overflow-user-research')).not.toBeInTheDocument();
+  });
+
+  it('limits the top assistant row when a smaller visible count is provided', async () => {
+    render(
+      <AssistantSelectionArea
+        selectedAssistantId='bare-aionrs'
+        assistants={manyAssistants()}
+        localeKey='en-US'
+        maxVisibleAssistants={1}
+        onSelectAssistant={vi.fn()}
+      />
+    );
+
+    expect(screen.getByTestId('preset-pill-bare-aionrs')).toBeInTheDocument();
+    expect(screen.queryByTestId('preset-pill-user-research')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('preset-pill-user-review')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('assistant-more-btn'));
+
+    expect(await screen.findByTestId('assistant-overflow-user-research')).toBeInTheDocument();
+    expect(screen.getByTestId('assistant-overflow-user-review')).toBeInTheDocument();
   });
 
   it('reports the real assistant id when a pill is selected', () => {
@@ -131,6 +177,24 @@ describe('AssistantSelectionArea', () => {
     // translate (the last of the visible-4 before pull-in) drops to overflow.
     expect(screen.getByTestId('preset-pill-user-finance')).toBeInTheDocument();
     expect(screen.queryByTestId('preset-pill-user-translate')).not.toBeInTheDocument();
+  });
+
+  it('uses the last visible slot for an overflow selection at smaller visible counts', () => {
+    render(
+      <AssistantSelectionArea
+        selectedAssistantId='user-finance'
+        assistants={manyAssistants()}
+        localeKey='en-US'
+        maxVisibleAssistants={2}
+        onSelectAssistant={vi.fn()}
+      />
+    );
+
+    expect(screen.getAllByTestId(/^preset-pill-/).map((node) => node.getAttribute('data-assistant-id'))).toEqual([
+      'bare-aionrs',
+      'user-finance',
+    ]);
+    expect(screen.queryByTestId('preset-pill-user-research')).not.toBeInTheDocument();
   });
 
   it('can re-render from an empty assistant catalog without breaking hook order', () => {

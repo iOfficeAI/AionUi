@@ -11,7 +11,8 @@ type InstallationIntegrityDialogKind =
   | 'incomplete_installation'
   | 'data_migration'
   | 'local_data_repair'
-  | 'recoverable_database_corruption';
+  | 'recoverable_database_corruption'
+  | 'startup_directory';
 
 export type InstallationIntegrityDiagnostics = {
   source: 'backend_startup_failure' | 'runtime_status';
@@ -39,6 +40,7 @@ export function getInstallationIntegrityTitle(
   if (diagnosticsKind === 'recoverable_database_corruption') {
     return t('common.backendStartup.recoverableDatabaseCorruption.title');
   }
+  if (diagnosticsKind === 'startup_directory') return t('common.backendStartup.startupDirectory.title');
   if (diagnosticsKind === 'local_data_repair') return t('common.backendStartup.localDataRepair.title');
   return diagnosticsKind === 'data_migration'
     ? t('common.backendStartup.dataMigration.title')
@@ -68,6 +70,7 @@ export function getInstallationIntegrityDiagnosticsSentText(
   if (diagnosticsKind === 'recoverable_database_corruption') {
     return t('common.backendStartup.recoverableDatabaseCorruption.diagnosticsSent');
   }
+  if (diagnosticsKind === 'startup_directory') return t('common.backendStartup.startupDirectory.diagnosticsSent');
   if (diagnosticsKind === 'local_data_repair') return t('common.backendStartup.localDataRepair.diagnosticsSent');
   return diagnosticsKind === 'data_migration'
     ? t('common.backendStartup.dataMigration.diagnosticsSent')
@@ -161,11 +164,13 @@ export function getInstallationIntegrityModalActions(
     reportText:
       diagnosticsKind === 'recoverable_database_corruption'
         ? t('common.backendStartup.recoverableDatabaseCorruption.sendDiagnostics')
-        : diagnosticsKind === 'local_data_repair'
-          ? t('common.backendStartup.localDataRepair.sendDiagnostics')
-          : diagnosticsKind === 'data_migration'
-            ? t('common.backendStartup.dataMigration.sendDiagnostics')
-            : getInstallationIntegritySendDiagnosticsText(t),
+        : diagnosticsKind === 'startup_directory'
+          ? t('common.backendStartup.startupDirectory.sendDiagnostics')
+          : diagnosticsKind === 'local_data_repair'
+            ? t('common.backendStartup.localDataRepair.sendDiagnostics')
+            : diagnosticsKind === 'data_migration'
+              ? t('common.backendStartup.dataMigration.sendDiagnostics')
+              : getInstallationIntegritySendDiagnosticsText(t),
   };
 }
 

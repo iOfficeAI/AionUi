@@ -36,6 +36,55 @@ describe('classifyBackendStartupFailure', () => {
     });
   });
 
+  it('classifies missing startup directory preparation as a startup directory failure', () => {
+    const error = new Error('aioncore startup directory preparation failed') as Error & {
+      details?: Record<string, unknown>;
+    };
+    error.details = {
+      stage: 'spawn',
+      workDir: 'D:\\ai\\AionUI\\工作目录',
+      causeMessage: 'ENOENT: no such file or directory, mkdir D:\\ai\\AionUI\\工作目录',
+    };
+
+    expect(classifyBackendStartupFailure(error)).toEqual({
+      reason: 'backend_startup_directory_unavailable',
+      startupDirectoryIssueKind: 'missing_or_unavailable_directory',
+    });
+  });
+
+  it('classifies startup directory permission failures separately from incomplete installs', () => {
+    const error = new Error('aioncore startup directory preparation failed') as Error & {
+      details?: Record<string, unknown>;
+    };
+    error.details = {
+      stage: 'spawn',
+      workDir: 'D:\\ai\\AionUI\\工作目录',
+      causeMessage: 'EPERM: operation not permitted, mkdir D:\\ai\\AionUI\\工作目录',
+    };
+
+    expect(classifyBackendStartupFailure(error)).toEqual({
+      reason: 'backend_startup_directory_unavailable',
+      startupDirectoryIssueKind: 'permission_denied',
+    });
+  });
+
+  it('does not classify post-resolution binary spawn ENOENT as a startup directory failure', () => {
+    const error = new Error('aioncore process emitted an error before startup') as Error & {
+      details?: Record<string, unknown>;
+    };
+    error.details = {
+      stage: 'spawn_error',
+      binaryPath: 'D:\\apps\\AionUi\\resources\\bundled-aioncore\\win32-x64\\aioncore.exe',
+      causeMessage: 'spawn D:\\apps\\AionUi\\resources\\bundled-aioncore\\win32-x64\\aioncore.exe ENOENT',
+    };
+
+    expect(classifyBackendStartupFailure(error)).toEqual({
+      reason: 'backend_startup_failed',
+      backendBoundaryCode: undefined,
+      backendBoundaryStage: undefined,
+    });
+  });
+
   it('preserves backend bootstrap code and stage for generic startup failures', () => {
     const error = new Error('aioncore exited before health check passed') as Error & {
       details?: Record<string, unknown>;
@@ -357,6 +406,17 @@ describe('getInstallationIntegrityModalActions', () => {
     } as any);
 
     expect(actions.reportText).toBe('common.backendStartup.localDataRepair.sendDiagnostics');
+    expect(actions.downloadText).toBeUndefined();
+  });
+
+  it('uses startup directory copy and diagnostics-only actions for directory failures', () => {
+    const t = vi.fn((key: string) => key) as any;
+
+    const actions = getInstallationIntegrityModalActions(t, {
+      diagnosticsKind: 'startup_directory',
+    } as any);
+
+    expect(actions.reportText).toBe('common.backendStartup.startupDirectory.sendDiagnostics');
     expect(actions.downloadText).toBeUndefined();
   });
 

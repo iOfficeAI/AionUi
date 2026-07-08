@@ -56,6 +56,12 @@ if ($status.copyText -like '*Blocking process: Windows`r`n*' -or $status.copyTex
 if ($status.blockingDiagnostics -like '*Blocking process: Windows' -and $status.blockingDiagnostics -notlike '*Windows did not identify*') {
   throw 'blockingDiagnostics appears truncated'
 }
+if ($null -eq $status.handleDiagnostics) {
+  throw 'handleDiagnostics missing from report status'
+}
+if ($null -eq $status.handleDiagnostics.available) {
+  throw 'handleDiagnostics.available missing from report status'
+}
 
 $events = @(Get-Content -LiteralPath $logPath | Where-Object { $_.Trim() } | ForEach-Object { $_ | ConvertFrom-Json })
 if (-not (@($events | Where-Object { $_.event -eq 'report-skipped' }).Count -gt 0)) {

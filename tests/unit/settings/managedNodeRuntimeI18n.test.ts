@@ -96,4 +96,19 @@ describe('managed node runtime settings copy', () => {
       expect(localDataRepair.diagnosticsReportFailed).toBeTruthy();
     }
   });
+
+  it('defines startup directory failure copy in every common locale', () => {
+    for (const language of settingsLanguages()) {
+      const common = loadCommonLocale(language);
+      const backendStartup = common.backendStartup as Record<string, unknown>;
+      const startupDirectory = backendStartup.startupDirectory as Record<string, string>;
+
+      expect(startupDirectory.title).toBeTruthy();
+      expect(startupDirectory.description).toBeTruthy();
+      expect(startupDirectory.sendDiagnostics).toBeTruthy();
+      expect(startupDirectory.diagnosticsSent).toBeTruthy();
+      expect(startupDirectory.diagnosticsReportSuccess).toBeTruthy();
+      expect(startupDirectory.diagnosticsReportFailed).toBeTruthy();
+    }
+  });
 });
