@@ -79,8 +79,9 @@ const TeamAssistantPickerDropdown: React.FC<Props> = ({ children, assistants, on
             />
           )}
           {guidanceFooter ? (
+            // 上分隔线贯穿整个下拉宽度（用负边距抵消 panel 的 p-8px），只留一根线 + 文字，不成盒子。
             <div
-              className='shrink-0 mt-6px pt-8px px-4px border-t border-solid border-3'
+              className='shrink-0 -mx-8px mt-8px px-12px pt-8px border-t border-solid border-3'
               data-testid={panelTestId ? `${panelTestId}-guidance` : undefined}
             >
               {guidanceFooter}

@@ -32,7 +32,6 @@ import { useTeamRunView, type TeamRunViewState } from './hooks/useTeamRunView';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
 import { useActiveLease } from '@/renderer/pages/conversation/hooks/useActiveLease';
 import { resolveTeamWorkspaceView } from './utils/teamWorkspaceView';
-import { removeTeamAssistantWithCronCleanup } from './utils/removeTeamAssistantWithCronCleanup';
 
 type Props = {
   team: TTeam;
@@ -213,7 +212,7 @@ const AssistantChatSlot: React.FC<{
 const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onRenameTeam }) => {
   const { t } = useTranslation();
   useActiveLease({ type: 'team', id: team.id });
-  const { assistants, activeSlotId, statusMap, switchTab, membershipMutationBusy, colorOf, colorOfConversation } = useTeamTabs();
+  const { assistants, activeSlotId, statusMap, switchTab, colorOf, colorOfConversation } = useTeamTabs();
   const [, messageContext] = Message.useMessage({ maxCount: 1 });
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -231,44 +230,6 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onRenameTeam })
   // 进团队 warmup：以团队会话运行时就绪为闸门，遮罩覆盖对话区并禁用改成员/发消息。
   const { phase: warmupPhase } = useTeamWarmup(team.id);
 
-  const doRemoveAssistant = useCallback(
-    async (slot_id: string) => {
-      try {
-        await removeTeamAssistantWithCronCleanup({
-          team,
-          slot_id,
-          getConversation: getConversationOrNull,
-          removeCronJob: (job_id) => ipcBridge.cron.removeJob.invoke({ job_id }),
-          removeAgent: (params) => ipcBridge.team.removeAgent.invoke(params),
-        });
-        Message.success(t('common.deleteSuccess'));
-        // 移除当前选中成员时切回 Leader；单聊视图跟随 activeSlotId，无需额外处理。
-        if (slot_id === activeSlotId && leadAssistant?.slot_id) switchTab(leadAssistant.slot_id);
-      } catch (error) {
-        console.error('Failed to remove assistant:', error);
-        Message.error(String(error));
-      }
-    },
-    [team, activeSlotId, leadAssistant?.slot_id, switchTab, t]
-  );
-
-  const handleRemoveAssistant = useCallback(
-    (slot_id: string) => {
-      if (membershipMutationBusy) return;
-
-      const status = statusMap.get(slot_id)?.status;
-      if (status === 'active') {
-        Modal.confirm({
-          title: t('team.removeAgent.confirmTitle'),
-          content: t('team.removeAgent.confirmContent'),
-          onOk: () => doRemoveAssistant(slot_id),
-        });
-      } else {
-        void doRemoveAssistant(slot_id);
-      }
-    },
-    [membershipMutationBusy, statusMap, doRemoveAssistant, t]
-  );
   const leaderConversationId = leadAssistant?.conversation_id ?? '';
   const isLeaderAssistant = activeAssistant?.role === 'leader';
   const allConversationIds = useMemo(
@@ -393,6 +354,14 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onRenameTeam })
       return () => clearTimeout(timer);
     }
   }, []); // empty deps = only on mount
+
+  // 并行视图下：当 activeSlotId 因程序化切换而变化（如「告诉 Leader」切到 Leader），
+  // 把对应列滚动到可视区，避免选中的成员列不在画面中。
+  useEffect(() => {
+    if (isSingleView || !activeSlotId) return;
+    const el = assistantRefs.current[activeSlotId];
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' });
+  }, [activeSlotId, isSingleView]);
 
   // Track pending permission confirmation counts per assistant (requirements 5, 6, 7, 8)
   const { pendingCounts } = useTeamPendingPermissions(team.id, allConversationIds);
