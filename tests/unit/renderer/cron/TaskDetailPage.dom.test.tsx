@@ -29,6 +29,13 @@ vi.mock('react-i18next', () => ({
   }),
 }));
 
+// TaskDetailPage renders CreateTaskDialog, which now mounts through AionModal
+// and reads ThemeContext for font scaling. Provide a minimal theme so it mounts
+// without a full ThemeProvider (which pulls in IPC-backed theme loading).
+vi.mock('@/renderer/hooks/context/ThemeContext', () => ({
+  useThemeContext: () => ({ theme: 'light', fontScale: 1 }),
+}));
+
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
   return {

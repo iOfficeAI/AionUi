@@ -7,7 +7,7 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Form, Input, Select, Message, TimePicker, Radio, Button } from '@arco-design/web-react';
-import ModalWrapper from '@renderer/components/base/ModalWrapper';
+import AionModal from '@renderer/components/base/AionModal';
 import { Down, Robot } from '@icon-park/react';
 import { ipcBridge } from '@/common';
 import { resolveLocaleKey } from '@/common/utils';
@@ -503,18 +503,19 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   };
 
   return (
-    <ModalWrapper
-      title={isEditMode ? t('cron.page.editTask') : t('cron.page.createTask')}
+    <AionModal
+      variant='standard'
+      header={{ title: isEditMode ? t('cron.page.editTask') : t('cron.page.createTask'), showClose: true }}
       visible={visible}
       onCancel={onClose}
       onOk={handleSubmit}
       confirmLoading={submitting}
       okText={t('cron.page.save')}
       cancelText={t('cron.page.cancel')}
-      className='w-[min(560px,calc(100vw-32px))] max-w-560px rd-16px'
+      className='w-[min(560px,calc(100vw-32px))] max-w-560px'
       unmountOnExit
     >
-      <div className='overflow-y-auto px-24px pb-16px pr-18px max-h-[min(68vh,640px)]'>
+      <div>
         <Form form={form} layout='vertical'>
           <FormItem
             label={t('cron.page.form.name')}
@@ -734,7 +735,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
           )}
         </Form>
       </div>
-    </ModalWrapper>
+    </AionModal>
   );
 };
 
