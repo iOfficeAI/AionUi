@@ -248,8 +248,7 @@ Var /GLOBAL AionUiLockerListFile
         ${If} $AionUiCloseRetries > 10
           MessageBox MB_RETRYCANCEL|MB_ICONEXCLAMATION "${AIONUI_MSG_CLOSE_OR_REMOVE_PREVIOUS_ZH}$\r$\n$\r$\n${AIONUI_MSG_MAY_USE_INSTALL_DIR_ZH}$\r$\n$INSTDIR$\r$\n$\r$\n${AIONUI_MSG_RETRY_AFTER_CLOSING_DIR_ZH}$\r$\n$\r$\n${AIONUI_MSG_BLOCK_SEPARATOR}$\r$\n$\r$\n${AIONUI_MSG_CLOSE_OR_REMOVE_PREVIOUS_EN}$\r$\n$\r$\n${AIONUI_MSG_MAY_USE_INSTALL_DIR_EN}$\r$\n$INSTDIR$\r$\n$\r$\n${AIONUI_MSG_RETRY_AFTER_CLOSING_DIR_EN}" /SD IDCANCEL IDRETRY aionui_wait_for_close
           !insertmacro AIONUI_WRITE_INSTALLER_LAST_FAILURE_MARKER
-          !insertmacro AIONUI_CLEAR_ACTIVE_INSTALLER_MARKER
-          Quit
+          !insertmacro AIONUI_FAIL_REPORTABLE_BILINGUAL_DIAGNOSTICS ${AIONUI_E_INSTALL_DIR_REMOVE_OR_LOCKED} "event=session-end result=fail code=${AIONUI_E_INSTALL_DIR_REMOVE_OR_LOCKED} phase=app-cannot-be-closed retryCount=$AionUiCloseRetries instDir=$INSTDIR" "${AIONUI_MSG_CLOSE_OR_REMOVE_PREVIOUS_EN}" "${AIONUI_MSG_CLOSE_OR_REMOVE_PREVIOUS_ZH}" "${AIONUI_MSG_CLOSE_INSTALL_DIR_ACTION_EN}" "${AIONUI_MSG_CLOSE_INSTALL_DIR_ACTION_ZH}" "app-cannot-be-closed retryCount=$AionUiCloseRetries instDir=$INSTDIR" "app-cannot-be-closed retryCount=$AionUiCloseRetries instDir=$INSTDIR"
         ${Else}
           !insertmacro AIONUI_STOP_APP_PROCESSES
           Goto aionui_wait_for_close
