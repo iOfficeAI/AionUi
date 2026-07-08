@@ -118,9 +118,8 @@ describe('TeamAddMemberPopover', () => {
     expect(screen.getByTestId('team-add-member-popover-shell')).toHaveAttribute('data-padding', '0');
     expect(screen.getByTestId('team-add-member-popover-shell')).toHaveAttribute('data-max-width', 'none');
     expect(screen.getByTestId('team-add-member-panel')).toHaveClass('w-300px');
-    expect(screen.getByTestId('team-add-member-search-shell')).toHaveClass('border-b', 'border-border-1', 'px-14px');
-    expect(screen.getByTestId('team-add-member-search').closest('.arco-input-group-wrapper')).toBeNull();
-    expect(screen.getByTestId('team-add-member-search')).toHaveClass('border-0', 'outline-none');
+    expect(screen.getByTestId('team-add-member-search-shell')).toHaveClass('px-12px', 'pt-12px');
+    expect(screen.getByTestId('team-add-member-search').tagName).toBe('INPUT');
     expect(screen.getByTestId('team-add-member-picker-body')).toHaveClass(
       'max-h-300px',
       'border-b',

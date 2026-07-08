@@ -1,12 +1,13 @@
 import { ipcBridge } from '@/common';
 import { Button, Message, Modal, Tooltip } from '@arco-design/web-react';
-import { Delete, Help, Lightning, Puzzle, Search } from '@icon-park/react';
+import { Delete, Help, Lightning, Puzzle } from '@icon-park/react';
 import React, { useCallback, useEffect, useRef, useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import SettingsPageWrapper from './components/SettingsPageWrapper';
 import SettingsPageHeader from './components/SettingsPageHeader';
 import TalkToButlerButton from '@/renderer/components/base/TalkToButlerButton';
+import { AionSearchInput } from '@/renderer/components/base';
 import { buildSkillImportNotice, getSkillImportErrorMessage } from './skillImportMessages';
 
 // Skill 信息类型 / Skill info type
@@ -588,19 +589,13 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
   };
 
   const searchBox = (testId: string) => (
-    <div className='relative group shrink-0 w-[200px] hidden md:block'>
-      <div className='absolute left-12px top-0 bottom-0 text-t-tertiary group-focus-within:text-primary-6 flex items-center pointer-events-none transition-colors'>
-        <Search size={15} />
-      </div>
-      <input
-        data-testid={testId}
-        type='text'
-        className='w-full h-34px bg-fill-1 hover:bg-fill-2 border border-border-1 focus:border-primary-5 focus:bg-base outline-none rd-8px py-0 pl-36px pr-12px text-13px leading-34px text-t-primary placeholder:text-t-tertiary transition-all box-border m-0'
-        placeholder={t('settings.skillsHub.searchPlaceholder', { defaultValue: 'Search skills...' })}
-        value={search_query}
-        onChange={(e) => setSearchQuery(e.target.value)}
-      />
-    </div>
+    <AionSearchInput
+      className='shrink-0 w-[200px] hidden md:flex'
+      data-testid={testId}
+      placeholder={t('settings.skillsHub.searchPlaceholder', { defaultValue: 'Search skills...' })}
+      value={search_query}
+      onChange={setSearchQuery}
+    />
   );
 
   // Read-only section wrapper (extension / auto-injected) using the shared list container.

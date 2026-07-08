@@ -1,7 +1,8 @@
 import React, { useMemo, useState } from 'react';
-import { Button, Empty, Input, Tooltip } from '@arco-design/web-react';
-import { Plus, Search } from '@icon-park/react';
+import { Button, Empty, Tooltip } from '@arco-design/web-react';
+import { Plus } from '@icon-park/react';
 import { useTranslation } from 'react-i18next';
+import { AionSearchInput } from '@renderer/components/base';
 import { AssistantOptionLabel, assistantKey, type TeamAssistantOption } from '../assistantSelectUtils';
 
 type Props = {
@@ -28,7 +29,7 @@ const TeamAssistantPicker: React.FC<Props> = ({
   const { t } = useTranslation();
   const isModalDensity = density === 'modal';
   const [query, setQuery] = useState('');
-  const searchPlaceholder = t('team.create.searchPlaceholder', { defaultValue: 'Search assistants...' });
+  const searchPlaceholder = t('team.create.searchPlaceholder', { defaultValue: 'Search' });
   const filteredAssistants = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return assistants;
@@ -37,31 +38,8 @@ const TeamAssistantPicker: React.FC<Props> = ({
 
   return (
     <div className={`flex min-h-0 flex-col ${isModalDensity ? 'gap-12px' : ''} ${className ?? ''}`}>
-      <div
-        className={isModalDensity ? undefined : 'border-b border-border-1 bg-dialog-fill-0 px-14px'}
-        data-testid={`${testIdPrefix}-search-shell`}
-      >
-        {isModalDensity ? (
-          <Input
-            prefix={<Search size='14' fill='currentColor' />}
-            value={query}
-            onChange={setQuery}
-            placeholder={searchPlaceholder}
-            data-testid={`${testIdPrefix}-search`}
-            className='!h-38px !rounded-8px !text-13px'
-          />
-        ) : (
-          <div className='flex h-50px items-center gap-10px text-t-secondary'>
-            <Search size='16' fill='currentColor' className='shrink-0' />
-            <input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder={searchPlaceholder}
-              data-testid={`${testIdPrefix}-search`}
-              className='min-w-0 flex-1 border-0 bg-transparent p-0 text-14px leading-20px text-t-primary outline-none placeholder:text-t-tertiary'
-            />
-          </div>
-        )}
+      <div className={isModalDensity ? undefined : 'bg-dialog-fill-0 px-12px pt-12px'} data-testid={`${testIdPrefix}-search-shell`}>
+        <AionSearchInput className='w-full' value={query} onChange={setQuery} placeholder={searchPlaceholder} data-testid={`${testIdPrefix}-search`} />
       </div>
       <div
         data-testid={`${testIdPrefix}-picker-body`}
