@@ -1,7 +1,8 @@
-import { Button, Input, Modal, Spin, Tooltip } from '@arco-design/web-react';
+import { Button, Input, Spin, Tooltip } from '@arco-design/web-react';
 import { CheckOne, CloseOne, Delete, Edit, Plus, DeleteFive, CheckSmall, Shield } from '@icon-park/react';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import AionModal from '@/renderer/components/base/AionModal';
 
 /**
  * API Key 状态
@@ -157,13 +158,22 @@ const ApiKeyEditorModal: React.FC<ApiKeyEditorModalProps> = ({ visible, api_keys
   };
 
   return (
-    <Modal
+    <AionModal
+      variant='standard'
       visible={visible}
       onCancel={onClose}
-      title={t('settings.editApiKey')}
-      footer={null}
+      header={{ title: t('settings.editApiKey'), showClose: true }}
       style={{ maxWidth: '500px', width: '90vw' }}
       unmountOnExit
+      footer={{
+        render: () => (
+          <div className='flex justify-end'>
+            <Button type='primary' onClick={handleSave} className='px-20px min-w-80px' style={{ borderRadius: 8 }}>
+              {t('common.confirm')}
+            </Button>
+          </div>
+        ),
+      }}
     >
       <div className='flex flex-col gap-12px'>
         {/* Key 列表 */}
@@ -270,15 +280,8 @@ const ApiKeyEditorModal: React.FC<ApiKeyEditorModalProps> = ({ visible, api_keys
             </Button>
           </div>
         </div>
-
-        {/* 确认按钮 */}
-        <div className='flex justify-end pt-8px'>
-          <Button type='primary' onClick={handleSave}>
-            {t('common.confirm')}
-          </Button>
-        </div>
       </div>
-    </Modal>
+    </AionModal>
   );
 };
 
