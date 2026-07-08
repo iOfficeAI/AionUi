@@ -65,6 +65,7 @@ const TeamAddMemberPopover: React.FC<Props> = ({ children, disabled = false }) =
             disabled={disabled || !addAssistant}
             pendingAssistantId={pendingAssistantId}
             testIdPrefix='team-add-member'
+            searchVariant='inline'
             footer={t('team.addMember.footerHint', {
               defaultValue: 'Show all assistants. The same assistant can be added repeatedly as independent members.',
             })}

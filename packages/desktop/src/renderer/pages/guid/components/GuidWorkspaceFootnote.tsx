@@ -6,7 +6,7 @@
 
 import { ipcBridge } from '@/common';
 import { addRecentWorkspace, getRecentWorkspaces } from '@/renderer/components/workspace';
-import { AionSearchInput } from '@/renderer/components/base';
+import { AionInlineSearchInput } from '@/renderer/components/base';
 import { Tooltip } from '@arco-design/web-react';
 import { Close, Down } from '@icon-park/react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
@@ -145,7 +145,7 @@ const GuidWorkspaceFootnote: React.FC<GuidWorkspaceFootnoteProps> = ({
     ? createPortal(
         <div ref={dropdownRef} className={styles.wsDropdown} style={dropdownStyle}>
           <div className='mb-8px'>
-            <AionSearchInput className='w-full' ref={searchRef} value={searchQuery} onChange={setSearchQuery} placeholder={t('guid.workspace.searchPlaceholder')} />
+            <AionInlineSearchInput className='w-full' ref={searchRef} value={searchQuery} onChange={setSearchQuery} placeholder={t('guid.workspace.searchPlaceholder')} />
           </div>
 
           {filteredRecent.map((path) => {

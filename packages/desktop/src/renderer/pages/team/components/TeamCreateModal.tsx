@@ -248,6 +248,7 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
               onSelect={handleSelectFromDropdown}
               testIdPrefix='team-create-agent'
               density='modal'
+              searchVariant='inline'
             />
           )}
         </div>

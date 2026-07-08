@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { Button, Empty, Tooltip } from '@arco-design/web-react';
 import { Plus } from '@icon-park/react';
 import { useTranslation } from 'react-i18next';
-import { AionSearchInput } from '@renderer/components/base';
+import { AionSearchInput, AionInlineSearchInput } from '@renderer/components/base';
 import { AssistantOptionLabel, assistantKey, type TeamAssistantOption } from '../assistantSelectUtils';
 
 type Props = {
@@ -14,6 +14,12 @@ type Props = {
   density?: 'compact' | 'modal';
   className?: string;
   footer?: React.ReactNode;
+  /**
+   * 搜索框样式：'default' 用常驻搜索栏样式（AionSearchInput，34px 描边）；
+   * 'inline' 用下拉列表专用的柔和样式（AionInlineSearchInput，浅灰填充无边框）。
+   * 点击展开的下拉列表传 'inline'，常驻列表用默认。
+   */
+  searchVariant?: 'default' | 'inline';
 };
 
 const TeamAssistantPicker: React.FC<Props> = ({
@@ -25,9 +31,11 @@ const TeamAssistantPicker: React.FC<Props> = ({
   density = 'compact',
   className,
   footer,
+  searchVariant = 'default',
 }) => {
   const { t } = useTranslation();
   const isModalDensity = density === 'modal';
+  const isInlineSearch = searchVariant === 'inline';
   const [query, setQuery] = useState('');
   const searchPlaceholder = t('team.create.searchPlaceholder', { defaultValue: 'Search' });
   const filteredAssistants = useMemo(() => {
@@ -39,7 +47,11 @@ const TeamAssistantPicker: React.FC<Props> = ({
   return (
     <div className={`flex min-h-0 flex-col ${isModalDensity ? 'gap-12px' : ''} ${className ?? ''}`}>
       <div className={isModalDensity ? undefined : 'bg-dialog-fill-0 px-12px pt-12px'} data-testid={`${testIdPrefix}-search-shell`}>
-        <AionSearchInput className='w-full' value={query} onChange={setQuery} placeholder={searchPlaceholder} data-testid={`${testIdPrefix}-search`} />
+        {isInlineSearch ? (
+          <AionInlineSearchInput className='w-full' value={query} onChange={setQuery} placeholder={searchPlaceholder} data-testid={`${testIdPrefix}-search`} />
+        ) : (
+          <AionSearchInput className='w-full' value={query} onChange={setQuery} placeholder={searchPlaceholder} data-testid={`${testIdPrefix}-search`} />
+        )}
       </div>
       <div
         data-testid={`${testIdPrefix}-picker-body`}

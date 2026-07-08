@@ -19,6 +19,7 @@ export { default as AionSelect } from './AionSelect';
 export { default as AionScrollArea } from './AionScrollArea';
 export { default as AionSteps } from './AionSteps';
 export { default as AionSearchInput } from './AionSearchInput';
+export { default as AionInlineSearchInput } from './AionInlineSearchInput';
 
 // ==================== 类型导出 / Type Exports ====================
 
@@ -43,3 +44,6 @@ export type { AionStepsProps } from './AionSteps';
 
 // AionSearchInput 类型 / AionSearchInput types
 export type { AionSearchInputProps } from './AionSearchInput';
+
+// AionInlineSearchInput 类型 / AionInlineSearchInput types
+export type { AionInlineSearchInputProps } from './AionInlineSearchInput';

@@ -1,0 +1,44 @@
+/**
+ * @license
+ * Copyright 2025 AionUi (aionui.com)
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/* 下拉列表专用搜索框 —— 样式基准取自首页 Project 选择下拉曾用的搜索框：
+   浅灰填充、无边框、8px 圆角，柔和紧凑。 */
+
+.searchbar {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: var(--color-fill-2);
+}
+
+.icon {
+  flex-shrink: 0;
+  line-height: 0;
+  color: var(--color-text-3);
+}
+
+.input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--color-text-1);
+  font-size: 12px;
+  font-family: inherit;
+}
+
+.input::placeholder {
+  color: var(--color-text-4);
+}
+
+.input:focus,
+.input:focus-visible {
+  outline: none;
+}
