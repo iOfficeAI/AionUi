@@ -19,9 +19,15 @@ type Props = {
    * 窄屏用它承载“添加成员”按钮，避免另起一行重复渲染标题。
    */
   headerAction?: React.ReactNode;
+  /**
+   * 追加到成员列表框上的类名。默认框用 flex-1 撑满父级高度（桌面双栏有固定高度，
+   * 因此天然可滚动）。窄屏没有固定高度的父级，可传一个 max-height 让框自身受限、
+   * 内容变多时在框内滚动。
+   */
+  listBoxClassName?: string;
 };
 
-const TeamMemberDraftList: React.FC<Props> = ({ members, leaderSelectionId, onLeaderChange, onRemove, headerAction }) => {
+const TeamMemberDraftList: React.FC<Props> = ({ members, leaderSelectionId, onLeaderChange, onRemove, headerAction, listBoxClassName }) => {
   const { t } = useTranslation();
 
   const hasMembers = members.length > 0;
@@ -49,7 +55,7 @@ const TeamMemberDraftList: React.FC<Props> = ({ members, leaderSelectionId, onLe
       </p>
       <div
         data-testid='team-create-member-list-box'
-        className={`min-h-120px flex-1 overflow-y-auto rounded-8px bg-fill-1 ${hasMembers ? 'flex flex-col gap-6px p-8px' : 'flex items-center justify-center px-14px py-12px'}`}
+        className={`min-h-120px flex-1 overflow-y-auto rounded-8px bg-fill-1 ${hasMembers ? 'flex flex-col gap-6px p-8px' : 'flex items-center justify-center px-14px py-12px'} ${listBoxClassName ?? ''}`}
       >
         {!hasMembers ? (
           <div className='flex max-w-260px flex-col items-center gap-6px text-center'>

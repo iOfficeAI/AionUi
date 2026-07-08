@@ -235,7 +235,7 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
       popup={() => (
         <div
           data-testid='team-create-assistant-pane'
-          className='flex max-h-280px w-240px min-h-0 flex-col rounded-8px border border-solid border-3 bg-dialog-fill-0 p-4px shadow-[0_4px_12px_rgba(0,0,0,0.1)]'
+          className='flex max-h-280px w-240px min-h-0 flex-col rounded-8px border border-solid border-3 bg-dialog-fill-0 p-8px shadow-[0_4px_12px_rgba(0,0,0,0.1)]'
           style={{ zIndex: 10020 }}
         >
           {allAssistants.length === 0 ? (
@@ -267,6 +267,8 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
   );
   const mobileBody = (
     <div data-testid='team-create-layout-mobile' className='flex min-h-0 flex-col gap-16px px-20px py-16px'>
+      {/* 窄屏无固定高度的父级：给成员列表框一个固定 max-height（同桌面思路），成员变多时框内滚动，
+          团队字段区始终留在下方可见。 */}
       <section className='flex min-h-0 flex-col' data-testid='team-create-details-pane'>
         <TeamMemberDraftList
           members={selectedMembers}
@@ -274,6 +276,7 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
           onLeaderChange={setLeaderSelectionId}
           onRemove={handleRemoveDraft}
           headerAction={addMemberDropdown}
+          listBoxClassName='!max-h-[38vh]'
         />
       </section>
 
