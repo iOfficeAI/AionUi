@@ -14,9 +14,14 @@ type Props = {
   leaderSelectionId?: string;
   onLeaderChange: (selectionId: string) => void;
   onRemove: (selectionId: string) => void;
+  /**
+   * 可选的标题行操作区，渲染在“已选成员 N”标题右侧、替换默认的 Leader 图例。
+   * 窄屏用它承载“添加成员”按钮，避免另起一行重复渲染标题。
+   */
+  headerAction?: React.ReactNode;
 };
 
-const TeamMemberDraftList: React.FC<Props> = ({ members, leaderSelectionId, onLeaderChange, onRemove }) => {
+const TeamMemberDraftList: React.FC<Props> = ({ members, leaderSelectionId, onLeaderChange, onRemove, headerAction }) => {
   const { t } = useTranslation();
 
   const hasMembers = members.length > 0;
@@ -30,10 +35,12 @@ const TeamMemberDraftList: React.FC<Props> = ({ members, leaderSelectionId, onLe
             defaultValue: `Selected members ${members.length}`,
           })}
         </span>
-        <span className='flex items-center gap-4px text-12px leading-18px text-t-tertiary'>
-          <Crown theme='filled' size='13' fill='var(--warning)' className='relative top-1px block leading-none' />
-          {t('team.create.leaderLegend', { defaultValue: '= Leader' })}
-        </span>
+        {headerAction ?? (
+          <span className='flex items-center gap-4px text-12px leading-18px text-t-tertiary'>
+            <Crown theme='filled' size='13' fill='var(--warning)' className='relative top-1px block leading-none' />
+            {t('team.create.leaderLegend', { defaultValue: '= Leader' })}
+          </span>
+        )}
       </div>
       <p className='m-0 mb-12px text-12px leading-18px text-t-tertiary'>
         {t('team.create.membersHelper', {

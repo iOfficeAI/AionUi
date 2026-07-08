@@ -1,11 +1,13 @@
 import React, { useMemo, useRef, useState } from 'react';
-import { Button, Input, Message } from '@arco-design/web-react';
+import { Button, Input, Message, Trigger } from '@arco-design/web-react';
 import type { RefInputType } from '@arco-design/web-react/es/Input/interface';
+import { Plus } from '@icon-park/react';
 import { useTranslation } from 'react-i18next';
 import { ipcBridge } from '@/common';
 import type { TTeam } from '@/common/types/team/teamTypes';
 import type { TeamAssistantInput } from '@/common/adapter/teamMapper';
 import { useAuth } from '@renderer/hooks/context/AuthContext';
+import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import AionModal from '@renderer/components/base/AionModal';
 import { WorkspaceFolderSelect } from '@renderer/components/workspace';
 import { getConversationCreateErrorMessage } from '@renderer/pages/conversation/utils/conversationCreateError';
@@ -20,6 +22,9 @@ import TeamMemberDraftList, { type TeamMemberDraft } from './memberPicker/TeamMe
 // team-name-validation.e2e.ts 中的 selector，并立即向上汇报改动情况。
 // 注意：迁移到 AionModal variant='standard' 后，关闭按钮为 button[aria-label="Close"]，
 // 不再是 .arco-btn-text / .arco-modal-close-icon。
+// 窄屏（layout.isMobile，<768px）改为单栏：布局根为 team-create-layout-mobile，
+// 助手选择器是锚在 team-create-add-member-btn 上的下拉（选中即关，助手随即出现在下方列表）；
+// 桌面双栏为 team-create-layout。
 type Props = {
   visible: boolean;
   onClose: () => void;
@@ -29,12 +34,16 @@ type Props = {
 const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
   const { t, i18n } = useTranslation();
   const { user } = useAuth();
+  const layout = useLayoutContext();
+  const isMobile = layout?.isMobile ?? false;
   const { assistants: allAssistants } = useTeamAssistantOptions(i18n?.language ?? 'en-US');
   const [name, setName] = useState('');
   const [selectedMembers, setSelectedMembers] = useState<TeamMemberDraft[]>([]);
   const [leaderSelectionId, setLeaderSelectionId] = useState<string | undefined>(undefined);
   const [workspace, setWorkspace] = useState('');
   const [loading, setLoading] = useState(false);
+  // 窄屏专用：助手选择器以下拉列表形式，锚在“添加成员”按钮上按需唤出。
+  const [assistantDropdownOpen, setAssistantDropdownOpen] = useState(false);
   const nameInputRef = useRef<RefInputType | null>(null);
 
   const hasOneLeader = useMemo(
@@ -47,6 +56,7 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
     setSelectedMembers([]);
     setLeaderSelectionId(undefined);
     setWorkspace('');
+    setAssistantDropdownOpen(false);
     onClose();
   };
 
@@ -128,19 +138,161 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
       setLoading(false);
     }
   };
+  // 助手选择器：桌面端嵌在左栏，窄屏端复用同一份放进底部面板。空态文案与逻辑完全一致。
+  const assistantPicker = (
+    <>
+      {allAssistants.length === 0 ? (
+        <div className='flex min-h-112px items-center justify-center rounded-8px border border-dashed border-border-2 bg-fill-1 py-14px text-13px text-t-tertiary'>
+          {t('team.create.noSupportedAgents', { defaultValue: 'No supported assistants available' })}
+        </div>
+      ) : (
+        <TeamAssistantPicker
+          assistants={allAssistants}
+          onSelect={handleSelectAssistant}
+          testIdPrefix='team-create-agent'
+          density='modal'
+        />
+      )}
+    </>
+  );
+
+  // 团队名 + 工作空间：桌面端与窄屏端共用同一份字段（文案、testId、交互一致）。
+  const teamFields = (
+    <div className='grid grid-cols-[76px_minmax(0,1fr)] items-center gap-x-14px gap-y-10px'>
+      <div className='text-14px font-600 leading-21px text-t-secondary'>
+        {t('team.create.nameLabel', { defaultValue: 'Team name' })}
+        <span className='ml-4px text-danger-6'>*</span>
+      </div>
+      <div>
+        <Input
+          ref={nameInputRef}
+          placeholder={t('team.create.namePlaceholder', { defaultValue: 'Team name' })}
+          value={name}
+          onChange={setName}
+          data-testid='team-create-name-input'
+          className='!h-38px !rounded-8px !text-13px'
+        />
+      </div>
+
+      <div className='text-14px font-500 leading-21px text-t-secondary'>
+        {t('team.create.workspaceLabel', { defaultValue: 'Workspace' })}
+      </div>
+      <div>
+        <WorkspaceFolderSelect
+          value={workspace}
+          onChange={setWorkspace}
+          placeholder={t('team.create.selectFolder', { defaultValue: 'Select folder' })}
+          recentLabel={t('team.create.recentLabel', { defaultValue: 'Recent' })}
+          chooseDifferentLabel={t('team.create.chooseDifferentFolder', {
+            defaultValue: 'Choose a different folder',
+          })}
+          triggerTestId='team-create-workspace-trigger'
+          menuTestId='team-create-workspace-menu'
+        />
+      </div>
+    </div>
+  );
+
+  // 桌面端：左右双栏，通栏竖分隔线（保持原样，宽屏不受窄屏改动影响）。
+  const desktopBody = (
+    <div
+      data-testid='team-create-layout'
+      className='grid min-h-0 grid-cols-[minmax(0,1fr)_minmax(0,1fr)]'
+      style={{ height: 'min(54vh, 470px)', minHeight: 390 }}
+    >
+      <section className='flex min-h-0 flex-col border-r border-border-3 px-20px pb-18px pt-12px' data-testid='team-create-assistant-pane'>
+        <div className='mb-12px text-15px font-600 leading-22px text-t-secondary'>
+          {t('team.create.allAssistantsWithCount', {
+            count: allAssistants.length,
+            defaultValue: `All assistants (${allAssistants.length})`,
+          })}
+        </div>
+        {assistantPicker}
+      </section>
+
+      <section className='flex min-h-0 flex-col px-20px pb-14px pt-12px' data-testid='team-create-details-pane'>
+        <TeamMemberDraftList members={selectedMembers} leaderSelectionId={leaderSelectionId} onLeaderChange={setLeaderSelectionId} onRemove={handleRemoveDraft} />
+        <div className='mt-14px shrink-0 border-t border-border-2 pt-14px'>{teamFields}</div>
+      </section>
+    </div>
+  );
+
+  // 窄屏端：单栏——只留“已选成员”与团队字段；助手选择器做成锚在“添加成员”按钮上的下拉列表。
+  // 选中即关：下拉收起后，用户直接看到助手出现在下方的已选成员列表里（这就是“加成功了”的反馈）。
+  const handleSelectFromDropdown = (assistant: TeamAssistantOption) => {
+    handleSelectAssistant(assistant);
+    setAssistantDropdownOpen(false);
+  };
+  const addMemberDropdown = (
+    <Trigger
+      popupVisible={assistantDropdownOpen}
+      onVisibleChange={setAssistantDropdownOpen}
+      trigger='click'
+      position='br'
+      popupAlign={{ bottom: 8 }}
+      getPopupContainer={() => document.body}
+      classNames='team-create-assistant-dropdown'
+      popup={() => (
+        <div
+          data-testid='team-create-assistant-pane'
+          className='flex max-h-280px w-240px min-h-0 flex-col rounded-8px border border-solid border-3 bg-dialog-fill-0 p-4px shadow-[0_4px_12px_rgba(0,0,0,0.1)]'
+          style={{ zIndex: 10020 }}
+        >
+          {allAssistants.length === 0 ? (
+            <div className='flex items-center justify-center px-12px py-12px text-center text-13px text-t-tertiary'>
+              {t('team.create.noSupportedAgents', { defaultValue: 'No supported assistants available' })}
+            </div>
+          ) : (
+            <TeamAssistantPicker
+              assistants={allAssistants}
+              onSelect={handleSelectFromDropdown}
+              testIdPrefix='team-create-agent'
+              density='modal'
+            />
+          )}
+        </div>
+      )}
+    >
+      <Button
+        type='outline'
+        size='small'
+        icon={<Plus theme='outline' size='14' fill='currentColor' />}
+        data-testid='team-create-add-member-btn'
+        className='!h-30px !rounded-999px !px-12px !text-13px'
+      >
+        {t('team.addMember.title', { defaultValue: 'Add member' })}
+      </Button>
+    </Trigger>
+  );
+  const mobileBody = (
+    <div data-testid='team-create-layout-mobile' className='flex min-h-0 flex-col gap-16px px-20px py-16px'>
+      <section className='flex min-h-0 flex-col' data-testid='team-create-details-pane'>
+        <TeamMemberDraftList
+          members={selectedMembers}
+          leaderSelectionId={leaderSelectionId}
+          onLeaderChange={setLeaderSelectionId}
+          onRemove={handleRemoveDraft}
+          headerAction={addMemberDropdown}
+        />
+      </section>
+
+      <section className='shrink-0'>{teamFields}</section>
+    </div>
+  );
+
   return (
     <AionModal
       variant='standard'
       visible={visible}
       onCancel={handleClose}
       className='team-create-modal'
-      style={{ width: 900, maxWidth: 'calc(100vw - 72px)' }}
+      style={{ width: isMobile ? 'calc(100vw - 32px)' : 900, maxWidth: isMobile ? 'calc(100vw - 32px)' : 'calc(100vw - 72px)' }}
       wrapStyle={{ zIndex: 10000 }}
       maskStyle={{ zIndex: 9999 }}
       autoFocus={false}
       unmountOnExit={false}
-      // 通栏双栏是团队创建独有的布局：关闭内容区默认内边距，让中间竖分隔线贴边贯穿。
-      // 标题区 / 按钮区 / 居中 / 最大高度均沿用 standard 统一规则。
+      // 桌面通栏双栏是团队创建独有的布局：关闭内容区默认内边距，让中间竖分隔线贴边贯穿。
+      // 窄屏改为单栏（自带内边距），标题区 / 按钮区 / 居中 / 最大高度均沿用 standard 统一规则。
       contentStyle={{ padding: 0, overflow: 'hidden' }}
       header={{
         title: t('team.create.title', { defaultValue: 'New Team' }),
@@ -168,80 +320,7 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
         ),
       }}
     >
-      <div
-        data-testid='team-create-layout'
-        className='grid min-h-0 grid-cols-[minmax(0,1fr)_minmax(0,1fr)]'
-        style={{ height: 'min(54vh, 470px)', minHeight: 390 }}
-      >
-        <section
-          className='flex min-h-0 flex-col border-r border-border-3 px-20px pb-18px pt-12px'
-          data-testid='team-create-assistant-pane'
-        >
-          <div className='mb-12px text-15px font-600 leading-22px text-t-secondary'>
-            {t('team.create.allAssistantsWithCount', {
-              count: allAssistants.length,
-              defaultValue: `All assistants (${allAssistants.length})`,
-            })}
-          </div>
-          {allAssistants.length === 0 ? (
-            <div className='flex min-h-112px items-center justify-center rounded-8px border border-dashed border-border-2 bg-fill-1 py-14px text-13px text-t-tertiary'>
-              {t('team.create.noSupportedAgents', { defaultValue: 'No supported assistants available' })}
-            </div>
-          ) : (
-            <TeamAssistantPicker
-              assistants={allAssistants}
-              onSelect={handleSelectAssistant}
-              testIdPrefix='team-create-agent'
-              density='modal'
-            />
-          )}
-        </section>
-
-        <section className='flex min-h-0 flex-col px-20px pb-14px pt-12px' data-testid='team-create-details-pane'>
-          <TeamMemberDraftList
-            members={selectedMembers}
-            leaderSelectionId={leaderSelectionId}
-            onLeaderChange={setLeaderSelectionId}
-            onRemove={handleRemoveDraft}
-          />
-
-          <div className='mt-14px shrink-0 border-t border-border-2 pt-14px'>
-            <div className='grid grid-cols-[76px_minmax(0,1fr)] items-center gap-x-14px gap-y-10px'>
-              <div className='text-14px font-600 leading-21px text-t-secondary'>
-                {t('team.create.nameLabel', { defaultValue: 'Team name' })}
-                <span className='ml-4px text-danger-6'>*</span>
-              </div>
-              <div>
-                <Input
-                  ref={nameInputRef}
-                  placeholder={t('team.create.namePlaceholder', { defaultValue: 'Team name' })}
-                  value={name}
-                  onChange={setName}
-                  data-testid='team-create-name-input'
-                  className='!h-38px !rounded-8px !text-13px'
-                />
-              </div>
-
-              <div className='text-14px font-500 leading-21px text-t-secondary'>
-                {t('team.create.workspaceLabel', { defaultValue: 'Workspace' })}
-              </div>
-              <div>
-                <WorkspaceFolderSelect
-                  value={workspace}
-                  onChange={setWorkspace}
-                  placeholder={t('team.create.selectFolder', { defaultValue: 'Select folder' })}
-                  recentLabel={t('team.create.recentLabel', { defaultValue: 'Recent' })}
-                  chooseDifferentLabel={t('team.create.chooseDifferentFolder', {
-                    defaultValue: 'Choose a different folder',
-                  })}
-                  triggerTestId='team-create-workspace-trigger'
-                  menuTestId='team-create-workspace-menu'
-                />
-              </div>
-            </div>
-          </div>
-        </section>
-      </div>
+      {isMobile ? mobileBody : desktopBody}
     </AionModal>
   );
 };

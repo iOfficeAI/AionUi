@@ -110,6 +110,16 @@ vi.mock('@renderer/pages/team/components/teamCreateModelResolver', () => ({
 }));
 
 import TeamCreateModal from '@/renderer/pages/team/components/TeamCreateModal';
+import { LayoutContext } from '@/renderer/hooks/context/LayoutContext';
+
+// Render inside a LayoutContext flagged as mobile so the component takes the
+// narrow-screen branch (single column + bottom-sheet assistant picker).
+const renderMobile = (ui: React.ReactElement) =>
+  render(
+    <LayoutContext.Provider value={{ isMobile: true, siderCollapsed: false, setSiderCollapsed: () => {} }}>
+      {ui}
+    </LayoutContext.Provider>
+  );
 
 describe('TeamCreateModal', () => {
   beforeEach(() => {
@@ -357,6 +367,68 @@ describe('TeamCreateModal', () => {
 
     expect(createTeamInvokeMock).not.toHaveBeenCalled();
     expect(String(messageErrorMock.mock.calls[0][0])).toContain('Remote Runner');
+  });
+});
+
+describe('TeamCreateModal · mobile (narrow screen)', () => {
+  beforeEach(() => {
+    createTeamInvokeMock.mockReset();
+    createTeamInvokeMock.mockResolvedValue({ id: 'team-1', assistants: [], agents: [] });
+    resolveDefaultTeamAgentModelMock.mockReset();
+    resolveDefaultTeamAgentModelMock.mockResolvedValue(undefined);
+    messageErrorMock.mockReset();
+  });
+
+  it('renders the single-column mobile layout instead of the desktop two-column one', () => {
+    renderMobile(<TeamCreateModal visible onClose={vi.fn()} onCreated={vi.fn()} />);
+
+    // Narrow layout root is present; the desktop two-column root is not rendered.
+    expect(screen.getByTestId('team-create-layout-mobile')).toBeInTheDocument();
+    expect(screen.queryByTestId('team-create-layout')).not.toBeInTheDocument();
+
+    // Header/footer copy stays aligned with desktop (same i18n keys).
+    expect(screen.getByRole('heading', { name: 'New Team' })).toBeInTheDocument();
+    expect(screen.getByText('Selected members 0')).toBeInTheDocument();
+    expect(screen.getByTestId('team-create-name-input')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Confirm Create' })).toBeDisabled();
+
+    // The add-member trigger is present; the assistant dropdown is closed until opened.
+    expect(screen.getByTestId('team-create-add-member-btn')).toBeInTheDocument();
+    expect(screen.queryByTestId('team-create-agent-search')).not.toBeInTheDocument();
+  });
+
+  it('opens the assistant dropdown, adds a member, and closes on select', async () => {
+    renderMobile(<TeamCreateModal visible onClose={vi.fn()} onCreated={vi.fn()} />);
+
+    fireEvent.click(screen.getByTestId('team-create-add-member-btn'));
+
+    // Dropdown reveals the reused picker (same search box + options as desktop).
+    await waitFor(() => expect(screen.getByTestId('team-create-agent-search')).toBeInTheDocument());
+    fireEvent.click(screen.getByTestId('team-create-agent-option-bare-aionrs'));
+
+    // Select-and-close: the dropdown collapses so the user sees the result below.
+    await waitFor(() => expect(screen.queryByTestId('team-create-agent-search')).not.toBeInTheDocument());
+
+    // The member now shows in the list and create becomes actionable — logic shared with desktop.
+    expect(screen.getByText('Selected members 1')).toBeInTheDocument();
+    expect(screen.getByTestId('team-create-member-list-box')).toBeInTheDocument();
+    fireEvent.change(screen.getByTestId('team-create-name-input'), { target: { value: 'Mobile Team' } });
+    expect(screen.getByRole('button', { name: 'Confirm Create' })).toBeEnabled();
+  });
+
+  it('creates a team from the mobile flow with the first member as leader', async () => {
+    renderMobile(<TeamCreateModal visible onClose={vi.fn()} onCreated={vi.fn()} />);
+
+    fireEvent.click(screen.getByTestId('team-create-add-member-btn'));
+    await waitFor(() => expect(screen.getByTestId('team-create-agent-search')).toBeInTheDocument());
+    fireEvent.click(screen.getByTestId('team-create-agent-option-bare-aionrs'));
+    fireEvent.change(screen.getByTestId('team-create-name-input'), { target: { value: 'Mobile Team' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm Create' }));
+
+    await waitFor(() => expect(createTeamInvokeMock).toHaveBeenCalledTimes(1));
+    const payload = createTeamInvokeMock.mock.calls[0][0];
+    expect(payload.name).toBe('Mobile Team');
+    expect(payload.agents[0]).toMatchObject({ role: 'leader', assistant_id: 'bare-aionrs' });
   });
 });
 
