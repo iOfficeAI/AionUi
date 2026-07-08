@@ -124,8 +124,10 @@ const FOOTER_DIVIDER_CLASS = 'flex-shrink-0 border-t border-solid border-[var(--
 const STD_HEADER_CLASS = 'aionui-modal-std-header flex items-start justify-between gap-16px px-24px pt-20px pb-16px';
 const STD_TITLE_CLASS = 'text-18px font-600 leading-26px text-t-primary m-0';
 const STD_SUBTITLE_CLASS = 'text-13px leading-20px text-t-secondary m-0 mt-4px';
-/** 内容区：上下 20 / 左右 24，超出滚动。 */
-const STD_BODY_CLASS = 'min-h-0 flex-1 overflow-y-auto px-24px py-20px';
+/** 内容区布局：撑满剩余高度、超出滚动（不含内边距）。 */
+const STD_BODY_LAYOUT_CLASS = 'aionui-modal-std-body min-h-0 flex-1 overflow-y-auto';
+/** 内容区标准内边距：上下 20 / 左右 24。整栏通铺（如团队双栏）时可通过 contentStyle.padding 关闭。 */
+const STD_BODY_PADDING_CLASS = 'px-24px py-20px';
 const STD_CLOSE_BTN_CLASS = 'shrink-0 w-32px h-32px flex items-center justify-center rd-8px transition-colors duration-200 cursor-pointer border-0 bg-transparent p-0 text-t-secondary hover:bg-fill-2 focus:outline-none';
 
 /**
@@ -206,6 +208,9 @@ const AionModal: React.FC<AionModalProps> = ({
   const isStandard = variant === 'standard';
   const { fontScale } = useThemeContext();
   const { t } = useTranslation();
+  // standard 变体默认给内容区标准内边距（上下20/左右24）；当调用方显式传入
+  // contentStyle.padding（如团队创建的通栏双栏传 0）时，交由调用方自行处理内边距。
+  const stdBodyHasCustomPadding = isStandard && contentStyle?.padding !== undefined;
   // 处理 contentStyle 配置，转换为 CSS 变量
   const contentBg = contentStyle?.background || 'var(--dialog-fill-0)';
   const contentBorderRadius = contentStyle?.borderRadius || '16px';
@@ -433,7 +438,15 @@ const AionModal: React.FC<AionModalProps> = ({
     >
       <div className={classNames('aionui-modal-wrapper', isStandard && 'flex flex-col min-h-0')} style={{ borderRadius: borderRadiusVal }}>
         {renderHeader()}
-        <div className={classNames('aionui-modal-body-content', isStandard && STD_BODY_CLASS)} style={bodyInlineStyle}>
+        <div
+          className={classNames(
+            'aionui-modal-body-content',
+            isStandard && STD_BODY_LAYOUT_CLASS,
+            // 默认套用标准内边距；调用方显式传 contentStyle.padding 时改由 inline style 生效（可为 0）
+            isStandard && !stdBodyHasCustomPadding && STD_BODY_PADDING_CLASS
+          )}
+          style={stdBodyHasCustomPadding ? { ...bodyInlineStyle, padding: paddingVal } : bodyInlineStyle}
+        >
           {children}
         </div>
         {renderFooter()}
