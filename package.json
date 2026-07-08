@@ -68,6 +68,7 @@
     "test:e2e:team:comm": "playwright test --config playwright.config.ts tests/e2e/cases/teams/team-communication.e2e.ts --reporter=list",
     "test:e2e:installer:error-codes": "node scripts/smoke-installer-failure-messagebox.js --all-scenarios --auto-consent",
     "test:smoke:installer:failure-messagebox": "node scripts/smoke-installer-failure-messagebox.js",
+    "test:smoke:installer:self-lock": "node scripts/smoke-installer-self-lock.js",
     "test:smoke:installer:rstrtmgr-ui": "node scripts/smoke-installer-rstrtmgr-ui.js",
     "prepare": "husky",
     "postinstall": "node scripts/postinstall.js",

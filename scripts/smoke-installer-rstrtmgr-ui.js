@@ -102,15 +102,24 @@ OutFile "${nsisQuote(exePath)}"
 RequestExecutionLevel user
 SilentInstall normal
 !define AIONUI_FALLBACK_LOG "aionui-installer-smoke-fallback.log"
+!define VERSION "rstrtmgr-ui-smoke"
+!define AIONUI_TARGET_ARCH "x64"
+!define AIONUI_APP_EXECUTABLE_FILENAME "AionUi.exe"
+!define UNINSTALL_FILENAME "Uninstall AionUi.exe"
+!define PROJECT_DIR "${nsisQuote(repoRoot)}"
 !include LogicLib.nsh
 !include "${nsisQuote(messagesPath)}"
 !include "${nsisQuote(processControlPath)}"
 
 Var AionUiSessionLogPath
+Var AionUiSessionId
+Var AionUiIsUpdated
 
 Section
   StrCpy $INSTDIR "${nsisQuote(installDir)}"
   StrCpy $AionUiSessionLogPath "${nsisQuote(logPath)}"
+  StrCpy $AionUiSessionId "rstrtmgrui"
+  StrCpy $AionUiIsUpdated "1"
   InitPluginsDir
   BringToFront
 

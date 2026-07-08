@@ -103,6 +103,12 @@ Var /GLOBAL AionUiActiveMarkerResult
   !insertmacro AIONUI_OVERRIDE_APP_CANNOT_BE_CLOSED_MESSAGE
 !macroend
 
+!macro AIONUI_RELEASE_INSTALL_DIR_OUTDIR
+  InitPluginsDir
+  SetOutPath "$PLUGINSDIR"
+  StrCpy $AionUiCurrentOutDir "$PLUGINSDIR"
+!macroend
+
 !macro AIONUI_INSTALLER_PREINIT
   !ifdef BUILD_UNINSTALLER
     StrCpy $AionUiSessionId ""
@@ -119,7 +125,9 @@ Var /GLOBAL AionUiActiveMarkerResult
     StrCpy $AionUiLockerListZh ""
     StrCpy $AionUiLockerListEn ""
   !else
+    !insertmacro AIONUI_RELEASE_INSTALL_DIR_OUTDIR
     !insertmacro AIONUI_SESSION_BEGIN
+    !insertmacro AIONUI_SLOG "event=installer-outdir-release outDir=$AionUiCurrentOutDir instDir=$INSTDIR"
     !insertmacro AIONUI_BRING_UPDATED_INSTALLER_TO_FRONT
     !insertmacro AIONUI_RECORD_ACTIVE_INSTALLER_MARKER
     !insertmacro AIONUI_WRITE_ACTIVE_INSTALLER_MARKER

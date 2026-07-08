@@ -105,6 +105,22 @@ childProcess.execSync = function mockedExecSync(command) {
     }
   });
 
+  it('releases the NSIS output directory before any update repair or uninstall work', () => {
+    const script = readFileSync(resolve(repoRoot, 'resources/windows/installer-update-verify.nsh'), 'utf8');
+    const preInit = script.match(/!macro AIONUI_INSTALLER_PREINIT([\s\S]*?)!macroend/)?.[1];
+    const releaseMacro = script.match(/!macro AIONUI_RELEASE_INSTALL_DIR_OUTDIR([\s\S]*?)!macroend/)?.[1];
+
+    expect(preInit).toBeTruthy();
+    expect(releaseMacro).toBeTruthy();
+    expect(releaseMacro).toContain('InitPluginsDir');
+    expect(releaseMacro).toContain('SetOutPath "$PLUGINSDIR"');
+    expect(releaseMacro).not.toContain('SetOutPath $INSTDIR');
+    expect(preInit).toContain('!insertmacro AIONUI_RELEASE_INSTALL_DIR_OUTDIR');
+    expect(preInit!.indexOf('AIONUI_RELEASE_INSTALL_DIR_OUTDIR')).toBeLessThan(
+      preInit!.indexOf('AIONUI_SESSION_BEGIN')
+    );
+  });
+
   it('uses install-directory ownership checks in the shared Windows NSIS include', () => {
     const script = readFileSync(resolve(repoRoot, 'resources/windows/installer-process-control.nsh'), 'utf8');
 
@@ -113,6 +129,22 @@ childProcess.execSync = function mockedExecSync(command) {
     expect(script).toContain('StartsWith($$ownedPrefix');
     expect(script).toContain('[System.IO.Path]::GetFullPath($$path)');
     expect(script).not.toContain("Name -ieq '${AIONUI_APP_EXECUTABLE_FILENAME}'");
+  });
+
+  it('records installer self-lock diagnostics when Restart Manager finds no locking process', () => {
+    const script = readFileSync(resolve(repoRoot, 'resources/windows/installer-process-control.nsh'), 'utf8');
+    const queryScript = readFileSync(resolve(repoRoot, 'resources/windows/support/query-lockers.ps1'), 'utf8');
+    const captureMacro = script.match(/!macro AIONUI_CAPTURE_FAILED_PATH_LOCKERS[\s\S]*?!macroend/)?.[0];
+
+    expect(script).toContain('aionui-query-lockers.ps1');
+    expect(captureMacro).toContain('AIONUI_QUERY_LOCKERS');
+    expect(captureMacro).not.toContain('AIONUI_QUERY_LOCKERS_INLINE_LEGACY');
+    expect(queryScript).toContain('$CurrentOutDir');
+    expect(queryScript).toContain('$script:installerSelfLock');
+    expect(queryScript).toContain("'installer-self-lock'");
+    expect(queryScript).toContain('outerInstallerPid');
+    expect(queryScript).toContain('currentOutDir');
+    expect(queryScript).toContain("name = 'AionUi installer'");
   });
 
   it('continues with the bundled uninstaller when installed-uninstaller repair remains locked', () => {
