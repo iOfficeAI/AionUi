@@ -103,10 +103,8 @@ const AssistantChatSlot: React.FC<{
   assistant: TeamAssistant;
   team_id: string;
   isLeader: boolean;
-  /** 成员身份色（列高亮 / 列头淡底）。 */
+  /** 成员身份色（列头名字 / 列身淡底）。 */
   color: string;
-  /** 是否为当前选中成员（并行视图下高亮该列、降饱和其余列）。 */
-  isSelected: boolean;
   isFullscreen?: boolean;
   onToggleFullscreen?: () => void;
   teamRunView: TeamRunViewState;
@@ -117,7 +115,6 @@ const AssistantChatSlot: React.FC<{
   team_id,
   isLeader,
   color,
-  isSelected,
   isFullscreen = false,
   onToggleFullscreen,
   teamRunView,
@@ -136,14 +133,12 @@ const AssistantChatSlot: React.FC<{
   const initialModelId = (conversation?.extra as { current_model_id?: string })?.current_model_id;
   const isAcpLike = conversation?.type === 'acp' || isAcpLikeBackend(assistant.assistant_backend);
   const cronJobId = resolveCronJobId(conversation?.extra);
-  // 身份色只作弱提示：列/抬头保留很淡的身份色底，选中时略深一点点（仍很淡，不影响气泡可读）；
-  // 成员身份由抬头里的“彩色名字”承担。
-  const showSelection = isSelected && !isFullscreen;
+  // 抬头不叠身份色底（避免压低彩色名字的可读性）；成员身份仅由抬头里的“彩色名字”承担。
+  // 列身体保留极淡身份色底作弱提示，不影响气泡阅读。
   return (
     <div className='flex flex-col h-full' style={{ background: `color-mix(in srgb, ${color} 4%, var(--bg-base))` }}>
       <div
-        className='flex items-center justify-between gap-8px px-12px h-40px shrink-0 border-b border-solid border-[color:var(--border-base)] relative z-10'
-        style={{ background: `color-mix(in srgb, ${color} ${showSelection ? 12 : 6}%, var(--bg-2))` }}
+        className='flex items-center justify-between gap-8px px-12px h-40px shrink-0 border-b border-solid border-[color:var(--border-base)] relative z-10 bg-1'
       >
         <TeamAgentIdentity
           assistant_name={assistant.assistant_name}
@@ -450,7 +445,6 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onRenameTeam })
                     team_id={team.id}
                     isLeader={isLeaderSlot}
                     color={colorOf(assistant.slot_id)}
-                    isSelected={assistant.slot_id === activeSlotId}
                     isFullscreen
                     onToggleFullscreen={() => setFullscreenSlotId(null)}
                     teamRunView={teamRun.state}
@@ -511,7 +505,6 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onRenameTeam })
                         team_id={team.id}
                         isLeader={isLeaderSlot}
                         color={colorOf(assistant.slot_id)}
-                        isSelected={assistant.slot_id === activeSlotId}
                         onToggleFullscreen={() => setFullscreenSlotId(assistant.slot_id)}
                         teamRunView={teamRun.state}
                         onTeamRunAck={teamRun.applyAck}

@@ -99,20 +99,18 @@ const TeamTabView: React.FC<TeamTabViewProps> = ({
     [assistant_name]
   );
 
-  // 胶囊底色用统一中性色（默认浅灰 / hover·选中深一档），不再着身份色；
-  // 身份色只落在名字文字上（见下方 nameStyle），干净不脏。
-  const isDark = isActive || hovered;
-
+  // 胶囊底色恒定浅灰（hover / 选中都不改底色，避免压低彩色名字可读性）；
+  // 选中态用一圈成员自己的身份色边框表示（与彩色名字呼应，明显但不脏）。身份色只落在名字与边框上。
   return (
     <div
       data-testid={`team-tab-${slot_id}`}
       data-team-tab-role={isLeader ? 'leader' : 'teammate'}
       data-active={isActive ? 'true' : 'false'}
       draggable={!isLeader}
-      className={`relative flex items-center gap-6px pl-6px pr-10px h-34px max-w-220px cursor-pointer rounded-999px transition-all duration-150 shrink-0 ${
-        isDark ? 'bg-[color:var(--bg-3)]' : 'bg-[color:var(--bg-2)]'
-      } ${isDragOver ? DRAG_OVER_CLASS : ''}`}
-      style={{ ['--mc' as string]: color }}
+      className={`relative flex items-center gap-6px pl-6px pr-10px h-34px max-w-220px cursor-pointer rounded-999px border border-solid transition-colors duration-150 shrink-0 bg-[color:var(--bg-2)] ${
+        isDragOver ? DRAG_OVER_CLASS : ''
+      }`}
+      style={{ ['--mc' as string]: color, borderColor: isActive ? color : 'transparent' }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       onClick={() => !editing && onSwitch(slot_id)}
@@ -341,9 +339,9 @@ const TeamTabs: React.FC<TeamTabsProps> = ({ onTabClick, pendingCounts }) => {
                 type='button'
                 disabled={membershipMutationBusy}
                 data-testid='team-tab-add-member'
-                className={`flex items-center gap-6px h-32px px-10px rounded-8px border-none bg-transparent text-13px font-500 whitespace-nowrap transition-colors duration-150 ${
+                className={`flex items-center gap-6px h-32px px-10px rounded-8px !border-none !bg-transparent text-13px font-500 whitespace-nowrap transition-colors duration-150 ${
                   membershipMutationBusy
-                    ? 'text-[color:var(--color-text-4)] cursor-not-allowed opacity-60'
+                    ? 'text-[color:var(--color-text-4)] cursor-not-allowed'
                     : 'text-[color:var(--color-text-2)] hover:text-[color:var(--brand)] hover:bg-[color:var(--bg-2)] cursor-pointer'
                 }`}
               >
