@@ -388,32 +388,25 @@ function sDecouple(opt){
 function sOverview(){
   return `<div class="ov">
     <h2>定时任务优化</h2>
-    <div class="lead">把 6 条用户反馈整理成可开发、可验收的定时任务优化。截至 2.1.27：2 条已完成、1 条部分完成，其余待开发（含 2 条 bug）。</div>
+    <div class="lead">把 6 条用户反馈整理成可开发、可验收的定时任务优化。截至 2.1.30：6 条已完成（含 2 条 bug），仅剩「未读蓝点冒泡」的展示层待收尾。</div>
 
     <h3>要解决的问题</h3>
     <p>定时任务已经能用，但攒下一批体验坑：对话里让 AI 建任务时多行指令会被截断；「描述」必填卡住自然语言建的任务；侧边栏两处都在管定时任务、职责重叠；任务跑完没有从外层就能看到的提醒；历史会话标题分不清哪天跑的、也没法批量清理；最严重的是删一条旧对话会把整个任务连带删掉。</p>
 
-    <h3>功能一览与实现状态（2.1.27）</h3>
+    <h3>功能一览与实现状态（2.1.30）</h3>
     <table>
       <tr><th>编号</th><th>反馈</th><th>状态</th><th>说明</th></tr>
-      <tr><td><code>F-CRON-01</code></td><td>创建走后端接口</td><td><span class="tagb td">⬜ 待开发</span></td><td>对话内创建仍靠解析 AI 文本，多行指令截断隐患还在（2.1.27 仅做了创建按钮 UI 样式统一，无关本条）</td></tr>
+      <tr><td><code>F-CRON-01</code></td><td>创建走后端接口</td><td><span class="tagb dn">✅ 完成</span></td><td>对话内创建改由 cron 技能生成结构化 JSON、经 helper 调后端接口创建，不再解析 AI 回复文本，多行指令截断隐患消除</td></tr>
       <tr><td><code>F-CRON-02</code></td><td>描述改可选</td><td><span class="tagb dn">✅ 完成</span></td><td>做法更彻底：直接把「描述」字段从表单移除，由系统自动生成</td></tr>
       <tr><td><code>F-CRON-03</code></td><td>侧边栏分类重构</td><td><span class="tagb dn">✅ 完成</span></td><td>取消会话列表里的定时任务分类，会话回归普通列表；聚合页仍在</td></tr>
       <tr><td><code>F-CRON-04</code></td><td>未读蓝点冒泡</td><td><span class="tagb par">🟡 部分</span></td><td>底层已识别未读，但侧边栏入口/聚合页卡片的蓝点展示未接</td></tr>
-      <tr><td><code>F-CRON-05</code></td><td>会话标题带日期</td><td><span class="tagb td">⬜ 待开发</span></td><td>每次新建会话模式，新建会话标题带执行日期 DD-MM-YY</td></tr>
-      <tr><td><code>F-CRON-06</code></td><td>详情页多选删除</td><td><span class="tagb td">⬜ 待开发</span></td><td>详情页会话列表支持多选批量删除（主列表已有逻辑可复用）</td></tr>
-      <tr><td><code>F-CRON-07</code></td><td>删对话误删任务</td><td><span class="tagb td">⬜ 待开发</span></td><td>Bug 仍在：任务与对话仍强绑定。2.1.27「保留会话+助手配置」是另一件事，未解决本条</td></tr>
+      <tr><td><code>F-CRON-05</code></td><td>会话标题带日期</td><td><span class="tagb dn">✅ 完成</span></td><td>每次新建会话模式，新建会话标题带执行日期 DD-MM-YY</td></tr>
+      <tr><td><code>F-CRON-06</code></td><td>详情页多选删除</td><td><span class="tagb dn">✅ 完成</span></td><td>详情页会话列表支持多选、全选、批量删除并带二次确认</td></tr>
+      <tr><td><code>F-CRON-07</code></td><td>删对话误删任务</td><td><span class="tagb dn">✅ 完成</span></td><td>后端已解耦：删对话只删对话，定时任务保留，下次执行按配置正常运行（有集成测试兜底）</td></tr>
     </table>
 
-    <h3>剩余待开发建议顺序</h3>
-    <table>
-      <tr><th>顺序</th><th>项</th><th>理由</th></tr>
-      <tr><td>1</td><td>F-CRON-07 数据解耦</td><td>数据安全，优先；放开任务-对话强绑定</td></tr>
-      <tr><td>2</td><td>F-CRON-01</td><td>对话内创建改走后端接口，不再解析 AI 文本，根除多行指令截断</td></tr>
-      <tr><td>3</td><td>F-CRON-04 收尾 + F-CRON-06</td><td>都依赖已完成的 F-CRON-03，可一起做</td></tr>
-      <tr><td>4</td><td>F-CRON-05</td><td>独立，随时可做</td></tr>
-    </table>
-    <p style="color:var(--t3);font-size:12px;">涉及数据约束改动的是 F-CRON-07（放开任务-对话强绑定），需工程侧先做兼容性评估。F-CRON-02 已用「移除描述字段」方式完成，不涉及数据迁移。</p>
+    <h3>剩余待开发</h3>
+    <p>仅剩 <strong>F-CRON-04 收尾</strong>：未读蓝点的展示层未接 —— 底层已能识别「某会话有未读」，但蓝点尚未在侧边栏「定时任务」入口、聚合页任务卡片上显示。依赖已完成的 F-CRON-03，把未读态接到这几层展示即可。</p>
   </div>`;
 }
 
@@ -421,7 +414,7 @@ function sOverview(){
 const FEATS=[
   {id:'ov',code:'',name:'总览',full:true,render:sOverview,req:null},
 
-  {id:'f01',code:'F-CRON-01',name:'创建走后端接口',type:'bug',status:'todev',statusNote:'待开发（2.1.27 未做）。对话内创建仍靠解析 AI 回复文本，多行指令截断隐患还在。（2.1.27 有一次创建按钮的 UI 样式统一，与本条后端接口改造无关）',
+  {id:'f01',code:'F-CRON-01',name:'创建走后端接口',type:'bug',status:'done',statusNote:'已完成（2.1.30）。对话内创建改由 cron 技能生成结构化 JSON、经 helper 调后端接口创建，不再解析助手回复文本，用户所说的完整多行指令被逐字建进任务。',
    render:()=>sChatCreate({multiline:true}),
    req:{title:'对话内创建改为直接调用后端接口',type:'bug',
     story:'作为用户，我在对话里说的多行任务指令，希望被完整建进定时任务，而不是只留开头一句。',
@@ -473,7 +466,7 @@ const FEATS=[
       '查看该会话后若名下已无其他未读，各层蓝点消失',
       '名下有多个未读时，看完部分上层蓝点不提前消失']}},
 
-  {id:'f05',code:'F-CRON-05',name:'标题带日期',type:'opt',status:'todev',statusNote:'待开发（2.1.27 未做）。',
+  {id:'f05',code:'F-CRON-05',name:'标题带日期',type:'opt',status:'done',statusNote:'已完成（2.1.30）。「每次新建会话」模式下，新建会话标题带执行日期，格式 DD-MM-YY（例：任务名 07-07-26）。',
    render:sTitle,
    req:{title:'新建会话标题带执行日期',type:'opt',
     story:'作为用户，定时任务跑多次攒下一串会话，我希望凭标题上的日期就能区分是哪天跑的。',
@@ -485,7 +478,7 @@ const FEATS=[
       '不同天执行产生的会话标题日期不同、可区分',
       '「延用同一会话」模式的会话标题不受影响']}},
 
-  {id:'f06',code:'F-CRON-06',name:'详情页多选删除',type:'opt',status:'todev',statusNote:'待开发（2.1.27 未做）。主会话列表已有多选删除逻辑，详情页可复用。',
+  {id:'f06',code:'F-CRON-06',name:'详情页多选删除',type:'opt',status:'done',statusNote:'已完成（2.1.30）。详情页会话列表已支持进入多选模式、勾选、全选、批量删除并带二次确认；删除会话不影响定时任务本身。',
    render:()=>sDetail({batch:true,selected:[0,2]}),
    req:{title:'详情页会话列表支持多选删除',type:'opt',
     story:'作为用户，任务跑久了攒下大量会话，我想一次勾选多个批量删，而不是一条条删。',
@@ -498,7 +491,7 @@ const FEATS=[
     ac:['详情页会话列表可进入多选模式，支持勾选、全选、批量删除并二次确认',
       '批量删除后定时任务本身及调度不受影响']}},
 
-  {id:'f07',code:'F-CRON-07',name:'删对话误删任务',type:'bug',status:'todev',statusNote:'待开发（2.1.27 未做）。Bug 仍在：任务与对话仍强绑定。注意 2.1.27 有名字相近的改动（让定时任务会话重新显示在历史里 + 保留助手配置），那是另一件事，未解决本条误删。',
+  {id:'f07',code:'F-CRON-07',name:'删对话误删任务',type:'bug',status:'done',statusNote:'已完成（2.1.30）。后端已把定时任务与对话解耦：删对话只删对话，定时任务保留；删光名下所有对话后任务仍存续，下次执行按配置新建对话正常运行（有集成测试覆盖）。',
    render:()=>sDecouple({modal:true}),
    req:{title:'Bug：删除关联对话导致整个定时任务被删',type:'bug',
     story:'作为用户，我删掉一条用不上的旧对话，定时任务应该还在 —— 它现在明明关联的是新对话、新配置。',
@@ -532,7 +525,7 @@ function sAggBodyPlaceholder(){
 
 /* ====== 渲染右侧需求 ====== */
 const TYPE_BADGE={bug:['badge bug','Bug 修复'],opt:['badge opt','优化'],db:['badge db','优化 · 动 DB']};
-const STATUS_TEXT={done:'✅ 已完成（2.1.27）',partial:'🟡 部分完成（2.1.27）',todev:'⬜ 待开发'};
+const STATUS_TEXT={done:'✅ 已完成',partial:'🟡 部分完成',todev:'⬜ 待开发'};
 function renderReq(r,feat){
   if(!r) return '';
   const tb=TYPE_BADGE[r.type]||['badge new','新增'];
