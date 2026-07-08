@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { Button, Input, Message } from '@arco-design/web-react';
 import type { RefInputType } from '@arco-design/web-react/es/Input/interface';
 import { Close } from '@icon-park/react';
@@ -40,12 +40,6 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
     () => Boolean(leaderSelectionId && selectedMembers.some((member) => member.selectionId === leaderSelectionId)),
     [leaderSelectionId, selectedMembers]
   );
-
-  useEffect(() => {
-    if (visible) {
-      setTimeout(() => nameInputRef.current?.focus(), 50);
-    }
-  }, [visible]);
 
   const handleClose = () => {
     setName('');
@@ -150,13 +144,13 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
       }}
       header={{
         render: () => (
-          <div className='relative bg-dialog-fill-0 px-28px pb-18px pt-22px'>
+          <div className='relative bg-dialog-fill-0 px-28px pb-12px pt-22px'>
             <h3 className='m-0 text-18px font-700 leading-26px text-t-primary'>
               {t('team.create.title', { defaultValue: 'New Team' })}
             </h3>
             <p className='m-0 mt-4px text-13px leading-20px text-t-secondary'>
               {t('team.create.subtitle', {
-                defaultValue: 'Choose members, and assign one Leader. The same assistant can be added multiple times.',
+                defaultValue: 'Let multiple AI assistants team up and collaborate. We suggest one team focuses on a single goal — create separate teams for different tasks.',
               })}
             </p>
             <Button
@@ -191,7 +185,7 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
         style={{ height: 'min(54vh, 470px)', minHeight: 390 }}
       >
         <section
-          className='flex min-h-0 flex-col border-r border-border-2 px-20px py-18px'
+          className='flex min-h-0 flex-col border-r border-border-3 px-20px pb-18px pt-12px'
           data-testid='team-create-assistant-pane'
         >
           <div className='mb-12px text-15px font-600 leading-22px text-t-secondary'>
@@ -214,7 +208,7 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
           )}
         </section>
 
-        <section className='flex min-h-0 flex-col px-20px py-18px' data-testid='team-create-details-pane'>
+        <section className='flex min-h-0 flex-col px-20px pb-14px pt-12px' data-testid='team-create-details-pane'>
           <TeamMemberDraftList
             members={selectedMembers}
             leaderSelectionId={leaderSelectionId}
@@ -222,7 +216,7 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
             onRemove={handleRemoveDraft}
           />
 
-          <div className='mt-16px border-t border-border-2 pt-16px'>
+          <div className='mt-14px shrink-0 border-t border-border-2 pt-14px'>
             <div className='grid grid-cols-[76px_minmax(0,1fr)] items-center gap-x-14px gap-y-10px'>
               <div className='text-14px font-600 leading-21px text-t-secondary'>
                 {t('team.create.nameLabel', { defaultValue: 'Team name' })}

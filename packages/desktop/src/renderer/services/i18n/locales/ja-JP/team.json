@@ -33,7 +33,7 @@
     "noSupportedAgents": "利用可能なアシスタントが見つかりません",
     "supportedAgentsHint": "現在 Claude と Aion CLI のアシスタントに対応しています。ほかのアシスタントも順次追加予定です。",
     "leaderDesc": "目標を理解し、アシスタントを調整してタスクを完了します",
-    "searchPlaceholder": "アシスタントを検索...",
+    "searchPlaceholder": "Search",
     "noSearchResults": "結果が見つかりません",
     "step": {
       "dispatch": "チームリーダー",
@@ -51,13 +51,16 @@
     "currentLeader": "Current Leader",
     "setAsLeader": "Set as Leader",
     "teammate": "Teammate",
-    "selectAtLeastOneMember": "Select at least one team member",
+    "selectAtLeastOneMember": "Select at least one assistant as the Team Leader.",
     "selectOneLeader": "Select one Team Leader",
-    "subtitle": "Choose members, and assign one Leader. The same assistant can be added multiple times.",
+    "subtitle": "Let multiple AI assistants team up and collaborate. We suggest one team focuses on a single goal — create separate teams for different tasks.",
     "nameLabel": "Team name",
     "workspaceLabel": "Workspace",
     "allAssistantsWithCount": "All assistants ({{count}})",
     "selectedMembersWithCount": "Selected members {{count}} · ⚑ = Leader",
+    "selectedMembersTitleWithCount": "Selected members {{count}}",
+    "leaderLegend": "= Leader",
+    "membersHelper": "Choose team members and assign one Leader. The same assistant can be selected multiple times.",
     "memberHint": "No suitable assistant as a member? After creation, let the Leader create temporary team members in chat."
   },
   "removeAgent": {

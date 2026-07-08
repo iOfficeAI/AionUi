@@ -33,7 +33,7 @@
     "noSupportedAgents": "No supported assistants available",
     "supportedAgentsHint": "Currently supports Claude and Aion CLI assistants. More assistants coming soon.",
     "leaderDesc": "Understands your goals and coordinates assistants to complete tasks",
-    "searchPlaceholder": "Search assistants...",
+    "searchPlaceholder": "Search",
     "noSearchResults": "No results found",
     "step": {
       "dispatch": "Team Leader",
@@ -51,13 +51,16 @@
     "currentLeader": "Current Leader",
     "setAsLeader": "Set as Leader",
     "teammate": "Teammate",
-    "selectAtLeastOneMember": "Select at least one team member",
+    "selectAtLeastOneMember": "Select at least one assistant as the Team Leader.",
     "selectOneLeader": "Select one Team Leader",
-    "subtitle": "Choose members, and assign one Leader. The same assistant can be added multiple times.",
+    "subtitle": "Let multiple AI assistants team up and collaborate. We suggest one team focuses on a single goal — create separate teams for different tasks.",
     "nameLabel": "Team name",
     "workspaceLabel": "Workspace",
     "allAssistantsWithCount": "All assistants ({{count}})",
     "selectedMembersWithCount": "Selected members {{count}} · ⚑ = Leader",
+    "selectedMembersTitleWithCount": "Selected members {{count}}",
+    "leaderLegend": "= Leader",
+    "membersHelper": "Choose team members and assign one Leader. The same assistant can be selected multiple times.",
     "memberHint": "No suitable assistant as a member? After creation, let the Leader create temporary team members in chat."
   },
   "removeAgent": {

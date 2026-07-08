@@ -154,35 +154,33 @@ describe('TeamCreateModal', () => {
   it('renders the reference two-column creation layout with details on the selected-member side', () => {
     render(<TeamCreateModal visible onClose={vi.fn()} onCreated={vi.fn()} />);
 
+    const subtitle = 'Let multiple AI assistants team up and collaborate. We suggest one team focuses on a single goal — create separate teams for different tasks.';
     expect(screen.getByRole('heading', { name: 'New Team' })).toBeInTheDocument();
-    expect(
-      screen.getByText('Choose members, and assign one Leader. The same assistant can be added multiple times.')
-    ).toBeInTheDocument();
+    expect(screen.getByText(subtitle)).toBeInTheDocument();
     expect(screen.getByTestId('team-create-modal')).toHaveAttribute('data-width', '900');
     expect(screen.getByTestId('team-create-modal')).toHaveAttribute('data-max-width', 'calc(100vw - 72px)');
     expect(screen.getByRole('heading', { name: 'New Team' })).toHaveClass('text-18px');
-    expect(
-      screen.getByText('Choose members, and assign one Leader. The same assistant can be added multiple times.')
-    ).toHaveClass('text-13px', 'leading-20px');
+    expect(screen.getByText(subtitle)).toHaveClass('text-13px', 'leading-20px');
 
     const assistantPane = screen.getByTestId('team-create-assistant-pane');
     const detailsPane = screen.getByTestId('team-create-details-pane');
     const layout = screen.getByTestId('team-create-layout');
-    const searchInput = within(assistantPane).getByPlaceholderText('Search assistants...');
+    const searchInput = within(assistantPane).getByTestId('team-create-agent-search');
     const nameInput = within(detailsPane).getByTestId('team-create-name-input');
 
     expect(layout).toHaveStyle({ height: 'min(54vh, 470px)', minHeight: '390px' });
-    expect(assistantPane).toHaveClass('px-20px', 'py-18px');
-    expect(detailsPane).toHaveClass('px-20px', 'py-18px');
+    expect(assistantPane).toHaveClass('px-20px', 'pt-12px', 'pb-18px');
+    expect(detailsPane).toHaveClass('px-20px', 'pt-12px', 'pb-14px');
     expect(within(assistantPane).getByText('All assistants (3)')).toBeInTheDocument();
     expect(within(assistantPane).getByText('All assistants (3)')).toHaveClass('text-15px');
-    expect(searchInput.closest('.arco-input-group-wrapper')).toHaveClass('!h-38px', '!text-13px');
+    expect(searchInput.tagName).toBe('INPUT');
+    expect(searchInput).toHaveAttribute('placeholder', 'Search');
     expect(within(assistantPane).getByTestId('team-create-agent-picker-body')).not.toHaveClass('bg-fill-1');
     expect(within(assistantPane).getByTestId('team-create-agent-picker-body')).toHaveClass('bg-dialog-fill-0');
     expect(within(assistantPane).getByTestId('team-create-agent-option-bare-aionrs')).toHaveClass('!h-44px');
     expect(within(assistantPane).getByTestId('team-create-agent-option-bare-aionrs')).toHaveClass('hover:!bg-fill-2');
-    expect(within(detailsPane).getByText('Selected members 0 · ⚑ = Leader')).toBeInTheDocument();
-    expect(within(detailsPane).getByText('Selected members 0 · ⚑ = Leader')).toHaveClass('text-15px');
+    expect(within(detailsPane).getByText('Selected members 0')).toBeInTheDocument();
+    expect(within(detailsPane).getByText('Selected members 0')).toHaveClass('text-15px');
     expect(nameInput).toHaveClass('!h-38px', '!text-13px');
     expect(within(detailsPane).getByTestId('workspace-folder-select')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Confirm Create' })).toHaveClass('!h-38px', '!text-13px');
