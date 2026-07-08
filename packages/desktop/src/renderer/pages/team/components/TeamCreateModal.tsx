@@ -1,7 +1,6 @@
 import React, { useMemo, useRef, useState } from 'react';
 import { Button, Input, Message } from '@arco-design/web-react';
 import type { RefInputType } from '@arco-design/web-react/es/Input/interface';
-import { Close } from '@icon-park/react';
 import { useTranslation } from 'react-i18next';
 import { ipcBridge } from '@/common';
 import type { TTeam } from '@/common/types/team/teamTypes';
@@ -17,8 +16,10 @@ import TeamAssistantPicker from './memberPicker/TeamAssistantPicker';
 import TeamMemberDraftList, { type TeamMemberDraft } from './memberPicker/TeamMemberDraftList';
 
 // [E2E SYNC] 修改此组件的 DOM 结构（class、标题、关闭按钮等）时，
-// 必须同步更新 tests/e2e/cases/teams/team-create.e2e.ts 和 team-whitelist.e2e.ts 中的 selector，
-// 并立即向上汇报改动情况。
+// 必须同步更新 tests/e2e/cases/teams/team-create.e2e.ts、team-whitelist.e2e.ts、
+// team-name-validation.e2e.ts 中的 selector，并立即向上汇报改动情况。
+// 注意：迁移到 AionModal variant='standard' 后，关闭按钮为 button[aria-label="Close"]，
+// 不再是 .arco-btn-text / .arco-modal-close-icon。
 type Props = {
   visible: boolean;
   onClose: () => void;
@@ -129,6 +130,7 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
   };
   return (
     <AionModal
+      variant='standard'
       visible={visible}
       onCancel={handleClose}
       className='team-create-modal'
@@ -137,51 +139,38 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
       maskStyle={{ zIndex: 9999 }}
       autoFocus={false}
       unmountOnExit={false}
-      contentStyle={{
-        background: 'var(--dialog-fill-0)',
-        padding: 0,
-        overflow: 'hidden',
-      }}
+      // 通栏双栏是团队创建独有的布局：关闭内容区默认内边距，让中间竖分隔线贴边贯穿。
+      // 标题区 / 按钮区 / 居中 / 最大高度均沿用 standard 统一规则。
+      contentStyle={{ padding: 0, overflow: 'hidden' }}
       header={{
+        title: t('team.create.title', { defaultValue: 'New Team' }),
+        subtitle: t('team.create.subtitle', {
+          defaultValue: 'Let multiple AI assistants team up and collaborate. We suggest one team focuses on a single goal — create separate teams for different tasks.',
+        }),
+        showClose: true,
+      }}
+      footer={{
         render: () => (
-          <div className='relative bg-dialog-fill-0 px-28px pb-12px pt-22px'>
-            <h3 className='m-0 text-18px font-700 leading-26px text-t-primary'>
-              {t('team.create.title', { defaultValue: 'New Team' })}
-            </h3>
-            <p className='m-0 mt-4px text-13px leading-20px text-t-secondary'>
-              {t('team.create.subtitle', {
-                defaultValue: 'Let multiple AI assistants team up and collaborate. We suggest one team focuses on a single goal — create separate teams for different tasks.',
-              })}
-            </p>
+          <div className='flex justify-end gap-10px'>
+            <Button onClick={handleClose} className='!h-38px min-w-84px !rounded-8px !px-18px !text-13px'>
+              {t('common.cancel', { defaultValue: 'Cancel' })}
+            </Button>
             <Button
-              type='text'
-              icon={<Close size='22' fill='currentColor' className='text-t-secondary' />}
-              onClick={handleClose}
-              className='absolute right-24px top-22px !h-30px !w-30px !min-w-30px !p-0 !rd-8px hover:!bg-fill-2'
-            />
+              type='primary'
+              onClick={handleCreate}
+              loading={loading}
+              disabled={!name.trim() || selectedMembers.length === 0 || !hasOneLeader}
+              className='!h-38px min-w-100px !rounded-8px !px-18px !text-13px'
+            >
+              {t('team.create.confirm', { defaultValue: 'Confirm Create' })}
+            </Button>
           </div>
         ),
       }}
-      footer={
-        <div className='flex justify-end gap-10px border-t border-border-2 bg-dialog-fill-0 px-28px py-14px'>
-          <Button onClick={handleClose} className='!h-38px min-w-84px !rounded-8px !px-18px !text-13px'>
-            {t('common.cancel', { defaultValue: 'Cancel' })}
-          </Button>
-          <Button
-            type='primary'
-            onClick={handleCreate}
-            loading={loading}
-            disabled={!name.trim() || selectedMembers.length === 0 || !hasOneLeader}
-            className='!h-38px min-w-100px !rounded-8px !px-18px !text-13px'
-          >
-            {t('team.create.confirm', { defaultValue: 'Confirm Create' })}
-          </Button>
-        </div>
-      }
     >
       <div
         data-testid='team-create-layout'
-        className='grid min-h-0 grid-cols-[minmax(0,1fr)_minmax(0,1fr)] border-t border-border-2'
+        className='grid min-h-0 grid-cols-[minmax(0,1fr)_minmax(0,1fr)]'
         style={{ height: 'min(54vh, 470px)', minHeight: 390 }}
       >
         <section

@@ -55,22 +55,43 @@ vi.mock('@arco-design/web-react', async () => {
   };
 });
 
-vi.mock('@renderer/components/base/AionModal', () => ({
-  default: ({ visible, header, footer, children, style }: Record<string, unknown>) =>
-    visible ? (
-      <div
-        data-testid='team-create-modal'
-        data-width={(style as React.CSSProperties | undefined)?.width}
-        data-max-width={(style as React.CSSProperties | undefined)?.maxWidth}
-      >
-        {typeof header === 'object' && header && 'render' in header
-          ? (header as { render: () => React.ReactNode }).render()
-          : null}
-        <div>{children as React.ReactNode}</div>
-        <div>{footer as React.ReactNode}</div>
+// Mirror AionModal's real prop contract: header/footer may be config objects.
+// The standard variant renders the title as an <h3> (text-18px) and the optional
+// subtitle as a <p> (text-13px leading-20px); footer is rendered via footer.render().
+vi.mock('@renderer/components/base/AionModal', () => {
+  type HeaderConfig = { render?: () => React.ReactNode; title?: React.ReactNode; subtitle?: React.ReactNode };
+  type FooterConfig = { render?: () => React.ReactNode };
+  const renderHeader = (header: unknown): React.ReactNode => {
+    if (!header || typeof header !== 'object') return header as React.ReactNode;
+    const cfg = header as HeaderConfig;
+    if (cfg.render) return cfg.render();
+    return (
+      <div>
+        {cfg.title ? <h3 className='text-18px font-600 leading-26px text-t-primary m-0'>{cfg.title}</h3> : null}
+        {cfg.subtitle ? <p className='text-13px leading-20px text-t-secondary m-0 mt-4px'>{cfg.subtitle}</p> : null}
       </div>
-    ) : null,
-}));
+    );
+  };
+  const renderFooter = (footer: unknown): React.ReactNode => {
+    if (!footer || typeof footer !== 'object') return footer as React.ReactNode;
+    const cfg = footer as FooterConfig;
+    return cfg.render ? cfg.render() : (footer as React.ReactNode);
+  };
+  return {
+    default: ({ visible, header, footer, children, style }: Record<string, unknown>) =>
+      visible ? (
+        <div
+          data-testid='team-create-modal'
+          data-width={(style as React.CSSProperties | undefined)?.width}
+          data-max-width={(style as React.CSSProperties | undefined)?.maxWidth}
+        >
+          {renderHeader(header)}
+          <div>{children as React.ReactNode}</div>
+          <div>{renderFooter(footer)}</div>
+        </div>
+      ) : null,
+  };
+});
 
 vi.mock('@renderer/components/workspace', () => ({
   WorkspaceFolderSelect: () => <div data-testid='workspace-folder-select' />,
