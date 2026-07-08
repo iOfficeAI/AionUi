@@ -28,6 +28,10 @@ let app: ElectronApplication | null = null;
 let mainPage: Page | null = null;
 const e2eStateSandboxDir = fs.mkdtempSync(path.join(os.tmpdir(), 'aionui-e2e-state-'));
 const e2eStateFile = path.join(e2eStateSandboxDir, 'extension-states.json');
+// Disposable userData root so AionCore migrates a fresh DB per run instead of
+// touching the developer's real database (a shared DB that fails migration
+// blocks the whole app from booting). Consumed by configureChromium.ts.
+const e2eUserDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'aionui-e2e-userdata-'));
 
 function isDevToolsWindow(page: Page): boolean {
   return page.url().startsWith('devtools://');
@@ -119,6 +123,7 @@ async function launchApp(): Promise<ElectronApplication> {
     AIONUI_DISABLE_AUTO_UPDATE: '1',
     AIONUI_DISABLE_DEVTOOLS: '1',
     AIONUI_E2E_TEST: '1',
+    AIONUI_E2E_USER_DATA_DIR: process.env.AIONUI_E2E_USER_DATA_DIR || e2eUserDataDir,
     AIONUI_CDP_PORT: '0',
   };
 
@@ -258,12 +263,14 @@ function registerCleanup(): void {
       mainPage = null;
     }
     fs.rmSync(e2eStateSandboxDir, { recursive: true, force: true });
+    fs.rmSync(e2eUserDataDir, { recursive: true, force: true });
   });
 
   // Synchronous fallback for abrupt termination
   process.on('exit', () => {
     try {
       fs.rmSync(e2eStateSandboxDir, { recursive: true, force: true });
+      fs.rmSync(e2eUserDataDir, { recursive: true, force: true });
     } catch {
       // best-effort
     }

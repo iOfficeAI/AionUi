@@ -12,12 +12,26 @@ import os from 'os';
 import { getDevAppName } from '@/common/platform';
 import { applyGpuRecoveryFlags } from './gpuRecovery';
 
+// ============ E2E test isolation ============
+// When running under E2E with an explicit sandbox dir, redirect userData there
+// BEFORE any getPath() call so the whole data tree (config, aioncore DB, logs)
+// lives in a disposable directory. This keeps tests off the developer's real
+// database — critical because AionCore refuses to boot when a shared DB fails
+// migration. Guarded by AIONUI_E2E_TEST so it never affects dev/production.
+// 仅 E2E：把 userData 指向一次性沙箱目录，避免测试读写真实数据库。
+const e2eUserDataDir = process.env.AIONUI_E2E_TEST === '1' ? process.env.AIONUI_E2E_USER_DATA_DIR : undefined;
+if (e2eUserDataDir && e2eUserDataDir.trim() !== '') {
+  fs.mkdirSync(e2eUserDataDir, { recursive: true });
+  app.setPath('userData', e2eUserDataDir);
+}
+
 // ============ Environment Separation ============
 // Set app name before any getPath() call so userData is isolated from production.
 // Note: getPlatformServices() auto-registration also applies this as a safety net
 // in case Rollup loads initStorage's chunk before this module runs.
 // 开发模式下设置独立 app 名称，userData 目录将与正式版隔离，允许同时运行
-if (!app.isPackaged) {
+// E2E 沙箱已显式设置 userData 时跳过，避免被 dev app 名覆盖。
+if (!app.isPackaged && !e2eUserDataDir) {
   const devAppName = getDevAppName();
   app.setName(devAppName);
   // In Electron 28+, setName alone no longer updates userData path on macOS.
