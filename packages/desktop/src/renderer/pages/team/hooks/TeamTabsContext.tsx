@@ -6,6 +6,7 @@ import {
   sortSiderItemsByStoredOrder,
   writeStoredSiderOrder,
 } from '@renderer/components/layout/Sider/siderOrder';
+import { useTeamMemberColors } from '../identity/useTeamMemberColors';
 
 type AgentStatusInfo = {
   slot_id: string;
@@ -24,6 +25,10 @@ export type TeamTabsContextValue = {
   addAssistant?: (assistant: TeamAssistantInput) => Promise<TeamAssistant>;
   membershipMutationBusy: boolean;
   reorderAssistants: (fromSlotId: string, toSlotId: string) => void;
+  /** 成员实例身份色（仅团队详情页展示用）。 */
+  colorOf: (slot_id: string | undefined) => string;
+  /** 会话对应成员的身份色（消息侧按 conversation_id 取色）。 */
+  colorOfConversation: (conversation_id: string | undefined) => string;
 };
 
 const TeamTabsContext = createContext<TeamTabsContextValue | null>(null);
@@ -99,6 +104,8 @@ export const TeamTabsProvider: React.FC<{
 
   const assistants = localAssistants;
 
+  const { colorOf, colorOfConversation } = useTeamMemberColors(team_id, assistants);
+
   // Auto-switch when active tab is removed or on first spawn
   useEffect(() => {
     if (assistants.length > 0 && !assistants.some((assistant) => assistant.slot_id === activeSlotId)) {
@@ -160,6 +167,8 @@ export const TeamTabsProvider: React.FC<{
       addAssistant,
       membershipMutationBusy,
       reorderAssistants,
+      colorOf,
+      colorOfConversation,
     }),
     [
       assistants,
@@ -173,6 +182,8 @@ export const TeamTabsProvider: React.FC<{
       addAssistant,
       membershipMutationBusy,
       reorderAssistants,
+      colorOf,
+      colorOfConversation,
     ]
   );
 
