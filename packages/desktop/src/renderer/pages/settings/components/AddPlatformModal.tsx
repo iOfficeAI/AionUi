@@ -395,23 +395,18 @@ const AddPlatformModal = ModalHOC<{
 
   return (
     <AionModal
+      variant='standard'
       visible={modalProps.visible}
       onCancel={modalCtrl.close}
       header={{ title: t('settings.addModel'), showClose: true }}
-      style={{ maxWidth: '92vw', borderRadius: 16 }}
-      contentStyle={{
-        background: 'var(--dialog-fill-0)',
-        borderRadius: 16,
-        padding: '20px 24px 16px',
-        overflow: 'auto',
-      }}
+      style={{ maxWidth: '92vw' }}
       onOk={handleSubmit}
       confirmLoading={modalProps.confirmLoading}
       okText={t('common.confirm')}
       cancelText={t('common.cancel')}
     >
       {messageContext}
-      <div className='pt-4px pb-12px'>
+      <div>
         <Form form={form} layout='vertical' className='[&_.arco-form-item]:mb-12px [&_.arco-form-item:last-child]:mb-0'>
           {/* 模型平台选择（第一层）/ Model Platform Selection (first level) */}
           <Form.Item
