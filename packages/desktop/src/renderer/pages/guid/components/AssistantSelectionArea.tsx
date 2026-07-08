@@ -8,15 +8,30 @@ import styles from '../index.module.css';
 import { assistantRuntimeKey, type Assistant } from '@/common/types/agent/assistantTypes';
 import { Down, Robot, Search } from '@icon-park/react';
 import { Button, Dropdown, Input } from '@arco-design/web-react';
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { resolveAssistantAvatar } from '@/renderer/utils/model/assistantAvatar';
 import { selectableAssistants } from '@/renderer/utils/model/assistantSelection';
 import { useTranslation } from 'react-i18next';
+
+export function resolveAssistantVisibleLimit(width: number): number {
+  if (width >= 720) return 4;
+  if (width >= 600) return 3;
+  if (width >= 460) return 2;
+  return 1;
+}
+
+export function hasTruncatedAssistantLabels(root: HTMLElement | null): boolean {
+  if (!root) return false;
+  return Array.from(root.querySelectorAll<HTMLElement>('[data-assistant-label="true"]')).some(
+    (element) => element.scrollWidth > element.clientWidth + 1
+  );
+}
 
 type AssistantSelectionAreaProps = {
   selectedAssistantId?: string | null;
   assistants: Assistant[];
   localeKey: string;
+  maxVisibleAssistants?: number;
   onSelectAssistant: (assistantId: string) => void;
 };
 
@@ -24,25 +39,72 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
   selectedAssistantId,
   assistants,
   localeKey,
+  maxVisibleAssistants = 4,
   onSelectAssistant,
 }) => {
   const { t } = useTranslation();
   const [moreVisible, setMoreVisible] = useState(false);
   const [search, setSearch] = useState('');
+  const [availableWidth, setAvailableWidth] = useState(() => (typeof window === 'undefined' ? 800 : window.innerWidth));
+  const containerRef = useRef<HTMLDivElement>(null);
   const selectedId = selectedAssistantId || undefined;
+  const widthVisibleLimit = Math.min(Math.max(1, maxVisibleAssistants), resolveAssistantVisibleLimit(availableWidth));
+  const [adaptiveVisibleLimit, setAdaptiveVisibleLimit] = useState(widthVisibleLimit);
+  const visibleLimit = Math.min(widthVisibleLimit, adaptiveVisibleLimit);
   const enabledAssistants = useMemo(() => selectableAssistants(assistants), [assistants]);
+
+  useEffect(() => {
+    setAdaptiveVisibleLimit(widthVisibleLimit);
+  }, [enabledAssistants, selectedId, widthVisibleLimit]);
+
+  useEffect(() => {
+    const updateAvailableWidth = () => {
+      setAvailableWidth(containerRef.current?.offsetWidth || (typeof window === 'undefined' ? 800 : window.innerWidth));
+    };
+
+    updateAvailableWidth();
+
+    const element = containerRef.current;
+    if (element && typeof ResizeObserver !== 'undefined') {
+      const observer = new ResizeObserver((entries) => {
+        const width = entries[0]?.contentRect.width;
+        if (typeof width === 'number') {
+          setAvailableWidth(width);
+        }
+      });
+      observer.observe(element);
+      return () => observer.disconnect();
+    }
+
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    window.addEventListener('resize', updateAvailableWidth);
+    return () => window.removeEventListener('resize', updateAvailableWidth);
+  }, []);
+
   const visibleAssistants = useMemo(() => {
-    if (enabledAssistants.length <= 4 || !selectedId) {
-      return enabledAssistants.slice(0, 4);
+    if (enabledAssistants.length <= visibleLimit || !selectedId) {
+      return enabledAssistants.slice(0, visibleLimit);
     }
 
     const selectedIndex = enabledAssistants.findIndex((assistant) => assistant.id === selectedId);
-    if (selectedIndex < 0 || selectedIndex < 4) {
-      return enabledAssistants.slice(0, 4);
+    if (selectedIndex < 0 || selectedIndex < visibleLimit) {
+      return enabledAssistants.slice(0, visibleLimit);
     }
 
-    return [...enabledAssistants.slice(0, 3), enabledAssistants[selectedIndex]];
-  }, [enabledAssistants, selectedId]);
+    return [...enabledAssistants.slice(0, visibleLimit - 1), enabledAssistants[selectedIndex]];
+  }, [enabledAssistants, selectedId, visibleLimit]);
+
+  useLayoutEffect(() => {
+    if (visibleLimit <= 1 || !hasTruncatedAssistantLabels(containerRef.current)) {
+      return;
+    }
+
+    setAdaptiveVisibleLimit((currentLimit) => Math.max(1, Math.min(currentLimit, visibleLimit) - 1));
+  }, [visibleAssistants, visibleLimit]);
+
   const hasOverflow = enabledAssistants.length > visibleAssistants.length;
   const overflowAssistants = useMemo(() => {
     const visibleIds = new Set(visibleAssistants.map((assistant) => assistant.id));
@@ -92,7 +154,9 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
             <Robot theme='outline' size={14} />
           )}
         </span>
-        <span className='max-w-180px truncate whitespace-nowrap'>{label}</span>
+        <span data-assistant-label='true' className='max-w-180px truncate whitespace-nowrap'>
+          {label}
+        </span>
       </Button>
     );
   };
@@ -120,7 +184,7 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
   );
 
   return (
-    <div className='mt-18px mb-16px w-full'>
+    <div ref={containerRef} className='mt-18px mb-16px w-full'>
       <div className='flex w-full justify-center'>
         <div
           className='inline-flex max-w-full items-center rounded-999px px-6px py-6px'
