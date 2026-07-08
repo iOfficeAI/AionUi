@@ -108,6 +108,14 @@
       "diagnosticsReportSuccess": "诊断报告已发送",
       "diagnosticsReportFailed": "诊断报告发送失败"
     },
+    "startupDirectory": {
+      "title": "启动目录不可用",
+      "description": "AionUi 已打开，但由于配置的工作目录或日志目录不存在、不可访问或权限受限，AionCore 无法启动。请确认这些目录存在且可写，然后重启 AionUi。",
+      "sendDiagnostics": "发送诊断报告",
+      "diagnosticsSent": "诊断报告已发送",
+      "diagnosticsReportSuccess": "诊断报告已发送",
+      "diagnosticsReportFailed": "诊断报告发送失败"
+    },
     "recoverableDatabaseCorruption": {
       "title": "本地数据已损坏",
       "description": "检测到本地数据库损坏，AionUi 无法继续启动。确认后将备份旧数据库，并创建新的本地数据库继续启动。历史本地数据暂时不会显示，旧数据库会保留为备份。",

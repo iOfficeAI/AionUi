@@ -108,6 +108,14 @@
       "diagnosticsReportSuccess": "Diagnostics report sent",
       "diagnosticsReportFailed": "Failed to send diagnostics report"
     },
+    "startupDirectory": {
+      "title": "Diretório de inicialização indisponível",
+      "description": "O AionUi abriu, mas o AionCore não pôde iniciar porque o diretório de trabalho ou de logs configurado não existe, está indisponível ou foi bloqueado por permissões. Verifique se os diretórios existem e permitem escrita, depois reinicie o AionUi.",
+      "sendDiagnostics": "Enviar diagnóstico",
+      "diagnosticsSent": "Diagnóstico enviado",
+      "diagnosticsReportSuccess": "Relatório de diagnóstico enviado",
+      "diagnosticsReportFailed": "Falha ao enviar relatório de diagnóstico"
+    },
     "recoverableDatabaseCorruption": {
       "title": "Os dados locais estão corrompidos",
       "description": "O AionUi detectou que o banco de dados local está corrompido e não pode continuar a inicialização. Após a confirmação, o banco de dados antigo será salvo como backup e um novo banco de dados local será criado para continuar a inicialização. Os dados locais históricos não serão exibidos por enquanto, e o banco antigo será mantido como backup.",

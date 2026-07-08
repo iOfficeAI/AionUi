@@ -14,6 +14,10 @@ vi.mock('node:child_process', () => ({
   spawn: vi.fn(),
 }));
 
+vi.mock('node:fs', () => ({
+  mkdirSync: vi.fn(),
+}));
+
 vi.mock('node:net', () => ({
   createServer: vi.fn(),
   connect: vi.fn(),
@@ -24,6 +28,7 @@ vi.mock('./agent-process-registry.js', () => ({
 }));
 
 import { spawn } from 'node:child_process';
+import { mkdirSync } from 'node:fs';
 import { connect, createServer } from 'node:net';
 import { cleanupRegisteredAgentProcesses } from './agent-process-registry.js';
 import { buildSpawnArgs, buildSpawnEnv, findAvailablePort, BackendLifecycleManager } from './backend-launcher.js';
@@ -376,6 +381,10 @@ describe('BackendLifecycleManager.start (success path)', () => {
       expect(opts.env.AIONUI_WORK_DIR).toBe('/w');
       expect(opts.env.AIONUI_LOG_DIR).toBe('/l');
       expect((spawnCall[2] as { detached?: boolean }).detached).toBe(process.platform !== 'win32');
+      expect(mkdirSync).toHaveBeenCalledWith('/db/path', { recursive: true });
+      expect(mkdirSync).toHaveBeenCalledWith('/log/dir', { recursive: true });
+      expect(mkdirSync).toHaveBeenCalledWith('/w', { recursive: true });
+      expect(mkdirSync).toHaveBeenCalledWith('/l', { recursive: true });
 
       expect(fetchSpy).toHaveBeenCalled();
       expect(infoSpy).toHaveBeenCalledWith(
@@ -389,6 +398,31 @@ describe('BackendLifecycleManager.start (success path)', () => {
 });
 
 describe('BackendLifecycleManager.start (health timeout)', () => {
+  it('fails before spawn when startup directory preparation fails', async () => {
+    vi.mocked(mkdirSync).mockImplementationOnce(() => {
+      throw new Error('EPERM: operation not permitted, mkdir /db/path');
+    });
+
+    const mgr = new BackendLifecycleManager(APP_META_PACKAGED, () => '/abs/path/aioncore');
+
+    await expect(
+      mgr.start('/db/path', '/log/dir', {
+        cacheDir: '/cache',
+        workDir: '/work',
+        logDir: '/log',
+      })
+    ).rejects.toMatchObject({
+      name: 'BackendStartupError',
+      details: expect.objectContaining({
+        causeMessage: 'EPERM: operation not permitted, mkdir /db/path',
+        stage: 'spawn',
+      }),
+    });
+
+    expect(spawn).not.toHaveBeenCalled();
+    expect(mgr.status).toBe('error');
+  });
+
   it('captures backend boundary code and stage from early-exit stderr', async () => {
     vi.useFakeTimers();
     vi.mocked(createServer).mockImplementation(
