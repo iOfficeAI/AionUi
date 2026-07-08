@@ -31,14 +31,17 @@ export type BackendStartupFailureReason =
   | 'backend_data_migration_failed'
   | 'backend_local_data_repair_failed'
   | 'backend_recoverable_database_corruption'
+  | 'backend_startup_directory_unavailable'
   | 'backend_startup_failed';
 
 export type BackendIncompleteInstallationKind = 'missing_backend_binary' | 'missing_directory_resources';
 export type BackendLocalDataIssueKind = 'agent_metadata_invalid_utf8';
+export type BackendStartupDirectoryIssueKind = 'missing_or_unavailable_directory' | 'permission_denied';
 
 export interface BackendStartupFailureInfo {
   incompleteInstallationKind?: BackendIncompleteInstallationKind;
   localDataIssueKind?: BackendLocalDataIssueKind;
+  startupDirectoryIssueKind?: BackendStartupDirectoryIssueKind;
   missingBackendBinary?: boolean;
   missingBundledAioncoreDir?: boolean;
   missingHubDir?: boolean;

@@ -150,6 +150,88 @@ describe('useAutoScroll', () => {
     });
   });
 
+  it('auto-follows assistant message updates even when resize observer does not fire', () => {
+    const scroller = createScroller({ scrollTop: 600 });
+    const content = createContent();
+    const { result, rerender } = renderHook(
+      ({ messages }) =>
+        useAutoScroll({
+          messages,
+          itemCount: messages.length,
+        }),
+      {
+        initialProps: {
+          messages: [createLeftMessage('hello')] as TMessage[],
+        },
+      }
+    );
+
+    attachElements(result, scroller, content);
+    act(() => {
+      vi.runAllTimers();
+    });
+    vi.mocked(scroller.scrollTo).mockClear();
+
+    scroller.scrollHeight = 1080;
+    act(() => {
+      rerender({
+        messages: [createLeftMessage('hello world'.repeat(8))],
+      });
+    });
+    act(() => {
+      vi.runAllTimers();
+    });
+
+    expect(scroller.scrollTo).toHaveBeenCalledWith({
+      top: 680,
+      behavior: 'auto',
+    });
+  });
+
+  it('auto-follows newly appended assistant messages without forcing manual scroll state', () => {
+    const scroller = createScroller({ scrollTop: 600 });
+    const content = createContent();
+    const nextAssistantMessage = {
+      ...createLeftMessage('new assistant reply'),
+      id: 'left-message-2',
+      msg_id: 'left-message-2',
+      created_at: 2,
+    };
+    const { result, rerender } = renderHook(
+      ({ messages }) =>
+        useAutoScroll({
+          messages,
+          itemCount: messages.length,
+        }),
+      {
+        initialProps: {
+          messages: [createLeftMessage('hello')] as TMessage[],
+        },
+      }
+    );
+
+    attachElements(result, scroller, content);
+    act(() => {
+      vi.runAllTimers();
+    });
+    vi.mocked(scroller.scrollTo).mockClear();
+
+    scroller.scrollHeight = 1080;
+    act(() => {
+      rerender({
+        messages: [createLeftMessage('hello'), nextAssistantMessage],
+      });
+    });
+    act(() => {
+      vi.runAllTimers();
+    });
+
+    expect(scroller.scrollTo).toHaveBeenCalledWith({
+      top: 680,
+      behavior: 'auto',
+    });
+  });
+
   it('does not auto-follow after the user scrolls up', () => {
     const scroller = createScroller({ scrollTop: 600 });
     const content = createContent();
