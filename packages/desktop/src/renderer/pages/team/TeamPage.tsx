@@ -20,6 +20,8 @@ import { resolveCronJobId } from '@/renderer/pages/cron/cronUtils';
 import TeamTabs from './components/TeamTabs';
 import TeamChatView from './components/TeamChatView';
 import TeamAgentIdentity from './components/TeamAgentIdentity';
+import TeamViewToggle from './components/TeamViewToggle';
+import { useTeamViewMode } from './hooks/useTeamViewMode';
 import { TeamTabsProvider, useTeamTabs } from './hooks/TeamTabsContext';
 import { TeamIdentityProvider } from './identity/TeamIdentityContext';
 import { TeamPermissionProvider, useTeamPermission } from './hooks/TeamPermissionContext';
@@ -216,7 +218,9 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onRenameTeam })
   const assistantRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const [showLeftArrow, setShowLeftArrow] = useState(false);
   const [showRightArrow, setShowRightArrow] = useState(false);
-  const [fullscreenSlotId, setFullscreenSlotId] = useState<string | null>(null);
+  // 视图模式（并行/单聊），按团队记忆。单聊 = 全屏当前选中成员。
+  const [viewMode, setViewMode] = useTeamViewMode(team.id);
+  const isSingleView = viewMode === 'single';
 
   const activeAssistant = assistants.find((assistant) => assistant.slot_id === activeSlotId);
   const leadAssistant = assistants.find((assistant) => assistant.role === 'leader');
@@ -233,15 +237,14 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onRenameTeam })
           removeAgent: (params) => ipcBridge.team.removeAgent.invoke(params),
         });
         Message.success(t('common.deleteSuccess'));
-        // Only switch tab when removing the currently active tab
+        // 移除当前选中成员时切回 Leader；单聊视图跟随 activeSlotId，无需额外处理。
         if (slot_id === activeSlotId && leadAssistant?.slot_id) switchTab(leadAssistant.slot_id);
-        if (fullscreenSlotId === slot_id) setFullscreenSlotId(null);
       } catch (error) {
         console.error('Failed to remove assistant:', error);
         Message.error(String(error));
       }
     },
-    [team, activeSlotId, leadAssistant?.slot_id, switchTab, fullscreenSlotId, t]
+    [team, activeSlotId, leadAssistant?.slot_id, switchTab, t]
   );
 
   const handleRemoveAssistant = useCallback(
@@ -326,7 +329,8 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onRenameTeam })
   const handleTabClick = useCallback(
     (slot_id: string) => {
       switchTab(slot_id);
-      if (fullscreenSlotId) setFullscreenSlotId(slot_id);
+      // 单聊视图只显示选中成员，无需滚动定位/闪动；并行视图滚动到对应列并闪一下。
+      if (isSingleView) return;
       requestAnimationFrame(() => {
         const el = assistantRefs.current[slot_id];
         if (el) {
@@ -346,7 +350,7 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onRenameTeam })
         }
       });
     },
-    [switchTab, fullscreenSlotId]
+    [switchTab, isSingleView]
   );
 
   const scrollToPrev = useCallback(() => {
@@ -425,6 +429,7 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onRenameTeam })
         isTemporaryWorkspace={isTeamWorkspaceTemporary}
         workspacePreferenceKey={team.id}
         onRenameTitle={onRenameTeam}
+        headerExtra={assistants.length > 1 ? <TeamViewToggle value={viewMode} onChange={setViewMode} /> : undefined}
         headerLeading={
           <span className='inline-flex w-16px h-16px items-center justify-center shrink-0 leading-none text-t-primary'>
             <Peoples theme='outline' size='16' fill='currentColor' style={{ lineHeight: 0 }} />
@@ -432,10 +437,11 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onRenameTeam })
         }
       >
         <div className='relative flex h-full'>
-          {fullscreenSlotId ? (
-            // Fullscreen: single assistant fills the entire content area
+          {isSingleView ? (
+            // 单聊视图：全屏显示当前选中成员（activeSlotId），找不到时回退到 Leader。
             (() => {
-              const assistant = assistants.find((candidate) => candidate.slot_id === fullscreenSlotId);
+              const assistant =
+                assistants.find((candidate) => candidate.slot_id === activeSlotId) ?? leadAssistant ?? assistants[0];
               if (!assistant) return null;
               const isLeaderSlot = assistant.slot_id === leadAssistant?.slot_id;
               return (
@@ -446,7 +452,7 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onRenameTeam })
                     isLeader={isLeaderSlot}
                     color={colorOf(assistant.slot_id)}
                     isFullscreen
-                    onToggleFullscreen={() => setFullscreenSlotId(null)}
+                    onToggleFullscreen={() => setViewMode('parallel')}
                     teamRunView={teamRun.state}
                     onTeamRunAck={teamRun.applyAck}
                     onRunStateStale={teamRun.reconcile}
@@ -505,7 +511,10 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onRenameTeam })
                         team_id={team.id}
                         isLeader={isLeaderSlot}
                         color={colorOf(assistant.slot_id)}
-                        onToggleFullscreen={() => setFullscreenSlotId(assistant.slot_id)}
+                        onToggleFullscreen={() => {
+                          switchTab(assistant.slot_id);
+                          setViewMode('single');
+                        }}
                         teamRunView={teamRun.state}
                         onTeamRunAck={teamRun.applyAck}
                         onRunStateStale={teamRun.reconcile}

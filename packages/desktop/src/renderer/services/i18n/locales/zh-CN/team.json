@@ -81,5 +81,10 @@
     "searchAssistants": "搜索助手...",
     "addFailed": "添加成员失败",
     "noSearchResults": "未找到结果"
+  },
+  "view": {
+    "label": "视图",
+    "parallel": "并行",
+    "single": "单聊"
   }
 }

@@ -81,5 +81,10 @@
     "searchAssistants": "搜尋助手...",
     "addFailed": "新增成員失敗",
     "noSearchResults": "未找到結果"
+  },
+  "view": {
+    "label": "檢視",
+    "parallel": "並行",
+    "single": "單聊"
   }
 }

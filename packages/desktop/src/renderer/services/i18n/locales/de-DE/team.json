@@ -81,5 +81,10 @@
     "searchAssistants": "Search assistants...",
     "addFailed": "Failed to add member",
     "noSearchResults": "No results found"
+  },
+  "view": {
+    "label": "View",
+    "parallel": "Parallel",
+    "single": "Single"
   }
 }
