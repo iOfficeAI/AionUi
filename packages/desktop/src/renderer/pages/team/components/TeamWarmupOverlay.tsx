@@ -33,6 +33,22 @@ type Props = {
  */
 const COLUMN_HEADER_HEIGHT = 40;
 
+/**
+ * 后端错误层层包裹（`Invalid request: failed to warm up rebuilt agent <uuid>: Invalid request:
+ * Bad request: Provider 'aionrs' not found`），只有末尾一段对用户有意义。剥掉重建噪声 + 通用前缀，
+ * 留下真正的原因。取不到就回退原文。
+ */
+export function simplifyWarmupError(raw: string | undefined): string | undefined {
+  if (!raw) return raw;
+  let s = raw.trim();
+  // 去掉「failed to warm up rebuilt agent <uuid>:」这段中间噪声
+  s = s.replace(/failed to warm up rebuilt agent \S+:\s*/gi, '');
+  // 折叠重复的通用包裹前缀
+  s = s.replace(/\b(invalid request|bad request|internal error):\s*/gi, '');
+  s = s.trim();
+  return s || raw.trim();
+}
+
 const TeamWarmupOverlay: React.FC<Props> = ({ phase, assistants, runtimeStatus, colorOf, onRetry }) => {
   const { t } = useTranslation();
   if (phase === 'ready') return null;
@@ -105,27 +121,20 @@ const TeamWarmupOverlay: React.FC<Props> = ({ phase, assistants, runtimeStatus, 
 
         {isFailure ? (
           <>
-            <div className='text-15px font-600 text-t-primary'>
-              {failedIsLeader
-                ? t('team.warmup.leaderFailedTitle', { defaultValue: 'The team lead could not start' })
-                : t('team.warmup.memberFailedTitle', { defaultValue: 'The team is not fully ready' })}
+            <div className='text-15px font-600 text-t-primary text-center'>
+              {failedAssistant
+                ? failedIsLeader
+                  ? t('team.warmup.leaderFailedTitle', { defaultValue: 'Lead {{name}} failed to start', name: failedAssistant.assistant_name })
+                  : t('team.warmup.memberFailedTitle', { defaultValue: 'Member {{name}} failed to start', name: failedAssistant.assistant_name })
+                : t('team.warmup.genericFailedTitle', { defaultValue: 'The team could not start' })}
             </div>
-            {failedAssistant ? (
-              <div className='text-12px text-t-secondary text-center leading-relaxed'>
-                {failedIsLeader
-                  ? t('team.warmup.leaderFailedReason', {
-                      defaultValue: 'The lead {{name}} failed to start',
-                      name: failedAssistant.assistant_name,
-                    })
-                  : t('team.warmup.memberFailedReason', {
-                      defaultValue: 'Member {{name}} failed to start',
-                      name: failedAssistant.assistant_name,
-                    })}
-                {failedError ? (
-                  <>
-                    ：<span style={{ color: 'var(--danger)' }}>{failedError}</span>
-                  </>
-                ) : null}
+            {failedError ? (
+              <div
+                data-testid='team-warmup-error'
+                className='max-w-320px max-h-64px overflow-y-auto text-11px leading-relaxed text-left rounded-6px px-10px py-6px'
+                style={{ background: 'color-mix(in srgb, var(--danger) 8%, var(--bg-base))', color: 'var(--danger)' }}
+              >
+                {simplifyWarmupError(failedError)}
               </div>
             ) : null}
             <div className='text-12px text-t-tertiary text-center leading-relaxed'>

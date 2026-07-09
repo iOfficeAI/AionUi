@@ -94,12 +94,11 @@
   "warmup": {
     "title": "正在喚醒團隊…",
     "subtitle": "正在準備成員",
-    "memberFailedTitle": "團隊未能全部就緒",
-    "leaderFailedTitle": "團隊負責人未能就緒",
-    "memberFailedReason": "成員「{{name}}」啟動失敗",
-    "leaderFailedReason": "負責人「{{name}}」啟動失敗",
-    "memberFailedHint": "可在上方欄標題切換它的模型，或從頂部移除該成員後重試。",
-    "leaderFailedHint": "負責人無法移除。可在上方欄標題切換它的模型後重試。",
+    "memberFailedTitle": "成員「{{name}}」未能啟動",
+    "leaderFailedTitle": "Leader「{{name}}」未能啟動",
+    "genericFailedTitle": "團隊未能啟動",
+    "memberFailedHint": "可在上方切換其模型，或從頂部移除後重試。",
+    "leaderFailedHint": "可在上方切換其模型後重試。",
     "retry": "重試"
   }
 }

@@ -94,12 +94,11 @@
   "warmup": {
     "title": "正在唤醒团队…",
     "subtitle": "正在准备成员",
-    "memberFailedTitle": "团队未能全部就绪",
-    "leaderFailedTitle": "团队负责人未能就绪",
-    "memberFailedReason": "成员「{{name}}」启动失败",
-    "leaderFailedReason": "负责人「{{name}}」启动失败",
-    "memberFailedHint": "可在上方列抬头切换它的模型，或从顶部移除该成员后重试。",
-    "leaderFailedHint": "负责人无法移除。可在上方列抬头切换它的模型后重试。",
+    "memberFailedTitle": "成员「{{name}}」未能启动",
+    "leaderFailedTitle": "Leader「{{name}}」未能启动",
+    "genericFailedTitle": "团队未能启动",
+    "memberFailedHint": "可在上方切换其模型，或从顶部移除后重试。",
+    "leaderFailedHint": "可在上方切换其模型后重试。",
     "retry": "重试"
   }
 }
