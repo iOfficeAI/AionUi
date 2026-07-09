@@ -166,6 +166,20 @@ export default defineConfig({
           /* Set default text color to follow theme 所有元素默认使用主题文字颜色 */
           color: inherit;
         }
+        /*
+         * 边框基线（对齐 Tailwind Preflight）：所有元素默认 border-width:0 + border-style:solid。
+         * UnoCSS 里 \`border-solid\` 把四条边都设为 solid，而单边工具类（border-l / border-b …）
+         * 只设置对应那条边的宽度，其余三边会回退到 CSS 初始值 medium(≈1.5px) 并因 solid 而显形，
+         * 画出意料之外的完整边框（成员栏加号、下拉引导、列抬头分隔线等处的“幽灵框”）。
+         * 这里把宽度基线归零、样式统一 solid：单边类只画它自己那条线，不再有幽灵边。
+         */
+        *,
+        ::before,
+        ::after {
+          border-width: 0;
+          border-style: solid;
+          border-color: currentColor;
+        }
         @keyframes wiggle {
           0%, 20%, 100% { transform: rotate(0deg); }
           4% { transform: rotate(8deg); }
