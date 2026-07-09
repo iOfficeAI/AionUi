@@ -84,6 +84,7 @@
     "tabOfficial": "Resmi beceriler",
     "officialSkillsTitle": "Resmi beceriler",
     "officialSkillsEmpty": "Kullanılabilir resmi beceri yok.",
+    "noSearchResults": "Eşleşen beceri yok.",
     "customHint": "Bir beceri klasörü, üst klasör veya zip içe aktarın; dosya başına en fazla {{maxFileSize}} ve beceri başına {{maxTotalSize}}; aynı adla içe aktarma mevcut beceriyi değiştirir.",
     "officialHint": "AionUi ile birlikte gelen resmi beceriler — kullanıma hazır, salt okunur ve her sürümde güncellenir."
   },
