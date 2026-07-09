@@ -40,7 +40,9 @@ const TeamAddMemberPopover: React.FC<Props> = ({ children, disabled = false }) =
   const handleTellLeader = useCallback(() => {
     if (!leader?.slot_id || !leaderConversationId) return;
     switchTab(leader.slot_id);
-    const text = t('team.addMember.tellLeaderPrefill', { defaultValue: 'Help me add a member good at ___ to the team' });
+    const text = t('team.addMember.tellLeaderPrefill', {
+      defaultValue: 'Help me add a member good at ___ to the team',
+    });
     if (leader.assistant_backend === 'aionrs') {
       aionrsDraft.mutate((prev) => ({ ...prev, content: text }));
     } else {
@@ -88,7 +90,9 @@ const TeamAddMemberPopover: React.FC<Props> = ({ children, disabled = false }) =
       guidanceFooter={
         leader?.slot_id ? (
           <div className='text-12px leading-18px text-t-tertiary'>
-            {t('team.addMember.tellLeaderHint', { defaultValue: "Not a good fit? You can also ask the Leader to arrange it." })}{' '}
+            {t('team.addMember.tellLeaderHint', {
+              defaultValue: 'Not a good fit? You can also ask the Leader to arrange it.',
+            })}{' '}
             <span
               data-testid='team-add-member-tell-leader'
               className='text-[color:var(--brand)] font-500 cursor-pointer hover:underline'

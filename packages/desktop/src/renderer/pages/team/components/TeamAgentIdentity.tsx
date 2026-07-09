@@ -111,7 +111,11 @@ const TeamAgentIdentity: React.FC<Props> = ({
       ) : (
         renderAvatar()
       )}
-      <span data-testid={nameTestId} className={['min-w-0 flex-1 truncate', nameClassName].filter(Boolean).join(' ')} style={nameStyle}>
+      <span
+        data-testid={nameTestId}
+        className={['min-w-0 flex-1 truncate', nameClassName].filter(Boolean).join(' ')}
+        style={nameStyle}
+      >
         {displayName}
       </span>
       {isLeader && (

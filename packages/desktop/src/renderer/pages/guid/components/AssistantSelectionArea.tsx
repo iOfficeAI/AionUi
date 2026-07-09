@@ -168,7 +168,12 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
       style={{ background: 'var(--bg-base, #fff)' }}
     >
       <div className='mb-8px'>
-        <AionSearchInput className='w-full' value={search} onChange={setSearch} placeholder={t('team.create.searchPlaceholder', { defaultValue: 'Search' })} />
+        <AionSearchInput
+          className='w-full'
+          value={search}
+          onChange={setSearch}
+          placeholder={t('team.create.searchPlaceholder', { defaultValue: 'Search' })}
+        />
       </div>
       <div className='flex max-h-260px flex-col gap-4px overflow-y-auto'>
         {filteredOverflowAssistants.map((assistant) => (

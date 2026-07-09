@@ -201,7 +201,10 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
       className='grid min-h-0 grid-cols-[minmax(0,1fr)_minmax(0,1fr)]'
       style={{ height: 'min(54vh, 470px)', minHeight: 390 }}
     >
-      <section className='flex min-h-0 flex-col border-r border-border-3 px-20px pb-18px pt-12px' data-testid='team-create-assistant-pane'>
+      <section
+        className='flex min-h-0 flex-col border-r border-border-3 px-20px pb-18px pt-12px'
+        data-testid='team-create-assistant-pane'
+      >
         <div className='mb-12px text-15px font-600 leading-22px text-t-secondary'>
           {t('team.create.allAssistantsWithCount', {
             count: allAssistants.length,
@@ -212,7 +215,12 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
       </section>
 
       <section className='flex min-h-0 flex-col px-20px pb-14px pt-12px' data-testid='team-create-details-pane'>
-        <TeamMemberDraftList members={selectedMembers} leaderSelectionId={leaderSelectionId} onLeaderChange={setLeaderSelectionId} onRemove={handleRemoveDraft} />
+        <TeamMemberDraftList
+          members={selectedMembers}
+          leaderSelectionId={leaderSelectionId}
+          onLeaderChange={setLeaderSelectionId}
+          onRemove={handleRemoveDraft}
+        />
         <div className='mt-14px shrink-0 border-t border-border-2 pt-14px'>{teamFields}</div>
       </section>
     </div>
@@ -270,7 +278,10 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
       visible={visible}
       onCancel={handleClose}
       className='team-create-modal'
-      style={{ width: isMobile ? 'calc(100vw - 32px)' : 900, maxWidth: isMobile ? 'calc(100vw - 32px)' : 'calc(100vw - 72px)' }}
+      style={{
+        width: isMobile ? 'calc(100vw - 32px)' : 900,
+        maxWidth: isMobile ? 'calc(100vw - 32px)' : 'calc(100vw - 72px)',
+      }}
       wrapStyle={{ zIndex: 10000 }}
       maskStyle={{ zIndex: 9999 }}
       autoFocus={false}
@@ -281,7 +292,8 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
       header={{
         title: t('team.create.title', { defaultValue: 'New Team' }),
         subtitle: t('team.create.subtitle', {
-          defaultValue: 'Let multiple AI assistants team up and collaborate. We suggest one team focuses on a single goal — create separate teams for different tasks.',
+          defaultValue:
+            'Let multiple AI assistants team up and collaborate. We suggest one team focuses on a single goal — create separate teams for different tasks.',
         }),
         showClose: true,
       }}

@@ -27,10 +27,13 @@ async function setWindowContentSize(
   width: number,
   height: number
 ): Promise<void> {
-  await electronApp.evaluate(async ({ BrowserWindow }, size) => {
-    const win = BrowserWindow.getAllWindows().find((w) => !w.webContents.getURL().startsWith('devtools://'));
-    win?.setContentSize(size.width, size.height);
-  }, { width, height });
+  await electronApp.evaluate(
+    async ({ BrowserWindow }, size) => {
+      const win = BrowserWindow.getAllWindows().find((w) => !w.webContents.getURL().startsWith('devtools://'));
+      win?.setContentSize(size.width, size.height);
+    },
+    { width, height }
+  );
 }
 
 test.describe('Team Create - mobile (narrow screen)', () => {
@@ -61,7 +64,9 @@ test.describe('Team Create - mobile (narrow screen)', () => {
     await expect(createBtn).toBeVisible({ timeout: 15_000 });
     await createBtn.click();
 
-    await expect(page.locator('.arco-modal h3').filter({ hasText: /Create Team|创建团队|New Team|新建团队/ })).toBeVisible({ timeout: 5_000 });
+    await expect(
+      page.locator('.arco-modal h3').filter({ hasText: /Create Team|创建团队|New Team|新建团队/ })
+    ).toBeVisible({ timeout: 5_000 });
 
     // Shrink below the breakpoint — the open modal re-renders into its mobile layout.
     await setWindowContentSize(electronApp, MOBILE_WIDTH, MOBILE_HEIGHT);

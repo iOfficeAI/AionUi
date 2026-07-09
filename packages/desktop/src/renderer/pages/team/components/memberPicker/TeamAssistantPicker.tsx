@@ -46,11 +46,26 @@ const TeamAssistantPicker: React.FC<Props> = ({
 
   return (
     <div className={`flex min-h-0 flex-col ${isModalDensity ? 'gap-12px' : ''} ${className ?? ''}`}>
-      <div className={isModalDensity ? undefined : 'bg-dialog-fill-0 px-12px pt-12px'} data-testid={`${testIdPrefix}-search-shell`}>
+      <div
+        className={isModalDensity ? undefined : 'bg-dialog-fill-0 px-12px pt-12px'}
+        data-testid={`${testIdPrefix}-search-shell`}
+      >
         {isInlineSearch ? (
-          <AionInlineSearchInput className='w-full' value={query} onChange={setQuery} placeholder={searchPlaceholder} data-testid={`${testIdPrefix}-search`} />
+          <AionInlineSearchInput
+            className='w-full'
+            value={query}
+            onChange={setQuery}
+            placeholder={searchPlaceholder}
+            data-testid={`${testIdPrefix}-search`}
+          />
         ) : (
-          <AionSearchInput className='w-full' value={query} onChange={setQuery} placeholder={searchPlaceholder} data-testid={`${testIdPrefix}-search`} />
+          <AionSearchInput
+            className='w-full'
+            value={query}
+            onChange={setQuery}
+            placeholder={searchPlaceholder}
+            data-testid={`${testIdPrefix}-search`}
+          />
         )}
       </div>
       <div
@@ -148,7 +163,11 @@ const TeamAssistantPicker: React.FC<Props> = ({
                     // Mount the tooltip on document.body too — otherwise it stays trapped in the
                     // modal's stacking context and its z-index can't beat the sibling dropdown —
                     // and raise its z-index above the dropdown so the block reason shows on top.
-                    <Tooltip content={blockReason} getPopupContainer={() => document.body} triggerProps={{ style: { zIndex: 10060 } }}>
+                    <Tooltip
+                      content={blockReason}
+                      getPopupContainer={() => document.body}
+                      triggerProps={{ style: { zIndex: 10060 } }}
+                    >
                       {row}
                     </Tooltip>
                   ) : (

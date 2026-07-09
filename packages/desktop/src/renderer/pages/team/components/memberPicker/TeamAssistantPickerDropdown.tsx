@@ -40,7 +40,23 @@ type Props = {
   density?: 'compact' | 'modal';
 };
 
-const TeamAssistantPickerDropdown: React.FC<Props> = ({ children, assistants, onSelect, visible, onVisibleChange, disabled = false, pendingAssistantId, testIdPrefix, panelTestId, title, subtitle, footer, guidanceFooter, emptyText, density = 'modal' }) => {
+const TeamAssistantPickerDropdown: React.FC<Props> = ({
+  children,
+  assistants,
+  onSelect,
+  visible,
+  onVisibleChange,
+  disabled = false,
+  pendingAssistantId,
+  testIdPrefix,
+  panelTestId,
+  title,
+  subtitle,
+  footer,
+  guidanceFooter,
+  emptyText,
+  density = 'modal',
+}) => {
   const showEmpty = emptyText !== undefined && assistants.length === 0;
 
   return (
@@ -59,13 +75,18 @@ const TeamAssistantPickerDropdown: React.FC<Props> = ({ children, assistants, on
           style={{ zIndex: 10020 }}
         >
           {title ? (
-            <div className='shrink-0 px-4px pb-8px pt-2px' data-testid={panelTestId ? `${panelTestId}-header` : undefined}>
+            <div
+              className='shrink-0 px-4px pb-8px pt-2px'
+              data-testid={panelTestId ? `${panelTestId}-header` : undefined}
+            >
               <div className='text-14px font-600 leading-20px text-t-primary'>{title}</div>
               {subtitle ? <div className='mt-2px text-12px leading-18px text-t-tertiary'>{subtitle}</div> : null}
             </div>
           ) : null}
           {showEmpty ? (
-            <div className='flex items-center justify-center px-12px py-12px text-center text-13px text-t-tertiary'>{emptyText}</div>
+            <div className='flex items-center justify-center px-12px py-12px text-center text-13px text-t-tertiary'>
+              {emptyText}
+            </div>
           ) : (
             <TeamAssistantPicker
               assistants={assistants}

@@ -68,7 +68,11 @@ const TeamWarmupOverlay: React.FC<Props> = ({ phase, assistants, runtimeStatus, 
       data-testid='team-warmup-overlay'
       data-phase={phase}
       className='absolute left-0 right-0 bottom-0 z-20 flex flex-col items-center justify-center'
-      style={{ top: COLUMN_HEADER_HEIGHT, background: 'color-mix(in srgb, var(--bg-1) 80%, transparent)', backdropFilter: 'blur(3px)' }}
+      style={{
+        top: COLUMN_HEADER_HEIGHT,
+        background: 'color-mix(in srgb, var(--bg-1) 80%, transparent)',
+        backdropFilter: 'blur(3px)',
+      }}
     >
       <div className='flex flex-col items-center gap-14px px-40px py-28px max-w-420px'>
         {/* 成员头像：跟随各自 runtime 状态。Leader 先亮（后端优先重建它）。 */}
@@ -124,8 +128,14 @@ const TeamWarmupOverlay: React.FC<Props> = ({ phase, assistants, runtimeStatus, 
             <div className='text-15px font-600 text-t-primary text-center'>
               {failedAssistant
                 ? failedIsLeader
-                  ? t('team.warmup.leaderFailedTitle', { defaultValue: 'Lead {{name}} failed to start', name: failedAssistant.assistant_name })
-                  : t('team.warmup.memberFailedTitle', { defaultValue: 'Member {{name}} failed to start', name: failedAssistant.assistant_name })
+                  ? t('team.warmup.leaderFailedTitle', {
+                      defaultValue: 'Lead {{name}} failed to start',
+                      name: failedAssistant.assistant_name,
+                    })
+                  : t('team.warmup.memberFailedTitle', {
+                      defaultValue: 'Member {{name}} failed to start',
+                      name: failedAssistant.assistant_name,
+                    })
                 : t('team.warmup.genericFailedTitle', { defaultValue: 'The team could not start' })}
             </div>
             {failedError ? (
@@ -139,7 +149,9 @@ const TeamWarmupOverlay: React.FC<Props> = ({ phase, assistants, runtimeStatus, 
             ) : null}
             <div className='text-12px text-t-tertiary text-center leading-relaxed'>
               {failedIsLeader
-                ? t('team.warmup.leaderFailedHint', { defaultValue: 'Switch its model in the column header above, then retry.' })
+                ? t('team.warmup.leaderFailedHint', {
+                    defaultValue: 'Switch its model in the column header above, then retry.',
+                  })
                 : t('team.warmup.memberFailedHint', {
                     defaultValue: 'Switch its model above, or remove the member from the bar on top, then retry.',
                   })}
@@ -159,11 +171,18 @@ const TeamWarmupOverlay: React.FC<Props> = ({ phase, assistants, runtimeStatus, 
           </>
         ) : (
           <>
-            <div className='text-15px font-600 text-t-primary'>{t('team.warmup.title', { defaultValue: 'Waking up the team…' })}</div>
-            <div className='text-12px text-t-tertiary'>{t('team.warmup.subtitle', { defaultValue: 'Getting members ready' })}</div>
+            <div className='text-15px font-600 text-t-primary'>
+              {t('team.warmup.title', { defaultValue: 'Waking up the team…' })}
+            </div>
+            <div className='text-12px text-t-tertiary'>
+              {t('team.warmup.subtitle', { defaultValue: 'Getting members ready' })}
+            </div>
             {/* 品牌色进度条（不确定进度，来回扫动） */}
             <div className='w-180px h-4px rounded-2px overflow-hidden' style={{ background: 'var(--bg-3)' }}>
-              <div className='h-full rounded-2px team-warmup-sweep' style={{ background: 'linear-gradient(90deg, var(--brand-hover), var(--brand))' }} />
+              <div
+                className='h-full rounded-2px team-warmup-sweep'
+                style={{ background: 'linear-gradient(90deg, var(--brand-hover), var(--brand))' }}
+              />
             </div>
           </>
         )}

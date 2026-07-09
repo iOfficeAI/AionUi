@@ -140,9 +140,7 @@ const AssistantChatSlot: React.FC<{
   // 列身体保留极淡身份色底作弱提示，不影响气泡阅读。
   return (
     <div className='flex flex-col h-full' style={{ background: `color-mix(in srgb, ${color} 4%, var(--bg-base))` }}>
-      <div
-        className='flex items-center justify-between gap-8px px-12px h-40px shrink-0 border-b border-solid border-[color:var(--border-base)] relative z-10 bg-1'
-      >
+      <div className='flex items-center justify-between gap-8px px-12px h-40px shrink-0 border-b border-solid border-[color:var(--border-base)] relative z-10 bg-1'>
         <TeamAgentIdentity
           assistant_name={assistant.assistant_name}
           assistant_backend={assistant.assistant_backend}
@@ -410,138 +408,138 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onRenameTeam })
       allConversationIds={allConversationIds}
     >
       <TeamIdentityProvider colorOfConversation={colorOfConversation}>
-      {messageContext}
-      <ChatLayout
-        title={team.name}
-        siderTitle={siderTitle}
-        sider={sider}
-        workspaceEnabled={workspaceEnabled}
-        tabsSlot={tabsSlot}
-        conversation_id={activeAssistant?.conversation_id}
-        agent_name={undefined}
-        workspacePath={effectiveWorkspace}
-        isTemporaryWorkspace={isTeamWorkspaceTemporary}
-        workspacePreferenceKey={team.id}
-        onRenameTitle={onRenameTeam}
-        headerExtra={assistants.length > 1 ? <TeamViewToggle value={viewMode} onChange={setViewMode} /> : undefined}
-        headerLeading={
-          <span className='inline-flex w-16px h-16px items-center justify-center shrink-0 leading-none text-t-primary'>
-            <Peoples theme='outline' size='16' fill='currentColor' style={{ lineHeight: 0 }} />
-          </span>
-        }
-      >
-        <div className='relative flex h-full'>
-          <TeamWarmupOverlay
-            phase={warmupPhase}
-            assistants={assistants}
-            runtimeStatus={warmupRuntimeStatus}
-            colorOf={colorOf}
-            onRetry={() => window.location.reload()}
-          />
-          {isSingleView ? (
-            // 单聊视图：全屏显示当前选中成员（activeSlotId），找不到时回退到 Leader。
-            (() => {
-              const assistant =
-                assistants.find((candidate) => candidate.slot_id === activeSlotId) ?? leadAssistant ?? assistants[0];
-              if (!assistant) return null;
-              const isLeaderSlot = assistant.slot_id === leadAssistant?.slot_id;
-              return (
-                <div className='flex-1 h-full'>
-                  <AssistantChatSlot
-                    assistant={assistant}
-                    team_id={team.id}
-                    isLeader={isLeaderSlot}
-                    color={colorOf(assistant.slot_id)}
-                    isFullscreen
-                    onToggleFullscreen={() => setViewMode('parallel')}
-                    teamRunView={teamRun.state}
-                    onTeamRunAck={teamRun.applyAck}
-                    onRunStateStale={teamRun.reconcile}
-                  />
-                </div>
-              );
-            })()
-          ) : (
-            <>
-              {showLeftArrow && (
-                <div
-                  className='absolute left-0 top-0 bottom-0 w-48px z-20 flex items-center justify-center cursor-pointer opacity-80 hover:opacity-100 transition-opacity'
-                  style={{ background: 'linear-gradient(90deg, var(--color-bg-1) 40%, transparent)' }}
-                  onClick={scrollToPrev}
-                >
-                  <div
-                    className='w-32px h-32px rd-full flex items-center justify-center'
-                    style={{ background: 'rgba(0,0,0,0.5)', lineHeight: 0 }}
-                  >
-                    <Left size='24' fill='#fff' />
+        {messageContext}
+        <ChatLayout
+          title={team.name}
+          siderTitle={siderTitle}
+          sider={sider}
+          workspaceEnabled={workspaceEnabled}
+          tabsSlot={tabsSlot}
+          conversation_id={activeAssistant?.conversation_id}
+          agent_name={undefined}
+          workspacePath={effectiveWorkspace}
+          isTemporaryWorkspace={isTeamWorkspaceTemporary}
+          workspacePreferenceKey={team.id}
+          onRenameTitle={onRenameTeam}
+          headerExtra={assistants.length > 1 ? <TeamViewToggle value={viewMode} onChange={setViewMode} /> : undefined}
+          headerLeading={
+            <span className='inline-flex w-16px h-16px items-center justify-center shrink-0 leading-none text-t-primary'>
+              <Peoples theme='outline' size='16' fill='currentColor' style={{ lineHeight: 0 }} />
+            </span>
+          }
+        >
+          <div className='relative flex h-full'>
+            <TeamWarmupOverlay
+              phase={warmupPhase}
+              assistants={assistants}
+              runtimeStatus={warmupRuntimeStatus}
+              colorOf={colorOf}
+              onRetry={() => window.location.reload()}
+            />
+            {isSingleView ? (
+              // 单聊视图：全屏显示当前选中成员（activeSlotId），找不到时回退到 Leader。
+              (() => {
+                const assistant =
+                  assistants.find((candidate) => candidate.slot_id === activeSlotId) ?? leadAssistant ?? assistants[0];
+                if (!assistant) return null;
+                const isLeaderSlot = assistant.slot_id === leadAssistant?.slot_id;
+                return (
+                  <div className='flex-1 h-full'>
+                    <AssistantChatSlot
+                      assistant={assistant}
+                      team_id={team.id}
+                      isLeader={isLeaderSlot}
+                      color={colorOf(assistant.slot_id)}
+                      isFullscreen
+                      onToggleFullscreen={() => setViewMode('parallel')}
+                      teamRunView={teamRun.state}
+                      onTeamRunAck={teamRun.applyAck}
+                      onRunStateStale={teamRun.reconcile}
+                    />
                   </div>
-                </div>
-              )}
-              <div
-                ref={scrollContainerRef}
-                className='flex h-full w-full overflow-x-auto overflow-y-hidden [scrollbar-width:none]'
-                style={{ scrollSnapType: 'x proximity' }}
-              >
-                {assistants.map((assistant, index) => {
-                  const isSingle = assistants.length <= 2;
-                  const isLeaderSlot = assistant.slot_id === leadAssistant?.slot_id;
-                  const isLastColumn = index === assistants.length - 1;
-                  return (
+                );
+              })()
+            ) : (
+              <>
+                {showLeftArrow && (
+                  <div
+                    className='absolute left-0 top-0 bottom-0 w-48px z-20 flex items-center justify-center cursor-pointer opacity-80 hover:opacity-100 transition-opacity'
+                    style={{ background: 'linear-gradient(90deg, var(--color-bg-1) 40%, transparent)' }}
+                    onClick={scrollToPrev}
+                  >
                     <div
-                      key={assistant.slot_id}
-                      ref={(el) => {
-                        assistantRefs.current[assistant.slot_id] = el;
-                      }}
-                      data-slot-id={assistant.slot_id}
-                      data-role={isLeaderSlot ? 'leader' : 'member'}
-                      // 列间灰色隔离线：除最后一列外，右侧加一条分隔线，避免多列浅底粘连看不清边界。
-                      className={`relative h-full ${isLastColumn ? '' : 'border-r border-solid border-[color:var(--border-base)]'}`}
-                      style={{
-                        // Always flex-grow to fill available space; each slot starts at 400px
-                        // basis so the layout is stable, but spare room is distributed evenly
-                        // instead of leaving empty gaps to the right. When the team is wider
-                        // than the viewport we preserve the 400px floor (prevents shrinking
-                        // into unreadable cards) so horizontal scroll kicks in naturally.
-                        flex: '1 1 400px',
-                        minWidth: isSingle ? '240px' : '400px',
-                        scrollSnapAlign: 'start',
-                      }}
+                      className='w-32px h-32px rd-full flex items-center justify-center'
+                      style={{ background: 'rgba(0,0,0,0.5)', lineHeight: 0 }}
                     >
-                      <AssistantChatSlot
-                        assistant={assistant}
-                        team_id={team.id}
-                        isLeader={isLeaderSlot}
-                        color={colorOf(assistant.slot_id)}
-                        onToggleFullscreen={() => {
-                          switchTab(assistant.slot_id);
-                          setViewMode('single');
-                        }}
-                        teamRunView={teamRun.state}
-                        onTeamRunAck={teamRun.applyAck}
-                        onRunStateStale={teamRun.reconcile}
-                      />
+                      <Left size='24' fill='#fff' />
                     </div>
-                  );
-                })}
-              </div>
-              {showRightArrow && (
-                <div
-                  className='absolute right-0 top-0 bottom-0 w-48px z-20 flex items-center justify-center cursor-pointer opacity-80 hover:opacity-100 transition-opacity'
-                  style={{ background: 'linear-gradient(270deg, var(--color-bg-1) 40%, transparent)' }}
-                  onClick={scrollToNext}
-                >
-                  <div
-                    className='w-32px h-32px rd-full flex items-center justify-center'
-                    style={{ background: 'rgba(0,0,0,0.5)', lineHeight: 0 }}
-                  >
-                    <Right size='24' fill='#fff' />
                   </div>
+                )}
+                <div
+                  ref={scrollContainerRef}
+                  className='flex h-full w-full overflow-x-auto overflow-y-hidden [scrollbar-width:none]'
+                  style={{ scrollSnapType: 'x proximity' }}
+                >
+                  {assistants.map((assistant, index) => {
+                    const isSingle = assistants.length <= 2;
+                    const isLeaderSlot = assistant.slot_id === leadAssistant?.slot_id;
+                    const isLastColumn = index === assistants.length - 1;
+                    return (
+                      <div
+                        key={assistant.slot_id}
+                        ref={(el) => {
+                          assistantRefs.current[assistant.slot_id] = el;
+                        }}
+                        data-slot-id={assistant.slot_id}
+                        data-role={isLeaderSlot ? 'leader' : 'member'}
+                        // 列间灰色隔离线：除最后一列外，右侧加一条分隔线，避免多列浅底粘连看不清边界。
+                        className={`relative h-full ${isLastColumn ? '' : 'border-r border-solid border-[color:var(--border-base)]'}`}
+                        style={{
+                          // Always flex-grow to fill available space; each slot starts at 400px
+                          // basis so the layout is stable, but spare room is distributed evenly
+                          // instead of leaving empty gaps to the right. When the team is wider
+                          // than the viewport we preserve the 400px floor (prevents shrinking
+                          // into unreadable cards) so horizontal scroll kicks in naturally.
+                          flex: '1 1 400px',
+                          minWidth: isSingle ? '240px' : '400px',
+                          scrollSnapAlign: 'start',
+                        }}
+                      >
+                        <AssistantChatSlot
+                          assistant={assistant}
+                          team_id={team.id}
+                          isLeader={isLeaderSlot}
+                          color={colorOf(assistant.slot_id)}
+                          onToggleFullscreen={() => {
+                            switchTab(assistant.slot_id);
+                            setViewMode('single');
+                          }}
+                          teamRunView={teamRun.state}
+                          onTeamRunAck={teamRun.applyAck}
+                          onRunStateStale={teamRun.reconcile}
+                        />
+                      </div>
+                    );
+                  })}
                 </div>
-              )}
-            </>
-          )}
-        </div>
-      </ChatLayout>
+                {showRightArrow && (
+                  <div
+                    className='absolute right-0 top-0 bottom-0 w-48px z-20 flex items-center justify-center cursor-pointer opacity-80 hover:opacity-100 transition-opacity'
+                    style={{ background: 'linear-gradient(270deg, var(--color-bg-1) 40%, transparent)' }}
+                    onClick={scrollToNext}
+                  >
+                    <div
+                      className='w-32px h-32px rd-full flex items-center justify-center'
+                      style={{ background: 'rgba(0,0,0,0.5)', lineHeight: 0 }}
+                    >
+                      <Right size='24' fill='#fff' />
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </ChatLayout>
       </TeamIdentityProvider>
     </TeamPermissionProvider>
   );

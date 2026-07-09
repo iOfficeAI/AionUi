@@ -69,7 +69,14 @@ vi.mock('@/renderer/pages/team/hooks/TeamTabsContext', () => ({
     addAssistant: addAssistantMock,
     switchTab: switchTabMock,
     assistants: [
-      { slot_id: 'leader-slot', conversation_id: 'leader-conv', role: 'leader', assistant_backend: 'claude', assistant_name: 'Leader', status: 'idle' },
+      {
+        slot_id: 'leader-slot',
+        conversation_id: 'leader-conv',
+        role: 'leader',
+        assistant_backend: 'claude',
+        assistant_name: 'Leader',
+        status: 'idle',
+      },
     ],
   }),
 }));
@@ -118,7 +125,11 @@ describe('TeamAddMemberPopover', () => {
     expect(screen.getByTestId('team-add-member-search').tagName).toBe('INPUT');
     expect(screen.getByTestId('team-add-member-picker-body')).toHaveClass('bg-dialog-fill-0');
     expect(screen.getByTestId('team-add-member-picker-body')).not.toHaveClass('bg-fill-1');
-    expect(screen.getAllByTestId('team-add-member-option-writer')[0]).toHaveClass('!h-44px', '!px-8px', 'hover:!bg-fill-2');
+    expect(screen.getAllByTestId('team-add-member-option-writer')[0]).toHaveClass(
+      '!h-44px',
+      '!px-8px',
+      'hover:!bg-fill-2'
+    );
     // Header replaces the old footer hint: title on top, short subtitle beneath it.
     const header = screen.getByTestId('team-add-member-panel-header');
     expect(header).toBeInTheDocument();

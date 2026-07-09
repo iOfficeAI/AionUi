@@ -290,7 +290,10 @@ const TeamTabs: React.FC<TeamTabsProps> = ({ onTabClick, pendingCounts, warmingU
   if (assistants.length === 0) return null;
 
   return (
-    <div data-testid='team-tab-bar' className='relative shrink-0 bg-1 border-t border-x border-solid border-[color:var(--border-base)]'>
+    <div
+      data-testid='team-tab-bar'
+      className='relative shrink-0 bg-1 border-t border-x border-solid border-[color:var(--border-base)]'
+    >
       <div className='relative flex items-stretch min-h-48px'>
         {/* 可横向滚动的成员胶囊列表 */}
         <div
@@ -318,9 +321,7 @@ const TeamTabs: React.FC<TeamTabsProps> = ({ onTabClick, pendingCounts, warmingU
                   onTabClick?.(slot_id);
                 }}
                 onRename={
-                  renameAssistant && !memberOpsDisabled
-                    ? (sid, name) => void renameAssistant(sid, name)
-                    : undefined
+                  renameAssistant && !memberOpsDisabled ? (sid, name) => void renameAssistant(sid, name) : undefined
                 }
                 onRemove={removeAssistant && !memberOpsDisabled ? (sid) => void removeAssistant(sid) : undefined}
                 onDragStart={handleDragStart}
@@ -341,7 +342,10 @@ const TeamTabs: React.FC<TeamTabsProps> = ({ onTabClick, pendingCounts, warmingU
         {showRightFade && (
           <div
             className='pointer-events-none absolute top-0 bottom-0 w-28px z-10'
-            style={{ right: 'var(--team-add-w, 132px)', background: 'linear-gradient(270deg, var(--color-bg-1), transparent)' }}
+            style={{
+              right: 'var(--team-add-w, 132px)',
+              background: 'linear-gradient(270deg, var(--color-bg-1), transparent)',
+            }}
           />
         )}
         {/* 固定在最右、不随列表滚动的「添加成员」；左侧一根分隔线与成员列表隔开，按钮本身无边框。 */}

@@ -185,7 +185,8 @@ describe('TeamCreateModal', () => {
   it('renders the reference two-column creation layout with details on the selected-member side', () => {
     render(<TeamCreateModal visible onClose={vi.fn()} onCreated={vi.fn()} />);
 
-    const subtitle = 'Let multiple AI assistants team up and collaborate. We suggest one team focuses on a single goal — create separate teams for different tasks.';
+    const subtitle =
+      'Let multiple AI assistants team up and collaborate. We suggest one team focuses on a single goal — create separate teams for different tasks.';
     expect(screen.getByRole('heading', { name: 'New Team' })).toBeInTheDocument();
     expect(screen.getByText(subtitle)).toBeInTheDocument();
     expect(screen.getByTestId('team-create-modal')).toHaveAttribute('data-width', '900');

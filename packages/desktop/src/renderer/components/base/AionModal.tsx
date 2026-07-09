@@ -128,7 +128,8 @@ const STD_SUBTITLE_CLASS = 'text-13px leading-20px text-t-secondary m-0 mt-4px';
 const STD_BODY_LAYOUT_CLASS = 'aionui-modal-std-body min-h-0 flex-1 overflow-y-auto';
 /** 内容区标准内边距：上下 20 / 左右 24。整栏通铺（如团队双栏）时可通过 contentStyle.padding 关闭。 */
 const STD_BODY_PADDING_CLASS = 'px-24px py-20px';
-const STD_CLOSE_BTN_CLASS = 'shrink-0 w-32px h-32px flex items-center justify-center rd-8px transition-colors duration-200 cursor-pointer border-0 bg-transparent p-0 text-t-secondary hover:bg-fill-2 focus:outline-none';
+const STD_CLOSE_BTN_CLASS =
+  'shrink-0 w-32px h-32px flex items-center justify-center rd-8px transition-colors duration-200 cursor-pointer border-0 bg-transparent p-0 text-t-secondary hover:bg-fill-2 focus:outline-none';
 
 /**
  * 自定义模态框组件 / Custom modal component
@@ -414,7 +415,11 @@ const AionModal: React.FC<AionModalProps> = ({
       // standard 变体或显式 divider === true 时，组件统一渲染上分隔线 + 标准内边距（内容↔按钮区）；
       // 默认（未显式开启）退回裸容器，保持既有行为，便于逐个弹窗平滑迁移。
       const useDivider = isStandard || footerConfig.divider === true;
-      const footerClassName = classNames(useDivider ? FOOTER_DIVIDER_CLASS : FOOTER_BASE_CLASS, isStandard && 'aionui-modal-std-footer', footerConfig.className);
+      const footerClassName = classNames(
+        useDivider ? FOOTER_DIVIDER_CLASS : FOOTER_BASE_CLASS,
+        isStandard && 'aionui-modal-std-footer',
+        footerConfig.className
+      );
       return (
         <div className={footerClassName} style={footerConfig.style}>
           {footerConfig.render()}
@@ -436,7 +441,10 @@ const AionModal: React.FC<AionModalProps> = ({
       style={finalStyle}
       getPopupContainer={() => document.body}
     >
-      <div className={classNames('aionui-modal-wrapper', isStandard && 'flex flex-col min-h-0')} style={{ borderRadius: borderRadiusVal }}>
+      <div
+        className={classNames('aionui-modal-wrapper', isStandard && 'flex flex-col min-h-0')}
+        style={{ borderRadius: borderRadiusVal }}
+      >
         {renderHeader()}
         <div
           className={classNames(

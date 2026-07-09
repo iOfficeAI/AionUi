@@ -145,7 +145,13 @@ const GuidWorkspaceFootnote: React.FC<GuidWorkspaceFootnoteProps> = ({
     ? createPortal(
         <div ref={dropdownRef} className={styles.wsDropdown} style={dropdownStyle}>
           <div className='mb-8px'>
-            <AionInlineSearchInput className='w-full' ref={searchRef} value={searchQuery} onChange={setSearchQuery} placeholder={t('guid.workspace.searchPlaceholder')} />
+            <AionInlineSearchInput
+              className='w-full'
+              ref={searchRef}
+              value={searchQuery}
+              onChange={setSearchQuery}
+              placeholder={t('guid.workspace.searchPlaceholder')}
+            />
           </div>
 
           {filteredRecent.map((path) => {

@@ -519,7 +519,14 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
           </div>
 
           <div className='mb-14px conversation-search-modal__input-wrap'>
-            <AionSearchInput className='w-full' autoFocus={visible} value={keyword} placeholder={t('conversation.historySearch.placeholder')} onChange={setKeyword} onClear={handleClearKeyword} />
+            <AionSearchInput
+              className='w-full'
+              autoFocus={visible}
+              value={keyword}
+              placeholder={t('conversation.historySearch.placeholder')}
+              onChange={setKeyword}
+              onClear={handleClearKeyword}
+            />
           </div>
 
           <div className='flex-1 min-h-0'>{resultContent}</div>

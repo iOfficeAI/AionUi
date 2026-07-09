@@ -181,7 +181,10 @@ const MessageText: React.FC<{ message: IMessageText; showCopyRow?: boolean }> = 
               senderConversationId={senderConversationId}
               backendLogo={fallbackBackendLogo}
             />
-            <span className='text-12px' style={teammateColor ? { color: teammateColor } : { color: 'var(--text-secondary)' }}>
+            <span
+              className='text-12px'
+              style={teammateColor ? { color: teammateColor } : { color: 'var(--text-secondary)' }}
+            >
               {senderName}
             </span>
           </div>
@@ -211,7 +214,10 @@ const MessageText: React.FC<{ message: IMessageText; showCopyRow?: boolean }> = 
             ...(isUserMessage || cronMeta
               ? { borderRadius: '8px 0 8px 8px', color: 'var(--text-primary)' }
               : isTeammateMessage
-                ? { borderRadius: '0 8px 8px 8px', ...(teammateColor ? { borderLeft: `3px solid ${teammateColor}` } : {}) }
+                ? {
+                    borderRadius: '0 8px 8px 8px',
+                    ...(teammateColor ? { borderLeft: `3px solid ${teammateColor}` } : {}),
+                  }
                 : undefined),
           }}
         >

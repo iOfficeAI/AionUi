@@ -83,7 +83,13 @@ describe('useTeamWarmup', () => {
     const { result } = renderHook(() => useTeamWarmup('team-1'));
 
     act(() => {
-      runtimeListener?.({ team_id: 'team-1', slot_id: 'gemini', conversation_id: 'c2', status: 'failed', error: 'ACP error' });
+      runtimeListener?.({
+        team_id: 'team-1',
+        slot_id: 'gemini',
+        conversation_id: 'c2',
+        status: 'failed',
+        error: 'ACP error',
+      });
     });
     const member = result.current.runtimeStatus.get('gemini');
     expect(member?.status).toBe('failed');

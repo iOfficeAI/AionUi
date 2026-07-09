@@ -27,7 +27,14 @@ type Props = {
   listBoxClassName?: string;
 };
 
-const TeamMemberDraftList: React.FC<Props> = ({ members, leaderSelectionId, onLeaderChange, onRemove, headerAction, listBoxClassName }) => {
+const TeamMemberDraftList: React.FC<Props> = ({
+  members,
+  leaderSelectionId,
+  onLeaderChange,
+  onRemove,
+  headerAction,
+  listBoxClassName,
+}) => {
   const { t } = useTranslation();
 
   const hasMembers = members.length > 0;
@@ -59,10 +66,15 @@ const TeamMemberDraftList: React.FC<Props> = ({ members, leaderSelectionId, onLe
       >
         {!hasMembers ? (
           <div className='flex max-w-260px flex-col items-center gap-6px text-center'>
-            <span className='text-13px font-500 leading-20px text-t-secondary'>{t('team.create.selectAtLeastOneMember', { defaultValue: 'Select at least one assistant as the Team Leader.' })}</span>
+            <span className='text-13px font-500 leading-20px text-t-secondary'>
+              {t('team.create.selectAtLeastOneMember', {
+                defaultValue: 'Select at least one assistant as the Team Leader.',
+              })}
+            </span>
             <span className='text-12px leading-18px text-t-tertiary'>
               {t('team.create.memberHint', {
-                defaultValue: 'No suitable assistant as a member? After creation, let the Leader create temporary team members in chat.',
+                defaultValue:
+                  'No suitable assistant as a member? After creation, let the Leader create temporary team members in chat.',
               })}
             </span>
           </div>
@@ -87,7 +99,13 @@ const TeamMemberDraftList: React.FC<Props> = ({ members, leaderSelectionId, onLe
                         ? '!bg-[rgba(var(--warning-6),0.16)] hover:!bg-[rgba(var(--warning-6),0.24)]'
                         : '!bg-transparent !text-t-tertiary hover:!bg-fill-2 hover:!text-t-secondary'
                     }`}
-                    icon={<Crown theme={isLeader ? 'filled' : 'outline'} size='15' fill={isLeader ? 'var(--warning)' : 'currentColor'} />}
+                    icon={
+                      <Crown
+                        theme={isLeader ? 'filled' : 'outline'}
+                        size='15'
+                        fill={isLeader ? 'var(--warning)' : 'currentColor'}
+                      />
+                    }
                     onClick={() => onLeaderChange(member.selectionId)}
                     aria-label={leaderButtonLabel}
                     aria-pressed={isLeader}

@@ -36,7 +36,10 @@ export type AionInlineSearchInputProps = {
   /** 落在外层容器上，用于定位整块搜索栏 */
   wrapTestId?: string;
   /** 透传给原生 input 的额外属性（如 onKeyDown、aria-label 等） */
-  inputProps?: Omit<InputHTMLAttributes<HTMLInputElement>, 'value' | 'onChange' | 'placeholder' | 'disabled' | 'autoFocus' | 'className'>;
+  inputProps?: Omit<
+    InputHTMLAttributes<HTMLInputElement>,
+    'value' | 'onChange' | 'placeholder' | 'disabled' | 'autoFocus' | 'className'
+  >;
 };
 
 const AionInlineSearchInput = forwardRef<HTMLInputElement, AionInlineSearchInputProps>((props, ref) => {

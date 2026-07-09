@@ -37,11 +37,26 @@ export type AionSearchInputProps = {
   /** 落在外层容器上，用于定位整块搜索栏 */
   wrapTestId?: string;
   /** 透传给原生 input 的额外属性（如 onKeyDown、aria-label 等） */
-  inputProps?: Omit<InputHTMLAttributes<HTMLInputElement>, 'value' | 'onChange' | 'placeholder' | 'disabled' | 'autoFocus' | 'className'>;
+  inputProps?: Omit<
+    InputHTMLAttributes<HTMLInputElement>,
+    'value' | 'onChange' | 'placeholder' | 'disabled' | 'autoFocus' | 'className'
+  >;
 };
 
 const AionSearchInput = forwardRef<HTMLInputElement, AionSearchInputProps>((props, ref) => {
-  const { value, onChange, placeholder, allowClear = true, onClear, className, style, autoFocus, disabled, wrapTestId, inputProps } = props;
+  const {
+    value,
+    onChange,
+    placeholder,
+    allowClear = true,
+    onClear,
+    className,
+    style,
+    autoFocus,
+    disabled,
+    wrapTestId,
+    inputProps,
+  } = props;
   const { t } = useTranslation();
 
   const handleClear = () => {
@@ -67,7 +82,13 @@ const AionSearchInput = forwardRef<HTMLInputElement, AionSearchInputProps>((prop
         onChange={(event) => onChange(event.target.value)}
       />
       {allowClear && value ? (
-        <button type='button' className={styles.clearBtn} onClick={handleClear} aria-label={t('common.clear', { defaultValue: 'Clear' })} tabIndex={-1}>
+        <button
+          type='button'
+          className={styles.clearBtn}
+          onClick={handleClear}
+          aria-label={t('common.clear', { defaultValue: 'Clear' })}
+          tabIndex={-1}
+        >
           <CloseSmall theme='outline' size='14' fill='currentColor' />
         </button>
       ) : null}

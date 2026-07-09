@@ -119,7 +119,10 @@ const CssThemeModal: React.FC<CssThemeModalProps> = ({ visible, theme, onClose, 
     <AionModal
       variant='standard'
       visible={visible}
-      header={{ title: isEditing ? t('settings.cssTheme.editTheme') : t('settings.cssTheme.addToPreset'), showClose: true }}
+      header={{
+        title: isEditing ? t('settings.cssTheme.editTheme') : t('settings.cssTheme.addToPreset'),
+        showClose: true,
+      }}
       onCancel={onClose}
       style={{ width: 600 }}
       unmountOnExit

@@ -40,25 +40,25 @@ const TeamViewToggle: React.FC<Props> = ({ value, onChange }) => {
       </span>
       <div className='flex items-center gap-2px p-2px rounded-8px bg-2'>
         {options.map((opt) => {
-        const selected = value === opt.mode;
-        return (
-          <button
-            key={opt.mode}
-            type='button'
-            data-testid={`team-view-toggle-${opt.mode}`}
-            data-selected={selected ? 'true' : 'false'}
-            aria-label={opt.label}
-            title={opt.label}
-            onClick={() => onChange(opt.mode)}
-            className={`flex items-center justify-center h-26px w-30px rounded-6px border-none bg-transparent cursor-pointer transition-colors duration-150 ${
-              selected
-                ? 'bg-[color:var(--bg-base)] text-[color:var(--brand)] shadow-[0_1px_3px_rgba(0,0,0,0.08)]'
-                : 'text-[color:var(--color-text-3)] hover:text-[color:var(--color-text-1)]'
-            }`}
-          >
-            {opt.icon}
-          </button>
-        );
+          const selected = value === opt.mode;
+          return (
+            <button
+              key={opt.mode}
+              type='button'
+              data-testid={`team-view-toggle-${opt.mode}`}
+              data-selected={selected ? 'true' : 'false'}
+              aria-label={opt.label}
+              title={opt.label}
+              onClick={() => onChange(opt.mode)}
+              className={`flex items-center justify-center h-26px w-30px rounded-6px border-none bg-transparent cursor-pointer transition-colors duration-150 ${
+                selected
+                  ? 'bg-[color:var(--bg-base)] text-[color:var(--brand)] shadow-[0_1px_3px_rgba(0,0,0,0.08)]'
+                  : 'text-[color:var(--color-text-3)] hover:text-[color:var(--color-text-1)]'
+              }`}
+            >
+              {opt.icon}
+            </button>
+          );
         })}
       </div>
     </div>
