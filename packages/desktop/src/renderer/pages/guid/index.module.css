@@ -100,6 +100,27 @@
 
 .actionConfigGroup :global(.sendbox-model-btn .arco-btn-content > span:first-child) {
   gap: 4px !important;
+  min-width: 0 !important;
+}
+
+/* Model button must be allowed to shrink so a long label truncates instead of
+ * pushing the send button / mode switch out of the row on narrow viewports. */
+.actionConfigGroup :global(.sendbox-model-btn) {
+  min-width: 0 !important;
+  max-width: 100% !important;
+}
+
+.actionConfigGroup :global(.sendbox-model-btn .arco-btn-content) {
+  min-width: 0 !important;
+  overflow: hidden !important;
+}
+
+.actionConfigGroup :global(.sendbox-model-btn .guid-model-label) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+  max-width: 220px;
 }
 
 .actionSubmit {
@@ -376,6 +397,10 @@
 
   .actionConfigGroup {
     gap: 0;
+  }
+
+  .actionConfigGroup :global(.sendbox-model-btn .guid-model-label) {
+    max-width: 90px;
   }
 
   .actionConfigGroupWithDivider > :first-child::after {
