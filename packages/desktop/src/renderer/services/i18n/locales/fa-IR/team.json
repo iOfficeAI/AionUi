@@ -97,6 +97,9 @@
     "memberFailedTitle": "Member {{name}} failed to start",
     "leaderFailedTitle": "Lead {{name}} failed to start",
     "genericFailedTitle": "The team could not start",
+    "multiFailedTitle": "{{count}} members failed to start",
+    "leaderSuffix": " (Lead)",
+    "unknownError": "failed to start",
     "memberFailedHint": "Switch its model above, or remove it from the bar on top, then retry.",
     "leaderFailedHint": "Switch its model above, then retry.",
     "retry": "Retry"

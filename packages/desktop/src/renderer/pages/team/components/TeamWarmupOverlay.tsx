@@ -31,7 +31,9 @@ type Props = {
  * 失败态（error/timeout）遮罩内容换成失败卡：定位失败成员 + 原因 + 引导。
  *   teammate 失败 → 可切模型 或 从顶部胶囊移除后重试；leader 失败 → 仅可切模型后重试（不可移除）。
  */
-const COLUMN_HEADER_HEIGHT = 40;
+// 列抬头 h-40px + 底部 1px border-b；遮罩从 44 起（多让开几像素），把抬头的下边框线露出来，
+// 抬头与遮罩内容区的分隔更清晰。
+const COLUMN_HEADER_HEIGHT = 44;
 
 /**
  * 后端错误层层包裹（`Invalid request: failed to warm up rebuilt agent <uuid>: Invalid request:
@@ -55,13 +57,21 @@ const TeamWarmupOverlay: React.FC<Props> = ({ phase, assistants, runtimeStatus, 
 
   const isFailure = phase === 'error' || phase === 'timeout';
 
-  // 定位失败成员：优先取 runtimeStatus 里 failed 的 slot；取不到（超时等）则回退到 Leader。
-  const failedSlotId = [...runtimeStatus.entries()].find(([, s]) => s.status === 'failed')?.[0];
-  const failedAssistant =
-    assistants.find((a) => a.slot_id === failedSlotId) ??
-    (phase === 'timeout' ? undefined : assistants.find((a) => a.role === 'leader'));
-  const failedIsLeader = failedAssistant?.role === 'leader';
-  const failedError = failedAssistant ? runtimeStatus.get(failedAssistant.slot_id)?.error : undefined;
+  // 收集**所有**失败成员（后端并发重建可能同时报多个 failed，各带自己的 error）。
+  // 按 assistants 顺序（Leader 在前）稳定排序，便于逐行展示。
+  const failedMembers = assistants
+    .filter((a) => runtimeStatus.get(a.slot_id)?.status === 'failed')
+    .map((a) => ({ assistant: a, error: runtimeStatus.get(a.slot_id)?.error }));
+  // 取不到任何 failed（如超时后端没来得及发事件）时，回退到 Leader 作为单个失败对象。
+  const fallbackLeader = phase === 'timeout' ? undefined : assistants.find((a) => a.role === 'leader');
+  if (failedMembers.length === 0 && fallbackLeader) {
+    failedMembers.push({ assistant: fallbackLeader, error: undefined });
+  }
+  const isMulti = failedMembers.length > 1;
+  const single = failedMembers[0];
+  const singleIsLeader = single?.assistant.role === 'leader';
+  // 引导：任一失败成员是可移除的 teammate 时，才提「移除」这条路（Leader 不可移除）。
+  const anyRemovable = failedMembers.some((m) => m.assistant.role !== 'leader');
 
   return (
     <div
@@ -126,34 +136,62 @@ const TeamWarmupOverlay: React.FC<Props> = ({ phase, assistants, runtimeStatus, 
         {isFailure ? (
           <>
             <div className='text-15px font-600 text-t-primary text-center'>
-              {failedAssistant
-                ? failedIsLeader
-                  ? t('team.warmup.leaderFailedTitle', {
-                      defaultValue: 'Lead {{name}} failed to start',
-                      name: failedAssistant.assistant_name,
-                    })
-                  : t('team.warmup.memberFailedTitle', {
-                      defaultValue: 'Member {{name}} failed to start',
-                      name: failedAssistant.assistant_name,
-                    })
-                : t('team.warmup.genericFailedTitle', { defaultValue: 'The team could not start' })}
+              {isMulti
+                ? t('team.warmup.multiFailedTitle', {
+                    defaultValue: '{{count}} members failed to start',
+                    count: failedMembers.length,
+                  })
+                : single
+                  ? singleIsLeader
+                    ? t('team.warmup.leaderFailedTitle', {
+                        defaultValue: 'Lead {{name}} failed to start',
+                        name: single.assistant.assistant_name,
+                      })
+                    : t('team.warmup.memberFailedTitle', {
+                        defaultValue: 'Member {{name}} failed to start',
+                        name: single.assistant.assistant_name,
+                      })
+                  : t('team.warmup.genericFailedTitle', { defaultValue: 'The team could not start' })}
             </div>
-            {failedError ? (
+            {isMulti ? (
+              // 多个失败：逐行列出「名字 + 精简原因」，限高滚动。
+              <div
+                data-testid='team-warmup-error'
+                className='w-320px max-h-120px overflow-y-auto flex flex-col gap-4px rounded-6px px-10px py-8px'
+                style={{ background: 'color-mix(in srgb, var(--danger) 8%, var(--bg-base))' }}
+              >
+                {failedMembers.map((m) => (
+                  <div
+                    key={m.assistant.slot_id}
+                    className='flex items-start gap-6px text-11px leading-relaxed text-left'
+                  >
+                    <span className='shrink-0 font-600' style={{ color: 'var(--danger)' }}>
+                      {m.assistant.assistant_name}
+                      {m.assistant.role === 'leader' ? t('team.warmup.leaderSuffix', { defaultValue: ' (Lead)' }) : ''}
+                    </span>
+                    <span className='min-w-0 break-words' style={{ color: 'var(--danger)' }}>
+                      {simplifyWarmupError(m.error) ??
+                        t('team.warmup.unknownError', { defaultValue: 'failed to start' })}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : single?.error ? (
               <div
                 data-testid='team-warmup-error'
                 className='max-w-320px max-h-64px overflow-y-auto text-11px leading-relaxed text-left rounded-6px px-10px py-6px'
                 style={{ background: 'color-mix(in srgb, var(--danger) 8%, var(--bg-base))', color: 'var(--danger)' }}
               >
-                {simplifyWarmupError(failedError)}
+                {simplifyWarmupError(single.error)}
               </div>
             ) : null}
             <div className='text-12px text-t-tertiary text-center leading-relaxed'>
-              {failedIsLeader
-                ? t('team.warmup.leaderFailedHint', {
-                    defaultValue: 'Switch its model in the column header above, then retry.',
-                  })
-                : t('team.warmup.memberFailedHint', {
+              {anyRemovable
+                ? t('team.warmup.memberFailedHint', {
                     defaultValue: 'Switch its model above, or remove the member from the bar on top, then retry.',
+                  })
+                : t('team.warmup.leaderFailedHint', {
+                    defaultValue: 'Switch its model in the column header above, then retry.',
                   })}
             </div>
             {onRetry && (

@@ -97,6 +97,9 @@
     "memberFailedTitle": "成員「{{name}}」未能啟動",
     "leaderFailedTitle": "Leader「{{name}}」未能啟動",
     "genericFailedTitle": "團隊未能啟動",
+    "multiFailedTitle": "{{count}} 個成員未能啟動",
+    "leaderSuffix": "（Leader）",
+    "unknownError": "啟動失敗",
     "memberFailedHint": "可在上方切換其模型，或從頂部移除後重試。",
     "leaderFailedHint": "可在上方切換其模型後重試。",
     "retry": "重試"
