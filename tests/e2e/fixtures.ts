@@ -112,7 +112,8 @@ async function ensureRendererAppMounted(page: Page): Promise<void> {
         `Wait failure: ${error instanceof Error ? error.message : String(error)}`,
         `Snapshot: ${JSON.stringify(snapshot, null, 2)}`,
         `Diagnostics: ${JSON.stringify(diagnostics, null, 2)}`,
-      ].join('\n')
+      ].join('\n'),
+      { cause: error }
     );
   }
 }

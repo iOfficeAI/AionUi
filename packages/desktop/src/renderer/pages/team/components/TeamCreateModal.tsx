@@ -104,7 +104,9 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
             });
             return [member.selectionId, model] as const;
           } catch (error) {
-            throw new Error(`${member.assistant.name}: ${getConversationCreateErrorMessage(error, t)}`);
+            throw new Error(`${member.assistant.name}: ${getConversationCreateErrorMessage(error, t)}`, {
+              cause: error,
+            });
           }
         })
       );
