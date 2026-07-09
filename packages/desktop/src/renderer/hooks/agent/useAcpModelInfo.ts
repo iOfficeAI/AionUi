@@ -20,6 +20,7 @@ type UseAcpModelInfoArgs = {
   backend?: string;
   initialModelId?: string;
   prepareRuntime?: () => Promise<void>;
+  prepareSetRuntime?: () => Promise<void>;
   loadConfigOptions?: AcpConfigOptionsLoader;
   enabled?: boolean;
   onSelectModelSuccess?: (model_id: string) => void;
@@ -67,6 +68,7 @@ export const useAcpModelInfo = ({
   backend: _backend,
   initialModelId,
   prepareRuntime,
+  prepareSetRuntime,
   loadConfigOptions,
   enabled = true,
   onSelectModelSuccess,
@@ -75,6 +77,7 @@ export const useAcpModelInfo = ({
   const { model, thoughtLevel, setStatus, setConfigOption, isLoading } = useAcpConfigOptions({
     conversation_id,
     prepareRuntime,
+    prepareSetRuntime,
     loadConfigOptions,
     enabled,
   });

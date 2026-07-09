@@ -199,6 +199,14 @@ describe('AcpModelSelector runtime options', () => {
     expect(useAcpModelInfoMock).toHaveBeenCalledWith(expect.objectContaining({ prepareRuntime }));
   });
 
+  it('passes set-only runtime preparation through to model info loading', () => {
+    const prepareSetRuntime = vi.fn().mockResolvedValue(undefined);
+
+    render(<AcpModelSelector conversation_id='conversation-1' backend='codex' prepareSetRuntime={prepareSetRuntime} />);
+
+    expect(useAcpModelInfoMock).toHaveBeenCalledWith(expect.objectContaining({ prepareSetRuntime }));
+  });
+
   it('renders the thought level group before the model group', () => {
     render(<AcpModelSelector conversation_id='conversation-1' backend='codex' />);
 

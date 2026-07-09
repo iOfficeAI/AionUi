@@ -217,6 +217,16 @@ describe('AgentModeSelector', () => {
     });
   });
 
+  it('passes set-only runtime preparation to runtime config options', () => {
+    const beforeRuntimeSet = vi.fn().mockResolvedValue(undefined);
+
+    render(<AgentModeSelector backend='claude' conversation_id='conv-1' beforeRuntimeSet={beforeRuntimeSet} />);
+
+    expect(useAcpConfigOptionsMock).toHaveBeenCalledWith(
+      expect.objectContaining({ prepareSetRuntime: beforeRuntimeSet })
+    );
+  });
+
   it('shows runtime mode descriptions in option tooltips', () => {
     render(<AgentModeSelector backend='claude' conversation_id='conv-1' />);
 

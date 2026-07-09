@@ -164,6 +164,50 @@ describe('useAcpModelInfo', () => {
     expect(ensureRuntimeInvokeMock).not.toHaveBeenCalled();
   });
 
+  it('runs set-only runtime preparation before selecting a model without warming during initial load', async () => {
+    const calls: string[] = [];
+    const prepareSetRuntime = vi.fn(async () => {
+      calls.push('prepare-set');
+    });
+    const loadConfigOptions = vi.fn(async () => {
+      calls.push('load');
+      return buildConfigOptions('sonnet-4');
+    });
+    setConfigOptionInvokeMock.mockImplementation(async () => {
+      calls.push('set');
+      return {
+        confirmation: 'observed',
+        config_options: buildConfigOptions('opus-4'),
+      };
+    });
+
+    const { result } = renderUseAcpModelInfo({
+      conversation_id: 'conv-1',
+      backend: 'claude',
+      prepareSetRuntime,
+      loadConfigOptions,
+    });
+
+    await waitFor(() => {
+      expect(result.current.canSwitch).toBe(true);
+    });
+    expect(calls).toEqual(['load']);
+    expect(prepareSetRuntime).not.toHaveBeenCalled();
+
+    act(() => {
+      result.current.selectModel('opus-4');
+    });
+
+    await waitFor(() => {
+      expect(setConfigOptionInvokeMock).toHaveBeenCalledWith({
+        conversation_id: 'conv-1',
+        option_id: 'model',
+        value: 'opus-4',
+      });
+    });
+    expect(calls).toEqual(['load', 'prepare-set', 'load', 'set']);
+  });
+
   it('falls back to the persisted model when the initial config option snapshot fails', async () => {
     const loadConfigOptions = vi
       .fn()

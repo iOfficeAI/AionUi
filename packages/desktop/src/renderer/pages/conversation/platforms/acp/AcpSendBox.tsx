@@ -145,6 +145,7 @@ const AcpSendBox: React.FC<{
   const runtimeConfig = useAcpConfigOptions({
     conversation_id,
     prepareRuntime: prepareRuntimeConfig,
+    prepareSetRuntime: teamPermission?.warmupSession,
     loadConfigOptions: teamPermission?.loadConfigOptions,
     enabled: true,
   });
@@ -164,6 +165,7 @@ const AcpSendBox: React.FC<{
     conversation_id,
     backend,
     prepareRuntime: prepareRuntimeConfig,
+    prepareSetRuntime: teamPermission?.warmupSession,
     loadConfigOptions: teamPermission?.loadConfigOptions,
     enabled: isMobile,
     onSelectModelSuccess: () => Message.success(t('agent.model.switchSuccess')),
@@ -683,6 +685,7 @@ Please check your local CLI tool authentication status`,
                 hideCompactLabelPrefixOnMobile
                 onModeChanged={isLeaderInTeam ? teamPermission?.propagateMode : undefined}
                 beforeRuntimeSync={prepareRuntimeConfig}
+                beforeRuntimeSet={teamPermission?.warmupSession}
                 loadConfigOptions={teamPermission?.loadConfigOptions}
               />
             )}

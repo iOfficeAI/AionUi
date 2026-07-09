@@ -175,6 +175,7 @@ const AionrsSendBox: React.FC<{
   const runtimeConfig = useAcpConfigOptions({
     conversation_id,
     prepareRuntime: prepareRuntimeConfig,
+    prepareSetRuntime: teamPermission?.warmupSession,
     loadConfigOptions: teamPermission?.loadConfigOptions,
     enabled: Boolean(conversation_id),
   });
@@ -676,6 +677,7 @@ const AionrsSendBox: React.FC<{
               hideCompactLabelPrefixOnMobile
               onModeChanged={propagateMode}
               beforeRuntimeSync={prepareRuntimeConfig}
+              beforeRuntimeSet={teamPermission?.warmupSession}
               loadConfigOptions={teamPermission?.loadConfigOptions}
             />
           </div>

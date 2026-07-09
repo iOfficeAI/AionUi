@@ -162,11 +162,13 @@ function fetchConfigOptionsOnce(
 export function useAcpConfigOptions({
   conversation_id,
   prepareRuntime,
+  prepareSetRuntime,
   loadConfigOptions = ensureRuntimeConfigOptions,
   enabled = true,
 }: {
   conversation_id: string;
   prepareRuntime?: () => Promise<void>;
+  prepareSetRuntime?: () => Promise<void>;
   loadConfigOptions?: AcpConfigOptionsLoader;
   enabled?: boolean;
 }) {
@@ -225,7 +227,7 @@ export function useAcpConfigOptions({
       }
       setConversationSetStatus(conversation_id, { state: 'setting', optionId, requestedValue: value });
       try {
-        await prepareRuntime?.();
+        await (prepareSetRuntime ?? prepareRuntime)?.();
         const beforeSet = await fetchConfigOptionsOnce(key, loadConfigOptions);
         if (beforeSet) replaceSnapshot(beforeSet);
         const response = await ipcBridge.acpConversation.setConfigOption.invoke({
@@ -243,7 +245,7 @@ export function useAcpConfigOptions({
         setConversationSetStatus(conversation_id, { state: 'idle' });
       }
     },
-    [conversation_id, key, loadConfigOptions, prepareRuntime, replaceSnapshot]
+    [conversation_id, key, loadConfigOptions, prepareRuntime, prepareSetRuntime, replaceSnapshot]
   );
 
   useEffect(() => {

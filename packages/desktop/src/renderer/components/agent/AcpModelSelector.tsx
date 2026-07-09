@@ -46,10 +46,11 @@ const AcpModelSelector: React.FC<{
   /** Pre-selected model ID from Guid page */
   initialModelId?: string;
   prepareRuntime?: () => Promise<void>;
+  prepareSetRuntime?: () => Promise<void>;
   loadConfigOptions?: AcpConfigOptionsLoader;
   /** Deprecated: runtime config loading now ensures the conversation runtime. */
   waitForWarmup?: boolean;
-}> = ({ conversation_id, backend, initialModelId, prepareRuntime, loadConfigOptions }) => {
+}> = ({ conversation_id, backend, initialModelId, prepareRuntime, prepareSetRuntime, loadConfigOptions }) => {
   const { t } = useTranslation();
   const layout = useLayoutContext();
   const isMobileHeaderCompact = Boolean(layout?.isMobile);
@@ -59,6 +60,7 @@ const AcpModelSelector: React.FC<{
       backend,
       initialModelId,
       prepareRuntime,
+      prepareSetRuntime,
       loadConfigOptions,
       onSelectModelSuccess: () => Message.success(t('agent.model.switchSuccess')),
       onSelectModelFailed: (_modelId, error) => Message.error(t(configErrorMessageKey(error))),

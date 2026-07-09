@@ -75,6 +75,7 @@ const AionrsHeaderModelSelector: React.FC<{ conversation_id: string; initialMode
   const modelSelection = useAionrsModelSelection({ initialModel, onSelectModel });
   const runtimeConfig = useAcpConfigOptions({
     conversation_id,
+    prepareSetRuntime: teamPermission?.warmupSession,
     loadConfigOptions: teamPermission?.loadConfigOptions,
     enabled: Boolean(conversation_id),
   });
@@ -160,6 +161,7 @@ const AssistantChatSlot: React.FC<{
                 conversation_id={assistant.conversation_id}
                 backend={assistant.assistant_backend}
                 initialModelId={initialModelId}
+                prepareSetRuntime={teamPermission?.warmupSession}
                 loadConfigOptions={teamPermission?.loadConfigOptions}
               />
             </div>
