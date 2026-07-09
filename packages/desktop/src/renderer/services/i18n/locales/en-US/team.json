@@ -94,8 +94,12 @@
   "warmup": {
     "title": "Waking up the team…",
     "subtitle": "Getting members ready",
-    "timeout": "Team is taking too long to start",
-    "leaderFailed": "Failed to start the team",
+    "memberFailedTitle": "The team is not fully ready",
+    "leaderFailedTitle": "The team lead could not start",
+    "memberFailedReason": "Member {{name}} failed to start",
+    "leaderFailedReason": "The lead {{name}} failed to start",
+    "memberFailedHint": "Switch its model in the column header above, or remove the member from the bar on top, then retry.",
+    "leaderFailedHint": "Switch its model in the column header above, then retry.",
     "retry": "Retry"
   }
 }

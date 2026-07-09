@@ -94,8 +94,12 @@
   "warmup": {
     "title": "正在唤醒团队…",
     "subtitle": "正在准备成员",
-    "timeout": "团队启动超时",
-    "leaderFailed": "团队启动失败",
+    "memberFailedTitle": "团队未能全部就绪",
+    "leaderFailedTitle": "团队负责人未能就绪",
+    "memberFailedReason": "成员「{{name}}」启动失败",
+    "leaderFailedReason": "负责人「{{name}}」启动失败",
+    "memberFailedHint": "可在上方列抬头切换它的模型，或从顶部移除该成员后重试。",
+    "leaderFailedHint": "负责人无法移除。可在上方列抬头切换它的模型后重试。",
     "retry": "重试"
   }
 }

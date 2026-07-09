@@ -20,6 +20,8 @@ type TeamTabViewProps = {
   isActive: boolean;
   status: TeammateStatus;
   isLeader: boolean;
+  /** warmup 失败：头像加红环 + 感叹角标提示。 */
+  warmupFailed?: boolean;
   /** 成员身份色 CSS 值（胶囊底色 / 选中描边）。 */
   color: string;
   /** Number of pending permission confirmations for this agent */
@@ -27,7 +29,6 @@ type TeamTabViewProps = {
   onSwitch: (slot_id: string) => void;
   onRename?: (slot_id: string, new_name: string) => void;
   onRemove?: (slot_id: string) => void;
-  removeDisabled?: boolean;
   onDragStart: (slot_id: string) => void;
   onDragOver: (slot_id: string) => void;
   onDrop: () => void;
@@ -43,12 +44,12 @@ const TeamTabView: React.FC<TeamTabViewProps> = ({
   isActive,
   status,
   isLeader,
+  warmupFailed = false,
   color,
   pendingCount = 0,
   onSwitch,
   onRename,
   onRemove,
-  removeDisabled = false,
   onDragStart,
   onDragOver,
   onDrop,
@@ -156,13 +157,23 @@ const TeamTabView: React.FC<TeamTabViewProps> = ({
             conversation_id={conversation_id}
             isLeader={isLeader}
             className='min-w-0 flex-1 !gap-6px'
-            logoClassName='w-22px h-22px object-cover rounded-full'
-            avatarClassName='w-22px h-22px rounded-full flex items-center justify-center text-12px leading-none bg-fill-2 shrink-0'
+            logoClassName={`w-22px h-22px object-cover rounded-full ${warmupFailed ? 'grayscale' : ''}`}
+            avatarClassName={`w-22px h-22px rounded-full flex items-center justify-center text-12px leading-none bg-fill-2 shrink-0 ${warmupFailed ? 'grayscale' : ''}`}
             nameClassName='text-13px font-600 whitespace-nowrap overflow-hidden text-ellipsis select-none'
             nameStyle={{ color }}
             nameTestId={`team-tab-name-${slot_id}`}
             avatarOverlay={
-              <AgentStatusBadge status={status} testId={`team-tab-status-${slot_id}`} />
+              warmupFailed ? (
+                <span
+                  data-testid={`team-tab-failed-${slot_id}`}
+                  className='absolute -right-2px -bottom-2px w-12px h-12px rounded-full flex items-center justify-center text-9px font-700 text-white'
+                  style={{ background: 'var(--danger)', border: '1.5px solid var(--bg-base)' }}
+                >
+                  !
+                </span>
+              ) : (
+                <AgentStatusBadge status={status} testId={`team-tab-status-${slot_id}`} />
+              )
             }
           />
         </div>
@@ -180,13 +191,9 @@ const TeamTabView: React.FC<TeamTabViewProps> = ({
       {!editing && hovered && !isLeader && onRemove && (
         <span
           data-testid={`team-tab-remove-${slot_id}`}
-          data-disabled={removeDisabled ? 'true' : 'false'}
-          className={`shrink-0 flex items-center transition-opacity duration-150 text-[color:var(--color-text-3)] ${
-            removeDisabled ? 'cursor-not-allowed opacity-40' : 'opacity-70 hover:opacity-100 hover:text-[color:var(--color-danger-6)]'
-          }`}
+          className='shrink-0 flex items-center transition-opacity duration-150 text-[color:var(--color-text-3)] opacity-70 hover:opacity-100 hover:text-[color:var(--color-danger-6)]'
           onClick={(e) => {
             e.stopPropagation();
-            if (removeDisabled) return;
             onRemove(slot_id);
           }}
         >
@@ -201,15 +208,17 @@ type TeamTabsProps = {
   onTabClick?: (slot_id: string) => void;
   /** Pending permission confirmation counts per assistant slot ID */
   pendingCounts?: Map<string, number>;
-  /** 团队 warmup 未就绪时禁用改成员（添加/移除/重命名）——PRD 第 7 节要求。 */
+  /** 团队 warmup 进行中：禁用改成员（添加/移除/重命名）——PRD 第 7 节要求。 */
   warmingUp?: boolean;
+  /** warmup 失败的成员 slot：胶囊头像标红提示，引导用户移除/换模型自救。 */
+  failedSlotIds?: Set<string>;
 };
 
 /**
  * Tab bar for team mode showing assistant tabs with status badges.
  * Supports scroll overflow with fade indicators.
  */
-const TeamTabs: React.FC<TeamTabsProps> = ({ onTabClick, pendingCounts, warmingUp = false }) => {
+const TeamTabs: React.FC<TeamTabsProps> = ({ onTabClick, pendingCounts, warmingUp = false, failedSlotIds }) => {
   const { t } = useTranslation();
   const {
     assistants,
@@ -301,6 +310,7 @@ const TeamTabs: React.FC<TeamTabsProps> = ({ onTabClick, pendingCounts, warmingU
                 isActive={assistant.slot_id === activeSlotId}
                 status={statusInfo?.status ?? assistant.status}
                 isLeader={assistant.role === 'leader'}
+                warmupFailed={failedSlotIds?.has(assistant.slot_id) ?? false}
                 color={colorOf(assistant.slot_id)}
                 pendingCount={pendingCounts?.get(assistant.slot_id) ?? 0}
                 onSwitch={(slot_id) => {
@@ -312,8 +322,7 @@ const TeamTabs: React.FC<TeamTabsProps> = ({ onTabClick, pendingCounts, warmingU
                     ? (sid, name) => void renameAssistant(sid, name)
                     : undefined
                 }
-                onRemove={removeAssistant ? (sid) => void removeAssistant(sid) : undefined}
-                removeDisabled={memberOpsDisabled}
+                onRemove={removeAssistant && !memberOpsDisabled ? (sid) => void removeAssistant(sid) : undefined}
                 onDragStart={handleDragStart}
                 onDragOver={handleDragOver}
                 onDrop={handleDrop}

@@ -21,8 +21,8 @@ import type { ITeamAgentRuntimeStatusEvent, TeamAgentRuntimeStatus } from '@/com
  *
  * 因此本 hook：
  * - `phase`：整体闸门，撤遮罩/失败以 `ensureSession` 的 resolve/reject 为准（权威）。
- * - `runtimeStatus`：各成员 slot 的 pending/ready/failed，仅用于遮罩里头像「逐个进入唤醒中」的真实反馈
- *   （不做假的 N/M 进度、不假装逐个点亮成功——成功是整体一次性的）。
+ * - `runtimeStatus`：各成员 slot 的 pending/ready/failed（failed 带 error）。用于遮罩头像「逐个进入唤醒中」
+ *   的真实反馈；失败态下据此定位失败成员、展示原因（不做假的 N/M 进度、不假装逐个点亮成功）。
  *
  * 超时兜底用「无进展看门狗」：每收到一个 runtime 事件就重置计时（后端错开启动，绝对时限会误报）；
  * 真正卡死（一段时间无任何事件且未 resolve）才转 timeout。纯前端，不改后端。
@@ -32,15 +32,21 @@ export type TeamWarmupPhase = 'warming' | 'ready' | 'error' | 'timeout';
 /** 无进展看门狗时限（ms）：距上一次 warmup 进展（事件/启动）超过此值仍未就绪则判超时。 */
 export const WARMUP_STALL_TIMEOUT_MS = 20_000;
 
+/** 单个成员的运行时状态 + 失败原因（failed 时后端带 error）。 */
+export type TeamWarmupMemberState = {
+  status: TeamAgentRuntimeStatus;
+  error?: string;
+};
+
 export type TeamWarmupState = {
   phase: TeamWarmupPhase;
-  /** slot_id → 该成员运行时状态（pending/ready/failed）。无条目 = 尚未开始唤醒。 */
-  runtimeStatus: Map<string, TeamAgentRuntimeStatus>;
+  /** slot_id → 该成员运行时状态（pending/ready/failed + error）。无条目 = 尚未开始唤醒。 */
+  runtimeStatus: Map<string, TeamWarmupMemberState>;
 };
 
 export function useTeamWarmup(team_id: string): TeamWarmupState {
   const [phase, setPhase] = useState<TeamWarmupPhase>(team_id ? 'warming' : 'ready');
-  const [runtimeStatus, setRuntimeStatus] = useState<Map<string, TeamAgentRuntimeStatus>>(() => new Map());
+  const [runtimeStatus, setRuntimeStatus] = useState<Map<string, TeamWarmupMemberState>>(() => new Map());
   const stallTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -52,7 +58,7 @@ export function useTeamWarmup(team_id: string): TeamWarmupState {
 
     let cancelled = false;
     setPhase('warming');
-    setRuntimeStatus(new Map());
+    setRuntimeStatus(new Map<string, TeamWarmupMemberState>());
 
     // 无进展看门狗：有进展就重置；静默超过时限判定 timeout（仅在仍 warming 时生效）。
     const armStallTimer = () => {
@@ -68,7 +74,7 @@ export function useTeamWarmup(team_id: string): TeamWarmupState {
       if (event.team_id !== team_id || cancelled) return;
       setRuntimeStatus((prev) => {
         const next = new Map(prev);
-        next.set(event.slot_id, event.status);
+        next.set(event.slot_id, { status: event.status, error: event.error });
         return next;
       });
       armStallTimer();

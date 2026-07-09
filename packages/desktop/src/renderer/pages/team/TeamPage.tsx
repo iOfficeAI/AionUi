@@ -228,9 +228,10 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onRenameTeam })
   const teamRun = useTeamRunView(team.id);
 
   // 进团队 warmup：以团队会话整体就绪为闸门（ensureSession resolve = 全员成功）。遮罩覆盖对话区。
-  // runtimeStatus 是各成员逐个的真实唤醒信号，仅用于遮罩头像的「唤醒中→点亮」表现。
+  // runtimeStatus 是各成员逐个的真实唤醒信号，用于遮罩头像的「唤醒中→点亮」及失败态定位。
   const { phase: warmupPhase, runtimeStatus: warmupRuntimeStatus } = useTeamWarmup(team.id);
-  const isWarmingUp = warmupPhase !== 'ready';
+  // 仅在「唤醒进行中」禁用改成员；失败态（error/timeout）要放开，让用户能移除失败成员来自救。
+  const isWarmingUp = warmupPhase === 'warming';
 
   const leaderConversationId = leadAssistant?.conversation_id ?? '';
   const isLeaderAssistant = activeAssistant?.role === 'leader';
@@ -379,9 +380,26 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onRenameTeam })
     return map;
   }, [assistants, pendingCounts]);
 
+  // warmup 失败的成员 slot 集合：胶囊头像标红。仅在失败态计算（进行中/就绪都无需标红）。
+  const warmupFailedSlotIds = useMemo(() => {
+    if (warmupPhase !== 'error' && warmupPhase !== 'timeout') return undefined;
+    const ids = new Set<string>();
+    warmupRuntimeStatus.forEach((state, slot_id) => {
+      if (state.status === 'failed') ids.add(slot_id);
+    });
+    return ids.size > 0 ? ids : undefined;
+  }, [warmupPhase, warmupRuntimeStatus]);
+
   const tabsSlot = useMemo(
-    () => <TeamTabs onTabClick={handleTabClick} pendingCounts={slotPendingCounts} warmingUp={isWarmingUp} />,
-    [handleTabClick, slotPendingCounts, isWarmingUp]
+    () => (
+      <TeamTabs
+        onTabClick={handleTabClick}
+        pendingCounts={slotPendingCounts}
+        warmingUp={isWarmingUp}
+        failedSlotIds={warmupFailedSlotIds}
+      />
+    ),
+    [handleTabClick, slotPendingCounts, isWarmingUp, warmupFailedSlotIds]
   );
 
   return (
