@@ -4,45 +4,75 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ipcBridge } from '@/common';
+import type { ITeamAgentRuntimeStatusEvent, TeamAgentRuntimeStatus } from '@/common/types/team/teamTypes';
 
 /**
- * 团队进入时的 warmup 状态机 —— 以团队会话运行时就绪为闸门。
+ * 团队进入时的 warmup 状态机。
  *
- * - warming：团队运行时尚未就绪（进团队初始化中）。
- * - ready：就绪，用户可以开始使用（撤除遮罩）。
- * - error：运行时启动失败（如 Leader 后端启动失败）。
- * - timeout：超时仍未就绪（防后端不返回卡死）。
+ * 后端事实（aioncore `ensure_session` → `rebuild_agent_processes`）：
+ * - 就绪信号是**团队整体**的：`team.ensureSession`（POST /api/teams/{id}/session）在**全部成员**运行时
+ *   重建成功时 resolve、任一成员失败时 reject（且已起好的成员会被后端一并 kill —— 全有或全无）。
+ *   前端**拿不到** Leader 单独的就绪信号，只有这一个团队级 Promise。
+ * - 重建过程中后端会**逐个**广播 `agentRuntimeStatusChanged`：Leader 优先、并发上限 3、每个错开 3s，
+ *   先 `pending`（该成员开始唤醒），全部成功后**一次性**发 `ready`。失败成员发 `failed`。
+ * - 若团队 session 已存在，`ensureSession` 立即返回、**不发任何事件**（二次进团队会秒过）。
  *
- * 就绪信号用 `team.ensureSession`（POST /api/teams/{id}/session）：该调用拉起团队运行时并在其就绪时
- * resolve、失败时 reject。这是进团队时后端真正拉起运行时的入口（未就绪时相关请求返回
- * TEAM_RUNTIME_NOT_READY），也是前端可观测的可靠就绪信号；团队会话由后端按 team 去重，重复调用安全。
- * 纯前端，不改后端。
+ * 因此本 hook：
+ * - `phase`：整体闸门，撤遮罩/失败以 `ensureSession` 的 resolve/reject 为准（权威）。
+ * - `runtimeStatus`：各成员 slot 的 pending/ready/failed，仅用于遮罩里头像「逐个进入唤醒中」的真实反馈
+ *   （不做假的 N/M 进度、不假装逐个点亮成功——成功是整体一次性的）。
  *
- * 注意：不能用 conversation.ensureRuntime —— 后端对「团队所属会话」的 standalone runtime ensure
- * 会以 TEAM_RUNTIME_REQUIRED（409）拒绝，必须走团队会话入口。
+ * 超时兜底用「无进展看门狗」：每收到一个 runtime 事件就重置计时（后端错开启动，绝对时限会误报）；
+ * 真正卡死（一段时间无任何事件且未 resolve）才转 timeout。纯前端，不改后端。
  */
 export type TeamWarmupPhase = 'warming' | 'ready' | 'error' | 'timeout';
 
-/** 超时兜底时限（ms）。 */
-export const WARMUP_TIMEOUT_MS = 20_000;
+/** 无进展看门狗时限（ms）：距上一次 warmup 进展（事件/启动）超过此值仍未就绪则判超时。 */
+export const WARMUP_STALL_TIMEOUT_MS = 20_000;
 
-export function useTeamWarmup(team_id: string): { phase: TeamWarmupPhase } {
+export type TeamWarmupState = {
+  phase: TeamWarmupPhase;
+  /** slot_id → 该成员运行时状态（pending/ready/failed）。无条目 = 尚未开始唤醒。 */
+  runtimeStatus: Map<string, TeamAgentRuntimeStatus>;
+};
+
+export function useTeamWarmup(team_id: string): TeamWarmupState {
   const [phase, setPhase] = useState<TeamWarmupPhase>(team_id ? 'warming' : 'ready');
+  const [runtimeStatus, setRuntimeStatus] = useState<Map<string, TeamAgentRuntimeStatus>>(() => new Map());
+  const stallTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (!team_id) {
       setPhase('ready');
+      setRuntimeStatus(new Map());
       return;
     }
 
     let cancelled = false;
     setPhase('warming');
+    setRuntimeStatus(new Map());
 
-    const timer = setTimeout(() => {
-      if (!cancelled) setPhase((prev) => (prev === 'warming' ? 'timeout' : prev));
-    }, WARMUP_TIMEOUT_MS);
+    // 无进展看门狗：有进展就重置；静默超过时限判定 timeout（仅在仍 warming 时生效）。
+    const armStallTimer = () => {
+      if (stallTimerRef.current) clearTimeout(stallTimerRef.current);
+      stallTimerRef.current = setTimeout(() => {
+        if (!cancelled) setPhase((prev) => (prev === 'warming' ? 'timeout' : prev));
+      }, WARMUP_STALL_TIMEOUT_MS);
+    };
+    armStallTimer();
+
+    // 逐个成员运行时状态：驱动遮罩里头像「唤醒中→点亮/失败」，并作为「有进展」信号重置看门狗。
+    const unsubRuntime = ipcBridge.team.agentRuntimeStatusChanged.on((event: ITeamAgentRuntimeStatusEvent) => {
+      if (event.team_id !== team_id || cancelled) return;
+      setRuntimeStatus((prev) => {
+        const next = new Map(prev);
+        next.set(event.slot_id, event.status);
+        return next;
+      });
+      armStallTimer();
+    });
 
     ipcBridge.team.ensureSession
       .invoke({ team_id })
@@ -55,9 +85,10 @@ export function useTeamWarmup(team_id: string): { phase: TeamWarmupPhase } {
 
     return () => {
       cancelled = true;
-      clearTimeout(timer);
+      if (stallTimerRef.current) clearTimeout(stallTimerRef.current);
+      unsubRuntime();
     };
   }, [team_id]);
 
-  return { phase };
+  return { phase, runtimeStatus };
 }

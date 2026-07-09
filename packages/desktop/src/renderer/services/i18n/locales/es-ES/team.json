@@ -93,7 +93,7 @@
   },
   "warmup": {
     "title": "Waking up the team…",
-    "progress": "Warming up members ({{ready}}/{{total}})",
+    "subtitle": "Preparando a los miembros",
     "timeout": "Team is taking too long to start",
     "leaderFailed": "Failed to start the team",
     "retry": "Retry"

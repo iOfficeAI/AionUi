@@ -212,7 +212,7 @@ const AssistantChatSlot: React.FC<{
 const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onRenameTeam }) => {
   const { t } = useTranslation();
   useActiveLease({ type: 'team', id: team.id });
-  const { assistants, activeSlotId, statusMap, switchTab, colorOf, colorOfConversation } = useTeamTabs();
+  const { assistants, activeSlotId, switchTab, colorOf, colorOfConversation } = useTeamTabs();
   const [, messageContext] = Message.useMessage({ maxCount: 1 });
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -227,8 +227,10 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onRenameTeam })
   const leadAssistant = assistants.find((assistant) => assistant.role === 'leader');
   const teamRun = useTeamRunView(team.id);
 
-  // 进团队 warmup：以团队会话运行时就绪为闸门，遮罩覆盖对话区并禁用改成员/发消息。
-  const { phase: warmupPhase } = useTeamWarmup(team.id);
+  // 进团队 warmup：以团队会话整体就绪为闸门（ensureSession resolve = 全员成功）。遮罩覆盖对话区。
+  // runtimeStatus 是各成员逐个的真实唤醒信号，仅用于遮罩头像的「唤醒中→点亮」表现。
+  const { phase: warmupPhase, runtimeStatus: warmupRuntimeStatus } = useTeamWarmup(team.id);
+  const isWarmingUp = warmupPhase !== 'ready';
 
   const leaderConversationId = leadAssistant?.conversation_id ?? '';
   const isLeaderAssistant = activeAssistant?.role === 'leader';
@@ -378,8 +380,8 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onRenameTeam })
   }, [assistants, pendingCounts]);
 
   const tabsSlot = useMemo(
-    () => <TeamTabs onTabClick={handleTabClick} pendingCounts={slotPendingCounts} />,
-    [handleTabClick, slotPendingCounts]
+    () => <TeamTabs onTabClick={handleTabClick} pendingCounts={slotPendingCounts} warmingUp={isWarmingUp} />,
+    [handleTabClick, slotPendingCounts, isWarmingUp]
   );
 
   return (
@@ -414,7 +416,7 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onRenameTeam })
           <TeamWarmupOverlay
             phase={warmupPhase}
             assistants={assistants}
-            statusMap={statusMap}
+            runtimeStatus={warmupRuntimeStatus}
             colorOf={colorOf}
             onRetry={() => window.location.reload()}
           />

@@ -93,7 +93,7 @@
   },
   "warmup": {
     "title": "正在喚醒團隊…",
-    "progress": "喚醒成員中（{{ready}}/{{total}}）",
+    "subtitle": "正在準備成員",
     "timeout": "團隊啟動逾時",
     "leaderFailed": "團隊啟動失敗",
     "retry": "重試"

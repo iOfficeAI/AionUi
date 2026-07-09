@@ -201,13 +201,15 @@ type TeamTabsProps = {
   onTabClick?: (slot_id: string) => void;
   /** Pending permission confirmation counts per assistant slot ID */
   pendingCounts?: Map<string, number>;
+  /** 团队 warmup 未就绪时禁用改成员（添加/移除/重命名）——PRD 第 7 节要求。 */
+  warmingUp?: boolean;
 };
 
 /**
  * Tab bar for team mode showing assistant tabs with status badges.
  * Supports scroll overflow with fade indicators.
  */
-const TeamTabs: React.FC<TeamTabsProps> = ({ onTabClick, pendingCounts }) => {
+const TeamTabs: React.FC<TeamTabsProps> = ({ onTabClick, pendingCounts, warmingUp = false }) => {
   const { t } = useTranslation();
   const {
     assistants,
@@ -221,6 +223,8 @@ const TeamTabs: React.FC<TeamTabsProps> = ({ onTabClick, pendingCounts }) => {
     membershipMutationBusy,
     colorOf,
   } = useTeamTabs();
+  // 改成员（增/删/改名）在「运行时重建中」或「warmup 未就绪」时都禁用。
+  const memberOpsDisabled = membershipMutationBusy || warmingUp;
   const tabsContainerRef = useRef<HTMLDivElement>(null);
   const [showLeftFade, setShowLeftFade] = useState(false);
   const [showRightFade, setShowRightFade] = useState(false);
@@ -304,12 +308,12 @@ const TeamTabs: React.FC<TeamTabsProps> = ({ onTabClick, pendingCounts }) => {
                   onTabClick?.(slot_id);
                 }}
                 onRename={
-                  renameAssistant && !membershipMutationBusy
+                  renameAssistant && !memberOpsDisabled
                     ? (sid, name) => void renameAssistant(sid, name)
                     : undefined
                 }
                 onRemove={removeAssistant ? (sid) => void removeAssistant(sid) : undefined}
-                removeDisabled={membershipMutationBusy}
+                removeDisabled={memberOpsDisabled}
                 onDragStart={handleDragStart}
                 onDragOver={handleDragOver}
                 onDrop={handleDrop}
@@ -334,13 +338,13 @@ const TeamTabs: React.FC<TeamTabsProps> = ({ onTabClick, pendingCounts }) => {
         {/* 固定在最右、不随列表滚动的「添加成员」；左侧一根分隔线与成员列表隔开，按钮本身无边框。 */}
         {addAssistant ? (
           <div className='flex items-center shrink-0 border-l border-solid border-[color:var(--border-base)] px-8px'>
-            <TeamAddMemberPopover disabled={membershipMutationBusy}>
+            <TeamAddMemberPopover disabled={memberOpsDisabled}>
               <button
                 type='button'
-                disabled={membershipMutationBusy}
+                disabled={memberOpsDisabled}
                 data-testid='team-tab-add-member'
                 className={`flex items-center gap-6px h-32px px-10px rounded-8px !border-none !bg-transparent text-13px font-500 whitespace-nowrap transition-colors duration-150 ${
-                  membershipMutationBusy
+                  memberOpsDisabled
                     ? 'text-[color:var(--color-text-4)] cursor-not-allowed'
                     : 'text-[color:var(--color-text-2)] hover:text-[color:var(--brand)] hover:bg-[color:var(--bg-2)] cursor-pointer'
                 }`}

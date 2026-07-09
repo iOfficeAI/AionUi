@@ -86,6 +86,21 @@ body,
   animation: team-warmup-sweep 1.4s ease-in-out infinite;
 }
 
+/* 团队 warmup 头像「唤醒中」：pending 成员轻柔呼吸 */
+@keyframes team-warmup-breathe {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 0.9;
+  }
+}
+
+.team-warmup-breathe {
+  animation: team-warmup-breathe 1.6s ease-in-out infinite;
+}
+
 .collapsed {
   .collapsed-hidden {
     display: none;
