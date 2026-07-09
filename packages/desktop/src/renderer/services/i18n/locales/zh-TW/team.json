@@ -65,16 +65,19 @@
   },
   "removeAgent": {
     "confirmTitle": "移除團隊成員",
-    "confirmContent": "該成員正在工作中，確定要強制移除嗎？"
+    "confirmContent": "確定將該成員移出團隊嗎？",
+    "confirmContentActive": "該成員正在工作中，確定要強制移除嗎？其目前工作會被中斷。"
   },
   "emptyState": {
     "subtitle": "描述你的目標，我來協調團隊搞定它",
     "suggestions": {
       "debate": "組織一場辯論賽，讓不同助手各持立場",
       "interview": "策劃一場深度訪談",
-      "expert_review": "多位專家會診同一個問題"
+      "expert_review": "多位專家會診同一個問題",
+      "add_member": "幫我在團隊裡加一個擅長 ___ 的成員"
     },
-    "leaderGreeting": "你好，我是 Leader，負責理解你的目標並協調團隊。描述你想做的事，我來安排。"
+    "leaderGreeting": "你好，我是 Leader，負責理解你的目標並協調團隊。描述你想做的事，我來安排。",
+    "memberGreeting": "你好，我是團隊成員，我聽 Leader 和你的指揮。"
   },
   "addMember": {
     "title": "新增成員",

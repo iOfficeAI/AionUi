@@ -65,16 +65,19 @@
   },
   "removeAgent": {
     "confirmTitle": "팀 멤버 제거",
-    "confirmContent": "이 멤버는 현재 활성 상태입니다. 강제 제거하시겠습니까?"
+    "confirmContent": "Remove this member from the team?",
+    "confirmContentActive": "This member is working. Remove it anyway? Its current work will be interrupted."
   },
   "emptyState": {
     "subtitle": "목표를 알려주세요. 팀을 조율해서 완료하겠습니다",
     "suggestions": {
       "debate": "서로 다른 입장을 가진 어시스턴트들로 토론 진행",
       "interview": "어시스턴트 간 심층 인터뷰 기획",
-      "expert_review": "여러 전문가가 같은 문제를 분석"
+      "expert_review": "여러 전문가가 같은 문제를 분석",
+      "add_member": "Help me add a member good at ___ to the team"
     },
-    "leaderGreeting": "Hi, I'm the Leader. I understand your goal and coordinate the team — describe what you want and I'll arrange it."
+    "leaderGreeting": "Hi, I'm the Leader. I understand your goal and coordinate the team — describe what you want and I'll arrange it.",
+    "memberGreeting": "Hi, I'm a team member. I take direction from the Leader and you."
   },
   "addMember": {
     "title": "Add member",

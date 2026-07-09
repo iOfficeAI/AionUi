@@ -65,16 +65,19 @@
   },
   "removeAgent": {
     "confirmTitle": "移除团队成员",
-    "confirmContent": "该成员正在工作中，确定要强制移除吗？"
+    "confirmContent": "确定将该成员移出团队吗？",
+    "confirmContentActive": "该成员正在工作中，确定要强制移除吗？其当前工作会被中断。"
   },
   "emptyState": {
     "subtitle": "描述你的目标，我来协调团队搞定它",
     "suggestions": {
       "debate": "组织一场辩论赛，让不同助手各持立场",
       "interview": "策划一场深度访谈",
-      "expert_review": "多位专家会诊同一个问题"
+      "expert_review": "多位专家会诊同一个问题",
+      "add_member": "帮我在团队里加一个擅长 ___ 的成员"
     },
-    "leaderGreeting": "你好，我是 Leader，负责理解你的目标并协调团队。描述你想做的事，我来安排。"
+    "leaderGreeting": "你好，我是 Leader，负责理解你的目标并协调团队。描述你想做的事，我来安排。",
+    "memberGreeting": "你好，我是团队成员，我听 Leader 和你的指挥。"
   },
   "addMember": {
     "title": "添加成员",
