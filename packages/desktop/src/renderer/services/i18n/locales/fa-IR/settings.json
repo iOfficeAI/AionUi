@@ -29,7 +29,6 @@
     "customPathLabel": "مسیر پوشه مهارت",
     "customPathPlaceholder": "مثلاً C:\\Users\\me\\.mytools\\skills",
     "searchPlaceholder": "جستجوی مهارت‌ها...",
-    "noSearchResults": "مهارت منطبقی یافت نشد",
     "importPartialSuccess": "{{successCount}} مهارت وارد شد، {{failureCount}} مورد ناموفق بود: {{failures}}",
     "importAllFailed": "وارد کردن {{failureCount}} مهارت ناموفق بود: {{failures}}",
     "importFailureFileSizeDetail": "{{path}} برابر {{actual}} است؛ محدودیت {{limit}} است",

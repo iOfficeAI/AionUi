@@ -29,7 +29,6 @@
     "customPathLabel": "Путь к директории навыков",
     "customPathPlaceholder": "например, C:\\Users\\me\\.mytools\\skills",
     "searchPlaceholder": "Поиск навыков...",
-    "noSearchResults": "Навыки не найдены",
     "importPartialSuccess": "Imported {{successCount}} skill(s), {{failureCount}} failed: {{failures}}",
     "importAllFailed": "Failed to import {{failureCount}} skill(s): {{failures}}",
     "importFailureFileSizeDetail": "{{path}} is {{actual}}; limit is {{limit}}",

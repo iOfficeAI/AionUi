@@ -29,7 +29,6 @@
     "customPathLabel": "스킬 디렉토리 경로",
     "customPathPlaceholder": "예: C:\\Users\\me\\.mytools\\skills",
     "searchPlaceholder": "스킬 검색...",
-    "noSearchResults": "관련 스킬을 찾을 수 없습니다",
     "importPartialSuccess": "Imported {{successCount}} skill(s), {{failureCount}} failed: {{failures}}",
     "importAllFailed": "Failed to import {{failureCount}} skill(s): {{failures}}",
     "importFailureFileSizeDetail": "{{path}} is {{actual}}; limit is {{limit}}",

@@ -29,7 +29,6 @@
     "customPathLabel": "スキルディレクトリパス",
     "customPathPlaceholder": "例：C:\\Users\\me\\.mytools\\skills",
     "searchPlaceholder": "スキルを検索...",
-    "noSearchResults": "関連するスキルが見つかりません",
     "importPartialSuccess": "Imported {{successCount}} skill(s), {{failureCount}} failed: {{failures}}",
     "importAllFailed": "Failed to import {{failureCount}} skill(s): {{failures}}",
     "importFailureFileSizeDetail": "{{path}} is {{actual}}; limit is {{limit}}",

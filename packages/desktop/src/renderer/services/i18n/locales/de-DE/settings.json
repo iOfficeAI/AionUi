@@ -29,7 +29,6 @@
     "customPathLabel": "Skill-Verzeichnispfad",
     "customPathPlaceholder": "z.B. C:\\Users\\ich\\.mytools\\skills",
     "searchPlaceholder": "Skills suchen...",
-    "noSearchResults": "Keine passenden Skills gefunden",
     "importPartialSuccess": "Imported {{successCount}} skill(s), {{failureCount}} failed: {{failures}}",
     "importAllFailed": "Failed to import {{failureCount}} skill(s): {{failures}}",
     "importFailureFileSizeDetail": "{{path}} is {{actual}}; limit is {{limit}}",

@@ -29,7 +29,6 @@
     "customPathLabel": "Caminho do Diretório",
     "customPathPlaceholder": "ex: C:\\Usuarios\\eu\\.minhasferramentas\\habilidades",
     "searchPlaceholder": "Pesquisar habilidades...",
-    "noSearchResults": "Nenhuma habilidade correspondente encontrada",
     "importPartialSuccess": "Imported {{successCount}} skill(s), {{failureCount}} failed: {{failures}}",
     "importAllFailed": "Failed to import {{failureCount}} skill(s): {{failures}}",
     "importFailureFileSizeDetail": "{{path}} is {{actual}}; limit is {{limit}}",
