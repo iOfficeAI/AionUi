@@ -567,16 +567,19 @@ const TeamPage: React.FC<Props> = ({ team }) => {
           Message.error(String(error));
         }
       };
+      // 移除成员一律二次确认；成员正在工作中时用更强的措辞提示会打断其工作。
       const status = statusMap.get(slot_id)?.status;
-      if (status === 'active') {
-        Modal.confirm({
-          title: t('team.removeAgent.confirmTitle'),
-          content: t('team.removeAgent.confirmContent'),
-          onOk: doRemoveAssistant,
-        });
-      } else {
-        void doRemoveAssistant();
-      }
+      const isActive = status === 'active';
+      Modal.confirm({
+        title: t('team.removeAgent.confirmTitle', { defaultValue: 'Remove team member' }),
+        content: isActive
+          ? t('team.removeAgent.confirmContentActive', {
+              defaultValue: 'This member is working. Remove it anyway? Its current work will be interrupted.',
+            })
+          : t('team.removeAgent.confirmContent', { defaultValue: 'Remove this member from the team?' }),
+        okButtonProps: { status: 'danger' },
+        onOk: doRemoveAssistant,
+      });
     },
     [membershipMutationBusy, statusMap, removeAssistant, t]
   );

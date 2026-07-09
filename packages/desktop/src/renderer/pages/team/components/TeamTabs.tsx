@@ -182,7 +182,7 @@ const TeamTabView: React.FC<TeamTabViewProps> = ({
       {!editing && hovered && onRename && (
         <span
           data-testid={`team-tab-edit-${slot_id}`}
-          className='shrink-0 flex items-center opacity-70 hover:opacity-100 transition-opacity duration-150'
+          className='shrink-0 flex items-center justify-center w-20px h-20px rounded-6px text-[color:var(--text-secondary)] hover:bg-[color:var(--bg-3)] hover:text-[color:var(--text-primary)] transition-colors duration-150'
           onClick={startEditing}
         >
           <Edit theme='outline' size='13' fill='currentColor' />
@@ -191,7 +191,7 @@ const TeamTabView: React.FC<TeamTabViewProps> = ({
       {!editing && hovered && !isLeader && onRemove && (
         <span
           data-testid={`team-tab-remove-${slot_id}`}
-          className='shrink-0 flex items-center transition-opacity duration-150 text-[color:var(--color-text-3)] opacity-70 hover:opacity-100 hover:text-[color:var(--color-danger-6)]'
+          className='shrink-0 flex items-center justify-center w-20px h-20px rounded-6px text-[color:var(--text-secondary)] hover:bg-[color:var(--bg-3)] hover:text-[color:var(--color-danger-6)] transition-colors duration-150'
           onClick={(e) => {
             e.stopPropagation();
             onRemove(slot_id);
