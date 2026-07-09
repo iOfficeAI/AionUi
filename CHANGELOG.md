@@ -1,5 +1,36 @@
 # Changelog
 
+## [2.1.31](https://github.com/iOfficeAI/AionUi/compare/v2.1.30...v2.1.31) (2026-07-08)
+
+### Desktop
+
+#### Bug Fixes
+
+- **installer:** harden Windows failure reporting and self-lock handling (#3533)
+- prepare backend startup directories (#3536)
+- **settings:** avoid Arco tooltip crash in skills page (#3535)
+
+#### Features
+
+- **feedback:** attach core diagnostics to reports (#3529)
+- **settings:** assistant editor and settings UI polish (#3528)
+
+### Core ([v0.1.44](https://github.com/iOfficeAI/AionCore/releases/tag/v0.1.44))
+
+#### Features
+
+- **agent:** use aionrs runtime env API (#586)
+- **ai-agent:** surface upstream 429 body in AgentSendError detail (#591)
+- **system:** add feedback diagnostics report (#585)
+
+#### Bug Fixes
+
+- **agent:** preserve ACP error cause detail (#581)
+- **skills:** correct aionui-config butler skill drift (2026-07) (#584)
+- use provider and model protocol to determine llm request
+
+---
+
 ## [2.1.30](https://github.com/iOfficeAI/AionUi/compare/v2.1.29...v2.1.30) (2026-07-06)
 
 ### Desktop

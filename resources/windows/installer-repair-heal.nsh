@@ -85,8 +85,12 @@ Var /GLOBAL AionUiInnerFailureReadResult
       ClearErrors
       CopyFiles /SILENT "$AionUiBundledUninstaller" "$AionUiInstalledUninstaller"
       ${If} ${Errors}
-        MessageBox MB_OK|MB_ICONEXCLAMATION "${AIONUI_MSG_UNINSTALLER_LOCKED_ZH}$\r$\n$\r$\n${AIONUI_MSG_BLOCK_SEPARATOR}$\r$\n$\r$\n${AIONUI_MSG_UNINSTALLER_LOCKED_EN}"
-        !insertmacro AIONUI_FAIL_REPORTABLE_BILINGUAL ${AIONUI_E_UNINSTALLER_COPY_OR_REBUILD_FAILED} "uninstaller-repair copy-failed-retry" "${AIONUI_MSG_UNINSTALLER_COPY_LOCKED_EN}" "${AIONUI_MSG_UNINSTALLER_COPY_LOCKED_ZH}" "${AIONUI_MSG_UNINSTALLER_REPAIR_ACTION_EN}" "${AIONUI_MSG_UNINSTALLER_REPAIR_ACTION_ZH}"
+        ${If} ${FileExists} "$AionUiBundledUninstaller"
+          !insertmacro AIONUI_LOG_UNINSTALLER_REPAIR "copy-failed-using-bundled"
+          !insertmacro AIONUI_LOG_EVENT "event=uninstaller-repair phase=copy-failed-using-bundled"
+        ${Else}
+          !insertmacro AIONUI_FAIL_REPORTABLE_BILINGUAL ${AIONUI_E_UNINSTALLER_COPY_OR_REBUILD_FAILED} "uninstaller-repair copy-failed-retry-bundled-missing" "${AIONUI_MSG_UNINSTALLER_COPY_LOCKED_EN}" "${AIONUI_MSG_UNINSTALLER_COPY_LOCKED_ZH}" "${AIONUI_MSG_UNINSTALLER_REPAIR_ACTION_EN}" "${AIONUI_MSG_UNINSTALLER_REPAIR_ACTION_ZH}"
+        ${EndIf}
       ${Else}
         !insertmacro AIONUI_LOG_UNINSTALLER_REPAIR "after-copy-retry"
       ${EndIf}

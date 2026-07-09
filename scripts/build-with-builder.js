@@ -104,6 +104,40 @@ function patchElectronBuilderNsisInstaller() {
     );
   }
 
+  const uninstallerCopySource = [
+    '  StrCpy $uninstallerFileNameTemp "$PLUGINSDIR\\old-uninstaller.exe"',
+    '  !insertmacro copyFile "$uninstallerFileName" "$uninstallerFileNameTemp"',
+  ].join('\n');
+  const bundledUninstallerOverride = [
+    '  ${if} ${FileExists} "$PLUGINSDIR\\AionUi-fixed-uninstaller.exe"',
+    '    DetailPrint `AionUi-bundled-uninstaller override source.`',
+    '    StrCpy $uninstallerFileName "$PLUGINSDIR\\AionUi-fixed-uninstaller.exe"',
+    '  ${endIf}',
+  ].join('\n');
+  const bundledUninstallerCopySource = [
+    bundledUninstallerOverride,
+    '',
+    '  StrCpy $uninstallerFileNameTemp "$PLUGINSDIR\\old-uninstaller.exe"',
+    '  !insertmacro copyFile "$uninstallerFileName" "$uninstallerFileNameTemp"',
+  ].join('\n');
+
+  while (patched.includes(`${bundledUninstallerOverride}\n\n${bundledUninstallerOverride}`)) {
+    patched = patched.replace(
+      `${bundledUninstallerOverride}\n\n${bundledUninstallerOverride}`,
+      bundledUninstallerOverride
+    );
+  }
+
+  if (patched.includes(bundledUninstallerOverride)) {
+    // Already patched.
+  } else if (patched.includes(uninstallerCopySource)) {
+    patched = patched.replace(uninstallerCopySource, bundledUninstallerCopySource);
+  } else {
+    throw new Error(
+      'electron-builder old-uninstaller copy template changed; update patchElectronBuilderNsisInstaller.'
+    );
+  }
+
   const inPlaceUninstallerExec = `ExecWait '"$uninstallerFileName" /S /KEEP_APP_DATA $0 _?=$installationDir' $R0`;
   const inPlaceUninstallerExecWithLog = `ExecWait '"$uninstallerFileName" /S /KEEP_APP_DATA $0 --installer-log="$AionUiSessionLogPath" --installer-session="$AionUiSessionId" _?=$installationDir' $R0`;
   if (patched.includes(inPlaceUninstallerExec)) {
@@ -212,7 +246,109 @@ function viteBuildExists() {
   const mainDir = path.join(outDir, 'main');
   const rendererDir = path.join(outDir, 'renderer');
 
-  return fs.existsSync(path.join(mainDir, 'index.js')) && fs.existsSync(path.join(rendererDir, 'index.html'));
+  return (
+    fs.existsSync(path.join(mainDir, 'index.js')) &&
+    fs.existsSync(path.join(outDir, 'preload', 'index.js')) &&
+    validateRendererBuildOutput(rendererDir).valid
+  );
+}
+
+function collectHtmlAssetRefs(html, htmlDirRelative) {
+  const refs = [];
+  const attrRe = /\b(?:src|href)=["']([^"']+)["']/g;
+  for (const match of html.matchAll(attrRe)) {
+    const rawRef = match[1];
+    if (!rawRef || rawRef.startsWith('http:') || rawRef.startsWith('https:') || rawRef.startsWith('data:')) continue;
+    if (!rawRef.startsWith('./') && !rawRef.startsWith('../')) continue;
+
+    const normalized = path
+      .normalize(path.join(htmlDirRelative, rawRef.split(/[?#]/)[0]))
+      .replace(/\\/g, '/')
+      .replace(/^\.\//, '');
+    if (normalized.startsWith('assets/')) {
+      refs.push(normalized);
+    }
+  }
+  return refs;
+}
+
+function walkHtmlFiles(dir, baseDir = dir, acc = []) {
+  if (!fs.existsSync(dir)) return acc;
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const fullPath = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      walkHtmlFiles(fullPath, baseDir, acc);
+    } else if (entry.isFile() && entry.name.endsWith('.html')) {
+      acc.push({
+        fullPath,
+        relativePath: path.relative(baseDir, fullPath).replace(/\\/g, '/'),
+      });
+    }
+  }
+  return acc;
+}
+
+function validateRendererBuildOutput(rendererDir) {
+  const problems = [];
+  const indexHtmlPath = path.join(rendererDir, 'index.html');
+  if (!fs.existsSync(indexHtmlPath)) {
+    return { valid: false, problems: ['Renderer build output is incomplete: missing out/renderer/index.html'] };
+  }
+
+  const htmlFiles = walkHtmlFiles(rendererDir);
+  if (htmlFiles.length === 0) {
+    return { valid: false, problems: ['Renderer build output is incomplete: no HTML files under out/renderer'] };
+  }
+
+  const assetRefs = new Set();
+  for (const htmlFile of htmlFiles) {
+    const html = fs.readFileSync(htmlFile.fullPath, 'utf8');
+    if (/src=["'][^"']*\.tsx(?:[?#][^"']*)?["']/.test(html)) {
+      problems.push(`Renderer build output is incomplete: ${htmlFile.relativePath} still references TypeScript source`);
+    }
+
+    const htmlDirRelative = path.dirname(htmlFile.relativePath);
+    const baseRelative = htmlDirRelative === '.' ? '' : htmlDirRelative;
+    for (const ref of collectHtmlAssetRefs(html, baseRelative)) {
+      assetRefs.add(ref);
+    }
+  }
+
+  const indexHtml = fs.readFileSync(indexHtmlPath, 'utf8');
+  if (!/<div\s+id=["']root["']/.test(indexHtml)) {
+    problems.push('Renderer build output is incomplete: index.html is missing #root');
+  }
+  if (!/<script\b[^>]*type=["']module["'][^>]*\bsrc=["']\.\/assets\/[^"']+\.js["']/.test(indexHtml)) {
+    problems.push('Renderer build output is incomplete: index.html has no bundled module script');
+  }
+
+  if (assetRefs.size === 0) {
+    problems.push('Renderer build output is incomplete: no bundled renderer asset references found');
+  }
+
+  for (const ref of [...assetRefs].sort()) {
+    if (!fs.existsSync(path.join(rendererDir, ref))) {
+      problems.push(`Renderer build output is incomplete: missing referenced asset ${ref}`);
+    }
+  }
+
+  return { valid: problems.length === 0, problems };
+}
+
+function validateViteBuildOutput() {
+  const outDir = path.resolve(__dirname, '../out');
+  const problems = [];
+
+  for (const relPath of ['main/index.js', 'preload/index.js']) {
+    if (!fs.existsSync(path.join(outDir, relPath))) {
+      problems.push(`Vite build output is incomplete: missing out/${relPath}`);
+    }
+  }
+
+  const rendererValidation = validateRendererBuildOutput(path.join(outDir, 'renderer'));
+  problems.push(...rendererValidation.problems);
+
+  return { valid: problems.length === 0, problems };
 }
 
 function shouldSkipViteBuild(skipViteFlag, forceFlag) {
@@ -226,6 +362,16 @@ function shouldSkipViteBuild(skipViteFlag, forceFlag) {
   if (cachedHash && currentHash === cachedHash && viteBuildExists()) {
     console.log('📦 Incremental build: Vite output unchanged, skipping compilation');
     return true;
+  }
+
+  if (cachedHash && currentHash === cachedHash) {
+    const validation = validateViteBuildOutput();
+    if (!validation.valid) {
+      console.warn('Incremental build cache matched but output is incomplete; rebuilding.');
+      for (const problem of validation.problems.slice(0, 5)) {
+        console.warn(`   ${problem}`);
+      }
+    }
   }
 
   return false;
@@ -595,16 +741,11 @@ try {
     throw new Error('electron-vite did not generate out/ directory');
   }
 
-  // 4. Validate output structure
-  const mainIndex = path.join(outDir, 'main', 'index.js');
-  const rendererIndex = path.join(outDir, 'renderer', 'index.html');
-
-  if (!fs.existsSync(mainIndex)) {
-    throw new Error('Missing main entry: out/main/index.js');
-  }
-
-  if (!fs.existsSync(rendererIndex)) {
-    throw new Error('Missing renderer entry: out/renderer/index.html');
+  // 4. Validate output structure. This must reject source-only renderer shells;
+  // otherwise local fast builds can package a white-screen app.
+  const viteOutputValidation = validateViteBuildOutput();
+  if (!viteOutputValidation.valid) {
+    throw new Error(`Vite build output is incomplete:\n${viteOutputValidation.problems.join('\n')}`);
   }
 
   // If --pack-only, skip electron-builder distributable creation

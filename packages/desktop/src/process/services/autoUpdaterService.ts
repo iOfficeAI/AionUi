@@ -210,6 +210,22 @@ class AutoUpdaterService extends EventEmitter {
     }
   }
 
+  private moveCwdOutOfInstallDirForWindowsHandoff(): void {
+    if (process.platform !== 'win32') {
+      return;
+    }
+
+    try {
+      const safeCwd = path.join(app.getPath('temp'), 'aionui-updater-cwd');
+      fs.mkdirSync(safeCwd, { recursive: true });
+      process.chdir(safeCwd);
+      log.info('[auto-update] Moved process cwd before Windows installer handoff', { cwd: safeCwd });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      log.warn('[auto-update] Failed to move process cwd before Windows installer handoff', { error: message });
+    }
+  }
+
   /**
    * Initialize the service with an optional status broadcast callback.
    * This decouples the service from any specific window implementation.
@@ -837,6 +853,7 @@ class AutoUpdaterService extends EventEmitter {
 
     log.info('Quitting and installing update...');
     try {
+      this.moveCwdOutOfInstallDirForWindowsHandoff();
       // The first argument maps to electron-updater's silent installer flag.
       // User-clicked "install now" should show NSIS progress/completion pages;
       // autoInstallOnAppQuit remains true for background app-quit installs.
@@ -855,7 +872,7 @@ class AutoUpdaterService extends EventEmitter {
         status: 'error',
         error: userMessage,
       });
-      throw new Error(userMessage);
+      throw new Error(userMessage, { cause: error });
     }
     // On macOS, autoUpdater.quitAndInstall() closes all windows but the
     // 'window-all-closed' handler does NOT call app.quit() (standard macOS
