@@ -356,10 +356,21 @@ const TeamTabs: React.FC<TeamTabsProps> = ({ onTabClick, pendingCounts, warmingU
                 type='button'
                 disabled={memberOpsDisabled}
                 data-testid='team-tab-add-member'
-                className={`flex items-center gap-6px h-32px px-10px rounded-8px !border-none !bg-transparent text-13px font-500 whitespace-nowrap transition-colors duration-150 ${
+                // 禁用态：只把文字调浅，位置/尺寸/背景/边框都不变。
+                // 原生 <button>:disabled 会叠加浏览器默认灰底 + 收缩高度，className 的 appearance/bg
+                // 在禁用态下可能被 UA 样式盖过；这里用内联 style 强制关掉原生外观并锁定盒模型，保证两态一致。
+                style={{
+                  appearance: 'none',
+                  WebkitAppearance: 'none',
+                  background: 'transparent',
+                  border: 'none',
+                  height: 32,
+                  lineHeight: 'normal',
+                }}
+                className={`flex items-center gap-6px px-10px rounded-8px text-13px font-500 whitespace-nowrap transition-colors duration-150 ${
                   memberOpsDisabled
-                    ? 'text-[color:var(--color-text-4)] cursor-not-allowed'
-                    : 'text-[color:var(--color-text-2)] hover:text-[color:var(--brand)] hover:bg-[color:var(--bg-2)] cursor-pointer'
+                    ? 'text-[color:var(--text-disabled)] cursor-not-allowed'
+                    : 'text-[color:var(--text-secondary)] hover:text-[color:var(--brand)] hover:bg-[color:var(--bg-2)] cursor-pointer'
                 }`}
               >
                 <Plus theme='outline' size='15' fill='currentColor' className='leading-none' />
