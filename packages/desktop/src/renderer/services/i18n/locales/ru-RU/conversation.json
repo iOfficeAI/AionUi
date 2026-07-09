@@ -35,7 +35,7 @@
     "renameSuccess": "Успешно переименовано",
     "renameFailed": "Не удалось переименовать",
     "batchManage": "Массовое управление",
-    "batchModeExit": "Выйти из режима массового управления",
+    "batchModeExit": "Выйти из массового режима",
     "selectAll": "Выбрать все",
     "selectedCount": "Выбрано: {{count}}",
     "batchExport": "Массовый экспорт",
@@ -70,7 +70,7 @@
     "conversationsSection": "Беседы",
     "removeProjectTitle": "Удалить проект",
     "removeProject": "Удалить проект",
-    "removeProjectConfirm": "Удалить проект «{{name}}»? Будет также удалено {{count}} бесед(ы) в нём.",
+    "removeProjectConfirm": "Удалить проект «{{name}}»? Беседы в проекте тоже будут удалены: {{count}}.",
     "newConversationInProject": "Новая беседа в этом проекте",
     "deleting": "Удаление..."
   },
@@ -97,9 +97,9 @@
       "WORKSPACE_PATH_UNAVAILABLE": "Выбранный путь рабочей области недоступен. Убедитесь, что путь рабочей области \"{{workspacePath}}\" действительно существует и доступен."
     },
     "codes": {
-      "TEAM_ASSISTANT_ID_REQUIRED": "Please select an assistant before creating the team.",
-      "TEAM_ASSISTANT_NOT_FOUND": "Assistant {{assistantId}} is no longer available. Refresh the assistant list and choose another one.",
-      "TEAM_ASSISTANT_FIELD_UNSUPPORTED": "Use assistant_id instead of {{field}}."
+      "TEAM_ASSISTANT_ID_REQUIRED": "Перед созданием команды выберите ассистента.",
+      "TEAM_ASSISTANT_NOT_FOUND": "Ассистент {{assistantId}} больше недоступен. Обновите список ассистентов и выберите другого.",
+      "TEAM_ASSISTANT_FIELD_UNSUPPORTED": "Используйте assistant_id вместо {{field}}."
     }
   },
   "agentError": {
@@ -184,7 +184,7 @@
         "body": "Агент сообщил, что параметры запроса недействительны."
       },
       "USER_AGENT_HANDSHAKE_FAILED": {
-        "title": "Не удалось выполнить рукопожатие с агентом",
+        "title": "Не удалось согласовать соединение с агентом",
         "body": "Выбранный агент не смог завершить стартовое рукопожатие. Перезапустите или переподключите агента, затем повторите попытку."
       },
       "USER_AGENT_HANDSHAKE_TIMEOUT": {
@@ -196,20 +196,20 @@
         "body": "Приложение не смогло инициализировать сессию Agent Client Protocol с этим агентом."
       },
       "USER_AGENT_PROTOCOL_PARSE_ERROR": {
-        "title": "Agent сообщил об ошибке разбора протокола",
-        "body": "Выбранный Agent сообщил, что сообщение ACP/JSON-RPC не удалось разобрать."
+        "title": "Агент сообщил об ошибке разбора протокола",
+        "body": "Выбранный агент сообщил, что сообщение ACP/JSON-RPC не удалось разобрать."
       },
       "USER_AGENT_INVALID_REQUEST": {
-        "title": "Agent сообщил о недействительном протокольном запросе",
-        "body": "Выбранный Agent сообщил, что объект запроса ACP/JSON-RPC недействителен."
+        "title": "Агент сообщил о недействительном протокольном запросе",
+        "body": "Выбранный агент сообщил, что объект запроса ACP/JSON-RPC недействителен."
       },
       "USER_AGENT_RESOURCE_NOT_FOUND": {
-        "title": "Agent не нашел нужный ресурс",
-        "body": "Выбранный Agent сообщил, что нужный ресурс, например файл, не найден."
+        "title": "Агент не нашёл нужный ресурс",
+        "body": "Выбранный агент сообщил, что нужный ресурс, например файл, не найден."
       },
       "USER_AGENT_PROTOCOL_ERROR": {
-        "title": "Agent вернул ошибку протокола",
-        "body": "Выбранный Agent вернул нестандартный ACP-код ошибки."
+        "title": "Агент вернул ошибку протокола",
+        "body": "Выбранный агент вернул нестандартный ACP-код ошибки."
       },
       "USER_AGENT_PROTOCOL_MISMATCH": {
         "title": "Версии протокола агента несовместимы",
@@ -301,36 +301,36 @@
         "body": "Приложение получило внешнюю ошибку, но не смогло определить, пришла ли она от агента, поставщика, сети или локальной среды."
       },
       "MCP_HTTP_RESPONSE_READ_FAILED": {
-        "title": "Failed to read the team helper response",
-        "body": "AionUi could not read the local team helper response. Retry once, and if it keeps happening, restart the app."
+        "title": "Не удалось прочитать ответ командного помощника",
+        "body": "AionUi не смог прочитать ответ локального командного помощника. Повторите попытку один раз; если ошибка повторится, перезапустите приложение."
       },
       "MCP_TOOL_REMOTE_ERROR": {
-        "title": "The local team helper rejected the request",
-        "body": "The local team helper returned an error while processing this request. Review the details below and retry after adjusting the team action."
+        "title": "Локальный командный помощник отклонил запрос",
+        "body": "Локальный командный помощник вернул ошибку при обработке запроса. Проверьте подробности ниже, измените командное действие и повторите попытку."
       },
       "MCP_TOOL_RESPONSE_UNEXPECTED": {
-        "title": "The team helper returned an unexpected response",
-        "body": "AionUi received an unexpected response from the local team helper. Retry once, and report it if the problem persists."
+        "title": "Командный помощник вернул неожиданный ответ",
+        "body": "AionUi получил неожиданный ответ от локального командного помощника. Повторите попытку один раз; если проблема сохранится, отправьте отчёт."
       },
       "MCP_TCP_READ_FAILED": {
-        "title": "Failed to read from the local team helper",
-        "body": "AionUi could not read the local team helper TCP response. Retry once, and restart the app if it keeps failing."
+        "title": "Не удалось прочитать данные локального командного помощника",
+        "body": "AionUi не смог прочитать TCP-ответ локального командного помощника. Повторите попытку один раз; если ошибка повторится, перезапустите приложение."
       },
       "TEAM_SERVICE_UNAVAILABLE": {
-        "title": "Team service is not ready yet",
-        "body": "The local team session is still starting or has been interrupted. Wait a moment and retry."
+        "title": "Командный сервис ещё не готов",
+        "body": "Локальная командная сессия ещё запускается или была прервана. Подождите немного и повторите попытку."
       },
       "TEAM_ASSISTANT_ID_REQUIRED": {
-        "title": "A teammate assistant must be selected",
-        "body": "Choose a real assistant from the available assistant catalog before creating or spawning a teammate."
+        "title": "Выберите ассистента для участника команды",
+        "body": "Перед созданием или запуском участника команды выберите доступного ассистента из каталога."
       },
       "TEAM_ASSISTANT_NOT_FOUND": {
-        "title": "The selected assistant is no longer available",
-        "body": "Refresh the assistant catalog, then choose another assistant for this teammate."
+        "title": "Выбранный ассистент больше недоступен",
+        "body": "Обновите каталог ассистентов и выберите другого ассистента для этого участника команды."
       },
       "TEAM_ASSISTANT_FIELD_UNSUPPORTED": {
-        "title": "The request used a legacy team identity field",
-        "body": "This team action must use assistant_id instead of legacy backend or agent fields."
+        "title": "В запросе использовано устаревшее поле идентификации команды",
+        "body": "Это командное действие должно использовать assistant_id вместо устаревших полей backend или agent."
       }
     }
   },
