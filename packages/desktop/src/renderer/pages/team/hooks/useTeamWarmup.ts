@@ -4,9 +4,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ipcBridge } from '@/common';
-import type { ITeamAgentRuntimeStatusEvent, TeamAgentRuntimeStatus } from '@/common/types/team/teamTypes';
+import type {
+  ITeamAgentRuntimeStatusEvent,
+  ITeamMcpStatusEvent,
+  TeamAgentRuntimeStatus,
+  TeamMcpPhase,
+} from '@/common/types/team/teamTypes';
 
 /**
  * 团队进入时的 warmup 状态机。
@@ -19,18 +24,23 @@ import type { ITeamAgentRuntimeStatusEvent, TeamAgentRuntimeStatus } from '@/com
  *   先 `pending`（该成员开始唤醒），全部成功后**一次性**发 `ready`。失败成员发 `failed`。
  * - 若团队 session 已存在，`ensureSession` 立即返回、**不发任何事件**（二次进团队会秒过）。
  *
+ * `team.mcpStatus` 是 phase 流，其中 `slot_id === ''` 的 `session_ready/session_error/load_failed/tcp_error`
+ * 是团队级终态；`slot_id !== ''` 的事件只是成员级诊断信息，不作为团队整体闸门。
+ *
  * 因此本 hook：
- * - `phase`：整体闸门，撤遮罩/失败以 `ensureSession` 的 resolve/reject 为准（权威）。
+ * - `phase`：整体闸门，撤遮罩/失败以团队级 `team.mcpStatus` 终态为准；`ensureSession`
+ *   resolve/reject 作为已有 session 或 WS 丢失时的兜底。
  * - `runtimeStatus`：各成员 slot 的 pending/ready/failed（failed 带 error）。用于遮罩头像「逐个进入唤醒中」
  *   的真实反馈；失败态下据此定位失败成员、展示原因（不做假的 N/M 进度、不假装逐个点亮成功）。
- *
- * 超时兜底用「无进展看门狗」：每收到一个 runtime 事件就重置计时（后端错开启动，绝对时限会误报）；
- * 真正卡死（一段时间无任何事件且未 resolve）才转 timeout。纯前端，不改后端。
  */
-export type TeamWarmupPhase = 'warming' | 'ready' | 'error' | 'timeout';
+export type TeamWarmupPhase = 'warming' | 'ready' | 'error';
 
-/** 无进展看门狗时限（ms）：距上一次 warmup 进展（事件/启动）超过此值仍未就绪则判超时。 */
-export const WARMUP_STALL_TIMEOUT_MS = 20_000;
+const TEAM_WARMUP_FAILURE_PHASES = new Set<TeamMcpPhase>([
+  'tcp_error',
+  'session_error',
+  'load_failed',
+  'config_write_failed',
+]);
 
 /** 单个成员的运行时状态 + 失败原因（failed 时后端带 error）。 */
 export type TeamWarmupMemberState = {
@@ -47,7 +57,6 @@ export type TeamWarmupState = {
 export function useTeamWarmup(team_id: string): TeamWarmupState {
   const [phase, setPhase] = useState<TeamWarmupPhase>(team_id ? 'warming' : 'ready');
   const [runtimeStatus, setRuntimeStatus] = useState<Map<string, TeamWarmupMemberState>>(() => new Map());
-  const stallTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (!team_id) {
@@ -60,16 +69,7 @@ export function useTeamWarmup(team_id: string): TeamWarmupState {
     setPhase('warming');
     setRuntimeStatus(new Map<string, TeamWarmupMemberState>());
 
-    // 无进展看门狗：有进展就重置；静默超过时限判定 timeout（仅在仍 warming 时生效）。
-    const armStallTimer = () => {
-      if (stallTimerRef.current) clearTimeout(stallTimerRef.current);
-      stallTimerRef.current = setTimeout(() => {
-        if (!cancelled) setPhase((prev) => (prev === 'warming' ? 'timeout' : prev));
-      }, WARMUP_STALL_TIMEOUT_MS);
-    };
-    armStallTimer();
-
-    // 逐个成员运行时状态：驱动遮罩里头像「唤醒中→点亮/失败」，并作为「有进展」信号重置看门狗。
+    // 逐个成员运行时状态：驱动遮罩里头像「唤醒中→点亮/失败」，不决定团队整体 ready。
     const unsubRuntime = ipcBridge.team.agentRuntimeStatusChanged.on((event: ITeamAgentRuntimeStatusEvent) => {
       if (event.team_id !== team_id || cancelled) return;
       setRuntimeStatus((prev) => {
@@ -77,7 +77,15 @@ export function useTeamWarmup(team_id: string): TeamWarmupState {
         next.set(event.slot_id, { status: event.status, error: event.error });
         return next;
       });
-      armStallTimer();
+    });
+
+    const unsubMcpStatus = ipcBridge.team.mcpStatus.on((event: ITeamMcpStatusEvent) => {
+      if (event.team_id !== team_id || event.slot_id || cancelled) return;
+      if (event.phase === 'session_ready') {
+        setPhase('ready');
+      } else if (TEAM_WARMUP_FAILURE_PHASES.has(event.phase)) {
+        setPhase((prev) => (prev === 'ready' ? prev : 'error'));
+      }
     });
 
     ipcBridge.team.ensureSession
@@ -91,8 +99,8 @@ export function useTeamWarmup(team_id: string): TeamWarmupState {
 
     return () => {
       cancelled = true;
-      if (stallTimerRef.current) clearTimeout(stallTimerRef.current);
       unsubRuntime();
+      unsubMcpStatus();
     };
   }, [team_id]);
 

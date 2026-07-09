@@ -28,7 +28,7 @@ type Props = {
  *   未开始 → 暗淡；pending → 身份色呼吸微光「唤醒中」；ready → 点亮定色；failed → 灰化标红。
  * 撤除以整体闸门 `phase` 为准（成功是全员一次性 ready）。
  *
- * 失败态（error/timeout）遮罩内容换成失败卡：定位失败成员 + 原因 + 引导。
+ * 失败态（error）遮罩内容换成失败卡：定位失败成员 + 原因 + 引导。
  *   teammate 失败 → 可切模型 或 从顶部胶囊移除后重试；leader 失败 → 仅可切模型后重试（不可移除）。
  */
 // 列抬头 h-40px + 底部 1px border-b；遮罩从 41 起，正好露出抬头那条 1px 下边框线，
@@ -55,7 +55,7 @@ const TeamWarmupOverlay: React.FC<Props> = ({ phase, assistants, runtimeStatus, 
   const { t } = useTranslation();
   if (phase === 'ready') return null;
 
-  const isFailure = phase === 'error' || phase === 'timeout';
+  const isFailure = phase === 'error';
 
   // 收集**所有**失败成员（后端并发重建可能同时报多个 failed，各带自己的 error）。
   // 按 assistants 顺序（Leader 在前）稳定排序，便于逐行展示。

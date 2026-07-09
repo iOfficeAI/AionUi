@@ -382,7 +382,7 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onRenameTeam })
 
   // warmup 失败的成员 slot 集合：胶囊头像标红。仅在失败态计算（进行中/就绪都无需标红）。
   const warmupFailedSlotIds = useMemo(() => {
-    if (warmupPhase !== 'error' && warmupPhase !== 'timeout') return undefined;
+    if (warmupPhase !== 'error') return undefined;
     const ids = new Set<string>();
     warmupRuntimeStatus.forEach((state, slot_id) => {
       if (state.status === 'failed') ids.add(slot_id);
