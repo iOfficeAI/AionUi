@@ -229,11 +229,12 @@ const TeamTabs: React.FC<TeamTabsProps> = ({ onTabClick, pendingCounts, warmingU
     removeAssistant,
     reorderAssistants,
     addAssistant,
-    membershipMutationBusy,
     colorOf,
   } = useTeamTabs();
-  // 改成员（增/删/改名）在「运行时重建中」或「warmup 未就绪」时都禁用。
-  const memberOpsDisabled = membershipMutationBusy || warmingUp;
+  // 胶囊操作（增/删/改名）只在「warmup 进行中」禁用。warmup 一旦结束——无论成功还是失败——
+  // 就全部放开。后端对增删改成员本身有并发锁保证串行，前端不需要再叠一层忙碌禁用
+  // （否则删完一个成员，后端重建剩余成员时又会把胶囊锁住，出现「删一个卡一下」的怪体验）。
+  const memberOpsDisabled = warmingUp;
   const tabsContainerRef = useRef<HTMLDivElement>(null);
   const [showLeftFade, setShowLeftFade] = useState(false);
   const [showRightFade, setShowRightFade] = useState(false);

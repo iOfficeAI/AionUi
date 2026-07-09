@@ -41,7 +41,7 @@ const assistants: TeamAssistant[] = [
   },
 ];
 
-const renderTabs = (membershipMutationBusy: boolean) =>
+const renderTabs = (warmingUp: boolean) =>
   render(
     <TeamTabsProvider
       assistants={assistants}
@@ -49,9 +49,8 @@ const renderTabs = (membershipMutationBusy: boolean) =>
       defaultActiveSlotId='lead-slot'
       team_id='team-1'
       renameAssistant={renameAssistantMock}
-      membershipMutationBusy={membershipMutationBusy}
     >
-      <TeamTabs />
+      <TeamTabs warmingUp={warmingUp} />
     </TeamTabsProvider>
   );
 
@@ -61,7 +60,7 @@ describe('TeamTabs', () => {
     localStorage.clear();
   });
 
-  it('does not allow tab rename while membership mutations are busy', () => {
+  it('does not allow tab rename while the team is still warming up', () => {
     renderTabs(true);
 
     fireEvent.doubleClick(screen.getByTestId('team-tab-worker-slot'));
@@ -69,5 +68,15 @@ describe('TeamTabs', () => {
     expect(screen.queryByTestId('team-tab-edit-worker-slot')).not.toBeInTheDocument();
     expect(screen.queryByDisplayValue('Worker')).not.toBeInTheDocument();
     expect(renameAssistantMock).not.toHaveBeenCalled();
+  });
+
+  it('allows member ops once warmup has ended (ready or failed)', () => {
+    renderTabs(false);
+
+    // hover reveals the rename affordance and double-click enters edit mode
+    fireEvent.mouseEnter(screen.getByTestId('team-tab-worker-slot'));
+    fireEvent.doubleClick(screen.getByTestId('team-tab-worker-slot'));
+
+    expect(screen.getByDisplayValue('Worker')).toBeInTheDocument();
   });
 });
