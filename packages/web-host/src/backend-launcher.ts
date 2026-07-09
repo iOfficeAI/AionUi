@@ -9,6 +9,7 @@
  */
 
 import { type ChildProcess, spawn } from 'node:child_process';
+import { mkdirSync } from 'node:fs';
 import { connect, createServer, type Socket } from 'node:net';
 import { cleanupRegisteredAgentProcesses } from './agent-process-registry.js';
 import type { AppMetadata, BackendBinaryResolver } from './types.js';
@@ -364,6 +365,11 @@ function getResolveDiagnostics(error: unknown): Partial<BackendStartupErrorDetai
   return diagnostics as Partial<BackendStartupErrorDetails>;
 }
 
+function ensureBackendStartupDirectory(dir: string | undefined): void {
+  if (!dir || dir.trim() === '') return;
+  mkdirSync(dir, { recursive: true });
+}
+
 function waitForChildProcessEnd(childProcess: ChildProcess): Promise<void> {
   return new Promise((resolve) => {
     let settled = false;
@@ -575,6 +581,17 @@ export class BackendLifecycleManager {
       recoverCorruptedDatabase: launchFlags.recoverCorruptedDatabase === true,
     });
     console.log(`[aioncore] starting: ${binaryPath} ${args.join(' ')}`);
+
+    try {
+      ensureBackendStartupDirectory(dbPath);
+      ensureBackendStartupDirectory(logDir);
+      ensureBackendStartupDirectory(dirs?.cacheDir);
+      ensureBackendStartupDirectory(dirs?.workDir);
+      ensureBackendStartupDirectory(dirs?.logDir);
+    } catch (error) {
+      this._status = 'error';
+      throw makeStartupError('spawn', 'aioncore startup directory preparation failed', error);
+    }
 
     try {
       this.childProcess = spawn(binaryPath, args, {

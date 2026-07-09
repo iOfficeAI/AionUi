@@ -23,20 +23,26 @@
 
 Function .onVerifyInstDir
   ${IfNot} ${RunningX64}
-    MessageBox MB_OK|MB_ICONSTOP \
-      "Installation package architecture mismatch$\n$\n\
-      This AionUi installer is designed for x64 architecture.$\n$\n\
-      Your system is 32-bit architecture. Please download the appropriate version for your architecture.$\n$\n\
-      Download: https://github.com/iOfficeAI/AionUi/releases"
-    !insertmacro AIONUI_FAIL ${AIONUI_E_ARCH_MISMATCH} "target=x64 actual=x86"
+    !insertmacro AIONUI_FAIL_UX \
+      "${AIONUI_E_ARCH_MISMATCH}" \
+      "target=x64 actual=x86" \
+      "${AIONUI_MSG_ARCH_MISMATCH_ZH}" \
+      "${AIONUI_MSG_ARCH_MISMATCH_EN}" \
+      "${AIONUI_MSG_ARCH_MISMATCH_ACTION_ZH}" \
+      "${AIONUI_MSG_ARCH_MISMATCH_ACTION_EN}" \
+      "target=x64 actual=x86" \
+      "target=x64 actual=x86"
   ${EndIf}
 
   ${If} ${IsNativeARM64}
-    MessageBox MB_OK|MB_ICONSTOP \
-      "Installation package architecture mismatch$\n$\n\
-      This AionUi installer is designed for x64 architecture.$\n$\n\
-      Your system is ARM64 architecture. Please download the ARM64 version.$\n$\n\
-      Download: https://github.com/iOfficeAI/AionUi/releases"
-    !insertmacro AIONUI_FAIL ${AIONUI_E_ARCH_MISMATCH} "target=x64 actual=arm64"
+    !insertmacro AIONUI_FAIL_UX \
+      "${AIONUI_E_ARCH_MISMATCH}" \
+      "target=x64 actual=arm64" \
+      "${AIONUI_MSG_ARCH_MISMATCH_ZH}" \
+      "${AIONUI_MSG_ARCH_MISMATCH_EN}" \
+      "${AIONUI_MSG_ARCH_MISMATCH_ACTION_ZH}" \
+      "${AIONUI_MSG_ARCH_MISMATCH_ACTION_EN}" \
+      "target=x64 actual=arm64" \
+      "target=x64 actual=arm64"
   ${EndIf}
 FunctionEnd

@@ -107,7 +107,15 @@ Var /GLOBAL AionUiSessionLogPath
 
 !macro AIONUI_LOG_EXTRACT_RESULT _METHOD
   ${IfNot} ${FileExists} "$INSTDIR\AionUi.exe"
-    !insertmacro AIONUI_FAIL ${AIONUI_E_EXTRACT_FAILED} "event=extract result=fail method=${_METHOD} missing=AionUi.exe"
+    !insertmacro AIONUI_FAIL_UX \
+      "${AIONUI_E_EXTRACT_FAILED}" \
+      "event=extract result=fail method=${_METHOD} missing=AionUi.exe" \
+      "${AIONUI_MSG_EXTRACT_FAILED_ZH}" \
+      "${AIONUI_MSG_EXTRACT_FAILED_EN}" \
+      "${AIONUI_MSG_EXTRACT_FAILED_ACTION_ZH}" \
+      "${AIONUI_MSG_EXTRACT_FAILED_ACTION_EN}" \
+      "extract result=fail method=${_METHOD} missing=AionUi.exe instDir=$INSTDIR" \
+      "extract result=fail method=${_METHOD} missing=AionUi.exe instDir=$INSTDIR"
   ${Else}
     !insertmacro AIONUI_SLOG "event=extract result=ok method=${_METHOD} detail=customFiles_${AIONUI_TARGET_ARCH}"
   ${EndIf}

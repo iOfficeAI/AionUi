@@ -108,6 +108,14 @@
       "diagnosticsReportSuccess": "Diagnostics report sent",
       "diagnosticsReportFailed": "Failed to send diagnostics report"
     },
+    "startupDirectory": {
+      "title": "Startup directory is unavailable",
+      "description": "AionUi opened, but AionCore could not start because the configured work or log directory is missing, unavailable, or blocked by permissions. Check that the configured directories exist and are writable, then restart AionUi.",
+      "sendDiagnostics": "Send diagnostics",
+      "diagnosticsSent": "Diagnostics sent",
+      "diagnosticsReportSuccess": "Diagnostics report sent",
+      "diagnosticsReportFailed": "Failed to send diagnostics report"
+    },
     "recoverableDatabaseCorruption": {
       "title": "ローカルデータが破損しています",
       "description": "ローカルデータベースの破損を検出したため、AionUi は起動を続行できません。確認後、古いデータベースをバックアップし、新しいローカルデータベースを作成して起動を続行します。過去のローカルデータは当面表示されず、古いデータベースはバックアップとして保持されます。",

@@ -120,6 +120,124 @@ function Get-BlockingDiagnostics([string]$detail) {
   return $detail.Trim()
 }
 
+function Get-LatestInstallerFailureContext {
+  $empty = [ordered]@{
+    failedPath = ''
+    outerInstallerPid = $null
+    fallbackReason = ''
+    currentOutDir = ''
+  }
+  try {
+    if (-not (Test-Path -LiteralPath $log)) {
+      return $empty
+    }
+    $events = @(Get-Content -LiteralPath $log -ErrorAction SilentlyContinue | ForEach-Object {
+      try {
+        $_ | ConvertFrom-Json
+      } catch {
+        $null
+      }
+    } | Where-Object { $_ })
+    $failure = @($events | Where-Object { $_.event -eq 'failure' } | Select-Object -Last 1)[0]
+    $lockers = @($events | Where-Object { $_.event -eq 'rm-lockers' } | Select-Object -Last 1)[0]
+    if ($failure -and $failure.failedPath) {
+      $empty.failedPath = [string]$failure.failedPath
+    } elseif ($lockers -and $lockers.target) {
+      $empty.failedPath = [string]$lockers.target
+    }
+    if ($lockers -and $null -ne $lockers.outerInstallerPid) {
+      $empty.outerInstallerPid = [int]$lockers.outerInstallerPid
+    }
+    if ($lockers -and $lockers.fallbackReason) {
+      $empty.fallbackReason = [string]$lockers.fallbackReason
+    } elseif ($failure -and $failure.fallbackReason) {
+      $empty.fallbackReason = [string]$failure.fallbackReason
+    }
+    if ($lockers -and $lockers.currentOutDir) {
+      $empty.currentOutDir = [string]$lockers.currentOutDir
+    }
+  } catch {
+    Write-InstallerLog 'report-failure-context-read-failed' @{ error = $_.Exception.Message }
+  }
+  return $empty
+}
+
+function Get-OptionalHandleDiagnostics {
+  $diag = [ordered]@{
+    available = $false
+    used = $false
+    reason = 'handle-not-found'
+    command = ''
+    target = ''
+    pid = $null
+    timedOut = $false
+    exitCode = $null
+    output = ''
+    error = ''
+  }
+
+  $command = @(Get-Command handle.exe -ErrorAction SilentlyContinue | Select-Object -First 1)[0]
+  if (-not $command) {
+    return $diag
+  }
+
+  $diag.available = $true
+  $diag.command = [string]$command.Source
+  $context = Get-LatestInstallerFailureContext
+  $target = [string]$context.failedPath
+  if ([string]::IsNullOrWhiteSpace($target)) {
+    $diag.reason = 'no-failed-path'
+    return $diag
+  }
+
+  $diag.target = $target
+  $pid = $context.outerInstallerPid
+  $outPath = Join-Path $env:TEMP ('aionui-handle-' + [guid]::NewGuid().ToString('N') + '.out')
+  $errPath = Join-Path $env:TEMP ('aionui-handle-' + [guid]::NewGuid().ToString('N') + '.err')
+
+  try {
+    $args = @('-accepteula', '-nobanner')
+    if ($null -ne $pid -and $pid -gt 0) {
+      $diag.pid = [int]$pid
+      $args += @('-p', [string]$pid)
+    }
+    $args += $target
+    $diag.used = $true
+    $diag.reason = ''
+    $process = Start-Process `
+      -FilePath $command.Source `
+      -ArgumentList $args `
+      -WindowStyle Hidden `
+      -PassThru `
+      -RedirectStandardOutput $outPath `
+      -RedirectStandardError $errPath
+    if (-not $process.WaitForExit(3000)) {
+      $diag.timedOut = $true
+      $diag.reason = 'timeout'
+      try {
+        $process.Kill()
+      } catch {
+      }
+    } else {
+      $diag.exitCode = $process.ExitCode
+    }
+    $stdout = if (Test-Path -LiteralPath $outPath) { Get-Content -LiteralPath $outPath -Raw } else { '' }
+    $stderr = if (Test-Path -LiteralPath $errPath) { Get-Content -LiteralPath $errPath -Raw } else { '' }
+    $output = (($stdout + [Environment]::NewLine + $stderr) -replace '[\x00-\x1F]', ' ').Trim()
+    if ($output.Length -gt 4000) {
+      $output = $output.Substring(0, 4000)
+    }
+    $diag.output = $output
+  } catch {
+    $diag.reason = 'failed'
+    $diag.error = $_.Exception.GetType().FullName + ': ' + $_.Exception.Message
+  } finally {
+    Remove-Item -LiteralPath $outPath, $errPath -Force -ErrorAction SilentlyContinue
+  }
+
+  return $diag
+}
+
 function Get-WrapperCode([string]$detail) {
   if ([string]::IsNullOrWhiteSpace($detail)) {
     return ''
@@ -178,6 +296,7 @@ function New-ReportDetailsText(
 
 $wrapperCode = Get-WrapperCode $Detail
 $blockingDiagnostics = Get-BlockingDiagnostics $Detail
+$handleDiagnostics = Get-OptionalHandleDiagnostics
 $issueSearchPreview = 'message:"installer-failure ' + $Code + '" type:installer-failure code:' + $Code
 $copyTextPreview = New-ReportDetailsText $Code '' $issueSearchPreview '' $Session $blockingDiagnostics
 
@@ -191,6 +310,7 @@ if ([string]::IsNullOrWhiteSpace($Dsn)) {
     release = $Release
     logPath = $log
     blockingDiagnostics = $blockingDiagnostics
+    handleDiagnostics = $handleDiagnostics
     copyText = $copyTextPreview
     at = (Get-Date -Format o)
   })
@@ -229,6 +349,7 @@ try {
       installerDetail = $Detail
       wrapperCode = $wrapperCode
       blockingDiagnostics = $blockingDiagnostics
+      handleDiagnostics = $handleDiagnostics
     }
   }
   if ($userId) {
@@ -262,6 +383,7 @@ try {
     userId = $userId
     logPath = $log
     blockingDiagnostics = $blockingDiagnostics
+    handleDiagnostics = $handleDiagnostics
     copyText = (New-ReportDetailsText $Code $eventId $issueSearch $userId $Session $blockingDiagnostics)
     at = (Get-Date -Format o)
   })
@@ -281,6 +403,7 @@ try {
     errorMessage = $errorText
     logPath = $log
     blockingDiagnostics = $blockingDiagnostics
+    handleDiagnostics = $handleDiagnostics
     copyText = (New-ReportDetailsText $Code '' '' $userId $Session $blockingDiagnostics)
     at = (Get-Date -Format o)
   })

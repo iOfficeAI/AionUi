@@ -23,20 +23,100 @@ type Fixtures = {
   page: Page;
 };
 
+type RendererDiagnostic = {
+  type: 'console' | 'pageerror' | 'requestfailed';
+  text: string;
+};
+
 // Singleton – one app per test worker
 let app: ElectronApplication | null = null;
 let mainPage: Page | null = null;
 const e2eStateSandboxDir = fs.mkdtempSync(path.join(os.tmpdir(), 'aionui-e2e-state-'));
 const e2eStateFile = path.join(e2eStateSandboxDir, 'extension-states.json');
+const rendererDiagnostics = new WeakMap<Page, RendererDiagnostic[]>();
 
 function isDevToolsWindow(page: Page): boolean {
   return page.url().startsWith('devtools://');
 }
 
+function attachRendererDiagnostics(page: Page): void {
+  if (rendererDiagnostics.has(page)) return;
+
+  const diagnostics: RendererDiagnostic[] = [];
+  rendererDiagnostics.set(page, diagnostics);
+
+  page.on('console', (message) => {
+    if (!['error', 'warning'].includes(message.type())) return;
+    diagnostics.push({ type: 'console', text: `${message.type()}: ${message.text()}` });
+  });
+  page.on('pageerror', (error) => {
+    diagnostics.push({ type: 'pageerror', text: error.stack || error.message });
+  });
+  page.on('requestfailed', (request) => {
+    const failure = request.failure()?.errorText ?? 'unknown';
+    diagnostics.push({ type: 'requestfailed', text: `${request.url()} - ${failure}` });
+  });
+}
+
+async function getRendererReadinessSnapshot(page: Page): Promise<Record<string, unknown>> {
+  return page.evaluate(() => {
+    const root = document.querySelector('#root');
+    const scripts = Array.from(document.scripts)
+      .map((script) => script.src || script.getAttribute('src') || '')
+      .filter(Boolean);
+    const stylesheets = Array.from(document.querySelectorAll('link[rel="stylesheet"]'))
+      .map((link) => (link as HTMLLinkElement).href || link.getAttribute('href') || '')
+      .filter(Boolean);
+
+    return {
+      href: window.location.href,
+      title: document.title,
+      readyState: document.readyState,
+      bodyTextLength: document.body?.innerText?.trim().length ?? 0,
+      bodyHtmlSample: document.body?.innerHTML?.slice(0, 300) ?? '',
+      rootExists: Boolean(root),
+      rootChildCount: root?.children.length ?? -1,
+      scriptCount: scripts.length,
+      stylesheetCount: stylesheets.length,
+      scripts,
+      stylesheets,
+    };
+  });
+}
+
+async function ensureRendererAppMounted(page: Page): Promise<void> {
+  attachRendererDiagnostics(page);
+  await page.waitForLoadState('domcontentloaded', { timeout: 30_000 });
+
+  try {
+    await page.waitForFunction(
+      () => {
+        const root = document.querySelector('#root');
+        return Boolean(root && root.children.length > 0 && document.scripts.length > 0);
+      },
+      undefined,
+      { timeout: 30_000 }
+    );
+  } catch (error) {
+    const snapshot = await getRendererReadinessSnapshot(page).catch((snapshotError: unknown) => ({
+      snapshotError: snapshotError instanceof Error ? snapshotError.message : String(snapshotError),
+    }));
+    const diagnostics = rendererDiagnostics.get(page)?.slice(-20) ?? [];
+    throw new Error(
+      [
+        'Electron renderer did not mount a non-empty app root.',
+        `Wait failure: ${error instanceof Error ? error.message : String(error)}`,
+        `Snapshot: ${JSON.stringify(snapshot, null, 2)}`,
+        `Diagnostics: ${JSON.stringify(diagnostics, null, 2)}`,
+      ].join('\n')
+    );
+  }
+}
+
 async function resolveMainWindow(electronApp: ElectronApplication): Promise<Page> {
   const existingMainWindow = electronApp.windows().find((win) => !isDevToolsWindow(win));
   if (existingMainWindow) {
-    await existingMainWindow.waitForLoadState('domcontentloaded');
+    await ensureRendererAppMounted(existingMainWindow);
     return existingMainWindow;
   }
 
@@ -47,7 +127,7 @@ async function resolveMainWindow(electronApp: ElectronApplication): Promise<Page
 
     const win = await electronApp.waitForEvent('window', { timeout: 1_000 }).catch(() => null);
     if (win && !isDevToolsWindow(win)) {
-      await win.waitForLoadState('domcontentloaded');
+      await ensureRendererAppMounted(win);
       return win;
     }
 
@@ -202,7 +282,7 @@ export const test = base.extend<Fixtures>({
     // to speed up consecutive tests sharing the same window.
     try {
       if (mainPage.url() === 'about:blank' || mainPage.url() === '') {
-        await mainPage.waitForLoadState('domcontentloaded', { timeout: 15_000 });
+        await ensureRendererAppMounted(mainPage);
       }
     } catch {
       // Page may have been replaced – resolve again
@@ -212,6 +292,7 @@ export const test = base.extend<Fixtures>({
     if (mainPage.isClosed()) {
       mainPage = await resolveMainWindow(electronApp);
     }
+    await ensureRendererAppMounted(mainPage);
     await use(mainPage);
 
     // Attach screenshot on failure so it appears in the HTML report.
