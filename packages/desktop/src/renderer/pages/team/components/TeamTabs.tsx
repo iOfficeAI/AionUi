@@ -292,7 +292,7 @@ const TeamTabs: React.FC<TeamTabsProps> = ({ onTabClick, pendingCounts, warmingU
   return (
     <div
       data-testid='team-tab-bar'
-      className='relative shrink-0 bg-1 border-t border-x border-solid border-[color:var(--border-base)]'
+      className='relative shrink-0 bg-1 border-t border-x border-b border-solid border-[color:var(--border-base)]'
     >
       <div className='relative flex items-stretch min-h-48px'>
         {/* 可横向滚动的成员胶囊列表 */}

@@ -31,9 +31,9 @@ type Props = {
  * 失败态（error/timeout）遮罩内容换成失败卡：定位失败成员 + 原因 + 引导。
  *   teammate 失败 → 可切模型 或 从顶部胶囊移除后重试；leader 失败 → 仅可切模型后重试（不可移除）。
  */
-// 列抬头 h-40px + 底部 1px border-b；遮罩从 44 起（多让开几像素），把抬头的下边框线露出来，
-// 抬头与遮罩内容区的分隔更清晰。
-const COLUMN_HEADER_HEIGHT = 44;
+// 列抬头 h-40px + 底部 1px border-b；遮罩从 41 起，正好露出抬头那条 1px 下边框线，
+// 抬头与遮罩内容区的分隔更清晰（44 会多盖住这条线）。
+const COLUMN_HEADER_HEIGHT = 41;
 
 /**
  * 后端错误层层包裹（`Invalid request: failed to warm up rebuilt agent <uuid>: Invalid request:
