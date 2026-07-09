@@ -23,7 +23,7 @@ import TeamAgentIdentity from './components/TeamAgentIdentity';
 import TeamViewToggle from './components/TeamViewToggle';
 import TeamWarmupOverlay from './components/TeamWarmupOverlay';
 import { useTeamViewMode } from './hooks/useTeamViewMode';
-import { useTeamWarmup } from './hooks/useTeamWarmup';
+import { useTeamWarmup, type TeamWarmupMemberState, type TeamWarmupPhase } from './hooks/useTeamWarmup';
 import { TeamTabsProvider, useTeamTabs } from './hooks/TeamTabsContext';
 import { TeamIdentityProvider } from './identity/TeamIdentityContext';
 import { TeamPermissionProvider, useTeamPermission } from './hooks/TeamPermissionContext';
@@ -47,6 +47,8 @@ function isAcpLikeBackend(backend: string | undefined): boolean {
 type TeamPageContentProps = {
   team: TTeam;
   onRenameTeam: (new_name: string) => Promise<boolean>;
+  warmupPhase: TeamWarmupPhase;
+  warmupRuntimeStatus: Map<string, TeamWarmupMemberState>;
 };
 
 const configErrorMessageKey = (error: unknown) => {
@@ -209,7 +211,7 @@ const AssistantChatSlot: React.FC<{
 };
 
 /** Inner component that reads active tab from context and renders the chat layout */
-const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onRenameTeam }) => {
+const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onRenameTeam, warmupPhase, warmupRuntimeStatus }) => {
   const { t } = useTranslation();
   useActiveLease({ type: 'team', id: team.id });
   const { assistants, activeSlotId, switchTab, colorOf, colorOfConversation } = useTeamTabs();
@@ -229,7 +231,6 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onRenameTeam })
 
   // 进团队 warmup：以团队会话整体就绪为闸门（ensureSession resolve = 全员成功）。遮罩覆盖对话区。
   // runtimeStatus 是各成员逐个的真实唤醒信号，用于遮罩头像的「唤醒中→点亮」及失败态定位。
-  const { phase: warmupPhase, runtimeStatus: warmupRuntimeStatus } = useTeamWarmup(team.id);
   // 仅在「唤醒进行中」禁用改成员；失败态（error/timeout）要放开，让用户能移除失败成员来自救。
   const isWarmingUp = warmupPhase === 'warming';
 
@@ -549,8 +550,9 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onRenameTeam })
 
 const TeamPage: React.FC<Props> = ({ team }) => {
   const { t } = useTranslation();
+  const { phase: warmupPhase, runtimeStatus: warmupRuntimeStatus } = useTeamWarmup(team.id);
   const { statusMap, membershipMutationBusy, addAssistant, renameAssistant, removeAssistant, mutateTeam } =
-    useTeamSession(team);
+    useTeamSession(team, warmupPhase);
   const { user } = useAuth();
   const { mutate: globalMutate } = useSWRConfig();
   const defaultSlotId = team.assistants[0]?.slot_id ?? '';
@@ -610,7 +612,12 @@ const TeamPage: React.FC<Props> = ({ team }) => {
       removeAssistant={handleRemoveAssistantWithConfirm}
       membershipMutationBusy={membershipMutationBusy}
     >
-      <TeamPageContent team={team} onRenameTeam={handleRenameTeam} />
+      <TeamPageContent
+        team={team}
+        onRenameTeam={handleRenameTeam}
+        warmupPhase={warmupPhase}
+        warmupRuntimeStatus={warmupRuntimeStatus}
+      />
     </TeamTabsProvider>
   );
 };

@@ -26,6 +26,7 @@ import {
   createTeamMembershipMutationState,
   isTeamMembershipMutationBusy,
 } from './teamMembershipMutationBusy';
+import type { TeamWarmupPhase } from './useTeamWarmup';
 
 type AgentStatusInfo = {
   slot_id: string;
@@ -33,7 +34,7 @@ type AgentStatusInfo = {
   last_message?: string;
 };
 
-export function useTeamSession(team: TTeam) {
+export function useTeamSession(team: TTeam, warmupPhase?: TeamWarmupPhase) {
   const { mutate: mutateTeam } = useSWR(team.id ? `team/${team.id}` : null, () =>
     ipcBridge.team.get.invoke({ id: team.id })
   );
@@ -43,6 +44,12 @@ export function useTeamSession(team: TTeam) {
   });
   const [membershipMutationState, setMembershipMutationState] = useState(createTeamMembershipMutationState);
   const membershipMutationBusy = isTeamMembershipMutationBusy(membershipMutationState);
+
+  useEffect(() => {
+    if (warmupPhase === 'ready' || warmupPhase === 'error') {
+      setMembershipMutationState(createTeamMembershipMutationState());
+    }
+  }, [team.id, warmupPhase]);
 
   useEffect(() => {
     const unsubStatus = ipcBridge.team.agentStatusChanged.on((event: ITeamAgentStatusEvent) => {

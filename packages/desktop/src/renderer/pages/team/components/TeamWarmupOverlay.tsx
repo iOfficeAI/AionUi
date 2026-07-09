@@ -62,8 +62,8 @@ const TeamWarmupOverlay: React.FC<Props> = ({ phase, assistants, runtimeStatus, 
   const failedMembers = assistants
     .filter((a) => runtimeStatus.get(a.slot_id)?.status === 'failed')
     .map((a) => ({ assistant: a, error: runtimeStatus.get(a.slot_id)?.error }));
-  // 取不到任何 failed（如超时后端没来得及发事件）时，回退到 Leader 作为单个失败对象。
-  const fallbackLeader = phase === 'timeout' ? undefined : assistants.find((a) => a.role === 'leader');
+  // 取不到任何 failed 时，回退到 Leader 作为单个失败对象。
+  const fallbackLeader = assistants.find((a) => a.role === 'leader');
   if (failedMembers.length === 0 && fallbackLeader) {
     failedMembers.push({ assistant: fallbackLeader, error: undefined });
   }

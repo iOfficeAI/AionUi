@@ -104,6 +104,25 @@ describe('useTeamSession cron cleanup', () => {
     expect(revalidateAcpConfigOptionsMock).toHaveBeenCalledTimes(1);
     expect(revalidateAcpConfigOptionsMock).toHaveBeenCalledWith('member-conv');
   });
+
+  it('clears membership busy state when warmup reaches a terminal phase', () => {
+    const { result, rerender } = renderHook(({ warmupPhase }) => useTeamSession(team(), warmupPhase), {
+      initialProps: { warmupPhase: 'warming' as const },
+    });
+    const handler = teamEventHandlers.agentRuntimeStatusChanged as
+      | ((event: { team_id: string; slot_id: string; conversation_id: string; status: string }) => void)
+      | undefined;
+
+    act(() => {
+      handler?.({ team_id: 'team-1', slot_id: 'member-slot', conversation_id: 'member-conv', status: 'pending' });
+    });
+
+    expect(result.current.membershipMutationBusy).toBe(true);
+
+    rerender({ warmupPhase: 'ready' });
+
+    expect(result.current.membershipMutationBusy).toBe(false);
+  });
 });
 
 function conversation(overrides?: Partial<TChatConversation>): TChatConversation {
