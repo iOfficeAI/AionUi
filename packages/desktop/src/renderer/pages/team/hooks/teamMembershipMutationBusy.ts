@@ -1,32 +1,26 @@
-import type { TeamAgentRuntimeStatus, TeamMcpPhase } from '@/common/types/team/teamTypes';
+import type { TeamAgentRuntimeStatus, TeamSessionStatus } from '@/common/types/team/teamTypes';
 
 export type TeamMembershipMutationState = {
-  sessionInjecting: boolean;
+  sessionStarting: boolean;
   pendingRuntimeSlotIds: string[];
 };
 
-const SESSION_TERMINAL_PHASES = new Set<TeamMcpPhase>(['session_ready', 'session_error', 'load_failed']);
-
 export function createTeamMembershipMutationState(): TeamMembershipMutationState {
   return {
-    sessionInjecting: false,
+    sessionStarting: false,
     pendingRuntimeSlotIds: [],
   };
 }
 
-export function applyTeamMcpPhaseToMembershipMutationState(
+export function applyTeamSessionStatusToMembershipMutationState(
   state: TeamMembershipMutationState,
-  phase: TeamMcpPhase
+  status: TeamSessionStatus
 ): TeamMembershipMutationState {
-  if (phase === 'session_injecting') {
-    return { ...state, sessionInjecting: true };
+  if (status === 'starting') {
+    return { ...state, sessionStarting: true };
   }
 
-  if (SESSION_TERMINAL_PHASES.has(phase)) {
-    return createTeamMembershipMutationState();
-  }
-
-  return state;
+  return createTeamMembershipMutationState();
 }
 
 export function applyTeamRuntimeStatusToMembershipMutationState(
@@ -49,5 +43,5 @@ export function applyTeamRuntimeStatusToMembershipMutationState(
 }
 
 export function isTeamMembershipMutationBusy(state: TeamMembershipMutationState): boolean {
-  return state.sessionInjecting || state.pendingRuntimeSlotIds.length > 0;
+  return state.sessionStarting || state.pendingRuntimeSlotIds.length > 0;
 }

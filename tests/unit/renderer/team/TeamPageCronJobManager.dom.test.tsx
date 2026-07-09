@@ -1,6 +1,5 @@
 import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import type { TChatConversation } from '@/common/config/storage';
@@ -54,7 +53,7 @@ vi.mock('@/common', () => ({
       agentRemoved: eventChannel,
       agentRenamed: eventChannel,
       agentRuntimeStatusChanged: eventChannel,
-      mcpStatus: eventChannel,
+      sessionStatusChanged: eventChannel,
       taskChanged: eventChannel,
       sessionChanged: eventChannel,
       runAccepted: eventChannel,
@@ -110,8 +109,8 @@ vi.mock('@/renderer/pages/conversation/platforms/aionrs/AionrsModelSelector', ()
 
 vi.mock('@/renderer/pages/team/components/TeamChatView', () => ({
   __esModule: true,
-  default: ({ conversation }: { conversation: TChatConversation }) => (
-    <div data-testid={`team-chat-view-${conversation.id}`} />
+  default: ({ conversation: chatConversation }: { conversation: TChatConversation }) => (
+    <div data-testid={`team-chat-view-${chatConversation.id}`} />
   ),
 }));
 

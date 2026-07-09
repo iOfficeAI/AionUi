@@ -207,26 +207,18 @@ export type ITeamMessageEvent = {
   conversation_id: string;
 };
 
-/** Phase of the MCP injection pipeline */
-export type TeamMcpPhase =
-  | 'tcp_ready'
-  | 'tcp_error'
-  | 'session_injecting'
-  | 'session_ready'
-  | 'session_error'
-  | 'load_failed'
-  | 'degraded'
-  | 'config_write_failed'
-  | 'mcp_tools_waiting'
-  | 'mcp_tools_ready';
+/** Team-level session availability status. */
+export type TeamSessionStatus = 'starting' | 'ready' | 'failed';
 
-/** IPC event for MCP injection pipeline status */
-export type ITeamMcpStatusEvent = {
+/** Diagnostic phase for team session startup. */
+export type TeamSessionPhase = 'loading_team' | 'starting_bridge' | 'attaching_agents' | 'recovering';
+
+/** IPC event for team session lifecycle status. */
+export type ITeamSessionStatusChangedEvent = {
   team_id: string;
-  slot_id?: string;
-  phase: TeamMcpPhase;
+  status: TeamSessionStatus;
+  phase?: TeamSessionPhase;
   server_count?: number;
-  port?: number;
   error?: string;
 };
 

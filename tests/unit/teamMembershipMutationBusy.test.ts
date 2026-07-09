@@ -1,15 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import {
-  applyTeamMcpPhaseToMembershipMutationState,
   applyTeamRuntimeStatusToMembershipMutationState,
+  applyTeamSessionStatusToMembershipMutationState,
   createTeamMembershipMutationState,
   isTeamMembershipMutationBusy,
 } from '@/renderer/pages/team/hooks/teamMembershipMutationBusy';
 
 describe('team membership mutation busy state', () => {
-  it('blocks membership changes while the team session is injecting', () => {
-    const state = applyTeamMcpPhaseToMembershipMutationState(createTeamMembershipMutationState(), 'session_injecting');
+  it('marks busy while the team session is starting', () => {
+    const state = applyTeamSessionStatusToMembershipMutationState(createTeamMembershipMutationState(), 'starting');
 
+    expect(state.sessionStarting).toBe(true);
     expect(isTeamMembershipMutationBusy(state)).toBe(true);
   });
 
@@ -27,11 +28,14 @@ describe('team membership mutation busy state', () => {
     expect(isTeamMembershipMutationBusy(state)).toBe(false);
   });
 
-  it('releases membership changes when session startup reaches a terminal phase', () => {
-    let state = applyTeamMcpPhaseToMembershipMutationState(createTeamMembershipMutationState(), 'session_injecting');
-    state = applyTeamRuntimeStatusToMembershipMutationState(state, 'slot-a', 'pending');
+  it('clears session busy state when the team session is ready or failed', () => {
+    let state = applyTeamSessionStatusToMembershipMutationState(createTeamMembershipMutationState(), 'starting');
+    state = applyTeamSessionStatusToMembershipMutationState(state, 'ready');
 
-    state = applyTeamMcpPhaseToMembershipMutationState(state, 'session_error');
+    expect(isTeamMembershipMutationBusy(state)).toBe(false);
+
+    state = applyTeamSessionStatusToMembershipMutationState(createTeamMembershipMutationState(), 'starting');
+    state = applyTeamSessionStatusToMembershipMutationState(state, 'failed');
 
     expect(isTeamMembershipMutationBusy(state)).toBe(false);
   });

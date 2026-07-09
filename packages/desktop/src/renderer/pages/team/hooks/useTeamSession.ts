@@ -8,8 +8,8 @@ import type {
   ITeamAgentRuntimeStatusEvent,
   ITeamAgentSpawnedEvent,
   ITeamAgentStatusEvent,
-  ITeamMcpStatusEvent,
   ITeamSessionChangedEvent,
+  ITeamSessionStatusChangedEvent,
   ITeamTaskChangedEvent,
   TeamAssistant,
   TeammateStatus,
@@ -21,8 +21,8 @@ import { revalidateAcpConfigOptions } from '@/renderer/hooks/agent/useAcpConfigO
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
 import { removeTeamAssistantWithCronCleanup } from '../utils/removeTeamAssistantWithCronCleanup';
 import {
-  applyTeamMcpPhaseToMembershipMutationState,
   applyTeamRuntimeStatusToMembershipMutationState,
+  applyTeamSessionStatusToMembershipMutationState,
   createTeamMembershipMutationState,
   isTeamMembershipMutationBusy,
 } from './teamMembershipMutationBusy';
@@ -82,9 +82,9 @@ export function useTeamSession(team: TTeam) {
       void revalidateAcpConfigOptions(event.conversation_id);
     });
 
-    const unsubMcpStatus = ipcBridge.team.mcpStatus.on((event: ITeamMcpStatusEvent) => {
+    const unsubSessionStatus = ipcBridge.team.sessionStatusChanged.on((event: ITeamSessionStatusChangedEvent) => {
       if (event.team_id !== team.id) return;
-      setMembershipMutationState((prev) => applyTeamMcpPhaseToMembershipMutationState(prev, event.phase));
+      setMembershipMutationState((prev) => applyTeamSessionStatusToMembershipMutationState(prev, event.status));
     });
 
     const unsubTaskChanged = ipcBridge.team.taskChanged.on((event: ITeamTaskChangedEvent) => {
@@ -103,7 +103,7 @@ export function useTeamSession(team: TTeam) {
       unsubRemoved();
       unsubRenamed();
       unsubRuntimeStatus();
-      unsubMcpStatus();
+      unsubSessionStatus();
       unsubTaskChanged();
       unsubSessionChanged();
     };

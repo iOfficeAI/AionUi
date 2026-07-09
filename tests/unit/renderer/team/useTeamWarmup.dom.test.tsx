@@ -10,9 +10,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const ensureSessionMock = vi.fn();
 // 捕获 agentRuntimeStatusChanged 的订阅回调，供测试手动推送逐个成员事件。
 let runtimeListener: ((event: unknown) => void) | undefined;
-let mcpStatusListener: ((event: unknown) => void) | undefined;
+let sessionStatusListener: ((event: unknown) => void) | undefined;
 const runtimeUnsub = vi.fn();
-const mcpStatusUnsub = vi.fn();
+const sessionStatusUnsub = vi.fn();
 
 vi.mock('@/common', () => ({
   ipcBridge: {
@@ -24,10 +24,10 @@ vi.mock('@/common', () => ({
           return runtimeUnsub;
         },
       },
-      mcpStatus: {
+      sessionStatusChanged: {
         on: (cb: (event: unknown) => void) => {
-          mcpStatusListener = cb;
-          return mcpStatusUnsub;
+          sessionStatusListener = cb;
+          return sessionStatusUnsub;
         },
       },
     },
@@ -40,9 +40,9 @@ describe('useTeamWarmup', () => {
   beforeEach(() => {
     ensureSessionMock.mockReset();
     runtimeListener = undefined;
-    mcpStatusListener = undefined;
+    sessionStatusListener = undefined;
     runtimeUnsub.mockReset();
-    mcpStatusUnsub.mockReset();
+    sessionStatusUnsub.mockReset();
   });
 
   it('starts in warming and becomes ready when the team session resolves', async () => {
@@ -104,34 +104,50 @@ describe('useTeamWarmup', () => {
     }
   });
 
-  it('becomes ready from the team mcp session_ready event', () => {
+  it('stays warming while the team session is starting', () => {
     ensureSessionMock.mockReturnValue(new Promise(() => {}));
     const { result } = renderHook(() => useTeamWarmup('team-1'));
 
     act(() => {
-      mcpStatusListener?.({ team_id: 'team-1', slot_id: '', phase: 'session_ready', server_count: 3 });
+      sessionStatusListener?.({ team_id: 'team-1', status: 'starting', phase: 'attaching_agents' });
+    });
+
+    expect(result.current.phase).toBe('warming');
+  });
+
+  it('becomes ready from the team session ready event', () => {
+    ensureSessionMock.mockReturnValue(new Promise(() => {}));
+    const { result } = renderHook(() => useTeamWarmup('team-1'));
+
+    act(() => {
+      sessionStatusListener?.({ team_id: 'team-1', status: 'ready', server_count: 3 });
     });
 
     expect(result.current.phase).toBe('ready');
   });
 
-  it('goes to error from terminal team mcp failure events', () => {
+  it('goes to error from the team session failed event', () => {
     ensureSessionMock.mockReturnValue(new Promise(() => {}));
     const { result } = renderHook(() => useTeamWarmup('team-1'));
 
     act(() => {
-      mcpStatusListener?.({ team_id: 'team-1', slot_id: '', phase: 'session_error', error: 'attach failed' });
+      sessionStatusListener?.({
+        team_id: 'team-1',
+        status: 'failed',
+        phase: 'attaching_agents',
+        error: 'attach failed',
+      });
     });
 
     expect(result.current.phase).toBe('error');
   });
 
-  it('does not use member-level mcp failure events as the team terminal state', () => {
+  it('ignores session status events from other teams', () => {
     ensureSessionMock.mockReturnValue(new Promise(() => {}));
     const { result } = renderHook(() => useTeamWarmup('team-1'));
 
     act(() => {
-      mcpStatusListener?.({ team_id: 'team-1', slot_id: 'member-1', phase: 'session_error', error: 'attach failed' });
+      sessionStatusListener?.({ team_id: 'other-team', status: 'ready' });
     });
 
     expect(result.current.phase).toBe('warming');

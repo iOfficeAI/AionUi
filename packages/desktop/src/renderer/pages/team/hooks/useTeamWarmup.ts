@@ -8,9 +8,8 @@ import { useEffect, useState } from 'react';
 import { ipcBridge } from '@/common';
 import type {
   ITeamAgentRuntimeStatusEvent,
-  ITeamMcpStatusEvent,
+  ITeamSessionStatusChangedEvent,
   TeamAgentRuntimeStatus,
-  TeamMcpPhase,
 } from '@/common/types/team/teamTypes';
 
 /**
@@ -24,23 +23,16 @@ import type {
  *   先 `pending`（该成员开始唤醒），全部成功后**一次性**发 `ready`。失败成员发 `failed`。
  * - 若团队 session 已存在，`ensureSession` 立即返回、**不发任何事件**（二次进团队会秒过）。
  *
- * `team.mcpStatus` 是 phase 流，其中 `slot_id === ''` 的 `session_ready/session_error/load_failed/tcp_error`
- * 是团队级终态；`slot_id !== ''` 的事件只是成员级诊断信息，不作为团队整体闸门。
+ * `team.sessionStatusChanged` is the team-level session lifecycle stream. It decides whether the
+ * overlay stays visible, closes, or shows failure. Member runtime events remain diagnostic detail.
  *
  * 因此本 hook：
- * - `phase`：整体闸门，撤遮罩/失败以团队级 `team.mcpStatus` 终态为准；`ensureSession`
+ * - `phase`：整体闸门，撤遮罩/失败以团队级 `team.sessionStatusChanged` 终态为准；`ensureSession`
  *   resolve/reject 作为已有 session 或 WS 丢失时的兜底。
  * - `runtimeStatus`：各成员 slot 的 pending/ready/failed（failed 带 error）。用于遮罩头像「逐个进入唤醒中」
  *   的真实反馈；失败态下据此定位失败成员、展示原因（不做假的 N/M 进度、不假装逐个点亮成功）。
  */
 export type TeamWarmupPhase = 'warming' | 'ready' | 'error';
-
-const TEAM_WARMUP_FAILURE_PHASES = new Set<TeamMcpPhase>([
-  'tcp_error',
-  'session_error',
-  'load_failed',
-  'config_write_failed',
-]);
 
 /** 单个成员的运行时状态 + 失败原因（failed 时后端带 error）。 */
 export type TeamWarmupMemberState = {
@@ -79,11 +71,11 @@ export function useTeamWarmup(team_id: string): TeamWarmupState {
       });
     });
 
-    const unsubMcpStatus = ipcBridge.team.mcpStatus.on((event: ITeamMcpStatusEvent) => {
-      if (event.team_id !== team_id || event.slot_id || cancelled) return;
-      if (event.phase === 'session_ready') {
+    const unsubSessionStatus = ipcBridge.team.sessionStatusChanged.on((event: ITeamSessionStatusChangedEvent) => {
+      if (event.team_id !== team_id || cancelled) return;
+      if (event.status === 'ready') {
         setPhase('ready');
-      } else if (TEAM_WARMUP_FAILURE_PHASES.has(event.phase)) {
+      } else if (event.status === 'failed') {
         setPhase((prev) => (prev === 'ready' ? prev : 'error'));
       }
     });
@@ -100,7 +92,7 @@ export function useTeamWarmup(team_id: string): TeamWarmupState {
     return () => {
       cancelled = true;
       unsubRuntime();
-      unsubMcpStatus();
+      unsubSessionStatus();
     };
   }, [team_id]);
 
