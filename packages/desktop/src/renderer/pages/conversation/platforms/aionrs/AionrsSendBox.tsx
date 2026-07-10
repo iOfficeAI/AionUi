@@ -308,12 +308,15 @@ const AionrsSendBox: React.FC<{
 
   const {
     items: queuedCommands,
+    mode: queueMode,
     isInteractionLocked: isQueueInteractionLocked,
     hasPendingCommands,
     enqueue,
     remove,
+    sendNow,
     clear,
     reorder,
+    toggleMode,
     lockInteraction,
     unlockInteraction,
     resetActiveExecution,
@@ -611,16 +614,28 @@ const AionrsSendBox: React.FC<{
     }
   };
   const effectiveHandleStop = teamRuntime?.onStop ?? handleStop;
+  const handleSendNowQueued = useCallback(
+    async (item: ConversationCommandQueueItem) => {
+      // Interrupt the current reply (best-effort; no-op when idle), then dequeue this one immediately.
+      await effectiveHandleStop();
+      sendNow(item.id);
+    },
+    [effectiveHandleStop, sendNow]
+  );
   const sendBoxWidthClass = getChatSurfaceWidthClass(Boolean(teamPermission));
 
   return (
     <div className={`${sendBoxWidthClass} flex flex-col mt-auto mb-16px`}>
       <CommandQueuePanel
         items={queuedCommands}
+        mode={queueMode}
+        isMobile={isMobile}
         interactionLocked={isQueueInteractionLocked}
         onInteractionLock={lockInteraction}
         onInteractionUnlock={unlockInteraction}
         onEdit={handleEditQueuedCommand}
+        onSendNow={handleSendNowQueued}
+        onToggleMode={toggleMode}
         onReorder={reorder}
         onRemove={remove}
         onClear={clear}
