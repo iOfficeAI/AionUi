@@ -549,10 +549,10 @@ Please check your local CLI tool authentication status`,
       entries.push({
         key: 'skills',
         icon: <MagicHat theme='outline' size='16' />,
-        label: t('common.skills', { defaultValue: 'Skills' }),
+        label: t('common.selectedSkills', { defaultValue: 'Selected skills' }),
         variant: 'muted',
         submenu: {
-          title: t('common.skills', { defaultValue: 'Skills' }),
+          title: t('common.selectedSkills', { defaultValue: 'Selected skills' }),
           selectable: false,
           options: skillOptions,
           onSelect: (name) => {
@@ -576,10 +576,10 @@ Please check your local CLI tool authentication status`,
       entries.push({
         key: 'mcp',
         icon: <Shield theme='outline' size='16' />,
-        label: t('conversation.mcp.loaded', { defaultValue: 'Loaded MCP' }),
+        label: t('conversation.mcp.selected', { defaultValue: 'Selected MCP' }),
         variant: 'muted',
         submenu: {
-          title: t('conversation.mcp.loaded', { defaultValue: 'Loaded MCP' }),
+          title: t('conversation.mcp.selected', { defaultValue: 'Selected MCP' }),
           selectable: false,
           options: mcpOptions,
           onSelect: () => undefined,
