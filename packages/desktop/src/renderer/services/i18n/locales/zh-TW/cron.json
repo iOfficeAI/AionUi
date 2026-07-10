@@ -82,6 +82,8 @@
       "prompt": "執行指令",
       "promptRequired": "請輸入執行指令",
       "promptPlaceholder": "助手觸發時執行的指令",
+      "queue": "佇列保護",
+      "queueHint": "開啟後，如果上一次定時任務會話仍在執行，本次觸發將直接跳過，不打擾正在工作的助手。",
       "frequency": "頻率",
       "cronExpr": "Cron 運算式",
       "cronExprRequired": "請輸入 Cron 運算式",
@@ -125,6 +127,20 @@
       "dailyAt": "每天 {{time}} 執行",
       "weekdaysAt": "工作日 {{time}} 執行",
       "weeklyAt": "每週{{day}} {{time}} 執行"
+    },
+    "custom": {
+      "modeLabel": "重複方式",
+      "interval": "每隔",
+      "monthly": "每月",
+      "advanced": "進階 Cron 運算式",
+      "every": "每隔",
+      "unit": "單位",
+      "minutes": "分鐘",
+      "hours": "小時",
+      "time": "時間",
+      "weekdays": "星期",
+      "monthDay": "每月日期",
+      "preview": "產生的 Cron"
     }
   },
   "trigger": {
