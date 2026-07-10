@@ -217,3 +217,6 @@ graphify-out/
 .graphify_python
 
 .snow/
+
+# Local scratch/analysis (wireframes, candidate mockups)
+.analysis/
