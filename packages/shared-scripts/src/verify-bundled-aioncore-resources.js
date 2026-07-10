@@ -116,11 +116,22 @@ function requireManagedNode(baseDir, runtimeKey, platform, checked, missing) {
   }
 }
 
+// Vendor triple for the @openai/codex-<runtimeKey> platform package, mirroring
+// AionCore's `codex_platform_binary_path` (acp_tool_runtime/mod.rs). The managed
+// codex-acp package (@agentclientprotocol/codex-acp >= 1.1.2) ships the codex
+// binary here instead of the legacy @zed-industries/codex-acp-<key> layout.
+const CODEX_VENDOR_TRIPLE = {
+  'win32-x64': 'x86_64-pc-windows-msvc',
+  'win32-arm64': 'aarch64-pc-windows-msvc',
+};
+
 function acpToolPlatformExecutableParts(platform, runtimeKey, toolId) {
   if (platform !== 'win32') return null;
 
   if (toolId === 'codex-acp') {
-    return ['node_modules', '@zed-industries', `codex-acp-${runtimeKey}`, 'bin', 'codex-acp.exe'];
+    const triple = CODEX_VENDOR_TRIPLE[runtimeKey];
+    if (!triple) return null;
+    return ['node_modules', '@openai', `codex-${runtimeKey}`, 'vendor', triple, 'bin', 'codex.exe'];
   }
 
   if (toolId === 'claude-agent-acp') {
