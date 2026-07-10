@@ -481,8 +481,8 @@
     "error": "Falha ao responder à pergunta paralela."
   },
   "commandQueue": {
-    "title": "Comandos na Fila",
-    "clear": "Limpar Fila",
+    "title": "Rascunhos",
+    "clear": "Limpar rascunhos",
     "edit": "Editar",
     "editing": "Editando",
     "editPlaceholder": "Atualize o comando agendado antes que ele seja executado.",
@@ -497,7 +497,19 @@
     "queueFull": "A fila está cheia. Remova um comando antes de adicionar mais.",
     "inputTooLong": "Este comando na fila é muito longo. Encurte-o antes de enviar.",
     "tooManyFiles": "Muitos arquivos anexados a este comando na fila.",
-    "queueTooLarge": "Os dados na fila são muito grandes para serem persistidos com segurança. Remova alguns comandos na fila primeiro."
+    "queueTooLarge": "Os dados na fila são muito grandes para serem persistidos com segurança. Remova alguns comandos na fila primeiro.",
+    "sendNow": "Enviar agora",
+    "modeToggle": "Alternar modo de envio",
+    "help": "Ajuda",
+    "helpIntro": "As mensagens enviadas enquanto a IA responde ficam aqui.",
+    "helpAuto": ": enviadas automaticamente uma a uma após cada resposta terminar.",
+    "helpManual": ": mantidas aqui sem enviar; envie cada uma com Enviar agora.",
+    "clearConfirmTitle": "Limpar a caixa de rascunhos de envio?",
+    "clearConfirmContent": "Todas as mensagens pendentes serão removidas. Isso não pode ser desfeito.",
+    "mode": {
+      "auto": "Envio automático",
+      "manual": "Envio manual"
+    }
   },
   "contextUsage": {
     "contextUsed": "contexto usado"

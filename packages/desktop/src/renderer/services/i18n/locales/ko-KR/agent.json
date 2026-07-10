@@ -29,7 +29,9 @@
   },
   "model": {
     "switchSuccess": "모델이 성공적으로 전환되었습니다",
-    "switchFailed": "모델 전환에 실패했습니다"
+    "switchFailed": "모델 전환에 실패했습니다",
+    "searchPlaceholder": "모델 검색",
+    "noResults": "일치하는 모델이 없습니다"
   },
   "config": {
     "setting": "설정을 적용하는 중...",

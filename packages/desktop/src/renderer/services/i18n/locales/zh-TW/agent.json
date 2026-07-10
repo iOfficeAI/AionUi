@@ -29,7 +29,9 @@
   },
   "model": {
     "switchSuccess": "模型切換成功",
-    "switchFailed": "模型切換失敗"
+    "switchFailed": "模型切換失敗",
+    "searchPlaceholder": "搜尋模型",
+    "noResults": "沒有符合的模型"
   },
   "config": {
     "setting": "正在套用設定...",

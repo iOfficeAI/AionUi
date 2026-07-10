@@ -29,7 +29,9 @@
   },
   "model": {
     "switchSuccess": "Model switched successfully",
-    "switchFailed": "Failed to switch model"
+    "switchFailed": "Failed to switch model",
+    "searchPlaceholder": "Search models",
+    "noResults": "No matching models"
   },
   "config": {
     "setting": "Applying setting...",

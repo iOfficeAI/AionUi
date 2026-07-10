@@ -29,7 +29,9 @@
   },
   "model": {
     "switchSuccess": "モデルを切り替えました",
-    "switchFailed": "モデルの切り替えに失敗しました"
+    "switchFailed": "モデルの切り替えに失敗しました",
+    "searchPlaceholder": "モデルを検索",
+    "noResults": "一致するモデルがありません"
   },
   "config": {
     "setting": "設定を適用しています...",

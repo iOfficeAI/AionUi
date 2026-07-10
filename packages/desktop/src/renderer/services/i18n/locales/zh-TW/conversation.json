@@ -475,8 +475,8 @@
     "error": "順便提問失敗。"
   },
   "commandQueue": {
-    "title": "佇列中的指令",
-    "clear": "清空佇列",
+    "title": "草稿箱",
+    "clear": "清空草稿箱",
     "edit": "編輯",
     "editing": "編輯中",
     "editPlaceholder": "可以在執行前先調整這筆排隊指令。",
@@ -491,7 +491,19 @@
     "queueFull": "佇列已滿，請先移除部分指令再繼續新增。",
     "inputTooLong": "排隊指令內容過長，請縮短後再發送。",
     "tooManyFiles": "這條排隊指令附加的檔案過多。",
-    "queueTooLarge": "佇列資料過大，無法安全快取，請先移除部分排隊指令。"
+    "queueTooLarge": "佇列資料過大，無法安全快取，請先移除部分排隊指令。",
+    "sendNow": "立即發送",
+    "modeToggle": "切換發送模式",
+    "help": "使用說明",
+    "helpIntro": "AI 回覆期間你發送的訊息會先存到這裡。",
+    "helpAuto": "：AI 每輪回覆結束後自動依序發送。",
+    "helpManual": "：只暫存不自動發送，逐筆點「立即發送」。",
+    "clearConfirmTitle": "確定清空發送草稿箱？",
+    "clearConfirmContent": "所有待發送的訊息都會被移除，且無法復原。",
+    "mode": {
+      "auto": "自動發送",
+      "manual": "手動發送"
+    }
   },
   "contextUsage": {
     "contextUsed": "上下文已使用"
