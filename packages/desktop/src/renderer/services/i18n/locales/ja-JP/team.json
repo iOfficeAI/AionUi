@@ -21,6 +21,14 @@
   "noMessages": "No messages yet.",
   "agentNotConfigured": "アシスタントはまだ設定されていません。",
   "stopAgentFailed": "このアシスタントを停止できませんでした。もう一度お試しください。",
+  "work": {
+    "processingWithQueued": "処理中… {{count}} 件待機中",
+    "queued": "{{count}} 件待機中",
+    "runtimeStarting": "このメンバーの起動を待っています…",
+    "runtimeFailed": "このメンバーを起動できませんでした。",
+    "removing": "このメンバーを削除しています…",
+    "sessionStopped": "チームセッションは停止しました。"
+  },
   "sendBox": {
     "placeholder": "チームリーダーアシスタントにメッセージを送信..."
   },

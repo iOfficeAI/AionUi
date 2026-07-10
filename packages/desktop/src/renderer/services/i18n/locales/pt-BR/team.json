@@ -21,6 +21,14 @@
   "noMessages": "Nenhuma mensagem ainda.",
   "agentNotConfigured": "Assistente ainda não configurado.",
   "stopAgentFailed": "Falha ao parar este assistente. Tente novamente.",
+  "work": {
+    "processingWithQueued": "Processando… {{count}} na fila",
+    "queued": "{{count}} na fila",
+    "runtimeStarting": "Aguardando este membro iniciar…",
+    "runtimeFailed": "Não foi possível iniciar este membro.",
+    "removing": "Removendo este membro…",
+    "sessionStopped": "A sessão da equipe foi encerrada."
+  },
   "sendBox": {
     "placeholder": "Enviar mensagem ao assistente líder da equipe..."
   },

@@ -21,6 +21,14 @@
   "noMessages": "هنوز پیامی وجود ندارد.",
   "agentNotConfigured": "عامل هنوز پیکربندی نشده است.",
   "stopAgentFailed": "توقف این دستیار ناموفق بود. لطفاً دوباره تلاش کنید.",
+  "work": {
+    "processingWithQueued": "در حال پردازش… {{count}} مورد در صف",
+    "queued": "{{count}} مورد در صف",
+    "runtimeStarting": "در انتظار راه‌اندازی این عضو…",
+    "runtimeFailed": "راه‌اندازی این عضو ناموفق بود.",
+    "removing": "در حال حذف این عضو…",
+    "sessionStopped": "نشست تیم متوقف شده است."
+  },
   "sendBox": {
     "placeholder": "ارسال پیام به عامل ارسال..."
   },

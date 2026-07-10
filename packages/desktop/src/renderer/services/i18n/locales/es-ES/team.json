@@ -21,6 +21,14 @@
   "noMessages": "Sin mensajes aún.",
   "agentNotConfigured": "Agente aún no configurado.",
   "stopAgentFailed": "Error al detener este agente. Por favor intenta de nuevo.",
+  "work": {
+    "processingWithQueued": "Procesando… {{count}} en cola",
+    "queued": "{{count}} en cola",
+    "runtimeStarting": "Esperando a que se inicie este miembro…",
+    "runtimeFailed": "No se pudo iniciar este miembro.",
+    "removing": "Eliminando este miembro…",
+    "sessionStopped": "La sesión del equipo se detuvo."
+  },
   "sendBox": {
     "placeholder": "Mensaje al agente coordinador..."
   },

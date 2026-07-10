@@ -638,6 +638,7 @@ Please check your local CLI tool authentication status`,
       />
       <ThoughtDisplay
         running={teamRuntime?.loading ?? (aiProcessing && !hasThinkingMessage)}
+        statusText={teamRuntime?.statusText}
         onStop={effectiveHandleStop}
       />
 

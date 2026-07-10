@@ -21,6 +21,14 @@
   "noMessages": "Повідомлень ще немає.",
   "agentNotConfigured": "Асистента ще не налаштовано.",
   "stopAgentFailed": "Не вдалося зупинити цього асистента. Спробуйте ще раз.",
+  "work": {
+    "processingWithQueued": "Обробка… у черзі: {{count}}",
+    "queued": "У черзі: {{count}}",
+    "runtimeStarting": "Очікування запуску учасника…",
+    "runtimeFailed": "Не вдалося запустити учасника.",
+    "removing": "Видалення учасника…",
+    "sessionStopped": "Сеанс команди зупинено."
+  },
   "sendBox": {
     "placeholder": "Повідомлення для диспетчера..."
   },

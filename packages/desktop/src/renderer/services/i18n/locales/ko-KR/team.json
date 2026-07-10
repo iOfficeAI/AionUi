@@ -21,6 +21,14 @@
   "noMessages": "No messages yet.",
   "agentNotConfigured": "어시스턴트가 아직 구성되지 않았습니다.",
   "stopAgentFailed": "이 어시스턴트를 중지하지 못했습니다. 다시 시도해 주세요.",
+  "work": {
+    "processingWithQueued": "처리 중… {{count}}개 대기 중",
+    "queued": "{{count}}개 대기 중",
+    "runtimeStarting": "이 멤버가 시작되기를 기다리는 중…",
+    "runtimeFailed": "이 멤버를 시작하지 못했습니다.",
+    "removing": "이 멤버를 제거하는 중…",
+    "sessionStopped": "팀 세션이 중지되었습니다."
+  },
   "sendBox": {
     "placeholder": "팀 리더 어시스턴트에게 메시지 보내기..."
   },

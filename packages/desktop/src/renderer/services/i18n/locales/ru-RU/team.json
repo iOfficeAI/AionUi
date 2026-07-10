@@ -21,6 +21,14 @@
   "noMessages": "Пока нет сообщений.",
   "agentNotConfigured": "Ассистент ещё не настроен.",
   "stopAgentFailed": "Не удалось остановить этого ассистента. Повторите попытку.",
+  "work": {
+    "processingWithQueued": "Обработка… в очереди: {{count}}",
+    "queued": "В очереди: {{count}}",
+    "runtimeStarting": "Ожидание запуска участника…",
+    "runtimeFailed": "Не удалось запустить участника.",
+    "removing": "Удаление участника…",
+    "sessionStopped": "Сеанс команды остановлен."
+  },
   "sendBox": {
     "placeholder": "Сообщение ассистенту-лидеру команды..."
   },

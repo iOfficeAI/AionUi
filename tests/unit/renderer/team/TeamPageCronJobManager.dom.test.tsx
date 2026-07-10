@@ -58,7 +58,9 @@ vi.mock('@/common', () => ({
       addAgent: { invoke: vi.fn() },
       removeAgent: { invoke: vi.fn() },
       pauseSlotWork: { invoke: vi.fn() },
-      getRunState: { invoke: vi.fn(async () => ({ active_run: null })) },
+      getRunState: {
+        invoke: vi.fn(async () => ({ session_generation: null, active_run: null, slot_work: [] })),
+      },
       activeLease: { invoke: vi.fn(async () => ({ renewed_count: 2 })) },
       ensureSession: { invoke: (...args: unknown[]) => ensureSessionMock(...args) },
       agentStatusChanged: makeTeamEventChannel('agentStatusChanged'),
@@ -82,6 +84,9 @@ vi.mock('@/common', () => ({
     },
     cron: {
       removeJob: { invoke: vi.fn() },
+    },
+    assistant: {
+      list: { invoke: vi.fn(async () => []) },
     },
     conversation: {
       confirmation: {

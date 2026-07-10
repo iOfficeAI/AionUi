@@ -21,6 +21,14 @@
   "noMessages": "No messages yet.",
   "agentNotConfigured": "Asistan henüz yapılandırılmadı.",
   "stopAgentFailed": "Bu asistan durdurulamadı. Lütfen tekrar deneyin.",
+  "work": {
+    "processingWithQueued": "İşleniyor… {{count}} sırada",
+    "queued": "{{count}} sırada",
+    "runtimeStarting": "Bu üyenin başlaması bekleniyor…",
+    "runtimeFailed": "Bu üye başlatılamadı.",
+    "removing": "Bu üye kaldırılıyor…",
+    "sessionStopped": "Takım oturumu durdu."
+  },
   "sendBox": {
     "placeholder": "Takım lideri asistana mesaj gönder..."
   },

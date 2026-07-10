@@ -21,6 +21,14 @@
   "noMessages": "No messages yet.",
   "agentNotConfigured": "助手尚未設定。",
   "stopAgentFailed": "停止該成員失敗，請稍後再試",
+  "work": {
+    "processingWithQueued": "處理中……已排隊 {{count}} 則",
+    "queued": "已排隊 {{count}} 則",
+    "runtimeStarting": "正在等待此成員啟動……",
+    "runtimeFailed": "此成員啟動失敗。",
+    "removing": "正在移除此成員……",
+    "sessionStopped": "團隊工作階段已停止。"
+  },
   "sendBox": {
     "placeholder": "向團隊 Leader 助手發訊息..."
   },

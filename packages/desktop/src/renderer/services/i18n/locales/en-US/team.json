@@ -21,6 +21,14 @@
   "noMessages": "No messages yet.",
   "agentNotConfigured": "Assistant not configured yet.",
   "stopAgentFailed": "Failed to stop this assistant. Please try again.",
+  "work": {
+    "processingWithQueued": "Processing… {{count}} queued",
+    "queued": "{{count}} queued",
+    "runtimeStarting": "Waiting for this assistant to start…",
+    "runtimeFailed": "This assistant failed to start.",
+    "removing": "Removing this assistant…",
+    "sessionStopped": "The team session has stopped."
+  },
   "sendBox": {
     "placeholder": "Message the team leader assistant..."
   },

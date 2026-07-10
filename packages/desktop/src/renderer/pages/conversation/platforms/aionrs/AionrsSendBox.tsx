@@ -627,7 +627,12 @@ const AionrsSendBox: React.FC<{
         onRemove={remove}
         onClear={clear}
       />
-      <ThoughtDisplay thought={thought} running={teamRuntime?.loading ?? running} onStop={effectiveHandleStop} />
+      <ThoughtDisplay
+        thought={thought}
+        running={teamRuntime?.loading ?? running}
+        statusText={teamRuntime?.statusText}
+        onStop={effectiveHandleStop}
+      />
 
       <SendBox
         data-testid='aionrs-sendbox'
