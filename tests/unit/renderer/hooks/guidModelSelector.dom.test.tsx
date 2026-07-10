@@ -45,6 +45,7 @@ vi.mock('@icon-park/react', () => ({
   Brain: () => <span aria-hidden='true'>brain</span>,
   Down: () => <span aria-hidden='true'>v</span>,
   Plus: () => <span aria-hidden='true'>+</span>,
+  Search: () => <span aria-hidden='true'>search</span>,
 }));
 
 vi.mock('@arco-design/web-react', () => {
@@ -72,6 +73,13 @@ vi.mock('@arco-design/web-react', () => {
         <div role='group' aria-label={String(title)}>
           <div>{title}</div>
           {children}
+        </div>
+      ),
+      // SubMenu renders both its title row and its children so tests can inspect both levels.
+      SubMenu: ({ children, title }: { children?: React.ReactNode; title?: React.ReactNode }) => (
+        <div role='group'>
+          <div data-testid='submenu-title'>{title}</div>
+          <div data-testid='submenu-body'>{children}</div>
         </div>
       ),
     }
@@ -137,7 +145,7 @@ describe('GuidModelSelector', () => {
     ).toHaveAttribute('data-tooltip-content', 'Use the default model currently configured by the CLI');
   });
 
-  it('combines ACP model and thought level choices into one menu', () => {
+  it('splits ACP model and thought level into two submenus', () => {
     const setSelectedAcpModel = vi.fn();
     const onThoughtLevelSelect = vi.fn();
 
@@ -163,14 +171,21 @@ describe('GuidModelSelector', () => {
     );
 
     expect(screen.getByText('gpt-5.3-codex · Medium')).toBeInTheDocument();
-    expect(within(screen.getByRole('group', { name: 'Thinking Level' })).getByText('High')).toBeInTheDocument();
-    expect(within(screen.getByRole('group', { name: 'Model' })).getByText('gpt-5.4-codex')).toBeInTheDocument();
 
-    fireEvent.click(within(screen.getByRole('group', { name: 'Thinking Level' })).getByText('High'));
-    fireEvent.click(within(screen.getByRole('group', { name: 'Model' })).getByText('gpt-5.4-codex'));
+    // First level: model submenu on top (shows current model), thought submenu below.
+    const titles = screen.getAllByTestId('submenu-title');
+    expect(titles[0]).toHaveTextContent('Model');
+    expect(titles[0]).toHaveTextContent('gpt-5.3-codex');
+    expect(titles[1]).toHaveTextContent('Thinking Level');
+    expect(titles[1]).toHaveTextContent('Medium');
 
-    expect(onThoughtLevelSelect).toHaveBeenCalledWith('high');
+    // Second level: each submenu body holds the full option list.
+    const bodies = screen.getAllByTestId('submenu-body');
+    fireEvent.click(within(bodies[0]).getByText('gpt-5.4-codex'));
+    fireEvent.click(within(bodies[1]).getByText('High'));
+
     expect(setSelectedAcpModel).toHaveBeenCalledWith('gpt-5.4-codex');
+    expect(onThoughtLevelSelect).toHaveBeenCalledWith('high');
   });
 
   it('does not add thought level options to the Aion CLI provider model menu', () => {
