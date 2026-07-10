@@ -29,7 +29,9 @@
   },
   "model": {
     "switchSuccess": "مدل با موفقیت جابه‌جا شد",
-    "switchFailed": "جابه‌جایی مدل ناموفق بود"
+    "switchFailed": "جابه‌جایی مدل ناموفق بود",
+    "searchPlaceholder": "جستجوی مدل‌ها",
+    "noResults": "مدلی مطابقت ندارد"
   },
   "config": {
     "setting": "در حال اعمال تنظیم...",

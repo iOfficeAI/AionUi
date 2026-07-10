@@ -41,6 +41,8 @@ export type I18nKey =
   | 'agent.health.mediumLatency'
   | 'agent.health.noAvailable'
   | 'agent.health.recommendSwitch'
+  | 'agent.model.noResults'
+  | 'agent.model.searchPlaceholder'
   | 'agent.model.switchFailed'
   | 'agent.model.switchSuccess'
   | 'agent.setup.alternativesFound'

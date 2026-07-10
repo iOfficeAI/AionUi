@@ -29,7 +29,9 @@
   },
   "model": {
     "switchSuccess": "Model switched successfully",
-    "switchFailed": "Failed to switch model"
+    "switchFailed": "Failed to switch model",
+    "searchPlaceholder": "Model ara",
+    "noResults": "Eşleşen model yok"
   },
   "config": {
     "setting": "Ayar uygulanıyor...",
