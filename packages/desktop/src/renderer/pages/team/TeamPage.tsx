@@ -49,6 +49,7 @@ type TeamPageContentProps = {
   onRenameTeam: (new_name: string) => Promise<boolean>;
   warmupPhase: TeamWarmupPhase;
   warmupRuntimeStatus: Map<string, TeamWarmupMemberState>;
+  onRetryWarmup: () => void;
 };
 
 const configErrorMessageKey = (error: unknown) => {
@@ -211,7 +212,13 @@ const AssistantChatSlot: React.FC<{
 };
 
 /** Inner component that reads active tab from context and renders the chat layout */
-const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onRenameTeam, warmupPhase, warmupRuntimeStatus }) => {
+const TeamPageContent: React.FC<TeamPageContentProps> = ({
+  team,
+  onRenameTeam,
+  warmupPhase,
+  warmupRuntimeStatus,
+  onRetryWarmup,
+}) => {
   const { t } = useTranslation();
   useActiveLease({ type: 'team', id: team.id });
   const { assistants, activeSlotId, switchTab, colorOf, colorOfConversation } = useTeamTabs();
@@ -437,7 +444,7 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onRenameTeam, w
               assistants={assistants}
               runtimeStatus={warmupRuntimeStatus}
               colorOf={colorOf}
-              onRetry={() => window.location.reload()}
+              onRetry={onRetryWarmup}
             />
             {isSingleView ? (
               // 单聊视图：全屏显示当前选中成员（activeSlotId），找不到时回退到 Leader。
@@ -550,7 +557,7 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onRenameTeam, w
 
 const TeamPage: React.FC<Props> = ({ team }) => {
   const { t } = useTranslation();
-  const { phase: warmupPhase, runtimeStatus: warmupRuntimeStatus } = useTeamWarmup(team.id);
+  const { phase: warmupPhase, runtimeStatus: warmupRuntimeStatus, retry: retryWarmup } = useTeamWarmup(team.id);
   const { statusMap, membershipMutationBusy, addAssistant, renameAssistant, removeAssistant, mutateTeam } =
     useTeamSession(team, warmupPhase);
   const { user } = useAuth();
@@ -617,6 +624,7 @@ const TeamPage: React.FC<Props> = ({ team }) => {
         onRenameTeam={handleRenameTeam}
         warmupPhase={warmupPhase}
         warmupRuntimeStatus={warmupRuntimeStatus}
+        onRetryWarmup={retryWarmup}
       />
     </TeamTabsProvider>
   );

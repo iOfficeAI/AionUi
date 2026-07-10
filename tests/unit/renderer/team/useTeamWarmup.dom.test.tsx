@@ -142,6 +142,51 @@ describe('useTeamWarmup', () => {
     expect(result.current.phase).toBe('error');
   });
 
+  it('accepts ready to failed when dynamic reconciliation fails', () => {
+    ensureSessionMock.mockReturnValue(new Promise(() => {}));
+    const { result } = renderHook(() => useTeamWarmup('team-1'));
+
+    act(() => {
+      sessionStatusListener?.({ team_id: 'team-1', status: 'ready', server_count: 2 });
+    });
+    expect(result.current.phase).toBe('ready');
+
+    act(() => {
+      sessionStatusListener?.({
+        team_id: 'team-1',
+        status: 'failed',
+        phase: 'attaching_agents',
+        error: 'Agent runtime failed to start',
+      });
+    });
+    expect(result.current.phase).toBe('error');
+  });
+
+  it('retries ensureSession in place and transitions error to warming to ready', async () => {
+    ensureSessionMock.mockRejectedValueOnce(new Error('attach failed')).mockResolvedValueOnce(undefined);
+    const { result } = renderHook(() => useTeamWarmup('team-1'));
+    await waitFor(() => expect(result.current.phase).toBe('error'));
+
+    act(() => result.current.retry());
+    expect(result.current.phase).toBe('warming');
+    await waitFor(() => expect(result.current.phase).toBe('ready'));
+    expect(ensureSessionMock).toHaveBeenCalledTimes(2);
+    expect(ensureSessionMock).toHaveBeenNthCalledWith(2, { team_id: 'team-1' });
+  });
+
+  it('returns to error when an in-place retry fails', async () => {
+    ensureSessionMock
+      .mockRejectedValueOnce(new Error('first failure'))
+      .mockRejectedValueOnce(new Error('retry failure'));
+    const { result } = renderHook(() => useTeamWarmup('team-1'));
+    await waitFor(() => expect(result.current.phase).toBe('error'));
+
+    act(() => result.current.retry());
+    expect(result.current.phase).toBe('warming');
+    await waitFor(() => expect(result.current.phase).toBe('error'));
+    expect(ensureSessionMock).toHaveBeenCalledTimes(2);
+  });
+
   it('ignores session status events from other teams', () => {
     ensureSessionMock.mockReturnValue(new Promise(() => {}));
     const { result } = renderHook(() => useTeamWarmup('team-1'));
