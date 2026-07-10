@@ -40,9 +40,9 @@ test.describe('Team Assistant Leader Options', () => {
     await navigateTo(page, '#/team');
 
     // Close any leftover modal from previous tests before interacting with the page
-    const existingModal = page.locator('.arco-modal .arco-btn-text');
+    const existingModal = page.locator('.arco-modal button[aria-label="Close"]');
     if (await existingModal.isVisible({ timeout: 1000 }).catch(() => false)) {
-      await existingModal.click({ force: true });
+      await existingModal.first().click({ force: true });
       await expect(page.locator('.arco-modal')).toBeHidden({ timeout: 5000 });
     }
 
@@ -98,7 +98,7 @@ test.describe('Team Assistant Leader Options', () => {
     expect(testIds.every((id) => !id.includes('cli::') && !id.includes('preset::'))).toBeTruthy();
     expect(optionAssistantIds.every((id) => assistantIds.has(id))).toBeTruthy();
 
-    await page.locator('.arco-modal .arco-btn-text').first().click();
+    await page.locator('.arco-modal button[aria-label="Close"]').first().click();
     await expect(page.locator('.arco-modal')).toBeHidden({ timeout: 5000 });
   });
 

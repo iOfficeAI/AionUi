@@ -29,7 +29,6 @@
     "customPathLabel": "技能目录路径",
     "customPathPlaceholder": "例如：C:\\Users\\me\\.mytools\\skills",
     "searchPlaceholder": "搜索技能...",
-    "noSearchResults": "未找到相关技能",
     "importPartialSuccess": "已导入 {{successCount}} 个技能，{{failureCount}} 个失败：{{failures}}",
     "importAllFailed": "导入 {{failureCount}} 个技能失败：{{failures}}",
     "importFailureFileSizeDetail": "{{path}} 大小为 {{actual}}，限制为 {{limit}}",
@@ -84,6 +83,7 @@
     "tabOfficial": "官方技能",
     "officialSkillsTitle": "官方技能",
     "officialSkillsEmpty": "暂无官方技能。",
+    "noSearchResults": "没有匹配的技能。",
     "customHint": "支持技能目录、父目录或 zip 导入；单文件上限 {{maxFileSize}}、单技能上限 {{maxTotalSize}}；同名导入会覆盖现有技能。",
     "officialHint": "AionUi 官方内置的技能，开箱即用、只读，随版本更新维护。"
   },

@@ -143,23 +143,50 @@ describe('buildSpawnArgs', () => {
       isPackaged: false,
     });
     expect(args).toContain('debug');
-    expect(args).toContain('--dump-prompts');
+    expect(args).not.toContain('--dump-prompts');
     expect(args).not.toContain('--managed-resources-mode');
     expect(args).not.toContain('--log-dir');
     expect(args).not.toContain('--local');
   });
 
+  it('passes prompt dump flag in development only when AIONUI_DUMP_PROMPTS is enabled', () => {
+    const prev = process.env.AIONUI_DUMP_PROMPTS;
+    process.env.AIONUI_DUMP_PROMPTS = '1';
+    try {
+      const args = buildSpawnArgs({
+        port: 1,
+        dbPath: '/d',
+        local: false,
+        appVersion: '0.0.1',
+        isPackaged: false,
+      });
+
+      expect(args).toContain('--dump-prompts');
+    } finally {
+      if (prev === undefined) delete process.env.AIONUI_DUMP_PROMPTS;
+      else process.env.AIONUI_DUMP_PROMPTS = prev;
+    }
+  });
+
   it('passes bundled managed resources mode when packaged', () => {
-    const args = buildSpawnArgs({
-      port: 1,
-      dbPath: '/d',
-      local: false,
-      appVersion: '0.0.1',
-      isPackaged: true,
-    });
-    expect(args).toContain('--managed-resources-mode');
-    expect(args).toContain('bundled');
-    expect(args).not.toContain('--dump-prompts');
+    const prev = process.env.AIONUI_DUMP_PROMPTS;
+    process.env.AIONUI_DUMP_PROMPTS = '1';
+    try {
+      const args = buildSpawnArgs({
+        port: 1,
+        dbPath: '/d',
+        local: false,
+        appVersion: '0.0.1',
+        isPackaged: true,
+      });
+
+      expect(args).toContain('--managed-resources-mode');
+      expect(args).toContain('bundled');
+      expect(args).not.toContain('--dump-prompts');
+    } finally {
+      if (prev === undefined) delete process.env.AIONUI_DUMP_PROMPTS;
+      else process.env.AIONUI_DUMP_PROMPTS = prev;
+    }
   });
 
   it('passes corrupted database recovery authorization only when requested', () => {

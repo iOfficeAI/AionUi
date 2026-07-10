@@ -56,7 +56,10 @@ function fetchAcpSlashCommands(conversation_id: string): Promise<SlashCommandIte
   return promise;
 }
 
-export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: boolean }): UseAcpMessageReturn => {
+export const useAcpMessage = (
+  conversation_id: string,
+  options?: { skipWarmup?: boolean; prepareRuntime?: () => Promise<void> }
+): UseAcpMessageReturn => {
   const mergeLiveMessage = useMergeLiveMessage();
   const [running, setRunning] = useState(false);
   const [hasHydratedRunningState, setHasHydratedRunningState] = useState(false);
@@ -557,9 +560,10 @@ export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: 
   // StreamRelay is listening, so the initial load must come from HTTP.
   // In team mode, runtime preparation is coordinated by the team send box.
   useEffect(() => {
-    if (options?.skipWarmup) return;
+    if (options?.skipWarmup && !options.prepareRuntime) return;
     let cancelled = false;
-    void ensureConversationRuntime(conversation_id)
+    const runtimeReady = options?.prepareRuntime?.() ?? ensureConversationRuntime(conversation_id);
+    void runtimeReady
       .then(() => {
         if (cancelled) return;
         return fetchAcpSlashCommands(conversation_id);
@@ -573,7 +577,7 @@ export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: 
     return () => {
       cancelled = true;
     };
-  }, [conversation_id, options?.skipWarmup]);
+  }, [conversation_id, options?.prepareRuntime, options?.skipWarmup]);
 
   const resetState = useCallback(() => {
     turnFinishedRef.current = true;
@@ -589,14 +593,15 @@ export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: 
   }, []);
 
   const fetchSlashCommands = useCallback(() => {
-    void ensureConversationRuntime(conversation_id)
+    const runtimeReady = options?.prepareRuntime?.() ?? ensureConversationRuntime(conversation_id);
+    void runtimeReady
       .then(() => fetchAcpSlashCommands(conversation_id))
       .then((commands) => {
         if (!commands.length) return;
         setSlashCommands(commands);
       })
       .catch(() => {});
-  }, [conversation_id]);
+  }, [conversation_id, options?.prepareRuntime]);
 
   return {
     thought,

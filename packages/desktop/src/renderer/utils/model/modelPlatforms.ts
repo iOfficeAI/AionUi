@@ -143,7 +143,9 @@ export const MODEL_PLATFORMS: PlatformConfig[] = [
     value: 'Dashscope-Coding',
     logo: buildLogoAssetUrl('ai-china/qwen.svg'),
     platform: 'custom',
-    base_url: 'https://coding.dashscope.aliyuncs.com/v1',
+    // Base URL intentionally left unset — users must supply their own coding-plan
+    // endpoint, so the add-model form should not pre-fill a default.
+    base_url: '',
   },
   {
     name: 'SiliconFlow-CN',

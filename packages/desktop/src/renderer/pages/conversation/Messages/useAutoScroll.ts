@@ -54,6 +54,7 @@ export function useAutoScroll({ messages, itemCount }: UseAutoScrollOptions): Us
   const userScrolledRef = useRef(false);
   const lastScrollTopRef = useRef(0);
   const previousListLengthRef = useRef(messages.length);
+  const previousLastMessageRef = useRef<TMessage | undefined>(messages[messages.length - 1]);
   const lastProgrammaticScrollTimeRef = useRef(0);
   const initialScrollDoneRef = useRef(false);
   const pendingAutoFollowFrameRef = useRef<number | null>(null);
@@ -201,13 +202,25 @@ export function useAutoScroll({ messages, itemCount }: UseAutoScrollOptions): Us
   useEffect(() => {
     const currentListLength = messages.length;
     const previousLength = previousListLengthRef.current;
-    const isNewMessage = currentListLength > previousLength;
-    previousListLengthRef.current = currentListLength;
-
-    if (!isNewMessage) return;
-
     const lastMessage = messages[messages.length - 1];
-    if (lastMessage?.position !== 'right') return;
+    const previousLastMessage = previousLastMessageRef.current;
+    const isNewMessage = currentListLength > previousLength;
+    const isLastMessageUpdated = currentListLength > 0 && lastMessage !== previousLastMessage;
+
+    previousListLengthRef.current = currentListLength;
+    previousLastMessageRef.current = lastMessage;
+
+    if (!isNewMessage) {
+      if (isLastMessageUpdated) {
+        scheduleAutoFollow();
+      }
+      return;
+    }
+
+    if (lastMessage?.position !== 'right') {
+      scheduleAutoFollow();
+      return;
+    }
 
     userScrolledRef.current = false;
     requestAnimationFrame(() => {
@@ -215,7 +228,7 @@ export function useAutoScroll({ messages, itemCount }: UseAutoScrollOptions): Us
         scrollToBottom('auto');
       });
     });
-  }, [messages, scrollToBottom]);
+  }, [messages, scheduleAutoFollow, scrollToBottom]);
 
   useEffect(() => {
     return () => {

@@ -48,6 +48,7 @@ export const formatMessageTime = (timestamp: number): string => {
 import MessageCronBadge from './MessageCronBadge';
 import { resolveAgentLogo, useAgentLogos } from '@/renderer/utils/model/agentLogo';
 import TeammateMessageAvatar from './TeammateMessageAvatar';
+import { useTeammateColor } from '@/renderer/pages/team/identity/TeamIdentityContext';
 
 const CODE_STYLE = { marginTop: 4, marginBlock: 4 };
 
@@ -166,6 +167,8 @@ const MessageText: React.FC<{ message: IMessageText; showCopyRow?: boolean }> = 
   const senderAgentType = message.content.senderAgentType;
   const senderConversationId = message.content.senderConversationId;
   const fallbackBackendLogo = senderAgentType ? resolveAgentLogo(logos, { backend: senderAgentType }) : null;
+  // 团队 teammate 消息：按发送者会话取身份色，做气泡左色条 + 彩色发送者名；非团队场景为 undefined。
+  const teammateColor = useTeammateColor(isTeammateMessage ? senderConversationId : undefined);
 
   return (
     <>
@@ -178,7 +181,12 @@ const MessageText: React.FC<{ message: IMessageText; showCopyRow?: boolean }> = 
               senderConversationId={senderConversationId}
               backendLogo={fallbackBackendLogo}
             />
-            <span className='text-12px text-t-secondary'>{senderName}</span>
+            <span
+              className='text-12px'
+              style={teammateColor ? { color: teammateColor } : { color: 'var(--text-secondary)' }}
+            >
+              {senderName}
+            </span>
           </div>
         )}
         {files.length > 0 && (
@@ -206,7 +214,10 @@ const MessageText: React.FC<{ message: IMessageText; showCopyRow?: boolean }> = 
             ...(isUserMessage || cronMeta
               ? { borderRadius: '8px 0 8px 8px', color: 'var(--text-primary)' }
               : isTeammateMessage
-                ? { borderRadius: '0 8px 8px 8px' }
+                ? {
+                    borderRadius: '0 8px 8px 8px',
+                    ...(teammateColor ? { borderLeft: `3px solid ${teammateColor}` } : {}),
+                  }
                 : undefined),
           }}
         >

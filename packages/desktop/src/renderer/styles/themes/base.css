@@ -17,6 +17,18 @@ body,
   min-width: var(--app-min-width); /* prevent layout collapse on very small screens */
 }
 
+/*
+ * icon-park 图标修正：其外层 `span.i-icon` 默认为 inline，SVG 按文字基线排布、
+ * 底部留基线间隙，导致图标视觉整体偏上（尤其在 flex 容器里与文字/其它元素并排时）。
+ * 统一改为居中的 inline-flex，让图标真正垂直居中，不再上飘。全局一处修，治本。
+ */
+.i-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+}
+
 .loading {
   animation: loading 1s linear infinite;
 }
@@ -64,6 +76,41 @@ body,
   100% {
     transform: rotate(360deg);
   }
+}
+
+/* 团队 warmup 进度条：无确定进度时来回扫动 */
+@keyframes team-warmup-sweep {
+  0% {
+    width: 20%;
+    margin-left: 0;
+  }
+  50% {
+    width: 60%;
+    margin-left: 40%;
+  }
+  100% {
+    width: 20%;
+    margin-left: 0;
+  }
+}
+
+.team-warmup-sweep {
+  animation: team-warmup-sweep 1.4s ease-in-out infinite;
+}
+
+/* 团队 warmup 头像「唤醒中」：pending 成员轻柔呼吸 */
+@keyframes team-warmup-breathe {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 0.9;
+  }
+}
+
+.team-warmup-breathe {
+  animation: team-warmup-breathe 1.6s ease-in-out infinite;
 }
 
 .collapsed {

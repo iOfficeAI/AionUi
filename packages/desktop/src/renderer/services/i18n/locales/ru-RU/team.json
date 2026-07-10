@@ -21,19 +21,27 @@
   "noMessages": "Пока нет сообщений.",
   "agentNotConfigured": "Ассистент ещё не настроен.",
   "stopAgentFailed": "Не удалось остановить этого ассистента. Повторите попытку.",
+  "work": {
+    "processingWithQueued": "Обработка… в очереди: {{count}}",
+    "queued": "В очереди: {{count}}",
+    "runtimeStarting": "Ожидание запуска участника…",
+    "runtimeFailed": "Не удалось запустить участника.",
+    "removing": "Удаление участника…",
+    "sessionStopped": "Сеанс команды остановлен."
+  },
   "sendBox": {
     "placeholder": "Сообщение ассистенту-лидеру команды..."
   },
   "create": {
-    "title": "Создать команду",
+    "title": "New Team",
     "namePlaceholder": "Название команды",
     "dispatchAgentPlaceholder": "Выбрать лидера команды",
     "subAgentsPlaceholder": "Выбрать ассистентов команды",
-    "confirm": "Создать команду",
+    "confirm": "Confirm Create",
     "noSupportedAgents": "Нет доступных поддерживаемых ассистентов",
     "supportedAgentsHint": "Сейчас поддерживаются ассистенты Claude и Aion CLI. Другие ассистенты появятся позже.",
     "leaderDesc": "Понимает ваши цели и координирует ассистентов для выполнения задач",
-    "searchPlaceholder": "Поиск ассистентов...",
+    "searchPlaceholder": "Search",
     "noSearchResults": "Ничего не найдено",
     "step": {
       "dispatch": "Лидер команды",
@@ -42,21 +50,69 @@
     },
     "nameRequired": "Введите название команды",
     "leaderRequired": "Выберите лидера команды",
-    "selectFolder": "Выбрать папку",
+    "selectFolder": "Select folder",
     "recentLabel": "Недавние",
     "chooseDifferentFolder": "Выбрать другую папку",
-    "error": "Не удалось создать команду"
+    "error": "Не удалось создать команду",
+    "selectedMembers": "Selected members",
+    "teamLeader": "Team Leader",
+    "currentLeader": "Current Leader",
+    "setAsLeader": "Set as Leader",
+    "teammate": "Teammate",
+    "selectAtLeastOneMember": "Select at least one assistant as the Team Leader.",
+    "selectOneLeader": "Select one Team Leader",
+    "subtitle": "Let multiple AI assistants team up and collaborate. We suggest one team focuses on a single goal — create separate teams for different tasks.",
+    "nameLabel": "Team name",
+    "workspaceLabel": "Workspace",
+    "allAssistantsWithCount": "All assistants ({{count}})",
+    "selectedMembersWithCount": "Selected members {{count}} · ⚑ = Leader",
+    "selectedMembersTitleWithCount": "Selected members {{count}}",
+    "leaderLegend": "= Leader",
+    "membersHelper": "Choose team members and assign one Leader. The same assistant can be selected multiple times.",
+    "memberHint": "No suitable assistant as a member? After creation, let the Leader create temporary team members in chat."
   },
   "removeAgent": {
     "confirmTitle": "Удалить участника команды",
-    "confirmContent": "Этот участник сейчас активен. Принудительно удалить?"
+    "confirmContent": "Remove this member from the team?",
+    "confirmContentActive": "This member is working. Remove it anyway? Its current work will be interrupted."
   },
   "emptyState": {
     "subtitle": "Расскажите о своей цели — я скоординирую команду для её достижения",
     "suggestions": {
       "debate": "Организовать дебаты между ассистентами с разными позициями",
       "interview": "Спланировать глубокое интервью между ассистентами",
-      "expert_review": "Несколько экспертов анализируют одну проблему"
-    }
+      "expert_review": "Несколько экспертов анализируют одну проблему",
+      "add_member": "Help me add a member good at ___ to the team"
+    },
+    "leaderGreeting": "Hi, I'm the Leader. I understand your goal and coordinate the team — describe what you want and I'll arrange it.",
+    "memberGreeting": "Hi, I'm a team member. I take direction from the Leader and you."
+  },
+  "addMember": {
+    "title": "Add member",
+    "subtitle": "The same assistant can be added repeatedly",
+    "searchAssistants": "Search assistants...",
+    "addFailed": "Failed to add member",
+    "noSearchResults": "No results found",
+    "tellLeaderHint": "Not a good fit? You can also ask the Leader to arrange it.",
+    "tellLeaderCta": "Tell the Leader →",
+    "tellLeaderPrefill": "Help me add a member good at ___ to the team"
+  },
+  "view": {
+    "label": "View",
+    "parallel": "Parallel",
+    "single": "Single"
+  },
+  "warmup": {
+    "title": "Waking up the team…",
+    "subtitle": "Подготовка участников",
+    "memberFailedTitle": "Member {{name}} failed to start",
+    "leaderFailedTitle": "Lead {{name}} failed to start",
+    "genericFailedTitle": "The team could not start",
+    "multiFailedTitle": "{{count}} members failed to start",
+    "leaderSuffix": " (Lead)",
+    "unknownError": "failed to start",
+    "memberFailedHint": "Switch its model above, or remove it from the bar on top, then retry.",
+    "leaderFailedHint": "Switch its model above, then retry.",
+    "retry": "Retry"
   }
 }

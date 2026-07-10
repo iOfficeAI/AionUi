@@ -59,7 +59,10 @@ const AcpChat: React.FC<{
   useMessageLstCache(conversation_id);
   usePendingConfirmationsRecovery(conversation_id);
   const teamPermission = useTeamPermission();
-  const messageState = useAcpMessage(conversation_id, { skipWarmup: Boolean(teamPermission) });
+  const messageState = useAcpMessage(conversation_id, {
+    skipWarmup: Boolean(teamPermission),
+    prepareRuntime: teamPermission?.warmupSession,
+  });
 
   return (
     <ConversationProvider

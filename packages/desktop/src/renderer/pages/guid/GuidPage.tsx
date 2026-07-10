@@ -579,6 +579,15 @@ const GuidPage: React.FC = () => {
       files={guidInput.files}
       onFilesUploaded={guidInput.handleFilesUploaded}
       modelSelectorNode={modelSelectorNode}
+      isGeminiMode={isGeminiMode}
+      modelList={modelSelection.modelList}
+      current_model={modelSelection.current_model}
+      setCurrentModel={setGuidCurrentModel}
+      currentAcpCachedModelInfo={agentSelection.currentAcpCachedModelInfo}
+      selectedAcpModel={agentSelection.selectedAcpModel}
+      setSelectedAcpModel={setGuidSelectedAcpModel}
+      thoughtLevelOption={isGeminiMode ? null : agentSelection.currentThoughtLevelOption}
+      onThoughtLevelSelect={setGuidSelectedThoughtLevel}
       modeBackend={agentSelection.selectedAssistantBackend}
       selectedMode={agentSelection.selectedMode}
       dynamicModes={agentSelection.currentAgentModeOptions}

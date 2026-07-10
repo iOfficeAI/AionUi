@@ -547,7 +547,8 @@
       "loaded": "Geladen",
       "failed": "Fehlgeschlagen",
       "unsupported": "Nicht unterstützt"
-    }
+    },
+    "selected": "Ausgewählte MCP"
   },
   "runtimePreparing": {
     "sendboxHint": "Laufzeit-Umgebung wird vorbereitet. Der erste Start kann etwas länger dauern."

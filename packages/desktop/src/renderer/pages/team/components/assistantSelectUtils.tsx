@@ -13,7 +13,7 @@ export type TeamAssistantOption = {
   /** Avatar token — a backend-resolved URL or an emoji. */
   icon?: string;
   /** Whether this assistant can currently be used in team mode. */
-  team_capable?: boolean;
+  team_selectable?: boolean;
   /** Why this assistant cannot currently be used in team mode. */
   team_block_reason?: string;
 };
@@ -24,7 +24,7 @@ export function assistantToOption(assistant: Assistant, localeKey = 'en-US'): Te
     name: resolveAssistantName(assistant, localeKey, assistant.name),
     backend: assistantRuntimeKey(assistant),
     icon: assistant.avatar,
-    team_capable: assistant.team_selectable,
+    team_selectable: assistant.team_selectable,
     team_block_reason: assistant.team_block_reason,
   };
 }
@@ -45,18 +45,51 @@ export function filterTeamSupportedAssistants(assistants: TeamAssistantOption[])
   return assistants;
 }
 
-export const AssistantOptionLabel: React.FC<{ assistant: TeamAssistantOption }> = ({ assistant }) => {
+type AssistantOptionLabelProps = {
+  assistant: TeamAssistantOption;
+  size?: 'compact' | 'large';
+  muted?: boolean;
+};
+
+export const AssistantOptionLabel: React.FC<AssistantOptionLabelProps> = ({
+  assistant,
+  size = 'compact',
+  muted = false,
+}) => {
   const avatar = resolveAssistantAvatar(assistant.icon);
+  const isLarge = size === 'large';
+  const iconSize = isLarge ? 18 : 16;
+  const avatarToneClass = muted ? 'bg-fill-1 text-t-tertiary opacity-75' : 'bg-fill-2 text-t-primary';
+  const avatarClass = isLarge
+    ? `flex h-30px w-30px shrink-0 items-center justify-center rounded-8px ${avatarToneClass}`
+    : `flex h-32px w-32px shrink-0 items-center justify-center rounded-8px ${avatarToneClass}`;
+  const nameClass = muted ? 'text-t-tertiary' : 'text-t-primary';
+  const avatarNode =
+    avatar.kind === 'image' ? (
+      <img
+        src={avatar.value}
+        alt={assistant.name}
+        style={{ width: iconSize, height: iconSize, objectFit: 'contain' }}
+      />
+    ) : avatar.kind === 'emoji' ? (
+      <span style={{ fontSize: isLarge ? 18 : 14, lineHeight: `${iconSize}px` }}>{avatar.value}</span>
+    ) : (
+      <Robot size={String(iconSize)} />
+    );
+
   return (
-    <div className='flex items-center gap-8px'>
-      {avatar.kind === 'image' ? (
-        <img src={avatar.value} alt={assistant.name} style={{ width: 16, height: 16, objectFit: 'contain' }} />
-      ) : avatar.kind === 'emoji' ? (
-        <span style={{ fontSize: 14, lineHeight: '16px' }}>{avatar.value}</span>
-      ) : (
-        <Robot size='16' />
-      )}
-      <span>{assistant.name}</span>
+    <div className={isLarge ? 'flex min-w-0 items-center gap-12px' : 'flex min-w-0 items-center gap-8px'}>
+      <span className={avatarClass} data-testid='assistant-avatar'>
+        {avatarNode}
+      </span>
+      <span
+        data-testid='assistant-option-name'
+        className={
+          isLarge ? `min-w-0 truncate text-14px font-500 leading-21px ${nameClass}` : `min-w-0 truncate ${nameClass}`
+        }
+      >
+        {assistant.name}
+      </span>
     </div>
   );
 };

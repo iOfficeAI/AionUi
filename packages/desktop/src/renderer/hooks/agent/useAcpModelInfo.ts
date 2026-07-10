@@ -7,7 +7,12 @@
 import { ipcBridge } from '@/common';
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 import type { AcpConfigOptionDto, AcpModelInfo } from '@/common/types/platform/acpTypes';
-import { type AcpConfigSetStatus, type AcpDerivedOption, useAcpConfigOptions } from './useAcpConfigOptions';
+import {
+  type AcpConfigOptionsLoader,
+  type AcpConfigSetStatus,
+  type AcpDerivedOption,
+  useAcpConfigOptions,
+} from './useAcpConfigOptions';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 type UseAcpModelInfoArgs = {
@@ -15,6 +20,8 @@ type UseAcpModelInfoArgs = {
   backend?: string;
   initialModelId?: string;
   prepareRuntime?: () => Promise<void>;
+  prepareSetRuntime?: () => Promise<void>;
+  loadConfigOptions?: AcpConfigOptionsLoader;
   enabled?: boolean;
   onSelectModelSuccess?: (model_id: string) => void;
   onSelectModelFailed?: (model_id: string, error: unknown) => void;
@@ -23,6 +30,7 @@ type UseAcpModelInfoArgs = {
 export type UseAcpModelInfoResult = {
   model_info: AcpModelInfo | null;
   canSwitch: boolean;
+  isLoading: boolean;
   isSetting: boolean;
   selectModel: (model_id: string) => void;
   thoughtLevel: AcpDerivedOption | null;
@@ -60,13 +68,17 @@ export const useAcpModelInfo = ({
   backend: _backend,
   initialModelId,
   prepareRuntime,
+  prepareSetRuntime,
+  loadConfigOptions,
   enabled = true,
   onSelectModelSuccess,
   onSelectModelFailed,
 }: UseAcpModelInfoArgs): UseAcpModelInfoResult => {
-  const { model, thoughtLevel, setStatus, setConfigOption } = useAcpConfigOptions({
+  const { model, thoughtLevel, setStatus, setConfigOption, isLoading } = useAcpConfigOptions({
     conversation_id,
     prepareRuntime,
+    prepareSetRuntime,
+    loadConfigOptions,
     enabled,
   });
   const [legacyModelInfo, setLegacyModelInfo] = useState<AcpModelInfo | null>(null);
@@ -84,6 +96,14 @@ export const useAcpModelInfo = ({
       })),
     };
   }, [initialModelId, model]);
+  const persistedModelInfo = useMemo<AcpModelInfo | null>(() => {
+    if (!initialModelId) return null;
+    return {
+      current_model_id: initialModelId,
+      current_model_label: initialModelId,
+      available_models: [],
+    };
+  }, [initialModelId]);
 
   useEffect(() => {
     if (!enabled) {
@@ -112,7 +132,7 @@ export const useAcpModelInfo = ({
     return ipcBridge.acpConversation.responseStream.on(handler);
   }, [conversation_id, enabled, initialModelId]);
 
-  const model_info = configModelInfo ?? legacyModelInfo;
+  const model_info = configModelInfo ?? legacyModelInfo ?? persistedModelInfo;
 
   const selectModel = useCallback(
     (model_id: string) => {
@@ -131,6 +151,7 @@ export const useAcpModelInfo = ({
   return {
     model_info,
     canSwitch: Boolean(configModelInfo && configModelInfo.available_models.length > 0),
+    isLoading: !model_info && isLoading,
     isSetting: setStatus.state === 'setting' && setStatus.optionId === model?.id,
     selectModel,
     thoughtLevel,

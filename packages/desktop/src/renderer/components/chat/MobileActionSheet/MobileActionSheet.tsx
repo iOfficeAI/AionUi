@@ -111,6 +111,11 @@ const MobileActionSheet: React.FC<MobileActionSheetProps> = ({ open, onClose, ti
   const handleSubSelect = (key: string) => {
     if (!activeSub) return;
     activeSub.onSelect(key);
+    // Multi-select (skills / MCP on the home page): toggle and stay so the user
+    // can pick several in a row.
+    if (activeSub.multiSelect) {
+      return;
+    }
     // For settings (model, permission) the user expects to see the new value
     // reflected on the main pane, so we slide back instead of dismissing the
     // sheet. For non-selectable submenus (skills, attach) the selection is
@@ -188,7 +193,8 @@ const MobileActionSheet: React.FC<MobileActionSheetProps> = ({ open, onClose, ti
                   <div className={styles.empty}>{renderedSub.emptyText}</div>
                 ) : (
                   renderedSub.options.map((option) => {
-                    const showRadio = renderedSub.selectable !== false;
+                    const showRadio = renderedSub.multiSelect !== true && renderedSub.selectable !== false;
+                    const showCheckbox = renderedSub.multiSelect === true;
                     return (
                       <div
                         key={option.key}
@@ -203,6 +209,12 @@ const MobileActionSheet: React.FC<MobileActionSheetProps> = ({ open, onClose, ti
                         {showRadio && (
                           <div
                             className={`${styles.radio} ${option.active ? styles.checked : ''}`}
+                            aria-hidden='true'
+                          />
+                        )}
+                        {showCheckbox && (
+                          <div
+                            className={`${styles.checkbox} ${option.active ? styles.checkboxChecked : ''}`}
                             aria-hidden='true'
                           />
                         )}

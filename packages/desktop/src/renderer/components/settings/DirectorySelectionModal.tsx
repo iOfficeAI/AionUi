@@ -4,12 +4,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Button, Modal, Spin } from '@arco-design/web-react';
+import { Button, Spin } from '@arco-design/web-react';
 import { IconFile, IconFolder, IconUp } from '@arco-design/web-react/icon';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getBaseUrl } from '@/common/adapter/httpBridge';
 import { stripWindowsVerbatimPrefix } from '@/renderer/utils/file/fileSelection';
+import AionModal from '@/renderer/components/base/AionModal';
 
 interface DirectoryItem {
   name: string;
@@ -139,9 +140,13 @@ const DirectorySelectionModal: React.FC<DirectorySelectionModalProps> = ({
     // This picker is opened *from* other modals (team/cron create dialogs sit at
     // zIndex 10000, the cron workspace menu at 10020), so it must float above all
     // of them — it's the topmost layer while choosing a folder.
-    <Modal
+    <AionModal
+      variant='standard'
       visible={visible}
-      title={isFileMode ? '📄 ' + t('fileSelection.selectFile') : '📁 ' + t('fileSelection.selectDirectory')}
+      header={{
+        title: isFileMode ? '📄 ' + t('fileSelection.selectFile') : '📁 ' + t('fileSelection.selectDirectory'),
+        showClose: true,
+      }}
       onCancel={onCancel}
       onOk={handleConfirm}
       okButtonProps={{ disabled: !selectedPath }}
@@ -149,24 +154,34 @@ const DirectorySelectionModal: React.FC<DirectorySelectionModalProps> = ({
       style={{ width: 'min(600px, 90vw)' }}
       wrapStyle={{ zIndex: 10050 }}
       maskStyle={{ zIndex: 10040 }}
-      footer={
-        <div className='w-full flex justify-between items-center'>
-          <div
-            className='text-t-secondary text-14px overflow-hidden text-ellipsis whitespace-nowrap max-w-[70vw]'
-            title={selectedPath || currentPath}
-          >
-            {selectedPath ||
-              currentPath ||
-              (isFileMode ? t('fileSelection.pleaseSelectFile') : t('fileSelection.pleaseSelectDirectory'))}
+      footer={{
+        render: () => (
+          <div className='w-full flex justify-between items-center'>
+            <div
+              className='text-t-secondary text-14px overflow-hidden text-ellipsis whitespace-nowrap max-w-[70vw]'
+              title={selectedPath || currentPath}
+            >
+              {selectedPath ||
+                currentPath ||
+                (isFileMode ? t('fileSelection.pleaseSelectFile') : t('fileSelection.pleaseSelectDirectory'))}
+            </div>
+            <div className='flex gap-10px'>
+              <Button onClick={onCancel} className='px-20px min-w-80px' style={{ borderRadius: 8 }}>
+                {t('common.cancel')}
+              </Button>
+              <Button
+                type='primary'
+                onClick={handleConfirm}
+                disabled={!selectedPath}
+                className='px-20px min-w-80px'
+                style={{ borderRadius: 8 }}
+              >
+                {t('common.confirm')}
+              </Button>
+            </div>
           </div>
-          <div className='flex gap-10px'>
-            <Button onClick={onCancel}>{t('common.cancel')}</Button>
-            <Button type='primary' onClick={handleConfirm} disabled={!selectedPath}>
-              {t('common.confirm')}
-            </Button>
-          </div>
-        </div>
-      }
+        ),
+      }}
     >
       <Spin loading={loading} className='w-full'>
         <div className='w-full border border-b-base rd-4px overflow-hidden' style={{ height: 'min(400px, 60vh)' }}>
@@ -221,7 +236,7 @@ const DirectorySelectionModal: React.FC<DirectorySelectionModalProps> = ({
           </div>
         </div>
       </Spin>
-    </Modal>
+    </AionModal>
   );
 };
 

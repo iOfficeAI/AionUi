@@ -4,9 +4,31 @@ import type { TChatConversation } from '@/common/config/storage';
 import type { TTeam } from '@/common/types/team/teamTypes';
 import { useTeamSession } from '@/renderer/pages/team/hooks/useTeamSession';
 
-const { getConversationOrNullMock, eventChannel } = vi.hoisted(() => ({
-  getConversationOrNullMock: vi.fn(),
-  eventChannel: { on: vi.fn(() => () => {}) },
+const {
+  getConversationOrNullMock,
+  revalidateAcpConfigOptionsMock,
+  teamEventHandlers,
+  makeTeamEventChannel,
+  eventChannel,
+} = vi.hoisted(() => {
+  const handlers: Record<string, unknown> = {};
+  const makeChannel = (name: string) => ({
+    on: vi.fn((handler: unknown) => {
+      handlers[name] = handler;
+      return vi.fn();
+    }),
+  });
+  return {
+    getConversationOrNullMock: vi.fn(),
+    revalidateAcpConfigOptionsMock: vi.fn(),
+    teamEventHandlers: handlers,
+    makeTeamEventChannel: makeChannel,
+    eventChannel: makeChannel('shared'),
+  };
+});
+
+vi.mock('@/renderer/hooks/agent/useAcpConfigOptions', () => ({
+  revalidateAcpConfigOptions: (...args: unknown[]) => revalidateAcpConfigOptionsMock(...args),
 }));
 
 vi.mock('@/common', () => ({
@@ -23,7 +45,8 @@ vi.mock('@/common', () => ({
       agentSpawned: eventChannel,
       agentRemoved: eventChannel,
       agentRenamed: eventChannel,
-      mcpStatus: eventChannel,
+      agentRuntimeStatusChanged: makeTeamEventChannel('agentRuntimeStatusChanged'),
+      sessionStatusChanged: eventChannel,
       taskChanged: eventChannel,
       sessionChanged: eventChannel,
     },
@@ -39,6 +62,9 @@ import { ipcBridge } from '@/common';
 describe('useTeamSession cron cleanup', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    for (const key of Object.keys(teamEventHandlers)) {
+      delete teamEventHandlers[key];
+    }
     vi.mocked(ipcBridge.team.get.invoke).mockResolvedValue(team());
     vi.mocked(ipcBridge.team.removeAgent.invoke).mockResolvedValue(undefined);
     vi.mocked(ipcBridge.cron.removeJob.invoke).mockResolvedValue(undefined);
@@ -59,6 +85,43 @@ describe('useTeamSession cron cleanup', () => {
     expect(vi.mocked(ipcBridge.cron.removeJob.invoke).mock.invocationCallOrder[0]).toBeLessThan(
       vi.mocked(ipcBridge.team.removeAgent.invoke).mock.invocationCallOrder[0]
     );
+  });
+
+  it('refreshes runtime config options when a current team agent runtime becomes ready', () => {
+    renderHook(() => useTeamSession(team()));
+    const handler = teamEventHandlers.agentRuntimeStatusChanged as
+      | ((event: { team_id: string; conversation_id: string; status: string }) => void)
+      | undefined;
+
+    expect(handler).toBeTypeOf('function');
+
+    act(() => {
+      handler?.({ team_id: 'other-team', conversation_id: 'other-conv', status: 'ready' });
+      handler?.({ team_id: 'team-1', conversation_id: 'member-conv', status: 'pending' });
+      handler?.({ team_id: 'team-1', conversation_id: 'member-conv', status: 'ready' });
+    });
+
+    expect(revalidateAcpConfigOptionsMock).toHaveBeenCalledTimes(1);
+    expect(revalidateAcpConfigOptionsMock).toHaveBeenCalledWith('member-conv');
+  });
+
+  it('clears membership busy state when warmup reaches a terminal phase', () => {
+    const { result, rerender } = renderHook(({ warmupPhase }) => useTeamSession(team(), warmupPhase), {
+      initialProps: { warmupPhase: 'warming' as const },
+    });
+    const handler = teamEventHandlers.agentRuntimeStatusChanged as
+      | ((event: { team_id: string; slot_id: string; conversation_id: string; status: string }) => void)
+      | undefined;
+
+    act(() => {
+      handler?.({ team_id: 'team-1', slot_id: 'member-slot', conversation_id: 'member-conv', status: 'pending' });
+    });
+
+    expect(result.current.membershipMutationBusy).toBe(true);
+
+    rerender({ warmupPhase: 'ready' });
+
+    expect(result.current.membershipMutationBusy).toBe(false);
   });
 });
 

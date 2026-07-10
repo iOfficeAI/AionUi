@@ -20,6 +20,7 @@ const { messageSuccessMock, messageErrorMock, useAcpModelInfoMock } = vi.hoisted
 type MockAcpModelInfoResult = {
   model_info: AcpModelInfo | null;
   canSwitch: boolean;
+  isLoading: boolean;
   isSetting: boolean;
   selectModel: (modelId: string) => void;
   thoughtLevel: AcpDerivedOption | null;
@@ -49,6 +50,7 @@ const thoughtLevel: AcpDerivedOption = {
 const makeResult = (overrides: Partial<MockAcpModelInfoResult> = {}): MockAcpModelInfoResult => ({
   model_info: modelInfo,
   canSwitch: true,
+  isLoading: false,
   isSetting: false,
   selectModel: vi.fn(),
   thoughtLevel,
@@ -184,6 +186,36 @@ describe('AcpModelSelector runtime options', () => {
     render(<AcpModelSelector conversation_id='conversation-1' backend='codex' />);
 
     expect(screen.getByTestId('acp-model-selector')).toHaveTextContent('GPT-5.2 · High');
+  });
+
+  it('shows a plain loading slot while runtime config is initializing', () => {
+    useAcpModelInfoMock.mockReturnValue(makeResult({ model_info: null, canSwitch: false, isLoading: true }));
+
+    render(<AcpModelSelector conversation_id='conversation-1' backend='codex' />);
+
+    const slot = screen.getByTestId('acp-model-selector-loading');
+    expect(screen.getByTestId('runtime-selector-loading-indicator')).toBeInTheDocument();
+    expect(screen.getByTestId('runtime-selector-loading-spinner')).toBeInTheDocument();
+    expect(slot.tagName).toBe('DIV');
+    expect(screen.queryByTestId('acp-model-selector')).not.toBeInTheDocument();
+    expect(slot).not.toHaveTextContent('Use CLI model');
+    expect(slot.closest('[data-tooltip-content]')).toBeNull();
+  });
+
+  it('passes team runtime preparation through to model info loading', () => {
+    const prepareRuntime = vi.fn().mockResolvedValue(undefined);
+
+    render(<AcpModelSelector conversation_id='conversation-1' backend='codex' prepareRuntime={prepareRuntime} />);
+
+    expect(useAcpModelInfoMock).toHaveBeenCalledWith(expect.objectContaining({ prepareRuntime }));
+  });
+
+  it('passes set-only runtime preparation through to model info loading', () => {
+    const prepareSetRuntime = vi.fn().mockResolvedValue(undefined);
+
+    render(<AcpModelSelector conversation_id='conversation-1' backend='codex' prepareSetRuntime={prepareSetRuntime} />);
+
+    expect(useAcpModelInfoMock).toHaveBeenCalledWith(expect.objectContaining({ prepareSetRuntime }));
   });
 
   it('shows the model submenu before the thought level submenu, each with its current value', () => {

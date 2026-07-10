@@ -1,4 +1,9 @@
+import { ipcBridge } from '@/common';
 import { uuid } from '@/common/utils';
+import {
+  getConversationRuntimeViewSnapshot,
+  turnCompleted,
+} from '@/renderer/pages/conversation/runtime/conversationRuntimeViewStore';
 import { useAddEventListener } from '@/renderer/utils/emitter';
 import { Message } from '@arco-design/web-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -360,6 +365,136 @@ type UseConversationCommandQueueOptions = {
 
 type EnqueueCommandInput = Pick<ConversationCommandQueueItem, 'input' | 'files'>;
 type UpdateCommandInput = Pick<ConversationCommandQueueItem, 'input'>;
+type BackgroundCommandQueueRunner = {
+  conversation_id: string;
+  active: boolean;
+  executing: boolean;
+  onExecute: (item: ConversationCommandQueueItem) => Promise<void>;
+};
+
+const backgroundRunners = new Map<string, BackgroundCommandQueueRunner>();
+let backgroundTurnCompletedUnsubscribe: (() => void) | null = null;
+
+const ensureBackgroundTurnCompletedListener = (): void => {
+  if (backgroundTurnCompletedUnsubscribe) {
+    return;
+  }
+
+  backgroundTurnCompletedUnsubscribe = ipcBridge.conversation.turnCompleted.on((event) => {
+    const runner = backgroundRunners.get(event.session_id);
+    if (!runner || runner.active) {
+      return;
+    }
+
+    turnCompleted(event.session_id, event.turn_id, event.runtime);
+    void drainBackgroundCommandQueue(runner);
+  });
+};
+
+const releaseBackgroundTurnCompletedListener = (): void => {
+  if (backgroundRunners.size > 0) {
+    return;
+  }
+
+  backgroundTurnCompletedUnsubscribe?.();
+  backgroundTurnCompletedUnsubscribe = null;
+};
+
+const registerBackgroundCommandQueueRunner = (
+  runner: Omit<BackgroundCommandQueueRunner, 'active' | 'executing'>
+): void => {
+  const existing = backgroundRunners.get(runner.conversation_id);
+  backgroundRunners.set(runner.conversation_id, {
+    ...runner,
+    active: true,
+    executing: existing?.executing ?? false,
+  });
+  ensureBackgroundTurnCompletedListener();
+};
+
+const detachBackgroundCommandQueueRunner = (conversation_id: string): void => {
+  const runner = backgroundRunners.get(conversation_id);
+  if (!runner) {
+    return;
+  }
+
+  const state = readPersistedQueueState(conversation_id);
+  if (state.items.length === 0 || state.isPaused || state.mode === 'manual') {
+    backgroundRunners.delete(conversation_id);
+    releaseBackgroundTurnCompletedListener();
+    return;
+  }
+
+  runner.active = false;
+  void drainBackgroundCommandQueue(runner);
+};
+
+const drainBackgroundCommandQueue = async (runner: BackgroundCommandQueueRunner): Promise<void> => {
+  if (runner.active || runner.executing) {
+    return;
+  }
+
+  const runtimeView = getConversationRuntimeViewSnapshot(runner.conversation_id);
+  const state = readPersistedQueueState(runner.conversation_id);
+  if (state.items.length === 0) {
+    backgroundRunners.delete(runner.conversation_id);
+    releaseBackgroundTurnCompletedListener();
+    return;
+  }
+
+  if (state.isPaused || state.mode === 'manual') {
+    return;
+  }
+
+  if (!runtimeView.hydrated || !runtimeView.canSendMessage || runtimeView.isProcessing) {
+    return;
+  }
+
+  const currentState = readPersistedQueueState(runner.conversation_id);
+  const [nextCommand, ...remainingCommands] = currentState.items;
+  if (!nextCommand) {
+    backgroundRunners.delete(runner.conversation_id);
+    releaseBackgroundTurnCompletedListener();
+    return;
+  }
+
+  runner.executing = true;
+  logCommandQueue(runner.conversation_id, 'background-dequeued', {
+    item: summarizeQueuedCommand(nextCommand),
+    remainingItemCount: remainingCommands.length,
+  });
+  persistQueueState(runner.conversation_id, {
+    ...currentState,
+    items: remainingCommands,
+    isPaused: false,
+  });
+
+  try {
+    await runner.onExecute(nextCommand);
+  } catch (error) {
+    console.error('[conversation-command-queue] Failed to execute background queued command:', error);
+    logCommandQueue(runner.conversation_id, 'background-execute-failed', {
+      item: summarizeQueuedCommand(nextCommand),
+      error: error instanceof Error ? error.message : String(error),
+    });
+    const failedState = readPersistedQueueState(runner.conversation_id);
+    persistQueueState(runner.conversation_id, {
+      ...failedState,
+      items: restoreQueuedCommand(failedState.items, nextCommand),
+      isPaused: true,
+    });
+    Message.warning('The next queued command could not start. Edit, reorder, or remove it to continue.');
+  } finally {
+    runner.executing = false;
+    void drainBackgroundCommandQueue(runner);
+  }
+};
+
+export const resetConversationCommandQueueBackgroundRunnerForTest = (): void => {
+  backgroundRunners.clear();
+  backgroundTurnCompletedUnsubscribe?.();
+  backgroundTurnCompletedUnsubscribe = null;
+};
 
 const getQueueValidationMessage = (
   t: (key: string, options?: Record<string, unknown>) => string,
@@ -439,6 +574,17 @@ export const useConversationCommandQueue = ({
   useEffect(() => {
     interactionLockedRef.current = isInteractionLocked;
   }, [isInteractionLocked]);
+
+  useEffect(() => {
+    registerBackgroundCommandQueueRunner({
+      conversation_id,
+      onExecute,
+    });
+
+    return () => {
+      detachBackgroundCommandQueueRunner(conversation_id);
+    };
+  }, [conversation_id, onExecute]);
 
   useEffect(() => {
     if (enabled) {

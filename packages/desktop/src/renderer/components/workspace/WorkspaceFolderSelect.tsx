@@ -157,10 +157,9 @@ const WorkspaceFolderSelect: React.FC<WorkspaceFolderSelectProps> = ({
           style={{ transform: 'translateY(3px)' }}
         />
         {value ? (
-          <div className='flex min-w-0 flex-1 flex-col justify-center'>
-            <span className='text-sm leading-20px text-t-primary'>{folderName}</span>
-            <span className='truncate text-11px leading-16px text-t-tertiary'>{value}</span>
-          </div>
+          <span className='min-w-0 flex-1 truncate text-sm leading-20px text-t-primary' title={value}>
+            {folderName}
+          </span>
         ) : (
           <span className='min-w-0 flex-1 truncate text-sm leading-20px text-t-secondary'>{placeholder}</span>
         )}

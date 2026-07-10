@@ -1,0 +1,574 @@
+{
+  "welcome": {
+    "title": "Bonjour, quel est votre plan pour aujourd'hui ?",
+    "placeholder": "Envoyez un message, téléversez des fichiers, ouvrez un dossier ou créez une tâche planifiée...",
+    "linkFolder": "Ouvrir un dossier",
+    "newConversation": "Nouveau chat",
+    "selectModel": "Sélectionner un modèle",
+    "useCliModel": "Sélectionner un modèle",
+    "modelSwitchNotSupported": "La liste des modèles sera disponible après la première connexion. Envoyez un message pour vous connecter et charger les modèles disponibles.",
+    "specifyWorkspace": "Chat dans un dossier",
+    "currentWorkspace": "Espace de travail actuel",
+    "clearWorkspace": "Retirer le dossier",
+    "openFolder": "Ouvrir un dossier",
+    "none": "Aucun",
+    "quickActionsTitle": "Que peut faire AionUi ?",
+    "quickActionFeedback": "Des retours ou suggestions ?",
+    "quickActionStar": "Vous aimez ? Donnez-nous une étoile !",
+    "skillsMarket": "Marché de compétences AionUi",
+    "skillsMarketDesc": "Recherchez et activez des compétences communautaires à la demande. Configurez une fois, disponible pour tous les agents.",
+    "skillsMarketDetails": "Voir plus >>"
+  },
+  "history": {
+    "recents": "Récents",
+    "noHistory": "Aucun historique de chat",
+    "deleteTitle": "Supprimer",
+    "deleteConfirm": "Êtes-vous sûr de vouloir supprimer ce chat ?",
+    "confirmDelete": "Supprimer",
+    "cancelDelete": "Annuler",
+    "editName": "Modifier le nom",
+    "saveName": "Enregistrer",
+    "cancelEdit": "Annuler",
+    "rename": "Renommer",
+    "renameTitle": "Renommer le chat",
+    "renamePlaceholder": "Veuillez entrer un nouveau nom",
+    "renameSuccess": "Renommé avec succès",
+    "renameFailed": "Échec du renommage",
+    "batchManage": "Gestion par lot",
+    "batchModeExit": "Quitter le mode lot",
+    "selectAll": "Tout sélectionner",
+    "selectedCount": "{{count}} sélectionné(s)",
+    "batchExport": "Export par lot",
+    "batchExportConfirm": "Exporter {{count}} sujets sélectionnés ?",
+    "batchDelete": "Suppression par lot",
+    "batchDeleteConfirm": "Supprimer {{count}} sujets sélectionnés ?",
+    "batchDeleteSuccess": "{{count}} sujets supprimés",
+    "batchNoSelection": "Veuillez d'abord sélectionner des sujets",
+    "export": "Exporter",
+    "exportDialogTitle": "Exporter les sujets",
+    "exportDialogSingleDescription": "Exporter les enregistrements de conversation du sujet actuel (JSON + Markdown) et les fichiers de l'espace de travail dans un package ZIP.",
+    "exportDialogBatchDescription": "Exporter les enregistrements de conversation de {{count}} sujets sélectionnés (JSON + Markdown) et les fichiers de l'espace de travail dans un seul package ZIP.",
+    "exportTargetFolder": "Exporter vers le dossier",
+    "exportSelectFolder": "Veuillez sélectionner un dossier d'export",
+    "exportDialogHint": "La sélection du dossier suit la même interaction que la migration de l'espace de travail.",
+    "exporting": "Export en cours...",
+    "exportSuccess": "Export réussi",
+    "exportCanceled": "Export annulé",
+    "exportFailed": "Échec de l'export",
+    "pin": "Épingler",
+    "unpin": "Désépingler",
+    "pinned": "Épinglé",
+    "pinFailed": "Échec de l'épinglage",
+    "pinnedSection": "Épinglés",
+    "deleteSuccess": "Supprimé avec succès",
+    "deleteFailed": "Échec de la suppression",
+    "today": "Aujourd'hui",
+    "yesterday": "Hier",
+    "recent7Days": "7 derniers jours",
+    "earlier": "Plus tôt",
+    "projectsSection": "Projets",
+    "conversationsSection": "Conversations",
+    "removeProjectTitle": "Supprimer le projet",
+    "removeProject": "Supprimer le projet",
+    "removeProjectConfirm": "Supprimer le projet \"{{name}}\" ? Sa ou ses conversations {{count}} seront également supprimées.",
+    "newConversationInProject": "Nouveau chat dans ce projet",
+    "deleting": "Suppression..."
+  },
+  "historySearch": {
+    "tooltip": "Rechercher des messages",
+    "title": "Rechercher dans le contenu des conversations",
+    "shortTitle": "Rechercher",
+    "description": "Rechercher les messages historiques par mot-clé, charger plus en faisant défiler, et accéder au message correspondant.",
+    "placeholder": "Rechercher dans le contenu des messages...",
+    "idle": "Entrez des mots-clés pour rechercher des messages",
+    "empty": "Aucun message correspondant trouvé",
+    "loadingMore": "Chargement de plus...",
+    "untitled": "Conversation sans titre"
+  },
+  "dropdown": {
+    "cliAgents": "Agents CLI",
+    "presetAssistants": "Assistants prédéfinis"
+  },
+  "noAgentsAvailable": "Aucun agent disponible",
+  "noModelConfigured": "Aucun modèle configuré. Veuillez configurer dans les paramètres.",
+  "createFailed": "Échec de la création de la conversation",
+  "createError": {
+    "pathVariants": {
+      "WORKSPACE_PATH_UNAVAILABLE": "Le chemin de l'espace de travail sélectionné n'est pas disponible. Assurez-vous que le chemin de l'espace de travail « {{workspacePath}} » existe et est accessible."
+    },
+    "codes": {
+      "TEAM_ASSISTANT_ID_REQUIRED": "Veuillez sélectionner un assistant avant de créer l'équipe.",
+      "TEAM_ASSISTANT_NOT_FOUND": "L'assistant {{assistantId}} n'est plus disponible. Actualisez la liste des assistants et choisissez-en une autre.",
+      "TEAM_ASSISTANT_FIELD_UNSUPPORTED": "Utilisez assistant_id au lieu de {{field}}."
+    }
+  },
+  "agentError": {
+    "fallbackTitle": "L'agent n'a pas pu répondre",
+    "errorCode": "Code d'erreur",
+    "retryable": "Réessayable",
+    "notRetryable": "Configuration nécessaire",
+    "resolutionPrefix": "Suggestion:",
+    "resolution": {
+      "retry": "Réessayez plus tard ou renvoyez ce message.",
+      "wait_for_current_response": "Attendez la fin de la réponse actuelle avant d'envoyer un autre message.",
+      "start_new_session": "Démarrez une nouvelle conversation avant de continuer.",
+      "reconnect_agent": "Redémarrez ou reconnectez l'agent sélectionné, puis réessayez.",
+      "check_agent_login": "Connectez-vous à l'agent sélectionné ou actualisez ses informations d'identification.",
+      "check_agent_installation": "Vérifiez l'installation de l'agent et la configuration des commandes locales.",
+      "check_agent_version": "Vérifiez le protocole de l'agent et la compatibilité des versions.",
+      "check_local_command": "Installez la commande manquante ou confirmez qu'elle a été ajoutée à PATH.",
+      "check_provider_credentials": "Vérifiez la clé API du fournisseur de modèles ou les informations d'identification du compte dans les paramètres.",
+      "check_provider_billing": "Vérifiez le solde, les crédits ou le quota du fournisseur de modèles.",
+      "check_provider_base_url": "Vérifiez l'URL de base du fournisseur de modèles, le chemin d'accès à l'API, le proxy et la compatibilité de l'API.",
+      "change_model": "Choisissez un modèle disponible pour le compte courant et prenant en charge cette demande.",
+      "reduce_context": "Réduisez le contenu du message, les fichiers référencés ou la taille du contexte, puis réessayez.",
+      "send_feedback": "Envoyez des commentaires avec des journaux afin que l'équipe puisse enquêter."
+    },
+    "ownership": {
+      "aionui": "Application",
+      "user_agent": "Agent",
+      "user_llm_provider": "Fournisseur de modèles",
+      "unknown_upstream": "En amont"
+    },
+    "codes": {
+      "AIONUI_STREAM_BROKEN": {
+        "title": "Le flux de réponse a été interrompu",
+        "body": "L'application a accepté votre message mais le flux de réponses s'est terminé de manière inattendue. Veuillez réessayer ; si cela se reproduit, envoyez vos commentaires."
+      },
+      "AIONUI_STATE_INCONSISTENT": {
+        "title": "L'état de la conversation n'est pas synchronisé",
+        "body": "L'état de la conversation n'est pas synchronisé. Redémarrez cette discussion ou rechargez l'application avant de réessayer."
+      },
+      "AIONUI_PERMISSION_ERROR": {
+        "title": "Impossible d'accéder à la ressource demandée",
+        "body": "Une autorisation locale ou une vérification du système de fichiers a échoué. Vérifiez le chemin du projet et les autorisations de l'application, puis réessayez."
+      },
+      "AIONUI_INTERNAL_ERROR": {
+        "title": "La demande a échoué dans l'application",
+        "body": "La demande a échoué pendant que l'application la traitait. Veuillez réessayer une fois ; si cela se répète, envoyez des commentaires."
+      },
+      "AIONUI_CONVERSATION_BUSY": {
+        "title": "La conversation est occupée",
+        "body": "Une autre réponse est toujours en cours. Attendez qu'il soit terminé avant d'envoyer un nouveau message."
+      },
+      "USER_AGENT_NOT_INSTALLED": {
+        "title": "L'agent sélectionné n'est pas installé",
+        "body": "Installez la CLI ou l'application requise par cet agent, puis reconnectez-la dans les paramètres."
+      },
+      "USER_AGENT_STARTUP_FAILED": {
+        "title": "L'agent sélectionné n'a pas pu démarrer",
+        "body": "Le processus d'agent s'est arrêté avant d'être prêt. Vérifiez son installation, son état de connexion et la configuration des commandes locales."
+      },
+      "USER_AGENT_OPENCLAW_GATEWAY_UNREACHABLE": {
+        "title": "La passerelle OpenClaw n'est pas accessible",
+        "body": "OpenClaw Gateway n'est pas en cours d'exécution ou n'est pas accessible à 127.0.0.1:18789.\n\nDémarrez OpenClaw Gateway et réessayez. Vous pouvez exécuter :\nstatut de la passerelle openclaw\ndémarrage de la passerelle openclaw"
+      },
+      "USER_AGENT_DISCONNECTED": {
+        "title": "L'agent sélectionné s'est déconnecté",
+        "body": "La connexion de l'agent s'est fermée lors du traitement de ce message. Redémarrez ou reconnectez l'agent, puis réessayez."
+      },
+      "USER_AGENT_AUTH_REQUIRED": {
+        "title": "L'agent sélectionné a besoin d'une authentification",
+        "body": "Connectez-vous à l'agent sélectionné ou actualisez ses informations d'identification, puis renvoyez le message."
+      },
+      "USER_AGENT_SESSION_NOT_FOUND": {
+        "title": "La session de l'agent a été perdue",
+        "body": "L'agent a signalé que cette session n'a pas été trouvée ou qu'elle ne lui est plus connue."
+      },
+      "USER_AGENT_UNSUPPORTED_METHOD": {
+        "title": "L'agent sélectionné ne prend pas en charge cette action",
+        "body": "L'agent a signalé que la méthode ACP demandée n'est pas prise en charge ou n'est pas disponible."
+      },
+      "USER_AGENT_INVALID_PARAMS": {
+        "title": "L'agent sélectionné a rejeté la demande",
+        "body": "L'agent a signalé que les paramètres de la demande n'étaient pas valides."
+      },
+      "USER_AGENT_HANDSHAKE_FAILED": {
+        "title": "Échec de la négociation avec l'agent",
+        "body": "L'agent sélectionné n'a pas pu terminer sa négociation de démarrage. Redémarrez ou reconnectez l'agent, puis réessayez."
+      },
+      "USER_AGENT_HANDSHAKE_TIMEOUT": {
+        "title": "La poignée de main de l'agent a expiré",
+        "body": "L'agent sélectionné n'a pas terminé sa négociation de démarrage à temps. Vérifiez s'il démarre toujours ou est bloqué, puis réessayez."
+      },
+      "USER_AGENT_ACP_INIT_FAILED": {
+        "title": "L'initialisation du protocole de l'agent a échoué",
+        "body": "L'application n'a pas pu initialiser une session Agent Client Protocol avec cet agent."
+      },
+      "USER_AGENT_PROTOCOL_PARSE_ERROR": {
+        "title": "L'agent a signalé une erreur d'analyse de protocole",
+        "body": "L'agent sélectionné a signalé qu'un message ACP/JSON-RPC n'a pas pu être analysé."
+      },
+      "USER_AGENT_INVALID_REQUEST": {
+        "title": "L'agent a signalé une demande de protocole non valide",
+        "body": "L'agent sélectionné a signalé que l'objet de requête ACP/JSON-RPC n'était pas valide."
+      },
+      "USER_AGENT_RESOURCE_NOT_FOUND": {
+        "title": "L'agent n'a pas pu trouver une ressource requise",
+        "body": "L'agent sélectionné a signalé qu'une ressource requise, telle qu'un fichier, n'a pas été trouvée."
+      },
+      "USER_AGENT_PROTOCOL_ERROR": {
+        "title": "L'agent a renvoyé une erreur de protocole",
+        "body": "L'agent sélectionné a renvoyé un code d'erreur ACP non standard."
+      },
+      "USER_AGENT_PROTOCOL_MISMATCH": {
+        "title": "Les versions du protocole de l'agent sont incompatibles",
+        "body": "L'application et l'agent sélectionné n'ont pas pu utiliser une version de protocole ACP compatible."
+      },
+      "USER_AGENT_NO_PREVIOUS_SESSION": {
+        "title": "La session d'agent précédente n'est pas disponible",
+        "body": "L'agent ne peut pas reprendre la session précédente. Démarrez une nouvelle conversation pour continuer."
+      },
+      "USER_AGENT_COMMAND_NOT_FOUND": {
+        "title": "La commande de l'agent est introuvable",
+        "body": "La commande d'agent configurée est introuvable. Installez-le ou mettez à jour le chemin de commande dans les paramètres."
+      },
+      "USER_AGENT_MISSING_ENV": {
+        "title": "Il manque des variables obligatoires dans l'environnement de l'agent",
+        "body": "L'agent a besoin de variables d'environnement qui ne sont pas configurées. Ajoutez-les dans les paramètres ou dans votre environnement shell, puis reconnectez-vous."
+      },
+      "USER_LLM_PROVIDER_AUTH_FAILED": {
+        "title": "Échec de l'authentification du fournisseur de modèle",
+        "body": "Le fournisseur sélectionné a rejeté la clé API ou les informations d'identification du compte. Vérifiez les paramètres du fournisseur et réessayez."
+      },
+      "USER_LLM_PROVIDER_AWS_SSO_EXPIRED": {
+        "title": "La session AWS SSO a expiré",
+        "body": "Votre session AWS SSO a expiré. Exécutez « aws sso login » pour le profil correspondant, puis renvoyez le message."
+      },
+      "USER_LLM_PROVIDER_CONFIG_ERROR": {
+        "title": "La configuration du fournisseur de modèle n'est pas valide",
+        "body": "La demande du fournisseur n'a pas pu être créée à partir des paramètres actuels. Vérifiez les informations d'identification, la région, l'URL de base et la configuration spécifique au fournisseur avant de réessayer."
+      },
+      "USER_LLM_PROVIDER_MODEL_NOT_FOUND": {
+        "title": "Le modèle sélectionné n'a pas été trouvé",
+        "body": "Le fournisseur ne reconnaît pas ce nom de modèle. Choisissez un modèle disponible dans les paramètres et réessayez."
+      },
+      "USER_LLM_PROVIDER_RATE_LIMITED": {
+        "title": "Limite de tarif du fournisseur de modèles atteinte",
+        "body": "Le fournisseur limite temporairement les demandes. Attendez un instant, réduisez la fréquence des demandes ou changez de modèle."
+      },
+      "USER_LLM_PROVIDER_TIMEOUT": {
+        "title": "La demande du fournisseur de modèle a expiré",
+        "body": "Le prestataire n'a pas répondu à temps. Réessayez plus tard ou passez à un fournisseur plus stable."
+      },
+      "USER_LLM_PROVIDER_NETWORK_ERROR": {
+        "title": "Impossible de joindre le fournisseur du modèle",
+        "body": "Une erreur réseau ou DNS a empêché l’accès au fournisseur. Vérifiez votre réseau, votre proxy et votre URL de base."
+      },
+      "USER_LLM_PROVIDER_GATEWAY_ERROR": {
+        "title": "Le service du fournisseur de modèles n'est pas disponible",
+        "body": "Le fournisseur a renvoyé une erreur de passerelle ou de service. Réessayez plus tard ou utilisez un autre fournisseur."
+      },
+      "USER_LLM_PROVIDER_PERMISSION_DENIED": {
+        "title": "Autorisation du fournisseur de modèles refusée",
+        "body": "Le compte du fournisseur n'a pas l'autorisation pour ce modèle ou cette opération. Vérifiez les autorisations du compte ou choisissez un autre modèle."
+      },
+      "USER_LLM_PROVIDER_BILLING_REQUIRED": {
+        "title": "La facturation du fournisseur modèle est requise",
+        "body": "Le fournisseur sélectionné a besoin d'une facturation active, de crédits ou d'un quota avant de pouvoir répondre à cette demande."
+      },
+      "USER_LLM_PROVIDER_UNSUPPORTED_MODEL": {
+        "title": "Le modèle ne prend pas en charge cette demande",
+        "body": "Le modèle sélectionné n'est pas disponible ou ne prend pas en charge la fonctionnalité demandée. Choisissez un modèle pris en charge et réessayez."
+      },
+      "USER_LLM_PROVIDER_ENDPOINT_NOT_FOUND": {
+        "title": "Le point de terminaison du fournisseur de modèle est introuvable",
+        "body": "Le point de terminaison du fournisseur ou le chemin d'accès à l'API est introuvable. Vérifiez l'URL de base, le nom du déploiement et la compatibilité de l'API."
+      },
+      "USER_LLM_PROVIDER_INVALID_REQUEST": {
+        "title": "Le fournisseur du modèle a rejeté la demande",
+        "body": "Le fournisseur a signalé que la demande n'était pas valide. Simplifiez le message ou vérifiez les paramètres du modèle/fournisseur."
+      },
+      "USER_LLM_PROVIDER_INVALID_TOOL_SCHEMA": {
+        "title": "Le schéma de l'outil a été rejeté par le fournisseur",
+        "body": "Le fournisseur a rejeté une définition d'outil dans cette demande. Mettez à jour l'agent ou désactivez l'outil incompatible, puis réessayez."
+      },
+      "USER_LLM_PROVIDER_CONTEXT_TOO_LARGE": {
+        "title": "Le contexte est trop grand pour le modèle",
+        "body": "La requête dépasse la limite du contexte du modèle. Réduisez le contenu des messages, les fichiers référencés ou l’historique des conversations, puis réessayez."
+      },
+      "USER_LLM_PROVIDER_EMPTY_RESPONSE": {
+        "title": "Le fournisseur de modèles a renvoyé une réponse vide",
+        "body": "Le fournisseur a complété la demande sans contenu utilisable. Réessayez une fois ou changez de fournisseur si cela se répète."
+      },
+      "WORKSPACE_PATH_RUNTIME_UNAVAILABLE": {
+        "title": "L'agent actuel n'a pas pu s'exécuter dans ce chemin d'espace de travail",
+        "body": "Assurez-vous que le chemin actuel de l’espace de travail existe.",
+        "bodyWithPath": "L'agent actuel n'a pas pu s'exécuter dans le chemin de l'espace de travail « {{workspacePath}} ». Assurez-vous que le chemin de l'espace de travail existe."
+      },
+      "UNKNOWN_UPSTREAM_ERROR": {
+        "title": "L'agent ou le fournisseur en amont a échoué",
+        "body": "L'application a reçu une erreur en amont, mais n'a pas pu déterminer si elle provenait de l'agent, du fournisseur, du réseau ou de l'environnement local."
+      },
+      "MCP_HTTP_RESPONSE_READ_FAILED": {
+        "title": "Échec de la lecture de la réponse de l'assistant de l'équipe",
+        "body": "AionUi n'a pas pu lire la réponse de l'assistant de l'équipe locale. Réessayez une fois et si cela continue, redémarrez l'application."
+      },
+      "MCP_TOOL_REMOTE_ERROR": {
+        "title": "L'assistant de l'équipe locale a rejeté la demande",
+        "body": "L'assistant de l'équipe locale a renvoyé une erreur lors du traitement de cette demande. Passez en revue les détails ci-dessous et réessayez après avoir ajusté l’action de l’équipe."
+      },
+      "MCP_TOOL_RESPONSE_UNEXPECTED": {
+        "title": "L'assistant de l'équipe a renvoyé une réponse inattendue",
+        "body": "AionUi a reçu une réponse inattendue de la part de l'assistant de l'équipe locale. Réessayez une fois et signalez-le si le problème persiste."
+      },
+      "MCP_TCP_READ_FAILED": {
+        "title": "Échec de la lecture de l'assistant de l'équipe locale",
+        "body": "AionUi n'a pas pu lire la réponse TCP de l'assistant de l'équipe locale. Réessayez une fois et redémarrez l'application si elle continue d'échouer."
+      },
+      "TEAM_SERVICE_UNAVAILABLE": {
+        "title": "Le service d'équipe n'est pas encore prêt",
+        "body": "La session de l'équipe locale démarre toujours ou a été interrompue. Attendez un moment et réessayez."
+      },
+      "TEAM_ASSISTANT_ID_REQUIRED": {
+        "title": "Un assistant coéquipier doit être sélectionné",
+        "body": "Choisissez un véritable assistant dans le catalogue d'assistants disponible avant de créer ou de générer un coéquipier."
+      },
+      "TEAM_ASSISTANT_NOT_FOUND": {
+        "title": "L'assistant sélectionné n'est plus disponible",
+        "body": "Actualisez le catalogue des assistants, puis choisissez un autre assistant pour ce coéquipier."
+      },
+      "TEAM_ASSISTANT_FIELD_UNSUPPORTED": {
+        "title": "La demande utilisait un ancien champ d'identité d'équipe",
+        "body": "Cette action d'équipe doit utiliser assistant_id au lieu des anciens champs backend ou agent."
+      }
+    }
+  },
+  "workspace": {
+    "title": "Espace de travail",
+    "pasteConfirm_title": "Coller des fichiers",
+    "pasteConfirm_message": "Êtes-vous sûr de vouloir coller '{{name}}' dans le dossier sélectionné ({{target}}) ?",
+    "pasteConfirm_paste": "Coller",
+    "pasteConfirm_cancel": "Annuler",
+    "pasteConfirm_noAsk": "Ne plus me demander",
+    "pasteConfirm_fileName": "Nom du fichier",
+    "pasteConfirm_targetFolder": "Dossier cible",
+    "pasteConfirm_multipleFiles": "{{count}} fichiers",
+    "empty": "C'est vide",
+    "emptyDescription": "Les fichiers apparaîtront ici après avoir téléversé des fichiers ou ouvert un dossier",
+    "searchPlaceholder": "Rechercher des fichiers...",
+    "createNewConversation": "Créer un nouveau chat dans l'espace de travail actuel",
+    "search.empty": "Le résultat de recherche est vide",
+    "addFile": "Ajouter un fichier",
+    "refresh": "Actualiser",
+    "temporarySpace": "Espace temporaire",
+    "dragOverlayTitle": "Déposer pour importer",
+    "dragOverlayDesc": "Faites glisser des fichiers ou dossiers ici pour les copier dans cet espace de travail.",
+    "dragOverlayHint": "Astuce : déposez n'importe où pour importer dans le dossier sélectionné.",
+    "dragNoFiles": "Aucun fichier valide détecté. Veuillez faire glisser depuis l'Explorateur.",
+    "dragFailed": "Échec de l'import des fichiers déposés.",
+    "contextMenu": {
+      "open": "Ouvrir",
+      "openLocation": "Afficher dans le dossier",
+      "preview": "Aperçu",
+      "previewFailed": "Échec de l'aperçu",
+      "deleteTitle": "Supprimer le fichier",
+      "deleteConfirm": "Cela supprimera le fichier de votre système. Continuer ?",
+      "deleteSuccess": "Supprimé avec succès",
+      "deleteFailed": "Échec de la suppression",
+      "rename": "Renommer",
+      "renameTitle": "Renommer",
+      "renamePlaceholder": "Entrer un nouveau nom",
+      "renameSuccess": "Renommé avec succès",
+      "renameFailed": "Échec du renommage",
+      "renameEmpty": "Le nom ne peut pas être vide",
+      "renameTimeout": "La demande de renommage a expiré, veuillez réessayer",
+      "addToChat": "Ajouter au chat",
+      "addedToChat": "Ajouté au chat",
+      "openFailed": "Échec de l'ouverture",
+      "revealFailed": "Échec de l'ouverture du dossier conteneur",
+      "download": "Télécharger",
+      "downloadSuccess": "Téléchargement réussi",
+      "downloadFailed": "Échec du téléchargement"
+    },
+    "preview": {
+      "errors": {
+        "outsideSandbox": "Le fichier se trouve en dehors du bac à sable du projet et ne peut pas être prévisualisé.",
+        "notFound": "Le fichier n'existe pas ou a été supprimé.",
+        "timeout": "Le délai de lecture du fichier a expiré. Veuillez réessayer."
+      }
+    },
+    "changes": {
+      "tab": "Modifications",
+      "filesTab": "Fichiers",
+      "currentBranchLabel": "Branche actuelle",
+      "summary": "{{count}} fichier(s) modifié(s)",
+      "insertions": "+{{count}} insertions",
+      "deletions": "-{{count}} suppressions",
+      "empty": "Aucune modification pour l'instant",
+      "emptyDescription": "Les modifications de fichiers apparaîtront ici quand l'IA modifie des fichiers",
+      "refresh": "Actualiser",
+      "staged": "Modifications indexées",
+      "unstaged": "Modifications",
+      "changedFiles": "Fichiers modifiés",
+      "stage": "Indexer",
+      "stageAll": "Indexer toutes les modifications",
+      "unstage": "Désindexer",
+      "unstageAll": "Désindexer toutes les modifications",
+      "discard": "Ignorer les modifications",
+      "reset": "Annuler les modifications",
+      "noUnstaged": "Aucune modification non indexée",
+      "noStaged": "Aucune modification indexée"
+    },
+    "openWorkspace": "Ouvrir le dossier de l'espace de travail",
+    "openWith": {
+      "vscode": "VS Code",
+      "terminal": "Terminal",
+      "explorer": "Explorateur de fichiers"
+    }
+  },
+  "minimap": {
+    "searchAria": "Rechercher dans la conversation",
+    "searchHint": "Cliquez ici pour rechercher des mots-clés",
+    "empty": "Aucun échange Q&R pour l'instant",
+    "noMatch": "Aucun contenu correspondant trouvé",
+    "count": "{{count}} échanges"
+  },
+  "chat": {
+    "noModelSelected": "Aucun modèle sélectionné pour la session actuelle, impossible d'envoyer le message",
+    "sendMessageTo": "Envoyer un message à {{model}}",
+    "processing": "Traitement...",
+    "quotaExceededTitle": "Quota du modèle atteint",
+    "quotaExceededBody": "Le quota du modèle actuel est épuisé. Passer à {{model}} pour continuer ?",
+    "quotaExceededNoFallback": "Quota du modèle atteint. Veuillez passer à un autre modèle disponible.",
+    "quotaSwitched": "Basculé vers {{model}}.",
+    "apiErrorNoCli": "Erreur API. Aucun agent CLI disponible comme solution de repli.",
+    "apiErrorSwitchFailed": "Échec de la création de la conversation de repli.",
+    "apiErrorSwitched": "Erreur API, basculement automatique vers {{cli}} CLI",
+    "confirmationLoadError": "Échec du chargement de la boîte de dialogue de confirmation",
+    "tryAnotherAgent": "Essayer un autre agent :",
+    "switchAgentFailed": "Échec du changement d'agent",
+    "speech": {
+      "recordTooltip": "Démarrer la saisie vocale",
+      "pickFileTooltip": "Sélectionner un fichier audio",
+      "stopTooltip": "Arrêter l'enregistrement",
+      "processing": "Transcription audio...",
+      "unsupported": "La saisie vocale n'est pas disponible dans cet environnement",
+      "startShort": "Micro",
+      "stopShort": "Stop",
+      "transcribingShort": "...",
+      "audioCaptureError": "Aucun microphone détecté",
+      "emptyTranscript": "Aucune parole détectée",
+      "fileTooLarge": "Le fichier audio est trop volumineux",
+      "networkError": "Erreur réseau lors de la transcription audio",
+      "notConfigured": "La reconnaissance vocale n'est pas encore configurée",
+      "permissionDenied": "Permission microphone refusée",
+      "recordingUnsupported": "L'enregistrement en direct n'est pas pris en charge ici. Veuillez téléverser un fichier audio à la place",
+      "transcriptionFailed": "Échec de la transcription audio",
+      "genericError": "Échec de la saisie vocale. Veuillez réessayer"
+    }
+  },
+  "sideQuestion": {
+    "title": "Question secondaire",
+    "description": "Poser une question rapide sur la conversation actuelle",
+    "started": "Démarrage de la question secondaire...",
+    "answered": "Question secondaire répondue.",
+    "noAnswer": "La question secondaire n'a pas eu de réponse claire dans la conversation actuelle.",
+    "loading": "Réflexion...",
+    "parentTaskRunning": "La tâche principale s'exécute toujours en arrière-plan.",
+    "dismissHint": "Appuyez sur Échap, Entrée ou Espace pour fermer",
+    "unsupported": "Les questions secondaires ne sont pas disponibles pour cette conversation.",
+    "alreadyRunning": "Une question secondaire est déjà en cours.",
+    "attachmentsNotAllowed": "Les questions secondaires ne peuvent pas inclure de fichiers ou de fragments DOM.",
+    "emptyQuestion": "Veuillez entrer une question secondaire après /btw.",
+    "toolsRequired": "/btw ne peut répondre qu'aux questions basées sur ce qui est déjà dans cette conversation. Il n'a pas accès à la recherche, la navigation ou la récupération de nouvelles informations.",
+    "error": "Échec de la réponse à la question secondaire."
+  },
+  "commandQueue": {
+    "title": "Commandes en file d'attente",
+    "clear": "Vider la file",
+    "edit": "Modifier",
+    "editing": "Modification en cours",
+    "editPlaceholder": "Mettre à jour la commande en file avant son exécution.",
+    "cancelEdit": "Annuler",
+    "saveEdit": "Enregistrer",
+    "moreActions": "Plus d'actions",
+    "reorder": "Glisser pour réorganiser la commande en file",
+    "remove": "Retirer",
+    "files": "{{count}} fichiers",
+    "pausedAfterFailure": "La prochaine commande en file n'a pas pu démarrer. Modifiez, réorganisez ou retirez-la pour continuer.",
+    "emptyInput": "Les commandes en file ne peuvent pas être vides.",
+    "queueFull": "La file est pleine. Retirez une commande avant d'en ajouter d'autres.",
+    "inputTooLong": "Cette commande en file est trop longue. Raccourcissez-la avant d'envoyer.",
+    "tooManyFiles": "Trop de fichiers sont joints à cette commande en file.",
+    "queueTooLarge": "Les données de la file sont trop volumineuses pour être sauvegardées en toute sécurité. Retirez d'abord quelques commandes.",
+    "sendNow": "Envoyer maintenant",
+    "modeToggle": "Basculer le mode d'envoi",
+    "help": "Aide",
+    "helpIntro": "Les messages que vous envoyez pendant que l'IA répond sont attendus ici.",
+    "helpAuto": ": envoyé automatiquement un par un après la fin de chaque réponse.",
+    "helpManual": ": conservé ici sans envoi; envoyez chacun avec Envoyer maintenant.",
+    "clearConfirmTitle": "Effacer la case d'envoi du brouillon ?",
+    "clearConfirmContent": "Tous les messages en attente seront supprimés. Cela ne peut pas être annulé.",
+    "mode": {
+      "auto": "Envoi automatique",
+      "manual": "Envoi manuel"
+    }
+  },
+  "contextUsage": {
+    "contextUsed": "contexte utilisé"
+  },
+  "skill_generator": {
+    "title": "Générer une compétence/règle",
+    "generate": "Générer",
+    "description": "Analyser l'historique de conversation pour générer :",
+    "type_skill": "Compétence (Python)",
+    "type_rule": "Règle (JSON/MD)",
+    "name_label": "Nom de l'agent :",
+    "name_placeholder": "ex. Traducteur Excel",
+    "menu_generate": "Générer depuis l'historique",
+    "menu_load": "Charger une règle/compétence",
+    "load_title": "Charger une règle/compétence",
+    "load_error": "Échec du chargement des fichiers",
+    "no_files": "Aucun fichier pertinent trouvé dans l'espace de travail",
+    "read_error": "Échec de la lecture du fichier",
+    "rule_loaded": "Règle chargée avec succès",
+    "no_workspace": "Aucun espace de travail disponible",
+    "name_required": "Veuillez entrer un nom pour le préréglage",
+    "no_history": "Aucun historique de conversation trouvé",
+    "request_sent": "Demande envoyée à l'agent",
+    "failed": "Échec de la génération",
+    "preset_registered": "Préréglage d'agent enregistré avec succès !"
+  },
+  "thinking": {
+    "complete": "Réflexion terminée",
+    "label": "Réflexion..."
+  },
+  "skills": {
+    "loaded": "Compétences chargées",
+    "slashHint": "Compétence"
+  },
+  "mcp": {
+    "loaded": "MCP chargé",
+    "managementHint": "Si un MCP semble anormal, cela est généralement dû à la configuration MCP JSON. Accédez aux paramètres des outils et testez-le là-bas.",
+    "openSettings": "Ouvrir les paramètres des outils",
+    "status": {
+      "loaded": "Chargé",
+      "failed": "Échoué",
+      "unsupported": "Non pris en charge"
+    }
+  },
+  "runtimePreparing": {
+    "sendboxHint": "Préparation de l'environnement d'exécution. Le premier démarrage peut prendre un peu plus de temps."
+  },
+  "sendbox": {
+    "hint": "Tapez / pour les commandes, @ pour référencer des fichiers"
+  },
+  "agentTip": {
+    "codes": {
+      "ACP_EMPTY_TURN": {
+        "body": "Cette demande n'a produit aucune réponse visible."
+      },
+      "ACP_EMPTY_TURN_MAX_TOKENS": {
+        "body": "Cette requête a atteint la limite de jetons de sortie du modèle avant qu'une réponse visible ne soit produite."
+      },
+      "ACP_EMPTY_TURN_MAX_TURN_REQUESTS": {
+        "body": "Cette requête a atteint la limite de requêtes du modèle avant qu'une réponse visible ne soit produite."
+      },
+      "ACP_EMPTY_TURN_REFUSAL": {
+        "body": "Le modèle a refusé cette demande avant de produire une réponse visible."
+      }
+    }
+  },
+  "notFound": "Conversation introuvable ou supprimée"
+}

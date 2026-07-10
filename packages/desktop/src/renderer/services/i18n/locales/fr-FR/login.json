@@ -1,0 +1,26 @@
+{
+  "pageTitle": "AionUi - Connexion",
+  "brand": "AionUi",
+  "subtitle": "Bienvenue, veuillez vous connecter à votre compte",
+  "username": "Nom d'utilisateur",
+  "usernamePlaceholder": "Entrez votre nom d'utilisateur",
+  "password": "Mot de passe",
+  "passwordPlaceholder": "Entrez votre mot de passe",
+  "rememberMe": "Se souvenir de moi",
+  "submit": "Se connecter",
+  "submitting": "Connexion en cours...",
+  "success": "Connexion réussie ! Redirection...",
+  "showPassword": "Afficher le mot de passe",
+  "hidePassword": "Masquer le mot de passe",
+  "languageToggle": "Changer de langue",
+  "footerPrimary": "Transformez votre IA en ligne de commande",
+  "footerSecondary": "Moderne et efficace",
+  "errors": {
+    "empty": "Veuillez entrer un nom d'utilisateur et un mot de passe",
+    "invalidCredentials": "Nom d'utilisateur ou mot de passe invalide",
+    "tooManyAttempts": "Trop de tentatives, veuillez réessayer plus tard",
+    "networkError": "Connexion échouée, veuillez réessayer",
+    "serverError": "Erreur serveur, veuillez réessayer plus tard",
+    "unknown": "Échec de connexion, veuillez réessayer"
+  }
+}

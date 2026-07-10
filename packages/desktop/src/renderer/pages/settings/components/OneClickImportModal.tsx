@@ -411,20 +411,14 @@ const OneClickImportModal: React.FC<OneClickImportModalProps> = ({
 
   return (
     <AionModal
+      variant='standard'
       header={{ title: t('settings.mcpOneKeyImport'), showClose: true }}
       visible={visible}
       onCancel={onCancel}
       footer={{ render: renderFooter }}
-      style={{ width: 680, height: 560 }}
-      contentStyle={{
-        borderRadius: 16,
-        padding: '24px',
-        background: 'var(--dialog-fill-0)',
-        overflow: 'hidden',
-        height: 560 - 96,
-      }}
+      style={{ width: 680 }}
     >
-      <div className='flex h-full min-h-0 flex-col pt-20px'>
+      <div className='flex min-h-0 flex-col'>
         <div className='mb-6 text-t-secondary text-sm'>{t('settings.mcpImportDescription')}</div>
 
         <div className='mb-6'>
@@ -441,7 +435,7 @@ const OneClickImportModal: React.FC<OneClickImportModalProps> = ({
           </AionSteps>
         </div>
 
-        <div className={`mb-6 min-h-0 flex-1 overflow-hidden ${currentStep === 1 ? 'min-h-[60px]' : 'min-h-[180px]'}`}>
+        <div className={`min-h-0 ${currentStep === 1 ? 'min-h-[60px]' : 'min-h-[180px]'}`}>
           {currentStep === 1 && renderStep1()}
           {currentStep === 2 && renderStep2()}
           {currentStep === 3 && renderStep3()}

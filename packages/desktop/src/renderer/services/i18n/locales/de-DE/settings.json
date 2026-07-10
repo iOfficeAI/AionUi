@@ -29,7 +29,6 @@
     "customPathLabel": "Skill-Verzeichnispfad",
     "customPathPlaceholder": "z.B. C:\\Users\\ich\\.mytools\\skills",
     "searchPlaceholder": "Skills suchen...",
-    "noSearchResults": "Keine passenden Skills gefunden",
     "importPartialSuccess": "Imported {{successCount}} skill(s), {{failureCount}} failed: {{failures}}",
     "importAllFailed": "Failed to import {{failureCount}} skill(s): {{failures}}",
     "importFailureFileSizeDetail": "{{path}} is {{actual}}; limit is {{limit}}",
@@ -84,6 +83,7 @@
     "tabOfficial": "Offizielle Skills",
     "officialSkillsTitle": "Offizielle Skills",
     "officialSkillsEmpty": "Keine offiziellen Skills verfügbar.",
+    "noSearchResults": "Keine passenden Skills.",
     "customHint": "Importiere einen Skill-Ordner, übergeordneten Ordner oder eine Zip-Datei; max. {{maxFileSize}} pro Datei und {{maxTotalSize}} pro Skill; ein gleichnamiger Import überschreibt den vorhandenen Skill.",
     "officialHint": "Offizielle, mit AionUi gebündelte Skills – sofort einsatzbereit, schreibgeschützt und mit jedem Release aktualisiert."
   },

@@ -29,7 +29,6 @@
     "customPathLabel": "Шлях до директорії навичок",
     "customPathPlaceholder": "напр. C:\\Users\\me\\.mytools\\skills",
     "searchPlaceholder": "Пошук навичок...",
-    "noSearchResults": "Відповідних навичок не знайдено",
     "importPartialSuccess": "Imported {{successCount}} skill(s), {{failureCount}} failed: {{failures}}",
     "importAllFailed": "Failed to import {{failureCount}} skill(s): {{failures}}",
     "importFailureFileSizeDetail": "{{path}} is {{actual}}; limit is {{limit}}",
@@ -84,6 +83,7 @@
     "tabOfficial": "Офіційні навички",
     "officialSkillsTitle": "Офіційні навички",
     "officialSkillsEmpty": "Немає доступних офіційних навичок.",
+    "noSearchResults": "Немає відповідних навичок.",
     "customHint": "Імпортуйте теку навички, батьківську теку або zip; до {{maxFileSize}} на файл і {{maxTotalSize}} на навичку; імпорт з тією самою назвою перезаписує наявну навичку.",
     "officialHint": "Офіційні навички, що постачаються з AionUi, — готові до використання, лише для читання та оновлюються з кожним випуском."
   },

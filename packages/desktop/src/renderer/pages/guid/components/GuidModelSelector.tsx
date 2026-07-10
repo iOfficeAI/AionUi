@@ -184,7 +184,7 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
         >
           <span className='flex items-center gap-6px min-w-0'>
             <Brain theme='outline' size='14' fill={iconColors.secondary} className='shrink-0' />
-            <span>{geminiButtonLabel}</span>
+            <span className='guid-model-label'>{geminiButtonLabel}</span>
             <Down theme='outline' size='12' fill={iconColors.secondary} className='shrink-0' />
           </span>
         </Button>
@@ -259,7 +259,7 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
           <Button className={'sendbox-model-btn guid-config-btn'} shape='round' size='small'>
             <span className='flex items-center gap-6px min-w-0'>
               <Brain theme='outline' size='14' fill={iconColors.secondary} className='shrink-0' />
-              <span>{combinedAcpButtonLabel}</span>
+              <span className='guid-model-label'>{combinedAcpButtonLabel}</span>
               <Down theme='outline' size='12' fill={iconColors.secondary} className='shrink-0' />
             </span>
           </Button>
@@ -277,7 +277,7 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
         >
           <span className='flex items-center gap-6px min-w-0'>
             <Brain theme='outline' size='14' fill={iconColors.secondary} className='shrink-0' />
-            <span>{acpButtonLabel}</span>
+            <span className='guid-model-label'>{acpButtonLabel}</span>
           </span>
         </Button>
       </Tooltip>
@@ -290,7 +290,7 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
       <Button className={'sendbox-model-btn guid-config-btn'} shape='round' size='small' style={{ cursor: 'default' }}>
         <span className='flex items-center gap-6px min-w-0'>
           <Brain theme='outline' size='14' fill={iconColors.secondary} className='shrink-0' />
-          <span>{defaultModelLabel}</span>
+          <span className='guid-model-label'>{defaultModelLabel}</span>
         </span>
       </Button>
     </Tooltip>

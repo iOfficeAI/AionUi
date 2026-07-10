@@ -32,6 +32,7 @@ describe('i18n', () => {
       expect(normalizeLanguageCode('pt')).toBe('pt-BR');
       expect(normalizeLanguageCode('de')).toBe('de-DE');
       expect(normalizeLanguageCode('es')).toBe('es-ES');
+      expect(normalizeLanguageCode('fr')).toBe('fr-FR');
       expect(normalizeLanguageCode('fa')).toBe('fa-IR');
     });
 
@@ -41,7 +42,6 @@ describe('i18n', () => {
     });
 
     it('falls back to the default language for unsupported codes', () => {
-      expect(normalizeLanguageCode('fr')).toBe(DEFAULT_LANGUAGE);
       expect(normalizeLanguageCode('it')).toBe(DEFAULT_LANGUAGE);
       expect(normalizeLanguageCode('')).toBe(DEFAULT_LANGUAGE);
     });

@@ -6,7 +6,6 @@
 
 import type { IDirOrFile } from '@/common/adapter/ipcBridge';
 import useDebounce from '@/renderer/hooks/ui/useDebounce';
-import type { RefInputType } from '@arco-design/web-react/es/Input/interface';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 type UseWorkspaceSearchParams = {
@@ -21,7 +20,7 @@ type UseWorkspaceSearchParams = {
 export function useWorkspaceSearch({ workspace, loadWorkspace }: UseWorkspaceSearchParams) {
   const [searchText, setSearchText] = useState('');
   const [showSearch, setShowSearch] = useState(true);
-  const searchInputRef = useRef<RefInputType | null>(null);
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
 
   // Host file selector state (WebUI: use DirectorySelectionModal instead of native dialog)
   const [showHostFileSelector, setShowHostFileSelector] = useState(false);

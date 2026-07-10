@@ -6,12 +6,12 @@
 
 import { iconColors } from '@/renderer/styles/colors';
 import { isElectronDesktop } from '@/renderer/utils/platform';
-import { Dropdown, Input, Menu, Tooltip } from '@arco-design/web-react';
-import { Down, Plus, Refresh, Search } from '@icon-park/react';
+import { Dropdown, Menu, Tooltip } from '@arco-design/web-react';
+import { Down, Plus, Refresh } from '@icon-park/react';
 import React from 'react';
 import UploadProgressBar from '@/renderer/components/media/UploadProgressBar';
+import { AionSearchInput } from '@/renderer/components/base';
 import type { TFunction } from 'i18next';
-import type { RefInputType } from '@arco-design/web-react/es/Input/interface';
 
 type WorkspaceToolbarProps = {
   t: TFunction;
@@ -23,7 +23,7 @@ type WorkspaceToolbarProps = {
   searchText: string;
   setSearchText: (v: string) => void;
   onSearch: (v: string) => void;
-  searchInputRef: React.RefObject<RefInputType | null>;
+  searchInputRef: React.RefObject<HTMLInputElement | null>;
   // Tree state
   loading: boolean;
   refreshWorkspace: () => void;
@@ -75,7 +75,7 @@ const WorkspaceToolbar: React.FC<WorkspaceToolbarProps> = ({
       {/* Search Input */}
       {(showSearch || searchText) && (
         <div className='py-8px workspace-toolbar-search'>
-          <Input
+          <AionSearchInput
             className='w-full workspace-search-input'
             ref={searchInputRef}
             placeholder={t('conversation.workspace.searchPlaceholder')}
@@ -84,8 +84,6 @@ const WorkspaceToolbar: React.FC<WorkspaceToolbarProps> = ({
               setSearchText(value);
               onSearch(value);
             }}
-            allowClear
-            prefix={<Search theme='outline' size='14' fill={iconColors.primary} />}
           />
         </div>
       )}

@@ -5,7 +5,7 @@
  */
 
 import { useAcpModelInfo } from '@/renderer/hooks/agent/useAcpModelInfo';
-import { classifyConfigSetError } from '@/renderer/hooks/agent/useAcpConfigOptions';
+import { classifyConfigSetError, type AcpConfigOptionsLoader } from '@/renderer/hooks/agent/useAcpConfigOptions';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { getModelDisplayLabel } from '@/renderer/utils/model/agentLogo';
 import { iconColors } from '@/renderer/styles/colors';
@@ -13,7 +13,7 @@ import { Dropdown, Menu, Message, Tooltip } from '@arco-design/web-react';
 import { Brain, Down } from '@icon-park/react';
 import React, { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import RuntimeSelectorPill from './RuntimeSelectorPill';
+import RuntimeSelectorPill, { RuntimeSelectorLoadingIndicator } from './RuntimeSelectorPill';
 import {
   composeRuntimeSelectorLabel,
   getCurrentThoughtLevelLabel,
@@ -47,19 +47,26 @@ const AcpModelSelector: React.FC<{
   backend?: string;
   /** Pre-selected model ID from Guid page */
   initialModelId?: string;
+  prepareRuntime?: () => Promise<void>;
+  prepareSetRuntime?: () => Promise<void>;
+  loadConfigOptions?: AcpConfigOptionsLoader;
   /** Deprecated: runtime config loading now ensures the conversation runtime. */
   waitForWarmup?: boolean;
-}> = ({ conversation_id, backend, initialModelId }) => {
+}> = ({ conversation_id, backend, initialModelId, prepareRuntime, prepareSetRuntime, loadConfigOptions }) => {
   const { t } = useTranslation();
   const layout = useLayoutContext();
   const isMobileHeaderCompact = Boolean(layout?.isMobile);
-  const { model_info, canSwitch, isSetting, selectModel, thoughtLevel, setStatus, setConfigOption } = useAcpModelInfo({
-    conversation_id,
-    backend,
-    initialModelId,
-    onSelectModelSuccess: () => Message.success(t('agent.model.switchSuccess')),
-    onSelectModelFailed: (_modelId, error) => Message.error(t(configErrorMessageKey(error))),
-  });
+  const { model_info, canSwitch, isLoading, isSetting, selectModel, thoughtLevel, setStatus, setConfigOption } =
+    useAcpModelInfo({
+      conversation_id,
+      backend,
+      initialModelId,
+      prepareRuntime,
+      prepareSetRuntime,
+      loadConfigOptions,
+      onSelectModelSuccess: () => Message.success(t('agent.model.switchSuccess')),
+      onSelectModelFailed: (_modelId, error) => Message.error(t(configErrorMessageKey(error))),
+    });
 
   const defaultModelLabel = t('common.defaultModel');
   const rawDisplayLabel =
@@ -91,6 +98,17 @@ const AcpModelSelector: React.FC<{
   const tooltipContent = combinedLabel;
 
   const renderLogo = () => <Brain theme='outline' size='14' fill={iconColors.secondary} className='shrink-0' />;
+
+  if (!model_info && isLoading) {
+    return (
+      <div
+        data-testid='acp-model-selector-loading'
+        className='header-model-loading-slot flex h-28px w-28px shrink-0 items-center justify-center leading-none text-t-secondary'
+      >
+        <RuntimeSelectorLoadingIndicator />
+      </div>
+    );
+  }
 
   if (!model_info) {
     return (

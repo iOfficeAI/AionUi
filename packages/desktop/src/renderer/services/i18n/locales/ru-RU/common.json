@@ -147,5 +147,7 @@
   "unit": {
     "minute_short": "мин",
     "second_short": "с"
-  }
+  },
+  "selectedCount": "Выбрано {{count}}",
+  "selectedSkills": "Выбранные навыки"
 }
