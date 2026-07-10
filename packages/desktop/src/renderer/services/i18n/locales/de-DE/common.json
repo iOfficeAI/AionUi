@@ -147,5 +147,7 @@
     "minute_short": "Min",
     "second_short": "Sek"
   },
-  "goBack": "Zurück"
+  "goBack": "Zurück",
+  "selectedCount": "{{count}} ausgewählt",
+  "selectedSkills": "Ausgewählte Skills"
 }

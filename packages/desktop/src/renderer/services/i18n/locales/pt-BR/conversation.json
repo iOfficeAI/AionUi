@@ -552,7 +552,8 @@
       "loaded": "Carregado",
       "failed": "Falhou",
       "unsupported": "Não compatível"
-    }
+    },
+    "selected": "MCP selecionado"
   },
   "runtimePreparing": {
     "sendboxHint": "Preparando o ambiente de execução. A primeira inicialização pode demorar um pouco mais."

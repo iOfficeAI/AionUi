@@ -546,7 +546,8 @@
       "loaded": "로드됨",
       "failed": "실패",
       "unsupported": "지원되지 않음"
-    }
+    },
+    "selected": "선택된 MCP"
   },
   "runtimePreparing": {
     "sendboxHint": "실행 환경을 준비하는 중입니다. 첫 시작은 조금 더 오래 걸릴 수 있습니다."
