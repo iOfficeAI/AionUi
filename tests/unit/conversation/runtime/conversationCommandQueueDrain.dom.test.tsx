@@ -222,6 +222,32 @@ describe('useConversationCommandQueue drain', () => {
     expect(onExecute).toHaveBeenCalledWith(expect.objectContaining({ input: 'queued after switch' }));
   });
 
+  it('keeps manual-mode commands queued after the active conversation hook unmounts', async () => {
+    const onExecute = vi.fn().mockResolvedValue(undefined);
+    const { result, unmount } = renderQueue({
+      conversation_id: 'conv-background-manual',
+      runtimeGate: processingGate,
+      onExecute,
+    });
+
+    act(() => {
+      result.current.toggleMode();
+      result.current.enqueue({ input: 'send only when requested', files: [] });
+    });
+    await waitFor(() => expect(result.current.mode).toBe('manual'));
+    await waitFor(() => expect(result.current.items).toHaveLength(1));
+
+    unmount();
+    emitTurnCompleted('conv-background-manual');
+
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(onExecute).not.toHaveBeenCalled();
+    expect(JSON.parse(sessionStorage.getItem(storageKey('conv-background-manual')) ?? '{}')).toMatchObject({
+      mode: 'manual',
+      items: [expect.objectContaining({ input: 'send only when requested' })],
+    });
+  });
+
   it('shares the background listener across active queues and releases it after the last runner unmounts', () => {
     const firstExecute = vi.fn().mockResolvedValue(undefined);
     const secondExecute = vi.fn().mockResolvedValue(undefined);

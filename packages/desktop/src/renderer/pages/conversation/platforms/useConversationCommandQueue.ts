@@ -419,7 +419,7 @@ const detachBackgroundCommandQueueRunner = (conversation_id: string): void => {
   }
 
   const state = readPersistedQueueState(conversation_id);
-  if (state.items.length === 0 || state.isPaused) {
+  if (state.items.length === 0 || state.isPaused || state.mode === 'manual') {
     backgroundRunners.delete(conversation_id);
     releaseBackgroundTurnCompletedListener();
     return;
@@ -442,7 +442,7 @@ const drainBackgroundCommandQueue = async (runner: BackgroundCommandQueueRunner)
     return;
   }
 
-  if (state.isPaused) {
+  if (state.isPaused || state.mode === 'manual') {
     return;
   }
 
@@ -464,6 +464,7 @@ const drainBackgroundCommandQueue = async (runner: BackgroundCommandQueueRunner)
     remainingItemCount: remainingCommands.length,
   });
   persistQueueState(runner.conversation_id, {
+    ...currentState,
     items: remainingCommands,
     isPaused: false,
   });
@@ -478,6 +479,7 @@ const drainBackgroundCommandQueue = async (runner: BackgroundCommandQueueRunner)
     });
     const failedState = readPersistedQueueState(runner.conversation_id);
     persistQueueState(runner.conversation_id, {
+      ...failedState,
       items: restoreQueuedCommand(failedState.items, nextCommand),
       isPaused: true,
     });
