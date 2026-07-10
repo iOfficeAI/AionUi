@@ -482,51 +482,28 @@ const CommandQueuePanel: React.FC<CommandQueuePanelProps> = ({
             </span>
           </div>
           <div className='flex items-center gap-4px shrink-0'>
-            <Button
-              size='mini'
-              type='text'
-              shape='round'
-              className='h-24px px-9px'
-              aria-label={t('conversation.commandQueue.modeToggle', { defaultValue: 'Toggle send mode' })}
-              title={t('conversation.commandQueue.modeToggle', { defaultValue: 'Toggle send mode' })}
-              onClick={onToggleMode}
-              style={{
-                background: mode === 'auto' ? 'rgb(var(--primary-1))' : 'var(--color-fill-2)',
-                color: mode === 'auto' ? 'rgb(var(--primary-6))' : 'var(--color-text-2)',
-                fontWeight: 600,
-              }}
-            >
-              <span className='inline-flex items-center gap-4px text-11px'>
-                {modeLabel}
-                <SortTwo theme='outline' size='12' strokeWidth={3} style={{ opacity: 0.7 }} />
-              </span>
-            </Button>
-            {isMobile ? null : (
-              <Tooltip content={helpContent} position='top'>
-                <Button
-                  size='mini'
-                  type='text'
-                  shape='circle'
-                  className='w-22px h-22px min-w-22px p-0 opacity-72 hover:opacity-100 flex items-center justify-center'
-                  aria-label={t('conversation.commandQueue.help', { defaultValue: 'Help' })}
-                >
-                  <span
-                    className='inline-flex items-center justify-center'
-                    style={{
-                      border: '1px solid var(--color-text-4)',
-                      borderRadius: '50%',
-                      width: 14,
-                      height: 14,
-                      fontSize: 9,
-                      lineHeight: 1,
-                      color: 'var(--color-text-3)',
-                    }}
-                  >
-                    ?
-                  </span>
-                </Button>
-              </Tooltip>
-            )}
+            {/* The mode toggle doubles as the help affordance: hovering it shows what
+                Auto vs Manual mean, so no separate "?" button is needed. */}
+            <Tooltip content={helpContent} position='top'>
+              <Button
+                size='mini'
+                type='text'
+                shape='round'
+                className='h-24px px-9px'
+                aria-label={t('conversation.commandQueue.modeToggle', { defaultValue: 'Toggle send mode' })}
+                onClick={onToggleMode}
+                style={{
+                  background: mode === 'auto' ? 'rgb(var(--primary-1))' : 'var(--color-fill-2)',
+                  color: mode === 'auto' ? 'rgb(var(--primary-6))' : 'var(--color-text-2)',
+                  fontWeight: 600,
+                }}
+              >
+                <span className='inline-flex items-center gap-4px text-11px'>
+                  {modeLabel}
+                  <SortTwo theme='outline' size='12' strokeWidth={3} style={{ opacity: 0.7 }} />
+                </span>
+              </Button>
+            </Tooltip>
             <Dropdown trigger='click' droplist={moreMenu} position='br'>
               <Button
                 size='mini'

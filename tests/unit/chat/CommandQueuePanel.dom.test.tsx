@@ -131,6 +131,11 @@ describe('CommandQueuePanel', () => {
     expect(screen.getByRole('button', { name: 'Toggle send mode' })).toHaveTextContent('Manual');
   });
 
+  it('does not render a separate help button (help lives on the mode toggle)', () => {
+    renderPanel();
+    expect(screen.queryByRole('button', { name: 'Help' })).not.toBeInTheDocument();
+  });
+
   it('clears the draft box through a confirm dialog', () => {
     confirmMock.mockReset();
     const onClear = vi.fn();
