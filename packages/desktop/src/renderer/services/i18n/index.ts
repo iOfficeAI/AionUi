@@ -25,6 +25,7 @@ import ukUA from './locales/uk-UA/index';
 import ptBR from './locales/pt-BR/index';
 import deDE from './locales/de-DE/index';
 import esES from './locales/es-ES/index';
+import frFR from './locales/fr-FR/index';
 import faIR from './locales/fa-IR/index';
 export type { I18nKey, I18nModule } from './i18n-keys';
 
@@ -46,6 +47,7 @@ const localeData: LocaleData = {
   'pt-BR': ptBR,
   'de-DE': deDE,
   'es-ES': esES,
+  'fr-FR': frFR,
   'fa-IR': faIR,
 };
 

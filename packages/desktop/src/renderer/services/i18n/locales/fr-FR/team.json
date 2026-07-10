@@ -1,0 +1,62 @@
+{
+  "sider": {
+    "title": "Équipes",
+    "createTeam": "Nouvelle équipe",
+    "pin": "Épingler",
+    "unpin": "Désépingler",
+    "rename": "Renommer",
+    "delete": "Supprimer",
+    "renameTitle": "Renommer l'équipe",
+    "renamePlaceholder": "Nom de l'équipe",
+    "deleteConfirm": "Supprimer cette équipe ?",
+    "deleteConfirmContent": "Cette action est irréversible.",
+    "deleteOk": "Supprimer",
+    "deleteCancel": "Annuler",
+    "renameOk": "Enregistrer",
+    "renameCancel": "Annuler",
+    "renameSuccess": "Équipe renommée",
+    "deleteSuccess": "Équipe supprimée"
+  },
+  "newAgent": "Nouvel agent",
+  "noMessages": "Aucun message pour l'instant.",
+  "agentNotConfigured": "Agent non configuré.",
+  "stopAgentFailed": "Échec de l'arrêt de cet assistant. Veuillez réessayer.",
+  "sendBox": {
+    "placeholder": "Envoyer un message à l'agent coordinateur..."
+  },
+  "create": {
+    "title": "Créer une équipe",
+    "namePlaceholder": "Nom de l'équipe",
+    "dispatchAgentPlaceholder": "Sélectionner le chef d'équipe",
+    "subAgentsPlaceholder": "Sélectionner les sous-agents",
+    "confirm": "Créer l'équipe",
+    "noSupportedAgents": "Aucun agent compatible installé",
+    "supportedAgentsHint": "Supporte actuellement Claude et Codex. D'autres agents bientôt disponibles.",
+    "leaderDesc": "Comprend vos objectifs et coordonne les agents pour accomplir les tâches",
+    "searchPlaceholder": "Assistants de recherche...",
+    "noSearchResults": "Aucun résultat trouvé",
+    "step": {
+      "dispatch": "Chef d'équipe",
+      "subAgents": "Sous-agents",
+      "workspace": "Espace de travail"
+    },
+    "nameRequired": "Veuillez entrer un nom d'équipe",
+    "leaderRequired": "Veuillez sélectionner un chef d'équipe",
+    "selectFolder": "Sélectionner un dossier",
+    "recentLabel": "Récents",
+    "chooseDifferentFolder": "Choisir un autre dossier",
+    "error": "Échec de la création de l'équipe"
+  },
+  "removeAgent": {
+    "confirmTitle": "Retirer un membre de l'équipe",
+    "confirmContent": "Ce membre est actuellement actif. Forcer la suppression ?"
+  },
+  "emptyState": {
+    "subtitle": "Décrivez votre objectif et je mettrai l'équipe au travail",
+    "suggestions": {
+      "debate": "Organiser un débat avec des agents prenant des positions différentes",
+      "interview": "Planifier une interview approfondie entre agents",
+      "expert_review": "Faire analyser le même problème par plusieurs experts"
+    }
+  }
+}

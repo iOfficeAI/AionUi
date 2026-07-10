@@ -1,0 +1,21 @@
+{
+  "plan": "Mode Plan",
+  "default": "Par défaut",
+  "acceptEdits": "Accepter les modifications",
+  "autoEdit": "Modification automatique",
+  "auto_edit": "Modification automatique",
+  "read-only": "Lecture seule",
+  "full-access": "Accès complet",
+  "yolo": "YOLO",
+  "yoloNoSandbox": "Automatique total (sans sandbox)",
+  "auto": "Auto",
+  "dontAsk": "Ne pas demander",
+  "bypass": "Contourner (YOLO)",
+  "bypassPermissions": "YOLO",
+  "smart": "Intelligent",
+  "build": "Mode Construction",
+  "permission": "Permission",
+  "switchMode": "Changer de mode",
+  "switchSuccess": "Mode changé avec succès",
+  "switchFailed": "Échec du changement de mode"
+}

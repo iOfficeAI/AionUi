@@ -1,0 +1,17 @@
+{
+  "promptExamplesHint": "Essayez ces exemples de prompts :",
+  "defaultPrompts": {
+    "capabilities": "Que peux-tu faire pour moi ?",
+    "skills": "Quelles compétences possédez-vous ?",
+    "tools": "De quels outils disposez-vous ?"
+  },
+  "selectAssistantHint": "Sélectionnez un assistant pour démarrer une tâche",
+  "workspace": {
+    "workInProject": "Travailler dans un projet",
+    "optional": "Facultatif",
+    "clearWorkspace": "Clair",
+    "specifyWorkspace": "Sélectionnez le dossier du projet",
+    "searchPlaceholder": "Rechercher des projets…",
+    "noProject": "Aucun projet"
+  }
+}
