@@ -476,8 +476,8 @@
     "error": "Nebenfrage konnte nicht beantwortet werden."
   },
   "commandQueue": {
-    "title": "Wartende Befehle",
-    "clear": "Warteschlange leeren",
+    "title": "Entwurfsbox",
+    "clear": "Entwurfsbox leeren",
     "edit": "Bearbeiten",
     "editing": "Bearbeitung",
     "editPlaceholder": "Wartenden Befehl vor der Ausführung aktualisieren.",
@@ -492,7 +492,19 @@
     "queueFull": "Warteschlange ist voll. Entferne einen Befehl, bevor du weitere hinzufügst.",
     "inputTooLong": "Dieser wartende Befehl ist zu lang. Kürze ihn vor dem Senden.",
     "tooManyFiles": "Zu viele Dateien sind an diesen wartenden Befehl angehängt.",
-    "queueTooLarge": "Warteschlangendaten sind zu groß zum sicheren Speichern. Entferne zuerst einige Befehle."
+    "queueTooLarge": "Warteschlangendaten sind zu groß zum sicheren Speichern. Entferne zuerst einige Befehle.",
+    "sendNow": "Jetzt senden",
+    "modeToggle": "Sendemodus umschalten",
+    "help": "Hilfe",
+    "helpIntro": "Nachrichten, die du während der KI-Antwort sendest, warten hier.",
+    "helpAuto": ": werden nach jeder Antwort automatisch nacheinander gesendet.",
+    "helpManual": ": werden hier aufbewahrt, ohne zu senden; sende jede mit „Jetzt senden“.",
+    "clearConfirmTitle": "Sende-Entwurfsbox leeren?",
+    "clearConfirmContent": "Alle ausstehenden Nachrichten werden entfernt. Dies kann nicht rückgängig gemacht werden.",
+    "mode": {
+      "auto": "Auto senden",
+      "manual": "Manuell senden"
+    }
   },
   "contextUsage": {
     "contextUsed": "Kontext verwendet"

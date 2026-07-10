@@ -460,8 +460,8 @@
     "error": "Yan soru yanıtlanamadı."
   },
   "commandQueue": {
-    "title": "Sıradaki Komutlar",
-    "clear": "Kuyruğu Temizle",
+    "title": "Taslak kutusu",
+    "clear": "Taslak kutusunu temizle",
     "edit": "Düzenle",
     "editing": "Düzenleniyor",
     "editPlaceholder": "Bu bekleyen komutu çalıştırılmadan önce güncelleyin.",
@@ -476,7 +476,19 @@
     "queueFull": "Kuyruk dolu. Yeni komut eklemeden önce bazılarını kaldırın.",
     "inputTooLong": "Sıraya alınan komut çok uzun. Göndermeden önce kısaltın.",
     "tooManyFiles": "Bu kuyruk komutuna çok fazla dosya eklendi.",
-    "queueTooLarge": "Kuyruk verisi güvenli şekilde saklanamayacak kadar büyük. Önce bazı komutları kaldırın."
+    "queueTooLarge": "Kuyruk verisi güvenli şekilde saklanamayacak kadar büyük. Önce bazı komutları kaldırın.",
+    "sendNow": "Şimdi gönder",
+    "modeToggle": "Gönderim modunu değiştir",
+    "help": "Yardım",
+    "helpIntro": "Yapay zeka yanıt verirken gönderdiğin mesajlar burada bekler.",
+    "helpAuto": ": her yanıt bittikten sonra otomatik olarak tek tek gönderilir.",
+    "helpManual": ": gönderilmeden burada tutulur; her birini \"Şimdi gönder\" ile yolla.",
+    "clearConfirmTitle": "Gönderim taslak kutusu temizlensin mi?",
+    "clearConfirmContent": "Bekleyen tüm mesajlar kaldırılır. Bu işlem geri alınamaz.",
+    "mode": {
+      "auto": "Otomatik gönder",
+      "manual": "Elle gönder"
+    }
   },
   "contextUsage": {
     "contextUsed": "bağlam kullanıldı"

@@ -475,8 +475,8 @@
     "error": "Failed to answer the side question."
   },
   "commandQueue": {
-    "title": "Queued Commands",
-    "clear": "Clear Queue",
+    "title": "Draft box",
+    "clear": "Clear draft box",
     "edit": "Edit",
     "editing": "Editing",
     "editPlaceholder": "Update the queued command before it runs.",
@@ -491,7 +491,19 @@
     "queueFull": "Queue is full. Remove a command before adding more.",
     "inputTooLong": "This queued command is too long. Shorten it before sending.",
     "tooManyFiles": "Too many files are attached to this queued command.",
-    "queueTooLarge": "Queue data is too large to persist safely. Remove some queued commands first."
+    "queueTooLarge": "Queue data is too large to persist safely. Remove some queued commands first.",
+    "sendNow": "Send now",
+    "modeToggle": "Toggle send mode",
+    "help": "Help",
+    "helpIntro": "Messages you send while the AI is replying wait here.",
+    "helpAuto": ": sent automatically one by one after each reply finishes.",
+    "helpManual": ": kept here without sending; send each with Send now.",
+    "clearConfirmTitle": "Clear the send draft box?",
+    "clearConfirmContent": "All pending messages will be removed. This cannot be undone.",
+    "mode": {
+      "auto": "Auto send",
+      "manual": "Manual send"
+    }
   },
   "contextUsage": {
     "contextUsed": "context used"

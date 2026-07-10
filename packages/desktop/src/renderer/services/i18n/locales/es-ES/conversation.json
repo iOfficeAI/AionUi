@@ -476,8 +476,8 @@
     "error": "Error al responder la pregunta lateral."
   },
   "commandQueue": {
-    "title": "Comandos en cola",
-    "clear": "Limpiar cola",
+    "title": "Borradores",
+    "clear": "Vaciar borradores",
     "edit": "Editar",
     "editing": "Editando",
     "editPlaceholder": "Actualiza el comando en cola antes de que se ejecute.",
@@ -492,7 +492,19 @@
     "queueFull": "La cola está llena. Quita un comando antes de agregar más.",
     "inputTooLong": "Este comando en cola es demasiado largo. Acórtalo antes de enviar.",
     "tooManyFiles": "Hay demasiados archivos adjuntos en este comando en cola.",
-    "queueTooLarge": "Los datos de la cola son demasiado grandes para persistir de forma segura. Quita algunos comandos primero."
+    "queueTooLarge": "Los datos de la cola son demasiado grandes para persistir de forma segura. Quita algunos comandos primero.",
+    "sendNow": "Enviar ahora",
+    "modeToggle": "Cambiar modo de envío",
+    "help": "Ayuda",
+    "helpIntro": "Los mensajes que envías mientras la IA responde esperan aquí.",
+    "helpAuto": ": se envían automáticamente uno a uno cuando termina cada respuesta.",
+    "helpManual": ": se guardan aquí sin enviar; envía cada uno con Enviar ahora.",
+    "clearConfirmTitle": "¿Vaciar la bandeja de borradores de envío?",
+    "clearConfirmContent": "Se eliminarán todos los mensajes pendientes. Esta acción no se puede deshacer.",
+    "mode": {
+      "auto": "Envío automático",
+      "manual": "Envío manual"
+    }
   },
   "contextUsage": {
     "contextUsed": "contexto usado"

@@ -475,8 +475,8 @@
     "error": "顺便提问失败。"
   },
   "commandQueue": {
-    "title": "排队指令",
-    "clear": "清空队列",
+    "title": "草稿箱",
+    "clear": "清空草稿箱",
     "edit": "编辑",
     "editing": "编辑中",
     "editPlaceholder": "可以在执行前先修改这条排队指令。",
@@ -491,7 +491,19 @@
     "queueFull": "队列已满，请先移除部分指令再继续添加。",
     "inputTooLong": "排队指令内容过长，请缩短后再发送。",
     "tooManyFiles": "这条排队指令附加的文件过多。",
-    "queueTooLarge": "队列数据过大，无法安全缓存，请先移除部分排队指令。"
+    "queueTooLarge": "队列数据过大，无法安全缓存，请先移除部分排队指令。",
+    "sendNow": "立即发送",
+    "modeToggle": "切换发送模式",
+    "help": "使用说明",
+    "helpIntro": "AI 回复期间你发送的消息会先存到这里。",
+    "helpAuto": "：AI 每轮回复结束后自动依次发送。",
+    "helpManual": "：只暂存不自动发送，逐条点「立即发送」。",
+    "clearConfirmTitle": "确定清空发送草稿箱？",
+    "clearConfirmContent": "所有待发送的消息都会被移除，且无法恢复。",
+    "mode": {
+      "auto": "自动发送",
+      "manual": "手动发送"
+    }
   },
   "contextUsage": {
     "contextUsed": "上下文已使用"
