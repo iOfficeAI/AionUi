@@ -52,8 +52,7 @@
     "rename": "Переименовать",
     "renameTitle": "Переименовать диалог",
     "renamePlaceholder": "Введите новое имя",
-    "renameFailed": "Не удалось переименовать",
-    "untitled": "Без названия"
+    "renameFailed": "Не удалось переименовать"
   },
   "chat": {
     "inputPlaceholder": "Введите сообщение...",
@@ -89,8 +88,7 @@
     "done": "Готово",
     "toolSummaryExecuting": "Выполняется...",
     "toolSummaryCompleted": "Выполнено шагов: {{count}}",
-    "toolSummaryWithErrors": "Выполнено шагов: {{count}} (ошибок: {{errorCount}})",
-    "plan": "План"
+    "toolSummaryWithErrors": "Выполнено шагов: {{count}} (ошибок: {{errorCount}})"
   },
   "workspace": {
     "temporarySpace": "Временная сессия",
@@ -111,8 +109,7 @@
     "parentDirectory": "Родительская папка",
     "errorLoading": "Не удалось загрузить директорию",
     "copyPath": "Копировать путь",
-    "viewInfo": "Свойства",
-    "defaultFile": "файл"
+    "viewInfo": "Свойства"
   },
   "filePreview": {
     "loading": "Загрузка файла...",

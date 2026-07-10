@@ -29,7 +29,9 @@
   },
   "model": {
     "switchSuccess": "Модель успешно сменена",
-    "switchFailed": "Не удалось сменить модель"
+    "switchFailed": "Не удалось сменить модель",
+    "searchPlaceholder": "Поиск моделей",
+    "noResults": "Нет подходящих моделей"
   },
   "config": {
     "setting": "Применение настройки...",

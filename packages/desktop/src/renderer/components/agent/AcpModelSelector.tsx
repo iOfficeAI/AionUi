@@ -16,10 +16,12 @@ import { useTranslation } from 'react-i18next';
 import RuntimeSelectorPill from './RuntimeSelectorPill';
 import {
   composeRuntimeSelectorLabel,
+  getCurrentThoughtLevelLabel,
   isConfigSetting,
+  RUNTIME_SUBMENU_TRIGGER_PROPS,
   RuntimeSelectorCheckedItem,
-  RuntimeSelectorMenuDivider,
-  renderThoughtLevelMenuGroup,
+  RuntimeSelectorModelList,
+  RuntimeSelectorSubMenuTitle,
 } from './runtimeSelectorOptions';
 
 const configErrorMessageKey = (error: unknown) => {
@@ -124,31 +126,64 @@ const AcpModelSelector: React.FC<{
       {...(isMobileHeaderCompact ? { getPopupContainer: () => document.body } : {})}
       droplist={
         <Menu>
-          {renderThoughtLevelMenuGroup({
-            thoughtLevel,
-            setStatus,
-            title: t('agent.thoughtLevel.label'),
-            onSelect: (value) => void handleThoughtLevelSelect(value),
-          })}
-          {thoughtLevel && <RuntimeSelectorMenuDivider />}
-          <Menu.ItemGroup title={t('common.model', { defaultValue: 'Model' })}>
-            {model_info.available_models.map((model) => (
-              <Menu.Item
-                key={model.id}
-                className={model.id === model_info.current_model_id ? 'bg-2!' : ''}
-                onClick={() => {
-                  if (!isRuntimeSetting) selectModel(model.id);
-                }}
+          {thoughtLevel ? (
+            <>
+              {/* Two-level layout: first level shows model + thought-level rows;
+                  each expands into a left-side submenu with the full option list. */}
+              <Menu.SubMenu
+                key='model'
+                triggerProps={RUNTIME_SUBMENU_TRIGGER_PROPS}
+                title={
+                  <RuntimeSelectorSubMenuTitle
+                    label={t('common.model', { defaultValue: 'Model' })}
+                    value={display_label}
+                  />
+                }
               >
-                <RuntimeSelectorCheckedItem
-                  selected={model.id === model_info.current_model_id}
-                  description={model.description}
-                >
-                  {model.label || model.id}
-                </RuntimeSelectorCheckedItem>
-              </Menu.Item>
-            ))}
-          </Menu.ItemGroup>
+                <RuntimeSelectorModelList
+                  models={model_info.available_models}
+                  currentModelId={model_info.current_model_id}
+                  disabled={isRuntimeSetting}
+                  onSelect={selectModel}
+                />
+              </Menu.SubMenu>
+              <Menu.SubMenu
+                key='thought-level'
+                triggerProps={RUNTIME_SUBMENU_TRIGGER_PROPS}
+                title={
+                  <RuntimeSelectorSubMenuTitle
+                    label={t('agent.thoughtLevel.label')}
+                    value={getCurrentThoughtLevelLabel(thoughtLevel)}
+                  />
+                }
+              >
+                {thoughtLevel.options.map((item) => (
+                  <Menu.Item
+                    key={item.value}
+                    className={item.value === thoughtLevel.currentValue ? 'bg-2!' : ''}
+                    onClick={() => {
+                      if (!isRuntimeSetting) void handleThoughtLevelSelect(item.value);
+                    }}
+                  >
+                    <RuntimeSelectorCheckedItem
+                      selected={item.value === thoughtLevel.currentValue}
+                      description={item.description}
+                    >
+                      {item.label}
+                    </RuntimeSelectorCheckedItem>
+                  </Menu.Item>
+                ))}
+              </Menu.SubMenu>
+            </>
+          ) : (
+            /* No thought level: the dropdown is the model list directly. */
+            <RuntimeSelectorModelList
+              models={model_info.available_models}
+              currentModelId={model_info.current_model_id}
+              disabled={isRuntimeSetting}
+              onSelect={selectModel}
+            />
+          )}
         </Menu>
       }
     >

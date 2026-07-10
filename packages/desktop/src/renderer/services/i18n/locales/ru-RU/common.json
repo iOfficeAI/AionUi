@@ -20,7 +20,7 @@
   "website": "Сайт",
   "version": "Версия",
   "contact": "Контакты",
-  "github": "Github",
+  "github": "GitHub",
   "loading": "Пожалуйста, подождите...",
   "copy": "Копировать",
   "reply": "Ответить",
@@ -88,32 +88,32 @@
       "runtimeComponentDescription": "В этой установке отсутствуют необходимые встроенные компоненты среды выполнения, поэтому {{resource}} не может запуститься. Переустановите последнюю версию AionUi. Если проблема повторится после переустановки, проверьте, не поместило ли защитное или антивирусное ПО компоненты AionUi в карантин."
     },
     "packageArchitectureMismatch": {
-      "title": "AionUi package architecture mismatch",
-      "description": "This AionUi package is for {{packageArch}}, but this Mac is {{deviceArch}}. You may have downloaded the wrong package. Please download and install the {{expectedArch}} package."
+      "title": "Архитектура пакета AionUi не совпадает",
+      "description": "Этот пакет AionUi предназначен для {{packageArch}}, а этот Mac использует {{deviceArch}}. Возможно, скачан неверный пакет. Скачайте и установите пакет для {{expectedArch}}."
     },
     "dataMigration": {
-      "title": "Local data migration failed",
-      "description": "AionUi opened, but AionCore stopped while initializing local data. Reinstalling AionUi may not fix this. Send a diagnostics report or contact support so the local database migration can be inspected.",
-      "sendDiagnostics": "Send diagnostics",
-      "diagnosticsSent": "Diagnostics sent",
-      "diagnosticsReportSuccess": "Diagnostics report sent",
-      "diagnosticsReportFailed": "Failed to send diagnostics report"
+      "title": "Не удалось перенести локальные данные",
+      "description": "AionUi открылся, но AionCore остановился при инициализации локальных данных. Переустановка AionUi может не помочь. Отправьте диагностический отчёт или обратитесь в поддержку, чтобы проверить миграцию локальной базы данных.",
+      "sendDiagnostics": "Отправить диагностику",
+      "diagnosticsSent": "Диагностика отправлена",
+      "diagnosticsReportSuccess": "Диагностический отчёт отправлен",
+      "diagnosticsReportFailed": "Не удалось отправить диагностический отчёт"
     },
     "localDataRepair": {
-      "title": "Local data repair failed",
-      "description": "AionUi opened, but AionCore stopped while repairing local agent cache data. Reinstalling AionUi may not fix this. Send a diagnostics report or contact support so the local database can be inspected.",
-      "sendDiagnostics": "Send diagnostics",
-      "diagnosticsSent": "Diagnostics sent",
-      "diagnosticsReportSuccess": "Diagnostics report sent",
-      "diagnosticsReportFailed": "Failed to send diagnostics report"
+      "title": "Не удалось восстановить локальные данные",
+      "description": "AionUi открылся, но AionCore остановился при восстановлении локального кэша агентов. Переустановка AionUi может не помочь. Отправьте диагностический отчёт или обратитесь в поддержку, чтобы проверить локальную базу данных.",
+      "sendDiagnostics": "Отправить диагностику",
+      "diagnosticsSent": "Диагностика отправлена",
+      "diagnosticsReportSuccess": "Диагностический отчёт отправлен",
+      "diagnosticsReportFailed": "Не удалось отправить диагностический отчёт"
     },
     "startupDirectory": {
-      "title": "Startup directory is unavailable",
-      "description": "AionUi opened, but AionCore could not start because the configured work or log directory is missing, unavailable, or blocked by permissions. Check that the configured directories exist and are writable, then restart AionUi.",
-      "sendDiagnostics": "Send diagnostics",
-      "diagnosticsSent": "Diagnostics sent",
-      "diagnosticsReportSuccess": "Diagnostics report sent",
-      "diagnosticsReportFailed": "Failed to send diagnostics report"
+      "title": "Папка запуска недоступна",
+      "description": "AionUi открылся, но AionCore не смог запуститься: настроенная рабочая папка или папка логов отсутствует, недоступна либо заблокирована правами. Убедитесь, что эти папки существуют и доступны для записи, затем перезапустите AionUi.",
+      "sendDiagnostics": "Отправить диагностику",
+      "diagnosticsSent": "Диагностика отправлена",
+      "diagnosticsReportSuccess": "Диагностический отчёт отправлен",
+      "diagnosticsReportFailed": "Не удалось отправить диагностический отчёт"
     },
     "recoverableDatabaseCorruption": {
       "title": "Локальные данные повреждены",

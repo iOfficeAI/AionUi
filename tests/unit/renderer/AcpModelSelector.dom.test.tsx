@@ -84,6 +84,8 @@ vi.mock('@/renderer/utils/model/agentLogo', () => ({
 vi.mock('@icon-park/react', () => ({
   Brain: () => <span aria-hidden='true'>brain</span>,
   Down: () => <span aria-hidden='true'>v</span>,
+  Right: () => <span aria-hidden='true'>›</span>,
+  Search: () => <span aria-hidden='true'>search</span>,
   Loading: ({ className }: { className?: string }) => <span aria-hidden='true' className={className} />,
 }));
 
@@ -95,6 +97,8 @@ vi.mock('react-i18next', () => ({
       if (key === 'agent.config.commandAck') return 'agent.config.commandAck';
       if (key === 'common.model') return 'Model';
       if (key === 'common.defaultModel') return 'Default';
+      if (key === 'agent.model.searchPlaceholder') return 'Search models';
+      if (key === 'agent.model.noResults') return 'No matching models';
       if (key === 'conversation.welcome.useCliModel') return 'Use CLI model';
       if (key === 'conversation.welcome.modelSwitchNotSupported') return 'Model switch is not supported';
       return options?.defaultValue ?? key;
@@ -126,6 +130,13 @@ vi.mock('@arco-design/web-react', () => {
       ItemGroup: ({ children, title }: { children?: React.ReactNode; title?: React.ReactNode }) => (
         <div role='group' aria-label={String(title)}>
           {children}
+        </div>
+      ),
+      // SubMenu renders both the title row and its children so tests can inspect both levels.
+      SubMenu: ({ children, title }: { children?: React.ReactNode; title?: React.ReactNode }) => (
+        <div role='group'>
+          <div data-testid='submenu-title'>{title}</div>
+          <div data-testid='submenu-body'>{children}</div>
         </div>
       ),
     }
@@ -175,25 +186,27 @@ describe('AcpModelSelector runtime options', () => {
     expect(screen.getByTestId('acp-model-selector')).toHaveTextContent('GPT-5.2 · High');
   });
 
-  it('renders the thought level group before the model group', () => {
+  it('shows the model submenu before the thought level submenu, each with its current value', () => {
     render(<AcpModelSelector conversation_id='conversation-1' backend='codex' />);
 
-    expect(screen.getAllByRole('group').map((group) => group.getAttribute('aria-label'))).toEqual([
-      'Thinking Level',
-      'Model',
-    ]);
-    expect(screen.getByTestId('runtime-selector-menu-divider')).toBeInTheDocument();
+    const titles = screen.getAllByTestId('submenu-title');
+    // Model row first, thought-level row second (matches pill order).
+    expect(titles[0]).toHaveTextContent('Model');
+    expect(titles[0]).toHaveTextContent('GPT-5.2');
+    expect(titles[1]).toHaveTextContent('Thinking Level');
+    expect(titles[1]).toHaveTextContent('High');
   });
 
-  it('marks the current model with the same leading check indicator as thought level options', () => {
+  it('marks the current model with the leading check indicator', () => {
     render(<AcpModelSelector conversation_id='conversation-1' backend='codex' />);
 
-    const modelGroup = screen.getByRole('group', { name: 'Model' });
-    const currentModelItem = within(modelGroup).getByText('GPT-5.2').closest('[role="menuitem"]');
-    const otherModelItem = within(modelGroup).getByText('GPT-5.2 Mini').closest('[role="menuitem"]');
+    // Scope to the model submenu body so the title-row current value doesn't collide.
+    const modelBody = screen.getAllByTestId('submenu-body')[0];
+    const currentModelItem = within(modelBody).getByText('GPT-5.2').closest('[role="menuitem"]');
+    const otherModelItem = within(modelBody).getByText('GPT-5.2 Mini').closest('[role="menuitem"]');
 
-    expect(currentModelItem?.textContent?.trim().startsWith('\u2713')).toBe(true);
-    expect(otherModelItem).not.toHaveTextContent('\u2713');
+    expect(currentModelItem?.textContent?.trim().startsWith('✓')).toBe(true);
+    expect(otherModelItem).not.toHaveTextContent('✓');
   });
 
   it('shows model descriptions in option tooltips', () => {
@@ -203,16 +216,8 @@ describe('AcpModelSelector runtime options', () => {
           current_model_id: 'default',
           current_model_label: 'Default',
           available_models: [
-            {
-              id: 'default',
-              label: 'Default',
-              description: 'Sonnet 4.6 · Best for everyday tasks',
-            },
-            {
-              id: 'opus',
-              label: 'Opus',
-              description: 'Opus 4.8 · Most capable for complex work',
-            },
+            { id: 'default', label: 'Default', description: 'Sonnet 4.6 · Best for everyday tasks' },
+            { id: 'opus', label: 'Opus', description: 'Opus 4.8 · Most capable for complex work' },
           ],
         },
       })
@@ -220,14 +225,13 @@ describe('AcpModelSelector runtime options', () => {
 
     render(<AcpModelSelector conversation_id='conversation-1' backend='codex' />);
 
-    const modelGroup = screen.getByRole('group', { name: 'Model' });
+    const modelBody = screen.getAllByTestId('submenu-body')[0];
     expect(screen.queryByText('Sonnet 4.6 · Best for everyday tasks')).not.toBeInTheDocument();
-    expect(screen.queryByText('Opus 4.8 · Most capable for complex work')).not.toBeInTheDocument();
-    expect(within(modelGroup).getByText('Default').closest('[data-tooltip-content]')).toHaveAttribute(
+    expect(within(modelBody).getByText('Default').closest('[data-tooltip-content]')).toHaveAttribute(
       'data-tooltip-content',
       'Sonnet 4.6 · Best for everyday tasks'
     );
-    expect(within(modelGroup).getByText('Opus').closest('[data-tooltip-content]')).toHaveAttribute(
+    expect(within(modelBody).getByText('Opus').closest('[data-tooltip-content]')).toHaveAttribute(
       'data-tooltip-content',
       'Opus 4.8 · Most capable for complex work'
     );
@@ -236,22 +240,78 @@ describe('AcpModelSelector runtime options', () => {
   it('shows thought level descriptions in option tooltips', () => {
     render(<AcpModelSelector conversation_id='conversation-1' backend='codex' />);
 
-    const thoughtGroup = screen.getByRole('group', { name: 'Thinking Level' });
+    // Thought submenu is the second one; scope to its body to avoid the title-row "High".
+    const thoughtBody = screen.getAllByTestId('submenu-body')[1];
     expect(screen.queryByText('More reasoning for complex work')).not.toBeInTheDocument();
-    expect(within(thoughtGroup).getByText('High').closest('[data-tooltip-content]')).toHaveAttribute(
+    expect(within(thoughtBody).getByText('High').closest('[data-tooltip-content]')).toHaveAttribute(
       'data-tooltip-content',
       'More reasoning for complex work'
     );
   });
 
-  it('omits the thought level label and group when the runtime has no thought option', () => {
+  it('renders the model list directly (no submenu) when there is no thought option', () => {
     useAcpModelInfoMock.mockReturnValue(makeResult({ thoughtLevel: null }));
 
     render(<AcpModelSelector conversation_id='conversation-1' backend='codex' />);
 
     expect(screen.getByTestId('acp-model-selector')).toHaveTextContent('GPT-5.2');
-    expect(screen.queryByRole('group', { name: 'Thinking Level' })).not.toBeInTheDocument();
-    expect(screen.getByRole('group', { name: 'Model' })).toBeInTheDocument();
+    // No submenu rows at all — the dropdown is the model list itself.
+    expect(screen.queryAllByTestId('submenu-title')).toHaveLength(0);
+    expect(screen.getByText('GPT-5.2 Mini')).toBeInTheDocument();
+  });
+
+  it('does not show the search box when the model count is at or below the threshold', () => {
+    render(<AcpModelSelector conversation_id='conversation-1' backend='codex' />);
+
+    expect(screen.queryByTestId('runtime-selector-model-search')).not.toBeInTheDocument();
+  });
+
+  it('shows the model search box and filters when the model count exceeds the threshold', () => {
+    const manyModels = Array.from({ length: 8 }, (_, i) => ({ id: `m-${i}`, label: `Model ${i}` }));
+    useAcpModelInfoMock.mockReturnValue(
+      makeResult({
+        thoughtLevel: null,
+        model_info: { current_model_id: 'm-0', current_model_label: 'Model 0', available_models: manyModels },
+      })
+    );
+
+    render(<AcpModelSelector conversation_id='conversation-1' backend='codex' />);
+
+    const search = screen.getByTestId('runtime-selector-model-search');
+    expect(search).toBeInTheDocument();
+    expect(screen.getByText('Model 3')).toBeInTheDocument();
+
+    fireEvent.change(search, { target: { value: 'Model 3' } });
+
+    expect(screen.getByText('Model 3')).toBeInTheDocument();
+    expect(screen.queryByText('Model 4')).not.toBeInTheDocument();
+  });
+
+  it('shows an empty state when the search matches no model', () => {
+    const manyModels = Array.from({ length: 8 }, (_, i) => ({ id: `m-${i}`, label: `Model ${i}` }));
+    useAcpModelInfoMock.mockReturnValue(
+      makeResult({
+        thoughtLevel: null,
+        model_info: { current_model_id: 'm-0', current_model_label: 'Model 0', available_models: manyModels },
+      })
+    );
+
+    render(<AcpModelSelector conversation_id='conversation-1' backend='codex' />);
+
+    fireEvent.change(screen.getByTestId('runtime-selector-model-search'), { target: { value: 'zzz' } });
+
+    expect(screen.getByText('No matching models')).toBeInTheDocument();
+  });
+
+  it('selects a model through the config setter', () => {
+    const selectModel = vi.fn();
+    useAcpModelInfoMock.mockReturnValue(makeResult({ selectModel }));
+
+    render(<AcpModelSelector conversation_id='conversation-1' backend='codex' />);
+
+    fireEvent.click(screen.getByText('GPT-5.2 Mini'));
+
+    expect(selectModel).toHaveBeenCalledWith('gpt-5.2-mini');
   });
 
   it('sets thought level through the existing config option setter', async () => {
