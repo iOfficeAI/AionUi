@@ -385,7 +385,8 @@
       "revealFailed": "Falha ao abrir a pasta que contém o arquivo",
       "download": "Baixar",
       "downloadSuccess": "Download concluído com sucesso",
-      "downloadFailed": "O download falhou"
+      "downloadFailed": "O download falhou",
+      "searchInFolder": "Pesquisar nesta pasta"
     },
     "preview": {
       "errors": {
@@ -421,6 +422,23 @@
       "vscode": "VS Code",
       "terminal": "Terminal",
       "explorer": "Explorador de Arquivos"
+    },
+    "searchScope": {
+      "workspace": "Projeto",
+      "currentFolder": "Pasta",
+      "folderHintDesktop": "Clique com o botão direito em uma pasta para pesquisar nela",
+      "folderHintMobile": "Toque e segure uma pasta para pesquisar nela",
+      "selectedFolder": "Atual: {{folder}}"
+    },
+    "searchMode": {
+      "all": "Tudo",
+      "name": "Nomes",
+      "content": "Conteudo"
+    },
+    "searchStats": "{{fileCount}} arquivo(s), {{contentBlockCount}} bloco(s) de conteúdo encontrados",
+    "revealInWorkspace": {
+      "notFound": "Não foi possível localizar este arquivo no painel de arquivos",
+      "notInProject": "Este arquivo não está no projeto atual"
     }
   },
   "minimap": {

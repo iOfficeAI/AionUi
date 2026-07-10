@@ -379,7 +379,8 @@
       "revealFailed": "无法打开所在目录",
       "download": "下载",
       "downloadSuccess": "下载成功",
-      "downloadFailed": "下载失败"
+      "downloadFailed": "下载失败",
+      "searchInFolder": "在此文件夹下搜索"
     },
     "preview": {
       "errors": {
@@ -415,6 +416,23 @@
       "vscode": "VS Code",
       "terminal": "终端",
       "explorer": "文件资源管理器"
+    },
+    "searchScope": {
+      "workspace": "整个项目",
+      "currentFolder": "文件夹",
+      "folderHintDesktop": "右键选择在指定文件夹下搜索",
+      "folderHintMobile": "长按选择在指定文件夹下搜索",
+      "selectedFolder": "当前：{{folder}}"
+    },
+    "searchMode": {
+      "all": "全部",
+      "name": "文件名",
+      "content": "内容"
+    },
+    "searchStats": "命中 {{fileCount}} 个文件，{{contentBlockCount}} 个内容块",
+    "revealInWorkspace": {
+      "notFound": "未能在文件栏中定位该文件",
+      "notInProject": "该文件不在当前项目中"
     }
   },
   "minimap": {

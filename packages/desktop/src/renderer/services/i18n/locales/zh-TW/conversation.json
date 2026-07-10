@@ -379,7 +379,8 @@
       "revealFailed": "無法開啟所在資料夾",
       "download": "下載",
       "downloadSuccess": "下載成功",
-      "downloadFailed": "下載失敗"
+      "downloadFailed": "下載失敗",
+      "searchInFolder": "在此資料夾下搜尋"
     },
     "preview": {
       "errors": {
@@ -415,6 +416,23 @@
       "vscode": "VS Code",
       "terminal": "終端機",
       "explorer": "檔案總管"
+    },
+    "searchScope": {
+      "workspace": "整個專案",
+      "currentFolder": "資料夾",
+      "folderHintDesktop": "右鍵選擇在指定資料夾下搜尋",
+      "folderHintMobile": "長按選擇在指定資料夾下搜尋",
+      "selectedFolder": "目前：{{folder}}"
+    },
+    "searchMode": {
+      "all": "全部",
+      "name": "檔名",
+      "content": "內容"
+    },
+    "searchStats": "命中 {{fileCount}} 個檔案，{{contentBlockCount}} 個內容區塊",
+    "revealInWorkspace": {
+      "notFound": "無法在檔案欄中定位該檔案",
+      "notInProject": "該檔案不在目前專案中"
     }
   },
   "minimap": {

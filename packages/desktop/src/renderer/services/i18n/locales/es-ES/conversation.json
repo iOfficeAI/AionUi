@@ -379,7 +379,8 @@
       "revealFailed": "Error al abrir la carpeta contenedora",
       "download": "Descargar",
       "downloadSuccess": "Descarga exitosa",
-      "downloadFailed": "Error en la descarga"
+      "downloadFailed": "Error en la descarga",
+      "searchInFolder": "Buscar en esta carpeta"
     },
     "preview": {
       "errors": {
@@ -415,6 +416,23 @@
       "vscode": "VS Code",
       "terminal": "Terminal",
       "explorer": "Explorador de archivos"
+    },
+    "searchScope": {
+      "workspace": "Proyecto",
+      "currentFolder": "Carpeta",
+      "folderHintDesktop": "Haz clic derecho en una carpeta para buscar en ella",
+      "folderHintMobile": "Mantén pulsada una carpeta para buscar en ella",
+      "selectedFolder": "Actual: {{folder}}"
+    },
+    "searchMode": {
+      "all": "Todo",
+      "name": "Nombres",
+      "content": "Contenido"
+    },
+    "searchStats": "{{fileCount}} archivo(s), {{contentBlockCount}} bloque(s) de contenido encontrados",
+    "revealInWorkspace": {
+      "notFound": "No se pudo localizar este archivo en el panel de archivos",
+      "notInProject": "Este archivo no está en el proyecto actual"
     }
   },
   "minimap": {

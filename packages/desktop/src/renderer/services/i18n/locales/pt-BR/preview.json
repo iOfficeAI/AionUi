@@ -139,5 +139,6 @@
     "installing": "Instalando componente de visualização...",
     "startFailed": "Falha ao iniciar a visualização do PPT",
     "installHint": "Instale o OfficeCLI pela página oficial de releases iOfficeAI/OfficeCLI"
-  }
+  },
+  "revealInWorkspace": "Revelar no painel de arquivos"
 }

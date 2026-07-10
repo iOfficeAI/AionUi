@@ -50,6 +50,94 @@
   align-items: center;
 }
 
+.chat-workspace .workspace-search-controls {
+  display: grid;
+  gap: 6px;
+}
+
+.chat-workspace .workspace-search-segment {
+  display: grid;
+  width: 100%;
+}
+
+.chat-workspace .workspace-search-scope {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+}
+
+.chat-workspace .workspace-search-mode {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.chat-workspace .workspace-search-segment .arco-radio-button {
+  min-width: 0;
+  padding: 0 6px;
+  text-align: center;
+}
+
+.chat-workspace .workspace-search-segment .arco-radio-button-content {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chat-workspace .workspace-search-meta {
+  display: flex;
+  min-height: 18px;
+  flex-wrap: wrap;
+  gap: 6px;
+  color: var(--color-text-3);
+  font-size: 12px;
+  line-height: 18px;
+  padding: 0 2px;
+}
+
+.chat-workspace .workspace-search-meta:empty::before {
+  content: '\00a0';
+  visibility: hidden;
+}
+
+.chat-workspace .workspace-search-folder-name {
+  color: var(--color-text-2);
+  font-weight: 500;
+}
+
+.chat-workspace .workspace-search-stats {
+  color: var(--color-text-3);
+}
+
+.chat-workspace .workspace-changes-groups {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.chat-workspace .workspace-change-group {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+}
+
+.chat-workspace .workspace-change-group--scrollable {
+  flex: 1 1 0;
+}
+
+.chat-workspace .workspace-change-group--empty {
+  flex: 0 0 auto;
+}
+
+.chat-workspace .workspace-change-group__body {
+  min-height: 0;
+  flex: 1 1 auto;
+}
+
+.chat-workspace .workspace-changes-scroll {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
+}
+
 /* Full-row hover & selection backgrounds live in styles/arco-override.css
    (.workspace-tree ...), the project's home for Arco theme overrides. */
 

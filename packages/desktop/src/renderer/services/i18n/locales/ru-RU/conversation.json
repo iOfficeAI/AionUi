@@ -379,7 +379,8 @@
       "revealFailed": "Не удалось открыть содержащую папку",
       "download": "Скачать",
       "downloadSuccess": "Скачивание успешно",
-      "downloadFailed": "Не удалось скачать"
+      "downloadFailed": "Не удалось скачать",
+      "searchInFolder": "Искать в этой папке"
     },
     "preview": {
       "errors": {
@@ -415,6 +416,23 @@
       "vscode": "VS Code",
       "terminal": "Терминал",
       "explorer": "Проводник"
+    },
+    "searchScope": {
+      "workspace": "Проект",
+      "currentFolder": "Папка",
+      "folderHintDesktop": "Щелкните папку правой кнопкой, чтобы искать в ней",
+      "folderHintMobile": "Нажмите и удерживайте папку, чтобы искать в ней",
+      "selectedFolder": "Текущая: {{folder}}"
+    },
+    "searchMode": {
+      "all": "Все",
+      "name": "Имена",
+      "content": "Содержимое"
+    },
+    "searchStats": "Совпало файлов: {{fileCount}}, блоков содержимого: {{contentBlockCount}}",
+    "revealInWorkspace": {
+      "notFound": "Не удалось найти этот файл на панели файлов",
+      "notInProject": "Этот файл не находится в текущем проекте"
     }
   },
   "minimap": {

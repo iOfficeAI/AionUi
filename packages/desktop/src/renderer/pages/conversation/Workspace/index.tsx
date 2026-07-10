@@ -6,18 +6,24 @@
 
 import { ipcBridge } from '@/common';
 import type { IDirOrFile } from '@/common/adapter/ipcBridge';
+import { absoluteToRelativePath } from '@/common/adapter/workspaceMapper';
 import FlexFullContainer from '@/renderer/components/layout/FlexFullContainer';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import { getWorkspaceDisplayName as getDisplayName } from '@/renderer/utils/workspace/workspace';
+import {
+  WORKSPACE_REVEAL_FILE_EVENT,
+  type WorkspaceRevealFileDetail,
+} from '@/renderer/utils/workspace/workspaceEvents';
 import { Empty, Message, Tree } from '@arco-design/web-react';
 import { Right } from '@icon-park/react';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import FileChangeList from './components/FileChangeList';
 import PasteConfirmModal from './components/PasteConfirmModal';
 import WorkspaceContextMenu from './components/WorkspaceContextMenu';
 import WorkspaceDialogs from './components/WorkspaceDialogs';
+import WorkspaceSearchBar from './components/WorkspaceSearchBar';
 import WorkspaceTabBar from './components/WorkspaceTabBar';
 import WorkspaceToolbar from './components/WorkspaceToolbar';
 import FileTypeIcon from './components/FileTypeIcon';
@@ -41,6 +47,35 @@ import {
 } from './utils/treeHelpers';
 import './workspace.css';
 
+const normalizeWorkspacePath = (value: string) => value.replace(/\\/g, '/').replace(/\/+$/, '');
+
+const replaceNodeChildren = (nodes: IDirOrFile[], relativePath: string, children: IDirOrFile[]): IDirOrFile[] =>
+  nodes.map((node) => {
+    if (node.relativePath === relativePath) {
+      return { ...node, children };
+    }
+    if (node.children?.length) {
+      return { ...node, children: replaceNodeChildren(node.children, relativePath, children) };
+    }
+    return node;
+  });
+
+const scrollSelectedWorkspaceNodeIntoView = (fileName: string, attempt = 0) => {
+  const selectedNodes = Array.from(document.querySelectorAll<HTMLElement>('.chat-workspace .arco-tree-node-selected'));
+  const targetNode = selectedNodes.find((node) => node.textContent?.includes(fileName));
+
+  if (targetNode) {
+    targetNode.scrollIntoView({
+      block: 'center',
+      behavior: 'smooth',
+    });
+    return;
+  }
+
+  if (attempt >= 8) return;
+  window.requestAnimationFrame(() => scrollSelectedWorkspaceNodeIntoView(fileName, attempt + 1));
+};
+
 const ChatWorkspace: React.FC<WorkspaceProps> = ({
   conversation_id,
   workspace,
@@ -52,6 +87,7 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
   const layout = useLayoutContext();
   const isMobile = layout?.isMobile ?? false;
   const { openPreview } = usePreviewContext();
+  const longPressTimerRef = useRef<number | null>(null);
 
   // Message API setup
   const [internalMessageApi, messageContext] = Message.useMessage();
@@ -91,7 +127,18 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
     conversation_id: conversation_id,
   });
 
-  const searchHook = useWorkspaceSearch({ workspace, loadWorkspace: treeHook.loadWorkspace });
+  // Get target folder path for paste, import, and scoped workspace search.
+  const targetFolderPathForModal = getTargetFolderPath(
+    treeHook.selectedNodeRef.current,
+    treeHook.selected,
+    treeHook.files,
+    workspace
+  );
+
+  const searchHook = useWorkspaceSearch({
+    workspace,
+    loadWorkspace: treeHook.loadWorkspace,
+  });
 
   const fileOpsHook = useWorkspaceFileOps({
     workspace,
@@ -173,6 +220,44 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
     [treeHook.ensureNodeSelected, modalsHook.setContextMenu]
   );
 
+  const clearNodeLongPress = useCallback(() => {
+    if (longPressTimerRef.current == null) return;
+    window.clearTimeout(longPressTimerRef.current);
+    longPressTimerRef.current = null;
+  }, []);
+
+  const startNodeLongPress = useCallback(
+    (node: IDirOrFile, event: React.TouchEvent<HTMLDivElement>) => {
+      if (!isMobile || node.isFile) return;
+      const touch = event.touches[0];
+      if (!touch) return;
+      clearNodeLongPress();
+      longPressTimerRef.current = window.setTimeout(() => {
+        openNodeContextMenu(node, touch.clientX, touch.clientY);
+        longPressTimerRef.current = null;
+      }, 500);
+    },
+    [clearNodeLongPress, isMobile, openNodeContextMenu]
+  );
+
+  useEffect(() => clearNodeLongPress, [clearNodeLongPress]);
+
+  const handleSearchInFolder = useCallback(
+    (node: IDirOrFile) => {
+      if (node.isFile) return;
+      treeHook.ensureNodeSelected(node);
+      searchHook.selectSearchFolder(node.fullPath || workspace, node.name || node.relativePath || workspaceDisplayName);
+      modalsHook.closeContextMenu();
+    },
+    [
+      modalsHook.closeContextMenu,
+      searchHook.selectSearchFolder,
+      treeHook.ensureNodeSelected,
+      workspace,
+      workspaceDisplayName,
+    ]
+  );
+
   const handleOpenChangeDiff = useCallback(
     (diffContent: string, file_name: string, file_path: string) => {
       openPreview(diffContent, 'diff', {
@@ -184,20 +269,113 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
     [openPreview, workspace]
   );
 
+  const revealFileInWorkspace = useCallback(
+    async (filePath: string) => {
+      const relativePath = absoluteToRelativePath(filePath, workspace).replace(/\\/g, '/');
+      if (!relativePath || relativePath === '.' || relativePath.startsWith('..') || relativePath === filePath) {
+        messageApi.warning(t('conversation.workspace.revealInWorkspace.notInProject'));
+        return;
+      }
+
+      const parts = relativePath.split('/').filter(Boolean);
+      if (parts.length === 0) return;
+
+      setActiveTab('files');
+      setIsWorkspaceCollapsed(false);
+      searchHook.clearSearch();
+
+      let nextFiles = treeHook.files;
+      const expanded = new Set(treeHook.expandedKeys);
+      expanded.add('');
+
+      const loadChildren = async (parentRelativePath: string, parentFullPath: string) => {
+        const response = await ipcBridge.conversation.getWorkspace.invoke({
+          conversation_id,
+          workspace,
+          path: parentFullPath,
+        });
+        const parentNode = response[0];
+        const children = parentNode?.children ?? [];
+
+        if (!parentRelativePath) {
+          const rootNode = parentNode ??
+            nextFiles[0] ?? {
+              name: workspaceDisplayName,
+              fullPath: workspace,
+              relativePath: '',
+              isDir: true,
+              isFile: false,
+            };
+          nextFiles = [{ ...rootNode, children }];
+          return children;
+        }
+
+        nextFiles = replaceNodeChildren(nextFiles, parentRelativePath, children);
+        return children;
+      };
+
+      let parentRelativePath = '';
+      let parentFullPath = workspace;
+
+      for (const directoryName of parts.slice(0, -1)) {
+        expanded.add(parentRelativePath);
+        // Each level depends on the previous directory lookup, so this cannot be parallelized.
+        // eslint-disable-next-line no-await-in-loop
+        const children = await loadChildren(parentRelativePath, parentFullPath);
+        const directoryNode = children.find((child) => !child.isFile && child.name === directoryName);
+        if (!directoryNode) {
+          messageApi.warning(t('conversation.workspace.revealInWorkspace.notFound'));
+          return;
+        }
+        parentRelativePath = directoryNode.relativePath;
+        parentFullPath = directoryNode.fullPath;
+      }
+
+      expanded.add(parentRelativePath);
+      const siblings = await loadChildren(parentRelativePath, parentFullPath);
+      const fileNode = siblings.find((child) => child.isFile && child.relativePath === relativePath);
+      if (!fileNode) {
+        messageApi.warning(t('conversation.workspace.revealInWorkspace.notFound'));
+        return;
+      }
+
+      treeHook.setFiles(nextFiles);
+      treeHook.setExpandedKeys([...expanded]);
+      treeHook.ensureNodeSelected(fileNode);
+      window.requestAnimationFrame(() => scrollSelectedWorkspaceNodeIntoView(fileNode.name));
+    },
+    [
+      conversation_id,
+      messageApi,
+      searchHook.clearSearch,
+      setIsWorkspaceCollapsed,
+      t,
+      treeHook,
+      workspace,
+      workspaceDisplayName,
+    ]
+  );
+
+  useEffect(() => {
+    const handleRevealFile = (event: Event) => {
+      const detail = (event as CustomEvent<WorkspaceRevealFileDetail>).detail;
+      if (!detail?.filePath) return;
+      if (detail.workspace && normalizeWorkspacePath(detail.workspace) !== normalizeWorkspacePath(workspace)) return;
+      void revealFileInWorkspace(detail.filePath);
+    };
+
+    window.addEventListener(WORKSPACE_REVEAL_FILE_EVENT, handleRevealFile);
+    return () => {
+      window.removeEventListener(WORKSPACE_REVEAL_FILE_EVENT, handleRevealFile);
+    };
+  }, [revealFileInWorkspace, workspace]);
+
   // Auto-refresh changes when switching to changes tab
   useEffect(() => {
     if (activeTab === 'changes') {
       fileChangesHook.refreshChanges();
     }
   }, [activeTab, fileChangesHook.refreshChanges]);
-
-  // Get target folder path for paste confirm modal
-  const targetFolderPathForModal = getTargetFolderPath(
-    treeHook.selectedNodeRef.current,
-    treeHook.selected,
-    treeHook.files,
-    workspace
-  );
 
   return (
     <>
@@ -280,20 +458,34 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
           branch={fileChangesHook.snapshotInfo?.branch ?? null}
         />
 
-        {/* Toolbar: search input + directory name + action buttons */}
+        {/* Search input and controls */}
+        {activeTab === 'files' && (
+          <WorkspaceSearchBar
+            t={t}
+            isMobile={isMobile}
+            showSearch={searchHook.showSearch}
+            searchText={searchHook.searchText}
+            setSearchText={searchHook.setSearchText}
+            onSearch={searchHook.onSearch}
+            searchInputRef={searchHook.searchInputRef}
+            searchScope={searchHook.searchScope}
+            setSearchScope={searchHook.setSearchScope}
+            searchFolderLabel={searchHook.searchFolderLabel}
+            searchStats={searchHook.searchStats}
+            searchMode={searchHook.searchMode}
+            setSearchMode={searchHook.setSearchMode}
+          />
+        )}
+
+        {/* Toolbar: directory name + action buttons */}
         {activeTab === 'files' && (
           <WorkspaceToolbar
             t={t}
             isWorkspaceCollapsed={isWorkspaceCollapsed}
             setIsWorkspaceCollapsed={setIsWorkspaceCollapsed}
             workspaceDisplayName={workspaceDisplayName}
-            showSearch={searchHook.showSearch}
-            searchText={searchHook.searchText}
-            setSearchText={searchHook.setSearchText}
-            onSearch={searchHook.onSearch}
-            searchInputRef={searchHook.searchInputRef}
             loading={treeHook.loading}
-            refreshWorkspace={treeHook.refreshWorkspace}
+            refreshWorkspace={treeHook.forceRefreshWorkspace}
             handleSelectHostFiles={pasteHook.handleSelectHostFiles}
             handleUploadDeviceFiles={pasteHook.handleUploadDeviceFiles}
             setShowHostFileSelector={searchHook.setShowHostFileSelector}
@@ -315,6 +507,7 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
               handlePreviewFile={fileOpsHook.handlePreviewFile}
               handleDownloadFile={fileOpsHook.handleDownloadFile}
               handleDeleteNode={fileOpsHook.handleDeleteNode}
+              handleSearchInFolder={handleSearchInFolder}
               openRenameModal={fileOpsHook.openRenameModal}
               closeContextMenu={modalsHook.closeContextMenu}
             />
@@ -385,6 +578,10 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
                         event.stopPropagation();
                         openNodeContextMenu(nodeData, event.clientX, event.clientY);
                       }}
+                      onTouchStart={(event) => startNodeLongPress(nodeData, event)}
+                      onTouchEnd={clearNodeLongPress}
+                      onTouchMove={clearNodeLongPress}
+                      onTouchCancel={clearNodeLongPress}
                     >
                       <span className='flex items-center gap-4px min-w-0'>
                         <FileTypeIcon node={nodeData} expanded={treeHook.expandedKeys.includes(relativePath)} />

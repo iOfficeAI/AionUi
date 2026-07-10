@@ -6,7 +6,7 @@
 
 import type { IDirOrFile, IWorkspaceFlatFile } from './ipcBridge';
 
-type RawFsEntry = { name: string; type: string };
+type RawFsEntry = { name: string; type: string; match_kind?: 'name' | 'content'; content_match_count?: number };
 export type RawWorkspaceFlatFile = { name: string; full_path: string; relative_path: string };
 
 // ── Path helpers ───────────────────────────────────────────────────────
@@ -38,13 +38,23 @@ export function fromBackendFsEntry(item: RawFsEntry, workspace: string, parentRe
   const ws = stripTrailingSlash(workspace);
   const name = item.name || '';
   const isDir = item.type === 'directory';
-  const relativePath = parentRelPath ? `${parentRelPath}/${name}` : name;
+  const normalizedName = normalizeSlashes(name);
+  const normalizedParent = stripTrailingSlash(normalizeSlashes(parentRelPath));
+  const isWorkspaceRelativeResult =
+    normalizedName.includes('/') && (!normalizedParent || normalizedName.startsWith(`${normalizedParent}/`));
+  const relativePath = isWorkspaceRelativeResult
+    ? normalizedName
+    : normalizedParent
+      ? `${normalizedParent}/${normalizedName}`
+      : normalizedName;
   return {
     name,
     fullPath: `${ws}/${relativePath}`,
     relativePath,
     isDir,
     isFile: !isDir,
+    searchMatchKind: item.match_kind,
+    searchContentMatchCount: item.content_match_count,
   };
 }
 

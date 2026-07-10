@@ -379,7 +379,8 @@
       "revealFailed": "포함 폴더 열기 실패",
       "download": "다운로드",
       "downloadSuccess": "다운로드 완료",
-      "downloadFailed": "다운로드 실패"
+      "downloadFailed": "다운로드 실패",
+      "searchInFolder": "이 폴더에서 검색"
     },
     "preview": {
       "errors": {
@@ -415,6 +416,23 @@
       "vscode": "VS Code",
       "terminal": "터미널",
       "explorer": "파일 탐색기"
+    },
+    "searchScope": {
+      "workspace": "프로젝트",
+      "currentFolder": "폴더",
+      "folderHintDesktop": "지정한 폴더에서 검색하려면 오른쪽 클릭하세요",
+      "folderHintMobile": "지정한 폴더에서 검색하려면 길게 누르세요",
+      "selectedFolder": "현재: {{folder}}"
+    },
+    "searchMode": {
+      "all": "전체",
+      "name": "이름",
+      "content": "내용"
+    },
+    "searchStats": "{{fileCount}}개 파일, {{contentBlockCount}}개 콘텐츠 블록 일치",
+    "revealInWorkspace": {
+      "notFound": "파일 패널에서 이 파일을 찾을 수 없습니다",
+      "notInProject": "이 파일은 현재 프로젝트에 없습니다"
     }
   },
   "minimap": {

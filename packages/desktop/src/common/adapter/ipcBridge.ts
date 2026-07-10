@@ -331,12 +331,26 @@ export const conversation = {
   // and withResponseMap's map function does not receive the original params.
   getWorkspace: {
     provider: () => {},
-    invoke: (async (p: { conversation_id: string; workspace: string; path: string; search?: string }) => {
+    invoke: (async (p: {
+      conversation_id: string;
+      workspace: string;
+      path: string;
+      search?: string;
+      searchMode?: 'all' | 'name' | 'content';
+    }) => {
       const rel = absoluteToRelativePath(p.path, p.workspace);
-      const url = `/api/conversations/${p.conversation_id}/workspace?path=${encodeURIComponent(rel)}${p.search ? `&search=${encodeURIComponent(p.search)}` : ''}`;
-      const raw = await httpRequest<Array<{ name: string; type: string }>>('GET', url);
+      const url = `/api/conversations/${p.conversation_id}/workspace?path=${encodeURIComponent(rel)}${p.search ? `&search=${encodeURIComponent(p.search)}` : ''}${p.searchMode ? `&search_mode=${encodeURIComponent(p.searchMode)}` : ''}`;
+      const raw = await httpRequest<
+        Array<{ name: string; type: string; match_kind?: 'name' | 'content'; content_match_count?: number }>
+      >('GET', url);
       return fromBackendWorkspaceList(raw, p.workspace, rel);
-    }) as (p: { conversation_id: string; workspace: string; path: string; search?: string }) => Promise<IDirOrFile[]>,
+    }) as (p: {
+      conversation_id: string;
+      workspace: string;
+      path: string;
+      search?: string;
+      searchMode?: 'all' | 'name' | 'content';
+    }) => Promise<IDirOrFile[]>,
   },
   responseSearchWorkSpace: stubProvider<void, { file: number; dir: number; match?: IDirOrFile }>(
     'responseSearchWorkSpace',
@@ -1567,6 +1581,8 @@ export interface IDirOrFile {
   relativePath: string;
   isDir: boolean;
   isFile: boolean;
+  searchMatchKind?: 'name' | 'content';
+  searchContentMatchCount?: number;
   children?: Array<IDirOrFile>;
 }
 

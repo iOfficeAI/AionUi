@@ -379,7 +379,8 @@
       "revealFailed": "باز کردن پوشه حاوی ناموفق بود",
       "download": "دانلود",
       "downloadSuccess": "دانلود موفق بود",
-      "downloadFailed": "دانلود ناموفق بود"
+      "downloadFailed": "دانلود ناموفق بود",
+      "searchInFolder": "جستجو در این پوشه"
     },
     "preview": {
       "errors": {
@@ -415,6 +416,23 @@
       "vscode": "VS Code",
       "terminal": "ترمینال",
       "explorer": "فایل اکسپلورر"
+    },
+    "searchScope": {
+      "workspace": "پروژه",
+      "currentFolder": "پوشه",
+      "folderHintDesktop": "برای جستجو در یک پوشه، روی آن راست‌کلیک کنید",
+      "folderHintMobile": "برای جستجو در یک پوشه، آن را لمس کرده و نگه دارید",
+      "selectedFolder": "فعلی: {{folder}}"
+    },
+    "searchMode": {
+      "all": "همه",
+      "name": "نام ها",
+      "content": "محتوا"
+    },
+    "searchStats": "{{fileCount}} فایل و {{contentBlockCount}} بلوک محتوا پیدا شد",
+    "revealInWorkspace": {
+      "notFound": "این فایل در پنل فایل‌ها پیدا نشد",
+      "notInProject": "این فایل در پروژه فعلی نیست"
     }
   },
   "minimap": {

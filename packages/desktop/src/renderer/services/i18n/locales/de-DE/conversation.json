@@ -379,7 +379,8 @@
       "revealFailed": "Enthaltenden Ordner öffnen fehlgeschlagen",
       "download": "Herunterladen",
       "downloadSuccess": "Download erfolgreich",
-      "downloadFailed": "Download fehlgeschlagen"
+      "downloadFailed": "Download fehlgeschlagen",
+      "searchInFolder": "In diesem Ordner suchen"
     },
     "preview": {
       "errors": {
@@ -415,6 +416,23 @@
       "vscode": "VS Code",
       "terminal": "Terminal",
       "explorer": "Datei-Explorer"
+    },
+    "searchScope": {
+      "workspace": "Projekt",
+      "currentFolder": "Ordner",
+      "folderHintDesktop": "Klicken Sie mit der rechten Maustaste auf einen Ordner, um darin zu suchen",
+      "folderHintMobile": "Halten Sie einen Ordner gedrückt, um darin zu suchen",
+      "selectedFolder": "Aktuell: {{folder}}"
+    },
+    "searchMode": {
+      "all": "Alle",
+      "name": "Namen",
+      "content": "Inhalte"
+    },
+    "searchStats": "{{fileCount}} Datei(en), {{contentBlockCount}} Inhaltsblock/Blöcke gefunden",
+    "revealInWorkspace": {
+      "notFound": "Diese Datei konnte im Dateibereich nicht gefunden werden",
+      "notInProject": "Diese Datei gehört nicht zum aktuellen Projekt"
     }
   },
   "minimap": {

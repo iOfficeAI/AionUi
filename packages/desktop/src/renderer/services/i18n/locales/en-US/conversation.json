@@ -379,7 +379,8 @@
       "revealFailed": "Failed to open containing folder",
       "download": "Download",
       "downloadSuccess": "Download successful",
-      "downloadFailed": "Download failed"
+      "downloadFailed": "Download failed",
+      "searchInFolder": "Search in this folder"
     },
     "preview": {
       "errors": {
@@ -415,6 +416,23 @@
       "vscode": "VS Code",
       "terminal": "Terminal",
       "explorer": "File Explorer"
+    },
+    "searchScope": {
+      "workspace": "Project",
+      "currentFolder": "Folder",
+      "folderHintDesktop": "Right-click a folder to search within it",
+      "folderHintMobile": "Long-press a folder to search within it",
+      "selectedFolder": "Current: {{folder}}"
+    },
+    "searchMode": {
+      "all": "All",
+      "name": "Names",
+      "content": "Contents"
+    },
+    "searchStats": "{{fileCount}} file(s), {{contentBlockCount}} content block(s) matched",
+    "revealInWorkspace": {
+      "notFound": "Could not locate this file in the file panel",
+      "notInProject": "This file is not in the current project"
     }
   },
   "minimap": {

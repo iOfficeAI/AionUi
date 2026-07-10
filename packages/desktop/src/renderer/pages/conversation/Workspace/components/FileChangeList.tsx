@@ -391,7 +391,7 @@ const FileChangeList: React.FC<FileChangeListProps> = ({
   }
 
   return (
-    <div className='flex flex-col size-full'>
+    <div className='flex h-full w-full min-h-0 flex-col overflow-hidden'>
       {/* Top toolbar */}
       <div className='px-8px py-4px border-b border-b-base flex items-center justify-between flex-shrink-0'>
         <span className='text-12px text-t-secondary'>
@@ -403,59 +403,70 @@ const FileChangeList: React.FC<FileChangeListProps> = ({
           onClick={onRefresh}
         />
       </div>
-      <div className='flex-1 overflow-y-auto p-8px flex flex-col gap-10px'>
-        {groupedChanges.map((group) => (
-          <div key={group.key} className='border border-base rounded-10px overflow-hidden bg-bg-1'>
-            <PanelHeader title={group.title} count={group.count} actions={group.headerAction} />
-            {group.items.length === 0 ? (
-              <div className='flex items-center justify-center py-16px text-12px text-t-quaternary'>
-                {group.emptyText}
-              </div>
-            ) : (
-              group.items.map((change) => {
-                const diffState = diffCache[change.file_path];
-                const isExpanded = expandedFilePath === change.file_path;
-                const isLoadingDiff = loadingFilePath === change.file_path;
-                const canExpand = isDiffableWorkspaceFile(change.relativePath);
-                const readPath = resolveWorkspaceChangeReadPath(workspace, change.file_path, change.relativePath);
+      <div className='workspace-changes-groups min-h-0 flex-1 p-8px flex flex-col gap-10px overflow-hidden'>
+        {groupedChanges.map((group) => {
+          const hasItems = group.items.length > 0;
 
-                return (
-                  <FileChangeItem
-                    key={`${group.key}-${change.file_path}`}
-                    change={change}
-                    diffState={diffState}
-                    expanded={isExpanded}
-                    loading={isLoadingDiff}
-                    expandable={canExpand}
-                    onToggle={() => {
-                      void handleToggleDiff(change);
-                    }}
-                    actions={
-                      <>
-                        <ActionBtn
-                          tooltip={t('preview.preview')}
-                          icon={<PreviewOpen size={14} />}
-                          onClick={() => {
-                            void handleOpenPreview(change);
-                          }}
-                        />
-                        {group.renderActions(change)}
-                      </>
-                    }
-                  >
-                    {diffState ? (
-                      <Diff2Html diff={diffState.diff} title={change.relativePath} file_path={readPath} />
-                    ) : isLoadingDiff ? (
-                      <div className='flex items-center justify-center py-12px text-12px text-t-quaternary'>
-                        <Spin size={14} />
-                      </div>
-                    ) : null}
-                  </FileChangeItem>
-                );
-              })
-            )}
-          </div>
-        ))}
+          return (
+            <div
+              key={group.key}
+              className={`workspace-change-group ${
+                hasItems ? 'workspace-change-group--scrollable' : 'workspace-change-group--empty'
+              } border border-base rounded-10px overflow-hidden bg-bg-1`}
+            >
+              <PanelHeader title={group.title} count={group.count} actions={group.headerAction} />
+              <div className='workspace-changes-scroll workspace-change-group__body'>
+                {hasItems ? (
+                  group.items.map((change) => {
+                    const diffState = diffCache[change.file_path];
+                    const isExpanded = expandedFilePath === change.file_path;
+                    const isLoadingDiff = loadingFilePath === change.file_path;
+                    const canExpand = isDiffableWorkspaceFile(change.relativePath);
+                    const readPath = resolveWorkspaceChangeReadPath(workspace, change.file_path, change.relativePath);
+
+                    return (
+                      <FileChangeItem
+                        key={`${group.key}-${change.file_path}`}
+                        change={change}
+                        diffState={diffState}
+                        expanded={isExpanded}
+                        loading={isLoadingDiff}
+                        expandable={canExpand}
+                        onToggle={() => {
+                          void handleToggleDiff(change);
+                        }}
+                        actions={
+                          <>
+                            <ActionBtn
+                              tooltip={t('preview.preview')}
+                              icon={<PreviewOpen size={14} />}
+                              onClick={() => {
+                                void handleOpenPreview(change);
+                              }}
+                            />
+                            {group.renderActions(change)}
+                          </>
+                        }
+                      >
+                        {diffState ? (
+                          <Diff2Html diff={diffState.diff} title={change.relativePath} file_path={readPath} />
+                        ) : isLoadingDiff ? (
+                          <div className='flex items-center justify-center py-12px text-12px text-t-quaternary'>
+                            <Spin size={14} />
+                          </div>
+                        ) : null}
+                      </FileChangeItem>
+                    );
+                  })
+                ) : (
+                  <div className='flex items-center justify-center py-16px text-12px text-t-quaternary'>
+                    {group.emptyText}
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

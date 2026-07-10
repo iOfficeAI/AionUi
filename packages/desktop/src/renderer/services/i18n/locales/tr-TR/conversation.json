@@ -362,7 +362,8 @@
       "revealFailed": "İçeren klasör açılamadı",
       "download": "İndir",
       "downloadSuccess": "İndirme başarılı",
-      "downloadFailed": "İndirme başarısız"
+      "downloadFailed": "İndirme başarısız",
+      "searchInFolder": "Bu klasörde ara"
     },
     "preview": {
       "errors": {
@@ -400,6 +401,23 @@
       "vscode": "VS Code",
       "terminal": "Terminal",
       "explorer": "Dosya Gezgini"
+    },
+    "searchScope": {
+      "workspace": "Proje",
+      "currentFolder": "Klasör",
+      "folderHintDesktop": "Belirli bir klasörde aramak için sağ tıklayın",
+      "folderHintMobile": "Belirli bir klasörde aramak için uzun basın",
+      "selectedFolder": "Geçerli: {{folder}}"
+    },
+    "searchMode": {
+      "all": "Tumu",
+      "name": "Adlar",
+      "content": "Icerik"
+    },
+    "searchStats": "{{fileCount}} dosya, {{contentBlockCount}} içerik bloğu eşleşti",
+    "revealInWorkspace": {
+      "notFound": "Bu dosya dosya panelinde bulunamadı",
+      "notInProject": "Bu dosya geçerli projede değil"
     }
   },
   "minimap": {

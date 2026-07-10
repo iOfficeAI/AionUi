@@ -379,7 +379,8 @@
       "revealFailed": "フォルダーを開けませんでした",
       "download": "ダウンロード",
       "downloadSuccess": "ダウンロードしました",
-      "downloadFailed": "ダウンロードに失敗しました"
+      "downloadFailed": "ダウンロードに失敗しました",
+      "searchInFolder": "このフォルダ内を検索"
     },
     "preview": {
       "errors": {
@@ -415,6 +416,23 @@
       "vscode": "VS Code",
       "terminal": "ターミナル",
       "explorer": "エクスプローラー"
+    },
+    "searchScope": {
+      "workspace": "プロジェクト",
+      "currentFolder": "フォルダ",
+      "folderHintDesktop": "右クリックして指定フォルダ内を検索",
+      "folderHintMobile": "長押しして指定フォルダ内を検索",
+      "selectedFolder": "現在: {{folder}}"
+    },
+    "searchMode": {
+      "all": "すべて",
+      "name": "名前",
+      "content": "内容"
+    },
+    "searchStats": "{{fileCount}} 個のファイル、{{contentBlockCount}} 個の内容ブロックが一致しました",
+    "revealInWorkspace": {
+      "notFound": "ファイル欄でこのファイルを特定できませんでした",
+      "notInProject": "このファイルは現在のプロジェクト内にありません"
     }
   },
   "minimap": {
