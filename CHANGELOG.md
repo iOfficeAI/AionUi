@@ -1,5 +1,15 @@
 # Changelog
 
+## [2.1.33](https://github.com/iOfficeAI/AionUi/compare/v2.1.32...v2.1.33) (2026-07-11)
+
+### Desktop
+
+#### Bug Fixes
+
+- **build:** align Codex installer verifier (#3561)
+
+---
+
 ## [2.1.32](https://github.com/iOfficeAI/AionUi/compare/v2.1.31...v2.1.32) (2026-07-10)
 
 ### Desktop
