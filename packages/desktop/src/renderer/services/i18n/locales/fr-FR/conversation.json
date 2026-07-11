@@ -546,7 +546,8 @@
       "loaded": "Chargé",
       "failed": "Échoué",
       "unsupported": "Non pris en charge"
-    }
+    },
+    "selected": "MCP sélectionné"
   },
   "runtimePreparing": {
     "sendboxHint": "Préparation de l'environnement d'exécution. Le premier démarrage peut prendre un peu plus de temps."
