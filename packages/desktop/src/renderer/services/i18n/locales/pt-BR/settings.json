@@ -943,7 +943,7 @@
   },
   "lark": {
     "appId": "ID do Aplicativo",
-    "devConsoleLink": "Console de Desenvolvedor Feishu",
+    "devConsoleLink": "Console de Desenvolvedor {{region}}",
     "appIdDescSuffix": "para obter seu ID do Aplicativo",
     "appSecret": "Segredo do Aplicativo",
     "appSecretDescSuffix": "para obter o Segredo do Aplicativo",
@@ -974,7 +974,8 @@
     "hideOptionalFields": "Ocultar configurações opcionais",
     "agent": "Agente",
     "agentDesc": "Usado para conversas no Lark",
-    "autoFollowCliModel": "Acompanhar automaticamente o modelo quando o CLI estiver em execução"
+    "autoFollowCliModel": "Acompanhar automaticamente o modelo quando o CLI estiver em execução",
+    "region": "Região"
   },
   "dingtalk": {
     "clientId": "ID do Cliente",

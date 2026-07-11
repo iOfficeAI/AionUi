@@ -931,7 +931,7 @@
   },
   "lark": {
     "appId": "App ID",
-    "devConsoleLink": "Feishu Developer Console",
+    "devConsoleLink": "{{region}} Developer Console",
     "appIdDescSuffix": "to get your App ID",
     "appSecret": "App Secret",
     "appSecretDescSuffix": "to get App Secret",
@@ -962,7 +962,8 @@
     "hideOptionalFields": "Hide optional settings",
     "agent": "Ajan",
     "agentDesc": "Lark sohbetleri icin kullanilir",
-    "autoFollowCliModel": "CLI calisirken modeli otomatik olarak takip et"
+    "autoFollowCliModel": "CLI calisirken modeli otomatik olarak takip et",
+    "region": "Bölge"
   },
   "dingtalk": {
     "clientId": "Client ID",

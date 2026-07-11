@@ -943,7 +943,7 @@
   },
   "lark": {
     "appId": "App ID",
-    "devConsoleLink": "飞书开放平台开发者后台",
+    "devConsoleLink": "{{region}}开放平台开发者后台",
     "appIdDescSuffix": "获取 App ID",
     "appSecret": "App Secret",
     "appSecretDescSuffix": "获取 App Secret",
@@ -974,7 +974,8 @@
     "hideOptionalFields": "隐藏可选配置",
     "agent": "对话Agent",
     "agentDesc": "用于与Channel进行对话",
-    "autoFollowCliModel": "自动跟随CLI运行时的模型"
+    "autoFollowCliModel": "自动跟随CLI运行时的模型",
+    "region": "地区"
   },
   "dingtalk": {
     "clientId": "Client ID",

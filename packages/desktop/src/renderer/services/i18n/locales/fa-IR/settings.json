@@ -943,7 +943,7 @@
   },
   "lark": {
     "appId": "شناسه برنامه",
-    "devConsoleLink": "کنسول توسعه‌دهنده Feishu",
+    "devConsoleLink": "کنسول توسعه‌دهنده {{region}}",
     "appIdDescSuffix": "برای دریافت شناسه برنامه",
     "appSecret": "رمز برنامه",
     "appSecretDescSuffix": "برای دریافت رمز برنامه",
@@ -974,7 +974,8 @@
     "hideOptionalFields": "مخفی کردن تنظیمات اختیاری",
     "agent": "ایجنت",
     "agentDesc": "برای مکالمات لارک استفاده می‌شود",
-    "autoFollowCliModel": "به‌صورت خودکار از مدل هنگام اجرای CLI پیروی کنید"
+    "autoFollowCliModel": "به‌صورت خودکار از مدل هنگام اجرای CLI پیروی کنید",
+    "region": "منطقه"
   },
   "dingtalk": {
     "clientId": "شناسه کلاینت",
