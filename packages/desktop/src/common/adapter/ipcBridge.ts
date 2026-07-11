@@ -1090,13 +1090,12 @@ export const database = {
   getUserConversations: withResponseMap(
     httpGet<
       PaginatedResult<import('@/common/config/storage').TChatConversation>,
-      { cursor?: string; limit?: number; workspace?: string; custom_workspace?: boolean; pinned?: boolean }
+      { cursor?: string; limit?: number; workspace?: string; pinned?: boolean }
     >((p) => {
       const params = new URLSearchParams();
       if (p.cursor) params.set('cursor', p.cursor);
       if (p.limit) params.set('limit', String(p.limit));
       if (p.workspace) params.set('workspace', p.workspace);
-      if (p.custom_workspace !== undefined) params.set('custom_workspace', String(p.custom_workspace));
       if (p.pinned !== undefined) params.set('pinned', String(p.pinned));
       const qs = params.toString();
       return `/api/conversations${qs ? `?${qs}` : ''}`;
