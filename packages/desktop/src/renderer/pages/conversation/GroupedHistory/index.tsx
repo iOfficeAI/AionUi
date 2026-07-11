@@ -51,7 +51,10 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
     expandedWorkspaces,
     pinnedConversations,
     timelineSections,
+    projects,
     handleToggleWorkspace,
+    loadMoreProject,
+    collapseProjectToLatest,
     collapsedSections,
     toggleSection,
   } = useConversations();
@@ -212,25 +215,8 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
   // Collect all sortable IDs for the pinned section
   const pinnedIds = useMemo(() => pinnedConversations.map((c) => c.id), [pinnedConversations]);
 
-  // Codex-style split: project folders (workspaces) on top, free conversations below.
-  // Projects section: collect all workspace groups across timeline sections, ordered by recency.
-  const projectGroups = useMemo(() => {
-    const seen = new Set<string>();
-    const groups: Array<{ workspace: string; displayName: string; conversations: TChatConversation[] }> = [];
-    for (const section of timelineSections) {
-      for (const item of section.items) {
-        if (item.type === 'workspace' && item.workspaceGroup && !seen.has(item.workspaceGroup.workspace)) {
-          seen.add(item.workspaceGroup.workspace);
-          groups.push({
-            workspace: item.workspaceGroup.workspace,
-            displayName: item.workspaceGroup.display_name,
-            conversations: item.workspaceGroup.conversations,
-          });
-        }
-      }
-    }
-    return groups;
-  }, [timelineSections]);
+  // Projects are queried separately from conversation history and ordered by backend activity.
+  const projectGroups = projects;
 
   // Conversations section: keep timeline grouping (today/yesterday/...) but only show non-workspace conversations.
   const conversationOnlySections = useMemo(
@@ -472,7 +458,7 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
         <div className='text-14px leading-22px text-t-secondary'>
           {t('conversation.history.removeProjectConfirm', {
             name: removeProjectTarget?.name ?? '',
-            count: removeProjectTarget?.conversations.length ?? 0,
+            count: removeProjectTarget?.conversationCount ?? 0,
           })}
         </div>
       </AionModal>
@@ -524,7 +510,7 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
                   <Menu
                     onClickMenuItem={(key) => {
                       if (key === 'remove') {
-                        handleRemoveProject(group.displayName, group.conversations);
+                        handleRemoveProject(group.displayName, group.workspace, group.conversation_count);
                       }
                     }}
                   >
@@ -597,7 +583,50 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
                       }
                     >
                       <div className={classNames('flex flex-col min-w-0', { 'mt-1px': !collapsed })}>
+                        {group.loading && group.conversations.length === 0 && (
+                          <div className='px-42px h-32px flex items-center text-13px text-t-tertiary'>
+                            {t('conversation.history.projectLoading')}
+                          </div>
+                        )}
+                        {group.error && group.conversations.length === 0 && (
+                          <Button
+                            type='text'
+                            size='mini'
+                            className='!self-start !ml-34px !px-8px !h-30px !text-t-tertiary hover:!text-t-primary'
+                            onClick={() => loadMoreProject(group.workspace)}
+                          >
+                            {t('conversation.history.projectLoadFailed')}
+                          </Button>
+                        )}
                         {group.conversations.map((conversation) => renderConversation(conversation, true))}
+                        {!collapsed &&
+                          group.conversations.length > 0 &&
+                          (group.hasMore || group.conversations.length > 5) && (
+                            <div className='flex items-center gap-4px pl-42px pr-8px py-2px'>
+                              {group.hasMore && (
+                                <Button
+                                  type='text'
+                                  size='mini'
+                                  loading={group.loading}
+                                  className='!px-4px !h-28px !text-13px !text-t-tertiary hover:!text-t-primary'
+                                  onClick={() => loadMoreProject(group.workspace)}
+                                >
+                                  {t('conversation.history.showMore')}
+                                </Button>
+                              )}
+                              {group.conversations.length > 5 && (
+                                <Button
+                                  type='text'
+                                  size='mini'
+                                  disabled={group.loading}
+                                  className='!px-4px !h-28px !text-13px !text-t-tertiary hover:!text-t-primary'
+                                  onClick={() => collapseProjectToLatest(group.workspace)}
+                                >
+                                  {t('conversation.history.collapseToLatest')}
+                                </Button>
+                              )}
+                            </div>
+                          )}
                       </div>
                     </WorkspaceCollapse>
                   </div>

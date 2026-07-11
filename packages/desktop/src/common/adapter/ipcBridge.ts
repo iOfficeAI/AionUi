@@ -1045,6 +1045,12 @@ export type PaginatedResult<T> = {
   has_more: boolean;
 };
 
+export type ConversationProjectSummary = {
+  workspace: string;
+  latest_conversation_at: number;
+  conversation_count: number;
+};
+
 export type MessageCursorPage<T> = {
   items: T[];
   oldest_cursor: string | null;
@@ -1080,16 +1086,21 @@ export const database = {
     import('@/common/chat/chatLib').TMessage,
     { conversation_id: string; message_id: string }
   >((p) => `/api/conversations/${p.conversation_id}/messages/${encodeURIComponent(p.message_id)}`),
+  getConversationProjects: httpGet<ConversationProjectSummary[]>('/api/conversation-projects'),
   getUserConversations: withResponseMap(
-    httpGet<PaginatedResult<import('@/common/config/storage').TChatConversation>, { cursor?: string; limit?: number }>(
-      (p) => {
-        const params = new URLSearchParams();
-        if (p.cursor) params.set('cursor', p.cursor);
-        if (p.limit) params.set('limit', String(p.limit));
-        const qs = params.toString();
-        return `/api/conversations${qs ? `?${qs}` : ''}`;
-      }
-    ),
+    httpGet<
+      PaginatedResult<import('@/common/config/storage').TChatConversation>,
+      { cursor?: string; limit?: number; workspace?: string; custom_workspace?: boolean; pinned?: boolean }
+    >((p) => {
+      const params = new URLSearchParams();
+      if (p.cursor) params.set('cursor', p.cursor);
+      if (p.limit) params.set('limit', String(p.limit));
+      if (p.workspace) params.set('workspace', p.workspace);
+      if (p.custom_workspace !== undefined) params.set('custom_workspace', String(p.custom_workspace));
+      if (p.pinned !== undefined) params.set('pinned', String(p.pinned));
+      const qs = params.toString();
+      return `/api/conversations${qs ? `?${qs}` : ''}`;
+    }),
     fromApiPaginatedConversations
   ),
   searchConversationMessages: withResponseMap(

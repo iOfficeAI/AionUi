@@ -135,10 +135,13 @@ const subscribeConversationListSync = (listener: () => void) => {
 const getConversationListSyncSnapshot = (): ConversationListSyncSnapshot => snapshotState;
 
 const refreshConversations = () => {
-  void ipcBridge.database.getUserConversations
-    .invoke({ limit: 10000 })
-    .then((result) => {
-      const items = result?.items;
+  void Promise.all([
+    ipcBridge.database.getUserConversations.invoke({ limit: 10000, custom_workspace: false }),
+    ipcBridge.database.getUserConversations.invoke({ limit: 10000, pinned: true }),
+  ])
+    .then(([regularResult, pinnedResult]) => {
+      const mergedItems = [...(regularResult?.items ?? []), ...(pinnedResult?.items ?? [])];
+      const items = [...new Map(mergedItems.map((conversation) => [conversation.id, conversation])).values()];
       if (items && Array.isArray(items)) {
         const filteredData = items.filter((conv) => {
           // Legacy rows from the pre-provider-probe health check flow are hidden

@@ -72,7 +72,11 @@
     "removeProject": "Projeyi kaldır",
     "removeProjectConfirm": "\"{{name}}\" projesi kaldırılsın mı? Projedeki {{count}} konuşma da kaldırılacak.",
     "newConversationInProject": "Bu projede yeni konuşma",
-    "deleting": "Siliniyor..."
+    "deleting": "Siliniyor...",
+    "showMore": "Show more",
+    "collapseToLatest": "Collapse",
+    "projectLoading": "Loading conversations...",
+    "projectLoadFailed": "Failed to load. Click to retry"
   },
   "historySearch": {
     "tooltip": "Mesajları ara",

@@ -72,7 +72,11 @@
     "removeProject": "Quitar proyecto",
     "removeProjectConfirm": "¿Quitar el proyecto \"{{name}}\"? Sus {{count}} conversación(es) también se quitarán.",
     "newConversationInProject": "Nuevo chat en este proyecto",
-    "deleting": "Eliminando..."
+    "deleting": "Eliminando...",
+    "showMore": "Show more",
+    "collapseToLatest": "Collapse",
+    "projectLoading": "Loading conversations...",
+    "projectLoadFailed": "Failed to load. Click to retry"
   },
   "historySearch": {
     "tooltip": "Buscar mensajes",

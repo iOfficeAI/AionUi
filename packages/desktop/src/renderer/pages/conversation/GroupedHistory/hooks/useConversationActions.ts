@@ -237,13 +237,14 @@ export const useConversationActions = ({
    */
   const [removeProjectTarget, setRemoveProjectTarget] = useState<{
     name: string;
-    conversations: TChatConversation[];
+    workspace: string;
+    conversationCount: number;
   } | null>(null);
   const [removeProjectLoading, setRemoveProjectLoading] = useState(false);
 
-  const handleRemoveProject = useCallback((projectName: string, conversations: TChatConversation[]) => {
-    if (conversations.length === 0) return;
-    setRemoveProjectTarget({ name: projectName, conversations });
+  const handleRemoveProject = useCallback((projectName: string, workspace: string, conversationCount: number) => {
+    if (conversationCount === 0) return;
+    setRemoveProjectTarget({ name: projectName, workspace, conversationCount });
   }, []);
 
   const handleRemoveProjectCancel = useCallback(() => {
@@ -255,7 +256,23 @@ export const useConversationActions = ({
     if (!removeProjectTarget) return;
     setRemoveProjectLoading(true);
     try {
-      const results = await Promise.all(removeProjectTarget.conversations.map((c) => removeConversation(c.id)));
+      const conversations: TChatConversation[] = [];
+      let cursor: string | undefined;
+      let hasMore = true;
+      while (hasMore) {
+        // Cursor pagination is intentionally sequential because each request depends on the previous page.
+        // oxlint-disable-next-line no-await-in-loop
+        const page = await ipcBridge.database.getUserConversations.invoke({
+          workspace: removeProjectTarget.workspace,
+          limit: 100,
+          cursor,
+        });
+        conversations.push(...(page?.items ?? []));
+        hasMore = page?.has_more ?? false;
+        cursor = page?.items.at(-1)?.id;
+        if (hasMore && !cursor) break;
+      }
+      const results = await Promise.all(conversations.map((conversation) => removeConversation(conversation.id)));
       const successCount = results.filter(Boolean).length;
       emitter.emit('chat.history.refresh');
       if (successCount > 0) {

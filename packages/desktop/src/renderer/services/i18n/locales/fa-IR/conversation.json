@@ -72,7 +72,11 @@
     "removeProject": "حذف پروژه",
     "removeProjectConfirm": "پروژه «{{name}}» حذف شود؟ {{count}} مکالمه مرتبط نیز حذف خواهند شد.",
     "newConversationInProject": "چت جدید در این پروژه",
-    "deleting": "در حال حذف..."
+    "deleting": "در حال حذف...",
+    "showMore": "Show more",
+    "collapseToLatest": "Collapse",
+    "projectLoading": "Loading conversations...",
+    "projectLoadFailed": "Failed to load. Click to retry"
   },
   "historySearch": {
     "tooltip": "جستجوی پیام‌ها",
