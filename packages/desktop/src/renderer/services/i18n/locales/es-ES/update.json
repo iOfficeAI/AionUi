@@ -51,5 +51,11 @@
   "cancel": "Cancelar",
   "minimize": "Minimizar",
   "restoreUpdateNotification": "Restaurar progreso de actualización",
-  "preparingInstall": "Preparing..."
+  "preparingInstall": "Preparing...",
+  "installerLastFailure": {
+    "description": "AionUi no pudo cerrarse durante la actualización silenciosa anterior. Puedes reintentar la actualización, ver el registro del instalador o enviar comentarios.",
+    "retryUpdate": "Reintentar actualización",
+    "title": "La última actualización no terminó",
+    "viewLog": "Ver registro"
+  }
 }

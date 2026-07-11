@@ -147,5 +147,7 @@
   "unit": {
     "minute_short": "m",
     "second_short": "s"
-  }
+  },
+  "selectedCount": "{{count}} sélectionné(s)",
+  "selectedSkills": "Compétences sélectionnées"
 }

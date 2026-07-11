@@ -45,18 +45,74 @@
     "selectFolder": "Sélectionner un dossier",
     "recentLabel": "Récents",
     "chooseDifferentFolder": "Choisir un autre dossier",
-    "error": "Échec de la création de l'équipe"
+    "error": "Échec de la création de l'équipe",
+    "allAssistantsWithCount": "Tous les assistants ({{count}})",
+    "currentLeader": "Leader actuel",
+    "leaderLegend": "= Leader",
+    "memberHint": "Aucun assistant approprié comme membre ? Après la création, demandez au Leader de créer des membres temporaires dans le chat.",
+    "membersHelper": "Choisissez les membres de l'équipe et désignez un Leader. Le même assistant peut être sélectionné plusieurs fois.",
+    "nameLabel": "Nom de l'équipe",
+    "selectAtLeastOneMember": "Sélectionnez au moins un assistant comme Leader de l'équipe.",
+    "selectOneLeader": "Sélectionner un Leader",
+    "selectedMembers": "Membres sélectionnés",
+    "selectedMembersTitleWithCount": "Membres sélectionnés {{count}}",
+    "selectedMembersWithCount": "Membres sélectionnés {{count}} · ⚑ = Leader",
+    "setAsLeader": "Définir comme Leader",
+    "subtitle": "Laissez plusieurs assistants IA s'associer et collaborer. Nous recommandons à une équipe de se concentrer sur un objectif unique — créez des équipes séparées pour différentes tâches.",
+    "teamLeader": "Leader de l'équipe",
+    "teammate": "Coéquipier",
+    "workspaceLabel": "Espace de travail"
   },
   "removeAgent": {
     "confirmTitle": "Retirer un membre de l'équipe",
-    "confirmContent": "Ce membre est actuellement actif. Forcer la suppression ?"
+    "confirmContent": "Ce membre est actuellement actif. Forcer la suppression ?",
+    "confirmContentActive": "Ce membre travaille. Le retirer quand même ? Son travail en cours sera interrompu."
   },
   "emptyState": {
     "subtitle": "Décrivez votre objectif et je mettrai l'équipe au travail",
     "suggestions": {
       "debate": "Organiser un débat avec des agents prenant des positions différentes",
       "interview": "Planifier une interview approfondie entre agents",
-      "expert_review": "Faire analyser le même problème par plusieurs experts"
-    }
+      "expert_review": "Faire analyser le même problème par plusieurs experts",
+      "add_member": "Aide-moi à ajouter un membre doué pour ___ à l'équipe"
+    },
+    "leaderGreeting": "Bonjour, je suis le Leader. Je comprends votre objectif et coordonne l'équipe — décrivez ce que vous voulez et je m'en occupe.",
+    "memberGreeting": "Bonjour, je suis un membre de l'équipe. Je reçois des instructions du Leader et de vous."
+  },
+  "addMember": {
+    "addFailed": "Échec de l'ajout du membre",
+    "noSearchResults": "Aucun résultat trouvé",
+    "searchAssistants": "Rechercher des assistants…",
+    "subtitle": "Le même assistant peut être ajouté à plusieurs reprises",
+    "tellLeaderCta": "Demander au Leader →",
+    "tellLeaderHint": "Pas tout à fait adapté ? Vous pouvez aussi demander au Leader de l'organiser.",
+    "tellLeaderPrefill": "Aide-moi à ajouter un membre doué pour ___ à l'équipe",
+    "title": "Ajouter un membre"
+  },
+  "view": {
+    "label": "Vue",
+    "parallel": "Parallèle",
+    "single": "Unique"
+  },
+  "warmup": {
+    "genericFailedTitle": "L'équipe n'a pas pu démarrer",
+    "leaderFailedHint": "Changez son modèle ci-dessus, puis réessayez.",
+    "leaderFailedTitle": "Le Leader {{name}} n'a pas pu démarrer",
+    "leaderSuffix": " (Lead)",
+    "memberFailedHint": "Changez son modèle ci-dessus, ou retirez-le de la barre en haut, puis réessayez.",
+    "memberFailedTitle": "Le membre {{name}} n'a pas pu démarrer",
+    "multiFailedTitle": "{{count}} membres n'ont pas pu démarrer",
+    "retry": "Réessayer",
+    "subtitle": "Préparation des membres",
+    "title": "Réveil de l'équipe…",
+    "unknownError": "n'a pas pu démarrer"
+  },
+  "work": {
+    "processingWithQueued": "Traitement… {{count}} en file d'attente",
+    "queued": "{{count}} en file d'attente",
+    "removing": "Suppression de cet assistant…",
+    "runtimeFailed": "Cet assistant n'a pas pu démarrer.",
+    "runtimeStarting": "En attente du démarrage de cet assistant…",
+    "sessionStopped": "La session d'équipe s'est arrêtée."
   }
 }
