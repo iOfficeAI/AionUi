@@ -42,17 +42,21 @@ describe('NovaMaster mission control configuration', () => {
       { id: 'ollama', name: 'Ollama' },
       { id: 'claw3d', name: 'Claw3D Office' },
       { id: 'aionui', name: 'AionUi' },
+      { id: 'agent-os-growth', name: 'Agent OS Growth' },
       { id: 'hermes', name: 'Hermes' },
       { id: 'jarvis', name: 'Jarvis' },
       { id: 'clawmem', name: 'ClawMem' },
       { id: 'openclaw', name: 'OpenClaw' },
       { id: 'goclaw', name: 'GoClaw' },
       { id: 'space-agent', name: 'Space Agent' },
+      { id: 'video-factory', name: 'Video Factory' },
+      { id: 'music-clips', name: 'Music Clip Factory' },
       { id: 'metaclaw', name: 'MetaClaw' },
     ];
 
     expect(getNovaPriorityServices(services).map((service) => service.id)).toEqual([
       'aionui',
+      'agent-os-growth',
       'jarvis',
       'openclaw',
       'goclaw',
@@ -60,6 +64,8 @@ describe('NovaMaster mission control configuration', () => {
       'hermes',
       'claw3d',
       'clawmem',
+      'video-factory',
+      'music-clips',
       'ollama',
     ]);
   });

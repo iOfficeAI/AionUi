@@ -189,6 +189,14 @@ const NOVAMASTER_PROBES: NovaMasterProbe[] = [
     launchPath: '/home/faramix/bin/novamaster-open-aionui-native',
   },
   {
+    id: 'agent-os-growth',
+    name: 'Agent OS Growth',
+    role: 'SEO, video and money cockpit',
+    port: 3737,
+    healthPath: '/api/health',
+    openUrl: 'http://127.0.0.1:3737/seo',
+  },
+  {
     id: 'novacore-control',
     name: 'NovaCore Control',
     role: 'Control-plane source',

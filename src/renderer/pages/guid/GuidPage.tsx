@@ -16,6 +16,8 @@ import AssistantSelectionArea from './components/AssistantSelectionArea';
 import { AgentPillBarSkeleton } from './components/GuidSkeleton';
 import GuidActionRow from './components/GuidActionRow';
 import GuidInputCard from './components/GuidInputCard';
+import SpeechInputButton from '@/renderer/components/chat/SpeechInputButton';
+import { appendSpeechTranscript } from '@/renderer/hooks/system/useSpeechInput';
 import GuidModelSelector from './components/GuidModelSelector';
 import MentionDropdown, { MentionSelectorBadge } from './components/MentionDropdown';
 import QuickActionButtons from './components/QuickActionButtons';
@@ -711,6 +713,13 @@ const GuidPage: React.FC = () => {
   );
 
   // Build the action row
+  const handleSpeechTranscript = useCallback(
+    (transcript: string) => {
+      guidInput.setInput((previous) => appendSpeechTranscript(previous, transcript));
+    },
+    [guidInput.setInput]
+  );
+
   const actionRowNode = (
     <GuidActionRow
       files={guidInput.files}
@@ -738,6 +747,9 @@ const GuidPage: React.FC = () => {
       disabledBuiltinSkills={guidDisabledBuiltinSkills ?? []}
       onToggleBuiltinSkill={handleToggleBuiltinSkill}
       hidePresetTag
+      speechInputNode={
+        <SpeechInputButton disabled={guidInput.loading} locale={i18n.language} onTranscript={handleSpeechTranscript} />
+      }
       loading={guidInput.loading}
       isButtonDisabled={send.isButtonDisabled}
       onSend={() => {

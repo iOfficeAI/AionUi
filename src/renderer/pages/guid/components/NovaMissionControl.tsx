@@ -539,6 +539,7 @@ const NovaMissionControl: React.FC = () => {
   const priorityServices = useMemo(() => {
     const order = [
       'aionui',
+      'agent-os-growth',
       'novacore-control',
       'jarvis',
       'openclaw',
@@ -548,6 +549,7 @@ const NovaMissionControl: React.FC = () => {
       'clawmem',
       'ollama',
       'video-factory',
+      'music-clips',
     ];
     const map = new Map((stack?.services || []).map((s) => [s.id, s]));
     return order.map((id) => map.get(id)).filter(Boolean) as NovaService[];
