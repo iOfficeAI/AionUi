@@ -315,6 +315,7 @@ const AionrsSendBox: React.FC<{
     hasPendingCommands,
     enqueue,
     remove,
+    prioritize,
     sendNow,
     clear,
     reorder,
@@ -618,11 +619,15 @@ const AionrsSendBox: React.FC<{
   const effectiveHandleStop = teamRuntime?.onStop ?? handleStop;
   const handleSendNowQueued = useCallback(
     async (item: ConversationCommandQueueItem) => {
-      // Interrupt the current reply (best-effort; no-op when idle), then dequeue this one immediately.
+      // Stop the current reply (best-effort), then promote the chosen command
+      // to the front of the queue in auto mode.  The drain effect will fire it
+      // once the execution gate shows canExecute — avoiding the 409 race that
+      // occurs when sendNow() calls onExecute() directly before the backend
+      // has finished processing the stop.
       await effectiveHandleStop();
-      sendNow(item.id);
+      prioritize(item.id);
     },
-    [effectiveHandleStop, sendNow]
+    [effectiveHandleStop, prioritize]
   );
   const sendBoxWidthClass = getChatSurfaceWidthClass(Boolean(teamPermission));
 
