@@ -21,6 +21,14 @@
   "noMessages": "Aucun message pour l'instant.",
   "agentNotConfigured": "Agent non configuré.",
   "stopAgentFailed": "Échec de l'arrêt de cet assistant. Veuillez réessayer.",
+  "work": {
+    "processingWithQueued": "Traitement en cours… {{count}} en attente",
+    "queued": "{{count}} en attente",
+    "runtimeStarting": "En attente du démarrage de cet assistant…",
+    "runtimeFailed": "Cet assistant n'a pas pu démarrer.",
+    "removing": "Suppression de cet assistant…",
+    "sessionStopped": "La session d'équipe est arrêtée."
+  },
   "sendBox": {
     "placeholder": "Envoyer un message à l'agent coordinateur..."
   },

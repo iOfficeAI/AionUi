@@ -1,6 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { ITeamSlotWork, TeamSlotBlockedReason } from '@/common/types/team/teamTypes';
-import { buildTeamSendRuntime, buildTeamStopHandler } from '@/renderer/pages/team/components/teamSendRuntime';
+import {
+  buildTeamSendRuntime,
+  buildTeamStopHandler,
+  buildTeamWorkStatusText,
+} from '@/renderer/pages/team/components/teamSendRuntime';
 import type { TeamRunViewState } from '@/renderer/pages/team/hooks/useTeamRunView';
 
 const work = (overrides: Partial<ITeamSlotWork> = {}): ITeamSlotWork => ({
@@ -39,6 +43,17 @@ const view = (slotWork?: ITeamSlotWork): TeamRunViewState => ({
 });
 
 describe('buildTeamSendRuntime', () => {
+  it('treats the first queued user-visible team work item as processing', () => {
+    const slotWork = work({
+      state: 'queued',
+      queued_foreground_count: 1,
+    });
+    const runtime = buildTeamSendRuntime({ slot_id: 'lead', runView: view(slotWork) });
+
+    expect(runtime.loading).toBe(true);
+    expect(runtime.queuedCount).toBe(1);
+  });
+
   it('posts immediately while the slot is running with queued work', () => {
     const slotWork = work({
       state: 'running',
@@ -93,6 +108,32 @@ describe('buildTeamSendRuntime', () => {
       expect(runtime.statusText).toBe(blocked_reason);
     }
   );
+});
+
+describe('buildTeamWorkStatusText', () => {
+  const text = (slotWork?: ITeamSlotWork) =>
+    buildTeamWorkStatusText(slotWork, {
+      processing: () => 'processing',
+      processingWithQueued: (count) => `processing + ${count} queued`,
+      runtimeStarting: () => 'runtime starting',
+      runtimeFailed: () => 'runtime failed',
+      removing: () => 'removing',
+      sessionStopped: () => 'session stopped',
+    });
+
+  it('shows processing instead of queued for a freshly accepted single work item', () => {
+    expect(text(work({ state: 'queued', queued_foreground_count: 1 }))).toBe('processing');
+  });
+
+  it('shows only additional queued work while a turn is already running', () => {
+    expect(text(work({ state: 'running', queued_foreground_count: 1, active_turn_id: 'turn-1' }))).toBe(
+      'processing + 1 queued'
+    );
+  });
+
+  it('hides queued count while work has not started yet', () => {
+    expect(text(work({ state: 'queued', queued_foreground_count: 2 }))).toBe('processing');
+  });
 });
 
 describe('buildTeamStopHandler', () => {
