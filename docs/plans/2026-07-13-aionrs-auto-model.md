@@ -13,9 +13,11 @@
 ### Task 1: Add regression coverage
 
 **Files:**
+
 - Modify: `tests/unit/renderer/teamCreateModelResolver.test.ts`
 
 **Steps:**
+
 1. Mock `ipcBridge.mode.listProviders`.
 2. Add a test proving an Aionrs assistant with `auto` mode and no `last_model_id` resolves to the first available model from an enabled provider.
 3. Add coverage for skipping disabled providers and providers with no models.
@@ -24,9 +26,11 @@
 ### Task 2: Implement the Aionrs fallback
 
 **Files:**
+
 - Modify: `packages/desktop/src/renderer/pages/team/components/teamCreateModelResolver.ts`
 
 **Steps:**
+
 1. Import the provider type only if needed for type-safe list handling.
 2. Change the Aionrs fallback to call `ipcBridge.mode.listProviders.invoke()`.
 3. Select the first enabled provider with an enabled model, respecting `model_enabled` when present.
@@ -36,10 +40,12 @@
 ### Task 3: Verify and commit
 
 **Files:**
+
 - Test: `tests/unit/renderer/teamCreateModelResolver.test.ts`
 - Modify: `packages/desktop/src/renderer/pages/team/components/teamCreateModelResolver.ts`
 
 **Steps:**
+
 1. Run the focused Vitest test.
 2. Run formatting, lint, and type checks applicable to the changed files.
 3. Review the diff and ensure no unrelated files are included.
