@@ -7,6 +7,7 @@ import os
 import re
 import shlex
 import subprocess
+import tempfile
 import time
 from pathlib import Path
 from typing import Any
@@ -136,6 +137,30 @@ def index(_: str = Depends(auth_user)) -> FileResponse:
     return FileResponse(STATIC_DIR / "index.html")
 
 
+@app.get("/manifest.webmanifest", include_in_schema=False)
+def web_manifest() -> FileResponse:
+    return FileResponse(STATIC_DIR / "manifest.webmanifest", media_type="application/manifest+json")
+
+
+@app.get("/sw.js", include_in_schema=False)
+def service_worker() -> FileResponse:
+    return FileResponse(
+        STATIC_DIR / "sw.js",
+        media_type="application/javascript",
+        headers={"Cache-Control": "no-cache, no-store, must-revalidate", "Service-Worker-Allowed": "/mobile/"},
+    )
+
+
+@app.get("/offline.html", include_in_schema=False)
+def offline_page() -> FileResponse:
+    return FileResponse(STATIC_DIR / "offline.html")
+
+
+@app.get("/icon.svg", include_in_schema=False)
+def app_icon() -> FileResponse:
+    return FileResponse(STATIC_DIR / "icon.svg", media_type="image/svg+xml")
+
+
 @app.get("/api/session")
 def session(user: str = Depends(auth_user)) -> dict[str, Any]:
     return {"ok": True, "email": user}
@@ -184,10 +209,14 @@ def restart_service(name: str, _: str = Depends(auth_user)) -> dict[str, Any]:
 
 @app.post("/api/actions/noiz-smoke")
 def action_noiz_smoke(_: str = Depends(auth_user)) -> dict[str, Any]:
-    output = "/tmp/novamobile-noiz-smoke.mp3"
-    result = run(["python3", "/root/bin/nova-noiz-tts-bridge", "smoke", "--output", output], timeout=90)
-    size = Path(output).stat().st_size if Path(output).exists() else 0
-    return {"ok": result["ok"] and size > 512, "bytes": size, "result": result}
+    with tempfile.NamedTemporaryFile(prefix="novamobile-noiz-smoke-", suffix=".mp3", delete=False) as handle:
+        output = Path(handle.name)
+    try:
+        result = run(["python3", "/root/bin/nova-noiz-tts-bridge", "smoke", "--output", str(output)], timeout=90)
+        size = output.stat().st_size if output.exists() else 0
+        return {"ok": result["ok"] and size > 512, "bytes": size, "result": result}
+    finally:
+        output.unlink(missing_ok=True)
 
 
 @app.post("/api/actions/secretary-call")

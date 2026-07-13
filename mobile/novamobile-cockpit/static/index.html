@@ -3,6 +3,12 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#08110f" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <link rel="manifest" href="/mobile/manifest.webmanifest" />
+    <link rel="icon" href="/mobile/icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/mobile/icon.svg" />
     <title>NovaMobile Cockpit</title>
     <style>
       :root {
@@ -271,6 +277,14 @@
       $("secretaryCall").addEventListener("click", () => secretaryCall().catch((err) => flash(err.message, true)));
       $("secretaryCall2").addEventListener("click", () => secretaryCall().catch((err) => flash(err.message, true)));
       refresh().catch((err) => flash(err.message, true));
+
+      if ("serviceWorker" in navigator && window.isSecureContext) {
+        window.addEventListener("load", () => {
+          navigator.serviceWorker.register("/mobile/sw.js", { scope: "/mobile/" }).catch((err) => {
+            console.warn("NovaMobile service worker registration failed", err);
+          });
+        });
+      }
     </script>
   </body>
 </html>

@@ -13,6 +13,11 @@ The service is intentionally small:
 It is meant to be the phone-first control plane when the desktop PC is off.
 Discord stays as the alert and quick-command sidecar.
 
+The web cockpit is an installable PWA. On Android/Brave or Chrome, open
+`https://aion.novacore.lol/mobile/`, sign in, then choose **Install app** or
+**Add to Home screen**. The service worker caches only public shell assets and
+the offline notice; authenticated dashboards and API responses stay network-only.
+
 ## Runtime
 
 Expected VPS path:

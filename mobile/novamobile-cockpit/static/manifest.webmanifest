@@ -1,0 +1,21 @@
+{
+  "id": "/mobile/",
+  "name": "NovaMobile Agent OS",
+  "short_name": "NovaMobile",
+  "description": "Secure mobile control surface for NovaMaster Agent OS.",
+  "start_url": "/mobile/",
+  "scope": "/mobile/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#08110f",
+  "theme_color": "#08110f",
+  "categories": ["productivity", "utilities"],
+  "icons": [
+    {
+      "src": "/mobile/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

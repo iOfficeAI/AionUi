@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="NovaMobile">
+  <defs>
+    <radialGradient id="core" cx="50%" cy="42%" r="65%">
+      <stop offset="0" stop-color="#24483f"/>
+      <stop offset="0.7" stop-color="#08110f"/>
+      <stop offset="1" stop-color="#020605"/>
+    </radialGradient>
+    <filter id="glow"><feGaussianBlur stdDeviation="9" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#core)"/>
+  <circle cx="256" cy="256" r="178" fill="none" stroke="#66e3d4" stroke-opacity=".24" stroke-width="8"/>
+  <path d="M137 174 256 380 375 174 256 246Z" fill="none" stroke="#8fd694" stroke-width="30" stroke-linejoin="round" filter="url(#glow)"/>
+  <circle cx="256" cy="256" r="25" fill="#f3ecd2" filter="url(#glow)"/>
+</svg>
