@@ -5,6 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
+import type { IProvider } from '@/common/config/storage';
 import { assistantRuntimeKey, type AssistantDetail } from '@/common/types/agent/assistantTypes';
 
 /**
@@ -90,5 +91,12 @@ async function resolveGeminiDefaultModel(): Promise<string> {
 }
 
 async function resolveAionrsDefaultModel(): Promise<string> {
-  return 'default';
+  const providers = ((await ipcBridge.mode.listProviders.invoke()) ?? []) as IProvider[];
+  for (const provider of providers) {
+    if (provider.enabled === false) continue;
+    const model = (provider.models ?? []).find((modelName) => provider.model_enabled?.[modelName] !== false);
+    if (model) return model;
+  }
+
+  throw new Error('No available Aionrs provider model is configured');
 }

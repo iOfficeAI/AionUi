@@ -7,12 +7,18 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const getAssistantMock = vi.fn();
+const listProvidersMock = vi.fn();
 
 vi.mock('@/common', () => ({
   ipcBridge: {
     assistants: {
       get: {
         invoke: (...args: unknown[]) => getAssistantMock(...args),
+      },
+    },
+    mode: {
+      listProviders: {
+        invoke: (...args: unknown[]) => listProvidersMock(...args),
       },
     },
   },
@@ -23,6 +29,7 @@ import { resolveDefaultTeamAgentModel } from '@/renderer/pages/team/components/t
 describe('resolveDefaultTeamAgentModel', () => {
   beforeEach(() => {
     getAssistantMock.mockReset();
+    listProvidersMock.mockReset();
   });
 
   it('prefers the assistant fixed default model over agent-level fallbacks', async () => {
@@ -94,5 +101,22 @@ describe('resolveDefaultTeamAgentModel', () => {
         assistant_backend: 'gemini',
       })
     ).resolves.toBe('auto');
+  });
+
+  it('selects the first available provider model for an aionrs auto assistant', async () => {
+    getAssistantMock.mockResolvedValue({
+      defaults: { model: { mode: 'auto' } },
+      preferences: { last_model_id: undefined },
+      engine: { agent: { agent_id: 'aionrs', type: 'aionrs' } },
+    });
+    listProvidersMock.mockResolvedValue([
+      { id: 'disabled', enabled: false, models: ['ignored-model'] },
+      { id: 'empty', enabled: true, models: [] },
+      { id: 'provider-1', enabled: true, models: ['first-model', 'second-model'] },
+    ]);
+
+    await expect(
+      resolveDefaultTeamAgentModel({ assistant_id: 'assistant-aionrs', assistant_backend: 'aionrs' })
+    ).resolves.toBe('first-model');
   });
 });
