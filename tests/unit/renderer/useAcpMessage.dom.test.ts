@@ -390,4 +390,44 @@ describe('useAcpMessage', () => {
       })
     );
   });
+
+  it('renders an advisory tips notice without lighting the running timer', async () => {
+    vi.mocked(getConversationOrNull).mockResolvedValue(null);
+
+    const { result } = renderHook(() => useAcpMessage('conv-1'));
+
+    await waitFor(() => {
+      expect(result.current.hasHydratedRunningState).toBe(true);
+    });
+    expect(result.current.running).toBe(false);
+
+    // A backend Notice (a rejected mode/model/effort switch, or a codex out-of-turn
+    // warning) arrives as a `tips` frame while the conversation is idle. It must merge
+    // for display but must NOT set running — falling through to the `default` arm's
+    // setRunning(true) would light a spurious timer bar with no terminal to clear it.
+    act(() => {
+      responseStreamHandlerRef.current?.({
+        type: 'tips',
+        data: {
+          content: 'set effort: rejected by agent',
+          type: 'warning',
+        },
+        msg_id: 'msg-tip-1',
+        conversation_id: 'conv-1',
+      } as unknown as IResponseMessage);
+    });
+
+    expect(addOrUpdateMessageMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'tips',
+        msg_id: 'msg-tip-1',
+        conversation_id: 'conv-1',
+        content: expect.objectContaining({
+          content: 'set effort: rejected by agent',
+          type: 'warning',
+        }),
+      })
+    );
+    expect(result.current.running).toBe(false);
+  });
 });

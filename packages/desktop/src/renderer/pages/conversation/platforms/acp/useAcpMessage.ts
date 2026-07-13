@@ -410,6 +410,17 @@ export const useAcpMessage = (
           }
           break;
         }
+        case 'tips':
+          // Advisory tips (backend `Notice`: a rejected mode/model/effort switch, or a
+          // codex out-of-turn warning/deprecation). Render the advisory but do NOT touch
+          // turn state — a config-reject Notice can arrive while idle (dispatched by the
+          // PUT /config-options path, not a turn), so falling through to the `default`
+          // arm's setRunning(true) would light a spurious timer bar with no terminal to
+          // clear it (the same regression the `acp_config_option` case guards against).
+          // Error-severity tips are handled earlier by isErrorTipMessage; only info/
+          // warning advisories reach here.
+          mergeLiveMessage(transformedMessage);
+          break;
         case 'request_trace':
           {
             const trace = message.data as Record<string, unknown>;
