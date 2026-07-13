@@ -23,7 +23,7 @@ type UseAcpModelInfoArgs = {
   prepareSetRuntime?: () => Promise<void>;
   loadConfigOptions?: AcpConfigOptionsLoader;
   enabled?: boolean;
-  onSelectModelSuccess?: (model_id: string) => void;
+  onSelectModelSuccess?: (model_id: string) => unknown;
   onSelectModelFailed?: (model_id: string, error: unknown) => void;
 };
 
@@ -139,7 +139,7 @@ export const useAcpModelInfo = ({
       if (!enabled || !model) return;
       void setConfigOption(model.id, model_id)
         .then(async () => {
-          onSelectModelSuccess?.(model_id);
+          await onSelectModelSuccess?.(model_id);
         })
         .catch((error) => {
           onSelectModelFailed?.(model_id, error);

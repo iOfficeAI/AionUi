@@ -140,6 +140,10 @@ const AssistantChatSlot: React.FC<{
   const initialModelId = (conversation?.extra as { current_model_id?: string })?.current_model_id;
   const isAcpLike = conversation?.type === 'acp' || isAcpLikeBackend(assistant.assistant_backend);
   const cronJobId = resolveCronJobId(conversation?.extra);
+  const handleTeamModelChange = useCallback(
+    (model_id: string) => ipcBridge.team.updateAgentModel.invoke({ team_id, slot_id: assistant.slot_id, model_id }),
+    [assistant.slot_id, team_id]
+  );
   // 抬头不叠身份色底（避免压低彩色名字的可读性）；成员身份仅由抬头里的“彩色名字”承担。
   // 列身体保留极淡身份色底作弱提示，不影响气泡阅读。
   return (
@@ -166,6 +170,7 @@ const AssistantChatSlot: React.FC<{
                 initialModelId={initialModelId}
                 prepareSetRuntime={teamPermission?.warmupSession}
                 loadConfigOptions={teamPermission?.loadConfigOptions}
+                onModelChange={handleTeamModelChange}
               />
             </div>
           )}
