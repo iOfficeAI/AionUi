@@ -88,17 +88,19 @@ describe('useTeamWarmup', () => {
     expect(result.current.phase).toBe('warming');
   });
 
-  it('stays warming without a terminal team event instead of timing out', () => {
+  it('times out a pending member instead of blocking the whole team indefinitely', () => {
     vi.useFakeTimers();
     try {
       ensureSessionMock.mockReturnValue(new Promise(() => {}));
       const { result } = renderHook(() => useTeamWarmup('team-1'));
 
       act(() => {
-        vi.advanceTimersByTime(20_001);
+        runtimeListener?.({ team_id: 'team-1', slot_id: 'worker', conversation_id: 'c2', status: 'pending' });
+        vi.advanceTimersByTime(60_001);
       });
 
-      expect(result.current.phase).toBe('warming');
+      expect(result.current.phase).toBe('error');
+      expect(result.current.runtimeStatus.get('worker')?.status).toBe('failed');
     } finally {
       vi.useRealTimers();
     }
@@ -124,6 +126,23 @@ describe('useTeamWarmup', () => {
     });
 
     expect(result.current.phase).toBe('ready');
+  });
+
+  it('does not time out after a ready event when the ensure request is still pending', () => {
+    vi.useFakeTimers();
+    try {
+      ensureSessionMock.mockReturnValue(new Promise(() => {}));
+      const { result } = renderHook(() => useTeamWarmup('team-1'));
+
+      act(() => {
+        sessionStatusListener?.({ team_id: 'team-1', status: 'ready', server_count: 3 });
+        vi.advanceTimersByTime(60_001);
+      });
+
+      expect(result.current.phase).toBe('ready');
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('goes to error from the team session failed event', () => {

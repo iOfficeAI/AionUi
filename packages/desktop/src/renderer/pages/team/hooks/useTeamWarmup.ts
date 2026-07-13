@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ipcBridge } from '@/common';
 import type {
   ITeamAgentRuntimeStatusEvent,
@@ -35,10 +35,13 @@ export type TeamWarmupState = {
   retry: () => void;
 };
 
+const TEAM_WARMUP_TIMEOUT_MS = 60_000;
+
 export function useTeamWarmup(team_id: string): TeamWarmupState {
   const [phase, setPhase] = useState<TeamWarmupPhase>(team_id ? 'warming' : 'ready');
   const [runtimeStatus, setRuntimeStatus] = useState<Map<string, TeamWarmupMemberState>>(() => new Map());
   const [ensureAttempt, setEnsureAttempt] = useState(0);
+  const sessionTerminalRef = useRef<'ready' | 'failed' | null>(null);
 
   useEffect(() => {
     if (!team_id) {
@@ -48,6 +51,7 @@ export function useTeamWarmup(team_id: string): TeamWarmupState {
     }
 
     let cancelled = false;
+    sessionTerminalRef.current = null;
     setPhase('warming');
     setRuntimeStatus(new Map<string, TeamWarmupMemberState>());
 
@@ -63,10 +67,13 @@ export function useTeamWarmup(team_id: string): TeamWarmupState {
     const unsubSessionStatus = ipcBridge.team.sessionStatusChanged.on((event: ITeamSessionStatusChangedEvent) => {
       if (event.team_id !== team_id || cancelled) return;
       if (event.status === 'starting') {
+        sessionTerminalRef.current = null;
         setPhase('warming');
       } else if (event.status === 'ready') {
+        sessionTerminalRef.current = 'ready';
         setPhase('ready');
       } else if (event.status === 'failed') {
+        sessionTerminalRef.current = 'failed';
         setPhase('error');
       }
     });
@@ -82,18 +89,41 @@ export function useTeamWarmup(team_id: string): TeamWarmupState {
     if (!team_id) return;
 
     let cancelled = false;
+    let settled = false;
+    sessionTerminalRef.current = null;
     setPhase('warming');
-    ipcBridge.team.ensureSession
-      .invoke({ team_id })
+    const timeout = setTimeout(() => {
+      if (cancelled || settled || sessionTerminalRef.current) return;
+      settled = true;
+      setRuntimeStatus((prev) => {
+        const next = new Map(prev);
+        next.forEach((state, slot_id) => {
+          if (state.status === 'pending') next.set(slot_id, { ...state, status: 'failed' });
+        });
+        return next;
+      });
+      setPhase('error');
+    }, TEAM_WARMUP_TIMEOUT_MS);
+    const ensure = ipcBridge.team.ensureSession.invoke({ team_id });
+    ensure
       .then(() => {
-        if (!cancelled) setPhase('ready');
+        if (!cancelled && !settled && sessionTerminalRef.current !== 'failed') {
+          settled = true;
+          clearTimeout(timeout);
+          setPhase('ready');
+        }
       })
       .catch(() => {
-        if (!cancelled) setPhase('error');
+        if (!cancelled && !settled && sessionTerminalRef.current !== 'ready') {
+          settled = true;
+          clearTimeout(timeout);
+          setPhase('error');
+        }
       });
 
     return () => {
       cancelled = true;
+      clearTimeout(timeout);
     };
   }, [team_id, ensureAttempt]);
 
