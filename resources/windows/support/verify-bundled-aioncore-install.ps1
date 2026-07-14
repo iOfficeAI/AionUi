@@ -181,6 +181,34 @@ function Test-StringArrayField {
   return $true
 }
 
+function Test-NumberField {
+  param(
+    [object]$Object,
+    [string]$Name
+  )
+  $property = $Object.PSObject.Properties[$Name]
+  if ($null -eq $property) {
+    return $false
+  }
+
+  $value = $property.Value
+  if ($null -eq $value -or $value -is [string] -or $value -is [bool]) {
+    return $false
+  }
+
+  return ($value -is [byte]) -or
+    ($value -is [sbyte]) -or
+    ($value -is [int16]) -or
+    ($value -is [uint16]) -or
+    ($value -is [int]) -or
+    ($value -is [uint32]) -or
+    ($value -is [long]) -or
+    ($value -is [uint64]) -or
+    ($value -is [single]) -or
+    ($value -is [double]) -or
+    ($value -is [decimal])
+}
+
 function Test-ManagedNodeContract {
   param(
     [System.Collections.Generic.List[object]]$Failures,
@@ -311,12 +339,12 @@ function Test-ManagedResourcesContract {
     return
   }
 
-  if ($contract.schemaVersion -ne 1) {
-    $reason = 'invalid_schema'
-    if ($contract.schemaVersion -is [int] -or $contract.schemaVersion -is [long]) {
-      $reason = 'unsupported_schema_version'
-    }
-    $Failures.Add((New-Failure 'publish_or_install_missing' 'managed-resources' '' $contractPath $reason)) | Out-Null
+  if (-not (Test-NumberField $contract 'schemaVersion')) {
+    $Failures.Add((New-Failure 'publish_or_install_missing' 'managed-resources' '' $contractPath 'invalid_schema')) | Out-Null
+    return
+  }
+  if ([double]$contract.schemaVersion -ne 1) {
+    $Failures.Add((New-Failure 'publish_or_install_missing' 'managed-resources' '' $contractPath 'unsupported_schema_version')) | Out-Null
     return
   }
   if ($contract.runtimeKey -ne $RuntimeKey) {

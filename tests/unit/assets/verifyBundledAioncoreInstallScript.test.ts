@@ -33,6 +33,11 @@ describe('Windows bundled aioncore install verifier', () => {
     expect(script).toContain('result=fail runtime=$RuntimeKey failures=$summary');
   });
 
+  it('requires numeric schemaVersion without PowerShell string coercion', () => {
+    expect(script).toContain("Test-NumberField $contract 'schemaVersion'");
+    expect(script).not.toContain('if ($contract.schemaVersion -ne 1)');
+  });
+
   const runOnWindows = process.platform === 'win32' ? it : it.skip;
 
   runOnWindows('fails an old-version-only Codex ACP install directory', () => {
