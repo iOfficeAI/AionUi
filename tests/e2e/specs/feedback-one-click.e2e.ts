@@ -75,9 +75,14 @@ test.describe('One-click feedback infrastructure', () => {
     const autoInfo = page.locator('[data-testid="feedback-report-auto-info"]');
     await expect(autoInfo).toBeVisible();
 
-    // Close via the custom close button in the modal header. ModalWrapper is
-    // configured with closable={false} so Escape alone does not dismiss it.
-    const closeBtn = page.locator('.aionui-modal-close-btn').first();
+    // Close via the AionModal header close button (aria-label='Close'). The
+    // modal is configured with closable={false} so Escape alone does not
+    // dismiss it. Scope to the modal that owns the feedback body so we never
+    // match another modal's close button.
+    const closeBtn = page
+      .locator('.arco-modal-wrapper', { has: modalBody })
+      .locator('button[aria-label="Close"]')
+      .first();
     await closeBtn.click();
     await expect(modalBody).toBeHidden({ timeout: 5_000 });
   });

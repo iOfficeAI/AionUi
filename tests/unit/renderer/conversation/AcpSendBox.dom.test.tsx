@@ -317,7 +317,7 @@ describe('AcpSendBox', () => {
     expect(wrapper?.className).not.toContain('md:w-[calc(100%-clamp(80px,10vw,240px))]');
   });
 
-  it('does not warm up team session when draft content changes', async () => {
+  it('does not warm up team session on mount or draft content changes', async () => {
     const warmupSession = vi.fn().mockResolvedValue(undefined);
     useTeamPermissionMock.mockReturnValue({
       isTeamMode: true,
@@ -336,16 +336,72 @@ describe('AcpSendBox', () => {
         messageState={makeMessageState()}
       />
     );
-    await waitFor(() => {
-      expect(warmupSession).toHaveBeenCalled();
-    });
-    warmupSession.mockClear();
+
+    expect(warmupSession).not.toHaveBeenCalled();
 
     await act(async () => {
       screen.getByRole('button', { name: 'change' }).click();
     });
 
     expect(warmupSession).not.toHaveBeenCalled();
+  });
+
+  it('does not warm up team session when config options prepare runtime runs', async () => {
+    const warmupSession = vi.fn().mockResolvedValue(undefined);
+    useTeamPermissionMock.mockReturnValue({
+      isTeamMode: true,
+      isLeaderAgent: true,
+      leaderConversationId: 'conv-1',
+      allConversationIds: ['conv-1'],
+      propagateMode: vi.fn(),
+      warmupSession,
+    });
+
+    render(
+      <AcpSendBox
+        conversation_id='conv-1'
+        backend='codex'
+        workspacePath='/tmp/workspace'
+        messageState={makeMessageState()}
+      />
+    );
+
+    const configOptionsArgs = useAcpConfigOptionsMock.mock.calls[0]?.[0] as
+      | { prepareRuntime?: () => Promise<void> }
+      | undefined;
+    await configOptionsArgs?.prepareRuntime?.();
+
+    expect(warmupSession).not.toHaveBeenCalled();
+  });
+
+  it('still warms up team session before sending a message', async () => {
+    sendMessageInvokeMock.mockResolvedValue({ turn_id: 'turn-1', runtime: null, msg_id: 'msg-1' });
+    const warmupSession = vi.fn().mockResolvedValue(undefined);
+    useTeamPermissionMock.mockReturnValue({
+      isTeamMode: true,
+      isLeaderAgent: true,
+      leaderConversationId: 'conv-1',
+      allConversationIds: ['conv-1'],
+      propagateMode: vi.fn(),
+      warmupSession,
+    });
+
+    render(
+      <AcpSendBox
+        conversation_id='conv-1'
+        backend='codex'
+        workspacePath='/tmp/workspace'
+        messageState={makeMessageState()}
+      />
+    );
+
+    await act(async () => {
+      screen.getByRole('button', { name: 'send' }).click();
+    });
+
+    await waitFor(() => {
+      expect(warmupSession).toHaveBeenCalledTimes(1);
+    });
   });
 
   it('keeps ACP config options enabled on desktop without rendering a standalone thought selector', () => {

@@ -1,0 +1,17 @@
+{
+  "desktopPet": "Mascotte de bureau",
+  "enable": "Activer la mascotte de bureau",
+  "size": "Taille de la mascotte",
+  "sizeSmall": "Petite ({{px}}px)",
+  "sizeMedium": "Moyenne ({{px}}px)",
+  "sizeLarge": "Grande ({{px}}px)",
+  "dnd": "Ne pas déranger",
+  "dndDescription": "La mascotte reste inactive, ignore les événements IA",
+  "confirmBubble": "Afficher les autorisations sur la mascotte",
+  "confirmBubbleDescription": "Désactivé, les autorisations des outils IA restent dans la fenêtre de chat principale",
+  "pat": "Caresser",
+  "resetPosition": "Réinitialiser la position",
+  "hide": "Masquer",
+  "showHide": "Afficher/Masquer",
+  "desktopOnly": "La mascotte de bureau est uniquement disponible dans l'application de bureau. Elle ne peut pas être utilisée en mode navigateur WebUI."
+}

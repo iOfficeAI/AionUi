@@ -104,6 +104,25 @@ describe('TeamChatEmptyState', () => {
     render(<TeamChatEmptyState conversation_id='conv-1' isLeader />);
 
     expect(screen.getByText('Organize a debate with assistants taking different sides')).toBeInTheDocument();
-    expect(screen.getByText('Plan an in-depth interview between assistants')).toBeInTheDocument();
+    // Middle suggestion is now the "ask the Leader to add a member" prompt.
+    expect(screen.getByText('Help me add a member good at ___ to the team')).toBeInTheDocument();
+  });
+
+  it('shows a member greeting for non-leader members', () => {
+    useSWRMock.mockReturnValue({
+      data: {
+        id: 'conv-1',
+        type: 'acp',
+        name: 'Team - Worker',
+        extra: { team_id: 'team-1', backend: 'claude' },
+      },
+    });
+    usePresetAssistantInfoMock.mockReturnValue({ info: null });
+
+    render(<TeamChatEmptyState conversation_id='conv-1' />);
+
+    expect(screen.getByTestId('team-chat-empty-state-subtitle')).toHaveTextContent(
+      "Hi, I'm a team member. I take direction from the Leader and you."
+    );
   });
 });

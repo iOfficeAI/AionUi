@@ -62,8 +62,8 @@ test.describe('Team Create', () => {
     const confirmBtn = page.locator('.arco-modal .arco-btn-primary');
     await expect(confirmBtn).toBeVisible();
 
-    // Close modal via Cancel button
-    await page.locator('.arco-modal .arco-btn-text').first().click();
+    // Close modal via the standard header close button
+    await page.locator('.arco-modal button[aria-label="Close"]').first().click();
     await expect(page.locator('.arco-modal')).toBeHidden({ timeout: 5000 });
   });
 
@@ -165,7 +165,7 @@ async function createTeamWithAgent(
   }
 
   if (!matchingOption) {
-    await page.locator('.arco-modal .arco-btn-text').first().click({ force: true });
+    await page.locator('.arco-modal button[aria-label="Close"]').first().click({ force: true });
     await expect(page.locator('.arco-modal')).toBeHidden({ timeout: 5000 });
     console.log(`[E2E] Assistant matching ${agentTextPattern} not found — skipping`);
     test.skip();

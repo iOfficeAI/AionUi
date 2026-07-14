@@ -1,0 +1,143 @@
+{
+  "historyVersions": "Versions historiques",
+  "currentFile": "Fichier actuel",
+  "loading": "Chargement...",
+  "loadHistoryFailed": "Échec du chargement de l'historique",
+  "noHistory": "Aucune version historique",
+  "snapshotSaved": "Instantané enregistré",
+  "snapshotSaveFailed": "Échec de l'enregistrement de l'instantané",
+  "historyLoaded": "Version historique chargée",
+  "historyLoadFailed": "Échec du chargement de la version historique",
+  "tooFrequent": "Trop fréquent, veuillez réessayer plus tard",
+  "saveSnapshot": "Enregistrer l'instantané actuel",
+  "snapshotNotSupported": "Le contenu actuel ne supporte pas les instantanés",
+  "history": "Historique",
+  "historyNotSupported": "Le contenu actuel ne supporte pas l'historique",
+  "downloadFile": "Télécharger le fichier",
+  "closePreview": "Fermer l'aperçu",
+  "collapsePanel": "Réduire le panneau",
+  "source": "Source",
+  "code": "Code",
+  "preview": "Aperçu",
+  "editor": "Éditeur",
+  "previewEffect": "Aperçu",
+  "snapshot": "Instantané",
+  "downloadMarkdown": "Télécharger le fichier Markdown",
+  "downloadCode": "Télécharger le fichier {{language}}",
+  "downloadDiff": "Télécharger le fichier Diff",
+  "addToChat": "Ajouter au chat",
+  "openSplitScreen": "Ouvrir en écran partagé",
+  "closeSplitScreen": "Fermer l'écran partagé",
+  "edit": "Modifier",
+  "exitEdit": "Quitter la modification",
+  "unsavedChangesTitle": "Modifications non enregistrées",
+  "unsavedChangesMessage": "Vous avez des modifications non enregistrées. Êtes-vous sûr de vouloir quitter la modification ?",
+  "confirmExit": "Confirmer la sortie",
+  "continueEdit": "Continuer la modification",
+  "closeTabTitle": "Fermer l'onglet",
+  "closeTabMessage": "Le contenu actuel n'a pas été enregistré. Voulez-vous enregistrer avant de fermer ?",
+  "saveAndClose": "Enregistrer et fermer",
+  "closeWithoutSave": "Ne pas enregistrer",
+  "pptTitle": "Présentation PowerPoint",
+  "pptOpenHint": "Cliquez sur le bouton ci-dessous pour ouvrir dans l'application système et voir le contenu complet",
+  "pptOpenFile": "Ouvrir le fichier",
+  "pptShowLocation": "Afficher l'emplacement",
+  "pptSystemAppHint": "Sera ouvert avec l'application système par défaut (PowerPoint, Keynote ou WPS)",
+  "openWithApp": "Ouvrir avec {{app}}",
+  "openInSystemApp": "Ouvrir dans l'application système",
+  "openInSystemSuccess": "Ouvert dans l'application par défaut du système",
+  "openInSystemFailed": "Échec de l'ouverture avec l'application système",
+  "closeLeft": "Fermer à gauche",
+  "closeRight": "Fermer à droite",
+  "closeOthers": "Fermer les autres",
+  "closeAll": "Tout fermer",
+  "readOnlyLabel": "Aperçu en lecture seule",
+  "pathLabel": "Chemin",
+  "missingFile": {
+    "title": "Fichier introuvable",
+    "openInNewTab": "Essayez d'ouvrir dans un nouvel onglet"
+  },
+  "noTabs": "Aucun onglet ouvert",
+  "openInPanelTooltip": "Voir dans le panneau d'aperçu",
+  "mermaidTitle": "Diagramme Mermaid",
+  "largeTextTruncatedHint": "Mode aperçu grand fichier : affichage des {{count}} premiers caractères pour les performances.",
+  "truncatedBanner": "Le contenu de l'aperçu a été tronqué. Cliquez sur télécharger pour voir le fichier complet.",
+  "aiWriting": "L’IA écrit…",
+  "errors": {
+    "missingFilePath": "Chemin du fichier manquant",
+    "openWithoutPath": "Impossible d'ouvrir : le chemin du fichier n'est pas fourni",
+    "conversionFailed": "Échec de la conversion",
+    "emptySnapshot": "Le contenu de l'instantané est vide"
+  },
+  "office": {
+    "installLinkText": "Guide d'installation d'OfficeCli ouvert",
+    "errors": {
+      "officecliNotFound": "officecli n'est pas installé.",
+      "installFailed": "Échec de l'installation automatique d'officecli. Vérifiez les journaux backend et réessayez.",
+      "portTimeout": "Le service de prévisualisation a démarré mais n’est pas prêt à temps. Réessayez.",
+      "startFailed": "Échec du démarrage du service de prévisualisation d'Office.",
+      "outsideSandbox": "Ce fichier se trouve en dehors du bac à sable du projet actuel."
+    },
+    "serverInstall": {
+      "hint": "AionUi fonctionne sur un serveur. Installez le composant d'aperçu sur ce serveur, puis réessayez :",
+      "icuNote": "S'il ne démarre toujours pas, installez la bibliothèque ICU sur le serveur (Debian/Ubuntu : apt-get install -y libicu-dev)."
+    }
+  },
+  "word": {
+    "title": "Document Word",
+    "loading": "Chargement du document Word...",
+    "invalid": "Veuillez confirmer que le fichier est un document Word valide",
+    "loadFailed": "Échec du chargement du document Word",
+    "watch": {
+      "loading": "Chargement du document Word...",
+      "installing": "Installation d'officecli...",
+      "startFailed": "Échec du démarrage de l'aperçu Word",
+      "installHint": "Nécessite officecli. Il sera installé automatiquement."
+    }
+  },
+  "excel": {
+    "title": "Feuille de calcul Excel",
+    "loading": "Chargement du classeur Excel...",
+    "invalid": "Veuillez confirmer que le fichier est un document Excel valide",
+    "noSheets": "Aucune feuille de calcul trouvée dans ce fichier Excel",
+    "sheetCount": "{{count}} feuille(s) de calcul",
+    "convertFailed": "Échec de la conversion Excel",
+    "loadFailed": "Échec du chargement du classeur Excel",
+    "emptySheet": "Cette feuille de calcul ne contient pas de données",
+    "emptySheetHint": "Vérifiez si la feuille contient des données ou des images",
+    "watch": {
+      "loading": "Chargement du fichier Excel...",
+      "installing": "Installation d'officecli...",
+      "startFailed": "Échec du démarrage de l'aperçu Excel",
+      "installHint": "Nécessite officecli. Il sera installé automatiquement."
+    }
+  },
+  "pdf": {
+    "title": "Document PDF",
+    "pathMissing": "Chemin du fichier PDF manquant",
+    "loadFailed": "Échec du chargement du document PDF",
+    "unableDisplay": "Impossible d'afficher le fichier PDF"
+  },
+  "html": {
+    "elementSelected": "Élément sélectionné : {{path}}",
+    "copySuccess": "Fragment HTML copié",
+    "inspectorEnabled": "Inspecteur d'éléments activé. Cliquez sur les éléments dans l'aperçu pour les mettre en surbrillance.",
+    "inspectorButton": "Inspecteur d'éléments",
+    "inspecting": "Inspection...",
+    "selectedLabel": "Sélectionné :",
+    "inspectorTooltip": "Cliquez sur les éléments de l'aperçu pour inspecter leur HTML",
+    "downloadHtml": "Télécharger le fichier HTML",
+    "copyElementHtml": "Copier le HTML de l'élément",
+    "viewElementInfo": "Voir les infos de l'élément",
+    "printedToConsole": "Informations de l'élément enregistrées dans la console",
+    "inspectElement": "Inspecter l'élément",
+    "inspectElementEnable": "Activer l'inspecteur d'éléments",
+    "inspectElementDisable": "Désactiver l'inspecteur d'éléments"
+  },
+  "ppt": {
+    "loading": "Démarrage de l'aperçu PPT...",
+    "installing": "Installation du composant d'aperçu...",
+    "startFailed": "Échec du démarrage de l'aperçu PPT",
+    "installHint": "Assurez-vous qu'officecli est installé : npm run postinstall"
+  }
+}

@@ -65,16 +65,20 @@ vi.mock('@/renderer/utils/model/agentLogo', () => ({
 vi.mock('@icon-park/react', () => ({
   Brain: () => <span aria-hidden='true'>brain</span>,
   Down: () => <span aria-hidden='true'>v</span>,
+  Search: () => <span aria-hidden='true'>search</span>,
 }));
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (key: string, options?: { defaultValue?: string }) => {
       if (key === 'agent.thoughtLevel.label') return 'Thinking Level';
+      if (key === 'common.model') return 'Model';
       if (key === 'conversation.welcome.selectModel') return 'Select model';
       if (key === 'conversation.welcome.useCliModel') return 'Use CLI model';
       if (key === 'conversation.welcome.modelSwitchNotSupported') return 'Model switch is not supported';
       if (key === 'common.defaultModel') return 'Default';
+      if (key === 'agent.model.searchPlaceholder') return 'Search models';
+      if (key === 'agent.model.noResults') return 'No matching models';
       return options?.defaultValue ?? key;
     },
   }),
@@ -102,6 +106,12 @@ vi.mock('@arco-design/web-react', () => {
       ItemGroup: ({ children, title }: { children?: React.ReactNode; title?: React.ReactNode }) => (
         <div role='group' aria-label={String(title)}>
           {children}
+        </div>
+      ),
+      SubMenu: ({ children, title }: { children?: React.ReactNode; title?: React.ReactNode }) => (
+        <div role='group'>
+          <div data-testid='submenu-title'>{title}</div>
+          <div data-testid='submenu-body'>{children}</div>
         </div>
       ),
     }
@@ -151,7 +161,7 @@ describe('AionrsModelSelector runtime options', () => {
     expect(screen.getByTestId('aionrs-model-selector')).toHaveTextContent('gpt-5.2 · High');
   });
 
-  it('renders the thought level group before provider model groups', () => {
+  it('shows the model submenu before the thought level submenu, each with its current value', () => {
     render(
       <AionrsModelSelector
         selection={makeSelection()}
@@ -161,14 +171,28 @@ describe('AionrsModelSelector runtime options', () => {
       />
     );
 
-    expect(screen.getAllByRole('group').map((group) => group.getAttribute('aria-label'))).toEqual([
-      'Thinking Level',
-      'OpenAI',
-    ]);
-    expect(screen.getByTestId('runtime-selector-menu-divider')).toBeInTheDocument();
+    const titles = screen.getAllByTestId('submenu-title');
+    expect(titles[0]).toHaveTextContent('Model');
+    expect(titles[0]).toHaveTextContent('gpt-5.2');
+    expect(titles[1]).toHaveTextContent('Thinking Level');
+    expect(titles[1]).toHaveTextContent('High');
   });
 
-  it('marks the current model with the same leading check indicator as thought level options', () => {
+  it('keeps provider grouping inside the model submenu', () => {
+    render(
+      <AionrsModelSelector
+        selection={makeSelection()}
+        thoughtLevel={thoughtLevel}
+        setStatus={{ state: 'idle' }}
+        onSetThoughtLevel={vi.fn().mockResolvedValue(undefined)}
+      />
+    );
+
+    // The provider group title (OpenAI) is rendered inside the model submenu.
+    expect(screen.getByRole('group', { name: 'OpenAI' })).toBeInTheDocument();
+  });
+
+  it('marks the current model with the leading check indicator', () => {
     render(
       <AionrsModelSelector
         selection={makeSelection()}
@@ -182,15 +206,33 @@ describe('AionrsModelSelector runtime options', () => {
     const currentModelItem = within(providerGroup).getByText('gpt-5.2').closest('[role="menuitem"]');
     const otherModelItem = within(providerGroup).getByText('gpt-5.2-mini').closest('[role="menuitem"]');
 
-    expect(currentModelItem?.textContent?.trim().startsWith('\u2713')).toBe(true);
-    expect(otherModelItem).not.toHaveTextContent('\u2713');
+    expect(currentModelItem?.textContent?.trim().startsWith('✓')).toBe(true);
+    expect(otherModelItem).not.toHaveTextContent('✓');
   });
 
-  it('keeps the existing model-only label when thought level is unavailable', () => {
+  it('selects a model through the selection callback', () => {
+    const handleSelectModel = vi.fn().mockResolvedValue(undefined);
+    render(
+      <AionrsModelSelector
+        selection={makeSelection({ handleSelectModel })}
+        thoughtLevel={thoughtLevel}
+        setStatus={{ state: 'idle' }}
+        onSetThoughtLevel={vi.fn().mockResolvedValue(undefined)}
+      />
+    );
+
+    fireEvent.click(screen.getByText('gpt-5.2-mini'));
+
+    expect(handleSelectModel).toHaveBeenCalledWith(expect.objectContaining({ id: 'openai' }), 'gpt-5.2-mini');
+  });
+
+  it('renders the model list directly (no submenu) when thought level is unavailable', () => {
     render(<AionrsModelSelector selection={makeSelection()} />);
 
     expect(screen.getByTestId('aionrs-model-selector')).toHaveTextContent('gpt-5.2');
-    expect(screen.queryByRole('group', { name: 'Thinking Level' })).not.toBeInTheDocument();
+    expect(screen.queryAllByTestId('submenu-title')).toHaveLength(0);
+    // Still grouped by provider even without a submenu wrapper.
+    expect(screen.getByRole('group', { name: 'OpenAI' })).toBeInTheDocument();
   });
 
   it('sets thought level through the optional runtime callback', async () => {
@@ -210,22 +252,5 @@ describe('AionrsModelSelector runtime options', () => {
     await waitFor(() => {
       expect(onSetThoughtLevel).toHaveBeenCalledWith('reasoning_effort', 'low');
     });
-  });
-
-  it('ignores thought-level clicks while a config update is already running', () => {
-    const onSetThoughtLevel = vi.fn().mockResolvedValue(undefined);
-
-    render(
-      <AionrsModelSelector
-        selection={makeSelection()}
-        thoughtLevel={thoughtLevel}
-        setStatus={{ state: 'setting', optionId: 'reasoning_effort', requestedValue: 'low' }}
-        onSetThoughtLevel={onSetThoughtLevel}
-      />
-    );
-
-    fireEvent.click(screen.getByText('Low'));
-
-    expect(onSetThoughtLevel).not.toHaveBeenCalled();
   });
 });

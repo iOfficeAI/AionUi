@@ -232,6 +232,35 @@
   box-shadow: inset 0 0 0 2px var(--color-bg-1, #ffffff);
 }
 
+/* Multi-select checkbox (skills / MCP). Square instead of round to signal
+ * "toggle multiple" rather than "pick one". */
+.checkbox {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  border: 1.5px solid var(--color-border-3, #c9cdd4);
+  flex-shrink: 0;
+  margin-left: auto;
+  position: relative;
+}
+
+.checkbox.checkboxChecked {
+  border-color: rgb(var(--primary-6, 22 93 255));
+  background: rgb(var(--primary-6, 22 93 255));
+}
+
+.checkbox.checkboxChecked::after {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: 2px;
+  width: 4px;
+  height: 8px;
+  border: solid #ffffff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
 .empty {
   padding: 20px 16px;
   text-align: center;

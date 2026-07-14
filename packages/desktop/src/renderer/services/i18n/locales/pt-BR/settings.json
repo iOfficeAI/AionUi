@@ -29,7 +29,6 @@
     "customPathLabel": "Caminho do Diretório",
     "customPathPlaceholder": "ex: C:\\Usuarios\\eu\\.minhasferramentas\\habilidades",
     "searchPlaceholder": "Pesquisar habilidades...",
-    "noSearchResults": "Nenhuma habilidade correspondente encontrada",
     "importPartialSuccess": "Imported {{successCount}} skill(s), {{failureCount}} failed: {{failures}}",
     "importAllFailed": "Failed to import {{failureCount}} skill(s): {{failures}}",
     "importFailureFileSizeDetail": "{{path}} is {{actual}}; limit is {{limit}}",
@@ -84,6 +83,7 @@
     "tabOfficial": "Habilidades oficiais",
     "officialSkillsTitle": "Habilidades oficiais",
     "officialSkillsEmpty": "Nenhuma habilidade oficial disponível.",
+    "noSearchResults": "Nenhuma habilidade correspondente.",
     "customHint": "Importe uma pasta de habilidade, pasta principal ou zip; até {{maxFileSize}} por arquivo e {{maxTotalSize}} por habilidade; importar o mesmo nome substitui a habilidade existente.",
     "officialHint": "Habilidades oficiais incluídas no AionUi — prontas para uso, somente leitura e atualizadas a cada versão."
   },

@@ -546,7 +546,8 @@
       "loaded": "已載入",
       "failed": "失敗",
       "unsupported": "不支援"
-    }
+    },
+    "selected": "已選 MCP"
   },
   "runtimePreparing": {
     "sendboxHint": "正在準備執行環境。首次啟動可能會稍慢一些。"

@@ -109,6 +109,22 @@ function Read-JsonFile {
   }
 }
 
+function Get-CodexPlatformExecutable {
+  param([string]$RuntimeKey)
+
+  $vendorTriple = switch ($RuntimeKey) {
+    "win32-x64" { "x86_64-pc-windows-msvc" }
+    "win32-arm64" { "aarch64-pc-windows-msvc" }
+    default { "" }
+  }
+
+  if (-not $vendorTriple) {
+    return ""
+  }
+
+  return "node_modules\@openai\codex-$RuntimeKey\vendor\$vendorTriple\bin\codex.exe"
+}
+
 function Test-BundledResourcesOnce {
   $failures = [System.Collections.Generic.List[object]]::new()
   $runtimeParts = $RuntimeKey.Split('-', 2)
@@ -156,7 +172,7 @@ function Test-BundledResourcesOnce {
   $tools = @(
     @{
       id = 'codex-acp'
-      executable = "node_modules\@zed-industries\codex-acp-$RuntimeKey\bin\codex-acp.exe"
+      executable = (Get-CodexPlatformExecutable $RuntimeKey)
     },
     @{
       id = 'claude-agent-acp'

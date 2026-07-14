@@ -20,6 +20,12 @@ export interface MobileActionSheetSubMenu {
   emptyText?: ReactNode;
   /** When false, options behave as plain action rows (no radio). Default: true. */
   selectable?: boolean;
+  /**
+   * When true, options are multi-select checkboxes (driven by `option.active`).
+   * Tapping toggles a selection via `onSelect` but keeps the submenu open so the
+   * user can toggle several in a row (used for Skills / MCP on the home page).
+   */
+  multiSelect?: boolean;
 }
 
 export interface MobileActionSheetEntry {

@@ -6,8 +6,9 @@
 
 import styles from '../index.module.css';
 import { assistantRuntimeKey, type Assistant } from '@/common/types/agent/assistantTypes';
-import { Down, Robot, Search } from '@icon-park/react';
-import { Button, Dropdown, Input } from '@arco-design/web-react';
+import { Down, Robot } from '@icon-park/react';
+import { Button, Dropdown } from '@arco-design/web-react';
+import { AionSearchInput } from '@/renderer/components/base';
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { resolveAssistantAvatar } from '@/renderer/utils/model/assistantAvatar';
 import { selectableAssistants } from '@/renderer/utils/model/assistantSelection';
@@ -167,12 +168,11 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
       style={{ background: 'var(--bg-base, #fff)' }}
     >
       <div className='mb-8px'>
-        <Input
-          size='small'
+        <AionSearchInput
+          className='w-full'
           value={search}
           onChange={setSearch}
-          prefix={<Search theme='outline' size={14} />}
-          placeholder={t('team.create.searchPlaceholder', { defaultValue: 'Search assistants...' })}
+          placeholder={t('team.create.searchPlaceholder', { defaultValue: 'Search' })}
         />
       </div>
       <div className='flex max-h-260px flex-col gap-4px overflow-y-auto'>

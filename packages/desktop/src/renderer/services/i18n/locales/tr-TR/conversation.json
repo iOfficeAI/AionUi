@@ -548,7 +548,8 @@
       "loaded": "Yüklendi",
       "failed": "Başarısız",
       "unsupported": "Desteklenmiyor"
-    }
+    },
+    "selected": "Seçili MCP"
   },
   "runtimePreparing": {
     "sendboxHint": "Çalışma ortamı hazırlanıyor. İlk başlatma biraz daha uzun sürebilir."

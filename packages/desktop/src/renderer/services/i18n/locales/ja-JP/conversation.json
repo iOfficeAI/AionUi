@@ -546,7 +546,8 @@
       "loaded": "読み込み済み",
       "failed": "失敗",
       "unsupported": "非対応"
-    }
+    },
+    "selected": "選択済み MCP"
   },
   "runtimePreparing": {
     "sendboxHint": "実行環境を準備しています。初回起動は少し時間がかかる場合があります。"

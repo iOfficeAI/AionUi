@@ -162,6 +162,38 @@ body[arco-theme='dark'] .arco-tag-checked.arco-tag-gray {
   border-radius: 16px !important;
 }
 
+/* standard 变体：清除 Arco content 默认内边距，让三段（标题/内容/按钮）铺满到弹窗边框，
+   分隔线得以贯穿全宽，三段背景统一、无“盒子”割裂感。
+   注意：内边距清零后不能在此处 overflow:hidden —— Select/下拉等 popup 会挂在
+   .arco-modal-content 下（在内层 wrapper 之外），一旦这里裁剪就会遮住下拉。
+   圆角裁剪改到内层 .aionui-modal-wrapper 上（见下），popup 作为其兄弟节点不受影响。 */
+.aionui-modal-standard .arco-modal-content {
+  padding: 0 !important;
+}
+
+/* 圆角裁剪落在内层 wrapper：只裁三段（标题/内容/按钮），让它们的直角贴合弹窗圆角；
+   下拉 popup 挂在 wrapper 之外，因此不会被裁掉、能正常浮出弹窗。
+   同时给内层 wrapper 设视口上限并裁掉溢出：内容过多时，标题区/按钮区固定，
+   中间内容区（flex-1 + overflow-y:auto）自动缩短并滚动，整窗不会超出屏幕。
+   弹窗自身不设固定高度时按内容自适应，因此短内容不会留白、长内容会滚动。 */
+.aionui-modal-standard .aionui-modal-wrapper {
+  overflow: hidden !important;
+  border-radius: 16px !important;
+  max-height: calc(100vh - 64px);
+}
+
+/* 三段只保留一条分隔线：标题区仅下边线、按钮区仅上边线，其余边框一律清零，
+   避免外部样式给这些容器叠加多余边框而形成“盒子”。 */
+.aionui-modal-standard .aionui-modal-wrapper > * {
+  border: 0 !important;
+}
+.aionui-modal-standard .aionui-modal-std-header {
+  border-bottom: 1px solid var(--bg-3) !important;
+}
+.aionui-modal-standard .aionui-modal-std-footer {
+  border-top: 1px solid var(--bg-3) !important;
+}
+
 body[arco-theme='dark'] .arco-modal-content {
   background-color: var(--dialog-fill-0) !important;
   border: 1px solid var(--border-base) !important;
@@ -473,47 +505,27 @@ body[arco-theme='dark'] .arco-message-error {
   padding-right: 4px !important;
 }
 
-/* Model selectors that group their models by platform (aionCLI / Gemini):
- * pin the current platform's group title to the top of the scrolling dropdown,
- * contacts-list style, so a long model list never hides which platform you're
- * scrolling through. Each Arco menu group is its own containing block, so the
- * sticky title sticks while its group is in view and is pushed up by the next
- * group's title. An opaque popup background prevents the scrolling items from
- * bleeding through; z-index keeps it above them.
- *
- * Note: when a <Menu> is passed as a Dropdown `droplist`, Arco renders it with
- * the `.arco-dropdown-menu-*` class family (the scoping class lands on the
- * `.arco-dropdown-menu` root, which is also the `overflow:auto` scroll box),
- * not the `.arco-menu-*` one — so we target the dropdown variant here.
- *
- * Scoped to `.aion-model-menu--sticky-group` so it never affects other menus
- * that group items (e.g. the agent mode switcher). */
-.aion-model-menu--sticky-group .arco-dropdown-menu-group-title {
-  position: sticky;
-  /* `.arco-dropdown-menu` has `padding: 4px 0`, so `top: 0` pins the title 4px
-   * below the scroll-box edge, leaving a strip where the previous item shows
-   * through above it. Pin at -4px so the title hugs the very top, then restore
-   * the lost top padding below so the first title isn't flush against the edge. */
-  top: -4px;
-  /* Arco gives `.arco-dropdown-menu-item` `z-index: 1`, so a same-z-index
-   * sticky title loses the stacking contest to items scrolling under it —
-   * their text, and the selected item's highlight background, bleed over the
-   * pinned title. Sit the title one level above the items so it stays on top. */
-  z-index: 2;
-  /* Arco's `margin-top` (4px first group, 8px otherwise) leaves a transparent
-   * strip above the pinned title through which the scrolling item shows. Drop
-   * it to 0 so the opaque title box hugs the container's top edge with no gap;
-   * add equivalent padding-top so groups keep their visual separation. */
-  margin-top: 0;
-  padding-top: 8px;
-  background-color: var(--color-bg-popup);
+/* The model list (RuntimeSelectorModelList) owns its own scroll container
+ * (`.runtime-model-scroll`), with the search box fixed above it outside the
+ * scroll area. Any Arco popup that hosts this list — top-level dropdown OR a
+ * flyout submenu, grouped or flat — must therefore NOT scroll or cap its own
+ * height, or there'd be a second scrollbar and the search box would scroll away.
+ * Keyed off `:has(.runtime-model-scroll)` so it applies wherever the list is,
+ * and never touches other menus. */
+.arco-dropdown-menu:has(.runtime-model-scroll) {
+  max-height: none;
+  overflow: visible;
 }
 
-/* Arco's own `.arco-dropdown-menu-group:first-child .arco-dropdown-menu-group-title`
- * rule (3 classes) out-specifies the 2-class reset above, so the first group's
- * 4px margin-top survives and leaves a transparent strip at the very top. Match
- * its specificity to override it; shift the separation into padding instead. */
-.aion-model-menu--sticky-group .arco-dropdown-menu-group:first-child .arco-dropdown-menu-group-title {
+/* Provider group titles pin to the top of the inner scroll container. It has no
+ * top padding, so top:0 hugs the edge with no gap for items to peek through.
+ * Only relevant for the grouped (aionrs) list; harmless for flat lists. */
+.runtime-model-scroll .arco-dropdown-menu-group-title {
+  position: sticky;
+  top: 0;
+  z-index: 2;
   margin-top: 0;
-  padding-top: 4px;
+  padding-top: 6px;
+  padding-bottom: 2px;
+  background-color: var(--color-bg-popup);
 }

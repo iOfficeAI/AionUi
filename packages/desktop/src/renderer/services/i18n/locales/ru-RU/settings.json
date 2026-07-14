@@ -29,7 +29,6 @@
     "customPathLabel": "Путь к директории навыков",
     "customPathPlaceholder": "например, C:\\Users\\me\\.mytools\\skills",
     "searchPlaceholder": "Поиск навыков...",
-    "noSearchResults": "Навыки не найдены",
     "importPartialSuccess": "Импортировано: {{successCount}}; не удалось: {{failureCount}} — {{failures}}",
     "importAllFailed": "Не удалось импортировать навыки: {{failureCount}} — {{failures}}",
     "importFailureFileSizeDetail": "{{path}}: {{actual}}, лимит — {{limit}}",
@@ -84,6 +83,7 @@
     "tabOfficial": "Официальные навыки",
     "officialSkillsTitle": "Официальные навыки",
     "officialSkillsEmpty": "Нет доступных официальных навыков.",
+    "noSearchResults": "Нет подходящих навыков.",
     "customHint": "Импортируйте папку навыка, родительскую папку или zip; до {{maxFileSize}} на файл и {{maxTotalSize}} на навык; импорт с тем же именем перезаписывает существующий навык.",
     "officialHint": "Официальные навыки, входящие в состав AionUi, — готовы к использованию, только для чтения и обновляются с каждым релизом."
   },

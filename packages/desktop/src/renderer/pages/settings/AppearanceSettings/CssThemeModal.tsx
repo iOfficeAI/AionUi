@@ -117,12 +117,42 @@ const CssThemeModal: React.FC<CssThemeModalProps> = ({ visible, theme, onClose, 
 
   return (
     <AionModal
+      variant='standard'
       visible={visible}
-      header={isEditing ? t('settings.cssTheme.editTheme') : t('settings.cssTheme.addToPreset')}
+      header={{
+        title: isEditing ? t('settings.cssTheme.editTheme') : t('settings.cssTheme.addToPreset'),
+        showClose: true,
+      }}
       onCancel={onClose}
-      footer={null}
       style={{ width: 600 }}
       unmountOnExit
+      footer={{
+        render: () => (
+          <div className='flex justify-between items-center'>
+            <div>
+              {onDelete && (
+                <Button type='text' icon={<Delete theme='outline' size='14' />} onClick={onDelete}>
+                  {t('common.delete')}
+                </Button>
+              )}
+            </div>
+            <div className='flex gap-10px'>
+              <Button onClick={onClose} className='px-20px min-w-80px' style={{ borderRadius: 8 }}>
+                {t('common.cancel')}
+              </Button>
+              <Button
+                type='primary'
+                onClick={handleSave}
+                disabled={!name.trim()}
+                className='px-20px min-w-80px'
+                style={{ borderRadius: 8 }}
+              >
+                {t('common.save')}
+              </Button>
+            </div>
+          </div>
+        ),
+      }}
     >
       <div className='space-y-20px'>
         {/* 封面和名称行 / Cover and name row */}
@@ -184,23 +214,6 @@ const CssThemeModal: React.FC<CssThemeModalProps> = ({ visible, theme, onClose, 
             className='[&_.cm-editor]:rounded-[6px]'
             height='200px'
           />
-        </div>
-
-        {/* 底部操作按钮 / Footer action buttons */}
-        <div className='flex justify-between items-center pt-16px border-t border-border-2'>
-          <div>
-            {onDelete && (
-              <Button type='text' icon={<Delete theme='outline' size='14' />} onClick={onDelete}>
-                {t('common.delete')}
-              </Button>
-            )}
-          </div>
-          <div className='flex gap-10px'>
-            <Button onClick={onClose}>{t('common.cancel')}</Button>
-            <Button type='primary' onClick={handleSave} disabled={!name.trim()}>
-              {t('common.save')}
-            </Button>
-          </div>
         </div>
       </div>
     </AionModal>

@@ -140,6 +140,7 @@ describe('teamMapper', () => {
       })
     ).toMatchObject({
       name: 'Aion CLI',
+      role: 'lead',
       assistant_id: 'assistant-1',
     });
   });

@@ -27,7 +27,7 @@ export type ICreateTeamParams = {
   name: string;
   workspace: string;
   workspace_mode: WorkspaceMode;
-  assistants: TeamAssistantInput[];
+  agents: TeamAssistantInput[];
 };
 
 export type IAddTeamAssistantParams = {

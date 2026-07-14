@@ -1,7 +1,7 @@
 import type { IProvider } from '@/common/config/storage';
 import ModalHOC from '@/renderer/utils/ui/ModalHOC';
 import AionModal from '@/renderer/components/base/AionModal';
-import { Button, Select, Tag } from '@arco-design/web-react';
+import { Select } from '@arco-design/web-react';
 import React, { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useModeModeList from '@renderer/hooks/agent/useModeModeList';
@@ -27,9 +27,6 @@ const AddModelModal = ModalHOC<{ data?: IProvider; onSubmit: (model: IProvider) 
         return { ...item, disabled: data.models.includes(item.value) };
       });
     }, [modelList, data?.models]);
-    const previewModels = useMemo(() => existingModels.slice(0, 6), [existingModels]);
-    const remainingCount =
-      existingModels.length > previewModels.length ? existingModels.length - previewModels.length : 0;
 
     const handleConfirm = useCallback(() => {
       if (!models.length) return;
@@ -49,22 +46,16 @@ const AddModelModal = ModalHOC<{ data?: IProvider; onSubmit: (model: IProvider) 
 
     return (
       <AionModal
+        variant='standard'
         visible={modalProps.visible}
         onCancel={modalCtrl.close}
         header={{ title: t('settings.addModel'), showClose: true }}
-        style={{ maxHeight: '90vh' }}
-        contentStyle={{
-          background: 'var(--dialog-fill-0)',
-          borderRadius: 16,
-          padding: '20px 24px',
-          overflow: 'auto',
-        }}
         onOk={handleConfirm}
         okText={t('common.confirm')}
         cancelText={t('common.cancel')}
         okButtonProps={{ disabled: !models.length }}
       >
-        <div className='flex flex-col gap-16px pt-20px'>
+        <div className='flex flex-col gap-16px'>
           <div className='space-y-8px'>
             <div className='text-13px font-500 text-t-secondary'>{t('settings.addModelPlaceholder')}</div>
             <Select
@@ -96,26 +87,7 @@ const AddModelModal = ModalHOC<{ data?: IProvider; onSubmit: (model: IProvider) 
               <div className='text-11px text-t-secondary leading-4'>{t('settings.modelProtocolTip')}</div>
             </div>
           )}
-
-          <div className='space-y-8px'>
-            {/* <div className='text-13px font-500 text-t-secondary'>{t('settings.current_modelsLabel')}</div>
-          {existingModels.length === 0 ? (
-            <div className='text-13px text-t-secondary bg-fill-1 rd-8px px-12px py-14px border border-dashed border-border-2'>{t('settings.addModelNoExisting')}</div>
-          ) : (
-            <div className='flex flex-wrap gap-8px bg-1 rd-8px px-12px py-10px border border-solid border-border-2'>
-              {previewModels.map((item) => (
-                <Tag key={item} bordered color='arcoblue' className='text-12px'>
-                  {item}
-                </Tag>
-              ))}
-              {remainingCount > 0 && <Tag bordered>{t('settings.addModelMoreCount', { count: remainingCount })}</Tag>}
-            </div>
-          )} */}
-          </div>
-
-          {/* <div className='text-12px tet-t-tertiary leading-5 bg-fill-1 rd-8px px-12px py-10px border border-dashed border-border-2'>{t('settings.addModelTips')}</div> */}
         </div>
-        {/* <div className='text-12px text-t-secondary leading-5 my-4'>{model ? t('settings.addModelSelectedHint', { model }) : t('settings.addModelHint')}</div> */}
       </AionModal>
     );
   }

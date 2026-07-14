@@ -29,7 +29,6 @@
     "customPathLabel": "스킬 디렉토리 경로",
     "customPathPlaceholder": "예: C:\\Users\\me\\.mytools\\skills",
     "searchPlaceholder": "스킬 검색...",
-    "noSearchResults": "관련 스킬을 찾을 수 없습니다",
     "importPartialSuccess": "Imported {{successCount}} skill(s), {{failureCount}} failed: {{failures}}",
     "importAllFailed": "Failed to import {{failureCount}} skill(s): {{failures}}",
     "importFailureFileSizeDetail": "{{path}} is {{actual}}; limit is {{limit}}",
@@ -84,6 +83,7 @@
     "tabOfficial": "공식 스킬",
     "officialSkillsTitle": "공식 스킬",
     "officialSkillsEmpty": "사용 가능한 공식 스킬이 없습니다.",
+    "noSearchResults": "일치하는 스킬이 없습니다.",
     "customHint": "스킬 폴더, 상위 폴더 또는 zip을 가져올 수 있으며, 파일당 최대 {{maxFileSize}}, 스킬당 최대 {{maxTotalSize}}입니다. 같은 이름으로 가져오면 기존 스킬을 덮어씁니다.",
     "officialHint": "AionUi에 기본 제공되는 공식 스킬입니다. 바로 사용할 수 있고 읽기 전용이며 버전마다 업데이트됩니다."
   },

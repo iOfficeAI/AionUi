@@ -104,6 +104,7 @@ describe('AgentModeSelector', () => {
     vi.clearAllMocks();
     useAcpConfigOptionsMock.mockImplementation(() => ({
       setStatus: { state: 'idle' },
+      isLoading: false,
       mode: runtimeMode(),
       model: null,
       thoughtLevel: null,
@@ -141,9 +142,35 @@ describe('AgentModeSelector', () => {
     expect(screen.getByText('权限 · 默认')).toBeInTheDocument();
   });
 
+  it('keeps compact mode selector hidden while runtime mode is initializing', () => {
+    useAcpConfigOptionsMock.mockImplementation(() => ({
+      setStatus: { state: 'idle' },
+      isLoading: true,
+      mode: null,
+      model: null,
+      thoughtLevel: null,
+      reload: vi.fn(),
+      setConfigOption: vi.fn(),
+    }));
+
+    render(
+      <AgentModeSelector
+        backend='claude'
+        conversation_id='conv-1'
+        compact
+        modeLabelFormatter={(mode) => (mode.value === 'default' ? '默认' : '全自动')}
+        compactLabelPrefix='权限'
+      />
+    );
+
+    expect(screen.queryByTestId('agent-mode-selector-claude')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('runtime-selector-loading-indicator')).not.toBeInTheDocument();
+  });
+
   it('renders setting progress at the compact trailing edge instead of using Arco button loading', async () => {
     useAcpConfigOptionsMock.mockImplementation(() => ({
       setStatus: { state: 'setting' },
+      isLoading: false,
       mode: runtimeMode(),
       model: null,
       thoughtLevel: null,
@@ -173,6 +200,7 @@ describe('AgentModeSelector', () => {
     const setConfigOption = vi.fn().mockResolvedValue(undefined);
     useAcpConfigOptionsMock.mockImplementation(() => ({
       setStatus: { state: 'idle' },
+      isLoading: false,
       mode: runtimeMode(),
       model: null,
       thoughtLevel: null,
@@ -187,6 +215,16 @@ describe('AgentModeSelector', () => {
     await waitFor(() => {
       expect(setConfigOption).toHaveBeenCalledWith('mode', 'bypassPermissions');
     });
+  });
+
+  it('passes set-only runtime preparation to runtime config options', () => {
+    const beforeRuntimeSet = vi.fn().mockResolvedValue(undefined);
+
+    render(<AgentModeSelector backend='claude' conversation_id='conv-1' beforeRuntimeSet={beforeRuntimeSet} />);
+
+    expect(useAcpConfigOptionsMock).toHaveBeenCalledWith(
+      expect.objectContaining({ prepareSetRuntime: beforeRuntimeSet })
+    );
   });
 
   it('shows runtime mode descriptions in option tooltips', () => {

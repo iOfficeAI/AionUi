@@ -44,6 +44,8 @@ const STARTUP_DIRECTORY_FAILURE_STAGES = new Set(['spawn']);
 const STARTUP_DIRECTORY_PERMISSION_RE = /\b(?:EACCES|EPERM)\b|permission denied|operation not permitted/i;
 const STARTUP_DIRECTORY_UNAVAILABLE_RE =
   /startup directory preparation failed|(?:\b(?:ENOENT|ENOTDIR|EEXIST)\b[\s\S]{0,160}\bmkdir\b)|(?:\bmkdir\b[\s\S]{0,160}\b(?:ENOENT|ENOTDIR|EEXIST)\b)/i;
+const ASSISTANT_STORAGE_BOOTSTRAP_BOUNDARY_CODE = 'BOOTSTRAP_SERVER_FAILED';
+const ASSISTANT_STORAGE_BOOTSTRAP_BOUNDARY_STAGE = 'router.assistant.bootstrap';
 const MAX_REPORTED_DIR_ENTRIES = 20;
 
 function collectBackendStartupText(error: unknown): string {
@@ -182,6 +184,21 @@ function classifyLocalDataRepairFailure(
   };
 }
 
+function classifyAssistantStorageBootstrapFailure(
+  backendBoundaryCode: string | undefined,
+  backendBoundaryStage: string | undefined
+): BackendStartupFailureInfo | undefined {
+  if (backendBoundaryCode !== ASSISTANT_STORAGE_BOOTSTRAP_BOUNDARY_CODE) return undefined;
+  if (backendBoundaryStage !== ASSISTANT_STORAGE_BOOTSTRAP_BOUNDARY_STAGE) return undefined;
+
+  return {
+    reason: 'backend_local_data_repair_failed',
+    backendBoundaryCode,
+    backendBoundaryStage,
+    localDataIssueKind: 'assistant_storage_bootstrap_failed',
+  };
+}
+
 function classifyStartupDirectoryFailure(
   details: ErrorWithDetails['details'],
   text: string
@@ -234,6 +251,12 @@ export function classifyBackendStartupFailure(error: unknown): BackendStartupFai
 
   const localDataRepairFailure = classifyLocalDataRepairFailure(backendBoundaryCode, backendBoundaryStage, text);
   if (localDataRepairFailure) return localDataRepairFailure;
+
+  const assistantStorageBootstrapFailure = classifyAssistantStorageBootstrapFailure(
+    backendBoundaryCode,
+    backendBoundaryStage
+  );
+  if (assistantStorageBootstrapFailure) return assistantStorageBootstrapFailure;
 
   if (
     backendBoundaryCode === 'BOOTSTRAP_DATA_INIT_FAILED' &&

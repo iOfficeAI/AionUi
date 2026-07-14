@@ -21,12 +21,16 @@ import { goToSettings } from '../helpers';
 const FEEDBACK_PILL = 'button:has-text("问题上报"), button:has-text("Report issue")';
 const MODAL_BODY = '[data-testid="feedback-report-scroll-body"]';
 
-/** Close the feedback modal (ModalWrapper sets closable=false so Escape is a no-op). */
+/** Close the feedback modal (AionModal sets closable=false so Escape is a no-op). */
 async function closeFeedbackModal(page: Page) {
-  // ModalWrapper renders the feedback modal with a dedicated custom close
-  // button class — scoped to avoid matching the Agent editor's AionModal
-  // close button (which uses aria-label='Close' instead).
-  await page.locator('.aionui-modal-close-btn').first().click();
+  // The feedback modal is an AionModal (standard variant); its header close
+  // button carries aria-label='Close'. Scope to the modal that owns the
+  // feedback scroll body so we never match another modal's close button.
+  await page
+    .locator('.arco-modal-wrapper', { has: page.locator(MODAL_BODY) })
+    .locator('button[aria-label="Close"]')
+    .first()
+    .click();
   await expect(page.locator(MODAL_BODY)).toBeHidden({ timeout: 5_000 });
 }
 

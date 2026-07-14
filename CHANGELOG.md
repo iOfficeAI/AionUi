@@ -1,5 +1,71 @@
 # Changelog
 
+## [2.1.34](https://github.com/iOfficeAI/AionUi/compare/v2.1.33...v2.1.34) (2026-07-13)
+
+### Desktop
+
+#### Bug Fixes
+
+- **team:** show accepted team work as processing (#3576)
+- **conversation:** prevent queue drain from racing backend idle state (#3571)
+
+### Core ([v0.1.46](https://github.com/iOfficeAI/AionCore/releases/tag/v0.1.46))
+
+#### Bug Fixes
+
+- **acp:** normalize Codex full-access mode (#608)
+- **butler:** correct three breaking field mismatches + update rule to CLI model (#607)
+
+---
+
+## [2.1.33](https://github.com/iOfficeAI/AionUi/compare/v2.1.32...v2.1.33) (2026-07-11)
+
+### Desktop
+
+#### Bug Fixes
+
+- **build:** align Codex installer verifier (#3561)
+
+---
+
+## [2.1.32](https://github.com/iOfficeAI/AionUi/compare/v2.1.31...v2.1.32) (2026-07-10)
+
+### Desktop
+
+#### Bug Fixes
+
+- **i18n:** update Russian localization (#3541)
+
+#### Features
+
+- **i18n:** add French locale (#2731)
+- **guid:** move mobile home input controls into a + action sheet (#3554)
+- **team:** add manual teammate management (#3532)
+- **conversation:** rework model selector into a two-level menu (#3550)
+- **conversation:** rework message queue into a send draft box (#3547)
+
+#### Refactoring
+
+- **conversation:** fold draft box help into the mode toggle (#3553)
+
+### Core ([v0.1.45](https://github.com/iOfficeAI/AionCore/releases/tag/v0.1.45))
+
+#### Features
+
+- **ai-agent:** adapt to aionrs v0.2.2 config changes
+- **cli:** add agent-facing config and diagnose commands (#595)
+
+#### Bug Fixes
+
+- **ai-agent:** cap provider health check tokens
+- **ai-agent:** set default aionrs thinking cli args
+- **model_fetcher:** extract first key from multi-line api_key for HTTP requests (#593)
+- **runtime:** update Claude ACP package (#599)
+- **runtime:** update managed Codex ACP package (#598)
+- stop defaulting aionrs max tokens
+
+---
+
 ## [2.1.31](https://github.com/iOfficeAI/AionUi/compare/v2.1.30...v2.1.31) (2026-07-08)
 
 ### Desktop

@@ -2,7 +2,7 @@ import React from 'react';
 import { Button, Typography, Tooltip, Link } from '@arco-design/web-react';
 import { IconDownload, IconRefresh } from '@arco-design/web-react/icon';
 import { useTranslation } from 'react-i18next';
-import ModalWrapper from '@/renderer/components/base/ModalWrapper';
+import AionModal from '@/renderer/components/base/AionModal';
 import { useHubAgents } from '@/renderer/hooks/agent/useHubAgents';
 import type { IHubAgentItem } from '@/common/types/agent/hub';
 import { resolveAgentAvatar, useAgentLogos } from '@renderer/utils/model/agentLogo';
@@ -83,8 +83,9 @@ export const AgentHubModal: React.FC<AgentHubModalProps> = ({ visible, onCancel 
   };
 
   return (
-    <ModalWrapper
-      title={t('settings.agentManagement.installFromMarket')}
+    <AionModal
+      variant='standard'
+      header={{ title: t('settings.agentManagement.installFromMarket'), showClose: true }}
       visible={visible}
       onCancel={onCancel}
       footer={null}
@@ -92,7 +93,7 @@ export const AgentHubModal: React.FC<AgentHubModalProps> = ({ visible, onCancel 
       focusLock={true}
       style={{ width: 1000, maxWidth: '96vw' }}
     >
-      <div className='max-h-[70vh] overflow-y-auto pr-4px'>
+      <div>
         <div className='mb-12px flex flex-wrap items-center justify-start gap-x-6px gap-y-2px text-left'>
           <Typography.Text type='secondary' className='text-12px leading-18px text-t-secondary'>
             {t('settings.agentManagement.marketContributionHint', {
@@ -174,6 +175,6 @@ export const AgentHubModal: React.FC<AgentHubModalProps> = ({ visible, onCancel 
           </div>
         )}
       </div>
-    </ModalWrapper>
+    </AionModal>
   );
 };

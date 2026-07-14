@@ -21,19 +21,27 @@
   "noMessages": "No messages yet.",
   "agentNotConfigured": "アシスタントはまだ設定されていません。",
   "stopAgentFailed": "このアシスタントを停止できませんでした。もう一度お試しください。",
+  "work": {
+    "processingWithQueued": "処理中… {{count}} 件待機中",
+    "queued": "{{count}} 件待機中",
+    "runtimeStarting": "このメンバーの起動を待っています…",
+    "runtimeFailed": "このメンバーを起動できませんでした。",
+    "removing": "このメンバーを削除しています…",
+    "sessionStopped": "チームセッションは停止しました。"
+  },
   "sendBox": {
     "placeholder": "チームリーダーアシスタントにメッセージを送信..."
   },
   "create": {
-    "title": "Create Team",
+    "title": "New Team",
     "namePlaceholder": "Team name",
     "dispatchAgentPlaceholder": "チームリーダーを選択",
     "subAgentsPlaceholder": "チームメンバーのアシスタントを選択",
-    "confirm": "Create Team",
+    "confirm": "Confirm Create",
     "noSupportedAgents": "利用可能なアシスタントが見つかりません",
     "supportedAgentsHint": "現在 Claude と Aion CLI のアシスタントに対応しています。ほかのアシスタントも順次追加予定です。",
     "leaderDesc": "目標を理解し、アシスタントを調整してタスクを完了します",
-    "searchPlaceholder": "アシスタントを検索...",
+    "searchPlaceholder": "Search",
     "noSearchResults": "結果が見つかりません",
     "step": {
       "dispatch": "チームリーダー",
@@ -42,21 +50,69 @@
     },
     "nameRequired": "チーム名を入力してください",
     "leaderRequired": "チームリーダーを選択してください",
-    "selectFolder": "フォルダを選択",
+    "selectFolder": "Select folder",
     "recentLabel": "最近使用",
     "chooseDifferentFolder": "別のフォルダを選択",
-    "error": "チームの作成に失敗しました"
+    "error": "チームの作成に失敗しました",
+    "selectedMembers": "Selected members",
+    "teamLeader": "Team Leader",
+    "currentLeader": "Current Leader",
+    "setAsLeader": "Set as Leader",
+    "teammate": "Teammate",
+    "selectAtLeastOneMember": "Select at least one assistant as the Team Leader.",
+    "selectOneLeader": "Select one Team Leader",
+    "subtitle": "Let multiple AI assistants team up and collaborate. We suggest one team focuses on a single goal — create separate teams for different tasks.",
+    "nameLabel": "Team name",
+    "workspaceLabel": "Workspace",
+    "allAssistantsWithCount": "All assistants ({{count}})",
+    "selectedMembersWithCount": "Selected members {{count}} · ⚑ = Leader",
+    "selectedMembersTitleWithCount": "Selected members {{count}}",
+    "leaderLegend": "= Leader",
+    "membersHelper": "Choose team members and assign one Leader. The same assistant can be selected multiple times.",
+    "memberHint": "No suitable assistant as a member? After creation, let the Leader create temporary team members in chat."
   },
   "removeAgent": {
     "confirmTitle": "チームメンバーを削除",
-    "confirmContent": "このメンバーは現在稼働中です。強制的に削除しますか？"
+    "confirmContent": "Remove this member from the team?",
+    "confirmContentActive": "This member is working. Remove it anyway? Its current work will be interrupted."
   },
   "emptyState": {
     "subtitle": "目標を教えてください。チームを調整してタスクを完了します",
     "suggestions": {
       "debate": "異なる立場をとるアシスタント同士でディベートを開催する",
       "interview": "アシスタント同士による深掘りインタビューを企画する",
-      "expert_review": "複数の専門家が同じ問題を分析する"
-    }
+      "expert_review": "複数の専門家が同じ問題を分析する",
+      "add_member": "Help me add a member good at ___ to the team"
+    },
+    "leaderGreeting": "Hi, I'm the Leader. I understand your goal and coordinate the team — describe what you want and I'll arrange it.",
+    "memberGreeting": "Hi, I'm a team member. I take direction from the Leader and you."
+  },
+  "addMember": {
+    "title": "Add member",
+    "subtitle": "The same assistant can be added repeatedly",
+    "searchAssistants": "Search assistants...",
+    "addFailed": "Failed to add member",
+    "noSearchResults": "No results found",
+    "tellLeaderHint": "Not a good fit? You can also ask the Leader to arrange it.",
+    "tellLeaderCta": "Tell the Leader →",
+    "tellLeaderPrefill": "Help me add a member good at ___ to the team"
+  },
+  "view": {
+    "label": "View",
+    "parallel": "Parallel",
+    "single": "Single"
+  },
+  "warmup": {
+    "title": "Waking up the team…",
+    "subtitle": "メンバーを準備しています",
+    "memberFailedTitle": "Member {{name}} failed to start",
+    "leaderFailedTitle": "Lead {{name}} failed to start",
+    "genericFailedTitle": "The team could not start",
+    "multiFailedTitle": "{{count}} members failed to start",
+    "leaderSuffix": " (Lead)",
+    "unknownError": "failed to start",
+    "memberFailedHint": "Switch its model above, or remove it from the bar on top, then retry.",
+    "leaderFailedHint": "Switch its model above, then retry.",
+    "retry": "Retry"
   }
 }

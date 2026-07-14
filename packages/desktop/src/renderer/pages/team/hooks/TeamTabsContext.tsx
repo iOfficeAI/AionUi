@@ -1,10 +1,12 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import type { TeamAssistant, TeammateStatus } from '@/common/types/team/teamTypes';
+import type { TeamAssistantInput } from '@/common/adapter/teamMapper';
 import {
   readStoredSiderOrder,
   sortSiderItemsByStoredOrder,
   writeStoredSiderOrder,
 } from '@renderer/components/layout/Sider/siderOrder';
+import { useTeamMemberColors } from '../identity/useTeamMemberColors';
 
 type AgentStatusInfo = {
   slot_id: string;
@@ -20,7 +22,13 @@ export type TeamTabsContextValue = {
   switchTab: (slot_id: string) => void;
   renameAssistant?: (slot_id: string, new_name: string) => Promise<void>;
   removeAssistant?: (slot_id: string) => void;
+  addAssistant?: (assistant: TeamAssistantInput) => Promise<TeamAssistant>;
+  membershipMutationBusy: boolean;
   reorderAssistants: (fromSlotId: string, toSlotId: string) => void;
+  /** 成员实例身份色（仅团队详情页展示用）。 */
+  colorOf: (slot_id: string | undefined) => string;
+  /** 会话对应成员的身份色（消息侧按 conversation_id 取色）。 */
+  colorOfConversation: (conversation_id: string | undefined) => string;
 };
 
 const TeamTabsContext = createContext<TeamTabsContextValue | null>(null);
@@ -53,6 +61,8 @@ export const TeamTabsProvider: React.FC<{
   team_id: string;
   renameAssistant?: (slot_id: string, new_name: string) => Promise<void>;
   removeAssistant?: (slot_id: string) => void;
+  addAssistant?: (assistant: TeamAssistantInput) => Promise<TeamAssistant>;
+  membershipMutationBusy?: boolean;
 }> = ({
   children,
   assistants: externalAssistants,
@@ -61,6 +71,8 @@ export const TeamTabsProvider: React.FC<{
   team_id,
   renameAssistant,
   removeAssistant,
+  addAssistant,
+  membershipMutationBusy = false,
 }) => {
   const storageKey = `team-active-slot-${team_id}`;
   const savedSlotId = localStorage.getItem(storageKey);
@@ -91,6 +103,8 @@ export const TeamTabsProvider: React.FC<{
   }, [localAssistants, team_id]);
 
   const assistants = localAssistants;
+
+  const { colorOf, colorOfConversation } = useTeamMemberColors(team_id, assistants);
 
   // Auto-switch when active tab is removed or on first spawn
   useEffect(() => {
@@ -150,7 +164,11 @@ export const TeamTabsProvider: React.FC<{
       switchTab,
       renameAssistant: renameAssistant ? handleRenameAssistant : undefined,
       removeAssistant,
+      addAssistant,
+      membershipMutationBusy,
       reorderAssistants,
+      colorOf,
+      colorOfConversation,
     }),
     [
       assistants,
@@ -161,7 +179,11 @@ export const TeamTabsProvider: React.FC<{
       renameAssistant,
       handleRenameAssistant,
       removeAssistant,
+      addAssistant,
+      membershipMutationBusy,
       reorderAssistants,
+      colorOf,
+      colorOfConversation,
     ]
   );
 

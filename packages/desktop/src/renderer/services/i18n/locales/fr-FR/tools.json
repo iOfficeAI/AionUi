@@ -1,0 +1,69 @@
+{
+  "unknownFile": "Fichier inconnu",
+  "newFile": "Nouveau fichier",
+  "deletedFile": "Fichier supprimé",
+  "modified": "Modifié",
+  "fileChanges": "Modifications de fichiers",
+  "shell": {
+    "displayName": "Commande shell",
+    "description": "Exécuter des commandes shell"
+  },
+  "fileOps": {
+    "displayName": "Opérations sur les fichiers",
+    "description": "Lecture, écriture et modification de fichiers"
+  },
+  "webSearch": {
+    "displayName": "Recherche web",
+    "description": "Rechercher du contenu sur le web"
+  },
+  "mcp": {
+    "generic": {
+      "displayName": "Outil MCP : {{toolName}}",
+      "description": "Appel d'outil MCP : {{toolName}}"
+    }
+  },
+  "unknown": {
+    "displayName": "Outil inconnu",
+    "description": "Type d'outil inconnu"
+  },
+  "status": {
+    "pending": "En attente",
+    "executing": "En cours",
+    "success": "Succès",
+    "error": "Erreur",
+    "canceled": "Annulé"
+  },
+  "titles": {
+    "web_search_started": "Recherche web démarrée",
+    "web_search_completed": "Recherche web terminée",
+    "web_search": "Recherche web",
+    "applying_patch": "Application du patch",
+    "patch_applied": "Patch appliqué",
+    "file_patch": "Patch de fichier",
+    "mcp_tool_starting": "Outil MCP : {{toolName}} (démarrage)",
+    "mcp_tool": "Outil MCP : {{toolName}}",
+    "execute_command": "Exécution : {{command}}",
+    "command_output": "Sortie de la commande",
+    "command_completed": "Commande terminée",
+    "shell_command": "Commande shell"
+  },
+  "labels": {
+    "search_query": "Requête de recherche :",
+    "file_changes": "Modifications de fichiers :",
+    "tool_details": "Détails de l'outil :",
+    "tool": "Outil",
+    "arguments": "Arguments :",
+    "result": "Résultat :",
+    "command": "Commande :",
+    "working_directory": "Répertoire de travail :",
+    "exit_code": "Sortie : {{code}}",
+    "duration": "Durée : {{seconds}}",
+    "auto_approved": "Approuvé automatiquement",
+    "manual_approval": "Approbation manuelle"
+  },
+  "actions": {
+    "create": "créer",
+    "modify": "modifier",
+    "delete": "supprimer"
+  }
+}

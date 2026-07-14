@@ -7,12 +7,13 @@
 import { ipcBridge } from '@/common';
 import type { IMessageSearchItem } from '@/common/types/team/database';
 import AionModal from '@/renderer/components/base/AionModal';
+import { AionSearchInput } from '@/renderer/components/base';
 import { usePresetAssistantInfo } from '@/renderer/hooks/agent/usePresetAssistantInfo';
 import { useAgentLogos } from '@/renderer/utils/model/agentLogo';
 import { resolveConversationLeadingMark } from '@/renderer/pages/conversation/utils/conversationAssistantIdentity';
 import { blockMobileInputFocus, blurActiveElement } from '@/renderer/utils/ui/focus';
 import { Empty, Spin, Typography } from '@arco-design/web-react';
-import { Close, CloseSmall, MessageOne, Robot, Search } from '@icon-park/react';
+import { Close, MessageOne, Robot, Search } from '@icon-park/react';
 import classNames from 'classnames';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { flushSync } from 'react-dom';
@@ -518,26 +519,14 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
           </div>
 
           <div className='mb-14px conversation-search-modal__input-wrap'>
-            <div className='conversation-search-modal__searchbar'>
-              <Search theme='outline' size='16' className='conversation-search-modal__search-icon' />
-              <input
-                autoFocus={visible}
-                value={keyword}
-                placeholder={t('conversation.historySearch.placeholder')}
-                onChange={(event) => setKeyword(event.target.value)}
-                className='conversation-search-modal__search-input'
-              />
-              {keyword ? (
-                <button
-                  type='button'
-                  className='conversation-search-modal__clear-btn'
-                  onClick={handleClearKeyword}
-                  aria-label='Clear search'
-                >
-                  <CloseSmall theme='outline' size='14' />
-                </button>
-              ) : null}
-            </div>
+            <AionSearchInput
+              className='w-full'
+              autoFocus={visible}
+              value={keyword}
+              placeholder={t('conversation.historySearch.placeholder')}
+              onChange={setKeyword}
+              onClear={handleClearKeyword}
+            />
           </div>
 
           <div className='flex-1 min-h-0'>{resultContent}</div>

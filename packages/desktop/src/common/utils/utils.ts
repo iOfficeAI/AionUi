@@ -65,6 +65,7 @@ export const resolveLocaleKey = (
   | 'pt-BR'
   | 'de-DE'
   | 'es-ES'
+  | 'fr-FR'
   | 'fa-IR' => {
   const normalized = language.replace(/_/g, '-').toLowerCase();
 
@@ -78,6 +79,7 @@ export const resolveLocaleKey = (
   if (normalized.startsWith('pt')) return 'pt-BR';
   if (normalized.startsWith('de')) return 'de-DE';
   if (normalized.startsWith('es')) return 'es-ES';
+  if (normalized.startsWith('fr')) return 'fr-FR';
   if (normalized.startsWith('fa')) return 'fa-IR';
   return 'en-US';
 };

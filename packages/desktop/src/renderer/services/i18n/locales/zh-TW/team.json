@@ -21,19 +21,27 @@
   "noMessages": "No messages yet.",
   "agentNotConfigured": "助手尚未設定。",
   "stopAgentFailed": "停止該成員失敗，請稍後再試",
+  "work": {
+    "processingWithQueued": "處理中……已排隊 {{count}} 則",
+    "queued": "已排隊 {{count}} 則",
+    "runtimeStarting": "正在等待此成員啟動……",
+    "runtimeFailed": "此成員啟動失敗。",
+    "removing": "正在移除此成員……",
+    "sessionStopped": "團隊工作階段已停止。"
+  },
   "sendBox": {
     "placeholder": "向團隊 Leader 助手發訊息..."
   },
   "create": {
-    "title": "Create Team",
+    "title": "新建團隊",
     "namePlaceholder": "Team name",
     "dispatchAgentPlaceholder": "選擇團隊 Leader 助手",
     "subAgentsPlaceholder": "選擇協作助手",
-    "confirm": "Create Team",
+    "confirm": "確認建立",
     "noSupportedAgents": "未偵測到可用的助手",
     "supportedAgentsHint": "目前支援 Claude 和 Aion CLI 助手，更多助手適配中",
     "leaderDesc": "接收你的指令，拆解任務並分配給團隊中的助手",
-    "searchPlaceholder": "搜尋助手...",
+    "searchPlaceholder": "搜尋",
     "noSearchResults": "未找到結果",
     "step": {
       "dispatch": "團隊 Leader",
@@ -42,21 +50,69 @@
     },
     "nameRequired": "請輸入團隊名稱",
     "leaderRequired": "請選擇團隊 Leader",
-    "selectFolder": "選擇專案資料夾",
+    "selectFolder": "選擇資料夾",
     "recentLabel": "最近使用",
     "chooseDifferentFolder": "選擇其他目錄",
-    "error": "建立團隊失敗"
+    "error": "建立團隊失敗",
+    "selectedMembers": "已選成員",
+    "teamLeader": "Team Leader",
+    "currentLeader": "目前 Leader",
+    "setAsLeader": "設為 Leader",
+    "teammate": "隊員",
+    "selectAtLeastOneMember": "請至少選擇一個助手當團隊 Leader。",
+    "selectOneLeader": "請選擇一個 Team Leader",
+    "subtitle": "讓多個 AI 助手組隊協作。建議一個團隊只專注一個目標，不同任務分開建。",
+    "nameLabel": "團隊名",
+    "workspaceLabel": "工作空間",
+    "allAssistantsWithCount": "所有助手 ({{count}})",
+    "selectedMembersWithCount": "已選成員 {{count}} · ⚑ = Leader",
+    "selectedMembersTitleWithCount": "已選成員 {{count}}",
+    "leaderLegend": "= Leader",
+    "membersHelper": "選擇團隊成員並指定一個 Leader。同一個助手可被多次選擇。",
+    "memberHint": "沒有合適的助手當隊員？建立後可讓 Leader 在對話中建立臨時隊員。"
   },
   "removeAgent": {
     "confirmTitle": "移除團隊成員",
-    "confirmContent": "該成員正在工作中，確定要強制移除嗎？"
+    "confirmContent": "確定將該成員移出團隊嗎？",
+    "confirmContentActive": "該成員正在工作中，確定要強制移除嗎？其目前工作會被中斷。"
   },
   "emptyState": {
     "subtitle": "描述你的目標，我來協調團隊搞定它",
     "suggestions": {
       "debate": "組織一場辯論賽，讓不同助手各持立場",
       "interview": "策劃一場深度訪談",
-      "expert_review": "多位專家會診同一個問題"
-    }
+      "expert_review": "多位專家會診同一個問題",
+      "add_member": "幫我在團隊裡加一個擅長 ___ 的成員"
+    },
+    "leaderGreeting": "你好，我是 Leader，負責理解你的目標並協調團隊。描述你想做的事，我來安排。",
+    "memberGreeting": "你好，我是團隊成員，我聽 Leader 和你的指揮。"
+  },
+  "addMember": {
+    "title": "新增成員",
+    "subtitle": "同一助手可被反覆新增",
+    "searchAssistants": "搜尋助手...",
+    "addFailed": "新增成員失敗",
+    "noSearchResults": "未找到結果",
+    "tellLeaderHint": "沒有合適的？也可以直接讓 Leader 幫你安排。",
+    "tellLeaderCta": "告訴 Leader →",
+    "tellLeaderPrefill": "幫我在團隊裡加一個擅長 ___ 的成員"
+  },
+  "view": {
+    "label": "檢視",
+    "parallel": "並行",
+    "single": "單聊"
+  },
+  "warmup": {
+    "title": "正在喚醒團隊…",
+    "subtitle": "正在準備成員",
+    "memberFailedTitle": "成員「{{name}}」未能啟動",
+    "leaderFailedTitle": "Leader「{{name}}」未能啟動",
+    "genericFailedTitle": "團隊未能啟動",
+    "multiFailedTitle": "{{count}} 個成員未能啟動",
+    "leaderSuffix": "（Leader）",
+    "unknownError": "啟動失敗",
+    "memberFailedHint": "可在上方切換其模型，或從頂部移除後重試。",
+    "leaderFailedHint": "可在上方切換其模型後重試。",
+    "retry": "重試"
   }
 }

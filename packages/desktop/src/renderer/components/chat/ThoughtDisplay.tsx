@@ -18,6 +18,7 @@ interface ThoughtDisplayProps {
   thought?: ThoughtData;
   style?: 'default' | 'compact';
   running?: boolean;
+  statusText?: string;
   onStop?: () => void;
 }
 
@@ -29,6 +30,7 @@ const ThoughtDisplay: React.FC<ThoughtDisplayProps> = ({
   thought,
   style = 'default',
   running = false,
+  statusText,
   onStop: _onStop,
 }) => {
   const { theme } = useThemeContext();
@@ -87,21 +89,21 @@ const ThoughtDisplay: React.FC<ThoughtDisplayProps> = ({
   }, [theme, style]);
 
   // Hide when not running and no thought data
-  if (!thought?.subject && !running) {
+  if (!thought?.subject && !running && !statusText) {
     return null;
   }
 
   // Loading-only mode: running without thought data (used by ACP when thinking is inline)
-  if (running && !thought?.subject) {
+  if (!thought?.subject && (running || statusText)) {
     return (
       <div
         className='relative z-1 mb--20px pb-30px px-10px py-10px rd-t-20px text-14px lh-20px text-t-primary flex items-center gap-8px'
         style={containerStyle}
       >
-        <Spin size={14} />
+        {running && <Spin size={14} />}
         <span className='text-t-secondary'>
-          {t('conversation.chat.processing')}
-          <span className='ml-8px opacity-60'>({formatElapsedTime(elapsedTime)})</span>
+          {statusText ?? t('conversation.chat.processing')}
+          {running && <span className='ml-8px opacity-60'>({formatElapsedTime(elapsedTime)})</span>}
         </span>
       </div>
     );

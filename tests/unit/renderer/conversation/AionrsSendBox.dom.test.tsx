@@ -273,6 +273,25 @@ describe('AionrsSendBox', () => {
     });
   });
 
+  it('does not start standalone runtime while preparing a team conversation', async () => {
+    const warmupSession = vi.fn().mockResolvedValue(undefined);
+    useTeamPermissionMock.mockReturnValue({
+      isTeamMode: true,
+      isLeaderAgent: true,
+      leaderConversationId: 'conv-1',
+      allConversationIds: ['conv-1'],
+      propagateMode: vi.fn(),
+      warmupSession,
+    });
+
+    render(<AionrsSendBox conversation_id='conv-1' modelSelection={modelSelection} />);
+
+    await waitFor(() => {
+      expect(warmupSession).toHaveBeenCalled();
+    });
+    expect(ensureConversationRuntimeMock).not.toHaveBeenCalled();
+  });
+
   it('uses runtime ensure instead of legacy warmup for standalone runtime preparation', async () => {
     render(<AionrsSendBox conversation_id='conv-1' modelSelection={modelSelection} />);
 

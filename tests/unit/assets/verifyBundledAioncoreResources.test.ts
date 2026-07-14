@@ -7,6 +7,26 @@ const {
   verifyBundledAioncoreResources,
 } = require('../../../packages/shared-scripts/src/verify-bundled-aioncore-resources');
 
+const CODEX_ENTRYPOINT = 'node_modules/@agentclientprotocol/codex-acp/dist/index.js';
+const CODEX_WIN32_X64_EXECUTABLE_PARTS = [
+  'node_modules',
+  '@openai',
+  'codex-win32-x64',
+  'vendor',
+  'x86_64-pc-windows-msvc',
+  'bin',
+  'codex.exe',
+];
+const CODEX_WIN32_ARM64_EXECUTABLE_PARTS = [
+  'node_modules',
+  '@openai',
+  'codex-win32-arm64',
+  'vendor',
+  'aarch64-pc-windows-msvc',
+  'bin',
+  'codex.exe',
+];
+
 function writeFile(filePath: string) {
   mkdirSync(dirname(filePath), { recursive: true });
   writeFileSync(filePath, '', { flush: true });
@@ -72,10 +92,10 @@ describe('verifyBundledAioncoreResources', () => {
     codexRoot = createManagedAcpToolFixture({
       managedResourcesDir,
       toolId: 'codex-acp',
-      version: '0.14.0',
+      version: '1.1.2',
       runtimeKey: 'win32-x64',
-      entrypoint: 'node_modules/@zed-industries/codex-acp-win32-x64/bin/codex-acp.exe',
-      platformExecutableParts: ['node_modules', '@zed-industries', 'codex-acp-win32-x64', 'bin', 'codex-acp.exe'],
+      entrypoint: CODEX_ENTRYPOINT,
+      platformExecutableParts: CODEX_WIN32_X64_EXECUTABLE_PARTS,
     });
 
     createManagedAcpToolFixture({
@@ -100,6 +120,44 @@ describe('verifyBundledAioncoreResources', () => {
     });
 
     expect(result.runtimeKey).toBe('win32-x64');
+    expect(result.missing).toEqual([]);
+  });
+
+  it('passes with the managed Codex ACP Windows arm64 platform executable', () => {
+    const arm64ResourcesDir = join(tmp, 'win32-arm64-resources');
+    const arm64ManagedResourcesDir = join(arm64ResourcesDir, 'bundled-aioncore', 'win32-arm64', 'managed-resources');
+
+    mkdirSync(join(arm64ResourcesDir, 'bundled-aioncore', 'win32-arm64'), { recursive: true });
+    writeFile(join(arm64ResourcesDir, 'bundled-aioncore', 'win32-arm64', 'aioncore.exe'));
+    writeJson(join(arm64ResourcesDir, 'bundled-aioncore', 'win32-arm64', 'manifest.json'), {
+      platform: 'win32',
+      arch: 'arm64',
+    });
+    writeFile(join(arm64ManagedResourcesDir, 'node', 'node-v24.11.0-win-arm64', 'node.exe'));
+
+    createManagedAcpToolFixture({
+      managedResourcesDir: arm64ManagedResourcesDir,
+      toolId: 'codex-acp',
+      version: '1.1.2',
+      runtimeKey: 'win32-arm64',
+      entrypoint: CODEX_ENTRYPOINT,
+      platformExecutableParts: CODEX_WIN32_ARM64_EXECUTABLE_PARTS,
+    });
+    createManagedAcpToolFixture({
+      managedResourcesDir: arm64ManagedResourcesDir,
+      toolId: 'claude-agent-acp',
+      version: '0.13.0',
+      runtimeKey: 'win32-arm64',
+      entrypoint: 'node_modules/@anthropic-ai/claude-agent-sdk-win32-arm64/claude.exe',
+      platformExecutableParts: ['node_modules', '@anthropic-ai', 'claude-agent-sdk-win32-arm64', 'claude.exe'],
+    });
+
+    const result = verifyBundledAioncoreResources({
+      resourcesDir: arm64ResourcesDir,
+      electronPlatformName: 'win32',
+      targetArch: 'arm64',
+    });
+
     expect(result.missing).toEqual([]);
   });
 
@@ -207,12 +265,12 @@ describe('verifyBundledAioncoreResources', () => {
     });
 
     expect(result.missing).toContain(
-      'bundled-aioncore/win32-x64/managed-resources/acp/codex-acp/0.14.0/win32-x64/manifest.json'
+      'bundled-aioncore/win32-x64/managed-resources/acp/codex-acp/1.1.2/win32-x64/manifest.json'
     );
   });
 
   it('reports missing managed ACP entrypoint declared by manifest', () => {
-    rmSync(join(codexRoot, 'node_modules', '@zed-industries', 'codex-acp-win32-x64', 'bin', 'codex-acp.exe'));
+    rmSync(join(codexRoot, CODEX_ENTRYPOINT));
 
     const result = verifyBundledAioncoreResources({
       resourcesDir,
@@ -221,7 +279,21 @@ describe('verifyBundledAioncoreResources', () => {
     });
 
     expect(result.missing).toContain(
-      'bundled-aioncore/win32-x64/managed-resources/acp/codex-acp/0.14.0/win32-x64/node_modules/@zed-industries/codex-acp-win32-x64/bin/codex-acp.exe'
+      `bundled-aioncore/win32-x64/managed-resources/acp/codex-acp/1.1.2/win32-x64/${CODEX_ENTRYPOINT}`
+    );
+  });
+
+  it('reports missing managed Codex ACP platform executable', () => {
+    rmSync(join(codexRoot, ...CODEX_WIN32_X64_EXECUTABLE_PARTS));
+
+    const result = verifyBundledAioncoreResources({
+      resourcesDir,
+      electronPlatformName: 'win32',
+      targetArch: 'x64',
+    });
+
+    expect(result.missing).toContain(
+      'bundled-aioncore/win32-x64/managed-resources/acp/codex-acp/1.1.2/win32-x64/node_modules/@openai/codex-win32-x64/vendor/x86_64-pc-windows-msvc/bin/codex.exe'
     );
   });
 });

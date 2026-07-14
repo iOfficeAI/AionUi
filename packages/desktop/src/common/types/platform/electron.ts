@@ -35,7 +35,7 @@ export type BackendStartupFailureReason =
   | 'backend_startup_failed';
 
 export type BackendIncompleteInstallationKind = 'missing_backend_binary' | 'missing_directory_resources';
-export type BackendLocalDataIssueKind = 'agent_metadata_invalid_utf8';
+export type BackendLocalDataIssueKind = 'agent_metadata_invalid_utf8' | 'assistant_storage_bootstrap_failed';
 export type BackendStartupDirectoryIssueKind = 'missing_or_unavailable_directory' | 'permission_denied';
 
 export interface BackendStartupFailureInfo {

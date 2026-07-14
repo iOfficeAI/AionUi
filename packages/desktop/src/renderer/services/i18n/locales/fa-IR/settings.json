@@ -29,7 +29,6 @@
     "customPathLabel": "مسیر پوشه مهارت",
     "customPathPlaceholder": "مثلاً C:\\Users\\me\\.mytools\\skills",
     "searchPlaceholder": "جستجوی مهارت‌ها...",
-    "noSearchResults": "مهارت منطبقی یافت نشد",
     "importPartialSuccess": "{{successCount}} مهارت وارد شد، {{failureCount}} مورد ناموفق بود: {{failures}}",
     "importAllFailed": "وارد کردن {{failureCount}} مهارت ناموفق بود: {{failures}}",
     "importFailureFileSizeDetail": "{{path}} برابر {{actual}} است؛ محدودیت {{limit}} است",
@@ -84,6 +83,7 @@
     "tabOfficial": "مهارت‌های رسمی",
     "officialSkillsTitle": "مهارت‌های رسمی",
     "officialSkillsEmpty": "هیچ مهارت رسمی در دسترس نیست.",
+    "noSearchResults": "هیچ مهارت منطبقی وجود ندارد.",
     "customHint": "یک پوشه مهارت، پوشه والد یا zip را وارد کنید؛ حداکثر {{maxFileSize}} برای هر فایل و {{maxTotalSize}} برای هر مهارت؛ وارد کردن نام تکراری مهارت موجود را بازنویسی می‌کند.",
     "officialHint": "مهارت‌های رسمی همراه AionUi — آماده استفاده، فقط‌خواندنی و با هر نسخه به‌روزرسانی می‌شوند."
   },

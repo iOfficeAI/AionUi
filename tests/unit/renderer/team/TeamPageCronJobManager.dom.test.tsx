@@ -1,16 +1,27 @@
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import type { TChatConversation } from '@/common/config/storage';
 import type { TTeam } from '@/common/types/team/teamTypes';
 
-const { getConversationOrNullMock, cronJobManagerMock, eventChannel } = vi.hoisted(() => ({
-  getConversationOrNullMock: vi.fn(),
-  cronJobManagerMock: vi.fn(),
-  eventChannel: { on: vi.fn(() => () => {}) },
-}));
+const { getConversationOrNullMock, cronJobManagerMock, ensureSessionMock, teamEventHandlers, makeTeamEventChannel } =
+  vi.hoisted(() => {
+    const handlers: Record<string, Array<(event: unknown) => void>> = {};
+    const makeChannel = (name: string) => ({
+      on: vi.fn((handler: (event: unknown) => void) => {
+        handlers[name] = [...(handlers[name] ?? []), handler];
+        return vi.fn();
+      }),
+    });
+    return {
+      getConversationOrNullMock: vi.fn(),
+      cronJobManagerMock: vi.fn(),
+      ensureSessionMock: vi.fn(async () => undefined),
+      teamEventHandlers: handlers,
+      makeTeamEventChannel: makeChannel,
+    };
+  });
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -44,40 +55,48 @@ vi.mock('@/common', () => ({
     team: {
       get: { invoke: vi.fn() },
       renameTeam: { invoke: vi.fn() },
+      addAgent: { invoke: vi.fn() },
       removeAgent: { invoke: vi.fn() },
       pauseSlotWork: { invoke: vi.fn() },
-      getRunState: { invoke: vi.fn(async () => ({ active_run: null })) },
+      getRunState: {
+        invoke: vi.fn(async () => ({ session_generation: null, active_run: null, slot_work: [] })),
+      },
       activeLease: { invoke: vi.fn(async () => ({ renewed_count: 2 })) },
-      agentStatusChanged: eventChannel,
-      agentSpawned: eventChannel,
-      agentRemoved: eventChannel,
-      agentRenamed: eventChannel,
-      mcpStatus: eventChannel,
-      taskChanged: eventChannel,
-      sessionChanged: eventChannel,
-      runAccepted: eventChannel,
-      runStarted: eventChannel,
-      runUpdated: eventChannel,
-      runCompleted: eventChannel,
-      runCancelled: eventChannel,
-      runFailed: eventChannel,
-      childTurnStarted: eventChannel,
-      childTurnCompleted: eventChannel,
-      childTurnCancelled: eventChannel,
-      listChanged: eventChannel,
+      ensureSession: { invoke: (...args: unknown[]) => ensureSessionMock(...args) },
+      agentStatusChanged: makeTeamEventChannel('agentStatusChanged'),
+      agentSpawned: makeTeamEventChannel('agentSpawned'),
+      agentRemoved: makeTeamEventChannel('agentRemoved'),
+      agentRenamed: makeTeamEventChannel('agentRenamed'),
+      agentRuntimeStatusChanged: makeTeamEventChannel('agentRuntimeStatusChanged'),
+      sessionStatusChanged: makeTeamEventChannel('sessionStatusChanged'),
+      taskChanged: makeTeamEventChannel('taskChanged'),
+      sessionChanged: makeTeamEventChannel('sessionChanged'),
+      runAccepted: makeTeamEventChannel('runAccepted'),
+      runStarted: makeTeamEventChannel('runStarted'),
+      runUpdated: makeTeamEventChannel('runUpdated'),
+      runCompleted: makeTeamEventChannel('runCompleted'),
+      runCancelled: makeTeamEventChannel('runCancelled'),
+      runFailed: makeTeamEventChannel('runFailed'),
+      childTurnStarted: makeTeamEventChannel('childTurnStarted'),
+      childTurnCompleted: makeTeamEventChannel('childTurnCompleted'),
+      childTurnCancelled: makeTeamEventChannel('childTurnCancelled'),
+      listChanged: makeTeamEventChannel('listChanged'),
     },
     cron: {
       removeJob: { invoke: vi.fn() },
     },
+    assistant: {
+      list: { invoke: vi.fn(async () => []) },
+    },
     conversation: {
       confirmation: {
         list: { invoke: vi.fn(async () => []) },
-        add: eventChannel,
-        remove: eventChannel,
+        add: makeTeamEventChannel('confirmationAdd'),
+        remove: makeTeamEventChannel('confirmationRemove'),
       },
     },
     realtime: {
-      reconnected: eventChannel,
+      reconnected: makeTeamEventChannel('reconnected'),
     },
   },
 }));
@@ -108,8 +127,8 @@ vi.mock('@/renderer/pages/conversation/platforms/aionrs/AionrsModelSelector', ()
 
 vi.mock('@/renderer/pages/team/components/TeamChatView', () => ({
   __esModule: true,
-  default: ({ conversation }: { conversation: TChatConversation }) => (
-    <div data-testid={`team-chat-view-${conversation.id}`} />
+  default: ({ conversation: chatConversation }: { conversation: TChatConversation }) => (
+    <div data-testid={`team-chat-view-${chatConversation.id}`} />
   ),
 }));
 
@@ -128,6 +147,11 @@ describe('TeamPage cron job manager', () => {
     vi.clearAllMocks();
     getConversationOrNullMock.mockReset();
     cronJobManagerMock.mockClear();
+    ensureSessionMock.mockReset();
+    ensureSessionMock.mockResolvedValue(undefined);
+    for (const key of Object.keys(teamEventHandlers)) {
+      delete teamEventHandlers[key];
+    }
     vi.mocked(ipcBridge.cron.removeJob.invoke).mockResolvedValue(undefined);
     vi.mocked(ipcBridge.team.removeAgent.invoke).mockResolvedValue(undefined);
     localStorage.clear();
@@ -164,22 +188,19 @@ describe('TeamPage cron job manager', () => {
     );
   });
 
-  it('removes a member cron job before removing the team member', async () => {
-    const user = userEvent.setup();
-    getConversationOrNullMock.mockImplementation(async (conversationId: string) => {
-      if (conversationId === 'leader-conv') return conversation({ id: conversationId, name: 'Leader' });
-      if (conversationId === 'member-conv') {
-        return conversation({
-          id: conversationId,
-          name: 'Member',
-          extra: {
-            team_id: 'team-1',
-            cron_job_id: 'cron-member-1',
-          },
-        });
-      }
-      return null;
-    });
+  // 移除成员的 cron 清理顺序（先删 cron job 再删成员）由 removeTeamAssistantWithCronCleanup.test.ts 直接覆盖；
+  // 胶囊上的移除交互由 team-member-ops.e2e.ts 覆盖。移除入口已从抬头移到顶部胶囊。
+
+  it('re-enables membership controls when ensureSession resolves after runtime pending events', async () => {
+    let resolveEnsureSession: (() => void) | undefined;
+    ensureSessionMock.mockReturnValue(
+      new Promise<void>((resolve) => {
+        resolveEnsureSession = resolve;
+      })
+    );
+    getConversationOrNullMock.mockImplementation(async (conversationId: string) =>
+      conversation({ id: conversationId, name: conversationId })
+    );
 
     render(
       <MemoryRouter>
@@ -187,13 +208,25 @@ describe('TeamPage cron job manager', () => {
       </MemoryRouter>
     );
 
-    await user.click(await screen.findByTestId('team-remove-assistant-member-slot'));
+    const addMember = await screen.findByTestId('team-tab-add-member');
+    expect(addMember).toBeDisabled();
 
-    await waitFor(() => expect(ipcBridge.cron.removeJob.invoke).toHaveBeenCalledWith({ job_id: 'cron-member-1' }));
-    expect(ipcBridge.team.removeAgent.invoke).toHaveBeenCalledWith({ team_id: 'team-1', slot_id: 'member-slot' });
-    expect(vi.mocked(ipcBridge.cron.removeJob.invoke).mock.invocationCallOrder[0]).toBeLessThan(
-      vi.mocked(ipcBridge.team.removeAgent.invoke).mock.invocationCallOrder[0]
-    );
+    act(() => {
+      for (const handler of teamEventHandlers.agentRuntimeStatusChanged ?? []) {
+        handler({
+          team_id: 'team-1',
+          slot_id: 'member-slot',
+          conversation_id: 'member-conv',
+          status: 'pending',
+        });
+      }
+    });
+
+    await act(async () => {
+      resolveEnsureSession?.();
+    });
+
+    await waitFor(() => expect(screen.getByTestId('team-tab-add-member')).not.toBeDisabled());
   });
 });
 

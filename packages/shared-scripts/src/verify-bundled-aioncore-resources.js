@@ -116,11 +116,19 @@ function requireManagedNode(baseDir, runtimeKey, platform, checked, missing) {
   }
 }
 
+const CODEX_VENDOR_TRIPLE_BY_RUNTIME_KEY = {
+  'win32-arm64': 'aarch64-pc-windows-msvc',
+  'win32-x64': 'x86_64-pc-windows-msvc',
+};
+
 function acpToolPlatformExecutableParts(platform, runtimeKey, toolId) {
   if (platform !== 'win32') return null;
 
   if (toolId === 'codex-acp') {
-    return ['node_modules', '@zed-industries', `codex-acp-${runtimeKey}`, 'bin', 'codex-acp.exe'];
+    const vendorTriple = CODEX_VENDOR_TRIPLE_BY_RUNTIME_KEY[runtimeKey];
+    if (!vendorTriple) return null;
+
+    return ['node_modules', '@openai', `codex-${runtimeKey}`, 'vendor', vendorTriple, 'bin', 'codex.exe'];
   }
 
   if (toolId === 'claude-agent-acp') {

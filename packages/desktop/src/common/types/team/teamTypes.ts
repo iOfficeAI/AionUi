@@ -60,31 +60,29 @@ export type ISendTeamAgentMessageParams = ISendTeamMessageParams & {
 
 export type TeamRunTargetRole = 'lead' | 'teammate';
 export type TeamRunStatus = 'accepted' | 'running' | 'cancelling' | 'completed' | 'cancelled' | 'failed';
+export type TeamSlotWorkState = 'idle' | 'queued' | 'starting' | 'running' | 'paused' | 'blocked';
+export type TeamSlotBlockedReason = 'runtime_starting' | 'runtime_failed' | 'removing' | 'session_stopped';
+export type TeamMessageEnqueueStatus = 'accepted' | 'queued' | 'blocked_runtime_starting';
 
 export type ITeamSlotWork = {
   slot_id: string;
   role: TeamRunTargetRole;
-  pending_wake_count: number;
-  starting_child_count: number;
-  paused?: boolean;
-  suppressed_wake_count?: number;
-  active_turn_id?: string;
-  active_turn_started_at_ms?: number;
-  active_turn_elapsed_ms?: number;
-  active_turn_slow?: boolean;
-  active_turn_slow_threshold_ms?: number;
-  runtime_health?: 'disconnected' | 'unhealthy';
+  state: TeamSlotWorkState;
+  queued_foreground_count: number;
+  queued_background_count: number;
+  active_turn_id: string | null;
+  active_turn_started_at_ms: number | null;
+  active_turn_elapsed_ms: number | null;
+  active_turn_slow: boolean | null;
+  active_turn_slow_threshold_ms: number | null;
+  blocked_reason: TeamSlotBlockedReason | null;
+  team_run_id: string | null;
 };
 
 export type ITeamRunAck = {
-  team_run_id: string;
-  team_id: string;
-  target_slot_id: string;
-  target_role: TeamRunTargetRole;
-  accepted_slot_id: string;
-  accepted_role: TeamRunTargetRole;
-  status: TeamRunStatus;
-  message_id?: string;
+  enqueue_status: TeamMessageEnqueueStatus;
+  message_id: string;
+  run: ITeamRunEvent;
 };
 
 export type ICancelTeamRunParams = {
@@ -103,17 +101,22 @@ export type IPauseTeamSlotParams = ICancelTeamChildTurnParams;
 export type ITeamRunEvent = {
   team_id: string;
   team_run_id: string;
+  source: 'user_message';
+  has_user_intervention: boolean;
   target_slot_id: string;
   target_role: TeamRunTargetRole;
   status: TeamRunStatus;
-  active_child_count: number;
-  pending_wake_count: number;
-  starting_child_count: number;
-  slot_work?: ITeamSlotWork[];
+  queued_intent_count: number;
+  starting_batch_count: number;
+  running_batch_count: number;
+  active_enqueue_lease_count: number;
+  slot_work: ITeamSlotWork[];
 };
 
 export type ITeamRunStateResponse = {
+  session_generation: string | null;
   active_run: ITeamRunEvent | null;
+  slot_work: ITeamSlotWork[];
 };
 
 export type ITeamChildTurnEvent = {
@@ -153,6 +156,17 @@ export type ITeamAgentRenamedEvent = {
   team_id: string;
   slot_id: string;
   name: string;
+};
+
+export type TeamAgentRuntimeStatus = 'pending' | 'ready' | 'failed';
+
+/** IPC event pushed to renderer when a team member runtime attach/warmup status changes */
+export type ITeamAgentRuntimeStatusEvent = {
+  team_id: string;
+  slot_id: string;
+  conversation_id: string;
+  status: TeamAgentRuntimeStatus;
+  error?: string;
 };
 
 /** IPC event pushed to renderer when the team list changes (created/removed/agent changes) */
@@ -196,26 +210,18 @@ export type ITeamMessageEvent = {
   conversation_id: string;
 };
 
-/** Phase of the MCP injection pipeline */
-export type TeamMcpPhase =
-  | 'tcp_ready'
-  | 'tcp_error'
-  | 'session_injecting'
-  | 'session_ready'
-  | 'session_error'
-  | 'load_failed'
-  | 'degraded'
-  | 'config_write_failed'
-  | 'mcp_tools_waiting'
-  | 'mcp_tools_ready';
+/** Team-level session availability status. */
+export type TeamSessionStatus = 'starting' | 'ready' | 'failed';
 
-/** IPC event for MCP injection pipeline status */
-export type ITeamMcpStatusEvent = {
+/** Diagnostic phase for team session startup. */
+export type TeamSessionPhase = 'loading_team' | 'starting_bridge' | 'attaching_agents' | 'recovering';
+
+/** IPC event for team session lifecycle status. */
+export type ITeamSessionStatusChangedEvent = {
   team_id: string;
-  slot_id?: string;
-  phase: TeamMcpPhase;
+  status: TeamSessionStatus;
+  phase?: TeamSessionPhase;
   server_count?: number;
-  port?: number;
   error?: string;
 };
 

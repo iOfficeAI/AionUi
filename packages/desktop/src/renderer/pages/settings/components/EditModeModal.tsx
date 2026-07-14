@@ -142,16 +142,11 @@ const EditModeModal = ModalHOC<{ data?: IProvider; onChange(data: IProvider): vo
 
     return (
       <AionModal
+        variant='standard'
         visible={modalProps.visible}
         onCancel={modalCtrl.close}
         header={{ title: t('settings.editModel'), showClose: true }}
-        style={{ minHeight: '400px', maxHeight: '90vh', borderRadius: 16 }}
-        contentStyle={{
-          background: 'var(--dialog-fill-0)',
-          borderRadius: 16,
-          padding: '20px 24px 16px',
-          overflow: 'auto',
-        }}
+        style={{ minHeight: '400px' }}
         onOk={async () => {
           try {
             const values = await form.validate();
@@ -188,15 +183,15 @@ const EditModeModal = ModalHOC<{ data?: IProvider; onChange(data: IProvider): vo
         cancelText={t('common.cancel')}
       >
         {messageContext}
-        <div className='py-20px'>
+        <div>
           <Form form={form} layout='vertical'>
             {/* 模型供应商名称（可编辑，带 Logo）/ Model Provider name (editable, with Logo) */}
             <Form.Item
               label={
-                <div className='flex items-center gap-6px'>
+                <span className='inline-flex items-center gap-6px'>
                   <ProviderLogo logo={providerLogo} name={data?.name || ''} size={16} />
                   <span>{t('settings.modelProvider')}</span>
-                </div>
+                </span>
               }
               field='name'
               required
