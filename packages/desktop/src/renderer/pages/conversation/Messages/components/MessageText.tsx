@@ -52,24 +52,72 @@ import { useTeammateColor } from '@/renderer/pages/team/identity/TeamIdentityCon
 
 const CODE_STYLE = { marginTop: 4, marginBlock: 4 };
 
-const parseFileMarker = (content: string) => {
-  const markerIndex = content.indexOf(AIONUI_FILES_MARKER);
-  if (markerIndex === -1) {
-    return { text: content, files: [] as string[] };
+type ParsedFileMarker = {
+  text: string;
+  files: string[];
+};
+
+const URL_SCHEME_PATTERN = /^[a-z][a-z0-9+.-]*:\/\//i;
+const MARKDOWN_ATTACHMENT_LINE_PATTERN = /^(#{1,6}\s|[-*+]\s|\d+[.)]\s|>\s?|```|~~~|\|)/;
+
+const parseFileMarker = (content: string, canParseFileMarker: boolean): ParsedFileMarker => {
+  if (!canParseFileMarker) {
+    return { text: content, files: [] };
   }
-  const text = content.slice(0, markerIndex).trimEnd();
-  const afterMarker = content.slice(markerIndex + AIONUI_FILES_MARKER.length).trim();
-  const files = afterMarker
-    ? afterMarker
-        .split('\n')
-        .map((line) => line.trim())
-        .filter(Boolean)
-    : [];
-  return { text, files };
+
+  const lines = content.split(/\r?\n/);
+  let markerLineIndex = -1;
+  for (let index = lines.length - 1; index >= 0; index -= 1) {
+    if (lines[index].trim() === AIONUI_FILES_MARKER) {
+      markerLineIndex = index;
+      break;
+    }
+  }
+
+  if (markerLineIndex === -1) {
+    return { text: content, files: [] };
+  }
+
+  const files = lines
+    .slice(markerLineIndex + 1)
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  if (!files.length || files.some((file_path) => !isLocalMessageFilePath(file_path))) {
+    return { text: content, files: [] };
+  }
+
+  return {
+    text: lines.slice(0, markerLineIndex).join('\n').trimEnd(),
+    files,
+  };
 };
 
 const isAbsoluteMessageFilePath = (file_path: string): boolean =>
-  file_path.startsWith('/') || /^[A-Za-z]:/.test(file_path);
+  file_path.startsWith('/') || file_path.startsWith('\\\\') || /^[A-Za-z]:[\\/]/.test(file_path);
+
+const isWorkspaceRelativeMessageFilePath = (file_path: string): boolean => {
+  const normalizedFilePath = file_path.replace(/\\/g, '/');
+  return (
+    normalizedFilePath.startsWith('./') ||
+    normalizedFilePath.startsWith('../') ||
+    normalizedFilePath.includes('/') ||
+    /(?:^|\/)[^/]+\.[^./\s][^/]*$/.test(normalizedFilePath)
+  );
+};
+
+const isLocalMessageFilePath = (file_path: string): boolean => {
+  const trimmedFilePath = file_path.trim();
+  if (
+    !trimmedFilePath ||
+    URL_SCHEME_PATTERN.test(trimmedFilePath) ||
+    MARKDOWN_ATTACHMENT_LINE_PATTERN.test(trimmedFilePath)
+  ) {
+    return false;
+  }
+
+  return isAbsoluteMessageFilePath(trimmedFilePath) || isWorkspaceRelativeMessageFilePath(trimmedFilePath);
+};
 
 export const resolveMessageFilePath = (file_path: string, workspace?: string): string => {
   if (!file_path || isAbsoluteMessageFilePath(file_path) || !workspace) {
@@ -115,12 +163,15 @@ const MessageText: React.FC<{ message: IMessageText; showCopyRow?: boolean }> = 
     return content;
   }, [message.content.content]);
 
-  const { text, files } = parseFileMarker(contentToRender);
-  const { data, json } = useFormatContent(text);
   const { t } = useTranslation();
   const [showCopyAlert, setShowCopyAlert] = useState(false);
   const isUserMessage = message.position === 'right';
   const isTeammateMessage = message.position === 'left' && message.content.teammateMessage === true;
+  const { text, files } = useMemo(
+    () => parseFileMarker(contentToRender, isUserMessage),
+    [contentToRender, isUserMessage]
+  );
+  const { data, json } = useFormatContent(text);
   const shouldRenderPlainText = isUserMessage;
   const conversationContext = useConversationContextSafe();
   const layout = useLayoutContext();
