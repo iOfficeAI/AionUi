@@ -8,6 +8,8 @@
   <img src="https://img.shields.io/badge/license-Apache--2.0-32CD32?style=flat-square&logo=apache&logoColor=white" alt="License">
   &nbsp;
   <img src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-6C757D?style=flat-square&logo=linux&logoColor=white" alt="Platform">
+  &nbsp;
+  <img src="https://img.shields.io/endpoint?url=https://gittokens.rsamf.com/badge/iOfficeAI/AionUi" alt="tokens">
 </p>
 
 <p align="center">
