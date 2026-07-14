@@ -24,6 +24,7 @@ import {
   turnCompleted,
   type ConversationRuntimeView,
   type ConversationRuntimeViewLogEntry,
+  type ConversationRuntimeSendFailure,
 } from './conversationRuntimeViewStore';
 
 type UseConversationRuntimeViewReturn = {
@@ -35,7 +36,7 @@ type UseConversationRuntimeViewReturn = {
   activeTurnId: string | null;
   markSendStarted: () => void;
   markSendAccepted: (turn_id: string, runtime: TConversationRuntimeSummary, msg_id?: string) => void;
-  markSendFailed: (reason: string) => void;
+  markSendFailed: (failure: ConversationRuntimeSendFailure) => void;
   markStopRequested: (turn_id: string) => void;
   markStopAcknowledged: (turn_id: string, runtime: TConversationRuntimeSummary) => void;
   resetLocalGate: (reason: string) => void;
@@ -141,8 +142,13 @@ export const useConversationRuntimeView = (conversation_id: string): UseConversa
   );
 
   const markSendFailed = useCallback(
-    (reason: string) => {
-      flushRuntimeViewLogs(localSendFailed(conversation_id, normalizeReason(reason)));
+    (failure: ConversationRuntimeSendFailure) => {
+      flushRuntimeViewLogs(
+        localSendFailed(conversation_id, {
+          ...failure,
+          reason: normalizeReason(failure.reason),
+        })
+      );
     },
     [conversation_id]
   );

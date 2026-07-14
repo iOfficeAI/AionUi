@@ -45,6 +45,7 @@ import { Message, Tag } from '@arco-design/web-react';
 import { Brain, MagicHat, Shield } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { classifyConversationBusyError } from '../conversationBusyError';
 import { buildSendFailureError } from './buildSendFailureError';
 import { useAcpInitialMessage } from './useAcpInitialMessage';
 import type { UseAcpMessageReturn } from './useAcpMessage';
@@ -208,6 +209,7 @@ const AcpSendBox: React.FC<{
   const addOrUpdateMessage = useAddOrUpdateMessage(); // Move this here so it's available in useEffect
   const addOrUpdateMessageRef = useLatestRef(addOrUpdateMessage);
   const runtimeView = useConversationRuntimeView(conversation_id);
+  const { markSendStarted, markSendAccepted, markSendFailed } = runtimeView;
 
   // Shared file handling logic
   const { handleFilesAdded, clearFiles } = useSendBoxFiles({
@@ -251,9 +253,9 @@ const AcpSendBox: React.FC<{
     workspacePath,
     setAiProcessing,
     resetState,
-    markSendStarted: runtimeView.markSendStarted,
-    markSendAccepted: runtimeView.markSendAccepted,
-    markSendFailed: runtimeView.markSendFailed,
+    markSendStarted,
+    markSendAccepted,
+    markSendFailed,
     checkAndUpdateTitle,
     addOrUpdateMessage: addOrUpdateMessageRef.current,
   });
@@ -274,19 +276,31 @@ const AcpSendBox: React.FC<{
           return;
         }
 
-        runtimeView.markSendStarted();
+        markSendStarted();
         setAiProcessing(true);
         const result = await ipcBridge.acpConversation.sendMessage.invoke({
           input: displayMessage,
           conversation_id,
           files,
         });
-        runtimeView.markSendAccepted(result.turn_id, result.runtime, result.msg_id);
+        markSendAccepted(result.turn_id, result.runtime, result.msg_id);
         emitter.emit('chat.history.refresh');
       } catch (error: unknown) {
         const errorMsg =
           getConversationRuntimeWorkspaceErrorMessage(error, t) || parseError(error) || t('common.unknownError');
-        runtimeView.markSendFailed(errorMsg);
+        const busyError = classifyConversationBusyError(error);
+        if (busyError) {
+          markSendFailed({
+            kind: 'busy_conflict',
+            reason: errorMsg,
+            busyKind: busyError.kind,
+            status: busyError.status,
+            code: busyError.code,
+          });
+          throw error;
+        }
+
+        markSendFailed({ kind: 'ordinary', reason: errorMsg });
 
         // Archived conversation (e.g. legacy Gemini). Backend signals this
         // via HTTP 410 + code='CONVERSATION_ARCHIVED' — identified by code,
@@ -355,8 +369,10 @@ Please check your local CLI tool authentication status`,
       backend,
       checkAndUpdateTitle,
       conversation_id,
+      markSendAccepted,
+      markSendFailed,
+      markSendStarted,
       resetState,
-      runtimeView,
       setAiProcessing,
       t,
       teamPermission,
