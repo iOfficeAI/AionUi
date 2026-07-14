@@ -102,7 +102,7 @@
     },
     "localDataRepair": {
       "title": "Local data repair failed",
-      "description": "AionUi opened, but AionCore stopped while repairing local agent cache data. Reinstalling AionUi may not fix this. Send a diagnostics report or contact support so the local database can be inspected.",
+      "description": "AionUi는 열렸지만 AionCore가 assistant 또는 에이전트 레코드 같은 로컬 시작 데이터를 준비하는 동안 중지되었습니다. AionUi를 다시 설치해도 문제가 해결되지 않을 수 있습니다. 로컬 데이터베이스를 검사할 수 있도록 진단 보고서를 보내거나 지원팀에 문의하세요.",
       "sendDiagnostics": "Send diagnostics",
       "diagnosticsSent": "Diagnostics sent",
       "diagnosticsReportSuccess": "Diagnostics report sent",
