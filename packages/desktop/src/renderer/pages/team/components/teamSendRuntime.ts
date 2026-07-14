@@ -1,6 +1,6 @@
 import { isBackendHttpError } from '@/common/adapter/httpBridge';
 import type { ConversationCommandQueueRuntimeGate } from '@/renderer/pages/conversation/platforms/useConversationCommandQueue';
-import type { TeamSlotBlockedReason } from '@/common/types/team/teamTypes';
+import type { ITeamSlotWork, TeamSlotBlockedReason } from '@/common/types/team/teamTypes';
 import type { TeamRunViewState } from '../hooks/useTeamRunView';
 
 export type TeamSendBoxRuntime = {
@@ -35,6 +35,49 @@ type BuildTeamStopHandlerOptions = {
 };
 
 const FATAL_BLOCK_REASONS = new Set<TeamSlotBlockedReason>(['runtime_failed', 'removing', 'session_stopped']);
+
+type TeamWorkStatusTextFormatters = {
+  processing: () => string;
+  processingWithQueued: (count: number) => string;
+  runtimeStarting: () => string;
+  runtimeFailed: () => string;
+  removing: () => string;
+  sessionStopped: () => string;
+};
+
+export const getTeamWorkQueuedCount = (work?: ITeamSlotWork): number =>
+  (work?.queued_foreground_count ?? 0) + (work?.queued_background_count ?? 0);
+
+const hasActiveTeamWork = (work?: ITeamSlotWork): boolean => work?.state === 'starting' || work?.state === 'running';
+
+export const buildTeamWorkStatusText = (
+  work: ITeamSlotWork | undefined,
+  format: TeamWorkStatusTextFormatters
+): string | undefined => {
+  switch (work?.blocked_reason) {
+    case 'runtime_starting':
+      return format.runtimeStarting();
+    case 'runtime_failed':
+      return format.runtimeFailed();
+    case 'removing':
+      return format.removing();
+    case 'session_stopped':
+      return format.sessionStopped();
+    default:
+      break;
+  }
+
+  const queuedCount = getTeamWorkQueuedCount(work);
+  if (hasActiveTeamWork(work)) {
+    return queuedCount > 0 ? format.processingWithQueued(queuedCount) : undefined;
+  }
+
+  if (queuedCount > 0) {
+    return format.processing();
+  }
+
+  return undefined;
+};
 
 export const isStaleTeamRunPauseError = (error: unknown): boolean => {
   return (
@@ -93,9 +136,9 @@ export const buildTeamSendRuntime = ({
   onStop,
 }: BuildTeamSendRuntimeOptions): TeamSendBoxRuntime => {
   const work = runView.slotWorkBySlot[slot_id];
-  const queuedCount = (work?.queued_foreground_count ?? 0) + (work?.queued_background_count ?? 0);
+  const queuedCount = getTeamWorkQueuedCount(work);
   const fatalBlock = work?.blocked_reason ? FATAL_BLOCK_REASONS.has(work.blocked_reason) : false;
-  const loading = work?.state === 'starting' || work?.state === 'running';
+  const loading = hasActiveTeamWork(work) || (!fatalBlock && queuedCount > 0);
   return {
     loading,
     queuedCount,

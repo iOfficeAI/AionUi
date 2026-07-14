@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { useAionrsModelSelection } from '@/renderer/pages/conversation/platforms/aionrs/useAionrsModelSelection';
 import { isLegacyReadOnlyConversationType } from '@/renderer/pages/conversation/utils/conversationRuntime';
 import type { ITeamRunAck } from '@/common/types/team/teamTypes';
-import { buildTeamSendRuntime, buildTeamStopHandler } from './teamSendRuntime';
+import { buildTeamSendRuntime, buildTeamStopHandler, buildTeamWorkStatusText } from './teamSendRuntime';
 import type { TeamRunViewState } from '../hooks/useTeamRunView';
 import TeamChatEmptyState from './TeamChatEmptyState';
 import { usePresetAssistantInfo } from '@/renderer/hooks/agent/usePresetAssistantInfo';
@@ -164,30 +164,18 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({
     assistant_name
   );
   const slotWork = slot_id ? teamRunView.slotWorkBySlot[slot_id] : undefined;
-  const queuedCount = (slotWork?.queued_foreground_count ?? 0) + (slotWork?.queued_background_count ?? 0);
-  const teamWorkStatusText = (() => {
-    switch (slotWork?.blocked_reason) {
-      case 'runtime_starting':
-        return t('team.work.runtimeStarting', { defaultValue: 'Waiting for this assistant to start…' });
-      case 'runtime_failed':
-        return t('team.work.runtimeFailed', { defaultValue: 'This assistant failed to start.' });
-      case 'removing':
-        return t('team.work.removing', { defaultValue: 'Removing this assistant…' });
-      case 'session_stopped':
-        return t('team.work.sessionStopped', { defaultValue: 'The team session has stopped.' });
-      default:
-        if ((slotWork?.state === 'starting' || slotWork?.state === 'running') && queuedCount > 0) {
-          return t('team.work.processingWithQueued', {
-            count: queuedCount,
-            defaultValue: `Processing… ${queuedCount} queued`,
-          });
-        }
-        if (queuedCount > 0) {
-          return t('team.work.queued', { count: queuedCount, defaultValue: `${queuedCount} queued` });
-        }
-        return undefined;
-    }
-  })();
+  const teamWorkStatusText = buildTeamWorkStatusText(slotWork, {
+    processing: () => t('conversation.chat.processing', { defaultValue: 'Processing…' }),
+    processingWithQueued: (count) =>
+      t('team.work.processingWithQueued', {
+        count,
+        defaultValue: `Processing… ${count} queued`,
+      }),
+    runtimeStarting: () => t('team.work.runtimeStarting', { defaultValue: 'Waiting for this assistant to start…' }),
+    runtimeFailed: () => t('team.work.runtimeFailed', { defaultValue: 'This assistant failed to start.' }),
+    removing: () => t('team.work.removing', { defaultValue: 'Removing this assistant…' }),
+    sessionStopped: () => t('team.work.sessionStopped', { defaultValue: 'The team session has stopped.' }),
+  });
   const teamRuntime =
     team_id && slot_id
       ? buildTeamSendRuntime({
