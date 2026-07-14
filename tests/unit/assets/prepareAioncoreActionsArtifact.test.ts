@@ -9,6 +9,8 @@ const {
   prepareAioncore,
 } = require('../../../packages/shared-scripts/src/prepare-aioncore');
 
+const posixFakeToolchainIt = process.platform === 'win32' ? it.skip : it;
+
 function writeFile(filePath: string, contents = 'x') {
   mkdirSync(dirname(filePath), { recursive: true });
   writeFileSync(filePath, contents);
@@ -131,7 +133,9 @@ describe('prepare-aioncore GitHub Actions artifact resolver', () => {
     );
   });
 
-  it('hard fails Actions artifact input when prepared managed resources lack contract', () => {
+  // These cases execute a temporary POSIX shell-script aioncore binary. Windows
+  // coverage for contract rejection lives in the verifier/local-bundle tests.
+  posixFakeToolchainIt('hard fails Actions artifact input when prepared managed resources lack contract', () => {
     const tmp = mkdtempSync(join(tmpdir(), 'aionui-actions-gate-'));
     const fakeBin = createFakeToolchain(tmp);
     const previousPath = process.env.PATH;
@@ -154,7 +158,7 @@ describe('prepare-aioncore GitHub Actions artifact resolver', () => {
     }
   });
 
-  it('hard fails GitHub release download input when prepared managed resources lack contract', () => {
+  posixFakeToolchainIt('hard fails GitHub release download input when prepared managed resources lack contract', () => {
     const tmp = mkdtempSync(join(tmpdir(), 'aionui-download-gate-'));
     const fakeBin = createFakeToolchain(tmp);
     const previousPath = process.env.PATH;
@@ -176,7 +180,7 @@ describe('prepare-aioncore GitHub Actions artifact resolver', () => {
     }
   });
 
-  it('hard fails local binary fallback when prepared managed resources lack contract', () => {
+  posixFakeToolchainIt('hard fails local binary fallback when prepared managed resources lack contract', () => {
     const tmp = mkdtempSync(join(tmpdir(), 'aionui-local-binary-gate-'));
     const localBinary = join(tmp, 'aioncore');
     writeExecutable(localBinary, '#!/usr/bin/env bash\nexit 0\n');
