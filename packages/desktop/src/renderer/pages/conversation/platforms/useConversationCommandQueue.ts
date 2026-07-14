@@ -602,6 +602,7 @@ export const useConversationCommandQueue = ({
     }
 
     if (waitingForTurnStartRef.current && executionGate.isProcessing) {
+      observedBusyBlockedGateRef.current = true;
       waitingForTurnStartRef.current = false;
       waitingForTurnCompletionRef.current = true;
       logCommandQueue(conversation_id, 'turn-started', {
@@ -840,6 +841,7 @@ export const useConversationCommandQueue = ({
       const nextItems = removeQueuedCommand(currentState.items, commandId);
       waitingForTurnStartRef.current = true;
       waitingForTurnCompletionRef.current = false;
+      observedBusyBlockedGateRef.current = false;
       pausedRef.current = false;
       logCommandQueue(conversation_id, 'send-now', {
         item: summarizeQueuedCommand(target),
@@ -855,7 +857,6 @@ export const useConversationCommandQueue = ({
         const busyError = classifyConversationBusyError(error);
         if (busyError) {
           waitingForBusyReleaseRef.current = true;
-          observedBusyBlockedGateRef.current = false;
           waitingForTurnStartRef.current = false;
           waitingForTurnCompletionRef.current = true;
           pausedRef.current = false;
@@ -1034,6 +1035,7 @@ export const useConversationCommandQueue = ({
 
     const [nextCommand, ...remainingCommands] = data.items;
     waitingForTurnStartRef.current = true;
+    observedBusyBlockedGateRef.current = false;
     logCommandQueue(conversation_id, 'dequeued', {
       item: summarizeQueuedCommand(nextCommand),
       remainingItemCount: remainingCommands.length,
@@ -1050,7 +1052,6 @@ export const useConversationCommandQueue = ({
         const busyError = classifyConversationBusyError(error);
         if (busyError) {
           waitingForBusyReleaseRef.current = true;
-          observedBusyBlockedGateRef.current = false;
           waitingForTurnStartRef.current = false;
           waitingForTurnCompletionRef.current = true;
           pausedRef.current = false;

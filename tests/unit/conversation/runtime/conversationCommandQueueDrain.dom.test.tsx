@@ -374,6 +374,37 @@ describe('useConversationCommandQueue drain', () => {
     await waitFor(() => expect(onExecute).toHaveBeenCalledTimes(2));
   });
 
+  it('retries after release when the blocked gate was observed before the busy catch', async () => {
+    let rerenderQueue: ReturnType<typeof renderQueue>['rerender'] = () => undefined;
+    let attempts = 0;
+    const onExecute = vi.fn(async () => {
+      attempts += 1;
+      if (attempts === 1) {
+        rerenderQueue({ gate: processingGate, busy: true });
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        throw busyError();
+      }
+    });
+    const { result, rerender } = renderQueue({
+      conversation_id: 'conv-busy-preobserved-gate',
+      runtimeGate: idleGate,
+      onExecute,
+    });
+    rerenderQueue = rerender;
+
+    act(() => {
+      result.current.enqueue({ input: 'retry after already observed blocked gate', files: [] });
+    });
+
+    await waitFor(() => expect(onExecute).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(result.current.items).toHaveLength(1));
+    expect(Message.warning).not.toHaveBeenCalled();
+
+    rerender({ gate: idleGate, busy: false });
+
+    await waitFor(() => expect(onExecute).toHaveBeenCalledTimes(2));
+  });
+
   it('does not detach into a background drain when onExecute identity changes while mounted', async () => {
     const firstExecute = vi.fn().mockResolvedValue(undefined);
     const secondExecute = vi.fn().mockResolvedValue(undefined);
