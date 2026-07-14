@@ -54,7 +54,7 @@ export class GeminiRotatingClient extends RotatingApiClient<GoogleGenAI> {
 
   protected getCurrentApiKey(): string | undefined {
     if (this.apiKeyManager?.hasMultipleKeys()) {
-      return process.env.GEMINI_API_KEY || this.apiKeyManager.getCurrentKey();
+      return this.apiKeyManager.getCurrentKey();
     }
     return super.getCurrentApiKey();
   }

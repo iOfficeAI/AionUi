@@ -52,8 +52,7 @@ export class AnthropicRotatingClient extends RotatingApiClient<Anthropic> {
 
   protected getCurrentApiKey(): string | undefined {
     if (this.apiKeyManager?.hasMultipleKeys()) {
-      // For Anthropic, try to get from environment first
-      return process.env.ANTHROPIC_API_KEY || this.apiKeyManager.getCurrentKey();
+      return this.apiKeyManager.getCurrentKey();
     }
     // Use base class method for single key
     return super.getCurrentApiKey();

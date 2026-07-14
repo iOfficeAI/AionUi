@@ -1,4 +1,4 @@
-import OpenAI from 'openai';
+import OpenAI, { type ClientOptions as OpenAIClientOptions } from 'openai';
 import { AuthType } from '@office-ai/aioncli-core';
 import type { RotatingApiClientOptions } from './RotatingApiClient';
 import { RotatingApiClient } from './RotatingApiClient';
@@ -10,13 +10,17 @@ export interface OpenAIClientConfig {
   httpAgent?: unknown;
 }
 
+type OpenAIClientOptionsWithHttpAgent = OpenAIClientOptions & {
+  httpAgent?: unknown;
+};
+
 export class OpenAIRotatingClient extends RotatingApiClient<OpenAI> {
   private readonly baseConfig: OpenAIClientConfig;
 
   constructor(api_keys: string, config: OpenAIClientConfig = {}, options: RotatingApiClientOptions = {}) {
     const createClient = (api_key: string) => {
       const cleanedApiKey = api_key.replace(/[\s\r\n\t]/g, '').trim();
-      const openaiConfig: any = {
+      const openaiConfig: OpenAIClientOptionsWithHttpAgent = {
         baseURL: config.baseURL,
         apiKey: cleanedApiKey,
         defaultHeaders: config.defaultHeaders,
@@ -35,8 +39,7 @@ export class OpenAIRotatingClient extends RotatingApiClient<OpenAI> {
 
   protected getCurrentApiKey(): string | undefined {
     if (this.apiKeyManager?.hasMultipleKeys()) {
-      // For OpenAI, try to get from environment first
-      return process.env.OPENAI_API_KEY || this.apiKeyManager.getCurrentKey();
+      return this.apiKeyManager.getCurrentKey();
     }
     // Use base class method for single key
     return super.getCurrentApiKey();
