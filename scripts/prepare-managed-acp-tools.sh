@@ -18,8 +18,8 @@ Environment variables:
   MANAGED_ACP_WRITE_ROOT_MANIFEST
                                Optional. true/false. Default: false
   MANAGED_ACP_NPM_VERSION      Optional. Exact npm version expected in PATH.
-  CODEX_ACP_VERSION            Optional. Default: 0.14.0
-  CLAUDE_ACP_VERSION           Optional. Default: 0.39.0
+  CODEX_ACP_VERSION            Optional. Default: 1.1.2
+  CLAUDE_ACP_VERSION           Optional. Default: 0.58.1
 EOF
 }
 
@@ -59,8 +59,8 @@ MANAGED_ACP_TARGETS="${MANAGED_ACP_TARGETS:-darwin-arm64,darwin-x64,linux-x64,li
 MANAGED_ACP_OVERWRITE="${MANAGED_ACP_OVERWRITE:-false}"
 MANAGED_ACP_WRITE_ROOT_MANIFEST="${MANAGED_ACP_WRITE_ROOT_MANIFEST:-false}"
 MANAGED_ACP_NPM_VERSION="${MANAGED_ACP_NPM_VERSION:-}"
-CODEX_ACP_VERSION="${CODEX_ACP_VERSION:-0.14.0}"
-CLAUDE_ACP_VERSION="${CLAUDE_ACP_VERSION:-0.39.0}"
+CODEX_ACP_VERSION="${CODEX_ACP_VERSION:-1.1.2}"
+CLAUDE_ACP_VERSION="${CLAUDE_ACP_VERSION:-0.58.1}"
 
 sanitize_version() {
   local value="$1"
@@ -305,7 +305,20 @@ validate_platform_binary() {
   local expected_path=""
   case "${tool_slug}" in
     codex-acp)
-      expected_path="${project_dir}/node_modules/@zed-industries/codex-acp-${target}/bin/codex-acp"
+      local vendor_triple=""
+      case "${target}" in
+        darwin-arm64) vendor_triple="aarch64-apple-darwin" ;;
+        darwin-x64) vendor_triple="x86_64-apple-darwin" ;;
+        linux-arm64) vendor_triple="aarch64-unknown-linux-musl" ;;
+        linux-x64) vendor_triple="x86_64-unknown-linux-musl" ;;
+        win32-arm64) vendor_triple="aarch64-pc-windows-msvc" ;;
+        win32-x64) vendor_triple="x86_64-pc-windows-msvc" ;;
+        *)
+          echo "Unsupported Codex ACP target for platform validation: ${target}" >&2
+          exit 1
+          ;;
+      esac
+      expected_path="${project_dir}/node_modules/@openai/codex-${target}/vendor/${vendor_triple}/bin/codex"
       if [[ "${target}" == win32-* ]]; then
         expected_path="${expected_path}.exe"
       fi
@@ -473,7 +486,7 @@ if [[ "${#targets[@]}" -eq 0 ]]; then
 fi
 
 declare -a tool_specs=(
-  "codex-acp|@zed-industries/codex-acp|${CODEX_ACP_VERSION}"
+  "codex-acp|@agentclientprotocol/codex-acp|${CODEX_ACP_VERSION}"
   "claude-agent-acp|@agentclientprotocol/claude-agent-acp|${CLAUDE_ACP_VERSION}"
 )
 
