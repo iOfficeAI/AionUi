@@ -6,9 +6,10 @@
 
 import React from 'react';
 import useSWR from 'swr';
+import { AgentAvatar as DeterministicAgentAvatar } from 'agent-avatars/react';
 import { usePresetAssistantInfo } from '@renderer/hooks/agent/usePresetAssistantInfo';
+import { useThemeContext } from '@renderer/hooks/context/ThemeContext';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
-import { Robot } from '@icon-park/react';
 
 type Props = {
   senderName: string;
@@ -24,21 +25,24 @@ type Props = {
  * teammates keep their persona when messaging others.
  */
 const TeammateMessageAvatar: React.FC<Props> = ({ senderName, senderConversationId, backendLogo }) => {
+  const { theme } = useThemeContext();
   // Share the SWR key with AgentChatSlot / TeamAgentIdentity so this hits cache
   // instead of firing another fetch for the same conversation.
   const { data: conversation } = useSWR(senderConversationId ? ['team-conversation', senderConversationId] : null, () =>
     getConversationOrNull(senderConversationId!)
   );
   const { info: presetInfo } = usePresetAssistantInfo(conversation ?? undefined);
+  const fallbackAvatar = (
+    <DeterministicAgentAvatar
+      seed={senderConversationId || senderName}
+      size={20}
+      options={{ namespace: 'aionui/team', theme }}
+      alt={senderName}
+      className='w-20px h-20px rounded-full'
+    />
+  );
 
-  if (presetInfo) {
-    if (presetInfo.isFallback) {
-      return (
-        <span className='w-20px h-20px rounded-full flex items-center justify-center text-12px leading-none bg-fill-2'>
-          <Robot theme='outline' size={12} />
-        </span>
-      );
-    }
+  if (presetInfo && !presetInfo.isFallback) {
     if (presetInfo.isEmoji) {
       return (
         <span className='w-20px h-20px rounded-full flex items-center justify-center text-14px leading-none bg-fill-2'>
@@ -53,11 +57,7 @@ const TeammateMessageAvatar: React.FC<Props> = ({ senderName, senderConversation
     return <img src={backendLogo} alt={senderName} className='w-20px h-20px rounded-full object-contain' />;
   }
 
-  return (
-    <div className='w-20px h-20px rounded-full bg-fill-3 flex items-center justify-center text-10px text-t-secondary font-medium'>
-      <Robot theme='outline' size={12} />
-    </div>
-  );
+  return fallbackAvatar;
 };
 
 export default TeammateMessageAvatar;

@@ -42,6 +42,7 @@
         "@uiw/react-codemirror": "^4.25.2",
         "@wecom/aibot-node-sdk": "^1.0.6",
         "@xmldom/xmldom": "^0.8.11",
+        "agent-avatars": "1.0.0",
         "bcryptjs": "^2.4.3",
         "better-sqlite3": "^12.4.1",
         "buffer": "^6.0.3",
@@ -1668,6 +1669,8 @@
     "acorn-import-attributes": ["acorn-import-attributes@1.9.5", "", { "peerDependencies": { "acorn": "^8" } }, "sha512-n02Vykv5uA3eHGM/Z2dQrcD56kL8TyDb2p1+0P83PClMnC/nc+anbQRhIOWnSq4Ke/KvDPrY3C9hDtC/A3eHnQ=="],
 
     "acorn-walk": ["acorn-walk@8.3.5", "", { "dependencies": { "acorn": "^8.11.0" } }, "sha512-HEHNfbars9v4pgpW6SO1KSPkfoS0xVOM/9UzkJltjlsHZmJasxg8aXkuZa7SMf8vKGIBhpUsPluQSqhJFCqebw=="],
+
+    "agent-avatars": ["agent-avatars@1.0.0", "", { "peerDependencies": { "react": ">=18 <20" }, "optionalPeers": ["react"] }, "sha512-S0jJPyJU8v+7AgYxnAExw74dTsnhHXp8GGPB/U9GWYiLFaOEW1/gWDTfGgaAguc1e5LRslP6mH9XjDsHLGk55w=="],
 
     "agent-base": ["agent-base@7.1.4", "", {}, "sha512-MnA+YT8fwfJPgBx3m60MNqakm30XOkyIoH1y6huTQvC0PwZG7ki8NacLBcrPbNoo8vEZy7Jpuk7+jMO+CUovTQ=="],
 

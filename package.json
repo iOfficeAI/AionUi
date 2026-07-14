@@ -112,6 +112,7 @@
     "@uiw/react-codemirror": "^4.25.2",
     "@wecom/aibot-node-sdk": "^1.0.6",
     "@xmldom/xmldom": "^0.8.11",
+    "agent-avatars": "1.0.0",
     "bcryptjs": "^2.4.3",
     "better-sqlite3": "^12.4.1",
     "buffer": "^6.0.3",
