@@ -171,6 +171,51 @@ describe('FeedbackProvider / useFeedback', () => {
     });
   });
 
+  it('derives team diagnostics context from the route', async () => {
+    window.location.hash = '#/team/team-1';
+    const user = userEvent.setup();
+    renderWithProvider(<Trigger module='agent-team' autoScreenshot={false} />);
+
+    await user.click(document.querySelector('button')!);
+
+    const lastCall = modalSpy.mock.calls.at(-1)?.[0];
+    expect(lastCall.feedbackDiagnosticsContext).toEqual({
+      explicitContext: { teamId: 'team-1' },
+      explicitProfiles: undefined,
+      routeAtOpen: '#/team/team-1',
+    });
+  });
+
+  it('does not derive diagnostics context from malformed team routes', async () => {
+    window.location.hash = '#/team/%E0%A4%A';
+    const user = userEvent.setup();
+    renderWithProvider(<Trigger module='agent-team' autoScreenshot={false} />);
+
+    await user.click(document.querySelector('button')!);
+
+    const lastCall = modalSpy.mock.calls.at(-1)?.[0];
+    expect(lastCall.feedbackDiagnosticsContext).toEqual({
+      explicitContext: undefined,
+      explicitProfiles: undefined,
+      routeAtOpen: '#/team/%E0%A4%A',
+    });
+  });
+
+  it('does not derive diagnostics context from encoded blank route ids', async () => {
+    window.location.hash = '#/team/%20';
+    const user = userEvent.setup();
+    renderWithProvider(<Trigger module='agent-team' autoScreenshot={false} />);
+
+    await user.click(document.querySelector('button')!);
+
+    const lastCall = modalSpy.mock.calls.at(-1)?.[0];
+    expect(lastCall.feedbackDiagnosticsContext).toEqual({
+      explicitContext: undefined,
+      explicitProfiles: undefined,
+      routeAtOpen: '#/team/%20',
+    });
+  });
+
   it('captures a screenshot via electronAPI when autoScreenshot=true', async () => {
     const capture = vi.fn(() =>
       Promise.resolve({

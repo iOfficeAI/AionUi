@@ -14,7 +14,7 @@ import type {
   FeedbackDiagnosticsExplicitContext,
   FeedbackDiagnosticsProfile,
 } from '@/common/types/feedbackDiagnostics';
-import { captureFeedbackRoute } from '@/renderer/services/feedback/routeContext';
+import { captureFeedbackRoute, feedbackDiagnosticsContextFromRoute } from '@/renderer/services/feedback/routeContext';
 
 type OpenFeedbackOptions = {
   module?: string;
@@ -63,13 +63,22 @@ export const FeedbackProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   >(undefined);
 
   const openFeedback = useCallback(async (options?: OpenFeedbackOptions) => {
+    const routeAtOpen = captureFeedbackRoute();
+    const routeContext = feedbackDiagnosticsContextFromRoute(routeAtOpen);
+    const explicitContext =
+      routeContext || options?.diagnosticsContext
+        ? {
+            ...routeContext,
+            ...options?.diagnosticsContext,
+          }
+        : undefined;
     setDefaultModule(options?.module);
     setFeedbackTags(options?.tags);
     setFeedbackExtra(options?.extra);
     setFeedbackDiagnosticsContext({
-      explicitContext: options?.diagnosticsContext,
+      explicitContext,
       explicitProfiles: options?.diagnosticsProfiles,
-      routeAtOpen: captureFeedbackRoute(),
+      routeAtOpen,
     });
     if (options?.autoScreenshot) {
       const shot = await captureScreenshot();

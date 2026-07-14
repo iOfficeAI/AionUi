@@ -1,5 +1,4 @@
 import { ipcBridge } from '@/common';
-import { isBackendHttpError } from '@/common/adapter/httpBridge';
 import { uuid } from '@/common/utils';
 import {
   getConversationRuntimeViewSnapshot,
@@ -10,6 +9,7 @@ import { Message } from '@arco-design/web-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
+import { classifyConversationBusyError } from './conversationBusyError';
 
 export type ConversationCommandQueueItem = {
   id: string;
@@ -63,12 +63,17 @@ const logCommandQueue = (conversation_id: string, event: string, payload: Record
     event,
     ...payload,
   });
-};
-
-const isConversationBusyError = (error: unknown): boolean => {
-  if (!isBackendHttpError(error)) return false;
-  if (error.status !== 409 || error.code !== 'CONFLICT') return false;
-  return error.backendMessage.toLowerCase().includes('already');
+  void ipcBridge.application?.writeRendererLog
+    ?.invoke({
+      level: 'info',
+      tag: 'conversationCommandQueue',
+      message: event,
+      data: {
+        conversation_id,
+        ...payload,
+      },
+    })
+    .catch(() => {});
 };
 
 const normalizeQueueMode = (mode: unknown): ConversationCommandQueueMode => (mode === 'manual' ? 'manual' : 'auto');
@@ -466,6 +471,7 @@ const drainBackgroundCommandQueue = async (runner: BackgroundCommandQueueRunner)
   }
 
   runner.executing = true;
+  let shouldContinueDrain = true;
   logCommandQueue(runner.conversation_id, 'background-dequeued', {
     item: summarizeQueuedCommand(nextCommand),
     remainingItemCount: remainingCommands.length,
@@ -481,15 +487,17 @@ const drainBackgroundCommandQueue = async (runner: BackgroundCommandQueueRunner)
   } catch (error) {
     const failedState = readPersistedQueueState(runner.conversation_id);
     const restoredItems = restoreQueuedCommand(failedState.items, nextCommand);
-    if (isConversationBusyError(error)) {
-      // Backend was still processing when we sent — put the command back and
-      // retry after a short delay instead of pausing the whole queue.
-      logCommandQueue(runner.conversation_id, 'background-busy-retry', {
+    const busyError = classifyConversationBusyError(error);
+    if (busyError) {
+      logCommandQueue(runner.conversation_id, 'background-busy-wait', {
         item: summarizeQueuedCommand(nextCommand),
+        busyKind: busyError.kind,
+        status: busyError.status,
+        code: busyError.code,
+        remainingItemCount: restoredItems.length,
       });
       persistQueueState(runner.conversation_id, { ...failedState, items: restoredItems, isPaused: false });
-      runner.executing = false;
-      setTimeout(() => void drainBackgroundCommandQueue(runner), 800);
+      shouldContinueDrain = false;
       return;
     }
     console.error('[conversation-command-queue] Failed to execute background queued command:', error);
@@ -501,7 +509,9 @@ const drainBackgroundCommandQueue = async (runner: BackgroundCommandQueueRunner)
     Message.warning('The next queued command could not start. Edit, reorder, or remove it to continue.');
   } finally {
     runner.executing = false;
-    void drainBackgroundCommandQueue(runner);
+    if (shouldContinueDrain) {
+      void drainBackgroundCommandQueue(runner);
+    }
   }
 };
 
@@ -556,7 +566,10 @@ export const useConversationCommandQueue = ({
   const pausedRef = useRef(data.isPaused);
   const waitingForTurnStartRef = useRef(false);
   const waitingForTurnCompletionRef = useRef(false);
+  const waitingForBusyReleaseRef = useRef(false);
+  const observedBusyBlockedGateRef = useRef(false);
   const interactionLockedRef = useRef(false);
+  const onExecuteRef = useRef(onExecute);
   const [isInteractionLocked, setIsInteractionLocked] = useState(false);
   const [executionGateVersion, setExecutionGateVersion] = useState(0);
 
@@ -565,7 +578,31 @@ export const useConversationCommandQueue = ({
   }, [data]);
 
   useEffect(() => {
+    onExecuteRef.current = onExecute;
+  }, [onExecute]);
+
+  useEffect(() => {
+    if (waitingForBusyReleaseRef.current) {
+      if (!executionGate.hydrated || !executionGate.canExecute || executionGate.isProcessing) {
+        observedBusyBlockedGateRef.current = true;
+        return;
+      }
+
+      if (!observedBusyBlockedGateRef.current) {
+        return;
+      }
+
+      waitingForBusyReleaseRef.current = false;
+      observedBusyBlockedGateRef.current = false;
+      waitingForTurnStartRef.current = false;
+      waitingForTurnCompletionRef.current = false;
+      logCommandQueue(conversation_id, 'busy-release', {
+        pendingItemCount: stateRef.current.items.length,
+      });
+    }
+
     if (waitingForTurnStartRef.current && executionGate.isProcessing) {
+      observedBusyBlockedGateRef.current = true;
       waitingForTurnStartRef.current = false;
       waitingForTurnCompletionRef.current = true;
       logCommandQueue(conversation_id, 'turn-started', {
@@ -591,15 +628,19 @@ export const useConversationCommandQueue = ({
   }, [isInteractionLocked]);
 
   useEffect(() => {
+    if (!enabled) {
+      return;
+    }
+
     registerBackgroundCommandQueueRunner({
       conversation_id,
-      onExecute,
+      onExecute: (item) => onExecuteRef.current(item),
     });
 
     return () => {
       detachBackgroundCommandQueueRunner(conversation_id);
     };
-  }, [conversation_id, onExecute]);
+  }, [conversation_id, enabled]);
 
   useEffect(() => {
     if (enabled) {
@@ -608,6 +649,8 @@ export const useConversationCommandQueue = ({
 
     waitingForTurnStartRef.current = false;
     waitingForTurnCompletionRef.current = false;
+    waitingForBusyReleaseRef.current = false;
+    observedBusyBlockedGateRef.current = false;
     pausedRef.current = false;
     interactionLockedRef.current = false;
     stateRef.current = createDefaultQueueState();
@@ -645,6 +688,8 @@ export const useConversationCommandQueue = ({
   const clear = useCallback(() => {
     waitingForTurnStartRef.current = false;
     waitingForTurnCompletionRef.current = false;
+    waitingForBusyReleaseRef.current = false;
+    observedBusyBlockedGateRef.current = false;
     pausedRef.current = false;
     logCommandQueue(conversation_id, 'cleared');
     void updateState(() => createDefaultQueueState());
@@ -796,6 +841,7 @@ export const useConversationCommandQueue = ({
       const nextItems = removeQueuedCommand(currentState.items, commandId);
       waitingForTurnStartRef.current = true;
       waitingForTurnCompletionRef.current = false;
+      observedBusyBlockedGateRef.current = false;
       pausedRef.current = false;
       logCommandQueue(conversation_id, 'send-now', {
         item: summarizeQueuedCommand(target),
@@ -807,7 +853,27 @@ export const useConversationCommandQueue = ({
         isPaused: false,
       }));
 
-      void onExecute(target).catch((error) => {
+      void onExecuteRef.current(target).catch((error) => {
+        const busyError = classifyConversationBusyError(error);
+        if (busyError) {
+          waitingForBusyReleaseRef.current = true;
+          waitingForTurnStartRef.current = false;
+          waitingForTurnCompletionRef.current = true;
+          pausedRef.current = false;
+          logCommandQueue(conversation_id, 'send-now-busy-wait', {
+            item: summarizeQueuedCommand(target),
+            busyKind: busyError.kind,
+            status: busyError.status,
+            code: busyError.code,
+            remainingItemCount: nextItems.length + 1,
+          });
+          void updateState((state) => ({
+            ...state,
+            items: restoreQueuedCommand(state.items, target),
+            isPaused: false,
+          }));
+          return;
+        }
         console.error('[conversation-command-queue] Failed to send queued command now:', error);
         logCommandQueue(conversation_id, 'send-now-failed', {
           item: summarizeQueuedCommand(target),
@@ -828,7 +894,7 @@ export const useConversationCommandQueue = ({
         );
       });
     },
-    [conversation_id, enabled, onExecute, t, updateState]
+    [conversation_id, enabled, t, updateState]
   );
 
   const reorder = useCallback(
@@ -858,6 +924,8 @@ export const useConversationCommandQueue = ({
     pausedRef.current = true;
     waitingForTurnStartRef.current = false;
     waitingForTurnCompletionRef.current = false;
+    waitingForBusyReleaseRef.current = false;
+    observedBusyBlockedGateRef.current = false;
     logCommandQueue(conversation_id, 'paused', {
       itemCount: data.items.length,
     });
@@ -929,9 +997,12 @@ export const useConversationCommandQueue = ({
 
   const resetActiveExecution = useCallback(
     (reason: 'stop' | 'external-reset') => {
-      const hadPendingTurn = waitingForTurnStartRef.current || waitingForTurnCompletionRef.current;
+      const hadPendingTurn =
+        waitingForTurnStartRef.current || waitingForTurnCompletionRef.current || waitingForBusyReleaseRef.current;
       waitingForTurnStartRef.current = false;
       waitingForTurnCompletionRef.current = false;
+      waitingForBusyReleaseRef.current = false;
+      observedBusyBlockedGateRef.current = false;
 
       if (!hadPendingTurn) {
         return;
@@ -955,6 +1026,7 @@ export const useConversationCommandQueue = ({
       !executionGate.canExecute ||
       waitingForTurnStartRef.current ||
       waitingForTurnCompletionRef.current ||
+      waitingForBusyReleaseRef.current ||
       interactionLockedRef.current ||
       data.items.length === 0
     ) {
@@ -963,6 +1035,7 @@ export const useConversationCommandQueue = ({
 
     const [nextCommand, ...remainingCommands] = data.items;
     waitingForTurnStartRef.current = true;
+    observedBusyBlockedGateRef.current = false;
     logCommandQueue(conversation_id, 'dequeued', {
       item: summarizeQueuedCommand(nextCommand),
       remainingItemCount: remainingCommands.length,
@@ -975,23 +1048,25 @@ export const useConversationCommandQueue = ({
       items: remainingCommands,
       isPaused: false,
     })).then(() =>
-      onExecute(nextCommand).catch((error) => {
-        if (isConversationBusyError(error)) {
-          // Backend was still processing when we fired — restore the command
-          // and bump the gate version so the effect re-runs once the gate
-          // shows canExecute again.
-          logCommandQueue(conversation_id, 'busy-retry', {
-            item: summarizeQueuedCommand(nextCommand),
-          });
+      onExecuteRef.current(nextCommand).catch((error) => {
+        const busyError = classifyConversationBusyError(error);
+        if (busyError) {
+          waitingForBusyReleaseRef.current = true;
           waitingForTurnStartRef.current = false;
-          waitingForTurnCompletionRef.current = false;
+          waitingForTurnCompletionRef.current = true;
           pausedRef.current = false;
+          logCommandQueue(conversation_id, 'busy-wait', {
+            item: summarizeQueuedCommand(nextCommand),
+            busyKind: busyError.kind,
+            status: busyError.status,
+            code: busyError.code,
+            remainingItemCount: remainingCommands.length + 1,
+          });
           void updateState((state) => ({
             ...state,
             items: restoreQueuedCommand(state.items, nextCommand),
             isPaused: false,
           }));
-          setExecutionGateVersion((v) => v + 1);
           return;
         }
         console.error('[conversation-command-queue] Failed to execute queued command:', error);
@@ -1024,7 +1099,6 @@ export const useConversationCommandQueue = ({
     executionGate.hydrated,
     executionGate.isProcessing,
     isInteractionLocked,
-    onExecute,
     t,
     updateState,
   ]);

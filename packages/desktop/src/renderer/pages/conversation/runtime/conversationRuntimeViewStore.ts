@@ -28,6 +28,7 @@ export type ConversationRuntimeViewLogEvent =
   | 'local_send_started'
   | 'local_send_accepted'
   | 'local_send_failed'
+  | 'local_send_busy'
   | 'local_stop_requested'
   | 'local_stop_acknowledged'
   | 'runtime_view_cleaned';
@@ -44,6 +45,16 @@ type ConversationRuntimeSnapshot = {
   view: ConversationRuntimeView;
   logs: ConversationRuntimeViewLogEntry[];
 };
+
+export type ConversationRuntimeSendFailure =
+  | { kind: 'ordinary'; reason: string }
+  | {
+      kind: 'busy_conflict';
+      reason: string;
+      busyKind: 'active_turn' | 'runtime_unavailable';
+      status?: number;
+      code?: string;
+    };
 
 type ConversationRuntimeViewListener = () => void;
 type ConversationRuntimeMetadata = {
@@ -295,9 +306,29 @@ const staleRuntimeSummaryConversationRuntimeView = (
 export const localSendFailedConversationRuntimeView = (
   previous: ConversationRuntimeView | undefined,
   conversation_id: string,
-  reason: string
+  failure: ConversationRuntimeSendFailure
 ): ConversationRuntimeSnapshot => {
   const base = previous ?? createDefaultConversationRuntimeView(conversation_id);
+  if (failure.kind === 'busy_conflict') {
+    const shouldPreserveBusyGate = base.activeTurnId !== null || base.isProcessing || !base.canSendMessage;
+    const view: ConversationRuntimeView = {
+      ...base,
+      state: shouldPreserveBusyGate ? base.state : 'starting',
+      isProcessing: shouldPreserveBusyGate ? base.isProcessing || !base.canSendMessage : true,
+      canSendMessage: false,
+      localSubmitting: false,
+      hydrated: true,
+    };
+    return withLogs(view, [
+      createLog('info', 'local_send_busy', view, {
+        reason: failure.reason,
+        busyKind: failure.busyKind,
+        status: failure.status,
+        code: failure.code,
+      }),
+    ]);
+  }
+
   const view: ConversationRuntimeView = {
     ...base,
     state: 'idle',
@@ -306,7 +337,7 @@ export const localSendFailedConversationRuntimeView = (
     localSubmitting: false,
     hydrated: true,
   };
-  return withLogs(view, [createLog('info', 'local_send_failed', view, { reason })]);
+  return withLogs(view, [createLog('info', 'local_send_failed', view, { reason: failure.reason })]);
 };
 
 export const localStopRequestedConversationRuntimeView = (
@@ -492,12 +523,15 @@ export const localSendAccepted = (
   );
 };
 
-export const localSendFailed = (conversation_id: string, reason: string): ConversationRuntimeViewLogEntry[] => {
+export const localSendFailed = (
+  conversation_id: string,
+  failure: ConversationRuntimeSendFailure
+): ConversationRuntimeViewLogEntry[] => {
   const metadata = getRuntimeMetadata(conversation_id);
   metadata.pendingLocalSendSeq = null;
   return setConversationRuntimeSnapshot(
     conversation_id,
-    localSendFailedConversationRuntimeView(runtimeViews.get(conversation_id), conversation_id, reason)
+    localSendFailedConversationRuntimeView(runtimeViews.get(conversation_id), conversation_id, failure)
   );
 };
 

@@ -6,6 +6,7 @@
 
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { Message } from '@arco-design/web-react';
+import { BackendHttpError } from '@/common/adapter/httpBridge';
 import type { TConversationRuntimeSummary } from '@/common/config/storage';
 import { createElement, type PropsWithChildren } from 'react';
 import { SWRConfig } from 'swr';
@@ -93,6 +94,30 @@ const runtime = (overrides: Partial<TConversationRuntimeSummary> = {}): TConvers
   ...overrides,
 });
 
+const busyError = () =>
+  new BackendHttpError({
+    method: 'POST',
+    path: '/api/conversations/conv/messages',
+    status: 409,
+    body: {
+      success: false,
+      code: 'CONFLICT',
+      error: 'conversation conv is already running',
+    },
+  });
+
+const runtimeUnavailableError = () =>
+  new BackendHttpError({
+    method: 'POST',
+    path: '/api/conversations/conv/messages',
+    status: 409,
+    body: {
+      success: false,
+      code: 'CONFLICT',
+      error: 'conversation runtime is shutting down',
+    },
+  });
+
 const storageKey = (conversationId: string) => `conversation-command-queue/${conversationId}`;
 
 const emitTurnCompleted = (conversationId: string): void => {
@@ -140,6 +165,7 @@ describe('useConversationCommandQueue drain', () => {
     turnCompletedListeners.current = [];
     resetConversationRuntimeViewStoreForTest();
     resetConversationCommandQueueBackgroundRunnerForTest();
+    vi.clearAllMocks();
     vi.spyOn(console, 'info').mockImplementation(() => {});
   });
 
@@ -321,5 +347,149 @@ describe('useConversationCommandQueue drain', () => {
       isPaused: true,
       items: [expect.objectContaining({ input: 'retry me later' })],
     });
+  });
+
+  it('restores a foreground busy command and waits for gate release without warning', async () => {
+    const onExecute = vi.fn().mockRejectedValueOnce(busyError()).mockResolvedValueOnce(undefined);
+    const { result, rerender } = renderQueue({
+      conversation_id: 'conv-busy-foreground',
+      runtimeGate: idleGate,
+      onExecute,
+    });
+
+    act(() => {
+      result.current.enqueue({ input: 'queued while busy', files: [] });
+    });
+
+    await waitFor(() => expect(onExecute).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(result.current.items).toHaveLength(1));
+    expect(Message.warning).not.toHaveBeenCalled();
+
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(onExecute).toHaveBeenCalledTimes(1);
+
+    rerender({ gate: processingGate, busy: true });
+    rerender({ gate: idleGate, busy: false });
+
+    await waitFor(() => expect(onExecute).toHaveBeenCalledTimes(2));
+  });
+
+  it('retries after release when the blocked gate was observed before the busy catch', async () => {
+    let rerenderQueue: ReturnType<typeof renderQueue>['rerender'] = () => undefined;
+    let attempts = 0;
+    const onExecute = vi.fn(async () => {
+      attempts += 1;
+      if (attempts === 1) {
+        rerenderQueue({ gate: processingGate, busy: true });
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        throw busyError();
+      }
+    });
+    const { result, rerender } = renderQueue({
+      conversation_id: 'conv-busy-preobserved-gate',
+      runtimeGate: idleGate,
+      onExecute,
+    });
+    rerenderQueue = rerender;
+
+    act(() => {
+      result.current.enqueue({ input: 'retry after already observed blocked gate', files: [] });
+    });
+
+    await waitFor(() => expect(onExecute).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(result.current.items).toHaveLength(1));
+    expect(Message.warning).not.toHaveBeenCalled();
+
+    rerender({ gate: idleGate, busy: false });
+
+    await waitFor(() => expect(onExecute).toHaveBeenCalledTimes(2));
+  });
+
+  it('does not detach into a background drain when onExecute identity changes while mounted', async () => {
+    const firstExecute = vi.fn().mockResolvedValue(undefined);
+    const secondExecute = vi.fn().mockResolvedValue(undefined);
+    const wrapper = createSwrWrapper();
+    const { result, rerender } = renderHook(
+      ({ gate, execute }) =>
+        useConversationCommandQueue({
+          conversation_id: 'conv-stable-runner',
+          enabled: true,
+          isBusy: gate.isProcessing || !gate.canSendMessage,
+          runtimeGate: gate,
+          onExecute: execute,
+        }),
+      { initialProps: { gate: processingGate, execute: firstExecute }, wrapper }
+    );
+
+    act(() => {
+      result.current.enqueue({ input: 'send once', files: [] });
+    });
+    await waitFor(() => expect(result.current.items).toHaveLength(1));
+
+    rerender({ gate: processingGate, execute: secondExecute });
+    emitTurnCompleted('conv-stable-runner');
+    expect(firstExecute).not.toHaveBeenCalled();
+    expect(secondExecute).not.toHaveBeenCalled();
+
+    rerender({ gate: idleGate, execute: secondExecute });
+    await waitFor(() => expect(secondExecute).toHaveBeenCalledTimes(1));
+    expect(firstExecute).not.toHaveBeenCalled();
+  });
+
+  it('restores a runtime-unavailable busy command without warning or rapid retry', async () => {
+    const onExecute = vi.fn().mockRejectedValueOnce(runtimeUnavailableError()).mockResolvedValueOnce(undefined);
+    const { result, rerender } = renderQueue({
+      conversation_id: 'conv-runtime-unavailable',
+      runtimeGate: idleGate,
+      onExecute,
+    });
+
+    act(() => {
+      result.current.enqueue({ input: 'queued while runtime closes', files: [] });
+    });
+
+    await waitFor(() => expect(onExecute).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(result.current.items).toHaveLength(1));
+    expect(Message.warning).not.toHaveBeenCalled();
+
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(onExecute).toHaveBeenCalledTimes(1);
+
+    rerender({ gate: processingGate, busy: true });
+    rerender({ gate: idleGate, busy: false });
+
+    await waitFor(() => expect(onExecute).toHaveBeenCalledTimes(2));
+  });
+
+  it('restores a background busy command and waits for turn completion before retrying', async () => {
+    const onExecute = vi.fn().mockRejectedValueOnce(busyError()).mockResolvedValueOnce(undefined);
+    const { result, unmount } = renderQueue({
+      conversation_id: 'conv-background-busy',
+      runtimeGate: processingGate,
+      onExecute,
+    });
+
+    act(() => {
+      result.current.enqueue({ input: 'retry after turn completion', files: [] });
+    });
+    await waitFor(() => expect(result.current.items).toHaveLength(1));
+
+    unmount();
+    emitTurnCompleted('conv-background-busy');
+
+    await waitFor(() => expect(onExecute).toHaveBeenCalledTimes(1));
+    expect(Message.warning).not.toHaveBeenCalled();
+    expect(JSON.parse(sessionStorage.getItem(storageKey('conv-background-busy')) ?? '{}')).toMatchObject({
+      isPaused: false,
+      items: [expect.objectContaining({ input: 'retry after turn completion' })],
+    });
+
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(onExecute).toHaveBeenCalledTimes(1);
+
+    emitTurnCompleted('conv-background-busy');
+
+    await waitFor(() => expect(onExecute).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(sessionStorage.getItem(storageKey('conv-background-busy'))).toBeNull());
   });
 });

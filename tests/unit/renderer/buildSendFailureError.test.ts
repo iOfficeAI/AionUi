@@ -33,6 +33,32 @@ describe('buildSendFailureError', () => {
     });
   });
 
+  it('classifies 409 already-running as AIONUI_CONVERSATION_BUSY', () => {
+    const err = httpError(409, 'CONFLICT', 'conversation 7261e2b5 is already running');
+
+    const result = buildSendFailureError(err, 'conversation 7261e2b5 is already running');
+
+    expect(result).toMatchObject({
+      code: 'AIONUI_CONVERSATION_BUSY',
+      ownership: 'aionui',
+      retryable: false,
+      feedback_recommended: false,
+      resolution: { kind: 'wait_for_current_response' },
+    });
+    expect(result.rawError).toBeUndefined();
+  });
+
+  it('classifies runtime shutdown conflict as non-retryable busy without raw internal diagnostics', () => {
+    const err = httpError(409, 'CONFLICT', 'conversation runtime is shutting down');
+
+    const result = buildSendFailureError(err, 'conversation runtime is shutting down');
+
+    expect(result.code).toBe('AIONUI_CONVERSATION_BUSY');
+    expect(result.retryable).toBe(false);
+    expect(result.feedback_recommended).toBe(false);
+    expect(result.rawError).toBeUndefined();
+  });
+
   it('classifies 502 BAD_GATEWAY as UNKNOWN_UPSTREAM_ERROR (retryable)', () => {
     const err = httpError(502, 'BAD_GATEWAY', 'Bad gateway: upstream timeout');
 

@@ -1,6 +1,8 @@
 import React from 'react';
 import { act, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { Message } from '@arco-design/web-react';
+import { BackendHttpError } from '@/common/adapter/httpBridge';
 import AionrsSendBox from '@/renderer/pages/conversation/platforms/aionrs/AionrsSendBox';
 import type { AionrsModelSelection } from '@/renderer/pages/conversation/platforms/aionrs/useAionrsModelSelection';
 
@@ -10,22 +12,26 @@ const {
   translateMock,
   useTeamPermissionMock,
   setSendBoxHandlerMock,
+  markSendFailedMock,
+  markSendStartedMock,
+  markSendAcceptedMock,
 } = vi.hoisted(() => ({
   ensureConversationRuntimeMock: vi.fn().mockResolvedValue({ recovered: false, config_options: [], runtime: null }),
   sendMessageInvokeMock: vi.fn().mockResolvedValue(undefined),
   translateMock: (key: string, options?: { defaultValue?: string }) => options?.defaultValue ?? key,
   useTeamPermissionMock: vi.fn(),
   setSendBoxHandlerMock: vi.fn(),
+  markSendFailedMock: vi.fn(),
+  markSendStartedMock: vi.fn(),
+  markSendAcceptedMock: vi.fn(),
 }));
 
 vi.mock('@/common', () => ({
   ipcBridge: {
-    aionrsConversation: {
+    conversation: {
       sendMessage: {
         invoke: sendMessageInvokeMock,
       },
-    },
-    conversation: {
       stop: {
         invoke: vi.fn().mockResolvedValue(undefined),
       },
@@ -142,7 +148,9 @@ vi.mock('@/renderer/pages/conversation/runtime/useConversationRuntimeView', () =
     canSendMessage: true,
     isProcessing: false,
     state: 'idle',
-    markSendStarted: vi.fn(),
+    markSendStarted: markSendStartedMock,
+    markSendAccepted: markSendAcceptedMock,
+    markSendFailed: markSendFailedMock,
   }),
 }));
 vi.mock('@/renderer/pages/conversation/utils/conversationCache', () => ({
@@ -298,5 +306,31 @@ describe('AionrsSendBox', () => {
     await waitFor(() => {
       expect(ensureConversationRuntimeMock).toHaveBeenCalledWith('conv-1');
     });
+  });
+
+  it('suppresses visible error and preserves runtime gate for active-turn busy conflicts', async () => {
+    sendMessageInvokeMock.mockRejectedValue(
+      new BackendHttpError({
+        method: 'POST',
+        path: '/api/conversations/conv-1/messages',
+        status: 409,
+        body: { success: false, code: 'CONFLICT', error: 'conversation conv-1 is already running' },
+      })
+    );
+
+    render(<AionrsSendBox conversation_id='conv-1' modelSelection={modelSelection} />);
+    await waitFor(() => expect(ensureConversationRuntimeMock).toHaveBeenCalledWith('conv-1'));
+
+    await act(async () => {
+      screen.getByRole('button', { name: 'send' }).click();
+    });
+
+    await waitFor(() => {
+      expect(sendMessageInvokeMock).toHaveBeenCalledTimes(1);
+    });
+    expect(markSendFailedMock).toHaveBeenCalledWith(
+      expect.objectContaining({ kind: 'busy_conflict', busyKind: 'active_turn' })
+    );
+    expect(Message.error).not.toHaveBeenCalled();
   });
 });

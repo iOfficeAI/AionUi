@@ -13,6 +13,8 @@ import { buildDisplayMessage } from '@/renderer/utils/file/messageFiles';
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getConversationRuntimeWorkspaceErrorMessage } from '../../utils/conversationCreateError';
+import type { ConversationRuntimeSendFailure } from '../../runtime/conversationRuntimeViewStore';
+import { classifyConversationBusyError } from '../conversationBusyError';
 import { buildSendFailureError } from './buildSendFailureError';
 
 type UseAcpInitialMessageParams = {
@@ -23,7 +25,7 @@ type UseAcpInitialMessageParams = {
   resetState: () => void;
   markSendStarted?: () => void;
   markSendAccepted?: (turn_id: string, runtime: TConversationRuntimeSummary, msg_id?: string) => void;
-  markSendFailed?: (reason: string) => void;
+  markSendFailed?: (failure: ConversationRuntimeSendFailure) => void;
   checkAndUpdateTitle: (conversation_id: string, input: string) => void;
   addOrUpdateMessage: (message: TMessage, prepend?: boolean) => void;
 };
@@ -78,7 +80,25 @@ export const useAcpInitialMessage = ({
       } catch (error) {
         const errorMessageText =
           getConversationRuntimeWorkspaceErrorMessage(error, t) || parseError(error) || t('common.unknownError');
-        markSendFailed?.(errorMessageText);
+        const busyError = classifyConversationBusyError(error);
+        if (busyError) {
+          markSendFailed?.({
+            kind: 'busy_conflict',
+            reason: errorMessageText,
+            busyKind: busyError.kind,
+            status: busyError.status,
+            code: busyError.code,
+          });
+          console.info('[useAcpInitialMessage] Initial send hit conversation busy state:', {
+            conversation_id,
+            busyKind: busyError.kind,
+            status: busyError.status,
+            code: busyError.code,
+          });
+          return;
+        }
+
+        markSendFailed?.({ kind: 'ordinary', reason: errorMessageText });
         console.error('[useAcpInitialMessage] Error sending initial message:', error);
         console.error('[useAcpInitialMessage] Error details:', {
           name: (error as Error)?.name,

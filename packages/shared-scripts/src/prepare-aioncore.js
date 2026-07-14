@@ -19,6 +19,7 @@ const { execSync, execFileSync } = require('child_process');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
+const { verifyBundledAioncoreResources } = require('./verify-bundled-aioncore-resources');
 
 const GITHUB_OWNER = 'iOfficeAI';
 const GITHUB_REPO = 'AionCore';
@@ -133,6 +134,19 @@ function prepareManagedResources(binaryPath, targetDir) {
 
   removeDirectorySafe(dataDir);
   return bundleOut;
+}
+
+function verifyPreparedAioncoreBundle(projectRoot, platform, arch) {
+  const result = verifyBundledAioncoreResources({
+    resourcesDir: path.join(projectRoot, 'resources'),
+    electronPlatformName: platform,
+    targetArch: arch,
+  });
+  if (result.missing.length > 0 || result.failures.length > 0) {
+    const summary = result.missing.length > 0 ? result.missing.join(', ') : JSON.stringify(result.failures);
+    throw new Error(`Prepared aioncore bundle is missing required bundled resource(s): ${summary}`);
+  }
+  return result;
 }
 
 // ---------------------------------------------------------------------------
@@ -480,6 +494,7 @@ function prepareAioncore(options) {
         files: [binaryName, 'managed-resources/'],
       };
       writeJson(path.join(targetDir, 'manifest.json'), manifest);
+      verifyPreparedAioncoreBundle(projectRoot, platform, arch);
       console.log(`  Using local aioncore bundle: ${resolvedLocalBundleDir}`);
       return { prepared: true, dir: targetDir, sourceType: 'local-bundle' };
     }
@@ -555,6 +570,7 @@ function prepareAioncore(options) {
     };
 
     writeJson(path.join(targetDir, 'manifest.json'), manifest);
+    verifyPreparedAioncoreBundle(projectRoot, platform, arch);
     console.log(
       `  Bundled aioncore prepared: resources/bundled-aioncore/${runtimeKey}/${binaryName} [source=${sourceType}]`
     );
@@ -571,4 +587,5 @@ module.exports = {
   getActionsArtifactMissingMessage,
   getActionsArtifactName,
   prepareAioncore,
+  verifyPreparedAioncoreBundle,
 };
