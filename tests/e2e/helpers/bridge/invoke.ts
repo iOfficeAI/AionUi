@@ -14,8 +14,7 @@ type ElectronApi = {
  * the renderer against `window.__backendPort`. This matches how the running
  * app talks to aioncore.
  *
- * Fallback: for any key not in the route map, fall back to the legacy
- * `@office-ai/platform` IPC protocol:
+ * Fallback: for any key not in the route map, fall back to the desktop IPC protocol:
  *   emit('subscribe-{key}', { id, data }) -> on('subscribe.callback-{key}{id}', result)
  */
 export async function invokeBridge<T = unknown>(

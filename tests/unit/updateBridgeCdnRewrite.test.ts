@@ -6,7 +6,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-vi.mock('@office-ai/platform', () => ({
+vi.mock('@/common/platform/bridge', () => ({
   bridge: {
     buildProvider: vi.fn(() => {
       const handlerMap = new Map<string, Function>();
@@ -23,14 +23,6 @@ vi.mock('@office-ai/platform', () => ({
       emit: vi.fn(),
       on: vi.fn(),
     })),
-  },
-  storage: {
-    buildStorage: () => ({
-      getSync: () => undefined,
-      setSync: () => {},
-      get: () => Promise.resolve(undefined),
-      set: () => Promise.resolve(),
-    }),
   },
 }));
 
