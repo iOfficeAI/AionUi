@@ -15,8 +15,7 @@ export const removeStack = (...args: Array<() => void>) => {
 
 /**
  * Tool confirmation outcome enum
- * This is a local copy to avoid importing the entire tools module from aioncli-core
- * which contains Node.js dependencies (node:crypto) that cannot be bundled in the renderer process.
+ * Kept in the renderer because this module cannot import Node.js dependencies.
  */
 export enum ToolConfirmationOutcome {
   ProceedOnce = 'proceed_once',

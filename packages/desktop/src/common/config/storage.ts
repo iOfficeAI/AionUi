@@ -6,13 +6,13 @@
 
 import type { SpeechToTextConfig } from '@/common/types/provider/speech';
 import type { Theme } from '@/common/theme/types';
-import { storage } from '@office-ai/platform';
+import { buildStorage } from '@/common/platform/storage';
 
 // 系统配置存储
-export const ConfigStorage = storage.buildStorage<IConfigStorageRefer>('agent.config');
+export const ConfigStorage = buildStorage<IConfigStorageRefer>('agent.config');
 
 // 系统环境变量存储
-export const EnvStorage = storage.buildStorage<IEnvStorageRefer>('agent.env');
+export const EnvStorage = buildStorage<IEnvStorageRefer>('agent.env');
 
 export interface IConfigStorageRefer {
   language: string;

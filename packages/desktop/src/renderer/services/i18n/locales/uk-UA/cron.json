@@ -80,6 +80,8 @@
       "prompt": "Промпт",
       "promptRequired": "Промпт обов'язковий",
       "promptPlaceholder": "Інструкції для виконання агентом",
+      "queue": "Захист черги",
+      "queueHint": "Якщо ввімкнено, новий запуск буде пропущено, доки попередня запланована розмова ще виконується, не перериваючи асистента.",
       "frequency": "Частота",
       "cronExpr": "Вираз Cron",
       "cronExprRequired": "Вираз Cron обов'язковий",
@@ -124,7 +126,21 @@
       "weekdaysAt": "У будні о {{time}}",
       "weeklyAt": "Що{{day}} о {{time}}"
     },
-    "customCronWarning": "This task has a custom schedule that can't be edited here. Changing the frequency will replace it."
+    "customCronWarning": "This task has a custom schedule that can't be edited here. Changing the frequency will replace it.",
+    "custom": {
+      "modeLabel": "Режим повторення",
+      "interval": "Через інтервал",
+      "monthly": "Щомісяця",
+      "advanced": "Розширений Cron-вираз",
+      "every": "Кожні",
+      "unit": "Одиниця",
+      "minutes": "Хвилини",
+      "hours": "Години",
+      "time": "Час",
+      "weekdays": "Дні тижня",
+      "monthDay": "День місяця",
+      "preview": "Створений Cron-вираз"
+    }
   },
   "trigger": {
     "runScheduledTask": "Запустити заплановане завдання: {{name}}"

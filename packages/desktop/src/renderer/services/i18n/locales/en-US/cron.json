@@ -81,6 +81,8 @@
       "prompt": "Prompt",
       "promptRequired": "Prompt is required",
       "promptPlaceholder": "Instructions for the assistant to execute",
+      "queue": "Queue protection",
+      "queueHint": "When enabled, a new trigger is skipped while the previous scheduled conversation is still running, without interrupting the assistant.",
       "frequency": "Frequency",
       "cronExpr": "Cron Expression",
       "cronExprRequired": "Cron expression is required",
@@ -124,6 +126,20 @@
       "dailyAt": "Every day at {{time}}",
       "weekdaysAt": "Weekdays at {{time}}",
       "weeklyAt": "Every {{day}} at {{time}}"
+    },
+    "custom": {
+      "modeLabel": "Repeat pattern",
+      "interval": "Every interval",
+      "monthly": "Monthly",
+      "advanced": "Advanced Cron expression",
+      "every": "Every",
+      "unit": "Unit",
+      "minutes": "Minutes",
+      "hours": "Hours",
+      "time": "Time",
+      "weekdays": "Weekdays",
+      "monthDay": "Day of month",
+      "preview": "Generated Cron"
     }
   },
   "trigger": {

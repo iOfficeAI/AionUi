@@ -1,6 +1,6 @@
 /**
  * Bridge service: request-response abstraction over WebSocket.
- * Uses the @office-ai/platform subscribe protocol:
+ * Uses the desktop subscribe/callback protocol:
  * - Client sends: { name: 'subscribe-{key}', data: { id, data } }
  * - Server responds: { name: 'subscribe.callback-{key}{id}', data: result }
  * - Emitter events (server-push) use direct names (no subscribe prefix).

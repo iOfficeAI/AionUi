@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect, vi } from 'vitest';
-import { AuthType } from '@office-ai/aioncli-core';
+import { AuthType } from '@/common/types/provider/authType';
 import { getAuthTypeFromPlatform, getProviderAuthType } from '@/common/utils/platformAuthType';
 
 vi.mock('@/common/utils/platformConstants', () => ({
@@ -13,6 +13,19 @@ vi.mock('@/common/utils/platformConstants', () => ({
 }));
 
 describe('platformAuthType', () => {
+  it('keeps persisted authentication values stable', () => {
+    expect(AuthType).toEqual({
+      LOGIN_WITH_GOOGLE: 'oauth-personal',
+      USE_GEMINI: 'gemini-api-key',
+      USE_VERTEX_AI: 'vertex-ai',
+      LEGACY_CLOUD_SHELL: 'cloud-shell',
+      COMPUTE_ADC: 'compute-default-credentials',
+      USE_OPENAI: 'openai',
+      USE_ANTHROPIC: 'anthropic',
+      USE_BEDROCK: 'bedrock',
+    });
+  });
+
   describe('getAuthTypeFromPlatform', () => {
     it('returns LOGIN_WITH_GOOGLE for gemini-with-google-auth', () => {
       expect(getAuthTypeFromPlatform('gemini-with-google-auth')).toBe(AuthType.LOGIN_WITH_GOOGLE);

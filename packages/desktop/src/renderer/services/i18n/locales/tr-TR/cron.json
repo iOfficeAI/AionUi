@@ -94,6 +94,8 @@
       "prompt": "Komut",
       "promptRequired": "Komut gereklidir",
       "promptPlaceholder": "Asistanın yürüteceği talimatlar",
+      "queue": "Kuyruk koruması",
+      "queueHint": "Etkinleştirildiğinde, önceki zamanlanmış konuşma hâlâ çalışıyorsa yeni tetikleme atlanır ve asistan kesintiye uğratılmaz.",
       "frequency": "Sıklık",
       "cronExpr": "Cron İfadesi",
       "cronExprRequired": "Cron ifadesi gereklidir",
@@ -137,6 +139,20 @@
       "dailyAt": "Her gün {{time}}'de çalıştır",
       "weekdaysAt": "Hafta içi {{time}}'de çalıştır",
       "weeklyAt": "Her {{day}} {{time}}'de çalıştır"
+    },
+    "custom": {
+      "modeLabel": "Tekrar düzeni",
+      "interval": "Aralıklarla",
+      "monthly": "Aylık",
+      "advanced": "Gelişmiş Cron ifadesi",
+      "every": "Her",
+      "unit": "Birim",
+      "minutes": "Dakika",
+      "hours": "Saat",
+      "time": "Saat",
+      "weekdays": "Haftanın günleri",
+      "monthDay": "Ayın günü",
+      "preview": "Oluşturulan Cron"
     }
   },
   "trigger": {
