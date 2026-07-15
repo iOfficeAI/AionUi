@@ -5,10 +5,11 @@
  */
 
 import type { TChatConversation } from '@/common/config/storage';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useConversationHistoryContext } from '@/renderer/hooks/context/ConversationHistoryContext';
 import type { TimelineSection } from '../types';
+import { useProjectConversations } from './useProjectConversations';
 import {
   dispatchWorkspaceExpansionChange,
   readExpandedWorkspaces,
@@ -36,16 +37,18 @@ type ConversationLocation = { section: 'pinned' | 'projects' | 'conversations'; 
 const locateConversation = (
   id: string,
   pinned: TChatConversation[],
-  sections: TimelineSection[]
+  sections: TimelineSection[],
+  projects: Array<{ workspace: string; conversations: TChatConversation[] }>
 ): ConversationLocation | null => {
   if (pinned.some((c) => c.id === id)) return { section: 'pinned' };
+  for (const project of projects) {
+    if (project.conversations.some((conversation) => conversation.id === id)) {
+      return { section: 'projects', workspace: project.workspace };
+    }
+  }
   for (const section of sections) {
     for (const item of section.items) {
-      if (item.type === 'workspace' && item.workspaceGroup) {
-        if (item.workspaceGroup.conversations.some((c) => c.id === id)) {
-          return { section: 'projects', workspace: item.workspaceGroup.workspace };
-        }
-      } else if (item.type === 'conversation' && item.conversation?.id === id) {
+      if (item.type === 'conversation' && item.conversation?.id === id) {
         return { section: 'conversations' };
       }
     }
@@ -67,6 +70,11 @@ export const useConversations = () => {
   } = useConversationHistoryContext();
 
   const { pinnedConversations, timelineSections } = groupedHistory;
+  const { projects, ensureLoaded, loadMore, collapseToLatest } = useProjectConversations();
+  const allLoadedConversations = useMemo(
+    () => [...conversations, ...projects.flatMap((project) => project.conversations)],
+    [conversations, projects]
+  );
 
   // Track whether auto-expand has already been performed to avoid
   // re-expanding workspaces after a user manually collapses them (#1156)
@@ -103,7 +111,7 @@ export const useConversations = () => {
 
     if (revealedIdRef.current === id) return;
 
-    const location = locateConversation(id, pinnedConversations, timelineSections);
+    const location = locateConversation(id, pinnedConversations, timelineSections, projects);
     if (!location) return; // data not loaded yet; effect re-runs when it arrives
     revealedIdRef.current = id;
 
@@ -137,7 +145,7 @@ export const useConversations = () => {
       cancelAnimationFrame(outerRafId);
       cancelAnimationFrame(innerRafId);
     };
-  }, [clearCompletionUnread, id, setActiveConversation, pinnedConversations, timelineSections]);
+  }, [clearCompletionUnread, id, setActiveConversation, pinnedConversations, projects, timelineSections]);
 
   // Persist workspace expansion state
   useEffect(() => {
@@ -166,36 +174,26 @@ export const useConversations = () => {
       hasAutoExpandedRef.current = true;
       return;
     }
-    const allWorkspaces: string[] = [];
-    timelineSections.forEach((section) => {
-      section.items.forEach((item) => {
-        if (item.type === 'workspace' && item.workspaceGroup) {
-          allWorkspaces.push(item.workspaceGroup.workspace);
-        }
-      });
-    });
+    const allWorkspaces = projects.map((project) => project.workspace);
     if (allWorkspaces.length > 0) {
       setExpandedWorkspaces(allWorkspaces);
       hasAutoExpandedRef.current = true;
     }
-  }, [timelineSections]);
+  }, [expandedWorkspaces.length, projects]);
+
+  useEffect(() => {
+    expandedWorkspaces.forEach(ensureLoaded);
+  }, [ensureLoaded, expandedWorkspaces]);
 
   // Remove stale workspace entries that no longer exist in the data
   useEffect(() => {
-    const currentWorkspaces = new Set<string>();
-    timelineSections.forEach((section) => {
-      section.items.forEach((item) => {
-        if (item.type === 'workspace' && item.workspaceGroup) {
-          currentWorkspaces.add(item.workspaceGroup.workspace);
-        }
-      });
-    });
+    const currentWorkspaces = new Set(projects.map((project) => project.workspace));
     if (currentWorkspaces.size === 0) return;
     setExpandedWorkspaces((prev) => {
       const filtered = prev.filter((ws) => currentWorkspaces.has(ws));
       return filtered.length === prev.length ? prev : filtered;
     });
-  }, [timelineSections]);
+  }, [projects]);
 
   const handleToggleWorkspace = useCallback((workspace: string) => {
     setExpandedWorkspaces((prev) => {
@@ -207,13 +205,16 @@ export const useConversations = () => {
   }, []);
 
   return {
-    conversations,
+    conversations: allLoadedConversations,
+    projects,
     isConversationGenerating,
     hasCompletionUnread,
     expandedWorkspaces,
     pinnedConversations,
     timelineSections,
     handleToggleWorkspace,
+    loadMoreProject: loadMore,
+    collapseProjectToLatest: collapseToLatest,
     collapsedSections,
     toggleSection,
   };

@@ -72,7 +72,11 @@
     "removeProject": "Projekt entfernen",
     "removeProjectConfirm": "Projekt \"{{name}}\" entfernen? Die {{count}} zugehörige(n) Unterhaltung(en) werden ebenfalls entfernt.",
     "newConversationInProject": "Neuer Chat in diesem Projekt",
-    "deleting": "Wird gelöscht..."
+    "deleting": "Wird gelöscht...",
+    "showMore": "Show more",
+    "collapseToLatest": "Collapse",
+    "projectLoading": "Loading conversations...",
+    "projectLoadFailed": "Failed to load. Click to retry"
   },
   "historySearch": {
     "tooltip": "Nachrichten durchsuchen",

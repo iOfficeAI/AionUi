@@ -72,7 +72,11 @@
     "removeProject": "Supprimer le projet",
     "removeProjectConfirm": "Supprimer le projet \"{{name}}\" ? Sa ou ses conversations {{count}} seront également supprimées.",
     "newConversationInProject": "Nouveau chat dans ce projet",
-    "deleting": "Suppression..."
+    "deleting": "Suppression...",
+    "showMore": "Afficher plus",
+    "collapseToLatest": "Réduire",
+    "projectLoading": "Chargement des conversations...",
+    "projectLoadFailed": "Échec du chargement. Cliquez pour réessayer"
   },
   "historySearch": {
     "tooltip": "Rechercher des messages",

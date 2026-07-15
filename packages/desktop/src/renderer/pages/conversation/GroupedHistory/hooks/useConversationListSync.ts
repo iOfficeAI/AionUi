@@ -143,8 +143,24 @@ const refreshConversations = () => {
         const filteredData = items.filter((conv) => {
           // Legacy rows from the pre-provider-probe health check flow are hidden
           // from normal history. New health checks must not create conversations.
-          const extra = conv.extra as { is_health_check?: boolean; team_id?: string; teamId?: string } | undefined;
-          return extra?.is_health_check !== true && !extra?.team_id && !extra?.teamId;
+          const extra = conv.extra as
+            | {
+                is_health_check?: boolean;
+                team_id?: string;
+                teamId?: string;
+                workspace?: string;
+                is_temporary_workspace?: boolean;
+                pinned?: boolean;
+              }
+            | undefined;
+          const isPinned = Boolean(extra?.pinned);
+          const belongsInConversationSection = !extra?.workspace || extra.is_temporary_workspace === true;
+          return (
+            extra?.is_health_check !== true &&
+            !extra?.team_id &&
+            !extra?.teamId &&
+            (isPinned || belongsInConversationSection)
+          );
         });
         conversationsState = filteredData;
         // Use ALL conversation IDs (including team/legacy health-check rows) so the
