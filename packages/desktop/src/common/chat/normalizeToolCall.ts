@@ -191,6 +191,8 @@ function normalizeToolCallStatus(status?: string): NormalizedToolStatus {
       return 'error';
     case 'running':
       return 'running';
+    case 'canceled':
+      return 'canceled';
     default:
       return 'pending';
   }
