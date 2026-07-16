@@ -329,4 +329,22 @@ describe('SystemModalContent directory settings', () => {
       expect(configServiceMock.set).toHaveBeenCalledWith('chat.copyPromptOnSend', true);
     });
   });
+
+  it('rolls back the copy-prompt preference when persistence fails', async () => {
+    const user = userEvent.setup();
+    configServiceMock.set.mockRejectedValueOnce(new Error('settings unavailable'));
+    renderContent();
+
+    const label = await screen.findByText('settings.copyPromptOnSend');
+    const preferenceRow = label.closest('.flex.items-center.justify-between');
+    expect(preferenceRow).not.toBeNull();
+    const preferenceSwitch = within(preferenceRow as HTMLElement).getByRole('switch');
+
+    await user.click(preferenceSwitch);
+
+    await waitFor(() => {
+      expect(configServiceMock.setLocal).toHaveBeenCalledWith('chat.copyPromptOnSend', false);
+    });
+    expect(preferenceSwitch).toHaveAttribute('aria-checked', 'false');
+  });
 });
