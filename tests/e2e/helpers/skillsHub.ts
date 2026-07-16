@@ -47,36 +47,15 @@ export interface ExternalSource {
 
 /**
  * Navigate to Skills Hub settings page using UI click
- * Note: /settings/skills-hub redirects to /settings/capabilities?tab=skills
- * The Skills content should be visible by default as it's the first tab.
+ * Note: Skills is a standalone settings entry (`/settings/skills`) since the
+ * capabilities page was split into separate Skills / Tools sider entries.
  */
 export async function goToSkillsHub(page: Page): Promise<void> {
-  // Navigate to Capabilities settings page
-  await navigateTo(page, '#/settings/capabilities');
+  // Navigate to Skills settings page
+  await navigateTo(page, '#/settings/skills');
 
-  // Wait a bit for React Router and Tabs component to initialize
+  // Wait a bit for React Router to settle
   await page.waitForTimeout(500);
-
-  // Try to click Skills tab if it exists and isn't already active
-  const skillsTab = page
-    .locator('.arco-tabs-header-title, .arco-tabs-nav-tab')
-    .filter({ hasText: /Skills|技能/i })
-    .first();
-  const isVisible = await skillsTab.isVisible().catch(() => false);
-
-  if (isVisible) {
-    // Check if tab is already active by looking at aria-selected or active class
-    const isActive = await skillsTab
-      .evaluate((el) => {
-        return el.classList.contains('arco-tabs-nav-tab-active') || el.getAttribute('aria-selected') === 'true';
-      })
-      .catch(() => false);
-
-    if (!isActive) {
-      await skillsTab.click();
-      await page.waitForTimeout(300);
-    }
-  }
 
   // Wait for tab content to load. Dev-mode cold boot needs ~6-15s after
   // navigation before SkillsHub's unconditional `my-skills-section` div
@@ -197,7 +176,8 @@ export async function createTempExternalSourceDir(): Promise<{ path: string; cle
  */
 export async function importSkillViaBridge(page: Page, skillPath: string): Promise<{ success: boolean; msg?: string }> {
   try {
-    await httpPost(page, '/api/skills/import', { skillPath });
+    // Backend expects snake_case, matching the renderer's `ipcBridge.fs.importSkills` payload.
+    await httpPost(page, '/api/skills/import', { skill_path: skillPath });
     return { success: true };
   } catch (err) {
     return { success: false, msg: err instanceof Error ? err.message : String(err) };
