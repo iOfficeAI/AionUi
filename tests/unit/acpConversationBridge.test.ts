@@ -6,6 +6,10 @@ const handlers: Record<string, (...args: any[]) => any> = {};
 const dbMock = vi.hoisted(() => ({
   getDatabase: vi.fn(),
 }));
+const codexProbeMock = vi.hoisted(() => ({
+  probeCodexModelInfo: vi.fn(),
+  resolveCodexCliCommand: vi.fn((cliPath?: string) => cliPath || 'codex'),
+}));
 
 function makeChannel(name: string) {
   return {
@@ -62,6 +66,10 @@ vi.mock('../../src/process/task/AcpAgentManager', () => ({ default: class AcpAge
 vi.mock('../../src/process/task/GeminiAgentManager', () => ({ GeminiAgentManager: class GeminiAgentManager {} }));
 vi.mock('../../src/process/agent/codex/appserver/CodexNativeAgentManager', () => ({
   default: class CodexNativeAgentManager {},
+  resolveCodexCliCommand: codexProbeMock.resolveCodexCliCommand,
+}));
+vi.mock('../../src/process/agent/codex/appserver/CodexModelProbe', () => ({
+  probeCodexModelInfo: codexProbeMock.probeCodexModelInfo,
 }));
 
 vi.mock('../../src/process/services/mcpServices/McpService', () => ({
@@ -106,6 +114,8 @@ describe('acpConversationBridge', () => {
     vi.clearAllMocks();
     taskManager = makeTaskManager();
     dbMock.getDatabase.mockReset();
+    codexProbeMock.probeCodexModelInfo.mockReset();
+    codexProbeMock.resolveCodexCliCommand.mockClear();
     const { agentRegistry } = await import('../../src/process/agent/AgentRegistry');
     vi.mocked(agentRegistry.getDetectedAgents).mockReturnValue([]);
     initAcpConversationBridge(taskManager);
@@ -183,14 +193,88 @@ describe('acpConversationBridge', () => {
     };
     const task = new CodexNativeAgentManager() as CodexNativeAgentManager & {
       getModelInfo: ReturnType<typeof vi.fn>;
+      loadModelInfo: ReturnType<typeof vi.fn>;
     };
     task.getModelInfo = vi.fn(() => modelInfo);
+    task.loadModelInfo = vi.fn(async () => modelInfo);
     vi.mocked(taskManager.getTask).mockReturnValue(task as never);
 
     const result = await handlers['getModelInfo']({ conversationId: 'codex-1' });
 
     expect(taskManager.getTask).toHaveBeenCalledWith('codex-1');
+    expect(task.loadModelInfo).toHaveBeenCalledOnce();
     expect(result).toEqual({ success: true, data: { modelInfo } });
+  });
+
+  it('loads native Codex models when a persisted conversation has not started yet', async () => {
+    const modelInfo = {
+      currentModelId: 'gpt-5.6-sol',
+      currentModelLabel: 'GPT-5.6-Sol',
+      availableModels: [
+        { id: 'gpt-5.6-sol', label: 'GPT-5.6-Sol' },
+        { id: 'gpt-5.6-terra', label: 'GPT-5.6-Terra' },
+        { id: 'gpt-5.6-luna', label: 'GPT-5.6-Luna' },
+      ],
+      canSwitch: true,
+      source: 'models',
+    };
+    const task = new CodexNativeAgentManager() as CodexNativeAgentManager & {
+      loadModelInfo: ReturnType<typeof vi.fn>;
+    };
+    task.loadModelInfo = vi.fn(async () => modelInfo);
+    vi.mocked(taskManager.getTask).mockReturnValue(undefined);
+    vi.mocked(taskManager.getOrBuildTask).mockResolvedValue(task as never);
+    dbMock.getDatabase.mockResolvedValue({
+      getConversation: vi.fn(() => ({
+        success: true,
+        data: {
+          type: 'codex',
+          extra: { codexNative: true, currentModelId: 'gpt-5.6-sol' },
+        },
+      })),
+    });
+
+    const result = await handlers['getModelInfo']({ conversationId: 'codex-not-started' });
+
+    expect(taskManager.getOrBuildTask).toHaveBeenCalledWith('codex-not-started');
+    expect(task.loadModelInfo).toHaveBeenCalledOnce();
+    expect(result).toEqual({ success: true, data: { modelInfo } });
+  });
+
+  it('probes Codex models through the native app-server', async () => {
+    const modelInfo = {
+      currentModelId: 'gpt-5.6-sol',
+      currentModelLabel: 'GPT-5.6-Sol',
+      availableModels: [
+        { id: 'gpt-5.6-sol', label: 'GPT-5.6-Sol' },
+        { id: 'gpt-5.6-terra', label: 'GPT-5.6-Terra' },
+        { id: 'gpt-5.6-luna', label: 'GPT-5.6-Luna' },
+      ],
+      canSwitch: true,
+      source: 'models',
+    };
+    const { agentRegistry } = await import('../../src/process/agent/AgentRegistry');
+    vi.mocked(agentRegistry.getDetectedAgents).mockReturnValue([
+      {
+        id: 'codex',
+        name: 'Codex',
+        kind: 'codex',
+        backend: 'codex',
+        available: true,
+        cliPath: '/opt/codex/bin/codex',
+        appServer: true,
+      },
+    ]);
+    codexProbeMock.probeCodexModelInfo.mockResolvedValue(modelInfo);
+
+    const result = await handlers['probeModelInfo']({ backend: 'codex' });
+
+    expect(codexProbeMock.resolveCodexCliCommand).toHaveBeenCalledWith('/opt/codex/bin/codex');
+    expect(codexProbeMock.probeCodexModelInfo).toHaveBeenCalledWith({
+      command: '/opt/codex/bin/codex',
+      cwd: expect.any(String),
+    });
+    expect(result).toEqual({ success: true, data: { modelInfo, configOptions: [] } });
   });
 
   it('getModelInfo returns persisted native Codex model info when the task was rebuilt away', async () => {

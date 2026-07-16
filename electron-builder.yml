@@ -171,7 +171,7 @@ afterSign: scripts/afterSign.js
 linux:
   target:
     - deb
-  icon: resources/app.png
+  icon: resources/icons
   artifactName: ${productName}-${version}-${os}-${arch}.${ext}
   category: Utility
   maintainer: aionui
@@ -182,7 +182,7 @@ linux:
     entry:
       Name: AionUi
       Comment: ${description}
-      Icon: aionui
+      Icon: AionUi
       Categories: Office;Utility;
       MimeType: x-scheme-handler/aionui;
 

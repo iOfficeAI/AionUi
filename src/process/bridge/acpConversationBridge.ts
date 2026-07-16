@@ -12,7 +12,10 @@ import type { IWorkerTaskManager } from '@process/task/IWorkerTaskManager';
 import AcpAgentManager from '@process/task/AcpAgentManager';
 import { GeminiAgentManager } from '@process/task/GeminiAgentManager';
 import { AionrsManager } from '@process/task/AionrsManager';
-import CodexNativeAgentManager from '@process/agent/codex/appserver/CodexNativeAgentManager';
+import CodexNativeAgentManager, {
+  resolveCodexCliCommand,
+} from '@process/agent/codex/appserver/CodexNativeAgentManager';
+import { probeCodexModelInfo } from '@process/agent/codex/appserver/CodexModelProbe';
 import { mcpService } from '@/process/services/mcpServices/McpService';
 import { ipcBridge } from '@/common';
 import { LegacyConnectorFactory } from '@process/acp/compat/LegacyConnectorFactory';
@@ -244,15 +247,29 @@ export function initAcpConversationBridge(workerTaskManager: IWorkerTaskManager)
   });
 
   ipcBridge.acpConversation.getModelInfo.provider(async ({ conversationId }) => {
-    const task = workerTaskManager.getTask(conversationId);
+    let task = workerTaskManager.getTask(conversationId);
     if (task instanceof CodexNativeAgentManager) {
       return {
         success: true,
-        data: { modelInfo: task.getModelInfo() },
+        data: { modelInfo: await task.loadModelInfo() },
       };
     }
     if (!task || !(task instanceof AcpAgentManager)) {
-      return { success: true, data: { modelInfo: await getPersistedCodexModelInfo(conversationId) } };
+      const persistedModelInfo = await getPersistedCodexModelInfo(conversationId);
+      if (persistedModelInfo && !task) {
+        try {
+          task = await workerTaskManager.getOrBuildTask(conversationId);
+          if (task instanceof CodexNativeAgentManager) {
+            return {
+              success: true,
+              data: { modelInfo: await task.loadModelInfo() },
+            };
+          }
+        } catch {
+          // Preserve the selected model when native probing is unavailable.
+        }
+      }
+      return { success: true, data: { modelInfo: persistedModelInfo } };
     }
     return {
       success: true,
@@ -262,7 +279,8 @@ export function initAcpConversationBridge(workerTaskManager: IWorkerTaskManager)
 
   ipcBridge.acpConversation.probeModelInfo.provider(async ({ backend }) => {
     const agents = agentRegistry.getDetectedAgents();
-    const agent = agents.find((item) => isAgentKind(item, 'acp') && item.backend === backend);
+    const detectedAgent = agents.find((item) => item.backend === backend);
+    const agent = detectedAgent && isAgentKind(detectedAgent, 'acp') ? detectedAgent : undefined;
     const acpAgent = agent && isAgentKind(agent, 'acp') ? agent : undefined;
 
     if (!acpAgent?.cliPath && backend !== 'claude' && backend !== 'codebuddy' && backend !== 'codex') {
@@ -276,18 +294,26 @@ export function initAcpConversationBridge(workerTaskManager: IWorkerTaskManager)
     const tempDir = os.tmpdir();
 
     try {
+      if (backend === 'codex') {
+        const cliPath =
+          detectedAgent && (isAgentKind(detectedAgent, 'codex') || isAgentKind(detectedAgent, 'acp'))
+            ? detectedAgent.cliPath
+            : undefined;
+        const modelInfo = await probeCodexModelInfo({
+          command: resolveCodexCliCommand(cliPath),
+          cwd: tempDir,
+        });
+        mainLog('[Codex native]', 'probeModelInfo completed', summarizeAcpModelInfo(modelInfo));
+        return {
+          success: true,
+          data: { modelInfo, configOptions: [] },
+        };
+      }
+
       await connection.connect(backend, acpAgent?.cliPath, tempDir, acpAgent?.acpArgs);
       await connection.newSession(tempDir);
 
       const modelInfo = buildAcpModelInfo(connection.getConfigOptions(), connection.getModels());
-      if (backend === 'codex') {
-        const initializeResult = connection.getInitializeResponse() as unknown as Record<string, unknown> | null;
-        mainLog('[ACP codex]', 'probeModelInfo completed', {
-          initializeAgentInfo: initializeResult?.agentInfo || null,
-          modelInfo: summarizeAcpModelInfo(modelInfo),
-        });
-      }
-
       return {
         success: true,
         data: {

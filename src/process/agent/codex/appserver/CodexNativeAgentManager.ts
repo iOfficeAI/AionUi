@@ -60,7 +60,7 @@ const CODEX_REASONING_EFFORT_CONFIG_ID = 'reasoning_effort';
 const LOGIN_SHELL_RESOLVE_TIMEOUT_MS = 1500;
 const CODEX_CLI_PROBE_TIMEOUT_MS = 1500;
 
-function resolveCodexCliCommand(cliPath?: string): string {
+export function resolveCodexCliCommand(cliPath?: string): string {
   const command = cliPath?.trim() || 'codex';
   if (!shouldPreferLoginShellCodex(command)) return command;
 
@@ -159,6 +159,8 @@ export class CodexNativeAgentManager extends BaseAgentManager<CodexNativeAgentMa
   private readonly session: CodexThreadSession;
   private started = false;
   private startPromise: Promise<void> | undefined;
+  private modelInfoLoaded = false;
+  private modelInfoPromise: Promise<AcpModelInfo> | undefined;
   private readonly unsubscribeClientFailure: () => void;
   private isFirstMessage = true;
   private activeSendToken: symbol | undefined;
@@ -193,6 +195,8 @@ export class CodexNativeAgentManager extends BaseAgentManager<CodexNativeAgentMa
     this.unsubscribeClientFailure = this.client.onFailure(() => {
       this.started = false;
       this.startPromise = undefined;
+      this.modelInfoLoaded = false;
+      this.modelInfoPromise = undefined;
     });
     this.session = new CodexThreadSession({
       client: this.client,
@@ -298,6 +302,36 @@ export class CodexNativeAgentManager extends BaseAgentManager<CodexNativeAgentMa
 
   getModelInfo(): AcpModelInfo | null {
     return this.modelService.getModelInfo();
+  }
+
+  async loadModelInfo(): Promise<AcpModelInfo> {
+    if (this.modelInfoLoaded) {
+      return this.modelService.getModelInfo();
+    }
+    await this.client.start();
+    return this.refreshModelInfo();
+  }
+
+  private async refreshModelInfo(): Promise<AcpModelInfo> {
+    if (this.modelInfoLoaded) {
+      return this.modelService.getModelInfo();
+    }
+    if (!this.modelInfoPromise) {
+      this.modelInfoPromise = (async () => {
+        const modelInfo = await this.modelService.refresh();
+        this.modelInfoLoaded = true;
+        return modelInfo;
+      })();
+    }
+    const modelInfoPromise = this.modelInfoPromise;
+
+    try {
+      return await modelInfoPromise;
+    } finally {
+      if (this.modelInfoPromise === modelInfoPromise) {
+        this.modelInfoPromise = undefined;
+      }
+    }
   }
 
   async setModel(modelId: string): Promise<AcpModelInfo> {
@@ -418,7 +452,7 @@ export class CodexNativeAgentManager extends BaseAgentManager<CodexNativeAgentMa
 
   private async emitCurrentModelInfo(): Promise<void> {
     try {
-      this.emitModelInfo(await this.modelService.refresh());
+      this.emitModelInfo(await this.refreshModelInfo());
     } catch (error) {
       this.emitAndPersistMessage(
         {

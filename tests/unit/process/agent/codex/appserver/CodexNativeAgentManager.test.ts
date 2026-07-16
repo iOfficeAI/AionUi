@@ -356,6 +356,26 @@ describe('CodexNativeAgentManager', () => {
     manager.kill();
   });
 
+  it('loads and caches the complete model list before the first Codex turn', async () => {
+    const manager = createManager('conversation-model-info-before-turn');
+    const client = testDoubles.state.clients[0] as FakeClient;
+    const session = testDoubles.state.sessions[0] as FakeSession;
+    const modelService = testDoubles.state.modelServiceInstances[0] as {
+      refresh: ReturnType<typeof vi.fn>;
+    };
+
+    const firstResult = await manager.loadModelInfo();
+    const secondResult = await manager.loadModelInfo();
+
+    expect(firstResult.availableModels).toHaveLength(2);
+    expect(secondResult).toEqual(firstResult);
+    expect(client.start).toHaveBeenCalledOnce();
+    expect(session.start).not.toHaveBeenCalled();
+    expect(modelService.refresh).toHaveBeenCalledOnce();
+
+    manager.kill();
+  });
+
   it('persists native assistant text deltas by updating the same message', () => {
     const manager = createManager('conversation-assistant-text-persist');
 
