@@ -30,6 +30,16 @@ const thoughtLevel: AcpDerivedOption = {
   ],
 };
 
+const thinkingMode: AcpDerivedOption = {
+  id: 'thinking',
+  category: 'thought_level',
+  currentValue: 'enabled',
+  options: [
+    { value: 'enabled', label: 'Enabled' },
+    { value: 'disabled', label: 'Disabled' },
+  ],
+};
+
 const makeSelection = (overrides: Partial<AionrsModelSelection> = {}): AionrsModelSelection => ({
   current_model: {
     ...provider,
@@ -72,6 +82,9 @@ vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (key: string, options?: { defaultValue?: string }) => {
       if (key === 'agent.thoughtLevel.label') return 'Thinking Level';
+      if (key === 'agent.thinkingMode.label') return 'Thinking Mode';
+      if (key === 'agent.thinkingMode.enabled') return 'On';
+      if (key === 'agent.thinkingMode.disabled') return 'Off';
       if (key === 'common.model') return 'Model';
       if (key === 'conversation.welcome.selectModel') return 'Select model';
       if (key === 'conversation.welcome.useCliModel') return 'Use CLI model';
@@ -251,6 +264,27 @@ describe('AionrsModelSelector runtime options', () => {
 
     await waitFor(() => {
       expect(onSetThoughtLevel).toHaveBeenCalledWith('reasoning_effort', 'low');
+    });
+  });
+
+  it('renders and switches GLM-5.2 binary thinking mode', async () => {
+    const onSetThoughtLevel = vi.fn().mockResolvedValue(undefined);
+
+    render(
+      <AionrsModelSelector
+        selection={makeSelection()}
+        thoughtLevel={thinkingMode}
+        setStatus={{ state: 'idle' }}
+        onSetThoughtLevel={onSetThoughtLevel}
+      />
+    );
+
+    expect(screen.getByTestId('aionrs-model-selector')).toHaveTextContent('gpt-5.2 · On');
+    expect(screen.getAllByTestId('submenu-title')[1]).toHaveTextContent('Thinking Mode');
+    fireEvent.click(screen.getByText('Off'));
+
+    await waitFor(() => {
+      expect(onSetThoughtLevel).toHaveBeenCalledWith('thinking', 'disabled');
     });
   });
 });

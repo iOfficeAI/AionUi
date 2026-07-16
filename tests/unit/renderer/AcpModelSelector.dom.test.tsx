@@ -47,6 +47,16 @@ const thoughtLevel: AcpDerivedOption = {
   ],
 };
 
+const thinkingMode: AcpDerivedOption = {
+  id: 'thinking',
+  category: 'thought_level',
+  currentValue: 'enabled',
+  options: [
+    { value: 'enabled', label: 'Enabled' },
+    { value: 'disabled', label: 'Disabled' },
+  ],
+};
+
 const makeResult = (overrides: Partial<MockAcpModelInfoResult> = {}): MockAcpModelInfoResult => ({
   model_info: modelInfo,
   canSwitch: true,
@@ -96,6 +106,10 @@ vi.mock('react-i18next', () => ({
     t: (key: string, options?: { defaultValue?: string }) => {
       if (key === 'agent.thoughtLevel.label') return 'Thinking Level';
       if (key === 'agent.thoughtLevel.switchSuccess') return 'agent.thoughtLevel.switchSuccess';
+      if (key === 'agent.thinkingMode.label') return 'Thinking Mode';
+      if (key === 'agent.thinkingMode.enabled') return 'On';
+      if (key === 'agent.thinkingMode.disabled') return 'Off';
+      if (key === 'agent.thinkingMode.switchSuccess') return 'agent.thinkingMode.switchSuccess';
       if (key === 'agent.config.commandAck') return 'agent.config.commandAck';
       if (key === 'common.model') return 'Model';
       if (key === 'common.defaultModel') return 'Default';
@@ -358,6 +372,22 @@ describe('AcpModelSelector runtime options', () => {
       expect(setConfigOption).toHaveBeenCalledWith('thought_level', 'low');
     });
     expect(messageSuccessMock).toHaveBeenCalledWith('agent.thoughtLevel.switchSuccess');
+  });
+
+  it('renders and switches a binary thinking mode exposed by the runtime', async () => {
+    const setConfigOption = vi.fn().mockResolvedValue(undefined);
+    useAcpModelInfoMock.mockReturnValue(makeResult({ thoughtLevel: thinkingMode, setConfigOption }));
+
+    render(<AcpModelSelector conversation_id='conversation-1' backend='claude' />);
+
+    expect(screen.getByTestId('acp-model-selector')).toHaveTextContent('GPT-5.2 · On');
+    expect(screen.getAllByTestId('submenu-title')[1]).toHaveTextContent('Thinking Mode');
+    fireEvent.click(screen.getByText('Off'));
+
+    await waitFor(() => {
+      expect(setConfigOption).toHaveBeenCalledWith('thinking', 'disabled');
+    });
+    expect(messageSuccessMock).toHaveBeenCalledWith('agent.thinkingMode.switchSuccess');
   });
 
   it('keeps the old thought value and shows an error when config update fails', async () => {

@@ -9,6 +9,8 @@ import type { AcpConfigSetStatus, AcpDerivedOption } from '@/renderer/hooks/agen
 import {
   composeRuntimeSelectorLabel,
   getCurrentThoughtLevelLabel,
+  isThinkingModeOption,
+  localizeThinkingModeOption,
   RUNTIME_SUBMENU_TRIGGER_PROPS,
   RuntimeSelectorCheckedItem,
   RuntimeSelectorModelList,
@@ -44,6 +46,12 @@ const AionrsModelSelector: React.FC<{
   const defaultModelLabel = t('common.defaultModel');
 
   const current_model = selection?.current_model;
+  const thinkingMode = isThinkingModeOption(thoughtLevel);
+  const displayThoughtLevel = localizeThinkingModeOption(thoughtLevel, {
+    enabled: t('agent.thinkingMode.enabled'),
+    disabled: t('agent.thinkingMode.disabled'),
+  });
+  const thoughtControlLabel = thinkingMode ? t('agent.thinkingMode.label') : t('agent.thoughtLevel.label');
 
   const renderLogo = () => <Brain theme='outline' size='14' fill={iconColors.secondary} className='shrink-0' />;
 
@@ -77,7 +85,7 @@ const AionrsModelSelector: React.FC<{
     defaultModelLabel,
     fallbackLabel: t('conversation.welcome.selectModel'),
   });
-  const combinedLabel = composeRuntimeSelectorLabel({ modelLabel: label, thoughtLevel });
+  const combinedLabel = composeRuntimeSelectorLabel({ modelLabel: label, thoughtLevel: displayThoughtLevel });
   const handleThoughtLevelSelect = (value: string) => {
     if (!thoughtLevel || value === thoughtLevel.currentValue || !onSetThoughtLevel) return;
     void onSetThoughtLevel(thoughtLevel.id, value);
@@ -134,12 +142,12 @@ const AionrsModelSelector: React.FC<{
                 triggerProps={RUNTIME_SUBMENU_TRIGGER_PROPS}
                 title={
                   <RuntimeSelectorSubMenuTitle
-                    label={t('agent.thoughtLevel.label')}
-                    value={getCurrentThoughtLevelLabel(thoughtLevel)}
+                    label={thoughtControlLabel}
+                    value={getCurrentThoughtLevelLabel(displayThoughtLevel)}
                   />
                 }
               >
-                {thoughtLevel.options.map((item) => (
+                {displayThoughtLevel?.options.map((item) => (
                   <Menu.Item
                     key={item.value}
                     className={item.value === thoughtLevel.currentValue ? '!bg-2' : ''}

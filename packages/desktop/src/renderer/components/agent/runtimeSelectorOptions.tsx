@@ -33,6 +33,27 @@ export const getCurrentThoughtLevelLabel = (thoughtLevel: AcpDerivedOption | nul
   );
 };
 
+export const isThinkingModeOption = (option: AcpDerivedOption | null | undefined): boolean => {
+  if (!option || option.options.length !== 2) return false;
+  const values = new Set(option.options.map((item) => item.value.toLowerCase()));
+  return values.has('enabled') && values.has('disabled');
+};
+
+export const localizeThinkingModeOption = (
+  option: AcpDerivedOption | null | undefined,
+  labels: { enabled: string; disabled: string }
+): AcpDerivedOption | null => {
+  if (!option) return null;
+  if (!isThinkingModeOption(option)) return option;
+  return {
+    ...option,
+    options: option.options.map((item) => ({
+      ...item,
+      label: item.value.toLowerCase() === 'enabled' ? labels.enabled : labels.disabled,
+    })),
+  };
+};
+
 export const composeRuntimeSelectorLabel = ({
   modelLabel,
   thoughtLevel,

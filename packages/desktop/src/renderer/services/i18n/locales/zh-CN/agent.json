@@ -44,5 +44,11 @@
     "label": "思考强度",
     "switchSuccess": "思考强度切换成功",
     "switchFailed": "思考强度切换失败"
+  },
+  "thinkingMode": {
+    "label": "思考模式",
+    "enabled": "开启",
+    "disabled": "关闭",
+    "switchSuccess": "思考模式切换成功"
   }
 }

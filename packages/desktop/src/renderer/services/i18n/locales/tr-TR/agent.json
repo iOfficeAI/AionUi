@@ -44,5 +44,11 @@
     "label": "Düşünme düzeyi",
     "switchSuccess": "Düşünme düzeyi değiştirildi",
     "switchFailed": "Düşünme düzeyi değiştirilemedi"
+  },
+  "thinkingMode": {
+    "label": "Düşünme modu",
+    "enabled": "Açık",
+    "disabled": "Kapalı",
+    "switchSuccess": "Düşünme modu değiştirildi"
   }
 }

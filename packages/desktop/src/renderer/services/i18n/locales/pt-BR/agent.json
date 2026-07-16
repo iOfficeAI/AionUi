@@ -44,5 +44,11 @@
     "label": "Nível de raciocínio",
     "switchSuccess": "Nível de raciocínio alterado",
     "switchFailed": "Falha ao alterar o nível de raciocínio"
+  },
+  "thinkingMode": {
+    "label": "Modo de raciocínio",
+    "enabled": "Ativado",
+    "disabled": "Desativado",
+    "switchSuccess": "Modo de raciocínio alterado"
   }
 }

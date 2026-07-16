@@ -44,5 +44,11 @@
     "label": "سطح تفکر",
     "switchSuccess": "سطح تفکر تغییر کرد",
     "switchFailed": "تغییر سطح تفکر ناموفق بود"
+  },
+  "thinkingMode": {
+    "label": "حالت تفکر",
+    "enabled": "فعال",
+    "disabled": "غیرفعال",
+    "switchSuccess": "حالت تفکر تغییر کرد"
   }
 }

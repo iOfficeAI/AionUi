@@ -4,6 +4,7 @@ import { isBackendHttpError } from '@/common/adapter/httpBridge';
 import { isSideQuestionSupported } from '@/common/chat/sideQuestion';
 import { parseError, uuid } from '@/common/utils';
 import AgentModeSelector from '@/renderer/components/agent/AgentModeSelector';
+import { isThinkingModeOption, localizeThinkingModeOption } from '@/renderer/components/agent/runtimeSelectorOptions';
 import CommandQueuePanel from '@/renderer/components/chat/CommandQueuePanel';
 import MobileActionSheet, {
   type MobileActionSheetEntry,
@@ -152,6 +153,15 @@ const AcpSendBox: React.FC<{
   });
   const runtimeMode = runtimeConfig.mode;
   const runtimeThoughtLevel = runtimeConfig.thoughtLevel;
+  const runtimeThinkingMode = isThinkingModeOption(runtimeThoughtLevel);
+  const displayRuntimeThoughtLevel = localizeThinkingModeOption(runtimeThoughtLevel, {
+    enabled: t('agent.thinkingMode.enabled'),
+    disabled: t('agent.thinkingMode.disabled'),
+  });
+  const thoughtControlLabel = runtimeThinkingMode ? t('agent.thinkingMode.label') : t('agent.thoughtLevel.label');
+  const thoughtSwitchSuccess = runtimeThinkingMode
+    ? t('agent.thinkingMode.switchSuccess')
+    : t('agent.thoughtLevel.switchSuccess');
   const handleThoughtLevelSetOption = useCallback(
     async (optionId: string, value: string) => runtimeConfig.setConfigOption(optionId, value),
     [runtimeConfig]
@@ -499,18 +509,18 @@ Please check your local CLI tool authentication status`,
       });
     }
 
-    if (runtimeThoughtLevel) {
+    if (runtimeThoughtLevel && displayRuntimeThoughtLevel) {
       entries.push({
         key: 'thought-level',
         icon: <Brain theme='outline' size='16' />,
-        label: t('agent.thoughtLevel.label'),
+        label: thoughtControlLabel,
         meta:
-          runtimeThoughtLevel.options.find((item) => item.value === runtimeThoughtLevel.currentValue)?.label ||
+          displayRuntimeThoughtLevel.options.find((item) => item.value === runtimeThoughtLevel.currentValue)?.label ||
           runtimeThoughtLevel.currentValue ||
           '',
         submenu: {
-          title: t('agent.thoughtLevel.label'),
-          options: runtimeThoughtLevel.options.map((item) => ({
+          title: thoughtControlLabel,
+          options: displayRuntimeThoughtLevel.options.map((item) => ({
             key: item.value,
             label: item.label,
             description: item.description ?? undefined,
@@ -518,7 +528,7 @@ Please check your local CLI tool authentication status`,
           })),
           onSelect: (value) => {
             void handleThoughtLevelSetOption(runtimeThoughtLevel.id, value)
-              .then(() => Message.success(t('agent.thoughtLevel.switchSuccess')))
+              .then(() => Message.success(thoughtSwitchSuccess))
               .catch((error) => Message.error(t(configErrorMessageKey(error))));
           },
         },
@@ -597,6 +607,7 @@ Please check your local CLI tool authentication status`,
     attachEntries,
     canSwitchModel,
     currentMode,
+    displayRuntimeThoughtLevel,
     handleSheetModeChange,
     handleThoughtLevelSetOption,
     isMobile,
@@ -608,6 +619,8 @@ Please check your local CLI tool authentication status`,
     selectModel,
     setContent,
     t,
+    thoughtControlLabel,
+    thoughtSwitchSuccess,
   ]);
 
   useAddEventListener('acp.selected.file', setAtPath);

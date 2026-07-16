@@ -44,5 +44,11 @@
     "label": "Denk-Stufe",
     "switchSuccess": "Denk-Stufe gewechselt",
     "switchFailed": "Wechsel der Denk-Stufe fehlgeschlagen"
+  },
+  "thinkingMode": {
+    "label": "Denkmodus",
+    "enabled": "Ein",
+    "disabled": "Aus",
+    "switchSuccess": "Denkmodus gewechselt"
   }
 }

@@ -44,5 +44,11 @@
     "label": "사고 강도",
     "switchSuccess": "사고 강도가 전환되었습니다",
     "switchFailed": "사고 강도 전환에 실패했습니다"
+  },
+  "thinkingMode": {
+    "label": "사고 모드",
+    "enabled": "켜기",
+    "disabled": "끄기",
+    "switchSuccess": "사고 모드가 전환되었습니다"
   }
 }

@@ -56,6 +56,30 @@ describe('ACP config option derivation', () => {
     expect(thought?.options.map((item) => item.value)).toEqual(['low', 'high']);
   });
 
+  it('recognizes a binary thinking option from a third-party runtime', () => {
+    const backendOptions = [
+      {
+        id: 'thinking',
+        option_type: 'select',
+        current_value: 'enabled',
+        options: [
+          { value: 'enabled', name: 'Enabled' },
+          { value: 'disabled', name: 'Disabled' },
+        ],
+      },
+    ] as AcpConfigOptionDto[];
+
+    const thought = deriveSelectOption(backendOptions, 'thought_level', [
+      'thought_level',
+      'reasoning_effort',
+      'thinking',
+    ]);
+
+    expect(thought?.id).toBe('thinking');
+    expect(thought?.currentValue).toBe('enabled');
+    expect(thought?.options.map((item) => item.value)).toEqual(['enabled', 'disabled']);
+  });
+
   it('accepts only observed set responses with matching current_value', () => {
     const response: SetConfigOptionResponse = {
       confirmation: 'observed',

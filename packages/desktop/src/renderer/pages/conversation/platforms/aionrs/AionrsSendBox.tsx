@@ -7,6 +7,7 @@
 import { ipcBridge } from '@/common';
 import type { IConversationMcpStatus } from '@/common/config/storage';
 import AgentModeSelector from '@/renderer/components/agent/AgentModeSelector';
+import { isThinkingModeOption, localizeThinkingModeOption } from '@/renderer/components/agent/runtimeSelectorOptions';
 import CommandQueuePanel from '@/renderer/components/chat/CommandQueuePanel';
 import MobileActionSheet, {
   type MobileActionSheetEntry,
@@ -183,6 +184,15 @@ const AionrsSendBox: React.FC<{
   });
   const runtimeMode = runtimeConfig.mode;
   const runtimeThoughtLevel = runtimeConfig.thoughtLevel;
+  const runtimeThinkingMode = isThinkingModeOption(runtimeThoughtLevel);
+  const displayRuntimeThoughtLevel = localizeThinkingModeOption(runtimeThoughtLevel, {
+    enabled: t('agent.thinkingMode.enabled'),
+    disabled: t('agent.thinkingMode.disabled'),
+  });
+  const thoughtControlLabel = runtimeThinkingMode ? t('agent.thinkingMode.label') : t('agent.thoughtLevel.label');
+  const thoughtSwitchSuccess = runtimeThinkingMode
+    ? t('agent.thinkingMode.switchSuccess')
+    : t('agent.thoughtLevel.switchSuccess');
 
   useEffect(() => {
     if (!runtimeMode?.currentValue) return;
@@ -511,18 +521,18 @@ const AionrsSendBox: React.FC<{
       ...attachEntries,
     ];
 
-    if (runtimeThoughtLevel) {
+    if (runtimeThoughtLevel && displayRuntimeThoughtLevel) {
       entries.splice(1, 0, {
         key: 'thought-level',
         icon: <Brain theme='outline' size='16' />,
-        label: t('agent.thoughtLevel.label'),
+        label: thoughtControlLabel,
         meta:
-          runtimeThoughtLevel.options.find((item) => item.value === runtimeThoughtLevel.currentValue)?.label ||
+          displayRuntimeThoughtLevel.options.find((item) => item.value === runtimeThoughtLevel.currentValue)?.label ||
           runtimeThoughtLevel.currentValue ||
           '',
         submenu: {
-          title: t('agent.thoughtLevel.label'),
-          options: runtimeThoughtLevel.options.map((item) => ({
+          title: thoughtControlLabel,
+          options: displayRuntimeThoughtLevel.options.map((item) => ({
             key: item.value,
             label: item.label,
             description: item.description ?? undefined,
@@ -531,7 +541,7 @@ const AionrsSendBox: React.FC<{
           onSelect: (value) => {
             void runtimeConfig
               .setConfigOption(runtimeThoughtLevel.id, value)
-              .then(() => Message.success(t('agent.thoughtLevel.switchSuccess')))
+              .then(() => Message.success(thoughtSwitchSuccess))
               .catch((error) => Message.error(t(configErrorMessageKey(error))));
           },
         },
@@ -588,6 +598,7 @@ const AionrsSendBox: React.FC<{
   }, [
     attachEntries,
     currentMode,
+    displayRuntimeThoughtLevel,
     dynamicModes,
     handleSheetModeChange,
     handleSheetModelSelect,
@@ -600,6 +611,8 @@ const AionrsSendBox: React.FC<{
     runtimeThoughtLevel,
     setContent,
     t,
+    thoughtControlLabel,
+    thoughtSwitchSuccess,
   ]);
 
   useAddEventListener('aionrs.selected.file', setAtPath);
