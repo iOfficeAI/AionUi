@@ -18,6 +18,6 @@
     "title": "Ollama Launch",
     "off": "關閉",
     "tooltip": "透過本地 Ollama 模型執行該智能體，無需 API 金鑰",
-    "noModels": "未找到本地 Ollama 模型。請先安裝 Ollama 並拉取模型。"
+    "noModels": "在 {{endpoint}} 未找到 Ollama 模型。請確認 Ollama 正在預設連接埠上執行，並先拉取模型。"
   }
 }

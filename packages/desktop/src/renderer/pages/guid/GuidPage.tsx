@@ -29,6 +29,7 @@ import { useOllamaLocalModels } from './hooks/useOllamaLocalModels';
 import { useTypewriterPlaceholder } from './hooks/useTypewriterPlaceholder';
 import { ensureBackendMcpCatalog } from '@/renderer/hooks/mcp/catalog';
 import { resolveGuidAssistantDefaults } from './utils/assistantDefaults';
+import { warmUpOllamaModel } from './utils/ollamaLaunch';
 import SpeechInputButton from '@/renderer/components/chat/SpeechInputButton';
 import { useOpenFileSelector } from '@/renderer/hooks/file/useOpenFileSelector';
 import { appendSpeechTranscript } from '@/renderer/hooks/system/useSpeechInput';
@@ -165,6 +166,12 @@ const GuidPage: React.FC = () => {
   useEffect(() => {
     setGuidOllamaModel(null);
   }, [selectedAssistantId]);
+  // Pre-load the chosen model into Ollama's memory so the agent's first
+  // message does not pay the cold-load cost (best effort, fire-and-forget).
+  const handleOllamaModelSelect = useCallback((model: string | null) => {
+    setGuidOllamaModel(model);
+    if (model) void warmUpOllamaModel(model);
+  }, []);
 
   const { data: selectedAssistantDetail } = useSWR(
     selectedAssistantId ? `guid.assistant.detail.${selectedAssistantId}.${localeKey}` : null,
@@ -596,7 +603,7 @@ const GuidPage: React.FC = () => {
       onFilesUploaded={guidInput.handleFilesUploaded}
       ollamaLaunch={
         ollamaLaunchAvailable
-          ? { models: ollamaModels, selectedModel: guidOllamaModel, onSelect: setGuidOllamaModel }
+          ? { models: ollamaModels, selectedModel: guidOllamaModel, onSelect: handleOllamaModelSelect }
           : null
       }
       modelSelectorNode={modelSelectorNode}

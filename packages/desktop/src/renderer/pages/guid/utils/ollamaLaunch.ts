@@ -16,6 +16,13 @@
 /** Local Ollama HTTP API endpoint listing pulled models (`ollama list`). */
 export const OLLAMA_TAGS_ENDPOINT = 'http://127.0.0.1:11434/api/tags';
 
+/** Local Ollama HTTP API endpoint used to pre-load a model into memory. */
+export const OLLAMA_GENERATE_ENDPOINT = 'http://127.0.0.1:11434/api/generate';
+
+/** Human-readable host shown in the empty-state hint so users know where
+ *  model discovery looked (Ollama's default bind address). */
+export const OLLAMA_HOST_LABEL = '127.0.0.1:11434';
+
 /** Extra payload fragment that opts a conversation into Ollama Launch. */
 export type OllamaLaunchExtra = {
   use_ollama: true;
@@ -53,4 +60,28 @@ export function parseOllamaTagsResponse(payload: unknown): string[] {
     }
   }
   return names;
+}
+
+/**
+ * Pre-load the selected model into Ollama's memory (fire-and-forget).
+ *
+ * Per the Ollama API docs, a `/api/generate` call without a prompt only
+ * loads the model. Warming on selection means the model is already resident
+ * when the spawned agent sends its first request, instead of paying the
+ * cold-load cost on the user's first message. Failures are swallowed — the
+ * launch path loads the model on demand anyway; this is purely an
+ * optimisation.
+ */
+export async function warmUpOllamaModel(ollamaModel: string): Promise<void> {
+  const extra = buildOllamaLaunchExtra(ollamaModel);
+  if (!extra) return;
+  try {
+    await fetch(OLLAMA_GENERATE_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: extra.ollama_model, keep_alive: '10m' }),
+    });
+  } catch {
+    // Best effort only: the agent's first request will load the model instead.
+  }
 }

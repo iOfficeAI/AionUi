@@ -18,6 +18,6 @@
     "title": "Ollama Launch",
     "off": "Off",
     "tooltip": "Run this agent with local Ollama models — no API keys needed",
-    "noModels": "No local Ollama models found. Install Ollama and pull a model first."
+    "noModels": "No Ollama models found at {{endpoint}}. Make sure Ollama is running on its default port and pull a model first."
   }
 }

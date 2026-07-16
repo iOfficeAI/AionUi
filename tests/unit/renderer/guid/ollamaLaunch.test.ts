@@ -4,8 +4,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { describe, expect, it } from 'vitest';
-import { buildOllamaLaunchExtra, parseOllamaTagsResponse } from '@/renderer/pages/guid/utils/ollamaLaunch';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import {
+  buildOllamaLaunchExtra,
+  OLLAMA_GENERATE_ENDPOINT,
+  parseOllamaTagsResponse,
+  warmUpOllamaModel,
+} from '@/renderer/pages/guid/utils/ollamaLaunch';
 
 describe('buildOllamaLaunchExtra', () => {
   it('returns the ollama extra fragment when a model is selected', () => {
@@ -58,5 +63,39 @@ describe('parseOllamaTagsResponse', () => {
     expect(parseOllamaTagsResponse('nope')).toEqual([]);
     expect(parseOllamaTagsResponse({})).toEqual([]);
     expect(parseOllamaTagsResponse({ models: 'nope' })).toEqual([]);
+  });
+});
+
+describe('warmUpOllamaModel', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('asks the local Ollama server to pre-load the model (no prompt)', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await warmUpOllamaModel('qwen3:14b');
+
+    expect(fetchMock).toHaveBeenCalledWith(OLLAMA_GENERATE_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: 'qwen3:14b', keep_alive: '10m' }),
+    });
+  });
+
+  it('does nothing for an empty selection', async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+
+    await warmUpOllamaModel('   ');
+
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('swallows network failures (best effort only)', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Failed to fetch')));
+
+    await expect(warmUpOllamaModel('qwen3:14b')).resolves.toBeUndefined();
   });
 });

@@ -21,6 +21,7 @@ import { iconColors } from '@/renderer/styles/colors';
 import { isElectronDesktop } from '@/renderer/utils/platform';
 import type { AcpModelInfo } from '../types';
 import { getAvailableModels } from '../utils/modelUtils';
+import { OLLAMA_HOST_LABEL } from '../utils/ollamaLaunch';
 import { Button, Checkbox, Dropdown, Menu, Message, Tooltip } from '@arco-design/web-react';
 import { ArrowUp, Brain, FolderUpload, Lightning, Plus, Rocket, Shield, UploadOne } from '@icon-park/react';
 import React, { useCallback, useMemo, useRef, useState } from 'react';
@@ -331,6 +332,10 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
         label: t('guid.ollamaLaunch.title'),
         variant: 'muted',
         meta: ollamaLaunch.selectedModel ?? t('guid.ollamaLaunch.off'),
+        description:
+          ollamaLaunch.models.length === 0
+            ? t('guid.ollamaLaunch.noModels', { endpoint: OLLAMA_HOST_LABEL })
+            : undefined,
         submenu: {
           title: t('guid.ollamaLaunch.title'),
           options: [
@@ -346,7 +351,7 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
               active: model === ollamaLaunch.selectedModel,
             })),
           ],
-          emptyText: t('guid.ollamaLaunch.noModels'),
+          emptyText: t('guid.ollamaLaunch.noModels', { endpoint: OLLAMA_HOST_LABEL }),
           onSelect: (key) => ollamaLaunch.onSelect(key === OLLAMA_OFF_KEY ? null : key),
         },
       });
@@ -540,7 +545,9 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
           ))}
           {ollamaLaunch.models.length === 0 && (
             <Menu.Item key='ollama-empty' disabled>
-              <span className='text-13px text-t-secondary'>{t('guid.ollamaLaunch.noModels')}</span>
+              <span className='text-13px text-t-secondary whitespace-normal'>
+                {t('guid.ollamaLaunch.noModels', { endpoint: OLLAMA_HOST_LABEL })}
+              </span>
             </Menu.Item>
           )}
         </Menu.SubMenu>

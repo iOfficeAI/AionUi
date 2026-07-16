@@ -18,6 +18,6 @@
     "title": "Ollama Launch",
     "off": "Désactivé",
     "tooltip": "Exécutez cet agent avec des modèles locaux Ollama — aucune clé API requise",
-    "noModels": "Aucun modèle local Ollama trouvé. Installez d'abord Ollama et téléchargez un modèle."
+    "noModels": "Aucun modèle Ollama trouvé sur {{endpoint}}. Vérifiez qu'Ollama fonctionne sur son port par défaut et téléchargez d'abord un modèle."
   }
 }

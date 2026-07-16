@@ -18,6 +18,6 @@
     "title": "Ollama Launch",
     "off": "Kapalı",
     "tooltip": "Bu ajanı yerel Ollama modelleriyle çalıştırın — API anahtarı gerekmez",
-    "noModels": "Yerel Ollama modeli bulunamadı. Önce Ollama'yı kurup bir model indirin."
+    "noModels": "{{endpoint}} adresinde Ollama modeli bulunamadı. Ollama'nın varsayılan portta çalıştığından emin olun ve önce bir model indirin."
   }
 }

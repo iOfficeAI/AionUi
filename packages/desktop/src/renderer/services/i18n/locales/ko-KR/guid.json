@@ -18,6 +18,6 @@
     "title": "Ollama Launch",
     "off": "끄기",
     "tooltip": "로컬 Ollama 모델로 이 에이전트를 실행합니다. API 키가 필요 없습니다",
-    "noModels": "로컬 Ollama 모델을 찾을 수 없습니다. 먼저 Ollama를 설치하고 모델을 받아 주세요."
+    "noModels": "{{endpoint}}에서 Ollama 모델을 찾을 수 없습니다. Ollama가 기본 포트에서 실행 중인지 확인하고 먼저 모델을 받아 주세요."
   }
 }
