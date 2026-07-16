@@ -1,5 +1,6 @@
 import { ipcBridge } from '@/common';
-import { Button, Message, Modal } from '@arco-design/web-react';
+import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
+import { Button, Checkbox, Message, Modal } from '@arco-design/web-react';
 import { Delete, Help, Lightning, Puzzle } from '@icon-park/react';
 import React, { useCallback, useEffect, useRef, useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -126,6 +127,8 @@ interface SkillsHubSettingsProps {
 
 const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = true }) => {
   const { t } = useTranslation();
+  const layout = useLayoutContext();
+  const isMobile = layout?.isMobile ?? false;
   const location = useLocation();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -140,6 +143,9 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
   const [importHistory, setImportHistory] = useState<SkillImportRecord[]>([]);
   const [importLimits, setImportLimits] = useState<SkillImportLimits | null>(null);
   const [activeTab, setActiveTab] = useState<'custom' | 'official'>('custom');
+  // Batch management (Custom tab only): multi-select skills for bulk deletion.
+  const [batchMode, setBatchMode] = useState(false);
+  const [selectedSkillNames, setSelectedSkillNames] = useState<Set<string>>(new Set());
 
   // "Custom" tab: only user-imported skills.
   const mySkills = useMemo(() => availableSkills.filter((s) => s.source === 'custom'), [availableSkills]);
@@ -263,6 +269,65 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
       Message.error(t('settings.skillsHub.deleteError', { defaultValue: 'Error deleting skill' }));
     }
   };
+
+  const exitBatchMode = useCallback(() => {
+    setBatchMode(false);
+    setSelectedSkillNames(new Set());
+  }, []);
+
+  const toggleSkillSelected = useCallback((skillName: string) => {
+    setSelectedSkillNames((prev) => {
+      const next = new Set(prev);
+      if (next.has(skillName)) {
+        next.delete(skillName);
+      } else {
+        next.add(skillName);
+      }
+      return next;
+    });
+  }, []);
+
+  const handleBatchDelete = useCallback(() => {
+    if (selectedSkillNames.size === 0) return;
+    Modal.confirm({
+      title: t('settings.skillsHub.batchDeleteConfirmTitle', { defaultValue: 'Delete Skills' }),
+      content: t('settings.skillsHub.batchDeleteConfirmContent', {
+        count: selectedSkillNames.size,
+        defaultValue: `Are you sure you want to delete the ${selectedSkillNames.size} selected skill(s)?`,
+      }),
+      okButtonProps: { status: 'warning' },
+      okText: t('common.delete', { defaultValue: 'Delete' }),
+      wrapClassName: 'modal-delete-skill',
+      onOk: async () => {
+        const names = Array.from(selectedSkillNames);
+        const results = await Promise.allSettled(
+          names.map((name) => ipcBridge.fs.deleteSkill.invoke({ skill_name: name }))
+        );
+        const successCount = results.filter((r) => r.status === 'fulfilled').length;
+        const failedCount = results.length - successCount;
+        if (failedCount === 0) {
+          Message.success(
+            t('settings.skillsHub.batchDeleteSuccess', {
+              count: successCount,
+              defaultValue: `Deleted ${successCount} skill(s)`,
+            })
+          );
+        } else if (successCount > 0) {
+          Message.warning(
+            t('settings.skillsHub.batchDeletePartial', {
+              successCount,
+              failedCount,
+              defaultValue: `Deleted ${successCount} skill(s), ${failedCount} failed`,
+            })
+          );
+        } else {
+          Message.error(t('settings.skillsHub.deleteError', { defaultValue: 'Error deleting skill' }));
+        }
+        exitBatchMode();
+        void fetchData();
+      },
+    });
+  }, [selectedSkillNames, exitBatchMode, fetchData, t]);
 
   const handleManualImport = async () => {
     try {
@@ -632,21 +697,96 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
     </div>
   );
 
+  // Batch selection helpers scoped to the visible (filtered) custom skills.
+  const allVisibleSelected = filteredSkills.length > 0 && filteredSkills.every((s) => selectedSkillNames.has(s.name));
+  const toggleSelectAllVisible = () => {
+    setSelectedSkillNames((prev) => {
+      const next = new Set(prev);
+      if (allVisibleSelected) {
+        filteredSkills.forEach((s) => next.delete(s.name));
+      } else {
+        filteredSkills.forEach((s) => next.add(s.name));
+      }
+      return next;
+    });
+  };
+
   // ======== Custom tab ========
   const customPane = (
     <div data-testid='my-skills-section' className='flex flex-col gap-12px'>
-      <p className='m-0 text-12px leading-relaxed text-t-tertiary'>
-        {t('settings.skillsHub.customHint', {
-          maxFileSize:
-            formatBytes(importLimits?.max_file_bytes) ??
-            t('settings.skillsHub.importHelpConfiguredLimit', { defaultValue: 'configured limit' }),
-          maxTotalSize:
-            formatBytes(importLimits?.max_total_bytes) ??
-            t('settings.skillsHub.importHelpConfiguredLimit', { defaultValue: 'configured limit' }),
-          defaultValue:
-            'Import a skill folder, parent folder, or zip; up to {{maxFileSize}} per file and {{maxTotalSize}} per skill; importing the same name overwrites the existing skill.',
-        })}
-      </p>
+      <div className='flex items-start justify-between gap-12px'>
+        <p className='m-0 flex-1 min-w-0 text-12px leading-relaxed text-t-tertiary'>
+          {t('settings.skillsHub.customHint', {
+            maxFileSize:
+              formatBytes(importLimits?.max_file_bytes) ??
+              t('settings.skillsHub.importHelpConfiguredLimit', { defaultValue: 'configured limit' }),
+            maxTotalSize:
+              formatBytes(importLimits?.max_total_bytes) ??
+              t('settings.skillsHub.importHelpConfiguredLimit', { defaultValue: 'configured limit' }),
+            defaultValue:
+              'Import a skill folder, parent folder, or zip; up to {{maxFileSize}} per file and {{maxTotalSize}} per skill; importing the same name overwrites the existing skill.',
+          })}
+        </p>
+        {mySkills.length > 0 && (
+          <div className='flex shrink-0 items-center gap-8px'>
+            {batchMode ? (
+              <>
+                <Button
+                  size='mini'
+                  type='text'
+                  className='!h-24px !px-8px !text-12px'
+                  data-testid='btn-batch-cancel'
+                  onClick={exitBatchMode}
+                >
+                  {t('common.cancel', { defaultValue: 'Cancel' })}
+                </Button>
+                <Button
+                  size='mini'
+                  status='warning'
+                  className='!h-24px !px-8px !text-12px'
+                  data-testid='btn-batch-delete'
+                  disabled={selectedSkillNames.size === 0}
+                  onClick={handleBatchDelete}
+                >
+                  {t('settings.skillsHub.batchDeleteAction', {
+                    count: selectedSkillNames.size,
+                    defaultValue: `Delete (${selectedSkillNames.size})`,
+                  })}
+                </Button>
+              </>
+            ) : (
+              <Button
+                size='mini'
+                type='text'
+                className='!h-24px !px-8px !text-12px !text-t-secondary hover:!text-t-primary'
+                data-testid='btn-batch-manage'
+                onClick={() => setBatchMode(true)}
+              >
+                {t('settings.skillsHub.batchManage', { defaultValue: 'Batch manage' })}
+              </Button>
+            )}
+          </div>
+        )}
+      </div>
+      {batchMode && mySkills.length > 0 && (
+        <div className='flex items-center justify-between gap-12px text-12px text-t-secondary'>
+          <Checkbox
+            data-testid='checkbox-select-all-skills'
+            checked={allVisibleSelected}
+            onChange={toggleSelectAllVisible}
+          >
+            <span className='text-12px text-t-secondary'>
+              {t('conversation.history.selectAll', { defaultValue: 'Select All' })}
+            </span>
+          </Checkbox>
+          <span>
+            {t('settings.skillsHub.batchSelectedCount', {
+              count: selectedSkillNames.size,
+              defaultValue: `${selectedSkillNames.size} selected`,
+            })}
+          </span>
+        </div>
+      )}
       {mySkills.length > 0 ? (
         <div className='flex flex-col gap-8px rounded-12px border border-border-2 bg-2 p-8px md:rounded-16px md:p-10px'>
           {filteredSkills.length === 0 && (
@@ -661,8 +801,19 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
               ref={(el) => {
                 skillRefs.current[skill.name] = el;
               }}
-              className={`group flex flex-col sm:flex-row gap-16px p-14px bg-base border hover:border-border-2 rd-12px transition-all duration-200 ${highlightedSkill === skill.name ? 'border-primary-5 bg-primary-1' : 'border-transparent'}`}
+              onClick={batchMode ? () => toggleSkillSelected(skill.name) : undefined}
+              className={`group flex flex-col sm:flex-row gap-16px p-14px bg-base border hover:border-border-2 rd-12px transition-all duration-200 ${batchMode ? 'cursor-pointer' : ''} ${highlightedSkill === skill.name ? 'border-primary-5 bg-primary-1' : selectedSkillNames.has(skill.name) && batchMode ? 'border-primary-5 bg-primary-1' : 'border-transparent'}`}
             >
+              {batchMode && (
+                <div className='shrink-0 flex items-center sm:self-center'>
+                  <Checkbox
+                    data-testid={`checkbox-skill-${normalizeTestId(skill.name)}`}
+                    checked={selectedSkillNames.has(skill.name)}
+                    onChange={() => toggleSkillSelected(skill.name)}
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                </div>
+              )}
               <div className='shrink-0 flex items-start sm:mt-2px'>
                 <div
                   className={`w-40px h-40px rd-10px flex items-center justify-center font-bold text-16px shadow-sm text-transform-uppercase ${getAvatarColorClass(skill.name)}`}
@@ -680,28 +831,30 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
                 )}
               </div>
 
-              <div className='shrink-0 sm:self-center flex items-center justify-end gap-6px mt-12px sm:mt-0 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity pl-4px'>
-                <button
-                  data-testid={`btn-delete-${normalizeTestId(skill.name)}`}
-                  className='p-8px hover:bg-danger-1 hover:text-danger-6 text-t-tertiary rd-6px outline-none flex items-center justify-center border border-transparent cursor-pointer transition-colors shadow-sm bg-base sm:bg-transparent sm:shadow-none'
-                  onClick={() => {
-                    Modal.confirm({
-                      title: t('settings.skillsHub.deleteConfirmTitle', { defaultValue: 'Delete Skill' }),
-                      content: t('settings.skillsHub.deleteConfirmContent', {
-                        name: skill.name,
-                        defaultValue: `Are you sure you want to delete "${skill.name}"?`,
-                      }),
-                      okButtonProps: { status: 'danger' },
-                      okText: t('common.delete', { defaultValue: 'Delete' }),
-                      onOk: () => void handleDelete(skill.name),
-                      wrapClassName: 'modal-delete-skill',
-                    });
-                  }}
-                  title={t('common.delete', { defaultValue: 'Delete' })}
-                >
-                  <Delete size={16} />
-                </button>
-              </div>
+              {!batchMode && (
+                <div className='shrink-0 sm:self-center flex items-center justify-end gap-6px mt-12px sm:mt-0 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity pl-4px'>
+                  <button
+                    data-testid={`btn-delete-${normalizeTestId(skill.name)}`}
+                    className='p-8px hover:bg-danger-1 hover:text-danger-6 text-t-tertiary rd-6px outline-none flex items-center justify-center border border-transparent cursor-pointer transition-colors shadow-sm bg-base sm:bg-transparent sm:shadow-none'
+                    onClick={() => {
+                      Modal.confirm({
+                        title: t('settings.skillsHub.deleteConfirmTitle', { defaultValue: 'Delete Skill' }),
+                        content: t('settings.skillsHub.deleteConfirmContent', {
+                          name: skill.name,
+                          defaultValue: `Are you sure you want to delete "${skill.name}"?`,
+                        }),
+                        okButtonProps: { status: 'danger' },
+                        okText: t('common.delete', { defaultValue: 'Delete' }),
+                        onOk: () => void handleDelete(skill.name),
+                        wrapClassName: 'modal-delete-skill',
+                      });
+                    }}
+                    title={t('common.delete', { defaultValue: 'Delete' })}
+                  >
+                    <Delete size={16} />
+                  </button>
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -786,7 +939,8 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
         })}
         actions={
           <>
-            {searchBox('input-search-my-skills')}
+            {/* Mobile: the actions row is too crowded — drop the search box entirely. */}
+            {!isMobile && searchBox('input-search-my-skills')}
             <Button
               type='text'
               size='small'
@@ -821,7 +975,10 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
           },
         ]}
         activeTab={activeTab}
-        onTabChange={(key) => setActiveTab(key as 'custom' | 'official')}
+        onTabChange={(key) => {
+          setActiveTab(key as 'custom' | 'official');
+          exitBatchMode();
+        }}
       />
       {activeTab === 'custom' ? customPane : officialPane}
     </div>

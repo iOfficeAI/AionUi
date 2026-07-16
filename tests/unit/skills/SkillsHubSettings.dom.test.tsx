@@ -17,10 +17,12 @@ const mocks = vi.hoisted(() => ({
   getSkillImportLimits: vi.fn(),
   listSkillImportHistory: vi.fn(),
   importSkills: vi.fn(),
+  deleteSkill: vi.fn(),
   showOpen: vi.fn(),
   messageError: vi.fn(),
   messageSuccess: vi.fn(),
   messageWarning: vi.fn(),
+  modalConfirm: vi.fn(),
 }));
 
 const searchParamsMock = vi.hoisted(() => ({
@@ -38,6 +40,7 @@ vi.mock('@/common', () => ({
       getSkillImportLimits: { invoke: mocks.getSkillImportLimits },
       listSkillImportHistory: { invoke: mocks.listSkillImportHistory },
       importSkills: { invoke: mocks.importSkills },
+      deleteSkill: { invoke: mocks.deleteSkill },
     },
     dialog: {
       showOpen: { invoke: mocks.showOpen },
@@ -54,6 +57,10 @@ vi.mock('@arco-design/web-react', async (importOriginal) => {
       error: mocks.messageError,
       success: mocks.messageSuccess,
       warning: mocks.messageWarning,
+    },
+    Modal: {
+      ...actual.Modal,
+      confirm: mocks.modalConfirm,
     },
   };
 });
@@ -408,5 +415,137 @@ describe('SkillsHubSettings', () => {
 
     await waitFor(() => expect(mocks.getSkillImportLimits).toHaveBeenCalled());
     expect(screen.getByText(/12 MB per file and 64 MB per skill/)).toBeInTheDocument();
+  });
+
+  describe('batch delete (Custom tab)', () => {
+    const customSkills = [
+      {
+        name: 'skill-alpha',
+        description: 'First custom skill.',
+        location: '/tmp/user-skills/skill-alpha',
+        is_auto_inject: false,
+        is_custom: true,
+        source: 'custom',
+      },
+      {
+        name: 'skill-beta',
+        description: 'Second custom skill.',
+        location: '/tmp/user-skills/skill-beta',
+        is_auto_inject: false,
+        is_custom: true,
+        source: 'custom',
+      },
+      {
+        name: 'skill-gamma',
+        description: 'Third custom skill.',
+        location: '/tmp/user-skills/skill-gamma',
+        is_auto_inject: false,
+        is_custom: true,
+        source: 'custom',
+      },
+    ];
+
+    const confirmBatchDelete = async () => {
+      // Modal.confirm is mocked; invoke the onOk callback the component passed in.
+      await waitFor(() => expect(mocks.modalConfirm).toHaveBeenCalled());
+      const config = mocks.modalConfirm.mock.calls.at(-1)?.[0] as { onOk?: () => Promise<void> };
+      await config.onOk?.();
+    };
+
+    beforeEach(() => {
+      mocks.listAvailableSkills.mockResolvedValue(customSkills);
+      mocks.deleteSkill.mockResolvedValue(undefined);
+    });
+
+    it('hides batch manage entry when there are no custom skills', async () => {
+      mocks.listAvailableSkills.mockResolvedValue([]);
+      render(<SkillsHubSettings withWrapper={false} />);
+
+      await waitFor(() => expect(mocks.listAvailableSkills).toHaveBeenCalled());
+      expect(screen.queryByTestId('btn-batch-manage')).not.toBeInTheDocument();
+    });
+
+    it('enters batch mode: shows checkboxes, hides per-card delete buttons', async () => {
+      render(<SkillsHubSettings withWrapper={false} />);
+
+      await screen.findByTestId('my-skill-card-skill-alpha');
+      expect(screen.getByTestId('btn-delete-skill-alpha')).toBeInTheDocument();
+
+      fireEvent.click(screen.getByTestId('btn-batch-manage'));
+
+      expect(screen.getByTestId('checkbox-skill-skill-alpha')).toBeInTheDocument();
+      expect(screen.getByTestId('checkbox-skill-skill-beta')).toBeInTheDocument();
+      expect(screen.queryByTestId('btn-delete-skill-alpha')).not.toBeInTheDocument();
+      expect(screen.getByTestId('btn-batch-delete')).toBeDisabled();
+    });
+
+    it('selects skills and deletes them after confirmation', async () => {
+      render(<SkillsHubSettings withWrapper={false} />);
+
+      await screen.findByTestId('my-skill-card-skill-alpha');
+      fireEvent.click(screen.getByTestId('btn-batch-manage'));
+
+      fireEvent.click(screen.getByTestId('my-skill-card-skill-alpha'));
+      fireEvent.click(screen.getByTestId('my-skill-card-skill-beta'));
+      expect(screen.getByText('2 selected')).toBeInTheDocument();
+
+      fireEvent.click(screen.getByTestId('btn-batch-delete'));
+      await confirmBatchDelete();
+
+      await waitFor(() => expect(mocks.deleteSkill).toHaveBeenCalledTimes(2));
+      expect(mocks.deleteSkill).toHaveBeenCalledWith({ skill_name: 'skill-alpha' });
+      expect(mocks.deleteSkill).toHaveBeenCalledWith({ skill_name: 'skill-beta' });
+      await waitFor(() => expect(mocks.messageSuccess).toHaveBeenCalledWith('Deleted 2 skill(s)'));
+      // Batch mode exits after deletion.
+      await waitFor(() => expect(screen.queryByTestId('btn-batch-delete')).not.toBeInTheDocument());
+    });
+
+    it('select all toggles every visible skill', async () => {
+      render(<SkillsHubSettings withWrapper={false} />);
+
+      await screen.findByTestId('my-skill-card-skill-alpha');
+      fireEvent.click(screen.getByTestId('btn-batch-manage'));
+
+      const selectAll = screen.getByTestId('checkbox-select-all-skills');
+      fireEvent.click(selectAll.querySelector('input') ?? selectAll);
+      expect(screen.getByText('3 selected')).toBeInTheDocument();
+
+      fireEvent.click(selectAll.querySelector('input') ?? selectAll);
+      expect(screen.getByText('0 selected')).toBeInTheDocument();
+    });
+
+    it('shows partial warning when some deletions fail', async () => {
+      mocks.deleteSkill.mockImplementation(({ skill_name }: { skill_name: string }) =>
+        skill_name === 'skill-beta' ? Promise.reject(new Error('boom')) : Promise.resolve(undefined)
+      );
+
+      render(<SkillsHubSettings withWrapper={false} />);
+
+      await screen.findByTestId('my-skill-card-skill-alpha');
+      fireEvent.click(screen.getByTestId('btn-batch-manage'));
+      fireEvent.click(screen.getByTestId('my-skill-card-skill-alpha'));
+      fireEvent.click(screen.getByTestId('my-skill-card-skill-beta'));
+      fireEvent.click(screen.getByTestId('btn-batch-delete'));
+      await confirmBatchDelete();
+
+      await waitFor(() => expect(mocks.messageWarning).toHaveBeenCalledWith('Deleted 1 skill(s), 1 failed'));
+    });
+
+    it('cancel exits batch mode and clears selection', async () => {
+      render(<SkillsHubSettings withWrapper={false} />);
+
+      await screen.findByTestId('my-skill-card-skill-alpha');
+      fireEvent.click(screen.getByTestId('btn-batch-manage'));
+      fireEvent.click(screen.getByTestId('my-skill-card-skill-alpha'));
+      fireEvent.click(screen.getByTestId('btn-batch-cancel'));
+
+      expect(screen.queryByTestId('checkbox-skill-skill-alpha')).not.toBeInTheDocument();
+      expect(screen.getByTestId('btn-delete-skill-alpha')).toBeInTheDocument();
+      expect(mocks.deleteSkill).not.toHaveBeenCalled();
+
+      // Re-entering batch mode starts with a clean selection.
+      fireEvent.click(screen.getByTestId('btn-batch-manage'));
+      expect(screen.getByText('0 selected')).toBeInTheDocument();
+    });
   });
 });
