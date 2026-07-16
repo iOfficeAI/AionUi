@@ -182,7 +182,7 @@ const NOVAMASTER_PROBES: NovaMasterProbe[] = [
   {
     id: 'aionui',
     name: 'AionUi',
-    role: 'Primary cockpit',
+    role: 'Companion cockpit for Agent OS',
     port: 3000,
     healthPath: '/api/auth/status',
     openUrl: 'http://127.0.0.1:3000/#/guid',
@@ -190,11 +190,11 @@ const NOVAMASTER_PROBES: NovaMasterProbe[] = [
   },
   {
     id: 'agent-os-growth',
-    name: 'Agent OS Growth',
-    role: 'SEO, video and money cockpit',
+    name: 'Agent OS Desktop',
+    role: 'Primary control plane and source of truth',
     port: 3737,
     healthPath: '/api/health',
-    openUrl: 'http://127.0.0.1:3737/seo',
+    openUrl: 'http://127.0.0.1:3737/seo-office',
   },
   {
     id: 'novacore-control',
@@ -233,23 +233,6 @@ const NOVAMASTER_PROBES: NovaMasterProbe[] = [
       label: 'Health',
       method: 'GET',
       path: '/api/health',
-    },
-  },
-  {
-    id: 'claw3d',
-    name: 'Claw3D',
-    role: '3D command layer',
-    port: 8095,
-    healthPath: '/health',
-    openUrl: 'http://127.0.0.1:3000/#/office',
-    launchPath: '/home/faramix/bin/novamaster-open-claw3d-native',
-    expectedService: 'claw3d',
-    forbiddenService: ['jarvis', 'jarvis-cockpit'],
-    primaryAction: {
-      id: 'rooms',
-      label: 'Rooms',
-      method: 'GET',
-      path: '/rooms',
     },
   },
   {

@@ -1,8 +1,10 @@
 import React, { Suspense } from 'react';
-import { HashRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { HashRouter, Navigate, Route, Routes, useNavigate } from 'react-router-dom';
 import AppLoader from '@renderer/components/layout/AppLoader';
 import { useAuth } from '@renderer/hooks/context/AuthContext';
 import { TEAM_MODE_ENABLED } from '@/common/config/constants';
+import { AGENT_OS_SEO_OFFICE_URL } from '@renderer/pages/guid/novamasterMissionControl';
+import { openExternalUrl } from '@renderer/utils/platform';
 const Conversation = React.lazy(() => import('@renderer/pages/conversation'));
 const Guid = React.lazy(() => import('@renderer/pages/guid'));
 const Boardroom = React.lazy(() => import('@renderer/pages/boardroom'));
@@ -20,7 +22,6 @@ const PetSettings = React.lazy(() => import('@renderer/pages/settings/PetSetting
 const ProvidersCockpit = React.lazy(() => import('@renderer/pages/settings/ProvidersCockpit'));
 const ExtensionSettingsPage = React.lazy(() => import('@renderer/pages/settings/ExtensionSettingsPage'));
 const LoginPage = React.lazy(() => import('@renderer/pages/login'));
-const OfficePage = React.lazy(() => import('@renderer/pages/office'));
 const ComponentsShowcase = React.lazy(() => import('@renderer/pages/TestShowcase'));
 const ScheduledTasksPage = React.lazy(() => import('@renderer/pages/cron/ScheduledTasksPage'));
 const TaskDetailPage = React.lazy(() => import('@renderer/pages/cron/ScheduledTasksPage/TaskDetailPage'));
@@ -31,6 +32,22 @@ const withRouteFallback = (Component: React.LazyExoticComponent<React.ComponentT
     <Component />
   </Suspense>
 );
+
+const AgentOsSeoOfficeRedirect: React.FC = () => {
+  const navigate = useNavigate();
+  const openedRef = React.useRef(false);
+
+  React.useEffect(() => {
+    if (openedRef.current) return;
+    openedRef.current = true;
+
+    void openExternalUrl(AGENT_OS_SEO_OFFICE_URL).finally(() => {
+      navigate('/guid', { replace: true });
+    });
+  }, [navigate]);
+
+  return <AppLoader />;
+};
 
 const ProtectedLayout: React.FC<{ layout: React.ReactElement }> = ({ layout }) => {
   const { status } = useAuth();
@@ -60,7 +77,7 @@ const PanelRoute: React.FC<{ layout: React.ReactElement }> = ({ layout }) => {
           <Route index element={<Navigate to='/guid' replace />} />
           <Route path='/guid' element={withRouteFallback(Guid)} />
           <Route path='/boardroom' element={withRouteFallback(Boardroom)} />
-          <Route path='/office' element={withRouteFallback(OfficePage)} />
+          <Route path='/office' element={<AgentOsSeoOfficeRedirect />} />
           <Route path='/conversation/:id' element={withRouteFallback(Conversation)} />
           <Route path='/settings/aionrs' element={withRouteFallback(AionrsSettings)} />
           <Route

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  AGENT_OS_SEO_OFFICE_URL,
   NOVA_AGENT_TEAM_ACTIONS,
   NOVA_COMMAND_ACTIONS,
   NOVA_ORB_OPTIONS,
@@ -8,6 +9,10 @@ import {
 } from '@/renderer/pages/guid/novamasterMissionControl';
 
 describe('NovaMaster mission control configuration', () => {
+  it('uses Agent OS as the canonical SEO Office surface', () => {
+    expect(AGENT_OS_SEO_OFFICE_URL).toBe('http://127.0.0.1:3737/seo-office');
+  });
+
   it('exposes the orb styles shown in the native cockpit', () => {
     expect(NOVA_ORB_OPTIONS.map((option) => option.key)).toEqual(['trinity', 'signal', 'glass', 'minimal']);
     expect(NOVA_ORB_OPTIONS.every((option) => option.label.length > 0)).toBe(true);
@@ -55,14 +60,13 @@ describe('NovaMaster mission control configuration', () => {
     ];
 
     expect(getNovaPriorityServices(services).map((service) => service.id)).toEqual([
-      'aionui',
       'agent-os-growth',
+      'aionui',
       'jarvis',
       'openclaw',
       'goclaw',
       'space-agent',
       'hermes',
-      'claw3d',
       'clawmem',
       'video-factory',
       'music-clips',

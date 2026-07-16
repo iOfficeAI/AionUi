@@ -1,5 +1,8 @@
 export type NovaOrbStyle = 'trinity' | 'signal' | 'glass' | 'minimal';
 
+export const AGENT_OS_BASE_URL = 'http://127.0.0.1:3737';
+export const AGENT_OS_SEO_OFFICE_URL = `${AGENT_OS_BASE_URL}/seo-office`;
+
 export type NovaOrbOption = {
   key: NovaOrbStyle;
   label: string;
@@ -67,15 +70,14 @@ export const NOVA_AGENT_TEAM_ACTIONS: NovaAgentTeamAction[] = [
 ];
 
 const NOVA_PRIORITY_SERVICE_IDS = [
-  'aionui',
   'agent-os-growth',
+  'aionui',
   'novacore-control',
   'jarvis',
   'openclaw',
   'goclaw',
   'space-agent',
   'hermes',
-  'claw3d',
   'clawmem',
   'video-factory',
   'music-clips',

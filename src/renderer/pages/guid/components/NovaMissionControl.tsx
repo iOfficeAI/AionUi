@@ -1,6 +1,6 @@
 /**
  * NovaMaster Mission Control — Live Empire Dashboard
- * Unified telemetry from Claw3D, OpenClaw, Hermes, Space Agent, Ollama
+ * Agent OS-backed telemetry for the Aion companion cockpit.
  */
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
@@ -654,8 +654,15 @@ const NovaMissionControl: React.FC = () => {
 
           {/* Quick nav */}
           <div style={{ display: 'flex', gap: 6, marginTop: 14, flexWrap: 'wrap' }}>
-            <button className='nova-btn nova-btn-primary' onClick={() => navigate('/office')}>
-              <HomeTwo theme='outline' size={16} /> 3D Office
+            <button
+              className='nova-btn nova-btn-primary'
+              onClick={() => {
+                const agentOs = stack?.services.find((service) => service.id === 'agent-os-growth');
+                if (agentOs) handleLaunch(agentOs);
+              }}
+              disabled={!stack?.services.some((service) => service.id === 'agent-os-growth')}
+            >
+              <HomeTwo theme='outline' size={16} /> SEO Office
             </button>
             <button className='nova-btn' onClick={() => togglePanel('openclaw')}>
               <Command theme='outline' size={16} /> OpenClaw
