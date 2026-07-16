@@ -16,12 +16,13 @@ import type { AgentModeOption } from '@/renderer/utils/model/agentTypes';
 import type { AgentRuntimeDerivedOption } from '@/renderer/utils/model/agentRuntimeCatalog';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { getCleanFileNames, FileService } from '@/renderer/services/FileService';
+import { RuntimeSelectorCheckedItem } from '@/renderer/components/agent/runtimeSelectorOptions';
 import { iconColors } from '@/renderer/styles/colors';
 import { isElectronDesktop } from '@/renderer/utils/platform';
 import type { AcpModelInfo } from '../types';
 import { getAvailableModels } from '../utils/modelUtils';
 import { Button, Checkbox, Dropdown, Menu, Message, Tooltip } from '@arco-design/web-react';
-import { ArrowUp, Brain, FolderUpload, Lightning, Plus, Shield, UploadOne } from '@icon-park/react';
+import { ArrowUp, Brain, FolderUpload, Lightning, Plus, Rocket, Shield, UploadOne } from '@icon-park/react';
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import styles from '../index.module.css';
@@ -30,6 +31,9 @@ type GuidActionRowProps = {
   // File handling
   files: string[];
   onFilesUploaded: (paths: string[]) => void;
+
+  // Ollama Launch (only provided when the selected agent is ollama_compatible)
+  ollamaLaunch?: OllamaLaunchControl | null;
 
   // Model selector node (rendered by parent for the desktop layout)
   modelSelectorNode: React.ReactNode;
@@ -69,9 +73,20 @@ type GuidActionRowProps = {
   onSend: () => void;
 };
 
+/** State + callbacks for the Ollama Launch selector (null model = native launch). */
+export type OllamaLaunchControl = {
+  models: string[];
+  selectedModel: string | null;
+  onSelect: (model: string | null) => void;
+};
+
+/** Sheet option key for "use the agent's native launch" (never a model name). */
+const OLLAMA_OFF_KEY = '__ollama_launch_off__';
+
 const GuidActionRow: React.FC<GuidActionRowProps> = ({
   files,
   onFilesUploaded,
+  ollamaLaunch,
   modelSelectorNode,
   isGeminiMode,
   modelList,
@@ -308,6 +323,35 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
       });
     }
 
+    // Ollama Launch model (single-select; "off" restores the native launch).
+    if (ollamaLaunch) {
+      entries.push({
+        key: 'ollama-launch',
+        icon: <Rocket theme='outline' size='16' />,
+        label: t('guid.ollamaLaunch.title'),
+        variant: 'muted',
+        meta: ollamaLaunch.selectedModel ?? t('guid.ollamaLaunch.off'),
+        submenu: {
+          title: t('guid.ollamaLaunch.title'),
+          options: [
+            {
+              key: OLLAMA_OFF_KEY,
+              label: t('guid.ollamaLaunch.off'),
+              description: t('guid.ollamaLaunch.tooltip'),
+              active: !ollamaLaunch.selectedModel,
+            },
+            ...ollamaLaunch.models.map((model) => ({
+              key: model,
+              label: model,
+              active: model === ollamaLaunch.selectedModel,
+            })),
+          ],
+          emptyText: t('guid.ollamaLaunch.noModels'),
+          onSelect: (key) => ollamaLaunch.onSelect(key === OLLAMA_OFF_KEY ? null : key),
+        },
+      });
+    }
+
     return entries;
   }, [
     isMobile,
@@ -330,6 +374,7 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
     mcpServers,
     selectedMcpServerIds,
     onToggleMcpServer,
+    ollamaLaunch,
     activeSkillCount,
     activeMcpCount,
     isWebUI,
@@ -457,6 +502,47 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
               </Checkbox>
             </Menu.Item>
           ))}
+        </Menu.SubMenu>
+      )}
+      {ollamaLaunch && (
+        <Menu.SubMenu
+          key='ollama-launch'
+          title={
+            <Tooltip content={t('guid.ollamaLaunch.tooltip')} position='left'>
+              <div className='flex items-center gap-8px'>
+                <Rocket theme='outline' size='16' fill={iconColors.primary} style={{ lineHeight: 0 }} />
+                <span className='max-w-220px truncate'>
+                  {t('guid.ollamaLaunch.title')}
+                  {ollamaLaunch.selectedModel ? `: ${ollamaLaunch.selectedModel}` : ''}
+                </span>
+              </div>
+            </Tooltip>
+          }
+          triggerProps={{
+            popupStyle: {
+              maxHeight: 360,
+              overflowY: 'auto',
+              overflowX: 'hidden',
+            },
+          }}
+        >
+          <Menu.Item key='ollama-off' onClick={() => ollamaLaunch.onSelect(null)}>
+            <RuntimeSelectorCheckedItem selected={!ollamaLaunch.selectedModel}>
+              {t('guid.ollamaLaunch.off')}
+            </RuntimeSelectorCheckedItem>
+          </Menu.Item>
+          {ollamaLaunch.models.map((model) => (
+            <Menu.Item key={`ollama-${model}`} onClick={() => ollamaLaunch.onSelect(model)}>
+              <RuntimeSelectorCheckedItem selected={model === ollamaLaunch.selectedModel}>
+                {model}
+              </RuntimeSelectorCheckedItem>
+            </Menu.Item>
+          ))}
+          {ollamaLaunch.models.length === 0 && (
+            <Menu.Item key='ollama-empty' disabled>
+              <span className='text-13px text-t-secondary'>{t('guid.ollamaLaunch.noModels')}</span>
+            </Menu.Item>
+          )}
         </Menu.SubMenu>
       )}
     </Menu>

@@ -31,5 +31,11 @@
     "capabilities": "What can you do for me?",
     "skills": "What skills do you have?",
     "tools": "What tools do you have?"
+  },
+  "ollamaLaunch": {
+    "title": "Ollama Launch",
+    "off": "Desactivado",
+    "tooltip": "Ejecuta este agente con modelos locales de Ollama — sin claves de API",
+    "noModels": "No se encontraron modelos locales de Ollama. Instala Ollama y descarga un modelo primero."
   }
 }

@@ -13,5 +13,11 @@
     "specifyWorkspace": "Вибрати папку проєкту",
     "searchPlaceholder": "Пошук проєктів…",
     "noProject": "Без проєкту"
+  },
+  "ollamaLaunch": {
+    "title": "Ollama Launch",
+    "off": "Вимкнено",
+    "tooltip": "Запускайте цього агента з локальними моделями Ollama — API-ключі не потрібні",
+    "noModels": "Локальні моделі Ollama не знайдено. Спочатку встановіть Ollama та завантажте модель."
   }
 }

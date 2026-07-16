@@ -13,5 +13,11 @@
     "specifyWorkspace": "プロジェクトフォルダを選択",
     "searchPlaceholder": "プロジェクトを検索…",
     "noProject": "プロジェクトなし"
+  },
+  "ollamaLaunch": {
+    "title": "Ollama Launch",
+    "off": "オフ",
+    "tooltip": "ローカルの Ollama モデルでこのエージェントを実行します。API キーは不要です",
+    "noModels": "ローカルの Ollama モデルが見つかりません。先に Ollama をインストールしてモデルを取得してください。"
   }
 }

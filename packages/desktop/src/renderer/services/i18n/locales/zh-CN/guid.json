@@ -13,5 +13,11 @@
     "specifyWorkspace": "选择项目文件夹",
     "searchPlaceholder": "搜索项目…",
     "noProject": "不使用项目"
+  },
+  "ollamaLaunch": {
+    "title": "Ollama Launch",
+    "off": "关闭",
+    "tooltip": "通过本地 Ollama 模型运行该智能体，无需 API 密钥",
+    "noModels": "未找到本地 Ollama 模型。请先安装 Ollama 并拉取模型。"
   }
 }

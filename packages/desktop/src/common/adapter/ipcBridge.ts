@@ -1543,6 +1543,12 @@ export interface ICreateConversationParams {
     selected_mcp_server_ids?: string[];
     selected_session_mcp_servers?: ISessionMcpServer[];
     codex_model?: string;
+    /** Launch the ACP agent via `ollama launch` instead of its native command.
+     *  Only honoured by the backend when the agent is `ollama_compatible`. */
+    use_ollama?: boolean;
+    /** Model passed to `ollama launch --model`. Required for the Ollama path:
+     *  without it the backend silently falls back to the native launch. */
+    ollama_model?: string;
     thought_level?: string;
     cached_config_options?: import('../types/platform/acpTypes').AcpSessionConfigOption[];
     pending_config_options?: Record<string, string>;

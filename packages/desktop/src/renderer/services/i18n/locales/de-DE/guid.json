@@ -31,5 +31,11 @@
     "statusTesting": "Latenz wird gemessen...",
     "statusUnreachable": "Nicht erreichbar",
     "statusAvailable": "Verfügbar"
+  },
+  "ollamaLaunch": {
+    "title": "Ollama Launch",
+    "off": "Aus",
+    "tooltip": "Diesen Agenten mit lokalen Ollama-Modellen ausführen — keine API-Schlüssel erforderlich",
+    "noModels": "Keine lokalen Ollama-Modelle gefunden. Bitte zuerst Ollama installieren und ein Modell laden."
   }
 }

@@ -107,6 +107,8 @@ export type AgentMetadata = {
   isExtension?: boolean;
   /** True when the agent supports team mode (MCP stdio capable). Computed by backend. */
   team_capable?: boolean;
+  /** True when the agent can run via `ollama launch` (Ollama v0.15+). Computed by backend. */
+  ollama_compatible?: boolean;
   /** Derived status used by the Agent settings management view. */
   status?: AgentManagementStatus;
   /** True when the agent has a command_override set (requires auth). */

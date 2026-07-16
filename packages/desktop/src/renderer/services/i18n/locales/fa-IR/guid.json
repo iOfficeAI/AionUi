@@ -13,5 +13,11 @@
     "specifyWorkspace": "انتخاب پوشه پروژه",
     "searchPlaceholder": "جستجوی پروژه‌ها…",
     "noProject": "بدون پروژه"
+  },
+  "ollamaLaunch": {
+    "title": "Ollama Launch",
+    "off": "خاموش",
+    "tooltip": "این عامل را با مدل‌های محلی Ollama اجرا کنید — بدون نیاز به کلید API",
+    "noModels": "هیچ مدل محلی Ollama یافت نشد. ابتدا Ollama را نصب و یک مدل را دریافت کنید."
   }
 }

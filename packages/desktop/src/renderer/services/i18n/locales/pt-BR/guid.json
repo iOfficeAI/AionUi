@@ -13,5 +13,11 @@
     "specifyWorkspace": "Selecionar pasta do projeto",
     "searchPlaceholder": "Procurar projetos…",
     "noProject": "Nenhum Projeto"
+  },
+  "ollamaLaunch": {
+    "title": "Ollama Launch",
+    "off": "Desativado",
+    "tooltip": "Execute este agente com modelos locais do Ollama — sem necessidade de chaves de API",
+    "noModels": "Nenhum modelo local do Ollama encontrado. Instale o Ollama e baixe um modelo primeiro."
   }
 }

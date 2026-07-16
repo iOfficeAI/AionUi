@@ -35,6 +35,8 @@ export type GuidAssistantSelectionResult = {
   selectedAssistant: Assistant | undefined;
   selectedAssistantBackend: string;
   selectedAssistantAvailable: boolean;
+  /** True when the selected assistant's agent can run via `ollama launch`. */
+  selectedAgentOllamaCompatible: boolean;
   assistants: Assistant[];
   selectedMode: string;
   setSelectedMode: (mode: React.SetStateAction<string>, options?: { persistPreference?: boolean }) => void;
@@ -250,6 +252,8 @@ export const useGuidAssistantSelection = ({
     return selectedAssistant?.agent_status === 'online';
   }, [selectedAssistant]);
 
+  const selectedAgentOllamaCompatible = selectedManagedAgentRuntimeCatalog?.ollama_compatible === true;
+
   const modelSelectionScopeRef = useRef<string | null>(null);
   useEffect(() => {
     const runtimeModelId =
@@ -326,6 +330,7 @@ export const useGuidAssistantSelection = ({
     selectedAssistant,
     selectedAssistantBackend,
     selectedAssistantAvailable,
+    selectedAgentOllamaCompatible,
     assistants,
     selectedMode,
     setSelectedMode,

@@ -13,5 +13,11 @@
     "specifyWorkspace": "Select project folder",
     "searchPlaceholder": "Search projects…",
     "noProject": "No Project"
+  },
+  "ollamaLaunch": {
+    "title": "Ollama Launch",
+    "off": "Off",
+    "tooltip": "Run this agent with local Ollama models — no API keys needed",
+    "noModels": "No local Ollama models found. Install Ollama and pull a model first."
   }
 }

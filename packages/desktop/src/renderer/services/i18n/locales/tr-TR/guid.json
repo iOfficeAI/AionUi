@@ -13,5 +13,11 @@
     "specifyWorkspace": "Proje klasörü seç",
     "searchPlaceholder": "Proje ara…",
     "noProject": "Proje Yok"
+  },
+  "ollamaLaunch": {
+    "title": "Ollama Launch",
+    "off": "Kapalı",
+    "tooltip": "Bu ajanı yerel Ollama modelleriyle çalıştırın — API anahtarı gerekmez",
+    "noModels": "Yerel Ollama modeli bulunamadı. Önce Ollama'yı kurup bir model indirin."
   }
 }

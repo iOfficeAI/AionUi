@@ -13,7 +13,7 @@ import type { AssistantDetail } from '@/common/types/agent/assistantTypes';
 
 import { useInputFocusRing } from '@/renderer/hooks/chat/useInputFocusRing';
 import { getFuzzyMatchIndices, useSlashCommandController } from '@/renderer/hooks/chat/useSlashCommandController';
-import { openExternalUrl } from '@/renderer/utils/platform';
+import { openExternalUrl, isElectronDesktop } from '@/renderer/utils/platform';
 import SlashCommandMenu, { type SlashCommandMenuItem } from '@/renderer/components/chat/SlashCommandMenu';
 import AssistantSelectionArea from './components/AssistantSelectionArea';
 import GuidActionRow from './components/GuidActionRow';
@@ -25,6 +25,7 @@ import { useGuidAssistantSelection } from './hooks/useGuidAssistantSelection';
 import { useGuidInput } from './hooks/useGuidInput';
 import { useGuidModelSelection } from './hooks/useGuidModelSelection';
 import { useGuidSend } from './hooks/useGuidSend';
+import { useOllamaLocalModels } from './hooks/useOllamaLocalModels';
 import { useTypewriterPlaceholder } from './hooks/useTypewriterPlaceholder';
 import { ensureBackendMcpCatalog } from '@/renderer/hooks/mcp/catalog';
 import { resolveGuidAssistantDefaults } from './utils/assistantDefaults';
@@ -151,6 +152,20 @@ const GuidPage: React.FC = () => {
 
   const selectedAssistantId = agentSelection.selectedAssistantId;
   const hasSelectedAssistant = selectedAssistantId !== null;
+
+  // --- Ollama Launch state ---
+  // Model discovery talks to the local Ollama HTTP API, so the selector is
+  // desktop-only: in remote WebUI sessions the browser host is not the machine
+  // where agents spawn. `null` model = native launch (Ollama Launch off).
+  const ollamaLaunchAvailable = agentSelection.selectedAgentOllamaCompatible && isElectronDesktop();
+  const [guidOllamaModel, setGuidOllamaModel] = useState<string | null>(null);
+  const { models: ollamaModels } = useOllamaLocalModels(ollamaLaunchAvailable);
+  // Reset the Ollama Launch selection when switching assistants so a model
+  // chosen for one agent is never silently applied to another.
+  useEffect(() => {
+    setGuidOllamaModel(null);
+  }, [selectedAssistantId]);
+
   const { data: selectedAssistantDetail } = useSWR(
     selectedAssistantId ? `guid.assistant.detail.${selectedAssistantId}.${localeKey}` : null,
     async (): Promise<AssistantDetail | null> =>
@@ -252,6 +267,7 @@ const GuidPage: React.FC = () => {
     selectedMode: agentSelection.selectedMode,
     selectedAcpModel: agentSelection.selectedAcpModel,
     selectedThoughtLevelValue: agentSelection.selectedThoughtLevelValue,
+    selectedOllamaModel: ollamaLaunchAvailable ? guidOllamaModel : null,
     currentAcpCachedModelInfo: agentSelection.currentAcpCachedModelInfo,
     current_model: modelSelection.current_model,
 
@@ -578,6 +594,11 @@ const GuidPage: React.FC = () => {
     <GuidActionRow
       files={guidInput.files}
       onFilesUploaded={guidInput.handleFilesUploaded}
+      ollamaLaunch={
+        ollamaLaunchAvailable
+          ? { models: ollamaModels, selectedModel: guidOllamaModel, onSelect: setGuidOllamaModel }
+          : null
+      }
       modelSelectorNode={modelSelectorNode}
       isGeminiMode={isGeminiMode}
       modelList={modelSelection.modelList}

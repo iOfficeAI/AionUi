@@ -15,6 +15,7 @@ import { type TFunction } from 'i18next';
 import type { NavigateFunction } from 'react-router-dom';
 import { mutate as swrMutate } from 'swr';
 import { getConversationCreateErrorMessage } from '@/renderer/pages/conversation/utils/conversationCreateError';
+import { buildOllamaLaunchExtra } from '../utils/ollamaLaunch';
 import type { AcpModelInfo } from '../types';
 
 export type GuidSendDeps = {
@@ -34,6 +35,9 @@ export type GuidSendDeps = {
   selectedMode: string;
   selectedAcpModel: string | null;
   selectedThoughtLevelValue?: string;
+  /** Ollama Launch model chosen on the Guid page; null when disabled. Only
+   *  forwarded for ACP agents flagged `ollama_compatible` by the backend. */
+  selectedOllamaModel: string | null;
   currentAcpCachedModelInfo: AcpModelInfo | null;
   current_model: TProviderWithModel | undefined;
 
@@ -82,6 +86,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
     selectedMode,
     selectedAcpModel,
     selectedThoughtLevelValue,
+    selectedOllamaModel,
     currentAcpCachedModelInfo,
     current_model,
     guidDisabledBuiltinSkills,
@@ -220,6 +225,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
           selected_mcp_server_ids: selectedUserMcpServerIdsToSend,
           selected_session_mcp_servers:
             selectedMcpServerIds !== undefined ? selectedSessionMcpServers : selectedSessionMcpServersToSend,
+          ...buildOllamaLaunchExtra(selectedOllamaModel),
         },
       });
       if (!conversation || !conversation.id) {
@@ -260,6 +266,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
     selectedMode,
     selectedAcpModel,
     selectedThoughtLevelValue,
+    selectedOllamaModel,
     currentAcpCachedModelInfo,
     current_model,
     guidDisabledBuiltinSkills,
