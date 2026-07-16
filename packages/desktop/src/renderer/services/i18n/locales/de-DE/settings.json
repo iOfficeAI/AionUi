@@ -300,6 +300,8 @@
   "notification": "Benachrichtigungen",
   "cronNotificationEnabled": "Geplante Aufgabe abgeschlossen",
   "promptTimeout": "LLM-Prompt-Zeitüberschreitung (s)",
+  "copyPromptOnSend": "Prompt beim Senden kopieren",
+  "copyPromptOnSendDesc": "Kopiert den eingegebenen Prompt beim Senden in die Systemzwischenablage. Der aktuelle Inhalt der Zwischenablage wird ersetzt.",
   "groupAiCore": "KI-Kern",
   "groupApp": "Anwendung",
   "groupAbout": "Sonstiges",

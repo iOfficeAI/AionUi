@@ -1551,6 +1551,8 @@ export type I18nKey =
   | 'settings.configMode'
   | 'settings.configureCustomAgent'
   | 'settings.contactMe'
+  | 'settings.copyPromptOnSend'
+  | 'settings.copyPromptOnSendDesc'
   | 'settings.createAssistant'
   | 'settings.cronNotificationEnabled'
   | 'settings.cssTheme.addManually'

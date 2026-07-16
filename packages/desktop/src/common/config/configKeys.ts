@@ -21,6 +21,7 @@ export type ConfigKeyMap = {
   'workspace.pasteConfirm': boolean | undefined;
   'guid.lastAssistantId': string | undefined;
   'upload.saveToWorkspace': boolean | undefined;
+  'chat.copyPromptOnSend': boolean | undefined;
   'system.closeToTray': boolean | undefined;
   'system.notificationEnabled': boolean | undefined;
   'system.cronNotificationEnabled': boolean | undefined;

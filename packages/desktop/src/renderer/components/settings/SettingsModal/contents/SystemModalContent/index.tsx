@@ -53,6 +53,7 @@ const SystemModalContent: React.FC = () => {
   const [promptTimeout, setPromptTimeout] = useState<number>(300);
   const [agentIdleTimeout, setAgentIdleTimeout] = useState<number>(5);
   const [saveUploadToWorkspace, setSaveUploadToWorkspace] = useState(false);
+  const [copyPromptOnSend, setCopyPromptOnSend] = useState(false);
   const [autoPreviewOfficeFiles, setAutoPreviewOfficeFiles] = useState(true);
 
   useEffect(() => {
@@ -93,6 +94,7 @@ const SystemModalContent: React.FC = () => {
     setNotificationEnabled(configService.get('system.notificationEnabled') ?? true);
     setCronNotificationEnabled(configService.get('system.cronNotificationEnabled') ?? false);
     setSaveUploadToWorkspace(configService.get('upload.saveToWorkspace') ?? false);
+    setCopyPromptOnSend(configService.get('chat.copyPromptOnSend') ?? false);
     setAutoPreviewOfficeFiles(configService.get('system.autoPreviewOfficeFiles') ?? true);
   }, [isDesktop]);
 
@@ -259,6 +261,14 @@ const SystemModalContent: React.FC = () => {
     });
   }, []);
 
+  const handleCopyPromptOnSendChange = useCallback((checked: boolean) => {
+    setCopyPromptOnSend(checked);
+    configService.set('chat.copyPromptOnSend', checked).catch(() => {
+      setCopyPromptOnSend(!checked);
+      configService.setLocal('chat.copyPromptOnSend', !checked);
+    });
+  }, []);
+
   const handleAutoPreviewOfficeFilesChange = useCallback((checked: boolean) => {
     setAutoPreviewOfficeFiles(checked);
     configService.set('system.autoPreviewOfficeFiles', checked).catch(() => {
@@ -348,6 +358,18 @@ const SystemModalContent: React.FC = () => {
       key: 'saveUploadToWorkspace',
       label: t('settings.saveUploadToWorkspace'),
       component: <Switch checked={saveUploadToWorkspace} onChange={handleSaveUploadToWorkspaceChange} />,
+    },
+    {
+      key: 'copyPromptOnSend',
+      label: t('settings.copyPromptOnSend'),
+      description: t('settings.copyPromptOnSendDesc'),
+      component: (
+        <Switch
+          data-testid='copy-prompt-on-send-switch'
+          checked={copyPromptOnSend}
+          onChange={handleCopyPromptOnSendChange}
+        />
+      ),
     },
     {
       key: 'autoPreviewOfficeFiles',

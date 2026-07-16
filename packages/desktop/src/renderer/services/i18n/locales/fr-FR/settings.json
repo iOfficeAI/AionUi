@@ -308,6 +308,8 @@
   "notification": "Notifications",
   "cronNotificationEnabled": "Fin de tâche planifiée",
   "promptTimeout": "Délai d'expiration LLM (s)",
+  "copyPromptOnSend": "Copier le prompt lors de l'envoi",
+  "copyPromptOnSendDesc": "Copie le prompt saisi dans le presse-papiers système lors de l'envoi. Le contenu actuel du presse-papiers sera remplacé.",
   "groupAiCore": "Noyau IA",
   "groupApp": "Application",
   "groupAbout": "Autres",

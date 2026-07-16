@@ -314,4 +314,19 @@ describe('SystemModalContent directory settings', () => {
       expect(clientBusinessSettingsMocks.setClientBusinessSetting).toHaveBeenCalledWith('acp.agentIdleTimeout', 7);
     });
   });
+
+  it('persists the copy-prompt-on-send preference', async () => {
+    const user = userEvent.setup();
+    renderContent();
+
+    const label = await screen.findByText('settings.copyPromptOnSend');
+    const preferenceRow = label.closest('.flex.items-center.justify-between');
+    expect(preferenceRow).not.toBeNull();
+
+    await user.click(within(preferenceRow as HTMLElement).getByRole('switch'));
+
+    await waitFor(() => {
+      expect(configServiceMock.set).toHaveBeenCalledWith('chat.copyPromptOnSend', true);
+    });
+  });
 });

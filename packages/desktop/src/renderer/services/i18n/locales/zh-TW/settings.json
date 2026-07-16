@@ -308,6 +308,8 @@
   "notification": "通知",
   "cronNotificationEnabled": "定時任務完成通知",
   "promptTimeout": "LLM 請求逾時時間（秒）",
+  "copyPromptOnSend": "傳送時複製提示詞",
+  "copyPromptOnSendDesc": "傳送訊息時將輸入的提示詞複製到系統剪貼簿，這會取代剪貼簿中的現有內容。",
   "groupAiCore": "AI 核心",
   "groupApp": "應用",
   "groupAbout": "其他",

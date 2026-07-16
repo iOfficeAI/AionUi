@@ -298,6 +298,8 @@
   "notification": "Notificaciones",
   "cronNotificationEnabled": "Finalización de tarea programada",
   "promptTimeout": "Tiempo de espera del prompt LLM (s)",
+  "copyPromptOnSend": "Copiar prompt al enviar",
+  "copyPromptOnSendDesc": "Copia el prompt escrito al portapapeles del sistema al enviar. Se reemplazará el contenido actual del portapapeles.",
   "groupAiCore": "Núcleo de IA",
   "groupApp": "Aplicación",
   "groupAbout": "Otros",

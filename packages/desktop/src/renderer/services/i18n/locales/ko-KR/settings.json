@@ -308,6 +308,8 @@
   "notification": "알림",
   "cronNotificationEnabled": "예약 작업 완료 알림",
   "promptTimeout": "LLM 요청 시간 초과 (초)",
+  "copyPromptOnSend": "전송할 때 프롬프트 복사",
+  "copyPromptOnSendDesc": "메시지를 전송할 때 입력한 프롬프트를 시스템 클립보드에 복사합니다. 기존 클립보드 내용은 대체됩니다.",
   "groupAiCore": "AI 코어",
   "groupApp": "애플리케이션",
   "groupAbout": "기타",

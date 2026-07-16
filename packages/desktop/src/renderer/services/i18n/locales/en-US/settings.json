@@ -308,6 +308,8 @@
   "notification": "Notifications",
   "cronNotificationEnabled": "Scheduled Task Completion",
   "promptTimeout": "LLM Prompt Timeout (s)",
+  "copyPromptOnSend": "Copy prompt when sending",
+  "copyPromptOnSendDesc": "Copy the prompt you typed to the system clipboard when sending. This replaces the current clipboard contents.",
   "groupAiCore": "AI Core",
   "groupApp": "Application",
   "groupAbout": "Other",

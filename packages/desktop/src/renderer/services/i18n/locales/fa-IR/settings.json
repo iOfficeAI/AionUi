@@ -308,6 +308,8 @@
   "notification": "اعلان‌ها",
   "cronNotificationEnabled": "اتمام کار زمان‌بندی‌شده",
   "promptTimeout": "مهلت پرامپت LLM (ثانیه)",
+  "copyPromptOnSend": "کپی پرامپت هنگام ارسال",
+  "copyPromptOnSendDesc": "پرامپت واردشده را هنگام ارسال در کلیپ‌بورد سیستم کپی می‌کند. محتوای فعلی کلیپ‌بورد جایگزین خواهد شد.",
   "groupAiCore": "هسته هوش مصنوعی",
   "groupApp": "برنامه",
   "groupAbout": "سایر",

@@ -308,6 +308,8 @@
   "notification": "通知",
   "cronNotificationEnabled": "定期タスク完了通知",
   "promptTimeout": "LLM リクエストタイムアウト（秒）",
+  "copyPromptOnSend": "送信時にプロンプトをコピー",
+  "copyPromptOnSendDesc": "送信時に入力したプロンプトをシステムのクリップボードへコピーします。現在のクリップボード内容は置き換えられます。",
   "groupAiCore": "AI コア",
   "groupApp": "アプリケーション",
   "groupAbout": "その他",

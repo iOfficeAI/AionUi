@@ -308,6 +308,8 @@
   "notification": "Notificações",
   "cronNotificationEnabled": "Conclusão de Tarefa Agendada",
   "promptTimeout": "Tempo Limite de Prompt LLM (s)",
+  "copyPromptOnSend": "Copiar prompt ao enviar",
+  "copyPromptOnSendDesc": "Copia o prompt digitado para a área de transferência do sistema ao enviar. O conteúdo atual da área de transferência será substituído.",
   "groupAiCore": "Core da IA",
   "groupApp": "Aplicativo",
   "groupAbout": "Outros",

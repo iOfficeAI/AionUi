@@ -5,6 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
+import { configService } from '@/common/config/configService';
 import AtFileMenu from '@/renderer/components/chat/AtFileMenu';
 import BtwOverlay from '@/renderer/components/chat/BtwOverlay';
 import { useInputFocusRing } from '@/renderer/hooks/chat/useInputFocusRing';
@@ -45,6 +46,7 @@ import { appendSpeechTranscript } from '@/renderer/hooks/system/useSpeechInput';
 import { createChainedDispatch, useLiveTranscriptInsertion } from '@/renderer/hooks/system/useLiveTranscriptInsertion';
 import { getConversationInputHistory, isCaretOnFirstLine } from '@/renderer/utils/chat/messageHistory';
 import './sendbox.css';
+import { sendMessageWithPromptCopy } from './copyPromptOnSend';
 
 const constVoid = (): void => undefined;
 // 临界值：超过该字符数直接切换至多行模式，避免为超长文本做昂贵的宽度测量
@@ -1195,7 +1197,13 @@ const SendBox: React.FC<{
     clearDomSnippets();
     setReplyQuote(null);
 
-    onSend(finalMessage)
+    void sendMessageWithPromptCopy({
+      prompt: input,
+      message: finalMessage,
+      copyEnabled: configService.get('chat.copyPromptOnSend') ?? false,
+      onCopyError: () => Message.error(t('messages.copyFailed')),
+      onSend,
+    })
       .catch(() => {})
       .finally(() => {
         setIsLoading(false);

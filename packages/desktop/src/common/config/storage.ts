@@ -43,6 +43,8 @@ export interface IConfigStorageRefer {
   'workspace.pasteConfirm'?: boolean;
   // 上传的文件是否保存到工作区目录（true = 保存到工作区，false = 保存到缓存目录）
   'upload.saveToWorkspace'?: boolean;
+  // Copy the user-authored prompt to the clipboard when sending
+  'chat.copyPromptOnSend'?: boolean;
   // 关闭窗口时最小化到系统托盘 / Minimize to system tray when closing window
   'system.closeToTray'?: boolean;
   // 任务完成时显示系统通知 / Show system notification when task completes
