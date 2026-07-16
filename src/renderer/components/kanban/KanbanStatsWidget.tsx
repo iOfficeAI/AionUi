@@ -59,7 +59,11 @@ export default function KanbanStatsWidget({
           {isRefreshing && !error ? (
             <span className="nova-kanban-widget__shimmer" aria-hidden="true" />
           ) : error ? (
-            <span className="nova-kanban-widget__pulse nova-kanban-widget__pulse--error" aria-label="Error" role="status" />
+            <span
+              className={`nova-kanban-widget__pulse ${error.includes("service is offline") ? "nova-kanban-widget__pulse--offline" : "nova-kanban-widget__pulse--error"}`}
+              aria-label={error.includes("service is offline") ? "Offline" : "Error"}
+              role="status"
+            />
           ) : (
             <span className="nova-kanban-widget__pulse" aria-label="Live" role="status" />
           )}
@@ -67,10 +71,11 @@ export default function KanbanStatsWidget({
         </div>
       </div>
 
-      {/* Error */}
+      {/* Error — a known-offline backend (e.g. paused post-incident) is muted rather
+          than alarmed, since it isn't a transient failure the user needs to act on. */}
       {error && (
-        <div className="nova-kanban-widget__alert">
-          <span className="nova-kanban-widget__alert-icon">⚠️</span>
+        <div className={error.includes("service is offline") ? "nova-kanban-widget__alert nova-kanban-widget__alert--muted" : "nova-kanban-widget__alert"}>
+          <span className="nova-kanban-widget__alert-icon">{error.includes("service is offline") ? "⏸️" : "⚠️"}</span>
           <span className="nova-kanban-widget__error">{error}</span>
         </div>
       )}

@@ -29,6 +29,7 @@ const SERVICES: Array<{ id: string; name: string; url: string }> = [
   { id: 'voice', name: 'Voice', url: 'http://127.0.0.1:8098/health' },
   { id: 'n8n', name: 'n8n', url: 'http://127.0.0.1:5678/healthz' },
   { id: 'space', name: 'Space', url: 'http://127.0.0.1:3003/' },
+  { id: 'open-notebook', name: 'Open Notebook', url: 'http://127.0.0.1:5055/health' },
 ];
 
 interface ServiceHealthState {

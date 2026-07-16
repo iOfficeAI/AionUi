@@ -197,6 +197,14 @@ const NOVAMASTER_PROBES: NovaMasterProbe[] = [
     openUrl: 'http://127.0.0.1:3737/seo-office',
   },
   {
+    id: 'open-notebook',
+    name: 'Open Notebook',
+    role: 'Self-hosted NotebookLM engine (Agent OS notebooklm-factory backend)',
+    port: 5055,
+    healthPath: '/health',
+    openUrl: 'http://127.0.0.1:8502',
+  },
+  {
     id: 'novacore-control',
     name: 'NovaCore Control',
     role: 'Control-plane source',

@@ -47,7 +47,7 @@ export const NOVA_AGENT_TEAM_ACTIONS: NovaAgentTeamAction[] = [
     id: 'team-office',
     label: 'Office',
     team: 'office',
-    goal: 'AionUi team check: verify Hermes Office, Claw3D kanban, agents, and gateway state. Return concise findings and next actions.',
+    goal: 'AionUi team check: verify Hermes Office, Agent OS SEO Office, agents, and gateway state. Return concise findings and next actions.',
   },
   {
     id: 'team-ops',
@@ -79,6 +79,7 @@ const NOVA_PRIORITY_SERVICE_IDS = [
   'space-agent',
   'hermes',
   'clawmem',
+  'open-notebook',
   'video-factory',
   'music-clips',
   'ollama',

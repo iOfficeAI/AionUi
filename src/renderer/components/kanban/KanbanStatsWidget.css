@@ -65,6 +65,11 @@
   animation: none;
 }
 
+.nova-kanban-widget__pulse--offline {
+  background: var(--nk-slate);
+  animation: none;
+}
+
 .nova-kanban-widget__time {
   font-size: 10px;
   color: var(--nk-muted);
@@ -157,6 +162,12 @@
 
 .nova-kanban-widget__alert-icon {
   flex-shrink: 0;
+}
+
+.nova-kanban-widget__alert--muted {
+  background: rgba(148, 163, 184, 0.08);
+  border-color: rgba(148, 163, 184, 0.2);
+  color: var(--nk-slate);
 }
 
 /* Footer */

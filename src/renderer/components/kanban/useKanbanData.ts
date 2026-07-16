@@ -229,6 +229,16 @@ export function useKanbanData(options: UseKanbanDataOptions = {}): UseKanbanData
       if ((err as Error).name === "AbortError") {
         return;
       }
+      // Promise.any() rejects with an AggregateError whose message is the
+      // unhelpful native string "All promises were rejected" once every
+      // candidate URL fails — surface a plain-English connectivity message
+      // instead of that raw internal detail.
+      if ((err as Error).name === "AggregateError") {
+        setError("Nova Kanban service is offline (no candidate URL responded)");
+        setLoading(false);
+        setIsRefreshing(false);
+        return;
+      }
       setError((err as Error).message || "Unknown error");
     } finally {
       setLoading(false);
