@@ -802,7 +802,7 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
                 skillRefs.current[skill.name] = el;
               }}
               onClick={batchMode ? () => toggleSkillSelected(skill.name) : undefined}
-              className={`group flex flex-col sm:flex-row gap-16px p-14px bg-base border hover:border-border-2 rd-12px transition-all duration-200 ${batchMode ? 'cursor-pointer' : ''} ${highlightedSkill === skill.name ? 'border-primary-5 bg-primary-1' : selectedSkillNames.has(skill.name) && batchMode ? 'border-primary-5 bg-primary-1' : 'border-transparent'}`}
+              className={`group flex flex-col sm:flex-row gap-16px p-14px border rd-12px transition-all duration-200 ${batchMode ? 'cursor-pointer' : ''} ${highlightedSkill === skill.name ? 'border-primary-5 bg-primary-1' : selectedSkillNames.has(skill.name) && batchMode ? 'border-transparent bg-[rgba(var(--primary-6),0.06)]' : 'border-transparent bg-base hover:border-border-2'}`}
             >
               {batchMode && (
                 <div className='shrink-0 flex items-center sm:self-center'>
