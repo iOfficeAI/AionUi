@@ -190,7 +190,7 @@ describe('acpConversationBridge', () => {
     expect(result).toEqual({ success: false, msg: 'detection failed' });
   });
 
-  it('getModelInfo returns native Codex task model info', async () => {
+  it('getModelInfo returns cached native Codex task model info without starting the app-server', async () => {
     const modelInfo = {
       currentModelId: 'gpt-5.3-codex',
       currentModelLabel: 'GPT-5.3 Codex',
@@ -209,28 +209,13 @@ describe('acpConversationBridge', () => {
     const result = await handlers['getModelInfo']({ conversationId: 'codex-1' });
 
     expect(taskManager.getTask).toHaveBeenCalledWith('codex-1');
-    expect(task.loadModelInfo).toHaveBeenCalledOnce();
+    expect(task.getModelInfo).toHaveBeenCalledOnce();
+    expect(task.loadModelInfo).not.toHaveBeenCalled();
     expect(result).toEqual({ success: true, data: { modelInfo } });
   });
 
-  it('loads native Codex models when a persisted conversation has not started yet', async () => {
-    const modelInfo = {
-      currentModelId: 'gpt-5.6-sol',
-      currentModelLabel: 'GPT-5.6-Sol',
-      availableModels: [
-        { id: 'gpt-5.6-sol', label: 'GPT-5.6-Sol' },
-        { id: 'gpt-5.6-terra', label: 'GPT-5.6-Terra' },
-        { id: 'gpt-5.6-luna', label: 'GPT-5.6-Luna' },
-      ],
-      canSwitch: true,
-      source: 'models',
-    };
-    const task = new CodexNativeAgentManager() as CodexNativeAgentManager & {
-      loadModelInfo: ReturnType<typeof vi.fn>;
-    };
-    task.loadModelInfo = vi.fn(async () => modelInfo);
+  it('getModelInfo returns persisted native Codex model info without building a task', async () => {
     vi.mocked(taskManager.getTask).mockReturnValue(undefined);
-    vi.mocked(taskManager.getOrBuildTask).mockResolvedValue(task as never);
     dbMock.getDatabase.mockResolvedValue({
       getConversation: vi.fn(() => ({
         success: true,
@@ -243,9 +228,20 @@ describe('acpConversationBridge', () => {
 
     const result = await handlers['getModelInfo']({ conversationId: 'codex-not-started' });
 
-    expect(taskManager.getOrBuildTask).toHaveBeenCalledWith('codex-not-started');
-    expect(task.loadModelInfo).toHaveBeenCalledOnce();
-    expect(result).toEqual({ success: true, data: { modelInfo } });
+    expect(taskManager.getOrBuildTask).not.toHaveBeenCalled();
+    expect(result).toEqual({
+      success: true,
+      data: {
+        modelInfo: expect.objectContaining({
+          currentModelId: 'gpt-5.6-sol',
+          currentModelLabel: 'gpt-5.6-sol',
+          availableModels: expect.arrayContaining([{ id: 'gpt-5.6-sol', label: 'gpt-5.6-sol' }]),
+          canSwitch: true,
+          source: 'models',
+          sourceDetail: 'codex-stream',
+        }),
+      },
+    });
   });
 
   it('probes Codex models through the native app-server', async () => {

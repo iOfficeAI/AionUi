@@ -253,24 +253,11 @@ export function initAcpConversationBridge(workerTaskManager: IWorkerTaskManager)
     if (task instanceof CodexNativeAgentManager) {
       return {
         success: true,
-        data: { modelInfo: await task.loadModelInfo() },
+        data: { modelInfo: task.getModelInfo() },
       };
     }
     if (!task || !(task instanceof AcpAgentManager)) {
       const persistedModelInfo = await getPersistedCodexModelInfo(conversationId);
-      if (persistedModelInfo && !task) {
-        try {
-          task = await workerTaskManager.getOrBuildTask(conversationId);
-          if (task instanceof CodexNativeAgentManager) {
-            return {
-              success: true,
-              data: { modelInfo: await task.loadModelInfo() },
-            };
-          }
-        } catch {
-          // Preserve the selected model when native probing is unavailable.
-        }
-      }
       return { success: true, data: { modelInfo: persistedModelInfo } };
     }
     return {

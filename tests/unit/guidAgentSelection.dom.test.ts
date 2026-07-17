@@ -23,6 +23,7 @@ const defaultCodexModels = vi.hoisted(() => [] as Array<{ id: string; label: str
 const ipcMock = vi.hoisted(() => ({
   getAvailableAgents: vi.fn(),
   refreshCustomAgents: vi.fn().mockResolvedValue(undefined),
+  probeModelInfo: vi.fn(),
   getCustomAgents: vi.fn(),
   getAssistants: vi.fn(),
   remoteAgentList: vi.fn().mockResolvedValue([]),
@@ -37,6 +38,7 @@ vi.mock('../../src/common', () => ({
     acpConversation: {
       getAvailableAgents: { invoke: ipcMock.getAvailableAgents },
       refreshCustomAgents: { invoke: ipcMock.refreshCustomAgents },
+      probeModelInfo: { invoke: ipcMock.probeModelInfo },
     },
     extensions: {
       getAssistants: { invoke: ipcMock.getAssistants },
@@ -57,6 +59,7 @@ vi.mock('../../src/common/config/presets/assistantPresets', () => ({
 
 vi.mock('../../src/common/types/codex/codexModels', () => ({
   DEFAULT_CODEX_MODELS: defaultCodexModels,
+  mergeCodexModelInfoWithDefaults: (modelInfo: AcpModelInfo) => modelInfo,
 }));
 
 let swrData: Record<string, unknown> = {};
@@ -411,6 +414,7 @@ describe('useGuidAgentSelection – preset agent config resolution', () => {
       { id: 'gpt-5', label: 'GPT-5' },
       { id: 'gpt-5-mini', label: 'GPT-5 Mini' },
     ]);
+    expect(ipcMock.probeModelInfo).not.toHaveBeenCalled();
   });
 
   it('uses default codex config options when codex has no cached option list', async () => {
