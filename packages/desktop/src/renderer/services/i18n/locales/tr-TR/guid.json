@@ -18,6 +18,8 @@
     "title": "Ollama Launch",
     "off": "Kapalı",
     "tooltip": "Bu ajanı yerel Ollama modelleriyle çalıştırın — API anahtarı gerekmez",
-    "noModels": "{{endpoint}} adresinde Ollama modeli bulunamadı. Ollama'nın varsayılan portta çalıştığından emin olun ve önce bir model indirin."
+    "noModels": "{{endpoint}} adresinde Ollama modeli bulunamadı. Ollama'nın varsayılan portta çalıştığından emin olun ve önce bir model indirin.",
+    "contextWarning": "Başarısız olabilir: bu model {{actual}} jetonluk bağlamla yüklenir; bu ajan yaklaşık {{required}} gerektirir.",
+    "toolsWarning": "Başarısız olabilir: bu model araç çağrılarını desteklemiyor."
   }
 }

@@ -453,7 +453,9 @@ describe('GuidPage', () => {
   });
 
   it('applies an aionrs assistant default model after provider models load', async () => {
-    swrMock.useSWRMock.mockReturnValue({ data: assistantDetailFixture });
+    swrMock.useSWRMock.mockImplementation((key: string | null) =>
+      key?.startsWith('guid.assistant.detail.') ? { data: assistantDetailFixture } : { data: null }
+    );
     resolveGuidAssistantDefaultsMock.mockReturnValue({
       modelId: 'gpt-4.1',
       disabledBuiltinSkillIds: [],
@@ -489,7 +491,9 @@ describe('GuidPage', () => {
   });
 
   it('does not reapply assistant default model over a guid-page model selection', async () => {
-    swrMock.useSWRMock.mockReturnValue({ data: assistantDetailFixture });
+    swrMock.useSWRMock.mockImplementation((key: string | null) =>
+      key?.startsWith('guid.assistant.detail.') ? { data: assistantDetailFixture } : { data: null }
+    );
     resolveGuidAssistantDefaultsMock.mockReturnValue({
       modelId: 'default',
       disabledBuiltinSkillIds: [],

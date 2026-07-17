@@ -18,6 +18,8 @@
     "title": "Ollama Launch",
     "off": "关闭",
     "tooltip": "通过本地 Ollama 模型运行该智能体，无需 API 密钥",
-    "noModels": "在 {{endpoint}} 未找到 Ollama 模型。请确认 Ollama 正在默认端口上运行，并先拉取模型。"
+    "noModels": "在 {{endpoint}} 未找到 Ollama 模型。请确认 Ollama 正在默认端口上运行，并先拉取模型。",
+    "contextWarning": "可能失败：该模型以 {{actual}} token 的上下文加载，而此智能体约需 {{required}}。",
+    "toolsWarning": "可能失败：该模型不支持工具调用。"
   }
 }

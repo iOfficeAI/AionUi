@@ -18,6 +18,8 @@
     "title": "Ollama Launch",
     "off": "オフ",
     "tooltip": "ローカルの Ollama モデルでこのエージェントを実行します。API キーは不要です",
-    "noModels": "{{endpoint}} で Ollama モデルが見つかりません。Ollama がデフォルトポートで起動していることを確認し、先にモデルを取得してください。"
+    "noModels": "{{endpoint}} で Ollama モデルが見つかりません。Ollama がデフォルトポートで起動していることを確認し、先にモデルを取得してください。",
+    "contextWarning": "失敗する可能性: このモデルは {{actual}} トークンのコンテキストで読み込まれますが、このエージェントには約 {{required}} が必要です。",
+    "toolsWarning": "失敗する可能性: このモデルはツール呼び出しに対応していません。"
   }
 }

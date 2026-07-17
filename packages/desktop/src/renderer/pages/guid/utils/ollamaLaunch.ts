@@ -16,6 +16,9 @@
 /** Local Ollama HTTP API endpoint listing pulled models (`ollama list`). */
 export const OLLAMA_TAGS_ENDPOINT = 'http://127.0.0.1:11434/api/tags';
 
+/** Local Ollama HTTP API endpoint returning per-model metadata (`ollama show`). */
+export const OLLAMA_SHOW_ENDPOINT = 'http://127.0.0.1:11434/api/show';
+
 /** Local Ollama HTTP API endpoint used to pre-load a model into memory. */
 export const OLLAMA_GENERATE_ENDPOINT = 'http://127.0.0.1:11434/api/generate';
 
@@ -60,6 +63,86 @@ export function parseOllamaTagsResponse(payload: unknown): string[] {
     }
   }
   return names;
+}
+
+/**
+ * Per-model metadata relevant to agent compatibility, from `/api/show`.
+ *
+ * `null` fields mean "unknown" (endpoint variant without that data) and must
+ * never produce a warning — only positively-detected problems should.
+ */
+export type OllamaModelDetails = {
+  name: string;
+  /** Context window the model will actually load with: the Modelfile
+   *  `num_ctx` pin when present, else the architecture's maximum. */
+  effectiveContext: number | null;
+  /** Whether the model advertises the `tools` capability. */
+  supportsTools: boolean | null;
+};
+
+/**
+ * Minimum local-model requirements per ACP backend, verified empirically.
+ *
+ * `claude`: the Claude Code system prompt alone is ~19.5k tokens (measured
+ * via `@agentclientprotocol/claude-agent-acp` 0.58.1 usage reports), so any
+ * model whose effective context is below ~32k fails the very first prompt
+ * turn with an Ollama 400 `exceed_context_size_error`. Tool calling is
+ * required by the Claude Code tool-use protocol.
+ */
+export const OLLAMA_AGENT_MODEL_REQUIREMENTS: Record<string, { minContext: number; needsTools: boolean }> = {
+  claude: { minContext: 32768, needsTools: true },
+};
+
+/** Why a local model is expected to fail with the selected agent. */
+export type OllamaModelWarning = { kind: 'context'; effectiveContext: number; minContext: number } | { kind: 'tools' };
+
+/**
+ * Parse an `/api/show` response into {@link OllamaModelDetails}.
+ *
+ * The Modelfile `num_ctx` parameter (a `"num_ctx  8192"` line in the
+ * free-form `parameters` string) wins over the architecture maximum
+ * (`model_info["<arch>.context_length"]`) because Ollama loads the model
+ * with the pinned value. Tolerates unexpected shapes by returning `null`
+ * (unknown) fields.
+ */
+export function parseOllamaShowResponse(name: string, payload: unknown): OllamaModelDetails {
+  const details: OllamaModelDetails = { name, effectiveContext: null, supportsTools: null };
+  if (!payload || typeof payload !== 'object') return details;
+  const body = payload as { parameters?: unknown; model_info?: unknown; capabilities?: unknown };
+
+  if (typeof body.parameters === 'string') {
+    const pinned = /^num_ctx\s+(\d+)\s*$/m.exec(body.parameters);
+    if (pinned) details.effectiveContext = Number(pinned[1]);
+  }
+  if (details.effectiveContext === null && body.model_info && typeof body.model_info === 'object') {
+    for (const [key, value] of Object.entries(body.model_info)) {
+      if (key.endsWith('.context_length') && typeof value === 'number') {
+        details.effectiveContext = value;
+        break;
+      }
+    }
+  }
+  if (Array.isArray(body.capabilities)) {
+    details.supportsTools = body.capabilities.includes('tools');
+  }
+  return details;
+}
+
+/**
+ * Compatibility warning for running `details` under the `backend` agent,
+ * or `null` when the model looks fine (or we simply don't know enough —
+ * unknown metadata must not scare users away from working models).
+ */
+export function getOllamaModelWarning(backend: string, details: OllamaModelDetails): OllamaModelWarning | null {
+  const requirements = OLLAMA_AGENT_MODEL_REQUIREMENTS[backend];
+  if (!requirements) return null;
+  if (requirements.needsTools && details.supportsTools === false) {
+    return { kind: 'tools' };
+  }
+  if (details.effectiveContext !== null && details.effectiveContext < requirements.minContext) {
+    return { kind: 'context', effectiveContext: details.effectiveContext, minContext: requirements.minContext };
+  }
+  return null;
 }
 
 /**

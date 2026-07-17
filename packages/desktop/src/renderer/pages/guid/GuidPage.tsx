@@ -29,7 +29,7 @@ import { useOllamaLocalModels } from './hooks/useOllamaLocalModels';
 import { useTypewriterPlaceholder } from './hooks/useTypewriterPlaceholder';
 import { ensureBackendMcpCatalog } from '@/renderer/hooks/mcp/catalog';
 import { resolveGuidAssistantDefaults } from './utils/assistantDefaults';
-import { warmUpOllamaModel } from './utils/ollamaLaunch';
+import { getOllamaModelWarning, warmUpOllamaModel } from './utils/ollamaLaunch';
 import SpeechInputButton from '@/renderer/components/chat/SpeechInputButton';
 import { useOpenFileSelector } from '@/renderer/hooks/file/useOpenFileSelector';
 import { appendSpeechTranscript } from '@/renderer/hooks/system/useSpeechInput';
@@ -161,6 +161,17 @@ const GuidPage: React.FC = () => {
   const ollamaLaunchAvailable = agentSelection.selectedAgentOllamaCompatible && isElectronDesktop();
   const [guidOllamaModel, setGuidOllamaModel] = useState<string | null>(null);
   const { models: ollamaModels } = useOllamaLocalModels(ollamaLaunchAvailable);
+  // Annotate each local model with a compatibility warning for the selected
+  // agent (e.g. context window smaller than the agent's system prompt) so
+  // users learn *why* a model is likely to fail before sending a message.
+  const ollamaModelOptions = useMemo(
+    () =>
+      ollamaModels.map((details) => ({
+        name: details.name,
+        warning: getOllamaModelWarning(agentSelection.selectedAssistantBackend, details),
+      })),
+    [ollamaModels, agentSelection.selectedAssistantBackend]
+  );
   // Reset the Ollama Launch selection when switching assistants so a model
   // chosen for one agent is never silently applied to another.
   useEffect(() => {
@@ -603,7 +614,7 @@ const GuidPage: React.FC = () => {
       onFilesUploaded={guidInput.handleFilesUploaded}
       ollamaLaunch={
         ollamaLaunchAvailable
-          ? { models: ollamaModels, selectedModel: guidOllamaModel, onSelect: handleOllamaModelSelect }
+          ? { models: ollamaModelOptions, selectedModel: guidOllamaModel, onSelect: handleOllamaModelSelect }
           : null
       }
       modelSelectorNode={modelSelectorNode}

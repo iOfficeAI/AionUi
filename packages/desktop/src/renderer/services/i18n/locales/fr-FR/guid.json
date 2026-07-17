@@ -18,6 +18,8 @@
     "title": "Ollama Launch",
     "off": "Désactivé",
     "tooltip": "Exécutez cet agent avec des modèles locaux Ollama — aucune clé API requise",
-    "noModels": "Aucun modèle Ollama trouvé sur {{endpoint}}. Vérifiez qu'Ollama fonctionne sur son port par défaut et téléchargez d'abord un modèle."
+    "noModels": "Aucun modèle Ollama trouvé sur {{endpoint}}. Vérifiez qu'Ollama fonctionne sur son port par défaut et téléchargez d'abord un modèle.",
+    "contextWarning": "Peut échouer : ce modèle se charge avec un contexte de {{actual}} jetons ; cet agent en nécessite environ {{required}}.",
+    "toolsWarning": "Peut échouer : ce modèle ne prend pas en charge les appels d'outils."
   }
 }

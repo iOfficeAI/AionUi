@@ -21,7 +21,7 @@ import { iconColors } from '@/renderer/styles/colors';
 import { isElectronDesktop } from '@/renderer/utils/platform';
 import type { AcpModelInfo } from '../types';
 import { getAvailableModels } from '../utils/modelUtils';
-import { OLLAMA_HOST_LABEL } from '../utils/ollamaLaunch';
+import { OLLAMA_HOST_LABEL, type OllamaModelWarning } from '../utils/ollamaLaunch';
 import { Button, Checkbox, Dropdown, Menu, Message, Tooltip } from '@arco-design/web-react';
 import { ArrowUp, Brain, FolderUpload, Lightning, Plus, Rocket, Shield, UploadOne } from '@icon-park/react';
 import React, { useCallback, useMemo, useRef, useState } from 'react';
@@ -74,9 +74,16 @@ type GuidActionRowProps = {
   onSend: () => void;
 };
 
+/** A local Ollama model plus its pre-computed compatibility warning for the
+ *  selected agent (`null` = no known problem). */
+export type OllamaLaunchModelOption = {
+  name: string;
+  warning: OllamaModelWarning | null;
+};
+
 /** State + callbacks for the Ollama Launch selector (null model = native launch). */
 export type OllamaLaunchControl = {
-  models: string[];
+  models: OllamaLaunchModelOption[];
   selectedModel: string | null;
   onSelect: (model: string | null) => void;
 };
@@ -121,6 +128,17 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const showModeSwitch = dynamicModes.length > 0;
   const configOptionCount = (modelSelectorNode ? 1 : 0) + (showModeSwitch ? 1 : 0);
+
+  // Human-readable Ollama model compatibility warning (undefined = none).
+  const ollamaWarningText = useCallback(
+    (warning: OllamaModelWarning | null): string | undefined => {
+      if (!warning) return undefined;
+      return warning.kind === 'context'
+        ? t('guid.ollamaLaunch.contextWarning', { actual: warning.effectiveContext, required: warning.minContext })
+        : t('guid.ollamaLaunch.toolsWarning');
+    },
+    [t]
+  );
 
   // Browser file picker ref (WebUI only)
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -346,9 +364,10 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
               active: !ollamaLaunch.selectedModel,
             },
             ...ollamaLaunch.models.map((model) => ({
-              key: model,
-              label: model,
-              active: model === ollamaLaunch.selectedModel,
+              key: model.name,
+              label: model.name,
+              description: ollamaWarningText(model.warning),
+              active: model.name === ollamaLaunch.selectedModel,
             })),
           ],
           emptyText: t('guid.ollamaLaunch.noModels', { endpoint: OLLAMA_HOST_LABEL }),
@@ -380,6 +399,7 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
     selectedMcpServerIds,
     onToggleMcpServer,
     ollamaLaunch,
+    ollamaWarningText,
     activeSkillCount,
     activeMcpCount,
     isWebUI,
@@ -537,9 +557,21 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
             </RuntimeSelectorCheckedItem>
           </Menu.Item>
           {ollamaLaunch.models.map((model) => (
-            <Menu.Item key={`ollama-${model}`} onClick={() => ollamaLaunch.onSelect(model)}>
-              <RuntimeSelectorCheckedItem selected={model === ollamaLaunch.selectedModel}>
-                {model}
+            <Menu.Item key={`ollama-${model.name}`} onClick={() => ollamaLaunch.onSelect(model.name)}>
+              <RuntimeSelectorCheckedItem
+                selected={model.name === ollamaLaunch.selectedModel}
+                description={ollamaWarningText(model.warning)}
+              >
+                {model.warning ? (
+                  <span className='inline-flex items-center gap-4px'>
+                    <span aria-hidden='true' style={{ color: iconColors.warning, lineHeight: 0 }}>
+                      ⚠
+                    </span>
+                    {model.name}
+                  </span>
+                ) : (
+                  model.name
+                )}
               </RuntimeSelectorCheckedItem>
             </Menu.Item>
           ))}
