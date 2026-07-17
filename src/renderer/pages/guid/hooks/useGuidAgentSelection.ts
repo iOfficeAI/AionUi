@@ -6,7 +6,11 @@
 
 import { ipcBridge } from '@/common';
 import type { AcpSessionConfigOption, AgentBackend } from '@/common/types/acpTypes';
-import { DEFAULT_CODEX_MODELS, mergeCodexModelInfoWithDefaults } from '@/common/types/codex/codexModels';
+import {
+  DEFAULT_CODEX_MODEL_ID,
+  DEFAULT_CODEX_MODELS,
+  mergeCodexModelInfoWithDefaults,
+} from '@/common/types/codex/codexModels';
 import {
   getDefaultAcpConfigOptions,
   normalizeCodexConfigOptions,
@@ -115,6 +119,9 @@ export const useGuidAgentSelection = ({
   const [selectedMode, _setSelectedMode] = useState<string>('default');
   // Track whether mode was loaded from preferences to avoid overwriting during initial load
   const selectedAgentRef = useRef<string | null>(null);
+  const probedModelBackendsRef = useRef(new Set<string>());
+  const selectedAcpModelBackendRef = useRef<string | null>(null);
+  const hasUserSelectedAcpModelRef = useRef(false);
   const [acpCachedModels, setAcpCachedModels] = useState<Record<string, AcpModelInfo>>({});
   const [acpCachedConfigOptions, setAcpCachedConfigOptions] = useState<Record<string, AcpSessionConfigOption[]>>({});
   const [selectedAcpConfigOptions, setSelectedAcpConfigOptions] = useState<Record<string, string>>({});
@@ -152,6 +159,8 @@ export const useGuidAgentSelection = ({
     _setSelectedAcpModel((prev) => {
       const newModelId = typeof modelId === 'function' ? modelId(prev) : modelId;
       const agentKey = selectedAgentRef.current;
+      hasUserSelectedAcpModelRef.current = Boolean(newModelId);
+      selectedAcpModelBackendRef.current = agentKey;
       if (agentKey && agentKey !== 'gemini' && agentKey !== 'custom' && newModelId) {
         void savePreferredModelId(agentKey, newModelId);
       }
@@ -400,6 +409,75 @@ export const useGuidAgentSelection = ({
     };
   }, []);
 
+  // Probe Codex model info on first selection through the native app-server.
+  useEffect(() => {
+    if (selectedAgentKey !== 'codex') return;
+    if (probedModelBackendsRef.current.has('codex')) return;
+
+    const probeModelInfo = ipcBridge.acpConversation.probeModelInfo;
+    if (!probeModelInfo?.invoke) return;
+
+    let cancelled = false;
+    probedModelBackendsRef.current.add('codex');
+
+    probeModelInfo
+      .invoke({ backend: 'codex' })
+      .then(async (result) => {
+        if (cancelled) return;
+        const modelInfo = result.success ? result.data?.modelInfo : null;
+        if (!modelInfo?.availableModels?.length) {
+          probedModelBackendsRef.current.delete('codex');
+          return;
+        }
+
+        const [cached, cachedConfigOptions] = await Promise.all([
+          ConfigStorage.get('acp.cachedModels').catch(() => ({})),
+          ConfigStorage.get('acp.cachedConfigOptions').catch(() => ({})),
+        ]);
+        if (cancelled) return;
+
+        const visibleModelInfo = mergeCodexModelInfoWithDefaults(modelInfo);
+        const nextCachedModels = {
+          ...cached,
+          codex: visibleModelInfo,
+        };
+        const visibleConfigOptions = filterVisibleAcpConfigOptions(result.data?.configOptions, 'codex');
+
+        setAcpCachedModels((prev) => ({
+          ...prev,
+          codex: visibleModelInfo,
+        }));
+
+        if (visibleConfigOptions.length > 0) {
+          setAcpCachedConfigOptions((prev) => ({
+            ...prev,
+            codex: visibleConfigOptions,
+          }));
+          setCachedConfigOptions(visibleConfigOptions);
+        }
+
+        await ConfigStorage.set('acp.cachedModels', nextCachedModels).catch((error) => {
+          console.error('Failed to save probed ACP model info:', error);
+        });
+        if (visibleConfigOptions.length > 0) {
+          await ConfigStorage.set('acp.cachedConfigOptions', {
+            ...cachedConfigOptions,
+            codex: visibleConfigOptions,
+          }).catch((error) => {
+            console.error('Failed to save probed ACP config options:', error);
+          });
+        }
+      })
+      .catch((error) => {
+        probedModelBackendsRef.current.delete('codex');
+        console.warn('[Guid][codex] Failed to probe model info:', error);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedAgentKey]);
+
   // Load cached ACP config options per backend
   useEffect(() => {
     const backend = isPresetAgent
@@ -436,6 +514,19 @@ export const useGuidAgentSelection = ({
       : selectedAgentKey.startsWith('custom:')
         ? 'custom'
         : selectedAgentKey;
+
+    if (selectedAcpModelBackendRef.current !== backend) {
+      selectedAcpModelBackendRef.current = backend;
+      hasUserSelectedAcpModelRef.current = false;
+    }
+
+    if (backend === 'codex') {
+      if (!hasUserSelectedAcpModelRef.current) {
+        const cachedInfo = acpCachedModels[backend];
+        _setSelectedAcpModel(cachedInfo?.currentModelId || DEFAULT_CODEX_MODEL_ID);
+      }
+      return;
+    }
 
     let cancelled = false;
     // Read preferred model from acp.config[backend], fallback to cached model list default

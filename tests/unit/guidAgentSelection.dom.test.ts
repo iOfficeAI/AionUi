@@ -23,7 +23,7 @@ const defaultCodexModels = vi.hoisted(() => [] as Array<{ id: string; label: str
 const ipcMock = vi.hoisted(() => ({
   getAvailableAgents: vi.fn(),
   refreshCustomAgents: vi.fn().mockResolvedValue(undefined),
-  probeModelInfo: vi.fn(),
+  probeModelInfo: vi.fn().mockResolvedValue({ success: false }),
   getCustomAgents: vi.fn(),
   getAssistants: vi.fn(),
   remoteAgentList: vi.fn().mockResolvedValue([]),
@@ -58,6 +58,9 @@ vi.mock('../../src/common/config/presets/assistantPresets', () => ({
 }));
 
 vi.mock('../../src/common/types/codex/codexModels', () => ({
+  get DEFAULT_CODEX_MODEL_ID() {
+    return defaultCodexModels[0]?.id || 'gpt-5.5';
+  },
   DEFAULT_CODEX_MODELS: defaultCodexModels,
   mergeCodexModelInfoWithDefaults: (modelInfo: AcpModelInfo) => modelInfo,
 }));
@@ -196,6 +199,7 @@ function setupMocks(overrides?: {
 describe('useGuidAgentSelection – preset agent config resolution', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    ipcMock.probeModelInfo.mockResolvedValue({ success: false });
     resetSwrCache();
     defaultCodexModels.length = 0;
     setupMocks();
@@ -414,7 +418,29 @@ describe('useGuidAgentSelection – preset agent config resolution', () => {
       { id: 'gpt-5', label: 'GPT-5' },
       { id: 'gpt-5-mini', label: 'GPT-5 Mini' },
     ]);
-    expect(ipcMock.probeModelInfo).not.toHaveBeenCalled();
+    expect(ipcMock.probeModelInfo).toHaveBeenCalledWith({ backend: 'codex' });
+  });
+
+  it('does not restore stale preferred Codex model over the default model', async () => {
+    defaultCodexModels.push({ id: 'gpt-5.5', label: 'GPT-5.5' }, { id: 'gpt-5.4', label: 'GPT-5.4' });
+    setupMocks({
+      cachedModels: {},
+      acpConfig: { codex: { preferredModelId: 'gpt-5.3-codex' } },
+    });
+
+    const { result } = renderHook(() => useGuidAgentSelection(hookOptions));
+
+    await waitFor(() => {
+      expect(result.current.availableAgents).toBeDefined();
+    });
+
+    act(() => {
+      result.current.setSelectedAgentKey('codex');
+    });
+
+    await waitFor(() => {
+      expect(result.current.selectedAcpModel).toBe('gpt-5.5');
+    });
   });
 
   it('uses default codex config options when codex has no cached option list', async () => {

@@ -306,7 +306,7 @@ describe('CodexNativeAgentManager', () => {
     manager.kill();
   });
 
-  it('uses the login shell Codex path without executing version probes', () => {
+  it('uses an explicit Codex path without login shell or version probes', () => {
     vi.stubEnv('PATH', '/home/taichu/.nvm/versions/node/v22.12.0/bin:/home/linuxbrew/.linuxbrew/bin:/usr/bin');
     testDoubles.execFileSync.mockImplementation((command: string, args: string[]) => {
       if (args[1] === 'command -v codex') return '/home/linuxbrew/.linuxbrew/bin/codex\n';
@@ -322,17 +322,13 @@ describe('CodexNativeAgentManager', () => {
 
     const client = testDoubles.state.clients[0] as FakeClient;
 
-    expect(client.options.command).toBe('/home/linuxbrew/.linuxbrew/bin/codex');
+    expect(client.options.command).toBe('/home/taichu/.nvm/versions/node/v22.12.0/bin/codex');
     expect(testDoubles.execFileSync).not.toHaveBeenCalledWith(
       expect.any(String),
       ['--version'],
       expect.objectContaining({ timeout: expect.any(Number) })
     );
-    expect(testDoubles.execFileSync).toHaveBeenCalledWith(
-      expect.any(String),
-      ['-lc', 'command -v codex'],
-      expect.objectContaining({ encoding: 'utf8', timeout: expect.any(Number) })
-    );
+    expect(testDoubles.execFileSync).not.toHaveBeenCalled();
 
     manager.kill();
   });

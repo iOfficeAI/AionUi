@@ -61,16 +61,9 @@ const LOGIN_SHELL_RESOLVE_TIMEOUT_MS = 1500;
 
 export function resolveCodexCliCommand(cliPath?: string): string {
   const command = cliPath?.trim() || 'codex';
-  if (!shouldPreferLoginShellCodex(command)) return command;
+  if (command !== 'codex') return command;
 
   return resolveCommandFromLoginShell() || command;
-}
-
-function shouldPreferLoginShellCodex(command: string): boolean {
-  if (command === 'codex') return true;
-
-  const normalized = command.replace(/\\/g, '/');
-  return normalized.endsWith('/codex') && normalized.includes('/.nvm/versions/node/');
 }
 
 function resolveCommandFromLoginShell(): string | undefined {

@@ -253,7 +253,7 @@ export function initAcpConversationBridge(workerTaskManager: IWorkerTaskManager)
     if (task instanceof CodexNativeAgentManager) {
       return {
         success: true,
-        data: { modelInfo: task.getModelInfo() },
+        data: { modelInfo: await task.loadModelInfo() },
       };
     }
     if (!task || !(task instanceof AcpAgentManager)) {

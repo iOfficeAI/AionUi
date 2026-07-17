@@ -83,10 +83,7 @@ export class CodexAppServerClient {
     child.stderr.on('data', (chunk) => this.pushStderr(String(chunk)));
     child.on('error', (error) => this.handleChildFailure(child, error));
     child.on('exit', (code, signal) => {
-      this.handleChildFailure(
-        child,
-        new Error(`Codex app-server exited with code ${code ?? 'null'} and signal ${signal ?? 'null'}`)
-      );
+      this.handleChildFailure(child, createCodexExitError(code, signal, this.options.command));
     });
     this.transport = new CodexJsonlTransport({ stdout: child.stdout, stdin: child.stdin });
     this.transport.onMessage((message) => void this.handleMessage(message));
@@ -234,4 +231,15 @@ export class CodexAppServerClient {
     this.transport = null;
     this.child = null;
   }
+}
+
+function createCodexExitError(code: number | null, signal: NodeJS.Signals | null, command: string): Error {
+  const base = `Codex app-server exited with code ${code ?? 'null'} and signal ${signal ?? 'null'}`;
+  if (signal !== 'SIGKILL' || process.platform !== 'darwin') {
+    return new Error(base);
+  }
+
+  return new Error(
+    `${base}. macOS blocked or killed the Codex CLI binary. Update/reinstall @openai/codex and make sure AionUi resolves a current Codex executable. Command: ${command}`
+  );
 }

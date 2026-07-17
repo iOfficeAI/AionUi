@@ -190,7 +190,7 @@ describe('acpConversationBridge', () => {
     expect(result).toEqual({ success: false, msg: 'detection failed' });
   });
 
-  it('getModelInfo returns cached native Codex task model info without starting the app-server', async () => {
+  it('getModelInfo loads native Codex task model info through the app-server', async () => {
     const modelInfo = {
       currentModelId: 'gpt-5.3-codex',
       currentModelLabel: 'GPT-5.3 Codex',
@@ -209,8 +209,8 @@ describe('acpConversationBridge', () => {
     const result = await handlers['getModelInfo']({ conversationId: 'codex-1' });
 
     expect(taskManager.getTask).toHaveBeenCalledWith('codex-1');
-    expect(task.getModelInfo).toHaveBeenCalledOnce();
-    expect(task.loadModelInfo).not.toHaveBeenCalled();
+    expect(task.getModelInfo).not.toHaveBeenCalled();
+    expect(task.loadModelInfo).toHaveBeenCalledOnce();
     expect(result).toEqual({ success: true, data: { modelInfo } });
   });
 

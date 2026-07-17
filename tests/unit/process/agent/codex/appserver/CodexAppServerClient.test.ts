@@ -341,4 +341,40 @@ describe('CodexAppServerClient', () => {
       await client.dispose();
     }
   });
+
+  it('explains macOS SIGKILL app-server exits', async () => {
+    const platformDescriptor = Object.getOwnPropertyDescriptor(process, 'platform');
+    Object.defineProperty(process, 'platform', { value: 'darwin' });
+
+    const child = createFakeChild(1009);
+    spawnMock.mockReturnValueOnce(child);
+    collectClientMessages(child);
+    const client = new CodexAppServerClient({
+      command: '/opt/codex/bin/codex',
+      args: ['app-server'],
+      cwd: process.cwd(),
+    });
+
+    try {
+      const startPromise = client.start();
+      await nextTick();
+      sendServerMessage(child, {
+        jsonrpc: '2.0',
+        id: 1,
+        result: { serverInfo: { name: 'fake-codex-app-server', version: '0.0.0-test' } },
+      });
+      await startPromise;
+
+      const pendingRequest = client.request('thread/start', { cwd: process.cwd() });
+      await nextTick();
+      child.emit('exit', null, 'SIGKILL');
+
+      await expect(pendingRequest).rejects.toThrow('macOS blocked or killed the Codex CLI binary');
+    } finally {
+      await client.dispose();
+      if (platformDescriptor) {
+        Object.defineProperty(process, 'platform', platformDescriptor);
+      }
+    }
+  });
 });
