@@ -104,6 +104,13 @@ export const MODEL_PLATFORMS: PlatformConfig[] = [
     i18nKey: 'settings.platformBedrock',
   },
   {
+    name: 'Atlas Cloud',
+    value: 'AtlasCloud',
+    logo: null,
+    platform: 'custom',
+    base_url: 'https://api.atlascloud.ai/v1',
+  },
+  {
     name: 'DeepSeek',
     value: 'DeepSeek',
     logo: buildLogoAssetUrl('ai-major/deepseek.svg'),
