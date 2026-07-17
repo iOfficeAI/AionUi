@@ -1,5 +1,44 @@
 # Changelog
 
+## [2.1.36](https://github.com/iOfficeAI/AionUi/compare/v2.1.35...v2.1.36) (2026-07-17)
+
+### Desktop
+
+#### Features
+
+- **ui:** standardize drag-to-reorder UX for team tabs and pinned conversations (#3606)
+- **ui:** add search to skills/MCP submenus and assistant default selects (#3605)
+- **skills:** skill detail page with assistant attachment (#3604)
+- **skills:** add batch delete for custom skills (#3600)
+- **cron:** add queue protection and custom schedules (#3552)
+
+#### Styling
+
+- **skills:** soften batch-mode selected card state (#3603)
+
+### Core ([v0.1.48](https://github.com/iOfficeAI/AionCore/releases/tag/v0.1.48))
+
+#### Features
+
+- **agents:** add Pi coding agent as builtin ACP agent (#618)
+- **ai-agent:** route image attachments by model capability
+- **aionrs:** inline image attachments for Aion CLI
+- **team:** add CLI fallback collaboration transport (#629)
+
+#### Bug Fixes
+
+- **acp:** confirm legacy mode/model on ACK instead of awaiting observed update (#635)
+- **agents:** honor login PATH and validate builtin CLIs (#622)
+- **ai-agent:** pin image-capable aionrs revision
+- **assistant:** canonicalize rule file storage (#625)
+- **assistant:** stop legacy override sync from clobbering user toggles (#634)
+
+#### Code Refactoring
+
+- **runtime:** remove legacy Bun runtime support (#623)
+
+---
+
 ## [2.1.35](https://github.com/iOfficeAI/AionUi/compare/v2.1.34...v2.1.35) (2026-07-14)
 
 ### Desktop
