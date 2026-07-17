@@ -32,8 +32,16 @@ const testDoubles = vi.hoisted(() => {
     sessionStartGate: undefined as ReturnType<typeof createDeferred> | undefined,
     sessions: [] as unknown[],
     turnGates: [] as ReturnType<typeof createDeferred>[],
+    sessionOptions: [] as Array<Record<string, unknown>>,
   };
   const execFileSync = vi.fn();
+  const readCodexConfiguredModel = vi.fn<() => string | undefined>(() => undefined);
+  const dbGetConversation = vi.fn();
+  const dbUpdateConversation = vi.fn();
+  const getDatabase = vi.fn(async () => ({
+    getConversation: dbGetConversation,
+    updateConversation: dbUpdateConversation,
+  }));
 
   class FakeCodexAppServerClient {
     readonly options: { command: string; args: string[]; cwd?: string };
@@ -122,8 +130,9 @@ const testDoubles = vi.hoisted(() => {
   class FakeCodexThreadSession {
     private turnInFlight = false;
 
-    constructor() {
+    constructor(deps: { options: Record<string, unknown> }) {
       state.sessions.push(this);
+      state.sessionOptions.push(deps.options);
     }
 
     start = vi.fn(async () => {
@@ -161,6 +170,10 @@ const testDoubles = vi.hoisted(() => {
     FakeCodexModelService,
     FakeCodexThreadSession,
     execFileSync,
+    readCodexConfiguredModel,
+    dbGetConversation,
+    dbUpdateConversation,
+    getDatabase,
     state,
   };
 });
@@ -185,6 +198,14 @@ vi.mock('@/process/agent/codex/appserver/CodexModelService', () => ({
   CodexModelService: testDoubles.FakeCodexModelService,
 }));
 
+vi.mock('@/process/agent/codex/appserver/codexCliConfig', () => ({
+  readCodexConfiguredModel: testDoubles.readCodexConfiguredModel,
+}));
+
+vi.mock('@process/services/database', () => ({
+  getDatabase: testDoubles.getDatabase,
+}));
+
 vi.mock('@process/task/agentUtils', () => ({
   prepareFirstMessageWithSkillsIndex: vi.fn(async (content: string) => ({ content, loadedSkills: [] })),
 }));
@@ -196,6 +217,7 @@ vi.mock('@process/utils/message', () => ({
 
 type FakeClient = {
   start: ReturnType<typeof vi.fn>;
+  dispose: ReturnType<typeof vi.fn>;
   options: { command: string; args: string[]; cwd?: string };
   serverRequestHandler?: CodexServerRequestHandler;
   emitFailure: (error: Error) => void;
@@ -248,8 +270,11 @@ describe('CodexNativeAgentManager', () => {
     testDoubles.state.modelServiceInstances.length = 0;
     testDoubles.state.sessionStartGate = undefined;
     testDoubles.state.sessions.length = 0;
+    testDoubles.state.sessionOptions.length = 0;
     testDoubles.state.turnGates.length = 0;
     vi.clearAllMocks();
+    testDoubles.readCodexConfiguredModel.mockReturnValue(undefined);
+    testDoubles.dbGetConversation.mockReturnValue({ success: false });
   });
 
   it('resolves the default Codex command through the login shell', () => {
@@ -331,6 +356,23 @@ describe('CodexNativeAgentManager', () => {
     manager.kill();
   });
 
+  it('stops immediately while a Codex turn is still running', async () => {
+    const conversationId = 'conversation-stop-running-turn';
+    const manager = createManager(conversationId);
+    const sendPromise = manager.sendMessage({ content: 'hello', msg_id: 'message-stop' });
+    await waitForTurnStart();
+
+    await manager.stop();
+    await sendPromise;
+
+    const client = testDoubles.state.clients[0] as FakeClient;
+    const session = testDoubles.state.sessions[0] as FakeSession & { dispose: ReturnType<typeof vi.fn> };
+    expect(session.dispose).toHaveBeenCalledTimes(1);
+    expect(client.dispose).toHaveBeenCalledTimes(1);
+    expect(manager.status).toBe('finished');
+    expect(cronBusyGuard.isProcessing(conversationId)).toBe(false);
+  });
+
   it('emits non-persisted model info after app-server and session startup', async () => {
     const manager = createManager('conversation-model-info');
     const emitSpy = vi.spyOn(ipcBridge.acpConversation.responseStream, 'emit').mockImplementation(() => {});
@@ -372,6 +414,41 @@ describe('CodexNativeAgentManager', () => {
     expect(client.start).toHaveBeenCalledOnce();
     expect(session.start).not.toHaveBeenCalled();
     expect(modelService.refresh).toHaveBeenCalledOnce();
+
+    manager.kill();
+  });
+
+  it('persists the configured model when resuming a legacy conversation without model fields', async () => {
+    testDoubles.readCodexConfiguredModel.mockReturnValue('gpt-5.6-sol');
+    testDoubles.dbGetConversation.mockReturnValue({
+      success: true,
+      data: {
+        extra: {
+          workspace: process.cwd(),
+          codexThreadId: 'thread-existing',
+        },
+      },
+    });
+    const manager = new CodexNativeAgentManager({
+      conversation_id: 'conversation-legacy-empty-model',
+      workspace: process.cwd(),
+      codexThreadId: 'thread-existing',
+      appServerCommand: process.execPath,
+      sessionMode: 'default',
+    });
+
+    await (manager as unknown as StartableManager).ensureStarted();
+
+    expect(testDoubles.state.sessionOptions[0]).toMatchObject({
+      threadId: 'thread-existing',
+      model: 'gpt-5.6-sol',
+    });
+    expect(testDoubles.dbUpdateConversation).toHaveBeenCalledWith('conversation-legacy-empty-model', {
+      extra: expect.objectContaining({
+        codexModel: 'gpt-5.6-sol',
+        currentModelId: 'gpt-5.6-sol',
+      }),
+    });
 
     manager.kill();
   });

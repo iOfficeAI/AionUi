@@ -17,11 +17,15 @@ describe('probeCodexModelInfo', () => {
 
     const result = await probeCodexModelInfo({ command: '/usr/local/bin/codex', cwd: '/tmp' }, () => client as never);
 
-    expect(result.availableModels).toEqual([
-      { id: 'gpt-5.6-sol', label: 'GPT-5.6-Sol' },
-      { id: 'gpt-5.6-terra', label: 'GPT-5.6-Terra' },
-      { id: 'gpt-5.6-luna', label: 'GPT-5.6-Luna' },
-    ]);
+    expect(result.currentModelId).toBe('gpt-5.6-sol');
+    expect(result.availableModels).toEqual(
+      expect.arrayContaining([
+        { id: 'gpt-5.6-sol', label: 'GPT-5.6-Sol' },
+        { id: 'gpt-5.6-terra', label: 'GPT-5.6-Terra' },
+        { id: 'gpt-5.6-luna', label: 'GPT-5.6-Luna' },
+      ])
+    );
+    expect(client.request).toHaveBeenCalledWith('model/list', {});
     expect(client.start).toHaveBeenCalledOnce();
     expect(client.dispose).toHaveBeenCalledOnce();
   });

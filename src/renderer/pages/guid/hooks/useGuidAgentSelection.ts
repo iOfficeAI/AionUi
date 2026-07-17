@@ -6,7 +6,7 @@
 
 import { ipcBridge } from '@/common';
 import type { AcpSessionConfigOption, AgentBackend } from '@/common/types/acpTypes';
-import { DEFAULT_CODEX_MODELS } from '@/common/types/codex/codexModels';
+import { DEFAULT_CODEX_MODELS, mergeCodexModelInfoWithDefaults } from '@/common/types/codex/codexModels';
 import {
   getDefaultAcpConfigOptions,
   normalizeCodexConfigOptions,
@@ -431,15 +431,16 @@ export const useGuidAgentSelection = ({
         ]);
         if (cancelled) return;
 
+        const visibleModelInfo = mergeCodexModelInfoWithDefaults(modelInfo);
         const nextCachedModels = {
           ...cached,
-          codex: modelInfo,
+          codex: visibleModelInfo,
         };
         const visibleConfigOptions = filterVisibleAcpConfigOptions(result.data?.configOptions, 'codex');
 
         setAcpCachedModels((prev) => ({
           ...prev,
-          codex: modelInfo,
+          codex: visibleModelInfo,
         }));
 
         if (visibleConfigOptions.length > 0) {
@@ -646,7 +647,9 @@ export const useGuidAgentSelection = ({
         ? 'custom'
         : selectedAgentKey;
     const cached = acpCachedModels[backend];
-    if (cached) return cached;
+    if (cached) {
+      return backend === 'codex' ? mergeCodexModelInfoWithDefaults(cached) : cached;
+    }
 
     // Fallback: when no cached models exist for codex (e.g., first launch or stale cache),
     // use the hardcoded default list so the Guid page shows a model selector immediately.

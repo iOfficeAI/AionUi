@@ -1466,6 +1466,51 @@ const migration_v31: IMigration = {
 };
 
 /**
+ * Migration v31 -> v32: Route legacy Codex ACP conversations through the native Codex app-server.
+ */
+const migration_v32: IMigration = {
+  version: 32,
+  name: 'Migrate legacy Codex ACP conversations to native Codex',
+  up: (db) => {
+    db.prepare(
+      `UPDATE conversations
+       SET type = 'codex',
+           extra = CASE
+             WHEN json_type(extra, '$.codexModel') IS NULL
+               AND json_type(extra, '$.currentModelId') IS NOT NULL
+             THEN json_set(
+               extra,
+               '$.codexNative', json('true'),
+               '$.codexMigratedFromAcp', json('true'),
+               '$.codexModel', json_extract(extra, '$.currentModelId')
+             )
+             ELSE json_set(
+               extra,
+               '$.codexNative', json('true'),
+               '$.codexMigratedFromAcp', json('true')
+             )
+           END
+       WHERE type = 'acp'
+         AND json_valid(extra) = 1
+         AND json_extract(extra, '$.backend') = 'codex'`
+    ).run();
+    console.log('[Migration v32] Migrated legacy Codex ACP conversations to native Codex');
+  },
+  down: (db) => {
+    db.prepare(
+      `UPDATE conversations
+       SET type = 'acp',
+           extra = json_remove(extra, '$.codexNative', '$.codexMigratedFromAcp')
+       WHERE type = 'codex'
+         AND json_valid(extra) = 1
+         AND json_extract(extra, '$.backend') = 'codex'
+         AND json_extract(extra, '$.codexMigratedFromAcp') = 1`
+    ).run();
+    console.log('[Migration v32] Restored migrated Codex conversations to ACP');
+  },
+};
+
+/**
  * All migrations in order
  */
 // prettier-ignore
@@ -1474,7 +1519,7 @@ export const ALL_MIGRATIONS: IMigration[] = [
   migration_v7, migration_v8, migration_v9, migration_v10, migration_v11, migration_v12,
   migration_v13, migration_v14, migration_v15, migration_v16, migration_v17, migration_v18, migration_v19,
   migration_v20, migration_v21, migration_v22, migration_v23, migration_v24, migration_v25, migration_v26,
-  migration_v27, migration_v28, migration_v29, migration_v30, migration_v31,
+  migration_v27, migration_v28, migration_v29, migration_v30, migration_v31, migration_v32,
 ];
 
 /**

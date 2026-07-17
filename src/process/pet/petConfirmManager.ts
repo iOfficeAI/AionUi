@@ -103,7 +103,7 @@ function translateConfirmation<T>(
  */
 function createConfirmWindow(): void {
   if (confirmWindow && !confirmWindow.isDestroyed()) {
-    confirmWindow.show();
+    confirmWindow.showInactive();
     return;
   }
 
@@ -160,6 +160,7 @@ function createConfirmWindow(): void {
     frame: false,
     transparent: true,
     resizable: false,
+    show: false,
     alwaysOnTop: true,
     skipTaskbar: true,
     hasShadow: false,
@@ -179,6 +180,7 @@ function createConfirmWindow(): void {
 
   windowReady = false;
   loadContent();
+  confirmWindow.showInactive();
 
   confirmWindow.webContents.on('did-finish-load', async () => {
     windowReady = true;

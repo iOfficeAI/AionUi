@@ -67,10 +67,10 @@ describe('MermaidBlock', () => {
       svg: '<svg viewBox="0 0 100 100"><text x="0" y="20">diagram</text></svg>',
     });
 
-    const { container, getByText } = render(<MermaidBlock code={'flowchart TD\nA-->B'} />);
+    const { getByText, queryByTestId } = render(<MermaidBlock code={'flowchart TD\nA-->B'} />);
 
     await waitFor(() => {
-      expect(container.querySelector('svg')).not.toBeNull();
+      expect(queryByTestId('mermaid-diagram')).not.toBeNull();
     });
 
     expect(getByText('preview.preview')).toBeInTheDocument();
@@ -99,10 +99,10 @@ describe('MermaidBlock', () => {
     });
     copyTextMock.mockResolvedValue(undefined);
 
-    const { getByTestId, container } = render(<MermaidBlock code={'flowchart TD\nA-->B'} />);
+    const { getByTestId, queryByTestId } = render(<MermaidBlock code={'flowchart TD\nA-->B'} />);
 
     await waitFor(() => {
-      expect(container.querySelector('svg')).not.toBeNull();
+      expect(queryByTestId('mermaid-diagram')).not.toBeNull();
     });
 
     fireEvent.click(getByTestId('mermaid-copy'));
@@ -137,10 +137,10 @@ describe('MermaidBlock', () => {
       svg: '<svg viewBox="0 0 100 100"><text x="0" y="20">diagram</text></svg>',
     });
 
-    const { getByTestId, container } = render(<MermaidBlock code={'flowchart TD\nA-->B'} />);
+    const { getByTestId, queryByTestId } = render(<MermaidBlock code={'flowchart TD\nA-->B'} />);
 
     await waitFor(() => {
-      expect(container.querySelector('svg')).not.toBeNull();
+      expect(queryByTestId('mermaid-diagram')).not.toBeNull();
     });
 
     fireEvent.click(getByTestId('mermaid-open-in-panel'));

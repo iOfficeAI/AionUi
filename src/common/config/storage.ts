@@ -52,6 +52,8 @@ export interface IConfigStorageRefer {
       /** Preferred session mode for new conversations / 新会话的默认模式 */
       preferredMode?: string;
       /** Preferred model ID for new conversations / 新会话的默认模型 */
+      preferredModelId?: string;
+      /** Preferred config option values for new conversations / 新会话的默认配置项 */
       preferredConfigOptions?: Record<string, string>;
       promptTimeout?: number;
     };

@@ -79,7 +79,7 @@ class AutoUpdaterService extends EventEmitter {
 
     // Disable auto-download for manual control
     autoUpdater.autoDownload = false;
-    autoUpdater.autoInstallOnAppQuit = true;
+    autoUpdater.autoInstallOnAppQuit = false;
 
     // Set the correct update channel based on platform and architecture before
     // any update checks are performed

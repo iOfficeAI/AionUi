@@ -15,6 +15,14 @@ vi.mock('@/renderer/pages/guid', () => ({
   default: () => <div data-testid='guid-page'>Guid</div>,
 }));
 
+vi.mock('@renderer/pages/guid', () => ({
+  default: () => <div data-testid='guid-page'>Guid</div>,
+}));
+
+vi.mock('@renderer/pages/team', () => ({
+  default: () => <div data-testid='team-page'>Team</div>,
+}));
+
 import PanelRoute from '@/renderer/components/layout/Router';
 
 const LayoutShell: React.FC = () => <Outlet />;

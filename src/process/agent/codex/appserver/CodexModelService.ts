@@ -5,6 +5,7 @@
  */
 
 import type { AcpModelInfo } from '@/common/types/acpTypes';
+import { mergeCodexModelInfoWithDefaults } from '@/common/types/codex/codexModels';
 import type { CodexAppServerClient } from './CodexAppServerClient';
 
 type CodexModelClient = Pick<CodexAppServerClient, 'request'>;
@@ -28,14 +29,14 @@ type NormalizedModel = {
 };
 
 function createFallbackModelInfo(modelId?: string): AcpModelInfo {
-  return {
+  return mergeCodexModelInfoWithDefaults({
     currentModelId: modelId || null,
     currentModelLabel: modelId || null,
     availableModels: modelId ? [{ id: modelId, label: modelId }] : [],
     canSwitch: false,
     source: 'models',
     sourceDetail: 'codex-stream',
-  };
+  });
 }
 
 function readString(value: unknown): string | undefined {
@@ -100,13 +101,13 @@ export class CodexModelService {
       return this.modelInfo;
     }
 
+    const requestedModelId = this.selectedModelId;
     const selectedModel =
-      (this.selectedModelId && availableModels.find((model) => model.id === this.selectedModelId)) ||
+      (requestedModelId && availableModels.find((model) => model.id === requestedModelId)) ||
       availableModels.find((model) => model.isDefault) ||
       availableModels[0];
 
-    this.selectedModelId = selectedModel?.id || this.selectedModelId;
-    this.modelInfo = {
+    const liveModelInfo: AcpModelInfo = {
       currentModelId: selectedModel?.id || null,
       currentModelLabel: selectedModel?.label || null,
       availableModels: availableModels.map((model) => ({ id: model.id, label: model.label })),
@@ -114,6 +115,10 @@ export class CodexModelService {
       source: 'models',
       sourceDetail: 'codex-stream',
     };
+    this.modelInfo = mergeCodexModelInfoWithDefaults(liveModelInfo, {
+      preferredModelId: requestedModelId || selectedModel?.id,
+    });
+    this.selectedModelId = this.modelInfo.currentModelId || undefined;
     return this.modelInfo;
   }
 

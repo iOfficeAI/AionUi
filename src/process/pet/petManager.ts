@@ -99,8 +99,7 @@ export function createPetWindow(): void {
   }
 
   if (petWindow && !petWindow.isDestroyed()) {
-    petWindow.show();
-    petWindow.focus();
+    showPetWindow();
     return;
   }
 
@@ -115,6 +114,7 @@ export function createPetWindow(): void {
     frame: false,
     transparent: true,
     resizable: false,
+    show: false,
     alwaysOnTop: true,
     skipTaskbar: true,
     hasShadow: false,
@@ -146,6 +146,7 @@ export function createPetWindow(): void {
     frame: false,
     transparent: true,
     resizable: false,
+    show: false,
     alwaysOnTop: true,
     skipTaskbar: true,
     hasShadow: false,
@@ -194,6 +195,7 @@ export function createPetWindow(): void {
   registerIpcHandlers();
   startHitIgnoreWatchdog();
   loadContent();
+  showPetWindow();
 
   // Initialize confirm manager only if the user opted in.
   // When disabled, AI tool-call confirmations remain in the main chat window
@@ -251,8 +253,8 @@ export function destroyPetWindow(): void {
 }
 
 export function showPetWindow(): void {
-  if (petWindow && !petWindow.isDestroyed()) petWindow.show();
-  if (petHitWindow && !petHitWindow.isDestroyed()) petHitWindow.show();
+  if (petWindow && !petWindow.isDestroyed()) petWindow.showInactive();
+  if (petHitWindow && !petHitWindow.isDestroyed()) petHitWindow.showInactive();
 }
 
 export function hidePetWindow(): void {

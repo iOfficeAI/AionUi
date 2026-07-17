@@ -350,6 +350,8 @@ describe('CodexThreadSession', () => {
     expect(request).toHaveBeenNthCalledWith(2, 'thread/resume', {
       threadId: 'thread-1',
       cwd: '/workspace',
+      approvalPolicy: 'on-request',
+      sandbox: 'workspace-write',
     });
   });
 
@@ -465,6 +467,7 @@ describe('CodexThreadSession', () => {
         threadId: 'thread-existing',
         approvalPolicy: 'on-request',
         sandboxPolicy: 'workspace-write',
+        model: 'gpt-5.6-sol',
       },
       emitMessage: vi.fn(),
       emitConfirmation: vi.fn(),
@@ -480,6 +483,9 @@ describe('CodexThreadSession', () => {
     expect(request).toHaveBeenNthCalledWith(1, 'thread/resume', {
       threadId: 'thread-existing',
       cwd: '/workspace',
+      approvalPolicy: 'on-request',
+      sandbox: 'workspace-write',
+      model: 'gpt-5.6-sol',
     });
     expect(request).toHaveBeenNthCalledWith(2, 'turn/start', expect.objectContaining({ threadId: 'thread-existing' }));
     expect(request).toHaveBeenNthCalledWith(3, 'turn/interrupt', {

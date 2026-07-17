@@ -52,9 +52,10 @@ import {
 } from './process/utils/deepLink';
 import {
   bindMainWindowReferences,
-  showAndFocusMainWindow,
+  showOrCreateMainWindowOnAppActivate,
   showOrCreateMainWindow,
 } from './process/utils/mainWindowLifecycle';
+import { shouldInitializeAutoUpdater, shouldRunAutomaticStartupUpdateCheck } from './process/utils/autoUpdateStartup';
 import {
   loadUserWebUIConfig,
   resolveRemoteAccess,
@@ -325,21 +326,20 @@ const createWindow = ({ showOnReady = true }: { showOnReady?: boolean } = {}): v
   setupZoomForWindow(mainWindow);
   registerWindowMaximizeListeners(mainWindow);
 
-  // Initialize auto-updater service (skip when disabled via env, e.g. E2E / CI)
-  // 初始化自动更新服务（通过环境变量禁用时跳过，例如 E2E / CI 场景）
-  const isCiRuntime = process.env.CI === 'true' || process.env.CI === '1' || process.env.GITHUB_ACTIONS === 'true';
-  const disableAutoUpdater =
-    process.env.AIONUI_DISABLE_AUTO_UPDATE === '1' || process.env.AIONUI_E2E_TEST === '1' || isCiRuntime;
-  if (!disableAutoUpdater) {
+  // Initialize auto-updater for manual checks, but do not perform unsolicited
+  // startup checks unless explicitly enabled.
+  if (shouldInitializeAutoUpdater(process.env)) {
     try {
       // Create status broadcast callback that emits via ipcBridge (pure emitter, no window binding)
       const statusBroadcast = createAutoUpdateStatusBroadcast();
       autoUpdaterService.initialize(statusBroadcast);
-      // Check for updates after 3 seconds delay
-      // 3秒后检查更新
-      setTimeout(() => {
-        void autoUpdaterService.checkForUpdatesAndNotify();
-      }, 3000);
+      if (shouldRunAutomaticStartupUpdateCheck(process.env)) {
+        setTimeout(() => {
+          void autoUpdaterService.checkForUpdatesAndNotify();
+        }, 3000);
+      } else {
+        console.log('[AionUi] Automatic startup update check disabled');
+      }
     } catch (error) {
       console.error('[App] Failed to initialize autoUpdaterService:', error);
     }
@@ -727,14 +727,22 @@ app.on('activate', () => {
   // Skip if handleAppReady hasn't finished — it will create the window itself.
   if (!appReadyDone) return;
   if (!isWebUIMode && app.isReady()) {
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      // 从托盘恢复隐藏的窗口 / Restore hidden window from tray
-      showAndFocusMainWindow(mainWindow);
-      if (process.platform === 'darwin' && app.dock) {
-        void app.dock.show();
-      }
-    } else {
-      createWindow();
+    const hasVisibleAuxiliaryWindow = BrowserWindow.getAllWindows().some(
+      (window) => window !== mainWindow && !window.isDestroyed() && window.isVisible()
+    );
+    showOrCreateMainWindowOnAppActivate({
+      mainWindow,
+      createWindow,
+      hasVisibleAuxiliaryWindow,
+    });
+    if (
+      process.platform === 'darwin' &&
+      app.dock &&
+      mainWindow &&
+      !mainWindow.isDestroyed() &&
+      mainWindow.isVisible()
+    ) {
+      void app.dock.show();
     }
   }
 });

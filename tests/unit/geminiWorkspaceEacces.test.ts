@@ -3,25 +3,34 @@ import fs from 'fs/promises';
 import path from 'path';
 import os from 'os';
 
-async function buildAionCliCoreMock(overrides: Record<string, unknown>): Promise<Record<string, unknown>> {
-  const actual = await vi.importActual<typeof import('@office-ai/aioncli-core')>('@office-ai/aioncli-core');
-
+function buildAionCliCoreMock(overrides: Record<string, unknown>): Record<string, unknown> {
   return {
-    ApprovalMode: actual.ApprovalMode,
-    Config: actual.Config,
-    DEFAULT_GEMINI_EMBEDDING_MODEL: actual.DEFAULT_GEMINI_EMBEDDING_MODEL,
-    DEFAULT_GEMINI_MODEL: actual.DEFAULT_GEMINI_MODEL,
-    DEFAULT_MEMORY_FILE_FILTERING_OPTIONS: actual.DEFAULT_MEMORY_FILE_FILTERING_OPTIONS,
-    FileDiscoveryService: actual.FileDiscoveryService,
+    ApprovalMode: { DEFAULT: 'default', YOLO: 'yolo' },
+    Config: class ConfigMock {
+      constructor(readonly options: unknown) {}
+
+      setFallbackModelHandler = vi.fn();
+    },
+    DEFAULT_GEMINI_EMBEDDING_MODEL: 'text-embedding-004',
+    DEFAULT_GEMINI_MODEL: 'gemini-2.5-pro',
+    DEFAULT_MEMORY_FILE_FILTERING_OPTIONS: {},
+    FileDiscoveryService: class FileDiscoveryServiceMock {},
     getCurrentGeminiMdFilename: () => 'GEMINI.md',
     getErrorMessage: (error: unknown) => (error instanceof Error ? error.message : String(error)),
     isNodeError: (error: unknown): error is NodeJS.ErrnoException =>
       typeof error === 'object' && error !== null && 'code' in error,
-    loadServerHierarchicalMemory: actual.loadServerHierarchicalMemory,
-    loadSkillsFromDir: actual.loadSkillsFromDir,
-    PREVIEW_GEMINI_MODEL_AUTO: actual.PREVIEW_GEMINI_MODEL_AUTO,
+    loadServerHierarchicalMemory: vi.fn(async () => ({
+      memoryContent: { global: '', extension: '', project: '' },
+      fileCount: 0,
+    })),
+    loadSkillsFromDir: vi.fn(async () => []),
+    PREVIEW_GEMINI_MODEL_AUTO: 'auto-gemini-3',
     setGeminiMdFilename: vi.fn(),
-    SimpleExtensionLoader: actual.SimpleExtensionLoader,
+    SimpleExtensionLoader: class SimpleExtensionLoaderMock {
+      getExtensions() {
+        return [];
+      }
+    },
     unescapePath: (value: string) => value.replace(/\\ /g, ' '),
     ...overrides,
   };
@@ -107,6 +116,10 @@ describe('gemini workspace EACCES guard (ELECTRON-BM)', () => {
 
 describe('gemini cli config memory discovery fallback', () => {
   it('continues with empty memory when hierarchical discovery hits EACCES', async () => {
+    vi.resetModules();
+    vi.doUnmock('@office-ai/aioncli-core');
+    vi.doUnmock('../../src/process/agent/gemini/index');
+
     const loadServerHierarchicalMemoryMock = vi.fn().mockRejectedValue(
       Object.assign(new Error('EACCES: permission denied, open /tmp/postgres'), {
         code: 'EACCES',
@@ -178,6 +191,10 @@ describe('gemini cli config memory discovery fallback', () => {
   });
 
   it('rethrows non-permission memory discovery errors', async () => {
+    vi.resetModules();
+    vi.doUnmock('@office-ai/aioncli-core');
+    vi.doUnmock('../../src/process/agent/gemini/index');
+
     const loadServerHierarchicalMemoryMock = vi.fn().mockRejectedValue(new Error('memory discovery exploded'));
 
     class ConfigMock {
@@ -225,65 +242,67 @@ describe('gemini cli config memory discovery fallback', () => {
 describe('gemini @directory handling', () => {
   it('does not expand directory references into recursive globs before read_many_files', async () => {
     vi.resetModules();
-    vi.doUnmock('@office-ai/aioncli-core');
+    vi.doMock('@office-ai/aioncli-core', () => buildAionCliCoreMock({}));
 
     const workspaceRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'gemini-dir-ref-'));
-    const repoDir = path.join(workspaceRoot, 'repo');
-    await fs.mkdir(path.join(repoDir, 'docker', 'volumes', 'postgres'), { recursive: true });
+    try {
+      const repoDir = path.join(workspaceRoot, 'repo');
+      await fs.mkdir(path.join(repoDir, 'docker', 'volumes', 'postgres'), { recursive: true });
 
-    const buildMock = vi.fn(() => ({
-      getDescription: () => 'mock read_many_files',
-      execute: vi.fn().mockResolvedValue({
-        llmContent: ['No files matching the criteria were found or all were skipped.'],
-        returnDisplay: 'No files were read.',
-      }),
-    }));
-
-    const { handleAtCommand } = await import('../../src/process/agent/gemini/cli/atCommandProcessor');
-
-    const result = await handleAtCommand({
-      query: 'inspect @repo',
-      config: {
-        getFileService: () => ({
-          shouldIgnoreFile: () => false,
+      const buildMock = vi.fn(() => ({
+        getDescription: () => 'mock read_many_files',
+        execute: vi.fn().mockResolvedValue({
+          llmContent: ['No files matching the criteria were found or all were skipped.'],
+          returnDisplay: 'No files were read.',
         }),
-        getFileFilteringOptions: () => ({
-          respectGitIgnore: true,
-          respectGeminiIgnore: true,
-        }),
-        getToolRegistry: async () => ({
-          getTool: (name: string) => {
-            if (name === 'read_many_files') {
-              return {
-                build: buildMock,
-                displayName: 'ReadManyFiles',
-              };
-            }
-            return undefined;
-          },
-        }),
-        getWorkspaceContext: () => ({
-          isPathWithinWorkspace: () => true,
-          getDirectories: () => [workspaceRoot],
-        }),
-        getEnableRecursiveFileSearch: () => true,
-      } as never,
-      addItem: () => {},
-      onDebugMessage: () => {},
-      messageId: Date.now(),
-      signal: new AbortController().signal,
-    });
+      }));
 
-    expect(result.shouldProceed).toBe(true);
-    expect(buildMock).toHaveBeenCalledOnce();
-    expect(buildMock).toHaveBeenCalledWith({
-      paths: ['repo'],
-      file_filtering_options: {
-        respect_git_ignore: true,
-        respect_gemini_ignore: true,
-      },
-    });
+      const { handleAtCommand } = await import('../../src/process/agent/gemini/cli/atCommandProcessor');
 
-    await fs.rm(workspaceRoot, { recursive: true, force: true });
+      const result = await handleAtCommand({
+        query: 'inspect @repo',
+        config: {
+          getFileService: () => ({
+            shouldIgnoreFile: () => false,
+          }),
+          getFileFilteringOptions: () => ({
+            respectGitIgnore: true,
+            respectGeminiIgnore: true,
+          }),
+          getToolRegistry: async () => ({
+            getTool: (name: string) => {
+              if (name === 'read_many_files') {
+                return {
+                  build: buildMock,
+                  displayName: 'ReadManyFiles',
+                };
+              }
+              return undefined;
+            },
+          }),
+          getWorkspaceContext: () => ({
+            isPathWithinWorkspace: () => true,
+            getDirectories: () => [workspaceRoot],
+          }),
+          getEnableRecursiveFileSearch: () => true,
+        } as never,
+        addItem: () => {},
+        onDebugMessage: () => {},
+        messageId: Date.now(),
+        signal: new AbortController().signal,
+      });
+
+      expect(result.shouldProceed).toBe(true);
+      expect(buildMock).toHaveBeenCalledOnce();
+      expect(buildMock).toHaveBeenCalledWith({
+        paths: ['repo'],
+        file_filtering_options: {
+          respect_git_ignore: true,
+          respect_gemini_ignore: true,
+        },
+      });
+    } finally {
+      await fs.rm(workspaceRoot, { recursive: true, force: true });
+    }
   });
 });

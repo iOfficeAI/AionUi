@@ -9,6 +9,7 @@ const constructorArgs: unknown[][] = [];
 function createMockWindow() {
   return {
     show: vi.fn(),
+    showInactive: vi.fn(),
     focus: vi.fn(),
     hide: vi.fn(),
     destroy: vi.fn(),
@@ -148,8 +149,30 @@ describe('petManager', () => {
       createPetWindow();
       const countBefore = createdWindows.length;
       createPetWindow();
-      // Should show + focus instead of creating new windows
+      // Should restore existing windows instead of creating new ones
       expect(createdWindows).toHaveLength(countBefore);
+    });
+
+    it('restores existing pet windows without taking focus', () => {
+      createPetWindow();
+      vi.clearAllMocks();
+
+      createPetWindow();
+
+      expect(createdWindows).toHaveLength(2);
+      expect(createdWindows[0].showInactive).toHaveBeenCalledOnce();
+      expect(createdWindows[1].showInactive).toHaveBeenCalledOnce();
+      expect(createdWindows[0].focus).not.toHaveBeenCalled();
+      expect(createdWindows[1].focus).not.toHaveBeenCalled();
+    });
+
+    it('creates pet windows hidden so first display can be inactive', () => {
+      createPetWindow();
+
+      const petOpts = constructorArgs[0][0] as Record<string, unknown>;
+      const hitOpts = constructorArgs[1][0] as Record<string, unknown>;
+      expect(petOpts.show).toBe(false);
+      expect(hitOpts.show).toBe(false);
     });
 
     it('positions windows at bottom-right of screen', () => {
@@ -217,6 +240,20 @@ describe('petManager', () => {
   describe('showPetWindow', () => {
     it('does not throw when no windows exist', () => {
       expect(() => showPetWindow()).not.toThrow();
+    });
+
+    it('shows existing pet windows without activating AionUi', () => {
+      createPetWindow();
+      vi.clearAllMocks();
+
+      showPetWindow();
+
+      expect(createdWindows[0].showInactive).toHaveBeenCalledOnce();
+      expect(createdWindows[1].showInactive).toHaveBeenCalledOnce();
+      expect(createdWindows[0].show).not.toHaveBeenCalled();
+      expect(createdWindows[1].show).not.toHaveBeenCalled();
+      expect(createdWindows[0].focus).not.toHaveBeenCalled();
+      expect(createdWindows[1].focus).not.toHaveBeenCalled();
     });
   });
 

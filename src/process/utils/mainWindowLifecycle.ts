@@ -37,3 +37,26 @@ export const showOrCreateMainWindow = ({
 
   createWindow();
 };
+
+export const showOrCreateMainWindowOnAppActivate = ({
+  mainWindow,
+  createWindow,
+  hasVisibleAuxiliaryWindow,
+}: {
+  mainWindow: BrowserWindow | null | undefined;
+  createWindow: () => void;
+  hasVisibleAuxiliaryWindow: boolean;
+}): void => {
+  if (hasVisibleAuxiliaryWindow) {
+    return;
+  }
+
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    if (mainWindow.isMinimized() || !mainWindow.isVisible()) {
+      showAndFocusMainWindow(mainWindow);
+    }
+    return;
+  }
+
+  createWindow();
+};

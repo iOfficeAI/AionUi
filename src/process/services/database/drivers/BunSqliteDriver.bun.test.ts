@@ -2,7 +2,16 @@
 // Run with: bun test src/process/services/database/drivers/BunSqliteDriver.bun.test.ts
 
 import { describe, it, expect, afterEach } from 'bun:test';
+import { ALL_MIGRATIONS } from '../migrations';
 import { BunSqliteDriver } from './BunSqliteDriver';
+
+function getMigration(version: number) {
+  const migration = ALL_MIGRATIONS.find((item) => item.version === version);
+  if (!migration) {
+    throw new Error(`Migration v${version} not found`);
+  }
+  return migration;
+}
 
 describe('BunSqliteDriver', () => {
   let driver: BunSqliteDriver;
@@ -64,5 +73,86 @@ describe('BunSqliteDriver', () => {
     insert('wrapped');
     const row = driver.prepare('SELECT val FROM t').get() as { val: string };
     expect(row.val).toBe('wrapped');
+  });
+
+  it('migrates only legacy Codex ACP conversations to native Codex', () => {
+    driver = new BunSqliteDriver(':memory:');
+    driver.exec('CREATE TABLE conversations (id TEXT PRIMARY KEY, type TEXT NOT NULL, extra TEXT NOT NULL)');
+    driver.prepare('INSERT INTO conversations (id, type, extra) VALUES (?, ?, ?)').run(
+      'legacy-codex',
+      'acp',
+      JSON.stringify({
+        backend: 'codex',
+        workspace: '/tmp/workspace',
+        currentModelId: 'gpt-5.3-codex',
+        acpSessionId: 'legacy-acp-session',
+      })
+    );
+    driver
+      .prepare('INSERT INTO conversations (id, type, extra) VALUES (?, ?, ?)')
+      .run('other-acp', 'acp', JSON.stringify({ backend: 'claude', workspace: '/tmp/other' }));
+
+    getMigration(32).up(driver);
+
+    const migrated = driver.prepare('SELECT type, extra FROM conversations WHERE id = ?').get('legacy-codex') as {
+      type: string;
+      extra: string;
+    };
+    const untouched = driver.prepare('SELECT type, extra FROM conversations WHERE id = ?').get('other-acp') as {
+      type: string;
+      extra: string;
+    };
+
+    expect(migrated.type).toBe('codex');
+    expect(JSON.parse(migrated.extra)).toEqual(
+      expect.objectContaining({
+        backend: 'codex',
+        workspace: '/tmp/workspace',
+        currentModelId: 'gpt-5.3-codex',
+        codexModel: 'gpt-5.3-codex',
+        codexNative: true,
+        codexMigratedFromAcp: true,
+        acpSessionId: 'legacy-acp-session',
+      })
+    );
+    expect(untouched.type).toBe('acp');
+    expect(JSON.parse(untouched.extra)).toEqual({ backend: 'claude', workspace: '/tmp/other' });
+  });
+
+  it('rolls back only Codex conversations migrated from ACP', () => {
+    driver = new BunSqliteDriver(':memory:');
+    driver.exec('CREATE TABLE conversations (id TEXT PRIMARY KEY, type TEXT NOT NULL, extra TEXT NOT NULL)');
+    driver
+      .prepare('INSERT INTO conversations (id, type, extra) VALUES (?, ?, ?)')
+      .run('legacy-codex', 'acp', JSON.stringify({ backend: 'codex', currentModelId: 'gpt-5.3-codex' }));
+    driver
+      .prepare('INSERT INTO conversations (id, type, extra) VALUES (?, ?, ?)')
+      .run(
+        'native-codex',
+        'codex',
+        JSON.stringify({ backend: 'codex', codexNative: true, currentModelId: 'gpt-5.3-codex' })
+      );
+
+    const migration = getMigration(32);
+    migration.up(driver);
+    migration.down(driver);
+
+    const legacy = driver.prepare('SELECT type, extra FROM conversations WHERE id = ?').get('legacy-codex') as {
+      type: string;
+      extra: string;
+    };
+    const native = driver.prepare('SELECT type, extra FROM conversations WHERE id = ?').get('native-codex') as {
+      type: string;
+      extra: string;
+    };
+
+    expect(legacy.type).toBe('acp');
+    expect(JSON.parse(legacy.extra)).not.toHaveProperty('codexNative');
+    expect(native.type).toBe('codex');
+    expect(JSON.parse(native.extra)).toEqual({
+      backend: 'codex',
+      codexNative: true,
+      currentModelId: 'gpt-5.3-codex',
+    });
   });
 });

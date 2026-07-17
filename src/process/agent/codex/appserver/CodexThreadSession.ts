@@ -60,6 +60,9 @@ export class CodexThreadSession {
         await this.deps.client.request('thread/resume', {
           threadId: this.threadId,
           cwd: this.deps.options.workspace,
+          approvalPolicy: this.deps.options.approvalPolicy,
+          sandbox: this.deps.options.sandboxPolicy,
+          ...(this.deps.options.model ? { model: this.deps.options.model } : {}),
         });
         this.unsubscribeNotifications = unsubscribeNotifications;
         this.unsubscribeFailures = unsubscribeFailures;

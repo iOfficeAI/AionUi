@@ -75,4 +75,61 @@ describe('mainWindowLifecycle', () => {
     expect(destroyedWindow.show).not.toHaveBeenCalled();
     expect(destroyedWindow.focus).not.toHaveBeenCalled();
   });
+
+  describe('showOrCreateMainWindowOnAppActivate', () => {
+    it('should not refocus an already visible main window on app activation', async () => {
+      const createWindow = vi.fn();
+      const window = {
+        isDestroyed: vi.fn(() => false),
+        isMinimized: vi.fn(() => false),
+        isVisible: vi.fn(() => true),
+        restore: vi.fn(),
+        show: vi.fn(),
+        focus: vi.fn(),
+      } as unknown as Electron.BrowserWindow;
+      const lifecycle = await import('@process/utils/mainWindowLifecycle');
+      const showOrCreateMainWindowOnAppActivate = (
+        lifecycle as unknown as {
+          showOrCreateMainWindowOnAppActivate: (args: {
+            mainWindow: Electron.BrowserWindow | null | undefined;
+            createWindow: () => void;
+            hasVisibleAuxiliaryWindow: boolean;
+          }) => void;
+        }
+      ).showOrCreateMainWindowOnAppActivate;
+
+      showOrCreateMainWindowOnAppActivate({
+        mainWindow: window,
+        createWindow,
+        hasVisibleAuxiliaryWindow: false,
+      });
+
+      expect(window.restore).not.toHaveBeenCalled();
+      expect(window.show).not.toHaveBeenCalled();
+      expect(window.focus).not.toHaveBeenCalled();
+      expect(createWindow).not.toHaveBeenCalled();
+    });
+
+    it('should not recreate the main window when activation comes from an auxiliary window', async () => {
+      const createWindow = vi.fn();
+      const lifecycle = await import('@process/utils/mainWindowLifecycle');
+      const showOrCreateMainWindowOnAppActivate = (
+        lifecycle as unknown as {
+          showOrCreateMainWindowOnAppActivate: (args: {
+            mainWindow: Electron.BrowserWindow | null | undefined;
+            createWindow: () => void;
+            hasVisibleAuxiliaryWindow: boolean;
+          }) => void;
+        }
+      ).showOrCreateMainWindowOnAppActivate;
+
+      showOrCreateMainWindowOnAppActivate({
+        mainWindow: null,
+        createWindow,
+        hasVisibleAuxiliaryWindow: true,
+      });
+
+      expect(createWindow).not.toHaveBeenCalled();
+    });
+  });
 });

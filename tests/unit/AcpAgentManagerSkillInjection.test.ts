@@ -1,10 +1,28 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Track calls to prepareFirstMessageWithSkillsIndex
-const { mockPrepareFirstMessage, mockAgentSendMessage } = vi.hoisted(() => ({
-  mockPrepareFirstMessage: vi.fn(async (content: string) => `[injected] ${content}`),
-  mockAgentSendMessage: vi.fn(async () => ({ success: true })),
-}));
+const { mockPrepareFirstMessage, mockAgentSendMessage, mockAcpAgentV2 } = vi.hoisted(() => {
+  const mockPrepareFirstMessage = vi.fn(async (content: string) => ({
+    content: `[injected] ${content}`,
+    loadedSkills: [],
+  }));
+  const mockAgentSendMessage = vi.fn(async () => ({ success: true }));
+  const mockAcpAgentV2 = vi.fn().mockImplementation(function () {
+    return {
+      start: vi.fn(async () => {}),
+      sendMessage: mockAgentSendMessage,
+      getModelInfo: vi.fn(() => null),
+      getConfigOptions: vi.fn(() => []),
+      setMode: vi.fn(async () => {}),
+      setModelByConfigOption: vi.fn(async () => {}),
+      getSessionState: vi.fn(() => null),
+      stop: vi.fn(),
+      kill: vi.fn(),
+      on: vi.fn().mockReturnThis(),
+    };
+  });
+  return { mockPrepareFirstMessage, mockAgentSendMessage, mockAcpAgentV2 };
+});
 
 // --- Module mocks ---
 
@@ -23,7 +41,31 @@ vi.mock('@/common/platform', () => ({
 
 vi.mock('@process/utils/shellEnv', () => ({
   getEnhancedEnv: vi.fn(() => ({})),
+  loadFullShellEnvironment: vi.fn(async () => ({})),
 }));
+
+vi.mock('@/common/types/acpTypes', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/common/types/acpTypes')>();
+  return {
+    ...actual,
+    hasNativeSkillSupport: vi.fn((backend: string | undefined) => {
+      const supported = [
+        'gemini',
+        'claude',
+        'codebuddy',
+        'codex',
+        'qwen',
+        'iflow',
+        'goose',
+        'droid',
+        'kimi',
+        'vibe',
+        'cursor',
+      ];
+      return !!backend && supported.includes(backend);
+    }),
+  };
+});
 
 vi.mock('@/common', () => ({
   ipcBridge: {
@@ -124,6 +166,7 @@ vi.mock('@process/task/MessageMiddleware', () => ({
 
 vi.mock('@process/task/ThinkTagDetector', () => ({
   stripThinkTags: vi.fn((s: string) => s),
+  extractAndStripThinkTags: vi.fn((s: string) => ({ thinking: '', content: s })),
 }));
 
 vi.mock('@process/task/CronCommandDetector', () => ({
@@ -162,21 +205,8 @@ vi.mock('@process/task/agentUtils', () => ({
   buildSystemInstructions: vi.fn(async () => undefined),
 }));
 
-// Mock AcpAgent class
-vi.mock('@process/agent/acp', () => ({
-  AcpAgent: vi.fn().mockImplementation(function () {
-    return {
-      start: vi.fn(async () => {}),
-      sendMessage: mockAgentSendMessage,
-      getModelInfo: vi.fn(() => null),
-      getConfigOptions: vi.fn(() => []),
-      setMode: vi.fn(async () => {}),
-      getSessionState: vi.fn(() => null),
-      stop: vi.fn(),
-      kill: vi.fn(),
-      on: vi.fn().mockReturnThis(),
-    };
-  }),
+vi.mock('@process/acp/compat', () => ({
+  AcpAgentV2: mockAcpAgentV2,
 }));
 
 import AcpAgentManager from '@process/task/AcpAgentManager';
@@ -314,7 +344,7 @@ describe('AcpAgentManager — first-message skill injection', () => {
     expect(sentContent).toContain('Test message');
   });
 
-  it('prefers configured absolute cliPath over persisted builtin codex command on resume', async () => {
+  it('preserves the configured builtin cliPath over persisted codex config on resume', async () => {
     const manager = createManager({
       backend: 'codex',
       cliPath: 'codex',
@@ -323,10 +353,10 @@ describe('AcpAgentManager — first-message skill injection', () => {
 
     await manager.initAgent();
 
-    const { AcpAgent } = await import('@process/agent/acp');
-    expect(vi.mocked(AcpAgent)).toHaveBeenCalledWith(
+    const { AcpAgentV2 } = await import('@process/acp/compat');
+    expect(vi.mocked(AcpAgentV2)).toHaveBeenCalledWith(
       expect.objectContaining({
-        cliPath: '/Users/test/.nvm/versions/node/v22.22.0/bin/codex',
+        cliPath: 'codex',
       })
     );
   });

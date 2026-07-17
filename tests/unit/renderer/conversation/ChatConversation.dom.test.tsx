@@ -265,6 +265,25 @@ const createAionrsConversation = (sessionMode: string, useModel = 'gpt-4.1'): TC
     },
   }) as TChatConversation;
 
+const createChatgptAionrsConversation = (useModel: string): TChatConversation =>
+  ({
+    id: 'conv-aionrs',
+    name: 'ChatGPT Aion CLI Chat',
+    type: 'aionrs',
+    model: {
+      id: 'chatgpt-provider',
+      platform: 'chatgpt',
+      name: 'ChatGPT',
+      baseUrl: 'https://chatgpt.com',
+      apiKey: '',
+      useModel,
+    },
+    extra: {
+      workspace: 'E:/code/demo',
+      sessionMode: 'auto_edit',
+    },
+  }) as TChatConversation;
+
 const createCodexConversation = (sessionMode: string, currentModelId?: string): TChatConversation =>
   ({
     id: 'conv-codex',
@@ -441,6 +460,45 @@ describe('ChatConversation workspace launcher', () => {
         },
       });
     });
+  });
+
+  it('does not downgrade configured ChatGPT models when runtime capabilities are stale', async () => {
+    chatConversationMocks.useAionrsModelSelection.mockReturnValue({
+      providers: [
+        {
+          id: 'chatgpt-provider',
+          platform: 'chatgpt',
+          model: ['gpt-5.6-sol', 'gpt-5.5'],
+        },
+      ],
+      getAvailableModels: (provider: { model?: string[] }) => provider.model ?? [],
+    });
+    chatConversationMocks.useAionrsCapabilities.mockReturnValue({
+      capabilities: {
+        tool_approval: true,
+        thinking: false,
+        effort: true,
+        effort_levels: ['low', 'medium', 'high'],
+        modes: ['default'],
+        current_mode: 'default',
+        mcp: false,
+        current_model: 'gpt-5.5',
+        available_models: [
+          { id: 'gpt-5.5', display_name: 'GPT-5.5' },
+          { id: 'gpt-5.4', display_name: 'GPT-5.4' },
+        ],
+      },
+      dynamicModes: [],
+      initialized: true,
+    });
+
+    render(<ChatConversation conversation={createChatgptAionrsConversation('gpt-5.6-sol')} />);
+
+    await waitFor(() => {
+      expect(chatConversationMocks.aionrsChat).toHaveBeenCalled();
+    });
+
+    expect(chatConversationMocks.updateConversation).not.toHaveBeenCalled();
   });
 
   it('passes the persisted Codex session mode into the native Codex chat view', () => {

@@ -8,6 +8,7 @@ import { agentRegistry } from '@process/agent/AgentRegistry';
 import { isAgentKind } from '@/common/types/detectedAgent';
 import { AcpConnection } from '@process/agent/acp/AcpConnection';
 import { buildAcpModelInfo, summarizeAcpModelInfo } from '@process/agent/acp/modelInfo';
+import { readCodexConfiguredModel } from '@process/agent/codex/appserver/codexCliConfig';
 import type { IWorkerTaskManager } from '@process/task/IWorkerTaskManager';
 import AcpAgentManager from '@process/task/AcpAgentManager';
 import { GeminiAgentManager } from '@process/task/GeminiAgentManager';
@@ -24,16 +25,17 @@ import { mainLog, mainWarn } from '@process/utils/mainLogger';
 import * as os from 'os';
 import { getDatabase } from '@process/services/database';
 import type { AcpModelInfo } from '@/common/types/acpTypes';
+import { mergeCodexModelInfoWithDefaults } from '@/common/types/codex/codexModels';
 
 function createPersistedCodexModelInfo(modelId: string): AcpModelInfo {
-  return {
+  return mergeCodexModelInfoWithDefaults({
     currentModelId: modelId,
     currentModelLabel: modelId,
     availableModels: [{ id: modelId, label: modelId }],
     canSwitch: false,
     source: 'models',
     sourceDetail: 'codex-stream',
-  };
+  });
 }
 
 async function getPersistedCodexModelInfo(conversationId: string): Promise<AcpModelInfo | null> {
@@ -45,7 +47,7 @@ async function getPersistedCodexModelInfo(conversationId: string): Promise<AcpMo
     const conversation = result.data as { type?: string; extra?: Record<string, unknown> };
     if (conversation.type !== 'codex' && conversation.extra?.codexNative !== true) return null;
 
-    const modelId = conversation.extra?.currentModelId || conversation.extra?.codexModel;
+    const modelId = conversation.extra?.currentModelId || conversation.extra?.codexModel || readCodexConfiguredModel();
     return typeof modelId === 'string' && modelId ? createPersistedCodexModelInfo(modelId) : null;
   } catch {
     return null;
@@ -313,11 +315,11 @@ export function initAcpConversationBridge(workerTaskManager: IWorkerTaskManager)
       await connection.connect(backend, acpAgent?.cliPath, tempDir, acpAgent?.acpArgs);
       await connection.newSession(tempDir);
 
-      const modelInfo = buildAcpModelInfo(connection.getConfigOptions(), connection.getModels());
+      const visibleModelInfo = buildAcpModelInfo(connection.getConfigOptions(), connection.getModels());
       return {
         success: true,
         data: {
-          modelInfo,
+          modelInfo: visibleModelInfo,
           configOptions:
             connection
               .getConfigOptions()

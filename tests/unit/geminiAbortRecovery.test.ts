@@ -34,6 +34,7 @@ vi.mock('@/common/platform', () => ({
 
 vi.mock('../../src/process/utils/shellEnv', () => ({
   getEnhancedEnv: vi.fn(() => ({})),
+  loadFullShellEnvironment: vi.fn(async () => ({})),
 }));
 
 import { GeminiAgent } from '../../src/process/agent/gemini';
@@ -45,7 +46,7 @@ describe('Gemini abort recovery', () => {
     refreshServerHierarchicalMemoryMock.mockResolvedValue({ memoryContent: 'Persisted memory' });
   });
 
-  it('stop() only forwards the stop request without reloading history', async () => {
+  it('stop() forwards the stop request and reloads persisted history', async () => {
     const postMessagePromise = vi.fn().mockResolvedValue(undefined);
     const injectHistoryFromDatabase = vi.fn().mockResolvedValue(undefined);
 
@@ -55,7 +56,7 @@ describe('Gemini abort recovery', () => {
     } as unknown as GeminiAgentManager);
 
     expect(postMessagePromise).toHaveBeenCalledWith('stop.stream', {});
-    expect(injectHistoryFromDatabase).not.toHaveBeenCalled();
+    expect(injectHistoryFromDatabase).toHaveBeenCalledOnce();
   });
 
   it('reloadContext() reinjects persisted history after abort recovery', async () => {

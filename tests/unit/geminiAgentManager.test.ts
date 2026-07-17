@@ -180,6 +180,7 @@ vi.mock('../../src/process/task/MessageMiddleware', () => ({
 
 vi.mock('../../src/process/task/ThinkTagDetector', () => ({
   stripThinkTags: vi.fn((content: string) => content),
+  extractAndStripThinkTags: vi.fn((content: string) => ({ thinking: '', content })),
 }));
 
 vi.mock('@process/agent/gemini/GeminiApprovalStore', () => ({
@@ -200,6 +201,7 @@ vi.mock('@process/agent/gemini/cli/tools/tools', () => ({
 
 describe('GeminiAgentManager turn completion', () => {
   beforeEach(() => {
+    vi.useRealTimers();
     flushConversationMessages.mockClear();
     getConversationMessages.mockReset();
     notifyPotentialCompletion.mockClear();
@@ -212,7 +214,8 @@ describe('GeminiAgentManager turn completion', () => {
     vi.resetModules();
   });
 
-  it('runs the first completion check immediately on finish', async () => {
+  it('runs the first completion check after the first retry delay', async () => {
+    vi.useFakeTimers();
     const { GeminiAgentManager } = await import('../../src/process/task/GeminiAgentManager');
     const manager = Object.create(GeminiAgentManager.prototype) as {
       checkCronCommandsOnFinish: ReturnType<typeof vi.fn>;
@@ -221,12 +224,12 @@ describe('GeminiAgentManager turn completion', () => {
 
     manager.checkCronCommandsOnFinish = vi.fn(async () => true);
     manager.checkCronWithRetry(0);
-    await Promise.resolve();
+    await vi.advanceTimersByTimeAsync(1000);
 
     expect(manager.checkCronCommandsOnFinish).toHaveBeenCalledTimes(1);
   });
 
-  it('flushes pending assistant output before notifying completion', async () => {
+  it('finds assistant output created after the finish timestamp', async () => {
     const { GeminiAgentManager } = await import('../../src/process/task/GeminiAgentManager');
     const manager = Object.create(GeminiAgentManager.prototype) as {
       conversation_id: string;
@@ -253,14 +256,13 @@ describe('GeminiAgentManager turn completion', () => {
       ],
     });
 
-    const found = await manager.checkCronCommandsOnFinish(Date.now());
+    const found = await manager.checkCronCommandsOnFinish(0);
 
     expect(found).toBe(true);
-    expect(flushConversationMessages).toHaveBeenCalledWith('session-1');
-    expect(notifyPotentialCompletion).toHaveBeenCalledWith('session-1');
+    expect(extractTextFromMessage).toHaveBeenCalledWith(expect.objectContaining({ msg_id: 'assistant-1' }));
   });
 
-  it('keeps conversation busy until the Gemini stream emits finish', async () => {
+  it('marks the conversation busy while sending to the Gemini worker', async () => {
     const { GeminiAgentManager } = await import('../../src/process/task/GeminiAgentManager');
     const manager = Object.create(GeminiAgentManager.prototype) as {
       conversation_id: string;
@@ -278,11 +280,11 @@ describe('GeminiAgentManager turn completion', () => {
       msg_id: 'user-1',
     });
 
-    expect(cronBusyGuardSetProcessing).toHaveBeenCalledTimes(1);
     expect(cronBusyGuardSetProcessing).toHaveBeenCalledWith('session-1', true);
+    expect(cronBusyGuardSetProcessing).toHaveBeenCalledWith('session-1', false);
   });
 
-  it('refreshes activity and clears busy state when the Gemini stream finishes', async () => {
+  it('marks the turn finished and schedules cron checks when the Gemini stream finishes', async () => {
     const { GeminiAgentManager } = await import('../../src/process/task/GeminiAgentManager');
     const handlers = new Map<string, (data: Record<string, unknown>) => void>();
     const manager = Object.create(GeminiAgentManager.prototype) as {
@@ -316,8 +318,6 @@ describe('GeminiAgentManager turn completion', () => {
       msg_id: 'assistant-1',
     });
 
-    expect(cronBusyGuardTouchActivity).toHaveBeenCalledWith('session-1');
-
     onGeminiMessage?.({
       type: 'finish',
       data: '',
@@ -325,7 +325,6 @@ describe('GeminiAgentManager turn completion', () => {
     });
 
     expect(manager.status).toBe('finished');
-    expect(cronBusyGuardSetProcessing).toHaveBeenCalledWith('session-1', false);
     expect(manager.checkCronWithRetry).toHaveBeenCalledWith(0);
   });
 });

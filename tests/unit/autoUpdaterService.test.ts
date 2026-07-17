@@ -64,6 +64,10 @@ describe('AutoUpdaterService', () => {
     // Create mock status broadcast callback
     mockStatusBroadcast = vi.fn();
 
+    autoUpdater.autoDownload = true;
+    autoUpdater.autoInstallOnAppQuit = true;
+    autoUpdater.channel = null;
+
     // Import the service (after mocks are set up)
     const module = await import('@/process/services/autoUpdaterService');
     autoUpdaterService = module.autoUpdaterService;
@@ -76,6 +80,11 @@ describe('AutoUpdaterService', () => {
   });
 
   describe('initialize', () => {
+    it('should require explicit install instead of installing downloaded updates on ordinary quit', () => {
+      expect(autoUpdater.autoDownload).toBe(false);
+      expect(autoUpdater.autoInstallOnAppQuit).toBe(false);
+    });
+
     it('should initialize with status broadcast callback', () => {
       expect(autoUpdaterService.isInitialized).toBe(false);
 

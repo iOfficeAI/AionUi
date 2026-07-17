@@ -30,6 +30,7 @@ import {
 } from '@process/task/codexConfig';
 import { addMessage, addOrUpdateMessage } from '@process/utils/message';
 import { CodexAppServerClient } from './CodexAppServerClient';
+import { readCodexConfiguredModel } from './codexCliConfig';
 import { appendCodexFileReferences } from '../handlers/CodexFileOperationHandler';
 import { CodexModelService } from './CodexModelService';
 import { CodexPermissionResolver } from './CodexPermissionResolver';
@@ -166,6 +167,8 @@ export class CodexNativeAgentManager extends BaseAgentManager<CodexNativeAgentMa
   private activeSendToken: symbol | undefined;
   private currentMode: string;
   private currentReasoningEffort: string;
+  private readonly initialModelId: string | undefined;
+  private readonly shouldPersistInitialModel: boolean;
 
   constructor(data: CodexNativeAgentManagerData) {
     super('codex', data, new IpcAgentEventEmitter(), false);
@@ -178,7 +181,13 @@ export class CodexNativeAgentManager extends BaseAgentManager<CodexNativeAgentMa
       args: data.appServerCommand ? data.appServerArgs || [] : ['app-server', ...(data.appServerArgs || [])],
       cwd: this.workspace,
     });
-    const initialModelId = data.codexModel || data.currentModelId;
+    const initialModelId = data.codexModel || data.currentModelId || readCodexConfiguredModel();
+    this.initialModelId = initialModelId;
+    this.shouldPersistInitialModel = Boolean(initialModelId && !data.codexModel && !data.currentModelId);
+    if (initialModelId) {
+      this.options.codexModel = initialModelId;
+      this.options.currentModelId = initialModelId;
+    }
     this.currentMode = data.yoloMode ? 'yolo' : data.sessionMode || DEFAULT_CODEX_MODE;
     const configOptionValues = normalizeCodexConfigOptionValues({
       ...data.configOptionValues,
@@ -271,6 +280,9 @@ export class CodexNativeAgentManager extends BaseAgentManager<CodexNativeAgentMa
       this.isFirstMessage = false;
       await this.session.startTurn({ content, msgId, files: data.files });
     } catch (error) {
+      if (this.activeSendToken !== sendToken) {
+        return;
+      }
       this.emitAndPersistMessage(
         {
           type: 'error',
@@ -291,8 +303,19 @@ export class CodexNativeAgentManager extends BaseAgentManager<CodexNativeAgentMa
   }
 
   async stop(): Promise<void> {
-    await this.session.interrupt();
+    const hadActiveTurn = Boolean(this.activeSendToken || this.status === 'running');
+    this.activeSendToken = undefined;
     this.status = 'finished';
+    cronBusyGuard.setProcessing(this.conversation_id, false);
+    if (!hadActiveTurn) {
+      return;
+    }
+
+    void this.session.interrupt().catch(() => {});
+    this.session.dispose();
+    this.started = false;
+    this.startPromise = undefined;
+    await this.client.dispose();
   }
 
   confirm(msgId: string, callId: string, data: string): void {
@@ -415,6 +438,12 @@ export class CodexNativeAgentManager extends BaseAgentManager<CodexNativeAgentMa
     if (this.started) return;
     if (!this.startPromise) {
       this.startPromise = (async () => {
+        if (this.shouldPersistInitialModel && this.initialModelId) {
+          await this.persistConversationExtra({
+            codexModel: this.initialModelId,
+            currentModelId: this.initialModelId,
+          });
+        }
         await this.client.start();
         await this.session.start();
         await this.emitCurrentModelInfo();

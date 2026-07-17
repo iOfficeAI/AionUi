@@ -105,6 +105,7 @@ describe('conversationBridge.sendMessage', () => {
     getOrBuildTask: vi.fn(),
     getTask: vi.fn(),
     removeTask: vi.fn(),
+    kill: vi.fn(),
   } as any;
 
   beforeEach(() => {
@@ -166,5 +167,19 @@ describe('conversationBridge.sendMessage', () => {
         agentContent: 'hello',
       })
     );
+  });
+
+  it('stops and removes a running Codex task', async () => {
+    const handler = providerCallbacks.get('conversation.stop');
+    const task = {
+      type: 'codex',
+      stop: vi.fn(async () => undefined),
+    };
+    mockWorkerTaskManager.getTask.mockReturnValue(task);
+
+    await expect(handler!({ conversation_id: 'codex-conversation' })).resolves.toEqual({ success: true });
+
+    expect(task.stop).toHaveBeenCalledTimes(1);
+    expect(mockWorkerTaskManager.kill).toHaveBeenCalledWith('codex-conversation');
   });
 });

@@ -26,6 +26,23 @@ export type UseAionrsModelSelectionOptions = {
   runtimeCapabilities?: AionrsCapabilities | null;
 };
 
+const isChatgptProvider = (provider: { platform?: string } | undefined): boolean => provider?.platform === 'chatgpt';
+
+const mergeModelIds = (primary: readonly string[], secondary: readonly string[]): string[] => {
+  const seen = new Set<string>();
+  const merged: string[] = [];
+
+  for (const modelId of [...primary, ...secondary]) {
+    if (!modelId || seen.has(modelId)) {
+      continue;
+    }
+    seen.add(modelId);
+    merged.push(modelId);
+  }
+
+  return merged;
+};
+
 export const useAionrsModelSelection = ({
   initialModel,
   onSelectModel,
@@ -78,12 +95,17 @@ export const useAionrsModelSelection = ({
 
   const getAvailableModels = useCallback(
     (provider: IProvider) => {
+      const configuredModels = getConfiguredModels(provider);
       if (useRuntimeModels && provider.id === currentModel?.id) {
-        return runtimeModels.map((model) => model.id);
+        const runtimeModelIds = runtimeModels.map((model) => model.id);
+        if (isChatgptProvider(currentModel) || isChatgptProvider(provider)) {
+          return mergeModelIds(configuredModels, runtimeModelIds);
+        }
+        return runtimeModelIds;
       }
-      return getConfiguredModels(provider);
+      return configuredModels;
     },
-    [currentModel?.id, getConfiguredModels, runtimeModels, useRuntimeModels]
+    [currentModel, getConfiguredModels, runtimeModels, useRuntimeModels]
   );
 
   const getDisplayModelName = useCallback(

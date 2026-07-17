@@ -297,14 +297,17 @@ describe('acpConversationBridge', () => {
     expect(result).toEqual({
       success: true,
       data: {
-        modelInfo: {
+        modelInfo: expect.objectContaining({
           currentModelId: 'gpt-5.3-codex',
           currentModelLabel: 'gpt-5.3-codex',
-          availableModels: [{ id: 'gpt-5.3-codex', label: 'gpt-5.3-codex' }],
-          canSwitch: false,
+          availableModels: expect.arrayContaining([
+            { id: 'gpt-5.3-codex', label: 'gpt-5.3-codex' },
+            { id: 'gpt-5.6-sol', label: 'gpt-5.6-sol' },
+          ]),
+          canSwitch: true,
           source: 'models',
           sourceDetail: 'codex-stream',
-        },
+        }),
       },
     });
   });

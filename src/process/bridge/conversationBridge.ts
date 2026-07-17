@@ -431,6 +431,9 @@ export function initConversationBridge(
     const task = workerTaskManager.getTask(conversation_id);
     if (!task) return { success: true, msg: 'conversation not found' };
     await task.stop();
+    if (task.type === 'codex') {
+      workerTaskManager.kill(conversation_id);
+    }
     return { success: true };
   });
 
