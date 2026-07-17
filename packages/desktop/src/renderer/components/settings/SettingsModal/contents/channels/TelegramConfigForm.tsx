@@ -16,6 +16,7 @@ import { CheckOne, CloseOne, Copy, Delete, Down, Refresh } from '@icon-park/reac
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
+  ChannelWorkspaceField,
   buildChannelAssistantBinding,
   getDefaultChannelAssistant,
   resolveChannelAssistantSelection,
@@ -466,6 +467,8 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({
           variant='settings'
         />
       </PreferenceRow>
+
+      <ChannelWorkspaceField platform='telegram' />
 
       {/* Next Steps Guide - show when bot is enabled and no authorized users yet */}
       {pluginStatus?.enabled && pluginStatus?.connected && authorizedUsers.length === 0 && (

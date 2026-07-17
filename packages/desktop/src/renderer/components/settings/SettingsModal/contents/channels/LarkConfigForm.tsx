@@ -17,6 +17,7 @@ import { CheckOne, CloseOne, Copy, Delete, Down, Refresh } from '@icon-park/reac
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
+  ChannelWorkspaceField,
   buildChannelAssistantBinding,
   getDefaultChannelAssistant,
   resolveChannelAssistantSelection,
@@ -657,6 +658,8 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
           variant='settings'
         />
       </PreferenceRow>
+
+      <ChannelWorkspaceField platform='lark' />
 
       {/* Connection Status - show when bot is enabled */}
       {pluginStatus?.enabled && authorizedUsers.length === 0 && (

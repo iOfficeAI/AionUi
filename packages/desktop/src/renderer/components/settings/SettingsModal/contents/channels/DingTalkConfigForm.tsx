@@ -17,6 +17,7 @@ import { CheckOne, CloseOne, Copy, Delete, Down, Refresh } from '@icon-park/reac
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
+  ChannelWorkspaceField,
   buildChannelAssistantBinding,
   getDefaultChannelAssistant,
   resolveChannelAssistantSelection,
@@ -534,6 +535,8 @@ const DingTalkConfigForm: React.FC<DingTalkConfigFormProps> = ({ pluginStatus, m
           variant='settings'
         />
       </PreferenceRow>
+
+      <ChannelWorkspaceField platform='dingtalk' />
 
       {/* Connection Status */}
       {pluginStatus?.enabled && authorizedUsers.length === 0 && (

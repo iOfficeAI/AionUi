@@ -1798,6 +1798,7 @@ import type {
   IChannelPluginStatus,
   IChannelSession,
   IChannelUser,
+  IChannelWorkspaceSetting,
 } from '@/common/types/channel/channel';
 
 type RawPluginStatus = Record<string, unknown>;
@@ -1888,6 +1889,10 @@ export const channel = {
   setDefaultModelSetting: httpPut<void, { platform: string; default_model: IChannelDefaultModelSetting }>(
     (p) => `/api/channel/settings/${encodeURIComponent(p.platform)}/default-model`,
     (p) => p.default_model
+  ),
+  setWorkspaceSetting: httpPut<void, { platform: string; workspace: IChannelWorkspaceSetting }>(
+    (p) => `/api/channel/settings/${encodeURIComponent(p.platform)}/workspace`,
+    (p) => p.workspace
   ),
   syncChannelSettings: httpPost<void, { platform: string }>('/api/channel/settings/sync'),
   pairingRequested: wsMappedEmitter<IChannelPairingRequest>('channel.pairing-requested', (raw) =>
