@@ -397,7 +397,12 @@ function summarizeNovaPayload(payload: unknown): Record<string, unknown> | undef
 
   for (const key of scalarKeys) {
     const value = source[key];
-    if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean' || value === null) {
+    if (
+      typeof value === 'string' ||
+      typeof value === 'number' ||
+      typeof value === 'boolean' ||
+      value === null
+    ) {
       detail[key] = value;
     }
   }
@@ -545,9 +550,7 @@ async function requestNovaMasterEndpoint(
   });
 }
 
-function getNovaMasterActions(
-  probe: NovaMasterProbe
-): Array<Pick<NovaMasterServiceAction, 'id' | 'label' | 'method' | 'path'>> | undefined {
+function getNovaMasterActions(probe: NovaMasterProbe): Array<Pick<NovaMasterServiceAction, 'id' | 'label' | 'method' | 'path'>> | undefined {
   if (!probe.primaryAction) {
     return undefined;
   }
@@ -659,7 +662,8 @@ async function probeNovaMasterService(probe: NovaMasterProbe): Promise<NovaMaste
             ...getPublicNovaMasterProbe(probe),
             port,
             openUrl,
-            status: serviceError || !httpStatus || httpStatus < 200 || httpStatus >= 300 ? 'degraded' : 'online',
+            status:
+              serviceError || !httpStatus || httpStatus < 200 || httpStatus >= 300 ? 'degraded' : 'online',
             latencyMs,
             httpStatus,
             detail: Object.keys(detail).length > 0 ? detail : undefined,
@@ -905,7 +909,9 @@ function extractNovaMasterAgentRoles(payload: unknown): NovaMasterAgentCatalog {
     : [];
 
   const teams = Array.isArray(source.teams)
-    ? source.teams.map((team) => (typeof team === 'string' ? team.trim() : '')).filter(Boolean)
+    ? source.teams
+        .map((team) => (typeof team === 'string' ? team.trim() : ''))
+        .filter(Boolean)
     : [];
 
   return { roles, teams };
@@ -1084,10 +1090,7 @@ function getNovaModelProvider(modelId: string): string {
 }
 
 function getNovaModelLabel(modelId: string): string {
-  const shortId = modelId
-    .replace(/^ollama\//, '')
-    .replace(/:cloud$/, '')
-    .replace(/^[^/]+\//, '');
+  const shortId = modelId.replace(/^ollama\//, '').replace(/:cloud$/, '').replace(/^[^/]+\//, '');
   return shortId
     .split(/[-_:]+/)
     .filter(Boolean)
@@ -1131,9 +1134,7 @@ function parseNovaModelList(stdout: string): string[] {
       if (numbered?.[2]) {
         return normalizeNovaModelId(numbered[2]);
       }
-      const modelLike = line.match(
-        /((?:ollama|openai|deepseek|xai|groq|lmstudio)\/[A-Za-z0-9._:-]+|[A-Za-z0-9._-]+:cloud)$/
-      );
+      const modelLike = line.match(/((?:ollama|openai|deepseek|xai|groq|lmstudio)\/[A-Za-z0-9._:-]+|[A-Za-z0-9._-]+:cloud)$/);
       return modelLike?.[1] ? normalizeNovaModelId(modelLike[1]) : '';
     })
     .filter(Boolean);
@@ -1156,9 +1157,7 @@ async function readNovaMasterModelRouter(): Promise<NovaMasterModelRouter> {
       seen.add(modelId);
       return true;
     })
-    .map((modelId) =>
-      toNovaModelInfo(modelId, currentModel, liveIds.includes(modelId) ? 'nova-claude-model' : 'fallback')
-    );
+    .map((modelId) => toNovaModelInfo(modelId, currentModel, liveIds.includes(modelId) ? 'nova-claude-model' : 'fallback'));
 
   return {
     current: currentModel,
@@ -1196,86 +1195,16 @@ function buildNovaMasterVisibleAgents(
   }
 
   const blueprints: Array<Omit<NovaMasterAgent, 'status'> & { services: string[] }> = [
-    {
-      id: 'planner',
-      name: 'Planner',
-      role: 'planner_agent',
-      lane: 'orchestrate',
-      description: 'Breaks goals into executable subagent tasks.',
-      services: ['openclaw', 'hermes', 'jarvis'],
-    },
-    {
-      id: 'builder',
-      name: 'Builder',
-      role: 'builder_agent',
-      lane: 'build',
-      description: 'Implements code and stack changes through OpenClaw/Codex.',
-      services: ['openclaw', 'goclaw', 'aionui'],
-    },
-    {
-      id: 'reviewer',
-      name: 'Reviewer',
-      role: 'review_agent',
-      lane: 'build',
-      description: 'Reviews diffs, risk, and missing verification.',
-      services: ['openclaw', 'hermes'],
-    },
-    {
-      id: 'debugger',
-      name: 'Debugger',
-      role: 'debug_agent',
-      lane: 'ops',
-      description: 'Reads probes, logs, ports, and degraded services.',
-      services: ['hermes', 'clawmem', 'litellm'],
-    },
-    {
-      id: 'researcher',
-      name: 'Researcher',
-      role: 'research_agent',
-      lane: 'research',
-      description: 'Runs source-backed web and local research tasks.',
-      services: ['space-agent', 'openclaw'],
-    },
-    {
-      id: 'ui-agent',
-      name: 'Aion UI Agent',
-      role: 'ui_agent',
-      lane: 'interface',
-      description: 'Controls cockpit UI, native launchers, and operator flows.',
-      services: ['aionui', 'jarvis'],
-    },
-    {
-      id: 'api-agent',
-      name: 'API Agent',
-      role: 'api_agent',
-      lane: 'interface',
-      description: 'Tracks OpenClaw, LiteLLM, Ollama, and service APIs.',
-      services: ['openclaw', 'litellm', 'ollama'],
-    },
-    {
-      id: 'memory-curator',
-      name: 'Memory Curator',
-      role: 'memory_agent',
-      lane: 'memory',
-      description: 'Connects ClawMem, Graphify, receipts, and persistent context.',
-      services: ['clawmem', 'hermes'],
-    },
-    {
-      id: 'discord-secretary',
-      name: 'Discord Secretary',
-      role: 'control_bus_agent',
-      lane: 'ops',
-      description: 'Primary mobile command bus and live proof channel.',
-      services: ['jarvis', 'hermes'],
-    },
-    {
-      id: 'media-agent',
-      name: 'Media Agent',
-      role: 'media_agent',
-      lane: 'media',
-      description: 'Coordinates Video Factory, music clips, OCR, and assets.',
-      services: ['video-factory', 'music-clips', 'vibevoice'],
-    },
+    { id: 'planner', name: 'Planner', role: 'planner_agent', lane: 'orchestrate', description: 'Breaks goals into executable subagent tasks.', services: ['openclaw', 'hermes', 'jarvis'] },
+    { id: 'builder', name: 'Builder', role: 'builder_agent', lane: 'build', description: 'Implements code and stack changes through OpenClaw/Codex.', services: ['openclaw', 'goclaw', 'aionui'] },
+    { id: 'reviewer', name: 'Reviewer', role: 'review_agent', lane: 'build', description: 'Reviews diffs, risk, and missing verification.', services: ['openclaw', 'hermes'] },
+    { id: 'debugger', name: 'Debugger', role: 'debug_agent', lane: 'ops', description: 'Reads probes, logs, ports, and degraded services.', services: ['hermes', 'clawmem', 'litellm'] },
+    { id: 'researcher', name: 'Researcher', role: 'research_agent', lane: 'research', description: 'Runs source-backed web and local research tasks.', services: ['space-agent', 'openclaw'] },
+    { id: 'ui-agent', name: 'Aion UI Agent', role: 'ui_agent', lane: 'interface', description: 'Controls cockpit UI, native launchers, and operator flows.', services: ['aionui', 'jarvis'] },
+    { id: 'api-agent', name: 'API Agent', role: 'api_agent', lane: 'interface', description: 'Tracks OpenClaw, LiteLLM, Ollama, and service APIs.', services: ['openclaw', 'litellm', 'ollama'] },
+    { id: 'memory-curator', name: 'Memory Curator', role: 'memory_agent', lane: 'memory', description: 'Connects ClawMem, Graphify, receipts, and persistent context.', services: ['clawmem', 'hermes'] },
+    { id: 'discord-secretary', name: 'Discord Secretary', role: 'control_bus_agent', lane: 'ops', description: 'Primary mobile command bus and live proof channel.', services: ['jarvis', 'hermes'] },
+    { id: 'media-agent', name: 'Media Agent', role: 'media_agent', lane: 'media', description: 'Coordinates Video Factory, music clips, OCR, and assets.', services: ['video-factory', 'music-clips', 'vibevoice'] },
   ];
 
   const catalogDescriptions = new Map(catalog.roles.map((role) => [role.role, role.description]));
@@ -1308,48 +1237,13 @@ function buildNovaMasterAgentLanes(
   modelRouter: NovaMasterModelRouter
 ): NovaMasterAgentLane[] {
   const laneSpecs = [
-    {
-      id: 'orchestrate',
-      name: 'Orchestrator',
-      description: 'Planner and task routing across subagents.',
-      services: ['openclaw', 'jarvis', 'hermes'],
-    },
-    {
-      id: 'build',
-      name: 'Build Swarm',
-      description: 'Codex/OpenClaw builder and reviewer lanes.',
-      services: ['openclaw', 'goclaw', 'aionui'],
-    },
-    {
-      id: 'ops',
-      name: 'Ops Guard',
-      description: 'Ports, health, VPS split, Discord control bus.',
-      services: ['hermes', 'jarvis', 'litellm'],
-    },
-    {
-      id: 'research',
-      name: 'Research Mesh',
-      description: 'Browser, web search, source-backed exploration.',
-      services: ['space-agent', 'openclaw'],
-    },
-    {
-      id: 'interface',
-      name: 'UI/API Bridge',
-      description: 'Aion cockpit controls and safe API actions.',
-      services: ['aionui', 'openclaw', 'ollama'],
-    },
-    {
-      id: 'memory',
-      name: 'Memory Core',
-      description: 'ClawMem, Graphify, receipts, and long-running context.',
-      services: ['clawmem', 'hermes'],
-    },
-    {
-      id: 'media',
-      name: 'Media Factory',
-      description: 'Video Factory, music clips, voice, and OCR tooling.',
-      services: ['video-factory', 'music-clips', 'vibevoice'],
-    },
+    { id: 'orchestrate', name: 'Orchestrator', description: 'Planner and task routing across subagents.', services: ['openclaw', 'jarvis', 'hermes'] },
+    { id: 'build', name: 'Build Swarm', description: 'Codex/OpenClaw builder and reviewer lanes.', services: ['openclaw', 'goclaw', 'aionui'] },
+    { id: 'ops', name: 'Ops Guard', description: 'Ports, health, VPS split, Discord control bus.', services: ['hermes', 'jarvis', 'litellm'] },
+    { id: 'research', name: 'Research Mesh', description: 'Browser, web search, source-backed exploration.', services: ['space-agent', 'openclaw'] },
+    { id: 'interface', name: 'UI/API Bridge', description: 'Aion cockpit controls and safe API actions.', services: ['aionui', 'openclaw', 'ollama'] },
+    { id: 'memory', name: 'Memory Core', description: 'ClawMem, Graphify, receipts, and long-running context.', services: ['clawmem', 'hermes'] },
+    { id: 'media', name: 'Media Factory', description: 'Video Factory, music clips, voice, and OCR tooling.', services: ['video-factory', 'music-clips', 'vibevoice'] },
   ];
 
   return laneSpecs.map((lane) => {
@@ -1422,7 +1316,10 @@ async function selectNovaMasterModel(modelId: string): Promise<Record<string, un
   };
 }
 
-function buildNovaMasterTelemetry(services: NovaMasterServiceResult[], agents: NovaMasterAgent[]): NovaMasterTelemetry {
+function buildNovaMasterTelemetry(
+  services: NovaMasterServiceResult[],
+  agents: NovaMasterAgent[]
+): NovaMasterTelemetry {
   const servicesOnline = services.filter((service) => service.status === 'online').length;
   const totalMemory = os.totalmem();
   const usedMemory = Math.max(totalMemory - os.freemem(), 0);
@@ -1612,11 +1509,11 @@ async function launchNovaMasterService(serviceId: string): Promise<Record<string
       ...process.env,
       ...(serviceId === 'claw3d'
         ? {
-            CLAW3D_OFFICE_URL: openUrl,
-            CLAW3D_OFFICE_BACKEND_URL: backendUrl,
-            CLAW3D_OFFICE_HEALTH_URL: `${backendUrl}/api/health`,
-          }
-        : {}),
+             CLAW3D_OFFICE_URL: openUrl,
+             CLAW3D_OFFICE_BACKEND_URL: backendUrl,
+             CLAW3D_OFFICE_HEALTH_URL: `${backendUrl}/api/health`,
+           }
+         : {}),
     },
   });
   child.unref();
