@@ -88,7 +88,7 @@ vi.mock('react-i18next', () => ({
   }),
 }));
 
-import SkillsHubSettings from '@/renderer/pages/settings/SkillsHubSettings';
+import SkillsHubSettings from '@/renderer/pages/settings/SkillsSettings/SkillsHubSettings';
 
 describe('SkillsHubSettings', () => {
   // The import action is now a TalkToButlerButton: open the menu, then click
