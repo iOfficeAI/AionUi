@@ -164,6 +164,14 @@ type NovaMasterServiceAction = {
   body?: Record<string, unknown>;
 };
 
+// Machine-specific control-plane doc path — never hardcode a real Windows
+// username/OneDrive path in this public repo (see AGENTS.md privacy notes).
+// Operators set this locally via env; the entry is simply absent otherwise.
+const NOVACORE_CONTROL_ROOT_PATH = process.env.NOVACORE_CONTROL_ROOT_PATH ?? '';
+const NOVACORE_CONTROL_DOC_URL = NOVACORE_CONTROL_ROOT_PATH
+  ? `file://${NOVACORE_CONTROL_ROOT_PATH}/NovaCore%20Control%20Plane.md`
+  : '';
+
 const JARVIS_AGENTS_PORT = 8765;
 const NOVA_CLAUDE_MODEL_CLI = '/home/faramix/bin/nova-claude-model';
 const NOVA_MODEL_FALLBACKS = [
@@ -209,8 +217,8 @@ const NOVAMASTER_PROBES: NovaMasterProbe[] = [
     name: 'NovaCore Control',
     role: 'Control-plane source',
     kind: 'local',
-    rootPath: '/mnt/c/Users/roseo/OneDrive/Bureaublad/nova/NovaMaster/Stack',
-    openUrl: 'file:///mnt/c/Users/roseo/OneDrive/Bureaublad/nova/NovaMaster/Stack/NovaCore%20Control%20Plane.md',
+    rootPath: NOVACORE_CONTROL_ROOT_PATH,
+    openUrl: NOVACORE_CONTROL_DOC_URL,
     launchPath: '/home/faramix/bin/novamaster-open-novacore-control-native',
   },
   {
