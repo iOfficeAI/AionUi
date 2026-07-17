@@ -88,9 +88,14 @@ export type OllamaModelDetails = {
  * model whose effective context is below ~32k fails the very first prompt
  * turn with an Ollama 400 `exceed_context_size_error`. Tool calling is
  * required by the Claude Code tool-use protocol.
+ *
+ * `qwen`: qwen-code's system prompt is compact — an 8192-context model
+ * completes a prompt turn end-to-end (verified against qwen-code 0.19.10),
+ * so only models below that are flagged. Tool calling is still required.
  */
 export const OLLAMA_AGENT_MODEL_REQUIREMENTS: Record<string, { minContext: number; needsTools: boolean }> = {
   claude: { minContext: 32768, needsTools: true },
+  qwen: { minContext: 8192, needsTools: true },
 };
 
 /** Why a local model is expected to fail with the selected agent. */

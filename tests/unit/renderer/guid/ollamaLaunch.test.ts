@@ -133,6 +133,18 @@ describe('getOllamaModelWarning', () => {
   it('has no requirements for backends without a verified profile', () => {
     expect(getOllamaModelWarning('gemini', { name: 'm', effectiveContext: 1024, supportsTools: false })).toBeNull();
   });
+
+  it('applies the lighter qwen profile (compact system prompt)', () => {
+    expect(getOllamaModelWarning('qwen', { name: 'm', effectiveContext: 8192, supportsTools: true })).toBeNull();
+    expect(getOllamaModelWarning('qwen', { name: 'm', effectiveContext: 4096, supportsTools: true })).toEqual({
+      kind: 'context',
+      effectiveContext: 4096,
+      minContext: 8192,
+    });
+    expect(getOllamaModelWarning('qwen', { name: 'm', effectiveContext: 32768, supportsTools: false })).toEqual({
+      kind: 'tools',
+    });
+  });
 });
 
 describe('warmUpOllamaModel', () => {
