@@ -7,6 +7,8 @@
 import { ipcBridge } from '@/common';
 import type { IMcpServer, IProvider, TProviderWithModel } from '@/common/config/storage';
 import AgentModeSelector from '@/renderer/components/agent/AgentModeSelector';
+import { DROPDOWN_SEARCH_THRESHOLD } from '@/renderer/components/agent/runtimeSelectorOptions';
+import AionInlineSearchInput from '@/renderer/components/base/AionInlineSearchInput';
 import MobileActionSheet from '@/renderer/components/chat/MobileActionSheet';
 import type {
   MobileActionSheetEntry,
@@ -25,6 +27,39 @@ import { ArrowUp, Brain, FolderUpload, Lightning, Plus, Shield, UploadOne } from
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import styles from '../index.module.css';
+
+/**
+ * Shared shell for the skills / MCP submenu popups: an optional pinned search
+ * box on top and a single scroll container below (`.dropdown-search-scroll`,
+ * see arco-override.css), mirroring RuntimeSelectorModelList's layout so the
+ * search box never scrolls away with the list.
+ */
+const SubmenuSearchList: React.FC<{
+  showSearch: boolean;
+  query: string;
+  onQueryChange: (value: string) => void;
+  placeholder: string;
+  searchTestId: string;
+  emptyText: string;
+  isEmpty: boolean;
+  children: React.ReactNode;
+}> = ({ showSearch, query, onQueryChange, placeholder, searchTestId, emptyText, isEmpty, children }) => (
+  <>
+    {showSearch ? (
+      <div className='px-6px pt-4px pb-6px' style={{ background: 'var(--color-bg-popup)' }}>
+        <AionInlineSearchInput
+          value={query}
+          onChange={onQueryChange}
+          placeholder={placeholder}
+          data-testid={searchTestId}
+        />
+      </div>
+    ) : null}
+    <div className='dropdown-search-scroll max-h-320px overflow-y-auto'>
+      {isEmpty ? <div className='px-12px py-10px text-12px text-t-tertiary text-center'>{emptyText}</div> : children}
+    </div>
+  </>
+);
 
 type GuidActionRowProps = {
   // File handling
@@ -103,6 +138,17 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
   const isMobile = layout?.isMobile ?? false;
   const [isPlusDropdownOpen, setIsPlusDropdownOpen] = useState(false);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [skillQuery, setSkillQuery] = useState('');
+  const [mcpQuery, setMcpQuery] = useState('');
+
+  const handlePlusDropdownVisibleChange = useCallback((visible: boolean) => {
+    setIsPlusDropdownOpen(visible);
+    // Reopening the "+" menu should always show the full lists again.
+    if (!visible) {
+      setSkillQuery('');
+      setMcpQuery('');
+    }
+  }, []);
   const showModeSwitch = dynamicModes.length > 0;
   const configOptionCount = (modelSelectorNode ? 1 : 0) + (showModeSwitch ? 1 : 0);
 
@@ -141,6 +187,17 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
 
   const activeSkillCount = allSkills.filter(isSkillChecked).length;
   const activeMcpCount = selectedMcpServerIds.length;
+
+  const skillKeyword = skillQuery.trim().toLowerCase();
+  const filteredSkills = skillKeyword
+    ? allSkills.filter((skill) => skill.name.toLowerCase().includes(skillKeyword))
+    : allSkills;
+  const mcpKeyword = mcpQuery.trim().toLowerCase();
+  const filteredMcpServers = mcpKeyword
+    ? mcpServers.filter((server) => server.name.toLowerCase().includes(mcpKeyword))
+    : mcpServers;
+  const showSkillSearch = allSkills.length > DROPDOWN_SEARCH_THRESHOLD;
+  const showMcpSearch = mcpServers.length > DROPDOWN_SEARCH_THRESHOLD;
 
   const openHostFilePicker = useCallback(() => {
     ipcBridge.dialog.showOpen
@@ -391,31 +448,35 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
               </span>
             </div>
           }
-          triggerProps={{
-            popupStyle: {
-              maxHeight: 360,
-              overflowY: 'auto',
-              overflowX: 'hidden',
-            },
-          }}
+          triggerProps={{ popupStyle: { overflowX: 'hidden' } }}
         >
-          {allSkills.map((skill) => (
-            <Menu.Item
-              key={`skill-${skill.name}`}
-              onClick={(e) => {
-                e.stopPropagation();
-                onToggleSkill(skill.name, skill.isAuto);
-              }}
-            >
-              <Checkbox
-                checked={isSkillChecked(skill)}
-                onClick={(e: React.MouseEvent) => e.stopPropagation()}
-                onChange={() => onToggleSkill(skill.name, skill.isAuto)}
+          <SubmenuSearchList
+            showSearch={showSkillSearch}
+            query={skillQuery}
+            onQueryChange={setSkillQuery}
+            placeholder={t('settings.skillsHub.searchPlaceholder', { defaultValue: 'Search skills...' })}
+            searchTestId='guid-skill-search'
+            emptyText={t('settings.skillsHub.noSearchResults', { defaultValue: 'No matching skills.' })}
+            isEmpty={filteredSkills.length === 0}
+          >
+            {filteredSkills.map((skill) => (
+              <Menu.Item
+                key={`skill-${skill.name}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onToggleSkill(skill.name, skill.isAuto);
+                }}
               >
-                <span className='text-13px'>{skill.name}</span>
-              </Checkbox>
-            </Menu.Item>
-          ))}
+                <Checkbox
+                  checked={isSkillChecked(skill)}
+                  onClick={(e: React.MouseEvent) => e.stopPropagation()}
+                  onChange={() => onToggleSkill(skill.name, skill.isAuto)}
+                >
+                  <span className='text-13px'>{skill.name}</span>
+                </Checkbox>
+              </Menu.Item>
+            ))}
+          </SubmenuSearchList>
         </Menu.SubMenu>
       )}
       {mcpServers.length > 0 && (
@@ -429,34 +490,38 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
               </span>
             </div>
           }
-          triggerProps={{
-            popupStyle: {
-              maxHeight: 360,
-              overflowY: 'auto',
-              overflowX: 'hidden',
-            },
-          }}
+          triggerProps={{ popupStyle: { overflowX: 'hidden' } }}
         >
-          {mcpServers.map((server) => (
-            <Menu.Item
-              key={`mcp-${server.id}`}
-              onClick={(e) => {
-                e.stopPropagation();
-                onToggleMcpServer(server.id);
-              }}
-            >
-              <Checkbox
-                checked={selectedMcpServerIds.includes(server.id)}
-                onClick={(e: React.MouseEvent) => e.stopPropagation()}
-                onChange={() => onToggleMcpServer(server.id)}
+          <SubmenuSearchList
+            showSearch={showMcpSearch}
+            query={mcpQuery}
+            onQueryChange={setMcpQuery}
+            placeholder={t('mcp.searchServers', { defaultValue: 'Search servers...' })}
+            searchTestId='guid-mcp-search'
+            emptyText={t('mcp.noServersFound', { defaultValue: 'No servers found matching your criteria' })}
+            isEmpty={filteredMcpServers.length === 0}
+          >
+            {filteredMcpServers.map((server) => (
+              <Menu.Item
+                key={`mcp-${server.id}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onToggleMcpServer(server.id);
+                }}
               >
-                <span className='text-13px'>
-                  {server.name}
-                  {server.tools?.length ? ` (${server.tools.length} ${t('mcp.tools')})` : ''}
-                </span>
-              </Checkbox>
-            </Menu.Item>
-          ))}
+                <Checkbox
+                  checked={selectedMcpServerIds.includes(server.id)}
+                  onClick={(e: React.MouseEvent) => e.stopPropagation()}
+                  onChange={() => onToggleMcpServer(server.id)}
+                >
+                  <span className='text-13px'>
+                    {server.name}
+                    {server.tools?.length ? ` (${server.tools.length} ${t('mcp.tools')})` : ''}
+                  </span>
+                </Checkbox>
+              </Menu.Item>
+            ))}
+          </SubmenuSearchList>
         </Menu.SubMenu>
       )}
     </Menu>
@@ -488,7 +553,7 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
               )}
             </span>
           ) : (
-            <Dropdown trigger='hover' onVisibleChange={setIsPlusDropdownOpen} droplist={menuContent}>
+            <Dropdown trigger='hover' onVisibleChange={handlePlusDropdownVisibleChange} droplist={menuContent}>
               <span className='flex items-center gap-4px cursor-pointer lh-[1]'>
                 <Button
                   type='secondary'
