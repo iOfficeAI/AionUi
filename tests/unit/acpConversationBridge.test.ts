@@ -235,8 +235,8 @@ describe('acpConversationBridge', () => {
         modelInfo: expect.objectContaining({
           currentModelId: 'gpt-5.6-sol',
           currentModelLabel: 'gpt-5.6-sol',
-          availableModels: expect.arrayContaining([{ id: 'gpt-5.6-sol', label: 'gpt-5.6-sol' }]),
-          canSwitch: true,
+          availableModels: [{ id: 'gpt-5.6-sol', label: 'gpt-5.6-sol' }],
+          canSwitch: false,
           source: 'models',
           sourceDetail: 'codex-stream',
         }),
@@ -305,11 +305,8 @@ describe('acpConversationBridge', () => {
         modelInfo: expect.objectContaining({
           currentModelId: 'gpt-5.3-codex',
           currentModelLabel: 'gpt-5.3-codex',
-          availableModels: expect.arrayContaining([
-            { id: 'gpt-5.3-codex', label: 'gpt-5.3-codex' },
-            { id: 'gpt-5.6-sol', label: 'gpt-5.6-sol' },
-          ]),
-          canSwitch: true,
+          availableModels: [{ id: 'gpt-5.3-codex', label: 'gpt-5.3-codex' }],
+          canSwitch: false,
           source: 'models',
           sourceDetail: 'codex-stream',
         }),

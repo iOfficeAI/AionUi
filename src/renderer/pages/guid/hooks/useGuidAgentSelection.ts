@@ -7,11 +7,6 @@
 import { ipcBridge } from '@/common';
 import type { AcpSessionConfigOption, AgentBackend } from '@/common/types/acpTypes';
 import {
-  DEFAULT_CODEX_MODEL_ID,
-  DEFAULT_CODEX_MODELS,
-  mergeCodexModelInfoWithDefaults,
-} from '@/common/types/codex/codexModels';
-import {
   getDefaultAcpConfigOptions,
   normalizeCodexConfigOptions,
   normalizeCodexConfigOptionValues,
@@ -123,6 +118,7 @@ export const useGuidAgentSelection = ({
   const selectedAcpModelBackendRef = useRef<string | null>(null);
   const hasUserSelectedAcpModelRef = useRef(false);
   const [acpCachedModels, setAcpCachedModels] = useState<Record<string, AcpModelInfo>>({});
+  const [liveModelInfoBackends, setLiveModelInfoBackends] = useState<Record<string, boolean>>({});
   const [acpCachedConfigOptions, setAcpCachedConfigOptions] = useState<Record<string, AcpSessionConfigOption[]>>({});
   const [selectedAcpConfigOptions, setSelectedAcpConfigOptions] = useState<Record<string, string>>({});
   const [selectedAcpModel, _setSelectedAcpModel] = useState<string | null>(null);
@@ -436,7 +432,7 @@ export const useGuidAgentSelection = ({
         ]);
         if (cancelled) return;
 
-        const visibleModelInfo = mergeCodexModelInfoWithDefaults(modelInfo);
+        const visibleModelInfo = modelInfo;
         const nextCachedModels = {
           ...cached,
           codex: visibleModelInfo,
@@ -446,6 +442,10 @@ export const useGuidAgentSelection = ({
         setAcpCachedModels((prev) => ({
           ...prev,
           codex: visibleModelInfo,
+        }));
+        setLiveModelInfoBackends((prev) => ({
+          ...prev,
+          codex: true,
         }));
 
         if (visibleConfigOptions.length > 0) {
@@ -522,8 +522,8 @@ export const useGuidAgentSelection = ({
 
     if (backend === 'codex') {
       if (!hasUserSelectedAcpModelRef.current) {
-        const cachedInfo = acpCachedModels[backend];
-        _setSelectedAcpModel(cachedInfo?.currentModelId || DEFAULT_CODEX_MODEL_ID);
+        const cachedInfo = liveModelInfoBackends.codex ? acpCachedModels[backend] : undefined;
+        _setSelectedAcpModel(cachedInfo?.currentModelId ?? null);
       }
       return;
     }
@@ -552,7 +552,7 @@ export const useGuidAgentSelection = ({
     return () => {
       cancelled = true;
     };
-  }, [selectedAgentKey, acpCachedModels, isPresetAgent, currentEffectiveAgentInfo.agentType]);
+  }, [selectedAgentKey, acpCachedModels, liveModelInfoBackends, isPresetAgent, currentEffectiveAgentInfo.agentType]);
 
   useEffect(() => {
     if (!currentConfigBackendKey) {
@@ -666,24 +666,16 @@ export const useGuidAgentSelection = ({
         ? 'custom'
         : selectedAgentKey;
     const cached = acpCachedModels[backend];
-    if (cached) {
-      return backend === 'codex' ? mergeCodexModelInfoWithDefaults(cached) : cached;
+    if (backend === 'codex') {
+      return liveModelInfoBackends.codex ? cached || null : null;
     }
 
-    // Fallback: when no cached models exist for codex (e.g., first launch or stale cache),
-    // use the hardcoded default list so the Guid page shows a model selector immediately.
-    if (backend === 'codex' && DEFAULT_CODEX_MODELS.length > 0) {
-      return {
-        source: 'models' as const,
-        currentModelId: DEFAULT_CODEX_MODELS[0].id,
-        currentModelLabel: DEFAULT_CODEX_MODELS[0].label,
-        availableModels: DEFAULT_CODEX_MODELS.map((m) => ({ id: m.id, label: m.label })),
-        canSwitch: true,
-      } satisfies AcpModelInfo;
+    if (cached) {
+      return cached;
     }
 
     return null;
-  }, [selectedAgentKey, acpCachedModels, isPresetAgent, currentEffectiveAgentInfo.agentType]);
+  }, [selectedAgentKey, acpCachedModels, liveModelInfoBackends, isPresetAgent, currentEffectiveAgentInfo.agentType]);
 
   // Auto-switch only for Gemini agent
   useEffect(() => {

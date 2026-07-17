@@ -25,17 +25,16 @@ import { mainLog, mainWarn } from '@process/utils/mainLogger';
 import * as os from 'os';
 import { getDatabase } from '@process/services/database';
 import type { AcpModelInfo } from '@/common/types/acpTypes';
-import { mergeCodexModelInfoWithDefaults } from '@/common/types/codex/codexModels';
 
 function createPersistedCodexModelInfo(modelId: string): AcpModelInfo {
-  return mergeCodexModelInfoWithDefaults({
+  return {
     currentModelId: modelId,
     currentModelLabel: modelId,
     availableModels: [{ id: modelId, label: modelId }],
     canSwitch: false,
     source: 'models',
     sourceDetail: 'codex-stream',
-  });
+  };
 }
 
 async function getPersistedCodexModelInfo(conversationId: string): Promise<AcpModelInfo | null> {

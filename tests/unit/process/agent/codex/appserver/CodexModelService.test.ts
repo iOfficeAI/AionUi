@@ -15,14 +15,11 @@ describe('CodexModelService', () => {
   it('returns the configured model before the app-server model list is loaded', () => {
     const { service } = createService({}, 'gpt-5.2-codex');
 
-    expect(service.getModelInfo()).toMatchObject({
+    expect(service.getModelInfo()).toEqual({
       currentModelId: 'gpt-5.2-codex',
       currentModelLabel: 'gpt-5.2-codex',
-      availableModels: expect.arrayContaining([
-        { id: 'gpt-5.2-codex', label: 'gpt-5.2-codex' },
-        { id: 'gpt-5.6-sol', label: 'gpt-5.6-sol' },
-      ]),
-      canSwitch: true,
+      availableModels: [{ id: 'gpt-5.2-codex', label: 'gpt-5.2-codex' }],
+      canSwitch: false,
       source: 'models',
       sourceDetail: 'codex-stream',
     });
@@ -40,15 +37,14 @@ describe('CodexModelService', () => {
       'gpt-5.3-codex'
     );
 
-    await expect(service.refresh()).resolves.toMatchObject({
+    await expect(service.refresh()).resolves.toEqual({
       currentModelId: 'gpt-5.3-codex',
       currentModelLabel: 'GPT-5.3 Codex',
-      availableModels: expect.arrayContaining([
-        { id: 'gpt-5.6-sol', label: 'gpt-5.6-sol' },
+      availableModels: [
         { id: 'gpt-5.2-codex', label: 'GPT-5.2 Codex' },
         { id: 'gpt-5.3-codex', label: 'GPT-5.3 Codex' },
         { id: 'gpt-oss', label: 'GPT OSS' },
-      ]),
+      ],
       canSwitch: true,
       source: 'models',
       sourceDetail: 'codex-stream',
@@ -56,7 +52,7 @@ describe('CodexModelService', () => {
     expect(client.request).toHaveBeenCalledWith('model/list', {});
   });
 
-  it('keeps a configured gpt-5.6-sol model when the app-server model cache is stale', async () => {
+  it('falls back to the Codex default model when the configured model is not returned', async () => {
     const { service } = createService(
       {
         data: [
@@ -67,17 +63,15 @@ describe('CodexModelService', () => {
       'gpt-5.6-sol'
     );
 
-    await expect(service.refresh()).resolves.toEqual(
-      expect.objectContaining({
-        currentModelId: 'gpt-5.6-sol',
-        currentModelLabel: 'gpt-5.6-sol',
-        availableModels: expect.arrayContaining([
-          { id: 'gpt-5.6-sol', label: 'gpt-5.6-sol' },
-          { id: 'gpt-5.5', label: 'GPT-5.5' },
-        ]),
-        canSwitch: true,
-      })
-    );
+    await expect(service.refresh()).resolves.toMatchObject({
+      currentModelId: 'gpt-5.5',
+      currentModelLabel: 'GPT-5.5',
+      availableModels: [
+        { id: 'gpt-5.5', label: 'GPT-5.5' },
+        { id: 'gpt-5.4', label: 'GPT-5.4' },
+      ],
+      canSwitch: true,
+    });
   });
 
   it('falls back to the default or first returned model when no current model is selected', async () => {
@@ -98,14 +92,11 @@ describe('CodexModelService', () => {
   it('handles empty and missing model lists while preserving the configured model', async () => {
     const { service } = createService({}, 'gpt-5.2-codex');
 
-    await expect(service.refresh()).resolves.toMatchObject({
+    await expect(service.refresh()).resolves.toEqual({
       currentModelId: 'gpt-5.2-codex',
       currentModelLabel: 'gpt-5.2-codex',
-      availableModels: expect.arrayContaining([
-        { id: 'gpt-5.2-codex', label: 'gpt-5.2-codex' },
-        { id: 'gpt-5.6-sol', label: 'gpt-5.6-sol' },
-      ]),
-      canSwitch: true,
+      availableModels: [{ id: 'gpt-5.2-codex', label: 'gpt-5.2-codex' }],
+      canSwitch: false,
       source: 'models',
       sourceDetail: 'codex-stream',
     });

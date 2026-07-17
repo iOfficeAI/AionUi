@@ -11,7 +11,6 @@ const loadPresetAssistantResources = vi.fn();
 const configGet = vi.fn();
 const getModelConfigInvoke = vi.fn();
 const getAvailableAgentsInvoke = vi.fn();
-const defaultCodexModels: Array<{ id: string; label: string }> = [];
 
 vi.mock('@/common', () => ({
   ipcBridge: {
@@ -44,10 +43,6 @@ vi.mock('@/common/utils/presetAssistantResources', () => ({
   loadPresetAssistantResources,
 }));
 
-vi.mock('@/common/types/codex/codexModels', () => ({
-  DEFAULT_CODEX_MODELS: defaultCodexModels,
-}));
-
 const { buildPresetAssistantParams, buildCliAgentParams, applyWorkspaceConversationConfigDefaults } =
   await import('../../src/renderer/pages/conversation/utils/createConversationParams');
 
@@ -57,7 +52,6 @@ describe('createConversationParams', () => {
     configGet.mockReset();
     getModelConfigInvoke.mockReset();
     getAvailableAgentsInvoke.mockReset();
-    defaultCodexModels.length = 0;
   });
 
   it('uses the shared locale resolver for Turkish', async () => {
@@ -372,7 +366,7 @@ describe('createConversationParams', () => {
     expect(params.model).toEqual({});
   });
 
-  it('reuses the saved ACP mode and model for workspace conversations', async () => {
+  it('reuses the saved Codex mode without reusing a stale saved model for workspace conversations', async () => {
     configGet.mockImplementation(async (key: string) => {
       if (key === 'acp.config') {
         return {
@@ -394,7 +388,7 @@ describe('createConversationParams', () => {
     );
 
     expect(params.extra.sessionMode).toBe('yolo');
-    expect(params.extra.currentModelId).toBe('gpt-5-codex');
+    expect(params.extra.currentModelId).toBeUndefined();
   });
 
   it('hydrates cached ACP config options for new workspace conversations', async () => {
@@ -722,14 +716,13 @@ describe('createConversationParams', () => {
     ]);
   });
 
-  it('falls back to default codex model when no cached ACP model exists', async () => {
-    defaultCodexModels.push({ id: 'gpt-5', label: 'GPT-5' });
+  it('does not fall back to a cached/default Codex model for direct Codex conversations', async () => {
     configGet.mockImplementation(async (key: string) => {
       if (key === 'acp.config') {
-        return {};
+        return { codex: { preferredModelId: 'stale-codex-model' } };
       }
       if (key === 'acp.cachedModels') {
-        return {};
+        return { codex: { currentModelId: 'stale-cached-model' } };
       }
       return undefined;
     });
@@ -742,7 +735,7 @@ describe('createConversationParams', () => {
       '/tmp/workspace'
     );
 
-    expect(params.extra.currentModelId).toBe('gpt-5');
+    expect(params.extra.currentModelId).toBeUndefined();
   });
 
   it('throws error for aionrs if no enabled provider', async () => {

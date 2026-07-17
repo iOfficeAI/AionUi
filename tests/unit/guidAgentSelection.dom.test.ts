@@ -18,8 +18,6 @@ const configStorageMock = vi.hoisted(() => ({
   set: vi.fn().mockResolvedValue(undefined),
 }));
 
-const defaultCodexModels = vi.hoisted(() => [] as Array<{ id: string; label: string }>);
-
 const ipcMock = vi.hoisted(() => ({
   getAvailableAgents: vi.fn(),
   refreshCustomAgents: vi.fn().mockResolvedValue(undefined),
@@ -55,14 +53,6 @@ vi.mock('../../src/common/config/storage', () => ({
 
 vi.mock('../../src/common/config/presets/assistantPresets', () => ({
   ASSISTANT_PRESETS: [],
-}));
-
-vi.mock('../../src/common/types/codex/codexModels', () => ({
-  get DEFAULT_CODEX_MODEL_ID() {
-    return defaultCodexModels[0]?.id || 'gpt-5.5';
-  },
-  DEFAULT_CODEX_MODELS: defaultCodexModels,
-  mergeCodexModelInfoWithDefaults: (modelInfo: AcpModelInfo) => modelInfo,
 }));
 
 let swrData: Record<string, unknown> = {};
@@ -201,7 +191,6 @@ describe('useGuidAgentSelection – preset agent config resolution', () => {
     vi.clearAllMocks();
     ipcMock.probeModelInfo.mockResolvedValue({ success: false });
     resetSwrCache();
-    defaultCodexModels.length = 0;
     setupMocks();
   });
 
@@ -396,8 +385,24 @@ describe('useGuidAgentSelection – preset agent config resolution', () => {
     expect(configStorageMock.set).not.toHaveBeenCalledWith('guid.lastSelectedAgent', 'gemini');
   });
 
-  it('uses default codex models when codex has no cached list', async () => {
-    defaultCodexModels.push({ id: 'gpt-5', label: 'GPT-5' }, { id: 'gpt-5-mini', label: 'GPT-5 Mini' });
+  it('uses directly probed Codex models when codex has no cached list', async () => {
+    ipcMock.probeModelInfo.mockResolvedValue({
+      success: true,
+      data: {
+        modelInfo: {
+          source: 'models',
+          sourceDetail: 'codex-stream',
+          currentModelId: 'gpt-5',
+          currentModelLabel: 'GPT-5',
+          availableModels: [
+            { id: 'gpt-5', label: 'GPT-5' },
+            { id: 'gpt-5-mini', label: 'GPT-5 Mini' },
+          ],
+          canSwitch: true,
+        },
+        configOptions: [],
+      },
+    });
     setupMocks({ cachedModels: {}, acpConfig: {} });
 
     const { result } = renderHook(() => useGuidAgentSelection(hookOptions));
@@ -421,10 +426,35 @@ describe('useGuidAgentSelection – preset agent config resolution', () => {
     expect(ipcMock.probeModelInfo).toHaveBeenCalledWith({ backend: 'codex' });
   });
 
-  it('does not restore stale preferred Codex model over the default model', async () => {
-    defaultCodexModels.push({ id: 'gpt-5.5', label: 'GPT-5.5' }, { id: 'gpt-5.4', label: 'GPT-5.4' });
+  it('does not restore stale preferred Codex model over the probed model', async () => {
+    ipcMock.probeModelInfo.mockResolvedValue({
+      success: true,
+      data: {
+        modelInfo: {
+          source: 'models',
+          sourceDetail: 'codex-stream',
+          currentModelId: 'gpt-5.5',
+          currentModelLabel: 'GPT-5.5',
+          availableModels: [
+            { id: 'gpt-5.5', label: 'GPT-5.5' },
+            { id: 'gpt-5.4', label: 'GPT-5.4' },
+          ],
+          canSwitch: true,
+        },
+        configOptions: [],
+      },
+    });
     setupMocks({
-      cachedModels: {},
+      cachedModels: {
+        codex: {
+          source: 'models',
+          sourceDetail: 'codex-stream',
+          currentModelId: 'stale-cached-model',
+          currentModelLabel: 'stale-cached-model',
+          availableModels: [{ id: 'stale-cached-model', label: 'stale-cached-model' }],
+          canSwitch: false,
+        },
+      },
       acpConfig: { codex: { preferredModelId: 'gpt-5.3-codex' } },
     });
 
@@ -441,6 +471,10 @@ describe('useGuidAgentSelection – preset agent config resolution', () => {
     await waitFor(() => {
       expect(result.current.selectedAcpModel).toBe('gpt-5.5');
     });
+    expect(result.current.currentAcpCachedModelInfo?.availableModels).toEqual([
+      { id: 'gpt-5.5', label: 'GPT-5.5' },
+      { id: 'gpt-5.4', label: 'GPT-5.4' },
+    ]);
   });
 
   it('uses default codex config options when codex has no cached option list', async () => {
