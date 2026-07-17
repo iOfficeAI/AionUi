@@ -1,10 +1,13 @@
 import { ipcBridge } from '@/common';
+import type { Assistant } from '@/common/types/agent/assistantTypes';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { Button, Checkbox, Message, Modal } from '@arco-design/web-react';
 import { Delete, Help, Lightning, Puzzle } from '@icon-park/react';
 import React, { useCallback, useEffect, useRef, useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import useSWR from 'swr';
+import SkillUsedByStack, { getAssistantsUsingSkill } from './SkillUsedByStack';
 import SettingsPageWrapper from '../components/SettingsPageWrapper';
 import SettingsPageHeader from '../components/SettingsPageHeader';
 import TalkToButlerButton from '@/renderer/components/base/TalkToButlerButton';
@@ -146,6 +149,15 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
   // Batch management (Custom tab only): multi-select skills for bulk deletion.
   const [batchMode, setBatchMode] = useState(false);
   const [selectedSkillNames, setSelectedSkillNames] = useState<Set<string>>(new Set());
+  // Assistant catalog for the "used by" avatar stacks on skill cards.
+  const { data: assistantCatalog } = useSWR<Assistant[]>('assistants.list', () => ipcBridge.assistants.list.invoke());
+
+  const openSkillDetail = useCallback(
+    (skillName: string) => {
+      void navigate(`/settings/skills/detail/${encodeURIComponent(skillName)}`);
+    },
+    [navigate]
+  );
 
   // "Custom" tab: only user-imported skills.
   const mySkills = useMemo(() => availableSkills.filter((s) => s.source === 'custom'), [availableSkills]);
@@ -620,7 +632,8 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
         ref={(el) => {
           skillRefs.current[skill.name] = el;
         }}
-        className={`flex flex-col sm:flex-row gap-16px p-16px bg-base border hover:border-border-1 hover:bg-fill-1 rd-12px transition-all duration-200 ${highlightedSkill === skill.name ? 'border-primary-5 bg-primary-1' : 'border-transparent'}`}
+        onClick={() => openSkillDetail(skill.name)}
+        className={`flex flex-col sm:flex-row gap-16px p-16px bg-base border hover:border-border-1 hover:bg-fill-1 rd-12px transition-all duration-200 cursor-pointer ${highlightedSkill === skill.name ? 'border-primary-5 bg-primary-1' : 'border-transparent'}`}
       >
         <div className='shrink-0 flex items-start sm:mt-2px'>
           {isExtension || isAuto ? (
@@ -648,6 +661,9 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
               {skill.description}
             </p>
           )}
+        </div>
+        <div className='shrink-0 sm:self-center flex items-center justify-end pl-4px'>
+          <SkillUsedByStack assistants={getAssistantsUsingSkill(skill.name, assistantCatalog ?? [])} />
         </div>
       </div>
     );
@@ -801,8 +817,8 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
               ref={(el) => {
                 skillRefs.current[skill.name] = el;
               }}
-              onClick={batchMode ? () => toggleSkillSelected(skill.name) : undefined}
-              className={`group flex flex-col sm:flex-row gap-16px p-14px border rd-12px transition-all duration-200 ${batchMode ? 'cursor-pointer' : ''} ${highlightedSkill === skill.name ? 'border-primary-5 bg-primary-1' : selectedSkillNames.has(skill.name) && batchMode ? 'border-transparent bg-[rgba(var(--primary-6),0.06)]' : 'border-transparent bg-base hover:border-border-2'}`}
+              onClick={batchMode ? () => toggleSkillSelected(skill.name) : () => openSkillDetail(skill.name)}
+              className={`group flex flex-col sm:flex-row gap-16px p-14px border rd-12px transition-all duration-200 cursor-pointer ${highlightedSkill === skill.name ? 'border-primary-5 bg-primary-1' : selectedSkillNames.has(skill.name) && batchMode ? 'border-transparent bg-[rgba(var(--primary-6),0.06)]' : 'border-transparent bg-base hover:border-border-2'}`}
             >
               {batchMode && (
                 <div className='shrink-0 flex items-center sm:self-center'>
@@ -832,11 +848,13 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
               </div>
 
               {!batchMode && (
-                <div className='shrink-0 sm:self-center flex items-center justify-end gap-6px mt-12px sm:mt-0 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity pl-4px'>
+                <div className='shrink-0 sm:self-center flex items-center justify-end gap-10px mt-12px sm:mt-0 pl-4px'>
+                  <SkillUsedByStack assistants={getAssistantsUsingSkill(skill.name, assistantCatalog ?? [])} />
                   <button
                     data-testid={`btn-delete-${normalizeTestId(skill.name)}`}
-                    className='p-8px hover:bg-danger-1 hover:text-danger-6 text-t-tertiary rd-6px outline-none flex items-center justify-center border border-transparent cursor-pointer transition-colors shadow-sm bg-base sm:bg-transparent sm:shadow-none'
-                    onClick={() => {
+                    className='p-8px hover:bg-danger-1 hover:text-danger-6 text-t-tertiary rd-6px outline-none flex items-center justify-center border border-transparent cursor-pointer transition-colors shadow-sm bg-base sm:bg-transparent sm:shadow-none opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity'
+                    onClick={(e) => {
+                      e.stopPropagation();
                       Modal.confirm({
                         title: t('settings.skillsHub.deleteConfirmTitle', { defaultValue: 'Delete Skill' }),
                         content: t('settings.skillsHub.deleteConfirmContent', {
