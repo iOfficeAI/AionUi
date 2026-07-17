@@ -30,10 +30,15 @@ const DEBUG_AUTO_UPDATE_CURRENT_VERSION_ENV = 'AIONUI_DEBUG_AUTO_UPDATE_CURRENT_
 
 function patchElectronBuilderNsisInstaller() {
   const rootDir = path.resolve(__dirname, '..');
+  // Resolve app-builder-lib inside THIS repo first. require.resolve walks up
+  // parent directories, so in a git worktree (whose bun install has no
+  // top-level node_modules/app-builder-lib) it would escape to the main
+  // checkout's copy and patch the wrong file.
   let appBuilderDir = '';
-  try {
-    appBuilderDir = path.dirname(require.resolve('app-builder-lib/package.json'));
-  } catch (error) {
+  const directDir = path.join(rootDir, 'node_modules', 'app-builder-lib');
+  if (fs.existsSync(path.join(directDir, 'package.json'))) {
+    appBuilderDir = directDir;
+  } else {
     const bunModulesDir = path.join(rootDir, 'node_modules', '.bun');
     if (fs.existsSync(bunModulesDir)) {
       const candidates = fs
@@ -44,7 +49,11 @@ function patchElectronBuilderNsisInstaller() {
         .sort();
       appBuilderDir = candidates[0] || '';
     }
-    if (!appBuilderDir) {
+  }
+  if (!appBuilderDir) {
+    try {
+      appBuilderDir = path.dirname(require.resolve('app-builder-lib/package.json'));
+    } catch (error) {
       console.warn(`Warning: app-builder-lib is not resolvable; skipping NSIS template patch: ${error.message}`);
       return;
     }
