@@ -114,5 +114,6 @@
     "memberFailedHint": "可在上方切换其模型，或从顶部移除后重试。",
     "leaderFailedHint": "可在上方切换其模型后重试。",
     "retry": "重试"
-  }
+  },
+  "reorderMember": "拖动以调整成员顺序"
 }
