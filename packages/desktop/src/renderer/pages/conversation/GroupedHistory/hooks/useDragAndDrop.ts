@@ -4,14 +4,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { DragEndEvent, DragStartEvent } from '@dnd-kit/core';
+import type { DragEndEvent } from '@dnd-kit/core';
 import { PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { arrayMove } from '@dnd-kit/sortable';
 import { ipcBridge } from '@/common';
 import type { TChatConversation } from '@/common/config/storage';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { emitter } from '@/renderer/utils/emitter';
-import { useCallback, useRef, useState } from 'react';
+import { useCallback } from 'react';
 
 import {
   assignInitialSortOrders,
@@ -30,9 +30,6 @@ type UseDragAndDropParams = {
 export const useDragAndDrop = ({ pinnedConversations, batchMode, collapsed }: UseDragAndDropParams) => {
   const layout = useLayoutContext();
   const isMobile = layout?.isMobile ?? false;
-  const [activeId, setActiveId] = useState<string | null>(null);
-  const [activeConversation, setActiveConversation] = useState<TChatConversation | null>(null);
-  const isDraggingRef = useRef(false);
 
   const isDragEnabled = !batchMode && !collapsed && !isMobile;
 
@@ -60,24 +57,9 @@ export const useDragAndDrop = ({ pinnedConversations, batchMode, collapsed }: Us
     }
   }, []);
 
-  const handleDragStart = useCallback(
-    (event: DragStartEvent) => {
-      const id = String(event.active.id);
-      setActiveId(id);
-      isDraggingRef.current = true;
-
-      const conv = pinnedConversations.find((c) => c.id === id);
-      setActiveConversation(conv ?? null);
-    },
-    [pinnedConversations]
-  );
-
   const handleDragEnd = useCallback(
     async (event: DragEndEvent) => {
       const { active, over } = event;
-      setActiveId(null);
-      setActiveConversation(null);
-      isDraggingRef.current = false;
 
       if (!over || active.id === over.id) return;
 
@@ -119,19 +101,9 @@ export const useDragAndDrop = ({ pinnedConversations, batchMode, collapsed }: Us
     [pinnedConversations, persistSortOrder]
   );
 
-  const handleDragCancel = useCallback(() => {
-    setActiveId(null);
-    setActiveConversation(null);
-    isDraggingRef.current = false;
-  }, []);
-
   return {
     sensors,
-    activeId,
-    activeConversation,
-    handleDragStart,
     handleDragEnd,
-    handleDragCancel,
     isDragEnabled,
   };
 };
