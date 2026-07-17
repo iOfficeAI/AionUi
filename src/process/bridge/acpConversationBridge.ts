@@ -282,21 +282,10 @@ export function initAcpConversationBridge(workerTaskManager: IWorkerTaskManager)
   ipcBridge.acpConversation.probeModelInfo.provider(async ({ backend }) => {
     const agents = agentRegistry.getDetectedAgents();
     const detectedAgent = agents.find((item) => item.backend === backend);
-    const agent = detectedAgent && isAgentKind(detectedAgent, 'acp') ? detectedAgent : undefined;
-    const acpAgent = agent && isAgentKind(agent, 'acp') ? agent : undefined;
-
-    if (!acpAgent?.cliPath && backend !== 'claude' && backend !== 'codebuddy' && backend !== 'codex') {
-      return {
-        success: false,
-        msg: `${backend} CLI not found`,
-      };
-    }
-
-    const connection = new AcpConnection();
     const tempDir = os.tmpdir();
 
-    try {
-      if (backend === 'codex') {
+    if (backend === 'codex') {
+      try {
         const cliPath =
           detectedAgent && (isAgentKind(detectedAgent, 'codex') || isAgentKind(detectedAgent, 'acp'))
             ? detectedAgent.cliPath
@@ -304,14 +293,33 @@ export function initAcpConversationBridge(workerTaskManager: IWorkerTaskManager)
         const modelInfo = await probeCodexModelInfo({
           command: resolveCodexCliCommand(cliPath),
           cwd: tempDir,
+          currentModelId: readCodexConfiguredModel(),
         });
         mainLog('[Codex native]', 'probeModelInfo completed', summarizeAcpModelInfo(modelInfo));
         return {
           success: true,
           data: { modelInfo, configOptions: [] },
         };
+      } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        mainWarn('[Codex native]', 'probeModelInfo failed', errorMsg);
+        return { success: false, msg: errorMsg };
       }
+    }
 
+    const agent = detectedAgent && isAgentKind(detectedAgent, 'acp') ? detectedAgent : undefined;
+    const acpAgent = agent && isAgentKind(agent, 'acp') ? agent : undefined;
+
+    if (!acpAgent?.cliPath && backend !== 'claude' && backend !== 'codebuddy') {
+      return {
+        success: false,
+        msg: `${backend} CLI not found`,
+      };
+    }
+
+    const connection = new AcpConnection();
+
+    try {
       await connection.connect(backend, acpAgent?.cliPath, tempDir, acpAgent?.acpArgs);
       await connection.newSession(tempDir);
 
@@ -328,9 +336,6 @@ export function initAcpConversationBridge(workerTaskManager: IWorkerTaskManager)
       };
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
-      if (backend === 'codex') {
-        mainWarn('[ACP codex]', 'probeModelInfo failed', errorMsg);
-      }
       return { success: false, msg: errorMsg };
     } finally {
       try {

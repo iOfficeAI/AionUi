@@ -306,12 +306,10 @@ describe('CodexNativeAgentManager', () => {
     manager.kill();
   });
 
-  it('migrates persisted nvm Codex shims to the login shell command', () => {
+  it('uses the login shell Codex path without executing version probes', () => {
     vi.stubEnv('PATH', '/home/taichu/.nvm/versions/node/v22.12.0/bin:/home/linuxbrew/.linuxbrew/bin:/usr/bin');
     testDoubles.execFileSync.mockImplementation((command: string, args: string[]) => {
-      if (args[1] === 'command -v codex') return '/home/taichu/.nvm/versions/node/v22.12.0/bin/codex\n';
-      if (command === '/home/taichu/.nvm/versions/node/v22.12.0/bin/codex') return 'codex-cli 0.120.0\n';
-      if (command === '/home/linuxbrew/.linuxbrew/bin/codex') return 'codex-cli 0.125.0\n';
+      if (args[1] === 'command -v codex') return '/home/linuxbrew/.linuxbrew/bin/codex\n';
       throw new Error(`Unexpected command probe: ${command}`);
     });
 
@@ -325,6 +323,11 @@ describe('CodexNativeAgentManager', () => {
     const client = testDoubles.state.clients[0] as FakeClient;
 
     expect(client.options.command).toBe('/home/linuxbrew/.linuxbrew/bin/codex');
+    expect(testDoubles.execFileSync).not.toHaveBeenCalledWith(
+      expect.any(String),
+      ['--version'],
+      expect.objectContaining({ timeout: expect.any(Number) })
+    );
     expect(testDoubles.execFileSync).toHaveBeenCalledWith(
       expect.any(String),
       ['-lc', 'command -v codex'],

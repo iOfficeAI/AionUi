@@ -5,7 +5,6 @@
  */
 
 import { execFileSync } from 'child_process';
-import path from 'path';
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 import type { CronMessageMeta, IConfirmation, TMessage } from '@/common/chat/chatLib';
 import { transformMessage } from '@/common/chat/chatLib';
@@ -59,13 +58,12 @@ export type CodexNativeAgentManagerData = {
 const DEFAULT_CODEX_MODE = 'default';
 const CODEX_REASONING_EFFORT_CONFIG_ID = 'reasoning_effort';
 const LOGIN_SHELL_RESOLVE_TIMEOUT_MS = 1500;
-const CODEX_CLI_PROBE_TIMEOUT_MS = 1500;
 
 export function resolveCodexCliCommand(cliPath?: string): string {
   const command = cliPath?.trim() || 'codex';
   if (!shouldPreferLoginShellCodex(command)) return command;
 
-  return resolveBestCodexCommand(command) || command;
+  return resolveCommandFromLoginShell() || command;
 }
 
 function shouldPreferLoginShellCodex(command: string): boolean {
@@ -75,64 +73,7 @@ function shouldPreferLoginShellCodex(command: string): boolean {
   return normalized.endsWith('/codex') && normalized.includes('/.nvm/versions/node/');
 }
 
-function resolveBestCodexCommand(command: string): string | undefined {
-  const candidates = collectCodexCommandCandidates(command);
-  const probes = candidates
-    .map((candidate) => ({ command: candidate, version: readCodexCliVersion(candidate) }))
-    .filter((probe): probe is { command: string; version: [number, number, number] } => probe.version !== undefined);
-
-  probes.sort((left, right) => compareVersionTuple(right.version, left.version));
-  return probes[0]?.command;
-}
-
-function collectCodexCommandCandidates(command: string): string[] {
-  const candidates = new Set<string>();
-  if (command !== 'codex') {
-    candidates.add(command);
-  }
-
-  const shellCommand = resolveCommandFromLoginShell(command);
-  if (shellCommand) {
-    candidates.add(shellCommand);
-  }
-
-  for (const candidate of ['/home/linuxbrew/.linuxbrew/bin/codex', '/opt/homebrew/bin/codex', '/usr/local/bin/codex']) {
-    candidates.add(candidate);
-  }
-
-  for (const entry of (process.env.PATH || '').split(path.delimiter)) {
-    if (entry.trim()) {
-      candidates.add(path.join(entry, 'codex'));
-    }
-  }
-
-  return [...candidates];
-}
-
-function readCodexCliVersion(command: string): [number, number, number] | undefined {
-  try {
-    const output = execFileSync(command, ['--version'], {
-      encoding: 'utf8',
-      stdio: ['ignore', 'pipe', 'ignore'],
-      timeout: CODEX_CLI_PROBE_TIMEOUT_MS,
-    });
-    const match = output.match(/(\d+)\.(\d+)\.(\d+)/);
-    if (!match) return undefined;
-    return [Number(match[1]), Number(match[2]), Number(match[3])];
-  } catch {
-    return undefined;
-  }
-}
-
-function compareVersionTuple(left: [number, number, number], right: [number, number, number]): number {
-  for (let index = 0; index < 3; index += 1) {
-    const delta = left[index] - right[index];
-    if (delta !== 0) return delta;
-  }
-  return 0;
-}
-
-function resolveCommandFromLoginShell(command: string): string | undefined {
+function resolveCommandFromLoginShell(): string | undefined {
   if (process.platform === 'win32') {
     return undefined;
   }

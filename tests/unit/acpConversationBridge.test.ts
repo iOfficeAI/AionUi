@@ -9,6 +9,7 @@ const dbMock = vi.hoisted(() => ({
 const codexProbeMock = vi.hoisted(() => ({
   probeCodexModelInfo: vi.fn(),
   resolveCodexCliCommand: vi.fn((cliPath?: string) => cliPath || 'codex'),
+  readCodexConfiguredModel: vi.fn(() => 'gpt-5.5'),
 }));
 
 function makeChannel(name: string) {
@@ -72,6 +73,10 @@ vi.mock('../../src/process/agent/codex/appserver/CodexModelProbe', () => ({
   probeCodexModelInfo: codexProbeMock.probeCodexModelInfo,
 }));
 
+vi.mock('../../src/process/agent/codex/appserver/codexCliConfig', () => ({
+  readCodexConfiguredModel: codexProbeMock.readCodexConfiguredModel,
+}));
+
 vi.mock('../../src/process/services/mcpServices/McpService', () => ({
   mcpService: { getSupportedTransportsForAgent: vi.fn(() => []) },
 }));
@@ -90,6 +95,7 @@ vi.mock('../../src/process/utils/mainLogger', () => ({
 }));
 
 import { initAcpConversationBridge } from '../../src/process/bridge/acpConversationBridge';
+import { AcpConnection } from '../../src/process/agent/acp/AcpConnection';
 import CodexNativeAgentManager from '../../src/process/agent/codex/appserver/CodexNativeAgentManager';
 import type { IWorkerTaskManager } from '../../src/process/task/IWorkerTaskManager';
 
@@ -116,6 +122,7 @@ describe('acpConversationBridge', () => {
     dbMock.getDatabase.mockReset();
     codexProbeMock.probeCodexModelInfo.mockReset();
     codexProbeMock.resolveCodexCliCommand.mockClear();
+    codexProbeMock.readCodexConfiguredModel.mockClear();
     const { agentRegistry } = await import('../../src/process/agent/AgentRegistry');
     vi.mocked(agentRegistry.getDetectedAgents).mockReturnValue([]);
     initAcpConversationBridge(taskManager);
@@ -273,7 +280,9 @@ describe('acpConversationBridge', () => {
     expect(codexProbeMock.probeCodexModelInfo).toHaveBeenCalledWith({
       command: '/opt/codex/bin/codex',
       cwd: expect.any(String),
+      currentModelId: 'gpt-5.5',
     });
+    expect(vi.mocked(AcpConnection)).not.toHaveBeenCalled();
     expect(result).toEqual({ success: true, data: { modelInfo, configOptions: [] } });
   });
 
