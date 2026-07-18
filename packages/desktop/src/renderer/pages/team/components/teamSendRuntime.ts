@@ -8,6 +8,7 @@ export type TeamSendBoxRuntime = {
   loading: boolean;
   queuedCount: number;
   statusText?: string;
+  startedAtMs: number | null;
   onStop?: () => Promise<void>;
 };
 
@@ -143,6 +144,7 @@ export const buildTeamSendRuntime = ({
     loading,
     queuedCount,
     statusText,
+    startedAtMs: work?.active_turn_started_at_ms ?? null,
     runtimeGate: {
       hydrated: true,
       canSendMessage: !fatalBlock,
