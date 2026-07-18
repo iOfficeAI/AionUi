@@ -1,13 +1,15 @@
-import { CloseSmall, Edit, Plus } from '@icon-park/react';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { DndContext, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
+import { SortableContext, horizontalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { CloseSmall, Drag, Edit, Plus } from '@icon-park/react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { TeammateStatus } from '@/common/types/team/teamTypes';
+import { restrictToHorizontalAxis } from '@/renderer/utils/ui/dndModifiers';
 import AgentStatusBadge from './AgentStatusBadge';
 import TeamAgentIdentity from './TeamAgentIdentity';
 import { useTeamTabs } from '../hooks/TeamTabsContext';
 import TeamAddMemberPopover from './memberPicker/TeamAddMemberPopover';
-
-const DRAG_OVER_CLASS = 'border-l-2 border-[color:var(--color-primary-6)]';
 
 const TAB_OVERFLOW_THRESHOLD = 10;
 
@@ -26,13 +28,11 @@ type TeamTabViewProps = {
   color: string;
   /** Number of pending permission confirmations for this agent */
   pendingCount?: number;
+  /** A drag is in progress somewhere in the bar: freeze hover affordances so pills don't reflow mid-drag. */
+  dragActive: boolean;
   onSwitch: (slot_id: string) => void;
   onRename?: (slot_id: string, new_name: string) => void;
   onRemove?: (slot_id: string) => void;
-  onDragStart: (slot_id: string) => void;
-  onDragOver: (slot_id: string) => void;
-  onDrop: () => void;
-  isDragOver: boolean;
 };
 
 const TeamTabView: React.FC<TeamTabViewProps> = ({
@@ -47,18 +47,21 @@ const TeamTabView: React.FC<TeamTabViewProps> = ({
   warmupFailed = false,
   color,
   pendingCount = 0,
+  dragActive,
   onSwitch,
   onRename,
   onRemove,
-  onDragStart,
-  onDragOver,
-  onDrop,
-  isDragOver,
 }) => {
+  const { t } = useTranslation();
   const [editing, setEditing] = useState(false);
   const [editValue, setEditValue] = useState(assistant_name);
   const [hovered, setHovered] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  // Leader stays fixed at index 0 and never takes part in sorting.
+  const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({
+    id: slot_id,
+    disabled: isLeader,
+  });
 
   useEffect(() => {
     if (editing) {
@@ -102,35 +105,49 @@ const TeamTabView: React.FC<TeamTabViewProps> = ({
 
   // 胶囊底色恒定浅灰（hover / 选中都不改底色，避免压低彩色名字可读性）；
   // 选中态用一圈成员自己的身份色边框表示（与彩色名字呼应，明显但不脏）。身份色只落在名字与边框上。
+  // 拖拽走 dnd-kit sortable：hover 时手柄内联出现在头像前（同改名/移除按钮的「hover 增宽」语言，
+  // 不遮头像和状态点），拖动时兄弟胶囊实时让位（transform 平移），松手原位落地。
+  // dragActive 期间冻结其他胶囊的 hover 增宽（拖动经过时布局不能跳）；正被拖动的胶囊则保持
+  // 手柄和按钮可见，宽度全程恒定。
+  const showDragHandle = !isLeader && !editing && ((hovered && !dragActive) || isDragging);
+  const showHoverActions = !editing && ((hovered && !dragActive) || isDragging);
   return (
     <div
+      ref={setNodeRef}
       data-testid={`team-tab-${slot_id}`}
       data-team-tab-role={isLeader ? 'leader' : 'teammate'}
       data-active={isActive ? 'true' : 'false'}
-      draggable={!isLeader}
-      className={`relative flex items-center gap-6px pl-6px pr-10px h-34px max-w-220px cursor-pointer rounded-999px border border-solid transition-colors duration-150 shrink-0 bg-[color:var(--bg-2)] ${
-        isDragOver ? DRAG_OVER_CLASS : ''
-      }`}
-      style={{ ['--mc' as string]: color, borderColor: isActive ? color : 'transparent' }}
+      className='relative flex items-center gap-6px pl-6px pr-10px h-34px max-w-220px cursor-pointer rounded-999px border border-solid transition-colors duration-150 shrink-0 bg-[color:var(--bg-2)]'
+      style={{
+        ['--mc' as string]: color,
+        borderColor: isActive ? color : 'transparent',
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.72 : undefined,
+        zIndex: isDragging ? 1 : undefined,
+      }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       onClick={() => !editing && onSwitch(slot_id)}
       onDoubleClick={onRename ? startEditing : undefined}
-      onDragStart={(e) => {
-        e.dataTransfer.effectAllowed = 'move';
-        onDragStart(slot_id);
-      }}
-      onDragOver={(e) => {
-        e.preventDefault();
-        e.dataTransfer.dropEffect = 'move';
-        onDragOver(slot_id);
-      }}
-      onDrop={(e) => {
-        e.preventDefault();
-        onDrop();
-      }}
-      onDragEnd={() => onDrop()}
     >
+      {showDragHandle && (
+        <span
+          ref={setActivatorNodeRef}
+          {...attributes}
+          {...listeners}
+          role='button'
+          aria-label={t('team.reorderMember', { defaultValue: 'Drag to reorder member' })}
+          data-testid={`team-tab-drag-${slot_id}`}
+          className={`shrink-0 flex items-center justify-center w-14px h-20px text-[color:var(--text-tertiary)] hover:text-[color:var(--text-primary)] ${
+            isDragging ? 'cursor-grabbing' : 'cursor-grab'
+          }`}
+          style={{ touchAction: 'none' }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <Drag theme='outline' size='13' fill='currentColor' />
+        </span>
+      )}
       {editing ? (
         <input
           ref={inputRef}
@@ -178,8 +195,8 @@ const TeamTabView: React.FC<TeamTabViewProps> = ({
           />
         </div>
       )}
-      {/* hover 时胶囊变宽、露出操作按钮；失焦则收起（胶囊变窄，只剩头像+文字）。 */}
-      {!editing && hovered && onRename && (
+      {/* hover 时胶囊变宽、露出操作按钮；失焦则收起（胶囊变窄，只剩头像+文字）。拖拽期间冻结，避免布局跳动。 */}
+      {showHoverActions && onRename && (
         <span
           data-testid={`team-tab-edit-${slot_id}`}
           className='shrink-0 flex items-center justify-center w-20px h-20px rounded-6px text-[color:var(--text-secondary)] hover:bg-[color:var(--bg-3)] hover:text-[color:var(--text-primary)] transition-colors duration-150'
@@ -188,7 +205,7 @@ const TeamTabView: React.FC<TeamTabViewProps> = ({
           <Edit theme='outline' size='13' fill='currentColor' />
         </span>
       )}
-      {!editing && hovered && !isLeader && onRemove && (
+      {showHoverActions && !isLeader && onRemove && (
         <span
           data-testid={`team-tab-remove-${slot_id}`}
           className='shrink-0 flex items-center justify-center w-20px h-20px rounded-6px text-[color:var(--text-secondary)] hover:bg-[color:var(--bg-3)] hover:text-[color:var(--color-danger-6)] transition-colors duration-150'
@@ -238,8 +255,15 @@ const TeamTabs: React.FC<TeamTabsProps> = ({ onTabClick, pendingCounts, warmingU
   const tabsContainerRef = useRef<HTMLDivElement>(null);
   const [showLeftFade, setShowLeftFade] = useState(false);
   const [showRightFade, setShowRightFade] = useState(false);
-  const dragSourceRef = useRef<string | null>(null);
-  const [dragOverSlotId, setDragOverSlotId] = useState<string | null>(null);
+  // 拖拽进行中：冻结所有胶囊的 hover 增宽（改名/移除按钮），否则拖动经过时
+  // 目标胶囊变宽→布局跳→hover 丢失→又变窄，形成闪烁循环。
+  const [dragActive, setDragActive] = useState(false);
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
+  // Only teammates are sortable; the leader pill is rendered outside the sortable id list.
+  const sortableIds = useMemo(
+    () => assistants.filter((assistant) => assistant.role !== 'leader').map((assistant) => assistant.slot_id),
+    [assistants]
+  );
 
   const updateTabOverflow = useCallback(() => {
     const container = tabsContainerRef.current;
@@ -266,27 +290,18 @@ const TeamTabs: React.FC<TeamTabsProps> = ({ onTabClick, pendingCounts, warmingU
     };
   }, [updateTabOverflow]);
 
-  const handleDragStart = useCallback((slot_id: string) => {
-    dragSourceRef.current = slot_id;
-  }, []);
+  const handleDragStart = useCallback(() => setDragActive(true), []);
 
-  const handleDragOver = useCallback((slot_id: string) => {
-    if (dragSourceRef.current && dragSourceRef.current !== slot_id) {
-      setDragOverSlotId(slot_id);
-    }
-  }, []);
+  const handleDragEnd = useCallback(
+    ({ active, over }: DragEndEvent) => {
+      setDragActive(false);
+      if (!over || active.id === over.id) return;
+      reorderAssistants(String(active.id), String(over.id));
+    },
+    [reorderAssistants]
+  );
 
-  const handleDrop = useCallback(() => {
-    if (dragSourceRef.current && dragOverSlotId) {
-      // Prevent dropping onto the leader's position (index 0)
-      const targetIndex = assistants.findIndex((assistant) => assistant.slot_id === dragOverSlotId);
-      if (targetIndex !== 0) {
-        reorderAssistants(dragSourceRef.current, dragOverSlotId);
-      }
-    }
-    dragSourceRef.current = null;
-    setDragOverSlotId(null);
-  }, [dragOverSlotId, reorderAssistants, assistants]);
+  const handleDragCancel = useCallback(() => setDragActive(false), []);
 
   if (assistants.length === 0) return null;
 
@@ -301,37 +316,45 @@ const TeamTabs: React.FC<TeamTabsProps> = ({ onTabClick, pendingCounts, warmingU
           ref={tabsContainerRef}
           className='flex items-center gap-6px flex-1 min-w-0 overflow-x-auto overflow-y-hidden py-8px px-12px [scrollbar-width:none]'
         >
-          {assistants.map((assistant) => {
-            const statusInfo = statusMap.get(assistant.slot_id);
-            return (
-              <TeamTabView
-                key={assistant.slot_id}
-                slot_id={assistant.slot_id}
-                assistant_name={assistant.assistant_name}
-                assistant_backend={assistant.assistant_backend}
-                icon={assistant.icon}
-                conversation_id={assistant.conversation_id}
-                isActive={assistant.slot_id === activeSlotId}
-                status={statusInfo?.status ?? assistant.status}
-                isLeader={assistant.role === 'leader'}
-                warmupFailed={failedSlotIds?.has(assistant.slot_id) ?? false}
-                color={colorOf(assistant.slot_id)}
-                pendingCount={pendingCounts?.get(assistant.slot_id) ?? 0}
-                onSwitch={(slot_id) => {
-                  switchTab(slot_id);
-                  onTabClick?.(slot_id);
-                }}
-                onRename={
-                  renameAssistant && !memberOpsDisabled ? (sid, name) => void renameAssistant(sid, name) : undefined
-                }
-                onRemove={removeAssistant && !memberOpsDisabled ? (sid) => void removeAssistant(sid) : undefined}
-                onDragStart={handleDragStart}
-                onDragOver={handleDragOver}
-                onDrop={handleDrop}
-                isDragOver={dragOverSlotId === assistant.slot_id}
-              />
-            );
-          })}
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            modifiers={[restrictToHorizontalAxis]}
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
+            onDragCancel={handleDragCancel}
+          >
+            <SortableContext items={sortableIds} strategy={horizontalListSortingStrategy}>
+              {assistants.map((assistant) => {
+                const statusInfo = statusMap.get(assistant.slot_id);
+                return (
+                  <TeamTabView
+                    key={assistant.slot_id}
+                    slot_id={assistant.slot_id}
+                    assistant_name={assistant.assistant_name}
+                    assistant_backend={assistant.assistant_backend}
+                    icon={assistant.icon}
+                    conversation_id={assistant.conversation_id}
+                    isActive={assistant.slot_id === activeSlotId}
+                    status={statusInfo?.status ?? assistant.status}
+                    isLeader={assistant.role === 'leader'}
+                    warmupFailed={failedSlotIds?.has(assistant.slot_id) ?? false}
+                    color={colorOf(assistant.slot_id)}
+                    pendingCount={pendingCounts?.get(assistant.slot_id) ?? 0}
+                    dragActive={dragActive}
+                    onSwitch={(slot_id) => {
+                      switchTab(slot_id);
+                      onTabClick?.(slot_id);
+                    }}
+                    onRename={
+                      renameAssistant && !memberOpsDisabled ? (sid, name) => void renameAssistant(sid, name) : undefined
+                    }
+                    onRemove={removeAssistant && !memberOpsDisabled ? (sid) => void removeAssistant(sid) : undefined}
+                  />
+                );
+              })}
+            </SortableContext>
+          </DndContext>
         </div>
         {/* 两侧渐隐提示「还有更多」，只覆盖滚动区、不盖固定的添加入口 */}
         {showLeftFade && (

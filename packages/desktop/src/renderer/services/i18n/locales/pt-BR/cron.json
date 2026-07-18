@@ -81,6 +81,8 @@
       "prompt": "Prompt",
       "promptRequired": "Prompt é obrigatório",
       "promptPlaceholder": "Instruções para o assistente executar",
+      "queue": "Proteção de fila",
+      "queueHint": "Quando ativada, uma nova execução é ignorada enquanto a conversa agendada anterior ainda estiver em andamento, sem interromper o assistente.",
       "frequency": "Frequência",
       "cronExpr": "Expressão Cron",
       "cronExprRequired": "A expressão Cron é obrigatória",
@@ -124,6 +126,20 @@
       "dailyAt": "Todos os dias às {{time}}",
       "weekdaysAt": "Dias de semana às {{time}}",
       "weeklyAt": "Toda {{day}} às {{time}}"
+    },
+    "custom": {
+      "modeLabel": "Padrão de repetição",
+      "interval": "A cada intervalo",
+      "monthly": "Mensalmente",
+      "advanced": "Expressão Cron avançada",
+      "every": "A cada",
+      "unit": "Unidade",
+      "minutes": "Minutos",
+      "hours": "Horas",
+      "time": "Horário",
+      "weekdays": "Dias da semana",
+      "monthDay": "Dia do mês",
+      "preview": "Cron gerado"
     }
   },
   "trigger": {

@@ -4,14 +4,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { bridge, logger } from '@office-ai/platform';
+import { bridge } from '@/common/platform/bridge';
 import { WEBUI_DEFAULT_PORT } from '@/common/config/constants';
 import type { ElectronBridgeAPI } from '@/common/types/platform/electron';
 
 interface CustomWindow extends Window {
   electronAPI?: ElectronBridgeAPI;
   __bridgeEmitter?: { emit: (name: string, data: unknown) => void };
-  __emitBridgeCallback?: (name: string, data: unknown) => void;
   __websocketReconnect?: () => void;
 }
 
@@ -249,12 +248,6 @@ if (win.electronAPI) {
       emitterRef = emitter;
       win.__bridgeEmitter = emitter;
 
-      // Expose callback emitter for bridge provider pattern
-      // Used by components to send responses back through WebSocket
-      win.__emitBridgeCallback = (name: string, data: unknown) => {
-        emitter.emit(name, data);
-      };
-
       ensureSocket();
     },
   });
@@ -268,12 +261,3 @@ if (win.electronAPI) {
     connect();
   };
 }
-
-logger.provider({
-  log(log) {
-    console.log('process.log', log.type, ...log.logs);
-  },
-  path() {
-    return Promise.resolve('');
-  },
-});

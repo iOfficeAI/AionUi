@@ -81,6 +81,8 @@
       "prompt": "پرامپت",
       "promptRequired": "پرامپت الزامی است",
       "promptPlaceholder": "دستورالعمل‌ها برای اجرای ایجنت",
+      "queue": "محافظت صف",
+      "queueHint": "در صورت فعال بودن، تا زمانی که گفت‌وگوی زمان‌بندی‌شده قبلی در حال اجراست، اجرای جدید رد می‌شود و دستیار قطع نخواهد شد.",
       "frequency": "فرکانس",
       "cronExpr": "عبارت Cron",
       "cronExprRequired": "عبارت Cron الزامی است",
@@ -124,6 +126,20 @@
       "dailyAt": "هر روز ساعت {{time}}",
       "weekdaysAt": "روزهای کاری ساعت {{time}}",
       "weeklyAt": "هر {{day}} ساعت {{time}}"
+    },
+    "custom": {
+      "modeLabel": "الگوی تکرار",
+      "interval": "در هر بازه",
+      "monthly": "ماهانه",
+      "advanced": "عبارت پیشرفته Cron",
+      "every": "هر",
+      "unit": "واحد",
+      "minutes": "دقیقه",
+      "hours": "ساعت",
+      "time": "زمان",
+      "weekdays": "روزهای هفته",
+      "monthDay": "روز ماه",
+      "preview": "Cron تولیدشده"
     }
   },
   "trigger": {

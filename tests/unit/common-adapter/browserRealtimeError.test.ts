@@ -36,15 +36,11 @@ type FakeSocketEventName = keyof FakeSocketEventMap;
 
 const platformMock = vi.hoisted(() => ({
   adapter: vi.fn(),
-  provider: vi.fn(),
 }));
 
-vi.mock('@office-ai/platform', () => ({
+vi.mock('@/common/platform/bridge', () => ({
   bridge: {
     adapter: platformMock.adapter,
-  },
-  logger: {
-    provider: platformMock.provider,
   },
 }));
 
@@ -122,7 +118,6 @@ async function loadBrowserAdapter() {
   vi.resetModules();
   FakeWebSocket.instances = [];
   platformMock.adapter.mockClear();
-  platformMock.provider.mockClear();
 
   const location = setupBrowserGlobals();
 

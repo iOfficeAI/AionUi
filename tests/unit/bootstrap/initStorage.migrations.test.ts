@@ -6,28 +6,6 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-vi.mock('@office-ai/platform', () => ({
-  StorageManager: class {
-    getKeys() {
-      return [];
-    }
-    get() {
-      return null;
-    }
-    set() {}
-  },
-  ConfigPaths: {
-    appData: '/mock/appdata',
-  },
-  Logger: {
-    getLogger: () => ({
-      info: vi.fn(),
-      error: vi.fn(),
-      warn: vi.fn(),
-    }),
-  },
-}));
-
 describe('initStorage.migrations', () => {
   beforeEach(() => {
     vi.clearAllMocks();

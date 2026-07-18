@@ -114,5 +114,6 @@
     "memberFailedHint": "Switch its model above, or remove it from the bar on top, then retry.",
     "leaderFailedHint": "Switch its model above, then retry.",
     "retry": "Retry"
-  }
+  },
+  "reorderMember": "Arrastra para reordenar el miembro"
 }

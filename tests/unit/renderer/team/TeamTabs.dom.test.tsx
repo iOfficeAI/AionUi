@@ -79,4 +79,27 @@ describe('TeamTabs', () => {
 
     expect(screen.getByDisplayValue('Worker')).toBeInTheDocument();
   });
+
+  it('reveals a drag handle on teammate hover but never on the leader', () => {
+    renderTabs(false);
+
+    fireEvent.mouseEnter(screen.getByTestId('team-tab-worker-slot'));
+    expect(screen.getByTestId('team-tab-drag-worker-slot')).toBeInTheDocument();
+
+    fireEvent.mouseEnter(screen.getByTestId('team-tab-lead-slot'));
+    expect(screen.queryByTestId('team-tab-drag-lead-slot')).not.toBeInTheDocument();
+  });
+
+  it('does not switch tabs when the drag handle is clicked', () => {
+    renderTabs(false);
+
+    // Active tab starts as the leader
+    expect(screen.getByTestId('team-tab-lead-slot')).toHaveAttribute('data-active', 'true');
+
+    fireEvent.mouseEnter(screen.getByTestId('team-tab-worker-slot'));
+    fireEvent.click(screen.getByTestId('team-tab-drag-worker-slot'));
+
+    expect(screen.getByTestId('team-tab-lead-slot')).toHaveAttribute('data-active', 'true');
+    expect(screen.getByTestId('team-tab-worker-slot')).toHaveAttribute('data-active', 'false');
+  });
 });

@@ -72,7 +72,8 @@
     "removeProject": "حذف پروژه",
     "removeProjectConfirm": "پروژه «{{name}}» حذف شود؟ {{count}} مکالمه مرتبط نیز حذف خواهند شد.",
     "newConversationInProject": "چت جدید در این پروژه",
-    "deleting": "در حال حذف..."
+    "deleting": "در حال حذف...",
+    "reorderPinned": "برای تغییر ترتیب گفتگوی سنجاق‌شده بکشید"
   },
   "historySearch": {
     "tooltip": "جستجوی پیام‌ها",

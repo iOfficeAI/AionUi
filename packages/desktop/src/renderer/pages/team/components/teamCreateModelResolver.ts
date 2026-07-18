@@ -84,8 +84,6 @@ async function resolveAcpDefaultModel(_assistant_backend: string): Promise<strin
 async function resolveGeminiDefaultModel(): Promise<string> {
   // The legacy 'gemini.defaultModel' config key has been removed after the
   // Gemini → ACP consolidation. Always fall back to the 'auto' alias.
-  // aioncli-core alias: 'auto' maps to PREVIEW_GEMINI_MODEL_AUTO. See
-  // src/common/utils/geminiModes.ts for the full list of aliases.
   return 'auto';
 }
 

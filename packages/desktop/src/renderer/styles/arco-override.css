@@ -505,14 +505,14 @@ body[arco-theme='dark'] .arco-message-error {
   padding-right: 4px !important;
 }
 
-/* The model list (RuntimeSelectorModelList) owns its own scroll container
- * (`.runtime-model-scroll`), with the search box fixed above it outside the
- * scroll area. Any Arco popup that hosts this list — top-level dropdown OR a
- * flyout submenu, grouped or flat — must therefore NOT scroll or cap its own
- * height, or there'd be a second scrollbar and the search box would scroll away.
- * Keyed off `:has(.runtime-model-scroll)` so it applies wherever the list is,
- * and never touches other menus. */
-.arco-dropdown-menu:has(.runtime-model-scroll) {
+/* Searchable dropdown lists (RuntimeSelectorModelList, DropdownSearchList) own
+ * their own scroll container (`.dropdown-search-scroll`), with the search box
+ * fixed above it outside the scroll area. Any Arco popup that hosts such a list
+ * — top-level dropdown OR a flyout submenu, grouped or flat — must therefore
+ * NOT scroll or cap its own height, or there'd be a second scrollbar and the
+ * search box would scroll away. Keyed off `:has(.dropdown-search-scroll)` so it
+ * applies wherever the list is, and never touches other menus. */
+.arco-dropdown-menu:has(.dropdown-search-scroll) {
   max-height: none;
   overflow: visible;
 }
@@ -520,7 +520,7 @@ body[arco-theme='dark'] .arco-message-error {
 /* Provider group titles pin to the top of the inner scroll container. It has no
  * top padding, so top:0 hugs the edge with no gap for items to peek through.
  * Only relevant for the grouped (aionrs) list; harmless for flat lists. */
-.runtime-model-scroll .arco-dropdown-menu-group-title {
+.dropdown-search-scroll .arco-dropdown-menu-group-title {
   position: sticky;
   top: 0;
   z-index: 2;

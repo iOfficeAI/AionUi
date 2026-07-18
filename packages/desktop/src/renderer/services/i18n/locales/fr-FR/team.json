@@ -66,5 +66,6 @@
       "interview": "Planifier une interview approfondie entre agents",
       "expert_review": "Faire analyser le même problème par plusieurs experts"
     }
-  }
+  },
+  "reorderMember": "Faites glisser pour réorganiser le membre"
 }

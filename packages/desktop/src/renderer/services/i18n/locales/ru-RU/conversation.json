@@ -72,7 +72,8 @@
     "removeProject": "Удалить проект",
     "removeProjectConfirm": "Удалить проект «{{name}}»? Беседы в проекте тоже будут удалены: {{count}}.",
     "newConversationInProject": "Новая беседа в этом проекте",
-    "deleting": "Удаление..."
+    "deleting": "Удаление...",
+    "reorderPinned": "Перетащите, чтобы изменить порядок закреплённых бесед"
   },
   "historySearch": {
     "tooltip": "Поиск сообщений",

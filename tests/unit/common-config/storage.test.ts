@@ -9,8 +9,8 @@
 
 import { describe, it, expect, vi } from 'vitest';
 
-// Mock @office-ai/platform with in-memory storage implementation
-vi.mock('@office-ai/platform', () => {
+// Keep this export-surface test focused; the local storage implementation has dedicated tests.
+vi.mock('@/common/platform/storage', () => {
   function buildStorage<T extends Record<string, unknown>>(namespace: string) {
     const store = new Map<keyof T, unknown>();
     return {
@@ -25,7 +25,7 @@ vi.mock('@office-ai/platform', () => {
     };
   }
   return {
-    storage: { buildStorage },
+    buildStorage,
   };
 });
 

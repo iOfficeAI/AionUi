@@ -72,7 +72,8 @@
     "removeProject": "Projekt entfernen",
     "removeProjectConfirm": "Projekt \"{{name}}\" entfernen? Die {{count}} zugehörige(n) Unterhaltung(en) werden ebenfalls entfernt.",
     "newConversationInProject": "Neuer Chat in diesem Projekt",
-    "deleting": "Wird gelöscht..."
+    "deleting": "Wird gelöscht...",
+    "reorderPinned": "Ziehen, um angeheftete Unterhaltung neu anzuordnen"
   },
   "historySearch": {
     "tooltip": "Nachrichten durchsuchen",

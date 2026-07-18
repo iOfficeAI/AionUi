@@ -14,9 +14,8 @@ config.resolver.nodeModulesPaths = [path.resolve(projectRoot, 'node_modules')];
 
 // Block platform-specific packages that should never resolve in RN
 config.resolver.blockList = [
-  /src\/common\/storage\.ts$/, // Uses @office-ai/platform storage
+  /src\/common\/storage\.ts$/, // Desktop-only storage bridge
   /src\/common\/slash\//, // Slash command internals
-  /@office-ai\/platform/,
 ];
 
 // Map path aliases for shared code

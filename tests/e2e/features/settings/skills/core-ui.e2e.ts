@@ -201,6 +201,88 @@ test.describe('Skills Hub - Core UI (P0)', () => {
   });
 
   // ============================================================================
+  // TC-S-05b: Batch delete custom skills (success scenario)
+  // ============================================================================
+
+  test('TC-S-05b: should batch delete custom skills via batch mode', async ({ page }) => {
+    // Setup: Create 3 custom skills with unique names
+    const stamp = Date.now();
+    const skillNames = [`E2E-Test-Batch-A-${stamp}`, `E2E-Test-Batch-B-${stamp}`, `E2E-Test-Batch-C-${stamp}`];
+    const tempSource = createTempExternalSource('tc-s-05b');
+    try {
+      for (const name of skillNames) {
+        createTestSkill(tempSource.path, name, 'Skill for batch deletion');
+        const importResult = await importSkillViaBridge(page, path.join(tempSource.path, name));
+        expect(importResult.success).toBe(true);
+      }
+
+      await refreshSkillsHub(page);
+
+      // Screenshot 01: Initial state with three skill cards
+      await takeScreenshot(page, 'skills-hub/tc-s-05b/01-before-batch.png');
+
+      // Step 1: Enter batch mode
+      const batchManageButton = page.locator('[data-testid="btn-batch-manage"]');
+      await expect(batchManageButton).toBeVisible();
+      await batchManageButton.click();
+
+      // Expected: batch action bar appears, delete disabled with empty selection
+      const batchDeleteButton = page.locator('[data-testid="btn-batch-delete"]');
+      await expect(batchDeleteButton).toBeVisible();
+      await expect(batchDeleteButton).toBeDisabled();
+
+      // Screenshot 02: Batch mode entered
+      await takeScreenshot(page, 'skills-hub/tc-s-05b/02-batch-mode.png');
+
+      // Step 2: Select two of the three skills by clicking their cards
+      await page.locator(`[data-testid="my-skill-card-${normalizeTestId(skillNames[0])}"]`).click();
+      await page.locator(`[data-testid="my-skill-card-${normalizeTestId(skillNames[1])}"]`).click();
+      await expect(batchDeleteButton).toBeEnabled();
+
+      // Screenshot 03: Two skills selected
+      await takeScreenshot(page, 'skills-hub/tc-s-05b/03-two-selected.png');
+
+      // Step 3: Click batch delete and confirm in the modal
+      await batchDeleteButton.click();
+      const modal = page.locator('.modal-delete-skill .arco-modal');
+      await expect(modal).toBeVisible();
+
+      // Screenshot 04: Confirmation modal
+      await takeScreenshot(page, 'skills-hub/tc-s-05b/04-confirmation-modal.png');
+
+      await modal.locator('.arco-btn-primary').click();
+      await expect(modal).not.toBeVisible();
+
+      // Expected: Success message appears
+      await page.waitForSelector('.arco-message-success', { timeout: 5000 });
+
+      // Wait for list refresh; batch mode exits automatically
+      await page.waitForTimeout(1000);
+      await expect(page.locator('[data-testid="btn-batch-delete"]')).not.toBeVisible();
+
+      // Expected: Deleted cards disappear, unselected card remains
+      await expect(page.locator(`[data-testid="my-skill-card-${normalizeTestId(skillNames[0])}"]`)).not.toBeVisible();
+      await expect(page.locator(`[data-testid="my-skill-card-${normalizeTestId(skillNames[1])}"]`)).not.toBeVisible();
+      await expect(page.locator(`[data-testid="my-skill-card-${normalizeTestId(skillNames[2])}"]`)).toBeVisible();
+
+      // Screenshot 05: Final state
+      await takeScreenshot(page, 'skills-hub/tc-s-05b/05-after-batch-delete.png');
+
+      // Bridge assertion: two deleted from backend, one remains
+      const skills = await getMySkills(page);
+      const remaining = skills.map((s) => s.name);
+      expect(remaining).not.toContain(skillNames[0]);
+      expect(remaining).not.toContain(skillNames[1]);
+      expect(remaining).toContain(skillNames[2]);
+    } finally {
+      for (const name of skillNames) {
+        await deleteSkillViaBridge(page, name);
+      }
+      tempSource.cleanup();
+    }
+  });
+
+  // ============================================================================
   // TC-S-06: Delete builtin skill (no delete button)
   // ============================================================================
 
