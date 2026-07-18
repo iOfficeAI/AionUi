@@ -1,5 +1,16 @@
 # Changelog
 
+## [2.1.37](https://github.com/iOfficeAI/AionUi/compare/v2.1.36...v2.1.37) (2026-07-18)
+
+### Desktop
+
+#### Bug Fixes
+
+- **renderer:** keep team elapsed timer continuous across remount (#3612)
+- **bridge:** accept void-param invokes after JSON serialization (#3611)
+
+---
+
 ## [2.1.36](https://github.com/iOfficeAI/AionUi/compare/v2.1.35...v2.1.36) (2026-07-17)
 
 ### Desktop
