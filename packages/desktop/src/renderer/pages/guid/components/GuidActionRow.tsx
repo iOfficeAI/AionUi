@@ -15,6 +15,7 @@ import type {
 import type { AgentModeOption } from '@/renderer/utils/model/agentTypes';
 import type { AgentRuntimeDerivedOption } from '@/renderer/utils/model/agentRuntimeCatalog';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
+import { useThemeContext } from '@/renderer/hooks/context/ThemeContext';
 import { getCleanFileNames, FileService } from '@/renderer/services/FileService';
 import { RuntimeSelectorCheckedItem } from '@/renderer/components/agent/runtimeSelectorOptions';
 import { iconColors } from '@/renderer/styles/colors';
@@ -23,7 +24,8 @@ import type { AcpModelInfo } from '../types';
 import { getAvailableModels } from '../utils/modelUtils';
 import { OLLAMA_HOST_LABEL, type OllamaModelWarning } from '../utils/ollamaLaunch';
 import { Button, Checkbox, Dropdown, Menu, Message, Tooltip } from '@arco-design/web-react';
-import { ArrowUp, Brain, FolderUpload, Lightning, Plus, Rocket, Shield, UploadOne } from '@icon-park/react';
+import ollamaLogo from '@/renderer/assets/logos/tools/ollama.svg';
+import { ArrowUp, Brain, FolderUpload, Lightning, Plus, Shield, UploadOne } from '@icon-park/react';
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import styles from '../index.module.css';
@@ -122,6 +124,7 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
   onSend,
 }) => {
   const { t } = useTranslation();
+  const { theme } = useThemeContext();
   const layout = useLayoutContext();
   const isMobile = layout?.isMobile ?? false;
   const [isPlusDropdownOpen, setIsPlusDropdownOpen] = useState(false);
@@ -346,7 +349,14 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
     if (ollamaLaunch) {
       entries.push({
         key: 'ollama-launch',
-        icon: <Rocket theme='outline' size='16' />,
+        icon: (
+          <img
+            src={ollamaLogo}
+            alt='Ollama'
+            style={{ width: 16, height: 16, filter: theme === 'dark' ? 'invert(1)' : undefined }}
+            className='object-contain'
+          />
+        ),
         label: t('guid.ollamaLaunch.title'),
         variant: 'muted',
         meta: ollamaLaunch.selectedModel ?? t('guid.ollamaLaunch.off'),
@@ -535,7 +545,12 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
           title={
             <Tooltip content={t('guid.ollamaLaunch.tooltip')} position='left'>
               <div className='flex items-center gap-8px'>
-                <Rocket theme='outline' size='16' fill={iconColors.primary} style={{ lineHeight: 0 }} />
+                <img
+                  src={ollamaLogo}
+                  alt='Ollama'
+                  style={{ width: 16, height: 16, filter: theme === 'dark' ? 'invert(1)' : undefined }}
+                  className='object-contain'
+                />
                 <span className='max-w-220px truncate'>
                   {t('guid.ollamaLaunch.title')}
                   {ollamaLaunch.selectedModel ? `: ${ollamaLaunch.selectedModel}` : ''}

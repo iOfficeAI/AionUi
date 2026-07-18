@@ -12,6 +12,7 @@
  * Centralized management of all model platform configurations for extensibility and maintainability
  */
 
+import ollamaLogo from '@/renderer/assets/logos/tools/ollama.svg';
 import { resolveBackendAssetUrl } from '@/renderer/utils/platform';
 
 const buildLogoAssetUrl = (path: string): string => {
@@ -258,6 +259,13 @@ export const MODEL_PLATFORMS: PlatformConfig[] = [
     logo: buildLogoAssetUrl('ai-china/stepfun.svg'),
     platform: 'custom',
     base_url: 'https://api.stepfun.com/v1',
+  },
+  {
+    name: 'Ollama (Local)',
+    value: 'Ollama',
+    logo: ollamaLogo,
+    platform: 'custom',
+    base_url: 'http://127.0.0.1:11434/v1',
   },
 ];
 
