@@ -9,6 +9,7 @@ import { parseError } from '@/common/utils';
 import { formatManagedAgentDiagnosticMessage, type ManagedAgent } from '@/renderer/utils/model/agentTypes';
 import AionModal from '@/renderer/components/base/AionModal';
 import { AionSearchInput } from '@/renderer/components/base';
+import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { useManagedAgents } from '@/renderer/hooks/agent/useManagedAgents';
 import { openExternalUrl } from '@/renderer/utils/platform';
 import { Button, Message, Typography } from '@arco-design/web-react';
@@ -32,6 +33,8 @@ const LOCAL_AGENT_SETUP_GUIDE_URL = 'https://github.com/iOfficeAI/AionUi/wiki/AC
 const LocalAgents: React.FC = () => {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
+  const layout = useLayoutContext();
+  const isMobile = layout?.isMobile ?? false;
   const [testingAgentId, setTestingAgentId] = useState<string | null>(null);
   const [agentFilter, setAgentFilter] = useState<AgentAvailabilityFilter>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -221,13 +224,15 @@ const LocalAgents: React.FC = () => {
         }
         actions={
           <>
-            <AionSearchInput
-              className='shrink-0 w-[200px] hidden md:flex'
-              data-testid='input-search-agents'
-              placeholder={t('settings.agentManagement.searchPlaceholder', { defaultValue: 'Search agents...' })}
-              value={searchQuery}
-              onChange={setSearchQuery}
-            />
+            {!isMobile && (
+              <AionSearchInput
+                className='shrink-0 w-[200px] hidden md:flex'
+                data-testid='input-search-agents'
+                placeholder={t('settings.agentManagement.searchPlaceholder', { defaultValue: 'Search agents...' })}
+                value={searchQuery}
+                onChange={setSearchQuery}
+              />
+            )}
             <TalkToButlerButton
               label={t('settings.agentManagement.addCustomAgent', { defaultValue: 'Add custom Agent' })}
               chatLabel={t('settings.talkToButler.addViaChat', { defaultValue: 'Add via chat' })}
