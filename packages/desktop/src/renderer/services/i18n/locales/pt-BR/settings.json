@@ -1267,8 +1267,10 @@
       "addMcp": "Ajude-me a configurar um servidor MCP.",
       "addSkill": "Ajude-me a importar uma skill e vinculá-la a um assistente.",
       "setupRemote": "Ajude-me a configurar o acesso remoto para abrir o AionUi do celular ou pela internet.",
-      "diagnose": "Tive um problema com o AionUi, ajude-me a diagnosticá-lo.\n\n[Módulo] {{module}}\n[Descrição] {{description}}\n[Anexos] veja as capturas de tela na entrada.\n\nDiagnostique a causa e me diga como corrigir."
-    }
+      "diagnose": "Tive um problema com o AionUi, ajude-me a diagnosticá-lo.\n\n[Módulo] {{module}}\n[Descrição] {{description}}\n[Anexos] veja as capturas de tela na entrada.\n\nDiagnostique a causa e me diga como corrigir.",
+      "diagnoseChatError": "Ocorreu um erro durante uma conversa no AionUi, ajude-me a diagnosticá-lo.\n\n[Erro] {{error}}\n\nDiagnostique a causa e me diga como corrigir."
+    },
+    "solveWithButler": "Perguntar ao Mordomo"
   },
   "providerIdConflict": "O Provider ID já existe. Tente novamente.",
   "autoInjectedSkillsHint": "Carregadas automaticamente em cada conversa — não é preciso ativá-las; o agente decide quando usá-las."

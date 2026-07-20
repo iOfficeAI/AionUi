@@ -1264,8 +1264,10 @@
       "addMcp": "Bir MCP sunucusu kurmama yardım et.",
       "addSkill": "Bir beceri içe aktarıp bir asistana eklememe yardım et.",
       "setupRemote": "Telefonumdan veya internetten AionUi’yi açabilmem için uzaktan erişimi ayarlamama yardım et.",
-      "diagnose": "AionUi kullanırken bir sorunla karşılaştım, teşhis etmeme yardım et.\n\n[Modül] {{module}}\n[Açıklama] {{description}}\n[Ekler] giriş alanındaki ekran görüntülerine bakın.\n\nLütfen nedenini teşhis et ve nasıl düzelteceğimi söyle."
-    }
+      "diagnose": "AionUi kullanırken bir sorunla karşılaştım, teşhis etmeme yardım et.\n\n[Modül] {{module}}\n[Açıklama] {{description}}\n[Ekler] giriş alanındaki ekran görüntülerine bakın.\n\nLütfen nedenini teşhis et ve nasıl düzelteceğimi söyle.",
+      "diagnoseChatError": "AionUi sohbeti sırasında bir hatayla karşılaştım, teşhis etmeme yardım et.\n\n[Hata] {{error}}\n\nLütfen nedenini teşhis et ve nasıl düzelteceğimi söyle."
+    },
+    "solveWithButler": "Kâhya'ya sor"
   },
   "providerIdConflict": "Provider ID zaten var. Lütfen tekrar deneyin.",
   "autoInjectedSkillsHint": "Her sohbete otomatik olarak yüklenir — etkinleştirmeye gerek yoktur; aracı bunları ne zaman kullanacağına karar verir."

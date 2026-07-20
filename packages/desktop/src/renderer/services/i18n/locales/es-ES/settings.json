@@ -1264,8 +1264,10 @@
       "addMcp": "Help me set up an MCP server.",
       "addSkill": "Help me import a skill and attach it to an assistant.",
       "setupRemote": "Help me set up remote access so I can open AionUi from my phone or over the internet.",
-      "diagnose": "I ran into a problem with AionUi, please help me diagnose it.\n\n[Module] {{module}}\n[Description] {{description}}\n[Attachments] see the screenshots in the input.\n\nPlease diagnose the cause and tell me how to fix it."
-    }
+      "diagnose": "I ran into a problem with AionUi, please help me diagnose it.\n\n[Module] {{module}}\n[Description] {{description}}\n[Attachments] see the screenshots in the input.\n\nPlease diagnose the cause and tell me how to fix it.",
+      "diagnoseChatError": "Encontré un error durante una conversación en AionUi, ayúdame a diagnosticarlo.\n\n[Error] {{error}}\n\nPor favor, diagnostica la causa y dime cómo solucionarlo."
+    },
+    "solveWithButler": "Preguntar al Mayordomo"
   },
   "providerIdConflict": "El ID del proveedor ya existe. Inténtalo de nuevo.",
   "autoInjectedSkillsHint": "Se cargan automáticamente en cada conversación: no hace falta activarlas; el agente decide cuándo usarlas."

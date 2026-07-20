@@ -1264,8 +1264,10 @@
       "addMcp": "Aidez-moi à configurer un serveur MCP.",
       "addSkill": "Aidez-moi à importer une compétence et à la joindre à un assistant.",
       "setupRemote": "Aidez-moi à configurer l'accès à distance afin que je puisse ouvrir AionUi depuis mon téléphone ou via Internet.",
-      "diagnose": "J'ai rencontré un problème avec AionUi, aidez-moi à le diagnostiquer.\n\n[Module] {{module}}\n[Description] {{description}}\n[Pièces jointes] voir les captures d'écran dans l'entrée.\n\nVeuillez diagnostiquer la cause et me dire comment y remédier."
-    }
+      "diagnose": "J'ai rencontré un problème avec AionUi, aidez-moi à le diagnostiquer.\n\n[Module] {{module}}\n[Description] {{description}}\n[Pièces jointes] voir les captures d'écran dans l'entrée.\n\nVeuillez diagnostiquer la cause et me dire comment y remédier.",
+      "diagnoseChatError": "J'ai rencontré une erreur lors d'une conversation dans AionUi, aidez-moi à la diagnostiquer.\n\n[Erreur] {{error}}\n\nVeuillez diagnostiquer la cause et me dire comment y remédier."
+    },
+    "solveWithButler": "Demander au majordome"
   },
   "providerIdConflict": "L'ID du fournisseur existe déjà. Veuillez réessayer.",
   "autoInjectedSkillsHint": "Chargé automatiquement dans chaque conversation – pas besoin de les activer ; l'agent décide quand les utiliser."

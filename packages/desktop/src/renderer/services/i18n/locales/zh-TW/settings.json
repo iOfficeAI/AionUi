@@ -1266,8 +1266,10 @@
       "addMcp": "幫我設定一個 MCP 伺服器。",
       "addSkill": "幫我匯入一個技能，並綁定到助手上。",
       "setupRemote": "幫我設定遠端存取，讓我在手機或外網也能開啟 AionUi。",
-      "diagnose": "我在使用 AionUi 時遇到問題，幫我排查一下。\n\n【模組】{{module}}\n【問題描述】{{description}}\n【附件】見輸入框中的截圖。\n\n請幫我診斷原因並給出解決辦法。"
-    }
+      "diagnose": "我在使用 AionUi 時遇到問題，幫我排查一下。\n\n【模組】{{module}}\n【問題描述】{{description}}\n【附件】見輸入框中的截圖。\n\n請幫我診斷原因並給出解決辦法。",
+      "diagnoseChatError": "我在 AionUi 對話過程中遇到了報錯，幫我排查一下。\n\n【報錯內容】{{error}}\n\n請幫我診斷原因並給出解決辦法。"
+    },
+    "solveWithButler": "找管家排查"
   },
   "providerIdConflict": "Provider ID 已存在，請重試。",
   "autoInjectedSkillsHint": "每次對話都會自動載入，無需手動啟用；由智能體自行決定何時呼叫。"

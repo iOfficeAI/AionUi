@@ -1234,8 +1234,10 @@
       "addMcp": "Hilf mir, einen MCP-Server einzurichten.",
       "addSkill": "Hilf mir, einen Skill zu importieren und einem Assistenten zuzuordnen.",
       "setupRemote": "Hilf mir, den Fernzugriff einzurichten, damit ich AionUi vom Handy oder über das Internet öffnen kann.",
-      "diagnose": "Ich habe ein Problem mit AionUi, hilf mir bei der Diagnose.\n\n[Modul] {{module}}\n[Beschreibung] {{description}}\n[Anhänge] siehe die Screenshots im Eingabefeld.\n\nBitte diagnostiziere die Ursache und sag mir, wie ich es behebe."
-    }
+      "diagnose": "Ich habe ein Problem mit AionUi, hilf mir bei der Diagnose.\n\n[Modul] {{module}}\n[Beschreibung] {{description}}\n[Anhänge] siehe die Screenshots im Eingabefeld.\n\nBitte diagnostiziere die Ursache und sag mir, wie ich es behebe.",
+      "diagnoseChatError": "Während einer Unterhaltung in AionUi ist ein Fehler aufgetreten, hilf mir bei der Diagnose.\n\n[Fehler] {{error}}\n\nBitte diagnostiziere die Ursache und sag mir, wie ich es behebe."
+    },
+    "solveWithButler": "Butler fragen"
   },
   "browserNotification": {
     "enable": "Enable browser notifications",

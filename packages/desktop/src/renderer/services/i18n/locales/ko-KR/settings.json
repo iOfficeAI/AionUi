@@ -1266,8 +1266,10 @@
       "addMcp": "MCP 서버 설정을 도와주세요.",
       "addSkill": "스킬을 가져와 어시스턴트에 연결해 주세요.",
       "setupRemote": "휴대폰이나 외부에서 AionUi를 열 수 있도록 원격 접속을 설정해 주세요.",
-      "diagnose": "AionUi 사용 중 문제가 발생했습니다. 진단을 도와주세요.\n\n[모듈] {{module}}\n[문제 설명] {{description}}\n[첨부] 입력창의 스크린샷 참조.\n\n원인을 진단하고 해결 방법을 알려주세요."
-    }
+      "diagnose": "AionUi 사용 중 문제가 발생했습니다. 진단을 도와주세요.\n\n[모듈] {{module}}\n[문제 설명] {{description}}\n[첨부] 입력창의 스크린샷 참조.\n\n원인을 진단하고 해결 방법을 알려주세요.",
+      "diagnoseChatError": "AionUi 대화 중 오류가 발생했습니다. 진단을 도와주세요.\n\n[오류 내용] {{error}}\n\n원인을 진단하고 해결 방법을 알려주세요."
+    },
+    "solveWithButler": "집사에게 문의"
   },
   "providerIdConflict": "Provider ID가 이미 있습니다. 다시 시도하세요.",
   "autoInjectedSkillsHint": "모든 대화에 자동으로 로드됩니다. 활성화할 필요가 없으며, 에이전트가 사용 시점을 결정합니다."
