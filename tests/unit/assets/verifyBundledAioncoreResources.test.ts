@@ -123,7 +123,13 @@ function writeManagedResourcesContract(
 
 function seedRuntimeKey(
   resourcesDir: string,
-  { runtimeKey, platform, arch, nodeRoot, nodeExecutable }: { runtimeKey: string; platform: string; arch: string; nodeRoot: string; nodeExecutable: string }
+  {
+    runtimeKey,
+    platform,
+    arch,
+    nodeRoot,
+    nodeExecutable,
+  }: { runtimeKey: string; platform: string; arch: string; nodeRoot: string; nodeExecutable: string }
 ) {
   const managedResourcesDir = join(resourcesDir, 'bundled-aioncore', runtimeKey, 'managed-resources');
   mkdirSync(join(resourcesDir, 'bundled-aioncore', runtimeKey), { recursive: true });
