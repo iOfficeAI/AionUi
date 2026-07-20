@@ -29,6 +29,30 @@ const loadLoopbackBridge = async () => {
   return { bridge, getIncoming: () => incoming, outbound };
 };
 
+/**
+ * Loopback bridge that JSON round-trips every message, mirroring the real
+ * Electron IPC / WebSocket transports (adapter/main.ts serializes with
+ * JSON.stringify, which silently drops `undefined` values).
+ */
+const loadSerializingBridge = async () => {
+  vi.resetModules();
+  const { bridge } = await import('@/common/platform/bridge');
+  let incoming: TransportEmitter | undefined;
+
+  bridge.adapter({
+    emit(name, data) {
+      const wire = JSON.stringify({ name, data });
+      const parsed = JSON.parse(wire) as { name: string; data: unknown };
+      return incoming?.emit(parsed.name, parsed.data);
+    },
+    on(emitter) {
+      incoming = emitter;
+    },
+  });
+
+  return { bridge };
+};
+
 describe('local bridge', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
@@ -64,6 +88,20 @@ describe('local bridge', () => {
     await Promise.resolve();
 
     expect(handler).not.toHaveBeenCalled();
+  });
+
+  // Regression: void-param invokes (e.g. window-controls:minimize) send
+  // `data: undefined`, which JSON serialization strips from the wire payload.
+  // The subscribe guard must not require the `data` key or those requests
+  // are silently dropped after crossing a real IPC/WebSocket transport.
+  it('handles void-param invokes across a JSON-serializing transport', async () => {
+    const { bridge } = await loadSerializingBridge();
+    const handler = vi.fn(() => undefined);
+    const endpoint = bridge.buildProvider<void, void>('window-controls.test');
+    endpoint.provider(handler);
+
+    await expect(endpoint.invoke()).resolves.toBeUndefined();
+    expect(handler).toHaveBeenCalledTimes(1);
   });
 
   it('logs rejected providers without emitting a success callback', async () => {

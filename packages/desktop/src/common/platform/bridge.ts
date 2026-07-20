@@ -121,17 +121,14 @@ export const subscribe = <Params = unknown, Data = unknown>(
   handler: (data: Params) => MaybePromise<Data>
 ): (() => void) =>
   on(`subscribe-${name}`, (request) => {
-    if (
-      typeof request !== 'object' ||
-      request === null ||
-      !('id' in request) ||
-      typeof request.id !== 'string' ||
-      !('data' in request)
-    ) {
+    // Note: no `'data' in request` check — void-param invokes send
+    // `data: undefined`, and JSON transports (Electron IPC, WebSocket)
+    // strip undefined values, so the key is legitimately absent on the wire.
+    if (typeof request !== 'object' || request === null || !('id' in request) || typeof request.id !== 'string') {
       return;
     }
 
-    Promise.resolve(handler(request.data as Params))
+    Promise.resolve(handler((request as { data?: Params }).data as Params))
       .then((result) => emit(`subscribe.callback-${name}${request.id}`, result))
       .catch((error: unknown) => {
         console.error(`[bridge] Provider "${name}" failed:`, error);

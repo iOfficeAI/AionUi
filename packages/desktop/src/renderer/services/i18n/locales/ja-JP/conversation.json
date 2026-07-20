@@ -72,7 +72,8 @@
     "removeProject": "プロジェクトを削除",
     "removeProjectConfirm": "プロジェクト「{{name}}」を削除しますか？プロジェクト内の {{count}} 件の会話も削除されます。",
     "newConversationInProject": "このプロジェクト内で新しい会話",
-    "deleting": "削除中..."
+    "deleting": "削除中...",
+    "reorderPinned": "ドラッグしてピン留め会話の順序を変更"
   },
   "historySearch": {
     "tooltip": "メッセージを検索",

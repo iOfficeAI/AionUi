@@ -62,6 +62,8 @@ export type ConversationRowProps = {
   getJobStatus: (conversation_id: string) => 'none' | 'active' | 'paused' | 'error' | 'unread';
   /** When true, the agent icon is dimmed by default and only shows full color on hover. Used inside project folders to reduce visual weight. */
   dimIcon?: boolean;
+  /** Hover-reveal drag handle overlaying the leading icon; supplied by the sortable wrapper for reorderable (pinned) rows. */
+  dragHandle?: ReactNode;
 };
 
 export type WorkspaceGroupedHistoryProps = {

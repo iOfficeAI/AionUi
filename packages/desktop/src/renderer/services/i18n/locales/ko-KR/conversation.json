@@ -72,7 +72,8 @@
     "removeProject": "프로젝트 제거",
     "removeProjectConfirm": "\"{{name}}\" 프로젝트를 제거하시겠습니까? 프로젝트의 {{count}}개 대화도 함께 제거됩니다.",
     "newConversationInProject": "이 프로젝트에서 새 대화",
-    "deleting": "삭제 중..."
+    "deleting": "삭제 중...",
+    "reorderPinned": "드래그하여 고정된 대화 순서 변경"
   },
   "historySearch": {
     "tooltip": "메시지 검색",

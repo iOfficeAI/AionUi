@@ -108,6 +108,26 @@ describe('buildTeamSendRuntime', () => {
       expect(runtime.statusText).toBe(blocked_reason);
     }
   );
+
+  it('exposes the active turn start timestamp from slot work', () => {
+    const slotWork = work({ state: 'running', active_turn_id: 'turn-1', active_turn_started_at_ms: 1_700_000_000_000 });
+    const runtime = buildTeamSendRuntime({ slot_id: 'lead', runView: view(slotWork) });
+
+    expect(runtime.startedAtMs).toBe(1_700_000_000_000);
+  });
+
+  it('normalizes a null start timestamp to null', () => {
+    const slotWork = work({ state: 'running', active_turn_id: 'turn-1', active_turn_started_at_ms: null });
+    const runtime = buildTeamSendRuntime({ slot_id: 'lead', runView: view(slotWork) });
+
+    expect(runtime.startedAtMs).toBeNull();
+  });
+
+  it('returns a null start timestamp when the slot has no work', () => {
+    const runtime = buildTeamSendRuntime({ slot_id: 'missing', runView: view() });
+
+    expect(runtime.startedAtMs).toBeNull();
+  });
 });
 
 describe('buildTeamWorkStatusText', () => {

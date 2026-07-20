@@ -72,7 +72,8 @@
     "removeProject": "Видалити проєкт",
     "removeProjectConfirm": "Видалити проєкт «{{name}}»? Також буде видалено {{count}} розмов у ньому.",
     "newConversationInProject": "Нова розмова в цьому проєкті",
-    "deleting": "Видалення..."
+    "deleting": "Видалення...",
+    "reorderPinned": "Перетягніть, щоб змінити порядок закріплених розмов"
   },
   "historySearch": {
     "tooltip": "Пошук повідомлень",

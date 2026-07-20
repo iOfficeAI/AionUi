@@ -72,7 +72,8 @@
     "removeProject": "Remove project",
     "removeProjectConfirm": "Remove project \"{{name}}\"? Its {{count}} conversation(s) will be removed too.",
     "newConversationInProject": "New chat in this project",
-    "deleting": "Deleting..."
+    "deleting": "Deleting...",
+    "reorderPinned": "Drag to reorder pinned conversation"
   },
   "historySearch": {
     "tooltip": "Search messages",
