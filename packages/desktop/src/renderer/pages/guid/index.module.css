@@ -459,6 +459,23 @@
   animation: agentSelectPop 0.4s ease-out forwards;
 }
 
+/* 更多 Agent 面板：细微且快速的下滑淡入 */
+@keyframes assistantOverflowPanelIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.assistantOverflowPanel {
+  transform-origin: top center;
+  animation: assistantOverflowPanelIn 0.16s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+
 :global([data-theme='dark']) .assistantSelectorInactive {
   opacity: 1;
   color: var(--aou-9) !important;
