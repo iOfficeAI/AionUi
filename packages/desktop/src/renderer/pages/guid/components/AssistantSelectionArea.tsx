@@ -7,7 +7,7 @@
 import styles from '../index.module.css';
 import { assistantRuntimeKey, type Assistant } from '@/common/types/agent/assistantTypes';
 import { Down, Robot } from '@icon-park/react';
-import { Button, Dropdown } from '@arco-design/web-react';
+import { Button } from '@arco-design/web-react';
 import { AionSearchInput } from '@/renderer/components/base';
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { resolveAssistantAvatar } from '@/renderer/utils/model/assistantAvatar';
@@ -48,6 +48,7 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
   const [search, setSearch] = useState('');
   const [availableWidth, setAvailableWidth] = useState(() => (typeof window === 'undefined' ? 800 : window.innerWidth));
   const containerRef = useRef<HTMLDivElement>(null);
+  const barRef = useRef<HTMLDivElement>(null);
   const selectedId = selectedAssistantId || undefined;
   const widthVisibleLimit = Math.min(Math.max(1, maxVisibleAssistants), resolveAssistantVisibleLimit(availableWidth));
   const [adaptiveVisibleLimit, setAdaptiveVisibleLimit] = useState(widthVisibleLimit);
@@ -57,6 +58,28 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
   useEffect(() => {
     setAdaptiveVisibleLimit(widthVisibleLimit);
   }, [enabledAssistants, selectedId, widthVisibleLimit]);
+
+  useEffect(() => {
+    if (!moreVisible) return;
+
+    const handlePointerDown = (event: MouseEvent) => {
+      if (barRef.current && event.target instanceof Node && !barRef.current.contains(event.target)) {
+        setMoreVisible(false);
+      }
+    };
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setMoreVisible(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handlePointerDown);
+    document.addEventListener('keydown', handleEscape);
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [moreVisible]);
 
   useEffect(() => {
     const updateAvailableWidth = () => {
@@ -111,6 +134,7 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
     const visibleIds = new Set(visibleAssistants.map((assistant) => assistant.id));
     return enabledAssistants.filter((assistant) => !visibleIds.has(assistant.id));
   }, [enabledAssistants, visibleAssistants]);
+  const overflowColumns = widthVisibleLimit;
   const filteredOverflowAssistants = useMemo(() => {
     const query = search.trim().toLowerCase();
     if (!query) return overflowAssistants;
@@ -122,7 +146,7 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
 
   if (enabledAssistants.length === 0) return null;
 
-  const renderAssistantPill = (assistant: Assistant, testId: string) => {
+  const renderAssistantPill = (assistant: Assistant, testId: string, fullWidth = false) => {
     const avatar = resolveAssistantAvatar(assistant.avatar);
     const isSelected = selectedId === assistant.id;
     const label = assistant.name_i18n?.[localeKey] || assistant.name;
@@ -136,6 +160,8 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
         data-assistant-selected={isSelected ? 'true' : 'false'}
         type='text'
         className={`!inline-flex !min-w-0 !h-auto !items-center !gap-6px !rounded-999px !border-none !px-12px !py-8px !text-13px transition-all ${
+          fullWidth ? '!w-full !justify-start' : ''
+        } ${
           isSelected
             ? 'font-600 text-t-primary shadow-sm'
             : `text-t-secondary opacity-75 hover:opacity-100 ${styles.assistantSelectorInactive}`
@@ -155,16 +181,18 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
             <Robot theme='outline' size={14} />
           )}
         </span>
-        <span data-assistant-label='true' className='max-w-180px truncate whitespace-nowrap'>
+        <span data-assistant-label='true' className='min-w-0 max-w-180px truncate whitespace-nowrap'>
           {label}
         </span>
       </Button>
     );
   };
 
-  const overflowDroplist = (
+  const overflowPanel = (
     <div
-      className='min-w-240px rounded-12px border border-border-2 p-8px shadow-lg'
+      data-testid='assistant-overflow-panel'
+      data-overflow-columns={overflowColumns}
+      className={`absolute left-0 top-[calc(100%+8px)] z-100 w-full rounded-12px border border-border-2 p-8px shadow-lg`}
       style={{ background: 'var(--bg-base, #fff)' }}
     >
       <div className='mb-8px'>
@@ -175,9 +203,14 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
           placeholder={t('team.create.searchPlaceholder', { defaultValue: 'Search' })}
         />
       </div>
-      <div className='flex max-h-260px flex-col gap-4px overflow-y-auto'>
+      <div
+        className='grid max-h-260px gap-6px overflow-y-auto'
+        style={{ gridTemplateColumns: `repeat(${overflowColumns}, minmax(0, 1fr))` }}
+      >
         {filteredOverflowAssistants.map((assistant) => (
-          <div key={assistant.id}>{renderAssistantPill(assistant, `assistant-overflow-${assistant.id}`)}</div>
+          <div key={assistant.id} className='min-w-0'>
+            {renderAssistantPill(assistant, `assistant-overflow-${assistant.id}`, true)}
+          </div>
         ))}
       </div>
     </div>
@@ -187,30 +220,25 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
     <div ref={containerRef} className='mt-18px mb-16px w-full'>
       <div className='flex w-full justify-center'>
         <div
-          className='inline-flex max-w-full items-center rounded-999px px-6px py-6px'
+          ref={barRef}
+          className='relative inline-flex max-w-full items-center rounded-999px px-6px py-6px'
           style={{ background: 'var(--color-guid-agent-bar, var(--aou-2))' }}
         >
           <div className='flex min-w-0 max-w-full items-center gap-6px'>
             {visibleAssistants.map((assistant) => renderAssistantPill(assistant, `preset-pill-${assistant.id}`))}
             {hasOverflow ? (
-              <Dropdown
-                trigger='click'
-                position='bl'
-                droplist={overflowDroplist}
-                popupVisible={moreVisible}
-                onVisibleChange={setMoreVisible}
+              <Button
+                data-testid='assistant-more-btn'
+                type='text'
+                className={`!ml-6px !inline-flex !h-34px !shrink-0 !items-center !gap-4px !rounded-999px !border-none !px-12px !py-8px !text-13px !text-t-secondary opacity-75 transition-opacity hover:opacity-100 ${styles.assistantSelectorInactive}`}
+                onClick={() => setMoreVisible((visible) => !visible)}
               >
-                <Button
-                  data-testid='assistant-more-btn'
-                  type='text'
-                  className={`!ml-6px !inline-flex !h-34px !shrink-0 !items-center !gap-4px !rounded-999px !border-none !px-12px !py-8px !text-13px !text-t-secondary opacity-75 transition-opacity hover:opacity-100 ${styles.assistantSelectorInactive}`}
-                >
-                  <span>{t('common.more', { defaultValue: 'More' })}</span>
-                  <Down theme='outline' size={14} />
-                </Button>
-              </Dropdown>
+                <span>{t('common.more', { defaultValue: 'More' })}</span>
+                <Down theme='outline' size={14} />
+              </Button>
             ) : null}
           </div>
+          {hasOverflow && moreVisible ? overflowPanel : null}
         </div>
       </div>
     </div>

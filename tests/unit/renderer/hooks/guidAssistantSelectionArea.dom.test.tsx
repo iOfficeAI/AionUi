@@ -100,6 +100,44 @@ describe('AssistantSelectionArea', () => {
     expect(screen.queryByTestId('assistant-overflow-user-research')).not.toBeInTheDocument();
   });
 
+  it('lays out the overflow dropdown as a grid matching the visible pill count', async () => {
+    render(
+      <AssistantSelectionArea
+        selectedAssistantId='bare-aionrs'
+        assistants={manyAssistants()}
+        localeKey='en-US'
+        onSelectAssistant={vi.fn()}
+      />
+    );
+
+    fireEvent.click(screen.getByTestId('assistant-more-btn'));
+
+    const panel = await screen.findByTestId('assistant-overflow-panel');
+    // jsdom reports a wide window, so the width limit resolves to 4 columns.
+    expect(panel.getAttribute('data-overflow-columns')).toBe('4');
+    const grid = panel.querySelector<HTMLElement>('.grid');
+    expect(grid?.style.gridTemplateColumns).toBe('repeat(4, minmax(0, 1fr))');
+  });
+
+  it('narrows the overflow grid together with the visible pill count', async () => {
+    render(
+      <AssistantSelectionArea
+        selectedAssistantId='bare-aionrs'
+        assistants={manyAssistants()}
+        localeKey='en-US'
+        maxVisibleAssistants={2}
+        onSelectAssistant={vi.fn()}
+      />
+    );
+
+    fireEvent.click(screen.getByTestId('assistant-more-btn'));
+
+    const panel = await screen.findByTestId('assistant-overflow-panel');
+    expect(panel.getAttribute('data-overflow-columns')).toBe('2');
+    const grid = panel.querySelector<HTMLElement>('.grid');
+    expect(grid?.style.gridTemplateColumns).toBe('repeat(2, minmax(0, 1fr))');
+  });
+
   it('limits the top assistant row when a smaller visible count is provided', async () => {
     render(
       <AssistantSelectionArea
