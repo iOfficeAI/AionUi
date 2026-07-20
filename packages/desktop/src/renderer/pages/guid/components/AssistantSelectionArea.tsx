@@ -162,14 +162,16 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
     return enabledAssistants.filter((assistant) => !visibleIds.has(assistant.id));
   }, [enabledAssistants, visibleAssistants]);
   const overflowColumns = widthVisibleLimit;
+  // Search only earns its row when the unfiltered list is long enough to scan.
+  const showOverflowSearch = Math.ceil(overflowAssistants.length / overflowColumns) > 5;
   const filteredOverflowAssistants = useMemo(() => {
-    const query = search.trim().toLowerCase();
+    const query = showOverflowSearch ? search.trim().toLowerCase() : '';
     if (!query) return overflowAssistants;
     return overflowAssistants.filter((assistant) => {
       const label = assistant.name_i18n?.[localeKey] || assistant.name;
       return label.toLowerCase().includes(query);
     });
-  }, [localeKey, overflowAssistants, search]);
+  }, [localeKey, overflowAssistants, search, showOverflowSearch]);
 
   if (enabledAssistants.length === 0) return null;
 
@@ -222,14 +224,16 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
       className={`absolute left-0 top-[calc(100%+8px)] z-100 w-full rounded-12px border border-border-2 p-8px shadow-lg ${styles.assistantOverflowPanel}`}
       style={{ background: 'var(--bg-base, #fff)' }}
     >
-      <div className='mb-8px'>
-        <AionSearchInput
-          className='w-full'
-          value={search}
-          onChange={setSearch}
-          placeholder={t('team.create.searchPlaceholder', { defaultValue: 'Search' })}
-        />
-      </div>
+      {showOverflowSearch ? (
+        <div className='mb-8px'>
+          <AionSearchInput
+            className='w-full'
+            value={search}
+            onChange={setSearch}
+            placeholder={t('team.create.searchPlaceholder', { defaultValue: 'Search' })}
+          />
+        </div>
+      ) : null}
       <div
         className='grid max-h-260px gap-6px overflow-y-auto'
         style={{ gridTemplateColumns: `repeat(${overflowColumns}, minmax(0, 1fr))` }}
