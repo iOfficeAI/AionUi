@@ -1,5 +1,39 @@
 # Changelog
 
+## [2.1.38](https://github.com/iOfficeAI/AionUi/compare/v2.1.37...v2.1.38) (2026-07-20)
+
+### Desktop
+
+#### Features
+
+- **guid:** task-oriented default prompts with refined suggestion styling (#3622)
+- **guid:** expand assistant more dropdown into responsive multi-column panel (#3621)
+- **settings:** add agent and assistant search (#3616)
+
+#### Bug Fixes
+
+- **system:** let backend own keep-awake blocker (#3620)
+- **installer:** run arch check before registry mutation (#3619)
+- **team:** treat idle-stopped session as recoverable, not a draft-box block (#3618)
+- **settings:** hide agent search on mobile (#3617)
+
+### Core ([v0.1.49](https://github.com/iOfficeAI/AionCore/releases/tag/v0.1.49))
+
+#### Features
+
+- **agents:** sync ACP Registry integrations (#637)
+- **ai-agent:** use responses api for gpt-5.6
+- **config:** add conversation rename command (#638)
+- **idle:** extend idle-cleanup timeouts and make them env-configurable (#643)
+
+#### Bug Fixes
+
+- **ai-agent:** ignore max token limits for aionui requests
+- **system:** apply keep-awake client preference (#642)
+- **team:** broadcast Stopped status on idle-cleanup team reclaim (#640)
+
+---
+
 ## [2.1.37](https://github.com/iOfficeAI/AionUi/compare/v2.1.36...v2.1.37) (2026-07-18)
 
 ### Desktop
