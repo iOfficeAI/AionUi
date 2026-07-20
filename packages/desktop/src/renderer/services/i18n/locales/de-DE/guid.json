@@ -7,9 +7,9 @@
   "autoSwitchedAgent": "{{from}} ist nicht verfügbar, zu {{to}} gewechselt",
   "promptExamplesHint": "Diese Anweisungen ausprobieren",
   "defaultPrompts": {
-    "capabilities": "Was kannst du für mich tun?",
-    "skills": "Welche Fähigkeiten hast du?",
-    "tools": "Welche Werkzeuge hast du?"
+    "understand": "Verschaffe dir einen Überblick über dieses Projekt und erkläre mir in einfachen Worten, was es macht und wo ich anfangen sollte",
+    "cleanup": "Finde doppelte und unnötige Dateien in diesem Ordner und liste sie zur Bestätigung auf",
+    "create": "Erstelle mir eine schöne persönliche Homepage und öffne sie, sobald sie fertig ist"
   },
   "selectAssistantHint": "Wähle einen Assistenten, um eine Aufgabe zu starten",
   "agentSwitcherLabel": "Agent",

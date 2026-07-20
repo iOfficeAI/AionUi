@@ -140,7 +140,9 @@
       "weekdays": "روزهای هفته",
       "monthDay": "روز ماه",
       "preview": "Cron تولیدشده"
-    }
+    },
+    "searchPlaceholder": "جستجوی وظایف...",
+    "noSearchResults": "هیچ وظیفه زمان‌بندی‌شده منطبقی وجود ندارد."
   },
   "trigger": {
     "runScheduledTask": "اجرای کار زمان‌بندی‌شده: {{name}}"

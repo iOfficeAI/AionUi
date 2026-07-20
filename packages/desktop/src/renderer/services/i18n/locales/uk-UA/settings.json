@@ -1049,7 +1049,9 @@
     "boundAssistantsTitle": "Асистенти, що використовують цей агент",
     "boundAssistantsCount": "Асистентів: {{count}}",
     "boundAssistantsEmpty": "До цього агента ще не приєднано жодного асистента.",
-    "viewAssistant": "Переглянути"
+    "viewAssistant": "Переглянути",
+    "searchPlaceholder": "Пошук агентів...",
+    "noSearchResults": "Немає агентів, що збігаються."
   },
   "repair": {
     "pathLabel": "Шлях запуску",

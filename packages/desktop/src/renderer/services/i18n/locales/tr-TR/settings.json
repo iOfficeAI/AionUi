@@ -1137,7 +1137,9 @@
     "boundAssistantsTitle": "Bu ajanı kullanan asistanlar",
     "boundAssistantsCount": "{{count}} asistan",
     "boundAssistantsEmpty": "Bu ajana henüz bağlı asistan yok.",
-    "viewAssistant": "Görüntüle"
+    "viewAssistant": "Görüntüle",
+    "searchPlaceholder": "Agent ara...",
+    "noSearchResults": "Eşleşen agent yok."
   },
   "repair": {
     "pathLabel": "Başlatma Yolu",

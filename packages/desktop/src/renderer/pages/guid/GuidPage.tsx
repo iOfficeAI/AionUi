@@ -32,6 +32,7 @@ import SpeechInputButton from '@/renderer/components/chat/SpeechInputButton';
 import { useOpenFileSelector } from '@/renderer/hooks/file/useOpenFileSelector';
 import { appendSpeechTranscript } from '@/renderer/hooks/system/useSpeechInput';
 import { useLiveTranscriptInsertion } from '@/renderer/hooks/system/useLiveTranscriptInsertion';
+import { ArrowRightUp } from '@icon-park/react';
 import { Button, ConfigProvider } from '@arco-design/web-react';
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -330,7 +331,7 @@ const GuidPage: React.FC = () => {
       return resolvedPrompts;
     }
 
-    return [t('guid.defaultPrompts.capabilities'), t('guid.defaultPrompts.skills'), t('guid.defaultPrompts.tools')];
+    return [t('guid.defaultPrompts.understand'), t('guid.defaultPrompts.cleanup'), t('guid.defaultPrompts.create')];
   }, [localeKey, selectedAssistantDetail, selectedAssistantRecord, selectedAssistantId, t]);
 
   // Sync disabledBuiltinSkills + enabledSkills from assistant detail defaults.
@@ -668,7 +669,7 @@ const GuidPage: React.FC = () => {
           />
 
           {selectedAssistantPrompts.length > 0 ? (
-            <div className='mt-18px w-full animate-fade-in'>
+            <div className='mt-18px w-full animate-fade-in pl-20px'>
               <div className={`${styles.assistantPromptHint} mb-10px text-left`}>
                 {t('guid.promptExamplesHint', { defaultValue: 'Try these example prompts:' })}
               </div>
@@ -677,13 +678,18 @@ const GuidPage: React.FC = () => {
                   <Button
                     key={`${index}-${prompt}`}
                     type='text'
-                    className='!h-auto !w-full !rounded-10px !border !border-border-2 !bg-bg-base !px-10px !py-10px !text-left !text-12.5px !text-t-secondary !whitespace-normal !break-words transition-colors hover:!border-aou-6 hover:!text-t-primary'
+                    className='group !h-auto !w-full !border-none !bg-transparent !px-0 !py-6px !text-left !text-12.5px !text-t-secondary !whitespace-normal !break-words transition-colors hover:!bg-transparent hover:!text-t-primary'
                     onClick={() => {
                       guidInput.setInput(prompt);
                       guidInput.handleTextareaFocus();
                     }}
                   >
-                    {prompt}
+                    <span>{prompt}</span>
+                    <ArrowRightUp
+                      theme='outline'
+                      size='13'
+                      className='ml-6px inline-flex flex-shrink-0 align-[-1px] text-t-primary opacity-0 transition-opacity group-hover:opacity-100'
+                    />
                   </Button>
                 ))}
               </div>

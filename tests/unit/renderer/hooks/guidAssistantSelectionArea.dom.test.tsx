@@ -100,6 +100,83 @@ describe('AssistantSelectionArea', () => {
     expect(screen.queryByTestId('assistant-overflow-user-research')).not.toBeInTheDocument();
   });
 
+  it('lays out the overflow dropdown as a grid matching the visible pill count', async () => {
+    render(
+      <AssistantSelectionArea
+        selectedAssistantId='bare-aionrs'
+        assistants={manyAssistants()}
+        localeKey='en-US'
+        onSelectAssistant={vi.fn()}
+      />
+    );
+
+    fireEvent.click(screen.getByTestId('assistant-more-btn'));
+
+    const panel = await screen.findByTestId('assistant-overflow-panel');
+    // jsdom reports a wide window, so the width limit resolves to 4 columns.
+    expect(panel.getAttribute('data-overflow-columns')).toBe('4');
+    const grid = panel.querySelector<HTMLElement>('.grid');
+    expect(grid?.style.gridTemplateColumns).toBe('repeat(4, minmax(0, 1fr))');
+  });
+
+  it('narrows the overflow grid together with the visible pill count', async () => {
+    render(
+      <AssistantSelectionArea
+        selectedAssistantId='bare-aionrs'
+        assistants={manyAssistants()}
+        localeKey='en-US'
+        maxVisibleAssistants={2}
+        onSelectAssistant={vi.fn()}
+      />
+    );
+
+    fireEvent.click(screen.getByTestId('assistant-more-btn'));
+
+    const panel = await screen.findByTestId('assistant-overflow-panel');
+    expect(panel.getAttribute('data-overflow-columns')).toBe('2');
+    const grid = panel.querySelector<HTMLElement>('.grid');
+    expect(grid?.style.gridTemplateColumns).toBe('repeat(2, minmax(0, 1fr))');
+  });
+
+  it('hides the overflow search until the list exceeds five rows', async () => {
+    render(
+      <AssistantSelectionArea
+        selectedAssistantId='bare-aionrs'
+        assistants={manyAssistants()}
+        localeKey='en-US'
+        onSelectAssistant={vi.fn()}
+      />
+    );
+
+    fireEvent.click(screen.getByTestId('assistant-more-btn'));
+
+    await screen.findByTestId('assistant-overflow-panel');
+    // 2 overflow assistants in 4 columns → 1 row, far below the 5-row threshold.
+    expect(screen.queryByPlaceholderText('Search')).not.toBeInTheDocument();
+  });
+
+  it('shows the overflow search once the list exceeds five rows', async () => {
+    const bulk = Array.from({ length: 25 }, (_, index) =>
+      mkAssistant(`user-bulk-${index}`, `Bulk ${index}`, 'user', 'claude', 100 + index)
+    );
+
+    render(
+      <AssistantSelectionArea
+        selectedAssistantId='bare-aionrs'
+        assistants={[...manyAssistants(), ...bulk]}
+        localeKey='en-US'
+        maxVisibleAssistants={1}
+        onSelectAssistant={vi.fn()}
+      />
+    );
+
+    fireEvent.click(screen.getByTestId('assistant-more-btn'));
+
+    await screen.findByTestId('assistant-overflow-panel');
+    // 30 overflow assistants in 1 column → 30 rows, search becomes necessary.
+    expect(screen.getByPlaceholderText('Search')).toBeInTheDocument();
+  });
+
   it('limits the top assistant row when a smaller visible count is provided', async () => {
     render(
       <AssistantSelectionArea

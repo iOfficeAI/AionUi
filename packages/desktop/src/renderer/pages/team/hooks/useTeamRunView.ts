@@ -17,12 +17,21 @@ export type TeamRunViewState = {
   activeRun?: TeamRunViewRun;
   childTurnsBySlot: Record<string, TeamRunViewChildTurn | undefined>;
   slotWorkBySlot: Record<string, ITeamSlotWork | undefined>;
+  /**
+   * True when the team session was reclaimed by idle-cleanup (backend broadcast
+   * `sessionStatusChanged` with status `stopped`). Event-driven and independent
+   * of `slotWorkBySlot`, which is re-derived/emptied on reconcile and would
+   * otherwise lose the stopped signal. Cleared on recovery (`starting`/`ready`)
+   * or on any applied active run event (self-heal).
+   */
+  sessionStopped: boolean;
 };
 
 const emptyState: TeamRunViewState = {
   activeRun: undefined,
   childTurnsBySlot: {},
   slotWorkBySlot: {},
+  sessionStopped: false,
 };
 
 const isTeamRunDebugEnabled = process.env.NODE_ENV !== 'production';
@@ -84,12 +93,14 @@ export const useTeamRunView = (team_id: string) => {
             activeRun: undefined,
             childTurnsBySlot: prev.childTurnsBySlot,
             slotWorkBySlot: indexSlotWork(event.slot_work),
+            sessionStopped: false,
           };
         }
         return {
           activeRun: event,
           childTurnsBySlot: prev.childTurnsBySlot,
           slotWorkBySlot: indexSlotWork(event.slot_work),
+          sessionStopped: false,
         };
       });
     },
@@ -116,6 +127,7 @@ export const useTeamRunView = (team_id: string) => {
             activeRun,
             childTurnsBySlot: {},
             slotWorkBySlot: indexSlotWork(snapshot.slot_work),
+            sessionStopped: false,
           };
         });
         return true;
@@ -190,6 +202,15 @@ export const useTeamRunView = (team_id: string) => {
       }),
       ipcBridge.team.agentRenamed.on((event) => {
         if (event.team_id === team_id) void reconcile('team.agentRenamed');
+      }),
+      ipcBridge.team.sessionStatusChanged.on((event) => {
+        if (event.team_id !== team_id) return;
+        if (event.status === 'stopped') {
+          setState((prev) => ({ ...prev, sessionStopped: true }));
+        } else if (event.status === 'starting' || event.status === 'ready') {
+          setState((prev) => ({ ...prev, sessionStopped: false }));
+        }
+        // 'failed' leaves sessionStopped unchanged.
       }),
     ];
     return () => {

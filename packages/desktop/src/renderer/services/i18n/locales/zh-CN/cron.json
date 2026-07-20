@@ -58,6 +58,8 @@
     "awakeBanner": "定时任务仅在电脑唤醒状态下运行。",
     "keepAwake": "保持唤醒",
     "keepAwakeTooltip": "开启后，AionUi 将阻止电脑进入休眠状态",
+    "searchPlaceholder": "搜索定时任务...",
+    "noSearchResults": "没有匹配的定时任务。",
     "createTask": "创建定时任务",
     "editTask": "编辑定时任务",
     "createSuccess": "任务创建成功",

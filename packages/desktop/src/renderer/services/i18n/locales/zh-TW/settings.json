@@ -1121,6 +1121,8 @@
     "filterAll": "全部",
     "filterAvailable": "可用",
     "filterUnavailable": "不可用",
+    "searchPlaceholder": "搜尋 Agent...",
+    "noSearchResults": "沒有匹配的 Agent。",
     "statusOnline": "可用",
     "statusNeedsAuth": "需登入",
     "statusOffline": "不可用",

@@ -1149,7 +1149,9 @@
     "boundAssistantsTitle": "Assistants utilisant cet agent",
     "boundAssistantsCount": "{{count}} assistant(s)",
     "boundAssistantsEmpty": "Aucun assistant n'est encore lié à cet agent.",
-    "viewAssistant": "Voir"
+    "viewAssistant": "Voir",
+    "searchPlaceholder": "Rechercher des agents...",
+    "noSearchResults": "Aucun agent correspondant."
   },
   "repair": {
     "pathLabel": "Chemin de lancement",

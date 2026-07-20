@@ -48,8 +48,8 @@ vi.mock('@/renderer/utils/platform', () => ({
 vi.mock('@icon-park/react', () => {
   const Icon = () => <span aria-hidden='true' />;
   return {
-    ArrowUp: Icon,
     Brain: Icon,
+    CornerRightUp: Icon,
     FolderUpload: Icon,
     Lightning: Icon,
     Plus: Icon,

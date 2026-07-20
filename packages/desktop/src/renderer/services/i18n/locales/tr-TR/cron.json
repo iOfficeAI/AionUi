@@ -153,7 +153,9 @@
       "weekdays": "Haftanın günleri",
       "monthDay": "Ayın günü",
       "preview": "Oluşturulan Cron"
-    }
+    },
+    "searchPlaceholder": "Görev ara...",
+    "noSearchResults": "Eşleşen zamanlanmış görev yok."
   },
   "trigger": {
     "runScheduledTask": "Zamanlanmış görev çalıştır: {{name}}"

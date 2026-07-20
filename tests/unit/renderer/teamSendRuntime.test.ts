@@ -23,7 +23,7 @@ const work = (overrides: Partial<ITeamSlotWork> = {}): ITeamSlotWork => ({
   ...overrides,
 });
 
-const view = (slotWork?: ITeamSlotWork): TeamRunViewState => ({
+const view = (slotWork?: ITeamSlotWork, sessionStopped = false): TeamRunViewState => ({
   activeRun: {
     team_id: 'team-1',
     team_run_id: 'run-1',
@@ -40,6 +40,7 @@ const view = (slotWork?: ITeamSlotWork): TeamRunViewState => ({
   },
   childTurnsBySlot: {},
   slotWorkBySlot: slotWork ? { [slotWork.slot_id]: slotWork } : {},
+  sessionStopped,
 });
 
 describe('buildTeamSendRuntime', () => {
@@ -94,7 +95,7 @@ describe('buildTeamSendRuntime', () => {
     expect(runtime.runtimeGate.canSendMessage).toBe(true);
   });
 
-  it.each<TeamSlotBlockedReason>(['runtime_failed', 'removing', 'session_stopped'])(
+  it.each<TeamSlotBlockedReason>(['runtime_failed', 'removing'])(
     'blocks sending for fatal reason %s',
     (blocked_reason) => {
       const runtime = buildTeamSendRuntime({
@@ -108,6 +109,42 @@ describe('buildTeamSendRuntime', () => {
       expect(runtime.statusText).toBe(blocked_reason);
     }
   );
+
+  it('keeps sending open for a stale session_stopped slot (recoverable, not fatal)', () => {
+    const runtime = buildTeamSendRuntime({
+      slot_id: 'lead',
+      runView: view(work({ state: 'blocked', blocked_reason: 'session_stopped' })),
+      statusText: 'session stopped',
+    });
+
+    expect(runtime.runtimeGate.canSendMessage).toBe(true);
+    expect(runtime.statusText).toBe('session stopped');
+  });
+
+  it('forces the recoverable-stopped shape when sessionStopped is set', () => {
+    const runtime = buildTeamSendRuntime({
+      slot_id: 'lead',
+      runView: view(work({ state: 'running', active_turn_id: 'turn-1' }), true),
+      statusText: 'The team session has stopped.',
+      sessionStopped: true,
+    });
+
+    expect(runtime.runtimeGate.canSendMessage).toBe(true);
+    expect(runtime.loading).toBe(false);
+    expect(runtime.statusText).toBe('The team session has stopped.');
+  });
+
+  it('overrides a residual fatal block when sessionStopped is set', () => {
+    const runtime = buildTeamSendRuntime({
+      slot_id: 'lead',
+      runView: view(work({ state: 'blocked', blocked_reason: 'runtime_failed' }), true),
+      statusText: 'The team session has stopped.',
+      sessionStopped: true,
+    });
+
+    expect(runtime.runtimeGate.canSendMessage).toBe(true);
+    expect(runtime.loading).toBe(false);
+  });
 
   it('exposes the active turn start timestamp from slot work', () => {
     const slotWork = work({ state: 'running', active_turn_id: 'turn-1', active_turn_started_at_ms: 1_700_000_000_000 });

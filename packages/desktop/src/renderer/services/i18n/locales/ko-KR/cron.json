@@ -141,7 +141,9 @@
       "weekdays": "요일",
       "monthDay": "매월 날짜",
       "preview": "생성된 Cron"
-    }
+    },
+    "searchPlaceholder": "작업 검색...",
+    "noSearchResults": "일치하는 예약 작업이 없습니다."
   },
   "trigger": {
     "runScheduledTask": "예약 작업 실행: {{name}}"

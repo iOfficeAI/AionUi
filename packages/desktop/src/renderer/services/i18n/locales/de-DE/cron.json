@@ -140,7 +140,9 @@
       "weekdays": "Wochentage",
       "monthDay": "Tag des Monats",
       "preview": "Generierter Cron-Ausdruck"
-    }
+    },
+    "searchPlaceholder": "Aufgaben suchen...",
+    "noSearchResults": "Keine passenden geplanten Aufgaben."
   },
   "trigger": {
     "runScheduledTask": "Geplante Aufgabe ausführen: {{name}}"

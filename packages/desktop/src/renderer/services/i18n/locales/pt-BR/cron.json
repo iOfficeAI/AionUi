@@ -140,7 +140,9 @@
       "weekdays": "Dias da semana",
       "monthDay": "Dia do mês",
       "preview": "Cron gerado"
-    }
+    },
+    "searchPlaceholder": "Pesquisar tarefas...",
+    "noSearchResults": "Nenhuma tarefa agendada correspondente."
   },
   "trigger": {
     "runScheduledTask": "Executar tarefa agendada: {{name}}"

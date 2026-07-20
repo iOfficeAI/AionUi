@@ -1141,7 +1141,9 @@
       "managed_runtime_unavailable": "Repair or reinstall {{resource}}, then retry the connection test.",
       "auth_required": "The agent is reachable but requires sign-in. Log in via the CLI, or add the required API key under Environment Variables, then retry the connection test.",
       "no_provider": "No model provider is configured. Add and enable a provider in Settings, then retry the connection test."
-    }
+    },
+    "searchPlaceholder": "Agenten suchen...",
+    "noSearchResults": "Keine passenden Agenten."
   },
   "remoteAgent": {
     "title": "Remote-Agenten",

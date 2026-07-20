@@ -1139,7 +1139,9 @@
     "boundAssistantsTitle": "Assistants using this agent",
     "boundAssistantsCount": "{{count}} assistant(s)",
     "boundAssistantsEmpty": "No assistants are bound to this agent yet.",
-    "viewAssistant": "View"
+    "viewAssistant": "View",
+    "searchPlaceholder": "Buscar agentes...",
+    "noSearchResults": "No hay agentes coincidentes."
   },
   "remoteAgent": {
     "title": "Agentes remotos",

@@ -39,4 +39,12 @@ describe('team membership mutation busy state', () => {
 
     expect(isTeamMembershipMutationBusy(state)).toBe(false);
   });
+
+  it('treats an idle-reclaimed stopped session as non-mutation-busy', () => {
+    let state = applyTeamSessionStatusToMembershipMutationState(createTeamMembershipMutationState(), 'starting');
+    state = applyTeamSessionStatusToMembershipMutationState(state, 'stopped');
+
+    expect(state.sessionStarting).toBe(false);
+    expect(isTeamMembershipMutationBusy(state)).toBe(false);
+  });
 });
