@@ -1,9 +1,9 @@
 {
   "promptExamplesHint": "Try these instructions",
   "defaultPrompts": {
-    "capabilities": "What can you do for me?",
-    "skills": "What skills do you have?",
-    "tools": "What tools do you have?"
+    "understand": "Get to know this project and explain in plain words what it does and where to start",
+    "cleanup": "Find duplicate and useless files in this folder and list them for my confirmation",
+    "create": "Build me a beautiful personal homepage and open it for me when it's done"
   },
   "selectAssistantHint": "Select an assistant to start a task",
   "workspace": {

@@ -1,9 +1,9 @@
 {
   "promptExamplesHint": "試試這些指令",
   "defaultPrompts": {
-    "capabilities": "你能為我做哪些事情？",
-    "skills": "你有哪些技能？",
-    "tools": "你有哪些工具？"
+    "understand": "了解一下這個專案，用白話告訴我它是做什麼的、從哪裡入手",
+    "cleanup": "幫我找出這個資料夾裡重複和沒用的檔案，列出來讓我確認",
+    "create": "幫我做一個精美的個人主頁網頁，做好後直接打開給我看"
   },
   "selectAssistantHint": "選擇一位助手開始任務",
   "workspace": {
