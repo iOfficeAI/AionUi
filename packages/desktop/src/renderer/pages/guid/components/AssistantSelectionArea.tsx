@@ -49,6 +49,8 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
   const [availableWidth, setAvailableWidth] = useState(() => (typeof window === 'undefined' ? 800 : window.innerWidth));
   const containerRef = useRef<HTMLDivElement>(null);
   const barRef = useRef<HTMLDivElement>(null);
+  const hoverOpenTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hoverCloseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const selectedId = selectedAssistantId || undefined;
   const widthVisibleLimit = Math.min(Math.max(1, maxVisibleAssistants), resolveAssistantVisibleLimit(availableWidth));
   const [adaptiveVisibleLimit, setAdaptiveVisibleLimit] = useState(widthVisibleLimit);
@@ -58,6 +60,31 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
   useEffect(() => {
     setAdaptiveVisibleLimit(widthVisibleLimit);
   }, [enabledAssistants, selectedId, widthVisibleLimit]);
+
+  const clearHoverTimers = () => {
+    if (hoverOpenTimer.current) {
+      clearTimeout(hoverOpenTimer.current);
+      hoverOpenTimer.current = null;
+    }
+    if (hoverCloseTimer.current) {
+      clearTimeout(hoverCloseTimer.current);
+      hoverCloseTimer.current = null;
+    }
+  };
+
+  useEffect(() => clearHoverTimers, []);
+
+  const handleBarMouseEnter = () => {
+    clearHoverTimers();
+    // Slight delay so a mouse passing through the bar doesn't flash the panel.
+    hoverOpenTimer.current = setTimeout(() => setMoreVisible(true), 120);
+  };
+
+  const handleBarMouseLeave = () => {
+    clearHoverTimers();
+    // Grace period keeps the panel open while the mouse travels into it.
+    hoverCloseTimer.current = setTimeout(() => setMoreVisible(false), 240);
+  };
 
   useEffect(() => {
     if (!moreVisible) return;
@@ -223,6 +250,8 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
           ref={barRef}
           className='relative inline-flex max-w-full items-center rounded-999px px-6px py-6px'
           style={{ background: 'var(--color-guid-agent-bar, var(--aou-2))' }}
+          onMouseEnter={hasOverflow ? handleBarMouseEnter : undefined}
+          onMouseLeave={hasOverflow ? handleBarMouseLeave : undefined}
         >
           <div className='flex min-w-0 max-w-full items-center gap-6px'>
             {visibleAssistants.map((assistant) => renderAssistantPill(assistant, `preset-pill-${assistant.id}`))}
