@@ -1119,6 +1119,8 @@
     "filterAll": "All",
     "filterAvailable": "Available",
     "filterUnavailable": "Unavailable",
+    "searchPlaceholder": "Search agents...",
+    "noSearchResults": "No matching agents.",
     "statusOnline": "Available",
     "statusNeedsAuth": "Needs Sign-in",
     "statusOffline": "Unavailable",
