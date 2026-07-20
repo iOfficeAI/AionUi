@@ -118,8 +118,8 @@ const ScheduledTasksPage: React.FC = () => {
   return (
     <div
       className={classNames(
-        'w-full min-h-full box-border overflow-y-auto',
-        isMobile ? 'px-16px py-14px' : 'px-12px py-24px md:px-40px md:py-32px'
+        'w-full min-h-full box-border overflow-y-auto bg-1',
+        isMobile ? 'px-16px py-14px' : 'px-12px py-14px md:px-40px md:py-32px'
       )}
     >
       <div
