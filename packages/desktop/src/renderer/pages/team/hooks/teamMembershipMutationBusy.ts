@@ -20,6 +20,9 @@ export function applyTeamSessionStatusToMembershipMutationState(
     return { ...state, sessionStarting: true };
   }
 
+  // 'ready', 'failed', and 'stopped' are all non-mutation-busy: none of them
+  // block member add/remove UI. 'stopped' (idle-reclaim) is recoverable and
+  // must not gate membership mutations.
   return createTeamMembershipMutationState();
 }
 

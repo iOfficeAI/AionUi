@@ -1,10 +1,17 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { ITeamChildTurnEvent, ITeamRunAck, ITeamRunEvent, ITeamSlotWork } from '@/common/types/team/teamTypes';
+import type {
+  ITeamChildTurnEvent,
+  ITeamRunAck,
+  ITeamRunEvent,
+  ITeamSessionStatusChangedEvent,
+  ITeamSlotWork,
+} from '@/common/types/team/teamTypes';
 import { useTeamRunView } from '@/renderer/pages/team/hooks/useTeamRunView';
 
 type TeamRunHandler = (event: ITeamRunEvent) => void;
 type ChildTurnHandler = (event: ITeamChildTurnEvent) => void;
+type SessionStatusHandler = (event: ITeamSessionStatusChangedEvent) => void;
 
 const teamEventMocks = vi.hoisted(() => {
   const handlers: Record<string, unknown> = {};
@@ -31,6 +38,7 @@ const teamEventMocks = vi.hoisted(() => {
       agentSpawned: makeOn('agentSpawned'),
       agentRemoved: makeOn('agentRemoved'),
       agentRenamed: makeOn('agentRenamed'),
+      sessionStatusChanged: makeOn('sessionStatusChanged'),
       reconnected: makeOn('reconnected'),
     },
   };
@@ -173,5 +181,51 @@ describe('useTeamRunView', () => {
 
     await waitFor(() => expect(result.current.state.slotWorkBySlot.worker).toEqual(background));
     expect(result.current.state.activeRun).toBeUndefined();
+  });
+
+  it('session_status_stopped_sets_session_stopped_flag', () => {
+    const { result } = renderHook(() => useTeamRunView('team-1'));
+    const sessionStatus = teamEventMocks.handlers.sessionStatusChanged as SessionStatusHandler;
+
+    act(() => sessionStatus({ team_id: 'team-1', status: 'stopped' }));
+
+    expect(result.current.state.sessionStopped).toBe(true);
+  });
+
+  it('session_status_ready_and_starting_clear_the_session_stopped_flag', () => {
+    const { result } = renderHook(() => useTeamRunView('team-1'));
+    const sessionStatus = teamEventMocks.handlers.sessionStatusChanged as SessionStatusHandler;
+
+    act(() => sessionStatus({ team_id: 'team-1', status: 'stopped' }));
+    expect(result.current.state.sessionStopped).toBe(true);
+
+    act(() => sessionStatus({ team_id: 'team-1', status: 'starting' }));
+    expect(result.current.state.sessionStopped).toBe(false);
+
+    act(() => sessionStatus({ team_id: 'team-1', status: 'stopped' }));
+    act(() => sessionStatus({ team_id: 'team-1', status: 'ready' }));
+    expect(result.current.state.sessionStopped).toBe(false);
+  });
+
+  it('session_status_stopped_is_ignored_for_other_teams', () => {
+    const { result } = renderHook(() => useTeamRunView('team-1'));
+    const sessionStatus = teamEventMocks.handlers.sessionStatusChanged as SessionStatusHandler;
+
+    act(() => sessionStatus({ team_id: 'other-team', status: 'stopped' }));
+
+    expect(result.current.state.sessionStopped).toBe(false);
+  });
+
+  it('applied_active_run_event_self_heals_the_session_stopped_flag', () => {
+    const { result } = renderHook(() => useTeamRunView('team-1'));
+    const sessionStatus = teamEventMocks.handlers.sessionStatusChanged as SessionStatusHandler;
+    const runUpdated = teamEventMocks.handlers.runUpdated as TeamRunHandler;
+
+    act(() => sessionStatus({ team_id: 'team-1', status: 'stopped' }));
+    expect(result.current.state.sessionStopped).toBe(true);
+
+    act(() => runUpdated(runEvent()));
+
+    expect(result.current.state.sessionStopped).toBe(false);
   });
 });

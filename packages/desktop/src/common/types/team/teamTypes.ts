@@ -211,7 +211,7 @@ export type ITeamMessageEvent = {
 };
 
 /** Team-level session availability status. */
-export type TeamSessionStatus = 'starting' | 'ready' | 'failed';
+export type TeamSessionStatus = 'starting' | 'ready' | 'failed' | 'stopped';
 
 /** Diagnostic phase for team session startup. */
 export type TeamSessionPhase = 'loading_team' | 'starting_bridge' | 'attaching_agents' | 'recovering';
