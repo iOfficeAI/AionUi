@@ -145,7 +145,9 @@
       "weekdays": "Días de la semana",
       "monthDay": "Día del mes",
       "preview": "Cron generado"
-    }
+    },
+    "searchPlaceholder": "Buscar tareas...",
+    "noSearchResults": "No hay tareas programadas coincidentes."
   },
   "trigger": {
     "runScheduledTask": "Ejecutar tarea programada: {{name}}"

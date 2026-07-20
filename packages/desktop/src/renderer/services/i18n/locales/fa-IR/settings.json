@@ -1149,7 +1149,9 @@
     "boundAssistantsTitle": "دستیارهای استفاده‌کننده از این ایجنت",
     "boundAssistantsCount": "{{count}} دستیار",
     "boundAssistantsEmpty": "هنوز دستیاری به این ایجنت متصل نیست.",
-    "viewAssistant": "مشاهده"
+    "viewAssistant": "مشاهده",
+    "searchPlaceholder": "جستجوی ایجنت‌ها...",
+    "noSearchResults": "هیچ ایجنت منطبقی وجود ندارد."
   },
   "repair": {
     "pathLabel": "مسیر راه‌اندازی",

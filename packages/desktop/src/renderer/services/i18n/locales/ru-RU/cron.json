@@ -140,7 +140,9 @@
       "weekdays": "Дни недели",
       "monthDay": "День месяца",
       "preview": "Созданное Cron-выражение"
-    }
+    },
+    "searchPlaceholder": "Поиск задач...",
+    "noSearchResults": "Нет подходящих запланированных задач."
   },
   "trigger": {
     "runScheduledTask": "Запустить запланированную задачу: {{name}}"

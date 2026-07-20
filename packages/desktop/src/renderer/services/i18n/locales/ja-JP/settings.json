@@ -1139,7 +1139,9 @@
     "boundAssistantsTitle": "このエージェントを使用するアシスタント",
     "boundAssistantsCount": "{{count}} 個のアシスタント",
     "boundAssistantsEmpty": "このエージェントにバインドされたアシスタントはまだありません。",
-    "viewAssistant": "詳細"
+    "viewAssistant": "詳細",
+    "searchPlaceholder": "エージェントを検索...",
+    "noSearchResults": "一致するエージェントはありません。"
   },
   "repair": {
     "pathLabel": "起動パス",

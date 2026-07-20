@@ -140,7 +140,9 @@
       "weekdays": "Дні тижня",
       "monthDay": "День місяця",
       "preview": "Створений Cron-вираз"
-    }
+    },
+    "searchPlaceholder": "Пошук завдань...",
+    "noSearchResults": "Немає відповідних запланованих завдань."
   },
   "trigger": {
     "runScheduledTask": "Запустити заплановане завдання: {{name}}"

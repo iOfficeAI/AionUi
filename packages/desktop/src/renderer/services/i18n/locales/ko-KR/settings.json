@@ -1139,7 +1139,9 @@
     "boundAssistantsTitle": "이 에이전트를 사용하는 어시스턴트",
     "boundAssistantsCount": "어시스턴트 {{count}}개",
     "boundAssistantsEmpty": "이 에이전트에 연결된 어시스턴트가 아직 없습니다.",
-    "viewAssistant": "보기"
+    "viewAssistant": "보기",
+    "searchPlaceholder": "에이전트 검색...",
+    "noSearchResults": "일치하는 에이전트가 없습니다."
   },
   "repair": {
     "pathLabel": "시작 경로",

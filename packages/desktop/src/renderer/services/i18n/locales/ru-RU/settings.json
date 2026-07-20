@@ -1129,7 +1129,9 @@
     "boundAssistantsTitle": "Ассистенты, использующие этого агента",
     "boundAssistantsCount": "Ассистентов: {{count}}",
     "boundAssistantsEmpty": "С этим агентом пока не связан ни один ассистент.",
-    "viewAssistant": "Открыть"
+    "viewAssistant": "Открыть",
+    "searchPlaceholder": "Поиск агентов...",
+    "noSearchResults": "Нет подходящих агентов."
   },
   "repair": {
     "pathLabel": "Путь запуска",

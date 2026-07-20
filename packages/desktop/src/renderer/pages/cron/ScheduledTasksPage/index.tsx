@@ -116,166 +116,182 @@ const ScheduledTasksPage: React.FC = () => {
   );
 
   return (
-    <div
-      className={classNames(
-        'w-full h-full min-h-0 box-border overflow-y-auto overscroll-contain bg-1',
-        isMobile ? 'px-16px py-14px' : 'px-12px py-14px md:px-40px md:py-32px'
-      )}
-    >
+    <div className='w-full h-full min-h-0 box-border bg-1 flex flex-col overflow-hidden'>
       <div
         className={classNames(
-          'mx-auto flex w-full max-w-800px box-border flex-col',
-          isMobile ? 'gap-14px' : 'gap-16px'
+          'shrink-0 bg-1',
+          isMobile ? 'px-16px pt-14px pb-14px' : 'px-12px pt-14px pb-14px md:px-40px md:pt-32px md:pb-16px'
         )}
       >
-        <SettingsPageHeader
-          data-testid='scheduled-tasks-header'
-          title={t('cron.scheduledTasks')}
-          description={t('cron.page.description')}
-          actions={
-            <>
-              {!isMobile && (
-                <AionSearchInput
-                  className='shrink-0 w-[200px] hidden md:flex'
-                  data-testid='input-search-scheduled-tasks'
-                  placeholder={t('cron.page.searchPlaceholder', { defaultValue: 'Search tasks...' })}
-                  value={searchQuery}
-                  onChange={setSearchQuery}
+        <div className='mx-auto w-full max-w-800px box-border'>
+          <SettingsPageHeader
+            sticky={false}
+            data-testid='scheduled-tasks-header'
+            title={t('cron.scheduledTasks')}
+            description={t('cron.page.description')}
+            actions={
+              <>
+                {!isMobile && (
+                  <AionSearchInput
+                    className='shrink-0 w-[200px] hidden md:flex'
+                    data-testid='input-search-scheduled-tasks'
+                    placeholder={t('cron.page.searchPlaceholder', { defaultValue: 'Search tasks...' })}
+                    value={searchQuery}
+                    onChange={setSearchQuery}
+                  />
+                )}
+                <TalkToButlerButton
+                  label={t('cron.page.newTask')}
+                  onChat={handleCreateViaChat}
+                  chatLabel={t('cron.page.createViaChat')}
+                  onManual={handleCreateManually}
+                  manualLabel={t('cron.page.createManually')}
                 />
-              )}
-              <TalkToButlerButton
-                label={t('cron.page.newTask')}
-                onChat={handleCreateViaChat}
-                chatLabel={t('cron.page.createViaChat')}
-                onManual={handleCreateManually}
-                manualLabel={t('cron.page.createManually')}
-              />
-            </>
-          }
-        />
-
-        <div className='grid w-full box-border grid-cols-[minmax(0,1fr)_auto] items-center gap-x-12px gap-y-10px rounded-12px border border-solid border-[var(--color-border-2)] bg-fill-2 px-14px py-12px sm:rounded-14px sm:px-16px max-[520px]:grid-cols-1'>
-          <span
-            className={classNames(
-              'min-w-0 text-t-primary',
-              isMobile ? 'text-12px leading-18px' : 'text-13px leading-20px'
-            )}
-          >
-            {t('cron.page.awakeBanner')}
-          </span>
-          <div className='justify-self-end max-[520px]:justify-self-start'>
-            <Tooltip content={t('cron.page.keepAwakeTooltip')}>
-              <div className='flex items-center gap-8px text-t-secondary text-12px leading-18px sm:text-13px'>
-                <span>{t('cron.page.keepAwake')}</span>
-                <Switch size='small' checked={keepAwake} onChange={handleKeepAwakeChange} />
-              </div>
-            </Tooltip>
-          </div>
+              </>
+            }
+          />
         </div>
-
-        {loading ? (
-          <div className='flex min-h-220px items-center justify-center rounded-16px border border-dashed border-border-2 bg-fill-1'>
-            <Spin />
-          </div>
-        ) : jobs.length === 0 ? (
-          <div className='flex min-h-220px items-center justify-center rounded-16px border border-dashed border-border-2 bg-fill-1'>
-            <Empty description={t('cron.noTasks')} />
-          </div>
-        ) : filteredJobs.length === 0 ? (
-          <div className='flex min-h-220px items-center justify-center rounded-16px border border-dashed border-border-2 bg-fill-1'>
-            <Empty description={t('cron.page.noSearchResults', { defaultValue: 'No matching scheduled tasks.' })} />
-          </div>
-        ) : (
-          <div
-            className={classNames(
-              'grid w-full items-start grid-cols-1 gap-12px',
-              isMobile ? '' : 'sm:grid-cols-2 lg:grid-cols-3'
-            )}
-          >
-            {filteredJobs.map((job) => {
-              const agentMeta = getJobAgentMeta(job, presetAssistants, logos);
-              const isManualOnly = job.schedule.kind === 'cron' && !job.schedule.expr;
-              const executionModeLabel =
-                job.target.execution_mode === 'new_conversation'
-                  ? t('cron.page.form.newConversation')
-                  : t('cron.page.form.existingConversation');
-
-              return (
-                <div
-                  key={job.id}
-                  className={classNames(
-                    'group flex cursor-pointer flex-col border border-solid border-[var(--color-border-2)] bg-fill-1 transition-colors duration-200 hover:border-[var(--color-border-3)] hover:shadow-sm',
-                    isMobile ? 'rounded-12px px-16px py-16px' : 'rounded-12px px-20px py-18px'
-                  )}
-                  onClick={() => handleGoToDetail(job)}
-                >
-                  <div className='mb-12px flex items-center justify-between gap-8px'>
-                    <span
-                      className={classNames(
-                        'mr-8px min-w-0 flex-1 font-medium text-t-primary',
-                        isMobile ? 'truncate text-14px leading-20px' : 'truncate text-15px leading-22px'
-                      )}
-                    >
-                      {job.name}
-                    </span>
-                    <CronStatusTag job={job} />
-                  </div>
-
-                  <div
-                    className={classNames(
-                      'min-w-0 break-words text-t-secondary',
-                      isMobile ? 'text-13px leading-20px' : 'text-14px leading-22px'
-                    )}
-                    title={formatSchedule(job, t)}
-                  >
-                    {formatSchedule(job, t)}
-                  </div>
-
-                  <div
-                    className='mt-16px min-w-0 break-words text-t-secondary text-13px leading-20px'
-                    title={
-                      job.state.next_run_at_ms ? `${t('cron.nextRun')} ${formatNextRun(job.state.next_run_at_ms)}` : '-'
-                    }
-                  >
-                    {job.state.next_run_at_ms ? `${t('cron.nextRun')} ${formatNextRun(job.state.next_run_at_ms)}` : '-'}
-                  </div>
-
-                  <div className='mt-14px flex items-center justify-between gap-10px'>
-                    <div className='min-w-0 flex items-center gap-6px text-12px leading-18px text-t-secondary'>
-                      {agentMeta.name ? (
-                        <Tooltip content={agentMeta.name}>
-                          <div className='flex h-16px w-16px shrink-0 items-center justify-center text-t-secondary'>
-                            {agentMeta.logo ? (
-                              <img
-                                src={agentMeta.logo}
-                                alt={agentMeta.name}
-                                className='h-16px w-16px shrink-0 rounded-50%'
-                              />
-                            ) : agentMeta.assistantFallback ? (
-                              <Robot size='16' className='shrink-0 text-t-secondary' />
-                            ) : (
-                              <Robot size='16' className='shrink-0 text-t-secondary' />
-                            )}
-                          </div>
-                        </Tooltip>
-                      ) : null}
-                      <span className='min-w-0 truncate'>{executionModeLabel}</span>
-                    </div>
-
-                    <div className='shrink-0' onClick={(e) => e.stopPropagation()}>
-                      {!isManualOnly && (
-                        <Switch size='small' checked={job.enabled} onChange={() => handleToggleEnabled(job)} />
-                      )}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-        <CreateTaskDialog visible={createDialogVisible} onClose={() => setCreateDialogVisible(false)} />
       </div>
+
+      <div
+        className={classNames(
+          'min-h-0 flex-1 overflow-y-auto overscroll-contain',
+          isMobile ? 'px-16px pb-14px' : 'px-12px pb-24px md:px-40px md:pb-32px'
+        )}
+      >
+        <div
+          className={classNames(
+            'mx-auto flex w-full max-w-800px box-border flex-col',
+            isMobile ? 'gap-14px' : 'gap-16px'
+          )}
+        >
+          <div className='grid w-full box-border grid-cols-[minmax(0,1fr)_auto] items-center gap-x-12px gap-y-10px rounded-12px border border-solid border-[var(--color-border-2)] bg-fill-2 px-14px py-12px sm:rounded-14px sm:px-16px max-[520px]:grid-cols-1'>
+            <span
+              className={classNames(
+                'min-w-0 text-t-primary',
+                isMobile ? 'text-12px leading-18px' : 'text-13px leading-20px'
+              )}
+            >
+              {t('cron.page.awakeBanner')}
+            </span>
+            <div className='justify-self-end max-[520px]:justify-self-start'>
+              <Tooltip content={t('cron.page.keepAwakeTooltip')}>
+                <div className='flex items-center gap-8px text-t-secondary text-12px leading-18px sm:text-13px'>
+                  <span>{t('cron.page.keepAwake')}</span>
+                  <Switch size='small' checked={keepAwake} onChange={handleKeepAwakeChange} />
+                </div>
+              </Tooltip>
+            </div>
+          </div>
+
+          {loading ? (
+            <div className='flex min-h-220px items-center justify-center rounded-16px border border-dashed border-border-2 bg-fill-1'>
+              <Spin />
+            </div>
+          ) : jobs.length === 0 ? (
+            <div className='flex min-h-220px items-center justify-center rounded-16px border border-dashed border-border-2 bg-fill-1'>
+              <Empty description={t('cron.noTasks')} />
+            </div>
+          ) : filteredJobs.length === 0 ? (
+            <div className='flex min-h-220px items-center justify-center rounded-16px border border-dashed border-border-2 bg-fill-1'>
+              <Empty description={t('cron.page.noSearchResults', { defaultValue: 'No matching scheduled tasks.' })} />
+            </div>
+          ) : (
+            <div
+              className={classNames(
+                'grid w-full items-start grid-cols-1 gap-12px',
+                isMobile ? '' : 'sm:grid-cols-2 lg:grid-cols-3'
+              )}
+            >
+              {filteredJobs.map((job) => {
+                const agentMeta = getJobAgentMeta(job, presetAssistants, logos);
+                const isManualOnly = job.schedule.kind === 'cron' && !job.schedule.expr;
+                const executionModeLabel =
+                  job.target.execution_mode === 'new_conversation'
+                    ? t('cron.page.form.newConversation')
+                    : t('cron.page.form.existingConversation');
+
+                return (
+                  <div
+                    key={job.id}
+                    className={classNames(
+                      'group flex cursor-pointer flex-col border border-solid border-[var(--color-border-2)] bg-fill-1 transition-colors duration-200 hover:border-[var(--color-border-3)] hover:shadow-sm',
+                      isMobile ? 'rounded-12px px-16px py-16px' : 'rounded-12px px-20px py-18px'
+                    )}
+                    onClick={() => handleGoToDetail(job)}
+                  >
+                    <div className='mb-12px flex items-center justify-between gap-8px'>
+                      <span
+                        className={classNames(
+                          'mr-8px min-w-0 flex-1 font-medium text-t-primary',
+                          isMobile ? 'truncate text-14px leading-20px' : 'truncate text-15px leading-22px'
+                        )}
+                      >
+                        {job.name}
+                      </span>
+                      <CronStatusTag job={job} />
+                    </div>
+
+                    <div
+                      className={classNames(
+                        'min-w-0 break-words text-t-secondary',
+                        isMobile ? 'text-13px leading-20px' : 'text-14px leading-22px'
+                      )}
+                      title={formatSchedule(job, t)}
+                    >
+                      {formatSchedule(job, t)}
+                    </div>
+
+                    <div
+                      className='mt-16px min-w-0 break-words text-t-secondary text-13px leading-20px'
+                      title={
+                        job.state.next_run_at_ms
+                          ? `${t('cron.nextRun')} ${formatNextRun(job.state.next_run_at_ms)}`
+                          : '-'
+                      }
+                    >
+                      {job.state.next_run_at_ms
+                        ? `${t('cron.nextRun')} ${formatNextRun(job.state.next_run_at_ms)}`
+                        : '-'}
+                    </div>
+
+                    <div className='mt-14px flex items-center justify-between gap-10px'>
+                      <div className='min-w-0 flex items-center gap-6px text-12px leading-18px text-t-secondary'>
+                        {agentMeta.name ? (
+                          <Tooltip content={agentMeta.name}>
+                            <div className='flex h-16px w-16px shrink-0 items-center justify-center text-t-secondary'>
+                              {agentMeta.logo ? (
+                                <img
+                                  src={agentMeta.logo}
+                                  alt={agentMeta.name}
+                                  className='h-16px w-16px shrink-0 rounded-50%'
+                                />
+                              ) : agentMeta.assistantFallback ? (
+                                <Robot size='16' className='shrink-0 text-t-secondary' />
+                              ) : (
+                                <Robot size='16' className='shrink-0 text-t-secondary' />
+                              )}
+                            </div>
+                          </Tooltip>
+                        ) : null}
+                        <span className='min-w-0 truncate'>{executionModeLabel}</span>
+                      </div>
+
+                      <div className='shrink-0' onClick={(e) => e.stopPropagation()}>
+                        {!isManualOnly && (
+                          <Switch size='small' checked={job.enabled} onChange={() => handleToggleEnabled(job)} />
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <CreateTaskDialog visible={createDialogVisible} onClose={() => setCreateDialogVisible(false)} />
     </div>
   );
 };

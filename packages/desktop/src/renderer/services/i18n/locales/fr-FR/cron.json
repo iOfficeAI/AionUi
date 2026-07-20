@@ -124,7 +124,9 @@
       "dailyAt": "Chaque jour à {{time}}",
       "weekdaysAt": "Jours ouvrables à {{time}}",
       "weeklyAt": "Chaque {{day}} à {{time}}"
-    }
+    },
+    "searchPlaceholder": "Rechercher des tâches...",
+    "noSearchResults": "Aucune tâche planifiée correspondante."
   },
   "trigger": {
     "runScheduledTask": "Exécuter la tâche planifiée : {{name}}"
