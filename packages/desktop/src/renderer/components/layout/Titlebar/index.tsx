@@ -14,22 +14,13 @@ import type { WorkspaceStateDetail } from '@renderer/utils/workspace/workspaceEv
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { useNavigationHistory } from '@/renderer/hooks/context/NavigationHistoryContext';
 import { useFeedback } from '@/renderer/hooks/context/FeedbackContext';
+import { resolveFeedbackModule } from '@/renderer/services/feedback/resolveFeedbackModule';
 import { isElectronDesktop, isMacOS } from '@/renderer/utils/platform';
 import './titlebar.css';
 
 interface TitlebarProps {
   workspaceAvailable: boolean;
 }
-
-// Map the current route to a feedback module tag (must match FEEDBACK_MODULES in
-// feedbackModules.ts), so the report modal pre-selects the relevant module.
-// Unknown routes (e.g. the home page) return undefined, letting the user pick.
-const resolveFeedbackModule = (pathname: string): string | undefined => {
-  if (pathname.startsWith('/conversation')) return 'conversation-session';
-  if (pathname.startsWith('/team')) return 'agent-team';
-  if (pathname.startsWith('/settings')) return 'system-settings';
-  return undefined;
-};
 
 // Bug-report icon: a speech bubble with a centred "?" mark, reading as "report an
 // issue". Drawn on a 48-unit viewBox with icon-park-like padding and taking the same
