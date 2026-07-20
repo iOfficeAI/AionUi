@@ -23,7 +23,7 @@ import { filterWorkspaceMentionItems } from '@/renderer/utils/file/workspaceMent
 import { copyText } from '@/renderer/utils/ui/clipboard';
 import { blurActiveElement, shouldBlockMobileInputFocus } from '@/renderer/utils/ui/focus';
 import { Button, Input, Message, Tag } from '@arco-design/web-react';
-import { ArrowUp, CloseSmall, Plus, Quote } from '@icon-park/react';
+import { CloseSmall, CornerRightUp, Plus, Quote } from '@icon-park/react';
 import type { SlashCommandItem } from '@/common/chat/slash/types';
 import { buildSkillSlashCommands, mergeSlashCommands } from '@/common/chat/slash/mergeSlashCommands';
 import React, { useCallback, useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
@@ -1247,7 +1247,7 @@ const SendBox: React.FC<{
       type='primary'
       disabled={isButtonDisabled}
       className='send-button-custom'
-      icon={<ArrowUp theme='filled' size='14' fill='white' strokeWidth={5} />}
+      icon={<CornerRightUp theme='outline' size='14' fill='white' strokeWidth={5} />}
       onClick={() => {
         sendMessageHandler();
       }}
