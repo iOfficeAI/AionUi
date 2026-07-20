@@ -57,6 +57,8 @@
     "awakeBanner": "Scheduled tasks only run while your computer is awake.",
     "keepAwake": "Keep awake",
     "keepAwakeTooltip": "When enabled, AionUi will prevent your computer from going to sleep",
+    "searchPlaceholder": "Search tasks...",
+    "noSearchResults": "No matching scheduled tasks.",
     "createTask": "Create Scheduled Task",
     "editTask": "Edit Scheduled Task",
     "createSuccess": "Task created successfully",

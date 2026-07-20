@@ -5,7 +5,7 @@
  */
 
 import classNames from 'classnames';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { Switch, Message, Empty, Spin, Tooltip } from '@arco-design/web-react';
@@ -20,6 +20,8 @@ import CreateTaskDialog from './CreateTaskDialog';
 import { getJobAgentMeta } from './jobAgentMeta';
 import { useAgentLogos } from '@renderer/utils/model/agentLogo';
 import TalkToButlerButton from '@/renderer/components/base/TalkToButlerButton';
+import { AionSearchInput } from '@/renderer/components/base';
+import SettingsPageHeader from '@/renderer/pages/settings/components/SettingsPageHeader';
 import { Robot } from '@icon-park/react';
 
 const ScheduledTasksPage: React.FC = () => {
@@ -32,6 +34,7 @@ const ScheduledTasksPage: React.FC = () => {
   const logos = useAgentLogos();
   const [createDialogVisible, setCreateDialogVisible] = useState(false);
   const [keepAwake, setKeepAwake] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     setKeepAwake(configService.get('system.keepAwake') ?? false);
@@ -67,6 +70,34 @@ const ScheduledTasksPage: React.FC = () => {
     setCreateDialogVisible(true);
   }, []);
 
+  const normalizedSearchQuery = searchQuery.trim().toLowerCase();
+  const filteredJobs = useMemo(() => {
+    if (!normalizedSearchQuery) return jobs;
+    return jobs.filter((job) => {
+      const agentMeta = getJobAgentMeta(job, presetAssistants, logos);
+      const executionModeLabel =
+        job.target.execution_mode === 'new_conversation'
+          ? t('cron.page.form.newConversation')
+          : t('cron.page.form.existingConversation');
+      const searchableText = [
+        job.name,
+        job.description,
+        job.target.payload.text,
+        job.metadata.conversation_title,
+        job.metadata.agent_type,
+        job.metadata.agent_config?.name,
+        job.metadata.agent_config?.workspace,
+        agentMeta.name,
+        executionModeLabel,
+        formatSchedule(job, t),
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+      return searchableText.includes(normalizedSearchQuery);
+    });
+  }, [jobs, logos, normalizedSearchQuery, presetAssistants, t]);
+
   const handleToggleEnabled = useCallback(
     async (job: ICronJob) => {
       try {
@@ -97,33 +128,31 @@ const ScheduledTasksPage: React.FC = () => {
           isMobile ? 'gap-14px' : 'gap-16px'
         )}
       >
-        <div className={classNames('flex w-full flex-col', isMobile ? 'gap-6px' : 'gap-8px')}>
-          <div className='flex w-full items-start justify-between gap-12px sm:gap-16px max-[520px]:flex-wrap'>
-            <h1
-              className={classNames(
-                'm-0 min-w-0 flex-1 font-bold text-t-primary',
-                isMobile ? 'text-24px leading-[1.2]' : 'text-28px leading-[1.15]'
+        <SettingsPageHeader
+          data-testid='scheduled-tasks-header'
+          title={t('cron.scheduledTasks')}
+          description={t('cron.page.description')}
+          actions={
+            <>
+              {!isMobile && (
+                <AionSearchInput
+                  className='shrink-0 w-[200px] hidden md:flex'
+                  data-testid='input-search-scheduled-tasks'
+                  placeholder={t('cron.page.searchPlaceholder', { defaultValue: 'Search tasks...' })}
+                  value={searchQuery}
+                  onChange={setSearchQuery}
+                />
               )}
-            >
-              {t('cron.scheduledTasks')}
-            </h1>
-            <TalkToButlerButton
-              label={t('cron.page.newTask')}
-              onChat={handleCreateViaChat}
-              chatLabel={t('cron.page.createViaChat')}
-              onManual={handleCreateManually}
-              manualLabel={t('cron.page.createManually')}
-            />
-          </div>
-          <p
-            className={classNames(
-              'm-0 w-full text-t-secondary',
-              isMobile ? 'text-13px leading-20px' : 'text-14px leading-22px'
-            )}
-          >
-            {t('cron.page.description')}
-          </p>
-        </div>
+              <TalkToButlerButton
+                label={t('cron.page.newTask')}
+                onChat={handleCreateViaChat}
+                chatLabel={t('cron.page.createViaChat')}
+                onManual={handleCreateManually}
+                manualLabel={t('cron.page.createManually')}
+              />
+            </>
+          }
+        />
 
         <div className='grid w-full box-border grid-cols-[minmax(0,1fr)_auto] items-center gap-x-12px gap-y-10px rounded-12px border border-solid border-[var(--color-border-2)] bg-fill-2 px-14px py-12px sm:rounded-14px sm:px-16px max-[520px]:grid-cols-1'>
           <span
@@ -152,6 +181,10 @@ const ScheduledTasksPage: React.FC = () => {
           <div className='flex min-h-220px items-center justify-center rounded-16px border border-dashed border-border-2 bg-fill-1'>
             <Empty description={t('cron.noTasks')} />
           </div>
+        ) : filteredJobs.length === 0 ? (
+          <div className='flex min-h-220px items-center justify-center rounded-16px border border-dashed border-border-2 bg-fill-1'>
+            <Empty description={t('cron.page.noSearchResults', { defaultValue: 'No matching scheduled tasks.' })} />
+          </div>
         ) : (
           <div
             className={classNames(
@@ -159,7 +192,7 @@ const ScheduledTasksPage: React.FC = () => {
               isMobile ? '' : 'sm:grid-cols-2 lg:grid-cols-3'
             )}
           >
-            {jobs.map((job) => {
+            {filteredJobs.map((job) => {
               const agentMeta = getJobAgentMeta(job, presetAssistants, logos);
               const isManualOnly = job.schedule.kind === 'cron' && !job.schedule.expr;
               const executionModeLabel =
