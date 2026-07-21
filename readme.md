@@ -40,17 +40,13 @@
 ---
 
 <p align="center">
-  <a href="https://www.kimi.com/code?aff=aionui" target="_blank">
+  <a href="KIMI_CAMPAIGN_DISCUSSION_URL">
     <img src="./resources/kimi/contributor-bonus-black-blue.jpg" alt="AionUi × Kimi Contributor Bonus" width="600">
   </a>
 </p>
 
-<p align="center">
-  🎁 <strong>AionUi × Kimi Partnership</strong>: Free premium <strong>Kimi "Allegretto" plans ($39/mo · ¥199/mo value)</strong> for our contributors!
-</p>
-
 <h3 align="center">
-  <a href="KIMI_CAMPAIGN_DISCUSSION_URL">👉 View Campaign Details & How to Claim</a>
+  <a href="KIMI_CAMPAIGN_DISCUSSION_URL">View Campaign Details & How to Claim →</a>
 </h3>
 
 <p align="center">
