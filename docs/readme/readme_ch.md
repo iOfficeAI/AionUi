@@ -45,6 +45,10 @@
   </a>
 </p>
 
+<p align="center">
+  🎁 <strong>AionUi × Kimi 战略合作</strong>：面向贡献者免费赠送 <strong>Kimi「Allegretto」订阅计划（价值 ¥199/月 · $39/月）</strong>！
+</p>
+
 <h3 align="center">
   <a href="KIMI_CAMPAIGN_DISCUSSION_URL">查看活动详情与申领方式 →</a>
 </h3>
