@@ -1,0 +1,68 @@
+name: Issue Triage
+
+# Auto-label and auto-assign newly opened issues based on the
+# "问题模块 / Module" dropdown in the issue templates.
+# Mapping lives in .github/triage-map.json — edit owners there.
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  issues: write
+  contents: read
+
+jobs:
+  triage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: .github/triage-map.json
+          sparse-checkout-cone-mode: false
+
+      - name: Label and assign by module
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const map = JSON.parse(fs.readFileSync('.github/triage-map.json', 'utf8'));
+            const body = context.payload.issue.body || '';
+
+            // Issue-form dropdowns render as "### <field label>\n\n<selected value>".
+            // Match the selected value against the module list; fall back when
+            // the field is absent (blank issue) or unrecognized.
+            let matched = null;
+            for (const entry of map.modules) {
+              if (body.includes(entry.module)) {
+                matched = entry;
+                break;
+              }
+            }
+
+            const target = matched ?? map.fallback;
+            const issue_number = context.payload.issue.number;
+            core.info(`Module match: ${matched ? matched.module : '(none)'} → label=${target.label} owner=${target.owner}`);
+
+            await github.rest.issues.addLabels({
+              ...context.repo,
+              issue_number,
+              labels: [target.label],
+            });
+
+            try {
+              await github.rest.issues.addAssignees({
+                ...context.repo,
+                issue_number,
+                assignees: [target.owner],
+              });
+            } catch (e) {
+              // Assignment can fail if the owner loses repo access; keep the
+              // label and surface the problem instead of failing the run.
+              core.warning(`Failed to assign ${target.owner}: ${e.message}`);
+              await github.rest.issues.addLabels({
+                ...context.repo,
+                issue_number,
+                labels: ['needs-triage'],
+              });
+            }
