@@ -14,11 +14,18 @@ const mocks = vi.hoisted(() => ({
   createProvider: vi.fn(),
   deleteProvider: vi.fn(),
   editModeOpen: vi.fn(),
+  availableModels: [
+    { label: 'GPT 5.6 Sol', value: 'gpt-5.6-sol' },
+    { label: 'Claude Sonnet 4', value: 'claude-sonnet-4' },
+  ],
+  modelListAsArray: false,
+  modelListUnavailable: false,
   mutate: vi.fn(),
   onSubmit: vi.fn(),
   providerMutate: vi.fn(),
   providers: [] as IProvider[],
   protocolReset: vi.fn(),
+  singleModelValue: false,
   updateProvider: vi.fn(),
 }));
 
@@ -96,12 +103,11 @@ vi.mock('@/common/utils', () => ({
 
 vi.mock('@renderer/hooks/agent/useModeModeList', () => ({
   default: () => ({
-    data: {
-      models: [
-        { label: 'GPT 5.6 Sol', value: 'gpt-5.6-sol' },
-        { label: 'Claude Sonnet 4', value: 'claude-sonnet-4' },
-      ],
-    },
+    data: mocks.modelListUnavailable
+      ? undefined
+      : mocks.modelListAsArray
+        ? mocks.availableModels
+        : { models: mocks.availableModels },
     error: null,
     isLoading: false,
     mutate: mocks.mutate,
@@ -182,7 +188,8 @@ vi.mock('@arco-design/web-react', async (importOriginal) => {
         value={mode === 'multiple' ? (Array.isArray(value) ? value : []) : typeof value === 'string' ? value : ''}
         onChange={(event) => {
           if (mode === 'multiple') {
-            onChange?.(Array.from(event.currentTarget.selectedOptions, (option) => option.value));
+            const selected = Array.from(event.currentTarget.selectedOptions, (option) => option.value);
+            onChange?.(mocks.singleModelValue ? (selected[0] ?? '') : selected);
             return;
           }
           onChange?.(event.currentTarget.value);
@@ -348,6 +355,9 @@ describe('updateModelSettings', () => {
 describe('model capability selectors', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.modelListAsArray = false;
+    mocks.modelListUnavailable = false;
+    mocks.singleModelValue = false;
     Object.defineProperty(window, 'matchMedia', {
       configurable: true,
       value: vi.fn().mockImplementation((query: string) => ({
@@ -419,6 +429,39 @@ describe('model capability selectors', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'common.confirm' }));
     expect(mocks.onSubmit).toHaveBeenCalledWith(expect.objectContaining({ model_settings: {} }));
+  });
+
+  it('does not submit when provider data is unavailable', () => {
+    mocks.modelListUnavailable = true;
+    render(
+      <AddModelModal modalProps={{ visible: true }} modalCtrl={{ close: mocks.close }} onSubmit={mocks.onSubmit} />
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'common.confirm' }));
+
+    expect(mocks.onSubmit).not.toHaveBeenCalled();
+  });
+
+  it('adds a standard provider model without protocol detection', async () => {
+    mocks.modelListAsArray = true;
+    render(
+      <AddModelModal
+        data={provider({ platform: 'anthropic' })}
+        modalProps={{ visible: true }}
+        modalCtrl={{ close: mocks.close }}
+        onSubmit={mocks.onSubmit}
+      />
+    );
+
+    const modelSelect = (await screen.findByTestId('model-select')) as HTMLSelectElement;
+    Array.from(modelSelect.options).forEach((option) => {
+      option.selected = option.value === 'gpt-5.6-sol';
+    });
+    fireEvent.change(modelSelect);
+    fireEvent.click(screen.getByRole('button', { name: 'common.confirm' }));
+
+    expect(mocks.onSubmit).toHaveBeenCalledWith(expect.objectContaining({ models: ['gpt-4o', 'gpt-5.6-sol'] }));
+    expect(mocks.onSubmit.mock.calls[0][0]).not.toHaveProperty('model_protocols');
   });
 
   it('applies detected protocol and explicit capabilities to every newly selected model', async () => {
@@ -497,6 +540,7 @@ describe('model capability selectors', () => {
   });
 
   it('keeps API mode hidden on the Gemini provider form', async () => {
+    mocks.singleModelValue = true;
     render(
       <AddPlatformModal
         deepLinkData={{ api_key: 'test-key', platform: 'gemini' }}
@@ -535,7 +579,7 @@ describe('configured model list', () => {
     model_health: {
       'claude-direct': { status: 'healthy' },
       'gpt-auto': { status: 'healthy' },
-      'gpt-chat': { status: 'healthy' },
+      'gpt-chat': { status: 'unhealthy' },
       'gpt-responses': { status: 'healthy' },
     },
     model_protocols: {
@@ -597,7 +641,7 @@ describe('configured model list', () => {
           model_health: {
             'claude-direct': { status: 'healthy' },
             'gpt-auto': { status: 'healthy' },
-            'gpt-chat': { status: 'healthy' },
+            'gpt-chat': { status: 'unhealthy' },
           },
           model_protocols: {
             'claude-direct': 'anthropic',
