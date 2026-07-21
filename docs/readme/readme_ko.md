@@ -39,6 +39,12 @@
 
 ---
 
+<p align="center">
+  🎁 <strong>AionUi × Kimi 전략적 파트너십</strong>: 기여자에게 <strong>Kimi "Allegretto" 플랜(월 $39 상당)을 무료 증정</strong>합니다! <a href="KIMI_CAMPAIGN_DISCUSSION_URL"><strong>→ 캠페인 안내 및 신청 방법</strong></a>
+</p>
+
+---
+
 ## 📋 빠른 탐색
 
 <p align="center">

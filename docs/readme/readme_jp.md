@@ -39,6 +39,12 @@
 
 ---
 
+<p align="center">
+  🎁 <strong>AionUi × Kimi 戦略提携</strong>：コントリビューター向けに <strong>Kimi「Allegretto」プラン（$39/月相当）を無料進呈</strong>！<a href="KIMI_CAMPAIGN_DISCUSSION_URL"><strong>→ キャンペーン詳細と申請方法</strong></a>
+</p>
+
+---
+
 ## 📋 クイックナビゲーション
 
 <p align="center">

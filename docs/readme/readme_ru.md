@@ -39,6 +39,12 @@
 
 ---
 
+<p align="center">
+  🎁 <strong>Партнёрство AionUi × Kimi</strong>: бесплатные планы <strong>Kimi «Allegretto» (стоимостью $39/мес)</strong> для наших контрибьюторов! <a href="KIMI_CAMPAIGN_DISCUSSION_URL"><strong>→ Условия акции и как получить</strong></a>
+</p>
+
+---
+
 ## 📋 Быстрая навигация
 
 <p align="center">

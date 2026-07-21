@@ -39,6 +39,12 @@
 
 ---
 
+<p align="center">
+  🎁 <strong>Parceria AionUi × Kimi</strong>: planos <strong>Kimi "Allegretto" grátis (valor de US$ 39/mês)</strong> para nossos contribuidores! <a href="KIMI_CAMPAIGN_DISCUSSION_URL"><strong>→ Detalhes e como resgatar</strong></a>
+</p>
+
+---
+
 ## 📋 Navegação rápida
 
 <p align="center">

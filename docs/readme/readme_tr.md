@@ -39,6 +39,12 @@
 
 ---
 
+<p align="center">
+  🎁 <strong>AionUi × Kimi Ortaklığı</strong>: Katkıda bulunanlara <strong>ücretsiz Kimi "Allegretto" planları (aylık $39 değerinde)</strong>! <a href="KIMI_CAMPAIGN_DISCUSSION_URL"><strong>→ Kampanya detayları ve talep yöntemi</strong></a>
+</p>
+
+---
+
 ## 📋 Hızlı Gezinme
 
 <p align="center">
