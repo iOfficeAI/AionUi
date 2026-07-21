@@ -139,6 +139,12 @@ const LocalAgents: React.FC = () => {
         if (leftIsAionrs !== rightIsAionrs) {
           return leftIsAionrs ? -1 : 1;
         }
+        // Strategic partner: pin Kimi right after the builtin aionrs agent.
+        const leftIsKimi = left.backend === 'kimi';
+        const rightIsKimi = right.backend === 'kimi';
+        if (leftIsKimi !== rightIsKimi) {
+          return leftIsKimi ? -1 : 1;
+        }
         return left.name.localeCompare(right.name);
       }),
     [officialAgents]
