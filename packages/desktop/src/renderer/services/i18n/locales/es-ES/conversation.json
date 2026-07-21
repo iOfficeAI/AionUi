@@ -30,6 +30,7 @@
     "saveName": "Guardar",
     "cancelEdit": "Cancelar",
     "rename": "Renombrar",
+    "createCronTask": "Crear tarea programada",
     "renameTitle": "Renombrar chat",
     "renamePlaceholder": "Ingresa un nuevo nombre",
     "renameSuccess": "Renombrado correctamente",

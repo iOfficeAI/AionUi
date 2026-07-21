@@ -30,6 +30,7 @@
     "saveName": "保存",
     "cancelEdit": "取消",
     "rename": "重命名",
+    "createCronTask": "创建定时任务",
     "renameTitle": "重命名对话",
     "renamePlaceholder": "请输入新名称",
     "renameSuccess": "重命名成功",

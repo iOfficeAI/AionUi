@@ -34,6 +34,7 @@
     "saveName": "保存",
     "cancelEdit": "キャンセル",
     "rename": "名前を変更",
+    "createCronTask": "スケジュールタスクを作成",
     "renameTitle": "チャット名を変更",
     "renamePlaceholder": "新しい名前を入力してください",
     "renameSuccess": "名前を変更しました",

@@ -30,6 +30,7 @@
     "saveName": "Сохранить",
     "cancelEdit": "Отмена",
     "rename": "Переименовать",
+    "createCronTask": "Создать запланированную задачу",
     "renameTitle": "Переименовать чат",
     "renamePlaceholder": "Введите новое имя",
     "renameSuccess": "Успешно переименовано",

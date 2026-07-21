@@ -30,6 +30,7 @@
     "saveName": "Enregistrer",
     "cancelEdit": "Annuler",
     "rename": "Renommer",
+    "createCronTask": "Créer une tâche planifiée",
     "renameTitle": "Renommer le chat",
     "renamePlaceholder": "Veuillez entrer un nouveau nom",
     "renameSuccess": "Renommé avec succès",

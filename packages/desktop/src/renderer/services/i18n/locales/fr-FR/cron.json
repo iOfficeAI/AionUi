@@ -13,7 +13,7 @@
     "error": "Erreur",
     "unread": "Nouvelle exécution",
     "unconfigured": "Aucune tâche planifiée",
-    "defaultPrompt": "Chaque jour à 10h, rechercher les dernières actualités IA, résumer et produire un rapport d'analyse."
+    "defaultPrompt": "Chaque jour à 10h, rechercher les dernières actualités IA, résumer et produire un rapport d'analyse. (Veuillez utiliser la compétence /cron pour créer une tâche planifiée dans AionUi.)"
   },
   "actions": {
     "goTo": "Voir le chat",

@@ -30,6 +30,7 @@
     "saveName": "ذخیره",
     "cancelEdit": "لغو",
     "rename": "تغییر نام",
+    "createCronTask": "ایجاد کار زمان‌بندی‌شده",
     "renameTitle": "تغییر نام چت",
     "renamePlaceholder": "لطفاً نام جدیدی وارد کنید",
     "renameSuccess": "نام با موفقیت تغییر کرد",
