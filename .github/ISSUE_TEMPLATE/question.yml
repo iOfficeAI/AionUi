@@ -3,6 +3,30 @@ description: Ask a question about AionUi
 title: '[Question]: '
 labels: ['question']
 body:
+  - type: dropdown
+    id: module
+    attributes:
+      label: 问题模块 / Module
+      description: 这个问题属于哪个功能模块？/ Which module does this question belong to?
+      options:
+        - Agent 检测与连接 / Agent Detection & Connection
+        - 助手与预设 / Assistants & Presets
+        - 模型与认证 / Models & Authentication
+        - MCP 与工具 / MCP & Tools
+        - Skills 与插件 / Skills & Plugins
+        - 渠道接入 / Channel Integrations
+        - 对话与会话 / Conversation & Sessions
+        - 搜索与历史 / Search & History
+        - 项目、文件与预览 / Project, Files & Preview
+        - WebUI 与远程连接 / WebUI & Remote Access
+        - 定时任务 / Scheduled Tasks
+        - 团队协作 / Team Collaboration
+        - 界面显示与桌面宠物 / Interface, Display & Desktop Pet
+        - 系统设置 / System Settings
+        - 其他 / Other
+    validations:
+      required: true
+
   - type: textarea
     id: question
     attributes:
