@@ -1,7 +1,11 @@
 {
   "$comment": "Issue module → area label → owner mapping. Single source of truth for .github/workflows/issue-triage.yml. The 'module' key must exactly match the dropdown option text in .github/ISSUE_TEMPLATE/bug_report.yml and question.yml. Edit owners here — no workflow change needed.",
   "modules": [
-    { "module": "Agent 检测与连接 / Agent Detection & Connection", "label": "area/agent-detection", "owner": "kaizhou-lab" },
+    {
+      "module": "Agent 检测与连接 / Agent Detection & Connection",
+      "label": "area/agent-detection",
+      "owner": "kaizhou-lab"
+    },
     { "module": "助手与预设 / Assistants & Presets", "label": "area/assistant", "owner": "piorpua" },
     { "module": "模型与认证 / Models & Authentication", "label": "area/model-auth", "owner": "jiahe0510" },
     { "module": "MCP 与工具 / MCP & Tools", "label": "area/mcp", "owner": "piorpua" },
