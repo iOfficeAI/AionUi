@@ -58,6 +58,7 @@ export type ConversationRowProps = {
   onEditStart: (conversation: TChatConversation) => void;
   onDelete: (conversation_id: string) => void;
   onExport?: (conversation: TChatConversation) => void;
+  onCreateCronTask: (conversation: TChatConversation) => void;
   onTogglePin: (conversation: TChatConversation) => void;
   getJobStatus: (conversation_id: string) => 'none' | 'active' | 'paused' | 'error' | 'unread';
   /** When true, the agent icon is dimmed by default and only shows full color on hover. Used inside project folders to reduce visual weight. */

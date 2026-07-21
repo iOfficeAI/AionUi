@@ -25,6 +25,7 @@ import SortableConversationRow from './SortableConversationRow';
 import { useBatchSelection } from './hooks/useBatchSelection';
 import { useConversationActions } from './hooks/useConversationActions';
 import { useConversations } from './hooks/useConversations';
+import { useCronTaskCreation } from './hooks/useCronTaskCreation';
 import { useDragAndDrop } from './hooks/useDragAndDrop';
 import { useExport } from './hooks/useExport';
 import type { ConversationRowProps, WorkspaceGroupedHistoryProps } from './types';
@@ -153,6 +154,8 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
     onBatchModeChange,
   });
 
+  const handleCreateCronTask = useCronTaskCreation();
+
   const { sensors, handleDragEnd, isDragEnabled } = useDragAndDrop({
     pinnedConversations,
     batchMode,
@@ -180,6 +183,7 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
       // ConversationRow's `{onExport && ...}` guard hides the menu item. The
       // underlying handleExportConversation logic from useExport is kept for a
       // future per-platform re-enable.
+      onCreateCronTask: handleCreateCronTask,
       onTogglePin: handleTogglePin,
       getJobStatus,
     }),
@@ -198,6 +202,7 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
       handleMenuVisibleChange,
       handleEditStart,
       handleDeleteClick,
+      handleCreateCronTask,
       handleTogglePin,
       getJobStatus,
     ]

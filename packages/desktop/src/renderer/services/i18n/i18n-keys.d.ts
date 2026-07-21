@@ -520,6 +520,7 @@ export type I18nKey =
   | 'conversation.history.cancelEdit'
   | 'conversation.history.confirmDelete'
   | 'conversation.history.conversationsSection'
+  | 'conversation.history.createCronTask'
   | 'conversation.history.deleteConfirm'
   | 'conversation.history.deleteFailed'
   | 'conversation.history.deleteSuccess'

@@ -850,6 +850,19 @@ const SendBox: React.FC<{
     [conversationContext?.type, handleExternalSelectionAppend]
   );
 
+  // Focus the textarea when requested (e.g. after pre-filling via sendbox.fill
+  // from the conversation history "Create scheduled task" action). Wrapped in
+  // rAF so it lands after the value update renders.
+  useAddEventListener(
+    'sendbox.focus',
+    () => {
+      requestAnimationFrame(() => {
+        getTextareaElement()?.focus();
+      });
+    },
+    [getTextareaElement]
+  );
+
   const emitSelectedFileAppend = useCallback(
     (item: FileOrFolderItem) => {
       switch (conversationContext?.type) {

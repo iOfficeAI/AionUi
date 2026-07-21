@@ -44,6 +44,7 @@
     "batchDeleteConfirm": "确定删除已选的 {{count}} 个话题吗？",
     "batchDeleteSuccess": "已删除 {{count}} 个话题",
     "batchNoSelection": "请先选择话题",
+    "createCronTask": "创建定时任务",
     "export": "导出",
     "exportDialogTitle": "导出话题",
     "exportDialogSingleDescription": "将导出当前话题的会话记录（JSON + Markdown）及项目文件，并打包为 ZIP。",

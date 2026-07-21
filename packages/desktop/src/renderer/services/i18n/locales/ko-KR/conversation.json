@@ -48,6 +48,7 @@
     "batchDeleteConfirm": "Delete {{count}} selected topics?",
     "batchDeleteSuccess": "{{count}} topics deleted",
     "batchNoSelection": "Please select topics first",
+    "createCronTask": "예약 작업 만들기",
     "export": "Export",
     "exportDialogTitle": "Export Topics",
     "exportDialogSingleDescription": "Export current topic conversation records (JSON + Markdown) and project files into a ZIP package.",

@@ -48,6 +48,7 @@
     "batchDeleteConfirm": "Delete {{count}} selected topics?",
     "batchDeleteSuccess": "{{count}} topics deleted",
     "batchNoSelection": "Please select topics first",
+    "createCronTask": "Zamanlanmış görev oluştur",
     "export": "Export",
     "exportDialogTitle": "Export Topics",
     "exportDialogSingleDescription": "Export current topic conversation records (JSON + Markdown) and project files into a ZIP package.",

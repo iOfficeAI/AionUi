@@ -44,6 +44,7 @@
     "batchDeleteConfirm": "Удалить {{count}} выбранных тем?",
     "batchDeleteSuccess": "Удалено {{count}} тем",
     "batchNoSelection": "Сначала выберите темы",
+    "createCronTask": "Создать запланированную задачу",
     "export": "Экспортировать",
     "exportDialogTitle": "Экспорт тем",
     "exportDialogSingleDescription": "Экспортировать записи текущей темы (JSON + Markdown) и файлы проекта в ZIP-архив.",
