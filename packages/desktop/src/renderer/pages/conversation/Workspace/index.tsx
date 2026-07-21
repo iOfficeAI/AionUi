@@ -144,7 +144,11 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
   const rootName = treeHook.files[0]?.name ?? '';
 
   // Hide root directory when there's a single root with children, as Toolbar serves as the first-level directory
-  const treeData = flattenSingleRoot(treeHook.files);
+  const treeData = useMemo(() => flattenSingleRoot(treeHook.files), [treeHook.files]);
+
+  // O(1) lookup for expanded state — avoids an O(N) Array.includes() call per
+  // node inside renderTitle, which was causing jank on large trees.
+  const expandedKeysSet = useMemo(() => new Set(treeHook.expandedKeys), [treeHook.expandedKeys]);
 
   // Authoritative source: `conversation.extra.is_temporary_workspace` is
   // derived by the backend on every response (see
@@ -188,6 +192,89 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
       });
     },
     [openPreview, workspace]
+  );
+
+  // Stable tree renderer callbacks — defined once and memoized so Arco Tree
+  // does not remount/re-render all visible nodes on every expandedKeys update.
+  const treeIcons = useCallback((nodeProps: { dataRef?: IDirOrFile }): { switcherIcon: React.ReactNode; loadingIcon?: React.ReactNode } => {
+    if (nodeProps.dataRef?.isFile) return { switcherIcon: null };
+    const chevron = (
+      <Right theme='outline' size={14} fill='currentColor' className='workspace-tree-chevron' />
+    );
+    return { switcherIcon: chevron, loadingIcon: chevron };
+  }, []);
+
+  const renderTitle = useCallback(
+    (node: { dataRef: IDirOrFile; title?: React.ReactNode }) => {
+      const relativePath = node.dataRef.relativePath;
+      const isFile = node.dataRef.isFile;
+      const isPasteTarget = !isFile && pasteHook.pasteTargetFolder === relativePath;
+      const nodeData = node.dataRef as IDirOrFile;
+
+      return (
+        <div
+          className='flex items-center justify-between gap-6px min-w-0'
+          style={{ color: 'inherit' }}
+          onDoubleClick={() => {
+            if (isFile) {
+              fileOpsHook.handleAddToChat(nodeData);
+            }
+          }}
+          onContextMenu={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            openNodeContextMenu(nodeData, event.clientX, event.clientY);
+          }}
+        >
+          <span className='flex items-center gap-4px min-w-0'>
+            <FileTypeIcon node={nodeData} expanded={expandedKeysSet.has(relativePath)} />
+            <span className='overflow-hidden text-ellipsis whitespace-nowrap'>{node.title}</span>
+            {isPasteTarget && (
+              <span className='ml-1 text-xs text-blue-700 font-bold bg-blue-500 text-white px-1.5 py-0.5 rounded'>
+                PASTE
+              </span>
+            )}
+          </span>
+          {isMobile && (
+            <button
+              type='button'
+              className='workspace-header__toggle workspace-node-more-btn h-24px w-24px rd-6px flex items-center justify-center text-t-secondary hover:text-t-primary active:text-t-primary flex-shrink-0'
+              aria-label={t('common.more')}
+              onMouseDown={(event) => {
+                event.stopPropagation();
+              }}
+              onClick={(event) => {
+                event.stopPropagation();
+                const rect = (event.currentTarget as HTMLButtonElement).getBoundingClientRect();
+                const menuWidth = 220;
+                const menuHeight = 220;
+                const maxX =
+                  typeof window !== 'undefined'
+                    ? Math.max(8, window.innerWidth - menuWidth - 8)
+                    : rect.left;
+                const maxY =
+                  typeof window !== 'undefined'
+                    ? Math.max(8, window.innerHeight - menuHeight - 8)
+                    : rect.bottom;
+                const menuX = Math.min(Math.max(8, rect.left - menuWidth + rect.width), maxX);
+                const menuY = Math.min(Math.max(8, rect.bottom + 4), maxY);
+                openNodeContextMenu(nodeData, menuX, menuY);
+              }}
+            >
+              <div
+                className='flex flex-col gap-1.5px items-center justify-center'
+                style={{ width: '10px', height: '10px' }}
+              >
+                <div className='w-1.5px h-1.5px rounded-full bg-current'></div>
+                <div className='w-1.5px h-1.5px rounded-full bg-current'></div>
+                <div className='w-1.5px h-1.5px rounded-full bg-current'></div>
+              </div>
+            </button>
+          )}
+        </div>
+      );
+    },
+    [expandedKeysSet, pasteHook.pasteTargetFolder, fileOpsHook.handleAddToChat, openNodeContextMenu, isMobile, t]
   );
 
   // Auto-refresh changes when switching to changes tab
@@ -350,19 +437,7 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
                 selectedKeys={treeHook.selected}
                 expandedKeys={treeHook.expandedKeys}
                 actionOnClick={['select', 'expand']}
-                // VSCode-style explorer: no connector lines, a chevron switcher
-                // for folders (none for files), and per-type icons via FileTypeIcon.
-                // Reuse the chevron as the lazy-load icon so the switcher doesn't
-                // flash a spinner on first expand of each folder.
-                icons={(nodeProps) => {
-                  if (nodeProps.dataRef?.isFile) return { switcherIcon: null };
-                  // Rotation is owned by CSS (.workspace-tree-chevron): right when
-                  // collapsed, down when expanded — overriding Arco's default.
-                  const chevron = (
-                    <Right theme='outline' size={14} fill='currentColor' className='workspace-tree-chevron' />
-                  );
-                  return { switcherIcon: chevron, loadingIcon: chevron };
-                }}
+                icons={treeIcons}
                 treeData={treeData}
                 fieldNames={{
                   children: 'children',
@@ -371,75 +446,7 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
                   isLeaf: 'isFile',
                 }}
                 multiple
-                renderTitle={(node) => {
-                  const relativePath = node.dataRef.relativePath;
-                  const isFile = node.dataRef.isFile;
-                  const isPasteTarget = !isFile && pasteHook.pasteTargetFolder === relativePath;
-                  const nodeData = node.dataRef as IDirOrFile;
-
-                  return (
-                    <div
-                      className='flex items-center justify-between gap-6px min-w-0'
-                      style={{ color: 'inherit' }}
-                      onDoubleClick={() => {
-                        if (isFile) {
-                          fileOpsHook.handleAddToChat(nodeData);
-                        }
-                      }}
-                      onContextMenu={(event) => {
-                        event.preventDefault();
-                        event.stopPropagation();
-                        openNodeContextMenu(nodeData, event.clientX, event.clientY);
-                      }}
-                    >
-                      <span className='flex items-center gap-4px min-w-0'>
-                        <FileTypeIcon node={nodeData} expanded={treeHook.expandedKeys.includes(relativePath)} />
-                        <span className='overflow-hidden text-ellipsis whitespace-nowrap'>{node.title}</span>
-                        {isPasteTarget && (
-                          <span className='ml-1 text-xs text-blue-700 font-bold bg-blue-500 text-white px-1.5 py-0.5 rounded'>
-                            PASTE
-                          </span>
-                        )}
-                      </span>
-                      {isMobile && (
-                        <button
-                          type='button'
-                          className='workspace-header__toggle workspace-node-more-btn h-24px w-24px rd-6px flex items-center justify-center text-t-secondary hover:text-t-primary active:text-t-primary flex-shrink-0'
-                          aria-label={t('common.more')}
-                          onMouseDown={(event) => {
-                            event.stopPropagation();
-                          }}
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            const rect = (event.currentTarget as HTMLButtonElement).getBoundingClientRect();
-                            const menuWidth = 220;
-                            const menuHeight = 220;
-                            const maxX =
-                              typeof window !== 'undefined'
-                                ? Math.max(8, window.innerWidth - menuWidth - 8)
-                                : rect.left;
-                            const maxY =
-                              typeof window !== 'undefined'
-                                ? Math.max(8, window.innerHeight - menuHeight - 8)
-                                : rect.bottom;
-                            const menuX = Math.min(Math.max(8, rect.left - menuWidth + rect.width), maxX);
-                            const menuY = Math.min(Math.max(8, rect.bottom + 4), maxY);
-                            openNodeContextMenu(nodeData, menuX, menuY);
-                          }}
-                        >
-                          <div
-                            className='flex flex-col gap-1.5px items-center justify-center'
-                            style={{ width: '10px', height: '10px' }}
-                          >
-                            <div className='w-1.5px h-1.5px rounded-full bg-current'></div>
-                            <div className='w-1.5px h-1.5px rounded-full bg-current'></div>
-                            <div className='w-1.5px h-1.5px rounded-full bg-current'></div>
-                          </div>
-                        </button>
-                      )}
-                    </div>
-                  );
-                }}
+                renderTitle={renderTitle}
                 onSelect={(_keys, extra) => {
                   const clickedKey = extractNodeKey(extra?.node);
                   const nodeData = extra && extra.node ? extractNodeData(extra.node) : null;
