@@ -1,7 +1,7 @@
 {
   "welcome": {
     "title": "Hi, what's your plan for today?",
-    "placeholder": "Send a message, upload files, open a folder, or create a scheduled task...",
+    "placeholder": "Send a message, upload files, open a folder, create a scheduled task, or type / for commands...",
     "linkFolder": "Open Folder",
     "newConversation": "New Chat",
     "selectModel": "Select Model",
@@ -554,7 +554,7 @@
     "sendboxHint": "Preparing the runtime environment. First startup can take a little longer."
   },
   "sendbox": {
-    "hint": "Type / for commands, @ to reference files"
+    "hint": "Type / for commands, @ to reference files, ↑/↓ for message history"
   },
   "agentTip": {
     "codes": {

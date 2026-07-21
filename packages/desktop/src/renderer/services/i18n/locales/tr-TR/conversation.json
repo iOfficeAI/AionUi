@@ -1,7 +1,7 @@
 {
   "welcome": {
     "title": "Merhaba, bugünkü planın nedir?",
-    "placeholder": "Mesaj gönder, dosya yükle veya klasör aç...",
+    "placeholder": "Mesaj gönder, dosya yükle, klasör aç veya komutlar için / yaz...",
     "linkFolder": "Klasör Aç",
     "newConversation": "Yeni Sohbet",
     "selectModel": "Model Seç",
@@ -556,7 +556,7 @@
     "sendboxHint": "Çalışma ortamı hazırlanıyor. İlk başlatma biraz daha uzun sürebilir."
   },
   "sendbox": {
-    "hint": "Komutlar için /, dosya için @ yazın"
+    "hint": "Komutlar için /, dosya için @ yazın, ↑/↓ ile mesaj geçmişi"
   },
   "agentTip": {
     "codes": {

@@ -1,7 +1,7 @@
 {
   "welcome": {
     "title": "Hi，今天有什麼安排？",
-    "placeholder": "發送訊息、上傳檔案、開啟資料夾或建立定時任務...",
+    "placeholder": "發送訊息、上傳檔案、開啟資料夾、建立定時任務，或輸入 / 喚起命令...",
     "linkFolder": "開啟資料夾",
     "newConversation": "新會話",
     "selectModel": "選擇模型",
@@ -554,7 +554,7 @@
     "sendboxHint": "正在準備執行環境。首次啟動可能會稍慢一些。"
   },
   "sendbox": {
-    "hint": "輸入 / 喚起命令，@ 引用檔案"
+    "hint": "輸入 / 喚起命令，@ 引用檔案，↑/↓ 切換歷史訊息"
   },
   "agentTip": {
     "codes": {
