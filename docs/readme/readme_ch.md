@@ -46,11 +46,11 @@
 </p>
 
 <p align="center">
-  🎁 <strong>AionUi × Kimi 战略合作</strong>：面向贡献者免费赠送 <strong>Kimi「Allegretto」订阅计划（价值 ¥199/月 · $39/月）</strong>——Kimi K3 在 AionUi 中开箱即用！
+  🎁 <strong>AionUi × Kimi 战略合作</strong>：面向贡献者免费赠送 <strong>Kimi「Allegretto」订阅计划（价值 ¥199/月 · $39/月）</strong>——<a href="KIMI_CAMPAIGN_DISCUSSION_URL"><strong>查看详情</strong></a>
 </p>
 
 <p align="center">
-  <a href="KIMI_CAMPAIGN_DISCUSSION_URL"><strong>→ 了解活动详情与申领方式</strong></a>
+  <strong>Kimi K3</strong> 已发布，在 AionUi 中开箱即用——<a href="https://www.kimi.com/code?aff=aionui" target="_blank">订阅 Kimi For Coding</a>，或获取 API Key（<a href="https://platform.kimi.com?aff=aionui" target="_blank">国内</a> / <a href="https://platform.kimi.ai?aff=aionui" target="_blank">海外</a>）。
 </p>
 
 ---
@@ -212,8 +212,6 @@ AionUi 自带完整的 AI Agent。不像其他工具需要你手动安装各种 
 | NewAPI 网关                | 统一访问 20+ 模型                            |
 
 不管用哪个模型，Agent 的能力都一样强大——文件读写、网络搜索、图像生成、工具调用，一个不少。AionUi 支持 **30+ 个 AI 平台**，云端本地都能用。
-
-> 🤝 **Kimi 用户看这里**：作为战略合作伙伴，Kimi K3 在 AionUi 中开箱即用——[订阅 Kimi For Coding](https://www.kimi.com/code?aff=aionui) · [Kimi API（国内）](https://platform.kimi.com?aff=aionui) · [Kimi API（海外）](https://platform.kimi.ai?aff=aionui)
 
 <p align="center">
   <img src="../../resources/llm_newapi.png" alt="Multi-Model Support" width="800">
