@@ -310,3 +310,4 @@ const SkillDetailPage: React.FC = () => {
 };
 
 export default SkillDetailPage;
+
