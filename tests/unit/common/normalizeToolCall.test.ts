@@ -37,4 +37,24 @@ describe('normalizeToolCall', () => {
       conversationId: 'conversation-1',
     });
   });
+
+  it('ignores malformed ACP content items in compact history output', () => {
+    const result = normalizeAcpToolCall({
+      id: 'message-2',
+      conversation_id: 'conversation-1',
+      type: 'acp_tool_call',
+      content: {
+        update: {
+          session_update: 'tool_call',
+          tool_call_id: 'tool-2',
+          status: 'completed',
+          title: 'Edit file',
+          kind: 'edit',
+          content: [null, 'invalid', { type: 'diff', path: '/workspace/file.ts', old_text: 'old', new_text: 'new' }],
+        },
+      },
+    } as unknown as IMessageAcpToolCall);
+
+    expect(result?.output).toBe('[diff] /workspace/file.ts');
+  });
 });
