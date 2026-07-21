@@ -45,6 +45,10 @@
   </a>
 </p>
 
+<p align="center">
+  🎁 <strong>AionUi × Kimi Partnership</strong>: Free premium <strong>Kimi "Allegretto" plans ($39/mo · ¥199/mo value)</strong> for our contributors!
+</p>
+
 <h3 align="center">
   <a href="KIMI_CAMPAIGN_DISCUSSION_URL">View Campaign Details & How to Claim →</a>
 </h3>
