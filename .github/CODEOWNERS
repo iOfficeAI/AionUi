@@ -1,0 +1,47 @@
+# CODEOWNERS — auto-request review from module owners when a PR touches their paths.
+# Later rules override earlier ones, so keep the default first and
+# nested-directory overrides after their parent rule.
+# Owner mapping source of truth: .github/triage-map.json (issue triage uses the same table).
+
+# ---- Default fallback: everything else ----
+* @IceyLiu
+
+# ---- Scheduled tasks (kaizhou-lab) ----
+/packages/desktop/src/renderer/pages/cron/ @kaizhou-lab
+
+# ---- Agent detection & connection (kaizhou-lab) ----
+/packages/desktop/src/renderer/pages/settings/AgentSettings/ @kaizhou-lab
+/packages/desktop/src/renderer/hooks/agent/ @kaizhou-lab
+
+# ---- Assistants & presets / Skills / Team (piorpua) ----
+/packages/desktop/src/renderer/pages/settings/AssistantSettings/ @piorpua
+/packages/desktop/src/renderer/hooks/assistant/ @piorpua
+/packages/desktop/src/renderer/pages/settings/SkillsSettings/ @piorpua
+/packages/desktop/src/renderer/pages/team/ @piorpua
+
+# ---- MCP & tools (piorpua) ----
+/packages/desktop/src/renderer/pages/settings/ToolsSettings/ @piorpua
+/packages/desktop/src/renderer/hooks/mcp/ @piorpua
+
+# ---- Channel integrations (piorpua) ----
+/packages/desktop/src/common/types/channel/ @piorpua
+/packages/desktop/src/renderer/components/settings/SettingsModal/contents/channels/ @piorpua
+
+# ---- Conversation & sessions (piorpua) ----
+/packages/desktop/src/renderer/pages/conversation/ @piorpua
+
+# ---- Search & history / Workspace & preview (tcp404) ----
+# Nested overrides: these subdirectories of conversation/ go to tcp404,
+# so they must stay after the conversation/ rule above.
+/packages/desktop/src/renderer/pages/conversation/GroupedHistory/ @tcp404
+/packages/desktop/src/renderer/pages/conversation/Workspace/ @tcp404
+/packages/desktop/src/renderer/pages/conversation/Preview/ @tcp404
+
+# ---- Models & authentication (jiahe0510) ----
+/packages/desktop/src/renderer/utils/model/ @jiahe0510
+/packages/desktop/src/renderer/pages/settings/components/ @jiahe0510
+
+# ---- WebUI & remote access (kaizhou-lab) ----
+/packages/web-cli/ @kaizhou-lab
+/packages/web-host/ @kaizhou-lab
+/packages/desktop/src/renderer/components/settings/SettingsModal/contents/WebuiModalContent.tsx @kaizhou-lab
