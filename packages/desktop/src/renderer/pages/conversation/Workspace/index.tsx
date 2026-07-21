@@ -91,7 +91,14 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
     conversation_id: conversation_id,
   });
 
-  const searchHook = useWorkspaceSearch({ workspace, loadWorkspace: treeHook.loadWorkspace });
+  const searchHook = useWorkspaceSearch({
+    workspace,
+    expandedKeys: treeHook.expandedKeys,
+    setFiles: treeHook.setFiles,
+    setExpandedKeys: treeHook.setExpandedKeys,
+    setTreeKey: treeHook.setTreeKey,
+    refreshWorkspace: treeHook.refreshWorkspace,
+  });
 
   const fileOpsHook = useWorkspaceFileOps({
     workspace,
@@ -118,12 +125,11 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
   // Setup events
   useWorkspaceEvents({
     conversation_id,
+    workspace,
     eventPrefix,
     refreshWorkspace: treeHook.refreshWorkspace,
     clearSelection: treeHook.clearSelection,
-    setFiles: treeHook.setFiles,
     setSelected: treeHook.setSelected,
-    setExpandedKeys: treeHook.setExpandedKeys,
     setTreeKey: treeHook.setTreeKey,
     selectedNodeRef: treeHook.selectedNodeRef,
     selectedKeysRef: treeHook.selectedKeysRef,
