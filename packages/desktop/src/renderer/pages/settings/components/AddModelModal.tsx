@@ -1,12 +1,13 @@
 import type { IProvider } from '@/common/config/storage';
 import {
+  type ModelImageInputChoice,
   type ModelOpenAiApiModeChoice,
   supportsOpenAiApiMode,
   updateModelSettings,
 } from '@/common/utils/modelCapabilities';
 import ModalHOC from '@/renderer/utils/ui/ModalHOC';
 import AionModal from '@/renderer/components/base/AionModal';
-import { Radio, Select, Switch } from '@arco-design/web-react';
+import { Radio, Select } from '@arco-design/web-react';
 import { PreviewOpen } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -22,7 +23,7 @@ const AddModelModal = ModalHOC<{ data?: IProvider; model?: string; onSubmit: (mo
     const { t } = useTranslation();
     const [models, setModels] = useState<string[]>([]);
     const [modelProtocol, setModelProtocol] = useState<string>('openai');
-    const [imageInput, setImageInput] = useState(false);
+    const [imageInput, setImageInput] = useState<ModelImageInputChoice>('auto');
     const [openAiApiMode, setOpenAiApiMode] = useState<ModelOpenAiApiModeChoice>('auto');
     const isNewApi = isNewApiPlatform(data?.platform ?? '');
     const isEditing = Boolean(editingModel);
@@ -43,7 +44,7 @@ const AddModelModal = ModalHOC<{ data?: IProvider; model?: string; onSubmit: (mo
 
       setModels([]);
       const settings = editingModel ? data?.model_settings?.[editingModel] : undefined;
-      setImageInput(settings?.image_input === 'supported');
+      setImageInput(settings?.image_input ?? 'auto');
       setOpenAiApiMode(settings?.openai_api_mode ?? 'auto');
       setModelProtocol(editingModel ? (data?.model_protocols?.[editingModel] ?? 'openai') : 'openai');
     }, [data, editingModel, modalProps.visible]);
@@ -142,7 +143,18 @@ const AddModelModal = ModalHOC<{ data?: IProvider; model?: string; onSubmit: (mo
               <PreviewOpen theme='outline' size='14' />
               <span>{t('settings.imageInput')}</span>
             </div>
-            <Switch checked={imageInput} onChange={setImageInput} />
+            <Radio.Group
+              type='button'
+              mode='fill'
+              size='small'
+              value={imageInput}
+              onChange={(value) => setImageInput(value as ModelImageInputChoice)}
+              options={[
+                { label: t('settings.imageInputAuto'), value: 'auto' },
+                { label: t('settings.imageInputSupported'), value: 'supported' },
+                { label: t('settings.imageInputUnsupported'), value: 'unsupported' },
+              ]}
+            />
             <div className='text-11px text-t-secondary leading-4'>{t('settings.imageInputTip')}</div>
           </div>
 

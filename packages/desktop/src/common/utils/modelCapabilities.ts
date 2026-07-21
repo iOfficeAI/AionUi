@@ -4,7 +4,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { IProvider, ModelOpenAiApiMode, ModelSettings, ModelType } from '@/common/config/storage';
+import type {
+  IProvider,
+  ModelImageInputCapability,
+  ModelOpenAiApiMode,
+  ModelSettings,
+  ModelType,
+} from '@/common/config/storage';
 
 /**
  * Capability matching regex patterns
@@ -57,6 +63,7 @@ export const getBaseModelName = (modelName: string): string => {
 };
 
 export type ModelOpenAiApiModeChoice = ModelOpenAiApiMode | 'auto';
+export type ModelImageInputChoice = ModelImageInputCapability | 'auto';
 
 /** Whether a provider/model protocol can select an OpenAI wire API. */
 export const supportsOpenAiApiMode = (platform: string, modelProtocol = 'openai'): boolean => {
@@ -68,13 +75,19 @@ export const supportsOpenAiApiMode = (platform: string, modelProtocol = 'openai'
 export const updateModelSettings = (
   current: Record<string, ModelSettings> | undefined,
   modelIds: string[],
-  imageInput: boolean,
+  imageInput: ModelImageInputChoice,
   openAiApiMode: ModelOpenAiApiModeChoice
 ): Record<string, ModelSettings> => {
   const next = { ...current };
 
   for (const modelId of modelIds) {
-    const settings: ModelSettings = { image_input: imageInput ? 'supported' : 'unsupported' };
+    if (imageInput === 'auto' && openAiApiMode === 'auto') {
+      delete next[modelId];
+      continue;
+    }
+
+    const settings: ModelSettings = {};
+    if (imageInput !== 'auto') settings.image_input = imageInput;
     if (openAiApiMode !== 'auto') settings.openai_api_mode = openAiApiMode;
     next[modelId] = settings;
   }

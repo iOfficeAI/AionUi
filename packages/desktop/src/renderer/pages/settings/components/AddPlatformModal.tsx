@@ -1,5 +1,6 @@
 import type { IProvider } from '@/common/config/storage';
 import {
+  type ModelImageInputChoice,
   type ModelOpenAiApiModeChoice,
   supportsOpenAiApiMode,
   updateModelSettings,
@@ -240,7 +241,7 @@ const AddPlatformModal = ModalHOC<{
 
   // new-api 每模型协议选择状态 / new-api per-model protocol selection state
   const [modelProtocol, setModelProtocol] = useState<string>('openai');
-  const [imageInput, setImageInput] = useState(false);
+  const [imageInput, setImageInput] = useState<ModelImageInputChoice>('auto');
   const [openAiApiMode, setOpenAiApiMode] = useState<ModelOpenAiApiModeChoice>('auto');
   const [isFullUrl, setIsFullUrl] = useState(false);
   const showOpenAiApiMode = supportsOpenAiApiMode(platform, modelProtocol);
@@ -316,7 +317,7 @@ const AddPlatformModal = ModalHOC<{
       protocolDetection.reset();
       setLastDetectionInput(null); // 重置检测记录 / Reset detection record
       setModelProtocol('openai'); // 重置协议选择 / Reset protocol selection
-      setImageInput(false);
+      setImageInput('auto');
       setOpenAiApiMode('auto');
       setIsFullUrl(false);
 
@@ -744,7 +745,18 @@ const AddPlatformModal = ModalHOC<{
             }
             extra={t('settings.imageInputTip')}
           >
-            <Switch checked={imageInput} onChange={setImageInput} />
+            <Radio.Group
+              type='button'
+              mode='fill'
+              size='small'
+              value={imageInput}
+              onChange={(value) => setImageInput(value as ModelImageInputChoice)}
+              options={[
+                { label: t('settings.imageInputAuto'), value: 'auto' },
+                { label: t('settings.imageInputSupported'), value: 'supported' },
+                { label: t('settings.imageInputUnsupported'), value: 'unsupported' },
+              ]}
+            />
           </Form.Item>
 
           {showOpenAiApiMode && (

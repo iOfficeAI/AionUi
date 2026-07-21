@@ -514,6 +514,7 @@ const ModelModalContent: React.FC = () => {
                       const isNewApiProvider = isNewApiPlatform(platform.platform);
                       const modelProtocol = platform.model_protocols?.[model] || 'openai';
                       const modelSettings = platform.model_settings?.[model];
+                      const imageInput = modelSettings?.image_input ?? 'auto';
                       const showOpenAiApiMode = supportsOpenAiApiMode(platform.platform, modelProtocol);
                       const model_health = platform.model_health?.[model];
                       const healthStatus = model_health?.status || 'unknown';
@@ -576,17 +577,19 @@ const ModelModalContent: React.FC = () => {
 
                               <Tooltip
                                 content={
-                                  modelSettings?.image_input === 'supported'
+                                  imageInput === 'supported'
                                     ? t('settings.imageInputSupported')
-                                    : t('settings.imageInputUnsupported')
+                                    : imageInput === 'unsupported'
+                                      ? t('settings.imageInputUnsupported')
+                                      : t('settings.imageInputAuto')
                                 }
                               >
                                 <span
                                   className={`inline-flex h-20px w-20px shrink-0 items-center justify-center ${
-                                    modelSettings?.image_input === 'supported' ? 'text-success-6' : 'text-t-secondary'
+                                    imageInput === 'supported' ? 'text-success-6' : 'text-t-secondary'
                                   }`}
                                 >
-                                  {modelSettings?.image_input === 'supported' ? (
+                                  {imageInput !== 'unsupported' ? (
                                     <PreviewOpen theme='outline' size='15' />
                                   ) : (
                                     <PreviewClose theme='outline' size='15' />

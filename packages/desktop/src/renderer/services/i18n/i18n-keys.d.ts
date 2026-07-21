@@ -1692,6 +1692,7 @@ export type I18nKey =
   | 'settings.imageGenerationModel'
   | 'settings.imageGenerationToggle'
   | 'settings.imageInput'
+  | 'settings.imageInputAuto'
   | 'settings.imageInputSupported'
   | 'settings.imageInputTip'
   | 'settings.imageInputUnsupported'

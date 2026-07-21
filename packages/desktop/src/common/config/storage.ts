@@ -442,7 +442,7 @@ export type ModelOpenAiApiMode = 'chat_completions' | 'responses';
 export type ModelImageInputCapability = 'supported' | 'unsupported';
 
 export type ModelSettings = {
-  image_input: ModelImageInputCapability;
+  image_input?: ModelImageInputCapability;
   openai_api_mode?: ModelOpenAiApiMode;
 };
 
