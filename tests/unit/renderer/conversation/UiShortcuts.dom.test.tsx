@@ -54,6 +54,8 @@ import { useConversationShortcuts } from '@/renderer/hooks/ui/useConversationSho
 import ConversationSearchPopover from '@/renderer/pages/conversation/GroupedHistory/ConversationSearchPopover';
 import { useMinimapPanel } from '@/renderer/pages/conversation/components/ConversationTitleMinimap/useMinimapPanel';
 import { useWorkspaceCollapse } from '@/renderer/pages/conversation/hooks/useWorkspaceCollapse';
+import { isShortcutBlockedByTarget } from '@/renderer/utils/ui/keyboardShortcuts';
+import { dispatchWorkspaceToggleEvent } from '@/renderer/utils/workspace/workspaceEvents';
 
 const dispatchShortcut = (target: EventTarget, init: KeyboardEventInit): KeyboardEvent => {
   const event = new KeyboardEvent('keydown', {
@@ -264,6 +266,26 @@ describe('common desktop UI shortcuts', () => {
     dispatchShortcut(svgTarget, { key: 'b', metaKey: true });
 
     expect(toggleSider).toHaveBeenCalledTimes(2);
+  });
+
+  it('falls back to the event target when composedPath is unavailable', () => {
+    const input = document.createElement('input');
+    const event = {
+      composedPath: undefined,
+      target: input,
+    } as unknown as KeyboardEvent;
+
+    expect(isShortcutBlockedByTarget(event)).toBe(true);
+  });
+
+  it('reports an unhandled workspace toggle when no window global is available', () => {
+    vi.stubGlobal('window', undefined);
+
+    try {
+      expect(dispatchWorkspaceToggleEvent()).toBe(false);
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 
   it('yields when an embedded surface owns focus after event retargeting', () => {
