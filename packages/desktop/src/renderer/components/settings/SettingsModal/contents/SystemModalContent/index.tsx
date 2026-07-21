@@ -269,15 +269,18 @@ const SystemModalContent: React.FC = () => {
     });
   }, []);
 
-  const handleSendKeyChange = useCallback((value: 'enter' | 'mod+enter') => {
-    const previous = sendKey;
-    setSendKey(value);
-    configService.setLocal('chat.sendKey', value);
-    configService.set('chat.sendKey', value).catch(() => {
-      setSendKey(previous);
-      configService.setLocal('chat.sendKey', previous);
-    });
-  }, [sendKey]);
+  const handleSendKeyChange = useCallback(
+    (value: 'enter' | 'mod+enter') => {
+      const previous = sendKey;
+      setSendKey(value);
+      configService.setLocal('chat.sendKey', value);
+      configService.set('chat.sendKey', value).catch(() => {
+        setSendKey(previous);
+        configService.setLocal('chat.sendKey', previous);
+      });
+    },
+    [sendKey]
+  );
 
   // Get system directory info
   const { data: systemInfo } = useSWR('system.dir.info', () => ipcBridge.application.systemInfo.invoke());
