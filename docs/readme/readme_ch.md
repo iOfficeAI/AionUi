@@ -46,11 +46,15 @@
 </p>
 
 <p align="center">
-  🎁 <strong>AionUi × Kimi 战略合作</strong>：面向贡献者免费赠送 <strong>Kimi「Allegretto」订阅计划（价值 ¥199/月 · $39/月）</strong>——<a href="KIMI_CAMPAIGN_DISCUSSION_URL"><strong>查看详情</strong></a>
+  🎁 <strong>AionUi × Kimi 战略合作</strong>：面向贡献者免费赠送 <strong>Kimi「Allegretto」订阅计划（价值 ¥199/月 · $39/月）</strong>！
 </p>
 
+<h3 align="center">
+  <a href="KIMI_CAMPAIGN_DISCUSSION_URL">👉 查看活动详情与申领方式</a>
+</h3>
+
 <p align="center">
-  <strong>Kimi K3</strong> 已发布，在 AionUi 中开箱即用——<a href="https://www.kimi.com/code?aff=aionui" target="_blank">订阅 Kimi For Coding</a>，或获取 API Key（<a href="https://platform.kimi.com?aff=aionui" target="_blank">国内</a> / <a href="https://platform.kimi.ai?aff=aionui" target="_blank">海外</a>）。
+  <sub><strong>Kimi K3</strong> 已发布，在 AionUi 中开箱即用——<a href="https://www.kimi.com/code?aff=aionui" target="_blank">订阅 Kimi For Coding</a>，或获取 API Key（<a href="https://platform.kimi.com?aff=aionui" target="_blank">国内</a> / <a href="https://platform.kimi.ai?aff=aionui" target="_blank">海外</a>）</sub>
 </p>
 
 ---
