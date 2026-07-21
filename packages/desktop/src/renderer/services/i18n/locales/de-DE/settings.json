@@ -1260,6 +1260,8 @@
     "offlineHint": "The command was found but the connection failed. Check the error above, then adjust the launch path or environment variables below.",
     "missingTitle": "Not detected",
     "missingHint": "The command wasn't found on the default path. If it is installed, specify its full launch path below.",
+    "uncheckedTitle": "Noch nicht geprüft",
+    "uncheckedHint": "Dieser Agent wurde noch nicht auf eine Verbindung getestet. Klicken Sie oben rechts auf „Test Connection“, um ihn zu prüfen.",
     "envScenariosTitle": "Configuring environment variables can fix:",
     "envScenarioApiKey": "Missing API key or access token (e.g. ANTHROPIC_API_KEY, OPENAI_API_KEY) — the common cause of \"needs sign-in\" / connection failures",
     "envScenarioBaseUrl": "Custom API endpoint or gateway (e.g. ANTHROPIC_BASE_URL, OPENAI_BASE_URL) for self-hosted or proxied services",

@@ -1976,6 +1976,8 @@ export type I18nKey =
   | 'settings.repair.pathPlaceholder'
   | 'settings.repair.resetPath'
   | 'settings.repair.saveAndTest'
+  | 'settings.repair.uncheckedHint'
+  | 'settings.repair.uncheckedTitle'
   | 'settings.restartConfirm'
   | 'settings.restartManualRequired'
   | 'settings.restartNow'

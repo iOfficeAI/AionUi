@@ -1170,6 +1170,8 @@
     "offlineHint": "已找到命令，但連線失敗。請查看上方的錯誤訊息，然後在下方調整啟動路徑或環境變數。",
     "missingTitle": "未偵測到",
     "missingHint": "未在預設路徑找到該命令。如果已經安裝，請在下方指定完整的啟動路徑。",
+    "uncheckedTitle": "尚未偵測",
+    "uncheckedHint": "此 Agent 尚未偵測連線。請點右上角的「測試連線」進行偵測。",
     "envScenariosTitle": "設定環境變數可以解決：",
     "envScenarioApiKey": "缺少 API 金鑰或存取權杖（如 ANTHROPIC_API_KEY、OPENAI_API_KEY）——這是「需登入」/ 連線失敗最常見的原因",
     "envScenarioBaseUrl": "自訂 API 位址或閘道（如 ANTHROPIC_BASE_URL、OPENAI_BASE_URL），用於自建或代理的服務",

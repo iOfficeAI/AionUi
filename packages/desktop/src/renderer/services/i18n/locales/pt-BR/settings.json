@@ -1168,6 +1168,8 @@
     "offlineHint": "O comando foi encontrado, mas a conexão falhou. Verifique o erro acima e ajuste o caminho de inicialização ou as variáveis de ambiente abaixo.",
     "missingTitle": "Não detectado",
     "missingHint": "O comando não foi encontrado no caminho padrão. Se estiver instalado, especifique o caminho de inicialização completo abaixo.",
+    "uncheckedTitle": "Ainda não verificado",
+    "uncheckedHint": "A conexão deste agente ainda não foi testada. Clique em \"Testar Conexão\" no canto superior direito para verificar.",
     "envScenariosTitle": "Configurar variáveis de ambiente pode resolver:",
     "envScenarioApiKey": "Falta de chave de API ou token de acesso (ex. ANTHROPIC_API_KEY, OPENAI_API_KEY) — a causa mais comum de \"requer login\" / falhas de conexão",
     "envScenarioBaseUrl": "Endpoint de API ou gateway personalizado (ex. ANTHROPIC_BASE_URL, OPENAI_BASE_URL) para serviços auto-hospedados ou com proxy",

@@ -1168,6 +1168,8 @@
     "offlineHint": "La commande a été trouvée mais la connexion a échoué. Vérifiez l'erreur ci-dessus, puis ajustez le chemin de lancement ou les variables d'environnement ci-dessous.",
     "missingTitle": "Non détecté",
     "missingHint": "La commande est introuvable sur le chemin par défaut. S'il est installé, spécifiez son chemin de lancement complet ci-dessous.",
+    "uncheckedTitle": "Pas encore vérifié",
+    "uncheckedHint": "La connexion de cet agent n'a pas encore été testée. Cliquez sur « Tester la connexion » en haut à droite pour la vérifier.",
     "envScenariosTitle": "La configuration des variables d'environnement peut corriger :",
     "envScenarioApiKey": "Clé API ou jeton d'accès manquant (par exemple ANTHROPIC_API_KEY, OPENAI_API_KEY) — la cause fréquente des « besoins de connexion » / des échecs de connexion",
     "envScenarioBaseUrl": "Point de terminaison ou passerelle d'API personnalisée (par exemple ANTHROPIC_BASE_URL, OPENAI_BASE_URL) pour les services auto-hébergés ou proxy",

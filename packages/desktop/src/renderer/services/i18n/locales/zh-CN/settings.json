@@ -1169,6 +1169,8 @@
     "offlineHint": "已找到命令，但连接失败。请查看上方的错误信息，然后在下方调整启动路径或环境变量。",
     "missingTitle": "未检测到",
     "missingHint": "未在默认路径找到该命令。如果已经安装，请在下方指定完整的启动路径。",
+    "uncheckedTitle": "尚未检测",
+    "uncheckedHint": "该 Agent 尚未检测连接。请点右上角的「测试连接」进行检测。",
     "envScenariosTitle": "配置环境变量可以解决：",
     "envScenarioApiKey": "缺少 API 密钥或访问令牌（如 ANTHROPIC_API_KEY、OPENAI_API_KEY）——这是「需登录」/ 连接失败最常见的原因",
     "envScenarioBaseUrl": "自定义 API 地址或网关（如 ANTHROPIC_BASE_URL、OPENAI_BASE_URL），用于自建或代理的服务",

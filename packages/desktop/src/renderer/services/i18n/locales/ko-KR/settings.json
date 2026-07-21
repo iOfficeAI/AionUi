@@ -1158,6 +1158,8 @@
     "offlineHint": "명령은 찾았지만 연결에 실패했습니다. 위의 오류를 확인한 후 아래에서 실행 경로나 환경 변수를 조정하세요.",
     "missingTitle": "감지되지 않음",
     "missingHint": "기본 경로에서 명령을 찾을 수 없습니다. 이미 설치되어 있다면 아래에 전체 실행 경로를 지정하세요.",
+    "uncheckedTitle": "아직 확인되지 않음",
+    "uncheckedHint": "이 에이전트는 아직 연결 테스트를 하지 않았습니다. 오른쪽 상단의 「연결 테스트」를 클릭하여 확인하세요.",
     "envScenariosTitle": "환경 변수 구성으로 해결할 수 있는 것:",
     "envScenarioApiKey": "API 키 또는 액세스 토큰 누락(ANTHROPIC_API_KEY, OPENAI_API_KEY 등) — \"로그인 필요\" / 연결 실패의 가장 흔한 원인",
     "envScenarioBaseUrl": "사용자 지정 API 엔드포인트 또는 게이트웨이(ANTHROPIC_BASE_URL, OPENAI_BASE_URL 등). 자체 호스팅 또는 프록시 서비스용",

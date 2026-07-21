@@ -1158,6 +1158,8 @@
     "offlineHint": "コマンドは見つかりましたが、接続に失敗しました。上のエラーを確認し、下の起動パスまたは環境変数を調整してください。",
     "missingTitle": "検出されません",
     "missingHint": "デフォルトのパスでコマンドが見つかりませんでした。インストール済みの場合は、下に完全な起動パスを指定してください。",
+    "uncheckedTitle": "未確認",
+    "uncheckedHint": "このエージェントはまだ接続テストが行われていません。右上の「接続テスト」をクリックして確認してください。",
     "envScenariosTitle": "環境変数の設定で解決できること：",
     "envScenarioApiKey": "API キーまたはアクセストークンの不足（ANTHROPIC_API_KEY、OPENAI_API_KEY など）——「要サインイン」/ 接続失敗の最も一般的な原因",
     "envScenarioBaseUrl": "カスタム API エンドポイントまたはゲートウェイ（ANTHROPIC_BASE_URL、OPENAI_BASE_URL など）。自己ホストまたはプロキシ経由のサービス向け",

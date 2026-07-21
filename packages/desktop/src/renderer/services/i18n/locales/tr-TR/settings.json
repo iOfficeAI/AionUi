@@ -1156,6 +1156,8 @@
     "offlineHint": "Komut bulundu ancak bağlantı başarısız oldu. Yukarıdaki hatayı kontrol edin, ardından aşağıdaki başlatma yolunu veya ortam değişkenlerini ayarlayın.",
     "missingTitle": "Algılanmadı",
     "missingHint": "Komut varsayılan yolda bulunamadı. Kuruluysa, tam başlatma yolunu aşağıda belirtin.",
+    "uncheckedTitle": "Henüz kontrol edilmedi",
+    "uncheckedHint": "Bu aracının bağlantısı henüz test edilmedi. Kontrol etmek için sağ üstteki \"Bağlantıyı Test Et\" düğmesine tıklayın.",
     "envScenariosTitle": "Ortam değişkenlerini yapılandırmak şunları çözebilir:",
     "envScenarioApiKey": "Eksik API anahtarı veya erişim belirteci (ör. ANTHROPIC_API_KEY, OPENAI_API_KEY) — \"giriş gerekli\" / bağlantı hatalarının en yaygın nedeni",
     "envScenarioBaseUrl": "Özel API uç noktası veya ağ geçidi (ör. ANTHROPIC_BASE_URL, OPENAI_BASE_URL); kendi barındırılan veya proxy hizmetler için",
