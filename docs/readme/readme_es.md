@@ -40,7 +40,21 @@
 ---
 
 <p align="center">
-  🎁 <strong>Alianza AionUi × Kimi</strong>: planes <strong>Kimi "Allegretto" gratis (valor $39/mes)</strong> para nuestros contribuidores. <a href="KIMI_CAMPAIGN_DISCUSSION_URL"><strong>→ Detalles y cómo reclamar</strong></a>
+  <a href="KIMI_CAMPAIGN_DISCUSSION_URL">
+    <img src="../../resources/kimi/contributor-bonus-black-blue.jpg" alt="AionUi × Kimi Bono para Contribuidores" width="600">
+  </a>
+</p>
+
+<p align="center">
+  🎁 <strong>Alianza AionUi × Kimi</strong>: planes premium <strong>Kimi "Allegretto" gratis (valor $39/mes · ¥199/mes)</strong> para nuestros contribuidores.
+</p>
+
+<h3 align="center">
+  <a href="KIMI_CAMPAIGN_DISCUSSION_URL">Ver detalles de la campaña y cómo reclamar →</a>
+</h3>
+
+<p align="center">
+  <sub><strong>Kimi K3</strong> ya está aquí y funciona de inmediato en AionUi — <a href="https://www.kimi.com/code?aff=aionui" target="_blank">consigue un plan Kimi For Coding</a> o una clave API (<a href="https://platform.kimi.ai?aff=aionui" target="_blank">Global</a> / <a href="https://platform.kimi.com?aff=aionui" target="_blank">China</a>)</sub>
 </p>
 
 ---
