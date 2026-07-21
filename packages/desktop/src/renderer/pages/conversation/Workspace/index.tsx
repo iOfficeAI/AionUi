@@ -510,9 +510,12 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
           </FlexFullContainer>
         )}
 
-        {/* Changes tab content */}
+        {/* Changes tab content
+            Single scroll owner lives inside FileChangeList (toolbar sticky + list scrolls).
+            Do not put overflow-y-auto on this outer shell — nested overflow + size-full
+            fights the flex height chain and blocks scrolling on large changesets (#3652). */}
         {!isWorkspaceCollapsed && activeTab === 'changes' && (
-          <FlexFullContainer containerClassName='overflow-y-auto'>
+          <FlexFullContainer containerClassName='min-h-0'>
             <FileChangeList
               t={t}
               workspace={workspace}
