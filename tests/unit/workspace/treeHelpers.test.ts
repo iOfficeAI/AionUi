@@ -31,17 +31,19 @@ const file = (relativePath: string): IDirOrFile => ({
 
 describe('collectExpandedDirs', () => {
   it('returns only expanded directory nodes (root included), skipping files', () => {
-    const tree = [dir('', [dir('src', [file('src/a.ts'), dir('src/deep', [file('src/deep/b.ts')])]), file('readme.md')])];
+    const tree = [
+      dir('', [dir('src', [file('src/a.ts'), dir('src/deep', [file('src/deep/b.ts')])]), file('readme.md')]),
+    ];
     const expanded = ['', 'src', 'src/deep', 'src/a.ts'];
     const result = collectExpandedDirs(tree, expanded);
-    const paths = result.map((r) => r.relativePath).sort();
+    const paths = result.map((r) => r.relativePath).toSorted();
     expect(paths).toEqual(['', 'src', 'src/deep']);
   });
 
   it('ignores expanded keys whose node is not in the tree', () => {
     const tree = [dir('', [dir('src')])];
     const result = collectExpandedDirs(tree, ['', 'src', 'ghost/path']);
-    expect(result.map((r) => r.relativePath).sort()).toEqual(['', 'src']);
+    expect(result.map((r) => r.relativePath).toSorted()).toEqual(['', 'src']);
   });
 });
 
@@ -64,7 +66,7 @@ describe('applyFreshListings', () => {
     const src = root.children!.find((c) => c.relativePath === 'src')!;
     const docs = root.children!.find((c) => c.relativePath === 'docs')!;
 
-    expect(src.children!.map((c) => c.relativePath).sort()).toEqual(['src/new.ts', 'src/old.ts']);
+    expect(src.children!.map((c) => c.relativePath).toSorted()).toEqual(['src/new.ts', 'src/old.ts']);
     // docs was not re-fetched → its previously-loaded children are preserved.
     expect(docs.children!.map((c) => c.relativePath)).toEqual(['docs/guide.md']);
   });
@@ -126,7 +128,7 @@ describe('buildSearchTree', () => {
     const src = tree[0].children!.find((c) => c.relativePath === 'src')!;
     const ui = src.children!.find((c) => c.relativePath === 'src/ui')!;
     // Both files under ui/ match on the "ui" segment.
-    const rels = ui.children!.map((c) => c.relativePath).sort();
+    const rels = ui.children!.map((c) => c.relativePath).toSorted();
     expect(rels).toContain('src/ui/button.tsx');
   });
 
