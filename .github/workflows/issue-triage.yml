@@ -3,10 +3,13 @@ name: Issue Triage
 # Auto-label and auto-assign newly opened issues based on the
 # "Module" dropdown in the issue templates.
 # Mapping lives in .github/triage-map.json — edit owners there.
+# Issues labeled "bonus" are reserved for community contributors (Kimi
+# campaign): they are never auto-assigned, and adding the label later
+# clears any earlier auto-assignment.
 
 on:
   issues:
-    types: [opened]
+    types: [opened, labeled]
 
 permissions:
   issues: write
@@ -27,7 +30,24 @@ jobs:
           script: |
             const fs = require('fs');
             const map = JSON.parse(fs.readFileSync('.github/triage-map.json', 'utf8'));
-            const body = context.payload.issue.body || '';
+            const issue = context.payload.issue;
+            const issue_number = issue.number;
+            const labelNames = (labels) => labels.map((l) => (typeof l === 'string' ? l : l.name));
+
+            // "labeled" runs exist only to un-assign when "bonus" arrives:
+            // bonus issues are reserved for community contributors (Kimi
+            // campaign) and must not sit on a maintainer's plate.
+            if (context.payload.action === 'labeled') {
+              if (context.payload.label?.name !== 'bonus') return;
+              const assignees = (issue.assignees ?? []).map((a) => a.login);
+              if (assignees.length === 0) return;
+              core.info(`"bonus" label added — removing assignees: ${assignees.join(', ')}`);
+              await github.rest.issues.removeAssignees({ ...context.repo, issue_number, assignees });
+              return;
+            }
+
+            // --- action === "opened": module triage ---
+            const body = issue.body || '';
 
             // Issue-form dropdowns render as "### <field label>\n\n<selected value>".
             // Extract the value under the "### Module" heading and require an
@@ -39,7 +59,6 @@ jobs:
             const matched = selected ? (map.modules.find((entry) => entry.module === selected) ?? null) : null;
 
             const target = matched ?? map.fallback;
-            const issue_number = context.payload.issue.number;
             core.info(`Module match: ${matched ? matched.module : '(none)'} → label=${target.label} owner=${target.owner}`);
 
             await github.rest.issues.addLabels({
@@ -47,6 +66,13 @@ jobs:
               issue_number,
               labels: [target.label],
             });
+
+            // Never auto-assign an issue already labeled "bonus" (e.g. opened
+            // by a maintainer with the label preset).
+            if (labelNames(issue.labels ?? []).includes('bonus')) {
+              core.info('Issue opened with the "bonus" label — skipping auto-assign.');
+              return;
+            }
 
             try {
               await github.rest.issues.addAssignees({
