@@ -11,9 +11,15 @@ import type { IProvider } from '@/common/config/storage';
 
 const mocks = vi.hoisted(() => ({
   close: vi.fn(),
+  createProvider: vi.fn(),
+  deleteProvider: vi.fn(),
+  editModeOpen: vi.fn(),
   mutate: vi.fn(),
   onSubmit: vi.fn(),
+  providerMutate: vi.fn(),
+  providers: [] as IProvider[],
   protocolReset: vi.fn(),
+  updateProvider: vi.fn(),
 }));
 
 function MockSelectOption({ children, value }: { children?: React.ReactNode; value: string }) {
@@ -47,18 +53,38 @@ vi.mock('@/renderer/components/base/AionModal', () => ({
 }));
 
 vi.mock('@icon-park/react', () => ({
+  DeleteFour: () => <span>delete</span>,
+  Heartbeat: () => <span>health</span>,
+  Info: () => <span>info</span>,
   LinkCloud: () => <span aria-hidden='true'>link</span>,
   Loading: () => <span aria-hidden='true'>loading</span>,
+  Minus: () => <span>remove-provider</span>,
+  Plus: () => <span>add-model</span>,
+  PreviewClose: () => <span aria-label='vision-disabled'>vision-disabled</span>,
   PreviewOpen: () => <span aria-hidden='true'>vision</span>,
   Refresh: () => <span aria-hidden='true'>refresh</span>,
   Search: () => <span aria-hidden='true'>search</span>,
+  SettingTwo: () => <span>configure</span>,
+  Write: () => <span>edit-provider</span>,
 }));
 
 vi.mock('@/common', () => ({
   ipcBridge: {
     mode: {
+      createProvider: {
+        invoke: mocks.createProvider,
+      },
+      deleteProvider: {
+        invoke: mocks.deleteProvider,
+      },
       fetchModelList: {
         invoke: vi.fn(),
+      },
+      listProviders: {
+        invoke: vi.fn(),
+      },
+      updateProvider: {
+        invoke: mocks.updateProvider,
       },
     },
   },
@@ -70,12 +96,39 @@ vi.mock('@/common/utils', () => ({
 
 vi.mock('@renderer/hooks/agent/useModeModeList', () => ({
   default: () => ({
-    data: { models: [] },
+    data: {
+      models: [
+        { label: 'GPT 5.6 Sol', value: 'gpt-5.6-sol' },
+        { label: 'Claude Sonnet 4', value: 'claude-sonnet-4' },
+      ],
+    },
     error: null,
     isLoading: false,
     mutate: mocks.mutate,
   }),
 }));
+
+vi.mock('@/renderer/hooks/agent/useModelProviderList', () => ({
+  useProvidersQuery: () => ({ data: mocks.providers, mutate: mocks.providerMutate }),
+}));
+
+vi.mock('@/renderer/components/settings/SettingsModal/settingsViewContext', () => ({
+  useSettingsViewMode: () => 'modal',
+}));
+
+vi.mock('@/renderer/hooks/system/useDeepLink', () => ({
+  consumePendingDeepLink: () => null,
+}));
+
+vi.mock('@/renderer/components/base/TalkToButlerButton', () => ({
+  default: ({ label }: { label: React.ReactNode }) => <span>{label}</span>,
+}));
+
+vi.mock('@/renderer/pages/settings/components/EditModeModal', () => {
+  const EditModeModal = () => null;
+  EditModeModal.useModal = () => [{ close: mocks.close, open: mocks.editModeOpen }, null];
+  return { default: EditModeModal };
+});
 
 vi.mock('@renderer/hooks/system/useProtocolDetection', () => ({
   default: () => ({
@@ -98,10 +151,12 @@ vi.mock('@arco-design/web-react', async (importOriginal) => {
     mode?: 'multiple';
     onChange?: (value: string | string[]) => void;
     options?: Array<Option | string>;
+    triggerProps?: { getPopupContainer?: (node: HTMLElement) => HTMLElement };
     value?: string | string[];
   };
 
-  const MockSelect = ({ children, mode, onChange, options = [], value }: SelectProps) => {
+  const MockSelect = ({ children, mode, onChange, options = [], triggerProps, value }: SelectProps) => {
+    triggerProps?.getPopupContainer?.(document.createElement('span'));
     const optionValues = new Set([
       ...options.map((option) => (typeof option === 'string' ? option : option.value)),
       ...React.Children.toArray(children)
@@ -109,11 +164,16 @@ vi.mock('@arco-design/web-react', async (importOriginal) => {
         .map((child) => (child as React.ReactElement<{ value?: string }>).props.value)
         .filter((item): item is string => Boolean(item)),
     ]);
-    const testId = optionValues.has('supported')
-      ? 'vision-select'
-      : optionValues.has('chat_completions')
-        ? 'api-mode-select'
-        : undefined;
+    const testId =
+      mode === 'multiple'
+        ? 'model-select'
+        : optionValues.has('supported')
+          ? 'vision-select'
+          : optionValues.has('chat_completions')
+            ? 'api-mode-select'
+            : optionValues.has('anthropic') && optionValues.has('gemini')
+              ? 'protocol-select'
+              : undefined;
 
     return (
       <select
@@ -143,7 +203,32 @@ vi.mock('@arco-design/web-react', async (importOriginal) => {
 
   return {
     ...actual,
+    Button: ({
+      children,
+      icon,
+      onClick,
+    }: {
+      children?: React.ReactNode;
+      icon?: React.ReactNode;
+      onClick?: () => void;
+    }) => (
+      <button type='button' onClick={onClick}>
+        {icon}
+        {children}
+      </button>
+    ),
+    Collapse: Object.assign(({ children }: { children?: React.ReactNode }) => <div>{children}</div>, {
+      Item: ({ children, header }: { children?: React.ReactNode; header?: React.ReactNode }) => (
+        <section>
+          {header}
+          {children}
+        </section>
+      ),
+    }),
+    Divider: () => <hr />,
     Message: {
+      error: vi.fn(),
+      success: vi.fn(),
       useMessage: () => [
         {
           error: vi.fn(),
@@ -154,13 +239,29 @@ vi.mock('@arco-design/web-react', async (importOriginal) => {
         null,
       ],
     },
+    Popconfirm: ({ children, onOk }: { children: React.ReactNode; onOk?: () => void }) =>
+      React.isValidElement(children)
+        ? React.cloneElement(children as React.ReactElement<{ onClick?: () => void }>, { onClick: onOk })
+        : children,
     Select: Object.assign(MockSelect, { Option: MockSelectOption }),
+    Switch: ({ checked, onChange }: { checked?: boolean; onChange?: (checked: boolean) => void }) => (
+      <button type='button' role='switch' aria-checked={checked} onClick={() => onChange?.(!checked)}>
+        switch
+      </button>
+    ),
+    Tag: ({ children, onClick }: { children?: React.ReactNode; onClick?: () => void }) => (
+      <span onClick={onClick}>{children}</span>
+    ),
+    Tooltip: ({ children, content }: { children?: React.ReactNode; content?: React.ReactNode }) => (
+      <span title={typeof content === 'string' ? content : undefined}>{children}</span>
+    ),
   };
 });
 
 import { supportsOpenAiApiMode, updateModelSettings } from '@/common/utils/modelCapabilities';
 import AddModelModal from '@/renderer/pages/settings/components/AddModelModal';
 import AddPlatformModal from '@/renderer/pages/settings/components/AddPlatformModal';
+import ModelModalContent from '@/renderer/components/settings/SettingsModal/contents/ModelModalContent';
 
 const provider = (overrides: Partial<IProvider> = {}): IProvider => ({
   api_key: 'test-key',
@@ -315,6 +416,48 @@ describe('model capability selectors', () => {
       expect(screen.getByTestId('vision-select')).toHaveValue('auto');
     });
     expect(screen.queryByTestId('api-mode-select')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'common.confirm' }));
+    expect(mocks.onSubmit).toHaveBeenCalledWith(expect.objectContaining({ model_settings: {} }));
+  });
+
+  it('applies detected protocol and explicit capabilities to every newly selected model', async () => {
+    render(
+      <AddModelModal
+        data={provider({ platform: 'new-api' })}
+        modalProps={{ visible: true }}
+        modalCtrl={{ close: mocks.close }}
+        onSubmit={mocks.onSubmit}
+      />
+    );
+
+    const modelSelect = (await screen.findByTestId('model-select')) as HTMLSelectElement;
+    Array.from(modelSelect.options).forEach((option) => {
+      option.selected = option.value === 'gpt-5.6-sol' || option.value === 'claude-sonnet-4';
+    });
+    fireEvent.change(modelSelect);
+
+    expect(screen.getByTestId('protocol-select')).toHaveValue('anthropic');
+    expect(screen.queryByTestId('api-mode-select')).not.toBeInTheDocument();
+
+    fireEvent.change(screen.getByTestId('protocol-select'), { target: { value: 'openai' } });
+    fireEvent.change(screen.getByTestId('vision-select'), { target: { value: 'supported' } });
+    fireEvent.change(screen.getByTestId('api-mode-select'), { target: { value: 'responses' } });
+    fireEvent.click(screen.getByRole('button', { name: 'common.confirm' }));
+
+    expect(mocks.onSubmit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        model_protocols: {
+          'claude-sonnet-4': 'openai',
+          'gpt-5.6-sol': 'openai',
+        },
+        model_settings: {
+          'claude-sonnet-4': { image_input: 'supported', openai_api_mode: 'responses' },
+          'gpt-5.6-sol': { image_input: 'supported', openai_api_mode: 'responses' },
+        },
+        models: ['gpt-4o', 'gpt-5.6-sol', 'claude-sonnet-4'],
+      })
+    );
   });
 
   it('shows dropdowns for the new OpenAI-compatible provider form', async () => {
@@ -334,9 +477,23 @@ describe('model capability selectors', () => {
 
     fireEvent.change(screen.getByTestId('vision-select'), { target: { value: 'supported' } });
     fireEvent.change(screen.getByTestId('api-mode-select'), { target: { value: 'responses' } });
+    const modelSelect = screen.getByTestId('model-select') as HTMLSelectElement;
+    Array.from(modelSelect.options).forEach((option) => {
+      option.selected = option.value === 'gpt-5.6-sol';
+    });
+    fireEvent.change(modelSelect);
+    fireEvent.click(screen.getByRole('button', { name: 'common.confirm' }));
 
-    expect(screen.getByTestId('vision-select')).toHaveValue('supported');
-    expect(screen.getByTestId('api-mode-select')).toHaveValue('responses');
+    await waitFor(() => {
+      expect(mocks.onSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          model_settings: {
+            'gpt-5.6-sol': { image_input: 'supported', openai_api_mode: 'responses' },
+          },
+          models: ['gpt-5.6-sol'],
+        })
+      );
+    });
   });
 
   it('keeps API mode hidden on the Gemini provider form', async () => {
@@ -353,5 +510,106 @@ describe('model capability selectors', () => {
       expect(screen.getByTestId('vision-select')).toHaveValue('auto');
     });
     expect(screen.queryByTestId('api-mode-select')).not.toBeInTheDocument();
+
+    const modelSelect = screen.getByTestId('model-select') as HTMLSelectElement;
+    Array.from(modelSelect.options).forEach((option) => {
+      option.selected = option.value === 'gpt-5.6-sol';
+    });
+    fireEvent.change(modelSelect);
+    fireEvent.click(screen.getByRole('button', { name: 'common.confirm' }));
+
+    await waitFor(() => {
+      expect(mocks.onSubmit).toHaveBeenCalledWith(expect.objectContaining({ model_settings: {} }));
+    });
+  });
+});
+
+describe('configured model list', () => {
+  const configuredProvider = provider({
+    model_enabled: {
+      'claude-direct': true,
+      'gpt-auto': true,
+      'gpt-chat': true,
+      'gpt-responses': true,
+    },
+    model_health: {
+      'claude-direct': { status: 'healthy' },
+      'gpt-auto': { status: 'healthy' },
+      'gpt-chat': { status: 'healthy' },
+      'gpt-responses': { status: 'healthy' },
+    },
+    model_protocols: {
+      'claude-direct': 'anthropic',
+      'gpt-chat': 'openai',
+      'gpt-responses': 'openai',
+    },
+    model_settings: {
+      'claude-direct': { image_input: 'supported' },
+      'gpt-chat': { image_input: 'unsupported', openai_api_mode: 'chat_completions' },
+      'gpt-responses': { image_input: 'supported', openai_api_mode: 'responses' },
+    },
+    models: ['gpt-responses', 'gpt-chat', 'gpt-auto', 'claude-direct'],
+    platform: 'new-api',
+  });
+
+  beforeEach(() => {
+    mocks.providers.splice(0, mocks.providers.length, configuredProvider);
+    mocks.updateProvider.mockResolvedValue(configuredProvider);
+  });
+
+  it('shows explicit and automatic Vision and API mode states', () => {
+    render(<ModelModalContent />);
+
+    expect(screen.getAllByTitle('settings.imageInputSupported')).toHaveLength(2);
+    expect(screen.getByTitle('settings.imageInputUnsupported')).toBeInTheDocument();
+    expect(screen.getByTitle('settings.imageInputAuto')).toBeInTheDocument();
+    expect(screen.getByText('settings.openAiApiModeResponses')).toBeInTheDocument();
+    expect(screen.getByText('settings.openAiApiModeChatCompletions')).toBeInTheDocument();
+    expect(screen.getByText('settings.openAiApiModeAuto')).toBeInTheDocument();
+  });
+
+  it('opens the selected model in the configuration dialog', async () => {
+    render(<ModelModalContent />);
+
+    fireEvent.click(screen.getAllByRole('button', { name: 'configure' })[1]);
+
+    await waitFor(() => {
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
+      expect(screen.getByTestId('vision-select')).toHaveValue('unsupported');
+      expect(screen.getByTestId('api-mode-select')).toHaveValue('chat_completions');
+    });
+  });
+
+  it('removes all per-model state when deleting a model', async () => {
+    render(<ModelModalContent />);
+
+    fireEvent.click(screen.getAllByRole('button', { name: 'delete' })[0]);
+
+    await waitFor(() => {
+      expect(mocks.updateProvider).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: 'provider-1',
+          model_enabled: {
+            'claude-direct': true,
+            'gpt-auto': true,
+            'gpt-chat': true,
+          },
+          model_health: {
+            'claude-direct': { status: 'healthy' },
+            'gpt-auto': { status: 'healthy' },
+            'gpt-chat': { status: 'healthy' },
+          },
+          model_protocols: {
+            'claude-direct': 'anthropic',
+            'gpt-chat': 'openai',
+          },
+          model_settings: {
+            'claude-direct': { image_input: 'supported' },
+            'gpt-chat': { image_input: 'unsupported', openai_api_mode: 'chat_completions' },
+          },
+          models: ['gpt-chat', 'gpt-auto', 'claude-direct'],
+        })
+      );
+    });
   });
 });
