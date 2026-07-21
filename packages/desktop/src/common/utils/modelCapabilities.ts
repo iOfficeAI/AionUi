@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { IProvider, ModelType } from '@/common/config/storage';
+import type { IProvider, ModelOpenAiApiMode, ModelSettings, ModelType } from '@/common/config/storage';
 
 /**
  * Capability matching regex patterns
@@ -54,6 +54,32 @@ export const getBaseModelName = (modelName: string): string => {
     .replace(/[^a-z0-9./-]/g, '-')
     .replace(/-+/g, '-')
     .replace(/^-|-$/g, '');
+};
+
+export type ModelOpenAiApiModeChoice = ModelOpenAiApiMode | 'auto';
+
+/** Whether a provider/model protocol can select an OpenAI wire API. */
+export const supportsOpenAiApiMode = (platform: string, modelProtocol = 'openai'): boolean => {
+  if (platform === 'new-api') return modelProtocol === 'openai';
+  return !['anthropic', 'bedrock', 'gemini', 'gemini-vertex-ai'].includes(platform);
+};
+
+/** Apply explicit settings to models while keeping automatic values absent on the wire. */
+export const updateModelSettings = (
+  current: Record<string, ModelSettings> | undefined,
+  modelIds: string[],
+  imageInput: boolean,
+  openAiApiMode: ModelOpenAiApiModeChoice
+): Record<string, ModelSettings> => {
+  const next = { ...current };
+
+  for (const modelId of modelIds) {
+    const settings: ModelSettings = { image_input: imageInput ? 'supported' : 'unsupported' };
+    if (openAiApiMode !== 'auto') settings.openai_api_mode = openAiApiMode;
+    next[modelId] = settings;
+  }
+
+  return next;
 };
 
 /**

@@ -1,11 +1,16 @@
 import type { IProvider } from '@/common/config/storage';
+import {
+  type ModelOpenAiApiModeChoice,
+  supportsOpenAiApiMode,
+  updateModelSettings,
+} from '@/common/utils/modelCapabilities';
 import type { ProtocolDetectionResponse, ProtocolType } from '@/common/utils/protocolDetector';
 import { ipcBridge } from '@/common';
 import { uuid } from '@/common/utils';
 import { isGoogleApisHost } from '@/common/utils/urlValidation';
 import ModalHOC from '@/renderer/utils/ui/ModalHOC';
-import { Form, Input, Message, Select, Switch } from '@arco-design/web-react';
-import { LinkCloud, Search, Loading, Refresh } from '@icon-park/react';
+import { Form, Input, Message, Radio, Select, Switch } from '@arco-design/web-react';
+import { LinkCloud, Loading, PreviewOpen, Refresh, Search } from '@icon-park/react';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useModeModeList from '@renderer/hooks/agent/useModeModeList';
@@ -235,7 +240,10 @@ const AddPlatformModal = ModalHOC<{
 
   // new-api 每模型协议选择状态 / new-api per-model protocol selection state
   const [modelProtocol, setModelProtocol] = useState<string>('openai');
+  const [imageInput, setImageInput] = useState(false);
+  const [openAiApiMode, setOpenAiApiMode] = useState<ModelOpenAiApiModeChoice>('auto');
   const [isFullUrl, setIsFullUrl] = useState(false);
+  const showOpenAiApiMode = supportsOpenAiApiMode(platform, modelProtocol);
 
   // Auto-detect protocol when model changes (for new-api platforms). The model
   // field is multi-select, so detect from the most recently added model.
@@ -308,6 +316,8 @@ const AddPlatformModal = ModalHOC<{
       protocolDetection.reset();
       setLastDetectionInput(null); // 重置检测记录 / Reset detection record
       setModelProtocol('openai'); // 重置协议选择 / Reset protocol selection
+      setImageInput(false);
+      setOpenAiApiMode('auto');
       setIsFullUrl(false);
 
       // Pre-fill from deep link data (aionui:// protocol)
@@ -383,6 +393,14 @@ const AddPlatformModal = ModalHOC<{
           const selectedModels: string[] = Array.isArray(values.model) ? values.model : [values.model];
           provider.model_protocols = Object.fromEntries(selectedModels.filter(Boolean).map((m) => [m, modelProtocol]));
         }
+
+        const selectedModels: string[] = Array.isArray(values.model) ? values.model : [values.model];
+        provider.model_settings = updateModelSettings(
+          undefined,
+          selectedModels.filter(Boolean),
+          imageInput,
+          showOpenAiApiMode ? openAiApiMode : 'auto'
+        );
 
         onSubmit(provider);
         modalCtrl.close();
@@ -714,6 +732,35 @@ const AddPlatformModal = ModalHOC<{
               extra={<span className='text-11px text-t-secondary'>{t('settings.modelProtocolTip')}</span>}
             >
               <Select value={modelProtocol} onChange={setModelProtocol} options={NEW_API_PROTOCOL_OPTIONS} />
+            </Form.Item>
+          )}
+
+          <Form.Item
+            label={
+              <span className='inline-flex items-center gap-5px'>
+                <PreviewOpen theme='outline' size='14' />
+                <span>{t('settings.imageInput')}</span>
+              </span>
+            }
+            extra={t('settings.imageInputTip')}
+          >
+            <Switch checked={imageInput} onChange={setImageInput} />
+          </Form.Item>
+
+          {showOpenAiApiMode && (
+            <Form.Item label={t('settings.openAiApiMode')} extra={t('settings.openAiApiModeTip')}>
+              <Radio.Group
+                type='button'
+                mode='fill'
+                size='small'
+                value={openAiApiMode}
+                onChange={(value) => setOpenAiApiMode(value as ModelOpenAiApiModeChoice)}
+                options={[
+                  { label: t('settings.modelSettingAuto'), value: 'auto' },
+                  { label: t('settings.openAiApiModeChatCompletions'), value: 'chat_completions' },
+                  { label: t('settings.openAiApiModeResponses'), value: 'responses' },
+                ]}
+              />
             </Form.Item>
           )}
         </Form>
