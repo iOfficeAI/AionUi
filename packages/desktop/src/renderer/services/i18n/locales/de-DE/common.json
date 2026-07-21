@@ -125,6 +125,15 @@
       "diagnosticsReportSuccess": "Diagnosebericht gesendet",
       "diagnosticsReportFailed": "Diagnosebericht konnte nicht gesendet werden",
       "rebuildFailed": "Alte DB konnte nicht gesichert und neue DB nicht erstellt werden"
+    },
+    "transientConcurrentStartup": {
+      "title": "AionUi wird gestartet",
+      "description": "Beim Öffnen dieses Fensters verwendete ein anderer AionUi-Startvorgang noch die lokalen Daten. Das ist vorübergehend und Ihre Daten sind sicher – eine Neuinstallation ist nicht erforderlich. Bitte warten Sie einen Moment und versuchen Sie es erneut oder starten Sie AionUi neu.",
+      "sendDiagnostics": "Send diagnostics",
+      "diagnosticsSent": "Diagnostics sent",
+      "diagnosticsReportSuccess": "Diagnostics report sent",
+      "diagnosticsReportFailed": "Failed to send diagnostics report",
+      "diagnosticsHint": "Wenn dies wiederholt auftritt, können Sie einen Diagnosebericht senden."
     }
   },
   "fileAttach.addFiles": "Dateien hinzufügen",

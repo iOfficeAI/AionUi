@@ -24,6 +24,7 @@ import { startBackendOrExit } from './process/startup/backendStartup';
 import { assertStartupArchitectureCompatible } from './process/startup/architectureCompatibility';
 import { classifyBackendStartupFailure } from './process/startup/backendStartupFailure';
 import { installQuitCleanup } from './process/startup/quitCleanup';
+import { shouldRegisterBackendStartup } from './process/startup/singleInstanceGating';
 import { ProcessConfig } from './process/utils/initStorage';
 import type { BackendStartupFailureInfo } from './common/types/platform/electron';
 import { registerWindowMaximizeListeners } from '@process/bridge';
@@ -939,15 +940,22 @@ app.on('open-url', (event, url) => {
 // 监听 GPU 子进程崩溃，连续多次后下次启动自动关闭硬件加速（参见 ELECTRON-9A / ELECTRON-9D）。
 installGpuCrashHandler();
 
-// Ensure we don't miss the ready event when running in CLI/WebUI mode
-void app
-  .whenReady()
-  .then(handleAppReady)
-  .catch((error) => {
-    // App initialization failed
-    console.error('[AionUi] App initialization failed:', error);
-    app.quit();
-  });
+// Register the backend startup flow only when this process owns the single
+// instance lock. A lock-losing instance must NOT spawn a competing aioncore
+// backend — doing so races the first instance's aioncore over the same data
+// directory and produced the "local data repair failed" false alarm
+// (Sentry 135525166). Gating here (rather than at the top-level second-instance
+// block) keeps it after handleAppReady is declared.
+if (shouldRegisterBackendStartup(gotTheLock)) {
+  void app
+    .whenReady()
+    .then(handleAppReady)
+    .catch((error) => {
+      // App initialization failed
+      console.error('[AionUi] App initialization failed:', error);
+      app.quit();
+    });
+}
 
 // Quit when all windows are closed, except on macOS. There, it's common
 // for applications and their menu bar to stay active until the user quits

@@ -126,6 +126,15 @@
       "diagnosticsReportSuccess": "診斷報告已傳送",
       "diagnosticsReportFailed": "診斷報告傳送失敗",
       "rebuildFailed": "備份舊資料庫並重建新資料庫失敗"
+    },
+    "transientConcurrentStartup": {
+      "title": "AionUi 正在啟動",
+      "description": "此視窗開啟時，另一個 AionUi 啟動程序仍在使用本機資料。這是暫時的，您的資料是安全的——無需重新安裝。請稍候片刻後重試，或重新啟動 AionUi。",
+      "sendDiagnostics": "傳送診斷",
+      "diagnosticsSent": "診斷已傳送",
+      "diagnosticsReportSuccess": "診斷報告已傳送",
+      "diagnosticsReportFailed": "診斷報告傳送失敗",
+      "diagnosticsHint": "如果此問題反覆出現，您可以傳送診斷報告。"
     }
   },
   "fileAttach.addFiles": "新增檔案",
