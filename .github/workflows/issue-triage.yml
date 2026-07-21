@@ -4,8 +4,10 @@ name: Issue Triage
 # "Module" dropdown in the issue templates.
 # Mapping lives in .github/triage-map.json — edit owners there.
 # Issues labeled "bonus" are reserved for community contributors (Kimi
-# campaign): they are never auto-assigned, and adding the label later
-# clears any earlier auto-assignment.
+# campaign): they are never auto-assigned, adding the label clears any
+# earlier auto-assignment, and a claim-invitation comment is posted so
+# contributors know the issue is up for grabs. (Labels set at creation
+# also fire "labeled" events, so that path is covered too.)
 
 on:
   issues:
@@ -34,15 +36,46 @@ jobs:
             const issue_number = issue.number;
             const labelNames = (labels) => labels.map((l) => (typeof l === 'string' ? l : l.name));
 
-            // "labeled" runs exist only to un-assign when "bonus" arrives:
-            // bonus issues are reserved for community contributors (Kimi
-            // campaign) and must not sit on a maintainer's plate.
+            // "labeled" runs handle the "bonus" label only: bonus issues are
+            // reserved for community contributors (Kimi campaign), so clear
+            // any maintainer assignment and post the claim invitation.
             if (context.payload.action === 'labeled') {
               if (context.payload.label?.name !== 'bonus') return;
+
               const assignees = (issue.assignees ?? []).map((a) => a.login);
-              if (assignees.length === 0) return;
-              core.info(`"bonus" label added — removing assignees: ${assignees.join(', ')}`);
-              await github.rest.issues.removeAssignees({ ...context.repo, issue_number, assignees });
+              if (assignees.length > 0) {
+                core.info(`"bonus" label added — removing assignees: ${assignees.join(', ')}`);
+                await github.rest.issues.removeAssignees({ ...context.repo, issue_number, assignees });
+              }
+
+              // Post the claim invitation once — re-labeling must not spam.
+              const CLAIM_MARKER = '<!-- bonus-claim-invite -->';
+              const comments = await github.paginate(github.rest.issues.listComments, {
+                ...context.repo,
+                issue_number,
+                per_page: 100,
+              });
+              if (comments.some((c) => c.body?.includes(CLAIM_MARKER))) {
+                core.info('Claim invitation already posted — skipping.');
+                return;
+              }
+              await github.rest.issues.createComment({
+                ...context.repo,
+                issue_number,
+                body: [
+                  CLAIM_MARKER,
+                  '🎁 This issue is part of the **AionUi × Kimi contributor campaign** — merge 3 campaign PRs, get a free Kimi Allegretto plan ($39/mo value).',
+                  '',
+                  '**To claim this issue:**',
+                  '1. Comment below with your fix approach (a brief plan is enough)',
+                  '2. If it looks good, @IceyLiu will assign it to you',
+                  '3. Submit your PR referencing this issue (`Fixes #' + issue_number + '`)',
+                  '',
+                  '📋 Full rules: https://x.com/AionUi/status/2079493379914961069',
+                  '🙋 Claim your reward: https://github.com/iOfficeAI/AionUi/discussions/3640',
+                ].join('\n'),
+              });
+              core.info('Claim invitation posted.');
               return;
             }
 
