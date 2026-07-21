@@ -40,7 +40,7 @@
 ---
 
 <p align="center">
-  <a href="KIMI_CAMPAIGN_DISCUSSION_URL">
+  <a href="https://x.com/AionUi/status/2079493379914961069">
     <img src="../../resources/kimi/contributor-bonus-black-blue.jpg" alt="AionUi × Kimi Bono para Contribuidores" width="600">
   </a>
 </p>
@@ -50,7 +50,7 @@
 </p>
 
 <h3 align="center">
-  <a href="KIMI_CAMPAIGN_DISCUSSION_URL">Ver detalles de la campaña y cómo reclamar →</a>
+  <a href="https://x.com/AionUi/status/2079493379914961069">Ver detalles de la campaña y cómo reclamar →</a>
 </h3>
 
 <p align="center">
