@@ -56,6 +56,20 @@
   "noOptionsAvailable": "Seçenek yok",
   "processing": "İşleniyor...",
   "responseSentSuccessfully": "Yanıt başarıyla gönderildi",
+  "permissionResponseFailed": "Yanıt gönderilemedi. Lütfen tekrar deneyin.",
+  "permissionOptions": {
+    "allowOnceDescription": "Sadece bu istek için izin ver",
+    "allowAlwaysDescription": "Benzer istekler için her zaman izin ver",
+    "rejectOnceDescription": "Sadece bu isteği reddet",
+    "rejectAlwaysDescription": "Benzer istekleri her zaman reddet"
+  },
+  "permissionKinds": {
+    "execute": "Çalıştırma",
+    "edit": "Düzenleme",
+    "read": "Okuma",
+    "fetch": "Getirme",
+    "tool": "Araç"
+  },
   "confirmation": {
     "applyChange": "Bu değişikliği uygula?",
     "allowExecution": "Yürütmeye izin ver?",

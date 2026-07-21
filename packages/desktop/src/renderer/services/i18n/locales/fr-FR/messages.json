@@ -56,6 +56,20 @@
   "noOptionsAvailable": "Aucune option disponible",
   "processing": "Traitement...",
   "responseSentSuccessfully": "Réponse envoyée avec succès",
+  "permissionResponseFailed": "Impossible d’envoyer la réponse. Veuillez réessayer.",
+  "permissionOptions": {
+    "allowOnceDescription": "Accorder la permission pour cette demande uniquement",
+    "allowAlwaysDescription": "Toujours accorder la permission pour des demandes similaires",
+    "rejectOnceDescription": "Refuser cette demande uniquement",
+    "rejectAlwaysDescription": "Toujours refuser les demandes similaires"
+  },
+  "permissionKinds": {
+    "execute": "Exécution",
+    "edit": "Modification",
+    "read": "Lecture",
+    "fetch": "Récupération",
+    "tool": "Outil"
+  },
   "confirmation": {
     "applyChange": "Appliquer cette modification ?",
     "allowExecution": "Autoriser l'exécution ?",

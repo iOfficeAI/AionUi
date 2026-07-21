@@ -56,6 +56,20 @@
   "noOptionsAvailable": "No options available",
   "processing": "Processing...",
   "responseSentSuccessfully": "Response sent successfully",
+  "permissionResponseFailed": "Could not send the response. Please try again.",
+  "permissionOptions": {
+    "allowOnceDescription": "Grant permission for this request only",
+    "allowAlwaysDescription": "Always grant permission for similar requests",
+    "rejectOnceDescription": "Reject this request only",
+    "rejectAlwaysDescription": "Always reject similar requests"
+  },
+  "permissionKinds": {
+    "execute": "Execute",
+    "edit": "Edit",
+    "read": "Read",
+    "fetch": "Fetch",
+    "tool": "Tool"
+  },
   "confirmation": {
     "applyChange": "Apply this change?",
     "allowExecution": "Allow execution?",

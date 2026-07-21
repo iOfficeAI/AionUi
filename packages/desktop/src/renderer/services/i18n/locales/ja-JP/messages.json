@@ -56,6 +56,20 @@
   "noOptionsAvailable": "利用可能なオプションはありません",
   "processing": "Processing...",
   "responseSentSuccessfully": "応答が正常に送信されました",
+  "permissionResponseFailed": "応答を送信できませんでした。もう一度お試しください。",
+  "permissionOptions": {
+    "allowOnceDescription": "この要求のみ権限を付与",
+    "allowAlwaysDescription": "同種の要求に常に権限を付与",
+    "rejectOnceDescription": "この要求のみ拒否",
+    "rejectAlwaysDescription": "同種の要求を常に拒否"
+  },
+  "permissionKinds": {
+    "execute": "実行",
+    "edit": "編集",
+    "read": "読み取り",
+    "fetch": "取得",
+    "tool": "ツール"
+  },
   "confirmation": {
     "applyChange": "この変更を適用しますか？",
     "allowExecution": "実行を許可しますか？",

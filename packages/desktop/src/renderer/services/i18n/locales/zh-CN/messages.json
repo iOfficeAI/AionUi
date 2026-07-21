@@ -56,6 +56,20 @@
   "noOptionsAvailable": "无可用选项",
   "processing": "处理中...",
   "responseSentSuccessfully": "响应已成功发送",
+  "permissionResponseFailed": "未能发送响应，请重试。",
+  "permissionOptions": {
+    "allowOnceDescription": "仅对此次请求给予权限",
+    "allowAlwaysDescription": "对同类型请求总是给予权限",
+    "rejectOnceDescription": "仅拒绝此次请求",
+    "rejectAlwaysDescription": "对同类型请求总是拒绝"
+  },
+  "permissionKinds": {
+    "execute": "执行",
+    "edit": "编辑",
+    "read": "读取",
+    "fetch": "获取",
+    "tool": "工具"
+  },
   "confirmation": {
     "applyChange": "应用此更改？",
     "allowExecution": "允许执行？",

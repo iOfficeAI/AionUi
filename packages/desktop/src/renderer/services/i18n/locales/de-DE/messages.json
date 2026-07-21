@@ -56,6 +56,20 @@
   "noOptionsAvailable": "Keine Optionen verfügbar",
   "processing": "Wird verarbeitet...",
   "responseSentSuccessfully": "Antwort erfolgreich gesendet",
+  "permissionResponseFailed": "Antwort konnte nicht gesendet werden. Bitte erneut versuchen.",
+  "permissionOptions": {
+    "allowOnceDescription": "Berechtigung nur für diese Anfrage erteilen",
+    "allowAlwaysDescription": "Berechtigung für ähnliche Anfragen immer erteilen",
+    "rejectOnceDescription": "Nur diese Anfrage ablehnen",
+    "rejectAlwaysDescription": "Ähnliche Anfragen immer ablehnen"
+  },
+  "permissionKinds": {
+    "execute": "Ausführen",
+    "edit": "Bearbeiten",
+    "read": "Lesen",
+    "fetch": "Abrufen",
+    "tool": "Werkzeug"
+  },
   "confirmation": {
     "applyChange": "Diese Änderung anwenden?",
     "allowExecution": "Ausführung erlauben?",
