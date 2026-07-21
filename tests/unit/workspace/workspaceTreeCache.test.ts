@@ -13,9 +13,7 @@ import {
 import { beforeEach, describe, expect, it } from 'vitest';
 
 const snap = (paths: string[]) => ({
-  files: paths.map(
-    (p): IDirOrFile => ({ name: p, fullPath: `/ws/${p}`, relativePath: p, isDir: false, isFile: true })
-  ),
+  files: paths.map((p): IDirOrFile => ({ name: p, fullPath: `/ws/${p}`, relativePath: p, isDir: false, isFile: true })),
   expandedKeys: [''],
 });
 

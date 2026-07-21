@@ -82,6 +82,13 @@ export function useWorkspaceTree({ workspace, conversation_id, eventPrefix }: Us
 
   // Loading time tracker / 加载时间追踪
   const lastLoadingTime = useRef(Date.now());
+  const loadingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (loadingTimerRef.current) clearTimeout(loadingTimerRef.current);
+    };
+  }, []);
 
   /**
    * 设置 loading 状态（带防抖，避免图标闪烁）
@@ -96,7 +103,8 @@ export function useWorkspaceTree({ workspace, conversation_id, eventPrefix }: Us
       if (Date.now() - lastLoadingTime.current > 1000) {
         setLoading(false);
       } else {
-        setTimeout(() => {
+        loadingTimerRef.current = setTimeout(() => {
+          loadingTimerRef.current = null;
           setLoading(false);
         }, 1000);
       }
@@ -157,12 +165,15 @@ export function useWorkspaceTree({ workspace, conversation_id, eventPrefix }: Us
           // the cache with the correct post-update values in the same tick.
           const newFiles: IDirOrFile[] = isFirstLoadRef.current
             ? res
-            : applyFreshListings(filesRef.current, (() => {
-                const m = new Map<string, IDirOrFile[]>();
-                m.set('', res[0]?.children ?? []);
-                for (const { dir, children } of childResults) m.set(dir.relativePath, children);
-                return m;
-              })());
+            : applyFreshListings(
+                filesRef.current,
+                (() => {
+                  const m = new Map<string, IDirOrFile[]>();
+                  m.set('', res[0]?.children ?? []);
+                  for (const { dir, children } of childResults) m.set(dir.relativePath, children);
+                  return m;
+                })()
+              );
 
           const newExpandedKeys: string[] = isFirstLoadRef.current
             ? getFirstLevelKeys(res)
