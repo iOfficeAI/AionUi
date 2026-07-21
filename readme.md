@@ -46,8 +46,11 @@
 </p>
 
 <p align="center">
-  🎁 <strong>AionUi × Kimi Partnership</strong>: Free premium <strong>Kimi "Allegretto" plans ($39/mo · ¥199/mo value)</strong> for our contributors — Kimi K3 works out of the box in AionUi!<br>
-  <a href="KIMI_CAMPAIGN_DISCUSSION_URL"><strong>→ Campaign details & how to claim</strong></a> · <sub><a href="https://www.kimi.com/code?aff=aionui" target="_blank">Get Kimi For Coding</a> · <a href="https://platform.kimi.ai?aff=aionui" target="_blank">Kimi API (Global)</a> · <a href="https://platform.kimi.com?aff=aionui" target="_blank">Kimi API (China)</a></sub>
+  🎁 <strong>AionUi × Kimi Partnership</strong>: Free premium <strong>Kimi "Allegretto" plans ($39/mo · ¥199/mo value)</strong> for our contributors — Kimi K3 works out of the box in AionUi!
+</p>
+
+<p align="center">
+  <a href="KIMI_CAMPAIGN_DISCUSSION_URL"><strong>→ View Campaign Details & How to Claim</strong></a>
 </p>
 
 ---
@@ -209,6 +212,8 @@ Other AI apps give you a chatbox with your API key. **AionUi gives you a full Co
 | NewAPI Gateway             | Unified access to 20+ models                |
 
 Same agent capabilities — file read/write, web search, image generation, tool use — regardless of which model powers it. AionUi supports **30+ AI platforms** including cloud services and local deployments.
+
+> 🤝 **Kimi users**: as our strategic partner, Kimi K3 works out of the box — [Get Kimi For Coding](https://www.kimi.com/code?aff=aionui) · [Kimi API (Global)](https://platform.kimi.ai?aff=aionui) · [Kimi API (China)](https://platform.kimi.com?aff=aionui)
 
 <p align="center">
   <img src="./resources/llm_newapi.png" alt="Multi-Model Support" width="800">
