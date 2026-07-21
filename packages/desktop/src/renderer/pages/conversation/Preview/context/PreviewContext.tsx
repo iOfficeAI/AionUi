@@ -76,6 +76,7 @@ export interface PreviewContextValue {
   saveContent: (tabId?: string) => Promise<boolean>; // 保存内容 / Save content
   findPreviewTab: (type: PreviewContentType, content?: string, metadata?: PreviewMetadata) => PreviewTab | null; // 查找匹配的 tab
   closePreviewByIdentity: (type: PreviewContentType, content?: string, metadata?: PreviewMetadata) => void; // 根据内容关闭指定 tab
+  closePreviewIfWorkspaceChanged: (workspace: string | null) => void; // 跨 workspace 切换时关闭预览
 
   // 发送框集成 / Sendbox integration
   addToSendBox: (text: string) => void;
@@ -375,6 +376,19 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setActiveTabId(null);
     setDomSnippets([]);
   }, []);
+
+  // Stable ref for cross-workspace detection. Lives in the global context so it
+  // survives conversation-page remounts (which would reset component-local refs).
+  const lastWorkspaceRef = useRef<string | null>(null);
+  const closePreviewIfWorkspaceChanged = useCallback(
+    (workspace: string | null) => {
+      if (lastWorkspaceRef.current !== workspace) {
+        lastWorkspaceRef.current = workspace;
+        closePreview();
+      }
+    },
+    [closePreview]
+  );
 
   // Track last-known mtime per file path for external change detection
   const fileMtimeRef = useRef<Map<string, number>>(new Map());
@@ -722,6 +736,7 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
       saveContent,
       findPreviewTab,
       closePreviewByIdentity,
+      closePreviewIfWorkspaceChanged,
       addToSendBox,
       setSendBoxHandler,
       domSnippets,
@@ -742,6 +757,7 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
     saveContent,
     findPreviewTab,
     closePreviewByIdentity,
+    closePreviewIfWorkspaceChanged,
     addToSendBox,
     setSendBoxHandler,
     domSnippets,
