@@ -5,7 +5,7 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import React from 'react';
 
 // Mirror the project convention: t() echoes the key so labels/tooltips are assertable.
@@ -18,6 +18,9 @@ const navigate = vi.fn();
 let currentPathname = '/guid';
 const platformMocks = vi.hoisted(() => ({
   isElectronDesktopMock: vi.fn(() => false),
+}));
+const shortcutMocks = vi.hoisted(() => ({
+  params: undefined as undefined | { toggleSider: () => void; workspaceAvailable: boolean },
 }));
 vi.mock('react-router-dom', () => ({
   useNavigate: () => navigate,
@@ -50,7 +53,11 @@ vi.mock('@renderer/hooks/file/useDirectorySelection', () => ({
   useDirectorySelection: () => ({ contextHolder: null }),
 }));
 vi.mock('@renderer/utils/ui/siderTooltip', () => ({ cleanupSiderTooltips: () => {} }));
-vi.mock('@renderer/hooks/ui/useConversationShortcuts', () => ({ useConversationShortcuts: () => {} }));
+vi.mock('@renderer/hooks/ui/useConversationShortcuts', () => ({
+  useConversationShortcuts: (params: { toggleSider: () => void; workspaceAvailable: boolean }) => {
+    shortcutMocks.params = params;
+  },
+}));
 vi.mock('@renderer/utils/platform', () => ({ isElectronDesktop: platformMocks.isElectronDesktopMock }));
 vi.mock('@renderer/pages/conversation/Preview/context/PreviewContext', () => ({
   usePreviewContext: () => ({ closePreview: () => {} }),
@@ -80,6 +87,7 @@ describe('Layout sider brand Home button', () => {
     navigate.mockClear();
     openDevTools.mockClear();
     platformMocks.isElectronDesktopMock.mockReturnValue(false);
+    shortcutMocks.params = undefined;
     sessionStorage.clear();
     currentPathname = '/guid';
   });
@@ -154,6 +162,21 @@ describe('Layout sider brand Home button', () => {
 
     fireEvent.click(screen.getByText('AionUi'));
     expect(navigate).not.toHaveBeenCalled();
+  });
+
+  it('provides common shortcuts with the route availability and functional sider toggle', () => {
+    currentPathname = '/conversation/xyz';
+    const { container } = renderLayout();
+    const sider = container.querySelector('.layout-sider');
+
+    expect(shortcutMocks.params?.workspaceAvailable).toBe(true);
+    expect(sider).not.toHaveClass('collapsed');
+
+    act(() => shortcutMocks.params?.toggleSider());
+    expect(sider).toHaveClass('collapsed');
+
+    act(() => shortcutMocks.params?.toggleSider());
+    expect(sider).not.toHaveClass('collapsed');
   });
 
   it('clicking the logo icon counts toward the devtools easter-egg and never navigates', () => {
