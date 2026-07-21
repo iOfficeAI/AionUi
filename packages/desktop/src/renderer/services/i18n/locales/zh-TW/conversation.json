@@ -561,6 +561,9 @@
       "ACP_EMPTY_TURN": {
         "body": "這次請求沒有產生任何可見回覆。"
       },
+      "ACP_EMPTY_TURN_NEEDS_AUTH": {
+        "body": "這次請求沒有產生任何可見回覆。此 Agent 可能需要先登入：{{hint}}。"
+      },
       "ACP_EMPTY_TURN_MAX_TOKENS": {
         "body": "這次請求在產生任何可見回覆前已達到模型輸出 token 上限。"
       },

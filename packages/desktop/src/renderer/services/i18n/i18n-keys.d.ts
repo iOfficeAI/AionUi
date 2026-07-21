@@ -434,6 +434,7 @@ export type I18nKey =
   | 'conversation.agentTip.codes.ACP_EMPTY_TURN.body'
   | 'conversation.agentTip.codes.ACP_EMPTY_TURN_MAX_TOKENS.body'
   | 'conversation.agentTip.codes.ACP_EMPTY_TURN_MAX_TURN_REQUESTS.body'
+  | 'conversation.agentTip.codes.ACP_EMPTY_TURN_NEEDS_AUTH.body'
   | 'conversation.agentTip.codes.ACP_EMPTY_TURN_REFUSAL.body'
   | 'conversation.chat.apiErrorNoCli'
   | 'conversation.chat.apiErrorSwitchFailed'
