@@ -285,6 +285,12 @@ export const detectNewApiProtocol = (modelName: string): string => {
   return 'openai';
 };
 
+/**
+ * 添加模型弹窗的默认平台——始终跟随列表第一位
+ * Default platform for the add-model modal — always the first list entry
+ */
+export const DEFAULT_PLATFORM_VALUE = MODEL_PLATFORMS[0].value;
+
 // ============ 工具函数 / Utility Functions ============
 
 /**

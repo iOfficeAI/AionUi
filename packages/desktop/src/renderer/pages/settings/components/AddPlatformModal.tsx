@@ -12,6 +12,7 @@ import useModeModeList from '@renderer/hooks/agent/useModeModeList';
 import useProtocolDetection from '@renderer/hooks/system/useProtocolDetection';
 import AionModal from '@/renderer/components/base/AionModal';
 import {
+  DEFAULT_PLATFORM_VALUE,
   MODEL_PLATFORMS,
   NEW_API_PROTOCOL_OPTIONS,
   detectNewApiProtocol,
@@ -316,7 +317,7 @@ const AddPlatformModal = ModalHOC<{
         if (deepLinkData.base_url) form.setFieldValue('base_url', deepLinkData.base_url);
         if (deepLinkData.api_key) form.setFieldValue('api_key', deepLinkData.api_key);
       } else {
-        form.setFieldValue('platform', 'gemini');
+        form.setFieldValue('platform', DEFAULT_PLATFORM_VALUE);
       }
     }
   }, [modalProps.visible, deepLinkData]);
@@ -408,7 +409,7 @@ const AddPlatformModal = ModalHOC<{
         <Form form={form} layout='vertical' className='[&_.arco-form-item]:mb-12px [&_.arco-form-item:last-child]:mb-0'>
           {/* 模型平台选择（第一层）/ Model Platform Selection (first level) */}
           <Form.Item
-            initialValue='gemini'
+            initialValue={DEFAULT_PLATFORM_VALUE}
             label={t('settings.modelPlatform')}
             field={'platform'}
             required

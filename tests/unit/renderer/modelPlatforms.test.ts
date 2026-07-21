@@ -9,7 +9,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { MODEL_PLATFORMS } from '@renderer/utils/model/modelPlatforms';
+import { DEFAULT_PLATFORM_VALUE, MODEL_PLATFORMS } from '@renderer/utils/model/modelPlatforms';
 
 describe('MODEL_PLATFORMS ordering', () => {
   it('keeps Custom first and pins both Moonshot entries right after it', () => {
@@ -17,6 +17,11 @@ describe('MODEL_PLATFORMS ordering', () => {
     expect(values[0]).toBe('custom');
     expect(values[1]).toBe('Moonshot');
     expect(values[2]).toBe('Moonshot-Global');
+  });
+
+  it('defaults the add-model modal platform to the first list entry', () => {
+    expect(DEFAULT_PLATFORM_VALUE).toBe(MODEL_PLATFORMS[0].value);
+    expect(DEFAULT_PLATFORM_VALUE).toBe('custom');
   });
 
   it('defines each Moonshot entry exactly once', () => {
