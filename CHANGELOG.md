@@ -1,5 +1,51 @@
 # Changelog
 
+## [2.1.39](https://github.com/iOfficeAI/AionUi/compare/v2.1.38...v2.1.39) (2026-07-21)
+
+### Desktop
+
+#### Features
+
+- **settings:** configure model capabilities (#3639)
+- **settings:** promote Kimi/Moonshot placement in platform and agent lists (#3629)
+- **feedback:** route-aware module preselection and ask-the-butler chip on error surfaces (#3626)
+- **github:** automated issue/PR/discussion triage to module owners (#3631)
+- **github:** post claim invitation when an issue is labeled bonus (#3649)
+
+#### Bug Fixes
+
+- **startup:** stop false "local data repair failed" alarm from concurrent startup (#3650)
+- **conversation:** show sign-in hint for empty ACP turns needing auth (#3644)
+- **workspace:** stable file tree — expand state, search, preview panel (#3642)
+- **agent-settings:** hide launch path for npx agents and fix repair-panel status banner (#3641)
+- **settings:** keep agent repair panel mounted during background revalidation (#3624)
+- **preview:** render distinct heading texts in markdown preview (#3630)
+- **chat:** restore arrow-up icon on send buttons (#3627)
+- **github:** never auto-assign bonus-labeled issues in triage workflow (#3647)
+- **github:** use English-only module dropdown with exact-match triage parsing (#3636)
+
+### Core ([v0.1.50](https://github.com/iOfficeAI/AionCore/releases/tag/v0.1.50))
+
+#### Features
+
+- **assets:** update Kimi logo to official brand mark (#646)
+- **provider:** add per-model capability settings
+
+#### Bug Fixes
+
+- **acp:** bound config RPC timeout and release lease without tearing down connection (#654)
+- **agent:** reflect auth failures from real turns into agent availability (#655)
+- **agent:** reject and clear launch-path override for npx-bridged agents (#651)
+- **agent:** surface sign-in hint on empty ACP turns from auth-gated agents (#653)
+- **ai-agent:** enable official kimi k2.7 code image input
+- **conversation:** rebuild aionrs sessions from persisted runtime permission (#661)
+- **db:** prevent duplicate migration versions
+- **provider:** preserve automatic vision detection
+- **startup:** make concurrent aioncore startup safe over one data directory (#657)
+- **ci:** validate migrations against latest release
+
+---
+
 ## [2.1.38](https://github.com/iOfficeAI/AionUi/compare/v2.1.37...v2.1.38) (2026-07-20)
 
 ### Desktop
