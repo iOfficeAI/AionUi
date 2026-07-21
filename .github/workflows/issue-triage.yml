@@ -1,7 +1,7 @@
 name: Issue Triage
 
 # Auto-label and auto-assign newly opened issues based on the
-# "问题模块 / Module" dropdown in the issue templates.
+# "Module" dropdown in the issue templates.
 # Mapping lives in .github/triage-map.json — edit owners there.
 
 on:
@@ -30,15 +30,13 @@ jobs:
             const body = context.payload.issue.body || '';
 
             // Issue-form dropdowns render as "### <field label>\n\n<selected value>".
-            // Match the selected value against the module list; fall back when
+            // Extract the value under the "### Module" heading and require an
+            // exact match — plain-English options like "Other" would otherwise
+            // false-positive on free text elsewhere in the body. Fall back when
             // the field is absent (blank issue) or unrecognized.
-            let matched = null;
-            for (const entry of map.modules) {
-              if (body.includes(entry.module)) {
-                matched = entry;
-                break;
-              }
-            }
+            const section = body.match(/^###\s*Module\s*\r?\n+([^\r\n#]+)/m);
+            const selected = section ? section[1].trim() : null;
+            const matched = selected ? (map.modules.find((entry) => entry.module === selected) ?? null) : null;
 
             const target = matched ?? map.fallback;
             const issue_number = context.payload.issue.number;

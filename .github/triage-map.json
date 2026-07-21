@@ -1,25 +1,21 @@
 {
   "$comment": "Issue module → area label → owner mapping. Single source of truth for .github/workflows/issue-triage.yml. The 'module' key must exactly match the dropdown option text in .github/ISSUE_TEMPLATE/bug_report.yml and question.yml. Edit owners here — no workflow change needed.",
   "modules": [
-    {
-      "module": "Agent 检测与连接 / Agent Detection & Connection",
-      "label": "area/agent-detection",
-      "owner": "kaizhou-lab"
-    },
-    { "module": "助手与预设 / Assistants & Presets", "label": "area/assistant", "owner": "piorpua" },
-    { "module": "模型与认证 / Models & Authentication", "label": "area/model-auth", "owner": "jiahe0510" },
-    { "module": "MCP 与工具 / MCP & Tools", "label": "area/mcp", "owner": "piorpua" },
-    { "module": "Skills 与插件 / Skills & Plugins", "label": "area/skills", "owner": "piorpua" },
-    { "module": "渠道接入 / Channel Integrations", "label": "area/channel", "owner": "piorpua" },
-    { "module": "对话与会话 / Conversation & Sessions", "label": "area/conversation", "owner": "piorpua" },
-    { "module": "搜索与历史 / Search & History", "label": "area/history", "owner": "tcp404" },
-    { "module": "项目、文件与预览 / Project, Files & Preview", "label": "area/workspace", "owner": "tcp404" },
-    { "module": "WebUI 与远程连接 / WebUI & Remote Access", "label": "area/webui", "owner": "kaizhou-lab" },
-    { "module": "定时任务 / Scheduled Tasks", "label": "area/cron", "owner": "kaizhou-lab" },
-    { "module": "团队协作 / Team Collaboration", "label": "area/team", "owner": "piorpua" },
-    { "module": "界面显示与桌面宠物 / Interface, Display & Desktop Pet", "label": "area/display", "owner": "IceyLiu" },
-    { "module": "系统设置 / System Settings", "label": "area/settings", "owner": "IceyLiu" },
-    { "module": "其他 / Other", "label": "area/other", "owner": "IceyLiu" }
+    { "module": "Agent Detection & Connection", "label": "area/agent-detection", "owner": "kaizhou-lab" },
+    { "module": "Assistants & Presets", "label": "area/assistant", "owner": "piorpua" },
+    { "module": "Models & Authentication", "label": "area/model-auth", "owner": "jiahe0510" },
+    { "module": "MCP & Tools", "label": "area/mcp", "owner": "piorpua" },
+    { "module": "Skills & Plugins", "label": "area/skills", "owner": "piorpua" },
+    { "module": "Channel Integrations", "label": "area/channel", "owner": "piorpua" },
+    { "module": "Conversation & Sessions", "label": "area/conversation", "owner": "piorpua" },
+    { "module": "Search & History", "label": "area/history", "owner": "tcp404" },
+    { "module": "Project, Files & Preview", "label": "area/workspace", "owner": "tcp404" },
+    { "module": "WebUI & Remote Access", "label": "area/webui", "owner": "kaizhou-lab" },
+    { "module": "Scheduled Tasks", "label": "area/cron", "owner": "kaizhou-lab" },
+    { "module": "Team Collaboration", "label": "area/team", "owner": "piorpua" },
+    { "module": "Interface, Display & Desktop Pet", "label": "area/display", "owner": "IceyLiu" },
+    { "module": "System Settings", "label": "area/settings", "owner": "IceyLiu" },
+    { "module": "Other", "label": "area/other", "owner": "IceyLiu" }
   ],
   "fallback": { "label": "needs-triage", "owner": "IceyLiu" }
 }
