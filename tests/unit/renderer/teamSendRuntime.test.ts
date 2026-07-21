@@ -1,11 +1,17 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { ITeamSlotWork, TeamSlotBlockedReason } from '@/common/types/team/teamTypes';
 import {
+  buildTeamRetryStartHandler,
   buildTeamSendRuntime,
   buildTeamStopHandler,
   buildTeamWorkStatusText,
 } from '@/renderer/pages/team/components/teamSendRuntime';
 import type { TeamRunViewState } from '@/renderer/pages/team/hooks/useTeamRunView';
+import { ipcBridge } from '@/common';
+
+vi.mock('@/common', () => ({
+  ipcBridge: { team: { attachAgent: { invoke: vi.fn(() => Promise.resolve()) } } },
+}));
 
 const work = (overrides: Partial<ITeamSlotWork> = {}): ITeamSlotWork => ({
   slot_id: 'lead',
@@ -212,5 +218,14 @@ describe('buildTeamStopHandler', () => {
       slot_id: 'lead',
       reason: 'user_stop',
     });
+  });
+});
+
+describe('buildTeamRetryStartHandler', () => {
+  it('invokes the directed per-member attach route (not warmupSession)', async () => {
+    const invoke = vi.mocked(ipcBridge.team.attachAgent.invoke);
+    invoke.mockClear();
+    await buildTeamRetryStartHandler({ team_id: 't1', slot_id: 's2' })();
+    expect(invoke).toHaveBeenCalledWith({ team_id: 't1', slot_id: 's2' });
   });
 });

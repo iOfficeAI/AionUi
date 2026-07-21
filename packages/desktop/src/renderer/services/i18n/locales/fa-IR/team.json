@@ -27,7 +27,8 @@
     "runtimeStarting": "در انتظار راه‌اندازی این عضو…",
     "runtimeFailed": "راه‌اندازی این عضو ناموفق بود.",
     "removing": "در حال حذف این عضو…",
-    "sessionStopped": "نشست تیم متوقف شده است."
+    "sessionStopped": "نشست تیم متوقف شده است.",
+    "retryStart": "تلاش مجدد برای شروع"
   },
   "sendBox": {
     "placeholder": "ارسال پیام به عامل ارسال..."

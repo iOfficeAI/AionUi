@@ -678,6 +678,7 @@ Please check your local CLI tool authentication status`,
         externalElapsedSource={Boolean(teamRuntime)}
         startedAtMs={teamRuntime?.startedAtMs ?? null}
         onStop={effectiveHandleStop}
+        onRetryStart={teamRuntime?.onRetryStart ? () => void teamRuntime.onRetryStart?.() : undefined}
       />
 
       <SendBox

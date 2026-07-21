@@ -27,7 +27,8 @@
     "runtimeStarting": "Waiting for this assistant to start…",
     "runtimeFailed": "This assistant failed to start.",
     "removing": "Removing this assistant…",
-    "sessionStopped": "The team session has stopped."
+    "sessionStopped": "The team session has stopped.",
+    "retryStart": "Retry start"
   },
   "sendBox": {
     "placeholder": "Message the team leader assistant..."

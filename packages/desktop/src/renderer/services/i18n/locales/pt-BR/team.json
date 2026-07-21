@@ -27,7 +27,8 @@
     "runtimeStarting": "Aguardando este membro iniciar…",
     "runtimeFailed": "Não foi possível iniciar este membro.",
     "removing": "Removendo este membro…",
-    "sessionStopped": "A sessão da equipe foi encerrada."
+    "sessionStopped": "A sessão da equipe foi encerrada.",
+    "retryStart": "Tentar iniciar novamente"
   },
   "sendBox": {
     "placeholder": "Enviar mensagem ao assistente líder da equipe..."

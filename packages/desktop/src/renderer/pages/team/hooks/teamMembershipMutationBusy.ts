@@ -39,6 +39,8 @@ export function applyTeamRuntimeStatusToMembershipMutationState(
     };
   }
 
+  // 'dormant' (never woken), 'ready', and 'failed' are all non-busy: clear any
+  // pending marker for the slot. Only an in-flight 'pending' attach is busy.
   return {
     ...state,
     pendingRuntimeSlotIds: state.pendingRuntimeSlotIds.filter((id) => id !== slot_id),

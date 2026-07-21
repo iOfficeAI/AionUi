@@ -9,7 +9,7 @@ export type TeammateRole = 'leader' | 'teammate';
 export type BackendTeammateStatus = string;
 
 /** Lifecycle status of a teammate agent after frontend normalization */
-export type TeammateStatus = 'pending' | 'idle' | 'active' | 'completed' | 'failed';
+export type TeammateStatus = 'pending' | 'idle' | 'active' | 'completed' | 'failed' | 'dormant';
 
 /** Workspace sharing strategy for the team */
 export type WorkspaceMode = 'shared' | 'isolated';
@@ -158,7 +158,7 @@ export type ITeamAgentRenamedEvent = {
   name: string;
 };
 
-export type TeamAgentRuntimeStatus = 'pending' | 'ready' | 'failed';
+export type TeamAgentRuntimeStatus = 'dormant' | 'pending' | 'ready' | 'failed';
 
 /** IPC event pushed to renderer when a team member runtime attach/warmup status changes */
 export type ITeamAgentRuntimeStatusEvent = {

@@ -27,7 +27,8 @@
     "runtimeStarting": "Bu üyenin başlaması bekleniyor…",
     "runtimeFailed": "Bu üye başlatılamadı.",
     "removing": "Bu üye kaldırılıyor…",
-    "sessionStopped": "Takım oturumu durdu."
+    "sessionStopped": "Takım oturumu durdu.",
+    "retryStart": "Başlatmayı yeniden dene"
   },
   "sendBox": {
     "placeholder": "Takım lideri asistana mesaj gönder..."
