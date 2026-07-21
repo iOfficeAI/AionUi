@@ -3,9 +3,12 @@ import type { NavigateFunction } from 'react-router-dom';
 import { useLocation } from 'react-router-dom';
 import { useVisibleConversationIds } from '@/renderer/pages/conversation/GroupedHistory/hooks/useVisibleConversationIds';
 import { isElectronDesktop } from '@/renderer/utils/platform';
+import { dispatchWorkspaceToggleEvent } from '@/renderer/utils/workspace/workspaceEvents';
 
 type UseConversationShortcutsParams = {
   navigate: NavigateFunction;
+  siderCollapsed?: boolean;
+  setSiderCollapsed?: (collapsed: boolean) => void;
 };
 
 const getCycledConversationId = (
@@ -26,15 +29,36 @@ const getCycledConversationId = (
   return visibleConversationIds[nextIndex] ?? null;
 };
 
+const isMod = (event: KeyboardEvent): boolean => event.metaKey || event.ctrlKey;
+
 const isConversationTabShortcut = (event: KeyboardEvent): boolean => {
   return event.ctrlKey && !event.metaKey && !event.altKey && event.key === 'Tab';
 };
 
 const isNewConversationShortcut = (event: KeyboardEvent): boolean => {
-  return (event.metaKey || event.ctrlKey) && !event.altKey && !event.shiftKey && event.key.toLowerCase() === 't';
+  return isMod(event) && !event.altKey && !event.shiftKey && event.key.toLowerCase() === 't';
 };
 
-export const useConversationShortcuts = ({ navigate }: UseConversationShortcutsParams): void => {
+/** Cmd/Ctrl+B — toggle left conversation sidebar */
+const isToggleSidebarShortcut = (event: KeyboardEvent): boolean => {
+  return isMod(event) && !event.altKey && !event.shiftKey && event.key.toLowerCase() === 'b';
+};
+
+/** Cmd/Ctrl+L — toggle right workspace panel */
+const isToggleWorkspaceShortcut = (event: KeyboardEvent): boolean => {
+  return isMod(event) && !event.altKey && !event.shiftKey && event.key.toLowerCase() === 'l';
+};
+
+/** Cmd/Ctrl+, — open Settings */
+const isOpenSettingsShortcut = (event: KeyboardEvent): boolean => {
+  return isMod(event) && !event.altKey && !event.shiftKey && event.key === ',';
+};
+
+export const useConversationShortcuts = ({
+  navigate,
+  siderCollapsed,
+  setSiderCollapsed,
+}: UseConversationShortcutsParams): void => {
   const location = useLocation();
   const visibleConversationIds = useVisibleConversationIds();
 
@@ -66,12 +90,31 @@ export const useConversationShortcuts = ({ navigate }: UseConversationShortcutsP
       if (isNewConversationShortcut(event)) {
         event.preventDefault();
         void navigate('/guid');
+        return;
+      }
+
+      if (isToggleSidebarShortcut(event) && setSiderCollapsed) {
+        event.preventDefault();
+        setSiderCollapsed(!(siderCollapsed ?? false));
+        return;
+      }
+
+      if (isToggleWorkspaceShortcut(event)) {
+        event.preventDefault();
+        dispatchWorkspaceToggleEvent();
+        return;
+      }
+
+      if (isOpenSettingsShortcut(event)) {
+        event.preventDefault();
+        void navigate('/settings/system');
       }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
+    // Capture phase so UI shortcuts win over focused inputs (matches Cmd/Ctrl+F pattern).
+    window.addEventListener('keydown', handleKeyDown, true);
     return () => {
-      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keydown', handleKeyDown, true);
     };
-  }, [location.pathname, navigate, visibleConversationIds]);
+  }, [location.pathname, navigate, setSiderCollapsed, siderCollapsed, visibleConversationIds]);
 };

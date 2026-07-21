@@ -115,7 +115,7 @@ const Layout: React.FC<{
   useNotificationClick();
   useBrowserNotification();
   const navigate = useNavigate();
-  useConversationShortcuts({ navigate });
+  useConversationShortcuts({ navigate, siderCollapsed: collapsed, setSiderCollapsed: setCollapsed });
   // Expose navigate to code running outside the Router tree (e.g. the globally
   // mounted FeedbackReportModal's "via chat" action).
   useEffect(() => {
