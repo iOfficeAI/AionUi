@@ -13,7 +13,7 @@ import LanguageSwitcher from '@/renderer/components/settings/LanguageSwitcher';
 import { getClientBusinessSetting, setClientBusinessSetting } from '@/renderer/services/clientBusinessSettings';
 import { notifyManualRestartRequired } from '@/renderer/utils/appRestart';
 import { isElectronDesktop } from '@/renderer/utils/platform';
-import { Alert, Collapse, Form, InputNumber, Message, Modal, Switch } from '@arco-design/web-react';
+import { Alert, Collapse, Form, InputNumber, Message, Modal, Select, Switch } from '@arco-design/web-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
@@ -54,6 +54,7 @@ const SystemModalContent: React.FC = () => {
   const [agentIdleTimeout, setAgentIdleTimeout] = useState<number>(5);
   const [saveUploadToWorkspace, setSaveUploadToWorkspace] = useState(false);
   const [autoPreviewOfficeFiles, setAutoPreviewOfficeFiles] = useState(true);
+  const [sendKey, setSendKey] = useState<'enter' | 'mod+enter'>('enter');
 
   useEffect(() => {
     if (!isDesktop) {
@@ -94,6 +95,7 @@ const SystemModalContent: React.FC = () => {
     setCronNotificationEnabled(configService.get('system.cronNotificationEnabled') ?? false);
     setSaveUploadToWorkspace(configService.get('upload.saveToWorkspace') ?? false);
     setAutoPreviewOfficeFiles(configService.get('system.autoPreviewOfficeFiles') ?? true);
+    setSendKey(configService.get('chat.sendKey') ?? 'enter');
   }, [isDesktop]);
 
   useEffect(() => {
@@ -267,6 +269,16 @@ const SystemModalContent: React.FC = () => {
     });
   }, []);
 
+  const handleSendKeyChange = useCallback((value: 'enter' | 'mod+enter') => {
+    const previous = sendKey;
+    setSendKey(value);
+    configService.setLocal('chat.sendKey', value);
+    configService.set('chat.sendKey', value).catch(() => {
+      setSendKey(previous);
+      configService.setLocal('chat.sendKey', previous);
+    });
+  }, [sendKey]);
+
   // Get system directory info
   const { data: systemInfo } = useSWR('system.dir.info', () => ipcBridge.application.systemInfo.invoke());
 
@@ -295,6 +307,22 @@ const SystemModalContent: React.FC = () => {
       key: 'closeToTray',
       label: t('settings.closeToTray'),
       component: <Switch checked={closeToTray} onChange={handleCloseToTrayChange} />,
+    },
+    {
+      key: 'sendKey',
+      label: t('settings.sendKey'),
+      description: t('settings.sendKeyDesc'),
+      component: (
+        <Select
+          value={sendKey}
+          onChange={handleSendKeyChange}
+          style={{ width: 220 }}
+          options={[
+            { label: t('settings.sendKeyEnter'), value: 'enter' },
+            { label: t('settings.sendKeyModEnter'), value: 'mod+enter' },
+          ]}
+        />
+      ),
     },
     ...(isDesktop && gpuStatus
       ? [

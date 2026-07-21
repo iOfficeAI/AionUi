@@ -53,6 +53,8 @@ export interface IConfigStorageRefer {
   'system.keepAwake'?: boolean;
   // Automatically preview newly created Office files in the current workspace
   'system.autoPreviewOfficeFiles'?: boolean;
+  /** Chat send shortcut: 'enter' (default) or 'mod+enter' (Cmd/Ctrl+Enter) */
+  'chat.sendKey'?: 'enter' | 'mod+enter';
   // Skills Market: whether the external skills market source is enabled
   'skillsMarket.enabled'?: boolean;
   /**

@@ -1288,5 +1288,9 @@
     "solveWithButler": "Perguntar ao Mordomo"
   },
   "providerIdConflict": "O Provider ID já existe. Tente novamente.",
-  "autoInjectedSkillsHint": "Carregadas automaticamente em cada conversa — não é preciso ativá-las; o agente decide quando usá-las."
+  "autoInjectedSkillsHint": "Carregadas automaticamente em cada conversa — não é preciso ativá-las; o agente decide quando usá-las.",
+  "sendKey": "Enviar mensagem com",
+  "sendKeyDesc": "Escolha se Enter envia a mensagem ou insere uma nova linha.",
+  "sendKeyEnter": "Enter para enviar",
+  "sendKeyModEnter": "Ctrl/Cmd+Enter para enviar (Enter = nova linha)"
 }

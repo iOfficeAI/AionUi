@@ -1285,5 +1285,9 @@
     "solveWithButler": "Demander au majordome"
   },
   "providerIdConflict": "L'ID du fournisseur existe déjà. Veuillez réessayer.",
-  "autoInjectedSkillsHint": "Chargé automatiquement dans chaque conversation – pas besoin de les activer ; l'agent décide quand les utiliser."
+  "autoInjectedSkillsHint": "Chargé automatiquement dans chaque conversation – pas besoin de les activer ; l'agent décide quand les utiliser.",
+  "sendKey": "Envoyer le message avec",
+  "sendKeyDesc": "Choisissez si Entrée envoie le message ou insère une nouvelle ligne.",
+  "sendKeyEnter": "Entrée pour envoyer",
+  "sendKeyModEnter": "Ctrl/Cmd+Entrée pour envoyer (Entrée = nouvelle ligne)"
 }

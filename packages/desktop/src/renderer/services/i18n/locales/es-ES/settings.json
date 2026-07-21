@@ -1285,5 +1285,9 @@
     "solveWithButler": "Preguntar al Mayordomo"
   },
   "providerIdConflict": "El ID del proveedor ya existe. Inténtalo de nuevo.",
-  "autoInjectedSkillsHint": "Se cargan automáticamente en cada conversación: no hace falta activarlas; el agente decide cuándo usarlas."
+  "autoInjectedSkillsHint": "Se cargan automáticamente en cada conversación: no hace falta activarlas; el agente decide cuándo usarlas.",
+  "sendKey": "Enviar mensaje con",
+  "sendKeyDesc": "Elige si Enter envía el mensaje o inserta un salto de línea.",
+  "sendKeyEnter": "Enter para enviar",
+  "sendKeyModEnter": "Ctrl/Cmd+Enter para enviar (Enter = nueva línea)"
 }

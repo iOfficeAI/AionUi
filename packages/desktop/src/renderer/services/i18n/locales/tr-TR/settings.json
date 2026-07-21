@@ -1285,5 +1285,9 @@
     "solveWithButler": "Kâhya'ya sor"
   },
   "providerIdConflict": "Provider ID zaten var. Lütfen tekrar deneyin.",
-  "autoInjectedSkillsHint": "Her sohbete otomatik olarak yüklenir — etkinleştirmeye gerek yoktur; aracı bunları ne zaman kullanacağına karar verir."
+  "autoInjectedSkillsHint": "Her sohbete otomatik olarak yüklenir — etkinleştirmeye gerek yoktur; aracı bunları ne zaman kullanacağına karar verir.",
+  "sendKey": "Mesaj gönderme tuşu",
+  "sendKeyDesc": "Enter ile gönderilsin mi yoksa yeni satır mı eklensin seçin.",
+  "sendKeyEnter": "Enter ile gönder",
+  "sendKeyModEnter": "Ctrl/Cmd+Enter ile gönder (Enter = yeni satır)"
 }

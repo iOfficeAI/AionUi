@@ -1287,5 +1287,9 @@
     "solveWithButler": "找管家排查"
   },
   "providerIdConflict": "Provider ID 已存在，請重試。",
-  "autoInjectedSkillsHint": "每次對話都會自動載入，無需手動啟用；由智能體自行決定何時呼叫。"
+  "autoInjectedSkillsHint": "每次對話都會自動載入，無需手動啟用；由智能體自行決定何時呼叫。",
+  "sendKey": "傳送訊息快捷鍵",
+  "sendKeyDesc": "選擇 Enter 傳送訊息，還是插入換行。",
+  "sendKeyEnter": "Enter 傳送",
+  "sendKeyModEnter": "Ctrl/Cmd+Enter 傳送（Enter 換行）"
 }

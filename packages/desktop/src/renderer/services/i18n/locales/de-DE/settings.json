@@ -1285,5 +1285,9 @@
     "emptyOverridesError": "Enter a launch path or at least one environment variable before saving."
   },
   "providerIdConflict": "Provider-ID existiert bereits. Bitte erneut versuchen.",
-  "autoInjectedSkillsHint": "Werden automatisch in jede Unterhaltung geladen – kein Aktivieren nötig; der Agent entscheidet, wann er sie nutzt."
+  "autoInjectedSkillsHint": "Werden automatisch in jede Unterhaltung geladen – kein Aktivieren nötig; der Agent entscheidet, wann er sie nutzt.",
+  "sendKey": "Nachricht senden mit",
+  "sendKeyDesc": "Wählen Sie, ob Enter sendet oder einen Zeilenumbruch einfügt.",
+  "sendKeyEnter": "Enter zum Senden",
+  "sendKeyModEnter": "Strg/Cmd+Enter senden (Enter = Zeilenumbruch)"
 }

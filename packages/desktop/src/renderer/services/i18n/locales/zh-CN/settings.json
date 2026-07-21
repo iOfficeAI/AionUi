@@ -1286,5 +1286,9 @@
     "solveWithButler": "找管家排查"
   },
   "providerIdConflict": "Provider ID 已存在，请重试。",
-  "autoInjectedSkillsHint": "每次对话都会自动加载，无需手动启用；由智能体自行决定何时调用。"
+  "autoInjectedSkillsHint": "每次对话都会自动加载，无需手动启用；由智能体自行决定何时调用。",
+  "sendKey": "发送消息快捷键",
+  "sendKeyDesc": "选择 Enter 发送消息，还是插入换行。",
+  "sendKeyEnter": "Enter 发送",
+  "sendKeyModEnter": "Ctrl/Cmd+Enter 发送（Enter 换行）"
 }

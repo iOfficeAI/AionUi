@@ -26,6 +26,8 @@ export type ConfigKeyMap = {
   'system.cronNotificationEnabled': boolean | undefined;
   'system.keepAwake': boolean | undefined;
   'system.autoPreviewOfficeFiles': boolean | undefined;
+  /** Chat send shortcut: Enter sends, or Cmd/Ctrl+Enter sends (Enter = newline) */
+  'chat.sendKey': 'enter' | 'mod+enter' | undefined;
   'skillsMarket.enabled': boolean | undefined;
   'pet.enabled': boolean | undefined;
   'pet.size': number | undefined;

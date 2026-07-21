@@ -1286,5 +1286,9 @@
   "providerIdConflict": "Provider ID вже існує. Спробуйте ще раз.",
   "channels.wecomTitle": "WeCom",
   "channels.wecomDesc": "Chat with AionUi assistant via WeCom (Enterprise WeChat AI Bot)",
-  "autoInjectedSkillsHint": "Автоматично завантажуються в кожну розмову — вмикати не потрібно; агент сам вирішує, коли їх використовувати."
+  "autoInjectedSkillsHint": "Автоматично завантажуються в кожну розмову — вмикати не потрібно; агент сам вирішує, коли їх використовувати.",
+  "sendKey": "Надіслати повідомлення",
+  "sendKeyDesc": "Оберіть, чи Enter надсилає повідомлення, чи вставляє новий рядок.",
+  "sendKeyEnter": "Enter для надсилання",
+  "sendKeyModEnter": "Ctrl/Cmd+Enter для надсилання (Enter = новий рядок)"
 }

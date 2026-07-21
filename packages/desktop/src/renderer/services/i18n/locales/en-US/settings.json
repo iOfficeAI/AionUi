@@ -1285,5 +1285,9 @@
     "solveWithButler": "Ask the Butler"
   },
   "providerIdConflict": "Provider ID already exists. Please try again.",
-  "autoInjectedSkillsHint": "Loaded automatically into every conversation — no need to enable them; the agent decides when to use them."
+  "autoInjectedSkillsHint": "Loaded automatically into every conversation — no need to enable them; the agent decides when to use them.",
+  "sendKey": "Send Message With",
+  "sendKeyDesc": "Choose whether Enter sends a message or inserts a newline.",
+  "sendKeyEnter": "Enter to send",
+  "sendKeyModEnter": "Ctrl/Cmd+Enter to send (Enter = newline)"
 }
