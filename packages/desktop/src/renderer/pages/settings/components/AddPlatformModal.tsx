@@ -10,7 +10,7 @@ import { ipcBridge } from '@/common';
 import { uuid } from '@/common/utils';
 import { isGoogleApisHost } from '@/common/utils/urlValidation';
 import ModalHOC from '@/renderer/utils/ui/ModalHOC';
-import { Form, Input, Message, Radio, Select, Switch } from '@arco-design/web-react';
+import { Form, Input, Message, Select, Switch } from '@arco-design/web-react';
 import { LinkCloud, Loading, PreviewOpen, Refresh, Search } from '@icon-park/react';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -745,10 +745,7 @@ const AddPlatformModal = ModalHOC<{
             }
             extra={t('settings.imageInputTip')}
           >
-            <Radio.Group
-              type='button'
-              mode='fill'
-              size='small'
+            <Select
               value={imageInput}
               onChange={(value) => setImageInput(value as ModelImageInputChoice)}
               options={[
@@ -761,10 +758,7 @@ const AddPlatformModal = ModalHOC<{
 
           {showOpenAiApiMode && (
             <Form.Item label={t('settings.openAiApiMode')} extra={t('settings.openAiApiModeTip')}>
-              <Radio.Group
-                type='button'
-                mode='fill'
-                size='small'
+              <Select
                 value={openAiApiMode}
                 onChange={(value) => setOpenAiApiMode(value as ModelOpenAiApiModeChoice)}
                 options={[

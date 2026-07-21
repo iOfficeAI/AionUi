@@ -7,7 +7,7 @@ import {
 } from '@/common/utils/modelCapabilities';
 import ModalHOC from '@/renderer/utils/ui/ModalHOC';
 import AionModal from '@/renderer/components/base/AionModal';
-import { Radio, Select } from '@arco-design/web-react';
+import { Select } from '@arco-design/web-react';
 import { PreviewOpen } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -143,10 +143,7 @@ const AddModelModal = ModalHOC<{ data?: IProvider; model?: string; onSubmit: (mo
               <PreviewOpen theme='outline' size='14' />
               <span>{t('settings.imageInput')}</span>
             </div>
-            <Radio.Group
-              type='button'
-              mode='fill'
-              size='small'
+            <Select
               value={imageInput}
               onChange={(value) => setImageInput(value as ModelImageInputChoice)}
               options={[
@@ -161,10 +158,7 @@ const AddModelModal = ModalHOC<{ data?: IProvider; model?: string; onSubmit: (mo
           {showOpenAiApiMode && (
             <div className='space-y-8px'>
               <div className='text-13px font-500 text-t-secondary'>{t('settings.openAiApiMode')}</div>
-              <Radio.Group
-                type='button'
-                mode='fill'
-                size='small'
+              <Select
                 value={openAiApiMode}
                 onChange={(value) => setOpenAiApiMode(value as ModelOpenAiApiModeChoice)}
                 options={[

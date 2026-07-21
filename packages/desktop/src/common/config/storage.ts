@@ -506,8 +506,8 @@ export interface IProvider {
     }
   >;
   /**
-   * Per-model settings. Missing entries disable image input and retain automatic
-   * OpenAI API mode resolution.
+   * Explicit per-model overrides. Missing entries retain automatic image-input
+   * capability and OpenAI API mode resolution.
    */
   model_settings?: Record<string, ModelSettings>;
   is_full_url?: boolean;
