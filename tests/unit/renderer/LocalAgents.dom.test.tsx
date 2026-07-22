@@ -464,7 +464,7 @@ describe('LocalAgents', () => {
     expect(screen.getByText('Claude Code')).toBeInTheDocument();
   });
 
-  it('toggles detected agents off and refreshes the view', async () => {
+  it('keeps Aion CLI enabled without a switch and toggles detected ACP agents', async () => {
     const refreshCatalog = vi.fn().mockResolvedValue(undefined);
     useManagedAgents.mockReturnValue({
       agents: [
@@ -477,12 +477,13 @@ describe('LocalAgents', () => {
 
     const { container } = render(<LocalAgents />);
 
-    const switches = container.querySelectorAll('[role="switch"]');
-    expect(switches.length).toBe(2);
+    const aionRow = container.querySelector('[data-testid="agent-row-aionrs"]') as HTMLElement;
+    const claudeRow = container.querySelector('[data-testid="agent-row-acp-claude"]') as HTMLElement;
+    expect(aionRow.querySelector('[role="switch"]')).toBeNull();
 
-    fireEvent.click(switches[0]);
+    fireEvent.click(claudeRow.querySelector('[role="switch"]') as HTMLElement);
 
-    await waitFor(() => expect(setAgentEnabled).toHaveBeenCalledWith({ id: 'aionrs', enabled: false }));
+    await waitFor(() => expect(setAgentEnabled).toHaveBeenCalledWith({ id: 'acp-claude', enabled: false }));
     await waitFor(() => expect(refreshCatalog).toHaveBeenCalled());
   });
 

@@ -289,7 +289,7 @@ const LocalAgents: React.FC = () => {
               onTestConnection={() => void handleTestConnection(agent.id)}
               onConfigure={() => openAgentConfig(agent.id)}
               isTesting={testingAgentId === agent.id}
-              onToggle={(enabled) => void handleToggleAgent(agent.id, enabled)}
+              onToggle={agent.agent_type === 'acp' ? (enabled) => void handleToggleAgent(agent.id, enabled) : undefined}
             />
           ))}
           {visibleOfficialAgents.length === 0 && (
