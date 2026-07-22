@@ -47,8 +47,7 @@ export const useCompositionInput = () => {
           return;
         }
 
-        // Default: Enter sends (ignore mod-only so Ctrl+Enter doesn't double-fire oddly)
-        if (modHeld) return;
+        // Default: any unshifted Enter sends (including Ctrl/Cmd+Enter), matching prior behavior
         e.preventDefault();
         onEnterPress();
       };

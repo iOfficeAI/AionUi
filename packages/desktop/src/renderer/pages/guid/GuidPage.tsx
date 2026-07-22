@@ -11,6 +11,7 @@ import type { IMcpServer, TProviderWithModel } from '@/common/config/storage';
 import { resolveLocaleKey } from '@/common/utils';
 import type { AssistantDetail } from '@/common/types/agent/assistantTypes';
 
+import { useCompositionInput } from '@/renderer/hooks/chat/useCompositionInput';
 import { useInputFocusRing } from '@/renderer/hooks/chat/useInputFocusRing';
 import { getFuzzyMatchIndices, useSlashCommandController } from '@/renderer/hooks/chat/useSlashCommandController';
 import { openExternalUrl } from '@/renderer/utils/platform';
@@ -46,6 +47,7 @@ const GuidPage: React.FC = () => {
   const location = useLocation();
   const guidContainerRef = useRef<HTMLDivElement>(null);
   const { activeBorderColor, inactiveBorderColor, activeShadow } = useInputFocusRing();
+  const { createKeyDownHandler } = useCompositionInput();
 
   const localeKey = resolveLocaleKey(i18n.language);
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
@@ -285,19 +287,17 @@ const GuidPage: React.FC = () => {
     [guidInput.setInput]
   );
 
-  const handleInputKeyDown = useCallback(
-    (event: React.KeyboardEvent) => {
-      if (slashController.onKeyDown(event)) {
-        return;
-      }
-
-      if (event.key === 'Enter' && !event.shiftKey) {
-        event.preventDefault();
-        if (!guidInput.input.trim()) return;
-        send.sendMessageHandler();
-      }
-    },
-    [guidInput.input, send.sendMessageHandler, slashController]
+  // Share SendBox send-key preference (enter vs Cmd/Ctrl+Enter); IME is gated in GuidInputCard
+  const handleInputKeyDown = useMemo(
+    () =>
+      createKeyDownHandler(
+        () => {
+          if (!guidInput.input.trim()) return;
+          send.sendMessageHandler();
+        },
+        (event) => slashController.onKeyDown(event)
+      ),
+    [createKeyDownHandler, guidInput.input, send.sendMessageHandler, slashController]
   );
 
   const handleSelectAssistant = useCallback(
