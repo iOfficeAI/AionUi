@@ -34,7 +34,7 @@ import './process/bridge/feedbackBridge';
 import { wasLaunchedAtLogin } from '@process/bridge/applicationBridge';
 import { onLanguageChanged } from './process/bridge/systemSettingsBridge';
 import { setInitialLanguage } from '@process/services/i18n';
-import { attachApplicationShortcutsToWindow, setupApplicationMenu } from './process/utils/appMenu';
+import { setupApplicationMenu } from './process/utils/appMenu';
 import { startWebHost } from '@aionui/web-host';
 import { initializeZoomFactor, setupZoomForWindow } from './process/utils/zoom';
 import { hydrateWindowsProcessPath } from './process/startup/windowsPath';
@@ -495,10 +495,7 @@ const createWindow = ({ showOnReady = true }: { showOnReady?: boolean } = {}): v
 
   setupApplicationMenu();
 
-  const detachApplicationShortcuts = attachApplicationShortcutsToWindow(mainWindow);
-  mainWindow.once('closed', detachApplicationShortcuts);
-  const detachZoom = setupZoomForWindow(mainWindow);
-  mainWindow.once('closed', detachZoom);
+  setupZoomForWindow(mainWindow);
   registerWindowMaximizeListeners(mainWindow);
   attachWindowBoundsPersistence(mainWindow, (bounds) => ProcessConfig.set('window.bounds', bounds));
 

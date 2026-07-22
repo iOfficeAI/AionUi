@@ -5,47 +5,8 @@
  */
 
 import { ipcBridge } from '@/common';
-import type { BrowserWindow, Input, MenuItemConstructorOptions } from 'electron';
+import type { MenuItemConstructorOptions } from 'electron';
 import { Menu, app } from 'electron';
-
-type ApplicationShortcutInput = Pick<Input, 'type' | 'key' | 'isComposing' | 'control' | 'meta' | 'alt' | 'shift'>;
-
-/** Match the native Settings shortcut before Chromium can reinterpret it. */
-export const isOpenSettingsShortcut = (
-  input: ApplicationShortcutInput,
-  platform: NodeJS.Platform = process.platform
-): boolean => {
-  if (input.type !== 'keyDown' || input.isComposing || input.alt || input.shift || input.key !== ',') {
-    return false;
-  }
-
-  return platform === 'darwin' ? input.meta && !input.control : input.control && !input.meta;
-};
-
-/**
- * Register application-owned shortcuts on one BrowserWindow. Unlike
- * `globalShortcut`, this listener only runs while the window receives input.
- */
-export const attachApplicationShortcutsToWindow = (
-  win: BrowserWindow,
-  platform: NodeJS.Platform = process.platform
-): (() => void) => {
-  const handleBeforeInput = (event: Electron.Event, input: Input): void => {
-    if (event.defaultPrevented || !isOpenSettingsShortcut(input, platform)) {
-      return;
-    }
-
-    event.preventDefault();
-    if (!input.isAutoRepeat) {
-      ipcBridge.application.openSettings.emit();
-    }
-  };
-
-  win.webContents.on('before-input-event', handleBeforeInput);
-  return () => {
-    win.webContents.removeListener('before-input-event', handleBeforeInput);
-  };
-};
 
 export function setupApplicationMenu(): void {
   const isMac = process.platform === 'darwin';

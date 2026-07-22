@@ -1,4 +1,3 @@
-import { ipcBridge } from '@/common';
 import { useEffect } from 'react';
 import type { NavigateFunction } from 'react-router-dom';
 import { useLocation } from 'react-router-dom';
@@ -38,23 +37,9 @@ const isNewConversationShortcut = (event: KeyboardEvent): boolean => {
   return (event.metaKey || event.ctrlKey) && !event.altKey && !event.shiftKey && event.key.toLowerCase() === 't';
 };
 
-const isSettingsRoute = (pathname: string): boolean => pathname === '/settings' || pathname.startsWith('/settings/');
-
 export const useConversationShortcuts = ({ navigate, toggleSider }: UseConversationShortcutsParams): void => {
   const location = useLocation();
   const visibleConversationIds = useVisibleConversationIds();
-
-  useEffect(() => {
-    if (!isElectronDesktop()) {
-      return undefined;
-    }
-
-    return ipcBridge.application.openSettings.on(() => {
-      if (!isSettingsRoute(location.pathname)) {
-        void navigate('/settings/agent');
-      }
-    });
-  }, [location.pathname, navigate]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {

@@ -13,17 +13,6 @@ const serviceMocks = vi.hoisted(() => ({
   searchMessages: vi.fn().mockResolvedValue({ items: [], has_more: false }),
 }));
 
-const applicationMocks = vi.hoisted(() => {
-  const openSettingsListeners = new Set<() => void>();
-  return {
-    openSettingsListeners,
-    onOpenSettings: vi.fn((listener: () => void) => {
-      openSettingsListeners.add(listener);
-      return () => openSettingsListeners.delete(listener);
-    }),
-  };
-});
-
 vi.mock('react-router-dom', () => ({
   useLocation: () => ({ pathname: testState.pathname, search: '', hash: '' }),
   useNavigate: () => vi.fn(),
@@ -47,9 +36,6 @@ vi.mock('@/renderer/utils/chat/messagePagination', () => ({
 
 vi.mock('@/common', () => ({
   ipcBridge: {
-    application: {
-      openSettings: { on: applicationMocks.onOpenSettings },
-    },
     database: {
       searchConversationMessages: { invoke: serviceMocks.searchMessages },
     },
@@ -83,14 +69,6 @@ const dispatchShortcut = (target: EventTarget, init: KeyboardEventInit): Keyboar
   return event;
 };
 
-const emitOpenSettings = (): void => {
-  act(() => {
-    for (const listener of applicationMocks.openSettingsListeners) {
-      listener();
-    }
-  });
-};
-
 const renderConversationShortcuts = ({
   navigate = vi.fn(),
   toggleSider = vi.fn(),
@@ -117,7 +95,6 @@ describe('common desktop UI shortcuts', () => {
   afterEach(() => {
     cleanup();
     document.body.innerHTML = '';
-    applicationMocks.openSettingsListeners.clear();
     vi.clearAllMocks();
   });
 
@@ -229,32 +206,6 @@ describe('common desktop UI shortcuts', () => {
 
     expect(result.current.rightSiderCollapsed).toBe(true);
     expect(event.defaultPrevented).toBe(false);
-  });
-
-  it('opens agent settings when the desktop shell emits its native shortcut', () => {
-    const { navigate } = renderConversationShortcuts();
-
-    emitOpenSettings();
-
-    expect(navigate).toHaveBeenCalledWith('/settings/agent');
-  });
-
-  it('preserves the current settings subpage', () => {
-    testState.pathname = '/settings/about';
-    const { navigate } = renderConversationShortcuts();
-
-    emitOpenSettings();
-
-    expect(navigate).not.toHaveBeenCalled();
-  });
-
-  it('does not mistake a settings-like route for the settings page', () => {
-    testState.pathname = '/settings-preview';
-    const { navigate } = renderConversationShortcuts();
-
-    emitOpenSettings();
-
-    expect(navigate).toHaveBeenCalledWith('/settings/agent');
   });
 
   it('ignores chords with wrong modifiers or unsafe keyboard state', () => {
@@ -372,26 +323,21 @@ describe('common desktop UI shortcuts', () => {
 
   it('keeps browser shortcuts intact in WebUI', () => {
     testState.desktop = false;
-    const { navigate, toggleSider } = renderConversationShortcuts();
+    const { toggleSider } = renderConversationShortcuts();
 
     const event = dispatchShortcut(window, { key: 'b', ctrlKey: true });
-    emitOpenSettings();
 
     expect(toggleSider).not.toHaveBeenCalled();
-    expect(navigate).not.toHaveBeenCalled();
     expect(event.defaultPrevented).toBe(false);
-    expect(applicationMocks.openSettingsListeners.size).toBe(0);
   });
 
   it('removes its listener on unmount', () => {
-    const { navigate, toggleSider, unmount } = renderConversationShortcuts();
+    const { toggleSider, unmount } = renderConversationShortcuts();
     unmount();
 
     const event = dispatchShortcut(window, { key: 'b', metaKey: true });
-    emitOpenSettings();
 
     expect(toggleSider).not.toHaveBeenCalled();
-    expect(navigate).not.toHaveBeenCalled();
     expect(event.defaultPrevented).toBe(false);
   });
 
