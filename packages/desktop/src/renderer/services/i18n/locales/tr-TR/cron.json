@@ -13,7 +13,7 @@
     "error": "Error",
     "unread": "New execution",
     "unconfigured": "No scheduled task",
-    "defaultPrompt": "Every day at 10am, search for the latest AI news, summarize and output an insight report."
+    "defaultPrompt": "Every day at 10am, search for the latest AI news, summarize and output an insight report. (AionUi'de zamanlanmış bir görev oluşturmak için lütfen /cron becerisini kullan.)"
   },
   "actions": {
     "goTo": "View Chat",

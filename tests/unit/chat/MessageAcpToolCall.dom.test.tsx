@@ -8,6 +8,7 @@ import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { IMessageAcpToolCall } from '@/common/chat/chatLib';
+import type { FileChangesPanelProps } from '@/renderer/components/base/FileChangesPanel';
 import MessageAcpToolCall from '@/renderer/pages/conversation/Messages/acp/MessageAcpToolCall';
 
 const mockDownloadFileFromPath = vi.fn().mockResolvedValue(undefined);
@@ -52,7 +53,14 @@ vi.mock('@renderer/components/Markdown', () => ({
 
 vi.mock('@/renderer/components/base/FileChangesPanel', () => ({
   __esModule: true,
-  default: () => <div data-testid='file-changes-panel' />,
+  default: ({ title, files }: FileChangesPanelProps) => (
+    <div
+      data-testid='file-changes-panel'
+      data-title={title}
+      data-insertions={files[0]?.insertions ?? 0}
+      data-deletions={files[0]?.deletions ?? 0}
+    />
+  ),
 }));
 
 vi.mock('@/renderer/hooks/file/useDiffPreviewHandlers', () => ({
@@ -60,10 +68,6 @@ vi.mock('@/renderer/hooks/file/useDiffPreviewHandlers', () => ({
     handleFileClick: vi.fn(),
     handleDiffClick: vi.fn(),
   }),
-}));
-
-vi.mock('@/renderer/utils/file/diffUtils', () => ({
-  parseDiff: () => ({ fileName: 'file.ts' }),
 }));
 
 const createMessage = (update: IMessageAcpToolCall['content']['update']): IMessageAcpToolCall => ({
@@ -295,6 +299,12 @@ describe('MessageAcpToolCall image output', () => {
               new_text: 'new',
             },
             {
+              type: 'diff',
+              path: '/workspace/second.ts',
+              old_text: 'before',
+              new_text: 'after',
+            },
+            {
               type: 'content',
               content: {
                 type: 'text',
@@ -308,7 +318,30 @@ describe('MessageAcpToolCall image output', () => {
 
     expect(screen.getByText(/"prompt": "一只小猫"/)).toBeInTheDocument();
     expect(screen.getByText('done')).toBeInTheDocument();
-    expect(screen.getByTestId('file-changes-panel')).toBeInTheDocument();
+    expect(screen.getAllByTestId('file-changes-panel')).toHaveLength(2);
+  });
+
+  it('calculates insertion and deletion totals from complete ACP diff content', () => {
+    render(
+      <MessageAcpToolCall
+        message={createMessage({
+          ...baseUpdate,
+          content: [
+            {
+              type: 'diff',
+              path: '/workspace/file.ts',
+              old_text: ['kept', 'removed', 'tail'].join('\n'),
+              new_text: ['kept', 'added one', 'added two', 'tail'].join('\n'),
+            },
+          ],
+        })}
+      />
+    );
+
+    const panel = screen.getByTestId('file-changes-panel');
+    expect(panel).toHaveAttribute('data-title', 'file.ts');
+    expect(panel).toHaveAttribute('data-insertions', '2');
+    expect(panel).toHaveAttribute('data-deletions', '1');
   });
 
   it('renders string raw input as markdown', () => {

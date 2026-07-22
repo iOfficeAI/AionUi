@@ -1,7 +1,7 @@
 {
   "welcome": {
     "title": "안녕하세요, 오늘의 계획은 무엇인가요?",
-    "placeholder": "메시지 전송, 파일 업로드, 폴더 열기 또는 예약 작업 만들기...",
+    "placeholder": "메시지 전송, 파일 업로드, 폴더 열기, 예약 작업 만들기 또는 / 로 명령 호출...",
     "linkFolder": "폴더 열기",
     "newConversation": "새 채팅",
     "selectModel": "모델 선택",
@@ -34,6 +34,7 @@
     "saveName": "저장",
     "cancelEdit": "취소",
     "rename": "이름 변경",
+    "createCronTask": "예약 작업 만들기",
     "renameTitle": "채팅 이름 변경",
     "renamePlaceholder": "새 이름을 입력하세요",
     "renameSuccess": "이름이 변경되었습니다",
@@ -554,7 +555,7 @@
     "sendboxHint": "실행 환경을 준비하는 중입니다. 첫 시작은 조금 더 오래 걸릴 수 있습니다."
   },
   "sendbox": {
-    "hint": "/ 로 명령, @ 로 파일 참조"
+    "hint": "/ 로 명령, @ 로 파일 참조, ↑/↓ 로 메시지 기록 전환"
   },
   "agentTip": {
     "codes": {

@@ -383,7 +383,7 @@ describe('UpdateNotificationCard', () => {
     expect(screen.getByText('update.viewRelease')).toBeInTheDocument();
   });
 
-  it('shows only a close (cancel) icon while downloading and cancel restores the initial state', async () => {
+  it('keeps the cancel action available while downloading and cancel restores the initial state', async () => {
     render(<UpdateNotificationCard />);
 
     await waitFor(() => {
@@ -413,12 +413,14 @@ describe('UpdateNotificationCard', () => {
       });
     });
 
-    // Downloading hides text buttons; the only action is the top-right close (cancel) icon.
+    // Downloading hides text buttons while keeping the header actions available.
     expect(screen.queryByText('update.later')).not.toBeInTheDocument();
     expect(screen.queryByText('update.cancel')).not.toBeInTheDocument();
     expect(screen.queryByText('update.minimize')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'update.minimize' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'update.cancel' })).toBeInTheDocument();
 
-    fireEvent.click(screen.getByLabelText('update.cancel'));
+    fireEvent.click(screen.getByRole('button', { name: 'update.cancel' }));
 
     await waitFor(() => {
       expect(mocks.autoUpdateCancelDownloadMock).toHaveBeenCalled();
@@ -426,6 +428,62 @@ describe('UpdateNotificationCard', () => {
     expect(await screen.findByText('update.downloadButton')).toBeInTheDocument();
     expect(screen.getByText('update.later')).toBeInTheDocument();
     expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
+  });
+
+  it('minimizes an active download without cancelling and restores its progress', async () => {
+    render(<UpdateNotificationCard />);
+
+    await waitFor(() => {
+      expect(mocks.autoStatusHandler).toBeTruthy();
+    });
+
+    await act(async () => {
+      mocks.autoStatusHandler?.({
+        status: 'available',
+        version: '2.1.14',
+        currentVersion: '2.1.13',
+        releaseNotes: 'auto notes',
+      });
+    });
+
+    fireEvent.click(await screen.findByText('update.downloadButton'));
+
+    await act(async () => {
+      mocks.autoStatusHandler?.({
+        status: 'downloading',
+        progress: {
+          bytesPerSecond: 1048576,
+          percent: 18,
+          transferred: 1048576,
+          total: 4194304,
+        },
+      });
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'update.minimize' }));
+
+    const miniProgress = await screen.findByTestId('update-notification-mini-progress');
+    expect(miniProgress).toHaveTextContent('18%');
+    expect(mocks.autoUpdateCancelDownloadMock).not.toHaveBeenCalled();
+
+    await act(async () => {
+      mocks.autoStatusHandler?.({
+        status: 'downloading',
+        progress: {
+          bytesPerSecond: 2097152,
+          percent: 42,
+          transferred: 2097152,
+          total: 4194304,
+        },
+      });
+    });
+
+    expect(miniProgress).toHaveTextContent('42%');
+
+    fireEvent.click(miniProgress);
+
+    expect(await screen.findByTestId('update-notification-card')).toBeInTheDocument();
+    expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '42');
   });
 
   it('shows restart guidance text and later/restart actions after download completes', async () => {

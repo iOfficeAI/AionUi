@@ -62,6 +62,48 @@ type IMessageVO =
 type IArtifactVO = { type: 'artifact'; id: string; artifact: IConversationArtifact; created_at: number };
 type IProcessedItem = IMessageVO | IArtifactVO;
 
+type CompactAcpToolCallContent = IMessageAcpToolCall['content'] & {
+  _compact?: {
+    truncated?: boolean;
+  };
+};
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
+const hasRenderableAcpDiff = (message: IMessageAcpToolCall): boolean => {
+  const content = message.content as CompactAcpToolCallContent | undefined;
+  if (!content?.update) return false;
+
+  // Compact history may truncate either side of a diff, making its line counts unreliable.
+  if (content._compact?.truncated === true) return false;
+
+  const updateContent: unknown = content.update.content;
+  if (!Array.isArray(updateContent)) return false;
+
+  const contentItems = updateContent.filter(isRecord);
+  if (contentItems.length !== updateContent.length) return false;
+
+  const diffItems = contentItems.filter((item) => item.type === 'diff');
+  return (
+    diffItems.length > 0 &&
+    diffItems.every(
+      (item) =>
+        typeof item.path === 'string' &&
+        item.path.trim().length > 0 &&
+        (typeof item.old_text === 'string' || typeof item.new_text === 'string')
+    )
+  );
+};
+
+const isWriteFileResult = (value: unknown): value is WriteFileResult =>
+  isRecord(value) &&
+  'file_diff' in value &&
+  typeof value.file_diff === 'string' &&
+  value.file_diff.length > 0 &&
+  'file_name' in value &&
+  typeof value.file_name === 'string';
+
 type ConversationLocationState = {
   targetMessageId?: string;
   fromConversationSearch?: boolean;
@@ -290,7 +332,7 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
     let toolList: Array<IMessageToolGroup | IMessageAcpToolCall | IMessageToolCall> = [];
     let toolSourceMessageIds: string[] = [];
 
-    const pushFileDffChanges = (changes: FileChangeInfo, sourceMessageId: string, created_at: number) => {
+    const pushFileDiffChanges = (changes: FileChangeInfo, sourceMessageId: string, created_at: number) => {
       if (!diffsChanges.length) {
         diffsSourceMessageIds = [];
         result.push({
@@ -322,6 +364,13 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
       diffsChanges = [];
       diffsSourceMessageIds = [];
     };
+    const pushStandaloneMessage = (message: TMessage) => {
+      toolList = [];
+      toolSourceMessageIds = [];
+      diffsChanges = [];
+      diffsSourceMessageIds = [];
+      result.push(message);
+    };
 
     for (let i = 0, len = list.length; i < len; i++) {
       const message = list[i];
@@ -329,29 +378,27 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
       if (message.hidden) continue;
       if (message.type === 'available_commands') continue;
       if (message.type === 'tool_group') {
-        if (message.content.length === 1) {
-          const writeFileResults = message.content
-            .filter(
-              (item) =>
-                item.name === 'WriteFile' &&
-                item.result_display &&
-                typeof item.result_display === 'object' &&
-                'file_diff' in item.result_display
-            )
-            .map((item) => item.result_display as WriteFileResult);
-          if (writeFileResults.length && writeFileResults[0].file_diff) {
-            pushFileDffChanges(
-              parseDiff(writeFileResults[0].file_diff, writeFileResults[0].file_name),
+        const writeFileResults = message.content.flatMap((item) =>
+          item.name === 'WriteFile' && isWriteFileResult(item.result_display) ? [item.result_display] : []
+        );
+        if (writeFileResults.length > 0 && writeFileResults.length === message.content.length) {
+          writeFileResults.forEach((writeFileResult) => {
+            pushFileDiffChanges(
+              parseDiff(writeFileResult.file_diff, writeFileResult.file_name),
               message.id,
               message.created_at ?? 0
             );
-            continue;
-          }
+          });
+          continue;
         }
         pushToolList(message);
         continue;
       }
       if (message.type === 'acp_tool_call') {
+        if (hasRenderableAcpDiff(message)) {
+          pushStandaloneMessage(message);
+          continue;
+        }
         pushToolList(message);
         continue;
       }
@@ -359,11 +406,7 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
         pushToolList(message);
         continue;
       }
-      toolList = [];
-      toolSourceMessageIds = [];
-      diffsChanges = [];
-      diffsSourceMessageIds = [];
-      result.push(message);
+      pushStandaloneMessage(message);
     }
     const visibleArtifacts = artifacts
       .filter((artifact) => {

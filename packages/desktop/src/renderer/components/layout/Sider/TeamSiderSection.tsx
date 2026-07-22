@@ -5,7 +5,7 @@
  */
 
 import { DeleteOne, EditOne, Peoples, Plus, Pushpin, Right } from '@icon-park/react';
-import { Input, Message, Modal, Tooltip } from '@arco-design/web-react';
+import { Input, Message, Modal, Spin, Tooltip } from '@arco-design/web-react';
 import classNames from 'classnames';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -20,6 +20,7 @@ import TeamCreateModal from '@renderer/pages/team/components/TeamCreateModal';
 import { ipcBridge } from '@/common';
 import SiderItem from './SiderItem';
 import type { SiderMenuItem } from './SiderItem';
+import { useSiderTeamRunning } from './useSiderTeamRunning';
 
 const TEAM_PINNED_KEY = 'team-pinned-ids';
 
@@ -42,6 +43,7 @@ const TeamSiderSection: React.FC<TeamSiderSectionProps> = ({
   const navigate = useNavigate();
   const { teams, mutate: refreshTeams, removeTeam } = useTeamList();
   const teamBadgeCounts = useSiderTeamBadges(teams);
+  const isTeamRunning = useSiderTeamRunning(teams);
   const { mutate: globalMutate } = useSWRConfig();
 
   const [createTeamVisible, setCreateTeamVisible] = useState(false);
@@ -113,6 +115,7 @@ const TeamSiderSection: React.FC<TeamSiderSectionProps> = ({
           <div className='shrink-0 flex flex-col gap-2px'>
             {sortedTeams.map((team) => {
               const isActive = pathname.startsWith(`/team/${team.id}`);
+              const isRunning = isTeamRunning(team.id);
               return (
                 <Tooltip key={team.id} {...siderTooltipProps} content={team.name} position='right'>
                   <div
@@ -123,14 +126,23 @@ const TeamSiderSection: React.FC<TeamSiderSectionProps> = ({
                     )}
                     onClick={() => handleTeamClick(team.id)}
                   >
-                    <Peoples
-                      data-testid={`collapsed-team-icon-${team.id}`}
-                      data-icon-fill={iconColors.primary}
-                      theme='outline'
-                      size='16'
-                      fill={iconColors.primary}
-                      style={{ lineHeight: 0 }}
-                    />
+                    {isRunning ? (
+                      <span
+                        data-testid={`collapsed-team-spinner-${team.id}`}
+                        className='flex items-center justify-center'
+                      >
+                        <Spin size={16} />
+                      </span>
+                    ) : (
+                      <Peoples
+                        data-testid={`collapsed-team-icon-${team.id}`}
+                        data-icon-fill={iconColors.primary}
+                        theme='outline'
+                        size='16'
+                        fill={iconColors.primary}
+                        style={{ lineHeight: 0 }}
+                      />
+                    )}
                     {(teamBadgeCounts.get(team.id) ?? 0) > 0 && (
                       <span
                         className='absolute top-4px right-4px w-18px h-18px rounded-full text-10px font-bold flex items-center justify-center leading-none bg-danger-6 text-white'
@@ -206,13 +218,28 @@ const TeamSiderSection: React.FC<TeamSiderSectionProps> = ({
                 },
               ];
               const teamBadge = teamBadgeCounts.get(team.id) ?? 0;
+              const isRunning = isTeamRunning(team.id);
               return (
                 <div key={team.id} className='relative group'>
                   <SiderItem
-                    icon={<Peoples theme='outline' size='16' fill='currentColor' style={{ lineHeight: 0 }} />}
+                    icon={
+                      isRunning ? (
+                        <span data-testid={`team-spinner-${team.id}`} className='flex items-center justify-center'>
+                          <Spin size={16} />
+                        </span>
+                      ) : (
+                        <Peoples
+                          data-testid={`team-icon-${team.id}`}
+                          theme='outline'
+                          size='16'
+                          fill='currentColor'
+                          style={{ lineHeight: 0 }}
+                        />
+                      )
+                    }
                     name={team.name}
                     selected={pathname.startsWith(`/team/${team.id}`)}
-                    pinned={isPinned}
+                    pinned={isPinned && !isRunning}
                     menuItems={menuItems}
                     onMenuAction={(key) => {
                       if (key === 'pin') {

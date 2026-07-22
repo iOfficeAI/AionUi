@@ -1,7 +1,7 @@
 {
   "welcome": {
     "title": "Olá, qual é o seu plano para hoje?",
-    "placeholder": "Envie uma mensagem, faça upload de arquivos, abra uma pasta, ou crie uma tarefa agendada...",
+    "placeholder": "Envie uma mensagem, faça upload de arquivos, abra uma pasta, crie uma tarefa agendada ou digite / para comandos...",
     "linkFolder": "Abrir Pasta",
     "newConversation": "Novo Chat",
     "selectModel": "Selecionar Modelo",
@@ -30,6 +30,7 @@
     "saveName": "Salvar",
     "cancelEdit": "Cancelar",
     "rename": "Renomear",
+    "createCronTask": "Criar tarefa agendada",
     "renameTitle": "Renomear Chat",
     "renamePlaceholder": "Por favor, digite um novo nome",
     "renameSuccess": "Renomeado com sucesso",
@@ -560,7 +561,7 @@
     "sendboxHint": "Preparando o ambiente de execução. A primeira inicialização pode demorar um pouco mais."
   },
   "sendbox": {
-    "hint": "Digite / para comandos, @ para referenciar arquivos"
+    "hint": "Digite / para comandos, @ para referenciar arquivos, ↑/↓ para o histórico de mensagens"
   },
   "agentTip": {
     "codes": {

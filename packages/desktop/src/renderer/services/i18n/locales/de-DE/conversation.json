@@ -1,7 +1,7 @@
 {
   "welcome": {
     "title": "Hallo, was hast du heute vor?",
-    "placeholder": "Nachricht senden, Dateien hochladen, Ordner öffnen oder geplante Aufgabe erstellen...",
+    "placeholder": "Nachricht senden, Dateien hochladen, Ordner öffnen, eine geplante Aufgabe erstellen oder / für Befehle eingeben...",
     "linkFolder": "Ordner öffnen",
     "newConversation": "Neuer Chat",
     "selectModel": "Modell auswählen",
@@ -30,6 +30,7 @@
     "saveName": "Speichern",
     "cancelEdit": "Abbrechen",
     "rename": "Umbenennen",
+    "createCronTask": "Geplante Aufgabe erstellen",
     "renameTitle": "Chat umbenennen",
     "renamePlaceholder": "Bitte neuen Namen eingeben",
     "renameSuccess": "Erfolgreich umbenannt",
@@ -555,7 +556,7 @@
     "sendboxHint": "Laufzeit-Umgebung wird vorbereitet. Der erste Start kann etwas länger dauern."
   },
   "sendbox": {
-    "hint": "Tippe / für Befehle, @ um Dateien zu referenzieren"
+    "hint": "Tippe / für Befehle, @ um Dateien zu referenzieren, ↑/↓ für den Nachrichtenverlauf"
   },
   "agentTip": {
     "codes": {
