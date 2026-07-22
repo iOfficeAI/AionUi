@@ -5,7 +5,7 @@
  */
 
 import { Button, Card, Radio, Typography } from '@arco-design/web-react';
-import { Attention, CheckOne, CloseOne, Earth, Edit, PreviewOpen, Shield, Terminal } from '@icon-park/react';
+import { Attention, CheckOne, Earth, Edit, PreviewOpen, Shield, Terminal } from '@icon-park/react';
 import classNames from 'classnames';
 import React, { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -49,27 +49,13 @@ const operationKindKeys: Record<PermissionOperationKind, string> = {
 const renderOperationIcon = (kind: PermissionOperationKind) => {
   switch (kind) {
     case 'execute':
-      return <Terminal theme='outline' size='19' />;
+      return <Terminal theme='outline' size='16' />;
     case 'edit':
-      return <Edit theme='outline' size='19' />;
+      return <Edit theme='outline' size='16' />;
     case 'read':
-      return <PreviewOpen theme='outline' size='19' />;
+      return <PreviewOpen theme='outline' size='16' />;
     case 'fetch':
-      return <Earth theme='outline' size='19' />;
-    default:
-      return <Shield theme='outline' size='19' />;
-  }
-};
-
-const renderIntentIcon = (intent: PermissionIntent) => {
-  switch (intent) {
-    case 'allow-once':
-      return <CheckOne theme='outline' size='16' />;
-    case 'allow-always':
-      return <Attention theme='outline' size='16' />;
-    case 'reject-once':
-    case 'reject-always':
-      return <CloseOne theme='outline' size='16' />;
+      return <Earth theme='outline' size='16' />;
     default:
       return <Shield theme='outline' size='16' />;
   }
@@ -87,6 +73,8 @@ export const PermissionRequestPanel: React.FC<PermissionRequestPanelProps> = ({
 }) => {
   const { t } = useTranslation();
   const optionsIdentity = getPermissionOptionsIdentity(options);
+  const autoFocusOptionId =
+    getSafePermissionOptionId(options) ?? options.find((option) => !option.disabled)?.id ?? null;
   const [selectedId, setSelectedId] = useState<string | null>(() => getSafePermissionOptionId(options));
   const [isResponding, setIsResponding] = useState(false);
   const [hasResponded, setHasResponded] = useState(false);
@@ -99,6 +87,15 @@ export const PermissionRequestPanel: React.FC<PermissionRequestPanelProps> = ({
   const optionsRef = useRef(options);
   const optionsLabelId = useId();
   optionsRef.current = options;
+
+  const focusOption = useCallback((optionId: string) => {
+    const panel = panelRef.current;
+    if (!panel) return;
+    const optionElement = Array.from(panel.querySelectorAll<HTMLElement>('[data-permission-option-id]')).find(
+      (element) => element.dataset.permissionOptionId === optionId
+    );
+    optionElement?.querySelector<HTMLInputElement>('input[type="radio"]')?.focus({ preventScroll: true });
+  }, []);
 
   useEffect(() => {
     requestEpochRef.current += 1;
@@ -118,15 +115,23 @@ export const PermissionRequestPanel: React.FC<PermissionRequestPanelProps> = ({
     setSelectedId(getSafePermissionOptionId(optionsRef.current));
   }, [optionsIdentity]);
 
-  const focusOption = useCallback((optionId: string) => {
-    const optionElement = Array.from(
-      panelRef.current!.querySelectorAll<HTMLElement>('[data-permission-option-id]')
-    ).find((element) => element.dataset.permissionOptionId === optionId);
-    optionElement?.querySelector<HTMLInputElement>('input[type="radio"]')?.focus();
-  }, []);
+  useEffect(() => {
+    if (hasResponded || respondingRef.current || !autoFocusOptionId) return;
+    const activeElement = document.activeElement;
+    if (activeElement !== document.body && activeElement !== document.documentElement) return;
 
-  const handleOptionChange = useCallback((_checked: boolean, event: React.ChangeEvent<HTMLInputElement>) => {
-    setSelectedId(event.target.value);
+    const optionsGroup = panelRef.current?.querySelector<HTMLElement>('[data-permission-options="true"]');
+    if (!optionsGroup) return;
+    const pendingOptionsGroups = Array.from(
+      document.querySelectorAll<HTMLElement>('[data-permission-options="true"]')
+    ).filter((group) => !(group.closest('fieldset') as HTMLFieldSetElement | null)?.disabled);
+    if (pendingOptionsGroups[pendingOptionsGroups.length - 1] !== optionsGroup) return;
+
+    focusOption(autoFocusOptionId);
+  }, [autoFocusOptionId, focusOption, hasResponded, optionsIdentity, requestKey]);
+
+  const handleOptionChange = useCallback((optionId: string) => {
+    setSelectedId(optionId);
   }, []);
 
   useEffect(() => {
@@ -177,18 +182,15 @@ export const PermissionRequestPanel: React.FC<PermissionRequestPanelProps> = ({
   }, [hasResponded, onConfirm, options, selectedId]);
 
   const handleKeyDown = useCallback(
-    (event: React.KeyboardEvent<HTMLDivElement>) => {
+    (event: React.KeyboardEvent<HTMLFieldSetElement>) => {
       if (
         event.defaultPrevented ||
-        event.repeat ||
         event.nativeEvent.isComposing ||
         event.keyCode === 229 ||
         event.ctrlKey ||
         event.metaKey ||
         event.altKey ||
-        event.shiftKey ||
-        isResponding ||
-        hasResponded
+        event.shiftKey
       ) {
         return;
       }
@@ -196,13 +198,18 @@ export const PermissionRequestPanel: React.FC<PermissionRequestPanelProps> = ({
       const target = event.target as Element;
       if (!target.closest('[data-permission-options="true"]')) return;
 
-      if (event.key === 'Enter') {
-        event.preventDefault();
-        void submitSelected();
+      const isEnter = event.key === 'Enter';
+      const isArrow = event.key === 'ArrowDown' || event.key === 'ArrowUp';
+      if (!isEnter && !isArrow) return;
+      event.preventDefault();
+      event.stopPropagation();
+
+      if (isResponding || hasResponded) return;
+      if (isEnter) {
+        if (!event.repeat) void submitSelected();
         return;
       }
 
-      if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return;
       const enabledOptions = options.filter((option) => !option.disabled);
       if (enabledOptions.length === 0) return;
 
@@ -214,16 +221,25 @@ export const PermissionRequestPanel: React.FC<PermissionRequestPanelProps> = ({
             : enabledOptions.length - 1
           : (currentIndex + (event.key === 'ArrowDown' ? 1 : -1) + enabledOptions.length) % enabledOptions.length;
       const nextOption = enabledOptions[nextIndex];
-      event.preventDefault();
       setSelectedId(nextOption.id);
       focusOption(nextOption.id);
     },
     [focusOption, hasResponded, isResponding, options, selectedId, submitSelected]
   );
 
+  const optionsGroupAccessibilityProps = {
+    'aria-labelledby': optionsLabelId,
+    'aria-keyshortcuts': 'ArrowUp ArrowDown Enter',
+    'data-testid': `${testIdPrefix}-options`,
+    'data-permission-options': 'true',
+  } as React.AriaAttributes & {
+    'data-testid': string;
+    'data-permission-options': 'true';
+  };
+
   return (
     <Card className={styles.card} bordered={false} data-testid={`${testIdPrefix}-card`}>
-      <div ref={panelRef} className={styles.panel} aria-busy={isResponding} onKeyDown={handleKeyDown}>
+      <div ref={panelRef} className={styles.panel} aria-busy={isResponding}>
         <div className={styles.header}>
           <span className={styles.operationIcon} aria-hidden='true'>
             {renderOperationIcon(operationKind)}
@@ -248,17 +264,19 @@ export const PermissionRequestPanel: React.FC<PermissionRequestPanelProps> = ({
 
         {!hasResponded && (
           <>
-            <fieldset
-              className={styles.optionsFieldset}
-              data-permission-options='true'
-              disabled={isResponding}
-              aria-keyshortcuts='ArrowUp ArrowDown Enter'
-            >
+            <fieldset className={styles.optionsFieldset} disabled={isResponding} onKeyDown={handleKeyDown}>
               <legend id={optionsLabelId} className={styles.optionsLegend}>
                 {t('messages.chooseAction')}
               </legend>
               {options.length > 0 ? (
-                <div className={styles.optionsGroup} role='radiogroup' aria-labelledby={optionsLabelId}>
+                <Radio.Group
+                  className={styles.optionsGroup}
+                  name={`${testIdPrefix}-${optionsLabelId}`}
+                  value={selectedId}
+                  disabled={isResponding}
+                  onChange={handleOptionChange}
+                  {...optionsGroupAccessibilityProps}
+                >
                   {options.map((option) => {
                     const descriptionKey = optionDescriptionKeys[option.intent];
                     return (
@@ -267,21 +285,15 @@ export const PermissionRequestPanel: React.FC<PermissionRequestPanelProps> = ({
                         className={styles.optionRow}
                         data-testid={option.testId}
                         data-permission-option-id={option.id}
-                        data-intent={option.intent}
                         data-selected={selectedId === option.id}
                         data-disabled={Boolean(option.disabled || isResponding)}
                       >
                         <Radio
                           className={styles.optionRadio}
                           value={option.id}
-                          checked={selectedId === option.id}
                           disabled={option.disabled || isResponding}
-                          onChange={handleOptionChange}
                         >
                           <span className={styles.optionContent}>
-                            <span className={styles.intentIcon} aria-hidden='true'>
-                              {renderIntentIcon(option.intent)}
-                            </span>
                             <span className={styles.optionText}>
                               <Text className={styles.optionLabel}>{option.label}</Text>
                               {descriptionKey && <Text className={styles.optionDescription}>{t(descriptionKey)}</Text>}
@@ -291,7 +303,7 @@ export const PermissionRequestPanel: React.FC<PermissionRequestPanelProps> = ({
                       </div>
                     );
                   })}
-                </div>
+                </Radio.Group>
               ) : (
                 <Text className={styles.emptyState}>{t('messages.noOptionsAvailable')}</Text>
               )}

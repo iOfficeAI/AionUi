@@ -1,43 +1,42 @@
 .card {
   width: 100%;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
   overflow: hidden;
   border: 1px solid var(--color-border-2);
-  border-radius: 14px;
-  background: linear-gradient(180deg, var(--color-bg-2) 0%, var(--color-fill-1) 100%);
+  border-radius: 10px;
+  background: var(--color-bg-2);
   container-type: inline-size;
 }
 
 .card :global(.arco-card-body) {
-  padding: 16px;
+  padding: 12px;
 }
 
 .panel {
   display: flex;
   min-width: 0;
   flex-direction: column;
-  gap: 14px;
-  outline: none;
+  gap: 10px;
 }
 
 .header {
   display: flex;
   min-width: 0;
   align-items: flex-start;
-  gap: 12px;
+  gap: 10px;
 }
 
 .operationIcon {
   display: inline-flex;
-  width: 34px;
-  height: 34px;
+  width: 28px;
+  height: 28px;
   flex: 0 0 auto;
   align-items: center;
   justify-content: center;
   border: 1px solid var(--color-border-2);
-  border-radius: 10px;
-  color: rgb(var(--primary-6));
-  background: var(--color-primary-light-1);
+  border-radius: 8px;
+  color: var(--color-text-2);
+  background: var(--color-fill-1);
 }
 
 .heading {
@@ -48,7 +47,7 @@
 .titleRow {
   display: flex;
   min-width: 0;
-  align-items: flex-start;
+  align-items: center;
   gap: 8px;
 }
 
@@ -66,7 +65,7 @@
   display: inline-flex;
   flex: 0 0 auto;
   align-items: center;
-  padding: 2px 7px;
+  padding: 1px 6px;
   border: 1px solid var(--color-border-2);
   border-radius: 999px;
   color: var(--color-text-2);
@@ -78,36 +77,42 @@
 
 .description {
   display: block;
-  margin-top: 3px;
+  margin-top: 2px;
   overflow-wrap: anywhere;
   color: var(--color-text-2);
   font-size: 12px;
-  line-height: 1.5;
+  line-height: 1.4;
 }
 
 .detailBlock {
+  display: flex;
   min-width: 0;
+  align-items: baseline;
+  gap: 8px;
+  padding: 7px 9px;
+  border: 1px solid var(--color-border-2);
+  border-radius: 7px;
+  background: var(--color-fill-1);
 }
 
 .detailLabel {
-  display: block;
-  margin-bottom: 6px;
+  flex: 0 0 auto;
   color: var(--color-text-2);
-  font-size: 12px;
+  font-size: 11px;
 }
 
 .detail {
-  display: block;
-  max-height: 132px;
+  min-width: 0;
+  max-height: 64px;
+  flex: 1;
   overflow: auto;
-  padding: 10px 12px;
-  border: 1px solid var(--color-border-2);
-  border-radius: 9px;
+  padding: 0;
+  border: 0;
   color: var(--color-text-1);
-  background: var(--color-fill-1);
+  background: transparent;
   font-family: var(--font-mono);
-  font-size: 12px;
-  line-height: 1.55;
+  font-size: 11px;
+  line-height: 1.45;
   overflow-wrap: anywhere;
   white-space: pre-wrap;
 }
@@ -120,44 +125,52 @@
 }
 
 .optionsLegend {
-  margin-bottom: 8px;
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
   padding: 0;
-  color: var(--color-text-2);
-  font-size: 12px;
-  font-weight: 500;
+  overflow: hidden;
+  border: 0;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
 }
 
 .optionsGroup {
   display: flex;
   width: 100%;
   flex-direction: column;
-  gap: 8px;
+  overflow: hidden;
+  border: 1px solid var(--color-border-2);
+  border-radius: 8px;
+}
+
+.optionsGroup :global(.arco-radio) {
+  display: flex;
+  margin: 0;
+  line-height: 1.4;
 }
 
 .optionRow {
   min-width: 0;
   overflow: hidden;
-  border: 1px solid var(--color-border-2);
-  border-radius: 10px;
-  background: var(--color-bg-2);
-  transition:
-    border-color 0.16s ease,
-    background-color 0.16s ease,
-    box-shadow 0.16s ease;
+  background: transparent;
+  transition: background-color 0.16s ease;
+}
+
+.optionRow + .optionRow {
+  border-top: 1px solid var(--color-border-2);
 }
 
 .optionRow:hover:not([data-disabled='true']) {
-  border-color: var(--color-border-3);
   background: var(--color-fill-1);
 }
 
 .optionRow:focus-within {
-  border-color: rgb(var(--primary-6));
-  box-shadow: 0 0 0 2px var(--color-primary-light-3);
+  background: var(--color-primary-light-1);
 }
 
 .optionRow[data-selected='true'] {
-  border-color: rgb(var(--primary-6));
   background: var(--color-primary-light-1);
 }
 
@@ -166,67 +179,63 @@
 }
 
 .optionRadio {
+  display: flex;
   box-sizing: border-box;
   width: 100%;
   margin: 0;
-  padding: 10px 12px;
+  align-items: center;
+  padding: 7px 10px;
 }
 
-.optionRadio :global(.arco-radio-label) {
+.optionRadio :global(.arco-radio-text) {
+  display: block;
   min-width: 0;
   flex: 1;
-  padding-left: 10px;
+  margin-left: 8px;
 }
 
 .optionContent {
   display: flex;
+  width: 100%;
   min-width: 0;
-  align-items: flex-start;
-  gap: 9px;
-}
-
-.intentIcon {
-  display: inline-flex;
-  flex: 0 0 auto;
   align-items: center;
-  margin-top: 1px;
-  color: rgb(var(--primary-6));
-}
-
-.optionRow[data-intent='allow-always'] .intentIcon {
-  color: rgb(var(--warning-6));
-}
-
-.optionRow[data-intent='reject-once'] .intentIcon,
-.optionRow[data-intent='reject-always'] .intentIcon {
-  color: rgb(var(--danger-6));
-}
-
-.optionRow[data-intent='neutral'] .intentIcon {
-  color: var(--color-text-3);
 }
 
 .optionText {
+  display: flex;
   min-width: 0;
   flex: 1;
+  align-items: baseline;
+  gap: 8px;
 }
 
 .optionLabel {
-  display: block;
-  overflow-wrap: anywhere;
+  min-width: 0;
+  max-width: 45%;
+  flex: 0 1 auto;
+  overflow: hidden;
   color: var(--color-text-1);
   font-size: 13px;
   font-weight: 500;
   line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.optionLabel:only-child {
+  max-width: 100%;
+  flex-basis: 100%;
 }
 
 .optionDescription {
-  display: block;
-  margin-top: 2px;
-  overflow-wrap: anywhere;
+  min-width: 0;
+  flex: 1 1 55%;
+  overflow: hidden;
   color: var(--color-text-2);
   font-size: 11px;
   line-height: 1.45;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .emptyState {
@@ -273,7 +282,7 @@
   display: flex;
   align-items: flex-start;
   gap: 8px;
-  padding: 10px 12px;
+  padding: 8px 10px;
   border: 1px solid var(--color-border-2);
   border-radius: 9px;
   font-size: 12px;
@@ -298,7 +307,30 @@
   }
 
   .card :global(.arco-card-body) {
-    padding: 14px;
+    padding: 10px;
+  }
+
+  .detailBlock {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .optionText {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 1px;
+  }
+
+  .optionDescription {
+    overflow: visible;
+    white-space: normal;
+  }
+
+  .optionLabel {
+    max-width: none;
+    overflow: visible;
+    white-space: normal;
   }
 
   .footer {

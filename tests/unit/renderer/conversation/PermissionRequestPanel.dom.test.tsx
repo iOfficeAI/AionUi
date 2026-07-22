@@ -47,6 +47,16 @@ const makeOptions = (): PermissionPanelOption[] => [
   },
 ];
 
+const makeNamespacedOptions = (namespace: string): PermissionPanelOption[] =>
+  makeOptions().map((option, index) => ({
+    id: `${namespace}-${option.id}`,
+    value: option.value,
+    label: option.label,
+    intent: option.intent,
+    testId: `${namespace}-option-${index}`,
+    disabled: option.disabled,
+  }));
+
 const renderPanel = (props: Partial<React.ComponentProps<typeof PermissionRequestPanel>> = {}) =>
   render(
     <PermissionRequestPanel
@@ -65,12 +75,113 @@ const renderPanel = (props: Partial<React.ComponentProps<typeof PermissionReques
 const getOptionRadio = (testId: string): HTMLInputElement =>
   within(screen.getByTestId(testId)).getByRole('radio') as HTMLInputElement;
 
+const getOptionsGroup = (): HTMLElement => screen.getByTestId('message-permission-options');
+
 describe('PermissionRequestPanel', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('selects only a one-time allow by default and wraps arrow navigation', () => {
+  it('focuses the safe native radio without adding a second group tab stop', () => {
+    renderPanel();
+
+    const optionsGroup = getOptionsGroup();
+    const radios = within(optionsGroup).getAllByRole('radio') as HTMLInputElement[];
+    expect(getOptionRadio('message-permission-option-once')).toHaveFocus();
+    expect(optionsGroup).not.toHaveAttribute('tabindex');
+    expect(optionsGroup).not.toHaveAttribute('aria-activedescendant');
+    expect(new Set(radios.map((radio) => radio.name)).size).toBe(1);
+    expect(radios[0].name).not.toBe('');
+  });
+
+  it.each(['button', 'textarea', 'contenteditable editor'] as const)(
+    'does not take focus from an active %s',
+    (surface) => {
+      const editingSurface = document.createElement(
+        surface === 'textarea' ? 'textarea' : surface === 'button' ? 'button' : 'div'
+      );
+      if (surface === 'contenteditable editor') {
+        editingSurface.setAttribute('contenteditable', 'true');
+        editingSurface.className = 'cm-editor';
+        editingSurface.tabIndex = 0;
+      }
+      document.body.append(editingSurface);
+      editingSurface.focus();
+
+      renderPanel();
+
+      expect(editingSurface).toHaveFocus();
+      editingSurface.remove();
+    }
+  );
+
+  it('autofocuses only the last pending permission panel when two mount together', () => {
+    const olderOptions = makeNamespacedOptions('older');
+    const newerOptions = makeNamespacedOptions('newer');
+    render(
+      <>
+        <PermissionRequestPanel
+          requestKey='older-request'
+          testIdPrefix='message-permission'
+          title='Older request'
+          operationKind='execute'
+          options={olderOptions}
+          onConfirm={vi.fn().mockResolvedValue(undefined)}
+        />
+        <PermissionRequestPanel
+          requestKey='newer-request'
+          testIdPrefix='message-acp-permission'
+          title='Newer request'
+          operationKind='edit'
+          options={newerOptions}
+          onConfirm={vi.fn().mockResolvedValue(undefined)}
+        />
+      </>
+    );
+
+    expect(getOptionRadio('newer-option-1')).toHaveFocus();
+    expect(getOptionRadio('older-option-1')).not.toHaveFocus();
+  });
+
+  it('does not let an older panel option update reclaim focus from the newer panel', () => {
+    const olderOptions = makeNamespacedOptions('older');
+    const newerOptions = makeNamespacedOptions('newer');
+    const panels = (firstOptions: PermissionPanelOption[]) => (
+      <>
+        <PermissionRequestPanel
+          requestKey='older-request'
+          testIdPrefix='message-permission'
+          title='Older request'
+          operationKind='execute'
+          options={firstOptions}
+          onConfirm={vi.fn().mockResolvedValue(undefined)}
+        />
+        <PermissionRequestPanel
+          requestKey='newer-request'
+          testIdPrefix='message-acp-permission'
+          title='Newer request'
+          operationKind='edit'
+          options={newerOptions}
+          onConfirm={vi.fn().mockResolvedValue(undefined)}
+        />
+      </>
+    );
+    const { rerender } = render(panels(olderOptions));
+    const newerRadio = getOptionRadio('newer-option-1');
+    expect(newerRadio).toHaveFocus();
+
+    const updatedOlderOptions = olderOptions.slice();
+    updatedOlderOptions[1] = {
+      ...updatedOlderOptions[1],
+      id: 'older-updated-once',
+      value: 'older-updated-once',
+    };
+    rerender(panels(updatedOlderOptions));
+
+    expect(newerRadio).toHaveFocus();
+  });
+
+  it('selects only a one-time allow by default and contains wrapping arrow navigation', () => {
     renderPanel();
 
     const always = getOptionRadio('message-permission-option-always');
@@ -81,20 +192,75 @@ describe('PermissionRequestPanel', () => {
     expect(reject).not.toBeChecked();
     expect(screen.getByRole('radiogroup', { name: 'messages.chooseAction' })).toBeInTheDocument();
 
-    fireEvent.keyDown(once, { key: 'ArrowDown' });
+    expect(fireEvent.keyDown(once, { key: 'ArrowDown' })).toBe(false);
     expect(reject).toBeChecked();
     expect(reject).toHaveFocus();
 
-    fireEvent.keyDown(reject, { key: 'ArrowDown' });
+    expect(fireEvent.keyDown(reject, { key: 'ArrowDown', repeat: true })).toBe(false);
     expect(always).toBeChecked();
     expect(always).toHaveFocus();
 
-    fireEvent.keyDown(always, { key: 'ArrowUp' });
+    expect(fireEvent.keyDown(always, { key: 'ArrowUp', repeat: true })).toBe(false);
     expect(reject).toBeChecked();
     expect(reject).toHaveFocus();
 
     fireEvent.click(within(screen.getByTestId('message-permission-option-always')).getByText('Always allow'));
     expect(always).toBeChecked();
+  });
+
+  it('renders options as one neutral list without per-intent decoration', () => {
+    renderPanel();
+
+    const optionsGroup = getOptionsGroup();
+    expect(optionsGroup.children).toHaveLength(3);
+    for (const option of Array.from(optionsGroup.children)) {
+      expect(option).not.toHaveAttribute('data-intent');
+      expect(option.querySelector('svg')).toBeNull();
+    }
+  });
+
+  it('keeps a long ACP label and its description in the same compact row', () => {
+    const longLabel = 'Allow this specific workspace operation once after reviewing every affected configuration file';
+    renderPanel({ options: [{ ...makeOptions()[1], label: longLabel }] });
+
+    const option = screen.getByTestId('message-permission-option-once');
+    const label = within(option).getByText(longLabel);
+    const description = within(option).getByText('messages.permissionOptions.allowOnceDescription');
+    expect(label.parentElement).toBe(description.parentElement);
+  });
+
+  it('keeps a long neutral label unrestricted when there is no description', () => {
+    const longLabel = 'Use the project-specific approval policy supplied by the connected ACP provider';
+    renderPanel({
+      options: [
+        {
+          id: 'custom:0',
+          value: 'custom',
+          label: longLabel,
+          intent: 'neutral',
+          testId: 'message-permission-option-custom',
+        },
+      ],
+    });
+
+    const optionText = within(screen.getByTestId('message-permission-option-custom')).getByText(
+      longLabel
+    ).parentElement;
+    expect(optionText).toHaveTextContent(longLabel);
+    expect(optionText?.children).toHaveLength(1);
+  });
+
+  it('stops handled navigation before it reaches the conversation', () => {
+    renderPanel();
+    const conversationKeyDown = vi.fn();
+    document.addEventListener('keydown', conversationKeyDown);
+
+    try {
+      expect(fireEvent.keyDown(getOptionRadio('message-permission-option-once'), { key: 'ArrowDown' })).toBe(false);
+      expect(conversationKeyDown).not.toHaveBeenCalled();
+    } finally {
+      document.removeEventListener('keydown', conversationKeyDown);
+    }
   });
 
   it('leaves persistent, unknown, and empty choices unselected', () => {
@@ -127,6 +293,7 @@ describe('PermissionRequestPanel', () => {
     expect(getOptionRadio('message-permission-option-always')).not.toBeChecked();
     expect(getOptionRadio('message-permission-option-unknown')).not.toBeChecked();
     expect(getOptionRadio('message-permission-option-reject-always')).not.toBeChecked();
+    expect(getOptionRadio('message-permission-option-always')).toHaveFocus();
     expect(screen.getByTestId('message-permission-confirm')).toBeDisabled();
 
     rerender(
@@ -156,12 +323,15 @@ describe('PermissionRequestPanel', () => {
     const once = getOptionRadio('message-permission-option-once');
     confirmButton = screen.getByTestId('message-permission-confirm');
 
-    fireEvent.keyDown(once, { key: 'Enter' });
-    fireEvent.keyDown(once, { key: 'Enter' });
+    expect(fireEvent.keyDown(once, { key: 'Enter' })).toBe(false);
+    expect(fireEvent.keyDown(once, { key: 'Enter', repeat: true })).toBe(false);
+    expect(fireEvent.keyDown(once, { key: 'Enter' })).toBe(false);
     fireEvent.click(screen.getByTestId('message-permission-confirm'));
     expect(onConfirm).toHaveBeenCalledTimes(1);
     expect(onConfirm).toHaveBeenCalledWith('once');
     expect(screen.getByTestId('message-permission-confirm')).toBeDisabled();
+    expect(getOptionsGroup()).not.toHaveAttribute('tabindex');
+    for (const radio of screen.getAllByRole('radio')) expect(radio).toBeDisabled();
 
     await act(async () => {
       resolveRequest?.();
@@ -174,7 +344,6 @@ describe('PermissionRequestPanel', () => {
   });
 
   it.each([
-    ['repeat', { key: 'Enter', repeat: true }],
     ['IME composition', { key: 'Enter', isComposing: true }],
     ['IME key code', { key: 'Enter', keyCode: 229 }],
     ['Control', { key: 'Enter', ctrlKey: true }],
@@ -414,10 +583,9 @@ describe('PermissionRequestPanel', () => {
       disabled: true,
     };
     renderPanel({ options: [disabledOption] });
-    const radio = getOptionRadio('message-permission-option-disabled');
 
     expect(fireEvent.keyDown(screen.getByText('Permission request'), { key: 'Enter' })).toBe(true);
-    expect(fireEvent.keyDown(radio, { key: 'ArrowDown' })).toBe(true);
+    expect(fireEvent.keyDown(getOptionsGroup(), { key: 'ArrowDown' })).toBe(false);
     expect(screen.getByTestId('message-permission-confirm')).toBeDisabled();
   });
 
@@ -427,12 +595,15 @@ describe('PermissionRequestPanel', () => {
     const always = getOptionRadio('message-permission-option-always');
     fireEvent.keyDown(always, { key: 'ArrowDown' });
     expect(always).toBeChecked();
+    expect(always).toHaveFocus();
     down.unmount();
 
     renderPanel({ options });
     const reject = getOptionRadio('message-permission-option-reject');
+    reject.focus();
     fireEvent.keyDown(reject, { key: 'ArrowUp' });
     expect(reject).toBeChecked();
+    expect(reject).toHaveFocus();
   });
 
   it.each([
