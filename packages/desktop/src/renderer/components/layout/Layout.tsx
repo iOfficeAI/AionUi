@@ -121,7 +121,7 @@ const Layout: React.FC<{
   const toggleSider = useCallback(() => {
     setCollapsed((previous) => !previous);
   }, []);
-  useConversationShortcuts({ navigate, toggleSider, workspaceAvailable });
+  useConversationShortcuts({ navigate, toggleSider });
   // Expose navigate to code running outside the Router tree (e.g. the globally
   // mounted FeedbackReportModal's "via chat" action).
   useEffect(() => {

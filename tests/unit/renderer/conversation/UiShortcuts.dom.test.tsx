@@ -13,6 +13,17 @@ const serviceMocks = vi.hoisted(() => ({
   searchMessages: vi.fn().mockResolvedValue({ items: [], has_more: false }),
 }));
 
+const applicationMocks = vi.hoisted(() => {
+  const openSettingsListeners = new Set<() => void>();
+  return {
+    openSettingsListeners,
+    onOpenSettings: vi.fn((listener: () => void) => {
+      openSettingsListeners.add(listener);
+      return () => openSettingsListeners.delete(listener);
+    }),
+  };
+});
+
 vi.mock('react-router-dom', () => ({
   useLocation: () => ({ pathname: testState.pathname, search: '', hash: '' }),
   useNavigate: () => vi.fn(),
@@ -36,6 +47,9 @@ vi.mock('@/renderer/utils/chat/messagePagination', () => ({
 
 vi.mock('@/common', () => ({
   ipcBridge: {
+    application: {
+      openSettings: { on: applicationMocks.onOpenSettings },
+    },
     database: {
       searchConversationMessages: { invoke: serviceMocks.searchMessages },
     },
@@ -69,20 +83,25 @@ const dispatchShortcut = (target: EventTarget, init: KeyboardEventInit): Keyboar
   return event;
 };
 
+const emitOpenSettings = (): void => {
+  act(() => {
+    for (const listener of applicationMocks.openSettingsListeners) {
+      listener();
+    }
+  });
+};
+
 const renderConversationShortcuts = ({
   navigate = vi.fn(),
   toggleSider = vi.fn(),
-  workspaceAvailable = true,
 }: {
   navigate?: ReturnType<typeof vi.fn>;
   toggleSider?: ReturnType<typeof vi.fn>;
-  workspaceAvailable?: boolean;
 } = {}) => {
   const rendered = renderHook(() =>
     useConversationShortcuts({
       navigate: navigate as unknown as NavigateFunction,
       toggleSider,
-      workspaceAvailable,
     })
   );
 
@@ -98,6 +117,7 @@ describe('common desktop UI shortcuts', () => {
   afterEach(() => {
     cleanup();
     document.body.innerHTML = '';
+    applicationMocks.openSettingsListeners.clear();
     vi.clearAllMocks();
   });
 
@@ -133,7 +153,6 @@ describe('common desktop UI shortcuts', () => {
       useConversationShortcuts({
         navigate: vi.fn() as unknown as NavigateFunction,
         toggleSider: vi.fn(),
-        workspaceAvailable: true,
       });
       return workspace;
     });
@@ -154,7 +173,6 @@ describe('common desktop UI shortcuts', () => {
       useConversationShortcuts({
         navigate: vi.fn() as unknown as NavigateFunction,
         toggleSider: vi.fn(),
-        workspaceAvailable: true,
       });
       return workspace;
     });
@@ -165,44 +183,78 @@ describe('common desktop UI shortcuts', () => {
     expect(event.defaultPrevented).toBe(false);
   });
 
-  it('does not dispatch workspace toggles outside workspace routes', () => {
-    const onWorkspaceToggle = vi.fn();
-    window.addEventListener('aionui-workspace-toggle', onWorkspaceToggle);
-    renderConversationShortcuts({ workspaceAvailable: false });
+  it('toggles a temporary workspace while its composer textarea is focused', () => {
+    testState.pathname = '/guid';
+    const composer = document.createElement('textarea');
+    document.body.appendChild(composer);
+    composer.focus();
+    const { result } = renderHook(() => {
+      const workspace = useWorkspaceCollapse({
+        workspaceEnabled: true,
+        isMobile: false,
+        conversation_id: 'temporary-conversation',
+        isTemporaryWorkspace: true,
+      });
+      useConversationShortcuts({
+        navigate: vi.fn() as unknown as NavigateFunction,
+        toggleSider: vi.fn(),
+      });
+      return workspace;
+    });
 
-    dispatchShortcut(window, { key: 'l', metaKey: true });
+    const event = dispatchShortcut(composer, { key: 'l', metaKey: true });
 
-    expect(onWorkspaceToggle).not.toHaveBeenCalled();
-    window.removeEventListener('aionui-workspace-toggle', onWorkspaceToggle);
+    expect(result.current.rightSiderCollapsed).toBe(false);
+    expect(event.defaultPrevented).toBe(true);
   });
 
-  it('opens agent settings from a non-settings route', () => {
+  it('leaves workspace shortcuts to embedded code editors', () => {
+    const editor = document.createElement('div');
+    editor.className = 'cm-editor';
+    document.body.appendChild(editor);
+    const { result } = renderHook(() => {
+      const workspace = useWorkspaceCollapse({
+        workspaceEnabled: true,
+        isMobile: false,
+        conversation_id: 'conversation-1',
+      });
+      useConversationShortcuts({
+        navigate: vi.fn() as unknown as NavigateFunction,
+        toggleSider: vi.fn(),
+      });
+      return workspace;
+    });
+
+    const event = dispatchShortcut(editor, { key: 'l', ctrlKey: true });
+
+    expect(result.current.rightSiderCollapsed).toBe(true);
+    expect(event.defaultPrevented).toBe(false);
+  });
+
+  it('opens agent settings when the desktop shell emits its native shortcut', () => {
     const { navigate } = renderConversationShortcuts();
 
-    const event = dispatchShortcut(window, { key: ',', ctrlKey: true });
+    emitOpenSettings();
 
     expect(navigate).toHaveBeenCalledWith('/settings/agent');
-    expect(event.defaultPrevented).toBe(true);
   });
 
   it('preserves the current settings subpage', () => {
     testState.pathname = '/settings/about';
     const { navigate } = renderConversationShortcuts();
 
-    const event = dispatchShortcut(window, { key: ',', metaKey: true });
+    emitOpenSettings();
 
     expect(navigate).not.toHaveBeenCalled();
-    expect(event.defaultPrevented).toBe(false);
   });
 
   it('does not mistake a settings-like route for the settings page', () => {
     testState.pathname = '/settings-preview';
     const { navigate } = renderConversationShortcuts();
 
-    const event = dispatchShortcut(window, { key: ',', ctrlKey: true });
+    emitOpenSettings();
 
     expect(navigate).toHaveBeenCalledWith('/settings/agent');
-    expect(event.defaultPrevented).toBe(true);
   });
 
   it('ignores chords with wrong modifiers or unsafe keyboard state', () => {
@@ -320,21 +372,26 @@ describe('common desktop UI shortcuts', () => {
 
   it('keeps browser shortcuts intact in WebUI', () => {
     testState.desktop = false;
-    const { toggleSider } = renderConversationShortcuts();
+    const { navigate, toggleSider } = renderConversationShortcuts();
 
     const event = dispatchShortcut(window, { key: 'b', ctrlKey: true });
+    emitOpenSettings();
 
     expect(toggleSider).not.toHaveBeenCalled();
+    expect(navigate).not.toHaveBeenCalled();
     expect(event.defaultPrevented).toBe(false);
+    expect(applicationMocks.openSettingsListeners.size).toBe(0);
   });
 
   it('removes its listener on unmount', () => {
-    const { toggleSider, unmount } = renderConversationShortcuts();
+    const { navigate, toggleSider, unmount } = renderConversationShortcuts();
     unmount();
 
     const event = dispatchShortcut(window, { key: 'b', metaKey: true });
+    emitOpenSettings();
 
     expect(toggleSider).not.toHaveBeenCalled();
+    expect(navigate).not.toHaveBeenCalled();
     expect(event.defaultPrevented).toBe(false);
   });
 
@@ -342,10 +399,9 @@ describe('common desktop UI shortcuts', () => {
     const firstToggle = vi.fn();
     const secondToggle = vi.fn();
     const navigate = vi.fn() as unknown as NavigateFunction;
-    const { rerender } = renderHook(
-      ({ toggleSider }) => useConversationShortcuts({ navigate, toggleSider, workspaceAvailable: true }),
-      { initialProps: { toggleSider: firstToggle } }
-    );
+    const { rerender } = renderHook(({ toggleSider }) => useConversationShortcuts({ navigate, toggleSider }), {
+      initialProps: { toggleSider: firstToggle },
+    });
 
     rerender({ toggleSider: secondToggle });
     dispatchShortcut(window, { key: 'b', ctrlKey: true });

@@ -500,6 +500,7 @@ export const application = {
     'app.log-stream'
   ),
   devToolsStateChanged: bridge.buildEmitter<{ isOpen: boolean }>('app.devtools-state-changed'),
+  openSettings: bridge.buildEmitter<void>('app.open-settings'),
 };
 
 // ---------------------------------------------------------------------------

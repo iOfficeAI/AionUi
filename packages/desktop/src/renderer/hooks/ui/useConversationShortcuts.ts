@@ -1,3 +1,4 @@
+import { ipcBridge } from '@/common';
 import { useEffect } from 'react';
 import type { NavigateFunction } from 'react-router-dom';
 import { useLocation } from 'react-router-dom';
@@ -9,7 +10,6 @@ import { dispatchWorkspaceToggleEvent } from '@/renderer/utils/workspace/workspa
 type UseConversationShortcutsParams = {
   navigate: NavigateFunction;
   toggleSider: () => void;
-  workspaceAvailable: boolean;
 };
 
 const getCycledConversationId = (
@@ -38,13 +38,23 @@ const isNewConversationShortcut = (event: KeyboardEvent): boolean => {
   return (event.metaKey || event.ctrlKey) && !event.altKey && !event.shiftKey && event.key.toLowerCase() === 't';
 };
 
-export const useConversationShortcuts = ({
-  navigate,
-  toggleSider,
-  workspaceAvailable,
-}: UseConversationShortcutsParams): void => {
+const isSettingsRoute = (pathname: string): boolean => pathname === '/settings' || pathname.startsWith('/settings/');
+
+export const useConversationShortcuts = ({ navigate, toggleSider }: UseConversationShortcutsParams): void => {
   const location = useLocation();
   const visibleConversationIds = useVisibleConversationIds();
+
+  useEffect(() => {
+    if (!isElectronDesktop()) {
+      return undefined;
+    }
+
+    return ipcBridge.application.openSettings.on(() => {
+      if (!isSettingsRoute(location.pathname)) {
+        void navigate('/settings/agent');
+      }
+    });
+  }, [location.pathname, navigate]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -83,24 +93,12 @@ export const useConversationShortcuts = ({
         return;
       }
 
-      if (isPrimaryApplicationShortcut(event, { key: 'l' })) {
-        if (!workspaceAvailable) {
-          return;
-        }
+      if (isPrimaryApplicationShortcut(event, { key: 'l', targetGuard: 'embedded-editor' })) {
         const handled = dispatchWorkspaceToggleEvent();
         if (handled) {
           event.preventDefault();
         }
         return;
-      }
-
-      if (isPrimaryApplicationShortcut(event, { key: ',' })) {
-        const isSettingsRoute = location.pathname === '/settings' || location.pathname.startsWith('/settings/');
-        if (isSettingsRoute) {
-          return;
-        }
-        event.preventDefault();
-        void navigate('/settings/agent');
       }
     };
 
@@ -108,5 +106,5 @@ export const useConversationShortcuts = ({
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [location.pathname, navigate, toggleSider, visibleConversationIds, workspaceAvailable]);
+  }, [location.pathname, navigate, toggleSider, visibleConversationIds]);
 };

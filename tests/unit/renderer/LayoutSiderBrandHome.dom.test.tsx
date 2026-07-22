@@ -20,7 +20,7 @@ const platformMocks = vi.hoisted(() => ({
   isElectronDesktopMock: vi.fn(() => false),
 }));
 const shortcutMocks = vi.hoisted(() => ({
-  params: undefined as undefined | { toggleSider: () => void; workspaceAvailable: boolean },
+  params: undefined as undefined | { toggleSider: () => void },
 }));
 const featureMocks = vi.hoisted(() => ({
   teamModeEnabled: false,
@@ -61,7 +61,7 @@ vi.mock('@renderer/hooks/file/useDirectorySelection', () => ({
 }));
 vi.mock('@renderer/utils/ui/siderTooltip', () => ({ cleanupSiderTooltips: () => {} }));
 vi.mock('@renderer/hooks/ui/useConversationShortcuts', () => ({
-  useConversationShortcuts: (params: { toggleSider: () => void; workspaceAvailable: boolean }) => {
+  useConversationShortcuts: (params: { toggleSider: () => void }) => {
     shortcutMocks.params = params;
   },
 }));
@@ -172,12 +172,12 @@ describe('Layout sider brand Home button', () => {
     expect(navigate).not.toHaveBeenCalled();
   });
 
-  it('provides common shortcuts with the route availability and functional sider toggle', () => {
+  it('provides common shortcuts with a functional sider toggle', () => {
     currentPathname = '/conversation/xyz';
     const { container } = renderLayout();
     const sider = container.querySelector('.layout-sider');
 
-    expect(shortcutMocks.params?.workspaceAvailable).toBe(true);
+    expect(shortcutMocks.params?.toggleSider).toEqual(expect.any(Function));
     expect(sider).not.toHaveClass('collapsed');
 
     act(() => shortcutMocks.params?.toggleSider());
@@ -187,13 +187,13 @@ describe('Layout sider brand Home button', () => {
     expect(sider).not.toHaveClass('collapsed');
   });
 
-  it('provides workspace shortcuts on team routes when team mode is enabled', () => {
+  it('keeps the common shortcut owner mounted on team routes', () => {
     currentPathname = '/team/team-1';
     featureMocks.teamModeEnabled = true;
 
     renderLayout();
 
-    expect(shortcutMocks.params?.workspaceAvailable).toBe(true);
+    expect(shortcutMocks.params?.toggleSider).toEqual(expect.any(Function));
   });
 
   it('clicking the logo icon counts toward the devtools easter-egg and never navigates', () => {

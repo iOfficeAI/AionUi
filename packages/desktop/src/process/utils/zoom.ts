@@ -66,8 +66,12 @@ export const adjustZoomFactor = (delta: number): number => {
 export const attachZoomShortcutsToWindow = (
   win: BrowserWindow,
   persistZoomFactor?: (factor: number) => void | Promise<void>
-): void => {
-  win.webContents.on('before-input-event', (event, input) => {
+): (() => void) => {
+  const handleBeforeInput = (event: Electron.Event, input: Input): void => {
+    if (event.defaultPrevented) {
+      return;
+    }
+
     const action = getZoomShortcutAction(input);
     if (!action) {
       return;
@@ -83,12 +87,17 @@ export const attachZoomShortcutsToWindow = (
           : setZoomFactor(UI_SCALE_DEFAULT);
 
     void persistZoomFactor?.(updatedFactor);
-  });
+  };
+
+  win.webContents.on('before-input-event', handleBeforeInput);
+  return () => {
+    win.webContents.removeListener('before-input-event', handleBeforeInput);
+  };
 };
 
-export const setupZoomForWindow = (win: BrowserWindow): void => {
+export const setupZoomForWindow = (win: BrowserWindow): (() => void) => {
   applyZoomToWindow(win);
-  attachZoomShortcutsToWindow(win, (factor) => {
+  const detachShortcuts = attachZoomShortcutsToWindow(win, (factor) => {
     // Track the write so a ⌘± immediately followed by ⌘Q still flushes.
     const op = (async () => {
       try {
@@ -100,6 +109,18 @@ export const setupZoomForWindow = (win: BrowserWindow): void => {
     })();
     trackPersistedWrite(op);
   });
+
+  const handleInPageNavigation = (_event: Electron.Event, _url: string, isMainFrame: boolean): void => {
+    if (isMainFrame) {
+      applyZoomToWindow(win);
+    }
+  };
+  win.webContents.on('did-navigate-in-page', handleInPageNavigation);
+
+  return () => {
+    detachShortcuts();
+    win.webContents.removeListener('did-navigate-in-page', handleInPageNavigation);
+  };
 };
 
 /**
