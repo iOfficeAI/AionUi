@@ -172,6 +172,10 @@ const AionrsSendBox: React.FC<{
       await teamPermission.warmupSession();
       return;
     }
+    const latest = await getConversationOrNull(conversation_id);
+    if ((latest?.extra as { teamId?: string } | undefined)?.teamId) {
+      return;
+    }
     await ensureConversationRuntime(conversation_id);
   }, [conversation_id, teamPermission]);
   const runtimeConfig = useAcpConfigOptions({
@@ -211,7 +215,7 @@ const AionrsSendBox: React.FC<{
   const slash_commands = useSlashCommands(conversation_id, {
     conversation_type: 'aionrs',
     agentStatus: agentWarmed ? 'active' : null,
-    prepareRuntime: teamPermission ? prepareRuntimeSync : undefined,
+    prepareRuntime: prepareRuntimeSync,
   });
 
   const { setSendBoxHandler } = usePreviewContext();

@@ -74,6 +74,7 @@ describe('useAcpMessage', () => {
     ensureRuntimeInvokeMock.mockResolvedValue({ recovered: false, config_options: [], runtime: null });
     getSlashCommandsInvokeMock.mockResolvedValue([]);
     responseStreamHandlerRef.current = undefined;
+    vi.mocked(getConversationOrNull).mockResolvedValue(null);
   });
 
   it('completes hydration when the conversation lookup fails', async () => {
@@ -389,5 +390,35 @@ describe('useAcpMessage', () => {
         },
       })
     );
+  });
+
+  it('skips standalone runtime ensure for promoted leader source conversations', async () => {
+    vi.mocked(getConversationOrNull).mockResolvedValue({
+      extra: { teamId: 'team-leader' },
+    } as unknown as Awaited<ReturnType<typeof getConversationOrNull>>);
+
+    renderHook(() => useAcpMessage('conv-leader'));
+
+    await waitFor(() => {
+      expect(getConversationOrNull).toHaveBeenCalledWith('conv-leader');
+    });
+    expect(ensureRuntimeInvokeMock).not.toHaveBeenCalled();
+  });
+
+  it('skips standalone runtime ensure when fetching slash commands for a promoted leader source conversation', async () => {
+    vi.mocked(getConversationOrNull).mockResolvedValue({
+      extra: { teamId: 'team-leader' },
+    } as unknown as Awaited<ReturnType<typeof getConversationOrNull>>);
+
+    const { result } = renderHook(() => useAcpMessage('conv-leader'));
+
+    act(() => {
+      result.current.fetchSlashCommands();
+    });
+
+    await waitFor(() => {
+      expect(getConversationOrNull).toHaveBeenCalledWith('conv-leader');
+    });
+    expect(ensureRuntimeInvokeMock).not.toHaveBeenCalled();
   });
 });

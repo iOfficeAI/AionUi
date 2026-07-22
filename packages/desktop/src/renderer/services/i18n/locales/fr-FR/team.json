@@ -15,7 +15,9 @@
     "renameOk": "Enregistrer",
     "renameCancel": "Annuler",
     "renameSuccess": "Équipe renommée",
-    "deleteSuccess": "Équipe supprimée"
+    "deleteSuccess": "Équipe supprimée",
+    "deleting": "Suppression...",
+    "adHocTooltip": "Équipe Temporaire"
   },
   "newAgent": "Nouvel agent",
   "noMessages": "Aucun message pour l'instant.",

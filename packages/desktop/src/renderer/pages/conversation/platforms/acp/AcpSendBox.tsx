@@ -109,6 +109,7 @@ const AcpSendBox: React.FC<{
   messageState: UseAcpMessageReturn;
   teamSendMessage?: (payload: { input: string; files: string[] }) => Promise<void>;
   teamRuntime?: TeamSendBoxRuntime;
+  isTeamRunning?: boolean;
 }> = ({
   conversation_id,
   backend,
@@ -118,6 +119,7 @@ const AcpSendBox: React.FC<{
   messageState,
   teamSendMessage,
   teamRuntime,
+  isTeamRunning = false,
 }) => {
   const { aiProcessing, setAiProcessing, resetState, hasThinkingMessage, slashCommands } = messageState;
   const { t } = useTranslation();
@@ -690,7 +692,7 @@ Please check your local CLI tool authentication status`,
           setAtPath(items);
         }}
         loading={teamRuntime?.loading ?? isBusy}
-        disabled={false}
+        disabled={isTeamRunning}
         placeholder={t('acp.sendbox.placeholder', {
           backend: agent_name || backend,
           defaultValue: `Send message to {{backend}}...`,

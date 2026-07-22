@@ -24,6 +24,9 @@
     "noHistory": "تاریخچه چتی وجود ندارد",
     "deleteTitle": "حذف",
     "deleteConfirm": "آیا مطمئن هستید که می‌خواهید این چت را حذف کنید؟",
+    "deleteTeamSourceTitle": "حذف گفتگوی منبع تیم",
+    "deleteTeamSourceConfirm": "این گفتگو به یک تیم فعال متصل است. حذف آن تیم را بی‌صاحب می‌کند. ادامه می‌دهید؟",
+    "deleteTeamSourceOk": "به هر حال حذف کن",
     "confirmDelete": "حذف",
     "cancelDelete": "لغو",
     "editName": "ویرایش نام",
@@ -576,5 +579,18 @@
       }
     }
   },
-  "notFound": "مکالمه یافت نشد یا حذف شده است"
+  "notFound": "مکالمه یافت نشد یا حذف شده است",
+  "collaboration": {
+    "launchTooltip": "همکاری تیمی",
+    "selectAgentTitle": "انتخاب عامل",
+    "createdSuccess": "همکاری تیمی آغاز شد",
+    "joinedSuccess": "{{agentName}} به تیم پیوست",
+    "joinedHint": "پیوست",
+    "fallbackAgentName": "ایجنت",
+    "createFailed": "راه‌اندازی همکاری تیمی ناموفق بود",
+    "statusTitle": "تیم",
+    "statusAria": "باز کردن تیم",
+    "latestMessage": "Latest: {{message}}",
+    "disbanded": "منحل شده"
+  }
 }

@@ -5,8 +5,9 @@
  */
 
 import { ipcBridge } from '@/common';
-import { isErrorTipMessage, transformMessage } from '@/common/chat/chatLib';
+import { isErrorTipMessage, normalizeTextMessageContent, transformMessage } from '@/common/chat/chatLib';
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
+import type { TMessage } from '@/common/chat/chatLib';
 import type { TChatConversation, TokenUsageData } from '@/common/config/storage';
 import { uuid } from '@/common/utils';
 import type { ThoughtData } from '@/renderer/components/chat/ThoughtDisplay';
@@ -46,6 +47,8 @@ export const useAionrsMessage = (
   const activeMsgIdRef = useRef<string | null>(null);
   const messageBufferRef = useRef(new Map<string, string>());
   const processedCronMsgIdsRef = useRef(new Set<string>());
+
+  const processedTeammateMsgIdsRef = useRef(new Set<string>());
 
   // Use refs to avoid useEffect re-subscription when these states change
   const hasActiveToolsRef = useRef(hasActiveTools);
@@ -316,6 +319,26 @@ export const useAionrsMessage = (
             mergeLiveMessage(transformMessage(message));
           }
           break;
+        case 'teammate_message': {
+          const tmMsg = message.data as TMessage;
+          if (tmMsg && tmMsg.conversation_id === conversation_id) {
+            if (tmMsg.msg_id && processedTeammateMsgIdsRef.current.has(tmMsg.msg_id)) {
+              break;
+            }
+            if (tmMsg.msg_id) {
+              processedTeammateMsgIdsRef.current.add(tmMsg.msg_id);
+            }
+            mergeLiveMessage(
+              tmMsg.type === 'text'
+                ? {
+                    ...tmMsg,
+                    content: normalizeTextMessageContent(tmMsg.content),
+                  }
+                : tmMsg
+            );
+          }
+          break;
+        }
         case 'permission':
         case 'acp_permission':
           if (!streamRunningRef.current) {

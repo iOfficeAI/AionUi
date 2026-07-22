@@ -90,13 +90,22 @@ export const useConversationActions = ({
   );
 
   const handleDeleteClick = useCallback(
-    (conversation_id: string) => {
+    (conversation_id: string, extra?: TChatConversation['extra']) => {
+      const hasActiveTeam = Boolean(
+        (extra as { teamId?: string } | undefined)?.teamId
+      );
       Modal.confirm({
-        title: t('conversation.history.deleteTitle'),
-        content: t('conversation.history.deleteConfirm'),
-        okText: t('conversation.history.confirmDelete'),
+        title: hasActiveTeam
+          ? t('conversation.history.deleteTeamSourceTitle')
+          : t('conversation.history.deleteTitle'),
+        content: hasActiveTeam
+          ? t('conversation.history.deleteTeamSourceConfirm')
+          : t('conversation.history.deleteConfirm'),
+        okText: hasActiveTeam
+          ? t('conversation.history.deleteTeamSourceOk')
+          : t('conversation.history.confirmDelete'),
         cancelText: t('conversation.history.cancelDelete'),
-        okButtonProps: { status: 'warning' },
+        okButtonProps: { status: hasActiveTeam ? 'danger' : 'warning' },
         onOk: async () => {
           try {
             const success = await removeConversation(conversation_id);

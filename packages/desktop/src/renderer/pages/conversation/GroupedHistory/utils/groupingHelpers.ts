@@ -88,18 +88,24 @@ export const groupConversationsByWorkspace = (
   ];
 };
 
-/** Check whether a conversation belongs to a team (should be hidden from sidebar). */
-const isTeamConversation = (conversation: TChatConversation): boolean => {
+/**
+ * Check whether a conversation is a team-owned member conversation and should
+ * therefore be hidden from the sidebar history. Promoted source conversations
+ * are marked with `extra.teamId` and remain visible; only member conversations
+ * carrying `extra.team_id` are filtered out.
+ */
+export const isTeamMemberConversation = (conversation: TChatConversation): boolean => {
   const extra = conversation.extra as { team_id?: string; teamId?: string } | undefined;
-  return Boolean(extra?.team_id || extra?.teamId);
+  return Boolean(extra?.team_id);
 };
 
 export const buildGroupedHistory = (
   conversations: TChatConversation[],
   t: (key: string) => string
 ): GroupedHistoryResult => {
-  // Filter out team-owned conversations; they are only visible via the Teams panel
-  const visibleConversations = conversations.filter((conv) => !isTeamConversation(conv));
+  // Filter out team member conversations; they are only visible via the Teams panel.
+  // Promoted source conversations (extra.teamId) remain in the sidebar.
+  const visibleConversations = conversations.filter((conv) => !isTeamMemberConversation(conv));
 
   const pinnedConversations = visibleConversations
     .filter((conversation) => isConversationPinned(conversation))

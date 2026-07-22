@@ -19,6 +19,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { flushSync } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
+import { isTeamMemberConversation } from './utils/groupingHelpers';
 import './ConversationSearchPopover.css';
 
 const PAGE_SIZE = 20;
@@ -192,7 +193,8 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
           page_size: PAGE_SIZE,
         });
 
-        setItems((prev) => (append ? [...prev, ...result.items] : result.items));
+        const filtered = result.items.filter((item) => !isTeamMemberConversation(item.conversation));
+        setItems((prev) => (append ? [...prev, ...filtered] : filtered));
         setPage(pageToLoad);
         setHasMore(result.has_more);
       } catch (error) {

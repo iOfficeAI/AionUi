@@ -33,6 +33,7 @@ const AcpChat: React.FC<{
   agent_name?: string;
   cron_job_id?: string;
   hideSendBox?: boolean;
+  isTeamRunning?: boolean;
   emptySlot?: React.ReactNode;
   loadedSkills?: string[];
   loadedMcpServers?: string[];
@@ -48,6 +49,7 @@ const AcpChat: React.FC<{
   agent_name,
   cron_job_id,
   hideSendBox,
+  isTeamRunning = false,
   emptySlot,
   loadedSkills,
   loadedMcpServers,
@@ -94,6 +96,7 @@ const AcpChat: React.FC<{
               messageState={messageState}
               teamSendMessage={teamSendMessage}
               teamRuntime={teamRuntime}
+              isTeamRunning={isTeamRunning}
             ></AcpSendBox>
           )}
         </div>

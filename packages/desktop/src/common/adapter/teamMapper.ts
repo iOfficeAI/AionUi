@@ -106,6 +106,7 @@ export function fromBackendTeam(raw: unknown): TTeam {
     leader_agent_id: leaderAssistantId,
     agents: assistants,
     session_mode: r.session_mode as string | undefined,
+    origin_conversation_id: r.origin_conversation_id as string | undefined,
     created_at: (r.created_at as number | undefined) ?? 0,
     updated_at: (r.updated_at as number | undefined) ?? 0,
   };
@@ -117,6 +118,49 @@ export function fromBackendTeamList(raw: unknown): TTeam[] {
 
 export function fromBackendTeamOptional(raw: unknown): TTeam | null {
   return raw == null ? null : fromBackendTeam(raw);
+}
+
+import type {
+  IAdHocTeamByConversationParams,
+  IAdHocTeamFromConversationParams,
+  TAdHocTeamAssociation,
+  TAdHocTeamCreateResult,
+} from '../types/team/adHocTeamTypes';
+
+// ── Ad-hoc team (from conversation) ──────────────────────────────────────
+
+export function toBackendAdHocTeamFromConversationParams(p: IAdHocTeamFromConversationParams): Record<string, unknown> {
+  return {
+    conversation_id: p.conversation_id,
+    user_id: p.user_id,
+    target_assistant_id: p.target_assistant_id,
+    ...(p.name ? { name: p.name } : {}),
+    ...(p.workspace_mode ? { workspace_mode: p.workspace_mode } : {}),
+  };
+}
+
+export function fromBackendAdHocTeamCreateResult(raw: unknown): TAdHocTeamCreateResult {
+  const r = (raw ?? {}) as Record<string, unknown>;
+  return {
+    team_id: (r.team_id as string | undefined) ?? '',
+    origin_conversation_id: (r.origin_conversation_id as string | undefined) ?? '',
+    leader_slot_id: (r.leader_slot_id as string | undefined) ?? '',
+    target_slot_id: (r.target_slot_id as string | undefined) ?? '',
+    created: Boolean(r.created),
+  };
+}
+
+export function fromBackendAdHocTeamAssociationOptional(raw: unknown): TAdHocTeamAssociation | null {
+  if (raw == null) return null;
+  const r = (raw ?? {}) as Record<string, unknown>;
+  const team = r.team ? fromBackendTeam(r.team) : undefined;
+  const status = (r.status as string | undefined) ?? 'active';
+  return {
+    team_id: (r.team_id as string | undefined) ?? '',
+    origin_conversation_id: (r.origin_conversation_id as string | undefined) ?? '',
+    status: status === 'active' || status === 'disbanded' ? status : 'active',
+    ...(team ? { team } : {}),
+  };
 }
 
 // ── Frontend → Backend ─────────────────────────────────────────────────

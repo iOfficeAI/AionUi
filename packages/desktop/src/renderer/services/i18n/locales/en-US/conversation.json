@@ -24,6 +24,9 @@
     "noHistory": "No chat history",
     "deleteTitle": "Delete",
     "deleteConfirm": "Are you sure you want to delete this chat?",
+    "deleteTeamSourceTitle": "Delete team source conversation",
+    "deleteTeamSourceConfirm": "This conversation is linked to an active team. Deleting it will orphan the team. Are you sure?",
+    "deleteTeamSourceOk": "Delete anyway",
     "confirmDelete": "Delete",
     "cancelDelete": "Cancel",
     "editName": "Edit Name",
@@ -506,6 +509,19 @@
       "auto": "Auto send",
       "manual": "Manual send"
     }
+  },
+  "collaboration": {
+    "launchTooltip": "Team collaboration",
+    "selectAgentTitle": "Select agent",
+    "createdSuccess": "Team collaboration started",
+    "joinedSuccess": "{{agentName}} joined the team",
+    "joinedHint": "joined",
+    "fallbackAgentName": "Agent",
+    "createFailed": "Failed to start team collaboration",
+    "statusTitle": "Team",
+    "statusAria": "Open team",
+    "latestMessage": "Latest: {{message}}",
+    "disbanded": "Disbanded"
   },
   "contextUsage": {
     "contextUsed": "context used"

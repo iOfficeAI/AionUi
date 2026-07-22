@@ -2,6 +2,7 @@ import { Message, Modal, Spin } from '@arco-design/web-react';
 import { FullScreen, Left, OffScreen, Peoples, Right } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import useSWR, { useSWRConfig } from 'swr';
 import { useAuth } from '@renderer/hooks/context/AuthContext';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
@@ -221,6 +222,7 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({
   onRetryWarmup,
 }) => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   useActiveLease({ type: 'team', id: team.id });
   const { assistants, activeSlotId, switchTab, colorOf, colorOfConversation } = useTeamTabs();
   const [, messageContext] = Message.useMessage({ maxCount: 1 });
@@ -441,9 +443,21 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({
           onRenameTitle={onRenameTeam}
           headerExtra={assistants.length > 1 ? <TeamViewToggle value={viewMode} onChange={setViewMode} /> : undefined}
           headerLeading={
-            <span className='inline-flex w-16px h-16px items-center justify-center shrink-0 leading-none text-t-primary'>
-              <Peoples theme='outline' size='16' fill='currentColor' style={{ lineHeight: 0 }} />
-            </span>
+            <div className='inline-flex items-center gap-8px'>
+              {team.origin_conversation_id ? (
+                <button
+                  type='button'
+                  data-testid='team-back-to-origin'
+                  className='inline-flex items-center justify-center shrink-0 cursor-pointer text-t-secondary hover:text-t-primary p-0 bg-transparent border-none'
+                  onClick={() => navigate(`/conversation/${team.origin_conversation_id}`)}
+                >
+                  <Left theme='outline' size='16' fill='currentColor' />
+                </button>
+              ) : null}
+              <span className='inline-flex w-16px h-16px items-center justify-center shrink-0 leading-none text-t-primary'>
+                <Peoples theme='outline' size='16' fill='currentColor' style={{ lineHeight: 0 }} />
+              </span>
+            </div>
           }
         >
           <div className='relative flex h-full'>

@@ -24,6 +24,9 @@
     "noHistory": "Нет истории чатов",
     "deleteTitle": "Удалить",
     "deleteConfirm": "Вы уверены, что хотите удалить этот чат?",
+    "deleteTeamSourceTitle": "Удалить исходный диалог команды",
+    "deleteTeamSourceConfirm": "Этот диалог связан с активной командой. Удаление сделает команду сиротой. Продолжить?",
+    "deleteTeamSourceOk": "Всё равно удалить",
     "confirmDelete": "Удалить",
     "cancelDelete": "Отмена",
     "editName": "Редактировать имя",
@@ -576,5 +579,18 @@
       }
     }
   },
-  "notFound": "Беседа не найдена или была удалена"
+  "notFound": "Беседа не найдена или была удалена",
+  "collaboration": {
+    "launchTooltip": "Командное взаимодействие",
+    "selectAgentTitle": "Выбрать агента",
+    "createdSuccess": "Командное взаимодействие запущено",
+    "joinedSuccess": "{{agentName}} присоединился к команде",
+    "joinedHint": "присоединился",
+    "fallbackAgentName": "Агент",
+    "createFailed": "Не удалось запустить командное взаимодействие",
+    "statusTitle": "Команда",
+    "statusAria": "Открыть команду",
+    "latestMessage": "Latest: {{message}}",
+    "disbanded": "Расформирована"
+  }
 }

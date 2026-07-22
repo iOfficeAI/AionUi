@@ -28,6 +28,9 @@
     "noHistory": "暫無對話記錄",
     "deleteTitle": "刪除",
     "deleteConfirm": "確定要刪除此對話嗎？",
+    "deleteTeamSourceTitle": "刪除團隊來源會話",
+    "deleteTeamSourceConfirm": "此會話關聯著一個活躍的團隊，刪除後團隊將失去入口連結。確認刪除？",
+    "deleteTeamSourceOk": "仍然刪除",
     "confirmDelete": "刪除",
     "cancelDelete": "取消",
     "editName": "編輯名稱",
@@ -576,5 +579,18 @@
       }
     }
   },
-  "notFound": "會話不存在或已被刪除"
+  "notFound": "會話不存在或已被刪除",
+  "collaboration": {
+    "launchTooltip": "團隊協作",
+    "selectAgentTitle": "選擇智能體",
+    "createdSuccess": "團隊協作已啟動",
+    "joinedSuccess": "{{agentName}} 已加入團隊",
+    "joinedHint": "已加入",
+    "fallbackAgentName": "智能體",
+    "createFailed": "團隊協作啟動失敗",
+    "statusTitle": "團隊",
+    "statusAria": "打開團隊",
+    "latestMessage": "最新：{{message}}",
+    "disbanded": "已解散"
+  }
 }

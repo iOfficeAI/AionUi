@@ -24,6 +24,9 @@
     "noHistory": "Немає історії чатів",
     "deleteTitle": "Видалити",
     "deleteConfirm": "Ви впевнені, що хочете видалити цей чат?",
+    "deleteTeamSourceTitle": "Видалити вихідну розмову команди",
+    "deleteTeamSourceConfirm": "Ця розмова пов'язана з активною командою. Видалення залишить команду без зв'язку. Продовжити?",
+    "deleteTeamSourceOk": "Все одно видалити",
     "confirmDelete": "Видалити",
     "cancelDelete": "Скасувати",
     "editName": "Редагувати назву",
@@ -576,5 +579,18 @@
       }
     }
   },
-  "notFound": "Розмову не знайдено або її видалено"
+  "notFound": "Розмову не знайдено або її видалено",
+  "collaboration": {
+    "launchTooltip": "Командна взаємодія",
+    "selectAgentTitle": "Вибрати агента",
+    "createdSuccess": "Командну взаємодію розпочато",
+    "joinedSuccess": "{{agentName}} приєднався до команди",
+    "joinedHint": "приєднався",
+    "fallbackAgentName": "Агент",
+    "createFailed": "Не вдалося розпочати командну взаємодію",
+    "statusTitle": "Команда",
+    "statusAria": "Відкрити команду",
+    "latestMessage": "Latest: {{message}}",
+    "disbanded": "Розформовано"
+  }
 }

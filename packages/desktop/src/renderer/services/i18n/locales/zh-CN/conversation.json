@@ -24,6 +24,9 @@
     "noHistory": "暂无对话历史",
     "deleteTitle": "删除",
     "deleteConfirm": "确定删除该对话吗？",
+    "deleteTeamSourceTitle": "删除团队来源会话",
+    "deleteTeamSourceConfirm": "此会话关联着一个活跃的团队，删除后团队将失去入口链接。确认删除？",
+    "deleteTeamSourceOk": "仍然删除",
     "confirmDelete": "删除",
     "cancelDelete": "取消",
     "editName": "编辑名称",
@@ -575,6 +578,19 @@
         "body": "模型在产生任何可见回复前拒绝了这次请求。"
       }
     }
+  },
+  "collaboration": {
+    "launchTooltip": "团队协作",
+    "selectAgentTitle": "选择智能体",
+    "createdSuccess": "团队协作已启动",
+    "joinedSuccess": "{{agentName}} 已加入团队",
+    "joinedHint": "已加入",
+    "fallbackAgentName": "智能体",
+    "createFailed": "团队协作启动失败",
+    "statusTitle": "团队",
+    "statusAria": "打开团队",
+    "latestMessage": "最新：{{message}}",
+    "disbanded": "已解散"
   },
   "notFound": "会话不存在或已被删除"
 }
