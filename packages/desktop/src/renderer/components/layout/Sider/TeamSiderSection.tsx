@@ -247,7 +247,8 @@ const TeamSiderSection: React.FC<TeamSiderSectionProps> = ({
               );
               const siderNode = (
                 <div data-is-adhoc={String(isAdHoc)}>
-                  <SiderItem icon={siderIcon}
+                  <SiderItem
+                    icon={siderIcon}
                     name={team.name}
                     selected={pathname.startsWith(`/team/${team.id}`)}
                     pinned={isPinned && !isRunning}
