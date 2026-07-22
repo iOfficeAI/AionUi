@@ -161,6 +161,7 @@
   "assistantGoChat": "Chat",
   "assistantReorderHint": "Zum Umsortieren ziehen — das bestimmt die Anzeigereihenfolge überall dort, wo du einen Assistenten auswählst (Startseite, Teams, geplante Aufgaben…).",
   "assistantReorderHintShort": "Zum Umsortieren ziehen",
+  "assistantReorderSearchDisabled": "Leere die Suche, um die Reihenfolge zu ändern.",
   "myAssistantsHintShort": "Assistenten, die automatisch aus deinen lokalen CLIs erzeugt wurden, sowie selbst erstellte oder von offiziellen duplizierte. Ziehe sie, um die Anzeigereihenfolge zu ändern.",
   "assistantGroupCli": "CLI-Assistenten",
   "assistantGroupCreated": "Benutzerdefinierte Assistenten",

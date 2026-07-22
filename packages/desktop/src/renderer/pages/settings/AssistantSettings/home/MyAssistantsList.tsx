@@ -59,7 +59,7 @@ const MyAssistantsList: React.FC<MyAssistantsListProps> = ({
 
   // Drag reorder is only meaningful in the unfiltered "all" view; a filtered
   // view hides rows, so dragging would produce an ambiguous global order.
-  const draggable = filter === 'all';
+  const draggable = filter === 'all' && !searchActive;
 
   const { cliAssistants, createdAssistants } = useMemo(() => {
     const filtered = filterByEnabled(assistants, filter);

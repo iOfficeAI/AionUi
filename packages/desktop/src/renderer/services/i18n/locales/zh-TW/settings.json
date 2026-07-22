@@ -161,6 +161,7 @@
   "assistantGoChat": "去對話",
   "assistantReorderHint": "拖曳可調整順序，它決定你挑選助理時（首頁、開團、定時任務等）清單裡的顯示先後。",
   "assistantReorderHintShort": "拖曳排序",
+  "assistantReorderSearchDisabled": "清除搜尋後即可調整順序。",
   "myAssistantsHintShort": "由本機 CLI 自動生成、你自己建立或從官方複製的助手。拖曳可調整它們的顯示順序。",
   "assistantGroupCli": "CLI 助手",
   "assistantGroupCreated": "自訂助手",

@@ -9,6 +9,7 @@ import { assistantRuntimeKey, type Assistant } from '@/common/types/agent/assist
 import { Down, Robot } from '@icon-park/react';
 import { Button } from '@arco-design/web-react';
 import { AionSearchInput } from '@/renderer/components/base';
+import { useAssistantOrder } from '@/renderer/hooks/assistant/useAssistantOrder';
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { resolveAssistantAvatar } from '@/renderer/utils/model/assistantAvatar';
 import { selectableAssistants } from '@/renderer/utils/model/assistantSelection';
@@ -44,6 +45,7 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
   onSelectAssistant,
 }) => {
   const { t } = useTranslation();
+  const { assistantOrder } = useAssistantOrder();
   const [moreVisible, setMoreVisible] = useState(false);
   const [search, setSearch] = useState('');
   const [availableWidth, setAvailableWidth] = useState(() => (typeof window === 'undefined' ? 800 : window.innerWidth));
@@ -55,7 +57,10 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
   const widthVisibleLimit = Math.min(Math.max(1, maxVisibleAssistants), resolveAssistantVisibleLimit(availableWidth));
   const [adaptiveVisibleLimit, setAdaptiveVisibleLimit] = useState(widthVisibleLimit);
   const visibleLimit = Math.min(widthVisibleLimit, adaptiveVisibleLimit);
-  const enabledAssistants = useMemo(() => selectableAssistants(assistants), [assistants]);
+  const enabledAssistants = useMemo(
+    () => selectableAssistants(assistants, assistantOrder),
+    [assistantOrder, assistants]
+  );
 
   useEffect(() => {
     setAdaptiveVisibleLimit(widthVisibleLimit);

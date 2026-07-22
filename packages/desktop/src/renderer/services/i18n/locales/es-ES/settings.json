@@ -157,6 +157,7 @@
   "assistantHomeLead": "Los asistentes son expertos de IA listos para trabajar, precargados con habilidades y herramientas. Aquí están tus CLI locales, los asistentes que ajustas tú mismo y un conjunto de expertos oficiales. Una vez activados, aparecen en tus chats, equipos y tareas programadas, listos cuando los necesites.",
   "assistantHomeLeadShort": "Expertos de IA listos para trabajar, precargados con habilidades y herramientas. Actívalos para usarlos en chats, equipos y tareas programadas.",
   "assistantReorderHintShort": "Arrastra para reordenar",
+  "assistantReorderSearchDisabled": "Borra la búsqueda para reordenar.",
   "myAssistantsHintShort": "Asistentes generados automáticamente desde tus CLI locales, además de los que creaste o duplicaste desde oficiales. Arrastra para cambiar el orden en que aparecen.",
   "assistantRuntimeLabel": "Agente:",
   "assistantGoChat": "Chat",

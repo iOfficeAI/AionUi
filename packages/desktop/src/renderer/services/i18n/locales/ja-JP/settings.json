@@ -161,6 +161,7 @@
   "assistantGoChat": "チャット",
   "assistantReorderHint": "ドラッグして並べ替えできます。この順序が、アシスタントを選ぶ場所（ホーム、チーム、定時タスクなど）での表示順を決めます。",
   "assistantReorderHintShort": "ドラッグして並べ替え",
+  "assistantReorderSearchDisabled": "検索をクリアすると並べ替えできます。",
   "myAssistantsHintShort": "ローカルの CLI から自動生成されたもの、自分で作成したもの、公式から複製したアシスタントです。ドラッグして表示順を並べ替えできます。",
   "assistantGroupCli": "CLI アシスタント",
   "assistantGroupCreated": "カスタムアシスタント",

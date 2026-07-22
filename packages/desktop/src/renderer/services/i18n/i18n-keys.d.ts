@@ -1384,6 +1384,7 @@ export type I18nKey =
   | 'settings.assistantRememberLastUsedHint'
   | 'settings.assistantReorderHint'
   | 'settings.assistantReorderHintShort'
+  | 'settings.assistantReorderSearchDisabled'
   | 'settings.assistantRules'
   | 'settings.assistantRulesHint'
   | 'settings.assistantRulesPlaceholder'
