@@ -19,9 +19,22 @@ export const useCompositionInput = () => {
     },
   };
 
-  const createKeyDownHandler = (onEnterPress: () => void, onKeyDownIntercept?: (e: React.KeyboardEvent) => boolean) => {
+  const createKeyDownHandler = (
+    onEnterPress: () => void,
+    onKeyDownIntercept?: (e: React.KeyboardEvent) => boolean,
+    sendKeyModifier?: boolean
+  ) => {
     return (e: React.KeyboardEvent) => {
       if (isComposing.current) return;
+      if (sendKeyModifier) {
+        if (e.key === 'Enter') {
+          if (e.metaKey || e.ctrlKey) {
+            e.preventDefault();
+            onEnterPress();
+          }
+          return;
+        }
+      }
       if (onKeyDownIntercept?.(e)) return;
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();

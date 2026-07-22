@@ -4,13 +4,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Radio } from '@arco-design/web-react';
 import ScaleControl from '@/renderer/components/settings/ScaleControl';
 import FontSizeStepper from '@/renderer/components/settings/FontSizeStepper';
 import CssThemeSettings from '@renderer/pages/settings/AppearanceSettings/CssThemeSettings';
 import AionScrollArea from '@/renderer/components/base/AionScrollArea';
 import { FONT_SIZE_KEYS, FONT_SIZE_SPECS, FONT_SIZE_STEP, type FontSizeKey } from '@/common/config/fontSizes';
+import { configService } from '@/common/config/configService';
 import { useThemeContext } from '@renderer/hooks/context/ThemeContext';
 import { useSettingsViewMode } from '../settingsViewContext';
 
@@ -52,6 +54,19 @@ const AppearanceModalContent: React.FC = () => {
   const viewMode = useSettingsViewMode();
   const isPageMode = viewMode === 'page';
   const { fontSizes, setFontSize } = useThemeContext();
+  const [sendKeyModifier, setSendKeyModifier] = useState(false);
+
+  useEffect(() => {
+    setSendKeyModifier(configService.get('input.sendKeyModifier') ?? false);
+  }, []);
+
+  const handleSendKeyChange = useCallback((value: boolean) => {
+    setSendKeyModifier(value);
+    configService.set('input.sendKeyModifier', value).catch(() => {
+      setSendKeyModifier(!value);
+      configService.setLocal('input.sendKeyModifier', !value);
+    });
+  }, []);
 
   return (
     <div className='flex flex-col h-full w-full'>
@@ -88,6 +103,21 @@ const AppearanceModalContent: React.FC = () => {
             <div className='w-full flex flex-col divide-y divide-border-2'>
               <PreferenceRow label={t('settings.scale')}>
                 <ScaleControl />
+              </PreferenceRow>
+            </div>
+          </div>
+
+          {/* 发送键 / Send Key */}
+          <div className='px-16px md:px-24px lg:px-28px py-14px md:py-16px bg-2 rd-16px'>
+            <div className='w-full flex flex-col divide-y divide-border-2'>
+              <PreferenceRow label={t('settings.sendKey')}>
+                <Radio.Group
+                  value={sendKeyModifier ? 'modifier' : 'enter'}
+                  onChange={(val) => handleSendKeyChange(val === 'modifier')}
+                >
+                  <Radio value='enter'>{t('settings.sendKeyEnter')}</Radio>
+                  <Radio value='modifier'>{t('settings.sendKeyModifier')}</Radio>
+                </Radio.Group>
               </PreferenceRow>
             </div>
           </div>
