@@ -114,6 +114,16 @@ describe('FileChangeList', () => {
     expect(screen.getByTestId('diff-viewer')).toHaveTextContent('+new line');
   });
 
+  it('keeps the file list as the single bounded scroll container', () => {
+    const { container } = render(<FileChangeList {...baseProps} unstaged={[change()]} />);
+
+    const root = container.firstElementChild;
+    const scrollRegion = root?.children.item(1);
+
+    expect(root).toHaveClass('min-h-0', 'overflow-hidden');
+    expect(scrollRegion).toHaveClass('min-h-0', 'flex-1', 'overflow-y-auto');
+  });
+
   it('falls back to the backend file path when the normalized path cannot be read', async () => {
     vi.mocked(ipcBridge.fileSnapshot.getBaselineContent.invoke).mockResolvedValue('before\n');
     vi.mocked(ipcBridge.fs.readFile.invoke)

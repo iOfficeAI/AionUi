@@ -1,5 +1,4 @@
 import WorkspacePanelHeader from './WorkspacePanelHeader';
-import { WORKSPACE_HEADER_HEIGHT } from '@/renderer/pages/conversation/utils/layoutCalc';
 import { dispatchWorkspaceToggleEvent } from '@/renderer/utils/workspace/workspaceEvents';
 import { Layout as ArcoLayout } from '@arco-design/web-react';
 import React from 'react';
@@ -34,7 +33,7 @@ const MobileWorkspaceOverlay: React.FC<MobileWorkspaceOverlayProps> = ({
 
     {/* Fixed workspace panel */}
     <div
-      className='!bg-1 relative chat-layout-right-sider'
+      className='!bg-1 relative chat-layout-right-sider flex min-h-0 flex-col'
       style={{
         position: 'fixed',
         right: 0,
@@ -57,9 +56,7 @@ const MobileWorkspaceOverlay: React.FC<MobileWorkspaceOverlayProps> = ({
       >
         {siderTitle}
       </WorkspacePanelHeader>
-      <ArcoLayout.Content className='bg-1' style={{ height: `calc(100% - ${WORKSPACE_HEADER_HEIGHT}px)` }}>
-        {sider}
-      </ArcoLayout.Content>
+      <ArcoLayout.Content className='min-h-0 flex-1 overflow-hidden bg-1'>{sider}</ArcoLayout.Content>
     </div>
 
     {/* Floating collapse handle */}

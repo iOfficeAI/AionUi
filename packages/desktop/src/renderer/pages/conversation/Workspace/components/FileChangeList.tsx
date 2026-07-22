@@ -391,7 +391,7 @@ const FileChangeList: React.FC<FileChangeListProps> = ({
   }
 
   return (
-    <div className='flex flex-col size-full'>
+    <div className='flex flex-col size-full min-h-0 overflow-hidden'>
       {/* Top toolbar */}
       <div className='px-8px py-4px border-b border-b-base flex items-center justify-between flex-shrink-0'>
         <span className='text-12px text-t-secondary'>
@@ -403,7 +403,7 @@ const FileChangeList: React.FC<FileChangeListProps> = ({
           onClick={onRefresh}
         />
       </div>
-      <div className='flex-1 overflow-y-auto p-8px flex flex-col gap-10px'>
+      <div className='min-h-0 flex-1 overflow-y-auto p-8px flex flex-col gap-10px'>
         {groupedChanges.map((group) => (
           <div key={group.key} className='border border-base rounded-10px overflow-hidden bg-bg-1'>
             <PanelHeader title={group.title} count={group.count} actions={group.headerAction} />

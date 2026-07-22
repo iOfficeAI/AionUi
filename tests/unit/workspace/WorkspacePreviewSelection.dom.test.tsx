@@ -7,7 +7,7 @@
 import type { IDirOrFile } from '@/common/adapter/ipcBridge';
 import ChatWorkspace from '@/renderer/pages/conversation/Workspace';
 import type { NodeInstance } from '@arco-design/web-react/es/Tree/interface';
-import { act, cleanup, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -44,10 +44,6 @@ vi.mock('@/common', () => ({
       writeRendererLog: { invoke: mocks.writeRendererLogInvoke },
     },
   },
-}));
-
-vi.mock('@/renderer/components/layout/FlexFullContainer', () => ({
-  default: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 }));
 
 vi.mock('@arco-design/web-react', () => ({
@@ -188,7 +184,9 @@ vi.mock('@/renderer/pages/conversation/Workspace/components/WorkspaceToolbar', (
 }));
 
 vi.mock('@/renderer/pages/conversation/Workspace/components/WorkspaceTabBar', () => ({
-  default: () => <div data-testid='workspace-tabbar' />,
+  default: ({ onTabChange }: { onTabChange: (tab: 'files' | 'changes') => void }) => (
+    <button data-testid='workspace-tabbar' type='button' onClick={() => onTabChange('changes')} />
+  ),
 }));
 
 vi.mock('@/renderer/pages/conversation/Workspace/components/WorkspaceContextMenu', () => ({
@@ -204,7 +202,7 @@ vi.mock('@/renderer/pages/conversation/Workspace/components/PasteConfirmModal', 
 }));
 
 vi.mock('@/renderer/pages/conversation/Workspace/components/FileChangeList', () => ({
-  default: () => null,
+  default: () => <div data-testid='file-change-list' />,
 }));
 
 vi.mock('@/renderer/pages/conversation/Workspace/components/FileTypeIcon', () => ({
@@ -249,5 +247,17 @@ describe('ChatWorkspace preview selection', () => {
       },
     });
     expect(mocks.handlePreviewFile).toHaveBeenCalledWith(selectedFile);
+  });
+
+  it('keeps the changes view inside a bounded flex height chain', () => {
+    const { container } = render(<ChatWorkspace conversation_id='conversation-1' workspace='/workspace' />);
+
+    expect(container.querySelector('.chat-workspace')).toHaveClass('min-h-0', 'overflow-hidden');
+
+    fireEvent.click(screen.getByTestId('workspace-tabbar'));
+
+    const changesList = screen.getByTestId('file-change-list');
+    expect(changesList.parentElement).toHaveClass('absolute', 'size-full', 'min-h-0', 'overflow-hidden');
+    expect(changesList.parentElement?.parentElement).toHaveClass('flex-1', 'relative', 'min-h-0');
   });
 });

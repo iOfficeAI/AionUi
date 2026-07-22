@@ -18,7 +18,6 @@ import {
   DEFAULT_WORKSPACE_PANEL_PX,
   MAX_WORKSPACE_PANEL_PX,
   MIN_WORKSPACE_PANEL_PX,
-  WORKSPACE_HEADER_HEIGHT,
   calcLayoutMetrics,
 } from '@/renderer/pages/conversation/utils/layoutCalc';
 import { Layout as ArcoLayout } from '@arco-design/web-react';
@@ -233,15 +232,15 @@ const ChatLayout: React.FC<{
 
   return (
     <ArcoLayout
-      className='size-full color-black '
+      className='size-full min-h-0 overflow-hidden color-black'
       style={{
         // fontFamily: `cursive,"anthropicSans","anthropicSans Fallback",system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif`,
       }}
     >
-      <div ref={containerRef} className='flex flex-1 relative w-full overflow-hidden'>
+      <div ref={containerRef} className='flex min-h-0 flex-1 relative w-full overflow-hidden'>
         {/* Unified layout: single DOM structure prevents children unmount/remount on preview toggle */}
         <div
-          className='flex flex-col min-w-0'
+          className='flex min-h-0 flex-col min-w-0'
           style={{
             flexGrow: 1,
             flexShrink: 1,
@@ -252,7 +251,7 @@ const ChatLayout: React.FC<{
           <div className='flex flex-1 min-h-0 relative'>
             {/* Chat area - always mounted, never unmounted on preview toggle */}
             <div
-              className='flex flex-col relative'
+              className='flex min-h-0 flex-col relative overflow-hidden'
               style={{
                 flexGrow: isPreviewOpen && isDesktop ? 0 : 1,
                 flexShrink: 0,
@@ -303,7 +302,7 @@ const ChatLayout: React.FC<{
         </div>
         {workspaceEnabled && !layout?.isMobile && (
           <div
-            className={classNames('!bg-1 relative chat-layout-right-sider layout-sider')}
+            className={classNames('!bg-1 relative chat-layout-right-sider layout-sider flex h-full min-h-0 flex-col')}
             style={{
               flexGrow: 0,
               flexShrink: 0,
@@ -327,9 +326,7 @@ const ChatLayout: React.FC<{
             >
               {props.siderTitle}
             </WorkspacePanelHeader>
-            <ArcoLayout.Content style={{ height: `calc(100% - ${WORKSPACE_HEADER_HEIGHT}px)` }}>
-              {props.sider}
-            </ArcoLayout.Content>
+            <ArcoLayout.Content className='min-h-0 flex-1 overflow-hidden'>{props.sider}</ArcoLayout.Content>
           </div>
         )}
 

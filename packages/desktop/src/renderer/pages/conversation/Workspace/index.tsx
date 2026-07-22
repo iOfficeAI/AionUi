@@ -210,7 +210,7 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
     <>
       {shouldRenderLocalMessageContext && messageContext}
       <div
-        className='chat-workspace size-full flex flex-col relative'
+        className='chat-workspace size-full min-h-0 flex flex-col relative overflow-hidden'
         tabIndex={0}
         onFocus={pasteHook.onFocusPaste}
         onClick={pasteHook.onFocusPaste}
@@ -512,7 +512,7 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
 
         {/* Changes tab content */}
         {!isWorkspaceCollapsed && activeTab === 'changes' && (
-          <FlexFullContainer containerClassName='overflow-y-auto'>
+          <FlexFullContainer containerClassName='min-h-0 overflow-hidden'>
             <FileChangeList
               t={t}
               workspace={workspace}
