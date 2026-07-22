@@ -19,29 +19,8 @@
   gap: 10px;
 }
 
-.header {
-  display: flex;
-  min-width: 0;
-  align-items: flex-start;
-  gap: 10px;
-}
-
-.operationIcon {
-  display: inline-flex;
-  width: 28px;
-  height: 28px;
-  flex: 0 0 auto;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid var(--color-border-2);
-  border-radius: 8px;
-  color: var(--color-text-2);
-  background: var(--color-fill-1);
-}
-
 .heading {
   min-width: 0;
-  flex: 1;
 }
 
 .titleRow {
@@ -194,48 +173,14 @@
   margin-left: 8px;
 }
 
-.optionContent {
-  display: flex;
-  width: 100%;
-  min-width: 0;
-  align-items: center;
-}
-
-.optionText {
-  display: flex;
-  min-width: 0;
-  flex: 1;
-  align-items: baseline;
-  gap: 8px;
-}
-
 .optionLabel {
+  display: block;
   min-width: 0;
-  max-width: 45%;
-  flex: 0 1 auto;
-  overflow: hidden;
   color: var(--color-text-1);
   font-size: 13px;
   font-weight: 500;
   line-height: 1.4;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.optionLabel:only-child {
-  max-width: 100%;
-  flex-basis: 100%;
-}
-
-.optionDescription {
-  min-width: 0;
-  flex: 1 1 55%;
-  overflow: hidden;
-  color: var(--color-text-2);
-  font-size: 11px;
-  line-height: 1.45;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
 }
 
 .emptyState {
@@ -251,31 +196,8 @@
 .footer {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  justify-content: flex-end;
   padding-top: 2px;
-}
-
-.keyboardHint {
-  display: flex;
-  min-width: 0;
-  align-items: center;
-  gap: 5px;
-  color: var(--color-text-3);
-  font-size: 11px;
-}
-
-.keyboardHint kbd {
-  min-width: 20px;
-  padding: 1px 5px;
-  border: 1px solid var(--color-border-2);
-  border-radius: 5px;
-  color: var(--color-text-2);
-  background: var(--color-fill-1);
-  font-family: inherit;
-  font-size: 10px;
-  line-height: 18px;
-  text-align: center;
 }
 
 .feedback {
@@ -316,26 +238,8 @@
     gap: 2px;
   }
 
-  .optionText {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 1px;
-  }
-
-  .optionDescription {
-    overflow: visible;
-    white-space: normal;
-  }
-
-  .optionLabel {
-    max-width: none;
-    overflow: visible;
-    white-space: normal;
-  }
-
   .footer {
     align-items: stretch;
-    flex-direction: column;
   }
 
   .footer :global(.arco-btn) {

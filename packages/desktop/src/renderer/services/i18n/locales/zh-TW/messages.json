@@ -57,19 +57,6 @@
   "processing": "處理中...",
   "responseSentSuccessfully": "回覆已成功送出",
   "permissionResponseFailed": "無法傳送回應，請再試一次。",
-  "permissionOptions": {
-    "allowOnceDescription": "僅對此次請求給予權限",
-    "allowAlwaysDescription": "對同類型請求總是給予權限",
-    "rejectOnceDescription": "僅拒絕此次請求",
-    "rejectAlwaysDescription": "對同類型請求總是拒絕"
-  },
-  "permissionKinds": {
-    "execute": "執行",
-    "edit": "編輯",
-    "read": "讀取",
-    "fetch": "擷取",
-    "tool": "工具"
-  },
   "confirmation": {
     "applyChange": "應用此更改？",
     "allowExecution": "允許執行？",

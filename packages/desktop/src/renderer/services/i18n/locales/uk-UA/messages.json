@@ -56,19 +56,6 @@
   "processing": "Обробка...",
   "responseSentSuccessfully": "Відповідь надіслано успішно",
   "permissionResponseFailed": "Не вдалося надіслати відповідь. Спробуйте ще раз.",
-  "permissionOptions": {
-    "allowOnceDescription": "Надати дозвіл лише для цього запиту",
-    "allowAlwaysDescription": "Завжди надавати дозвіл для подібних запитів",
-    "rejectOnceDescription": "Відхилити лише цей запит",
-    "rejectAlwaysDescription": "Завжди відхиляти подібні запити"
-  },
-  "permissionKinds": {
-    "execute": "Виконання",
-    "edit": "Редагування",
-    "read": "Читання",
-    "fetch": "Отримання",
-    "tool": "Інструмент"
-  },
   "confirmation": {
     "applyChange": "Застосувати цю зміну?",
     "allowExecution": "Дозволити виконання?",

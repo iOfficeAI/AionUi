@@ -54,19 +54,6 @@
   "processing": "Обработка...",
   "responseSentSuccessfully": "Ответ успешно отправлен",
   "permissionResponseFailed": "Не удалось отправить ответ. Повторите попытку.",
-  "permissionOptions": {
-    "allowOnceDescription": "Разрешить только этот запрос",
-    "allowAlwaysDescription": "Всегда разрешать похожие запросы",
-    "rejectOnceDescription": "Отклонить только этот запрос",
-    "rejectAlwaysDescription": "Всегда отклонять похожие запросы"
-  },
-  "permissionKinds": {
-    "execute": "Выполнение",
-    "edit": "Изменение",
-    "read": "Чтение",
-    "fetch": "Получение",
-    "tool": "Инструмент"
-  },
   "confirmation": {
     "applyChange": "Применить это изменение?",
     "allowExecution": "Разрешить выполнение?",

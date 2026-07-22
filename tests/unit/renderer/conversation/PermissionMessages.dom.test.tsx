@@ -91,14 +91,14 @@ describe('permission message adapters', () => {
     acpInvoke.mockResolvedValue(undefined);
   });
 
-  it('keeps the generic payload exact and defaults Enter to proceed_once', async () => {
+  it('keeps the generic payload exact and defaults confirmation to proceed_once', async () => {
     const message = makeGenericMessage();
     render(<MessagePermission message={message} />);
 
     const once = within(screen.getByTestId('message-permission-option-proceed_once')).getByRole('radio');
     expect(once).toBeChecked();
-    once.focus();
-    fireEvent.keyDown(once, { key: 'Enter' });
+    expect(screen.getByText('execute')).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('message-permission-confirm'));
 
     expect(genericInvoke).toHaveBeenCalledTimes(1);
     expect(genericInvoke).toHaveBeenCalledWith({
@@ -135,13 +135,13 @@ describe('permission message adapters', () => {
     unmount();
   });
 
-  it('keeps the ACP payload exact and defaults Enter to allow_once', async () => {
+  it('keeps the ACP payload exact and defaults confirmation to allow_once', async () => {
     render(<MessageAcpPermission message={makeAcpMessage()} />);
 
     const once = within(screen.getByTestId('message-acp-permission-option-allow-once-id')).getByRole('radio');
     expect(once).toBeChecked();
-    once.focus();
-    fireEvent.keyDown(once, { key: 'Enter' });
+    expect(screen.getByText('edit')).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('message-acp-permission-confirm'));
 
     expect(acpInvoke).toHaveBeenCalledTimes(1);
     expect(acpInvoke).toHaveBeenCalledWith({
@@ -205,10 +205,7 @@ describe('permission message adapters', () => {
     );
 
     const cards = screen.getAllByTestId('message-permission-card');
-    const secondOnce = within(cards[1]).getByTestId('message-permission-option-proceed_once');
-    const secondRadio = within(secondOnce).getByRole('radio');
-    secondRadio.focus();
-    fireEvent.keyDown(secondRadio, { key: 'Enter' });
+    fireEvent.click(within(cards[1]).getByTestId('message-permission-confirm'));
 
     expect(genericInvoke).toHaveBeenCalledTimes(1);
     expect(genericInvoke).toHaveBeenCalledWith(
@@ -243,6 +240,7 @@ describe('permission message adapters', () => {
     render(<MessagePermission message={message} />);
 
     expect(screen.getByText('messages.permissionRequest')).toBeInTheDocument();
+    expect(screen.getByText('tool')).toBeInTheDocument();
     const option = within(screen.getByTestId('message-permission-option-option_0')).getByRole('radio');
     fireEvent.click(option);
     fireEvent.click(screen.getByTestId('message-permission-confirm'));

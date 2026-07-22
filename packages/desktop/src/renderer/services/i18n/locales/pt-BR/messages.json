@@ -57,19 +57,6 @@
   "processing": "Processando...",
   "responseSentSuccessfully": "Resposta enviada com sucesso",
   "permissionResponseFailed": "Não foi possível enviar a resposta. Tente novamente.",
-  "permissionOptions": {
-    "allowOnceDescription": "Conceder permissão apenas para esta solicitação",
-    "allowAlwaysDescription": "Sempre conceder permissão para solicitações semelhantes",
-    "rejectOnceDescription": "Rejeitar apenas esta solicitação",
-    "rejectAlwaysDescription": "Sempre rejeitar solicitações semelhantes"
-  },
-  "permissionKinds": {
-    "execute": "Execução",
-    "edit": "Edição",
-    "read": "Leitura",
-    "fetch": "Busca",
-    "tool": "Ferramenta"
-  },
   "confirmation": {
     "applyChange": "Aplicar esta alteração?",
     "allowExecution": "Permitir execução?",

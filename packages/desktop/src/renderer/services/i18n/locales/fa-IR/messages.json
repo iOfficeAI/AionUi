@@ -57,19 +57,6 @@
   "processing": "در حال پردازش...",
   "responseSentSuccessfully": "پاسخ با موفقیت ارسال شد",
   "permissionResponseFailed": "ارسال پاسخ ممکن نشد. دوباره تلاش کنید.",
-  "permissionOptions": {
-    "allowOnceDescription": "فقط برای این درخواست مجوز بده",
-    "allowAlwaysDescription": "همیشه برای درخواست‌های مشابه مجوز بده",
-    "rejectOnceDescription": "فقط این درخواست را رد کن",
-    "rejectAlwaysDescription": "همیشه درخواست‌های مشابه را رد کن"
-  },
-  "permissionKinds": {
-    "execute": "اجرا",
-    "edit": "ویرایش",
-    "read": "خواندن",
-    "fetch": "دریافت",
-    "tool": "ابزار"
-  },
   "confirmation": {
     "applyChange": "این تغییر اعمال شود؟",
     "allowExecution": "اجرا مجاز باشد؟",
