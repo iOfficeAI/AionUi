@@ -241,9 +241,21 @@ const TeamSiderSection: React.FC<TeamSiderSectionProps> = ({
                   <Spin size={16} />
                 </span>
               ) : isAdHoc ? (
-                <Comment theme='outline' size='16' fill='currentColor' style={{ lineHeight: 0 }} />
+                <Comment
+                  data-testid={`team-icon-${team.id}`}
+                  theme='outline'
+                  size='16'
+                  fill='currentColor'
+                  style={{ lineHeight: 0 }}
+                />
               ) : (
-                <Peoples theme='outline' size='16' fill='currentColor' style={{ lineHeight: 0 }} />
+                <Peoples
+                  data-testid={`team-icon-${team.id}`}
+                  theme='outline'
+                  size='16'
+                  fill='currentColor'
+                  style={{ lineHeight: 0 }}
+                />
               );
               const siderNode = (
                 <div data-is-adhoc={String(isAdHoc)}>
