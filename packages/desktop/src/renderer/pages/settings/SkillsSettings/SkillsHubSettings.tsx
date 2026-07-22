@@ -128,6 +128,15 @@ interface SkillsHubSettingsProps {
   withWrapper?: boolean;
 }
 
+type SkillsTab = 'custom' | 'official';
+
+const getSkillsTabFromState = (state: unknown): SkillsTab => {
+  if (typeof state === 'object' && state !== null && 'skillsTab' in state && state.skillsTab === 'official') {
+    return 'official';
+  }
+  return 'custom';
+};
+
 const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = true }) => {
   const { t } = useTranslation();
   const layout = useLayoutContext();
@@ -145,7 +154,7 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
   const [search_query, setSearchQuery] = useState('');
   const [importHistory, setImportHistory] = useState<SkillImportRecord[]>([]);
   const [importLimits, setImportLimits] = useState<SkillImportLimits | null>(null);
-  const [activeTab, setActiveTab] = useState<'custom' | 'official'>('custom');
+  const [activeTab, setActiveTab] = useState<SkillsTab>(() => getSkillsTabFromState(location.state));
   // Batch management (Custom tab only): multi-select skills for bulk deletion.
   const [batchMode, setBatchMode] = useState(false);
   const [selectedSkillNames, setSelectedSkillNames] = useState<Set<string>>(new Set());
@@ -154,9 +163,9 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
 
   const openSkillDetail = useCallback(
     (skillName: string) => {
-      void navigate(`/settings/skills/detail/${encodeURIComponent(skillName)}`);
+      void navigate(`/settings/skills/detail/${encodeURIComponent(skillName)}`, { state: { skillsTab: activeTab } });
     },
-    [navigate]
+    [activeTab, navigate]
   );
 
   // "Custom" tab: only user-imported skills.

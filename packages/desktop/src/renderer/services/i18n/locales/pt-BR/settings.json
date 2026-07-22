@@ -39,6 +39,12 @@
     "detailUsedByTitle": "Usada por",
     "detailUsedByEmpty": "Nenhum assistente está usando esta habilidade ainda.",
     "detailBuiltinAssistant": "Integrado",
+    "detailFilesTitle": "Arquivos da habilidade",
+    "detailFilesError": "Não foi possível carregar os arquivos desta habilidade.",
+    "editViaChat": {
+      "buttonLabel": "Editar via chat",
+      "defaultPrompt": "Gostaria de melhorar esta Skill: {{skillName}}\n\nRevise o conteúdo e me ajude a aprimorá-lo. Minhas sugestões de alteração são:"
+    },
     "usedByCount": "Usada por {{count}} assistente(s)",
     "manageInHub": "Gerenciar na Central",
     "recommend": "Recomendar Habilidades",

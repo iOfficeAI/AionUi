@@ -39,6 +39,12 @@
     "detailUsedByTitle": "使用中的助手",
     "detailUsedByEmpty": "还没有助手使用这个技能。",
     "detailBuiltinAssistant": "内置",
+    "detailFilesTitle": "技能文件",
+    "detailFilesError": "无法加载此技能的文件。",
+    "editViaChat": {
+      "buttonLabel": "通过对话编辑",
+      "defaultPrompt": "我想优化这个 Skill：{{skillName}}\n\n请帮我查看并优化它的内容。我的修改建议是："
+    },
     "usedByCount": "{{count}} 个助手在使用",
     "manageInHub": "前往技能中心管理",
     "recommend": "智能推荐",
