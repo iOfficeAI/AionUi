@@ -129,6 +129,18 @@ export type ITeamChildTurnEvent = {
   status: TeamRunStatus;
 };
 
+/**
+ * IPC event pushed to the renderer whenever a single slot's work state
+ * transitions, independently of any team run. `team.run*` events only carry
+ * `slot_work` for slots bound to the active tracked run, so run-less work (e.g.
+ * a leader self-wake draining its mailbox) would otherwise leave the per-slot
+ * view stale. Consumers update the one slot verbatim.
+ */
+export type ITeamSlotWorkChangedEvent = {
+  team_id: string;
+  slot_work: ITeamSlotWork;
+};
+
 /** IPC event pushed to renderer when agent status changes */
 export type ITeamAgentStatusEvent = {
   team_id: string;

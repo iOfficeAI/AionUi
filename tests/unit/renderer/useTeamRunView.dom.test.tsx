@@ -6,6 +6,7 @@ import type {
   ITeamRunEvent,
   ITeamSessionStatusChangedEvent,
   ITeamSlotWork,
+  ITeamSlotWorkChangedEvent,
 } from '@/common/types/team/teamTypes';
 import { useTeamRunView } from '@/renderer/pages/team/hooks/useTeamRunView';
 
@@ -39,6 +40,7 @@ const teamEventMocks = vi.hoisted(() => {
       agentRemoved: makeOn('agentRemoved'),
       agentRenamed: makeOn('agentRenamed'),
       sessionStatusChanged: makeOn('sessionStatusChanged'),
+      slotWorkChanged: makeOn('slotWorkChanged'),
       reconnected: makeOn('reconnected'),
     },
   };
@@ -181,6 +183,55 @@ describe('useTeamRunView', () => {
 
     await waitFor(() => expect(result.current.state.slotWorkBySlot.worker).toEqual(background));
     expect(result.current.state.activeRun).toBeUndefined();
+  });
+
+  it('slot_work_changed_clears_an_orphaned_running_slot_without_an_active_run', () => {
+    const { result } = renderHook(() => useTeamRunView('team-1'));
+    const runCompleted = teamEventMocks.handlers.runCompleted as TeamRunHandler;
+    // A run completes while the leader is mid run-less trailing work, so the
+    // terminal snapshot shows the leader still running and there is no active run
+    // — the stuck-spinner condition.
+    act(() =>
+      runCompleted(
+        runEvent({
+          status: 'completed',
+          slot_work: [
+            slotWork('lead', { state: 'running', active_turn_id: 'turn-1', active_turn_started_at_ms: 1000 }),
+          ],
+        })
+      )
+    );
+    expect(result.current.state.activeRun).toBeUndefined();
+    expect(result.current.state.slotWorkBySlot.lead?.state).toBe('running');
+
+    // The run-less batch finishes: a per-slot event flips the leader to idle.
+    const slotWorkChanged = teamEventMocks.handlers.slotWorkChanged as (event: ITeamSlotWorkChangedEvent) => void;
+    act(() => slotWorkChanged({ team_id: 'team-1', slot_work: slotWork('lead', { state: 'idle' }) }));
+
+    expect(result.current.state.slotWorkBySlot.lead?.state).toBe('idle');
+    expect(result.current.state.slotWorkBySlot.lead?.active_turn_id).toBeNull();
+  });
+
+  it('slot_work_changed_merges_one_slot_and_ignores_other_teams', () => {
+    const { result } = renderHook(() => useTeamRunView('team-1'));
+    const runUpdated = teamEventMocks.handlers.runUpdated as TeamRunHandler;
+    act(() =>
+      runUpdated(
+        runEvent({
+          slot_work: [slotWork('lead', { state: 'running' }), slotWork('worker', { state: 'running' })],
+        })
+      )
+    );
+    const slotWorkChanged = teamEventMocks.handlers.slotWorkChanged as (event: ITeamSlotWorkChangedEvent) => void;
+
+    // Other-team events are ignored.
+    act(() => slotWorkChanged({ team_id: 'other-team', slot_work: slotWork('lead', { state: 'idle' }) }));
+    expect(result.current.state.slotWorkBySlot.lead?.state).toBe('running');
+
+    // Updating one slot leaves the others untouched.
+    act(() => slotWorkChanged({ team_id: 'team-1', slot_work: slotWork('worker', { state: 'idle' }) }));
+    expect(result.current.state.slotWorkBySlot.worker?.state).toBe('idle');
+    expect(result.current.state.slotWorkBySlot.lead?.state).toBe('running');
   });
 
   it('session_status_stopped_sets_session_stopped_flag', () => {

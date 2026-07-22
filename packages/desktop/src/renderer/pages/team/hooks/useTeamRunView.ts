@@ -4,6 +4,7 @@ import type {
   ITeamRunAck,
   ITeamRunEvent,
   ITeamSlotWork,
+  ITeamSlotWorkChangedEvent,
   TeamRunStatus,
 } from '@/common/types/team/teamTypes';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -170,6 +171,25 @@ export const useTeamRunView = (team_id: string) => {
     [team_id]
   );
 
+  // Per-slot work update, independent of any team run. Run events only carry
+  // slot_work for slots bound to the active tracked run, so run-less work (e.g.
+  // a leader self-wake draining its mailbox) reaches us only here. Merge the one
+  // slot so an orphaned "running" snapshot from a completed run's terminal event
+  // clears without a full reconcile.
+  const applySlotWork = useCallback(
+    (event: ITeamSlotWorkChangedEvent) => {
+      if (event.team_id !== team_id) return;
+      setState((prev) => ({
+        ...prev,
+        slotWorkBySlot: {
+          ...prev.slotWorkBySlot,
+          [event.slot_work.slot_id]: event.slot_work,
+        },
+      }));
+    },
+    [team_id]
+  );
+
   useEffect(() => {
     void reconcile('load');
   }, [reconcile]);
@@ -185,6 +205,7 @@ export const useTeamRunView = (team_id: string) => {
       ipcBridge.team.childTurnStarted.on(applyChildStarted),
       ipcBridge.team.childTurnCompleted.on(applyChildTerminal),
       ipcBridge.team.childTurnCancelled.on(applyChildTerminal),
+      ipcBridge.team.slotWorkChanged.on(applySlotWork),
       ipcBridge.realtime.reconnected.on(() => {
         void reconcile('realtime.reconnected');
       }),
@@ -216,7 +237,7 @@ export const useTeamRunView = (team_id: string) => {
     return () => {
       unsubs.forEach((unsubscribe) => unsubscribe());
     };
-  }, [applyChildStarted, applyChildTerminal, applyRunEvent, reconcile, team_id]);
+  }, [applyChildStarted, applyChildTerminal, applySlotWork, applyRunEvent, reconcile, team_id]);
 
   return useMemo(
     () => ({
