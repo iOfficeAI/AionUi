@@ -563,6 +563,9 @@
       "ACP_EMPTY_TURN": {
         "body": "Bu istek görünür bir yanıt üretmedi."
       },
+      "ACP_EMPTY_TURN_NEEDS_AUTH": {
+        "body": "Bu istek görünür bir yanıt üretmedi. Aracı önce oturum açmanızı gerektirebilir: {{hint}}."
+      },
       "ACP_EMPTY_TURN_MAX_TOKENS": {
         "body": "Bu istek, görünür bir yanıt üretilmeden önce modelin çıktı token sınırına ulaştı."
       },

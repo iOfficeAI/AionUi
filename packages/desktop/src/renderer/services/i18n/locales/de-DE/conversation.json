@@ -562,6 +562,9 @@
       "ACP_EMPTY_TURN": {
         "body": "Diese Anfrage hat keine sichtbare Antwort erzeugt."
       },
+      "ACP_EMPTY_TURN_NEEDS_AUTH": {
+        "body": "Diese Anfrage hat keine sichtbare Antwort erzeugt. Der Agent muss möglicherweise zuerst angemeldet werden – {{hint}}."
+      },
       "ACP_EMPTY_TURN_MAX_TOKENS": {
         "body": "Diese Anfrage hat das Ausgabe-Token-Limit des Modells erreicht, bevor eine sichtbare Antwort erzeugt wurde."
       },

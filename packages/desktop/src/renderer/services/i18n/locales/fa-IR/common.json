@@ -126,6 +126,15 @@
       "diagnosticsReportSuccess": "گزارش تشخیصی ارسال شد",
       "diagnosticsReportFailed": "ارسال گزارش تشخیصی ناموفق بود",
       "rebuildFailed": "پشتیبان‌گیری از DB قدیمی و ساخت DB جدید ناموفق بود"
+    },
+    "transientConcurrentStartup": {
+      "title": "AionUi در حال راه‌اندازی است",
+      "description": "هنگام باز شدن این پنجره، یک فرایند راه‌اندازی دیگر AionUi هنوز از داده‌های محلی استفاده می‌کرد. این وضعیت موقتی است و داده‌های شما ایمن هستند — نیازی به نصب مجدد نیست. لطفاً کمی صبر کنید و دوباره تلاش کنید، یا AionUi را دوباره راه‌اندازی کنید.",
+      "sendDiagnostics": "ارسال گزارش تشخیصی",
+      "diagnosticsSent": "گزارش تشخیصی ارسال شد",
+      "diagnosticsReportSuccess": "گزارش تشخیصی ارسال شد",
+      "diagnosticsReportFailed": "ارسال گزارش تشخیصی ناموفق بود",
+      "diagnosticsHint": "اگر این مشکل ادامه یافت، می‌توانید یک گزارش تشخیصی ارسال کنید."
     }
   },
   "fileAttach.addFiles": "افزودن فایل‌ها",

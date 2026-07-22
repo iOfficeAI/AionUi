@@ -39,6 +39,26 @@
 
 ---
 
+<p align="center">
+  <a href="https://x.com/AionUi/status/2079493379914961069">
+    <img src="../../resources/kimi/contributor-bonus-black-blue.jpg" alt="AionUi × Kimi Katkıda Bulunan Bonusu" width="600">
+  </a>
+</p>
+
+<p align="center">
+  🎁 <strong>AionUi × Kimi Ortaklığı</strong>: Katkıda bulunanlara <strong>ücretsiz premium Kimi "Allegretto" planları (aylık $39 · ¥199 değerinde)</strong>!
+</p>
+
+<h3 align="center">
+  <a href="https://x.com/AionUi/status/2079493379914961069">Kampanya detaylarını ve talep yöntemini görün →</a>
+</h3>
+
+<p align="center">
+  <sub><strong>Kimi K3</strong> yayında ve AionUi'de kutudan çıktığı gibi çalışıyor — <a href="https://www.kimi.com/code?aff=aionui" target="_blank">Kimi For Coding planı edinin</a> veya API anahtarı alın (<a href="https://platform.kimi.ai?aff=aionui" target="_blank">Global</a> / <a href="https://platform.kimi.com?aff=aionui" target="_blank">Çin</a>)</sub>
+</p>
+
+---
+
 ## 📋 Hızlı Gezinme
 
 <p align="center">

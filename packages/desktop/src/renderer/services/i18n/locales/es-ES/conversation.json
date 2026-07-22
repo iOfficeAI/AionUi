@@ -562,6 +562,9 @@
       "ACP_EMPTY_TURN": {
         "body": "Esta solicitud no produjo ninguna respuesta visible."
       },
+      "ACP_EMPTY_TURN_NEEDS_AUTH": {
+        "body": "Esta solicitud no produjo ninguna respuesta visible. Puede que el agente necesite que inicies sesión primero: {{hint}}."
+      },
       "ACP_EMPTY_TURN_MAX_TOKENS": {
         "body": "Esta solicitud alcanzó el límite de tokens de salida del modelo antes de producir alguna respuesta visible."
       },

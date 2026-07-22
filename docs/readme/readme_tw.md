@@ -39,6 +39,26 @@
 
 ---
 
+<p align="center">
+  <a href="https://x.com/AionUi/status/2079493379914961069">
+    <img src="../../resources/kimi/contributor-bonus-black-blue.jpg" alt="AionUi × Kimi 貢獻者激勵" width="600">
+  </a>
+</p>
+
+<p align="center">
+  🎁 <strong>AionUi × Kimi 戰略合作</strong>：面向貢獻者免費贈送 <strong>Kimi「Allegretto」訂閱方案（價值 $39/月 · ¥199/月）</strong>！
+</p>
+
+<h3 align="center">
+  <a href="https://x.com/AionUi/status/2079493379914961069">查看活動詳情與申領方式 →</a>
+</h3>
+
+<p align="center">
+  <sub><strong>Kimi K3</strong> 已發布，在 AionUi 中開箱即用——<a href="https://www.kimi.com/code?aff=aionui" target="_blank">訂閱 Kimi For Coding</a>，或取得 API Key（<a href="https://platform.kimi.com?aff=aionui" target="_blank">中國</a> / <a href="https://platform.kimi.ai?aff=aionui" target="_blank">國際</a>）</sub>
+</p>
+
+---
+
 ## 📋 快速導覽
 
 <p align="center">

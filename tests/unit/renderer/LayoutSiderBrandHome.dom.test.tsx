@@ -52,6 +52,9 @@ vi.mock('@renderer/hooks/file/useDirectorySelection', () => ({
 vi.mock('@renderer/utils/ui/siderTooltip', () => ({ cleanupSiderTooltips: () => {} }));
 vi.mock('@renderer/hooks/ui/useConversationShortcuts', () => ({ useConversationShortcuts: () => {} }));
 vi.mock('@renderer/utils/platform', () => ({ isElectronDesktop: platformMocks.isElectronDesktopMock }));
+vi.mock('@renderer/pages/conversation/Preview/context/PreviewContext', () => ({
+  usePreviewContext: () => ({ closePreview: () => {} }),
+}));
 
 import Layout from '@renderer/components/layout/Layout';
 

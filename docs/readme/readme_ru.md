@@ -39,6 +39,26 @@
 
 ---
 
+<p align="center">
+  <a href="https://x.com/AionUi/status/2079493379914961069">
+    <img src="../../resources/kimi/contributor-bonus-black-blue.jpg" alt="AionUi × Kimi Бонус для контрибьюторов" width="600">
+  </a>
+</p>
+
+<p align="center">
+  🎁 <strong>Партнёрство AionUi × Kimi</strong>: бесплатные премиум-планы <strong>Kimi «Allegretto» (стоимостью $39/мес · ¥199/мес)</strong> для наших контрибьюторов!
+</p>
+
+<h3 align="center">
+  <a href="https://x.com/AionUi/status/2079493379914961069">Условия акции и как получить →</a>
+</h3>
+
+<p align="center">
+  <sub><strong>Kimi K3</strong> уже здесь и работает в AionUi из коробки — <a href="https://www.kimi.com/code?aff=aionui" target="_blank">оформите план Kimi For Coding</a> или получите API-ключ (<a href="https://platform.kimi.ai?aff=aionui" target="_blank">Global</a> / <a href="https://platform.kimi.com?aff=aionui" target="_blank">Китай</a>)</sub>
+</p>
+
+---
+
 ## 📋 Быстрая навигация
 
 <p align="center">

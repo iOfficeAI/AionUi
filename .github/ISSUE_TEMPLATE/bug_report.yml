@@ -4,6 +4,30 @@ title: '[Bug]: '
 labels: ['bug']
 body:
   - type: dropdown
+    id: module
+    attributes:
+      label: Module
+      description: Which module does this issue belong to?
+      options:
+        - Agent Detection & Connection
+        - Assistants & Presets
+        - Models & Authentication
+        - MCP & Tools
+        - Skills & Plugins
+        - Channel Integrations
+        - Conversation & Sessions
+        - Search & History
+        - Project, Files & Preview
+        - WebUI & Remote Access
+        - Scheduled Tasks
+        - Team Collaboration
+        - Interface, Display & Desktop Pet
+        - System Settings
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
     id: platform
     attributes:
       label: Platform

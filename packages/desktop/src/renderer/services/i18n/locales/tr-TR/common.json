@@ -126,6 +126,15 @@
       "diagnosticsReportSuccess": "Tanılama raporu gönderildi",
       "diagnosticsReportFailed": "Tanılama raporu gönderilemedi",
       "rebuildFailed": "Eski DB yedeklenip yeni DB oluşturulamadı"
+    },
+    "transientConcurrentStartup": {
+      "title": "AionUi başlatılıyor",
+      "description": "Bu pencere açıldığında başka bir AionUi başlatma işlemi yerel verileri hâlâ kullanıyordu. Bu geçicidir ve verileriniz güvende — yeniden yükleme gerekmez. Lütfen biraz bekleyip tekrar deneyin veya AionUi'yi yeniden başlatın.",
+      "sendDiagnostics": "Send diagnostics",
+      "diagnosticsSent": "Diagnostics sent",
+      "diagnosticsReportSuccess": "Diagnostics report sent",
+      "diagnosticsReportFailed": "Failed to send diagnostics report",
+      "diagnosticsHint": "Bu durum tekrar ederse bir tanılama raporu gönderebilirsiniz."
     }
   },
   "fileAttach.addFiles": "Dosya ekle",

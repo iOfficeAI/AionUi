@@ -126,6 +126,15 @@
       "diagnosticsReportSuccess": "Rapport de diagnostic envoyé",
       "diagnosticsReportFailed": "Échec de l'envoi du rapport de diagnostic",
       "rebuildFailed": "Échec de la sauvegarde de l'ancienne base de données et de la reconstruction de la nouvelle base de données"
+    },
+    "transientConcurrentStartup": {
+      "title": "AionUi démarre",
+      "description": "À l'ouverture de cette fenêtre, un autre démarrage d'AionUi utilisait encore les données locales. C'est temporaire et vos données sont en sécurité — aucune réinstallation n'est nécessaire. Veuillez patienter un instant et réessayer, ou redémarrer AionUi.",
+      "sendDiagnostics": "Envoyer des diagnostics",
+      "diagnosticsSent": "Diagnostics envoyés",
+      "diagnosticsReportSuccess": "Rapport de diagnostic envoyé",
+      "diagnosticsReportFailed": "Échec de l'envoi du rapport de diagnostic",
+      "diagnosticsHint": "Si cela se reproduit, vous pouvez envoyer un rapport de diagnostic."
     }
   },
   "fileAttach.addFiles": "Ajouter des fichiers",

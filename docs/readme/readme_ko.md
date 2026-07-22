@@ -39,6 +39,26 @@
 
 ---
 
+<p align="center">
+  <a href="https://x.com/AionUi/status/2079493379914961069">
+    <img src="../../resources/kimi/contributor-bonus-black-blue.jpg" alt="AionUi × Kimi 기여자 보너스" width="600">
+  </a>
+</p>
+
+<p align="center">
+  🎁 <strong>AionUi × Kimi 전략적 파트너십</strong>: 기여자에게 <strong>Kimi "Allegretto" 플랜(월 $39 · ¥199 상당)을 무료 증정</strong>합니다!
+</p>
+
+<h3 align="center">
+  <a href="https://x.com/AionUi/status/2079493379914961069">캠페인 안내 및 신청 방법 보기 →</a>
+</h3>
+
+<p align="center">
+  <sub><strong>Kimi K3</strong> 출시 — AionUi에서 바로 사용할 수 있습니다. <a href="https://www.kimi.com/code?aff=aionui" target="_blank">Kimi For Coding 플랜 구독</a> 또는 API 키 발급（<a href="https://platform.kimi.ai?aff=aionui" target="_blank">글로벌</a> / <a href="https://platform.kimi.com?aff=aionui" target="_blank">중국</a>）</sub>
+</p>
+
+---
+
 ## 📋 빠른 탐색
 
 <p align="center">

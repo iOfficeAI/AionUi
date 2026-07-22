@@ -61,7 +61,7 @@ test.describe('One-click feedback infrastructure', () => {
     // setShowFeedbackModal(true) in AboutModalContent.
     const bugReportRow = page
       .locator('div')
-      .filter({ hasText: /^Bug Report$|^问题报告$|^バグ報告$|^버그 보고$/ })
+      .filter({ hasText: /^Report Issue$|^反馈问题$|^問題を報告$|^문제 보고$/ })
       .first();
     await expect(bugReportRow).toBeVisible({ timeout: 10_000 });
     await bugReportRow.click();

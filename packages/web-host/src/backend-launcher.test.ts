@@ -31,7 +31,13 @@ import { spawn } from 'node:child_process';
 import { mkdirSync } from 'node:fs';
 import { connect, createServer } from 'node:net';
 import { cleanupRegisteredAgentProcesses } from './agent-process-registry.js';
-import { buildSpawnArgs, buildSpawnEnv, findAvailablePort, BackendLifecycleManager } from './backend-launcher.js';
+import {
+  buildSpawnArgs,
+  buildSpawnEnv,
+  findAvailablePort,
+  BackendLifecycleManager,
+  BackendStartupError,
+} from './backend-launcher.js';
 import type { AppMetadata } from './types.js';
 
 const APP_META: AppMetadata = {
@@ -1180,5 +1186,75 @@ describe('BackendLifecycleManager crash restart', () => {
     });
 
     errorSpy.mockRestore();
+  });
+});
+
+// T-A4 — bounded peer-already-running retry (Sentry 135525166).
+type AttemptStartSpyTarget = { attemptStart: (...args: unknown[]) => Promise<number> };
+
+function makePeerAlreadyRunningError(): BackendStartupError {
+  return new BackendStartupError('aioncore exited before health check passed', {
+    stage: 'early_exit',
+    appVersion: APP_META.version,
+    backendBoundaryCode: 'BOOTSTRAP_PEER_ALREADY_RUNNING',
+    backendBoundaryStage: 'instance_guard.acquire',
+  });
+}
+
+describe('BackendLifecycleManager.start peer retry', () => {
+  it('retries with bounded backoff and succeeds once the peer releases the data dir', async () => {
+    vi.useFakeTimers();
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const mgr = new BackendLifecycleManager(APP_META, () => '/abs/path/aioncore');
+    const attemptStart = vi
+      .spyOn(mgr as unknown as AttemptStartSpyTarget, 'attemptStart')
+      .mockRejectedValueOnce(makePeerAlreadyRunningError())
+      .mockRejectedValueOnce(makePeerAlreadyRunningError())
+      .mockResolvedValueOnce(58672);
+
+    const started = mgr.start('/data/aionui-backend.db');
+    await vi.runAllTimersAsync();
+
+    await expect(started).resolves.toBe(58672);
+    expect(attemptStart).toHaveBeenCalledTimes(3);
+
+    warnSpy.mockRestore();
+  });
+
+  it('throws the peer boundary error after exhausting the retry budget', async () => {
+    vi.useFakeTimers();
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const mgr = new BackendLifecycleManager(APP_META, () => '/abs/path/aioncore');
+    const attemptStart = vi
+      .spyOn(mgr as unknown as AttemptStartSpyTarget, 'attemptStart')
+      .mockRejectedValue(makePeerAlreadyRunningError());
+
+    const started = mgr.start('/data/aionui-backend.db');
+    const assertion = expect(started).rejects.toMatchObject({
+      details: { backendBoundaryCode: 'BOOTSTRAP_PEER_ALREADY_RUNNING' },
+    });
+    await vi.runAllTimersAsync();
+    await assertion;
+
+    // 5 attempts: initial + 4 retries.
+    expect(attemptStart).toHaveBeenCalledTimes(5);
+
+    warnSpy.mockRestore();
+  });
+
+  it('does not retry a non-peer startup failure', async () => {
+    const mgr = new BackendLifecycleManager(APP_META, () => '/abs/path/aioncore');
+    const nonPeerError = new BackendStartupError('assistant storage bootstrap failed', {
+      stage: 'early_exit',
+      appVersion: APP_META.version,
+      backendBoundaryCode: 'BOOTSTRAP_SERVER_FAILED',
+      backendBoundaryStage: 'router.assistant.bootstrap',
+    });
+    const attemptStart = vi
+      .spyOn(mgr as unknown as AttemptStartSpyTarget, 'attemptStart')
+      .mockRejectedValue(nonPeerError);
+
+    await expect(mgr.start('/data/aionui-backend.db')).rejects.toBe(nonPeerError);
+    expect(attemptStart).toHaveBeenCalledTimes(1);
   });
 });

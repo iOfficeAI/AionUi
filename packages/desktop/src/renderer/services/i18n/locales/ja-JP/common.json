@@ -126,6 +126,15 @@
       "diagnosticsReportSuccess": "診断レポートを送信しました",
       "diagnosticsReportFailed": "診断レポートの送信に失敗しました",
       "rebuildFailed": "古いDBのバックアップと新しいDBの再作成に失敗しました"
+    },
+    "transientConcurrentStartup": {
+      "title": "AionUi を起動しています",
+      "description": "このウィンドウを開いたとき、別の AionUi の起動処理がまだローカルデータを使用していました。これは一時的なもので、データは安全です。再インストールの必要はありません。少し待ってから再試行するか、AionUi を再起動してください。",
+      "sendDiagnostics": "Send diagnostics",
+      "diagnosticsSent": "Diagnostics sent",
+      "diagnosticsReportSuccess": "Diagnostics report sent",
+      "diagnosticsReportFailed": "Failed to send diagnostics report",
+      "diagnosticsHint": "この現象が繰り返し発生する場合は、診断レポートを送信できます。"
     }
   },
   "fileAttach.addFiles": "ファイルを追加",
