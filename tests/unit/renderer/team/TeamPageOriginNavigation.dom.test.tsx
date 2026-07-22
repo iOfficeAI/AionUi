@@ -138,6 +138,10 @@ vi.mock('@/renderer/pages/conversation/utils/conversationCache', () => ({
   getConversationOrNull: vi.fn(),
 }));
 
+vi.mock('@/renderer/pages/conversation/Preview', () => ({
+  usePreviewContext: () => ({ closePreviewIfWorkspaceChanged: vi.fn() }),
+}));
+
 vi.mock('@/renderer/pages/conversation/components/ChatLayout', () => ({
   default: ({ children, headerLeading, title }: {
     children: React.ReactNode;
