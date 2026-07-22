@@ -2,6 +2,13 @@ import type { ManagedAgent } from '@/renderer/utils/model/agentTypes';
 
 export type AgentAvailabilityFilter = 'all' | 'available' | 'unavailable';
 
+export const parseAgentAvailabilityFilter = (value: string | null): AgentAvailabilityFilter => {
+  if (value === 'available' || value === 'unavailable') {
+    return value;
+  }
+  return 'all';
+};
+
 const isAgentAvailable = (agent: ManagedAgent): boolean => agent.status === 'online';
 
 export const getAgentAvailabilityFilterStats = (agents: ManagedAgent[]) => ({

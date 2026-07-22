@@ -25,10 +25,12 @@ import { useNavigate } from 'react-router-dom';
 import {
   filterAgentsByAvailability,
   getAgentAvailabilityFilterStats,
+  parseAgentAvailabilityFilter,
   type AgentAvailabilityFilter,
 } from './agentFilters';
 
 const LOCAL_AGENT_SETUP_GUIDE_URL = 'https://github.com/iOfficeAI/AionUi/wiki/ACP-Setup';
+const AGENT_AVAILABILITY_FILTER_STORAGE_KEY = 'aionui.agent-availability-filter';
 
 const LocalAgents: React.FC = () => {
   const { t, i18n } = useTranslation();
@@ -36,7 +38,9 @@ const LocalAgents: React.FC = () => {
   const layout = useLayoutContext();
   const isMobile = layout?.isMobile ?? false;
   const [testingAgentId, setTestingAgentId] = useState<string | null>(null);
-  const [agentFilter, setAgentFilter] = useState<AgentAvailabilityFilter>('all');
+  const [agentFilter, setAgentFilter] = useState<AgentAvailabilityFilter>(() =>
+    parseAgentAvailabilityFilter(localStorage.getItem(AGENT_AVAILABILITY_FILTER_STORAGE_KEY))
+  );
   const [searchQuery, setSearchQuery] = useState('');
   const { assistants } = useAssistantsForAgents();
 
@@ -269,7 +273,11 @@ const LocalAgents: React.FC = () => {
           },
         ]}
         activeTab={agentFilter}
-        onTabChange={(key) => setAgentFilter(key as AgentAvailabilityFilter)}
+        onTabChange={(key) => {
+          const filter = parseAgentAvailabilityFilter(key);
+          localStorage.setItem(AGENT_AVAILABILITY_FILTER_STORAGE_KEY, filter);
+          setAgentFilter(filter);
+        }}
       />
 
       {isRefreshing ? (
