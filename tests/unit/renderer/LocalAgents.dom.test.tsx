@@ -15,7 +15,13 @@ import React from 'react';
 
 // t() echoes the key so section labels/buttons are assertable.
 vi.mock('react-i18next', () => ({
-  useTranslation: () => ({ t: (k: string) => k, i18n: { language: 'en' } }),
+  useTranslation: () => ({
+    t: (k: string, variables?: Record<string, number>) =>
+      k === 'settings.agentManagement.testUncheckedSummary'
+        ? `${k}:${variables?.checked},${variables?.available},${variables?.unavailable}`
+        : k,
+    i18n: { language: 'en' },
+  }),
 }));
 
 const navigate = vi.fn();
@@ -27,10 +33,11 @@ vi.mock('react-router-dom', async () => {
   };
 });
 
-const { messageSuccess, messageWarning, messageError } = vi.hoisted(() => ({
+const { messageSuccess, messageWarning, messageError, messageInfo } = vi.hoisted(() => ({
   messageSuccess: vi.fn(),
   messageWarning: vi.fn(),
   messageError: vi.fn(),
+  messageInfo: vi.fn(),
 }));
 const { openExternalUrl } = vi.hoisted(() => ({
   openExternalUrl: vi.fn().mockResolvedValue(undefined),
@@ -51,6 +58,7 @@ vi.mock('@arco-design/web-react', async () => {
       success: messageSuccess,
       warning: messageWarning,
       error: messageError,
+      info: messageInfo,
     },
   };
 });
@@ -186,6 +194,93 @@ describe('LocalAgents', () => {
       // formatManagedAgentDiagnosticMessage maps auth_required → its errorCodes key.
       expect(messageWarning).toHaveBeenCalledWith('settings.agentManagement.errorCodes.auth_required');
     });
+  });
+
+  it('shows no bulk test action when every eligible agent has already been checked', () => {
+    useManagedAgents.mockReturnValue({ agents: makeAgents(), revalidate: vi.fn(), refreshCatalog: vi.fn() });
+
+    render(<LocalAgents />);
+
+    expect(screen.queryByTestId('btn-test-unchecked-agents')).not.toBeInTheDocument();
+  });
+
+  it('tests only unchecked eligible agents sequentially, continues after failures, then refreshes once', async () => {
+    vi.clearAllMocks();
+    const refreshCatalog = vi.fn().mockResolvedValue(undefined);
+    let resolveFirst: (value: { status: 'online' }) => void;
+    const firstCheck = new Promise<{ status: 'online' }>((resolve) => {
+      resolveFirst = resolve;
+    });
+    useManagedAgents.mockReturnValue({
+      agents: [
+        ...makeAgents(),
+        {
+          id: 'unchecked-official',
+          name: 'Unchecked Official',
+          agent_type: 'acp',
+          agent_source: 'builtin',
+          enabled: true,
+          installed: true,
+          status: 'unchecked',
+        },
+        {
+          id: 'unchecked-custom',
+          name: 'Unchecked Custom',
+          agent_type: 'acp',
+          agent_source: 'custom',
+          command: 'sh',
+          enabled: true,
+          installed: true,
+          status: 'unchecked',
+        },
+        {
+          id: 'disabled-unchecked-custom',
+          name: 'Disabled Unchecked Custom',
+          agent_type: 'acp',
+          agent_source: 'custom',
+          command: 'sh',
+          enabled: false,
+          installed: true,
+          status: 'unchecked',
+        },
+      ],
+      revalidate: vi.fn(),
+      refreshCatalog,
+    });
+    vi.mocked(ipcBridge.acpConversation.checkManagedAgentHealthById.invoke).mockImplementation(({ id }) => {
+      if (id === 'unchecked-official') return firstCheck;
+      if (id === 'unchecked-custom') return Promise.reject(new Error('probe failed'));
+      return Promise.resolve({ status: 'online' });
+    });
+
+    render(<LocalAgents />);
+
+    const button = screen.getByTestId('btn-test-unchecked-agents');
+    fireEvent.click(button);
+
+    await waitFor(() => {
+      expect(ipcBridge.acpConversation.checkManagedAgentHealthById.invoke).toHaveBeenCalledWith({
+        id: 'unchecked-official',
+      });
+    });
+    expect(button).toBeDisabled();
+    expect(ipcBridge.acpConversation.checkManagedAgentHealthById.invoke).toHaveBeenCalledTimes(1);
+
+    resolveFirst!({ status: 'online' });
+
+    await waitFor(() => {
+      expect(ipcBridge.acpConversation.checkManagedAgentHealthById.invoke).toHaveBeenCalledWith({
+        id: 'unchecked-custom',
+      });
+    });
+    await waitFor(() => {
+      expect(refreshCatalog).toHaveBeenCalledTimes(1);
+      expect(messageSuccess).not.toHaveBeenCalled();
+      expect(messageWarning).not.toHaveBeenCalled();
+      expect(messageError).not.toHaveBeenCalled();
+      expect(messageInfo).toHaveBeenCalledWith('settings.agentManagement.testUncheckedSummary:2,1,1');
+    });
+    expect(ipcBridge.acpConversation.checkManagedAgentHealthById.invoke).toHaveBeenCalledTimes(2);
   });
 
   it('reads the managed-agents view and renders detected + custom sections', () => {

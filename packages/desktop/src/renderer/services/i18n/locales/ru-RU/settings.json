@@ -1123,6 +1123,8 @@
     "customAgents": "Пользовательские агенты",
     "custom": "Пользовательский",
     "addCustomAgent": "Добавить пользовательского агента",
+    "testUnchecked": "Проверить непроверенные ({{count}})",
+    "testUncheckedSummary": "Проверено агентов: {{checked}}. Доступно: {{available}}, недоступно: {{unavailable}}.",
     "customEmpty": "Пользовательских агентов пока нет.",
     "customEmptyDescription": "Пользовательские агенты должны поддерживать ACP.",
     "errorCodes": {

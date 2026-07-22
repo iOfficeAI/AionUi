@@ -1147,6 +1147,8 @@
     "customAgents": "自訂 Agents",
     "custom": "自訂",
     "addCustomAgent": "新增自訂 Agent",
+    "testUnchecked": "測試未檢測項目 ({{count}})",
+    "testUncheckedSummary": "已檢測 {{checked}} 個 Agent：{{available}} 個可用，{{unavailable}} 個不可用。",
     "customEmpty": "尚無自訂 Agent",
     "customEmptyDescription": "自訂 Agent 需要支援 ACP 協議。",
     "errorCodes": {

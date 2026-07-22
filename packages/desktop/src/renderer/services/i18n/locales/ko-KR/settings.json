@@ -1133,6 +1133,8 @@
     "customAgents": "커스텀 에이전트",
     "custom": "사용자 정의",
     "addCustomAgent": "사용자 정의 에이전트 추가",
+    "testUnchecked": "미확인 테스트 ({{count}})",
+    "testUncheckedSummary": "{{checked}}개 확인: 사용 가능 {{available}}, 사용 불가 {{unavailable}}.",
     "customEmpty": "사용자 정의 에이전트가 없습니다.",
     "customEmptyDescription": "사용자 정의 에이전트는 ACP를 지원해야 합니다.",
     "errorCodes": {

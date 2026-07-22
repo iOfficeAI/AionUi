@@ -1146,6 +1146,8 @@
     "customAgents": "自定义 Agents",
     "custom": "自定义",
     "addCustomAgent": "添加自定义 Agent",
+    "testUnchecked": "检测未检测项 ({{count}})",
+    "testUncheckedSummary": "已检测 {{checked}} 个 Agent：{{available}} 个可用，{{unavailable}} 个不可用。",
     "customEmpty": "暂无自定义 Agent",
     "customEmptyDescription": "自定义 Agent 需要支持 ACP 协议。",
     "errorCodes": {

@@ -1143,6 +1143,8 @@
     "customAgents": "Agents personnalisés",
     "custom": "Personnalisé",
     "addCustomAgent": "Ajouter un agent personnalisé",
+    "testUnchecked": "Tester les non vérifiés ({{count}})",
+    "testUncheckedSummary": "{{checked}} agents vérifiés : {{available}} disponibles, {{unavailable}} indisponibles.",
     "customEmpty": "Aucun agent personnalisé configuré. Cliquez sur \"Ajouter un agent personnalisé\" pour en créer un.",
     "customEmptyDescription": "Les agents personnalisés doivent prendre en charge ACP.",
     "errorCodes": {

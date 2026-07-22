@@ -1133,6 +1133,8 @@
     "customAgents": "カスタムエージェント",
     "custom": "カスタム",
     "addCustomAgent": "カスタムエージェントを追加",
+    "testUnchecked": "未確認をテスト ({{count}})",
+    "testUncheckedSummary": "{{checked}} 件を確認: 利用可能 {{available}}、利用不可 {{unavailable}}。",
     "customEmpty": "カスタムエージェントがありません。",
     "customEmptyDescription": "カスタムエージェントは ACP に対応している必要があります。",
     "errorCodes": {

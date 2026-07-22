@@ -36,6 +36,7 @@ const LocalAgents: React.FC = () => {
   const layout = useLayoutContext();
   const isMobile = layout?.isMobile ?? false;
   const [testingAgentId, setTestingAgentId] = useState<string | null>(null);
+  const [testingUncheckedAgents, setTestingUncheckedAgents] = useState(false);
   const [agentFilter, setAgentFilter] = useState<AgentAvailabilityFilter>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const { assistants } = useAssistantsForAgents();
@@ -53,6 +54,9 @@ const LocalAgents: React.FC = () => {
   );
 
   const customAgents: ManagedAgent[] = allAgents.filter((a) => a.agent_source === 'custom');
+  const uncheckedAgents = [...officialAgents, ...customAgents.filter((agent) => agent.enabled)].filter(
+    (agent) => agent.status === 'unchecked'
+  );
 
   const [editorVisible, setEditorVisible] = useState(false);
   const [editingAgent, setEditingAgent] = useState<ManagedAgent | null>(null);
@@ -208,6 +212,37 @@ const LocalAgents: React.FC = () => {
     [refreshCatalog, t]
   );
 
+  const handleTestUnchecked = useCallback(async () => {
+    if (testingUncheckedAgents) return;
+
+    setTestingUncheckedAgents(true);
+    let available = 0;
+
+    try {
+      for (const agent of uncheckedAgents) {
+        try {
+          const result = await ipcBridge.acpConversation.checkManagedAgentHealthById.invoke({ id: agent.id });
+          if (result.status === 'online') available += 1;
+        } catch (error) {
+          console.error('test unchecked managed agent failed:', error);
+        }
+      }
+    } finally {
+      try {
+        await refreshCatalog();
+      } finally {
+        Message.info(
+          t('settings.agentManagement.testUncheckedSummary', {
+            checked: uncheckedAgents.length,
+            available,
+            unavailable: uncheckedAgents.length - available,
+          })
+        );
+        setTestingUncheckedAgents(false);
+      }
+    }
+  }, [refreshCatalog, t, testingUncheckedAgents, uncheckedAgents]);
+
   return (
     <div data-testid='agent-management-page' className='flex flex-col gap-16px'>
       <SettingsPageHeader
@@ -239,6 +274,17 @@ const LocalAgents: React.FC = () => {
                 onChange={setSearchQuery}
               />
             )}
+            {uncheckedAgents.length > 0 ? (
+              <Button
+                type='secondary'
+                loading={testingUncheckedAgents}
+                disabled={testingUncheckedAgents}
+                onClick={() => void handleTestUnchecked()}
+                data-testid='btn-test-unchecked-agents'
+              >
+                {t('settings.agentManagement.testUnchecked', { count: uncheckedAgents.length })}
+              </Button>
+            ) : null}
             <TalkToButlerButton
               label={t('settings.agentManagement.addCustomAgent', { defaultValue: 'Add custom Agent' })}
               chatLabel={t('settings.talkToButler.addViaChat', { defaultValue: 'Add via chat' })}

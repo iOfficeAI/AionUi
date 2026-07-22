@@ -1143,6 +1143,8 @@
     "customAgents": "ایجنت‌های سفارشی",
     "custom": "سفارشی",
     "addCustomAgent": "افزودن ایجنت سفارشی",
+    "testUnchecked": "آزمایش بررسی نشده‌ها ({{count}})",
+    "testUncheckedSummary": "{{checked}} ایجنت بررسی شد: {{available}} در دسترس، {{unavailable}} غیرقابل دسترس.",
     "customEmpty": "ایجنت سفارشی پیکربندی نشده است. روی «افزودن ایجنت سفارشی» کلیک کنید تا یکی ایجاد شود.",
     "customEmptyDescription": "ایجنت‌های سفارشی باید از ACP پشتیبانی کنند.",
     "errorCodes": {

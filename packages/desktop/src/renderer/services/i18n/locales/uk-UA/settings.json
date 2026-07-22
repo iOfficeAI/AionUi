@@ -1043,6 +1043,8 @@
     "customAgents": "Власні агенти",
     "custom": "Власний",
     "addCustomAgent": "Додати власного агента",
+    "testUnchecked": "Перевірити неперевірені ({{count}})",
+    "testUncheckedSummary": "Перевірено агентів: {{checked}}. Доступно: {{available}}, недоступно: {{unavailable}}.",
     "customEmpty": "Власних агентів ще немає.",
     "customEmptyDescription": "Власні агенти мають підтримувати ACP.",
     "errorCodes": {

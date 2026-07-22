@@ -1117,6 +1117,8 @@
     "customAgents": "Benutzerdefinierte Agenten",
     "custom": "Benutzerdefiniert",
     "addCustomAgent": "Benutzerdefinierten Agenten hinzufügen",
+    "testUnchecked": "Nicht geprüfte testen ({{count}})",
+    "testUncheckedSummary": "{{checked}} Agenten geprüft: {{available}} verfügbar, {{unavailable}} nicht verfügbar.",
     "customEmpty": "Noch keine benutzerdefinierten Agenten.",
     "customEmptyDescription": "Benutzerdefinierte Agenten müssen ACP unterstützen.",
     "boundAssistantsTitle": "Assistenten, die diesen Agenten verwenden",

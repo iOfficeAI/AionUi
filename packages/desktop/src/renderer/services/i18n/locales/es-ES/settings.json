@@ -1115,6 +1115,8 @@
     "customAgents": "Agentes personalizados",
     "custom": "Personalizado",
     "addCustomAgent": "Agregar agente personalizado",
+    "testUnchecked": "Probar no verificados ({{count}})",
+    "testUncheckedSummary": "{{checked}} agentes comprobados: {{available}} disponibles, {{unavailable}} no disponibles.",
     "customEmpty": "No hay agentes personalizados configurados. Haz clic en \"Agregar agente personalizado\" para crear uno.",
     "officialAgents": "Official Agents",
     "configureConnection": "Configure",

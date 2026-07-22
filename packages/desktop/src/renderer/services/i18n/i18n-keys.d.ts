@@ -1237,6 +1237,8 @@ export type I18nKey =
   | 'settings.agentManagement.testConnectionMissing'
   | 'settings.agentManagement.testConnectionOffline'
   | 'settings.agentManagement.testConnectionOnline'
+  | 'settings.agentManagement.testUnchecked'
+  | 'settings.agentManagement.testUncheckedSummary'
   | 'settings.agentManagement.viewAssistant'
   | 'settings.agentModelCustomNote'
   | 'settings.agentModelInvalid'
