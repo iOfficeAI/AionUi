@@ -126,6 +126,15 @@
       "diagnosticsReportSuccess": "Діагностичний звіт надіслано",
       "diagnosticsReportFailed": "Не вдалося надіслати діагностичний звіт",
       "rebuildFailed": "Не вдалося зберегти стару БД і створити нову"
+    },
+    "transientConcurrentStartup": {
+      "title": "AionUi запускається",
+      "description": "Коли це вікно відкрилося, інший процес запуску AionUi усе ще використовував локальні дані. Це тимчасово, і ваші дані в безпеці — перевстановлення не потрібне. Зачекайте трохи та повторіть спробу або перезапустіть AionUi.",
+      "sendDiagnostics": "Send diagnostics",
+      "diagnosticsSent": "Diagnostics sent",
+      "diagnosticsReportSuccess": "Diagnostics report sent",
+      "diagnosticsReportFailed": "Failed to send diagnostics report",
+      "diagnosticsHint": "Якщо це повторюється, ви можете надіслати звіт діагностики."
     }
   },
   "fileAttach.addFiles": "Додати файли",

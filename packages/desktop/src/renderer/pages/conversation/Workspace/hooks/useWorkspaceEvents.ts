@@ -5,21 +5,19 @@
  */
 
 import { ipcBridge } from '@/common';
-import type { IDirOrFile } from '@/common/adapter/ipcBridge';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { useCallback, useEffect, useRef } from 'react';
 import type { ContextMenuState } from '../types';
 
 interface UseWorkspaceEventsOptions {
   conversation_id: string;
+  workspace: string;
   eventPrefix: 'acp' | 'codex' | 'aionrs';
 
   // Dependencies from useWorkspaceTree
   refreshWorkspace: () => void;
   clearSelection: () => void;
-  setFiles: React.Dispatch<React.SetStateAction<IDirOrFile[]>>;
   setSelected: React.Dispatch<React.SetStateAction<string[]>>;
-  setExpandedKeys: React.Dispatch<React.SetStateAction<string[]>>;
   setTreeKey: React.Dispatch<React.SetStateAction<number>>;
   selectedNodeRef: React.MutableRefObject<{
     relativePath: string;
@@ -41,12 +39,11 @@ interface UseWorkspaceEventsOptions {
 export function useWorkspaceEvents(options: UseWorkspaceEventsOptions) {
   const {
     conversation_id,
+    workspace,
     eventPrefix,
     refreshWorkspace,
     clearSelection,
-    setFiles,
     setSelected,
-    setExpandedKeys,
     setTreeKey,
     selectedNodeRef,
     selectedKeysRef,
@@ -57,28 +54,50 @@ export function useWorkspaceEvents(options: UseWorkspaceEventsOptions) {
   } = options;
 
   /**
-   * 监听对话切换事件 - 重置所有状态
-   * Listen to conversation switch event - reset all states
+   * Reset + reload the tree only when the PROJECT DIRECTORY changes, not on
+   * every conversation switch. The sidebar groups conversations by workspace,
+   * so switching between conversations of the same project keeps the same
+   * directory on screen — its tree, expansion, and freshly-appeared files must
+   * stay put. useWorkspaceTree rehydrates that state from the per-workspace
+   * cache, so here we only wipe the tree when moving to a different project
+   * (or to a conversation with no workspace).
    */
+  const prevWorkspaceRef = useRef<string | null>(null);
   useEffect(() => {
-    setFiles([]);
-    setSelected([]);
-    setExpandedKeys([]);
-    selectedNodeRef.current = null;
-    selectedKeysRef.current = [];
-    setTreeKey(Math.random());
+    const workspaceChanged = prevWorkspaceRef.current !== workspace;
+    prevWorkspaceRef.current = workspace;
+
+    // Close transient UI (context menu, modals) on any conversation switch.
     setContextMenu({ visible: false, x: 0, y: 0, node: null });
     closeRenameModal();
     closeDeleteModal();
-    refreshWorkspace();
+
+    if (workspaceChanged) {
+      // New project: clear everything and load from scratch. useWorkspaceTree
+      // seeds files/expandedKeys from the cache if this project was visited
+      // before, so refreshWorkspace re-fetches without collapsing it.
+      setSelected([]);
+      selectedNodeRef.current = null;
+      selectedKeysRef.current = [];
+      setTreeKey(Math.random());
+      refreshWorkspace();
+    } else {
+      // Same project, different conversation: keep the tree and expansion, but
+      // drop the selection — "add to chat" selections belong to the previous
+      // conversation's send box and must not leak into this one. Still refresh
+      // so files created in the now-active conversation show up.
+      setSelected([]);
+      selectedNodeRef.current = null;
+      selectedKeysRef.current = [];
+      refreshWorkspace();
+    }
     emitter.emit(`${eventPrefix}.selected.file`, []);
   }, [
     conversation_id,
+    workspace,
     eventPrefix,
     refreshWorkspace,
-    setFiles,
     setSelected,
-    setExpandedKeys,
     setTreeKey,
     selectedNodeRef,
     selectedKeysRef,
@@ -200,17 +219,6 @@ export function useWorkspaceEvents(options: UseWorkspaceEventsOptions) {
     },
     [setSelected, selectedKeysRef, selectedNodeRef]
   );
-
-  /**
-   * 监听搜索工作空间响应
-   * Listen to search workspace response
-   */
-  useEffect(() => {
-    return ipcBridge.conversation.responseSearchWorkSpace.provider((data) => {
-      if (data.match) setFiles([data.match]);
-      return Promise.resolve();
-    });
-  }, [setFiles]);
 
   /**
    * 监听右键菜单外部点击 - 关闭菜单

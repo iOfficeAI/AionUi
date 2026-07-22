@@ -34,7 +34,27 @@
 </p>
 
 <p align="center">
-  <strong>💬 Сообщество:</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (English)</a> | <a href="../../resources/wx-16.png" target="_blank">微信 (中文群)</a> | <a href="https://twitter.com/AionUI" target="_blank">Twitter</a>
+  <strong>💬 Сообщество:</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (English)</a> | <a href="../../resources/wx-17.png" target="_blank">微信 (中文群)</a> | <a href="https://twitter.com/AionUI" target="_blank">Twitter</a>
+</p>
+
+---
+
+<p align="center">
+  <a href="https://x.com/AionUi/status/2079493379914961069">
+    <img src="../../resources/kimi/contributor-bonus-black-blue.jpg" alt="AionUi × Kimi Бонус для контрибьюторов" width="600">
+  </a>
+</p>
+
+<p align="center">
+  🎁 <strong>Партнёрство AionUi × Kimi</strong>: бесплатные премиум-планы <strong>Kimi «Allegretto» (стоимостью $39/мес · ¥199/мес)</strong> для наших контрибьюторов!
+</p>
+
+<h3 align="center">
+  <a href="https://x.com/AionUi/status/2079493379914961069">Условия акции и как получить →</a>
+</h3>
+
+<p align="center">
+  <sub><strong>Kimi K3</strong> уже здесь и работает в AionUi из коробки — <a href="https://www.kimi.com/code?aff=aionui" target="_blank">оформите план Kimi For Coding</a> или получите API-ключ (<a href="https://platform.kimi.ai?aff=aionui" target="_blank">Global</a> / <a href="https://platform.kimi.com?aff=aionui" target="_blank">Китай</a>)</sub>
 </p>
 
 ---
@@ -684,7 +704,7 @@ brew install aionui
 - [Сообщить о проблемах](https://github.com/iOfficeAI/AionUi/issues) — ошибки и запросы функций
 - [Обновления релизов](https://github.com/iOfficeAI/AionUi/releases) — получите последнюю версию
 - [Сообщество Discord](https://discord.gg/2QAwJn7Egx) — англоязычное сообщество
-- [Группа WeChat](../../resources/wx-16.png) — китайское сообщество
+- [Группа WeChat](../../resources/wx-17.png) — китайское сообщество
 
 ### Вклад в проект
 

@@ -4,8 +4,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { IDirOrFile } from '@/common/adapter/ipcBridge';
+import type { IDirOrFile, IWorkspaceFlatFile } from '@/common/adapter/ipcBridge';
 import type { NodeInstance } from '@arco-design/web-react/es/Tree/interface';
+
+const normalizeSlashes = (p: string): string => p.replace(/\\/g, '/');
+const stripTrailingSlash = (p: string): string => p.replace(/\/+$/, '');
 
 /**
  * 从 Tree 节点中提取数据引用
@@ -55,42 +58,145 @@ export function findNodeByKey(list: IDirOrFile[], key: string): IDirOrFile | nul
 }
 
 /**
- * Merge children that were lazy-loaded in the old tree back into a freshly
- * fetched tree. The backend's getWorkspace only returns one level at a time;
- * a full refresh of the root therefore arrives with deep dirs collapsed to
- * empty children, even when the user had expanded them via loadMore.
+ * Apply freshly-fetched directory listings onto the current tree, matched by
+ * relativePath. `freshByPath` maps a directory's relativePath to the latest
+ * direct-children array returned by getWorkspace for that directory (only the
+ * root and the dirs the user has expanded are re-fetched on a refresh).
  *
- * For every directory node in the new tree that has no children loaded, we
- * substitute the old node's children (matched by relativePath). Files are
- * left untouched. Dirs that were deleted on disk simply don't appear in the
- * new tree, so they drop out naturally.
+ * For a re-fetched directory, its fresh listing is authoritative: new files
+ * appear, deleted ones drop out. For each fresh child directory we carry over
+ * the old node's already-loaded children (matched by path) so collapsed
+ * subtrees are not thrown away — they simply lazy-load again on next expand if
+ * they were never loaded. Directories NOT in the map keep their existing
+ * children untouched. Nothing the user expanded ever collapses, because the
+ * expanded state (expandedKeys) is preserved separately and every fresh child
+ * dir retains its identity by relativePath.
  */
-export function mergeLoadedChildren(newRes: IDirOrFile[], oldFiles: IDirOrFile[]): IDirOrFile[] {
-  if (oldFiles.length === 0) return newRes;
-
-  const oldByPath = new Map<string, IDirOrFile>();
-  const indexNode = (n: IDirOrFile) => {
-    if (n.relativePath != null) oldByPath.set(n.relativePath, n);
-    n.children?.forEach(indexNode);
-  };
-  oldFiles.forEach(indexNode);
-
+export function applyFreshListings(nodes: IDirOrFile[], freshByPath: Map<string, IDirOrFile[]>): IDirOrFile[] {
   const visit = (node: IDirOrFile): IDirOrFile => {
     if (node.isFile) return node;
-    const oldNode = node.relativePath != null ? oldByPath.get(node.relativePath) : undefined;
-    const newHasChildren = (node.children?.length ?? 0) > 0;
-    const oldHasChildren = (oldNode?.children?.length ?? 0) > 0;
-
-    if (newHasChildren) {
-      return { ...node, children: node.children!.map(visit) };
+    const fresh = node.relativePath != null ? freshByPath.get(node.relativePath) : undefined;
+    if (fresh) {
+      const oldChildrenByPath = new Map<string, IDirOrFile>();
+      node.children?.forEach((c) => {
+        if (c.relativePath != null) oldChildrenByPath.set(c.relativePath, c);
+      });
+      const merged = fresh.map((fc) => {
+        if (fc.isFile) return fc;
+        const old = fc.relativePath != null ? oldChildrenByPath.get(fc.relativePath) : undefined;
+        const carried = old?.children && old.children.length > 0 ? { ...fc, children: old.children } : fc;
+        return visit(carried);
+      });
+      return { ...node, children: merged };
     }
-    if (oldHasChildren) {
-      return { ...node, children: oldNode!.children };
+    if (node.children && node.children.length > 0) {
+      return { ...node, children: node.children.map(visit) };
     }
     return node;
   };
+  return nodes.map(visit);
+}
 
-  return newRes.map(visit);
+/**
+ * Collect the directory nodes that are currently expanded AND already have
+ * children loaded, so a refresh can re-fetch exactly those folders. Returns
+ * `{ relativePath, fullPath }` pairs. The root (relativePath '') is always
+ * included because it is fetched as the refresh baseline anyway.
+ */
+export function collectExpandedDirs(
+  nodes: IDirOrFile[],
+  expandedKeys: string[]
+): Array<{ relativePath: string; fullPath: string }> {
+  const expandedSet = new Set(expandedKeys);
+  const result: Array<{ relativePath: string; fullPath: string }> = [];
+  const visit = (node: IDirOrFile) => {
+    if (node.isFile) return;
+    if (node.relativePath != null && expandedSet.has(node.relativePath) && node.fullPath) {
+      result.push({ relativePath: node.relativePath, fullPath: node.fullPath });
+    }
+    node.children?.forEach(visit);
+  };
+  nodes.forEach(visit);
+  return result;
+}
+
+/**
+ * Build a tree that contains only the files whose name or path matches the
+ * search term, keeping the directory nodes on the path to each match so the
+ * result renders as a normal (pruned) tree. Directories themselves are matched
+ * by name too, in which case their whole subtree is not expanded here — only
+ * the branch nodes leading to file matches are reconstructed. Input is the
+ * flat recursive file list from `fs.listWorkspaceFiles`.
+ *
+ * Returns `{ tree, expandedKeys }` where the tree mirrors getWorkspace's shape
+ * (single root node with `relativePath === ''`) and expandedKeys expands every
+ * branch so all matches are visible without manual clicking.
+ */
+export function buildSearchTree(
+  flatFiles: IWorkspaceFlatFile[],
+  workspace: string,
+  term: string
+): { tree: IDirOrFile[]; expandedKeys: string[] } {
+  const ws = stripTrailingSlash(normalizeSlashes(workspace));
+  const rootName = ws.split('/').pop() || '';
+  const needle = term.trim().toLowerCase();
+
+  const root: IDirOrFile = {
+    name: rootName,
+    fullPath: ws,
+    relativePath: '',
+    isDir: true,
+    isFile: false,
+    children: [],
+  };
+  if (!needle) return { tree: [root], expandedKeys: [''] };
+
+  const expanded = new Set<string>(['']);
+  // Map of relativePath -> directory node, so we build each branch only once.
+  const dirByPath = new Map<string, IDirOrFile>();
+  dirByPath.set('', root);
+
+  const ensureDir = (relPath: string): IDirOrFile => {
+    const existing = dirByPath.get(relPath);
+    if (existing) return existing;
+    const segments = relPath.split('/');
+    const name = segments[segments.length - 1];
+    const parentPath = segments.slice(0, -1).join('/');
+    const parent = ensureDir(parentPath);
+    const node: IDirOrFile = {
+      name,
+      fullPath: `${ws}/${relPath}`,
+      relativePath: relPath,
+      isDir: true,
+      isFile: false,
+      children: [],
+    };
+    parent.children!.push(node);
+    dirByPath.set(relPath, node);
+    expanded.add(relPath);
+    return node;
+  };
+
+  for (const file of flatFiles) {
+    const relPath = normalizeSlashes(file.relativePath || '');
+    if (!relPath) continue;
+    // Match on file name OR any segment of its path, so searching a folder
+    // name surfaces the files inside it too.
+    if (!relPath.toLowerCase().includes(needle)) continue;
+
+    const segments = relPath.split('/');
+    const parentPath = segments.slice(0, -1).join('/');
+    const parent = ensureDir(parentPath);
+    parent.children!.push({
+      name: segments[segments.length - 1],
+      fullPath: file.fullPath,
+      relativePath: relPath,
+      isDir: false,
+      isFile: true,
+    });
+  }
+
+  return { tree: [root], expandedKeys: [...expanded] };
 }
 
 /**

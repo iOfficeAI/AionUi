@@ -560,6 +560,9 @@
       "ACP_EMPTY_TURN": {
         "body": "Cette demande n'a produit aucune réponse visible."
       },
+      "ACP_EMPTY_TURN_NEEDS_AUTH": {
+        "body": "Cette requête n'a produit aucune réponse visible. L'agent doit peut-être d'abord vous connecter : {{hint}}."
+      },
       "ACP_EMPTY_TURN_MAX_TOKENS": {
         "body": "Cette requête a atteint la limite de jetons de sortie du modèle avant qu'une réponse visible ne soit produite."
       },

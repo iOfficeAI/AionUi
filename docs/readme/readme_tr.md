@@ -34,7 +34,27 @@
 </p>
 
 <p align="center">
-  <strong>💬 Topluluk:</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (English)</a> | <a href="../../resources/wx-16.png" target="_blank">微信 (中文群)</a> | <a href="https://twitter.com/AionUI" target="_blank">Twitter</a>
+  <strong>💬 Topluluk:</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (English)</a> | <a href="../../resources/wx-17.png" target="_blank">微信 (中文群)</a> | <a href="https://twitter.com/AionUI" target="_blank">Twitter</a>
+</p>
+
+---
+
+<p align="center">
+  <a href="https://x.com/AionUi/status/2079493379914961069">
+    <img src="../../resources/kimi/contributor-bonus-black-blue.jpg" alt="AionUi × Kimi Katkıda Bulunan Bonusu" width="600">
+  </a>
+</p>
+
+<p align="center">
+  🎁 <strong>AionUi × Kimi Ortaklığı</strong>: Katkıda bulunanlara <strong>ücretsiz premium Kimi "Allegretto" planları (aylık $39 · ¥199 değerinde)</strong>!
+</p>
+
+<h3 align="center">
+  <a href="https://x.com/AionUi/status/2079493379914961069">Kampanya detaylarını ve talep yöntemini görün →</a>
+</h3>
+
+<p align="center">
+  <sub><strong>Kimi K3</strong> yayında ve AionUi'de kutudan çıktığı gibi çalışıyor — <a href="https://www.kimi.com/code?aff=aionui" target="_blank">Kimi For Coding planı edinin</a> veya API anahtarı alın (<a href="https://platform.kimi.ai?aff=aionui" target="_blank">Global</a> / <a href="https://platform.kimi.com?aff=aionui" target="_blank">Çin</a>)</sub>
 </p>
 
 ---
@@ -615,7 +635,7 @@ brew install aionui
 - [Sorun Bildir](https://github.com/iOfficeAI/AionUi/issues) — hatalar ve özellik istekleri
 - [Sürüm Güncellemeleri](https://github.com/iOfficeAI/AionUi/releases) — en son sürümü alın
 - [Discord Topluluğu](https://discord.gg/2QAwJn7Egx) — İngilizce topluluk
-- [WeChat Grubu](../../resources/wx-16.png) — Çince topluluk
+- [WeChat Grubu](../../resources/wx-17.png) — Çince topluluk
 
 ### Katkıda Bulunma
 

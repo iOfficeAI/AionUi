@@ -561,6 +561,9 @@
       "ACP_EMPTY_TURN": {
         "body": "This request produced no visible reply."
       },
+      "ACP_EMPTY_TURN_NEEDS_AUTH": {
+        "body": "This request produced no visible reply. The agent may need you to sign in first — {{hint}}."
+      },
       "ACP_EMPTY_TURN_MAX_TOKENS": {
         "body": "This request hit the model's output token limit before any visible reply was produced."
       },

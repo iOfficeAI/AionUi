@@ -11,6 +11,7 @@ import { Alert, Button, Image, Message, Radio, Tag, Tooltip } from '@arco-design
 import { Copy, Download, LoadingOne } from '@icon-park/react';
 import React, { useCallback, useContext, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import ButlerDiagnoseButton from '@/renderer/components/base/ButlerDiagnoseButton';
 import FeedbackButton from '@/renderer/components/base/FeedbackButton';
 import FileChangesPanel from '@/renderer/components/base/FileChangesPanel';
 import { useDiffPreviewHandlers } from '@/renderer/hooks/file/useDiffPreviewHandlers';
@@ -582,6 +583,11 @@ const MessageToolGroup: React.FC<IMessageToolGroupProps> = ({ message }) => {
                 )}
                 {status === 'Error' && (
                   <div className='mt-4px flex justify-end'>
+                    <ButlerDiagnoseButton
+                      errorText={[name, description, typeof result_display === 'string' ? result_display : '']
+                        .filter(Boolean)
+                        .join('\n')}
+                    />
                     <FeedbackButton module='conversation-session' />
                   </div>
                 )}

@@ -126,6 +126,15 @@
       "diagnosticsReportSuccess": "Relatório de diagnóstico enviado",
       "diagnosticsReportFailed": "Falha ao enviar relatório de diagnóstico",
       "rebuildFailed": "Falha ao fazer backup do DB antigo e criar novo DB"
+    },
+    "transientConcurrentStartup": {
+      "title": "O AionUi está iniciando",
+      "description": "Quando esta janela foi aberta, outra inicialização do AionUi ainda estava usando os dados locais. Isso é temporário e seus dados estão seguros — não é necessário reinstalar. Aguarde um momento e tente novamente ou reinicie o AionUi.",
+      "sendDiagnostics": "Send diagnostics",
+      "diagnosticsSent": "Diagnostics sent",
+      "diagnosticsReportSuccess": "Diagnostics report sent",
+      "diagnosticsReportFailed": "Failed to send diagnostics report",
+      "diagnosticsHint": "Se isso continuar acontecendo, você pode enviar um relatório de diagnóstico."
     }
   },
   "fileAttach.addFiles": "Adicionar arquivos",

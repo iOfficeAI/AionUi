@@ -139,6 +139,10 @@ vi.mock('@/renderer/pages/cron', () => ({
   },
 }));
 
+vi.mock('@/renderer/pages/conversation/Preview/context/PreviewContext', () => ({
+  usePreviewContext: () => ({ closePreview: () => {}, closePreviewIfWorkspaceChanged: () => {} }),
+}));
+
 import { ipcBridge } from '@/common';
 import TeamPage from '@/renderer/pages/team/TeamPage';
 

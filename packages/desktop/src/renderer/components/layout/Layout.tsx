@@ -14,6 +14,7 @@ import React, { Suspense, useCallback, useEffect, useRef, useState } from 'react
 import { useTranslation } from 'react-i18next';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { setGlobalNavigate } from '@/renderer/utils/navigation';
+import { usePreviewContext } from '@renderer/pages/conversation/Preview';
 import { LayoutContext } from '@renderer/hooks/context/LayoutContext';
 import { NavigationHistoryProvider } from '@renderer/hooks/context/NavigationHistoryContext';
 import { useDeepLink } from '@renderer/hooks/system/useDeepLink';
@@ -145,6 +146,26 @@ const Layout: React.FC<{
   }, [navigate]);
   const workspaceAvailable =
     location.pathname.startsWith('/conversation/') || (TEAM_MODE_ENABLED && location.pathname.startsWith('/team/'));
+
+  // Close preview whenever the user leaves the conversation route entirely
+  // (e.g. switches to a team, /guid, or settings). Within /conversation/:id
+  // the finer-grained closePreviewIfWorkspaceChanged in conversation/index.tsx
+  // handles workspace changes, so we only need to act here on route-type changes.
+  // Use closePreview directly — closePreviewIfWorkspaceChanged skips the call
+  // when lastWorkspaceRef is already null (e.g. on team routes where it was
+  // never updated), which would leave the panel open.
+  const { closePreview: closePreviewOnRouteChange } = usePreviewContext();
+  const routeLayoutMountedRef = useRef(false);
+  useEffect(() => {
+    if (!routeLayoutMountedRef.current) {
+      routeLayoutMountedRef.current = true;
+      return; // skip initial mount — preview starts closed, don't wipe persisted tabs
+    }
+    if (!location.pathname.startsWith('/conversation/')) {
+      closePreviewOnRouteChange();
+    }
+  }, [location.pathname, closePreviewOnRouteChange]);
+
   const collapsedRef = useRef(collapsed);
   const dragStateRef = useRef<{ active: boolean; startX: number; startWidth: number }>({
     active: false,

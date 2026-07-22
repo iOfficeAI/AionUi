@@ -34,7 +34,27 @@
 </p>
 
 <p align="center">
-  <strong>💬 Спільнота:</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (English)</a> | <a href="../../resources/wx-16.png" target="_blank">微信 (中文群)</a> | <a href="https://twitter.com/AionUI" target="_blank">Twitter</a>
+  <strong>💬 Спільнота:</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (English)</a> | <a href="../../resources/wx-17.png" target="_blank">微信 (中文群)</a> | <a href="https://twitter.com/AionUI" target="_blank">Twitter</a>
+</p>
+
+---
+
+<p align="center">
+  <a href="https://x.com/AionUi/status/2079493379914961069">
+    <img src="../../resources/kimi/contributor-bonus-black-blue.jpg" alt="AionUi × Kimi Бонус для контриб’юторів" width="600">
+  </a>
+</p>
+
+<p align="center">
+  🎁 <strong>Партнерство AionUi × Kimi</strong>: безкоштовні преміум-плани <strong>Kimi «Allegretto» (вартістю $39/міс · ¥199/міс)</strong> для наших контриб’юторів!
+</p>
+
+<h3 align="center">
+  <a href="https://x.com/AionUi/status/2079493379914961069">Деталі акції та як отримати →</a>
+</h3>
+
+<p align="center">
+  <sub><strong>Kimi K3</strong> вже тут і працює в AionUi одразу — <a href="https://www.kimi.com/code?aff=aionui" target="_blank">оформіть план Kimi For Coding</a> або отримайте API-ключ (<a href="https://platform.kimi.ai?aff=aionui" target="_blank">Global</a> / <a href="https://platform.kimi.com?aff=aionui" target="_blank">Китай</a>)</sub>
 </p>
 
 ---

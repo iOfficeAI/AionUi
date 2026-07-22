@@ -39,6 +39,7 @@ import {
   flattenSingleRoot,
   getTargetFolderPath,
 } from './utils/treeHelpers';
+import { setWorkspaceTreeSnapshot } from './utils/workspaceTreeCache';
 import './workspace.css';
 
 const ChatWorkspace: React.FC<WorkspaceProps> = ({
@@ -91,7 +92,14 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
     conversation_id: conversation_id,
   });
 
-  const searchHook = useWorkspaceSearch({ workspace, loadWorkspace: treeHook.loadWorkspace });
+  const searchHook = useWorkspaceSearch({
+    workspace,
+    expandedKeys: treeHook.expandedKeys,
+    setFiles: treeHook.setFiles,
+    setExpandedKeys: treeHook.setExpandedKeys,
+    setTreeKey: treeHook.setTreeKey,
+    refreshWorkspace: treeHook.refreshWorkspace,
+  });
 
   const fileOpsHook = useWorkspaceFileOps({
     workspace,
@@ -118,12 +126,11 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
   // Setup events
   useWorkspaceEvents({
     conversation_id,
+    workspace,
     eventPrefix,
     refreshWorkspace: treeHook.refreshWorkspace,
     clearSelection: treeHook.clearSelection,
-    setFiles: treeHook.setFiles,
     setSelected: treeHook.setSelected,
-    setExpandedKeys: treeHook.setExpandedKeys,
     setTreeKey: treeHook.setTreeKey,
     selectedNodeRef: treeHook.selectedNodeRef,
     selectedKeysRef: treeHook.selectedKeysRef,
@@ -138,7 +145,7 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
   const rootName = treeHook.files[0]?.name ?? '';
 
   // Hide root directory when there's a single root with children, as Toolbar serves as the first-level directory
-  const treeData = flattenSingleRoot(treeHook.files);
+  const treeData = useMemo(() => flattenSingleRoot(treeHook.files), [treeHook.files]);
 
   // Authoritative source: `conversation.extra.is_temporary_workspace` is
   // derived by the backend on every response (see
@@ -482,7 +489,16 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
                             if (n.children) return { ...n, children: assign(n.children) };
                             return n;
                           });
-                        return assign(prev);
+                        const next = assign(prev);
+                        // Persist lazy-loaded children so refreshWorkspace and
+                        // cache-based rehydration don't drop them on next render.
+                        if (workspace) {
+                          setWorkspaceTreeSnapshot(workspace, {
+                            files: next,
+                            expandedKeys: treeHook.expandedKeys,
+                          });
+                        }
+                        return next;
                       });
                     })
                     .catch((err) => {

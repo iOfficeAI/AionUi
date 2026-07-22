@@ -23,7 +23,7 @@ import { isElectronDesktop } from '@/renderer/utils/platform';
 import type { AcpModelInfo } from '../types';
 import { getAvailableModels } from '../utils/modelUtils';
 import { Button, Checkbox, Dropdown, Menu, Message, Tooltip } from '@arco-design/web-react';
-import { Brain, CornerRightUp, FolderUpload, Lightning, Plus, Shield, UploadOne } from '@icon-park/react';
+import { ArrowUp, Brain, FolderUpload, Lightning, Plus, Shield, UploadOne } from '@icon-park/react';
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import styles from '../index.module.css';
@@ -625,7 +625,7 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
             backgroundColor: isButtonDisabled ? undefined : '#000000',
             borderColor: isButtonDisabled ? undefined : '#000000',
           }}
-          icon={<CornerRightUp theme='outline' size='14' fill='white' strokeWidth={5} />}
+          icon={<ArrowUp theme='filled' size='14' fill='white' strokeWidth={5} />}
           onClick={onSend}
           data-testid='guid-send-btn'
         />
