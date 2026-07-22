@@ -9,6 +9,8 @@
   "dndDescription": "펫이 유휴 상태를 유지하고 AI 이벤트를 무시합니다",
   "confirmBubble": "펫 창에 권한 요청 표시",
   "confirmBubbleDescription": "끄면 AI 도구 권한 요청이 메인 채팅 창에만 표시됩니다",
+  "hideWhenMainWindowFocused": "AionUi에 포커스가 있을 때 숨기기",
+  "hideWhenMainWindowFocusedDescription": "AionUi가 포커스를 잃으면 펫을 다시 표시합니다",
   "pat": "쓰다듬기",
   "resetPosition": "위치 초기화",
   "hide": "숨기기",

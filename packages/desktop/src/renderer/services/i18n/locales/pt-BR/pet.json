@@ -9,6 +9,8 @@
   "dndDescription": "Mascote fica ocioso, ignora eventos de IA",
   "confirmBubble": "Mostrar autorizações no mascote",
   "confirmBubbleDescription": "Quando desativado, autorizações de ferramentas de IA permanecem na janela principal de chat",
+  "hideWhenMainWindowFocused": "Ocultar quando o AionUi estiver em foco",
+  "hideWhenMainWindowFocusedDescription": "Mostrar o mascote novamente quando o AionUi perder o foco",
   "pat": "Acariciar",
   "resetPosition": "Redefinir Posição",
   "hide": "Ocultar",

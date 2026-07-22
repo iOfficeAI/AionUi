@@ -9,6 +9,8 @@
   "dndDescription": "Begleiter bleibt inaktiv, ignoriert KI-Ereignisse",
   "confirmBubble": "Genehmigungen beim Begleiter anzeigen",
   "confirmBubbleDescription": "Wenn deaktiviert, bleiben KI-Tool-Genehmigungen im Hauptchat-Fenster",
+  "hideWhenMainWindowFocused": "Ausblenden, wenn AionUi im Fokus ist",
+  "hideWhenMainWindowFocusedDescription": "Begleiter wieder anzeigen, wenn AionUi den Fokus verliert",
   "pat": "Streicheln",
   "resetPosition": "Position zurücksetzen",
   "hide": "Ausblenden",

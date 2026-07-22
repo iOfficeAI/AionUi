@@ -1462,6 +1462,12 @@ export const systemSettings = {
   setPetDnd: bridge.buildProvider<void, { dnd: boolean }>('system-settings:set-pet-dnd'),
   getPetConfirmEnabled: bridge.buildProvider<boolean, void>('system-settings:get-pet-confirm-enabled'),
   setPetConfirmEnabled: bridge.buildProvider<void, { enabled: boolean }>('system-settings:set-pet-confirm-enabled'),
+  getPetHideWhenMainWindowFocused: bridge.buildProvider<boolean, void>(
+    'system-settings:get-pet-hide-when-main-window-focused'
+  ),
+  setPetHideWhenMainWindowFocused: bridge.buildProvider<void, { enabled: boolean }>(
+    'system-settings:set-pet-hide-when-main-window-focused'
+  ),
   ensureNodeRuntime: httpPost<{ ready: boolean }, { scope: IRuntimeStatusScope }>('/api/system/ensure-node-runtime'),
   ensureManagedAcpTool: httpPost<{ ready: boolean }, { scope: IRuntimeStatusScope; tool_id: string }>(
     '/api/system/ensure-managed-acp-tool'

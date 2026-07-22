@@ -111,4 +111,15 @@ export function initSystemSettingsBridge(): void {
     const { setPetConfirmEnabled } = await import('@process/pet/petManager');
     setPetConfirmEnabled(enabled);
   });
+
+  ipcBridge.systemSettings.getPetHideWhenMainWindowFocused.provider(async () => {
+    const value = await ProcessConfig.get('pet.hideWhenMainWindowFocused');
+    return value ?? false;
+  });
+
+  ipcBridge.systemSettings.setPetHideWhenMainWindowFocused.provider(async ({ enabled }) => {
+    await ProcessConfig.set('pet.hideWhenMainWindowFocused', enabled);
+    const { applyPetFocusVisibilitySetting } = await import('@process/pet/petManager');
+    applyPetFocusVisibilitySetting(enabled);
+  });
 }

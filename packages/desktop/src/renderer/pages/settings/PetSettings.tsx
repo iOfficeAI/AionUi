@@ -21,6 +21,7 @@ const PetSettings: React.FC = () => {
   const [size, setSize] = useState(280);
   const [dnd, setDnd] = useState(false);
   const [confirmEnabled, setConfirmEnabled] = useState(true);
+  const [hideWhenMainWindowFocused, setHideWhenMainWindowFocused] = useState(false);
   const { t } = useTranslation();
   const viewMode = useSettingsViewMode();
   const isPageMode = viewMode === 'page';
@@ -31,6 +32,7 @@ const PetSettings: React.FC = () => {
     setSize(configService.get('pet.size') ?? 280);
     setDnd(configService.get('pet.dnd') ?? false);
     setConfirmEnabled(configService.get('pet.confirmEnabled') ?? true);
+    setHideWhenMainWindowFocused(configService.get('pet.hideWhenMainWindowFocused') ?? false);
     systemSettings.getPetEnabled
       .invoke()
       .then((value) => {
@@ -90,6 +92,15 @@ const PetSettings: React.FC = () => {
     });
   }, []);
 
+  const handleHideWhenMainWindowFocusedChange = useCallback((checked: boolean) => {
+    setHideWhenMainWindowFocused(checked);
+    configService.setLocal('pet.hideWhenMainWindowFocused', checked);
+    systemSettings.setPetHideWhenMainWindowFocused.invoke({ enabled: checked }).catch(() => {
+      setHideWhenMainWindowFocused(!checked);
+      configService.setLocal('pet.hideWhenMainWindowFocused', !checked);
+    });
+  }, []);
+
   if (!isDesktop) {
     return (
       <SettingsPageWrapper>
@@ -139,6 +150,18 @@ const PetSettings: React.FC = () => {
       label: t('pet.confirmBubble'),
       description: t('pet.confirmBubbleDescription'),
       component: <Switch checked={confirmEnabled} onChange={handleConfirmEnabledChange} disabled={!enabled} />,
+    },
+    {
+      key: 'hideWhenMainWindowFocused',
+      label: t('pet.hideWhenMainWindowFocused'),
+      description: t('pet.hideWhenMainWindowFocusedDescription'),
+      component: (
+        <Switch
+          checked={hideWhenMainWindowFocused}
+          onChange={handleHideWhenMainWindowFocusedChange}
+          disabled={!enabled}
+        />
+      ),
     },
   ];
 

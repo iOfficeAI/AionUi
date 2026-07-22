@@ -75,6 +75,7 @@ const ALL_LEGACY_KEYS: LegacyConfigKey[] = [
   'pet.size',
   'pet.dnd',
   'pet.confirmEnabled',
+  'pet.hideWhenMainWindowFocused',
   'system.closeToTray',
   'system.notificationEnabled',
   'system.cronNotificationEnabled',

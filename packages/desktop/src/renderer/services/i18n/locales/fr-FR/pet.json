@@ -9,6 +9,8 @@
   "dndDescription": "La mascotte reste inactive, ignore les événements IA",
   "confirmBubble": "Afficher les autorisations sur la mascotte",
   "confirmBubbleDescription": "Désactivé, les autorisations des outils IA restent dans la fenêtre de chat principale",
+  "hideWhenMainWindowFocused": "Masquer lorsque AionUi est actif",
+  "hideWhenMainWindowFocusedDescription": "Réafficher la mascotte lorsque AionUi perd le focus",
   "pat": "Caresser",
   "resetPosition": "Réinitialiser la position",
   "hide": "Masquer",

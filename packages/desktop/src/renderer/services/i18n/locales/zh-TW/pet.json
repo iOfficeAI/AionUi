@@ -9,6 +9,8 @@
   "dndDescription": "寵物保持閒置，忽略 AI 事件",
   "confirmBubble": "在寵物視窗顯示授權",
   "confirmBubbleDescription": "關閉後，AI 工具授權請求只在主聊天視窗顯示",
+  "hideWhenMainWindowFocused": "AionUi 取得焦點時隱藏",
+  "hideWhenMainWindowFocusedDescription": "AionUi 失去焦點時再次顯示寵物",
   "pat": "摸摸",
   "resetPosition": "重設位置",
   "hide": "隱藏",

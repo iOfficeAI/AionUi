@@ -9,6 +9,8 @@
   "dndDescription": "Улюбленець залишається неактивним, ігнорує події ШІ",
   "confirmBubble": "Показувати авторизації над улюбленцем",
   "confirmBubbleDescription": "Якщо вимкнено, авторизації інструментів ШІ залишаються в основному вікні чату",
+  "hideWhenMainWindowFocused": "Приховувати, коли AionUi у фокусі",
+  "hideWhenMainWindowFocusedDescription": "Знову показувати улюбленця, коли AionUi втрачає фокус",
   "pat": "Погладити",
   "resetPosition": "Скинути позицію",
   "hide": "Приховати",

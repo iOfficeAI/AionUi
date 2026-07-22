@@ -9,6 +9,8 @@
   "dndDescription": "Pet boşta kalır, AI olaylarını yok sayar",
   "confirmBubble": "Yetkilendirmeleri pet penceresinde göster",
   "confirmBubbleDescription": "Kapalıyken, AI araç yetkilendirmeleri ana sohbet penceresinde kalır",
+  "hideWhenMainWindowFocused": "AionUi odaktayken gizle",
+  "hideWhenMainWindowFocusedDescription": "AionUi odağı kaybettiğinde peti yeniden göster",
   "pat": "Okşa",
   "resetPosition": "Konumu Sıfırla",
   "hide": "Gizle",

@@ -522,6 +522,12 @@ const createWindow = ({ showOnReady = true }: { showOnReady?: boolean } = {}): v
   setupZoomForWindow(mainWindow);
   registerWindowMaximizeListeners(mainWindow);
   attachWindowBoundsPersistence(mainWindow, (bounds) => ProcessConfig.set('window.bounds', bounds));
+  const petFocusWindow = mainWindow;
+  void import('./process/pet/petManager').then(({ attachPetFocusVisibility }) => {
+    if (petFocusWindow.isDestroyed()) return;
+    const removeListeners = attachPetFocusVisibility(petFocusWindow);
+    petFocusWindow.once('closed', removeListeners);
+  });
 
   // Initialize auto-updater service (skip when disabled via env, e.g. E2E / CI)
   // 初始化自动更新服务（通过环境变量禁用时跳过，例如 E2E / CI 场景）
@@ -959,14 +965,19 @@ const handleAppReady = async (): Promise<void> => {
     setTimeout(() => {
       void (async () => {
         try {
-          const petEnabled = await ProcessConfig.get('pet.enabled');
+          const [petEnabled, hideWhenMainWindowFocused] = await Promise.all([
+            ProcessConfig.get('pet.enabled'),
+            ProcessConfig.get('pet.hideWhenMainWindowFocused'),
+          ]);
           if (petEnabled === true) {
             // Read pet sub-settings before creating the pet so flags are honored
             // on the first createPetWindow() call (which is sync).
             const confirmEnabled = (await ProcessConfig.get('pet.confirmEnabled')) ?? true;
-            const { createPetWindow, setPetConfirmEnabled } = await import('./process/pet/petManager');
+            const { applyPetFocusVisibilitySetting, createPetWindow, setPetConfirmEnabled } =
+              await import('./process/pet/petManager');
             setPetConfirmEnabled(confirmEnabled);
             createPetWindow();
+            applyPetFocusVisibilitySetting(hideWhenMainWindowFocused === true);
           }
         } catch (error) {
           console.error('[Pet] Failed to initialize:', error);

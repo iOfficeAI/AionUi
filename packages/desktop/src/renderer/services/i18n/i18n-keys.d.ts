@@ -1191,6 +1191,8 @@ export type I18nKey =
   | 'pet.dndDescription'
   | 'pet.enable'
   | 'pet.hide'
+  | 'pet.hideWhenMainWindowFocused'
+  | 'pet.hideWhenMainWindowFocusedDescription'
   | 'pet.pat'
   | 'pet.resetPosition'
   | 'pet.showHide'

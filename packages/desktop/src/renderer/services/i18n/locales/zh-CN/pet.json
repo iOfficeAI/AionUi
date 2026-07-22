@@ -9,6 +9,8 @@
   "dndDescription": "宠物保持空闲，忽略 AI 事件",
   "confirmBubble": "在宠物窗口显示授权",
   "confirmBubbleDescription": "关闭后，AI 工具授权请求只在主聊天窗口显示",
+  "hideWhenMainWindowFocused": "AionUi 获得焦点时隐藏",
+  "hideWhenMainWindowFocusedDescription": "AionUi 失去焦点时再次显示宠物",
   "pat": "摸摸",
   "resetPosition": "重置位置",
   "hide": "隐藏",

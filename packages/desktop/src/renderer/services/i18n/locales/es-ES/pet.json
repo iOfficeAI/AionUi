@@ -9,6 +9,8 @@
   "dndDescription": "La mascota permanece inactiva, ignora eventos de IA",
   "confirmBubble": "Mostrar autorizaciones en la mascota",
   "confirmBubbleDescription": "Cuando está desactivado, las autorizaciones de herramientas de IA permanecen en la ventana principal del chat",
+  "hideWhenMainWindowFocused": "Ocultar cuando AionUi tiene el foco",
+  "hideWhenMainWindowFocusedDescription": "Volver a mostrar la mascota cuando AionUi pierde el foco",
   "pat": "Acariciar",
   "resetPosition": "Restablecer posición",
   "hide": "Ocultar",

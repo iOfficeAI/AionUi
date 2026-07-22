@@ -18,6 +18,7 @@ import {
   unhookPetConfirm,
 } from './petConfirmManager';
 import type { PetSize, PetState } from './petTypes';
+import { ProcessConfig } from '@process/utils/initStorage';
 
 /**
  * Check whether the current environment can support desktop pet windows.
@@ -84,6 +85,8 @@ let lastHitIgnoreState = true;
 // createPetWindow() so the initial value picked up from ProcessConfig at startup
 // (see src/index.ts) is honored even though createPetWindow itself is sync.
 let confirmBubbleEnabled = true;
+let focusedMainWindow: BrowserWindow | null = null;
+let removeMainWindowFocusListeners: (() => void) | null = null;
 
 // States that should be restored after drag ends (AI activity / notifications).
 // User-interaction states (attention/poke/happy) and idle/sleep states are NOT restored.
@@ -258,6 +261,56 @@ export function showPetWindow(): void {
 export function hidePetWindow(): void {
   if (petWindow && !petWindow.isDestroyed()) petWindow.hide();
   if (petHitWindow && !petHitWindow.isDestroyed()) petHitWindow.hide();
+}
+
+export function attachPetFocusVisibility(mainWindow: BrowserWindow): () => void {
+  removeMainWindowFocusListeners?.();
+
+  const syncVisibility = () => {
+    void syncPetFocusVisibility(mainWindow);
+  };
+  const removeListeners = () => {
+    mainWindow.removeListener('focus', syncVisibility);
+    mainWindow.removeListener('blur', syncVisibility);
+    if (focusedMainWindow === mainWindow) {
+      focusedMainWindow = null;
+      removeMainWindowFocusListeners = null;
+    }
+  };
+
+  focusedMainWindow = mainWindow;
+  removeMainWindowFocusListeners = removeListeners;
+  mainWindow.on('focus', syncVisibility);
+  mainWindow.on('blur', syncVisibility);
+  syncVisibility();
+  return removeListeners;
+}
+
+export function applyPetFocusVisibilitySetting(enabled: boolean): void {
+  if (!enabled) {
+    showPetWindow();
+    return;
+  }
+
+  if (focusedMainWindow?.isFocused()) {
+    hidePetWindow();
+  } else {
+    showPetWindow();
+  }
+}
+
+async function syncPetFocusVisibility(mainWindow: BrowserWindow): Promise<void> {
+  const [hideWhenFocused, petEnabled] = await Promise.all([
+    ProcessConfig.get('pet.hideWhenMainWindowFocused'),
+    ProcessConfig.get('pet.enabled'),
+  ]);
+  if (hideWhenFocused !== true || petEnabled !== true) return;
+
+  if (mainWindow.isFocused()) {
+    hidePetWindow();
+  } else {
+    showPetWindow();
+  }
 }
 
 export function getEventBridge(): PetEventBridge | null {

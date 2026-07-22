@@ -9,6 +9,8 @@
   "dndDescription": "Питомец остаётся в покое и игнорирует события ИИ",
   "confirmBubble": "Показывать подтверждения на питомце",
   "confirmBubbleDescription": "Если отключить, подтверждения инструментов ИИ будут отображаться только в основном окне чата",
+  "hideWhenMainWindowFocused": "Скрывать при фокусе AionUi",
+  "hideWhenMainWindowFocusedDescription": "Снова показывать питомца, когда AionUi теряет фокус",
   "pat": "Погладить",
   "resetPosition": "Сбросить положение",
   "hide": "Скрыть",
