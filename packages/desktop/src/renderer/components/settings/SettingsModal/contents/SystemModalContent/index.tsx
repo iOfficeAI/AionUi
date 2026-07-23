@@ -23,6 +23,9 @@ import DevSettings from './DevSettings';
 import DirInputItem from './DirInputItem';
 import PreferenceRow from './PreferenceRow';
 import VoiceInputSection from './VoiceInputSection';
+// [voiceCall] Additive settings mount; runtime setting is disabled by default.
+import VoiceCallSection from './VoiceCallSection';
+import { isVoiceCallFeatureEnabled } from '@/renderer/services/speech/voiceCall';
 
 /**
  * System settings content component
@@ -476,6 +479,9 @@ const SystemModalContent: React.FC = () => {
 
           {/* Voice input (speech-to-text) settings */}
           <VoiceInputSection />
+
+          {/* [voiceCall] Optional call-mode settings. */}
+          {isVoiceCallFeatureEnabled() && <VoiceCallSection />}
 
           {/* Developer settings: DevTools + CDP (only visible in dev mode) */}
           <DevSettings />

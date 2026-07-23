@@ -1,4 +1,5 @@
 import { ipcBridge } from '@/common';
+import type { ISendMessageResult } from '@/common/adapter/ipcBridge';
 import type { IConversationMcpStatus } from '@/common/config/storage';
 import { isBackendHttpError } from '@/common/adapter/httpBridge';
 import { isSideQuestionSupported } from '@/common/chat/sideQuestion';
@@ -261,13 +262,21 @@ const AcpSendBox: React.FC<{
   });
 
   const executeCommand = useCallback(
-    async ({ input, files }: Pick<ConversationCommandQueueItem, 'input' | 'files'>) => {
+    async (
+      { input, files }: Pick<ConversationCommandQueueItem, 'input' | 'files'>,
+      onAccepted?: (result: ISendMessageResult) => void
+    ) => {
       // Plain user text; the backend resolves each ChatFileRef and injects the
       // [[AION_FILES]] marker at the send edge (no front-end path/marker building).
+      // [voiceCall] onAccepted lets call mode track turn acceptance.
       try {
         if (teamPermission) await teamPermission.warmupSession();
         void checkAndUpdateTitle(conversation_id, input);
         if (teamSendMessage) {
+          // [voiceCall] Team runtime has no per-turn accept signal; refuse call sends here.
+          if (onAccepted) {
+            throw new Error('Voice call is unavailable for this conversation runtime');
+          }
           await teamSendMessage({ input, files });
           emitter.emit('chat.history.refresh');
           if (files.length > 0) {
@@ -285,6 +294,7 @@ const AcpSendBox: React.FC<{
         });
         markSendAccepted(result.turn_id, result.runtime, result.msg_id);
         emitter.emit('chat.history.refresh');
+        onAccepted?.(result);
       } catch (error: unknown) {
         const errorMsg =
           getConversationRuntimeWorkspaceErrorMessage(error, t) || parseError(error) || t('common.unknownError');
@@ -422,6 +432,17 @@ Please check your local CLI tool authentication status`,
 
     await executeCommand({ input: message, files: allFiles });
   };
+
+  // [voiceCall] Additive transcript route through the established ACP command
+  // path. Attachments and the manual composer draft are intentionally untouched.
+  useAddEventListener(
+    'voiceCall.send',
+    (request) => {
+      if (request.conversationId !== conversation_id) return;
+      void executeCommand({ input: request.text, files: [] }, request.onAccepted).catch(request.onError);
+    },
+    [conversation_id, executeCommand]
+  );
 
   const handleEditQueuedCommand = useCallback(
     (item: ConversationCommandQueueItem) => {
@@ -662,6 +683,15 @@ Please check your local CLI tool authentication status`,
     }
   };
   const effectiveHandleStop = teamRuntime?.onStop ?? handleStop;
+  // [voiceCall] Keep cancellation and runtime reset in one existing path.
+  useAddEventListener(
+    'voiceCall.cancel',
+    (request) => {
+      if (request.conversationId !== conversation_id) return;
+      void effectiveHandleStop().then(request.onStopped).catch(request.onError);
+    },
+    [conversation_id, effectiveHandleStop]
+  );
   const handleSendNowQueued = useCallback(
     async (item: ConversationCommandQueueItem) => {
       // Stop the current reply (best-effort), then promote the chosen command

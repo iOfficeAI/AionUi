@@ -5,6 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
+import type { ISendMessageResult } from '@/common/adapter/ipcBridge';
 import type { IConversationMcpStatus } from '@/common/config/storage';
 import AgentModeSelector from '@/renderer/components/agent/AgentModeSelector';
 import CommandQueuePanel from '@/renderer/components/chat/CommandQueuePanel';
@@ -250,7 +251,10 @@ const AionrsSendBox: React.FC<{
   });
 
   const executeCommand = useCallback(
-    async ({ input, files }: Pick<ConversationCommandQueueItem, 'input' | 'files'>) => {
+    async (
+      { input, files }: Pick<ConversationCommandQueueItem, 'input' | 'files'>,
+      onAccepted?: (result: ISendMessageResult) => void
+    ) => {
       if (teamPermission) await teamPermission.warmupSession();
       if (!current_model?.use_model) {
         Message.warning(t('conversation.chat.noModelSelected'));
@@ -263,6 +267,10 @@ const AionrsSendBox: React.FC<{
       try {
         void checkAndUpdateTitle(conversation_id, input);
         if (teamSendMessage) {
+          // [voiceCall] Team runtime has no per-turn accept signal; refuse call sends here.
+          if (onAccepted) {
+            throw new Error('Voice call is unavailable for this conversation runtime');
+          }
           await teamSendMessage({ input, files });
           emitter.emit('chat.history.refresh');
           if (files.length > 0) {
@@ -284,6 +292,7 @@ const AionrsSendBox: React.FC<{
         if (files.length > 0) {
           emitter.emit('aionrs.workspace.refresh');
         }
+        onAccepted?.(res);
       } catch (error) {
         const errorMessage =
           getConversationRuntimeWorkspaceErrorMessage(error, t) ||
@@ -394,6 +403,17 @@ const AionrsSendBox: React.FC<{
 
     await executeCommand({ input: message, files: filesToSend });
   };
+
+  // [voiceCall] Route call transcripts through the existing send path so
+  // runtime bookkeeping and history refresh remain identical to manual sends.
+  useAddEventListener(
+    'voiceCall.send',
+    (request) => {
+      if (request.conversationId !== conversation_id) return;
+      void executeCommand({ input: request.text, files: [] }, request.onAccepted).catch(request.onError);
+    },
+    [conversation_id, executeCommand]
+  );
 
   const handleEditQueuedCommand = useCallback(
     (item: ConversationCommandQueueItem) => {
@@ -659,6 +679,16 @@ const AionrsSendBox: React.FC<{
     }
   };
   const effectiveHandleStop = teamRuntime?.onStop ?? handleStop;
+  // [voiceCall] Barge-in uses the existing stop/reset path instead of issuing
+  // a second raw HTTP cancellation that could leave SendBox state stale.
+  useAddEventListener(
+    'voiceCall.cancel',
+    (request) => {
+      if (request.conversationId !== conversation_id) return;
+      void effectiveHandleStop().then(request.onStopped).catch(request.onError);
+    },
+    [conversation_id, effectiveHandleStop]
+  );
   const handleSendNowQueued = useCallback(
     async (item: ConversationCommandQueueItem) => {
       // Stop the current reply (best-effort), then promote the chosen command
