@@ -185,7 +185,11 @@ const MyAssistantsList: React.FC<MyAssistantsListProps> = ({
       {/* CLI group below. */}
       {cliAssistants.length > 0 ? (
         <div className='mt-20px' data-testid='group-cli'>
-          {renderGroupHeader(t('settings.assistantGroupCli', { defaultValue: 'Your CLI' }), cliAssistants.length, 'bg-warning-5')}
+          {renderGroupHeader(
+            t('settings.assistantGroupCli', { defaultValue: 'Your CLI' }),
+            cliAssistants.length,
+            'bg-warning-5'
+          )}
           {renderCardGrid(cliAssistants)}
         </div>
       ) : null}
