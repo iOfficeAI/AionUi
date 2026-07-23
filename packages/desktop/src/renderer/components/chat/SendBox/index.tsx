@@ -50,6 +50,8 @@ import UploadProgressBar from '@renderer/components/media/UploadProgressBar';
 import { allSupportedExts } from '@renderer/services/FileService';
 import SpeechInputButton from '@/renderer/components/chat/SpeechInputButton';
 import { appendSpeechTranscript } from '@/renderer/hooks/system/useSpeechInput';
+import { getClientBusinessSetting } from '@/renderer/services/clientBusinessSettings';
+import { normalizeAutoSendUndoMs } from '@/renderer/components/settings/SettingsModal/contents/SystemModalContent/VoiceInputSection/speechSettingsUtils';
 import { createChainedDispatch, useLiveTranscriptInsertion } from '@/renderer/hooks/system/useLiveTranscriptInsertion';
 import { getConversationInputHistory, isCaretOnFirstLine } from '@/renderer/utils/chat/messageHistory';
 import './sendbox.css';
@@ -654,6 +656,8 @@ const SendBox: React.FC<{
   }, [input, isInputFocused, isMobile, isSingleLine, syncHighlightTextMetrics]);
 
   const handleTextAreaChange = (value: string) => {
+    // Any manual edit aborts a pending voice auto-send window.
+    cancelPendingAutoSend();
     if (historyNavigationIndex !== null) {
       historyDraftRef.current = null;
       setHistoryNavigationIndex(null);
@@ -1190,7 +1194,78 @@ const SendBox: React.FC<{
     [activeAtFileTokenKey, atFileMenuActiveIndex, insertSelectedAtFile, isAtFileMenuOpen, visibleAtFileMenuItems]
   );
 
-  const sendMessageHandler = () => {
+  // --- Voice-input auto-send (撤销窗口) ---
+  // After a speech transcript is inserted and `autoSend` is enabled, commit the
+  // message after a short, cancellable undo window. The user cancels by typing
+  // (handleTextAreaChange) or sending manually. Off by default (no behavior
+  // change for the original build).
+  const [pendingAutoSend, setPendingAutoSend] = useState<{ text: string; deadlineMs: number } | null>(null);
+  const [autoSendCountdown, setAutoSendCountdown] = useState(0);
+  const autoSendTimerRef = useRef<number | null>(null);
+  const autoSendIntervalRef = useRef<number | null>(null);
+  const sendHandlerRef = useRef<((override?: string) => void) | null>(null);
+
+  const cancelPendingAutoSend = useCallback(() => {
+    if (autoSendTimerRef.current !== null) {
+      window.clearTimeout(autoSendTimerRef.current);
+      autoSendTimerRef.current = null;
+    }
+    if (autoSendIntervalRef.current !== null) {
+      window.clearInterval(autoSendIntervalRef.current);
+      autoSendIntervalRef.current = null;
+    }
+    setPendingAutoSend(null);
+    setAutoSendCountdown(0);
+  }, []);
+
+  // `composed` is the fully-assembled message (anchor + transcript) already
+  // produced by the chained dispatch in `handleSpeechTranscript`. We must NOT
+  // re-derive it from `latestInputRef.current` here: that ref still holds the
+  // live transcript at this point, so re-computing would double-append.
+  const scheduleAutoSend = useCallback(
+    async (composed: string) => {
+      const config = await getClientBusinessSetting('tools.speechToText');
+      if (!config?.autoSend) {
+        return;
+      }
+      if (!composed.trim()) {
+        return;
+      }
+      const undoMs = normalizeAutoSendUndoMs(config.autoSendUndoMs);
+      cancelPendingAutoSend();
+      setAutoSendCountdown(Math.ceil(undoMs / 1000));
+      autoSendTimerRef.current = window.setTimeout(() => {
+        autoSendTimerRef.current = null;
+        if (autoSendIntervalRef.current !== null) {
+          window.clearInterval(autoSendIntervalRef.current);
+          autoSendIntervalRef.current = null;
+        }
+        setPendingAutoSend(null);
+        setAutoSendCountdown(0);
+        if (sendHandlerRef.current) {
+          sendHandlerRef.current(composed);
+        }
+      }, undoMs);
+      autoSendIntervalRef.current = window.setInterval(() => {
+        setAutoSendCountdown((previous) => Math.max(0, previous - 1));
+      }, 1000);
+      setPendingAutoSend({ text: composed, deadlineMs: Date.now() + undoMs });
+    },
+    [cancelPendingAutoSend]
+  );
+
+  // Keep the latest send handler reachable from the auto-send timer closure.
+  useEffect(() => {
+    sendHandlerRef.current = sendMessageHandler;
+  });
+
+  // Clear any pending auto-send when the SendBox unmounts.
+  useEffect(() => () => cancelPendingAutoSend(), [cancelPendingAutoSend]);
+
+  const sendMessageHandler = (textOverride?: string) => {
+    // A manual send (button / Enter / shortcut) supersedes a pending voice
+    // auto-send: cancel the countdown so we never send twice.
+    cancelPendingAutoSend();
     if (isUploading) return;
     if (enableBtw && btwQuestion !== null) {
       const normalizedQuestion = btwQuestion.trim();
@@ -1223,7 +1298,7 @@ const SendBox: React.FC<{
       message.warning(t('messages.conversationInProgress'));
       return;
     }
-    if (!input.trim() && domSnippets.length === 0) {
+    if (!textOverride && !input.trim() && domSnippets.length === 0) {
       return;
     }
     console.info('[sendbox]', {
@@ -1239,7 +1314,9 @@ const SendBox: React.FC<{
     setHistoryNavigationIndex(null);
 
     // 构建消息内容 / Build message content
-    let finalMessage = input;
+    // `textOverride` is the pre-composed message from a voice auto-send window;
+    // when present it takes precedence over the live textarea value.
+    let finalMessage = textOverride ?? input;
 
     // Prepend reply quote as blockquote
     if (replyQuote) {
@@ -1298,9 +1375,10 @@ const SendBox: React.FC<{
   }, [input, speechDispatch]);
   const handleSpeechTranscript = useCallback(
     (transcript: string) => {
-      speechDispatch.dispatch((prev) => appendSpeechTranscript(prev, transcript));
+      const composed = speechDispatch.dispatch((prev) => appendSpeechTranscript(prev, transcript));
+      void scheduleAutoSend(composed);
     },
-    [speechDispatch]
+    [scheduleAutoSend, speechDispatch]
   );
   const { handleLiveTranscript } = useLiveTranscriptInsertion(speechDispatch.dispatch);
 
@@ -1579,6 +1657,24 @@ const SendBox: React.FC<{
             </div>
           )}
         </div>
+        {pendingAutoSend && (
+          <div
+            className='flex items-center justify-between gap-8px mb-8px px-12px py-8px rd-10px'
+            style={{
+              background: 'color-mix(in srgb, var(--color-warning-light-1) 60%, transparent)',
+              border: '1px solid var(--color-warning-light-3)',
+            }}
+          >
+            <span className='text-12px text-t-secondary'>
+              {t('voiceInput.autoSendHint', {
+                defaultValue: `语音输入将在 ${autoSendCountdown} 秒后自动发送，输入内容或点“取消”可中止`,
+              })}
+            </span>
+            <Button size='mini' type='secondary' onClick={cancelPendingAutoSend}>
+              {t('common.cancel', { defaultValue: '取消' })}
+            </Button>
+          </div>
+        )}
         <UploadProgressBar source='sendbox' />
         <div
           className={isSingleLine ? 'flex items-center gap-2 w-full min-w-0 overflow-hidden' : 'w-full overflow-hidden'}

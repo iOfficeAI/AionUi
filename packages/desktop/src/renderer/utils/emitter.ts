@@ -9,11 +9,32 @@ import type { DependencyList } from 'react';
 import { useEffect } from 'react';
 import type { FileOrFolderItem } from '@/renderer/utils/file/fileTypes';
 import type { PreviewContentType } from '@/common/types/office/preview';
+import type { ISendMessageResult } from '@/common/adapter/ipcBridge';
 
 export type ReplyQuote = {
   messageId: string;
   content: string;
   position: 'left' | 'right' | 'center' | 'pop';
+};
+
+// [voiceCall] Requests are routed through the mounted platform SendBox so the
+// existing runtime gate, history refresh and stop/reset behavior stay intact.
+export type VoiceCallSendRequest = {
+  conversationId: string;
+  sessionId: string;
+  generation: number;
+  text: string;
+  onAccepted: (result: ISendMessageResult) => void;
+  onError: (error: unknown) => void;
+};
+
+export type VoiceCallCancelRequest = {
+  conversationId: string;
+  sessionId: string;
+  generation: number;
+  turnId: string;
+  onStopped: () => void;
+  onError: (error: unknown) => void;
 };
 
 interface EventTypes {
@@ -44,6 +65,8 @@ interface EventTypes {
   'sendbox.fill': [string]; // prompt text to fill
   'sendbox.reply': [ReplyQuote]; // reply/quote a message
   'sendbox.reply.clear': void; // clear reply quote
+  'voiceCall.send': [VoiceCallSendRequest];
+  'voiceCall.cancel': [VoiceCallCancelRequest];
 }
 
 export const emitter = new EventEmitter<EventTypes>();

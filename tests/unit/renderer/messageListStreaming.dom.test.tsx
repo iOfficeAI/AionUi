@@ -44,6 +44,8 @@ vi.mock('@arco-design/web-react', () => ({
   Image: {
     PreviewGroup: ({ children }: PropsWithChildren) => <>{children}</>,
   },
+  // [voiceRead] Used by the additive voice-read bar in MessageList.
+  Tooltip: ({ children }: PropsWithChildren) => <>{children}</>,
 }));
 
 vi.mock('@/renderer/hooks/context/ConversationContext', () => ({
@@ -122,6 +124,16 @@ vi.mock('@/renderer/pages/conversation/Messages/components/SelectionReplyButton'
 
 vi.mock('@icon-park/react', () => ({
   Down: () => <span>down</span>,
+  // [voiceRead] Icons used by the additive voice-read bar/buttons in MessageList.
+  Left: () => <span>left</span>,
+  Pause: () => <span>pause</span>,
+  PlayOne: () => <span>play</span>,
+  Refresh: () => <span>refresh</span>,
+  Right: () => <span>right</span>,
+  SpeedOne: () => <span>rate</span>,
+  SquareSmall: () => <span>stop</span>,
+  VolumeMute: () => <span>mute</span>,
+  VolumeNotice: () => <span>read-aloud</span>,
 }));
 
 function createTextMessage(content: string): IMessageText {

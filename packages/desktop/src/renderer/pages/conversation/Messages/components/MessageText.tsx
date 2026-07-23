@@ -22,6 +22,8 @@ import HorizontalFileList from '@renderer/components/media/HorizontalFileList';
 import MarkdownView from '@renderer/components/Markdown';
 import { stripThinkTags, hasThinkTags } from '@renderer/utils/chat/thinkTagFilter';
 import { stripSkillSuggest, hasSkillSuggest } from '@renderer/utils/chat/skillSuggestParser';
+// [voiceRead] Additive import: per-message read-aloud button (feature-flagged).
+import { MessageVoiceReadButton, isVoiceReadEnabled } from '@/renderer/services/speech/voiceRead';
 
 /**
  * Format a timestamp for message display.
@@ -305,6 +307,14 @@ const MessageText: React.FC<{ message: IMessageText; showCopyRow?: boolean }> = 
             })}
           >
             {copyButton}
+            {/* [voiceRead] Additive: per-message read-aloud button, only for AI text messages. */}
+            {!isUserMessage && isVoiceReadEnabled() && (
+              <MessageVoiceReadButton
+                conversationId={conversationContext?.conversation_id}
+                messageId={message.id}
+                text={typeof data === 'string' ? data : text}
+              />
+            )}
             {message.created_at && (
               <span className='text-12px text-t-secondary opacity-0 group-hover:opacity-100 transition-opacity select-none'>
                 {formatMessageTime(message.created_at)}

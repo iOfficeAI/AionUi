@@ -133,6 +133,9 @@ vi.mock('@arco-design/web-react', () => ({
 
 vi.mock('@icon-park/react', () => ({
   Copy: () => <span data-testid='copy-icon' />,
+  // [voiceRead] Icons used by the additive read-aloud button in MessageText.
+  SquareSmall: () => <span data-testid='stop-icon' />,
+  VolumeNotice: () => <span data-testid='read-aloud-icon' />,
 }));
 
 vi.mock('react-i18next', () => ({

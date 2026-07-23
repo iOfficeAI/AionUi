@@ -48,6 +48,13 @@ import type { WriteFileResult } from './types';
 import { useAutoScroll } from './useAutoScroll';
 import { useAutoPreviewOfficeFiles } from '@/renderer/hooks/file/useAutoPreviewOfficeFiles';
 import SelectionReplyButton from './components/SelectionReplyButton';
+// [voiceRead] Additive imports: conversation-level read-aloud controls (feature-flagged).
+import {
+  SelectionReadButton,
+  VoiceReadBar,
+  isVoiceReadEnabled,
+  useVoiceReadStreamObserver,
+} from '@/renderer/services/speech/voiceRead';
 
 type IMessageVO =
   | TMessage
@@ -310,6 +317,8 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
   const loadPreviousMessagePage = useLoadPreviousMessagePage(conversationContext?.conversation_id);
   const loadAnchorMessageWindow = useLoadAnchorMessageWindow(conversationContext?.conversation_id);
   useAutoPreviewOfficeFiles(conversationContext);
+  // [voiceRead] Additive: observe the conversation stream for read-aloud (no-op when flag off).
+  useVoiceReadStreamObserver(conversationContext?.conversation_id);
   // While the agent is still streaming, the in-progress turn's last text keeps
   // moving down, so we defer its copy/timestamp row until the turn finishes to
   // avoid the row flashing in and the layout reflowing mid-stream.
@@ -727,6 +736,14 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
               <Down theme='filled' size='20' fill={iconColors.secondary} style={{ display: 'block' }} />
             </div>
           </div>
+        </>
+      )}
+
+      {/* [voiceRead] Additive: conversation-level read bar + selection read button. */}
+      {isVoiceReadEnabled() && (
+        <>
+          <VoiceReadBar conversationId={conversationContext?.conversation_id ?? null} messages={list} />
+          <SelectionReadButton />
         </>
       )}
 
