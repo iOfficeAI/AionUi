@@ -84,7 +84,6 @@ describe('AssistantSettings', () => {
       setActiveAssistantId: vi.fn(),
       activeAssistant: null,
       loadAssistants: vi.fn(),
-      reorderAssistants: vi.fn(),
       reorderEnabledAssistants: vi.fn(),
       assistantOrder: [],
       setAssistantOrder: vi.fn(),

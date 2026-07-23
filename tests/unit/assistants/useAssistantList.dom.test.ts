@@ -189,51 +189,6 @@ describe('useAssistantList', () => {
     consoleErrorSpy.mockRestore();
   });
 
-  it('reorders assistants and persists sort_order updates', async () => {
-    const initialList: Assistant[] = [
-      { id: '1', name: 'A', sort_order: 1, source: 'user', enabled: true },
-      { id: '2', name: 'B', sort_order: 2, source: 'user', enabled: true },
-      { id: '3', name: 'C', sort_order: 3, source: 'user', enabled: true },
-    ];
-    (ipcBridge.assistants.list.invoke as any).mockResolvedValue(initialList);
-    (ipcBridge.assistants.setState.invoke as any).mockResolvedValue(undefined);
-
-    const { result } = renderHook(() => useAssistantList());
-    await waitFor(() => expect(result.current.assistants).toHaveLength(3));
-
-    await act(async () => {
-      await result.current.reorderAssistants('3', '1');
-    });
-
-    expect(result.current.assistants.map((assistant) => assistant.id)).toEqual(['3', '1', '2']);
-    expect(ipcBridge.assistants.setState.invoke).toHaveBeenCalledTimes(3);
-    expect(ipcBridge.assistants.setState.invoke).toHaveBeenNthCalledWith(1, { id: '3', sort_order: 1000 });
-    expect(ipcBridge.assistants.setState.invoke).toHaveBeenNthCalledWith(2, { id: '1', sort_order: 2000 });
-    expect(ipcBridge.assistants.setState.invoke).toHaveBeenNthCalledWith(3, { id: '2', sort_order: 3000 });
-  });
-
-  it('restores the previous order when reorder persistence fails', async () => {
-    const initialList: Assistant[] = [
-      { id: '1', name: 'A', sort_order: 1, source: 'user', enabled: true },
-      { id: '2', name: 'B', sort_order: 2, source: 'user', enabled: true },
-    ];
-    (ipcBridge.assistants.list.invoke as any).mockResolvedValue(initialList);
-    (ipcBridge.assistants.setState.invoke as any).mockRejectedValue(new Error('persist failed'));
-    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-
-    const { result } = renderHook(() => useAssistantList());
-    await waitFor(() => expect(result.current.assistants).toHaveLength(2));
-
-    await act(async () => {
-      await result.current.reorderAssistants('2', '1');
-    });
-
-    expect(result.current.assistants.map((assistant) => assistant.id)).toEqual(['1', '2']);
-    expect(consoleErrorSpy).toHaveBeenCalled();
-
-    consoleErrorSpy.mockRestore();
-  });
-
   it('reorders only enabled assistants through the shared preference', async () => {
     assistantOrderConfigMock.state.value = ['cli', 'custom', 'official'];
     const initialList: Assistant[] = [

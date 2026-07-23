@@ -1,11 +1,7 @@
 import { ipcBridge } from '@/common';
 import { resolveLocaleKey } from '@/common/utils';
 import type { Assistant } from '@/common/types/agent/assistantTypes';
-import {
-  applyAssistantSortOrders,
-  buildAssistantSortUpdates,
-  reorderAssistantList,
-} from '@/renderer/pages/settings/AssistantSettings/assistantUtils';
+import { reorderAssistantList } from '@/renderer/pages/settings/AssistantSettings/assistantUtils';
 import { selectableAssistants } from '@/renderer/utils/model/assistantSelection';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -36,33 +32,6 @@ export const useAssistantList = () => {
       console.error('Failed to load assistants:', error);
     }
   }, []);
-
-  const reorderAssistants = useCallback(
-    async (activeId: string, overId: string) => {
-      const reorderedAssistants = reorderAssistantList(assistants, activeId, overId);
-      if (reorderedAssistants === assistants) {
-        return;
-      }
-
-      const normalizedAssistants = applyAssistantSortOrders(reorderedAssistants);
-      const sortUpdates = buildAssistantSortUpdates(assistants, normalizedAssistants);
-      if (sortUpdates.length === 0) {
-        setAssistants(normalizedAssistants);
-        return;
-      }
-
-      const previousAssistants = assistants;
-      setAssistants(normalizedAssistants);
-
-      try {
-        await Promise.all(sortUpdates.map((update) => ipcBridge.assistants.setState.invoke(update)));
-      } catch (error) {
-        console.error('Failed to reorder assistants:', error);
-        setAssistants(previousAssistants);
-      }
-    },
-    [assistants]
-  );
 
   const reorderEnabledAssistants = useCallback(
     async (activeId: string, overId: string) => {
@@ -104,7 +73,6 @@ export const useAssistantList = () => {
     setActiveAssistantId,
     activeAssistant,
     loadAssistants,
-    reorderAssistants,
     reorderEnabledAssistants,
     assistantOrder,
     setAssistantOrder,
