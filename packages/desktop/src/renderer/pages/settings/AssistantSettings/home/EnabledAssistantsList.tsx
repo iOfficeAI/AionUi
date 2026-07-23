@@ -8,18 +8,7 @@ import type { AssistantListItem } from '../types';
 import { resolveAssistantSourceTag } from '../assistantUtils';
 import AssistantAvatar from '../AssistantAvatar';
 import RuntimeBadge from './RuntimeBadge';
-import {
-  DndContext,
-  KeyboardSensor,
-  PointerSensor,
-  closestCenter,
-  useSensor,
-  useSensors,
-  type DragCancelEvent,
-  type DragEndEvent,
-  type DragOverEvent,
-  type DragStartEvent,
-} from '@dnd-kit/core';
+import { DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import {
   SortableContext,
   sortableKeyboardCoordinates,
@@ -29,7 +18,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { Button, Empty, Tag } from '@arco-design/web-react';
 import { Drag } from '@icon-park/react';
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { selectableAssistants } from '@/renderer/utils/model/assistantSelection';
 
@@ -46,7 +35,6 @@ type EnabledAssistantRowProps = {
   assistant: AssistantListItem;
   localeKey: string;
   draggable: boolean;
-  dropTarget: boolean;
   onOpenDetail: (assistant: AssistantListItem) => void;
 };
 
@@ -54,7 +42,6 @@ const EnabledAssistantRow: React.FC<EnabledAssistantRowProps> = ({
   assistant,
   localeKey,
   draggable,
-  dropTarget,
   onOpenDetail,
 }) => {
   const { t } = useTranslation();
@@ -82,16 +69,9 @@ const EnabledAssistantRow: React.FC<EnabledAssistantRowProps> = ({
       ref={setNodeRef}
       style={style}
       data-testid={`enabled-assistant-row-${assistant.id}`}
-      className={`group relative flex cursor-pointer items-center justify-between gap-12px rounded-12px border border-solid px-14px py-12px transition-all duration-180 ${
-        isDragging || dropTarget
-          ? 'border-primary-5 bg-primary-1'
-          : 'border-transparent bg-base hover:border-border-2 hover:bg-fill-1'
-      }`}
+      className='group flex cursor-pointer items-center justify-between gap-12px rounded-12px border border-solid border-transparent bg-base px-14px py-12px transition-all duration-180 hover:border-border-2'
       onClick={() => onOpenDetail(assistant)}
     >
-      {dropTarget && !isDragging ? (
-        <span className='pointer-events-none absolute inset-x-12px -top-1px h-2px rounded-full bg-primary-6' />
-      ) : null}
       <div className='flex min-w-0 flex-1 items-center gap-12px'>
         <Button
           ref={setActivatorNodeRef}
@@ -100,10 +80,8 @@ const EnabledAssistantRow: React.FC<EnabledAssistantRowProps> = ({
           disabled={!draggable}
           aria-label={`${t('settings.assistantReorderHintShort', { defaultValue: 'Drag to reorder' })}: ${name}`}
           data-testid={`enabled-assistant-reorder-handle-${assistant.id}`}
-          className={`!min-w-0 !rounded-6px !px-4px !py-0 !text-t-tertiary transition-opacity ${
-            draggable
-              ? 'cursor-grab !opacity-100 active:cursor-grabbing sm:!opacity-0 sm:group-hover:!opacity-100 sm:focus:!opacity-100'
-              : '!opacity-0'
+          className={`!min-w-0 !rounded-6px !px-4px !py-0 !text-t-tertiary ${
+            draggable ? 'cursor-grab active:cursor-grabbing' : '!opacity-0'
           }`}
           style={{ touchAction: 'none' }}
           onClick={(event) => event.stopPropagation()}
@@ -140,8 +118,6 @@ const EnabledAssistantsList: React.FC<EnabledAssistantsListProps> = ({
   onReorder,
 }) => {
   const { t } = useTranslation();
-  const [activeId, setActiveId] = useState<string | null>(null);
-  const [overId, setOverId] = useState<string | null>(null);
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
@@ -152,36 +128,14 @@ const EnabledAssistantsList: React.FC<EnabledAssistantsListProps> = ({
   );
   const sortingEnabled = !searchActive && enabledAssistants.length > 1;
 
-  const resetDragState = useCallback(() => {
-    setActiveId(null);
-    setOverId(null);
-  }, []);
-
-  const handleDragStart = useCallback((event: DragStartEvent) => {
-    setActiveId(String(event.active.id));
-    setOverId(String(event.active.id));
-  }, []);
-
-  const handleDragOver = useCallback((event: DragOverEvent) => {
-    setOverId(event.over ? String(event.over.id) : null);
-  }, []);
-
-  const handleDragCancel = useCallback(
-    (_event: DragCancelEvent) => {
-      resetDragState();
-    },
-    [resetDragState]
-  );
-
   const handleDragEnd = useCallback(
     (event: DragEndEvent) => {
       const draggedId = String(event.active.id);
       const targetId = event.over ? String(event.over.id) : null;
-      resetDragState();
       if (!sortingEnabled || !targetId || draggedId === targetId) return;
       void onReorder(draggedId, targetId);
     },
-    [onReorder, resetDragState, sortingEnabled]
+    [onReorder, sortingEnabled]
   );
 
   return (
@@ -206,14 +160,7 @@ const EnabledAssistantsList: React.FC<EnabledAssistantsListProps> = ({
           />
         </div>
       ) : (
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragStart={handleDragStart}
-          onDragOver={handleDragOver}
-          onDragCancel={handleDragCancel}
-          onDragEnd={handleDragEnd}
-        >
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
           <SortableContext
             items={enabledAssistants.map((assistant) => assistant.id)}
             strategy={verticalListSortingStrategy}
@@ -225,7 +172,6 @@ const EnabledAssistantsList: React.FC<EnabledAssistantsListProps> = ({
                   assistant={assistant}
                   localeKey={localeKey}
                   draggable={sortingEnabled}
-                  dropTarget={overId === assistant.id && activeId !== assistant.id}
                   onOpenDetail={onOpenDetail}
                 />
               ))}
