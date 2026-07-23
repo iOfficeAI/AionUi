@@ -590,7 +590,9 @@
     "statusTitle": "团队",
     "statusAria": "打开团队",
     "latestMessage": "最新：{{message}}",
-    "disbanded": "已解散"
+    "disbanded": "已解散",
+    "running": "运行中",
+    "runDetail": "{{count}} 个活跃轮次"
   },
   "notFound": "会话不存在或已被删除"
 }

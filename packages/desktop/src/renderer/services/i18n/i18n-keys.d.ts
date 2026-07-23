@@ -481,6 +481,8 @@ export type I18nKey =
   | 'conversation.collaboration.joinedSuccess'
   | 'conversation.collaboration.latestMessage'
   | 'conversation.collaboration.launchTooltip'
+  | 'conversation.collaboration.runDetail'
+  | 'conversation.collaboration.running'
   | 'conversation.collaboration.selectAgentTitle'
   | 'conversation.collaboration.statusAria'
   | 'conversation.collaboration.statusTitle'

@@ -195,6 +195,37 @@ describe('CollaborationLauncher', () => {
     await waitFor(() => expect(screen.getByTestId('agent-selector-modal')).not.toBeVisible());
   });
 
+  it('does nothing when confirming without an injected create handler', async () => {
+    const onCreated = vi.fn();
+    render(<CollaborationLauncher conversationId='conv-1' userId='user-1' onCreated={onCreated} isCreating={false} />);
+    fireEvent.click(screen.getByTestId('collaboration-launcher-trigger'));
+    fireEvent.click(screen.getByTestId('agent-selector-option-a1'));
+    fireEvent.click(screen.getByTestId('agent-selector-confirm'));
+
+    await waitFor(() => expect(createMock).not.toHaveBeenCalled());
+    expect(onCreated).not.toHaveBeenCalled();
+  });
+
+  it('keeps the modal open when cancelling while creation is in flight', async () => {
+    createMock.mockImplementation(() => new Promise(() => {}));
+    render(
+      <CollaborationLauncher
+        conversationId='conv-1'
+        userId='user-1'
+        onCreated={vi.fn()}
+        create={createMock}
+        isCreating={false}
+      />
+    );
+    fireEvent.click(screen.getByTestId('collaboration-launcher-trigger'));
+    fireEvent.click(screen.getByTestId('agent-selector-option-a1'));
+    fireEvent.click(screen.getByTestId('agent-selector-confirm'));
+    await waitFor(() => expect(screen.getByTestId('agent-selector-confirm')).toBeDisabled());
+
+    fireEvent.click(screen.getByTestId('agent-selector-cancel'));
+    expect(screen.getByTestId('agent-selector-modal')).toBeVisible();
+  });
+
   it('disables the trigger while a team is being created', () => {
     render(
       <CollaborationLauncher
@@ -206,5 +237,17 @@ describe('CollaborationLauncher', () => {
       />
     );
     expect(screen.getByTestId('collaboration-launcher-trigger')).toBeDisabled();
+  });
+
+  it('does not call create when the injected create prop is undefined', async () => {
+    render(<CollaborationLauncher conversationId='conv-1' userId='user-1' onCreated={vi.fn()} />);
+    fireEvent.click(screen.getByTestId('collaboration-launcher-trigger'));
+    await waitFor(() => expect(screen.getByTestId('agent-selector-option-a1')).toBeInTheDocument());
+
+    fireEvent.click(screen.getByTestId('agent-selector-option-a1'));
+    fireEvent.click(screen.getByTestId('agent-selector-confirm'));
+
+    await waitFor(() => expect(messageErrorMock).not.toHaveBeenCalled());
+    expect(screen.getByTestId('agent-selector-modal')).toBeVisible();
   });
 });

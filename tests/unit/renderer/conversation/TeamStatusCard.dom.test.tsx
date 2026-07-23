@@ -268,6 +268,42 @@ describe('TeamStatusCard', () => {
     expect(screen.queryByTestId('team-status-card-member-count')).not.toBeInTheDocument();
   });
 
+  it('renders a preview of the latest teammate message', () => {
+    render(
+      <TeamStatusCard
+        association={{ team_id: teamId, origin_conversation_id: 'conv-1', status: 'active' }}
+        lastTeammateMessage={
+          {
+            team_id: teamId,
+            conversation_id: 'conv-member',
+            content: 'Latest update from teammate',
+            from_slot_id: 'slot-a',
+            from_name: 'Teammate A',
+          } as never
+        }
+        onNavigate={onNavigate}
+      />
+    );
+    expect(screen.getByTestId('team-status-card-message-preview')).toHaveTextContent('Latest update from teammate');
+  });
+
+  it('renders active turn detail when a run is in progress', () => {
+    render(
+      <TeamStatusCard
+        association={{ team_id: teamId, origin_conversation_id: 'conv-1', status: 'active' }}
+        team={mockTeam()}
+        isTeamRunning
+        activeRun={mockRunEvent({ status: 'running' })}
+        slotWorkBySlot={{
+          'slot-lead': mockSlotWork({ slot_id: 'slot-lead', role: 'lead', state: 'running', active_turn_id: 'turn-1' }),
+          'slot-a': mockSlotWork({ slot_id: 'slot-a', role: 'teammate', state: 'idle' }),
+        }}
+        onNavigate={onNavigate}
+      />
+    );
+    expect(screen.getByTestId('team-status-card-run-detail')).toHaveTextContent('1');
+  });
+
   it('prefers live team name over cached association team name', () => {
     render(
       <TeamStatusCard

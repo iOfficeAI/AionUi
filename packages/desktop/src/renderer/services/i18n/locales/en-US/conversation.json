@@ -521,7 +521,9 @@
     "statusTitle": "Team",
     "statusAria": "Open team",
     "latestMessage": "Latest: {{message}}",
-    "disbanded": "Disbanded"
+    "disbanded": "Disbanded",
+    "running": "Running",
+    "runDetail": "{{count}} active turn(s)"
   },
   "contextUsage": {
     "contextUsed": "context used"

@@ -191,6 +191,26 @@ describe('useAdHocTeamFromConversation status summary', () => {
     expect(result.current.unreadTeammateMessageCount).toBe(0);
   });
 
+  it('surfaces association refetch errors from runtime event handlers without leaving loading stuck', async () => {
+    adHocMocks.getByConversation.invoke.mockResolvedValueOnce({
+      team_id: 'team-1',
+      origin_conversation_id: 'conv-1',
+      status: 'active',
+    });
+    adHocMocks.getByConversation.invoke.mockRejectedValueOnce(new Error('association lookup failed'));
+
+    const { result } = renderHook(() => useAdHocTeamFromConversation('conv-1', 'user-1'));
+
+    await waitFor(() => expect(result.current.association?.team_id).toBe('team-1'));
+
+    act(() => eventHandlers.removed?.({ team_id: 'team-1' }));
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(result.current.error).toBeInstanceOf(Error);
+    expect(result.current.error?.message).toBe('association lookup failed');
+  });
+
   it('refetches association when the linked team is removed', async () => {
     adHocMocks.getByConversation.invoke.mockResolvedValueOnce({
       team_id: 'team-1',
@@ -230,6 +250,15 @@ describe('useAdHocTeamFromConversation status summary', () => {
     await waitFor(() => expect(result.current.association?.team_id).toBe('team-1'));
 
     act(() => eventHandlers.sessionChanged?.({ team_id: 'team-1' }));
+
+    await waitFor(() => expect(adHocMocks.get.invoke).toHaveBeenCalledTimes(2));
+  });
+
+  it('refetches team summary when an agent status changes', async () => {
+    const { result } = renderHook(() => useAdHocTeamFromConversation('conv-1', 'user-1'));
+    await waitFor(() => expect(result.current.association?.team_id).toBe('team-1'));
+
+    act(() => eventHandlers.agentStatusChanged?.({ team_id: 'team-1' }));
 
     await waitFor(() => expect(adHocMocks.get.invoke).toHaveBeenCalledTimes(2));
   });

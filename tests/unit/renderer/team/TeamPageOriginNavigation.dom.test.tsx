@@ -5,7 +5,7 @@
  */
 
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { TTeam } from '@/common/types/team/teamTypes';
@@ -240,5 +240,16 @@ describe('TeamPage origin conversation navigation', () => {
     );
 
     expect(screen.queryByTestId('team-back-to-origin')).not.toBeInTheDocument();
+  });
+
+  it('navigates to the origin conversation when the back button is clicked', () => {
+    render(
+      <MemoryRouter>
+        <TeamPage team={mockTeam({ origin_conversation_id: 'conv-origin' })} />
+      </MemoryRouter>
+    );
+
+    fireEvent.click(screen.getByTestId('team-back-to-origin'));
+    expect(navigateMock).toHaveBeenCalledWith('/conversation/conv-origin');
   });
 });

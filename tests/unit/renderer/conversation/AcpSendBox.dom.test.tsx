@@ -577,4 +577,20 @@ describe('AcpSendBox', () => {
       expect(setConfigOption).toHaveBeenCalledWith('reasoning_effort', 'high');
     });
   });
+
+  it('disables the send box while the linked ad-hoc team is running', async () => {
+    render(
+      <AcpSendBox
+        conversation_id='conv-1'
+        backend='codex'
+        workspacePath='/tmp/workspace'
+        messageState={makeMessageState()}
+        isTeamRunning
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('sendbox-disabled')).toHaveTextContent('disabled');
+    });
+  });
 });
