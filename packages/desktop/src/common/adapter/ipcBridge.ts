@@ -865,7 +865,11 @@ export const acpConversation = {
       advanced?: {
         yolo_id?: string;
         native_skills_dirs?: string[];
-        behavior_policy?: { supports_side_question?: boolean };
+        behavior_policy?: {
+          supports_side_question?: boolean;
+          supports_team?: boolean;
+          team_capable_override?: boolean;
+        };
         description?: string;
       };
     }
@@ -882,7 +886,11 @@ export const acpConversation = {
       advanced?: {
         yolo_id?: string;
         native_skills_dirs?: string[];
-        behavior_policy?: { supports_side_question?: boolean };
+        behavior_policy?: {
+          supports_side_question?: boolean;
+          supports_team?: boolean;
+          team_capable_override?: boolean;
+        };
         description?: string;
       };
     }

@@ -65,6 +65,8 @@ export type AgentEnvEntry = {
  */
 export type BehaviorPolicy = {
   supports_side_question?: boolean;
+  supports_team?: boolean;
+  team_capable_override?: boolean;
 };
 
 /**
