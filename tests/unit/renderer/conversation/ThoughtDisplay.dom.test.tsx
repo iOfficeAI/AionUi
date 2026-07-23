@@ -5,7 +5,15 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 vi.mock('@arco-design/web-react', () => ({
   Spin: () => <span data-testid='spinner' />,
   Tag: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
-  Button: ({ children, className, onClick }: { children: React.ReactNode; className?: string; onClick?: () => void }) => (
+  Button: ({
+    children,
+    className,
+    onClick,
+  }: {
+    children: React.ReactNode;
+    className?: string;
+    onClick?: () => void;
+  }) => (
     <button className={className} onClick={onClick}>
       {children}
     </button>

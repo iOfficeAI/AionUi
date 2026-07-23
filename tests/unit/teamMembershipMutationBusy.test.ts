@@ -29,7 +29,11 @@ describe('team membership mutation busy state', () => {
   });
 
   it('treats dormant as non-busy and clears any pending marker for the slot', () => {
-    const withPending = applyTeamRuntimeStatusToMembershipMutationState(createTeamMembershipMutationState(), 'slot-1', 'pending');
+    const withPending = applyTeamRuntimeStatusToMembershipMutationState(
+      createTeamMembershipMutationState(),
+      'slot-1',
+      'pending'
+    );
     expect(isTeamMembershipMutationBusy(withPending)).toBe(true);
 
     const afterDormant = applyTeamRuntimeStatusToMembershipMutationState(withPending, 'slot-1', 'dormant');
