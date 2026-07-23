@@ -110,6 +110,18 @@ describe('common desktop UI shortcuts', () => {
     expect(event.defaultPrevented).toBe(true);
   });
 
+  it('toggles the sidebar while the composer textarea is focused', () => {
+    const composer = document.createElement('textarea');
+    document.body.appendChild(composer);
+    composer.focus();
+    const { toggleSider } = renderConversationShortcuts();
+
+    const event = dispatchShortcut(composer, { key: 'b', metaKey: true });
+
+    expect(toggleSider).toHaveBeenCalledTimes(1);
+    expect(event.defaultPrevented).toBe(true);
+  });
+
   it('keeps the existing new-conversation shortcut isolated from common UI actions', () => {
     const { navigate, toggleSider } = renderConversationShortcuts();
 
@@ -234,13 +246,9 @@ describe('common desktop UI shortcuts', () => {
     expect(toggleSider).not.toHaveBeenCalled();
   });
 
-  it('yields to editable, code-editor, terminal, and embedded surfaces', () => {
+  it('leaves sidebar shortcuts to embedded code editors, terminals, and frames', () => {
     const { toggleSider } = renderConversationShortcuts();
-    const contentEditable = document.createElement('div');
-    contentEditable.setAttribute('contenteditable', 'true');
     const targets = [
-      document.createElement('textarea'),
-      contentEditable,
       Object.assign(document.createElement('div'), { className: 'cm-editor' }),
       Object.assign(document.createElement('div'), { className: 'monaco-editor' }),
       Object.assign(document.createElement('div'), { className: 'xterm' }),

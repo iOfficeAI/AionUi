@@ -72,7 +72,7 @@ export const useConversationShortcuts = ({ navigate, toggleSider }: UseConversat
         return;
       }
 
-      if (isPrimaryApplicationShortcut(event, { key: 'b' })) {
+      if (isPrimaryApplicationShortcut(event, { key: 'b', targetGuard: 'embedded-editor' })) {
         event.preventDefault();
         toggleSider();
         return;
