@@ -13,6 +13,7 @@ import styles from './PermissionRequestPanel.module.css';
 import {
   getPermissionOptionsIdentity,
   getSafePermissionOptionId,
+  isOneClickIntent,
   type PermissionOperationKind,
   type PermissionPanelOption,
 } from './permissionOptions';
@@ -73,33 +74,53 @@ export const PermissionRequestPanel: React.FC<PermissionRequestPanelProps> = ({
     setSelectedId(optionId);
   }, []);
 
-  const submitSelected = useCallback(async () => {
-    if (respondingRef.current || hasResponded || !selectedId) return;
+  const submitOption = useCallback(
+    async (option: PermissionPanelOption) => {
+      if (respondingRef.current || hasResponded || option.disabled) return;
+
+      const requestEpoch = requestEpochRef.current;
+      const optionsEpoch = optionsEpochRef.current;
+      respondingRef.current = true;
+      setIsResponding(true);
+      setHasError(false);
+
+      try {
+        await onConfirm(option.value);
+        if (requestEpochRef.current === requestEpoch && optionsEpochRef.current === optionsEpoch) {
+          setHasResponded(true);
+        }
+      } catch {
+        if (requestEpochRef.current === requestEpoch && optionsEpochRef.current === optionsEpoch) {
+          setHasError(true);
+        }
+      } finally {
+        if (requestEpochRef.current === requestEpoch) {
+          respondingRef.current = false;
+          setIsResponding(false);
+        }
+      }
+    },
+    [hasResponded, onConfirm]
+  );
+
+  const submitSelected = useCallback(() => {
+    if (!selectedId) return;
     const selectedOption = options.find((option) => option.id === selectedId && !option.disabled);
-    if (!selectedOption) return;
+    if (selectedOption) void submitOption(selectedOption);
+  }, [options, selectedId, submitOption]);
 
-    const requestEpoch = requestEpochRef.current;
-    const optionsEpoch = optionsEpochRef.current;
-    respondingRef.current = true;
-    setIsResponding(true);
-    setHasError(false);
-
-    try {
-      await onConfirm(selectedOption.value);
-      if (requestEpochRef.current === requestEpoch && optionsEpochRef.current === optionsEpoch) {
-        setHasResponded(true);
-      }
-    } catch {
-      if (requestEpochRef.current === requestEpoch && optionsEpochRef.current === optionsEpoch) {
-        setHasError(true);
-      }
-    } finally {
-      if (requestEpochRef.current === requestEpoch) {
-        respondingRef.current = false;
-        setIsResponding(false);
-      }
-    }
-  }, [hasResponded, onConfirm, options, selectedId]);
+  // One-off options submit on a single click; permanent/neutral options only
+  // select here and still require the confirm button (two-step, anti-misclick).
+  // Wired via onClickCapture on the row (not the Arco Radio): Arco stops click
+  // propagation on the radio, so a bubbling-phase handler never fires.
+  const handleOptionClick = useCallback(
+    (option: PermissionPanelOption) => {
+      if (isResponding || option.disabled) return;
+      setSelectedId(option.id);
+      if (isOneClickIntent(option.intent)) void submitOption(option);
+    },
+    [isResponding, submitOption]
+  );
 
   return (
     <Card className={styles.card} bordered={false} data-testid={`${testIdPrefix}-card`}>
@@ -144,6 +165,7 @@ export const PermissionRequestPanel: React.FC<PermissionRequestPanelProps> = ({
                       data-testid={option.testId}
                       data-selected={selectedId === option.id}
                       data-disabled={Boolean(option.disabled || isResponding)}
+                      onClickCapture={() => handleOptionClick(option)}
                     >
                       <Radio
                         className={styles.optionRadio}

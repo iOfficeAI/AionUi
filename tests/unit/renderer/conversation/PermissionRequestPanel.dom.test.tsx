@@ -450,6 +450,73 @@ describe('PermissionRequestPanel', () => {
     expect(screen.getByTestId('message-permission-confirm')).toBeEnabled();
   });
 
+  it.each([
+    ['message-permission-option-once', 'once'],
+    ['message-permission-option-reject', 'reject'],
+  ] as const)('submits a one-off choice (%s) in a single click', async (testId, value) => {
+    const onConfirm = vi.fn().mockResolvedValue(undefined);
+    renderPanel({ onConfirm });
+
+    fireEvent.click(getOptionRadio(testId));
+
+    expect(onConfirm).toHaveBeenCalledTimes(1);
+    expect(onConfirm).toHaveBeenCalledWith(value);
+    expect(await screen.findByTestId('message-permission-status')).toBeInTheDocument();
+  });
+
+  it('only selects a permanent choice on click and still requires an explicit confirm', () => {
+    const onConfirm = vi.fn().mockResolvedValue(undefined);
+    renderPanel({ onConfirm });
+
+    fireEvent.click(getOptionRadio('message-permission-option-always'));
+    expect(getOptionRadio('message-permission-option-always')).toBeChecked();
+    expect(onConfirm).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByTestId('message-permission-confirm'));
+    expect(onConfirm).toHaveBeenCalledTimes(1);
+    expect(onConfirm).toHaveBeenCalledWith('always');
+  });
+
+  it('does not one-click submit a neutral choice', () => {
+    const onConfirm = vi.fn().mockResolvedValue(undefined);
+    renderPanel({
+      onConfirm,
+      options: [
+        {
+          id: 'unknown:0',
+          value: 'unknown',
+          label: 'Ask another way',
+          intent: 'neutral',
+          testId: 'message-permission-option-unknown',
+        },
+      ],
+    });
+
+    fireEvent.click(getOptionRadio('message-permission-option-unknown'));
+    expect(getOptionRadio('message-permission-option-unknown')).toBeChecked();
+    expect(onConfirm).not.toHaveBeenCalled();
+  });
+
+  it('does not one-click submit a disabled one-off choice', () => {
+    const onConfirm = vi.fn().mockResolvedValue(undefined);
+    renderPanel({
+      onConfirm,
+      options: [
+        {
+          id: 'once:0',
+          value: 'once',
+          label: 'Allow once',
+          intent: 'allow-once',
+          testId: 'message-permission-option-once',
+          disabled: true,
+        },
+      ],
+    });
+
+    fireEvent.click(getOptionRadio('message-permission-option-once'));
+    expect(onConfirm).not.toHaveBeenCalled();
+  });
+
   it('refuses a selection that disappeared from a mutated option list', () => {
     const options = makeOptions();
     const onConfirm = vi.fn().mockResolvedValue(undefined);
