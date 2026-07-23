@@ -113,11 +113,11 @@ const HorizontalFileList: React.FC<HorizontalFileListProps> = ({ children }) => 
   };
 
   return (
-    <div className='relative'>
+    <div className='relative min-w-0 max-w-full'>
       {/* 横向滚动容器，隐藏滚动条 */}
       <div
         ref={scrollContainerRef}
-        className='flex items-center gap-8px overflow-x-auto overflow-y-hidden scrollbar-hide pt-5px pb-5px'
+        className='flex items-center gap-8px overflow-x-auto overflow-y-hidden scrollbar-hide pt-5px pb-5px w-full max-w-full min-w-0'
         style={{
           scrollbarWidth: 'none', // Firefox
           msOverflowStyle: 'none', // IE/Edge

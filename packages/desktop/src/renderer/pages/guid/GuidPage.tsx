@@ -12,6 +12,7 @@ import { resolveLocaleKey } from '@/common/utils';
 import type { AssistantDetail } from '@/common/types/agent/assistantTypes';
 
 import { useInputFocusRing } from '@/renderer/hooks/chat/useInputFocusRing';
+import { appendPromptToDraft } from '@/renderer/hooks/chat/useSendBoxDraft';
 import { getFuzzyMatchIndices, useSlashCommandController } from '@/renderer/hooks/chat/useSlashCommandController';
 import { openExternalUrl } from '@/renderer/utils/platform';
 import SlashCommandMenu, { type SlashCommandMenuItem } from '@/renderer/components/chat/SlashCommandMenu';
@@ -39,6 +40,17 @@ import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 import useSWR from 'swr';
 import styles from './index.module.css';
+
+type GuidNavigationState = {
+  resetAssistant?: boolean;
+  selectedAssistantId?: string;
+  prefillPrompt?: string;
+  prefillFiles?: string[];
+  preservePrefillDraft?: boolean;
+  focusPrefill?: boolean;
+  workspace?: string;
+  [key: string]: unknown;
+};
 
 const GuidPage: React.FC = () => {
   const { t, i18n } = useTranslation();
@@ -121,10 +133,7 @@ const GuidPage: React.FC = () => {
   // regular ACP backend with its own model selector).
   const modelSelection = useGuidModelSelection('aionrs');
 
-  const navState = location.state as {
-    resetAssistant?: boolean;
-    selectedAssistantId?: string;
-  } | null;
+  const navState = location.state as GuidNavigationState | null;
   const resetAssistantRequested = navState?.resetAssistant === true;
   const preselectAssistantId = navState?.selectedAssistantId;
   const agentSelection = useGuidAssistantSelection({
@@ -509,15 +518,20 @@ const GuidPage: React.FC = () => {
   // one such follow-up pass skip the clear, preserving the seeded prompt.
   const skipNextClearRef = useRef(false);
   useLayoutEffect(() => {
-    const prefillState = location.state as { prefillPrompt?: string; prefillFiles?: string[] } | null;
+    const prefillState = location.state as GuidNavigationState | null;
     const prefillPrompt = prefillState?.prefillPrompt;
     const prefillFiles = prefillState?.prefillFiles;
+    const preserveCurrentDraft = Boolean(prefillState?.preservePrefillDraft || skipNextClearRef.current);
     if (prefillPrompt && consumedPrefillKeyRef.current !== location.key) {
       // Consume prompt + optional attachments (e.g. bug-report screenshots) once.
       consumedPrefillKeyRef.current = location.key;
       skipNextClearRef.current = true;
-      guidInput.setInput(prefillPrompt);
-      guidInput.setFiles(prefillFiles && prefillFiles.length > 0 ? prefillFiles : []);
+      if (prefillState.preservePrefillDraft) {
+        guidInput.setInput((draft) => appendPromptToDraft(draft, prefillPrompt));
+      } else {
+        guidInput.setInput(prefillPrompt);
+        guidInput.setFiles(prefillFiles && prefillFiles.length > 0 ? prefillFiles : []);
+      }
     } else if (skipNextClearRef.current) {
       // This pass is the state-clearing replace() right after a prefill — keep
       // the seeded input instead of clearing it.
@@ -527,10 +541,29 @@ const GuidPage: React.FC = () => {
       guidInput.setFiles([]);
     }
     guidInput.setLoading(false);
-    if (!(location.state as { workspace?: string } | null)?.workspace) {
+    if (!preserveCurrentDraft && !(location.state as { workspace?: string } | null)?.workspace) {
       guidInput.setDir('');
     }
   }, [guidInput.setDir, guidInput.setFiles, guidInput.setInput, guidInput.setLoading, location.key, location.state]);
+
+  // A draft-preserving prefill is an action, not durable navigation state.
+  // Strip it after consumption so browser history or a remount cannot replay it.
+  useEffect(() => {
+    const prefillState = location.state as GuidNavigationState | null;
+    if (!prefillState?.preservePrefillDraft || !prefillState.prefillPrompt) return;
+
+    const {
+      prefillPrompt: _prefillPrompt,
+      prefillFiles: _prefillFiles,
+      preservePrefillDraft: _preservePrefillDraft,
+      focusPrefill: _focusPrefill,
+      ...remainingState
+    } = prefillState;
+    navigate(`${location.pathname}${location.search}${location.hash}`, {
+      replace: true,
+      state: Object.keys(remainingState).length > 0 ? remainingState : null,
+    });
+  }, [location.hash, location.pathname, location.search, location.state, navigate]);
 
   // Clear resetAssistant from location.state after the hook has consumed it,
   // so that re-renders don't re-trigger the reset logic.
@@ -646,6 +679,7 @@ const GuidPage: React.FC = () => {
           />
 
           <GuidInputCard
+            focusRequestKey={navState?.focusPrefill && navState.prefillPrompt ? location.key : undefined}
             input={guidInput.input}
             onInputChange={handleInputChange}
             onKeyDown={handleInputKeyDown}

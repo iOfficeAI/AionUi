@@ -13,7 +13,7 @@
     "error": "Fehler",
     "unread": "Neue Ausführung",
     "unconfigured": "Keine geplante Aufgabe",
-    "defaultPrompt": "Täglich um 10 Uhr die neuesten KI-Nachrichten suchen, zusammenfassen und einen Erkenntnisbericht ausgeben."
+    "defaultPrompt": "Täglich um 10 Uhr die neuesten KI-Nachrichten suchen, zusammenfassen und einen Erkenntnisbericht ausgeben. (Bitte verwende den /cron-Skill, um eine geplante Aufgabe in AionUi zu erstellen.)"
   },
   "actions": {
     "goTo": "Chat anzeigen",

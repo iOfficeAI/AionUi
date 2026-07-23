@@ -13,7 +13,7 @@
     "error": "執行出錯",
     "unread": "有新執行",
     "unconfigured": "未配置定時任務",
-    "defaultPrompt": "每天早上10點，為我搜尋AI最新的新聞動向，彙總並輸出洞察報告。"
+    "defaultPrompt": "每天早上10點，為我搜尋AI最新的新聞動向，彙總並輸出洞察報告。（請使用 /cron 技能在 AionUi 中建立排程任務。）"
   },
   "actions": {
     "goTo": "查看對話",

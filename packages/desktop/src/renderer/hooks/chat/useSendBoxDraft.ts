@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import useSWR from 'swr';
 import type { FileOrFolderItem } from '@/renderer/utils/file/fileTypes';
 export type { FileOrFolderItem } from '@/renderer/utils/file/fileTypes';
@@ -35,6 +35,84 @@ const store: SendBoxDraftStore = {
   acp: new Map(),
   codex: new Map(),
   aionrs: new Map(),
+};
+
+export type ConversationSendBoxPrefill = {
+  requestId: number;
+  prompt: string;
+};
+
+type ConversationSendBoxPrefillListener = (prefill: ConversationSendBoxPrefill) => void;
+
+let pendingConversationPrefill:
+  | {
+      conversation_id: string;
+      prefill: ConversationSendBoxPrefill;
+    }
+  | undefined;
+const conversationPrefillListeners = new Map<string, ConversationSendBoxPrefillListener>();
+let nextConversationPrefillRequestId = 0;
+
+/**
+ * Adds a prompt without discarding text the user has already typed.
+ */
+export const appendPromptToDraft = (draft: string, prompt: string): string => {
+  if (!prompt) return draft;
+  if (!draft) return prompt;
+  return `${draft}${draft.endsWith('\n') ? '' : '\n'}${prompt}`;
+};
+
+/**
+ * Delivers a prefill only to the SendBox owned by the requested conversation.
+ * If that SendBox is not mounted yet, the request remains queued until it is.
+ */
+export const requestConversationSendBoxPrefill = (conversation_id: string, prompt: string): void => {
+  if (!conversation_id || !prompt) return;
+
+  const prefill = {
+    requestId: ++nextConversationPrefillRequestId,
+    prompt,
+  };
+  // A navigation can only have one not-yet-mounted destination. Supersede an
+  // older target so opening it later cannot inject a stale prompt.
+  pendingConversationPrefill = undefined;
+  const listener = conversationPrefillListeners.get(conversation_id);
+  if (listener) {
+    listener(prefill);
+    return;
+  }
+
+  pendingConversationPrefill = { conversation_id, prefill };
+};
+
+/**
+ * Registers the mounted SendBox as the single consumer for its conversation.
+ */
+export const useConversationSendBoxPrefill = (
+  conversation_id: string | undefined,
+  onPrefill: ConversationSendBoxPrefillListener
+): void => {
+  const onPrefillRef = useRef(onPrefill);
+  onPrefillRef.current = onPrefill;
+
+  useEffect(() => {
+    if (!conversation_id) return;
+
+    const listener: ConversationSendBoxPrefillListener = (prefill) => onPrefillRef.current(prefill);
+    conversationPrefillListeners.set(conversation_id, listener);
+
+    if (pendingConversationPrefill?.conversation_id === conversation_id) {
+      const { prefill } = pendingConversationPrefill;
+      pendingConversationPrefill = undefined;
+      listener(prefill);
+    }
+
+    return () => {
+      if (conversationPrefillListeners.get(conversation_id) === listener) {
+        conversationPrefillListeners.delete(conversation_id);
+      }
+    };
+  }, [conversation_id]);
 };
 
 const setDraft = <K extends DraftConversationType>(

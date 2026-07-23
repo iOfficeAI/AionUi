@@ -15,7 +15,7 @@
     "unconfigured": "Sin tarea programada",
     "unconfiguredHint": "Aún no hay tareas programadas. ¡Crea una con tu agente!",
     "createNow": "Crear ahora",
-    "defaultPrompt": "Todos los días a las 10am, busca las últimas noticias de IA, resume y genera un informe de insights."
+    "defaultPrompt": "Todos los días a las 10am, busca las últimas noticias de IA, resume y genera un informe de insights. (Usa la habilidad /cron para crear una tarea programada en AionUi.)"
   },
   "actions": {
     "goTo": "Ver chat",

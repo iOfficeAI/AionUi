@@ -1,7 +1,7 @@
 {
   "welcome": {
     "title": "Hola, ¿qué tienes planeado hoy?",
-    "placeholder": "Envía un mensaje, sube archivos, abre una carpeta o crea una tarea programada...",
+    "placeholder": "Envía un mensaje, sube archivos, abre una carpeta, crea una tarea programada o escribe / para ver los comandos...",
     "linkFolder": "Abrir carpeta",
     "newConversation": "Nuevo chat",
     "selectModel": "Seleccionar modelo",
@@ -30,6 +30,7 @@
     "saveName": "Guardar",
     "cancelEdit": "Cancelar",
     "rename": "Renombrar",
+    "createCronTask": "Crear tarea programada",
     "renameTitle": "Renombrar chat",
     "renamePlaceholder": "Ingresa un nuevo nombre",
     "renameSuccess": "Renombrado correctamente",
@@ -555,7 +556,7 @@
     "sendboxHint": "Preparando el entorno de ejecución. El primer inicio puede tardar un poco más."
   },
   "sendbox": {
-    "hint": "Escribe / para comandos, @ para referenciar archivos"
+    "hint": "Escribe / para comandos, @ para referenciar archivos y ↑/↓ para el historial de mensajes"
   },
   "agentTip": {
     "codes": {

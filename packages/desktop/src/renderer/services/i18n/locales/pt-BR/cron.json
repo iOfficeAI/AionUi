@@ -13,7 +13,7 @@
     "error": "Erro",
     "unread": "Nova execução",
     "unconfigured": "Sem tarefa agendada",
-    "defaultPrompt": "Todos os dias às 10h, pesquise as últimas notícias sobre IA, resuma e gere um relatório de insights."
+    "defaultPrompt": "Todos os dias às 10h, pesquise as últimas notícias sobre IA, resuma e gere um relatório de insights. (Use a habilidade /cron para criar uma tarefa agendada no AionUi.)"
   },
   "actions": {
     "goTo": "Ver Chat",

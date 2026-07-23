@@ -4,9 +4,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { LayoutContext } from '@/renderer/hooks/context/LayoutContext';
 
 const {
   modelSelectionMock,
@@ -19,6 +20,7 @@ const {
   capturedGuidSendDeps,
   resolveGuidAssistantDefaultsMock,
   sendMock,
+  navigateMock,
 } = vi.hoisted(() => ({
   modelSelectionMock: {
     modelList: [],
@@ -120,6 +122,7 @@ const {
     sendMessageHandler: vi.fn(),
     isButtonDisabled: false,
   },
+  navigateMock: vi.fn(),
 }));
 
 vi.mock('react-i18next', () => ({
@@ -130,7 +133,7 @@ vi.mock('react-i18next', () => ({
 }));
 
 vi.mock('react-router-dom', () => ({
-  useNavigate: () => vi.fn(),
+  useNavigate: () => navigateMock,
   useLocation: () => locationMock,
 }));
 
@@ -275,9 +278,33 @@ vi.mock('swr', async () => {
 
 import GuidPage from '@/renderer/pages/guid/GuidPage';
 
+const guidInputCardProps = {
+  input: 'Existing Guid draft\nCreate with /cron in AionUi',
+  onInputChange: vi.fn(),
+  onKeyDown: vi.fn(),
+  onPaste: vi.fn(),
+  onFocus: vi.fn(),
+  onBlur: vi.fn(),
+  placeholder: 'Message',
+  isInputActive: false,
+  isFileDragging: false,
+  activeBorderColor: 'var(--color-primary-6)',
+  inactiveBorderColor: 'var(--color-border-2)',
+  activeShadow: 'none',
+  dragHandlers: {},
+  files: [],
+  onRemoveFile: vi.fn(),
+  actionRow: null,
+  workspaceDir: '',
+  onSelectWorkspace: vi.fn(),
+  onClearWorkspace: vi.fn(),
+};
+
 describe('GuidPage', () => {
   beforeEach(() => {
     locationMock.state = null;
+    locationMock.key = 'guid-location';
+    navigateMock.mockReset();
     swrMock.useSWRMock.mockReturnValue({ data: null });
     capturedGuidActionRowProps.length = 0;
     capturedAssistantSelectionAreaProps.length = 0;
@@ -319,6 +346,81 @@ describe('GuidPage', () => {
         deletable: false,
       },
     ];
+  });
+
+  it('keeps the existing replace contract for ordinary Guid prefills', () => {
+    locationMock.state = { prefillPrompt: 'Replace with this prompt' };
+    guidInputMock.setInput.mockClear();
+    guidInputMock.setFiles.mockClear();
+    guidInputMock.setDir.mockClear();
+
+    render(<GuidPage />);
+
+    expect(guidInputMock.setInput).toHaveBeenCalledWith('Replace with this prompt');
+    expect(guidInputMock.setFiles).toHaveBeenCalledWith([]);
+    expect(guidInputMock.setDir).toHaveBeenCalledWith('');
+    expect(capturedGuidInputCardProps.at(-1)?.focusRequestKey).toBeUndefined();
+  });
+
+  it('keeps replacing attachments supplied by an ordinary Guid prefill', () => {
+    locationMock.state = {
+      prefillPrompt: 'Replace prompt and attachments',
+      prefillFiles: ['/tmp/one.png', '/tmp/two.png'],
+    };
+    guidInputMock.setFiles.mockClear();
+
+    render(<GuidPage />);
+
+    expect(guidInputMock.setFiles).toHaveBeenCalledWith(['/tmp/one.png', '/tmp/two.png']);
+  });
+
+  it('appends a draft-preserving prefill without clearing attachments or workspace', () => {
+    locationMock.state = {
+      prefillPrompt: 'Create with /cron in AionUi',
+      preservePrefillDraft: true,
+      focusPrefill: true,
+      returnTo: 'conversation-sidebar',
+    };
+    guidInputMock.setInput.mockClear();
+    guidInputMock.setFiles.mockClear();
+    guidInputMock.setDir.mockClear();
+
+    const { rerender, unmount } = render(<GuidPage />);
+
+    const inputUpdater = guidInputMock.setInput.mock.calls[0]?.[0];
+    expect(inputUpdater).toBeTypeOf('function');
+    expect(inputUpdater('Existing Guid draft')).toBe('Existing Guid draft\nCreate with /cron in AionUi');
+    expect(guidInputMock.setFiles).not.toHaveBeenCalled();
+    expect(guidInputMock.setDir).not.toHaveBeenCalled();
+    expect(capturedGuidInputCardProps.at(-1)?.focusRequestKey).toBe('guid-location');
+    expect(navigateMock).toHaveBeenCalledWith('/guid', {
+      replace: true,
+      state: { returnTo: 'conversation-sidebar' },
+    });
+
+    locationMock.state = { returnTo: 'conversation-sidebar' };
+    locationMock.key = 'guid-location-replaced';
+    rerender(<GuidPage />);
+    expect(guidInputMock.setInput).toHaveBeenCalledOnce();
+    expect(guidInputMock.setDir).not.toHaveBeenCalled();
+
+    unmount();
+    guidInputMock.setInput.mockClear();
+    render(<GuidPage />);
+    expect(guidInputMock.setInput).toHaveBeenCalledWith('');
+    expect(guidInputMock.setInput.mock.calls.some(([value]) => typeof value === 'function')).toBe(false);
+  });
+
+  it('removes a consumed preserved prefill even when no other navigation state remains', () => {
+    locationMock.state = {
+      prefillPrompt: 'Create with /cron in AionUi',
+      preservePrefillDraft: true,
+      focusPrefill: true,
+    };
+
+    render(<GuidPage />);
+
+    expect(navigateMock).toHaveBeenCalledWith('/guid', { replace: true, state: null });
   });
 
   it('keeps a generic conversation heading and omits assistant-detail chrome on the home page', () => {
@@ -539,5 +641,83 @@ describe('GuidPage', () => {
     expect(agentSelectionMock.setSelectedAcpModel).not.toHaveBeenCalledWith('default', {
       persistPreference: false,
     });
+  });
+});
+
+describe('GuidInputCard prefill focus', () => {
+  it('focuses a draft-preserving prefill on desktop', async () => {
+    const { default: GuidInputCard } = await vi.importActual<
+      typeof import('@/renderer/pages/guid/components/GuidInputCard')
+    >('@/renderer/pages/guid/components/GuidInputCard');
+
+    const originalDraft = 'Existing Guid draft';
+    const { rerender } = render(
+      <LayoutContext.Provider value={{ isMobile: false, siderCollapsed: false, setSiderCollapsed: vi.fn() }}>
+        <GuidInputCard {...guidInputCardProps} input={originalDraft} focusRequestKey='desktop-prefill' />
+      </LayoutContext.Provider>
+    );
+
+    const textarea = screen.getByTestId('guid-input');
+    await waitFor(() => expect(textarea).toHaveFocus());
+    expect((textarea as HTMLTextAreaElement).selectionStart).toBe(originalDraft.length);
+
+    const outsideTarget = document.createElement('button');
+    document.body.append(outsideTarget);
+    outsideTarget.focus();
+    rerender(
+      <LayoutContext.Provider value={{ isMobile: false, siderCollapsed: false, setSiderCollapsed: vi.fn() }}>
+        <GuidInputCard {...guidInputCardProps} focusRequestKey='desktop-prefill' />
+      </LayoutContext.Provider>
+    );
+    await waitFor(() => expect(textarea).toHaveFocus());
+    expect((textarea as HTMLTextAreaElement).selectionStart).toBe(guidInputCardProps.input.length);
+
+    outsideTarget.focus();
+    rerender(
+      <LayoutContext.Provider value={{ isMobile: false, siderCollapsed: false, setSiderCollapsed: vi.fn() }}>
+        <GuidInputCard {...guidInputCardProps} focusRequestKey='desktop-prefill' />
+      </LayoutContext.Provider>
+    );
+    expect(outsideTarget).toHaveFocus();
+
+    rerender(
+      <LayoutContext.Provider value={{ isMobile: false, siderCollapsed: false, setSiderCollapsed: vi.fn() }}>
+        <GuidInputCard {...guidInputCardProps} input={`${guidInputCardProps.input}!`} />
+      </LayoutContext.Provider>
+    );
+    expect(outsideTarget).toHaveFocus();
+    outsideTarget.remove();
+  });
+
+  it('does not force focus for a mobile prefill', async () => {
+    const { default: GuidInputCard } = await vi.importActual<
+      typeof import('@/renderer/pages/guid/components/GuidInputCard')
+    >('@/renderer/pages/guid/components/GuidInputCard');
+
+    render(
+      <LayoutContext.Provider value={{ isMobile: true, siderCollapsed: false, setSiderCollapsed: vi.fn() }}>
+        <GuidInputCard {...guidInputCardProps} focusRequestKey='mobile-prefill' />
+      </LayoutContext.Provider>
+    );
+
+    expect(screen.getByTestId('guid-input')).not.toHaveFocus();
+  });
+
+  it('does not focus without an explicit request key', async () => {
+    const { default: GuidInputCard } = await vi.importActual<
+      typeof import('@/renderer/pages/guid/components/GuidInputCard')
+    >('@/renderer/pages/guid/components/GuidInputCard');
+    const outsideTarget = document.createElement('button');
+    document.body.append(outsideTarget);
+    outsideTarget.focus();
+
+    render(
+      <LayoutContext.Provider value={{ isMobile: false, siderCollapsed: false, setSiderCollapsed: vi.fn() }}>
+        <GuidInputCard {...guidInputCardProps} />
+      </LayoutContext.Provider>
+    );
+
+    expect(outsideTarget).toHaveFocus();
+    outsideTarget.remove();
   });
 });
