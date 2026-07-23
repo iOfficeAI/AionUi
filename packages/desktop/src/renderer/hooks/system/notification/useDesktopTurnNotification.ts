@@ -30,7 +30,7 @@ export const useDesktopTurnNotification = (): void => {
   useEffect(() => {
     if (!isElectronDesktop()) return;
 
-    const streamEmitter = ipcBridge.conversation.responseStream;
+    const streamEmitter = ipcBridge.conversation?.responseStream;
     if (!streamEmitter) return;
 
     const controller = createBrowserNotificationController({
