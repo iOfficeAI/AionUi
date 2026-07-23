@@ -56,6 +56,7 @@
   "noOptionsAvailable": "No options available",
   "processing": "Processing...",
   "responseSentSuccessfully": "Response sent successfully",
+  "permissionResponseFailed": "Could not send the response. Please try again.",
   "confirmation": {
     "applyChange": "Apply this change?",
     "allowExecution": "Allow execution?",

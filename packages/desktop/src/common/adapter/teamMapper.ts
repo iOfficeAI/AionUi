@@ -54,6 +54,9 @@ export function normalizeTeamStatus(raw: BackendTeammateStatus | undefined): Tea
     tool_use: 'active',
     completed: 'completed',
     error: 'failed',
+    // Dormant (leader-only warmup): pass through so the badge can render an
+    // asleep state distinct from idle, instead of collapsing to idle.
+    dormant: 'dormant',
   };
   return statusMap[raw ?? ''] ?? 'idle';
 }

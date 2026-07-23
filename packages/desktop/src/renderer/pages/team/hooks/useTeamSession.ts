@@ -85,6 +85,17 @@ export function useTeamSession(team: TTeam, warmupPhase?: TeamWarmupPhase) {
       setMembershipMutationState((prev) =>
         applyTeamRuntimeStatusToMembershipMutationState(prev, event.slot_id, event.status)
       );
+      // Dormant is the only runtime state with no other status source, so
+      // surface it on the badge directly. pending/ready/failed stay driven by
+      // agentStatusChanged plus the send-box runtime gate as before.
+      if (event.status === 'dormant') {
+        setStatusMap((prev) => {
+          const next = new Map(prev);
+          next.set(event.slot_id, { slot_id: event.slot_id, status: normalizeTeamStatus('dormant') });
+          return next;
+        });
+        return;
+      }
       if (event.status !== 'ready') return;
       void revalidateAcpConfigOptions(event.conversation_id);
     });

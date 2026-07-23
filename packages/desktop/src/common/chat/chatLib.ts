@@ -815,6 +815,7 @@ export const transformMessage = (message: IResponseMessage): TMessage | undefine
     case 'info': // Stream retry notifications and similar transient agent updates
     case 'system': // Cron system responses, ignored
     case 'acp_model_info': // Model info updates, handled by AcpModelSelector
+    case 'acp_config_option': // Config-options catalog updates, handled by useAcpConfigOptions
     case 'codex_model_info': // Legacy Codex model info updates
     case 'acp_context_usage': // Context usage updates, handled by AcpSendBox
     case 'request_trace': // Request trace events, logged to F12 console (not persisted)

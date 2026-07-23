@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Tag, Spin } from '@arco-design/web-react';
+import { Tag, Spin, Button } from '@arco-design/web-react';
 import React, { useMemo, useEffect, useState, useRef } from 'react';
 import { useThemeContext } from '@/renderer/hooks/context/ThemeContext';
 import { useTranslation } from 'react-i18next';
@@ -20,6 +20,8 @@ type ThoughtDisplayProps = {
   running?: boolean;
   statusText?: string;
   onStop?: () => void;
+  // Directed per-member attach retry, shown next to a runtime-failed status text.
+  onRetryStart?: () => void;
   // Absolute start timestamp (ms) supplied by an external source (e.g. team slot work).
   startedAtMs?: number | null;
   // Explicit flag declaring elapsed time is driven by an external timestamp (team chain).
@@ -36,6 +38,7 @@ const ThoughtDisplay: React.FC<ThoughtDisplayProps> = ({
   running = false,
   statusText,
   onStop: _onStop,
+  onRetryStart,
   startedAtMs,
   externalElapsedSource,
 }) => {
@@ -141,10 +144,19 @@ const ThoughtDisplay: React.FC<ThoughtDisplayProps> = ({
         style={containerStyle}
       >
         {running && <Spin size={14} />}
-        <span className='text-t-secondary'>
+        {/* Left block fills the row and truncates long text (tooltip shows the
+            full message); the retry button stays pinned on the right and never
+            shrinks, so a long/localized status can't push it out of a narrow
+            parallel-view column. */}
+        <span className='text-t-secondary min-w-0 flex-1 truncate' title={statusText}>
           {statusText ?? t('conversation.chat.processing')}
           {showElapsed && <span className='ml-8px opacity-60'>({formatElapsedTime(elapsedTime)})</span>}
         </span>
+        {onRetryStart && (
+          <Button className='flex-shrink-0' size='mini' type='text' onClick={onRetryStart}>
+            {t('team.work.retryStart', { defaultValue: 'Retry start' })}
+          </Button>
+        )}
       </div>
     );
   }

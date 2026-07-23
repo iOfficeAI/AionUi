@@ -4,7 +4,6 @@ import type { AssistantListItem, AvailableBackend } from './types';
 import type { ManagedAgent } from '@/renderer/utils/model/agentTypes';
 
 export type AssistantListFilter = 'all' | 'enabled' | 'disabled' | 'builtin' | 'user';
-export const ASSISTANT_SORT_ORDER_GAP = 1000;
 
 /**
  * Source tag shown next to an assistant in the settings list.
@@ -71,31 +70,6 @@ export const reorderAssistantList = (
   nextAssistants.splice(overIndex, 0, movedAssistant);
   return nextAssistants;
 };
-
-/**
- * Build deterministic sort_order updates for a reordered assistant list.
- */
-export const buildAssistantSortUpdates = (
-  previousAssistants: AssistantListItem[],
-  nextAssistants: AssistantListItem[]
-): Array<{ id: string; sort_order: number }> =>
-  nextAssistants
-    .map((assistant, index) => ({
-      id: assistant.id,
-      sort_order: (index + 1) * ASSISTANT_SORT_ORDER_GAP,
-      previous: previousAssistants.find((item) => item.id === assistant.id),
-    }))
-    .filter(({ previous, sort_order }) => previous?.sort_order !== sort_order)
-    .map(({ id, sort_order }) => ({ id, sort_order }));
-
-/**
- * Apply normalized sort_order values to a reordered assistant list.
- */
-export const applyAssistantSortOrders = (assistants: AssistantListItem[]): AssistantListItem[] =>
-  assistants.map((assistant, index) => ({
-    ...assistant,
-    sort_order: (index + 1) * ASSISTANT_SORT_ORDER_GAP,
-  }));
 
 /**
  * Apply search and management filter to assistant list.

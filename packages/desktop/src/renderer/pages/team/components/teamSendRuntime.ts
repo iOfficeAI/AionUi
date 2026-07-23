@@ -1,3 +1,4 @@
+import { ipcBridge } from '@/common';
 import { isBackendHttpError } from '@/common/adapter/httpBridge';
 import type { ConversationCommandQueueRuntimeGate } from '@/renderer/pages/conversation/platforms/useConversationCommandQueue';
 import type { ITeamSlotWork, TeamSlotBlockedReason } from '@/common/types/team/teamTypes';
@@ -10,7 +11,23 @@ export type TeamSendBoxRuntime = {
   statusText?: string;
   startedAtMs: number | null;
   onStop?: () => Promise<void>;
+  /**
+   * Present only when the slot is in `runtime_failed`; triggers a directed
+   * per-member attach retry (NOT warmupSession/ensure_session).
+   */
+  onRetryStart?: () => Promise<void>;
 };
+
+/**
+ * Build the send-box "retry start" handler. Calls the directed per-member
+ * attach route so a single failed teammate runtime is retried in place,
+ * without re-running the whole-team ensure/warmup.
+ */
+export const buildTeamRetryStartHandler =
+  ({ team_id, slot_id }: { team_id: string; slot_id: string }): (() => Promise<void>) =>
+  async () => {
+    await ipcBridge.team.attachAgent.invoke({ team_id, slot_id });
+  };
 
 type BuildTeamSendRuntimeOptions = {
   slot_id: string;

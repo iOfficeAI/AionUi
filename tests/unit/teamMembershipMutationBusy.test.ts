@@ -28,6 +28,18 @@ describe('team membership mutation busy state', () => {
     expect(isTeamMembershipMutationBusy(state)).toBe(false);
   });
 
+  it('treats dormant as non-busy and clears any pending marker for the slot', () => {
+    const withPending = applyTeamRuntimeStatusToMembershipMutationState(
+      createTeamMembershipMutationState(),
+      'slot-1',
+      'pending'
+    );
+    expect(isTeamMembershipMutationBusy(withPending)).toBe(true);
+
+    const afterDormant = applyTeamRuntimeStatusToMembershipMutationState(withPending, 'slot-1', 'dormant');
+    expect(isTeamMembershipMutationBusy(afterDormant)).toBe(false);
+  });
+
   it('clears session busy state when the team session is ready or failed', () => {
     let state = applyTeamSessionStatusToMembershipMutationState(createTeamMembershipMutationState(), 'starting');
     state = applyTeamSessionStatusToMembershipMutationState(state, 'ready');

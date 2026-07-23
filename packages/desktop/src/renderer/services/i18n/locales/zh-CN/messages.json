@@ -56,6 +56,7 @@
   "noOptionsAvailable": "无可用选项",
   "processing": "处理中...",
   "responseSentSuccessfully": "响应已成功发送",
+  "permissionResponseFailed": "未能发送响应，请重试。",
   "confirmation": {
     "applyChange": "应用此更改？",
     "allowExecution": "允许执行？",

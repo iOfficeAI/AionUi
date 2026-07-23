@@ -53,6 +53,7 @@
   "noOptionsAvailable": "Нет доступных опций",
   "processing": "Обработка...",
   "responseSentSuccessfully": "Ответ успешно отправлен",
+  "permissionResponseFailed": "Не удалось отправить ответ. Повторите попытку.",
   "confirmation": {
     "applyChange": "Применить это изменение?",
     "allowExecution": "Разрешить выполнение?",

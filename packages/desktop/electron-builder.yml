@@ -80,8 +80,6 @@ files:
   # Exclude large packages
   - '!**/node_modules/{@img,@emnapi}/**'
   - '!**/node_modules/@img/sharp-*/**'
-  - '!**/node_modules/@anthropic-ai/claude-code/vendor/**'
-  - '!**/node_modules/@anthropic-ai/claude-agent-sdk/vendor/**'
   # Exclude JAR files and JNI libraries that cause notarization issues
   - '!**/*.jar'
   - '!**/*.jnilib'

@@ -1,0 +1,248 @@
+.card {
+  width: 100%;
+  margin-bottom: 12px;
+  overflow: hidden;
+  border: 1px solid var(--color-border-2);
+  border-radius: 10px;
+  background: var(--color-bg-2);
+  container-type: inline-size;
+}
+
+.card :global(.arco-card-body) {
+  padding: 12px;
+}
+
+.panel {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.heading {
+  min-width: 0;
+}
+
+.titleRow {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+}
+
+.title {
+  display: block;
+  min-width: 0;
+  flex: 1;
+  overflow-wrap: anywhere;
+  color: var(--color-text-1);
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+.operationBadge {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  padding: 1px 6px;
+  border: 1px solid var(--color-border-2);
+  border-radius: 999px;
+  color: var(--color-text-2);
+  background: var(--color-fill-1);
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.description {
+  display: block;
+  margin-top: 2px;
+  overflow-wrap: anywhere;
+  color: var(--color-text-2);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.detailBlock {
+  display: flex;
+  min-width: 0;
+  align-items: baseline;
+  gap: 8px;
+  padding: 7px 9px;
+  border: 1px solid var(--color-border-2);
+  border-radius: 7px;
+  background: var(--color-fill-1);
+}
+
+.detailLabel {
+  flex: 0 0 auto;
+  color: var(--color-text-2);
+  font-size: 11px;
+}
+
+.detail {
+  min-width: 0;
+  max-height: 64px;
+  flex: 1;
+  overflow: auto;
+  padding: 0;
+  border: 0;
+  color: var(--color-text-1);
+  background: transparent;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.optionsFieldset {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.optionsLegend {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.optionsGroup {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--color-border-2);
+  border-radius: 8px;
+}
+
+.optionsGroup :global(.arco-radio) {
+  display: flex;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.optionRow {
+  min-width: 0;
+  overflow: hidden;
+  background: transparent;
+  transition: background-color 0.16s ease;
+}
+
+.optionRow + .optionRow {
+  border-top: 1px solid var(--color-border-2);
+}
+
+.optionRow:hover:not([data-disabled='true']) {
+  background: var(--color-fill-1);
+}
+
+.optionRow:focus-within {
+  background: var(--color-primary-light-1);
+}
+
+.optionRow[data-selected='true'] {
+  background: var(--color-primary-light-1);
+}
+
+.optionRow[data-disabled='true'] {
+  opacity: 0.6;
+}
+
+.optionRadio {
+  display: flex;
+  box-sizing: border-box;
+  width: 100%;
+  margin: 0;
+  align-items: center;
+  padding: 7px 10px;
+}
+
+.optionRadio :global(.arco-radio-text) {
+  display: block;
+  min-width: 0;
+  flex: 1;
+  margin-left: 8px;
+}
+
+.optionLabel {
+  display: block;
+  min-width: 0;
+  color: var(--color-text-1);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.emptyState {
+  display: block;
+  padding: 10px 12px;
+  border: 1px dashed var(--color-border-2);
+  border-radius: 9px;
+  color: var(--color-text-3);
+  background: var(--color-fill-1);
+  font-size: 12px;
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-top: 2px;
+}
+
+.feedback {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--color-border-2);
+  border-radius: 9px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.error {
+  border-color: var(--color-danger-light-3);
+  color: rgb(var(--danger-6));
+  background: var(--color-danger-light-1);
+}
+
+.success {
+  border-color: var(--color-success-light-3);
+  color: rgb(var(--success-6));
+  background: var(--color-success-light-1);
+}
+
+@container (max-width: 420px) {
+  .titleRow {
+    flex-wrap: wrap;
+  }
+
+  .card :global(.arco-card-body) {
+    padding: 10px;
+  }
+
+  .detailBlock {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .footer {
+    align-items: stretch;
+  }
+
+  .footer :global(.arco-btn) {
+    width: 100%;
+  }
+}

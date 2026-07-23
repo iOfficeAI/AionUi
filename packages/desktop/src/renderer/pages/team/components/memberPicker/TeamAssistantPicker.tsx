@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Button, Empty, Tooltip } from '@arco-design/web-react';
+import { Button, Empty, Spin, Tooltip } from '@arco-design/web-react';
 import { Plus } from '@icon-park/react';
 import { useTranslation } from 'react-i18next';
 import { AionSearchInput, AionInlineSearchInput } from '@renderer/components/base';
@@ -84,6 +84,7 @@ const TeamAssistantPicker: React.FC<Props> = ({
               const rowKey = `${assistantKey(assistant)}-${index}`;
               const rowBlocked = assistant.team_selectable === false;
               const rowDisabled = disabled || rowBlocked;
+              const isPending = pendingAssistantId === assistant.id;
               const blockReason = rowBlocked
                 ? assistant.team_block_reason ||
                   t('settings.assistantTeamUnsupported', {
@@ -108,7 +109,15 @@ const TeamAssistantPicker: React.FC<Props> = ({
                   }`}
                   data-testid='team-assistant-picker-add-icon'
                 >
-                  <Plus theme='outline' size={isModalDensity ? '16' : '14'} fill='currentColor' />
+                  {/* Keep the fixed-size icon box; swap the plus for an inline spinner while this
+                      row's add is in flight so the row geometry never shifts. Using Arco Button's
+                      own `loading` prop would inject a spinner at the start of the flex content and
+                      break the row layout. */}
+                  {isPending ? (
+                    <Spin size={isModalDensity ? 16 : 14} />
+                  ) : (
+                    <Plus theme='outline' size={isModalDensity ? '16' : '14'} fill='currentColor' />
+                  )}
                 </span>
               );
               const row = blockReason ? (
@@ -134,8 +143,7 @@ const TeamAssistantPicker: React.FC<Props> = ({
                 <Button
                   long
                   type='text'
-                  disabled={disabled}
-                  loading={pendingAssistantId === assistant.id}
+                  disabled={disabled || isPending}
                   className={rowClassName}
                   onClick={() => onSelect(assistant)}
                   data-testid={`${testIdPrefix}-option-${assistantKey(assistant)}`}

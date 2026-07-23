@@ -5,6 +5,19 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 vi.mock('@arco-design/web-react', () => ({
   Spin: () => <span data-testid='spinner' />,
   Tag: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
+  Button: ({
+    children,
+    className,
+    onClick,
+  }: {
+    children: React.ReactNode;
+    className?: string;
+    onClick?: () => void;
+  }) => (
+    <button className={className} onClick={onClick}>
+      {children}
+    </button>
+  ),
 }));
 
 vi.mock('@/renderer/hooks/context/ThemeContext', () => ({
@@ -32,6 +45,35 @@ describe('ThoughtDisplay status text', () => {
 
     expect(screen.getByText('Waiting for this assistant to start…')).toBeInTheDocument();
     expect(screen.queryByTestId('spinner')).not.toBeInTheDocument();
+  });
+});
+
+describe('ThoughtDisplay runtime-failed retry layout', () => {
+  it('pins the retry button on the right and truncates a long status instead of hiding it', () => {
+    const longStatus = 'This assistant failed to start. '.repeat(20).trim();
+    const onRetryStart = vi.fn();
+
+    render(<ThoughtDisplay statusText={longStatus} onRetryStart={onRetryStart} />);
+
+    // The retry button renders no matter how long the status text is, and is
+    // marked non-shrinking so it cannot be pushed out of a narrow column.
+    const button = screen.getByRole('button', { name: 'Retry start' });
+    expect(button.className).toContain('flex-shrink-0');
+
+    // The status takes the remaining width and truncates; the full text stays
+    // reachable via the title tooltip.
+    const status = screen.getByText(longStatus);
+    expect(status.className).toContain('truncate');
+    expect(status.className).toContain('min-w-0');
+    expect(status.className).toContain('flex-1');
+    expect(status).toHaveAttribute('title', longStatus);
+  });
+
+  it('renders no retry button when onRetryStart is absent (no regression for plain status)', () => {
+    render(<ThoughtDisplay statusText='Processing…' />);
+
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+    expect(screen.getByText('Processing…')).toBeInTheDocument();
   });
 });
 

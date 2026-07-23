@@ -6,7 +6,12 @@ import { useTranslation } from 'react-i18next';
 import { useAionrsModelSelection } from '@/renderer/pages/conversation/platforms/aionrs/useAionrsModelSelection';
 import { isLegacyReadOnlyConversationType } from '@/renderer/pages/conversation/utils/conversationRuntime';
 import type { ITeamRunAck } from '@/common/types/team/teamTypes';
-import { buildTeamSendRuntime, buildTeamStopHandler, buildTeamWorkStatusText } from './teamSendRuntime';
+import {
+  buildTeamRetryStartHandler,
+  buildTeamSendRuntime,
+  buildTeamStopHandler,
+  buildTeamWorkStatusText,
+} from './teamSendRuntime';
 import type { TeamRunViewState } from '../hooks/useTeamRunView';
 import TeamChatEmptyState from './TeamChatEmptyState';
 import { usePresetAssistantInfo } from '@/renderer/hooks/agent/usePresetAssistantInfo';
@@ -181,26 +186,32 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({
         removing: () => t('team.work.removing', { defaultValue: 'Removing this assistant…' }),
         sessionStopped: () => t('team.work.sessionStopped', { defaultValue: 'The team session has stopped.' }),
       });
+  const isRuntimeFailed = slot_id ? slotWork?.blocked_reason === 'runtime_failed' : false;
   const teamRuntime =
     team_id && slot_id
-      ? buildTeamSendRuntime({
-          slot_id,
-          runView: teamRunView,
-          statusText: teamWorkStatusText,
-          sessionStopped: teamRunView.sessionStopped,
-          onStop: buildTeamStopHandler({
-            team_id,
+      ? {
+          ...buildTeamSendRuntime({
             slot_id,
             runView: teamRunView,
-            pauseSlotWork: (params) => ipcBridge.team.pauseSlotWork.invoke(params),
-            onStopFailed: () => {
-              Message.error(
-                t('team.stopAgentFailed', { defaultValue: 'Failed to stop this agent. Please try again.' })
-              );
-            },
-            onRunStateStale,
+            statusText: teamWorkStatusText,
+            sessionStopped: teamRunView.sessionStopped,
+            onStop: buildTeamStopHandler({
+              team_id,
+              slot_id,
+              runView: teamRunView,
+              pauseSlotWork: (params) => ipcBridge.team.pauseSlotWork.invoke(params),
+              onStopFailed: () => {
+                Message.error(
+                  t('team.stopAgentFailed', { defaultValue: 'Failed to stop this agent. Please try again.' })
+                );
+              },
+              onRunStateStale,
+            }),
           }),
-        })
+          // Only offer "retry start" when this slot's runtime failed; it triggers
+          // a directed per-member attach (not warmupSession/ensure_session).
+          onRetryStart: isRuntimeFailed ? buildTeamRetryStartHandler({ team_id, slot_id }) : undefined,
+        }
       : undefined;
   const content = (() => {
     if (isLegacyReadOnlyConversationType(conversation.type)) {

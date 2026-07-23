@@ -10,6 +10,8 @@ import { render, screen } from '@testing-library/react';
 import { ConfigProvider } from '@arco-design/web-react';
 import { MemoryRouter } from 'react-router-dom';
 import AssistantSettings from '@/renderer/pages/settings/AssistantSettings';
+import EnabledAssistantsList from '@/renderer/pages/settings/AssistantSettings/home/EnabledAssistantsList';
+import type { AssistantListItem } from '@/renderer/pages/settings/AssistantSettings/types';
 
 const useAssistantListMock = vi.fn();
 const useAssistantEditorMock = vi.fn();
@@ -17,6 +19,7 @@ const useAssistantEditorMock = vi.fn();
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (_key: string, options?: { defaultValue?: string }) => options?.defaultValue || _key,
+    i18n: { language: 'en-US' },
   }),
 }));
 
@@ -47,6 +50,13 @@ vi.mock('@/renderer/pages/settings/AssistantSettings/AssistantListPanel', () => 
   default: () => <div data-testid='assistant-list-panel' />,
 }));
 
+vi.mock('@/renderer/utils/model/agentLogo', async () => {
+  const actual = await vi.importActual<typeof import('@/renderer/utils/model/agentLogo')>(
+    '@/renderer/utils/model/agentLogo'
+  );
+  return { ...actual, useAgentLogos: () => ({}) };
+});
+
 vi.mock('@/renderer/pages/settings/AssistantSettings/DeleteAssistantModal', () => ({
   default: () => null,
 }));
@@ -62,7 +72,7 @@ vi.mock('@/renderer/pages/settings/AssistantSettings/assistantUtils', async () =
 
   return {
     ...actual,
-    resolveAvatarImageSrc: () => undefined,
+    resolveAvatarImageSrc: (avatar?: string) => avatar,
   };
 });
 
@@ -74,7 +84,9 @@ describe('AssistantSettings', () => {
       setActiveAssistantId: vi.fn(),
       activeAssistant: null,
       loadAssistants: vi.fn(),
-      reorderAssistants: vi.fn(),
+      reorderEnabledAssistants: vi.fn(),
+      assistantOrder: [],
+      setAssistantOrder: vi.fn(),
       localeKey: 'en-US',
     });
 
@@ -149,5 +161,131 @@ describe('AssistantSettings', () => {
 
     expect(screen.getByTestId('assistant-editor-page')).toBeInTheDocument();
     expect(screen.queryByTestId('assistant-list-panel')).not.toBeInTheDocument();
+  });
+
+  it('renders enabled assistants in one preferred cross-source list', () => {
+    const assistants = [
+      {
+        id: 'cli',
+        name: 'Codex',
+        sort_order: 1,
+        source: 'generated',
+        enabled: true,
+        agent: { type: 'acp', source: 'builtin', acp_backend: 'codex' },
+      },
+      {
+        id: 'custom',
+        name: 'My Writer',
+        sort_order: 2,
+        source: 'user',
+        enabled: true,
+        agent: { type: 'acp', source: 'builtin', acp_backend: 'gemini' },
+      },
+      {
+        id: 'official',
+        name: 'Cowork',
+        sort_order: 3,
+        source: 'builtin',
+        enabled: true,
+        agent: { type: 'acp', source: 'builtin', acp_backend: 'claude' },
+      },
+      {
+        id: 'disabled',
+        name: 'Disabled',
+        sort_order: 4,
+        source: 'builtin',
+        enabled: false,
+      },
+    ] as AssistantListItem[];
+
+    render(
+      <ConfigProvider>
+        <EnabledAssistantsList
+          assistants={assistants}
+          assistantOrder={['official', 'custom', 'cli']}
+          localeKey='en-US'
+          searchActive={false}
+          onOpenDetail={vi.fn()}
+          onToggleEnabled={vi.fn()}
+          onReorder={vi.fn()}
+        />
+      </ConfigProvider>
+    );
+
+    const rows = screen.getAllByTestId(/^enabled-assistant-row-/);
+    expect(rows.map((row) => row.getAttribute('data-testid'))).toEqual([
+      'enabled-assistant-row-official',
+      'enabled-assistant-row-custom',
+      'enabled-assistant-row-cli',
+    ]);
+    expect(screen.queryByTestId('enabled-assistant-row-disabled')).not.toBeInTheDocument();
+    expect(screen.getByText('Official')).toBeInTheDocument();
+    expect(screen.getByText('Custom')).toBeInTheDocument();
+    expect(screen.getByText('CLI')).toBeInTheDocument();
+    // Runtime engine is shown with a label + logo (same "Agent: {logo}" style as
+    // the My Assistants cards, i18n key `assistantRuntimeLabel`), not a bare
+    // backend name. The label renders once per enabled row.
+    expect(screen.getAllByTestId(/^assistant-runtime-/).length).toBe(3);
+    expect(screen.queryByText('claude')).not.toBeInTheDocument();
+    // Each enabled row exposes an enable switch so users can disable in place.
+    expect(screen.getByTestId('switch-enabled-official')).toBeInTheDocument();
+    expect(screen.getByTestId('switch-enabled-cli')).toBeInTheDocument();
+  });
+
+  it('disables enabled-assistant dragging while search is active', () => {
+    const assistants = [
+      { id: 'cli', name: 'Codex', sort_order: 1, source: 'generated', enabled: true },
+      { id: 'official', name: 'Cowork', sort_order: 2, source: 'builtin', enabled: true },
+    ] as AssistantListItem[];
+
+    render(
+      <ConfigProvider>
+        <EnabledAssistantsList
+          assistants={assistants}
+          assistantOrder={[]}
+          localeKey='en-US'
+          searchActive
+          onOpenDetail={vi.fn()}
+          onToggleEnabled={vi.fn()}
+          onReorder={vi.fn()}
+        />
+      </ConfigProvider>
+    );
+
+    expect(screen.getByTestId('enabled-reorder-search-hint')).toHaveTextContent('Clear search to reorder.');
+    expect(screen.getByTestId('enabled-assistant-reorder-handle-cli')).toBeDisabled();
+    expect(screen.getByTestId('enabled-assistant-reorder-handle-official')).toBeDisabled();
+  });
+
+  it('uses the homepage avatar treatment without cropping runtime logos', () => {
+    const assistants = [
+      {
+        id: 'claude',
+        name: 'Claude',
+        avatar: 'https://example.com/claude.svg',
+        sort_order: 1,
+        source: 'generated',
+        enabled: true,
+        agent: { type: 'acp', source: 'builtin', acp_backend: 'claude' },
+      },
+    ] as AssistantListItem[];
+
+    render(
+      <ConfigProvider>
+        <EnabledAssistantsList
+          assistants={assistants}
+          assistantOrder={[]}
+          localeKey='en-US'
+          searchActive={false}
+          onOpenDetail={vi.fn()}
+          onToggleEnabled={vi.fn()}
+          onReorder={vi.fn()}
+        />
+      </ConfigProvider>
+    );
+
+    const row = screen.getByTestId('enabled-assistant-row-claude');
+    expect(row.querySelector('.arco-avatar-circle')).toHaveStyle({ height: '20px', width: '20px' });
+    expect(row.querySelector('img')).toHaveClass('object-contain');
   });
 });

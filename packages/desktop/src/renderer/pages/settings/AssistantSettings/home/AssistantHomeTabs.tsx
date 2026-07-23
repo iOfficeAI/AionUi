@@ -5,6 +5,7 @@
  */
 
 import type { AssistantListItem } from '../types';
+import EnabledAssistantsList from './EnabledAssistantsList';
 import MyAssistantsList from './MyAssistantsList';
 import OfficialAssistantsGrid from './OfficialAssistantsGrid';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
@@ -16,6 +17,7 @@ import { useTranslation } from 'react-i18next';
 
 type AssistantHomeTabsProps = {
   assistants: AssistantListItem[];
+  assistantOrder: readonly string[];
   localeKey: string;
   onOpenDetail: (assistant: AssistantListItem) => void;
   onOpenSettings: (assistant: AssistantListItem) => void;
@@ -23,18 +25,19 @@ type AssistantHomeTabsProps = {
   onDelete: (assistant: AssistantListItem) => void;
   onCreate: () => void;
   onToggleEnabled: (assistant: AssistantListItem, checked: boolean) => void;
-  onReorder: (activeId: string, overId: string) => void | Promise<void>;
+  onReorderEnabled: (activeId: string, overId: string) => void | Promise<void>;
   onStartChat: (assistant: AssistantListItem) => void;
   /** Tab to show on mount (e.g. return to Official after editing a builtin). */
-  initialTab?: 'mine' | 'official';
+  initialTab?: 'enabled' | 'mine' | 'official';
   /** Notified whenever the active tab changes, so the parent can remember it. */
-  onTabChange?: (tab: 'mine' | 'official') => void;
+  onTabChange?: (tab: 'enabled' | 'mine' | 'official') => void;
 };
 
-type HomeTab = 'mine' | 'official';
+type HomeTab = 'enabled' | 'mine' | 'official';
 
 const AssistantHomeTabs: React.FC<AssistantHomeTabsProps> = ({
   assistants,
+  assistantOrder,
   localeKey,
   onOpenDetail,
   onOpenSettings,
@@ -42,9 +45,9 @@ const AssistantHomeTabs: React.FC<AssistantHomeTabsProps> = ({
   onDelete,
   onCreate,
   onToggleEnabled,
-  onReorder,
+  onReorderEnabled,
   onStartChat,
-  initialTab = 'mine',
+  initialTab = 'enabled',
   onTabChange,
 }) => {
   const { t, i18n } = useTranslation();
@@ -59,13 +62,15 @@ const AssistantHomeTabs: React.FC<AssistantHomeTabsProps> = ({
   };
 
   const counts = useMemo(() => {
+    let enabled = 0;
     let mine = 0;
     let official = 0;
     for (const assistant of assistants) {
+      if (assistant.enabled !== false) enabled += 1;
       if (assistant.source === 'builtin') official += 1;
       else mine += 1;
     }
-    return { mine, official };
+    return { enabled, mine, official };
   }, [assistants]);
 
   const normalizedSearchQuery = searchQuery.trim().toLowerCase();
@@ -128,6 +133,11 @@ const AssistantHomeTabs: React.FC<AssistantHomeTabsProps> = ({
             }
             tabs={[
               {
+                key: 'enabled',
+                label: t('settings.assistantSectionEnabled', { defaultValue: 'Enabled' }),
+                count: counts.enabled,
+              },
+              {
                 key: 'mine',
                 label: t('settings.assistantTabMine', { defaultValue: 'My Assistants' }),
                 count: counts.mine,
@@ -149,14 +159,23 @@ const AssistantHomeTabs: React.FC<AssistantHomeTabsProps> = ({
         className={`min-h-0 flex-1 overflow-auto ${isMobile ? 'px-16px pb-14px pt-14px' : 'px-12px pb-24px pt-18px md:px-40px'}`}
       >
         <div className='mx-auto w-full max-w-800px'>
-          {tab === 'mine' ? (
+          {tab === 'enabled' ? (
+            <EnabledAssistantsList
+              assistants={filteredAssistants}
+              assistantOrder={assistantOrder}
+              localeKey={localeKey}
+              searchActive={Boolean(normalizedSearchQuery)}
+              onOpenDetail={onOpenDetail}
+              onToggleEnabled={onToggleEnabled}
+              onReorder={onReorderEnabled}
+            />
+          ) : tab === 'mine' ? (
             <MyAssistantsList
               assistants={filteredAssistants}
               localeKey={localeKey}
               onOpenDetail={onOpenDetail}
               onDelete={onDelete}
               onToggleEnabled={onToggleEnabled}
-              onReorder={onReorder}
               onStartChat={onStartChat}
               onGoOfficial={() => selectTab('official')}
               searchActive={Boolean(normalizedSearchQuery)}

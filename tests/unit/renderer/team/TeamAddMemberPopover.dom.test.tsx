@@ -185,6 +185,37 @@ describe('TeamAddMemberPopover', () => {
     expect(switchTabMock).toHaveBeenCalledWith('slot-new');
   });
 
+  it('swaps the row plus icon for an inline spinner while pending, without Arco button-injected loading', async () => {
+    // Hold model resolution so the pending state stays observable mid-flight.
+    let releaseModel: (value: string) => void = () => {};
+    resolveDefaultTeamAgentModelMock.mockReturnValueOnce(
+      new Promise<string>((resolve) => {
+        releaseModel = resolve;
+      })
+    );
+
+    render(
+      <TeamAddMemberPopover>
+        <button type='button'>add</button>
+      </TeamAddMemberPopover>
+    );
+
+    const option = screen.getAllByTestId('team-add-member-option-writer')[0];
+    fireEvent.click(option);
+
+    // The spinner lives inside the fixed-size right icon box (replacing the plus),
+    // so the row layout does not shift.
+    const addIcon = option.querySelector('[data-testid="team-assistant-picker-add-icon"]');
+    await waitFor(() => expect(addIcon?.querySelector('.arco-icon-loading')).toBeTruthy());
+    // The fix must NOT rely on Arco Button's own `loading`, which would inject a
+    // spinner at the start of the flex content and break the row.
+    expect(option.className).not.toContain('arco-btn-loading');
+
+    // Flush the in-flight add so the test tears down cleanly.
+    releaseModel('claude-sonnet-4');
+    await waitFor(() => expect(addAssistantMock).toHaveBeenCalledTimes(1));
+  });
+
   it('keeps the popover content available and does not switch tabs on add failure', async () => {
     addAssistantMock.mockRejectedValueOnce(new Error('failed'));
     render(

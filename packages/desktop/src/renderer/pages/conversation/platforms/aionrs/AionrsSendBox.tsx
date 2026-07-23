@@ -674,6 +674,7 @@ const AionrsSendBox: React.FC<{
         externalElapsedSource={Boolean(teamRuntime)}
         startedAtMs={teamRuntime?.startedAtMs ?? null}
         onStop={effectiveHandleStop}
+        onRetryStart={teamRuntime?.onRetryStart ? () => void teamRuntime.onRetryStart?.() : undefined}
       />
 
       <SendBox
