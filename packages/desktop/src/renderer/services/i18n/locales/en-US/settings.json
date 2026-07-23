@@ -159,7 +159,7 @@
   "assistantHomeLeadShort": "Ready-to-work AI experts, preloaded with skills and tools. Enable them to use in chats, teams, and scheduled tasks.",
   "assistantReorderHintShort": "Drag to reorder",
   "assistantReorderSearchDisabled": "Clear search to reorder.",
-  "myAssistantsHintShort": "Assistants auto-generated from your local CLIs, plus ones you created or duplicated from official. Drag to reorder how they appear.",
+  "myAssistantsHintShort": "Assistants auto-generated from your local CLIs, plus ones you created or duplicated from official.",
   "assistantRuntimeLabel": "Agent:",
   "assistantGoChat": "Chat",
   "assistantReorderHint": "Drag to reorder — this decides the display order wherever you pick an assistant (home, teams, scheduled tasks, …).",

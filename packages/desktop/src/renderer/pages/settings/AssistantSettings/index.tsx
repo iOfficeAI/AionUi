@@ -62,7 +62,6 @@ const AssistantSettings: React.FC = () => {
     setActiveAssistantId,
     activeAssistant,
     loadAssistants,
-    reorderAssistants,
     reorderEnabledAssistants,
     assistantOrder,
     setAssistantOrder,
@@ -255,7 +254,6 @@ const AssistantSettings: React.FC = () => {
                 void editor.handleCreate();
               }}
               onToggleEnabled={(assistant, checked) => void editor.handleToggleEnabled(assistant, checked)}
-              onReorder={(activeId, overId) => void reorderAssistants(activeId, overId)}
               onReorderEnabled={async (activeId, overId) => {
                 try {
                   await reorderEnabledAssistants(activeId, overId);

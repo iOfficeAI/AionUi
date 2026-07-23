@@ -25,7 +25,6 @@ type AssistantHomeTabsProps = {
   onDelete: (assistant: AssistantListItem) => void;
   onCreate: () => void;
   onToggleEnabled: (assistant: AssistantListItem, checked: boolean) => void;
-  onReorder: (activeId: string, overId: string) => void | Promise<void>;
   onReorderEnabled: (activeId: string, overId: string) => void | Promise<void>;
   onStartChat: (assistant: AssistantListItem) => void;
   /** Tab to show on mount (e.g. return to Official after editing a builtin). */
@@ -46,7 +45,6 @@ const AssistantHomeTabs: React.FC<AssistantHomeTabsProps> = ({
   onDelete,
   onCreate,
   onToggleEnabled,
-  onReorder,
   onReorderEnabled,
   onStartChat,
   initialTab = 'enabled',
@@ -177,7 +175,6 @@ const AssistantHomeTabs: React.FC<AssistantHomeTabsProps> = ({
               onOpenDetail={onOpenDetail}
               onDelete={onDelete}
               onToggleEnabled={onToggleEnabled}
-              onReorder={onReorder}
               onStartChat={onStartChat}
               onGoOfficial={() => selectTab('official')}
               searchActive={Boolean(normalizedSearchQuery)}

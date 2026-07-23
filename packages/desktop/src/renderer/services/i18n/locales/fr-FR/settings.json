@@ -159,7 +159,7 @@
   "assistantHomeLeadShort": "Des experts en IA prêts à l’emploi, dotés de compétences et d’outils préchargés. Permettez-leur de les utiliser dans les discussions, les équipes et les tâches planifiées.",
   "assistantReorderHintShort": "Faites glisser pour réorganiser",
   "assistantReorderSearchDisabled": "Effacez la recherche pour réorganiser.",
-  "myAssistantsHintShort": "Assistants générés automatiquement à partir de vos CLI locales, ainsi que ceux que vous avez créés ou dupliqués à partir d'officiels. Faites glisser pour réorganiser leur apparence.",
+  "myAssistantsHintShort": "Assistants générés automatiquement à partir de vos CLI locales, ainsi que ceux que vous avez créés ou dupliqués à partir d'officiels.",
   "assistantRuntimeLabel": "Agent:",
   "assistantGoChat": "Chat",
   "assistantReorderHint": "Faites glisser pour réorganiser — cela décide de l'ordre d'affichage partout où vous choisissez un assistant (maison, équipes, tâches planifiées,…).",
