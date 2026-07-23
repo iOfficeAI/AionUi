@@ -29,15 +29,25 @@ export const shouldShowNotification = (gate: NotificationGate): boolean =>
   gate.settingEnabled &&
   gate.documentHidden;
 
+export type NotificationKind = 'confirmation' | 'turnCompleted';
+
 export type NotificationPayload = {
   body: string;
   conversationId?: string;
+  kind: NotificationKind;
 };
 
 export type BrowserNotificationDeps = {
-  readGate: () => NotificationGate;
+  /**
+   * Whether a notification may be shown right now. The WebUI path derives this
+   * from the browser gate (`shouldShowNotification`); the desktop path uses its
+   * own condition (window focus is checked in the main process). Injecting the
+   * predicate keeps this controller — and its turn-finish detection / dedup —
+   * shared across both paths.
+   */
+  shouldShow: () => boolean;
   show: (payload: NotificationPayload) => void;
-  bodyFor: (kind: 'confirmation' | 'turnCompleted') => string;
+  bodyFor: (kind: NotificationKind) => string;
 };
 
 /**
@@ -66,16 +76,20 @@ export const createBrowserNotificationController = (deps: BrowserNotificationDep
     if (!message?.type) return;
 
     if (PERMISSION_TYPES.has(message.type)) {
-      if (!shouldShowNotification(deps.readGate())) return;
-      deps.show({ body: deps.bodyFor('confirmation'), conversationId: message.conversation_id });
+      if (!deps.shouldShow()) return;
+      deps.show({ body: deps.bodyFor('confirmation'), conversationId: message.conversation_id, kind: 'confirmation' });
       return;
     }
 
     if (message.type === 'finish') {
       if (message.turn_id && message.turn_id === lastNotifiedTurnId) return;
-      if (!shouldShowNotification(deps.readGate())) return;
+      if (!deps.shouldShow()) return;
       lastNotifiedTurnId = message.turn_id ?? null;
-      deps.show({ body: deps.bodyFor('turnCompleted'), conversationId: message.conversation_id });
+      deps.show({
+        body: deps.bodyFor('turnCompleted'),
+        conversationId: message.conversation_id,
+        kind: 'turnCompleted',
+      });
     }
   };
 
