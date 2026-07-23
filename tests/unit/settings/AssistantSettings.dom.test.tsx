@@ -207,6 +207,7 @@ describe('AssistantSettings', () => {
           localeKey='en-US'
           searchActive={false}
           onOpenDetail={vi.fn()}
+          onToggleEnabled={vi.fn()}
           onReorder={vi.fn()}
         />
       </ConfigProvider>
@@ -222,8 +223,14 @@ describe('AssistantSettings', () => {
     expect(screen.getByText('Official')).toBeInTheDocument();
     expect(screen.getByText('Custom')).toBeInTheDocument();
     expect(screen.getByText('CLI')).toBeInTheDocument();
-    expect(screen.queryByText('runtime:')).not.toBeInTheDocument();
-    expect(screen.getByText('claude')).toBeInTheDocument();
+    // Runtime engine is shown with a label + logo (same "Agent: {logo}" style as
+    // the My Assistants cards, i18n key `assistantRuntimeLabel`), not a bare
+    // backend name. The label renders once per enabled row.
+    expect(screen.getAllByTestId(/^assistant-runtime-/).length).toBe(3);
+    expect(screen.queryByText('claude')).not.toBeInTheDocument();
+    // Each enabled row exposes an enable switch so users can disable in place.
+    expect(screen.getByTestId('switch-enabled-official')).toBeInTheDocument();
+    expect(screen.getByTestId('switch-enabled-cli')).toBeInTheDocument();
   });
 
   it('disables enabled-assistant dragging while search is active', () => {
@@ -240,6 +247,7 @@ describe('AssistantSettings', () => {
           localeKey='en-US'
           searchActive
           onOpenDetail={vi.fn()}
+          onToggleEnabled={vi.fn()}
           onReorder={vi.fn()}
         />
       </ConfigProvider>
@@ -271,6 +279,7 @@ describe('AssistantSettings', () => {
           localeKey='en-US'
           searchActive={false}
           onOpenDetail={vi.fn()}
+          onToggleEnabled={vi.fn()}
           onReorder={vi.fn()}
         />
       </ConfigProvider>

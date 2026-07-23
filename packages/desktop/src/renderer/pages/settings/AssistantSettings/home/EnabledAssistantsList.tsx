@@ -16,7 +16,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Button, Empty, Tag } from '@arco-design/web-react';
+import { Button, Empty, Switch, Tag } from '@arco-design/web-react';
 import { Drag } from '@icon-park/react';
 import React, { useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -28,6 +28,7 @@ type EnabledAssistantsListProps = {
   localeKey: string;
   searchActive: boolean;
   onOpenDetail: (assistant: AssistantListItem) => void;
+  onToggleEnabled: (assistant: AssistantListItem, checked: boolean) => void;
   onReorder: (activeId: string, overId: string) => void | Promise<void>;
 };
 
@@ -36,6 +37,7 @@ type EnabledAssistantRowProps = {
   localeKey: string;
   draggable: boolean;
   onOpenDetail: (assistant: AssistantListItem) => void;
+  onToggleEnabled: (assistant: AssistantListItem, checked: boolean) => void;
 };
 
 const EnabledAssistantRow: React.FC<EnabledAssistantRowProps> = ({
@@ -43,6 +45,7 @@ const EnabledAssistantRow: React.FC<EnabledAssistantRowProps> = ({
   localeKey,
   draggable,
   onOpenDetail,
+  onToggleEnabled,
 }) => {
   const { t } = useTranslation();
   const { attributes, listeners, setActivatorNodeRef, setNodeRef, transform, transition, isDragging } = useSortable({
@@ -102,9 +105,17 @@ const EnabledAssistantRow: React.FC<EnabledAssistantRowProps> = ({
           </Tag>
         </div>
       </div>
-      <span className='hidden min-w-0 shrink-0 sm:inline-flex'>
-        <RuntimeBadge assistant={assistant} showLabel={false} showName />
-      </span>
+      <div className='ml-10px flex flex-shrink-0 items-center gap-8px sm:gap-14px' onClick={(e) => e.stopPropagation()}>
+        <span className='hidden min-w-0 shrink-0 sm:inline-flex'>
+          <RuntimeBadge assistant={assistant} />
+        </span>
+        <Switch
+          size='small'
+          data-testid={`switch-enabled-${assistant.id}`}
+          checked={assistant.enabled !== false}
+          onChange={(checked) => onToggleEnabled(assistant, checked)}
+        />
+      </div>
     </div>
   );
 };
@@ -115,6 +126,7 @@ const EnabledAssistantsList: React.FC<EnabledAssistantsListProps> = ({
   localeKey,
   searchActive,
   onOpenDetail,
+  onToggleEnabled,
   onReorder,
 }) => {
   const { t } = useTranslation();
@@ -173,6 +185,7 @@ const EnabledAssistantsList: React.FC<EnabledAssistantsListProps> = ({
                   localeKey={localeKey}
                   draggable={sortingEnabled}
                   onOpenDetail={onOpenDetail}
+                  onToggleEnabled={onToggleEnabled}
                 />
               ))}
             </div>

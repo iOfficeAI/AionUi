@@ -166,6 +166,7 @@ const AssistantHomeTabs: React.FC<AssistantHomeTabsProps> = ({
               localeKey={localeKey}
               searchActive={Boolean(normalizedSearchQuery)}
               onOpenDetail={onOpenDetail}
+              onToggleEnabled={onToggleEnabled}
               onReorder={onReorderEnabled}
             />
           ) : tab === 'mine' ? (
