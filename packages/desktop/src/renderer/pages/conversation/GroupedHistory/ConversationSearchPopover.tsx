@@ -5,20 +5,24 @@
  */
 
 import { ipcBridge } from '@/common';
+import type { TChatConversation } from '@/common/config/storage';
 import type { IMessageSearchItem } from '@/common/types/team/database';
 import AionModal from '@/renderer/components/base/AionModal';
 import { AionSearchInput } from '@/renderer/components/base';
 import { usePresetAssistantInfo } from '@/renderer/hooks/agent/usePresetAssistantInfo';
+import { useConversationHistoryContext } from '@/renderer/hooks/context/ConversationHistoryContext';
 import { useAgentLogos } from '@/renderer/utils/model/agentLogo';
 import { resolveConversationLeadingMark } from '@/renderer/pages/conversation/utils/conversationAssistantIdentity';
+import { getActivityTime } from '@/renderer/utils/chat/timeline';
 import { blockMobileInputFocus, blurActiveElement } from '@/renderer/utils/ui/focus';
-import { Empty, Spin, Typography } from '@arco-design/web-react';
+import { Button, Empty, Spin, Typography } from '@arco-design/web-react';
 import { Close, MessageOne, Robot, Search } from '@icon-park/react';
 import classNames from 'classnames';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { flushSync } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
+import { getRecentConversations, moveQuickSwitcherSelection } from './utils/conversationQuickSwitcher';
 import './ConversationSearchPopover.css';
 
 const PAGE_SIZE = 20;
@@ -27,6 +31,8 @@ const RECENT_SEARCH_STORAGE_KEY = 'conversation.historySearch.recentKeywords';
 const SNIPPET_MAX_LENGTH = 110;
 const SNIPPET_PREFIX_CONTEXT_LENGTH = 34;
 const SNIPPET_SUFFIX_CONTEXT_LENGTH = 58;
+const getQuickSwitcherOptionId = (mode: 'recent' | 'search', index: number): string =>
+  `conversation-quick-switcher-${mode}-${index}`;
 
 const escapeRegExp = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
@@ -99,7 +105,7 @@ interface ConversationSearchPopoverProps {
   renderTrigger?: (props: { onClick: () => void; isActive: boolean }) => React.ReactNode;
 }
 
-const ConversationAgentMark: React.FC<{ conversation: IMessageSearchItem['conversation'] }> = ({ conversation }) => {
+const ConversationAgentMark: React.FC<{ conversation: TChatConversation }> = ({ conversation }) => {
   const logos = useAgentLogos();
   const { info: assistantInfo } = usePresetAssistantInfo(conversation);
   const leadingMark = resolveConversationLeadingMark(conversation, assistantInfo, logos);
@@ -138,6 +144,7 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
 }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { groupedHistory } = useConversationHistoryContext();
   const [visible, setVisible] = useState(false);
   const [keyword, setKeyword] = useState('');
   const [debouncedKeyword, setDebouncedKeyword] = useState('');
@@ -147,6 +154,8 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [recentKeywords, setRecentKeywords] = useState<string[]>([]);
+  const [selectedIndex, setSelectedIndex] = useState(-1);
+  const recentConversations = useMemo(() => getRecentConversations(groupedHistory), [groupedHistory]);
 
   useEffect(() => {
     try {
@@ -193,6 +202,9 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
         });
 
         setItems((prev) => (append ? [...prev, ...result.items] : result.items));
+        if (!append) {
+          setSelectedIndex(result.items.length > 0 ? 0 : -1);
+        }
         setPage(pageToLoad);
         setHasMore(result.has_more);
       } catch (error) {
@@ -201,6 +213,7 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
           setItems([]);
           setPage(0);
           setHasMore(false);
+          setSelectedIndex(-1);
         }
       } finally {
         setLoading(false);
@@ -213,6 +226,11 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
   useEffect(() => {
     void runSearch(0, false);
   }, [runSearch]);
+
+  useEffect(() => {
+    if (!visible) return;
+    setSelectedIndex(!debouncedKeyword && recentConversations.length > 0 ? 0 : -1);
+  }, [debouncedKeyword, recentConversations.length, visible]);
 
   useEffect(() => {
     if (!debouncedKeyword) return;
@@ -246,6 +264,7 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
     setHasMore(false);
     setLoading(false);
     setLoadingMore(false);
+    setSelectedIndex(-1);
   }, []);
 
   const handleLoadMore = useCallback(() => {
@@ -256,8 +275,8 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
     void runSearch(page + 1, true);
   }, [debouncedKeyword, hasMore, loading, loadingMore, page, runSearch, visible]);
 
-  const handleResultClick = useCallback(
-    async (item: IMessageSearchItem) => {
+  const handleConversationOpen = useCallback(
+    async (conversationId: string, targetMessageId?: string) => {
       blockMobileInputFocus();
       blurActiveElement();
 
@@ -268,9 +287,9 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
       onConversationSelect?.();
 
       await Promise.resolve(
-        navigate(`/conversation/${item.conversation.id}`, {
+        navigate(`/conversation/${conversationId}`, {
           state: {
-            targetMessageId: item.message_id,
+            ...(targetMessageId ? { targetMessageId } : {}),
             fromConversationSearch: true,
           },
         })
@@ -278,6 +297,16 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
       onSessionClick?.();
     },
     [navigate, onConversationSelect, onSessionClick, resetSearchState]
+  );
+
+  const handleResultClick = useCallback(
+    (item: IMessageSearchItem) => handleConversationOpen(item.conversation.id, item.message_id),
+    [handleConversationOpen]
+  );
+
+  const handleRecentConversationClick = useCallback(
+    (conversation: TChatConversation) => handleConversationOpen(conversation.id),
+    [handleConversationOpen]
   );
 
   const handleClose = useCallback(() => {
@@ -299,6 +328,61 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
       setVisible(true);
     }
   }, [disabled]);
+
+  const isSearchMode = Boolean(debouncedKeyword);
+  const activeItemCount = isSearchMode ? items.length : recentConversations.length;
+  const activeOptionId =
+    selectedIndex >= 0 && selectedIndex < activeItemCount
+      ? getQuickSwitcherOptionId(isSearchMode ? 'search' : 'recent', selectedIndex)
+      : undefined;
+
+  const handleInputKeyDown = useCallback(
+    (event: React.KeyboardEvent<HTMLInputElement>) => {
+      if (event.nativeEvent.isComposing) return;
+
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        event.stopPropagation();
+        handleClose();
+        return;
+      }
+
+      if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+        if (activeItemCount === 0) return;
+        event.preventDefault();
+        const direction = event.key === 'ArrowDown' ? 1 : -1;
+        setSelectedIndex((currentIndex) => moveQuickSwitcherSelection(currentIndex, direction, activeItemCount));
+        return;
+      }
+
+      if (event.key !== 'Enter' || selectedIndex < 0) return;
+      const selectedSearchItem = isSearchMode ? items[selectedIndex] : undefined;
+      const selectedRecentConversation = isSearchMode ? undefined : recentConversations[selectedIndex];
+      if (!selectedSearchItem && !selectedRecentConversation) return;
+
+      event.preventDefault();
+      if (selectedSearchItem) {
+        void handleResultClick(selectedSearchItem);
+      } else if (selectedRecentConversation) {
+        void handleRecentConversationClick(selectedRecentConversation);
+      }
+    },
+    [
+      activeItemCount,
+      handleClose,
+      handleRecentConversationClick,
+      handleResultClick,
+      isSearchMode,
+      items,
+      recentConversations,
+      selectedIndex,
+    ]
+  );
+
+  useEffect(() => {
+    if (!visible || !activeOptionId) return;
+    document.getElementById(activeOptionId)?.scrollIntoView?.({ block: 'nearest' });
+  }, [activeOptionId, visible]);
 
   useEffect(() => {
     const handleGlobalSearchShortcut = (event: KeyboardEvent) => {
@@ -323,6 +407,69 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
 
   const resultContent = useMemo(() => {
     if (!debouncedKeyword) {
+      if (recentConversations.length > 0) {
+        return (
+          <div className='h-full min-h-0 overflow-y-auto overflow-x-hidden pr-4px'>
+            <div className='px-16px pb-8px text-12px font-600 text-t-secondary'>
+              {t('conversation.historySearch.recentConversations')}
+            </div>
+            <div
+              id='conversation-quick-switcher-results'
+              className='conversation-search-modal__results flex flex-col'
+              role='listbox'
+              aria-label={t('conversation.historySearch.recentConversations')}
+            >
+              {recentConversations.map((conversation, index) => (
+                <Button
+                  key={conversation.id}
+                  id={getQuickSwitcherOptionId('recent', index)}
+                  type='text'
+                  long
+                  role='option'
+                  aria-selected={selectedIndex === index}
+                  className={classNames(
+                    'conversation-search-modal__result !h-auto !m-0 !px-18px !py-13px !justify-start text-left transition-all duration-150',
+                    {
+                      '!bg-fill-2': selectedIndex === index,
+                    }
+                  )}
+                  onMouseEnter={() => setSelectedIndex(index)}
+                  onClick={() => {
+                    void handleRecentConversationClick(conversation);
+                  }}
+                >
+                  <div className='w-full min-w-0 flex items-center justify-between gap-8px'>
+                    <div className='conversation-search-modal__result-title-row min-w-0 flex-1'>
+                      <ConversationAgentMark conversation={conversation} />
+                      <div className='conversation-search-modal__result-title text-14px font-600 text-t-primary truncate'>
+                        {conversation.name || t('conversation.historySearch.untitled')}
+                      </div>
+                    </div>
+                    <span className='shrink-0 text-11px text-t-secondary'>
+                      {formatTime(getActivityTime(conversation))}
+                    </span>
+                  </div>
+                </Button>
+              ))}
+            </div>
+            {recentKeywords.length > 0 ? (
+              <div className='conversation-search-modal__recent-wrap pt-14px'>
+                {recentKeywords.map((item) => (
+                  <button
+                    key={item}
+                    type='button'
+                    className='conversation-search-modal__recent-chip'
+                    onClick={() => setKeyword(item)}
+                  >
+                    {item}
+                  </button>
+                ))}
+              </div>
+            ) : null}
+          </div>
+        );
+      }
+
       return (
         <div className='conversation-search-modal__state'>
           <div className='conversation-search-modal__state-content'>
@@ -372,17 +519,29 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
           }
         }}
       >
-        <div className='conversation-search-modal__results flex flex-col'>
-          {items.map((item) => {
+        <div
+          id='conversation-quick-switcher-results'
+          className='conversation-search-modal__results flex flex-col'
+          role='listbox'
+          aria-label={t('conversation.historySearch.title')}
+        >
+          {items.map((item, index) => {
             const snippet = buildSnippet(item.preview_text, debouncedKeyword);
             return (
               <button
                 key={`${item.message_id}-${item.message_created_at}`}
+                id={getQuickSwitcherOptionId('search', index)}
                 type='button'
+                role='option'
+                aria-selected={selectedIndex === index}
                 className={classNames(
                   'conversation-search-modal__result w-full text-left cursor-pointer transition-all duration-150',
-                  'focus:outline-none'
+                  'focus:outline-none',
+                  {
+                    'bg-fill-2': selectedIndex === index,
+                  }
                 )}
+                onMouseEnter={() => setSelectedIndex(index)}
                 onClick={() => {
                   void handleResultClick(item);
                 }}
@@ -414,10 +573,23 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
         </div>
       </div>
     );
-  }, [debouncedKeyword, handleLoadMore, handleResultClick, items, loading, loadingMore, recentKeywords, t]);
+  }, [
+    debouncedKeyword,
+    handleLoadMore,
+    handleRecentConversationClick,
+    handleResultClick,
+    items,
+    loading,
+    loadingMore,
+    recentConversations,
+    recentKeywords,
+    selectedIndex,
+    t,
+  ]);
 
   const hasSearchResults = items.length > 0;
-  const useCompactHeight = !debouncedKeyword || (!loading && !hasSearchResults);
+  const useCompactHeight =
+    (!debouncedKeyword && recentConversations.length === 0) || (!loading && debouncedKeyword && !hasSearchResults);
   const triggerClassName = fullWidth
     ? 'conversation-search-trigger-full h-34px w-full p-0 bg-transparent border-none outline-none flex items-center justify-start gap-8px pl-10px pr-8px rd-0.5rem cursor-pointer shrink-0 transition-all group text-t-primary focus:outline-none focus-visible:outline-none'
     : 'h-34px w-34px p-0 bg-transparent rd-0.5rem flex items-center justify-center cursor-pointer shrink-0 transition-all border border-solid border-transparent text-t-secondary hover:text-t-primary';
@@ -526,6 +698,14 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
               placeholder={t('conversation.historySearch.placeholder')}
               onChange={setKeyword}
               onClear={handleClearKeyword}
+              inputProps={{
+                role: 'combobox',
+                'aria-expanded': visible,
+                'aria-controls': 'conversation-quick-switcher-results',
+                'aria-activedescendant': activeOptionId,
+                'aria-autocomplete': 'list',
+                onKeyDown: handleInputKeyDown,
+              }}
             />
           </div>
 

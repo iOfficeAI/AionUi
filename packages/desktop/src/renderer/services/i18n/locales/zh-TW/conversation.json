@@ -83,6 +83,7 @@
     "description": "透過關鍵字搜尋歷史訊息，滾動載入更多，點擊跳轉到匹配的訊息。",
     "placeholder": "搜尋訊息內容...",
     "idle": "輸入關鍵字搜尋訊息",
+    "recentConversations": "最近的對話",
     "empty": "沒有找到匹配的訊息",
     "loadingMore": "載入更多...",
     "untitled": "未命名對話"

@@ -83,6 +83,7 @@
     "description": "Busca mensajes del historial por palabra clave, carga más al desplazarte y salta al mensaje coincidente.",
     "placeholder": "Buscar en el contenido de mensajes...",
     "idle": "Ingresa palabras clave para buscar mensajes",
+    "recentConversations": "Conversaciones recientes",
     "empty": "No se encontraron mensajes coincidentes",
     "loadingMore": "Cargando más...",
     "untitled": "Conversación sin título"

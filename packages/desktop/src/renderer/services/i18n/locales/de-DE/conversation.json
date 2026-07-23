@@ -83,6 +83,7 @@
     "description": "Verlaufsnachrichten nach Stichwort durchsuchen, beim Scrollen mehr laden und zur gefundenen Nachricht springen.",
     "placeholder": "Nachrichteninhalt suchen...",
     "idle": "Stichwörter eingeben, um Nachrichten zu suchen",
+    "recentConversations": "Letzte Unterhaltungen",
     "empty": "Keine übereinstimmenden Nachrichten gefunden",
     "loadingMore": "Weitere werden geladen...",
     "untitled": "Unbenanntes Gespräch"

@@ -83,6 +83,7 @@
     "description": "Rechercher les messages historiques par mot-clé, charger plus en faisant défiler, et accéder au message correspondant.",
     "placeholder": "Rechercher dans le contenu des messages...",
     "idle": "Entrez des mots-clés pour rechercher des messages",
+    "recentConversations": "Conversations récentes",
     "empty": "Aucun message correspondant trouvé",
     "loadingMore": "Chargement de plus...",
     "untitled": "Conversation sans titre"

@@ -568,6 +568,7 @@ export type I18nKey =
   | 'conversation.historySearch.idle'
   | 'conversation.historySearch.loadingMore'
   | 'conversation.historySearch.placeholder'
+  | 'conversation.historySearch.recentConversations'
   | 'conversation.historySearch.shortTitle'
   | 'conversation.historySearch.title'
   | 'conversation.historySearch.tooltip'

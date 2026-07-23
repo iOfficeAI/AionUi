@@ -83,6 +83,7 @@
     "description": "Pesquise mensagens históricas por palavra-chave, carregue mais ao rolar, e pule para a mensagem correspondente.",
     "placeholder": "Pesquisar conteúdo da mensagem...",
     "idle": "Digite palavras-chave para pesquisar mensagens",
+    "recentConversations": "Conversas recentes",
     "empty": "Nenhuma mensagem correspondente encontrada",
     "loadingMore": "Carregando mais...",
     "untitled": "Conversa sem título"
