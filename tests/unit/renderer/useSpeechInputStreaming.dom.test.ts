@@ -43,6 +43,9 @@ vi.mock('@/renderer/services/clientBusinessSettings', () => ({
 
 vi.mock('@/renderer/services/SpeechToTextService', () => ({
   transcribeAudioBlob: mocks.transcribeAudioBlob,
+  // useSpeechInput registers a window listener on this event; it must be a
+  // defined string in the mock or the listener registration throws on mount.
+  SPEECH_TO_TEXT_CONFIG_CHANGED_EVENT: 'aionui:speech-to-text-config-changed',
 }));
 
 vi.mock('@/renderer/services/speech/pcmRecorder', () => ({

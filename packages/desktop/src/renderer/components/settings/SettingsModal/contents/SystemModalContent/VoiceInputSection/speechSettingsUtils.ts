@@ -5,10 +5,46 @@
  */
 
 import type { SpeechToTextConfig } from '@/common/types/provider/speech';
+import type { VoiceInputHotkeySetting } from '@/common/config/clientSettings';
 export { DEEPGRAM_SPEECH_MODEL_PRESETS, OPENAI_SPEECH_MODEL_PRESETS } from '@renderer/services/speech/speechModels';
 
 /** UI-level service source. 'custom' is stored as provider:'openai' + non-empty base_url. */
 export type SpeechSource = 'openai' | 'deepgram' | 'custom';
+
+// ---------------------------------------------------------------------------
+// Global voice-input hotkey (MVP: press to start, press again to stop).
+// Feature is OFF by default — when absent/disabled the app behaves identically
+// to the original build. `accelerator` uses Electron globalShortcut syntax.
+// ---------------------------------------------------------------------------
+
+/** Window event the settings UI dispatches after the hotkey config changes. */
+export const VOICE_INPUT_HOTKEY_CHANGED_EVENT = 'voice-input-hotkey-changed';
+
+export const DEFAULT_VOICE_INPUT_HOTKEY_ACCELERATOR = 'CommandOrControl+Shift+Space';
+
+export const DEFAULT_VOICE_INPUT_HOTKEY_SETTING: VoiceInputHotkeySetting = {
+  enabled: false,
+  accelerator: DEFAULT_VOICE_INPUT_HOTKEY_ACCELERATOR,
+};
+
+/** Coerce a stored (possibly partial/garbage) value into a valid hotkey config. */
+export const normalizeVoiceInputHotkeySetting = (
+  config?: Partial<VoiceInputHotkeySetting> | null
+): VoiceInputHotkeySetting => ({
+  enabled: Boolean(config?.enabled),
+  accelerator: config?.accelerator?.trim() || DEFAULT_VOICE_INPUT_HOTKEY_ACCELERATOR,
+});
+
+/** Default undo window (ms) before an auto-sent transcript is committed. */
+export const DEFAULT_AUTO_SEND_UNDO_MS = 3000;
+
+/** Clamp the stored undo window into a sane range (1s–10s). */
+export const normalizeAutoSendUndoMs = (value?: number): number => {
+  if (typeof value !== 'number' || Number.isNaN(value)) {
+    return DEFAULT_AUTO_SEND_UNDO_MS;
+  }
+  return Math.min(10000, Math.max(1000, Math.round(value)));
+};
 
 /** Language autonyms are intentionally not translated. Empty value = auto detect. */
 export const SPEECH_LANGUAGE_OPTIONS: Array<{ value: string; label?: string }> = [

@@ -34,6 +34,8 @@ import { useAionrsModelSelection } from '../platforms/aionrs/useAionrsModelSelec
 import { useConversationRuntimeView } from '../runtime/useConversationRuntimeView';
 import { isLegacyReadOnlyConversationType } from '../utils/conversationRuntime';
 import { resolveConversationBackend } from '../utils/conversationAssistantIdentity';
+// [voiceCall] Additive header entry; returns null while the default-off setting is disabled.
+import { VoiceCallEntry } from '@/renderer/services/speech/voiceCall';
 import LegacyReadOnlyConversation from '../platforms/legacy/LegacyReadOnlyConversation';
 import { useActiveLease } from '../hooks/useActiveLease';
 // import SkillRuleGenerator from './components/SkillRuleGenerator'; // Temporarily hidden
@@ -167,6 +169,17 @@ const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; slid
     initialModel: conversation.model,
     onSelectModel,
   });
+  const applyVoiceCallModel = useCallback(
+    async (providerId: string, modelName: string) => {
+      const provider = modelSelection.providers.find((item) => item.id === providerId);
+      if (!provider || !modelSelection.getAvailableModels(provider).includes(modelName)) {
+        return false;
+      }
+      await modelSelection.handleSelectModel(provider, modelName);
+      return true;
+    },
+    [modelSelection.getAvailableModels, modelSelection.handleSelectModel, modelSelection.providers]
+  );
   // Project conversations get the Layout-level Explorer column (stage3 FULL);
   // ChatLayout's own right sider is only for no-project (legacy tree), so it does
   // not double up or reserve an empty column.
@@ -203,6 +216,12 @@ const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; slid
     sider: <ChatSlider conversation={conversation} />,
     headerExtra: (
       <div className='flex items-center gap-8px'>
+        {/* [voiceCall] Additive call-mode entry. */}
+        <VoiceCallEntry
+          conversationId={conversation.id}
+          currentModel={modelSelection.current_model}
+          onApplyModel={applyVoiceCallModel}
+        />
         <CronJobManager conversation_id={conversation.id} cron_job_id={cronJobId} />
         {!isMobile && (
           <AionrsModelSelector
@@ -363,6 +382,8 @@ const ChatConversation: React.FC<{
 
   const headerExtraNode = (
     <div className='flex items-center gap-8px'>
+      {/* [voiceCall] ACP/CLI calls reuse the current runtime model. */}
+      {conversation && !isLegacyReadOnlyConversation && <VoiceCallEntry conversationId={conversation.id} />}
       {conversation && (
         <div className='shrink-0'>
           <CronJobManager conversation_id={conversation.id} cron_job_id={cronJobId} />

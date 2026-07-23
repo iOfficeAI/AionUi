@@ -5,17 +5,23 @@
  */
 
 import type { SpeechToTextConfig } from '@/common/types/provider/speech';
+import type { VoiceInputHotkeySetting } from '@/common/config/clientSettings';
 import AionSelect from '@/renderer/components/base/AionSelect';
 import { SPEECH_TO_TEXT_CONFIG_CHANGED_EVENT } from '@/renderer/services/SpeechToTextService';
 import { getClientBusinessSetting, setClientBusinessSetting } from '@/renderer/services/clientBusinessSettings';
 import { getModelStreamCapability } from '@/renderer/services/speech/speechStreamPolicy';
-import { Divider, Form, Input, Switch } from '@arco-design/web-react';
+import { Button, Divider, Form, Input, InputNumber, Switch } from '@arco-design/web-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import SpeechTestPanel from './SpeechTestPanel';
 import {
-  DEEPGRAM_SPEECH_MODEL_PRESETS,
   DEFAULT_SPEECH_TO_TEXT_CONFIG,
+  DEFAULT_VOICE_INPUT_HOTKEY_SETTING,
+  VOICE_INPUT_HOTKEY_CHANGED_EVENT,
+  normalizeAutoSendUndoMs,
+  normalizeSpeechToTextConfig,
+  normalizeVoiceInputHotkeySetting,
+  DEEPGRAM_SPEECH_MODEL_PRESETS,
   OPENAI_SPEECH_MODEL_PRESETS,
   SPEECH_LANGUAGE_OPTIONS,
   applySpeechSource,
@@ -24,7 +30,6 @@ import {
   getAutoTranscriptionPrompt,
   isValidHttpUrl,
   migrateSpeechLanguage,
-  normalizeSpeechToTextConfig,
   type SpeechSource,
 } from './speechSettingsUtils';
 
@@ -55,6 +60,12 @@ const VoiceInputSection: React.FC = () => {
   const [source, setSource] = useState<SpeechSource>('openai');
   const lastCustomBaseUrlRef = useRef('');
 
+  // Global voice-input hotkey (MVP: press to start, press again to stop).
+  // Off by default — when disabled the app behaves identically to the original
+  // build, so this is purely additive.
+  const [hotkey, setHotkey] = useState<VoiceInputHotkeySetting>(DEFAULT_VOICE_INPUT_HOTKEY_SETTING);
+  const [capturingHotkey, setCapturingHotkey] = useState(false);
+
   useEffect(() => {
     let cancelled = false;
 
@@ -82,6 +93,78 @@ const VoiceInputSection: React.FC = () => {
     };
   }, []);
 
+  // Load the global voice-input hotkey setting (separate key from the STT
+  // config, defaulting to disabled/off).
+  useEffect(() => {
+    let cancelled = false;
+    const loadHotkey = async () => {
+      try {
+        const stored = await getClientBusinessSetting('feature.voiceInputHotkey');
+        if (!cancelled) {
+          setHotkey(normalizeVoiceInputHotkeySetting(stored));
+        }
+      } catch (error) {
+        console.error('Failed to load voice-input hotkey setting:', error);
+      }
+    };
+    void loadHotkey();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const saveHotkey = useCallback((next: VoiceInputHotkeySetting) => {
+    setHotkey(next);
+    void setClientBusinessSetting('feature.voiceInputHotkey', next).catch((error) => {
+      console.error('Failed to save voice-input hotkey setting:', error);
+    });
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent(VOICE_INPUT_HOTKEY_CHANGED_EVENT));
+    }
+  }, []);
+
+  const handleHotkeyEnabledChange = useCallback(
+    (checked: boolean | string) => {
+      saveHotkey({ enabled: Boolean(checked), accelerator: hotkey.accelerator });
+    },
+    [hotkey.accelerator, saveHotkey]
+  );
+
+  // Capture the next key combination as the hotkey accelerator.
+  const handleHotkeyCapture = useCallback(() => {
+    setCapturingHotkey(true);
+  }, []);
+
+  useEffect(() => {
+    if (!capturingHotkey) {
+      return;
+    }
+    const onKeyDown = (event: KeyboardEvent) => {
+      event.preventDefault();
+      event.stopPropagation();
+      // Ignore lone modifier presses — wait for a real key.
+      if (['Shift', 'Control', 'Alt', 'Meta'].includes(event.key)) {
+        return;
+      }
+      const parts: string[] = [];
+      if (event.ctrlKey || event.metaKey) {
+        parts.push('CommandOrControl');
+      }
+      if (event.altKey) {
+        parts.push('Alt');
+      }
+      if (event.shiftKey) {
+        parts.push('Shift');
+      }
+      const key = event.key.length === 1 ? event.key.toUpperCase() : event.key;
+      const accelerator = [...parts, key].join('+');
+      saveHotkey({ enabled: hotkey.enabled, accelerator });
+      setCapturingHotkey(false);
+    };
+    window.addEventListener('keydown', onKeyDown, true);
+    return () => window.removeEventListener('keydown', onKeyDown, true);
+  }, [capturingHotkey, hotkey.enabled, saveHotkey]);
+
   const updateConfig = useCallback((updater: (current: SpeechToTextConfig) => SpeechToTextConfig) => {
     setConfig((current) => {
       const next = normalizeSpeechToTextConfig(updater(current));
@@ -94,6 +177,20 @@ const VoiceInputSection: React.FC = () => {
       return next;
     });
   }, []);
+
+  const handleAutoSendChange = useCallback(
+    (checked: boolean | string) => {
+      updateConfig((current) => ({ ...current, autoSend: Boolean(checked) }));
+    },
+    [updateConfig]
+  );
+
+  const handleAutoSendUndoMsChange = useCallback(
+    (value: number) => {
+      updateConfig((current) => ({ ...current, autoSendUndoMs: normalizeAutoSendUndoMs(value) }));
+    },
+    [updateConfig]
+  );
 
   const handleSourceChange = useCallback(
     (value: string) => {
@@ -273,6 +370,79 @@ const VoiceInputSection: React.FC = () => {
               </AionSelect>
             </Form.Item>
           </Form>
+
+          <Divider className='mt-20px mb-20px' />
+
+          <div className='flex flex-col gap-16px'>
+            <span className='text-14px text-t-primary'>
+              {t('settings.voiceInputConveniences', { defaultValue: '语音输入便捷设置' })}
+            </span>
+
+            <div className='flex items-center justify-between gap-12px'>
+              <div className='flex flex-col gap-4px'>
+                <span className='text-13px text-t-primary'>
+                  {t('settings.voiceInputAutoSend', { defaultValue: '转写后自动发送' })}
+                </span>
+                <span className='text-12px text-t-secondary'>
+                  {t('settings.voiceInputAutoSendHint', {
+                    defaultValue: '开启后，语音转写完成会先进入可撤销窗口，倒计时结束自动发送',
+                  })}
+                </span>
+              </div>
+              <Switch checked={Boolean(config.autoSend)} onChange={handleAutoSendChange} />
+            </div>
+
+            {config.autoSend && (
+              <Form.Item label={t('settings.voiceInputUndoSeconds', { defaultValue: '撤销窗口（秒）' })}>
+                <InputNumber
+                  min={1}
+                  max={10}
+                  step={0.5}
+                  value={normalizeAutoSendUndoMs(config.autoSendUndoMs) / 1000}
+                  onChange={(value) => handleAutoSendUndoMsChange(Number(value) * 1000)}
+                  style={{ width: 140 }}
+                />
+              </Form.Item>
+            )}
+
+            <Divider className='mt-0px mb-0px' />
+
+            <div className='flex items-center justify-between gap-12px'>
+              <div className='flex flex-col gap-4px'>
+                <span className='text-13px text-t-primary'>
+                  {t('settings.voiceInputHotkey', { defaultValue: '全局快捷键' })}
+                </span>
+                <span className='text-12px text-t-secondary'>
+                  {t('settings.voiceInputHotkeyHint', {
+                    defaultValue: '开启后可用快捷键开始/停止录音（再次按下同一组合键切换）',
+                  })}
+                </span>
+              </div>
+              <Switch checked={hotkey.enabled} onChange={handleHotkeyEnabledChange} />
+            </div>
+
+            {hotkey.enabled && (
+              <Form.Item label={t('settings.voiceInputHotkeyAccelerator', { defaultValue: '快捷键组合' })}>
+                <div className='flex items-center gap-8px'>
+                  <Button
+                    size='small'
+                    type={capturingHotkey ? 'primary' : 'secondary'}
+                    onClick={handleHotkeyCapture}
+                  >
+                    {capturingHotkey
+                      ? t('settings.voiceInputHotkeyCapturing', { defaultValue: '请按下快捷键…' })
+                      : hotkey.accelerator}
+                  </Button>
+                  {capturingHotkey && (
+                    <Button size='small' type='text' onClick={() => setCapturingHotkey(false)}>
+                      {t('common.cancel', { defaultValue: '取消' })}
+                    </Button>
+                  )}
+                </div>
+              </Form.Item>
+            )}
+          </div>
+
           <SpeechTestPanel config={config} source={source} />
         </>
       )}

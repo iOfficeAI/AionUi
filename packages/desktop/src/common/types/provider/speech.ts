@@ -27,6 +27,8 @@ export type DeepgramSpeechToTextConfig = {
 
 export type SpeechToTextConfig = {
   autoSend?: boolean;
+  /** Undo window (ms) before an auto-sent transcript is committed. Default 3000. */
+  autoSendUndoMs?: number;
   enabled: boolean;
   provider: SpeechToTextProvider;
   deepgram?: DeepgramSpeechToTextConfig;

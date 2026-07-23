@@ -6,9 +6,14 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { SpeechToTextConfig } from '@/common/types/provider/speech';
+import { bridge } from '@/common/platform/bridge';
 import { useLatestRef } from '@/renderer/hooks/ui/useLatestRef';
-import { transcribeAudioBlob } from '@/renderer/services/SpeechToTextService';
+import { SPEECH_TO_TEXT_CONFIG_CHANGED_EVENT, transcribeAudioBlob } from '@/renderer/services/SpeechToTextService';
 import { getClientBusinessSetting } from '@/renderer/services/clientBusinessSettings';
+import {
+  VOICE_INPUT_HOTKEY_CHANGED_EVENT,
+  normalizeVoiceInputHotkeySetting,
+} from '@/renderer/components/settings/SettingsModal/contents/SystemModalContent/VoiceInputSection/speechSettingsUtils';
 import {
   AudioWorkletUnavailableError,
   createPcmRecorder,
@@ -44,6 +49,11 @@ type SpeechInputEnvironment = {
 };
 
 type UseSpeechInputOptions = {
+  /**
+   * Whether this hook instance owns the global-hotkey listener. Defaults to
+   * true; call-mode recorders disable it to avoid two instances toggling.
+   */
+  enableGlobalHotkey?: boolean;
   /**
    * Live transcript of the current STREAMING session (finals + trailing
    * partial). Called with `null` exactly once per streaming session to clear
@@ -249,7 +259,7 @@ const mapSpeechInputError = (error: unknown): SpeechInputErrorCode => {
   return 'unknown';
 };
 
-export const useSpeechInput = ({ onLiveTranscript, onTranscript }: UseSpeechInputOptions) => {
+export const useSpeechInput = ({ enableGlobalHotkey = true, onLiveTranscript, onTranscript }: UseSpeechInputOptions) => {
   const [status, setStatus] = useState<SpeechInputStatus>('idle');
   const [errorCode, setErrorCode] = useState<SpeechInputErrorCode | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -268,6 +278,13 @@ export const useSpeechInput = ({ onLiveTranscript, onTranscript }: UseSpeechInpu
   const onLiveTranscriptRef = useLatestRef(onLiveTranscript);
   const streamSessionRef = useRef<StreamingSession | null>(null);
   const availability = useMemo(() => getSpeechInputAvailability(), []);
+
+  // Mirror `status` into a ref so the global-hotkey subscription can read the
+  // latest value inside its closure without re-subscribing.
+  const statusRef = useRef<SpeechInputStatus>(status);
+  statusRef.current = status;
+  // Whether speech-to-text is actually enabled (drives hotkey gating).
+  const speechEnabledRef = useRef(false);
 
   const pauseSpeechVisualizer = useCallback(() => {
     if (visualizerIntervalRef.current !== null) {
@@ -763,6 +780,72 @@ export const useSpeechInput = ({ onLiveTranscript, onTranscript }: UseSpeechInpu
       cleanupRecorder();
     };
   }, [cleanupRecorder]);
+
+  // Keep `speechEnabledRef` in sync so the global hotkey toggles only when a
+  // speech-to-text provider is actually configured.
+  useEffect(() => {
+    if (!enableGlobalHotkey) return;
+    let cancelled = false;
+    const syncEnabled = async () => {
+      try {
+        const config = await getClientBusinessSetting('tools.speechToText');
+        if (!cancelled) {
+          speechEnabledRef.current = Boolean(config?.enabled);
+        }
+      } catch {
+        if (!cancelled) {
+          speechEnabledRef.current = false;
+        }
+      }
+    };
+    void syncEnabled();
+    window.addEventListener(SPEECH_TO_TEXT_CONFIG_CHANGED_EVENT, syncEnabled);
+    return () => {
+      cancelled = true;
+      window.removeEventListener(SPEECH_TO_TEXT_CONFIG_CHANGED_EVENT, syncEnabled);
+    };
+  }, [enableGlobalHotkey]);
+
+  // Push the current global-hotkey config to the main process on startup and
+  // whenever the user changes it (the settings UI dispatches the event).
+  useEffect(() => {
+    if (!enableGlobalHotkey) return;
+    let cancelled = false;
+    const syncHotkeyToMain = async () => {
+      try {
+        const stored = await getClientBusinessSetting('feature.voiceInputHotkey');
+        if (cancelled) {
+          return;
+        }
+        bridge.emit('speech.configureHotkey', normalizeVoiceInputHotkeySetting(stored));
+      } catch (error) {
+        console.error('[useSpeechInput] Failed to sync voice-input hotkey config:', error);
+      }
+    };
+    void syncHotkeyToMain();
+    window.addEventListener(VOICE_INPUT_HOTKEY_CHANGED_EVENT, syncHotkeyToMain);
+    return () => {
+      cancelled = true;
+      window.removeEventListener(VOICE_INPUT_HOTKEY_CHANGED_EVENT, syncHotkeyToMain);
+    };
+  }, [enableGlobalHotkey]);
+
+  // Global hotkey (press to start, press again to stop). The main process
+  // emits `speech.hotkeyPressed`; we toggle based on the current status.
+  useEffect(() => {
+    if (!enableGlobalHotkey) return;
+    const off = bridge.on('speech.hotkeyPressed', () => {
+      if (!speechEnabledRef.current) {
+        return;
+      }
+      if (statusRef.current === 'recording') {
+        stopRecording();
+      } else {
+        void startRecording();
+      }
+    });
+    return off;
+  }, [enableGlobalHotkey, startRecording, stopRecording]);
 
   return {
     availability,

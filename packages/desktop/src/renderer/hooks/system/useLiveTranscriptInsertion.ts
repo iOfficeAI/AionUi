@@ -10,7 +10,8 @@ import { appendSpeechTranscript } from '@/renderer/hooks/system/useSpeechInput';
 import { useLatestRef } from '@/renderer/hooks/ui/useLatestRef';
 
 type ChainedDispatch = {
-  dispatch: React.Dispatch<React.SetStateAction<string>>;
+  /** Returns the computed next value so callers can act on the committed text. */
+  dispatch: (update: React.SetStateAction<string>) => string;
   /** Drop the pending chain; call when the committed value has caught up. */
   reset: () => void;
 };
@@ -35,6 +36,9 @@ export const createChainedDispatch = (getCommitted: () => string, emit: (value: 
       const next = typeof update === 'function' ? update(base) : update;
       pending = next;
       emit(next);
+      // Return the computed value so callers (e.g. the auto-send window) can
+      // act on exactly what was committed without re-reading a stale ref.
+      return next;
     },
     reset: () => {
       pending = null;
