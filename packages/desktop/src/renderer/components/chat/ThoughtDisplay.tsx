@@ -144,12 +144,16 @@ const ThoughtDisplay: React.FC<ThoughtDisplayProps> = ({
         style={containerStyle}
       >
         {running && <Spin size={14} />}
-        <span className='text-t-secondary'>
+        {/* Left block fills the row and truncates long text (tooltip shows the
+            full message); the retry button stays pinned on the right and never
+            shrinks, so a long/localized status can't push it out of a narrow
+            parallel-view column. */}
+        <span className='text-t-secondary min-w-0 flex-1 truncate' title={statusText}>
           {statusText ?? t('conversation.chat.processing')}
           {showElapsed && <span className='ml-8px opacity-60'>({formatElapsedTime(elapsedTime)})</span>}
         </span>
         {onRetryStart && (
-          <Button size='mini' type='text' onClick={onRetryStart}>
+          <Button className='flex-shrink-0' size='mini' type='text' onClick={onRetryStart}>
             {t('team.work.retryStart', { defaultValue: 'Retry start' })}
           </Button>
         )}
