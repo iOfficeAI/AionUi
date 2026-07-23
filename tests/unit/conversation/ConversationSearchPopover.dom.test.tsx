@@ -188,6 +188,40 @@ describe('ConversationSearchPopover quick switcher', () => {
     expect(options[0]).toHaveAttribute('aria-selected', 'false');
   });
 
+  it('starts the typed search instead of opening a recent conversation when Enter beats the debounce', async () => {
+    renderSearch();
+    const input = screen.getByRole('combobox');
+    await waitFor(() => expect(screen.getAllByRole('option')[0]).toHaveAttribute('aria-selected', 'true'));
+
+    fireEvent.change(input, { target: { value: 'needle' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+
+    expect(mocks.navigate).not.toHaveBeenCalled();
+    await waitFor(() =>
+      expect(mocks.search).toHaveBeenCalledWith({
+        keyword: 'needle',
+        page: 0,
+        page_size: 20,
+      })
+    );
+  });
+
+  it('starts a search from a saved keyword alongside recent conversations', async () => {
+    localStorage.setItem('conversation.historySearch.recentKeywords', JSON.stringify(['saved search']));
+    renderSearch();
+
+    fireEvent.click(await screen.findByRole('button', { name: 'saved search' }));
+    fireEvent.keyDown(screen.getByRole('combobox'), { key: 'Enter' });
+
+    await waitFor(() =>
+      expect(mocks.search).toHaveBeenCalledWith({
+        keyword: 'saved search',
+        page: 0,
+        page_size: 20,
+      })
+    );
+  });
+
   it('resets selection for typed results and preserves target-message navigation', async () => {
     mocks.search.mockResolvedValueOnce({
       items: [

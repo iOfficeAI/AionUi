@@ -321,6 +321,12 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
     setHasMore(false);
     setLoading(false);
     setLoadingMore(false);
+    setSelectedIndex(-1);
+  }, []);
+
+  const handleKeywordChange = useCallback((nextKeyword: string) => {
+    setKeyword(nextKeyword);
+    setSelectedIndex(-1);
   }, []);
 
   const handleOpen = useCallback(() => {
@@ -330,7 +336,8 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
   }, [disabled]);
 
   const isSearchMode = Boolean(debouncedKeyword);
-  const activeItemCount = isSearchMode ? items.length : recentConversations.length;
+  const hasPendingKeyword = keyword.trim() !== debouncedKeyword;
+  const activeItemCount = hasPendingKeyword ? 0 : isSearchMode ? items.length : recentConversations.length;
   const activeOptionId =
     selectedIndex >= 0 && selectedIndex < activeItemCount
       ? getQuickSwitcherOptionId(isSearchMode ? 'search' : 'recent', selectedIndex)
@@ -344,6 +351,13 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
         event.preventDefault();
         event.stopPropagation();
         handleClose();
+        return;
+      }
+
+      if (event.key === 'Enter' && hasPendingKeyword) {
+        event.preventDefault();
+        setDebouncedKeyword(keyword.trim());
+        setSelectedIndex(-1);
         return;
       }
 
@@ -372,8 +386,10 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
       handleClose,
       handleRecentConversationClick,
       handleResultClick,
+      hasPendingKeyword,
       isSearchMode,
       items,
+      keyword,
       recentConversations,
       selectedIndex,
     ]
@@ -455,14 +471,14 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
             {recentKeywords.length > 0 ? (
               <div className='conversation-search-modal__recent-wrap pt-14px'>
                 {recentKeywords.map((item) => (
-                  <button
+                  <Button
                     key={item}
-                    type='button'
+                    type='text'
                     className='conversation-search-modal__recent-chip'
-                    onClick={() => setKeyword(item)}
+                    onClick={() => handleKeywordChange(item)}
                   >
                     {item}
-                  </button>
+                  </Button>
                 ))}
               </div>
             ) : null}
@@ -477,14 +493,14 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
             {recentKeywords.length > 0 ? (
               <div className='conversation-search-modal__recent-wrap'>
                 {recentKeywords.map((item) => (
-                  <button
+                  <Button
                     key={item}
-                    type='button'
+                    type='text'
                     className='conversation-search-modal__recent-chip'
-                    onClick={() => setKeyword(item)}
+                    onClick={() => handleKeywordChange(item)}
                   >
                     {item}
-                  </button>
+                  </Button>
                 ))}
               </div>
             ) : null}
@@ -575,6 +591,7 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
     );
   }, [
     debouncedKeyword,
+    handleKeywordChange,
     handleLoadMore,
     handleRecentConversationClick,
     handleResultClick,
@@ -696,7 +713,7 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
               autoFocus={visible}
               value={keyword}
               placeholder={t('conversation.historySearch.placeholder')}
-              onChange={setKeyword}
+              onChange={handleKeywordChange}
               onClear={handleClearKeyword}
               inputProps={{
                 role: 'combobox',
