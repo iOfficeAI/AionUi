@@ -1052,6 +1052,10 @@ const SendBox: React.FC<{
   const { compositionHandlers, isComposingState, createKeyDownHandler } = useCompositionInput();
   const [sendKeyModifier] = useConfig('input.sendKeyModifier');
 
+  const insertNewline = useCallback(() => {
+    document.execCommand('insertText', false, '\n');
+  }, []);
+
   // 使用共享的PasteService集成
   const { onPaste, onFocus: handlePasteFocus } = usePasteService({
     supportedExts,
@@ -1725,7 +1729,8 @@ const SendBox: React.FC<{
                 (event) => {
                   return handleAtFileMenuKeyDown(event) || handleOverlayKeyDown(event) || handleHistoryKeyDown(event);
                 },
-                sendKeyModifier
+                sendKeyModifier,
+                insertNewline
               )}
             ></Input.TextArea>
           </div>

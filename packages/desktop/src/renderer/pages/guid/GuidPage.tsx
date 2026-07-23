@@ -312,7 +312,13 @@ const GuidPage: React.FC = () => {
         }
       }
 
-      if (event.key === 'Enter' && !event.shiftKey) {
+      if (event.key === 'Enter') {
+        if (event.shiftKey) return;
+        if (event.metaKey || event.ctrlKey) {
+          event.preventDefault();
+          document.execCommand('insertText', false, '\n');
+          return;
+        }
         event.preventDefault();
         if (!guidInput.input.trim()) return;
         send.sendMessageHandler();
