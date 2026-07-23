@@ -46,9 +46,7 @@ describe('filterSearchResults', () => {
   });
 
   it('keeps promoted source conversations visible in search results', () => {
-    const items = [
-      searchItem(conversation('promoted-source', { backend: 'acp', teamId: 'team-1' })),
-    ];
+    const items = [searchItem(conversation('promoted-source', { backend: 'acp', teamId: 'team-1' }))];
 
     const filtered = filterSearchResults(items);
 

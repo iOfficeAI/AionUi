@@ -143,7 +143,11 @@ vi.mock('@/renderer/pages/conversation/Preview', () => ({
 }));
 
 vi.mock('@/renderer/pages/conversation/components/ChatLayout', () => ({
-  default: ({ children, headerLeading, title }: {
+  default: ({
+    children,
+    headerLeading,
+    title,
+  }: {
     children: React.ReactNode;
     headerLeading?: React.ReactNode;
     title?: string;

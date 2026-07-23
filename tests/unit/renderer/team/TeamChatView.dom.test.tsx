@@ -392,11 +392,13 @@ describe('TeamChatView', () => {
     );
 
     expect(await screen.findByTestId('mock-acp-chat')).toBeInTheDocument();
-    const { teamSendMessage } = acpChatMock.mock.calls[0]?.[0] as {
-      teamSendMessage: (payload: { input: string; files: string[] }) => Promise<void>;
-    };
-
-    await teamSendMessage({ input: 'hello team', files: [] });
+    const callProps = acpChatMock.mock.calls[0]?.[0] as
+      | {
+          teamSendMessage: (payload: { input: string; files: string[] }) => Promise<void>;
+        }
+      | undefined;
+    expect(callProps).toBeDefined();
+    await callProps!.teamSendMessage({ input: 'hello team', files: [] });
 
     expect(ipcBridge.team.sendMessage.invoke).toHaveBeenCalledWith({
       team_id: 'team-1',
@@ -431,11 +433,13 @@ describe('TeamChatView', () => {
     );
 
     expect(await screen.findByTestId('mock-acp-chat')).toBeInTheDocument();
-    const { teamSendMessage } = acpChatMock.mock.calls[0]?.[0] as {
-      teamSendMessage: (payload: { input: string; files: string[] }) => Promise<void>;
-    };
-
-    await teamSendMessage({ input: 'agent task', files: ['file-1'] });
+    const callProps = acpChatMock.mock.calls[0]?.[0] as
+      | {
+          teamSendMessage: (payload: { input: string; files: string[] }) => Promise<void>;
+        }
+      | undefined;
+    expect(callProps).toBeDefined();
+    await callProps!.teamSendMessage({ input: 'agent task', files: ['file-1'] });
 
     expect(ipcBridge.team.sendMessageToAgent.invoke).toHaveBeenCalledWith({
       team_id: 'team-1',
