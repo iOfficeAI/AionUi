@@ -31,10 +31,23 @@ vi.mock('@/renderer/pages/conversation/platforms/legacy/LegacyReadOnlyConversati
   default: () => <div data-testid='mock-legacy-conversation' />,
 }));
 
+vi.mock('@/common', () => ({
+  ipcBridge: {
+    team: {
+      sendMessage: { invoke: vi.fn() },
+      sendMessageToAgent: { invoke: vi.fn() },
+      pauseSlotWork: { invoke: vi.fn() },
+    },
+    conversation: { update: { invoke: vi.fn() } },
+  },
+}));
+
+import { ipcBridge } from '@/common';
 import TeamChatView from '@/renderer/pages/team/components/TeamChatView';
 
 describe('TeamChatView', () => {
   beforeEach(() => {
+    vi.clearAllMocks();
     usePresetAssistantInfoMock.mockReset();
     acpChatMock.mockClear();
     aionrsChatMock.mockClear();
@@ -285,6 +298,153 @@ describe('TeamChatView', () => {
         }),
       })
     );
+  });
+
+  it('renders the legacy read-only conversation for legacy types', async () => {
+    usePresetAssistantInfoMock.mockReturnValue({ info: null });
+
+    render(
+      <TeamChatView
+        conversation={{
+          id: 'conv-1',
+          type: 'openclaw-gateway',
+          name: 'Legacy Gateway',
+          created_at: Date.now(),
+          updated_at: Date.now(),
+          extra: {},
+        }}
+      />
+    );
+
+    expect(await screen.findByTestId('mock-legacy-conversation')).toBeInTheDocument();
+    expect(acpChatMock).not.toHaveBeenCalled();
+    expect(aionrsChatMock).not.toHaveBeenCalled();
+  });
+
+  it('returns null for unsupported conversation types', async () => {
+    usePresetAssistantInfoMock.mockReturnValue({ info: null });
+
+    render(
+      <TeamChatView
+        conversation={{
+          id: 'conv-1',
+          type: 'unknown',
+          name: 'Unknown',
+          created_at: Date.now(),
+          updated_at: Date.now(),
+          extra: {},
+        }}
+      />
+    );
+
+    expect(screen.queryByTestId('mock-acp-chat')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('mock-aionrs-chat')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('mock-legacy-conversation')).not.toBeInTheDocument();
+  });
+
+  it('does not build team runtime or empty slot when team_id is missing', async () => {
+    usePresetAssistantInfoMock.mockReturnValue({ info: null });
+
+    render(
+      <TeamChatView
+        conversation={{
+          id: 'conv-1',
+          type: 'acp',
+          name: 'Team - Planner',
+          created_at: Date.now(),
+          updated_at: Date.now(),
+          extra: { workspace: '/tmp' },
+        }}
+      />
+    );
+
+    expect(await screen.findByTestId('mock-acp-chat')).toBeInTheDocument();
+    expect(acpChatMock.mock.calls[0]?.[0]).toEqual(
+      expect.objectContaining({
+        teamSendMessage: undefined,
+        emptySlot: undefined,
+        teamRuntime: undefined,
+      })
+    );
+  });
+
+  it('leader teamSendMessage invokes sendMessage and forwards the ack', async () => {
+    usePresetAssistantInfoMock.mockReturnValue({ info: null });
+    const ack = { team_run_id: 'run-1' };
+    (ipcBridge.team.sendMessage.invoke as ReturnType<typeof vi.fn>).mockResolvedValue(ack);
+    const onTeamRunAck = vi.fn();
+
+    render(
+      <TeamChatView
+        team_id='team-1'
+        slot_id='lead-slot'
+        isLeader
+        conversation={{
+          id: 'conv-1',
+          type: 'acp',
+          name: 'Team Lead',
+          created_at: Date.now(),
+          updated_at: Date.now(),
+          extra: { workspace: '/tmp' },
+        }}
+        onTeamRunAck={onTeamRunAck}
+      />
+    );
+
+    expect(await screen.findByTestId('mock-acp-chat')).toBeInTheDocument();
+    const { teamSendMessage } = acpChatMock.mock.calls[0]?.[0] as {
+      teamSendMessage: (payload: { input: string; files: string[] }) => Promise<void>;
+    };
+
+    await teamSendMessage({ input: 'hello team', files: [] });
+
+    expect(ipcBridge.team.sendMessage.invoke).toHaveBeenCalledWith({
+      team_id: 'team-1',
+      input: 'hello team',
+      files: [],
+    });
+    expect(ipcBridge.team.sendMessageToAgent.invoke).not.toHaveBeenCalled();
+    expect(onTeamRunAck).toHaveBeenCalledWith(ack);
+  });
+
+  it('teammate teamSendMessage invokes sendMessageToAgent and forwards the ack', async () => {
+    usePresetAssistantInfoMock.mockReturnValue({ info: null });
+    const ack = { team_run_id: 'run-2' };
+    (ipcBridge.team.sendMessageToAgent.invoke as ReturnType<typeof vi.fn>).mockResolvedValue(ack);
+    const onTeamRunAck = vi.fn();
+
+    render(
+      <TeamChatView
+        team_id='team-1'
+        slot_id='worker-slot'
+        isLeader={false}
+        conversation={{
+          id: 'conv-1',
+          type: 'acp',
+          name: 'Team Worker',
+          created_at: Date.now(),
+          updated_at: Date.now(),
+          extra: { workspace: '/tmp' },
+        }}
+        onTeamRunAck={onTeamRunAck}
+      />
+    );
+
+    expect(await screen.findByTestId('mock-acp-chat')).toBeInTheDocument();
+    const { teamSendMessage } = acpChatMock.mock.calls[0]?.[0] as {
+      teamSendMessage: (payload: { input: string; files: string[] }) => Promise<void>;
+    };
+
+    await teamSendMessage({ input: 'agent task', files: ['file-1'] });
+
+    expect(ipcBridge.team.sendMessageToAgent.invoke).toHaveBeenCalledWith({
+      team_id: 'team-1',
+      slot_id: 'worker-slot',
+      input: 'agent task',
+      files: ['file-1'],
+    });
+    expect(ipcBridge.team.sendMessage.invoke).not.toHaveBeenCalled();
+    expect(onTeamRunAck).toHaveBeenCalledWith(ack);
   });
 
   it('surfaces the stopped prompt and keeps sending open when sessionStopped flag is set', async () => {

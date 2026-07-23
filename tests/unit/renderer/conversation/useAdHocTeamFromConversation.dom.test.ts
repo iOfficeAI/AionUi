@@ -5,6 +5,8 @@ import { useAdHocTeamFromConversation } from '@/renderer/pages/conversation/hook
 const adHocMocks = vi.hoisted(() => ({
   fromConversation: { invoke: vi.fn() },
   getByConversation: { invoke: vi.fn() },
+  get: { invoke: vi.fn() },
+  getRunState: { invoke: vi.fn() },
 }));
 
 vi.mock('@/common', () => ({
@@ -12,6 +14,8 @@ vi.mock('@/common', () => ({
     team: {
       fromConversation: adHocMocks.fromConversation,
       getByConversation: adHocMocks.getByConversation,
+      get: adHocMocks.get,
+      getRunState: adHocMocks.getRunState,
     },
   },
 }));
@@ -20,6 +24,12 @@ describe('useAdHocTeamFromConversation', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     adHocMocks.getByConversation.invoke.mockResolvedValue(null);
+    adHocMocks.get.invoke.mockResolvedValue(null);
+    adHocMocks.getRunState.invoke.mockResolvedValue({
+      session_generation: null,
+      active_run: null,
+      slot_work: [],
+    });
   });
 
   it('initially fetches the existing association for the conversation', async () => {
@@ -103,5 +113,60 @@ describe('useAdHocTeamFromConversation', () => {
     renderHook(() => useAdHocTeamFromConversation('', 'user-1'));
 
     expect(adHocMocks.getByConversation.invoke).not.toHaveBeenCalled();
+  });
+
+  it('exposes an error when the initial association lookup fails', async () => {
+    adHocMocks.getByConversation.invoke.mockRejectedValue(new Error('lookup failed'));
+
+    const { result } = renderHook(() => useAdHocTeamFromConversation('conv-1', 'user-1'));
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(result.current.error?.message).toBe('lookup failed');
+    expect(result.current.association).toBeNull();
+  });
+
+  it('logs but survives when fetching the team summary fails', async () => {
+    adHocMocks.getByConversation.invoke.mockResolvedValue({
+      team_id: 'team-1',
+      origin_conversation_id: 'conv-1',
+      status: 'active',
+    });
+    adHocMocks.get.invoke.mockRejectedValue(new Error('summary failed'));
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    const { result } = renderHook(() => useAdHocTeamFromConversation('conv-1', 'user-1'));
+
+    await waitFor(() => expect(result.current.association?.team_id).toBe('team-1'));
+
+    expect(consoleSpy).toHaveBeenCalledWith(
+      '[useAdHocTeamFromConversation] Failed to fetch team summary:',
+      expect.any(Error)
+    );
+    expect(result.current.team).toBeNull();
+
+    consoleSpy.mockRestore();
+  });
+
+  it('logs but survives when fetching the run state fails', async () => {
+    adHocMocks.getByConversation.invoke.mockResolvedValue({
+      team_id: 'team-1',
+      origin_conversation_id: 'conv-1',
+      status: 'active',
+    });
+    adHocMocks.getRunState.invoke.mockRejectedValue(new Error('run state failed'));
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    const { result } = renderHook(() => useAdHocTeamFromConversation('conv-1', 'user-1'));
+
+    await waitFor(() => expect(result.current.association?.team_id).toBe('team-1'));
+
+    expect(consoleSpy).toHaveBeenCalledWith(
+      '[useAdHocTeamFromConversation] Failed to fetch run state:',
+      expect.any(Error)
+    );
+    expect(result.current.activeRun).toBeUndefined();
+
+    consoleSpy.mockRestore();
   });
 });

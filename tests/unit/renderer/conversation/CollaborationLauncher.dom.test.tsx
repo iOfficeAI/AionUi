@@ -207,4 +207,5 @@ describe('CollaborationLauncher', () => {
     );
     expect(screen.getByTestId('collaboration-launcher-trigger')).toBeDisabled();
   });
+
 });

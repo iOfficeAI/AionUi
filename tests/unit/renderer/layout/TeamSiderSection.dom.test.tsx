@@ -36,6 +36,18 @@ const teams: TTeam[] = [
     created_at: 1,
     updated_at: 1,
   },
+  {
+    id: 'adhoc-team',
+    user_id: 'user-1',
+    name: 'Ad-hoc team',
+    workspace: '/tmp/adhoc',
+    workspace_mode: 'shared',
+    leader_assistant_id: 'adhoc-lead',
+    origin_conversation_id: 'conv-origin',
+    assistants: [],
+    created_at: 1,
+    updated_at: 1,
+  },
 ];
 
 vi.mock('@renderer/pages/team/hooks/useTeamList', () => ({
@@ -107,6 +119,7 @@ vi.mock('@icon-park/react', async () => {
     };
 
   return {
+    Comment: icon('Comment'),
     DeleteOne: icon('DeleteOne'),
     EditOne: icon('EditOne'),
     Peoples: icon('Peoples'),
@@ -175,5 +188,39 @@ describe('TeamSiderSection running state', () => {
 
     expect(screen.getByTestId('collapsed-team-icon-idle-team')).toHaveAttribute('data-mock-icon', 'Peoples');
     expect(screen.queryByTestId('collapsed-team-spinner-idle-team')).not.toBeInTheDocument();
+  });
+
+  it('shows the ad-hoc comment icon for an idle ad-hoc team in the expanded section', () => {
+    localStorage.setItem('team-section-expanded', 'true');
+    renderSection(false);
+
+    expect(screen.getByTestId('team-icon-adhoc-team')).toHaveAttribute('data-mock-icon', 'Comment');
+    expect(screen.queryByTestId('team-spinner-adhoc-team')).not.toBeInTheDocument();
+  });
+
+  it('shows a spinner instead of the ad-hoc comment icon when the ad-hoc team is running', () => {
+    fixtures.runningTeamIds.add('adhoc-team');
+    localStorage.setItem('team-section-expanded', 'true');
+    renderSection(false);
+
+    const spinnerSlot = screen.getByTestId('team-spinner-adhoc-team');
+    expect(within(spinnerSlot).getByTestId('spin')).toHaveAttribute('data-size', '16');
+    expect(screen.queryByTestId('team-icon-adhoc-team')).not.toBeInTheDocument();
+  });
+
+  it('shows the ad-hoc comment icon for an idle ad-hoc team in collapsed mode', () => {
+    renderSection(true);
+
+    expect(screen.getByTestId('collapsed-team-icon-adhoc-team')).toHaveAttribute('data-mock-icon', 'Comment');
+    expect(screen.queryByTestId('collapsed-team-spinner-adhoc-team')).not.toBeInTheDocument();
+  });
+
+  it('shows a spinner for a running ad-hoc team in collapsed mode', () => {
+    fixtures.runningTeamIds.add('adhoc-team');
+    renderSection(true);
+
+    const spinnerSlot = screen.getByTestId('collapsed-team-spinner-adhoc-team');
+    expect(within(spinnerSlot).getByTestId('spin')).toHaveAttribute('data-size', '16');
+    expect(screen.queryByTestId('collapsed-team-icon-adhoc-team')).not.toBeInTheDocument();
   });
 });
