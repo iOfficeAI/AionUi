@@ -77,7 +77,8 @@ const AionrsModelSelector: React.FC<{
     defaultModelLabel,
     fallbackLabel: t('conversation.welcome.selectModel'),
   });
-  const combinedLabel = composeRuntimeSelectorLabel({ modelLabel: label, thoughtLevel });
+  const defaultThoughtLevelLabel = t('common.default');
+  const combinedLabel = composeRuntimeSelectorLabel({ modelLabel: label, thoughtLevel, defaultThoughtLevelLabel });
   const handleThoughtLevelSelect = (value: string) => {
     if (!thoughtLevel || value === thoughtLevel.currentValue || !onSetThoughtLevel) return;
     void onSetThoughtLevel(thoughtLevel.id, value);
@@ -135,7 +136,7 @@ const AionrsModelSelector: React.FC<{
                 title={
                   <RuntimeSelectorSubMenuTitle
                     label={t('agent.thoughtLevel.label')}
-                    value={getCurrentThoughtLevelLabel(thoughtLevel)}
+                    value={getCurrentThoughtLevelLabel(thoughtLevel, defaultThoughtLevelLabel)}
                   />
                 }
               >
