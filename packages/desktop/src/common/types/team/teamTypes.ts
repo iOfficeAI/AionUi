@@ -101,7 +101,7 @@ export type IPauseTeamSlotParams = ICancelTeamChildTurnParams;
 export type ITeamRunEvent = {
   team_id: string;
   team_run_id: string;
-  source: 'user_message';
+  source: 'user_message' | 'system_lifecycle';
   has_user_intervention: boolean;
   target_slot_id: string;
   target_role: TeamRunTargetRole;
