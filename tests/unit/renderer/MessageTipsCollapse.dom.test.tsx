@@ -64,4 +64,19 @@ describe('MessageTips collapse control', () => {
 
     expect(screen.getByText(message.content.content)).toBeInTheDocument();
   });
+
+  it('keeps the collapse control for an unknown tip type', () => {
+    render(
+      <MessageTips
+        message={
+          {
+            ...message,
+            content: { ...message.content, type: 'unknown' },
+          } as unknown as IMessageTips
+        }
+      />
+    );
+
+    expect(screen.getByRole('button', { name: 'Collapse' })).toBeInTheDocument();
+  });
 });
