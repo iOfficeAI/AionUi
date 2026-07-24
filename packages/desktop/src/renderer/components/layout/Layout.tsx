@@ -25,6 +25,8 @@ import { useDirectorySelection } from '@renderer/hooks/file/useDirectorySelectio
 import { cleanupSiderTooltips } from '@renderer/utils/ui/siderTooltip';
 import { useConversationShortcuts } from '@renderer/hooks/ui/useConversationShortcuts';
 import { isElectronDesktop } from '@renderer/utils/platform';
+import { IS_DISCONTINUED_BUILD } from '@/renderer/utils/discontinuedBuild';
+import UpdateMigrationDialog from '@/renderer/components/settings/UpdateMigrationDialog';
 import '@renderer/styles/layout.css';
 
 const SidebarIcon: React.FC<{ size?: number; strokeWidth?: number }> = ({ size = 18, strokeWidth = 4 }) => (
@@ -479,6 +481,7 @@ const Layout: React.FC<{
               <Suspense fallback={null}>
                 <UpdateModal />
               </Suspense>
+              {IS_DISCONTINUED_BUILD && <UpdateMigrationDialog />}
             </ArcoLayout.Content>
           </ArcoLayout>
         </div>
