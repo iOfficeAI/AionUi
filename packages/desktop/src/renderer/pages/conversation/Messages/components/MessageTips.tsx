@@ -5,10 +5,10 @@
  */
 
 import type { IMessageTips } from '@/common/chat/chatLib';
-import { Collapse, Tag } from '@arco-design/web-react';
+import { Button, Collapse, Tag, Tooltip } from '@arco-design/web-react';
 import { Attention, CheckOne } from '@icon-park/react';
 import classNames from 'classnames';
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import MarkdownView from '@renderer/components/Markdown';
 import ButlerDiagnoseButton from '@renderer/components/base/ButlerDiagnoseButton';
@@ -62,6 +62,7 @@ const MessageTips: React.FC<{ message: IMessageTips }> = ({ message }) => {
   const structuredError = type === 'error' ? message.content.error : undefined;
   const localizedTipBody = resolveAgentTipBody(content, code, params, t);
   const { json, data } = useFormatContent(localizedTipBody);
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   const displayContent = json ? '' : localizedTipBody;
   // The report chip stays hidden for errors that opt out via
@@ -223,16 +224,33 @@ const MessageTips: React.FC<{ message: IMessageTips }> = ({ message }) => {
     );
   return (
     <div className='w-full'>
-      <div className={classNames('bg-message-tips rd-8px  p-x-12px p-y-8px flex flex-col gap-4px')}>
+      <div
+        className={classNames(
+          'bg-message-tips rd-8px p-x-12px p-y-8px flex flex-col gap-4px',
+          isCollapsed && 'w-fit p-0 bg-transparent'
+        )}
+      >
         <div className='flex items-start gap-4px'>
-          {icon[type] || icon.warning}
-          <div className='flex-1 min-w-0'>
-            <CollapsibleContent maxHeight={48} defaultCollapsed={true} useMask={true}>
-              <span className='whitespace-break-spaces text-t-primary [word-break:break-word]'>{displayContent}</span>
-            </CollapsibleContent>
-          </div>
+          <Tooltip content={t(isCollapsed ? 'common.expandMore' : 'common.collapse')}>
+            <Button
+              aria-label={t(isCollapsed ? 'common.expandMore' : 'common.collapse')}
+              className='!p-0 !h-auto leading-none'
+              onClick={() => setIsCollapsed((collapsed) => !collapsed)}
+              size='mini'
+              type='text'
+            >
+              {icon[type] || icon.warning}
+            </Button>
+          </Tooltip>
+          {!isCollapsed && (
+            <div className='flex-1 min-w-0'>
+              <CollapsibleContent maxHeight={48} defaultCollapsed={true} useMask={true}>
+                <span className='whitespace-break-spaces text-t-primary [word-break:break-word]'>{displayContent}</span>
+              </CollapsibleContent>
+            </div>
+          )}
         </div>
-        {shouldShowButler && (
+        {!isCollapsed && shouldShowButler && (
           <div className='flex justify-end'>
             <ButlerDiagnoseButton errorText={displayContent} />
             {shouldShowFeedback && <FeedbackButton module='conversation-session' />}
