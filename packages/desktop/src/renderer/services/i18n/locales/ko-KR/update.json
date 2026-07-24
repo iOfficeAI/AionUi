@@ -57,5 +57,11 @@
   "releaseLog": "릴리스 로그",
   "cancel": "취소",
   "minimize": "최소화",
-  "restoreUpdateNotification": "업데이트 진행 상황 복원"
+  "restoreUpdateNotification": "업데이트 진행 상황 복원",
+  "migration": {
+    "title": "AionUi is now AionPro",
+    "description": "AionUi no longer ships in-app updates. Future versions are released as AionPro. Please visit our website to download the latest version.",
+    "gotoWebsite": "Download from website",
+    "later": "Later"
+  }
 }

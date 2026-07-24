@@ -51,5 +51,11 @@
   "releaseLog": "گزارش انتشار",
   "cancel": "لغو",
   "minimize": "کوچک کردن",
-  "restoreUpdateNotification": "بازگرداندن پیشرفت به‌روزرسانی"
+  "restoreUpdateNotification": "بازگرداندن پیشرفت به‌روزرسانی",
+  "migration": {
+    "title": "AionUi is now AionPro",
+    "description": "AionUi no longer ships in-app updates. Future versions are released as AionPro. Please visit our website to download the latest version.",
+    "gotoWebsite": "Download from website",
+    "later": "Later"
+  }
 }

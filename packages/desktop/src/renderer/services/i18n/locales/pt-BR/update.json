@@ -57,5 +57,11 @@
   "releaseLog": "Registro de versões",
   "cancel": "Cancelar",
   "minimize": "Minimizar",
-  "restoreUpdateNotification": "Restaurar progresso da atualização"
+  "restoreUpdateNotification": "Restaurar progresso da atualização",
+  "migration": {
+    "title": "AionUi is now AionPro",
+    "description": "AionUi no longer ships in-app updates. Future versions are released as AionPro. Please visit our website to download the latest version.",
+    "gotoWebsite": "Download from website",
+    "later": "Later"
+  }
 }

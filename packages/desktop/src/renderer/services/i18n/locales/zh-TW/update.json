@@ -57,5 +57,11 @@
   "releaseLog": "更新日誌",
   "cancel": "取消",
   "minimize": "最小化",
-  "restoreUpdateNotification": "恢復更新進度"
+  "restoreUpdateNotification": "恢復更新進度",
+  "migration": {
+    "title": "AionUi 已升級為 AionPro",
+    "description": "AionUi 不再推送應用內更新，後續版本將以 AionPro 形式發布。請前往官網下載最新版本。",
+    "gotoWebsite": "前往官網下載",
+    "later": "稍後"
+  }
 }
