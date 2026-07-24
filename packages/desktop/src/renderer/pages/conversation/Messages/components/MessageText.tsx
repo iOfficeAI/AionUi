@@ -274,7 +274,7 @@ const MessageText: React.FC<{ message: IMessageText; showCopyRow?: boolean }> = 
         >
           {/* JSON 内容使用折叠组件 Use CollapsibleContent for JSON content */}
           {shouldRenderPlainText ? (
-            <div className='whitespace-pre-wrap break-words' data-testid='message-text-content'>
+            <div className='whitespace-pre-wrap [overflow-wrap:anywhere]' data-testid='message-text-content'>
               {text}
             </div>
           ) : json ? (
