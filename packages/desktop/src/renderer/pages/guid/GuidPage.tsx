@@ -445,10 +445,13 @@ const GuidPage: React.FC = () => {
         if (resolvedDefaults.thoughtLevel && availableThoughtLevelValues.has(resolvedDefaults.thoughtLevel)) {
           agentSelection.setSelectedThoughtLevelValue(resolvedDefaults.thoughtLevel, { persistPreference: false });
         } else {
-          const fallbackThoughtLevel =
-            agentSelection.currentThoughtLevelOption.currentValue ||
-            agentSelection.currentThoughtLevelOption.options[0]?.value ||
-            '';
+          // No resolved default: mirror the backend current if it reported one,
+          // otherwise leave the selection empty (`''`). Falling back to
+          // `options[0]` here re-seeded the implicit override that the send path
+          // then sent as an explicit `thought_level`, silently defeating the
+          // assistant's backend default — the exact behavior this change removes
+          // (matches useGuidAssistantSelection's `''` fallback).
+          const fallbackThoughtLevel = agentSelection.currentThoughtLevelOption.currentValue || '';
           agentSelection.setSelectedThoughtLevelValue(fallbackThoughtLevel, { persistPreference: false });
         }
       }
