@@ -699,6 +699,7 @@ export type I18nKey =
   | 'conversation.workspace.openWith.explorer'
   | 'conversation.workspace.openWith.terminal'
   | 'conversation.workspace.openWith.vscode'
+  | 'conversation.workspace.openWith.zed'
   | 'conversation.workspace.openWorkspace'
   | 'conversation.workspace.pasteConfirm_cancel'
   | 'conversation.workspace.pasteConfirm_fileName'

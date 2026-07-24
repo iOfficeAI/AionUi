@@ -415,6 +415,7 @@
     "openWorkspace": "باز کردن پوشه پروژه",
     "openWith": {
       "vscode": "VS Code",
+      "zed": "Zed",
       "terminal": "ترمینال",
       "explorer": "فایل اکسپلورر"
     }

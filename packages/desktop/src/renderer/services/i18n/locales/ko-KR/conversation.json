@@ -415,6 +415,7 @@
     "openWorkspace": "프로젝트 폴더 열기",
     "openWith": {
       "vscode": "VS Code",
+      "zed": "Zed",
       "terminal": "터미널",
       "explorer": "파일 탐색기"
     }

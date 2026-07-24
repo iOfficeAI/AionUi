@@ -415,6 +415,7 @@
     "openWorkspace": "Ouvrir le dossier de l'espace de travail",
     "openWith": {
       "vscode": "VS Code",
+      "zed": "Zed",
       "terminal": "Terminal",
       "explorer": "Explorateur de fichiers"
     }

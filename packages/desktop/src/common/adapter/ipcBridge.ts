@@ -145,7 +145,7 @@ export const shell = {
   showItemInFolder: httpPost<void, string>('/api/shell/show-item-in-folder', (file_path) => ({ file_path })),
   openExternal: httpPost<void, string>('/api/shell/open-external', (url) => ({ url })),
   checkToolInstalled: httpPost<boolean, { tool: string }>('/api/shell/check-tool-installed'),
-  openFolderWith: httpPost<void, { folder_path: string; tool: 'vscode' | 'terminal' | 'explorer' }>(
+  openFolderWith: httpPost<void, { folder_path: string; tool: 'vscode' | 'zed' | 'terminal' | 'explorer' }>(
     '/api/shell/open-folder-with'
   ),
 };

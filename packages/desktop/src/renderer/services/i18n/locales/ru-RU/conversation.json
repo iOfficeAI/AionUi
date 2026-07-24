@@ -415,6 +415,7 @@
     "openWorkspace": "Открыть папку проекта",
     "openWith": {
       "vscode": "VS Code",
+      "zed": "Zed",
       "terminal": "Терминал",
       "explorer": "Проводник"
     }

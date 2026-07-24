@@ -415,6 +415,7 @@
     "openWorkspace": "開啟專案資料夾",
     "openWith": {
       "vscode": "VS Code",
+      "zed": "Zed",
       "terminal": "終端機",
       "explorer": "檔案總管"
     }

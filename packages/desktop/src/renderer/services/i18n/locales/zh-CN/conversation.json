@@ -415,6 +415,7 @@
     "openWorkspace": "打开项目文件夹",
     "openWith": {
       "vscode": "VS Code",
+      "zed": "Zed",
       "terminal": "终端",
       "explorer": "文件资源管理器"
     }

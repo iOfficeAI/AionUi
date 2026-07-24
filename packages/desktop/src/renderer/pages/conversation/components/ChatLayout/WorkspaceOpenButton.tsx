@@ -5,7 +5,7 @@ import { Button, Dropdown, Tooltip } from '@arco-design/web-react';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-type ToolType = 'vscode' | 'terminal' | 'explorer';
+type ToolType = 'vscode' | 'zed' | 'terminal' | 'explorer';
 
 interface ToolOption {
   key: ToolType;
@@ -28,25 +28,31 @@ const STORAGE_KEY = 'workspace-open-preference';
 
 /**
  * Workspace Open Button - Opens workspace folder with various tools
- * Supports VS Code, Terminal, and File Explorer
+ * Supports VS Code, Zed, Terminal, and File Explorer
  * Remembers user's preferred tool
  */
 const WorkspaceOpenButton: React.FC<WorkspaceOpenButtonProps> = ({ workspacePath, isTemporary }) => {
   const { t } = useTranslation();
   const [vscodeInstalled, setVscodeInstalled] = useState(false);
+  const [zedInstalled, setZedInstalled] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [preferredTool, setPreferredTool] = useState<ToolType | null>(null);
 
-  // Check if VS Code is installed and load preferred tool
+  // Check if editors are installed and load preferred tool
   useEffect(() => {
     if (isTemporary) return;
     const checkTools = async () => {
       try {
-        const installed = await ipcBridge.shell.checkToolInstalled.invoke({ tool: 'vscode' });
-        setVscodeInstalled(installed);
+        const [vscodeOk, zedOk] = await Promise.all([
+          ipcBridge.shell.checkToolInstalled.invoke({ tool: 'vscode' }),
+          ipcBridge.shell.checkToolInstalled.invoke({ tool: 'zed' }),
+        ]);
+        setVscodeInstalled(vscodeOk);
+        setZedInstalled(zedOk);
       } catch (error) {
-        console.warn('[WorkspaceOpenButton] Failed to check VS Code:', error);
+        console.warn('[WorkspaceOpenButton] Failed to check editor installs:', error);
         setVscodeInstalled(false);
+        setZedInstalled(false);
       }
     };
 
@@ -71,13 +77,19 @@ const WorkspaceOpenButton: React.FC<WorkspaceOpenButtonProps> = ({ workspacePath
     setDropdownOpen(false);
   };
 
-  // Build dropdown options
+  // Build dropdown options — editors first, then always-available tools
   const toolOptions: ToolOption[] = [
     {
       key: 'vscode',
       label: t('conversation.workspace.openWith.vscode', { defaultValue: 'VS Code' }),
       icon: <Command size={16} />,
       available: vscodeInstalled,
+    },
+    {
+      key: 'zed',
+      label: t('conversation.workspace.openWith.zed', { defaultValue: 'Zed' }),
+      icon: <Command size={16} />,
+      available: zedInstalled,
     },
     {
       key: 'terminal',
@@ -111,6 +123,7 @@ const WorkspaceOpenButton: React.FC<WorkspaceOpenButtonProps> = ({ workspacePath
   const currentIcon = useMemo(() => {
     switch (currentTool) {
       case 'vscode':
+      case 'zed':
         return <Command size={16} />;
       case 'explorer':
         return <Folder size={16} />;
