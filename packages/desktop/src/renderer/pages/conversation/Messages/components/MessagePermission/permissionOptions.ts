@@ -70,12 +70,6 @@ export const normalizePermissionOperationKind = (kind?: string): PermissionOpera
   }
 };
 
-// One-off decisions (allow/reject just this once) are safe to submit on a
-// single click. Always/permanent decisions and neutral options keep the
-// two-step select-then-confirm flow to guard against accidental grants.
-export const isOneClickIntent = (intent: PermissionIntent): boolean =>
-  intent === 'allow-once' || intent === 'reject-once';
-
 export const getSafePermissionOptionId = (options: PermissionPanelOption[]): string | null =>
   options.find((option) => option.intent === 'allow-once' && !option.disabled)?.id ?? null;
 
