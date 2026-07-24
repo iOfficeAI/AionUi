@@ -1,5 +1,34 @@
 # Changelog
 
+## [2.1.41](https://github.com/iOfficeAI/AionUi/compare/v2.1.40...v2.1.41) (2026-07-24)
+
+### Desktop
+
+#### Features
+
+- **notification:** notify on agent turn completion when window is unfocused (desktop) (#3715)
+- **shortcuts:** add common UI bindings (#3675)
+
+#### Bug Fixes
+
+- **team:** extend ITeamRunEvent.source with system_lifecycle (#3721)
+
+### Core ([v0.1.52](https://github.com/iOfficeAI/AionCore/releases/tag/v0.1.52))
+
+#### Features
+
+- **project:** wire project-bind side branch into owner creation (#676)
+
+#### Bug Fixes
+
+- **agent:** unify CLI probe pipeline with classified failures and adaptive slow-probe recheck (#678)
+- **channel:** quiet WeChat poll log noise with state-transition logging and exponential backoff (#683)
+- **process:** allow whitespace in workspace cwd segments (#674)
+- **session:** restore codex slash commands + recover dead resume anchors on the direct-CLI path (#679)
+- **team:** converge system/lifecycle wakes into a team run (#680)
+
+---
+
 ## [2.1.40](https://github.com/iOfficeAI/AionUi/compare/v2.1.39...v2.1.40) (2026-07-23)
 
 ### Desktop
