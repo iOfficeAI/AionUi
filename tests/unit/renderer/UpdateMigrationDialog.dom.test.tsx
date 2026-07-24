@@ -25,7 +25,9 @@ vi.mock('@/renderer/hooks/context/ThemeContext', () => ({
   useThemeContext: () => ({ theme: 'light', fontScale: 1 }),
 }));
 
-import UpdateMigrationDialog, { OPEN_MIGRATION_DIALOG_EVENT } from '@/renderer/components/settings/UpdateMigrationDialog';
+import UpdateMigrationDialog, {
+  OPEN_MIGRATION_DIALOG_EVENT,
+} from '@/renderer/components/settings/UpdateMigrationDialog';
 
 const openDialog = () => {
   fireEvent(window, new CustomEvent(OPEN_MIGRATION_DIALOG_EVENT));

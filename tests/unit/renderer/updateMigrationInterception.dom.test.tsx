@@ -9,7 +9,9 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
-  runUpdateCheck: vi.fn(() => Promise.resolve({ kind: 'upToDate', currentVersion: '1.0.0', updateInfo: null, releasePageUrl: '' })),
+  runUpdateCheck: vi.fn(() =>
+    Promise.resolve({ kind: 'upToDate', currentVersion: '1.0.0', updateInfo: null, releasePageUrl: '' })
+  ),
   getIncludePrerelease: vi.fn(() => false),
   isElectronDesktop: vi.fn(() => true),
   openExternalUrl: vi.fn(() => Promise.resolve()),

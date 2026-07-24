@@ -11,4 +11,5 @@
 // dead branches get tree-shaken away and in-app update behavior is untouched.
 declare const __IS_DISCONTINUED_BUILD__: boolean;
 
-export const IS_DISCONTINUED_BUILD: boolean = typeof __IS_DISCONTINUED_BUILD__ !== 'undefined' ? __IS_DISCONTINUED_BUILD__ : false;
+export const IS_DISCONTINUED_BUILD: boolean =
+  typeof __IS_DISCONTINUED_BUILD__ !== 'undefined' ? __IS_DISCONTINUED_BUILD__ : false;
