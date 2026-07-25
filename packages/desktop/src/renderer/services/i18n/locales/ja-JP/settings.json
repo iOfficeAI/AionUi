@@ -161,7 +161,8 @@
   "assistantGoChat": "チャット",
   "assistantReorderHint": "ドラッグして並べ替えできます。この順序が、アシスタントを選ぶ場所（ホーム、チーム、定時タスクなど）での表示順を決めます。",
   "assistantReorderHintShort": "ドラッグして並べ替え",
-  "myAssistantsHintShort": "ローカルの CLI から自動生成されたもの、自分で作成したもの、公式から複製したアシスタントです。ドラッグして表示順を並べ替えできます。",
+  "assistantReorderSearchDisabled": "検索をクリアすると並べ替えできます。",
+  "myAssistantsHintShort": "ローカルの CLI から自動生成されたもの、自分で作成したもの、公式から複製したアシスタントです。",
   "assistantGroupCli": "CLI アシスタント",
   "assistantGroupCreated": "カスタムアシスタント",
   "myAssistantsEmpty": "まだアシスタントがありません。公式アシスタントを有効にするか、ローカルのCLIツールを接続してください。",
@@ -382,6 +383,19 @@
   "platformNewApi": "New API",
   "modelProtocol": "リクエストプロトコル",
   "modelProtocolTip": "このモデルのAPIリクエスト形式を選択します。new-apiゲートウェイは選択されたプロトコルでアップストリームにルーティングします。",
+  "configureModel": "モデルを設定",
+  "modelSettingAuto": "自動判定（推奨）",
+  "imageInput": "ビジョン入力",
+  "imageInputAuto": "自動判定",
+  "imageInputSupported": "設定で有効",
+  "imageInputUnsupported": "設定で無効",
+  "imageInputTip": "自動判定ではカタログの機能判定を使用します。上書きする場合のみ手動で有効または無効にしてください。",
+  "openAiApiMode": "OpenAIリクエストAPI",
+  "openAiApiModeAuto": "API · 自動",
+  "openAiApiModeChatCompletions": "Chat Completions",
+  "openAiApiModeResponses": "Responses",
+  "openAiApiModeTip": "OpenAI互換プロトコルを使用するモデルでのみ利用できます。",
+  "modelSettingsApplyToSelected": "これらの設定は選択したすべてのモデルに適用され、後から個別に変更できます。",
   "platformBedrock": "AWS Bedrock",
   "bedrock": {
     "authMethod": "Authentication Method",
@@ -1139,7 +1153,9 @@
     "boundAssistantsTitle": "このエージェントを使用するアシスタント",
     "boundAssistantsCount": "{{count}} 個のアシスタント",
     "boundAssistantsEmpty": "このエージェントにバインドされたアシスタントはまだありません。",
-    "viewAssistant": "詳細"
+    "viewAssistant": "詳細",
+    "searchPlaceholder": "エージェントを検索...",
+    "noSearchResults": "一致するエージェントはありません。"
   },
   "repair": {
     "pathLabel": "起動パス",
@@ -1156,6 +1172,8 @@
     "offlineHint": "コマンドは見つかりましたが、接続に失敗しました。上のエラーを確認し、下の起動パスまたは環境変数を調整してください。",
     "missingTitle": "検出されません",
     "missingHint": "デフォルトのパスでコマンドが見つかりませんでした。インストール済みの場合は、下に完全な起動パスを指定してください。",
+    "uncheckedTitle": "未確認",
+    "uncheckedHint": "このエージェントはまだ接続テストが行われていません。右上の「接続テスト」をクリックして確認してください。",
     "envScenariosTitle": "環境変数の設定で解決できること：",
     "envScenarioApiKey": "API キーまたはアクセストークンの不足（ANTHROPIC_API_KEY、OPENAI_API_KEY など）——「要サインイン」/ 接続失敗の最も一般的な原因",
     "envScenarioBaseUrl": "カスタム API エンドポイントまたはゲートウェイ（ANTHROPIC_BASE_URL、OPENAI_BASE_URL など）。自己ホストまたはプロキシ経由のサービス向け",
@@ -1264,8 +1282,10 @@
       "addMcp": "MCP サーバーの設定を手伝ってください。",
       "addSkill": "スキルをインポートしてアシスタントに紐付けてください。",
       "setupRemote": "スマホや外部ネットワークから AionUi を開けるよう、リモートアクセスを設定してください。",
-      "diagnose": "AionUi で問題が発生しました。診断を手伝ってください。\n\n【モジュール】{{module}}\n【問題の説明】{{description}}\n【添付】入力欄のスクリーンショットを参照。\n\n原因を診断し、解決方法を教えてください。"
-    }
+      "diagnose": "AionUi で問題が発生しました。診断を手伝ってください。\n\n【モジュール】{{module}}\n【問題の説明】{{description}}\n【添付】入力欄のスクリーンショットを参照。\n\n原因を診断し、解決方法を教えてください。",
+      "diagnoseChatError": "AionUi の会話中にエラーが発生しました。診断を手伝ってください。\n\n【エラー内容】{{error}}\n\n原因を診断し、解決方法を教えてください。"
+    },
+    "solveWithButler": "執事に相談"
   },
   "providerIdConflict": "Provider ID は既に存在します。もう一度お試しください。",
   "autoInjectedSkillsHint": "すべての会話に自動的に読み込まれます。有効化は不要で、エージェントが使用するタイミングを判断します。"

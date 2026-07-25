@@ -27,7 +27,8 @@
     "runtimeStarting": "このメンバーの起動を待っています…",
     "runtimeFailed": "このメンバーを起動できませんでした。",
     "removing": "このメンバーを削除しています…",
-    "sessionStopped": "チームセッションは停止しました。"
+    "sessionStopped": "チームセッションは停止しました。",
+    "retryStart": "起動を再試行"
   },
   "sendBox": {
     "placeholder": "チームリーダーアシスタントにメッセージを送信..."

@@ -6,8 +6,19 @@
 
 import { ipcBridge } from '@/common';
 import type { IProvider } from '@/common/config/storage';
+import { supportsOpenAiApiMode } from '@/common/utils/modelCapabilities';
 import { Button, Divider, Message, Popconfirm, Collapse, Tag, Switch, Tooltip } from '@arco-design/web-react';
-import { DeleteFour, Info, Minus, Plus, Write, Heartbeat } from '@icon-park/react';
+import {
+  DeleteFour,
+  Heartbeat,
+  Info,
+  Minus,
+  Plus,
+  PreviewClose,
+  PreviewOpen,
+  SettingTwo,
+  Write,
+} from '@icon-park/react';
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import AddModelModal from '@/renderer/pages/settings/components/AddModelModal';
@@ -502,13 +513,16 @@ const ModelModalContent: React.FC = () => {
                     {(platform.models ?? []).map((model: string, index: number, arr: string[]) => {
                       const isNewApiProvider = isNewApiPlatform(platform.platform);
                       const modelProtocol = platform.model_protocols?.[model] || 'openai';
+                      const modelSettings = platform.model_settings?.[model];
+                      const imageInput = modelSettings?.image_input ?? 'auto';
+                      const showOpenAiApiMode = supportsOpenAiApiMode(platform.platform, modelProtocol);
                       const model_health = platform.model_health?.[model];
                       const healthStatus = model_health?.status || 'unknown';
 
                       return (
                         <div key={model}>
-                          <div className='flex items-center justify-between px-8px py-12px transition-colors hover:bg-[var(--fill-0)]'>
-                            <div className='flex items-center gap-8px'>
+                          <div className='flex items-center justify-between gap-8px px-8px py-12px transition-colors hover:bg-[var(--fill-0)]'>
+                            <div className='flex min-w-0 flex-1 items-center gap-8px'>
                               {/* 健康状态指示器 / Health status indicator */}
                               {healthStatus !== 'unknown' && (
                                 <Tooltip
@@ -537,19 +551,19 @@ const ModelModalContent: React.FC = () => {
                                   }
                                 >
                                   <div
-                                    className={`w-8px h-8px rounded-full ${healthStatus === 'healthy' ? 'bg-green-500' : 'bg-red-500'}`}
+                                    className={`h-8px w-8px shrink-0 rounded-full ${healthStatus === 'healthy' ? 'bg-green-500' : 'bg-red-500'}`}
                                   />
                                 </Tooltip>
                               )}
 
-                              <span className='text-14px text-t-primary'>{model}</span>
+                              <span className='min-w-0 flex-1 truncate text-14px text-t-primary'>{model}</span>
 
                               {/* New API 协议标签（点击循环切换）/ New API protocol badge (click to cycle) */}
                               {isNewApiProvider && (
                                 <Tag
                                   size='small'
                                   color={getProtocolColor(modelProtocol)}
-                                  className='cursor-pointer select-none'
+                                  className='shrink-0 cursor-pointer select-none'
                                   onClick={() => {
                                     const nextProtocol = getNextProtocol(modelProtocol);
                                     const newProtocols = { ...platform.model_protocols };
@@ -561,8 +575,41 @@ const ModelModalContent: React.FC = () => {
                                 </Tag>
                               )}
 
+                              <Tooltip
+                                content={
+                                  imageInput === 'supported'
+                                    ? t('settings.imageInputSupported')
+                                    : imageInput === 'unsupported'
+                                      ? t('settings.imageInputUnsupported')
+                                      : t('settings.imageInputAuto')
+                                }
+                              >
+                                <span
+                                  className={`inline-flex h-20px w-20px shrink-0 items-center justify-center ${
+                                    imageInput === 'supported' ? 'text-success-6' : 'text-t-secondary'
+                                  }`}
+                                >
+                                  {imageInput !== 'unsupported' ? (
+                                    <PreviewOpen theme='outline' size='15' />
+                                  ) : (
+                                    <PreviewClose theme='outline' size='15' />
+                                  )}
+                                </span>
+                              </Tooltip>
+
+                              {showOpenAiApiMode && (
+                                <Tag size='small' className='hidden shrink-0 md:inline-flex'>
+                                  {modelSettings?.openai_api_mode === 'responses'
+                                    ? t('settings.openAiApiModeResponses')
+                                    : modelSettings?.openai_api_mode === 'chat_completions'
+                                      ? t('settings.openAiApiModeChatCompletions')
+                                      : t('settings.openAiApiModeAuto')}
+                                </Tag>
+                              )}
+
                               {/* 模型启用开关 / Model enable switch */}
                               <Switch
+                                className='shrink-0'
                                 size='small'
                                 checked={isModelEnabled(platform, model)}
                                 onChange={(checked) => toggleModelEnabled(platform, model, checked)}
@@ -570,6 +617,15 @@ const ModelModalContent: React.FC = () => {
                             </div>
 
                             <div className='flex items-center gap-6px shrink-0'>
+                              <Tooltip content={t('settings.configureModel')}>
+                                <Button
+                                  size='mini'
+                                  className='!w-28px !h-28px !min-w-28px !bg-[var(--color-bg-1)] text-t-secondary hover:text-t-primary hover:!bg-[var(--fill-0)]'
+                                  icon={<SettingTwo theme='outline' size='16' />}
+                                  onClick={() => addModelModalCtrl.open({ data: platform, model })}
+                                />
+                              </Tooltip>
+
                               {/* 心跳检测按钮 / Health check button */}
                               <Tooltip content={t('settings.healthCheck')}>
                                 <Button
@@ -590,9 +646,11 @@ const ModelModalContent: React.FC = () => {
                                   const newProtocols = { ...platform.model_protocols };
                                   const newModelEnabled = { ...platform.model_enabled };
                                   const newModelHealth = { ...platform.model_health };
+                                  const newModelSettings = { ...platform.model_settings };
                                   delete newProtocols[model];
                                   delete newModelEnabled[model];
                                   delete newModelHealth[model];
+                                  delete newModelSettings[model];
 
                                   updatePlatform(
                                     {
@@ -602,6 +660,7 @@ const ModelModalContent: React.FC = () => {
                                       model_enabled:
                                         Object.keys(newModelEnabled).length > 0 ? newModelEnabled : undefined,
                                       model_health: Object.keys(newModelHealth).length > 0 ? newModelHealth : undefined,
+                                      model_settings: newModelSettings,
                                     },
                                     () => {}
                                   );

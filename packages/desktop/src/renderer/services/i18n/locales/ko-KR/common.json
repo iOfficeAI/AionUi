@@ -126,6 +126,15 @@
       "diagnosticsReportSuccess": "진단 보고서가 전송되었습니다",
       "diagnosticsReportFailed": "진단 보고서 전송 실패",
       "rebuildFailed": "이전 DB 백업 및 새 DB 재생성 실패"
+    },
+    "transientConcurrentStartup": {
+      "title": "AionUi를 시작하는 중입니다",
+      "description": "이 창이 열릴 때 다른 AionUi 시작 프로세스가 아직 로컬 데이터를 사용하고 있었습니다. 이는 일시적인 현상이며 데이터는 안전합니다. 다시 설치할 필요가 없습니다. 잠시 기다린 후 다시 시도하거나 AionUi를 다시 시작하세요.",
+      "sendDiagnostics": "Send diagnostics",
+      "diagnosticsSent": "Diagnostics sent",
+      "diagnosticsReportSuccess": "Diagnostics report sent",
+      "diagnosticsReportFailed": "Failed to send diagnostics report",
+      "diagnosticsHint": "이 문제가 계속 발생하면 진단 보고서를 보낼 수 있습니다."
     }
   },
   "fileAttach.addFiles": "파일 추가",

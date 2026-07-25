@@ -3,9 +3,12 @@ import type { NavigateFunction } from 'react-router-dom';
 import { useLocation } from 'react-router-dom';
 import { useVisibleConversationIds } from '@/renderer/pages/conversation/GroupedHistory/hooks/useVisibleConversationIds';
 import { isElectronDesktop } from '@/renderer/utils/platform';
+import { isPrimaryApplicationShortcut } from '@/renderer/utils/ui/keyboardShortcuts';
+import { dispatchWorkspaceToggleEvent } from '@/renderer/utils/workspace/workspaceEvents';
 
 type UseConversationShortcutsParams = {
   navigate: NavigateFunction;
+  toggleSider: () => void;
 };
 
 const getCycledConversationId = (
@@ -34,7 +37,7 @@ const isNewConversationShortcut = (event: KeyboardEvent): boolean => {
   return (event.metaKey || event.ctrlKey) && !event.altKey && !event.shiftKey && event.key.toLowerCase() === 't';
 };
 
-export const useConversationShortcuts = ({ navigate }: UseConversationShortcutsParams): void => {
+export const useConversationShortcuts = ({ navigate, toggleSider }: UseConversationShortcutsParams): void => {
   const location = useLocation();
   const visibleConversationIds = useVisibleConversationIds();
 
@@ -66,6 +69,21 @@ export const useConversationShortcuts = ({ navigate }: UseConversationShortcutsP
       if (isNewConversationShortcut(event)) {
         event.preventDefault();
         void navigate('/guid');
+        return;
+      }
+
+      if (isPrimaryApplicationShortcut(event, { key: 'b', targetGuard: 'embedded-editor' })) {
+        event.preventDefault();
+        toggleSider();
+        return;
+      }
+
+      if (isPrimaryApplicationShortcut(event, { key: 'l', targetGuard: 'embedded-editor' })) {
+        const handled = dispatchWorkspaceToggleEvent();
+        if (handled) {
+          event.preventDefault();
+        }
+        return;
       }
     };
 
@@ -73,5 +91,5 @@ export const useConversationShortcuts = ({ navigate }: UseConversationShortcutsP
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [location.pathname, navigate, visibleConversationIds]);
+  }, [location.pathname, navigate, toggleSider, visibleConversationIds]);
 };

@@ -31,6 +31,7 @@ export type BackendStartupFailureReason =
   | 'backend_data_migration_failed'
   | 'backend_local_data_repair_failed'
   | 'backend_recoverable_database_corruption'
+  | 'backend_transient_concurrent_startup'
   | 'backend_startup_directory_unavailable'
   | 'backend_startup_failed';
 

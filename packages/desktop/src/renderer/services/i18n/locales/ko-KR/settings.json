@@ -161,7 +161,8 @@
   "assistantGoChat": "채팅",
   "assistantReorderHint": "드래그하여 순서를 바꿀 수 있습니다. 이 순서는 어시스턴트를 선택하는 모든 곳(홈, 팀, 예약 작업 등)에서의 표시 순서를 결정합니다.",
   "assistantReorderHintShort": "드래그하여 순서 변경",
-  "myAssistantsHintShort": "로컬 CLI에서 자동 생성되었거나 직접 만들었거나 공식에서 복제한 어시스턴트입니다. 드래그하여 표시 순서를 조정할 수 있습니다.",
+  "assistantReorderSearchDisabled": "검색을 지우면 순서를 변경할 수 있습니다.",
+  "myAssistantsHintShort": "로컬 CLI에서 자동 생성되었거나 직접 만들었거나 공식에서 복제한 어시스턴트입니다.",
   "assistantGroupCli": "CLI 어시스턴트",
   "assistantGroupCreated": "사용자 지정 어시스턴트",
   "myAssistantsEmpty": "아직 어시스턴트가 없습니다. 공식 어시스턴트를 활성화하거나 로컬 CLI 도구를 연결하세요.",
@@ -382,6 +383,19 @@
   "platformNewApi": "New API",
   "modelProtocol": "요청 프로토콜",
   "modelProtocolTip": "이 모델의 API 요청 형식을 선택하세요. new-api 게이트웨이가 선택된 프로토콜로 업스트림에 라우팅합니다.",
+  "configureModel": "모델 구성",
+  "modelSettingAuto": "자동 감지(권장)",
+  "imageInput": "비전 입력",
+  "imageInputAuto": "자동 감지",
+  "imageInputSupported": "설정에서 활성화됨",
+  "imageInputUnsupported": "설정에서 비활성화됨",
+  "imageInputTip": "자동 감지는 카탈로그의 기능 판정을 사용합니다. 재정의할 때만 수동으로 활성화하거나 비활성화하세요.",
+  "openAiApiMode": "OpenAI 요청 API",
+  "openAiApiModeAuto": "API · 자동",
+  "openAiApiModeChatCompletions": "Chat Completions",
+  "openAiApiModeResponses": "Responses",
+  "openAiApiModeTip": "OpenAI 호환 프로토콜을 사용하는 모델에만 제공됩니다.",
+  "modelSettingsApplyToSelected": "이 설정은 선택한 모든 모델에 적용되며 나중에 개별적으로 변경할 수 있습니다.",
   "platformBedrock": "AWS Bedrock",
   "bedrock": {
     "authMethod": "Authentication Method",
@@ -1139,7 +1153,9 @@
     "boundAssistantsTitle": "이 에이전트를 사용하는 어시스턴트",
     "boundAssistantsCount": "어시스턴트 {{count}}개",
     "boundAssistantsEmpty": "이 에이전트에 연결된 어시스턴트가 아직 없습니다.",
-    "viewAssistant": "보기"
+    "viewAssistant": "보기",
+    "searchPlaceholder": "에이전트 검색...",
+    "noSearchResults": "일치하는 에이전트가 없습니다."
   },
   "repair": {
     "pathLabel": "시작 경로",
@@ -1156,6 +1172,8 @@
     "offlineHint": "명령은 찾았지만 연결에 실패했습니다. 위의 오류를 확인한 후 아래에서 실행 경로나 환경 변수를 조정하세요.",
     "missingTitle": "감지되지 않음",
     "missingHint": "기본 경로에서 명령을 찾을 수 없습니다. 이미 설치되어 있다면 아래에 전체 실행 경로를 지정하세요.",
+    "uncheckedTitle": "아직 확인되지 않음",
+    "uncheckedHint": "이 에이전트는 아직 연결 테스트를 하지 않았습니다. 오른쪽 상단의 「연결 테스트」를 클릭하여 확인하세요.",
     "envScenariosTitle": "환경 변수 구성으로 해결할 수 있는 것:",
     "envScenarioApiKey": "API 키 또는 액세스 토큰 누락(ANTHROPIC_API_KEY, OPENAI_API_KEY 등) — \"로그인 필요\" / 연결 실패의 가장 흔한 원인",
     "envScenarioBaseUrl": "사용자 지정 API 엔드포인트 또는 게이트웨이(ANTHROPIC_BASE_URL, OPENAI_BASE_URL 등). 자체 호스팅 또는 프록시 서비스용",
@@ -1264,8 +1282,10 @@
       "addMcp": "MCP 서버 설정을 도와주세요.",
       "addSkill": "스킬을 가져와 어시스턴트에 연결해 주세요.",
       "setupRemote": "휴대폰이나 외부에서 AionUi를 열 수 있도록 원격 접속을 설정해 주세요.",
-      "diagnose": "AionUi 사용 중 문제가 발생했습니다. 진단을 도와주세요.\n\n[모듈] {{module}}\n[문제 설명] {{description}}\n[첨부] 입력창의 스크린샷 참조.\n\n원인을 진단하고 해결 방법을 알려주세요."
-    }
+      "diagnose": "AionUi 사용 중 문제가 발생했습니다. 진단을 도와주세요.\n\n[모듈] {{module}}\n[문제 설명] {{description}}\n[첨부] 입력창의 스크린샷 참조.\n\n원인을 진단하고 해결 방법을 알려주세요.",
+      "diagnoseChatError": "AionUi 대화 중 오류가 발생했습니다. 진단을 도와주세요.\n\n[오류 내용] {{error}}\n\n원인을 진단하고 해결 방법을 알려주세요."
+    },
+    "solveWithButler": "집사에게 문의"
   },
   "providerIdConflict": "Provider ID가 이미 있습니다. 다시 시도하세요.",
   "autoInjectedSkillsHint": "모든 대화에 자동으로 로드됩니다. 활성화할 필요가 없으며, 에이전트가 사용 시점을 결정합니다."

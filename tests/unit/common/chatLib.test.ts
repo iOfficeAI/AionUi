@@ -101,6 +101,34 @@ describe('composeMessage', () => {
     expect((list[0] as IMessageThinking).content.status).toBe('done');
     expect((list[0] as IMessageThinking).content.duration).toBe(3200);
   });
+
+  it('merges a completed ACP diff into its running tool call', () => {
+    const running = createToolCallMessage('edit-1');
+    running.content.update = {
+      ...running.content.update,
+      status: 'in_progress',
+      title: 'Edit file',
+      kind: 'edit',
+    };
+    const completed: IMessageAcpToolCall = {
+      ...running,
+      content: {
+        ...running.content,
+        update: {
+          ...running.content.update,
+          status: 'completed',
+          content: [{ type: 'diff', path: '/workspace/file.ts', old_text: 'old', new_text: 'new' }],
+        },
+      },
+    };
+
+    let list = composeMessage(running, []);
+    list = composeMessage(completed, list);
+
+    expect(list).toHaveLength(1);
+    expect((list[0] as IMessageAcpToolCall).content.update.status).toBe('completed');
+    expect((list[0] as IMessageAcpToolCall).content.update.content).toEqual(completed.content.update.content);
+  });
 });
 
 describe('normalizeAgentStreamError', () => {

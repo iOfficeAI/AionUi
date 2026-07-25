@@ -1,9 +1,9 @@
 {
   "promptExamplesHint": "Bu talimatları deneyin",
   "defaultPrompts": {
-    "capabilities": "Benim için neler yapabilirsin?",
-    "skills": "Hangi becerilere sahipsin?",
-    "tools": "Hangi araçlara sahipsin?"
+    "understand": "Bu projeyi incele ve ne yaptığını, nereden başlamam gerektiğini basit bir dille anlat",
+    "cleanup": "Bu klasördeki yinelenen ve gereksiz dosyaları bul, onaylamam için listele",
+    "create": "Bana şık bir kişisel ana sayfa yap ve bitince doğrudan açıp göster"
   },
   "selectAssistantHint": "Göreve başlamak için bir asistan seçin",
   "workspace": {

@@ -161,7 +161,8 @@
   "assistantGoChat": "Sohbet",
   "assistantReorderHint": "Sıralamak için sürükleyin — bu, bir asistan seçtiğiniz her yerde (ana ekran, ekipler, zamanlanmış görevler…) görüntülenme sırasını belirler.",
   "assistantReorderHintShort": "Sıralamak için sürükleyin",
-  "myAssistantsHintShort": "Yerel CLI’lerinizden otomatik oluşturulan, kendi oluşturduğunuz veya resmi olanlardan çoğalttığınız asistanlar. Görünüm sırasını değiştirmek için sürükleyin.",
+  "assistantReorderSearchDisabled": "Sıralamak için aramayı temizleyin.",
+  "myAssistantsHintShort": "Yerel CLI’lerinizden otomatik oluşturulan, kendi oluşturduğunuz veya resmi olanlardan çoğalttığınız asistanlar.",
   "assistantGroupCli": "CLI Asistanları",
   "assistantGroupCreated": "Özel Asistanlar",
   "myAssistantsEmpty": "Burada henüz asistan yok. Resmi bir asistanı etkinleştirin veya yerel bir CLI aracı bağlayın.",
@@ -382,6 +383,19 @@
   "platformNewApi": "New API",
   "modelProtocol": "İstek Protokolü",
   "modelProtocolTip": "Bu model için API istek formatını seçin. new-api ağ geçidi seçilen protokolü kullanarak yukarı akışa yönlendirecektir.",
+  "configureModel": "Modeli yapılandır",
+  "modelSettingAuto": "Otomatik (önerilen)",
+  "imageInput": "Görsel giriş",
+  "imageInputAuto": "Otomatik algılama",
+  "imageInputSupported": "Yapılandırmayla etkin",
+  "imageInputUnsupported": "Yapılandırmayla devre dışı",
+  "imageInputTip": "Otomatik mod katalogdaki yetenek algılamasını kullanır. Yalnızca geçersiz kılmak için elle etkinleştirin veya devre dışı bırakın.",
+  "openAiApiMode": "OpenAI istek API'si",
+  "openAiApiModeAuto": "API · Otomatik",
+  "openAiApiModeChatCompletions": "Chat Completions",
+  "openAiApiModeResponses": "Responses",
+  "openAiApiModeTip": "Yalnızca OpenAI uyumlu protokol kullanan modellerde kullanılabilir.",
+  "modelSettingsApplyToSelected": "Bu ayarlar seçilen tüm modellere uygulanır ve daha sonra ayrı ayrı değiştirilebilir.",
   "platformBedrock": "AWS Bedrock",
   "bedrock": {
     "authMethod": "Authentication Method",
@@ -1137,7 +1151,9 @@
     "boundAssistantsTitle": "Bu ajanı kullanan asistanlar",
     "boundAssistantsCount": "{{count}} asistan",
     "boundAssistantsEmpty": "Bu ajana henüz bağlı asistan yok.",
-    "viewAssistant": "Görüntüle"
+    "viewAssistant": "Görüntüle",
+    "searchPlaceholder": "Agent ara...",
+    "noSearchResults": "Eşleşen agent yok."
   },
   "repair": {
     "pathLabel": "Başlatma Yolu",
@@ -1154,6 +1170,8 @@
     "offlineHint": "Komut bulundu ancak bağlantı başarısız oldu. Yukarıdaki hatayı kontrol edin, ardından aşağıdaki başlatma yolunu veya ortam değişkenlerini ayarlayın.",
     "missingTitle": "Algılanmadı",
     "missingHint": "Komut varsayılan yolda bulunamadı. Kuruluysa, tam başlatma yolunu aşağıda belirtin.",
+    "uncheckedTitle": "Henüz kontrol edilmedi",
+    "uncheckedHint": "Bu aracının bağlantısı henüz test edilmedi. Kontrol etmek için sağ üstteki \"Bağlantıyı Test Et\" düğmesine tıklayın.",
     "envScenariosTitle": "Ortam değişkenlerini yapılandırmak şunları çözebilir:",
     "envScenarioApiKey": "Eksik API anahtarı veya erişim belirteci (ör. ANTHROPIC_API_KEY, OPENAI_API_KEY) — \"giriş gerekli\" / bağlantı hatalarının en yaygın nedeni",
     "envScenarioBaseUrl": "Özel API uç noktası veya ağ geçidi (ör. ANTHROPIC_BASE_URL, OPENAI_BASE_URL); kendi barındırılan veya proxy hizmetler için",
@@ -1262,8 +1280,10 @@
       "addMcp": "Bir MCP sunucusu kurmama yardım et.",
       "addSkill": "Bir beceri içe aktarıp bir asistana eklememe yardım et.",
       "setupRemote": "Telefonumdan veya internetten AionUi’yi açabilmem için uzaktan erişimi ayarlamama yardım et.",
-      "diagnose": "AionUi kullanırken bir sorunla karşılaştım, teşhis etmeme yardım et.\n\n[Modül] {{module}}\n[Açıklama] {{description}}\n[Ekler] giriş alanındaki ekran görüntülerine bakın.\n\nLütfen nedenini teşhis et ve nasıl düzelteceğimi söyle."
-    }
+      "diagnose": "AionUi kullanırken bir sorunla karşılaştım, teşhis etmeme yardım et.\n\n[Modül] {{module}}\n[Açıklama] {{description}}\n[Ekler] giriş alanındaki ekran görüntülerine bakın.\n\nLütfen nedenini teşhis et ve nasıl düzelteceğimi söyle.",
+      "diagnoseChatError": "AionUi sohbeti sırasında bir hatayla karşılaştım, teşhis etmeme yardım et.\n\n[Hata] {{error}}\n\nLütfen nedenini teşhis et ve nasıl düzelteceğimi söyle."
+    },
+    "solveWithButler": "Kâhya'ya sor"
   },
   "providerIdConflict": "Provider ID zaten var. Lütfen tekrar deneyin.",
   "autoInjectedSkillsHint": "Her sohbete otomatik olarak yüklenir — etkinleştirmeye gerek yoktur; aracı bunları ne zaman kullanacağına karar verir."

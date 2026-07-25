@@ -346,6 +346,37 @@ describe('LocalAgents', () => {
     expect(getBoundAssistants(aionrsAgent, assistants)).toEqual([]);
   });
 
+  it('pins Kimi right after the aionrs agent in the official list', () => {
+    useManagedAgents.mockReturnValue({
+      agents: [
+        ...makeAgents(),
+        {
+          id: 'acp-kimi',
+          name: 'Kimi',
+          agent_type: 'acp',
+          agent_source: 'builtin',
+          backend: 'kimi',
+          enabled: true,
+          available: false,
+          installed: false,
+          status: 'missing',
+        },
+      ],
+      revalidate: vi.fn(),
+      refreshCatalog: vi.fn(),
+    });
+
+    render(<LocalAgents />);
+
+    // Alphabetically Claude Code < Kimi, so this order proves the pin rule:
+    // aionrs stays first, Kimi jumps ahead of the localeCompare ordering.
+    const aion = screen.getByText('Aion CLI');
+    const kimi = screen.getByText('Kimi');
+    const claude = screen.getByText('Claude Code');
+    expect(kimi.compareDocumentPosition(aion) & Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy();
+    expect(claude.compareDocumentPosition(kimi) & Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy();
+  });
+
   it('renders agent management as a single diagnostics page without local/remote tabs', () => {
     useManagedAgents.mockReturnValue({
       agents: makeAgents(),

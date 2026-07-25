@@ -27,7 +27,8 @@
     "runtimeStarting": "Warten auf den Start dieses Mitglieds…",
     "runtimeFailed": "Dieses Mitglied konnte nicht gestartet werden.",
     "removing": "Dieses Mitglied wird entfernt…",
-    "sessionStopped": "Die Teamsitzung wurde beendet."
+    "sessionStopped": "Die Teamsitzung wurde beendet.",
+    "retryStart": "Neustart versuchen"
   },
   "sendBox": {
     "placeholder": "Nachricht an Dispatch-Agenten..."

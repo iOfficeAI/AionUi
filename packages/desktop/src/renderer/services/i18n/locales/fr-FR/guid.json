@@ -1,9 +1,9 @@
 {
   "promptExamplesHint": "Essayez ces exemples de prompts :",
   "defaultPrompts": {
-    "capabilities": "Que peux-tu faire pour moi ?",
-    "skills": "Quelles compétences possédez-vous ?",
-    "tools": "De quels outils disposez-vous ?"
+    "understand": "Découvre ce projet et explique-moi simplement ce qu'il fait et par où commencer",
+    "cleanup": "Trouve les fichiers en double et inutiles dans ce dossier et liste-les pour que je confirme",
+    "create": "Crée-moi une belle page personnelle et ouvre-la une fois terminée"
   },
   "selectAssistantHint": "Sélectionnez un assistant pour démarrer une tâche",
   "workspace": {

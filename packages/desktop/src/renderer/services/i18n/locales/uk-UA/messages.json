@@ -55,6 +55,7 @@
   "noOptionsAvailable": "Немає доступних варіантів",
   "processing": "Обробка...",
   "responseSentSuccessfully": "Відповідь надіслано успішно",
+  "permissionResponseFailed": "Не вдалося надіслати відповідь. Спробуйте ще раз.",
   "confirmation": {
     "applyChange": "Застосувати цю зміну?",
     "allowExecution": "Дозволити виконання?",

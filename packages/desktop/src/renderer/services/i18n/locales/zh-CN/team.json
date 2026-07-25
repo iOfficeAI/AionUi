@@ -27,7 +27,8 @@
     "runtimeStarting": "正在等待该成员启动……",
     "runtimeFailed": "该成员启动失败。",
     "removing": "正在移除该成员……",
-    "sessionStopped": "团队会话已停止。"
+    "sessionStopped": "团队会话已停止。",
+    "retryStart": "重试启动"
   },
   "sendBox": {
     "placeholder": "向团队 Leader 助手发消息..."

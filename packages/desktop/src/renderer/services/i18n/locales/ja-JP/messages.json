@@ -56,6 +56,7 @@
   "noOptionsAvailable": "利用可能なオプションはありません",
   "processing": "Processing...",
   "responseSentSuccessfully": "応答が正常に送信されました",
+  "permissionResponseFailed": "応答を送信できませんでした。もう一度お試しください。",
   "confirmation": {
     "applyChange": "この変更を適用しますか？",
     "allowExecution": "実行を許可しますか？",

@@ -27,7 +27,8 @@
     "runtimeStarting": "Esperando a que se inicie este miembro…",
     "runtimeFailed": "No se pudo iniciar este miembro.",
     "removing": "Eliminando este miembro…",
-    "sessionStopped": "La sesión del equipo se detuvo."
+    "sessionStopped": "La sesión del equipo se detuvo.",
+    "retryStart": "Reintentar inicio"
   },
   "sendBox": {
     "placeholder": "Mensaje al agente coordinador..."

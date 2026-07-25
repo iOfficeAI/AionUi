@@ -158,7 +158,8 @@
   "assistantHomeLead": "Les assistants sont des experts en IA prêts à l’emploi, dotés de compétences et d’outils préchargés. Voici vos CLI locales, les assistants que vous personnalisez vous-même et un ensemble d'experts officiels. Une fois activés, ils apparaissent dans vos discussions, équipes et tâches planifiées – prêts lorsque vous en avez besoin.",
   "assistantHomeLeadShort": "Des experts en IA prêts à l’emploi, dotés de compétences et d’outils préchargés. Permettez-leur de les utiliser dans les discussions, les équipes et les tâches planifiées.",
   "assistantReorderHintShort": "Faites glisser pour réorganiser",
-  "myAssistantsHintShort": "Assistants générés automatiquement à partir de vos CLI locales, ainsi que ceux que vous avez créés ou dupliqués à partir d'officiels. Faites glisser pour réorganiser leur apparence.",
+  "assistantReorderSearchDisabled": "Effacez la recherche pour réorganiser.",
+  "myAssistantsHintShort": "Assistants générés automatiquement à partir de vos CLI locales, ainsi que ceux que vous avez créés ou dupliqués à partir d'officiels.",
   "assistantRuntimeLabel": "Agent:",
   "assistantGoChat": "Chat",
   "assistantReorderHint": "Faites glisser pour réorganiser — cela décide de l'ordre d'affichage partout où vous choisissez un assistant (maison, équipes, tâches planifiées,…).",
@@ -382,6 +383,19 @@
   "platformNewApi": "New API",
   "modelProtocol": "Protocole de requête",
   "modelProtocolTip": "Choisir le format de requête API pour ce modèle. La passerelle new-api routera vers l'upstream en utilisant le protocole sélectionné.",
+  "configureModel": "Configurer le modèle",
+  "modelSettingAuto": "Automatique (recommandé)",
+  "imageInput": "Entrée visuelle",
+  "imageInputAuto": "Détection automatique",
+  "imageInputSupported": "Activé par la configuration",
+  "imageInputUnsupported": "Désactivé par la configuration",
+  "imageInputTip": "Le mode automatique utilise la détection des capacités du catalogue. Activez ou désactivez uniquement pour la remplacer.",
+  "openAiApiMode": "API de requête OpenAI",
+  "openAiApiModeAuto": "API · Automatique",
+  "openAiApiModeChatCompletions": "Chat Completions",
+  "openAiApiModeResponses": "Responses",
+  "openAiApiModeTip": "Disponible uniquement pour les modèles utilisant un protocole compatible OpenAI.",
+  "modelSettingsApplyToSelected": "Ces réglages s'appliquent à tous les modèles sélectionnés et peuvent être modifiés individuellement ensuite.",
   "platformBedrock": "AWS Bedrock",
   "bedrock": {
     "authMethod": "Méthode d'authentification",
@@ -1149,7 +1163,9 @@
     "boundAssistantsTitle": "Assistants utilisant cet agent",
     "boundAssistantsCount": "{{count}} assistant(s)",
     "boundAssistantsEmpty": "Aucun assistant n'est encore lié à cet agent.",
-    "viewAssistant": "Voir"
+    "viewAssistant": "Voir",
+    "searchPlaceholder": "Rechercher des agents...",
+    "noSearchResults": "Aucun agent correspondant."
   },
   "repair": {
     "pathLabel": "Chemin de lancement",
@@ -1166,6 +1182,8 @@
     "offlineHint": "La commande a été trouvée mais la connexion a échoué. Vérifiez l'erreur ci-dessus, puis ajustez le chemin de lancement ou les variables d'environnement ci-dessous.",
     "missingTitle": "Non détecté",
     "missingHint": "La commande est introuvable sur le chemin par défaut. S'il est installé, spécifiez son chemin de lancement complet ci-dessous.",
+    "uncheckedTitle": "Pas encore vérifié",
+    "uncheckedHint": "La connexion de cet agent n'a pas encore été testée. Cliquez sur « Tester la connexion » en haut à droite pour la vérifier.",
     "envScenariosTitle": "La configuration des variables d'environnement peut corriger :",
     "envScenarioApiKey": "Clé API ou jeton d'accès manquant (par exemple ANTHROPIC_API_KEY, OPENAI_API_KEY) — la cause fréquente des « besoins de connexion » / des échecs de connexion",
     "envScenarioBaseUrl": "Point de terminaison ou passerelle d'API personnalisée (par exemple ANTHROPIC_BASE_URL, OPENAI_BASE_URL) pour les services auto-hébergés ou proxy",
@@ -1262,8 +1280,10 @@
       "addMcp": "Aidez-moi à configurer un serveur MCP.",
       "addSkill": "Aidez-moi à importer une compétence et à la joindre à un assistant.",
       "setupRemote": "Aidez-moi à configurer l'accès à distance afin que je puisse ouvrir AionUi depuis mon téléphone ou via Internet.",
-      "diagnose": "J'ai rencontré un problème avec AionUi, aidez-moi à le diagnostiquer.\n\n[Module] {{module}}\n[Description] {{description}}\n[Pièces jointes] voir les captures d'écran dans l'entrée.\n\nVeuillez diagnostiquer la cause et me dire comment y remédier."
-    }
+      "diagnose": "J'ai rencontré un problème avec AionUi, aidez-moi à le diagnostiquer.\n\n[Module] {{module}}\n[Description] {{description}}\n[Pièces jointes] voir les captures d'écran dans l'entrée.\n\nVeuillez diagnostiquer la cause et me dire comment y remédier.",
+      "diagnoseChatError": "J'ai rencontré une erreur lors d'une conversation dans AionUi, aidez-moi à la diagnostiquer.\n\n[Erreur] {{error}}\n\nVeuillez diagnostiquer la cause et me dire comment y remédier."
+    },
+    "solveWithButler": "Demander au majordome"
   },
   "providerIdConflict": "L'ID du fournisseur existe déjà. Veuillez réessayer.",
   "autoInjectedSkillsHint": "Chargé automatiquement dans chaque conversation – pas besoin de les activer ; l'agent décide quand les utiliser."

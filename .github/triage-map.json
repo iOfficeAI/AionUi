@@ -1,0 +1,21 @@
+{
+  "$comment": "Issue module → area label → owner mapping. Single source of truth for .github/workflows/issue-triage.yml. The 'module' key must exactly match the dropdown option text in .github/ISSUE_TEMPLATE/bug_report.yml and question.yml. Edit owners here — no workflow change needed.",
+  "modules": [
+    { "module": "Agent Detection & Connection", "label": "area/agent-detection", "owner": "kaizhou-lab" },
+    { "module": "Assistants & Presets", "label": "area/assistant", "owner": "piorpua" },
+    { "module": "Models & Authentication", "label": "area/model-auth", "owner": "jiahe0510" },
+    { "module": "MCP & Tools", "label": "area/mcp", "owner": "piorpua" },
+    { "module": "Skills & Plugins", "label": "area/skills", "owner": "piorpua" },
+    { "module": "Channel Integrations", "label": "area/channel", "owner": "piorpua" },
+    { "module": "Conversation & Sessions", "label": "area/conversation", "owner": "piorpua" },
+    { "module": "Search & History", "label": "area/history", "owner": "tcp404" },
+    { "module": "Project, Files & Preview", "label": "area/workspace", "owner": "tcp404" },
+    { "module": "WebUI & Remote Access", "label": "area/webui", "owner": "kaizhou-lab" },
+    { "module": "Scheduled Tasks", "label": "area/cron", "owner": "kaizhou-lab" },
+    { "module": "Team Collaboration", "label": "area/team", "owner": "piorpua" },
+    { "module": "Interface, Display & Desktop Pet", "label": "area/display", "owner": "IceyLiu" },
+    { "module": "System Settings", "label": "area/settings", "owner": "IceyLiu" },
+    { "module": "Other", "label": "area/other", "owner": "IceyLiu" }
+  ],
+  "fallback": { "label": "needs-triage", "owner": "IceyLiu" }
+}

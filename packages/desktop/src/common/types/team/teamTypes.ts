@@ -9,7 +9,7 @@ export type TeammateRole = 'leader' | 'teammate';
 export type BackendTeammateStatus = string;
 
 /** Lifecycle status of a teammate agent after frontend normalization */
-export type TeammateStatus = 'pending' | 'idle' | 'active' | 'completed' | 'failed';
+export type TeammateStatus = 'pending' | 'idle' | 'active' | 'completed' | 'failed' | 'dormant';
 
 /** Workspace sharing strategy for the team */
 export type WorkspaceMode = 'shared' | 'isolated';
@@ -101,7 +101,7 @@ export type IPauseTeamSlotParams = ICancelTeamChildTurnParams;
 export type ITeamRunEvent = {
   team_id: string;
   team_run_id: string;
-  source: 'user_message';
+  source: 'user_message' | 'system_lifecycle';
   has_user_intervention: boolean;
   target_slot_id: string;
   target_role: TeamRunTargetRole;
@@ -127,6 +127,18 @@ export type ITeamChildTurnEvent = {
   conversation_id: string;
   turn_id: string;
   status: TeamRunStatus;
+};
+
+/**
+ * IPC event pushed to the renderer whenever a single slot's work state
+ * transitions, independently of any team run. `team.run*` events only carry
+ * `slot_work` for slots bound to the active tracked run, so run-less work (e.g.
+ * a leader self-wake draining its mailbox) would otherwise leave the per-slot
+ * view stale. Consumers update the one slot verbatim.
+ */
+export type ITeamSlotWorkChangedEvent = {
+  team_id: string;
+  slot_work: ITeamSlotWork;
 };
 
 /** IPC event pushed to renderer when agent status changes */
@@ -158,7 +170,7 @@ export type ITeamAgentRenamedEvent = {
   name: string;
 };
 
-export type TeamAgentRuntimeStatus = 'pending' | 'ready' | 'failed';
+export type TeamAgentRuntimeStatus = 'dormant' | 'pending' | 'ready' | 'failed';
 
 /** IPC event pushed to renderer when a team member runtime attach/warmup status changes */
 export type ITeamAgentRuntimeStatusEvent = {
@@ -211,7 +223,7 @@ export type ITeamMessageEvent = {
 };
 
 /** Team-level session availability status. */
-export type TeamSessionStatus = 'starting' | 'ready' | 'failed';
+export type TeamSessionStatus = 'starting' | 'ready' | 'failed' | 'stopped';
 
 /** Diagnostic phase for team session startup. */
 export type TeamSessionPhase = 'loading_team' | 'starting_bridge' | 'attaching_agents' | 'recovering';

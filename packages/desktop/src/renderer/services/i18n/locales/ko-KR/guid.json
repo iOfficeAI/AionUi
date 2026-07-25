@@ -1,9 +1,9 @@
 {
   "promptExamplesHint": "이 지시를 사용해 보세요",
   "defaultPrompts": {
-    "capabilities": "나를 위해 무엇을 할 수 있나요?",
-    "skills": "어떤 스킬이 있나요?",
-    "tools": "어떤 도구가 있나요?"
+    "understand": "이 프로젝트를 파악해서, 무엇을 하는 프로젝트인지 어디서부터 시작하면 되는지 쉽게 설명해 줘",
+    "cleanup": "이 폴더에서 중복되거나 쓸모없는 파일을 찾아 확인할 수 있게 목록으로 보여 줘",
+    "create": "멋진 개인 홈페이지를 만들어서 완성되면 바로 열어서 보여 줘"
   },
   "selectAssistantHint": "어시스턴트를 선택하여 작업을 시작하세요",
   "workspace": {

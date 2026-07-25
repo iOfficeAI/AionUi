@@ -56,6 +56,7 @@
   "noOptionsAvailable": "گزینه‌ای در دسترس نیست",
   "processing": "در حال پردازش...",
   "responseSentSuccessfully": "پاسخ با موفقیت ارسال شد",
+  "permissionResponseFailed": "ارسال پاسخ ممکن نشد. دوباره تلاش کنید.",
   "confirmation": {
     "applyChange": "این تغییر اعمال شود؟",
     "allowExecution": "اجرا مجاز باشد؟",

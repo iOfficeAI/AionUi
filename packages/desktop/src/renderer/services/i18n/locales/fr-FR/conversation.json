@@ -1,7 +1,7 @@
 {
   "welcome": {
     "title": "Bonjour, quel est votre plan pour aujourd'hui ?",
-    "placeholder": "Envoyez un message, téléversez des fichiers, ouvrez un dossier ou créez une tâche planifiée...",
+    "placeholder": "Envoyez un message, téléversez des fichiers, ouvrez un dossier, créez une tâche planifiée ou tapez / pour les commandes...",
     "linkFolder": "Ouvrir un dossier",
     "newConversation": "Nouveau chat",
     "selectModel": "Sélectionner un modèle",
@@ -30,6 +30,7 @@
     "saveName": "Enregistrer",
     "cancelEdit": "Annuler",
     "rename": "Renommer",
+    "createCronTask": "Créer une tâche planifiée",
     "renameTitle": "Renommer le chat",
     "renamePlaceholder": "Veuillez entrer un nouveau nom",
     "renameSuccess": "Renommé avec succès",
@@ -553,12 +554,15 @@
     "sendboxHint": "Préparation de l'environnement d'exécution. Le premier démarrage peut prendre un peu plus de temps."
   },
   "sendbox": {
-    "hint": "Tapez / pour les commandes, @ pour référencer des fichiers"
+    "hint": "Tapez / pour les commandes, @ pour référencer des fichiers, ↑/↓ pour l'historique des messages"
   },
   "agentTip": {
     "codes": {
       "ACP_EMPTY_TURN": {
         "body": "Cette demande n'a produit aucune réponse visible."
+      },
+      "ACP_EMPTY_TURN_NEEDS_AUTH": {
+        "body": "Cette requête n'a produit aucune réponse visible. L'agent doit peut-être d'abord vous connecter : {{hint}}."
       },
       "ACP_EMPTY_TURN_MAX_TOKENS": {
         "body": "Cette requête a atteint la limite de jetons de sortie du modèle avant qu'une réponse visible ne soit produite."

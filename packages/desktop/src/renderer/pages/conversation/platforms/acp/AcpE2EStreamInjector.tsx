@@ -20,6 +20,9 @@ type RunScenarioOptions = {
 type StreamController = {
   runScenario: (options?: RunScenarioOptions) => Promise<void>;
   emitInfoTip: (code: string, content: string) => Promise<void>;
+  emitErrorTip: (content: string, error?: Record<string, unknown>) => Promise<void>;
+  emitToolError: (toolName: string, description: string) => Promise<void>;
+  emitAgentStatusError: (agentName: string) => Promise<void>;
   emitFollowUpExchange: () => Promise<void>;
 };
 
@@ -158,6 +161,84 @@ const AcpE2EStreamInjector: React.FC<{ conversationId: string }> = ({ conversati
               code,
             },
           },
+          true
+        );
+
+        await new Promise<void>((resolve) => {
+          window.setTimeout(resolve, STREAM_TICK_MS);
+        });
+      },
+      emitErrorTip: async (content: string, error?: Record<string, unknown>) => {
+        const msgId = `e2e-error-tip-${Date.now()}`;
+
+        addOrUpdateMessage(
+          {
+            id: msgId,
+            msg_id: msgId,
+            conversation_id: conversationId,
+            type: 'tips',
+            position: 'center',
+            status: 'finish',
+            created_at: Date.now(),
+            content: {
+              content,
+              type: 'error',
+              ...(error ? { error } : {}),
+            },
+          } as unknown as TMessage,
+          true
+        );
+
+        await new Promise<void>((resolve) => {
+          window.setTimeout(resolve, STREAM_TICK_MS);
+        });
+      },
+      emitToolError: async (toolName: string, description: string) => {
+        const msgId = `e2e-tool-error-${Date.now()}`;
+
+        addOrUpdateMessage(
+          {
+            id: msgId,
+            msg_id: msgId,
+            conversation_id: conversationId,
+            type: 'tool_group',
+            position: 'left',
+            status: 'finish',
+            created_at: Date.now(),
+            content: [
+              {
+                call_id: `${msgId}-call`,
+                name: toolName,
+                status: 'Error',
+                description,
+              },
+            ],
+          } as unknown as TMessage,
+          true
+        );
+
+        await new Promise<void>((resolve) => {
+          window.setTimeout(resolve, STREAM_TICK_MS);
+        });
+      },
+      emitAgentStatusError: async (agentName: string) => {
+        const msgId = `e2e-agent-status-error-${Date.now()}`;
+
+        addOrUpdateMessage(
+          {
+            id: msgId,
+            msg_id: msgId,
+            conversation_id: conversationId,
+            type: 'agent_status',
+            position: 'center',
+            status: 'finish',
+            created_at: Date.now(),
+            content: {
+              backend: 'codex',
+              status: 'error',
+              agent_name: agentName,
+            },
+          } as unknown as TMessage,
           true
         );
 

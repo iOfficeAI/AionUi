@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const REQUIRED_ACP_TOOL_SLUGS = ['codex-acp', 'claude-agent-acp'];
+const REQUIRED_CLI_NAMES = ['claude', 'codex'];
 
 function backendBinaryName(platform) {
   return platform === 'win32' ? 'aioncore.exe' : 'aioncore';
@@ -171,7 +171,7 @@ function verifyManagedResourcesContract(baseDir, runtimeKey, checked, missing, f
     addSchemaFailure(failures, missing, 'managed-resources', 'invalid_schema', relativePath);
     return;
   }
-  if (contract.schemaVersion !== 1) {
+  if (contract.schemaVersion !== 2) {
     addSchemaFailure(
       failures,
       missing,
@@ -189,13 +189,13 @@ function verifyManagedResourcesContract(baseDir, runtimeKey, checked, missing, f
     addSchemaFailure(failures, missing, 'managed-resources', 'invalid_schema', relativePath);
     return;
   }
-  if (!Array.isArray(contract.acpTools)) {
+  if (!Array.isArray(contract.clis)) {
     addSchemaFailure(failures, missing, 'managed-resources', 'invalid_schema', relativePath);
     return;
   }
 
   verifyManagedNodeFromContract(managedRoot, runtimeKey, contract, checked, missing, failures);
-  verifyManagedAcpToolsFromContract(managedRoot, runtimeKey, contract, checked, missing, failures);
+  verifyManagedClisFromContract(managedRoot, runtimeKey, contract, checked, missing, failures);
 }
 
 function verifyManagedNodeFromContract(baseDir, runtimeKey, contract, checked, missing, failures) {
@@ -227,168 +227,105 @@ function verifyManagedNodeFromContract(baseDir, runtimeKey, contract, checked, m
   }
 }
 
-function verifyManagedAcpToolsFromContract(baseDir, runtimeKey, contract, checked, missing, failures) {
+function verifyManagedClisFromContract(baseDir, runtimeKey, contract, checked, missing, failures) {
   const seen = new Set();
-  const validTools = [];
+  const validClis = [];
   const manifestPath = contractBundledPath(runtimeKey, 'manifest.json');
 
-  for (const tool of contract.acpTools) {
-    if (!tool || typeof tool !== 'object' || Array.isArray(tool) || !stringField(tool.slug)) {
+  for (const cli of contract.clis) {
+    if (!cli || typeof cli !== 'object' || Array.isArray(cli) || !stringField(cli.name)) {
       addSchemaFailure(failures, missing, 'managed-resources', 'invalid_schema', manifestPath);
       continue;
     }
-    if (seen.has(tool.slug)) {
+    if (seen.has(cli.name)) {
       failures.push({
-        component: tool.slug,
-        reason: 'duplicate_tool_slug',
+        component: cli.name,
+        reason: 'duplicate_cli_name',
       });
       continue;
     }
-    seen.add(tool.slug);
-    validTools.push(tool);
+    seen.add(cli.name);
+    validClis.push(cli);
   }
 
-  for (const requiredSlug of REQUIRED_ACP_TOOL_SLUGS) {
-    if (!seen.has(requiredSlug)) {
+  for (const requiredName of REQUIRED_CLI_NAMES) {
+    if (!seen.has(requiredName)) {
       failures.push({
-        component: requiredSlug,
-        reason: 'missing_required_tool',
+        component: requiredName,
+        reason: 'missing_required_cli',
       });
     }
   }
 
-  for (const tool of validTools) {
-    verifyManagedAcpToolFromContract(baseDir, runtimeKey, tool, checked, missing, failures);
+  for (const cli of validClis) {
+    verifyManagedCliFromContract(baseDir, runtimeKey, cli, checked, missing, failures);
   }
 }
 
-function verifyManagedAcpToolFromContract(baseDir, runtimeKey, tool, checked, missing, failures) {
+function verifyManagedCliFromContract(baseDir, runtimeKey, cli, checked, missing, failures) {
   const manifestPath = contractBundledPath(runtimeKey, 'manifest.json');
-  const requiredStringFields = [
-    'version',
-    'packageName',
-    'root',
-    'platformDirectory',
-    'manifest',
-    'entrypoint',
-    'platformExecutable',
-  ];
-  if (requiredStringFields.some((field) => !stringField(tool[field]))) {
-    addSchemaFailure(failures, missing, tool.slug, 'invalid_schema', manifestPath);
+  const requiredStringFields = ['name', 'version', 'root', 'platformDirectory', 'executable'];
+  if (requiredStringFields.some((field) => !stringField(cli[field]))) {
+    addSchemaFailure(failures, missing, cli.name, 'invalid_schema', manifestPath);
     return;
   }
-  if (!stringArray(tool.pathEntries) || !stringArray(tool.requiredFiles) || !stringArray(tool.requiredDirectories)) {
-    addSchemaFailure(failures, missing, tool.slug, 'invalid_schema', manifestPath);
+  // requiredFiles / requiredDirectories default to [] (claude has none; codex
+  // lists its vendor sidecar subtree). Absent is allowed; when present each entry
+  // must be a non-empty string.
+  const requiredFiles = cli.requiredFiles === undefined ? [] : cli.requiredFiles;
+  const requiredDirectories = cli.requiredDirectories === undefined ? [] : cli.requiredDirectories;
+  if (!stringArray(requiredFiles) || !stringArray(requiredDirectories)) {
+    addSchemaFailure(failures, missing, cli.name, 'invalid_schema', manifestPath);
     return;
   }
-  if (tool.platformDirectory !== runtimeKey) {
-    addSchemaFailure(failures, missing, tool.slug, 'runtime_key_mismatch', manifestPath);
+  if (cli.platformDirectory !== runtimeKey) {
+    addSchemaFailure(failures, missing, cli.name, 'runtime_key_mismatch', manifestPath);
     return;
   }
 
   const pathFields = [
-    ['root', tool.root],
-    ['manifest', tool.manifest],
-    ['entrypoint', tool.entrypoint],
-    ['platformExecutable', tool.platformExecutable],
-    ...tool.pathEntries.map((entry, index) => [`pathEntries[${index}]`, entry]),
-    ...tool.requiredFiles.map((entry, index) => [`requiredFiles[${index}]`, entry]),
-    ...tool.requiredDirectories.map((entry, index) => [`requiredDirectories[${index}]`, entry]),
+    ['root', cli.root],
+    ['executable', cli.executable],
+    ...requiredFiles.map((entry, index) => [`requiredFiles[${index}]`, entry]),
+    ...requiredDirectories.map((entry, index) => [`requiredDirectories[${index}]`, entry]),
   ];
-  if (pathFields.some(([field, value]) => !validateContractPathField(value, tool.slug, field, failures))) {
+  if (pathFields.some(([field, value]) => !validateContractPathField(value, cli.name, field, failures))) {
     return;
   }
 
-  const toolRoot = joinContractPath(baseDir, tool.root);
-  const localManifestRelative = contractBundledPath(runtimeKey, tool.root, tool.manifest);
-  const localManifestPath = joinContractPath(toolRoot, tool.manifest);
-  checked.push(localManifestRelative);
-  if (!isFile(localManifestPath)) {
-    missing.push(localManifestRelative);
-    failures.push({
-      component: tool.slug,
-      reason: 'missing_file',
-      version: tool.version,
-      packageName: tool.packageName,
-      runtimeKey,
-      path: localManifestRelative,
-    });
-    return;
+  requireContractFile(baseDir, runtimeKey, cli, cli.root, cli.executable, checked, missing, failures);
+  for (const requiredFile of requiredFiles) {
+    requireContractFile(baseDir, runtimeKey, cli, cli.root, requiredFile, checked, missing, failures);
   }
-
-  const localManifest = readManifest(localManifestPath);
-  if (!localManifest) {
-    missing.push(`${localManifestRelative}<invalid_json>`);
-    failures.push({
-      component: tool.slug,
-      reason: 'invalid_json',
-      version: tool.version,
-      packageName: tool.packageName,
-      runtimeKey,
-      path: localManifestRelative,
-    });
-    return;
+  for (const requiredDirectory of requiredDirectories) {
+    requireContractDirectory(baseDir, runtimeKey, cli, cli.root, requiredDirectory, checked, missing, failures);
   }
-  if (localManifest.entrypoint !== tool.entrypoint) {
-    missing.push(`${localManifestRelative}<manifest_entrypoint_mismatch>`);
-    failures.push({
-      component: tool.slug,
-      reason: 'manifest_entrypoint_mismatch',
-      version: tool.version,
-      packageName: tool.packageName,
-      runtimeKey,
-      path: localManifestRelative,
-    });
-  }
-  const localPathEntries = Array.isArray(localManifest.path_entries) ? localManifest.path_entries : [];
-  if (JSON.stringify(localPathEntries) !== JSON.stringify(tool.pathEntries)) {
-    missing.push(`${localManifestRelative}<manifest_path_entries_mismatch>`);
-    failures.push({
-      component: tool.slug,
-      reason: 'manifest_path_entries_mismatch',
-      version: tool.version,
-      packageName: tool.packageName,
-      runtimeKey,
-      path: localManifestRelative,
-    });
-  }
-
-  requireContractFile(baseDir, runtimeKey, tool, tool.root, tool.entrypoint, checked, missing, failures);
-  for (const requiredFile of tool.requiredFiles) {
-    requireContractFile(baseDir, runtimeKey, tool, tool.root, requiredFile, checked, missing, failures);
-  }
-  for (const requiredDirectory of tool.requiredDirectories) {
-    requireContractDirectory(baseDir, runtimeKey, tool, tool.root, requiredDirectory, checked, missing, failures);
-  }
-  requireContractFile(baseDir, runtimeKey, tool, tool.root, tool.platformExecutable, checked, missing, failures);
 }
 
-function requireContractFile(baseDir, runtimeKey, tool, root, relativePath, checked, missing, failures) {
+function requireContractFile(baseDir, runtimeKey, cli, root, relativePath, checked, missing, failures) {
   const bundledRelative = contractBundledPath(runtimeKey, root, relativePath);
   checked.push(bundledRelative);
   if (!isFile(joinContractPath(joinContractPath(baseDir, root), relativePath))) {
     missing.push(bundledRelative);
     failures.push({
-      component: tool.slug,
+      component: cli.name,
       reason: 'missing_file',
-      version: tool.version,
-      packageName: tool.packageName,
+      version: cli.version,
       runtimeKey,
       path: bundledRelative,
     });
   }
 }
 
-function requireContractDirectory(baseDir, runtimeKey, tool, root, relativePath, checked, missing, failures) {
+function requireContractDirectory(baseDir, runtimeKey, cli, root, relativePath, checked, missing, failures) {
   const bundledRelative = contractBundledPath(runtimeKey, root, relativePath);
   checked.push(bundledRelative);
   if (!isDirectory(joinContractPath(joinContractPath(baseDir, root), relativePath))) {
     missing.push(bundledRelative);
     failures.push({
-      component: tool.slug,
+      component: cli.name,
       reason: 'missing_directory',
-      version: tool.version,
-      packageName: tool.packageName,
+      version: cli.version,
       runtimeKey,
       path: bundledRelative,
     });

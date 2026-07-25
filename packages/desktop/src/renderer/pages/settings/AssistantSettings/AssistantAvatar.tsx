@@ -9,10 +9,17 @@ import { isEmoji, resolveAvatarImageSrc } from './assistantUtils';
 
 type AssistantAvatarProps = {
   assistant: AssistantListItem;
+  imageFit?: 'contain' | 'cover';
+  shape?: 'circle' | 'square';
   size?: number;
 };
 
-const AssistantAvatar: React.FC<AssistantAvatarProps> = ({ assistant, size = 32 }) => {
+const AssistantAvatar: React.FC<AssistantAvatarProps> = ({
+  assistant,
+  imageFit = 'cover',
+  shape = 'square',
+  size = 32,
+}) => {
   const resolvedAvatar = assistant.avatar?.trim();
   const hasEmojiAvatar = Boolean(resolvedAvatar && isEmoji(resolvedAvatar));
   const avatarImage = resolveAvatarImageSrc(resolvedAvatar);
@@ -21,12 +28,12 @@ const AssistantAvatar: React.FC<AssistantAvatarProps> = ({ assistant, size = 32 
 
   return (
     <Avatar.Group size={size}>
-      <Avatar className='border-none' shape='square' style={{ backgroundColor: 'var(--color-fill-2)', border: 'none' }}>
+      <Avatar className='border-none' shape={shape} style={{ backgroundColor: 'var(--color-fill-2)', border: 'none' }}>
         {avatarImage ? (
           <img
             src={avatarImage}
             alt=''
-            className='h-full w-full rounded-inherit object-cover'
+            className={`h-full w-full rounded-inherit ${imageFit === 'contain' ? 'object-contain' : 'object-cover'}`}
             style={{ display: 'block' }}
           />
         ) : hasEmojiAvatar ? (

@@ -5,7 +5,7 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import React from 'react';
 
 // Mirror the project convention: t() echoes the key so labels/tooltips are assertable.
@@ -18,6 +18,12 @@ const navigate = vi.fn();
 let currentPathname = '/guid';
 const platformMocks = vi.hoisted(() => ({
   isElectronDesktopMock: vi.fn(() => false),
+}));
+const shortcutMocks = vi.hoisted(() => ({
+  params: undefined as undefined | { toggleSider: () => void },
+}));
+const featureMocks = vi.hoisted(() => ({
+  teamModeEnabled: false,
 }));
 vi.mock('react-router-dom', () => ({
   useNavigate: () => navigate,
@@ -39,7 +45,11 @@ vi.mock('@/common', () => ({
 }));
 
 // Trim Layout's collaborators to keep this a focused brand-behaviour test.
-vi.mock('@/common/config/constants', () => ({ TEAM_MODE_ENABLED: false }));
+vi.mock('@/common/config/constants', () => ({
+  get TEAM_MODE_ENABLED() {
+    return featureMocks.teamModeEnabled;
+  },
+}));
 vi.mock('@/renderer/components/layout/PwaPullToRefresh', () => ({ default: () => null }));
 vi.mock('@/renderer/components/layout/Titlebar', () => ({ default: () => null }));
 vi.mock('@/renderer/components/settings/UpdateModal', () => ({ default: () => null }));
@@ -50,8 +60,15 @@ vi.mock('@renderer/hooks/file/useDirectorySelection', () => ({
   useDirectorySelection: () => ({ contextHolder: null }),
 }));
 vi.mock('@renderer/utils/ui/siderTooltip', () => ({ cleanupSiderTooltips: () => {} }));
-vi.mock('@renderer/hooks/ui/useConversationShortcuts', () => ({ useConversationShortcuts: () => {} }));
+vi.mock('@renderer/hooks/ui/useConversationShortcuts', () => ({
+  useConversationShortcuts: (params: { toggleSider: () => void }) => {
+    shortcutMocks.params = params;
+  },
+}));
 vi.mock('@renderer/utils/platform', () => ({ isElectronDesktop: platformMocks.isElectronDesktopMock }));
+vi.mock('@renderer/pages/conversation/Preview/context/PreviewContext', () => ({
+  usePreviewContext: () => ({ closePreview: () => {} }),
+}));
 
 import Layout from '@renderer/components/layout/Layout';
 
@@ -77,6 +94,8 @@ describe('Layout sider brand Home button', () => {
     navigate.mockClear();
     openDevTools.mockClear();
     platformMocks.isElectronDesktopMock.mockReturnValue(false);
+    shortcutMocks.params = undefined;
+    featureMocks.teamModeEnabled = false;
     sessionStorage.clear();
     currentPathname = '/guid';
   });
@@ -151,6 +170,30 @@ describe('Layout sider brand Home button', () => {
 
     fireEvent.click(screen.getByText('AionUi'));
     expect(navigate).not.toHaveBeenCalled();
+  });
+
+  it('provides common shortcuts with a functional sider toggle', () => {
+    currentPathname = '/conversation/xyz';
+    const { container } = renderLayout();
+    const sider = container.querySelector('.layout-sider');
+
+    expect(shortcutMocks.params?.toggleSider).toEqual(expect.any(Function));
+    expect(sider).not.toHaveClass('collapsed');
+
+    act(() => shortcutMocks.params?.toggleSider());
+    expect(sider).toHaveClass('collapsed');
+
+    act(() => shortcutMocks.params?.toggleSider());
+    expect(sider).not.toHaveClass('collapsed');
+  });
+
+  it('keeps the common shortcut owner mounted on team routes', () => {
+    currentPathname = '/team/team-1';
+    featureMocks.teamModeEnabled = true;
+
+    renderLayout();
+
+    expect(shortcutMocks.params?.toggleSider).toEqual(expect.any(Function));
   });
 
   it('clicking the logo icon counts toward the devtools easter-egg and never navigates', () => {

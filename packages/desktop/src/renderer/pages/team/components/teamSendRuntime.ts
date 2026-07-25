@@ -1,3 +1,4 @@
+import { ipcBridge } from '@/common';
 import { isBackendHttpError } from '@/common/adapter/httpBridge';
 import type { ConversationCommandQueueRuntimeGate } from '@/renderer/pages/conversation/platforms/useConversationCommandQueue';
 import type { ITeamSlotWork, TeamSlotBlockedReason } from '@/common/types/team/teamTypes';
@@ -8,14 +9,38 @@ export type TeamSendBoxRuntime = {
   loading: boolean;
   queuedCount: number;
   statusText?: string;
+  startedAtMs: number | null;
   onStop?: () => Promise<void>;
+  /**
+   * Present only when the slot is in `runtime_failed`; triggers a directed
+   * per-member attach retry (NOT warmupSession/ensure_session).
+   */
+  onRetryStart?: () => Promise<void>;
 };
+
+/**
+ * Build the send-box "retry start" handler. Calls the directed per-member
+ * attach route so a single failed teammate runtime is retried in place,
+ * without re-running the whole-team ensure/warmup.
+ */
+export const buildTeamRetryStartHandler =
+  ({ team_id, slot_id }: { team_id: string; slot_id: string }): (() => Promise<void>) =>
+  async () => {
+    await ipcBridge.team.attachAgent.invoke({ team_id, slot_id });
+  };
 
 type BuildTeamSendRuntimeOptions = {
   slot_id: string;
   runView: TeamRunViewState;
   statusText?: string;
   onStop?: () => Promise<void>;
+  /**
+   * True when the team session was idle-reclaimed (see
+   * `TeamRunViewState.sessionStopped`). Stopped is recoverable-and-sendable: the
+   * next send triggers lazy recovery, so the gate stays open and no spinner is
+   * shown, regardless of any stale `session_stopped` slot work.
+   */
+  sessionStopped?: boolean;
 };
 
 type PauseSlotWorkParams = {
@@ -34,7 +59,11 @@ type BuildTeamStopHandlerOptions = {
   onRunStateStale?: () => Promise<boolean>;
 };
 
-const FATAL_BLOCK_REASONS = new Set<TeamSlotBlockedReason>(['runtime_failed', 'removing', 'session_stopped']);
+// `session_stopped` is intentionally NOT fatal: an idle-reclaimed session is
+// recoverable and must stay sendable so the lazy-recovery send path can fire.
+// A stale `session_stopped` slot still shows the stopped status text (see
+// `buildTeamWorkStatusText`) but no longer blocks sending.
+const FATAL_BLOCK_REASONS = new Set<TeamSlotBlockedReason>(['runtime_failed', 'removing']);
 
 type TeamWorkStatusTextFormatters = {
   processing: () => string;
@@ -134,18 +163,23 @@ export const buildTeamSendRuntime = ({
   runView,
   statusText,
   onStop,
+  sessionStopped,
 }: BuildTeamSendRuntimeOptions): TeamSendBoxRuntime => {
   const work = runView.slotWorkBySlot[slot_id];
   const queuedCount = getTeamWorkQueuedCount(work);
   const fatalBlock = work?.blocked_reason ? FATAL_BLOCK_REASONS.has(work.blocked_reason) : false;
-  const loading = hasActiveTeamWork(work) || (!fatalBlock && queuedCount > 0);
+  // Stopped session: force the recoverable-stopped shape — keep the gate open
+  // and suppress the spinner, overriding any residual fatal block or active work.
+  const effectiveFatalBlock = sessionStopped ? false : fatalBlock;
+  const loading = sessionStopped ? false : hasActiveTeamWork(work) || (!fatalBlock && queuedCount > 0);
   return {
     loading,
     queuedCount,
     statusText,
+    startedAtMs: work?.active_turn_started_at_ms ?? null,
     runtimeGate: {
       hydrated: true,
-      canSendMessage: !fatalBlock,
+      canSendMessage: !effectiveFatalBlock,
       isProcessing: false,
     },
     onStop,

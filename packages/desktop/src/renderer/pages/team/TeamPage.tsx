@@ -32,6 +32,7 @@ import { useTeamRunView, type TeamRunViewState } from './hooks/useTeamRunView';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
 import { useActiveLease } from '@/renderer/pages/conversation/hooks/useActiveLease';
 import { resolveTeamWorkspaceView } from './utils/teamWorkspaceView';
+import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
 
 type Props = {
   team: TTeam;
@@ -265,6 +266,13 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({
   // creation. Falling back to a leader assistant's auto-temp workspace counts as
   // temporary, mirroring single-chat behavior.
   const isTeamWorkspaceTemporary = teamWorkspaceView.isTemporaryWorkspace;
+
+  // Mirror conversation/index.tsx: close preview only when the workspace changes,
+  // keep it open when switching between teams that share the same workspace.
+  const { closePreviewIfWorkspaceChanged } = usePreviewContext();
+  useEffect(() => {
+    closePreviewIfWorkspaceChanged(effectiveWorkspace ?? null);
+  }, [effectiveWorkspace, closePreviewIfWorkspaceChanged]);
 
   const siderTitle = useMemo(
     () => (

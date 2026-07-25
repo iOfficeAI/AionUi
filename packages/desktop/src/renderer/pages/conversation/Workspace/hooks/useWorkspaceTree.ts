@@ -8,9 +8,10 @@ import { ipcBridge } from '@/common';
 import type { IDirOrFile } from '@/common/adapter/ipcBridge';
 import { emitter } from '@/renderer/utils/emitter';
 import { dispatchWorkspaceHasFilesEvent } from '@/renderer/utils/workspace/workspaceEvents';
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { SelectedNodeRef } from '../types';
-import { getFirstLevelKeys, mergeLoadedChildren } from '../utils/treeHelpers';
+import { applyFreshListings, collectExpandedDirs, getFirstLevelKeys } from '../utils/treeHelpers';
+import { getWorkspaceTreeSnapshot, setWorkspaceTreeSnapshot } from '../utils/workspaceTreeCache';
 
 interface UseWorkspaceTreeOptions {
   workspace: string;
@@ -23,23 +24,71 @@ interface UseWorkspaceTreeOptions {
  * Merge tree state management and selection logic
  */
 export function useWorkspaceTree({ workspace, conversation_id, eventPrefix }: UseWorkspaceTreeOptions) {
+  // Hydrate initial state from the per-workspace cache so switching between
+  // conversations of the same project — or a panel remount while SWR loads —
+  // restores the tree and expansion exactly as the user left it.
+  const initialSnapshot = getWorkspaceTreeSnapshot(workspace);
+
   // Tree state / 树状态
-  const [files, setFiles] = useState<IDirOrFile[]>([]);
+  const [files, setFiles] = useState<IDirOrFile[]>(initialSnapshot?.files ?? []);
   const [loading, setLoading] = useState(false);
   const [treeKey, setTreeKey] = useState(Math.random());
-  const [expandedKeys, setExpandedKeys] = useState<string[]>([]);
+  const [expandedKeys, setExpandedKeys] = useState<string[]>(initialSnapshot?.expandedKeys ?? []);
 
   // Selection state / 选中状态
   const [selected, setSelected] = useState<string[]>([]);
 
-  // 标记是否为首次加载（用于区分初始化和后续刷新）
-  // Track if this is the first load (to distinguish initialization from subsequent refreshes)
-  const isFirstLoadRef = useRef(true);
+  // A workspace that already has a cached snapshot is not a "first load" — its
+  // tree and expansion come from the cache and must not be reset to first-level.
+  const isFirstLoadRef = useRef(!initialSnapshot);
   const selectedKeysRef = useRef<string[]>([]);
   const selectedNodeRef = useRef<SelectedNodeRef | null>(null);
 
+  // Mirror the latest tree/expansion into refs so the cache can be written
+  // without adding them to every callback's dependency list.
+  const filesRef = useRef(files);
+  const expandedKeysRef = useRef(expandedKeys);
+  filesRef.current = files;
+  expandedKeysRef.current = expandedKeys;
+
+  // Persist snapshot only on unmount — writing on every files/expandedKeys
+  // change copies the entire tree on each expand/collapse and causes jank in
+  // large workspaces. The cache is also written after each successful refresh
+  // inside loadWorkspace, so state is always recoverable.
+  useEffect(() => {
+    return () => {
+      if (!workspace) return;
+      setWorkspaceTreeSnapshot(workspace, { files: filesRef.current, expandedKeys: expandedKeysRef.current });
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [workspace]);
+
+  // When the workspace path changes WITHOUT a component remount (switching
+  // between two already-cached conversations of different projects), the
+  // useState initializers above do not re-run, so `files`/`expandedKeys` would
+  // still show the previous project. Re-seed them from the new workspace's
+  // cached snapshot (or empty for a never-visited project) and reset the
+  // first-load flag accordingly. Skips the very first render, which the
+  // initializers already handled.
+  const hydratedWorkspaceRef = useRef(workspace);
+  useEffect(() => {
+    if (hydratedWorkspaceRef.current === workspace) return;
+    hydratedWorkspaceRef.current = workspace;
+    const snapshot = getWorkspaceTreeSnapshot(workspace);
+    setFiles(snapshot?.files ?? []);
+    setExpandedKeys(snapshot?.expandedKeys ?? []);
+    isFirstLoadRef.current = !snapshot;
+  }, [workspace]);
+
   // Loading time tracker / 加载时间追踪
   const lastLoadingTime = useRef(Date.now());
+  const loadingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (loadingTimerRef.current) clearTimeout(loadingTimerRef.current);
+    };
+  }, []);
 
   /**
    * 设置 loading 状态（带防抖，避免图标闪烁）
@@ -54,71 +103,84 @@ export function useWorkspaceTree({ workspace, conversation_id, eventPrefix }: Us
       if (Date.now() - lastLoadingTime.current > 1000) {
         setLoading(false);
       } else {
-        setTimeout(() => {
+        loadingTimerRef.current = setTimeout(() => {
+          loadingTimerRef.current = null;
           setLoading(false);
         }, 1000);
       }
     }
   }, []);
 
-  /**
-   * 加载工作空间文件树
-   * Load workspace file tree
-   */
   // Track the latest request to ignore stale/aborted responses
   const loadSeqRef = useRef(0);
 
+  /**
+   * 加载工作空间文件树
+   * Load workspace file tree
+   *
+   * A refresh re-fetches the root PLUS every currently-expanded directory in
+   * parallel (getWorkspace only returns one level per call), then splices those
+   * fresh listings onto the existing tree. This keeps expanded folders open
+   * (expandedKeys is never cleared on refresh) and surfaces files that were
+   * just created inside an expanded folder — the two problems the old "reuse
+   * stale children" merge could not solve together. Search no longer goes
+   * through here; it filters the flat file list on the frontend (useWorkspaceSearch).
+   */
   const loadWorkspace = useCallback(
-    (path: string, search?: string) => {
+    (path: string) => {
       const seq = ++loadSeqRef.current;
       setLoadingHandler(true);
-      return ipcBridge.conversation.getWorkspace
-        .invoke({ path, workspace, conversation_id, search: search || '' })
-        .then((res) => {
-          // Ignore stale responses from aborted requests:
-          // The backend aborts previous getWorkspace calls, returning [].
-          // Only apply the result from the latest request.
+
+      const rootPromise = ipcBridge.conversation.getWorkspace.invoke({ path, workspace, conversation_id, search: '' });
+
+      // Also re-fetch every expanded directory so their latest contents (incl.
+      // newly created files) splice in without collapsing anything.
+      const expandedDirs = collectExpandedDirs(filesRef.current, expandedKeysRef.current).filter(
+        (d) => d.relativePath !== ''
+      );
+      const childPromises = expandedDirs.map((dir) =>
+        ipcBridge.conversation.getWorkspace
+          .invoke({ path: dir.fullPath, workspace, conversation_id })
+          .then((res) => ({ dir, children: res[0]?.children ?? [] }))
+          .catch(() => ({ dir, children: [] as IDirOrFile[] }))
+      );
+
+      return Promise.all([rootPromise, Promise.all(childPromises)])
+        .then(([res, childResults]) => {
+          // Ignore stale responses from superseded requests.
           if (seq !== loadSeqRef.current) {
             return res;
           }
 
-          // Guard: on subsequent refreshes (not first load, not search), ignore
-          // empty responses when we already have files — prevents the tree from
+          // Guard: on subsequent refreshes (not first load), ignore empty
+          // responses when we already have files — prevents the tree from
           // flashing empty while the backend is temporarily unable to read the
           // workspace (e.g. concurrent file operations by another agent).
           const isEmpty = res.length === 0 || (res[0]?.children?.length ?? 0) === 0;
-          if (!isFirstLoadRef.current && !search && isEmpty) {
+          if (!isFirstLoadRef.current && isEmpty) {
             return res;
           }
 
-          // On refresh, splice already-lazy-loaded subtrees from the old tree
-          // back into the new response — the backend only returns one level at
-          // a time, so a root refresh would otherwise collapse every dir the
-          // user had expanded via loadMore. Skipped for searches and the very
-          // first load (no prior tree to merge). Functional setState reads the
-          // latest files snapshot without a stale closure.
-          if (!search && !isFirstLoadRef.current) {
-            setFiles((prev) => mergeLoadedChildren(res, prev));
-          } else {
-            setFiles(res);
-          }
-          // 只在搜索时才重置 Tree key，否则保持选中状态
-          // Only reset Tree key when searching, otherwise keep selection state
-          if (search) {
-            setTreeKey(Math.random());
-          }
+          // Compute new files and expandedKeys synchronously so we can write
+          // the cache with the correct post-update values in the same tick.
+          const newFiles: IDirOrFile[] = isFirstLoadRef.current
+            ? res
+            : applyFreshListings(
+                filesRef.current,
+                (() => {
+                  const m = new Map<string, IDirOrFile[]>();
+                  m.set('', res[0]?.children ?? []);
+                  for (const { dir, children } of childResults) m.set(dir.relativePath, children);
+                  return m;
+                })()
+              );
 
-          // 首次加载时展开第一层，后续刷新时保留用户已展开的目录
-          // On first load expand first level; on subsequent refreshes preserve user-expanded dirs
-          if (isFirstLoadRef.current) {
-            setExpandedKeys(getFirstLevelKeys(res));
-          } else {
-            setExpandedKeys((prev) => {
-              const firstLevel = getFirstLevelKeys(res);
-              // Merge: keep user-expanded keys + ensure first level is always expanded
-              return [...new Set([...prev, ...firstLevel])];
-            });
-          }
+          const newExpandedKeys: string[] = isFirstLoadRef.current
+            ? getFirstLevelKeys(res)
+            : [...new Set([...expandedKeysRef.current, ...getFirstLevelKeys(res)])];
+
+          setFiles(newFiles);
+          setExpandedKeys(newExpandedKeys);
 
           // 根据是否有文件决定工作空间面板的展开/折叠状态
           // Determine workspace panel expand/collapse state based on files
@@ -134,6 +196,12 @@ export function useWorkspaceTree({ workspace, conversation_id, eventPrefix }: Us
           // prevents flicker when workspace starts empty.
           if (hasFiles) {
             dispatchWorkspaceHasFilesEvent(true, conversation_id, wasFirstLoad);
+          }
+
+          // Persist the freshly-computed snapshot so the cache is up to date
+          // after every successful refresh (not just on unmount).
+          if (workspace) {
+            setWorkspaceTreeSnapshot(workspace, { files: newFiles, expandedKeys: newExpandedKeys });
           }
 
           return res;

@@ -27,7 +27,8 @@
     "runtimeStarting": "En attente du démarrage de cet assistant…",
     "runtimeFailed": "Cet assistant n'a pas pu démarrer.",
     "removing": "Suppression de cet assistant…",
-    "sessionStopped": "La session d'équipe est arrêtée."
+    "sessionStopped": "La session d'équipe est arrêtée.",
+    "retryStart": "Réessayer le démarrage"
   },
   "sendBox": {
     "placeholder": "Envoyer un message à l'agent coordinateur..."

@@ -227,6 +227,37 @@ describe('AgentModeSelector', () => {
     );
   });
 
+  it('falls back to the raw mode value when the current value matches no option', async () => {
+    // Regression: an out-of-catalog current value (e.g. backend mode-vocabulary
+    // drift such as codex "agent-full-access" vs catalog "full-access") used to
+    // render an empty label — the compact pill showed a bare "权限 · ".
+    useAcpConfigOptionsMock.mockImplementation(() => ({
+      setStatus: { state: 'idle' },
+      isLoading: false,
+      mode: {
+        id: 'mode',
+        category: 'mode',
+        currentValue: 'agent-full-access',
+        options: [
+          { value: 'read-only', label: 'Read Only', description: null },
+          { value: 'auto', label: 'Default', description: null },
+          { value: 'full-access', label: 'Full Access', description: null },
+        ],
+      },
+      model: null,
+      thoughtLevel: null,
+      reload: vi.fn(),
+      setConfigOption: vi.fn(),
+    }));
+
+    render(<AgentModeSelector backend='codex' conversation_id='conv-1' compact compactLabelPrefix='权限' />);
+
+    await waitFor(() =>
+      expect(screen.getByTestId('mode-selector')).toHaveAttribute('data-current-mode', 'agent-full-access')
+    );
+    expect(screen.getByTestId('agent-mode-selector-codex')).toHaveTextContent('权限 · agent-full-access');
+  });
+
   it('shows runtime mode descriptions in option tooltips', () => {
     render(<AgentModeSelector backend='claude' conversation_id='conv-1' />);
 

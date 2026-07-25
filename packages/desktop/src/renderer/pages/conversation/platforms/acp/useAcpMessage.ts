@@ -216,6 +216,7 @@ export const useAcpMessage = (
           'request_trace',
           'acp_context_usage',
           'acp_model_info',
+          'acp_config_option',
           'codex_model_info',
           'available_commands',
           'slash_commands_updated',
@@ -380,6 +381,12 @@ export const useAcpMessage = (
         case 'acp_model_info':
           // Model info updates are handled by AcpModelSelector, no action needed here
           break;
+        case 'acp_config_option':
+          // Config-options catalog updates (async model/mode discovery for the
+          // direct-CLI backends) are consumed by useAcpConfigOptions to re-project
+          // the picker. No turn-state change here — must NOT fall through to the
+          // default arm, which would setRunning(true) and light a spurious timer bar.
+          break;
         case 'slash_commands_updated':
           // Slash commands became available (often during bootstrap when
           // agent_status events are suppressed). Update acpStatus so
@@ -403,6 +410,17 @@ export const useAcpMessage = (
           }
           break;
         }
+        case 'tips':
+          // Advisory tips (backend `Notice`: a rejected mode/model/effort switch, or a
+          // codex out-of-turn warning/deprecation). Render the advisory but do NOT touch
+          // turn state — a config-reject Notice can arrive while idle (dispatched by the
+          // PUT /config-options path, not a turn), so falling through to the `default`
+          // arm's setRunning(true) would light a spurious timer bar with no terminal to
+          // clear it (the same regression the `acp_config_option` case guards against).
+          // Error-severity tips are handled earlier by isErrorTipMessage; only info/
+          // warning advisories reach here.
+          mergeLiveMessage(transformedMessage);
+          break;
         case 'request_trace':
           {
             const trace = message.data as Record<string, unknown>;

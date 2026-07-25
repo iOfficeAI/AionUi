@@ -187,7 +187,6 @@ describe('TeamChatView', () => {
     ['runtime_starting', 'Waiting for this assistant to start…', true],
     ['runtime_failed', 'This assistant failed to start.', false],
     ['removing', 'Removing this assistant…', false],
-    ['session_stopped', 'The team session has stopped.', false],
   ] as const)('maps %s to authoritative team runtime status', async (blockedReason, statusText, canSendMessage) => {
     usePresetAssistantInfoMock.mockReturnValue({ info: null });
 
@@ -233,6 +232,92 @@ describe('TeamChatView', () => {
           statusText,
           queuedCount: 3,
           runtimeGate: expect.objectContaining({ canSendMessage, isProcessing: false }),
+        }),
+      })
+    );
+  });
+
+  it('keeps sending open for a stale session_stopped slot', async () => {
+    usePresetAssistantInfoMock.mockReturnValue({ info: null });
+
+    render(
+      <TeamChatView
+        team_id='team-1'
+        slot_id='worker-1'
+        conversation={{
+          id: 'conv-1',
+          type: 'acp',
+          name: 'Team member',
+          created_at: Date.now(),
+          updated_at: Date.now(),
+          extra: { workspace: '/tmp' },
+        }}
+        teamRunView={{
+          activeRun: undefined,
+          childTurnsBySlot: {},
+          slotWorkBySlot: {
+            'worker-1': {
+              slot_id: 'worker-1',
+              role: 'teammate',
+              state: 'blocked',
+              queued_foreground_count: 1,
+              queued_background_count: 2,
+              active_turn_id: null,
+              active_turn_started_at_ms: null,
+              active_turn_elapsed_ms: null,
+              active_turn_slow: null,
+              active_turn_slow_threshold_ms: null,
+              blocked_reason: 'session_stopped',
+              team_run_id: null,
+            },
+          },
+          sessionStopped: false,
+        }}
+      />
+    );
+
+    expect(await screen.findByTestId('mock-acp-chat')).toBeInTheDocument();
+    expect(acpChatMock.mock.calls[0]?.[0]).toEqual(
+      expect.objectContaining({
+        teamRuntime: expect.objectContaining({
+          statusText: 'The team session has stopped.',
+          runtimeGate: expect.objectContaining({ canSendMessage: true, isProcessing: false }),
+        }),
+      })
+    );
+  });
+
+  it('surfaces the stopped prompt and keeps sending open when sessionStopped flag is set', async () => {
+    usePresetAssistantInfoMock.mockReturnValue({ info: null });
+
+    render(
+      <TeamChatView
+        team_id='team-1'
+        slot_id='worker-1'
+        conversation={{
+          id: 'conv-1',
+          type: 'acp',
+          name: 'Team member',
+          created_at: Date.now(),
+          updated_at: Date.now(),
+          extra: { workspace: '/tmp' },
+        }}
+        teamRunView={{
+          activeRun: undefined,
+          childTurnsBySlot: {},
+          slotWorkBySlot: {},
+          sessionStopped: true,
+        }}
+      />
+    );
+
+    expect(await screen.findByTestId('mock-acp-chat')).toBeInTheDocument();
+    expect(acpChatMock.mock.calls[0]?.[0]).toEqual(
+      expect.objectContaining({
+        teamRuntime: expect.objectContaining({
+          statusText: 'The team session has stopped.',
+          loading: false,
+          runtimeGate: expect.objectContaining({ canSendMessage: true, isProcessing: false }),
         }),
       })
     );

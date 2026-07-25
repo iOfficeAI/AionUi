@@ -161,7 +161,8 @@
   "assistantGoChat": "Chat",
   "assistantReorderHint": "Zum Umsortieren ziehen — das bestimmt die Anzeigereihenfolge überall dort, wo du einen Assistenten auswählst (Startseite, Teams, geplante Aufgaben…).",
   "assistantReorderHintShort": "Zum Umsortieren ziehen",
-  "myAssistantsHintShort": "Assistenten, die automatisch aus deinen lokalen CLIs erzeugt wurden, sowie selbst erstellte oder von offiziellen duplizierte. Ziehe sie, um die Anzeigereihenfolge zu ändern.",
+  "assistantReorderSearchDisabled": "Leere die Suche, um die Reihenfolge zu ändern.",
+  "myAssistantsHintShort": "Assistenten, die automatisch aus deinen lokalen CLIs erzeugt wurden, sowie selbst erstellte oder von offiziellen duplizierte.",
   "assistantGroupCli": "CLI-Assistenten",
   "assistantGroupCreated": "Benutzerdefinierte Assistenten",
   "myAssistantsEmpty": "Hier gibt es noch keine Assistenten. Aktiviere einen offiziellen Assistenten oder verbinde ein lokales CLI-Tool.",
@@ -374,6 +375,19 @@
   "platformNewApi": "Neue API",
   "modelProtocol": "Anfrage-Protokoll",
   "modelProtocolTip": "Wähle das API-Anfrageformat für dieses Modell. Das new-api-Gateway leitet zum Upstream unter Verwendung des ausgewählten Protokolls weiter.",
+  "configureModel": "Modell konfigurieren",
+  "modelSettingAuto": "Automatisch (empfohlen)",
+  "imageInput": "Bildeingabe",
+  "imageInputAuto": "Automatisch erkennen",
+  "imageInputSupported": "Durch Konfiguration aktiviert",
+  "imageInputUnsupported": "Durch Konfiguration deaktiviert",
+  "imageInputTip": "Automatisch verwendet die Modellerkennung aus dem Katalog. Nur zum Überschreiben explizit aktivieren oder deaktivieren.",
+  "openAiApiMode": "OpenAI-Anfrage-API",
+  "openAiApiModeAuto": "API · Automatisch",
+  "openAiApiModeChatCompletions": "Chat Completions",
+  "openAiApiModeResponses": "Responses",
+  "openAiApiModeTip": "Nur für Modelle mit OpenAI-kompatiblem Protokoll verfügbar.",
+  "modelSettingsApplyToSelected": "Diese Einstellungen gelten für alle ausgewählten Modelle und können später einzeln geändert werden.",
   "platformBedrock": "AWS Bedrock",
   "bedrock": {
     "authMethod": "Authentifizierungsmethode",
@@ -1141,7 +1155,9 @@
       "managed_runtime_unavailable": "Repair or reinstall {{resource}}, then retry the connection test.",
       "auth_required": "The agent is reachable but requires sign-in. Log in via the CLI, or add the required API key under Environment Variables, then retry the connection test.",
       "no_provider": "No model provider is configured. Add and enable a provider in Settings, then retry the connection test."
-    }
+    },
+    "searchPlaceholder": "Agenten suchen...",
+    "noSearchResults": "Keine passenden Agenten."
   },
   "remoteAgent": {
     "title": "Remote-Agenten",
@@ -1232,8 +1248,10 @@
       "addMcp": "Hilf mir, einen MCP-Server einzurichten.",
       "addSkill": "Hilf mir, einen Skill zu importieren und einem Assistenten zuzuordnen.",
       "setupRemote": "Hilf mir, den Fernzugriff einzurichten, damit ich AionUi vom Handy oder über das Internet öffnen kann.",
-      "diagnose": "Ich habe ein Problem mit AionUi, hilf mir bei der Diagnose.\n\n[Modul] {{module}}\n[Beschreibung] {{description}}\n[Anhänge] siehe die Screenshots im Eingabefeld.\n\nBitte diagnostiziere die Ursache und sag mir, wie ich es behebe."
-    }
+      "diagnose": "Ich habe ein Problem mit AionUi, hilf mir bei der Diagnose.\n\n[Modul] {{module}}\n[Beschreibung] {{description}}\n[Anhänge] siehe die Screenshots im Eingabefeld.\n\nBitte diagnostiziere die Ursache und sag mir, wie ich es behebe.",
+      "diagnoseChatError": "Während einer Unterhaltung in AionUi ist ein Fehler aufgetreten, hilf mir bei der Diagnose.\n\n[Fehler] {{error}}\n\nBitte diagnostiziere die Ursache und sag mir, wie ich es behebe."
+    },
+    "solveWithButler": "Butler fragen"
   },
   "browserNotification": {
     "enable": "Enable browser notifications",
@@ -1258,6 +1276,8 @@
     "offlineHint": "The command was found but the connection failed. Check the error above, then adjust the launch path or environment variables below.",
     "missingTitle": "Not detected",
     "missingHint": "The command wasn't found on the default path. If it is installed, specify its full launch path below.",
+    "uncheckedTitle": "Noch nicht geprüft",
+    "uncheckedHint": "Dieser Agent wurde noch nicht auf eine Verbindung getestet. Klicken Sie oben rechts auf „Test Connection“, um ihn zu prüfen.",
     "envScenariosTitle": "Configuring environment variables can fix:",
     "envScenarioApiKey": "Missing API key or access token (e.g. ANTHROPIC_API_KEY, OPENAI_API_KEY) — the common cause of \"needs sign-in\" / connection failures",
     "envScenarioBaseUrl": "Custom API endpoint or gateway (e.g. ANTHROPIC_BASE_URL, OPENAI_BASE_URL) for self-hosted or proxied services",

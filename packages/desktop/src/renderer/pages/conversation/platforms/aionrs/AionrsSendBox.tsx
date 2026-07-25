@@ -667,7 +667,10 @@ const AionrsSendBox: React.FC<{
         thought={thought}
         running={teamRuntime?.loading ?? running}
         statusText={teamRuntime?.statusText}
+        externalElapsedSource={Boolean(teamRuntime)}
+        startedAtMs={teamRuntime?.startedAtMs ?? null}
         onStop={effectiveHandleStop}
+        onRetryStart={teamRuntime?.onRetryStart ? () => void teamRuntime.onRetryStart?.() : undefined}
       />
 
       <SendBox

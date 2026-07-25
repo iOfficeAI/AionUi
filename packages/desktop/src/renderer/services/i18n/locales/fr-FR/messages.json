@@ -56,6 +56,7 @@
   "noOptionsAvailable": "Aucune option disponible",
   "processing": "Traitement...",
   "responseSentSuccessfully": "Réponse envoyée avec succès",
+  "permissionResponseFailed": "Impossible d’envoyer la réponse. Veuillez réessayer.",
   "confirmation": {
     "applyChange": "Appliquer cette modification ?",
     "allowExecution": "Autoriser l'exécution ?",

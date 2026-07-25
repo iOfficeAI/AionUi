@@ -229,101 +229,81 @@ function Test-ManagedNodeContract {
   Test-NonEmptyFile $Failures 'node' $Node.version (Join-ContractPath $nodeRoot $Node.executable) $true $nodeRoot | Out-Null
 }
 
-function Test-ManagedAcpToolContract {
+function Test-ManagedCliContract {
   param(
     [System.Collections.Generic.List[object]]$Failures,
     [string]$ManagedRoot,
-    [object]$Tool
+    [object]$Cli
   )
 
-  $slug = $Tool.slug
-  foreach ($field in @('version', 'packageName', 'root', 'platformDirectory', 'manifest', 'entrypoint', 'platformExecutable')) {
-    if (-not (Test-StringField $Tool $field)) {
-      $Failures.Add((New-Failure 'publish_or_install_missing' $slug '' $ManagedRoot 'invalid_schema')) | Out-Null
+  $name = $Cli.name
+  foreach ($field in @('name', 'version', 'root', 'platformDirectory', 'executable')) {
+    if (-not (Test-StringField $Cli $field)) {
+      $Failures.Add((New-Failure 'publish_or_install_missing' $name '' $ManagedRoot 'invalid_schema')) | Out-Null
       return
     }
   }
-  foreach ($field in @('pathEntries', 'requiredFiles', 'requiredDirectories')) {
-    if (-not (Test-StringArrayField $Tool $field)) {
-      $Failures.Add((New-Failure 'publish_or_install_missing' $slug $Tool.version $ManagedRoot 'invalid_schema')) | Out-Null
-      return
-    }
-  }
-  if ($Tool.platformDirectory -ne $RuntimeKey) {
-    $Failures.Add((New-Failure 'publish_or_install_missing' $slug $Tool.version $ManagedRoot 'runtime_key_mismatch')) | Out-Null
+  if ($Cli.platformDirectory -ne $RuntimeKey) {
+    $Failures.Add((New-Failure 'publish_or_install_missing' $name $Cli.version $ManagedRoot 'runtime_key_mismatch')) | Out-Null
     return
   }
 
-  foreach ($pathValue in @($Tool.root, $Tool.manifest, $Tool.entrypoint, $Tool.platformExecutable) + @($Tool.pathEntries) + @($Tool.requiredFiles) + @($Tool.requiredDirectories)) {
+  # requiredFiles / requiredDirectories default to empty (claude has none; codex
+  # lists its vendor sidecar subtree). Absent is allowed.
+  $requiredFiles = @($Cli.requiredFiles)
+  $requiredDirectories = @($Cli.requiredDirectories)
+  foreach ($pathValue in @($Cli.root, $Cli.executable) + $requiredFiles + $requiredDirectories) {
     if (-not (Test-ContractRelativePath $pathValue)) {
-      $Failures.Add((New-Failure 'publish_or_install_missing' $slug $Tool.version $ManagedRoot 'invalid_contract_path')) | Out-Null
+      $Failures.Add((New-Failure 'publish_or_install_missing' $name $Cli.version $ManagedRoot 'invalid_contract_path')) | Out-Null
       return
     }
   }
 
-  $toolRoot = Join-ContractPath $ManagedRoot $Tool.root
-  $manifestPath = Join-ContractPath $toolRoot $Tool.manifest
-  if (Test-NonEmptyFile $Failures $slug $Tool.version $manifestPath $false $toolRoot) {
-    $manifest = Read-JsonFile $manifestPath
-    if (-not $manifest) {
-      $Failures.Add((New-Failure 'publish_or_install_missing' $slug $Tool.version $manifestPath 'invalid_json')) | Out-Null
-    } else {
-      if ($manifest.entrypoint -ne $Tool.entrypoint) {
-        $Failures.Add((New-Failure 'publish_or_install_missing' $slug $Tool.version $manifestPath 'manifest_entrypoint_mismatch')) | Out-Null
-      }
-      $manifestPathEntries = @($manifest.path_entries)
-      $contractPathEntries = @($Tool.pathEntries)
-      if (($manifestPathEntries | ConvertTo-Json -Compress) -ne ($contractPathEntries | ConvertTo-Json -Compress)) {
-        $Failures.Add((New-Failure 'publish_or_install_missing' $slug $Tool.version $manifestPath 'manifest_path_entries_mismatch')) | Out-Null
-      }
-    }
+  $cliRoot = Join-ContractPath $ManagedRoot $Cli.root
+  Test-NonEmptyFile $Failures $name $Cli.version (Join-ContractPath $cliRoot $Cli.executable) $true $cliRoot | Out-Null
+  foreach ($requiredFile in $requiredFiles) {
+    Test-NonEmptyFile $Failures $name $Cli.version (Join-ContractPath $cliRoot $requiredFile) $false $cliRoot | Out-Null
   }
-
-  Test-NonEmptyFile $Failures $slug $Tool.version (Join-ContractPath $toolRoot $Tool.entrypoint) $false $toolRoot | Out-Null
-  foreach ($requiredFile in @($Tool.requiredFiles)) {
-    Test-NonEmptyFile $Failures $slug $Tool.version (Join-ContractPath $toolRoot $requiredFile) $false $toolRoot | Out-Null
+  foreach ($requiredDirectory in $requiredDirectories) {
+    Test-Directory $Failures $name $Cli.version (Join-ContractPath $cliRoot $requiredDirectory) | Out-Null
   }
-  foreach ($requiredDirectory in @($Tool.requiredDirectories)) {
-    Test-Directory $Failures $slug $Tool.version (Join-ContractPath $toolRoot $requiredDirectory) | Out-Null
-  }
-  Test-NonEmptyFile $Failures $slug $Tool.version (Join-ContractPath $toolRoot $Tool.platformExecutable) $true $toolRoot | Out-Null
 }
 
-function Test-ManagedAcpToolsContract {
+function Test-ManagedClisContract {
   param(
     [System.Collections.Generic.List[object]]$Failures,
     [string]$ManagedRoot,
     [object]$Contract
   )
 
-  if ($null -eq $Contract.acpTools -or $Contract.acpTools -is [string]) {
+  if ($null -eq $Contract.clis -or $Contract.clis -is [string]) {
     $Failures.Add((New-Failure 'publish_or_install_missing' 'managed-resources' '' $ManagedRoot 'invalid_schema')) | Out-Null
     return
   }
 
   $seen = @{}
-  $validTools = @()
-  foreach ($tool in @($Contract.acpTools)) {
-    if (-not $tool -or -not (Test-StringField $tool 'slug')) {
+  $validClis = @()
+  foreach ($cli in @($Contract.clis)) {
+    if (-not $cli -or -not (Test-StringField $cli 'name')) {
       $Failures.Add((New-Failure 'publish_or_install_missing' 'managed-resources' '' $ManagedRoot 'invalid_schema')) | Out-Null
       continue
     }
-    if ($seen.ContainsKey($tool.slug)) {
-      $Failures.Add((New-Failure 'publish_or_install_missing' $tool.slug $tool.version $ManagedRoot 'duplicate_tool_slug')) | Out-Null
+    if ($seen.ContainsKey($cli.name)) {
+      $Failures.Add((New-Failure 'publish_or_install_missing' $cli.name $cli.version $ManagedRoot 'duplicate_cli_name')) | Out-Null
       continue
     }
-    $seen[$tool.slug] = $true
-    $validTools += $tool
+    $seen[$cli.name] = $true
+    $validClis += $cli
   }
 
-  foreach ($requiredSlug in @('codex-acp', 'claude-agent-acp')) {
-    if (-not $seen.ContainsKey($requiredSlug)) {
-      $Failures.Add((New-Failure 'publish_or_install_missing' $requiredSlug '' $ManagedRoot 'missing_required_tool')) | Out-Null
+  foreach ($requiredName in @('claude', 'codex')) {
+    if (-not $seen.ContainsKey($requiredName)) {
+      $Failures.Add((New-Failure 'publish_or_install_missing' $requiredName '' $ManagedRoot 'missing_required_cli')) | Out-Null
     }
   }
 
-  foreach ($tool in $validTools) {
-    Test-ManagedAcpToolContract $Failures $ManagedRoot $tool
+  foreach ($cli in $validClis) {
+    Test-ManagedCliContract $Failures $ManagedRoot $cli
   }
 }
 
@@ -343,7 +323,7 @@ function Test-ManagedResourcesContract {
     $Failures.Add((New-Failure 'publish_or_install_missing' 'managed-resources' '' $contractPath 'invalid_schema')) | Out-Null
     return
   }
-  if ([double]$contract.schemaVersion -ne 1) {
+  if ([double]$contract.schemaVersion -ne 2) {
     $Failures.Add((New-Failure 'publish_or_install_missing' 'managed-resources' '' $contractPath 'unsupported_schema_version')) | Out-Null
     return
   }
@@ -353,7 +333,7 @@ function Test-ManagedResourcesContract {
   }
 
   Test-ManagedNodeContract $Failures $ManagedRoot $contract.node
-  Test-ManagedAcpToolsContract $Failures $ManagedRoot $contract
+  Test-ManagedClisContract $Failures $ManagedRoot $contract
 }
 
 function Test-BundledResourcesOnce {

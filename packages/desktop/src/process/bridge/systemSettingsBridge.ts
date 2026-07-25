@@ -13,15 +13,11 @@
  */
 
 import { ipcBridge } from '@/common';
-import { getPlatformServices } from '@/common/platform';
 import { ProcessConfig } from '@process/utils/initStorage';
 import { changeLanguage } from '@process/services/i18n';
 import type { PetSize } from '@process/pet/petTypes';
 import { createOrUpdateTray, destroyTray, setCloseToTrayEnabled } from '@process/utils/tray';
 import { readCloseToTraySetting, writeCloseToTraySetting } from '@process/utils/closeToTraySetting';
-
-// Keep-awake power blocker state
-let _keepAwakeBlockerId: number | null = null;
 
 type LanguageChangeListener = () => void;
 let _languageChangeListener: LanguageChangeListener | null = null;
@@ -47,20 +43,6 @@ export function initSystemSettingsBridge(): void {
     }
   });
 
-  // Set "keep awake" — toggle prevent-display-sleep blocker.
-  // getKeepAwake is served by the backend via HTTP; only the setter remains
-  // because it drives the local power.preventDisplaySleep blocker.
-  ipcBridge.systemSettings.setKeepAwake.provider(async ({ enabled }) => {
-    await ProcessConfig.set('system.keepAwake', enabled);
-    const power = getPlatformServices().power;
-    if (enabled && _keepAwakeBlockerId === null) {
-      _keepAwakeBlockerId = power.preventDisplaySleep();
-    } else if (!enabled && _keepAwakeBlockerId !== null) {
-      power.allowSleep(_keepAwakeBlockerId);
-      _keepAwakeBlockerId = null;
-    }
-  });
-
   // 语言变更通知，同步主进程 i18n 并通知托盘重建
   // Language change notification, sync main process i18n and notify tray rebuild
   ipcBridge.systemSettings.changeLanguage.provider(async ({ language }) => {
@@ -74,18 +56,6 @@ export function initSystemSettingsBridge(): void {
       console.error('[SystemSettings] Main process changeLanguage failed:', error);
     });
   });
-
-  // Restore keep-awake state on startup
-  ProcessConfig.get('system.keepAwake')
-    .then((enabled) => {
-      if (enabled) {
-        _keepAwakeBlockerId = getPlatformServices().power.preventDisplaySleep();
-        console.log('[SystemSettings] Keep-awake restored on startup');
-      }
-    })
-    .catch((err) => {
-      console.warn('[SystemSettings] Failed to restore keep-awake:', err);
-    });
 
   // Desktop pet settings
   ipcBridge.systemSettings.getPetEnabled.provider(async () => {

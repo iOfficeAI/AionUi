@@ -35,6 +35,8 @@ type SettingsPageHeaderProps = {
   tabs?: SettingsPageTab[];
   activeTab?: string;
   onTabChange?: (key: string) => void;
+  /** Disable sticky behavior when the caller renders a fixed header outside its scroll body. */
+  sticky?: boolean;
   /** Extra testid for the whole header block. */
   'data-testid'?: string;
 };
@@ -46,10 +48,14 @@ const SettingsPageHeader: React.FC<SettingsPageHeaderProps> = ({
   tabs,
   activeTab,
   onTabChange,
+  sticky = true,
   'data-testid': dataTestId,
 }) => {
   return (
-    <div data-testid={dataTestId} className='sticky top-0 z-10 -mt-14px pt-14px md:-mt-32px md:pt-32px bg-1'>
+    <div
+      data-testid={dataTestId}
+      className={classNames('bg-1', sticky && 'sticky top-0 z-10 -mt-14px pt-14px md:-mt-32px md:pt-32px')}
+    >
       <div className='flex items-center justify-between gap-12px sm:gap-16px'>
         <h1 className='m-0 min-w-0 flex-1 text-22px md:text-24px font-bold leading-[1.2] text-t-primary'>{title}</h1>
         {actions ? <div className='shrink-0 flex flex-wrap items-center justify-end gap-8px'>{actions}</div> : null}
