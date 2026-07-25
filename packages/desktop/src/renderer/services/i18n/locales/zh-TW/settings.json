@@ -313,6 +313,8 @@
   "startOnBootUnsupported": "僅在打包後的 macOS 與 Windows 用戶端中可用。",
   "startOnBootUpdateFailed": "更新開機啟動設定失敗",
   "closeToTray": "關閉到托盤",
+  "startMinimizedToTray": "啟動時最小化到系統匣",
+  "startMinimizedToTrayDesc": "啟動時留在系統匣，不顯示主視窗。需先開啟「關閉到系統匣」。",
   "hardwareAcceleration": "硬體加速",
   "hardwareAccelerationDesc": "使用 GPU 渲染介面。如啟動時崩潰或畫面異常，請關閉。",
   "hardwareAccelerationAutoDisabled": "因 GPU 反覆崩潰已自動關閉。",

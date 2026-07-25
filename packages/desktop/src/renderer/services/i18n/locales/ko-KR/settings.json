@@ -313,6 +313,8 @@
   "startOnBootUnsupported": "패키징된 macOS 및 Windows 앱에서만 사용할 수 있습니다.",
   "startOnBootUpdateFailed": "시작 시 자동 실행 설정을 업데이트하지 못했습니다",
   "closeToTray": "트레이로 닫기",
+  "startMinimizedToTray": "시작 시 트레이로 최소화",
+  "startMinimizedToTrayDesc": "실행 시 메인 창을 표시하지 않고 시스템 트레이에 둡니다. 트레이로 닫기가 필요합니다.",
   "hardwareAcceleration": "하드웨어 가속",
   "hardwareAccelerationDesc": "GPU를 사용하여 UI를 렌더링합니다. 실행 시 충돌하거나 화면이 깜박이면 끄세요.",
   "hardwareAccelerationAutoDisabled": "GPU가 반복적으로 충돌하여 자동으로 비활성화되었습니다.",

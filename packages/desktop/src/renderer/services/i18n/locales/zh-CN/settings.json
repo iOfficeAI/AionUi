@@ -313,6 +313,8 @@
   "startOnBootUnsupported": "仅在打包后的 macOS 和 Windows 客户端中可用。",
   "startOnBootUpdateFailed": "更新开机启动设置失败",
   "closeToTray": "关闭到托盘",
+  "startMinimizedToTray": "启动时最小化到托盘",
+  "startMinimizedToTrayDesc": "启动时留在系统托盘，不显示主窗口。需先开启「关闭到托盘」。",
   "hardwareAcceleration": "硬件加速",
   "hardwareAccelerationDesc": "使用 GPU 渲染界面。如果启动时崩溃或画面异常，请关闭。",
   "hardwareAccelerationAutoDisabled": "因 GPU 反复崩溃已自动关闭。",

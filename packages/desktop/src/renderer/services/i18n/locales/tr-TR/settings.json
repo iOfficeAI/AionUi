@@ -313,6 +313,8 @@
   "startOnBootUnsupported": "Yalnızca paketlenmiş macOS ve Windows uygulamalarında kullanılabilir.",
   "startOnBootUpdateFailed": "Açılışta başlat ayarı güncellenemedi",
   "closeToTray": "Tepsiye Kapat",
+  "startMinimizedToTray": "Başlangıçta tepsiye küçült",
+  "startMinimizedToTrayDesc": "Açılışta ana pencereyi göstermeden sistem tepsisinde tut. Tepsiye kapat gerekir.",
   "hardwareAcceleration": "Donanım Hızlandırma",
   "hardwareAccelerationDesc": "Arayüzü oluşturmak için GPU kullanır. Açılışta çökme veya görüntü titremesi varsa kapatın.",
   "hardwareAccelerationAutoDisabled": "Tekrarlanan GPU çökmeleri nedeniyle otomatik olarak devre dışı bırakıldı.",

@@ -1217,6 +1217,10 @@ export const theme = {
 export const systemSettings = {
   getCloseToTray: bridge.buildProvider<boolean, void>('system-settings:get-close-to-tray'),
   setCloseToTray: bridge.buildProvider<void, { enabled: boolean }>('system-settings:set-close-to-tray'),
+  getStartMinimizedToTray: bridge.buildProvider<boolean, void>('system-settings:get-start-minimized-to-tray'),
+  setStartMinimizedToTray: bridge.buildProvider<void, { enabled: boolean }>(
+    'system-settings:set-start-minimized-to-tray'
+  ),
   getNotificationEnabled: httpGetClientSetting<boolean>('notificationEnabled'),
   setNotificationEnabled: httpPut<void, { enabled: boolean }>('/api/settings/client', (p) => ({
     notificationEnabled: p.enabled,

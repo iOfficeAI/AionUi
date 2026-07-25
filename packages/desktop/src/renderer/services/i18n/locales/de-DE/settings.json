@@ -313,6 +313,8 @@
   "startOnBootUnsupported": "Nur in gepackten macOS- und Windows-Apps verfügbar.",
   "startOnBootUpdateFailed": "Einstellung für Autostart konnte nicht aktualisiert werden",
   "closeToTray": "In Taskleiste schließen",
+  "startMinimizedToTray": "Minimiert im Tray starten",
+  "startMinimizedToTrayDesc": "Beim Start im System-Tray belassen, ohne das Hauptfenster anzuzeigen. Erfordert „In den Tray schließen“.",
   "hardwareAcceleration": "Hardware-Beschleunigung",
   "hardwareAccelerationDesc": "GPU zur Darstellung der UI verwenden. Deaktivieren, wenn die App beim Start abstürzt oder Grafikflimmern auftritt.",
   "hardwareAccelerationAutoDisabled": "Nach wiederholten GPU-Abstürzen automatisch deaktiviert.",

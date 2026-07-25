@@ -47,6 +47,7 @@ const SystemModalContent: React.FC = () => {
     platform: 'web',
   });
   const [closeToTray, setCloseToTray] = useState(false);
+  const [startMinimizedToTray, setStartMinimizedToTray] = useState(false);
   const [gpuStatus, setGpuStatus] = useState<IGpuStatus | null>(null);
   const [notificationEnabled, setNotificationEnabled] = useState(true);
   const [cronNotificationEnabled, setCronNotificationEnabled] = useState(false);
@@ -81,12 +82,20 @@ const SystemModalContent: React.FC = () => {
 
   useEffect(() => {
     setCloseToTray(configService.get('system.closeToTray') ?? false);
+    setStartMinimizedToTray(configService.get('system.startMinimizedToTray') ?? false);
     if (isDesktop) {
       ipcBridge.systemSettings.getCloseToTray
         .invoke()
         .then((enabled) => {
           setCloseToTray(enabled);
           configService.setLocal('system.closeToTray', enabled);
+        })
+        .catch(() => {});
+      ipcBridge.systemSettings.getStartMinimizedToTray
+        .invoke()
+        .then((enabled) => {
+          setStartMinimizedToTray(enabled);
+          configService.setLocal('system.startMinimizedToTray', enabled);
         })
         .catch(() => {});
     }
@@ -147,6 +156,31 @@ const SystemModalContent: React.FC = () => {
       });
     },
     [closeToTray, isDesktop]
+  );
+
+  const handleStartMinimizedToTrayChange = useCallback(
+    (checked: boolean) => {
+      if (!closeToTray) {
+        return;
+      }
+      const previous = startMinimizedToTray;
+      setStartMinimizedToTray(checked);
+      configService.setLocal('system.startMinimizedToTray', checked);
+
+      if (!isDesktop) {
+        configService.set('system.startMinimizedToTray', checked).catch(() => {
+          setStartMinimizedToTray(previous);
+          configService.setLocal('system.startMinimizedToTray', previous);
+        });
+        return;
+      }
+
+      ipcBridge.systemSettings.setStartMinimizedToTray.invoke({ enabled: checked }).catch(() => {
+        setStartMinimizedToTray(previous);
+        configService.setLocal('system.startMinimizedToTray', previous);
+      });
+    },
+    [closeToTray, startMinimizedToTray, isDesktop]
   );
 
   const handleHardwareAccelerationChange = useCallback(
@@ -295,6 +329,18 @@ const SystemModalContent: React.FC = () => {
       key: 'closeToTray',
       label: t('settings.closeToTray'),
       component: <Switch checked={closeToTray} onChange={handleCloseToTrayChange} />,
+    },
+    {
+      key: 'startMinimizedToTray',
+      label: t('settings.startMinimizedToTray'),
+      description: t('settings.startMinimizedToTrayDesc'),
+      component: (
+        <Switch
+          checked={startMinimizedToTray && closeToTray}
+          onChange={handleStartMinimizedToTrayChange}
+          disabled={!closeToTray}
+        />
+      ),
     },
     ...(isDesktop && gpuStatus
       ? [
