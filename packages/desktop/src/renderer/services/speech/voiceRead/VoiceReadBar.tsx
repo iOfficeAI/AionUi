@@ -21,7 +21,7 @@ import { useTranslation } from 'react-i18next';
 import { isVoiceReadEnabled } from './featureFlag';
 import { useVoiceRead } from './useVoiceRead';
 
-const RATE_STEPS = [0.75, 1, 1.25, 1.5, 2] as const;
+const RATE_STEPS = [0.75, 1, 1.25, 1.5, 2, 2.5, 3, 4] as const;
 
 const findLatestReadableMessage = (messages: TMessage[]): { msgKey: string; text: string } | null => {
   for (let i = messages.length - 1; i >= 0; i -= 1) {
