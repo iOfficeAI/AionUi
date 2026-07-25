@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useModelProviderList } from '@/renderer/hooks/agent/useModelProviderList';
+import { useProvidersQuery } from '@/renderer/hooks/agent/useModelProviderList';
 import { getClientBusinessSetting, setClientBusinessSetting } from '@/renderer/services/clientBusinessSettings';
 import {
   normalizeVoiceCallSetting,
@@ -19,7 +19,7 @@ const modelKey = (providerId: string, model: string) => `${providerId}::${model}
 
 const VoiceCallSection: React.FC = () => {
   const { t } = useTranslation();
-  const { providers, getAvailableModels } = useModelProviderList();
+  const { data: providerConfig } = useProvidersQuery();
   const [setting, setSetting] = useState<VoiceCallSetting>(() => normalizeVoiceCallSetting(undefined));
 
   useEffect(() => {
@@ -34,15 +34,22 @@ const VoiceCallSection: React.FC = () => {
     };
   }, []);
 
+  // 电话对话是纯聊天，不需要 function calling。这里不按
+  // function_calling / excludeFromPrimary 能力标记过滤，
+  // 只要求 provider 与 model 处于启用状态即可入选。
   const options = useMemo(
     () =>
-      providers.flatMap((provider) =>
-        getAvailableModels(provider).map((model) => ({
-          value: modelKey(provider.id, model),
-          label: `${provider.name || provider.id} · ${model}`,
-        }))
-      ),
-    [getAvailableModels, providers]
+      (Array.isArray(providerConfig) ? providerConfig : [])
+        .filter((provider) => provider.enabled !== false)
+        .flatMap((provider) =>
+          (provider.models || [])
+            .filter((model) => provider.model_enabled?.[model] !== false)
+            .map((model) => ({
+              value: modelKey(provider.id, model),
+              label: `${provider.name || provider.id} · ${model}`,
+            }))
+        ),
+    [providerConfig]
   );
   const selectedModel = setting.providerId && setting.model ? modelKey(setting.providerId, setting.model) : undefined;
 
@@ -88,6 +95,13 @@ const VoiceCallSection: React.FC = () => {
             onClear={() => save({ ...setting, providerId: undefined, model: undefined })}
             className='w-full'
           />
+          {options.length === 0 && (
+            <div className='text-12px text-3 mt-6px'>
+              {t('settings.voiceCallNoModels', {
+                defaultValue: '未检测到可选模型商，进入通话时将沿用会话当前模型',
+              })}
+            </div>
+          )}
           <div className='text-12px text-3 mt-6px'>
             {t('settings.voiceCallModelHint', {
               defaultValue: '建议选择响应快的小模型。CLI 会话仍沿用其当前模型。',
