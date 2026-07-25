@@ -121,9 +121,39 @@ const PreviewPanel: React.FC = () => {
     updateContent,
   });
 
+  // Shared by toolbar button, window Cmd/Ctrl+S, and CodeMirror Mod-s keymap.
+  // Guard dirty + in-flight so CM + window listeners never double-write.
+  // Surface failures the same way as save-and-close (toast), including false returns.
+  const saveInFlightRef = useRef(false);
+  const handleSave = useCallback(() => {
+    if (!activeTab?.isDirty || saveInFlightRef.current) return;
+    saveInFlightRef.current = true;
+    void saveContent()
+      .then((ok) => {
+        if (!ok) {
+          try {
+            messageApi.error(t('common.saveFailed'));
+          } catch {
+            // Context holder may be unmounted
+          }
+        }
+      })
+      .catch((error: unknown) => {
+        const errorMsg = error instanceof Error ? error.message : t('common.unknownError');
+        try {
+          messageApi.error(`${t('common.saveFailed')}: ${errorMsg}`);
+        } catch {
+          // Context holder may be unmounted
+        }
+      })
+      .finally(() => {
+        saveInFlightRef.current = false;
+      });
+  }, [activeTab?.isDirty, saveContent, messageApi, t]);
+
   usePreviewKeyboardShortcuts({
     isDirty: activeTab?.isDirty,
-    onSave: () => void saveContent(),
+    onSave: handleSave,
   });
 
   const setToolbarExtrasCallback = useCallback((extras: PreviewToolbarExtras | null) => {
@@ -450,6 +480,7 @@ const PreviewPanel: React.FC = () => {
                   key={activeTabId ?? undefined}
                   value={content}
                   onChange={updateContent}
+                  onSave={handleSave}
                   containerRef={editorContainerRef}
                   onScroll={handleEditorScroll}
                 />
@@ -484,6 +515,7 @@ const PreviewPanel: React.FC = () => {
           viewMode={viewMode}
           onViewModeChange={setViewMode}
           onContentChange={updateContent}
+          onSave={handleSave}
           file_path={metadata?.file_path}
           workspace={metadata?.workspace}
         />
@@ -524,6 +556,7 @@ const PreviewPanel: React.FC = () => {
                   key={activeTabId ?? undefined}
                   value={content}
                   onChange={updateContent}
+                  onSave={handleSave}
                   containerRef={editorContainerRef}
                   onScroll={handleEditorScroll}
                   file_path={metadata?.file_path}
@@ -566,6 +599,7 @@ const PreviewPanel: React.FC = () => {
               key={activeTabId ?? undefined}
               value={content}
               onChange={handleContentChange}
+              onSave={handleSave}
               file_path={metadata?.file_path}
             />
           </div>
@@ -607,6 +641,7 @@ const PreviewPanel: React.FC = () => {
             key={activeTabId ?? undefined}
             value={content}
             onChange={handleContentChange}
+            onSave={handleSave}
             language={metadata?.language}
             fileName={metadata?.file_name}
             readOnly={isEditable === false}
@@ -701,6 +736,8 @@ const PreviewPanel: React.FC = () => {
             onInspectModeToggle={() => setInspectMode(!inspectMode)}
             leftExtra={toolbarExtras?.left}
             rightExtra={toolbarExtras?.right}
+            isDirty={activeTab?.isDirty}
+            onSave={handleSave}
           />
         )}
 

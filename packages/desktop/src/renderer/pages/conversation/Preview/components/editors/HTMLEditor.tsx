@@ -13,10 +13,12 @@ import CodeMirror from '@uiw/react-codemirror';
 import { codeEditorSurfaceTheme } from '../../theme/codeEditorTheme';
 import React, { useMemo, useRef, useCallback } from 'react';
 import { useCodeMirrorScroll, useScrollSyncTarget } from '../../hooks/useScrollSyncHelpers';
+import { createSaveKeymap } from './saveKeymap';
 
 interface HTMLEditorProps {
   value: string;
   onChange: (value: string) => void;
+  onSave?: () => void; // Cmd/Ctrl+S — CodeMirror intercepts Mod-s unless handled here
   containerRef?: React.RefObject<HTMLDivElement>;
   onScroll?: (scrollTop: number, scrollHeight: number, clientHeight: number) => void;
   file_path?: string; // 用于生成稳定的 key / Used to generate stable key
@@ -29,7 +31,7 @@ interface HTMLEditorProps {
  * 使用 CodeMirror 进行 HTML 代码编辑，支持撤销/重做历史记录
  * Uses CodeMirror for HTML code editing with undo/redo history support
  */
-const HTMLEditor: React.FC<HTMLEditorProps> = ({ value, onChange, containerRef, onScroll, file_path }) => {
+const HTMLEditor: React.FC<HTMLEditorProps> = ({ value, onChange, onSave, containerRef, onScroll, file_path }) => {
   const { theme } = useThemeContext();
   const editorWrapperRef = useRef<HTMLDivElement>(null);
 
@@ -72,8 +74,9 @@ const HTMLEditor: React.FC<HTMLEditorProps> = ({ value, onChange, containerRef, 
       history(), // 显式添加历史记录支持 / Explicitly add history support
       keymap.of(historyKeymap), // 添加历史记录快捷键 / Add history keymaps
       Prec.highest(codeEditorSurfaceTheme()), // surface bg follows theme tokens
+      ...createSaveKeymap(onSave),
     ],
-    []
+    [onSave]
   );
 
   return (

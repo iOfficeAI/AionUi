@@ -11,12 +11,14 @@ import { Prec } from '@codemirror/state';
 import CodeMirror from '@uiw/react-codemirror';
 import { getMarkdownHighlightStyle } from '../../theme/markdownHighlightStyle';
 import { codeEditorSurfaceTheme } from '../../theme/codeEditorTheme';
-import React, { useRef, useCallback } from 'react';
+import React, { useMemo, useRef, useCallback } from 'react';
 import { useCodeMirrorScroll, useScrollSyncTarget } from '../../hooks/useScrollSyncHelpers';
+import { createSaveKeymap } from './saveKeymap';
 
 interface MarkdownEditorProps {
   value: string; // 编辑器内容 / Editor content
   onChange: (value: string) => void; // 内容变化回调 / Content change callback
+  onSave?: () => void; // Cmd/Ctrl+S — CodeMirror intercepts Mod-s unless handled here
   readOnly?: boolean; // 是否只读 / Whether read-only
   containerRef?: React.RefObject<HTMLDivElement>; // 容器引用，用于滚动同步 / Container ref for scroll sync
   onScroll?: (scrollTop: number, scrollHeight: number, clientHeight: number) => void; // 滚动回调 / Scroll callback
@@ -32,6 +34,7 @@ interface MarkdownEditorProps {
 const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
   value,
   onChange,
+  onSave,
   readOnly = false,
   containerRef,
   onScroll,
@@ -51,6 +54,16 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
   );
   useScrollSyncTarget(containerRef, handleTargetScroll);
 
+  const extensions = useMemo(
+    () => [
+      markdown(),
+      syntaxHighlighting(getMarkdownHighlightStyle(theme === 'dark' ? 'dark' : 'light')),
+      Prec.highest(codeEditorSurfaceTheme()),
+      ...createSaveKeymap(onSave),
+    ],
+    [theme, onSave]
+  );
+
   return (
     <div ref={containerRef} className='h-full w-full overflow-hidden'>
       <div ref={editorWrapperRef} className='h-full w-full'>
@@ -61,11 +74,7 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
           // 自定义 markdown 高亮（非 fallback，优先于 basicSetup 的默认高亮）
           // Custom markdown highlight (non-fallback) wins over basicSetup's default highlighter,
           // while basicSetup's treeHighlighter keeps painting. basicSetup must keep syntaxHighlighting enabled.
-          extensions={[
-            markdown(),
-            syntaxHighlighting(getMarkdownHighlightStyle(theme === 'dark' ? 'dark' : 'light')),
-            Prec.highest(codeEditorSurfaceTheme()),
-          ]}
+          extensions={extensions}
           onChange={onChange}
           readOnly={readOnly}
           basicSetup={{

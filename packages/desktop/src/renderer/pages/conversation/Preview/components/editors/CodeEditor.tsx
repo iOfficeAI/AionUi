@@ -15,10 +15,12 @@ import { useTranslation } from 'react-i18next';
 import { getCodeEditorConfig } from '../../theme/codeEditorConfig';
 import { codeEditorFontTheme, codeEditorSurfaceTheme, getCodeEditorBaseTheme } from '../../theme/codeEditorTheme';
 import { loadLanguageSupport, shouldDisableHighlighting } from '../../theme/languageLoader';
+import { createSaveKeymap } from './saveKeymap';
 
 interface CodeEditorProps {
   value: string; // 编辑器内容 / Editor content
   onChange: (value: string) => void; // 内容变化回调 / Content change callback
+  onSave?: () => void; // Cmd/Ctrl+S — CodeMirror intercepts Mod-s unless handled here
   language?: string; // 来自 metadata.language / From metadata.language
   fileName?: string; // 用于扩展名兜底推断语言 / Extension-based fallback
   readOnly?: boolean; // 是否只读 / Whether read-only
@@ -41,6 +43,7 @@ const STREAMING_IDLE_MS = 1200;
 const CodeEditor: React.FC<CodeEditorProps> = ({
   value,
   onChange,
+  onSave,
   language,
   fileName,
   readOnly = false,
@@ -184,9 +187,10 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
       Prec.highest(codeEditorSurfaceTheme()),
       highlightSelectionMatches(),
       keymap.of(searchKeymap),
+      ...createSaveKeymap(onSave),
       ...languageExt,
     ];
-  }, [languageExt]);
+  }, [languageExt, onSave]);
 
   const editorStyle = useMemo(() => ({ height: '100%', textAlign: 'left' as const }), []);
 

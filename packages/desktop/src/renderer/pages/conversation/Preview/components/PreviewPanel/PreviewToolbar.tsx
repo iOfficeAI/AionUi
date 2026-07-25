@@ -6,6 +6,7 @@
 
 import type { PreviewHistoryTarget } from '@/common/types/office/preview';
 import { iconColors } from '@/renderer/styles/colors';
+import { isMacOS } from '@/renderer/utils/platform';
 import { Dropdown } from '@arco-design/web-react';
 import { Close } from '@icon-park/react';
 import React from 'react';
@@ -149,6 +150,18 @@ interface PreviewToolbarProps {
    * Extra content rendered on the right section
    */
   rightExtra?: React.ReactNode;
+
+  /**
+   * 当前 Tab 是否有未保存的修改
+   * Whether the active tab has unsaved changes
+   */
+  isDirty?: boolean;
+
+  /**
+   * 保存回调（触发 saveContent）
+   * Save callback — fires saveContent()
+   */
+  onSave?: () => void;
 }
 
 /**
@@ -181,17 +194,42 @@ const PreviewToolbar: React.FC<PreviewToolbarProps> = ({
   onInspectModeToggle,
   leftExtra,
   rightExtra,
+  isDirty,
+  onSave,
 }) => {
   const { t } = useTranslation();
   const isDiff = content_type === 'diff';
   const preferActionButtonsInFront = Boolean(leftExtra);
   // showOpenInSystemButton === Boolean(metadata.file_path) upstream — i.e. "file is on disk".
   const showDownload = shouldShowDownload(content_type, showOpenInSystemButton);
+  const showSave = Boolean(isDirty && onSave);
+  const saveShortcut = isMacOS() ? '⌘S' : 'Ctrl+S';
 
   const toolbarBtn =
     'flex items-center gap-2px px-8px py-3px rd-4px cursor-pointer transition-colors duration-150 text-12px font-medium text-t-secondary hover:text-t-primary hover:bg-bg-3';
+  // Dedicated classes so warning tokens are not overridden by toolbarBtn text colors
+  const saveBtn =
+    'flex items-center gap-2px px-8px py-3px rd-4px cursor-pointer transition-colors duration-150 text-12px font-medium text-warning-6 hover:text-warning-7 hover:bg-bg-3';
   const toolbarBtnActive = '!text-white bg-brand hover:!text-white hover:bg-brand-hover';
   const toolbarIconSize = 12;
+
+  const saveButton = showSave ? (
+    <div className={saveBtn} onClick={() => void onSave?.()} title={`${t('common.save')} (${saveShortcut})`}>
+      <svg
+        width={toolbarIconSize}
+        height={toolbarIconSize}
+        viewBox='0 0 24 24'
+        fill='none'
+        stroke='currentColor'
+        strokeWidth='2'
+      >
+        <path d='M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z' />
+        <polyline points='17 21 17 13 7 13 7 21' />
+        <polyline points='7 3 7 8 15 8' />
+      </svg>
+      <span>{t('common.save')}</span>
+    </div>
+  ) : null;
 
   return (
     <div className='flex items-center justify-between h-32px px-10px bg-bg-2 flex-shrink-0 border-b border-border-1 overflow-x-auto'>
@@ -254,6 +292,9 @@ const PreviewToolbar: React.FC<PreviewToolbarProps> = ({
             </>
           )}
 
+          {/* Save after Source/Preview toggle, before Download when actions are in front */}
+          {preferActionButtonsInFront && saveButton}
+
           {preferActionButtonsInFront && showOpenInSystemButton && (
             <div className={toolbarBtn} onClick={onOpenInSystem} title={t('preview.openInSystemApp')}>
               <svg
@@ -295,6 +336,9 @@ const PreviewToolbar: React.FC<PreviewToolbarProps> = ({
 
         <div className='flex items-center gap-4px flex-shrink-0'>
           {rightExtra}
+
+          {/* Save before Download when actions sit on the right (default layout) */}
+          {!preferActionButtonsInFront && saveButton}
 
           {SHOW_SNAPSHOT_HISTORY &&
             ((content_type === 'markdown' && (viewMode === 'source' || isSplitScreenEnabled)) ||

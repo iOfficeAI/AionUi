@@ -15,3 +15,4 @@
 export { default as MarkdownEditor } from './MarkdownEditor';
 export { default as HTMLEditor } from './HTMLEditor';
 export { default as CodeEditor } from './CodeEditor';
+export { createSaveKeyBinding, createSaveKeymap } from './saveKeymap';
