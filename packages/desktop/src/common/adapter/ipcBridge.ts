@@ -144,7 +144,12 @@ export const shell = {
   openFile: httpPost<void, string>('/api/shell/open-file', (file_path) => ({ file_path })),
   showItemInFolder: httpPost<void, string>('/api/shell/show-item-in-folder', (file_path) => ({ file_path })),
   openExternal: httpPost<void, string>('/api/shell/open-external', (url) => ({ url })),
-  checkToolInstalled: httpPost<boolean, { tool: string }>('/api/shell/check-tool-installed'),
+  // Backend returns { installed: bool }; unwrap so callers get a real boolean
+  // (an object is always truthy even when installed === false).
+  checkToolInstalled: withResponseMap(
+    httpPost<{ installed: boolean }, { tool: string }>('/api/shell/check-tool-installed'),
+    (data) => Boolean(data?.installed)
+  ),
   openFolderWith: httpPost<void, { folder_path: string; tool: 'vscode' | 'zed' | 'terminal' | 'explorer' }>(
     '/api/shell/open-folder-with'
   ),

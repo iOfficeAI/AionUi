@@ -1,6 +1,6 @@
 import { ipcBridge } from '@/common';
 import { isElectronDesktop } from '@/renderer/utils/platform';
-import { Command, Down, Folder, Terminal } from '@icon-park/react';
+import { Code, Command, Down, Folder, Terminal } from '@icon-park/react';
 import { Button, Dropdown, Tooltip } from '@arco-design/web-react';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -26,6 +26,10 @@ interface WorkspaceOpenButtonProps {
 
 const STORAGE_KEY = 'workspace-open-preference';
 
+function settledInstalled(result: PromiseSettledResult<boolean>): boolean {
+  return result.status === 'fulfilled' && result.value === true;
+}
+
 /**
  * Workspace Open Button - Opens workspace folder with various tools
  * Supports VS Code, Zed, Terminal, and File Explorer
@@ -38,22 +42,24 @@ const WorkspaceOpenButton: React.FC<WorkspaceOpenButtonProps> = ({ workspacePath
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [preferredTool, setPreferredTool] = useState<ToolType | null>(null);
 
-  // Check if editors are installed and load preferred tool
+  // Check if editors are installed and load preferred tool.
+  // Use allSettled so a missing/unknown tool (e.g. old AionCore without "zed")
+  // does not clear the other editor's install state.
   useEffect(() => {
     if (isTemporary) return;
     const checkTools = async () => {
-      try {
-        const [vscodeOk, zedOk] = await Promise.all([
-          ipcBridge.shell.checkToolInstalled.invoke({ tool: 'vscode' }),
-          ipcBridge.shell.checkToolInstalled.invoke({ tool: 'zed' }),
-        ]);
-        setVscodeInstalled(vscodeOk);
-        setZedInstalled(zedOk);
-      } catch (error) {
-        console.warn('[WorkspaceOpenButton] Failed to check editor installs:', error);
-        setVscodeInstalled(false);
-        setZedInstalled(false);
+      const [vscodeResult, zedResult] = await Promise.allSettled([
+        ipcBridge.shell.checkToolInstalled.invoke({ tool: 'vscode' }),
+        ipcBridge.shell.checkToolInstalled.invoke({ tool: 'zed' }),
+      ]);
+      if (vscodeResult.status === 'rejected') {
+        console.warn('[WorkspaceOpenButton] Failed to check VS Code install:', vscodeResult.reason);
       }
+      if (zedResult.status === 'rejected') {
+        console.warn('[WorkspaceOpenButton] Failed to check Zed install:', zedResult.reason);
+      }
+      setVscodeInstalled(settledInstalled(vscodeResult));
+      setZedInstalled(settledInstalled(zedResult));
     };
 
     // Load preferred tool from storage
@@ -88,7 +94,7 @@ const WorkspaceOpenButton: React.FC<WorkspaceOpenButtonProps> = ({ workspacePath
     {
       key: 'zed',
       label: t('conversation.workspace.openWith.zed', { defaultValue: 'Zed' }),
-      icon: <Command size={16} />,
+      icon: <Code size={16} />,
       available: zedInstalled,
     },
     {
@@ -123,8 +129,9 @@ const WorkspaceOpenButton: React.FC<WorkspaceOpenButtonProps> = ({ workspacePath
   const currentIcon = useMemo(() => {
     switch (currentTool) {
       case 'vscode':
-      case 'zed':
         return <Command size={16} />;
+      case 'zed':
+        return <Code size={16} />;
       case 'explorer':
         return <Folder size={16} />;
       case 'terminal':
