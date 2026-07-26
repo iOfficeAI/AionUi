@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { mkdtempSync, mkdirSync, rmSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { buildUnixHydratedPath, hydrateUnixProcessPath } from '@/process/startup/unixPath';
@@ -49,5 +49,32 @@ describe('hydrateUnixProcessPath', () => {
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
+  });
+
+  unixOnlyIt('ignores missing paths and regular files', () => {
+    const root = mkdtempSync(path.join(tmpdir(), 'aionui-unix-path-'));
+    const npmBinFile = path.join(root, '.npm-global', 'bin');
+
+    try {
+      mkdirSync(path.dirname(npmBinFile), { recursive: true });
+      writeFileSync(npmBinFile, 'not a directory');
+
+      const env: NodeJS.ProcessEnv = {
+        HOME: root,
+        PATH: '/usr/bin',
+      };
+
+      expect(hydrateUnixProcessPath(env)).toBe('/usr/bin');
+      expect(env.PATH).toBe('/usr/bin');
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('leaves PATH unset when HOME and PATH are unavailable', () => {
+    const env: NodeJS.ProcessEnv = {};
+
+    expect(hydrateUnixProcessPath(env)).toBe('');
+    expect(env.PATH).toBeUndefined();
   });
 });
