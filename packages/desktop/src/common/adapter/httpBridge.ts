@@ -248,6 +248,38 @@ export function withResponseMap<Raw, Mapped, Params>(
   };
 }
 
+/**
+ * Backend bridge response envelope for state-changing operations that report
+ * success/failure in the body (HTTP 200) rather than via the HTTP status,
+ * e.g. `/api/channel/plugins/{enable,disable}`.
+ */
+export type BridgeResponse = {
+  success: boolean;
+  message?: string | null;
+  error?: string | null;
+};
+
+/**
+ * Wraps a provider that resolves to a {@link BridgeResponse}, throwing when the
+ * operation reported failure (`success: false`).
+ *
+ * `httpRequest` only throws on non-2xx HTTP responses, but several backend
+ * endpoints return HTTP 200 with `{ success: false, error }` on failure.
+ * Without this guard the renderer treats those as successes — e.g. a channel
+ * toggle shows a success toast while the plugin never actually enables.
+ */
+export function expectBridgeSuccess<Params>(inner: ProviderLike<BridgeResponse, Params>): ProviderLike<void, Params> {
+  return {
+    provider: () => {},
+    invoke: (async (params?: Params) => {
+      const res = await (inner.invoke as (p?: Params) => Promise<BridgeResponse | undefined>)(params);
+      if (res && res.success === false) {
+        throw new Error(res.error || res.message || 'Operation failed');
+      }
+    }) as ProviderLike<void, Params>['invoke'],
+  };
+}
+
 export function httpGet<Data, Params = undefined>(
   path: string | ((params: Params) => string),
   options?: HttpRequestOptions

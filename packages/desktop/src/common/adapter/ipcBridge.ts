@@ -96,6 +96,7 @@ import {
   toApiModelOptional,
 } from './apiModelMapper';
 import {
+  expectBridgeSuccess,
   httpDelete,
   httpGet,
   httpPatch,
@@ -107,6 +108,7 @@ import {
   wsEmitter,
   wsMappedEmitter,
 } from './httpBridge';
+import type { BridgeResponse } from './httpBridge';
 import { fromApiSearchResult, type ApiMessageSearchItem } from './searchMapper';
 import type { IAddTeamAssistantParams, ICreateTeamParams } from './teamMapper';
 import {
@@ -1858,8 +1860,10 @@ export const channel = {
   getPluginStatus: withResponseMap(httpGet<RawPluginStatus[], void>('/api/channel/plugins'), (raw) =>
     raw.map(toPluginStatus)
   ),
-  enablePlugin: httpPost<void, { plugin_id: string; config: Record<string, unknown> }>('/api/channel/plugins/enable'),
-  disablePlugin: httpPost<void, { plugin_id: string }>('/api/channel/plugins/disable'),
+  enablePlugin: expectBridgeSuccess(
+    httpPost<BridgeResponse, { plugin_id: string; config: Record<string, unknown> }>('/api/channel/plugins/enable')
+  ),
+  disablePlugin: expectBridgeSuccess(httpPost<BridgeResponse, { plugin_id: string }>('/api/channel/plugins/disable')),
   testPlugin: httpPost<
     { success: boolean; bot_username?: string; error?: string },
     { plugin_id: string; token: string; extra_config?: { app_id?: string; app_secret?: string } }
