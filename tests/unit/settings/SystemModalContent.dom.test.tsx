@@ -314,4 +314,58 @@ describe('SystemModalContent directory settings', () => {
       expect(clientBusinessSettingsMocks.setClientBusinessSetting).toHaveBeenCalledWith('acp.agentIdleTimeout', 7);
     });
   });
+
+  const findCopyPromptSwitch = async () => {
+    const label = await screen.findByText('settings.copyPromptOnSend');
+    const row = label.closest('div.flex.items-center');
+    expect(row).not.toBeNull();
+    return within(row as HTMLElement).getByRole('switch');
+  };
+
+  it('defaults the copy-prompt-on-send preference to off', async () => {
+    renderContent();
+
+    const toggle = await findCopyPromptSwitch();
+
+    expect(configServiceMock.get).toHaveBeenCalledWith('input.copyPromptOnSend');
+    expect(toggle).toHaveAttribute('aria-checked', 'false');
+  });
+
+  it('reflects the persisted copy-prompt-on-send preference', async () => {
+    configServiceMock.get.mockImplementation((key: string) => (key === 'input.copyPromptOnSend' ? true : undefined));
+    renderContent();
+
+    const toggle = await findCopyPromptSwitch();
+
+    expect(toggle).toHaveAttribute('aria-checked', 'true');
+  });
+
+  it('persists the copy-prompt-on-send preference when toggled on', async () => {
+    const user = userEvent.setup();
+    renderContent();
+
+    const toggle = await findCopyPromptSwitch();
+    await user.click(toggle);
+
+    await waitFor(() => {
+      expect(configServiceMock.set).toHaveBeenCalledWith('input.copyPromptOnSend', true);
+    });
+    expect(toggle).toHaveAttribute('aria-checked', 'true');
+  });
+
+  it('rolls the copy-prompt-on-send toggle back when persisting fails', async () => {
+    const user = userEvent.setup();
+    configServiceMock.set.mockRejectedValueOnce(new Error('backend unavailable'));
+    renderContent();
+
+    const toggle = await findCopyPromptSwitch();
+    await user.click(toggle);
+
+    // The optimistic flip must be undone, and the cache corrected, so the UI
+    // never claims a preference the backend did not accept.
+    await waitFor(() => {
+      expect(toggle).toHaveAttribute('aria-checked', 'false');
+    });
+    expect(configServiceMock.setLocal).toHaveBeenCalledWith('input.copyPromptOnSend', false);
+  });
 });
