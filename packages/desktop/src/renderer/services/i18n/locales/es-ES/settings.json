@@ -306,6 +306,8 @@
   "saveUploadToWorkspace": "Guardar subidas en la carpeta del proyecto",
   "autoPreviewOfficeFiles": "Vista previa automática de archivos Office nuevos",
   "autoPreviewOfficeFilesDesc": "Abre automáticamente los archivos Word, Excel y PowerPoint recién creados en el proyecto actual. Los archivos de bloqueo temporales de Office se ignoran.",
+  "copyPromptOnSend": "Copiar el Prompt al Portapapeles al Enviar",
+  "copyPromptOnSendDesc": "Guarda una copia de cada mensaje enviado en el portapapeles del sistema, para que un fallo o un cierre de sesión inesperado no pierda un prompt largo. Los mensajes que solo contienen adjuntos no modifican el portapapeles.",
   "startOnBoot": "Iniciar al encender",
   "startOnBootDesc": "Inicia AionUi automáticamente cuando inicias sesión en macOS o Windows.",
   "startOnBootUnsupported": "Disponible solo en aplicaciones empaquetadas de macOS y Windows.",

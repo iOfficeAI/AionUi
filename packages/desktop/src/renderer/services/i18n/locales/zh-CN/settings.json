@@ -308,6 +308,8 @@
   "saveUploadToWorkspace": "上传文件保存到项目文件夹",
   "autoPreviewOfficeFiles": "自动预览新建 Office 文件",
   "autoPreviewOfficeFilesDesc": "自动打开当前项目中新创建的 Word、Excel 和 PowerPoint 文件，并忽略 Office 临时锁定文件。",
+  "copyPromptOnSend": "发送时复制提示词到剪贴板",
+  "copyPromptOnSendDesc": "每次发送消息时，把输入的内容同时存入系统剪贴板，应用崩溃或意外退出登录后可以直接粘贴回来。仅包含附件、没有文字的消息不会覆盖剪贴板。",
   "startOnBoot": "开机启动",
   "startOnBootDesc": "登录 macOS 或 Windows 后自动启动 AionUi。",
   "startOnBootUnsupported": "仅在打包后的 macOS 和 Windows 客户端中可用。",

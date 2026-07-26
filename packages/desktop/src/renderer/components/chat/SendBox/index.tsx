@@ -17,6 +17,7 @@ import { appendPromptToDraft, useConversationSendBoxPrefill } from '@/renderer/h
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import { buildAtFileInsertion, getActiveAtFileQuery, getAllAtFileQueries } from '@/renderer/utils/chat/atFileQuery';
 import { getLastAssistantText } from '@/renderer/utils/chat/getLastAssistantText';
+import { backupPromptToClipboard } from '@/renderer/utils/chat/promptClipboard';
 import { emitter, type ReplyQuote, useAddEventListener } from '@/renderer/utils/emitter';
 import { mergeFileSelectionItems, type FileSelectionItem } from '@/renderer/utils/file/fileSelection';
 import type { FileOrFolderItem } from '@/renderer/utils/file/fileTypes';
@@ -1172,6 +1173,7 @@ const SendBox: React.FC<{
       }
       historyDraftRef.current = null;
       setHistoryNavigationIndex(null);
+      backupPromptToClipboard(normalizedQuestion);
       setInput('');
       void btwCommand.ask(normalizedQuestion);
       return;
@@ -1221,6 +1223,11 @@ const SendBox: React.FC<{
         .join('');
       finalMessage = input + snippetsHtml;
     }
+
+    // Back up what the user actually typed, not `finalMessage` — reply quotes
+    // and DOM-snippet HTML are machine-generated and would bury the draft the
+    // user may need to paste back.
+    backupPromptToClipboard(input);
 
     // 立即清空输入框，避免异步 onSend 完成后覆盖用户新输入
     // Clear input immediately to prevent async onSend completion from overwriting new user input

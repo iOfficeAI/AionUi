@@ -308,6 +308,8 @@
   "saveUploadToWorkspace": "Enregistrer les téléversements dans l'espace de travail",
   "autoPreviewOfficeFiles": "Aperçu automatique des nouveaux fichiers Office",
   "autoPreviewOfficeFilesDesc": "Ouvrir automatiquement les nouveaux fichiers Word, Excel et PowerPoint créés dans l'espace de travail actuel. Les fichiers de verrouillage temporaires Office sont ignorés.",
+  "copyPromptOnSend": "Copier le prompt dans le presse-papiers à l’envoi",
+  "copyPromptOnSendDesc": "Conserve une copie de chaque message envoyé dans le presse-papiers du système, afin qu’un plantage ou une déconnexion inattendue ne fasse pas perdre un long prompt. Les messages ne contenant que des pièces jointes ne modifient pas le presse-papiers.",
   "startOnBoot": "Démarrage automatique",
   "startOnBootDesc": "Lancer AionUi automatiquement au démarrage de macOS ou Windows.",
   "startOnBootUnsupported": "Disponible uniquement dans les applications macOS et Windows packagées.",

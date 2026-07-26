@@ -308,6 +308,8 @@
   "saveUploadToWorkspace": "Save Uploads to Project Folder",
   "autoPreviewOfficeFiles": "Auto Preview New Office Files",
   "autoPreviewOfficeFilesDesc": "Automatically open newly created Word, Excel, and PowerPoint files in the current project. Office temporary lock files are ignored.",
+  "copyPromptOnSend": "Copy Prompt to Clipboard on Send",
+  "copyPromptOnSendDesc": "Keep a copy of every message you send on the system clipboard, so a crash or an unexpected sign-out cannot lose a long prompt. Messages that contain only attachments leave the clipboard untouched.",
   "startOnBoot": "Start on Boot",
   "startOnBootDesc": "Launch AionUi automatically when you sign in to macOS or Windows.",
   "startOnBootUnsupported": "Available only in packaged macOS and Windows apps.",

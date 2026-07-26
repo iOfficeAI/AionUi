@@ -308,6 +308,8 @@
   "saveUploadToWorkspace": "アップロードファイルをプロジェクトフォルダに保存",
   "autoPreviewOfficeFiles": "新しい Office ファイルを自動プレビュー",
   "autoPreviewOfficeFilesDesc": "現在のプロジェクトで新規作成された Word、Excel、PowerPoint ファイルを自動で開きます。Office の一時ロックファイルは無視します。",
+  "copyPromptOnSend": "送信時にプロンプトをクリップボードにコピー",
+  "copyPromptOnSendDesc": "メッセージを送信するたびに入力内容をシステムのクリップボードに保存します。クラッシュや予期しないサインアウトが起きても、長いプロンプトを貼り戻せます。添付ファイルのみのメッセージではクリップボードを上書きしません。",
   "startOnBoot": "起動時に自動起動",
   "startOnBootDesc": "macOS または Windows にサインインしたときに AionUi を自動起動します。",
   "startOnBootUnsupported": "パッケージ版の macOS / Windows アプリでのみ利用できます。",

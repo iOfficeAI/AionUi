@@ -1568,6 +1568,8 @@ export type I18nKey =
   | 'settings.configureCustomAgent'
   | 'settings.configureModel'
   | 'settings.contactMe'
+  | 'settings.copyPromptOnSend'
+  | 'settings.copyPromptOnSendDesc'
   | 'settings.createAssistant'
   | 'settings.cronNotificationEnabled'
   | 'settings.cssTheme.addManually'

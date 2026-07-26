@@ -308,6 +308,8 @@
   "saveUploadToWorkspace": "Yüklemeleri Proje Klasörüne Kaydet",
   "autoPreviewOfficeFiles": "Yeni Office Dosyalarını Otomatik Önizle",
   "autoPreviewOfficeFilesDesc": "Geçerli projede yeni oluşturulan Word, Excel ve PowerPoint dosyalarını otomatik olarak açar. Office geçici kilit dosyaları yok sayılır.",
+  "copyPromptOnSend": "Gönderirken İstemi Panoya Kopyala",
+  "copyPromptOnSendDesc": "Gönderdiğiniz her mesajın bir kopyasını sistem panosunda tutar; böylece çökme veya beklenmedik bir oturum kapanması uzun bir istemi kaybettirmez. Yalnızca ek içeren mesajlar panoyu değiştirmez.",
   "startOnBoot": "Açılışta Başlat",
   "startOnBootDesc": "macOS veya Windows oturumu açtığınızda AionUi'yi otomatik olarak başlatır.",
   "startOnBootUnsupported": "Yalnızca paketlenmiş macOS ve Windows uygulamalarında kullanılabilir.",

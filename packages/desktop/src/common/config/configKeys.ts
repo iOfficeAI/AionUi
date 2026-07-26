@@ -19,6 +19,8 @@ export type ConfigKeyMap = {
   'theme.activeId': string;
   'theme.userThemes': Theme[];
   'workspace.pasteConfirm': boolean | undefined;
+  /** Mirror each sent prompt to the system clipboard so a crash cannot lose it. */
+  'input.copyPromptOnSend': boolean | undefined;
   'guid.lastAssistantId': string | undefined;
   /** User-defined order for the enabled assistant picker surfaces. */
   'assistants.enabledOrder': string[] | undefined;
