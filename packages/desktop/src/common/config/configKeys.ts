@@ -39,6 +39,8 @@ export type ConfigKeyMap = {
   // `migrateProviders` / `migrateAssistantsToBackend` (ELECTRON-1KT).
   'migration.providersMigrated_v1': boolean | undefined;
   'migration.assistantsMigrated_v1': boolean | undefined;
+  // One-shot flag: first-launch opening guide (F-OPEN) already shown.
+  'onboarding.openingGuideSeen_v1': boolean | undefined;
 };
 
 export type ConfigKey = keyof ConfigKeyMap;

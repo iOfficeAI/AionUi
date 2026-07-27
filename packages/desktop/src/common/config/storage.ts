@@ -81,6 +81,14 @@ export interface IConfigStorageRefer {
   // Desktop Pet: whether tool-call confirmations are routed to the pet's bubble
   // (true) or remain in the main chat window (false). Default true.
   'pet.confirmEnabled'?: boolean;
+  /**
+   * One-shot completion flag for the first-launch opening guide (F-OPEN).
+   * Once `true`, the three-page onboarding animation is skipped on every
+   * subsequent launch. Stored in the local config file (not the backend) so it
+   * is a pure renderer-layer concern and does not touch aionCore. Versioned
+   * (`_v1`) so a future redesign can replay the guide by bumping the suffix.
+   */
+  'onboarding.openingGuideSeen_v1'?: boolean;
 }
 
 /**
