@@ -128,21 +128,18 @@
   font-weight: 650;
 }
 
-/* real tool logo tile / real assistant avatar */
+/* real tool logo tile / real assistant avatar — frameless: logos render as-is,
+   no bordered tile box (the boxed version read as a rough demo). */
 .toollogo {
-  border-radius: 9px;
-  background: var(--bg-base);
-  border: 1px solid var(--border-base);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  box-shadow: var(--shadow-1, 0 1px 3px rgba(29, 33, 41, 0.06));
   overflow: hidden;
 }
 .toollogo img {
-  width: 70%;
-  height: 70%;
+  width: 88%;
+  height: 88%;
   object-fit: contain;
 }
 .avatar {
