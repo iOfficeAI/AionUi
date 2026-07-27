@@ -57,7 +57,9 @@ const UpdateMigrationDialog: React.FC = () => {
         </div>
       }
     >
-      <div className='px-24px py-8px text-14px text-t-primary leading-relaxed'>{t('update.migration.description')}</div>
+      <div className='px-24px py-8px text-14px text-t-primary leading-relaxed'>
+        {t('update.migration.description', { url: AIONUI_WEBSITE_URL })}
+      </div>
     </AionModal>
   );
 };

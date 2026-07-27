@@ -53,9 +53,9 @@
   "minimize": "کوچک کردن",
   "restoreUpdateNotification": "بازگرداندن پیشرفت به‌روزرسانی",
   "migration": {
-    "title": "AionUi is now AionPro",
-    "description": "AionUi no longer ships in-app updates. Future versions are released as AionPro. Please visit our website to download the latest version.",
-    "gotoWebsite": "Download from website",
+    "title": "Get the latest version from our website",
+    "description": "AionUi no longer supports in-app updates. Please visit {{url}} to download the latest version.",
+    "gotoWebsite": "Go to website",
     "later": "Later"
   }
 }
