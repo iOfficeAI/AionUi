@@ -1,0 +1,721 @@
+/* Opening guide (F-OPEN) — first-launch three-page onboarding animation.
+   Full-screen overlay. Neutral light base aligned with the app's real theme:
+   white/light-grey surfaces, periwinkle brand only as a subtle accent, and the
+   product's black (#000) primary action button. Real tool logos and real
+   assistant avatars are injected at runtime. */
+
+.root {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  overflow: hidden;
+  background: radial-gradient(130% 100% at 50% 8%, var(--bg-base) 0%, var(--bg-1) 55%, var(--bg-2) 100%);
+  -webkit-app-region: drag;
+}
+/* Fixed-height centered stage keeps content and the footer button visually
+   grouped instead of scattering across a tall window. */
+.stage {
+  position: relative;
+  width: min(920px, 100vw);
+  height: min(560px, 70vh);
+}
+.root::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(closest-side at 50% 24%, rgba(117, 131, 178, 0.08), transparent 62%);
+}
+.root :global(button),
+.skip,
+.dots,
+.dots i,
+.scanlist,
+.scanbox {
+  -webkit-app-region: no-drag;
+}
+
+/* skip */
+.skip {
+  position: absolute;
+  top: 18px;
+  right: 22px;
+  z-index: 20;
+  border: none;
+  background: transparent;
+  color: var(--text-disabled);
+  font-size: 12px;
+  cursor: pointer;
+  padding: 6px 12px;
+  border-radius: 8px;
+  transition: 0.15s;
+}
+.skip:hover {
+  color: var(--text-secondary);
+  background: var(--bg-2);
+}
+
+/* page container — fills the centered stage */
+.pages {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+}
+.page {
+  position: absolute;
+  inset: 0;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 8px 48px 0;
+}
+.pageOn {
+  display: flex;
+  animation: pgin 0.5s cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+@keyframes pgin {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.kick {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  color: var(--aou-6);
+  text-transform: uppercase;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.kick::before,
+.kick::after {
+  content: '';
+  width: 16px;
+  height: 1px;
+  background: var(--aou-4);
+}
+.ttl {
+  font-size: 24px;
+  font-weight: 750;
+  letter-spacing: -0.4px;
+  color: var(--text-primary);
+  margin-bottom: 10px;
+  line-height: 1.3;
+}
+.sub {
+  font-size: 14px;
+  color: var(--text-secondary);
+  max-width: 480px;
+  line-height: 1.7;
+}
+.sub b {
+  color: var(--text-primary);
+  font-weight: 650;
+}
+
+/* real tool logo tile / real assistant avatar */
+.toollogo {
+  border-radius: 9px;
+  background: var(--bg-base);
+  border: 1px solid var(--border-base);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: var(--shadow-1, 0 1px 3px rgba(29, 33, 41, 0.06));
+  overflow: hidden;
+}
+.toollogo img {
+  width: 70%;
+  height: 70%;
+  object-fit: contain;
+}
+.avatar {
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: var(--bg-2);
+  box-shadow: var(--shadow-1, 0 1px 3px rgba(29, 33, 41, 0.06));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.avatarEmoji {
+  font-size: 60%;
+  line-height: 1;
+}
+
+/* ===== page 1: scan ===== */
+.scanwrap {
+  position: relative;
+  margin-bottom: 24px;
+}
+.scanpulse {
+  position: absolute;
+  left: 50%;
+  top: 44px;
+  transform: translate(-50%, -50%);
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(117, 131, 178, 0.4);
+  opacity: 0;
+}
+.pageOn .scanpulse {
+  animation: pulse 2.6s ease-out infinite;
+}
+.pageOn .scanpulse2 {
+  animation-delay: 0.9s;
+}
+.pageOn .scanpulse3 {
+  animation-delay: 1.8s;
+}
+@keyframes pulse {
+  0% {
+    width: 80px;
+    height: 80px;
+    opacity: 0.5;
+  }
+  100% {
+    width: 340px;
+    height: 340px;
+    opacity: 0;
+  }
+}
+.scanbox {
+  position: relative;
+  z-index: 2;
+  width: 380px;
+  max-width: calc(100vw - 96px);
+  background: var(--bg-base);
+  border: 1px solid var(--border-base);
+  border-radius: 16px;
+  box-shadow: var(--shadow-3, 0 10px 30px rgba(29, 33, 41, 0.1));
+  padding: 15px;
+}
+.scanhd {
+  font-size: 12px;
+  color: var(--text-disabled);
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 12px;
+  font-weight: 600;
+}
+.radar {
+  width: 15px;
+  height: 15px;
+  position: relative;
+  flex-shrink: 0;
+}
+.radar::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid var(--primary);
+  border-top-color: transparent;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+/* Tool list: capped height with scroll so a machine with many installed tools
+   (10+) does not overflow the card / window. */
+.scanlist {
+  max-height: min(232px, 34vh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  margin: 0 -4px;
+  padding: 0 4px;
+}
+.scanlist::-webkit-scrollbar {
+  width: 6px;
+}
+.scanlist::-webkit-scrollbar-thumb {
+  background: var(--aou-3);
+  border-radius: 3px;
+}
+.clirow {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 9px;
+  border-radius: 8px;
+  font-size: 13px;
+  opacity: 0;
+  transform: translateY(7px);
+}
+.clirowIn {
+  opacity: 1;
+  transform: none;
+  transition: 0.44s cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+.clirowBuiltin {
+  background: var(--brand-light);
+}
+.clirow .toollogo {
+  width: 30px;
+  height: 30px;
+}
+.nm {
+  font-weight: 650;
+  color: var(--text-primary);
+}
+.ver {
+  font-size: 10.5px;
+  color: var(--text-disabled);
+  margin-left: 4px;
+  font-weight: 400;
+}
+.role {
+  margin-left: auto;
+  font-size: 9.5px;
+  color: var(--aou-7);
+  background: var(--bg-base);
+  border: 1px solid var(--aou-3);
+  padding: 2px 7px;
+  border-radius: 5px;
+  font-weight: 600;
+}
+.chk {
+  margin-left: auto;
+  width: 19px;
+  height: 19px;
+  border-radius: 50%;
+  background: var(--success);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform: scale(0);
+}
+.clirowIn .chk {
+  animation: pop 0.4s cubic-bezier(0.2, 0.9, 0.3, 1.5) 0.16s forwards;
+}
+.chk svg {
+  width: 11px;
+  height: 11px;
+  stroke: #fff;
+  stroke-width: 2.6;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+@keyframes pop {
+  to {
+    transform: scale(1);
+  }
+}
+.scanCount {
+  font-size: 12px;
+  color: var(--success);
+  font-weight: 650;
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  opacity: 0;
+  transition: 0.4s;
+}
+.scanCountIn {
+  opacity: 1;
+}
+.dotok {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--success);
+}
+
+/* ===== page 2: derive ===== */
+.swarm {
+  position: relative;
+  margin-bottom: 4px;
+}
+/* Very narrow windows: scale the vertical scene down instead of clipping. */
+@media (max-width: 600px) {
+  .swarm {
+    transform: scale(0.82);
+    transform-origin: center;
+    margin: -36px 0 -30px;
+  }
+}
+.wire {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: visible;
+  pointer-events: none;
+}
+.wire path {
+  fill: none;
+  stroke: var(--aou-5);
+  stroke-width: 2;
+  stroke-linecap: round;
+  opacity: 0.7;
+}
+.wireDraw path {
+  transition: stroke-dashoffset 0.8s cubic-bezier(0.4, 0.5, 0.2, 1);
+}
+/* Thinner, subtler wires from the assistant to each specialist buddy. */
+.buddyWire {
+  stroke-width: 1.5 !important;
+  opacity: 0.45 !important;
+}
+.flow {
+  position: absolute;
+  /* Anchor at the swarm origin so offset-path coordinates match the wire svg;
+     without this the dot drifts outside the scene. */
+  left: 0;
+  top: 0;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--aou-6);
+  box-shadow: 0 0 8px 2px rgba(117, 131, 178, 0.7);
+  opacity: 0;
+  z-index: 2;
+}
+.flowRun {
+  animation: flowmove 1.6s ease-in-out 0.8s infinite;
+}
+@keyframes flowmove {
+  0% {
+    offset-distance: 0%;
+    opacity: 0;
+  }
+  12% {
+    opacity: 1;
+  }
+  88% {
+    opacity: 1;
+  }
+  100% {
+    offset-distance: 100%;
+    opacity: 0;
+  }
+}
+/* Horizontal (wide) layout: tool on the left, vertically centered. */
+.src {
+  position: absolute;
+  left: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 5;
+  width: 126px;
+  text-align: center;
+}
+.src .toollogo {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto;
+  border-radius: 16px;
+}
+/* Vertical (narrow) layout: tool on top, centered. */
+.swarmV .src {
+  left: 50%;
+  top: 0;
+  transform: translateX(-50%);
+  width: 150px;
+}
+.swarmV .src .toollogo {
+  width: 60px;
+  height: 60px;
+  border-radius: 15px;
+}
+.srcName {
+  font-size: 12.5px;
+  margin-top: 10px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.srcSub {
+  font-size: 10px;
+  color: var(--text-disabled);
+  margin-top: 2px;
+}
+/* Horizontal layout: seed card on the right, vertically centered. */
+.seed {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%) scale(0.4);
+  transform-origin: center;
+  z-index: 6;
+  width: 216px;
+  background: var(--bg-base);
+  border: 1.5px solid var(--aou-6);
+  border-radius: 12px;
+  padding: 14px 15px;
+  box-shadow: 0 8px 24px rgba(117, 131, 178, 0.2);
+  opacity: 0;
+  transition:
+    opacity 0.4s,
+    transform 0.6s cubic-bezier(0.2, 0.9, 0.3, 1.4);
+}
+.seedGrown {
+  opacity: 1;
+  transform: translateY(-50%) scale(1);
+}
+/* Vertical layout: seed card centered below the tool. */
+.swarmV .seed {
+  right: auto;
+  left: 50%;
+  top: 168px;
+  transform: translateX(-50%) scale(0.4);
+  width: 224px;
+}
+.swarmV .seedGrown {
+  transform: translateX(-50%) scale(1);
+}
+.seedR1 {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+.seed .avatar {
+  width: 44px;
+  height: 44px;
+}
+.seedNm {
+  font-size: 14px;
+  font-weight: 750;
+  color: var(--text-primary);
+}
+.seedTag {
+  font-size: 8.5px;
+  background: var(--aou-6);
+  color: #fff;
+  padding: 2px 7px;
+  border-radius: 5px;
+  display: inline-block;
+  margin-top: 4px;
+  font-weight: 600;
+}
+.seedK {
+  margin-top: 11px;
+  font-size: 10.5px;
+  color: var(--text-secondary);
+  border-top: 1px solid var(--aou-2);
+  padding-top: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.seedK svg {
+  width: 13px;
+  height: 13px;
+  stroke: var(--aou-7);
+  stroke-width: 1.7;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  flex-shrink: 0;
+}
+.buddy {
+  position: absolute;
+  z-index: 4;
+  transform: translate(-50%, -50%) scale(0.2);
+  opacity: 0;
+  transition:
+    transform 0.6s cubic-bezier(0.25, 0.9, 0.3, 1.5),
+    opacity 0.45s;
+  text-align: center;
+}
+.buddyIn {
+  transform: translate(-50%, -50%) scale(1);
+  opacity: 1;
+}
+.buddy .avatar {
+  width: 50px;
+  height: 50px;
+  margin: 0 auto;
+  border: 2px solid var(--bg-base);
+  box-shadow: var(--shadow-2, 0 4px 12px rgba(29, 33, 41, 0.08));
+}
+.buddyLbl {
+  margin-top: 5px;
+  font-size: 10.5px;
+  font-weight: 650;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+/* ===== page 3: memory ===== */
+/* Single-layer card (no outer white frame — that read as a rough wireframe). */
+.nb {
+  width: 384px;
+  max-width: calc(100vw - 96px);
+  text-align: left;
+  margin-bottom: 22px;
+}
+.nbBook {
+  border: 1px solid var(--border-base);
+  border-radius: 14px;
+  background: var(--bg-base);
+  overflow: hidden;
+  box-shadow:
+    0 1px 2px rgba(29, 33, 41, 0.04),
+    0 12px 32px rgba(29, 33, 41, 0.1);
+}
+.nbOwner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 14px;
+  border-bottom: 1px dashed var(--border-base);
+  background: linear-gradient(180deg, var(--brand-light), transparent);
+}
+.nbOwner .avatar {
+  width: 34px;
+  height: 34px;
+}
+.nbName {
+  font-size: 12.5px;
+  font-weight: 750;
+  color: var(--text-primary);
+}
+.nbRole {
+  font-size: 10.5px;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+.nbLine {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  padding: 9px 14px;
+  border-bottom: 1px dashed var(--border-light);
+  opacity: 0;
+  transform: translateX(-9px);
+}
+.nbLine:last-of-type {
+  border-bottom: none;
+}
+.nbLineIn {
+  opacity: 1;
+  transform: none;
+  transition: 0.46s cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+.pen {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  color: var(--success);
+}
+.pen svg {
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.nbEngine {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 14px;
+  border-top: 1px solid var(--aou-2);
+  background: var(--bg-2);
+}
+.nbEngineLabel {
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.nbEngineChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11.5px;
+  font-weight: 650;
+  color: var(--text-secondary);
+  background: var(--bg-base);
+  border: 1px solid var(--border-base);
+  border-radius: 8px;
+  padding: 5px 11px;
+  transition: 0.3s;
+}
+.nbEngineChip .toollogo {
+  width: 20px;
+  height: 20px;
+  border-radius: 5px;
+  box-shadow: none;
+}
+.nbEngineChipFlip {
+  transform: translateY(-4px);
+  opacity: 0.25;
+}
+
+/* ===== footer — flows right below the stage, close to content ===== */
+.foot {
+  position: relative;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding-bottom: 8px;
+}
+.dots {
+  display: flex;
+  gap: 7px;
+}
+.dots i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--aou-3);
+  transition: 0.3s cubic-bezier(0.2, 0.7, 0.3, 1);
+  cursor: pointer;
+}
+.dotOn {
+  width: 22px !important;
+  border-radius: 4px !important;
+  background: #000 !important;
+}
+.btn {
+  border: none;
+  border-radius: 10px;
+  padding: 11px 34px;
+  font-size: 14px;
+  cursor: pointer;
+  font-weight: 650;
+  background: #000;
+  color: #fff;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.22);
+  transition: 0.15s;
+}
+.btn:hover {
+  background: #1d2129;
+  transform: translateY(-1px);
+}
