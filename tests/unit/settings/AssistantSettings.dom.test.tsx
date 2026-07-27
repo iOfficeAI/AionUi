@@ -6,7 +6,7 @@
 
 import React from 'react';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { ConfigProvider } from '@arco-design/web-react';
 import { MemoryRouter } from 'react-router-dom';
 import AssistantSettings from '@/renderer/pages/settings/AssistantSettings';
@@ -208,6 +208,7 @@ describe('AssistantSettings', () => {
           onOpenDetail={vi.fn()}
           onToggleEnabled={vi.fn()}
           onReorder={vi.fn()}
+          onStartChat={vi.fn()}
         />
       </ConfigProvider>
     );
@@ -248,6 +249,7 @@ describe('AssistantSettings', () => {
           onOpenDetail={vi.fn()}
           onToggleEnabled={vi.fn()}
           onReorder={vi.fn()}
+          onStartChat={vi.fn()}
         />
       </ConfigProvider>
     );
@@ -255,6 +257,45 @@ describe('AssistantSettings', () => {
     expect(screen.getByTestId('enabled-reorder-search-hint')).toHaveTextContent('Clear search to reorder.');
     expect(screen.getByTestId('enabled-assistant-reorder-handle-cli')).toBeDisabled();
     expect(screen.getByTestId('enabled-assistant-reorder-handle-official')).toBeDisabled();
+  });
+
+  it('exposes a quick-chat button on each enabled row and fires onStartChat', () => {
+    const onStartChat = vi.fn();
+    const onOpenDetail = vi.fn();
+    const assistants = [
+      {
+        id: 'cli',
+        name: 'Codex',
+        sort_order: 1,
+        source: 'generated',
+        enabled: true,
+        agent: { type: 'acp', source: 'builtin', acp_backend: 'codex' },
+      },
+    ] as AssistantListItem[];
+
+    render(
+      <ConfigProvider>
+        <EnabledAssistantsList
+          assistants={assistants}
+          assistantOrder={[]}
+          localeKey='en-US'
+          searchActive={false}
+          onOpenDetail={onOpenDetail}
+          onToggleEnabled={vi.fn()}
+          onReorder={vi.fn()}
+          onStartChat={onStartChat}
+        />
+      </ConfigProvider>
+    );
+
+    const chatButton = screen.getByTestId('btn-chat-cli');
+    expect(chatButton).toBeInTheDocument();
+
+    fireEvent.click(chatButton);
+    // Clicking chat starts a conversation and must not open the detail editor.
+    expect(onStartChat).toHaveBeenCalledTimes(1);
+    expect(onStartChat).toHaveBeenCalledWith(expect.objectContaining({ id: 'cli' }));
+    expect(onOpenDetail).not.toHaveBeenCalled();
   });
 
   it('uses the homepage avatar treatment without cropping runtime logos', () => {
@@ -280,6 +321,7 @@ describe('AssistantSettings', () => {
           onOpenDetail={vi.fn()}
           onToggleEnabled={vi.fn()}
           onReorder={vi.fn()}
+          onStartChat={vi.fn()}
         />
       </ConfigProvider>
     );
