@@ -45,6 +45,7 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
     onOpenMenu,
     onMenuVisibleChange,
     onEditStart,
+    onCreateCronTask,
     onDelete,
     onExport,
     onTogglePin,
@@ -252,6 +253,10 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
                       onEditStart(conversation);
                       return;
                     }
+                    if (key === 'createCronTask') {
+                      onCreateCronTask(conversation);
+                      return;
+                    }
                     if (key === 'export') {
                       onExport?.(conversation);
                       return;
@@ -279,6 +284,12 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
                     <div className='flex items-center gap-8px'>
                       <EditOne theme='outline' size='14' />
                       <span>{t('conversation.history.rename')}</span>
+                    </div>
+                  </Menu.Item>
+                  <Menu.Item key='createCronTask'>
+                    <div className='flex items-center gap-8px'>
+                      <Timer theme='outline' size='14' />
+                      <span>{t('conversation.history.createCronTask')}</span>
                     </div>
                   </Menu.Item>
                   {onExport && (

@@ -4,10 +4,10 @@ import { Form, Input, Message, Select, Tag } from '@arco-design/web-react';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import AionModal from '@/renderer/components/base/AionModal';
-import { ProviderLogo } from '@/renderer/components/agent/ThemedLogo';
 import { ipcBridge } from '@/common';
 import useModeModeList from '@renderer/hooks/agent/useModeModeList';
 import { getProviderLogo } from '@/renderer/utils/model/modelPlatforms';
+import { ProviderLogo } from '@/renderer/components/agent/ThemedLogo';
 
 const EditModeModal = ModalHOC<{ data?: IProvider; onChange(data: IProvider): void }>(
   ({ modalProps, modalCtrl, ...props }) => {

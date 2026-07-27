@@ -31,7 +31,10 @@ vi.mock('@icon-park/react', () => ({
 
 describe('AgentLogoIcon', () => {
   beforeEach(() => {
-    vi.stubGlobal('fetch', vi.fn(() => Promise.resolve({ ok: true, text: () => Promise.resolve('<svg></svg>') })));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => Promise.resolve({ ok: true, text: () => Promise.resolve('<svg></svg>') }))
+    );
   });
 
   afterEach(() => {

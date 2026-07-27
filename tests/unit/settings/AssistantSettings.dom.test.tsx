@@ -6,7 +6,7 @@
 
 import React from 'react';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { ConfigProvider } from '@arco-design/web-react';
 import { MemoryRouter } from 'react-router-dom';
 import AssistantSettings from '@/renderer/pages/settings/AssistantSettings';
@@ -298,7 +298,11 @@ describe('AssistantSettings', () => {
     expect(onOpenDetail).not.toHaveBeenCalled();
   });
 
-  it('uses the homepage avatar treatment without cropping runtime logos', () => {
+  it('uses the homepage avatar treatment without cropping runtime logos', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => Promise.resolve({ ok: true, text: () => Promise.resolve('<svg></svg>') }))
+    );
     const assistants = [
       {
         id: 'claude',
@@ -326,8 +330,16 @@ describe('AssistantSettings', () => {
       </ConfigProvider>
     );
 
+    // Wait for ThemedLogo detection to settle
+    await act(async () => {
+      await Promise.resolve();
+    });
+
     const row = screen.getByTestId('enabled-assistant-row-claude');
     expect(row.querySelector('.arco-avatar-circle')).toHaveStyle({ height: '20px', width: '20px' });
-    expect(row.querySelector('img')).toHaveClass('object-contain');
+    const logo = row.querySelector('img, span[role="img"]');
+    expect(logo).not.toBeNull();
+    expect(logo).toHaveClass('object-contain');
+    vi.unstubAllGlobals();
   });
 });
