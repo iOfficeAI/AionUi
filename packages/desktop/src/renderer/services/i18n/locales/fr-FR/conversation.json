@@ -562,7 +562,10 @@
         "body": "Cette demande n'a produit aucune réponse visible."
       },
       "ACP_EMPTY_TURN_NEEDS_AUTH": {
-        "body": "Cette requête n'a produit aucune réponse visible. L'agent doit peut-être d'abord vous connecter : {{hint}}."
+        "body": "Cette requête n'a produit aucune réponse visible. Si vous êtes déjà connecté, il peut s'agir d'un problème temporaire du backend ou de connexion — réessayez ou démarrez une nouvelle conversation. Si vous n'êtes pas encore connecté, vous pouvez vous connecter : {{hint}}."
+      },
+      "ACP_EMPTY_TURN_TOKEN_LIMIT": {
+        "body": "Cette requête n'a produit aucune réponse visible. La conversation actuelle approche peut-être de la limite de longueur de contexte — réessayez ou démarrez une nouvelle conversation, puis réessayez."
       },
       "ACP_EMPTY_TURN_MAX_TOKENS": {
         "body": "Cette requête a atteint la limite de jetons de sortie du modèle avant qu'une réponse visible ne soit produite."

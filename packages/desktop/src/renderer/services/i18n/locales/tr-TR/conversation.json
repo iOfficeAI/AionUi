@@ -565,7 +565,10 @@
         "body": "Bu istek görünür bir yanıt üretmedi."
       },
       "ACP_EMPTY_TURN_NEEDS_AUTH": {
-        "body": "Bu istek görünür bir yanıt üretmedi. Aracı önce oturum açmanızı gerektirebilir: {{hint}}."
+        "body": "Bu istek görünür bir yanıt üretmedi. Zaten oturum açtıysanız, bu geçici bir arka uç veya bağlantı sorunu olabilir; tekrar deneyin ya da yeni bir sohbet başlatın. Henüz oturum açmadıysanız oturum açabilirsiniz: {{hint}}."
+      },
+      "ACP_EMPTY_TURN_TOKEN_LIMIT": {
+        "body": "Bu istek görünür bir yanıt üretmedi. Geçerli sohbet bağlam uzunluğu sınırına yaklaşmış olabilir; tekrar deneyin veya yeni bir sohbet başlatıp yeniden deneyin."
       },
       "ACP_EMPTY_TURN_MAX_TOKENS": {
         "body": "Bu istek, görünür bir yanıt üretilmeden önce modelin çıktı token sınırına ulaştı."
