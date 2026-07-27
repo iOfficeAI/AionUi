@@ -564,7 +564,10 @@
         "body": "Diese Anfrage hat keine sichtbare Antwort erzeugt."
       },
       "ACP_EMPTY_TURN_NEEDS_AUTH": {
-        "body": "Diese Anfrage hat keine sichtbare Antwort erzeugt. Der Agent muss möglicherweise zuerst angemeldet werden – {{hint}}."
+        "body": "Diese Anfrage hat keine sichtbare Antwort erzeugt. Wenn Sie bereits angemeldet sind, kann es sich um ein vorübergehendes Backend- oder Verbindungsproblem handeln – versuchen Sie es erneut oder starten Sie eine neue Unterhaltung. Wenn Sie noch nicht angemeldet sind, können Sie sich anmelden – {{hint}}."
+      },
+      "ACP_EMPTY_TURN_TOKEN_LIMIT": {
+        "body": "Diese Anfrage hat keine sichtbare Antwort erzeugt. Die aktuelle Unterhaltung nähert sich möglicherweise der Kontextlängenbegrenzung – versuchen Sie es erneut oder starten Sie eine neue Unterhaltung und versuchen Sie es noch einmal."
       },
       "ACP_EMPTY_TURN_MAX_TOKENS": {
         "body": "Diese Anfrage hat das Ausgabe-Token-Limit des Modells erreicht, bevor eine sichtbare Antwort erzeugt wurde."

@@ -563,7 +563,10 @@
         "body": "This request produced no visible reply."
       },
       "ACP_EMPTY_TURN_NEEDS_AUTH": {
-        "body": "This request produced no visible reply. The agent may need you to sign in first — {{hint}}."
+        "body": "This request produced no visible reply. If you're already signed in, this may be a transient backend or connection issue — try again or start a new conversation. If you're not signed in yet, you can sign in — {{hint}}."
+      },
+      "ACP_EMPTY_TURN_TOKEN_LIMIT": {
+        "body": "This request produced no visible reply. The current conversation may be approaching the context length limit — try again, or start a new conversation and retry."
       },
       "ACP_EMPTY_TURN_MAX_TOKENS": {
         "body": "This request hit the model's output token limit before any visible reply was produced."

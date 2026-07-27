@@ -564,7 +564,10 @@
         "body": "Esta solicitud no produjo ninguna respuesta visible."
       },
       "ACP_EMPTY_TURN_NEEDS_AUTH": {
-        "body": "Esta solicitud no produjo ninguna respuesta visible. Puede que el agente necesite que inicies sesión primero: {{hint}}."
+        "body": "Esta solicitud no produjo ninguna respuesta visible. Si ya has iniciado sesión, puede tratarse de un problema temporal del backend o de conexión: inténtalo de nuevo o inicia una nueva conversación. Si aún no has iniciado sesión, puedes iniciar sesión: {{hint}}."
+      },
+      "ACP_EMPTY_TURN_TOKEN_LIMIT": {
+        "body": "Esta solicitud no produjo ninguna respuesta visible. La conversación actual podría estar acercándose al límite de longitud de contexto: inténtalo de nuevo o inicia una nueva conversación y vuelve a intentarlo."
       },
       "ACP_EMPTY_TURN_MAX_TOKENS": {
         "body": "Esta solicitud alcanzó el límite de tokens de salida del modelo antes de producir alguna respuesta visible."
