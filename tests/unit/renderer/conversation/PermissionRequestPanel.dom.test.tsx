@@ -62,8 +62,7 @@ const renderPanel = (props: Partial<React.ComponentProps<typeof PermissionReques
     />
   );
 
-const getOptionRadio = (testId: string): HTMLInputElement =>
-  within(screen.getByTestId(testId)).getByRole('radio') as HTMLInputElement;
+const getOptionButton = (testId: string): HTMLButtonElement => screen.getByTestId(testId) as HTMLButtonElement;
 
 const getOptionsGroup = (): HTMLElement => screen.getByTestId('message-permission-options');
 
@@ -72,21 +71,46 @@ describe('PermissionRequestPanel', () => {
     vi.clearAllMocks();
   });
 
-  it('selects the safe choice without moving focus from the conversation', () => {
+  it.each([
+    ['allow-once', 'once', 'Allow once'],
+    ['allow-always', 'always', 'Always allow'],
+    ['reject-once', 'reject', 'Reject once'],
+    ['reject-always', 'reject-always', 'Reject always'],
+    ['neutral', 'ask', 'Ask another way'],
+  ] as const)('submits every option (%s) on a single click', async (intent, value, label) => {
+    const onConfirm = vi.fn().mockResolvedValue(undefined);
+    const testId = `message-permission-option-${value}`;
+    renderPanel({
+      onConfirm,
+      options: [{ id: `${value}:0`, value, label, intent, testId }],
+    });
+
+    fireEvent.click(getOptionButton(testId));
+
+    expect(onConfirm).toHaveBeenCalledTimes(1);
+    expect(onConfirm).toHaveBeenCalledWith(value);
+    expect(await screen.findByTestId('message-permission-status')).toBeInTheDocument();
+  });
+
+  it('renders each option as a focusable button with no separate confirm step', () => {
+    renderPanel();
+
+    const once = getOptionButton('message-permission-option-once');
+    expect(once.tagName).toBe('BUTTON');
+    once.focus();
+    expect(once).toHaveFocus();
+    expect(screen.queryByTestId('message-permission-confirm')).not.toBeInTheDocument();
+    expect(screen.queryByRole('radio')).not.toBeInTheDocument();
+  });
+
+  it('does not move focus from the conversation on mount', () => {
     document.body.tabIndex = -1;
     document.body.focus();
 
     renderPanel();
 
-    const optionsGroup = getOptionsGroup();
-    const radios = within(optionsGroup).getAllByRole('radio') as HTMLInputElement[];
-    expect(getOptionRadio('message-permission-option-once')).toBeChecked();
     expect(document.body).toHaveFocus();
-    expect(getOptionRadio('message-permission-option-once')).not.toHaveFocus();
-    expect(optionsGroup).not.toHaveAttribute('tabindex');
-    expect(optionsGroup).not.toHaveAttribute('aria-keyshortcuts');
-    expect(new Set(radios.map((radio) => radio.name)).size).toBe(1);
-    expect(radios[0].name).not.toBe('');
+    expect(getOptionButton('message-permission-option-once')).not.toHaveFocus();
     document.body.removeAttribute('tabindex');
   });
 
@@ -111,273 +135,129 @@ describe('PermissionRequestPanel', () => {
     }
   );
 
-  it('selects only a one-time allow by default and supports mouse selection', () => {
-    renderPanel();
-
-    const always = getOptionRadio('message-permission-option-always');
-    const once = getOptionRadio('message-permission-option-once');
-    const reject = getOptionRadio('message-permission-option-reject');
-    expect(always).not.toBeChecked();
-    expect(once).toBeChecked();
-    expect(reject).not.toBeChecked();
-    expect(screen.getByRole('radiogroup', { name: 'messages.chooseAction' })).toBeInTheDocument();
-
-    fireEvent.click(within(screen.getByTestId('message-permission-option-always')).getByText('Always allow'));
-    expect(always).toBeChecked();
-    expect(once).not.toBeChecked();
-    expect(reject).not.toBeChecked();
-  });
-
-  it('renders options as one neutral list without per-intent decoration', () => {
-    renderPanel();
-
-    const optionsGroup = getOptionsGroup();
-    expect(optionsGroup.children).toHaveLength(3);
-    for (const option of Array.from(optionsGroup.children)) {
-      expect(option).not.toHaveAttribute('data-intent');
-      expect(option.querySelector('svg')).toBeNull();
-    }
-  });
-
   it('renders only the provider label for each option', () => {
     const longLabel = 'Allow this specific workspace operation once after reviewing every affected configuration file';
     renderPanel({ options: [{ ...makeOptions()[1], label: longLabel }] });
 
-    const option = screen.getByTestId('message-permission-option-once');
+    const option = getOptionButton('message-permission-option-once');
     expect(within(option).getByText(longLabel)).toBeInTheDocument();
     expect(option).not.toHaveTextContent('messages.permissionOptions');
   });
 
-  it('leaves keyboard events available to the conversation', () => {
-    const onConfirm = vi.fn().mockResolvedValue(undefined);
-    renderPanel({ onConfirm });
-    const conversationKeyDown = vi.fn();
-    document.addEventListener('keydown', conversationKeyDown);
-
-    try {
-      const once = getOptionRadio('message-permission-option-once');
-      expect(fireEvent.keyDown(once, { key: 'ArrowDown' })).toBe(true);
-      expect(fireEvent.keyDown(once, { key: 'Enter' })).toBe(true);
-      expect(conversationKeyDown).toHaveBeenCalledTimes(2);
-      expect(onConfirm).not.toHaveBeenCalled();
-    } finally {
-      document.removeEventListener('keydown', conversationKeyDown);
-    }
-  });
-
-  it('leaves persistent, unknown, and empty choices unselected', () => {
-    const { rerender } = renderPanel({
-      options: [
-        {
-          id: 'always:0',
-          value: 'always',
-          label: 'Always allow',
-          intent: 'allow-always',
-          testId: 'message-permission-option-always',
-        },
-        {
-          id: 'unknown:1',
-          value: 'unknown',
-          label: 'Ask another way',
-          intent: 'neutral',
-          testId: 'message-permission-option-unknown',
-        },
-        {
-          id: 'reject-always:2',
-          value: 'reject-always',
-          label: 'Always reject',
-          intent: 'reject-always',
-          testId: 'message-permission-option-reject-always',
-        },
-      ],
-    });
-
-    expect(getOptionRadio('message-permission-option-always')).not.toBeChecked();
-    expect(getOptionRadio('message-permission-option-unknown')).not.toBeChecked();
-    expect(getOptionRadio('message-permission-option-reject-always')).not.toBeChecked();
-    expect(screen.getByTestId('message-permission-confirm')).toBeDisabled();
-
-    rerender(
-      <PermissionRequestPanel
-        requestKey='request-1'
-        testIdPrefix='message-permission'
-        title='Permission request'
-        operationKind='tool'
-        options={[]}
-        onConfirm={vi.fn().mockResolvedValue(undefined)}
-      />
-    );
-    expect(screen.getByText('messages.noOptionsAvailable')).toBeInTheDocument();
-    expect(screen.getByTestId('message-permission-confirm')).toBeDisabled();
+  it('renders the options under an accessible group with a hidden legend', () => {
+    renderPanel();
+    const group = getOptionsGroup();
+    expect(group).toHaveAttribute('role', 'group');
+    expect(within(group).getAllByRole('button')).toHaveLength(3);
   });
 
   it('submits exactly once while pending and replaces controls with a receipt', async () => {
     let resolveRequest: (() => void) | undefined;
-    let confirmButton: HTMLElement;
-    const onConfirm = vi.fn(() => {
-      fireEvent.click(confirmButton);
-      return new Promise<void>((resolve) => {
-        resolveRequest = resolve;
-      });
-    });
+    const onConfirm = vi.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveRequest = resolve;
+        })
+    );
     renderPanel({ onConfirm });
-    confirmButton = screen.getByTestId('message-permission-confirm');
+    const once = getOptionButton('message-permission-option-once');
 
-    fireEvent.click(confirmButton);
-    fireEvent.click(confirmButton);
+    fireEvent.click(once);
+    fireEvent.click(once);
     expect(onConfirm).toHaveBeenCalledTimes(1);
     expect(onConfirm).toHaveBeenCalledWith('once');
-    expect(screen.getByTestId('message-permission-confirm')).toBeDisabled();
-    expect(getOptionsGroup()).not.toHaveAttribute('tabindex');
-    for (const radio of screen.getAllByRole('radio')) expect(radio).toBeDisabled();
+    for (const button of within(getOptionsGroup()).getAllByRole('button')) expect(button).toBeDisabled();
 
     await act(async () => {
       resolveRequest?.();
       await Promise.resolve();
     });
     expect(screen.getByTestId('message-permission-status')).toHaveAttribute('role', 'status');
-    expect(screen.queryByTestId('message-permission-confirm')).not.toBeInTheDocument();
-    expect(screen.queryByRole('radio')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('message-permission-options')).not.toBeInTheDocument();
   });
 
-  it('keeps the choice after a bridge failure and allows an explicit retry', async () => {
+  it('disables the other options while one is submitting', async () => {
+    let resolveRequest: (() => void) | undefined;
+    const onConfirm = vi.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveRequest = resolve;
+        })
+    );
+    renderPanel({ onConfirm });
+
+    fireEvent.click(getOptionButton('message-permission-option-once'));
+    expect(getOptionButton('message-permission-option-always')).toBeDisabled();
+    expect(getOptionButton('message-permission-option-reject')).toBeDisabled();
+
+    await act(async () => {
+      resolveRequest?.();
+      await Promise.resolve();
+    });
+  });
+
+  it('does not submit a disabled option', () => {
+    const onConfirm = vi.fn().mockResolvedValue(undefined);
+    renderPanel({
+      onConfirm,
+      options: [
+        {
+          id: 'once:0',
+          value: 'once',
+          label: 'Allow once',
+          intent: 'allow-once',
+          testId: 'message-permission-option-once',
+          disabled: true,
+        },
+      ],
+    });
+
+    expect(getOptionButton('message-permission-option-once')).toBeDisabled();
+    fireEvent.click(getOptionButton('message-permission-option-once'));
+    expect(onConfirm).not.toHaveBeenCalled();
+  });
+
+  it('keeps the options after a bridge failure and allows a retry on the same option', async () => {
     const onConfirm = vi.fn().mockRejectedValueOnce(new Error('offline')).mockResolvedValueOnce(undefined);
     renderPanel({ onConfirm });
-    fireEvent.click(within(screen.getByTestId('message-permission-option-reject')).getByText('Reject'));
-    fireEvent.click(screen.getByTestId('message-permission-confirm'));
 
+    fireEvent.click(getOptionButton('message-permission-option-reject'));
     expect(await screen.findByTestId('message-permission-error')).toHaveTextContent(
       'messages.permissionResponseFailed'
     );
-    expect(getOptionRadio('message-permission-option-reject')).toBeChecked();
-    expect(screen.getByTestId('message-permission-confirm')).toBeEnabled();
+    expect(getOptionButton('message-permission-option-reject')).toBeEnabled();
 
-    fireEvent.click(screen.getByTestId('message-permission-confirm'));
+    fireEvent.click(getOptionButton('message-permission-option-reject'));
     expect(await screen.findByTestId('message-permission-status')).toBeInTheDocument();
     expect(onConfirm).toHaveBeenNthCalledWith(1, 'reject');
     expect(onConfirm).toHaveBeenNthCalledWith(2, 'reject');
   });
 
-  it('revalidates removed options and clears prior state for a new request', async () => {
+  it('shows an empty state and no buttons when there are no options', () => {
+    renderPanel({ options: [] });
+    expect(screen.getByText('messages.noOptionsAvailable')).toBeInTheDocument();
+    expect(screen.queryByTestId('message-permission-options')).not.toBeInTheDocument();
+  });
+
+  it('clears a prior error when a new request arrives', async () => {
     const onConfirm = vi.fn().mockRejectedValue(new Error('offline'));
     const { rerender } = renderPanel({ onConfirm });
-    fireEvent.click(within(screen.getByTestId('message-permission-option-always')).getByText('Always allow'));
-    fireEvent.click(screen.getByTestId('message-permission-confirm'));
+    fireEvent.click(getOptionButton('message-permission-option-always'));
     expect(await screen.findByTestId('message-permission-error')).toBeInTheDocument();
 
-    const nextOptions: PermissionPanelOption[] = [
-      {
-        id: 'next-once:0',
-        value: 'next-once',
-        label: 'Allow next once',
-        intent: 'allow-once',
-        testId: 'message-permission-option-next-once',
-      },
-    ];
     rerender(
       <PermissionRequestPanel
         requestKey='request-2'
         testIdPrefix='message-permission'
         title='Next request'
         operationKind='edit'
-        options={nextOptions}
+        options={makeOptions()}
         onConfirm={vi.fn().mockResolvedValue(undefined)}
       />
     );
 
     expect(screen.queryByTestId('message-permission-error')).not.toBeInTheDocument();
-    expect(getOptionRadio('message-permission-option-next-once')).toBeChecked();
-  });
-
-  it('clears a safe default when the same option becomes persistent', () => {
-    const option: PermissionPanelOption = {
-      id: 'shared:0',
-      value: 'shared',
-      label: 'Allow once',
-      intent: 'allow-once',
-      testId: 'message-permission-option-shared',
-    };
-    const { rerender } = renderPanel({ options: [option] });
-    expect(getOptionRadio('message-permission-option-shared')).toBeChecked();
-
-    rerender(
-      <PermissionRequestPanel
-        requestKey='request-1'
-        testIdPrefix='message-permission'
-        title='Permission request'
-        operationKind='execute'
-        options={[{ ...option, label: 'Always allow', intent: 'allow-always' }]}
-        onConfirm={vi.fn().mockResolvedValue(undefined)}
-      />
-    );
-
-    expect(getOptionRadio('message-permission-option-shared')).not.toBeChecked();
-    expect(screen.getByTestId('message-permission-confirm')).toBeDisabled();
-  });
-
-  it.each(['resolve', 'reject'] as const)(
-    'keeps an option update locked and ignores the stale %s result',
-    async (outcome) => {
-      let resolveRequest: (() => void) | undefined;
-      let rejectRequest: ((error: Error) => void) | undefined;
-      const onConfirm = vi.fn(
-        () =>
-          new Promise<void>((resolve, reject) => {
-            resolveRequest = resolve;
-            rejectRequest = reject;
-          })
-      );
-      const { rerender } = renderPanel({ onConfirm });
-      fireEvent.click(screen.getByTestId('message-permission-confirm'));
-
-      const nextOptions: PermissionPanelOption[] = [
-        {
-          id: 'next-once:0',
-          value: 'next-once',
-          label: 'Allow updated request once',
-          intent: 'allow-once',
-          testId: 'message-permission-option-next-once',
-        },
-      ];
-      rerender(
-        <PermissionRequestPanel
-          requestKey='request-1'
-          testIdPrefix='message-permission'
-          title='Updated permission request'
-          operationKind='execute'
-          options={nextOptions}
-          onConfirm={onConfirm}
-        />
-      );
-      expect(getOptionRadio('message-permission-option-next-once')).toBeChecked();
-      expect(screen.getByTestId('message-permission-confirm')).toBeDisabled();
-      fireEvent.click(screen.getByTestId('message-permission-confirm'));
-      expect(onConfirm).toHaveBeenCalledTimes(1);
-
-      await act(async () => {
-        if (outcome === 'resolve') resolveRequest?.();
-        else rejectRequest?.(new Error('stale failure'));
-        await Promise.resolve();
-      });
-      expect(screen.queryByTestId('message-permission-status')).not.toBeInTheDocument();
-      expect(screen.queryByTestId('message-permission-error')).not.toBeInTheDocument();
-      expect(screen.getByTestId('message-permission-confirm')).toBeEnabled();
-    }
-  );
-
-  it('keeps confirmation disabled when every choice is disabled', () => {
-    const disabledOption: PermissionPanelOption = {
-      id: 'disabled:0',
-      value: 'disabled',
-      label: 'Unavailable',
-      intent: 'allow-once',
-      testId: 'message-permission-option-disabled',
-      disabled: true,
-    };
-    renderPanel({ options: [disabledOption] });
-
-    expect(getOptionRadio('message-permission-option-disabled')).toBeDisabled();
-    expect(screen.getByTestId('message-permission-confirm')).toBeDisabled();
+    expect(getOptionButton('message-permission-option-once')).toBeEnabled();
   });
 
   it.each(['execute', 'edit', 'read', 'fetch', 'tool'] as const)(
@@ -399,7 +279,7 @@ describe('PermissionRequestPanel', () => {
         })
     );
     const { rerender } = renderPanel({ onConfirm: firstConfirm });
-    fireEvent.click(screen.getByTestId('message-permission-confirm'));
+    fireEvent.click(getOptionButton('message-permission-option-once'));
 
     rerender(
       <PermissionRequestPanel
@@ -417,7 +297,7 @@ describe('PermissionRequestPanel', () => {
     });
 
     expect(screen.queryByTestId('message-permission-status')).not.toBeInTheDocument();
-    expect(screen.getByTestId('message-permission-confirm')).toBeEnabled();
+    expect(getOptionButton('message-permission-option-once')).toBeEnabled();
   });
 
   it('ignores a stale submission error after the request identity changes', async () => {
@@ -429,7 +309,7 @@ describe('PermissionRequestPanel', () => {
         })
     );
     const { rerender } = renderPanel({ onConfirm: firstConfirm });
-    fireEvent.click(screen.getByTestId('message-permission-confirm'));
+    fireEvent.click(getOptionButton('message-permission-option-once'));
 
     rerender(
       <PermissionRequestPanel
@@ -447,17 +327,7 @@ describe('PermissionRequestPanel', () => {
     });
 
     expect(screen.queryByTestId('message-permission-error')).not.toBeInTheDocument();
-    expect(screen.getByTestId('message-permission-confirm')).toBeEnabled();
-  });
-
-  it('refuses a selection that disappeared from a mutated option list', () => {
-    const options = makeOptions();
-    const onConfirm = vi.fn().mockResolvedValue(undefined);
-    renderPanel({ options, onConfirm });
-    options.splice(1, 1);
-
-    fireEvent.click(screen.getByTestId('message-permission-confirm'));
-    expect(onConfirm).not.toHaveBeenCalled();
+    expect(getOptionButton('message-permission-option-once')).toBeEnabled();
   });
 });
 
