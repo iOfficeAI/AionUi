@@ -255,6 +255,19 @@ describe('MessageText attachment paths', () => {
     expect(content.parentElement?.className).not.toContain('max-w-780px');
   });
 
+  it('wraps a long unbroken url/path in a user message so the bubble never overflows', () => {
+    const longPath = '/var/folders/gd/6bb7q8jd1ll0g17q5gly4flw0000gn/T/aionui/0265f4a8/image-xxxxxxxxxxxxxxxxxx';
+
+    renderMessageText(longPath, { position: 'right' });
+
+    const content = screen.getByTestId('message-text-content');
+    // overflow-wrap: anywhere breaks a no-space run by character AND shrinks
+    // min-content, so the bubble stays within the row. break-words does neither.
+    expect(content.className).toContain('[overflow-wrap:anywhere]');
+    expect(content.className).not.toContain('break-words');
+    expect(content).toHaveTextContent(longPath);
+  });
+
   it('keeps absolute attachment paths unchanged before previewing', () => {
     const message: IMessageText = {
       id: 'msg-2',
