@@ -6,6 +6,7 @@ import AionModal from '@/renderer/components/base/AionModal';
 import { useHubAgents } from '@/renderer/hooks/agent/useHubAgents';
 import type { IHubAgentItem } from '@/common/types/agent/hub';
 import { resolveAgentAvatar, useAgentLogos } from '@renderer/utils/model/agentLogo';
+import ThemedLogo from '@/renderer/components/agent/ThemedLogo';
 import { openExternalUrl } from '@/renderer/utils/platform';
 
 interface AgentHubModalProps {
@@ -148,7 +149,7 @@ export const AgentHubModal: React.FC<AgentHubModalProps> = ({ visible, onCancel 
 
                   <div className='mb-6px flex h-40px items-center justify-center'>
                     {avatar.kind === 'image' ? (
-                      <img
+                      <ThemedLogo
                         src={avatar.value}
                         alt={agent.display_name}
                         className='h-36px w-36px rounded-10px object-contain'

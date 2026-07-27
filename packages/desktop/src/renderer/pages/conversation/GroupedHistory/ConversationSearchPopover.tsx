@@ -11,9 +11,9 @@ import { AionSearchInput } from '@/renderer/components/base';
 import { formatDateTime } from '@/renderer/services/i18n/format';
 import { usePresetAssistantInfo } from '@/renderer/hooks/agent/usePresetAssistantInfo';
 import { useAgentLogos } from '@/renderer/utils/model/agentLogo';
+import ThemedLogo from '@/renderer/components/agent/ThemedLogo';
 import { resolveConversationLeadingMark } from '@/renderer/pages/conversation/utils/conversationAssistantIdentity';
 import { blockMobileInputFocus, blurActiveElement } from '@/renderer/utils/ui/focus';
-import { isPrimaryApplicationShortcut } from '@/renderer/utils/ui/keyboardShortcuts';
 import { Empty, Spin, Typography } from '@arco-design/web-react';
 import { Close, MessageOne, Robot, Search } from '@icon-park/react';
 import classNames from 'classnames';
@@ -114,7 +114,7 @@ const ConversationAgentMark: React.FC<{ conversation: IMessageSearchItem['conver
   }
   if (leadingMark.kind === 'image') {
     return (
-      <img
+      <ThemedLogo
         src={leadingMark.value}
         alt={leadingMark.label}
         title={leadingMark.label}
@@ -304,18 +304,13 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
 
   useEffect(() => {
     const handleGlobalSearchShortcut = (event: KeyboardEvent) => {
-      if (
-        !isPrimaryApplicationShortcut(event, {
-          key: 'f',
-          shiftKey: true,
-          targetGuard: 'embedded-editor',
-        })
-      ) {
-        return;
-      }
+      if (event.defaultPrevented) return;
+      if ((event as unknown as { isComposing?: boolean }).isComposing) return;
+      const key = event.key.toLowerCase();
+      const isCmdOrCtrl = event.metaKey || event.ctrlKey;
+      if (!isCmdOrCtrl || !event.shiftKey || key !== 'f' || event.altKey) return;
       // Preserve browser behavior in WebUI; only intercept in the desktop runtime.
       if (typeof window !== 'undefined' && !window.electronAPI) return;
-      if (disabled) return;
       event.preventDefault();
       handleOpen();
     };
@@ -324,7 +319,7 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
     return () => {
       document.removeEventListener('keydown', handleGlobalSearchShortcut, true);
     };
-  }, [disabled, handleOpen]);
+  }, [handleOpen]);
 
   const triggerAriaLabel = t('conversation.historySearch.tooltip');
 

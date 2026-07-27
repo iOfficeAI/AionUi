@@ -14,6 +14,7 @@ import { useManagedAgentRuntimeCatalog } from '@/renderer/hooks/agent/useManaged
 import { managedAgentSearchText } from '@/renderer/utils/model/agentTypes';
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { resolveAssistantAvatar } from '@/renderer/utils/model/assistantAvatar';
+import ThemedLogo from '@/renderer/components/agent/ThemedLogo';
 import { selectableAssistants } from '@/renderer/utils/model/assistantSelection';
 import { useTranslation } from 'react-i18next';
 
@@ -71,7 +72,6 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
   onSelectAssistant,
 }) => {
   const { t } = useTranslation();
-  const { assistantOrder } = useAssistantOrder();
   const [moreVisible, setMoreVisible] = useState(false);
   const [search, setSearch] = useState('');
   const [availableWidth, setAvailableWidth] = useState(() => (typeof window === 'undefined' ? 800 : window.innerWidth));
@@ -83,10 +83,7 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
   const widthVisibleLimit = Math.min(Math.max(1, maxVisibleAssistants), resolveAssistantVisibleLimit(availableWidth));
   const [adaptiveVisibleLimit, setAdaptiveVisibleLimit] = useState(widthVisibleLimit);
   const visibleLimit = Math.min(widthVisibleLimit, adaptiveVisibleLimit);
-  const enabledAssistants = useMemo(
-    () => selectableAssistants(assistants, assistantOrder),
-    [assistantOrder, assistants]
-  );
+  const enabledAssistants = useMemo(() => selectableAssistants(assistants), [assistants]);
 
   useEffect(() => {
     setAdaptiveVisibleLimit(widthVisibleLimit);
@@ -248,7 +245,7 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
       >
         <span className='inline-flex h-20px w-20px items-center justify-center overflow-hidden rounded-999px bg-fill-2'>
           {avatar.kind === 'image' ? (
-            <img src={avatar.value} alt='' className='h-full w-full object-contain' />
+            <ThemedLogo src={avatar.value} alt='' className='object-contain' style={{ width: 20, height: 20 }} />
           ) : avatar.kind === 'emoji' ? (
             <span className={styles.assistantCardEmoji}>{avatar.value}</span>
           ) : (

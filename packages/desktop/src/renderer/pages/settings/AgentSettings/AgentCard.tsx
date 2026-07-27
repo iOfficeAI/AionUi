@@ -10,6 +10,7 @@ import { Delete, EditTwo, Robot } from '@icon-park/react';
 import { useTranslation } from 'react-i18next';
 import type { Assistant } from '@/common/types/agent/assistantTypes';
 import { resolveAgentAvatar, useAgentLogos } from '@/renderer/utils/model/agentLogo';
+import ThemedLogo from '@/renderer/components/agent/ThemedLogo';
 import {
   type AgentManagementStatus,
   type ManagedAgent,
@@ -132,7 +133,7 @@ const AgentCard: React.FC<AgentCardProps> = (props) => {
           style={{ flexShrink: 0, backgroundColor: avatar.kind === 'image' ? 'transparent' : 'var(--color-fill-2)' }}
         >
           {avatar.kind === 'image' ? (
-            <img src={avatar.value} alt={agent.name} className='h-full w-full object-contain' />
+            <ThemedLogo src={avatar.value} alt={agent.name} style={{ width: 32, height: 32, objectFit: 'contain' }} />
           ) : avatar.kind === 'emoji' ? (
             <span className='text-18px leading-none'>{avatar.value}</span>
           ) : (

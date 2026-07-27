@@ -5,6 +5,7 @@
  */
 
 import { useAgentLogos } from '@/renderer/utils/model/agentLogo';
+import ThemedLogo from '@/renderer/components/agent/ThemedLogo';
 import FlexFullContainer from '@/renderer/components/layout/FlexFullContainer';
 import { usePresetAssistantInfo } from '@/renderer/hooks/agent/usePresetAssistantInfo';
 import { CronJobIndicator } from '@/renderer/pages/cron';
@@ -44,7 +45,6 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
     onOpenMenu,
     onMenuVisibleChange,
     onEditStart,
-    onCreateCronTask,
     onDelete,
     onExport,
     onTogglePin,
@@ -85,7 +85,7 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
     }
     if (leadingMark.kind === 'image') {
       return (
-        <img
+        <ThemedLogo
           src={leadingMark.value}
           alt={leadingMark.label}
           className={classNames('w-16px h-16px rounded-50% flex-shrink-0', composedClass)}
@@ -252,10 +252,6 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
                       onEditStart(conversation);
                       return;
                     }
-                    if (key === 'createCronTask') {
-                      onCreateCronTask(conversation);
-                      return;
-                    }
                     if (key === 'export') {
                       onExport?.(conversation);
                       return;
@@ -283,12 +279,6 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
                     <div className='flex items-center gap-8px'>
                       <EditOne theme='outline' size='14' />
                       <span>{t('conversation.history.rename')}</span>
-                    </div>
-                  </Menu.Item>
-                  <Menu.Item key='createCronTask'>
-                    <div className='flex items-center gap-8px'>
-                      <Timer theme='outline' size='14' />
-                      <span>{t('conversation.history.createCronTask')}</span>
                     </div>
                   </Menu.Item>
                   {onExport && (

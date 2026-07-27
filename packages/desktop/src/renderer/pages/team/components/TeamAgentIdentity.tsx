@@ -1,6 +1,7 @@
 import React from 'react';
 import useSWR from 'swr';
 import { resolveAgentAvatar, useAgentLogos } from '@renderer/utils/model/agentLogo';
+import ThemedLogo from '@/renderer/components/agent/ThemedLogo';
 import { usePresetAssistantInfo } from '@renderer/hooks/agent/usePresetAssistantInfo';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
 import { Robot } from '@icon-park/react';
@@ -66,10 +67,10 @@ const TeamAgentIdentity: React.FC<Props> = ({
       if (presetInfo.isEmoji) {
         return <span className={resolvedAvatarClassName}>{presetInfo.logo}</span>;
       }
-      return <img src={presetInfo.logo} alt={displayName} className={resolvedLogoClassName} />;
+      return <ThemedLogo src={presetInfo.logo} alt={displayName} className={resolvedLogoClassName} />;
     }
     if (agentAvatar.kind === 'image') {
-      return <img src={agentAvatar.value} alt={displayName} className={resolvedLogoClassName} />;
+      return <ThemedLogo src={agentAvatar.value} alt={displayName} className={resolvedLogoClassName} />;
     }
     if (agentAvatar.kind === 'emoji') {
       return <span className={resolvedAvatarClassName}>{agentAvatar.value}</span>;
