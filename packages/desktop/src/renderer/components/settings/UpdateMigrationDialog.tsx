@@ -81,10 +81,15 @@ const UpdateMigrationDialog: React.FC = () => {
     setHasMoreBelow(el.scrollHeight - el.scrollTop - el.clientHeight > 8);
   };
 
-  // Re-measure once the dialog mounts its content (modal renders lazily).
+  // On every open: reset scroll to the top (a reopened letter should start
+  // from the beginning, not where the user left off) and re-measure the
+  // scroll hint once the modal has mounted its content (it renders lazily).
   useEffect(() => {
     if (!visible) return;
-    const id = window.setTimeout(updateScrollHint, 50);
+    const id = window.setTimeout(() => {
+      if (scrollRef.current) scrollRef.current.scrollTop = 0;
+      updateScrollHint();
+    }, 50);
     return () => window.clearTimeout(id);
   }, [visible]);
 
