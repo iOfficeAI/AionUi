@@ -35,7 +35,7 @@ export type GuidAssistantSelectionResult = {
   selectedAssistant: Assistant | undefined;
   selectedAssistantBackend: string;
   selectedAssistantAvailable: boolean;
-  /** True when the selected assistant's agent can run via `ollama launch`. */
+  /** True when the selected assistant's agent supports Ollama model routing. */
   selectedAgentOllamaCompatible: boolean;
   assistants: Assistant[];
   selectedMode: string;

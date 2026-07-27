@@ -5,12 +5,13 @@
  */
 
 /**
- * Ollama Launch helpers for the Guid page.
+ * Ollama model routing helpers for the Guid page.
  *
- * `ollama launch <agent>` (Ollama v0.15+) runs a compatible ACP agent against
- * local Ollama models, so no provider API key is needed. The backend exposes
- * `ollama_compatible` per agent and consumes `use_ollama` + `ollama_model`
- * from the conversation `extra` payload.
+ * The AionCore backend (iOfficeAI/AionCore#626) injects provider environment
+ * variables into a compatible ACP agent's native command so its model calls
+ * route to the local Ollama server — no provider API keys needed. The
+ * backend exposes `ollama_compatible` per agent and consumes `use_ollama` +
+ * `ollama_model` from the conversation `extra` payload.
  */
 
 /** Local Ollama HTTP API endpoint listing pulled models (`ollama list`). */
@@ -36,9 +37,9 @@ export type OllamaLaunchExtra = {
  * Build the conversation-extra fragment for Ollama Launch.
  *
  * Returns `undefined` when no model is selected: the backend requires an
- * explicit `ollama_model` for headless `ollama launch --model` and would
- * silently fall back to the native launch otherwise, so we never send
- * `use_ollama` without a model.
+ * explicit `ollama_model` to inject into the agent's provider env vars
+ * and would silently fall back to the native launch otherwise, so we
+ * never send `use_ollama` without a model.
  */
 export function buildOllamaLaunchExtra(ollamaModel: string | null): OllamaLaunchExtra | undefined {
   const trimmed = ollamaModel?.trim();
