@@ -1,0 +1,40 @@
+{
+  "skip": "Überspringen",
+  "next": "Weiter",
+  "start": "Loslegen",
+  "scan": {
+    "kick": "Dein Computer wird erkundet",
+    "title": "Deine lokalen Tools werden gescannt…",
+    "titleDone": "Es kennt alle deine installierten KI-Tools",
+    "titleEmpty": "Keine anderen Tools? Funktioniert trotzdem sofort",
+    "desc": "Installierte Tools werden ohne Neukonfiguration übernommen — dazu das integrierte AionCLI, sofort einsatzbereit.",
+    "descEmpty": "AionUi bringt ein integriertes AionCLI mit und ist sofort einsatzbereit. Wenn du später Tools wie Claude Code oder Codex installierst, werden sie automatisch erkannt und eingebunden.",
+    "scanning": "Lokale KI-Tools werden gescannt…",
+    "finished": "Scan abgeschlossen",
+    "none": "Keine weiteren KI-Tools gefunden",
+    "builtinTag": "Integrierte Engine",
+    "bundled": "Enthalten",
+    "count": "Insgesamt {{count}} einsatzbereit (inklusive integriertem AionCLI)",
+    "countEmpty": "Das integrierte AionCLI ist jederzeit einsatzbereit"
+  },
+  "derive": {
+    "kick": "Sie sind mehr als Tools",
+    "starSub": "Dein Kommandozeilen-Tool",
+    "yourAssistant": "Dein Assistent",
+    "tag": "Persönlicher Assistent",
+    "seedNote": "Ein Experte, der für dich arbeitet · Tools jederzeit wechselbar",
+    "title": "Mehr als Tools — deine persönlichen Assistenten",
+    "desc": "Jeder Assistent ist ein Experte — Entwicklung, Büroarbeit, Design, Texte, jeder mit eigenem Fachgebiet."
+  },
+  "memory": {
+    "kick": "Dein persönlicher Assistent",
+    "line1": "Stark in minimalistischen Business-Präsentationen",
+    "line2": "Farben folgen der Marke deines Unternehmens",
+    "line3": "Höchstens drei Kernpunkte pro Folie",
+    "ownerFallback": "Dein Assistent",
+    "ownerRole": "Seine Fähigkeiten-Einstellungen",
+    "currentTool": "Aktuelles Tool",
+    "title": "Wechsle das Tool — die Leistung deines Assistenten bleibt erhalten",
+    "desc": "Die Einstellungen und der Stil deines Assistenten bleiben immer bei dir. Das zugrunde liegende Tool kannst du jederzeit wechseln — das Ergebnis bleibt gleich."
+  }
+}

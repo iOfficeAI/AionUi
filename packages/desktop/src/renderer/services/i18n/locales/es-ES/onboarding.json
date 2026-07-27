@@ -1,0 +1,40 @@
+{
+  "skip": "Omitir",
+  "next": "Siguiente",
+  "start": "Empezar",
+  "scan": {
+    "kick": "Conociendo tu ordenador",
+    "title": "Escaneando tus herramientas locales…",
+    "titleDone": "Reconoce todas tus herramientas de IA",
+    "titleEmpty": "¿Sin otras herramientas? Funciona desde el primer momento",
+    "desc": "Tus herramientas instaladas funcionan tal cual, sin reconfigurar nada — además del AionCLI integrado, listo para usar.",
+    "descEmpty": "AionUi incluye un AionCLI integrado, listo para usar. Si más adelante instalas herramientas como Claude Code o Codex, se reconocerán y conectarán automáticamente.",
+    "scanning": "Escaneando herramientas de IA locales…",
+    "finished": "Escaneo completado",
+    "none": "No se encontraron otras herramientas de IA",
+    "builtinTag": "Motor integrado",
+    "bundled": "Incluido",
+    "count": "{{count}} listas en total (incluido el AionCLI integrado)",
+    "countEmpty": "El AionCLI integrado está listo para usar"
+  },
+  "derive": {
+    "kick": "Son más que herramientas",
+    "starSub": "Tu herramienta de línea de comandos",
+    "yourAssistant": "Tu asistente",
+    "tag": "Asistente personal",
+    "seedNote": "Un experto trabajando para ti · Cambia de herramienta cuando quieras",
+    "title": "Más que herramientas: se convierten en tus asistentes personales",
+    "desc": "Cada asistente es un experto — programación, oficina, diseño, escritura, cada uno con su especialidad."
+  },
+  "memory": {
+    "kick": "Tu asistente personal",
+    "line1": "Experto en presentaciones de negocios minimalistas",
+    "line2": "Los colores siguen la marca de tu empresa",
+    "line3": "No más de tres puntos por diapositiva",
+    "ownerFallback": "Tu asistente",
+    "ownerRole": "Su perfil de capacidades",
+    "currentTool": "Herramienta actual",
+    "title": "Cambia de herramienta: tu asistente sigue igual de bueno",
+    "desc": "La configuración y el estilo de tu asistente siempre te acompañan. Cambia la herramienta subyacente cuando quieras — los resultados no cambian."
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "skip": "Passer",
+  "next": "Suivant",
+  "start": "Commencer",
+  "scan": {
+    "kick": "Découverte de votre ordinateur",
+    "title": "Analyse de vos outils locaux…",
+    "titleDone": "Il connaît tous vos outils IA",
+    "titleEmpty": "Pas d'autres outils ? Ça marche dès l'installation",
+    "desc": "Vos outils installés fonctionnent tels quels, sans aucune reconfiguration — avec en plus AionCLI intégré, prêt à l'emploi.",
+    "descEmpty": "AionUi est livré avec un AionCLI intégré, prêt à l'emploi. Installez plus tard des outils comme Claude Code ou Codex : ils seront reconnus et connectés automatiquement.",
+    "scanning": "Analyse des outils IA locaux…",
+    "finished": "Analyse terminée",
+    "none": "Aucun autre outil IA trouvé",
+    "builtinTag": "Moteur intégré",
+    "bundled": "Inclus",
+    "count": "{{count}} prêts au total (y compris l'AionCLI intégré)",
+    "countEmpty": "L'AionCLI intégré est prêt à l'emploi"
+  },
+  "derive": {
+    "kick": "Ce sont plus que des outils",
+    "starSub": "Votre outil en ligne de commande",
+    "yourAssistant": "Votre assistant",
+    "tag": "Assistant personnel",
+    "seedNote": "Un expert à votre service · Changez d'outil à tout moment",
+    "title": "Plus que des outils : ils deviennent vos assistants personnels",
+    "desc": "Chaque assistant est un expert — développement, bureautique, design, rédaction, chacun sa spécialité."
+  },
+  "memory": {
+    "kick": "Votre assistant personnel",
+    "line1": "Expert en présentations professionnelles minimalistes",
+    "line2": "Les couleurs suivent la charte de votre entreprise",
+    "line3": "Pas plus de trois points par diapositive",
+    "ownerFallback": "Votre assistant",
+    "ownerRole": "Son profil de compétences",
+    "currentTool": "Outil actuel",
+    "title": "Changez d'outil : votre assistant reste aussi performant",
+    "desc": "Les réglages et le style de votre assistant vous suivent toujours. Changez l'outil sous-jacent à tout moment — les résultats restent les mêmes."
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "skip": "跳过",
+  "next": "下一步",
+  "start": "开始使用",
+  "scan": {
+    "kick": "正在认识你的电脑",
+    "title": "正在扫描你的本地工具…",
+    "titleDone": "你装的 AI 工具，它都认识",
+    "titleEmpty": "没装别的工具？照样开箱即用",
+    "desc": "已装的工具不用重新配置，直接接管——加上内置 AionCLI，开箱即用。",
+    "descEmpty": "AionUi 自带一个 AionCLI，开箱即用。以后你装了 Claude Code、Codex 之类的工具，也会随时被认出、接进来。",
+    "scanning": "正在扫描本地的 AI 工具…",
+    "finished": "扫描完成",
+    "none": "没有找到其它 AI 工具",
+    "builtinTag": "内置引擎",
+    "bundled": "自带",
+    "count": "共 {{count}} 个已就位（含内置 AionCLI）",
+    "countEmpty": "内置 AionCLI 已就位，随时可用"
+  },
+  "derive": {
+    "kick": "它们不只是工具",
+    "starSub": "你的命令行工具",
+    "yourAssistant": "你的助手",
+    "tag": "专属助手",
+    "seedNote": "为你干活的专家 · 随时切换工具",
+    "title": "不只是工具，还能是你的专属助手",
+    "desc": "每个助手都是一位专家——研发、办公、设计、写作，各管一摊。"
+  },
+  "memory": {
+    "kick": "你的专属助手",
+    "line1": "擅长商务极简风演示",
+    "line2": "配色跟随公司品牌色",
+    "line3": "每页不超过三个要点",
+    "ownerFallback": "你的助手",
+    "ownerRole": "它的能力设定",
+    "currentTool": "当前工具",
+    "title": "助手的效果，换个工具也不丢",
+    "desc": "助手的设定和风格始终跟着你，底层工具随时切换，效果不受影响。"
+  }
+}

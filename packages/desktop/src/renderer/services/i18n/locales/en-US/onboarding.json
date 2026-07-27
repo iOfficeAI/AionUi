@@ -1,0 +1,40 @@
+{
+  "skip": "Skip",
+  "next": "Next",
+  "start": "Get Started",
+  "scan": {
+    "kick": "Getting to know your computer",
+    "title": "Scanning your local tools…",
+    "titleDone": "It knows every AI tool you have",
+    "titleEmpty": "No other tools? Works out of the box",
+    "desc": "Your installed tools work as-is with no reconfiguration — plus the built-in AionCLI, ready out of the box.",
+    "descEmpty": "AionUi ships with a built-in AionCLI, ready out of the box. Install tools like Claude Code or Codex later and they will be recognized and connected automatically.",
+    "scanning": "Scanning local AI tools…",
+    "finished": "Scan complete",
+    "none": "No other AI tools found",
+    "builtinTag": "Built-in engine",
+    "bundled": "Bundled",
+    "count": "{{count}} ready in total (including built-in AionCLI)",
+    "countEmpty": "Built-in AionCLI is ready to go"
+  },
+  "derive": {
+    "kick": "They are more than tools",
+    "starSub": "Your command-line tool",
+    "yourAssistant": "Your assistant",
+    "tag": "Personal assistant",
+    "seedNote": "An expert working for you · Switch tools anytime",
+    "title": "More than tools — they become your personal assistants",
+    "desc": "Every assistant is an expert — coding, office work, design, writing, each with its own specialty."
+  },
+  "memory": {
+    "kick": "Your personal assistant",
+    "line1": "Great at minimalist business presentations",
+    "line2": "Colors follow your company brand",
+    "line3": "No more than three points per slide",
+    "ownerFallback": "Your assistant",
+    "ownerRole": "Its capability profile",
+    "currentTool": "Current tool",
+    "title": "Switch tools — your assistant stays just as good",
+    "desc": "Your assistant's settings and style always stay with you. Swap the underlying tool anytime — the results stay the same."
+  }
+}

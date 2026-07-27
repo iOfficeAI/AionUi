@@ -1,0 +1,40 @@
+{
+  "skip": "Pular",
+  "next": "Avançar",
+  "start": "Começar",
+  "scan": {
+    "kick": "Conhecendo o seu computador",
+    "title": "Escaneando suas ferramentas locais…",
+    "titleDone": "Ele reconhece todas as suas ferramentas de IA",
+    "titleEmpty": "Sem outras ferramentas? Funciona assim mesmo",
+    "desc": "Suas ferramentas instaladas funcionam sem reconfiguração — além do AionCLI integrado, pronto para usar.",
+    "descEmpty": "O AionUi vem com o AionCLI integrado, pronto para usar. Se você instalar ferramentas como Claude Code ou Codex depois, elas serão reconhecidas e conectadas automaticamente.",
+    "scanning": "Escaneando ferramentas de IA locais…",
+    "finished": "Escaneamento concluído",
+    "none": "Nenhuma outra ferramenta de IA encontrada",
+    "builtinTag": "Motor integrado",
+    "bundled": "Incluído",
+    "count": "{{count}} no total prontas para uso (incluindo o AionCLI integrado)",
+    "countEmpty": "O AionCLI integrado está pronto para uso"
+  },
+  "derive": {
+    "kick": "Elas são mais do que ferramentas",
+    "starSub": "Sua ferramenta de linha de comando",
+    "yourAssistant": "Seu assistente",
+    "tag": "Assistente pessoal",
+    "seedNote": "Um especialista trabalhando para você · Troque de ferramenta quando quiser",
+    "title": "Mais que ferramentas — seus assistentes pessoais",
+    "desc": "Cada assistente é um especialista — desenvolvimento, escritório, design, escrita, cada um cuida da sua área."
+  },
+  "memory": {
+    "kick": "Seu assistente pessoal",
+    "line1": "Ótimo em apresentações empresariais minimalistas",
+    "line2": "Cores seguem a identidade visual da empresa",
+    "line3": "No máximo três pontos por slide",
+    "ownerFallback": "Seu assistente",
+    "ownerRole": "Perfil de capacidades",
+    "currentTool": "Ferramenta atual",
+    "title": "Troque de ferramenta — o resultado do assistente não se perde",
+    "desc": "As configurações e o estilo do assistente sempre acompanham você. Troque a ferramenta por baixo quando quiser — o resultado continua o mesmo."
+  }
+}

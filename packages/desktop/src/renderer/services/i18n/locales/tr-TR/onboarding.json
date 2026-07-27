@@ -1,0 +1,40 @@
+{
+  "skip": "Atla",
+  "next": "İleri",
+  "start": "Başla",
+  "scan": {
+    "kick": "Bilgisayarınız tanınıyor",
+    "title": "Yerel araçlarınız taranıyor…",
+    "titleDone": "Kurulu tüm AI araçlarınızı tanır",
+    "titleEmpty": "Başka araç yok mu? Kutudan çıktığı gibi çalışır",
+    "desc": "Kurulu araçlarınız yeniden yapılandırma gerektirmeden devralınır — ayrıca yerleşik AionCLI ile kutudan çıktığı gibi kullanıma hazır.",
+    "descEmpty": "AionUi, yerleşik bir AionCLI ile gelir ve kutudan çıktığı gibi kullanıma hazırdır. İleride Claude Code veya Codex gibi araçlar kurarsanız, bunlar da otomatik olarak tanınır ve bağlanır.",
+    "scanning": "Yerel AI araçları taranıyor…",
+    "finished": "Tarama tamamlandı",
+    "none": "Başka AI aracı bulunamadı",
+    "builtinTag": "Yerleşik motor",
+    "bundled": "Dahili",
+    "count": "Toplam {{count}} araç hazır (yerleşik AionCLI dahil)",
+    "countEmpty": "Yerleşik AionCLI hazır, her an kullanılabilir"
+  },
+  "derive": {
+    "kick": "Onlar yalnızca araç değil",
+    "starSub": "Komut satırı aracınız",
+    "yourAssistant": "Asistanınız",
+    "tag": "Kişisel asistan",
+    "seedNote": "Sizin için çalışan bir uzman · Araçları istediğiniz zaman değiştirin",
+    "title": "Yalnızca araç değil, kişisel asistanınız olabilirler",
+    "desc": "Her asistan bir uzmandır — geliştirme, ofis işleri, tasarım, yazarlık; her biri kendi alanına bakar."
+  },
+  "memory": {
+    "kick": "Kişisel asistanınız",
+    "line1": "Sade iş sunumlarında ustadır",
+    "line2": "Renkler şirket marka rengini takip eder",
+    "line3": "Her sayfada en fazla üç ana nokta",
+    "ownerFallback": "Asistanınız",
+    "ownerRole": "Yetenek ayarları",
+    "currentTool": "Geçerli araç",
+    "title": "Aracı değiştirseniz de asistanınızın performansı kaybolmaz",
+    "desc": "Asistanınızın ayarları ve tarzı her zaman sizinle kalır. Alttaki aracı istediğiniz zaman değiştirin, sonuçlar etkilenmez."
+  }
+}
