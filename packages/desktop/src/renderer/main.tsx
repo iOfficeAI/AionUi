@@ -88,6 +88,8 @@ import { bootstrapRendererConfig } from '@renderer/services/bootstrapRenderer';
 import Layout from './components/layout/Layout';
 import Router from './components/layout/Router';
 import Sider from './components/layout/Sider';
+import OpeningGuide from './pages/onboarding';
+import { isOpeningGuideSeen, useMarkOpeningGuideSeen } from './pages/onboarding/hooks/useOpeningGuideSeen';
 import { useAuth } from './hooks/context/AuthContext';
 import { ConversationHistoryProvider } from './hooks/context/ConversationHistoryContext';
 import HOC from './utils/ui/HOC';
@@ -269,10 +271,17 @@ const Config: React.FC<PropsWithChildren> = ({ children }) => {
 const Main = () => {
   const { ready } = useAuth();
   const [configReady, setConfigReady] = useState(false);
+  // First-launch opening guide gate. Decided once config is ready (the flag
+  // lives in the client-settings store, hydrated by bootstrapRendererConfig).
+  const [showGuide, setShowGuide] = useState(false);
+  const markGuideSeen = useMarkOpeningGuideSeen();
 
   useEffect(() => {
     if (!ready) return;
-    void bootstrapRendererConfig().finally(() => setConfigReady(true));
+    void bootstrapRendererConfig().finally(() => {
+      setShowGuide(!isOpeningGuideSeen());
+      setConfigReady(true);
+    });
   }, [ready]);
 
   useEffect(() => {
@@ -282,6 +291,17 @@ const Main = () => {
 
   if (!ready || !configReady) {
     return null;
+  }
+
+  if (showGuide) {
+    return (
+      <OpeningGuide
+        onFinish={() => {
+          markGuideSeen();
+          setShowGuide(false);
+        }}
+      />
+    );
   }
 
   return (
