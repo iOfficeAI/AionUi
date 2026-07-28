@@ -44,5 +44,11 @@
     "label": "Nivel de razonamiento",
     "switchSuccess": "Nivel de razonamiento cambiado",
     "switchFailed": "Error al cambiar el nivel de razonamiento"
+  },
+  "thinkingMode": {
+    "label": "Modo de razonamiento",
+    "enabled": "Activado",
+    "disabled": "Desactivado",
+    "switchSuccess": "Modo de razonamiento cambiado"
   }
 }

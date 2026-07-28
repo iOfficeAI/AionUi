@@ -44,5 +44,11 @@
     "label": "Thinking Level",
     "switchSuccess": "Thinking level switched",
     "switchFailed": "Failed to switch thinking level"
+  },
+  "thinkingMode": {
+    "label": "Thinking Mode",
+    "enabled": "On",
+    "disabled": "Off",
+    "switchSuccess": "Thinking mode switched"
   }
 }

@@ -238,6 +238,7 @@ export function buildAgentRuntimeThoughtLevelOption(
   return buildSelectOptionFromConfigOptions(normalizeConfigOptions(agent.config_options), 'thought_level', [
     'thought_level',
     'reasoning_effort',
+    'thinking',
   ]);
 }
 

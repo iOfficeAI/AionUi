@@ -42,5 +42,11 @@
     "label": "Niveau de réflexion",
     "switchSuccess": "Niveau de réflexion changé",
     "switchFailed": "Échec du changement de niveau de réflexion"
+  },
+  "thinkingMode": {
+    "label": "Mode de réflexion",
+    "enabled": "Activé",
+    "disabled": "Désactivé",
+    "switchSuccess": "Mode de réflexion modifié"
   }
 }

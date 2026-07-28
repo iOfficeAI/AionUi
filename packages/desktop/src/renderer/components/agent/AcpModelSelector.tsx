@@ -17,7 +17,9 @@ import RuntimeSelectorPill, { RuntimeSelectorLoadingIndicator } from './RuntimeS
 import {
   composeRuntimeSelectorLabel,
   getCurrentThoughtLevelLabel,
+  isThinkingModeOption,
   isConfigSetting,
+  localizeThinkingModeOption,
   RUNTIME_SUBMENU_TRIGGER_PROPS,
   RuntimeSelectorCheckedItem,
   RuntimeSelectorModelList,
@@ -69,6 +71,15 @@ const AcpModelSelector: React.FC<{
     });
 
   const defaultModelLabel = t('common.defaultModel');
+  const thinkingMode = isThinkingModeOption(thoughtLevel);
+  const displayThoughtLevel = localizeThinkingModeOption(thoughtLevel, {
+    enabled: t('agent.thinkingMode.enabled'),
+    disabled: t('agent.thinkingMode.disabled'),
+  });
+  const thoughtControlLabel = thinkingMode ? t('agent.thinkingMode.label') : t('agent.thoughtLevel.label');
+  const thoughtSwitchSuccess = thinkingMode
+    ? t('agent.thinkingMode.switchSuccess')
+    : t('agent.thoughtLevel.switchSuccess');
   const rawDisplayLabel =
     (model_info?.current_model_id &&
       model_info.available_models.find((m) => m.id === model_info.current_model_id)?.label) ||
@@ -81,19 +92,19 @@ const AcpModelSelector: React.FC<{
     defaultModelLabel,
     fallbackLabel: t('conversation.welcome.useCliModel'),
   });
-  const combinedLabel = composeRuntimeSelectorLabel({ modelLabel: display_label, thoughtLevel });
+  const combinedLabel = composeRuntimeSelectorLabel({ modelLabel: display_label, thoughtLevel: displayThoughtLevel });
   const isRuntimeSetting = isConfigSetting(setStatus);
   const handleThoughtLevelSelect = useCallback(
     async (value: string) => {
       if (!thoughtLevel || value === thoughtLevel.currentValue || isRuntimeSetting) return;
       try {
         await setConfigOption(thoughtLevel.id, value);
-        Message.success(t('agent.thoughtLevel.switchSuccess'));
+        Message.success(thoughtSwitchSuccess);
       } catch (error) {
         Message.error(t(configErrorMessageKey(error)));
       }
     },
-    [isRuntimeSetting, setConfigOption, thoughtLevel, t]
+    [isRuntimeSetting, setConfigOption, thoughtLevel, thoughtSwitchSuccess]
   );
   const tooltipContent = combinedLabel;
 
@@ -170,12 +181,12 @@ const AcpModelSelector: React.FC<{
                 triggerProps={RUNTIME_SUBMENU_TRIGGER_PROPS}
                 title={
                   <RuntimeSelectorSubMenuTitle
-                    label={t('agent.thoughtLevel.label')}
-                    value={getCurrentThoughtLevelLabel(thoughtLevel)}
+                    label={thoughtControlLabel}
+                    value={getCurrentThoughtLevelLabel(displayThoughtLevel)}
                   />
                 }
               >
-                {thoughtLevel.options.map((item) => (
+                {displayThoughtLevel?.options.map((item) => (
                   <Menu.Item
                     key={item.value}
                     className={item.value === thoughtLevel.currentValue ? 'bg-2!' : ''}
