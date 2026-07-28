@@ -35,6 +35,7 @@ import { resolveTeamWorkspaceView } from './utils/teamWorkspaceView';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import { previewScopeKey } from '@/renderer/pages/conversation/Preview/context/previewScope';
 import { setCurrentProject } from '@/renderer/pages/conversation/explorer/currentProjectStore';
+import { setCurrentConversation } from '@/renderer/pages/conversation/explorer/currentConversationStore';
 
 type Props = {
   team: TTeam;
@@ -266,6 +267,14 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({
   useEffect(() => {
     setCurrentProject(teamProjectId);
   }, [teamProjectId]);
+
+  // Publish the active member column's conversation id so the Explorer's "add to
+  // chat" targets the focused column's send box (activeSlotId defaults to the
+  // leader; every column is a real agent conversation). Only meaningful once the
+  // team is project-bound (host visible).
+  useEffect(() => {
+    setCurrentConversation(teamProjectId ? (activeAssistant?.conversation_id ?? null) : null);
+  }, [teamProjectId, activeAssistant?.conversation_id]);
 
   // Backfill catch-up: the leader conversation lazily backfills its project_id on
   // resume and the backend emits one `conversation.listChanged` when it lands;

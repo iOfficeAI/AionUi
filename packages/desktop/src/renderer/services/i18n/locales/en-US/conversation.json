@@ -588,7 +588,8 @@
     "attachFailed": "Couldn't add the folder",
     "removeFailed": "Couldn't remove the folder",
     "contextMenu": {
-      "rename": "Rename"
+      "rename": "Rename",
+      "addToChat": "Add to chat"
     },
     "namePlaceholder": "Name",
     "deleteConfirm": "Delete “{{name}}”? This can’t be undone.",
@@ -597,6 +598,10 @@
       "files": "Files",
       "changes": "Changes"
     },
-    "changesPlaceholder": "Source control lives in a separate lane — coming soon."
+    "changesPlaceholder": "Source control lives in a separate lane — coming soon.",
+    "addedToChat": "Added {{name}} to chat",
+    "imported": "Imported {{count}} file(s)",
+    "importPartialFailed": "{{copied}} copied, {{failed}} failed (name conflicts or unsupported)",
+    "importFailed": "Failed to import files"
   }
 }

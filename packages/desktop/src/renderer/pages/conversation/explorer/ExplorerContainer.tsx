@@ -31,11 +31,16 @@ import WorkspaceOpenButton from '@/renderer/pages/conversation/components/ChatLa
 import { getContentTypeByExtension } from '@/renderer/pages/conversation/Preview/fileUtils';
 import { classifyPreviewError, previewErrorToI18nKey } from '@/renderer/utils/previewError';
 
+import { emitter } from '@/renderer/utils/emitter';
+import { projectFileRef } from '@/common/types/chatFile';
+import type { FileOrFolderItem } from '@/renderer/utils/file/fileTypes';
+
 import { ExplorerPanel } from './ExplorerPanel';
 import { buildRemoveRequest, buildRenameRequest, parentRel, peKey, type RenameRequest } from './explorerModel';
 import { initExplorerRuntime } from './monitorTransport';
 import { toRootRefs } from './projectRoots';
 import { select } from './explorerStore';
+import { useCurrentConversation } from './currentConversationStore';
 
 export type ExplorerContainerProps = {
   /** Owning project id — scopes the store's fact cache + localStorage UI state. */
@@ -52,6 +57,7 @@ const pathToFileUri = (p: string): string => {
 export const ExplorerContainer: React.FC<ExplorerContainerProps> = ({ projectId }) => {
   const { t } = useTranslation();
   const { openPreview } = usePreviewContext();
+  const activeConversationId = useCurrentConversation();
   const { data, isLoading, mutate } = useSWR(projectId ? `explorer-project/${projectId}` : null, () =>
     ipcBridge.project.get.invoke({ project_id: projectId })
   );
@@ -184,6 +190,48 @@ export const ExplorerContainer: React.FC<ExplorerContainerProps> = ({ projectId 
     });
   };
 
+  // Add a tree node to the active conversation's send box as a project file ref.
+  // The item carries a `chatRef` so a send collects it as a project ref (backend
+  // resolves pe → absolute path). We emit on all agent prefixes carrying the
+  // active conversation id; each send box accepts only when the id matches its
+  // own conversation (ids are unique), so on the multi-column team route only the
+  // focused member's box receives it — no leak to same-type peers.
+  const handleAddToChat = (peId: string, rel: string, name: string, isFile: boolean): void => {
+    if (!activeConversationId) return;
+    const item: FileOrFolderItem = { path: rel, name, isFile, chatRef: projectFileRef(peId, rel) };
+    const payload: FileOrFolderItem[] = [item];
+    emitter.emit('acp.selected.file.append', payload, activeConversationId);
+    emitter.emit('codex.selected.file.append', payload, activeConversationId);
+    emitter.emit('aionrs.selected.file.append', payload, activeConversationId);
+    Message.success(t('conversation.explorer.addedToChat', { name }));
+  };
+
+  // A-paste: import OS files dropped onto a tree node into that node's dir via
+  // the pe-targeted /api/fs/copy. The copied files arrive on the target dir's WS
+  // subscription (delta → tree updates itself); conflicts/rejected dirs come back
+  // in `failed_files` and are surfaced, never silently dropped.
+  const handleImportFiles = async (peId: string, rel: string, filePaths: string[]): Promise<void> => {
+    try {
+      const res = await ipcBridge.fs.copyFilesToProject.invoke({
+        file_paths: filePaths,
+        target: { pe_id: peId, relative_path: rel },
+      });
+      const copied = res.copied_files.length;
+      const failed = res.failed_files.length;
+      // Nothing imported (all failed) is a failure, not a partial success →
+      // error. Some copied + some failed → warn. All copied → success.
+      if (copied === 0 && failed > 0) {
+        Message.error(t('conversation.explorer.importFailed'));
+      } else if (failed > 0) {
+        Message.warning(t('conversation.explorer.importPartialFailed', { failed, copied }));
+      } else if (copied > 0) {
+        Message.success(t('conversation.explorer.imported', { count: copied }));
+      }
+    } catch {
+      Message.error(t('conversation.explorer.importFailed'));
+    }
+  };
+
   if (!projectId) return null;
   if (isLoading && !data) return <Spin loading />;
 
@@ -245,6 +293,8 @@ export const ExplorerContainer: React.FC<ExplorerContainerProps> = ({ projectId 
           onOpenFile={handleOpenFile}
           onRename={handleRename}
           onDelete={handleDelete}
+          onAddToChat={activeConversationId ? handleAddToChat : undefined}
+          onImportFiles={handleImportFiles}
         />
       </div>
       {activeTab === 'changes' && (

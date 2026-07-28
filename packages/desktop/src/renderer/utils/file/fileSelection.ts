@@ -24,9 +24,18 @@ export const stripWindowsVerbatimPrefix = (path: string): string => {
   return path;
 };
 
+/**
+ * Dedup key for a selection item. Project Explorer items are keyed by their pe
+ * identity (`chatRef`) so the same `relative_path` under different pes stays
+ * distinct and never collides with an upload sharing that path string; uploads
+ * and `@` mentions key by their absolute path.
+ */
 const getItemPath = (item: FileSelectionItem): string | undefined => {
   if (typeof item === 'string') {
     return item;
+  }
+  if (item.chatRef?.kind === 'project') {
+    return `project\0${item.chatRef.pe_id}\0${item.chatRef.relative_path}`;
   }
   return item.path;
 };

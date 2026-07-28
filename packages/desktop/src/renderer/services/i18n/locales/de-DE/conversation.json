@@ -589,7 +589,8 @@
     "attachFailed": "Couldn't add the folder",
     "removeFailed": "Couldn't remove the folder",
     "contextMenu": {
-      "rename": "Umbenennen"
+      "rename": "Umbenennen",
+      "addToChat": "Zum Chat hinzufügen"
     },
     "namePlaceholder": "Name",
     "deleteConfirm": "„{{name}}“ löschen? Dies kann nicht rückgängig gemacht werden.",
@@ -598,6 +599,10 @@
       "files": "Dateien",
       "changes": "Änderungen"
     },
-    "changesPlaceholder": "Die Versionsverwaltung folgt in einem eigenen Bereich — bald."
+    "changesPlaceholder": "Die Versionsverwaltung folgt in einem eigenen Bereich — bald.",
+    "addedToChat": "{{name}} zum Chat hinzugefügt",
+    "imported": "{{count}} Datei(en) importiert",
+    "importPartialFailed": "{{copied}} kopiert, {{failed}} fehlgeschlagen (Namenskonflikte oder nicht unterstützt)",
+    "importFailed": "Import der Dateien fehlgeschlagen"
   }
 }

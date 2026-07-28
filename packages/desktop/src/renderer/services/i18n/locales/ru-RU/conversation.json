@@ -588,7 +588,8 @@
     "attachFailed": "Couldn't add the folder",
     "removeFailed": "Couldn't remove the folder",
     "contextMenu": {
-      "rename": "Переименовать"
+      "rename": "Переименовать",
+      "addToChat": "Добавить в чат"
     },
     "namePlaceholder": "Имя",
     "deleteConfirm": "Удалить «{{name}}»? Это действие нельзя отменить.",
@@ -597,6 +598,10 @@
       "files": "Файлы",
       "changes": "Изменения"
     },
-    "changesPlaceholder": "Контроль версий появится в отдельной вкладке — скоро."
+    "changesPlaceholder": "Контроль версий появится в отдельной вкладке — скоро.",
+    "addedToChat": "{{name}} добавлен в чат",
+    "imported": "Импортировано файлов: {{count}}",
+    "importPartialFailed": "Скопировано: {{copied}}, с ошибкой: {{failed}} (конфликты имён или не поддерживается)",
+    "importFailed": "Не удалось импортировать файлы"
   }
 }

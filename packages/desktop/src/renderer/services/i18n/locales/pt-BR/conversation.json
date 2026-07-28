@@ -594,7 +594,8 @@
     "attachFailed": "Couldn't add the folder",
     "removeFailed": "Couldn't remove the folder",
     "contextMenu": {
-      "rename": "Renomear"
+      "rename": "Renomear",
+      "addToChat": "Adicionar ao chat"
     },
     "namePlaceholder": "Nome",
     "deleteConfirm": "Excluir “{{name}}”? Isso não pode ser desfeito.",
@@ -603,6 +604,10 @@
       "files": "Arquivos",
       "changes": "Alterações"
     },
-    "changesPlaceholder": "O controle de versão fica em uma aba separada — em breve."
+    "changesPlaceholder": "O controle de versão fica em uma aba separada — em breve.",
+    "addedToChat": "{{name}} adicionado ao chat",
+    "imported": "{{count}} arquivo(s) importado(s)",
+    "importPartialFailed": "{{copied}} copiado(s), {{failed}} com falha (conflitos de nome ou não suportados)",
+    "importFailed": "Falha ao importar os arquivos"
   }
 }

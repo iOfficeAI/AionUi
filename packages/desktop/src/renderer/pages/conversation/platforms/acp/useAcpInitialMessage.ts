@@ -9,7 +9,7 @@ import type { TMessage } from '@/common/chat/chatLib';
 import type { TConversationRuntimeSummary } from '@/common/config/storage';
 import { parseError, uuid } from '@/common/utils';
 import { emitter } from '@/renderer/utils/emitter';
-import { buildDisplayMessage } from '@/renderer/utils/file/messageFiles';
+import { uploadFileRef } from '@/common/types/chatFile';
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getConversationRuntimeWorkspaceErrorMessage } from '../../utils/conversationCreateError';
@@ -20,7 +20,6 @@ import { buildSendFailureError } from './buildSendFailureError';
 type UseAcpInitialMessageParams = {
   conversation_id: string;
   backend: string;
-  workspacePath?: string;
   setAiProcessing: (value: boolean) => void;
   resetState: () => void;
   markSendStarted?: () => void;
@@ -37,7 +36,6 @@ type UseAcpInitialMessageParams = {
 export const useAcpInitialMessage = ({
   conversation_id,
   backend,
-  workspacePath,
   setAiProcessing,
   resetState,
   markSendStarted,
@@ -61,15 +59,17 @@ export const useAcpInitialMessage = ({
       try {
         const initialMessage = JSON.parse(storedMessage);
         const input = typeof initialMessage.input === 'string' ? initialMessage.input : '';
-        const files = Array.isArray(initialMessage.files) ? initialMessage.files : [];
-        const displayMessage = buildDisplayMessage(input, files, workspacePath || '');
+        // Guid-page initial files are pre-conversation OS uploads (absolute
+        // paths) → upload refs. Body stays plain text; the backend resolves the
+        // refs and injects the [[AION_FILES]] marker at the send edge.
+        const files = Array.isArray(initialMessage.files) ? (initialMessage.files as string[]).map(uploadFileRef) : [];
 
         markSendStarted?.();
         setAiProcessing(true);
 
         void checkAndUpdateTitle(conversation_id, input);
         const result = await ipcBridge.acpConversation.sendMessage.invoke({
-          input: displayMessage,
+          input,
           conversation_id: conversation_id,
           files,
         });
@@ -139,6 +139,5 @@ export const useAcpInitialMessage = ({
     resetState,
     setAiProcessing,
     t,
-    workspacePath,
   ]);
 };

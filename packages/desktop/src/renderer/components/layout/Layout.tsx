@@ -18,6 +18,7 @@ import { usePreviewContext } from '@renderer/pages/conversation/Preview';
 import { ProjectPanelHost } from '@renderer/components/layout/ProjectPanelHost';
 import { ProjectPanelMobileOverlay } from '@renderer/components/layout/ProjectPanelMobileOverlay';
 import { setCurrentProject, useCurrentProject } from '@renderer/pages/conversation/explorer/currentProjectStore';
+import { setCurrentConversation } from '@renderer/pages/conversation/explorer/currentConversationStore';
 import { useContainerWidth } from '@renderer/pages/conversation/hooks/useContainerWidth';
 import { useProjectExplorerColumnWidth } from '@renderer/hooks/ui/useProjectExplorerColumnWidth';
 import { useProjectPreviewRegionWidth } from '@renderer/hooks/ui/useProjectPreviewRegionWidth';
@@ -216,6 +217,12 @@ const Layout: React.FC<{
       // project → hide the Explorer host. Within /conversation/* and /team/* the
       // route itself publishes project_id, so we only clear when leaving both.
       setCurrentProject(null);
+    }
+    // The active-conversation target is published by the conversation route
+    // (mounted conversation) and the team route (active member column). Clear it
+    // only when leaving both, so a stale target can't leak to a non-chat route.
+    if (!workspaceAvailable) {
+      setCurrentConversation(null);
     }
   }, [location.pathname, workspaceAvailable, closePreviewOnRouteChange]);
 

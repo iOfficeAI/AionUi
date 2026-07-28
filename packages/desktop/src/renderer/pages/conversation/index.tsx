@@ -8,6 +8,7 @@ import ChatConversation from './components/ChatConversation';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import { previewScopeKey } from '@/renderer/pages/conversation/Preview/context/previewScope';
 import { setCurrentProject } from '@/renderer/pages/conversation/explorer/currentProjectStore';
+import { setCurrentConversation } from '@/renderer/pages/conversation/explorer/currentConversationStore';
 import { useAutoTitle } from '@/renderer/hooks/chat/useAutoTitle';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
 
@@ -41,6 +42,13 @@ const ChatConversationIndex: React.FC = () => {
   // does not remount; Layout clears it when leaving the conversation route.
   useEffect(() => {
     if (data) setCurrentProject(data.project_id ?? null);
+  }, [data]);
+
+  // Publish the active conversation id so the Layout-level Explorer's "add to
+  // chat" can target this conversation's send box. Cleared when leaving the
+  // conversation route (id falsy) so a stale target can't leak.
+  useEffect(() => {
+    setCurrentConversation(data?.id ?? null);
   }, [data]);
 
   // Refetch this conversation when the backend reports it changed. This is also

@@ -90,6 +90,7 @@ import type {
 import type { AgentMetadata } from '@/renderer/utils/model/agentTypes';
 import type { Theme } from '@/common/theme/types';
 import type { AttachFolderRequest, ProjectDetailDto, ProjectEntryDto } from '@/common/types/project';
+import type { ChatFileRef } from '@/common/types/chatFile';
 import type { ProtocolDetectionRequest, ProtocolDetectionResponse } from '../utils/protocolDetector';
 import {
   buildCreateConversationBody,
@@ -627,9 +628,12 @@ export const fs = {
   >('/api/fs/zip'),
   cancelZip: httpPost<boolean, { request_id: string }>('/api/fs/zip/cancel'),
   getFileMetadata: httpPost<IFileMetadata, { path: string; workspace?: string }>('/api/fs/metadata'),
-  copyFilesToWorkspace: httpPost<
-    { copied_files: string[]; failed_files?: Array<{ path: string; error: string }> },
-    { file_paths: string[]; workspace: string; source_root?: string }
+  // Import OS files into a project entry's directory (A-paste). `target` is the
+  // drop-target pe + relative dir ('' = its root). Name conflicts are reported in
+  // `failed_files` (not overwritten); directories are rejected there this round.
+  copyFilesToProject: httpPost<
+    { copied_files: string[]; failed_files: Array<{ path: string; reason: string }> },
+    { file_paths: string[]; target: { pe_id: string; relative_path: string }; source_root?: string }
   >('/api/fs/copy'),
   removeEntry: httpPost<void, { path: string; workspace?: string }>('/api/fs/remove'),
   renameEntry: httpPost<{ new_path: string }, { path: string; new_name: string; workspace?: string }>('/api/fs/rename'),
@@ -1533,7 +1537,9 @@ export interface ICronJobUpdateParams {
 interface ISendMessageParams {
   input: string;
   conversation_id: string;
-  files?: string[];
+  /** Source-tagged file refs; the backend resolves each to an absolute path and
+   *  injects it into the message. See {@link ChatFileRef}. */
+  files?: ChatFileRef[];
   loading_id?: string;
   inject_skills?: string[];
 }

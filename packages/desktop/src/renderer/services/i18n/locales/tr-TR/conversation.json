@@ -590,7 +590,8 @@
     "attachFailed": "Couldn't add the folder",
     "removeFailed": "Couldn't remove the folder",
     "contextMenu": {
-      "rename": "Yeniden adlandır"
+      "rename": "Yeniden adlandır",
+      "addToChat": "Sohbete ekle"
     },
     "namePlaceholder": "Ad",
     "deleteConfirm": "“{{name}}” silinsin mi? Bu geri alınamaz.",
@@ -599,6 +600,10 @@
       "files": "Dosyalar",
       "changes": "Değişiklikler"
     },
-    "changesPlaceholder": "Kaynak denetimi ayrı bir hatta — yakında."
+    "changesPlaceholder": "Kaynak denetimi ayrı bir hatta — yakında.",
+    "addedToChat": "{{name}} sohbete eklendi",
+    "imported": "{{count}} dosya içe aktarıldı",
+    "importPartialFailed": "{{copied}} kopyalandı, {{failed}} başarısız (ad çakışması veya desteklenmiyor)",
+    "importFailed": "Dosyalar içe aktarılamadı"
   }
 }

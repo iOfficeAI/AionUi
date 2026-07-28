@@ -22,25 +22,46 @@ vi.mock('@/renderer/pages/conversation/explorer/monitorTransport', () => ({
   initExplorerRuntime: () => ({ request: (m: string, p: unknown) => fsRead(m, p) }),
 }));
 
-// Mock the tree so the test targets only the container's action wiring;
-// the marker exposes onRemoveRoot / onOpenFile via buttons.
+const emit = vi.fn();
+vi.mock('@/renderer/utils/emitter', () => ({ emitter: { emit: (...a: unknown[]) => emit(...a) } }));
+
+// Controllable active conversation id for add-to-chat targeting.
+let activeConversationId: string | null = null;
+vi.mock('@/renderer/pages/conversation/explorer/currentConversationStore', () => ({
+  useCurrentConversation: () => activeConversationId,
+}));
+
+// Mock the tree so the test targets only the container's action wiring; the
+// marker exposes onRemoveRoot / onOpenFile / onAddToChat via buttons and shows
+// whether onAddToChat was supplied (menu visibility mirrors this).
 vi.mock('@/renderer/pages/conversation/explorer/ExplorerPanel', () => ({
   ExplorerPanel: ({
     roots,
     onRemoveRoot,
     onOpenFile,
+    onAddToChat,
+    onImportFiles,
   }: {
     roots: Array<{ title: string }>;
     onRemoveRoot?: (id: string) => void;
     onOpenFile?: (pe: string, rel: string) => void;
+    onAddToChat?: (pe: string, rel: string, name: string, isFile: boolean) => void;
+    onImportFiles?: (pe: string, rel: string, paths: string[]) => void;
   }) => (
     <div>
       <span data-testid='roots'>{roots.map((r) => r.title).join(',')}</span>
+      <span data-testid='add-to-chat-enabled'>{onAddToChat ? 'yes' : 'no'}</span>
       <button data-testid='do-remove' onClick={() => onRemoveRoot?.('peA')}>
         rm
       </button>
       <button data-testid='do-open' onClick={() => onOpenFile?.('peA', 'docs/readme.md')}>
         open
+      </button>
+      <button data-testid='do-add-to-chat' onClick={() => onAddToChat?.('peA', 'src/main.ts', 'main.ts', true)}>
+        add
+      </button>
+      <button data-testid='do-import' onClick={() => onImportFiles?.('peA', 'sub', ['/os/a.txt', '/os/b.txt'])}>
+        import
       </button>
     </div>
   ),
@@ -50,6 +71,7 @@ const projectGet = vi.fn<(p: { project_id: string }) => Promise<ProjectDetailDto
 const attachFolder = vi.fn();
 const removeFolder = vi.fn();
 const showOpen = vi.fn();
+const copyFiles = vi.fn();
 vi.mock('@/common', () => ({
   ipcBridge: {
     project: {
@@ -57,6 +79,7 @@ vi.mock('@/common', () => ({
       attachFolder: { invoke: (p: unknown) => attachFolder(p) },
       removeFolder: { invoke: (p: unknown) => removeFolder(p) },
     },
+    fs: { copyFilesToProject: { invoke: (p: unknown) => copyFiles(p) } },
     dialog: { showOpen: { invoke: (p: unknown) => showOpen(p) } },
   },
 }));
@@ -94,10 +117,14 @@ beforeEach(() => {
   removeFolder.mockReset();
   showOpen.mockReset();
   openPreview.mockReset();
+  copyFiles.mockReset().mockResolvedValue({ copied_files: [], failed_files: [] });
+  emit.mockReset();
+  activeConversationId = null;
   fsRead.mockReset().mockResolvedValue({ content: 'hello', encoding: 'utf-8' });
   vi.spyOn(Message, 'info').mockImplementation(() => '' as never);
   vi.spyOn(Message, 'warning').mockImplementation(() => '' as never);
   vi.spyOn(Message, 'error').mockImplementation(() => '' as never);
+  vi.spyOn(Message, 'success').mockImplementation(() => '' as never);
   try {
     localStorage.clear();
   } catch {
@@ -180,5 +207,82 @@ describe('ExplorerContainer attach/remove', () => {
     fireEvent.click(screen.getByTestId('do-remove'));
     await waitFor(() => expect(removeFolder).toHaveBeenCalledWith({ project_id: 'p1', pe_id: 'peA' }));
     await waitFor(() => expect(projectGet).toHaveBeenCalledTimes(2));
+  });
+});
+
+describe('ExplorerContainer add-to-chat', () => {
+  it('disables add-to-chat when there is no active conversation (e.g. non-chat route)', async () => {
+    activeConversationId = null;
+    renderIt();
+    expect(await screen.findByTestId('add-to-chat-enabled')).toHaveTextContent('no');
+  });
+
+  it('emits the append on all agent prefixes carrying the active conversation id (targeted)', async () => {
+    activeConversationId = 'c1';
+    renderIt();
+    expect(await screen.findByTestId('add-to-chat-enabled')).toHaveTextContent('yes');
+    fireEvent.click(screen.getByTestId('do-add-to-chat'));
+    await waitFor(() => expect(emit).toHaveBeenCalledTimes(3));
+    const payload = [
+      {
+        path: 'src/main.ts',
+        name: 'main.ts',
+        isFile: true,
+        chatRef: { kind: 'project', pe_id: 'peA', relative_path: 'src/main.ts' },
+      },
+    ];
+    // Every prefix carries the target id 'c1' — only the box whose conversation
+    // matches consumes it (ids are unique), so same-type team peers don't leak.
+    expect(emit).toHaveBeenCalledWith('acp.selected.file.append', payload, 'c1');
+    expect(emit).toHaveBeenCalledWith('codex.selected.file.append', payload, 'c1');
+    expect(emit).toHaveBeenCalledWith('aionrs.selected.file.append', payload, 'c1');
+  });
+});
+
+describe('ExplorerContainer A-paste import', () => {
+  it('copies dropped files to the pe-targeted dir via /api/fs/copy', async () => {
+    copyFiles.mockResolvedValue({ copied_files: ['/ws/sub/a.txt', '/ws/sub/b.txt'], failed_files: [] });
+    renderIt();
+    fireEvent.click(await screen.findByTestId('do-import'));
+    await waitFor(() =>
+      expect(copyFiles).toHaveBeenCalledWith({
+        file_paths: ['/os/a.txt', '/os/b.txt'],
+        target: { pe_id: 'peA', relative_path: 'sub' },
+      })
+    );
+    await waitFor(() => expect(Message.success).toHaveBeenCalled());
+  });
+
+  it('warns (does not silently drop) when some files fail — name conflicts or unsupported', async () => {
+    copyFiles.mockResolvedValue({
+      copied_files: ['/ws/sub/a.txt'],
+      failed_files: [{ path: '/os/b.txt', reason: 'exists' }],
+    });
+    renderIt();
+    fireEvent.click(await screen.findByTestId('do-import'));
+    await waitFor(() => expect(Message.warning).toHaveBeenCalledWith('conversation.explorer.importPartialFailed'));
+    expect(Message.success).not.toHaveBeenCalled();
+  });
+
+  it('errors (not warns) when every file fails — nothing was imported', async () => {
+    copyFiles.mockResolvedValue({
+      copied_files: [],
+      failed_files: [
+        { path: '/os/a.txt', reason: 'exists' },
+        { path: '/os/b.txt', reason: 'directories not supported yet' },
+      ],
+    });
+    renderIt();
+    fireEvent.click(await screen.findByTestId('do-import'));
+    await waitFor(() => expect(Message.error).toHaveBeenCalledWith('conversation.explorer.importFailed'));
+    expect(Message.warning).not.toHaveBeenCalled();
+    expect(Message.success).not.toHaveBeenCalled();
+  });
+
+  it('surfaces an error toast when the copy request throws', async () => {
+    copyFiles.mockRejectedValue(new Error('network'));
+    renderIt();
+    fireEvent.click(await screen.findByTestId('do-import'));
+    await waitFor(() => expect(Message.error).toHaveBeenCalledWith('conversation.explorer.importFailed'));
   });
 });

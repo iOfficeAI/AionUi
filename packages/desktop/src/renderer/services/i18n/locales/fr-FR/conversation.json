@@ -587,7 +587,8 @@
     "attachFailed": "Couldn't add the folder",
     "removeFailed": "Couldn't remove the folder",
     "contextMenu": {
-      "rename": "Renommer"
+      "rename": "Renommer",
+      "addToChat": "Ajouter au chat"
     },
     "namePlaceholder": "Nom",
     "deleteConfirm": "Supprimer « {{name}} » ? Cette action est irréversible.",
@@ -596,6 +597,10 @@
       "files": "Fichiers",
       "changes": "Modifications"
     },
-    "changesPlaceholder": "Le contrôle de version arrive dans un onglet séparé — bientôt."
+    "changesPlaceholder": "Le contrôle de version arrive dans un onglet séparé — bientôt.",
+    "addedToChat": "{{name}} ajouté au chat",
+    "imported": "{{count}} fichier(s) importé(s)",
+    "importPartialFailed": "{{copied}} copié(s), {{failed}} échec(s) (conflits de noms ou non pris en charge)",
+    "importFailed": "Échec de l’import des fichiers"
   }
 }
