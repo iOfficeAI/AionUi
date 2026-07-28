@@ -1,4 +1,4 @@
-import { AIONUI_FILES_MARKER, AIONUI_TIMESTAMP_REGEX } from '@/common/config/constants';
+import { AIONUI_FILES_MARKER } from '@/common/config/constants';
 import type { FileOrFolderItem } from '@/renderer/utils/file/fileTypes';
 
 export const collectSelectedFiles = (uploadFile: string[], atPath: Array<string | FileOrFolderItem>): string[] => {
@@ -9,26 +9,19 @@ export const collectSelectedFiles = (uploadFile: string[], atPath: Array<string 
 export const buildDisplayMessage = (input: string, files: string[], workspacePath: string): string => {
   if (!files.length) return input;
   const normalizedWorkspace = workspacePath?.replace(/[\\/]+$/, '');
-  const displayPaths = files.map((file_path) => {
-    const sanitizedPath = file_path.replace(AIONUI_TIMESTAMP_REGEX, '$1');
+  const messagePaths = files.map((file_path) => {
     if (!normalizedWorkspace) {
-      return sanitizedPath;
+      return file_path;
     }
 
     const isAbsolute = file_path.startsWith('/') || /^[A-Za-z]:/.test(file_path);
     if (isAbsolute) {
-      // If file is inside workspace, preserve relative path (including subdirectories like uploads/)
-      const normalizedFile = file_path.replace(/\\/g, '/');
-      const normalizedWorkspaceWithForwardSlash = normalizedWorkspace.replace(/\\/g, '/');
-      if (normalizedFile.startsWith(normalizedWorkspaceWithForwardSlash + '/')) {
-        const relativePath = normalizedFile.slice(normalizedWorkspaceWithForwardSlash.length + 1);
-        return `${normalizedWorkspace}/${relativePath.replace(AIONUI_TIMESTAMP_REGEX, '$1')}`;
-      }
-      // Keep external absolute paths unchanged so preview and metadata lookups
-      // continue to read the real file instead of a non-existent workspace path.
-      return sanitizedPath;
+      // Keep exact on-disk paths in the marker. The backend reads these paths to
+      // attach binary inputs (including images), so display-only cleanup would
+      // point it at files that do not exist.
+      return file_path;
     }
-    return `${normalizedWorkspace}/${sanitizedPath}`;
+    return `${normalizedWorkspace}/${file_path}`;
   });
-  return `${input}\n\n${AIONUI_FILES_MARKER}\n${displayPaths.join('\n')}`;
+  return `${input}\n\n${AIONUI_FILES_MARKER}\n${messagePaths.join('\n')}`;
 };
