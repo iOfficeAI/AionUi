@@ -5,8 +5,9 @@ import VERSION from './versions/version.json';
 export default ({ config }: ConfigContext): ExpoConfig => {
   return {
     ...config,
-    name: 'AionUi Mobile',
-    slug: 'aionui-mobile',
+    name: 'Nova Agent OS',
+    slug: 'nova-agent-os',
+    owner: 'faramix-creations',
     version: VERSION.version,
     orientation: 'portrait',
     icon: './assets/images/icon.png',
