@@ -20,44 +20,10 @@ import { Button, Input, Modal, Spin } from '@arco-design/web-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { useTranslation } from 'react-i18next';
+import type { PickerEntry as Entry } from './webFsPickerUtils';
+import { matchesFilters, normalizeEntry, parentOf, sortEntries } from './webFsPickerUtils';
 
 const LAST_DIR_KEY = 'aionui:web-fs-picker:last-dir';
-
-type Entry = {
-  name: string;
-  fullPath: string;
-  isDir: boolean;
-};
-
-/**
- * The backend answers `/api/fs/dir` in snake_case while the shared `IDirOrFile`
- * type is camelCase, so accept either shape rather than trusting one of them.
- */
-const normalizeEntry = (raw: unknown): Entry | null => {
-  if (typeof raw !== 'object' || raw === null) return null;
-  const item = raw as Record<string, unknown>;
-  const fullPath = (item.fullPath ?? item.full_path) as string | undefined;
-  const name = item.name as string | undefined;
-  if (!fullPath || !name) return null;
-  const isDir = Boolean(item.isDir ?? item.is_dir);
-  return { name, fullPath, isDir };
-};
-
-const parentOf = (dir: string): string => {
-  if (!dir || dir === '/') return '/';
-  const trimmed = dir.replace(/\/+$/, '');
-  const idx = trimmed.lastIndexOf('/');
-  if (idx <= 0) return '/';
-  return trimmed.slice(0, idx);
-};
-
-const matchesFilters = (name: string, filters: NonNullable<ShowOpenOptions>['filters']): boolean => {
-  if (!filters || filters.length === 0) return true;
-  const exts = filters.flatMap((f) => f.extensions ?? []).filter((e) => e && e !== '*');
-  if (exts.length === 0) return true;
-  const lower = name.toLowerCase();
-  return exts.some((ext) => lower.endsWith(`.${ext.toLowerCase()}`));
-};
 
 type PickerProps = {
   options: ShowOpenOptions;
@@ -101,11 +67,7 @@ const WebFsPicker: React.FC<PickerProps> = ({ options, onDone }) => {
       try {
         const raw = (await ipcBridge.fs.getFilesByDir.invoke({ dir, root: dir })) as unknown;
         const list = Array.isArray(raw) ? raw.map(normalizeEntry).filter((e): e is Entry => e !== null) : [];
-        list.sort((a, b) => {
-          if (a.isDir !== b.isDir) return a.isDir ? -1 : 1;
-          return a.name.localeCompare(b.name);
-        });
-        setEntries(list);
+        setEntries(sortEntries(list));
         setCurrentDir(dir);
         setPathDraft(dir);
         setSelected([]);
