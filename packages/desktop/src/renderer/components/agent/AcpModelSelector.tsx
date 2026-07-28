@@ -50,9 +50,18 @@ const AcpModelSelector: React.FC<{
   prepareRuntime?: () => Promise<void>;
   prepareSetRuntime?: () => Promise<void>;
   loadConfigOptions?: AcpConfigOptionsLoader;
+  onModelChange?: (model_id: string) => Promise<void> | void;
   /** Deprecated: runtime config loading now ensures the conversation runtime. */
   waitForWarmup?: boolean;
-}> = ({ conversation_id, backend, initialModelId, prepareRuntime, prepareSetRuntime, loadConfigOptions }) => {
+}> = ({
+  conversation_id,
+  backend,
+  initialModelId,
+  prepareRuntime,
+  prepareSetRuntime,
+  loadConfigOptions,
+  onModelChange,
+}) => {
   const { t } = useTranslation();
   const layout = useLayoutContext();
   const isMobileHeaderCompact = Boolean(layout?.isMobile);
@@ -64,7 +73,10 @@ const AcpModelSelector: React.FC<{
       prepareRuntime,
       prepareSetRuntime,
       loadConfigOptions,
-      onSelectModelSuccess: () => Message.success(t('agent.model.switchSuccess')),
+      onSelectModelSuccess: async (model_id) => {
+        await onModelChange?.(model_id);
+        Message.success(t('agent.model.switchSuccess'));
+      },
       onSelectModelFailed: (_modelId, error) => Message.error(t(configErrorMessageKey(error))),
     });
 

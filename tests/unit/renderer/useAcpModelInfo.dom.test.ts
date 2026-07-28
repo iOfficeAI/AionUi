@@ -402,6 +402,27 @@ describe('useAcpModelInfo', () => {
     expect(onSelectModelSuccess).not.toHaveBeenCalled();
   });
 
+  it('reports a rejected model persistence callback as a selection failure', async () => {
+    const persistenceError = new Error('team model persistence failed');
+    const onSelectModelSuccess = vi.fn().mockRejectedValue(persistenceError);
+    const onSelectModelFailed = vi.fn();
+    setConfigOptionInvokeMock.mockResolvedValue({
+      confirmation: 'observed',
+      config_options: buildConfigOptions('opus-4'),
+    });
+    const { result } = renderUseAcpModelInfo({
+      conversation_id: 'conv-1',
+      backend: 'claude',
+      onSelectModelSuccess,
+      onSelectModelFailed,
+    });
+    await waitFor(() => expect(result.current.canSwitch).toBe(true));
+
+    act(() => result.current.selectModel('opus-4'));
+
+    await waitFor(() => expect(onSelectModelFailed).toHaveBeenCalledWith('opus-4', persistenceError));
+  });
+
   it('shares observed model snapshots across hook instances for the same conversation', async () => {
     const wrapper = createSwrWrapper();
     const first = renderHook(

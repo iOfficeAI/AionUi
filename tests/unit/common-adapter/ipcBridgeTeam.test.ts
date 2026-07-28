@@ -87,6 +87,18 @@ describe('ipcBridge team adapter', () => {
     });
   });
 
+  it('updateAgentModel persists the observed model through the team agent route', async () => {
+    const { team } = await import('@/common/adapter/ipcBridge');
+
+    await team.updateAgentModel.invoke({ team_id: 'team-1', slot_id: 'worker-1', model_id: 'gpt-5.6-sol' });
+
+    expect(httpBridgeMocks.calls).toContainEqual({
+      method: 'PATCH',
+      path: '/api/teams/team-1/agents/worker-1/model',
+      body: { model_id: 'gpt-5.6-sol' },
+    });
+  });
+
   it('team.create posts canonical agents payload', async () => {
     const { team } = await import('@/common/adapter/ipcBridge');
 

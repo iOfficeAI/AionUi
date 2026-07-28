@@ -218,6 +218,17 @@ describe('AcpModelSelector runtime options', () => {
     expect(useAcpModelInfoMock).toHaveBeenCalledWith(expect.objectContaining({ prepareSetRuntime }));
   });
 
+  it('persists an observed team model before reporting selection success', async () => {
+    const onModelChange = vi.fn().mockResolvedValue(undefined);
+    render(<AcpModelSelector conversation_id='conversation-1' backend='codex' onModelChange={onModelChange} />);
+    const hookArgs = useAcpModelInfoMock.mock.calls[0][0];
+
+    await hookArgs.onSelectModelSuccess('gpt-5.6-sol');
+
+    expect(onModelChange).toHaveBeenCalledWith('gpt-5.6-sol');
+    expect(messageSuccessMock).toHaveBeenCalledWith('agent.model.switchSuccess');
+  });
+
   it('shows the model submenu before the thought level submenu, each with its current value', () => {
     render(<AcpModelSelector conversation_id='conversation-1' backend='codex' />);
 
