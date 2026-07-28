@@ -1,14 +1,24 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="NovaMobile">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="NovaMobile alien">
   <defs>
-    <radialGradient id="core" cx="50%" cy="42%" r="65%">
-      <stop offset="0" stop-color="#24483f"/>
-      <stop offset="0.7" stop-color="#08110f"/>
-      <stop offset="1" stop-color="#020605"/>
+    <radialGradient id="core" cx="50%" cy="42%" r="68%">
+      <stop offset="0" stop-color="#17352f"/>
+      <stop offset="0.72" stop-color="#07100f"/>
+      <stop offset="1" stop-color="#020505"/>
     </radialGradient>
-    <filter id="glow"><feGaussianBlur stdDeviation="9" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <linearGradient id="shell" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#52606a"/>
+      <stop offset=".45" stop-color="#182129"/>
+      <stop offset="1" stop-color="#070b10"/>
+    </linearGradient>
+    <filter id="glow"><feGaussianBlur stdDeviation="8" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
   </defs>
   <rect width="512" height="512" rx="112" fill="url(#core)"/>
-  <circle cx="256" cy="256" r="178" fill="none" stroke="#66e3d4" stroke-opacity=".24" stroke-width="8"/>
-  <path d="M137 174 256 380 375 174 256 246Z" fill="none" stroke="#8fd694" stroke-width="30" stroke-linejoin="round" filter="url(#glow)"/>
-  <circle cx="256" cy="256" r="25" fill="#f3ecd2" filter="url(#glow)"/>
+  <circle cx="256" cy="256" r="203" fill="none" stroke="#5cff58" stroke-width="8" opacity=".82" filter="url(#glow)"/>
+  <path d="M139 181 105 297l68-29c17 86 48 127 83 127s66-41 83-127l68 29-34-116-43 32c-18-56-42-84-74-84s-56 28-74 84z" fill="url(#shell)" stroke="#20d9ff" stroke-width="6" stroke-linejoin="round"/>
+  <path d="M159 212c25-49 57-73 97-73s72 24 97 73l-18 112c-13 58-39 87-79 87s-66-29-79-87z" fill="#111b20" stroke="#72ff65" stroke-width="5"/>
+  <path d="M180 257c22-32 49-38 76-13-18 43-44 59-76 13zm152 0c-22-32-49-38-76-13 18 43 44 59 76 13z" fill="#06120e" stroke="#58ff5b" stroke-width="7"/>
+  <ellipse cx="221" cy="252" rx="13" ry="19" fill="#eaffdf" filter="url(#glow)"/>
+  <ellipse cx="291" cy="252" rx="13" ry="19" fill="#eaffdf" filter="url(#glow)"/>
+  <path d="M256 276v35m-34 21c21 15 47 15 68 0" fill="none" stroke="#27dfff" stroke-width="6" stroke-linecap="round"/>
+  <circle cx="256" cy="174" r="13" fill="#5cff58" stroke="#20d9ff" stroke-width="5" filter="url(#glow)"/>
 </svg>
