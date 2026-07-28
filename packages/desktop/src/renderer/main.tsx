@@ -38,6 +38,10 @@ import './utils/ui/runtimePatches';
 // Browser adapter setup
 import '@/common/adapter/browser';
 
+// WebUI only: serve `dialog.showOpen` with a server-side picker, since the
+// native Electron dialog channel has no provider outside the desktop app.
+import './components/workspace/registerWebFsPicker';
+
 // React and core dependencies
 import type { PropsWithChildren } from 'react';
 import React, { useEffect, useRef, useState } from 'react';
