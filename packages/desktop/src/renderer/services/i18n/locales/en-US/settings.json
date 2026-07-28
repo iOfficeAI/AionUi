@@ -105,7 +105,8 @@
     "officialSkillsEmpty": "No official skills available.",
     "noSearchResults": "No matching skills.",
     "customHint": "Import a skill folder, parent folder, or zip; up to {{maxFileSize}} per file and {{maxTotalSize}} per skill; importing the same name overwrites the existing skill.",
-    "officialHint": "Official skills bundled with AionUi — ready to use out of the box, read-only, and updated with each release."
+    "officialHint": "Official skills bundled with AionUi — ready to use out of the box, read-only, and updated with each release.",
+    "deleteAffectsNewOnlyHint": "Deleting only affects new conversations. Skills already selected in existing conversations keep working."
   },
   "authMethod": "Authentication",
   "geminiApiKey": "Gemini API Key",

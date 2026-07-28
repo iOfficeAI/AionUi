@@ -303,10 +303,22 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
     if (selectedSkillNames.size === 0) return;
     Modal.confirm({
       title: t('settings.skillsHub.batchDeleteConfirmTitle', { defaultValue: 'Delete Skills' }),
-      content: t('settings.skillsHub.batchDeleteConfirmContent', {
-        count: selectedSkillNames.size,
-        defaultValue: `Are you sure you want to delete the ${selectedSkillNames.size} selected skill(s)?`,
-      }),
+      content: (
+        <div>
+          <div>
+            {t('settings.skillsHub.batchDeleteConfirmContent', {
+              count: selectedSkillNames.size,
+              defaultValue: `Are you sure you want to delete the ${selectedSkillNames.size} selected skill(s)?`,
+            })}
+          </div>
+          <div className='text-12px text-t-tertiary mt-8px'>
+            {t('settings.skillsHub.deleteAffectsNewOnlyHint', {
+              defaultValue:
+                'Deleting only affects new conversations. Skills already selected in existing conversations keep working.',
+            })}
+          </div>
+        </div>
+      ),
       okButtonProps: { status: 'warning' },
       okText: t('common.delete', { defaultValue: 'Delete' }),
       wrapClassName: 'modal-delete-skill',
@@ -857,10 +869,22 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
                       e.stopPropagation();
                       Modal.confirm({
                         title: t('settings.skillsHub.deleteConfirmTitle', { defaultValue: 'Delete Skill' }),
-                        content: t('settings.skillsHub.deleteConfirmContent', {
-                          name: skill.name,
-                          defaultValue: `Are you sure you want to delete "${skill.name}"?`,
-                        }),
+                        content: (
+                          <div>
+                            <div>
+                              {t('settings.skillsHub.deleteConfirmContent', {
+                                name: skill.name,
+                                defaultValue: `Are you sure you want to delete "${skill.name}"?`,
+                              })}
+                            </div>
+                            <div className='text-12px text-t-tertiary mt-8px'>
+                              {t('settings.skillsHub.deleteAffectsNewOnlyHint', {
+                                defaultValue:
+                                  'Deleting only affects new conversations. Skills already selected in existing conversations keep working.',
+                              })}
+                            </div>
+                          </div>
+                        ),
                         okButtonProps: { status: 'danger' },
                         okText: t('common.delete', { defaultValue: 'Delete' }),
                         onOk: () => void handleDelete(skill.name),
