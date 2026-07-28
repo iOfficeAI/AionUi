@@ -105,7 +105,8 @@
     "officialSkillsTitle": "Compétences officielles",
     "officialSkillsEmpty": "Aucune compétence officielle disponible.",
     "customHint": "Importez un dossier de compétences, un dossier parent ou un zip ; jusqu'à {{maxFileSize}} par fichier et {{maxTotalSize}} par compétence ; l'importation du même nom écrase la compétence existante.",
-    "officialHint": "Compétences officielles fournies avec AionUi — prêtes à l'emploi, en lecture seule et mises à jour à chaque version."
+    "officialHint": "Compétences officielles fournies avec AionUi — prêtes à l'emploi, en lecture seule et mises à jour à chaque version.",
+    "deleteAffectsNewOnlyHint": "Deleting only affects new conversations. Skills already selected in existing conversations keep working."
   },
   "authMethod": "Authentification",
   "geminiApiKey": "Clé API Gemini",

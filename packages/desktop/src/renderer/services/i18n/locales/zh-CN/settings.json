@@ -105,7 +105,8 @@
     "officialSkillsEmpty": "暂无官方技能。",
     "noSearchResults": "没有匹配的技能。",
     "customHint": "支持技能目录、父目录或 zip 导入；单文件上限 {{maxFileSize}}、单技能上限 {{maxTotalSize}}；同名导入会覆盖现有技能。",
-    "officialHint": "AionUi 官方内置的技能，开箱即用、只读，随版本更新维护。"
+    "officialHint": "AionUi 官方内置的技能，开箱即用、只读，随版本更新维护。",
+    "deleteAffectsNewOnlyHint": "删除仅影响新会话：历史会话中已选用的技能仍可继续使用。"
   },
   "authMethod": "认证",
   "geminiApiKey": "Gemini API 密钥",

@@ -105,7 +105,8 @@
     "officialSkillsEmpty": "No hay habilidades oficiales disponibles.",
     "noSearchResults": "No hay habilidades coincidentes.",
     "customHint": "Importa una carpeta de habilidad, carpeta superior o zip; hasta {{maxFileSize}} por archivo y {{maxTotalSize}} por habilidad; importar el mismo nombre sobrescribe la habilidad existente.",
-    "officialHint": "Habilidades oficiales incluidas en AionUi: listas para usar, de solo lectura y actualizadas con cada versión."
+    "officialHint": "Habilidades oficiales incluidas en AionUi: listas para usar, de solo lectura y actualizadas con cada versión.",
+    "deleteAffectsNewOnlyHint": "Deleting only affects new conversations. Skills already selected in existing conversations keep working."
   },
   "authMethod": "Autenticación",
   "geminiApiKey": "Clave API de Gemini",

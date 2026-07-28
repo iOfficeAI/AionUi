@@ -2064,6 +2064,7 @@ export type I18nKey =
   | 'settings.skillsHub.customPathLabel'
   | 'settings.skillsHub.customPathNamePlaceholder'
   | 'settings.skillsHub.customPathPlaceholder'
+  | 'settings.skillsHub.deleteAffectsNewOnlyHint'
   | 'settings.skillsHub.deleteConfirmContent'
   | 'settings.skillsHub.deleteConfirmTitle'
   | 'settings.skillsHub.deleteError'
