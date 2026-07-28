@@ -9,7 +9,7 @@
  */
 
 import { type ChildProcess, spawn } from 'node:child_process';
-import { mkdirSync } from 'node:fs';
+import { mkdirSync, statSync } from 'node:fs';
 import { connect, createServer, type Socket } from 'node:net';
 import { cleanupRegisteredAgentProcesses } from './agent-process-registry.js';
 import type { AppMetadata, BackendBinaryResolver } from './types.js';
@@ -381,6 +381,13 @@ function getResolveDiagnostics(error: unknown): Partial<BackendStartupErrorDetai
 
 function ensureBackendStartupDirectory(dir: string | undefined): void {
   if (!dir || dir.trim() === '') return;
+  // Stat first: a directory that already exists needs no preparation. Relying
+  // on mkdirSync's recursive EEXIST tolerance instead breaks on Windows drive
+  // roots (e.g. work dir set to `D:\`): CreateDirectory on a drive root
+  // reports access-denied rather than already-exists, so mkdirSync throws
+  // EPERM even with `recursive: true` and even though the directory is fully
+  // usable — deterministically failing every backend startup (ELECTRON-3S4).
+  if (statSync(dir, { throwIfNoEntry: false })?.isDirectory()) return;
   mkdirSync(dir, { recursive: true });
 }
 
