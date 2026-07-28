@@ -579,5 +579,24 @@
       }
     }
   },
-  "notFound": "Беседа не найдена или была удалена"
+  "notFound": "Беседа не найдена или была удалена",
+  "explorer": {
+    "addFolder": "Add folder to project",
+    "removeFolder": "Remove from project",
+    "attachDuplicate": "This folder is already in the project",
+    "attachOverlap": "This folder overlaps a folder already in the project",
+    "attachFailed": "Couldn't add the folder",
+    "removeFailed": "Couldn't remove the folder",
+    "contextMenu": {
+      "rename": "Переименовать"
+    },
+    "namePlaceholder": "Имя",
+    "deleteConfirm": "Удалить «{{name}}»? Это действие нельзя отменить.",
+    "renameFailed": "Не удалось переименовать",
+    "tabs": {
+      "files": "Файлы",
+      "changes": "Изменения"
+    },
+    "changesPlaceholder": "Контроль версий появится в отдельной вкладке — скоро."
+  }
 }

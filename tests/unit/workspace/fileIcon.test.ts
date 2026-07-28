@@ -9,7 +9,7 @@ import {
   getFileIconName,
   getFolderIconName,
   getNodeIconExtension,
-} from '@/renderer/pages/conversation/Workspace/utils/fileIcon';
+} from '@/renderer/pages/conversation/explorer/fileIcon/fileIcon';
 
 describe('fileIcon helpers', () => {
   it('extracts a lowercase extension from the node name', () => {

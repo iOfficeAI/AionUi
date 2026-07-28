@@ -580,5 +580,24 @@
       }
     }
   },
-  "notFound": "Unterhaltung nicht gefunden oder wurde gelöscht"
+  "notFound": "Unterhaltung nicht gefunden oder wurde gelöscht",
+  "explorer": {
+    "addFolder": "Add folder to project",
+    "removeFolder": "Remove from project",
+    "attachDuplicate": "This folder is already in the project",
+    "attachOverlap": "This folder overlaps a folder already in the project",
+    "attachFailed": "Couldn't add the folder",
+    "removeFailed": "Couldn't remove the folder",
+    "contextMenu": {
+      "rename": "Umbenennen"
+    },
+    "namePlaceholder": "Name",
+    "deleteConfirm": "„{{name}}“ löschen? Dies kann nicht rückgängig gemacht werden.",
+    "renameFailed": "Umbenennen fehlgeschlagen",
+    "tabs": {
+      "files": "Dateien",
+      "changes": "Änderungen"
+    },
+    "changesPlaceholder": "Die Versionsverwaltung folgt in einem eigenen Bereich — bald."
+  }
 }

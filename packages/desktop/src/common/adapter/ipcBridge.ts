@@ -89,6 +89,7 @@ import type {
 } from '../update/updateTypes';
 import type { AgentMetadata } from '@/renderer/utils/model/agentTypes';
 import type { Theme } from '@/common/theme/types';
+import type { AttachFolderRequest, ProjectDetailDto, ProjectEntryDto } from '@/common/types/project';
 import type { ProtocolDetectionRequest, ProtocolDetectionResponse } from '../utils/protocolDetector';
 import {
   buildCreateConversationBody,
@@ -370,6 +371,29 @@ export const conversation = {
 
 export const runtime = {
   statusChanged: wsEmitter<IRuntimeStatusEvent>('runtime.statusChanged'),
+};
+
+// ---------------------------------------------------------------------------
+// Project Explorer control plane — routed to /api/projects/* (HTTP; the data
+// plane is the WS fs/* monitor). See explorer-stage3 HTTP contract.
+// ---------------------------------------------------------------------------
+
+export const project = {
+  /** GET /api/projects/{id} → full project detail incl. all pe roots (entries). */
+  get: httpGet<ProjectDetailDto, { project_id: string }>((p) => `/api/projects/${encodeURIComponent(p.project_id)}`),
+  /**
+   * POST /api/projects/{id}/folders → attach a folder, returns the single new (or,
+   * for a subdir, the existing focused) entry. 409 `project_explorer_duplicate` /
+   * `project_explorer_overlap` surface via BackendHttpError.code.
+   */
+  attachFolder: httpPost<ProjectEntryDto, { project_id: string } & AttachFolderRequest>(
+    (p) => `/api/projects/${encodeURIComponent(p.project_id)}/folders`,
+    (p) => (p.display_name ? { uri: p.uri, display_name: p.display_name } : { uri: p.uri })
+  ),
+  /** DELETE /api/projects/{id}/folders/{pe_id} → 204. Workspace entry is immutable (backend rejects). */
+  removeFolder: httpDelete<void, { project_id: string; pe_id: string }>(
+    (p) => `/api/projects/${encodeURIComponent(p.project_id)}/folders/${encodeURIComponent(p.pe_id)}`
+  ),
 };
 
 // ---------------------------------------------------------------------------

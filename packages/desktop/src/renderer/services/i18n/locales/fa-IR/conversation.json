@@ -579,5 +579,24 @@
       }
     }
   },
-  "notFound": "مکالمه یافت نشد یا حذف شده است"
+  "notFound": "مکالمه یافت نشد یا حذف شده است",
+  "explorer": {
+    "addFolder": "Add folder to project",
+    "removeFolder": "Remove from project",
+    "attachDuplicate": "This folder is already in the project",
+    "attachOverlap": "This folder overlaps a folder already in the project",
+    "attachFailed": "Couldn't add the folder",
+    "removeFailed": "Couldn't remove the folder",
+    "contextMenu": {
+      "rename": "تغییر نام"
+    },
+    "namePlaceholder": "نام",
+    "deleteConfirm": "«{{name}}» حذف شود؟ این عمل قابل بازگردانی نیست.",
+    "renameFailed": "تغییر نام ناموفق بود",
+    "tabs": {
+      "files": "پرونده‌ها",
+      "changes": "تغییرات"
+    },
+    "changesPlaceholder": "کنترل نسخه در بخشی جداگانه — به‌زودی."
+  }
 }

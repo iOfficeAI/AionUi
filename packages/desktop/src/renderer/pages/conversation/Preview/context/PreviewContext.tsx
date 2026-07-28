@@ -8,6 +8,7 @@ import { ipcBridge } from '@/common';
 import type { PreviewContentType } from '@/common/types/office/preview';
 import { emitter } from '@/renderer/utils/emitter';
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import type { PreviewScopeKey } from './previewScope';
 
 /** DOM 片段数据结构 / DOM snippet data structure */
 export interface DomSnippet {
@@ -76,7 +77,7 @@ export interface PreviewContextValue {
   saveContent: (tabId?: string) => Promise<boolean>; // 保存内容 / Save content
   findPreviewTab: (type: PreviewContentType, content?: string, metadata?: PreviewMetadata) => PreviewTab | null; // 查找匹配的 tab
   closePreviewByIdentity: (type: PreviewContentType, content?: string, metadata?: PreviewMetadata) => void; // 根据内容关闭指定 tab
-  closePreviewIfWorkspaceChanged: (workspace: string | null) => void; // 跨 workspace 切换时关闭预览
+  closePreviewIfScopeChanged: (scopeKey: PreviewScopeKey) => void; // 切换隔离 scope(project;见 previewScope.ts):持久化旧 scope、恢复新 scope 的 tabs+可见性(per-project)
 
   // 发送框集成 / Sendbox integration
   addToSendBox: (text: string) => void;
@@ -91,10 +92,13 @@ export interface PreviewContextValue {
 
 const PreviewContext = createContext<PreviewContextValue | null>(null);
 
-// 持久化 key / Persistence keys
-const PREVIEW_TABS_KEY = 'aionui_preview_tabs';
-const PREVIEW_ACTIVE_TAB_ID_KEY = 'aionui_preview_active_tab_id';
-const LEGACY_PREVIEW_STATE_KEY = 'aionui_preview_state';
+// Persistence is per **preview scope** (project id, or workspace fallback — see
+// `previewScope.ts`), so each project restores its own open tabs + visibility
+// when switching conversations / projects. Key: `aionui_preview:<scope>`.
+const previewScopeStorageKey = (scope: string): string => `aionui_preview:${scope}`;
+
+/** Persisted per-scope preview state. */
+type PersistedScopeState = { isOpen: boolean; tabs: PreviewTab[]; activeTabId: string | null };
 
 // 仅持久化小体积文本预览，避免大文本导致 localStorage 写入卡顿
 // Persist only lightweight text previews to avoid localStorage jank on large files
@@ -135,83 +139,60 @@ const parsePersistedTabs = (value: unknown): PreviewTab[] => {
     }));
 };
 
-// 从 localStorage 恢复状态 / Restore state from localStorage
-// 注意：isOpen 不从 localStorage 恢复，新会话时预览面板默认关闭
-// Note: isOpen is not restored from localStorage, preview panel is closed by default for new sessions
-const loadPersistedState = (): { isOpen: boolean; tabs: PreviewTab[]; activeTabId: string | null } => {
+const EMPTY_SCOPE_STATE: PersistedScopeState = { isOpen: false, tabs: [], activeTabId: null };
+
+/** Load a scope's persisted preview state (open tabs + visibility). */
+const loadScopeState = (scope: string): PersistedScopeState => {
   try {
-    let tabs = parsePersistedTabs(JSON.parse(localStorage.getItem(PREVIEW_TABS_KEY) || '[]'));
-    let activeTabId = localStorage.getItem(PREVIEW_ACTIVE_TAB_ID_KEY);
-
-    // 兼容旧版单 key 存储 / Backward compatibility for legacy single-key storage
-    if (tabs.length === 0) {
-      const legacyStored = localStorage.getItem(LEGACY_PREVIEW_STATE_KEY);
-      if (legacyStored) {
-        const parsed = JSON.parse(legacyStored) as { tabs?: unknown; activeTabId?: unknown };
-        tabs = parsePersistedTabs(parsed.tabs);
-        activeTabId = typeof parsed.activeTabId === 'string' ? parsed.activeTabId : activeTabId;
-      }
-    }
-
-    if (activeTabId && !tabs.some((tab) => tab.id === activeTabId)) {
-      activeTabId = tabs[0]?.id || null;
-    }
-
-    return {
-      isOpen: false, // 始终默认关闭 / Always start closed
-      tabs,
-      activeTabId,
-    };
+    const raw = localStorage.getItem(previewScopeStorageKey(scope));
+    if (!raw) return EMPTY_SCOPE_STATE;
+    const parsed = JSON.parse(raw) as { isOpen?: unknown; tabs?: unknown; activeTabId?: unknown };
+    const tabs = parsePersistedTabs(parsed.tabs);
+    let activeTabId = typeof parsed.activeTabId === 'string' ? parsed.activeTabId : null;
+    if (activeTabId && !tabs.some((tab) => tab.id === activeTabId)) activeTabId = tabs[0]?.id || null;
+    return { isOpen: parsed.isOpen === true && tabs.length > 0, tabs, activeTabId };
   } catch {
-    // 忽略解析错误 / Ignore parsing errors
+    return EMPTY_SCOPE_STATE;
   }
-  return { isOpen: false, tabs: [], activeTabId: null };
+};
+
+/** Persist a scope's preview state (lightweight text tabs + active tab + visibility). */
+const persistScopeState = (scope: string, state: PersistedScopeState): void => {
+  try {
+    const tabs = sanitizeTabsForPersistence(state.tabs);
+    const activeTabId = tabs.some((t) => t.id === state.activeTabId) ? state.activeTabId : (tabs[0]?.id ?? null);
+    localStorage.setItem(previewScopeStorageKey(scope), JSON.stringify({ isOpen: state.isOpen, tabs, activeTabId }));
+  } catch {
+    // storage full / unavailable — non-fatal
+  }
 };
 
 export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // 从 localStorage 恢复初始状态 / Restore initial state from localStorage
-  const persistedState = loadPersistedState();
-  const [isOpen, setIsOpen] = useState(persistedState.isOpen);
-  const [tabs, setTabs] = useState<PreviewTab[]>(persistedState.tabs);
-  const [activeTabId, setActiveTabId] = useState<string | null>(persistedState.activeTabId);
+  // State starts empty; the active scope's persisted state is loaded on the first
+  // `closePreviewIfScopeChanged` (per-project restore, see switchScope below).
+  const [isOpen, setIsOpen] = useState(false);
+  const [tabs, setTabs] = useState<PreviewTab[]>([]);
+  const [activeTabId, setActiveTabId] = useState<string | null>(null);
+  // The preview scope currently loaded into state (project id / workspace / null).
+  const currentScopeRef = useRef<PreviewScopeKey>(null);
   // Mirror activeTabId in a ref so setTabs updaters can read the latest value
   // without adding activeTabId to their dependencies.
-  const activeTabIdRef = useRef<string | null>(persistedState.activeTabId);
+  const activeTabIdRef = useRef<string | null>(null);
   // const [sendBoxHandler, setSendBoxHandlerState] = useState<((text: string) => void) | null>(null);
   const sendBoxHandler = useRef<((text: string) => void) | null>(null);
   const [domSnippets, setDomSnippets] = useState<DomSnippet[]>([]);
 
-  // 持久化 tabs 到 localStorage（仅保存小体积文本 tab）
-  // Persist tabs to localStorage (only lightweight text tabs)
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      try {
-        localStorage.setItem(PREVIEW_TABS_KEY, JSON.stringify(sanitizeTabsForPersistence(tabs)));
-        // 迁移后清理旧 key，减少重复解析
-        // Remove legacy key after migration to avoid duplicate parsing
-        localStorage.removeItem(LEGACY_PREVIEW_STATE_KEY);
-      } catch {
-        // 忽略存储错误（如存储空间不足）/ Ignore storage errors (e.g., quota exceeded)
-      }
-    }, 150);
-
-    return () => clearTimeout(timer);
-  }, [tabs]);
-
-  // 持久化 activeTabId（单独存储，避免切换 tab 时重复序列化大内容）
-  // Persist activeTabId separately to avoid re-serializing large tab content on tab switch
+  // Persist the active scope's preview state (open tabs + active tab + visibility)
+  // to `aionui_preview:<scope>`, debounced. Keeps activeTabIdRef in sync eagerly.
   useEffect(() => {
     activeTabIdRef.current = activeTabId;
-    try {
-      if (activeTabId) {
-        localStorage.setItem(PREVIEW_ACTIVE_TAB_ID_KEY, activeTabId);
-      } else {
-        localStorage.removeItem(PREVIEW_ACTIVE_TAB_ID_KEY);
-      }
-    } catch {
-      // 忽略存储错误 / Ignore storage errors
-    }
-  }, [activeTabId]);
+    const scope = currentScopeRef.current;
+    if (scope == null) return undefined;
+    const timer = setTimeout(() => {
+      persistScopeState(scope, { isOpen, tabs, activeTabId });
+    }, 150);
+    return () => clearTimeout(timer);
+  }, [tabs, activeTabId, isOpen]);
 
   // 追踪是否正在保存（避免与流式更新冲突）/ Track if currently saving (to avoid conflicts with streaming updates)
   const savingFilesRef = useRef<Set<string>>(new Set());
@@ -377,17 +358,25 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setDomSnippets([]);
   }, []);
 
-  // Stable ref for cross-workspace detection. Lives in the global context so it
-  // survives conversation-page remounts (which would reset component-local refs).
-  const lastWorkspaceRef = useRef<string | null>(null);
-  const closePreviewIfWorkspaceChanged = useCallback(
-    (workspace: string | null) => {
-      if (lastWorkspaceRef.current !== workspace) {
-        lastWorkspaceRef.current = workspace;
-        closePreview();
-      }
+  // Switch the preview scope (project id / workspace fallback / null). Persists
+  // the leaving scope's state, then restores the entering scope's persisted open
+  // tabs + active tab + visibility — this is what makes preview per-project.
+  // Same scope is a no-op. `currentScopeRef` lives in the app-root context so it
+  // survives conversation-page remounts.
+  const closePreviewIfScopeChanged = useCallback(
+    (scopeKey: PreviewScopeKey) => {
+      const prev = currentScopeRef.current;
+      if (prev === scopeKey) return;
+      if (prev != null) persistScopeState(prev, { isOpen, tabs, activeTabId });
+      currentScopeRef.current = scopeKey;
+      const loaded = scopeKey != null ? loadScopeState(scopeKey) : EMPTY_SCOPE_STATE;
+      setTabs(loaded.tabs);
+      setActiveTabId(loaded.activeTabId);
+      activeTabIdRef.current = loaded.activeTabId;
+      setIsOpen(loaded.isOpen);
+      setDomSnippets([]);
     },
-    [closePreview]
+    [isOpen, tabs, activeTabId]
   );
 
   // Track last-known mtime per file path for external change detection
@@ -736,7 +725,7 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
       saveContent,
       findPreviewTab,
       closePreviewByIdentity,
-      closePreviewIfWorkspaceChanged,
+      closePreviewIfScopeChanged,
       addToSendBox,
       setSendBoxHandler,
       domSnippets,
@@ -757,7 +746,7 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
     saveContent,
     findPreviewTab,
     closePreviewByIdentity,
-    closePreviewIfWorkspaceChanged,
+    closePreviewIfScopeChanged,
     addToSendBox,
     setSendBoxHandler,
     domSnippets,
