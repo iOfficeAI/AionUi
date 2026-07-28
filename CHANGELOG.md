@@ -1,5 +1,39 @@
 # Changelog
 
+## [2.1.42](https://github.com/iOfficeAI/AionUi/compare/v2.1.41...v2.1.42) (2026-07-28)
+
+### Desktop
+
+#### Features
+
+- **skills:** explain delete scope in skill delete confirm dialogs (#3761)
+- **assistant:** show quick-chat button on enabled tab rows (#3748)
+- **tray:** left-click tray icon toggles show/hide on Windows/Linux (#3726)
+- **permissions:** submit permission decision in one click for one-off options (#3686)
+
+#### Bug Fixes
+
+- **startup:** skip mkdir for pre-existing backend startup directories (#3759)
+- **i18n:** soften empty-turn needs-auth copy and add token-limit tip (#3751)
+- **conversation:** wrap long unbroken url/path in user message bubble (#3727)
+
+### Core ([v0.1.53](https://github.com/iOfficeAI/AionCore/releases/tag/v0.1.53))
+
+#### Features
+
+- **agents:** add MiMo Code builtin ACP agent (#700)
+
+#### Bug Fixes
+
+- **acp:** tolerate CodeBuddy dialect and stop misreporting empty turns as needs-auth (#692)
+- **ai-agent:** resolve cron full-auto mode to backend-native YOLO (ELECTRON-3RQ) (#699)
+- **session:** force-kill direct-CLI turns on UserCancelTimeout (#702)
+- **session:** preserve codex's real error when systemError precedes the terminal (#694)
+- **team:** converge run-scoped wakes into a run at the enqueue choke-point (#690)
+- **team:** dispatch native slash commands as bare command turns (#696)
+
+---
+
 ## [2.1.41](https://github.com/iOfficeAI/AionUi/compare/v2.1.40...v2.1.41) (2026-07-24)
 
 ### Desktop
