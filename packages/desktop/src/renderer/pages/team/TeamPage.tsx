@@ -12,7 +12,8 @@ import { classifyConfigSetError, useAcpConfigOptions } from '@/renderer/hooks/ag
 import ChatLayout from '@/renderer/pages/conversation/components/ChatLayout';
 import ChatSlider from '@renderer/pages/conversation/components/ChatSlider.tsx';
 import { useTeamPendingPermissions } from './hooks/useTeamPendingPermissions';
-import AcpModelSelector from '@/renderer/components/agent/AcpModelSelector';
+import { buildTeamRetryStartHandler } from './components/teamSendRuntime';
+import AcpModelSelector, { type AcpWarmupStatus } from '@/renderer/components/agent/AcpModelSelector';
 import AionrsModelSelector from '@/renderer/pages/conversation/platforms/aionrs/AionrsModelSelector';
 import { useAionrsModelSelection } from '@/renderer/pages/conversation/platforms/aionrs/useAionrsModelSelection';
 import { CronJobManager } from '@/renderer/pages/cron';
@@ -121,6 +122,10 @@ const AssistantChatSlot: React.FC<{
   teamRunView: TeamRunViewState;
   onTeamRunAck: ReturnType<typeof useTeamRunView>['applyAck'];
   onRunStateStale: ReturnType<typeof useTeamRunView>['reconcile'];
+  /** teammate 的真实 warmup 运行态；缺省视为 'dormant'。单聊不传。 */
+  warmupStatus?: AcpWarmupStatus;
+  /** 整队 warming 期间为 true —— 此时不下发手动触发器。 */
+  warmupDisabled?: boolean;
 }> = ({
   assistant,
   team_id,
@@ -131,6 +136,8 @@ const AssistantChatSlot: React.FC<{
   teamRunView,
   onTeamRunAck,
   onRunStateStale,
+  warmupStatus,
+  warmupDisabled,
 }) => {
   const layout = useLayoutContext();
   const teamPermission = useTeamPermission();
@@ -144,6 +151,15 @@ const AssistantChatSlot: React.FC<{
   const initialModelId = (conversation?.extra as { current_model_id?: string })?.current_model_id;
   const isAcpLike = conversation?.type === 'acp' || isAcpLikeBackend(assistant.assistant_backend);
   const cronJobId = resolveCronJobId(conversation?.extra);
+  // Reuse the existing single-teammate attach/warmup path; withhold the trigger
+  // while the whole team is warming so manual wake is gated by phase.
+  const warmup = useMemo<{ status: AcpWarmupStatus; trigger?: () => Promise<void> }>(
+    () => ({
+      status: warmupStatus ?? 'dormant',
+      trigger: warmupDisabled ? undefined : buildTeamRetryStartHandler({ team_id, slot_id: assistant.slot_id }),
+    }),
+    [warmupStatus, warmupDisabled, team_id, assistant.slot_id]
+  );
   // 抬头不叠身份色底（避免压低彩色名字的可读性）；成员身份仅由抬头里的“彩色名字”承担。
   // 列身体保留极淡身份色底作弱提示，不影响气泡阅读。
   return (
@@ -170,6 +186,7 @@ const AssistantChatSlot: React.FC<{
                 initialModelId={initialModelId}
                 prepareSetRuntime={teamPermission?.warmupSession}
                 loadConfigOptions={teamPermission?.loadConfigOptions}
+                warmup={warmup}
               />
             </div>
           )}
@@ -513,6 +530,8 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({
                       teamRunView={teamRun.state}
                       onTeamRunAck={teamRun.applyAck}
                       onRunStateStale={teamRun.reconcile}
+                      warmupStatus={warmupRuntimeStatus.get(assistant.slot_id)?.status ?? 'dormant'}
+                      warmupDisabled={isWarmingUp}
                     />
                   </div>
                 );
@@ -575,6 +594,8 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({
                           teamRunView={teamRun.state}
                           onTeamRunAck={teamRun.applyAck}
                           onRunStateStale={teamRun.reconcile}
+                          warmupStatus={warmupRuntimeStatus.get(assistant.slot_id)?.status ?? 'dormant'}
+                          warmupDisabled={isWarmingUp}
                         />
                       </div>
                     );
