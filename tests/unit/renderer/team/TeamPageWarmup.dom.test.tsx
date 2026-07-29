@@ -81,6 +81,10 @@ vi.mock('@/common', () => ({
     cron: { removeJob: { invoke: vi.fn() } },
     assistant: { list: { invoke: vi.fn(async () => []) } },
     conversation: {
+      update: { invoke: vi.fn(async () => undefined) },
+      // TeamPage subscribes to conversation.listChanged on mount to refetch the
+      // leader's dispatch conversation; stub it so the passive effect can run.
+      listChanged: makeTeamEventChannel('conversationListChanged'),
       confirmation: {
         list: { invoke: vi.fn(async () => []) },
         add: makeTeamEventChannel('confirmationAdd'),
@@ -124,10 +128,9 @@ vi.mock('@/renderer/pages/team/components/TeamChatView', () => ({
   default: ({ conversation: c }: { conversation: TChatConversation }) => <div data-testid={`team-chat-view-${c.id}`} />,
 }));
 
-// Isolate TeamPage from the workspace sider: the real ChatSlider subtree
-// subscribes to ipcBridge.conversation.* channels in passive effects, which
-// this test intentionally does not stub. Mocking it keeps the test focused on
-// warmup wiring and avoids an async mount race against an incomplete IPC mock.
+// Isolate TeamPage from the workspace sider: the real ChatSlider subtree pulls
+// in its own ipcBridge.conversation.* subscriptions. Mocking it keeps the test
+// focused on warmup wiring instead of ChatSlider internals.
 vi.mock('@renderer/pages/conversation/components/ChatSlider.tsx', () => ({
   __esModule: true,
   default: ({ conversation: c }: { conversation: TChatConversation }) => (
@@ -140,7 +143,7 @@ vi.mock('@/renderer/pages/cron', () => ({
 }));
 
 vi.mock('@/renderer/pages/conversation/Preview/context/PreviewContext', () => ({
-  usePreviewContext: () => ({ closePreview: () => {}, closePreviewIfWorkspaceChanged: () => {} }),
+  usePreviewContext: () => ({ closePreview: () => {}, closePreviewIfScopeChanged: () => {} }),
 }));
 
 import { ipcBridge } from '@/common';
