@@ -533,15 +533,42 @@ export const autoUpdate = {
 };
 
 // ---------------------------------------------------------------------------
-// Dialog — stays IPC (native file picker)
+// Dialog — native IPC picker on Electron, server-side picker on WebUI
 // ---------------------------------------------------------------------------
 
+export type ShowOpenOptions =
+  | { defaultPath?: string; properties?: OpenDialogOptions['properties']; filters?: OpenDialogOptions['filters'] }
+  | undefined;
+
+export type ShowOpenHandler = (options: ShowOpenOptions) => Promise<string[] | undefined>;
+
+/**
+ * `show-open` is an Electron-only IPC channel: on WebUI the bridge speaks over a
+ * WebSocket whose server side has no provider for it, so an invoke would hang
+ * forever with no rejection — every directory/file picker silently does nothing.
+ *
+ * The renderer registers a server-side picker here during startup. Electron is
+ * unaffected: `window.electronAPI` is present there, so the native dialog wins.
+ */
+let webShowOpenHandler: ShowOpenHandler | null = null;
+
+export const registerWebShowOpenHandler = (handler: ShowOpenHandler | null): void => {
+  webShowOpenHandler = handler;
+};
+
+const nativeShowOpen = bridge.buildProvider<string[] | undefined, ShowOpenOptions>('show-open');
+
 export const dialog = {
-  showOpen: bridge.buildProvider<
-    string[] | undefined,
-    | { defaultPath?: string; properties?: OpenDialogOptions['properties']; filters?: OpenDialogOptions['filters'] }
-    | undefined
-  >('show-open'),
+  showOpen: {
+    provider: nativeShowOpen.provider,
+    invoke: ((options?: ShowOpenOptions) => {
+      const hasElectron = typeof window !== 'undefined' && Boolean((window as { electronAPI?: unknown }).electronAPI);
+      if (!hasElectron && webShowOpenHandler) {
+        return webShowOpenHandler(options);
+      }
+      return nativeShowOpen.invoke(options);
+    }) as typeof nativeShowOpen.invoke,
+  },
 };
 
 // ---------------------------------------------------------------------------
