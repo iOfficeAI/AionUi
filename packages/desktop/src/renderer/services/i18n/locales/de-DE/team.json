@@ -15,7 +15,9 @@
     "renameOk": "Speichern",
     "renameCancel": "Abbrechen",
     "renameSuccess": "Team umbenannt",
-    "deleteSuccess": "Team gelöscht"
+    "deleteSuccess": "Team gelöscht",
+    "deleting": "Löschen...",
+    "adHocTooltip": "Temporäres Team"
   },
   "newAgent": "Neuer Agent",
   "noMessages": "Noch keine Nachrichten.",

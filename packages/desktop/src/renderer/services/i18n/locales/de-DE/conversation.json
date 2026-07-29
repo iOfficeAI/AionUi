@@ -24,6 +24,9 @@
     "noHistory": "Kein Chatverlauf",
     "deleteTitle": "Löschen",
     "deleteConfirm": "Diesen Chat wirklich löschen?",
+    "deleteTeamSourceTitle": "Lösche Team-Quellkonversation",
+    "deleteTeamSourceConfirm": "Diese Konversation ist mit einem aktiven Team verknüpft. Das Löschen wird das Team verwaist lassen. Fortfahren?",
+    "deleteTeamSourceOk": "Trotzdem löschen",
     "confirmDelete": "Löschen",
     "cancelDelete": "Abbrechen",
     "editName": "Namen bearbeiten",
@@ -580,5 +583,18 @@
       }
     }
   },
-  "notFound": "Unterhaltung nicht gefunden oder wurde gelöscht"
+  "notFound": "Unterhaltung nicht gefunden oder wurde gelöscht",
+  "collaboration": {
+    "launchTooltip": "Teammzusammenarbeit",
+    "selectAgentTitle": "Agent auswählen",
+    "createdSuccess": "Teammzusammenarbeit gestartet",
+    "joinedSuccess": "{{agentName}} ist dem Team beigetreten",
+    "joinedHint": "beigetreten",
+    "fallbackAgentName": "Agent",
+    "createFailed": "Teammzusammenarbeit konnte nicht gestartet werden",
+    "statusTitle": "Team",
+    "statusAria": "Team öffnen",
+    "latestMessage": "Latest: {{message}}",
+    "disbanded": "Aufgelöst"
+  }
 }

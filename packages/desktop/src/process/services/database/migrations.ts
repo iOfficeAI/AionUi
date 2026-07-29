@@ -1219,6 +1219,34 @@ const migration_v26: IMigration = {
 };
 
 /**
+ * Migration v26 -> v27: Add origin_conversation_id to teams for ad-hoc team association.
+ */
+const migration_v27: IMigration = {
+  version: 27,
+  name: 'Add origin_conversation_id to teams',
+  up: (db) => {
+    const tableInfo = db.prepare('PRAGMA table_info(teams)').all() as Array<{ name: string }>;
+    const hasColumn = tableInfo.some((col) => col.name === 'origin_conversation_id');
+    if (!hasColumn) {
+      db.exec('ALTER TABLE teams ADD COLUMN origin_conversation_id TEXT');
+    }
+    db.exec('CREATE INDEX IF NOT EXISTS idx_teams_origin_conversation_id ON teams(origin_conversation_id)');
+    console.log('[Migration v27] Added origin_conversation_id to teams table');
+  },
+  down: (db) => {
+    db.exec('DROP INDEX IF EXISTS idx_teams_origin_conversation_id');
+    db.exec(
+      `CREATE TABLE teams_backup AS SELECT id, user_id, name, workspace, workspace_mode, agents, lead_agent_id, session_mode, agents_version, created_at, updated_at FROM teams`
+    );
+    db.exec('DROP TABLE teams');
+    db.exec('ALTER TABLE teams_backup RENAME TO teams');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_teams_user_id ON teams(user_id)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_teams_updated_at ON teams(updated_at)');
+    console.log('[Migration v27] Rolled back: Removed origin_conversation_id from teams table');
+  },
+};
+
+/**
  * All migrations in order
  */
 // prettier-ignore
@@ -1227,7 +1255,7 @@ export const ALL_MIGRATIONS: IMigration[] = [
   migration_v7, migration_v8, migration_v9, migration_v10, migration_v11, migration_v12,
   migration_v13, migration_v14, migration_v15, migration_v16, migration_v17, migration_v18,
   migration_v19, migration_v20, migration_v21, migration_v22, migration_v23, migration_v24,
-  migration_v25, migration_v26,
+  migration_v25, migration_v26, migration_v27,
 ];
 
 /**

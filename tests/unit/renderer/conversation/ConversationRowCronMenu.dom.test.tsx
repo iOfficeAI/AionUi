@@ -90,7 +90,7 @@ describe('conversation scheduled-task menu item', () => {
     fireEvent.click(rename);
     await waitFor(() => expect(onEditStart).toHaveBeenCalledWith(conversation));
     fireEvent.click(deleteItem);
-    await waitFor(() => expect(onDelete).toHaveBeenCalledWith(conversation.id));
+    await waitFor(() => expect(onDelete).toHaveBeenCalledWith(conversation.id, conversation.extra));
     fireEvent.click(createCronTask);
     await waitFor(() => expect(onCreateCronTask).toHaveBeenCalledWith(conversation));
   });

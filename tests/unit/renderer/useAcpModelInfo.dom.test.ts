@@ -13,6 +13,10 @@ import type { AcpConfigOptionDto, AcpModelInfo } from '@/common/types/platform/a
 import { useAcpModelInfo } from '@/renderer/hooks/agent/useAcpModelInfo';
 import { resetEnsureConversationRuntimeStateForTests } from '@/renderer/pages/conversation/utils/ensureConversationRuntime';
 
+vi.mock('@/renderer/pages/conversation/utils/conversationCache', () => ({
+  getConversationOrNull: vi.fn().mockResolvedValue(null),
+}));
+
 const { ensureRuntimeInvokeMock, setConfigOptionInvokeMock, responseStreamHandlers } = vi.hoisted(() => ({
   ensureRuntimeInvokeMock: vi.fn(),
   setConfigOptionInvokeMock: vi.fn(),

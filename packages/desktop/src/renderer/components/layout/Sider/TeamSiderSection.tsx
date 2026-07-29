@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { DeleteOne, EditOne, Peoples, Plus, Pushpin, Right } from '@icon-park/react';
+import { Comment, DeleteOne, EditOne, Peoples, Plus, Pushpin, Right } from '@icon-park/react';
 import { Input, Message, Modal, Spin, Tooltip } from '@arco-design/web-react';
 import classNames from 'classnames';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
@@ -47,6 +47,7 @@ const TeamSiderSection: React.FC<TeamSiderSectionProps> = ({
   const { mutate: globalMutate } = useSWRConfig();
 
   const [createTeamVisible, setCreateTeamVisible] = useState(false);
+  const [deletingTeamId, setDeletingTeamId] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<boolean>(() => localStorage.getItem('team-section-expanded') === 'true');
   useEffect(() => {
     localStorage.setItem('team-section-expanded', String(expanded));
@@ -116,8 +117,14 @@ const TeamSiderSection: React.FC<TeamSiderSectionProps> = ({
             {sortedTeams.map((team) => {
               const isActive = pathname.startsWith(`/team/${team.id}`);
               const isRunning = isTeamRunning(team.id);
+              const isAdHoc = !!team.origin_conversation_id;
               return (
-                <Tooltip key={team.id} {...siderTooltipProps} content={team.name} position='right'>
+                <Tooltip
+                  key={team.id}
+                  {...siderTooltipProps}
+                  content={isAdHoc ? `${team.name} (${t('team.sider.adHocTooltip')})` : team.name}
+                  position='right'
+                >
                   <div
                     data-testid={`collapsed-team-item-${team.id}`}
                     className={classNames(
@@ -133,6 +140,14 @@ const TeamSiderSection: React.FC<TeamSiderSectionProps> = ({
                       >
                         <Spin size={16} />
                       </span>
+                    ) : isAdHoc ? (
+                      <Comment
+                        data-testid={`collapsed-team-icon-${team.id}`}
+                        theme='outline'
+                        size='16'
+                        fill={iconColors.primary}
+                        style={{ lineHeight: 0 }}
+                      />
                     ) : (
                       <Peoples
                         data-testid={`collapsed-team-icon-${team.id}`}
@@ -212,31 +227,40 @@ const TeamSiderSection: React.FC<TeamSiderSectionProps> = ({
                 },
                 {
                   key: 'delete',
-                  icon: <DeleteOne theme='outline' size='14' />,
-                  label: t('team.sider.delete'),
+                  icon: deletingTeamId === team.id ? undefined : <DeleteOne theme='outline' size='14' />,
+                  label: deletingTeamId === team.id ? t('team.sider.deleting') : t('team.sider.delete'),
                   danger: true,
+                  disabled: deletingTeamId !== null,
                 },
               ];
               const teamBadge = teamBadgeCounts.get(team.id) ?? 0;
               const isRunning = isTeamRunning(team.id);
-              return (
-                <div key={team.id} className='relative group'>
+              const isAdHoc = !!team.origin_conversation_id;
+              const siderIcon = isRunning ? (
+                <span data-testid={`team-spinner-${team.id}`} className='flex items-center justify-center'>
+                  <Spin size={16} />
+                </span>
+              ) : isAdHoc ? (
+                <Comment
+                  data-testid={`team-icon-${team.id}`}
+                  theme='outline'
+                  size='16'
+                  fill='currentColor'
+                  style={{ lineHeight: 0 }}
+                />
+              ) : (
+                <Peoples
+                  data-testid={`team-icon-${team.id}`}
+                  theme='outline'
+                  size='16'
+                  fill='currentColor'
+                  style={{ lineHeight: 0 }}
+                />
+              );
+              const siderNode = (
+                <div data-is-adhoc={String(isAdHoc)}>
                   <SiderItem
-                    icon={
-                      isRunning ? (
-                        <span data-testid={`team-spinner-${team.id}`} className='flex items-center justify-center'>
-                          <Spin size={16} />
-                        </span>
-                      ) : (
-                        <Peoples
-                          data-testid={`team-icon-${team.id}`}
-                          theme='outline'
-                          size='16'
-                          fill='currentColor'
-                          style={{ lineHeight: 0 }}
-                        />
-                      )
-                    }
+                    icon={siderIcon}
                     name={team.name}
                     selected={pathname.startsWith(`/team/${team.id}`)}
                     pinned={isPinned && !isRunning}
@@ -249,6 +273,7 @@ const TeamSiderSection: React.FC<TeamSiderSectionProps> = ({
                         setRenameName(team.name);
                         setRenameVisible(true);
                       } else if (key === 'delete') {
+                        if (deletingTeamId) return;
                         Modal.confirm({
                           title: t('team.sider.deleteConfirm'),
                           content: t('team.sider.deleteConfirmContent'),
@@ -256,11 +281,21 @@ const TeamSiderSection: React.FC<TeamSiderSectionProps> = ({
                           cancelText: t('team.sider.deleteCancel'),
                           okButtonProps: { status: 'warning' },
                           onOk: async () => {
-                            const teamIdToDelete = team.id;
-                            await removeTeam(teamIdToDelete);
-                            Message.success(t('team.sider.deleteSuccess'));
-                            if (window.location.hash.includes(`/team/${teamIdToDelete}`)) {
-                              window.location.hash = '#/';
+                            const teamToDelete = team;
+                            setDeletingTeamId(teamToDelete.id);
+                            try {
+                              await removeTeam(teamToDelete.id);
+                              Message.success(t('team.sider.deleteSuccess'));
+                              if (teamToDelete.origin_conversation_id) {
+                                navigate(`/conversation/${teamToDelete.origin_conversation_id}`, { replace: true });
+                              } else if (window.location.hash.includes(`/team/${teamToDelete.id}`)) {
+                                window.location.hash = '#/';
+                              }
+                            } catch (err) {
+                              Message.error(t('team.sider.delete'));
+                              throw err;
+                            } finally {
+                              setDeletingTeamId(null);
                             }
                           },
                           style: { borderRadius: '12px' },
@@ -271,6 +306,17 @@ const TeamSiderSection: React.FC<TeamSiderSectionProps> = ({
                     }}
                     onClick={() => handleTeamClick(team.id)}
                   />
+                </div>
+              );
+              return (
+                <div key={team.id} className='relative group'>
+                  {isAdHoc ? (
+                    <Tooltip {...siderTooltipProps} content={t('team.sider.adHocTooltip')} position='right'>
+                      {siderNode}
+                    </Tooltip>
+                  ) : (
+                    siderNode
+                  )}
                   {teamBadge > 0 && (
                     <span
                       className='absolute right-11px top-1/2 -translate-y-1/2 w-18px h-18px rounded-full text-10px font-bold flex items-center justify-center pointer-events-none z-10 group-hover:hidden bg-danger-6 text-white'

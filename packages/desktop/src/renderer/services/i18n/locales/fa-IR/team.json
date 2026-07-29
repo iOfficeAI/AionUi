@@ -15,7 +15,9 @@
     "renameOk": "ذخیره",
     "renameCancel": "لغو",
     "renameSuccess": "نام تیم تغییر کرد",
-    "deleteSuccess": "تیم حذف شد"
+    "deleteSuccess": "تیم حذف شد",
+    "deleting": "در حال حذف...",
+    "adHocTooltip": "تیم موقت"
   },
   "newAgent": "عامل جدید",
   "noMessages": "هنوز پیامی وجود ندارد.",

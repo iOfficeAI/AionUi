@@ -28,6 +28,9 @@
     "noHistory": "Sohbet geçmişi yok",
     "deleteTitle": "Sil",
     "deleteConfirm": "Bu sohbeti silmek istediğinizden emin misiniz?",
+    "deleteTeamSourceTitle": "Takım kaynak konuşmasını sil",
+    "deleteTeamSourceConfirm": "Bu konuşma aktif bir takıma bağlı. Silinmesi takımı yetim bırakacak. Devam edilsin mi?",
+    "deleteTeamSourceOk": "Yine de sil",
     "confirmDelete": "Sil",
     "cancelDelete": "İptal",
     "editName": "İsmi Düzenle",
@@ -581,5 +584,18 @@
       }
     }
   },
-  "notFound": "Konuşma bulunamadı veya silinmiş"
+  "notFound": "Konuşma bulunamadı veya silinmiş",
+  "collaboration": {
+    "launchTooltip": "Takım iş birliği",
+    "selectAgentTitle": "Ajan seç",
+    "createdSuccess": "Takım iş birliği başlatıldı",
+    "joinedSuccess": "{{agentName}} takıma katıldı",
+    "joinedHint": "katıldı",
+    "fallbackAgentName": "Ajan",
+    "createFailed": "Takım iş birliği başlatılamadı",
+    "statusTitle": "Takım",
+    "statusAria": "Takımı aç",
+    "latestMessage": "Latest: {{message}}",
+    "disbanded": "Dağıtıldı"
+  }
 }

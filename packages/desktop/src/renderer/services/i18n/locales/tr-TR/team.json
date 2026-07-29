@@ -15,7 +15,9 @@
     "renameOk": "Kaydet",
     "renameCancel": "İptal",
     "renameSuccess": "Takım yeniden adlandırıldı",
-    "deleteSuccess": "Takım silindi"
+    "deleteSuccess": "Takım silindi",
+    "deleting": "Siliniyor...",
+    "adHocTooltip": "Geçici Ekip"
   },
   "newAgent": "Yeni Asistan",
   "noMessages": "No messages yet.",

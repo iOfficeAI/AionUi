@@ -279,4 +279,160 @@ describe('useTeamRunView', () => {
 
     expect(result.current.state.sessionStopped).toBe(false);
   });
+
+  it('reconcile_returns_false_and_logs_when_getRunState_fails', async () => {
+    teamEventMocks.invoke.getRunState.mockRejectedValue(new Error('state unavailable'));
+    const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    const { result } = renderHook(() => useTeamRunView('team-1'));
+
+    await waitFor(() => expect(consoleSpy).toHaveBeenCalled());
+    const ok = await result.current.reconcile('manual');
+    expect(ok).toBe(false);
+
+    consoleSpy.mockRestore();
+  });
+
+  it('ignores_run_events_from_other_teams', () => {
+    const { result } = renderHook(() => useTeamRunView('team-1'));
+    const runUpdated = teamEventMocks.handlers.runUpdated as TeamRunHandler;
+
+    act(() => runUpdated(runEvent({ team_id: 'team-other', team_run_id: 'run-other' })));
+
+    expect(result.current.state.activeRun).toBeUndefined();
+    expect(result.current.state.slotWorkBySlot).toEqual({});
+  });
+
+  it('ignores_child_turn_events_from_other_teams', () => {
+    const { result } = renderHook(() => useTeamRunView('team-1'));
+    const childStarted = teamEventMocks.handlers.childTurnStarted as ChildTurnHandler;
+
+    act(() =>
+      childStarted({
+        team_id: 'team-other',
+        team_run_id: 'run-other',
+        slot_id: 'worker',
+        role: 'teammate',
+        conversation_id: 'conv-worker',
+        turn_id: 'turn-other',
+        status: 'running',
+      })
+    );
+
+    expect(result.current.state.childTurnsBySlot).toEqual({});
+  });
+
+  it('leaves_session_stopped_unchanged_on_failed_status', () => {
+    const { result } = renderHook(() => useTeamRunView('team-1'));
+    const sessionStatus = teamEventMocks.handlers.sessionStatusChanged as SessionStatusHandler;
+
+    act(() => sessionStatus({ team_id: 'team-1', status: 'stopped' }));
+    expect(result.current.state.sessionStopped).toBe(true);
+
+    act(() => sessionStatus({ team_id: 'team-1', status: 'failed' }));
+    expect(result.current.state.sessionStopped).toBe(true);
+  });
+
+  it('reconciles_when_realtime_reconnects', async () => {
+    teamEventMocks.invoke.getRunState.mockResolvedValue({
+      session_generation: 'gen-reconnect',
+      active_run: null,
+      slot_work: [slotWork('worker', { state: 'blocked', blocked_reason: 'runtime_starting' })],
+    });
+
+    const { result } = renderHook(() => useTeamRunView('team-1'));
+
+    await act(async () => {
+      (teamEventMocks.handlers.reconnected as () => void)();
+    });
+
+    await waitFor(() =>
+      expect(result.current.state.slotWorkBySlot).toEqual({
+        worker: expect.objectContaining({ state: 'blocked', blocked_reason: 'runtime_starting' }),
+      })
+    );
+  });
+
+  it('reconciles_on_team_listChanged_for_the_same_team', async () => {
+    const { result } = renderHook(() => useTeamRunView('team-1'));
+    await waitFor(() => expect(teamEventMocks.invoke.getRunState).toHaveBeenCalledTimes(1));
+
+    teamEventMocks.invoke.getRunState.mockResolvedValue({
+      session_generation: 'gen-list',
+      active_run: null,
+      slot_work: [slotWork('lead', { state: 'idle' })],
+    });
+
+    await act(async () => {
+      (teamEventMocks.handlers.listChanged as (event: { team_id: string }) => void)({ team_id: 'team-1' });
+    });
+
+    await waitFor(() => expect(teamEventMocks.invoke.getRunState).toHaveBeenCalledTimes(2));
+    await waitFor(() =>
+      expect(result.current.state.slotWorkBySlot).toEqual({
+        lead: expect.objectContaining({ state: 'idle' }),
+      })
+    );
+  });
+
+  it('ignores_listChanged_for_other_teams', async () => {
+    const { result } = renderHook(() => useTeamRunView('team-1'));
+    await waitFor(() => expect(teamEventMocks.invoke.getRunState).toHaveBeenCalledTimes(1));
+
+    await act(async () => {
+      (teamEventMocks.handlers.listChanged as (event: { team_id: string }) => void)({ team_id: 'team-other' });
+    });
+
+    expect(teamEventMocks.invoke.getRunState).toHaveBeenCalledTimes(1);
+  });
+
+  it('reconciles_on_sessionChanged_for_the_same_team', async () => {
+    const { result } = renderHook(() => useTeamRunView('team-1'));
+    await waitFor(() => expect(teamEventMocks.invoke.getRunState).toHaveBeenCalledTimes(1));
+
+    teamEventMocks.invoke.getRunState.mockResolvedValue({
+      session_generation: 'gen-session',
+      active_run: null,
+      slot_work: [slotWork('lead', { state: 'idle' })],
+    });
+
+    await act(async () => {
+      (teamEventMocks.handlers.sessionChanged as (event: { team_id: string }) => void)({ team_id: 'team-1' });
+    });
+
+    await waitFor(() => expect(teamEventMocks.invoke.getRunState).toHaveBeenCalledTimes(2));
+    await waitFor(() =>
+      expect(result.current.state.slotWorkBySlot).toEqual({
+        lead: expect.objectContaining({ state: 'idle' }),
+      })
+    );
+  });
+
+  it('reconciles_on_agentSpawned_for_the_same_team', async () => {
+    const { result } = renderHook(() => useTeamRunView('team-1'));
+    await waitFor(() => expect(teamEventMocks.invoke.getRunState).toHaveBeenCalledTimes(1));
+
+    teamEventMocks.invoke.getRunState.mockResolvedValue({
+      session_generation: 'gen-spawn',
+      active_run: null,
+      slot_work: [slotWork('worker', { state: 'idle' })],
+    });
+
+    await act(async () => {
+      (teamEventMocks.handlers.agentSpawned as (event: { team_id: string }) => void)({ team_id: 'team-1' });
+    });
+
+    await waitFor(() => expect(teamEventMocks.invoke.getRunState).toHaveBeenCalledTimes(2));
+  });
+
+  it('ignores_agentRenamed_for_other_teams', async () => {
+    const { result } = renderHook(() => useTeamRunView('team-1'));
+    await waitFor(() => expect(teamEventMocks.invoke.getRunState).toHaveBeenCalledTimes(1));
+
+    await act(async () => {
+      (teamEventMocks.handlers.agentRenamed as (event: { team_id: string }) => void)({ team_id: 'team-other' });
+    });
+
+    expect(teamEventMocks.invoke.getRunState).toHaveBeenCalledTimes(1);
+  });
 });

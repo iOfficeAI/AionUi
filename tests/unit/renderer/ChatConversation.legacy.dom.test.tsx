@@ -56,8 +56,21 @@ vi.mock('@/renderer/hooks/agent/usePresetAssistantInfo', () => ({
   usePresetAssistantInfo: (...args: unknown[]) => usePresetAssistantInfoMock(...args),
 }));
 
+vi.mock('@/renderer/hooks/context/AuthContext', () => ({
+  useAuth: () => ({ user: { id: 'user-1' }, status: 'authenticated' }),
+}));
+
+vi.mock('@/renderer/hooks/context/ThemeContext', () => ({
+  useThemeContext: () => ({ theme: 'light', fontScale: 1 }),
+}));
+
 vi.mock('@/renderer/hooks/context/LayoutContext', () => ({
   useLayoutContext: () => ({ isMobile: false }),
+}));
+
+vi.mock('react-router-dom', () => ({
+  useNavigate: () => vi.fn(),
+  Link: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
 
 vi.mock('@/renderer/pages/conversation/Preview', () => ({
@@ -183,5 +196,41 @@ describe('ChatConversation legacy runtime rendering', () => {
         waitForWarmup: true,
       })
     );
+  });
+
+  it('hides collaboration launcher and status card for team-owned conversations', () => {
+    usePresetAssistantInfoMock.mockReturnValue({
+      info: {
+        name: 'Research Assistant',
+        logo: '📚',
+        isEmoji: true,
+        backend: 'codex',
+        assistantId: 'assistant-research',
+      },
+      isLoading: false,
+    });
+
+    render(
+      <ChatConversation
+        conversation={
+          {
+            id: 'conv-team',
+            user_id: 'user-1',
+            name: 'Team conversation',
+            type: 'acp',
+            model: {},
+            extra: { workspace: '/tmp/aionui-history', team_id: 'team-1' },
+            status: 'finished',
+            source: 'aionui',
+            created_at: 1,
+            modified_at: 1,
+            pinned: false,
+          } as TChatConversation
+        }
+      />
+    );
+
+    expect(screen.queryByTestId('collaboration-launcher-trigger')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('team-status-card')).not.toBeInTheDocument();
   });
 });

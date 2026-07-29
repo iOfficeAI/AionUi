@@ -13,6 +13,7 @@ import type {
   SetConfigOptionResponse,
 } from '@/common/types/platform/acpTypes';
 import { ensureConversationRuntime } from '@/renderer/pages/conversation/utils/ensureConversationRuntime';
+import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import useSWR, { mutate as swrMutate } from 'swr';
 
@@ -135,8 +136,13 @@ function subscribeConversationSetStatus(
   };
 }
 
-const ensureRuntimeConfigOptions: AcpConfigOptionsLoader = async (conversation_id: string) =>
-  (await ensureConversationRuntime(conversation_id)).config_options;
+const ensureRuntimeConfigOptions: AcpConfigOptionsLoader = async (conversation_id: string) => {
+  const latest = await getConversationOrNull(conversation_id);
+  if ((latest?.extra as { teamId?: string } | undefined)?.teamId) {
+    return [];
+  }
+  return (await ensureConversationRuntime(conversation_id)).config_options;
+};
 
 const configOptionsInFlight = new Map<string, Promise<AcpConfigOptionDto[] | null>>();
 

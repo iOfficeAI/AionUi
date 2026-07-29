@@ -44,6 +44,8 @@ export type TTeam = {
   agents?: TeamAssistant[];
   /** Current session permission mode (e.g. 'plan', 'auto'). Persisted so newly spawned assistants inherit it. */
   session_mode?: string;
+  /** Source conversation for ad-hoc teams created from a normal conversation. */
+  origin_conversation_id?: string;
   created_at: number;
   updated_at: number;
 };

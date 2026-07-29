@@ -74,6 +74,7 @@ describe('useAcpMessage', () => {
     ensureRuntimeInvokeMock.mockResolvedValue({ recovered: false, config_options: [], runtime: null });
     getSlashCommandsInvokeMock.mockResolvedValue([]);
     responseStreamHandlerRef.current = undefined;
+    vi.mocked(getConversationOrNull).mockResolvedValue(null);
   });
 
   it('completes hydration when the conversation lookup fails', async () => {
@@ -389,6 +390,149 @@ describe('useAcpMessage', () => {
         },
       })
     );
+  });
+
+  it('deduplicates repeated teammate_message events with the same msg_id', async () => {
+    vi.mocked(getConversationOrNull).mockResolvedValue(null);
+
+    renderHook(() => useAcpMessage('leader-conversation-1'));
+
+    const event = {
+      type: 'teammate_message',
+      data: {
+        id: 'dup-msg',
+        type: 'text',
+        msg_id: 'dup-msg',
+        conversation_id: 'leader-conversation-1',
+        position: 'left',
+        status: 'finish',
+        content: {
+          content: 'same',
+          teammate_message: true,
+          sender_name: 'Codex Assistant',
+          sender_backend: 'codex',
+          sender_conversation_id: 'teammate-conversation-1',
+        },
+      },
+      msg_id: 'dup-msg',
+      conversation_id: 'leader-conversation-1',
+    } as unknown as IResponseMessage;
+
+    act(() => {
+      responseStreamHandlerRef.current?.(event);
+      responseStreamHandlerRef.current?.(event);
+    });
+
+    await waitFor(() => expect(addOrUpdateMessageMock).toHaveBeenCalledTimes(1));
+  });
+
+  it('skips standalone runtime ensure for promoted leader source conversations', async () => {
+    vi.mocked(getConversationOrNull).mockResolvedValue({
+      extra: { teamId: 'team-leader' },
+    } as unknown as Awaited<ReturnType<typeof getConversationOrNull>>);
+
+    renderHook(() => useAcpMessage('conv-leader'));
+
+    await waitFor(() => {
+      expect(getConversationOrNull).toHaveBeenCalledWith('conv-leader');
+    });
+    expect(ensureRuntimeInvokeMock).not.toHaveBeenCalled();
+  });
+
+  it('skips standalone runtime ensure when fetching slash commands for a promoted leader source conversation', async () => {
+    vi.mocked(getConversationOrNull).mockResolvedValue({
+      extra: { teamId: 'team-leader' },
+    } as unknown as Awaited<ReturnType<typeof getConversationOrNull>>);
+
+    const { result } = renderHook(() => useAcpMessage('conv-leader'));
+
+    act(() => {
+      result.current.fetchSlashCommands();
+    });
+
+    await waitFor(() => {
+      expect(getConversationOrNull).toHaveBeenCalledWith('conv-leader');
+    });
+    expect(ensureRuntimeInvokeMock).not.toHaveBeenCalled();
+  });
+
+  it('updates token usage and context limit from acp_context_usage messages', async () => {
+    vi.mocked(getConversationOrNull).mockResolvedValue(null);
+
+    const { result } = renderHook(() => useAcpMessage('conv-1'));
+
+    act(() => {
+      responseStreamHandlerRef.current?.({
+        type: 'acp_context_usage',
+        data: { used: 1500, size: 8192 },
+        msg_id: 'usage-1',
+        conversation_id: 'conv-1',
+      });
+    });
+
+    await waitFor(() => {
+      expect(result.current.tokenUsage).toEqual({ total_tokens: 1500 });
+      expect(result.current.context_limit).toBe(8192);
+    });
+  });
+
+  it('sets acpStatus to session_active on slash_commands_updated messages', async () => {
+    vi.mocked(getConversationOrNull).mockResolvedValue(null);
+
+    const { result } = renderHook(() => useAcpMessage('conv-1'));
+
+    act(() => {
+      responseStreamHandlerRef.current?.({
+        type: 'slash_commands_updated',
+        data: {},
+        msg_id: 'cmds-1',
+        conversation_id: 'conv-1',
+      });
+    });
+
+    await waitFor(() => {
+      expect(result.current.acpStatus).toBe('session_active');
+    });
+  });
+
+  it('resets loading states and merges message on error stream events', async () => {
+    vi.mocked(getConversationOrNull).mockResolvedValue(null);
+
+    renderHook(() => useAcpMessage('conv-1'));
+
+    act(() => {
+      responseStreamHandlerRef.current?.({
+        type: 'error',
+        data: { content: 'Something went wrong' },
+        msg_id: 'err-1',
+        conversation_id: 'conv-1',
+      });
+    });
+
+    await waitFor(() => {
+      expect(addOrUpdateMessageMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          msg_id: 'err-1',
+        })
+      );
+    });
+  });
+
+  it('ignores messages for other conversations', async () => {
+    vi.mocked(getConversationOrNull).mockResolvedValue(null);
+
+    renderHook(() => useAcpMessage('conv-1'));
+
+    act(() => {
+      responseStreamHandlerRef.current?.({
+        type: 'text',
+        data: 'wrong conversation',
+        msg_id: 'msg-other',
+        conversation_id: 'conv-other',
+      });
+    });
+
+    expect(addOrUpdateMessageMock).not.toHaveBeenCalled();
   });
 
   it('renders an advisory tips notice without lighting the running timer', async () => {

@@ -4,6 +4,11 @@
  */
 
 import '@testing-library/jest-dom/vitest';
+import i18n from '@/renderer/services/i18n';
+
+// Wait for i18n to be initialized before running DOM tests so that t() calls
+// with interpolation return translated strings instead of fallback keys.
+await i18n.init();
 
 // Make this a module
 

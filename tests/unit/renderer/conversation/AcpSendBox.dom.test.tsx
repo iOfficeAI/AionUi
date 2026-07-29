@@ -60,12 +60,18 @@ vi.mock('@/renderer/components/chat/SendBox', () => ({
     onSend,
     onChange,
     rightTools,
+    disabled,
+    placeholder,
   }: {
     onSend: (message: string) => Promise<void>;
     onChange?: (value: string) => void;
     rightTools?: React.ReactNode;
+    disabled?: boolean;
+    placeholder?: string;
   }) => (
     <div>
+      <span data-testid='sendbox-disabled'>{disabled ? 'disabled' : 'enabled'}</span>
+      <span data-testid='sendbox-placeholder'>{placeholder}</span>
       {rightTools}
       <button type='button' onClick={() => onChange?.('hello')}>
         change
@@ -351,6 +357,33 @@ describe('AcpSendBox', () => {
     expect(wrapper?.className).not.toContain('md:w-[calc(100%-clamp(80px,10vw,240px))]');
   });
 
+  it('disables the send box when the ad-hoc team is running', () => {
+    render(
+      <AcpSendBox
+        conversation_id='conv-1'
+        backend='codex'
+        workspacePath='/tmp/workspace'
+        messageState={makeMessageState()}
+        isTeamRunning
+      />
+    );
+
+    expect(screen.getByTestId('sendbox-disabled')).toHaveTextContent('disabled');
+  });
+
+  it('keeps the send box enabled when the ad-hoc team is not running', () => {
+    render(
+      <AcpSendBox
+        conversation_id='conv-1'
+        backend='codex'
+        workspacePath='/tmp/workspace'
+        messageState={makeMessageState()}
+      />
+    );
+
+    expect(screen.getByTestId('sendbox-disabled')).toHaveTextContent('enabled');
+  });
+
   it('does not warm up team session on mount or draft content changes', async () => {
     const warmupSession = vi.fn().mockResolvedValue(undefined);
     useTeamPermissionMock.mockReturnValue({
@@ -542,6 +575,22 @@ describe('AcpSendBox', () => {
 
     await waitFor(() => {
       expect(setConfigOption).toHaveBeenCalledWith('reasoning_effort', 'high');
+    });
+  });
+
+  it('disables the send box while the linked ad-hoc team is running', async () => {
+    render(
+      <AcpSendBox
+        conversation_id='conv-1'
+        backend='codex'
+        workspacePath='/tmp/workspace'
+        messageState={makeMessageState()}
+        isTeamRunning
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('sendbox-disabled')).toHaveTextContent('disabled');
     });
   });
 });

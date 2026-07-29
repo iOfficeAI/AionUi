@@ -28,6 +28,9 @@
     "noHistory": "채팅 기록 없음",
     "deleteTitle": "삭제",
     "deleteConfirm": "이 채팅을 삭제하시겠습니까?",
+    "deleteTeamSourceTitle": "팀 소스 대화 삭제",
+    "deleteTeamSourceConfirm": "이 대화는 활성 팀에 연결되어 있습니다. 삭제하면 팀이 고아가 됩니다. 계속하시겠습니까?",
+    "deleteTeamSourceOk": "그래도 삭제",
     "confirmDelete": "삭제",
     "cancelDelete": "취소",
     "editName": "이름 편집",
@@ -579,5 +582,18 @@
       }
     }
   },
-  "notFound": "대화를 찾을 수 없거나 삭제되었습니다"
+  "notFound": "대화를 찾을 수 없거나 삭제되었습니다",
+  "collaboration": {
+    "launchTooltip": "팀 협업",
+    "selectAgentTitle": "에이전트 선택",
+    "createdSuccess": "팀 협업이 시작되었습니다",
+    "joinedSuccess": "{{agentName}}님이 팀에 참여했습니다",
+    "joinedHint": "참여함",
+    "fallbackAgentName": "에이전트",
+    "createFailed": "팀 협업 시작 실패",
+    "statusTitle": "팀",
+    "statusAria": "팀 열기",
+    "latestMessage": "Latest: {{message}}",
+    "disbanded": "해산됨"
+  }
 }

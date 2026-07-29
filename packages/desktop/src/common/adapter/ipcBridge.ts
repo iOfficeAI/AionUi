@@ -77,6 +77,12 @@ import type {
   TeamAssistant,
 } from '../types/team/teamTypes';
 import type {
+  IAdHocTeamByConversationParams,
+  IAdHocTeamFromConversationParams,
+  TAdHocTeamAssociation,
+  TAdHocTeamCreateResult,
+} from '../types/team/adHocTeamTypes';
+import type {
   AutoUpdateReadyResult,
   AutoUpdateStatus,
   InstallerLastFailureMarker,
@@ -111,10 +117,13 @@ import {
 import { fromApiSearchResult, type ApiMessageSearchItem } from './searchMapper';
 import type { IAddTeamAssistantParams, ICreateTeamParams } from './teamMapper';
 import {
+  fromBackendAdHocTeamAssociationOptional,
+  fromBackendAdHocTeamCreateResult,
   fromBackendAssistant,
   fromBackendTeam,
   fromBackendTeamList,
   fromBackendTeamOptional,
+  toBackendAdHocTeamFromConversationParams,
   toBackendAssistant,
 } from './teamMapper';
 import { fromBackendCompareResult, type RawCompareResult } from './fileSnapshotMapper';
@@ -857,7 +866,11 @@ export const acpConversation = {
       advanced?: {
         yolo_id?: string;
         native_skills_dirs?: string[];
-        behavior_policy?: { supports_side_question?: boolean };
+        behavior_policy?: {
+          supports_side_question?: boolean;
+          supports_team?: boolean;
+          team_capable_override?: boolean;
+        };
         description?: string;
       };
     }
@@ -874,7 +887,11 @@ export const acpConversation = {
       advanced?: {
         yolo_id?: string;
         native_skills_dirs?: string[];
-        behavior_policy?: { supports_side_question?: boolean };
+        behavior_policy?: {
+          supports_side_question?: boolean;
+          supports_team?: boolean;
+          team_capable_override?: boolean;
+        };
         description?: string;
       };
     }
@@ -1944,6 +1961,20 @@ export const team = {
       ...(p.workspace ? { workspace: p.workspace } : {}),
     })),
     fromBackendTeam
+  ),
+  fromConversation: withResponseMap(
+    httpPost<TAdHocTeamCreateResult, IAdHocTeamFromConversationParams>(
+      '/api/teams/from-conversation',
+      toBackendAdHocTeamFromConversationParams
+    ),
+    fromBackendAdHocTeamCreateResult
+  ),
+  getByConversation: withResponseMap(
+    httpGet<TAdHocTeamAssociation | null, IAdHocTeamByConversationParams>(
+      (p) =>
+        `/api/teams/by-conversation?conversation_id=${encodeURIComponent(p.conversation_id)}&user_id=${encodeURIComponent(p.user_id)}`
+    ),
+    fromBackendAdHocTeamAssociationOptional
   ),
   list: withResponseMap(
     httpGet<TTeam[], { user_id: string }>((p) => `/api/teams?user_id=${encodeURIComponent(p.user_id)}`),

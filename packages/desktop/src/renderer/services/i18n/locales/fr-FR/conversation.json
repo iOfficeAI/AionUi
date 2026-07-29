@@ -24,6 +24,9 @@
     "noHistory": "Aucun historique de chat",
     "deleteTitle": "Supprimer",
     "deleteConfirm": "Êtes-vous sûr de vouloir supprimer ce chat ?",
+    "deleteTeamSourceTitle": "Supprimer la conversation source de l'équipe",
+    "deleteTeamSourceConfirm": "Cette conversation est liée à une équipe active. La supprimer rendra l'équipe orpheline. Continuer ?",
+    "deleteTeamSourceOk": "Supprimer quand même",
     "confirmDelete": "Supprimer",
     "cancelDelete": "Annuler",
     "editName": "Modifier le nom",
@@ -578,5 +581,18 @@
       }
     }
   },
-  "notFound": "Conversation introuvable ou supprimée"
+  "notFound": "Conversation introuvable ou supprimée",
+  "collaboration": {
+    "launchTooltip": "Collaboration d'équipe",
+    "selectAgentTitle": "Sélectionner un agent",
+    "createdSuccess": "Collaboration d'équipe démarrée",
+    "joinedSuccess": "{{agentName}} a rejoint l'équipe",
+    "joinedHint": "a rejoint",
+    "fallbackAgentName": "Agent",
+    "createFailed": "Échec du démarrage de la collaboration d'équipe",
+    "statusTitle": "Équipe",
+    "statusAria": "Ouvrir l'équipe",
+    "latestMessage": "Latest: {{message}}",
+    "disbanded": "Dissous"
+  }
 }

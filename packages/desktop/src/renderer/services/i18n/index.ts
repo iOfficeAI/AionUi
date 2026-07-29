@@ -67,8 +67,12 @@ function getLocaleModules(locale: string): Record<string, unknown> {
 }
 
 function getLocalStorageLanguageHint(): string | null {
-  if (typeof localStorage === 'undefined') return null;
-  return localStorage.getItem('i18nextLng');
+  if (typeof localStorage === 'undefined' || typeof localStorage?.getItem !== 'function') return null;
+  try {
+    return localStorage.getItem('i18nextLng');
+  } catch {
+    return null;
+  }
 }
 
 function getInjectedLanguageHint(): string | null {

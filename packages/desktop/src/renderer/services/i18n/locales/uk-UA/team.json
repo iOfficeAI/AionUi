@@ -15,7 +15,9 @@
     "renameOk": "Зберегти",
     "renameCancel": "Скасувати",
     "renameSuccess": "Команду перейменовано",
-    "deleteSuccess": "Команду видалено"
+    "deleteSuccess": "Команду видалено",
+    "deleting": "Видалення...",
+    "adHocTooltip": "Тимчасова команда"
   },
   "newAgent": "Новий асистент",
   "noMessages": "Повідомлень ще немає.",

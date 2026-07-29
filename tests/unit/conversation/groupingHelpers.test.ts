@@ -71,4 +71,18 @@ describe('buildGroupedHistory', () => {
 
     expect(result.timelineSections).toEqual([]);
   });
+
+  it('keeps promoted source conversations visible in the regular history', () => {
+    const result = buildGroupedHistory(
+      [conversation('promoted-source', { backend: 'aioncore', teamId: 'team-1' }, 100)],
+      t
+    );
+
+    expect(result.timelineSections[0]?.items).toEqual([
+      expect.objectContaining({
+        type: 'conversation',
+        conversation: expect.objectContaining({ id: 'promoted-source' }),
+      }),
+    ]);
+  });
 });

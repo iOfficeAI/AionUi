@@ -99,6 +99,8 @@ export const useAcpMessage = (
     session_mode?: string;
   } | null>(null);
 
+  const processedTeammateMsgIdsRef = useRef(new Set<string>());
+
   // Throttle thought updates to reduce render frequency
   const thoughtThrottleRef = useRef<{
     lastUpdate: number;
@@ -359,6 +361,12 @@ export const useAcpMessage = (
         case 'teammate_message': {
           const tmMsg = message.data as TMessage;
           if (tmMsg && tmMsg.conversation_id === conversation_id) {
+            if (tmMsg.msg_id && processedTeammateMsgIdsRef.current.has(tmMsg.msg_id)) {
+              break;
+            }
+            if (tmMsg.msg_id) {
+              processedTeammateMsgIdsRef.current.add(tmMsg.msg_id);
+            }
             mergeLiveMessage(
               tmMsg.type === 'text'
                 ? {
@@ -566,6 +574,16 @@ export const useAcpMessage = (
     };
   }, [conversation_id]);
 
+  // Skip standalone runtime ensure for conversations that have been promoted
+  // to an ad-hoc team leader; their runtime is managed by the team lifecycle.
+  const ensureRuntimeIfNeeded = async () => {
+    const latest = await getConversationOrNull(conversation_id);
+    if ((latest?.extra as { teamId?: string } | undefined)?.teamId) {
+      return;
+    }
+    await ensureConversationRuntime(conversation_id);
+  };
+
   // Fetch slash commands via HTTP after runtime ensure completes.
   // WebSocket push of available_commands arrives during warmup when no
   // StreamRelay is listening, so the initial load must come from HTTP.
@@ -573,7 +591,7 @@ export const useAcpMessage = (
   useEffect(() => {
     if (options?.skipWarmup && !options.prepareRuntime) return;
     let cancelled = false;
-    const runtimeReady = options?.prepareRuntime?.() ?? ensureConversationRuntime(conversation_id);
+    const runtimeReady = options?.prepareRuntime?.() ?? ensureRuntimeIfNeeded();
     void runtimeReady
       .then(() => {
         if (cancelled) return;
@@ -604,7 +622,7 @@ export const useAcpMessage = (
   }, []);
 
   const fetchSlashCommands = useCallback(() => {
-    const runtimeReady = options?.prepareRuntime?.() ?? ensureConversationRuntime(conversation_id);
+    const runtimeReady = options?.prepareRuntime?.() ?? ensureRuntimeIfNeeded();
     void runtimeReady
       .then(() => fetchAcpSlashCommands(conversation_id))
       .then((commands) => {

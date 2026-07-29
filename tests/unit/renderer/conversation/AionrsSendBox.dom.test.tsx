@@ -5,6 +5,7 @@ import { Message } from '@arco-design/web-react';
 import { BackendHttpError } from '@/common/adapter/httpBridge';
 import AionrsSendBox from '@/renderer/pages/conversation/platforms/aionrs/AionrsSendBox';
 import type { AionrsModelSelection } from '@/renderer/pages/conversation/platforms/aionrs/useAionrsModelSelection';
+import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
 
 const {
   ensureConversationRuntimeMock,
@@ -229,6 +230,9 @@ describe('AionrsSendBox', () => {
     vi.clearAllMocks();
     ensureConversationRuntimeMock.mockResolvedValue({ recovered: false, config_options: [], runtime: null });
     useTeamPermissionMock.mockReturnValue(null);
+    vi.mocked(getConversationOrNull).mockResolvedValue({
+      extra: { workspace: '/tmp/workspace' },
+    } as unknown as Awaited<ReturnType<typeof getConversationOrNull>>);
   });
 
   it('does not warm up team session when draft content changes', async () => {
@@ -332,5 +336,18 @@ describe('AionrsSendBox', () => {
       expect.objectContaining({ kind: 'busy_conflict', busyKind: 'active_turn' })
     );
     expect(Message.error).not.toHaveBeenCalled();
+  });
+
+  it('does not ensure standalone runtime for a promoted leader source conversation', async () => {
+    vi.mocked(getConversationOrNull).mockResolvedValue({
+      extra: { teamId: 'team-leader' },
+    } as unknown as Awaited<ReturnType<typeof getConversationOrNull>>);
+
+    render(<AionrsSendBox conversation_id='conv-leader' modelSelection={modelSelection} />);
+
+    await waitFor(() => {
+      expect(getConversationOrNull).toHaveBeenCalledWith('conv-leader');
+    });
+    expect(ensureConversationRuntimeMock).not.toHaveBeenCalled();
   });
 });

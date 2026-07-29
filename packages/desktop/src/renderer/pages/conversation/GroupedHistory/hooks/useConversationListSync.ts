@@ -8,6 +8,7 @@ import { ipcBridge } from '@/common';
 import type { TChatConversation } from '@/common/config/storage';
 import { addEventListener } from '@/renderer/utils/emitter';
 import { useCallback, useEffect, useSyncExternalStore } from 'react';
+import { isTeamMemberConversation } from '../utils/groupingHelpers';
 
 /**
  * Whitelist of message types that indicate content generation is in progress.
@@ -141,10 +142,8 @@ const refreshConversations = () => {
       const items = result?.items;
       if (items && Array.isArray(items)) {
         const filteredData = items.filter((conv) => {
-          // Legacy rows from the pre-provider-probe health check flow are hidden
-          // from normal history. New health checks must not create conversations.
-          const extra = conv.extra as { is_health_check?: boolean; team_id?: string; teamId?: string } | undefined;
-          return extra?.is_health_check !== true && !extra?.team_id && !extra?.teamId;
+          const extra = conv.extra as { is_health_check?: boolean } | undefined;
+          return extra?.is_health_check !== true && !isTeamMemberConversation(conv);
         });
         conversationsState = filteredData;
         // Use ALL conversation IDs (including team/legacy health-check rows) so the

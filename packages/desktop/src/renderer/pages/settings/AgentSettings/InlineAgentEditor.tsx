@@ -318,9 +318,17 @@ const InlineAgentEditor: React.FC<InlineAgentEditorProps> = ({ agent, onSave, on
         }
         if (p.behavior_policy && typeof p.behavior_policy === 'object') {
           const bp = p.behavior_policy as Record<string, unknown>;
+          const behaviorPolicy: NonNullable<CustomAgentAdvancedOverrides['behavior_policy']> = {};
           if (typeof bp.supports_side_question === 'boolean') {
-            next.behavior_policy = { supports_side_question: bp.supports_side_question };
+            behaviorPolicy.supports_side_question = bp.supports_side_question;
           }
+          if (typeof bp.supports_team === 'boolean') {
+            behaviorPolicy.supports_team = bp.supports_team;
+          }
+          if (typeof bp.team_capable_override === 'boolean') {
+            behaviorPolicy.team_capable_override = bp.team_capable_override;
+          }
+          if (Object.keys(behaviorPolicy).length > 0) next.behavior_policy = behaviorPolicy;
         }
         if (typeof p.description === 'string' && p.description.trim()) next.description = p.description;
         setAdvanced(next);

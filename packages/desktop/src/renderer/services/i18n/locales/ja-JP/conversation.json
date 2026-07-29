@@ -28,6 +28,9 @@
     "noHistory": "チャット履歴はありません",
     "deleteTitle": "削除",
     "deleteConfirm": "このチャットを削除してもよろしいですか？",
+    "deleteTeamSourceTitle": "チームソース会話を削除",
+    "deleteTeamSourceConfirm": "この会話はアクティブなチームにリンクされています。削除するとチームが孤立します。続行しますか？",
+    "deleteTeamSourceOk": "それでも削除",
     "confirmDelete": "削除",
     "cancelDelete": "キャンセル",
     "editName": "名前を編集",
@@ -579,5 +582,18 @@
       }
     }
   },
-  "notFound": "会話が存在しないか、削除されました"
+  "notFound": "会話が存在しないか、削除されました",
+  "collaboration": {
+    "launchTooltip": "チーム協働",
+    "selectAgentTitle": "エージェントを選択",
+    "createdSuccess": "チーム協働を開始しました",
+    "joinedSuccess": "{{agentName}} がチームに参加しました",
+    "joinedHint": "参加しました",
+    "fallbackAgentName": "エージェント",
+    "createFailed": "チーム協働の開始に失敗しました",
+    "statusTitle": "チーム",
+    "statusAria": "チームを開く",
+    "latestMessage": "Latest: {{message}}",
+    "disbanded": "解散済み"
+  }
 }

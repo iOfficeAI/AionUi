@@ -15,7 +15,9 @@
     "renameOk": "Сохранить",
     "renameCancel": "Отмена",
     "renameSuccess": "Команда переименована",
-    "deleteSuccess": "Команда удалена"
+    "deleteSuccess": "Команда удалена",
+    "deleting": "Удаление...",
+    "adHocTooltip": "Временная команда"
   },
   "newAgent": "Новый ассистент",
   "noMessages": "Пока нет сообщений.",

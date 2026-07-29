@@ -1,5 +1,5 @@
 import React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { TeamAssistant } from '@/common/types/team/teamTypes';
 
@@ -8,8 +8,19 @@ vi.mock('@/renderer/pages/team/components/AgentStatusBadge', () => ({
 }));
 
 vi.mock('@/renderer/pages/team/components/TeamAgentIdentity', () => ({
-  default: ({ assistant_name, nameTestId }: { assistant_name: string; nameTestId?: string }) => (
-    <span data-testid={nameTestId}>{assistant_name}</span>
+  default: ({
+    assistant_name,
+    nameTestId,
+    avatarOverlay,
+  }: {
+    assistant_name: string;
+    nameTestId?: string;
+    avatarOverlay?: React.ReactNode;
+  }) => (
+    <span data-testid={nameTestId}>
+      {assistant_name}
+      {avatarOverlay}
+    </span>
   ),
 }));
 
@@ -21,6 +32,8 @@ import TeamTabs from '@/renderer/pages/team/components/TeamTabs';
 import { TeamTabsProvider } from '@/renderer/pages/team/hooks/TeamTabsContext';
 
 const renameAssistantMock = vi.fn();
+const removeAssistantMock = vi.fn();
+const onTabClickMock = vi.fn();
 
 const assistants: TeamAssistant[] = [
   {
@@ -41,7 +54,14 @@ const assistants: TeamAssistant[] = [
   },
 ];
 
-const renderTabs = (warmingUp: boolean) =>
+const renderTabs = (
+  warmingUp: boolean,
+  overrides?: {
+    pendingCounts?: Map<string, number>;
+    failedSlotIds?: Set<string>;
+    onTabClick?: (slot_id: string) => void;
+  }
+) =>
   render(
     <TeamTabsProvider
       assistants={assistants}
@@ -49,14 +69,22 @@ const renderTabs = (warmingUp: boolean) =>
       defaultActiveSlotId='lead-slot'
       team_id='team-1'
       renameAssistant={renameAssistantMock}
+      removeAssistant={removeAssistantMock}
     >
-      <TeamTabs warmingUp={warmingUp} />
+      <TeamTabs
+        warmingUp={warmingUp}
+        pendingCounts={overrides?.pendingCounts}
+        failedSlotIds={overrides?.failedSlotIds}
+        onTabClick={overrides?.onTabClick}
+      />
     </TeamTabsProvider>
   );
 
 describe('TeamTabs', () => {
   beforeEach(() => {
     renameAssistantMock.mockReset();
+    removeAssistantMock.mockReset();
+    onTabClickMock.mockReset();
     localStorage.clear();
   });
 
@@ -101,5 +129,72 @@ describe('TeamTabs', () => {
 
     expect(screen.getByTestId('team-tab-lead-slot')).toHaveAttribute('data-active', 'true');
     expect(screen.getByTestId('team-tab-worker-slot')).toHaveAttribute('data-active', 'false');
+  });
+
+  it('calls onTabClick when a tab is switched', () => {
+    renderTabs(false, { onTabClick: onTabClickMock });
+
+    fireEvent.click(screen.getByTestId('team-tab-worker-slot'));
+
+    expect(onTabClickMock).toHaveBeenCalledWith('worker-slot');
+  });
+
+  it('renders a pending count badge on tabs with pending confirmations', () => {
+    renderTabs(false, { pendingCounts: new Map([['worker-slot', 2]]) });
+
+    const workerTab = screen.getByTestId('team-tab-worker-slot');
+    expect(workerTab).toHaveTextContent('‼️');
+  });
+
+  it('renders a warmup failed indicator for failed slots', () => {
+    renderTabs(false, { failedSlotIds: new Set(['worker-slot']) });
+
+    expect(screen.getByTestId('team-tab-failed-worker-slot')).toBeInTheDocument();
+  });
+
+  it('returns null when there are no assistants', () => {
+    render(
+      <TeamTabsProvider assistants={[]} statusMap={new Map()} defaultActiveSlotId='lead-slot' team_id='team-1'>
+        <TeamTabs warmingUp={false} />
+      </TeamTabsProvider>
+    );
+
+    expect(screen.queryByTestId('team-tab-bar')).not.toBeInTheDocument();
+  });
+
+  it('commits a rename on blur', async () => {
+    renderTabs(false);
+
+    fireEvent.mouseEnter(screen.getByTestId('team-tab-worker-slot'));
+    fireEvent.doubleClick(screen.getByTestId('team-tab-worker-slot'));
+
+    const input = screen.getByDisplayValue('Worker');
+    fireEvent.change(input, { target: { value: 'Worker Renamed' } });
+    fireEvent.blur(input);
+
+    await waitFor(() => expect(renameAssistantMock).toHaveBeenCalledWith('worker-slot', 'Worker Renamed'));
+  });
+
+  it('cancels a rename on escape without calling renameAssistant', () => {
+    renderTabs(false);
+
+    fireEvent.mouseEnter(screen.getByTestId('team-tab-worker-slot'));
+    fireEvent.doubleClick(screen.getByTestId('team-tab-worker-slot'));
+
+    const input = screen.getByDisplayValue('Worker');
+    fireEvent.change(input, { target: { value: 'Ignored' } });
+    fireEvent.keyDown(input, { key: 'Escape' });
+
+    expect(renameAssistantMock).not.toHaveBeenCalled();
+    expect(screen.getByTestId('team-tab-name-worker-slot')).toHaveTextContent('Worker');
+  });
+
+  it('calls removeAssistant when the remove button is clicked', () => {
+    renderTabs(false);
+
+    fireEvent.mouseEnter(screen.getByTestId('team-tab-worker-slot'));
+    fireEvent.click(screen.getByTestId('team-tab-remove-worker-slot'));
+
+    expect(removeAssistantMock).toHaveBeenCalledWith('worker-slot');
   });
 });
