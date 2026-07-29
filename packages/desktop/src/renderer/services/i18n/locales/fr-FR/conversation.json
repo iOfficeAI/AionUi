@@ -508,7 +508,15 @@
     }
   },
   "contextUsage": {
-    "contextUsed": "contexte utilisé"
+    "contextUsed": "contexte utilisé",
+    "tokensUsed": "{{tokens}} jetons utilisés",
+    "windowUnknown": "Taille de la fenêtre de contexte inconnue",
+    "sessionCost": "Coût de la session",
+    "input": "Entrée",
+    "output": "Sortie",
+    "thought": "Réflexion",
+    "cachedRead": "Lecture du cache",
+    "cachedWrite": "Écriture du cache"
   },
   "skill_generator": {
     "title": "Générer une compétence/règle",

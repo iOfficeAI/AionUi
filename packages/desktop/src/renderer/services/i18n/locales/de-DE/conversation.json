@@ -509,7 +509,15 @@
     }
   },
   "contextUsage": {
-    "contextUsed": "Kontext verwendet"
+    "contextUsed": "Kontext verwendet",
+    "tokensUsed": "{{tokens}} Tokens verwendet",
+    "windowUnknown": "Kontextfenstergröße unbekannt",
+    "sessionCost": "Sitzungskosten",
+    "input": "Eingabe",
+    "output": "Ausgabe",
+    "thought": "Denken",
+    "cachedRead": "Cache-Lesen",
+    "cachedWrite": "Cache-Schreiben"
   },
   "skill_generator": {
     "title": "Skill/Regel generieren",

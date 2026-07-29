@@ -10,7 +10,7 @@ import type { AvailableCommand, TMessage } from '@/common/chat/chatLib';
 import { mapAcpCommandsToSlashCommands } from '@/common/chat/slash/acpMapping';
 import type { SlashCommandItem } from '@/common/chat/slash/types';
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
-import type { TokenUsageData } from '@/common/config/storage';
+import type { TokenUsageBreakdown, TokenUsageData } from '@/common/config/storage';
 import { useMergeLiveMessage } from '@/renderer/pages/conversation/Messages/hooks';
 import { logStreamTerminalObserved } from '@/renderer/pages/conversation/runtime/useConversationRuntimeView';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
@@ -41,6 +41,43 @@ export type UseAcpMessageReturn = {
   slashCommands: SlashCommandItem[];
   fetchSlashCommands: () => void;
 };
+
+const BREAKDOWN_KEYS = [
+  'input_tokens',
+  'output_tokens',
+  'thought_tokens',
+  'cached_read_tokens',
+  'cached_write_tokens',
+] as const;
+
+/**
+ * Convert an ACP UsageUpdate payload (live acp_context_usage frame or
+ * GET /usage snapshot — same shape) into TokenUsageData. Per-turn counters
+ * ride under `_meta`; cost is the agent's cumulative session cost.
+ */
+export function tokenUsageFromAcpUsage(data: {
+  used: number;
+  cost?: { amount: number; currency: string };
+  _meta?: Record<string, unknown>;
+}): TokenUsageData {
+  const usage: TokenUsageData = { total_tokens: data.used };
+  if (data.cost && typeof data.cost.amount === 'number' && data.cost.amount > 0) {
+    usage.cost = { amount: data.cost.amount, currency: data.cost.currency || 'USD' };
+  }
+  if (data._meta) {
+    const breakdown: TokenUsageBreakdown = {};
+    for (const key of BREAKDOWN_KEYS) {
+      const value = data._meta[key];
+      if (typeof value === 'number' && value >= 0) {
+        breakdown[key] = value;
+      }
+    }
+    if (Object.keys(breakdown).length > 0) {
+      usage.breakdown = breakdown;
+    }
+  }
+  return usage;
+}
 
 const slashCommandsInFlight = new Map<string, Promise<SlashCommandItem[]>>();
 
@@ -442,9 +479,21 @@ export const useAcpMessage = (
           break;
         }
         case 'acp_context_usage': {
-          const usageData = message.data as { used: number; size: number };
+          const usageData = message.data as {
+            used: number;
+            size: number;
+            cost?: { amount: number; currency: string };
+            _meta?: Record<string, unknown>;
+          };
           if (usageData && typeof usageData.used === 'number') {
-            setTokenUsage({ total_tokens: usageData.used });
+            setTokenUsage((prev) => {
+              const next = tokenUsageFromAcpUsage(usageData);
+              // Mid-turn UsageUpdate notifications carry no per-turn
+              // breakdown; keep the last end-of-turn one until replaced.
+              if (!next.breakdown && prev?.breakdown) next.breakdown = prev.breakdown;
+              if (!next.cost && prev?.cost) next.cost = prev.cost;
+              return next;
+            });
             if (usageData.size > 0) {
               setContextLimit(usageData.size);
             }
@@ -637,6 +686,19 @@ export const useAcpMessage = (
         if (cancelled) return;
         if (!commands?.length) return;
         setSlashCommands(commands);
+      })
+      .catch(() => {});
+    // Hydrate the context-usage indicator from the backend snapshot. Live
+    // acp_context_usage stream events may land first, so never overwrite a
+    // value that is already set.
+    void runtimeReady
+      .then(() => ipcBridge.conversation.getUsage.invoke({ conversation_id }))
+      .then((usage) => {
+        if (cancelled || !usage || typeof usage.used !== 'number' || usage.used <= 0) return;
+        setTokenUsage((prev) => prev ?? tokenUsageFromAcpUsage(usage));
+        if (usage.size > 0) {
+          setContextLimit((prev) => (prev > 0 ? prev : usage.size));
+        }
       })
       .catch(() => {});
     return () => {

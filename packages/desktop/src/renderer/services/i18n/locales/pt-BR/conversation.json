@@ -514,7 +514,15 @@
     }
   },
   "contextUsage": {
-    "contextUsed": "contexto usado"
+    "contextUsed": "contexto usado",
+    "tokensUsed": "{{tokens}} tokens usados",
+    "windowUnknown": "Tamanho da janela de contexto desconhecido",
+    "sessionCost": "Custo da sessão",
+    "input": "Entrada",
+    "output": "Saída",
+    "thought": "Raciocínio",
+    "cachedRead": "Leitura de cache",
+    "cachedWrite": "Escrita de cache"
   },
   "skill_generator": {
     "title": "Gerar Habilidade/Regra",

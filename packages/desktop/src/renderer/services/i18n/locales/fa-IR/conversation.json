@@ -508,7 +508,15 @@
     }
   },
   "contextUsage": {
-    "contextUsed": "زمینه استفاده‌شده"
+    "contextUsed": "زمینه استفاده‌شده",
+    "tokensUsed": "{{tokens}} توکن استفاده شده",
+    "windowUnknown": "اندازه پنجره زمینه نامشخص است",
+    "sessionCost": "هزینه جلسه",
+    "input": "ورودی",
+    "output": "خروجی",
+    "thought": "تفکر",
+    "cachedRead": "خواندن حافظه پنهان",
+    "cachedWrite": "نوشتن حافظه پنهان"
   },
   "skill_generator": {
     "title": "ساخت مهارت/قانون",

@@ -508,7 +508,15 @@
     }
   },
   "contextUsage": {
-    "contextUsed": "上下文已使用"
+    "contextUsed": "上下文已使用",
+    "tokensUsed": "已使用 {{tokens}} tokens",
+    "windowUnknown": "上下文視窗大小未知",
+    "sessionCost": "對話成本",
+    "input": "輸入",
+    "output": "輸出",
+    "thought": "思考",
+    "cachedRead": "快取讀取",
+    "cachedWrite": "快取寫入"
   },
   "skill_generator": {
     "title": "Generate Skill/Rule",

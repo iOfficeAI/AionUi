@@ -170,8 +170,26 @@ interface IChatConversation<T, Extra> {
 }
 
 // Token 使用统计数据类型
+export interface TokenUsageBreakdown {
+  input_tokens?: number;
+  output_tokens?: number;
+  thought_tokens?: number;
+  cached_read_tokens?: number;
+  cached_write_tokens?: number;
+}
+
+export interface TokenUsageCost {
+  amount: number;
+  /** ISO 4217 currency code, e.g. "USD" */
+  currency: string;
+}
+
 export interface TokenUsageData {
   total_tokens: number;
+  /** Per-turn token counters from the agent's end-of-turn usage report */
+  breakdown?: TokenUsageBreakdown;
+  /** Cumulative session cost as reported by the agent */
+  cost?: TokenUsageCost;
 }
 
 export type TChatConversation =

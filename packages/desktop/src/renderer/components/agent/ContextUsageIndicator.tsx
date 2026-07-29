@@ -8,38 +8,52 @@ import { Popover } from '@arco-design/web-react';
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import type { TokenUsageData } from '@/common/config/storage';
-
-// 从 modelContextLimits 导入默认上下文限制
-import { DEFAULT_CONTEXT_LIMIT } from '@/renderer/utils/model/modelContextLimits';
+import type { TokenUsageCost, TokenUsageData } from '@/common/config/storage';
 
 interface ContextUsageIndicatorProps {
   tokenUsage: TokenUsageData | null;
-  context_limit?: number;
+  /**
+   * Agent-reported context window size. Without it (<= 0) the ring stays a
+   * hollow track and the popover shows the raw token count instead of a
+   * percentage — never a percentage against a guessed denominator.
+   */
+  context_limit: number;
   className?: string;
   size?: number;
 }
 
 const ContextUsageIndicator: React.FC<ContextUsageIndicatorProps> = ({
   tokenUsage,
-  context_limit = DEFAULT_CONTEXT_LIMIT,
+  context_limit,
   className = '',
   size = 24,
 }) => {
   const { t } = useTranslation();
+
+  const hasWindow = context_limit > 0;
 
   const { percentage, displayTotal, displayLimit, isWarning, isDanger } = useMemo(() => {
     if (!tokenUsage) {
       return {
         percentage: 0,
         displayTotal: '0',
-        displayLimit: formatTokenCount(context_limit, true),
+        displayLimit: '0',
         isWarning: false,
         isDanger: false,
       };
     }
 
     const total = tokenUsage.total_tokens;
+    if (!hasWindow) {
+      return {
+        percentage: 0,
+        displayTotal: formatTokenCount(total),
+        displayLimit: '0',
+        isWarning: false,
+        isDanger: false,
+      };
+    }
+
     const pct = (total / context_limit) * 100;
 
     return {
@@ -49,9 +63,8 @@ const ContextUsageIndicator: React.FC<ContextUsageIndicatorProps> = ({
       isWarning: pct > 70,
       isDanger: pct > 90,
     };
-  }, [tokenUsage, context_limit]);
+  }, [tokenUsage, context_limit, hasWindow]);
 
-  // 如果没有 token 数据，不显示
   if (!tokenUsage) {
     return null;
   }
@@ -74,12 +87,69 @@ const ContextUsageIndicator: React.FC<ContextUsageIndicatorProps> = ({
     return 'var(--color-fill-3)';
   };
 
-  const popoverContent = (
+  const breakdown = tokenUsage.breakdown;
+  const breakdownParts: string[] = [];
+  if (breakdown) {
+    if (typeof breakdown.input_tokens === 'number') {
+      breakdownParts.push(
+        `${t('conversation.contextUsage.input', 'Input')} ${formatTokenCount(breakdown.input_tokens)}`
+      );
+    }
+    if (typeof breakdown.output_tokens === 'number') {
+      breakdownParts.push(
+        `${t('conversation.contextUsage.output', 'Output')} ${formatTokenCount(breakdown.output_tokens)}`
+      );
+    }
+    if (breakdown.cached_read_tokens) {
+      breakdownParts.push(
+        `${t('conversation.contextUsage.cachedRead', 'Cache read')} ${formatTokenCount(breakdown.cached_read_tokens)}`
+      );
+    }
+    if (breakdown.cached_write_tokens) {
+      breakdownParts.push(
+        `${t('conversation.contextUsage.cachedWrite', 'Cache write')} ${formatTokenCount(breakdown.cached_write_tokens)}`
+      );
+    }
+    if (breakdown.thought_tokens) {
+      breakdownParts.push(
+        `${t('conversation.contextUsage.thought', 'Thinking')} ${formatTokenCount(breakdown.thought_tokens)}`
+      );
+    }
+  }
+
+  const details = (
+    <>
+      {tokenUsage.cost && (
+        <div className='text-12px text-t-secondary mt-4px'>
+          {t('conversation.contextUsage.sessionCost', 'Session cost')} ≈ {formatCostAmount(tokenUsage.cost)}
+        </div>
+      )}
+      {breakdownParts.length > 0 && (
+        <div className='text-12px text-t-secondary mt-4px'>{breakdownParts.join(' · ')}</div>
+      )}
+    </>
+  );
+
+  // Percentages are only honest against an agent-reported window size —
+  // never substitute a hardcoded per-model default here. Without a window
+  // the popover reports the raw count and says the window is unknown.
+  const popoverContent = hasWindow ? (
     <div className='p-8px min-w-160px'>
       <div className='text-14px font-medium text-t-primary'>
         {percentage.toFixed(1)}% · {displayTotal} / {displayLimit}{' '}
         {t('conversation.contextUsage.contextUsed', 'context used')}
       </div>
+      {details}
+    </div>
+  ) : (
+    <div className='p-8px min-w-160px'>
+      <div className='text-14px font-medium text-t-primary'>
+        {t('conversation.contextUsage.tokensUsed', '{{tokens}} tokens used', { tokens: displayTotal })}
+      </div>
+      <div className='text-12px text-t-secondary mt-4px'>
+        {t('conversation.contextUsage.windowUnknown', 'Context window size unknown')}
+      </div>
+      {details}
     </div>
   );
 
@@ -99,24 +169,42 @@ const ContextUsageIndicator: React.FC<ContextUsageIndicatorProps> = ({
             stroke={getTrackColor()}
             strokeWidth={strokeWidth}
           />
-          {/* 进度圆环 */}
-          <circle
-            cx={size / 2}
-            cy={size / 2}
-            r={radius}
-            fill='none'
-            stroke={getStrokeColor()}
-            strokeWidth={strokeWidth}
-            strokeLinecap='round'
-            strokeDasharray={circumference}
-            strokeDashoffset={strokeDashoffset}
-            style={{ transition: 'stroke-dashoffset 0.3s ease, stroke 0.3s ease' }}
-          />
+          {/* 进度圆环 — only when the denominator is known; otherwise the hollow track alone signals "count available, window unknown" */}
+          {hasWindow && (
+            <circle
+              cx={size / 2}
+              cy={size / 2}
+              r={radius}
+              fill='none'
+              stroke={getStrokeColor()}
+              strokeWidth={strokeWidth}
+              strokeLinecap='round'
+              strokeDasharray={circumference}
+              strokeDashoffset={strokeDashoffset}
+              style={{ transition: 'stroke-dashoffset 0.3s ease, stroke 0.3s ease' }}
+            />
+          )}
         </svg>
       </div>
     </Popover>
   );
 };
+
+/**
+ * Format an agent-reported cumulative session cost, e.g. "$0.42".
+ * Falls back to "0.42 USD" when the currency code is not renderable.
+ */
+export function formatCostAmount(cost: TokenUsageCost): string {
+  try {
+    return new Intl.NumberFormat(undefined, {
+      style: 'currency',
+      currency: cost.currency,
+      maximumFractionDigits: 4,
+    }).format(cost.amount);
+  } catch {
+    return `${cost.amount.toFixed(4)} ${cost.currency}`;
+  }
+}
 
 /**
  * 格式化 token 数量显示

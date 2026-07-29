@@ -508,7 +508,15 @@
     }
   },
   "contextUsage": {
-    "contextUsed": "контексту використано"
+    "contextUsed": "контексту використано",
+    "tokensUsed": "Використано токенів: {{tokens}}",
+    "windowUnknown": "Розмір контекстного вікна невідомий",
+    "sessionCost": "Вартість сесії",
+    "input": "Ввід",
+    "output": "Вивід",
+    "thought": "Міркування",
+    "cachedRead": "Читання кешу",
+    "cachedWrite": "Запис кешу"
   },
   "skill_generator": {
     "title": "Створити Навичку/Правило",

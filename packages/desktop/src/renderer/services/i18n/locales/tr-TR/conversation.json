@@ -493,7 +493,15 @@
     }
   },
   "contextUsage": {
-    "contextUsed": "bağlam kullanıldı"
+    "contextUsed": "bağlam kullanıldı",
+    "tokensUsed": "{{tokens}} jeton kullanıldı",
+    "windowUnknown": "Bağlam penceresi boyutu bilinmiyor",
+    "sessionCost": "Oturum maliyeti",
+    "input": "Girdi",
+    "output": "Çıktı",
+    "thought": "Düşünme",
+    "cachedRead": "Önbellek okuma",
+    "cachedWrite": "Önbellek yazma"
   },
   "skill_generator": {
     "title": "Yetenek/Kural Oluştur",

@@ -254,6 +254,18 @@ export const conversation = {
   getSlashCommands: httpGet<AcpSlashCommandApiItem[], { conversation_id: string }>(
     (p) => `/api/conversations/${p.conversation_id}/slash-commands`
   ),
+  // Latest context-usage snapshot (ACP UsageUpdate shape: tokens in context /
+  // window size / cumulative cost, with per-turn counters under _meta).
+  // Null until the agent reports usage.
+  getUsage: httpGet<
+    {
+      used: number;
+      size: number;
+      cost?: { amount: number; currency: string };
+      _meta?: Record<string, unknown>;
+    } | null,
+    { conversation_id: string }
+  >((p) => `/api/conversations/${p.conversation_id}/usage`),
   askSideQuestion: httpPost<ConversationSideQuestionResult, { conversation_id: string; question: string }>(
     (p) => `/api/conversations/${p.conversation_id}/side-question`,
     (p) => ({ question: p.question })

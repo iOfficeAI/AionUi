@@ -4,6 +4,7 @@ import { isBackendHttpError } from '@/common/adapter/httpBridge';
 import { isSideQuestionSupported } from '@/common/chat/sideQuestion';
 import { parseError, uuid } from '@/common/utils';
 import AgentModeSelector from '@/renderer/components/agent/AgentModeSelector';
+import ContextUsageIndicator from '@/renderer/components/agent/ContextUsageIndicator';
 import CommandQueuePanel from '@/renderer/components/chat/CommandQueuePanel';
 import MobileActionSheet, {
   type MobileActionSheetEntry,
@@ -110,8 +111,16 @@ const AcpSendBox: React.FC<{
   teamSendMessage?: (payload: { input: string; files: ChatFileRef[] }) => Promise<void>;
   teamRuntime?: TeamSendBoxRuntime;
 }> = ({ conversation_id, backend, session_mode, agent_name, messageState, teamSendMessage, teamRuntime }) => {
-  const { aiProcessing, setAiProcessing, turnStartedAtMs, resetState, hasThinkingMessage, slashCommands } =
-    messageState;
+  const {
+    aiProcessing,
+    setAiProcessing,
+    turnStartedAtMs,
+    resetState,
+    hasThinkingMessage,
+    slashCommands,
+    tokenUsage,
+    context_limit,
+  } = messageState;
   const { t } = useTranslation();
   const teamPermission = useTeamPermission();
   // In team mode, all agents show the permission mode selector (members don't propagate)
@@ -786,6 +795,15 @@ Please check your local CLI tool authentication status`,
         onSlashBuiltinCommand={onSlashBuiltinCommand}
         allowSendWhileLoading
         compactActions={false}
+        sendButtonPrefix={
+          // Agents reporting a window size (UsageUpdate.size) get a progress
+          // ring; agents reporting only a token count get a hollow ring whose
+          // popover shows the raw count — never a percentage against a
+          // guessed denominator. No usage report at all → nothing.
+          tokenUsage ? (
+            <ContextUsageIndicator tokenUsage={tokenUsage} context_limit={context_limit} size={24} />
+          ) : undefined
+        }
       ></SendBox>
       {isMobile && (
         <>

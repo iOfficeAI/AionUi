@@ -508,7 +508,15 @@
     }
   },
   "contextUsage": {
-    "contextUsed": "контекст использован"
+    "contextUsed": "контекст использован",
+    "tokensUsed": "Использовано токенов: {{tokens}}",
+    "windowUnknown": "Размер контекстного окна неизвестен",
+    "sessionCost": "Стоимость сессии",
+    "input": "Ввод",
+    "output": "Вывод",
+    "thought": "Размышление",
+    "cachedRead": "Чтение кэша",
+    "cachedWrite": "Запись кэша"
   },
   "skill_generator": {
     "title": "Создать навык/правило",

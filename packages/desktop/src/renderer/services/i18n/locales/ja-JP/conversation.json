@@ -508,7 +508,15 @@
     }
   },
   "contextUsage": {
-    "contextUsed": "コンテキスト使用量"
+    "contextUsed": "コンテキスト使用量",
+    "tokensUsed": "{{tokens}} トークン使用済み",
+    "windowUnknown": "コンテキストウィンドウのサイズは不明",
+    "sessionCost": "セッションコスト",
+    "input": "入力",
+    "output": "出力",
+    "thought": "思考",
+    "cachedRead": "キャッシュ読み取り",
+    "cachedWrite": "キャッシュ書き込み"
   },
   "skill_generator": {
     "title": "Generate Skill/Rule",

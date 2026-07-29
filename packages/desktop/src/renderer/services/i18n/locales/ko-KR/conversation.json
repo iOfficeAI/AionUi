@@ -508,7 +508,15 @@
     }
   },
   "contextUsage": {
-    "contextUsed": "사용된 컨텍스트"
+    "contextUsed": "사용된 컨텍스트",
+    "tokensUsed": "{{tokens}} 토큰 사용됨",
+    "windowUnknown": "컨텍스트 창 크기를 알 수 없음",
+    "sessionCost": "세션 비용",
+    "input": "입력",
+    "output": "출력",
+    "thought": "사고",
+    "cachedRead": "캐시 읽기",
+    "cachedWrite": "캐시 쓰기"
   },
   "skill_generator": {
     "title": "스킬/규칙 생성",
