@@ -46,6 +46,7 @@ import './components/workspace/registerWebFsPicker';
 import type { PropsWithChildren } from 'react';
 import React, { useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
+import { SWRConfig } from 'swr';
 import type { TFunction } from 'i18next';
 
 // Context providers
@@ -242,20 +243,34 @@ const RuntimeFailureDialogs: React.FC = () => {
   return <>{modalContextHolder}</>;
 };
 
+// Global SWR default: do NOT revalidate every query on window focus. Focus
+// refetch (SWR's default) made the app re-hit /api/assistants, /api/skills,
+// /api/conversations, etc. on every window focus — often twice (same endpoint
+// under different SWR keys) — even though those are kept fresh by WebSocket
+// events (conversation.listChanged, team events, extensions.state-changed) or
+// in-app `mutate` after edits. Queries that genuinely need focus refresh (e.g.
+// Google auth/subscription status, which change in an external browser) opt back
+// in per-hook with `revalidateOnFocus: true`.
+const SWR_DEFAULTS = { revalidateOnFocus: false } as const;
+
 const AppProviders: React.FC<PropsWithChildren> = ({ children }) =>
   React.createElement(
-    AuthProvider,
-    null,
+    SWRConfig,
+    { value: SWR_DEFAULTS },
     React.createElement(
-      ThemeProvider,
+      AuthProvider,
       null,
       React.createElement(
-        PreviewProvider,
+        ThemeProvider,
         null,
         React.createElement(
-          FeedbackProvider,
+          PreviewProvider,
           null,
-          React.createElement(React.Fragment, null, React.createElement(RuntimeFailureDialogs, null), children)
+          React.createElement(
+            FeedbackProvider,
+            null,
+            React.createElement(React.Fragment, null, React.createElement(RuntimeFailureDialogs, null), children)
+          )
         )
       )
     )
