@@ -111,8 +111,16 @@ const AcpSendBox: React.FC<{
   teamSendMessage?: (payload: { input: string; files: ChatFileRef[] }) => Promise<void>;
   teamRuntime?: TeamSendBoxRuntime;
 }> = ({ conversation_id, backend, session_mode, agent_name, messageState, teamSendMessage, teamRuntime }) => {
-  const { aiProcessing, setAiProcessing, turnStartedAtMs, resetState, hasThinkingMessage, slashCommands, tokenUsage, context_limit } =
-    messageState;
+  const {
+    aiProcessing,
+    setAiProcessing,
+    turnStartedAtMs,
+    resetState,
+    hasThinkingMessage,
+    slashCommands,
+    tokenUsage,
+    context_limit,
+  } = messageState;
   const { t } = useTranslation();
   const teamPermission = useTeamPermission();
   // In team mode, all agents show the permission mode selector (members don't propagate)
