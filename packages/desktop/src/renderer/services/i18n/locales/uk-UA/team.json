@@ -101,7 +101,8 @@
   "view": {
     "label": "View",
     "parallel": "Parallel",
-    "single": "Single"
+    "single": "Single",
+    "flow": "Активність"
   },
   "warmup": {
     "title": "Waking up the team…",
@@ -116,5 +117,44 @@
     "leaderFailedHint": "Switch its model above, then retry.",
     "retry": "Retry"
   },
-  "reorderMember": "Перетягніть, щоб змінити порядок учасників"
+  "reorderMember": "Перетягніть, щоб змінити порядок учасників",
+  "activity": {
+    "layout": {
+      "swimlane": "Доріжки",
+      "board": "Дошка"
+    },
+    "control": {
+      "sortNewest": "Найновіші",
+      "sortOldest": "Найстаріші",
+      "filterAll": "Усі",
+      "filterMessages": "Повідомлення",
+      "filterTasks": "Завдання",
+      "allMembers": "Усі учасники",
+      "connectors": "Зв’язки",
+      "showSystem": "Системні повідомлення",
+      "showTerminal": "Завершені завдання"
+    },
+    "fallbackLane": "Без призначення / зовнішні",
+    "limitNotice": "Показано останні 500 записів",
+    "empty": "Поки що немає активності",
+    "userIdentity": "Користувач / зовнішній",
+    "broadcast": "Надіслати всім",
+    "read": "Прочитано",
+    "unread": "Непрочитано",
+    "attachments": "Вкладень: {{count}}",
+    "expand": "Розгорнути",
+    "collapse": "Згорнути",
+    "blockedBy": "заблоковано #{{id}}",
+    "status": {
+      "pending": "Очікує",
+      "in_progress": "У роботі",
+      "completed": "Завершено",
+      "deleted": "Видалено"
+    },
+    "msgType": {
+      "message": "Повідомлення",
+      "idle_notification": "Сповіщення про простій",
+      "shutdown_request": "Запит на зупинку"
+    }
+  }
 }

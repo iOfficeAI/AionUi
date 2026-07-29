@@ -58,6 +58,8 @@ import type {
   ITeamChildTurnEvent,
   ITeamCreatedEvent,
   ITeamListChangedEvent,
+  ITeamMailboxChangedEvent,
+  ITeamMailboxMessage,
   ITeamRemovedEvent,
   ITeamRenamedEvent,
   ITeamRunAck,
@@ -67,6 +69,7 @@ import type {
   ITeamSessionStatusChangedEvent,
   ITeamSlotWorkChangedEvent,
   ITeamTaskChangedEvent,
+  ITeamTaskItem,
   ICancelTeamChildTurnParams,
   ICancelTeamRunParams,
   IPauseTeamSlotParams,
@@ -1986,6 +1989,12 @@ export const team = {
     (p) => ({ mode: p.session_mode })
   ),
   getRunState: httpGet<ITeamRunStateResponse, { team_id: string }>((p) => `/api/teams/${p.team_id}/run-state`),
+  listMailbox: httpGet<ITeamMailboxMessage[], { team_id: string; limit?: number }>(
+    (p) => `/api/teams/${p.team_id}/mailbox?limit=${p.limit ?? 500}`
+  ),
+  listTasks: httpGet<ITeamTaskItem[], { team_id: string; limit?: number }>(
+    (p) => `/api/teams/${p.team_id}/tasks?limit=${p.limit ?? 500}`
+  ),
   sendMessage: httpPost<ITeamRunAck, ISendTeamMessageParams>(
     (p) => `/api/teams/${p.team_id}/messages`,
     (p) => ({
@@ -2034,6 +2043,7 @@ export const team = {
   teammateMessage: wsEmitter<ITeamTeammateMessageEvent>('team.teammateMessage'),
   sessionStatusChanged: wsEmitter<ITeamSessionStatusChangedEvent>('team.sessionStatusChanged'),
   taskChanged: wsEmitter<ITeamTaskChangedEvent>('team.taskChanged'),
+  mailboxChanged: wsEmitter<ITeamMailboxChangedEvent>('team.mailboxChanged'),
   sessionChanged: wsEmitter<ITeamSessionChangedEvent>('team.sessionChanged'),
   runAccepted: wsEmitter<ITeamRunEvent>('team.runAccepted'),
   runStarted: wsEmitter<ITeamRunEvent>('team.runStarted'),

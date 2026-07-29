@@ -237,11 +237,51 @@ export type ITeamSessionStatusChangedEvent = {
   error?: string;
 };
 
-/** IPC event pushed when a Team task board item changes */
+/** Read-only mailbox message for the team activity view (matches backend TeamMailboxMessageResponse). */
+export type ITeamMailboxMessage = {
+  id: string;
+  team_id: string;
+  from_agent_id: string;
+  to_agent_id: string;
+  msg_type: string;
+  content: string;
+  summary?: string;
+  files: string[];
+  read: boolean;
+  created_at: number;
+};
+
+/** Read-only task for the team activity view (matches backend TeamTaskResponse; no metadata). */
+export type ITeamTaskItem = {
+  id: string;
+  team_id: string;
+  subject: string;
+  description?: string;
+  status: string;
+  owner?: string;
+  blocked_by: string[];
+  blocks: string[];
+  created_at: number;
+  updated_at: number;
+};
+
+/** IPC event pushed when a Team task board item changes.
+ *
+ * The `task`/`change` fields carry the full payload used by the activity view;
+ * the legacy `task_id`/`action` fields are kept optional for back-compat. */
 export type ITeamTaskChangedEvent = {
   team_id: string;
   task_id?: string;
   action?: string;
+  task?: ITeamTaskItem;
+  change?: 'created' | 'updated';
+};
+
+/** IPC event pushed when a Team mailbox message is written or marked read. */
+export type ITeamMailboxChangedEvent = {
+  team_id: string;
+  message: ITeamMailboxMessage;
+  change: 'created' | 'read';
 };
 
 /** IPC event pushed when Team session lifecycle changes */

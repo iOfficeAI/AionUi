@@ -101,7 +101,8 @@
   "view": {
     "label": "View",
     "parallel": "Parallel",
-    "single": "Single"
+    "single": "Single",
+    "flow": "Activity"
   },
   "warmup": {
     "title": "Waking up the team…",
@@ -116,5 +117,44 @@
     "leaderFailedHint": "Switch its model above, then retry.",
     "retry": "Retry"
   },
-  "reorderMember": "Drag to reorder member"
+  "reorderMember": "Drag to reorder member",
+  "activity": {
+    "layout": {
+      "swimlane": "Swimlane",
+      "board": "Board"
+    },
+    "control": {
+      "sortNewest": "Newest",
+      "sortOldest": "Oldest",
+      "filterAll": "All",
+      "filterMessages": "Messages",
+      "filterTasks": "Tasks",
+      "allMembers": "All members",
+      "connectors": "Connectors",
+      "showSystem": "System messages",
+      "showTerminal": "Finished tasks"
+    },
+    "fallbackLane": "Unassigned / external",
+    "limitNotice": "Showing the latest 500 items",
+    "empty": "No activity yet",
+    "userIdentity": "User / external",
+    "broadcast": "Broadcast to all",
+    "read": "Read",
+    "unread": "Unread",
+    "attachments": "{{count}} files",
+    "expand": "Expand",
+    "collapse": "Collapse",
+    "blockedBy": "blocked by #{{id}}",
+    "status": {
+      "pending": "Pending",
+      "in_progress": "In progress",
+      "completed": "Completed",
+      "deleted": "Deleted"
+    },
+    "msgType": {
+      "message": "Message",
+      "idle_notification": "Idle notice",
+      "shutdown_request": "Shutdown request"
+    }
+  }
 }

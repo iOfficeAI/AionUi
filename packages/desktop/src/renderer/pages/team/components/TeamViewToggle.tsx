@@ -5,7 +5,7 @@
  */
 
 import React from 'react';
-import { AllApplication, Square } from '@icon-park/react';
+import { AllApplication, Square, Timeline } from '@icon-park/react';
 import { useTranslation } from 'react-i18next';
 import type { TeamViewMode } from '../hooks/useTeamViewMode';
 
@@ -30,6 +30,11 @@ const TeamViewToggle: React.FC<Props> = ({ value, onChange }) => {
       mode: 'single',
       icon: <Square theme='outline' size='15' fill='currentColor' />,
       label: t('team.view.single', { defaultValue: 'Single' }),
+    },
+    {
+      mode: 'flow',
+      icon: <Timeline theme='outline' size='15' fill='currentColor' />,
+      label: t('team.view.flow', { defaultValue: 'Activity' }),
     },
   ];
 

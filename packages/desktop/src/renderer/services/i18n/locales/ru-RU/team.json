@@ -101,7 +101,8 @@
   "view": {
     "label": "View",
     "parallel": "Parallel",
-    "single": "Single"
+    "single": "Single",
+    "flow": "Активность"
   },
   "warmup": {
     "title": "Waking up the team…",
@@ -116,5 +117,44 @@
     "leaderFailedHint": "Switch its model above, then retry.",
     "retry": "Retry"
   },
-  "reorderMember": "Перетащите, чтобы изменить порядок участников"
+  "reorderMember": "Перетащите, чтобы изменить порядок участников",
+  "activity": {
+    "layout": {
+      "swimlane": "Дорожки",
+      "board": "Доска"
+    },
+    "control": {
+      "sortNewest": "Сначала новые",
+      "sortOldest": "Сначала старые",
+      "filterAll": "Все",
+      "filterMessages": "Сообщения",
+      "filterTasks": "Задачи",
+      "allMembers": "Все участники",
+      "connectors": "Связи",
+      "showSystem": "Системные сообщения",
+      "showTerminal": "Завершённые задачи"
+    },
+    "fallbackLane": "Без назначения / внешние",
+    "limitNotice": "Показаны последние 500 записей",
+    "empty": "Пока нет активности",
+    "userIdentity": "Пользователь / внешний",
+    "broadcast": "Отправить всем",
+    "read": "Прочитано",
+    "unread": "Не прочитано",
+    "attachments": "Вложений: {{count}}",
+    "expand": "Развернуть",
+    "collapse": "Свернуть",
+    "blockedBy": "заблокировано #{{id}}",
+    "status": {
+      "pending": "Ожидает",
+      "in_progress": "В работе",
+      "completed": "Завершено",
+      "deleted": "Удалено"
+    },
+    "msgType": {
+      "message": "Сообщение",
+      "idle_notification": "Уведомление о простое",
+      "shutdown_request": "Запрос на остановку"
+    }
+  }
 }

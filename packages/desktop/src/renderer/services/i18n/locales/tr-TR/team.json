@@ -101,7 +101,8 @@
   "view": {
     "label": "View",
     "parallel": "Parallel",
-    "single": "Single"
+    "single": "Single",
+    "flow": "Etkinlik"
   },
   "warmup": {
     "title": "Waking up the team…",
@@ -116,5 +117,44 @@
     "leaderFailedHint": "Switch its model above, then retry.",
     "retry": "Retry"
   },
-  "reorderMember": "Üye sırasını değiştirmek için sürükleyin"
+  "reorderMember": "Üye sırasını değiştirmek için sürükleyin",
+  "activity": {
+    "layout": {
+      "swimlane": "Kulvarlar",
+      "board": "Pano"
+    },
+    "control": {
+      "sortNewest": "En yeni",
+      "sortOldest": "En eski",
+      "filterAll": "Tümü",
+      "filterMessages": "Mesajlar",
+      "filterTasks": "Görevler",
+      "allMembers": "Tüm üyeler",
+      "connectors": "Bağlantılar",
+      "showSystem": "Sistem mesajları",
+      "showTerminal": "Tamamlanan görevler"
+    },
+    "fallbackLane": "Atanmamış / harici",
+    "limitNotice": "Son 500 öğe gösteriliyor",
+    "empty": "Henüz etkinlik yok",
+    "userIdentity": "Kullanıcı / harici",
+    "broadcast": "Herkese yayınla",
+    "read": "Okundu",
+    "unread": "Okunmadı",
+    "attachments": "{{count}} dosya",
+    "expand": "Genişlet",
+    "collapse": "Daralt",
+    "blockedBy": "#{{id}} tarafından engellendi",
+    "status": {
+      "pending": "Beklemede",
+      "in_progress": "Devam ediyor",
+      "completed": "Tamamlandı",
+      "deleted": "Silindi"
+    },
+    "msgType": {
+      "message": "Mesaj",
+      "idle_notification": "Boşta bildirimi",
+      "shutdown_request": "Kapatma isteği"
+    }
+  }
 }
