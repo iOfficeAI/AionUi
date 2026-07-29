@@ -28,6 +28,29 @@ const getPreviewLanguage = (file_name: string): string => {
 const shouldReadPreviewContent = (contentType: PreviewContentType): boolean =>
   !['pdf', 'word', 'excel', 'ppt'].includes(contentType);
 
+const isAbsoluteLocalFilePath = (file_path: string): boolean =>
+  file_path.startsWith('/') || file_path.startsWith('\\\\') || /^[A-Za-z]:[\\/]/.test(file_path);
+
+const normalizeLocalPath = (file_path: string): string => file_path.replace(/\\/g, '/').replace(/\/+$/, '');
+
+const getWorkspaceForLocalFilePath = (file_path: string, workspace?: string): string | undefined => {
+  if (!workspace) return undefined;
+  if (!isAbsoluteLocalFilePath(file_path)) return workspace;
+
+  const normalizedFilePath = normalizeLocalPath(file_path);
+  const normalizedWorkspace = normalizeLocalPath(workspace);
+  const compareFilePath = /^[A-Za-z]:\//.test(normalizedFilePath)
+    ? normalizedFilePath.toLowerCase()
+    : normalizedFilePath;
+  const compareWorkspace = /^[A-Za-z]:\//.test(normalizedWorkspace)
+    ? normalizedWorkspace.toLowerCase()
+    : normalizedWorkspace;
+
+  return compareFilePath === compareWorkspace || compareFilePath.startsWith(`${compareWorkspace}/`)
+    ? workspace
+    : undefined;
+};
+
 export const useLocalFilePreview = (workspace?: string) => {
   const { openPreview } = usePreviewContext();
 
@@ -35,19 +58,21 @@ export const useLocalFilePreview = (workspace?: string) => {
     async (file_path: string, reference?: LocalFileLinkReference) => {
       const fileName = getFileNameFromPath(file_path);
       const contentType = getContentTypeByExtension(fileName);
+      const fileWorkspace = getWorkspaceForLocalFilePath(file_path, workspace);
+      const fileReadRequest = fileWorkspace ? { path: file_path, workspace: fileWorkspace } : { path: file_path };
       let content = '';
       let isLargeTextTruncated = false;
 
       try {
-        const metadata = await ipcBridge.fs.getFileMetadata.invoke({ path: file_path, workspace });
+        const metadata = await ipcBridge.fs.getFileMetadata.invoke(fileReadRequest);
         if (metadata == null) throw null;
 
         if (contentType === 'image') {
-          const imageContent = await ipcBridge.fs.getImageBase64.invoke({ path: file_path, workspace });
+          const imageContent = await ipcBridge.fs.getImageBase64.invoke(fileReadRequest);
           if (imageContent == null) throw null;
           content = imageContent;
         } else if (shouldReadPreviewContent(contentType)) {
-          const textContent = await ipcBridge.fs.readFile.invoke({ path: file_path, workspace });
+          const textContent = await ipcBridge.fs.readFile.invoke(fileReadRequest);
           if (textContent == null) throw null;
           content = textContent;
 
@@ -64,7 +89,7 @@ export const useLocalFilePreview = (workspace?: string) => {
             title: fileName,
             file_name: fileName,
             file_path,
-            workspace,
+            ...(fileWorkspace ? { workspace: fileWorkspace } : {}),
             language: getPreviewLanguage(fileName),
             truncated: isLargeTextTruncated,
             targetLine: reference?.line,
@@ -81,7 +106,7 @@ export const useLocalFilePreview = (workspace?: string) => {
             title: fileName,
             file_name: fileName,
             file_path,
-            workspace,
+            ...(fileWorkspace ? { workspace: fileWorkspace } : {}),
             language: getPreviewLanguage(fileName),
             targetLine: reference?.line,
             targetColumn: reference?.column,

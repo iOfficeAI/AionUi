@@ -509,6 +509,42 @@ describe('MessageText attachment paths', () => {
     });
   });
 
+  it('opens Windows absolute local markdown links without resolving them against the workspace', async () => {
+    const filePath = 'C:/Users/Michael/.pi/agent/models.json';
+    localFileLinkMocks.payload = {
+      path: filePath,
+      reference: undefined,
+    };
+    vi.mocked(ipcBridge.fs.getFileMetadata.invoke).mockResolvedValue(fileMetadata(filePath));
+    vi.mocked(ipcBridge.fs.readFile.invoke).mockResolvedValue('{"provider":"pi"}\n');
+
+    renderMessageWithLocalLink('[models.json](C:/Users/Michael/.pi/agent/models.json)');
+
+    fireEvent.click(screen.getByRole('button', { name: 'open local file' }));
+
+    await waitFor(() => {
+      expect(ipcBridge.fs.getFileMetadata.invoke).toHaveBeenCalledWith({ path: filePath });
+    });
+    expect(ipcBridge.fs.readFile.invoke).toHaveBeenCalledWith({ path: filePath });
+
+    await waitFor(() => {
+      expect(previewMocks.openPreview).toHaveBeenCalledWith(
+        '{"provider":"pi"}\n',
+        'code',
+        expect.objectContaining({
+          file_name: 'models.json',
+          file_path: filePath,
+          language: 'json',
+          truncated: false,
+        }),
+        { replace: true }
+      );
+    });
+
+    const metadata = previewMocks.openPreview.mock.calls[0]?.[2];
+    expect(metadata).not.toHaveProperty('workspace');
+  });
+
   it('opens hash range local markdown links with only the start line in preview metadata', async () => {
     const filePath = '/workspace/demo/src/app.ts';
     localFileLinkMocks.payload = {
