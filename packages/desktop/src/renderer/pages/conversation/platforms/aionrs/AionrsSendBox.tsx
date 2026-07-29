@@ -42,8 +42,8 @@ import type { TeamSendBoxRuntime } from '@/renderer/pages/team/components/teamSe
 import { allSupportedExts } from '@/renderer/services/FileService';
 import { iconColors } from '@/renderer/styles/colors';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
-import { type ChatFileRef, uploadFileRef } from '@/common/types/chatFile';
-import { mergeFileSelectionItems } from '@/renderer/utils/file/fileSelection';
+import { type ChatFileRef, isChatFileRef, uploadFileRef } from '@/common/types/chatFile';
+import { localSelectionItems, mergeFileSelectionItems } from '@/renderer/utils/file/fileSelection';
 import { collectChatFileRefs, splitChatFileRefs } from '@/renderer/utils/file/messageFiles';
 import type { AgentModeOption } from '@/renderer/utils/model/agentTypes';
 import { Message, Tag } from '@arco-design/web-react';
@@ -360,10 +360,11 @@ const AionrsSendBox: React.FC<{
 
       try {
         const { input, files: initialFiles } = JSON.parse(storedMessage);
-        // Guid-page initial files are pre-conversation OS uploads (absolute
-        // paths) — tag them as upload refs for the ChatFileRef send contract.
+        // Guid-page initial files are source-tagged ChatFileRefs (`local` for
+        // backend-machine picks, `upload` for device uploads). Legacy string[]
+        // entries (a stale pre-upgrade session) coerce to upload refs.
         const initialRefs: ChatFileRef[] = Array.isArray(initialFiles)
-          ? (initialFiles as string[]).map(uploadFileRef)
+          ? initialFiles.map((f: unknown) => (typeof f === 'string' ? uploadFileRef(f) : f)).filter(isChatFileRef)
           : [];
         await executeCommand({ input, files: initialRefs });
       } catch (error) {
@@ -411,9 +412,15 @@ const AionrsSendBox: React.FC<{
 
   const appendSelectedFiles = useCallback(
     (files: string[]) => {
-      setUploadFile((prev) => [...prev, ...files]);
+      // "Add files" picks a file from the backend machine's own filesystem
+      // (native dialog / server-fs browse) — an absolute backend path. Send it
+      // as a `local` ref (via the atPath lane, external-owned), NOT an `upload`
+      // ref: the raw path is not under the managed upload dir and would be
+      // rejected. Merge into this box's atPath only (no cross-column emit).
+      const merged = mergeFileSelectionItems(atPathRef.current, localSelectionItems(files));
+      if (merged !== atPathRef.current) setAtPath(merged as Array<string | FileOrFolderItem>);
     },
-    [setUploadFile]
+    [setAtPath]
   );
   const { openFileSelector, onSlashBuiltinCommand } = useOpenFileSelector({
     onFilesSelected: appendSelectedFiles,

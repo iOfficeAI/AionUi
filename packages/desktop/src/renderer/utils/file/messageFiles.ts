@@ -3,11 +3,12 @@ import type { FileOrFolderItem } from '@/renderer/utils/file/fileTypes';
 
 /**
  * Collect the send-path file refs from the two selection sources, source-tagged
- * and deduped. Uploads (`uploadFile`) and OS-picker `@` mentions (atPath items
- * without a `chatRef`) become `upload` refs; project Explorer tree items (atPath
- * items carrying `chatRef`) are sent as their `project` ref verbatim. The backend
- * resolves each ref to an absolute path — the front-end no longer builds paths
- * nor splices the `[[AION_FILES]]` marker into the message body.
+ * and deduped. `uploadFile` paths (device uploads → managed dir) become `upload`
+ * refs; `atPath` items carrying a `chatRef` (Explorer tree → `project`, backend
+ * machine picker → `local`) are sent verbatim; bare `atPath` entries without a
+ * `chatRef` fall back to `upload`. The backend resolves each ref to an absolute
+ * path — the front-end no longer builds paths nor splices the `[[AION_FILES]]`
+ * marker into the message body.
  */
 export const collectChatFileRefs = (uploadFile: string[], atPath: Array<string | FileOrFolderItem>): ChatFileRef[] => {
   const refs: ChatFileRef[] = [];
@@ -37,9 +38,9 @@ export const collectChatFileRefs = (uploadFile: string[], atPath: Array<string |
 /**
  * Split refs back into the two send-box selection lanes — the inverse of
  * {@link collectChatFileRefs}, used when a queued command is edited back into
- * the box. `upload` refs return as paths (the `uploadFile` lane); `project` refs
- * rebuild a tree selection item carrying their `chatRef` (the `atPath` lane) so a
- * re-send collects the same project ref again.
+ * the box. `upload` refs return as paths (the `uploadFile` lane); `project` and
+ * `local` refs rebuild a selection item carrying their `chatRef` (the `atPath`
+ * lane) so a re-send collects the same ref again.
  */
 export const splitChatFileRefs = (refs: ChatFileRef[]): { uploadFiles: string[]; atPath: FileOrFolderItem[] } => {
   const uploadFiles: string[] = [];
@@ -48,9 +49,10 @@ export const splitChatFileRefs = (refs: ChatFileRef[]): { uploadFiles: string[];
     if (ref.kind === 'upload') {
       uploadFiles.push(ref.path);
     } else {
+      const path = ref.kind === 'project' ? ref.relative_path : ref.path;
       atPath.push({
-        path: ref.relative_path,
-        name: ref.relative_path.split('/').pop() || ref.relative_path,
+        path,
+        name: path.split(/[\\/]/).pop() || path,
         isFile: true,
         chatRef: ref,
       });

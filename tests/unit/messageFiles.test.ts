@@ -6,7 +6,8 @@
 
 import { describe, expect, it } from 'vitest';
 import { collectChatFileRefs, splitChatFileRefs } from '@/renderer/utils/file/messageFiles';
-import { projectFileRef, uploadFileRef } from '@/common/types/chatFile';
+import { localFileRef, projectFileRef, uploadFileRef } from '@/common/types/chatFile';
+import { localSelectionItems } from '@/renderer/utils/file/fileSelection';
 import type { FileOrFolderItem } from '@/renderer/utils/file/fileTypes';
 
 describe('collectChatFileRefs', () => {
@@ -61,6 +62,27 @@ describe('collectChatFileRefs', () => {
   it('returns an empty array for empty inputs', () => {
     expect(collectChatFileRefs([], [])).toEqual([]);
   });
+
+  // Tripwire: "Add files" (backend-machine picker) must send `local`, not
+  // `upload`. localSelectionItems tags the picked paths; collectChatFileRefs
+  // sends that chatRef verbatim. If the picker source ever routes back through
+  // the uploadFile lane (uploadFileRef), these expectations flip to `upload`.
+  it('sends backend-machine picker items (localSelectionItems) as local refs', () => {
+    const items = localSelectionItems(['/backend/abs/a.ts', '/backend/abs/b.ts']);
+    expect(items[0].chatRef).toEqual({ kind: 'local', path: '/backend/abs/a.ts' });
+    expect(collectChatFileRefs([], items)).toEqual([
+      { kind: 'local', path: '/backend/abs/a.ts' },
+      { kind: 'local', path: '/backend/abs/b.ts' },
+    ]);
+  });
+
+  it('keeps a local ref and an upload ref sharing a path string distinct', () => {
+    const result = collectChatFileRefs(['/p/x'], localSelectionItems(['/p/x']));
+    expect(result).toEqual([
+      { kind: 'upload', path: '/p/x' },
+      { kind: 'local', path: '/p/x' },
+    ]);
+  });
 });
 
 describe('splitChatFileRefs', () => {
@@ -83,8 +105,21 @@ describe('splitChatFileRefs', () => {
     ]);
   });
 
-  it('round-trips through collectChatFileRefs back to the same refs', () => {
-    const refs = [uploadFileRef('/abs/a.txt'), projectFileRef('pe-1', 'src/main.ts')];
+  it('rebuilds local refs as atPath items carrying their chatRef', () => {
+    const { uploadFiles, atPath } = splitChatFileRefs([localFileRef('/backend/abs/dir/note.md')]);
+    expect(uploadFiles).toEqual([]);
+    expect(atPath).toEqual([
+      {
+        path: '/backend/abs/dir/note.md',
+        name: 'note.md',
+        isFile: true,
+        chatRef: { kind: 'local', path: '/backend/abs/dir/note.md' },
+      },
+    ]);
+  });
+
+  it('round-trips upload + project + local refs through collect/split unchanged', () => {
+    const refs = [uploadFileRef('/abs/a.txt'), projectFileRef('pe-1', 'src/main.ts'), localFileRef('/backend/c.py')];
     const { uploadFiles, atPath } = splitChatFileRefs(refs);
     expect(collectChatFileRefs(uploadFiles, atPath)).toEqual(refs);
   });

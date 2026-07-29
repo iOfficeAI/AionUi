@@ -4,9 +4,27 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { localFileRef } from '@/common/types/chatFile';
 import type { FileOrFolderItem } from '@/renderer/utils/file/fileTypes';
 
 export type FileSelectionItem = string | FileOrFolderItem;
+
+/**
+ * Wrap backend-machine picker paths (native dialog in Electron / server-fs browse
+ * in WebUI) as selection items tagged with a `local` chatRef, so the send path
+ * emits them as `local` refs (absolute backend paths, sent as-is) rather than
+ * `upload` refs — which the backend would reject as outside its managed upload
+ * directory. Empty paths are dropped.
+ */
+export const localSelectionItems = (paths: string[]): FileOrFolderItem[] =>
+  paths
+    .filter((path) => Boolean(path))
+    .map((path) => ({
+      path,
+      name: path.split(/[\\/]/).pop() || path,
+      isFile: true,
+      chatRef: localFileRef(path),
+    }));
 
 /**
  * 剥离 Windows 扩展长度路径前缀（`\\?\C:\DEV` → `C:\DEV`，`\\?\UNC\srv\share` → `\\srv\share`）
