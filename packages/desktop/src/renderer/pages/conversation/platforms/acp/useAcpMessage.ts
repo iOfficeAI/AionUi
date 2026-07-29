@@ -585,6 +585,19 @@ export const useAcpMessage = (
         setSlashCommands(commands);
       })
       .catch(() => {});
+    // Hydrate the context-usage indicator from the backend snapshot. Live
+    // acp_context_usage stream events may land first, so never overwrite a
+    // value that is already set.
+    void runtimeReady
+      .then(() => ipcBridge.conversation.getUsage.invoke({ conversation_id }))
+      .then((usage) => {
+        if (cancelled || !usage || typeof usage.used !== 'number' || usage.used <= 0) return;
+        setTokenUsage((prev) => prev ?? { total_tokens: usage.used });
+        if (usage.size > 0) {
+          setContextLimit((prev) => (prev > 0 ? prev : usage.size));
+        }
+      })
+      .catch(() => {});
     return () => {
       cancelled = true;
     };

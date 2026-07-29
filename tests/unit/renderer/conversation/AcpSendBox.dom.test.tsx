@@ -60,13 +60,16 @@ vi.mock('@/renderer/components/chat/SendBox', () => ({
     onSend,
     onChange,
     rightTools,
+    sendButtonPrefix,
   }: {
     onSend: (message: string) => Promise<void>;
     onChange?: (value: string) => void;
     rightTools?: React.ReactNode;
+    sendButtonPrefix?: React.ReactNode;
   }) => (
     <div>
       {rightTools}
+      {sendButtonPrefix}
       <button type='button' onClick={() => onChange?.('hello')}>
         change
       </button>
@@ -207,6 +210,7 @@ vi.mock('@arco-design/web-react', () => ({
     error: vi.fn(),
   },
   Tag: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
+  Popover: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
 }));
 
 const makeMessageState = (): UseAcpMessageReturn => ({
@@ -272,6 +276,28 @@ describe('AcpSendBox', () => {
     await waitFor(() => {
       expect(resetStateMock).toHaveBeenCalledTimes(1);
     });
+  });
+
+  it('shows the context-usage ring only when token usage is known', () => {
+    const { container, rerender } = render(
+      <AcpSendBox
+        conversation_id='conv-1'
+        backend='gemini'
+        workspacePath='/tmp/workspace'
+        messageState={{ ...makeMessageState(), tokenUsage: { total_tokens: 500_000 }, context_limit: 1_000_000 }}
+      />
+    );
+    expect(container.querySelector('.context-usage-indicator')).not.toBeNull();
+
+    rerender(
+      <AcpSendBox
+        conversation_id='conv-1'
+        backend='gemini'
+        workspacePath='/tmp/workspace'
+        messageState={makeMessageState()}
+      />
+    );
+    expect(container.querySelector('.context-usage-indicator')).toBeNull();
   });
 
   it('suppresses internal error cards and loading reset for active-turn busy conflicts', async () => {
