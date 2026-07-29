@@ -509,7 +509,9 @@
     }
   },
   "contextUsage": {
-    "contextUsed": "Kontext verwendet"
+    "contextUsed": "Kontext verwendet",
+    "tokensUsed": "{{tokens}} Tokens verwendet",
+    "windowUnknown": "Kontextfenstergröße unbekannt"
   },
   "skill_generator": {
     "title": "Skill/Regel generieren",

@@ -493,7 +493,9 @@
     }
   },
   "contextUsage": {
-    "contextUsed": "bağlam kullanıldı"
+    "contextUsed": "bağlam kullanıldı",
+    "tokensUsed": "{{tokens}} jeton kullanıldı",
+    "windowUnknown": "Bağlam penceresi boyutu bilinmiyor"
   },
   "skill_generator": {
     "title": "Yetenek/Kural Oluştur",

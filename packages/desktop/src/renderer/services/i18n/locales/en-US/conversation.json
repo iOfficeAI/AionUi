@@ -508,7 +508,9 @@
     }
   },
   "contextUsage": {
-    "contextUsed": "context used"
+    "contextUsed": "context used",
+    "tokensUsed": "{{tokens}} tokens used",
+    "windowUnknown": "Context window size unknown"
   },
   "skill_generator": {
     "title": "Generate Skill/Rule",

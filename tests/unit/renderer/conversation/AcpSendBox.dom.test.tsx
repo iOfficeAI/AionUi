@@ -278,7 +278,7 @@ describe('AcpSendBox', () => {
     });
   });
 
-  it('shows the context-usage ring only when the agent reported both usage and a window size', () => {
+  it('shows a progress ring with a window size, a hollow ring without one, and nothing without usage', () => {
     const { container, rerender } = render(
       <AcpSendBox
         conversation_id='conv-1'
@@ -288,9 +288,11 @@ describe('AcpSendBox', () => {
       />
     );
     expect(container.querySelector('.context-usage-indicator')).not.toBeNull();
+    expect(container.querySelectorAll('.context-usage-indicator circle')).toHaveLength(2);
 
-    // Usage without an agent-reported denominator must render nothing — the
-    // percentage would be computed against a made-up window size.
+    // Usage without an agent-reported denominator renders a hollow ring
+    // (track circle only) — the count is real, but a percentage against a
+    // made-up window size would lie.
     rerender(
       <AcpSendBox
         conversation_id='conv-1'
@@ -299,7 +301,8 @@ describe('AcpSendBox', () => {
         messageState={{ ...makeMessageState(), tokenUsage: { total_tokens: 500_000 }, context_limit: 0 }}
       />
     );
-    expect(container.querySelector('.context-usage-indicator')).toBeNull();
+    expect(container.querySelector('.context-usage-indicator')).not.toBeNull();
+    expect(container.querySelectorAll('.context-usage-indicator circle')).toHaveLength(1);
 
     rerender(
       <AcpSendBox

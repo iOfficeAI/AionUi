@@ -508,7 +508,9 @@
     }
   },
   "contextUsage": {
-    "contextUsed": "コンテキスト使用量"
+    "contextUsed": "コンテキスト使用量",
+    "tokensUsed": "{{tokens}} トークン使用済み",
+    "windowUnknown": "コンテキストウィンドウのサイズは不明"
   },
   "skill_generator": {
     "title": "Generate Skill/Rule",

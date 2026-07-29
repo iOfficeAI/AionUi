@@ -12,7 +12,11 @@ import type { TokenUsageData } from '@/common/config/storage';
 
 interface ContextUsageIndicatorProps {
   tokenUsage: TokenUsageData | null;
-  /** Agent-reported context window size. The ring is not rendered without it. */
+  /**
+   * Agent-reported context window size. Without it (<= 0) the ring stays a
+   * hollow track and the popover shows the raw token count instead of a
+   * percentage — never a percentage against a guessed denominator.
+   */
   context_limit: number;
   className?: string;
   size?: number;
@@ -26,8 +30,10 @@ const ContextUsageIndicator: React.FC<ContextUsageIndicatorProps> = ({
 }) => {
   const { t } = useTranslation();
 
+  const hasWindow = context_limit > 0;
+
   const { percentage, displayTotal, displayLimit, isWarning, isDanger } = useMemo(() => {
-    if (!tokenUsage || context_limit <= 0) {
+    if (!tokenUsage) {
       return {
         percentage: 0,
         displayTotal: '0',
@@ -38,6 +44,16 @@ const ContextUsageIndicator: React.FC<ContextUsageIndicatorProps> = ({
     }
 
     const total = tokenUsage.total_tokens;
+    if (!hasWindow) {
+      return {
+        percentage: 0,
+        displayTotal: formatTokenCount(total),
+        displayLimit: '0',
+        isWarning: false,
+        isDanger: false,
+      };
+    }
+
     const pct = (total / context_limit) * 100;
 
     return {
@@ -47,11 +63,9 @@ const ContextUsageIndicator: React.FC<ContextUsageIndicatorProps> = ({
       isWarning: pct > 70,
       isDanger: pct > 90,
     };
-  }, [tokenUsage, context_limit]);
+  }, [tokenUsage, context_limit, hasWindow]);
 
-  // Percentages are only honest against an agent-reported window size —
-  // never substitute a hardcoded per-model default here.
-  if (!tokenUsage || context_limit <= 0) {
+  if (!tokenUsage) {
     return null;
   }
 
@@ -73,11 +87,23 @@ const ContextUsageIndicator: React.FC<ContextUsageIndicatorProps> = ({
     return 'var(--color-fill-3)';
   };
 
-  const popoverContent = (
+  // Percentages are only honest against an agent-reported window size —
+  // never substitute a hardcoded per-model default here. Without a window
+  // the popover reports the raw count and says the window is unknown.
+  const popoverContent = hasWindow ? (
     <div className='p-8px min-w-160px'>
       <div className='text-14px font-medium text-t-primary'>
         {percentage.toFixed(1)}% · {displayTotal} / {displayLimit}{' '}
         {t('conversation.contextUsage.contextUsed', 'context used')}
+      </div>
+    </div>
+  ) : (
+    <div className='p-8px min-w-160px'>
+      <div className='text-14px font-medium text-t-primary'>
+        {t('conversation.contextUsage.tokensUsed', '{{tokens}} tokens used', { tokens: displayTotal })}
+      </div>
+      <div className='text-12px text-t-secondary mt-4px'>
+        {t('conversation.contextUsage.windowUnknown', 'Context window size unknown')}
       </div>
     </div>
   );
@@ -98,19 +124,21 @@ const ContextUsageIndicator: React.FC<ContextUsageIndicatorProps> = ({
             stroke={getTrackColor()}
             strokeWidth={strokeWidth}
           />
-          {/* 进度圆环 */}
-          <circle
-            cx={size / 2}
-            cy={size / 2}
-            r={radius}
-            fill='none'
-            stroke={getStrokeColor()}
-            strokeWidth={strokeWidth}
-            strokeLinecap='round'
-            strokeDasharray={circumference}
-            strokeDashoffset={strokeDashoffset}
-            style={{ transition: 'stroke-dashoffset 0.3s ease, stroke 0.3s ease' }}
-          />
+          {/* 进度圆环 — only when the denominator is known; otherwise the hollow track alone signals "count available, window unknown" */}
+          {hasWindow && (
+            <circle
+              cx={size / 2}
+              cy={size / 2}
+              r={radius}
+              fill='none'
+              stroke={getStrokeColor()}
+              strokeWidth={strokeWidth}
+              strokeLinecap='round'
+              strokeDasharray={circumference}
+              strokeDashoffset={strokeDashoffset}
+              style={{ transition: 'stroke-dashoffset 0.3s ease, stroke 0.3s ease' }}
+            />
+          )}
         </svg>
       </div>
     </Popover>

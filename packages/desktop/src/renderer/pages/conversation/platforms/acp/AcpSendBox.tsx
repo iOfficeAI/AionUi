@@ -778,9 +778,11 @@ Please check your local CLI tool authentication status`,
         allowSendWhileLoading
         compactActions={false}
         sendButtonPrefix={
-          // Only agents that report their context window (UsageUpdate.size)
-          // get the ring — a percentage against a guessed denominator lies.
-          tokenUsage && context_limit > 0 ? (
+          // Agents reporting a window size (UsageUpdate.size) get a progress
+          // ring; agents reporting only a token count get a hollow ring whose
+          // popover shows the raw count — never a percentage against a
+          // guessed denominator. No usage report at all → nothing.
+          tokenUsage ? (
             <ContextUsageIndicator tokenUsage={tokenUsage} context_limit={context_limit} size={24} />
           ) : undefined
         }

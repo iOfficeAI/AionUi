@@ -508,7 +508,9 @@
     }
   },
   "contextUsage": {
-    "contextUsed": "上下文已使用"
+    "contextUsed": "上下文已使用",
+    "tokensUsed": "已使用 {{tokens}} tokens",
+    "windowUnknown": "上下文視窗大小未知"
   },
   "skill_generator": {
     "title": "Generate Skill/Rule",
