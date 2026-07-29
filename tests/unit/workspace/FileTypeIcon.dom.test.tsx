@@ -7,7 +7,7 @@
 import React from 'react';
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import FileTypeIcon from '@/renderer/pages/conversation/Workspace/components/FileTypeIcon';
+import FileTypeIcon from '@/renderer/pages/conversation/explorer/fileIcon/FileTypeIcon';
 
 describe('FileTypeIcon', () => {
   it('renders a file icon for a file node', () => {

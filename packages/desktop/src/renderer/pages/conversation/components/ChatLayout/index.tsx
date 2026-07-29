@@ -40,6 +40,13 @@ const ChatLayout: React.FC<{
   agent_name?: string;
   headerExtra?: React.ReactNode;
   workspaceEnabled?: boolean;
+  /**
+   * When true (project conversations), the preview panel is hoisted to the
+   * Layout-level project host and this ChatLayout renders chat only — the preview
+   * region + its resize live at the Layout level, structurally persistent across
+   * same-project conversation switches (no remount).
+   */
+  previewHosted?: boolean;
   /** Conversation ID for mode switching */
   conversation_id?: string;
   /** Custom tabs slot; when provided, replaces the default ConversationTabs */
@@ -68,7 +75,12 @@ const ChatLayout: React.FC<{
   const isMobile = Boolean(layout?.isMobile);
 
   // Preview panel state
-  const { isOpen: isPreviewOpen } = usePreviewContext();
+  const { isOpen: isPreviewOpenRaw } = usePreviewContext();
+  const previewHosted = Boolean(props.previewHosted);
+  // For project conversations the preview lives at the Layout host, so this
+  // ChatLayout must behave as if there is no preview: chat fills, no split, no
+  // preview panel. Everywhere below uses `isPreviewOpen` for that local decision.
+  const isPreviewOpen = isPreviewOpenRaw && !previewHosted;
 
   // --- Hook A: workspace collapse ---
   const { rightSiderCollapsed, setRightSiderCollapsed } = useWorkspaceCollapse({

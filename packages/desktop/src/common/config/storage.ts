@@ -160,6 +160,13 @@ interface IChatConversation<T, Extra> {
   channel_chat_id?: string;
   /** Explicit assistant identity for assistant-led conversations */
   assistant?: TConversationAssistantIdentity;
+  /**
+   * Owning Project id (top-level, from `ConversationResponse.project_id`, stage3
+   * contract). Drives Project-scoped Explorer mounting + preview isolation.
+   * Optional: absent until the backend that populates it ships / for
+   * conversations without a bound project.
+   */
+  project_id?: string;
 }
 
 // Token 使用统计数据类型

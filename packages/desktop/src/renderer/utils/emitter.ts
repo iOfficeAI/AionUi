@@ -17,16 +17,20 @@ export type ReplyQuote = {
 };
 
 interface EventTypes {
-  'aionrs.selected.file': [Array<string | FileOrFolderItem>];
-  'aionrs.selected.file.append': [Array<string | FileOrFolderItem>];
+  // The 2nd arg is the target conversation id: only the send box whose
+  // conversation matches consumes the event (team renders one send box per
+  // member column, so a bare type prefix alone would leak to same-type peers).
+  // `undefined` = no target = any same-type box accepts (back-compat).
+  'aionrs.selected.file': [Array<string | FileOrFolderItem>, string | undefined];
+  'aionrs.selected.file.append': [Array<string | FileOrFolderItem>, string | undefined];
   'aionrs.selected.file.clear': void;
   'aionrs.workspace.refresh': void;
-  'acp.selected.file': [Array<string | FileOrFolderItem>];
-  'acp.selected.file.append': [Array<string | FileOrFolderItem>];
+  'acp.selected.file': [Array<string | FileOrFolderItem>, string | undefined];
+  'acp.selected.file.append': [Array<string | FileOrFolderItem>, string | undefined];
   'acp.selected.file.clear': void;
   'acp.workspace.refresh': void;
-  'codex.selected.file': [Array<string | FileOrFolderItem>];
-  'codex.selected.file.append': [Array<string | FileOrFolderItem>];
+  'codex.selected.file': [Array<string | FileOrFolderItem>, string | undefined];
+  'codex.selected.file.append': [Array<string | FileOrFolderItem>, string | undefined];
   'codex.selected.file.clear': void;
   'codex.workspace.refresh': void;
   'chat.history.refresh': void;

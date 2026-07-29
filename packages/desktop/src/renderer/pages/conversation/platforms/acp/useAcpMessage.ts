@@ -15,6 +15,7 @@ import { useMergeLiveMessage } from '@/renderer/pages/conversation/Messages/hook
 import { logStreamTerminalObserved } from '@/renderer/pages/conversation/runtime/useConversationRuntimeView';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
 import { isConversationProcessing } from '@/renderer/pages/conversation/utils/conversationRuntime';
+import { beginConversationTurn, endConversationTurn } from '@/renderer/pages/conversation/utils/conversationTurnClock';
 import { ensureConversationRuntime } from '@/renderer/pages/conversation/utils/ensureConversationRuntime';
 import type { ThoughtData } from '@/renderer/components/chat/ThoughtDisplay';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -27,6 +28,12 @@ export type UseAcpMessageReturn = {
   acpStatus: 'connecting' | 'connected' | 'authenticated' | 'session_active' | 'disconnected' | 'error' | null;
   aiProcessing: boolean;
   setAiProcessing: React.Dispatch<React.SetStateAction<boolean>>;
+  /**
+   * Absolute start timestamp (ms) of the in-flight turn, persisted per
+   * conversation so the elapsed indicator survives conversation switches.
+   * Null when no turn is running.
+   */
+  turnStartedAtMs: number | null;
   resetState: () => void;
   tokenUsage: TokenUsageData | null;
   context_limit: number;
@@ -108,6 +115,9 @@ export const useAcpMessage = (
     'connecting' | 'connected' | 'authenticated' | 'session_active' | 'disconnected' | 'error' | null
   >(null);
   const [aiProcessing, setAiProcessing] = useState(false); // New loading state for AI response
+  // Turn start origin for the elapsed indicator; backed by the module-level
+  // conversation turn clock so it survives unmount on conversation switches.
+  const [turnStartedAtMs, setTurnStartedAtMs] = useState<number | null>(null);
   const [tokenUsage, setTokenUsage] = useState<TokenUsageData | null>(null);
   const [context_limit, setContextLimit] = useState<number>(0);
   const [slashCommands, setSlashCommands] = useState<SlashCommandItem[]>([]);
@@ -216,6 +226,31 @@ export const useAcpMessage = (
     [mergeLiveMessage]
   );
 
+  // Drop the persisted turn origin once the turn truly terminates (finish,
+  // error, stop). NOT called on the conversation-switch reset, which must keep
+  // the origin alive for re-entry hydration.
+  const markTurnEnded = useCallback(() => {
+    endConversationTurn(conversation_id);
+    setTurnStartedAtMs(null);
+  }, [conversation_id]);
+
+  // Exported setter: the send box flips this on send / send-failure, so track
+  // the turn origin alongside the processing flag.
+  const setAiProcessingTracked = useCallback<React.Dispatch<React.SetStateAction<boolean>>>(
+    (action) => {
+      const next = typeof action === 'function' ? action(aiProcessingRef.current) : action;
+      if (next) {
+        setTurnStartedAtMs(beginConversationTurn(conversation_id));
+      } else {
+        endConversationTurn(conversation_id);
+        setTurnStartedAtMs(null);
+      }
+      aiProcessingRef.current = next;
+      setAiProcessing(next);
+    },
+    [conversation_id]
+  );
+
   const handleResponseMessage = useCallback(
     (message: IResponseMessage) => {
       if (conversation_id !== message.conversation_id) {
@@ -232,6 +267,7 @@ export const useAcpMessage = (
         runningRef.current = false;
         setAiProcessing(false);
         aiProcessingRef.current = false;
+        markTurnEnded();
         setThought({ subject: '', description: '' });
         hasContentInTurnRef.current = false;
         hasThinkingMessageRef.current = false;
@@ -314,6 +350,9 @@ export const useAcpMessage = (
           hasContentInTurnRef.current = false;
           setRunning(true);
           runningRef.current = true;
+          // Record the turn origin (keeps the earlier send-time origin if the
+          // send box already recorded one for this turn).
+          setTurnStartedAtMs(beginConversationTurn(conversation_id, message.created_at ?? Date.now()));
           // Don't reset aiProcessing here - let content arrival handle it
           break;
         case 'finish':
@@ -326,6 +365,7 @@ export const useAcpMessage = (
             runningRef.current = false;
             setAiProcessing(false);
             aiProcessingRef.current = false;
+            markTurnEnded();
             setThought({ subject: '', description: '' });
             hasContentInTurnRef.current = false;
             hasThinkingMessageRef.current = false;
@@ -385,6 +425,7 @@ export const useAcpMessage = (
               runningRef.current = false;
               setAiProcessing(false);
               aiProcessingRef.current = false;
+              markTurnEnded();
             }
           }
           mergeLiveMessage(transformedMessage);
@@ -495,6 +536,7 @@ export const useAcpMessage = (
           runningRef.current = false;
           setAiProcessing(false);
           aiProcessingRef.current = false;
+          markTurnEnded();
           activeThinkingRef.current = null;
           mergeLiveMessage(transformedMessage);
           // Log request error
@@ -523,6 +565,7 @@ export const useAcpMessage = (
       conversation_id,
       mergeLiveMessage,
       completeActiveThinking,
+      markTurnEnded,
       throttledSetThought,
       setThought,
       setRunning,
@@ -555,10 +598,13 @@ export const useAcpMessage = (
     // turns these back on when the backend reports runtime processing state. Otherwise
     // conversation.get's idle branch raced with useAcpInitialMessage's
     // setAiProcessing(true) and hid ThoughtDisplay until the first stream event.
+    // Note: only the local state is cleared here — the persisted turn clock entry
+    // must survive so re-entry hydration can restore the original start time.
     setRunning(false);
     runningRef.current = false;
     setAiProcessing(false);
     aiProcessingRef.current = false;
+    setTurnStartedAtMs(null);
 
     void getConversationOrNull(conversation_id)
       .then((res) => {
@@ -571,6 +617,7 @@ export const useAcpMessage = (
           runningRef.current = false;
           setAiProcessing(false);
           aiProcessingRef.current = false;
+          endConversationTurn(conversation_id);
           setHasHydratedRunningState(true);
           return;
         }
@@ -580,6 +627,13 @@ export const useAcpMessage = (
         if (isRunning) {
           setAiProcessing(true);
           aiProcessingRef.current = true;
+          // Restore the persisted origin (fall back to now if the app was
+          // relaunched mid-turn and no origin was recorded this session).
+          setTurnStartedAtMs(beginConversationTurn(conversation_id));
+        } else {
+          // Turn ended while this conversation was in the background — drop
+          // the stale origin so the next turn starts from its own send time.
+          endConversationTurn(conversation_id);
         }
         setHasHydratedRunningState(true);
 
@@ -658,12 +712,13 @@ export const useAcpMessage = (
     runningRef.current = false;
     setAiProcessing(false);
     aiProcessingRef.current = false;
+    markTurnEnded();
     setThought({ subject: '', description: '' });
     hasContentInTurnRef.current = false;
     hasThinkingMessageRef.current = false;
     activeThinkingRef.current = null;
     setHasThinkingMessage(false);
-  }, []);
+  }, [markTurnEnded]);
 
   const fetchSlashCommands = useCallback(() => {
     const runtimeReady = options?.prepareRuntime?.() ?? ensureConversationRuntime(conversation_id);
@@ -683,7 +738,8 @@ export const useAcpMessage = (
     hasHydratedRunningState,
     acpStatus,
     aiProcessing,
-    setAiProcessing,
+    setAiProcessing: setAiProcessingTracked,
+    turnStartedAtMs,
     resetState,
     tokenUsage,
     context_limit,
