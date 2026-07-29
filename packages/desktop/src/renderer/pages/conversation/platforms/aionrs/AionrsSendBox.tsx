@@ -143,14 +143,17 @@ const AionrsSendBox: React.FC<{
   const teamPermission = useTeamPermission();
   const propagateMode = teamPermission?.propagateMode;
 
-  const { thought, running, setActiveMsgId, setWaitingResponse, resetState } = useAionrsMessage(conversation_id, {
-    onConfigChanged: (capabilities) => {
-      const modes = (capabilities as { modes?: string[] })?.modes;
-      if (modes && modes.length > 0) {
-        setDynamicModes(modeOptionsFromCapabilities(modes));
-      }
-    },
-  });
+  const { thought, running, turnStartedAtMs, setActiveMsgId, setWaitingResponse, resetState } = useAionrsMessage(
+    conversation_id,
+    {
+      onConfigChanged: (capabilities) => {
+        const modes = (capabilities as { modes?: string[] })?.modes;
+        if (modes && modes.length > 0) {
+          setDynamicModes(modeOptionsFromCapabilities(modes));
+        }
+      },
+    }
+  );
   const runtimeView = useConversationRuntimeView(conversation_id);
   const { markSendStarted, markSendAccepted, markSendFailed } = runtimeView;
 
@@ -667,8 +670,8 @@ const AionrsSendBox: React.FC<{
         thought={thought}
         running={teamRuntime?.loading ?? running}
         statusText={teamRuntime?.statusText}
-        externalElapsedSource={Boolean(teamRuntime)}
-        startedAtMs={teamRuntime?.startedAtMs ?? null}
+        externalElapsedSource={Boolean(teamRuntime) || turnStartedAtMs != null}
+        startedAtMs={teamRuntime ? (teamRuntime.startedAtMs ?? null) : turnStartedAtMs}
         onStop={effectiveHandleStop}
         onRetryStart={teamRuntime?.onRetryStart ? () => void teamRuntime.onRetryStart?.() : undefined}
       />

@@ -14,6 +14,7 @@ import { useMergeLiveMessage } from '@/renderer/pages/conversation/Messages/hook
 import { logStreamTerminalObserved } from '@/renderer/pages/conversation/runtime/useConversationRuntimeView';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
 import { isConversationProcessing } from '@/renderer/pages/conversation/utils/conversationRuntime';
+import { beginConversationTurn, endConversationTurn } from '@/renderer/pages/conversation/utils/conversationTurnClock';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { processLocalCronResponse } from './localCronCommands';
 
@@ -42,6 +43,13 @@ export const useAionrsMessage = (
     subject: '',
   });
   const [tokenUsage, setTokenUsage] = useState<TokenUsageData | null>(null);
+  // Turn start origin for the elapsed indicator; backed by the module-level
+  // conversation turn clock so it survives unmount on conversation switches.
+  const [turnStartedAtMs, setTurnStartedAtMs] = useState<number | null>(null);
+  // Conversation whose running state has been hydrated from the backend. Guards
+  // the turn-clock cleanup below: a pre-hydration `running === false` (stale
+  // state from the previous conversation) must not delete the persisted origin.
+  const hydratedConversationRef = useRef<string | null>(null);
   // Current active message ID to filter out events from old requests (prevents aborted request events from interfering with new ones)
   const activeMsgIdRef = useRef<string | null>(null);
   const messageBufferRef = useRef(new Map<string, string>());
@@ -117,6 +125,23 @@ export const useAionrsMessage = (
 
   // Combined running state: waiting for response OR stream is running OR tools are active
   const running = waitingResponse || streamRunning || hasActiveTools;
+
+  // Keep the persisted turn origin in sync with the running state so the
+  // elapsed indicator does not restart from zero after a conversation switch.
+  useEffect(() => {
+    if (running) {
+      // begin keeps an already-recorded origin, so re-entering a conversation
+      // mid-turn restores the original start time instead of resetting it.
+      setTurnStartedAtMs(beginConversationTurn(conversation_id));
+      return;
+    }
+    // Only drop the origin once hydration confirmed the idle state belongs to
+    // THIS conversation; transient falses during a switch must keep it alive.
+    if (hydratedConversationRef.current === conversation_id) {
+      endConversationTurn(conversation_id);
+    }
+    setTurnStartedAtMs(null);
+  }, [running, conversation_id]);
 
   // Set current active message ID
   const setActiveMsgId = useCallback((msgId: string | null) => {
@@ -378,6 +403,8 @@ export const useAionrsMessage = (
       }
 
       if (!res) {
+        hydratedConversationRef.current = conversation_id;
+        endConversationTurn(conversation_id);
         setStreamRunning(false);
         streamRunningRef.current = false;
         setHasActiveTools(false);
@@ -388,6 +415,14 @@ export const useAionrsMessage = (
         return;
       }
       const isRunning = isConversationProcessing(res);
+      hydratedConversationRef.current = conversation_id;
+      if (!isRunning) {
+        // Turn ended while this conversation was in the background — drop the
+        // stale origin so the next turn starts from its own send time. (The
+        // sync effect above cannot cover this: running may already be false,
+        // so it never re-runs after hydration.)
+        endConversationTurn(conversation_id);
+      }
       setStreamRunning(isRunning);
       streamRunningRef.current = isRunning;
       // Reset tool states - they will be restored by incoming messages if still active
@@ -428,6 +463,7 @@ export const useAionrsMessage = (
     setThought,
     running,
     hasHydratedRunningState,
+    turnStartedAtMs,
     tokenUsage,
     setActiveMsgId,
     setWaitingResponse,

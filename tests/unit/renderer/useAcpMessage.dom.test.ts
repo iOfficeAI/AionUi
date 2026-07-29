@@ -8,6 +8,7 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useAcpMessage } from '@/renderer/pages/conversation/platforms/acp/useAcpMessage';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
+import { resetConversationTurnClockForTests } from '@/renderer/pages/conversation/utils/conversationTurnClock';
 import { resetEnsureConversationRuntimeStateForTests } from '@/renderer/pages/conversation/utils/ensureConversationRuntime';
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 
@@ -70,6 +71,7 @@ function deferred<T>() {
 describe('useAcpMessage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    resetConversationTurnClockForTests();
     resetEnsureConversationRuntimeStateForTests();
     ensureRuntimeInvokeMock.mockResolvedValue({ recovered: false, config_options: [], runtime: null });
     getSlashCommandsInvokeMock.mockResolvedValue([]);
@@ -429,5 +431,116 @@ describe('useAcpMessage', () => {
       })
     );
     expect(result.current.running).toBe(false);
+  });
+
+  it('preserves the turn start timestamp when switching away and back to a running conversation', async () => {
+    vi.mocked(getConversationOrNull).mockResolvedValue(null);
+
+    const { result, rerender } = renderHook(({ id }) => useAcpMessage(id), {
+      initialProps: { id: 'conv-1' },
+    });
+    await waitFor(() => {
+      expect(result.current.hasHydratedRunningState).toBe(true);
+    });
+    expect(result.current.turnStartedAtMs).toBeNull();
+
+    // User sends a message at t=100s — the send box flips aiProcessing on.
+    const nowSpy = vi.spyOn(Date, 'now').mockReturnValue(100_000);
+    act(() => {
+      result.current.setAiProcessing(true);
+    });
+    expect(result.current.turnStartedAtMs).toBe(100_000);
+
+    // Switch to another conversation while the backend keeps processing conv-1.
+    vi.mocked(getConversationOrNull).mockImplementation((id: string) =>
+      Promise.resolve(id === 'conv-1' ? ({ runtime: { is_processing: true } } as never) : null)
+    );
+    nowSpy.mockReturnValue(200_000);
+    rerender({ id: 'conv-2' });
+    await waitFor(() => {
+      expect(result.current.hasHydratedRunningState).toBe(true);
+    });
+    expect(result.current.turnStartedAtMs).toBeNull();
+
+    // Switch back — hydration restores processing state with the ORIGINAL start
+    // time, so the elapsed indicator does not restart from zero.
+    rerender({ id: 'conv-1' });
+    await waitFor(() => {
+      expect(result.current.aiProcessing).toBe(true);
+    });
+    expect(result.current.turnStartedAtMs).toBe(100_000);
+    nowSpy.mockRestore();
+  });
+
+  it('clears the turn start timestamp when the turn finishes', async () => {
+    vi.mocked(getConversationOrNull).mockResolvedValue(null);
+
+    const { result } = renderHook(() => useAcpMessage('conv-1'));
+    await waitFor(() => {
+      expect(result.current.hasHydratedRunningState).toBe(true);
+    });
+
+    const nowSpy = vi.spyOn(Date, 'now').mockReturnValue(100_000);
+    act(() => {
+      result.current.setAiProcessing(true);
+    });
+    expect(result.current.turnStartedAtMs).toBe(100_000);
+
+    act(() => {
+      responseStreamHandlerRef.current?.({
+        type: 'finish',
+        data: null,
+        msg_id: 'msg-1',
+        conversation_id: 'conv-1',
+      });
+    });
+    expect(result.current.turnStartedAtMs).toBeNull();
+
+    // The next turn gets a fresh origin instead of inheriting the stale one.
+    nowSpy.mockReturnValue(300_000);
+    act(() => {
+      result.current.setAiProcessing(true);
+    });
+    expect(result.current.turnStartedAtMs).toBe(300_000);
+    nowSpy.mockRestore();
+  });
+
+  it('drops a stale turn start timestamp when hydration reports the conversation idle', async () => {
+    vi.mocked(getConversationOrNull).mockResolvedValue(null);
+
+    const { result, rerender } = renderHook(({ id }) => useAcpMessage(id), {
+      initialProps: { id: 'conv-1' },
+    });
+    await waitFor(() => {
+      expect(result.current.hasHydratedRunningState).toBe(true);
+    });
+
+    const nowSpy = vi.spyOn(Date, 'now').mockReturnValue(100_000);
+    act(() => {
+      result.current.setAiProcessing(true);
+    });
+    expect(result.current.turnStartedAtMs).toBe(100_000);
+    nowSpy.mockRestore();
+
+    // Turn ends while the user is on another conversation: switching back finds
+    // the backend idle, so the recorded origin must be discarded.
+    rerender({ id: 'conv-2' });
+    await waitFor(() => {
+      expect(result.current.hasHydratedRunningState).toBe(true);
+    });
+    rerender({ id: 'conv-1' });
+    await waitFor(() => {
+      expect(result.current.hasHydratedRunningState).toBe(true);
+    });
+    expect(result.current.aiProcessing).toBe(false);
+    expect(result.current.turnStartedAtMs).toBeNull();
+
+    // A later turn starts from its own send time, not the stale origin.
+    const nowSpy2 = vi.spyOn(Date, 'now').mockReturnValue(500_000);
+    act(() => {
+      result.current.setAiProcessing(true);
+    });
+    expect(result.current.turnStartedAtMs).toBe(500_000);
+    nowSpy2.mockRestore();
   });
 });
