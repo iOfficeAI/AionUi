@@ -33,7 +33,6 @@ import {
   type ConversationCommandQueueItem,
 } from '@/renderer/pages/conversation/platforms/useConversationCommandQueue';
 import { useConversationRuntimeView } from '@/renderer/pages/conversation/runtime/useConversationRuntimeView';
-import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
 import { getConversationRuntimeWorkspaceErrorMessage } from '@/renderer/pages/conversation/utils/conversationCreateError';
 import { getChatSurfaceWidthClass } from '@/renderer/pages/conversation/utils/chatSurfaceWidth';
 import { ensureConversationRuntime } from '@/renderer/pages/conversation/utils/ensureConversationRuntime';
@@ -43,8 +42,9 @@ import type { TeamSendBoxRuntime } from '@/renderer/pages/team/components/teamSe
 import { allSupportedExts } from '@/renderer/services/FileService';
 import { iconColors } from '@/renderer/styles/colors';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
-import { mergeFileSelectionItems } from '@/renderer/utils/file/fileSelection';
-import { buildDisplayMessage, collectSelectedFiles } from '@/renderer/utils/file/messageFiles';
+import { type ChatFileRef, isChatFileRef, uploadFileRef } from '@/common/types/chatFile';
+import { localSelectionItems, mergeFileSelectionItems } from '@/renderer/utils/file/fileSelection';
+import { collectChatFileRefs, splitChatFileRefs } from '@/renderer/utils/file/messageFiles';
 import type { AgentModeOption } from '@/renderer/utils/model/agentTypes';
 import { Message, Tag } from '@arco-design/web-react';
 import { Brain, MagicHat, Shield } from '@icon-park/react';
@@ -119,10 +119,9 @@ const AionrsSendBox: React.FC<{
   modelSelection: AionrsModelSelection;
   session_mode?: string;
   agent_name?: string;
-  teamSendMessage?: (payload: { input: string; files: string[] }) => Promise<void>;
+  teamSendMessage?: (payload: { input: string; files: ChatFileRef[] }) => Promise<void>;
   teamRuntime?: TeamSendBoxRuntime;
 }> = ({ conversation_id, modelSelection, session_mode, agent_name, teamSendMessage, teamRuntime }) => {
-  const [workspacePath, setWorkspacePath] = useState('');
   const [dynamicModes, setDynamicModes] = useState<AgentModeOption[]>([]);
   const [currentMode, setCurrentMode] = useState<string | undefined>(session_mode);
   const [isMobileSheetOpen, setIsMobileSheetOpen] = useState(false);
@@ -193,13 +192,6 @@ const AionrsSendBox: React.FC<{
   }, [runtimeMode?.currentValue]);
 
   useEffect(() => {
-    void getConversationOrNull(conversation_id).then((res) => {
-      if (!res?.extra?.workspace) return;
-      setWorkspacePath(res.extra.workspace);
-    });
-  }, [conversation_id]);
-
-  useEffect(() => {
     if (!conversation_id) return;
     setAgentWarmed(false);
     void prepareRuntimeSync()
@@ -265,11 +257,13 @@ const AionrsSendBox: React.FC<{
         throw new Error('No model selected');
       }
 
-      const displayMessage = buildDisplayMessage(input, files, workspacePath);
+      // The message body is plain user text; the backend resolves each
+      // ChatFileRef to an absolute path and injects the [[AION_FILES]] marker at
+      // the send edge — the front-end no longer builds paths nor the marker.
       try {
         void checkAndUpdateTitle(conversation_id, input);
         if (teamSendMessage) {
-          await teamSendMessage({ input: displayMessage, files });
+          await teamSendMessage({ input, files });
           emitter.emit('chat.history.refresh');
           if (files.length > 0) {
             emitter.emit('aionrs.workspace.refresh');
@@ -280,7 +274,7 @@ const AionrsSendBox: React.FC<{
         markSendStarted();
         setWaitingResponse(true);
         const res = await ipcBridge.conversation.sendMessage.invoke({
-          input: displayMessage,
+          input,
           conversation_id,
           files,
         });
@@ -323,7 +317,6 @@ const AionrsSendBox: React.FC<{
       t,
       teamPermission,
       teamSendMessage,
-      workspacePath,
     ]
   );
 
@@ -367,7 +360,13 @@ const AionrsSendBox: React.FC<{
 
       try {
         const { input, files: initialFiles } = JSON.parse(storedMessage);
-        await executeCommand({ input, files: initialFiles || [] });
+        // Guid-page initial files are source-tagged ChatFileRefs (`local` for
+        // backend-machine picks, `upload` for device uploads). Legacy string[]
+        // entries (a stale pre-upgrade session) coerce to upload refs.
+        const initialRefs: ChatFileRef[] = Array.isArray(initialFiles)
+          ? initialFiles.map((f: unknown) => (typeof f === 'string' ? uploadFileRef(f) : f)).filter(isChatFileRef)
+          : [];
+        await executeCommand({ input, files: initialRefs });
       } catch (error) {
         console.error('[AionrsSendBox] Failed to send initial message:', error);
         sessionStorage.removeItem(processedKey);
@@ -378,7 +377,7 @@ const AionrsSendBox: React.FC<{
   }, [conversation_id, current_model?.use_model, executeCommand]);
 
   const onSendHandler = async (message: string) => {
-    const filesToSend = collectSelectedFiles(uploadFile, atPath);
+    const filesToSend = collectChatFileRefs(uploadFile, atPath);
     clearFiles();
     emitter.emit('aionrs.selected.file.clear');
 
@@ -400,8 +399,12 @@ const AionrsSendBox: React.FC<{
     (item: ConversationCommandQueueItem) => {
       remove(item.id);
       setContent(item.input);
-      setUploadFile(Array.from(new Set(item.files)));
-      setAtPath([]);
+      // Restore the two selection lanes: upload refs → uploadFile paths,
+      // project refs → atPath items carrying their chatRef (so a re-send
+      // collects the same project ref).
+      const { uploadFiles, atPath: restoredAtPath } = splitChatFileRefs(item.files);
+      setUploadFile(uploadFiles);
+      setAtPath(restoredAtPath);
       emitter.emit('aionrs.selected.file.clear');
     },
     [remove, setAtPath, setContent, setUploadFile]
@@ -409,9 +412,15 @@ const AionrsSendBox: React.FC<{
 
   const appendSelectedFiles = useCallback(
     (files: string[]) => {
-      setUploadFile((prev) => [...prev, ...files]);
+      // "Add files" picks a file from the backend machine's own filesystem
+      // (native dialog / server-fs browse) — an absolute backend path. Send it
+      // as a `local` ref (via the atPath lane, external-owned), NOT an `upload`
+      // ref: the raw path is not under the managed upload dir and would be
+      // rejected. Merge into this box's atPath only (no cross-column emit).
+      const merged = mergeFileSelectionItems(atPathRef.current, localSelectionItems(files));
+      if (merged !== atPathRef.current) setAtPath(merged as Array<string | FileOrFolderItem>);
     },
-    [setUploadFile]
+    [setAtPath]
   );
   const { openFileSelector, onSlashBuiltinCommand } = useOpenFileSelector({
     onFilesSelected: appendSelectedFiles,
@@ -605,13 +614,27 @@ const AionrsSendBox: React.FC<{
     t,
   ]);
 
-  useAddEventListener('aionrs.selected.file', setAtPath);
-  useAddEventListener('aionrs.selected.file.append', (selectedItems: Array<string | FileOrFolderItem>) => {
-    const merged = mergeFileSelectionItems(atPathRef.current, selectedItems);
-    if (merged !== atPathRef.current) {
-      setAtPath(merged as Array<string | FileOrFolderItem>);
-    }
-  });
+  // Accept file-selection events only when targeted at this conversation (or
+  // untargeted); stops same-type peers on the team route from receiving each
+  // other's selections. See emitter EventTypes comment.
+  useAddEventListener(
+    'aionrs.selected.file',
+    (items: Array<string | FileOrFolderItem>, targetConversationId: string | undefined) => {
+      if (targetConversationId === undefined || targetConversationId === conversation_id) setAtPath(items);
+    },
+    [conversation_id, setAtPath]
+  );
+  useAddEventListener(
+    'aionrs.selected.file.append',
+    (selectedItems: Array<string | FileOrFolderItem>, targetConversationId: string | undefined) => {
+      if (targetConversationId !== undefined && targetConversationId !== conversation_id) return;
+      const merged = mergeFileSelectionItems(atPathRef.current, selectedItems);
+      if (merged !== atPathRef.current) {
+        setAtPath(merged as Array<string | FileOrFolderItem>);
+      }
+    },
+    [conversation_id, setAtPath]
+  );
 
   // Stop conversation handler
   const handleStop = async (): Promise<void> => {
@@ -683,7 +706,7 @@ const AionrsSendBox: React.FC<{
         onChange={handleContentChange}
         selectedWorkspaceItems={atPath}
         onSelectedWorkspaceItemsChange={(items) => {
-          emitter.emit('aionrs.selected.file', items);
+          emitter.emit('aionrs.selected.file', items, conversation_id);
           setAtPath(items);
         }}
         loading={teamRuntime?.loading ?? isBusy}
@@ -757,7 +780,7 @@ const AionrsSendBox: React.FC<{
                         closable
                         onClose={() => {
                           const newAtPath = atPath.filter((v) => (typeof v === 'string' ? true : v.path !== item.path));
-                          emitter.emit('aionrs.selected.file', newAtPath);
+                          emitter.emit('aionrs.selected.file', newAtPath, conversation_id);
                           setAtPath(newAtPath);
                         }}
                       >

@@ -89,6 +89,8 @@ import type {
 } from '../update/updateTypes';
 import type { AgentMetadata } from '@/renderer/utils/model/agentTypes';
 import type { Theme } from '@/common/theme/types';
+import type { AttachFolderRequest, ProjectDetailDto, ProjectEntryDto } from '@/common/types/project';
+import type { ChatFileRef } from '@/common/types/chatFile';
 import type { ProtocolDetectionRequest, ProtocolDetectionResponse } from '../utils/protocolDetector';
 import {
   buildCreateConversationBody,
@@ -373,6 +375,29 @@ export const runtime = {
 };
 
 // ---------------------------------------------------------------------------
+// Project Explorer control plane — routed to /api/projects/* (HTTP; the data
+// plane is the WS fs/* monitor). See explorer-stage3 HTTP contract.
+// ---------------------------------------------------------------------------
+
+export const project = {
+  /** GET /api/projects/{id} → full project detail incl. all pe roots (entries). */
+  get: httpGet<ProjectDetailDto, { project_id: string }>((p) => `/api/projects/${encodeURIComponent(p.project_id)}`),
+  /**
+   * POST /api/projects/{id}/folders → attach a folder, returns the single new (or,
+   * for a subdir, the existing focused) entry. 409 `project_explorer_duplicate` /
+   * `project_explorer_overlap` surface via BackendHttpError.code.
+   */
+  attachFolder: httpPost<ProjectEntryDto, { project_id: string } & AttachFolderRequest>(
+    (p) => `/api/projects/${encodeURIComponent(p.project_id)}/folders`,
+    (p) => (p.display_name ? { uri: p.uri, display_name: p.display_name } : { uri: p.uri })
+  ),
+  /** DELETE /api/projects/{id}/folders/{pe_id} → 204. Workspace entry is immutable (backend rejects). */
+  removeFolder: httpDelete<void, { project_id: string; pe_id: string }>(
+    (p) => `/api/projects/${encodeURIComponent(p.project_id)}/folders/${encodeURIComponent(p.pe_id)}`
+  ),
+};
+
+// ---------------------------------------------------------------------------
 // CDP status / config types (used by application, stays IPC)
 // ---------------------------------------------------------------------------
 
@@ -603,9 +628,12 @@ export const fs = {
   >('/api/fs/zip'),
   cancelZip: httpPost<boolean, { request_id: string }>('/api/fs/zip/cancel'),
   getFileMetadata: httpPost<IFileMetadata, { path: string; workspace?: string }>('/api/fs/metadata'),
-  copyFilesToWorkspace: httpPost<
-    { copied_files: string[]; failed_files?: Array<{ path: string; error: string }> },
-    { file_paths: string[]; workspace: string; source_root?: string }
+  // Import OS files into a project entry's directory (A-paste). `target` is the
+  // drop-target pe + relative dir ('' = its root). Name conflicts are reported in
+  // `failed_files` (not overwritten); directories are rejected there this round.
+  copyFilesToProject: httpPost<
+    { copied_files: string[]; failed_files: Array<{ path: string; reason: string }> },
+    { file_paths: string[]; target: { pe_id: string; relative_path: string }; source_root?: string }
   >('/api/fs/copy'),
   removeEntry: httpPost<void, { path: string; workspace?: string }>('/api/fs/remove'),
   renameEntry: httpPost<{ new_path: string }, { path: string; new_name: string; workspace?: string }>('/api/fs/rename'),
@@ -1509,7 +1537,9 @@ export interface ICronJobUpdateParams {
 interface ISendMessageParams {
   input: string;
   conversation_id: string;
-  files?: string[];
+  /** Source-tagged file refs; the backend resolves each to an absolute path and
+   *  injects it into the message. See {@link ChatFileRef}. */
+  files?: ChatFileRef[];
   loading_id?: string;
   inject_skills?: string[];
 }

@@ -581,5 +581,29 @@
       }
     }
   },
-  "notFound": "Konuşma bulunamadı veya silinmiş"
+  "notFound": "Konuşma bulunamadı veya silinmiş",
+  "explorer": {
+    "addFolder": "Add folder to project",
+    "removeFolder": "Remove from project",
+    "attachDuplicate": "This folder is already in the project",
+    "attachOverlap": "This folder overlaps a folder already in the project",
+    "attachFailed": "Couldn't add the folder",
+    "removeFailed": "Couldn't remove the folder",
+    "contextMenu": {
+      "rename": "Yeniden adlandır",
+      "addToChat": "Sohbete ekle"
+    },
+    "namePlaceholder": "Ad",
+    "deleteConfirm": "“{{name}}” silinsin mi? Bu geri alınamaz.",
+    "renameFailed": "Yeniden adlandırılamadı",
+    "tabs": {
+      "files": "Dosyalar",
+      "changes": "Değişiklikler"
+    },
+    "changesPlaceholder": "Kaynak denetimi ayrı bir hatta — yakında.",
+    "addedToChat": "{{name}} sohbete eklendi",
+    "imported": "{{count}} dosya içe aktarıldı",
+    "importPartialFailed": "{{copied}} kopyalandı, {{failed}} başarısız (ad çakışması veya desteklenmiyor)",
+    "importFailed": "Dosyalar içe aktarılamadı"
+  }
 }

@@ -579,5 +579,29 @@
       }
     }
   },
-  "notFound": "Conversation not found or has been deleted"
+  "notFound": "Conversation not found or has been deleted",
+  "explorer": {
+    "addFolder": "Add folder to project",
+    "removeFolder": "Remove from project",
+    "attachDuplicate": "This folder is already in the project",
+    "attachOverlap": "This folder overlaps a folder already in the project",
+    "attachFailed": "Couldn't add the folder",
+    "removeFailed": "Couldn't remove the folder",
+    "contextMenu": {
+      "rename": "Rename",
+      "addToChat": "Add to chat"
+    },
+    "namePlaceholder": "Name",
+    "deleteConfirm": "Delete “{{name}}”? This can’t be undone.",
+    "renameFailed": "Couldn't rename",
+    "tabs": {
+      "files": "Files",
+      "changes": "Changes"
+    },
+    "changesPlaceholder": "Source control lives in a separate lane — coming soon.",
+    "addedToChat": "Added {{name}} to chat",
+    "imported": "Imported {{count}} file(s)",
+    "importPartialFailed": "{{copied}} copied, {{failed}} failed (name conflicts or unsupported)",
+    "importFailed": "Failed to import files"
+  }
 }

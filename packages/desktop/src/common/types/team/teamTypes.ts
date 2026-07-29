@@ -2,6 +2,8 @@
 // Shared team types used by both main process and renderer.
 // Renderer code should import from here instead of @process/team/types.
 
+import type { ChatFileRef } from '@/common/types/chatFile';
+
 /** Role of a teammate within a team */
 export type TeammateRole = 'leader' | 'teammate';
 
@@ -51,7 +53,9 @@ export type TTeam = {
 export type ISendTeamMessageParams = {
   team_id: string;
   input: string;
-  files?: string[];
+  /** Source-tagged file refs; the backend resolves each to an absolute path and
+   *  injects it into the message. See {@link ChatFileRef}. */
+  files?: ChatFileRef[];
 };
 
 export type ISendTeamAgentMessageParams = ISendTeamMessageParams & {

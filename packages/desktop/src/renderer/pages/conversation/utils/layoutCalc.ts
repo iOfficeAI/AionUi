@@ -7,6 +7,15 @@ export const MIN_PREVIEW_PANEL_PX = 340;
 export const MIN_WORKSPACE_PANEL_PX = 220;
 export const MAX_WORKSPACE_PANEL_PX = 500;
 export const DEFAULT_WORKSPACE_PANEL_PX = 260;
+/**
+ * Horizontal chrome of the Layout-hoisted preview region (stage3 FULL / P4):
+ * its `ml-8` + `mr-12` margins + `1px` border on each side, plus a small
+ * rounding buffer. The two width clamps must subtract this so the
+ * [content | preview | explorer] row never exceeds the measured row width —
+ * otherwise the preview's margins push the explorer column (and its right-side
+ * button cluster) past the viewport edge at wider explorer widths.
+ */
+export const PREVIEW_REGION_CHROME_PX = 24;
 
 export type LayoutCalcInput = {
   containerWidth: number;

@@ -33,6 +33,9 @@ import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conve
 import { useActiveLease } from '@/renderer/pages/conversation/hooks/useActiveLease';
 import { resolveTeamWorkspaceView } from './utils/teamWorkspaceView';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
+import { previewScopeKey } from '@/renderer/pages/conversation/Preview/context/previewScope';
+import { setCurrentProject } from '@/renderer/pages/conversation/explorer/currentProjectStore';
+import { setCurrentConversation } from '@/renderer/pages/conversation/explorer/currentConversationStore';
 
 type Props = {
   team: TTeam;
@@ -249,11 +252,42 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({
     [assistants]
   );
 
-  // Fetch leader assistant's conversation for the workspace sider
-  const { data: dispatchConversation } = useSWR(
+  // Fetch leader assistant's conversation for the workspace sider. Its
+  // project_id (populated by the shared mapper) is the team's project.
+  const { data: dispatchConversation, mutate: mutateDispatchConversation } = useSWR(
     leadAssistant?.conversation_id ? ['team-conversation', leadAssistant.conversation_id] : null,
     () => getConversationOrNull(leadAssistant!.conversation_id)
   );
+  const leaderConversationIdForProject = leadAssistant?.conversation_id;
+  const teamProjectId = dispatchConversation?.project_id ?? null;
+
+  // Publish the team's project so the Layout-level Explorer host renders it —
+  // mirrors conversation/index.tsx (project-scoped, persistent across agent-tab
+  // switches; the Explorer host does not remount within the same team/project).
+  useEffect(() => {
+    setCurrentProject(teamProjectId);
+  }, [teamProjectId]);
+
+  // Publish the active member column's conversation id so the Explorer's "add to
+  // chat" targets the focused column's send box (activeSlotId defaults to the
+  // leader; every column is a real agent conversation). Only meaningful once the
+  // team is project-bound (host visible).
+  useEffect(() => {
+    setCurrentConversation(teamProjectId ? (activeAssistant?.conversation_id ?? null) : null);
+  }, [teamProjectId, activeAssistant?.conversation_id]);
+
+  // Backfill catch-up: the leader conversation lazily backfills its project_id on
+  // resume and the backend emits one `conversation.listChanged` when it lands;
+  // refetch the leader conversation so the populated project_id flows through.
+  // (Same responsive path as conversation/index.tsx — no polling.)
+  useEffect(() => {
+    if (!leaderConversationIdForProject) return;
+    return ipcBridge.conversation.listChanged.on((event) => {
+      if (event.conversation_id !== leaderConversationIdForProject) return;
+      if (event.action !== 'updated' && event.action !== 'created') return;
+      void mutateDispatchConversation();
+    });
+  }, [leaderConversationIdForProject, mutateDispatchConversation]);
 
   // Use team workspace if specified, otherwise fall back to leader assistant's conversation workspace (temp workspace)
   const teamWorkspaceView = resolveTeamWorkspaceView(
@@ -261,18 +295,23 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({
     (dispatchConversation?.extra as { workspace?: string } | undefined)?.workspace
   );
   const effectiveWorkspace = teamWorkspaceView.workspacePath;
-  const workspaceEnabled = teamWorkspaceView.workspaceEnabled;
+  // For project teams the file panel is the Layout-level Explorer host (gated on
+  // project_id), so ChatLayout's own workspace sider is disabled — mirrors
+  // ChatConversation's `workspaceEnabled && !project_id`.
+  const workspaceEnabled = teamWorkspaceView.workspaceEnabled && !teamProjectId;
   // Team is "user-picked" only when team.workspace was explicitly set at team
   // creation. Falling back to a leader assistant's auto-temp workspace counts as
   // temporary, mirroring single-chat behavior.
   const isTeamWorkspaceTemporary = teamWorkspaceView.isTemporaryWorkspace;
 
-  // Mirror conversation/index.tsx: close preview only when the workspace changes,
-  // keep it open when switching between teams that share the same workspace.
-  const { closePreviewIfWorkspaceChanged } = usePreviewContext();
+  // Mirror conversation/index.tsx: close preview only when the isolation scope
+  // changes, keep it open when switching between teams that share the same scope.
+  // Scope is project (falling back to workspace until the leader conversation's
+  // project_id is populated).
+  const { closePreviewIfScopeChanged } = usePreviewContext();
   useEffect(() => {
-    closePreviewIfWorkspaceChanged(effectiveWorkspace ?? null);
-  }, [effectiveWorkspace, closePreviewIfWorkspaceChanged]);
+    closePreviewIfScopeChanged(previewScopeKey(teamProjectId, effectiveWorkspace ?? null));
+  }, [teamProjectId, effectiveWorkspace, closePreviewIfScopeChanged]);
 
   const siderTitle = useMemo(
     () => (
@@ -432,6 +471,7 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({
           siderTitle={siderTitle}
           sider={sider}
           workspaceEnabled={workspaceEnabled}
+          previewHosted={Boolean(teamProjectId)}
           tabsSlot={tabsSlot}
           conversation_id={activeAssistant?.conversation_id}
           agent_name={undefined}

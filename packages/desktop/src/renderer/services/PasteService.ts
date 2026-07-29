@@ -244,18 +244,53 @@ class PasteServiceClass {
             console.warn(`Unsupported image type: ${file.type}, extension: ${fileExt}`);
           }
         } else if (file_path) {
-          // 有文件路径的文件（从文件管理器拖拽的文件）
+          // 有文件路径的文件（从文件管理器复制/拖拽粘贴的文件）
           // 检查文件类型是否支持
           const fileExt = getFileExtension(file.name);
 
           if (allowAll || supportedExts.includes(fileExt)) {
-            fileList.push({
-              name: file.name,
-              path: file_path,
-              size: file.size,
-              type: file.type,
-              lastModified: file.lastModified,
-            });
+            // Upload rather than pass the raw device path: the chat send contract
+            // sends attachments as `upload` refs and the backend rejects any path
+            // outside its managed upload directory. Upload the blob to get a
+            // managed path (createTempFile → /api/fs/upload, temp_dir/aionui/...).
+            try {
+              const arrayBuffer = await file.arrayBuffer();
+              const uint8Array = new Uint8Array(arrayBuffer);
+              let file_name = file.name;
+              if (usedFileNames.has(file_name)) {
+                const extIdx = file_name.lastIndexOf('.');
+                const baseName = extIdx > 0 ? file_name.slice(0, extIdx) : file_name;
+                const ext = extIdx > 0 ? file_name.slice(extIdx) : fileExt;
+                let counter = 2;
+                while (usedFileNames.has(`${baseName}_${counter}${ext}`)) {
+                  counter++;
+                }
+                file_name = `${baseName}_${counter}${ext}`;
+              }
+              usedFileNames.add(file_name);
+
+              const tempPath = await createTempFile(
+                file_name,
+                uint8Array,
+                file.type || 'application/octet-stream',
+                conversation_id,
+                source
+              );
+              if (tempPath) {
+                fileList.push({
+                  name: file_name,
+                  path: tempPath,
+                  size: file.size,
+                  type: file.type,
+                  lastModified: Date.now(),
+                });
+              }
+            } catch (error) {
+              if (error instanceof Error && error.message === 'FILE_TOO_LARGE') {
+                throw error;
+              }
+              console.error('上传粘贴文件失败:', error);
+            }
           } else {
             // 不支持的文件类型
             console.warn(`Unsupported file type: ${file.name}, extension: ${fileExt}`);

@@ -579,5 +579,29 @@
       }
     }
   },
-  "notFound": "대화를 찾을 수 없거나 삭제되었습니다"
+  "notFound": "대화를 찾을 수 없거나 삭제되었습니다",
+  "explorer": {
+    "addFolder": "Add folder to project",
+    "removeFolder": "Remove from project",
+    "attachDuplicate": "This folder is already in the project",
+    "attachOverlap": "This folder overlaps a folder already in the project",
+    "attachFailed": "Couldn't add the folder",
+    "removeFailed": "Couldn't remove the folder",
+    "contextMenu": {
+      "rename": "이름 바꾸기",
+      "addToChat": "채팅에 추가"
+    },
+    "namePlaceholder": "이름",
+    "deleteConfirm": "“{{name}}”을(를) 삭제할까요? 이 작업은 취소할 수 없습니다.",
+    "renameFailed": "이름을 바꾸지 못했습니다",
+    "tabs": {
+      "files": "파일",
+      "changes": "변경"
+    },
+    "changesPlaceholder": "소스 제어는 별도 레인에서 곧 제공됩니다.",
+    "addedToChat": "{{name}}을(를) 채팅에 추가했습니다",
+    "imported": "{{count}}개 파일을 가져왔습니다",
+    "importPartialFailed": "{{copied}}개 복사, {{failed}}개 실패(이름 충돌 또는 미지원)",
+    "importFailed": "파일 가져오기에 실패했습니다"
+  }
 }
