@@ -44,5 +44,8 @@
     "label": "Düşünme düzeyi",
     "switchSuccess": "Düşünme düzeyi değiştirildi",
     "switchFailed": "Düşünme düzeyi değiştirilemedi"
+  },
+  "warmup": {
+    "clickToWake": "Bu üyeyi uyandırmak için tıklayın"
   }
 }

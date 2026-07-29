@@ -44,5 +44,8 @@
     "label": "Thinking Level",
     "switchSuccess": "Thinking level switched",
     "switchFailed": "Failed to switch thinking level"
+  },
+  "warmup": {
+    "clickToWake": "Click to wake this member"
   }
 }
