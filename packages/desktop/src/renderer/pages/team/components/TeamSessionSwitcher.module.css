@@ -1,0 +1,85 @@
+.wrapper {
+  display: inline-flex;
+  align-items: center;
+}
+
+.trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 220px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--color-border-2);
+  background: var(--color-bg-2);
+  color: var(--color-text-1);
+  font-size: 13px;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+
+.trigger:hover {
+  border-color: var(--color-primary-6);
+}
+
+.triggerLabel {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.triggerCaret {
+  flex-shrink: 0;
+  color: var(--color-text-3);
+}
+
+.itemRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+}
+
+.itemName {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.primaryTag {
+  margin-left: 6px;
+  padding: 0 4px;
+  border-radius: 3px;
+  background: var(--color-fill-3);
+  color: var(--color-text-3);
+  font-size: 11px;
+}
+
+.itemActions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.iconAction {
+  cursor: pointer;
+  color: var(--color-text-3);
+  transition: color 0.15s ease;
+}
+
+.iconAction:hover {
+  color: var(--color-primary-6);
+}
+
+.activeItem {
+  font-weight: 600;
+  color: var(--color-primary-6);
+}
+
+.newItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-primary-6);
+}

@@ -2,8 +2,6 @@
 // Shared team types used by both main process and renderer.
 // Renderer code should import from here instead of @process/team/types.
 
-import type { ChatFileRef } from '@/common/types/chatFile';
-
 /** Role of a teammate within a team */
 export type TeammateRole = 'leader' | 'teammate';
 
@@ -11,7 +9,7 @@ export type TeammateRole = 'leader' | 'teammate';
 export type BackendTeammateStatus = string;
 
 /** Lifecycle status of a teammate agent after frontend normalization */
-export type TeammateStatus = 'pending' | 'idle' | 'active' | 'completed' | 'failed' | 'dormant';
+export type TeammateStatus = 'pending' | 'idle' | 'active' | 'completed' | 'failed';
 
 /** Workspace sharing strategy for the team */
 export type WorkspaceMode = 'shared' | 'isolated';
@@ -46,6 +44,34 @@ export type TTeam = {
   agents?: TeamAssistant[];
   /** Current session permission mode (e.g. 'plan', 'auto'). Persisted so newly spawned assistants inherit it. */
   session_mode?: string;
+  /** Currently active working session id (migration 030). Absent for backends
+   * that predate multi-session support; the UI treats absence as the team's
+   * single/primary session. */
+  active_session_id?: string;
+  created_at: number;
+  updated_at: number;
+};
+
+/** Per-slot conversation binding within a team working session. */
+export type TTeamSessionAgent = {
+  slot_id: string;
+  conversation_id: string;
+};
+
+/** A working session owned by a team (migration 030).
+ *
+ * Each session has its own per-slot conversations, mailbox messages, and task
+ * board, isolated by `session_id`. The team roster and `session_mode` stay
+ * shared. `is_primary` marks the auto-created default session that cannot be
+ * deleted. */
+export type TTeamSession = {
+  id: string;
+  team_id: string;
+  name: string;
+  is_primary: boolean;
+  /** Per-slot conversation bindings. Populated by getSession / createSession;
+   * listSessions omits them for brevity. */
+  agents?: TTeamSessionAgent[];
   created_at: number;
   updated_at: number;
 };
@@ -53,9 +79,7 @@ export type TTeam = {
 export type ISendTeamMessageParams = {
   team_id: string;
   input: string;
-  /** Source-tagged file refs; the backend resolves each to an absolute path and
-   *  injects it into the message. See {@link ChatFileRef}. */
-  files?: ChatFileRef[];
+  files?: string[];
 };
 
 export type ISendTeamAgentMessageParams = ISendTeamMessageParams & {
@@ -64,29 +88,31 @@ export type ISendTeamAgentMessageParams = ISendTeamMessageParams & {
 
 export type TeamRunTargetRole = 'lead' | 'teammate';
 export type TeamRunStatus = 'accepted' | 'running' | 'cancelling' | 'completed' | 'cancelled' | 'failed';
-export type TeamSlotWorkState = 'idle' | 'queued' | 'starting' | 'running' | 'paused' | 'blocked';
-export type TeamSlotBlockedReason = 'runtime_starting' | 'runtime_failed' | 'removing' | 'session_stopped';
-export type TeamMessageEnqueueStatus = 'accepted' | 'queued' | 'blocked_runtime_starting';
 
 export type ITeamSlotWork = {
   slot_id: string;
   role: TeamRunTargetRole;
-  state: TeamSlotWorkState;
-  queued_foreground_count: number;
-  queued_background_count: number;
-  active_turn_id: string | null;
-  active_turn_started_at_ms: number | null;
-  active_turn_elapsed_ms: number | null;
-  active_turn_slow: boolean | null;
-  active_turn_slow_threshold_ms: number | null;
-  blocked_reason: TeamSlotBlockedReason | null;
-  team_run_id: string | null;
+  pending_wake_count: number;
+  starting_child_count: number;
+  paused?: boolean;
+  suppressed_wake_count?: number;
+  active_turn_id?: string;
+  active_turn_started_at_ms?: number;
+  active_turn_elapsed_ms?: number;
+  active_turn_slow?: boolean;
+  active_turn_slow_threshold_ms?: number;
+  runtime_health?: 'disconnected' | 'unhealthy';
 };
 
 export type ITeamRunAck = {
-  enqueue_status: TeamMessageEnqueueStatus;
-  message_id: string;
-  run: ITeamRunEvent;
+  team_run_id: string;
+  team_id: string;
+  target_slot_id: string;
+  target_role: TeamRunTargetRole;
+  accepted_slot_id: string;
+  accepted_role: TeamRunTargetRole;
+  status: TeamRunStatus;
+  message_id?: string;
 };
 
 export type ICancelTeamRunParams = {
@@ -105,22 +131,13 @@ export type IPauseTeamSlotParams = ICancelTeamChildTurnParams;
 export type ITeamRunEvent = {
   team_id: string;
   team_run_id: string;
-  source: 'user_message' | 'system_lifecycle';
-  has_user_intervention: boolean;
   target_slot_id: string;
   target_role: TeamRunTargetRole;
   status: TeamRunStatus;
-  queued_intent_count: number;
-  starting_batch_count: number;
-  running_batch_count: number;
-  active_enqueue_lease_count: number;
-  slot_work: ITeamSlotWork[];
-};
-
-export type ITeamRunStateResponse = {
-  session_generation: string | null;
-  active_run: ITeamRunEvent | null;
-  slot_work: ITeamSlotWork[];
+  active_child_count: number;
+  pending_wake_count: number;
+  starting_child_count: number;
+  slot_work?: ITeamSlotWork[];
 };
 
 export type ITeamChildTurnEvent = {
@@ -131,18 +148,6 @@ export type ITeamChildTurnEvent = {
   conversation_id: string;
   turn_id: string;
   status: TeamRunStatus;
-};
-
-/**
- * IPC event pushed to the renderer whenever a single slot's work state
- * transitions, independently of any team run. `team.run*` events only carry
- * `slot_work` for slots bound to the active tracked run, so run-less work (e.g.
- * a leader self-wake draining its mailbox) would otherwise leave the per-slot
- * view stale. Consumers update the one slot verbatim.
- */
-export type ITeamSlotWorkChangedEvent = {
-  team_id: string;
-  slot_work: ITeamSlotWork;
 };
 
 /** IPC event pushed to renderer when agent status changes */
@@ -172,17 +177,6 @@ export type ITeamAgentRenamedEvent = {
   team_id: string;
   slot_id: string;
   name: string;
-};
-
-export type TeamAgentRuntimeStatus = 'dormant' | 'pending' | 'ready' | 'failed';
-
-/** IPC event pushed to renderer when a team member runtime attach/warmup status changes */
-export type ITeamAgentRuntimeStatusEvent = {
-  team_id: string;
-  slot_id: string;
-  conversation_id: string;
-  status: TeamAgentRuntimeStatus;
-  error?: string;
 };
 
 /** IPC event pushed to renderer when the team list changes (created/removed/agent changes) */
@@ -226,18 +220,26 @@ export type ITeamMessageEvent = {
   conversation_id: string;
 };
 
-/** Team-level session availability status. */
-export type TeamSessionStatus = 'starting' | 'ready' | 'failed' | 'stopped';
+/** Phase of the MCP injection pipeline */
+export type TeamMcpPhase =
+  | 'tcp_ready'
+  | 'tcp_error'
+  | 'session_injecting'
+  | 'session_ready'
+  | 'session_error'
+  | 'load_failed'
+  | 'degraded'
+  | 'config_write_failed'
+  | 'mcp_tools_waiting'
+  | 'mcp_tools_ready';
 
-/** Diagnostic phase for team session startup. */
-export type TeamSessionPhase = 'loading_team' | 'starting_bridge' | 'attaching_agents' | 'recovering';
-
-/** IPC event for team session lifecycle status. */
-export type ITeamSessionStatusChangedEvent = {
+/** IPC event for MCP injection pipeline status */
+export type ITeamMcpStatusEvent = {
   team_id: string;
-  status: TeamSessionStatus;
-  phase?: TeamSessionPhase;
+  slot_id?: string;
+  phase: TeamMcpPhase;
   server_count?: number;
+  port?: number;
   error?: string;
 };
 

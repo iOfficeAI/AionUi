@@ -27,7 +27,7 @@ export type ICreateTeamParams = {
   name: string;
   workspace: string;
   workspace_mode: WorkspaceMode;
-  agents: TeamAssistantInput[];
+  assistants: TeamAssistantInput[];
 };
 
 export type IAddTeamAssistantParams = {
@@ -54,9 +54,6 @@ export function normalizeTeamStatus(raw: BackendTeammateStatus | undefined): Tea
     tool_use: 'active',
     completed: 'completed',
     error: 'failed',
-    // Dormant (leader-only warmup): pass through so the badge can render an
-    // asleep state distinct from idle, instead of collapsing to idle.
-    dormant: 'dormant',
   };
   return statusMap[raw ?? ''] ?? 'idle';
 }
@@ -109,6 +106,7 @@ export function fromBackendTeam(raw: unknown): TTeam {
     leader_agent_id: leaderAssistantId,
     agents: assistants,
     session_mode: r.session_mode as string | undefined,
+    active_session_id: r.active_session_id as string | undefined,
     created_at: (r.created_at as number | undefined) ?? 0,
     updated_at: (r.updated_at as number | undefined) ?? 0,
   };
