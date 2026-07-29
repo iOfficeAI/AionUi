@@ -270,27 +270,47 @@ export type RootRef = {
  * and recurses; an unexpanded directory is not descended (lazy). Node key is the
  * PeKey. `isLeaf` from `kind === 'file'`.
  */
+/**
+ * Display order for a directory's children: directories first, then everything
+ * else (files, symlinks — grouped with files, matching the `isLeaf = !isDir`
+ * projection), each group sorted by name case-insensitively (locale-aware,
+ * `sensitivity: 'base'`). Applied at projection time so both snapshots and
+ * delta-added nodes land in the right place with no extra ordering to maintain
+ * in the fact cache. Does not reorder pe roots (kept in their backend
+ * `order_index`).
+ */
+function compareEntriesForDisplay(a: Entry, b: Entry): number {
+  const aDir = a.kind === 'dir';
+  const bDir = b.kind === 'dir';
+  if (aDir !== bDir) return aDir ? -1 : 1;
+  return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+}
+
 export function buildTreeData(cache: FactCache, expanded: ReadonlySet<PeKey>, roots: RootRef[]): TreeNode[] {
   const buildChildren = (peId: string, dirRel: string): TreeNode[] | undefined => {
     const key = peKey(peId, dirRel);
     if (!expanded.has(key)) return undefined; // lazy: do not descend unexpanded dirs
     const entries = cache.get(key);
     if (!entries) return undefined; // expanded but listing not yet arrived
-    return entries.map((entry) => {
-      const childRel = joinRel(dirRel, entry.name);
-      const isDir = entry.kind === 'dir';
-      const node: TreeNode = {
-        key: peKey(peId, childRel),
-        title: entry.name,
-        isLeaf: !isDir,
-      };
-      if (entry.excluded) node.excluded = true;
-      if (isDir) {
-        const children = buildChildren(peId, childRel);
-        if (children) node.children = children;
-      }
-      return node;
-    });
+    // Sort a copy — never mutate the cached listing.
+    return entries
+      .slice()
+      .sort(compareEntriesForDisplay)
+      .map((entry) => {
+        const childRel = joinRel(dirRel, entry.name);
+        const isDir = entry.kind === 'dir';
+        const node: TreeNode = {
+          key: peKey(peId, childRel),
+          title: entry.name,
+          isLeaf: !isDir,
+        };
+        if (entry.excluded) node.excluded = true;
+        if (isDir) {
+          const children = buildChildren(peId, childRel);
+          if (children) node.children = children;
+        }
+        return node;
+      });
   };
 
   return roots.map((root) => {

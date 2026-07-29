@@ -287,6 +287,47 @@ describe('buildTreeData', () => {
     ]);
     expect(tree.map((n) => n.key)).toEqual([peKey('pe1', ''), peKey('pe2', '')]);
   });
+
+  // Tripwire: children display order is directories-first (symlinks grouped with
+  // files), each group by name case-insensitively — regardless of the backend's
+  // snapshot order. Mutation-verified: removing the dir-priority makes dirs
+  // interleave with files (2 assertions fail); replacing the case-insensitive
+  // name compare with a naive codepoint compare (uppercase before lowercase)
+  // reorders the file group and fails the expected order below.
+  const symlink = (name: string): Entry => ({ name, kind: 'symlink' });
+
+  it('orders children directories-first, then files/symlinks, each case-insensitive by name', () => {
+    const scrambled: Entry[] = [
+      file('Banana.txt'),
+      dir('src'),
+      file('apple.md'),
+      dir('Zebra'),
+      symlink('link.sh'),
+      file('README.md'),
+      dir('assets'),
+    ];
+    const cache: FactCache = new Map([[peKey('pe1', ''), scrambled]]);
+    const tree = buildTreeData(cache, set(peKey('pe1', '')), roots);
+    const titles = (tree[0].children ?? []).map((n) => n.title);
+
+    // dirs (case-insensitive alpha), then files+symlink (case-insensitive alpha)
+    expect(titles).toEqual(['assets', 'src', 'Zebra', 'apple.md', 'Banana.txt', 'link.sh', 'README.md']);
+
+    // Explicit group boundary: every dir precedes every non-dir.
+    const kindByTitle = new Map(scrambled.map((e) => [e.name, e.kind]));
+    const lastDirIdx = titles.map((t) => kindByTitle.get(t) === 'dir').lastIndexOf(true);
+    const firstNonDirIdx = titles.findIndex((t) => kindByTitle.get(t) !== 'dir');
+    expect(lastDirIdx).toBeLessThan(firstNonDirIdx);
+  });
+
+  it('does not reorder pe roots (kept in backend order_index)', () => {
+    const tree = buildTreeData(new Map(), new Set(), [
+      { pe_id: 'peZ', title: 'zzz' },
+      { pe_id: 'peA', title: 'aaa' },
+    ]);
+    // roots stay as given (not alphabetized) — only children are sorted.
+    expect(tree.map((n) => n.title)).toEqual(['zzz', 'aaa']);
+  });
 });
 
 // ── additional edge coverage (Reviewer ⚪) ────────────────────────────────────
