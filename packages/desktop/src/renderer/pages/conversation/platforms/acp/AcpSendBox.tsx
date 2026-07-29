@@ -119,7 +119,8 @@ const AcpSendBox: React.FC<{
   teamSendMessage,
   teamRuntime,
 }) => {
-  const { aiProcessing, setAiProcessing, resetState, hasThinkingMessage, slashCommands } = messageState;
+  const { aiProcessing, setAiProcessing, turnStartedAtMs, resetState, hasThinkingMessage, slashCommands } =
+    messageState;
   const { t } = useTranslation();
   const teamPermission = useTeamPermission();
   // In team mode, all agents show the permission mode selector (members don't propagate)
@@ -675,8 +676,8 @@ Please check your local CLI tool authentication status`,
       <ThoughtDisplay
         running={teamRuntime?.loading ?? (aiProcessing && !hasThinkingMessage)}
         statusText={teamRuntime?.statusText}
-        externalElapsedSource={Boolean(teamRuntime)}
-        startedAtMs={teamRuntime?.startedAtMs ?? null}
+        externalElapsedSource={Boolean(teamRuntime) || turnStartedAtMs != null}
+        startedAtMs={teamRuntime ? (teamRuntime.startedAtMs ?? null) : turnStartedAtMs}
         onStop={effectiveHandleStop}
         onRetryStart={teamRuntime?.onRetryStart ? () => void teamRuntime.onRetryStart?.() : undefined}
       />
