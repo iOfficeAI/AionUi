@@ -278,7 +278,7 @@ describe('AcpSendBox', () => {
     });
   });
 
-  it('shows the context-usage ring only when token usage is known', () => {
+  it('shows the context-usage ring only when the agent reported both usage and a window size', () => {
     const { container, rerender } = render(
       <AcpSendBox
         conversation_id='conv-1'
@@ -288,6 +288,18 @@ describe('AcpSendBox', () => {
       />
     );
     expect(container.querySelector('.context-usage-indicator')).not.toBeNull();
+
+    // Usage without an agent-reported denominator must render nothing — the
+    // percentage would be computed against a made-up window size.
+    rerender(
+      <AcpSendBox
+        conversation_id='conv-1'
+        backend='gemini'
+        workspacePath='/tmp/workspace'
+        messageState={{ ...makeMessageState(), tokenUsage: { total_tokens: 500_000 }, context_limit: 0 }}
+      />
+    );
+    expect(container.querySelector('.context-usage-indicator')).toBeNull();
 
     rerender(
       <AcpSendBox

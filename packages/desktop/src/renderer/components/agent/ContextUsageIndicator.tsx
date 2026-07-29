@@ -10,30 +10,28 @@ import { useTranslation } from 'react-i18next';
 
 import type { TokenUsageData } from '@/common/config/storage';
 
-// 从 modelContextLimits 导入默认上下文限制
-import { DEFAULT_CONTEXT_LIMIT } from '@/renderer/utils/model/modelContextLimits';
-
 interface ContextUsageIndicatorProps {
   tokenUsage: TokenUsageData | null;
-  context_limit?: number;
+  /** Agent-reported context window size. The ring is not rendered without it. */
+  context_limit: number;
   className?: string;
   size?: number;
 }
 
 const ContextUsageIndicator: React.FC<ContextUsageIndicatorProps> = ({
   tokenUsage,
-  context_limit = DEFAULT_CONTEXT_LIMIT,
+  context_limit,
   className = '',
   size = 24,
 }) => {
   const { t } = useTranslation();
 
   const { percentage, displayTotal, displayLimit, isWarning, isDanger } = useMemo(() => {
-    if (!tokenUsage) {
+    if (!tokenUsage || context_limit <= 0) {
       return {
         percentage: 0,
         displayTotal: '0',
-        displayLimit: formatTokenCount(context_limit, true),
+        displayLimit: '0',
         isWarning: false,
         isDanger: false,
       };
@@ -51,8 +49,9 @@ const ContextUsageIndicator: React.FC<ContextUsageIndicatorProps> = ({
     };
   }, [tokenUsage, context_limit]);
 
-  // 如果没有 token 数据，不显示
-  if (!tokenUsage) {
+  // Percentages are only honest against an agent-reported window size —
+  // never substitute a hardcoded per-model default here.
+  if (!tokenUsage || context_limit <= 0) {
     return null;
   }
 

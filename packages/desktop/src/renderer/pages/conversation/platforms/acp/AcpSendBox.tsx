@@ -778,12 +778,10 @@ Please check your local CLI tool authentication status`,
         allowSendWhileLoading
         compactActions={false}
         sendButtonPrefix={
-          tokenUsage ? (
-            <ContextUsageIndicator
-              tokenUsage={tokenUsage}
-              context_limit={context_limit > 0 ? context_limit : undefined}
-              size={24}
-            />
+          // Only agents that report their context window (UsageUpdate.size)
+          // get the ring — a percentage against a guessed denominator lies.
+          tokenUsage && context_limit > 0 ? (
+            <ContextUsageIndicator tokenUsage={tokenUsage} context_limit={context_limit} size={24} />
           ) : undefined
         }
       ></SendBox>
