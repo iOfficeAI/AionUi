@@ -579,5 +579,29 @@
       }
     }
   },
-  "notFound": "会话不存在或已被删除"
+  "notFound": "会话不存在或已被删除",
+  "explorer": {
+    "addFolder": "添加文件夹到项目",
+    "removeFolder": "从项目移除",
+    "attachDuplicate": "该文件夹已在项目中",
+    "attachOverlap": "该文件夹与项目中已有文件夹重叠",
+    "attachFailed": "添加文件夹失败",
+    "removeFailed": "移除文件夹失败",
+    "contextMenu": {
+      "rename": "重命名",
+      "addToChat": "添加到聊天"
+    },
+    "namePlaceholder": "名称",
+    "deleteConfirm": "删除“{{name}}”？此操作无法撤销。",
+    "renameFailed": "重命名失败",
+    "tabs": {
+      "files": "文件",
+      "changes": "变更"
+    },
+    "changesPlaceholder": "源代码管理在独立通道中,敬请期待。",
+    "addedToChat": "已将 {{name}} 添加到聊天",
+    "imported": "已导入 {{count}} 个文件",
+    "importPartialFailed": "已复制 {{copied}} 个，{{failed}} 个失败（重名或不支持）",
+    "importFailed": "导入文件失败"
+  }
 }

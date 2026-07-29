@@ -371,7 +371,11 @@ describe('GuidPage', () => {
 
     render(<GuidPage />);
 
-    expect(guidInputMock.setFiles).toHaveBeenCalledWith(['/tmp/one.png', '/tmp/two.png']);
+    // Prefill attachments carry no source tag → seeded as `upload` refs.
+    expect(guidInputMock.setFiles).toHaveBeenCalledWith([
+      { kind: 'upload', path: '/tmp/one.png' },
+      { kind: 'upload', path: '/tmp/two.png' },
+    ]);
   });
 
   it('appends a draft-preserving prefill without clearing attachments or workspace', () => {

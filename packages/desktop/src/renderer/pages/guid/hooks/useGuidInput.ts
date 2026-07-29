@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { type ChatFileRef, chatFileRefPath, localFileRef, uploadFileRef } from '@/common/types/chatFile';
 import { useDragUpload } from '@/renderer/hooks/file/useDragUpload';
 import { usePasteService } from '@/renderer/hooks/file/usePasteService';
 import { allSupportedExts, type FileMetadata } from '@/renderer/services/FileService';
@@ -13,15 +14,18 @@ import { useCallback, useEffect, useState } from 'react';
 export type GuidInputResult = {
   input: string;
   setInput: React.Dispatch<React.SetStateAction<string>>;
-  files: string[];
-  setFiles: React.Dispatch<React.SetStateAction<string[]>>;
+  files: ChatFileRef[];
+  setFiles: React.Dispatch<React.SetStateAction<ChatFileRef[]>>;
   dir: string;
   setDir: React.Dispatch<React.SetStateAction<string>>;
   isInputFocused: boolean;
   loading: boolean;
   setLoading: React.Dispatch<React.SetStateAction<boolean>>;
   handleFilesPasted: (pastedFiles: FileMetadata[]) => void;
+  /** Device uploads (blob → managed dir): sent as `upload` refs. */
   handleFilesUploaded: (uploadedPaths: string[]) => void;
+  /** Backend-machine picker paths (native/server-fs): sent as `local` refs. */
+  handleFilesPicked: (pickedPaths: string[]) => void;
   handleRemoveFile: (targetPath: string) => void;
   handleTextareaFocus: () => void;
   handleTextareaBlur: () => void;
@@ -39,7 +43,7 @@ type UseGuidInputOptions = {
  */
 export const useGuidInput = ({ locationState }: UseGuidInputOptions): GuidInputResult => {
   const [input, setInput] = useState('');
-  const [files, setFiles] = useState<string[]>([]);
+  const [files, setFiles] = useState<ChatFileRef[]>([]);
   const [dir, setDir] = useState<string>('');
   const [isInputFocused, setIsInputFocused] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -55,17 +59,25 @@ export const useGuidInput = ({ locationState }: UseGuidInputOptions): GuidInputR
   // Do NOT clear dir here: paste/drag should coexist with a selected workspace,
   // matching the dialog-upload path (handleFilesUploaded).
   const handleFilesPasted = useCallback((pastedFiles: FileMetadata[]) => {
-    const file_paths = pastedFiles.map((file) => file.path);
-    setFiles((prevFiles) => [...prevFiles, ...file_paths]);
+    // Paste/drag bytes are uploaded to the managed dir by the paste/drag hooks →
+    // `upload` refs.
+    const refs = pastedFiles.map((file) => uploadFileRef(file.path));
+    setFiles((prevFiles) => [...prevFiles, ...refs]);
   }, []);
 
-  // Handle files uploaded via dialog (append mode)
+  // Device uploads (browser input → managed dir): append as `upload` refs.
   const handleFilesUploaded = useCallback((uploadedPaths: string[]) => {
-    setFiles((prevFiles) => [...prevFiles, ...uploadedPaths]);
+    setFiles((prevFiles) => [...prevFiles, ...uploadedPaths.map(uploadFileRef)]);
+  }, []);
+
+  // Backend-machine picker (native dialog / server-fs browse): append as `local`
+  // refs — the path is already absolute on the backend host, sent as-is.
+  const handleFilesPicked = useCallback((pickedPaths: string[]) => {
+    setFiles((prevFiles) => [...prevFiles, ...pickedPaths.map(localFileRef)]);
   }, []);
 
   const handleRemoveFile = useCallback((targetPath: string) => {
-    setFiles((prevFiles) => prevFiles.filter((file) => file !== targetPath));
+    setFiles((prevFiles) => prevFiles.filter((ref) => chatFileRefPath(ref) !== targetPath));
   }, []);
 
   // Use drag upload hook (drag treated like paste, appends to existing files)
@@ -120,6 +132,7 @@ export const useGuidInput = ({ locationState }: UseGuidInputOptions): GuidInputR
     setLoading,
     handleFilesPasted,
     handleFilesUploaded,
+    handleFilesPicked,
     handleRemoveFile,
     handleTextareaFocus,
     handleTextareaBlur,

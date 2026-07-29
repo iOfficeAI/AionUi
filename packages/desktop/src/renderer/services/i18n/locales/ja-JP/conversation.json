@@ -579,5 +579,29 @@
       }
     }
   },
-  "notFound": "会話が存在しないか、削除されました"
+  "notFound": "会話が存在しないか、削除されました",
+  "explorer": {
+    "addFolder": "Add folder to project",
+    "removeFolder": "Remove from project",
+    "attachDuplicate": "This folder is already in the project",
+    "attachOverlap": "This folder overlaps a folder already in the project",
+    "attachFailed": "Couldn't add the folder",
+    "removeFailed": "Couldn't remove the folder",
+    "contextMenu": {
+      "rename": "名前を変更",
+      "addToChat": "チャットに追加"
+    },
+    "namePlaceholder": "名前",
+    "deleteConfirm": "「{{name}}」を削除しますか？この操作は取り消せません。",
+    "renameFailed": "名前の変更に失敗しました",
+    "tabs": {
+      "files": "ファイル",
+      "changes": "変更"
+    },
+    "changesPlaceholder": "ソース管理は別レーンで近日公開。",
+    "addedToChat": "{{name}} をチャットに追加しました",
+    "imported": "{{count}} 件のファイルをインポートしました",
+    "importPartialFailed": "{{copied}} 件コピー、{{failed}} 件失敗（名前の重複または非対応）",
+    "importFailed": "ファイルのインポートに失敗しました"
+  }
 }

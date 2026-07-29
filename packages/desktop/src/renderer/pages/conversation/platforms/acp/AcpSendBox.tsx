@@ -39,8 +39,9 @@ import type { TeamSendBoxRuntime } from '@/renderer/pages/team/components/teamSe
 import { allSupportedExts } from '@/renderer/services/FileService';
 import { iconColors } from '@/renderer/styles/colors';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
-import { mergeFileSelectionItems } from '@/renderer/utils/file/fileSelection';
-import { buildDisplayMessage } from '@/renderer/utils/file/messageFiles';
+import { localSelectionItems, mergeFileSelectionItems } from '@/renderer/utils/file/fileSelection';
+import { collectChatFileRefs, splitChatFileRefs } from '@/renderer/utils/file/messageFiles';
+import type { ChatFileRef } from '@/common/types/chatFile';
 import { Message, Tag } from '@arco-design/web-react';
 import { Brain, MagicHat, Shield } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
@@ -105,21 +106,12 @@ const AcpSendBox: React.FC<{
   backend: string;
   session_mode?: string;
   agent_name?: string;
-  workspacePath?: string;
   messageState: UseAcpMessageReturn;
-  teamSendMessage?: (payload: { input: string; files: string[] }) => Promise<void>;
+  teamSendMessage?: (payload: { input: string; files: ChatFileRef[] }) => Promise<void>;
   teamRuntime?: TeamSendBoxRuntime;
-}> = ({
-  conversation_id,
-  backend,
-  session_mode,
-  agent_name,
-  workspacePath,
-  messageState,
-  teamSendMessage,
-  teamRuntime,
-}) => {
-  const { aiProcessing, setAiProcessing, resetState, hasThinkingMessage, slashCommands } = messageState;
+}> = ({ conversation_id, backend, session_mode, agent_name, messageState, teamSendMessage, teamRuntime }) => {
+  const { aiProcessing, setAiProcessing, turnStartedAtMs, resetState, hasThinkingMessage, slashCommands } =
+    messageState;
   const { t } = useTranslation();
   const teamPermission = useTeamPermission();
   // In team mode, all agents show the permission mode selector (members don't propagate)
@@ -250,7 +242,6 @@ const AcpSendBox: React.FC<{
   useAcpInitialMessage({
     conversation_id: conversation_id,
     backend,
-    workspacePath,
     setAiProcessing,
     resetState,
     markSendStarted,
@@ -262,13 +253,13 @@ const AcpSendBox: React.FC<{
 
   const executeCommand = useCallback(
     async ({ input, files }: Pick<ConversationCommandQueueItem, 'input' | 'files'>) => {
-      const displayMessage = buildDisplayMessage(input, files, workspacePath || '');
-
+      // Plain user text; the backend resolves each ChatFileRef and injects the
+      // [[AION_FILES]] marker at the send edge (no front-end path/marker building).
       try {
         if (teamPermission) await teamPermission.warmupSession();
         void checkAndUpdateTitle(conversation_id, input);
         if (teamSendMessage) {
-          await teamSendMessage({ input: displayMessage, files });
+          await teamSendMessage({ input, files });
           emitter.emit('chat.history.refresh');
           if (files.length > 0) {
             emitter.emit('acp.workspace.refresh');
@@ -279,7 +270,7 @@ const AcpSendBox: React.FC<{
         markSendStarted();
         setAiProcessing(true);
         const result = await ipcBridge.acpConversation.sendMessage.invoke({
-          input: displayMessage,
+          input,
           conversation_id,
           files,
         });
@@ -377,7 +368,6 @@ Please check your local CLI tool authentication status`,
       t,
       teamPermission,
       teamSendMessage,
-      workspacePath,
     ]
   );
 
@@ -405,8 +395,7 @@ Please check your local CLI tool authentication status`,
   });
 
   const onSendHandler = async (message: string) => {
-    const atPathFiles = atPath.map((item) => (typeof item === 'string' ? item : item.path));
-    const allFiles = [...uploadFile, ...atPathFiles];
+    const allFiles = collectChatFileRefs(uploadFile, atPath);
 
     clearFiles();
     emitter.emit('acp.selected.file.clear');
@@ -429,8 +418,10 @@ Please check your local CLI tool authentication status`,
     (item: ConversationCommandQueueItem) => {
       remove(item.id);
       setContent(item.input);
-      setUploadFile(Array.from(new Set(item.files)));
-      setAtPath([]);
+      // Restore upload refs → uploadFile paths, project refs → atPath items.
+      const { uploadFiles, atPath: restoredAtPath } = splitChatFileRefs(item.files);
+      setUploadFile(uploadFiles);
+      setAtPath(restoredAtPath);
       emitter.emit('acp.selected.file.clear');
     },
     [remove, setAtPath, setContent, setUploadFile]
@@ -438,9 +429,15 @@ Please check your local CLI tool authentication status`,
 
   const appendSelectedFiles = useCallback(
     (files: string[]) => {
-      setUploadFile((prev) => [...prev, ...files]);
+      // "Add files" picks a file from the backend machine's own filesystem
+      // (native dialog / server-fs browse) — an absolute backend path. Send it
+      // as a `local` ref (via the atPath lane, external-owned), NOT an `upload`
+      // ref: the raw path is not under the managed upload dir and would be
+      // rejected. Merge into this box's atPath only (no cross-column emit).
+      const merged = mergeFileSelectionItems(atPathRef.current, localSelectionItems(files));
+      if (merged !== atPathRef.current) setAtPath(merged as Array<string | FileOrFolderItem>);
     },
-    [setUploadFile]
+    [setAtPath]
   );
   const { openFileSelector, onSlashBuiltinCommand } = useOpenFileSelector({
     onFilesSelected: appendSelectedFiles,
@@ -610,13 +607,27 @@ Please check your local CLI tool authentication status`,
     t,
   ]);
 
-  useAddEventListener('acp.selected.file', setAtPath);
-  useAddEventListener('acp.selected.file.append', (selectedItems: Array<string | FileOrFolderItem>) => {
-    const merged = mergeFileSelectionItems(atPathRef.current, selectedItems);
-    if (merged !== atPathRef.current) {
-      setAtPath(merged as Array<string | FileOrFolderItem>);
-    }
-  });
+  // Accept file-selection events only when targeted at this conversation (or
+  // untargeted); on the multi-column team route this stops same-type peers from
+  // receiving each other's selections. See emitter EventTypes comment.
+  useAddEventListener(
+    'acp.selected.file',
+    (items: Array<string | FileOrFolderItem>, targetConversationId: string | undefined) => {
+      if (targetConversationId === undefined || targetConversationId === conversation_id) setAtPath(items);
+    },
+    [conversation_id, setAtPath]
+  );
+  useAddEventListener(
+    'acp.selected.file.append',
+    (selectedItems: Array<string | FileOrFolderItem>, targetConversationId: string | undefined) => {
+      if (targetConversationId !== undefined && targetConversationId !== conversation_id) return;
+      const merged = mergeFileSelectionItems(atPathRef.current, selectedItems);
+      if (merged !== atPathRef.current) {
+        setAtPath(merged as Array<string | FileOrFolderItem>);
+      }
+    },
+    [conversation_id, setAtPath]
+  );
 
   // Stop conversation handler
   const handleStop = async (): Promise<void> => {
@@ -675,8 +686,8 @@ Please check your local CLI tool authentication status`,
       <ThoughtDisplay
         running={teamRuntime?.loading ?? (aiProcessing && !hasThinkingMessage)}
         statusText={teamRuntime?.statusText}
-        externalElapsedSource={Boolean(teamRuntime)}
-        startedAtMs={teamRuntime?.startedAtMs ?? null}
+        externalElapsedSource={Boolean(teamRuntime) || turnStartedAtMs != null}
+        startedAtMs={teamRuntime ? (teamRuntime.startedAtMs ?? null) : turnStartedAtMs}
         onStop={effectiveHandleStop}
         onRetryStart={teamRuntime?.onRetryStart ? () => void teamRuntime.onRetryStart?.() : undefined}
       />
@@ -687,7 +698,7 @@ Please check your local CLI tool authentication status`,
         onChange={handleContentChange}
         selectedWorkspaceItems={atPath}
         onSelectedWorkspaceItemsChange={(items) => {
-          emitter.emit('acp.selected.file', items);
+          emitter.emit('acp.selected.file', items, conversation_id);
           setAtPath(items);
         }}
         loading={teamRuntime?.loading ?? isBusy}
@@ -756,7 +767,7 @@ Please check your local CLI tool authentication status`,
                         closable
                         onClose={() => {
                           const newAtPath = atPath.filter((v) => (typeof v === 'string' ? true : v.path !== item.path));
-                          emitter.emit('acp.selected.file', newAtPath);
+                          emitter.emit('acp.selected.file', newAtPath, conversation_id);
                           setAtPath(newAtPath);
                         }}
                       >

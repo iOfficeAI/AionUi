@@ -167,7 +167,10 @@ const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; slid
     initialModel: conversation.model,
     onSelectModel,
   });
-  const workspaceEnabled = Boolean(conversation.extra?.workspace);
+  // Project conversations get the Layout-level Explorer column (stage3 FULL);
+  // ChatLayout's own right sider is only for no-project (legacy tree), so it does
+  // not double up or reserve an empty column.
+  const workspaceEnabled = Boolean(conversation.extra?.workspace) && !conversation.project_id;
   const cronJobId = resolveCronJobId(conversation.extra);
   const { info: presetAssistantInfo } = usePresetAssistantInfo(conversation);
   const aionrsAssistantId = presetAssistantInfo?.assistantId;
@@ -212,7 +215,15 @@ const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; slid
       </div>
     ),
     workspaceEnabled,
+    // For project conversations the preview panel is hoisted to the Layout-level
+    // project host (structurally persistent across same-project conversation
+    // switches — no remount). ChatLayout then renders chat only.
+    previewHosted: Boolean(conversation.project_id),
     workspacePath: conversation.extra?.workspace,
+    // Key the workspace-panel collapse preference per-project (falls back to
+    // conversation_id inside ChatLayout when there is no project) so the panel's
+    // open/closed state restores when switching conversations within a project.
+    workspacePreferenceKey: conversation.project_id,
     isTemporaryWorkspace: (conversation.extra as { is_temporary_workspace?: boolean } | undefined)
       ?.is_temporary_workspace,
     backend: 'aionrs' as const,
@@ -245,7 +256,7 @@ const ChatConversation: React.FC<{
 }> = ({ conversation, hideSendBox }) => {
   const { t } = useTranslation();
   useActiveLease({ type: 'conversation', id: conversation?.id });
-  const workspaceEnabled = Boolean(conversation?.extra?.workspace);
+  const workspaceEnabled = Boolean(conversation?.extra?.workspace) && !conversation?.project_id;
   const cronJobId = resolveCronJobId(conversation?.extra);
   const layout = useLayoutContext();
   const isMobile = Boolean(layout?.isMobile);
@@ -369,7 +380,9 @@ const ChatConversation: React.FC<{
       siderTitle={sliderTitle}
       sider={<ChatSlider conversation={conversation} />}
       workspaceEnabled={workspaceEnabled}
+      previewHosted={Boolean(conversation?.project_id)}
       workspacePath={conversation?.extra?.workspace}
+      workspacePreferenceKey={conversation?.project_id}
       isTemporaryWorkspace={
         (conversation?.extra as { is_temporary_workspace?: boolean } | undefined)?.is_temporary_workspace
       }

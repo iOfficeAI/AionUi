@@ -580,5 +580,29 @@
       }
     }
   },
-  "notFound": "Conversación no encontrada o ha sido eliminada"
+  "notFound": "Conversación no encontrada o ha sido eliminada",
+  "explorer": {
+    "addFolder": "Add folder to project",
+    "removeFolder": "Remove from project",
+    "attachDuplicate": "This folder is already in the project",
+    "attachOverlap": "This folder overlaps a folder already in the project",
+    "attachFailed": "Couldn't add the folder",
+    "removeFailed": "Couldn't remove the folder",
+    "contextMenu": {
+      "rename": "Cambiar nombre",
+      "addToChat": "Añadir al chat"
+    },
+    "namePlaceholder": "Nombre",
+    "deleteConfirm": "¿Eliminar «{{name}}»? Esto no se puede deshacer.",
+    "renameFailed": "No se pudo cambiar el nombre",
+    "tabs": {
+      "files": "Archivos",
+      "changes": "Cambios"
+    },
+    "changesPlaceholder": "El control de versiones estará en una pestaña aparte — próximamente.",
+    "addedToChat": "Se añadió {{name}} al chat",
+    "imported": "{{count}} archivo(s) importado(s)",
+    "importPartialFailed": "{{copied}} copiado(s), {{failed}} con error (conflictos de nombre o no admitidos)",
+    "importFailed": "Error al importar los archivos"
+  }
 }

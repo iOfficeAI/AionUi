@@ -30,6 +30,7 @@ import { useTypewriterPlaceholder } from './hooks/useTypewriterPlaceholder';
 import { ensureBackendMcpCatalog } from '@/renderer/hooks/mcp/catalog';
 import { resolveGuidAssistantDefaults } from './utils/assistantDefaults';
 import SpeechInputButton from '@/renderer/components/chat/SpeechInputButton';
+import { chatFileRefPath, uploadFileRef } from '@/common/types/chatFile';
 import { useOpenFileSelector } from '@/renderer/hooks/file/useOpenFileSelector';
 import { appendSpeechTranscript } from '@/renderer/hooks/system/useSpeechInput';
 import { useLiveTranscriptInsertion } from '@/renderer/hooks/system/useLiveTranscriptInsertion';
@@ -145,15 +146,14 @@ const GuidPage: React.FC = () => {
   const guidInput = useGuidInput({
     locationState: location.state as { workspace?: string } | null,
   });
-  const appendSelectedFiles = useCallback(
-    (files: string[]) => {
-      guidInput.setFiles((prevFiles) => [...prevFiles, ...files]);
-    },
-    [guidInput.setFiles]
-  );
+  // The `/open` builtin + attach picker browse the backend machine's filesystem
+  // (native dialog / server-fs) → `local` refs, not uploads.
   const { onSlashBuiltinCommand } = useOpenFileSelector({
-    onFilesSelected: appendSelectedFiles,
+    onFilesSelected: guidInput.handleFilesPicked,
   });
+  // Display/remove lanes stay path-based; the ref kind is carried only by the
+  // send path (useGuidSend).
+  const displayFilePaths = useMemo(() => guidInput.files.map(chatFileRefPath), [guidInput.files]);
 
   const resetMentionOpen = useCallback<React.Dispatch<React.SetStateAction<boolean>>>(() => {}, []);
   const resetMentionQuery = useCallback<React.Dispatch<React.SetStateAction<string | null>>>(() => {}, []);
@@ -530,7 +530,9 @@ const GuidPage: React.FC = () => {
         guidInput.setInput((draft) => appendPromptToDraft(draft, prefillPrompt));
       } else {
         guidInput.setInput(prefillPrompt);
-        guidInput.setFiles(prefillFiles && prefillFiles.length > 0 ? prefillFiles : []);
+        // Prefill attachments (e.g. "via chat" screenshots) arrive as bare paths
+        // with no source tag; treat them as uploads to preserve prior behavior.
+        guidInput.setFiles(prefillFiles && prefillFiles.length > 0 ? prefillFiles.map(uploadFileRef) : []);
       }
     } else if (skipNextClearRef.current) {
       // This pass is the state-clearing replace() right after a prefill — keep
@@ -610,8 +612,9 @@ const GuidPage: React.FC = () => {
   // Build the action row
   const actionRowNode = (
     <GuidActionRow
-      files={guidInput.files}
+      files={displayFilePaths}
       onFilesUploaded={guidInput.handleFilesUploaded}
+      onFilesPicked={guidInput.handleFilesPicked}
       modelSelectorNode={modelSelectorNode}
       isGeminiMode={isGeminiMode}
       modelList={modelSelection.modelList}
@@ -693,7 +696,7 @@ const GuidPage: React.FC = () => {
             inactiveBorderColor={inactiveBorderColor}
             activeShadow={activeShadow}
             dragHandlers={guidInput.dragHandlers}
-            files={guidInput.files}
+            files={displayFilePaths}
             onRemoveFile={guidInput.handleRemoveFile}
             actionRow={actionRowNode}
             slashCommandMenu={slashCommandMenuNode}

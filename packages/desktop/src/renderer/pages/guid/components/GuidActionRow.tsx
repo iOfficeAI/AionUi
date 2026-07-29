@@ -64,7 +64,10 @@ const SubmenuSearchList: React.FC<{
 type GuidActionRowProps = {
   // File handling
   files: string[];
+  /** Device uploads (browser input → managed dir): sent as `upload` refs. */
   onFilesUploaded: (paths: string[]) => void;
+  /** Backend-machine picker (native dialog / server-fs browse): sent as `local` refs. */
+  onFilesPicked: (paths: string[]) => void;
 
   // Model selector node (rendered by parent for the desktop layout)
   modelSelectorNode: React.ReactNode;
@@ -106,6 +109,7 @@ type GuidActionRowProps = {
 
 const GuidActionRow: React.FC<GuidActionRowProps> = ({
   files,
+  onFilesPicked,
   onFilesUploaded,
   modelSelectorNode,
   isGeminiMode,
@@ -202,11 +206,11 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
   const openHostFilePicker = useCallback(() => {
     ipcBridge.dialog.showOpen
       .invoke({ properties: ['openFile', 'multiSelections'] })
-      .then((uploadedFiles) => {
-        if (uploadedFiles && uploadedFiles.length > 0) onFilesUploaded(uploadedFiles);
+      .then((pickedFiles) => {
+        if (pickedFiles && pickedFiles.length > 0) onFilesPicked(pickedFiles);
       })
       .catch((error) => console.error('Failed to open file dialog:', error));
-  }, [onFilesUploaded]);
+  }, [onFilesPicked]);
 
   // Build the mobile action sheet entries: model / thought level / permission
   // (single-select), attach (action), skills / MCP (multi-select checkboxes).
@@ -401,9 +405,9 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
         if (key === 'file') {
           ipcBridge.dialog.showOpen
             .invoke({ properties: ['openFile', 'multiSelections'] })
-            .then((uploadedFiles) => {
-              if (uploadedFiles && uploadedFiles.length > 0) {
-                onFilesUploaded(uploadedFiles);
+            .then((pickedFiles) => {
+              if (pickedFiles && pickedFiles.length > 0) {
+                onFilesPicked(pickedFiles);
               }
             })
             .catch((error) => {
