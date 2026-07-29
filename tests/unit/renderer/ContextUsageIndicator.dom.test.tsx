@@ -57,6 +57,43 @@ describe('ContextUsageIndicator', () => {
     const { container } = render(<ContextUsageIndicator tokenUsage={null} context_limit={262_144} />);
     expect(container.querySelector('.context-usage-indicator')).toBeNull();
   });
+
+  it('shows session cost and per-turn breakdown when the agent reported them', () => {
+    const { getByTestId } = render(
+      <ContextUsageIndicator
+        tokenUsage={{
+          total_tokens: 14_118,
+          cost: { amount: 0.42, currency: 'USD' },
+          breakdown: {
+            input_tokens: 14_088,
+            output_tokens: 30,
+            cached_read_tokens: 14_080,
+            thought_tokens: 0,
+          },
+        }}
+        context_limit={1_000_000}
+      />
+    );
+
+    const popover = getByTestId('popover-content').textContent ?? '';
+    expect(popover).toContain('Session cost');
+    expect(popover).toContain('0.42');
+    expect(popover).toContain('Input 14.1K');
+    expect(popover).toContain('Output 30');
+    expect(popover).toContain('Cache read 14.1K');
+    // Zero-valued optional counters are noise, not information.
+    expect(popover).not.toContain('Thinking');
+  });
+
+  it('omits cost and breakdown lines when the agent reported neither', () => {
+    const { getByTestId } = render(
+      <ContextUsageIndicator tokenUsage={{ total_tokens: 12_600 }} context_limit={262_144} />
+    );
+
+    const popover = getByTestId('popover-content').textContent ?? '';
+    expect(popover).not.toContain('Session cost');
+    expect(popover).not.toContain('Input');
+  });
 });
 
 describe('formatTokenCount', () => {

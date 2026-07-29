@@ -511,7 +511,13 @@
   "contextUsage": {
     "contextUsed": "contexto usado",
     "tokensUsed": "{{tokens}} tokens usados",
-    "windowUnknown": "Tamaño de la ventana de contexto desconocido"
+    "windowUnknown": "Tamaño de la ventana de contexto desconocido",
+    "sessionCost": "Costo de la sesión",
+    "input": "Entrada",
+    "output": "Salida",
+    "thought": "Razonamiento",
+    "cachedRead": "Lectura de caché",
+    "cachedWrite": "Escritura de caché"
   },
   "skill_generator": {
     "title": "Generar habilidad/regla",

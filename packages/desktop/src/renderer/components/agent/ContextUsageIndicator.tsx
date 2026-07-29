@@ -8,7 +8,7 @@ import { Popover } from '@arco-design/web-react';
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import type { TokenUsageData } from '@/common/config/storage';
+import type { TokenUsageCost, TokenUsageData } from '@/common/config/storage';
 
 interface ContextUsageIndicatorProps {
   tokenUsage: TokenUsageData | null;
@@ -87,6 +87,49 @@ const ContextUsageIndicator: React.FC<ContextUsageIndicatorProps> = ({
     return 'var(--color-fill-3)';
   };
 
+  const breakdown = tokenUsage.breakdown;
+  const breakdownParts: string[] = [];
+  if (breakdown) {
+    if (typeof breakdown.input_tokens === 'number') {
+      breakdownParts.push(
+        `${t('conversation.contextUsage.input', 'Input')} ${formatTokenCount(breakdown.input_tokens)}`
+      );
+    }
+    if (typeof breakdown.output_tokens === 'number') {
+      breakdownParts.push(
+        `${t('conversation.contextUsage.output', 'Output')} ${formatTokenCount(breakdown.output_tokens)}`
+      );
+    }
+    if (breakdown.cached_read_tokens) {
+      breakdownParts.push(
+        `${t('conversation.contextUsage.cachedRead', 'Cache read')} ${formatTokenCount(breakdown.cached_read_tokens)}`
+      );
+    }
+    if (breakdown.cached_write_tokens) {
+      breakdownParts.push(
+        `${t('conversation.contextUsage.cachedWrite', 'Cache write')} ${formatTokenCount(breakdown.cached_write_tokens)}`
+      );
+    }
+    if (breakdown.thought_tokens) {
+      breakdownParts.push(
+        `${t('conversation.contextUsage.thought', 'Thinking')} ${formatTokenCount(breakdown.thought_tokens)}`
+      );
+    }
+  }
+
+  const details = (
+    <>
+      {tokenUsage.cost && (
+        <div className='text-12px text-t-secondary mt-4px'>
+          {t('conversation.contextUsage.sessionCost', 'Session cost')} ≈ {formatCostAmount(tokenUsage.cost)}
+        </div>
+      )}
+      {breakdownParts.length > 0 && (
+        <div className='text-12px text-t-secondary mt-4px'>{breakdownParts.join(' · ')}</div>
+      )}
+    </>
+  );
+
   // Percentages are only honest against an agent-reported window size —
   // never substitute a hardcoded per-model default here. Without a window
   // the popover reports the raw count and says the window is unknown.
@@ -96,6 +139,7 @@ const ContextUsageIndicator: React.FC<ContextUsageIndicatorProps> = ({
         {percentage.toFixed(1)}% · {displayTotal} / {displayLimit}{' '}
         {t('conversation.contextUsage.contextUsed', 'context used')}
       </div>
+      {details}
     </div>
   ) : (
     <div className='p-8px min-w-160px'>
@@ -105,6 +149,7 @@ const ContextUsageIndicator: React.FC<ContextUsageIndicatorProps> = ({
       <div className='text-12px text-t-secondary mt-4px'>
         {t('conversation.contextUsage.windowUnknown', 'Context window size unknown')}
       </div>
+      {details}
     </div>
   );
 
@@ -144,6 +189,22 @@ const ContextUsageIndicator: React.FC<ContextUsageIndicatorProps> = ({
     </Popover>
   );
 };
+
+/**
+ * Format an agent-reported cumulative session cost, e.g. "$0.42".
+ * Falls back to "0.42 USD" when the currency code is not renderable.
+ */
+export function formatCostAmount(cost: TokenUsageCost): string {
+  try {
+    return new Intl.NumberFormat(undefined, {
+      style: 'currency',
+      currency: cost.currency,
+      maximumFractionDigits: 4,
+    }).format(cost.amount);
+  } catch {
+    return `${cost.amount.toFixed(4)} ${cost.currency}`;
+  }
+}
 
 /**
  * 格式化 token 数量显示

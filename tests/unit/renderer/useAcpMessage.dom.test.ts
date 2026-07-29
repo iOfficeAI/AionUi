@@ -6,7 +6,7 @@
 
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { useAcpMessage } from '@/renderer/pages/conversation/platforms/acp/useAcpMessage';
+import { tokenUsageFromAcpUsage, useAcpMessage } from '@/renderer/pages/conversation/platforms/acp/useAcpMessage';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
 import { resetEnsureConversationRuntimeStateForTests } from '@/renderer/pages/conversation/utils/ensureConversationRuntime';
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
@@ -507,5 +507,38 @@ describe('useAcpMessage', () => {
     });
     expect(result.current.tokenUsage).toBeNull();
     expect(result.current.context_limit).toBe(0);
+  });
+});
+
+describe('tokenUsageFromAcpUsage', () => {
+  it('maps used, cost, and _meta breakdown from a UsageUpdate payload', () => {
+    const usage = tokenUsageFromAcpUsage({
+      used: 14_118,
+      cost: { amount: 0.42, currency: 'USD' },
+      _meta: {
+        input_tokens: 14_088,
+        output_tokens: 30,
+        cached_read_tokens: 14_080,
+        not_a_counter: 'ignore-me',
+      },
+    });
+
+    expect(usage.total_tokens).toBe(14_118);
+    expect(usage.cost).toEqual({ amount: 0.42, currency: 'USD' });
+    expect(usage.breakdown).toEqual({
+      input_tokens: 14_088,
+      output_tokens: 30,
+      cached_read_tokens: 14_080,
+    });
+  });
+
+  it('omits cost and breakdown when the payload carries neither', () => {
+    const usage = tokenUsageFromAcpUsage({ used: 12_600 });
+    expect(usage).toEqual({ total_tokens: 12_600 });
+  });
+
+  it('drops a zero-amount cost as unreported', () => {
+    const usage = tokenUsageFromAcpUsage({ used: 10, cost: { amount: 0, currency: 'USD' } });
+    expect(usage.cost).toBeUndefined();
   });
 });
