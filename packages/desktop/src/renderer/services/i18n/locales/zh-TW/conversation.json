@@ -610,6 +610,12 @@
     "addedToChat": "已將 {{name}} 加入對話",
     "imported": "已匯入 {{count}} 個檔案",
     "importPartialFailed": "已複製 {{copied}} 個，{{failed}} 個失敗（重名或不支援）",
-    "importFailed": "匯入檔案失敗"
+    "importFailed": "匯入檔案失敗",
+    "search": {
+      "placeholder": "依檔名搜尋",
+      "searching": "搜尋中…",
+      "empty": "沒有符合的檔案",
+      "limitReached": "僅顯示前 {{count}} 項 — 請縮小範圍"
+    }
   }
 }

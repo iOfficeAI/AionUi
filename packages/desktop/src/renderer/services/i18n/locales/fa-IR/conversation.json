@@ -610,6 +610,12 @@
     "addedToChat": "{{name}} به گفتگو افزوده شد",
     "imported": "{{count}} فایل وارد شد",
     "importPartialFailed": "{{copied}} کپی شد، {{failed}} ناموفق (تداخل نام یا پشتیبانی‌نشده)",
-    "importFailed": "وارد کردن فایل‌ها ناموفق بود"
+    "importFailed": "وارد کردن فایل‌ها ناموفق بود",
+    "search": {
+      "placeholder": "جستجوی فایل‌ها بر اساس نام",
+      "searching": "در حال جستجو…",
+      "empty": "هیچ فایلی مطابقت ندارد",
+      "limitReached": "نمایش {{count}} مورد اول — جستجو را محدود کنید"
+    }
   }
 }

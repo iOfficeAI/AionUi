@@ -610,6 +610,12 @@
     "addedToChat": "已将 {{name}} 添加到聊天",
     "imported": "已导入 {{count}} 个文件",
     "importPartialFailed": "已复制 {{copied}} 个，{{failed}} 个失败（重名或不支持）",
-    "importFailed": "导入文件失败"
+    "importFailed": "导入文件失败",
+    "search": {
+      "placeholder": "按文件名搜索",
+      "searching": "搜索中…",
+      "empty": "没有匹配的文件",
+      "limitReached": "仅显示前 {{count}} 项 — 请缩小范围"
+    }
   }
 }

@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type { MonitorTransport } from '@/renderer/pages/conversation/explorer/monitorClient';
 import {
   MonitorClient,
+  RPC_ABANDONED,
   RPC_DISCONNECTED,
   RPC_MALFORMED_RESPONSE,
   RPC_RECONNECTED,
@@ -172,6 +173,59 @@ describe('MonitorClient reconnect', () => {
 
     await expect(promise).rejects.toMatchObject({ code: RPC_RECONNECTED });
     expect(onReconnect).toHaveBeenCalledOnce();
+  });
+});
+
+describe('MonitorClient requestWithId (streaming)', () => {
+  it('surfaces the assigned id and resolves the result on the matching response', async () => {
+    const h = makeHarness();
+    const client = new MonitorClient({ transport: h.transport, onNotification: () => {} });
+
+    const { id, result } = client.requestWithId('fs/search', { roots: [], query: 'x' });
+    const frame = h.sent[0] as { id: number; method: string };
+    expect(frame.id).toBe(id);
+    expect(frame.method).toBe('fs/search');
+
+    h.feed({ jsonrpc: '2.0', id, result: { limit_reached: false, total: 0 } });
+    await expect(result).resolves.toEqual({ limit_reached: false, total: 0 });
+  });
+
+  it('assigns an id even when offline and rejects the result', async () => {
+    const h = makeHarness();
+    h.setSendOk(false);
+    const client = new MonitorClient({ transport: h.transport, onNotification: () => {} });
+
+    const { id, result } = client.requestWithId('fs/search', {});
+    expect(typeof id).toBe('number');
+    await expect(result).rejects.toMatchObject({ code: RPC_DISCONNECTED });
+  });
+
+  it('gives distinct monotonic ids across requests', () => {
+    const h = makeHarness();
+    const client = new MonitorClient({ transport: h.transport, onNotification: () => {} });
+    const a = client.requestWithId('fs/search', {}).id;
+    const b = client.requestWithId('fs/search', {}).id;
+    expect(b).toBe(a + 1);
+  });
+});
+
+describe('MonitorClient abandon (superseded streaming request)', () => {
+  it('rejects the abandoned request with RPC_ABANDONED and ignores its later response', async () => {
+    const h = makeHarness();
+    const client = new MonitorClient({ transport: h.transport, onNotification: () => {} });
+
+    const { id, result } = client.requestWithId('fs/search', {});
+    client.abandon(id);
+    await expect(result).rejects.toMatchObject({ code: RPC_ABANDONED });
+
+    // A late terminal for the abandoned id must not throw or re-settle.
+    expect(() => h.feed({ jsonrpc: '2.0', id, result: { limit_reached: false, total: 0 } })).not.toThrow();
+  });
+
+  it('is a no-op for an unknown id', () => {
+    const h = makeHarness();
+    const client = new MonitorClient({ transport: h.transport, onNotification: () => {} });
+    expect(() => client.abandon(999)).not.toThrow();
   });
 });
 

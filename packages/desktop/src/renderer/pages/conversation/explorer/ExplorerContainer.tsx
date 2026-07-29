@@ -11,8 +11,9 @@
  * them to {@link ExplorerPanel} (which drives the WS store). It also owns the
  * project-level actions: add folder (attach) and remove folder.
  *
- * Scope (stage-3 C): data wiring + tree + attach/remove. Search, file context
- * menu (new/delete/rename), and the Files/Changes tabs are out of this round.
+ * Scope: data wiring + tree + attach/remove + the Files/Changes tabs, plus the
+ * persistent filename-search area at the top of the Files tab (fs/search →
+ * reveal / explicit add-to-chat; see {@link SearchPanel}).
  */
 
 import { Button, Input, Message, Modal, Spin } from '@arco-design/web-react';
@@ -39,8 +40,10 @@ import { ExplorerPanel } from './ExplorerPanel';
 import { buildRemoveRequest, buildRenameRequest, parentRel, peKey, type RenameRequest } from './explorerModel';
 import { initExplorerRuntime } from './monitorTransport';
 import { toRootRefs } from './projectRoots';
-import { select } from './explorerStore';
+import { reveal, select } from './explorerStore';
 import { useCurrentConversation } from './currentConversationStore';
+import { SearchPanel } from './search/SearchPanel';
+import type { SearchHit } from './search/searchModel';
 
 export type ExplorerContainerProps = {
   /** Owning project id — scopes the store's fact cache + localStorage UI state. */
@@ -206,6 +209,20 @@ export const ExplorerContainer: React.FC<ExplorerContainerProps> = ({ projectId 
     Message.success(t('conversation.explorer.addedToChat', { name }));
   };
 
+  // Search result default action: locate the hit in the tree — switch to the
+  // files tab, expand its ancestor chain (reveal subscribes the parent dir), and
+  // select it. Reuses the store's existing reveal path; does NOT open preview
+  // (product decision Y — the click is "find the file", not "preview it").
+  const handleRevealHit = (hit: SearchHit): void => {
+    setActiveTab('files');
+    reveal({ pe_id: hit.pe_id, relative_path: parentRel(hit.relative_path) });
+    select(peKey(hit.pe_id, hit.relative_path));
+  };
+
+  // Search result explicit add-to-chat: a hit is always a file; route through the
+  // same emitter lane as the tree's context-menu action.
+  const handleAddHit = (hit: SearchHit): void => handleAddToChat(hit.pe_id, hit.relative_path, hit.name, true);
+
   // A-paste: import OS files dropped onto a tree node into that node's dir via
   // the pe-targeted /api/fs/copy. The copied files arrive on the target dir's WS
   // subscription (delta → tree updates itself); conflicts/rejected dirs come back
@@ -236,10 +253,14 @@ export const ExplorerContainer: React.FC<ExplorerContainerProps> = ({ projectId 
   if (isLoading && !data) return <Spin loading />;
 
   const roots = data ? toRootRefs(data) : [];
+  // Search roots = the project's pe roots (each folder root, rel=''). fs/search
+  // spans all bound folders; the front-end ranks the merged hit stream.
+  const searchRoots = roots.map((root) => ({ pe_id: root.pe_id, relative_path: '' }));
+  // pe_id → folder name for the search result's `PE · REL` secondary label.
+  const searchPeNames = Object.fromEntries(roots.map((root) => [root.pe_id, root.title]));
   const workspacePeId = data?.explorer.workspace_pe_id;
   // Absolute path of the workspace root (derived display_path) for the
-  // open-externally button. No search box: file search (with chat-ref) is a
-  // separate lane, not the explorer.
+  // open-externally button.
   const workspacePath = data?.explorer.entries.find((e) => e.pe_id === workspacePeId)?.display_path;
 
   const tabButton = (key: 'files' | 'changes', label: string) => (
@@ -281,21 +302,29 @@ export const ExplorerContainer: React.FC<ExplorerContainerProps> = ({ projectId 
       {/* Files tab (explorer): kept mounted across tab switches so the tree + WS
           state survive (only hidden when the changes tab is active). Left padding
           clears the sider's col-resize drag handle overlay. */}
-      <div
-        className='flex-1 min-h-0 overflow-auto pl-16px'
-        style={activeTab === 'files' ? undefined : { display: 'none' }}
-      >
-        <ExplorerPanel
-          projectId={projectId}
-          roots={roots}
-          workspacePeId={workspacePeId}
-          onRemoveRoot={handleRemoveFolder}
-          onOpenFile={handleOpenFile}
-          onRename={handleRename}
-          onDelete={handleDelete}
-          onAddToChat={activeConversationId ? handleAddToChat : undefined}
-          onImportFiles={handleImportFiles}
-        />
+      {/* Search area is persistent at the top of the files tab; the tree renders
+          underneath (children slot) and stays mounted while searching so its WS
+          subscriptions never thrash. SearchPanel owns the scroll region, so this
+          container no longer sets overflow. */}
+      <div className='flex-1 min-h-0 pl-16px' style={activeTab === 'files' ? undefined : { display: 'none' }}>
+        <SearchPanel
+          roots={searchRoots}
+          peNames={searchPeNames}
+          onRevealHit={handleRevealHit}
+          onAddHit={activeConversationId ? handleAddHit : undefined}
+        >
+          <ExplorerPanel
+            projectId={projectId}
+            roots={roots}
+            workspacePeId={workspacePeId}
+            onRemoveRoot={handleRemoveFolder}
+            onOpenFile={handleOpenFile}
+            onRename={handleRename}
+            onDelete={handleDelete}
+            onAddToChat={activeConversationId ? handleAddToChat : undefined}
+            onImportFiles={handleImportFiles}
+          />
+        </SearchPanel>
       </div>
       {activeTab === 'changes' && (
         <div className='flex-1 min-h-0 flex items-center justify-center px-16px text-center text-t-secondary text-13px'>
