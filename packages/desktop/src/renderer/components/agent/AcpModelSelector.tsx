@@ -123,7 +123,9 @@ const AcpModelSelector: React.FC<{
     if (warmup && warmup.status !== 'dormant') setTriggering(false);
   }, [warmup]);
 
-  const canManualWarmup = Boolean(warmup && (warmup.status === 'dormant' || warmup.status === 'failed') && warmup.trigger);
+  const canManualWarmup = Boolean(
+    warmup && (warmup.status === 'dormant' || warmup.status === 'failed') && warmup.trigger
+  );
   const showWarmupSpinner = triggering || warmup?.status === 'pending';
 
   const handleWarmupClick = useCallback(async () => {

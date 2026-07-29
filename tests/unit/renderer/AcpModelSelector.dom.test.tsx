@@ -399,19 +399,12 @@ describe('AcpModelSelector runtime options', () => {
 
   it('renders a clickable warmup pill for a dormant teammate and calls trigger on click', async () => {
     const trigger = vi.fn().mockResolvedValue(undefined);
-    useAcpModelInfoMock.mockReturnValue(
-      makeResult({ model_info: null, canSwitch: false, isLoading: false })
-    );
+    useAcpModelInfoMock.mockReturnValue(makeResult({ model_info: null, canSwitch: false, isLoading: false }));
 
-    render(
-      <AcpModelSelector conversation_id='c1' backend='codex' warmup={{ status: 'dormant', trigger }} />
-    );
+    render(<AcpModelSelector conversation_id='c1' backend='codex' warmup={{ status: 'dormant', trigger }} />);
 
     const pill = screen.getByTestId('acp-model-selector-warmup');
-    expect(pill.closest('[data-tooltip-content]')).toHaveAttribute(
-      'data-tooltip-content',
-      'Click to wake this member'
-    );
+    expect(pill.closest('[data-tooltip-content]')).toHaveAttribute('data-tooltip-content', 'Click to wake this member');
     fireEvent.click(pill);
     await waitFor(() => expect(trigger).toHaveBeenCalledTimes(1));
   });
@@ -429,7 +422,9 @@ describe('AcpModelSelector runtime options', () => {
   it('renders a read-only pill (no trigger) while the team is warming', () => {
     useAcpModelInfoMock.mockReturnValue(makeResult({ model_info: null, canSwitch: false, isLoading: false }));
 
-    render(<AcpModelSelector conversation_id='c1' backend='codex' warmup={{ status: 'dormant', trigger: undefined }} />);
+    render(
+      <AcpModelSelector conversation_id='c1' backend='codex' warmup={{ status: 'dormant', trigger: undefined }} />
+    );
 
     const pill = screen.getByTestId('acp-model-selector-warmup');
     fireEvent.click(pill);
@@ -438,7 +433,10 @@ describe('AcpModelSelector runtime options', () => {
     // `conversation.welcome.modelSwitchNotSupported` (the i18n mock returns
     // 'Model switch is not supported'); 'Use CLI model' is the pill *label*, not
     // the tooltip.
-    expect(pill.closest('[data-tooltip-content]')).toHaveAttribute('data-tooltip-content', 'Model switch is not supported');
+    expect(pill.closest('[data-tooltip-content]')).toHaveAttribute(
+      'data-tooltip-content',
+      'Model switch is not supported'
+    );
     expect(screen.queryByTestId('runtime-selector-loading-indicator')).not.toBeInTheDocument();
   });
 

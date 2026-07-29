@@ -5,23 +5,28 @@ import { MemoryRouter } from 'react-router-dom';
 import type { TChatConversation } from '@/common/config/storage';
 import type { TTeam } from '@/common/types/team/teamTypes';
 
-const { getConversationOrNullMock, acpSelectorPropsBySlot, ensureSessionMock, teamEventHandlers, makeTeamEventChannel } =
-  vi.hoisted(() => {
-    const handlers: Record<string, Array<(event: unknown) => void>> = {};
-    const makeChannel = (name: string) => ({
-      on: vi.fn((handler: (event: unknown) => void) => {
-        handlers[name] = [...(handlers[name] ?? []), handler];
-        return vi.fn();
-      }),
-    });
-    return {
-      getConversationOrNullMock: vi.fn(),
-      acpSelectorPropsBySlot: new Map<string, { status: string; trigger?: () => Promise<void> }>(),
-      ensureSessionMock: vi.fn(async () => undefined),
-      teamEventHandlers: handlers,
-      makeTeamEventChannel: makeChannel,
-    };
+const {
+  getConversationOrNullMock,
+  acpSelectorPropsBySlot,
+  ensureSessionMock,
+  teamEventHandlers,
+  makeTeamEventChannel,
+} = vi.hoisted(() => {
+  const handlers: Record<string, Array<(event: unknown) => void>> = {};
+  const makeChannel = (name: string) => ({
+    on: vi.fn((handler: (event: unknown) => void) => {
+      handlers[name] = [...(handlers[name] ?? []), handler];
+      return vi.fn();
+    }),
   });
+  return {
+    getConversationOrNullMock: vi.fn(),
+    acpSelectorPropsBySlot: new Map<string, { status: string; trigger?: () => Promise<void> }>(),
+    ensureSessionMock: vi.fn(async () => undefined),
+    teamEventHandlers: handlers,
+    makeTeamEventChannel: makeChannel,
+  };
+});
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -203,8 +208,22 @@ function team(): TTeam {
     created_at: 1,
     updated_at: 1,
     assistants: [
-      { slot_id: 'leader-slot', conversation_id: 'leader-conv', role: 'leader', assistant_backend: 'codex', assistant_name: 'Leader', status: 'idle' },
-      { slot_id: 'member-slot', conversation_id: 'member-conv', role: 'teammate', assistant_backend: 'codex', assistant_name: 'Member', status: 'idle' },
+      {
+        slot_id: 'leader-slot',
+        conversation_id: 'leader-conv',
+        role: 'leader',
+        assistant_backend: 'codex',
+        assistant_name: 'Leader',
+        status: 'idle',
+      },
+      {
+        slot_id: 'member-slot',
+        conversation_id: 'member-conv',
+        role: 'teammate',
+        assistant_backend: 'codex',
+        assistant_name: 'Member',
+        status: 'idle',
+      },
     ],
   };
 }
