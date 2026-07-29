@@ -124,6 +124,17 @@ vi.mock('@/renderer/pages/team/components/TeamChatView', () => ({
   default: ({ conversation: c }: { conversation: TChatConversation }) => <div data-testid={`team-chat-view-${c.id}`} />,
 }));
 
+// Isolate TeamPage from the workspace sider: the real ChatSlider subtree
+// subscribes to ipcBridge.conversation.* channels in passive effects, which
+// this test intentionally does not stub. Mocking it keeps the test focused on
+// warmup wiring and avoids an async mount race against an incomplete IPC mock.
+vi.mock('@renderer/pages/conversation/components/ChatSlider.tsx', () => ({
+  __esModule: true,
+  default: ({ conversation: c }: { conversation: TChatConversation }) => (
+    <div data-testid={`team-chat-slider-${c.id}`} />
+  ),
+}));
+
 vi.mock('@/renderer/pages/cron', () => ({
   CronJobManager: () => <div data-testid='mock-cron' />,
 }));
