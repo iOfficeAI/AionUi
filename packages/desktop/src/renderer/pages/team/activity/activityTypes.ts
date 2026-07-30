@@ -24,6 +24,12 @@ export type ActivityLane = {
   name: string;
   color: string;
   isFallback: boolean;
+  /** Assistant backend for the column-header icon (absent on the fallback lane). */
+  backend?: string;
+  /** Optional custom assistant icon override. */
+  icon?: string;
+  /** Conversation id, enabling preset-aware avatars in the header. */
+  conversationId?: string;
 };
 
 /** A unified, lane-positioned activity entry (message or task). */

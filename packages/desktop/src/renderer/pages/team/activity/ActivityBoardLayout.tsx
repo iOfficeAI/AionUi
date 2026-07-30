@@ -10,6 +10,7 @@ import type { ActivityItem, ActivityLane } from './activityTypes';
 import type { ActivityIdentityResolver } from './MessageCard';
 import MessageCard from './MessageCard';
 import TaskCard from './TaskCard';
+import TeamAgentIdentity from '../components/TeamAgentIdentity';
 
 type Props = {
   items: ActivityItem[];
@@ -49,13 +50,29 @@ const ActivityBoardLayout: React.FC<Props> = ({ items, lanes, identity }) => {
             data-lane-id={lane.slotId}
           >
             <div className='flex items-center gap-6px px-10px py-8px border-b border-solid border-[color:var(--border-base)]'>
-              <span
-                className='inline-block w-8px h-8px rounded-full shrink-0'
-                style={{ backgroundColor: lane.color }}
-              />
-              <span className='truncate text-12px font-medium text-[color:var(--color-text-1)]' title={lane.name}>
-                {lane.name}
-              </span>
+              {lane.isFallback || !lane.backend ? (
+                <>
+                  <span
+                    className='inline-block w-8px h-8px rounded-full shrink-0'
+                    style={{ backgroundColor: lane.color }}
+                  />
+                  <span className='truncate text-12px font-medium text-[color:var(--color-text-1)]' title={lane.name}>
+                    {lane.name}
+                  </span>
+                </>
+              ) : (
+                <div className='flex items-center gap-6px min-w-0 flex-1' data-testid='team-agent-identity'>
+                  <TeamAgentIdentity
+                    assistant_name={lane.name}
+                    assistant_backend={lane.backend}
+                    icon={lane.icon}
+                    conversation_id={lane.conversationId}
+                    logoClassName='w-16px h-16px object-cover rounded-full'
+                    avatarClassName='w-16px h-16px rounded-full flex items-center justify-center text-10px leading-none bg-fill-2 shrink-0'
+                    nameClassName='truncate text-12px font-medium text-[color:var(--color-text-1)]'
+                  />
+                </div>
+              )}
               <span className='ml-auto text-11px text-[color:var(--color-text-3)]'>{laneItems.length}</span>
             </div>
             <div className='flex-1 overflow-auto flex flex-col gap-8px p-8px'>

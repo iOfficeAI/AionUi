@@ -78,7 +78,15 @@ const TeamActivityView: React.FC<Props> = ({ team }) => {
     const selected = new Set(controls.selectedMembers);
     const memberLanes: ActivityLane[] = assistants
       .filter((a) => selected.size === 0 || selected.has(a.slot_id))
-      .map((a) => ({ slotId: a.slot_id, name: a.assistant_name, color: colorOf(a.slot_id), isFallback: false }));
+      .map((a) => ({
+        slotId: a.slot_id,
+        name: a.assistant_name,
+        color: colorOf(a.slot_id),
+        isFallback: false,
+        backend: a.assistant_backend,
+        icon: a.icon,
+        conversationId: a.conversation_id,
+      }));
     const showFallback =
       (selected.size === 0 || selected.has(ACTIVITY_FALLBACK_LANE)) &&
       filteredItems.some((item) => item.laneSlotId === ACTIVITY_FALLBACK_LANE);
