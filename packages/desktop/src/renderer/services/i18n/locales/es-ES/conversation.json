@@ -611,6 +611,12 @@
     "addedToChat": "Se añadió {{name}} al chat",
     "imported": "{{count}} archivo(s) importado(s)",
     "importPartialFailed": "{{copied}} copiado(s), {{failed}} con error (conflictos de nombre o no admitidos)",
-    "importFailed": "Error al importar los archivos"
+    "importFailed": "Error al importar los archivos",
+    "search": {
+      "placeholder": "Buscar archivos por nombre",
+      "searching": "Buscando…",
+      "empty": "Ningún archivo coincide",
+      "limitReached": "Mostrando los primeros {{count}} — afina la búsqueda"
+    }
   }
 }

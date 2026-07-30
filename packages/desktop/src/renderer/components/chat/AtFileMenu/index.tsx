@@ -10,6 +10,9 @@ type AtFileMenuProps = {
   loadingText: string;
   onHoverItem: (index: number) => void;
   onSelectItem: (item: FileOrFolderItem) => void;
+  /** Secondary line for an item. Defaults to its relative/absolute path; the
+   *  project path passes `PE_NAME · REL` here to disambiguate multi-folder hits. */
+  getSubtitle?: (item: FileOrFolderItem) => string;
 };
 
 const AtFileMenu: React.FC<AtFileMenuProps> = ({
@@ -21,6 +24,7 @@ const AtFileMenu: React.FC<AtFileMenuProps> = ({
   loadingText,
   onHoverItem,
   onSelectItem,
+  getSubtitle,
 }) => {
   return (
     <div
@@ -57,7 +61,9 @@ const AtFileMenu: React.FC<AtFileMenuProps> = ({
               }}
             >
               <div className='text-13px font-medium text-t-primary'>{item.name}</div>
-              <div className='text-12px text-t-secondary break-all'>{item.relativePath || item.path}</div>
+              <div className='text-12px text-t-secondary break-all'>
+                {getSubtitle ? getSubtitle(item) : item.relativePath || item.path}
+              </div>
             </div>
           );
         })

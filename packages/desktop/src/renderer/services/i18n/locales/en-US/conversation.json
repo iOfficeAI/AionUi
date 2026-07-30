@@ -610,6 +610,12 @@
     "addedToChat": "Added {{name}} to chat",
     "imported": "Imported {{count}} file(s)",
     "importPartialFailed": "{{copied}} copied, {{failed}} failed (name conflicts or unsupported)",
-    "importFailed": "Failed to import files"
+    "importFailed": "Failed to import files",
+    "search": {
+      "placeholder": "Search files by name",
+      "searching": "Searching…",
+      "empty": "No files match",
+      "limitReached": "Showing first {{count}} — refine to narrow"
+    }
   }
 }

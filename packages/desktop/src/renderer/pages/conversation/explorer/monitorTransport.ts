@@ -18,6 +18,12 @@ import type { SubscribeResult } from './explorerStore';
 import { applyMonitorNotification, configureExplorerStore, onReconnect } from './explorerStore';
 import type { MonitorTransport } from './monitorClient';
 import { MonitorClient } from './monitorClient';
+import {
+  applySearchMatch,
+  configureSearchStore,
+  type SearchMatchParams,
+  type SearchResult,
+} from './search/searchStore';
 
 const FS_EVENT = 'fs';
 const RECONNECT_EVENT = 'realtime.reconnected';
@@ -33,6 +39,20 @@ export function createWsMonitorTransport(): MonitorTransport {
 
 type MonitorRequestResult = { snapshots: Array<{ target: DirRef; entries: Entry[] }> };
 
+/**
+ * One connection, one notification dispatcher: `fs/searchMatch` feeds the search
+ * store; everything else (`fs/snapshot` | `fs/delta`) feeds the explorer store.
+ * Exported so the routing (search vs explorer isolation) is unit-tested directly
+ * rather than through a closure.
+ */
+export const dispatchMonitorNotification = (method: string, params: unknown): void => {
+  if (method === 'fs/searchMatch') {
+    applySearchMatch(params as SearchMatchParams);
+  } else {
+    applyMonitorNotification(method, params);
+  }
+};
+
 let client: MonitorClient | null = null;
 
 /**
@@ -46,7 +66,7 @@ export function initExplorerRuntime(): MonitorClient {
   const transport = createWsMonitorTransport();
   const monitor = new MonitorClient({
     transport,
-    onNotification: applyMonitorNotification,
+    onNotification: dispatchMonitorNotification,
     onReconnect,
   });
   client = monitor;
@@ -58,6 +78,19 @@ export function initExplorerRuntime(): MonitorClient {
     },
     unsubscribe: (refs: DirRef[]): void => {
       monitor.notify('fs/unsubscribe', { targets: refs });
+    },
+  });
+
+  configureSearchStore({
+    search: (params) => {
+      const { id, result } = monitor.requestWithId('fs/search', params);
+      return { id, result: result as Promise<SearchResult> };
+    },
+    cancel: (searchId): void => {
+      monitor.notify('fs/searchCancel', { search_id: searchId });
+    },
+    abandon: (searchId): void => {
+      monitor.abandon(searchId);
     },
   });
 

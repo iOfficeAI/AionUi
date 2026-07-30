@@ -21,6 +21,8 @@ import { emitter, type ReplyQuote, useAddEventListener } from '@/renderer/utils/
 import { mergeFileSelectionItems, type FileSelectionItem } from '@/renderer/utils/file/fileSelection';
 import type { FileOrFolderItem } from '@/renderer/utils/file/fileTypes';
 import { filterWorkspaceMentionItems } from '@/renderer/utils/file/workspaceMentions';
+import { useProjectMentionSearch } from '@/renderer/pages/conversation/explorer/search/useProjectMentionSearch';
+import { peLabeledPath } from '@/renderer/pages/conversation/explorer/search/searchModel';
 import { copyText } from '@/renderer/utils/ui/clipboard';
 import { blurActiveElement, shouldBlockMobileInputFocus } from '@/renderer/utils/ui/focus';
 import { Button, Input, Message, Tag } from '@arco-design/web-react';
@@ -53,6 +55,9 @@ const constVoid = (): void => undefined;
 const MAX_SINGLE_LINE_CHARACTERS = 800;
 const BTW_COMMAND_RE = /^\/btw(?:\s+([\s\S]*))?$/i;
 const AT_FILE_HIGHLIGHT_COLOR = 'var(--primary)';
+// Max items shown in the `@` dropdown (both data sources); the result panel skin
+// is unbounded (streaming append) — this caps only the inline mention menu.
+const AT_FILE_MENTION_LIMIT = 8;
 
 const getSelectedItemMatchKeys = (item: FileSelectionItem): string[] => {
   if (typeof item === 'string') {
@@ -535,10 +540,25 @@ const SendBox: React.FC<{
     Boolean(activeAtFileQuery) &&
     activeAtFileTokenKey !== dismissedAtFileToken &&
     !isCommandMenuOpen;
-  const visibleAtFileMenuItems = useMemo(
-    () => filterWorkspaceMentionItems(workspaceMentionItems, deferredAtFileQuery),
-    [deferredAtFileQuery, workspaceMentionItems]
-  );
+  // `@`-mention data source is an INTENTIONAL dual path (not dead code). While
+  // the project's pe roots are unresolved (backfill / async project.get loading
+  // window — see useProjectMentionSearch) `active` is false and `@` uses the
+  // legacy workspace flat-list fallback; once roots arrive it streams from
+  // fs/search. DEFENSIVE loading-window gate, not project-vs-no-project. This
+  // window is also why `list_workspace_files` can't be removed yet. Do not collapse.
+  const projectMention = useProjectMentionSearch({
+    query: deferredAtFileQuery,
+    isOpen: isAtFileMenuOpen,
+    limit: AT_FILE_MENTION_LIMIT,
+  });
+  const visibleAtFileMenuItems = useMemo(() => {
+    // Project path: ranked hits as project chat-ref items. Legacy fallback:
+    // local flat-list filter+rank over the once-loaded workspace list.
+    if (projectMention.active) {
+      return projectMention.items;
+    }
+    return filterWorkspaceMentionItems(workspaceMentionItems, deferredAtFileQuery);
+  }, [deferredAtFileQuery, projectMention.active, projectMention.items, workspaceMentionItems]);
   const isOverlayOpen = isCommandMenuOpen || btwCommand.isOpen || isAtFileMenuOpen;
 
   const getTextareaElement = useCallback((): HTMLTextAreaElement | null => {
@@ -709,7 +729,11 @@ const SendBox: React.FC<{
   };
 
   useEffect(() => {
-    if (!isAtFileMenuOpen || !conversationContext?.workspace || !atFileSessionKey) {
+    // Legacy fallback only — runs while pe roots are unresolved (backfill /
+    // loading window, see dual-path note above). Once roots resolve the `@`
+    // dropdown streams from fs/search instead, so skip the one-shot workspace
+    // flat-list fetch entirely.
+    if (!isAtFileMenuOpen || !conversationContext?.workspace || !atFileSessionKey || projectMention.active) {
       fetchedAtFileSessionKeyRef.current = null;
       setWorkspaceMentionItems([]);
       setWorkspaceMentionLoading(false);
@@ -754,7 +778,10 @@ const SendBox: React.FC<{
     return () => {
       cancelled = true;
     };
-  }, [atFileSessionKey, conversationContext?.workspace, isAtFileMenuOpen]);
+  }, [atFileSessionKey, conversationContext?.workspace, projectMention.active, isAtFileMenuOpen]);
+
+  // The project path (drive fs/search on open/query, cancel on close) lives in
+  // useProjectMentionSearch — no separate effect here.
 
   useEffect(() => {
     if (!activeAtFileTokenKey) {
@@ -1431,10 +1458,20 @@ const SendBox: React.FC<{
               }
               items={visibleAtFileMenuItems}
               label={t('messages.atFile.menuLabel', { defaultValue: 'File mentions' })}
-              loading={workspaceMentionLoading}
+              loading={projectMention.active ? projectMention.loading : workspaceMentionLoading}
               loadingText={t('messages.atFile.loading', { defaultValue: 'Loading...' })}
               onHoverItem={setAtFileMenuActiveIndex}
               onSelectItem={insertSelectedAtFile}
+              getSubtitle={
+                projectMention.active
+                  ? (item) =>
+                      peLabeledPath(
+                        item.chatRef?.kind === 'project' ? item.chatRef.pe_id : undefined,
+                        item.relativePath || item.path || '',
+                        projectMention.peNames
+                      )
+                  : undefined
+              }
             />
           </div>
         )}

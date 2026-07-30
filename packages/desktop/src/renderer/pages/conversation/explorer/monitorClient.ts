@@ -39,6 +39,8 @@ export const RPC_DISCONNECTED = -1;
 export const RPC_RECONNECTED = -2;
 /** A response frame carrying an id but neither `result` nor `error` (malformed). */
 export const RPC_MALFORMED_RESPONSE = -3;
+/** A streaming request abandoned by the caller (superseded — no terminal coming). */
+export const RPC_ABANDONED = -4;
 
 /**
  * The transport the client rides. `send` returns false when the socket is not
@@ -98,6 +100,14 @@ function outboundMeta(method: string, params: unknown): unknown {
       return { target: refStr(p.target) };
     case 'fs/rename':
       return { from: refStr(p.from), to: refStr(p.to) };
+    case 'fs/search':
+      return {
+        roots: Array.isArray(p.roots) ? p.roots.length : 0,
+        query_len: typeof p.query === 'string' ? p.query.length : 0,
+        limit: p.limit,
+      };
+    case 'fs/searchCancel':
+      return { search_id: p.search_id };
     case 'initialize':
       return { protocol_version: p.protocol_version };
     default:
@@ -142,8 +152,21 @@ export class MonitorClient {
    * treats that as "will re-declare on reconnect" and moves on.
    */
   request(method: string, params?: unknown): Promise<unknown> {
-    return new Promise<unknown>((resolve, reject) => {
-      const id = this.nextId++;
+    return this.requestWithId(method, params).result;
+  }
+
+  /**
+   * Like {@link request}, but also surfaces the assigned request `id`
+   * synchronously alongside the result promise. Streaming requests (`fs/search`)
+   * receive their incremental results as id-less notifications whose `search_id`
+   * equals this request id — the caller needs that id up front to correlate
+   * inbound `fs/searchMatch` batches and to discard a superseded search's late
+   * matches. The id is assigned even when the socket is offline (the `result`
+   * promise still rejects with `RPC_DISCONNECTED`).
+   */
+  requestWithId(method: string, params?: unknown): { id: RpcId; result: Promise<unknown> } {
+    const id = this.nextId++;
+    const result = new Promise<unknown>((resolve, reject) => {
       const ok = this.transport.send({ jsonrpc: '2.0', id, method, params });
       console.debug(
         '[monitor] → request',
@@ -158,12 +181,27 @@ export class MonitorClient {
       }
       this.pending.set(id, { resolve, reject });
     });
+    return { id, result };
   }
 
   /** Send a fire-and-forget notification (no `id`, no response). Dropped if offline. */
   notify(method: string, params?: unknown): void {
     const ok = this.transport.send({ jsonrpc: '2.0', method, params });
     console.debug('[monitor] → notify', method, outboundMeta(method, params), ok ? '' : 'DROPPED(offline)');
+  }
+
+  /**
+   * Abandon a pending request without waiting for a response — for streaming
+   * requests (`fs/search`) that a newer request has superseded: the backend
+   * auto-supersedes the old search and sends no terminal for it (protocol.md
+   * §取消两路), so its pending entry would otherwise leak. Rejects the awaiter
+   * with `RPC_ABANDONED`; no-op if the id is unknown or already settled.
+   */
+  abandon(id: RpcId): void {
+    const entry = this.pending.get(id);
+    if (!entry) return;
+    this.pending.delete(id);
+    entry.reject(new RpcError({ code: RPC_ABANDONED, message: 'streaming request superseded' }));
   }
 
   /** Tear down subscriptions and reject any in-flight requests. */
