@@ -119,10 +119,6 @@
   },
   "reorderMember": "برای تغییر ترتیب عضو بکشید",
   "activity": {
-    "layout": {
-      "swimlane": "خطوط شنا",
-      "board": "تخته"
-    },
     "control": {
       "sortNewest": "جدیدترین",
       "sortOldest": "قدیمی‌ترین",
@@ -130,7 +126,6 @@
       "filterMessages": "پیام‌ها",
       "filterTasks": "وظایف",
       "allMembers": "همه اعضا",
-      "connectors": "اتصال‌ها",
       "showSystem": "پیام‌های سیستمی",
       "showTerminal": "وظایف پایان‌یافته"
     },

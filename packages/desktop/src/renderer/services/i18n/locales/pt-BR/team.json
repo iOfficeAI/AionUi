@@ -119,10 +119,6 @@
   },
   "reorderMember": "Arraste para reordenar o membro",
   "activity": {
-    "layout": {
-      "swimlane": "Raias",
-      "board": "Quadro"
-    },
     "control": {
       "sortNewest": "Mais recente",
       "sortOldest": "Mais antigo",
@@ -130,7 +126,6 @@
       "filterMessages": "Mensagens",
       "filterTasks": "Tarefas",
       "allMembers": "Todos os membros",
-      "connectors": "Conexões",
       "showSystem": "Mensagens do sistema",
       "showTerminal": "Tarefas concluídas"
     },

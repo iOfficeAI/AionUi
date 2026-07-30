@@ -5,7 +5,7 @@
  */
 
 import React, { useMemo, useState } from 'react';
-import { Radio, Spin } from '@arco-design/web-react';
+import { Spin } from '@arco-design/web-react';
 import { useTranslation } from 'react-i18next';
 import type { TTeam } from '@/common/types/team/teamTypes';
 import { useTeamTabs } from '../hooks/TeamTabsContext';
@@ -17,10 +17,8 @@ import {
   type ActivityItem,
   type ActivityLane,
 } from './activityTypes';
-import { useActivityLayoutMode } from './useActivityLayoutMode';
 import { useTeamActivityFeed } from './useTeamActivityFeed';
 import ActivityControlBar, { type ActivityControlsState } from './ActivityControlBar';
-import ActivitySwimlaneLayout from './ActivitySwimlaneLayout';
 import ActivityBoardLayout from './ActivityBoardLayout';
 import type { ActivityIdentityResolver } from './MessageCard';
 
@@ -30,7 +28,6 @@ type Props = {
 
 const DEFAULT_CONTROLS: ActivityControlsState = {
   sortDirection: 'desc',
-  showConnectors: true,
   contentFilter: 'all',
   selectedMembers: [],
   showSystemMessages: false,
@@ -38,13 +35,12 @@ const DEFAULT_CONTROLS: ActivityControlsState = {
 };
 
 /**
- * Read-only "message & task flow" view for a team. Composes the lazy activity
- * feed, the control bar, and one of two layouts (swimlane / board).
+ * Read-only "message & task" board view for a team. Composes the lazy activity
+ * feed, the control bar, and the board layout (one column per member lane).
  */
 const TeamActivityView: React.FC<Props> = ({ team }) => {
   const { t } = useTranslation();
   const { assistants, colorOf } = useTeamTabs();
-  const [layoutMode, setLayoutMode] = useActivityLayoutMode(team.id);
   const [controls, setControls] = useState<ActivityControlsState>(DEFAULT_CONTROLS);
 
   const { messages, tasks, isLoading } = useTeamActivityFeed(team.id, true);
@@ -102,41 +98,19 @@ const TeamActivityView: React.FC<Props> = ({ team }) => {
 
   return (
     <div className='flex flex-col h-full w-full min-w-0' data-testid='team-activity-view'>
-      <div className='flex items-center justify-between px-12px pt-8px'>
-        <Radio.Group
-          type='button'
-          size='small'
-          value={layoutMode}
-          onChange={setLayoutMode}
-          data-testid='activity-layout-toggle'
-        >
-          <Radio value='swimlane'>{t('team.activity.layout.swimlane', { defaultValue: 'Swimlane' })}</Radio>
-          <Radio value='board'>{t('team.activity.layout.board', { defaultValue: 'Board' })}</Radio>
-        </Radio.Group>
+      <div className='flex items-center justify-end px-12px pt-8px'>
         <span className='text-11px text-[color:var(--color-text-3)]'>
           {t('team.activity.limitNotice', { defaultValue: 'Showing the latest 500 items' })}
         </span>
       </div>
 
-      <ActivityControlBar
-        value={controls}
-        onChange={setControls}
-        members={memberOptions}
-        showConnectorToggle={layoutMode === 'swimlane'}
-      />
+      <ActivityControlBar value={controls} onChange={setControls} members={memberOptions} />
 
       <div className='flex-1 min-h-0'>
         {isLoading ? (
           <div className='flex items-center justify-center h-full'>
             <Spin />
           </div>
-        ) : layoutMode === 'swimlane' ? (
-          <ActivitySwimlaneLayout
-            items={filteredItems}
-            lanes={lanes}
-            identity={identity}
-            showConnectors={controls.showConnectors}
-          />
         ) : (
           <ActivityBoardLayout items={filteredItems} lanes={lanes} identity={identity} />
         )}

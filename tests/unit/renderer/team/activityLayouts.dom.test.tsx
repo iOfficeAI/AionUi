@@ -12,7 +12,6 @@ vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (_k: string, o?: { defaultValue?: string }) => o?.defaultValue ?? _k }),
 }));
 
-import ActivitySwimlaneLayout from '@/renderer/pages/team/activity/ActivitySwimlaneLayout';
 import ActivityBoardLayout from '@/renderer/pages/team/activity/ActivityBoardLayout';
 import type { ActivityItem, ActivityLane } from '@/renderer/pages/team/activity/activityTypes';
 import type { ActivityIdentityResolver } from '@/renderer/pages/team/activity/MessageCard';
@@ -55,22 +54,6 @@ const items: ActivityItem[] = [
 ];
 
 afterEach(() => cleanup());
-
-describe('ActivitySwimlaneLayout', () => {
-  it('renders lanes, cards, and the connector overlay when enabled', () => {
-    render(<ActivitySwimlaneLayout items={items} lanes={lanes} identity={identity} showConnectors />);
-    expect(screen.getByTestId('activity-swimlane')).toBeInTheDocument();
-    expect(screen.getByTestId('activity-message-card')).toBeInTheDocument();
-    expect(screen.getByTestId('activity-task-card')).toBeInTheDocument();
-    // A message from 'lead' to 'a1' spans two lanes -> a connector is drawn.
-    expect(screen.getByTestId('activity-connectors-svg')).toBeInTheDocument();
-  });
-
-  it('omits the connector overlay when disabled', () => {
-    render(<ActivitySwimlaneLayout items={items} lanes={lanes} identity={identity} showConnectors={false} />);
-    expect(screen.queryByTestId('activity-connectors-svg')).toBeNull();
-  });
-});
 
 describe('ActivityBoardLayout', () => {
   it('renders one column per lane with its items', () => {

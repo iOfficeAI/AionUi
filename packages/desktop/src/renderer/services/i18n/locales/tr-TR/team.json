@@ -119,10 +119,6 @@
   },
   "reorderMember": "Üye sırasını değiştirmek için sürükleyin",
   "activity": {
-    "layout": {
-      "swimlane": "Kulvarlar",
-      "board": "Pano"
-    },
     "control": {
       "sortNewest": "En yeni",
       "sortOldest": "En eski",
@@ -130,7 +126,6 @@
       "filterMessages": "Mesajlar",
       "filterTasks": "Görevler",
       "allMembers": "Tüm üyeler",
-      "connectors": "Bağlantılar",
       "showSystem": "Sistem mesajları",
       "showTerminal": "Tamamlanan görevler"
     },

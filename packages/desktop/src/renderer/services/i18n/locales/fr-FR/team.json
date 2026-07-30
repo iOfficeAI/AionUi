@@ -73,10 +73,6 @@
     "board": "Tableau"
   },
   "activity": {
-    "layout": {
-      "swimlane": "Couloirs",
-      "board": "Tableau"
-    },
     "control": {
       "sortNewest": "Récent",
       "sortOldest": "Ancien",
@@ -84,7 +80,6 @@
       "filterMessages": "Messages",
       "filterTasks": "Tâches",
       "allMembers": "Tous les membres",
-      "connectors": "Connexions",
       "showSystem": "Messages système",
       "showTerminal": "Tâches terminées"
     },

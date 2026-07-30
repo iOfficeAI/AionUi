@@ -119,10 +119,6 @@
   },
   "reorderMember": "Arrastra para reordenar el miembro",
   "activity": {
-    "layout": {
-      "swimlane": "Carriles",
-      "board": "Tablero"
-    },
     "control": {
       "sortNewest": "Más reciente",
       "sortOldest": "Más antiguo",
@@ -130,7 +126,6 @@
       "filterMessages": "Mensajes",
       "filterTasks": "Tareas",
       "allMembers": "Todos los miembros",
-      "connectors": "Conexiones",
       "showSystem": "Mensajes del sistema",
       "showTerminal": "Tareas finalizadas"
     },

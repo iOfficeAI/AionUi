@@ -119,10 +119,6 @@
   },
   "reorderMember": "Перетащите, чтобы изменить порядок участников",
   "activity": {
-    "layout": {
-      "swimlane": "Дорожки",
-      "board": "Доска"
-    },
     "control": {
       "sortNewest": "Сначала новые",
       "sortOldest": "Сначала старые",
@@ -130,7 +126,6 @@
       "filterMessages": "Сообщения",
       "filterTasks": "Задачи",
       "allMembers": "Все участники",
-      "connectors": "Связи",
       "showSystem": "Системные сообщения",
       "showTerminal": "Завершённые задачи"
     },

@@ -119,10 +119,6 @@
   },
   "reorderMember": "Drag to reorder member",
   "activity": {
-    "layout": {
-      "swimlane": "Swimlane",
-      "board": "Board"
-    },
     "control": {
       "sortNewest": "Newest",
       "sortOldest": "Oldest",
@@ -130,7 +126,6 @@
       "filterMessages": "Messages",
       "filterTasks": "Tasks",
       "allMembers": "All members",
-      "connectors": "Connectors",
       "showSystem": "System messages",
       "showTerminal": "Finished tasks"
     },

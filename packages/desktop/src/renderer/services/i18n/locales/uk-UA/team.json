@@ -119,10 +119,6 @@
   },
   "reorderMember": "Перетягніть, щоб змінити порядок учасників",
   "activity": {
-    "layout": {
-      "swimlane": "Доріжки",
-      "board": "Дошка"
-    },
     "control": {
       "sortNewest": "Найновіші",
       "sortOldest": "Найстаріші",
@@ -130,7 +126,6 @@
       "filterMessages": "Повідомлення",
       "filterTasks": "Завдання",
       "allMembers": "Усі учасники",
-      "connectors": "Зв’язки",
       "showSystem": "Системні повідомлення",
       "showTerminal": "Завершені завдання"
     },

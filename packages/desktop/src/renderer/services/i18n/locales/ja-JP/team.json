@@ -119,10 +119,6 @@
   },
   "reorderMember": "ドラッグしてメンバーの順序を変更",
   "activity": {
-    "layout": {
-      "swimlane": "スイムレーン",
-      "board": "ボード"
-    },
     "control": {
       "sortNewest": "新しい順",
       "sortOldest": "古い順",
@@ -130,7 +126,6 @@
       "filterMessages": "メッセージのみ",
       "filterTasks": "タスクのみ",
       "allMembers": "全メンバー",
-      "connectors": "接続線",
       "showSystem": "システムメッセージ",
       "showTerminal": "完了タスク"
     },

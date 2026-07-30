@@ -16,7 +16,6 @@ import ActivityControlBar, { type ActivityControlsState } from '@/renderer/pages
 
 const base: ActivityControlsState = {
   sortDirection: 'desc',
-  showConnectors: true,
   contentFilter: 'all',
   selectedMembers: [],
   showSystemMessages: false,
@@ -44,34 +43,27 @@ afterEach(() => cleanup());
 describe('ActivityControlBar', () => {
   it('toggles sort direction', async () => {
     const onChange = vi.fn();
-    render(
-      <ActivityControlBar
-        value={base}
-        onChange={onChange}
-        members={[{ slotId: 'a1', name: 'Alice' }]}
-        showConnectorToggle
-      />
-    );
+    render(<ActivityControlBar value={base} onChange={onChange} members={[{ slotId: 'a1', name: 'Alice' }]} />);
     await userEvent.click(screen.getByText('Oldest'));
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ sortDirection: 'asc' }));
   });
 
   it('changes the content filter', async () => {
     const onChange = vi.fn();
-    render(<ActivityControlBar value={base} onChange={onChange} members={[]} showConnectorToggle />);
+    render(<ActivityControlBar value={base} onChange={onChange} members={[]} />);
     await userEvent.click(screen.getByText('Tasks'));
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ contentFilter: 'tasks' }));
   });
 
   it('toggles the terminal-task switch', async () => {
     const onChange = vi.fn();
-    render(<ActivityControlBar value={base} onChange={onChange} members={[]} showConnectorToggle />);
+    render(<ActivityControlBar value={base} onChange={onChange} members={[]} />);
     await userEvent.click(screen.getByTestId('activity-show-terminal'));
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ showTerminalTasks: true }));
   });
 
-  it('hides the connector toggle when not applicable', () => {
-    render(<ActivityControlBar value={base} onChange={vi.fn()} members={[]} showConnectorToggle={false} />);
+  it('does not render a connector toggle', () => {
+    render(<ActivityControlBar value={base} onChange={vi.fn()} members={[]} />);
     expect(screen.queryByTestId('activity-connectors')).toBeNull();
   });
 });

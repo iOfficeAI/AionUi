@@ -119,10 +119,6 @@
   },
   "reorderMember": "드래그하여 멤버 순서 변경",
   "activity": {
-    "layout": {
-      "swimlane": "스윔레인",
-      "board": "보드"
-    },
     "control": {
       "sortNewest": "최신순",
       "sortOldest": "오래된순",
@@ -130,7 +126,6 @@
       "filterMessages": "메시지만",
       "filterTasks": "작업만",
       "allMembers": "모든 멤버",
-      "connectors": "연결선",
       "showSystem": "시스템 메시지",
       "showTerminal": "완료된 작업"
     },

@@ -15,7 +15,6 @@ export type ActivityMemberOption = { slotId: string; name: string };
 
 export type ActivityControlsState = {
   sortDirection: ActivitySortDirection;
-  showConnectors: boolean;
   contentFilter: ActivityContentFilter;
   /** Selected member lane ids. Empty array means "all members" (default). */
   selectedMembers: string[];
@@ -27,11 +26,9 @@ type Props = {
   value: ActivityControlsState;
   onChange: (next: ActivityControlsState) => void;
   members: ActivityMemberOption[];
-  /** Connector toggle is only meaningful in the swimlane layout. */
-  showConnectorToggle: boolean;
 };
 
-const ActivityControlBar: React.FC<Props> = ({ value, onChange, members, showConnectorToggle }) => {
+const ActivityControlBar: React.FC<Props> = ({ value, onChange, members }) => {
   const { t } = useTranslation();
   const patch = (partial: Partial<ActivityControlsState>) => onChange({ ...value, ...partial });
 
@@ -80,18 +77,6 @@ const ActivityControlBar: React.FC<Props> = ({ value, onChange, members, showCon
           </Select.Option>
         ))}
       </Select>
-
-      {showConnectorToggle && (
-        <label className='flex items-center gap-6px text-12px text-[color:var(--color-text-2)] select-none'>
-          <Switch
-            size='small'
-            checked={value.showConnectors}
-            onChange={(checked) => patch({ showConnectors: checked })}
-            data-testid='activity-connectors'
-          />
-          {t('team.activity.control.connectors', { defaultValue: 'Connectors' })}
-        </label>
-      )}
 
       <label className='flex items-center gap-6px text-12px text-[color:var(--color-text-2)] select-none'>
         <Switch

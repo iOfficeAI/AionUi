@@ -119,10 +119,6 @@
   },
   "reorderMember": "拖动以调整成员顺序",
   "activity": {
-    "layout": {
-      "swimlane": "泳道",
-      "board": "看板"
-    },
     "control": {
       "sortNewest": "最新",
       "sortOldest": "最早",
@@ -130,7 +126,6 @@
       "filterMessages": "仅消息",
       "filterTasks": "仅任务",
       "allMembers": "全部成员",
-      "connectors": "连线",
       "showSystem": "系统消息",
       "showTerminal": "已完成任务"
     },
