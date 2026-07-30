@@ -7,7 +7,7 @@
 import React from 'react';
 import { Radio, Select, Switch } from '@arco-design/web-react';
 import { useTranslation } from 'react-i18next';
-import type { ActivitySortDirection } from './activityTypes';
+import { ACTIVITY_FALLBACK_LANE, type ActivitySortDirection } from './activityTypes';
 
 export type ActivityContentFilter = 'all' | 'messages' | 'tasks';
 
@@ -76,6 +76,9 @@ const ActivityControlBar: React.FC<Props> = ({ value, onChange, members }) => {
             {m.name}
           </Select.Option>
         ))}
+        <Select.Option key={ACTIVITY_FALLBACK_LANE} value={ACTIVITY_FALLBACK_LANE}>
+          {t('team.activity.fallbackLane', { defaultValue: 'Unassigned / external' })}
+        </Select.Option>
       </Select>
 
       <label className='flex items-center gap-6px text-12px text-[color:var(--color-text-2)] select-none'>

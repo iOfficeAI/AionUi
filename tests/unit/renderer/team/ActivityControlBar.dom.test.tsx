@@ -66,4 +66,11 @@ describe('ActivityControlBar', () => {
     render(<ActivityControlBar value={base} onChange={vi.fn()} members={[]} />);
     expect(screen.queryByTestId('activity-connectors')).toBeNull();
   });
+
+  it('member dropdown includes an unassigned/external option', async () => {
+    render(<ActivityControlBar value={base} onChange={vi.fn()} members={[{ slotId: 'a1', name: 'Alice' }]} />);
+    // Open the Arco multi-select popup.
+    await userEvent.click(screen.getByTestId('activity-members').querySelector('.arco-select-view') as Element);
+    expect(await screen.findByText('Unassigned / external')).toBeInTheDocument();
+  });
 });

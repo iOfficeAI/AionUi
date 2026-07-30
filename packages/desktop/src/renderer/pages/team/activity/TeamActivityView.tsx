@@ -68,8 +68,8 @@ const TeamActivityView: React.FC<Props> = ({ team }) => {
       if (item.kind === 'message' && !controls.showSystemMessages && isSystemMessageType(item.message.msg_type))
         return false;
       if (item.kind === 'task' && !controls.showTerminalTasks && isTerminalTaskStatus(item.task.status)) return false;
-      if (selected.size > 0 && item.laneSlotId !== ACTIVITY_FALLBACK_LANE && !selected.has(item.laneSlotId))
-        return false;
+      // Fallback lane is now a selectable value, so it obeys the same rule.
+      if (selected.size > 0 && !selected.has(item.laneSlotId)) return false;
       return true;
     });
   }, [allItems, controls]);
@@ -79,8 +79,10 @@ const TeamActivityView: React.FC<Props> = ({ team }) => {
     const memberLanes: ActivityLane[] = assistants
       .filter((a) => selected.size === 0 || selected.has(a.slot_id))
       .map((a) => ({ slotId: a.slot_id, name: a.assistant_name, color: colorOf(a.slot_id), isFallback: false }));
-    const hasFallback = filteredItems.some((item) => item.laneSlotId === ACTIVITY_FALLBACK_LANE);
-    if (hasFallback) {
+    const showFallback =
+      (selected.size === 0 || selected.has(ACTIVITY_FALLBACK_LANE)) &&
+      filteredItems.some((item) => item.laneSlotId === ACTIVITY_FALLBACK_LANE);
+    if (showFallback) {
       memberLanes.push({
         slotId: ACTIVITY_FALLBACK_LANE,
         name: t('team.activity.fallbackLane', { defaultValue: 'Unassigned / external' }),
