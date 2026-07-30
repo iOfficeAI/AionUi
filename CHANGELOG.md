@@ -1,5 +1,36 @@
 # Changelog
 
+## [2.1.44](https://github.com/iOfficeAI/AionUi/compare/v2.1.43...v2.1.44) (2026-07-30)
+
+### Desktop
+
+#### Features
+
+- **skills:** add file browser to detail page (#3683)
+- **search:** filename search + chat-ref (#3784)
+
+#### Bug Fixes
+
+- **preview:** restore file rendering for Explorer opens (#3786)
+- **tray:** honor close-to-tray on custom title-bar close (#3717)
+
+### Core ([v0.1.55](https://github.com/iOfficeAI/AionCore/releases/tag/v0.1.55))
+
+#### Features
+
+- **agents:** add omp (Oh My Pi) builtin ACP agent (#717)
+- **project:** fs/search filename search vertical (#720)
+
+#### Bug Fixes
+
+- **auth:** make AionUi->AionPro data adoption a one-shot event (#716)
+- **db:** pre-migration repair for migration-030 startup-blocking CHECK failures (#724)
+- prevent silent encryption-key rotation on migration upgrade (ELECTRON-3T0) (#722)
+- **project:** add temporary fs/resolve command for preview file paths (#723)
+- **session:** carry tool input on permission events so the approval card shows what is being approved (#715)
+
+---
+
 ## [2.1.43](https://github.com/iOfficeAI/AionUi/compare/v2.1.42...v2.1.43) (2026-07-29)
 
 ### Desktop
