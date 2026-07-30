@@ -130,7 +130,6 @@
       "showTerminal": "Finished tasks"
     },
     "fallbackLane": "Unassigned / external",
-    "limitNotice": "Showing the latest 500 items",
     "empty": "No activity yet",
     "userIdentity": "User / external",
     "broadcast": "Broadcast to all",

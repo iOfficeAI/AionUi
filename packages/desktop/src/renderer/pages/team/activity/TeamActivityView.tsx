@@ -45,7 +45,12 @@ const TeamActivityView: React.FC<Props> = ({ team }) => {
 
   // Content filter uses plural UI values; the feed/backend `kind` is singular.
   const feedKind = controls.contentFilter === 'messages' ? 'message' : controls.contentFilter === 'tasks' ? 'task' : 'all';
-  const { messages, tasks, isLoading } = useTeamActivityFeed(team.id, true, controls.sortDirection, feedKind);
+  const { messages, tasks, isLoading, isLoadingMore, hasMore, loadMore } = useTeamActivityFeed(
+    team.id,
+    true,
+    controls.sortDirection,
+    feedKind
+  );
 
   const knownSlots = useMemo(() => new Set(assistants.map((a) => a.slot_id)), [assistants]);
 
@@ -110,12 +115,6 @@ const TeamActivityView: React.FC<Props> = ({ team }) => {
 
   return (
     <div className='flex flex-col h-full w-full min-w-0' data-testid='team-activity-view'>
-      <div className='flex items-center justify-end px-12px pt-8px'>
-        <span className='text-11px text-[color:var(--color-text-3)]'>
-          {t('team.activity.limitNotice', { defaultValue: 'Showing the latest 500 items' })}
-        </span>
-      </div>
-
       <ActivityControlBar value={controls} onChange={setControls} members={memberOptions} />
 
       <div className='flex-1 min-h-0'>
@@ -124,7 +123,14 @@ const TeamActivityView: React.FC<Props> = ({ team }) => {
             <Spin />
           </div>
         ) : (
-          <ActivityBoardLayout items={filteredItems} lanes={lanes} identity={identity} />
+          <ActivityBoardLayout
+            items={filteredItems}
+            lanes={lanes}
+            identity={identity}
+            hasMore={hasMore}
+            isLoadingMore={isLoadingMore}
+            onLoadMore={loadMore}
+          />
         )}
       </div>
     </div>

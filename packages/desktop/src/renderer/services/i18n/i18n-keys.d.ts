@@ -2405,7 +2405,6 @@ export type I18nKey =
   | 'team.activity.empty'
   | 'team.activity.expand'
   | 'team.activity.fallbackLane'
-  | 'team.activity.limitNotice'
   | 'team.activity.msgType.idle_notification'
   | 'team.activity.msgType.message'
   | 'team.activity.msgType.shutdown_request'

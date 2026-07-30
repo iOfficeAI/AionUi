@@ -130,7 +130,6 @@
       "showTerminal": "已完成任务"
     },
     "fallbackLane": "未分配 / 外部",
-    "limitNotice": "仅显示最新 500 条",
     "empty": "暂无动态",
     "userIdentity": "用户 / 外部",
     "broadcast": "广播@全体",

@@ -4,9 +4,25 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import React from 'react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen, within } from '@testing-library/react';
 import type { ITeamMailboxMessage, ITeamTaskItem } from '@/common/types/team/teamTypes';
+
+// Controllable IntersectionObserver: capture callbacks so tests can simulate a
+// sentinel scrolling into view.
+let ioCallbacks: IntersectionObserverCallback[] = [];
+class IOMock {
+  constructor(cb: IntersectionObserverCallback) {
+    ioCallbacks.push(cb);
+  }
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+const triggerIntersection = () => {
+  const cb = ioCallbacks[ioCallbacks.length - 1];
+  cb?.([{ isIntersecting: true } as IntersectionObserverEntry], {} as IntersectionObserver);
+};
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (_k: string, o?: { defaultValue?: string }) => o?.defaultValue ?? _k }),
@@ -59,6 +75,11 @@ const items: ActivityItem[] = [
   { kind: 'task', id: 'tk1', laneSlotId: 'a1', createdAt: 2000, task: task() },
 ];
 
+beforeEach(() => {
+  ioCallbacks = [];
+  global.IntersectionObserver = IOMock as unknown as typeof IntersectionObserver;
+});
+
 afterEach(() => cleanup());
 
 describe('ActivityBoardLayout', () => {
@@ -87,5 +108,27 @@ describe('ActivityBoardLayout', () => {
     render(<ActivityBoardLayout items={fallbackItems} lanes={fallbackLanes} identity={identity} />);
     const header = screen.getAllByTestId('activity-board-column')[0];
     expect(within(header).queryByTestId('team-agent-identity')).toBeNull();
+  });
+});
+
+describe('ActivityBoardLayout pagination sentinel', () => {
+  it('scrolling a non-empty column to the bottom triggers onLoadMore once', () => {
+    const onLoadMore = vi.fn();
+    render(<ActivityBoardLayout items={items} lanes={lanes} identity={identity} hasMore isLoadingMore={false} onLoadMore={onLoadMore} />);
+    // Only the populated column (a1) renders a sentinel.
+    expect(screen.getAllByTestId('activity-load-sentinel')).toHaveLength(1);
+    triggerIntersection();
+    expect(onLoadMore).toHaveBeenCalledTimes(1);
+  });
+
+  it('empty columns do not render a sentinel', () => {
+    const emptyLanes: ActivityLane[] = [{ slotId: 'x', name: 'X', color: '#111', isFallback: false }];
+    render(<ActivityBoardLayout items={[]} lanes={emptyLanes} identity={identity} hasMore isLoadingMore={false} onLoadMore={vi.fn()} />);
+    expect(screen.queryByTestId('activity-load-sentinel')).toBeNull();
+  });
+
+  it('renders no sentinel when hasMore is false', () => {
+    render(<ActivityBoardLayout items={items} lanes={lanes} identity={identity} hasMore={false} isLoadingMore={false} onLoadMore={vi.fn()} />);
+    expect(screen.queryByTestId('activity-load-sentinel')).toBeNull();
   });
 });

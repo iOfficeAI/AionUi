@@ -130,7 +130,6 @@
       "showTerminal": "已完成任務"
     },
     "fallbackLane": "未分配 / 外部",
-    "limitNotice": "僅顯示最新 500 筆",
     "empty": "暫無動態",
     "userIdentity": "使用者 / 外部",
     "broadcast": "廣播@全體",

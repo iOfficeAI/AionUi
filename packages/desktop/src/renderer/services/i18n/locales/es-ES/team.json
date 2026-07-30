@@ -130,7 +130,6 @@
       "showTerminal": "Tareas finalizadas"
     },
     "fallbackLane": "Sin asignar / externo",
-    "limitNotice": "Mostrando los últimos 500 elementos",
     "empty": "Sin actividad",
     "userIdentity": "Usuario / externo",
     "broadcast": "Difundir a todos",

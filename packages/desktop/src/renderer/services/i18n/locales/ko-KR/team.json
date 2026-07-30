@@ -130,7 +130,6 @@
       "showTerminal": "완료된 작업"
     },
     "fallbackLane": "미할당 / 외부",
-    "limitNotice": "최근 500개 표시",
     "empty": "활동 없음",
     "userIdentity": "사용자 / 외부",
     "broadcast": "전체 브로드캐스트",

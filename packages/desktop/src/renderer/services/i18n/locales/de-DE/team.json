@@ -130,7 +130,6 @@
       "showTerminal": "Erledigte Aufgaben"
     },
     "fallbackLane": "Nicht zugewiesen / extern",
-    "limitNotice": "Zeigt die neuesten 500 Einträge",
     "empty": "Noch keine Aktivität",
     "userIdentity": "Benutzer / extern",
     "broadcast": "An alle senden",

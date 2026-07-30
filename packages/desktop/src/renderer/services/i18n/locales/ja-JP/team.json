@@ -130,7 +130,6 @@
       "showTerminal": "完了タスク"
     },
     "fallbackLane": "未割り当て / 外部",
-    "limitNotice": "最新 500 件を表示",
     "empty": "アクティビティなし",
     "userIdentity": "ユーザー / 外部",
     "broadcast": "全体へ配信",
