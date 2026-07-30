@@ -122,8 +122,8 @@ const SkillFileBrowser: React.FC<SkillFileBrowserProps> = ({ skill }) => {
   }
 
   return (
-    <div className='h-420px min-h-0 flex overflow-hidden rounded-10px border border-border-2 bg-bg-1'>
-      <div className='w-220px min-w-160px overflow-auto p-8px'>
+    <div className='h-420px min-h-0 flex overflow-hidden rounded-10px border border-solid border-border-3 bg-bg-1'>
+      <div data-testid='skill-file-tree-panel' className='w-220px min-w-160px shrink-0 overflow-auto bg-2 p-8px'>
         <Tree
           data-testid='skill-file-tree'
           treeData={nodes}
@@ -136,12 +136,10 @@ const SkillFileBrowser: React.FC<SkillFileBrowserProps> = ({ skill }) => {
           }}
         />
       </div>
-      <div data-testid='skill-file-divider' aria-hidden='true' className='w-1px shrink-0 bg-border-1' />
 
       <div className='min-w-0 flex-1 flex flex-col'>
-        <div className='h-40px shrink-0 flex items-center justify-between gap-8px border-b border-border-2 px-10px'>
+        <div className='h-40px shrink-0 flex items-center gap-8px border-b border-solid border-border-3 px-10px'>
           <span className='min-w-0 truncate text-12px text-t-secondary'>{selectedPath}</span>
-          {selectedPath && <span className='shrink-0 text-11px text-t-tertiary'>{t('common.readOnly')}</span>}
         </div>
 
         <div className='min-h-0 flex-1 overflow-hidden'>

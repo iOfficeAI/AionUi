@@ -83,8 +83,8 @@ describe('SkillFileBrowser', () => {
 
     await waitFor(() => expect(screen.getByTestId('markdown-viewer')).toHaveTextContent('# Demo'));
     expect(screen.getByTestId('markdown-viewer')).toHaveAttribute('data-view-mode', 'preview');
-    expect(screen.getByText('common.readOnly')).toBeInTheDocument();
-    expect(screen.getByTestId('skill-file-divider')).toBeInTheDocument();
+    expect(screen.queryByText('common.readOnly')).not.toBeInTheDocument();
+    expect(screen.getByTestId('skill-file-tree-panel')).toBeInTheDocument();
     expect(screen.queryByText('preview.preview')).not.toBeInTheDocument();
     expect(screen.queryByText('preview.source')).not.toBeInTheDocument();
     expect(screen.queryByText('common.save')).not.toBeInTheDocument();
@@ -97,7 +97,7 @@ describe('SkillFileBrowser', () => {
     render(<SkillFileBrowser skill={{ location: '/tmp/builtin/demo/SKILL.md' }} />);
 
     await waitFor(() => expect(screen.getByTestId('code-editor')).toHaveAttribute('data-read-only', 'true'));
-    expect(screen.getByText('common.readOnly')).toBeInTheDocument();
+    expect(screen.queryByText('common.readOnly')).not.toBeInTheDocument();
     expect(screen.queryByText('common.save')).not.toBeInTheDocument();
   });
 
