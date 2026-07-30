@@ -26,8 +26,7 @@ import ChatLayout from './ChatLayout';
 import ChatSlider from './ChatSlider.tsx';
 import { useAuth } from '@/renderer/hooks/context/AuthContext';
 import { useAdHocTeamFromConversation } from '../hooks/useAdHocTeamFromConversation';
-import { CollaborationLauncher } from './AdHocTeam/CollaborationLauncher';
-import { TeamStatusCard } from './AdHocTeam/TeamStatusCard';
+import { AdHocTeamSection } from './AdHocTeam/AdHocTeamSection';
 import AcpModelSelector from '@/renderer/components/agent/AcpModelSelector';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
 import { getConversationCreateErrorMessage } from '@/renderer/pages/conversation/utils/conversationCreateError';
@@ -38,6 +37,7 @@ import { useAionrsModelSelection } from '../platforms/aionrs/useAionrsModelSelec
 import { useConversationRuntimeView } from '../runtime/useConversationRuntimeView';
 import { isLegacyReadOnlyConversationType } from '../utils/conversationRuntime';
 import { resolveConversationBackend } from '../utils/conversationAssistantIdentity';
+import { isTeamRelatedConversation } from '../utils/conversationTeamOwnership';
 import LegacyReadOnlyConversation from '../platforms/legacy/LegacyReadOnlyConversation';
 import { useActiveLease } from '../hooks/useActiveLease';
 // import SkillRuleGenerator from './components/SkillRuleGenerator'; // Temporarily hidden
@@ -198,20 +198,9 @@ const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; slid
     [runtimeConfig, t]
   );
 
-  const navigate = useNavigate();
   const { user } = useAuth();
-  const isTeamConversation = Boolean(
-    (conversation.extra as { team_id?: string; teamId?: string } | undefined)?.team_id ||
-    (conversation.extra as { team_id?: string; teamId?: string } | undefined)?.teamId
-  );
+  const isTeamConversation = isTeamRelatedConversation(conversation);
   const adHocTeam = useAdHocTeamFromConversation(conversation.id, user?.id ?? 'system_default_user');
-
-  const handleNavigateToTeam = useCallback(
-    (teamId: string) => {
-      void navigate(`/team/${teamId}`);
-    },
-    [navigate]
-  );
 
   const chatLayoutProps = {
     title: conversation.name,
@@ -228,38 +217,13 @@ const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; slid
             onSetThoughtLevel={handleThoughtLevelSetOption}
           />
         )}
-        {!isMobile && !isTeamConversation && (
-          <div className='shrink-0'>
-            <CollaborationLauncher
-              conversationId={conversation.id}
-              userId={user?.id ?? 'system_default_user'}
-              onCreated={(result) => {
-                Message.success(
-                  t('conversation.collaboration.joinedSuccess', {
-                    agentName:
-                      result.target_assistant_name ??
-                      t('conversation.collaboration.fallbackAgentName', { defaultValue: 'Agent' }),
-                    defaultValue: '{{agentName}} joined the team',
-                  })
-                );
-              }}
-              create={adHocTeam.create}
-              isCreating={adHocTeam.isLoading}
-            />
-          </div>
-        )}
-        {!isMobile && adHocTeam.association?.team_id && (
-          <div className='shrink-0'>
-            <TeamStatusCard
-              association={adHocTeam.association}
-              team={adHocTeam.team}
-              teammates={adHocTeam.teammates}
-              lastTeammateMessage={adHocTeam.lastTeammateMessage}
-              unreadTeammateMessageCount={adHocTeam.unreadTeammateMessageCount}
-              onNavigate={handleNavigateToTeam}
-            />
-          </div>
-        )}
+        <AdHocTeamSection
+          conversationId={conversation.id}
+          userId={user?.id ?? 'system_default_user'}
+          isMobile={isMobile}
+          isTeamConversation={isTeamConversation}
+          adHocTeam={adHocTeam}
+        />
       </div>
     ),
     workspaceEnabled,
@@ -303,10 +267,7 @@ const ChatConversation: React.FC<{
 
   const isAionrsConversation = conversation?.type === 'aionrs';
   const isLegacyReadOnlyConversation = isLegacyReadOnlyConversationType(conversation?.type);
-  const isTeamConversation = Boolean(
-    (conversation?.extra as { team_id?: string; teamId?: string } | undefined)?.team_id ||
-    (conversation?.extra as { team_id?: string; teamId?: string } | undefined)?.teamId
-  );
+  const isTeamConversation = isTeamRelatedConversation(conversation);
   const resolvedHideSendBox = hideSendBox || isLegacyReadOnlyConversationType(conversation?.type);
 
   // 使用统一的 Hook 获取预设助手信息（ACP/Codex 会话）
@@ -319,16 +280,8 @@ const ChatConversation: React.FC<{
   const conversationAgentName = (conversation?.extra as { agent_name?: string } | undefined)?.agent_name;
   const assistantDisplayName = presetAssistantInfo?.name || conversationAgentName;
 
-  const navigate = useNavigate();
   const { user } = useAuth();
   const adHocTeam = useAdHocTeamFromConversation(conversation?.id, user?.id ?? 'system_default_user');
-
-  const handleNavigateToTeam = useCallback(
-    (teamId: string) => {
-      void navigate(`/team/${teamId}`);
-    },
-    [navigate]
-  );
 
   const conversationNode = useMemo(() => {
     if (!conversation || isAionrsConversation) return null;
@@ -426,40 +379,15 @@ const ChatConversation: React.FC<{
         </div>
       )}
       {modelSelector && <div className='shrink-0'>{modelSelector}</div>}
-      {conversation && !isMobile && !isLegacyReadOnlyConversation && !isTeamConversation && (
-        <div className='shrink-0'>
-          <CollaborationLauncher
-            conversationId={conversation.id}
-            userId={user?.id ?? 'system_default_user'}
-            onCreated={(result) => {
-              Message.success(
-                t('conversation.collaboration.joinedSuccess', {
-                  agentName:
-                    result.target_assistant_name ??
-                    t('conversation.collaboration.fallbackAgentName', { defaultValue: 'Agent' }),
-                  defaultValue: '{{agentName}} joined the team',
-                })
-              );
-            }}
-            create={adHocTeam.create}
-            isCreating={adHocTeam.isLoading}
-          />
-        </div>
-      )}
-      {conversation && !isMobile && !isLegacyReadOnlyConversation && adHocTeam.association?.team_id && (
-        <div className='shrink-0'>
-          <TeamStatusCard
-            association={adHocTeam.association}
-            team={adHocTeam.team}
-            teammates={adHocTeam.teammates}
-            lastTeammateMessage={adHocTeam.lastTeammateMessage}
-            unreadTeammateMessageCount={adHocTeam.unreadTeammateMessageCount}
-            isTeamRunning={adHocTeam.isTeamRunning}
-            activeRun={adHocTeam.activeRun}
-            slotWorkBySlot={adHocTeam.slotWorkBySlot}
-            onNavigate={handleNavigateToTeam}
-          />
-        </div>
+      {conversation && (
+        <AdHocTeamSection
+          conversationId={conversation.id}
+          userId={user?.id ?? 'system_default_user'}
+          isMobile={isMobile}
+          isReadOnly={isLegacyReadOnlyConversation}
+          isTeamConversation={isTeamConversation}
+          adHocTeam={adHocTeam}
+        />
       )}
     </div>
   );

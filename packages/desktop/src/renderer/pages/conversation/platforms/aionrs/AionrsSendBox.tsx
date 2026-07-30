@@ -36,7 +36,7 @@ import { useConversationRuntimeView } from '@/renderer/pages/conversation/runtim
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
 import { getConversationRuntimeWorkspaceErrorMessage } from '@/renderer/pages/conversation/utils/conversationCreateError';
 import { getChatSurfaceWidthClass } from '@/renderer/pages/conversation/utils/chatSurfaceWidth';
-import { ensureConversationRuntime } from '@/renderer/pages/conversation/utils/ensureConversationRuntime';
+import { ensureStandaloneConversationRuntime } from '@/renderer/pages/conversation/utils/runtimeGate';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import { useTeamPermission } from '@/renderer/pages/team/hooks/TeamPermissionContext';
 import type { TeamSendBoxRuntime } from '@/renderer/pages/team/components/teamSendRuntime';
@@ -172,11 +172,7 @@ const AionrsSendBox: React.FC<{
       await teamPermission.warmupSession();
       return;
     }
-    const latest = await getConversationOrNull(conversation_id);
-    if ((latest?.extra as { teamId?: string } | undefined)?.teamId) {
-      return;
-    }
-    await ensureConversationRuntime(conversation_id);
+    await ensureStandaloneConversationRuntime(conversation_id);
   }, [conversation_id, teamPermission]);
   const runtimeConfig = useAcpConfigOptions({
     conversation_id,

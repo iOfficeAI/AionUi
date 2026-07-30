@@ -16,7 +16,7 @@ import { useTeammateBackflow } from '@/renderer/pages/conversation/hooks/useTeam
 import { logStreamTerminalObserved } from '@/renderer/pages/conversation/runtime/useConversationRuntimeView';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
 import { isConversationProcessing } from '@/renderer/pages/conversation/utils/conversationRuntime';
-import { ensureConversationRuntime } from '@/renderer/pages/conversation/utils/ensureConversationRuntime';
+import { ensureStandaloneConversationRuntime } from '@/renderer/pages/conversation/utils/runtimeGate';
 import type { ThoughtData } from '@/renderer/components/chat/ThoughtDisplay';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
@@ -558,15 +558,7 @@ export const useAcpMessage = (
     };
   }, [conversation_id]);
 
-  // Skip standalone runtime ensure for conversations that have been promoted
-  // to an ad-hoc team leader; their runtime is managed by the team lifecycle.
-  const ensureRuntimeIfNeeded = async () => {
-    const latest = await getConversationOrNull(conversation_id);
-    if ((latest?.extra as { teamId?: string } | undefined)?.teamId) {
-      return;
-    }
-    await ensureConversationRuntime(conversation_id);
-  };
+  const ensureRuntimeIfNeeded = () => ensureStandaloneConversationRuntime(conversation_id);
 
   // Fetch slash commands via HTTP after runtime ensure completes.
   // WebSocket push of available_commands arrives during warmup when no

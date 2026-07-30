@@ -8,6 +8,7 @@ import type { TChatConversation } from '@/common/config/storage';
 import { getActivityTime } from '@/renderer/utils/chat/timeline';
 import { getWorkspaceDisplayName } from '@/renderer/utils/workspace/workspace';
 import { getWorkspaceUpdateTime } from '@/renderer/utils/workspace/workspaceHistory';
+import { isTeamMemberConversation } from '../../utils/conversationTeamOwnership';
 
 import type { GroupedHistoryResult, TimelineItem, TimelineSection } from '../types';
 import { getConversationSortOrder } from './sortOrderHelpers';
@@ -94,10 +95,7 @@ export const groupConversationsByWorkspace = (
  * are marked with `extra.teamId` and remain visible; only member conversations
  * carrying `extra.team_id` are filtered out.
  */
-export const isTeamMemberConversation = (conversation: TChatConversation): boolean => {
-  const extra = conversation.extra as { team_id?: string; teamId?: string } | undefined;
-  return Boolean(extra?.team_id);
-};
+export { isTeamMemberConversation } from '../../utils/conversationTeamOwnership';
 
 export const buildGroupedHistory = (
   conversations: TChatConversation[],

@@ -9,6 +9,7 @@ import type { TChatConversation } from '@/common/config/storage';
 import { requestConversationSendBoxPrefill } from '@/renderer/hooks/chat/useSendBoxDraft';
 import { refreshConversationCache } from '@/renderer/pages/conversation/utils/conversationCache';
 import { isLegacyReadOnlyConversationType } from '@/renderer/pages/conversation/utils/conversationRuntime';
+import { getPromotedSourceTeamId } from '@/renderer/pages/conversation/utils/conversationTeamOwnership';
 import { emitter } from '@/renderer/utils/emitter';
 import { blockMobileInputFocus, blurActiveElement } from '@/renderer/utils/ui/focus';
 import { Message, Modal } from '@arco-design/web-react';
@@ -91,7 +92,7 @@ export const useConversationActions = ({
 
   const handleDeleteClick = useCallback(
     (conversation_id: string, extra?: TChatConversation['extra']) => {
-      const hasActiveTeam = Boolean((extra as { teamId?: string } | undefined)?.teamId);
+      const hasActiveTeam = Boolean(getPromotedSourceTeamId(extra));
       Modal.confirm({
         title: hasActiveTeam ? t('conversation.history.deleteTeamSourceTitle') : t('conversation.history.deleteTitle'),
         content: hasActiveTeam
