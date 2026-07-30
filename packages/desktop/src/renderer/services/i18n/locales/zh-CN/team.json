@@ -102,7 +102,7 @@
     "label": "视图",
     "parallel": "并行",
     "single": "单聊",
-    "flow": "消息流"
+    "board": "看板"
   },
   "warmup": {
     "title": "正在唤醒团队…",

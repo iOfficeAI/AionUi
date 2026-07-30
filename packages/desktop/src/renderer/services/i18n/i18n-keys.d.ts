@@ -2494,7 +2494,7 @@ export type I18nKey =
   | 'team.sider.title'
   | 'team.sider.unpin'
   | 'team.stopAgentFailed'
-  | 'team.view.flow'
+  | 'team.view.board'
   | 'team.view.label'
   | 'team.view.parallel'
   | 'team.view.single'

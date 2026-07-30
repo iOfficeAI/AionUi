@@ -512,8 +512,8 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({
               colorOf={colorOf}
               onRetry={onRetryWarmup}
             />
-            {viewMode === 'flow' ? (
-              // 消息 & 任务流视图：只读展现全队 mailbox 与 task-board。
+            {viewMode === 'board' ? (
+              // 看板视图：只读展现全队 mailbox 与 task-board。
               <div className='flex-1 h-full min-w-0'>
                 <TeamActivityView team={team} />
               </div>
