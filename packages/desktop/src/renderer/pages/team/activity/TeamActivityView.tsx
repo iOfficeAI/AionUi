@@ -43,7 +43,9 @@ const TeamActivityView: React.FC<Props> = ({ team }) => {
   const { assistants, colorOf } = useTeamTabs();
   const [controls, setControls] = useState<ActivityControlsState>(DEFAULT_CONTROLS);
 
-  const { messages, tasks, isLoading } = useTeamActivityFeed(team.id, true);
+  // Content filter uses plural UI values; the feed/backend `kind` is singular.
+  const feedKind = controls.contentFilter === 'messages' ? 'message' : controls.contentFilter === 'tasks' ? 'task' : 'all';
+  const { messages, tasks, isLoading } = useTeamActivityFeed(team.id, true, controls.sortDirection, feedKind);
 
   const knownSlots = useMemo(() => new Set(assistants.map((a) => a.slot_id)), [assistants]);
 
