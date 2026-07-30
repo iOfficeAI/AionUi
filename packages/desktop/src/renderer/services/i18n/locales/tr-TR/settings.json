@@ -39,6 +39,12 @@
     "detailUsedByTitle": "Kullananlar",
     "detailUsedByEmpty": "Bu beceriyi henüz hiçbir asistan kullanmıyor.",
     "detailBuiltinAssistant": "Yerleşik",
+    "detailFilesTitle": "Beceri dosyaları",
+    "detailFilesError": "Bu becerinin dosyaları yüklenemedi.",
+    "editViaChat": {
+      "buttonLabel": "Sohbetle düzenle",
+      "defaultPrompt": "Bu Skill'i geliştirmek istiyorum: {{skillName}}\n\nLütfen içeriğini inceleyip geliştirmeme yardımcı olun. Değişiklik önerilerim:"
+    },
     "usedByCount": "{{count}} asistan kullanıyor",
     "manageInHub": "Beceri Merkezinde Yönet",
     "recommend": "Akıllı Öneri",

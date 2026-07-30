@@ -39,6 +39,12 @@
     "detailUsedByTitle": "Используется",
     "detailUsedByEmpty": "Этот навык пока не используется ни одним ассистентом.",
     "detailBuiltinAssistant": "Встроенный",
+    "detailFilesTitle": "Файлы навыка",
+    "detailFilesError": "Не удалось загрузить файлы этого навыка.",
+    "editViaChat": {
+      "buttonLabel": "Редактировать в чате",
+      "defaultPrompt": "Я хочу улучшить этот Skill: {{skillName}}\n\nПожалуйста, просмотрите его содержимое и помогите мне внести улучшения. Мои предложения:"
+    },
     "usedByCount": "Используется ассистентами: {{count}}",
     "manageInHub": "Управление в Центре навыков",
     "recommend": "Рекомендовать навыки",

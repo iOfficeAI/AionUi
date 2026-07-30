@@ -12,10 +12,17 @@
 import os from 'os';
 import path from 'path';
 import { ipcBridge } from '@/common';
+import { createSkillFileService } from '@process/services/skills';
 import { getSystemDir, ProcessEnv } from '@process/utils/initStorage';
 import { copyDirectoryRecursively, getConfigPath, getDataPath, resolveCliSafePath } from '@process/utils';
 
 export function initApplicationBridgeCore(): void {
+  const skillFiles = createSkillFileService();
+  ipcBridge.fs.listSkillFiles.provider(({ skill_location }) => skillFiles.list(skill_location));
+  ipcBridge.fs.readSkillFile.provider(({ skill_location, relative_path }) =>
+    skillFiles.read(skill_location, relative_path)
+  );
+
   // application.systemInfo is served by the backend via HTTP; updateSystemInfo
   // and getPath below remain buildProvider (true IPC) because they need
   // main-process-only APIs (copyDirectoryRecursively, os.homedir()).

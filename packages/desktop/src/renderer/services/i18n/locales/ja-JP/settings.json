@@ -39,6 +39,12 @@
     "detailUsedByTitle": "使用中のアシスタント",
     "detailUsedByEmpty": "このスキルを使用しているアシスタントはまだありません。",
     "detailBuiltinAssistant": "組み込み",
+    "detailFilesTitle": "スキルファイル",
+    "detailFilesError": "このスキルのファイルを読み込めませんでした。",
+    "editViaChat": {
+      "buttonLabel": "チャットで編集",
+      "defaultPrompt": "この Skill を改善したいです：{{skillName}}\n\n内容を確認し、改善を手伝ってください。私の修正案は次のとおりです："
+    },
     "usedByCount": "{{count}} 件のアシスタントが使用中",
     "manageInHub": "スキルハブで管理",
     "recommend": "スマート推薦",
