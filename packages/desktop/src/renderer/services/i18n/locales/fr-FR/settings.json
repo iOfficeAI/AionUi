@@ -39,6 +39,12 @@
     "detailUsedByTitle": "Utilisée par",
     "detailUsedByEmpty": "Aucun assistant n’utilise encore cette compétence.",
     "detailBuiltinAssistant": "Intégré",
+    "detailFilesTitle": "Fichiers de la compétence",
+    "detailFilesError": "Impossible de charger les fichiers de cette compétence.",
+    "editViaChat": {
+      "buttonLabel": "Modifier via le chat",
+      "defaultPrompt": "J'aimerais améliorer ce Skill : {{skillName}}\n\nVeuillez examiner son contenu et m'aider à l'améliorer. Mes suggestions de modification sont :"
+    },
     "usedByCount": "Utilisée par {{count}} assistant(s)",
     "manageInHub": "Gérer dans le Centre de compétences",
     "recommend": "Recommander des compétences",

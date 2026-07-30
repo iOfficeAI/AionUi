@@ -610,6 +610,12 @@
     "addedToChat": "{{name}}을(를) 채팅에 추가했습니다",
     "imported": "{{count}}개 파일을 가져왔습니다",
     "importPartialFailed": "{{copied}}개 복사, {{failed}}개 실패(이름 충돌 또는 미지원)",
-    "importFailed": "파일 가져오기에 실패했습니다"
+    "importFailed": "파일 가져오기에 실패했습니다",
+    "search": {
+      "placeholder": "파일 이름으로 검색",
+      "searching": "검색 중…",
+      "empty": "일치하는 파일이 없습니다",
+      "limitReached": "처음 {{count}}개 표시 — 범위를 좁혀 주세요"
+    }
   }
 }

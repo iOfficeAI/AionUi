@@ -39,6 +39,12 @@
     "detailUsedByTitle": "사용 중인 어시스턴트",
     "detailUsedByEmpty": "아직 이 스킬을 사용하는 어시스턴트가 없습니다.",
     "detailBuiltinAssistant": "기본 제공",
+    "detailFilesTitle": "스킬 파일",
+    "detailFilesError": "이 스킬의 파일을 불러올 수 없습니다.",
+    "editViaChat": {
+      "buttonLabel": "대화로 편집",
+      "defaultPrompt": "이 Skill을 개선하고 싶습니다: {{skillName}}\n\n내용을 검토하고 개선할 수 있도록 도와주세요. 제 수정 제안은 다음과 같습니다:"
+    },
     "usedByCount": "{{count}}개의 어시스턴트가 사용 중",
     "manageInHub": "스킬 허브에서 관리",
     "recommend": "스마트 추천",

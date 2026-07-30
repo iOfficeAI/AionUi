@@ -611,6 +611,13 @@ export const dialog = {
 // File System — routed to /api/fs/* and /api/skills/*
 // ---------------------------------------------------------------------------
 
+export type SkillFileNode = {
+  name: string;
+  relativePath: string;
+  type: 'directory' | 'file';
+  children?: SkillFileNode[];
+};
+
 export const fs = {
   getFilesByDir: httpPost<Array<IDirOrFile>, { dir: string; root: string }>('/api/fs/dir'),
   listWorkspaceFiles: withResponseMap(
@@ -745,6 +752,8 @@ export const fs = {
   ),
   enableSkillsMarket: httpPost<void, void>('/api/skills/market/enable'),
   disableSkillsMarket: httpPost<void, void>('/api/skills/market/disable'),
+  listSkillFiles: bridge.buildProvider<SkillFileNode[], { skill_location: string }>('skills.files.list'),
+  readSkillFile: bridge.buildProvider<string, { skill_location: string; relative_path: string }>('skills.files.read'),
 };
 
 // ---------------------------------------------------------------------------

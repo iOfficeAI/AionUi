@@ -39,6 +39,12 @@
     "detailUsedByTitle": "Використовується",
     "detailUsedByEmpty": "Цю навичку поки не використовує жоден асистент.",
     "detailBuiltinAssistant": "Вбудований",
+    "detailFilesTitle": "Файли навички",
+    "detailFilesError": "Не вдалося завантажити файли цієї навички.",
+    "editViaChat": {
+      "buttonLabel": "Редагувати в чаті",
+      "defaultPrompt": "Я хочу покращити цей Skill: {{skillName}}\n\nБудь ласка, перегляньте його вміст і допоможіть мені внести покращення. Мої пропозиції:"
+    },
     "usedByCount": "Використовують асистентів: {{count}}",
     "manageInHub": "Керувати в Центрі навичок",
     "recommend": "Рекомендувати навички",

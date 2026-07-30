@@ -39,6 +39,12 @@
     "detailUsedByTitle": "Used by",
     "detailUsedByEmpty": "No assistants are using this skill yet.",
     "detailBuiltinAssistant": "Built-in",
+    "detailFilesTitle": "Skill files",
+    "detailFilesError": "Could not load this skill's files.",
+    "editViaChat": {
+      "buttonLabel": "Edit via chat",
+      "defaultPrompt": "I'd like to improve this Skill: {{skillName}}\n\nPlease review its content and help me make improvements. My suggestions are:"
+    },
     "usedByCount": "Used by {{count}} assistant(s)",
     "manageInHub": "Manage in Skills Hub",
     "recommend": "Recommend Skills",

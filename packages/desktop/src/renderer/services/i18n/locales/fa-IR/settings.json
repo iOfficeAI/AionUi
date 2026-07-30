@@ -39,6 +39,12 @@
     "detailUsedByTitle": "در حال استفاده",
     "detailUsedByEmpty": "هنوز هیچ دستیاری از این مهارت استفاده نمی‌کند.",
     "detailBuiltinAssistant": "داخلی",
+    "detailFilesTitle": "فایل‌های مهارت",
+    "detailFilesError": "فایل‌های این مهارت بارگیری نشدند.",
+    "editViaChat": {
+      "buttonLabel": "ویرایش از طریق گفتگو",
+      "defaultPrompt": "می‌خواهم این Skill را بهبود دهم: {{skillName}}\n\nلطفاً محتوای آن را بررسی کنید و برای بهبودش به من کمک کنید. پیشنهادهای من برای تغییر عبارت‌اند از:"
+    },
     "usedByCount": "{{count}} دستیار در حال استفاده",
     "manageInHub": "مدیریت در مرکز مهارت‌ها",
     "recommend": "پیشنهاد مهارت‌ها",

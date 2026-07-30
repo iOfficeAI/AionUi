@@ -39,6 +39,12 @@
     "detailUsedByTitle": "Verwendet von",
     "detailUsedByEmpty": "Noch kein Assistent verwendet diesen Skill.",
     "detailBuiltinAssistant": "Integriert",
+    "detailFilesTitle": "Skill-Dateien",
+    "detailFilesError": "Die Dateien dieses Skills konnten nicht geladen werden.",
+    "editViaChat": {
+      "buttonLabel": "Per Chat bearbeiten",
+      "defaultPrompt": "Ich möchte diesen Skill verbessern: {{skillName}}\n\nBitte prüfe den Inhalt und hilf mir, ihn zu verbessern. Meine Änderungsvorschläge sind:"
+    },
     "usedByCount": "Von {{count}} Assistent(en) verwendet",
     "manageInHub": "Im Skills-Hub verwalten",
     "recommend": "Skills empfehlen",

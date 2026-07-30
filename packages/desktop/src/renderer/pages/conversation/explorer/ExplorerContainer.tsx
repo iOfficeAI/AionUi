@@ -11,8 +11,9 @@
  * them to {@link ExplorerPanel} (which drives the WS store). It also owns the
  * project-level actions: add folder (attach) and remove folder.
  *
- * Scope (stage-3 C): data wiring + tree + attach/remove. Search, file context
- * menu (new/delete/rename), and the Files/Changes tabs are out of this round.
+ * Scope: data wiring + tree + attach/remove + the Files/Changes tabs, plus the
+ * persistent filename-search area at the top of the Files tab (fs/search →
+ * reveal / explicit add-to-chat; see {@link SearchPanel}).
  */
 
 import { Button, Input, Message, Modal, Spin } from '@arco-design/web-react';
@@ -30,6 +31,8 @@ import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import WorkspaceOpenButton from '@/renderer/pages/conversation/components/ChatLayout/WorkspaceOpenButton';
 import { getContentTypeByExtension } from '@/renderer/pages/conversation/Preview/fileUtils';
 import { classifyPreviewError, previewErrorToI18nKey } from '@/renderer/utils/previewError';
+// PATCH(ELECTRON-3SZ): used only by the preview payload patch below — remove with it.
+import type { PreviewContentType } from '@/common/types/office/preview';
 
 import { emitter } from '@/renderer/utils/emitter';
 import { projectFileRef } from '@/common/types/chatFile';
@@ -39,8 +42,10 @@ import { ExplorerPanel } from './ExplorerPanel';
 import { buildRemoveRequest, buildRenameRequest, parentRel, peKey, type RenameRequest } from './explorerModel';
 import { initExplorerRuntime } from './monitorTransport';
 import { toRootRefs } from './projectRoots';
-import { select } from './explorerStore';
+import { reveal, select } from './explorerStore';
 import { useCurrentConversation } from './currentConversationStore';
+import { SearchPanel } from './search/SearchPanel';
+import type { SearchHit } from './search/searchModel';
 
 export type ExplorerContainerProps = {
   /** Owning project id — scopes the store's fact cache + localStorage UI state. */
@@ -52,6 +57,101 @@ const pathToFileUri = (p: string): string => {
   const normalized = p.replace(/\\/g, '/');
   const withLeadingSlash = normalized.startsWith('/') ? normalized : `/${normalized}`;
   return `file://${encodeURI(withLeadingSlash)}`;
+};
+
+// PATCH(ELECTRON-3SZ): image file extension → data-URL MIME. The WS `fs/read`
+// base64 payload is bare (no `data:` prefix), but ImageViewer feeds `content`
+// straight into <img src>, so the Explorer open path must wrap it. Remove with
+// the rest of this patch once Preview consumes {pe_id, relative_path} directly.
+const IMAGE_MIME_BY_EXT: Record<string, string> = {
+  png: 'image/png',
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  gif: 'image/gif',
+  svg: 'image/svg+xml',
+  webp: 'image/webp',
+  bmp: 'image/bmp',
+  ico: 'image/x-icon',
+  tif: 'image/tiff',
+  tiff: 'image/tiff',
+  avif: 'image/avif',
+};
+
+/** PATCH(ELECTRON-3SZ): wrap a bare base64 image body into a renderable data URL. */
+const imageDataUrl = (fileName: string, base64: string): string => {
+  const ext = fileName.slice(fileName.lastIndexOf('.') + 1).toLowerCase();
+  const mime = IMAGE_MIME_BY_EXT[ext] ?? 'image/png';
+  return `data:${mime};base64,${base64}`;
+};
+
+/** PATCH(ELECTRON-3SZ): minimal WS-RPC surface the preview payload builder needs. Remove with it. */
+type PreviewRpcClient = { request(method: string, params?: unknown): Promise<unknown> };
+
+/** PATCH(ELECTRON-3SZ): args passed to `openPreview` for an Explorer-opened file. Remove with it. */
+export type ExplorerPreviewPayload = {
+  content: string;
+  contentType: PreviewContentType;
+  metadata: {
+    title: string;
+    file_name: string;
+    file_path?: string;
+    workspace?: string;
+    language: string;
+    editable?: boolean;
+  };
+};
+
+// PATCH(ELECTRON-3SZ): the Explorer tree only knows `{pe_id, relative_path}`, but
+// three viewer families can't render from the WS `fs/read` content alone, so this
+// builder special-cases them:
+//   - image: fs/read base64 is bare (no `data:` prefix); ImageViewer feeds
+//     `content` straight into <img src>, so wrap it into a data URL.
+//   - pdf/office: need a real local absolute path (PDF via file://, office via
+//     `officecli watch`), so resolve pe → absolute path with `fs/resolve`.
+// Exposing the absolute path to the renderer breaks the "front-end never sees
+// absolute paths" boundary — this whole helper is an emergency patch and MUST be
+// removed once Preview consumes `{pe_id, relative_path}` end-to-end.
+export const buildExplorerPreviewPayload = async (
+  client: PreviewRpcClient,
+  peId: string,
+  relativePath: string
+): Promise<ExplorerPreviewPayload> => {
+  const name = relativePath.split('/').pop() || relativePath;
+  const contentType = getContentTypeByExtension(name);
+  const file = { pe_id: peId, relative_path: relativePath };
+
+  let content = '';
+  let file_path: string | undefined;
+  let workspace: string | undefined;
+
+  if (contentType === 'image') {
+    const res = (await client.request('fs/read', { file, encoding: 'base64' })) as { content?: string };
+    const base64 = res.content ?? '';
+    content = base64 ? imageDataUrl(name, base64) : '';
+  } else if (contentType === 'pdf' || contentType === 'word' || contentType === 'excel' || contentType === 'ppt') {
+    const res = (await client.request('fs/resolve', { file })) as {
+      absolute_path?: string;
+      workspace_root?: string;
+    };
+    file_path = res.absolute_path;
+    workspace = res.workspace_root;
+  } else {
+    const res = (await client.request('fs/read', { file, encoding: 'utf-8' })) as { content?: string };
+    content = res.content ?? '';
+  }
+
+  return {
+    content,
+    contentType,
+    metadata: {
+      title: name,
+      file_name: name,
+      file_path,
+      workspace,
+      language: name.split('.').pop() || '',
+      editable: contentType === 'markdown' || contentType === 'image' ? false : undefined,
+    },
+  };
 };
 
 export const ExplorerContainer: React.FC<ExplorerContainerProps> = ({ projectId }) => {
@@ -76,34 +176,15 @@ export const ExplorerContainer: React.FC<ExplorerContainerProps> = ({ projectId 
   // project preview isolation is handled by the scope key (C5); switching files
   // replaces the active tab.
   const handleOpenFile = async (peId: string, relativePath: string): Promise<void> => {
-    const name = relativePath.split('/').pop() || relativePath;
-    const contentType = getContentTypeByExtension(name);
     try {
-      let content = '';
-      const skipRead =
-        contentType === 'pdf' || contentType === 'word' || contentType === 'excel' || contentType === 'ppt';
-      if (!skipRead) {
-        const client = initExplorerRuntime();
-        const encoding = contentType === 'image' ? 'base64' : 'utf-8';
-        const res = (await client.request('fs/read', {
-          file: { pe_id: peId, relative_path: relativePath },
-          encoding,
-        })) as {
-          content?: string;
-        };
-        content = res.content ?? '';
-      }
-      openPreview(
-        content,
-        contentType,
-        {
-          title: name,
-          file_name: name,
-          language: name.split('.').pop() || '',
-          editable: contentType === 'markdown' || contentType === 'image' ? false : undefined,
-        },
-        { replace: true }
+      // PATCH(ELECTRON-3SZ): payload building (incl. absolute-path resolve) lives
+      // in `buildExplorerPreviewPayload` — remove with the rest of that patch.
+      const { content, contentType, metadata } = await buildExplorerPreviewPayload(
+        initExplorerRuntime(),
+        peId,
+        relativePath
       );
+      openPreview(content, contentType, metadata, { replace: true });
     } catch (e) {
       Message.error(t(previewErrorToI18nKey(classifyPreviewError(e))));
     }
@@ -206,6 +287,20 @@ export const ExplorerContainer: React.FC<ExplorerContainerProps> = ({ projectId 
     Message.success(t('conversation.explorer.addedToChat', { name }));
   };
 
+  // Search result default action: locate the hit in the tree — switch to the
+  // files tab, expand its ancestor chain (reveal subscribes the parent dir), and
+  // select it. Reuses the store's existing reveal path; does NOT open preview
+  // (product decision Y — the click is "find the file", not "preview it").
+  const handleRevealHit = (hit: SearchHit): void => {
+    setActiveTab('files');
+    reveal({ pe_id: hit.pe_id, relative_path: parentRel(hit.relative_path) });
+    select(peKey(hit.pe_id, hit.relative_path));
+  };
+
+  // Search result explicit add-to-chat: a hit is always a file; route through the
+  // same emitter lane as the tree's context-menu action.
+  const handleAddHit = (hit: SearchHit): void => handleAddToChat(hit.pe_id, hit.relative_path, hit.name, true);
+
   // A-paste: import OS files dropped onto a tree node into that node's dir via
   // the pe-targeted /api/fs/copy. The copied files arrive on the target dir's WS
   // subscription (delta → tree updates itself); conflicts/rejected dirs come back
@@ -236,10 +331,14 @@ export const ExplorerContainer: React.FC<ExplorerContainerProps> = ({ projectId 
   if (isLoading && !data) return <Spin loading />;
 
   const roots = data ? toRootRefs(data) : [];
+  // Search roots = the project's pe roots (each folder root, rel=''). fs/search
+  // spans all bound folders; the front-end ranks the merged hit stream.
+  const searchRoots = roots.map((root) => ({ pe_id: root.pe_id, relative_path: '' }));
+  // pe_id → folder name for the search result's `PE · REL` secondary label.
+  const searchPeNames = Object.fromEntries(roots.map((root) => [root.pe_id, root.title]));
   const workspacePeId = data?.explorer.workspace_pe_id;
   // Absolute path of the workspace root (derived display_path) for the
-  // open-externally button. No search box: file search (with chat-ref) is a
-  // separate lane, not the explorer.
+  // open-externally button.
   const workspacePath = data?.explorer.entries.find((e) => e.pe_id === workspacePeId)?.display_path;
 
   const tabButton = (key: 'files' | 'changes', label: string) => (
@@ -281,21 +380,29 @@ export const ExplorerContainer: React.FC<ExplorerContainerProps> = ({ projectId 
       {/* Files tab (explorer): kept mounted across tab switches so the tree + WS
           state survive (only hidden when the changes tab is active). Left padding
           clears the sider's col-resize drag handle overlay. */}
-      <div
-        className='flex-1 min-h-0 overflow-auto pl-16px'
-        style={activeTab === 'files' ? undefined : { display: 'none' }}
-      >
-        <ExplorerPanel
-          projectId={projectId}
-          roots={roots}
-          workspacePeId={workspacePeId}
-          onRemoveRoot={handleRemoveFolder}
-          onOpenFile={handleOpenFile}
-          onRename={handleRename}
-          onDelete={handleDelete}
-          onAddToChat={activeConversationId ? handleAddToChat : undefined}
-          onImportFiles={handleImportFiles}
-        />
+      {/* Search area is persistent at the top of the files tab; the tree renders
+          underneath (children slot) and stays mounted while searching so its WS
+          subscriptions never thrash. SearchPanel owns the scroll region, so this
+          container no longer sets overflow. */}
+      <div className='flex-1 min-h-0 pl-16px' style={activeTab === 'files' ? undefined : { display: 'none' }}>
+        <SearchPanel
+          roots={searchRoots}
+          peNames={searchPeNames}
+          onRevealHit={handleRevealHit}
+          onAddHit={activeConversationId ? handleAddHit : undefined}
+        >
+          <ExplorerPanel
+            projectId={projectId}
+            roots={roots}
+            workspacePeId={workspacePeId}
+            onRemoveRoot={handleRemoveFolder}
+            onOpenFile={handleOpenFile}
+            onRename={handleRename}
+            onDelete={handleDelete}
+            onAddToChat={activeConversationId ? handleAddToChat : undefined}
+            onImportFiles={handleImportFiles}
+          />
+        </SearchPanel>
       </div>
       {activeTab === 'changes' && (
         <div className='flex-1 min-h-0 flex items-center justify-center px-16px text-center text-t-secondary text-13px'>
