@@ -4,13 +4,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
-import { Tag, Tooltip, Typography } from '@arco-design/web-react';
+import React, { useRef, useState } from 'react';
+import { Tag, Tooltip } from '@arco-design/web-react';
 import { Down, ListView, Lock, Up } from '@icon-park/react';
 import { useTranslation } from 'react-i18next';
 import type { ITeamTaskItem } from '@/common/types/team/teamTypes';
 import { ACTIVITY_USER_IDENTITY } from './activityTypes';
 import type { ActivityIdentityResolver } from './MessageCard';
+import { clampStyle, useIsClamped } from './useIsClamped';
 
 type Props = {
   task: ITeamTaskItem;
@@ -27,6 +28,7 @@ const STATUS_COLOR: Record<string, string> = {
 const TaskCard: React.FC<Props> = ({ task, identity }) => {
   const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
+  const descRef = useRef<HTMLDivElement>(null);
 
   const ownerName =
     !task.owner || task.owner === ACTIVITY_USER_IDENTITY
@@ -34,6 +36,7 @@ const TaskCard: React.FC<Props> = ({ task, identity }) => {
       : identity.nameOf(task.owner);
   const ownerColor = identity.colorOf(task.owner);
   const description = task.description ?? '';
+  const isClamped = useIsClamped(descRef, [description, expanded]);
 
   return (
     <div
@@ -66,13 +69,14 @@ const TaskCard: React.FC<Props> = ({ task, identity }) => {
 
       {description.length > 0 && (
         <>
-          <Typography.Paragraph
-            className='!mb-0 text-12px text-[color:var(--color-text-2)] whitespace-pre-wrap break-words'
-            ellipsis={expanded ? false : { rows: 2, showTooltip: false }}
+          <div
+            ref={descRef}
+            className='text-12px text-[color:var(--color-text-2)] whitespace-pre-wrap break-words'
+            style={expanded ? undefined : clampStyle(2)}
           >
             {description}
-          </Typography.Paragraph>
-          {description.length > 60 && (
+          </div>
+          {(isClamped || expanded) && (
             <Tooltip
               content={
                 expanded

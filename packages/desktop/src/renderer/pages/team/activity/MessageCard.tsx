@@ -4,12 +4,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
-import { Tag, Tooltip, Typography } from '@arco-design/web-react';
+import React, { useRef, useState } from 'react';
+import { Tag, Tooltip } from '@arco-design/web-react';
 import { Announcement, Down, Mail, Paperclip, Up } from '@icon-park/react';
 import { useTranslation } from 'react-i18next';
 import type { ITeamMailboxMessage } from '@/common/types/team/teamTypes';
 import { ACTIVITY_USER_IDENTITY, isBroadcastMessage, isSystemMessageType } from './activityTypes';
+import { clampStyle, useIsClamped } from './useIsClamped';
 
 /** Resolves a member/identity display name and color for a slot id. */
 export type ActivityIdentityResolver = {
@@ -32,6 +33,7 @@ const MemberChip: React.FC<{ name: string; color: string }> = ({ name, color }) 
 const MessageCard: React.FC<Props> = ({ message, identity }) => {
   const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
+  const bodyRef = useRef<HTMLDivElement>(null);
 
   const broadcast = isBroadcastMessage(message);
   const fromName =
@@ -46,6 +48,7 @@ const MessageCard: React.FC<Props> = ({ message, identity }) => {
 
   const body = message.summary && message.summary.length > 0 ? message.summary : message.content;
   const attachments = message.files?.length ?? 0;
+  const isClamped = useIsClamped(bodyRef, [body, expanded]);
 
   return (
     <div
@@ -78,12 +81,13 @@ const MessageCard: React.FC<Props> = ({ message, identity }) => {
         </span>
       </div>
 
-      <Typography.Paragraph
-        className='!mb-0 text-13px text-[color:var(--color-text-1)] whitespace-pre-wrap break-words'
-        ellipsis={expanded ? false : { rows: 3, showTooltip: false }}
+      <div
+        ref={bodyRef}
+        className='text-13px text-[color:var(--color-text-1)] whitespace-pre-wrap break-words'
+        style={expanded ? undefined : clampStyle(3)}
       >
         {body}
-      </Typography.Paragraph>
+      </div>
 
       <div className='flex items-center gap-8px text-11px text-[color:var(--color-text-3)]'>
         {attachments > 0 && (
@@ -92,7 +96,7 @@ const MessageCard: React.FC<Props> = ({ message, identity }) => {
             {t('team.activity.attachments', { count: attachments, defaultValue: '{{count}} files' })}
           </span>
         )}
-        {body.length > 80 && (
+        {(isClamped || expanded) && (
           <Tooltip
             content={
               expanded
