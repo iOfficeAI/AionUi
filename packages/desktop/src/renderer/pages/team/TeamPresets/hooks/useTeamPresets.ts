@@ -9,7 +9,7 @@ import type { TeamPreset } from '@/common/types/team/teamTypes';
 import type {
   CreateTeamPresetInput as CreateTeamPresetInputBase,
   UpdateTeamPresetInput as UpdateTeamPresetInputBase,
-} from '@/common/adapter/teamMapper';
+} from '@/common/adapter/teamPresetBridge';
 import { useAuth } from '@renderer/hooks/context/AuthContext';
 import { uuid } from '@/common/utils/utils';
 import { useCallback, useMemo, useState } from 'react';

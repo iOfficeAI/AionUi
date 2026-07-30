@@ -123,4 +123,28 @@ describe('ipcBridge team adapter', () => {
     });
     expect(JSON.stringify(httpBridgeMocks.calls.at(-1)?.body)).not.toContain('assistants');
   });
+
+  it('keeps the team preset endpoint contract through the extracted bridge', async () => {
+    const { teamPreset } = await import('@/common/adapter/ipcBridge');
+
+    await teamPreset.list.invoke({ user_id: 'user value' });
+    await teamPreset.update.invoke({ id: 'preset-1', input: { name: 'Renamed preset' } });
+    await teamPreset.delete.invoke({ id: 'preset-1' });
+
+    expect(httpBridgeMocks.calls).toContainEqual({
+      method: 'GET',
+      path: '/api/team-presets?user_id=user%20value',
+      body: undefined,
+    });
+    expect(httpBridgeMocks.calls).toContainEqual({
+      method: 'PATCH',
+      path: '/api/team-presets/preset-1',
+      body: { name: 'Renamed preset' },
+    });
+    expect(httpBridgeMocks.calls).toContainEqual({
+      method: 'DELETE',
+      path: '/api/team-presets/preset-1',
+      body: undefined,
+    });
+  });
 });

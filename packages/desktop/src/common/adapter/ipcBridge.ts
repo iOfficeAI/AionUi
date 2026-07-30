@@ -75,7 +75,6 @@ import type {
   ITeamTeammateMessageEvent,
   TTeam,
   TeamAssistant,
-  TeamPreset,
 } from '../types/team/teamTypes';
 import type {
   IAdHocTeamByConversationParams,
@@ -124,16 +123,8 @@ import {
   fromBackendTeam,
   fromBackendTeamList,
   fromBackendTeamOptional,
-  fromBackendTeamPreset,
-  fromBackendTeamPresetList,
   toBackendAdHocTeamFromConversationParams,
   toBackendAssistant,
-  toBackendCreateTeamPresetInput,
-  toBackendUpdateTeamPresetInput,
-  type ICreateTeamPresetParams,
-  type IDeleteTeamPresetParams,
-  type IListTeamPresetsParams,
-  type IUpdateTeamPresetParams,
 } from './teamMapper';
 import { fromBackendCompareResult, type RawCompareResult } from './fileSnapshotMapper';
 import {
@@ -1960,22 +1951,6 @@ export type IRealtimeReconnectedEvent = {
 
 export const realtime = {
   reconnected: wsEmitter<IRealtimeReconnectedEvent>('realtime.reconnected'),
-};
-
-export const teamPreset = {
-  list: withResponseMap(
-    httpGet<TeamPreset[], IListTeamPresetsParams>((p) => `/api/team-presets?user_id=${encodeURIComponent(p.user_id)}`),
-    fromBackendTeamPresetList
-  ),
-  create: withResponseMap(
-    httpPost<TeamPreset, ICreateTeamPresetParams>('/api/team-presets', toBackendCreateTeamPresetInput),
-    fromBackendTeamPreset
-  ),
-  update: withResponseMap(
-    httpPatch<TeamPreset, IUpdateTeamPresetParams>((p) => `/api/team-presets/${p.id}`, toBackendUpdateTeamPresetInput),
-    fromBackendTeamPreset
-  ),
-  delete: httpDelete<void, IDeleteTeamPresetParams>((p) => `/api/team-presets/${p.id}`),
 };
 
 export const team = {
