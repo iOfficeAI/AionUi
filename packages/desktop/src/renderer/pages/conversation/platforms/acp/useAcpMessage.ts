@@ -5,13 +5,14 @@
  */
 
 import { ipcBridge } from '@/common';
-import { isErrorTipMessage, normalizeTextMessageContent, transformMessage } from '@/common/chat/chatLib';
-import type { AvailableCommand, TMessage } from '@/common/chat/chatLib';
+import { isErrorTipMessage, transformMessage } from '@/common/chat/chatLib';
+import type { AvailableCommand } from '@/common/chat/chatLib';
 import { mapAcpCommandsToSlashCommands } from '@/common/chat/slash/acpMapping';
 import type { SlashCommandItem } from '@/common/chat/slash/types';
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 import type { TokenUsageData } from '@/common/config/storage';
 import { useMergeLiveMessage } from '@/renderer/pages/conversation/Messages/hooks';
+import { useTeammateBackflow } from '@/renderer/pages/conversation/hooks/useTeammateBackflow';
 import { logStreamTerminalObserved } from '@/renderer/pages/conversation/runtime/useConversationRuntimeView';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
 import { isConversationProcessing } from '@/renderer/pages/conversation/utils/conversationRuntime';
@@ -61,6 +62,7 @@ export const useAcpMessage = (
   options?: { skipWarmup?: boolean; prepareRuntime?: () => Promise<void> }
 ): UseAcpMessageReturn => {
   const mergeLiveMessage = useMergeLiveMessage();
+  const handleTeammateMessage = useTeammateBackflow(conversation_id);
   const [running, setRunning] = useState(false);
   const [hasHydratedRunningState, setHasHydratedRunningState] = useState(false);
   const [thought, setThought] = useState<ThoughtData>({
@@ -98,8 +100,6 @@ export const useAcpMessage = (
     model_id: string;
     session_mode?: string;
   } | null>(null);
-
-  const processedTeammateMsgIdsRef = useRef(new Set<string>());
 
   // Throttle thought updates to reduce render frequency
   const thoughtThrottleRef = useRef<{
@@ -358,26 +358,9 @@ export const useAcpMessage = (
         case 'user_content':
           mergeLiveMessage(transformedMessage);
           break;
-        case 'teammate_message': {
-          const tmMsg = message.data as TMessage;
-          if (tmMsg && tmMsg.conversation_id === conversation_id) {
-            if (tmMsg.msg_id && processedTeammateMsgIdsRef.current.has(tmMsg.msg_id)) {
-              break;
-            }
-            if (tmMsg.msg_id) {
-              processedTeammateMsgIdsRef.current.add(tmMsg.msg_id);
-            }
-            mergeLiveMessage(
-              tmMsg.type === 'text'
-                ? {
-                    ...tmMsg,
-                    content: normalizeTextMessageContent(tmMsg.content),
-                  }
-                : tmMsg
-            );
-          }
+        case 'teammate_message':
+          handleTeammateMessage(message);
           break;
-        }
         case 'acp_permission':
           // Auto-recover running state only if turn hasn't finished
           if (!runningRef.current && !turnFinishedRef.current) {
@@ -481,6 +464,7 @@ export const useAcpMessage = (
     [
       conversation_id,
       mergeLiveMessage,
+      handleTeammateMessage,
       completeActiveThinking,
       throttledSetThought,
       setThought,

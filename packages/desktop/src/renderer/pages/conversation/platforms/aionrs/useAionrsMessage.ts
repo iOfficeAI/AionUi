@@ -5,13 +5,13 @@
  */
 
 import { ipcBridge } from '@/common';
-import { isErrorTipMessage, normalizeTextMessageContent, transformMessage } from '@/common/chat/chatLib';
+import { isErrorTipMessage, transformMessage } from '@/common/chat/chatLib';
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
-import type { TMessage } from '@/common/chat/chatLib';
 import type { TChatConversation, TokenUsageData } from '@/common/config/storage';
 import { uuid } from '@/common/utils';
 import type { ThoughtData } from '@/renderer/components/chat/ThoughtDisplay';
 import { useMergeLiveMessage } from '@/renderer/pages/conversation/Messages/hooks';
+import { useTeammateBackflow } from '@/renderer/pages/conversation/hooks/useTeammateBackflow';
 import { logStreamTerminalObserved } from '@/renderer/pages/conversation/runtime/useConversationRuntimeView';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
 import { isConversationProcessing } from '@/renderer/pages/conversation/utils/conversationRuntime';
@@ -34,6 +34,7 @@ export const useAionrsMessage = (
   const onConfigChanged = options?.onConfigChanged;
   const onConfigChangedRef = useRef(onConfigChanged);
   const mergeLiveMessage = useMergeLiveMessage();
+  const handleTeammateMessage = useTeammateBackflow(conversation_id);
   const [streamRunning, setStreamRunning] = useState(false);
   const [hasActiveTools, setHasActiveTools] = useState(false);
   const [waitingResponse, setWaitingResponse] = useState(false);
@@ -47,8 +48,6 @@ export const useAionrsMessage = (
   const activeMsgIdRef = useRef<string | null>(null);
   const messageBufferRef = useRef(new Map<string, string>());
   const processedCronMsgIdsRef = useRef(new Set<string>());
-
-  const processedTeammateMsgIdsRef = useRef(new Set<string>());
 
   // Use refs to avoid useEffect re-subscription when these states change
   const hasActiveToolsRef = useRef(hasActiveTools);
@@ -319,26 +318,9 @@ export const useAionrsMessage = (
             mergeLiveMessage(transformMessage(message));
           }
           break;
-        case 'teammate_message': {
-          const tmMsg = message.data as TMessage;
-          if (tmMsg && tmMsg.conversation_id === conversation_id) {
-            if (tmMsg.msg_id && processedTeammateMsgIdsRef.current.has(tmMsg.msg_id)) {
-              break;
-            }
-            if (tmMsg.msg_id) {
-              processedTeammateMsgIdsRef.current.add(tmMsg.msg_id);
-            }
-            mergeLiveMessage(
-              tmMsg.type === 'text'
-                ? {
-                    ...tmMsg,
-                    content: normalizeTextMessageContent(tmMsg.content),
-                  }
-                : tmMsg
-            );
-          }
+        case 'teammate_message':
+          handleTeammateMessage(message);
           break;
-        }
         case 'permission':
         case 'acp_permission':
           if (!streamRunningRef.current) {
@@ -383,7 +365,7 @@ export const useAionrsMessage = (
       }
     });
     // Note: hasActiveTools and streamRunning are accessed via refs to avoid re-subscription
-  }, [conversation_id, mergeLiveMessage, onError, processCompletedAssistantMessage]);
+  }, [conversation_id, mergeLiveMessage, handleTeammateMessage, onError, processCompletedAssistantMessage]);
 
   useEffect(() => {
     let cancelled = false;
