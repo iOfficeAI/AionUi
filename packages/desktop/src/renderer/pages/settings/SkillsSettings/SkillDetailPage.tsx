@@ -132,7 +132,7 @@ const SkillDetailPage: React.FC = () => {
         };
         await ipcBridge.assistants.update.invoke(update);
         Message.success(t('settings.skillsHub.detailAttachSuccess', { defaultValue: 'Assistants updated' }));
-        await Promise.all([mutateAssistants(), swrMutate('assistants'), swrMutate('agents.boundAssistants.list')]);
+        await Promise.all([mutateAssistants(), swrMutate('agents.boundAssistants.list')]);
       } catch (error) {
         console.error('Failed to update assistant skills:', error);
         Message.error(t('settings.skillsHub.detailAttachError', { defaultValue: 'Failed to update assistants' }));

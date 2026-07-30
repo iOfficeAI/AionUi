@@ -44,5 +44,8 @@
     "label": "사고 강도",
     "switchSuccess": "사고 강도가 전환되었습니다",
     "switchFailed": "사고 강도 전환에 실패했습니다"
+  },
+  "warmup": {
+    "clickToWake": "클릭하여 이 멤버를 깨우기"
   }
 }

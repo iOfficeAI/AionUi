@@ -44,5 +44,8 @@
     "label": "Nível de raciocínio",
     "switchSuccess": "Nível de raciocínio alterado",
     "switchFailed": "Falha ao alterar o nível de raciocínio"
+  },
+  "warmup": {
+    "clickToWake": "Clique para ativar este membro"
   }
 }

@@ -508,7 +508,15 @@
     }
   },
   "contextUsage": {
-    "contextUsed": "контексту використано"
+    "contextUsed": "контексту використано",
+    "tokensUsed": "Використано токенів: {{tokens}}",
+    "windowUnknown": "Розмір контекстного вікна невідомий",
+    "sessionCost": "Вартість сесії",
+    "input": "Ввід",
+    "output": "Вивід",
+    "thought": "Міркування",
+    "cachedRead": "Читання кешу",
+    "cachedWrite": "Запис кешу"
   },
   "skill_generator": {
     "title": "Створити Навичку/Правило",
@@ -579,5 +587,29 @@
       }
     }
   },
-  "notFound": "Розмову не знайдено або її видалено"
+  "notFound": "Розмову не знайдено або її видалено",
+  "explorer": {
+    "addFolder": "Add folder to project",
+    "removeFolder": "Remove from project",
+    "attachDuplicate": "This folder is already in the project",
+    "attachOverlap": "This folder overlaps a folder already in the project",
+    "attachFailed": "Couldn't add the folder",
+    "removeFailed": "Couldn't remove the folder",
+    "contextMenu": {
+      "rename": "Перейменувати",
+      "addToChat": "Додати в чат"
+    },
+    "namePlaceholder": "Назва",
+    "deleteConfirm": "Видалити «{{name}}»? Цю дію не можна скасувати.",
+    "renameFailed": "Не вдалося перейменувати",
+    "tabs": {
+      "files": "Файли",
+      "changes": "Зміни"
+    },
+    "changesPlaceholder": "Контроль версій буде в окремій вкладці — незабаром.",
+    "addedToChat": "{{name}} додано в чат",
+    "imported": "Імпортовано файлів: {{count}}",
+    "importPartialFailed": "Скопійовано: {{copied}}, з помилкою: {{failed}} (конфлікти імен або не підтримується)",
+    "importFailed": "Не вдалося імпортувати файли"
+  }
 }

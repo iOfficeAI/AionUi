@@ -278,7 +278,6 @@ Requirements:
           content,
         });
       }
-      await mutate('assistants');
       await mutate('assistants.list');
       Message.success(
         t('conversation.skill_generator.preset_registered', { defaultValue: 'Agent preset registered successfully!' })

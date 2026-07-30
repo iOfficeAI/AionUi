@@ -855,51 +855,60 @@ const SendBox: React.FC<{
     }
   }, []);
 
+  // Accept an append/set event only when it targets this box's conversation
+  // (undefined target = broadcast, back-compat). Prevents leaks across same-type
+  // send boxes on the multi-column team route.
+  const acceptsTarget = (targetConversationId: string | undefined): boolean =>
+    targetConversationId === undefined || targetConversationId === conversationContext?.conversation_id;
+
   useAddEventListener(
     'aionrs.selected.file.append',
-    (items: FileSelectionItem[]) => {
-      if (conversationContext?.type === 'aionrs') {
+    (items: FileSelectionItem[], targetConversationId: string | undefined) => {
+      if (conversationContext?.type === 'aionrs' && acceptsTarget(targetConversationId)) {
         handleExternalSelectionAppend(items);
       }
     },
-    [conversationContext?.type, handleExternalSelectionAppend]
+    [conversationContext?.type, conversationContext?.conversation_id, handleExternalSelectionAppend]
   );
   useAddEventListener(
     'acp.selected.file.append',
-    (items: FileSelectionItem[]) => {
-      if (conversationContext?.type === 'acp') {
+    (items: FileSelectionItem[], targetConversationId: string | undefined) => {
+      if (conversationContext?.type === 'acp' && acceptsTarget(targetConversationId)) {
         handleExternalSelectionAppend(items);
       }
     },
-    [conversationContext?.type, handleExternalSelectionAppend]
+    [conversationContext?.type, conversationContext?.conversation_id, handleExternalSelectionAppend]
   );
   useAddEventListener(
     'codex.selected.file.append',
-    (items: FileSelectionItem[]) => {
-      if (conversationContext?.type === 'codex') {
+    (items: FileSelectionItem[], targetConversationId: string | undefined) => {
+      if (conversationContext?.type === 'codex' && acceptsTarget(targetConversationId)) {
         handleExternalSelectionAppend(items);
       }
     },
-    [conversationContext?.type, handleExternalSelectionAppend]
+    [conversationContext?.type, conversationContext?.conversation_id, handleExternalSelectionAppend]
   );
 
   const emitSelectedFileAppend = useCallback(
     (item: FileOrFolderItem) => {
+      // Target this box's own conversation so an `@` mention adds the file only
+      // here, not to same-type peers on the team route.
+      const targetId = conversationContext?.conversation_id;
       switch (conversationContext?.type) {
         case 'aionrs':
-          emitter.emit('aionrs.selected.file.append', [item]);
+          emitter.emit('aionrs.selected.file.append', [item], targetId);
           break;
         case 'acp':
-          emitter.emit('acp.selected.file.append', [item]);
+          emitter.emit('acp.selected.file.append', [item], targetId);
           break;
         case 'codex':
-          emitter.emit('codex.selected.file.append', [item]);
+          emitter.emit('codex.selected.file.append', [item], targetId);
           break;
         default:
           break;
       }
     },
-    [conversationContext?.type]
+    [conversationContext?.type, conversationContext?.conversation_id]
   );
 
   const insertSelectedAtFile = useCallback(

@@ -426,6 +426,31 @@ function scheduleWsReconnect(): void {
   }, delay);
 }
 
+/**
+ * Send an outbound frame over the shared WS singleton, wrapped in the realtime
+ * envelope `{ name, data }` (backend routes by `name`; the fs monitor uses
+ * `name === "fs"`, see stage-1 protocol.md v3).
+ *
+ * Ordered-stream semantics: if the socket is not OPEN the frame is **dropped**
+ * (never buffered). The caller re-declares full state on reconnect (the monitor
+ * client zeroes `current` and re-subscribes via `realtime.reconnected`), so a
+ * dropped outbound never leaves an undetectable gap. Returns `true` when the
+ * frame was handed to the socket.
+ */
+export function wsSend(name: string, data: unknown): boolean {
+  ensureWs();
+  if (!ws || ws.readyState !== WebSocket.OPEN) {
+    return false;
+  }
+  try {
+    ws.send(JSON.stringify({ name, data }));
+    return true;
+  } catch (e) {
+    console.error('[wsSend] send failed:', e);
+    return false;
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Emitter factory (same shape as bridge.buildEmitter)
 // ---------------------------------------------------------------------------

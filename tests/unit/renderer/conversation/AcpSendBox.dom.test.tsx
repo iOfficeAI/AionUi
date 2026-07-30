@@ -60,13 +60,16 @@ vi.mock('@/renderer/components/chat/SendBox', () => ({
     onSend,
     onChange,
     rightTools,
+    sendButtonPrefix,
   }: {
     onSend: (message: string) => Promise<void>;
     onChange?: (value: string) => void;
     rightTools?: React.ReactNode;
+    sendButtonPrefix?: React.ReactNode;
   }) => (
     <div>
       {rightTools}
+      {sendButtonPrefix}
       <button type='button' onClick={() => onChange?.('hello')}>
         change
       </button>
@@ -196,7 +199,8 @@ vi.mock('@/renderer/utils/file/fileSelection', () => ({
   mergeFileSelectionItems: vi.fn(),
 }));
 vi.mock('@/renderer/utils/file/messageFiles', () => ({
-  buildDisplayMessage: (input: string) => input,
+  collectChatFileRefs: () => [],
+  splitChatFileRefs: () => ({ uploadFiles: [], atPath: [] }),
 }));
 vi.mock('@/renderer/pages/conversation/platforms/acp/useAcpInitialMessage', () => ({
   useAcpInitialMessage: vi.fn(),
@@ -207,6 +211,7 @@ vi.mock('@arco-design/web-react', () => ({
     error: vi.fn(),
   },
   Tag: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
+  Popover: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
 }));
 
 const makeMessageState = (): UseAcpMessageReturn => ({
@@ -272,6 +277,43 @@ describe('AcpSendBox', () => {
     await waitFor(() => {
       expect(resetStateMock).toHaveBeenCalledTimes(1);
     });
+  });
+
+  it('shows a progress ring with a window size, a hollow ring without one, and nothing without usage', () => {
+    const { container, rerender } = render(
+      <AcpSendBox
+        conversation_id='conv-1'
+        backend='gemini'
+        workspacePath='/tmp/workspace'
+        messageState={{ ...makeMessageState(), tokenUsage: { total_tokens: 500_000 }, context_limit: 1_000_000 }}
+      />
+    );
+    expect(container.querySelector('.context-usage-indicator')).not.toBeNull();
+    expect(container.querySelectorAll('.context-usage-indicator circle')).toHaveLength(2);
+
+    // Usage without an agent-reported denominator renders a hollow ring
+    // (track circle only) — the count is real, but a percentage against a
+    // made-up window size would lie.
+    rerender(
+      <AcpSendBox
+        conversation_id='conv-1'
+        backend='gemini'
+        workspacePath='/tmp/workspace'
+        messageState={{ ...makeMessageState(), tokenUsage: { total_tokens: 500_000 }, context_limit: 0 }}
+      />
+    );
+    expect(container.querySelector('.context-usage-indicator')).not.toBeNull();
+    expect(container.querySelectorAll('.context-usage-indicator circle')).toHaveLength(1);
+
+    rerender(
+      <AcpSendBox
+        conversation_id='conv-1'
+        backend='gemini'
+        workspacePath='/tmp/workspace'
+        messageState={makeMessageState()}
+      />
+    );
+    expect(container.querySelector('.context-usage-indicator')).toBeNull();
   });
 
   it('suppresses internal error cards and loading reset for active-turn busy conflicts', async () => {

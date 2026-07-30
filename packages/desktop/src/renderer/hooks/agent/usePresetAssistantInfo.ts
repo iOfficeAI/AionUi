@@ -281,7 +281,7 @@ export function usePresetAssistantInfo(conversation: TChatConversation | undefin
   const logos = useAgentLogos();
 
   // Merged assistant catalog (builtin + user) from backend
-  const { data: assistantsList, isLoading: isLoadingAssistants } = useSWR('assistants', () =>
+  const { data: assistantsList, isLoading: isLoadingAssistants } = useSWR('assistants.list', () =>
     ipcBridge.assistants.list.invoke().catch(() => [] as Assistant[])
   );
 

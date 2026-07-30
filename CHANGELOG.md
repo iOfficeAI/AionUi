@@ -1,5 +1,46 @@
 # Changelog
 
+## [2.1.43](https://github.com/iOfficeAI/AionUi/compare/v2.1.42...v2.1.43) (2026-07-29)
+
+### Desktop
+
+#### Features
+
+- **conversation:** restore agent-reported context usage indicator for ACP conversations (#3772)
+- **explorer:** sort tree children directories-first (#3775)
+- **explorer:** project-scoped Explorer replacing workspace tree (#3763)
+- **team:** thread teammate warmup status and trigger to model selector
+- **team:** add warmup click-to-wake tooltip copy for all locales
+- **team:** add manual warmup entry to AcpModelSelector read-only pill
+
+#### Bug Fixes
+
+- **pet:** source enable switch initial state from authoritative value (#3777)
+- **conversation:** persist ThoughtDisplay elapsed timer across conversation switches (#3774)
+- **webui:** implement dialog.showOpen so file and folder pickers work (#3766)
+
+#### Refactoring
+
+- **webui:** reduce redundant API refetch and drop dead front-end fs accessors (#3768)
+
+#### Styling
+
+- **team:** apply oxfmt formatting to warmup selector changes
+
+### Core ([v0.1.54](https://github.com/iOfficeAI/AionCore/releases/tag/v0.1.54))
+
+#### Features
+
+- multi-account user scope isolation (#669)
+- **project:** Project Explorer backend (runtime, WS monitor, HTTP) (#701)
+- **scripts:** carry aionrs changelog into the bump PR (#703)
+
+#### Refactoring
+
+- **acp:** upgrade agent-client-protocol SDK 0.11.1 -> 2.0.0 (#708)
+
+---
+
 ## [2.1.42](https://github.com/iOfficeAI/AionUi/compare/v2.1.41...v2.1.42) (2026-07-28)
 
 ### Desktop
