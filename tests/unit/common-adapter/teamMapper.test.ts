@@ -8,6 +8,8 @@ import { describe, expect, it } from 'vitest';
 import {
   fromBackendAdHocTeamAssociationOptional,
   fromBackendAdHocTeamCreateResult,
+} from '@/common/adapter/adHocTeamBridge';
+import {
   fromBackendAssistant,
   fromBackendTeam,
   fromBackendTeamList,

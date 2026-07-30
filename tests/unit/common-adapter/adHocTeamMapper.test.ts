@@ -9,7 +9,7 @@ import {
   fromBackendAdHocTeamAssociationOptional,
   fromBackendAdHocTeamCreateResult,
   toBackendAdHocTeamFromConversationParams,
-} from '@/common/adapter/teamMapper';
+} from '@/common/adapter/adHocTeamBridge';
 
 describe('adHocTeamMapper', () => {
   describe('toBackendAdHocTeamFromConversationParams', () => {

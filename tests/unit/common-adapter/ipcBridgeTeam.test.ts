@@ -147,4 +147,30 @@ describe('ipcBridge team adapter', () => {
       body: undefined,
     });
   });
+
+  it('keeps the ad-hoc team endpoint contract through the extracted bridge', async () => {
+    const { team } = await import('@/common/adapter/ipcBridge');
+
+    await team.fromConversation.invoke({
+      conversation_id: 'conv-1',
+      user_id: 'user-1',
+      target_assistant_id: 'asst-1',
+    });
+    await team.getByConversation.invoke({ conversation_id: 'conv-1', user_id: 'user-1' });
+
+    expect(httpBridgeMocks.calls).toContainEqual({
+      method: 'POST',
+      path: '/api/teams/from-conversation',
+      body: {
+        conversation_id: 'conv-1',
+        user_id: 'user-1',
+        target_assistant_id: 'asst-1',
+      },
+    });
+    expect(httpBridgeMocks.calls).toContainEqual({
+      method: 'GET',
+      path: '/api/teams/by-conversation?conversation_id=conv-1&user_id=user-1',
+      body: undefined,
+    });
+  });
 });
