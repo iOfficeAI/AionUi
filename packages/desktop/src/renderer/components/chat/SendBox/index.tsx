@@ -15,7 +15,12 @@ import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { useConversationContextSafe } from '@/renderer/hooks/context/ConversationContext';
 import { appendPromptToDraft, useConversationSendBoxPrefill } from '@/renderer/hooks/chat/useSendBoxDraft';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
-import { buildAtFileInsertion, getActiveAtFileQuery, getAllAtFileQueries } from '@/renderer/utils/chat/atFileQuery';
+import {
+  buildAtFileInsertion,
+  getActiveAtFileQuery,
+  getAllAtFileQueries,
+  resolveAtFileMenuKey,
+} from '@/renderer/utils/chat/atFileQuery';
 import { getLastAssistantText } from '@/renderer/utils/chat/getLastAssistantText';
 import { emitter, type ReplyQuote, useAddEventListener } from '@/renderer/utils/emitter';
 import { mergeFileSelectionItems, type FileSelectionItem } from '@/renderer/utils/file/fileSelection';
@@ -1153,39 +1158,37 @@ const SendBox: React.FC<{
         return false;
       }
 
-      if (event.key === 'Escape') {
+      // Key→action contract lives in the pure `resolveAtFileMenuKey` (unit-tested).
+      // Enter and Tab both accept; Tab is only hijacked while the dropdown is open
+      // (guarded above), so with the menu closed Tab keeps normal focus behavior.
+      const action = resolveAtFileMenuKey(event.key, visibleAtFileMenuItems.length > 0);
+      if (!action) {
+        return false;
+      }
+
+      if (action === 'dismiss') {
         event.preventDefault();
         setDismissedAtFileToken(activeAtFileTokenKey);
         return true;
       }
-
-      if (!visibleAtFileMenuItems.length) {
-        return false;
-      }
-
-      if (event.key === 'ArrowDown') {
+      if (action === 'down') {
         event.preventDefault();
         setAtFileMenuActiveIndex((previous) => (previous + 1) % visibleAtFileMenuItems.length);
         return true;
       }
-
-      if (event.key === 'ArrowUp') {
+      if (action === 'up') {
         event.preventDefault();
         setAtFileMenuActiveIndex((previous) => (previous === 0 ? visibleAtFileMenuItems.length - 1 : previous - 1));
         return true;
       }
-
-      if (event.key === 'Enter') {
-        const selectedItem = visibleAtFileMenuItems[atFileMenuActiveIndex];
-        if (!selectedItem) {
-          return false;
-        }
-        event.preventDefault();
-        insertSelectedAtFile(selectedItem);
-        return true;
+      // action === 'accept'
+      const selectedItem = visibleAtFileMenuItems[atFileMenuActiveIndex];
+      if (!selectedItem) {
+        return false;
       }
-
-      return false;
+      event.preventDefault();
+      insertSelectedAtFile(selectedItem);
+      return true;
     },
     [activeAtFileTokenKey, atFileMenuActiveIndex, insertSelectedAtFile, isAtFileMenuOpen, visibleAtFileMenuItems]
   );
