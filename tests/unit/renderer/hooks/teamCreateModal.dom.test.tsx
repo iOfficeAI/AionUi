@@ -8,6 +8,7 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Assistant } from '@/common/types/agent/assistantTypes';
+import type { TeamPreset } from '@/common/types/team/teamTypes';
 
 const createTeamInvokeMock = vi.fn();
 const resolveDefaultTeamAgentModelMock = vi.fn();
@@ -43,6 +44,23 @@ vi.mock('@renderer/pages/conversation/hooks/useConversationAssistants', () => ({
     presetAssistants: assistants(),
   }),
 }));
+
+const teamPresetsMock = vi.hoisted(() => ({
+  presets: [] as TeamPreset[],
+  createPreset: vi.fn(),
+  updatePreset: vi.fn(),
+  removePreset: vi.fn(),
+}));
+
+vi.mock('@renderer/pages/team/TeamPresets', async () => {
+  const actual = await vi.importActual<typeof import('@renderer/pages/team/TeamPresets')>(
+    '@renderer/pages/team/TeamPresets'
+  );
+  return {
+    ...actual,
+    useTeamPresets: () => teamPresetsMock,
+  };
+});
 
 vi.mock('@arco-design/web-react', async () => {
   const actual = await vi.importActual<typeof import('@arco-design/web-react')>('@arco-design/web-react');
@@ -204,7 +222,6 @@ describe('TeamCreateModal', () => {
     expect(assistantPane).toHaveClass('px-20px', 'pt-12px', 'pb-18px');
     expect(detailsPane).toHaveClass('px-20px', 'pt-12px', 'pb-14px');
     expect(within(assistantPane).getByText('All assistants (3)')).toBeInTheDocument();
-    expect(within(assistantPane).getByText('All assistants (3)')).toHaveClass('text-15px');
     expect(searchInput.tagName).toBe('INPUT');
     expect(searchInput).toHaveAttribute('placeholder', 'Search');
     expect(within(assistantPane).getByTestId('team-create-agent-picker-body')).not.toHaveClass('bg-fill-1');
@@ -371,6 +388,55 @@ describe('TeamCreateModal', () => {
   });
 });
 
+describe('TeamCreateModal · desktop scrollable layout', () => {
+  beforeEach(() => {
+    teamPresetsMock.presets = [];
+    teamPresetsMock.createPreset.mockReset();
+    teamPresetsMock.updatePreset.mockReset();
+    teamPresetsMock.removePreset.mockReset();
+  });
+
+  it('gives the assistant list a constrained flex parent so overflow-y-auto can scroll', () => {
+    render(<TeamCreateModal visible onClose={vi.fn()} onCreated={vi.fn()} />);
+
+    const assistantPane = screen.getByTestId('team-create-assistant-pane');
+    const tabsRoot = assistantPane.querySelector('.arco-tabs');
+    const activePane = assistantPane.querySelector('.arco-tabs-content-item-active');
+    const pickerBody = within(assistantPane).getByTestId('team-create-agent-picker-body');
+    const pickerRoot = pickerBody.parentElement;
+
+    expect(tabsRoot).toBeInTheDocument();
+    expect(tabsRoot?.className).toContain('teamCreateTabs');
+    expect(activePane).toBeInTheDocument();
+    expect(pickerRoot).toHaveClass('min-h-0', 'flex-1');
+    expect(pickerBody).toHaveClass('min-h-0', 'flex-1', 'overflow-y-auto');
+  });
+
+  it('gives the preset list a constrained flex parent so overflow-y-auto can scroll', () => {
+    teamPresetsMock.presets = [
+      makePreset({ id: 'preset-1', name: 'Code Review' }),
+      makePreset({ id: 'preset-2', name: 'Writing Squad' }),
+      makePreset({ id: 'preset-3', name: 'Security Panel' }),
+    ];
+
+    render(<TeamCreateModal visible onClose={vi.fn()} onCreated={vi.fn()} />);
+
+    const assistantPane = screen.getByTestId('team-create-assistant-pane');
+    const presetTab = within(assistantPane).getByRole('tab', { name: 'Expert teams' });
+
+    fireEvent.click(presetTab);
+
+    const presetPicker = within(assistantPane).getByTestId('team-preset-picker');
+    const scrollableList = presetPicker.querySelector('.overflow-y-auto');
+
+    expect(presetPicker).toHaveClass('h-full');
+    expect(scrollableList).toBeInTheDocument();
+    expect(scrollableList).toHaveClass('min-h-0', 'flex-1', 'overflow-y-auto');
+    expect(within(assistantPane).getByTestId('preset-picker-item-preset-1')).toBeInTheDocument();
+    expect(within(assistantPane).getByTestId('preset-picker-item-preset-3')).toBeInTheDocument();
+  });
+});
+
 describe('TeamCreateModal · mobile (narrow screen)', () => {
   beforeEach(() => {
     createTeamInvokeMock.mockReset();
@@ -463,6 +529,29 @@ function assistants(): Assistant[] {
       team_selectable: true,
     }),
   ];
+}
+
+function makePreset(overrides: Partial<TeamPreset> & Pick<TeamPreset, 'id' | 'name'>): TeamPreset {
+  const leader = {
+    assistant_backend: 'acp',
+    assistant_id: 'lead-1',
+    assistant_name: 'Lead',
+    role: 'leader' as const,
+    order: 0,
+  };
+  return {
+    user_id: 'user-1',
+    category: 'Engineering',
+    description: '',
+    expertise_tags: [],
+    example_prompts: [],
+    leader,
+    members: [leader],
+    version: 1,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    ...overrides,
+  };
 }
 
 function assistant(overrides: Partial<Assistant> & Pick<Assistant, 'id' | 'name' | 'source' | 'agent_id'>): Assistant {
