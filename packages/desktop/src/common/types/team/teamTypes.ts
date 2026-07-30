@@ -269,6 +269,18 @@ export type ITeamTaskItem = {
   updated_at: number;
 };
 
+/** One entry of the unified team activity feed (matches backend TeamActivityItemResponse). */
+export type ITeamActivityItem =
+  | { kind: 'message'; created_at: number; id: string; message: ITeamMailboxMessage }
+  | { kind: 'task'; created_at: number; id: string; task: ITeamTaskItem };
+
+/** One keyset-paginated page of the unified activity feed. */
+export type ITeamActivityPage = {
+  items: ITeamActivityItem[];
+  next_cursor?: { ts: number; id: string };
+  has_more: boolean;
+};
+
 /** IPC event pushed when a Team task board item changes.
  *
  * The `task`/`change` fields carry the full payload used by the activity view;
