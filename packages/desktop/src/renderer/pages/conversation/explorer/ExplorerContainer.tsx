@@ -31,6 +31,8 @@ import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import WorkspaceOpenButton from '@/renderer/pages/conversation/components/ChatLayout/WorkspaceOpenButton';
 import { getContentTypeByExtension } from '@/renderer/pages/conversation/Preview/fileUtils';
 import { classifyPreviewError, previewErrorToI18nKey } from '@/renderer/utils/previewError';
+// PATCH(ELECTRON-3SZ): used only by the preview payload patch below — remove with it.
+import type { PreviewContentType } from '@/common/types/office/preview';
 
 import { emitter } from '@/renderer/utils/emitter';
 import { projectFileRef } from '@/common/types/chatFile';
@@ -57,6 +59,101 @@ const pathToFileUri = (p: string): string => {
   return `file://${encodeURI(withLeadingSlash)}`;
 };
 
+// PATCH(ELECTRON-3SZ): image file extension → data-URL MIME. The WS `fs/read`
+// base64 payload is bare (no `data:` prefix), but ImageViewer feeds `content`
+// straight into <img src>, so the Explorer open path must wrap it. Remove with
+// the rest of this patch once Preview consumes {pe_id, relative_path} directly.
+const IMAGE_MIME_BY_EXT: Record<string, string> = {
+  png: 'image/png',
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  gif: 'image/gif',
+  svg: 'image/svg+xml',
+  webp: 'image/webp',
+  bmp: 'image/bmp',
+  ico: 'image/x-icon',
+  tif: 'image/tiff',
+  tiff: 'image/tiff',
+  avif: 'image/avif',
+};
+
+/** PATCH(ELECTRON-3SZ): wrap a bare base64 image body into a renderable data URL. */
+const imageDataUrl = (fileName: string, base64: string): string => {
+  const ext = fileName.slice(fileName.lastIndexOf('.') + 1).toLowerCase();
+  const mime = IMAGE_MIME_BY_EXT[ext] ?? 'image/png';
+  return `data:${mime};base64,${base64}`;
+};
+
+/** PATCH(ELECTRON-3SZ): minimal WS-RPC surface the preview payload builder needs. Remove with it. */
+type PreviewRpcClient = { request(method: string, params?: unknown): Promise<unknown> };
+
+/** PATCH(ELECTRON-3SZ): args passed to `openPreview` for an Explorer-opened file. Remove with it. */
+export type ExplorerPreviewPayload = {
+  content: string;
+  contentType: PreviewContentType;
+  metadata: {
+    title: string;
+    file_name: string;
+    file_path?: string;
+    workspace?: string;
+    language: string;
+    editable?: boolean;
+  };
+};
+
+// PATCH(ELECTRON-3SZ): the Explorer tree only knows `{pe_id, relative_path}`, but
+// three viewer families can't render from the WS `fs/read` content alone, so this
+// builder special-cases them:
+//   - image: fs/read base64 is bare (no `data:` prefix); ImageViewer feeds
+//     `content` straight into <img src>, so wrap it into a data URL.
+//   - pdf/office: need a real local absolute path (PDF via file://, office via
+//     `officecli watch`), so resolve pe → absolute path with `fs/resolve`.
+// Exposing the absolute path to the renderer breaks the "front-end never sees
+// absolute paths" boundary — this whole helper is an emergency patch and MUST be
+// removed once Preview consumes `{pe_id, relative_path}` end-to-end.
+export const buildExplorerPreviewPayload = async (
+  client: PreviewRpcClient,
+  peId: string,
+  relativePath: string
+): Promise<ExplorerPreviewPayload> => {
+  const name = relativePath.split('/').pop() || relativePath;
+  const contentType = getContentTypeByExtension(name);
+  const file = { pe_id: peId, relative_path: relativePath };
+
+  let content = '';
+  let file_path: string | undefined;
+  let workspace: string | undefined;
+
+  if (contentType === 'image') {
+    const res = (await client.request('fs/read', { file, encoding: 'base64' })) as { content?: string };
+    const base64 = res.content ?? '';
+    content = base64 ? imageDataUrl(name, base64) : '';
+  } else if (contentType === 'pdf' || contentType === 'word' || contentType === 'excel' || contentType === 'ppt') {
+    const res = (await client.request('fs/resolve', { file })) as {
+      absolute_path?: string;
+      workspace_root?: string;
+    };
+    file_path = res.absolute_path;
+    workspace = res.workspace_root;
+  } else {
+    const res = (await client.request('fs/read', { file, encoding: 'utf-8' })) as { content?: string };
+    content = res.content ?? '';
+  }
+
+  return {
+    content,
+    contentType,
+    metadata: {
+      title: name,
+      file_name: name,
+      file_path,
+      workspace,
+      language: name.split('.').pop() || '',
+      editable: contentType === 'markdown' || contentType === 'image' ? false : undefined,
+    },
+  };
+};
+
 export const ExplorerContainer: React.FC<ExplorerContainerProps> = ({ projectId }) => {
   const { t } = useTranslation();
   const { openPreview } = usePreviewContext();
@@ -79,34 +176,15 @@ export const ExplorerContainer: React.FC<ExplorerContainerProps> = ({ projectId 
   // project preview isolation is handled by the scope key (C5); switching files
   // replaces the active tab.
   const handleOpenFile = async (peId: string, relativePath: string): Promise<void> => {
-    const name = relativePath.split('/').pop() || relativePath;
-    const contentType = getContentTypeByExtension(name);
     try {
-      let content = '';
-      const skipRead =
-        contentType === 'pdf' || contentType === 'word' || contentType === 'excel' || contentType === 'ppt';
-      if (!skipRead) {
-        const client = initExplorerRuntime();
-        const encoding = contentType === 'image' ? 'base64' : 'utf-8';
-        const res = (await client.request('fs/read', {
-          file: { pe_id: peId, relative_path: relativePath },
-          encoding,
-        })) as {
-          content?: string;
-        };
-        content = res.content ?? '';
-      }
-      openPreview(
-        content,
-        contentType,
-        {
-          title: name,
-          file_name: name,
-          language: name.split('.').pop() || '',
-          editable: contentType === 'markdown' || contentType === 'image' ? false : undefined,
-        },
-        { replace: true }
+      // PATCH(ELECTRON-3SZ): payload building (incl. absolute-path resolve) lives
+      // in `buildExplorerPreviewPayload` — remove with the rest of that patch.
+      const { content, contentType, metadata } = await buildExplorerPreviewPayload(
+        initExplorerRuntime(),
+        peId,
+        relativePath
       );
+      openPreview(content, contentType, metadata, { replace: true });
     } catch (e) {
       Message.error(t(previewErrorToI18nKey(classifyPreviewError(e))));
     }
