@@ -47,6 +47,7 @@ const SystemModalContent: React.FC = () => {
     platform: 'web',
   });
   const [closeToTray, setCloseToTray] = useState(false);
+  const [autoUpdateCheckEnabled, setAutoUpdateCheckEnabled] = useState(true);
   const [gpuStatus, setGpuStatus] = useState<IGpuStatus | null>(null);
   const [notificationEnabled, setNotificationEnabled] = useState(true);
   const [cronNotificationEnabled, setCronNotificationEnabled] = useState(false);
@@ -81,12 +82,20 @@ const SystemModalContent: React.FC = () => {
 
   useEffect(() => {
     setCloseToTray(configService.get('system.closeToTray') ?? false);
+    setAutoUpdateCheckEnabled(configService.get('system.autoUpdateCheckEnabled') ?? true);
     if (isDesktop) {
       ipcBridge.systemSettings.getCloseToTray
         .invoke()
         .then((enabled) => {
           setCloseToTray(enabled);
           configService.setLocal('system.closeToTray', enabled);
+        })
+        .catch(() => {});
+      ipcBridge.systemSettings.getAutoUpdateCheckEnabled
+        .invoke()
+        .then((enabled) => {
+          setAutoUpdateCheckEnabled(enabled);
+          configService.setLocal('system.autoUpdateCheckEnabled', enabled);
         })
         .catch(() => {});
     }
@@ -147,6 +156,20 @@ const SystemModalContent: React.FC = () => {
       });
     },
     [closeToTray, isDesktop]
+  );
+
+  const handleAutoUpdateCheckEnabledChange = useCallback(
+    (checked: boolean) => {
+      const previous = autoUpdateCheckEnabled;
+      setAutoUpdateCheckEnabled(checked);
+      configService.setLocal('system.autoUpdateCheckEnabled', checked);
+
+      ipcBridge.systemSettings.setAutoUpdateCheckEnabled.invoke({ enabled: checked }).catch(() => {
+        setAutoUpdateCheckEnabled(previous);
+        configService.setLocal('system.autoUpdateCheckEnabled', previous);
+      });
+    },
+    [autoUpdateCheckEnabled]
   );
 
   const handleHardwareAccelerationChange = useCallback(
@@ -296,6 +319,16 @@ const SystemModalContent: React.FC = () => {
       label: t('settings.closeToTray'),
       component: <Switch checked={closeToTray} onChange={handleCloseToTrayChange} />,
     },
+    ...(isDesktop
+      ? [
+          {
+            key: 'autoUpdateCheck',
+            label: t('settings.autoUpdateCheck'),
+            description: t('settings.autoUpdateCheckDesc'),
+            component: <Switch checked={autoUpdateCheckEnabled} onChange={handleAutoUpdateCheckEnabledChange} />,
+          },
+        ]
+      : []),
     ...(isDesktop && gpuStatus
       ? [
           {

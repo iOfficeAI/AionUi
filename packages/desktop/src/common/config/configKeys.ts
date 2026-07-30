@@ -24,6 +24,7 @@ export type ConfigKeyMap = {
   'assistants.enabledOrder': string[] | undefined;
   'upload.saveToWorkspace': boolean | undefined;
   'system.closeToTray': boolean | undefined;
+  'system.autoUpdateCheckEnabled': boolean | undefined;
   'system.notificationEnabled': boolean | undefined;
   'system.cronNotificationEnabled': boolean | undefined;
   'system.keepAwake': boolean | undefined;

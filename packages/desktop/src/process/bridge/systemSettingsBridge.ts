@@ -33,6 +33,15 @@ export function onLanguageChanged(listener: LanguageChangeListener): void {
 export function initSystemSettingsBridge(): void {
   ipcBridge.systemSettings.getCloseToTray.provider(async () => readCloseToTraySetting());
 
+  ipcBridge.systemSettings.getAutoUpdateCheckEnabled.provider(async () => {
+    const value = await ProcessConfig.get('system.autoUpdateCheckEnabled');
+    return value ?? true;
+  });
+
+  ipcBridge.systemSettings.setAutoUpdateCheckEnabled.provider(async ({ enabled }) => {
+    await ProcessConfig.set('system.autoUpdateCheckEnabled', enabled);
+  });
+
   ipcBridge.systemSettings.setCloseToTray.provider(async ({ enabled }) => {
     await writeCloseToTraySetting(enabled);
     setCloseToTrayEnabled(enabled);

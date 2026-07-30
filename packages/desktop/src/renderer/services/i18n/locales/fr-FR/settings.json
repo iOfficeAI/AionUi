@@ -314,6 +314,8 @@
   "startOnBootUnsupported": "Disponible uniquement dans les applications macOS et Windows packagées.",
   "startOnBootUpdateFailed": "Échec de la mise à jour du paramètre de démarrage automatique",
   "closeToTray": "Réduire dans la barre système",
+  "autoUpdateCheck": "Vérification automatique des mises à jour",
+  "autoUpdateCheckDesc": "Vérifier automatiquement les nouvelles versions au démarrage. Vous pouvez toujours vérifier manuellement depuis la page À propos.",
   "hardwareAcceleration": "Accélération matérielle",
   "hardwareAccelerationDesc": "Utilisez le GPU pour restituer l'interface utilisateur. Désactivez-le si l'application plante au lancement ou si les graphiques scintillent.",
   "hardwareAccelerationAutoDisabled": "Désactivé automatiquement après des pannes répétées du GPU.",

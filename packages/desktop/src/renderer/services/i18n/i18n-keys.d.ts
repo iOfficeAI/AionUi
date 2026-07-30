@@ -1447,6 +1447,8 @@ export type I18nKey =
   | 'settings.autoInjectedSkillsHint'
   | 'settings.autoPreviewOfficeFiles'
   | 'settings.autoPreviewOfficeFilesDesc'
+  | 'settings.autoUpdateCheck'
+  | 'settings.autoUpdateCheckDesc'
   | 'settings.baseUrl'
   | 'settings.baseUrlAutoFix'
   | 'settings.baseUrlHint'
