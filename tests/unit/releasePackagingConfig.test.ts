@@ -88,6 +88,40 @@ describe('release packaging configuration', () => {
     expect(reusableWorkflow).toContain('Sentry credentials are not configured; building without source map upload');
   });
 
+  it('supports manually publishing an existing release tag', () => {
+    const releaseWorkflow = readProjectFile('.github/workflows/build-and-release.yml');
+
+    expect(releaseWorkflow).toMatch(/workflow_dispatch:\r?\n\s+inputs:\r?\n\s+release_tag:/);
+    expect(releaseWorkflow).toContain(
+      "ref: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || '' }}"
+    );
+    expect(releaseWorkflow).toContain('git show-ref --verify --quiet "refs/tags/$RELEASE_TAG"');
+    expect(releaseWorkflow).toContain("github.event_name == 'workflow_dispatch' || needs.create-tag.result");
+  });
+
+  it('uses Node 24-based actions throughout the release pipelines', () => {
+    const workflows = [
+      readProjectFile('.github/workflows/build-and-release.yml'),
+      readProjectFile('.github/workflows/_build-reusable.yml'),
+      readProjectFile('.github/workflows/pack-web-cli.yml'),
+    ].join('\n');
+
+    expect(workflows).not.toMatch(/actions\/setup-node@v4/);
+    expect(workflows).not.toMatch(/actions\/setup-python@v5/);
+    expect(workflows).not.toMatch(/actions\/cache@v4/);
+    expect(workflows).not.toMatch(/nick-fields\/retry@v3/);
+  });
+
+  it('reports lint errors without publishing pre-existing warnings as release annotations', () => {
+    const workflows = [
+      readProjectFile('.github/workflows/build-and-release.yml'),
+      readProjectFile('.github/workflows/_build-reusable.yml'),
+      readProjectFile('.github/workflows/pack-web-cli.yml'),
+    ].join('\n');
+
+    expect(workflows.match(/bun run lint -- --quiet/g)).toHaveLength(3);
+  });
+
   it('removes application VERSIONINFO during afterPack', () => {
     const afterPack = readProjectFile('scripts/afterPack.js');
     const metadataScript = readProjectFile('resources/windows/support/strip-exe-version-info.ps1');
@@ -96,12 +130,18 @@ describe('release packaging configuration', () => {
     expect(metadataScript).toContain("'-mask', 'VERSIONINFO,,'");
   });
 
-  it('removes installer VERSIONINFO before NSIS assembles integrity data', () => {
+  it('prevents installer VERSIONINFO before NSIS assembles integrity data', () => {
     const nsisInclude = readProjectFile('resources/windows/installer-update-verify.nsh');
+    const buildScript = readProjectFile('scripts/build-with-builder.js');
 
     expect(nsisInclude).toContain('!packhdr');
     expect(nsisInclude).toContain('strip-exe-version-info.ps1');
     expect(nsisInclude).not.toMatch(/CRCCheck\s+off/i);
+    expect(buildScript).toContain('VIProductVersion: appInfo.getVersionInWeirdWindowsForm()');
+    expect(buildScript).toContain('VIAddVersionKey: this.computeVersionKey()');
+    expect(buildScript).toContain('commandsUninstaller.VIProductVersion = appInfo.shortVersionWindows');
+    expect(buildScript).toContain('commandsUninstaller.VIAddVersionKey = this.computeVersionKey(true)');
+    expect(buildScript).toContain('Patched electron-builder NSIS VERSIONINFO commands.');
   });
 
   it('runs push checks for every branch and cancels stale branch runs', () => {

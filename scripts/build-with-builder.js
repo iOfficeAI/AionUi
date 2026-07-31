@@ -59,6 +59,48 @@ function patchElectronBuilderNsisInstaller() {
     }
   }
 
+  if (process.env.RESOURCE_HACKER_PATH) {
+    const nsisTargetPath = path.join(appBuilderDir, 'out', 'targets', 'nsis', 'NsisTarget.js');
+    if (!fs.existsSync(nsisTargetPath)) {
+      throw new Error(`electron-builder NSIS target not found: ${nsisTargetPath}`);
+    }
+
+    const originalTarget = fs.readFileSync(nsisTargetPath, 'utf8');
+    const metadataFreeMarker = '// CSBU_WORKMATE_METADATA_FREE: VERSIONINFO commands intentionally omitted.';
+    let patchedTarget = originalTarget;
+
+    const installerVersionCommands = [
+      '            VIProductVersion: appInfo.getVersionInWeirdWindowsForm(),',
+      '            VIAddVersionKey: this.computeVersionKey(),',
+    ].join('\n');
+    if (patchedTarget.includes(installerVersionCommands)) {
+      patchedTarget = patchedTarget.replace(installerVersionCommands, `            ${metadataFreeMarker}`);
+    } else if (!patchedTarget.includes(metadataFreeMarker)) {
+      throw new Error(
+        'electron-builder NSIS installer VERSIONINFO template changed; update patchElectronBuilderNsisInstaller.'
+      );
+    }
+
+    const uninstallerVersionCommands = [
+      '            commandsUninstaller.VIProductVersion = appInfo.shortVersionWindows;',
+      '            commandsUninstaller.VIAddVersionKey = this.computeVersionKey(true);',
+    ].join('\n');
+    if (patchedTarget.includes(uninstallerVersionCommands)) {
+      patchedTarget = patchedTarget.replace(uninstallerVersionCommands, `            ${metadataFreeMarker}`);
+    } else if (
+      (patchedTarget.match(new RegExp(metadataFreeMarker.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g')) || []).length < 2
+    ) {
+      throw new Error(
+        'electron-builder NSIS uninstaller VERSIONINFO template changed; update patchElectronBuilderNsisInstaller.'
+      );
+    }
+
+    if (patchedTarget !== originalTarget) {
+      fs.writeFileSync(nsisTargetPath, patchedTarget);
+      console.log('Patched electron-builder NSIS VERSIONINFO commands.');
+    }
+  }
+
   const installUtilPath = path.join(appBuilderDir, 'templates', 'nsis', 'include', 'installUtil.nsh');
   if (!fs.existsSync(installUtilPath)) {
     console.warn(`Warning: electron-builder NSIS installUtil.nsh not found: ${installUtilPath}`);

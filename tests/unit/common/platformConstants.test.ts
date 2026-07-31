@@ -32,8 +32,8 @@ describe('platformConstants', () => {
     });
 
     it('returns false for null/undefined', () => {
-      expect(isNewApiPlatform(null as any)).toBe(false);
-      expect(isNewApiPlatform(undefined as any)).toBe(false);
+      expect(isNewApiPlatform(null as unknown as string)).toBe(false);
+      expect(isNewApiPlatform(undefined as unknown as string)).toBe(false);
     });
 
     it('is case-sensitive', () => {

@@ -42,8 +42,8 @@ describe('protocolDetector', () => {
 
     it('returns empty array for empty input', () => {
       expect(parseApiKeys('')).toEqual([]);
-      expect(parseApiKeys(null as any)).toEqual([]);
-      expect(parseApiKeys(undefined as any)).toEqual([]);
+      expect(parseApiKeys(null as unknown as string)).toEqual([]);
+      expect(parseApiKeys(undefined as unknown as string)).toEqual([]);
     });
 
     it('handles single key', () => {
@@ -89,8 +89,8 @@ describe('protocolDetector', () => {
 
     it('returns empty string for empty input', () => {
       expect(normalizeBaseUrl('')).toBe('');
-      expect(normalizeBaseUrl(null as any)).toBe('');
-      expect(normalizeBaseUrl(undefined as any)).toBe('');
+      expect(normalizeBaseUrl(null as unknown as string)).toBe('');
+      expect(normalizeBaseUrl(undefined as unknown as string)).toBe('');
     });
   });
 
@@ -125,7 +125,7 @@ describe('protocolDetector', () => {
 
     it('returns null for empty input', () => {
       expect(removeApiPathSuffix('')).toBeNull();
-      expect(removeApiPathSuffix(null as any)).toBeNull();
+      expect(removeApiPathSuffix(null as unknown as string)).toBeNull();
     });
   });
 
@@ -236,7 +236,7 @@ describe('protocolDetector', () => {
     });
 
     it('returns protocol string for unmapped values', () => {
-      expect(getProtocolDisplayName('custom' as any)).toBe('custom');
+      expect(getProtocolDisplayName('custom' as Parameters<typeof getProtocolDisplayName>[0])).toBe('custom');
     });
   });
 

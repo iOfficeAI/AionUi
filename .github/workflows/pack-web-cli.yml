@@ -41,7 +41,7 @@ jobs:
           ref: ${{ inputs.ref }}
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: '22'
 
@@ -57,7 +57,7 @@ jobs:
         run: bun run postinstall || true
 
       - name: Run ESLint
-        run: bun run lint
+        run: bun run lint -- --quiet
 
       - name: Check Prettier formatting
         run: bun run format:check
@@ -97,7 +97,7 @@ jobs:
           echo "short=$SHORT" >> $GITHUB_OUTPUT
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: '22'
 
@@ -152,7 +152,7 @@ jobs:
           echo "short=$SHORT" >> $GITHUB_OUTPUT
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: '22'
 

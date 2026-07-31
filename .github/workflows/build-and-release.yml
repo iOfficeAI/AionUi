@@ -11,6 +11,12 @@ on:
     branches: [dev]
     tags:
       - '*'
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Existing tag to build and publish, for example v2.1.44'
+        required: true
+        type: string
 
 env:
   BUN_INSTALL_REGISTRY: 'https://registry.npmjs.org/'
@@ -20,13 +26,35 @@ jobs:
   code-quality:
     name: Code Quality
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/dev' || (startsWith(github.ref, 'refs/tags/') && !contains(github.ref, '-dev-'))
+    if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/dev' || (startsWith(github.ref, 'refs/tags/') && !contains(github.ref, '-dev-'))
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || '' }}
+
+      - name: Validate manual release tag
+        if: github.event_name == 'workflow_dispatch'
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: |
+          set -euo pipefail
+
+          if [[ ! "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+([+-][0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error title=Invalid release tag::Expected an existing semantic version tag such as v2.1.44"
+            exit 1
+          fi
+
+          if ! git show-ref --verify --quiet "refs/tags/$RELEASE_TAG"; then
+            echo "::error title=Release tag not found::$RELEASE_TAG must exist before running a manual release"
+            exit 1
+          fi
+
+          echo "Manual release tag verified: $RELEASE_TAG"
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: '22'
 
@@ -42,7 +70,7 @@ jobs:
         run: bun run postinstall || true
 
       - name: Run ESLint
-        run: bun run lint
+        run: bun run lint -- --quiet
 
       - name: Check Prettier formatting
         run: bun run format:check
@@ -58,8 +86,9 @@ jobs:
     uses: ./.github/workflows/_build-reusable.yml
     needs: code-quality
     # dev 分支或正式 tag 触发构建（排除 -dev- tag，避免重复构建）
-    if: needs.code-quality.result == 'success' && (github.ref == 'refs/heads/dev' || (startsWith(github.ref, 'refs/tags/') && !contains(github.ref, '-dev-')))
+    if: needs.code-quality.result == 'success' && (github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/dev' || (startsWith(github.ref, 'refs/tags/') && !contains(github.ref, '-dev-')))
     with:
+      ref: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || '' }}
       skip_code_quality: true
       strip_windows_exe_metadata: true
       matrix: >-
@@ -78,9 +107,9 @@ jobs:
     uses: ./.github/workflows/pack-web-cli.yml
     needs: code-quality
     # 与桌面构建同频触发：dev 分支或正式 tag（排除 -dev- tag）
-    if: needs.code-quality.result == 'success' && (github.ref == 'refs/heads/dev' || (startsWith(github.ref, 'refs/tags/') && !contains(github.ref, '-dev-')))
+    if: needs.code-quality.result == 'success' && (github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/dev' || (startsWith(github.ref, 'refs/tags/') && !contains(github.ref, '-dev-')))
     with:
-      ref: ''
+      ref: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || '' }}
       append_commit_hash: false
       skip_code_quality: true
     secrets: inherit
@@ -162,7 +191,7 @@ jobs:
           token: ${{ secrets.GH_TOKEN }}
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: '22'
 
@@ -257,19 +286,25 @@ jobs:
     runs-on: ubuntu-latest
     needs: [build-pipeline, create-tag, pack-web-cli]
     # Tag 推送时 create-tag 会被跳过，所以需要检查两种情况（排除 -dev- tag 避免重复）
-    if: always() && needs.build-pipeline.result == 'success' && needs.pack-web-cli.result == 'success' && (needs.create-tag.result == 'success' || (startsWith(github.ref, 'refs/tags/') && !contains(github.ref, '-dev-')))
+    if: always() && needs.build-pipeline.result == 'success' && needs.pack-web-cli.result == 'success' && (github.event_name == 'workflow_dispatch' || needs.create-tag.result == 'success' || (startsWith(github.ref, 'refs/tags/') && !contains(github.ref, '-dev-')))
     # dev 分支使用 dev-release 环境，正式 tag 使用 release 环境
     environment: ${{ needs.create-tag.outputs.is_dev == 'true' && 'dev-release' || 'release' }}
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || '' }}
 
       - name: Get version for release
         id: version
         run: |
           # 判断触发来源：正式 tag 推送 or dev 分支
-          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            TAG_NAME="${{ inputs.release_tag }}"
+            IS_DEV="false"
+            echo "🚀 Creating manually requested stable release from tag: $TAG_NAME"
+          elif [[ "$GITHUB_REF" == refs/tags/* ]]; then
             # 正式 Tag 推送触发（-dev- tag 已被排除，不会到达这里）
             TAG_NAME="${GITHUB_REF#refs/tags/}"
             IS_DEV="false"

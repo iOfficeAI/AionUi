@@ -88,8 +88,8 @@ describe('platformAuthType', () => {
 
     it('returns USE_OPENAI for empty or null platform', () => {
       expect(getAuthTypeFromPlatform('')).toBe(AuthType.USE_OPENAI);
-      expect(getAuthTypeFromPlatform(null as any)).toBe(AuthType.USE_OPENAI);
-      expect(getAuthTypeFromPlatform(undefined as any)).toBe(AuthType.USE_OPENAI);
+      expect(getAuthTypeFromPlatform(null as unknown as string)).toBe(AuthType.USE_OPENAI);
+      expect(getAuthTypeFromPlatform(undefined as unknown as string)).toBe(AuthType.USE_OPENAI);
     });
 
     it('handles case-insensitive matching', () => {
