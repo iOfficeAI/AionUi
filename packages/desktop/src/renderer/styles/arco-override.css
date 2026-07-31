@@ -139,24 +139,24 @@ body[arco-theme='dark'] .arco-tag-checked.arco-tag-gray {
   color: rgb(209, 213, 219) !important;
 }
 
-/* AionUi Steps wrapper styles */
-.aionui-steps .arco-steps-item-process .arco-steps-item-icon {
+/* CSBU WorkMate Steps wrapper styles */
+.csbu-workmate-steps .arco-steps-item-process .arco-steps-item-icon {
   background-color: var(--aou-6-brand) !important;
   border-color: var(--aou-6-brand) !important;
 }
 
-.aionui-steps .arco-steps-item-finish .arco-steps-item-icon {
+.csbu-workmate-steps .arco-steps-item-finish .arco-steps-item-icon {
   background-color: #e8f3ff !important;
   border-color: #e8f3ff !important;
   border-radius: 50% !important;
 }
 
-.aionui-steps .arco-steps-item-finish .arco-steps-item-icon .arco-steps-icon {
+.csbu-workmate-steps .arco-steps-item-finish .arco-steps-item-icon .arco-steps-icon {
   line-height: 28px !important;
 }
 
-/* AionUi Modal wrapper styles */
-.aionui-modal .arco-modal-content {
+/* CSBU WorkMate Modal wrapper styles */
+.csbu-workmate-modal .arco-modal-content {
   background: var(--dialog-fill-0) !important;
   border: 1px solid var(--border-base) !important;
   border-radius: 16px !important;
@@ -166,8 +166,8 @@ body[arco-theme='dark'] .arco-tag-checked.arco-tag-gray {
    分隔线得以贯穿全宽，三段背景统一、无“盒子”割裂感。
    注意：内边距清零后不能在此处 overflow:hidden —— Select/下拉等 popup 会挂在
    .arco-modal-content 下（在内层 wrapper 之外），一旦这里裁剪就会遮住下拉。
-   圆角裁剪改到内层 .aionui-modal-wrapper 上（见下），popup 作为其兄弟节点不受影响。 */
-.aionui-modal-standard .arco-modal-content {
+   圆角裁剪改到内层 .csbu-workmate-modal-wrapper 上（见下），popup 作为其兄弟节点不受影响。 */
+.csbu-workmate-modal-standard .arco-modal-content {
   padding: 0 !important;
 }
 
@@ -176,7 +176,7 @@ body[arco-theme='dark'] .arco-tag-checked.arco-tag-gray {
    同时给内层 wrapper 设视口上限并裁掉溢出：内容过多时，标题区/按钮区固定，
    中间内容区（flex-1 + overflow-y:auto）自动缩短并滚动，整窗不会超出屏幕。
    弹窗自身不设固定高度时按内容自适应，因此短内容不会留白、长内容会滚动。 */
-.aionui-modal-standard .aionui-modal-wrapper {
+.csbu-workmate-modal-standard .csbu-workmate-modal-wrapper {
   overflow: hidden !important;
   border-radius: 16px !important;
   max-height: calc(100vh - 64px);
@@ -184,13 +184,13 @@ body[arco-theme='dark'] .arco-tag-checked.arco-tag-gray {
 
 /* 三段只保留一条分隔线：标题区仅下边线、按钮区仅上边线，其余边框一律清零，
    避免外部样式给这些容器叠加多余边框而形成“盒子”。 */
-.aionui-modal-standard .aionui-modal-wrapper > * {
+.csbu-workmate-modal-standard .csbu-workmate-modal-wrapper > * {
   border: 0 !important;
 }
-.aionui-modal-standard .aionui-modal-std-header {
+.csbu-workmate-modal-standard .csbu-workmate-modal-std-header {
   border-bottom: 1px solid var(--bg-3) !important;
 }
-.aionui-modal-standard .aionui-modal-std-footer {
+.csbu-workmate-modal-standard .csbu-workmate-modal-std-footer {
   border-top: 1px solid var(--bg-3) !important;
 }
 
@@ -303,21 +303,21 @@ body[arco-theme='dark'] .arco-modal-confirm-icon {
   border-color: var(--bg-4) !important;
 }
 
-.aionui-modal-header {
+.csbu-workmate-modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 20px 24px 16px;
 }
 
-.aionui-modal-title {
+.csbu-workmate-modal-title {
   font-size: 18px;
   font-weight: 500;
   color: var(--text-primary);
   margin: 0;
 }
 
-.aionui-modal-close-btn {
+.csbu-workmate-modal-close-btn {
   width: 32px;
   height: 32px;
   display: flex;
@@ -331,7 +331,7 @@ body[arco-theme='dark'] .arco-modal-confirm-icon {
   padding: 0;
 }
 
-.aionui-modal-close-btn:hover {
+.csbu-workmate-modal-close-btn:hover {
   background: var(--color-fill-1);
 }
 

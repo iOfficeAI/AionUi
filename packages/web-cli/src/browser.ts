@@ -43,7 +43,7 @@ export function shouldAutoOpenBrowser(opts: ShouldAutoOpenBrowserOptions): boole
   if (opts.noOpenFlag) return false;
   if (opts.openFlag) return true;
 
-  const envOverride = parseBoolean(opts.env?.AIONUI_OPEN_BROWSER);
+  const envOverride = parseBoolean(opts.env?.CSBU_WORKMATE_OPEN_BROWSER);
   if (envOverride !== undefined) return envOverride;
 
   return !opts.allowRemote;

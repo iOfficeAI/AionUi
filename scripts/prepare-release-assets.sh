@@ -53,8 +53,8 @@ WEB_CLI_FILES=()
 while IFS= read -r file; do
   WEB_CLI_FILES+=("$file")
 done < <(find "$ARTIFACTS_DIR" -type f \( \
-  -name "aionui-web-*.tar.gz" -o \
-  -name "aionui-web-*.tar.gz.sha256" \
+  -name "csbu-workmate-web-*.tar.gz" -o \
+  -name "csbu-workmate-web-*.tar.gz.sha256" \
 \) | sort)
 
 WEB_CLI_DUPS=$(for file in "${WEB_CLI_FILES[@]}"; do basename "$file"; done | sort | uniq -d || true)
@@ -133,7 +133,7 @@ echo "==> Validating desktop release assets ..."
 
 for arch in x64 arm64; do
   for ext in dmg zip; do
-    asset="AionUi-${VERSION}-mac-${arch}.${ext}"
+    asset="CSBU-WorkMate-${VERSION}-mac-${arch}.${ext}"
     if [ ! -f "$OUTPUT_DIR/$asset" ]; then
       if [ "$ext" = "zip" ]; then
         echo "::error::Missing macOS zip artifact: $asset"
@@ -159,7 +159,7 @@ WEB_PLATFORMS=(
 )
 
 for plat in "${WEB_PLATFORMS[@]}"; do
-  tarball="aionui-web-${VERSION}-${plat}.tar.gz"
+  tarball="csbu-workmate-web-${VERSION}-${plat}.tar.gz"
   if [ ! -f "$OUTPUT_DIR/$tarball" ]; then
     echo "::error::Missing web-cli tarball: $tarball"
     MISSING=1

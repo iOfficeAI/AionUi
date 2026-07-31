@@ -668,7 +668,6 @@ export type I18nKey =
   | 'conversation.welcome.openFolder'
   | 'conversation.welcome.placeholder'
   | 'conversation.welcome.quickActionFeedback'
-  | 'conversation.welcome.quickActionStar'
   | 'conversation.welcome.quickActionsTitle'
   | 'conversation.welcome.selectModel'
   | 'conversation.welcome.skillsMarket'

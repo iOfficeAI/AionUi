@@ -5,8 +5,8 @@ import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Check } from '@icon-park/react';
 import { iconColors } from '@/renderer/styles/colors';
-import AionSteps from '@/renderer/components/base/AionSteps';
-import AionModal from '@/renderer/components/base/AionModal';
+import WorkMateSteps from '@/renderer/components/base/WorkMateSteps';
+import WorkMateModal from '@/renderer/components/base/WorkMateModal';
 
 type DetectedMcpServer = IMcpServer & {
   importable: boolean;
@@ -410,7 +410,7 @@ const OneClickImportModal: React.FC<OneClickImportModalProps> = ({
   );
 
   return (
-    <AionModal
+    <WorkMateModal
       variant='standard'
       header={{ title: t('settings.mcpOneKeyImport'), showClose: true }}
       visible={visible}
@@ -422,17 +422,17 @@ const OneClickImportModal: React.FC<OneClickImportModalProps> = ({
         <div className='mb-6 text-t-secondary text-sm'>{t('settings.mcpImportDescription')}</div>
 
         <div className='mb-6'>
-          <AionSteps current={currentStep} size='small'>
-            <AionSteps.Step
+          <WorkMateSteps current={currentStep} size='small'>
+            <WorkMateSteps.Step
               title={t('settings.mcpStepSelectAgent')}
               icon={currentStep > 1 ? <Check theme='filled' size={16} fill='#165dff' /> : undefined}
             />
-            <AionSteps.Step
+            <WorkMateSteps.Step
               title={t('settings.mcpStepFetchTools')}
               icon={currentStep > 2 ? <Check theme='filled' size={16} fill='#165dff' /> : undefined}
             />
-            <AionSteps.Step title={t('settings.mcpStepImportSuccess')} />
-          </AionSteps>
+            <WorkMateSteps.Step title={t('settings.mcpStepImportSuccess')} />
+          </WorkMateSteps>
         </div>
 
         <div className={`min-h-0 ${currentStep === 1 ? 'min-h-[60px]' : 'min-h-[180px]'}`}>
@@ -441,7 +441,7 @@ const OneClickImportModal: React.FC<OneClickImportModalProps> = ({
           {currentStep === 3 && renderStep3()}
         </div>
       </div>
-    </AionModal>
+    </WorkMateModal>
   );
 };
 

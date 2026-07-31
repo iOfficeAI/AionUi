@@ -1,29 +1,22 @@
 import React from 'react';
-import { Button, Typography, Tooltip, Link } from '@arco-design/web-react';
+import { Button, Typography, Tooltip } from '@arco-design/web-react';
 import { IconDownload, IconRefresh } from '@arco-design/web-react/icon';
 import { useTranslation } from 'react-i18next';
-import AionModal from '@/renderer/components/base/AionModal';
+import WorkMateModal from '@/renderer/components/base/WorkMateModal';
 import { useHubAgents } from '@/renderer/hooks/agent/useHubAgents';
 import type { IHubAgentItem } from '@/common/types/agent/hub';
 import { resolveAgentAvatar, useAgentLogos } from '@renderer/utils/model/agentLogo';
-import { openExternalUrl } from '@/renderer/utils/platform';
 
 interface AgentHubModalProps {
   visible: boolean;
   onCancel: () => void;
 }
 
-const AION_HUB_REPO_URL = 'https://github.com/iOfficeAI/AionHub';
-
 export const AgentHubModal: React.FC<AgentHubModalProps> = ({ visible, onCancel }) => {
   const { t } = useTranslation();
   const logos = useAgentLogos();
   const { agents, loading, error, install, retryInstall, update } = useHubAgents();
   const actionButtonClassName = '!min-w-80px !rounded-9px !px-10px';
-  const openAionHubRepo = () => {
-    void openExternalUrl(AION_HUB_REPO_URL).catch(console.error);
-  };
-
   const renderActionBtn = (agent: IHubAgentItem) => {
     switch (agent.status) {
       case 'not_installed':
@@ -83,7 +76,7 @@ export const AgentHubModal: React.FC<AgentHubModalProps> = ({ visible, onCancel 
   };
 
   return (
-    <AionModal
+    <WorkMateModal
       variant='standard'
       header={{ title: t('settings.agentManagement.installFromMarket'), showClose: true }}
       visible={visible}
@@ -94,19 +87,6 @@ export const AgentHubModal: React.FC<AgentHubModalProps> = ({ visible, onCancel 
       style={{ width: 1000, maxWidth: '96vw' }}
     >
       <div>
-        <div className='mb-12px flex flex-wrap items-center justify-start gap-x-6px gap-y-2px text-left'>
-          <Typography.Text type='secondary' className='text-12px leading-18px text-t-secondary'>
-            {t('settings.agentManagement.marketContributionHint', {
-              defaultValue: 'Want a new Agent listed here?',
-            })}
-          </Typography.Text>
-          <Link className='text-12px leading-18px' onClick={openAionHubRepo}>
-            {t('settings.agentManagement.marketContributionAction', {
-              defaultValue: 'Open a PR on AionHub',
-            })}
-          </Link>
-        </div>
-
         {loading ? (
           <div className='flex items-center justify-center py-48px'>
             <Typography.Text type='secondary'>
@@ -175,6 +155,6 @@ export const AgentHubModal: React.FC<AgentHubModalProps> = ({ visible, onCancel 
           </div>
         )}
       </div>
-    </AionModal>
+    </WorkMateModal>
   );
 };

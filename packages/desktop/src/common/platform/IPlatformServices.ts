@@ -13,7 +13,7 @@ export interface IPlatformPaths {
   getHomeDir(): string;
   /**
    * Application log directory.
-   * In non-Electron mode respects LOGS_DIR env var, falls back to <tmpdir>/aionui-logs.
+   * In non-Electron mode respects LOGS_DIR env var, falls back to <tmpdir>/csbu-workmate-logs.
    */
   getLogsDir(): string;
   /**

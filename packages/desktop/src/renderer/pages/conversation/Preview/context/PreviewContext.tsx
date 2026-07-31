@@ -94,8 +94,8 @@ const PreviewContext = createContext<PreviewContextValue | null>(null);
 
 // Persistence is per **preview scope** (project id, or workspace fallback — see
 // `previewScope.ts`), so each project restores its own open tabs + visibility
-// when switching conversations / projects. Key: `aionui_preview:<scope>`.
-const previewScopeStorageKey = (scope: string): string => `aionui_preview:${scope}`;
+// when switching conversations / projects. Key: `csbu_workmate_preview:<scope>`.
+const previewScopeStorageKey = (scope: string): string => `csbu_workmate_preview:${scope}`;
 
 /** Persisted per-scope preview state. */
 type PersistedScopeState = { isOpen: boolean; tabs: PreviewTab[]; activeTabId: string | null };
@@ -183,7 +183,7 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [domSnippets, setDomSnippets] = useState<DomSnippet[]>([]);
 
   // Persist the active scope's preview state (open tabs + active tab + visibility)
-  // to `aionui_preview:<scope>`, debounced. Keeps activeTabIdRef in sync eagerly.
+  // to `csbu_workmate_preview:<scope>`, debounced. Keeps activeTabIdRef in sync eagerly.
   useEffect(() => {
     activeTabIdRef.current = activeTabId;
     const scope = currentScopeRef.current;

@@ -40,7 +40,7 @@
     "subAgentsPlaceholder": "Takım üyesi asistanları seçin",
     "confirm": "Confirm Create",
     "noSupportedAgents": "Desteklenen uygun asistan bulunamadı",
-    "supportedAgentsHint": "Şu anda Claude ve Aion CLI asistanları desteklenmektedir. Daha fazla asistan yakında eklenecek.",
+    "supportedAgentsHint": "Şu anda Claude ve CSBU WorkMate asistanları desteklenmektedir. Daha fazla asistan yakında eklenecek.",
     "leaderDesc": "Hedeflerinizi anlayarak görevleri tamamlamak için asistanları koordine eder",
     "searchPlaceholder": "Search",
     "noSearchResults": "Sonuç bulunamadı",

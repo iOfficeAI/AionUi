@@ -1,8 +1,8 @@
 {
-  "name": "@aionui/shared-scripts",
+  "name": "@csbu-workmate/shared-scripts",
   "version": "0.0.0",
   "private": true,
-  "description": "Shared build scripts for AionUi packages",
+  "description": "Shared build scripts for CSBU WorkMate packages",
   "type": "commonjs",
   "exports": {
     "./prepare-aioncore": "./src/prepare-aioncore.js"

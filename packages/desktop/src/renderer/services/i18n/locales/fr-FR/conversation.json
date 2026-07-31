@@ -12,10 +12,9 @@
     "clearWorkspace": "Retirer le dossier",
     "openFolder": "Ouvrir un dossier",
     "none": "Aucun",
-    "quickActionsTitle": "Que peut faire AionUi ?",
+    "quickActionsTitle": "Que peut faire CSBU WorkMate ?",
     "quickActionFeedback": "Des retours ou suggestions ?",
-    "quickActionStar": "Vous aimez ? Donnez-nous une étoile !",
-    "skillsMarket": "Marché de compétences AionUi",
+    "skillsMarket": "Marché de compétences CSBU WorkMate",
     "skillsMarketDesc": "Recherchez et activez des compétences communautaires à la demande. Configurez une fois, disponible pour tous les agents.",
     "skillsMarketDetails": "Voir plus >>"
   },
@@ -304,7 +303,7 @@
       },
       "MCP_HTTP_RESPONSE_READ_FAILED": {
         "title": "Échec de la lecture de la réponse de l'assistant de l'équipe",
-        "body": "AionUi n'a pas pu lire la réponse de l'assistant de l'équipe locale. Réessayez une fois et si cela continue, redémarrez l'application."
+        "body": "CSBU WorkMate n'a pas pu lire la réponse de l'assistant de l'équipe locale. Réessayez une fois et si cela continue, redémarrez l'application."
       },
       "MCP_TOOL_REMOTE_ERROR": {
         "title": "L'assistant de l'équipe locale a rejeté la demande",
@@ -312,11 +311,11 @@
       },
       "MCP_TOOL_RESPONSE_UNEXPECTED": {
         "title": "L'assistant de l'équipe a renvoyé une réponse inattendue",
-        "body": "AionUi a reçu une réponse inattendue de la part de l'assistant de l'équipe locale. Réessayez une fois et signalez-le si le problème persiste."
+        "body": "CSBU WorkMate a reçu une réponse inattendue de la part de l'assistant de l'équipe locale. Réessayez une fois et signalez-le si le problème persiste."
       },
       "MCP_TCP_READ_FAILED": {
         "title": "Échec de la lecture de l'assistant de l'équipe locale",
-        "body": "AionUi n'a pas pu lire la réponse TCP de l'assistant de l'équipe locale. Réessayez une fois et redémarrez l'application si elle continue d'échouer."
+        "body": "CSBU WorkMate n'a pas pu lire la réponse TCP de l'assistant de l'équipe locale. Réessayez une fois et redémarrez l'application si elle continue d'échouer."
       },
       "TEAM_SERVICE_UNAVAILABLE": {
         "title": "Le service d'équipe n'est pas encore prêt",

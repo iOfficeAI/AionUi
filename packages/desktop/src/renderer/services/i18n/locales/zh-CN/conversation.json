@@ -12,10 +12,9 @@
     "clearWorkspace": "移除项目",
     "openFolder": "打开文件夹",
     "none": "无",
-    "quickActionsTitle": "AionUi 能做什么？",
+    "quickActionsTitle": "CSBU WorkMate 能做什么？",
     "quickActionFeedback": "反馈问题",
-    "quickActionStar": "喜欢我们？点个星吧",
-    "skillsMarket": "AionUi Skills Market",
+    "skillsMarket": "CSBU WorkMate Skills Market",
     "skillsMarketDesc": "按需搜索并调用社区 Skills，一次配置，所有Agent通用。",
     "skillsMarketDetails": "详情 >>"
   },
@@ -304,7 +303,7 @@
       },
       "MCP_HTTP_RESPONSE_READ_FAILED": {
         "title": "读取团队辅助进程响应失败",
-        "body": "AionUi 无法读取本地团队辅助进程的响应。请先重试一次，如果持续出现，再重启应用。"
+        "body": "CSBU WorkMate 无法读取本地团队辅助进程的响应。请先重试一次，如果持续出现，再重启应用。"
       },
       "MCP_TOOL_REMOTE_ERROR": {
         "title": "本地团队辅助进程拒绝了这次请求",
@@ -312,11 +311,11 @@
       },
       "MCP_TOOL_RESPONSE_UNEXPECTED": {
         "title": "团队辅助进程返回了异常响应",
-        "body": "AionUi 收到了本地团队辅助进程的异常响应。请先重试一次，如果持续出现再反馈问题。"
+        "body": "CSBU WorkMate 收到了本地团队辅助进程的异常响应。请先重试一次，如果持续出现再反馈问题。"
       },
       "MCP_TCP_READ_FAILED": {
         "title": "读取本地团队辅助进程失败",
-        "body": "AionUi 无法读取本地团队辅助进程的 TCP 响应。请先重试一次，如仍失败可重启应用。"
+        "body": "CSBU WorkMate 无法读取本地团队辅助进程的 TCP 响应。请先重试一次，如仍失败可重启应用。"
       },
       "TEAM_SERVICE_UNAVAILABLE": {
         "title": "团队服务尚未就绪",

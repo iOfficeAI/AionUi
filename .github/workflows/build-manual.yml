@@ -24,7 +24,17 @@ on:
           - linux-x64
           - linux-arm64
           - all
-        default: 'macos-arm64'
+        default: 'windows-x64'
+      version:
+        description: 'Artifact version override, for example 2.1.45 (leave empty to use package.json)'
+        required: false
+        type: string
+        default: ''
+      strip_windows_exe_metadata:
+        description: 'Remove Windows EXE VERSIONINFO before NSIS integrity data is generated'
+        required: false
+        type: boolean
+        default: true
       skip_code_quality:
         description: 'Skip code quality checks (faster builds for debugging)'
         required: false
@@ -86,8 +96,10 @@ jobs:
     with:
       matrix: ${{ needs.prepare-matrix.outputs.matrix }}
       ref: ${{ inputs.branch }}
+      version: ${{ inputs.version }}
       skip_code_quality: ${{ inputs.skip_code_quality }}
       aioncore_run_id: ${{ inputs.aioncore_run_id }}
+      strip_windows_exe_metadata: ${{ inputs.strip_windows_exe_metadata }}
       append_commit_hash: true
       upload_installers_only: true
     secrets: inherit

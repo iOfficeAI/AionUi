@@ -41,8 +41,8 @@ describe('release packaging configuration', () => {
   it('uploads mac zip artifacts without a stale Windows zip glob', () => {
     const workflow = readProjectFile('.github/workflows/_build-reusable.yml');
 
-    expect(workflow).toContain('out/AionUi-*-mac-*.zip');
-    expect(workflow).not.toContain('out/AionUi-*-win32-*.zip');
+    expect(workflow).toContain('out/CSBU-WorkMate-*-mac-*.zip');
+    expect(workflow).not.toContain('out/CSBU-WorkMate-*-win32-*.zip');
   });
 
   it('retries mac prepackaged builds with both dmg and zip targets', () => {
@@ -51,8 +51,39 @@ describe('release packaging configuration', () => {
     expect(script).toMatch(/--mac\s+dmg\s+zip\s+--\$\{targetArch\}\s+--prepackaged/);
   });
 
+  it('passes manual version and Windows metadata options to the reusable build', () => {
+    const manualWorkflow = readProjectFile('.github/workflows/build-manual.yml');
+
+    expect(manualWorkflow).toContain('version: ${{ inputs.version }}');
+    expect(manualWorkflow).toContain('strip_windows_exe_metadata: ${{ inputs.strip_windows_exe_metadata }}');
+  });
+
+  it('prepares the manual package version and pinned Resource Hacker tool', () => {
+    const reusableWorkflow = readProjectFile('.github/workflows/_build-reusable.yml');
+
+    expect(reusableWorkflow).toContain('Apply package version override');
+    expect(reusableWorkflow).toContain('Setup Resource Hacker for metadata-free Windows executables');
+    expect(reusableWorkflow).toContain('52F81EE4778070D6AA72D8719A1A68FEA2F288005DEB02667542754F747776F8');
+  });
+
+  it('removes application VERSIONINFO during afterPack', () => {
+    const afterPack = readProjectFile('scripts/afterPack.js');
+    const metadataScript = readProjectFile('resources/windows/support/strip-exe-version-info.ps1');
+
+    expect(afterPack).toContain('stripWindowsExecutableVersionInfo(appOutDir, packager)');
+    expect(metadataScript).toContain("'-mask', 'VERSIONINFO,,'");
+  });
+
+  it('removes installer VERSIONINFO before NSIS assembles integrity data', () => {
+    const nsisInclude = readProjectFile('resources/windows/installer-update-verify.nsh');
+
+    expect(nsisInclude).toContain('!packhdr');
+    expect(nsisInclude).toContain('strip-exe-version-info.ps1');
+    expect(nsisInclude).not.toMatch(/CRCCheck\s+off/i);
+  });
+
   itWithBash('fails release asset preparation when a mac zip is missing', () => {
-    const tempDir = mkdtempSync(resolve(tmpdir(), 'aionui-release-assets-'));
+    const tempDir = mkdtempSync(resolve(tmpdir(), 'csbu-workmate-release-assets-'));
     const artifactsDir = resolve(tempDir, 'build-artifacts');
     const outputDir = resolve(tempDir, 'release-assets');
 
@@ -65,7 +96,7 @@ describe('release packaging configuration', () => {
       });
       expect(createResult.status).toBe(0);
 
-      rmSync(resolve(artifactsDir, 'macos-build-arm64', 'AionUi-1.0.0-mac-arm64.zip'), { force: true });
+      rmSync(resolve(artifactsDir, 'macos-build-arm64', 'CSBU-WorkMate-1.0.0-mac-arm64.zip'), { force: true });
 
       const prepareResult = spawnSync('bash', ['scripts/prepare-release-assets.sh', artifactsDir, outputDir], {
         cwd: projectRoot,

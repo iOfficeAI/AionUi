@@ -15,15 +15,15 @@ describe('assistantSelectUtils', () => {
   it('localizes assistant option names for the active locale', () => {
     const bareAssistant = makeAssistant({
       id: 'bare-aionrs',
-      name: 'Aion CLI',
-      name_i18n: { 'zh-CN': 'Aion 命令行' },
+      name: 'CSBU WorkMate',
+      name_i18n: { 'zh-CN': 'CSBU WorkMate' },
       source: 'generated',
       preset_agent_type: 'aionrs',
     });
 
     const option = assistantToOption(bareAssistant, 'zh-CN');
 
-    expect(option.name).toBe('Aion 命令行');
+    expect(option.name).toBe('CSBU WorkMate');
   });
 
   it('preserves backend-provided team availability for selectable assistants', () => {

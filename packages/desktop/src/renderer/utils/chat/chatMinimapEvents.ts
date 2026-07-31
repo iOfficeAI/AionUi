@@ -1,4 +1,4 @@
-export const CHAT_MESSAGE_JUMP_EVENT = 'aionui-chat-message-jump';
+export const CHAT_MESSAGE_JUMP_EVENT = 'csbu-workmate-chat-message-jump';
 
 export interface ChatMessageJumpDetail {
   conversation_id: string;

@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-export const UPDATE_READY_STATE_EVENT = 'aionui-update-ready-state-changed';
+export const UPDATE_READY_STATE_EVENT = 'csbu-workmate-update-ready-state-changed';
 
 export type UpdateReadyState = {
   ready: boolean;

@@ -180,7 +180,7 @@ export const BTN_DELETE_SKILL = '[data-testid^="btn-delete-"]';
 
 1. **外部 skill 源存在** — 需测试环境预置 Claude Code CLI skill 目录,或通过 `fs.addCustomExternalPath` 动态添加
 2. **My Skills 有数据** — 测试前通过 `fs.importSkillWithSymlink` 导入测试 skill,测试后通过 `fs.deleteSkill` 清理
-3. **Extension Skills 存在** — 依赖 E2E 的 `AIONUI_EXTENSIONS_PATH` 环境变量指向 `examples/` 目录
+3. **Extension Skills 存在** — 依赖 E2E 的 `CSBU_WORKMATE_EXTENSIONS_PATH` 环境变量指向 `examples/` 目录
 
 **数据隔离**:
 

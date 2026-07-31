@@ -7,7 +7,7 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Form, Input, Select, Message, TimePicker, Radio, Button, Switch } from '@arco-design/web-react';
-import AionModal from '@renderer/components/base/AionModal';
+import WorkMateModal from '@renderer/components/base/WorkMateModal';
 import { Down, Robot } from '@icon-park/react';
 import { ipcBridge } from '@/common';
 import { resolveLocaleKey } from '@/common/utils';
@@ -609,7 +609,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   };
 
   return (
-    <AionModal
+    <WorkMateModal
       variant='standard'
       header={{ title: isEditMode ? t('cron.page.editTask') : t('cron.page.createTask'), showClose: true }}
       visible={visible}
@@ -1000,7 +1000,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
           )}
         </Form>
       </div>
-    </AionModal>
+    </WorkMateModal>
   );
 };
 

@@ -13,8 +13,8 @@ import {
 
 describe('resolveLocalFileLinkPath', () => {
   it('recognizes Windows absolute paths emitted as root-relative markdown links', () => {
-    expect(resolveLocalFileLinkPath('/C:/Users/Administrator/AppData/Roaming/AionUi/report.xlsx')).toBe(
-      'C:/Users/Administrator/AppData/Roaming/AionUi/report.xlsx'
+    expect(resolveLocalFileLinkPath('/C:/Users/Administrator/AppData/Roaming/CSBU WorkMate/report.xlsx')).toBe(
+      'C:/Users/Administrator/AppData/Roaming/CSBU WorkMate/report.xlsx'
     );
   });
 
@@ -29,35 +29,35 @@ describe('resolveLocalFileLinkPath', () => {
   });
 
   it('recognizes file-like POSIX absolute paths outside common home and temp roots', () => {
-    expect(resolveLocalFileLinkPath('/opt/aionui/outputs/report.xlsx')).toBe('/opt/aionui/outputs/report.xlsx');
+    expect(resolveLocalFileLinkPath('/opt/csbu-workmate/outputs/report.xlsx')).toBe('/opt/csbu-workmate/outputs/report.xlsx');
   });
 
   it('recognizes line suffixes without confusing Windows drive letters', () => {
-    const reference = resolveLocalFileLinkReference('C:/Users/Administrator/AppData/Roaming/AionUi/logs/app.log:1421');
+    const reference = resolveLocalFileLinkReference('C:/Users/Administrator/AppData/Roaming/CSBU WorkMate/logs/app.log:1421');
 
     expect(reference).toEqual({
-      filePath: 'C:/Users/Administrator/AppData/Roaming/AionUi/logs/app.log',
-      rawReference: 'C:/Users/Administrator/AppData/Roaming/AionUi/logs/app.log:1421',
+      filePath: 'C:/Users/Administrator/AppData/Roaming/CSBU WorkMate/logs/app.log',
+      rawReference: 'C:/Users/Administrator/AppData/Roaming/CSBU WorkMate/logs/app.log:1421',
       line: 1421,
     });
-    expect(resolveLocalFileLinkPath('C:/Users/Administrator/AppData/Roaming/AionUi/logs/app.log:1421')).toBe(
-      'C:/Users/Administrator/AppData/Roaming/AionUi/logs/app.log'
+    expect(resolveLocalFileLinkPath('C:/Users/Administrator/AppData/Roaming/CSBU WorkMate/logs/app.log:1421')).toBe(
+      'C:/Users/Administrator/AppData/Roaming/CSBU WorkMate/logs/app.log'
     );
   });
 
   it('recognizes line and column suffixes without including the line in the file path', () => {
     const reference = resolveLocalFileLinkReference(
-      'C:/Users/Administrator/AppData/Roaming/AionUi/logs/app.log:1421:7'
+      'C:/Users/Administrator/AppData/Roaming/CSBU WorkMate/logs/app.log:1421:7'
     );
 
     expect(reference).toEqual({
-      filePath: 'C:/Users/Administrator/AppData/Roaming/AionUi/logs/app.log',
-      rawReference: 'C:/Users/Administrator/AppData/Roaming/AionUi/logs/app.log:1421:7',
+      filePath: 'C:/Users/Administrator/AppData/Roaming/CSBU WorkMate/logs/app.log',
+      rawReference: 'C:/Users/Administrator/AppData/Roaming/CSBU WorkMate/logs/app.log:1421:7',
       line: 1421,
       column: 7,
     });
-    expect(resolveLocalFileLinkPath('C:/Users/Administrator/AppData/Roaming/AionUi/logs/app.log:1421:7')).toBe(
-      'C:/Users/Administrator/AppData/Roaming/AionUi/logs/app.log'
+    expect(resolveLocalFileLinkPath('C:/Users/Administrator/AppData/Roaming/CSBU WorkMate/logs/app.log:1421:7')).toBe(
+      'C:/Users/Administrator/AppData/Roaming/CSBU WorkMate/logs/app.log'
     );
   });
 
@@ -131,20 +131,20 @@ describe('resolveLocalFileLinkPath', () => {
     expect(resolveLocalFileLinkReference('./user.ts')).toBeNull();
     expect(resolveLocalFileLinkReference('../user.ts')).toBeNull();
     expect(resolveLocalFileLinkReference('/settings')).toBeNull();
-    expect(resolveLocalFileLinkReference('https://aionui.com/docs#L10')).toBeNull();
+    expect(resolveLocalFileLinkReference('https://csbu-workmate.com/docs#L10')).toBeNull();
     expect(resolveLocalFileLinkReference('https://github.com/org/repo/blob/main/file.ts#L10')).toBeNull();
     expect(resolveLocalFileLinkReference('/Users/demo/file.ts#l10')).toBeNull();
     expect(resolveLocalFileLinkReference('/Users/demo/file.ts#L10-l20')).toBeNull();
   });
 
   it('does not treat normal web links or app routes as local files', () => {
-    expect(resolveLocalFileLinkPath('https://aionui.com/docs')).toBeNull();
+    expect(resolveLocalFileLinkPath('https://csbu-workmate.com/docs')).toBeNull();
     expect(resolveLocalFileLinkPath('/settings')).toBeNull();
   });
 
   it('formats local file paths as file URLs for browser link copying', () => {
-    expect(toLocalFileHref('C:/Users/Administrator/AppData/Roaming/AionUi/report.xlsx')).toBe(
-      'file:///C:/Users/Administrator/AppData/Roaming/AionUi/report.xlsx'
+    expect(toLocalFileHref('C:/Users/Administrator/AppData/Roaming/CSBU WorkMate/report.xlsx')).toBe(
+      'file:///C:/Users/Administrator/AppData/Roaming/CSBU WorkMate/report.xlsx'
     );
     expect(toLocalFileHref('/var/folders/demo/report.xlsx')).toBe('file:///var/folders/demo/report.xlsx');
   });

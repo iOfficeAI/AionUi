@@ -14,7 +14,7 @@ import { findAssistantIdForBackend, goToGuid } from '../helpers';
 import { httpDelete, httpPost } from '../helpers/httpBridge';
 import { GUID_INPUT } from '../helpers/selectors';
 
-const ENABLED_CONVERSATION_KEY = 'aionui:e2e-message-stream-conversation-id';
+const ENABLED_CONVERSATION_KEY = 'csbu-workmate:e2e-message-stream-conversation-id';
 const ERROR_TEXT = 'E2E fabricated failure: provider exploded (code 500)';
 
 type CreatedConversation = { id: string };
@@ -60,7 +60,7 @@ test('error bubble butler chip pre-fills a diagnosis prompt in the home chat', a
     await page.waitForFunction(
       (id) =>
         Boolean(
-          (window as unknown as { __AIONUI_E2E_MESSAGE_STREAM__?: StreamRegistry }).__AIONUI_E2E_MESSAGE_STREAM__
+          (window as unknown as { __CSBU_WORKMATE_E2E_MESSAGE_STREAM__?: StreamRegistry }).__CSBU_WORKMATE_E2E_MESSAGE_STREAM__
             ?.controllers[id]
         ),
       conversation.id,
@@ -68,8 +68,8 @@ test('error bubble butler chip pre-fills a diagnosis prompt in the home chat', a
     );
     await page.evaluate(
       async ({ id, text }) => {
-        const registry = (window as unknown as { __AIONUI_E2E_MESSAGE_STREAM__?: StreamRegistry })
-          .__AIONUI_E2E_MESSAGE_STREAM__;
+        const registry = (window as unknown as { __CSBU_WORKMATE_E2E_MESSAGE_STREAM__?: StreamRegistry })
+          .__CSBU_WORKMATE_E2E_MESSAGE_STREAM__;
         await registry!.controllers[id].emitErrorTip(text);
       },
       { id: conversation.id, text: ERROR_TEXT }

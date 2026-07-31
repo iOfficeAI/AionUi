@@ -2,10 +2,10 @@
  * Prepare aioncore binary for packaging.
  *
  * Resolution order:
- *  1. GitHub Actions artifact download when AIONUI_BACKEND_RUN_ID is set
+ *  1. GitHub Actions artifact download when CSBU_WORKMATE_BACKEND_RUN_ID is set
  *  2. GitHub release download (requires version or defaults to "latest")
- *  3. Complete local bundle from AIONUI_BACKEND_LOCAL_BUNDLE_DIR
- *  4. Local binary fallback from AIONUI_BACKEND_LOCAL_BINARY
+ *  3. Complete local bundle from CSBU_WORKMATE_BACKEND_LOCAL_BUNDLE_DIR
+ *  4. Local binary fallback from CSBU_WORKMATE_BACKEND_LOCAL_BINARY
  *
  * Output: {projectRoot}/resources/bundled-aioncore/{platform}-{arch}/
  *   - aioncore[.exe]
@@ -443,7 +443,7 @@ function downloadAndExtract(platform, arch, tag) {
 function prepareAioncore(options) {
   const { projectRoot, platform, arch, version = 'latest' } = options;
   const runtimeKey = `${platform}-${arch}`;
-  const actionsRunId = (process.env.AIONUI_BACKEND_RUN_ID || '').trim();
+  const actionsRunId = (process.env.CSBU_WORKMATE_BACKEND_RUN_ID || '').trim();
 
   let tag = null;
   if (!actionsRunId) {
@@ -471,7 +471,7 @@ function prepareAioncore(options) {
   removeDirectorySafe(targetDir);
   ensureDirectory(targetDir);
 
-  const localBundleDir = (process.env.AIONUI_BACKEND_LOCAL_BUNDLE_DIR || '').trim();
+  const localBundleDir = (process.env.CSBU_WORKMATE_BACKEND_LOCAL_BUNDLE_DIR || '').trim();
   if (localBundleDir) {
     const resolvedLocalBundleDir = path.resolve(localBundleDir);
     const localBinaryPath = path.join(resolvedLocalBundleDir, binaryName);
@@ -536,7 +536,7 @@ function prepareAioncore(options) {
 
   // 3. Use an explicitly supplied local cache when network download is unavailable.
   if (!sourcePath) {
-    const localBinary = (process.env.AIONUI_BACKEND_LOCAL_BINARY || '').trim();
+    const localBinary = (process.env.CSBU_WORKMATE_BACKEND_LOCAL_BINARY || '').trim();
     if (localBinary) {
       const resolvedLocalBinary = path.resolve(localBinary);
       if (fs.existsSync(resolvedLocalBinary) && fs.statSync(resolvedLocalBinary).isFile()) {

@@ -61,8 +61,8 @@ describe('buildAssistantEditorBackends', () => {
         id: 'agent-aionrs',
         backend: undefined,
         agent_type: 'aionrs',
-        name: 'Aion CLI',
-        name_i18n: { 'zh-CN': 'Aion 命令行' },
+        name: 'CSBU WorkMate',
+        name_i18n: { 'zh-CN': 'CSBU WorkMate' },
         status: 'online',
       }),
     ];
@@ -70,7 +70,7 @@ describe('buildAssistantEditorBackends', () => {
     expect(buildAssistantEditorBackends(agents, 'zh-CN')).toEqual([
       {
         id: 'agent-aionrs',
-        name: 'Aion 命令行',
+        name: 'CSBU WorkMate',
         runtimeKey: 'aionrs',
         modelOptions: [],
       },

@@ -9,8 +9,8 @@ set -euo pipefail
 MIRROR="${1:-}"
 VERSION="${2:-}"
 
-if [[ -z "$MIRROR" ]]; then
-    echo "Usage: $0 <mirror-url> [version]"
+if [[ -z "$MIRROR" || -z "$VERSION" ]]; then
+    echo "Usage: $0 <mirror-url> <version>"
     echo "Example: $0 file:///tmp/releases 1.0.0"
     exit 1
 fi
@@ -19,7 +19,7 @@ echo "========================================"
 echo "Smoke test for install-web.sh"
 echo "========================================"
 echo "MIRROR: $MIRROR"
-echo "VERSION: ${VERSION:-latest}"
+echo "VERSION: $VERSION"
 
 # 1. Download install-web.sh
 echo ""
@@ -38,8 +38,8 @@ chmod +x /tmp/install-web.sh
 echo ""
 echo "2. Running installation..."
 export MIRROR="$MIRROR"
-export VERSION="${VERSION:-latest}"
-export INSTALL_DIR="/tmp/aionui-web-smoke-test"
+export VERSION="$VERSION"
+export INSTALL_DIR="/tmp/csbu-workmate-web-smoke-test"
 export BIN_DIR="/tmp/smoke-bin"
 export CREATE_SYMLINK=1
 export UPDATE_PATH=0  # Don't modify shell profile in container
@@ -56,14 +56,14 @@ if [[ ! -d "$INSTALL_DIR" ]]; then
 fi
 echo "✓ Installation directory exists"
 
-if [[ ! -x "${INSTALL_DIR}/aionui-web" ]]; then
-    echo "❌ CLI executable not found or not executable: ${INSTALL_DIR}/aionui-web"
+if [[ ! -x "${INSTALL_DIR}/csbu-workmate-web" ]]; then
+    echo "❌ CLI executable not found or not executable: ${INSTALL_DIR}/csbu-workmate-web"
     exit 1
 fi
 echo "✓ CLI executable exists"
 
-if [[ ! -L "${BIN_DIR}/aionui-web" ]]; then
-    echo "❌ Symlink not found: ${BIN_DIR}/aionui-web"
+if [[ ! -L "${BIN_DIR}/csbu-workmate-web" ]]; then
+    echo "❌ Symlink not found: ${BIN_DIR}/csbu-workmate-web"
     exit 1
 fi
 echo "✓ Symlink created"
@@ -72,7 +72,7 @@ echo "✓ Symlink created"
 echo ""
 echo "4. Testing version command..."
 export PATH="${BIN_DIR}:$PATH"
-VERSION_OUTPUT=$(aionui-web version 2>&1 || echo "")
+VERSION_OUTPUT=$(csbu-workmate-web version 2>&1 || echo "")
 if [[ -z "$VERSION_OUTPUT" ]]; then
     echo "❌ version command returned empty"
     exit 1

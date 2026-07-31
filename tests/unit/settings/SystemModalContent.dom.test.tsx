@@ -37,7 +37,7 @@ vi.mock('@/renderer/utils/platform', () => ({
   isElectronDesktop: () => true,
 }));
 
-vi.mock('@/renderer/components/base/AionScrollArea', () => ({
+vi.mock('@/renderer/components/base/WorkMateScrollArea', () => ({
   default: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 }));
 

@@ -7,7 +7,7 @@
 import type { IChannelPluginStatus } from '@/common/types/channel/channel';
 import type { IProvider, TProviderWithModel } from '@/common/config/storage';
 import { channel, webui, type IWebUIStatus } from '@/common/adapter/ipcBridge';
-import AionScrollArea from '@/renderer/components/base/AionScrollArea';
+import WorkMateScrollArea from '@/renderer/components/base/WorkMateScrollArea';
 import { useModelProviderList } from '@/renderer/hooks/agent/useModelProviderList';
 import type { GoogleModelSelection } from '@/renderer/pages/conversation/platforms/gemini/useGoogleModelSelection';
 import { useGoogleModelSelection } from '@/renderer/pages/conversation/platforms/gemini/useGoogleModelSelection';
@@ -637,7 +637,7 @@ const ChannelModalContent: React.FC = () => {
     const telegramChannel: ChannelConfig = {
       id: 'telegram',
       title: t('settings.channels.telegramTitle', 'Telegram'),
-      description: t('settings.channels.telegramDesc', 'Chat with AionUi assistant via Telegram'),
+      description: t('settings.channels.telegramDesc', 'Chat with CSBU WorkMate assistant via Telegram'),
       status: 'active',
       enabled: pluginStatus?.enabled || false,
       disabled: enableLoading,
@@ -659,7 +659,7 @@ const ChannelModalContent: React.FC = () => {
     const larkChannel: ChannelConfig = {
       id: 'lark',
       title: t('settings.channels.larkTitle', 'Lark / Feishu'),
-      description: t('settings.channels.larkDesc', 'Chat with AionUi assistant via Lark or Feishu'),
+      description: t('settings.channels.larkDesc', 'Chat with CSBU WorkMate assistant via Lark or Feishu'),
       status: 'active',
       enabled: larkPluginStatus?.enabled || false,
       disabled: larkEnableLoading,
@@ -677,7 +677,7 @@ const ChannelModalContent: React.FC = () => {
     const dingtalkChannel: ChannelConfig = {
       id: 'dingtalk',
       title: t('settings.channels.dingtalkTitle', 'DingTalk'),
-      description: t('settings.channels.dingtalkDesc', 'Chat with AionUi assistant via DingTalk'),
+      description: t('settings.channels.dingtalkDesc', 'Chat with CSBU WorkMate assistant via DingTalk'),
       status: 'active',
       enabled: dingtalkPluginStatus?.enabled || false,
       disabled: dingtalkEnableLoading,
@@ -695,7 +695,7 @@ const ChannelModalContent: React.FC = () => {
     const weixinChannel: ChannelConfig = {
       id: 'weixin',
       title: t('settings.channels.weixinTitle', 'WeChat'),
-      description: t('settings.channels.weixinDesc', 'Chat with AionUi assistant via WeChat'),
+      description: t('settings.channels.weixinDesc', 'Chat with CSBU WorkMate assistant via WeChat'),
       status: 'active',
       enabled: weixinPluginStatus?.enabled || false,
       disabled: weixinEnableLoading,
@@ -713,7 +713,7 @@ const ChannelModalContent: React.FC = () => {
     const wecomChannel: ChannelConfig = {
       id: 'wecom',
       title: t('settings.channels.wecomTitle', 'WeCom'),
-      description: t('settings.channels.wecomDesc', 'Chat with AionUi assistant via WeCom (Enterprise WeChat)'),
+      description: t('settings.channels.wecomDesc', 'Chat with CSBU WorkMate assistant via WeCom (Enterprise WeChat)'),
       status: 'coming_soon' as const,
       enabled: false,
       disabled: true,
@@ -750,7 +750,7 @@ const ChannelModalContent: React.FC = () => {
       {
         id: 'slack',
         title: t('settings.channels.slackTitle', 'Slack'),
-        description: t('settings.channels.slackDesc', 'Chat with AionUi assistant via Slack'),
+        description: t('settings.channels.slackDesc', 'Chat with CSBU WorkMate assistant via Slack'),
         status: 'coming_soon' as const,
         enabled: false,
         disabled: true,
@@ -765,7 +765,7 @@ const ChannelModalContent: React.FC = () => {
       {
         id: 'discord',
         title: t('settings.channels.discordTitle', 'Discord'),
-        description: t('settings.channels.discordDesc', 'Chat with AionUi assistant via Discord'),
+        description: t('settings.channels.discordDesc', 'Chat with CSBU WorkMate assistant via Discord'),
         status: 'coming_soon' as const,
         enabled: false,
         disabled: true,
@@ -826,7 +826,7 @@ const ChannelModalContent: React.FC = () => {
     return undefined;
   };
   const channelGuideText = t('settings.webui.featureChannelsDesc', {
-    defaultValue: 'Connect Telegram, Lark, and DingTalk to interact with AionUi from IM apps.',
+    defaultValue: 'Connect Telegram, Lark, and DingTalk to interact with CSBU WorkMate from IM apps.',
   });
   const channelSetupSteps = [
     t('settings.channels.selectFirst', {
@@ -838,7 +838,7 @@ const ChannelModalContent: React.FC = () => {
   ];
 
   return (
-    <AionScrollArea className={isPageMode ? 'h-full' : ''}>
+    <WorkMateScrollArea className={isPageMode ? 'h-full' : ''}>
       <div className='px-[12px] md:px-[28px]'>
         <h2 className='text-20px font-500 text-t-primary m-0'>{t('settings.channels.title', 'Channels')}</h2>
         <div className='space-y-8px mt-10px'>
@@ -868,7 +868,7 @@ const ChannelModalContent: React.FC = () => {
           ))}
         </div>
       </div>
-    </AionScrollArea>
+    </WorkMateScrollArea>
   );
 };
 

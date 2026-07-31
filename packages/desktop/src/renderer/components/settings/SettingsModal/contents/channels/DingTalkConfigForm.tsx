@@ -8,7 +8,6 @@ import type { IChannelPairingRequest, IChannelPluginStatus, IChannelUser } from 
 import { assistants, channel } from '@/common/adapter/ipcBridge';
 import { isAionrsAssistant, type Assistant } from '@/common/types/agent/assistantTypes';
 import { resolveLocaleKey } from '@/common/utils';
-import { openExternalUrl } from '@/renderer/utils/platform';
 import { resolveAssistantName } from '@/renderer/utils/model/assistantDisplay';
 import GoogleModelSelector from '@/renderer/pages/conversation/platforms/gemini/GoogleModelSelector';
 import type { GoogleModelSelection } from '@/renderer/pages/conversation/platforms/gemini/useGoogleModelSelection';
@@ -62,8 +61,6 @@ interface DingTalkConfigFormProps {
   modelSelection: GoogleModelSelection;
   onStatusChange: (status: IChannelPluginStatus | null) => void;
 }
-
-const DINGTALK_DEV_DOCS_URL = 'https://github.com/iOfficeAI/AionUi/wiki/DingTalk-Bot-Setup-Guide';
 
 const DingTalkConfigForm: React.FC<DingTalkConfigFormProps> = ({ pluginStatus, modelSelection, onStatusChange }) => {
   const { t, i18n } = useTranslation();
@@ -323,16 +320,7 @@ const DingTalkConfigForm: React.FC<DingTalkConfigFormProps> = ({ pluginStatus, m
         label={t('settings.dingtalk.clientId', 'Client ID')}
         description={
           <span>
-            <a
-              className='text-primary hover:underline cursor-pointer text-12px'
-              href={DINGTALK_DEV_DOCS_URL}
-              onClick={(e) => {
-                e.preventDefault();
-                openExternalUrl(DINGTALK_DEV_DOCS_URL).catch(console.error);
-              }}
-            >
-              {t('settings.dingtalk.devConsoleLink', 'DingTalk Open Platform')}
-            </a>{' '}
+            {t('settings.dingtalk.devConsoleLink', 'DingTalk Open Platform')}{' '}
             {t('settings.dingtalk.clientIdDescSuffix', 'to get your Client ID')}
           </span>
         }
@@ -381,16 +369,7 @@ const DingTalkConfigForm: React.FC<DingTalkConfigFormProps> = ({ pluginStatus, m
         label={t('settings.dingtalk.clientSecret', 'Client Secret')}
         description={
           <span>
-            <a
-              className='text-primary hover:underline cursor-pointer text-12px'
-              href={DINGTALK_DEV_DOCS_URL}
-              onClick={(e) => {
-                e.preventDefault();
-                openExternalUrl(DINGTALK_DEV_DOCS_URL).catch(console.error);
-              }}
-            >
-              {t('settings.dingtalk.devConsoleLink', 'DingTalk Open Platform')}
-            </a>{' '}
+            {t('settings.dingtalk.devConsoleLink', 'DingTalk Open Platform')}{' '}
             {t('settings.dingtalk.clientSecretDescSuffix', 'to get Client Secret')}
           </span>
         }

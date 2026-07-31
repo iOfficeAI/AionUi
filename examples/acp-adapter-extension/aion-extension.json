@@ -2,8 +2,8 @@
   "name": "example-acp-adapter",
   "displayName": "Example ACP Adapter Extension",
   "version": "1.0.0",
-  "description": "A sample extension demonstrating how to contribute ACP (Agent Communication Protocol) adapters to AionUI",
-  "author": "AionUI Contributors",
+  "description": "A sample extension demonstrating how to contribute ACP (Agent Communication Protocol) adapters to CSBU WorkMate",
+  "author": "CSBU WorkMate Contributors",
   "i18n": {
     "localesDir": "i18n",
     "defaultLocale": "en-US"

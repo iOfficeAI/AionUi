@@ -122,7 +122,7 @@ export type AgentMetadata = {
 
   behavior_policy?: BehaviorPolicy;
 
-  /** Native mode id that AionUi's legacy `yolo` / `yoloNoSandbox`
+  /** Native mode id that CSBU WorkMate's legacy `yolo` / `yoloNoSandbox`
    *  aliases resolve to before calling `session/set_mode`. Absent
    *  when the backend has no yolo equivalent. */
   yolo_id?: string;

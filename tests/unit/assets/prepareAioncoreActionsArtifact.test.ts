@@ -97,8 +97,8 @@ chmod +x "$out/aioncore"
 }
 
 afterEach(() => {
-  delete process.env.AIONUI_BACKEND_RUN_ID;
-  delete process.env.AIONUI_BACKEND_LOCAL_BINARY;
+  delete process.env.CSBU_WORKMATE_BACKEND_RUN_ID;
+  delete process.env.CSBU_WORKMATE_BACKEND_LOCAL_BINARY;
   rmSync(join(tmpdir(), 'aioncore-prepare', 'v0.1.46'), { recursive: true, force: true });
   rmSync(join(tmpdir(), 'aioncore-prepare-actions', '123'), { recursive: true, force: true });
 });
@@ -136,11 +136,11 @@ describe('prepare-aioncore GitHub Actions artifact resolver', () => {
   // These cases execute a temporary POSIX shell-script aioncore binary. Windows
   // coverage for contract rejection lives in the verifier/local-bundle tests.
   posixFakeToolchainIt('hard fails Actions artifact input when prepared managed resources lack contract', () => {
-    const tmp = mkdtempSync(join(tmpdir(), 'aionui-actions-gate-'));
+    const tmp = mkdtempSync(join(tmpdir(), 'csbu-workmate-actions-gate-'));
     const fakeBin = createFakeToolchain(tmp);
     const previousPath = process.env.PATH;
     process.env.PATH = `${fakeBin}${delimiter}${previousPath || ''}`;
-    process.env.AIONUI_BACKEND_RUN_ID = '123';
+    process.env.CSBU_WORKMATE_BACKEND_RUN_ID = '123';
 
     try {
       expect(() =>
@@ -159,7 +159,7 @@ describe('prepare-aioncore GitHub Actions artifact resolver', () => {
   });
 
   posixFakeToolchainIt('hard fails GitHub release download input when prepared managed resources lack contract', () => {
-    const tmp = mkdtempSync(join(tmpdir(), 'aionui-download-gate-'));
+    const tmp = mkdtempSync(join(tmpdir(), 'csbu-workmate-download-gate-'));
     const fakeBin = createFakeToolchain(tmp);
     const previousPath = process.env.PATH;
     process.env.PATH = `${fakeBin}${delimiter}${previousPath || ''}`;
@@ -181,13 +181,13 @@ describe('prepare-aioncore GitHub Actions artifact resolver', () => {
   });
 
   posixFakeToolchainIt('hard fails local binary fallback when prepared managed resources lack contract', () => {
-    const tmp = mkdtempSync(join(tmpdir(), 'aionui-local-binary-gate-'));
+    const tmp = mkdtempSync(join(tmpdir(), 'csbu-workmate-local-binary-gate-'));
     const localBinary = join(tmp, 'aioncore');
     writeExecutable(localBinary, '#!/usr/bin/env bash\nexit 0\n');
     const fakeBin = createFakeToolchain(tmp, { curlFails: true });
     const previousPath = process.env.PATH;
     process.env.PATH = `${fakeBin}${delimiter}${previousPath || ''}`;
-    process.env.AIONUI_BACKEND_LOCAL_BINARY = localBinary;
+    process.env.CSBU_WORKMATE_BACKEND_LOCAL_BINARY = localBinary;
 
     try {
       expect(() =>

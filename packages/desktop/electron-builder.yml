@@ -1,12 +1,12 @@
-appId: com.aionui.app
-productName: AionUi
-executableName: AionUi
-copyright: Copyright © 2024 AionUi
+appId: com.csbu.workmate
+productName: CSBU WorkMate
+executableName: CSBU WorkMate
+copyright: Copyright © 2026 CSBU
 
 protocols:
-  - name: AionUi Protocol
+  - name: CSBU WorkMate Protocol
     schemes:
-      - aionui
+      - csbu-workmate
 
 asar:
   smartUnpack: true
@@ -117,7 +117,7 @@ win:
     - nsis
     #    - msi
   icon: resources/app.ico # Use the checked-in Windows icon resource for executable metadata/icon patching
-  artifactName: ${productName}-${version}-${os}-${arch}.${ext}
+  artifactName: CSBU-WorkMate-${version}-${os}-${arch}.${ext}
 
 nsis:
   oneClick: false
@@ -126,7 +126,7 @@ nsis:
   createStartMenuShortcut: true
   shortcutName: ${productName}
   uninstallDisplayName: ${productName}
-  artifactName: ${productName}-${version}-${os}-${arch}.${ext}
+  artifactName: CSBU-WorkMate-${version}-${os}-${arch}.${ext}
   differentialPackage: false
 
 mac:
@@ -134,7 +134,7 @@ mac:
     - dmg
     - zip
   icon: resources/app.icns
-  artifactName: ${productName}-${version}-${os}-${arch}.${ext}
+  artifactName: CSBU-WorkMate-${version}-${os}-${arch}.${ext}
   category: public.app-category.productivity
   hardenedRuntime: true
   gatekeeperAssess: false
@@ -167,19 +167,19 @@ linux:
   target:
     - deb
   icon: resources/app.png
-  artifactName: ${productName}-${version}-${os}-${arch}.${ext}
+  artifactName: CSBU-WorkMate-${version}-${os}-${arch}.${ext}
   category: Utility
-  maintainer: aionui
-  vendor: aionui
+  maintainer: CSBU
+  vendor: CSBU
   synopsis: ${description}
   description: ${description}
   desktop:
     entry:
-      Name: AionUi
+      Name: CSBU WorkMate
       Comment: ${description}
-      Icon: AionUi
+      Icon: CSBU WorkMate
       Categories: Office;Utility;
-      MimeType: x-scheme-handler/aionui;
+      MimeType: x-scheme-handler/csbu-workmate;
 
 npmRebuild: false
 buildDependenciesFromSource: false
@@ -214,10 +214,3 @@ compression: normal
 removePackageScripts: true
 electronDownload:
   cache: ${env.ELECTRON_CACHE}
-
-publish:
-  provider: github
-  owner: iOfficeAI
-  repo: AionUi
-  publishAutoUpdate: true
-  releaseType: release

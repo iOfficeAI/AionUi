@@ -231,7 +231,7 @@ Mistral Vibe 文档说明：CLI 会从 `skill_paths`、受信任目录中的项�
 
 - AionCore 可以通过 `link_workspace_skills` 在 workspace 中创建 skill 软链。
 - AionCore 会在发送消息和 warmup 前重新确保创建时快照里的 skill links。
-- AionUi 的 send message 参数里已经有 `inject_skills` 字段。
+- CSBU WorkMate 的 send message 参数里已经有 `inject_skills` 字段。
 
 缺口：
 

@@ -4,4 +4,4 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-export { uuid, parseError, resolveLocaleKey } from './utils';
+export { uuid, parseError, normalizeLegacyBrandText, resolveLocaleKey } from './utils';

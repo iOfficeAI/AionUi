@@ -93,7 +93,7 @@ jobs:
             }
 
             const systemPrompt = [
-              'You are a world-class code review expert for the AionUi project — a cross-platform Electron desktop application that provides a unified AI agent graphical interface.',
+              'You are a world-class code review expert for the CSBU WorkMate project — a cross-platform Electron desktop application that provides a unified AI agent graphical interface.',
               '',
               '## Tech Stack',
               '- Electron 37.x + React 19.x + TypeScript 5.8.x (strict mode)',

@@ -1,14 +1,15 @@
 /**
  * prepareHubResources.js
  *
- * Downloads the AionHub index.json and all extension zip packages
+ * Downloads the internal extension-hub index.json and all extension packages
  * into resources/hub/ so they are bundled with the app as local fallback.
  *
  * Called during the build pipeline before electron-builder runs.
  *
  * Environment variables:
- *   AIONUI_HUB_TAG    - Git tag to fetch from (default: 'dist-latest')
- *   AIONUI_HUB_SKIP   - Set to '1' to skip hub resource preparation
+ *   CSBU_WORKMATE_HUB_MIRROR - Internal base URL containing index.json
+ *   CSBU_WORKMATE_HUB_TAG    - Release tag recorded in the generated manifest
+ *   CSBU_WORKMATE_HUB_SKIP   - Set to '1' to skip hub resource preparation
  */
 
 const fs = require('fs');
@@ -19,10 +20,11 @@ const PROJECT_ROOT = path.resolve(__dirname, '..');
 const HUB_DIR = path.join(PROJECT_ROOT, 'resources', 'hub');
 
 const DEFAULT_TAG = 'dist-latest';
-const BASE_URLS = [
-  `https://raw.githubusercontent.com/iOfficeAI/AionHub/${process.env.AIONUI_HUB_TAG || DEFAULT_TAG}/`,
-  `https://cdn.jsdelivr.net/gh/iOfficeAI/AionHub@${process.env.AIONUI_HUB_TAG || DEFAULT_TAG}/`,
-];
+const BASE_URLS = (process.env.CSBU_WORKMATE_HUB_MIRROR || '')
+  .split(',')
+  .map((url) => url.trim())
+  .filter(Boolean)
+  .map((url) => (url.endsWith('/') ? url : `${url}/`));
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -94,12 +96,17 @@ function downloadUrl(url, destPath) {
 // ---------------------------------------------------------------------------
 
 async function prepareHubResources() {
-  if (process.env.AIONUI_HUB_SKIP === '1') {
-    console.log('[hub] Skipping hub resource preparation (AIONUI_HUB_SKIP=1)');
+  if (process.env.CSBU_WORKMATE_HUB_SKIP === '1') {
+    console.log('[hub] Skipping hub resource preparation (CSBU_WORKMATE_HUB_SKIP=1)');
     return { skipped: true };
   }
 
-  const tag = process.env.AIONUI_HUB_TAG || DEFAULT_TAG;
+  if (BASE_URLS.length === 0) {
+    console.log('[hub] Skipping hub resource preparation: no internal mirror configured');
+    return { skipped: true };
+  }
+
+  const tag = process.env.CSBU_WORKMATE_HUB_TAG || DEFAULT_TAG;
   console.log(`[hub] Preparing hub resources from tag: ${tag}`);
 
   // Clean and create target directory

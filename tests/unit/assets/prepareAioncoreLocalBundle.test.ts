@@ -7,14 +7,14 @@ const { prepareAioncore } = require('../../../packages/shared-scripts/src/prepar
 
 describe('prepare-aioncore local bundle input', () => {
   it('hard fails local bundle input that lacks managed-resources manifest', () => {
-    const tmp = mkdtempSync(join(tmpdir(), 'aionui-local-bundle-'));
+    const tmp = mkdtempSync(join(tmpdir(), 'csbu-workmate-local-bundle-'));
     const projectRoot = join(tmp, 'project');
     const localBundle = join(tmp, 'bundle');
     mkdirSync(join(localBundle, 'managed-resources'), { recursive: true });
     writeFileSync(join(localBundle, 'aioncore.exe'), '');
 
-    const previous = process.env.AIONUI_BACKEND_LOCAL_BUNDLE_DIR;
-    process.env.AIONUI_BACKEND_LOCAL_BUNDLE_DIR = localBundle;
+    const previous = process.env.CSBU_WORKMATE_BACKEND_LOCAL_BUNDLE_DIR;
+    process.env.CSBU_WORKMATE_BACKEND_LOCAL_BUNDLE_DIR = localBundle;
     try {
       expect(() =>
         prepareAioncore({
@@ -25,8 +25,8 @@ describe('prepare-aioncore local bundle input', () => {
         })
       ).toThrow(/managed-resources\/manifest\.json/);
     } finally {
-      if (previous === undefined) delete process.env.AIONUI_BACKEND_LOCAL_BUNDLE_DIR;
-      else process.env.AIONUI_BACKEND_LOCAL_BUNDLE_DIR = previous;
+      if (previous === undefined) delete process.env.CSBU_WORKMATE_BACKEND_LOCAL_BUNDLE_DIR;
+      else process.env.CSBU_WORKMATE_BACKEND_LOCAL_BUNDLE_DIR = previous;
       rmSync(tmp, { recursive: true, force: true });
     }
   });

@@ -1,5 +1,5 @@
 /**
- * E2E test helpers for aionrs (Aion CLI) conversations.
+ * E2E test helpers for aionrs (CSBU WorkMate) conversations.
  */
 import type { Page } from '@playwright/test';
 import { invokeBridge } from './bridge';

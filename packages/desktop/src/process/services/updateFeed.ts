@@ -7,7 +7,7 @@
 import { CdnGenericProvider } from './cdnGenericProvider';
 import type { CdnGenericProviderConfiguration } from './cdnGenericProvider';
 
-export const CDN_UPDATE_BASE_URL = 'https://static.aionui.com/releases';
+export const CDN_UPDATE_BASE_URL = 'https://updates.csbu.internal/releases';
 
 export type CdnFeedOptions = CdnGenericProviderConfiguration & {
   updateProvider: typeof CdnGenericProvider;

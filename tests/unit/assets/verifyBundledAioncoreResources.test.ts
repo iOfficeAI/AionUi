@@ -148,7 +148,7 @@ describe('verifyBundledAioncoreResources', () => {
   let managedResourcesDir: string;
 
   beforeEach(() => {
-    tmp = mkdtempSync(join(tmpdir(), 'aionui-bundled-resources-'));
+    tmp = mkdtempSync(join(tmpdir(), 'csbu-workmate-bundled-resources-'));
     resourcesDir = join(tmp, 'resources');
     managedResourcesDir = seedRuntimeKey(resourcesDir, {
       runtimeKey: 'win32-x64',

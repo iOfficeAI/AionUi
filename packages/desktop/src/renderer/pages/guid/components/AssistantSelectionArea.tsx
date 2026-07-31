@@ -8,7 +8,7 @@ import styles from '../index.module.css';
 import { assistantRuntimeKey, type Assistant } from '@/common/types/agent/assistantTypes';
 import { Down, Robot } from '@icon-park/react';
 import { Button } from '@arco-design/web-react';
-import { AionSearchInput } from '@/renderer/components/base';
+import { WorkMateSearchInput } from '@/renderer/components/base';
 import { useAssistantOrder } from '@/renderer/hooks/assistant/useAssistantOrder';
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { resolveAssistantAvatar } from '@/renderer/utils/model/assistantAvatar';
@@ -231,7 +231,7 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
     >
       {showOverflowSearch ? (
         <div className='mb-8px'>
-          <AionSearchInput
+          <WorkMateSearchInput
             className='w-full'
             value={search}
             onChange={setSearch}

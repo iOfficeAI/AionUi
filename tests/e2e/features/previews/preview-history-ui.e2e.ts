@@ -14,7 +14,7 @@ test.describe('Preview — history and view toggle', () => {
   let workspace: string;
 
   test.beforeAll(() => {
-    workspace = fs.mkdtempSync(path.join(os.tmpdir(), 'aionui-e2e-preview-hist-'));
+    workspace = fs.mkdtempSync(path.join(os.tmpdir(), 'csbu-workmate-e2e-preview-hist-'));
     fs.writeFileSync(path.join(workspace, 'app.html'), '<!DOCTYPE html><html><body><h1>Version 1</h1></body></html>');
     fs.writeFileSync(path.join(workspace, 'style.css'), 'body { margin: 0; }');
   });

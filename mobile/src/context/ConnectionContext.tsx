@@ -4,7 +4,7 @@ import { wsService, type ConnectionState } from '../services/websocket';
 import { configureApi, resetApi, refreshToken } from '../services/api';
 import { decodeJwtPayload } from '../utils/jwt';
 
-const STORAGE_KEY = 'aionui_connection';
+const STORAGE_KEY = 'csbu_workmate_connection';
 
 type ConnectionConfig = {
   host: string;

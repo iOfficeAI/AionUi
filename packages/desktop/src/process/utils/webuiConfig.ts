@@ -10,7 +10,7 @@ import * as path from 'path';
 import { networkInterfaces } from 'os';
 import { getSystemDir } from './initStorage';
 import { httpRequest } from '@/common/adapter/httpBridge';
-import { startWebHost, type WebHostHandle } from '@aionui/web-host';
+import { startWebHost, type WebHostHandle } from '@csbu-workmate/web-host';
 import { getDataPath } from './utils';
 
 const WEBUI_CONFIG_FILE = 'webui.config.json';
@@ -130,7 +130,7 @@ export const saveUserWebUIConfig = async (config: WebUIUserConfig): Promise<void
 //   production -> 25808, dev -> 25809, multi-instance dev -> 25810
 const DEFAULT_WEBUI_PORT = (() => {
   if (process.env.NODE_ENV === 'production') return 25808;
-  if (process.env.AIONUI_MULTI_INSTANCE === '1') return 25810;
+  if (process.env.CSBU_WORKMATE_MULTI_INSTANCE === '1') return 25810;
   return 25809;
 })();
 
@@ -141,7 +141,7 @@ export const resolveWebUIPort = (
   const cliPort = parsePortValue(getSwitchValue('port') ?? getSwitchValue('webui-port'));
   if (cliPort) return cliPort;
 
-  const envPort = parsePortValue(process.env.AIONUI_PORT ?? process.env.PORT);
+  const envPort = parsePortValue(process.env.CSBU_WORKMATE_PORT ?? process.env.PORT);
   if (envPort) return envPort;
 
   const configPort = parsePortValue(config.port);
@@ -151,8 +151,8 @@ export const resolveWebUIPort = (
 };
 
 export const resolveRemoteAccess = (config: WebUIUserConfig, isRemoteMode: boolean): boolean => {
-  const envRemote = parseBooleanEnv(process.env.AIONUI_ALLOW_REMOTE || process.env.AIONUI_REMOTE);
-  const hostHint = process.env.AIONUI_HOST?.trim();
+  const envRemote = parseBooleanEnv(process.env.CSBU_WORKMATE_ALLOW_REMOTE || process.env.CSBU_WORKMATE_REMOTE);
+  const hostHint = process.env.CSBU_WORKMATE_HOST?.trim();
   const hostRequestsRemote = hostHint ? ['0.0.0.0', '::', '::0'].includes(hostHint) : false;
   const configRemote = config.allowRemote === true;
 
@@ -239,7 +239,7 @@ export async function startDesktopWebUI(opts: { port?: number; allowRemote?: boo
       resourcesPath: app.getAppPath(),
       // webui.config.json must live next to the backend SQLite DB so --resetpass
       // CLI and the runtime settings path read/write the same user record.
-      // getDataPath() returns ~/.aionui[-dev] symlink on macOS to sidestep
+      // getDataPath() returns ~/.csbu-workmate[-dev] symlink on macOS to sidestep
       // path-with-spaces issues under Application Support.
       userDataPath: getDataPath(),
     },

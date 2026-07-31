@@ -59,7 +59,7 @@
 **优先级**：P0
 **前置条件**：
 
-- 用户技能目录 `~/.aionui/skills/` 中存在 2 个测试技能：
+- 用户技能目录 `~/.csbu-workmate/skills/` 中存在 2 个测试技能：
   - `E2E-Test-Builtin`（builtin 技能）
   - `E2E-Test-Custom`（custom 技能）
 

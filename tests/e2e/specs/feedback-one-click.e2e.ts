@@ -75,7 +75,7 @@ test.describe('One-click feedback infrastructure', () => {
     const autoInfo = page.locator('[data-testid="feedback-report-auto-info"]');
     await expect(autoInfo).toBeVisible();
 
-    // Close via the AionModal header close button (aria-label='Close'). The
+    // Close via the WorkMateModal header close button (aria-label='Close'). The
     // modal is configured with closable={false} so Escape alone does not
     // dismiss it. Scope to the modal that owns the feedback body so we never
     // match another modal's close button.

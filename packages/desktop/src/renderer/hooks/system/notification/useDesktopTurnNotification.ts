@@ -44,7 +44,7 @@ export const useDesktopTurnNotification = (): void => {
       show: ({ body, conversationId, kind }) => {
         // This issue scopes desktop notifications to turn completion only.
         if (kind !== 'turnCompleted') return;
-        void ipcBridge.notification.show.invoke({ title: 'AionUi', body, conversation_id: conversationId });
+        void ipcBridge.notification.show.invoke({ title: 'CSBU WorkMate', body, conversation_id: conversationId });
       },
     });
 

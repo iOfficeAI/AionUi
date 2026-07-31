@@ -167,7 +167,7 @@ describe('joinTranscriptSegments', () => {
   });
 
   it('joins directly when only one side of the boundary is CJK', () => {
-    expect(joinTranscriptSegments(['我在用', 'AionUi'])).toBe('我在用AionUi');
+    expect(joinTranscriptSegments(['我在用', 'CSBU WorkMate'])).toBe('我在用CSBU WorkMate');
     expect(joinTranscriptSegments(['open', '设置页'])).toBe('open设置页');
   });
 

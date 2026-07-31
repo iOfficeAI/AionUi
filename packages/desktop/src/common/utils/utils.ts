@@ -32,20 +32,33 @@ export const uuid = (length = 8) => {
 export const parseError = (error: unknown): string => {
   if (typeof error === 'object' && error !== null) {
     const err = error as { backendMessage?: unknown; msg?: unknown; message?: unknown };
-    if (typeof err.msg === 'string') return err.msg;
-    if (typeof err.backendMessage === 'string' && err.backendMessage.trim()) return err.backendMessage;
-    if (typeof err.message === 'string') return err.message;
+    if (typeof err.msg === 'string') return normalizeLegacyBrandText(err.msg);
+    if (typeof err.backendMessage === 'string' && err.backendMessage.trim()) {
+      return normalizeLegacyBrandText(err.backendMessage);
+    }
+    if (typeof err.message === 'string') return normalizeLegacyBrandText(err.message);
   }
 
-  if (typeof error === 'string') return error;
-  if (error instanceof Error) return error.message;
+  if (typeof error === 'string') return normalizeLegacyBrandText(error);
+  if (error instanceof Error) return normalizeLegacyBrandText(error.message);
 
   try {
-    return JSON.stringify(error);
+    const serialized = JSON.stringify(error);
+    return typeof serialized === 'string' ? normalizeLegacyBrandText(serialized) : serialized;
   } catch {
     return String(error);
   }
 };
+
+/** Remove legacy product names from text that can be returned by the upstream backend. */
+export function normalizeLegacyBrandText(value: string): string {
+  return value
+    .replace(/\bAionUi\b/gi, 'CSBU WorkMate')
+    .replace(/\bAionCore\b/gi, 'CSBU WorkMate backend')
+    .replace(/\bAionHub\b/gi, 'CSBU WorkMate Hub')
+    .replace(/Aion\s*(?:Assistant|CLI|命令行|助手)/gi, 'CSBU WorkMate')
+    .replace(/\bAion\b/gi, 'CSBU WorkMate');
+}
 
 /**
  * 根据语言代码解析为标准化的区域键

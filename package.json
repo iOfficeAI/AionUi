@@ -1,12 +1,11 @@
 {
-  "name": "AionUi",
+  "name": "csbu-workmate",
   "version": "2.1.44",
-  "description": "Transform your command-line AI agent into a modern, efficient AI Chat interface.",
+  "description": "CSBU's internal AI workspace for everyday office tasks.",
   "keywords": [],
   "license": "Apache-2.0",
   "author": {
-    "name": "AionUi",
-    "email": "service@aionui.com"
+    "name": "CSBU"
   },
   "workspaces": [
     "packages/*"
@@ -15,7 +14,7 @@
   "scripts": {
     "dev": "electron-vite dev --config packages/desktop/electron.vite.config.ts",
     "start": "electron-vite dev --config packages/desktop/electron.vite.config.ts",
-    "start:multi": "cross-env AIONUI_MULTI_INSTANCE=1 electron-vite dev --config packages/desktop/electron.vite.config.ts",
+    "start:multi": "cross-env CSBU_WORKMATE_MULTI_INSTANCE=1 electron-vite dev --config packages/desktop/electron.vite.config.ts",
     "cli": "electron-vite dev --config packages/desktop/electron.vite.config.ts",
     "webui": "tsx scripts/webui.ts",
     "webui:remote": "tsx scripts/webui.ts --remote",
@@ -43,6 +42,7 @@
     "format": "oxfmt",
     "format:check": "oxfmt --check",
     "i18n:types": "node scripts/generate-i18n-types.js",
+    "audit:branding": "node tests/unit/build-scripts/brandingAudit.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
@@ -76,7 +76,7 @@
   },
   "dependencies": {
     "@agentclientprotocol/sdk": "^0.18.2",
-    "@aionui/web-host": "workspace:*",
+    "@csbu-workmate/web-host": "workspace:*",
     "@anthropic-ai/sdk": "^0.71.2",
     "@arco-design/web-react": "^2.66.1",
     "@aws-sdk/client-bedrock": "^3.987.0",
@@ -262,5 +262,5 @@
   "patchedDependencies": {
     "7zip-bin@5.2.0": "patches/7zip-bin@5.2.0.patch"
   },
-  "productName": "AionUi"
+  "productName": "CSBU WorkMate"
 }

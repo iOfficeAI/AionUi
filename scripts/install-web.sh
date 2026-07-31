@@ -1,13 +1,12 @@
 #!/usr/bin/env bash
 # ============================================================================
-# AionUi WebUI — One-Click Installation Script
+# CSBU WorkMate WebUI — One-Click Installation Script
 # ============================================================================
 # Usage:
-#   curl -fsSL https://raw.githubusercontent.com/iOfficeAI/AionUi/main/scripts/install-web.sh | bash
-#   # Or specify version:
-#   VERSION=1.0.0 bash install-web.sh
-#   # Or install to custom directory:
-#   INSTALL_DIR=/opt/aionui-web bash install-web.sh
+#   VERSION=1.0.0 CSBU_WORKMATE_RELEASE_MIRROR=https://releases.example.internal \
+#     bash install-web.sh
+#   # Or use an offline release directory:
+#   VERSION=1.0.0 MIRROR=file:///path/to/releases bash install-web.sh
 # ============================================================================
 
 set -euo pipefail
@@ -18,9 +17,9 @@ VERSION="${VERSION:-__VERSION__}"
 # occurrences above into e.g. "1.9.19". The resolve_version() function uses a
 # regex-based check (looks for letters) to detect the unreplaced placeholder,
 # so never add a literal "__VERSION__" string to any comparison below.
-INSTALL_DIR="${INSTALL_DIR:-${HOME}/.local/share/aionui-web}"
+INSTALL_DIR="${INSTALL_DIR:-${HOME}/.local/share/csbu-workmate-web}"
 BIN_DIR="${BIN_DIR:-${HOME}/.local/bin}"
-MIRROR="${MIRROR:-https://github.com/iOfficeAI/AionUi/releases/download}"
+MIRROR="${CSBU_WORKMATE_RELEASE_MIRROR:-${MIRROR:-}}"
 CREATE_SYMLINK="${CREATE_SYMLINK:-1}"
 UPDATE_PATH="${UPDATE_PATH:-1}"
 
@@ -43,7 +42,7 @@ die()     { error "$*"; exit 1; }
 banner() {
     echo -e "${CYAN}${BOLD}"
     echo "  ╔══════════════════════════════════════════════╗"
-    echo "  ║     AionUi WebUI Installer (No Electron)     ║"
+    echo "  ║     CSBU WorkMate WebUI Installer (No Electron)     ║"
     echo "  ╚══════════════════════════════════════════════╝"
     echo -e "${NC}"
 }
@@ -90,9 +89,9 @@ show_help() {
 Usage: install-web.sh [OPTIONS]
 
 Options:
-  --version <version>       Specify version to install (default: latest or CI-embedded)
-  --mirror <url>            Specify mirror URL (default: GitHub releases)
-  --install-dir <path>      Specify installation directory (default: ~/.local/share/aionui-web)
+  --version <version>       Specify version to install (required unless CI-embedded)
+  --mirror <url>            Specify the internal or local release mirror (required)
+  --install-dir <path>      Specify installation directory (default: ~/.local/share/csbu-workmate-web)
   --no-symlink              Do not create symlink in ~/.local/bin
   --no-path                 Do not add PATH to shell profile
   --help                    Show this help message
@@ -101,16 +100,15 @@ Environment Variables:
   VERSION                   Version to install (same as --version)
   INSTALL_DIR               Installation directory (same as --install-dir)
   MIRROR                    Mirror URL (same as --mirror)
+  CSBU_WORKMATE_RELEASE_MIRROR
+                            Preferred internal release mirror URL
 
 Examples:
-  # Install latest version
-  curl -fsSL https://raw.githubusercontent.com/iOfficeAI/AionUi/main/scripts/install-web.sh | bash
-
-  # Install specific version
-  VERSION=1.0.0 bash install-web.sh
+# Install a specific version from the internal release service
+  VERSION=1.0.0 CSBU_WORKMATE_RELEASE_MIRROR=https://releases.example.internal bash install-web.sh
 
   # Install to custom directory
-  INSTALL_DIR=/opt/aionui-web bash install-web.sh
+  INSTALL_DIR=/opt/csbu-workmate-web bash install-web.sh
 
   # Use local file mirror (for offline installation)
   MIRROR=file:///path/to/releases bash install-web.sh
@@ -154,63 +152,43 @@ detect_platform_arch() {
     info "Detected platform: ${BOLD}${PLATFORM}-${ARCH}${NC}"
 
     # Build tarball filename
-    TARBALL_NAME="aionui-web-${VERSION}-${PLATFORM}-${ARCH}.tar.gz"
+    TARBALL_NAME="csbu-workmate-web-${VERSION}-${PLATFORM}-${ARCH}.tar.gz"
     CHECKSUM_NAME="${TARBALL_NAME}.sha256"
 }
 
 resolve_version() {
-    # Trigger GitHub API resolution when:
-    # - VERSION is "latest" (explicit)
-    # - VERSION still contains the CI placeholder pattern (letters/underscores,
-    #   i.e. sed did NOT run and we have the raw "__VERSION__" token)
-    # Note: a real version number is digits+dots only, so `[a-zA-Z_]` is a
-    # reliable marker of "placeholder". We avoid literal "__VERSION__" here
-    # because the CI sed replacement rewrites every occurrence in this file,
-    # including the comparison string.
+    # A release version must be embedded by CI or supplied explicitly. This
+    # installer intentionally does not query a public release service.
     if [[ "$VERSION" == "latest" || "$VERSION" =~ [a-zA-Z_] ]]; then
-        info "Resolving latest version from GitHub API..."
-
-        if command -v curl &>/dev/null; then
-            VERSION=$(curl -fsSL "https://api.github.com/repos/iOfficeAI/AionUi/releases/latest" \
-                | grep '"tag_name"' | head -1 | sed 's/.*"v\([^"]*\)".*/\1/')
-        elif command -v wget &>/dev/null; then
-            VERSION=$(wget -qO- "https://api.github.com/repos/iOfficeAI/AionUi/releases/latest" \
-                | grep '"tag_name"' | head -1 | sed 's/.*"v\([^"]*\)".*/\1/')
-        else
-            die "curl or wget is required to resolve version. Please install curl or wget."
-        fi
-
-        if [[ -z "$VERSION" ]]; then
-            die "Failed to resolve latest version. Please specify version manually: VERSION=1.0.0 bash $0"
-        fi
-
-        info "Latest version: ${BOLD}v${VERSION}${NC}"
-    else
-        info "Using specified version: ${BOLD}v${VERSION}${NC}"
+        die "Release version is required. Set VERSION=1.0.0 or pass --version 1.0.0."
     fi
 
+    info "Using specified version: ${BOLD}v${VERSION}${NC}"
+
     # Rebuild tarball name (VERSION may have changed)
-    TARBALL_NAME="aionui-web-${VERSION}-${PLATFORM}-${ARCH}.tar.gz"
+    TARBALL_NAME="csbu-workmate-web-${VERSION}-${PLATFORM}-${ARCH}.tar.gz"
     CHECKSUM_NAME="${TARBALL_NAME}.sha256"
 }
 
 download_tarball() {
+    if [[ -z "$MIRROR" ]]; then
+        die "Release mirror is required. Set CSBU_WORKMATE_RELEASE_MIRROR or pass --mirror."
+    fi
+
     # Create temp directory
     TEMP_DIR="$(mktemp -d)"
     TARBALL_PATH="${TEMP_DIR}/${TARBALL_NAME}"
     CHECKSUM_PATH="${TEMP_DIR}/${CHECKSUM_NAME}"
 
     # Build download URL
-    # MIRROR formats:
-    #   - GitHub: https://github.com/iOfficeAI/AionUi/releases/download
-    #   - file: file:///path/to/releases
+    # MIRROR may point to an internal HTTPS release service or a local file URL.
     if [[ "$MIRROR" == file://* ]]; then
         # Local file mirror (for offline installation or testing)
         local base_path="${MIRROR#file://}"
         TARBALL_URL="file://${base_path}/v${VERSION}/${TARBALL_NAME}"
         CHECKSUM_URL="file://${base_path}/v${VERSION}/${CHECKSUM_NAME}"
     else
-        # GitHub releases
+        # Internal release service
         TARBALL_URL="${MIRROR}/v${VERSION}/${TARBALL_NAME}"
         CHECKSUM_URL="${MIRROR}/v${VERSION}/${CHECKSUM_NAME}"
     fi
@@ -306,7 +284,7 @@ extract_tarball() {
     mkdir -p "$(dirname "$INSTALL_DIR")"
 
     # Extract tarball
-    # Tarball root directory is aionui-web/, rename after extraction to INSTALL_DIR
+    # Tarball root directory is csbu-workmate-web/, rename after extraction to INSTALL_DIR
     local extract_temp="${TEMP_DIR}/extract"
     mkdir -p "$extract_temp"
 
@@ -314,16 +292,16 @@ extract_tarball() {
     tar -xzf "$TARBALL_PATH" -C "$extract_temp" || die "Failed to extract tarball"
 
     # Move to final installation location
-    if [[ -d "${extract_temp}/aionui-web" ]]; then
-        mv "${extract_temp}/aionui-web" "$INSTALL_DIR"
+    if [[ -d "${extract_temp}/csbu-workmate-web" ]]; then
+        mv "${extract_temp}/csbu-workmate-web" "$INSTALL_DIR"
     else
-        die "Tarball structure is invalid (missing aionui-web/ directory)"
+        die "Tarball structure is invalid (missing csbu-workmate-web/ directory)"
     fi
 
     success "Extracted to $INSTALL_DIR"
 
     # Set executable permission on the bun-compiled standalone binary
-    chmod +x "${INSTALL_DIR}/aionui-web" 2>/dev/null || true
+    chmod +x "${INSTALL_DIR}/csbu-workmate-web" 2>/dev/null || true
 
     # On macOS, strip the quarantine xattr Safari/Chrome/curl-downloaded files
     # inherit — otherwise Gatekeeper kills unsigned Mach-O binaries with a
@@ -334,8 +312,8 @@ extract_tarball() {
     fi
 
     # Verify installation
-    if [[ ! -x "${INSTALL_DIR}/aionui-web" ]]; then
-        die "Installation failed: ${INSTALL_DIR}/aionui-web not found or not executable"
+    if [[ ! -x "${INSTALL_DIR}/csbu-workmate-web" ]]; then
+        die "Installation failed: ${INSTALL_DIR}/csbu-workmate-web not found or not executable"
     fi
 
     success "Installation completed"
@@ -345,8 +323,8 @@ extract_tarball() {
 }
 
 create_symlink() {
-    local symlink_path="${BIN_DIR}/aionui-web"
-    local target_path="${INSTALL_DIR}/aionui-web"
+    local symlink_path="${BIN_DIR}/csbu-workmate-web"
+    local target_path="${INSTALL_DIR}/csbu-workmate-web"
 
     info "Creating symlink: ${BOLD}${symlink_path}${NC} -> ${target_path}"
 
@@ -417,7 +395,7 @@ update_shell_profile() {
 
     # Add to profile
     echo "" >> "$profile_file"
-    echo "# Added by aionui-web installer" >> "$profile_file"
+    echo "# Added by csbu-workmate-web installer" >> "$profile_file"
     echo "$path_line" >> "$profile_file"
 
     success "Added PATH to $profile_file"
@@ -427,37 +405,36 @@ update_shell_profile() {
 print_summary() {
     echo ""
     echo -e "${GREEN}${BOLD}══════════════════════════════════════════════════${NC}"
-    echo -e "${GREEN}${BOLD}  🎉 AionUi WebUI v${VERSION} Installed!${NC}"
+    echo -e "${GREEN}${BOLD}  🎉 CSBU WorkMate WebUI v${VERSION} Installed!${NC}"
     echo -e "${GREEN}${BOLD}══════════════════════════════════════════════════${NC}"
     echo ""
     echo -e "  ${BOLD}📍 Installation directory:${NC}  ${INSTALL_DIR}"
     if [[ "$CREATE_SYMLINK" == "1" ]]; then
-        echo -e "  ${BOLD}📍 Symlink:${NC}                ${BIN_DIR}/aionui-web"
+        echo -e "  ${BOLD}📍 Symlink:${NC}                ${BIN_DIR}/csbu-workmate-web"
     fi
     echo ""
     echo -e "  ${BOLD}🚀 Usage:${NC}"
     echo ""
     if [[ "$CREATE_SYMLINK" == "1" && ":$PATH:" == *":${BIN_DIR}:"* ]]; then
-        echo "    # Start AionUi WebUI"
-        echo "    aionui-web start"
+        echo "    # Start CSBU WorkMate WebUI"
+        echo "    csbu-workmate-web start"
         echo ""
         echo "    # Check version"
-        echo "    aionui-web version"
+        echo "    csbu-workmate-web version"
     else
-        echo "    # Start AionUi WebUI (using full path)"
-        echo "    ${INSTALL_DIR}/aionui-web start"
+        echo "    # Start CSBU WorkMate WebUI (using full path)"
+        echo "    ${INSTALL_DIR}/csbu-workmate-web start"
         echo ""
         echo "    # Or add symlink to PATH:"
         if [[ "$CREATE_SYMLINK" == "1" ]]; then
             echo "    export PATH=\"${BIN_DIR}:\$PATH\""
         else
-            echo "    ln -s ${INSTALL_DIR}/aionui-web ~/.local/bin/aionui-web"
+            echo "    ln -s ${INSTALL_DIR}/csbu-workmate-web ~/.local/bin/csbu-workmate-web"
             echo "    export PATH=\"~/.local/bin:\$PATH\""
         fi
     fi
     echo ""
-    echo -e "  ${BOLD}📖 Documentation:${NC}  https://github.com/iOfficeAI/AionUi"
-    echo -e "  ${BOLD}🐛 Report issues:${NC}  https://github.com/iOfficeAI/AionUi/issues"
+    echo -e "  ${BOLD}📖 Support:${NC}  Contact the internal CSBU support channel"
     echo ""
     echo -e "  ${BOLD}🗑️  Uninstall:${NC}"
     echo ""
@@ -466,7 +443,7 @@ print_summary() {
     if [[ "$CREATE_SYMLINK" == "1" ]]; then
         echo ""
         echo "    # Remove symlink"
-        echo "    rm ${BIN_DIR}/aionui-web"
+        echo "    rm ${BIN_DIR}/csbu-workmate-web"
     fi
     if [[ "$UPDATE_PATH" == "1" ]]; then
         echo ""

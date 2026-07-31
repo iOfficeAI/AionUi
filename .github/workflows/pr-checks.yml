@@ -172,7 +172,7 @@ jobs:
         run: bun run test:coverage
 
       - name: Upload coverage to Codecov (Linux coverage only)
-        if: always() && hashFiles('coverage/lcov.info') != '' && github.repository == 'iOfficeAI/AionUi'
+        if: always() && hashFiles('coverage/lcov.info') != '' && github.repository == 'CSBU/CSBU-WorkMate'
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -181,7 +181,7 @@ jobs:
           fail_ci_if_error: false
           verbose: true
       - name: Skip Codecov upload when preconditions are not met
-        if: always() && hashFiles('coverage/lcov.info') != '' && github.repository != 'iOfficeAI/AionUi'
+        if: always() && hashFiles('coverage/lcov.info') != '' && github.repository != 'CSBU/CSBU-WorkMate'
         shell: bash
         run: |
           echo 'Skipping Codecov upload due to unmet preconditions.'
@@ -440,7 +440,7 @@ jobs:
           Write-Host "SMOKE INSTALL: windows-x64"
           Write-Host "=========================================="
 
-          $installer = Get-ChildItem -Path out -Filter "AionUi-*-win-*.exe" | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+          $installer = Get-ChildItem -Path out -Filter "CSBU-WorkMate-*-win-*.exe" | Sort-Object LastWriteTime -Descending | Select-Object -First 1
           if (-not $installer) {
             throw "No Windows installer found in out/"
           }
@@ -449,9 +449,9 @@ jobs:
           Start-Process -FilePath $installer.FullName -ArgumentList '/S' -Wait -NoNewWindow
 
           $candidates = @(
-            "$env:LOCALAPPDATA\\Programs\\AionUi\\AionUi.exe",
-            "$env:ProgramFiles\\AionUi\\AionUi.exe",
-            "$env:ProgramFiles(x86)\\AionUi\\AionUi.exe"
+            "$env:LOCALAPPDATA\\Programs\\CSBU WorkMate\\CSBU WorkMate.exe",
+            "$env:ProgramFiles\\CSBU WorkMate\\CSBU WorkMate.exe",
+            "$env:ProgramFiles(x86)\\CSBU WorkMate\\CSBU WorkMate.exe"
           )
 
           $installedExe = $candidates | Where-Object { Test-Path $_ } | Select-Object -First 1
@@ -471,8 +471,8 @@ jobs:
           echo "=========================================="
 
           DMG_FILE=$(ls out/*.dmg | head -n 1)
-          MOUNT_POINT="/tmp/aionui-smoke-mount"
-          APP_DIR="/tmp/aionui-smoke-app"
+          MOUNT_POINT="/tmp/csbu-workmate-smoke-mount"
+          APP_DIR="/tmp/csbu-workmate-smoke-app"
 
           rm -rf "$MOUNT_POINT" "$APP_DIR"
           mkdir -p "$MOUNT_POINT" "$APP_DIR"
@@ -482,7 +482,7 @@ jobs:
           hdiutil detach "$MOUNT_POINT"
 
           APP_PATH=$(ls -d "$APP_DIR"/*.app | head -n 1)
-          APP_BIN="$APP_PATH/Contents/MacOS/AionUi"
+          APP_BIN="$APP_PATH/Contents/MacOS/CSBU WorkMate"
 
           test -x "$APP_BIN"
           "$APP_BIN" --version || true
@@ -500,7 +500,7 @@ jobs:
           PKG_NAME=$(dpkg-deb -f "$DEB_FILE" Package)
           sudo dpkg -i "$DEB_FILE" || sudo apt-get install -f -y
 
-          INSTALLED_BIN=$(dpkg -L "$PKG_NAME" | grep -Ei '/(bin|opt)/.*(aionui)$' | head -n 1 || true)
+          INSTALLED_BIN=$(dpkg -L "$PKG_NAME" | grep -Ei '/(bin|opt)/.*(csbu[ -]?workmate)$' | head -n 1 || true)
           if [ -z "$INSTALLED_BIN" ]; then
             echo "Package files:"
             dpkg -L "$PKG_NAME" | head -n 50

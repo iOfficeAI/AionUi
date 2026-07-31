@@ -23,7 +23,7 @@ test.describe('Workspace Changes — UI panel', () => {
   let workspace: string;
 
   test.beforeAll(() => {
-    workspace = fs.mkdtempSync(path.join(os.tmpdir(), 'aionui-e2e-ws-snap-'));
+    workspace = fs.mkdtempSync(path.join(os.tmpdir(), 'csbu-workmate-e2e-ws-snap-'));
     fs.writeFileSync(path.join(workspace, 'baseline.txt'), 'original');
   });
 

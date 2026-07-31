@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-const WORKSPACE_UPDATE_TIME_KEY = 'aionui_workspace_update_time';
+const WORKSPACE_UPDATE_TIME_KEY = 'csbu_workmate_workspace_update_time';
 
 /**
  * 获取 workspace 的最后更新时间

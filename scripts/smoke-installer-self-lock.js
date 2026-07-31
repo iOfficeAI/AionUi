@@ -68,59 +68,59 @@ function main() {
   }
 
   const makensis = findMakensis();
-  const root = mkdtempSync(path.join(tmpdir(), 'aionui-self-lock-'));
+  const root = mkdtempSync(path.join(tmpdir(), 'csbu-workmate-self-lock-'));
   const installDir = path.join(root, 'install-dir');
   mkdirSync(installDir, { recursive: true });
   writeFileSync(path.join(installDir, 'existing-file.txt'), 'self-lock smoke\n', 'utf8');
 
-  const nsiPath = path.join(root, 'aionui-self-lock-smoke.nsi');
-  const exePath = path.join(root, 'aionui-self-lock-smoke.exe');
+  const nsiPath = path.join(root, 'csbu-workmate-self-lock-smoke.nsi');
+  const exePath = path.join(root, 'csbu-workmate-self-lock-smoke.exe');
   const logPath = path.join(
     process.env.TEMP || tmpdir(),
-    `aionui-installer-self-lock-${new Date()
+    `csbu-workmate-installer-self-lock-${new Date()
       .toISOString()
       .replace(/[-:]/g, '')
       .replace(/\..+$/, '')
       .replace('T', '-')}-log.jsonl`
   );
-  const resultPath = path.join(process.env.TEMP || tmpdir(), `aionui-installer-self-lock-${process.pid}-result.txt`);
+  const resultPath = path.join(process.env.TEMP || tmpdir(), `csbu-workmate-installer-self-lock-${process.pid}-result.txt`);
   const processControlPath = path.join(repoRoot, 'resources', 'windows', 'installer-process-control.nsh');
 
   const nsi = `
 Unicode true
-Name "AionUi Installer Self Lock Smoke"
+Name "CSBU WorkMate Installer Self Lock Smoke"
 OutFile "${nsisQuote(exePath)}"
 RequestExecutionLevel user
 SilentInstall silent
 !define VERSION "self-lock-smoke"
-!define AIONUI_TARGET_ARCH "x64"
-!define AIONUI_FALLBACK_LOG "aionui-installer-self-lock-fallback.log"
-!define AIONUI_APP_EXECUTABLE_FILENAME "AionUi.exe"
-!define UNINSTALL_FILENAME "Uninstall AionUi.exe"
+!define CSBU_WORKMATE_TARGET_ARCH "x64"
+!define CSBU_WORKMATE_FALLBACK_LOG "csbu-workmate-installer-self-lock-fallback.log"
+!define CSBU_WORKMATE_APP_EXECUTABLE_FILENAME "CSBU WorkMate.exe"
+!define UNINSTALL_FILENAME "Uninstall CSBU WorkMate.exe"
 !define PROJECT_DIR "${nsisQuote(repoRoot)}"
 !include LogicLib.nsh
 !include "${nsisQuote(processControlPath)}"
 
-Var AionUiSessionId
-Var AionUiIsUpdated
-Var AionUiSessionLogPath
+Var CsbuWorkMateSessionId
+Var CsbuWorkMateIsUpdated
+Var CsbuWorkMateSessionLogPath
 Var ResultFile
 
 Section
   StrCpy $INSTDIR "${nsisQuote(installDir)}"
-  StrCpy $AionUiSessionId "selflock"
-  StrCpy $AionUiIsUpdated "1"
-  StrCpy $AionUiSessionLogPath "${nsisQuote(logPath)}"
+  StrCpy $CsbuWorkMateSessionId "selflock"
+  StrCpy $CsbuWorkMateIsUpdated "1"
+  StrCpy $CsbuWorkMateSessionLogPath "${nsisQuote(logPath)}"
   StrCpy $ResultFile "${nsisQuote(resultPath)}"
   InitPluginsDir
   SetOutPath $INSTDIR
-  StrCpy $AionUiCurrentOutDir "$INSTDIR"
-  !insertmacro AIONUI_QUERY_LOCKERS "$INSTDIR" $AionUiLockerResult
+  StrCpy $CsbuWorkMateCurrentOutDir "$INSTDIR"
+  !insertmacro CSBU_WORKMATE_QUERY_LOCKERS "$INSTDIR" $CsbuWorkMateLockerResult
   FileOpen $0 "$ResultFile" w
-  FileWrite $0 "$AionUiLockerResult"
-  FileWrite $0 "|$AionUiCurrentOutDir|$AionUiSessionLogPath"
+  FileWrite $0 "$CsbuWorkMateLockerResult"
+  FileWrite $0 "|$CsbuWorkMateCurrentOutDir|$CsbuWorkMateSessionLogPath"
   FileClose $0
-  \${If} $AionUiLockerResult != 0
+  \${If} $CsbuWorkMateLockerResult != 0
     SetErrorLevel 10
     Quit
   \${EndIf}
@@ -159,8 +159,8 @@ SectionEnd
       throw new Error(`expected currentOutDir ${installDir}, got ${lockers.currentOutDir}`);
     }
     const blocking = lockers.blockingProcesses || [];
-    if (!blocking.some((process) => process.name === 'AionUi installer' && Number(process.pid) > 0)) {
-      throw new Error(`expected AionUi installer blocker, got ${JSON.stringify(blocking)}`);
+    if (!blocking.some((process) => process.name === 'CSBU WorkMate installer' && Number(process.pid) > 0)) {
+      throw new Error(`expected CSBU WorkMate installer blocker, got ${JSON.stringify(blocking)}`);
     }
 
     console.log(`[self-lock] ok: ${logPath}`);

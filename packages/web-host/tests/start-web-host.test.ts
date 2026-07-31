@@ -3,7 +3,7 @@
  *
  * After the M6 auth cleanup, startWebHost is a thin orchestrator: start backend,
  * start static-server, return the combined handle. No credentials, no config
- * file reads — the caller (Electron main process, aionui-web CLI) resolves
+ * file reads — the caller (Electron main process, csbu-workmate-web CLI) resolves
  * port / allowRemote from its own source of truth.
  */
 

@@ -40,7 +40,7 @@
     "subAgentsPlaceholder": "Виберіть асистентів команди",
     "confirm": "Confirm Create",
     "noSupportedAgents": "Немає доступних підтримуваних асистентів",
-    "supportedAgentsHint": "Наразі підтримуються асистенти Claude та Aion CLI. Інші асистенти з'являться незабаром.",
+    "supportedAgentsHint": "Наразі підтримуються асистенти Claude та CSBU WorkMate. Інші асистенти з'являться незабаром.",
     "leaderDesc": "Розуміє ваші цілі та координує асистентів для виконання завдань",
     "searchPlaceholder": "Search",
     "noSearchResults": "Нічого не знайдено",

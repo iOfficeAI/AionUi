@@ -1,5 +1,5 @@
 {
-  "name": "@aionui/web-host",
+  "name": "@csbu-workmate/web-host",
   "version": "0.0.0",
   "private": true,
   "description": "WebUI host package - spawns backend and reverse-proxies to it; serves static files (no Electron dependency)",

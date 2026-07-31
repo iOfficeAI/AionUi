@@ -93,7 +93,7 @@ describe('static-server', () => {
       if (req.url === '/login' && req.method === 'POST') {
         res.writeHead(200, {
           'content-type': 'application/json',
-          'set-cookie': 'aionui-session=backend-token; Path=/; HttpOnly',
+          'set-cookie': 'csbu-workmate-session=backend-token; Path=/; HttpOnly',
         });
         res.end(JSON.stringify({ success: true, proxied: true }));
         return;
@@ -109,7 +109,7 @@ describe('static-server', () => {
       body: JSON.stringify({ username: 'admin', password: 'anything' }),
     });
     expect(r.status).toBe(200);
-    expect(r.headers.get('set-cookie')).toMatch(/aionui-session=backend-token/);
+    expect(r.headers.get('set-cookie')).toMatch(/csbu-workmate-session=backend-token/);
     const json = (await r.json()) as { proxied: boolean };
     expect(json.proxied).toBe(true);
   });
@@ -137,7 +137,7 @@ describe('static-server', () => {
       if (req.url === '/logout' && req.method === 'POST') {
         res.writeHead(200, {
           'content-type': 'application/json',
-          'set-cookie': 'aionui-session=; Path=/; Max-Age=0',
+          'set-cookie': 'csbu-workmate-session=; Path=/; Max-Age=0',
         });
         res.end(JSON.stringify({ success: true, proxied: true }));
         return;

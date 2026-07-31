@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { Button, Empty, Spin, Tooltip } from '@arco-design/web-react';
 import { Plus } from '@icon-park/react';
 import { useTranslation } from 'react-i18next';
-import { AionSearchInput, AionInlineSearchInput } from '@renderer/components/base';
+import { WorkMateSearchInput, WorkMateInlineSearchInput } from '@renderer/components/base';
 import { AssistantOptionLabel, assistantKey, type TeamAssistantOption } from '../assistantSelectUtils';
 
 type Props = {
@@ -15,8 +15,8 @@ type Props = {
   className?: string;
   footer?: React.ReactNode;
   /**
-   * 搜索框样式：'default' 用常驻搜索栏样式（AionSearchInput，34px 描边）；
-   * 'inline' 用下拉列表专用的柔和样式（AionInlineSearchInput，浅灰填充无边框）。
+   * 搜索框样式：'default' 用常驻搜索栏样式（WorkMateSearchInput，34px 描边）；
+   * 'inline' 用下拉列表专用的柔和样式（WorkMateInlineSearchInput，浅灰填充无边框）。
    * 点击展开的下拉列表传 'inline'，常驻列表用默认。
    */
   searchVariant?: 'default' | 'inline';
@@ -51,7 +51,7 @@ const TeamAssistantPicker: React.FC<Props> = ({
         data-testid={`${testIdPrefix}-search-shell`}
       >
         {isInlineSearch ? (
-          <AionInlineSearchInput
+          <WorkMateInlineSearchInput
             className='w-full'
             value={query}
             onChange={setQuery}
@@ -59,7 +59,7 @@ const TeamAssistantPicker: React.FC<Props> = ({
             data-testid={`${testIdPrefix}-search`}
           />
         ) : (
-          <AionSearchInput
+          <WorkMateSearchInput
             className='w-full'
             value={query}
             onChange={setQuery}

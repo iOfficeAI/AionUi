@@ -156,9 +156,9 @@ describe('buildSpawnArgs', () => {
     expect(args).not.toContain('--local');
   });
 
-  it('passes prompt dump flag in development only when AIONUI_DUMP_PROMPTS is enabled', () => {
-    const prev = process.env.AIONUI_DUMP_PROMPTS;
-    process.env.AIONUI_DUMP_PROMPTS = '1';
+  it('passes prompt dump flag in development only when CSBU_WORKMATE_DUMP_PROMPTS is enabled', () => {
+    const prev = process.env.CSBU_WORKMATE_DUMP_PROMPTS;
+    process.env.CSBU_WORKMATE_DUMP_PROMPTS = '1';
     try {
       const args = buildSpawnArgs({
         port: 1,
@@ -170,14 +170,14 @@ describe('buildSpawnArgs', () => {
 
       expect(args).toContain('--dump-prompts');
     } finally {
-      if (prev === undefined) delete process.env.AIONUI_DUMP_PROMPTS;
-      else process.env.AIONUI_DUMP_PROMPTS = prev;
+      if (prev === undefined) delete process.env.CSBU_WORKMATE_DUMP_PROMPTS;
+      else process.env.CSBU_WORKMATE_DUMP_PROMPTS = prev;
     }
   });
 
   it('passes bundled managed resources mode when packaged', () => {
-    const prev = process.env.AIONUI_DUMP_PROMPTS;
-    process.env.AIONUI_DUMP_PROMPTS = '1';
+    const prev = process.env.CSBU_WORKMATE_DUMP_PROMPTS;
+    process.env.CSBU_WORKMATE_DUMP_PROMPTS = '1';
     try {
       const args = buildSpawnArgs({
         port: 1,
@@ -191,8 +191,8 @@ describe('buildSpawnArgs', () => {
       expect(args).toContain('bundled');
       expect(args).not.toContain('--dump-prompts');
     } finally {
-      if (prev === undefined) delete process.env.AIONUI_DUMP_PROMPTS;
-      else process.env.AIONUI_DUMP_PROMPTS = prev;
+      if (prev === undefined) delete process.env.CSBU_WORKMATE_DUMP_PROMPTS;
+      else process.env.CSBU_WORKMATE_DUMP_PROMPTS = prev;
     }
   });
 
@@ -209,9 +209,9 @@ describe('buildSpawnArgs', () => {
     expect(args).toContain('--recover-corrupted-database');
   });
 
-  it('respects AIONUI_LOG_LEVEL override', () => {
-    const prev = process.env.AIONUI_LOG_LEVEL;
-    process.env.AIONUI_LOG_LEVEL = 'trace';
+  it('respects CSBU_WORKMATE_LOG_LEVEL override', () => {
+    const prev = process.env.CSBU_WORKMATE_LOG_LEVEL;
+    process.env.CSBU_WORKMATE_LOG_LEVEL = 'trace';
     try {
       const args = buildSpawnArgs({
         port: 1,
@@ -222,14 +222,14 @@ describe('buildSpawnArgs', () => {
       });
       expect(args).toContain('trace');
     } finally {
-      if (prev === undefined) delete process.env.AIONUI_LOG_LEVEL;
-      else process.env.AIONUI_LOG_LEVEL = prev;
+      if (prev === undefined) delete process.env.CSBU_WORKMATE_LOG_LEVEL;
+      else process.env.CSBU_WORKMATE_LOG_LEVEL = prev;
     }
   });
 });
 
 describe('buildSpawnEnv', () => {
-  it('merges process.env with AIONUI_* dir vars', () => {
+  it('merges process.env with CSBU_WORKMATE_* dir vars', () => {
     const env = buildSpawnEnv({
       cacheDir: '/c',
       workDir: '/w',
@@ -514,7 +514,7 @@ describe('BackendLifecycleManager.start (health timeout)', () => {
     child.stderr?.emit(
       'data',
       Buffer.from(
-        'BOOTSTRAP_DATA_INIT_FAILED stage=database.open databasePath=/db/path/aionui-backend.db: failed to initialize application data\n'
+        'BOOTSTRAP_DATA_INIT_FAILED stage=database.open databasePath=/db/path/csbu-workmate-backend.db: failed to initialize application data\n'
       )
     );
     child.emit('exit', 1, null);
@@ -549,7 +549,7 @@ describe('BackendLifecycleManager.start (health timeout)', () => {
     child.stderr?.emit(
       'data',
       Buffer.from(
-        'BOOTSTRAP_DATA_INIT_FAILED stage=database.migration databasePath=/db/path/aionui-backend.db: failed to initialize application data\n'
+        'BOOTSTRAP_DATA_INIT_FAILED stage=database.migration databasePath=/db/path/csbu-workmate-backend.db: failed to initialize application data\n'
       )
     );
     child.emit('close', 1, null);
@@ -1251,7 +1251,7 @@ describe('BackendLifecycleManager.start peer retry', () => {
       .mockRejectedValueOnce(makePeerAlreadyRunningError())
       .mockResolvedValueOnce(58672);
 
-    const started = mgr.start('/data/aionui-backend.db');
+    const started = mgr.start('/data/csbu-workmate-backend.db');
     await vi.runAllTimersAsync();
 
     await expect(started).resolves.toBe(58672);
@@ -1268,7 +1268,7 @@ describe('BackendLifecycleManager.start peer retry', () => {
       .spyOn(mgr as unknown as AttemptStartSpyTarget, 'attemptStart')
       .mockRejectedValue(makePeerAlreadyRunningError());
 
-    const started = mgr.start('/data/aionui-backend.db');
+    const started = mgr.start('/data/csbu-workmate-backend.db');
     const assertion = expect(started).rejects.toMatchObject({
       details: { backendBoundaryCode: 'BOOTSTRAP_PEER_ALREADY_RUNNING' },
     });
@@ -1293,7 +1293,7 @@ describe('BackendLifecycleManager.start peer retry', () => {
       .spyOn(mgr as unknown as AttemptStartSpyTarget, 'attemptStart')
       .mockRejectedValue(nonPeerError);
 
-    await expect(mgr.start('/data/aionui-backend.db')).rejects.toBe(nonPeerError);
+    await expect(mgr.start('/data/csbu-workmate-backend.db')).rejects.toBe(nonPeerError);
     expect(attemptStart).toHaveBeenCalledTimes(1);
   });
 });

@@ -1,6 +1,6 @@
 {
   "displayName": "Расширение «Привет, мир»",
-  "description": "Полная демонстрация возможностей расширений AionUi",
+  "description": "Полная демонстрация возможностей расширений CSBU WorkMate",
   "settingsTabs": {
     "hello-settings": {
       "name": "Настройки приветствия"

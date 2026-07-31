@@ -3,7 +3,7 @@ import ModalHOC from '@/renderer/utils/ui/ModalHOC';
 import { Form, Input, Message, Select, Tag } from '@arco-design/web-react';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import AionModal from '@/renderer/components/base/AionModal';
+import WorkMateModal from '@/renderer/components/base/WorkMateModal';
 import { LinkCloud } from '@icon-park/react';
 import { ipcBridge } from '@/common';
 import useModeModeList from '@renderer/hooks/agent/useModeModeList';
@@ -141,7 +141,7 @@ const EditModeModal = ModalHOC<{ data?: IProvider; onChange(data: IProvider): vo
     }, [data, form]);
 
     return (
-      <AionModal
+      <WorkMateModal
         variant='standard'
         visible={modalProps.visible}
         onCancel={modalCtrl.close}
@@ -386,7 +386,7 @@ const EditModeModal = ModalHOC<{ data?: IProvider; onChange(data: IProvider): vo
             </Form.Item>
           </Form>
         </div>
-      </AionModal>
+      </WorkMateModal>
     );
   }
 );

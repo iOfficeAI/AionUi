@@ -34,7 +34,7 @@ const {
     selectedAssistant: {
       id: 'bare-aionrs',
       source: 'generated',
-      name: 'Aion CLI',
+      name: 'CSBU WorkMate',
       name_i18n: {},
       description_i18n: {},
       enabled: true,
@@ -55,7 +55,7 @@ const {
       {
         id: 'bare-aionrs',
         source: 'generated',
-        name: 'Aion CLI',
+        name: 'CSBU WorkMate',
         name_i18n: {},
         description_i18n: {},
         enabled: true,
@@ -279,7 +279,7 @@ vi.mock('swr', async () => {
 import GuidPage from '@/renderer/pages/guid/GuidPage';
 
 const guidInputCardProps = {
-  input: 'Existing Guid draft\nCreate with /cron in AionUi',
+  input: 'Existing Guid draft\nCreate with /cron in CSBU WorkMate',
   onInputChange: vi.fn(),
   onKeyDown: vi.fn(),
   onPaste: vi.fn(),
@@ -328,7 +328,7 @@ describe('GuidPage', () => {
       {
         id: 'bare-aionrs',
         source: 'generated',
-        name: 'Aion CLI',
+        name: 'CSBU WorkMate',
         name_i18n: {},
         description_i18n: {},
         enabled: true,
@@ -380,7 +380,7 @@ describe('GuidPage', () => {
 
   it('appends a draft-preserving prefill without clearing attachments or workspace', () => {
     locationMock.state = {
-      prefillPrompt: 'Create with /cron in AionUi',
+      prefillPrompt: 'Create with /cron in CSBU WorkMate',
       preservePrefillDraft: true,
       focusPrefill: true,
       returnTo: 'conversation-sidebar',
@@ -393,7 +393,7 @@ describe('GuidPage', () => {
 
     const inputUpdater = guidInputMock.setInput.mock.calls[0]?.[0];
     expect(inputUpdater).toBeTypeOf('function');
-    expect(inputUpdater('Existing Guid draft')).toBe('Existing Guid draft\nCreate with /cron in AionUi');
+    expect(inputUpdater('Existing Guid draft')).toBe('Existing Guid draft\nCreate with /cron in CSBU WorkMate');
     expect(guidInputMock.setFiles).not.toHaveBeenCalled();
     expect(guidInputMock.setDir).not.toHaveBeenCalled();
     expect(capturedGuidInputCardProps.at(-1)?.focusRequestKey).toBe('guid-location');
@@ -417,7 +417,7 @@ describe('GuidPage', () => {
 
   it('removes a consumed preserved prefill even when no other navigation state remains', () => {
     locationMock.state = {
-      prefillPrompt: 'Create with /cron in AionUi',
+      prefillPrompt: 'Create with /cron in CSBU WorkMate',
       preservePrefillDraft: true,
       focusPrefill: true,
     };
@@ -472,7 +472,7 @@ describe('GuidPage', () => {
       {
         id: 'bare-aionrs',
         source: 'generated',
-        name: 'Aion CLI',
+        name: 'CSBU WorkMate',
         name_i18n: {},
         description_i18n: {},
         enabled: true,
@@ -527,7 +527,7 @@ describe('GuidPage', () => {
       {
         id: 'bare-aionrs',
         source: 'generated',
-        name: 'Aion CLI',
+        name: 'CSBU WorkMate',
         name_i18n: {},
         description_i18n: {},
         enabled: true,

@@ -9,7 +9,7 @@ import { DEEPGRAM_SPEECH_MODEL_PRESETS, OPENAI_SPEECH_MODEL_PRESETS } from './sp
 
 export type StreamCapability = 'supported' | 'unsupported' | 'unknown';
 
-const STORAGE_KEY = 'aionui.sttStreamUnsupported';
+const STORAGE_KEY = 'csbu-workmate.sttStreamUnsupported';
 
 // ---------------------------------------------------------------------------
 // Capability matrix

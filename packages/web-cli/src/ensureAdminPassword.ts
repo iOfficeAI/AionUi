@@ -35,7 +35,7 @@ export type EnsureAdminPasswordOptions = {
   statusPollIntervalMs?: number;
   /**
    * Command to show in fallback hints ("Forgot the password? Run ..."). Varies
-   * by launch context — packaged tarball = `aionui-web resetpass`, in-repo dev
+   * by launch context — packaged tarball = `csbu-workmate-web resetpass`, in-repo dev
    * = `bun run resetpass`. Defaults to the packaged form.
    */
   resetCommand?: string;
@@ -101,14 +101,14 @@ export async function ensureAdminPassword(
 ): Promise<void> {
   const timeoutMs = opts.statusTimeoutMs ?? 15_000;
   const intervalMs = opts.statusPollIntervalMs ?? 500;
-  const resetCmd = opts.resetCommand ?? 'aionui-web resetpass';
+  const resetCmd = opts.resetCommand ?? 'csbu-workmate-web resetpass';
   const base = `http://127.0.0.1:${opts.backendPort}`;
 
   let status: AuthStatus;
   try {
     status = await waitForStatus(deps, `${base}/api/auth/status`, timeoutMs, intervalMs);
   } catch (err) {
-    deps.warn(`[aionui-web] could not verify admin credentials: ${err instanceof Error ? err.message : String(err)}`);
+    deps.warn(`[csbu-workmate-web] could not verify admin credentials: ${err instanceof Error ? err.message : String(err)}`);
     return;
   }
 
@@ -116,28 +116,28 @@ export async function ensureAdminPassword(
 
   if (!needsSetup) {
     const username = await fetchAdminUsername(deps, opts.backendPort);
-    deps.log(`[aionui-web] Log in with username "${username}". Forgot the password? Run \`${resetCmd}\`.`);
+    deps.log(`[csbu-workmate-web] Log in with username "${username}". Forgot the password? Run \`${resetCmd}\`.`);
     return;
   }
 
   try {
     const resetRes = await deps.fetch(`${base}/api/webui/reset-password`, { method: 'POST' });
     if (!resetRes.ok) {
-      deps.warn(`[aionui-web] /api/webui/reset-password returned ${resetRes.status} — run \`${resetCmd}\``);
+      deps.warn(`[csbu-workmate-web] /api/webui/reset-password returned ${resetRes.status} — run \`${resetCmd}\``);
       return;
     }
     const payload = (await resetRes.json()) as ResetPasswordResponse;
     const newPassword = payload.data?.new_password ?? payload.new_password;
     if (!newPassword) {
-      deps.warn(`[aionui-web] /api/webui/reset-password returned no new_password — run \`${resetCmd}\``);
+      deps.warn(`[csbu-workmate-web] /api/webui/reset-password returned no new_password — run \`${resetCmd}\``);
       return;
     }
     const username = await fetchAdminUsername(deps, opts.backendPort);
-    deps.log(`[aionui-web] Generated initial admin password: ${newPassword}`);
-    deps.log(`[aionui-web] Log in with username "${username}" and change it from the UI.`);
+    deps.log(`[csbu-workmate-web] Generated initial admin password: ${newPassword}`);
+    deps.log(`[csbu-workmate-web] Log in with username "${username}" and change it from the UI.`);
   } catch (err) {
     deps.warn(
-      `[aionui-web] failed to seed initial admin password: ${err instanceof Error ? err.message : String(err)}`
+      `[csbu-workmate-web] failed to seed initial admin password: ${err instanceof Error ? err.message : String(err)}`
     );
   }
 }

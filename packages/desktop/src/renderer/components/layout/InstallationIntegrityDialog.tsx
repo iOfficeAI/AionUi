@@ -4,7 +4,6 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { type FeedbackEventTags, submitFeedbackReport } from '@/renderer/services/feedback/submitFeedbackReport';
 
-const AIONUI_DOWNLOAD_URL = 'https://www.aionui.com/';
 const INSTALLATION_INTEGRITY_REPORT_FLUSH_TIMEOUT_MS = 2000;
 
 type InstallationIntegrityDialogKind =
@@ -29,10 +28,6 @@ export type InstallationIntegrityDiagnostics = {
   };
   backendStartupFailure?: Record<string, unknown> | null;
 };
-
-export function openDownloadLatest(): void {
-  window.open(AIONUI_DOWNLOAD_URL, '_blank', 'noopener,noreferrer');
-}
 
 export function getInstallationIntegrityTitle(
   t: TFunction,
@@ -59,10 +54,6 @@ export function getRuntimeComponentInstallationDescription(t: TFunction, resourc
   return t('common.backendStartup.incompleteInstallation.runtimeComponentDescription', { resource });
 }
 
-export function getInstallationIntegrityDownloadText(t: TFunction): string {
-  return t('common.backendStartup.incompleteInstallation.downloadLatest');
-}
-
 export function getInstallationIntegritySendDiagnosticsText(t: TFunction): string {
   return t('common.backendStartup.incompleteInstallation.sendDiagnostics');
 }
@@ -86,34 +77,34 @@ export function getInstallationIntegrityDiagnosticsSentText(
 
 function buildInstallationIntegrityTags(diagnostics: InstallationIntegrityDiagnostics): FeedbackEventTags {
   const tags: FeedbackEventTags = {
-    'aionui.installation_integrity.user_report': 'true',
-    'aionui.installation_integrity.report_source': diagnostics.source,
+    'csbu-workmate.installation_integrity.user_report': 'true',
+    'csbu-workmate.installation_integrity.report_source': diagnostics.source,
   };
 
   if (diagnostics.runtime?.failureKind) {
-    tags['aionui.installation_integrity.failure_kind'] = diagnostics.runtime.failureKind;
+    tags['csbu-workmate.installation_integrity.failure_kind'] = diagnostics.runtime.failureKind;
   }
   if (diagnostics.runtime?.resource) {
-    tags['aionui.runtime_resource'] = diagnostics.runtime.resource;
+    tags['csbu-workmate.runtime_resource'] = diagnostics.runtime.resource;
   }
   if (diagnostics.runtime?.resourceId) {
-    tags['aionui.runtime_resource_id'] = diagnostics.runtime.resourceId;
+    tags['csbu-workmate.runtime_resource_id'] = diagnostics.runtime.resourceId;
   }
   if (diagnostics.runtime?.scopeKind) {
-    tags['aionui.runtime_scope'] = diagnostics.runtime.scopeKind;
+    tags['csbu-workmate.runtime_scope'] = diagnostics.runtime.scopeKind;
   }
 
   const reason = diagnostics.backendStartupFailure?.reason;
   if (typeof reason === 'string') {
-    tags['aionui.backend_startup_failure.reason'] = reason;
+    tags['csbu-workmate.backend_startup_failure.reason'] = reason;
   }
   const backendBoundaryCode = diagnostics.backendStartupFailure?.backendBoundaryCode;
   if (typeof backendBoundaryCode === 'string') {
-    tags['aionui.backend_startup_failure.backend_boundary_code'] = backendBoundaryCode;
+    tags['csbu-workmate.backend_startup_failure.backend_boundary_code'] = backendBoundaryCode;
   }
   const backendBoundaryStage = diagnostics.backendStartupFailure?.backendBoundaryStage;
   if (typeof backendBoundaryStage === 'string') {
-    tags['aionui.backend_startup_failure.backend_boundary_stage'] = backendBoundaryStage;
+    tags['csbu-workmate.backend_startup_failure.backend_boundary_stage'] = backendBoundaryStage;
   }
 
   return tags;
@@ -136,7 +127,7 @@ export async function reportInstallationIntegrityDiagnostics(
     tags: buildInstallationIntegrityTags(diagnostics),
   });
 
-  if (typeof window !== 'undefined' && window.__aionuiE2ETest) {
+  if (typeof window !== 'undefined' && window.__workMateE2ETest) {
     window.__installationIntegrityReportCount = (window.__installationIntegrityReportCount ?? 0) + 1;
     window.__lastInstallationIntegrityReportMessage = 'installation-integrity-user-report';
   }
@@ -146,13 +137,11 @@ export function getInstallationIntegrityModalActions(
   t: TFunction,
   options: {
     diagnosticsKind?: InstallationIntegrityDialogKind;
-    onDownloadLatest?: () => void;
     onRecoverCorruptedDatabase?: () => Promise<unknown> | void;
     onReportDiagnostics?: () => Promise<unknown> | void;
   } = {}
 ): {
   downloadText?: string;
-  onDownloadLatest: () => void;
   onRecoverCorruptedDatabase: () => Promise<unknown> | void;
   onReportDiagnostics: () => Promise<unknown> | void;
   recoverText?: string;
@@ -160,8 +149,6 @@ export function getInstallationIntegrityModalActions(
 } {
   const diagnosticsKind = options.diagnosticsKind ?? 'incomplete_installation';
   return {
-    downloadText: diagnosticsKind === 'incomplete_installation' ? getInstallationIntegrityDownloadText(t) : undefined,
-    onDownloadLatest: options.onDownloadLatest ?? openDownloadLatest,
     onRecoverCorruptedDatabase: options.onRecoverCorruptedDatabase ?? (() => Promise.resolve()),
     onReportDiagnostics: options.onReportDiagnostics ?? (() => Promise.resolve()),
     recoverText:
@@ -180,26 +167,6 @@ export function getInstallationIntegrityModalActions(
               : diagnosticsKind === 'data_migration'
                 ? t('common.backendStartup.dataMigration.sendDiagnostics')
                 : getInstallationIntegritySendDiagnosticsText(t),
-  };
-}
-
-export function getDownloadLatestModalActionProps(t: TFunction): {
-  cancelButtonProps: {
-    style: {
-      display: 'none';
-    };
-  };
-  okText: string;
-  onOk: () => void;
-} {
-  return {
-    okText: getInstallationIntegrityDownloadText(t),
-    onOk: openDownloadLatest,
-    cancelButtonProps: {
-      style: {
-        display: 'none',
-      },
-    },
   };
 }
 
@@ -288,11 +255,6 @@ const InstallationIntegrityFooter: React.FC<{
       >
         {reported ? getInstallationIntegrityDiagnosticsSentText(t, diagnosticsKind) : actions.reportText}
       </Button>
-      {actions.downloadText ? (
-        <Button data-testid='installation-integrity-download' type='primary' onClick={actions.onDownloadLatest}>
-          {actions.downloadText}
-        </Button>
-      ) : null}
       {actions.recoverText ? (
         <Button
           data-testid='recoverable-database-corruption-rebuild'

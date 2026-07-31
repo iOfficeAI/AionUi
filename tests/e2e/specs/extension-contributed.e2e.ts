@@ -5,7 +5,7 @@
  * assistant settings, and guid page; extension assistant read-only editing;
  * duplication to custom; IPC bridge data correctness.
  *
- * Requires: e2e-full-extension loaded (via AIONUI_EXTENSIONS_PATH=examples/).
+ * Requires: e2e-full-extension loaded (via CSBU_WORKMATE_EXTENSIONS_PATH=examples/).
  */
 import { test, expect } from '../fixtures';
 import {

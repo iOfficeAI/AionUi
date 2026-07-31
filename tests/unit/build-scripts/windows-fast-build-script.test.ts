@@ -17,7 +17,7 @@ describe('Windows fast build scripts', () => {
   });
 
   it('supports a temporary build-time auto-update version override', () => {
-    expect(buildScript).toContain("DEBUG_AUTO_UPDATE_CURRENT_VERSION_ENV = 'AIONUI_DEBUG_AUTO_UPDATE_CURRENT_VERSION'");
+    expect(buildScript).toContain("DEBUG_AUTO_UPDATE_CURRENT_VERSION_ENV = 'CSBU_WORKMATE_DEBUG_AUTO_UPDATE_CURRENT_VERSION'");
     expect(buildScript).toContain('applyDebugAutoUpdateVersionOverride(packageJsonPath)');
     expect(buildScript).toContain('const originalPackageJsonText = fs.readFileSync(packageJsonPath,');
     expect(buildScript).toContain('packageJson.version = debugAutoUpdateCurrentVersion');

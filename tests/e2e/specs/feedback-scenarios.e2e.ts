@@ -28,9 +28,9 @@ const FEEDBACK_PILL = 'button:has-text("反馈问题"), button:has-text("Report 
 const MODAL_BODY = '[data-testid="feedback-report-scroll-body"]';
 const VISIBLE_MODAL_BODY = `${MODAL_BODY}:visible`;
 
-/** Close the feedback modal (AionModal sets closable=false so Escape is a no-op). */
+/** Close the feedback modal (WorkMateModal sets closable=false so Escape is a no-op). */
 async function closeFeedbackModal(page: Page) {
-  // The feedback modal is an AionModal (standard variant); its header close
+  // The feedback modal is an WorkMateModal (standard variant); its header close
   // button carries aria-label='Close'. Scope to the modal that owns the
   // visible feedback scroll body so we never match another (hidden) instance.
   await page
@@ -41,7 +41,7 @@ async function closeFeedbackModal(page: Page) {
   await expect(page.locator(VISIBLE_MODAL_BODY)).toHaveCount(0, { timeout: 5_000 });
 }
 
-/** Close any open AionModal (e.g. the Agent editor) so the next test starts clean. */
+/** Close any open WorkMateModal (e.g. the Agent editor) so the next test starts clean. */
 async function closeAgentEditor(page: Page) {
   const closeBtn = page.locator('.arco-modal button[aria-label="Close"]').first();
   if (await closeBtn.isVisible().catch(() => false)) {
@@ -104,7 +104,7 @@ test('[1] About → Bug Report entry opens feedback modal', async ({ page }) => 
 // ─────────────────────────────────────────────────────────────────────────────
 
 async function openCustomAgentEditor(page: Page, command: string) {
-  // Defensive: close any AionModal left over from a prior test so the
+  // Defensive: close any WorkMateModal left over from a prior test so the
   // sidebar/page buttons are clickable.
   await closeAgentEditor(page);
 
@@ -141,7 +141,7 @@ async function openCustomAgentEditor(page: Page, command: string) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 test('[5] Agent fail_cli alert shows without feedback pill', async ({ page }) => {
-  await openCustomAgentEditor(page, 'aionui-e2e-missing-binary-xyz');
+  await openCustomAgentEditor(page, 'csbu-workmate-e2e-missing-binary-xyz');
 
   // Expect the fail_cli alert to appear — without the feedback pill, which
   // was deliberately removed from InlineAgentEditor (#3448).

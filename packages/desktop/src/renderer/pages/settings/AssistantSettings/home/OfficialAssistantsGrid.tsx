@@ -72,7 +72,7 @@ const OfficialAssistantsGrid: React.FC<OfficialAssistantsGridProps> = ({
           />
           <span className='truncate'>
             {t('settings.officialAssistantsHintShort', {
-              defaultValue: 'Maintained by AionUi · enable to use, duplicate to customize',
+              defaultValue: 'Maintained for CSBU WorkMate · enable to use, duplicate to customize',
             })}
           </span>
         </span>

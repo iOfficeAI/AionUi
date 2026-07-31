@@ -4,15 +4,15 @@
  * Reads environment variables and invokes the shared module.
  *
  * Version resolution order:
- *  1. AIONUI_BACKEND_RUN_ID env (download from AionCore Manual Build artifact)
- *  2. AIONUI_BACKEND_VERSION env (for ad-hoc release overrides)
+ *  1. CSBU_WORKMATE_BACKEND_RUN_ID env (download from AionCore Manual Build artifact)
+ *  2. CSBU_WORKMATE_BACKEND_VERSION env (for ad-hoc release overrides)
  *  3. "aioncoreVersion" field in repo-root package.json (the pin)
  *  4. 'latest' (fallback; not recommended for reproducible builds)
  *
  * Environment variables:
- *  - AIONUI_BACKEND_RUN_ID: AionCore Manual Build workflow run id
- *  - AIONUI_BACKEND_VERSION: override the pinned version
- *  - AIONUI_BACKEND_ARCH: target architecture (default: process.arch)
+ *  - CSBU_WORKMATE_BACKEND_RUN_ID: AionCore Manual Build workflow run id
+ *  - CSBU_WORKMATE_BACKEND_VERSION: override the pinned version
+ *  - CSBU_WORKMATE_BACKEND_ARCH: target architecture (default: process.arch)
  *  - GH_TOKEN / GITHUB_TOKEN: GitHub API token (for rate limiting)
  */
 
@@ -22,8 +22,8 @@ const { resolveAioncoreVersion } = require('./resolveAioncoreVersion.js');
 
 const projectRoot = path.resolve(__dirname, '..');
 const platform = process.platform;
-// Support cross-compilation: AIONUI_BACKEND_ARCH > npm_config_target_arch > process.arch
-const arch = process.env.AIONUI_BACKEND_ARCH || process.env.npm_config_target_arch || process.arch;
+// Support cross-compilation: CSBU_WORKMATE_BACKEND_ARCH > npm_config_target_arch > process.arch
+const arch = process.env.CSBU_WORKMATE_BACKEND_ARCH || process.env.npm_config_target_arch || process.arch;
 const version = resolveAioncoreVersion(projectRoot);
 
 try {

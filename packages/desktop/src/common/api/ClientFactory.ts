@@ -76,8 +76,7 @@ export class ClientFactory {
           baseURL: base_url,
           timeout: options.timeout,
           defaultHeaders: {
-            'HTTP-Referer': 'https://aionui.com',
-            'X-Title': 'AionUi',
+            'X-Title': 'CSBU WorkMate',
           },
           ...(options.baseConfig as OpenAIClientConfig),
         };
@@ -127,8 +126,7 @@ export class ClientFactory {
           baseURL: base_url,
           timeout: options.timeout,
           defaultHeaders: {
-            'HTTP-Referer': 'https://aionui.com',
-            'X-Title': 'AionUi',
+            'X-Title': 'CSBU WorkMate',
           },
           ...(options.baseConfig as OpenAIClientConfig),
         };

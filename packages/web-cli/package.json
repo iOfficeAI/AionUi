@@ -1,10 +1,10 @@
 {
-  "name": "@aionui/web-cli",
+  "name": "@csbu-workmate/web-cli",
   "version": "1.9.26",
   "private": true,
-  "description": "AionUi WebUI CLI - standalone web runtime (no Electron)",
+  "description": "CSBU WorkMate WebUI CLI - standalone web runtime (no Electron)",
   "bin": {
-    "aionui-web": "./bin/aionui-web.js"
+    "csbu-workmate-web": "./bin/csbu-workmate-web.js"
   },
   "type": "module",
   "exports": {
@@ -16,8 +16,8 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@aionui/shared-scripts": "workspace:*",
-    "@aionui/web-host": "workspace:*"
+    "@csbu-workmate/shared-scripts": "workspace:*",
+    "@csbu-workmate/web-host": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",

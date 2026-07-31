@@ -5,13 +5,13 @@
  *
  * Integration test for `migrateAssistantsToBackend` against a real
  * aioncore binary using the user-provided fixtures
- * (`/Users/zhoukai/Downloads/aionui-config.txt` + `Archive/*.md`).
+ * (`/Users/zhoukai/Downloads/csbu-workmate-config.txt` + `Archive/*.md`).
  *
  * The unit suite (`tests/unit/assistants/migrateAssistants.test.ts`)
  * already covers Phase-by-Phase behaviour with mocks; this spec verifies
  * the full pipeline end-to-end:
  *
- *   1. Decode the legacy `aionui-config.txt` exactly as ConfigStorage would.
+ *   1. Decode the legacy `csbu-workmate-config.txt` exactly as ConfigStorage would.
  *   2. Stage `Archive/*.md` as `<userData>/config/assistants/<id>.<locale>.md`.
  *   3. Spawn a real aioncore bound to a throw-away data-dir.
  *   4. Run `migrateAssistantsToBackend`.
@@ -25,7 +25,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const FIXTURE_CONFIG = '/Users/zhoukai/Downloads/aionui-config.txt';
+const FIXTURE_CONFIG = '/Users/zhoukai/Downloads/csbu-workmate-config.txt';
 const FIXTURE_ARCHIVE = '/Users/zhoukai/Downloads/Archive';
 const FIXTURES_AVAILABLE = existsSync(FIXTURE_CONFIG) && existsSync(FIXTURE_ARCHIVE);
 
@@ -33,14 +33,14 @@ const describeIfFixtures = FIXTURES_AVAILABLE ? describe : describe.skip;
 
 function resolveBackendBinary(): string {
   const candidates = [
-    process.env.AIONUI_BACKEND_BINARY,
+    process.env.CSBU_WORKMATE_BACKEND_BINARY,
     path.join(os.homedir(), '.cargo', 'bin', 'aioncore'),
     path.resolve(__dirname, '../../../AionCore/target/debug/aioncore'),
   ].filter((x): x is string => typeof x === 'string' && x.length > 0);
   for (const c of candidates) {
     if (existsSync(c)) return c;
   }
-  throw new Error('aioncore binary not found (set AIONUI_BACKEND_BINARY or build it)');
+  throw new Error('aioncore binary not found (set CSBU_WORKMATE_BACKEND_BINARY or build it)');
 }
 
 async function findFreePort(): Promise<number> {
@@ -75,7 +75,7 @@ async function waitForHealthy(port: number, timeoutMs = 30_000): Promise<void> {
 }
 
 /**
- * Decode an `aionui-config.txt` exactly the way `JsonFileBuilder` does:
+ * Decode an `csbu-workmate-config.txt` exactly the way `JsonFileBuilder` does:
  *   base64(encodeURIComponent(JSON.stringify(...)))
  */
 function decodeConfigFile(file: string): Record<string, unknown> {
@@ -91,7 +91,7 @@ describeIfFixtures('migrateAssistantsToBackend (real fixture)', () => {
   let port = 0;
 
   beforeEach(async () => {
-    dataDir = await fsp.mkdtemp(path.join(os.tmpdir(), 'aionui-migrate-fixture-'));
+    dataDir = await fsp.mkdtemp(path.join(os.tmpdir(), 'csbu-workmate-migrate-fixture-'));
     legacyAssistantsDir = path.join(dataDir, '__legacy_config__', 'assistants');
     mkdirSync(legacyAssistantsDir, { recursive: true });
 

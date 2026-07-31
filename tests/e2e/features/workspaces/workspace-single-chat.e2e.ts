@@ -16,7 +16,7 @@ test.describe('Workspace — single chat', () => {
   let workspace: string;
 
   test.beforeAll(() => {
-    workspace = fs.mkdtempSync(path.join(os.tmpdir(), 'aionui-e2e-ws-single-'));
+    workspace = fs.mkdtempSync(path.join(os.tmpdir(), 'csbu-workmate-e2e-ws-single-'));
     fs.writeFileSync(path.join(workspace, 'readme.md'), '# My Project\n\nHello world.');
     fs.mkdirSync(path.join(workspace, 'src'), { recursive: true });
     fs.writeFileSync(path.join(workspace, 'src', 'index.ts'), 'console.log("hello");');

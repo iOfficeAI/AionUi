@@ -29,7 +29,7 @@ export type TalkToButlerButtonProps = {
   files?: string[];
   /**
    * Override for the "via chat" action. Default behaviour hands off to the
-   * AionUi Butler (select it + pre-fill `prompt`). Callers that want a
+   * CSBU WorkMate Butler (select it + pre-fill `prompt`). Callers that want a
    * different chat target — e.g. the scheduled-tasks page, which creates with
    * the user's last-used assistant — pass their own handler here.
    */
@@ -53,7 +53,7 @@ const MANUAL_KEY = '__manual__';
 /**
  * Unified "create/add" entry point used across settings. The button itself is
  * action-neutral: clicking it only opens a dropdown menu where the user picks
- * "… via chat" (hand off to the AionUi Butler with a pre-filled prompt), the
+ * "… via chat" (hand off to the CSBU WorkMate Butler with a pre-filled prompt), the
  * manual action, and/or extra actions. We intentionally do NOT run a default
  * action on the button, so no path is recommended over another. One component,
  * one style, everywhere (the scheduled-tasks page uses it too).

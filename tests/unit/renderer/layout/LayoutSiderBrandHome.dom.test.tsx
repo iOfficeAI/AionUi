@@ -159,7 +159,7 @@ describe('Layout sider brand Home button', () => {
 
     // No actionable role/label in chat routes.
     expect(screen.queryByLabelText(BACK_KEY)).toBeNull();
-    const wordmark = screen.getByText('AionUi');
+    const wordmark = screen.getByText('CSBU WorkMate');
     fireEvent.click(wordmark);
     expect(navigate).not.toHaveBeenCalled();
   });
@@ -168,7 +168,7 @@ describe('Layout sider brand Home button', () => {
     currentPathname = '/conversation/xyz';
     renderLayout();
 
-    fireEvent.click(screen.getByText('AionUi'));
+    fireEvent.click(screen.getByText('CSBU WorkMate'));
     expect(navigate).not.toHaveBeenCalled();
   });
 
@@ -212,7 +212,7 @@ describe('Layout sider brand Home button', () => {
   it('opens the update notification directly for tray update checks', () => {
     platformMocks.isElectronDesktopMock.mockReturnValue(true);
     const openListener = vi.fn();
-    window.addEventListener('aionui-open-update-modal', openListener);
+    window.addEventListener('csbu-workmate-open-update-modal', openListener);
 
     try {
       renderLayout();
@@ -224,7 +224,7 @@ describe('Layout sider brand Home button', () => {
       const event = openListener.mock.calls[0][0] as CustomEvent;
       expect(event.detail).toEqual({ source: 'tray' });
     } finally {
-      window.removeEventListener('aionui-open-update-modal', openListener);
+      window.removeEventListener('csbu-workmate-open-update-modal', openListener);
     }
   });
 });

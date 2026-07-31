@@ -1,10 +1,10 @@
 {
-  "name": "@aionui/desktop",
+  "name": "@csbu-workmate/desktop",
   "version": "0.0.0",
   "private": true,
-  "description": "AionUi desktop Electron application",
+  "description": "CSBU WorkMate desktop Electron application",
   "main": "../../out/main/index.js",
   "dependencies": {
-    "@aionui/web-host": "workspace:*"
+    "@csbu-workmate/web-host": "workspace:*"
   }
 }

@@ -222,7 +222,7 @@ const AgentRepairPanel: React.FC<AgentRepairPanelProps> = ({ agent, onSaved }) =
       <Typography.Text type='secondary' className='mb-6px block text-11px leading-16px text-t-tertiary'>
         {t('settings.repair.envHelp')}
       </Typography.Text>
-      {/* What configuring env vars can fix — grounded in how AionUi injects them
+      {/* What configuring env vars can fix — grounded in how CSBU WorkMate injects them
           per-agent at spawn time. Deliberately excludes OAuth login (stored in
           the CLI's own config, not reachable via env), called out in envOauthNote. */}
       <div className='mb-8px rounded-6px bg-aou-2 px-10px py-8px'>

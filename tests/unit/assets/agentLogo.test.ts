@@ -90,7 +90,7 @@ describe('agentLogo', () => {
     });
 
     it('does not expose local absolute paths as logo sources', () => {
-      expect(resolveAgentLogo(LOGOS, { icon: '/Users/demo/.aionui/agent-avatars/custom.png' })).toBeNull();
+      expect(resolveAgentLogo(LOGOS, { icon: '/Users/demo/.csbu-workmate/agent-avatars/custom.png' })).toBeNull();
     });
   });
 
@@ -104,7 +104,7 @@ describe('agentLogo', () => {
 
     it('falls back to backend catalog logos when explicit local paths leak through', () => {
       expect(
-        resolveAgentAvatar(LOGOS, { icon: '/Users/demo/.aionui/agent-avatars/custom.png', backend: 'claude' })
+        resolveAgentAvatar(LOGOS, { icon: '/Users/demo/.csbu-workmate/agent-avatars/custom.png', backend: 'claude' })
       ).toEqual({
         kind: 'image',
         value: '/api/assets/logos/ai-major/claude.svg',

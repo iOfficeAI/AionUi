@@ -32,9 +32,6 @@ const { messageSuccess, messageWarning, messageError } = vi.hoisted(() => ({
   messageWarning: vi.fn(),
   messageError: vi.fn(),
 }));
-const { openExternalUrl } = vi.hoisted(() => ({
-  openExternalUrl: vi.fn().mockResolvedValue(undefined),
-}));
 vi.mock('@arco-design/web-react', async () => {
   const actual = await vi.importActual<typeof import('@arco-design/web-react')>('@arco-design/web-react');
   return {
@@ -79,16 +76,8 @@ vi.mock('@/common', () => ({
   },
 }));
 
-vi.mock('@renderer/utils/platform', async () => {
-  const actual = await vi.importActual<typeof import('@renderer/utils/platform')>('@renderer/utils/platform');
-  return {
-    ...actual,
-    openExternalUrl,
-  };
-});
-
 // Keep the test focused on LocalAgents' own logic — stub heavy children.
-vi.mock('@/renderer/components/base/AionModal', () => ({ default: () => null }));
+vi.mock('@/renderer/components/base/WorkMateModal', () => ({ default: () => null }));
 vi.mock('@renderer/pages/settings/AgentSettings/InlineAgentEditor', () => ({ default: () => null }));
 vi.mock('@renderer/pages/settings/AgentSettings/AgentHubModal', () => ({ AgentHubModal: () => null }));
 
@@ -103,7 +92,7 @@ import type { Assistant } from '@/common/types/agent/assistantTypes';
 const makeAgents = () => [
   {
     id: 'aionrs',
-    name: 'Aion CLI',
+    name: 'CSBU WorkMate',
     agent_type: 'aionrs',
     agent_source: 'internal',
     backend: 'aionrs',
@@ -199,7 +188,7 @@ describe('LocalAgents', () => {
 
     // Proves L30 (useManagedAgents) ran and fed the derived lists.
     expect(useManagedAgents).toHaveBeenCalled();
-    expect(screen.getByText('Aion CLI')).toBeTruthy();
+    expect(screen.getByText('CSBU WorkMate')).toBeTruthy();
     expect(screen.getByText('Claude Code')).toBeTruthy();
     expect(screen.getByText('My Agent')).toBeTruthy();
   });
@@ -244,7 +233,7 @@ describe('LocalAgents', () => {
     render(<LocalAgents />);
 
     expect(screen.getByText('settings.agentManagement.refreshingStatuses')).toBeInTheDocument();
-    expect(screen.getByText('Aion CLI')).toBeInTheDocument();
+    expect(screen.getByText('CSBU WorkMate')).toBeInTheDocument();
   });
 
   it('renders official agents as diagnostics cards and filters out deprecated types', () => {
@@ -257,7 +246,7 @@ describe('LocalAgents', () => {
     render(<LocalAgents />);
 
     // Agent names render
-    expect(screen.getByText('Aion CLI')).toBeInTheDocument();
+    expect(screen.getByText('CSBU WorkMate')).toBeInTheDocument();
     expect(screen.getByText('Claude Code')).toBeInTheDocument();
     // Deprecated openclaw-gateway agent is filtered out
     expect(screen.queryByText('OpenClaw Gateway')).toBeNull();
@@ -277,20 +266,6 @@ describe('LocalAgents', () => {
 
     expect(screen.queryByText('settings.agentManagement.installFromMarket')).toBeNull();
     expect(screen.queryByText('settings.agentManagement.discoverMoreAgents')).toBeNull();
-  });
-
-  it('renders the setup-guide action for official agents diagnostics', () => {
-    useManagedAgents.mockReturnValue({
-      agents: makeAgents(),
-      revalidate: vi.fn(),
-      refreshCatalog: vi.fn(),
-    });
-
-    render(<LocalAgents />);
-
-    fireEvent.click(screen.getByText('settings.agentManagement.localAgentsSetupLink'));
-
-    expect(openExternalUrl).toHaveBeenCalledWith('https://github.com/iOfficeAI/AionUi/wiki/ACP-Setup');
   });
 
   it('binds assistants to managed agents by agent_id instead of runtime backend', () => {
@@ -370,7 +345,7 @@ describe('LocalAgents', () => {
 
     // Alphabetically Claude Code < Kimi, so this order proves the pin rule:
     // aionrs stays first, Kimi jumps ahead of the localeCompare ordering.
-    const aion = screen.getByText('Aion CLI');
+    const aion = screen.getByText('CSBU WorkMate');
     const kimi = screen.getByText('Kimi');
     const claude = screen.getByText('Claude Code');
     expect(kimi.compareDocumentPosition(aion) & Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy();
@@ -392,7 +367,7 @@ describe('LocalAgents', () => {
       </MemoryRouter>
     );
 
-    expect(screen.getByText('Aion CLI')).toBeInTheDocument();
+    expect(screen.getByText('CSBU WorkMate')).toBeInTheDocument();
     expect(screen.queryByText('settings.agentManagement.localAgents')).toBeNull();
   });
 
@@ -436,18 +411,18 @@ describe('LocalAgents', () => {
     const unavailableTab = screen.getByTestId('settings-tab-unavailable');
     expect(allTab.tagName).toBe('BUTTON');
 
-    // Default "all": both official agents visible (Aion CLI online, Claude Code missing).
-    expect(screen.getByText('Aion CLI')).toBeInTheDocument();
+    // Default "all": both official agents visible (CSBU WorkMate online, Claude Code missing).
+    expect(screen.getByText('CSBU WorkMate')).toBeInTheDocument();
     expect(screen.getByText('Claude Code')).toBeInTheDocument();
 
     // "available" keeps only the online agent.
     fireEvent.click(availableTab);
-    expect(screen.getByText('Aion CLI')).toBeInTheDocument();
+    expect(screen.getByText('CSBU WorkMate')).toBeInTheDocument();
     expect(screen.queryByText('Claude Code')).toBeNull();
 
     // "unavailable" keeps only the non-online agent.
     fireEvent.click(unavailableTab);
-    expect(screen.queryByText('Aion CLI')).toBeNull();
+    expect(screen.queryByText('CSBU WorkMate')).toBeNull();
     expect(screen.getByText('Claude Code')).toBeInTheDocument();
   });
 });

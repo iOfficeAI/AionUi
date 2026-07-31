@@ -74,28 +74,28 @@ beforeEach(() => {
 describe('showNotification', () => {
   it('shows a native notification when the main window is not focused', async () => {
     setNotificationMainWindow(makeWindow(false) as never);
-    await showNotification({ title: 'AionUi', body: 'done', conversation_id: 'c1' });
+    await showNotification({ title: 'CSBU WorkMate', body: 'done', conversation_id: 'c1' });
     expect(FakeElectronNotification.instances).toHaveLength(1);
     expect(FakeElectronNotification.instances[0].show).toHaveBeenCalledTimes(1);
   });
 
   it('does not notify when the main window is focused', async () => {
     setNotificationMainWindow(makeWindow(true) as never);
-    await showNotification({ title: 'AionUi', body: 'done', conversation_id: 'c1' });
+    await showNotification({ title: 'CSBU WorkMate', body: 'done', conversation_id: 'c1' });
     expect(FakeElectronNotification.instances).toHaveLength(0);
   });
 
   it('does not notify when the setting is disabled', async () => {
     notificationEnabled = false;
     setNotificationMainWindow(makeWindow(false) as never);
-    await showNotification({ title: 'AionUi', body: 'done', conversation_id: 'c1' });
+    await showNotification({ title: 'CSBU WorkMate', body: 'done', conversation_id: 'c1' });
     expect(FakeElectronNotification.instances).toHaveLength(0);
   });
 
   it('focuses the window and emits notification.clicked on click', async () => {
     const win = makeWindow(false);
     setNotificationMainWindow(win as never);
-    await showNotification({ title: 'AionUi', body: 'done', conversation_id: 'c1' });
+    await showNotification({ title: 'CSBU WorkMate', body: 'done', conversation_id: 'c1' });
 
     FakeElectronNotification.instances[0].handlers.click?.();
 

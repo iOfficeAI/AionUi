@@ -19,7 +19,7 @@ test.describe('Workspace Files — UI panel', () => {
   let workspace: string;
 
   test.beforeAll(() => {
-    workspace = fs.mkdtempSync(path.join(os.tmpdir(), 'aionui-e2e-ws-files-'));
+    workspace = fs.mkdtempSync(path.join(os.tmpdir(), 'csbu-workmate-e2e-ws-files-'));
     fs.writeFileSync(path.join(workspace, 'readme.md'), '# seeded');
     fs.mkdirSync(path.join(workspace, 'notes'), { recursive: true });
     fs.writeFileSync(path.join(workspace, 'notes', 'alpha.txt'), 'alpha');

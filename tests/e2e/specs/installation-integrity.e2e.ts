@@ -34,11 +34,11 @@ test.describe('Installation integrity failure dialog', () => {
       cwd: projectRoot,
       env: {
         ...process.env,
-        AIONUI_DEBUG_BACKEND_STARTUP_FAILURE: 'backend_incomplete_installation',
-        AIONUI_DISABLE_AUTO_UPDATE: '1',
-        AIONUI_DISABLE_DEVTOOLS: '1',
-        AIONUI_E2E_TEST: '1',
-        AIONUI_CDP_PORT: '0',
+        CSBU_WORKMATE_DEBUG_BACKEND_STARTUP_FAILURE: 'backend_incomplete_installation',
+        CSBU_WORKMATE_DISABLE_AUTO_UPDATE: '1',
+        CSBU_WORKMATE_DISABLE_DEVTOOLS: '1',
+        CSBU_WORKMATE_E2E_TEST: '1',
+        CSBU_WORKMATE_CDP_PORT: '0',
         NODE_ENV: 'development',
       },
       timeout: 60_000,
@@ -48,9 +48,9 @@ test.describe('Installation integrity failure dialog', () => {
       const page = await resolveMainWindow(electronApp);
 
       await expect(page.getByTestId('installation-integrity-dialog')).toBeVisible();
-      await expect(page.getByTestId('installation-integrity-description')).toContainText(/AionUi/);
+      await expect(page.getByTestId('installation-integrity-description')).toContainText(/CSBU WorkMate/);
       await expect(page.getByTestId('installation-integrity-report')).toBeVisible();
-      await expect(page.getByTestId('installation-integrity-download')).toBeVisible();
+      await expect(page.getByTestId('installation-integrity-download')).toHaveCount(0);
 
       await page.getByTestId('installation-integrity-report').click();
 

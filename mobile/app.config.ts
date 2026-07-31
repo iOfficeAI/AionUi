@@ -5,20 +5,20 @@ import VERSION from './versions/version.json';
 export default ({ config }: ConfigContext): ExpoConfig => {
   return {
     ...config,
-    name: 'AionUi Mobile',
-    slug: 'aionui-mobile',
+    name: 'CSBU WorkMate',
+    slug: 'csbu-workmate',
     version: VERSION.version,
     orientation: 'portrait',
     icon: './assets/images/icon.png',
-    scheme: 'aionui-mobile',
+    scheme: 'csbu-workmate',
     userInterfaceStyle: 'automatic',
     ios: {
       supportsTablet: true,
-      bundleIdentifier: 'ai.resopod.aionui',
+      bundleIdentifier: 'com.csbu.workmate',
       buildNumber: String(VERSION.buildNumber),
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false,
-        NSCameraUsageDescription: 'AionUi needs camera access to scan QR codes for server login.',
+        NSCameraUsageDescription: 'CSBU WorkMate needs camera access to scan QR codes for server login.',
       },
     },
     android: {
@@ -26,7 +26,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         foregroundImage: './assets/images/icon.png',
         backgroundColor: '#000000',
       },
-      package: 'ai.resopod.aionui',
+      package: 'com.csbu.workmate',
       versionCode: VERSION.buildNumber,
     },
     web: {
@@ -36,11 +36,6 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     plugins: ['expo-router', 'expo-secure-store', 'expo-dev-client', 'expo-camera'],
     experiments: {
       typedRoutes: true,
-    },
-    extra: {
-      eas: {
-        projectId: '34b66303-fd5c-4d86-a790-0665d55f2017',
-      },
     },
   };
 };

@@ -64,7 +64,7 @@ describe('storage runtime exports', () => {
       expect(EnvStorage.namespace).toBe('agent.env');
     });
 
-    it('set/get roundtrip with aionui.dir object', async () => {
+    it('set/get roundtrip with csbu-workmate.dir object', async () => {
       const dirs = {
         workDir: '/a',
         cacheDir: '/b',
@@ -76,8 +76,8 @@ describe('storage runtime exports', () => {
         backupDir: '/h',
       };
 
-      await EnvStorage.set('aionui.dir', dirs);
-      const result = await EnvStorage.get('aionui.dir');
+      await EnvStorage.set('csbu-workmate.dir', dirs);
+      const result = await EnvStorage.get('csbu-workmate.dir');
 
       expect(result).toEqual(dirs);
     });
@@ -89,7 +89,7 @@ describe('storage runtime exports', () => {
       await ConfigStorage.set('language', 'en');
 
       // Set a different key in EnvStorage
-      await EnvStorage.set('aionui.dir', {
+      await EnvStorage.set('csbu-workmate.dir', {
         workDir: '/x',
         cacheDir: '/y',
         dataDir: '/z',
@@ -102,7 +102,7 @@ describe('storage runtime exports', () => {
 
       // Verify values are isolated
       const configLang = await ConfigStorage.get('language');
-      const envDir = await EnvStorage.get('aionui.dir');
+      const envDir = await EnvStorage.get('csbu-workmate.dir');
 
       expect(configLang).toBe('en');
       expect(envDir?.workDir).toBe('/x');

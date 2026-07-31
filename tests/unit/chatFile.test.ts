@@ -17,7 +17,7 @@ import {
 describe('ChatFileRef builders', () => {
   it('builds project / upload / local refs with their discriminant', () => {
     expect(projectFileRef('pe-1', 'src/a.ts')).toEqual({ kind: 'project', pe_id: 'pe-1', relative_path: 'src/a.ts' });
-    expect(uploadFileRef('/tmp/aionui/a.png')).toEqual({ kind: 'upload', path: '/tmp/aionui/a.png' });
+    expect(uploadFileRef('/tmp/csbu-workmate/a.png')).toEqual({ kind: 'upload', path: '/tmp/csbu-workmate/a.png' });
     expect(localFileRef('/backend/abs/a.ts')).toEqual({ kind: 'local', path: '/backend/abs/a.ts' });
   });
 });

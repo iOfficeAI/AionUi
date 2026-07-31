@@ -1,4 +1,4 @@
-import AionSelect from '@/renderer/components/base/AionSelect';
+import WorkMateSelect from '@/renderer/components/base/WorkMateSelect';
 import type { SelectHandle } from '@arco-design/web-react/es/Select/interface';
 import React, { useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -29,21 +29,21 @@ const LanguageSwitcher: React.FC = () => {
 
   return (
     <div className='flex items-center gap-8px'>
-      <AionSelect ref={selectRef} className='w-160px' value={i18n.language} onChange={handleLanguageChange}>
-        <AionSelect.Option value='zh-CN'>简体中文</AionSelect.Option>
-        <AionSelect.Option value='zh-TW'>繁體中文</AionSelect.Option>
-        <AionSelect.Option value='ja-JP'>日本語</AionSelect.Option>
-        <AionSelect.Option value='ko-KR'>한국어</AionSelect.Option>
-        <AionSelect.Option value='tr-TR'>Türkçe</AionSelect.Option>
-        <AionSelect.Option value='ru-RU'>Русский</AionSelect.Option>
-        <AionSelect.Option value='uk-UA'>Українська</AionSelect.Option>
-        <AionSelect.Option value='pt-BR'>Português (BR)</AionSelect.Option>
-        <AionSelect.Option value='de-DE'>Deutsch</AionSelect.Option>
-        <AionSelect.Option value='es-ES'>Español</AionSelect.Option>
-        <AionSelect.Option value='fr-FR'>Français</AionSelect.Option>
-        <AionSelect.Option value='fa-IR'>فارسی</AionSelect.Option>
-        <AionSelect.Option value='en-US'>English</AionSelect.Option>
-      </AionSelect>
+      <WorkMateSelect ref={selectRef} className='w-160px' value={i18n.language} onChange={handleLanguageChange}>
+        <WorkMateSelect.Option value='zh-CN'>简体中文</WorkMateSelect.Option>
+        <WorkMateSelect.Option value='zh-TW'>繁體中文</WorkMateSelect.Option>
+        <WorkMateSelect.Option value='ja-JP'>日本語</WorkMateSelect.Option>
+        <WorkMateSelect.Option value='ko-KR'>한국어</WorkMateSelect.Option>
+        <WorkMateSelect.Option value='tr-TR'>Türkçe</WorkMateSelect.Option>
+        <WorkMateSelect.Option value='ru-RU'>Русский</WorkMateSelect.Option>
+        <WorkMateSelect.Option value='uk-UA'>Українська</WorkMateSelect.Option>
+        <WorkMateSelect.Option value='pt-BR'>Português (BR)</WorkMateSelect.Option>
+        <WorkMateSelect.Option value='de-DE'>Deutsch</WorkMateSelect.Option>
+        <WorkMateSelect.Option value='es-ES'>Español</WorkMateSelect.Option>
+        <WorkMateSelect.Option value='fr-FR'>Français</WorkMateSelect.Option>
+        <WorkMateSelect.Option value='fa-IR'>فارسی</WorkMateSelect.Option>
+        <WorkMateSelect.Option value='en-US'>English</WorkMateSelect.Option>
+      </WorkMateSelect>
     </div>
   );
 };

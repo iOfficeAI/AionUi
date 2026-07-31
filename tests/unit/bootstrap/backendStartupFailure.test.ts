@@ -11,8 +11,8 @@ describe('classifyBackendStartupFailure', () => {
     error.details = {
       stage: 'early_exit',
       stderrTail:
-        "/opt/AionUi/resources/bundled-aioncore/linux-x64/aioncore.bin: /lib/x86_64-linux-gnu/libc.so.6: version `GLIBC_2.34' not found\n" +
-        "/opt/AionUi/resources/bundled-aioncore/linux-x64/aioncore.bin: /lib/x86_64-linux-gnu/libc.so.6: version `GLIBC_2.32' not found",
+        "/opt/CSBU WorkMate/resources/bundled-aioncore/linux-x64/aioncore.bin: /lib/x86_64-linux-gnu/libc.so.6: version `GLIBC_2.34' not found\n" +
+        "/opt/CSBU WorkMate/resources/bundled-aioncore/linux-x64/aioncore.bin: /lib/x86_64-linux-gnu/libc.so.6: version `GLIBC_2.32' not found",
     };
 
     expect(classifyBackendStartupFailure(error)).toEqual({
@@ -42,8 +42,8 @@ describe('classifyBackendStartupFailure', () => {
     };
     error.details = {
       stage: 'spawn',
-      workDir: 'D:\\ai\\AionUI\\工作目录',
-      causeMessage: 'ENOENT: no such file or directory, mkdir D:\\ai\\AionUI\\工作目录',
+      workDir: 'D:\\ai\\CSBU WorkMate\\工作目录',
+      causeMessage: 'ENOENT: no such file or directory, mkdir D:\\ai\\CSBU WorkMate\\工作目录',
     };
 
     expect(classifyBackendStartupFailure(error)).toEqual({
@@ -58,8 +58,8 @@ describe('classifyBackendStartupFailure', () => {
     };
     error.details = {
       stage: 'spawn',
-      workDir: 'D:\\ai\\AionUI\\工作目录',
-      causeMessage: 'EPERM: operation not permitted, mkdir D:\\ai\\AionUI\\工作目录',
+      workDir: 'D:\\ai\\CSBU WorkMate\\工作目录',
+      causeMessage: 'EPERM: operation not permitted, mkdir D:\\ai\\CSBU WorkMate\\工作目录',
     };
 
     expect(classifyBackendStartupFailure(error)).toEqual({
@@ -74,8 +74,8 @@ describe('classifyBackendStartupFailure', () => {
     };
     error.details = {
       stage: 'spawn_error',
-      binaryPath: 'D:\\apps\\AionUi\\resources\\bundled-aioncore\\win32-x64\\aioncore.exe',
-      causeMessage: 'spawn D:\\apps\\AionUi\\resources\\bundled-aioncore\\win32-x64\\aioncore.exe ENOENT',
+      binaryPath: 'D:\\apps\\CSBU WorkMate\\resources\\bundled-aioncore\\win32-x64\\aioncore.exe',
+      causeMessage: 'spawn D:\\apps\\CSBU WorkMate\\resources\\bundled-aioncore\\win32-x64\\aioncore.exe ENOENT',
     };
 
     expect(classifyBackendStartupFailure(error)).toEqual({
@@ -112,7 +112,7 @@ describe('classifyBackendStartupFailure', () => {
       backendBoundaryCode: 'BOOTSTRAP_DATA_INIT_FAILED',
       backendBoundaryStage: 'database.migration',
       stderrTail:
-        'BOOTSTRAP_DATA_INIT_FAILED stage=database.migration databasePath=/db/aionui-backend.db: failed to initialize application data',
+        'BOOTSTRAP_DATA_INIT_FAILED stage=database.migration databasePath=/db/csbu-workmate-backend.db: failed to initialize application data',
     };
 
     expect(classifyBackendStartupFailure(error)).toEqual({
@@ -131,7 +131,7 @@ describe('classifyBackendStartupFailure', () => {
       backendBoundaryCode: 'BOOTSTRAP_DATA_INIT_FAILED',
       backendBoundaryStage: 'database.recoverable_corruption',
       stderrTail:
-        'BOOTSTRAP_DATA_INIT_FAILED stage=database.recoverable_corruption databasePath=/db/aionui-backend.db: failed to initialize application data',
+        'BOOTSTRAP_DATA_INIT_FAILED stage=database.recoverable_corruption databasePath=/db/csbu-workmate-backend.db: failed to initialize application data',
     };
 
     expect(classifyBackendStartupFailure(error)).toEqual({
@@ -290,7 +290,7 @@ describe('classifyBackendStartupFailure', () => {
   });
 
   it('classifies packaged macOS architecture mismatches separately from generic startup failures', () => {
-    const error = new Error('AionUi package architecture does not match this Mac') as Error & {
+    const error = new Error('CSBU WorkMate package architecture does not match this Mac') as Error & {
       details?: Record<string, unknown>;
     };
     error.details = {
@@ -368,13 +368,13 @@ describe('detectStartupArchitectureMismatch', () => {
 });
 
 describe('getInstallationIntegrityModalActions', () => {
-  it('exposes diagnostics reporting next to download-latest for blocking dialogs', () => {
+  it('keeps blocking dialogs on internal diagnostics without a public download action', () => {
     const t = (key: string) => key;
     const onReportDiagnostics = vi.fn();
 
     const actions = getInstallationIntegrityModalActions(t, { onReportDiagnostics });
 
-    expect(actions.downloadText).toBe('common.backendStartup.incompleteInstallation.downloadLatest');
+    expect(actions.downloadText).toBeUndefined();
     expect(actions.reportText).toBe('common.backendStartup.incompleteInstallation.sendDiagnostics');
 
     actions.onReportDiagnostics();

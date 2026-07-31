@@ -23,19 +23,19 @@ describe('resolveAssistantAvatar', () => {
   });
 
   it('does not derive avatar routes from local absolute assistant asset paths', () => {
-    expect(resolveAssistantAvatar('/Users/demo/.aionui/assistant-avatars/custom-1.jpg')).toEqual({
+    expect(resolveAssistantAvatar('/Users/demo/.csbu-workmate/assistant-avatars/custom-1.jpg')).toEqual({
       kind: 'fallback',
     });
   });
 
   it('does not expose local absolute paths as image sources without an assistant id', () => {
-    expect(resolveAssistantAvatar('/Users/demo/.aionui/assistant-avatars/custom-1.jpg')).toEqual({
+    expect(resolveAssistantAvatar('/Users/demo/.csbu-workmate/assistant-avatars/custom-1.jpg')).toEqual({
       kind: 'fallback',
     });
   });
 
   it('does not expose file urls as image sources without an assistant id', () => {
-    expect(resolveAssistantAvatar('file:///Users/demo/.aionui/assistant-avatars/custom-1.jpg')).toEqual({
+    expect(resolveAssistantAvatar('file:///Users/demo/.csbu-workmate/assistant-avatars/custom-1.jpg')).toEqual({
       kind: 'fallback',
     });
   });

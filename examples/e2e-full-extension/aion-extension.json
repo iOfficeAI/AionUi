@@ -3,7 +3,7 @@
   "displayName": "E2E Full Test Extension",
   "version": "1.0.0",
   "description": "A comprehensive test extension covering all contribute types for E2E testing",
-  "author": "AionUI E2E Tests",
+  "author": "CSBU WorkMate E2E Tests",
   "i18n": {
     "localesDir": "i18n",
     "defaultLocale": "en-US"

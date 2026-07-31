@@ -13,10 +13,10 @@ param(
 $ErrorActionPreference = 'SilentlyContinue'
 $log = $LogPath
 if (-not $log) {
-  $log = Join-Path $env:TEMP 'aionui-installer-fallback-log.jsonl'
+  $log = Join-Path $env:TEMP 'csbu-workmate-installer-fallback-log.jsonl'
 }
 $logFileName = Split-Path -Leaf $log
-$statusPath = Join-Path $env:TEMP 'aionui-installer-report.json'
+$statusPath = Join-Path $env:TEMP 'csbu-workmate-installer-report.json'
 
 function Write-StatusFile($status) {
   foreach ($key in @($status.Keys)) {
@@ -65,13 +65,13 @@ function Write-InstallerLog([string]$event, [hashtable]$properties = @{}) {
   Add-Content -LiteralPath $log -Encoding UTF8 -Value ($payload | ConvertTo-Json -Compress -Depth 8)
 }
 
-function Read-AionUiAnalyticsId {
+function Read-CsbuWorkMateAnalyticsId {
   $candidates = @()
   if ($env:APPDATA) {
-    $candidates += (Join-Path $env:APPDATA 'AionUi\analytics.json')
+    $candidates += (Join-Path $env:APPDATA 'CSBU WorkMate\analytics.json')
   }
   if ($env:LOCALAPPDATA) {
-    $candidates += (Join-Path $env:LOCALAPPDATA 'AionUi\analytics.json')
+    $candidates += (Join-Path $env:LOCALAPPDATA 'CSBU WorkMate\analytics.json')
   }
 
   foreach ($candidate in $candidates) {
@@ -100,7 +100,7 @@ function Show-ReportMessage([string]$text, [string]$icon) {
   $messageIcon = [System.Windows.Forms.MessageBoxIcon]::$icon
   [System.Windows.Forms.MessageBox]::Show(
     $text,
-    'AionUi installer report',
+    'CSBU WorkMate installer report',
     [System.Windows.Forms.MessageBoxButtons]::OK,
     $messageIcon
   ) | Out-Null
@@ -192,8 +192,8 @@ function Get-OptionalHandleDiagnostics {
 
   $diag.target = $target
   $pid = $context.outerInstallerPid
-  $outPath = Join-Path $env:TEMP ('aionui-handle-' + [guid]::NewGuid().ToString('N') + '.out')
-  $errPath = Join-Path $env:TEMP ('aionui-handle-' + [guid]::NewGuid().ToString('N') + '.err')
+  $outPath = Join-Path $env:TEMP ('csbu-workmate-handle-' + [guid]::NewGuid().ToString('N') + '.out')
+  $errPath = Join-Path $env:TEMP ('csbu-workmate-handle-' + [guid]::NewGuid().ToString('N') + '.err')
 
   try {
     $args = @('-accepteula', '-nobanner')
@@ -258,7 +258,7 @@ function New-ReportDetailsText(
 ) {
   $lines = New-Object System.Collections.Generic.List[string]
   $lines.Add('--------------------------------')
-  $lines.Add('AionUi installer failure ' + $code)
+  $lines.Add('CSBU WorkMate installer failure ' + $code)
   $lines.Add('--------------------------------')
   $lines.Add('')
   if ($eventId) {
@@ -289,7 +289,7 @@ function New-ReportDetailsText(
     $lines.Add('')
   }
   $lines.Add('---------------------------')
-  $lines.Add('To AionUi Team')
+  $lines.Add('To CSBU WorkMate Team')
   $lines.Add('---------------------------')
   return ($lines -join [Environment]::NewLine)
 }
@@ -324,13 +324,13 @@ try {
   $endpoint = $uri.Scheme + '://' + $uri.Authority + '/api/' + $projectId + '/envelope/'
   $logText = if (Test-Path -LiteralPath $log) { Get-Content -LiteralPath $log -Raw } else { '' }
   $eventId = [guid]::NewGuid().ToString('N')
-  $userId = Read-AionUiAnalyticsId
+  $userId = Read-CsbuWorkMateAnalyticsId
   $eventPayload = @{
     message = ('installer-failure ' + $Code)
     level = 'error'
     platform = 'other'
     release = $Release
-    logger = 'aionui.installer'
+    logger = 'csbu-workmate.installer'
     fingerprint = @('installer-failure', $Code)
     tags = @{
       type = 'installer-failure'
@@ -389,7 +389,7 @@ try {
   })
   Write-InstallerLog 'report-sent' @{ code = $Code; wrapperCode = $wrapperCode; eventId = $eventId; statusPath = $statusPath; search = $search; issueSearch = $issueSearch; userId = $userId }
   $reportDetails = New-ReportDetailsText $Code $eventId $issueSearch $userId $Session $blockingDiagnostics
-  Show-ReportMessage ('AionUi installer report sent.' + [Environment]::NewLine + [Environment]::NewLine + 'Tip: If you can get in touch with the AionUi team, press [ Ctrl + C ] in this dialog to copy details, then send them to us via social media, email, or a GitHub issue:' + [Environment]::NewLine + 'https://github.com/iOfficeAI/AionUi/issues' + [Environment]::NewLine + [Environment]::NewLine + $reportDetails) 'Information'
+  Show-ReportMessage ('CSBU WorkMate installer report sent.' + [Environment]::NewLine + [Environment]::NewLine + 'Press [ Ctrl + C ] in this dialog to copy the details, then send them to your internal support contact.' + [Environment]::NewLine + [Environment]::NewLine + $reportDetails) 'Information'
 } catch {
   $errorText = $_.Exception.GetType().FullName + ': ' + $_.Exception.Message
   Write-StatusFile ([ordered]@{
@@ -408,5 +408,5 @@ try {
     at = (Get-Date -Format o)
   })
   Write-InstallerLog 'report-failed' @{ code = $Code; wrapperCode = $wrapperCode; statusPath = $statusPath; error = $errorText }
-  Show-ReportMessage ('AionUi installer report failed.' + [Environment]::NewLine + [Environment]::NewLine + 'Status: ' + $statusPath + [Environment]::NewLine + 'Log: ' + $log) 'Exclamation'
+  Show-ReportMessage ('CSBU WorkMate installer report failed.' + [Environment]::NewLine + [Environment]::NewLine + 'Status: ' + $statusPath + [Environment]::NewLine + 'Log: ' + $log) 'Exclamation'
 }

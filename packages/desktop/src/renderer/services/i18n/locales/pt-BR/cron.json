@@ -13,7 +13,7 @@
     "error": "Erro",
     "unread": "Nova execução",
     "unconfigured": "Sem tarefa agendada",
-    "defaultPrompt": "Todos os dias às 10h, pesquise as últimas notícias sobre IA, resuma e gere um relatório de insights. (Use a habilidade /cron para criar uma tarefa agendada no AionUi.)"
+    "defaultPrompt": "Todos os dias às 10h, pesquise as últimas notícias sobre IA, resuma e gere um relatório de insights. (Use a habilidade /cron para criar uma tarefa agendada no CSBU WorkMate.)"
   },
   "actions": {
     "goTo": "Ver Chat",
@@ -53,10 +53,10 @@
     "newTask": "Nova tarefa",
     "createViaChat": "Criar via chat",
     "createManually": "Criar manualmente",
-    "description": "Execute tarefas agendadas. Você também pode pedir ao AionUi em qualquer conversa para criar uma para você.",
+    "description": "Execute tarefas agendadas. Você também pode pedir ao CSBU WorkMate em qualquer conversa para criar uma para você.",
     "awakeBanner": "As tarefas agendadas são executadas apenas enquanto o computador está ativo.",
     "keepAwake": "Manter ativo",
-    "keepAwakeTooltip": "Quando ativado, o AionUi impedirá que o computador durma",
+    "keepAwakeTooltip": "Quando ativado, o CSBU WorkMate impedirá que o computador durma",
     "createTask": "Criar Tarefa Agendada",
     "editTask": "Editar Tarefa Agendada",
     "createSuccess": "Tarefa criada com sucesso",
@@ -107,7 +107,7 @@
       "selectFolder": "Selecionar Pasta",
       "clearFolder": "Limpar",
       "model": "Modelo",
-      "aionrsModelRequired": "Por favor, selecione um modelo para a CLI do Aion",
+      "aionrsModelRequired": "Por favor, selecione um modelo para a CSBU WorkMate",
       "aionrsNoProvider": "Nenhum modelo disponível",
       "assistantLockedExistingConversation": "Tarefas de conversa em andamento devem manter o assistente original. Crie uma nova tarefa para usar outro assistente.",
       "teamTaskExecutionModeLockedReason": "Tarefas agendadas de Team devem continuar executando na conversa de Team proprietária, por isso o modo de execução não pode ser alterado."

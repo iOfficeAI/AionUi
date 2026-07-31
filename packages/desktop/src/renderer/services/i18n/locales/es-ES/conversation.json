@@ -12,10 +12,9 @@
     "clearWorkspace": "Quitar proyecto",
     "openFolder": "Abrir carpeta",
     "none": "Ninguno",
-    "quickActionsTitle": "¿Qué puede hacer AionUi?",
+    "quickActionsTitle": "¿Qué puede hacer CSBU WorkMate?",
     "quickActionFeedback": "Reportar problema",
-    "quickActionStar": "¿Te gusta? ¡Danos una estrella!",
-    "skillsMarket": "Mercado de habilidades de AionUi",
+    "skillsMarket": "Mercado de habilidades de CSBU WorkMate",
     "skillsMarketDesc": "Busca y activa habilidades de la comunidad según sea necesario. Configúralo una vez, disponible para todos los asistentes.",
     "skillsMarketDetails": "Ver más >>"
   },
@@ -304,7 +303,7 @@
       },
       "MCP_HTTP_RESPONSE_READ_FAILED": {
         "title": "Failed to read the team helper response",
-        "body": "AionUi could not read the local team helper response. Retry once, and if it keeps happening, restart the app."
+        "body": "CSBU WorkMate could not read the local team helper response. Retry once, and if it keeps happening, restart the app."
       },
       "MCP_TOOL_REMOTE_ERROR": {
         "title": "The local team helper rejected the request",
@@ -312,11 +311,11 @@
       },
       "MCP_TOOL_RESPONSE_UNEXPECTED": {
         "title": "The team helper returned an unexpected response",
-        "body": "AionUi received an unexpected response from the local team helper. Retry once, and report it if the problem persists."
+        "body": "CSBU WorkMate received an unexpected response from the local team helper. Retry once, and report it if the problem persists."
       },
       "MCP_TCP_READ_FAILED": {
         "title": "Failed to read from the local team helper",
-        "body": "AionUi could not read the local team helper TCP response. Retry once, and restart the app if it keeps failing."
+        "body": "CSBU WorkMate could not read the local team helper TCP response. Retry once, and restart the app if it keeps failing."
       },
       "TEAM_SERVICE_UNAVAILABLE": {
         "title": "Team service is not ready yet",

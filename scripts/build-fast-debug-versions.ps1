@@ -44,7 +44,7 @@ if ($buildVersions.Count -eq 0) {
 
 foreach ($version in $buildVersions) {
   Write-Host "=== build $version start: $(Get-Date -Format o) ==="
-  $env:AIONUI_DEBUG_AUTO_UPDATE_CURRENT_VERSION = $version
+  $env:CSBU_WORKMATE_DEBUG_AUTO_UPDATE_CURRENT_VERSION = $version
 
   Push-Location $repoRoot
   try {
@@ -53,8 +53,8 @@ foreach ($version in $buildVersions) {
       throw "build $version failed with exit code $LASTEXITCODE"
     }
 
-    $source = Join-Path $repoRoot "out\AionUi-$version-win-x64.exe"
-    $target = Join-Path $OutputDir "AionUi-$version-win-x64.exe"
+    $source = Join-Path $repoRoot "out\CSBU-WorkMate-$version-win-x64.exe"
+    $target = Join-Path $OutputDir "CSBU-WorkMate-$version-win-x64.exe"
     if (-not (Test-Path -LiteralPath $source)) {
       throw "Expected artifact was not produced: $source"
     }

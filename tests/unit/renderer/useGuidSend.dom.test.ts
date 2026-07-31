@@ -186,7 +186,7 @@ describe('useGuidSend', () => {
     expect(payload.assistant?.conversation_overrides?.disabled_builtin_skill_ids).toEqual(['todo-tracker']);
   });
 
-  it('forwards local skill overrides for generated Aion CLI assistants through assistant conversation overrides', async () => {
+  it('forwards local skill overrides for generated CSBU WorkMate assistants through assistant conversation overrides', async () => {
     const deps = createDeps();
     deps.selectedAssistantId = 'bare:aionrs';
     deps.selectedAssistantBackend = 'aionrs';
@@ -209,7 +209,7 @@ describe('useGuidSend', () => {
     expect(payload.extra.session_mode).toBeUndefined();
   });
 
-  it('does not write legacy preset_assistant_id for generated Aion CLI assistant conversations', async () => {
+  it('does not write legacy preset_assistant_id for generated CSBU WorkMate assistant conversations', async () => {
     const deps = createDeps();
     deps.selectedAssistantId = 'bare:aionrs';
     deps.selectedAssistantBackend = 'aionrs';

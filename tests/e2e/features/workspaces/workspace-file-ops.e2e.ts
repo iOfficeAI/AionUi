@@ -20,7 +20,7 @@ test.describe.serial('Workspace — file operations', () => {
   let panel: Locator | null = null;
 
   test.beforeAll(() => {
-    workspace = fs.mkdtempSync(path.join(os.tmpdir(), 'aionui-e2e-ws-ops-'));
+    workspace = fs.mkdtempSync(path.join(os.tmpdir(), 'csbu-workmate-e2e-ws-ops-'));
     fs.writeFileSync(path.join(workspace, 'config.json'), '{"name":"test"}');
     fs.mkdirSync(path.join(workspace, 'components'), { recursive: true });
     fs.writeFileSync(path.join(workspace, 'components', 'Button.tsx'), '<button>Click</button>');

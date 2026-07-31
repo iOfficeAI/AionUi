@@ -3,10 +3,10 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "AionUi",
+      "name": "csbu-workmate",
       "dependencies": {
         "@agentclientprotocol/sdk": "^0.18.2",
-        "@aionui/web-host": "workspace:*",
+        "@csbu-workmate/web-host": "workspace:*",
         "@anthropic-ai/sdk": "^0.71.2",
         "@arco-design/web-react": "^2.66.1",
         "@aws-sdk/client-bedrock": "^3.987.0",
@@ -164,14 +164,14 @@
       },
     },
     "packages/desktop": {
-      "name": "@aionui/desktop",
+      "name": "@csbu-workmate/desktop",
       "version": "0.0.0",
       "dependencies": {
-        "@aionui/web-host": "workspace:*",
+        "@csbu-workmate/web-host": "workspace:*",
       },
     },
     "packages/shared-scripts": {
-      "name": "@aionui/shared-scripts",
+      "name": "@csbu-workmate/shared-scripts",
       "version": "0.0.0",
       "devDependencies": {
         "@types/node": "^22.10.2",
@@ -179,14 +179,14 @@
       },
     },
     "packages/web-cli": {
-      "name": "@aionui/web-cli",
+      "name": "@csbu-workmate/web-cli",
       "version": "1.9.26",
       "bin": {
-        "aionui-web": "./bin/aionui-web.js",
+        "csbu-workmate-web": "./bin/csbu-workmate-web.js",
       },
       "dependencies": {
-        "@aionui/shared-scripts": "workspace:*",
-        "@aionui/web-host": "workspace:*",
+        "@csbu-workmate/shared-scripts": "workspace:*",
+        "@csbu-workmate/web-host": "workspace:*",
       },
       "devDependencies": {
         "@types/node": "^22.10.2",
@@ -195,7 +195,7 @@
       },
     },
     "packages/web-host": {
-      "name": "@aionui/web-host",
+      "name": "@csbu-workmate/web-host",
       "version": "0.0.0",
       "dependencies": {
         "serve-handler": "^6.1.5",
@@ -225,13 +225,13 @@
 
     "@agentclientprotocol/sdk": ["@agentclientprotocol/sdk@0.18.2", "", { "peerDependencies": { "zod": "^3.25.0 || ^4.0.0" } }, "sha512-l/o9NKvUc00GPa6RFJ4AccQq2O/PAf83xQ75mThHuL3H571iN4+PEdwnTBez67sS8Nv2aSA373xCZ5CbTXEwzA=="],
 
-    "@aionui/desktop": ["@aionui/desktop@workspace:packages/desktop"],
+    "@csbu-workmate/desktop": ["@csbu-workmate/desktop@workspace:packages/desktop"],
 
-    "@aionui/shared-scripts": ["@aionui/shared-scripts@workspace:packages/shared-scripts"],
+    "@csbu-workmate/shared-scripts": ["@csbu-workmate/shared-scripts@workspace:packages/shared-scripts"],
 
-    "@aionui/web-cli": ["@aionui/web-cli@workspace:packages/web-cli"],
+    "@csbu-workmate/web-cli": ["@csbu-workmate/web-cli@workspace:packages/web-cli"],
 
-    "@aionui/web-host": ["@aionui/web-host@workspace:packages/web-host"],
+    "@csbu-workmate/web-host": ["@csbu-workmate/web-host@workspace:packages/web-host"],
 
     "@antfu/install-pkg": ["@antfu/install-pkg@1.1.0", "", { "dependencies": { "package-manager-detector": "^1.3.0", "tinyexec": "^1.0.1" } }, "sha512-MGQsmw10ZyI+EJo45CdSER4zEb+p31LpDAFp2Z3gkSd1yqVZGi0Ebx++YTEMonJy4oChEMLsxZ64j8FH6sSqtQ=="],
 
@@ -3419,11 +3419,11 @@
 
     "zwitch": ["zwitch@2.0.4", "", {}, "sha512-bXE4cR/kVZhKZX/RjPEflHaKVhUVl85noU3v6b8apfQEc1x4A+zBxjZ4lN8LqGd6WZ3dl98pY4o717VFmoPp+A=="],
 
-    "@aionui/shared-scripts/@types/node": ["@types/node@22.19.15", "", { "dependencies": { "undici-types": "~6.21.0" } }, "sha512-F0R/h2+dsy5wJAUe3tAU6oqa2qbWY5TpNfL/RGmo1y38hiyO1w3x2jPtt76wmuaJI4DQnOBu21cNXQ2STIUUWg=="],
+    "@csbu-workmate/shared-scripts/@types/node": ["@types/node@22.19.15", "", { "dependencies": { "undici-types": "~6.21.0" } }, "sha512-F0R/h2+dsy5wJAUe3tAU6oqa2qbWY5TpNfL/RGmo1y38hiyO1w3x2jPtt76wmuaJI4DQnOBu21cNXQ2STIUUWg=="],
 
-    "@aionui/web-cli/@types/node": ["@types/node@22.19.15", "", { "dependencies": { "undici-types": "~6.21.0" } }, "sha512-F0R/h2+dsy5wJAUe3tAU6oqa2qbWY5TpNfL/RGmo1y38hiyO1w3x2jPtt76wmuaJI4DQnOBu21cNXQ2STIUUWg=="],
+    "@csbu-workmate/web-cli/@types/node": ["@types/node@22.19.15", "", { "dependencies": { "undici-types": "~6.21.0" } }, "sha512-F0R/h2+dsy5wJAUe3tAU6oqa2qbWY5TpNfL/RGmo1y38hiyO1w3x2jPtt76wmuaJI4DQnOBu21cNXQ2STIUUWg=="],
 
-    "@aionui/web-host/@types/node": ["@types/node@22.19.15", "", { "dependencies": { "undici-types": "~6.21.0" } }, "sha512-F0R/h2+dsy5wJAUe3tAU6oqa2qbWY5TpNfL/RGmo1y38hiyO1w3x2jPtt76wmuaJI4DQnOBu21cNXQ2STIUUWg=="],
+    "@csbu-workmate/web-host/@types/node": ["@types/node@22.19.15", "", { "dependencies": { "undici-types": "~6.21.0" } }, "sha512-F0R/h2+dsy5wJAUe3tAU6oqa2qbWY5TpNfL/RGmo1y38hiyO1w3x2jPtt76wmuaJI4DQnOBu21cNXQ2STIUUWg=="],
 
     "@aws-crypto/sha256-browser/@smithy/util-utf8": ["@smithy/util-utf8@2.3.0", "", { "dependencies": { "@smithy/util-buffer-from": "^2.2.0", "tslib": "^2.6.2" } }, "sha512-R8Rdn8Hy72KKcebgLiv8jQcQkXoLMOGGv5uI1/k0l+snqkOzQ1R0ChUBCxWMlBsFMekWjq0wRudIweFs7sKT5A=="],
 
@@ -3799,11 +3799,11 @@
 
     "xml2js/xmlbuilder": ["xmlbuilder@11.0.1", "", {}, "sha512-fDlsI/kFEx7gLvbecc0/ohLG50fugQp8ryHzMTuW9vSa1GJ0XYWKnhsUx7oie3G98+r56aTQIUB4kht42R3JvA=="],
 
-    "@aionui/shared-scripts/@types/node/undici-types": ["undici-types@6.21.0", "", {}, "sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ=="],
+    "@csbu-workmate/shared-scripts/@types/node/undici-types": ["undici-types@6.21.0", "", {}, "sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ=="],
 
-    "@aionui/web-cli/@types/node/undici-types": ["undici-types@6.21.0", "", {}, "sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ=="],
+    "@csbu-workmate/web-cli/@types/node/undici-types": ["undici-types@6.21.0", "", {}, "sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ=="],
 
-    "@aionui/web-host/@types/node/undici-types": ["undici-types@6.21.0", "", {}, "sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ=="],
+    "@csbu-workmate/web-host/@types/node/undici-types": ["undici-types@6.21.0", "", {}, "sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ=="],
 
     "@aws-crypto/sha256-browser/@smithy/util-utf8/@smithy/util-buffer-from": ["@smithy/util-buffer-from@2.2.0", "", { "dependencies": { "@smithy/is-array-buffer": "^2.2.0", "tslib": "^2.6.2" } }, "sha512-IJdWBbTcMQ6DA0gdNhh/BwrLkDR+ADW5Kr1aZmd4k3DIF6ezMV4R2NIAmT08wQJ3yUK82thHWmC/TnK/wpMMIA=="],
 

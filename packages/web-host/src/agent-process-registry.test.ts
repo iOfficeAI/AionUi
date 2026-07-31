@@ -17,7 +17,7 @@ describe('cleanupRegisteredAgentProcesses', () => {
       return;
     }
 
-    const dataDir = await mkdtemp(path.join(os.tmpdir(), 'aionui-agent-registry-'));
+    const dataDir = await mkdtemp(path.join(os.tmpdir(), 'csbu-workmate-agent-registry-'));
     const registryPath = resolveAgentProcessRegistryPath(dataDir);
     await mkdir(path.dirname(registryPath), { recursive: true });
     await writeFile(

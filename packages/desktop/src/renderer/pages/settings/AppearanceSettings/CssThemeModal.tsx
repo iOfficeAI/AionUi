@@ -9,7 +9,7 @@ import { ipcBridge } from '@/common';
 import { useThemeContext } from '@renderer/hooks/context/ThemeContext.tsx';
 import { iconColors } from '@renderer/styles/colors';
 import { Button, Input, Radio } from '@arco-design/web-react';
-import AionModal from '@renderer/components/base/AionModal.tsx';
+import WorkMateModal from '@renderer/components/base/WorkMateModal.tsx';
 import { Plus, Delete } from '@icon-park/react';
 import CodeMirror from '@uiw/react-codemirror';
 import { css as cssLang } from '@codemirror/lang-css';
@@ -116,7 +116,7 @@ const CssThemeModal: React.FC<CssThemeModalProps> = ({ visible, theme, onClose, 
   const isEditing = !!theme;
 
   return (
-    <AionModal
+    <WorkMateModal
       variant='standard'
       visible={visible}
       header={{
@@ -216,7 +216,7 @@ const CssThemeModal: React.FC<CssThemeModalProps> = ({ visible, theme, onClose, 
           />
         </div>
       </div>
-    </AionModal>
+    </WorkMateModal>
   );
 };
 

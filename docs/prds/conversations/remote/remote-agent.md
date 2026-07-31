@@ -47,7 +47,7 @@
 
 **"查看配置指南"链接**：
 
-- 点击通过 `openExternalUrl` 在系统浏览器中打开 `https://github.com/iOfficeAI/AionUi/wiki/Remote-Agent-Guide-Chinese`
+- 点击通过 `openExternalUrl` 在系统浏览器中打开 `https://github.com/CSBU/CSBU-WorkMate/wiki/Remote-Agent-Guide-Chinese`
 - 说明横幅和弹窗内的警告 banner 中均有此链接
 
 **异常情况**：
@@ -72,7 +72,7 @@
 **正常流程**（用户视角）：
 
 1. 用户点击"+ 添加"按钮
-2. 弹出"添加远程 Agent"弹窗（AionModal + 遮罩层）
+2. 弹出"添加远程 Agent"弹窗（WorkMateModal + 遮罩层）
 3. 弹窗顶部显示黄色警告 banner（说明文案 + "查看配置指南"链接）
 4. 用户填写表单：
    - **Avatar**：点击头像区域打开 Emoji 选择器（8 个分类 Tab），选中后立即应用。默认值 `🤖`（`\u{1F916}`，固定值非随机）
@@ -127,7 +127,7 @@ UI 当前不暴露协议选择器，新建 Agent 硬编码为 `'openclaw'` 协�
 **正常流程**（用户视角）：
 
 1. 用户点击卡片底部"编辑"按钮
-2. 弹出"编辑远程 Agent"弹窗（AionModal）
+2. 弹出"编辑远程 Agent"弹窗（WorkMateModal）
 3. 所有已保存数据完整回填：
    - Avatar emoji
    - 名称
@@ -177,7 +177,7 @@ Bridge 端逐字段映射到 DB 列名（仅更新 `updates` 中不为 `undefine
 **正常流程**（用户视角）：
 
 1. 用户点击卡片底部"删除"按钮（红色 danger 样式）
-2. 弹出确认对话框（Arco 原生 `Modal.confirm`，区别于创建/编辑使用的 AionModal 封装）：
+2. 弹出确认对话框（Arco 原生 `Modal.confirm`，区别于创建/编辑使用的 WorkMateModal 封装）：
    - 标题：`settings.remoteAgent.deleteConfirm`（"删除远程 Agent"）
    - 正文：`settings.remoteAgent.deleteConfirmContent`（"确定要删除「{agent名称}」吗？"，使用直角引号包裹名称）
    - 按钮："取消" / "确定"（确定按钮为 danger 样式）
@@ -319,7 +319,7 @@ Bridge 端逐字段映射到 DB 列名（仅更新 `updates` 中不为 `undefine
 | ----------------------------- | ------------------------------------------------------------------------ |
 | `minProtocol` / `maxProtocol` | `3` / `4`（同时兼容 v3 与 v4 Gateway，2026.5.12 起 Gateway 默认要求 v4） |
 | `client.id`                   | `'gateway-client'`                                                       |
-| `client.displayName`          | `'AionUI'`                                                               |
+| `client.displayName`          | `'CSBU WorkMate'`                                                               |
 | `client.mode`                 | `'backend'`                                                              |
 | `caps`                        | `['tool-events']`（必须声明以接收 tool call 事件）                       |
 | `role`                        | `'operator'`                                                             |
@@ -676,7 +676,7 @@ Gateway 通过 `agent` / `agent.event` 事件推送工具调用信息：
 │  RemoteAgentManagement.tsx                                        │
 │    ├─ useSWR → ipcBridge.remoteAgent.list.invoke()   → 列表     │
 │    │                                                              │
-│    └─ RemoteAgentFormModal (AionModal)                            │
+│    └─ RemoteAgentFormModal (WorkMateModal)                            │
 │       ├─ ipcBridge.remoteAgent.create.invoke()       → 创建     │
 │       ├─ ipcBridge.remoteAgent.update.invoke()       → 编辑     │
 │       ├─ ipcBridge.remoteAgent.testConnection.invoke()→ 连接测试 │
@@ -786,7 +786,7 @@ Gateway 通过 `agent` / `agent.event` 事件推送工具调用信息：
 | 7   | Capabilities           | `caps: ['tool-events']` — 必须声明以接收 tool call 事件            |
 | 8   | DB 存储                | SQLite `remote_agents` 表，字段 snake_case                         |
 | 9   | 数据加载               | 使用 SWR（key: `'remote-agents.list'`），支持自动重验证            |
-| 10  | 弹窗组件               | 创建/编辑使用 AionModal 封装，删除确认使用 Arco 原生 Modal.confirm |
+| 10  | 弹窗组件               | 创建/编辑使用 WorkMateModal 封装，删除确认使用 Arco 原生 Modal.confirm |
 
 ---
 
@@ -794,10 +794,10 @@ Gateway 通过 `agent` / `agent.event` 事件推送工具调用信息：
 
 > 此功能与 Remote Agent 设置页无直接 UI 交互，降级为关联模块说明。
 
-`openclawConflictDetector.ts` 检测 OpenClaw 的 Lark/Telegram channels 是否与 AionUi Channels 使用相同凭据：
+`openclawConflictDetector.ts` 检测 OpenClaw 的 Lark/Telegram channels 是否与 CSBU WorkMate Channels 使用相同凭据：
 
-- **Lark 冲突**: 比较 `channels.feishu.accounts[*].appId` 与 AionUi appId
-- **Telegram 冲突**: 比较 `channels.telegram.botToken` 与 AionUi botToken
+- **Lark 冲突**: 比较 `channels.feishu.accounts[*].appId` 与 CSBU WorkMate appId
+- **Telegram 冲突**: 比较 `channels.telegram.botToken` 与 CSBU WorkMate botToken
 - 配置读取路径: 环境变量 → `~/.openclaw/openclaw.json` → 遗留路径
 
 **当前限制**：冲突检测结果通过 `console.warn` 输出，无 UI 呈现。导出的 `getConflictResolutionSteps()` 提供解决方案建议文本，但尚未集成到任何 UI 组件中。

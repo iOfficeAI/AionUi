@@ -2,8 +2,8 @@
   "name": "ext-wecom-bot",
   "displayName": "ext-企业微信 Bot",
   "version": "0.1.0",
-  "description": "Enterprise WeCom AI Bot channel extension example for AionUI",
-  "author": "AionUI Contributors",
+  "description": "Enterprise WeCom AI Bot channel extension example for CSBU WorkMate",
+  "author": "CSBU WorkMate Contributors",
   "icon": "assets/ext-wecom-bot.svg",
   "contributes": {
     "channelPlugins": [

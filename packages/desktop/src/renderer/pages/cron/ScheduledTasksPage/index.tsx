@@ -20,7 +20,7 @@ import CreateTaskDialog from './CreateTaskDialog';
 import { getJobAgentMeta } from './jobAgentMeta';
 import { useAgentLogos } from '@renderer/utils/model/agentLogo';
 import TalkToButlerButton from '@/renderer/components/base/TalkToButlerButton';
-import { AionSearchInput } from '@/renderer/components/base';
+import { WorkMateSearchInput } from '@/renderer/components/base';
 import SettingsPageHeader from '@/renderer/pages/settings/components/SettingsPageHeader';
 import { Robot } from '@icon-park/react';
 
@@ -132,7 +132,7 @@ const ScheduledTasksPage: React.FC = () => {
             actions={
               <>
                 {!isMobile && (
-                  <AionSearchInput
+                  <WorkMateSearchInput
                     className='shrink-0 w-[200px] hidden md:flex'
                     data-testid='input-search-scheduled-tasks'
                     placeholder={t('cron.page.searchPlaceholder', { defaultValue: 'Search tasks...' })}

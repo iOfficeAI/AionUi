@@ -1,6 +1,6 @@
 # Build Scripts Documentation
 
-This directory contains scripts for building and packaging AionUi across different platforms and architectures.
+This directory contains scripts for building and packaging CSBU WorkMate across different platforms and architectures.
 
 ## Scripts Overview
 
@@ -9,7 +9,7 @@ This directory contains scripts for building and packaging AionUi across differe
 | `build-with-builder.js`   | 116   | Coordinates Electron Forge and electron-builder |
 | `rebuildNativeModules.js` | 219   | **Unified native module rebuild utility**       |
 | `beforeBuild.js`          | 38    | Pre-packaging native module rebuild hook        |
-| `afterPack.js`            | 67    | Post-packaging verification (Linux only)        |
+| `afterPack.js`            | —     | Post-packaging verification and Windows metadata removal |
 | `afterSign.js`            | 47    | macOS code signing and notarization             |
 
 **Total**: 487 lines (down from 711 lines before optimization)
@@ -29,7 +29,7 @@ electron-builder
     ↓
     ├─→ beforeBuild.js → rebuildNativeModules.js (all platforms)
     ├─→ Package app
-    ├─→ afterPack.js → rebuildNativeModules.js (Linux only)
+    ├─→ afterPack.js → rebuild native modules and optionally remove Windows VERSIONINFO
     └─→ afterSign.js (macOS only)
 ```
 
@@ -130,11 +130,21 @@ rebuildSingleModule({
 - Ensures correct binaries are packaged
 - Uses `electron-rebuild` for all modules
 
-### afterPack (Linux Only)
+### afterPack
 
 - Rebuilds `better-sqlite3` in **packaged app** (`app.asar.unpacked/`)
 - Handles cross-compilation issues
 - Uses `prebuild-install` for faster builds (downloads prebuilt binary)
+- On opted-in Windows builds, removes application `VERSIONINFO` with Resource Hacker before NSIS packaging
+
+### Manual GitHub build
+
+Run the **Manual Build** workflow and select a platform. The optional `version` input overrides the artifact version
+without changing the repository. Windows manual builds enable `strip_windows_exe_metadata` by default.
+
+The Windows metadata flow removes `VERSIONINFO` from the packaged application in `afterPack` and from the temporary
+NSIS header through `!packhdr`. Do not edit the completed installer with Resource Hacker: that changes bytes covered by
+the NSIS integrity check and produces an `Installer integrity check has failed` error.
 
 ## Troubleshooting
 

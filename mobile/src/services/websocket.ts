@@ -1,5 +1,5 @@
 /**
- * WebSocket connection manager for AionUi Mobile.
+ * WebSocket connection manager for CSBU WorkMate Mobile.
  * Mirrors the protocol from src/adapter/browser.ts:
  * - JSON messages: { name: string, data: unknown }
  * - Heartbeat: ping/pong

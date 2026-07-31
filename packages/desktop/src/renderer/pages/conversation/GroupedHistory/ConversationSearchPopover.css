@@ -55,13 +55,13 @@ body[arco-theme='dark'] .conversation-search-modal {
   --conversation-search-highlight-fg: #93c5fd;
 }
 
-.conversation-search-modal.aionui-modal .arco-modal,
-.conversation-search-modal.aionui-modal .arco-modal-content,
-.conversation-search-modal.aionui-modal .arco-modal-header,
-.conversation-search-modal.aionui-modal .arco-modal-body,
-.conversation-search-modal.aionui-modal .arco-modal-footer,
-.conversation-search-modal .aionui-modal-wrapper,
-.conversation-search-modal .aionui-modal-body-content {
+.conversation-search-modal.csbu-workmate-modal .arco-modal,
+.conversation-search-modal.csbu-workmate-modal .arco-modal-content,
+.conversation-search-modal.csbu-workmate-modal .arco-modal-header,
+.conversation-search-modal.csbu-workmate-modal .arco-modal-body,
+.conversation-search-modal.csbu-workmate-modal .arco-modal-footer,
+.conversation-search-modal .csbu-workmate-modal-wrapper,
+.conversation-search-modal .csbu-workmate-modal-body-content {
   background: transparent !important;
   box-shadow: none !important;
   border: none !important;
@@ -69,7 +69,7 @@ body[arco-theme='dark'] .conversation-search-modal {
   -webkit-backdrop-filter: none !important;
 }
 
-.conversation-search-modal.aionui-modal .arco-modal-content,
+.conversation-search-modal.csbu-workmate-modal .arco-modal-content,
 .conversation-search-modal .arco-modal-content {
   position: relative;
   background: var(--conversation-search-panel-bg) !important;
@@ -85,7 +85,7 @@ body[arco-theme='dark'] .conversation-search-modal {
   overflow: hidden !important;
 }
 
-.conversation-search-modal .aionui-modal-body-content {
+.conversation-search-modal .csbu-workmate-modal-body-content {
   padding: 0 !important;
 }
 

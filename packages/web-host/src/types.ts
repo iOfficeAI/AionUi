@@ -1,4 +1,4 @@
-// Core types for @aionui/web-host (M3 interface contract, locked for M4-M8)
+// Core types for @csbu-workmate/web-host (M3 interface contract, locked for M4-M8)
 
 /**
  * App metadata injected by host environment (Electron or Node)
@@ -16,7 +16,7 @@ export type AppMetadata = {
 export type BackendBinaryResolver = () => string;
 
 /**
- * System dirs exported to the backend via AIONUI_{CACHE,WORK,LOG}_DIR env.
+ * System dirs exported to the backend via CSBU_WORKMATE_{CACHE,WORK,LOG}_DIR env.
  * Backend surfaces these on `/api/system/info`. Omit and the backend inherits
  * process.env, which may carry stale values from the parent shell — better to
  * be explicit.

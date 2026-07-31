@@ -17,7 +17,7 @@ describe('workspace utils', () => {
   describe('getWorkspaceDisplayName', () => {
     it('returns last directory segment for regular path', () => {
       expect(getWorkspaceDisplayName('/home/user/my-project')).toBe('my-project');
-      expect(getWorkspaceDisplayName('/Users/xavier/projects/AionUi')).toBe('AionUi');
+      expect(getWorkspaceDisplayName('/Users/xavier/projects/CSBU WorkMate')).toBe('CSBU WorkMate');
     });
 
     it('returns temporary session label for temp workspace', () => {

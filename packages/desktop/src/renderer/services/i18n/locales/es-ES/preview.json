@@ -79,7 +79,7 @@
       "outsideSandbox": "Este archivo está fuera del sandbox del proyecto actual."
     },
     "serverInstall": {
-      "hint": "AionUi se está ejecutando en un servidor. Instala el componente de vista previa en ese servidor y reintenta:",
+      "hint": "CSBU WorkMate se está ejecutando en un servidor. Instala el componente de vista previa en ese servidor y reintenta:",
       "icuNote": "Si sigue sin iniciar, instala la biblioteca ICU en el servidor (Debian/Ubuntu: apt-get install -y libicu-dev)."
     }
   },

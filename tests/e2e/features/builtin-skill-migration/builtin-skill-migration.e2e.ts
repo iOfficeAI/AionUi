@@ -39,8 +39,8 @@ const SIBLING_BACKEND_PORT = 25903;
  * corpus. These come from the SKILL.md frontmatter, not the directory name
  * (e.g. `auto-inject/office-cli/SKILL.md` emits `name: officecli`).
  */
-const REMOVED_AUTO_INJECT_NAME = 'aionui-skills';
-const REMOVED_AUTO_INJECT_DIR_NAME = 'aionui-skills';
+const REMOVED_AUTO_INJECT_NAME = 'csbu-workmate-skills';
+const REMOVED_AUTO_INJECT_DIR_NAME = 'csbu-workmate-skills';
 const AUTO_INJECT_EXPECTED_NAMES = ['cron', 'officecli', 'skill-creator'] as const;
 
 /**
@@ -90,13 +90,13 @@ async function listAutoInjectBuiltinSkills(page: Parameters<typeof httpGet>[0]):
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
 function resolveBackendBinary(): string {
-  const candidates = [process.env.AIONUI_BACKEND_BINARY, path.join(os.homedir(), '.cargo', 'bin', 'aioncore')].filter(
+  const candidates = [process.env.CSBU_WORKMATE_BACKEND_BINARY, path.join(os.homedir(), '.cargo', 'bin', 'aioncore')].filter(
     (x): x is string => typeof x === 'string' && x.length > 0
   );
   for (const c of candidates) {
     if (fs.existsSync(c)) return c;
   }
-  throw new Error('aioncore binary not found. Set AIONUI_BACKEND_BINARY or install to ~/.cargo/bin/aioncore.');
+  throw new Error('aioncore binary not found. Set CSBU_WORKMATE_BACKEND_BINARY or install to ~/.cargo/bin/aioncore.');
 }
 
 // ── Suite ───────────────────────────────────────────────────────────────────
@@ -278,7 +278,7 @@ test.describe('Built-in Skill Migration (T3)', () => {
     // SkillsHubSettings.tsx uses when the user clicks "Export".
     const probe = builtins[0];
     const skillPath = probe.location.replace(/[\\/]SKILL\.md$/, '');
-    const targetDir = fs.mkdtempSync(path.join(os.tmpdir(), 'aionui-e2e-s7-export-'));
+    const targetDir = fs.mkdtempSync(path.join(os.tmpdir(), 'csbu-workmate-e2e-s7-export-'));
     try {
       await httpPost(page, '/api/skills/export-symlink', {
         skill_path: skillPath,
@@ -371,11 +371,11 @@ test.describe('Built-in Skill Migration (T3)', () => {
       const logFd = fs.openSync(logPath, 'a');
       const parentEnv = { ...process.env };
       // Scrub any env vars that would leak main-Electron backend state.
-      delete parentEnv.AIONUI_EXTENSIONS_PATH;
-      delete parentEnv.AIONUI_EXTENSION_STATES_FILE;
-      delete parentEnv.AIONUI_E2E_TEST;
-      delete parentEnv.AIONUI_CDP_PORT;
-      delete parentEnv.AIONUI_BUILTIN_SKILLS_PATH;
+      delete parentEnv.CSBU_WORKMATE_EXTENSIONS_PATH;
+      delete parentEnv.CSBU_WORKMATE_EXTENSION_STATES_FILE;
+      delete parentEnv.CSBU_WORKMATE_E2E_TEST;
+      delete parentEnv.CSBU_WORKMATE_CDP_PORT;
+      delete parentEnv.CSBU_WORKMATE_BUILTIN_SKILLS_PATH;
       backend = spawn(bin, ['--local', '--port', String(SIBLING_BACKEND_PORT), '--data-dir', dataDir], {
         stdio: ['ignore', logFd, logFd],
         env: { ...parentEnv, RUST_LOG: 'warn' },
@@ -389,7 +389,7 @@ test.describe('Built-in Skill Migration (T3)', () => {
     }
 
     test.beforeEach(() => {
-      dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'aionui-e2e-builtin-skill-'));
+      dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'csbu-workmate-e2e-builtin-skill-'));
     });
 
     test.afterEach(async () => {
@@ -467,7 +467,7 @@ test.describe('Built-in Skill Migration (T3)', () => {
       //
       // Then, on the host side, we check the most likely cache locations
       // for a leftover `builtin-skills/` directory under the canonical
-      // `~/.aionui-config` tree. Failing that we at least assert the
+      // `~/.csbu-workmate-config` tree. Failing that we at least assert the
       // helper is non-destructive when no legacy dir exists — we do so
       // by seeding one under the sibling backend's data-dir and observing
       // that it is ignored (the *backend* does not own this cleanup; it
@@ -499,15 +499,15 @@ test.describe('Built-in Skill Migration (T3)', () => {
       // The authoritative assertion is Vitest on
       // `cleanupLegacyBuiltinSkillsDir` plus T4 packaging smoke.
       const candidates = [
-        path.join(os.homedir(), '.aionui-config', 'builtin-skills'),
-        path.join(os.homedir(), '.aionui-config-dev', 'builtin-skills'),
+        path.join(os.homedir(), '.csbu-workmate-config', 'builtin-skills'),
+        path.join(os.homedir(), '.csbu-workmate-config-dev', 'builtin-skills'),
       ];
       const survivors = candidates.filter((p) => fs.existsSync(p));
       test.info().annotations.push({
         type: 'note',
         description:
           survivors.length === 0
-            ? 'no legacy builtin-skills cache dirs detected under ~/.aionui-config*'
+            ? 'no legacy builtin-skills cache dirs detected under ~/.csbu-workmate-config*'
             : `legacy dirs still present (async cleanup pending): ${survivors.join(', ')}`,
       });
     });

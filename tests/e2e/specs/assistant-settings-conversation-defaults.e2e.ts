@@ -540,7 +540,7 @@ test.describe('Assistant Settings Conversation Defaults', () => {
       expect(payload.assistant?.conversation_overrides?.mcp_ids).toContain(firstMcp.id);
 
       const userDataPath = await getUserDataPath(electronApp);
-      const dbPath = path.join(userDataPath, 'aionui', 'aionui-backend.db');
+      const dbPath = path.join(userDataPath, 'csbu-workmate', 'csbu-workmate-backend.db');
       const snapshot = querySnapshotByConversationId(dbPath, conversationId);
 
       expect(snapshot.default_model_mode).toBe('fixed');
@@ -610,7 +610,7 @@ test.describe('Assistant Settings Conversation Defaults', () => {
       expect(payload.assistant?.conversation_overrides?.mcp_ids).toContain(firstMcp.id);
 
       const userDataPath = await getUserDataPath(electronApp);
-      const dbPath = path.join(userDataPath, 'aionui', 'aionui-backend.db');
+      const dbPath = path.join(userDataPath, 'csbu-workmate', 'csbu-workmate-backend.db');
       const snapshot = querySnapshotByConversationId(dbPath, conversationId);
       const preferences = queryPreferencesByAssistantKey(dbPath, assistantId);
 
@@ -666,7 +666,7 @@ test.describe('Assistant Settings Conversation Defaults', () => {
     await waitForAiReply(page);
 
     const userDataPath = await getUserDataPath(electronApp);
-    const dbPath = path.join(userDataPath, 'aionui', 'aionui-backend.db');
+    const dbPath = path.join(userDataPath, 'csbu-workmate', 'csbu-workmate-backend.db');
 
     try {
       const beforeSwitch = querySnapshotByConversationId(dbPath, conversationId);
@@ -742,7 +742,7 @@ test.describe('Assistant Settings Conversation Defaults', () => {
     await waitForAiReply(page);
 
     const userDataPath = await getUserDataPath(electronApp);
-    const dbPath = path.join(userDataPath, 'aionui', 'aionui-backend.db');
+    const dbPath = path.join(userDataPath, 'csbu-workmate', 'csbu-workmate-backend.db');
 
     try {
       const beforeSwitch = querySnapshotByConversationId(dbPath, conversationId);
@@ -802,7 +802,7 @@ test.describe('Assistant Settings Conversation Defaults', () => {
     if (!assistantId) return;
 
     const userDataPath = await getUserDataPath(electronApp);
-    const dbPath = path.join(userDataPath, 'aionui', 'aionui-backend.db');
+    const dbPath = path.join(userDataPath, 'csbu-workmate', 'csbu-workmate-backend.db');
     try {
       await httpInvoke(page, 'PUT', `/api/assistants/${assistantId}`, {
         id: assistantId,
@@ -886,7 +886,7 @@ test.describe('Assistant Settings Conversation Defaults', () => {
     if (!assistantId) return;
 
     const userDataPath = await getUserDataPath(electronApp);
-    const dbPath = path.join(userDataPath, 'aionui', 'aionui-backend.db');
+    const dbPath = path.join(userDataPath, 'csbu-workmate', 'csbu-workmate-backend.db');
 
     try {
       await httpInvoke(page, 'PUT', `/api/assistants/${assistantId}`, {

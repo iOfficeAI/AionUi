@@ -23,7 +23,7 @@ type FeedbackButtonProps = {
 
 /**
  * Inline feedback chip shown near error messages — styled as a compact pill
- * consistent with AionUi's existing Mention/Agent pill patterns. Click
+ * consistent with CSBU WorkMate's existing Mention/Agent pill patterns. Click
  * auto-captures the current window and opens the feedback modal with the
  * relevant module preselected; the user only needs to describe the issue.
  */

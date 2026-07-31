@@ -67,6 +67,10 @@ describe('teamMapper', () => {
     expect(assistant).not.toHaveProperty('agent_name');
   });
 
+  it('removes a legacy assistant brand returned by the backend', () => {
+    expect(fromBackendAssistant({ assistant_name: 'Aion CLI' }).assistant_name).toBe('CSBU WorkMate');
+  });
+
   it('prefers assistant-first team response fields while keeping legacy aliases hydrated', () => {
     const team = fromBackendTeam({
       id: 'team-1',
@@ -140,15 +144,25 @@ describe('teamMapper', () => {
       toBackendAssistant({
         role: 'leader',
         assistant_backend: 'aionrs',
-        assistant_name: 'Aion CLI',
+        assistant_name: 'CSBU WorkMate',
         status: 'pending',
         assistant_id: 'assistant-1',
       })
     ).toMatchObject({
-      name: 'Aion CLI',
+      name: 'CSBU WorkMate',
       role: 'lead',
       assistant_id: 'assistant-1',
     });
+  });
+
+  it('does not persist a legacy assistant display name in new team payloads', () => {
+    expect(
+      toBackendAssistant({
+        role: 'teammate',
+        assistant_name: 'Aion 命令行',
+        assistant_id: 'assistant-legacy-name',
+      })
+    ).toMatchObject({ name: 'CSBU WorkMate' });
   });
 
   it('omits backend for new assistant-led payloads so the backend can derive it from assistant identity', () => {

@@ -8,7 +8,7 @@ import type { TTeam } from '@/common/types/team/teamTypes';
 import type { TeamAssistantInput } from '@/common/adapter/teamMapper';
 import { useAuth } from '@renderer/hooks/context/AuthContext';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
-import AionModal from '@renderer/components/base/AionModal';
+import WorkMateModal from '@renderer/components/base/WorkMateModal';
 import { WorkspaceFolderSelect } from '@renderer/components/workspace';
 import { getConversationCreateErrorMessage } from '@renderer/pages/conversation/utils/conversationCreateError';
 import { useTeamAssistantOptions } from '../hooks/useTeamAssistantOptions';
@@ -21,7 +21,7 @@ import TeamMemberDraftList, { type TeamMemberDraft } from './memberPicker/TeamMe
 // [E2E SYNC] 修改此组件的 DOM 结构（class、标题、关闭按钮等）时，
 // 必须同步更新 tests/e2e/cases/teams/team-create.e2e.ts、team-whitelist.e2e.ts、
 // team-name-validation.e2e.ts 中的 selector，并立即向上汇报改动情况。
-// 注意：迁移到 AionModal variant='standard' 后，关闭按钮为 button[aria-label="Close"]，
+// 注意：迁移到 WorkMateModal variant='standard' 后，关闭按钮为 button[aria-label="Close"]，
 // 不再是 .arco-btn-text / .arco-modal-close-icon。
 // 窄屏（layout.isMobile，<768px）改为单栏：布局根为 team-create-layout-mobile，
 // 助手选择器是锚在 team-create-add-member-btn 上的下拉（选中即关，助手随即出现在下方列表）；
@@ -275,7 +275,7 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
   );
 
   return (
-    <AionModal
+    <WorkMateModal
       variant='standard'
       visible={visible}
       onCancel={handleClose}
@@ -319,7 +319,7 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
       }}
     >
       {isMobile ? mobileBody : desktopBody}
-    </AionModal>
+    </WorkMateModal>
   );
 };
 

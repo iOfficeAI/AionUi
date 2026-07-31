@@ -52,7 +52,7 @@ TeamTabsProvider (已存在，每团队一实例)
 ### 2.1 色板（`teamMemberColors.ts`）
 
 ```ts
-// 低饱和 slate 邻近色，取自 AionUi 品牌基调。每色给 accent(主) + soft(浅底) 两档，
+// 低饱和 slate 邻近色，取自 CSBU WorkMate 品牌基调。每色给 accent(主) + soft(浅底) 两档，
 // 浅底用 color-mix 在运行时算，故此处只存 accent（CSS 变量或 hex）。
 export const TEAM_MEMBER_PALETTE = [
   'var(--brand)', // 0 = Leader 固定

@@ -3,7 +3,7 @@
   "displayName": "ext-飞书",
   "version": "0.1.0",
   "description": "Feishu Channels extension example (not integrated by default), demonstrates i18n, data collection hooks, and cross-runtime assets",
-  "author": "AionUI Contributors",
+  "author": "CSBU WorkMate Contributors",
   "icon": "assets/ext-feishu.svg",
   "i18n": {
     "localesDir": "i18n",

@@ -1,6 +1,6 @@
 {
   "displayName": "Hello World 拡張",
-  "description": "AionUIのすべての拡張機能を紹介する完全なデモ拡張",
+  "description": "CSBU WorkMateのすべての拡張機能を紹介する完全なデモ拡張",
   "settingsTabs": {
     "hello-settings": { "name": "Hello 設定" }
   }

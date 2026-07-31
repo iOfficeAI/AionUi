@@ -1,4 +1,4 @@
-# Aion CLI (aionrs) E2E 测试需求
+# CSBU WorkMate (aionrs) E2E 测试需求
 
 **版本**: v1.1（修订版）
 **作者**: chat-aionrs-analyst
@@ -265,7 +265,7 @@ if (!binary) {
 
 **源码追溯**: `src/process/agent/aionrs/binaryResolver.ts`
 
-- 解析顺序: 环境变量 `AION_CLI_PATH` → `~/.aionui/bin/aion-<platform>-<arch>` → 系统 PATH 中的 `aion` 命令
+- 解析顺序: 环境变量 `AION_CLI_PATH` → `~/.csbu-workmate/bin/aion-<platform>-<arch>` → 系统 PATH 中的 `aion` 命令
 
 **验证命令**（team-lead 已确认）:
 

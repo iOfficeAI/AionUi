@@ -43,8 +43,8 @@
 2. 说明文字下方为「已检测」区域标题（i18n key: `settings.agentManagement.detected`）
 3. 已检测 Agent 以卡片网格布局展示（Tailwind 响应式断点：sm 及以下 2 列、md 3 列、lg 4 列、xl 5 列）
 4. 每张卡片包含：Agent Logo（40px 方形）、Agent 名称（最多 2 行截断）、"已检测"标签、"设置"按钮
-5. 卡片排列顺序：Aion CLI 置顶 → Gemini CLI 次之 → 其他按检测顺序排列。若 Aion CLI / Gemini CLI 未检测到，对应位置跳过，其他 Agent 紧邻排列
-6. Aion CLI 和 Gemini CLI 的"设置"按钮可用，点击分别跳转 `/settings/aionrs` 和 `/settings/gemini`
+5. 卡片排列顺序：CSBU WorkMate 置顶 → Gemini CLI 次之 → 其他按检测顺序排列。若 CSBU WorkMate / Gemini CLI 未检测到，对应位置跳过，其他 Agent 紧邻排列
+6. CSBU WorkMate 和 Gemini CLI 的"设置"按钮可用，点击分别跳转 `/settings/aionrs` 和 `/settings/gemini`
 7. 其他 detected Agent 的"设置"按钮为 disabled 状态（hover 时显示 Tooltip 提示，i18n key: `settings.agentManagement.settingsDisabledHint`）
 
 **异常情况**：
@@ -62,7 +62,7 @@
 **验收标准**：
 
 - [ ] 页面加载后显示已检测 Agent 卡片网格
-- [ ] Aion CLI 和 Gemini CLI 排列在前，"设置"按钮可用
+- [ ] CSBU WorkMate 和 Gemini CLI 排列在前，"设置"按钮可用
 - [ ] 其他 Agent 的"设置"按钮 disabled
 - [ ] 无检测结果时显示空状态文案（验证策略：单元测试——mock `getAvailableAgents` 返回空数组）
 - [ ] 卡片网格响应式列数：sm 及以下 2 列、md 3 列、lg 4 列、xl 5 列
@@ -128,7 +128,7 @@
 
 **异常情况**：
 
-- 用户可通过右上角关闭按钮、编辑器内取消按钮、或点击遮罩层（AionModal 默认行为）关闭弹窗，均不保存数据
+- 用户可通过右上角关闭按钮、编辑器内取消按钮、或点击遮罩层（WorkMateModal 默认行为）关闭弹窗，均不保存数据
 - ConfigStorage 写入失败：无 try-catch，异常 bubble up，弹窗可能未关闭（已知局限）
 
 **验收标准**：

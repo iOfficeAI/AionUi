@@ -299,7 +299,7 @@ test.describe('ACP cron busy handling', () => {
       expect(job.metadata.agent_config?.preset_agent_type).toBeUndefined();
 
       const userDataPath = await getUserDataPath(electronApp);
-      const dbPath = path.join(userDataPath, 'aionui', 'aionui-backend.db');
+      const dbPath = path.join(userDataPath, 'csbu-workmate', 'csbu-workmate-backend.db');
 
       await expect
         .poll(() => queryCronRow(dbPath, job.id).conversation_id, {

@@ -214,7 +214,7 @@ jobs:
             }
 
             const systemPrompt = [
-              'You are a senior project maintainer and technical lead for the AionUi project — a cross-platform Electron desktop application that provides a unified AI agent graphical interface.',
+              'You are a senior project maintainer and technical lead for the CSBU WorkMate project — a cross-platform Electron desktop application that provides a unified AI agent graphical interface.',
               '',
               'Your role is to provide a structured PR assessment to help maintainers quickly evaluate the value, correctness, and merge priority of pull requests.',
               '',

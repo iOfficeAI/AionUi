@@ -1,50 +1,50 @@
-!ifndef AIONUI_INSTALLER_REMOVE_REGISTRY_NSH
-!define AIONUI_INSTALLER_REMOVE_REGISTRY_NSH
+!ifndef CSBU_WORKMATE_INSTALLER_REMOVE_REGISTRY_NSH
+!define CSBU_WORKMATE_INSTALLER_REMOVE_REGISTRY_NSH
 
-!macro AIONUI_CLEAR_INSTALL_REGISTRY _REASON
+!macro CSBU_WORKMATE_CLEAR_INSTALL_REGISTRY _REASON
   DeleteRegKey SHCTX "${UNINSTALL_REGISTRY_KEY}"
   DeleteRegKey SHCTX "${INSTALL_REGISTRY_KEY}"
-  !insertmacro AIONUI_LOG_EVENT "event=registry-clear reason=${_REASON} uninstallKey=${UNINSTALL_REGISTRY_KEY} installKey=${INSTALL_REGISTRY_KEY}"
+  !insertmacro CSBU_WORKMATE_LOG_EVENT "event=registry-clear reason=${_REASON} uninstallKey=${UNINSTALL_REGISTRY_KEY} installKey=${INSTALL_REGISTRY_KEY}"
 !macroend
 
-!macro AIONUI_LOG_ATOMIC_REMOVE_FAILURE
+!macro CSBU_WORKMATE_LOG_ATOMIC_REMOVE_FAILURE
   Push $9
   nsExec::Exec `"$SYSDIR\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -Command "& { \
     $$ErrorActionPreference = 'SilentlyContinue'; \
-    $$log = '$AionUiSessionLogPath'; \
-    if (-not $$log) { $$log = Join-Path $$env:TEMP '${AIONUI_FALLBACK_LOG}' }; \
-    $$failed = '$AionUiAtomicFailedPath'; \
+    $$log = '$CsbuWorkMateSessionLogPath'; \
+    if (-not $$log) { $$log = Join-Path $$env:TEMP '${CSBU_WORKMATE_FALLBACK_LOG}' }; \
+    $$failed = '$CsbuWorkMateAtomicFailedPath'; \
     $$instDir = '$INSTDIR'; \
-    $$oldInstallDir = '$AionUiAtomicStagingDir'; \
+    $$oldInstallDir = '$CsbuWorkMateAtomicStagingDir'; \
     $$relative = $$failed; \
     if ($$failed.StartsWith($$instDir, [System.StringComparison]::CurrentCultureIgnoreCase)) { $$relative = $$failed.Substring($$instDir.Length).TrimStart('\') }; \
     $$tempCandidate = if ($$relative -and $$relative -ne $$failed) { Join-Path $$oldInstallDir $$relative } else { '' }; \
     $$kind = if ($$tempCandidate.Length -ge 260) { 'likely-long-path' } else { 'unknown' }; \
-    $$payload = [ordered]@{ schemaVersion = 1; ts = (Get-Date -Format o); session = '$AionUiSessionId'; version = '${VERSION}'; arch = '${AIONUI_TARGET_ARCH}'; updated = ('$AionUiIsUpdated' -eq '1'); instDir = '$INSTDIR'; event = 'remove-atomic-failed'; kind = $$kind; pathLength = $$failed.Length; tempCandidateLength = $$tempCandidate.Length; atomicFailedPath = $$failed; tempCandidate = $$tempCandidate }; \
+    $$payload = [ordered]@{ schemaVersion = 1; ts = (Get-Date -Format o); session = '$CsbuWorkMateSessionId'; version = '${VERSION}'; arch = '${CSBU_WORKMATE_TARGET_ARCH}'; updated = ('$CsbuWorkMateIsUpdated' -eq '1'); instDir = '$INSTDIR'; event = 'remove-atomic-failed'; kind = $$kind; pathLength = $$failed.Length; tempCandidateLength = $$tempCandidate.Length; atomicFailedPath = $$failed; tempCandidate = $$tempCandidate }; \
     Add-Content -LiteralPath $$log -Encoding UTF8 -Value ($$payload | ConvertTo-Json -Compress -Depth 8) \
   }"`
   Pop $9
   Pop $9
 !macroend
 
-!macro AIONUI_LOG_REMOVE_FAILURE_JSON _PHASE _FATAL _FAILED_PATH _EXTRA_FIELDS
-  !insertmacro AIONUI_LOG_JSON_EVENT "failure" "$$lockerText = '$AionUiLockerList'; $$processes = @(); if ($$lockerText -and $$lockerText -notlike 'Windows did not identify*' -and $$lockerText -ne 'unknown process') { $$processes = @($$lockerText -split ',\s*' | Where-Object { $$_ } | ForEach-Object { if ($$_ -match '^(.*)\(([0-9]+)\)$$') { [ordered]@{ name = $$Matches[1]; pid = [int]$$Matches[2] } } else { [ordered]@{ name = $$_; pid = $$null } } }) }; $$payload.code = '${AIONUI_E_INSTALL_DIR_REMOVE_OR_LOCKED}'; $$payload.phase = '${_PHASE}'; $$payload.failedPath = '${_FAILED_PATH}'; $$payload.blockingProcesses = @($$processes); if ($$lockerText -like 'AionUi installer(*)') { $$payload.fallbackReason = 'installer-self-lock'; $$payload.message = 'The installer process is using the install directory as its current output directory.' } elseif ($$processes.Count -eq 0) { $$payload.fallbackReason = 'restart-manager-no-process'; $$payload.message = 'Windows did not identify a specific locking process. Close terminals, editors, and file managers opened in the install folder.' } else { $$payload.fallbackReason = ''; $$payload.message = '' }; $$payload.fatal = ('${_FATAL}' -eq '1'); ${_EXTRA_FIELDS}"
+!macro CSBU_WORKMATE_LOG_REMOVE_FAILURE_JSON _PHASE _FATAL _FAILED_PATH _EXTRA_FIELDS
+  !insertmacro CSBU_WORKMATE_LOG_JSON_EVENT "failure" "$$lockerText = '$CsbuWorkMateLockerList'; $$processes = @(); if ($$lockerText -and $$lockerText -notlike 'Windows did not identify*' -and $$lockerText -ne 'unknown process') { $$processes = @($$lockerText -split ',\s*' | Where-Object { $$_ } | ForEach-Object { if ($$_ -match '^(.*)\(([0-9]+)\)$$') { [ordered]@{ name = $$Matches[1]; pid = [int]$$Matches[2] } } else { [ordered]@{ name = $$_; pid = $$null } } }) }; $$payload.code = '${CSBU_WORKMATE_E_INSTALL_DIR_REMOVE_OR_LOCKED}'; $$payload.phase = '${_PHASE}'; $$payload.failedPath = '${_FAILED_PATH}'; $$payload.blockingProcesses = @($$processes); if ($$lockerText -like 'CSBU WorkMate installer(*)') { $$payload.fallbackReason = 'installer-self-lock'; $$payload.message = 'The installer process is using the install directory as its current output directory.' } elseif ($$processes.Count -eq 0) { $$payload.fallbackReason = 'restart-manager-no-process'; $$payload.message = 'Windows did not identify a specific locking process. Close terminals, editors, and file managers opened in the install folder.' } else { $$payload.fallbackReason = ''; $$payload.message = '' }; $$payload.fatal = ('${_FATAL}' -eq '1'); ${_EXTRA_FIELDS}"
 !macroend
 
-!macro AIONUI_REMOVE_INSTALL_DIR
-  StrCpy $AionUiRemoveResidueCount "0"
-  ${If} $AionUiRemoveResidueRoot == ""
-    StrCpy $AionUiRemoveResidueRoot "$INSTDIR"
+!macro CSBU_WORKMATE_REMOVE_INSTALL_DIR
+  StrCpy $CsbuWorkMateRemoveResidueCount "0"
+  ${If} $CsbuWorkMateRemoveResidueRoot == ""
+    StrCpy $CsbuWorkMateRemoveResidueRoot "$INSTDIR"
   ${EndIf}
-  StrCpy $AionUiRemoveFirstFailedPath ""
+  StrCpy $CsbuWorkMateRemoveFirstFailedPath ""
   nsExec::Exec `"$SYSDIR\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -Command "& { \
     $$ErrorActionPreference = 'Continue'; \
-    $$log = '$AionUiSessionLogPath'; \
-    if (-not $$log) { $$log = Join-Path $$env:TEMP '${AIONUI_FALLBACK_LOG}' }; \
-    $$path = [System.IO.Path]::GetFullPath('$AionUiRemoveResidueRoot'); \
-    $$firstFailedFile = '$PLUGINSDIR\aionui-remove-first-failed.txt'; \
+    $$log = '$CsbuWorkMateSessionLogPath'; \
+    if (-not $$log) { $$log = Join-Path $$env:TEMP '${CSBU_WORKMATE_FALLBACK_LOG}' }; \
+    $$path = [System.IO.Path]::GetFullPath('$CsbuWorkMateRemoveResidueRoot'); \
+    $$firstFailedFile = '$PLUGINSDIR\csbu-workmate-remove-first-failed.txt'; \
     Set-Content -LiteralPath $$firstFailedFile -Encoding UTF8 -NoNewline -Value ''; \
-    function Write-InstallerLog($$message) { $$payload = [ordered]@{ schemaVersion = 1; ts = (Get-Date -Format o); session = '$AionUiSessionId'; version = '${VERSION}'; arch = '${AIONUI_TARGET_ARCH}'; updated = ('$AionUiIsUpdated' -eq '1'); instDir = '$INSTDIR'; event = 'remove-log'; message = $$message }; if ($$message -match '(^|\s)event=([^\s]+)') { $$payload.event = $$Matches[2] }; Add-Content -LiteralPath $$log -Encoding UTF8 -Value ($$payload | ConvertTo-Json -Compress -Depth 8) } \
+    function Write-InstallerLog($$message) { $$payload = [ordered]@{ schemaVersion = 1; ts = (Get-Date -Format o); session = '$CsbuWorkMateSessionId'; version = '${VERSION}'; arch = '${CSBU_WORKMATE_TARGET_ARCH}'; updated = ('$CsbuWorkMateIsUpdated' -eq '1'); instDir = '$INSTDIR'; event = 'remove-log'; message = $$message }; if ($$message -match '(^|\s)event=([^\s]+)') { $$payload.event = $$Matches[2] }; Add-Content -LiteralPath $$log -Encoding UTF8 -Value ($$payload | ConvertTo-Json -Compress -Depth 8) } \
     function Convert-LongPath($$itemPath) { if ($$itemPath.StartsWith('\\')) { return '\\?\UNC\' + $$itemPath.TrimStart('\') } return '\\?\' + $$itemPath } \
     function Remove-WithRetries($$item, $$isDir) { \
       $$delays = @(200,500,1000); \
@@ -73,123 +73,123 @@
       exit 1 \
     } \
   }"`
-  Pop $AionUiRemoveDirResult
+  Pop $CsbuWorkMateRemoveDirResult
 
   ClearErrors
   SetDetailsPrint none
-  FileOpen $AionUiRemoveFirstFailedFile "$PLUGINSDIR\aionui-remove-first-failed.txt" r
+  FileOpen $CsbuWorkMateRemoveFirstFailedFile "$PLUGINSDIR\csbu-workmate-remove-first-failed.txt" r
   ${IfNot} ${Errors}
-    FileRead $AionUiRemoveFirstFailedFile $AionUiRemoveFirstFailedPath
-    FileClose $AionUiRemoveFirstFailedFile
+    FileRead $CsbuWorkMateRemoveFirstFailedFile $CsbuWorkMateRemoveFirstFailedPath
+    FileClose $CsbuWorkMateRemoveFirstFailedFile
   ${EndIf}
   SetDetailsPrint lastused
 
-  ${If} $AionUiRemoveDirResult == "error"
-    !insertmacro AIONUI_LOG_EVENT "event=remove-longpath fallback=RMDir reason=no-powershell root=$INSTDIR"
-    RMDir /r "$AionUiRemoveResidueRoot"
-    ${If} ${FileExists} "$AionUiRemoveResidueRoot\*.*"
-      StrCpy $AionUiRemoveDirResult "1"
+  ${If} $CsbuWorkMateRemoveDirResult == "error"
+    !insertmacro CSBU_WORKMATE_LOG_EVENT "event=remove-longpath fallback=RMDir reason=no-powershell root=$INSTDIR"
+    RMDir /r "$CsbuWorkMateRemoveResidueRoot"
+    ${If} ${FileExists} "$CsbuWorkMateRemoveResidueRoot\*.*"
+      StrCpy $CsbuWorkMateRemoveDirResult "1"
     ${Else}
-      StrCpy $AionUiRemoveDirResult "0"
+      StrCpy $CsbuWorkMateRemoveDirResult "0"
     ${EndIf}
   ${EndIf}
 
-  ${If} $AionUiRemoveDirResult != 0
-    StrCpy $AionUiRemoveResidueCount $AionUiRemoveDirResult
+  ${If} $CsbuWorkMateRemoveDirResult != 0
+    StrCpy $CsbuWorkMateRemoveResidueCount $CsbuWorkMateRemoveDirResult
   ${EndIf}
 !macroend
 
 !macro customRemoveFiles
-  !insertmacro AIONUI_LOG_EVENT "remove-start instDir=$INSTDIR"
-  Var /GLOBAL AionUiRemoveDirResult
-  Var /GLOBAL AionUiAtomicFailedPath
-  Var /GLOBAL AionUiAtomicRemoveSucceeded
-  Var /GLOBAL AionUiAtomicStagingDir
-  Var /GLOBAL AionUiRemoveResidueCount
-  Var /GLOBAL AionUiRemoveResidueRoot
-  Var /GLOBAL AionUiRemoveFirstFailedPath
-  Var /GLOBAL AionUiRemoveFirstFailedFile
-  StrCpy $AionUiAtomicFailedPath ""
-  StrCpy $AionUiAtomicRemoveSucceeded "0"
-  StrCpy $AionUiAtomicStagingDir ""
-  StrCpy $AionUiRemoveResidueCount "0"
-  StrCpy $AionUiRemoveResidueRoot "$INSTDIR"
-  StrCpy $AionUiRemoveFirstFailedPath ""
+  !insertmacro CSBU_WORKMATE_LOG_EVENT "remove-start instDir=$INSTDIR"
+  Var /GLOBAL CsbuWorkMateRemoveDirResult
+  Var /GLOBAL CsbuWorkMateAtomicFailedPath
+  Var /GLOBAL CsbuWorkMateAtomicRemoveSucceeded
+  Var /GLOBAL CsbuWorkMateAtomicStagingDir
+  Var /GLOBAL CsbuWorkMateRemoveResidueCount
+  Var /GLOBAL CsbuWorkMateRemoveResidueRoot
+  Var /GLOBAL CsbuWorkMateRemoveFirstFailedPath
+  Var /GLOBAL CsbuWorkMateRemoveFirstFailedFile
+  StrCpy $CsbuWorkMateAtomicFailedPath ""
+  StrCpy $CsbuWorkMateAtomicRemoveSucceeded "0"
+  StrCpy $CsbuWorkMateAtomicStagingDir ""
+  StrCpy $CsbuWorkMateRemoveResidueCount "0"
+  StrCpy $CsbuWorkMateRemoveResidueRoot "$INSTDIR"
+  StrCpy $CsbuWorkMateRemoveFirstFailedPath ""
 
   SetOutPath $TEMP
-  StrCpy $AionUiCurrentOutDir "$TEMP"
+  StrCpy $CsbuWorkMateCurrentOutDir "$TEMP"
 
   ${if} ${isUpdated}
-    StrCpy $AionUiAtomicStagingDir "$INSTDIR.__old"
-    ${If} ${FileExists} "$AionUiAtomicStagingDir\*.*"
-      StrCpy $AionUiRemoveResidueRoot "$AionUiAtomicStagingDir"
-      !insertmacro AIONUI_LOG_EVENT "remove-stale-staging start root=$AionUiRemoveResidueRoot"
-      !insertmacro AIONUI_REMOVE_INSTALL_DIR
-      StrCpy $AionUiRemoveResidueRoot "$INSTDIR"
+    StrCpy $CsbuWorkMateAtomicStagingDir "$INSTDIR.__old"
+    ${If} ${FileExists} "$CsbuWorkMateAtomicStagingDir\*.*"
+      StrCpy $CsbuWorkMateRemoveResidueRoot "$CsbuWorkMateAtomicStagingDir"
+      !insertmacro CSBU_WORKMATE_LOG_EVENT "remove-stale-staging start root=$CsbuWorkMateRemoveResidueRoot"
+      !insertmacro CSBU_WORKMATE_REMOVE_INSTALL_DIR
+      StrCpy $CsbuWorkMateRemoveResidueRoot "$INSTDIR"
     ${EndIf}
 
-    aionui_retry_atomic_rename:
+    csbu_workmate_retry_atomic_rename:
       ClearErrors
-      Rename "$INSTDIR" "$AionUiAtomicStagingDir"
+      Rename "$INSTDIR" "$CsbuWorkMateAtomicStagingDir"
     ${if} ${Errors}
       DetailPrint "Atomic update cleanup failed before replacing previous installation: $INSTDIR"
-      StrCpy $AionUiAtomicFailedPath "$INSTDIR"
-      !insertmacro AIONUI_LOG_ATOMIC_REMOVE_FAILURE
-      !insertmacro AIONUI_CAPTURE_FAILED_PATH_LOCKERS "$AionUiAtomicFailedPath"
+      StrCpy $CsbuWorkMateAtomicFailedPath "$INSTDIR"
+      !insertmacro CSBU_WORKMATE_LOG_ATOMIC_REMOVE_FAILURE
+      !insertmacro CSBU_WORKMATE_CAPTURE_FAILED_PATH_LOCKERS "$CsbuWorkMateAtomicFailedPath"
       ${IfNot} ${Silent}
-        !insertmacro AIONUI_PROMPT_FAILED_PATH_LOCKERS "$AionUiAtomicFailedPath" "atomic-failed" aionui_retry_atomic_rename aionui_cancel_atomic_rename aionui_continue_atomic_failed
-        aionui_cancel_atomic_rename:
+        !insertmacro CSBU_WORKMATE_PROMPT_FAILED_PATH_LOCKERS "$CsbuWorkMateAtomicFailedPath" "atomic-failed" csbu_workmate_retry_atomic_rename csbu_workmate_cancel_atomic_rename csbu_workmate_continue_atomic_failed
+        csbu_workmate_cancel_atomic_rename:
       ${EndIf}
-      aionui_continue_atomic_failed:
-      !insertmacro AIONUI_LOG_REMOVE_FAILURE_JSON "atomic-failed" "1" "$AionUiAtomicFailedPath" "$$payload.atomicFailedPath = '$AionUiAtomicFailedPath'"
-      !insertmacro AIONUI_LOG_EVENT "code=${AIONUI_E_INSTALL_DIR_REMOVE_OR_LOCKED} phase=atomic-failed fatal=1 degraded=none firstFailed=$AionUiAtomicFailedPath atomicFailedPath=$AionUiAtomicFailedPath"
-      !insertmacro AIONUI_CLEAR_INSTALL_REGISTRY "remove-failed-before-quit"
-      !insertmacro AIONUI_FAIL_REPORTABLE_BILINGUAL ${AIONUI_E_INSTALL_DIR_REMOVE_OR_LOCKED} "event=session-end result=fail code=${AIONUI_E_INSTALL_DIR_REMOVE_OR_LOCKED} phase=atomic-failed fatal=1 firstFailed=$AionUiAtomicFailedPath lockers=$AionUiLockerList" "${AIONUI_MSG_REPLACE_LOCKED_EN}" "${AIONUI_MSG_REPLACE_LOCKED_ZH}" "${AIONUI_MSG_CLOSE_SHOWN_FILE_ACTION_EN}" "${AIONUI_MSG_CLOSE_SHOWN_FILE_ACTION_ZH}"
+      csbu_workmate_continue_atomic_failed:
+      !insertmacro CSBU_WORKMATE_LOG_REMOVE_FAILURE_JSON "atomic-failed" "1" "$CsbuWorkMateAtomicFailedPath" "$$payload.atomicFailedPath = '$CsbuWorkMateAtomicFailedPath'"
+      !insertmacro CSBU_WORKMATE_LOG_EVENT "code=${CSBU_WORKMATE_E_INSTALL_DIR_REMOVE_OR_LOCKED} phase=atomic-failed fatal=1 degraded=none firstFailed=$CsbuWorkMateAtomicFailedPath atomicFailedPath=$CsbuWorkMateAtomicFailedPath"
+      !insertmacro CSBU_WORKMATE_CLEAR_INSTALL_REGISTRY "remove-failed-before-quit"
+      !insertmacro CSBU_WORKMATE_FAIL_REPORTABLE_BILINGUAL ${CSBU_WORKMATE_E_INSTALL_DIR_REMOVE_OR_LOCKED} "event=session-end result=fail code=${CSBU_WORKMATE_E_INSTALL_DIR_REMOVE_OR_LOCKED} phase=atomic-failed fatal=1 firstFailed=$CsbuWorkMateAtomicFailedPath lockers=$CsbuWorkMateLockerList" "${CSBU_WORKMATE_MSG_REPLACE_LOCKED_EN}" "${CSBU_WORKMATE_MSG_REPLACE_LOCKED_ZH}" "${CSBU_WORKMATE_MSG_CLOSE_SHOWN_FILE_ACTION_EN}" "${CSBU_WORKMATE_MSG_CLOSE_SHOWN_FILE_ACTION_ZH}"
     ${else}
-      !insertmacro AIONUI_LOG_EVENT "remove-atomic result=0 staging=$AionUiAtomicStagingDir"
-      StrCpy $AionUiAtomicRemoveSucceeded "1"
-      StrCpy $AionUiRemoveResidueRoot "$AionUiAtomicStagingDir"
+      !insertmacro CSBU_WORKMATE_LOG_EVENT "remove-atomic result=0 staging=$CsbuWorkMateAtomicStagingDir"
+      StrCpy $CsbuWorkMateAtomicRemoveSucceeded "1"
+      StrCpy $CsbuWorkMateRemoveResidueRoot "$CsbuWorkMateAtomicStagingDir"
     ${endif}
   ${endif}
 
-  aionui_retry_remove_install_dir:
-    !insertmacro AIONUI_REMOVE_INSTALL_DIR
-  ${if} $AionUiRemoveDirResult != 0
-    !insertmacro AIONUI_CAPTURE_FAILED_PATH_LOCKERS "$AionUiRemoveFirstFailedPath"
-    ${if} $AionUiAtomicRemoveSucceeded == "1"
+  csbu_workmate_retry_remove_install_dir:
+    !insertmacro CSBU_WORKMATE_REMOVE_INSTALL_DIR
+  ${if} $CsbuWorkMateRemoveDirResult != 0
+    !insertmacro CSBU_WORKMATE_CAPTURE_FAILED_PATH_LOCKERS "$CsbuWorkMateRemoveFirstFailedPath"
+    ${if} $CsbuWorkMateAtomicRemoveSucceeded == "1"
       ${IfNot} ${Silent}
-        !insertmacro AIONUI_PROMPT_FAILED_PATH_LOCKERS "$AionUiRemoveFirstFailedPath" "residual-delete-failed" aionui_retry_remove_install_dir aionui_cancel_remove_after_rm aionui_continue_after_rm
-        aionui_cancel_remove_after_rm:
-          !insertmacro AIONUI_LOG_REMOVE_FAILURE_JSON "residual-delete-failed" "1" "$AionUiRemoveFirstFailedPath" "$$payload.residueRoot = '$AionUiRemoveResidueRoot'; $$payload.failedCount = '$AionUiRemoveResidueCount'; $$payload.removeDirResult = '$AionUiRemoveDirResult'; $$payload.atomicSucceeded = ('$AionUiAtomicRemoveSucceeded' -eq '1')"
-          !insertmacro AIONUI_LOG_EVENT "code=${AIONUI_E_INSTALL_DIR_REMOVE_OR_LOCKED} phase=residual-delete-failed userAction=cancel fatal=1 residueRoot=$AionUiRemoveResidueRoot failedCount=$AionUiRemoveResidueCount firstFailed=$AionUiRemoveFirstFailedPath removeDirResult=$AionUiRemoveDirResult removeResidueCount=$AionUiRemoveResidueCount atomicFailedPath=$AionUiAtomicFailedPath atomicSucceeded=$AionUiAtomicRemoveSucceeded"
-          !insertmacro AIONUI_FAIL_REPORTABLE_BILINGUAL ${AIONUI_E_INSTALL_DIR_REMOVE_OR_LOCKED} "event=session-end result=fail code=${AIONUI_E_INSTALL_DIR_REMOVE_OR_LOCKED} phase=residual-delete-failed userAction=cancel fatal=1 firstFailed=$AionUiRemoveFirstFailedPath lockers=$AionUiLockerList" "${AIONUI_MSG_PREVIOUS_FILE_OPEN_EN}" "${AIONUI_MSG_PREVIOUS_FILE_OPEN_ZH}" "${AIONUI_MSG_CLOSE_SHOWN_FILE_ACTION_EN}" "${AIONUI_MSG_CLOSE_SHOWN_FILE_ACTION_ZH}"
+        !insertmacro CSBU_WORKMATE_PROMPT_FAILED_PATH_LOCKERS "$CsbuWorkMateRemoveFirstFailedPath" "residual-delete-failed" csbu_workmate_retry_remove_install_dir csbu_workmate_cancel_remove_after_rm csbu_workmate_continue_after_rm
+        csbu_workmate_cancel_remove_after_rm:
+          !insertmacro CSBU_WORKMATE_LOG_REMOVE_FAILURE_JSON "residual-delete-failed" "1" "$CsbuWorkMateRemoveFirstFailedPath" "$$payload.residueRoot = '$CsbuWorkMateRemoveResidueRoot'; $$payload.failedCount = '$CsbuWorkMateRemoveResidueCount'; $$payload.removeDirResult = '$CsbuWorkMateRemoveDirResult'; $$payload.atomicSucceeded = ('$CsbuWorkMateAtomicRemoveSucceeded' -eq '1')"
+          !insertmacro CSBU_WORKMATE_LOG_EVENT "code=${CSBU_WORKMATE_E_INSTALL_DIR_REMOVE_OR_LOCKED} phase=residual-delete-failed userAction=cancel fatal=1 residueRoot=$CsbuWorkMateRemoveResidueRoot failedCount=$CsbuWorkMateRemoveResidueCount firstFailed=$CsbuWorkMateRemoveFirstFailedPath removeDirResult=$CsbuWorkMateRemoveDirResult removeResidueCount=$CsbuWorkMateRemoveResidueCount atomicFailedPath=$CsbuWorkMateAtomicFailedPath atomicSucceeded=$CsbuWorkMateAtomicRemoveSucceeded"
+          !insertmacro CSBU_WORKMATE_FAIL_REPORTABLE_BILINGUAL ${CSBU_WORKMATE_E_INSTALL_DIR_REMOVE_OR_LOCKED} "event=session-end result=fail code=${CSBU_WORKMATE_E_INSTALL_DIR_REMOVE_OR_LOCKED} phase=residual-delete-failed userAction=cancel fatal=1 firstFailed=$CsbuWorkMateRemoveFirstFailedPath lockers=$CsbuWorkMateLockerList" "${CSBU_WORKMATE_MSG_PREVIOUS_FILE_OPEN_EN}" "${CSBU_WORKMATE_MSG_PREVIOUS_FILE_OPEN_ZH}" "${CSBU_WORKMATE_MSG_CLOSE_SHOWN_FILE_ACTION_EN}" "${CSBU_WORKMATE_MSG_CLOSE_SHOWN_FILE_ACTION_ZH}"
       ${EndIf}
-      aionui_continue_after_rm:
-      DetailPrint `AionUi previous installation had locked residual files; continuing after atomic cleanup succeeded: $INSTDIR`
-      !insertmacro AIONUI_LOG_EVENT "code=${AIONUI_E_INSTALL_DIR_REMOVE_OR_LOCKED} phase=residual-delete-failed degraded=continue fatal=0 residueRoot=$AionUiRemoveResidueRoot failedCount=$AionUiRemoveResidueCount firstFailed=$AionUiRemoveFirstFailedPath removeDirResult=$AionUiRemoveDirResult removeResidueCount=$AionUiRemoveResidueCount atomicFailedPath=$AionUiAtomicFailedPath atomicSucceeded=$AionUiAtomicRemoveSucceeded"
+      csbu_workmate_continue_after_rm:
+      DetailPrint `CSBU WorkMate previous installation had locked residual files; continuing after atomic cleanup succeeded: $INSTDIR`
+      !insertmacro CSBU_WORKMATE_LOG_EVENT "code=${CSBU_WORKMATE_E_INSTALL_DIR_REMOVE_OR_LOCKED} phase=residual-delete-failed degraded=continue fatal=0 residueRoot=$CsbuWorkMateRemoveResidueRoot failedCount=$CsbuWorkMateRemoveResidueCount firstFailed=$CsbuWorkMateRemoveFirstFailedPath removeDirResult=$CsbuWorkMateRemoveDirResult removeResidueCount=$CsbuWorkMateRemoveResidueCount atomicFailedPath=$CsbuWorkMateAtomicFailedPath atomicSucceeded=$CsbuWorkMateAtomicRemoveSucceeded"
     ${else}
       DetailPrint `Can't safely remove previous installation without atomic cleanup proof: $INSTDIR`
       ${IfNot} ${Silent}
-        !insertmacro AIONUI_PROMPT_FAILED_PATH_LOCKERS "$AionUiRemoveFirstFailedPath" "residual-delete-failed-no-atomic-proof" aionui_retry_remove_install_dir aionui_cancel_remove_no_atomic aionui_continue_remove_no_atomic
-        aionui_cancel_remove_no_atomic:
+        !insertmacro CSBU_WORKMATE_PROMPT_FAILED_PATH_LOCKERS "$CsbuWorkMateRemoveFirstFailedPath" "residual-delete-failed-no-atomic-proof" csbu_workmate_retry_remove_install_dir csbu_workmate_cancel_remove_no_atomic csbu_workmate_continue_remove_no_atomic
+        csbu_workmate_cancel_remove_no_atomic:
       ${EndIf}
-      aionui_continue_remove_no_atomic:
-      !insertmacro AIONUI_LOG_REMOVE_FAILURE_JSON "residual-delete-failed-no-atomic-proof" "1" "$AionUiRemoveFirstFailedPath" "$$payload.residueRoot = '$AionUiRemoveResidueRoot'; $$payload.failedCount = '$AionUiRemoveResidueCount'; $$payload.removeDirResult = '$AionUiRemoveDirResult'; $$payload.atomicSucceeded = ('$AionUiAtomicRemoveSucceeded' -eq '1')"
-      !insertmacro AIONUI_LOG_EVENT "code=${AIONUI_E_INSTALL_DIR_REMOVE_OR_LOCKED} phase=residual-delete-failed-no-atomic-proof degraded=none fatal=1 residueRoot=$AionUiRemoveResidueRoot failedCount=$AionUiRemoveResidueCount firstFailed=$AionUiRemoveFirstFailedPath removeDirResult=$AionUiRemoveDirResult removeResidueCount=$AionUiRemoveResidueCount atomicFailedPath=$AionUiAtomicFailedPath atomicSucceeded=$AionUiAtomicRemoveSucceeded"
-      !insertmacro AIONUI_CLEAR_INSTALL_REGISTRY "remove-failed-before-quit"
-      !insertmacro AIONUI_FAIL_REPORTABLE_BILINGUAL ${AIONUI_E_INSTALL_DIR_REMOVE_OR_LOCKED} "event=session-end result=fail code=${AIONUI_E_INSTALL_DIR_REMOVE_OR_LOCKED} phase=residual-delete-failed-no-atomic-proof fatal=1 firstFailed=$AionUiRemoveFirstFailedPath removeDirResult=$AionUiRemoveDirResult lockers=$AionUiLockerList" "${AIONUI_MSG_REMOVE_PREVIOUS_DIR_EN}" "${AIONUI_MSG_REMOVE_PREVIOUS_DIR_ZH}" "${AIONUI_MSG_CLOSE_INSTALL_DIR_ACTION_EN}" "${AIONUI_MSG_CLOSE_INSTALL_DIR_ACTION_ZH}"
+      csbu_workmate_continue_remove_no_atomic:
+      !insertmacro CSBU_WORKMATE_LOG_REMOVE_FAILURE_JSON "residual-delete-failed-no-atomic-proof" "1" "$CsbuWorkMateRemoveFirstFailedPath" "$$payload.residueRoot = '$CsbuWorkMateRemoveResidueRoot'; $$payload.failedCount = '$CsbuWorkMateRemoveResidueCount'; $$payload.removeDirResult = '$CsbuWorkMateRemoveDirResult'; $$payload.atomicSucceeded = ('$CsbuWorkMateAtomicRemoveSucceeded' -eq '1')"
+      !insertmacro CSBU_WORKMATE_LOG_EVENT "code=${CSBU_WORKMATE_E_INSTALL_DIR_REMOVE_OR_LOCKED} phase=residual-delete-failed-no-atomic-proof degraded=none fatal=1 residueRoot=$CsbuWorkMateRemoveResidueRoot failedCount=$CsbuWorkMateRemoveResidueCount firstFailed=$CsbuWorkMateRemoveFirstFailedPath removeDirResult=$CsbuWorkMateRemoveDirResult removeResidueCount=$CsbuWorkMateRemoveResidueCount atomicFailedPath=$CsbuWorkMateAtomicFailedPath atomicSucceeded=$CsbuWorkMateAtomicRemoveSucceeded"
+      !insertmacro CSBU_WORKMATE_CLEAR_INSTALL_REGISTRY "remove-failed-before-quit"
+      !insertmacro CSBU_WORKMATE_FAIL_REPORTABLE_BILINGUAL ${CSBU_WORKMATE_E_INSTALL_DIR_REMOVE_OR_LOCKED} "event=session-end result=fail code=${CSBU_WORKMATE_E_INSTALL_DIR_REMOVE_OR_LOCKED} phase=residual-delete-failed-no-atomic-proof fatal=1 firstFailed=$CsbuWorkMateRemoveFirstFailedPath removeDirResult=$CsbuWorkMateRemoveDirResult lockers=$CsbuWorkMateLockerList" "${CSBU_WORKMATE_MSG_REMOVE_PREVIOUS_DIR_EN}" "${CSBU_WORKMATE_MSG_REMOVE_PREVIOUS_DIR_ZH}" "${CSBU_WORKMATE_MSG_CLOSE_INSTALL_DIR_ACTION_EN}" "${CSBU_WORKMATE_MSG_CLOSE_INSTALL_DIR_ACTION_ZH}"
     ${endif}
   ${else}
-    !insertmacro AIONUI_LOG_EVENT "remove-final errors=0 instDir=$INSTDIR removeDirResult=$AionUiRemoveDirResult removeResidueCount=$AionUiRemoveResidueCount removeResidueRoot=$AionUiRemoveResidueRoot atomicFailedPath=$AionUiAtomicFailedPath atomicSucceeded=$AionUiAtomicRemoveSucceeded"
+    !insertmacro CSBU_WORKMATE_LOG_EVENT "remove-final errors=0 instDir=$INSTDIR removeDirResult=$CsbuWorkMateRemoveDirResult removeResidueCount=$CsbuWorkMateRemoveResidueCount removeResidueRoot=$CsbuWorkMateRemoveResidueRoot atomicFailedPath=$CsbuWorkMateAtomicFailedPath atomicSucceeded=$CsbuWorkMateAtomicRemoveSucceeded"
   ${endif}
 !macroend
 
 !macro customUnInit
-  !insertmacro AIONUI_LOG_EVENT "uninit instDir=$INSTDIR"
+  !insertmacro CSBU_WORKMATE_LOG_EVENT "uninit instDir=$INSTDIR"
 !macroend
 
 !macro customUnInstall
-  !insertmacro AIONUI_LOG_EVENT "uninstall-section start instDir=$INSTDIR"
+  !insertmacro CSBU_WORKMATE_LOG_EVENT "uninstall-section start instDir=$INSTDIR"
 !macroend
 
 !endif

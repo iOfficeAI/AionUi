@@ -410,7 +410,7 @@ function parseOutput(output: string): BenchResult[] {
 
 function printTerminalReport(report: BenchReport): void {
   console.log('\n  ╔══════════════════════════════════════════════════════════════╗');
-  console.log('  ║              AionUi Performance Benchmark Report            ║');
+  console.log('  ║              CSBU WorkMate Performance Benchmark Report            ║');
   console.log('  ╚══════════════════════════════════════════════════════════════╝');
   console.log(`  Git: ${report.gitRef}`);
   console.log(`  Time: ${report.timestamp}`);
@@ -630,7 +630,7 @@ function generateHtmlReport(report: BenchReport): string {
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>AionUi Benchmark Report - ${report.timestamp}</title>
+<title>CSBU WorkMate Benchmark Report - ${report.timestamp}</title>
 <style>
   :root { --bg: #0d1117; --fg: #c9d1d9; --border: #30363d; --accent: #58a6ff; --green: #3fb950; --red: #f85149; --card: #161b22; }
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -651,7 +651,7 @@ function generateHtmlReport(report: BenchReport): string {
 </style>
 </head>
 <body>
-<h1>AionUi Performance Benchmark Report</h1>
+<h1>CSBU WorkMate Performance Benchmark Report</h1>
 <div class="meta">
   Git: ${esc(report.gitRef)} | ${esc(report.timestamp)} | <span class="count">${report.results.length} benchmarks</span>${report.startup ? ` | <span class="count">startup (${report.startup.iterations} iter)</span>` : ''}
 </div>

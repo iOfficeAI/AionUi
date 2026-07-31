@@ -54,7 +54,7 @@ export const useBrowserNotification = (): void => {
           : t('settings.browserNotification.bodyTurnCompleted'),
       show: ({ body, conversationId }) => {
         try {
-          const notification = new Notification('AionUi', { body });
+          const notification = new Notification('CSBU WorkMate', { body });
           notification.onclick = () => {
             window.focus();
             if (conversationId) void navigate(`/conversation/${conversationId}`);

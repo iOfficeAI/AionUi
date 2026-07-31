@@ -5,17 +5,17 @@
  */
 
 /**
- * AionUI应用程序共用常量
+ * CSBU WorkMate应用程序共用常量
  */
 
 // ===== 文件处理相关常量 =====
 
 /** 临时文件时间戳分隔符 */
-export const AIONUI_TIMESTAMP_SEPARATOR = '_aionui_';
+export const CSBU_WORKMATE_TIMESTAMP_SEPARATOR = '_csbu_workmate_';
 
 /** 用于匹配和清理时间戳后缀的正则表达式 */
-export const AIONUI_TIMESTAMP_REGEX = /_aionui_\d{13}(\.\w+)?$/;
-export const AIONUI_FILES_MARKER = '[[AION_FILES]]';
+export const CSBU_WORKMATE_TIMESTAMP_REGEX = /_csbu_workmate_\d{13}(\.\w+)?$/;
+export const CSBU_WORKMATE_FILES_MARKER = '[[AION_FILES]]';
 
 // ===== 媒体类型相关常量 =====
 
@@ -54,7 +54,7 @@ export const DEFAULT_IMAGE_EXTENSION = '.png';
 /** WebUI default port: 25808 for production, 25809 for development, 25810 for multi-instance dev */
 export const WEBUI_DEFAULT_PORT = (() => {
   if (process.env.NODE_ENV === 'production') return 25808;
-  if (process.env.AIONUI_MULTI_INSTANCE === '1') return 25810;
+  if (process.env.CSBU_WORKMATE_MULTI_INSTANCE === '1') return 25810;
   return 25809;
 })();
 

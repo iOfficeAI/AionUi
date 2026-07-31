@@ -565,7 +565,7 @@ const classifyPersistedSendFailure = (
     };
   }
 
-  if (persistedCode?.startsWith('AIONUI_')) {
+  if (persistedCode?.startsWith('CSBU_WORKMATE_')) {
     return { message, code: persistedCode, ownership: 'aionui', detail: message, retryable: true };
   }
   if (persistedCode?.startsWith('USER_AGENT_')) {

@@ -8,7 +8,7 @@ import zhCN from './locales/zh-CN.json';
 import ruRU from './locales/ru-RU.json';
 import deDE from './locales/de-DE.json';
 
-const LANGUAGE_KEY = 'aionui_language';
+const LANGUAGE_KEY = 'csbu_workmate_language';
 
 const resources = {
   'en-US': { translation: enUS },

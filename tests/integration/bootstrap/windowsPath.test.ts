@@ -108,7 +108,7 @@ HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Environ
   });
 
   windowsOnlyIt('hydrates PATH from real Windows profile files and existing fallback directories', () => {
-    const root = mkdtempSync(path.join(tmpdir(), 'aionui-windows-path-'));
+    const root = mkdtempSync(path.join(tmpdir(), 'csbu-workmate-windows-path-'));
     const userProfile = path.join(root, 'User');
     const appData = path.join(userProfile, 'AppData', 'Roaming');
     const localAppData = path.join(userProfile, 'AppData', 'Local');

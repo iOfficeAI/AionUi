@@ -102,7 +102,7 @@ describe('classifyBackendStartupFailure — genuine data damage still severe', (
         backendBoundaryCode: 'BOOTSTRAP_DATA_INIT_FAILED',
         backendBoundaryStage: 'database.recoverable_corruption',
         stderrTail:
-          'BOOTSTRAP_DATA_INIT_FAILED stage=database.recoverable_corruption databasePath=/db/aionui-backend.db: failed to initialize application data',
+          'BOOTSTRAP_DATA_INIT_FAILED stage=database.recoverable_corruption databasePath=/db/csbu-workmate-backend.db: failed to initialize application data',
       },
       message: 'aioncore exited before health check passed',
       name: 'BackendStartupError',

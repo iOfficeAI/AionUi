@@ -7,13 +7,13 @@
 import type { BrowserWindow } from 'electron';
 import { ipcBridge } from '@/common';
 
-export const PROTOCOL_SCHEME = 'aionui';
+export const PROTOCOL_SCHEME = 'csbu-workmate';
 
 /**
- * Parse an aionui:// URL into action and params.
+ * Parse a csbu-workmate:// URL into action and params.
  * Supports two formats:
- *   1. aionui://add-provider?base_url=xxx&api_key=xxx
- *   2. aionui://provider/add?v=1&data=<base64 JSON>  (one-api / new-api style)
+ *   1. csbu-workmate://add-provider?base_url=xxx&api_key=xxx
+ *   2. csbu-workmate://provider/add?v=1&data=<base64 JSON>  (one-api / new-api style)
  */
 export const parseDeepLinkUrl = (url: string): { action: string; params: Record<string, string> } | null => {
   try {

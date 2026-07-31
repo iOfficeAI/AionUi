@@ -154,10 +154,10 @@ function captureRuntimeInstallationIntegrityFailure(event: IRuntimeStatusEvent):
   void import('@sentry/electron/renderer')
     .then((Sentry) => {
       Sentry.withScope((scope) => {
-        scope.setTag('aionui.installation_integrity', event.failure_kind ?? 'unknown');
-        scope.setTag('aionui.runtime_resource', event.resource);
-        scope.setTag('aionui.runtime_resource_id', event.resource_id ?? '');
-        scope.setTag('aionui.runtime_scope', event.scope.kind);
+        scope.setTag('csbu-workmate.installation_integrity', event.failure_kind ?? 'unknown');
+        scope.setTag('csbu-workmate.runtime_resource', event.resource);
+        scope.setTag('csbu-workmate.runtime_resource_id', event.resource_id ?? '');
+        scope.setTag('csbu-workmate.runtime_scope', event.scope.kind);
         Sentry.captureMessage('runtime-installation-integrity-failure', 'error');
       });
     })

@@ -230,10 +230,10 @@ describe('MarkdownViewer', () => {
   });
 
   it('keeps remote links as browser anchors', () => {
-    render(<MarkdownViewer content='[docs](https://aionui.com/docs)' />);
+    render(<MarkdownViewer content='[docs](https://csbu-workmate.com/docs)' />);
 
     const link = screen.getByRole('link', { name: 'docs' });
-    expect(link).toHaveAttribute('href', 'https://aionui.com/docs');
+    expect(link).toHaveAttribute('href', 'https://csbu-workmate.com/docs');
   });
 
   it('continues rendering local image markdown inline', async () => {

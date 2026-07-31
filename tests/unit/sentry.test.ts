@@ -89,7 +89,7 @@ describe('selectRecentLogFiles', () => {
 
 describe('listLogFilesSync', () => {
   it('finds log files under dated year/month/day directories', () => {
-    const logsDir = mkdtempSync(path.join(tmpdir(), 'aionui-sentry-logs-'));
+    const logsDir = mkdtempSync(path.join(tmpdir(), 'csbu-workmate-sentry-logs-'));
     try {
       const datedDir = path.join(logsDir, '2026', '07', '02');
       mkdirSync(datedDir, { recursive: true });
@@ -187,7 +187,7 @@ describe('captureBackendStartupFailure', () => {
         isPackaged: true,
         runtimeKey: 'win32-x64',
         binaryName: 'aioncore.exe',
-        resourcesPath: 'C:\\Users\\alice\\AppData\\Local\\Programs\\AionUi\\resources',
+        resourcesPath: 'C:\\Users\\alice\\AppData\\Local\\Programs\\CSBU WorkMate\\resources',
         bundledDirExists: false,
         runtimeDirExists: false,
         resourcesDirEntries: [
@@ -204,16 +204,16 @@ describe('captureBackendStartupFailure', () => {
       await captureBackendStartupFailure(error);
 
       expect(scopeSetTag).toHaveBeenCalledWith(
-        'aionui.backend_startup.incomplete_installation_kind',
+        'csbu-workmate.backend_startup.incomplete_installation_kind',
         'missing_directory_resources'
       );
-      expect(scopeSetTag).toHaveBeenCalledWith('aionui.backend_startup.missing_bundled_dir', 'true');
-      expect(scopeSetTag).toHaveBeenCalledWith('aionui.backend_startup.missing_runtime_dir', 'true');
-      expect(scopeSetTag).toHaveBeenCalledWith('aionui.backend_startup.missing_binary', 'true');
-      expect(scopeSetTag).toHaveBeenCalledWith('aionui.backend_startup.missing_hub_dir', 'true');
-      expect(scopeSetTag).toHaveBeenCalledWith('aionui.backend_startup.last_update_status', 'quit-and-install');
-      expect(scopeSetTag).toHaveBeenCalledWith('aionui.backend_startup.seconds_since_quit_and_install', '46');
-      expect(scopeSetTag).toHaveBeenCalledWith('aionui.backend_startup.install_path_kind', 'user_local_programs');
+      expect(scopeSetTag).toHaveBeenCalledWith('csbu-workmate.backend_startup.missing_bundled_dir', 'true');
+      expect(scopeSetTag).toHaveBeenCalledWith('csbu-workmate.backend_startup.missing_runtime_dir', 'true');
+      expect(scopeSetTag).toHaveBeenCalledWith('csbu-workmate.backend_startup.missing_binary', 'true');
+      expect(scopeSetTag).toHaveBeenCalledWith('csbu-workmate.backend_startup.missing_hub_dir', 'true');
+      expect(scopeSetTag).toHaveBeenCalledWith('csbu-workmate.backend_startup.last_update_status', 'quit-and-install');
+      expect(scopeSetTag).toHaveBeenCalledWith('csbu-workmate.backend_startup.seconds_since_quit_and_install', '46');
+      expect(scopeSetTag).toHaveBeenCalledWith('csbu-workmate.backend_startup.install_path_kind', 'user_local_programs');
       expect(scopeSetContext).toHaveBeenCalledWith(
         'aioncore_startup_classification',
         expect.objectContaining({
@@ -249,11 +249,11 @@ describe('captureBackendStartupFailure', () => {
 
     await captureBackendStartupFailure(error);
 
-    expect(scopeSetTag).toHaveBeenCalledWith('aionui.backend_startup.health_polling_delayed', 'true');
-    expect(scopeSetTag).toHaveBeenCalledWith('aionui.backend_startup.health_attempts_bucket', '1');
-    expect(scopeSetTag).toHaveBeenCalledWith('aionui.backend_startup.health_attempt_deficit_bucket', '76-150');
-    expect(scopeSetTag).toHaveBeenCalledWith('aionui.backend_startup.health_timeout_overrun_bucket', 'over_60s');
-    expect(scopeSetTag).toHaveBeenCalledWith('aionui.backend_startup.health_max_attempt_gap_bucket', '0ms');
+    expect(scopeSetTag).toHaveBeenCalledWith('csbu-workmate.backend_startup.health_polling_delayed', 'true');
+    expect(scopeSetTag).toHaveBeenCalledWith('csbu-workmate.backend_startup.health_attempts_bucket', '1');
+    expect(scopeSetTag).toHaveBeenCalledWith('csbu-workmate.backend_startup.health_attempt_deficit_bucket', '76-150');
+    expect(scopeSetTag).toHaveBeenCalledWith('csbu-workmate.backend_startup.health_timeout_overrun_bucket', 'over_60s');
+    expect(scopeSetTag).toHaveBeenCalledWith('csbu-workmate.backend_startup.health_max_attempt_gap_bucket', '0ms');
   });
 
   it('sets backend data migration reason and boundary tags', async () => {
@@ -266,14 +266,14 @@ describe('captureBackendStartupFailure', () => {
       backendBoundaryCode: 'BOOTSTRAP_DATA_INIT_FAILED',
       backendBoundaryStage: 'database.migration',
       stderrTail:
-        'BOOTSTRAP_DATA_INIT_FAILED stage=database.migration databasePath=/db/aionui-backend.db: failed to initialize application data',
+        'BOOTSTRAP_DATA_INIT_FAILED stage=database.migration databasePath=/db/csbu-workmate-backend.db: failed to initialize application data',
     };
 
     await captureBackendStartupFailure(error);
 
-    expect(scopeSetTag).toHaveBeenCalledWith('aionui.backend_startup.reason', 'backend_data_migration_failed');
-    expect(scopeSetTag).toHaveBeenCalledWith('aionui.backend_startup.boundary_code', 'BOOTSTRAP_DATA_INIT_FAILED');
-    expect(scopeSetTag).toHaveBeenCalledWith('aionui.backend_startup.boundary_stage', 'database.migration');
+    expect(scopeSetTag).toHaveBeenCalledWith('csbu-workmate.backend_startup.reason', 'backend_data_migration_failed');
+    expect(scopeSetTag).toHaveBeenCalledWith('csbu-workmate.backend_startup.boundary_code', 'BOOTSTRAP_DATA_INIT_FAILED');
+    expect(scopeSetTag).toHaveBeenCalledWith('csbu-workmate.backend_startup.boundary_stage', 'database.migration');
   });
 
   it('sets local data repair reason and issue-kind tags', async () => {
@@ -291,13 +291,13 @@ describe('captureBackendStartupFailure', () => {
 
     await captureBackendStartupFailure(error);
 
-    expect(scopeSetTag).toHaveBeenCalledWith('aionui.backend_startup.reason', 'backend_local_data_repair_failed');
+    expect(scopeSetTag).toHaveBeenCalledWith('csbu-workmate.backend_startup.reason', 'backend_local_data_repair_failed');
     expect(scopeSetTag).toHaveBeenCalledWith(
-      'aionui.backend_startup.local_data_issue_kind',
+      'csbu-workmate.backend_startup.local_data_issue_kind',
       'agent_metadata_invalid_utf8'
     );
-    expect(scopeSetTag).toHaveBeenCalledWith('aionui.backend_startup.boundary_code', 'BOOTSTRAP_SERVICE_INIT_FAILED');
-    expect(scopeSetTag).toHaveBeenCalledWith('aionui.backend_startup.boundary_stage', 'services.init');
+    expect(scopeSetTag).toHaveBeenCalledWith('csbu-workmate.backend_startup.boundary_code', 'BOOTSTRAP_SERVICE_INIT_FAILED');
+    expect(scopeSetTag).toHaveBeenCalledWith('csbu-workmate.backend_startup.boundary_stage', 'services.init');
   });
 });
 
@@ -355,7 +355,7 @@ describe('initSentry beforeSend', () => {
 
     const event = {
       tags: {
-        'aionui.failure': 'backend_startup',
+        'csbu-workmate.failure': 'backend_startup',
       },
       exception: {
         values: [
@@ -378,7 +378,7 @@ describe('initSentry beforeSend', () => {
     const event = {
       tags: {
         type: 'user-feedback',
-        'aionui.installation_integrity.user_report': 'true',
+        'csbu-workmate.installation_integrity.user_report': 'true',
       },
       extra: {
         installation_integrity: {

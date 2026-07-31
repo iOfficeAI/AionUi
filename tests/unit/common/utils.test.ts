@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { uuid, parseError, resolveLocaleKey } from '@/common/utils/utils';
+import { uuid, parseError, normalizeLegacyBrandText, resolveLocaleKey } from '@/common/utils/utils';
 
 describe('utils', () => {
   describe('uuid', () => {
@@ -90,6 +90,12 @@ describe('utils', () => {
       expect(parseError(error)).toBe('raw backend error');
     });
 
+    it('removes legacy branding from backend errors shown to users', () => {
+      expect(parseError({ backendMessage: 'AionCore could not start Aion CLI' })).toBe(
+        'CSBU WorkMate backend could not start CSBU WorkMate'
+      );
+    });
+
     it('stringifies object without msg/message', () => {
       const error = { code: 500, status: 'fail' };
       expect(parseError(error)).toBe('{"code":500,"status":"fail"}');
@@ -116,6 +122,21 @@ describe('utils', () => {
       const error: { name: string; self?: unknown } = { name: 'circular' };
       error.self = error;
       expect(typeof parseError(error)).toBe('string');
+    });
+  });
+
+  describe('normalizeLegacyBrandText', () => {
+    it('replaces legacy assistant and product display names', () => {
+      expect(normalizeLegacyBrandText('Aion CLI / Aion 命令行 / Aion Assistant')).toBe(
+        'CSBU WorkMate / CSBU WorkMate / CSBU WorkMate'
+      );
+      expect(normalizeLegacyBrandText('AionUi with AionCore and AionHub')).toBe(
+        'CSBU WorkMate with CSBU WorkMate backend and CSBU WorkMate Hub'
+      );
+    });
+
+    it('leaves unrelated assistant names unchanged', () => {
+      expect(normalizeLegacyBrandText('Claude Code')).toBe('Claude Code');
     });
   });
 

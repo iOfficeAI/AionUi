@@ -201,17 +201,17 @@ export function getFileExtension(file_name: string): string {
   return lastDotIndex > -1 ? file_name.substring(lastDotIndex).toLowerCase() : '';
 }
 
-import { AIONUI_TIMESTAMP_REGEX } from '@/common/config/constants';
+import { CSBU_WORKMATE_TIMESTAMP_REGEX } from '@/common/config/constants';
 
-// 清理AionUI时间戳后缀，返回原始文件名
-export function cleanAionUITimestamp(file_name: string): string {
-  return file_name.replace(AIONUI_TIMESTAMP_REGEX, '$1');
+// 清理CSBU WorkMate时间戳后缀，返回原始文件名
+export function cleanCsbuWorkMateTimestamp(file_name: string): string {
+  return file_name.replace(CSBU_WORKMATE_TIMESTAMP_REGEX, '$1');
 }
 
 // 从文件路径获取清理后的文件名（用于UI显示）
 export function getCleanFileName(file_path: string): string {
   const file_name = file_path.split(/[\\/]/).pop() || '';
-  return cleanAionUITimestamp(file_name);
+  return cleanCsbuWorkMateTimestamp(file_name);
 }
 
 // 从文件路径数组获取清理后的文件名数组（用于消息格式化）
@@ -305,7 +305,7 @@ class FileServiceClass {
    * Every file is uploaded — even Electron OS drags that expose an absolute
    * `path`. The chat send contract sends attachments as `upload` refs, and the
    * backend rejects any upload path that is not under its managed upload
-   * directory (`temp_dir/aionui/...`). Passing the raw device path (the old
+   * directory (`temp_dir/csbu-workmate/...`). Passing the raw device path (the old
    * behaviour) now fails with "uploaded file path is outside the managed upload
    * directory", so we always route through the upload endpoint to obtain a
    * managed path.

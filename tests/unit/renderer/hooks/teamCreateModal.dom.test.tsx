@@ -55,10 +55,10 @@ vi.mock('@arco-design/web-react', async () => {
   };
 });
 
-// Mirror AionModal's real prop contract: header/footer may be config objects.
+// Mirror WorkMateModal's real prop contract: header/footer may be config objects.
 // The standard variant renders the title as an <h3> (text-18px) and the optional
 // subtitle as a <p> (text-13px leading-20px); footer is rendered via footer.render().
-vi.mock('@renderer/components/base/AionModal', () => {
+vi.mock('@renderer/components/base/WorkMateModal', () => {
   type HeaderConfig = { render?: () => React.ReactNode; title?: React.ReactNode; subtitle?: React.ReactNode };
   type FooterConfig = { render?: () => React.ReactNode };
   const renderHeader = (header: unknown): React.ReactNode => {
@@ -134,8 +134,8 @@ describe('TeamCreateModal', () => {
     render(<TeamCreateModal visible onClose={vi.fn()} onCreated={vi.fn()} />);
 
     expect(screen.getByTestId('team-create-agent-option-bare-aionrs')).toBeInTheDocument();
-    expect(screen.getByText('Aion 命令行')).toBeInTheDocument();
-    expect(screen.queryByText('Aion CLI')).not.toBeInTheDocument();
+    expect(screen.getByText('CSBU WorkMate')).toBeInTheDocument();
+    expect(screen.queryByText('CSBU WorkMate')).not.toBeInTheDocument();
     expect(screen.getByTestId('team-create-agent-option-blocked-reviewer')).toBeInTheDocument();
     expect(screen.getByTestId('team-create-agent-option-remote-runner')).toBeInTheDocument();
     expect(screen.queryByText('Agent internal error (code -32603)')).not.toBeInTheDocument();
@@ -237,7 +237,7 @@ describe('TeamCreateModal', () => {
     expect(payload.agents[0]).toMatchObject({
       role: 'leader',
       assistant_id: 'bare-aionrs',
-      assistant_name: 'Aion 命令行',
+      assistant_name: 'CSBU WorkMate',
     });
     // Runtime backend / conversation type are derived server-side from the
     // assistant, so the create payload no longer carries legacy agent fields.
@@ -437,8 +437,8 @@ function assistants(): Assistant[] {
   return [
     assistant({
       id: 'bare-aionrs',
-      name: 'Aion CLI',
-      name_i18n: { 'zh-CN': 'Aion 命令行' },
+      name: 'CSBU WorkMate',
+      name_i18n: { 'zh-CN': 'CSBU WorkMate' },
       source: 'generated',
       agent_id: 'agent-aionrs',
       agent: { type: 'aionrs', source: 'internal' },

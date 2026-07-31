@@ -3,7 +3,7 @@
   "displayName": "Fake ACP Extension",
   "version": "1.0.0",
   "description": "Test fixture extension that contributes a fake ACP adapter",
-  "author": "AionUi Test",
+  "author": "CSBU WorkMate Test",
   "lifecycle": {
     "onInstall": "scripts/install.js"
   },

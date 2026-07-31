@@ -65,7 +65,7 @@ describe('configMigrationIntegration', () => {
   });
 
   it('runs migrations when database version is outdated', async () => {
-    const result = await runLegacyDatabaseMigrations('/test/aionui.db');
+    const result = await runLegacyDatabaseMigrations('/test/csbu-workmate.db');
 
     expect(result.migrated).toBe(true);
     expect(result.fromVersion).toBe(20);
@@ -77,7 +77,7 @@ describe('configMigrationIntegration', () => {
   it('skips migrations when database does not exist', async () => {
     (existsSync as any).mockReturnValue(false);
 
-    const result = await runLegacyDatabaseMigrations('/test/aionui.db');
+    const result = await runLegacyDatabaseMigrations('/test/csbu-workmate.db');
 
     expect(result.skipped).toBe(true);
     expect(result.migrated).toBe(false);
@@ -88,7 +88,7 @@ describe('configMigrationIntegration', () => {
   it('runs handoff repair even when database version is current', async () => {
     (getDatabaseVersion as any).mockReturnValue(26);
 
-    const result = await runLegacyDatabaseMigrations('/test/aionui.db');
+    const result = await runLegacyDatabaseMigrations('/test/csbu-workmate.db');
 
     expect(runMigrations).not.toHaveBeenCalled();
     expect(setDatabaseVersion).not.toHaveBeenCalled();
@@ -98,13 +98,13 @@ describe('configMigrationIntegration', () => {
   });
 
   it('closes driver after migration completes', async () => {
-    await runLegacyDatabaseMigrations('/test/aionui.db');
+    await runLegacyDatabaseMigrations('/test/csbu-workmate.db');
 
     expect(mockDriver.close).toHaveBeenCalled();
   });
 
   it('ensures system user exists after migration', async () => {
-    await runLegacyDatabaseMigrations('/test/aionui.db');
+    await runLegacyDatabaseMigrations('/test/csbu-workmate.db');
 
     expect(mockDriver.prepare).toHaveBeenCalledWith(expect.stringContaining('INSERT OR IGNORE INTO users'));
   });
@@ -114,7 +114,7 @@ describe('configMigrationIntegration', () => {
       throw new Error('Migration failed');
     });
 
-    await expect(runLegacyDatabaseMigrations('/test/aionui.db')).rejects.toThrow('Migration failed');
+    await expect(runLegacyDatabaseMigrations('/test/csbu-workmate.db')).rejects.toThrow('Migration failed');
     expect(mockDriver.close).toHaveBeenCalled();
   });
 });

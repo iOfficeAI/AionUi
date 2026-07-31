@@ -232,7 +232,7 @@ test.describe('Preview auto-open for Office files', () => {
     test(`new .${ext} file auto-opens a preview tab`, async ({ page }) => {
       test.setTimeout(120_000);
 
-      const workspace = fs.mkdtempSync(path.join(os.tmpdir(), `aionui-e2e-office-auto-${ext}-`));
+      const workspace = fs.mkdtempSync(path.join(os.tmpdir(), `csbu-workmate-e2e-office-auto-${ext}-`));
       const browserLogs: string[] = [];
       fs.writeFileSync(path.join(workspace, 'seed.txt'), 'seed');
       let conversationId: string | null = null;

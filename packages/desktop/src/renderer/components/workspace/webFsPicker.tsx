@@ -23,7 +23,7 @@ import { useTranslation } from 'react-i18next';
 import type { PickerEntry as Entry } from './webFsPickerUtils';
 import { matchesFilters, normalizeEntry, parentOf, sortEntries } from './webFsPickerUtils';
 
-const LAST_DIR_KEY = 'aionui:web-fs-picker:last-dir';
+const LAST_DIR_KEY = 'csbu-workmate:web-fs-picker:last-dir';
 
 type PickerProps = {
   options: ShowOpenOptions;

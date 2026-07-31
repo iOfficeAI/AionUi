@@ -25,7 +25,7 @@ test.describe('Preview — file click triggers preview', () => {
   let workspace: string;
 
   test.beforeAll(() => {
-    workspace = fs.mkdtempSync(path.join(os.tmpdir(), 'aionui-e2e-preview-'));
+    workspace = fs.mkdtempSync(path.join(os.tmpdir(), 'csbu-workmate-e2e-preview-'));
     fs.writeFileSync(path.join(workspace, 'page.html'), HTML_CONTENT);
     fs.writeFileSync(path.join(workspace, 'notes.md'), MD_CONTENT);
     fs.writeFileSync(path.join(workspace, 'data.json'), '{"key":"value","count":42}');

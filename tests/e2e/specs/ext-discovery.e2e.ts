@@ -10,7 +10,7 @@ import { goToGuid } from '../helpers';
 test.describe('Extension Discovery', () => {
   test('extensions path is configured via env', async ({ electronApp }) => {
     const extPath = await electronApp.evaluate(async () => {
-      return process.env.AIONUI_EXTENSIONS_PATH || 'not set';
+      return process.env.CSBU_WORKMATE_EXTENSIONS_PATH || 'not set';
     });
     expect(extPath).toContain('examples');
   });
@@ -27,7 +27,7 @@ test.describe('Extension Discovery', () => {
 
   test('extensions source is the examples directory', async ({ electronApp }) => {
     const extPath = await electronApp.evaluate(async () => {
-      return process.env.AIONUI_EXTENSIONS_PATH || '';
+      return process.env.CSBU_WORKMATE_EXTENSIONS_PATH || '';
     });
     expect(extPath).toBeTruthy();
     // Normalise slashes for cross-platform

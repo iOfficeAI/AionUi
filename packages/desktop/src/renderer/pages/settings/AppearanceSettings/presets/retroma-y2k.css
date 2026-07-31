@@ -1150,13 +1150,13 @@ body::after {
     10px 10px 30px rgba(80, 50, 120, 0.2) !important;
 }
 
-.aionui-modal:not(.conversation-search-modal) .arco-modal-content {
+.csbu-workmate-modal:not(.conversation-search-modal) .arco-modal-content {
   overflow: visible !important;
   max-height: calc(100vh - 32px) !important;
   box-sizing: border-box !important;
 }
 
-.aionui-modal:not(.conversation-search-modal) .aionui-modal-body-content {
+.csbu-workmate-modal:not(.conversation-search-modal) .csbu-workmate-modal-body-content {
   overflow: auto !important;
   max-height: calc(100vh - 148px) !important;
   box-sizing: border-box !important;
@@ -1438,6 +1438,6 @@ body::after {
   background: rgba(192, 144, 224, 0.32);
 }
 
-/* AionUi Theme Background Start */
+/* CSBU WorkMate Theme Background Start */
 /* Preview cover only: do not auto-inject full-page background image */
-/* AionUi Theme Background End */
+/* CSBU WorkMate Theme Background End */

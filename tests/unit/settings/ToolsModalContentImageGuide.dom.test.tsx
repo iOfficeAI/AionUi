@@ -19,11 +19,11 @@ vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (key: string, options?: { defaultValue?: string }) => options?.defaultValue ?? key }),
 }));
 
-vi.mock('@/renderer/components/base/AionScrollArea', () => ({
+vi.mock('@/renderer/components/base/WorkMateScrollArea', () => ({
   default: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 }));
 
-vi.mock('@/renderer/components/base/AionSelect', () => {
+vi.mock('@/renderer/components/base/WorkMateSelect', () => {
   const Select = ({ children }: { children?: React.ReactNode }) => <div>{children}</div>;
   return { default: Object.assign(Select, { OptGroup: Select, Option: Select }) };
 });

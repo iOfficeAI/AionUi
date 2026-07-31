@@ -109,7 +109,7 @@ export interface ILegacyConfigStorageRefer extends IConfigStorageRefer {
 }
 
 export interface IEnvStorageRefer {
-  'aionui.dir': {
+  'csbu-workmate.dir': {
     workDir: string;
     cacheDir: string;
     logDir?: string;
@@ -588,7 +588,7 @@ export interface IMcpServer {
   created_at: number;
   updated_at: number;
   original_json: string; // 存储原始JSON配置，用于编辑时的准确显示
-  /** Built-in MCP server managed by AionUi (hide edit/delete in UI) */
+  /** Built-in MCP server managed by CSBU WorkMate (hide edit/delete in UI) */
   builtin?: boolean;
 }
 
@@ -605,7 +605,7 @@ export interface IConversationMcpStatus {
 
 /** Stable ID for the built-in image generation MCP server */
 export const BUILTIN_IMAGE_GEN_ID = 'builtin-image-gen';
-export const BUILTIN_IMAGE_GEN_NAME = 'aionui-image-generation';
+export const BUILTIN_IMAGE_GEN_NAME = 'csbu-workmate-image-generation';
 export const BUILTIN_IMAGE_GEN_LEGACY_NAMES = ['AionUi Image Generation', BUILTIN_IMAGE_GEN_ID] as const;
 
 export interface IMcpTool {

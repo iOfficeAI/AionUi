@@ -363,7 +363,7 @@ export function createTempExternalSource(sourceName: string): {
   path: string;
   cleanup: () => void;
 } {
-  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'aionui-e2e-external-'));
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'csbu-workmate-e2e-external-'));
 
   const cleanup = () => {
     try {

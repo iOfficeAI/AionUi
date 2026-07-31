@@ -1,4 +1,4 @@
-/* Retroma Obsidian Theme - AionUi Adaptation */
+/* Retroma Obsidian Theme - CSBU WorkMate Adaptation */
 /* Inspired by retroma-obsidian-theme color philosophy */
 /* Low-saturation organic palette with warm purples, teal blues, and olive greens */
 
@@ -444,6 +444,6 @@ body {
   background: color-mix(in srgb, var(--brand) 30%, transparent);
 }
 
-/* AionUi Theme Background Start */
+/* CSBU WorkMate Theme Background Start */
 /* Preview cover only: do not auto-inject full-page background image */
-/* AionUi Theme Background End */
+/* CSBU WorkMate Theme Background End */

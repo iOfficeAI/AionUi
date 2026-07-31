@@ -2,7 +2,7 @@
  * Resolve the aioncore version tag to download for packaging.
  *
  * Order:
- *   1. AIONUI_BACKEND_VERSION env (ad-hoc override, e.g. CI dispatch input)
+ *   1. CSBU_WORKMATE_BACKEND_VERSION env (ad-hoc override, e.g. CI dispatch input)
  *   2. "aioncoreVersion" field in repo-root package.json (the pin)
  *   3. 'latest' (GitHub API releases/latest; non-reproducible fallback)
  *
@@ -15,7 +15,7 @@ const fs = require('fs');
 const path = require('path');
 
 function resolveAioncoreVersion(projectRoot) {
-  const envOverride = process.env.AIONUI_BACKEND_VERSION;
+  const envOverride = process.env.CSBU_WORKMATE_BACKEND_VERSION;
   if (envOverride && envOverride.trim()) {
     return envOverride.trim();
   }

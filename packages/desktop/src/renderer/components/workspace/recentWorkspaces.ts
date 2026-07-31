@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-export const DEFAULT_RECENT_WS_KEY = 'aionui:recent-workspaces';
+export const DEFAULT_RECENT_WS_KEY = 'csbu-workmate:recent-workspaces';
 const MAX_RECENT_WORKSPACES = 5;
 
 export const getRecentWorkspaces = (storageKey: string = DEFAULT_RECENT_WS_KEY): string[] => {

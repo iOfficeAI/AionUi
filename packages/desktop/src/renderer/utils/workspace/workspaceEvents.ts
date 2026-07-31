@@ -1,6 +1,6 @@
-export const WORKSPACE_TOGGLE_EVENT = 'aionui-workspace-toggle';
-export const WORKSPACE_STATE_EVENT = 'aionui-workspace-state';
-export const WORKSPACE_HAS_FILES_EVENT = 'aionui-workspace-has-files';
+export const WORKSPACE_TOGGLE_EVENT = 'csbu-workmate-workspace-toggle';
+export const WORKSPACE_STATE_EVENT = 'csbu-workmate-workspace-state';
+export const WORKSPACE_HAS_FILES_EVENT = 'csbu-workmate-workspace-has-files';
 
 export interface WorkspaceStateDetail {
   collapsed: boolean;

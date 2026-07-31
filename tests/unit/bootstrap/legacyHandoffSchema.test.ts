@@ -18,7 +18,7 @@ function makeDriver(tableColumns: Record<string, string[]>) {
 }
 
 describe('legacy handoff schema repair', () => {
-  it('keeps the AionUi mirror contract aligned with AionCore handoff columns', () => {
+  it('keeps the CSBU WorkMate mirror contract aligned with AionCore handoff columns', () => {
     expect(LEGACY_HANDOFF_COLUMNS).toEqual([
       { table: 'cron_jobs', column: 'skill_content', definition: 'TEXT' },
       { table: 'cron_jobs', column: 'description', definition: 'TEXT' },

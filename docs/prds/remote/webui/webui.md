@@ -9,7 +9,7 @@
 
 ## (F-WEBUI-01) WebUI 服务启停 [已实现]
 
-**用户故事**：作为桌面端用户，我希望通过一个开关快速启用或禁用 WebUI 服务，以便在需要时通过浏览器远程访问 AionUi。
+**用户故事**：作为桌面端用户，我希望通过一个开关快速启用或禁用 WebUI 服务，以便在需要时通过浏览器远程访问 CSBU WorkMate。
 
 **前置条件**：运行在 Electron 桌面端（`isElectronDesktop() === true`）
 
@@ -58,9 +58,9 @@
 
 **配置来源**：
 
-端口解析（覆盖式优先级）：CLI 参数（`--port` / `--webui-port`）> 环境变量（`AIONUI_PORT` / `PORT`）> 配置文件（`userData/webui.config.json`）> 默认值（25808/25809）
+端口解析（覆盖式优先级）：CLI 参数（`--port` / `--webui-port`）> 环境变量（`CSBU_WORKMATE_PORT` / `PORT`）> 配置文件（`userData/webui.config.json`）> 默认值（25808/25809）
 
-远程访问（多源 OR 聚合 — 只要任一来源为 true 即启用）：`isRemoteMode` || 环境变量（`AIONUI_ALLOW_REMOTE` / `AIONUI_REMOTE` / `AIONUI_HOST=0.0.0.0`）|| 配置文件（`allowRemote: true`）|| ConfigStorage 偏好
+远程访问（多源 OR 聚合 — 只要任一来源为 true 即启用）：`isRemoteMode` || 环境变量（`CSBU_WORKMATE_ALLOW_REMOTE` / `CSBU_WORKMATE_REMOTE` / `CSBU_WORKMATE_HOST=0.0.0.0`）|| 配置文件（`allowRemote: true`）|| ConfigStorage 偏好
 
 **两种启动路径的配置差异**：
 
@@ -116,7 +116,7 @@
 
 ## (F-WEBUI-04) 远程访问控制 [已实现]
 
-**用户故事**：作为用户，我希望控制是否允许局域网内其他设备访问 WebUI，以便用手机或其他电脑访问 AionUi。
+**用户故事**：作为用户，我希望控制是否允许局域网内其他设备访问 WebUI，以便用手机或其他电脑访问 CSBU WorkMate。
 
 **正常流程**（用户视角）：
 

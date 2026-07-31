@@ -16,7 +16,7 @@ const { navigateMock, requestPrefillMock, routeState } = vi.hoisted(() => ({
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
-    t: (key: string) => (key === 'cron.status.defaultPrompt' ? 'Create with /cron in AionUi' : key),
+    t: (key: string) => (key === 'cron.status.defaultPrompt' ? 'Create with /cron in CSBU WorkMate' : key),
   }),
 }));
 
@@ -91,7 +91,7 @@ describe('create scheduled task conversation action', () => {
 
     act(() => result.current.handleCreateCronTask(makeConversation('current-conversation', 'acp')));
 
-    expect(requestPrefillMock).toHaveBeenCalledWith('current-conversation', 'Create with /cron in AionUi');
+    expect(requestPrefillMock).toHaveBeenCalledWith('current-conversation', 'Create with /cron in CSBU WorkMate');
     expect(navigateMock).not.toHaveBeenCalled();
   });
 
@@ -101,7 +101,7 @@ describe('create scheduled task conversation action', () => {
 
     act(() => result.current.handleCreateCronTask(makeConversation('background-conversation', 'aionrs')));
 
-    expect(requestPrefillMock).toHaveBeenCalledWith('background-conversation', 'Create with /cron in AionUi');
+    expect(requestPrefillMock).toHaveBeenCalledWith('background-conversation', 'Create with /cron in CSBU WorkMate');
     expect(navigateMock).toHaveBeenCalledWith('/conversation/background-conversation');
     expect(requestPrefillMock.mock.invocationCallOrder[0]).toBeLessThan(navigateMock.mock.invocationCallOrder[0]);
     expect(onSessionClick).toHaveBeenCalledOnce();
@@ -117,7 +117,7 @@ describe('create scheduled task conversation action', () => {
       expect(requestPrefillMock).not.toHaveBeenCalled();
       expect(navigateMock).toHaveBeenCalledWith('/guid', {
         state: {
-          prefillPrompt: 'Create with /cron in AionUi',
+          prefillPrompt: 'Create with /cron in CSBU WorkMate',
           preservePrefillDraft: true,
           focusPrefill: true,
         },

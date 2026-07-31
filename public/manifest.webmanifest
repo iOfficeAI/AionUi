@@ -1,7 +1,7 @@
 {
-  "name": "AionUi",
-  "short_name": "AionUi",
-  "description": "AionUi WebUI for mobile and desktop browsers.",
+  "name": "CSBU WorkMate",
+  "short_name": "WorkMate",
+  "description": "CSBU's internal AI workspace for everyday office tasks.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

@@ -4,9 +4,9 @@
 
 ---
 
-## 一、先理解 Aion Team 是什么
+## 一、先理解 CSBU WorkMate Team 是什么
 
-**Aion Team 是一个由 leader 驱动的 AI 团队系统。用户不直接操作团队成员，用户只跟 leader 说话。**
+**CSBU WorkMate Team 是一个由 leader 驱动的 AI 团队系统。用户不直接操作团队成员，用户只跟 leader 说话。**
 
 **leader 本身也是一个 agent，类型可以是 claude、codex 或 gemini。** 不同 leader 类型的团队，调度能力各自独立。E2E 要覆盖三种 leader 类型，不是只测一种。
 
@@ -50,7 +50,7 @@ invokeBridge 是测试工具，不是用户操作路径。真实用户根本不�
 | **setup**：获取 teamId、读初始成员数  | `invokeBridge(page, 'team.list', ...)`   |
 | **assertion**：验证后端状态与 UI 一致 | `invokeBridge(page, 'team.get', { id })` |
 
-**禁止用于触发任何操作**——添加成员、解雇成员、发送消息等，必须且只能通过 leader 聊天输入框。如果你用 invokeBridge 触发了操作，你测的不是 Aion Team，你测的是一个普通的 RPC 接口。
+**禁止用于触发任何操作**——添加成员、解雇成员、发送消息等，必须且只能通过 leader 聊天输入框。如果你用 invokeBridge 触发了操作，你测的不是 CSBU WorkMate Team，你测的是一个普通的 RPC 接口。
 
 ---
 

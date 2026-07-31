@@ -1,6 +1,6 @@
-# @aionui/web-host
+# @csbu-workmate/web-host
 
-WebUI host package for AionUi - zero Electron dependency.
+WebUI host package for CSBU WorkMate - zero Electron dependency.
 
 ## Responsibilities
 
@@ -11,7 +11,7 @@ WebUI host package for AionUi - zero Electron dependency.
 ## Usage
 
 ```ts
-import { startWebHost } from '@aionui/web-host';
+import { startWebHost } from '@csbu-workmate/web-host';
 
 const handle = await startWebHost({
   app: {

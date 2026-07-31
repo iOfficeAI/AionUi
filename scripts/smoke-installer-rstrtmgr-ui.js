@@ -79,70 +79,70 @@ function main() {
 
   const compileOnly = process.argv.includes('--compile-only');
   const makensis = findMakensis();
-  const root = mkdtempSync(path.join(tmpdir(), 'aionui-rm-ui-'));
+  const root = mkdtempSync(path.join(tmpdir(), 'csbu-workmate-rm-ui-'));
   const installDir = path.join(root, 'install-dir');
   mkdirSync(installDir, { recursive: true });
   const lockedFile = path.join(installDir, 'locked-by-smoke.txt');
-  writeFileSync(lockedFile, 'AionUi Restart Manager UI smoke lock\n', 'utf8');
+  writeFileSync(lockedFile, 'CSBU WorkMate Restart Manager UI smoke lock\n', 'utf8');
 
   let locker = null;
-  const nsiPath = path.join(root, 'aionui-rstrtmgr-ui-smoke.nsi');
-  const exePath = path.join(root, 'aionui-rstrtmgr-ui-smoke.exe');
+  const nsiPath = path.join(root, 'csbu-workmate-rstrtmgr-ui-smoke.nsi');
+  const exePath = path.join(root, 'csbu-workmate-rstrtmgr-ui-smoke.exe');
   const logPath = path.join(
     process.env.TEMP || tmpdir(),
-    `aionui-installer-smoke-${new Date().toISOString().replace(/[-:]/g, '').replace(/\..+$/, '').replace('T', '-')}.log`
+    `csbu-workmate-installer-smoke-${new Date().toISOString().replace(/[-:]/g, '').replace(/\..+$/, '').replace('T', '-')}.log`
   );
   const processControlPath = path.join(repoRoot, 'resources', 'windows', 'installer-process-control.nsh');
   const messagesPath = path.join(repoRoot, 'resources', 'windows', 'installer-messages.nsh');
 
   const nsi = `
 Unicode true
-Name "AionUi Restart Manager UI Smoke"
+Name "CSBU WorkMate Restart Manager UI Smoke"
 OutFile "${nsisQuote(exePath)}"
 RequestExecutionLevel user
 SilentInstall normal
-!define AIONUI_FALLBACK_LOG "aionui-installer-smoke-fallback.log"
+!define CSBU_WORKMATE_FALLBACK_LOG "csbu-workmate-installer-smoke-fallback.log"
 !define VERSION "rstrtmgr-ui-smoke"
-!define AIONUI_TARGET_ARCH "x64"
-!define AIONUI_APP_EXECUTABLE_FILENAME "AionUi.exe"
-!define UNINSTALL_FILENAME "Uninstall AionUi.exe"
+!define CSBU_WORKMATE_TARGET_ARCH "x64"
+!define CSBU_WORKMATE_APP_EXECUTABLE_FILENAME "CSBU WorkMate.exe"
+!define UNINSTALL_FILENAME "Uninstall CSBU WorkMate.exe"
 !define PROJECT_DIR "${nsisQuote(repoRoot)}"
 !include LogicLib.nsh
 !include "${nsisQuote(messagesPath)}"
 !include "${nsisQuote(processControlPath)}"
 
-Var AionUiSessionLogPath
-Var AionUiSessionId
-Var AionUiIsUpdated
+Var CsbuWorkMateSessionLogPath
+Var CsbuWorkMateSessionId
+Var CsbuWorkMateIsUpdated
 
 Section
   StrCpy $INSTDIR "${nsisQuote(installDir)}"
-  StrCpy $AionUiSessionLogPath "${nsisQuote(logPath)}"
-  StrCpy $AionUiSessionId "rstrtmgrui"
-  StrCpy $AionUiIsUpdated "1"
+  StrCpy $CsbuWorkMateSessionLogPath "${nsisQuote(logPath)}"
+  StrCpy $CsbuWorkMateSessionId "rstrtmgrui"
+  StrCpy $CsbuWorkMateIsUpdated "1"
   InitPluginsDir
   BringToFront
 
-  aionui_query_lockers:
-    !insertmacro AIONUI_QUERY_LOCKERS "${nsisQuote(lockedFile)}" $AionUiLockerResult
-    StrCpy $AionUiLockerList ""
+  csbu_workmate_query_lockers:
+    !insertmacro CSBU_WORKMATE_QUERY_LOCKERS "${nsisQuote(lockedFile)}" $CsbuWorkMateLockerResult
+    StrCpy $CsbuWorkMateLockerList ""
     ClearErrors
     SetDetailsPrint none
-    FileOpen $AionUiLockerListFile "$PLUGINSDIR\\aionui-rm-lockers.txt" r
+    FileOpen $CsbuWorkMateLockerListFile "$PLUGINSDIR\\csbu-workmate-rm-lockers.txt" r
     \${IfNot} \${Errors}
-      FileRead $AionUiLockerListFile $AionUiLockerList
-      FileClose $AionUiLockerListFile
+      FileRead $CsbuWorkMateLockerListFile $CsbuWorkMateLockerList
+      FileClose $CsbuWorkMateLockerListFile
     \${EndIf}
     SetDetailsPrint lastused
-    \${If} $AionUiLockerList == ""
-      StrCpy $AionUiLockerList "\${AIONUI_MSG_UNKNOWN_PROCESS_EN}"
-      StrCpy $AionUiLockerListZh "\${AIONUI_MSG_UNKNOWN_PROCESS_ZH}"
-      StrCpy $AionUiLockerListEn "\${AIONUI_MSG_UNKNOWN_PROCESS_EN}"
+    \${If} $CsbuWorkMateLockerList == ""
+      StrCpy $CsbuWorkMateLockerList "\${CSBU_WORKMATE_MSG_UNKNOWN_PROCESS_EN}"
+      StrCpy $CsbuWorkMateLockerListZh "\${CSBU_WORKMATE_MSG_UNKNOWN_PROCESS_ZH}"
+      StrCpy $CsbuWorkMateLockerListEn "\${CSBU_WORKMATE_MSG_UNKNOWN_PROCESS_EN}"
     \${Else}
-      StrCpy $AionUiLockerListZh "$AionUiLockerList"
-      StrCpy $AionUiLockerListEn "$AionUiLockerList"
+      StrCpy $CsbuWorkMateLockerListZh "$CsbuWorkMateLockerList"
+      StrCpy $CsbuWorkMateLockerListEn "$CsbuWorkMateLockerList"
     \${EndIf}
-    MessageBox MB_RETRYCANCEL|MB_ICONEXCLAMATION "\${AIONUI_MSG_FILE_OR_FOLDER_IN_USE_ZH}$\\r$\\n${nsisQuote(lockedFile)}$\\r$\\n$\\r$\\n\${AIONUI_MSG_APPLICATION_USING_IT_ZH}$\\r$\\n$AionUiLockerListZh$\\r$\\n$\\r$\\n\${AIONUI_MSG_CLOSE_LISTED_RETRY_ZH}$\\r$\\n$\\r$\\n\${AIONUI_MSG_INSTALLER_LOG_ZH}:$\\r$\\n$AionUiSessionLogPath$\\r$\\n$\\r$\\n\${AIONUI_MSG_BLOCK_SEPARATOR}$\\r$\\n$\\r$\\n\${AIONUI_MSG_FILE_OR_FOLDER_IN_USE_EN}$\\r$\\n${nsisQuote(lockedFile)}$\\r$\\n$\\r$\\n\${AIONUI_MSG_APPLICATION_USING_IT_EN}$\\r$\\n$AionUiLockerListEn$\\r$\\n$\\r$\\n\${AIONUI_MSG_CLOSE_LISTED_RETRY_EN}$\\r$\\n$\\r$\\n\${AIONUI_MSG_INSTALLER_LOG_EN}:$\\r$\\n$AionUiSessionLogPath" /SD IDCANCEL IDRETRY aionui_query_lockers
+    MessageBox MB_RETRYCANCEL|MB_ICONEXCLAMATION "\${CSBU_WORKMATE_MSG_FILE_OR_FOLDER_IN_USE_ZH}$\\r$\\n${nsisQuote(lockedFile)}$\\r$\\n$\\r$\\n\${CSBU_WORKMATE_MSG_APPLICATION_USING_IT_ZH}$\\r$\\n$CsbuWorkMateLockerListZh$\\r$\\n$\\r$\\n\${CSBU_WORKMATE_MSG_CLOSE_LISTED_RETRY_ZH}$\\r$\\n$\\r$\\n\${CSBU_WORKMATE_MSG_INSTALLER_LOG_ZH}:$\\r$\\n$CsbuWorkMateSessionLogPath$\\r$\\n$\\r$\\n\${CSBU_WORKMATE_MSG_BLOCK_SEPARATOR}$\\r$\\n$\\r$\\n\${CSBU_WORKMATE_MSG_FILE_OR_FOLDER_IN_USE_EN}$\\r$\\n${nsisQuote(lockedFile)}$\\r$\\n$\\r$\\n\${CSBU_WORKMATE_MSG_APPLICATION_USING_IT_EN}$\\r$\\n$CsbuWorkMateLockerListEn$\\r$\\n$\\r$\\n\${CSBU_WORKMATE_MSG_CLOSE_LISTED_RETRY_EN}$\\r$\\n$\\r$\\n\${CSBU_WORKMATE_MSG_INSTALLER_LOG_EN}:$\\r$\\n$CsbuWorkMateSessionLogPath" /SD IDCANCEL IDRETRY csbu_workmate_query_lockers
 SectionEnd
 `;
 

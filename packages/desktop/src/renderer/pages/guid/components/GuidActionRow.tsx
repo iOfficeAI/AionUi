@@ -8,7 +8,7 @@ import { ipcBridge } from '@/common';
 import type { IMcpServer, IProvider, TProviderWithModel } from '@/common/config/storage';
 import AgentModeSelector from '@/renderer/components/agent/AgentModeSelector';
 import { DROPDOWN_SEARCH_THRESHOLD } from '@/renderer/components/agent/runtimeSelectorOptions';
-import AionInlineSearchInput from '@/renderer/components/base/AionInlineSearchInput';
+import WorkMateInlineSearchInput from '@/renderer/components/base/WorkMateInlineSearchInput';
 import MobileActionSheet from '@/renderer/components/chat/MobileActionSheet';
 import type {
   MobileActionSheetEntry,
@@ -47,7 +47,7 @@ const SubmenuSearchList: React.FC<{
   <>
     {showSearch ? (
       <div className='px-6px pt-4px pb-6px' style={{ background: 'var(--color-bg-popup)' }}>
-        <AionInlineSearchInput
+        <WorkMateInlineSearchInput
           value={query}
           onChange={onQueryChange}
           placeholder={placeholder}

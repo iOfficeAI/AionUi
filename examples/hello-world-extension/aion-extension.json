@@ -3,8 +3,8 @@
   "name": "hello-world",
   "displayName": "Hello World Extension",
   "version": "1.0.0",
-  "description": "A complete demo extension showcasing all AionUI extension capabilities — themes, skills, assistants, agents, ACP adapters (stdio/http), MCP servers, and settings",
-  "author": "AionUI Contributors",
+  "description": "A complete demo extension showcasing all CSBU WorkMate extension capabilities — themes, skills, assistants, agents, ACP adapters (stdio/http), MCP servers, and settings",
+  "author": "CSBU WorkMate Contributors",
   "icon": "assets/ocean-breeze-cover.svg",
   "i18n": {
     "localesDir": "i18n",

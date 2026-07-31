@@ -59,7 +59,7 @@ const backendStartupFailed = ipcRenderer.sendSync('get-backend-startup-failed') 
 const backendStartupFailure = ipcRenderer.sendSync('get-backend-startup-failure') as unknown;
 contextBridge.exposeInMainWorld('__backendPort', backendPort > 0 ? backendPort : 0);
 contextBridge.exposeInMainWorld('__initialLanguage', initialLanguage ?? null);
-contextBridge.exposeInMainWorld('__aionuiE2ETest', process.env.AIONUI_E2E_TEST === '1');
+contextBridge.exposeInMainWorld('__workMateE2ETest', process.env.CSBU_WORKMATE_E2E_TEST === '1');
 contextBridge.exposeInMainWorld('__backendStartupFailed', backendStartupFailed === true);
 contextBridge.exposeInMainWorld('__backendStartupFailure', backendStartupFailure ?? null);
 

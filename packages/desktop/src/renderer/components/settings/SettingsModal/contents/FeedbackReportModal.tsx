@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import AionModal from '@renderer/components/base/AionModal';
+import WorkMateModal from '@renderer/components/base/WorkMateModal';
 import { FEEDBACK_MODULES } from './feedbackModules';
 import { useTalkToButler } from '@/renderer/hooks/assistant/useTalkToButler';
 import { uploadFileViaHttp } from '@/renderer/services/FileService';
@@ -199,7 +199,7 @@ const FeedbackReportModal: React.FC<FeedbackReportModalProps> = ({
     feedbackDiagnosticsContext,
   ]);
 
-  // "Solve via chat": hand the report to the AionUi Butler for on-the-spot
+  // "Solve via chat": hand the report to the CSBU WorkMate Butler for on-the-spot
   // diagnosis instead of submitting to the team. The typed description + module
   // become a structured prompt; screenshots are uploaded to disk so they ride
   // along in the chat input (reusing the same upload path as pasted images).
@@ -225,7 +225,7 @@ const FeedbackReportModal: React.FC<FeedbackReportModalProps> = ({
       const moduleLabel = t(selectedModule?.i18nKey ?? 'settings.bugReportModuleOther');
       const prompt = t('settings.talkToButler.prompt.diagnose', {
         defaultValue:
-          'I ran into a problem with AionUi, please help me diagnose it.\n\n[Module] {{module}}\n[Description] {{description}}\n[Attachments] see the screenshots in the input.\n\nPlease diagnose the cause and tell me how to fix it.',
+          'I ran into a problem with CSBU WorkMate, please help me diagnose it.\n\n[Module] {{module}}\n[Description] {{description}}\n[Attachments] see the screenshots in the input.\n\nPlease diagnose the cause and tell me how to fix it.',
         module: moduleLabel,
         description: description.trim(),
       });
@@ -318,7 +318,7 @@ const FeedbackReportModal: React.FC<FeedbackReportModalProps> = ({
   }, [handlePaste, visible]);
 
   return (
-    <AionModal
+    <WorkMateModal
       variant='standard'
       header={{ title: t('settings.bugReportTitle'), showClose: true }}
       visible={visible}
@@ -366,7 +366,7 @@ const FeedbackReportModal: React.FC<FeedbackReportModalProps> = ({
       className='w-[min(600px,calc(100vw-32px))] max-w-600px'
       autoFocus={false}
       // The feedback modal is global and may be opened from inside another
-      // AionModal (e.g. the Agent editor). Arco's default z-index stacks
+      // WorkMateModal (e.g. the Agent editor). Arco's default z-index stacks
       // modals in mount order, which leaves the feedback modal under the
       // pre-existing modal when both are open. Bump wrap+mask above the
       // standard 1001 so feedback always appears on top.
@@ -458,7 +458,7 @@ const FeedbackReportModal: React.FC<FeedbackReportModalProps> = ({
           ) : null}
         </div>
       </div>
-    </AionModal>
+    </WorkMateModal>
   );
 };
 

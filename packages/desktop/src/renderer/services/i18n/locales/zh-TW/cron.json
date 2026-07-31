@@ -13,7 +13,7 @@
     "error": "執行出錯",
     "unread": "有新執行",
     "unconfigured": "未配置定時任務",
-    "defaultPrompt": "每天早上10點，為我搜尋AI最新的新聞動向，彙總並輸出洞察報告。（請使用 /cron 技能在 AionUi 中建立排程任務。）"
+    "defaultPrompt": "每天早上10點，為我搜尋AI最新的新聞動向，彙總並輸出洞察報告。（請使用 /cron 技能在 CSBU WorkMate 中建立排程任務。）"
   },
   "actions": {
     "goTo": "查看對話",
@@ -54,10 +54,10 @@
     "newTask": "新建任務",
     "createViaChat": "透過對話建立",
     "createManually": "手動建立",
-    "description": "按計畫自動執行任務。你也可以在任意對話中直接讓 AionUi 幫你建立一個定時任務。",
+    "description": "按計畫自動執行任務。你也可以在任意對話中直接讓 CSBU WorkMate 幫你建立一個定時任務。",
     "awakeBanner": "定時任務僅在電腦喚醒狀態下運行。",
     "keepAwake": "保持喚醒",
-    "keepAwakeTooltip": "開啟後，AionUi 將阻止電腦進入休眠狀態",
+    "keepAwakeTooltip": "開啟後，CSBU WorkMate 將阻止電腦進入休眠狀態",
     "searchPlaceholder": "搜尋定時任務...",
     "noSearchResults": "沒有匹配的定時任務。",
     "createTask": "建立定時任務",
@@ -110,7 +110,7 @@
       "selectFolder": "選擇資料夾",
       "clearFolder": "清除",
       "model": "模型",
-      "aionrsModelRequired": "請為 Aion CLI 選擇模型",
+      "aionrsModelRequired": "請為 CSBU WorkMate 選擇模型",
       "aionrsNoProvider": "暫無可用模型",
       "assistantLockedExistingConversation": "持續對話任務必須保留原執行助手。如需更換助手，請建立新任務。",
       "teamTaskExecutionModeLockedReason": "Team 定時任務必須在所屬 Team 對話中持續執行，因此不能修改執行模式。"

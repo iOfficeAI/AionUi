@@ -92,6 +92,7 @@ import type { Theme } from '@/common/theme/types';
 import type { AttachFolderRequest, ProjectDetailDto, ProjectEntryDto } from '@/common/types/project';
 import type { ChatFileRef } from '@/common/types/chatFile';
 import type { ProtocolDetectionRequest, ProtocolDetectionResponse } from '../utils/protocolDetector';
+import { normalizeLegacyBrandText } from '../utils/utils';
 import {
   buildCreateConversationBody,
   fromApiConversation,
@@ -155,21 +156,101 @@ export const shell = {
 // Assistants — routed to /api/assistants/*
 // ---------------------------------------------------------------------------
 
+const normalizeLocalizedText = (values: Record<string, string>): Record<string, string> =>
+  Object.fromEntries(Object.entries(values).map(([locale, value]) => [locale, normalizeLegacyBrandText(value)]));
+
+const normalizeLocalizedLists = (values: Record<string, string[]>): Record<string, string[]> =>
+  Object.fromEntries(
+    Object.entries(values).map(([locale, items]) => [locale, items.map(normalizeLegacyBrandText)])
+  );
+
+const normalizeAssistantBranding = (assistant: Assistant): Assistant => ({
+  ...assistant,
+  name: normalizeLegacyBrandText(assistant.name),
+  name_i18n: normalizeLocalizedText(assistant.name_i18n),
+  description: assistant.description ? normalizeLegacyBrandText(assistant.description) : assistant.description,
+  description_i18n: normalizeLocalizedText(assistant.description_i18n),
+  context: assistant.context ? normalizeLegacyBrandText(assistant.context) : assistant.context,
+  context_i18n: normalizeLocalizedText(assistant.context_i18n),
+  prompts: assistant.prompts.map(normalizeLegacyBrandText),
+  prompts_i18n: normalizeLocalizedLists(assistant.prompts_i18n),
+  agent_status_message: assistant.agent_status_message
+    ? normalizeLegacyBrandText(assistant.agent_status_message)
+    : assistant.agent_status_message,
+  team_block_reason: assistant.team_block_reason
+    ? normalizeLegacyBrandText(assistant.team_block_reason)
+    : assistant.team_block_reason,
+});
+
+const normalizeAssistantDetailBranding = (detail: AssistantDetail): AssistantDetail => ({
+  ...detail,
+  profile: {
+    ...detail.profile,
+    name: normalizeLegacyBrandText(detail.profile.name),
+    name_i18n: normalizeLocalizedText(detail.profile.name_i18n),
+    description: detail.profile.description
+      ? normalizeLegacyBrandText(detail.profile.description)
+      : detail.profile.description,
+    description_i18n: normalizeLocalizedText(detail.profile.description_i18n),
+  },
+  agent_status_message: detail.agent_status_message
+    ? normalizeLegacyBrandText(detail.agent_status_message)
+    : detail.agent_status_message,
+  team_block_reason: detail.team_block_reason
+    ? normalizeLegacyBrandText(detail.team_block_reason)
+    : detail.team_block_reason,
+  rules: { ...detail.rules, content: normalizeLegacyBrandText(detail.rules.content) },
+  prompts: {
+    ...detail.prompts,
+    recommended: detail.prompts.recommended.map(normalizeLegacyBrandText),
+    recommended_i18n: normalizeLocalizedLists(detail.prompts.recommended_i18n),
+  },
+});
+
+type BrandableAgent = Pick<AgentMetadata, 'name' | 'name_i18n' | 'description' | 'description_i18n'> &
+  Partial<Pick<AgentMetadata, 'last_check_error_message' | 'last_check_guidance'>>;
+
+const normalizeAgentBranding = <T extends BrandableAgent>(agent: T): T => ({
+  ...agent,
+  name: normalizeLegacyBrandText(agent.name),
+  name_i18n: agent.name_i18n ? normalizeLocalizedText(agent.name_i18n) : agent.name_i18n,
+  description: agent.description ? normalizeLegacyBrandText(agent.description) : agent.description,
+  description_i18n: agent.description_i18n
+    ? normalizeLocalizedText(agent.description_i18n)
+    : agent.description_i18n,
+  last_check_error_message: agent.last_check_error_message
+    ? normalizeLegacyBrandText(agent.last_check_error_message)
+    : agent.last_check_error_message,
+  last_check_guidance: agent.last_check_guidance
+    ? normalizeLegacyBrandText(agent.last_check_guidance)
+    : agent.last_check_guidance,
+});
+
 export const assistants = {
-  list: httpGet<Assistant[], void>('/api/assistants'),
-  get: httpGet<AssistantDetail, { id: string; locale?: string }>(
-    ({ id, locale }) =>
-      `/api/assistants/${encodeURIComponent(id)}${locale ? `?locale=${encodeURIComponent(locale)}` : ''}`
+  list: withResponseMap(httpGet<Assistant[], void>('/api/assistants'), (items) =>
+    items.map(normalizeAssistantBranding)
   ),
-  create: httpPost<Assistant, CreateAssistantRequest>('/api/assistants'),
-  update: httpPut<Assistant, UpdateAssistantRequest>((p) => `/api/assistants/${p.id}`),
+  get: withResponseMap(
+    httpGet<AssistantDetail, { id: string; locale?: string }>(({ id, locale }) =>
+      `/api/assistants/${encodeURIComponent(id)}${locale ? `?locale=${encodeURIComponent(locale)}` : ''}`
+    ),
+    normalizeAssistantDetailBranding
+  ),
+  create: withResponseMap(httpPost<Assistant, CreateAssistantRequest>('/api/assistants'), normalizeAssistantBranding),
+  update: withResponseMap(
+    httpPut<Assistant, UpdateAssistantRequest>((p) => `/api/assistants/${p.id}`),
+    normalizeAssistantBranding
+  ),
   delete: httpDelete<void, { id: string }>((p) => `/api/assistants/${p.id}`),
-  setState: httpPatch<Assistant, SetAssistantStateRequest>(
-    (p) => `/api/assistants/${p.id}/state`,
-    (p) => {
-      const { id: _id, ...body } = p;
-      return body;
-    }
+  setState: withResponseMap(
+    httpPatch<Assistant, SetAssistantStateRequest>(
+      (p) => `/api/assistants/${p.id}/state`,
+      (p) => {
+        const { id: _id, ...body } = p;
+        return body;
+      }
+    ),
+    normalizeAssistantBranding
   ),
   import: httpPost<ImportAssistantsResult, ImportAssistantsRequest>('/api/assistants/import'),
 };
@@ -512,7 +593,7 @@ export const application = {
   ),
   getPath: bridge.buildProvider<string, { name: 'desktop' | 'home' | 'downloads' }>('app.get-path'),
   // Electron-local: copies cache dir + persists to ProcessEnv, paired with restart.
-  // The backend reads AIONUI_*_DIR env vars on boot, so it does not own this config.
+  // The backend reads CSBU_WORKMATE_*_DIR env vars on boot, so it does not own this config.
   updateSystemInfo: bridge.buildProvider<void, { cacheDir: string; workDir: string; logDir?: string }>(
     'update-system-info'
   ),
@@ -852,7 +933,10 @@ export const acpConversation = {
   sendMessage: conversation.sendMessage,
   responseStream: conversation.responseStream,
   /** Management view used by Agent settings. */
-  getManagedAgents: httpGet<import('@/renderer/utils/model/agentTypes').ManagedAgent[], void>('/api/agents/management'),
+  getManagedAgents: withResponseMap(
+    httpGet<import('@/renderer/utils/model/agentTypes').ManagedAgent[], void>('/api/agents/management'),
+    (agents) => agents.map(normalizeAgentBranding)
+  ),
   getAgentOverrides: httpGet<
     { command_override?: string; env_override: { name: string; value: string }[] },
     { id: string }

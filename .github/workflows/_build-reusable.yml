@@ -11,6 +11,10 @@ on:
         description: 'Git ref to checkout (leave empty to use the triggering commit)'
         type: string
         default: ''
+      version:
+        description: 'Optional package version override for manually built artifacts'
+        type: string
+        default: ''
       skip_code_quality:
         description: 'Skip code quality checks (faster builds for debugging)'
         type: boolean
@@ -27,10 +31,14 @@ on:
         description: 'Optional AionCore Manual Build workflow run id to bundle instead of the pinned release'
         type: string
         default: ''
+      strip_windows_exe_metadata:
+        description: 'Remove VERSIONINFO from Windows application, installer, and uninstaller executables'
+        type: boolean
+        default: false
 
 env:
   BUN_INSTALL_REGISTRY: 'https://registry.npmjs.org/'
-  AIONUI_HUB_TAG: 'dist-ebc6a2b'
+  CSBU_WORKMATE_HUB_TAG: 'dist-ebc6a2b'
 
 jobs:
   code-quality:
@@ -144,6 +152,25 @@ jobs:
       - name: Run postinstall
         run: bun run postinstall || true
 
+      - name: Apply package version override
+        if: inputs.version != ''
+        shell: bash
+        env:
+          BUILD_VERSION: ${{ inputs.version }}
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const version = process.env.BUILD_VERSION;
+          if (!/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/.test(version)) {
+            throw new Error(`Invalid semantic version: ${version}`);
+          }
+          const packagePath = 'package.json';
+          const packageJson = JSON.parse(fs.readFileSync(packagePath, 'utf8'));
+          packageJson.version = version;
+          fs.writeFileSync(packagePath, `${JSON.stringify(packageJson, null, 2)}\n`);
+          console.log(`Build version overridden to ${version}`);
+          NODE
+
       - name: Setup Windows native dependencies (for Windows only)
         if: startsWith(matrix.platform, 'windows')
         run: |
@@ -166,6 +193,31 @@ jobs:
         run: |
           echo "Setting Windows SDK version for ConPty support"
           echo "WindowsTargetPlatformVersion=10.0.19041.0" >> $env:GITHUB_ENV
+
+      - name: Setup Resource Hacker for metadata-free Windows executables
+        if: startsWith(matrix.platform, 'windows') && inputs.strip_windows_exe_metadata
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $downloadUrl = 'https://angusj.com/resourcehacker/resource_hacker.zip'
+          $expectedSha256 = '52F81EE4778070D6AA72D8719A1A68FEA2F288005DEB02667542754F747776F8'
+          $toolDirectory = Join-Path $env:RUNNER_TEMP 'resource-hacker-5.2.8'
+          $archivePath = Join-Path $env:RUNNER_TEMP 'resource_hacker.zip'
+
+          Invoke-WebRequest -Uri $downloadUrl -OutFile $archivePath
+          $actualSha256 = (Get-FileHash -LiteralPath $archivePath -Algorithm SHA256).Hash
+          if ($actualSha256 -ne $expectedSha256) {
+            throw "Resource Hacker checksum mismatch: expected $expectedSha256, got $actualSha256"
+          }
+
+          Expand-Archive -LiteralPath $archivePath -DestinationPath $toolDirectory -Force
+          $resourceHackerPath = Join-Path $toolDirectory 'ResourceHacker.exe'
+          if (-not (Test-Path -LiteralPath $resourceHackerPath)) {
+            throw "Resource Hacker executable not found: $resourceHackerPath"
+          }
+
+          "RESOURCE_HACKER_PATH=$resourceHackerPath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          Write-Host "Resource Hacker 5.2.8 configured for pre-NSIS metadata removal"
 
       - name: Setup MSBuild (for Windows only)
         if: startsWith(matrix.platform, 'windows')
@@ -367,9 +419,9 @@ jobs:
         run: node scripts/prepareAioncore.js
         env:
           # Version is pinned in repo-root package.json (aioncoreVersion).
-          # Set AIONUI_BACKEND_VERSION here only to override for ad-hoc builds.
-          AIONUI_BACKEND_RUN_ID: ${{ inputs.aioncore_run_id }}
-          AIONUI_BACKEND_ARCH: ${{ matrix.arch }}
+          # Set CSBU_WORKMATE_BACKEND_VERSION here only to override for ad-hoc builds.
+          CSBU_WORKMATE_BACKEND_RUN_ID: ${{ inputs.aioncore_run_id }}
+          CSBU_WORKMATE_BACKEND_ARCH: ${{ matrix.arch }}
           GH_TOKEN: ${{ secrets.GH_TOKEN || secrets.GITHUB_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -399,7 +451,7 @@ jobs:
           }
         env:
           WINDOWS_BUILD_COMMAND: ${{ matrix.command }}
-          AIONUI_BACKEND_RUN_ID: ${{ inputs.aioncore_run_id }}
+          CSBU_WORKMATE_BACKEND_RUN_ID: ${{ inputs.aioncore_run_id }}
           # Node.js memory limit for vite bundling (prevents OOM during build)
           # Node.js 内存限制，防止 vite 打包时内存不足
           NODE_OPTIONS: '--max-old-space-size=8192'
@@ -435,6 +487,47 @@ jobs:
           CI: true
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Verify Windows EXE metadata was removed
+        if: >-
+          startsWith(matrix.platform, 'windows') &&
+          inputs.strip_windows_exe_metadata &&
+          steps.windows-build.outputs.result == 'success'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $applicationExecutables = @(
+            Get-ChildItem -LiteralPath 'out' -Recurse -File -Filter 'CSBU WorkMate.exe' |
+              Where-Object { $_.DirectoryName -match 'win(?:-[^\\]+)?-unpacked$' }
+          )
+          $installerExecutables = @(Get-ChildItem -LiteralPath 'out' -File -Filter '*.exe')
+          $targets = $applicationExecutables + $installerExecutables
+
+          if ($applicationExecutables.Count -eq 0) {
+            throw 'Packaged Windows application executable was not found'
+          }
+          if ($installerExecutables.Count -eq 0) {
+            throw 'NSIS installer executable was not found'
+          }
+
+          foreach ($target in $targets) {
+            $info = $target.VersionInfo
+            $values = @(
+              $info.CompanyName,
+              $info.FileDescription,
+              $info.FileVersion,
+              $info.InternalName,
+              $info.LegalCopyright,
+              $info.OriginalFilename,
+              $info.ProductName,
+              $info.ProductVersion
+            ) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+
+            if ($values.Count -gt 0) {
+              throw "VERSIONINFO remains in $($target.FullName): $($values -join ', ')"
+            }
+            Write-Host "Verified metadata-free executable: $($target.FullName)"
+          }
 
       # Clean up any stale disk images before DMG creation (macOS only)
       # 清理可能残留的磁盘镜像，避免 hdiutil "Device not configured" 错误
@@ -502,7 +595,7 @@ jobs:
           exit 1
         env:
           NODE_OPTIONS: '--max-old-space-size=8192'
-          AIONUI_BACKEND_RUN_ID: ${{ inputs.aioncore_run_id }}
+          CSBU_WORKMATE_BACKEND_RUN_ID: ${{ inputs.aioncore_run_id }}
           npm_config_arch: ${{ matrix.arch }}
           APP_ID: ${{ secrets.APP_ID }}
           appleId: ${{ secrets.APPLE_ID }}
@@ -540,7 +633,7 @@ jobs:
           command: ${{ matrix.command }}
         env:
           NODE_OPTIONS: '--max-old-space-size=8192'
-          AIONUI_BACKEND_RUN_ID: ${{ inputs.aioncore_run_id }}
+          CSBU_WORKMATE_BACKEND_RUN_ID: ${{ inputs.aioncore_run_id }}
           npm_config_arch: ${{ matrix.arch }}
           npm_config_cache: ${{ runner.temp }}/.npm
           ELECTRON_CACHE: ${{ runner.temp }}/.cache/electron
@@ -658,7 +751,7 @@ jobs:
             out/*.msi
             out/*.dmg
             out/*.deb
-            out/AionUi-*-mac-*.zip
+            out/CSBU-WorkMate-*-mac-*.zip
             out/*.yml
           if-no-files-found: warn
           retention-days: 7

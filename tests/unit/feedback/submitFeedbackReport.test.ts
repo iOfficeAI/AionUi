@@ -32,7 +32,7 @@ describe('submitFeedbackReport', () => {
 
   it('submits a user-feedback event with tags, extra context, logs, and attachments', async () => {
     const collectFeedbackLogs = vi.fn().mockResolvedValue({
-      filename: 'aionui-logs.log.gz',
+      filename: 'csbu-workmate-logs.log.gz',
       data: [1, 2, 3],
     });
     const logFeedbackEvent = vi.fn();
@@ -61,9 +61,9 @@ describe('submitFeedbackReport', () => {
         },
       },
       module: 'installation-integrity',
-      moduleLabel: 'AionUi installation is incomplete',
+      moduleLabel: 'CSBU WorkMate installation is incomplete',
       tags: {
-        'aionui.installation_integrity.report_source': 'backend_startup_failure',
+        'csbu-workmate.installation_integrity.report_source': 'backend_startup_failure',
       },
     });
 
@@ -71,13 +71,13 @@ describe('submitFeedbackReport', () => {
     expect(sentryMocks.setTag).toHaveBeenCalledWith('type', 'user-feedback');
     expect(sentryMocks.setTag).toHaveBeenCalledWith('module', 'installation-integrity');
     expect(sentryMocks.setTag).toHaveBeenCalledWith(
-      'aionui.installation_integrity.report_source',
+      'csbu-workmate.installation_integrity.report_source',
       'backend_startup_failure'
     );
     expect(sentryMocks.captureEvent).toHaveBeenCalledWith(
       {
         level: 'info',
-        message: 'AionUi installation is incomplete: AionCore cannot start',
+        message: 'CSBU WorkMate installation is incomplete: AionCore cannot start',
         extra: {
           description: 'AionCore cannot start',
           installation_integrity: {
@@ -88,7 +88,7 @@ describe('submitFeedbackReport', () => {
       {
         attachments: [
           {
-            filename: 'aionui-logs.log.gz',
+            filename: 'csbu-workmate-logs.log.gz',
             data: new Uint8Array([1, 2, 3]),
             contentType: 'application/gzip',
           },
@@ -115,7 +115,7 @@ describe('submitFeedbackReport', () => {
       collectLogs: true,
       description: 'No logs available',
       module: 'installation-integrity',
-      moduleLabel: 'AionUi installation is incomplete',
+      moduleLabel: 'CSBU WorkMate installation is incomplete',
     });
 
     expect(sentryMocks.captureEvent).toHaveBeenCalledWith(
@@ -234,7 +234,7 @@ describe('submitFeedbackReport', () => {
       description: 'Flush me',
       flushTimeoutMs: 2000,
       module: 'installation-integrity',
-      moduleLabel: 'AionUi installation is incomplete',
+      moduleLabel: 'CSBU WorkMate installation is incomplete',
     });
 
     expect(sentryMocks.captureEvent).toHaveBeenCalledOnce();
@@ -257,7 +257,7 @@ describe('submitFeedbackReport', () => {
         description: 'Flush me',
         flushTimeoutMs: 2000,
         module: 'installation-integrity',
-        moduleLabel: 'AionUi installation is incomplete',
+        moduleLabel: 'CSBU WorkMate installation is incomplete',
       })
     ).rejects.toThrow('Failed to flush feedback report (event-id)');
     expect(logFeedbackEvent).toHaveBeenCalledOnce();
@@ -278,7 +278,7 @@ describe('submitFeedbackReport', () => {
         description: 'Flush me',
         flushTimeoutMs: 2000,
         module: 'installation-integrity',
-        moduleLabel: 'AionUi installation is incomplete',
+        moduleLabel: 'CSBU WorkMate installation is incomplete',
       })
     ).rejects.toThrow('Sentry is not initialized');
   });

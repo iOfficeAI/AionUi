@@ -61,10 +61,10 @@
   "more": "More",
   "refresh": "Refresh",
   "readOnly": "Read only",
-  "tray.showWindow": "Show AionUi",
+  "tray.showWindow": "Show CSBU WorkMate",
   "tray.newChat": "New Chat",
   "tray.closeToTray": "Hide to Tray",
-  "tray.about": "About AionUi",
+  "tray.about": "About CSBU WorkMate",
   "tray.restart": "Restart App",
   "tray.quit": "Quit",
   "tray.runningTasks": "Running Tasks",
@@ -75,26 +75,26 @@
   "backendStartup": {
     "incompatibleRuntime": {
       "title": "This system is not supported by the bundled backend",
-      "description": "AionUi opened, but the local AionCore backend cannot run on this Linux version. Please upgrade to a supported Linux distribution and restart AionUi.",
+      "description": "CSBU WorkMate opened, but the local CSBU WorkMate backend backend cannot run on this Linux version. Please upgrade to a supported Linux distribution and restart CSBU WorkMate.",
       "requiredVersions": "Required runtime symbols: {{versions}}"
     },
     "incompleteInstallation": {
-      "title": "AionUi installation is incomplete",
-      "description": "This installation is missing required local resources, so AionCore cannot start. Please download and reinstall the latest AionUi. If the issue returns after reinstalling, check whether security or antivirus software quarantined AionCore.",
+      "title": "CSBU WorkMate installation is incomplete",
+      "description": "This installation is missing required local resources, so CSBU WorkMate backend cannot start. Please download and reinstall the latest CSBU WorkMate. If the issue returns after reinstalling, check whether security or antivirus software quarantined CSBU WorkMate backend.",
       "downloadLatest": "Download latest",
       "sendDiagnostics": "Send diagnostics",
       "diagnosticsSent": "Diagnostics sent",
       "diagnosticsReportSuccess": "Diagnostics report sent",
       "diagnosticsReportFailed": "Failed to send diagnostics report",
-      "runtimeComponentDescription": "This installation is missing required bundled runtime components, so {{resource}} cannot start. Reinstall the latest AionUi package. If it still happens after reinstalling, check whether security or antivirus software quarantined AionUi components."
+      "runtimeComponentDescription": "This installation is missing required bundled runtime components, so {{resource}} cannot start. Reinstall the latest CSBU WorkMate package. If it still happens after reinstalling, check whether security or antivirus software quarantined CSBU WorkMate components."
     },
     "packageArchitectureMismatch": {
-      "title": "AionUi package architecture mismatch",
-      "description": "This AionUi package is for {{packageArch}}, but this Mac is {{deviceArch}}. You may have downloaded the wrong package. Please download and install the {{expectedArch}} package."
+      "title": "CSBU WorkMate package architecture mismatch",
+      "description": "This CSBU WorkMate package is for {{packageArch}}, but this Mac is {{deviceArch}}. You may have downloaded the wrong package. Please download and install the {{expectedArch}} package."
     },
     "dataMigration": {
       "title": "Local data migration failed",
-      "description": "AionUi opened, but AionCore stopped while initializing local data. Reinstalling AionUi may not fix this. Send a diagnostics report or contact support so the local database migration can be inspected.",
+      "description": "CSBU WorkMate opened, but CSBU WorkMate backend stopped while initializing local data. Reinstalling CSBU WorkMate may not fix this. Send a diagnostics report or contact support so the local database migration can be inspected.",
       "sendDiagnostics": "Send diagnostics",
       "diagnosticsSent": "Diagnostics sent",
       "diagnosticsReportSuccess": "Diagnostics report sent",
@@ -102,7 +102,7 @@
     },
     "localDataRepair": {
       "title": "Local data repair failed",
-      "description": "AionUi opened, but AionCore stopped while preparing local startup data such as assistant or agent records. Reinstalling AionUi may not fix this. Send a diagnostics report or contact support so the local database can be inspected.",
+      "description": "CSBU WorkMate opened, but CSBU WorkMate backend stopped while preparing local startup data such as assistant or agent records. Reinstalling CSBU WorkMate may not fix this. Send a diagnostics report or contact support so the local database can be inspected.",
       "sendDiagnostics": "Send diagnostics",
       "diagnosticsSent": "Diagnostics sent",
       "diagnosticsReportSuccess": "Diagnostics report sent",
@@ -110,7 +110,7 @@
     },
     "startupDirectory": {
       "title": "Startup directory is unavailable",
-      "description": "AionUi opened, but AionCore could not start because the configured work or log directory is missing, unavailable, or blocked by permissions. Check that the configured directories exist and are writable, then restart AionUi.",
+      "description": "CSBU WorkMate opened, but CSBU WorkMate backend could not start because the configured work or log directory is missing, unavailable, or blocked by permissions. Check that the configured directories exist and are writable, then restart CSBU WorkMate.",
       "sendDiagnostics": "Send diagnostics",
       "diagnosticsSent": "Diagnostics sent",
       "diagnosticsReportSuccess": "Diagnostics report sent",
@@ -118,7 +118,7 @@
     },
     "recoverableDatabaseCorruption": {
       "title": "Local data is corrupted",
-      "description": "AionUi detected that the local database is corrupted and cannot continue startup. After confirmation, AionUi will back up the old database and create a new local database to continue startup. Historical local data will not be shown for now, and the old database will be kept as a backup.",
+      "description": "CSBU WorkMate detected that the local database is corrupted and cannot continue startup. After confirmation, CSBU WorkMate will back up the old database and create a new local database to continue startup. Historical local data will not be shown for now, and the old database will be kept as a backup.",
       "confirmRebuild": "Back up old DB and rebuild new DB",
       "sendDiagnostics": "Send diagnostics",
       "diagnosticsHint": "Sending diagnostics will not modify the local database.",
@@ -128,8 +128,8 @@
       "rebuildFailed": "Failed to back up old DB and rebuild new DB"
     },
     "transientConcurrentStartup": {
-      "title": "AionUi is starting up",
-      "description": "Another AionUi startup was still using the local data when this window opened. This is temporary and your data is safe — no reinstall is needed. Please wait a moment and try again, or restart AionUi.",
+      "title": "CSBU WorkMate is starting up",
+      "description": "Another CSBU WorkMate startup was still using the local data when this window opened. This is temporary and your data is safe — no reinstall is needed. Please wait a moment and try again, or restart CSBU WorkMate.",
       "sendDiagnostics": "Send diagnostics",
       "diagnosticsSent": "Diagnostics sent",
       "diagnosticsReportSuccess": "Diagnostics report sent",

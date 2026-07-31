@@ -13,7 +13,7 @@ interface StepsWrapperProps extends StepsProps {
 }
 
 const StepsWrapper: React.FC<StepsWrapperProps> & { Step: typeof Steps.Step } = ({ className, ...props }) => {
-  return <Steps {...props} className={`aionui-steps ${className || ''}`} />;
+  return <Steps {...props} className={`csbu-workmate-steps ${className || ''}`} />;
 };
 
 StepsWrapper.Step = Steps.Step;

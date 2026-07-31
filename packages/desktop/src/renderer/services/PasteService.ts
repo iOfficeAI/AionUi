@@ -252,7 +252,7 @@ class PasteServiceClass {
             // Upload rather than pass the raw device path: the chat send contract
             // sends attachments as `upload` refs and the backend rejects any path
             // outside its managed upload directory. Upload the blob to get a
-            // managed path (createTempFile → /api/fs/upload, temp_dir/aionui/...).
+            // managed path (createTempFile → /api/fs/upload, temp_dir/csbu-workmate/...).
             try {
               const arrayBuffer = await file.arrayBuffer();
               const uint8Array = new Uint8Array(arrayBuffer);

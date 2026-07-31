@@ -20,7 +20,7 @@ type ButlerDiagnoseButtonProps = {
 /**
  * Inline "ask the Butler" chip shown next to FeedbackButton on error surfaces.
  * Instead of filing a report, it routes the user to the home chat with the
- * AionUi Butler selected and a diagnosis prompt (including the error text)
+ * CSBU WorkMate Butler selected and a diagnosis prompt (including the error text)
  * pre-filled — the same flow as the report modal's "Solve via chat" action.
  */
 const ButlerDiagnoseButton: React.FC<ButlerDiagnoseButtonProps> = ({ errorText, className }) => {
@@ -32,7 +32,7 @@ const ButlerDiagnoseButton: React.FC<ButlerDiagnoseButtonProps> = ({ errorText, 
       event.stopPropagation();
       const prompt = t('settings.talkToButler.prompt.diagnoseChatError', {
         defaultValue:
-          'I ran into an error during a conversation in AionUi, please help me diagnose it.\n\n[Error] {{error}}\n\nPlease diagnose the cause and tell me how to fix it.',
+          'I ran into an error during a conversation in CSBU WorkMate, please help me diagnose it.\n\n[Error] {{error}}\n\nPlease diagnose the cause and tell me how to fix it.',
         error: errorText.trim(),
       });
       talkToButler({ prompt }).catch((err) => {

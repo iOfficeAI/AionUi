@@ -6,7 +6,7 @@ const workspaceRoot = path.resolve(projectRoot, '..');
 
 const config = getDefaultConfig(projectRoot);
 
-// Share pure functions from the main AionUi project
+// Share pure functions from the main CSBU WorkMate project
 config.watchFolders = [path.resolve(workspaceRoot, 'src/common')];
 
 // Resolve node_modules from mobile/ only

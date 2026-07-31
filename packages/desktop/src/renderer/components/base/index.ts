@@ -5,7 +5,7 @@
  */
 
 /**
- * AionUi 基础组件库统一导出 / AionUi base components unified exports
+ * CSBU WorkMate 基础组件库统一导出 / CSBU WorkMate base components unified exports
  *
  * 提供所有基础组件和类型的统一导出入口
  * Provides unified export entry for all base components and types
@@ -13,37 +13,37 @@
 
 // ==================== 组件导出 / Component Exports ====================
 
-export { default as AionModal } from './AionModal';
-export { default as AionCollapse } from './AionCollapse';
-export { default as AionSelect } from './AionSelect';
-export { default as AionScrollArea } from './AionScrollArea';
-export { default as AionSteps } from './AionSteps';
-export { default as AionSearchInput } from './AionSearchInput';
-export { default as AionInlineSearchInput } from './AionInlineSearchInput';
+export { default as WorkMateModal } from './WorkMateModal';
+export { default as WorkMateCollapse } from './WorkMateCollapse';
+export { default as WorkMateSelect } from './WorkMateSelect';
+export { default as WorkMateScrollArea } from './WorkMateScrollArea';
+export { default as WorkMateSteps } from './WorkMateSteps';
+export { default as WorkMateSearchInput } from './WorkMateSearchInput';
+export { default as WorkMateInlineSearchInput } from './WorkMateInlineSearchInput';
 
 // ==================== 类型导出 / Type Exports ====================
 
-// AionModal 类型 / AionModal types
+// WorkMateModal 类型 / WorkMateModal types
 export type {
   ModalSize,
   ModalHeaderConfig,
   ModalFooterConfig,
   ModalContentStyleConfig,
-  AionModalProps,
-} from './AionModal';
-export { MODAL_SIZES } from './AionModal';
+  WorkMateModalProps,
+} from './WorkMateModal';
+export { MODAL_SIZES } from './WorkMateModal';
 
-// AionCollapse 类型 / AionCollapse types
-export type { AionCollapseProps, AionCollapseItemProps } from './AionCollapse';
+// WorkMateCollapse 类型 / WorkMateCollapse types
+export type { WorkMateCollapseProps, WorkMateCollapseItemProps } from './WorkMateCollapse';
 
-// AionSelect 类型 / AionSelect types
-export type { AionSelectProps } from './AionSelect';
+// WorkMateSelect 类型 / WorkMateSelect types
+export type { WorkMateSelectProps } from './WorkMateSelect';
 
-// AionSteps 类型 / AionSteps types
-export type { AionStepsProps } from './AionSteps';
+// WorkMateSteps 类型 / WorkMateSteps types
+export type { WorkMateStepsProps } from './WorkMateSteps';
 
-// AionSearchInput 类型 / AionSearchInput types
-export type { AionSearchInputProps } from './AionSearchInput';
+// WorkMateSearchInput 类型 / WorkMateSearchInput types
+export type { WorkMateSearchInputProps } from './WorkMateSearchInput';
 
-// AionInlineSearchInput 类型 / AionInlineSearchInput types
-export type { AionInlineSearchInputProps } from './AionInlineSearchInput';
+// WorkMateInlineSearchInput 类型 / WorkMateInlineSearchInput types
+export type { WorkMateInlineSearchInputProps } from './WorkMateInlineSearchInput';

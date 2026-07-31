@@ -11,7 +11,7 @@ type RestartableApp = Pick<App, 'isPackaged' | 'relaunch' | 'exit'>;
 
 export function restartApplication(app: RestartableApp): IAppRestartResult {
   if (!app.isPackaged) {
-    console.info('[AionUi] Restart skipped in development mode; manual restart required');
+    console.info('[CSBU WorkMate] Restart skipped in development mode; manual restart required');
     return {
       restarted: false,
       manualRestartRequired: true,
@@ -19,7 +19,7 @@ export function restartApplication(app: RestartableApp): IAppRestartResult {
     };
   }
 
-  console.info('[AionUi] Relaunching application to apply changes');
+  console.info('[CSBU WorkMate] Relaunching application to apply changes');
   app.relaunch();
   app.exit(0);
   return {

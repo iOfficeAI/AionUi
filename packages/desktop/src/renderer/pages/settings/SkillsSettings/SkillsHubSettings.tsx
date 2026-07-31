@@ -11,7 +11,7 @@ import SkillUsedByStack, { getAssistantsUsingSkill } from './SkillUsedByStack';
 import SettingsPageWrapper from '../components/SettingsPageWrapper';
 import SettingsPageHeader from '../components/SettingsPageHeader';
 import TalkToButlerButton from '@/renderer/components/base/TalkToButlerButton';
-import { AionSearchInput } from '@/renderer/components/base';
+import { WorkMateSearchInput } from '@/renderer/components/base';
 import { buildSkillImportNotice, getSkillImportErrorMessage } from './skillImportMessages';
 
 // Skill 信息类型 / Skill info type
@@ -691,7 +691,7 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
   };
 
   const searchBox = (testId: string) => (
-    <AionSearchInput
+    <WorkMateSearchInput
       className='shrink-0 w-[200px] hidden md:flex'
       data-testid={testId}
       placeholder={t('settings.skillsHub.searchPlaceholder', { defaultValue: 'Search skills...' })}
@@ -927,7 +927,7 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
       <div data-testid='official-skills-section'>
         <p className='m-0 mb-12px text-12px leading-relaxed text-t-tertiary'>
           {t('settings.skillsHub.officialHint', {
-            defaultValue: 'Built-in skills maintained by AionUi — read-only and updated with each release.',
+            defaultValue: 'Built-in skills maintained for CSBU WorkMate — read-only and updated with each release.',
           })}
         </p>
         {officialSkills.length > 0 ? (

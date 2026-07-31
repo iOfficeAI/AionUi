@@ -5,7 +5,7 @@ import { setPendingInitialMessage } from '../services/pendingInitialMessages';
 import { useConnection } from './ConnectionContext';
 
 /**
- * Conversation type matching TChatConversation from AionUi.
+ * Conversation type matching TChatConversation from CSBU WorkMate.
  * Simplified for mobile — we only need display-relevant fields.
  */
 export type Conversation = {

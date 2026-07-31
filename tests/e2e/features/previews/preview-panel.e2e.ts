@@ -27,14 +27,14 @@ const EXTERNAL_WORKSPACE_ROOT = '/Users/Shared';
 
 /** Write a temp file we can feed to preview/convert APIs. */
 function makeTempFile(ext: string, body: string): string {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'aionui-preview-e2e-'));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'csbu-workmate-preview-e2e-'));
   const file = path.join(dir, `sample.${ext}`);
   fs.writeFileSync(file, body);
   return file;
 }
 
 function makeExternalWorkspaceFile(ext: string, body: string): { filePath: string; workspace: string } {
-  const dir = fs.mkdtempSync(path.join(EXTERNAL_WORKSPACE_ROOT, 'aionui-preview-e2e-'));
+  const dir = fs.mkdtempSync(path.join(EXTERNAL_WORKSPACE_ROOT, 'csbu-workmate-preview-e2e-'));
   const file = path.join(dir, `sample.${ext}`);
   fs.writeFileSync(file, body);
   return { filePath: file, workspace: dir };

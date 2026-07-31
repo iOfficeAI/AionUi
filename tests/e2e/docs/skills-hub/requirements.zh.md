@@ -4,7 +4,7 @@
 
 **页面路径**：`src/renderer/pages/settings/SkillsHubSettings.tsx`
 
-**核心定位**：SkillsHub（技能中心）是 AionUi 的统一技能管理平台，提供一站式的技能导入、导出、删除、搜索与分类展示功能。用户通过该页面集中管理 AI agent 所需的所有技能，实现"一次安装，全助手通用"。
+**核心定位**：SkillsHub（技能中心）是 CSBU WorkMate 的统一技能管理平台，提供一站式的技能导入、导出、删除、搜索与分类展示功能。用户通过该页面集中管理 AI agent 所需的所有技能，实现"一次安装，全助手通用"。
 
 **支持模式**：
 
@@ -14,7 +14,7 @@
 **技能来源分类**：
 
 1. **Built-in Skills**（内置技能）：位于 `builtin-skills/` 目录
-2. **Custom Skills**（自定义技能）：位于用户目录 `~/.aionui/skills/`
+2. **Custom Skills**（自定义技能）：位于用户目录 `~/.csbu-workmate/skills/`
 3. **Extension Skills**（扩展技能）：由 ExtensionRegistry 贡献
 4. **Auto-injected Skills**（自动注入技能）：位于 `_builtin/` 目录，无需用户选择
 
@@ -239,7 +239,7 @@
    - 校验 `SKILL.md` 存在
    - 解析 YAML frontmatter 获取技能名称
    - 创建 symlink：`fs.symlink(skillPath, targetDir, 'junction')`
-   - 目标路径：`~/.aionui/skills/{skillName}`
+   - 目标路径：`~/.csbu-workmate/skills/{skillName}`
 
 **边界处理**：
 
@@ -416,7 +416,7 @@ ipcBridge.fs.removeCustomExternalPath.provider(async ({ path: skillPath }) => {
 **影响**：
 
 - 用户添加错误路径后无法通过 UI 删除
-- 必须手动编辑 `~/.aionui/custom_external_skill_paths.json` 文件
+- 必须手动编辑 `~/.csbu-workmate/custom_external_skill_paths.json` 文件
 
 **建议**：
 
@@ -582,7 +582,7 @@ const filteredSkills = useMemo(() => {
 
 ```typescript
 {
-  userSkillsDir: string; // ~/.aionui/skills
+  userSkillsDir: string; // ~/.csbu-workmate/skills
   builtinSkillsDir: string; // builtin-skills/
 }
 ```
@@ -765,7 +765,7 @@ sequenceDiagram
     UI->>Bridge: importSkillWithSymlink({ skillPath })
     Bridge->>FS: 校验 SKILL.md 存在
     Bridge->>FS: 解析 YAML frontmatter
-    Bridge->>FS: 创建 symlink 到 ~/.aionui/skills/{name}
+    Bridge->>FS: 创建 symlink 到 ~/.csbu-workmate/skills/{name}
     FS-->>Bridge: { success: true }
     Bridge-->>UI: 显示成功 Message
     UI->>Bridge: 刷新 listAvailableSkills()
@@ -892,10 +892,10 @@ interface ExternalSource {
 
 #### 4.2.1 技能目录结构
 
-**位置**：`~/.aionui/`（`src/process/utils/initStorage.ts`）
+**位置**：`~/.csbu-workmate/`（`src/process/utils/initStorage.ts`）
 
 ```
-~/.aionui/
+~/.csbu-workmate/
 ├── skills/                    # 用户技能目录
 │   ├── my-skill/              # 自定义技能（可能是 symlink）
 │   │   └── SKILL.md
@@ -905,7 +905,7 @@ interface ExternalSource {
 │   ├── skill-a/
 │   │   └── SKILL.md
 │   └── _builtin/              # 自动注入技能（不展示在列表）
-│       └── aionui-skills/
+│       └── csbu-workmate-skills/
 │           └── SKILL.md
 └── custom_external_skill_paths.json # 自定义外部路径配置
 ```
@@ -914,7 +914,7 @@ interface ExternalSource {
 
 #### 4.2.2 自定义路径配置文件
 
-**文件路径**：`~/.aionui/custom_external_skill_paths.json`
+**文件路径**：`~/.csbu-workmate/custom_external_skill_paths.json`
 
 **结构**：
 
@@ -1429,7 +1429,7 @@ normalizeTestId('skill<test>'); // → 'skill-test-'
 
 - **状态**：Bridge 已实现（`fsBridge.ts:1472-1483`），UI 未实现
 - **影响**：用户无法通过界面删除错误添加的自定义路径
-- **解决方案**：手动编辑 `~/.aionui/custom_external_skill_paths.json`
+- **解决方案**：手动编辑 `~/.csbu-workmate/custom_external_skill_paths.json`
 - **E2E 测试范围**：不包含
 
 #### 9.1.2 Skills Market 集成

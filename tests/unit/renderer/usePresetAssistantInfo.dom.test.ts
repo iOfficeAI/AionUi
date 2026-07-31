@@ -204,7 +204,7 @@ describe('usePresetAssistantInfo', () => {
         id: 'assistant-local-avatar',
         source: 'user',
         name: 'Local Avatar',
-        avatar: '/Users/demo/.aionui/assistant-avatars/assistant-local-avatar.jpg',
+        avatar: '/Users/demo/.csbu-workmate/assistant-avatars/assistant-local-avatar.jpg',
         backend: 'codex',
       },
     } as TChatConversation;
@@ -236,7 +236,7 @@ describe('usePresetAssistantInfo', () => {
         id: 'assistant-local-avatar',
         source: 'user',
         name: 'Local Avatar',
-        avatar: '/Users/demo/.aionui/assistant-avatars/assistant-local-avatar.jpg',
+        avatar: '/Users/demo/.csbu-workmate/assistant-avatars/assistant-local-avatar.jpg',
         backend: 'codex',
       },
     } as TChatConversation;
@@ -552,7 +552,7 @@ function makeConversation(extra: Record<string, unknown>): TChatConversation {
     model: {},
     extra,
     status: 'finished',
-    source: 'aionui',
+    source: 'csbu-workmate',
     created_at: 1,
     modified_at: 1,
     pinned: false,

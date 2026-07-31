@@ -7,11 +7,10 @@
 import { ipcBridge } from '@/common';
 import { parseError } from '@/common/utils';
 import { formatManagedAgentDiagnosticMessage, type ManagedAgent } from '@/renderer/utils/model/agentTypes';
-import AionModal from '@/renderer/components/base/AionModal';
-import { AionSearchInput } from '@/renderer/components/base';
+import WorkMateModal from '@/renderer/components/base/WorkMateModal';
+import { WorkMateSearchInput } from '@/renderer/components/base';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { useManagedAgents } from '@/renderer/hooks/agent/useManagedAgents';
-import { openExternalUrl } from '@/renderer/utils/platform';
 import { Button, Message, Typography } from '@arco-design/web-react';
 import TalkToButlerButton from '@/renderer/components/base/TalkToButlerButton';
 import React, { useCallback, useMemo, useState } from 'react';
@@ -27,8 +26,6 @@ import {
   getAgentAvailabilityFilterStats,
   type AgentAvailabilityFilter,
 } from './agentFilters';
-
-const LOCAL_AGENT_SETUP_GUIDE_URL = 'https://github.com/iOfficeAI/AionUi/wiki/ACP-Setup';
 
 const LocalAgents: React.FC = () => {
   const { t, i18n } = useTranslation();
@@ -213,25 +210,11 @@ const LocalAgents: React.FC = () => {
       <SettingsPageHeader
         data-testid='agent-management-header'
         title={t('settings.agents', { defaultValue: 'Agents' })}
-        description={
-          <>
-            <span>{t('settings.agentManagement.localAgentsDescription')} </span>
-            <Button
-              type='text'
-              size='mini'
-              className='!h-auto !p-0 !align-baseline !text-13px !font-normal !text-primary-6 hover:!text-primary-7 hover:!underline underline-offset-2'
-              onClick={() => {
-                void openExternalUrl(LOCAL_AGENT_SETUP_GUIDE_URL).catch(console.error);
-              }}
-            >
-              {t('settings.agentManagement.localAgentsSetupLink')}
-            </Button>
-          </>
-        }
+        description={t('settings.agentManagement.localAgentsDescription')}
         actions={
           <>
             {!isMobile && (
-              <AionSearchInput
+              <WorkMateSearchInput
                 className='shrink-0 w-[200px] hidden md:flex'
                 data-testid='input-search-agents'
                 placeholder={t('settings.agentManagement.searchPlaceholder', { defaultValue: 'Search agents...' })}
@@ -310,7 +293,7 @@ const LocalAgents: React.FC = () => {
         </Typography.Text>
       </div>
 
-      <AionModal
+      <WorkMateModal
         visible={editorVisible}
         onCancel={() => {
           setEditorVisible(false);
@@ -347,7 +330,7 @@ const LocalAgents: React.FC = () => {
             }}
           />
         )}
-      </AionModal>
+      </WorkMateModal>
 
       <div data-testid='agent-management-custom-section'>
         <div className='flex flex-col gap-8px rounded-12px border border-border-2 bg-2 p-8px md:rounded-16px md:p-10px'>

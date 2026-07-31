@@ -188,7 +188,7 @@ describe('GuidModelSelector', () => {
     expect(onThoughtLevelSelect).toHaveBeenCalledWith('high');
   });
 
-  it('does not add thought level options to the Aion CLI provider model menu', () => {
+  it('does not add thought level options to the CSBU WorkMate provider model menu', () => {
     render(
       <GuidModelSelector
         isGeminiMode

@@ -1,16 +1,16 @@
 ---
 name: bump-version
-description: Use when bumping the AionUi version: query AionCore release, verify artifacts, update package.json, generate CHANGELOG, branch, commit, push, create PR, auto-merge, tag release.
+description: Use when bumping the CSBU WorkMate version: query AionCore release, verify artifacts, update package.json, generate CHANGELOG, branch, commit, push, create PR, auto-merge, tag release.
 ---
 
 # Bump Version
 
-Automate the AionUi release preparation: query AionCore release → verify artifacts → update versions → generate CHANGELOG → branch → PR → tag.
+Automate the CSBU WorkMate release preparation: query AionCore release → verify artifacts → update versions → generate CHANGELOG → branch → PR → tag.
 
 **Usage:** `/bump-version [version] [flags]`
 
 - `/bump-version` — auto patch + latest AionCore
-- `/bump-version 2.2.0` — explicit AionUi version + latest AionCore
+- `/bump-version 2.2.0` — explicit CSBU WorkMate version + latest AionCore
 - `/bump-version 2.2.0 --core v0.1.12` — explicit both versions
 - `/bump-version --skip-core` — pure frontend release (don't touch aioncoreVersion)
 
@@ -34,14 +34,14 @@ git pull --rebase origin main
 
 Fails → Stop: "Failed to pull latest code. Please resolve conflicts or network issues first."
 
-### Step 3: Determine AionUi Target Version
+### Step 3: Determine CSBU WorkMate Target Version
 
 Read `package.json` → extract `version` field.
 
 - **Argument provided** → use as-is
 - **No argument** → parse `major.minor.patch`, increment `patch` by 1
 
-Display: "Bumping AionUi: {current} → {target}"
+Display: "Bumping CSBU WorkMate: {current} → {target}"
 
 ### Step 4: Query AionCore Latest Release
 
@@ -119,7 +119,7 @@ Prepend the new entry in this format:
 ```markdown
 # Changelog
 
-## [{target}](https://github.com/iOfficeAI/AionUi/compare/v{previous}...v{target}) ({date YYYY-MM-DD})
+## [{target}](https://github.com/CSBU/CSBU-WorkMate/compare/v{previous}...v{target}) ({date YYYY-MM-DD})
 
 ### Desktop
 
@@ -260,7 +260,7 @@ Display: "Tag v{target} created and pushed. Release build triggered! Action: {ru
 ```
  1. Must be on clean main
  2. git pull --rebase
- 3. Determine AionUi target version (patch+1 or explicit)
+ 3. Determine CSBU WorkMate target version (patch+1 or explicit)
  4. Query AionCore latest release (or --core / --skip-core)
  5. Verify AionCore artifacts (7 files)
  6. Edit package.json (version + aioncoreVersion)

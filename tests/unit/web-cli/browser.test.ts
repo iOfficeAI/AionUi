@@ -34,16 +34,16 @@ describe('shouldAutoOpenBrowser', () => {
       shouldAutoOpenBrowser({
         allowRemote: false,
         noOpenFlag: true,
-        env: { AIONUI_OPEN_BROWSER: 'true' },
+        env: { CSBU_WORKMATE_OPEN_BROWSER: 'true' },
       })
     ).toBe(false);
   });
 
-  it('honors AIONUI_OPEN_BROWSER=false for local launches', () => {
+  it('honors CSBU_WORKMATE_OPEN_BROWSER=false for local launches', () => {
     expect(
       shouldAutoOpenBrowser({
         allowRemote: false,
-        env: { AIONUI_OPEN_BROWSER: 'false' },
+        env: { CSBU_WORKMATE_OPEN_BROWSER: 'false' },
       })
     ).toBe(false);
   });

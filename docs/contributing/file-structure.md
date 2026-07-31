@@ -22,7 +22,7 @@ Rules for organizing files and directories across the entire Electron project.
 
 ## Project Layout (`src/`)
 
-AionUi is a multi-process Electron app with three core layers: **renderer**, **main process**, and **preload/shared**.
+CSBU WorkMate is a multi-process Electron app with three core layers: **renderer**, **main process**, and **preload/shared**.
 
 ### Target Structure
 
@@ -246,7 +246,7 @@ src/renderer/
 
 ```
 src/renderer/components/
-├── base/           # UI primitives — AionModal, AionSelect, FlexFullContainer, etc.
+├── base/           # UI primitives — WorkMateModal, WorkMateSelect, FlexFullContainer, etc.
 ├── chat/           # Conversation/message domain (example, not exhaustive)
 ├── agent/          # Agent selection/configuration domain
 ├── settings/       # Settings domain

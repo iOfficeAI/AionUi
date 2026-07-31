@@ -40,7 +40,7 @@
     "subAgentsPlaceholder": "Selecione os assistentes da equipe",
     "confirm": "Confirm Create",
     "noSupportedAgents": "Nenhum assistente compatível disponível",
-    "supportedAgentsHint": "Atualmente oferece suporte a assistentes Claude e Aion CLI. Mais assistentes em breve.",
+    "supportedAgentsHint": "Atualmente oferece suporte a assistentes Claude e CSBU WorkMate. Mais assistentes em breve.",
     "leaderDesc": "Entende seus objetivos e coordena assistentes para concluir tarefas",
     "searchPlaceholder": "Search",
     "noSearchResults": "Nenhum resultado encontrado",

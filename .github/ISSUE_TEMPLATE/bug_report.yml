@@ -1,5 +1,5 @@
 name: 🐛 Bug Report
-description: Report a bug or unexpected behavior in AionUi
+description: Report a bug or unexpected behavior in CSBU WorkMate
 title: '[Bug]: '
 labels: ['bug']
 body:
@@ -43,8 +43,8 @@ body:
   - type: input
     id: version
     attributes:
-      label: AionUi Version
-      description: What version of AionUi are you using?
+      label: CSBU WorkMate Version
+      description: What version of CSBU WorkMate are you using?
       placeholder: e.g., 1.2.2
     validations:
       required: true

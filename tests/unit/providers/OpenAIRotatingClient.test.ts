@@ -40,7 +40,7 @@ describe('OpenAIRotatingClient', () => {
     const client = new OpenAIRotatingClient(' \n sk-configured-key\t ', {
       baseURL: 'https://gateway.example.com/v1',
       defaultHeaders: {
-        'HTTP-Referer': 'https://aionui.com',
+        'X-Internal-Client': 'CSBU WorkMate',
       },
       httpAgent,
     });
@@ -54,7 +54,7 @@ describe('OpenAIRotatingClient', () => {
       apiKey: 'sk-configured-key',
       baseURL: 'https://gateway.example.com/v1',
       defaultHeaders: {
-        'HTTP-Referer': 'https://aionui.com',
+        'X-Internal-Client': 'CSBU WorkMate',
       },
       httpAgent,
     });

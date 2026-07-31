@@ -1,36 +1,36 @@
-!ifndef AIONUI_INSTALLER_UPDATE_VERIFY_NSH
-!define AIONUI_INSTALLER_UPDATE_VERIFY_NSH
+!ifndef CSBU_WORKMATE_INSTALLER_UPDATE_VERIFY_NSH
+!define CSBU_WORKMATE_INSTALLER_UPDATE_VERIFY_NSH
 
-Var /GLOBAL AionUiUninstallHadErrors
-Var /GLOBAL AionUiUninstallLogResult
-Var /GLOBAL AionUiVerifyResourceResult
-Var /GLOBAL AionUiUpdatedAppExitWaitResult
-Var /GLOBAL AionUiActiveMarkerExecResult
-Var /GLOBAL AionUiActiveMarkerResult
+Var /GLOBAL CsbuWorkMateUninstallHadErrors
+Var /GLOBAL CsbuWorkMateUninstallLogResult
+Var /GLOBAL CsbuWorkMateVerifyResourceResult
+Var /GLOBAL CsbuWorkMateUpdatedAppExitWaitResult
+Var /GLOBAL CsbuWorkMateActiveMarkerExecResult
+Var /GLOBAL CsbuWorkMateActiveMarkerResult
 
-!define AIONUI_ACTIVE_INSTALLER_MARKER "aionui-installer-active.marker"
+!define CSBU_WORKMATE_ACTIVE_INSTALLER_MARKER "csbu-workmate-installer-active.marker"
 
-!macro AIONUI_BRING_UPDATED_INSTALLER_TO_FRONT
+!macro CSBU_WORKMATE_BRING_UPDATED_INSTALLER_TO_FRONT
   ${If} ${isUpdated}
     BringToFront
-    !insertmacro AIONUI_SLOG "event=updated-installer-foreground action=bring-to-front"
+    !insertmacro CSBU_WORKMATE_SLOG "event=updated-installer-foreground action=bring-to-front"
   ${EndIf}
 !macroend
 
-!macro AIONUI_WAIT_FOR_UPDATED_APP_EXIT
+!macro CSBU_WORKMATE_WAIT_FOR_UPDATED_APP_EXIT
   ${If} ${isUpdated}
-    !insertmacro AIONUI_SLOG "event=updated-app-exit-wait phase=start"
-    StrCpy $AionUiUpdatedAppExitWaitResult "0"
+    !insertmacro CSBU_WORKMATE_SLOG "event=updated-app-exit-wait phase=start"
+    StrCpy $CsbuWorkMateUpdatedAppExitWaitResult "0"
 
     nsExec::Exec `"$SYSDIR\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -Command "& { \
       $$ErrorActionPreference = 'SilentlyContinue'; \
       $$deadline = (Get-Date).AddSeconds(10); \
-      $$target = [System.IO.Path]::GetFullPath((Join-Path '$INSTDIR' '${AIONUI_APP_EXECUTABLE_FILENAME}')); \
+      $$target = [System.IO.Path]::GetFullPath((Join-Path '$INSTDIR' '${CSBU_WORKMATE_APP_EXECUTABLE_FILENAME}')); \
       do { \
         $$hits = @(Get-CimInstance -ClassName Win32_Process | Where-Object { \
           $$path = $$_.ExecutablePath; \
           if (-not $$path) { $$path = $$_.Path } \
-          $$_.Name -ieq '${AIONUI_APP_EXECUTABLE_FILENAME}' -and $$path -and \
+          $$_.Name -ieq '${CSBU_WORKMATE_APP_EXECUTABLE_FILENAME}' -and $$path -and \
           [string]::Equals([System.IO.Path]::GetFullPath($$path), $$target, [System.StringComparison]::CurrentCultureIgnoreCase) \
         }); \
         if ($$hits.Count -eq 0) { exit 0 }; \
@@ -38,81 +38,86 @@ Var /GLOBAL AionUiActiveMarkerResult
       } while ((Get-Date) -lt $$deadline); \
       exit 1 \
     }"`
-    Pop $AionUiUpdatedAppExitWaitResult
+    Pop $CsbuWorkMateUpdatedAppExitWaitResult
 
-    ${If} $AionUiUpdatedAppExitWaitResult != 0
-      !insertmacro AIONUI_SLOG "event=updated-app-exit-wait phase=timeout action=stop"
-      !insertmacro AIONUI_STOP_APP_PROCESSES
+    ${If} $CsbuWorkMateUpdatedAppExitWaitResult != 0
+      !insertmacro CSBU_WORKMATE_SLOG "event=updated-app-exit-wait phase=timeout action=stop"
+      !insertmacro CSBU_WORKMATE_STOP_APP_PROCESSES
     ${EndIf}
 
-    !insertmacro AIONUI_SLOG "event=updated-app-exit-wait phase=done result=$AionUiUpdatedAppExitWaitResult"
+    !insertmacro CSBU_WORKMATE_SLOG "event=updated-app-exit-wait phase=done result=$CsbuWorkMateUpdatedAppExitWaitResult"
   ${EndIf}
 !macroend
 
-!macro AIONUI_RECORD_ACTIVE_INSTALLER_MARKER
+!macro CSBU_WORKMATE_RECORD_ACTIVE_INSTALLER_MARKER
   nsExec::ExecToStack `"$SYSDIR\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -Command "& { \
     $$ErrorActionPreference = 'SilentlyContinue'; \
-    $$marker = Join-Path $$env:TEMP '${AIONUI_ACTIVE_INSTALLER_MARKER}'; \
+    $$marker = Join-Path $$env:TEMP '${CSBU_WORKMATE_ACTIVE_INSTALLER_MARKER}'; \
     if (-not (Test-Path -LiteralPath $$marker)) { Write-Output 'missing'; exit 0 }; \
     $$item = Get-Item -LiteralPath $$marker; \
     if ($$item.LastWriteTime -lt (Get-Date).AddHours(-2)) { Write-Output 'stale'; exit 0 }; \
     Write-Output 'active' \
   }"`
-  Pop $AionUiActiveMarkerExecResult
-  Pop $AionUiActiveMarkerResult
-  ${If} $AionUiActiveMarkerResult == "active"
-    !insertmacro AIONUI_SLOG "event=installer-active-marker state=active"
-  ${ElseIf} $AionUiActiveMarkerResult == "stale"
-    !insertmacro AIONUI_SLOG "event=installer-active-marker state=stale"
+  Pop $CsbuWorkMateActiveMarkerExecResult
+  Pop $CsbuWorkMateActiveMarkerResult
+  ${If} $CsbuWorkMateActiveMarkerResult == "active"
+    !insertmacro CSBU_WORKMATE_SLOG "event=installer-active-marker state=active"
+  ${ElseIf} $CsbuWorkMateActiveMarkerResult == "stale"
+    !insertmacro CSBU_WORKMATE_SLOG "event=installer-active-marker state=stale"
   ${Else}
-    !insertmacro AIONUI_SLOG "event=installer-active-marker state=missing"
+    !insertmacro CSBU_WORKMATE_SLOG "event=installer-active-marker state=missing"
   ${EndIf}
 !macroend
 
-!macro AIONUI_WRITE_ACTIVE_INSTALLER_MARKER
+!macro CSBU_WORKMATE_WRITE_ACTIVE_INSTALLER_MARKER
   nsExec::Exec `"$SYSDIR\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -Command "& { \
     $$ErrorActionPreference = 'SilentlyContinue'; \
-    $$marker = Join-Path $$env:TEMP '${AIONUI_ACTIVE_INSTALLER_MARKER}'; \
-    Set-Content -LiteralPath $$marker -Encoding UTF8 -Value ('pid=' + $$PID + ';session=$AionUiSessionId;started=' + (Get-Date -Format o)) \
+    $$marker = Join-Path $$env:TEMP '${CSBU_WORKMATE_ACTIVE_INSTALLER_MARKER}'; \
+    Set-Content -LiteralPath $$marker -Encoding UTF8 -Value ('pid=' + $$PID + ';session=$CsbuWorkMateSessionId;started=' + (Get-Date -Format o)) \
   }"`
-  Pop $AionUiActiveMarkerResult
+  Pop $CsbuWorkMateActiveMarkerResult
 !macroend
 
-!macro AIONUI_CLEAR_ACTIVE_INSTALLER_MARKER
+!macro CSBU_WORKMATE_CLEAR_ACTIVE_INSTALLER_MARKER
   !ifndef BUILD_UNINSTALLER
     nsExec::Exec `"$SYSDIR\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -Command "& { \
       $$ErrorActionPreference = 'SilentlyContinue'; \
-      Remove-Item -LiteralPath (Join-Path $$env:TEMP '${AIONUI_ACTIVE_INSTALLER_MARKER}') -Force \
+      Remove-Item -LiteralPath (Join-Path $$env:TEMP '${CSBU_WORKMATE_ACTIVE_INSTALLER_MARKER}') -Force \
     }"`
-    Pop $AionUiActiveMarkerResult
+    Pop $CsbuWorkMateActiveMarkerResult
   !endif
 !macroend
 
-!macro AIONUI_OVERRIDE_SINGLE_INSTANCE
+!macro CSBU_WORKMATE_OVERRIDE_SINGLE_INSTANCE
 !macroend
 
-!macro AIONUI_OVERRIDE_APP_CANNOT_BE_CLOSED_MESSAGE
+!macro CSBU_WORKMATE_OVERRIDE_APP_CANNOT_BE_CLOSED_MESSAGE
   !pragma warning disable 6030
-  LangString appCannotBeClosed 1033 "${AIONUI_MSG_APP_CANNOT_BE_CLOSED_ZH}$\r$\n$\r$\n${AIONUI_MSG_BLOCK_SEPARATOR}$\r$\n$\r$\n${AIONUI_MSG_APP_CANNOT_BE_CLOSED_EN}"
-  LangString appCannotBeClosed 2052 "${AIONUI_MSG_APP_CANNOT_BE_CLOSED_ZH}$\r$\n$\r$\n${AIONUI_MSG_BLOCK_SEPARATOR}$\r$\n$\r$\n${AIONUI_MSG_APP_CANNOT_BE_CLOSED_EN}"
+  LangString appCannotBeClosed 1033 "${CSBU_WORKMATE_MSG_APP_CANNOT_BE_CLOSED_ZH}$\r$\n$\r$\n${CSBU_WORKMATE_MSG_BLOCK_SEPARATOR}$\r$\n$\r$\n${CSBU_WORKMATE_MSG_APP_CANNOT_BE_CLOSED_EN}"
+  LangString appCannotBeClosed 2052 "${CSBU_WORKMATE_MSG_APP_CANNOT_BE_CLOSED_ZH}$\r$\n$\r$\n${CSBU_WORKMATE_MSG_BLOCK_SEPARATOR}$\r$\n$\r$\n${CSBU_WORKMATE_MSG_APP_CANNOT_BE_CLOSED_EN}"
   !pragma warning default 6030
 !macroend
 
-!macro AIONUI_INSTALLER_CUSTOM_HEADER
-  !insertmacro AIONUI_OVERRIDE_SINGLE_INSTANCE
-  !insertmacro AIONUI_OVERRIDE_APP_CANNOT_BE_CLOSED_MESSAGE
+!macro CSBU_WORKMATE_INSTALLER_CUSTOM_HEADER
+  !if /FileExists "$%RESOURCE_HACKER_PATH"
+    ; Modify the temporary NSIS header before payload/CRC assembly. Editing the
+    ; completed installer would invalidate its integrity check.
+    !packhdr "$%TEMP%\csbu-workmate-nsis-header.exe" '"$%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe" -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "${PROJECT_DIR}\resources\windows\support\strip-exe-version-info.ps1" -TargetPath "$%TEMP%\csbu-workmate-nsis-header.exe" -ResourceHackerPath "$%RESOURCE_HACKER_PATH"'
+  !endif
+  !insertmacro CSBU_WORKMATE_OVERRIDE_SINGLE_INSTANCE
+  !insertmacro CSBU_WORKMATE_OVERRIDE_APP_CANNOT_BE_CLOSED_MESSAGE
 !macroend
 
-!macro AIONUI_RELEASE_INSTALL_DIR_OUTDIR
+!macro CSBU_WORKMATE_RELEASE_INSTALL_DIR_OUTDIR
   InitPluginsDir
   SetOutPath "$PLUGINSDIR"
-  StrCpy $AionUiCurrentOutDir "$PLUGINSDIR"
+  StrCpy $CsbuWorkMateCurrentOutDir "$PLUGINSDIR"
 !macroend
 
 ; Resolve the machine's real native architecture (arm64 / x64 / x86) for diagnostics.
 ; Backed by IsWow64Process2 (via x64.nsh), so it reports the true hardware arch even when
 ; the installer runs under x86/x64 emulation. Replaces the old hardcoded "non-arm64" detail.
-!macro AIONUI_DETECT_NATIVE_ARCH _OUT
+!macro CSBU_WORKMATE_DETECT_NATIVE_ARCH _OUT
   ${If} ${IsNativeARM64}
     StrCpy ${_OUT} "arm64"
   ${ElseIf} ${RunningX64}
@@ -122,91 +127,91 @@ Var /GLOBAL AionUiActiveMarkerResult
   ${EndIf}
 !macroend
 
-!macro AIONUI_INSTALLER_PREINIT
+!macro CSBU_WORKMATE_INSTALLER_PREINIT
   !ifdef BUILD_UNINSTALLER
-    StrCpy $AionUiSessionId ""
-    StrCpy $AionUiIsUpdated "0"
-    StrCpy $AionUiSessionLogResult ""
-    StrCpy $AionUiSessionLogPath "$TEMP\${AIONUI_FALLBACK_LOG}"
-    StrCpy $AionUiUninstallHadErrors "0"
-    StrCpy $AionUiUninstallLogResult ""
-    StrCpy $AionUiVerifyResourceResult ""
-    StrCpy $AionUiUpdatedAppExitWaitResult ""
-    StrCpy $AionUiActiveMarkerExecResult ""
-    StrCpy $AionUiActiveMarkerResult ""
-    StrCpy $AionUiStopResult ""
-    StrCpy $AionUiLockerListZh ""
-    StrCpy $AionUiLockerListEn ""
+    StrCpy $CsbuWorkMateSessionId ""
+    StrCpy $CsbuWorkMateIsUpdated "0"
+    StrCpy $CsbuWorkMateSessionLogResult ""
+    StrCpy $CsbuWorkMateSessionLogPath "$TEMP\${CSBU_WORKMATE_FALLBACK_LOG}"
+    StrCpy $CsbuWorkMateUninstallHadErrors "0"
+    StrCpy $CsbuWorkMateUninstallLogResult ""
+    StrCpy $CsbuWorkMateVerifyResourceResult ""
+    StrCpy $CsbuWorkMateUpdatedAppExitWaitResult ""
+    StrCpy $CsbuWorkMateActiveMarkerExecResult ""
+    StrCpy $CsbuWorkMateActiveMarkerResult ""
+    StrCpy $CsbuWorkMateStopResult ""
+    StrCpy $CsbuWorkMateLockerListZh ""
+    StrCpy $CsbuWorkMateLockerListEn ""
   !else
-    !insertmacro AIONUI_RELEASE_INSTALL_DIR_OUTDIR
-    !insertmacro AIONUI_SESSION_BEGIN
-    !insertmacro AIONUI_SLOG "event=installer-outdir-release outDir=$AionUiCurrentOutDir instDir=$INSTDIR"
+    !insertmacro CSBU_WORKMATE_RELEASE_INSTALL_DIR_OUTDIR
+    !insertmacro CSBU_WORKMATE_SESSION_BEGIN
+    !insertmacro CSBU_WORKMATE_SLOG "event=installer-outdir-release outDir=$CsbuWorkMateCurrentOutDir instDir=$INSTDIR"
     ; Guard target/machine architecture as early as possible: this runs before customInit's
     ; registry heal/clear/repair, so a wrong-arch installer aborts without mutating an existing
     ; correct-arch install's registry or uninstaller state. (Sentry ELECTRON-3BX / code E1040)
-    !insertmacro AIONUI_ASSERT_TARGET_ARCH
-    !insertmacro AIONUI_BRING_UPDATED_INSTALLER_TO_FRONT
-    !insertmacro AIONUI_RECORD_ACTIVE_INSTALLER_MARKER
-    !insertmacro AIONUI_WRITE_ACTIVE_INSTALLER_MARKER
+    !insertmacro CSBU_WORKMATE_ASSERT_TARGET_ARCH
+    !insertmacro CSBU_WORKMATE_BRING_UPDATED_INSTALLER_TO_FRONT
+    !insertmacro CSBU_WORKMATE_RECORD_ACTIVE_INSTALLER_MARKER
+    !insertmacro CSBU_WORKMATE_WRITE_ACTIVE_INSTALLER_MARKER
   !endif
 !macroend
 
-!macro AIONUI_VERIFY_REQUIRED_FILE _PATH _LABEL
+!macro CSBU_WORKMATE_VERIFY_REQUIRED_FILE _PATH _LABEL
   ${IfNot} ${FileExists} "${_PATH}"
-    !insertmacro AIONUI_LOG_EVENT "verify-required-file missing label=${_LABEL} path=${_PATH}"
-    !insertmacro AIONUI_FAIL_UX \
-      "${AIONUI_E_CORE_APP_FILES_INCOMPLETE}" \
+    !insertmacro CSBU_WORKMATE_LOG_EVENT "verify-required-file missing label=${_LABEL} path=${_PATH}"
+    !insertmacro CSBU_WORKMATE_FAIL_UX \
+      "${CSBU_WORKMATE_E_CORE_APP_FILES_INCOMPLETE}" \
       "verify-required-file missing label=${_LABEL} path=${_PATH}" \
-      "${AIONUI_MSG_VERIFY_REQUIRED_FILE_ZH} ${_LABEL}" \
-      "${AIONUI_MSG_VERIFY_REQUIRED_FILE_EN} ${_LABEL}" \
-      "${AIONUI_MSG_VERIFY_REQUIRED_FILE_ACTION_ZH}" \
-      "${AIONUI_MSG_VERIFY_REQUIRED_FILE_ACTION_EN}" \
+      "${CSBU_WORKMATE_MSG_VERIFY_REQUIRED_FILE_ZH} ${_LABEL}" \
+      "${CSBU_WORKMATE_MSG_VERIFY_REQUIRED_FILE_EN} ${_LABEL}" \
+      "${CSBU_WORKMATE_MSG_VERIFY_REQUIRED_FILE_ACTION_ZH}" \
+      "${CSBU_WORKMATE_MSG_VERIFY_REQUIRED_FILE_ACTION_EN}" \
       "verify-required-file missing label=${_LABEL} path=${_PATH}" \
       "verify-required-file missing label=${_LABEL} path=${_PATH}"
   ${Else}
-    !insertmacro AIONUI_LOG_EVENT "verify-required-file ok label=${_LABEL} path=${_PATH}"
+    !insertmacro CSBU_WORKMATE_LOG_EVENT "verify-required-file ok label=${_LABEL} path=${_PATH}"
   ${EndIf}
 !macroend
 
-!macro AIONUI_VERIFY_CORE_APP_FILES
-  !insertmacro AIONUI_LOG_EVENT "verify-install start instDir=$INSTDIR"
-  !insertmacro AIONUI_VERIFY_REQUIRED_FILE "$INSTDIR\AionUi.exe" "AionUi.exe"
-  !insertmacro AIONUI_VERIFY_REQUIRED_FILE "$INSTDIR\ffmpeg.dll" "ffmpeg.dll"
-  !insertmacro AIONUI_VERIFY_REQUIRED_FILE "$INSTDIR\libEGL.dll" "libEGL.dll"
-  !insertmacro AIONUI_VERIFY_REQUIRED_FILE "$INSTDIR\libGLESv2.dll" "libGLESv2.dll"
-  !insertmacro AIONUI_VERIFY_REQUIRED_FILE "$INSTDIR\d3dcompiler_47.dll" "d3dcompiler_47.dll"
-  !insertmacro AIONUI_VERIFY_REQUIRED_FILE "$INSTDIR\dxcompiler.dll" "dxcompiler.dll"
-  !insertmacro AIONUI_VERIFY_REQUIRED_FILE "$INSTDIR\dxil.dll" "dxil.dll"
-  !insertmacro AIONUI_VERIFY_REQUIRED_FILE "$INSTDIR\vk_swiftshader.dll" "vk_swiftshader.dll"
-  !insertmacro AIONUI_VERIFY_REQUIRED_FILE "$INSTDIR\vulkan-1.dll" "vulkan-1.dll"
-  !insertmacro AIONUI_VERIFY_REQUIRED_FILE "$INSTDIR\resources\app.asar" "resources\app.asar"
+!macro CSBU_WORKMATE_VERIFY_CORE_APP_FILES
+  !insertmacro CSBU_WORKMATE_LOG_EVENT "verify-install start instDir=$INSTDIR"
+  !insertmacro CSBU_WORKMATE_VERIFY_REQUIRED_FILE "$INSTDIR\CSBU WorkMate.exe" "CSBU WorkMate.exe"
+  !insertmacro CSBU_WORKMATE_VERIFY_REQUIRED_FILE "$INSTDIR\ffmpeg.dll" "ffmpeg.dll"
+  !insertmacro CSBU_WORKMATE_VERIFY_REQUIRED_FILE "$INSTDIR\libEGL.dll" "libEGL.dll"
+  !insertmacro CSBU_WORKMATE_VERIFY_REQUIRED_FILE "$INSTDIR\libGLESv2.dll" "libGLESv2.dll"
+  !insertmacro CSBU_WORKMATE_VERIFY_REQUIRED_FILE "$INSTDIR\d3dcompiler_47.dll" "d3dcompiler_47.dll"
+  !insertmacro CSBU_WORKMATE_VERIFY_REQUIRED_FILE "$INSTDIR\dxcompiler.dll" "dxcompiler.dll"
+  !insertmacro CSBU_WORKMATE_VERIFY_REQUIRED_FILE "$INSTDIR\dxil.dll" "dxil.dll"
+  !insertmacro CSBU_WORKMATE_VERIFY_REQUIRED_FILE "$INSTDIR\vk_swiftshader.dll" "vk_swiftshader.dll"
+  !insertmacro CSBU_WORKMATE_VERIFY_REQUIRED_FILE "$INSTDIR\vulkan-1.dll" "vulkan-1.dll"
+  !insertmacro CSBU_WORKMATE_VERIFY_REQUIRED_FILE "$INSTDIR\resources\app.asar" "resources\app.asar"
 !macroend
 
-!macro AIONUI_VERIFY_BUNDLED_AIONCORE_RESOURCES _RUNTIME_KEY
+!macro CSBU_WORKMATE_VERIFY_BUNDLED_AIONCORE_RESOURCES _RUNTIME_KEY
   InitPluginsDir
   File "/oname=$PLUGINSDIR\verify-bundled-aioncore-install.ps1" "${PROJECT_DIR}\resources\windows\support\verify-bundled-aioncore-install.ps1"
-  nsExec::Exec `"$SYSDIR\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -File "$PLUGINSDIR\verify-bundled-aioncore-install.ps1" -InstallDir "$INSTDIR" -RuntimeKey "${_RUNTIME_KEY}" -LogPath "$AionUiSessionLogPath"`
-  Pop $AionUiVerifyResourceResult
+  nsExec::Exec `"$SYSDIR\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -File "$PLUGINSDIR\verify-bundled-aioncore-install.ps1" -InstallDir "$INSTDIR" -RuntimeKey "${_RUNTIME_KEY}" -LogPath "$CsbuWorkMateSessionLogPath"`
+  Pop $CsbuWorkMateVerifyResourceResult
 
-  ${If} $AionUiVerifyResourceResult != 0
-    !insertmacro AIONUI_FAIL_UX \
-      "${AIONUI_E_BUNDLED_AIONCORE_INCOMPLETE}" \
-      "event=session-end result=fail code=${AIONUI_E_BUNDLED_AIONCORE_INCOMPLETE} detail=bundled-aioncore-incomplete runtime=${_RUNTIME_KEY} result=$AionUiVerifyResourceResult" \
-      "${AIONUI_MSG_BUNDLED_AIONCORE_INCOMPLETE_ZH}" \
-      "${AIONUI_MSG_BUNDLED_AIONCORE_INCOMPLETE_EN}" \
-      "${AIONUI_MSG_BUNDLED_AIONCORE_INCOMPLETE_ACTION_ZH}" \
-      "${AIONUI_MSG_BUNDLED_AIONCORE_INCOMPLETE_ACTION_EN}" \
-      "bundled-aioncore-incomplete runtime=${_RUNTIME_KEY} result=$AionUiVerifyResourceResult instDir=$INSTDIR" \
-      "bundled-aioncore-incomplete runtime=${_RUNTIME_KEY} result=$AionUiVerifyResourceResult instDir=$INSTDIR"
+  ${If} $CsbuWorkMateVerifyResourceResult != 0
+    !insertmacro CSBU_WORKMATE_FAIL_UX \
+      "${CSBU_WORKMATE_E_BUNDLED_AIONCORE_INCOMPLETE}" \
+      "event=session-end result=fail code=${CSBU_WORKMATE_E_BUNDLED_AIONCORE_INCOMPLETE} detail=bundled-aioncore-incomplete runtime=${_RUNTIME_KEY} result=$CsbuWorkMateVerifyResourceResult" \
+      "${CSBU_WORKMATE_MSG_BUNDLED_AIONCORE_INCOMPLETE_ZH}" \
+      "${CSBU_WORKMATE_MSG_BUNDLED_AIONCORE_INCOMPLETE_EN}" \
+      "${CSBU_WORKMATE_MSG_BUNDLED_AIONCORE_INCOMPLETE_ACTION_ZH}" \
+      "${CSBU_WORKMATE_MSG_BUNDLED_AIONCORE_INCOMPLETE_ACTION_EN}" \
+      "bundled-aioncore-incomplete runtime=${_RUNTIME_KEY} result=$CsbuWorkMateVerifyResourceResult instDir=$INSTDIR" \
+      "bundled-aioncore-incomplete runtime=${_RUNTIME_KEY} result=$CsbuWorkMateVerifyResourceResult instDir=$INSTDIR"
   ${EndIf}
 !macroend
 
 !macro customInstall
-  !insertmacro AIONUI_VERIFY_CORE_APP_FILES
-  !insertmacro AIONUI_VERIFY_BUNDLED_AIONCORE_RESOURCES "${AIONUI_RUNTIME_KEY}"
-  !insertmacro AIONUI_LOG_EVENT "verify-install ok instDir=$INSTDIR"
-  !insertmacro AIONUI_CLEAR_ACTIVE_INSTALLER_MARKER
-  !insertmacro AIONUI_SESSION_SUCCESS
+  !insertmacro CSBU_WORKMATE_VERIFY_CORE_APP_FILES
+  !insertmacro CSBU_WORKMATE_VERIFY_BUNDLED_AIONCORE_RESOURCES "${CSBU_WORKMATE_RUNTIME_KEY}"
+  !insertmacro CSBU_WORKMATE_LOG_EVENT "verify-install ok instDir=$INSTDIR"
+  !insertmacro CSBU_WORKMATE_CLEAR_ACTIVE_INSTALLER_MARKER
+  !insertmacro CSBU_WORKMATE_SESSION_SUCCESS
 !macroend
 
 !endif

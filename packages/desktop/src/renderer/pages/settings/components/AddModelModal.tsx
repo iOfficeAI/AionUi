@@ -6,7 +6,7 @@ import {
   updateModelSettings,
 } from '@/common/utils/modelCapabilities';
 import ModalHOC from '@/renderer/utils/ui/ModalHOC';
-import AionModal from '@/renderer/components/base/AionModal';
+import WorkMateModal from '@/renderer/components/base/WorkMateModal';
 import { Select } from '@arco-design/web-react';
 import { PreviewOpen } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
@@ -88,7 +88,7 @@ const AddModelModal = ModalHOC<{ data?: IProvider; model?: string; onSubmit: (mo
     ]);
 
     return (
-      <AionModal
+      <WorkMateModal
         variant='standard'
         visible={modalProps.visible}
         onCancel={modalCtrl.close}
@@ -175,7 +175,7 @@ const AddModelModal = ModalHOC<{ data?: IProvider; model?: string; onSubmit: (mo
             <div className='text-11px text-t-secondary leading-4'>{t('settings.modelSettingsApplyToSelected')}</div>
           )}
         </div>
-      </AionModal>
+      </WorkMateModal>
     );
   }
 );
