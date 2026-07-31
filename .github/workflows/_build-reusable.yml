@@ -542,6 +542,81 @@ jobs:
             Write-Host "Verified metadata-free executable: $($target.FullName)"
           }
 
+      - name: Verify installed Windows uninstaller metadata
+        if: >-
+          startsWith(matrix.platform, 'windows') &&
+          inputs.strip_windows_exe_metadata &&
+          steps.windows-build.outputs.result == 'success'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $installer = Get-ChildItem -LiteralPath 'out' -File -Filter '*.exe' |
+            Sort-Object LastWriteTime -Descending |
+            Select-Object -First 1
+          if (-not $installer) {
+            throw 'NSIS installer executable was not found for installation smoke test'
+          }
+
+          $installDirectory = Join-Path $env:RUNNER_TEMP "csbu-workmate-metadata-smoke-${{ matrix.arch }}"
+          if (Test-Path -LiteralPath $installDirectory) {
+            Remove-Item -LiteralPath $installDirectory -Recurse -Force
+          }
+
+          try {
+            $installProcess = Start-Process `
+              -FilePath $installer.FullName `
+              -ArgumentList @('/S', "/D=$installDirectory") `
+              -Wait `
+              -PassThru `
+              -NoNewWindow
+            if ($installProcess.ExitCode -ne 0) {
+              throw "Silent installation failed with exit code $($installProcess.ExitCode)"
+            }
+
+            $installedApplication = Join-Path $installDirectory 'CSBU WorkMate.exe'
+            $uninstaller = Get-ChildItem -LiteralPath $installDirectory -Recurse -File -Filter 'Uninstall*.exe' |
+              Select-Object -First 1
+            if (-not (Test-Path -LiteralPath $installedApplication)) {
+              throw "Installed application executable was not found: $installedApplication"
+            }
+            if (-not $uninstaller) {
+              throw "Installed uninstaller executable was not found under $installDirectory"
+            }
+
+            foreach ($target in @((Get-Item -LiteralPath $installedApplication), $uninstaller)) {
+              $info = $target.VersionInfo
+              $values = @(
+                $info.CompanyName,
+                $info.FileDescription,
+                $info.FileVersion,
+                $info.InternalName,
+                $info.LegalCopyright,
+                $info.OriginalFilename,
+                $info.ProductName,
+                $info.ProductVersion
+              ) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+
+              if ($values.Count -gt 0) {
+                throw "Installed executable VERSIONINFO remains in $($target.FullName): $($values -join ', ')"
+              }
+              Write-Host "Verified installed metadata-free executable: $($target.FullName)"
+            }
+
+            $uninstallProcess = Start-Process `
+              -FilePath $uninstaller.FullName `
+              -ArgumentList '/S' `
+              -Wait `
+              -PassThru `
+              -NoNewWindow
+            if ($uninstallProcess.ExitCode -ne 0) {
+              throw "Silent uninstallation failed with exit code $($uninstallProcess.ExitCode)"
+            }
+          } finally {
+            if (Test-Path -LiteralPath $installDirectory) {
+              Remove-Item -LiteralPath $installDirectory -Recurse -Force
+            }
+          }
+
       # Clean up any stale disk images before DMG creation (macOS only)
       # 清理可能残留的磁盘镜像，避免 hdiutil "Device not configured" 错误
       - name: Clean up stale disk images (macOS only)

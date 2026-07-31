@@ -130,6 +130,7 @@ describe('release packaging configuration', () => {
     expect(afterPack).not.toContain('stripWindowsExecutableVersionInfo');
     expect(afterSign).toContain('stripWindowsExecutableVersionInfo(appOutDir, context.packager)');
     expect(metadataScript).toContain("'-mask', 'VERSIONINFO,,'");
+    expect(metadataScript).toContain('Refusing to remove VERSIONINFO from a signed executable');
   });
 
   it('prevents installer VERSIONINFO before NSIS assembles integrity data', () => {
@@ -144,6 +145,15 @@ describe('release packaging configuration', () => {
     expect(buildScript).toContain('commandsUninstaller.VIProductVersion = appInfo.shortVersionWindows');
     expect(buildScript).toContain('commandsUninstaller.VIAddVersionKey = this.computeVersionKey(true)');
     expect(buildScript).toContain('Patched electron-builder NSIS VERSIONINFO commands.');
+  });
+
+  it('installs and verifies the generated Windows uninstaller', () => {
+    const reusableWorkflow = readProjectFile('.github/workflows/_build-reusable.yml');
+
+    expect(reusableWorkflow).toContain('Verify installed Windows uninstaller metadata');
+    expect(reusableWorkflow).toContain("-Filter 'Uninstall*.exe'");
+    expect(reusableWorkflow).toContain('Installed executable VERSIONINFO remains');
+    expect(reusableWorkflow).toContain("-ArgumentList '/S'");
   });
 
   it('runs push checks for every branch and cancels stale branch runs', () => {

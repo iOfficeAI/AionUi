@@ -12,6 +12,11 @@ $resolvedTarget = (Resolve-Path -LiteralPath $TargetPath).Path
 $resolvedResourceHacker = (Resolve-Path -LiteralPath $ResourceHackerPath).Path
 $targetDirectory = Split-Path -Parent $resolvedTarget
 $temporaryOutput = Join-Path $targetDirectory ('.' + [System.IO.Path]::GetFileName($resolvedTarget) + '.version-info-stripped.exe')
+$signature = Get-AuthenticodeSignature -LiteralPath $resolvedTarget
+
+if ($signature.Status -ne [System.Management.Automation.SignatureStatus]::NotSigned) {
+  throw "Refusing to remove VERSIONINFO from a signed executable ($($signature.Status)): $resolvedTarget"
+}
 
 if (Test-Path -LiteralPath $temporaryOutput) {
   [System.IO.File]::Delete($temporaryOutput)

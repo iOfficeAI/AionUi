@@ -31,7 +31,7 @@ on:
         type: string
         default: ''
       strip_windows_exe_metadata:
-        description: 'Remove Windows EXE VERSIONINFO before NSIS integrity data is generated'
+        description: 'Remove VERSIONINFO from the Windows application, installer, and uninstaller'
         required: false
         type: boolean
         default: true
