@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { Spin } from '@arco-design/web-react';
 import { useTranslation } from 'react-i18next';
 import type { TTeam } from '@/common/types/team/teamTypes';
@@ -21,20 +21,13 @@ import {
   type ActivityLane,
 } from './activityTypes';
 import { useTeamActivityFeed } from './useTeamActivityFeed';
-import ActivityControlBar, { type ActivityControlsState } from './ActivityControlBar';
+import ActivityControlBar from './ActivityControlBar';
 import ActivityBoardLayout from './ActivityBoardLayout';
 import type { ActivityIdentityResolver } from './MessageCard';
+import { useTeamActivityControls } from '../hooks/useTeamActivityControls';
 
 type Props = {
   team: TTeam;
-};
-
-const DEFAULT_CONTROLS: ActivityControlsState = {
-  sortDirection: 'desc',
-  contentFilter: 'all',
-  selectedMembers: [],
-  showSystemMessages: false,
-  showTerminalTasks: false,
 };
 
 /**
@@ -44,7 +37,8 @@ const DEFAULT_CONTROLS: ActivityControlsState = {
 const TeamActivityView: React.FC<Props> = ({ team }) => {
   const { t } = useTranslation();
   const { assistants, colorOf } = useTeamTabs();
-  const [controls, setControls] = useState<ActivityControlsState>(DEFAULT_CONTROLS);
+  const validLaneIds = useMemo(() => assistants.map((a) => a.slot_id), [assistants]);
+  const [controls, setControls] = useTeamActivityControls(team.id, validLaneIds);
 
   // Content filter uses plural UI values; the feed/backend `kind` is singular.
   const feedKind =
