@@ -4,11 +4,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { Spin } from '@arco-design/web-react';
 import { useTranslation } from 'react-i18next';
 import type { TTeam } from '@/common/types/team/teamTypes';
 import { useTeamTabs } from '../hooks/TeamTabsContext';
+import { ActivityTaskIndexProvider } from './ActivityTaskIndexContext';
+import { useBlockerTaskResolver } from './useBlockerTaskResolver';
+import './activityHighlight.css';
 import {
   ACTIVITY_FALLBACK_LANE,
   buildActivityItems,
@@ -114,27 +117,40 @@ const TeamActivityView: React.FC<Props> = ({ team }) => {
     [assistants]
   );
 
-  return (
-    <div className='flex flex-col h-full w-full min-w-0' data-testid='team-activity-view'>
-      <ActivityControlBar value={controls} onChange={setControls} members={memberOptions} />
+  const resolve = useBlockerTaskResolver(team.id, tasks);
+  const highlightTask = useCallback((id: string) => {
+    const el = document.querySelector<HTMLElement>(`[data-task-id="${id}"]`);
+    if (!el) return false;
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    el.classList.add('activity-card-highlight');
+    window.setTimeout(() => el.classList.remove('activity-card-highlight'), 1500);
+    return true;
+  }, []);
+  const taskIndex = useMemo(() => ({ resolve, highlightTask }), [resolve, highlightTask]);
 
-      <div className='flex-1 min-h-0'>
-        {isLoading ? (
-          <div className='flex items-center justify-center h-full'>
-            <Spin />
-          </div>
-        ) : (
-          <ActivityBoardLayout
-            items={filteredItems}
-            lanes={lanes}
-            identity={identity}
-            hasMore={hasMore}
-            isLoadingMore={isLoadingMore}
-            onLoadMore={loadMore}
-          />
-        )}
+  return (
+    <ActivityTaskIndexProvider value={taskIndex}>
+      <div className='flex flex-col h-full w-full min-w-0' data-testid='team-activity-view'>
+        <ActivityControlBar value={controls} onChange={setControls} members={memberOptions} />
+
+        <div className='flex-1 min-h-0'>
+          {isLoading ? (
+            <div className='flex items-center justify-center h-full'>
+              <Spin />
+            </div>
+          ) : (
+            <ActivityBoardLayout
+              items={filteredItems}
+              lanes={lanes}
+              identity={identity}
+              hasMore={hasMore}
+              isLoadingMore={isLoadingMore}
+              onLoadMore={loadMore}
+            />
+          )}
+        </div>
       </div>
-    </div>
+    </ActivityTaskIndexProvider>
   );
 };
 

@@ -5,7 +5,7 @@
  */
 
 import React, { useRef, useState } from 'react';
-import { Tag, Tooltip } from '@arco-design/web-react';
+import { Popover, Tag, Tooltip } from '@arco-design/web-react';
 import { Down, ListView, Lock, Up } from '@icon-park/react';
 import { useTranslation } from 'react-i18next';
 import type { ITeamTaskItem } from '@/common/types/team/teamTypes';
@@ -26,9 +26,56 @@ const STATUS_COLOR: Record<string, string> = {
   deleted: 'red',
 };
 
+/**
+ * A single `blocked_by` dependency chip. Shows the resolved blocker subject
+ * (falling back to a short id). Clicking jumps to + highlights the blocker's
+ * card when it is on the board; otherwise it reveals a popover with the
+ * blocker's subject/status/owner.
+ */
+const BlockedByTag: React.FC<{ dep: string }> = ({ dep }) => {
+  const { t } = useTranslation();
+  const { resolve, highlightTask } = useActivityTaskIndex();
+  const [open, setOpen] = useState(false);
+  const info = resolve(dep);
+  const label = info
+    ? t('team.activity.blockedByNamed', { name: info.subject, defaultValue: 'blocked by {{name}}' })
+    : t('team.activity.blockedBy', { id: dep.slice(0, 6), defaultValue: 'blocked by #{{id}}' });
+
+  const panel = (
+    <div className='flex flex-col gap-4px max-w-240px'>
+      <span className='text-13px font-medium'>{info?.subject ?? t('team.activity.blockerUnknown', { defaultValue: 'Task unavailable' })}</span>
+      {info && (
+        <span className='text-12px text-[color:var(--color-text-2)]'>
+          {t(`team.activity.status.${info.status}`, { defaultValue: info.status })}
+          {info.owner ? ` · ${info.owner}` : ''}
+        </span>
+      )}
+    </div>
+  );
+
+  return (
+    <Popover
+      popupVisible={open}
+      trigger='click'
+      content={panel}
+      // Prefer jump+highlight when the card is on the board; else reveal popover.
+      onVisibleChange={(next) => {
+        if (next && highlightTask(dep)) {
+          setOpen(false);
+          return;
+        }
+        setOpen(next);
+      }}
+    >
+      <Tag size='small' color='orangered' className='cursor-pointer' icon={<Lock theme='outline' size='11' fill='currentColor' />}>
+        {label}
+      </Tag>
+    </Popover>
+  );
+};
+
 const TaskCard: React.FC<Props> = ({ task, identity }) => {
   const { t } = useTranslation();
-  const { resolve } = useActivityTaskIndex();
   const [expanded, setExpanded] = useState(false);
   const descRef = useRef<HTMLDivElement>(null);
 
@@ -61,17 +108,9 @@ const TaskCard: React.FC<Props> = ({ task, identity }) => {
 
       {task.blocked_by.length > 0 && (
         <div className='flex flex-wrap items-center gap-4px'>
-          {task.blocked_by.map((dep) => {
-            const info = resolve(dep);
-            const label = info
-              ? t('team.activity.blockedByNamed', { name: info.subject, defaultValue: 'blocked by {{name}}' })
-              : t('team.activity.blockedBy', { id: dep.slice(0, 6), defaultValue: 'blocked by #{{id}}' });
-            return (
-              <Tag key={dep} size='small' color='orangered' icon={<Lock theme='outline' size='11' fill='currentColor' />}>
-                {label}
-              </Tag>
-            );
-          })}
+          {task.blocked_by.map((dep) => (
+            <BlockedByTag key={dep} dep={dep} />
+          ))}
         </div>
       )}
 
