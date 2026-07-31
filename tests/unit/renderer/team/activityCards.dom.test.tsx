@@ -55,7 +55,14 @@ beforeEach(() => {
   if (!window.matchMedia) {
     Object.defineProperty(window, 'matchMedia', {
       writable: true,
-      value: () => ({ matches: false, addListener: () => {}, removeListener: () => {}, addEventListener: () => {}, removeEventListener: () => {}, dispatchEvent: () => false }),
+      value: () => ({
+        matches: false,
+        addListener: () => {},
+        removeListener: () => {},
+        addEventListener: () => {},
+        removeEventListener: () => {},
+        dispatchEvent: () => false,
+      }),
     });
   }
 });

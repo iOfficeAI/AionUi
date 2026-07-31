@@ -158,9 +158,12 @@ describe('useTeamActivityFeed (single-cursor pagination)', () => {
     h.listActivity.mockImplementation((args: { direction: string }) =>
       Promise.resolve(args.direction === 'asc' ? page([msgItem('old', 1)]) : page([msgItem('m1', 1000)]))
     );
-    const { result, rerender } = renderHook(({ dir }: { dir: 'desc' | 'asc' }) => useTeamActivityFeed('t1', true, dir, 'all'), {
-      initialProps: { dir: 'desc' as const },
-    });
+    const { result, rerender } = renderHook(
+      ({ dir }: { dir: 'desc' | 'asc' }) => useTeamActivityFeed('t1', true, dir, 'all'),
+      {
+        initialProps: { dir: 'desc' as const },
+      }
+    );
     await waitFor(() => expect(result.current.messages.map((m) => m.id)).toEqual(['m1']));
     rerender({ dir: 'asc' });
     await waitFor(() => expect(result.current.messages.map((m) => m.id)).toEqual(['old']));
@@ -171,9 +174,12 @@ describe('useTeamActivityFeed (single-cursor pagination)', () => {
     h.listActivity
       .mockImplementationOnce(() => new Promise<ITeamActivityPage>((res) => (resolveDesc = res)))
       .mockResolvedValueOnce(page([msgItem('asc1', 1)]));
-    const { result, rerender } = renderHook(({ dir }: { dir: 'desc' | 'asc' }) => useTeamActivityFeed('t1', true, dir, 'all'), {
-      initialProps: { dir: 'desc' as const },
-    });
+    const { result, rerender } = renderHook(
+      ({ dir }: { dir: 'desc' | 'asc' }) => useTeamActivityFeed('t1', true, dir, 'all'),
+      {
+        initialProps: { dir: 'desc' as const },
+      }
+    );
     // Switch before the desc page resolves.
     rerender({ dir: 'asc' });
     await waitFor(() => expect(result.current.messages.map((m) => m.id)).toEqual(['asc1']));
@@ -186,7 +192,9 @@ describe('useTeamActivityFeed (single-cursor pagination)', () => {
   it('WS: updates an already-loaded id in place (read flip)', async () => {
     const { result } = renderHook(() => useTeamActivityFeed('t1', true, 'desc', 'all'));
     await waitFor(() => expect(result.current.messages).toHaveLength(1));
-    act(() => h.mailboxHandlers.forEach((fn) => fn({ team_id: 't1', change: 'read', message: message({ read: true }) })));
+    act(() =>
+      h.mailboxHandlers.forEach((fn) => fn({ team_id: 't1', change: 'read', message: message({ read: true }) }))
+    );
     expect(result.current.messages).toHaveLength(1);
     expect(result.current.messages[0].read).toBe(true);
   });
@@ -194,7 +202,11 @@ describe('useTeamActivityFeed (single-cursor pagination)', () => {
   it('WS: inserts a genuinely newer message (desc) but drops an older unknown task', async () => {
     const { result } = renderHook(() => useTeamActivityFeed('t1', true, 'desc', 'all'));
     await waitFor(() => expect(result.current.messages).toHaveLength(1)); // edge = m1@1000
-    act(() => h.mailboxHandlers.forEach((fn) => fn({ team_id: 't1', change: 'created', message: message({ id: 'm9', created_at: 5000 }) })));
+    act(() =>
+      h.mailboxHandlers.forEach((fn) =>
+        fn({ team_id: 't1', change: 'created', message: message({ id: 'm9', created_at: 5000 }) })
+      )
+    );
     expect(result.current.messages.map((m) => m.id).sort()).toEqual(['m1', 'm9']);
     // Older unknown task (created_at below the loaded edge) is dropped.
     act(() => h.taskHandlers.forEach((fn) => fn({ team_id: 't1', change: 'created', task: taskOf('old', 10) })));

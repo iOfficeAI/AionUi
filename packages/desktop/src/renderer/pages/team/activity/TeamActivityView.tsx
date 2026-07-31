@@ -44,7 +44,8 @@ const TeamActivityView: React.FC<Props> = ({ team }) => {
   const [controls, setControls] = useState<ActivityControlsState>(DEFAULT_CONTROLS);
 
   // Content filter uses plural UI values; the feed/backend `kind` is singular.
-  const feedKind = controls.contentFilter === 'messages' ? 'message' : controls.contentFilter === 'tasks' ? 'task' : 'all';
+  const feedKind =
+    controls.contentFilter === 'messages' ? 'message' : controls.contentFilter === 'tasks' ? 'task' : 'all';
   const { messages, tasks, isLoading, isLoadingMore, hasMore, loadMore } = useTeamActivityFeed(
     team.id,
     true,

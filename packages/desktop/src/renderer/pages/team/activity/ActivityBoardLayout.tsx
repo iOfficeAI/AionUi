@@ -116,7 +116,14 @@ const BoardColumn: React.FC<{
  * is that column's own vertical scroll container), so scrolling any populated
  * column to its end pages the whole feed.
  */
-const ActivityBoardLayout: React.FC<Props> = ({ items, lanes, identity, hasMore = false, isLoadingMore = false, onLoadMore }) => {
+const ActivityBoardLayout: React.FC<Props> = ({
+  items,
+  lanes,
+  identity,
+  hasMore = false,
+  isLoadingMore = false,
+  onLoadMore,
+}) => {
   const { t } = useTranslation();
 
   const itemsByLane = useMemo(() => {
