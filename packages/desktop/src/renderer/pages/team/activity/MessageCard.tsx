@@ -11,6 +11,7 @@ import { useTranslation } from 'react-i18next';
 import type { ITeamMailboxMessage } from '@/common/types/team/teamTypes';
 import { ACTIVITY_USER_IDENTITY, isBroadcastMessage, isSystemMessageType } from './activityTypes';
 import { clampStyle, useIsClamped } from './useIsClamped';
+import { formatActivityTime } from './activityTime';
 
 /** Resolves a member/identity display name and color for a slot id. */
 export type ActivityIdentityResolver = {
@@ -49,6 +50,7 @@ const MessageCard: React.FC<Props> = ({ message, identity }) => {
   const body = message.summary && message.summary.length > 0 ? message.summary : message.content;
   const attachments = message.files?.length ?? 0;
   const isClamped = useIsClamped(bodyRef, [body, expanded]);
+  const time = formatActivityTime(message.created_at);
 
   return (
     <div
@@ -123,6 +125,9 @@ const MessageCard: React.FC<Props> = ({ message, identity }) => {
             </span>
           </Tooltip>
         )}
+        <span className='ml-auto shrink-0' title={time.full}>
+          {time.label}
+        </span>
       </div>
     </div>
   );

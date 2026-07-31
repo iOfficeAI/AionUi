@@ -13,6 +13,7 @@ import { ACTIVITY_USER_IDENTITY } from './activityTypes';
 import type { ActivityIdentityResolver } from './MessageCard';
 import { clampStyle, useIsClamped } from './useIsClamped';
 import { useActivityTaskIndex } from './ActivityTaskIndexContext';
+import { formatActivityTime } from './activityTime';
 
 type Props = {
   task: ITeamTaskItem;
@@ -88,6 +89,7 @@ const TaskCard: React.FC<Props> = ({ task, identity }) => {
   const ownerColor = identity.colorOf(task.owner);
   const description = task.description ?? '';
   const isClamped = useIsClamped(descRef, [description, expanded]);
+  const time = formatActivityTime(task.created_at);
 
   return (
     <div
@@ -117,43 +119,47 @@ const TaskCard: React.FC<Props> = ({ task, identity }) => {
       )}
 
       {description.length > 0 && (
-        <>
-          <div
-            ref={descRef}
-            className='text-12px text-[color:var(--color-text-2)] whitespace-pre-wrap break-words'
-            style={expanded ? undefined : clampStyle(2)}
-          >
-            {description}
-          </div>
-          {(isClamped || expanded) && (
-            <Tooltip
-              content={
-                expanded
-                  ? t('team.activity.collapse', { defaultValue: 'Collapse' })
-                  : t('team.activity.expand', { defaultValue: 'Expand' })
-              }
-            >
-              <span
-                className='inline-flex items-center gap-2px cursor-pointer text-11px text-[color:var(--brand)] self-start'
-                role='button'
-                tabIndex={0}
-                data-testid='activity-task-expand'
-                onClick={() => setExpanded((v) => !v)}
-                onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && setExpanded((v) => !v)}
-              >
-                {expanded ? (
-                  <Up theme='outline' size='11' fill='currentColor' />
-                ) : (
-                  <Down theme='outline' size='11' fill='currentColor' />
-                )}
-                {expanded
-                  ? t('team.activity.collapse', { defaultValue: 'Collapse' })
-                  : t('team.activity.expand', { defaultValue: 'Expand' })}
-              </span>
-            </Tooltip>
-          )}
-        </>
+        <div
+          ref={descRef}
+          className='text-12px text-[color:var(--color-text-2)] whitespace-pre-wrap break-words'
+          style={expanded ? undefined : clampStyle(2)}
+        >
+          {description}
+        </div>
       )}
+
+      <div className='flex items-center gap-8px text-11px text-[color:var(--color-text-3)]'>
+        {description.length > 0 && (isClamped || expanded) && (
+          <Tooltip
+            content={
+              expanded
+                ? t('team.activity.collapse', { defaultValue: 'Collapse' })
+                : t('team.activity.expand', { defaultValue: 'Expand' })
+            }
+          >
+            <span
+              className='inline-flex items-center gap-2px cursor-pointer text-[color:var(--brand)]'
+              role='button'
+              tabIndex={0}
+              data-testid='activity-task-expand'
+              onClick={() => setExpanded((v) => !v)}
+              onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && setExpanded((v) => !v)}
+            >
+              {expanded ? (
+                <Up theme='outline' size='11' fill='currentColor' />
+              ) : (
+                <Down theme='outline' size='11' fill='currentColor' />
+              )}
+              {expanded
+                ? t('team.activity.collapse', { defaultValue: 'Collapse' })
+                : t('team.activity.expand', { defaultValue: 'Expand' })}
+            </span>
+          </Tooltip>
+        )}
+        <span className='ml-auto shrink-0' title={time.full}>
+          {time.label}
+        </span>
+      </div>
     </div>
   );
 };
