@@ -78,6 +78,16 @@ describe('release packaging configuration', () => {
     expect(reusableWorkflow).toContain('52F81EE4778070D6AA72D8719A1A68FEA2F288005DEB02667542754F747776F8');
   });
 
+  it('keeps Sentry source map upload optional when release secrets are unavailable', () => {
+    const reusableWorkflow = readProjectFile('.github/workflows/_build-reusable.yml');
+
+    expect(reusableWorkflow).toContain('if [ "${SENTRY_UPLOAD_SOURCE_MAPS:-false}" != "true" ]; then');
+    expect(reusableWorkflow).toContain(
+      'elif [ -n "$SENTRY_AUTH_TOKEN" ] && [ -n "$SENTRY_ORG" ] && [ -n "$SENTRY_PROJECT" ]; then'
+    );
+    expect(reusableWorkflow).toContain('Sentry credentials are not configured; building without source map upload');
+  });
+
   it('removes application VERSIONINFO during afterPack', () => {
     const afterPack = readProjectFile('scripts/afterPack.js');
     const metadataScript = readProjectFile('resources/windows/support/strip-exe-version-info.ps1');

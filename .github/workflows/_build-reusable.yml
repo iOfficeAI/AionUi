@@ -268,15 +268,22 @@ jobs:
 
       - name: Configure Sentry source map upload owner
         shell: bash
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
         run: |
           set -euo pipefail
 
-          if [[ "${{ matrix.platform }}" == "linux-x64" ]]; then
+          if [[ "${{ matrix.platform }}" != "linux-x64" ]]; then
+            echo "SENTRY_UPLOAD_SOURCE_MAPS=false" >> "$GITHUB_ENV"
+            echo "Sentry source map upload skipped for ${{ matrix.platform }}"
+          elif [ -n "$SENTRY_AUTH_TOKEN" ] && [ -n "$SENTRY_ORG" ] && [ -n "$SENTRY_PROJECT" ]; then
             echo "SENTRY_UPLOAD_SOURCE_MAPS=true" >> "$GITHUB_ENV"
             echo "Sentry source maps will be uploaded by linux-x64"
           else
             echo "SENTRY_UPLOAD_SOURCE_MAPS=false" >> "$GITHUB_ENV"
-            echo "Sentry source map upload skipped for ${{ matrix.platform }}"
+            echo "::notice title=Sentry source map upload skipped::Sentry credentials are not configured; building without source map upload"
           fi
 
       - name: Validate Sentry source map upload configuration
@@ -284,6 +291,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+
+          if [ "${SENTRY_UPLOAD_SOURCE_MAPS:-false}" != "true" ]; then
+            echo "Sentry source map validation skipped because uploads are disabled"
+            exit 0
+          fi
+
           missing=0
 
           for name in SENTRY_AUTH_TOKEN SENTRY_ORG SENTRY_PROJECT SENTRY_RELEASE; do
