@@ -15,6 +15,7 @@
 import type { IConfirmation } from '@/common/chat/chatLib';
 import type { AcpSlashCommandApiItem } from '@/common/chat/slash/types';
 import { bridge } from '@/common/platform/bridge';
+import { buildListTasksPath } from './teamTaskPath';
 import type { OpenDialogOptions } from 'electron';
 import type {
   ICssTheme,
@@ -2018,8 +2019,8 @@ export const team = {
   listMailbox: httpGet<ITeamMailboxMessage[], { team_id: string; limit?: number }>(
     (p) => `/api/teams/${p.team_id}/mailbox?limit=${p.limit ?? 500}`
   ),
-  listTasks: httpGet<ITeamTaskItem[], { team_id: string; limit?: number }>(
-    (p) => `/api/teams/${p.team_id}/tasks?limit=${p.limit ?? 500}`
+  listTasks: httpGet<ITeamTaskItem[], { team_id: string; limit?: number; ids?: string[] }>((p) =>
+    buildListTasksPath(p)
   ),
   listActivity: httpGet<
     ITeamActivityPage,
