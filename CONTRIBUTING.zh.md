@@ -59,9 +59,11 @@ Commit message 和 PR 标题必须使用英文 Conventional Commit 格式：
 - `feat(workspace): add file preview shortcuts`
 - `docs(contributing): document pr title format`
 
-## 规则三：Push 前必须通过本地检查
+## 规则三：Push 后自动检查
 
-CI 会在这些检查失败时拒绝你的 PR。**推送前**在本地运行，节省时间。
+每次向任意分支 Push 后，GitHub Actions 会自动执行格式、Lint、TypeScript、i18n 和单元测试检查。可以直接使用普通 `git push`；创建或合并 PR 前，请确认对应的 **Push Checks** 已通过。
+
+本地检查改为可选；需要在上传 commit 前快速发现问题时，仍建议执行。
 
 ### 逐步执行
 
@@ -93,6 +95,12 @@ bunx vitest run
 ```
 
 > `prek` 以只读模式运行 format-check + lint + tsc。如果报错，先运行上面的自动修复命令，再重新运行 prek。
+
+也可以使用以下命令先在本地执行相同检查，再推送：
+
+```bash
+just push -u origin feat/branch
+```
 
 ### 常见失败及修复
 

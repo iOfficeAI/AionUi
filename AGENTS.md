@@ -103,16 +103,19 @@ node scripts/check-i18n.js
 
 ### Before Pushing
 
-AI agents must not push unless explicitly asked. When pushing, use `just push`, never `git push`:
+AI agents must not push unless explicitly asked. Every branch push automatically runs lint, format-check, typecheck, i18n validation, and unit tests in GitHub Actions. A normal push is supported:
 
 ```bash
-just push                          # lint → format-check → typecheck → test → git push
-just push -u origin feat/branch    # same checks, with extra git push args
+git push -u origin feat/branch
 ```
 
-Any step that fails aborts the push. Fix the issue, commit, then retry.
+`just push` remains available as an optional local pre-push gate when immediate feedback is useful:
 
-> **Note for AI agents**: `just push` uses `--quiet` for lint — only errors cause failure. The project has many pre-existing lint _warnings_ which do NOT indicate failure. Judge success by exit code, not by output volume.
+```bash
+just push -u origin feat/branch    # local checks, then git push
+```
+
+> **Note for AI agents**: judge success by command and GitHub Actions exit status, not lint warning volume.
 
 ### Before PR (optional stricter check)
 

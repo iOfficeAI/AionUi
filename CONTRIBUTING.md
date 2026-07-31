@@ -59,9 +59,11 @@ Examples:
 - `feat(workspace): add file preview shortcuts`
 - `docs(contributing): document pr title format`
 
-## Rule 3: Pass Local Checks Before Push
+## Rule 3: Automated Checks After Push
 
-CI will reject your PR if these checks fail. Run them locally **before pushing** to save time.
+Every branch push automatically runs format-check, lint, TypeScript, i18n validation, and unit tests in GitHub Actions. You can use a normal `git push`; check the resulting **Push Checks** run before opening or merging a PR.
+
+Local checks are optional but recommended when you want faster feedback before uploading a commit.
 
 ### Step-by-step
 
@@ -93,6 +95,12 @@ bunx vitest run
 ```
 
 > `prek` runs format-check + lint + tsc in read-only mode. If it reports issues, run the auto-fix commands above first, then re-run prek.
+
+To run the same checks locally and then push in one command, you may use:
+
+```bash
+just push -u origin feat/branch
+```
 
 ### Common failures and fixes
 

@@ -488,6 +488,26 @@ describe('transformMessage', () => {
     });
   });
 
+  it('preserves the branded app ownership value on live tips error messages', () => {
+    const message: IResponseMessage = {
+      type: 'tips',
+      data: {
+        content: 'CSBU WorkMate failed while sending the message',
+        type: 'error',
+        error: {
+          message: 'CSBU WorkMate failed while sending the message',
+          ownership: 'csbu-workmate',
+        },
+      },
+      msg_id: 'tips-error-branded-ownership',
+      conversation_id: CONVERSATION_ID,
+    };
+
+    const transformed = transformMessage(message) as IMessageTips;
+
+    expect(transformed.content.error?.ownership).toBe('csbu-workmate');
+  });
+
   it('preserves info tip type with code and params', () => {
     const message: IResponseMessage = {
       type: 'tips',

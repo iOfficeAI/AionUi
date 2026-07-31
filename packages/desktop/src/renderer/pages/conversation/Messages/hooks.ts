@@ -485,7 +485,7 @@ const normalizePersistedWorkspaceRuntimeError = (
   return {
     message,
     code: 'WORKSPACE_PATH_RUNTIME_UNAVAILABLE',
-    ownership: 'aionui',
+    ownership: 'csbu-workmate',
     detail,
     workspacePath,
     retryable: false,
@@ -521,7 +521,7 @@ const classifyPersistedSendFailure = (
     return {
       message,
       code: effectiveCode,
-      ownership: 'aionui',
+      ownership: 'csbu-workmate',
       detail: message,
       retryable: true,
       feedback_recommended: true,
@@ -536,7 +536,7 @@ const classifyPersistedSendFailure = (
     return {
       message,
       code: effectiveCode,
-      ownership: 'aionui',
+      ownership: 'csbu-workmate',
       detail: message,
       retryable: false,
       feedback_recommended: false,
@@ -558,7 +558,7 @@ const classifyPersistedSendFailure = (
     return {
       message,
       code: 'AIONUI_INTERNAL_ERROR',
-      ownership: 'aionui',
+      ownership: 'csbu-workmate',
       detail: message,
       retryable: true,
       feedback_recommended: true,
@@ -566,7 +566,7 @@ const classifyPersistedSendFailure = (
   }
 
   if (persistedCode?.startsWith('CSBU_WORKMATE_')) {
-    return { message, code: persistedCode, ownership: 'aionui', detail: message, retryable: true };
+    return { message, code: persistedCode, ownership: 'csbu-workmate', detail: message, retryable: true };
   }
   if (persistedCode?.startsWith('USER_AGENT_')) {
     return { message, code: persistedCode, ownership: 'user_agent', detail: message, retryable: true };
@@ -596,7 +596,7 @@ const classifyPersistedSendFailure = (
     return {
       message,
       code: 'AIONUI_INTERNAL_ERROR',
-      ownership: 'aionui',
+      ownership: 'csbu-workmate',
       detail: message,
       retryable: true,
       feedback_recommended: true,

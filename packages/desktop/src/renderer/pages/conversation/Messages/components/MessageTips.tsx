@@ -38,6 +38,7 @@ const useFormatContent = (content: string) => {
 
 const ownershipColor = {
   aionui: 'red',
+  'csbu-workmate': 'red',
   user_agent: 'orange',
   user_llm_provider: 'arcoblue',
   unknown_upstream: 'gray',
@@ -74,6 +75,7 @@ const MessageTips: React.FC<{ message: IMessageTips }> = ({ message }) => {
   if (structuredError) {
     const errorCode = structuredError.code;
     const ownership = structuredError.ownership;
+    const ownershipTranslationKey = ownership === 'csbu-workmate' ? 'aionui' : ownership;
     const title = errorCode
       ? t(`conversation.agentError.codes.${errorCode}.title`, {
           defaultValue: t('conversation.agentError.fallbackTitle'),
@@ -90,8 +92,8 @@ const MessageTips: React.FC<{ message: IMessageTips }> = ({ message }) => {
           }
         )
       : structuredError.message || content;
-    const ownershipLabel = ownership
-      ? t(`conversation.agentError.ownership.${ownership}`, {
+    const ownershipLabel = ownershipTranslationKey
+      ? t(`conversation.agentError.ownership.${ownershipTranslationKey}`, {
           defaultValue: t('conversation.agentError.ownership.unknown_upstream'),
         })
       : null;

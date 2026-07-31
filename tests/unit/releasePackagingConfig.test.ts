@@ -94,6 +94,30 @@ describe('release packaging configuration', () => {
     expect(nsisInclude).not.toMatch(/CRCCheck\s+off/i);
   });
 
+  it('runs push checks for every branch and cancels stale branch runs', () => {
+    const workflow = readProjectFile('.github/workflows/push-checks.yml');
+
+    expect(workflow).toMatch(/push:\r?\n\s+branches:\r?\n\s+- '\*\*'/);
+    expect(workflow).toContain('group: push-checks-${{ github.ref }}');
+    expect(workflow).toContain('cancel-in-progress: true');
+  });
+
+  it('runs lint, formatting, and type checks after a push', () => {
+    const workflow = readProjectFile('.github/workflows/push-checks.yml');
+
+    expect(workflow).toContain('bun run lint -- --quiet');
+    expect(workflow).toContain('bun run format:check');
+    expect(workflow).toContain('bunx tsc --noEmit');
+  });
+
+  it('runs i18n validation and unit tests after a push', () => {
+    const workflow = readProjectFile('.github/workflows/push-checks.yml');
+
+    expect(workflow).toContain('bun run i18n:types');
+    expect(workflow).toContain('node scripts/check-i18n.js');
+    expect(workflow).toContain('bun run test');
+  });
+
   itWithBash('fails release asset preparation when a mac zip is missing', () => {
     const tempDir = mkdtempSync(resolve(tmpdir(), 'csbu-workmate-release-assets-'));
     const artifactsDir = resolve(tempDir, 'build-artifacts');

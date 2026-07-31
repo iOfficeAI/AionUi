@@ -98,6 +98,11 @@ export function auditBranding(root = DEFAULT_ROOT) {
     violations.push('extension hub must not download from the former public project');
   }
 
+  const backendPreparation = read('packages/shared-scripts/src/prepare-aioncore.js');
+  if (!backendPreparation.includes("const GITHUB_OWNER = 'suoak';")) {
+    violations.push('backend artifacts must download from the suoak/AionCore fork');
+  }
+
   const bridgeIndex = read('packages/desktop/src/process/bridge/index.ts');
   if (bridgeIndex.includes('initUpdateBridge();')) violations.push('public update IPC must remain unregistered');
 

@@ -325,7 +325,7 @@ i18n-check:
 # Run all checks (lint + format + typecheck + i18n) — mirrors CI code-quality job
 check: lint fmt-check typecheck i18n-check
 
-# Pre-push gate: lint + format check + typecheck + i18n + test, then push
+# Optional local pre-push gate: lint + format check + typecheck + i18n + test, then push
 # Uses --quiet to suppress warnings (exit code is still non-zero on errors)
 push *ARGS: lint-strict fmt-check typecheck i18n-check test
     git push {{ ARGS }}
