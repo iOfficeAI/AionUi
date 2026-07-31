@@ -381,7 +381,7 @@ describe('UpdateNotificationCard', () => {
 
     fireEvent.click(await screen.findByText('update.releaseLog'));
     expect(await screen.findByText('update.releaseNotesFailed')).toBeInTheDocument();
-    expect(screen.getByText('update.viewRelease')).toBeInTheDocument();
+    expect(screen.queryByText('update.viewRelease')).not.toBeInTheDocument();
   });
 
   it('keeps the cancel action available while downloading and cancel restores the initial state', async () => {

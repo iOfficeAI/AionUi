@@ -18,30 +18,26 @@
  */
 
 import { afterEach, beforeEach, describe, it, expect } from 'vitest';
+import * as officeWatchViewer from '@/renderer/pages/conversation/Preview/components/viewers/OfficeWatchViewer';
 
 describe('OfficeWatchViewer module shape', () => {
   it('module loads and exposes a default export', async () => {
-    const mod = await import('@/renderer/pages/conversation/Preview/components/viewers/OfficeWatchViewer');
-    expect(mod).toBeDefined();
-    expect(mod.default).toBeDefined();
+    expect(officeWatchViewer).toBeDefined();
+    expect(officeWatchViewer.default).toBeDefined();
   });
 
-  it('default export is a function (React component)', async () => {
-    const mod = await import('@/renderer/pages/conversation/Preview/components/viewers/OfficeWatchViewer');
-    expect(typeof mod.default).toBe('function');
+  it('default export is a function (React component)', () => {
+    expect(typeof officeWatchViewer.default).toBe('function');
   });
 
-  it('module exports object has no thrown side effects during import', async () => {
-    // Importing the module a second time should use the cached copy and not throw.
-    const mod = await import('@/renderer/pages/conversation/Preview/components/viewers/OfficeWatchViewer');
-    expect(mod.default).toBeDefined();
+  it('module exports object has no thrown side effects during import', () => {
+    expect(officeWatchViewer.default).toBeDefined();
     // Component functions in React typically have at most one required argument (props).
-    expect((mod.default as { length: number }).length).toBeLessThanOrEqual(2);
+    expect((officeWatchViewer.default as { length: number }).length).toBeLessThanOrEqual(2);
   });
 
-  it('uses official iOfficeAI OfficeCLI releases page', async () => {
-    const mod = await import('@/renderer/pages/conversation/Preview/components/viewers/OfficeWatchViewer');
-    expect(mod.OFFICECLI_INSTALL_URL).toBe('https://github.com/iOfficeAI/OfficeCLI/releases');
+  it('uses the CSBU WorkMate OfficeCLI releases page', () => {
+    expect(officeWatchViewer.OFFICECLI_INSTALL_URL).toBe('https://github.com/suoak/OfficeCLI/releases');
   });
 });
 
@@ -52,8 +48,7 @@ describe('OfficeWatchViewer module shape', () => {
  * and returns 404, which breaks every Office preview in webui mode.
  */
 const load = async () => {
-  const mod = await import('@/renderer/pages/conversation/Preview/components/viewers/OfficeWatchViewer');
-  return mod.resolveOfficeWatchUrl;
+  return officeWatchViewer.resolveOfficeWatchUrl;
 };
 
 describe('resolveOfficeWatchUrl (web mode, no window.electronAPI)', () => {
@@ -94,8 +89,7 @@ describe('resolveOfficeWatchUrl (web mode, no window.electronAPI)', () => {
 describe('resolveOfficeWatchUrl (Electron mode)', () => {
   it('still resolves to the direct loopback url', async () => {
     // window.electronAPI is stubbed by the dom setup, so this is Electron mode.
-    const mod = await import('@/renderer/pages/conversation/Preview/components/viewers/OfficeWatchViewer');
-    expect(mod.resolveOfficeWatchUrl('/api/ppt-proxy/59324', 'ppt')).toBe('http://127.0.0.1:59324/');
+    expect(officeWatchViewer.resolveOfficeWatchUrl('/api/ppt-proxy/59324', 'ppt')).toBe('http://127.0.0.1:59324/');
   });
 });
 
@@ -106,8 +100,7 @@ describe('resolveOfficeWatchUrl (Electron mode)', () => {
  */
 describe('resolveOfficeErrorActions', () => {
   const load = async () => {
-    const mod = await import('@/renderer/pages/conversation/Preview/components/viewers/OfficeWatchViewer');
-    return mod.resolveOfficeErrorActions;
+    return officeWatchViewer.resolveOfficeErrorActions;
   };
 
   it('web mode shows the server install guide when officecli is missing', async () => {

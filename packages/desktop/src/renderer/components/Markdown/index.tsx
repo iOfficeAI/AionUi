@@ -35,6 +35,17 @@ const isLocalFilePath = (src: string): boolean => {
   return true;
 };
 
+const normalizeLocalFileLinkDestinations = (markdown: string): string =>
+  markdown.replace(
+    /(!?\[[^\]\n]*\]\()([^)\n]*[ \t][^)\n]*)(\))/g,
+    (match, prefix: string, destination: string, suffix: string) => {
+      const trimmedDestination = destination.trim();
+      if (!resolveLocalFileLinkReference(trimmedDestination)) return match;
+
+      return `${prefix}${encodeURI(trimmedDestination)}${suffix}`;
+    }
+  );
+
 type MarkdownViewProps = {
   children: string;
   hiddenCodeCopyButton?: boolean;
@@ -53,6 +64,7 @@ const MarkdownView: React.FC<MarkdownViewProps> = React.memo(
     const normalizedChildren = useMemo(() => {
       if (typeof childrenProp === 'string') {
         let text = childrenProp.replace(/file:\/\//g, '');
+        text = normalizeLocalFileLinkDestinations(text);
         text = convertLatexDelimiters(text);
         return text;
       }

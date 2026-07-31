@@ -192,10 +192,15 @@ function getInstallPathKind(resourcesPath: unknown): string | undefined {
   if (!pathValue) return undefined;
 
   const normalized = pathValue.replace(/\//g, '\\').toLowerCase();
-  if (normalized.includes('\\appdata\\local\\programs\\csbu-workmate\\resources')) {
+  if (
+    normalized.includes('\\appdata\\local\\programs\\csbu workmate\\resources') ||
+    normalized.includes('\\appdata\\local\\programs\\csbu-workmate\\resources')
+  ) {
     return 'user_local_programs';
   }
   if (
+    normalized.includes('\\program files\\csbu workmate\\resources') ||
+    normalized.includes('\\program files (x86)\\csbu workmate\\resources') ||
     normalized.includes('\\program files\\csbu-workmate\\resources') ||
     normalized.includes('\\program files (x86)\\csbu-workmate\\resources')
   ) {

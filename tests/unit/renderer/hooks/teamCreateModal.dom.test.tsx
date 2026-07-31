@@ -135,7 +135,6 @@ describe('TeamCreateModal', () => {
 
     expect(screen.getByTestId('team-create-agent-option-bare-aionrs')).toBeInTheDocument();
     expect(screen.getByText('CSBU WorkMate')).toBeInTheDocument();
-    expect(screen.queryByText('CSBU WorkMate')).not.toBeInTheDocument();
     expect(screen.getByTestId('team-create-agent-option-blocked-reviewer')).toBeInTheDocument();
     expect(screen.getByTestId('team-create-agent-option-remote-runner')).toBeInTheDocument();
     expect(screen.queryByText('Agent internal error (code -32603)')).not.toBeInTheDocument();

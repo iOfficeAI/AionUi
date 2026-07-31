@@ -138,6 +138,6 @@
     "loading": "Iniciando vista previa de PPT...",
     "installing": "Instalando componente de vista previa...",
     "startFailed": "Error al iniciar la vista previa de PPT",
-    "installHint": "Instala OfficeCLI desde la página oficial de versiones de iOfficeAI/OfficeCLI"
+    "installHint": "Instala OfficeCLI desde la página de versiones de suoak/OfficeCLI"
   }
 }
