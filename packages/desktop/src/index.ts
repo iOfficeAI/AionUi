@@ -363,7 +363,9 @@ function markBackendReady(backendPort: number, source: string): void {
 }
 
 function resolveDebugBackendStartupFailure(): BackendStartupFailureInfo | null {
-  const reason = process.env.CSBU_WORKMATE_DEBUG_BACKEND_STARTUP_FAILURE as BackendStartupFailureInfo['reason'] | undefined;
+  const reason = process.env.CSBU_WORKMATE_DEBUG_BACKEND_STARTUP_FAILURE as
+    | BackendStartupFailureInfo['reason']
+    | undefined;
   if (!reason) {
     return null;
   }
@@ -601,7 +603,8 @@ const createWindow = ({ showOnReady = true }: { showOnReady?: boolean } = {}): v
 
 const handleAppReady = async (): Promise<void> => {
   const t0 = performance.now();
-  const mark = (label: string) => console.log(`[CSBU WorkMate:ready] ${label} +${Math.round(performance.now() - t0)}ms`);
+  const mark = (label: string) =>
+    console.log(`[CSBU WorkMate:ready] ${label} +${Math.round(performance.now() - t0)}ms`);
   mark('start');
 
   if (!app.isPackaged) {

@@ -319,7 +319,7 @@ Bridge 端逐字段映射到 DB 列名（仅更新 `updates` 中不为 `undefine
 | ----------------------------- | ------------------------------------------------------------------------ |
 | `minProtocol` / `maxProtocol` | `3` / `4`（同时兼容 v3 与 v4 Gateway，2026.5.12 起 Gateway 默认要求 v4） |
 | `client.id`                   | `'gateway-client'`                                                       |
-| `client.displayName`          | `'CSBU WorkMate'`                                                               |
+| `client.displayName`          | `'CSBU WorkMate'`                                                        |
 | `client.mode`                 | `'backend'`                                                              |
 | `caps`                        | `['tool-events']`（必须声明以接收 tool call 事件）                       |
 | `role`                        | `'operator'`                                                             |
@@ -775,17 +775,17 @@ Gateway 通过 `agent` / `agent.event` 事件推送工具调用信息：
 
 ## 附录 E：设计约束
 
-| #   | 约束                   | 说明                                                               |
-| --- | ---------------------- | ------------------------------------------------------------------ |
-| 1   | OpenClaw 协议版本      | 固定 v3 (`OPENCLAW_PROTOCOL_VERSION = 3`)                          |
-| 2   | 设备密钥算法           | Ed25519，密钥对随 Agent 创建一次性生成                             |
-| 3   | 设备认证签名格式       | 管道分隔字符串，v1（无 nonce）/ v2（含 nonce）两种版本             |
-| 4   | WebSocket 最大 payload | 25MB (`maxPayload: 25 * 1024 * 1024`)                              |
-| 5   | 默认 Gateway 端口      | 18789                                                              |
-| 6   | 客户端标识             | `gateway-client` / backend / operator / operator.admin             |
-| 7   | Capabilities           | `caps: ['tool-events']` — 必须声明以接收 tool call 事件            |
-| 8   | DB 存储                | SQLite `remote_agents` 表，字段 snake_case                         |
-| 9   | 数据加载               | 使用 SWR（key: `'remote-agents.list'`），支持自动重验证            |
+| #   | 约束                   | 说明                                                                   |
+| --- | ---------------------- | ---------------------------------------------------------------------- |
+| 1   | OpenClaw 协议版本      | 固定 v3 (`OPENCLAW_PROTOCOL_VERSION = 3`)                              |
+| 2   | 设备密钥算法           | Ed25519，密钥对随 Agent 创建一次性生成                                 |
+| 3   | 设备认证签名格式       | 管道分隔字符串，v1（无 nonce）/ v2（含 nonce）两种版本                 |
+| 4   | WebSocket 最大 payload | 25MB (`maxPayload: 25 * 1024 * 1024`)                                  |
+| 5   | 默认 Gateway 端口      | 18789                                                                  |
+| 6   | 客户端标识             | `gateway-client` / backend / operator / operator.admin                 |
+| 7   | Capabilities           | `caps: ['tool-events']` — 必须声明以接收 tool call 事件                |
+| 8   | DB 存储                | SQLite `remote_agents` 表，字段 snake_case                             |
+| 9   | 数据加载               | 使用 SWR（key: `'remote-agents.list'`），支持自动重验证                |
 | 10  | 弹窗组件               | 创建/编辑使用 WorkMateModal 封装，删除确认使用 Arco 原生 Modal.confirm |
 
 ---

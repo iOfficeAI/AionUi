@@ -851,7 +851,9 @@ try {
         killWindowsProcesses(['CSBU WorkMate.exe', 'electron.exe']);
         cleaned = tryRemoveDir(winUnpackedDir);
         if (!cleaned) {
-          console.log('⚠️  Directory still locked. Please close any running CSBU WorkMate/Electron processes and retry.');
+          console.log(
+            '⚠️  Directory still locked. Please close any running CSBU WorkMate/Electron processes and retry.'
+          );
         }
       }
     }

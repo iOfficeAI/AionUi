@@ -210,7 +210,9 @@ const VoiceInputSection: React.FC = () => {
             <Form.Item label={t('settings.speechToTextSource')}>
               <WorkMateSelect value={source} onChange={handleSourceChange}>
                 <WorkMateSelect.Option value='openai'>{t('settings.speechToTextSourceOpenAI')}</WorkMateSelect.Option>
-                <WorkMateSelect.Option value='deepgram'>{t('settings.speechToTextSourceDeepgram')}</WorkMateSelect.Option>
+                <WorkMateSelect.Option value='deepgram'>
+                  {t('settings.speechToTextSourceDeepgram')}
+                </WorkMateSelect.Option>
                 <WorkMateSelect.Option value='custom'>{t('settings.speechToTextSourceCustom')}</WorkMateSelect.Option>
               </WorkMateSelect>
             </Form.Item>

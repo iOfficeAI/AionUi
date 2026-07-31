@@ -51,16 +51,28 @@ describe('release packaging configuration', () => {
     expect(script).toMatch(/--mac\s+dmg\s+zip\s+--\$\{targetArch\}\s+--prepackaged/);
   });
 
+  it('enables metadata-free Windows executables for release builds', () => {
+    const releaseWorkflow = readProjectFile('.github/workflows/build-and-release.yml');
+
+    expect(releaseWorkflow).toContain('strip_windows_exe_metadata: true');
+  });
+
   it('passes manual version and Windows metadata options to the reusable build', () => {
     const manualWorkflow = readProjectFile('.github/workflows/build-manual.yml');
 
     expect(manualWorkflow).toContain('version: ${{ inputs.version }}');
+    expect(manualWorkflow).toMatch(
+      /strip_windows_exe_metadata:\r?\n\s+description:.*\r?\n\s+required: false\r?\n\s+type: boolean\r?\n\s+default: true/
+    );
     expect(manualWorkflow).toContain('strip_windows_exe_metadata: ${{ inputs.strip_windows_exe_metadata }}');
   });
 
   it('prepares the manual package version and pinned Resource Hacker tool', () => {
     const reusableWorkflow = readProjectFile('.github/workflows/_build-reusable.yml');
 
+    expect(reusableWorkflow).toMatch(
+      /strip_windows_exe_metadata:\r?\n\s+description:.*\r?\n\s+type: boolean\r?\n\s+default: true/
+    );
     expect(reusableWorkflow).toContain('Apply package version override');
     expect(reusableWorkflow).toContain('Setup Resource Hacker for metadata-free Windows executables');
     expect(reusableWorkflow).toContain('52F81EE4778070D6AA72D8719A1A68FEA2F288005DEB02667542754F747776F8');

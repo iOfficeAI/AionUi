@@ -213,7 +213,10 @@ describe('captureBackendStartupFailure', () => {
       expect(scopeSetTag).toHaveBeenCalledWith('csbu-workmate.backend_startup.missing_hub_dir', 'true');
       expect(scopeSetTag).toHaveBeenCalledWith('csbu-workmate.backend_startup.last_update_status', 'quit-and-install');
       expect(scopeSetTag).toHaveBeenCalledWith('csbu-workmate.backend_startup.seconds_since_quit_and_install', '46');
-      expect(scopeSetTag).toHaveBeenCalledWith('csbu-workmate.backend_startup.install_path_kind', 'user_local_programs');
+      expect(scopeSetTag).toHaveBeenCalledWith(
+        'csbu-workmate.backend_startup.install_path_kind',
+        'user_local_programs'
+      );
       expect(scopeSetContext).toHaveBeenCalledWith(
         'aioncore_startup_classification',
         expect.objectContaining({
@@ -272,7 +275,10 @@ describe('captureBackendStartupFailure', () => {
     await captureBackendStartupFailure(error);
 
     expect(scopeSetTag).toHaveBeenCalledWith('csbu-workmate.backend_startup.reason', 'backend_data_migration_failed');
-    expect(scopeSetTag).toHaveBeenCalledWith('csbu-workmate.backend_startup.boundary_code', 'BOOTSTRAP_DATA_INIT_FAILED');
+    expect(scopeSetTag).toHaveBeenCalledWith(
+      'csbu-workmate.backend_startup.boundary_code',
+      'BOOTSTRAP_DATA_INIT_FAILED'
+    );
     expect(scopeSetTag).toHaveBeenCalledWith('csbu-workmate.backend_startup.boundary_stage', 'database.migration');
   });
 
@@ -291,12 +297,18 @@ describe('captureBackendStartupFailure', () => {
 
     await captureBackendStartupFailure(error);
 
-    expect(scopeSetTag).toHaveBeenCalledWith('csbu-workmate.backend_startup.reason', 'backend_local_data_repair_failed');
+    expect(scopeSetTag).toHaveBeenCalledWith(
+      'csbu-workmate.backend_startup.reason',
+      'backend_local_data_repair_failed'
+    );
     expect(scopeSetTag).toHaveBeenCalledWith(
       'csbu-workmate.backend_startup.local_data_issue_kind',
       'agent_metadata_invalid_utf8'
     );
-    expect(scopeSetTag).toHaveBeenCalledWith('csbu-workmate.backend_startup.boundary_code', 'BOOTSTRAP_SERVICE_INIT_FAILED');
+    expect(scopeSetTag).toHaveBeenCalledWith(
+      'csbu-workmate.backend_startup.boundary_code',
+      'BOOTSTRAP_SERVICE_INIT_FAILED'
+    );
     expect(scopeSetTag).toHaveBeenCalledWith('csbu-workmate.backend_startup.boundary_stage', 'services.init');
   });
 });

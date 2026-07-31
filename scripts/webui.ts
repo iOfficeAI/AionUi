@@ -116,7 +116,9 @@ function resolveStaticDir(): string {
   if (process.env.CSBU_WORKMATE_STATIC_DIR) return process.env.CSBU_WORKMATE_STATIC_DIR;
   const candidate = path.join(repoRoot, 'out', 'renderer');
   if (fs.existsSync(path.join(candidate, 'index.html'))) return candidate;
-  throw new Error(`Renderer assets not found at ${candidate}. Run "bun run package" first, or set CSBU_WORKMATE_STATIC_DIR.`);
+  throw new Error(
+    `Renderer assets not found at ${candidate}. Run "bun run package" first, or set CSBU_WORKMATE_STATIC_DIR.`
+  );
 }
 
 /**
@@ -139,7 +141,8 @@ function runPackageIfNeeded(): void {
 function resolveBackendBinary(): string {
   if (process.env.CSBU_WORKMATE_BACKEND_BIN) return process.env.CSBU_WORKMATE_BACKEND_BIN;
 
-  const bundledBase = process.env.CSBU_WORKMATE_BACKEND_BUNDLED_DIR ?? path.join(repoRoot, 'resources', 'bundled-aioncore');
+  const bundledBase =
+    process.env.CSBU_WORKMATE_BACKEND_BUNDLED_DIR ?? path.join(repoRoot, 'resources', 'bundled-aioncore');
   const runtimeKey = `${process.platform}-${process.arch}`;
   const bundled = path.join(bundledBase, runtimeKey, BACKEND_BINARY);
   if (fs.existsSync(bundled)) return bundled;

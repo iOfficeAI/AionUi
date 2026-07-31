@@ -271,7 +271,9 @@ async function applyBuiltinOverrides(overrides: BuiltinOverride[]): Promise<numb
   });
   const applied = overrides.length - failed - skipped;
   if (failed === 0) {
-    console.log(`[CSBU WorkMate] Applied ${applied} builtin disabled-state override(s) (skipped ${skipped} retired id(s))`);
+    console.log(
+      `[CSBU WorkMate] Applied ${applied} builtin disabled-state override(s) (skipped ${skipped} retired id(s))`
+    );
   } else {
     console.error(
       `[CSBU WorkMate] Builtin override partial: ${failed}/${overrides.length} failed, ${skipped} skipped, ${applied} applied`

@@ -208,8 +208,8 @@ Failed tests automatically get screenshots attached to the HTML report.
 
 Variables set automatically during test launch:
 
-| Variable                     | Value | Purpose                  |
-| ---------------------------- | ----- | ------------------------ |
+| Variable                            | Value | Purpose                  |
+| ----------------------------------- | ----- | ------------------------ |
 | `CSBU_WORKMATE_E2E_TEST`            | `1`   | App recognizes test mode |
 | `CSBU_WORKMATE_DISABLE_AUTO_UPDATE` | `1`   | No update checks         |
 | `CSBU_WORKMATE_DISABLE_DEVTOOLS`    | `1`   | No DevTools windows      |

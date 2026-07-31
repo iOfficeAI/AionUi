@@ -160,9 +160,7 @@ const normalizeLocalizedText = (values: Record<string, string>): Record<string, 
   Object.fromEntries(Object.entries(values).map(([locale, value]) => [locale, normalizeLegacyBrandText(value)]));
 
 const normalizeLocalizedLists = (values: Record<string, string[]>): Record<string, string[]> =>
-  Object.fromEntries(
-    Object.entries(values).map(([locale, items]) => [locale, items.map(normalizeLegacyBrandText)])
-  );
+  Object.fromEntries(Object.entries(values).map(([locale, items]) => [locale, items.map(normalizeLegacyBrandText)]));
 
 const normalizeAssistantBranding = (assistant: Assistant): Assistant => ({
   ...assistant,
@@ -215,9 +213,7 @@ const normalizeAgentBranding = <T extends BrandableAgent>(agent: T): T => ({
   name: normalizeLegacyBrandText(agent.name),
   name_i18n: agent.name_i18n ? normalizeLocalizedText(agent.name_i18n) : agent.name_i18n,
   description: agent.description ? normalizeLegacyBrandText(agent.description) : agent.description,
-  description_i18n: agent.description_i18n
-    ? normalizeLocalizedText(agent.description_i18n)
-    : agent.description_i18n,
+  description_i18n: agent.description_i18n ? normalizeLocalizedText(agent.description_i18n) : agent.description_i18n,
   last_check_error_message: agent.last_check_error_message
     ? normalizeLegacyBrandText(agent.last_check_error_message)
     : agent.last_check_error_message,
@@ -231,8 +227,9 @@ export const assistants = {
     items.map(normalizeAssistantBranding)
   ),
   get: withResponseMap(
-    httpGet<AssistantDetail, { id: string; locale?: string }>(({ id, locale }) =>
-      `/api/assistants/${encodeURIComponent(id)}${locale ? `?locale=${encodeURIComponent(locale)}` : ''}`
+    httpGet<AssistantDetail, { id: string; locale?: string }>(
+      ({ id, locale }) =>
+        `/api/assistants/${encodeURIComponent(id)}${locale ? `?locale=${encodeURIComponent(locale)}` : ''}`
     ),
     normalizeAssistantDetailBranding
   ),

@@ -105,7 +105,9 @@ const mapSizeToNative = (size?: WorkMateSelectSize): NativeSelectSize | undefine
   return size;
 };
 
-type WorkMateSelectComponent = React.ForwardRefExoticComponent<WorkMateSelectProps & React.RefAttributes<SelectHandle>> & {
+type WorkMateSelectComponent = React.ForwardRefExoticComponent<
+  WorkMateSelectProps & React.RefAttributes<SelectHandle>
+> & {
   Option: typeof Select.Option;
   OptGroup: typeof Select.OptGroup;
 };

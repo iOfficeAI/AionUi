@@ -435,8 +435,13 @@ export async function runBackendMigrations(configFile: ConfigFile): Promise<void
   const syncStart = Date.now();
   try {
     await syncBuiltinMcpConfig(configFile);
-    console.info(`[CSBU WorkMate] Backend migration step completed: syncBuiltinMcpConfig (${Date.now() - syncStart}ms)`);
+    console.info(
+      `[CSBU WorkMate] Backend migration step completed: syncBuiltinMcpConfig (${Date.now() - syncStart}ms)`
+    );
   } catch (error) {
-    console.error(`[CSBU WorkMate] Backend migration step failed: syncBuiltinMcpConfig (${Date.now() - syncStart}ms)`, error);
+    console.error(
+      `[CSBU WorkMate] Backend migration step failed: syncBuiltinMcpConfig (${Date.now() - syncStart}ms)`,
+      error
+    );
   }
 }

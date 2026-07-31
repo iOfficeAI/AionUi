@@ -437,16 +437,16 @@ await expect(page.locator('[data-testid="my-skill-card-E2E-Test-Skill-1"]')).toB
 
 #### P2 - 中优先级(提升测试可读性)
 
-| testid                                                | 元素描述                    | 源码位置(估算)                                  | 示例值                                |
-| ----------------------------------------------------- | --------------------------- | ----------------------------------------------- | ------------------------------------- |
-| `external-source-tab-${normalizeTestId(source.name)}` | 外部源 Tab 按钮             | line ~290 `<Button key={source.source}>`        | `external-source-tab-Claude-Code`     |
-| `btn-add-custom-source`                               | 添加自定义源按钮(Plus icon) | line ~310 `<Button icon={<Plus />}>`            | -                                     |
-| `extension-skills-section`                            | 扩展技能板块容器            | line ~440 `<div className="extension-skills">`  | -                                     |
-| `extension-skill-card-${normalizeTestId(skill.name)}` | 扩展技能卡片                | line ~460 `<div className="skill-card">`        | `extension-skill-card-test-extension` |
-| `auto-skills-section`                                 | 自动注入技能板块容器        | line ~500 `<div className="auto-skills">`       | -                                     |
-| `auto-skill-card-${normalizeTestId(skill.name)}`      | 自动注入技能卡片            | line ~520 `<div className="skill-card">`        | `auto-skill-card-csbu-workmate-skills`       |
-| `my-skills-empty-state`                               | 我的技能空状态容器          | line ~585 `<div>No skills found</div>`          | -                                     |
-| `external-skills-no-results`                          | 外部技能搜索无结果提示      | line ~380 `<div>No matching skills found</div>` | -                                     |
+| testid                                                | 元素描述                    | 源码位置(估算)                                  | 示例值                                 |
+| ----------------------------------------------------- | --------------------------- | ----------------------------------------------- | -------------------------------------- |
+| `external-source-tab-${normalizeTestId(source.name)}` | 外部源 Tab 按钮             | line ~290 `<Button key={source.source}>`        | `external-source-tab-Claude-Code`      |
+| `btn-add-custom-source`                               | 添加自定义源按钮(Plus icon) | line ~310 `<Button icon={<Plus />}>`            | -                                      |
+| `extension-skills-section`                            | 扩展技能板块容器            | line ~440 `<div className="extension-skills">`  | -                                      |
+| `extension-skill-card-${normalizeTestId(skill.name)}` | 扩展技能卡片                | line ~460 `<div className="skill-card">`        | `extension-skill-card-test-extension`  |
+| `auto-skills-section`                                 | 自动注入技能板块容器        | line ~500 `<div className="auto-skills">`       | -                                      |
+| `auto-skill-card-${normalizeTestId(skill.name)}`      | 自动注入技能卡片            | line ~520 `<div className="skill-card">`        | `auto-skill-card-csbu-workmate-skills` |
+| `my-skills-empty-state`                               | 我的技能空状态容器          | line ~585 `<div>No skills found</div>`          | -                                      |
+| `external-skills-no-results`                          | 外部技能搜索无结果提示      | line ~380 `<div>No matching skills found</div>` | -                                      |
 
 ### 5.3 实施建议
 

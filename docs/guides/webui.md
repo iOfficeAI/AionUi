@@ -573,8 +573,8 @@ csbu-workmate --webui --port 8080
 
 From v1.5.0+, you can store persistent WebUI preferences in `webui.config.json` located in your Electron user-data folder:
 
-| Platform | Location                                                 |
-| -------- | -------------------------------------------------------- |
+| Platform | Location                                                        |
+| -------- | --------------------------------------------------------------- |
 | Windows  | `%APPDATA%/CSBU WorkMate/webui.config.json`                     |
 | macOS    | `~/Library/Application Support/CSBU WorkMate/webui.config.json` |
 | Linux    | `~/.config/CSBU WorkMate/webui.config.json`                     |

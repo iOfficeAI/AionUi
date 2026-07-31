@@ -108,7 +108,9 @@ export async function ensureAdminPassword(
   try {
     status = await waitForStatus(deps, `${base}/api/auth/status`, timeoutMs, intervalMs);
   } catch (err) {
-    deps.warn(`[csbu-workmate-web] could not verify admin credentials: ${err instanceof Error ? err.message : String(err)}`);
+    deps.warn(
+      `[csbu-workmate-web] could not verify admin credentials: ${err instanceof Error ? err.message : String(err)}`
+    );
     return;
   }
 

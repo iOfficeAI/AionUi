@@ -118,7 +118,8 @@ describe('UpdateNotificationCard', () => {
           recommendedAsset: {
             name: 'CSBU-WorkMate-2.1.14-mac-arm64.dmg',
             url: 'https://updates.csbu.internal/releases/2.1.14/CSBU-WorkMate-2.1.14-mac-arm64.dmg',
-            fallbackUrl: 'https://github.com/CSBU/CSBU-WorkMate/releases/download/v2.1.14/CSBU-WorkMate-2.1.14-mac-arm64.dmg',
+            fallbackUrl:
+              'https://github.com/CSBU/CSBU-WorkMate/releases/download/v2.1.14/CSBU-WorkMate-2.1.14-mac-arm64.dmg',
             size: 123,
           },
         },

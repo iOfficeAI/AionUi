@@ -87,7 +87,9 @@ function isBackendStartupFailureEvent(event: { tags?: Record<string, unknown> })
 }
 
 function isUserFeedbackEvent(event: { tags?: Record<string, unknown> }): boolean {
-  return event.tags?.type === 'user-feedback' || event.tags?.['csbu-workmate.installation_integrity.user_report'] === 'true';
+  return (
+    event.tags?.type === 'user-feedback' || event.tags?.['csbu-workmate.installation_integrity.user_report'] === 'true'
+  );
 }
 
 function isBackendStartupSecondaryEvent(event: { tags?: Record<string, unknown> }, haystacks: string[]): boolean {
@@ -248,7 +250,10 @@ export async function captureBackendStartupFailure(error: unknown): Promise<void
       scope.setTag('csbu-workmate.backend_startup.expected_download_arch', failureInfo.expectedDownloadArch);
     }
     if (typeof failureInfo.isRosettaTranslated === 'boolean') {
-      scope.setTag('csbu-workmate.backend_startup.rosetta_translated', getBooleanTagValue(failureInfo.isRosettaTranslated));
+      scope.setTag(
+        'csbu-workmate.backend_startup.rosetta_translated',
+        getBooleanTagValue(failureInfo.isRosettaTranslated)
+      );
     }
     if (typeof details?.stage === 'string') {
       scope.setTag('csbu-workmate.backend_startup.stage', details.stage);
@@ -263,7 +268,10 @@ export async function captureBackendStartupFailure(error: unknown): Promise<void
       scope.setTag('csbu-workmate.backend_startup.local_data_issue_kind', failureInfo.localDataIssueKind);
     }
     if (failureInfo.incompleteInstallationKind) {
-      scope.setTag('csbu-workmate.backend_startup.incomplete_installation_kind', failureInfo.incompleteInstallationKind);
+      scope.setTag(
+        'csbu-workmate.backend_startup.incomplete_installation_kind',
+        failureInfo.incompleteInstallationKind
+      );
     }
     for (const [tag, value] of [
       ['csbu-workmate.backend_startup.missing_bundled_dir', getBooleanTagValue(failureInfo.missingBundledAioncoreDir)],
@@ -285,8 +293,14 @@ export async function captureBackendStartupFailure(error: unknown): Promise<void
         'csbu-workmate.backend_startup.health_attempt_deficit_bucket',
         getHealthAttemptBucket(details?.healthCheckAttemptDeficit),
       ],
-      ['csbu-workmate.backend_startup.health_timeout_overrun_bucket', getDurationBucket(details?.healthCheckTimeoutOverrunMs)],
-      ['csbu-workmate.backend_startup.health_max_attempt_gap_bucket', getDurationBucket(details?.healthCheckMaxAttemptGapMs)],
+      [
+        'csbu-workmate.backend_startup.health_timeout_overrun_bucket',
+        getDurationBucket(details?.healthCheckTimeoutOverrunMs),
+      ],
+      [
+        'csbu-workmate.backend_startup.health_max_attempt_gap_bucket',
+        getDurationBucket(details?.healthCheckMaxAttemptGapMs),
+      ],
       [
         'csbu-workmate.backend_startup.seconds_since_quit_and_install',
         getSecondsSince(autoUpdateDiagnostics?.lastQuitAndInstallAt),

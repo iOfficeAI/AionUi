@@ -1,9 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  auditBranding,
-  containsForbiddenPromotion,
-  containsOldBrandInValue,
-} from './brandingAudit.mjs';
+import { auditBranding, containsForbiddenPromotion, containsOldBrandInValue } from './brandingAudit.mjs';
 
 describe('CSBU WorkMate branding audit', () => {
   it('accepts the repository branding policy', () => {

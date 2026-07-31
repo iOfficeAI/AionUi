@@ -83,7 +83,10 @@ function main() {
       .replace(/\..+$/, '')
       .replace('T', '-')}-log.jsonl`
   );
-  const resultPath = path.join(process.env.TEMP || tmpdir(), `csbu-workmate-installer-self-lock-${process.pid}-result.txt`);
+  const resultPath = path.join(
+    process.env.TEMP || tmpdir(),
+    `csbu-workmate-installer-self-lock-${process.pid}-result.txt`
+  );
   const processControlPath = path.join(repoRoot, 'resources', 'windows', 'installer-process-control.nsh');
 
   const nsi = `

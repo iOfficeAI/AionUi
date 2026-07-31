@@ -29,11 +29,15 @@ describe('resolveLocalFileLinkPath', () => {
   });
 
   it('recognizes file-like POSIX absolute paths outside common home and temp roots', () => {
-    expect(resolveLocalFileLinkPath('/opt/csbu-workmate/outputs/report.xlsx')).toBe('/opt/csbu-workmate/outputs/report.xlsx');
+    expect(resolveLocalFileLinkPath('/opt/csbu-workmate/outputs/report.xlsx')).toBe(
+      '/opt/csbu-workmate/outputs/report.xlsx'
+    );
   });
 
   it('recognizes line suffixes without confusing Windows drive letters', () => {
-    const reference = resolveLocalFileLinkReference('C:/Users/Administrator/AppData/Roaming/CSBU WorkMate/logs/app.log:1421');
+    const reference = resolveLocalFileLinkReference(
+      'C:/Users/Administrator/AppData/Roaming/CSBU WorkMate/logs/app.log:1421'
+    );
 
     expect(reference).toEqual({
       filePath: 'C:/Users/Administrator/AppData/Roaming/CSBU WorkMate/logs/app.log',

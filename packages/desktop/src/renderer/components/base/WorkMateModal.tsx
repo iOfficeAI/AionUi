@@ -121,7 +121,8 @@ const FOOTER_DIVIDER_CLASS = 'flex-shrink-0 border-t border-solid border-[var(--
 
 // ===== standard 变体：统一三段式布局 =====
 /** 标题区：上 20 / 左右 24 / 下 16，底部一条贯穿全宽的分隔线。 */
-const STD_HEADER_CLASS = 'csbu-workmate-modal-std-header flex items-start justify-between gap-16px px-24px pt-20px pb-16px';
+const STD_HEADER_CLASS =
+  'csbu-workmate-modal-std-header flex items-start justify-between gap-16px px-24px pt-20px pb-16px';
 const STD_TITLE_CLASS = 'text-18px font-600 leading-26px text-t-primary m-0';
 const STD_SUBTITLE_CLASS = 'text-13px leading-20px text-t-secondary m-0 mt-4px';
 /** 内容区布局：撑满剩余高度、超出滚动（不含内边距）。 */

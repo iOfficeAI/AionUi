@@ -40,7 +40,8 @@ export function auditBranding(root = DEFAULT_ROOT) {
     violations.push('workspace packages must use the @csbu-workmate scope');
   }
   if (!builderConfig.includes('appId: com.csbu.workmate')) violations.push('desktop appId must be com.csbu.workmate');
-  if (!builderConfig.includes('productName: CSBU WorkMate')) violations.push('desktop productName must be CSBU WorkMate');
+  if (!builderConfig.includes('productName: CSBU WorkMate'))
+    violations.push('desktop productName must be CSBU WorkMate');
   if (!builderConfig.includes('csbu-workmate')) violations.push('desktop protocol must use csbu-workmate');
   if (builderConfig.includes('publish:')) violations.push('public electron-builder publishing must remain disabled');
 
@@ -82,13 +83,15 @@ export function auditBranding(root = DEFAULT_ROOT) {
 
   const quickActions = read('packages/desktop/src/renderer/pages/guid/components/QuickActionButtons.tsx');
   if (quickActions.includes('quickActionStar')) violations.push('repository star promotion must remain removed');
-  if (existsSync(join(root, '.github/workflows/bump-homebrew.yml'))) violations.push('public Homebrew workflow must remain removed');
+  if (existsSync(join(root, '.github/workflows/bump-homebrew.yml')))
+    violations.push('public Homebrew workflow must remain removed');
   if (existsSync(join(root, '.github/workflows/release-distribute.yml'))) {
     violations.push('public distribution workflow must remain removed');
   }
 
   const mainSource = read('packages/desktop/src/index.ts');
-  if (!mainSource.includes('const disableAutoUpdater = true;')) violations.push('public auto-update must remain disabled');
+  if (!mainSource.includes('const disableAutoUpdater = true;'))
+    violations.push('public auto-update must remain disabled');
 
   const hubPreparation = read('scripts/prepareHubResources.js');
   if (/iOfficeAI\/AionHub/i.test(hubPreparation)) {

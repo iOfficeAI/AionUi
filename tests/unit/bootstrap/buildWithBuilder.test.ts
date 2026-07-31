@@ -197,7 +197,11 @@ childProcess.execSync = function mockedExecSync(command) {
       ['installer-errors-sentry.nsh', [/MessageBox MB_YESNO\|MB_ICONSTOP/]],
       [
         'installer-process-control.nsh',
-        [/CSBU_WORKMATE_MSG_FILE_OR_FOLDER_IN_USE_ZH/, /\$\(appRunning\)/, /CSBU_WORKMATE_MSG_CLOSE_OR_REMOVE_PREVIOUS_ZH/],
+        [
+          /CSBU_WORKMATE_MSG_FILE_OR_FOLDER_IN_USE_ZH/,
+          /\$\(appRunning\)/,
+          /CSBU_WORKMATE_MSG_CLOSE_OR_REMOVE_PREVIOUS_ZH/,
+        ],
       ],
     ]);
 

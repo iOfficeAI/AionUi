@@ -34,7 +34,7 @@ on:
       strip_windows_exe_metadata:
         description: 'Remove VERSIONINFO from Windows application, installer, and uninstaller executables'
         type: boolean
-        default: false
+        default: true
 
 env:
   BUN_INSTALL_REGISTRY: 'https://registry.npmjs.org/'

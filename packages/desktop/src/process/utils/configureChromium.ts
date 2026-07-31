@@ -19,7 +19,8 @@ import { applyGpuRecoveryFlags } from './gpuRecovery';
 // database — critical because AionCore refuses to boot when a shared DB fails
 // migration. Guarded by CSBU_WORKMATE_E2E_TEST so it never affects dev/production.
 // 仅 E2E：把 userData 指向一次性沙箱目录，避免测试读写真实数据库。
-const e2eUserDataDir = process.env.CSBU_WORKMATE_E2E_TEST === '1' ? process.env.CSBU_WORKMATE_E2E_USER_DATA_DIR : undefined;
+const e2eUserDataDir =
+  process.env.CSBU_WORKMATE_E2E_TEST === '1' ? process.env.CSBU_WORKMATE_E2E_USER_DATA_DIR : undefined;
 if (e2eUserDataDir && e2eUserDataDir.trim() !== '') {
   fs.mkdirSync(e2eUserDataDir, { recursive: true });
   app.setPath('userData', e2eUserDataDir);

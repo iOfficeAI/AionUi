@@ -85,7 +85,8 @@ const makeGitHubReleaseResponse = () => [
       },
       {
         name: 'CSBU-WorkMate-1.9.22-win-x64.exe',
-        browser_download_url: 'https://github.com/CSBU/CSBU-WorkMate/releases/download/v1.9.22/CSBU-WorkMate-1.9.22-win-x64.exe',
+        browser_download_url:
+          'https://github.com/CSBU/CSBU-WorkMate/releases/download/v1.9.22/CSBU-WorkMate-1.9.22-win-x64.exe',
         size: 456,
         content_type: 'application/vnd.microsoft.portable-executable',
       },
@@ -163,7 +164,9 @@ describe('updateBridge CDN URL rewriting', () => {
       );
 
       const linuxAsset = assets.find((a: { name: string }) => a.name === 'CSBU-WorkMate-1.9.22-linux-amd64.deb');
-      expect(linuxAsset?.url).toBe('https://updates.csbu.internal/releases/1.9.22/CSBU-WorkMate-1.9.22-linux-amd64.deb');
+      expect(linuxAsset?.url).toBe(
+        'https://updates.csbu.internal/releases/1.9.22/CSBU-WorkMate-1.9.22-linux-amd64.deb'
+      );
     } finally {
       vi.unstubAllGlobals();
     }

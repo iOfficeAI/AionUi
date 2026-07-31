@@ -267,8 +267,8 @@ For Gemini API calls, configure the proxy inside CSBU WorkMate WebUI:
 
 | Issue                                     | Solution                                                     |
 | ----------------------------------------- | ------------------------------------------------------------ |
-| `dpkg` dependency errors in containers    | `dpkg --force-all -i CSBU-WorkMate-linux-amd64.deb`                 |
-| CSBU WorkMate can only access `/tmp`             | Set `WORKDIR` in the startup script to your workspace path   |
+| `dpkg` dependency errors in containers    | `dpkg --force-all -i CSBU-WorkMate-linux-amd64.deb`          |
+| CSBU WorkMate can only access `/tmp`      | Set `WORKDIR` in the startup script to your workspace path   |
 | WebUI not accessible remotely             | Check firewall rules, or use ngrok / SSH tunnel              |
 | All requests fail when proxy is down      | Use PAC file (`--proxy-pac-url`) instead of `--proxy-server` |
 | `curl` fails after SSH tunnel disconnects | Add `PROMPT_COMMAND` auto-detect to `~/.bashrc` (see Step 3) |
@@ -494,11 +494,11 @@ PROMPT_COMMAND="_auto_proxy;${PROMPT_COMMAND}"
 
 ## 常见问题
 
-| 问题                   | 解决方案                              |
-| ---------------------- | ------------------------------------- |
-| 容器内 dpkg 依赖报错   | `dpkg --force-all -i` 强制安装        |
-| CSBU WorkMate 只能访问 /tmp   | 修改启动脚本中的 `WORKDIR`            |
-| 远程无法访问 WebUI     | 检查防火墙/安全组，或使用 ngrok       |
-| 代理断开后所有请求失败 | 用 PAC 文件替代 `--proxy-server`      |
-| SSH 断开后 curl 失败   | bashrc 添加 `PROMPT_COMMAND` 自动检测 |
-| 端口 25808 被占用      | `kill $(lsof -t -i:25808)` 后重启     |
+| 问题                        | 解决方案                              |
+| --------------------------- | ------------------------------------- |
+| 容器内 dpkg 依赖报错        | `dpkg --force-all -i` 强制安装        |
+| CSBU WorkMate 只能访问 /tmp | 修改启动脚本中的 `WORKDIR`            |
+| 远程无法访问 WebUI          | 检查防火墙/安全组，或使用 ngrok       |
+| 代理断开后所有请求失败      | 用 PAC 文件替代 `--proxy-server`      |
+| SSH 断开后 curl 失败        | bashrc 添加 `PROMPT_COMMAND` 自动检测 |
+| 端口 25808 被占用           | `kill $(lsof -t -i:25808)` 后重启     |

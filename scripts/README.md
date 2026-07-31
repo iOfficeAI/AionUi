@@ -4,13 +4,13 @@ This directory contains scripts for building and packaging CSBU WorkMate across 
 
 ## Scripts Overview
 
-| Script                    | Lines | Purpose                                         |
-| ------------------------- | ----- | ----------------------------------------------- |
-| `build-with-builder.js`   | 116   | Coordinates Electron Forge and electron-builder |
-| `rebuildNativeModules.js` | 219   | **Unified native module rebuild utility**       |
-| `beforeBuild.js`          | 38    | Pre-packaging native module rebuild hook        |
+| Script                    | Lines | Purpose                                                  |
+| ------------------------- | ----- | -------------------------------------------------------- |
+| `build-with-builder.js`   | 116   | Coordinates Electron Forge and electron-builder          |
+| `rebuildNativeModules.js` | 219   | **Unified native module rebuild utility**                |
+| `beforeBuild.js`          | 38    | Pre-packaging native module rebuild hook                 |
 | `afterPack.js`            | —     | Post-packaging verification and Windows metadata removal |
-| `afterSign.js`            | 47    | macOS code signing and notarization             |
+| `afterSign.js`            | 47    | macOS code signing and notarization                      |
 
 **Total**: 487 lines (down from 711 lines before optimization)
 
@@ -140,7 +140,8 @@ rebuildSingleModule({
 ### Manual GitHub build
 
 Run the **Manual Build** workflow and select a platform. The optional `version` input overrides the artifact version
-without changing the repository. Windows manual builds enable `strip_windows_exe_metadata` by default.
+without changing the repository. Windows builds enable `strip_windows_exe_metadata` by default; manual builds can opt
+out when metadata is needed for diagnostics.
 
 The Windows metadata flow removes `VERSIONINFO` from the packaged application in `afterPack` and from the temporary
 NSIS header through `!packhdr`. Do not edit the completed installer with Resource Hacker: that changes bytes covered by
