@@ -139,6 +139,8 @@
     "expand": "Розгорнути",
     "collapse": "Згорнути",
     "blockedBy": "заблоковано #{{id}}",
+    "blockedByNamed": "заблоковано «{{name}}»",
+    "blockerUnknown": "Завдання недоступне",
     "status": {
       "pending": "Очікує",
       "in_progress": "У роботі",

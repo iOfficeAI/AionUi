@@ -139,6 +139,8 @@
     "expand": "Aufklappen",
     "collapse": "Einklappen",
     "blockedBy": "blockiert von #{{id}}",
+    "blockedByNamed": "blockiert von {{name}}",
+    "blockerUnknown": "Aufgabe nicht verfügbar",
     "status": {
       "pending": "Ausstehend",
       "in_progress": "In Bearbeitung",

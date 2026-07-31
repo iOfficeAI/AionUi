@@ -139,6 +139,8 @@
     "expand": "展開",
     "collapse": "折りたたむ",
     "blockedBy": "#{{id}} によりブロック",
+    "blockedByNamed": "「{{name}}」によりブロック",
+    "blockerUnknown": "タスクは利用できません",
     "status": {
       "pending": "保留中",
       "in_progress": "進行中",

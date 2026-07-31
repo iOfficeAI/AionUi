@@ -139,6 +139,8 @@
     "expand": "Развернуть",
     "collapse": "Свернуть",
     "blockedBy": "заблокировано #{{id}}",
+    "blockedByNamed": "заблокировано «{{name}}»",
+    "blockerUnknown": "Задача недоступна",
     "status": {
       "pending": "Ожидает",
       "in_progress": "В работе",

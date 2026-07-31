@@ -139,6 +139,8 @@
     "expand": "Genişlet",
     "collapse": "Daralt",
     "blockedBy": "#{{id}} tarafından engellendi",
+    "blockedByNamed": "{{name}} tarafından engellendi",
+    "blockerUnknown": "Görev kullanılamıyor",
     "status": {
       "pending": "Beklemede",
       "in_progress": "Devam ediyor",

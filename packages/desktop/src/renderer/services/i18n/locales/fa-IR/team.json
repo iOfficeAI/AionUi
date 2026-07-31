@@ -139,6 +139,8 @@
     "expand": "گسترش",
     "collapse": "جمع کردن",
     "blockedBy": "مسدود شده توسط #{{id}}",
+    "blockedByNamed": "مسدود شده توسط {{name}}",
+    "blockerUnknown": "وظیفه در دسترس نیست",
     "status": {
       "pending": "در انتظار",
       "in_progress": "در حال انجام",

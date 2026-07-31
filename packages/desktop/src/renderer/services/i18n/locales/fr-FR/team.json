@@ -93,6 +93,8 @@
     "expand": "Développer",
     "collapse": "Réduire",
     "blockedBy": "bloqué par #{{id}}",
+    "blockedByNamed": "bloqué par {{name}}",
+    "blockerUnknown": "Tâche indisponible",
     "status": {
       "pending": "En attente",
       "in_progress": "En cours",

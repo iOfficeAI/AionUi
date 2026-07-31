@@ -12,6 +12,7 @@ import type { ITeamTaskItem } from '@/common/types/team/teamTypes';
 import { ACTIVITY_USER_IDENTITY } from './activityTypes';
 import type { ActivityIdentityResolver } from './MessageCard';
 import { clampStyle, useIsClamped } from './useIsClamped';
+import { useActivityTaskIndex } from './ActivityTaskIndexContext';
 
 type Props = {
   task: ITeamTaskItem;
@@ -27,6 +28,7 @@ const STATUS_COLOR: Record<string, string> = {
 
 const TaskCard: React.FC<Props> = ({ task, identity }) => {
   const { t } = useTranslation();
+  const { resolve } = useActivityTaskIndex();
   const [expanded, setExpanded] = useState(false);
   const descRef = useRef<HTMLDivElement>(null);
 
@@ -59,11 +61,17 @@ const TaskCard: React.FC<Props> = ({ task, identity }) => {
 
       {task.blocked_by.length > 0 && (
         <div className='flex flex-wrap items-center gap-4px'>
-          {task.blocked_by.map((dep) => (
-            <Tag key={dep} size='small' color='orangered' icon={<Lock theme='outline' size='11' fill='currentColor' />}>
-              {t('team.activity.blockedBy', { id: dep.slice(0, 6), defaultValue: 'blocked by #{{id}}' })}
-            </Tag>
-          ))}
+          {task.blocked_by.map((dep) => {
+            const info = resolve(dep);
+            const label = info
+              ? t('team.activity.blockedByNamed', { name: info.subject, defaultValue: 'blocked by {{name}}' })
+              : t('team.activity.blockedBy', { id: dep.slice(0, 6), defaultValue: 'blocked by #{{id}}' });
+            return (
+              <Tag key={dep} size='small' color='orangered' icon={<Lock theme='outline' size='11' fill='currentColor' />}>
+                {label}
+              </Tag>
+            );
+          })}
         </div>
       )}
 

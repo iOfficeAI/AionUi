@@ -139,6 +139,8 @@
     "expand": "展开",
     "collapse": "收起",
     "blockedBy": "被 #{{id}} 阻塞",
+    "blockedByNamed": "被《{{name}}》阻塞",
+    "blockerUnknown": "任务不可用",
     "status": {
       "pending": "待处理",
       "in_progress": "进行中",

@@ -2400,6 +2400,8 @@ export type I18nKey =
   | 'settings.yoloMode'
   | 'team.activity.attachments'
   | 'team.activity.blockedBy'
+  | 'team.activity.blockedByNamed'
+  | 'team.activity.blockerUnknown'
   | 'team.activity.broadcast'
   | 'team.activity.collapse'
   | 'team.activity.control.allMembers'

@@ -139,6 +139,8 @@
     "expand": "Expandir",
     "collapse": "Recolher",
     "blockedBy": "bloqueado por #{{id}}",
+    "blockedByNamed": "bloqueado por {{name}}",
+    "blockerUnknown": "Tarefa indisponível",
     "status": {
       "pending": "Pendente",
       "in_progress": "Em andamento",

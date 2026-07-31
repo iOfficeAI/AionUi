@@ -139,6 +139,8 @@
     "expand": "펼치기",
     "collapse": "접기",
     "blockedBy": "#{{id}}에 의해 차단됨",
+    "blockedByNamed": "「{{name}}」에 의해 차단됨",
+    "blockerUnknown": "작업을 사용할 수 없음",
     "status": {
       "pending": "대기 중",
       "in_progress": "진행 중",

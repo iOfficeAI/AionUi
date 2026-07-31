@@ -139,6 +139,8 @@
     "expand": "Expand",
     "collapse": "Collapse",
     "blockedBy": "blocked by #{{id}}",
+    "blockedByNamed": "blocked by {{name}}",
+    "blockerUnknown": "Task unavailable",
     "status": {
       "pending": "Pending",
       "in_progress": "In progress",
