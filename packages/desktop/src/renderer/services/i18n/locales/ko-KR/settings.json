@@ -112,7 +112,22 @@
     "noSearchResults": "일치하는 스킬이 없습니다.",
     "customHint": "스킬 폴더, 상위 폴더 또는 zip을 가져올 수 있으며, 파일당 최대 {{maxFileSize}}, 스킬당 최대 {{maxTotalSize}}입니다. 같은 이름으로 가져오면 기존 스킬을 덮어씁니다.",
     "officialHint": "AionUi에 기본 제공되는 공식 스킬입니다. 바로 사용할 수 있고 읽기 전용이며 버전마다 업데이트됩니다.",
-    "deleteAffectsNewOnlyHint": "Deleting only affects new conversations. Skills already selected in existing conversations keep working."
+    "deleteAffectsNewOnlyHint": "Deleting only affects new conversations. Skills already selected in existing conversations keep working.",
+    "skillTypes": {
+      "security": "보안",
+      "implementation": "구현",
+      "planning": "계획",
+      "productivity": "생산성",
+      "other": "기타"
+    },
+    "createGroup": "그룹 만들기",
+    "groupNamePlaceholder": "그룹 이름",
+    "groupsAction": "그룹",
+    "addToGroup": "{{name}}에 추가",
+    "removeFromGroup": "{{name}}에서 제거",
+    "groupLoadError": "스킬 그룹을 불러오지 못했습니다",
+    "groupSaveError": "스킬 그룹을 저장하지 못했습니다",
+    "all": "전체"
   },
   "authMethod": "인증",
   "geminiApiKey": "Gemini API 키",

@@ -10,6 +10,9 @@ export type ImageGenerationModelSetting = TProviderWithModel & {
 };
 
 export type ClientBusinessSettingMap = {
+  'skills.organization': {
+    groups: Array<{ id: string; name: string; skillNames: string[] }>;
+  };
   'google.config': GoogleClientSetting;
   'mcp.config': IMcpServer[] | undefined;
   'tools.imageGenerationModel': ImageGenerationModelSetting | undefined;

@@ -23,6 +23,8 @@ const mocks = vi.hoisted(() => ({
   messageSuccess: vi.fn(),
   messageWarning: vi.fn(),
   modalConfirm: vi.fn(),
+  getSkillOrganization: vi.fn(),
+  setSkillOrganization: vi.fn(),
 }));
 
 const searchParamsMock = vi.hoisted(() => ({
@@ -89,6 +91,11 @@ vi.mock('react-i18next', () => ({
   }),
 }));
 
+vi.mock('@/renderer/services/clientBusinessSettings', () => ({
+  getClientBusinessSetting: mocks.getSkillOrganization,
+  setClientBusinessSetting: mocks.setSkillOrganization,
+}));
+
 import SkillsHubSettings from '@/renderer/pages/settings/SkillsSettings/SkillsHubSettings';
 
 describe('SkillsHubSettings', () => {
@@ -115,6 +122,46 @@ describe('SkillsHubSettings', () => {
       max_total_bytes: 64 * 1024 * 1024,
     });
     mocks.listSkillImportHistory.mockResolvedValue([]);
+    mocks.getSkillOrganization.mockResolvedValue(undefined);
+  });
+
+  it('filters alphabetized skills by pill and persists a user-created group', async () => {
+    mocks.listAvailableSkills.mockResolvedValue([
+      {
+        name: 'zebra-plan',
+        description: 'Planning support.',
+        location: '/tmp/user-skills/zebra-plan',
+        is_custom: true,
+        source: 'custom',
+      },
+      {
+        name: 'alpha-audit',
+        description: 'Security authentication audit.',
+        location: '/tmp/user-skills/alpha-audit',
+        is_custom: true,
+        source: 'custom',
+      },
+    ]);
+
+    render(<SkillsHubSettings withWrapper={false} />);
+
+    const cards = await screen.findAllByTestId(/my-skill-card-/);
+    expect(cards[0]).toHaveTextContent('alpha-audit');
+    expect(cards[1]).toHaveTextContent('zebra-plan');
+
+    fireEvent.click(screen.getByTestId('skill-type-filter-security'));
+    expect(screen.getByTestId('my-skill-card-alpha-audit')).toBeInTheDocument();
+    expect(screen.queryByTestId('my-skill-card-zebra-plan')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('btn-create-skill-group'));
+    fireEvent.change(screen.getByTestId('input-skill-group-name'), { target: { value: 'Audit tools' } });
+    fireEvent.click(screen.getByTestId('btn-save-skill-group'));
+
+    await waitFor(() =>
+      expect(mocks.setSkillOrganization).toHaveBeenCalledWith('skills.organization', {
+        groups: [{ id: expect.any(String), name: 'Audit tools', skillNames: [] }],
+      })
+    );
   });
 
   it('exports a component (smoke)', () => {

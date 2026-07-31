@@ -112,7 +112,22 @@
     "noSearchResults": "沒有符合的技能。",
     "customHint": "支援技能目錄、父目錄或 zip 匯入；單檔上限 {{maxFileSize}}、單技能上限 {{maxTotalSize}}；同名匯入會覆蓋現有技能。",
     "officialHint": "AionUi 官方內建的技能，開箱即用、唯讀，隨版本更新維護。",
-    "deleteAffectsNewOnlyHint": "刪除僅影響新會話：歷史會話中已選用的技能仍可繼續使用。"
+    "deleteAffectsNewOnlyHint": "刪除僅影響新會話：歷史會話中已選用的技能仍可繼續使用。",
+    "skillTypes": {
+      "security": "安全性",
+      "implementation": "實作",
+      "planning": "規劃",
+      "productivity": "生產力",
+      "other": "其他"
+    },
+    "createGroup": "建立群組",
+    "groupNamePlaceholder": "群組名稱",
+    "groupsAction": "群組",
+    "addToGroup": "新增至 {{name}}",
+    "removeFromGroup": "從 {{name}} 移除",
+    "groupLoadError": "載入技能群組失敗",
+    "groupSaveError": "儲存技能群組失敗",
+    "all": "全部"
   },
   "authMethod": "驗證",
   "geminiApiKey": "Gemini API 金鑰",

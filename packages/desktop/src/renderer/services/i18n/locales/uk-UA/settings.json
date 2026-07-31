@@ -112,7 +112,22 @@
     "noSearchResults": "Немає відповідних навичок.",
     "customHint": "Імпортуйте теку навички, батьківську теку або zip; до {{maxFileSize}} на файл і {{maxTotalSize}} на навичку; імпорт з тією самою назвою перезаписує наявну навичку.",
     "officialHint": "Офіційні навички, що постачаються з AionUi, — готові до використання, лише для читання та оновлюються з кожним випуском.",
-    "deleteAffectsNewOnlyHint": "Deleting only affects new conversations. Skills already selected in existing conversations keep working."
+    "deleteAffectsNewOnlyHint": "Deleting only affects new conversations. Skills already selected in existing conversations keep working.",
+    "skillTypes": {
+      "security": "Безпека",
+      "implementation": "Реалізація",
+      "planning": "Планування",
+      "productivity": "Продуктивність",
+      "other": "Інше"
+    },
+    "createGroup": "Створити групу",
+    "groupNamePlaceholder": "Назва групи",
+    "groupsAction": "Групи",
+    "addToGroup": "Додати до {{name}}",
+    "removeFromGroup": "Видалити з {{name}}",
+    "groupLoadError": "Не вдалося завантажити групи навичок",
+    "groupSaveError": "Не вдалося зберегти групи навичок",
+    "all": "Усі"
   },
   "authMethod": "Автентифікація",
   "geminiApiKey": "API-ключ Gemini",
