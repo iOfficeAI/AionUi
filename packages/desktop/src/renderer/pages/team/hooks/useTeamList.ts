@@ -12,11 +12,12 @@ export function useTeamList() {
   const { user } = useAuth();
   const user_id = user?.id ?? 'system_default_user';
 
-  const { data: teams = [], mutate } = useSWR<TTeam[]>(
+  const { data, mutate } = useSWR<TTeam[]>(
     `teams/${user_id}`,
     () => ipcBridge.team.list.invoke({ user_id }),
     { revalidateOnFocus: false }
   );
+  const teams = data ?? [];
 
   // Refresh list when backend creates/removes a team (e.g. via MCP)
   useEffect(() => {
@@ -43,9 +44,12 @@ export function useTeamList() {
   // Drop per-team localStorage for teams no longer present. Covers both the
   // frontend removeTeam path below and backend/MCP deletion (WS team.removed,
   // which only mutates the list), and cleans up historically-leaked keys.
+  // Gate on a loaded list: SWR's pre-fetch `data` is `undefined`, and treating
+  // that as "no teams" would wipe every team's prefs on each cold start.
   useEffect(() => {
-    pruneOrphanTeamStorage(teams.map((t) => t.id));
-  }, [teams]);
+    if (data === undefined) return;
+    pruneOrphanTeamStorage(data.map((t) => t.id));
+  }, [data]);
 
   const removeTeam = useCallback(
     async (id: string) => {
