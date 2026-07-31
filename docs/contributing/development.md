@@ -218,6 +218,21 @@ Use the Rust MSVC toolchain and install Microsoft C++ Build Tools. After install
 | `bun run debug:mcp:validate` | Validate MCP server configurations              |
 | `bun run debug:custom-agent` | Debug custom agent connections                  |
 
+### Optional Local AgentPond Tracing
+
+The built-in OpenAI-compatible image generation server can write OpenInference traces to a local AgentPond filesystem environment. Tracing is disabled unless the `fs` Files SDK provider is configured, and request and response content is hidden from traces by default.
+
+Create and select a local filesystem environment, then start AionUi from the same shell so its subprocesses inherit the configuration:
+
+```bash
+npx --yes --min-release-age=0 agentpond@0.9.0 env init local --provider fs --root "$PWD/.agentpond/envs/local/objects"
+npx --yes --min-release-age=0 agentpond@0.9.0 env use local
+eval "$(npx --yes --min-release-age=0 agentpond@0.9.0 env get local)"
+bun run start
+```
+
+The local `.agentpond/` directory is ignored by Git.
+
 ## Multi-Instance Development
 
 When you have two clones of the repository (e.g. `AionUi` and `AionUi-refactor`) and need to run both simultaneously, the second instance can be started with:

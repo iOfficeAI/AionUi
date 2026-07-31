@@ -13,6 +13,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
+import { flushAgentPondTracing } from './agentPondTracing';
 import { BUILTIN_IMAGE_GEN_ID, BUILTIN_IMAGE_GEN_NAME } from './constants';
 import { executeImageGeneration } from '@/common/chat/imageGenCore';
 import type { TProviderWithModel } from '@/common/config/storage';
@@ -112,6 +113,7 @@ IMPORTANT: When user provides multiple images, ALWAYS pass ALL images to the ima
       const workspaceDir = workspace_dir || process.cwd();
 
       const result = await executeImageGeneration({ prompt, image_uris }, provider, workspaceDir, proxy);
+      await flushAgentPondTracing();
 
       if (!result.success) {
         return {

@@ -166,6 +166,7 @@ ${env.ELECTRON_CACHE}/
 
 # Agent Kit
 .agent
+.agentpond/
 .codebuddy/
 wiki/
 
