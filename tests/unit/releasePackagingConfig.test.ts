@@ -130,7 +130,9 @@ describe('release packaging configuration', () => {
     expect(afterPack).not.toContain('stripWindowsExecutableVersionInfo');
     expect(afterSign).toContain('stripWindowsExecutableVersionInfo(appOutDir, context.packager)');
     expect(metadataScript).toContain("'-mask', 'VERSIONINFO,,'");
-    expect(metadataScript).toContain('Refusing to remove VERSIONINFO from a signed executable');
+    expect(metadataScript).toContain('Test-PeCertificateTable');
+    expect(metadataScript).toContain('Authenticode certificate table');
+    expect(metadataScript).not.toContain('Get-AuthenticodeSignature');
   });
 
   it('prevents installer VERSIONINFO before NSIS assembles integrity data', () => {
