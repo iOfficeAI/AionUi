@@ -115,7 +115,22 @@ const TeamActivityView: React.FC<Props> = ({ team }) => {
   const highlightTask = useCallback((id: string) => {
     const el = document.querySelector<HTMLElement>(`[data-task-id="${id}"]`);
     if (!el) return false;
-    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    // Scroll only within the board's own scrollers (the column's vertical
+    // scroller and the board's horizontal scroller). scrollIntoView would
+    // scroll every scrollable ancestor, including the outer container holding
+    // the control bar — pushing the header off-screen with no way back.
+    const centerWithin = (container: HTMLElement | null, axis: 'x' | 'y') => {
+      if (!container) return;
+      const c = container.getBoundingClientRect();
+      const r = el.getBoundingClientRect();
+      if (axis === 'y') {
+        container.scrollBy({ top: r.top - c.top - (container.clientHeight - el.clientHeight) / 2, behavior: 'smooth' });
+      } else {
+        container.scrollBy({ left: r.left - c.left - (container.clientWidth - el.clientWidth) / 2, behavior: 'smooth' });
+      }
+    };
+    centerWithin(el.closest<HTMLElement>('[data-testid="activity-board"]'), 'x');
+    centerWithin(el.closest<HTMLElement>('.overflow-auto'), 'y');
     el.classList.add('activity-card-highlight');
     window.setTimeout(() => el.classList.remove('activity-card-highlight'), 1500);
     return true;
