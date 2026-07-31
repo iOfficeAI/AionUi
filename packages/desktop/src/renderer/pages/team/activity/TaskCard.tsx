@@ -67,8 +67,10 @@ const BlockedByTag: React.FC<{ dep: string }> = ({ dep }) => {
         setOpen(next);
       }}
     >
-      <Tag size='small' color='orangered' className='cursor-pointer' icon={<Lock theme='outline' size='11' fill='currentColor' />}>
-        {label}
+      <Tag size='small' color='orangered' className='cursor-pointer max-w-full' icon={<Lock theme='outline' size='11' fill='currentColor' />}>
+        <span className='inline-block align-bottom max-w-[210px] truncate' title={label}>
+          {label}
+        </span>
       </Tag>
     </Popover>
   );
