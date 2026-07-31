@@ -6,6 +6,7 @@ import { useCallback, useEffect } from 'react';
 import useSWR from 'swr';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
 import { removeTeamWithCronCleanup } from '../utils/removeTeamAssistantWithCronCleanup';
+import { pruneOrphanTeamStorage } from '../utils/teamStorage';
 
 export function useTeamList() {
   const { user } = useAuth();
@@ -38,6 +39,13 @@ export function useTeamList() {
       unsubRenamed();
     };
   }, [mutate]);
+
+  // Drop per-team localStorage for teams no longer present. Covers both the
+  // frontend removeTeam path below and backend/MCP deletion (WS team.removed,
+  // which only mutates the list), and cleans up historically-leaked keys.
+  useEffect(() => {
+    pruneOrphanTeamStorage(teams.map((t) => t.id));
+  }, [teams]);
 
   const removeTeam = useCallback(
     async (id: string) => {
