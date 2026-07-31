@@ -4,13 +4,13 @@ This directory contains scripts for building and packaging CSBU WorkMate across 
 
 ## Scripts Overview
 
-| Script                    | Lines | Purpose                                                  |
-| ------------------------- | ----- | -------------------------------------------------------- |
-| `build-with-builder.js`   | 116   | Coordinates Electron Forge and electron-builder          |
-| `rebuildNativeModules.js` | 219   | **Unified native module rebuild utility**                |
-| `beforeBuild.js`          | 38    | Pre-packaging native module rebuild hook                 |
-| `afterPack.js`            | —     | Post-packaging verification and Windows metadata removal |
-| `afterSign.js`            | 47    | macOS code signing and notarization                      |
+| Script                    | Lines | Purpose                                                |
+| ------------------------- | ----- | ------------------------------------------------------ |
+| `build-with-builder.js`   | 116   | Coordinates Electron Forge and electron-builder        |
+| `rebuildNativeModules.js` | 219   | **Unified native module rebuild utility**              |
+| `beforeBuild.js`          | 38    | Pre-packaging native module rebuild hook               |
+| `afterPack.js`            | —     | Post-packaging resource and native module verification |
+| `afterSign.js`            | —     | Windows metadata removal and macOS notarization        |
 
 **Total**: 487 lines (down from 711 lines before optimization)
 
@@ -29,8 +29,8 @@ electron-builder
     ↓
     ├─→ beforeBuild.js → rebuildNativeModules.js (all platforms)
     ├─→ Package app
-    ├─→ afterPack.js → rebuild native modules and optionally remove Windows VERSIONINFO
-    └─→ afterSign.js (macOS only)
+    ├─→ afterPack.js → rebuild native modules and verify packaged resources
+    └─→ afterSign.js → remove Windows VERSIONINFO after rcedit or notarize macOS
 ```
 
 ## Native Module Rebuild Strategy

@@ -122,11 +122,13 @@ describe('release packaging configuration', () => {
     expect(workflows.match(/bun run lint -- --quiet/g)).toHaveLength(3);
   });
 
-  it('removes application VERSIONINFO during afterPack', () => {
+  it('removes application VERSIONINFO after electron-builder edits resources', () => {
     const afterPack = readProjectFile('scripts/afterPack.js');
+    const afterSign = readProjectFile('scripts/afterSign.js');
     const metadataScript = readProjectFile('resources/windows/support/strip-exe-version-info.ps1');
 
-    expect(afterPack).toContain('stripWindowsExecutableVersionInfo(appOutDir, packager)');
+    expect(afterPack).not.toContain('stripWindowsExecutableVersionInfo');
+    expect(afterSign).toContain('stripWindowsExecutableVersionInfo(appOutDir, context.packager)');
     expect(metadataScript).toContain("'-mask', 'VERSIONINFO,,'");
   });
 
