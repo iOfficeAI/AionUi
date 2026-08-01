@@ -53,7 +53,10 @@ describe('useTeamActivityControls', () => {
     const { result } = renderHook(() => useTeamActivityControls(KEY, ['a1']));
     expect(result.current[0].sortDirection).toBe('desc');
 
-    localStorage.setItem(`team-activity-controls-${KEY}`, JSON.stringify({ sortDirection: 'sideways', contentFilter: 'nope' }));
+    localStorage.setItem(
+      `team-activity-controls-${KEY}`,
+      JSON.stringify({ sortDirection: 'sideways', contentFilter: 'nope' })
+    );
     const { result: r2 } = renderHook(() => useTeamActivityControls(KEY, ['a1']));
     expect(r2.current[0].sortDirection).toBe('desc');
     expect(r2.current[0].contentFilter).toBe('all');

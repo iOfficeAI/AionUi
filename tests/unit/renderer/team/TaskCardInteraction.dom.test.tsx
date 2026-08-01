@@ -57,7 +57,9 @@ describe('TaskCard dependency interaction', () => {
   it('opens popover with blocker info when target not loaded', () => {
     const highlightTask = vi.fn(() => false);
     render(
-      <ActivityTaskIndexProvider value={{ resolve: () => ({ subject: 'Alpha', status: 'completed', owner: 'a1' }), highlightTask }}>
+      <ActivityTaskIndexProvider
+        value={{ resolve: () => ({ subject: 'Alpha', status: 'completed', owner: 'a1' }), highlightTask }}
+      >
         <TaskCard task={task} identity={identity} />
       </ActivityTaskIndexProvider>
     );

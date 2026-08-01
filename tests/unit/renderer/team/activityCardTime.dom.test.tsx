@@ -22,12 +22,26 @@ const identity: ActivityIdentityResolver = { nameOf: (s) => s ?? '', colorOf: ()
 const created = dayjs('2025-06-15T09:05:00').valueOf();
 
 const message: ITeamMailboxMessage = {
-  id: 'm1', team_id: 't1', from_agent_id: 'a1', to_agent_id: 'a2', msg_type: 'message',
-  content: 'hi', files: [], read: true, created_at: created,
+  id: 'm1',
+  team_id: 't1',
+  from_agent_id: 'a1',
+  to_agent_id: 'a2',
+  msg_type: 'message',
+  content: 'hi',
+  files: [],
+  read: true,
+  created_at: created,
 };
 const task: ITeamTaskItem = {
-  id: 'tk1', team_id: 't1', subject: 'Build', status: 'pending', owner: 'a1',
-  blocked_by: [], blocks: [], created_at: created, updated_at: created + 1000,
+  id: 'tk1',
+  team_id: 't1',
+  subject: 'Build',
+  status: 'pending',
+  owner: 'a1',
+  blocked_by: [],
+  blocks: [],
+  created_at: created,
+  updated_at: created + 1000,
 };
 
 afterEach(() => cleanup());

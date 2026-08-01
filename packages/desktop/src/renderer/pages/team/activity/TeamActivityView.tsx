@@ -126,7 +126,10 @@ const TeamActivityView: React.FC<Props> = ({ team }) => {
       if (axis === 'y') {
         container.scrollBy({ top: r.top - c.top - (container.clientHeight - el.clientHeight) / 2, behavior: 'smooth' });
       } else {
-        container.scrollBy({ left: r.left - c.left - (container.clientWidth - el.clientWidth) / 2, behavior: 'smooth' });
+        container.scrollBy({
+          left: r.left - c.left - (container.clientWidth - el.clientWidth) / 2,
+          behavior: 'smooth',
+        });
       }
     };
     centerWithin(el.closest<HTMLElement>('[data-testid="activity-board"]'), 'x');

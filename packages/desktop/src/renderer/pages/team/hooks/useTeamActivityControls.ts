@@ -27,9 +27,15 @@ function parseControls(raw: string | null): ActivityControlsState {
   try {
     const o = JSON.parse(raw) as Partial<ActivityControlsState>;
     return {
-      sortDirection: SORTS.has(o.sortDirection as string) ? (o.sortDirection as ActivityControlsState['sortDirection']) : DEFAULTS.sortDirection,
-      contentFilter: FILTERS.has(o.contentFilter as string) ? (o.contentFilter as ActivityControlsState['contentFilter']) : DEFAULTS.contentFilter,
-      selectedMembers: Array.isArray(o.selectedMembers) ? o.selectedMembers.filter((m): m is string => typeof m === 'string') : [],
+      sortDirection: SORTS.has(o.sortDirection as string)
+        ? (o.sortDirection as ActivityControlsState['sortDirection'])
+        : DEFAULTS.sortDirection,
+      contentFilter: FILTERS.has(o.contentFilter as string)
+        ? (o.contentFilter as ActivityControlsState['contentFilter'])
+        : DEFAULTS.contentFilter,
+      selectedMembers: Array.isArray(o.selectedMembers)
+        ? o.selectedMembers.filter((m): m is string => typeof m === 'string')
+        : [],
       showSystemMessages: typeof o.showSystemMessages === 'boolean' ? o.showSystemMessages : false,
       showTerminalTasks: typeof o.showTerminalTasks === 'boolean' ? o.showTerminalTasks : false,
     };

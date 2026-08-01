@@ -19,7 +19,10 @@ const toInfo = (t: ITeamTaskItem): BlockerInfo => ({ subject: t.subject, status:
  * not eagerly pull all tasks and does not break the feed's pagination. WS
  * `taskChanged` keeps the index fresh; the index is reset when the team changes.
  */
-export function useBlockerTaskResolver(teamId: string, loadedTasks: ITeamTaskItem[]): (id: string) => BlockerInfo | undefined {
+export function useBlockerTaskResolver(
+  teamId: string,
+  loadedTasks: ITeamTaskItem[]
+): (id: string) => BlockerInfo | undefined {
   const [index, setIndex] = useState<Record<string, BlockerInfo>>({});
   const indexRef = useRef(index);
   indexRef.current = index;

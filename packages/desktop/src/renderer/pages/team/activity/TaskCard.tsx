@@ -44,7 +44,9 @@ const BlockedByTag: React.FC<{ dep: string }> = ({ dep }) => {
 
   const panel = (
     <div className='flex flex-col gap-4px max-w-240px'>
-      <span className='text-13px font-medium'>{info?.subject ?? t('team.activity.blockerUnknown', { defaultValue: 'Task unavailable' })}</span>
+      <span className='text-13px font-medium'>
+        {info?.subject ?? t('team.activity.blockerUnknown', { defaultValue: 'Task unavailable' })}
+      </span>
       {info && (
         <span className='text-12px text-[color:var(--color-text-2)]'>
           {t(`team.activity.status.${info.status}`, { defaultValue: info.status })}
@@ -68,7 +70,12 @@ const BlockedByTag: React.FC<{ dep: string }> = ({ dep }) => {
         setOpen(next);
       }}
     >
-      <Tag size='small' color='orangered' className='cursor-pointer max-w-full' icon={<Lock theme='outline' size='11' fill='currentColor' />}>
+      <Tag
+        size='small'
+        color='orangered'
+        className='cursor-pointer max-w-full'
+        icon={<Lock theme='outline' size='11' fill='currentColor' />}
+      >
         <span className='inline-block align-bottom max-w-[210px] truncate' title={label}>
           {label}
         </span>

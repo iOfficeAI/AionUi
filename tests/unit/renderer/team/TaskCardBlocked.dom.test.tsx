@@ -25,7 +25,10 @@ vi.mock('react-i18next', () => ({
 }));
 
 import TaskCard from '@/renderer/pages/team/activity/TaskCard';
-import { ActivityTaskIndexProvider, type ActivityTaskIndex } from '@/renderer/pages/team/activity/ActivityTaskIndexContext';
+import {
+  ActivityTaskIndexProvider,
+  type ActivityTaskIndex,
+} from '@/renderer/pages/team/activity/ActivityTaskIndexContext';
 import type { ActivityIdentityResolver } from '@/renderer/pages/team/activity/MessageCard';
 
 const identity: ActivityIdentityResolver = { nameOf: (s) => s ?? '', colorOf: () => '#123456' };

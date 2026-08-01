@@ -12,11 +12,9 @@ export function useTeamList() {
   const { user } = useAuth();
   const user_id = user?.id ?? 'system_default_user';
 
-  const { data, mutate } = useSWR<TTeam[]>(
-    `teams/${user_id}`,
-    () => ipcBridge.team.list.invoke({ user_id }),
-    { revalidateOnFocus: false }
-  );
+  const { data, mutate } = useSWR<TTeam[]>(`teams/${user_id}`, () => ipcBridge.team.list.invoke({ user_id }), {
+    revalidateOnFocus: false,
+  });
   const teams = data ?? [];
 
   // Refresh list when backend creates/removes a team (e.g. via MCP)
