@@ -112,10 +112,9 @@ test.describe('Antigravity Chat - Basic Flow', () => {
     // so it is not readable the instant the reply renders.
     let usage: { used?: number; size?: number } | null = null;
     for (let i = 0; i < 40 && !(usage?.used ?? 0); i++) {
-      usage = await httpGet<{ used?: number; size?: number }>(
-        page,
-        `/api/conversations/${conversationId}/usage`
-      ).catch(() => null);
+      usage = await httpGet<{ used?: number; size?: number }>(page, `/api/conversations/${conversationId}/usage`).catch(
+        () => null
+      );
       if (!(usage?.used ?? 0)) await page.waitForTimeout(1000);
     }
     expect(usage?.used ?? 0).toBeGreaterThan(0);
@@ -127,7 +126,7 @@ test.describe('Antigravity Chat - Basic Flow', () => {
     await takeScreenshot(page, 'chat-antigravity/basic/06-usage-ring.png');
   });
 
-  test('the backend offers agy\'s models as switchable config options', async ({ page }) => {
+  test("the backend offers agy's models as switchable config options", async ({ page }) => {
     // The models the backend discovers must reach the same `config_options`
     // contract the ACP picker consumes — that is what makes them switchable at
     // all, and `ChatConversation` used to hand any non-`acp` conversation a
