@@ -282,6 +282,12 @@ const ChatConversation: React.FC<{
     }
     switch (conversation.type) {
       case 'acp':
+      // Antigravity reports its own conversation type but renders through the
+      // ACP chat surface: same extra payload, same event stream, same send box.
+      // Without this case it falls to `default: null` — the chat area renders
+      // empty, no send box mounts, and the queued initial message in
+      // `acp_initial_message_<id>` is never delivered, so the turn never starts.
+      case 'antigravity':
         return (
           <AcpChat
             key={conversation.id}
