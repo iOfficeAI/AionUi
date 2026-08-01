@@ -4,7 +4,8 @@
 
 | 文件                       | 说明                               |
 | -------------------------- | ---------------------------------- |
-| [channels.md](channels.md) | Channels 渠道接入 PRD（10 功能点） |
+| [channels.md](channels.md) | Channels 渠道接入 PRD（功能点） |
+| [slack/Slack-Bot-Setup-Guide.md](slack/Slack-Bot-Setup-Guide.md) | Slack 用户安装 / Socket Mode / pairing 指南（Wiki 源） |
 
 ## 功能点总览
 
@@ -20,3 +21,4 @@
 | F-WEBUI-19 | 渠道默认模型选择                   | 已实现 | Channels Tab |
 | F-WEBUI-20 | 渠道配对与用户授权（通用流程）     | 已实现 | Channels Tab |
 | F-WEBUI-21 | 扩展渠道支持                       | 已实现 | Channels Tab |
+| F-WEBUI-22 | Slack 渠道配置（Socket Mode）      | 已实现 | Channels Tab |

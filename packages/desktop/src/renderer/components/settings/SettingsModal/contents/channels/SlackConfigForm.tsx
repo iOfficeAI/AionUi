@@ -57,28 +57,26 @@ const SectionHeader: React.FC<{ title: string; action?: React.ReactNode }> = ({ 
   </div>
 );
 
-interface LarkConfigFormProps {
+interface SlackConfigFormProps {
   pluginStatus: IChannelPluginStatus | null;
   modelSelection: GoogleModelSelection;
   onStatusChange: (status: IChannelPluginStatus | null) => void;
 }
 
-const LARK_DEV_DOCS_URL = 'https://open.feishu.cn/document/develop-an-echo-bot/introduction';
+const SLACK_DEV_DOCS_URL = 'https://github.com/iOfficeAI/AionUi/wiki/Slack-Bot-Setup-Guide';
 
-const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSelection, onStatusChange }) => {
+const SlackConfigForm: React.FC<SlackConfigFormProps> = ({ pluginStatus, modelSelection, onStatusChange }) => {
   const { t, i18n } = useTranslation();
   const localeKey = resolveLocaleKey(i18n?.language ?? 'en-US');
 
-  // Lark credentials
-  const [appId, setAppId] = useState('');
-  const [appSecret, setAppSecret] = useState('');
-  const [encryptKey, setEncryptKey] = useState('');
-  const [verificationToken, setVerificationToken] = useState('');
+  // Slack credentials (Socket Mode)
+  const [botToken, setBotToken] = useState('');
+  const [appToken, setAppToken] = useState('');
+  const [allowedChannels, setAllowedChannels] = useState('');
 
-  const [showOptional, setShowOptional] = useState(false);
   const [testLoading, setTestLoading] = useState(false);
-  const [credentialsTested, setCredentialsTested] = useState(false);
-  const [touched, setTouched] = useState({ appId: false, appSecret: false });
+  const [_credentialsTested, setCredentialsTested] = useState(false);
+  const [touched, setTouched] = useState({ botToken: false, appToken: false });
   const [pairingLoading, setPairingLoading] = useState(false);
   const [usersLoading, setUsersLoading] = useState(false);
   const [pendingPairings, setPendingPairings] = useState<IChannelPairingRequest[]>([]);
@@ -94,11 +92,10 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
     try {
       const pairings = await channel.getPendingPairings.invoke();
       if (pairings) {
-        // Filter for Lark platform only
-        setPendingPairings(pairings.filter((p) => p.platformType === 'lark'));
+        setPendingPairings(pairings.filter((p) => p.platformType === 'slack'));
       }
     } catch (error) {
-      console.error('[LarkConfig] Failed to load pending pairings:', error);
+      console.error('[SlackConfig] Failed to load pending pairings:', error);
     } finally {
       setPairingLoading(false);
     }
@@ -110,11 +107,10 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
     try {
       const users = await channel.getAuthorizedUsers.invoke();
       if (users) {
-        // Filter for Lark platform only
-        setAuthorizedUsers(users.filter((u) => u.platformType === 'lark'));
+        setAuthorizedUsers(users.filter((u) => u.platformType === 'slack'));
       }
     } catch (error) {
-      console.error('[LarkConfig] Failed to load authorized users:', error);
+      console.error('[SlackConfig] Failed to load authorized users:', error);
     } finally {
       setUsersLoading(false);
     }
@@ -132,7 +128,7 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
       try {
         const [assistantList, saved] = await Promise.all([
           assistants.list.invoke(),
-          channel.getPlatformSettings.invoke({ platform: 'lark' }),
+          channel.getPlatformSettings.invoke({ platform: 'slack' }),
         ]);
 
         setAvailableAssistants(assistantList);
@@ -146,7 +142,7 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
         setHasBrokenSavedAssistant(selection.hasBrokenSavedAssistant);
         setSelectedAssistant(nextAssistant);
       } catch (error) {
-        console.error('[LarkConfig] Failed to load assistants:', error);
+        console.error('[SlackConfig] Failed to load assistants:', error);
       }
     };
 
@@ -156,12 +152,12 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
   const persistSelectedAssistant = async (assistant: Assistant) => {
     try {
       await channel.setAssistantSetting.invoke({
-        platform: 'lark',
+        platform: 'slack',
         assistant: buildChannelAssistantBinding(assistant),
       });
       Message.success(t('settings.assistant.agentSwitched', 'Assistant switched successfully'));
     } catch (error) {
-      console.error('[LarkConfig] Failed to save assistant:', error);
+      console.error('[SlackConfig] Failed to save assistant:', error);
       Message.error(t('common.saveFailed', 'Failed to save'));
     }
   };
@@ -169,7 +165,7 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
   // Listen for pairing requests
   useEffect(() => {
     const unsubscribe = channel.pairingRequested.on((request) => {
-      if (request.platformType !== 'lark') return;
+      if (request.platformType !== 'slack') return;
       setPendingPairings((prev) => {
         const exists = prev.some((p) => p.code === request.code);
         if (exists) return prev;
@@ -182,7 +178,7 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
   // Listen for user authorization
   useEffect(() => {
     const unsubscribe = channel.userAuthorized.on((user) => {
-      if (user.platformType !== 'lark') return;
+      if (user.platformType !== 'slack') return;
       setAuthorizedUsers((prev) => {
         const exists = prev.some((u) => u.id === user.id);
         if (exists) return prev;
@@ -193,13 +189,12 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
     return () => unsubscribe();
   }, []);
 
-  // Test Lark connection
+  // Test Slack connection
   const handleTestConnection = async () => {
-    // Mark fields as touched to show validation errors
-    setTouched({ appId: true, appSecret: true });
+    setTouched({ botToken: true, appToken: true });
 
-    if (!appId.trim() || !appSecret.trim()) {
-      Message.warning(t('settings.lark.credentialsRequired', 'Please enter App ID and App Secret'));
+    if (!botToken.trim() || !appToken.trim()) {
+      Message.warning(t('settings.slack.credentialsRequired', 'Please enter Bot Token and App Token'));
       return;
     }
 
@@ -207,28 +202,26 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
     setCredentialsTested(false);
     try {
       // testPlugin returns { success, botUsername?, error? } directly
+      // token = bot xoxb-…; app_secret maps to Socket Mode app token xapp-…
       const result = await channel.testPlugin.invoke({
-        plugin_id: 'lark',
-        token: '',
+        plugin_id: 'slack',
+        token: botToken.trim(),
         extra_config: {
-          app_id: appId.trim(),
-          app_secret: appSecret.trim(),
+          app_secret: appToken.trim(),
         },
       });
 
       if (result.success) {
         setCredentialsTested(true);
-        Message.success(t('settings.lark.connectionSuccess', 'Connected to Lark API!'));
-
-        // Auto-enable bot after successful test
+        Message.success(t('settings.slack.connectionSuccess', 'Connected to Slack API!'));
         await handleAutoEnable();
       } else {
         setCredentialsTested(false);
-        Message.error(result.error || t('settings.lark.connectionFailed', 'Connection failed'));
+        Message.error(result.error || t('settings.slack.connectionFailed', 'Connection failed'));
       }
     } catch (error: any) {
       setCredentialsTested(false);
-      Message.error(error.message || t('settings.lark.connectionFailed', 'Connection failed'));
+      Message.error(error.message || t('settings.slack.connectionFailed', 'Connection failed'));
     } finally {
       setTestLoading(false);
     }
@@ -238,28 +231,30 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
   const handleAutoEnable = async () => {
     try {
       await channel.enablePlugin.invoke({
-        plugin_id: 'lark',
+        plugin_id: 'slack',
         config: {
           credentials: {
-            app_id: appId.trim(),
-            app_secret: appSecret.trim(),
-            encrypt_key: encryptKey.trim() || undefined,
-            verification_token: verificationToken.trim() || undefined,
+            token: botToken.trim(),
+            app_token: appToken.trim(),
+          },
+          config: {
+            allowed_channels: allowedChannels.trim() || undefined,
+            mode: 'websocket',
           },
         },
       });
 
-      Message.success(t('settings.lark.pluginEnabled', 'Lark bot enabled'));
+      Message.success(t('settings.slack.pluginEnabled', 'Slack bot enabled'));
       const plugins = await channel.getPluginStatus.invoke();
       if (plugins) {
-        const larkPlugin = plugins.find((p) => p.type === 'lark');
-        onStatusChange(larkPlugin || null);
+        const slackPlugin = plugins.find((p) => p.type === 'slack');
+        onStatusChange(slackPlugin || null);
       }
     } catch (error: unknown) {
-      console.error('[LarkConfig] Auto-enable failed:', error);
+      console.error('[SlackConfig] Auto-enable failed:', error);
       Message.error(
         (error instanceof Error ? error.message : String(error)) ||
-          t('settings.lark.enableFailed', 'Failed to enable Lark plugin')
+          t('settings.slack.enableFailed', 'Failed to enable Slack plugin')
       );
     }
   };
@@ -329,22 +324,22 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
 
   return (
     <div className='flex flex-col gap-24px'>
-      {/* App ID */}
+      {/* Bot Token (xoxb) */}
       <PreferenceRow
-        label={t('settings.lark.appId', 'App ID')}
+        label={t('settings.slack.botToken', 'Bot Token')}
         description={
           <span>
             <a
               className='text-primary hover:underline cursor-pointer text-12px'
-              href={LARK_DEV_DOCS_URL}
+              href={SLACK_DEV_DOCS_URL}
               onClick={(e) => {
                 e.preventDefault();
-                openExternalUrl(LARK_DEV_DOCS_URL).catch(console.error);
+                openExternalUrl(SLACK_DEV_DOCS_URL).catch(console.error);
               }}
             >
-              {t('settings.lark.devConsoleLink', 'Feishu Developer Console')}
+              {t('settings.slack.devConsoleLink', 'Slack setup guide')}
             </a>{' '}
-            {t('settings.lark.appIdDescSuffix', 'to get your App ID')}
+            {t('settings.slack.botTokenDescSuffix', '— Bot User OAuth Token (xoxb-…)')}
           </span>
         }
         required
@@ -353,56 +348,56 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
           <Tooltip
             content={t(
               'settings.assistant.tokenLocked',
-              'Please close the Channel and delete all authorized users before modifying the configuration'
+              'Please close the Channel and delete all authorized users before modifying'
             )}
           >
             <span>
               <Input
-                value={appId}
+                value={botToken}
                 onChange={(value) => {
-                  setAppId(value);
+                  setBotToken(value);
                   handleCredentialsChange();
                 }}
-                onBlur={() => setTouched((prev) => ({ ...prev, appId: true }))}
-                placeholder={hasExistingUsers || pluginStatus?.hasToken ? '••••••••••••••••' : 'cli_xxxxxxxxxx'}
+                onBlur={() => setTouched((prev) => ({ ...prev, botToken: true }))}
+                placeholder={hasExistingUsers || pluginStatus?.hasToken ? '••••••••••••••••' : 'xoxb-...'}
                 style={{ width: 240 }}
-                status={touched.appId && !appId.trim() && !pluginStatus?.hasToken ? 'error' : undefined}
+                status={touched.botToken && !botToken.trim() && !pluginStatus?.hasToken ? 'error' : undefined}
                 disabled={hasExistingUsers}
               />
             </span>
           </Tooltip>
         ) : (
           <Input
-            value={appId}
+            value={botToken}
             onChange={(value) => {
-              setAppId(value);
+              setBotToken(value);
               handleCredentialsChange();
             }}
-            onBlur={() => setTouched((prev) => ({ ...prev, appId: true }))}
-            placeholder={hasExistingUsers || pluginStatus?.hasToken ? '••••••••••••••••' : 'cli_xxxxxxxxxx'}
+            onBlur={() => setTouched((prev) => ({ ...prev, botToken: true }))}
+            placeholder={hasExistingUsers || pluginStatus?.hasToken ? '••••••••••••••••' : 'xoxb-...'}
             style={{ width: 240 }}
-            status={touched.appId && !appId.trim() && !pluginStatus?.hasToken ? 'error' : undefined}
+            status={touched.botToken && !botToken.trim() && !pluginStatus?.hasToken ? 'error' : undefined}
             disabled={hasExistingUsers}
           />
         )}
       </PreferenceRow>
 
-      {/* App Secret */}
+      {/* App-Level Token (xapp) for Socket Mode */}
       <PreferenceRow
-        label={t('settings.lark.appSecret', 'App Secret')}
+        label={t('settings.slack.appToken', 'App Token')}
         description={
           <span>
             <a
               className='text-primary hover:underline cursor-pointer text-12px'
-              href={LARK_DEV_DOCS_URL}
+              href={SLACK_DEV_DOCS_URL}
               onClick={(e) => {
                 e.preventDefault();
-                openExternalUrl(LARK_DEV_DOCS_URL).catch(console.error);
+                openExternalUrl(SLACK_DEV_DOCS_URL).catch(console.error);
               }}
             >
-              {t('settings.lark.devConsoleLink', 'Feishu Developer Console')}
+              {t('settings.slack.devConsoleLink', 'Slack setup guide')}
             </a>{' '}
-            {t('settings.lark.appSecretDescSuffix', 'to get App Secret')}
+            {t('settings.slack.appTokenDescSuffix', '— App-Level Token (xapp-…) with connections:write')}
           </span>
         }
         required
@@ -411,20 +406,20 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
           <Tooltip
             content={t(
               'settings.assistant.tokenLocked',
-              'Please close the Channel and delete all authorized users before modifying the configuration'
+              'Please close the Channel and delete all authorized users before modifying'
             )}
           >
             <span>
               <Input.Password
-                value={appSecret}
+                value={appToken}
                 onChange={(value) => {
-                  setAppSecret(value);
+                  setAppToken(value);
                   handleCredentialsChange();
                 }}
-                onBlur={() => setTouched((prev) => ({ ...prev, appSecret: true }))}
-                placeholder={hasExistingUsers || pluginStatus?.hasToken ? '••••••••••••••••' : 'xxxxxxxxxxxxxxxxxx'}
+                onBlur={() => setTouched((prev) => ({ ...prev, appToken: true }))}
+                placeholder={hasExistingUsers || pluginStatus?.hasToken ? '••••••••••••••••' : 'xapp-...'}
                 style={{ width: 240 }}
-                status={touched.appSecret && !appSecret.trim() && !pluginStatus?.hasToken ? 'error' : undefined}
+                status={touched.appToken && !appToken.trim() && !pluginStatus?.hasToken ? 'error' : undefined}
                 visibilityToggle
                 disabled={hasExistingUsers}
               />
@@ -432,146 +427,53 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
           </Tooltip>
         ) : (
           <Input.Password
-            value={appSecret}
+            value={appToken}
             onChange={(value) => {
-              setAppSecret(value);
+              setAppToken(value);
               handleCredentialsChange();
             }}
-            onBlur={() => setTouched((prev) => ({ ...prev, appSecret: true }))}
-            placeholder={hasExistingUsers || pluginStatus?.hasToken ? '••••••••••••••••' : 'xxxxxxxxxxxxxxxxxx'}
+            onBlur={() => setTouched((prev) => ({ ...prev, appToken: true }))}
+            placeholder={hasExistingUsers || pluginStatus?.hasToken ? '••••••••••••••••' : 'xapp-...'}
             style={{ width: 240 }}
-            status={touched.appSecret && !appSecret.trim() && !pluginStatus?.hasToken ? 'error' : undefined}
+            status={touched.appToken && !appToken.trim() && !pluginStatus?.hasToken ? 'error' : undefined}
             visibilityToggle
             disabled={hasExistingUsers}
           />
         )}
       </PreferenceRow>
 
-      {/* Optional fields toggle */}
-      <div
-        className='flex items-center gap-4px text-12px text-t-tertiary cursor-pointer select-none'
-        onClick={() => setShowOptional((prev) => !prev)}
+      {/* Allowed channels (optional) */}
+      <PreferenceRow
+        label={t('settings.slack.allowedChannels', 'Allowed channels')}
+        description={t(
+          'settings.slack.allowedChannelsDesc',
+          'Comma-separated channel IDs (C…/G…). Empty = DMs only. In listed channels the bot only replies when @mentioned.'
+        )}
       >
-        <Down
-          theme='outline'
-          size={12}
-          style={{ transform: showOptional ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}
+        <Input
+          value={allowedChannels}
+          onChange={setAllowedChannels}
+          placeholder='C0123ABC,G0456DEF'
+          style={{ width: 280 }}
+          disabled={hasExistingUsers}
         />
-        <span>
-          {showOptional
-            ? t('settings.lark.hideOptionalFields', 'Hide optional settings')
-            : t('settings.lark.showOptionalFields', 'Show optional settings')}
-        </span>
-      </div>
+      </PreferenceRow>
 
-      {showOptional && (
-        <>
-          {/* Encrypt Key (Optional) */}
-          <PreferenceRow
-            label={t('settings.lark.encryptKey', 'Encrypt Key')}
-            description={t(
-              'settings.lark.encryptKeyDesc',
-              'Optional: For event encryption (from Event Subscription settings)'
-            )}
-          >
-            {hasExistingUsers ? (
-              <Tooltip
-                content={t(
-                  'settings.assistant.tokenLocked',
-                  'Please close the Channel and delete all authorized users before modifying the configuration'
-                )}
-              >
-                <span>
-                  <Input.Password
-                    value={encryptKey}
-                    onChange={(value) => {
-                      setEncryptKey(value);
-                      handleCredentialsChange();
-                    }}
-                    placeholder={t('settings.lark.optional', 'Optional')}
-                    style={{ width: 240 }}
-                    visibilityToggle
-                    disabled={hasExistingUsers}
-                  />
-                </span>
-              </Tooltip>
-            ) : (
-              <Input.Password
-                value={encryptKey}
-                onChange={(value) => {
-                  setEncryptKey(value);
-                  handleCredentialsChange();
-                }}
-                placeholder={t('settings.lark.optional', 'Optional')}
-                style={{ width: 240 }}
-                visibilityToggle
-                disabled={hasExistingUsers}
-              />
-            )}
-          </PreferenceRow>
-
-          {/* Verification Token (Optional) */}
-          <PreferenceRow
-            label={t('settings.lark.verificationToken', 'Verification Token')}
-            description={t(
-              'settings.lark.verificationTokenDesc',
-              'Optional: For event verification (from Event Subscription settings)'
-            )}
-          >
-            {hasExistingUsers ? (
-              <Tooltip
-                content={t(
-                  'settings.assistant.tokenLocked',
-                  'Please close the Channel and delete all authorized users before modifying the configuration'
-                )}
-              >
-                <span>
-                  <Input.Password
-                    value={verificationToken}
-                    onChange={(value) => {
-                      setVerificationToken(value);
-                      handleCredentialsChange();
-                    }}
-                    placeholder={t('settings.lark.optional', 'Optional')}
-                    style={{ width: 240 }}
-                    visibilityToggle
-                    disabled={hasExistingUsers}
-                  />
-                </span>
-              </Tooltip>
-            ) : (
-              <Input.Password
-                value={verificationToken}
-                onChange={(value) => {
-                  setVerificationToken(value);
-                  handleCredentialsChange();
-                }}
-                placeholder={t('settings.lark.optional', 'Optional')}
-                style={{ width: 240 }}
-                visibilityToggle
-                disabled={hasExistingUsers}
-              />
-            )}
-          </PreferenceRow>
-        </>
-      )}
-
-      {/* Test Connection Button - only show when not connected or no existing users */}
+      {/* Test Connection Button */}
       {!hasExistingUsers && !pluginStatus?.connected && (
         <div className='flex justify-end'>
-          {pluginStatus?.hasToken && !appId.trim() && !appSecret.trim() ? (
-            // Credentials already saved but not entered in UI - show info message
+          {pluginStatus?.hasToken && !botToken.trim() && !appToken.trim() ? (
             <span className='text-12px text-t-tertiary mr-12px self-center'>
-              {t('settings.lark.credentialsSaved', 'Credentials already configured. Enter new values to update.')}
+              {t('settings.slack.credentialsSaved', 'Credentials already configured. Enter new values to update.')}
             </span>
           ) : null}
           <Button
             type='primary'
             loading={testLoading}
             onClick={handleTestConnection}
-            disabled={pluginStatus?.hasToken && !appId.trim() && !appSecret.trim()}
+            disabled={pluginStatus?.hasToken && !botToken.trim() && !appToken.trim()}
           >
-            {t('settings.lark.testAndConnect', 'Test & Connect')}
+            {t('settings.slack.testAndConnect', 'Test & Connect')}
           </Button>
         </div>
       )}
@@ -582,7 +484,7 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
           label={t('settings.assistant.name', 'Assistant')}
           description={
             <div className='flex flex-col gap-4px'>
-              <span>{t('settings.lark.agentDesc', 'Used for Lark conversations')}</span>
+              <span>{t('settings.slack.agentDesc', 'Used for Slack conversations')}</span>
               {hasBrokenSavedAssistant && (
                 <span className='text-orange-6'>
                   {t(
@@ -643,68 +545,67 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
 
       {/* Default Model Selection */}
       <PreferenceRow
-        label={t('settings.assistant.defaultModel', 'Default Model')}
-        description={t('settings.lark.defaultModelDesc', 'Model used for Lark conversations')}
+        label={t('settings.assistant.defaultModel', 'Model')}
+        description={t('settings.slack.defaultModelDesc', 'Model used for conversations handled by this assistant')}
       >
         <GoogleModelSelector
           selection={showModelSelector ? modelSelection : undefined}
           disabled={!showModelSelector}
           label={
-            !showModelSelector
-              ? t('settings.assistant.autoFollowCliModel', 'Automatically follow the model when CLI is running')
-              : undefined
+            !showModelSelector ? t('settings.assistant.autoFollowCliModel', 'Auto-follow CLI runtime model') : undefined
           }
           variant='settings'
         />
       </PreferenceRow>
 
-      {/* Connection Status - show when bot is enabled */}
+      {/* Connection Status */}
       {pluginStatus?.enabled && authorizedUsers.length === 0 && (
         <div
           className={`rd-12px p-16px border ${pluginStatus?.connected ? 'bg-success-light-1 border-success-3' : pluginStatus?.error ? 'bg-danger-light-1 border-danger-3' : 'bg-warning-light-1 border-warning-3'}`}
         >
           <SectionHeader
-            title={t('settings.lark.connectionStatus', 'Connection Status')}
+            title={t('settings.slack.connectionStatus', 'Connection Status')}
             action={
               <span
                 className={`text-12px px-8px py-2px rd-4px ${pluginStatus?.connected ? 'bg-success-light-1 text-success-6' : pluginStatus?.error ? 'bg-danger-light-1 text-danger-6' : 'bg-warning-light-1 text-warning-6'}`}
               >
                 {pluginStatus?.connected
-                  ? t('settings.lark.statusConnected', 'Connected')
+                  ? t('settings.slack.statusConnected', 'Connected')
                   : pluginStatus?.error
-                    ? t('settings.lark.statusError', 'Error')
-                    : t('settings.lark.statusConnecting', 'Connecting...')}
+                    ? t('settings.slack.statusError', 'Error')
+                    : t('settings.slack.statusConnecting', 'Connecting...')}
               </span>
             }
           />
-          {pluginStatus?.error && (
-            <div className='text-14px text-danger-6 mb-12px'>{pluginStatus.error}</div>
-          )}
+          {pluginStatus?.error && <div className='text-14px text-danger-6 mb-12px'>{pluginStatus.error}</div>}
           {pluginStatus?.connected && (
             <div className='text-14px text-t-secondary space-y-8px'>
               <p className='m-0 font-500'>{t('settings.assistant.nextSteps', 'Next Steps')}:</p>
               <p className='m-0'>
-                <strong>1.</strong> {t('settings.lark.step1', 'Open Feishu/Lark and find your bot application')}
+                <strong>1.</strong> {t('settings.slack.step1', 'Open Slack and find your bot application')}
               </p>
               <p className='m-0'>
-                <strong>2.</strong> {t('settings.lark.step2', 'Send any message to initiate pairing')}
+                <strong>2.</strong> {t('settings.slack.step2', 'Send any message to initiate pairing')}
               </p>
               <p className='m-0'>
                 <strong>3.</strong>{' '}
                 {t(
-                  'settings.lark.step3',
+                  'settings.slack.step3',
                   'A pairing request will appear below. Click "Approve" to authorize the user.'
                 )}
               </p>
               <p className='m-0'>
                 <strong>4.</strong>{' '}
-                {t('settings.lark.step4', 'Once approved, you can start chatting with the AI assistant through Lark!')}
+                {t(
+                  'settings.slack.step4',
+                  'Once approved, you can start chatting with the AI assistant through Slack!'
+                )}
               </p>
             </div>
           )}
           {!pluginStatus?.connected && !pluginStatus?.error && (
             <div className='text-14px text-t-secondary'>
-              {t('settings.lark.waitingConnection', 'WebSocket connection is being established. Please wait...')}
+              {t('settings.slack.waitingConnection', 'Connection is being established. Please wait...')}
             </div>
           )}
         </div>
@@ -744,12 +645,13 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
                         {pairing.display_name || 'Unknown User'}
                       </span>
                       <Tooltip content={t('settings.assistant.copyCode', 'Copy pairing code')}>
-                        <button
-                          className='p-4px bg-transparent border-none text-t-tertiary hover:text-t-primary cursor-pointer'
+                        <Button
+                          type='text'
+                          size='mini'
+                          className='text-t-tertiary hover:text-t-primary'
+                          icon={<Copy size={14} />}
                           onClick={() => copyToClipboard(pairing.code)}
-                        >
-                          <Copy size={14} />
-                        </button>
+                        />
                       </Tooltip>
                     </div>
                     <div className='text-12px text-t-tertiary mt-4px'>
@@ -840,4 +742,4 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
   );
 };
 
-export default LarkConfigForm;
+export default SlackConfigForm;
