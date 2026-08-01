@@ -23,8 +23,10 @@ import type { DirRef, Entry, PeKey } from '@/renderer/pages/conversation/explore
 import { peKey, refToKey } from '@/renderer/pages/conversation/explorer/explorerModel';
 import type { MonitorPort } from '@/renderer/pages/conversation/explorer/explorerStore';
 import {
+  applyMonitorNotification,
   configureExplorerStore,
   resetExplorerStoreForTest,
+  select,
   setExpandedKeys,
 } from '@/renderer/pages/conversation/explorer/explorerStore';
 import { ExplorerPanel } from '@/renderer/pages/conversation/explorer/ExplorerPanel';
@@ -85,5 +87,67 @@ describe('ExplorerPanel arco expand roundtrip', () => {
     render(<ExplorerPanel projectId='p1' roots={[{ pe_id: 'pe1', title: 'app', role: 'workspace' }]} />);
     const fileNode = (await screen.findByText('only.ts')).closest('.arco-tree-node');
     expect(fileNode?.className).toContain('is-leaf');
+  });
+});
+
+describe('ExplorerPanel reveal highlight + scroll-into-view', () => {
+  it('opts the tree into the workspace-tree selected-node highlight', async () => {
+    configureExplorerStore(makePort({ [peKey('pe1', '')]: [file('a.ts')] }));
+    const { container } = render(
+      <ExplorerPanel projectId='p1' roots={[{ pe_id: 'pe1', title: 'app', role: 'workspace' }]} />
+    );
+    await screen.findByText('a.ts');
+    // The `workspace-tree` class enables the full-row selected background
+    // (arco-override.css → --color-fill-3).
+    expect(container.querySelector('.workspace-tree')).toBeTruthy();
+  });
+
+  it('scrolls the selected node into view once it is in the DOM', async () => {
+    const scrollSpy = vi.fn();
+    Element.prototype.scrollIntoView = scrollSpy; // jsdom has no scrollIntoView
+    configureExplorerStore(makePort({ [peKey('pe1', '')]: [file('a.ts')] }));
+    render(<ExplorerPanel projectId='p1' roots={[{ pe_id: 'pe1', title: 'app', role: 'workspace' }]} />);
+    await screen.findByText('a.ts');
+
+    // Reveal-equivalent: select the file → its node gets .arco-tree-node-selected
+    // → the effect scrolls it into view.
+    await act(async () => {
+      select(peKey('pe1', 'a.ts'));
+      await flush();
+    });
+    expect(scrollSpy).toHaveBeenCalledWith({ block: 'nearest' });
+  });
+
+  it('does not re-scroll when only treeData changes, but re-scrolls on a new selection', async () => {
+    const scrollSpy = vi.fn();
+    Element.prototype.scrollIntoView = scrollSpy;
+    configureExplorerStore(makePort({ [peKey('pe1', '')]: [file('a.ts'), file('c.ts')] }));
+    render(<ExplorerPanel projectId='p1' roots={[{ pe_id: 'pe1', title: 'app', role: 'workspace' }]} />);
+    await screen.findByText('a.ts');
+
+    await act(async () => {
+      select(peKey('pe1', 'a.ts'));
+      await flush();
+    });
+    expect(scrollSpy).toHaveBeenCalledTimes(1);
+
+    // treeData changes (sibling added) but the selection is unchanged → the
+    // scrolledSelectionRef guard prevents a repeat scroll.
+    await act(async () => {
+      applyMonitorNotification('fs/delta', {
+        target: { pe_id: 'pe1', relative_path: '' },
+        changes: [{ op: 'added', name: 'b.ts', kind: 'file' }],
+      });
+      await flush();
+    });
+    expect(await screen.findByText('b.ts')).toBeInTheDocument(); // treeData really changed
+    expect(scrollSpy).toHaveBeenCalledTimes(1); // not re-scrolled
+
+    // A new selection scrolls again.
+    await act(async () => {
+      select(peKey('pe1', 'c.ts'));
+      await flush();
+    });
+    expect(scrollSpy).toHaveBeenCalledTimes(2);
   });
 });

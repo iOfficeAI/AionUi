@@ -15,7 +15,7 @@
 import { Dropdown, Menu, Tree } from '@arco-design/web-react';
 import type { TreeProps } from '@arco-design/web-react';
 import { Caution } from '@icon-park/react';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 // File-tree icons (VSCode "vscode-icons" theme), now owned by the explorer.
@@ -66,11 +66,36 @@ export const ExplorerPanel: React.FC<ExplorerPanelProps> = ({
   const { t } = useTranslation();
   // Key of the node currently under an OS-file drag (for the drop highlight).
   const [dragOverKey, setDragOverKey] = useState<string | null>(null);
+  // Scroll container + the last selection we already scrolled to (so we scroll
+  // once when a selection's node first appears, not on every tree delta).
+  const containerRef = useRef<HTMLDivElement>(null);
+  const scrolledSelectionRef = useRef<string | null>(null);
 
   // Wire the WS runtime once.
   useEffect(() => {
     initExplorerRuntime();
   }, []);
+
+  // Bring the selected node into view — e.g. after a search reveal expands a
+  // deep path, the newly-selected file may be off-screen. Runs when the
+  // selection changes and again as treeData fills in (reveal subscribes async),
+  // scrolling once the selected node is actually in the DOM.
+  // NOTE: the tree is not virtualized, so every node is a real DOM element and
+  // scrollIntoView works. If virtual scrolling is enabled later, switch to
+  // arco's scrollTo API (the off-screen node won't be in the DOM).
+  useEffect(() => {
+    const key = view.selected;
+    if (!key) {
+      scrolledSelectionRef.current = null;
+      return;
+    }
+    if (scrolledSelectionRef.current === key) return;
+    const node = containerRef.current?.querySelector('.arco-tree-node-selected');
+    if (node) {
+      node.scrollIntoView({ block: 'nearest' });
+      scrolledSelectionRef.current = key;
+    }
+  }, [view.selected, view.treeData]);
 
   // (Re)open the project when it changes. openProject is guarded: same
   // project+roots is a cheap no-op (survives conversation-switch remounts).
@@ -245,8 +270,12 @@ export const ExplorerPanel: React.FC<ExplorerPanelProps> = ({
     : {};
 
   return (
-    <div className='h-full' tabIndex={-1} {...containerProps}>
+    <div className='h-full' tabIndex={-1} ref={containerRef} {...containerProps}>
+      {/* `workspace-tree` opts into the full-row VSCode-style hover + selected
+          backgrounds in arco-override.css (selected = --color-fill-3), so a
+          revealed/selected node has a clearly visible highlight. */}
       <Tree
+        className='workspace-tree'
         treeData={view.treeData as TreeProps['treeData']}
         expandedKeys={view.expanded}
         selectedKeys={view.selected ? [view.selected] : []}

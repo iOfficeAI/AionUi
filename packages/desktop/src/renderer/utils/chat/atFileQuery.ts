@@ -131,3 +131,21 @@ export function buildAtFileInsertion(item: FileOrFolderItem): string | null {
   }
   return `@${escapeAtFilePath(path)}`;
 }
+
+/** An action the `@`-mention dropdown takes for a keydown (null = not handled). */
+export type AtFileMenuKeyAction = 'dismiss' | 'up' | 'down' | 'accept' | null;
+
+/**
+ * Map a keydown to a mention-dropdown action. Escape dismisses regardless;
+ * navigation (up/down) and accept require items. Enter and Tab both accept the
+ * active item. Pure, so the keyboard contract is unit-tested without rendering
+ * the send box.
+ */
+export function resolveAtFileMenuKey(key: string, hasItems: boolean): AtFileMenuKeyAction {
+  if (key === 'Escape') return 'dismiss';
+  if (!hasItems) return null;
+  if (key === 'ArrowDown') return 'down';
+  if (key === 'ArrowUp') return 'up';
+  if (key === 'Enter' || key === 'Tab') return 'accept';
+  return null;
+}
