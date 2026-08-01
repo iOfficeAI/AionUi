@@ -16,7 +16,7 @@ import type { IMessageText, TMessage } from '@/common/chat/chatLib';
 import { Tooltip } from '@arco-design/web-react';
 import { Left, Pause, PlayOne, Refresh, Right, SpeedOne, SquareSmall, VolumeMute, VolumeNotice } from '@icon-park/react';
 import classNames from 'classnames';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { isVoiceReadEnabled } from './featureFlag';
 import { useVoiceRead } from './useVoiceRead';
@@ -63,23 +63,40 @@ const VoiceReadBar: React.FC<{ conversationId: string | null; messages: TMessage
 }) => {
   const { t } = useTranslation();
   const { snapshot, controller } = useVoiceRead();
-
-  if (!isVoiceReadEnabled()) return null;
+  // Idle 时收缩为小喇叭按钮；展开后或朗读中显示完整控制条。
+  const [expanded, setExpanded] = useState(false);
 
   const { status, autoEnabled, rate, currentSentence, voiceAvailable } = snapshot;
   const reading = status !== 'idle';
   const paused = status === 'paused';
+
+  // 停止/自然结束回到空闲后自动收缩回小喇叭。
+  useEffect(() => {
+    if (status === 'idle') setExpanded(false);
+  }, [status]);
+
+  if (!isVoiceReadEnabled()) return null;
+
+  const enableAutoRead = () => {
+    controller.setAutoEnabled(true, conversationId);
+    const latest = findLatestReadableMessage(messages);
+    if (latest) {
+      controller.readLatestAuto(conversationId, latest.msgKey, latest.text);
+    }
+  };
 
   const handleToggleAuto = () => {
     if (autoEnabled) {
       controller.setAutoEnabled(false);
       return;
     }
-    controller.setAutoEnabled(true, conversationId);
-    const latest = findLatestReadableMessage(messages);
-    if (latest) {
-      controller.readLatestAuto(conversationId, latest.msgKey, latest.text);
-    }
+    enableAutoRead();
+  };
+
+  // 收缩态小喇叭：点击展开完整控制条并开启自动朗读。
+  const handleExpand = () => {
+    setExpanded(true);
+    enableAutoRead();
   };
 
   const handleCycleRate = () => {
@@ -91,6 +108,43 @@ const VoiceReadBar: React.FC<{ conversationId: string | null; messages: TMessage
   const noVoiceText = t('voiceRead.noVoice', {
     defaultValue: '未检测到本地语音，无法朗读',
   });
+
+  // 空闲且未展开：收缩为小喇叭圆钮，避免长条遮挡会话内容。
+  if (!reading && !expanded) {
+    return (
+      <div className='absolute bottom-20px right-20px z-100 select-none'>
+        <Tooltip
+          content={
+            voiceAvailable
+              ? t('voiceRead.expandBar', { defaultValue: '自动朗读 / 展开' })
+              : noVoiceText
+          }
+        >
+          <div
+            role='button'
+            aria-label={t('voiceRead.expandBarAria', { defaultValue: '展开朗读控制条' })}
+            className={classNames(
+              'relative flex items-center justify-center w-40px h-40px rd-full bg-base shadow-lg border-1 border-solid border-3 transition-all',
+              voiceAvailable ? 'cursor-pointer hover:scale-110' : 'opacity-40 cursor-not-allowed'
+            )}
+            onClick={voiceAvailable ? handleExpand : undefined}
+          >
+            <VolumeNotice
+              theme='outline'
+              size='18'
+              fill={autoEnabled ? 'var(--brand)' : 'var(--text-secondary, #86909c)'}
+            />
+            {autoEnabled && (
+              <span
+                className='absolute top-2px right-2px w-6px h-6px rd-full'
+                style={{ backgroundColor: 'var(--brand)' }}
+              />
+            )}
+          </div>
+        </Tooltip>
+      </div>
+    );
+  }
 
   return (
     <div className='absolute bottom-20px right-20px z-100 flex flex-col items-end gap-6px select-none'>
