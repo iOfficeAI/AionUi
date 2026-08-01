@@ -14,6 +14,7 @@ import { getGpuStatus, setGpuUserOverride } from '@process/utils/gpuRecovery';
 import { initApplicationBridgeCore } from './applicationBridgeCore';
 import type { IStartOnBootStatus } from '@/common/adapter/ipcBridge';
 import { restartApplication } from './restartApplication';
+import { getWindowsStartOnBootEnabled, setWindowsStartOnBootEnabled } from '@process/services/StartOnBootService';
 
 let mainWindowRef: BrowserWindow | null = null;
 
@@ -26,19 +27,13 @@ const isStartOnBootSupported = (): boolean => {
 
 const getStartOnBootWindowsArgs = (): string[] => [START_ON_BOOT_WINDOWS_ARG];
 
-const getLoginItemSettings = () => {
-  return process.platform === 'win32'
-    ? app.getLoginItemSettings({ args: getStartOnBootWindowsArgs() })
-    : app.getLoginItemSettings();
-};
-
 export function wasLaunchedAtLogin(): boolean {
   if (!app.isPackaged) {
     return false;
   }
 
   if (process.platform === 'darwin') {
-    return Boolean(getLoginItemSettings().wasOpenedAtLogin);
+    return Boolean(app.getLoginItemSettings().wasOpenedAtLogin);
   }
 
   if (process.platform === 'win32') {
@@ -48,7 +43,7 @@ export function wasLaunchedAtLogin(): boolean {
   return false;
 }
 
-export function getStartOnBootStatus(): IStartOnBootStatus {
+export async function getStartOnBootStatus(): Promise<IStartOnBootStatus> {
   if (!isStartOnBootSupported()) {
     return {
       supported: false,
@@ -58,11 +53,10 @@ export function getStartOnBootStatus(): IStartOnBootStatus {
     };
   }
 
-  const settings = getLoginItemSettings();
   const enabled =
     process.platform === 'win32'
-      ? Boolean(settings.openAtLogin || settings.executableWillLaunchAtLogin)
-      : Boolean(settings.openAtLogin);
+      ? await getWindowsStartOnBootEnabled(process.execPath)
+      : Boolean(app.getLoginItemSettings().openAtLogin);
 
   return {
     supported: true,
@@ -72,23 +66,19 @@ export function getStartOnBootStatus(): IStartOnBootStatus {
   };
 }
 
-export function setStartOnBootEnabled(enabled: boolean): IStartOnBootStatus {
-  const currentStatus = getStartOnBootStatus();
+export async function setStartOnBootEnabled(enabled: boolean): Promise<IStartOnBootStatus> {
+  const currentStatus = await getStartOnBootStatus();
   if (!currentStatus.supported) {
     return currentStatus;
   }
 
-  app.setLoginItemSettings({
-    openAtLogin: enabled,
-    ...(process.platform === 'win32'
-      ? {
-          args: getStartOnBootWindowsArgs(),
-          enabled: true,
-        }
-      : {}),
-  });
+  if (process.platform === 'win32') {
+    await setWindowsStartOnBootEnabled(enabled, process.execPath, getStartOnBootWindowsArgs());
+  } else {
+    app.setLoginItemSettings({ openAtLogin: enabled });
+  }
 
-  return getStartOnBootStatus();
+  return await getStartOnBootStatus();
 }
 
 export function setApplicationMainWindow(win: BrowserWindow): void {
@@ -193,7 +183,7 @@ export function initApplicationBridge(): void {
 
   ipcBridge.application.getStartOnBootStatus.provider(async () => {
     try {
-      return { success: true, data: getStartOnBootStatus() };
+      return { success: true, data: await getStartOnBootStatus() };
     } catch (e) {
       return { success: false, msg: e.message || e.toString() };
     }
@@ -201,7 +191,7 @@ export function initApplicationBridge(): void {
 
   ipcBridge.application.setStartOnBoot.provider(async ({ enabled }) => {
     try {
-      const status = setStartOnBootEnabled(enabled);
+      const status = await setStartOnBootEnabled(enabled);
       if (!status.supported) {
         return { success: false, msg: START_ON_BOOT_UNSUPPORTED_MESSAGE, data: status };
       }

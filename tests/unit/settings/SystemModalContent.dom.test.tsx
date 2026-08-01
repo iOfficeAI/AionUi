@@ -18,6 +18,7 @@ const {
   showOpenMock,
   messageInfoMock,
   writeRendererLogMock,
+  getStartOnBootStatusMock,
   configServiceMock,
 } = vi.hoisted(() => ({
   systemInfoMock: vi.fn(),
@@ -26,6 +27,7 @@ const {
   showOpenMock: vi.fn(),
   messageInfoMock: vi.fn(),
   writeRendererLogMock: vi.fn(() => Promise.resolve()),
+  getStartOnBootStatusMock: vi.fn(() => Promise.resolve({ success: false })),
   configServiceMock: {
     get: vi.fn(() => undefined),
     set: vi.fn(() => Promise.resolve()),
@@ -77,7 +79,7 @@ vi.mock('@/common', () => ({
       systemInfo: { invoke: systemInfoMock },
       updateSystemInfo: { invoke: updateSystemInfoMock },
       restart: { invoke: restartMock },
-      getStartOnBootStatus: { invoke: vi.fn(() => Promise.resolve({ success: false })) },
+      getStartOnBootStatus: { invoke: getStartOnBootStatusMock },
       getGpuStatus: { invoke: vi.fn(() => Promise.resolve({ success: false })) },
       writeRendererLog: { invoke: writeRendererLogMock },
     },
@@ -141,6 +143,7 @@ describe('SystemModalContent directory settings', () => {
     vi.clearAllMocks();
     configServiceMock.get.mockImplementation(() => undefined);
     configServiceMock.set.mockResolvedValue(undefined);
+    getStartOnBootStatusMock.mockResolvedValue({ success: false });
     clientBusinessSettingsMocks.getClientBusinessSetting.mockImplementation(async (key: string) => {
       if (key === 'acp.promptTimeout') return undefined;
       if (key === 'acp.agentIdleTimeout') return undefined;
@@ -213,6 +216,23 @@ describe('SystemModalContent directory settings', () => {
         tag: 'system-settings',
         message: 'system info request failed',
         data: 'Error: backend unavailable',
+      });
+    });
+    expect(restartMock).not.toHaveBeenCalled();
+  });
+
+  it('keeps rendering when the Windows startup status query fails', async () => {
+    getStartOnBootStatusMock.mockRejectedValueOnce(new Error('registry command timed out'));
+
+    renderContent();
+
+    expect(await screen.findByText('settings.language')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(writeRendererLogMock).toHaveBeenCalledWith({
+        level: 'warn',
+        tag: 'system-settings',
+        message: 'start-on-boot status failed',
+        data: 'Error: registry command timed out',
       });
     });
     expect(restartMock).not.toHaveBeenCalled();
