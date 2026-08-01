@@ -505,13 +505,13 @@ const WecomConfigForm: React.FC<WecomConfigFormProps> = ({
       {/* Connection Status */}
       {pluginStatus?.enabled && authorizedUsers.length === 0 && (
         <div
-          className={`rd-12px p-16px border ${pluginStatus?.connected ? 'bg-success-light-1 border-success-3' : pluginStatus?.error ? 'bg-danger-light-1 border-danger-3' : 'bg-warning-light-1 border-warning-3'}`}
+          className={`rd-12px p-16px border ${pluginStatus?.connected ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800' : pluginStatus?.error ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800' : 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800'}`}
         >
           <SectionHeader
             title={t('settings.wecom.connectionStatus', 'Connection Status')}
             action={
               <span
-                className={`text-12px px-8px py-2px rd-4px ${pluginStatus?.connected ? 'bg-success-light-1 text-success-6' : pluginStatus?.error ? 'bg-danger-light-1 text-danger-6' : 'bg-warning-light-1 text-warning-6'}`}
+                className={`text-12px px-8px py-2px rd-4px ${pluginStatus?.connected ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' : pluginStatus?.error ? 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300' : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300'}`}
               >
                 {pluginStatus?.connected
                   ? t('settings.wecom.statusConnected', 'Connected')
@@ -522,7 +522,7 @@ const WecomConfigForm: React.FC<WecomConfigFormProps> = ({
             }
           />
           {pluginStatus?.error && (
-            <div className='text-14px text-danger-6 mb-12px'>{pluginStatus.error}</div>
+            <div className='text-14px text-red-600 dark:text-red-400 mb-12px'>{pluginStatus.error}</div>
           )}
           {pluginStatus?.connected && (
             <div className='text-14px text-t-secondary space-y-8px'>
