@@ -2,13 +2,13 @@
 
 Connect AionUi to Slack as a bot using **Socket Mode** (WebSocket). No public URL, reverse proxy, or tunnel is required — it works on your laptop or a private network.
 
-| Item | Value |
-| ---- | ----- |
-| **Connection** | Socket Mode (WebSocket) |
-| **Tokens** | Bot Token (`xoxb-…`) + App-Level Token (`xapp-…` with `connections:write`) |
-| **Auth model** | Per-user **pairing** (approve once in AionUi Settings) |
-| **DMs** | Always accepted (after pairing) |
-| **Channels** | Only allowlisted channel IDs + `@mention` (empty allowlist = **DM-only**) |
+| Item           | Value                                                                      |
+| -------------- | -------------------------------------------------------------------------- |
+| **Connection** | Socket Mode (WebSocket)                                                    |
+| **Tokens**     | Bot Token (`xoxb-…`) + App-Level Token (`xapp-…` with `connections:write`) |
+| **Auth model** | Per-user **pairing** (approve once in AionUi Settings)                     |
+| **DMs**        | Always accepted (after pairing)                                            |
+| **Channels**   | Only allowlisted channel IDs + `@mention` (empty allowlist = **DM-only**)  |
 
 ---
 
@@ -65,18 +65,18 @@ If you used **Option A**, scopes are already set — skip to **Step 6**.
 
 **Features → OAuth & Permissions** → **Bot Token Scopes** → add:
 
-| Scope | Purpose |
-| ----- | ------- |
-| `chat:write` | Send messages as the bot |
-| `app_mentions:read` | Detect `@mentions` in channels |
-| `channels:history` | Receive messages in public channels the bot is in |
-| `channels:read` | Channel metadata |
-| `groups:history` | Receive messages in private channels the bot is invited to |
-| `groups:read` | Private channel metadata |
-| `im:history` | Receive DMs |
-| `im:read` | DM metadata |
-| `im:write` | Open / manage DMs |
-| `users:read` | Resolve display names for pairing |
+| Scope               | Purpose                                                    |
+| ------------------- | ---------------------------------------------------------- |
+| `chat:write`        | Send messages as the bot                                   |
+| `app_mentions:read` | Detect `@mentions` in channels                             |
+| `channels:history`  | Receive messages in public channels the bot is in          |
+| `channels:read`     | Channel metadata                                           |
+| `groups:history`    | Receive messages in private channels the bot is invited to |
+| `groups:read`       | Private channel metadata                                   |
+| `im:history`        | Receive DMs                                                |
+| `im:read`           | DM metadata                                                |
+| `im:write`          | Open / manage DMs                                          |
+| `users:read`        | Resolve display names for pairing                          |
 
 **Optional later:** `files:read` if attachment download is enabled in a future release.
 
@@ -91,12 +91,12 @@ If you used **Option A**, events are already set — skip to **Step 6**.
 1. **Features → Event Subscriptions** → enable events.
 2. **Subscribe to bot events**:
 
-| Event | Required | Purpose |
-| ----- | -------- | ------- |
-| `message.im` | **Yes** | Direct messages |
-| `message.channels` | For public channels | Messages in public channels the bot joins |
-| `message.groups` | For private channels | Messages in private channels |
-| `app_mention` | **Yes** if using channels | `@mention` events |
+| Event              | Required                  | Purpose                                   |
+| ------------------ | ------------------------- | ----------------------------------------- |
+| `message.im`       | **Yes**                   | Direct messages                           |
+| `message.channels` | For public channels       | Messages in public channels the bot joins |
+| `message.groups`   | For private channels      | Messages in private channels              |
+| `app_mention`      | **Yes** if using channels | `@mention` events                         |
 
 3. **Save Changes**.
 
@@ -130,10 +130,10 @@ If you change scopes or events later, you **must reinstall** the app for changes
 1. Open **AionUi → Settings → Channels → Slack**.
 2. Paste:
 
-| Field | Value |
-| ----- | ----- |
-| **Bot Token** | `xoxb-…` |
-| **App Token** | `xapp-…` (with `connections:write`) |
+| Field                | Value                                                            |
+| -------------------- | ---------------------------------------------------------------- |
+| **Bot Token**        | `xoxb-…`                                                         |
+| **App Token**        | `xapp-…` (with `connections:write`)                              |
 | **Allowed channels** | Optional. Comma-separated `C…` / `G…` IDs. **Empty = DMs only.** |
 
 3. Choose **Assistant** and **Model** for this channel (same as Telegram / DingTalk).
@@ -197,23 +197,23 @@ User is in "Authorized Users" and can chat
 
 ### Rules
 
-| Rule | Behavior |
-| ---- | -------- |
-| Pairing | **Once per Slack user**, not per message |
-| Code TTL | ~10 minutes; request a new code by messaging again / refresh |
+| Rule             | Behavior                                                                                                  |
+| ---------------- | --------------------------------------------------------------------------------------------------------- |
+| Pairing          | **Once per Slack user**, not per message                                                                  |
+| Code TTL         | ~10 minutes; request a new code by messaging again / refresh                                              |
 | Credentials lock | While any authorized user exists, token fields stay locked until you disable the channel and revoke users |
-| Re-pair | After revoke, the next message triggers a new pairing request |
+| Re-pair          | After revoke, the next message triggers a new pairing request                                             |
 
 ---
 
 ## How the bot responds
 
-| Context | Behavior |
-| ------- | -------- |
-| **1:1 DM** | After pairing, every message is handled (no `@mention` required) |
-| **Allowlisted channel** | Only if channel ID is in **Allowed channels** **and** the bot is `@mentioned` (or `app_mention`) |
-| **Empty allowlist** | **DM-only** — channel messages are ignored |
-| **Threads** | Each Slack thread is its own AionUi conversation session (`channel:thread_root`). Top-level messages open a new thread session; replies continue that session. |
+| Context                 | Behavior                                                                                                                                                       |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **1:1 DM**              | After pairing, every message is handled (no `@mention` required)                                                                                               |
+| **Allowlisted channel** | Only if channel ID is in **Allowed channels** **and** the bot is `@mentioned` (or `app_mention`)                                                               |
+| **Empty allowlist**     | **DM-only** — channel messages are ignored                                                                                                                     |
+| **Threads**             | Each Slack thread is its own AionUi conversation session (`channel:thread_root`). Top-level messages open a new thread session; replies continue that session. |
 
 Conversation list titles use a technical slug (e.g. `slack-aionrs-D0BKLLCM-…`), same family as Telegram (`tg-aionrs-…`). Human channel names are not used as titles today.
 
@@ -221,14 +221,14 @@ Conversation list titles use a technical slug (e.g. `slack-aionrs-D0BKLLCM-…`)
 
 ## Troubleshooting
 
-| Problem | What to check |
-| ------- | ------------- |
-| Test & Connect fails | Bot token + app token valid; app token has `connections:write`; app reinstalled after scope changes |
-| No DMs / “messages turned off” | **App Home → Messages Tab** enabled |
-| Pairing never appears in AionUi | Channel **Connected**; message was a real user DM (not only bot self-messages); check Pending list + Refresh |
-| Works in DM, not in channels | `message.channels` / `message.groups` subscribed; `channels:history` / `groups:history`; channel ID in **Allowed channels**; bot `/invite`d; user `@mention`s the bot |
-| Connected but silent | Pairing not approved; wrong workspace; Socket Mode off |
-| Changed scopes, nothing changed | **Reinstall** the app to the workspace |
+| Problem                         | What to check                                                                                                                                                         |
+| ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Test & Connect fails            | Bot token + app token valid; app token has `connections:write`; app reinstalled after scope changes                                                                   |
+| No DMs / “messages turned off”  | **App Home → Messages Tab** enabled                                                                                                                                   |
+| Pairing never appears in AionUi | Channel **Connected**; message was a real user DM (not only bot self-messages); check Pending list + Refresh                                                          |
+| Works in DM, not in channels    | `message.channels` / `message.groups` subscribed; `channels:history` / `groups:history`; channel ID in **Allowed channels**; bot `/invite`d; user `@mention`s the bot |
+| Connected but silent            | Pairing not approved; wrong workspace; Socket Mode off                                                                                                                |
+| Changed scopes, nothing changed | **Reinstall** the app to the workspace                                                                                                                                |
 
 ### Quick checklist
 

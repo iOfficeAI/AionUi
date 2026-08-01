@@ -23,16 +23,16 @@
 
 **渠道列表与排序**：
 
-| 顺序 | 渠道          | pluginId / type         | 状态        |
-| ---- | ------------- | ----------------------- | ----------- |
-| 1    | Telegram      | `telegram`              | active      |
-| 2    | Lark / Feishu | `lark`                  | active      |
-| 3    | DingTalk      | `dingtalk`              | active      |
-| 4    | Slack         | `slack`                 | active      |
-| 5    | WeChat        | `weixin`                | active      |
+| 顺序 | 渠道          | pluginId / type         | 状态                   |
+| ---- | ------------- | ----------------------- | ---------------------- |
+| 1    | Telegram      | `telegram`              | active                 |
+| 2    | Lark / Feishu | `lark`                  | active                 |
+| 3    | DingTalk      | `dingtalk`              | active                 |
+| 4    | Slack         | `slack`                 | active                 |
+| 5    | WeChat        | `weixin`                | active                 |
 | 6    | WeCom         | `wecom`                 | coming_soon / 部分实现 |
-| 6+   | 扩展渠道      | 动态（`extensionMeta`） | active      |
-| 末尾 | Discord       | -                       | coming_soon |
+| 6+   | 扩展渠道      | 动态（`extensionMeta`） | active                 |
+| 末尾 | Discord       | -                       | coming_soon            |
 
 **说明**：Discord 若已被扩展渠道实现（`extensionTypeSet` 包含 `discord`），则隐藏对应 coming_soon 占位卡片。
 
@@ -345,13 +345,13 @@ idle → loading_qr → showing_qr → scanned → connected
 
 **平台行为（后端 AionCore）**：
 
-| 场景 | 行为 |
-| ---- | ---- |
-| DM | 配对后每条消息处理，无需 @mention |
-| 频道 | 仅当 channel ID ∈ allowlist **且** @mention / `app_mention` |
-| Allowlist 空 | 仅 DM |
-| Thread | 每个 thread 独立会话（`chat_id = channel:thread_root`） |
-| 会话标题 | 技术 slug（如 `slack-aionrs-…`），与 tg/lark 一致，**不用**人类频道名 |
+| 场景         | 行为                                                                  |
+| ------------ | --------------------------------------------------------------------- |
+| DM           | 配对后每条消息处理，无需 @mention                                     |
+| 频道         | 仅当 channel ID ∈ allowlist **且** @mention / `app_mention`           |
+| Allowlist 空 | 仅 DM                                                                 |
+| Thread       | 每个 thread 独立会话（`chat_id = channel:thread_root`）               |
+| 会话标题     | 技术 slug（如 `slack-aionrs-…`），与 tg/lark 一致，**不用**人类频道名 |
 
 **异常情况**：
 
