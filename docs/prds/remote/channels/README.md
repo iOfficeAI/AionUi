@@ -6,6 +6,7 @@
 | -------------------------- | ---------------------------------- |
 | [channels.md](channels.md) | Channels 渠道接入 PRD（功能点） |
 | [slack/Slack-Bot-Setup-Guide.md](slack/Slack-Bot-Setup-Guide.md) | Slack 用户安装 / Socket Mode / pairing 指南（Wiki 源） |
+| [slack/slack-app-manifest.json](slack/slack-app-manifest.json) | Slack app manifest (Create from manifest) |
 
 ## 功能点总览
 

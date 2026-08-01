@@ -14,8 +14,8 @@ Connect AionUi to Slack as a bot using **Socket Mode** (WebSocket). No public UR
 
 ## Overview
 
-1. Create a Slack app (Socket Mode + events + scopes).
-2. Install the app to your workspace and copy tokens.
+1. Create a Slack app — preferably **from** [`slack-app-manifest.json`](./slack-app-manifest.json) (scopes, events, Socket Mode, Messages tab).
+2. Generate App-Level Token (`xapp-…` + `connections:write`) and install the app (`xoxb-…`).
 3. In AionUi: **Settings → Channels → Slack** → paste tokens → **Test & Connect**.
 4. DM the bot → pairing code → **Approve** in AionUi.
 5. (Optional) Add channel IDs to the allowlist and invite the bot to those channels.
@@ -24,15 +24,44 @@ Connect AionUi to Slack as a bot using **Socket Mode** (WebSocket). No public UR
 
 ## Step 1: Create a Slack App
 
+### Option A: From app manifest (recommended)
+
+Scopes, bot events, Socket Mode, and the Messages tab are pre-declared in
+[`slack-app-manifest.json`](./slack-app-manifest.json).
+
+1. Open [https://api.slack.com/apps](https://api.slack.com/apps).
+2. **Create New App** → **From an app manifest**.
+3. Pick your workspace → paste the full contents of `slack-app-manifest.json` → **Next** → **Create**.
+4. Skip ahead to **Step 2: App-Level Token** (Socket Mode is already on; you still need to mint `xapp-…`).
+
+To update an existing app: **App Manifest → Edit** → paste the file → **Save**, then **reinstall** if Slack asks.
+
+### Option B: From scratch (manual)
+
 1. Open [https://api.slack.com/apps](https://api.slack.com/apps).
 2. **Create New App** → **From scratch**.
 3. App name (e.g. `AionUi`) and workspace → **Create App**.
-
-You land on **Basic Information**. Continue with the steps below.
+4. Continue with **Steps 2–5** below (token, scopes, events, Messages tab), then **Step 6**.
 
 ---
 
-## Step 2: Bot Token Scopes
+## Step 2: App-Level Token (Socket Mode)
+
+Even with the manifest, Slack still requires you to **generate** the App-Level Token:
+
+1. **Settings → Socket Mode** — confirm enabled (manifest sets this).
+2. **Basic Information → App-Level Tokens** → **Generate Token and Scopes**:
+   - Name: any (e.g. `aionui-socket`)
+   - Scope: **`connections:write`**
+   - **Generate** and copy the token (`xapp-…`)
+
+This is the **App Token** field in AionUi.
+
+---
+
+## Step 3: Bot Token Scopes (manual path only)
+
+If you used **Option A**, scopes are already set — skip to **Step 6**.
 
 **Features → OAuth & Permissions** → **Bot Token Scopes** → add:
 
@@ -43,35 +72,21 @@ You land on **Basic Information**. Continue with the steps below.
 | `channels:history` | Receive messages in public channels the bot is in |
 | `channels:read` | Channel metadata |
 | `groups:history` | Receive messages in private channels the bot is invited to |
+| `groups:read` | Private channel metadata |
 | `im:history` | Receive DMs |
 | `im:read` | DM metadata |
 | `im:write` | Open / manage DMs |
 | `users:read` | Resolve display names for pairing |
 
-**Optional but recommended** if you use private channels or attachments later:
-
-| Scope | Purpose |
-| ----- | ------- |
-| `groups:read` | Private channel metadata |
-| `files:read` | Read user uploads (if enabled in a future release) |
+**Optional later:** `files:read` if attachment download is enabled in a future release.
 
 Missing `channels:history` / `groups:history` is the usual reason the bot works in DMs but never sees channel messages.
 
 ---
 
-## Step 3: Enable Socket Mode
+## Step 4: Event Subscriptions (manual path only)
 
-1. **Settings → Socket Mode** → enable.
-2. Create an **App-Level Token**:
-   - Name: any (e.g. `aionui-socket`)
-   - Scope: **`connections:write`**
-   - **Generate** and copy the token (`xapp-…`)
-
-You can also manage tokens under **Basic Information → App-Level Tokens**.
-
----
-
-## Step 4: Event Subscriptions
+If you used **Option A**, events are already set — skip to **Step 6**.
 
 1. **Features → Event Subscriptions** → enable events.
 2. **Subscribe to bot events**:
@@ -89,7 +104,9 @@ You can also manage tokens under **Basic Information → App-Level Tokens**.
 
 ---
 
-## Step 5: Enable the Messages Tab (DMs)
+## Step 5: Messages Tab / DMs (manual path only)
+
+If you used **Option A**, the Messages tab is already enabled — skip to **Step 6**.
 
 Without this step, users see **“Sending messages to this app has been turned off”**.
 
