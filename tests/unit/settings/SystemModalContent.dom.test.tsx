@@ -11,19 +11,27 @@ import userEvent from '@testing-library/user-event';
 import { ConfigProvider } from '@arco-design/web-react';
 import { SWRConfig } from 'swr';
 
-const { systemInfoMock, updateSystemInfoMock, restartMock, showOpenMock, messageInfoMock, configServiceMock } =
-  vi.hoisted(() => ({
-    systemInfoMock: vi.fn(),
-    updateSystemInfoMock: vi.fn(),
-    restartMock: vi.fn(),
-    showOpenMock: vi.fn(),
-    messageInfoMock: vi.fn(),
-    configServiceMock: {
-      get: vi.fn(() => undefined),
-      set: vi.fn(() => Promise.resolve()),
-      setLocal: vi.fn(),
-    },
-  }));
+const {
+  systemInfoMock,
+  updateSystemInfoMock,
+  restartMock,
+  showOpenMock,
+  messageInfoMock,
+  writeRendererLogMock,
+  configServiceMock,
+} = vi.hoisted(() => ({
+  systemInfoMock: vi.fn(),
+  updateSystemInfoMock: vi.fn(),
+  restartMock: vi.fn(),
+  showOpenMock: vi.fn(),
+  messageInfoMock: vi.fn(),
+  writeRendererLogMock: vi.fn(() => Promise.resolve()),
+  configServiceMock: {
+    get: vi.fn(() => undefined),
+    set: vi.fn(() => Promise.resolve()),
+    setLocal: vi.fn(),
+  },
+}));
 const clientBusinessSettingsMocks = vi.hoisted(() => ({
   getClientBusinessSetting: vi.fn(),
   setClientBusinessSetting: vi.fn(() => Promise.resolve()),
@@ -71,6 +79,7 @@ vi.mock('@/common', () => ({
       restart: { invoke: restartMock },
       getStartOnBootStatus: { invoke: vi.fn(() => Promise.resolve({ success: false })) },
       getGpuStatus: { invoke: vi.fn(() => Promise.resolve({ success: false })) },
+      writeRendererLog: { invoke: writeRendererLogMock },
     },
     systemSettings: {
       getCloseToTray: { invoke: vi.fn(() => Promise.resolve(false)) },
@@ -177,6 +186,36 @@ describe('SystemModalContent directory settings', () => {
     });
     expect(restartMock).toHaveBeenCalledTimes(1);
     expect(container).toHaveTextContent('/new-logs');
+  });
+
+  it('initializes the page without changing directories or restarting the application', async () => {
+    renderContent();
+
+    await screen.findByText('/logs');
+    await waitFor(() => {
+      expect(writeRendererLogMock).toHaveBeenCalledWith(
+        expect.objectContaining({ tag: 'system-settings', message: 'directory form initialized' })
+      );
+    });
+    expect(updateSystemInfoMock).not.toHaveBeenCalled();
+    expect(restartMock).not.toHaveBeenCalled();
+  });
+
+  it('keeps rendering when system information cannot be loaded', async () => {
+    systemInfoMock.mockRejectedValueOnce(new Error('backend unavailable'));
+
+    renderContent();
+
+    expect(await screen.findByText('settings.language')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(writeRendererLogMock).toHaveBeenCalledWith({
+        level: 'warn',
+        tag: 'system-settings',
+        message: 'system info request failed',
+        data: 'Error: backend unavailable',
+      });
+    });
+    expect(restartMock).not.toHaveBeenCalled();
   });
 
   it('shows the update failure reason when changing a directory fails', async () => {

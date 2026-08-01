@@ -1110,6 +1110,7 @@
     "editCustomAgent": "Редактировать пользовательского агента",
     "officialAgents": "Официальные агенты",
     "configureConnection": "Настроить",
+    "internalCliName": "CSBU CLI",
     "testConnection": "Проверить подключение",
     "testConnectionOnline": "«{{name}}» успешно подключён.",
     "testConnectionOffline": "«{{name}}» не в сети.",

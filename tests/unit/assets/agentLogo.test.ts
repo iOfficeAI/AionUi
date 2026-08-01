@@ -6,6 +6,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import type { AgentLogoMap } from '@/renderer/utils/model/agentLogo';
+import workMateLogo from '@/renderer/assets/logos/brand/app.png';
 import {
   fetchAgentLogos,
   resolveAgentAvatar,
@@ -62,6 +63,15 @@ describe('agentLogo', () => {
   });
 
   describe('resolveAgentLogo (backend lookup)', () => {
+    it('uses the CSBU WorkMate app icon instead of the legacy Aion asset for aionrs', () => {
+      expect(
+        resolveAgentLogo(LOGOS, {
+          icon: '/api/assets/logos/brand/aion.svg',
+          backend: 'aionrs',
+        })
+      ).toBe(workMateLogo);
+    });
+
     it('returns logo path for known backend (case-insensitive)', () => {
       expect(resolveAgentLogo(LOGOS, { backend: 'Claude' })).toContain('/api/assets/logos/ai-major/claude.svg');
     });
@@ -95,6 +105,18 @@ describe('agentLogo', () => {
   });
 
   describe('resolveAgentAvatar', () => {
+    it('uses the CSBU WorkMate app icon instead of the legacy Aion asset for aionrs', () => {
+      expect(
+        resolveAgentAvatar(LOGOS, {
+          icon: '/api/assets/logos/brand/aion.svg',
+          backend: 'aionrs',
+        })
+      ).toEqual({
+        kind: 'image',
+        value: workMateLogo,
+      });
+    });
+
     it('keeps explicit emoji avatars as emoji', () => {
       expect(resolveAgentAvatar(LOGOS, { icon: '🧠', backend: 'claude' })).toEqual({
         kind: 'emoji',

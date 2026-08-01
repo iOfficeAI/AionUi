@@ -1126,6 +1126,7 @@
     "customEmpty": "No hay agentes personalizados configurados. Haz clic en \"Agregar agente personalizado\" para crear uno.",
     "officialAgents": "Official Agents",
     "configureConnection": "Configure",
+    "internalCliName": "CSBU CLI",
     "testConnection": "Test Connection",
     "testConnectionOnline": "{{name}} connected successfully.",
     "testConnectionOffline": "{{name}} is offline.",

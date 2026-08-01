@@ -12,6 +12,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import React from 'react';
+import workMateLogo from '@/renderer/assets/logos/brand/app.png';
 
 // Project convention: t() echoes the key so labels are assertable.
 vi.mock('react-i18next', () => ({
@@ -98,6 +99,24 @@ const renderOfficial = (
   );
 
 describe('AgentCard (official variant)', () => {
+  it('uses the CSBU WorkMate app icon for the internal agent instead of the legacy Aion logo', () => {
+    renderOfficial({
+      id: 'aionrs',
+      name: 'CSBU WorkMate',
+      agent_type: 'aionrs',
+      agent_source: 'internal',
+      backend: 'aionrs',
+      icon: '/api/assets/logos/brand/aion.svg',
+      enabled: true,
+      installed: true,
+      status: 'online',
+    });
+
+    const logo = screen.getByRole('img', { name: 'CSBU WorkMate' });
+    expect(logo.getAttribute('src')).toBe(workMateLogo);
+    expect(logo.getAttribute('src')).not.toContain('aion.svg');
+  });
+
   it('shows status tag plus test-connection and edit actions for a missing official agent', () => {
     renderOfficial({
       id: 'claude',

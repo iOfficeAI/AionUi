@@ -27,6 +27,11 @@ import {
   type AgentAvailabilityFilter,
 } from './agentFilters';
 
+const getConnectionDisplayName = (agent: ManagedAgent, internalCliName: string): string =>
+  agent.agent_source === 'internal' && (agent.agent_type === 'aionrs' || agent.backend === 'aionrs')
+    ? internalCliName
+    : agent.name;
+
 const LocalAgents: React.FC = () => {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
@@ -175,12 +180,13 @@ const LocalAgents: React.FC = () => {
         setTestingAgentId(agentId);
         const result = await ipcBridge.acpConversation.checkManagedAgentHealthById.invoke({ id: agentId });
         await refreshCatalog();
+        const connectionDisplayName = getConnectionDisplayName(result, t('settings.agentManagement.internalCliName'));
         switch (result.status) {
           case 'online':
-            Message.success(t('settings.agentManagement.testConnectionOnline', { name: result.name }));
+            Message.success(t('settings.agentManagement.testConnectionOnline', { name: connectionDisplayName }));
             break;
           case 'missing':
-            Message.warning(t('settings.agentManagement.testConnectionMissing', { name: result.name }));
+            Message.warning(t('settings.agentManagement.testConnectionMissing', { name: connectionDisplayName }));
             break;
           case 'offline':
             // auth_required is offline-with-a-reason: surface the diagnostic
@@ -188,8 +194,8 @@ const LocalAgents: React.FC = () => {
             Message.warning(
               formatManagedAgentDiagnosticMessage(t, result) ||
                 (result.last_check_error_code === 'auth_required'
-                  ? t('settings.agentManagement.testConnectionAuth', { name: result.name })
-                  : t('settings.agentManagement.testConnectionOffline', { name: result.name }))
+                  ? t('settings.agentManagement.testConnectionAuth', { name: connectionDisplayName })
+                  : t('settings.agentManagement.testConnectionOffline', { name: connectionDisplayName }))
             );
             break;
           default:

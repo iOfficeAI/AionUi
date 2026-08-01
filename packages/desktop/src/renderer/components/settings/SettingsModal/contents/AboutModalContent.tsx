@@ -10,6 +10,7 @@ import { useTranslation } from 'react-i18next';
 import classNames from 'classnames';
 import { useSettingsViewMode } from '../settingsViewContext';
 import FeedbackReportModal from './FeedbackReportModal';
+import { FEEDBACK_REPORTING_ENABLED } from '@/common/types/feedbackDiagnostics';
 
 // __APP_VERSION__ is injected by electron.vite.config.ts `define:` from the
 // repo-root package.json. The previous `import packageJson from
@@ -51,15 +52,19 @@ const AboutModalContent: React.FC = () => {
           {/* Divider */}
           <Divider className='my-16px' />
 
-          <Typography.Text
-            className='text-14px text-t-primary cursor-pointer hover:text-t-secondary transition-colors text-center'
-            onClick={() => setShowFeedbackModal(true)}
-          >
-            {t('settings.bugReport')}
-          </Typography.Text>
+          {FEEDBACK_REPORTING_ENABLED && (
+            <Typography.Text
+              className='text-14px text-t-primary cursor-pointer hover:text-t-secondary transition-colors text-center'
+              onClick={() => setShowFeedbackModal(true)}
+            >
+              {t('settings.bugReport')}
+            </Typography.Text>
+          )}
         </div>
       </div>
-      <FeedbackReportModal visible={showFeedbackModal} onCancel={() => setShowFeedbackModal(false)} />
+      {FEEDBACK_REPORTING_ENABLED && (
+        <FeedbackReportModal visible={showFeedbackModal} onCancel={() => setShowFeedbackModal(false)} />
+      )}
     </div>
   );
 };

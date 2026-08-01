@@ -19,6 +19,7 @@
  */
 
 import { ipcBridge } from '@/common';
+import workMateLogo from '@/renderer/assets/logos/brand/app.png';
 import type { AssistantAvatar } from '@/renderer/utils/model/assistantAvatar';
 import {
   isBackendRelativeAssetPath,
@@ -33,6 +34,8 @@ import useSWR from 'swr';
 export type AgentLogoMap = Record<string, string>;
 
 export const AGENT_LOGOS_SWR_KEY = 'agents.logos';
+
+const isWorkMateBackend = (backend: string | undefined | null): boolean => backend?.toLowerCase() === 'aionrs';
 
 function collectManagedAgentLogoKeys(agent: ManagedAgent): string[] {
   const keys = [agent.backend, agent.agent_type, agent.id, agent.custom_agent_id];
@@ -105,7 +108,8 @@ function lookupBackendAvatar(logos: AgentLogoMap, backend: string | undefined | 
 /**
  * Resolve the best available logo for an agent from the backend logo catalog.
  *
- * Pure — pass the map from {@link useAgentLogos}. Priority:
+ * Pure — pass the map from {@link useAgentLogos}. The internal `aionrs`
+ * backend always uses the current CSBU WorkMate app identity; other agents use:
  *   1. Explicit icon/avatar (if provided)
  *   2. Adapter ID from custom_agent_id (`ext:extensionName:adapterId`) → catalog
  *   3. Backend ID → catalog
@@ -120,6 +124,7 @@ export function resolveAgentLogo(
     isExtension?: boolean;
   }
 ): string | null {
+  if (isWorkMateBackend(opts.backend)) return workMateLogo;
   if (opts.icon) return normalizeLogoUrl(opts.icon);
 
   if (opts.isExtension && opts.custom_agent_id) {
@@ -140,6 +145,7 @@ export function resolveAgentAvatar(
     isExtension?: boolean;
   }
 ): AssistantAvatar {
+  if (isWorkMateBackend(opts.backend)) return { kind: 'image', value: workMateLogo };
   const explicitAvatar = resolveAssistantAvatar(opts.icon || undefined);
   if (explicitAvatar.kind !== 'fallback') return explicitAvatar;
 

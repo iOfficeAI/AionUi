@@ -1240,6 +1240,7 @@ export type I18nKey =
   | 'settings.agentManagement.geminiDescription'
   | 'settings.agentManagement.goToChat'
   | 'settings.agentManagement.installFromMarket'
+  | 'settings.agentManagement.internalCliName'
   | 'settings.agentManagement.localAgents'
   | 'settings.agentManagement.localAgentsDescription'
   | 'settings.agentManagement.localAgentsEmpty'

@@ -1130,6 +1130,7 @@
     "editCustomAgent": "Edit Custom Agent",
     "officialAgents": "Official Agents",
     "configureConnection": "Configure",
+    "internalCliName": "CSBU CLI",
     "testConnection": "Test Connection",
     "testConnectionOnline": "{{name}} connected successfully.",
     "testConnectionOffline": "{{name}} is offline.",

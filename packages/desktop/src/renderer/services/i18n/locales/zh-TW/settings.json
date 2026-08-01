@@ -1132,6 +1132,7 @@
     "editCustomAgent": "編輯自訂 Agent",
     "officialAgents": "官方 Agents",
     "configureConnection": "設定",
+    "internalCliName": "CSBU CLI",
     "testConnection": "測試連線",
     "testConnectionOnline": "「{{name}}」連線成功。",
     "testConnectionOffline": "「{{name}}」目前離線。",

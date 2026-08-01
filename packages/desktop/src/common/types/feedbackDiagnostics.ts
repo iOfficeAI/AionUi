@@ -10,6 +10,9 @@ export type FeedbackModule = {
   readonly tag: string;
 };
 
+/** Keep feedback behavior covered by automated tests while hiding every runtime entry point. */
+export const FEEDBACK_REPORTING_ENABLED = process.env.NODE_ENV === 'test';
+
 export const FEEDBACK_MODULES = [
   {
     i18nKey: 'settings.bugReportModulePermission',

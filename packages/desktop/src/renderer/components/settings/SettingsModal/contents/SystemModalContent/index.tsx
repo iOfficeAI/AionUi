@@ -24,6 +24,10 @@ import DirInputItem from './DirInputItem';
 import PreferenceRow from './PreferenceRow';
 import VoiceInputSection from './VoiceInputSection';
 
+const writeSystemSettingsLog = (level: 'info' | 'warn', message: string, data?: unknown): void => {
+  void ipcBridge.application.writeRendererLog.invoke({ level, tag: 'system-settings', message, data }).catch(() => {});
+};
+
 /**
  * System settings content component
  *
@@ -56,6 +60,11 @@ const SystemModalContent: React.FC = () => {
   const [autoPreviewOfficeFiles, setAutoPreviewOfficeFiles] = useState(true);
 
   useEffect(() => {
+    writeSystemSettingsLog('info', 'mounted', { isDesktop, isDev: process.env.NODE_ENV !== 'production' });
+    return () => writeSystemSettingsLog('info', 'unmounted');
+  }, [isDesktop]);
+
+  useEffect(() => {
     if (!isDesktop) {
       return;
     }
@@ -66,8 +75,9 @@ const SystemModalContent: React.FC = () => {
         if (result.success && result.data) {
           setStartOnBoot(result.data);
         }
+        writeSystemSettingsLog('info', 'start-on-boot status loaded', { success: result.success });
       })
-      .catch(() => {});
+      .catch((error: unknown) => writeSystemSettingsLog('warn', 'start-on-boot status failed', String(error)));
 
     ipcBridge.application.getGpuStatus
       .invoke()
@@ -75,8 +85,9 @@ const SystemModalContent: React.FC = () => {
         if (result.success && result.data) {
           setGpuStatus(result.data);
         }
+        writeSystemSettingsLog('info', 'gpu status loaded', { success: result.success });
       })
-      .catch(() => {});
+      .catch((error: unknown) => writeSystemSettingsLog('warn', 'gpu status failed', String(error)));
   }, [isDesktop]);
 
   useEffect(() => {
@@ -87,8 +98,9 @@ const SystemModalContent: React.FC = () => {
         .then((enabled) => {
           setCloseToTray(enabled);
           configService.setLocal('system.closeToTray', enabled);
+          writeSystemSettingsLog('info', 'close-to-tray status loaded');
         })
-        .catch(() => {});
+        .catch((error: unknown) => writeSystemSettingsLog('warn', 'close-to-tray status failed', String(error)));
     }
     setNotificationEnabled(configService.get('system.notificationEnabled') ?? true);
     setCronNotificationEnabled(configService.get('system.cronNotificationEnabled') ?? false);
@@ -115,8 +127,10 @@ const SystemModalContent: React.FC = () => {
         if (typeof storedAgentIdleTimeout === 'number' && storedAgentIdleTimeout > 0) {
           setAgentIdleTimeout(storedAgentIdleTimeout);
         }
-      } catch {
+        writeSystemSettingsLog('info', 'ACP timeout settings loaded');
+      } catch (error: unknown) {
         // Keep the in-memory defaults when backend settings are unavailable.
+        writeSystemSettingsLog('warn', 'ACP timeout settings failed', String(error));
       }
     };
 
@@ -268,7 +282,20 @@ const SystemModalContent: React.FC = () => {
   }, []);
 
   // Get system directory info
-  const { data: systemInfo } = useSWR('system.dir.info', () => ipcBridge.application.systemInfo.invoke());
+  const { data: systemInfo } = useSWR('system.dir.info', async () => {
+    writeSystemSettingsLog('info', 'system info request started');
+    try {
+      const info = await ipcBridge.application.systemInfo.invoke();
+      writeSystemSettingsLog('info', 'system info request completed', {
+        platform: info.platform,
+        arch: info.arch,
+      });
+      return info;
+    } catch (error: unknown) {
+      writeSystemSettingsLog('warn', 'system info request failed', String(error));
+      throw error;
+    }
+  });
 
   // Initialize form data
   useEffect(() => {
@@ -277,6 +304,7 @@ const SystemModalContent: React.FC = () => {
       form.setFieldsValue({ workDir: systemInfo.workDir, logDir: systemInfo.logDir });
       requestAnimationFrame(() => {
         initializingRef.current = false;
+        writeSystemSettingsLog('info', 'directory form initialized');
       });
     }
   }, [systemInfo, form]);
@@ -477,8 +505,8 @@ const SystemModalContent: React.FC = () => {
           {/* Voice input (speech-to-text) settings */}
           <VoiceInputSection />
 
-          {/* Developer settings: DevTools + CDP (only visible in dev mode) */}
-          <DevSettings />
+          {/* Developer settings must not mount in packaged builds. Its status probe is main-process-only. */}
+          {process.env.NODE_ENV !== 'production' && <DevSettings />}
         </div>
       </WorkMateScrollArea>
     </div>

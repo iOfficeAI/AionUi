@@ -1,5 +1,31 @@
 # Changelog
 
+## [2.1.45](https://github.com/CSBU/CSBU-WorkMate/compare/v2.1.44...v2.1.45) (2026-08-01)
+
+### Desktop
+
+#### Bug Fixes
+
+- **branding:** update WorkMate agent identity
+- **settings:** stabilize Windows system page
+
+### Core ([v0.1.56](https://github.com/iOfficeAI/AionCore/releases/tag/v0.1.56))
+
+#### Features
+
+- **project:** hide OS-junk and VCS-internal noise from listings (#727)
+
+#### Bug Fixes
+
+- **agents:** persist the catalog the availability probe already fetched (#735)
+- **ai-agent:** token usage for the direct-CLI backends (claude / codex) (#733)
+- **conversation:** request plaintext thinking from claude, drop blank thought cards (#731)
+- **project/monitor:** attribute watched-subdir events to parent so tree reflects directory delete/rename (#734)
+- **session:** settle cancelled workflows and stop per-turn pump state leaking across turns (#732)
+- **team:** derive team capability from probed MCP transports, not a stored veto (#725)
+
+---
+
 ## [2.1.44](https://github.com/CSBU/CSBU-WorkMate/compare/v2.1.43...v2.1.44) (2026-07-30)
 
 ### Desktop

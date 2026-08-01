@@ -15,7 +15,13 @@ import React from 'react';
 
 // t() echoes the key so section labels/buttons are assertable.
 vi.mock('react-i18next', () => ({
-  useTranslation: () => ({ t: (k: string) => k, i18n: { language: 'en' } }),
+  useTranslation: () => ({
+    t: (k: string, options?: { name?: string }) => {
+      if (k === 'settings.agentManagement.internalCliName') return 'CSBU CLI';
+      return options?.name ? `${k}:${options.name}` : k;
+    },
+    i18n: { language: 'en' },
+  }),
 }));
 
 const navigate = vi.fn();
@@ -154,7 +160,7 @@ describe('LocalAgents', () => {
     });
     await waitFor(() => {
       expect(refreshCatalog).toHaveBeenCalled();
-      expect(messageSuccess).toHaveBeenCalledWith('settings.agentManagement.testConnectionOnline');
+      expect(messageSuccess).toHaveBeenCalledWith('settings.agentManagement.testConnectionOnline:CSBU CLI');
     });
   });
 
@@ -173,7 +179,7 @@ describe('LocalAgents', () => {
 
     await waitFor(() => {
       // formatManagedAgentDiagnosticMessage maps auth_required → its errorCodes key.
-      expect(messageWarning).toHaveBeenCalledWith('settings.agentManagement.errorCodes.auth_required');
+      expect(messageWarning).toHaveBeenCalledWith('settings.agentManagement.errorCodes.auth_required:CSBU WorkMate');
     });
   });
 
