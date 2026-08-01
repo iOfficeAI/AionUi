@@ -98,4 +98,27 @@ test.describe('Antigravity Chat - Basic Flow', () => {
     expect(reply).not.toContain('failed to start');
     expect(reply).toContain('E2E_AGY_OK');
   });
+
+  test('the model picker offers the models agy reported', async ({ page }) => {
+    // The backend discovers agy's models and writes them into the same catalog
+    // the ACP picker reads. `ChatConversation` used to hand any non-`acp`
+    // conversation a permanently disabled Google selector, so those models were
+    // discovered and then unreachable. `acp-model-selector` is what distinguishes
+    // the real picker from that disabled stand-in.
+    await goToGuid(page);
+    await selectAgent(page, 'antigravity');
+    conversationId = await sendMessageFromGuid(page, 'Reply with exactly: E2E_AGY_OK');
+    await waitForAiReply(page);
+
+    const picker = page.locator('[data-testid="acp-model-selector"]').first();
+    await picker.waitFor({ state: 'visible', timeout: 30_000 });
+    await picker.click();
+
+    // agy's ids always carry a family prefix; assert on one rather than a bare
+    // non-empty menu, which a placeholder row would also satisfy.
+    const modelItem = page.locator('.arco-dropdown-menu-item').filter({ hasText: /gemini-|claude-|gpt-/ }).first();
+    await modelItem.waitFor({ state: 'visible', timeout: 15_000 });
+    await takeScreenshot(page, 'chat-antigravity/basic/05-model-picker.png');
+    expect(await modelItem.isVisible()).toBe(true);
+  });
 });

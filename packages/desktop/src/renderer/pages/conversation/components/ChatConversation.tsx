@@ -120,7 +120,10 @@ const _AddNewConversation: React.FC<{ conversation: TChatConversation }> = ({ co
                 modified_at: Date.now(),
                 // Clear ACP session fields to prevent new conversation from inheriting old session context
                 extra:
-                  source.type === 'acp'
+                  // Antigravity stores its resume anchor in the same fields, so
+                  // it must be cleared too — otherwise the clone resumes the
+                  // source conversation's agy session instead of starting clean.
+                  source.type === 'acp' || source.type === 'antigravity'
                     ? { ...source.extra, acp_session_id: undefined, acp_session_updated_at: undefined }
                     : source.extra,
               } as TChatConversation,
@@ -336,7 +339,10 @@ const ChatConversation: React.FC<{
     if (!conversation || isAionrsConversation) return undefined;
     if (isMobile) return undefined;
     if (isLegacyReadOnlyConversation) return undefined;
-    if (conversation.type === 'acp') {
+    // Antigravity included: the backend discovers agy's model list and writes it
+    // into the same catalog the ACP picker reads, so it must not fall through to
+    // the disabled selector below.
+    if (conversation.type === 'acp' || conversation.type === 'antigravity') {
       const extra = conversation.extra as { current_model_id?: string };
       return (
         <AcpModelSelector
