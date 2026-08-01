@@ -210,13 +210,27 @@ export async function startStaticServer(opts: StaticServerOptions): Promise<Stat
     client.on('end', onEarlyEnd);
   });
 
-  await new Promise<void>((resolve, reject) => {
-    tcp_server.once('error', reject);
-    tcp_server.listen(port, host, () => {
-      tcp_server.off('error', reject);
-      resolve();
+  try {
+    await new Promise<void>((resolve, reject) => {
+      tcp_server.once('error', reject);
+      tcp_server.listen(port, host, () => {
+        tcp_server.off('error', reject);
+        resolve();
+      });
     });
-  });
+  } catch (err) {
+    // The internal HTTP server is already listening — close it so a bind
+    // failure doesn't leak a stray loopback listener.
+    await new Promise<void>((resolve) => http_server.close(() => resolve()));
+    if ((err as NodeJS.ErrnoException).code === 'EADDRINUSE') {
+      throw new Error(
+        `Port ${port} is already in use (another AionUi instance or process may be running on it). ` +
+          `Stop that process or choose a different port (e.g. --port <number> or the AIONUI_PORT env var).`,
+        { cause: err }
+      );
+    }
+    throw err;
+  }
 
   const actualPort = (tcp_server.address() as { port: number } | null)?.port ?? port;
   const lanIP = allowRemote ? (getLanIP() ?? undefined) : undefined;
