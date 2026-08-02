@@ -75,7 +75,7 @@
   "backendStartup": {
     "incompatibleRuntime": {
       "title": "This system is not supported by the bundled backend",
-      "description": "CSBU WorkMate opened, but the local CSBU WorkMate backend backend cannot run on this Linux version. Please upgrade to a supported Linux distribution and restart CSBU WorkMate.",
+      "description": "CSBU WorkMate opened, but the local CSBU WorkMate backend cannot run on this Linux version. Please upgrade to a supported Linux distribution and restart CSBU WorkMate.",
       "requiredVersions": "Required runtime symbols: {{versions}}"
     },
     "incompleteInstallation": {

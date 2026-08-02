@@ -17,7 +17,7 @@ import React from 'react';
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (k: string, options?: { name?: string }) => {
-      if (k === 'settings.agentManagement.internalCliName') return 'CSBU CLI';
+      if (k === 'settings.agentManagement.internalCliName') return 'CSBU WorkMate';
       return options?.name ? `${k}:${options.name}` : k;
     },
     i18n: { language: 'en' },
@@ -160,7 +160,7 @@ describe('LocalAgents', () => {
     });
     await waitFor(() => {
       expect(refreshCatalog).toHaveBeenCalled();
-      expect(messageSuccess).toHaveBeenCalledWith('settings.agentManagement.testConnectionOnline:CSBU CLI');
+      expect(messageSuccess).toHaveBeenCalledWith('settings.agentManagement.testConnectionOnline:CSBU WorkMate');
     });
   });
 

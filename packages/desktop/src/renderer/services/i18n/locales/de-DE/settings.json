@@ -1136,7 +1136,7 @@
     "filterUnavailable": "Nicht verfügbar",
     "officialAgents": "Official Agents",
     "configureConnection": "Configure",
-    "internalCliName": "CSBU CLI",
+    "internalCliName": "CSBU WorkMate",
     "testConnection": "Test Connection",
     "testConnectionOnline": "{{name}} connected successfully.",
     "testConnectionOffline": "{{name}} is offline.",

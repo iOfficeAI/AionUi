@@ -1130,7 +1130,7 @@
     "editCustomAgent": "Modifier l'agent personnalisé",
     "officialAgents": "Agents officiels",
     "configureConnection": "Configurer",
-    "internalCliName": "CSBU CLI",
+    "internalCliName": "CSBU WorkMate",
     "testConnection": "Tester la connexion",
     "testConnectionOnline": "{{name}} connecté avec succès.",
     "testConnectionOffline": "{{name}} est hors ligne.",

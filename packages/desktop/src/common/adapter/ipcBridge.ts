@@ -156,22 +156,74 @@ export const shell = {
 // Assistants — routed to /api/assistants/*
 // ---------------------------------------------------------------------------
 
-const normalizeLocalizedText = (values: Record<string, string>): Record<string, string> =>
-  Object.fromEntries(Object.entries(values).map(([locale, value]) => [locale, normalizeLegacyBrandText(value)]));
+type AssistantCollectionKey =
+  | 'name_i18n'
+  | 'description_i18n'
+  | 'enabled_skills'
+  | 'custom_skill_names'
+  | 'disabled_builtin_skills'
+  | 'context_i18n'
+  | 'prompts'
+  | 'prompts_i18n'
+  | 'models';
 
-const normalizeLocalizedLists = (values: Record<string, string[]>): Record<string, string[]> =>
-  Object.fromEntries(Object.entries(values).map(([locale, items]) => [locale, items.map(normalizeLegacyBrandText)]));
+type AssistantWire = Omit<Assistant, AssistantCollectionKey> & Partial<Pick<Assistant, AssistantCollectionKey>>;
 
-const normalizeAssistantBranding = (assistant: Assistant): Assistant => ({
+type AssistantProfileWire = Omit<AssistantDetail['profile'], 'name_i18n' | 'description_i18n'> &
+  Partial<Pick<AssistantDetail['profile'], 'name_i18n' | 'description_i18n'>>;
+
+type AssistantPromptsWire = Omit<AssistantDetail['prompts'], 'recommended' | 'recommended_i18n'> &
+  Partial<Pick<AssistantDetail['prompts'], 'recommended' | 'recommended_i18n'>>;
+
+type AssistantCapabilitiesWire = {
+  [Key in keyof AssistantDetail['capabilities']]?: AssistantDetail['capabilities'][Key];
+};
+
+type AssistantPreferencesWire = Omit<
+  AssistantDetail['preferences'],
+  'last_skill_ids' | 'last_disabled_builtin_skill_ids' | 'last_mcp_ids'
+> &
+  Partial<Pick<AssistantDetail['preferences'], 'last_skill_ids' | 'last_disabled_builtin_skill_ids' | 'last_mcp_ids'>>;
+
+type AssistantDefaultListWire = Omit<AssistantDetail['defaults']['skills'], 'value'> &
+  Partial<Pick<AssistantDetail['defaults']['skills'], 'value'>>;
+
+type AssistantDetailWire = Omit<
+  AssistantDetail,
+  'profile' | 'prompts' | 'defaults' | 'capabilities' | 'preferences'
+> & {
+  profile: AssistantProfileWire;
+  prompts: AssistantPromptsWire;
+  defaults: Omit<AssistantDetail['defaults'], 'skills' | 'mcps'> & {
+    skills: AssistantDefaultListWire;
+    mcps: AssistantDefaultListWire;
+  };
+  capabilities: AssistantCapabilitiesWire;
+  preferences: AssistantPreferencesWire;
+};
+
+const normalizeLocalizedText = (values?: Record<string, string> | null): Record<string, string> =>
+  Object.fromEntries(Object.entries(values ?? {}).map(([locale, value]) => [locale, normalizeLegacyBrandText(value)]));
+
+const normalizeLocalizedLists = (values?: Record<string, string[]> | null): Record<string, string[]> =>
+  Object.fromEntries(
+    Object.entries(values ?? {}).map(([locale, items]) => [locale, items.map(normalizeLegacyBrandText)])
+  );
+
+const normalizeAssistantBranding = (assistant: AssistantWire): Assistant => ({
   ...assistant,
   name: normalizeLegacyBrandText(assistant.name),
   name_i18n: normalizeLocalizedText(assistant.name_i18n),
   description: assistant.description ? normalizeLegacyBrandText(assistant.description) : assistant.description,
   description_i18n: normalizeLocalizedText(assistant.description_i18n),
+  enabled_skills: assistant.enabled_skills ?? [],
+  custom_skill_names: assistant.custom_skill_names ?? [],
+  disabled_builtin_skills: assistant.disabled_builtin_skills ?? [],
   context: assistant.context ? normalizeLegacyBrandText(assistant.context) : assistant.context,
   context_i18n: normalizeLocalizedText(assistant.context_i18n),
-  prompts: assistant.prompts.map(normalizeLegacyBrandText),
+  prompts: (assistant.prompts ?? []).map(normalizeLegacyBrandText),
   prompts_i18n: normalizeLocalizedLists(assistant.prompts_i18n),
+  models: assistant.models ?? [],
   agent_status_message: assistant.agent_status_message
     ? normalizeLegacyBrandText(assistant.agent_status_message)
     : assistant.agent_status_message,
@@ -180,7 +232,7 @@ const normalizeAssistantBranding = (assistant: Assistant): Assistant => ({
     : assistant.team_block_reason,
 });
 
-const normalizeAssistantDetailBranding = (detail: AssistantDetail): AssistantDetail => ({
+const normalizeAssistantDetailBranding = (detail: AssistantDetailWire): AssistantDetail => ({
   ...detail,
   profile: {
     ...detail.profile,
@@ -200,8 +252,24 @@ const normalizeAssistantDetailBranding = (detail: AssistantDetail): AssistantDet
   rules: { ...detail.rules, content: normalizeLegacyBrandText(detail.rules.content) },
   prompts: {
     ...detail.prompts,
-    recommended: detail.prompts.recommended.map(normalizeLegacyBrandText),
+    recommended: (detail.prompts.recommended ?? []).map(normalizeLegacyBrandText),
     recommended_i18n: normalizeLocalizedLists(detail.prompts.recommended_i18n),
+  },
+  defaults: {
+    ...detail.defaults,
+    skills: { ...detail.defaults.skills, value: detail.defaults.skills.value ?? [] },
+    mcps: { ...detail.defaults.mcps, value: detail.defaults.mcps.value ?? [] },
+  },
+  capabilities: {
+    default_skill_ids: detail.capabilities.default_skill_ids ?? [],
+    custom_skill_names: detail.capabilities.custom_skill_names ?? [],
+    default_disabled_builtin_skill_ids: detail.capabilities.default_disabled_builtin_skill_ids ?? [],
+  },
+  preferences: {
+    ...detail.preferences,
+    last_skill_ids: detail.preferences.last_skill_ids ?? [],
+    last_disabled_builtin_skill_ids: detail.preferences.last_disabled_builtin_skill_ids ?? [],
+    last_mcp_ids: detail.preferences.last_mcp_ids ?? [],
   },
 });
 
@@ -223,24 +291,27 @@ const normalizeAgentBranding = <T extends BrandableAgent>(agent: T): T => ({
 });
 
 export const assistants = {
-  list: withResponseMap(httpGet<Assistant[], void>('/api/assistants'), (items) =>
+  list: withResponseMap(httpGet<AssistantWire[], void>('/api/assistants'), (items) =>
     items.map(normalizeAssistantBranding)
   ),
   get: withResponseMap(
-    httpGet<AssistantDetail, { id: string; locale?: string }>(
+    httpGet<AssistantDetailWire, { id: string; locale?: string }>(
       ({ id, locale }) =>
         `/api/assistants/${encodeURIComponent(id)}${locale ? `?locale=${encodeURIComponent(locale)}` : ''}`
     ),
     normalizeAssistantDetailBranding
   ),
-  create: withResponseMap(httpPost<Assistant, CreateAssistantRequest>('/api/assistants'), normalizeAssistantBranding),
+  create: withResponseMap(
+    httpPost<AssistantWire, CreateAssistantRequest>('/api/assistants'),
+    normalizeAssistantBranding
+  ),
   update: withResponseMap(
-    httpPut<Assistant, UpdateAssistantRequest>((p) => `/api/assistants/${p.id}`),
+    httpPut<AssistantWire, UpdateAssistantRequest>((p) => `/api/assistants/${p.id}`),
     normalizeAssistantBranding
   ),
   delete: httpDelete<void, { id: string }>((p) => `/api/assistants/${p.id}`),
   setState: withResponseMap(
-    httpPatch<Assistant, SetAssistantStateRequest>(
+    httpPatch<AssistantWire, SetAssistantStateRequest>(
       (p) => `/api/assistants/${p.id}/state`,
       (p) => {
         const { id: _id, ...body } = p;

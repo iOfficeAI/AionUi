@@ -1120,7 +1120,7 @@
     "editCustomAgent": "커스텀 에이전트 편집",
     "officialAgents": "공식 에이전트",
     "configureConnection": "구성",
-    "internalCliName": "CSBU CLI",
+    "internalCliName": "CSBU WorkMate",
     "testConnection": "연결 테스트",
     "testConnectionOnline": "\"{{name}}\"에 성공적으로 연결되었습니다.",
     "testConnectionOffline": "\"{{name}}\"이(가) 오프라인입니다.",

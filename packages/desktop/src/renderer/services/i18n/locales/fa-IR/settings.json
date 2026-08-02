@@ -1130,7 +1130,7 @@
     "editCustomAgent": "ویرایش ایجنت سفارشی",
     "officialAgents": "ایجنت‌های رسمی",
     "configureConnection": "پیکربندی",
-    "internalCliName": "CSBU CLI",
+    "internalCliName": "CSBU WorkMate",
     "testConnection": "آزمایش اتصال",
     "testConnectionOnline": "{{name}} با موفقیت متصل شد.",
     "testConnectionOffline": "{{name}} آفلاین است.",

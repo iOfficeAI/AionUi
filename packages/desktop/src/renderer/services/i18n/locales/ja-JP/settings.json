@@ -1120,7 +1120,7 @@
     "editCustomAgent": "カスタムエージェントを編集",
     "officialAgents": "公式エージェント",
     "configureConnection": "設定",
-    "internalCliName": "CSBU CLI",
+    "internalCliName": "CSBU WorkMate",
     "testConnection": "接続テスト",
     "testConnectionOnline": "「{{name}}」に正常に接続しました。",
     "testConnectionOffline": "「{{name}}」はオフラインです。",

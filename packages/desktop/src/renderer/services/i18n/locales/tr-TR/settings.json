@@ -1118,7 +1118,7 @@
     "editCustomAgent": "Özel Ajanı Düzenle",
     "officialAgents": "Resmi Ajanlar",
     "configureConnection": "Yapılandır",
-    "internalCliName": "CSBU CLI",
+    "internalCliName": "CSBU WorkMate",
     "testConnection": "Bağlantıyı Test Et",
     "testConnectionOnline": "{{name}} başarıyla bağlandı.",
     "testConnectionOffline": "{{name}} çevrimdışı.",

@@ -63,7 +63,7 @@ const INSTALLER_ERROR_SCENARIOS = [
     id: 'bundled-aioncore-incomplete',
     defineName: 'CSBU_WORKMATE_E_BUNDLED_AIONCORE_INCOMPLETE',
     code: 'E1030',
-    message: 'CSBU WorkMate installed, but the bundled AionCore resources are incomplete.',
+    message: 'CSBU WorkMate installed, but the bundled backend resources are incomplete.',
     action: 'Download a fresh installer and run it again.',
     diagnostics: 'scenario=bundled-aioncore-incomplete phase=verify-bundled-aioncore runtime=win32-x64 result=1',
   },
