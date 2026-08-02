@@ -1,5 +1,31 @@
 # Changelog
 
+## [2.1.47](https://github.com/suoak/AionUi/compare/v2.1.46...v2.1.47) (2026-08-02)
+
+### Desktop
+
+#### Features
+
+- **skills:** add CSBU SkillHub as the official online skill source
+- **skills:** support browsing, installation, source display and manual updates
+- **skills:** preserve installed copies when SkillHub or remote skills are unavailable
+
+### Core ([v0.1.59](https://github.com/suoak/AionCore/releases/tag/v0.1.59))
+
+#### Features
+
+- **skills:** add fixed CSBU SkillHub registry integration
+- **skills:** validate downloaded packages, manifests, file sizes and SHA-256 hashes
+- **skills:** persist per-user registry provenance and update state
+
+#### Bug Fixes
+
+- **db:** export the skill registry installation model
+- **skills:** keep installation handlers sendable
+- **skills:** satisfy strict route Clippy checks
+
+---
+
 ## [2.1.45](https://github.com/CSBU/CSBU-WorkMate/compare/v2.1.44...v2.1.45) (2026-08-01)
 
 ### Desktop
