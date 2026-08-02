@@ -53,6 +53,21 @@ describe('startStaticServer port conflict', () => {
     expect((err?.cause as NodeJS.ErrnoException | undefined)?.code).toBe('EADDRINUSE');
   });
 
+  test('Rethrows non-EADDRINUSE bind errors unchanged', async () => {
+    // An out-of-range port fails with ERR_SOCKET_BAD_PORT, exercising the
+    // generic rethrow path: the original error must surface as-is (no wrapping).
+    const err = await startStaticServer({
+      staticDir: '/tmp',
+      backendPort: 1,
+      port: -1,
+    }).then(
+      () => null,
+      (e: unknown) => e as NodeJS.ErrnoException
+    );
+    expect(err?.code).toBe('ERR_SOCKET_BAD_PORT');
+    expect(err?.cause).toBeUndefined();
+  });
+
   test('Does not leak the internal loopback listener after a bind failure', async () => {
     const settle = async (): Promise<void> => {
       // Give libuv a few turns to release handles closed during cleanup.
