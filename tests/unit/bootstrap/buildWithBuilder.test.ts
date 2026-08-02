@@ -292,9 +292,17 @@ const originalLoad = Module._load;
 function recordPrepareCall(options) {
   const callsPath = process.env.CSBU_WORKMATE_PREPARE_CALLS_FILE;
   const calls = fs.existsSync(callsPath) ? JSON.parse(fs.readFileSync(callsPath, 'utf8')) : [];
-  calls.push(options ?? null);
+  calls.push({ resource: 'aioncore', ...options });
   fs.writeFileSync(callsPath, JSON.stringify(calls));
   return { prepared: true, dir: 'mock-bundled-aioncore', sourceType: 'mock' };
+}
+
+function recordLarkCliPrepareCall(options) {
+  const callsPath = process.env.CSBU_WORKMATE_PREPARE_CALLS_FILE;
+  const calls = fs.existsSync(callsPath) ? JSON.parse(fs.readFileSync(callsPath, 'utf8')) : [];
+  calls.push({ resource: 'lark-cli', ...options });
+  fs.writeFileSync(callsPath, JSON.stringify(calls));
+  return { prepared: true, dir: 'mock-bundled-lark-cli', version: options.version };
 }
 
 Module._load = function patchedLoad(request, parent, isMain) {
@@ -304,6 +312,10 @@ Module._load = function patchedLoad(request, parent, isMain) {
 
   if (request.endsWith('packages/shared-scripts/src/prepare-aioncore.js')) {
     return { prepareAioncore: recordPrepareCall };
+  }
+
+  if (request.endsWith('packages/shared-scripts/src/prepare-lark-cli.js')) {
+    return { prepareLarkCli: recordLarkCliPrepareCall };
   }
 
   if (request === './resolveAioncoreVersion.js' || request.endsWith('/resolveAioncoreVersion.js')) {
@@ -371,8 +383,15 @@ childProcess.execSync = function mockedExecSync(command) {
         expect(installUtil.match(/CSBU-WorkMate-bundled-uninstaller override source/g)).toHaveLength(1);
       }
 
-      const calls = JSON.parse(readFileSync(callsPath, 'utf8')) as Array<{ arch?: string } | null>;
-      expect(calls).toContainEqual(expect.objectContaining({ arch: expectedArch }));
+      const calls = JSON.parse(readFileSync(callsPath, 'utf8')) as Array<{
+        resource?: string;
+        arch?: string;
+        version?: string;
+      }>;
+      expect(calls).toContainEqual(expect.objectContaining({ resource: 'aioncore', arch: expectedArch }));
+      expect(calls).toContainEqual(
+        expect.objectContaining({ resource: 'lark-cli', arch: expectedArch, version: 'v1.0.71' })
+      );
     } finally {
       rmSync(outDir, { recursive: true, force: true });
       if (movedExistingOut) {

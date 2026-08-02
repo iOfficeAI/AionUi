@@ -38,6 +38,7 @@ import { setupApplicationMenu } from './process/utils/appMenu';
 import { startWebHost } from '@csbu-workmate/web-host';
 import { initializeZoomFactor, setupZoomForWindow } from './process/utils/zoom';
 import { hydrateWindowsProcessPath } from './process/startup/windowsPath';
+import { prependBundledLarkCliToPath } from './process/startup/bundledCliPath';
 import {
   MIN_WINDOW_WIDTH,
   MIN_WINDOW_HEIGHT,
@@ -139,6 +140,20 @@ if (process.platform === 'darwin' || process.platform === 'linux') {
   }
 } else if (process.platform === 'win32') {
   hydrateWindowsProcessPath();
+}
+
+const bundledLarkCliDirectory = prependBundledLarkCliToPath({
+  isPackaged: app.isPackaged,
+  resourcesPath: process.resourcesPath,
+  cwd: process.cwd(),
+  platform: process.platform,
+  arch: process.arch,
+  env: process.env,
+});
+if (bundledLarkCliDirectory) {
+  console.info('[CSBU WorkMate] Bundled Lark CLI added to PATH');
+} else if (app.isPackaged) {
+  console.warn('[CSBU WorkMate] Bundled Lark CLI is missing for this runtime');
 }
 
 // Handle Squirrel startup events (Windows installer)

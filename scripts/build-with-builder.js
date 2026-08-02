@@ -817,6 +817,14 @@ try {
     version: resolveAioncoreVersion(projectRoot),
   });
 
+  const { prepareLarkCli } = require('../packages/shared-scripts/src/prepare-lark-cli.js');
+  prepareLarkCli({
+    projectRoot,
+    platform: process.platform,
+    arch: targetArch,
+    version: packageJson.larkCliVersion,
+  });
+
   // 6. Prepare hub resources (index.json + extension zips for offline fallback)
   execSync('node scripts/prepareHubResources.js', { stdio: 'inherit', env: process.env });
 

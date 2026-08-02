@@ -9,6 +9,7 @@ const {
   getModulesToRebuild,
 } = require('./rebuildNativeModules');
 const { verifyBundledAioncoreResources } = require('../packages/shared-scripts/src/verify-bundled-aioncore-resources');
+const { verifyBundledLarkCliResources } = require('../packages/shared-scripts/src/prepare-lark-cli');
 
 /**
  * afterPack hook for electron-builder
@@ -35,6 +36,19 @@ function verifyBundledResources(resourcesDir, electronPlatformName, targetArch) 
   }
 
   console.log(`   ✓ Bundled resources verified for ${result.runtimeKey} (${result.checked.length} checks)`);
+
+  const larkCliResult = verifyBundledLarkCliResources({ resourcesDir, electronPlatformName, targetArch });
+  if (larkCliResult.missing.length > 0) {
+    console.error(`   Missing bundled Lark CLI resources: ${larkCliResult.missing.join(', ')}`);
+    throw new Error(
+      `Packaged app is missing required bundled Lark CLI resource(s): ${larkCliResult.missing.join(', ')}`
+    );
+  }
+  if (larkCliResult.errors.length > 0) {
+    console.error(`   Invalid bundled Lark CLI resources: ${larkCliResult.errors.join(', ')}`);
+    throw new Error(`Packaged app contains invalid bundled Lark CLI resource(s): ${larkCliResult.errors.join(', ')}`);
+  }
+  console.log(`   ✓ Bundled Lark CLI verified for ${larkCliResult.runtimeKey}`);
 }
 
 module.exports = async function afterPack(context) {
