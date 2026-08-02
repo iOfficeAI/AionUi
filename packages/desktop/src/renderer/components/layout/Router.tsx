@@ -10,6 +10,9 @@ const AgentRepairPage = React.lazy(() => import('@renderer/pages/settings/AgentS
 const AssistantSettings = React.lazy(() => import('@renderer/pages/settings/AssistantSettings'));
 const SkillsSettings = React.lazy(() => import('@renderer/pages/settings/SkillsSettings/SkillsHubSettings'));
 const SkillDetailPage = React.lazy(() => import('@renderer/pages/settings/SkillsSettings/SkillDetailPage'));
+const OfficialOnlineSkillDetail = React.lazy(
+  () => import('@renderer/pages/settings/SkillsSettings/OfficialOnlineSkillDetail')
+);
 const ToolsSettings = React.lazy(() => import('@renderer/pages/settings/ToolsSettings'));
 const AppearanceSettings = React.lazy(() => import('@renderer/pages/settings/AppearanceSettings'));
 const ModeSettings = React.lazy(() => import('@renderer/pages/settings/ModeSettings'));
@@ -82,6 +85,10 @@ const PanelRoute: React.FC<{ layout: React.ReactElement }> = ({ layout }) => {
           <Route path='/settings/skills' element={withRouteFallback(SkillsSettings)} />
           <Route path='/settings/skills/import-history' element={withRouteFallback(SkillsSettings)} />
           <Route path='/settings/skills/detail/:skillName' element={withRouteFallback(SkillDetailPage)} />
+          <Route
+            path='/settings/skills/online/:namespace/:slug'
+            element={withRouteFallback(OfficialOnlineSkillDetail)}
+          />
           <Route path='/settings/tools' element={withRouteFallback(ToolsSettings)} />
           {/* Legacy routes — the previous combined "Capabilities" page is now two pages. */}
           <Route path='/settings/capabilities' element={<CapabilitiesRedirect />} />

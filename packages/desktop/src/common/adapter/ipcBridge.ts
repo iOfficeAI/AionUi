@@ -763,6 +763,47 @@ export type SkillFileNode = {
   children?: SkillFileNode[];
 };
 
+export type SkillRegistryOrigin = {
+  registry_key: string;
+  namespace: string;
+  slug: string;
+  installed_version: string;
+};
+
+export type OfficialSkillVersion = {
+  id: number;
+  version: string;
+  status: string;
+};
+
+export type OfficialSkillSummary = {
+  id: number;
+  namespace: string;
+  slug: string;
+  display_name: string;
+  summary: string;
+  owner_display_name?: string;
+  download_count: number;
+  star_count: number;
+  updated_at: string;
+  published_version: OfficialSkillVersion;
+  install_status: 'not_installed' | 'installed' | 'update_available' | 'unavailable';
+  installed_version?: string;
+  installed_skill_name?: string;
+};
+
+export type OfficialSkillDetail = OfficialSkillSummary & {
+  labels: string[];
+};
+
+export type OfficialSkillFile = {
+  id: number;
+  file_path: string;
+  file_size: number;
+  content_type?: string;
+  sha256: string;
+};
+
 export const fs = {
   getFilesByDir: httpPost<Array<IDirOrFile>, { dir: string; root: string }>('/api/fs/dir'),
   listWorkspaceFiles: withResponseMap(
@@ -814,6 +855,7 @@ export const fs = {
       is_auto_inject: boolean;
       is_custom: boolean;
       source: 'builtin' | 'custom' | 'cron' | 'extension';
+      registry_origin?: SkillRegistryOrigin;
     }>,
     void
   >('/api/skills'),
@@ -889,6 +931,29 @@ export const fs = {
   >('/api/skills/import-history'),
   getSkillImportLimits: httpGet<{ max_file_bytes: number; max_total_bytes: number }, void>('/api/skills/import-limits'),
   deleteSkill: httpDelete<void, { skill_name: string }>((p) => `/api/skills/${p.skill_name}`),
+  searchOfficialSkills: httpGet<
+    { items: OfficialSkillSummary[]; total: number; page: number; size: number },
+    { q: string; sort: 'newest' | 'downloads' | 'stars' | 'relevance'; page: number; size: number }
+  >((p) => `/api/skill-registry/skills?q=${encodeURIComponent(p.q)}&sort=${p.sort}&page=${p.page}&size=${p.size}`),
+  getOfficialSkill: httpGet<OfficialSkillDetail, { namespace: string; slug: string }>(
+    (p) => `/api/skill-registry/skills/${encodeURIComponent(p.namespace)}/${encodeURIComponent(p.slug)}`
+  ),
+  listOfficialSkillFiles: httpGet<OfficialSkillFile[], { namespace: string; slug: string; version: string }>(
+    (p) =>
+      `/api/skill-registry/skills/${encodeURIComponent(p.namespace)}/${encodeURIComponent(p.slug)}/versions/${encodeURIComponent(p.version)}/files`
+  ),
+  installOfficialSkill: httpPost<
+    { skill_name: string; namespace: string; slug: string; installed_version: string },
+    { namespace: string; slug: string; version: string }
+  >('/api/skill-registry/installations'),
+  listOfficialSkillUpdates: httpGet<OfficialSkillSummary[], void>('/api/skill-registry/installations/updates'),
+  updateOfficialSkill: httpPut<
+    { skill_name: string; namespace: string; slug: string; installed_version: string },
+    { namespace: string; slug: string; version: string }
+  >(
+    (p) => `/api/skill-registry/installations/${encodeURIComponent(p.namespace)}/${encodeURIComponent(p.slug)}`,
+    (p) => ({ version: p.version })
+  ),
   getSkillPaths: httpGet<{ user_skills_dir: string; builtin_skills_dir: string }, void>('/api/skills/paths'),
   getCustomExternalPaths: httpGet<Array<{ name: string; path: string }>, void>('/api/skills/external-paths'),
   addCustomExternalPath: httpPost<void, { name: string; path: string }>('/api/skills/external-paths'),

@@ -13,6 +13,7 @@ import SettingsPageHeader from '../components/SettingsPageHeader';
 import TalkToButlerButton from '@/renderer/components/base/TalkToButlerButton';
 import { WorkMateSearchInput } from '@/renderer/components/base';
 import { buildSkillImportNotice, getSkillImportErrorMessage } from './skillImportMessages';
+import OfficialOnlineSkills from './OfficialOnlineSkills';
 
 // Skill 信息类型 / Skill info type
 interface SkillInfo {
@@ -28,6 +29,12 @@ interface SkillInfo {
   is_auto_inject: boolean;
   is_custom: boolean;
   source?: 'builtin' | 'custom' | 'cron' | 'extension';
+  registry_origin?: {
+    registry_key: string;
+    namespace: string;
+    slug: string;
+    installed_version: string;
+  };
 }
 
 const isAutoInjectedBuiltinSkill = (skill: SkillInfo) => skill.source === 'builtin' && skill.is_auto_inject;
@@ -128,11 +135,11 @@ interface SkillsHubSettingsProps {
   withWrapper?: boolean;
 }
 
-type SkillsTab = 'custom' | 'official';
+type SkillsTab = 'custom' | 'official' | 'online';
 
 const getSkillsTabFromState = (state: unknown): SkillsTab => {
-  if (typeof state === 'object' && state !== null && 'skillsTab' in state && state.skillsTab === 'official') {
-    return 'official';
+  if (typeof state === 'object' && state !== null && 'skillsTab' in state) {
+    if (state.skillsTab === 'official' || state.skillsTab === 'online') return state.skillsTab;
   }
   return 'custom';
 };
@@ -676,7 +683,14 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
           )}
         </div>
         <div className='flex-1 min-w-0 flex flex-col justify-center gap-4px'>
-          <h3 className='text-14px font-semibold text-t-primary/90 truncate m-0'>{skill.name}</h3>
+          <div className='flex min-w-0 flex-wrap items-center gap-6px'>
+            <h3 className='text-14px font-semibold text-t-primary/90 truncate m-0'>{skill.name}</h3>
+            {skill.name === 'lark' && skill.source === 'builtin' ? (
+              <span className='rounded-4px bg-[rgba(var(--warning-6),0.08)] px-6px py-2px text-10px font-500 text-warning-6'>
+                {t('settings.skillsHub.larkSetup.dependencyLabel')}
+              </span>
+            ) : null}
+          </div>
           {skill.description && (
             <p className='text-13px text-t-secondary leading-relaxed line-clamp-2 m-0' title={skill.description}>
               {skill.description}
@@ -860,7 +874,14 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
               </div>
 
               <div className='flex-1 min-w-0 flex flex-col justify-center gap-4px'>
-                <h3 className='text-14px font-semibold text-t-primary/90 truncate m-0'>{skill.name}</h3>
+                <div className='flex min-w-0 flex-wrap items-center gap-6px'>
+                  <h3 className='text-14px font-semibold text-t-primary/90 truncate m-0'>{skill.name}</h3>
+                  {skill.registry_origin ? (
+                    <span className='rounded-4px bg-primary-1 px-6px py-2px text-10px font-500 text-primary-6'>
+                      {t('settings.skillsHub.officialOnline.sourceLabel')} · v{skill.registry_origin.installed_version}
+                    </span>
+                  ) : null}
+                </div>
                 {skill.description && (
                   <p className='text-13px text-t-secondary leading-relaxed line-clamp-2 m-0' title={skill.description}>
                     {skill.description}
@@ -991,7 +1012,7 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
         actions={
           <>
             {/* Mobile: the actions row is too crowded — drop the search box entirely. */}
-            {!isMobile && searchBox('input-search-my-skills')}
+            {!isMobile && activeTab !== 'online' && searchBox('input-search-my-skills')}
             <Button
               type='text'
               size='small'
@@ -1024,14 +1045,24 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
             label: t('settings.skillsHub.tabOfficial', { defaultValue: 'Official' }),
             count: officialSkills.length + extensionSkills.length + builtinAutoSkills.length,
           },
+          {
+            key: 'online',
+            label: t('settings.skillsHub.officialOnline.tab'),
+          },
         ]}
         activeTab={activeTab}
         onTabChange={(key) => {
-          setActiveTab(key as 'custom' | 'official');
+          setActiveTab(key as SkillsTab);
           exitBatchMode();
         }}
       />
-      {activeTab === 'custom' ? customPane : officialPane}
+      {activeTab === 'custom' ? (
+        customPane
+      ) : activeTab === 'official' ? (
+        officialPane
+      ) : (
+        <OfficialOnlineSkills onInstalled={fetchData} />
+      )}
     </div>
   );
 

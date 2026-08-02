@@ -5,7 +5,7 @@ import type { AssistantListItem } from './types';
 import { Avatar } from '@arco-design/web-react';
 import { Robot } from '@icon-park/react';
 import React from 'react';
-import { isEmoji, resolveAvatarImageSrc } from './assistantUtils';
+import { isEmoji, resolveAssistantAvatarImageSrc } from './assistantUtils';
 
 type AssistantAvatarProps = {
   assistant: AssistantListItem;
@@ -22,7 +22,7 @@ const AssistantAvatar: React.FC<AssistantAvatarProps> = ({
 }) => {
   const resolvedAvatar = assistant.avatar?.trim();
   const hasEmojiAvatar = Boolean(resolvedAvatar && isEmoji(resolvedAvatar));
-  const avatarImage = resolveAvatarImageSrc(resolvedAvatar);
+  const avatarImage = resolveAssistantAvatarImageSrc(assistant);
   const iconSize = Math.floor(size * 0.5);
   const emojiSize = Math.floor(size * 0.6);
 

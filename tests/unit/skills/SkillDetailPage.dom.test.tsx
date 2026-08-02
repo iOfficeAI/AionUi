@@ -10,6 +10,7 @@ import React from 'react';
 
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { SWRConfig } from 'swr';
 
 const mocks = vi.hoisted(() => ({
   listAvailableSkills: vi.fn(),
@@ -122,6 +123,13 @@ const makeAssistant = (overrides: Record<string, unknown>) => ({
   deletable: true,
   ...overrides,
 });
+
+const renderWithFreshCache = () =>
+  render(
+    <SWRConfig value={{ provider: () => new Map() }}>
+      <SkillDetailPage />
+    </SWRConfig>
+  );
 
 describe('getAssistantsUsingSkill', () => {
   it('matches enabled_skills and custom_skill_names, ignores others', () => {
@@ -267,5 +275,24 @@ describe('SkillDetailPage', () => {
       prompt:
         "I'd like to improve this Skill: demo-skill\n\nPlease review its content and help me make improvements. My suggestions are:",
     });
+  });
+
+  it('guides built-in Lark setup through Butler', async () => {
+    mocks.params.skillName = 'lark';
+    mocks.listAvailableSkills.mockResolvedValue([
+      {
+        name: 'lark',
+        description: 'Use Lark CLI.',
+        location: '/tmp/builtin-skills/lark',
+        is_auto_inject: false,
+        is_custom: false,
+        source: 'builtin',
+      },
+    ]);
+
+    renderWithFreshCache();
+    fireEvent.click(await screen.findByTestId('btn-setup-lark'));
+
+    expect(mocks.talkToButler).toHaveBeenCalledWith({ prompt: 'settings.skillsHub.larkSetup.prompt' });
   });
 });

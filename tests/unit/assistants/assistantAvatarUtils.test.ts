@@ -8,7 +8,21 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { resolveAvatarImageSrc } from '@/renderer/pages/settings/AssistantSettings/assistantUtils';
+import workMateLogo from '@/renderer/assets/logos/brand/app.png';
+import {
+  resolveAssistantAvatarImageSrc,
+  resolveAvatarImageSrc,
+} from '@/renderer/pages/settings/AssistantSettings/assistantUtils';
+import type { AssistantListItem } from '@/renderer/pages/settings/AssistantSettings/types';
+
+const makeAssistant = (overrides: Partial<AssistantListItem>): AssistantListItem =>
+  ({
+    id: 'assistant-1',
+    source: 'user',
+    avatar: '/api/assistants/assistant-1/avatar',
+    agent: { type: 'aionrs', source: 'internal' },
+    ...overrides,
+  }) as AssistantListItem;
 
 describe('assistantAvatarUtils', () => {
   describe('resolveAvatarImageSrc', () => {
@@ -28,6 +42,24 @@ describe('assistantAvatarUtils', () => {
     it('returns undefined for empty input', () => {
       expect(resolveAvatarImageSrc('')).toBeUndefined();
       expect(resolveAvatarImageSrc(undefined)).toBeUndefined();
+    });
+  });
+
+  describe('resolveAssistantAvatarImageSrc', () => {
+    it('uses the current brand icon for the generated CSBU WorkMate assistant', () => {
+      expect(resolveAssistantAvatarImageSrc(makeAssistant({ source: 'generated' }))).toBe(workMateLogo);
+    });
+
+    it('uses the current brand icon for the built-in CSBU WorkMate butler', () => {
+      expect(resolveAssistantAvatarImageSrc(makeAssistant({ id: 'aionui-assistant', source: 'builtin' }))).toBe(
+        workMateLogo
+      );
+    });
+
+    it('preserves a user-selected avatar for custom assistants on the same runtime', () => {
+      expect(resolveAssistantAvatarImageSrc(makeAssistant({ source: 'user' }))).toBe(
+        '/api/assistants/assistant-1/avatar'
+      );
     });
   });
 });

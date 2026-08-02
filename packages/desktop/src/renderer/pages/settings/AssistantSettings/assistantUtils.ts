@@ -1,5 +1,7 @@
 import { resolveExtensionAssetUrl } from '@/renderer/utils/platform';
 import { isBackendRelativeAssetPath, isLikelyLocalFilePath } from '@/renderer/utils/model/assistantAvatar';
+import workMateLogo from '@/renderer/assets/logos/brand/app.png';
+import { isAionrsAssistant } from '@/common/types/agent/assistantTypes';
 import type { AssistantListItem, AvailableBackend } from './types';
 import type { ManagedAgent } from '@/renderer/utils/model/agentTypes';
 
@@ -42,6 +44,13 @@ export const resolveAvatarImageSrc = (avatar: string | undefined): string | unde
   const resolved = resolveExtensionAssetUrl(value) || value;
   const isImage = /\.(svg|png|jpe?g|webp|gif)$/i.test(resolved) || /^(https?:|file:\/\/|data:|\/)/i.test(resolved);
   return isImage ? resolved : undefined;
+};
+
+/** Keep product-owned assistants on the current CSBU WorkMate brand asset. */
+export const resolveAssistantAvatarImageSrc = (assistant: AssistantListItem): string | undefined => {
+  const usesWorkMateBrand =
+    isAionrsAssistant(assistant) && (assistant.source === 'generated' || assistant.id === 'aionui-assistant');
+  return usesWorkMateBrand ? workMateLogo : resolveAvatarImageSrc(assistant.avatar);
 };
 
 /**

@@ -18,6 +18,10 @@ const mocks = vi.hoisted(() => ({
   listSkillImportHistory: vi.fn(),
   importSkills: vi.fn(),
   deleteSkill: vi.fn(),
+  searchOfficialSkills: vi.fn(),
+  listOfficialSkillUpdates: vi.fn(),
+  installOfficialSkill: vi.fn(),
+  updateOfficialSkill: vi.fn(),
   showOpen: vi.fn(),
   messageError: vi.fn(),
   messageSuccess: vi.fn(),
@@ -42,6 +46,10 @@ vi.mock('@/common', () => ({
       listSkillImportHistory: { invoke: mocks.listSkillImportHistory },
       importSkills: { invoke: mocks.importSkills },
       deleteSkill: { invoke: mocks.deleteSkill },
+      searchOfficialSkills: { invoke: mocks.searchOfficialSkills },
+      listOfficialSkillUpdates: { invoke: mocks.listOfficialSkillUpdates },
+      installOfficialSkill: { invoke: mocks.installOfficialSkill },
+      updateOfficialSkill: { invoke: mocks.updateOfficialSkill },
     },
     dialog: {
       showOpen: { invoke: mocks.showOpen },
@@ -115,6 +123,8 @@ describe('SkillsHubSettings', () => {
       max_total_bytes: 64 * 1024 * 1024,
     });
     mocks.listSkillImportHistory.mockResolvedValue([]);
+    mocks.searchOfficialSkills.mockResolvedValue({ items: [], total: 0, page: 0, size: 12 });
+    mocks.listOfficialSkillUpdates.mockResolvedValue([]);
   });
 
   it('exports a component (smoke)', () => {
@@ -205,6 +215,97 @@ describe('SkillsHubSettings', () => {
 
     await waitFor(() => expect(screen.getByTestId('btn-open-import-history')).toBeInTheDocument());
     expect(screen.queryByText('No import records yet.')).not.toBeInTheDocument();
+  });
+
+  it('searches and installs a skill from the official online tab', async () => {
+    mocks.searchOfficialSkills.mockResolvedValue({
+      items: [
+        {
+          id: 1,
+          namespace: 'global',
+          slug: 'fixture-skill',
+          display_name: 'Fixture Skill',
+          summary: 'Fixture summary',
+          owner_display_name: 'CSBU',
+          download_count: 8,
+          star_count: 2,
+          updated_at: '2026-01-01T00:00:00Z',
+          published_version: { id: 10, version: '1.0.0', status: 'PUBLISHED' },
+          install_status: 'not_installed',
+        },
+      ],
+      total: 1,
+      page: 0,
+      size: 12,
+    });
+    mocks.installOfficialSkill.mockResolvedValue({
+      skill_name: 'fixture-skill',
+      namespace: 'global',
+      slug: 'fixture-skill',
+      installed_version: '1.0.0',
+    });
+
+    render(<SkillsHubSettings withWrapper={false} />);
+    fireEvent.click(await screen.findByTestId('settings-tab-online'));
+    expect(await screen.findByText('Fixture Skill')).toBeInTheDocument();
+    fireEvent.click(screen.getByText('settings.skillsHub.officialOnline.install'));
+
+    await waitFor(() =>
+      expect(mocks.installOfficialSkill).toHaveBeenCalledWith({
+        namespace: 'global',
+        slug: 'fixture-skill',
+        version: '1.0.0',
+      })
+    );
+  });
+
+  it('shows the unavailable state without affecting local skills', async () => {
+    mocks.searchOfficialSkills.mockRejectedValue(new Error('fixture unavailable'));
+    render(<SkillsHubSettings withWrapper={false} />);
+    fireEvent.click(await screen.findByTestId('settings-tab-online'));
+    expect(await screen.findByText('settings.skillsHub.officialOnline.unavailableTitle')).toBeInTheDocument();
+    expect(mocks.listAvailableSkills).toHaveBeenCalled();
+  });
+
+  it('requires confirmation before updating an installed online skill', async () => {
+    mocks.searchOfficialSkills.mockResolvedValue({
+      items: [
+        {
+          id: 1,
+          namespace: 'global',
+          slug: 'fixture-skill',
+          display_name: 'Fixture Skill',
+          summary: 'Fixture summary',
+          download_count: 8,
+          star_count: 2,
+          updated_at: '2026-01-01T00:00:00Z',
+          published_version: { id: 11, version: '2.0.0', status: 'PUBLISHED' },
+          install_status: 'update_available',
+          installed_version: '1.0.0',
+        },
+      ],
+      total: 1,
+      page: 0,
+      size: 12,
+    });
+    mocks.updateOfficialSkill.mockResolvedValue({
+      skill_name: 'fixture-skill',
+      namespace: 'global',
+      slug: 'fixture-skill',
+      installed_version: '2.0.0',
+    });
+
+    render(<SkillsHubSettings withWrapper={false} />);
+    fireEvent.click(await screen.findByTestId('settings-tab-online'));
+    fireEvent.click(await screen.findByText('settings.skillsHub.officialOnline.update'));
+    expect(mocks.updateOfficialSkill).not.toHaveBeenCalled();
+    const confirmation = mocks.modalConfirm.mock.calls.at(-1)?.[0] as { onOk: () => Promise<void> };
+    await confirmation.onOk();
+    expect(mocks.updateOfficialSkill).toHaveBeenCalledWith({
+      namespace: 'global',
+      slug: 'fixture-skill',
+      version: '2.0.0',
+    });
   });
 
   it('renders import history as a secondary view without search or category filters', async () => {
@@ -376,6 +477,24 @@ describe('SkillsHubSettings', () => {
     expect(screen.queryByText('job-generated')).not.toBeInTheDocument();
     // The custom skill is not in the Official tab.
     expect(screen.queryByTestId('my-skill-card-sample-single')).not.toBeInTheDocument();
+  });
+
+  it('labels the built-in Lark skill with its external CLI dependency', async () => {
+    mocks.listAvailableSkills.mockResolvedValue([
+      {
+        name: 'lark',
+        description: 'Use Lark CLI.',
+        location: '/tmp/builtin-skills/lark',
+        is_auto_inject: false,
+        is_custom: false,
+        source: 'builtin',
+      },
+    ]);
+
+    render(<SkillsHubSettings withWrapper={false} />);
+    fireEvent.click(await screen.findByTestId('settings-tab-official'));
+
+    expect(await screen.findByText('settings.skillsHub.larkSetup.dependencyLabel')).toBeInTheDocument();
   });
 
   it('restores the originating tab and preserves it when opening another skill', async () => {

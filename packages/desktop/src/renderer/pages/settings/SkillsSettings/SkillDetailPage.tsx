@@ -127,6 +127,12 @@ const SkillDetailPage: React.FC = () => {
     });
   }, [decodedName, t, talkToButler]);
 
+  const setupLarkViaChat = useCallback(() => {
+    void talkToButler({
+      prompt: t('settings.skillsHub.larkSetup.prompt'),
+    });
+  }, [t, talkToButler]);
+
   const openAssistant = useCallback(
     (assistantId: string) => {
       void navigate('/assistants', { state: { openAssistantEditor: true, openAssistantId: assistantId } });
@@ -226,6 +232,29 @@ const SkillDetailPage: React.FC = () => {
                 </div>
               </div>
             </SectionCard>
+
+            {skill.name === 'lark' && skill.source === 'builtin' ? (
+              <SectionCard
+                title={t('settings.skillsHub.larkSetup.title')}
+                data-testid='lark-setup-guide'
+                extra={
+                  <span className='rounded-4px bg-[rgba(var(--warning-6),0.08)] px-7px py-2px text-11px font-500 text-warning-6'>
+                    {t('settings.skillsHub.larkSetup.dependencyLabel')}
+                  </span>
+                }
+              >
+                <div className='flex flex-col gap-12px'>
+                  <p className='m-0 text-13px leading-relaxed text-t-secondary'>
+                    {t('settings.skillsHub.larkSetup.description')}
+                  </p>
+                  <div>
+                    <Button type='primary' size='small' data-testid='btn-setup-lark' onClick={setupLarkViaChat}>
+                      {t('settings.skillsHub.larkSetup.setupButton')}
+                    </Button>
+                  </div>
+                </div>
+              </SectionCard>
+            ) : null}
 
             {/* Single source of truth: assistants using this skill, with inline add/remove */}
             <SectionCard
