@@ -1238,6 +1238,8 @@ export type I18nKey =
   | 'settings.agentManagement.errorCodes.no_provider'
   | 'settings.agentManagement.errorCodes.primary_missing'
   | 'settings.agentManagement.errorCodes.session_send_failed'
+  | 'settings.agentManagement.errorCodes.version_drift_newer'
+  | 'settings.agentManagement.errorCodes.version_drift_older'
   | 'settings.agentManagement.filterAll'
   | 'settings.agentManagement.filterAvailable'
   | 'settings.agentManagement.filterUnavailable'
