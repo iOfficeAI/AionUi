@@ -273,16 +273,24 @@ function resolveCdpPortFromEnv(): number | null | undefined {
 
 /**
  * Determine if CDP should be enabled at startup.
- * Priority: env variable > config file > default (dev mode: true, production: false)
+ * Priority: env variable > config file > default (enabled).
+ *
+ * 默认开启（含正式版）：应用内浏览器要让 Agent 操作，就必须有 CDP 端口，否则
+ * 「装好即可用」不成立。端口只绑 127.0.0.1，不对外暴露；用户仍可在设置里关掉，
+ * 关掉后 Agent 就无法操作浏览器（此时 MCP 启动器会拒绝启动，不会偷偷开一个
+ * 用户看不见的 Chrome）。
+ *
+ * Enabled by default, production included: the in-app browser cannot be driven by
+ * the agent without a CDP port, so "works out of the box" would otherwise fail.
+ * The port binds to 127.0.0.1 only and is never externally reachable. Users can
+ * still turn it off in settings, after which the agent simply cannot drive the
+ * browser (the MCP launcher refuses to start rather than quietly opening a Chrome
+ * the user cannot see).
  */
 function shouldEnableCdp(config: CdpConfig): boolean {
   const envVal = process.env.AIONUI_CDP_PORT;
   if (envVal === '0' || envVal === 'false') return false;
   if (envVal) return true;
-
-  if (app.isPackaged) {
-    return false;
-  }
 
   if (config.enabled !== undefined) {
     return config.enabled;
@@ -326,6 +334,23 @@ if (cdpStartupEnabled) {
   app.commandLine.appendSwitch('remote-debugging-port', String(port));
   cdpPort = port;
   registerInstance(port);
+
+  /**
+   * 把实际端口写回自己的 process.env。
+   *
+   * 这是端口传给 Agent 的关键一环：aioncore 是 Electron 主进程的子进程（继承
+   * process.env），内置浏览器 MCP 又是 aioncore 的子进程，于是端口顺着继承链一路
+   * 传到最里层，不需要把它写进任何配置或数据库记录。多开实例时每个进程树各自继承
+   * 自己的端口，天然不会串。
+   *
+   * Write the resolved port back into our own process.env. This is how the port
+   * reaches the agent: aioncore is a child of the Electron main process (and
+   * inherits process.env), and the built-in browser MCP is a child of aioncore, so
+   * the port travels down the inheritance chain with nothing written to config or
+   * the database. With several instances running, each process tree inherits its
+   * own port, so they cannot cross over.
+   */
+  process.env.AIONUI_CDP_PORT = String(port);
 
   // Log CDP initialization
   console.log('[CDP] Chrome DevTools Protocol enabled');
