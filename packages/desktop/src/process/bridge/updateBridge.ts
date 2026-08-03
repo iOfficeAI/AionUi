@@ -360,6 +360,7 @@ const fetchCdnManifest = async (): Promise<CdnLatestManifest> => {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), CDN_MANIFEST_TIMEOUT_MS);
 
+  log.info('[manual-update] Checking CDN manifest:', url);
   try {
     const res = await fetch(url, {
       headers: { 'User-Agent': DEFAULT_USER_AGENT },
@@ -372,6 +373,11 @@ const fetchCdnManifest = async (): Promise<CdnLatestManifest> => {
     if (!manifest) {
       throw new Error((await getI18n()).t('update.errors.cdnManifestInvalid'));
     }
+    log.info('[manual-update] CDN manifest resolved:', {
+      url,
+      version: manifest.version,
+      files: manifest.files.length,
+    });
     return manifest;
   } catch (err: unknown) {
     if (err instanceof Error && err.name === 'AbortError') {
