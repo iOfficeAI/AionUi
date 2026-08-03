@@ -439,6 +439,7 @@ export type RuntimeFailureKind =
   | 'unsupported_platform'
   | 'bundled_resource_missing'
   | 'bundled_resource_invalid'
+  | 'activation_io_failed'
   | 'unknown';
 
 export interface IRuntimeStatusScope {
