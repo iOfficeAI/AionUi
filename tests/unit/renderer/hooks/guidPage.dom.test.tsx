@@ -19,6 +19,7 @@ const {
   capturedGuidInputCardProps,
   capturedGuidSendDeps,
   resolveGuidAssistantDefaultsMock,
+  ensureBackendMcpCatalogMock,
   sendMock,
   navigateMock,
 } = vi.hoisted(() => ({
@@ -117,6 +118,7 @@ const {
     skillIds: [],
     mcpIds: [],
   })),
+  ensureBackendMcpCatalogMock: vi.fn().mockResolvedValue({ allServers: [] }),
   sendMock: {
     handleSend: vi.fn(),
     sendMessageHandler: vi.fn(),
@@ -146,7 +148,7 @@ vi.mock('@/common', () => ({
 }));
 
 vi.mock('@/renderer/hooks/mcp/catalog', () => ({
-  ensureBackendMcpCatalog: vi.fn().mockResolvedValue({ allServers: [] }),
+  ensureBackendMcpCatalog: (...args: unknown[]) => ensureBackendMcpCatalogMock(...args),
 }));
 
 vi.mock('@/renderer/hooks/chat/useInputFocusRing', () => ({
@@ -316,6 +318,8 @@ describe('GuidPage', () => {
       skillIds: [],
       mcpIds: [],
     });
+    ensureBackendMcpCatalogMock.mockReset();
+    ensureBackendMcpCatalogMock.mockResolvedValue({ allServers: [] });
     modelSelectionMock.modelList = [];
     modelSelectionMock.setCurrentModel.mockReset();
     modelSelectionMock.resetCurrentModel.mockReset();
@@ -644,6 +648,52 @@ describe('GuidPage', () => {
 
     expect(agentSelectionMock.setSelectedAcpModel).not.toHaveBeenCalledWith('default', {
       persistPreference: false,
+    });
+  });
+
+  it('auto-selects global default MCP servers and keeps assistant picks when one is unchecked (#3119)', async () => {
+    const mcpServer = (overrides: Record<string, unknown> & { id: string }) => ({
+      name: overrides.id,
+      enabled: false,
+      transport: { type: 'stdio', command: 'test' },
+      created_at: 1,
+      updated_at: 1,
+      original_json: '{}',
+      ...overrides,
+    });
+    ensureBackendMcpCatalogMock.mockResolvedValue({
+      allServers: [
+        mcpServer({ id: 'memory', enabled: true }),
+        mcpServer({ id: 'other', enabled: false }),
+        mcpServer({ id: 'chrome', builtin: true, enabled: true }),
+        mcpServer({ id: 'assistant-picked', enabled: false }),
+      ],
+    });
+    resolveGuidAssistantDefaultsMock.mockReturnValue({
+      disabledBuiltinSkillIds: [],
+      skillIds: [],
+      mcpIds: ['assistant-picked'],
+    });
+
+    render(<GuidPage />);
+
+    // Untouched: the picker shows assistant defaults ∪ global default-enabled
+    // servers (opt-in and builtin stay out).
+    await vi.waitFor(() => {
+      const ids = capturedGuidActionRowProps.at(-1)?.selectedMcpServerIds as string[];
+      expect(ids).toEqual(expect.arrayContaining(['assistant-picked', 'memory']));
+      expect(ids).not.toContain('other');
+      expect(ids).not.toContain('chrome');
+    });
+
+    // The first toggle seeds from the effective selection, so removing one
+    // default keeps the remaining picks instead of wiping them.
+    const toggle = capturedGuidActionRowProps.at(-1)?.onToggleMcpServer as (id: string) => void;
+    toggle('memory');
+
+    await vi.waitFor(() => {
+      const ids = capturedGuidActionRowProps.at(-1)?.selectedMcpServerIds as string[];
+      expect(ids).toEqual(['assistant-picked']);
     });
   });
 });
