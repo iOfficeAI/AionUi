@@ -203,7 +203,7 @@
     "builder-util": "26.15.0",
     "cross-env": "^7.0.3",
     "dotenv": "^17.2.1",
-    "electron": "42.7.1",
+    "electron": "^37.10.3",
     "electron-builder": "26.15.2",
     "electron-builder-squirrel-windows": "26.15.2",
     "electron-devtools-installer": "^4.0.0",
@@ -257,7 +257,7 @@
   },
   "aioncoreVersion": "v0.1.60",
   "electronRebuild": {
-    "electronVersion": "42.7.1"
+    "electronVersion": "^37.3.1"
   },
   "larkCliVersion": "v1.0.71",
   "patchedDependencies": {
