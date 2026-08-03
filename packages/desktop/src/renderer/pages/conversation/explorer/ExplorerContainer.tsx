@@ -288,6 +288,16 @@ export const ExplorerContainer: React.FC<ExplorerContainerProps> = ({ projectId 
     Message.success(t('conversation.explorer.addedToChat', { name }));
   };
 
+  // Reveal a node in the OS file manager. The backend resolves the pe-ref to an
+  // absolute path and calls shell.showItemInFolder — the front end never builds
+  // the absolute path (avoids the Windows verbatim `\\?\` pitfall). The menu item
+  // itself is Electron-gated in ExplorerPanel; on failure surface a friendly toast.
+  const handleRevealInFolder = (peId: string, rel: string): void => {
+    void ipcBridge.fs.reveal.invoke({ pe_id: peId, relative_path: rel }).catch(() => {
+      Message.error(t('conversation.workspace.contextMenu.revealFailed'));
+    });
+  };
+
   // Search result default action: locate the hit in the tree — switch to the
   // files tab, expand its ancestor chain (reveal subscribes the parent dir), and
   // select it. Reuses the store's existing reveal path; does NOT open preview
@@ -401,6 +411,7 @@ export const ExplorerContainer: React.FC<ExplorerContainerProps> = ({ projectId 
             onRename={handleRename}
             onDelete={handleDelete}
             onAddToChat={activeConversationId ? handleAddToChat : undefined}
+            onRevealInFolder={handleRevealInFolder}
             onImportFiles={handleImportFiles}
           />
         </SearchPanel>
