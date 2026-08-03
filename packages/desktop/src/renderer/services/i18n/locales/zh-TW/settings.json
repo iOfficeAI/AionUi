@@ -1300,6 +1300,11 @@
   "autoInjectedSkillsHint": "每次對話都會自動載入，無需手動啟用；由智能體自行決定何時呼叫。",
   "browserData": {
     "title": "應用內瀏覽器",
+    "agentControlLabel": "允許 Agent 操作 APP 內的瀏覽器",
+    "agentControlDesc": "開啟後，Agent 可以在應用內瀏覽器裡替你開啟網頁、點擊和填寫表單，例如查資料或完成某個網站流程。它只能操作應用內瀏覽器這一個頁面，碰不到 AionUi 介面本身，也不會開啟獨立的 Chrome 視窗。關閉後瀏覽器仍可自行使用，只是 Agent 無法操作。",
+    "agentControlSaved": "設定已儲存",
+    "agentControlFailed": "設定儲存失敗",
+    "agentControlRestartRequired": "此設定需重新啟動應用後生效。",
     "clearLabel": "清空瀏覽資料",
     "clearDesc": "登出瀏覽器中所有已登入的網站，並清空快取。已開啟的瀏覽器標籤頁重新載入後生效。",
     "clearConfirmTitle": "確定清空瀏覽資料？",

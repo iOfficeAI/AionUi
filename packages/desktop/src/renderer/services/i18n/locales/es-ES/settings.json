@@ -1298,6 +1298,11 @@
   "autoInjectedSkillsHint": "Se cargan automáticamente en cada conversación: no hace falta activarlas; el agente decide cuándo usarlas.",
   "browserData": {
     "title": "Navegador integrado",
+    "agentControlLabel": "Permitir que el agente use el navegador integrado",
+    "agentControlDesc": "Cuando está activado, el agente puede abrir páginas, hacer clic y rellenar formularios por ti en el navegador integrado, por ejemplo para buscar información o completar un trámite en un sitio web. Solo puede controlar esa vista del navegador: no llega a la interfaz de AionUi ni abre nunca una ventana de Chrome aparte. Si lo desactivas, el navegador sigue funcionando para ti; solo el agente pierde el acceso.",
+    "agentControlSaved": "Ajuste guardado",
+    "agentControlFailed": "No se pudo guardar el ajuste",
+    "agentControlRestartRequired": "Este ajuste se aplica al reiniciar la aplicación.",
     "clearLabel": "Borrar datos de navegación",
     "clearDesc": "Cierra la sesión en todos los sitios donde el navegador está conectado y borra la caché. Las pestañas abiertas se actualizan al recargar.",
     "clearConfirmTitle": "¿Borrar los datos de navegación?",

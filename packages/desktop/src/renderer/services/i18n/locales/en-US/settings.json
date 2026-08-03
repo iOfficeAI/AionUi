@@ -1298,6 +1298,11 @@
   "autoInjectedSkillsHint": "Loaded automatically into every conversation — no need to enable them; the agent decides when to use them.",
   "browserData": {
     "title": "In-app browser",
+    "agentControlLabel": "Let the agent use the in-app browser",
+    "agentControlDesc": "When on, the agent can open pages, click and fill in forms in the in-app browser for you — for example to look something up or complete a flow on a website. It can only drive that one browser view: it cannot reach the AionUi interface itself, and it never opens a separate Chrome window. When off, the browser still works for you; only the agent loses access.",
+    "agentControlSaved": "Setting saved",
+    "agentControlFailed": "Failed to save setting",
+    "agentControlRestartRequired": "This setting takes effect after you restart the app.",
     "clearLabel": "Clear browsing data",
     "clearDesc": "Signs out of every site the browser is logged into and clears its cache. Open browser tabs take effect after a reload.",
     "clearConfirmTitle": "Clear browsing data?",
