@@ -135,6 +135,18 @@
       "diagnosticsReportSuccess": "Diagnostics report sent",
       "diagnosticsReportFailed": "Failed to send diagnostics report",
       "diagnosticsHint": "If this keeps happening, you can send a diagnostics report."
+    },
+    "pendingSlow": {
+      "title": "Starting up",
+      "description": "AionCore is starting up, please wait. If it doesn't respond after a while, you can quit and reopen the app."
+    },
+    "exited": {
+      "title": "Startup didn't complete",
+      "description": "AionCore couldn't finish starting and has exited. Please restart the app; if this keeps happening, please send diagnostics.",
+      "sendDiagnostics": "Send diagnostics",
+      "diagnosticsSent": "Diagnostics sent",
+      "diagnosticsReportSuccess": "Diagnostics reported",
+      "diagnosticsReportFailed": "Failed to send diagnostics, please retry"
     }
   },
   "fileAttach.addFiles": "Add files",

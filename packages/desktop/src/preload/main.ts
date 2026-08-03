@@ -63,6 +63,21 @@ contextBridge.exposeInMainWorld('__aionuiE2ETest', process.env.AIONUI_E2E_TEST =
 contextBridge.exposeInMainWorld('__backendStartupFailed', backendStartupFailed === true);
 contextBridge.exposeInMainWorld('__backendStartupFailure', backendStartupFailure ?? null);
 
+// Backend startup state bridge: `getState` re-reads the current failure info on
+// mount (resolves the "READY arrived before the renderer subscribed" race), and
+// `subscribe` receives subsequent ready/exit pushes on the backend-startup-state
+// channel. All communication stays behind the preload contextBridge.
+contextBridge.exposeInMainWorld('__backendStartupBridge', {
+  getState: () => ipcRenderer.sendSync('get-backend-startup-failure'),
+  subscribe: (callback: (state: unknown) => void) => {
+    const handler = (_event: unknown, value: unknown) => callback(value);
+    ipcRenderer.on('backend-startup-state', handler);
+    return () => {
+      ipcRenderer.off('backend-startup-state', handler);
+    };
+  },
+});
+
 // 托盘事件监听 - 将 IPC 事件转换为 DOM 事件
 // Tray event listeners - convert IPC events to DOM events
 const trayEvents = [
