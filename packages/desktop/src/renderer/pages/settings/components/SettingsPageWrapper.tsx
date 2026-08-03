@@ -24,7 +24,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useExtI18n } from '@/renderer/hooks/system/useExtI18n';
-import { BUILTIN_TAB_IDS, LEGACY_ANCHOR_REMAP } from './SettingsSider';
+import { getVisibleBuiltinSettingsTabIds, LEGACY_ANCHOR_REMAP } from './SettingsSider';
 import './settings.css';
 
 interface SettingsPageWrapperProps {
@@ -81,7 +81,7 @@ export function getBuiltinSettingsNavItems(isDesktop: boolean, t: TranslateFn): 
     about: { id: 'about', label: t('settings.about'), icon: <Info theme='outline' size='16' />, path: 'about' },
   };
 
-  return BUILTIN_TAB_IDS.map((id) => builtinMap[id]);
+  return getVisibleBuiltinSettingsTabIds(isDesktop).map((id) => builtinMap[id]);
 }
 
 const SettingsPageWrapper: React.FC<SettingsPageWrapperProps> = ({ children, className, contentClassName }) => {

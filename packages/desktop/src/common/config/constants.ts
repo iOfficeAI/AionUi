@@ -60,6 +60,12 @@ export const WEBUI_DEFAULT_PORT = (() => {
 
 export const TEAM_MODE_ENABLED = true;
 
+/** Desktop pet is retained in the codebase but hidden until the product enables it again. */
+export const DESKTOP_PET_FEATURE_ENABLED = false;
+
+/** Keep the desktop process discoverable after users close the main window. */
+export const CLOSE_TO_TRAY_DEFAULT_ENABLED = true;
+
 // ===== AI Provider 相关常量 =====
 
 // Stable ID for the Google Auth virtual provider.

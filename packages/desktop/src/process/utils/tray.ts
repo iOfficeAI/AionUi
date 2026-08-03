@@ -14,9 +14,10 @@ import {
 import * as path from 'path';
 import { ipcBridge } from '@/common';
 import i18n from '@process/services/i18n';
+import { CLOSE_TO_TRAY_DEFAULT_ENABLED, DESKTOP_PET_FEATURE_ENABLED } from '@/common/config/constants';
 
 let tray: TrayInstance | null = null;
-let closeToTrayEnabled = false;
+let closeToTrayEnabled = CLOSE_TO_TRAY_DEFAULT_ENABLED;
 let isQuitting = false;
 let mainWindowRef: BrowserWindow | null = null;
 let cachedActiveCount = 0;
@@ -164,58 +165,60 @@ const buildTrayContextMenu = async (): Promise<Electron.Menu> => {
     },
   });
 
-  template.push({ type: 'separator' });
-  template.push({
-    label: `🐾 ${i18n.t('pet.desktopPet')}`,
-    submenu: [
-      {
-        label: i18n.t('pet.showHide'),
-        click: async () => {
-          try {
-            const petManager = await import('../pet/petManager');
-            // Toggle: if pet windows exist, hide; otherwise show/create
-            petManager.showPetWindow();
-          } catch {
-            /* pet not available */
-          }
+  if (DESKTOP_PET_FEATURE_ENABLED) {
+    template.push({ type: 'separator' });
+    template.push({
+      label: `🐾 ${i18n.t('pet.desktopPet')}`,
+      submenu: [
+        {
+          label: i18n.t('pet.showHide'),
+          click: async () => {
+            try {
+              const petManager = await import('../pet/petManager');
+              // Toggle: if pet windows exist, hide; otherwise show/create
+              petManager.showPetWindow();
+            } catch {
+              /* pet not available */
+            }
+          },
         },
-      },
-      { type: 'separator' as const },
-      {
-        label: i18n.t('pet.sizeSmall', { px: 200 }),
-        click: async () => {
-          try {
-            const { resizePetWindow } = await import('../pet/petManager');
-            resizePetWindow(200);
-          } catch {
-            /* ignore */
-          }
+        { type: 'separator' as const },
+        {
+          label: i18n.t('pet.sizeSmall', { px: 200 }),
+          click: async () => {
+            try {
+              const { resizePetWindow } = await import('../pet/petManager');
+              resizePetWindow(200);
+            } catch {
+              /* ignore */
+            }
+          },
         },
-      },
-      {
-        label: i18n.t('pet.sizeMedium', { px: 280 }),
-        click: async () => {
-          try {
-            const { resizePetWindow } = await import('../pet/petManager');
-            resizePetWindow(280);
-          } catch {
-            /* ignore */
-          }
+        {
+          label: i18n.t('pet.sizeMedium', { px: 280 }),
+          click: async () => {
+            try {
+              const { resizePetWindow } = await import('../pet/petManager');
+              resizePetWindow(280);
+            } catch {
+              /* ignore */
+            }
+          },
         },
-      },
-      {
-        label: i18n.t('pet.sizeLarge', { px: 360 }),
-        click: async () => {
-          try {
-            const { resizePetWindow } = await import('../pet/petManager');
-            resizePetWindow(360);
-          } catch {
-            /* ignore */
-          }
+        {
+          label: i18n.t('pet.sizeLarge', { px: 360 }),
+          click: async () => {
+            try {
+              const { resizePetWindow } = await import('../pet/petManager');
+              resizePetWindow(360);
+            } catch {
+              /* ignore */
+            }
+          },
         },
-      },
-    ],
-  });
+      ],
+    });
+  }
   template.push({ type: 'separator' });
   template.push({
     label: i18n.t('common.tray.checkUpdate'),

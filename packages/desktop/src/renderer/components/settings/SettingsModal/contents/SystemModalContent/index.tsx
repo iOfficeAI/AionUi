@@ -7,6 +7,7 @@
 import { ipcBridge } from '@/common';
 import type { IGpuStatus, IStartOnBootStatus } from '@/common/adapter/ipcBridge';
 import { configService } from '@/common/config/configService';
+import { CLOSE_TO_TRAY_DEFAULT_ENABLED } from '@/common/config/constants';
 import WorkMateScrollArea from '@/renderer/components/base/WorkMateScrollArea';
 import FeedbackButton from '@/renderer/components/base/FeedbackButton';
 import LanguageSwitcher from '@/renderer/components/settings/LanguageSwitcher';
@@ -39,7 +40,7 @@ const SystemModalContent: React.FC = () => {
   const isDesktop = isElectronDesktop();
   const [form] = Form.useForm();
   const [modal, modalContextHolder] = Modal.useModal();
-  const [error, setError] = useState<string | null>(null);
+  const [directoryUpdateError, setDirectoryUpdateError] = useState<string | null>(null);
   const viewMode = useSettingsViewMode();
   const isPageMode = viewMode === 'page';
   const initializingRef = useRef(true);
@@ -50,7 +51,7 @@ const SystemModalContent: React.FC = () => {
     isPackaged: false,
     platform: 'web',
   });
-  const [closeToTray, setCloseToTray] = useState(false);
+  const [closeToTray, setCloseToTray] = useState(CLOSE_TO_TRAY_DEFAULT_ENABLED);
   const [gpuStatus, setGpuStatus] = useState<IGpuStatus | null>(null);
   const [notificationEnabled, setNotificationEnabled] = useState(true);
   const [cronNotificationEnabled, setCronNotificationEnabled] = useState(false);
@@ -91,7 +92,7 @@ const SystemModalContent: React.FC = () => {
   }, [isDesktop]);
 
   useEffect(() => {
-    setCloseToTray(configService.get('system.closeToTray') ?? false);
+    setCloseToTray(configService.get('system.closeToTray') ?? CLOSE_TO_TRAY_DEFAULT_ENABLED);
     if (isDesktop) {
       ipcBridge.systemSettings.getCloseToTray
         .invoke()
@@ -406,7 +407,7 @@ const SystemModalContent: React.FC = () => {
       if (!needsRestart) return;
 
       savingRef.current = true;
-      setError(null);
+      setDirectoryUpdateError(null);
       try {
         await saveDirConfigValidate({ workDir, logDir });
         // Pass systemInfo.cacheDir as-is: cacheDir is no longer user-editable
@@ -418,7 +419,7 @@ const SystemModalContent: React.FC = () => {
       } catch (caughtError: unknown) {
         form.setFieldsValue({ workDir: systemInfo.workDir, logDir: systemInfo.logDir });
         if (caughtError) {
-          setError(caughtError instanceof Error ? caughtError.message : String(caughtError));
+          setDirectoryUpdateError(caughtError instanceof Error ? caughtError.message : String(caughtError));
         }
       } finally {
         savingRef.current = false;
@@ -487,13 +488,13 @@ const SystemModalContent: React.FC = () => {
             <Form form={form} layout='vertical' className='!mt-32px space-y-16px' onValuesChange={handleValuesChange}>
               <DirInputItem label={t('settings.workDir')} field='workDir' />
               <DirInputItem label={t('settings.logDir')} field='logDir' />
-              {error && (
+              {directoryUpdateError && (
                 <Alert
                   className='mt-16px'
                   type='error'
                   content={
                     <span>
-                      {typeof error === 'string' ? error : JSON.stringify(error)}
+                      {directoryUpdateError}
                       <FeedbackButton module='system-settings' className='ml-6px' />
                     </span>
                   }

@@ -19,6 +19,7 @@ const {
   messageInfoMock,
   writeRendererLogMock,
   getStartOnBootStatusMock,
+  getCloseToTrayMock,
   configServiceMock,
 } = vi.hoisted(() => ({
   systemInfoMock: vi.fn(),
@@ -28,6 +29,7 @@ const {
   messageInfoMock: vi.fn(),
   writeRendererLogMock: vi.fn(() => Promise.resolve()),
   getStartOnBootStatusMock: vi.fn(() => Promise.resolve({ success: false })),
+  getCloseToTrayMock: vi.fn(() => Promise.resolve(true)),
   configServiceMock: {
     get: vi.fn(() => undefined),
     set: vi.fn(() => Promise.resolve()),
@@ -84,7 +86,7 @@ vi.mock('@/common', () => ({
       writeRendererLog: { invoke: writeRendererLogMock },
     },
     systemSettings: {
-      getCloseToTray: { invoke: vi.fn(() => Promise.resolve(false)) },
+      getCloseToTray: { invoke: getCloseToTrayMock },
       setCloseToTray: { invoke: vi.fn(() => Promise.resolve()) },
     },
     dialog: {
@@ -144,6 +146,7 @@ describe('SystemModalContent directory settings', () => {
     configServiceMock.get.mockImplementation(() => undefined);
     configServiceMock.set.mockResolvedValue(undefined);
     getStartOnBootStatusMock.mockResolvedValue({ success: false });
+    getCloseToTrayMock.mockResolvedValue(true);
     clientBusinessSettingsMocks.getClientBusinessSetting.mockImplementation(async (key: string) => {
       if (key === 'acp.promptTimeout') return undefined;
       if (key === 'acp.agentIdleTimeout') return undefined;
@@ -167,6 +170,15 @@ describe('SystemModalContent directory settings', () => {
     updateSystemInfoMock.mockResolvedValue(undefined);
     restartMock.mockResolvedValue({ restarted: true, manualRestartRequired: false });
     showOpenMock.mockResolvedValue(['/new-logs']);
+  });
+
+  it('shows close-to-tray as enabled by default', async () => {
+    renderContent();
+
+    const label = await screen.findByText('settings.closeToTray');
+    const preferenceRow = label.parentElement?.parentElement;
+    expect(preferenceRow).not.toBeNull();
+    await waitFor(() => expect(within(preferenceRow as HTMLElement).getByRole('switch')).toBeChecked());
   });
 
   it('persists a selected log directory and restarts with the updated directory config', async () => {

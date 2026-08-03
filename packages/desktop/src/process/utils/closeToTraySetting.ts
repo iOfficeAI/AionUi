@@ -5,6 +5,7 @@
  */
 
 import { httpRequest } from '@/common/adapter/httpBridge';
+import { CLOSE_TO_TRAY_DEFAULT_ENABLED } from '@/common/config/constants';
 import { ProcessConfig } from './initStorage';
 
 const CLOSE_TO_TRAY_CONFIG_KEY = 'system.closeToTray';
@@ -46,7 +47,7 @@ export const readCloseToTraySetting = async (): Promise<boolean> => {
     return backendValue;
   }
 
-  return false;
+  return CLOSE_TO_TRAY_DEFAULT_ENABLED;
 };
 
 export const writeCloseToTraySetting = async (enabled: boolean): Promise<void> => {

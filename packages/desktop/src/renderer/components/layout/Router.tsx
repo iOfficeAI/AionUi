@@ -2,7 +2,7 @@ import React, { Suspense } from 'react';
 import { HashRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import AppLoader from '@renderer/components/layout/AppLoader';
 import { useAuth } from '@renderer/hooks/context/AuthContext';
-import { TEAM_MODE_ENABLED } from '@/common/config/constants';
+import { DESKTOP_PET_FEATURE_ENABLED, TEAM_MODE_ENABLED } from '@/common/config/constants';
 const Conversation = React.lazy(() => import('@renderer/pages/conversation'));
 const Guid = React.lazy(() => import('@renderer/pages/guid'));
 const AgentSettings = React.lazy(() => import('@renderer/pages/settings/AgentSettings'));
@@ -100,7 +100,16 @@ const PanelRoute: React.FC<{ layout: React.ReactElement }> = ({ layout }) => {
           <Route path='/settings/appearance' element={withRouteFallback(AppearanceSettings)} />
           <Route path='/settings/display' element={<Navigate to='/settings/appearance' replace />} />
           <Route path='/settings/webui' element={withRouteFallback(WebuiSettings)} />
-          <Route path='/settings/pet' element={withRouteFallback(PetSettings)} />
+          <Route
+            path='/settings/pet'
+            element={
+              DESKTOP_PET_FEATURE_ENABLED ? (
+                withRouteFallback(PetSettings)
+              ) : (
+                <Navigate to='/settings/appearance' replace />
+              )
+            }
+          />
           <Route path='/settings/system' element={withRouteFallback(SystemSettings)} />
           <Route path='/settings/about' element={withRouteFallback(SystemSettings)} />
           <Route path='/settings/ext/:tabId' element={withRouteFallback(ExtensionSettingsPage)} />

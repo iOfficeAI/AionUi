@@ -8,12 +8,13 @@
 // ANY module that calls app.getPath('userData'), because Electron caches the path on first call.
 import './process/utils/configureChromium';
 import { installGpuCrashHandler } from './process/utils/gpuRecovery';
+import { DESKTOP_PET_FEATURE_ENABLED } from './common/config/constants';
 import { captureBackendStartupFailure, initSentry, scheduleStartupLogReport, setSentryDeviceId } from './sentry';
 
 initSentry();
 
 import './process/utils/configureConsoleLog';
-import { app, BrowserWindow, ipcMain, nativeImage, powerMonitor } from 'electron';
+import { app, BrowserWindow, crashReporter, ipcMain, nativeImage, powerMonitor } from 'electron';
 import fixPath from 'fix-path';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -24,6 +25,7 @@ import { startBackendOrExit } from './process/startup/backendStartup';
 import { assertStartupArchitectureCompatible } from './process/startup/architectureCompatibility';
 import { classifyBackendStartupFailure } from './process/startup/backendStartupFailure';
 import { installQuitCleanup } from './process/startup/quitCleanup';
+import { installMainProcessDiagnostics, startLocalCrashReporter } from './process/startup/mainProcessDiagnostics';
 import { shouldRegisterBackendStartup } from './process/startup/singleInstanceGating';
 import { ProcessConfig } from './process/utils/initStorage';
 import type { BackendStartupFailureInfo } from './common/types/platform/electron';
@@ -161,14 +163,15 @@ if (electronSquirrelStartup) {
   app.quit();
 }
 
-// Global error handlers for main process
-// Sentry automatically captures these, but we keep the handlers to prevent Electron's default error dialog
-process.on('uncaughtException', (_error) => {
-  // Sentry captures this automatically
-});
-
-process.on('unhandledRejection', (_reason, _promise) => {
-  // Sentry captures this automatically
+// Sentry captures these automatically; logging preserves local evidence when
+// Electron exits before remote reporting can flush.
+installMainProcessDiagnostics({ process, logError: console.error, logInfo: console.info });
+startLocalCrashReporter({
+  start: (options) => crashReporter.start(options),
+  appVersion: app.getVersion(),
+  crashDumpsPath: app.getPath('crashDumps'),
+  logInfo: console.info,
+  logError: console.error,
 });
 
 const hasSwitch = (flag: string) => process.argv.includes(`--${flag}`) || app.commandLine.hasSwitch(flag);
@@ -867,23 +870,25 @@ const handleAppReady = async (): Promise<void> => {
     mark('createWindow');
 
     // Initialize desktop pet (delayed to not block main window)
-    setTimeout(() => {
-      void (async () => {
-        try {
-          const petEnabled = await ProcessConfig.get('pet.enabled');
-          if (petEnabled === true) {
-            // Read pet sub-settings before creating the pet so flags are honored
-            // on the first createPetWindow() call (which is sync).
-            const confirmEnabled = (await ProcessConfig.get('pet.confirmEnabled')) ?? true;
-            const { createPetWindow, setPetConfirmEnabled } = await import('./process/pet/petManager');
-            setPetConfirmEnabled(confirmEnabled);
-            createPetWindow();
+    if (DESKTOP_PET_FEATURE_ENABLED) {
+      setTimeout(() => {
+        void (async () => {
+          try {
+            const petEnabled = await ProcessConfig.get('pet.enabled');
+            if (petEnabled === true) {
+              // Read pet sub-settings before creating the pet so flags are honored
+              // on the first createPetWindow() call (which is sync).
+              const confirmEnabled = (await ProcessConfig.get('pet.confirmEnabled')) ?? true;
+              const { createPetWindow, setPetConfirmEnabled } = await import('./process/pet/petManager');
+              setPetConfirmEnabled(confirmEnabled);
+              createPetWindow();
+            }
+          } catch (error) {
+            console.error('[Pet] Failed to initialize:', error);
           }
-        } catch (error) {
-          console.error('[Pet] Failed to initialize:', error);
-        }
-      })();
-    }, 3000);
+        })();
+      }, 3000);
+    }
 
     // 读取语言设置并初始化主进程 i18n，然后刷新托盘菜单
     // Read language setting and initialize main process i18n, then refresh tray menu
