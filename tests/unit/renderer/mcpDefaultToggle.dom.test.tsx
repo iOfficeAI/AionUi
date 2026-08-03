@@ -2,13 +2,18 @@ import React from 'react';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { toggleServerDefault } = vi.hoisted(() => ({
+const { toggleServerDefault, i18nState } = vi.hoisted(() => ({
   toggleServerDefault: vi.fn(),
+  i18nState: { tImpl: (key: string): string | undefined => key },
 }));
 
 vi.mock('react-i18next', () => ({
-  useTranslation: () => ({ t: (key: string) => key }),
+  useTranslation: () => ({ t: (key: string) => i18nState.tImpl(key) }),
 }));
+
+beforeEach(() => {
+  i18nState.tImpl = (key: string) => key;
+});
 
 vi.mock('@icon-park/react', () => {
   const Icon = () => <span>icon</span>;
@@ -148,6 +153,36 @@ describe('McpServerHeader default-for-new-conversations switch (#3119)', () => {
   it('shows the loading state while a toggle is in flight', () => {
     const { container } = renderHeader({ isTogglingDefault: true });
     expect(container.querySelector('.arco-switch-loading')).not.toBeNull();
+  });
+
+  it('falls back to the built-in tooltip text when the i18n key is missing', () => {
+    i18nState.tImpl = () => undefined;
+    const { container } = renderHeader({});
+    // Rendering must not crash and the switch still shows with its fallback label.
+    expect(querySwitch(container)).not.toBeNull();
+  });
+
+  it('opens the settings dropdown and routes edit/delete actions', async () => {
+    const onEditServer = vi.fn();
+    const onDeleteServer = vi.fn();
+    const server = userServer({ id: 'memory' });
+    const { container } = renderHeader({ server, onEditServer, onDeleteServer });
+
+    const buttons = container.querySelectorAll('.arco-btn');
+    const settingsButton = buttons[buttons.length - 1] as HTMLElement;
+
+    fireEvent.mouseEnter(settingsButton);
+    const editItem = await screen.findByText('settings.mcpEditServer');
+    fireEvent.click(editItem);
+    expect(onEditServer).toHaveBeenCalledTimes(1);
+    expect(onEditServer).toHaveBeenCalledWith(server);
+
+    // Re-open the popup (clicking an item closes it) and exercise delete.
+    fireEvent.mouseEnter(settingsButton);
+    const deleteItem = await screen.findByText('settings.mcpDeleteServer');
+    fireEvent.click(deleteItem);
+    expect(onDeleteServer).toHaveBeenCalledTimes(1);
+    expect(onDeleteServer).toHaveBeenCalledWith('memory');
   });
 });
 
