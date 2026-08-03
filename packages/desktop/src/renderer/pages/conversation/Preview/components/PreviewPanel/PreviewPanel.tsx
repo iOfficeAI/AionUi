@@ -626,6 +626,7 @@ const PreviewPanel: React.FC = () => {
     } else if (content_type === 'image') {
       return (
         <ImagePreview
+          fileRef={metadata?.fileRef}
           file_path={metadata?.file_path}
           content={content}
           file_name={metadata?.file_name || metadata?.title}
