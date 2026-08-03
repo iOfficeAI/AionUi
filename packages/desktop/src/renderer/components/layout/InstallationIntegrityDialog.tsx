@@ -315,7 +315,7 @@ export function showInstallationIntegrityModal(
   description: string,
   diagnostics?: InstallationIntegrityDiagnostics,
   diagnosticsKind: InstallationIntegrityDialogKind = 'incomplete_installation'
-): void {
+): ReturnType<InstallationIntegrityModalController['error']> {
   const diagnosticsHint =
     diagnosticsKind === 'recoverable_database_corruption'
       ? t('common.backendStartup.recoverableDatabaseCorruption.diagnosticsHint')
@@ -323,7 +323,7 @@ export function showInstallationIntegrityModal(
         ? t('common.backendStartup.transientConcurrentStartup.diagnosticsHint')
         : undefined;
 
-  modal.error({
+  return modal.error({
     title: getInstallationIntegrityTitle(t, diagnosticsKind),
     content: <InstallationIntegrityContent description={description} diagnosticsHint={diagnosticsHint} />,
     footer: <InstallationIntegrityFooter diagnostics={diagnostics} diagnosticsKind={diagnosticsKind} />,
