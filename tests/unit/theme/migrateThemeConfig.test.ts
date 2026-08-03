@@ -7,6 +7,7 @@
 import { describe, it, expect } from 'vitest';
 import { migrateThemeConfig } from '@/common/theme/migrateThemeConfig';
 import { LIGHT_THEME_ID, DARK_THEME_ID } from '@/common/theme/constants';
+import { BUILTIN_THEMES } from '@/renderer/theme/builtinThemes';
 
 describe('migrateThemeConfig', () => {
   it('maps old css.activeThemeId default-theme to Light', () => {
@@ -43,5 +44,9 @@ describe('migrateThemeConfig', () => {
     expect(u.tokens).toBeUndefined();
     expect(u.appearance).toBe('dark');
     expect(u.builtin).toBe(false);
+  });
+
+  it('uses the neutral generated layout preview instead of the legacy AionUi cover', () => {
+    expect(BUILTIN_THEMES.find((theme) => theme.id === LIGHT_THEME_ID)?.cover).toBeUndefined();
   });
 });

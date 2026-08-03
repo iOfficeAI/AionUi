@@ -6,6 +6,7 @@
 
 import styles from '../index.module.css';
 import { assistantRuntimeKey, type Assistant } from '@/common/types/agent/assistantTypes';
+import workMateLogo from '@/renderer/assets/logos/brand/app.png';
 import { Down, Robot } from '@icon-park/react';
 import { Button } from '@arco-design/web-react';
 import { WorkMateSearchInput } from '@/renderer/components/base';
@@ -181,7 +182,10 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
   if (enabledAssistants.length === 0) return null;
 
   const renderAssistantPill = (assistant: Assistant, testId: string, fullWidth = false) => {
-    const avatar = resolveAssistantAvatar(assistant.avatar);
+    const avatar =
+      assistantRuntimeKey(assistant).toLowerCase() === 'aionrs'
+        ? ({ kind: 'image', value: workMateLogo } as const)
+        : resolveAssistantAvatar(assistant.avatar);
     const isSelected = selectedId === assistant.id;
     const label = assistant.name_i18n?.[localeKey] || assistant.name;
 

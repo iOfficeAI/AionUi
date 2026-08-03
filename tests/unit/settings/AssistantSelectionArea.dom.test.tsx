@@ -10,6 +10,8 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { ConfigProvider } from '@arco-design/web-react';
 import type { Assistant } from '@/common/types/agent/assistantTypes';
 import AssistantSelectionArea from '@/renderer/pages/guid/components/AssistantSelectionArea';
+import workMateLogo from '@/renderer/assets/logos/brand/app.png';
+import { getVisibleBuiltinSettingsTabIds } from '@/renderer/pages/settings/components/SettingsSider';
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -99,6 +101,34 @@ describe('AssistantSelectionArea', () => {
 
     expect(screen.getByText('学术论文助手')).toBeInTheDocument();
     expect(screen.queryByText('Academic Paper')).not.toBeInTheDocument();
+  });
+
+  it('uses the current WorkMate icon when the backend still returns a legacy aionrs avatar', () => {
+    const assistant = {
+      ...assistants()[0],
+      id: 'workmate',
+      name: 'CSBU WorkMate',
+      avatar: '/api/assets/logos/brand/aion.svg',
+      agent: { type: 'aionrs', source: 'internal' },
+    } as Assistant;
+
+    render(
+      <ConfigProvider>
+        <AssistantSelectionArea
+          selectedAssistantId='workmate'
+          assistants={[assistant]}
+          localeKey='en-US'
+          onSelectAssistant={vi.fn()}
+        />
+      </ConfigProvider>
+    );
+
+    expect(screen.getByTestId('preset-pill-workmate').querySelector('img')).toHaveAttribute('src', workMateLogo);
+  });
+
+  it('keeps the desktop pet module out of settings navigation', () => {
+    expect(getVisibleBuiltinSettingsTabIds(true)).not.toContain('pet');
+    expect(getVisibleBuiltinSettingsTabIds(false)).not.toContain('pet');
   });
 });
 
