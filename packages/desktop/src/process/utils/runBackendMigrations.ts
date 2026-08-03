@@ -9,6 +9,7 @@ import { migrateConfigStorage, migrateLegacyMcpConfigToDb, migrateProviders } fr
 import { httpRequest } from '@/common/adapter/httpBridge';
 import { mcpService } from '@/common/adapter/ipcBridge';
 import type { ImageGenerationModelSetting } from '@/common/config/clientSettings';
+import { BUILTIN_BROWSER_MCP_NAME } from '@/common/config/constants';
 import {
   removeImageGenerationEnvKeys,
   resolveImageGenerationMcpEnv,
@@ -23,6 +24,20 @@ type MigrationStepResult = boolean;
 type McpImportServer = Partial<IMcpServer> & Pick<IMcpServer, 'name' | 'transport'>;
 type BackendClientPreferences = Record<string, unknown>;
 const BUILTIN_CHROME_DEVTOOLS_NAME = 'chrome-devtools';
+
+/**
+ * 内置「应用内浏览器」MCP。
+ *
+ * 与 chrome-devtools 的区别：那个默认关闭，开启后会由 MCP 自己开一个独立 Chrome
+ * 窗口 —— 用户在 APP 里看不见。这个默认开启，且强制连到 APP 自己的 CDP 端口，
+ * Agent 的每一步操作都发生在用户能看到的侧边预览面板里。
+ *
+ * The built-in in-app browser MCP. Unlike `chrome-devtools` (default-disabled and
+ * spawning its own separate Chrome window the user cannot see), this one is
+ * enabled by default and pinned to the app's own CDP port, so every agent action
+ * happens in the side preview panel where the user can watch it.
+ */
+const BUILTIN_BROWSER_SCRIPT = 'builtin-mcp-browser';
 
 const LEGACY_BACKEND_CLIENT_PREFERENCE_KEYS = [
   'assistants',
@@ -160,6 +175,31 @@ function isSameStdioTransport(left: IMcpServer['transport'], right: IMcpServer['
   );
 }
 
+function buildBuiltinBrowserServer(): McpImportServer {
+  const scriptPath = getBuiltinMcpScriptPath(BUILTIN_BROWSER_SCRIPT);
+  const serverConfig = {
+    command: 'node',
+    args: [scriptPath],
+  };
+
+  return {
+    name: BUILTIN_BROWSER_MCP_NAME,
+    description:
+      "Control AionUi's built-in browser (the side preview panel): open pages, click, type and read content. " +
+      'Sign-in state is shared across tabs and preserved between sessions.',
+    // 默认开启：用户装好即可用，无需任何配置
+    // Enabled by default: works out of the box with zero configuration.
+    enabled: true,
+    builtin: true,
+    transport: {
+      type: 'stdio',
+      command: serverConfig.command,
+      args: serverConfig.args,
+    },
+    original_json: JSON.stringify({ mcpServers: { [BUILTIN_BROWSER_MCP_NAME]: serverConfig } }, null, 2),
+  };
+}
+
 function buildDefaultMcpServers(): McpImportServer[] {
   const chromeConfig = {
     command: 'npx',
@@ -179,6 +219,7 @@ function buildDefaultMcpServers(): McpImportServer[] {
       },
       original_json: JSON.stringify({ mcpServers: { [BUILTIN_CHROME_DEVTOOLS_NAME]: chromeConfig } }, null, 2),
     },
+    buildBuiltinBrowserServer(),
   ];
 }
 
