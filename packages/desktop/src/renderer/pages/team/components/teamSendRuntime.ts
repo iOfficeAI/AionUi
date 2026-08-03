@@ -16,6 +16,10 @@ export type TeamSendBoxRuntime = {
    * per-member attach retry (NOT warmupSession/ensure_session).
    */
   onRetryStart?: () => Promise<void>;
+  /** True when this slot is the team's active/selected tab; drives sendbox focus. */
+  isActive?: boolean;
+  /** Called when this slot's sendbox gains focus, to sync tab selection. */
+  onFocus?: () => void;
 };
 
 /**

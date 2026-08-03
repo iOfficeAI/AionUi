@@ -31,6 +31,12 @@ vi.mock('@/renderer/pages/conversation/platforms/legacy/LegacyReadOnlyConversati
   default: () => <div data-testid='mock-legacy-conversation' />,
 }));
 
+const switchTabMock = vi.fn();
+const teamTabsState = { activeSlotId: 'slot-a', switchTab: switchTabMock };
+vi.mock('@/renderer/pages/team/hooks/TeamTabsContext', () => ({
+  useTeamTabs: () => teamTabsState,
+}));
+
 import TeamChatView from '@/renderer/pages/team/components/TeamChatView';
 
 describe('TeamChatView', () => {
@@ -38,6 +44,8 @@ describe('TeamChatView', () => {
     usePresetAssistantInfoMock.mockReset();
     acpChatMock.mockClear();
     aionrsChatMock.mockClear();
+    switchTabMock.mockClear();
+    teamTabsState.activeSlotId = 'slot-a';
   });
 
   it('prefers preset assistant backend over legacy conversation extra backend', async () => {
@@ -321,5 +329,51 @@ describe('TeamChatView', () => {
         }),
       })
     );
+  });
+
+  it('marks teamRuntime.isActive true when slot matches activeSlotId and wires onFocus to switchTab', async () => {
+    usePresetAssistantInfoMock.mockReturnValue({ info: { name: 'A', logo: '📋', isEmoji: true, backend: 'claude' } });
+    teamTabsState.activeSlotId = 'slot-a';
+    render(
+      <TeamChatView
+        team_id='team-1'
+        slot_id='slot-a'
+        conversation={{
+          id: 'conv-a',
+          type: 'acp',
+          name: 'Team - A',
+          created_at: Date.now(),
+          updated_at: Date.now(),
+          extra: { workspace: '/tmp' },
+        }}
+      />
+    );
+    await screen.findByTestId('mock-acp-chat');
+    const props = acpChatMock.mock.calls[0]?.[0] as { teamRuntime?: { isActive?: boolean; onFocus?: () => void } };
+    expect(props.teamRuntime?.isActive).toBe(true);
+    props.teamRuntime?.onFocus?.();
+    expect(switchTabMock).toHaveBeenCalledWith('slot-a');
+  });
+
+  it('marks teamRuntime.isActive false when slot does not match activeSlotId', async () => {
+    usePresetAssistantInfoMock.mockReturnValue({ info: { name: 'B', logo: '📋', isEmoji: true, backend: 'claude' } });
+    teamTabsState.activeSlotId = 'slot-a';
+    render(
+      <TeamChatView
+        team_id='team-1'
+        slot_id='slot-b'
+        conversation={{
+          id: 'conv-b',
+          type: 'acp',
+          name: 'Team - B',
+          created_at: Date.now(),
+          updated_at: Date.now(),
+          extra: { workspace: '/tmp' },
+        }}
+      />
+    );
+    await screen.findByTestId('mock-acp-chat');
+    const props = acpChatMock.mock.calls[0]?.[0] as { teamRuntime?: { isActive?: boolean } };
+    expect(props.teamRuntime?.isActive).toBe(false);
   });
 });
