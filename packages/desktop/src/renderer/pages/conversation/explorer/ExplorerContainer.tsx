@@ -173,8 +173,9 @@ export const ExplorerContainer: React.FC<ExplorerContainerProps> = ({ projectId 
 
   // Open a file in the preview panel. The tree only knows `{pe_id, relative_path}`,
   // so content is read over the WS `fs/read` command (not an absolute path). Per-
-  // project preview isolation is handled by the scope key (C5); switching files
-  // replaces the active tab.
+  // project preview isolation is handled by the scope key (C5); opening a file
+  // appends a new tab (dedup keeps an already-open file focused) so multiple
+  // files can stay open at once.
   const handleOpenFile = async (peId: string, relativePath: string): Promise<void> => {
     try {
       // PATCH(ELECTRON-3SZ): payload building (incl. absolute-path resolve) lives
@@ -184,7 +185,7 @@ export const ExplorerContainer: React.FC<ExplorerContainerProps> = ({ projectId 
         peId,
         relativePath
       );
-      openPreview(content, contentType, metadata, { replace: true });
+      openPreview(content, contentType, metadata);
     } catch (e) {
       Message.error(t(previewErrorToI18nKey(classifyPreviewError(e))));
     }
