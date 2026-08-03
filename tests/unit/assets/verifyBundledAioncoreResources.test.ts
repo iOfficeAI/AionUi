@@ -8,7 +8,7 @@ const {
 } = require('../../../packages/shared-scripts/src/verify-bundled-aioncore-resources');
 
 const CLAUDE_VERSION = '2.1.215';
-const CODEX_VERSION = '0.144.6';
+const CODEX_VERSION = '0.145.0';
 
 // codex ships under vendor/<triple>/... ; the triple is platform-specific.
 const CODEX_TRIPLE: Record<string, string> = {
@@ -234,7 +234,7 @@ describe('verifyBundledAioncoreResources', () => {
     expect(result.missing).toEqual([]);
     expect(result.failures).toEqual([]);
     expect(result.checked).toContain(
-      'bundled-aioncore/win32-arm64/managed-resources/cli/codex/0.144.6/win32-arm64/vendor/aarch64-pc-windows-msvc/bin/codex.exe'
+      'bundled-aioncore/win32-arm64/managed-resources/cli/codex/0.145.0/win32-arm64/vendor/aarch64-pc-windows-msvc/bin/codex.exe'
     );
   });
 
@@ -294,7 +294,7 @@ describe('verifyBundledAioncoreResources', () => {
   });
 
   it('fails when the pinned codex version directory is absent', () => {
-    // The contract pins 0.144.6; only an older tree exists on disk.
+    // The contract pins 0.145.0; only an older tree exists on disk.
     rmSync(join(managedResourcesDir, 'cli', 'codex', CODEX_VERSION), { recursive: true, force: true });
     createManagedCliFixture({ managedResourcesDir, name: 'codex', version: '0.100.0', runtimeKey: 'win32-x64' });
 
@@ -305,7 +305,7 @@ describe('verifyBundledAioncoreResources', () => {
     });
 
     expect(result.missing).toContain(
-      'bundled-aioncore/win32-x64/managed-resources/cli/codex/0.144.6/win32-x64/vendor/x86_64-pc-windows-msvc/bin/codex.exe'
+      'bundled-aioncore/win32-x64/managed-resources/cli/codex/0.145.0/win32-x64/vendor/x86_64-pc-windows-msvc/bin/codex.exe'
     );
   });
 

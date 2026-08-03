@@ -76,8 +76,8 @@ describe('Windows bundled aioncore install verifier', () => {
           },
           {
             name: 'codex',
-            version: '0.144.6',
-            root: 'cli/codex/0.144.6/win32-x64',
+            version: '0.145.0',
+            root: 'cli/codex/0.145.0/win32-x64',
             platformDirectory: 'win32-x64',
             executable: `vendor/${codexTriple}/bin/codex.exe`,
             requiredFiles: [],
@@ -86,7 +86,7 @@ describe('Windows bundled aioncore install verifier', () => {
         ],
       });
 
-      // Only an OLD codex version exists on disk; the contract pins 0.144.6.
+      // Only an OLD codex version exists on disk; the contract pins 0.145.0.
       const oldRoot = join(managedRoot, 'cli', 'codex', '0.100.0', 'win32-x64');
       writeFile(join(oldRoot, 'vendor', codexTriple, 'bin', 'codex.exe'), 'x');
 
@@ -110,7 +110,7 @@ describe('Windows bundled aioncore install verifier', () => {
 
       expect(result.status).not.toBe(0);
       const log = readFileSync(logPath, 'utf8');
-      expect(log).toContain('cli/codex/0.144.6');
+      expect(log).toContain('cli/codex/0.145.0');
       expect(log).toContain('result=fail');
     } finally {
       rmSync(tmp, { recursive: true, force: true });
