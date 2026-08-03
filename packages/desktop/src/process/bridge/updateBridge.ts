@@ -20,6 +20,7 @@ import { uuid } from '@/common/utils';
 import { app } from 'electron';
 import log from 'electron-log';
 import * as fs from 'fs';
+import { load as loadYaml } from 'js-yaml';
 import * as path from 'path';
 import semver from 'semver';
 import { autoUpdaterService } from '../services/autoUpdaterService';
@@ -195,6 +196,77 @@ export const pickRecommendedAsset = (
     .toSorted((a, b) => b.score - a.score);
 
   return scored[0]?.asset;
+};
+
+export type CdnManifestFile = { url: string; size?: number };
+export type CdnLatestManifest = { version: string; files: CdnManifestFile[]; releaseDate?: string };
+
+/**
+ * Pick the electron-builder channel file for the current platform/arch,
+ * matching the names build-and-release uploads to the CDN root.
+ */
+export const resolveCdnChannelFile = (
+  runtime: RuntimePlatformInfo = { platform: process.platform, arch: process.arch }
+): string => {
+  const isArm64 = normalizeArch(runtime.arch) === 'arm64';
+  if (runtime.platform === 'win32') return isArm64 ? 'latest-win-arm64.yml' : 'latest.yml';
+  if (runtime.platform === 'darwin') return isArm64 ? 'latest-arm64-mac.yml' : 'latest-mac.yml';
+  return isArm64 ? 'latest-linux-arm64.yml' : 'latest-linux.yml';
+};
+
+/** Parse an electron-builder channel yml; null when the shape is unusable. */
+export const parseCdnManifest = (raw: string): CdnLatestManifest | null => {
+  let doc: unknown;
+  try {
+    doc = loadYaml(raw);
+  } catch {
+    return null;
+  }
+  if (!doc || typeof doc !== 'object') return null;
+  const { version, files, releaseDate } = doc as Record<string, unknown>;
+  if (typeof version !== 'string' || !Array.isArray(files)) return null;
+  const mappedFiles = files
+    .filter((file): file is Record<string, unknown> => Boolean(file) && typeof file === 'object')
+    .filter((file) => typeof file.url === 'string')
+    .map((file) => ({ url: file.url as string, size: typeof file.size === 'number' ? file.size : undefined }));
+  if (!mappedFiles.length) return null;
+  return {
+    version,
+    files: mappedFiles,
+    releaseDate: typeof releaseDate === 'string' ? releaseDate : undefined,
+  };
+};
+
+/**
+ * Build an UpdateReleaseInfo from the CDN manifest alone. `htmlUrl`/`body`
+ * stay empty here — the GitHub best-effort enrichment fills them when
+ * reachable. fallbackUrl follows GitHub's fixed release-asset URL scheme, so
+ * no API call is needed to construct it.
+ */
+export const mapCdnManifestToRelease = (manifest: CdnLatestManifest, repo: string): UpdateReleaseInfo | null => {
+  const version = semver.valid(manifest.version);
+  if (!version) return null;
+  const assets: GitHubReleaseAsset[] = [];
+  for (const file of manifest.files) {
+    const name = path.basename(file.url.trim());
+    if (!name || !isAllowedAssetName(name)) continue;
+    assets.push({
+      name,
+      url: rewriteAssetUrlToCDN(name, version),
+      fallbackUrl: `https://github.com/${repo}/releases/download/v${version}/${name}`,
+      size: file.size ?? 0,
+    });
+  }
+  return {
+    tagName: `v${version}`,
+    version,
+    htmlUrl: '',
+    publishedAt: manifest.releaseDate,
+    prerelease: false,
+    draft: false,
+    assets,
+    recommendedAsset: pickRecommendedAsset(assets),
+  };
 };
 
 const resolveRepo = (requestRepo?: string): string => {
