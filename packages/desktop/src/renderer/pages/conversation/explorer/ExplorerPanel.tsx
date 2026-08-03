@@ -204,7 +204,19 @@ export const ExplorerPanel: React.FC<ExplorerPanelProps> = ({
       const hasMenu = onAddToChat || canReveal || (isRoot ? onRemoveRoot : onRename || onDelete);
       if (!hasMenu) return title;
 
-      const onClickMenuItem = (menuKey: string) => {
+      // Stop menu-item clicks from bubbling. arco renders the droplist as a React
+      // child of this Dropdown, which arco itself nests inside the tree node's
+      // onClick(select) span — so a menu click would otherwise bubble (React
+      // portals propagate through the React tree) into the node's select handler,
+      // which opens the preview. Halting here keeps context-menu actions from
+      // selecting the node / opening preview.
+      //
+      // This must happen inside onClickMenuItem rather than in a wrapper <div>
+      // around <Menu>: arco only applies its compact dropdown-menu styling when
+      // <Menu> is a *direct* child of the droplist. Any wrapper element makes it
+      // fall back to the tall sidebar-navigation Menu look (40px rows).
+      const onClickMenuItem = (menuKey: string, event: { stopPropagation?: () => void }) => {
+        event?.stopPropagation?.();
         if (menuKey === 'addToChat') onAddToChat?.(peId, rel, name, isFile);
         else if (menuKey === 'rename') onRename?.(peId, rel, name);
         else if (menuKey === 'delete') onDelete?.(peId, rel, name);
@@ -217,31 +229,21 @@ export const ExplorerPanel: React.FC<ExplorerPanelProps> = ({
           trigger='contextMenu'
           position='bl'
           droplist={
-            // Stop menu-item clicks from bubbling. arco renders the droplist as a
-            // React child of this Dropdown, which arco itself nests inside the
-            // tree node's onClick(select) span — so a menu click would otherwise
-            // bubble (React portals propagate through the React tree) into the
-            // node's select handler, which opens the preview. Halting here keeps
-            // context-menu actions from selecting the node / opening preview.
-            <div onClick={(e) => e.stopPropagation()}>
-              <Menu onClickMenuItem={onClickMenuItem}>
-                {onAddToChat && (
-                  <Menu.Item key='addToChat'>{t('conversation.explorer.contextMenu.addToChat')}</Menu.Item>
-                )}
-                {canReveal && (
-                  <Menu.Item key='revealInFolder'>{t('conversation.workspace.contextMenu.openLocation')}</Menu.Item>
-                )}
-                {!isRoot && onRename && (
-                  <Menu.Item key='rename'>{t('conversation.explorer.contextMenu.rename')}</Menu.Item>
-                )}
-                {!isRoot && onDelete && <Menu.Item key='delete'>{t('common.delete')}</Menu.Item>}
-                {isRoot && onRemoveRoot && (
-                  <Menu.Item key='remove' disabled={!removable}>
-                    {t('conversation.explorer.removeFolder')}
-                  </Menu.Item>
-                )}
-              </Menu>
-            </div>
+            <Menu onClickMenuItem={onClickMenuItem}>
+              {onAddToChat && <Menu.Item key='addToChat'>{t('conversation.explorer.contextMenu.addToChat')}</Menu.Item>}
+              {canReveal && (
+                <Menu.Item key='revealInFolder'>{t('conversation.workspace.contextMenu.openLocation')}</Menu.Item>
+              )}
+              {!isRoot && onRename && (
+                <Menu.Item key='rename'>{t('conversation.explorer.contextMenu.rename')}</Menu.Item>
+              )}
+              {!isRoot && onDelete && <Menu.Item key='delete'>{t('common.delete')}</Menu.Item>}
+              {isRoot && onRemoveRoot && (
+                <Menu.Item key='remove' disabled={!removable}>
+                  {t('conversation.explorer.removeFolder')}
+                </Menu.Item>
+              )}
+            </Menu>
           }
         >
           {title}
