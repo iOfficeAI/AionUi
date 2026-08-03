@@ -173,8 +173,9 @@ export const ExplorerContainer: React.FC<ExplorerContainerProps> = ({ projectId 
 
   // Open a file in the preview panel. The tree only knows `{pe_id, relative_path}`,
   // so content is read over the WS `fs/read` command (not an absolute path). Per-
-  // project preview isolation is handled by the scope key (C5); switching files
-  // replaces the active tab.
+  // project preview isolation is handled by the scope key (C5); opening a file
+  // appends a new tab (dedup keeps an already-open file focused) so multiple
+  // files can stay open at once.
   const handleOpenFile = async (peId: string, relativePath: string): Promise<void> => {
     try {
       // PATCH(ELECTRON-3SZ): payload building (incl. absolute-path resolve) lives
@@ -184,7 +185,7 @@ export const ExplorerContainer: React.FC<ExplorerContainerProps> = ({ projectId 
         peId,
         relativePath
       );
-      openPreview(content, contentType, metadata, { replace: true });
+      openPreview(content, contentType, metadata);
     } catch (e) {
       Message.error(t(previewErrorToI18nKey(classifyPreviewError(e))));
     }
@@ -285,6 +286,16 @@ export const ExplorerContainer: React.FC<ExplorerContainerProps> = ({ projectId 
     emitter.emit('codex.selected.file.append', payload, activeConversationId);
     emitter.emit('aionrs.selected.file.append', payload, activeConversationId);
     Message.success(t('conversation.explorer.addedToChat', { name }));
+  };
+
+  // Reveal a node in the OS file manager. The backend resolves the pe-ref to an
+  // absolute path and calls shell.showItemInFolder — the front end never builds
+  // the absolute path (avoids the Windows verbatim `\\?\` pitfall). The menu item
+  // itself is Electron-gated in ExplorerPanel; on failure surface a friendly toast.
+  const handleRevealInFolder = (peId: string, rel: string): void => {
+    void ipcBridge.fs.reveal.invoke({ pe_id: peId, relative_path: rel }).catch(() => {
+      Message.error(t('conversation.workspace.contextMenu.revealFailed'));
+    });
   };
 
   // Search result default action: locate the hit in the tree — switch to the
@@ -400,6 +411,7 @@ export const ExplorerContainer: React.FC<ExplorerContainerProps> = ({ projectId 
             onRename={handleRename}
             onDelete={handleDelete}
             onAddToChat={activeConversationId ? handleAddToChat : undefined}
+            onRevealInFolder={handleRevealInFolder}
             onImportFiles={handleImportFiles}
           />
         </SearchPanel>

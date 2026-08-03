@@ -616,6 +616,11 @@ export type SkillFileNode = {
 
 export const fs = {
   getFilesByDir: httpPost<Array<IDirOrFile>, { dir: string; root: string }>('/api/fs/dir'),
+  // Reveal a project-scoped entry in the OS file manager (Finder/Explorer).
+  // The backend resolves the pe-ref to an absolute path (resolve_reference) and
+  // calls shell.showItemInFolder — the front end never builds the absolute path
+  // (avoids the Windows verbatim `\\?\` pitfall). Electron-only at the call site.
+  reveal: httpPost<void, { pe_id: string; relative_path: string }>('/api/fs/reveal'),
   listWorkspaceFiles: withResponseMap(
     httpPost<Array<RawWorkspaceFlatFile>, { root: string }>('/api/fs/list'),
     fromBackendWorkspaceFlatFiles
