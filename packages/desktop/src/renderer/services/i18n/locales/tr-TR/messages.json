@@ -16,6 +16,11 @@
   "downloadFailed": "İndirme başarısız",
   "imageLoadFailed": "Görüntü yüklenemedi",
   "scrollToBottom": "Aşağı kaydır",
+  "anchorRail": {
+    "label": "Sohbet mesajı bağlantı noktaları",
+    "tickAria": "{{index}}. mesaja git",
+    "searchAria": "Sohbette ara"
+  },
   "availableCommands": "{{count}} Kullanılabilir Komut",
   "atFile.hint": "Dosya aramak için yazın",
   "atFile.menuLabel": "Dosya bahsetmeleri",

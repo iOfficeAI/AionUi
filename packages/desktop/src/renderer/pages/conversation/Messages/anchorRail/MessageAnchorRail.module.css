@@ -1,0 +1,221 @@
+/* Anchor rail pinned to the chat area's left edge. The rail is a wide, invisible
+   hover zone wrapping a narrow strip of ticks: the pointer only has to enter the
+   column and the nearest tick is selected, so users never aim at a 2px line.
+   The selected tick lifts (longer + darker) and its neighbours trail off, which
+   is what makes the selection legible while scrubbing up and down. */
+
+/* The rail lives in the chat column's side gutter, and that gutter only exists
+   once the column is wide enough — see `.chat-surface-fluid` in messages.css,
+   which is gated on the same container width. So gate the rail on the very same
+   query rather than re-deriving the breakpoint in JS: below it there is nowhere
+   to park the rail and it would sit on top of the message text.
+   Default to hidden so a narrow column never flashes an overlapping rail. */
+.rail {
+  display: none;
+}
+
+/* Ticks hug the very left edge so all of this width is free for them to grow
+   rightwards into. The wider the travel between rest and selected, the more
+   obvious the hover feedback. */
+@container (min-width: 720px) {
+  .rail {
+    display: block;
+    width: 32px;
+    pointer-events: none;
+  }
+}
+
+/* The generous hover target, and the scroll host for long conversations. Ticks
+   live inside so they inherit the pointer events, but the viewport itself is what
+   the pointer tracks. `top`/`height` are set inline: the viewport takes whatever
+   the search button leaves behind, so a long conversation scrolls here rather
+   than compressing its ticks into an unreadable bar. */
+.viewport {
+  position: absolute;
+  left: 0;
+  right: 0;
+  pointer-events: auto;
+  cursor: pointer;
+  overflow: hidden;
+  /* Contain the wheel: scrolling the rail must not also scroll the chat behind it. */
+  overscroll-behavior: contain;
+}
+
+/* Only a conversation that genuinely overflows gets a scrollable viewport, so the
+   common case never grows a scrollbar it does not need. The bar itself stays
+   hidden — the rail is already a 32px column, and a visible scrollbar would eat
+   the width the ticks grow into on hover. */
+.viewportScrollable {
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+
+.viewportScrollable::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+/* Search entry: a real button, stacked above the tick hover zone so it wins the
+   pointer and hovering it never magnet-selects a tick. Sits at the head of the
+   stack and stays deliberately small and muted like the ticks, resolving only on
+   hover — it should read as the first anchor, not as a toolbar bolted on top. */
+.searchButton {
+  position: absolute;
+  /* `top` is set inline: the button travels with the tick stack so the two read
+     as one group, rather than being stranded at the rail's top edge. */
+  /* Centres the glyph on the tick column's axis. Ticks span 2px–8px, so their
+     centre is x=5; the glyph is 11px inside a 16px box, so the box starts at
+     5 - 16/2 = -3. Anything less pushes the magnifier right of the column and it
+     visibly juts out of the stack. */
+  left: -3px;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  color: color-mix(in srgb, var(--color-text-3) 88%, transparent);
+  cursor: pointer;
+  pointer-events: auto;
+  /* Above .viewport so the button owns its band and wins the pointer. */
+  z-index: 1;
+  transition:
+    color 120ms ease,
+    background-color 120ms ease,
+    border-color 120ms ease;
+}
+
+.searchButton:hover,
+.searchButton:focus-visible {
+  color: rgb(var(--primary-6));
+  background: var(--color-fill-2);
+  border-color: color-mix(in srgb, var(--color-border-2) 72%, transparent);
+  outline: none;
+}
+
+.searchIcon {
+  font-size: 11px;
+}
+
+/* The stack itself. Static (not absolute) so it establishes the viewport's scroll
+   height; its `height` is set inline from the tick count and the fixed gap. */
+.ticks {
+  position: relative;
+  margin-left: 2px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  flex-shrink: 0;
+  pointer-events: none;
+}
+
+/* At rest the ticks are deliberately short, so the lifted selection stands out
+   against them. Tone is kept legible rather than whisper-faint: a rail nobody can
+   see is a rail nobody uses. */
+.tick {
+  display: block;
+  width: 6px;
+  height: 2px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-text-3) 72%, transparent);
+  transition:
+    width 120ms ease,
+    background-color 120ms ease;
+}
+
+/* Distance-based falloff: the hovered tick is unmistakably the selection, the
+   two ticks either side hint at the neighbourhood being scrubbed. */
+.tickActive {
+  width: 26px;
+  background: var(--color-text-1);
+}
+
+.tickNear {
+  width: 18px;
+  background: color-mix(in srgb, var(--color-text-2) 78%, transparent);
+}
+
+.tickFar {
+  width: 12px;
+  background: color-mix(in srgb, var(--color-text-3) 62%, transparent);
+}
+
+/* "More anchors this way" hints: a small stack of dashes echoing the tick column's
+   axis and width, so they read as a continuation of the stack rather than as new
+   chrome. Non-interactive — the wheel already scrolls. */
+.scrollHint {
+  position: absolute;
+  left: 2px;
+  width: 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  pointer-events: none;
+}
+
+/* Anchored to the viewport's top edge, so the group grows upward away from it. */
+.scrollHintUp {
+  transform: translateY(-100%);
+}
+
+.scrollHintDot {
+  display: block;
+  width: 6px;
+  height: 1px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-text-3) 62%, transparent);
+}
+
+/* The group tapers away from the stack, hinting at direction without an arrowhead:
+   the dash nearest the ticks is the strongest, the outermost the faintest. */
+.scrollHintUp .scrollHintDot:first-child,
+.scrollHintDown .scrollHintDot:last-child {
+  opacity: 0.4;
+}
+
+.scrollHintUp .scrollHintDot:nth-child(2),
+.scrollHintDown .scrollHintDot:nth-child(2) {
+  opacity: 0.7;
+}
+
+.card {
+  position: absolute;
+  left: 36px;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: max-content;
+  max-width: 320px;
+  padding: 8px 12px;
+  border: 1px solid var(--color-border-2);
+  border-radius: 8px;
+  background: var(--color-bg-popup);
+  /* Same elevation token the app's other overlays use, so the card matches them
+     and picks up the dark-theme variant automatically. */
+  box-shadow: var(--aion-overlay-shadow);
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.cardQuestion,
+.cardAnswer {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  word-break: break-word;
+}
+
+/* The question is the anchor's identity — one line is enough to recognise it. */
+.cardQuestion {
+  -webkit-line-clamp: 1;
+}
+
+/* The reply is the context, so it gets the room. */
+.cardAnswer {
+  -webkit-line-clamp: 3;
+}

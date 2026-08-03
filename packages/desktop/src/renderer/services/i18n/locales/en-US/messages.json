@@ -16,6 +16,11 @@
   "downloadFailed": "Failed to download",
   "imageLoadFailed": "Failed to load image",
   "scrollToBottom": "Scroll to bottom",
+  "anchorRail": {
+    "label": "Conversation message anchors",
+    "tickAria": "Jump to message {{index}}",
+    "searchAria": "Search conversation"
+  },
   "availableCommands": "{{count}} Available Commands",
   "atFile.hint": "Type to search for files",
   "atFile.menuLabel": "File mentions",
