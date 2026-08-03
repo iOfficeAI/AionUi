@@ -104,7 +104,7 @@ const { rebuildWithElectronRebuild } = require('./scripts/rebuildNativeModules')
 rebuildWithElectronRebuild({
   platform: 'linux',
   arch: 'arm64',
-  electronVersion: '37.3.1',
+  electronVersion: '42.7.1',
 });
 ```
 
@@ -118,7 +118,7 @@ rebuildSingleModule({
   moduleRoot: '/path/to/app.asar.unpacked/node_modules/better-sqlite3',
   platform: 'linux',
   arch: 'arm64',
-  electronVersion: '37.3.1',
+  electronVersion: '42.7.1',
 });
 ```
 
