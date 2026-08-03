@@ -206,7 +206,12 @@ const RuntimeFailureDialogs: React.FC = () => {
       showDialog: (event) => {
         const resource = resolveRuntimeResourceLabel(event, t);
         const description = getRuntimeComponentInstallationDescription(t, resource);
-        const controller = showInstallationIntegrityModal(modal, t, description, buildRuntimeInstallationDiagnostics(event, description));
+        const controller = showInstallationIntegrityModal(
+          modal,
+          t,
+          description,
+          buildRuntimeInstallationDiagnostics(event, description)
+        );
         return { close: () => controller.close() };
       },
       report: (event) => captureRuntimeInstallationIntegrityFailure(event),
@@ -214,7 +219,10 @@ const RuntimeFailureDialogs: React.FC = () => {
 
     const offStatus = ipcBridge.runtime.statusChanged.on((event: IRuntimeStatusEvent) => {
       // Reconcile install-integrity failures and node ready events (spec 8/13.4).
-      if ((event.phase === 'failed' && isInstallationIntegrityFailure(event.failure_kind)) || (event.phase === 'ready' && event.resource === 'node')) {
+      if (
+        (event.phase === 'failed' && isInstallationIntegrityFailure(event.failure_kind)) ||
+        (event.phase === 'ready' && event.resource === 'node')
+      ) {
         reconciler.handleStatus(event);
         return;
       }

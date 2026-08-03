@@ -4,7 +4,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { createRuntimeInstallationReconciler, RUNTIME_RECONCILE_WINDOW_MS } from '@/renderer/services/runtime/runtimeInstallationReconciler';
+import {
+  createRuntimeInstallationReconciler,
+  RUNTIME_RECONCILE_WINDOW_MS,
+} from '@/renderer/services/runtime/runtimeInstallationReconciler';
 import type { IRuntimeStatusEvent } from '@/common/adapter/ipcBridge';
 
 const failed = (scopeId: string): IRuntimeStatusEvent => ({

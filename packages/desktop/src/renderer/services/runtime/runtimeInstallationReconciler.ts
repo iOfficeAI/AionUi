@@ -8,7 +8,11 @@ import type { IRuntimeStatusEvent, RuntimeFailureKind } from '@/common/adapter/i
 /** ~15s: slightly larger than the ~10.7s self-heal observed in the issue logs. */
 export const RUNTIME_RECONCILE_WINDOW_MS = 15000;
 
-const INSTALLATION_INTEGRITY_FAILURES = new Set<RuntimeFailureKind>(['bundled_resource_missing', 'bundled_resource_invalid', 'validation_failed']);
+const INSTALLATION_INTEGRITY_FAILURES = new Set<RuntimeFailureKind>([
+  'bundled_resource_missing',
+  'bundled_resource_invalid',
+  'validation_failed',
+]);
 
 function isInstallationIntegrityFailure(kind: RuntimeFailureKind | undefined): boolean {
   return INSTALLATION_INTEGRITY_FAILURES.has(kind ?? 'unknown');
@@ -39,7 +43,9 @@ function resourceKey(event: IRuntimeStatusEvent): string {
   return event.resource;
 }
 
-export function createRuntimeInstallationReconciler(callbacks: RuntimeInstallationReconcilerCallbacks): RuntimeInstallationReconciler {
+export function createRuntimeInstallationReconciler(
+  callbacks: RuntimeInstallationReconcilerCallbacks
+): RuntimeInstallationReconciler {
   const pending = new Map<string, PendingEntry>();
 
   const settle = (entry: PendingEntry): void => {
