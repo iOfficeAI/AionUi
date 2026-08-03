@@ -116,5 +116,9 @@
     "leaderFailedHint": "Switch its model above, then retry.",
     "retry": "Retry"
   },
-  "reorderMember": "برای تغییر ترتیب عضو بکشید"
+  "reorderMember": "برای تغییر ترتیب عضو بکشید",
+  "clearCommand": {
+    "member": "پاک کردن زمینه این عضو",
+    "leader": "پاک کردن زمینه یک عضو: /clear <نام عضو>"
+  }
 }

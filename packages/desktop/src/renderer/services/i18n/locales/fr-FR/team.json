@@ -68,5 +68,9 @@
       "expert_review": "Faire analyser le même problème par plusieurs experts"
     }
   },
-  "reorderMember": "Faites glisser pour réorganiser le membre"
+  "reorderMember": "Faites glisser pour réorganiser le membre",
+  "clearCommand": {
+    "member": "Effacer le contexte de ce membre",
+    "leader": "Effacer le contexte d'un membre : /clear <nom du membre>"
+  }
 }

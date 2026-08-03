@@ -6,6 +6,7 @@
 
 import type { IConversationMcpStatus } from '@/common/config/storage';
 import type { ChatFileRef } from '@/common/types/chatFile';
+import type { SlashCommandItem } from '@/common/chat/slash/types';
 import { ConversationProvider } from '@/renderer/hooks/context/ConversationContext';
 import { CHAT_SURFACE_CONTAINER_CLASS } from '@/renderer/pages/conversation/utils/chatSurfaceWidth';
 import { useTeamPermission } from '@/renderer/pages/team/hooks/TeamPermissionContext';
@@ -40,6 +41,7 @@ const AcpChat: React.FC<{
   loadedMcpStatuses?: IConversationMcpStatus[];
   teamSendMessage?: (payload: { input: string; files: ChatFileRef[] }) => Promise<void>;
   teamRuntime?: TeamSendBoxRuntime;
+  extraSlashCommands?: SlashCommandItem[];
   assistantId?: string;
 }> = ({
   conversation_id,
@@ -55,6 +57,7 @@ const AcpChat: React.FC<{
   loadedMcpStatuses,
   teamSendMessage,
   teamRuntime,
+  extraSlashCommands,
   assistantId,
 }) => {
   useMessageLstCache(conversation_id);
@@ -94,6 +97,7 @@ const AcpChat: React.FC<{
               messageState={messageState}
               teamSendMessage={teamSendMessage}
               teamRuntime={teamRuntime}
+              extraSlashCommands={extraSlashCommands}
             ></AcpSendBox>
           )}
         </div>

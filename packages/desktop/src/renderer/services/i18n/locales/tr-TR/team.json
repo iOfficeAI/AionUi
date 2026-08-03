@@ -116,5 +116,9 @@
     "leaderFailedHint": "Switch its model above, then retry.",
     "retry": "Retry"
   },
-  "reorderMember": "Üye sırasını değiştirmek için sürükleyin"
+  "reorderMember": "Üye sırasını değiştirmek için sürükleyin",
+  "clearCommand": {
+    "member": "Bu üyenin bağlamını temizle",
+    "leader": "Bir üyenin bağlamını temizle: /clear <üye adı>"
+  }
 }

@@ -14,6 +14,7 @@ import ChatSlider from '@renderer/pages/conversation/components/ChatSlider.tsx';
 import { useTeamPendingPermissions } from './hooks/useTeamPendingPermissions';
 import { buildTeamRetryStartHandler } from './components/teamSendRuntime';
 import AcpModelSelector, { type AcpWarmupStatus } from '@/renderer/components/agent/AcpModelSelector';
+import AcpRuntimeRestartButton from '@/renderer/components/agent/AcpRuntimeRestartButton';
 import AionrsModelSelector from '@/renderer/pages/conversation/platforms/aionrs/AionrsModelSelector';
 import { useAionrsModelSelection } from '@/renderer/pages/conversation/platforms/aionrs/useAionrsModelSelection';
 import { CronJobManager } from '@/renderer/pages/cron';
@@ -187,6 +188,14 @@ const AssistantChatSlot: React.FC<{
                 prepareSetRuntime={teamPermission?.warmupSession}
                 loadConfigOptions={teamPermission?.loadConfigOptions}
                 warmup={warmup}
+              />
+            </div>
+          )}
+          {!isMobile && assistant.conversation_id && !isAionrs && isAcpLike && (
+            <div className='shrink-0'>
+              <AcpRuntimeRestartButton
+                conversation_id={assistant.conversation_id}
+                team={{ team_id, slot_id: assistant.slot_id }}
               />
             </div>
           )}

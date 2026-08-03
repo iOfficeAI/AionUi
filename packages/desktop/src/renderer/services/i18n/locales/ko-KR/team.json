@@ -116,5 +116,9 @@
     "leaderFailedHint": "Switch its model above, then retry.",
     "retry": "Retry"
   },
-  "reorderMember": "드래그하여 멤버 순서 변경"
+  "reorderMember": "드래그하여 멤버 순서 변경",
+  "clearCommand": {
+    "member": "이 멤버의 컨텍스트 지우기",
+    "leader": "멤버 컨텍스트 지우기: /clear <멤버 이름>"
+  }
 }

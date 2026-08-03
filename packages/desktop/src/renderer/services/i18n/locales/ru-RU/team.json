@@ -116,5 +116,9 @@
     "leaderFailedHint": "Switch its model above, then retry.",
     "retry": "Retry"
   },
-  "reorderMember": "Перетащите, чтобы изменить порядок участников"
+  "reorderMember": "Перетащите, чтобы изменить порядок участников",
+  "clearCommand": {
+    "member": "Очистить контекст этого участника",
+    "leader": "Очистить контекст участника: /clear <имя участника>"
+  }
 }

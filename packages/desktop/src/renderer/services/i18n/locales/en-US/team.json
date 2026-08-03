@@ -116,5 +116,9 @@
     "leaderFailedHint": "Switch its model above, then retry.",
     "retry": "Retry"
   },
-  "reorderMember": "Drag to reorder member"
+  "reorderMember": "Drag to reorder member",
+  "clearCommand": {
+    "member": "Clear this member's context",
+    "leader": "Clear a member's context: /clear <member name>"
+  }
 }

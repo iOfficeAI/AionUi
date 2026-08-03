@@ -233,6 +233,17 @@ export const conversation = {
     (p) => `/api/conversations/${p.conversation_id}/runtime/ensure`,
     () => undefined
   ),
+  /**
+   * Restart the conversation's agent runtime: tears down the cached CLI agent
+   * process (cancelling any active turn) and respawns it, resuming the session
+   * when possible. Chat history is preserved. Used after external CLI config
+   * changes (e.g. a ccswitch channel switch) that a running process cannot
+   * pick up on its own.
+   */
+  restartRuntime: httpPost<EnsureConversationRuntimeResponse, { conversation_id: string }>(
+    (p) => `/api/conversations/${p.conversation_id}/runtime/restart`,
+    () => undefined
+  ),
   activeLease: httpPost<void, { conversation_id: string }>(
     (p) => `/api/conversations/${p.conversation_id}/active-lease`,
     () => undefined
@@ -2032,6 +2043,15 @@ export const team = {
   ),
   attachAgent: httpPost<void, { team_id: string; slot_id: string }>(
     (p) => `/api/teams/${p.team_id}/agents/${p.slot_id}/attach`
+  ),
+  /**
+   * Force-restart a team member's agent runtime (kill the cached CLI process
+   * and rebuild it via the team attach chain, preserving the resume anchor).
+   * Synchronous: resolves once the member is Ready again. Returns HTTP 409
+   * with code TEAM_MEMBER_BUSY while the member is mid-reply.
+   */
+  restartAgentRuntime: httpPost<void, { team_id: string; slot_id: string }>(
+    (p) => `/api/teams/${p.team_id}/agents/${p.slot_id}/runtime/restart`
   ),
   cancelRun: httpPost<void, ICancelTeamRunParams>(
     (p) => `/api/teams/${p.team_id}/runs/${p.team_run_id}/cancel`,

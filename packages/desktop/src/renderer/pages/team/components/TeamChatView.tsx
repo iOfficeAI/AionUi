@@ -1,8 +1,9 @@
 import { ipcBridge } from '@/common';
 import type { ChatFileRef } from '@/common/types/chatFile';
+import type { SlashCommandItem } from '@/common/chat/slash/types';
 import type { IConversationMcpStatus, IProvider, TChatConversation, TProviderWithModel } from '@/common/config/storage';
 import { Message, Spin } from '@arco-design/web-react';
-import React, { Suspense, useCallback } from 'react';
+import React, { Suspense, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAionrsModelSelection } from '@/renderer/pages/conversation/platforms/aionrs/useAionrsModelSelection';
 import { isLegacyReadOnlyConversationType } from '@/renderer/pages/conversation/utils/conversationRuntime';
@@ -59,6 +60,7 @@ const AionrsTeamChat: React.FC<{
   assistant_name?: string;
   teamSendMessage?: TeamSendOverride;
   teamRuntime?: ReturnType<typeof buildTeamSendRuntime>;
+  extraSlashCommands?: SlashCommandItem[];
   loadedSkills?: string[];
   loadedMcpServers?: string[];
   loadedMcpStatuses?: IConversationMcpStatus[];
@@ -68,6 +70,7 @@ const AionrsTeamChat: React.FC<{
   assistant_name,
   teamSendMessage,
   teamRuntime,
+  extraSlashCommands,
   loadedSkills,
   loadedMcpServers,
   loadedMcpStatuses,
@@ -92,6 +95,7 @@ const AionrsTeamChat: React.FC<{
       agent_name={assistant_name}
       teamSendMessage={teamSendMessage}
       teamRuntime={teamRuntime}
+      extraSlashCommands={extraSlashCommands}
       loadedSkills={loadedSkills}
       loadedMcpServers={loadedMcpServers}
       loadedMcpStatuses={loadedMcpStatuses}
@@ -163,6 +167,20 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({
     [isLeader, onTeamRunAck, slot_id, team_id]
   );
   const teamSendMessageOverride = team_id ? teamSendMessage : undefined;
+  // Register the orchestration-level `/clear` in the slash menu. It is handled
+  // locally by the AionCore team service (never forwarded to the agent backend).
+  const teamClearSlashCommands = useMemo<SlashCommandItem[] | undefined>(() => {
+    if (!team_id) return undefined;
+    return [
+      {
+        name: 'clear',
+        description: isLeader ? t('team.clearCommand.leader') : t('team.clearCommand.member'),
+        kind: 'builtin',
+        source: 'builtin',
+        selectionBehavior: 'insert',
+      },
+    ];
+  }, [team_id, isLeader, t]);
   const resolvedAssistantBackend =
     resolveConversationBackend(conversation, assistant_backend || presetAssistantInfo?.backend) || 'claude';
   const resolvedAssistantName = resolveAssistantDisplayName(
@@ -238,6 +256,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({
             emptySlot={emptySlot}
             teamSendMessage={teamSendMessageOverride}
             teamRuntime={teamRuntime}
+            extraSlashCommands={teamClearSlashCommands}
             loadedSkills={capabilitySnapshot?.skills}
             loadedMcpServers={capabilitySnapshot?.mcp_servers}
             loadedMcpStatuses={capabilitySnapshot?.mcp_statuses}
@@ -252,6 +271,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({
             assistant_name={resolvedAssistantName}
             teamSendMessage={teamSendMessageOverride}
             teamRuntime={teamRuntime}
+            extraSlashCommands={teamClearSlashCommands}
             loadedSkills={capabilitySnapshot?.skills}
             loadedMcpServers={capabilitySnapshot?.mcp_servers}
             loadedMcpStatuses={capabilitySnapshot?.mcp_statuses}

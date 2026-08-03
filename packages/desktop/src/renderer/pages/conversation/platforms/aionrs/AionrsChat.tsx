@@ -6,6 +6,7 @@
 
 import type { IConversationMcpStatus } from '@/common/config/storage';
 import type { ChatFileRef } from '@/common/types/chatFile';
+import type { SlashCommandItem } from '@/common/chat/slash/types';
 import type { ConversationContextValue } from '@/renderer/hooks/context/ConversationContext';
 import { ConversationProvider } from '@/renderer/hooks/context/ConversationContext';
 import { CHAT_SURFACE_CONTAINER_CLASS } from '@/renderer/pages/conversation/utils/chatSurfaceWidth';
@@ -39,6 +40,7 @@ const AionrsChat: React.FC<{
   agent_name?: string;
   teamSendMessage?: (payload: { input: string; files: ChatFileRef[] }) => Promise<void>;
   teamRuntime?: TeamSendBoxRuntime;
+  extraSlashCommands?: SlashCommandItem[];
   assistantId?: string;
 }> = ({
   conversation_id,
@@ -53,6 +55,7 @@ const AionrsChat: React.FC<{
   agent_name,
   teamSendMessage,
   teamRuntime,
+  extraSlashCommands,
   assistantId,
 }) => {
   useMessageLstCache(conversation_id);
@@ -88,6 +91,7 @@ const AionrsChat: React.FC<{
             agent_name={agent_name}
             teamSendMessage={teamSendMessage}
             teamRuntime={teamRuntime}
+            extraSlashCommands={extraSlashCommands}
           />
         </div>
       </ConversationArtifactProvider>

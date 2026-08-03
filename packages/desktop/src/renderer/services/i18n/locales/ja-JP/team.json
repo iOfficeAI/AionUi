@@ -116,5 +116,9 @@
     "leaderFailedHint": "Switch its model above, then retry.",
     "retry": "Retry"
   },
-  "reorderMember": "ドラッグしてメンバーの順序を変更"
+  "reorderMember": "ドラッグしてメンバーの順序を変更",
+  "clearCommand": {
+    "member": "このメンバーのコンテキストをクリア",
+    "leader": "メンバーのコンテキストをクリア: /clear <メンバー名>"
+  }
 }
