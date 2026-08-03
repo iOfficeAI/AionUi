@@ -1,5 +1,19 @@
 # Changelog
 
+## [2.1.49](https://github.com/suoak/AionUi/compare/v2.1.48...v2.1.49) (2026-08-03)
+
+### Desktop
+
+#### Bug Fixes
+
+- **build:** restore Electron 37 compatibility after Electron 42 broke native-module rebuilds on macOS and Linux ARM64
+
+### Core ([v0.1.60](https://github.com/suoak/AionCore/releases/tag/v0.1.60))
+
+- Retains the Lark Work Assistant and Agent stability fixes introduced with the `2.1.48` source release.
+
+---
+
 ## [2.1.48](https://github.com/suoak/AionUi/compare/v2.1.47...v2.1.48) (2026-08-03)
 
 ### Desktop
