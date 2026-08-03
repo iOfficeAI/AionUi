@@ -520,6 +520,15 @@ export const application = {
   setZoomFactor: bridge.buildProvider<number, { factor: number }>('app.set-zoom-factor'),
   getCdpStatus: bridge.buildProvider<IBridgeResponse<ICdpStatus>, void>('app.get-cdp-status'),
   updateCdpConfig: bridge.buildProvider<IBridgeResponse<ICdpConfig>, Partial<ICdpConfig>>('app.update-cdp-config'),
+  /**
+   * 清空应用内浏览器的登录态与缓存（cookie / localStorage / 缓存）。
+   * 登录态是全局共享的，所以这是唯一的"退出所有网站登录"入口。
+   *
+   * Clear the in-app browser's sign-in state and cache (cookies / localStorage /
+   * caches). Sign-in state is globally shared, so this is the only way to sign out
+   * of every site the agent or user logged into.
+   */
+  clearBrowserData: bridge.buildProvider<IBridgeResponse<void>, void>('app.clear-browser-data'),
   getStartOnBootStatus: bridge.buildProvider<IBridgeResponse<IStartOnBootStatus>, void>('app.get-start-on-boot-status'),
   setStartOnBoot: bridge.buildProvider<IBridgeResponse<IStartOnBootStatus>, { enabled: boolean }>(
     'app.set-start-on-boot'

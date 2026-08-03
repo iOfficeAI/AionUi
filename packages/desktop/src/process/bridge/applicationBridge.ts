@@ -7,6 +7,7 @@
 import type { BrowserWindow } from 'electron';
 import { app } from 'electron';
 import { ipcBridge } from '@/common';
+import { BROWSER_SESSION_PARTITION } from '@/common/config/constants';
 import { ProcessConfig } from '@process/utils/initStorage';
 import { getZoomFactor, setZoomFactor } from '@process/utils/zoom';
 import { getCdpStatus, updateCdpConfig } from '@process/utils/configureChromium';
@@ -186,6 +187,28 @@ export function initApplicationBridge(): void {
     try {
       const updatedConfig = updateCdpConfig(config);
       return { success: true, data: updatedConfig };
+    } catch (e) {
+      return { success: false, msg: e.message || e.toString() };
+    }
+  });
+
+  /**
+   * 清空应用内浏览器的登录态与缓存。
+   *
+   * 登录态是全局共享的（所有 tab、所有项目共用一个 partition），所以这里是唯一
+   * 的"退出全部网站"入口。已打开的浏览器 tab 需要刷新后才会体现，这在设置项的
+   * 说明文案里告诉用户。
+   *
+   * Clear the in-app browser's sign-in state and cache. Sign-in state is globally
+   * shared (one partition across all tabs and projects), so this is the only way
+   * to sign out everywhere. Already-open browser tabs reflect it after a reload,
+   * which the settings copy tells the user.
+   */
+  ipcBridge.application.clearBrowserData.provider(async () => {
+    try {
+      const { session } = await import('electron');
+      await session.fromPartition(BROWSER_SESSION_PARTITION).clearStorageData();
+      return { success: true };
     } catch (e) {
       return { success: false, msg: e.message || e.toString() };
     }
