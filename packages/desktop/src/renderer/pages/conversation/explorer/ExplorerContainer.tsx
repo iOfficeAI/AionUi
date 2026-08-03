@@ -16,7 +16,7 @@
  * reveal / explicit add-to-chat; see {@link SearchPanel}).
  */
 
-import { Button, Input, Message, Modal, Spin } from '@arco-design/web-react';
+import { Button, Input, Message, Modal, Spin, Tooltip } from '@arco-design/web-react';
 import { FolderPlus } from '@icon-park/react';
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -377,14 +377,23 @@ export const ExplorerContainer: React.FC<ExplorerContainerProps> = ({ projectId 
           {tabButton('changes', t('conversation.explorer.tabs.changes'))}
         </div>
         <div className='flex items-center gap-2px flex-shrink-0'>
-          <Button
-            type='text'
-            size='mini'
-            icon={<FolderPlus theme='outline' size='16' />}
-            aria-label={t('conversation.explorer.addFolder')}
-            title={t('conversation.explorer.addFolder')}
-            onClick={handleAddFolder}
-          />
+          {/* Tooltip 与右侧「打开工作区」按钮保持同一形态（mini），让相邻按钮的
+              悬浮提示观感一致。注意：Arco 的 Tooltip 不能包裹 Dropdown（会取到
+              非 DOM 节点而崩），这里包的是普通 Button，安全。
+              Same `mini` Tooltip as the neighboring workspace-open button so
+              adjacent buttons feel consistent. Note: an Arco Tooltip must not wrap
+              a Dropdown (it would resolve a non-DOM node and crash); wrapping a
+              plain Button like this is safe. */}
+          <Tooltip content={t('conversation.explorer.addFolder')} mini>
+            <Button
+              type='text'
+              size='small'
+              className='flex items-center justify-center'
+              icon={<FolderPlus theme='outline' size='16' />}
+              aria-label={t('conversation.explorer.addFolder')}
+              onClick={handleAddFolder}
+            />
+          </Tooltip>
           {workspacePath && <WorkspaceOpenButton workspacePath={workspacePath} isTemporary={false} />}
         </div>
       </div>
