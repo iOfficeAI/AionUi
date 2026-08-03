@@ -616,7 +616,7 @@ const PreviewPanel: React.FC = () => {
         </div>
       );
     } else if (content_type === 'pdf') {
-      return <PDFPreview file_path={metadata?.file_path} content={content} />;
+      return <PDFPreview fileRef={metadata?.fileRef} file_path={metadata?.file_path} content={content} />;
     } else if (content_type === 'ppt') {
       return <PptViewer file_path={metadata?.file_path} content={content} workspace={metadata?.workspace} />;
     } else if (content_type === 'word') {

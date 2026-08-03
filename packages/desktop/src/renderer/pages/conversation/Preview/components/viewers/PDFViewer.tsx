@@ -5,6 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
+import type { ChatFileRef } from '@/common/types/chatFile';
 import { buildPdfSrc } from '../../previewUrls';
 import { usePreviewToolbarExtras } from '../../context/PreviewToolbarExtrasContext';
 import { Button, Message } from '@arco-design/web-react';
@@ -13,8 +14,14 @@ import { useTranslation } from 'react-i18next';
 
 interface PDFPreviewProps {
   /**
-   * PDF file path (absolute path on disk)
-   * PDF 文件路径（磁盘上的绝对路径）
+   * ChatFileRef identity — rendered via the backend stream URL (no absolute path
+   * exposed to the renderer). Project ref for explorer files, Local otherwise.
+   * PDF 的 ChatFileRef 身份 —— 通过后端 stream URL 渲染（不向渲染进程暴露绝对路径）
+   */
+  fileRef?: ChatFileRef;
+  /**
+   * PDF file path (absolute path on disk) — retained for "open in system app".
+   * PDF 文件路径（磁盘上的绝对路径），仅用于"用系统应用打开"
    */
   file_path?: string;
   /**
@@ -30,7 +37,7 @@ interface ElectronWebView extends HTMLElement {
   src: string;
 }
 
-const PDFPreview: React.FC<PDFPreviewProps> = ({ file_path, content, hideToolbar = false }) => {
+const PDFPreview: React.FC<PDFPreviewProps> = ({ fileRef, file_path, content, hideToolbar = false }) => {
   const { t } = useTranslation();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -58,7 +65,7 @@ const PDFPreview: React.FC<PDFPreviewProps> = ({ file_path, content, hideToolbar
       setLoading(true);
       setError(null);
 
-      if (!file_path && !content) {
+      if (!fileRef && !file_path && !content) {
         setError(t('preview.pdf.pathMissing'));
         setLoading(false);
         return;
@@ -90,7 +97,7 @@ const PDFPreview: React.FC<PDFPreviewProps> = ({ file_path, content, hideToolbar
       setError(`${t('preview.pdf.loadFailed')}: ${err instanceof Error ? err.message : String(err)}`);
       setLoading(false);
     }
-  }, [file_path, content, t]);
+  }, [fileRef, file_path, content, t]);
 
   // 设置工具栏扩展（必须在所有条件返回之前调用）
   // Set toolbar extras (must be called before any conditional returns)
@@ -110,7 +117,7 @@ const PDFPreview: React.FC<PDFPreviewProps> = ({ file_path, content, hideToolbar
 
   // 使用 Electron webview 加载本地 PDF 文件
   // Use Electron webview to load local PDF files
-  const pdfSrc = buildPdfSrc(file_path, content);
+  const pdfSrc = buildPdfSrc(fileRef, content);
 
   if (error) {
     return (

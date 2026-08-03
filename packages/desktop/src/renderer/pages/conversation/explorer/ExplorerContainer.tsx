@@ -103,8 +103,14 @@ export const buildExplorerPreviewPayload = async (
 
   if (contentType === 'image') {
     content = await ipcBridge.fs.readContent.invoke({ file: fileRef, encoding: 'dataurl' });
-  } else if (contentType === 'pdf' || contentType === 'word' || contentType === 'excel' || contentType === 'ppt') {
-    // PATCH(ELECTRON-3SZ): pdf/office need an absolute path — resolve pe → path (PR-3 removes this).
+  } else if (contentType === 'pdf') {
+    // pdf renders via the backend /api/fs/stream URL built from fileRef — no content
+    // read and no absolute-path resolve (the "open in system" button is hidden
+    // without file_path; a pe-reveal follow-up can restore it).
+  } else if (contentType === 'word' || contentType === 'excel' || contentType === 'ppt') {
+    // PATCH(ELECTRON-3SZ): office still needs an absolute path for the officecli
+    // watch (start/stop). Removed once office migrates to ChatFileRef +
+    // StopPreviewRequest.file (then this whole fs/resolve call goes away).
     const res = (await client.request('fs/resolve', { file: { pe_id: peId, relative_path: relativePath } })) as {
       absolute_path?: string;
       workspace_root?: string;

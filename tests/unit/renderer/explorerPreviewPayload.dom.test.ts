@@ -65,8 +65,20 @@ describe('buildExplorerPreviewPayload', () => {
     expect(out.content).toBe('');
   });
 
-  it.each(['doc.pdf', 'r.docx', 's.xlsx', 'd.pptx'])(
-    'pdf/office resolves absolute path via fs/resolve but still carries a Project ref: %s',
+  it('pdf: no content read and no fs/resolve — renders via stream URL from the Project ref', async () => {
+    h.readContent.mockReset();
+    const client = fakeClient(null);
+    const out = await buildExplorerPreviewPayload(client, 'peA', 'reports/q2.pdf');
+
+    expect(client.calls).toEqual([]); // pdf no longer resolves an absolute path
+    expect(h.readContent).not.toHaveBeenCalled();
+    expect(out.content).toBe('');
+    expect(out.metadata.fileRef).toEqual({ kind: 'project', pe_id: 'peA', relative_path: 'reports/q2.pdf' });
+    expect(out.metadata.file_path).toBeUndefined(); // "open in system" hidden without a path
+  });
+
+  it.each(['r.docx', 's.xlsx', 'd.pptx'])(
+    'office resolves absolute path via fs/resolve but still carries a Project ref: %s',
     async (rel) => {
       h.readContent.mockReset();
       const client = fakeClient({ absolute_path: '/ws/proj/' + rel, workspace_root: '/ws/proj' });
