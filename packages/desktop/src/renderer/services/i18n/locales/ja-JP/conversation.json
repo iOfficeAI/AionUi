@@ -584,6 +584,15 @@
       },
       "ACP_EMPTY_TURN_REFUSAL": {
         "body": "モデルは、表示できる返信を生成する前にこのリクエストを拒否しました。"
+      },
+      "ANTIGRAVITY_STEPS_FAILED": {
+        "body": "このターンで {{count}} 件のステップが失敗し、実行されませんでした。agy はこうしたターンも成功として終了するため、返答ではなく実際の結果を確認してください。"
+      },
+      "ANTIGRAVITY_VERSION_OLDER": {
+        "body": "インストールされている agy {{reported}} は、この統合が検証した {{verified}} より古いため、一部の機能が利用できない可能性があります。agy の更新をご検討ください。"
+      },
+      "ANTIGRAVITY_VERSION_NEWER": {
+        "body": "インストールされている agy {{reported}} は、この統合が検証した {{verified}} より新しいバージョンです。通常は問題なく動作しますが、異常があればご報告ください。"
       }
     }
   },

@@ -584,6 +584,15 @@
       },
       "ACP_EMPTY_TURN_REFUSAL": {
         "body": "模型在產生任何可見回覆前拒絕了這次請求。"
+      },
+      "ANTIGRAVITY_STEPS_FAILED": {
+        "body": "本輪有 {{count}} 個步驟失敗且未生效。agy 仍會將這類輪次標記為成功，請核對實際結果而非回覆內容。"
+      },
+      "ANTIGRAVITY_VERSION_OLDER": {
+        "body": "已安裝的 agy {{reported}} 低於本整合驗證過的 {{verified}}，部分功能可能缺失，建議升級 agy。"
+      },
+      "ANTIGRAVITY_VERSION_NEWER": {
+        "body": "已安裝的 agy {{reported}} 高於本整合驗證過的 {{verified}}。通常仍可正常使用；如遇異常行為請回報。"
       }
     }
   },
