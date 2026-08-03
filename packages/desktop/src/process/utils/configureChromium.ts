@@ -331,7 +331,24 @@ cdpStartupEnabled = shouldEnableCdp(cdpConfig);
 if (cdpStartupEnabled) {
   const preferredPort = getPreferredPort(cdpConfig);
   const port = findAvailablePort(preferredPort);
-  app.commandLine.appendSwitch('remote-debugging-port', String(port));
+  /**
+   * 刻意不再调用 appendSwitch('remote-debugging-port', ...)。
+   *
+   * Chromium 那个开关是应用级的，没有 per-target ACL：一开就把每个 WebContents 都
+   * 暴露出去，包括挂着 preload 桥的主窗口，而且不需要任何认证。本机任意进程连上去就能
+   * 驱动整个应用。
+   *
+   * 改由 cdpBridge 只暴露侧边浏览器那一个 webContents，并且要求口令。这里保留端口号
+   * 与实例注册，是为了「同一台机器上多开实例互不打扰」这套既有逻辑继续成立，也让设置
+   * 里的端口显示不变。
+   *
+   * Deliberately no longer calls appendSwitch('remote-debugging-port', ...). That switch
+   * is application-wide with no per-target ACL: it exposes every WebContents — including
+   * the main window with its preload bridge — with no authentication, so any local
+   * process can drive the whole app. cdpBridge exposes only the in-app browser webview
+   * and requires a token instead. The port number and instance registration are kept so
+   * the existing multi-instance bookkeeping and the settings display keep working.
+   */
   cdpPort = port;
   registerInstance(port);
 
@@ -343,59 +360,68 @@ if (cdpStartupEnabled) {
    * 传到最里层，不需要把它写进任何配置或数据库记录。多开实例时每个进程树各自继承
    * 自己的端口，天然不会串。
    *
+   * 刻意用与 AIONUI_CDP_PORT 不同的变量名：那个是「用户输入」，优先级高于配置文件。
+   * 如果把实际端口写回同一个名字，用户在设置里关掉 CDP 再点应用内重启，
+   * app.relaunch() 继承的 env 里带着端口，子进程会把它当成用户要求开启，
+   * 于是刚写下的「关闭」被自己悄悄覆盖。两个用途必须分开。
+   *
    * Write the resolved port back into our own process.env. This is how the port
    * reaches the agent: aioncore is a child of the Electron main process (and
    * inherits process.env), and the built-in browser MCP is a child of aioncore, so
    * the port travels down the inheritance chain with nothing written to config or
    * the database. With several instances running, each process tree inherits its
    * own port, so they cannot cross over.
+   *
+   * Deliberately a *different* name from AIONUI_CDP_PORT, which is user input and
+   * outranks the config file. Writing the live port back into that same name would
+   * mean: user disables CDP in settings, clicks in-app restart, app.relaunch()
+   * inherits the env, and the child reads the inherited port as "the user asked for
+   * CDP" — silently overriding the setting just saved. The two meanings must stay
+   * separate.
    */
-  process.env.AIONUI_CDP_PORT = String(port);
+  process.env.AIONUI_CDP_ACTIVE_PORT = String(port);
 
   // Log CDP initialization
-  console.log('[CDP] Chrome DevTools Protocol enabled');
-  console.log(`[CDP] Remote debugging port: ${port}`);
-  console.log(`[CDP] DevTools URL: http://127.0.0.1:${port}`);
-  console.log('[CDP] MCP chrome-devtools connection: --browser-url=http://127.0.0.1:' + port);
+  console.log('[CDP] Agent browser control enabled (single-target bridge)');
+  console.log(`[CDP] Reserved port: ${port}`);
 
   // Clean up registry on exit - handle multiple exit signals
   const cleanup = () => unregisterInstance();
   process.on('exit', cleanup);
-  process.on('SIGINT', cleanup);
-  process.on('SIGTERM', cleanup);
+  /**
+   * 注册 SIGINT/SIGTERM 处理器会顶掉 Node 默认的「收到信号就退出」行为，
+   * 所以清理完必须自己退，否则 Ctrl-C 只会清理注册表、应用继续跑着不退出。
+   *
+   * Registering a SIGINT/SIGTERM handler replaces Node's default terminate-on-signal
+   * behaviour, so the process must exit itself afterwards — otherwise Ctrl-C prunes
+   * the registry and leaves the app running.
+   */
+  const cleanupAndExit = (signal: NodeJS.Signals) => {
+    cleanup();
+    process.exit(signal === 'SIGINT' ? 130 : 143);
+  };
+  process.on('SIGINT', cleanupAndExit);
+  process.on('SIGTERM', cleanupAndExit);
   // Handle Windows specific signals
   if (process.platform === 'win32') {
-    process.on('SIGBREAK', cleanup);
+    process.on('SIGBREAK', cleanupAndExit);
   }
 } else {
   console.log('[CDP] Chrome DevTools Protocol disabled');
 }
 
 /**
- * Verify CDP remote debugging is actually accessible after app starts.
- * Retries several times with delay to account for startup time.
+ * verifyCdpReady 已随 remote-debugging-port 一并移除。
+ *
+ * 它探测的是 Chromium 那个应用级端口的 /json/version；现在没有进程在那个端口上监听，
+ * 留着只会让启动日志报一个必然失败的警告。单目标通道的就绪与否由 startCdpBridge()
+ * 的返回值直接体现，不需要再探测。
+ *
+ * verifyCdpReady was removed together with remote-debugging-port. It probed
+ * /json/version on Chromium's application-wide port, where nothing listens any more, so
+ * keeping it would only emit a warning that can never succeed. Bridge readiness is now
+ * evident from startCdpBridge()'s return value, with no probing required.
  */
-export async function verifyCdpReady(port: number, maxRetries = 5, retryDelay = 800): Promise<boolean> {
-  for (let i = 0; i < maxRetries; i++) {
-    const ok = await new Promise<boolean>((resolve) => {
-      const req = http.get(`http://127.0.0.1:${port}/json/version`, { timeout: 2000 }, (res) => {
-        let data = '';
-        res.on('data', (chunk) => (data += chunk));
-        res.on('end', () => resolve(res.statusCode === 200 && data.length > 0));
-      });
-      req.on('error', () => resolve(false));
-      req.on('timeout', () => {
-        req.destroy();
-        resolve(false);
-      });
-    });
-    if (ok) return true;
-    if (i < maxRetries - 1) {
-      await new Promise((r) => setTimeout(r, retryDelay));
-    }
-  }
-  return false;
-}
 
 /**
  * Get all live CDP instances from the registry.

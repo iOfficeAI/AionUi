@@ -902,17 +902,47 @@ const handleAppReady = async (): Promise<void> => {
     }
   }
 
-  // Verify CDP is ready and log status
-  const { cdpPort, verifyCdpReady } = await import('./process/utils/configureChromium');
-  if (cdpPort) {
-    const cdpReady = await verifyCdpReady(cdpPort);
-    if (cdpReady) {
-      console.log(`[CDP] Remote debugging server ready at http://127.0.0.1:${cdpPort}`);
-      console.log(
-        `[CDP] MCP chrome-devtools: npx chrome-devtools-mcp@0.16.0 --browser-url=http://127.0.0.1:${cdpPort}`
-      );
-    } else {
-      console.warn(`[CDP] Warning: Remote debugging port ${cdpPort} not responding`);
+  /**
+   * 启动单目标 CDP 通道，并把端口/口令写进自己的 env。
+   *
+   * 顺着既有的继承链传下去：aioncore 是本进程的子进程（spread 了 process.env），
+   * 内置浏览器 MCP 又是 aioncore 的子进程，所以这两个值不用落库、不用写配置。
+   * 口令保证只有这棵进程树里的成员连得上通道。
+   *
+   * 不再探测 remote-debugging-port —— 那个开关已经移除，探测必然失败。
+   *
+   * Start the single-target CDP bridge and publish port/token into our own env. They ride
+   * the existing inheritance chain (aioncore is our child and spreads process.env; the
+   * in-app browser MCP is aioncore's child), so neither value is persisted anywhere. The
+   * token ensures only members of this process tree can reach the bridge.
+   *
+   * No longer probes remote-debugging-port: that switch is gone, so probing would always
+   * fail.
+   */
+  const { cdpStartupEnabled } = await import('./process/utils/configureChromium');
+  if (cdpStartupEnabled) {
+    try {
+      const { startCdpBridge } = await import('./process/resources/builtinMcp/cdpBridge');
+      const { setCdpBridgeHandle } = await import('./process/utils/cdpBridgeRegistry');
+      const bridge = await startCdpBridge();
+      setCdpBridgeHandle(bridge);
+      process.env.AIONUI_CDP_ACTIVE_PORT = String(bridge.port);
+      process.env.AIONUI_CDP_BRIDGE_TOKEN = bridge.token;
+      console.log(`[CDP] Single-target bridge listening on 127.0.0.1:${bridge.port} (token required)`);
+      app.once('will-quit', () => {
+        void bridge.close();
+        setCdpBridgeHandle(null);
+      });
+    } catch (error) {
+      /**
+       * 通道起不来就不设 env。MCP 读不到端口/口令会自行退出（见 browserServer.ts），
+       * 绝不会退回去自己开一个独立 Chrome —— 那正是我们要消灭的行为。
+       *
+       * If the bridge fails to start we leave the env unset. The MCP exits when it cannot
+       * read port/token (see browserServer.ts) and never falls back to spawning its own
+       * separate Chrome — the exact behaviour we are eliminating.
+       */
+      console.error('[CDP] Failed to start single-target bridge; agent browser control stays off.', error);
     }
   }
 };
