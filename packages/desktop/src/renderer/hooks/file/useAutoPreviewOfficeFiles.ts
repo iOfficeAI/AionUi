@@ -5,14 +5,31 @@
  */
 
 import { ipcBridge } from '@/common';
+import { isBackendHttpError } from '@/common/adapter/httpBridge';
 import type { ConversationContextValue } from '@/renderer/hooks/context/ConversationContext';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import { useAutoPreviewOfficeFilesEnabled } from '@/renderer/hooks/system/useAutoPreviewOfficeFilesEnabled';
 import { getFileTypeInfo } from '@/renderer/utils/file/fileType';
+import { Message } from '@arco-design/web-react';
 import { useCallback, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 
 const OFFICE_OPEN_DELAY_MS = 1000;
 const OFFICE_CONTENT_TYPES = new Set(['ppt', 'word', 'excel']);
+
+/**
+ * Backend error code (HTTP 503) when the file-watch service is disabled — e.g.
+ * the OS inotify instance/watch quota is exhausted (ARM Linux, EMFILE/ENFILE).
+ * The backend now degrades gracefully (watcher off, backend still starts), so
+ * the front end must degrade too: auto-preview silently stops working, and we
+ * surface ONE accurate, actionable hint — never a "reinstall / missing
+ * resources" prompt, which does not fix a quota problem (ELECTRON-2PM).
+ */
+const FILE_WATCH_UNAVAILABLE_CODE = 'FILE_WATCH_UNAVAILABLE';
+
+// Session-scoped guard: the hook remounts on every conversation/workspace
+// switch, but the hint must fire at most once per app session (not per mount).
+let fileWatchUnavailableWarned = false;
 
 const normalizeWatchPath = (value: string): string => {
   const normalized = value.replaceAll('\\', '/');
@@ -37,6 +54,7 @@ export const useAutoPreviewOfficeFiles = (
   conversation: Pick<ConversationContextValue, 'conversation_id' | 'workspace'> | null
 ) => {
   const enabled = useAutoPreviewOfficeFilesEnabled();
+  const { t } = useTranslation();
   const { findPreviewTab, openPreview } = usePreviewContext();
   const knownOfficeFilesRef = useRef<Set<string>>(new Set());
   const openTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
@@ -93,8 +111,29 @@ export const useAutoPreviewOfficeFiles = (
             .map((file_path) => normalizeWatchPath(file_path))
             .filter((file_path) => OFFICE_CONTENT_TYPES.has(getFileTypeInfo(file_path).contentType))
         );
-      } catch {
-        // Ignore watcher/bootstrap failures; the hook should stay inert rather than noisy.
+      } catch (error) {
+        // File-watch unavailable (503 FILE_WATCH_UNAVAILABLE): the OS watch quota
+        // is exhausted. Auto-preview just stops working — surface ONE accurate,
+        // actionable hint, never a "reinstall / missing resources" prompt.
+        if (
+          !cancelled &&
+          !fileWatchUnavailableWarned &&
+          isBackendHttpError(error) &&
+          error.code === FILE_WATCH_UNAVAILABLE_CODE
+        ) {
+          fileWatchUnavailableWarned = true;
+          const errno = (error.details as { errno?: number } | undefined)?.errno;
+          if (errno !== undefined) {
+            console.warn(`[useAutoPreviewOfficeFiles] file watch unavailable (errno ${errno}); auto-preview disabled`);
+          }
+          Message.warning(
+            t('conversation.officePreview.fileWatchUnavailable', {
+              defaultValue:
+                'Live file watching is unavailable — the system may have run out of file-watch handles (inotify). Auto-preview of new Office files is disabled. Raise fs.inotify.max_user_instances or close programs holding many file watches.',
+            })
+          );
+        }
+        // Any other failure: stay inert rather than noisy.
       }
     };
 
@@ -122,5 +161,5 @@ export const useAutoPreviewOfficeFiles = (
       knownOfficeFilesRef.current.clear();
       void ipcBridge.workspaceOfficeWatch.stop.invoke({ workspace }).catch(() => {});
     };
-  }, [clearPendingOpenTimers, enabled, normalizedWorkspace, openOfficePreview, workspace]);
+  }, [clearPendingOpenTimers, enabled, normalizedWorkspace, openOfficePreview, t, workspace]);
 };
