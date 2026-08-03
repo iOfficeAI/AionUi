@@ -44,7 +44,7 @@ import './components/workspace/registerWebFsPicker';
 
 // React and core dependencies
 import type { PropsWithChildren } from 'react';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { SWRConfig } from 'swr';
 import type { TFunction } from 'i18next';
@@ -107,6 +107,7 @@ import {
   getRuntimeComponentInstallationDescription,
   showInstallationIntegrityModal,
 } from './components/layout/InstallationIntegrityDialog';
+import { createRuntimeInstallationReconciler } from './services/runtime/runtimeInstallationReconciler';
 
 // Patch Korean locale with missing properties from English locale
 const koKRComplete = {
@@ -199,45 +200,48 @@ function resolveRuntimeResourceLabel(event: IRuntimeStatusEvent, t: TFunction): 
 const RuntimeFailureDialogs: React.FC = () => {
   const { t } = useTranslation();
   const [modal, modalContextHolder] = Modal.useModal();
-  const shownFailuresRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
-    return ipcBridge.runtime.statusChanged.on((event: IRuntimeStatusEvent) => {
+    const reconciler = createRuntimeInstallationReconciler({
+      showDialog: (event) => {
+        const resource = resolveRuntimeResourceLabel(event, t);
+        const description = getRuntimeComponentInstallationDescription(t, resource);
+        const controller = showInstallationIntegrityModal(modal, t, description, buildRuntimeInstallationDiagnostics(event, description));
+        return { close: () => controller.close() };
+      },
+      report: (event) => captureRuntimeInstallationIntegrityFailure(event),
+    });
+
+    const offStatus = ipcBridge.runtime.statusChanged.on((event: IRuntimeStatusEvent) => {
+      // Reconcile install-integrity failures and node ready events (spec 8/13.4).
+      if ((event.phase === 'failed' && isInstallationIntegrityFailure(event.failure_kind)) || (event.phase === 'ready' && event.resource === 'node')) {
+        reconciler.handleStatus(event);
+        return;
+      }
+
+      // Non-integrity failures keep the existing generic error modal (unchanged).
       if (event.phase !== 'failed') {
         return;
       }
-      const signature = [
-        event.resource,
-        event.resource_id ?? '',
-        event.scope.kind,
-        event.scope.id,
-        event.failure_kind ?? 'unknown',
-        event.message ?? '',
-      ].join('|');
-      if (shownFailuresRef.current.has(signature)) {
-        return;
-      }
-      shownFailuresRef.current.add(signature);
-
       const resource = resolveRuntimeResourceLabel(event, t);
-      const installationIntegrityFailure = isInstallationIntegrityFailure(event.failure_kind);
-      const description = installationIntegrityFailure
-        ? getRuntimeComponentInstallationDescription(t, resource)
-        : t('settings.runtimeStatus.failedUnknown', { resource });
-      if (installationIntegrityFailure) {
-        captureRuntimeInstallationIntegrityFailure(event);
-        showInstallationIntegrityModal(modal, t, description, buildRuntimeInstallationDiagnostics(event, description));
-        return;
-      }
-
       modal.error({
         title: t('common.error'),
-        content: <InstallationIntegrityContent description={description} />,
+        content: <InstallationIntegrityContent description={t('settings.runtimeStatus.failedUnknown', { resource })} />,
         okText: t('common.confirm'),
         closable: false,
         maskClosable: false,
       });
     });
+
+    const onBeforeUnload = () => reconciler.flushPending();
+    window.addEventListener('beforeunload', onBeforeUnload);
+
+    return () => {
+      window.removeEventListener('beforeunload', onBeforeUnload);
+      offStatus();
+      reconciler.flushPending();
+      reconciler.dispose();
+    };
   }, [modal, t]);
 
   return <>{modalContextHolder}</>;
