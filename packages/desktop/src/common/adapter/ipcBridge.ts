@@ -629,21 +629,6 @@ export const fs = {
   fetchRemoteImage: httpPost<string, { url: string }>('/api/fs/fetch-remote-image'),
   readFile: httpPost<string | null, { path: string; workspace?: string }>('/api/fs/read'),
   writeFile: httpPost<boolean, { path: string; data: string; workspace?: string }>('/api/fs/write'),
-  createZip: httpPost<
-    boolean,
-    {
-      path: string;
-      workspace?: string;
-      source_root?: string;
-      request_id?: string;
-      files: Array<{
-        name: string;
-        content?: string | Uint8Array;
-        source_path?: string;
-      }>;
-    }
-  >('/api/fs/zip'),
-  cancelZip: httpPost<boolean, { request_id: string }>('/api/fs/zip/cancel'),
   getFileMetadata: httpPost<IFileMetadata, { path: string; workspace?: string }>('/api/fs/metadata'),
   // Import OS files into a project entry's directory (A-paste). `target` is the
   // drop-target pe + relative dir ('' = its root). Name conflicts are reported in
