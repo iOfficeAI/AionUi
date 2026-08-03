@@ -51,7 +51,9 @@ const ToolItemDetail: React.FC<{ item: NormalizedToolCall }> = ({ item }) => {
   );
 
   const loadFullItem = async () => {
-    if (!item.truncated || fullItem || loadingFull || !item.conversationId || !item.messageId) return;
+    // Image tools already have a durable path. Fetching the full record would
+    // reintroduce the inline base64 that compact history intentionally removed.
+    if (item.imagePath || !item.truncated || fullItem || loadingFull || !item.conversationId || !item.messageId) return;
     setLoadingFull(true);
     setLoadError(false);
     try {

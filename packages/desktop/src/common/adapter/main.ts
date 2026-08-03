@@ -9,7 +9,14 @@ import { ipcMain } from 'electron';
 
 import { bridge } from '@/common/platform/bridge';
 import { ADAPTER_BRIDGE_EVENT_KEY } from './constant';
-import { registerWebSocketBroadcaster, getBridgeEmitter, setBridgeEmitter, broadcastToAll } from './registry';
+import {
+  registerWebSocketBroadcaster,
+  getBridgeEmitter,
+  setBridgeEmitter,
+  broadcastToAll,
+  sendToBridgeWindows,
+  containsOversizedBridgeString,
+} from './registry';
 
 /**
  * Bridge event data structure for IPC communication
@@ -33,8 +40,8 @@ export const setPetNotifyHook = (hook: ((name: string, data: unknown) => void) |
 /**
  * @description 建立与每一个browserWindow的通信桥梁
  * */
-/** Maximum IPC payload size (50 MB). Messages exceeding this are dropped with an error notification. */
-const MAX_IPC_PAYLOAD_SIZE = 50 * 1024 * 1024;
+/** Maximum IPC payload size. Messages exceeding this are dropped with an error notification. */
+const MAX_IPC_PAYLOAD_SIZE = 8 * 1024 * 1024;
 
 bridge.adapter({
   emit(name, data) {
@@ -48,6 +55,11 @@ bridge.adapter({
     }
 
     // 1. Send to all Electron BrowserWindows (skip destroyed ones)
+    if (containsOversizedBridgeString(data, MAX_IPC_PAYLOAD_SIZE)) {
+      console.error(`[adapter] Bridge event "${name}" contains an oversized string, skipped before serialization`);
+      return;
+    }
+
     let serialized: string;
     try {
       serialized = JSON.stringify({ name, data });
@@ -66,23 +78,15 @@ bridge.adapter({
         name: 'bridge:error',
         data: { originalEvent: name, reason: 'payload_too_large', size: serialized.length },
       });
-      for (let i = adapterWindowList.length - 1; i >= 0; i--) {
-        const win = adapterWindowList[i];
-        if (!win.isDestroyed() && !win.webContents.isDestroyed()) {
-          win.webContents.send(ADAPTER_BRIDGE_EVENT_KEY, errorPayload);
-        }
-      }
+      sendToBridgeWindows(adapterWindowList, ADAPTER_BRIDGE_EVENT_KEY, errorPayload, (error) => {
+        console.error('[adapter] Failed to send bridge error event:', error);
+      });
       return;
     }
 
-    for (let i = adapterWindowList.length - 1; i >= 0; i--) {
-      const win = adapterWindowList[i];
-      if (win.isDestroyed() || win.webContents.isDestroyed()) {
-        adapterWindowList.splice(i, 1);
-        continue;
-      }
-      win.webContents.send(ADAPTER_BRIDGE_EVENT_KEY, serialized);
-    }
+    sendToBridgeWindows(adapterWindowList, ADAPTER_BRIDGE_EVENT_KEY, serialized, (error) => {
+      console.error(`[adapter] Failed to send bridge event "${name}":`, error);
+    });
     // 2. Also broadcast to all WebSocket clients
     broadcastToAll(name, data);
   },

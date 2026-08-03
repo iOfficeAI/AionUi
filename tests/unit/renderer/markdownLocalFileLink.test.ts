@@ -8,6 +8,7 @@ import { describe, expect, it } from 'vitest';
 import {
   resolveLocalFileLinkPath,
   resolveLocalFileLinkReference,
+  resolveMarkdownLocalFilePath,
   toLocalFileHref,
 } from '@/renderer/components/Markdown/markdownUtils';
 
@@ -151,5 +152,33 @@ describe('resolveLocalFileLinkPath', () => {
       'file:///C:/Users/Administrator/AppData/Roaming/CSBU%20WorkMate/report.xlsx'
     );
     expect(toLocalFileHref('/var/folders/demo/report.xlsx')).toBe('file:///var/folders/demo/report.xlsx');
+  });
+
+  it('resolves relative agent artifact links from trusted aliases before the workspace', () => {
+    const generatedPath = 'C:\\Users\\test\\.grok\\sessions\\session-1\\images\\1.jpg';
+    expect(
+      resolveMarkdownLocalFilePath('images/1.jpg', { 'images/1.jpg': generatedPath }, 'C:\\Users\\test\\workspace')
+    ).toBe(generatedPath);
+    expect(
+      resolveMarkdownLocalFilePath('IMAGES/1.JPG', { 'images/1.jpg': generatedPath }, 'C:\\Users\\test\\workspace')
+    ).toBe(generatedPath);
+  });
+
+  it('resolves safe relative files against the conversation workspace', () => {
+    expect(resolveMarkdownLocalFilePath('./reports/Q3 result.xlsx#L10', undefined, 'C:\\work\\project')).toBe(
+      'C:/work/project/reports/Q3 result.xlsx#L10'
+    );
+  });
+
+  it('preserves absolute references and rejects unsafe relative destinations', () => {
+    expect(resolveMarkdownLocalFilePath('/Users/demo/file.ts#L10', undefined, '/workspace')).toBe(
+      '/Users/demo/file.ts#L10'
+    );
+    expect(resolveMarkdownLocalFilePath('../secret.txt', undefined, '/workspace')).toBeNull();
+    expect(resolveMarkdownLocalFilePath('https://example.com/file.txt', undefined, '/workspace')).toBeNull();
+    expect(resolveMarkdownLocalFilePath('data:text/plain,hello', undefined, '/workspace')).toBeNull();
+    expect(resolveMarkdownLocalFilePath('//server/share.txt', undefined, '/workspace')).toBeNull();
+    expect(resolveMarkdownLocalFilePath('/settings', undefined, '/workspace')).toBeNull();
+    expect(resolveMarkdownLocalFilePath('report.txt?download=1', undefined, '/workspace')).toBeNull();
   });
 });

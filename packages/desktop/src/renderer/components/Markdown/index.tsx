@@ -24,7 +24,7 @@ import LocalImageView from '@renderer/components/media/LocalImageView';
 import CodeBlock from './CodeBlock';
 import LocalFileLink from './LocalFileLink';
 import ShadowView from './ShadowView';
-import { resolveLocalFileLinkPath, resolveLocalFileLinkReference } from './markdownUtils';
+import { resolveLocalFileLinkPath, resolveLocalFileLinkReference, resolveMarkdownLocalFilePath } from './markdownUtils';
 import type { LocalFileLinkReference } from './markdownUtils';
 
 const REMARK_PLUGINS = [remarkGfm, remarkMath, remarkBreaks];
@@ -35,12 +35,16 @@ const isLocalFilePath = (src: string): boolean => {
   return true;
 };
 
-const normalizeLocalFileLinkDestinations = (markdown: string): string =>
+const normalizeLocalFileLinkDestinations = (
+  markdown: string,
+  aliases?: Readonly<Record<string, string>>,
+  basePath?: string
+): string =>
   markdown.replace(
     /(!?\[[^\]\n]*\]\()([^)\n]*[ \t][^)\n]*)(\))/g,
     (match, prefix: string, destination: string, suffix: string) => {
       const trimmedDestination = destination.trim();
-      if (!resolveLocalFileLinkReference(trimmedDestination)) return match;
+      if (!resolveMarkdownLocalFilePath(trimmedDestination, aliases, basePath)) return match;
 
       return `${prefix}${encodeURI(trimmedDestination)}${suffix}`;
     }
@@ -53,23 +57,35 @@ type MarkdownViewProps = {
   className?: string;
   onRef?: (el?: HTMLDivElement | null) => void;
   onLocalFileLink?: (path: string, reference?: LocalFileLinkReference) => void | Promise<void>;
+  localFileAliases?: Readonly<Record<string, string>>;
+  localFileBasePath?: string;
   /** Enable raw HTML rendering in markdown content. Use with caution — only for trusted sources. */
   allowHtml?: boolean;
 };
 
 const MarkdownView: React.FC<MarkdownViewProps> = React.memo(
-  ({ hiddenCodeCopyButton, codeStyle, className, onRef, onLocalFileLink, allowHtml, children: childrenProp }) => {
+  ({
+    hiddenCodeCopyButton,
+    codeStyle,
+    className,
+    onRef,
+    onLocalFileLink,
+    localFileAliases,
+    localFileBasePath,
+    allowHtml,
+    children: childrenProp,
+  }) => {
     const { t } = useTranslation();
 
     const normalizedChildren = useMemo(() => {
       if (typeof childrenProp === 'string') {
         let text = childrenProp.replace(/file:\/\//g, '');
-        text = normalizeLocalFileLinkDestinations(text);
+        text = normalizeLocalFileLinkDestinations(text, localFileAliases, localFileBasePath);
         text = convertLatexDelimiters(text);
         return text;
       }
       return childrenProp;
-    }, [childrenProp]);
+    }, [childrenProp, localFileAliases, localFileBasePath]);
 
     const handleLinkClick = useCallback(
       (e: React.MouseEvent<HTMLAnchorElement>) => {
@@ -104,7 +120,8 @@ const MarkdownView: React.FC<MarkdownViewProps> = React.memo(
         a: ({ node: _node, ...rest }: Record<string, unknown>) => {
           const anchorProps = rest as React.AnchorHTMLAttributes<HTMLAnchorElement>;
           const rawHref = typeof anchorProps.href === 'string' ? anchorProps.href : '';
-          const localFileReference = resolveLocalFileLinkReference(rawHref);
+          const resolvedLocalPath = resolveMarkdownLocalFilePath(rawHref, localFileAliases, localFileBasePath);
+          const localFileReference = resolveLocalFileLinkReference(resolvedLocalPath ?? rawHref);
           if (localFileReference) {
             return (
               <LocalFileLink reference={localFileReference} onOpen={onLocalFileLink}>
@@ -143,13 +160,14 @@ const MarkdownView: React.FC<MarkdownViewProps> = React.memo(
         img: ({ node: _node, ...rest }: Record<string, unknown>) => {
           const imgProps = rest as React.ImgHTMLAttributes<HTMLImageElement>;
           if (isLocalFilePath(imgProps.src || '')) {
-            const src = decodeURIComponent(imgProps.src || '');
+            const rawSrc = imgProps.src || '';
+            const src = resolveMarkdownLocalFilePath(rawSrc, localFileAliases, localFileBasePath) ?? rawSrc;
             return <LocalImageView src={src} alt={imgProps.alt || ''} className={imgProps.className} />;
           }
           return <img {...imgProps} alt={imgProps.alt || ''} />;
         },
       }),
-      [codeStyle, hiddenCodeCopyButton, handleLinkClick, onLocalFileLink]
+      [codeStyle, hiddenCodeCopyButton, handleLinkClick, localFileAliases, localFileBasePath, onLocalFileLink]
     );
 
     const rehypePlugins = useMemo(() => (allowHtml ? [rehypeRaw, rehypeKatex] : [rehypeKatex]), [allowHtml]);

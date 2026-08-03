@@ -144,7 +144,11 @@ const useFormatContent = (content: string) => {
   }, [content]);
 };
 
-const MessageText: React.FC<{ message: IMessageText; showCopyRow?: boolean }> = ({ message, showCopyRow = true }) => {
+const MessageText: React.FC<{
+  message: IMessageText;
+  showCopyRow?: boolean;
+  localFileAliases?: Readonly<Record<string, string>>;
+}> = ({ message, showCopyRow = true, localFileAliases }) => {
   const logos = useAgentLogos();
   // Filter think tags from content before rendering
   // 在渲染前过滤 think 标签
@@ -283,12 +287,19 @@ const MessageText: React.FC<{ message: IMessageText; showCopyRow?: boolean }> = 
                 <MarkdownView
                   codeStyle={CODE_STYLE}
                   onLocalFileLink={handleLocalFileLink}
+                  localFileAliases={localFileAliases}
+                  localFileBasePath={conversationContext?.workspace}
                 >{`\`\`\`json\n${JSON.stringify(data, null, 2)}\n\`\`\``}</MarkdownView>
               </div>
             </CollapsibleContent>
           ) : (
             <div data-testid='message-text-content'>
-              <MarkdownView codeStyle={CODE_STYLE} onLocalFileLink={handleLocalFileLink}>
+              <MarkdownView
+                codeStyle={CODE_STYLE}
+                onLocalFileLink={handleLocalFileLink}
+                localFileAliases={localFileAliases}
+                localFileBasePath={conversationContext?.workspace}
+              >
                 {data}
               </MarkdownView>
             </div>

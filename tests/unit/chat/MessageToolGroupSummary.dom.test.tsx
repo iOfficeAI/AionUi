@@ -13,6 +13,17 @@ import MessageToolGroupSummary from '@/renderer/pages/conversation/Messages/comp
 const mockDownloadFileFromPath = vi.fn().mockResolvedValue(undefined);
 const mockMessageSuccess = vi.fn();
 const mockMessageError = vi.fn();
+const mockGetConversationMessage = vi.fn();
+
+vi.mock('@/common', () => ({
+  ipcBridge: {
+    database: {
+      getConversationMessage: {
+        invoke: (...args: unknown[]) => mockGetConversationMessage(...args),
+      },
+    },
+  },
+}));
 
 vi.mock('@/renderer/components/media/LocalImageView', () => ({
   __esModule: true,
@@ -48,6 +59,7 @@ describe('MessageToolGroupSummary ACP image output', () => {
     mockDownloadFileFromPath.mockResolvedValue(undefined);
     mockMessageSuccess.mockClear();
     mockMessageError.mockClear();
+    mockGetConversationMessage.mockReset();
   });
 
   it('renders generated image preview when an ACP image tool call is expanded', () => {
@@ -182,6 +194,34 @@ describe('MessageToolGroupSummary ACP image output', () => {
     fireEvent.click(screen.getByText('View Steps · 1'));
 
     expect(screen.getByLabelText('acp.image.download_aria')).toBeInTheDocument();
+  });
+
+  it('does not reload compacted inline image data when expanding image details', () => {
+    const message = {
+      id: 'ig_compact_image',
+      conversation_id: 'conv-1',
+      type: 'acp_tool_call',
+      content: {
+        sessionId: 'sess-1',
+        _compact: { truncated: true },
+        update: {
+          sessionUpdate: 'tool_call_update',
+          tool_call_id: 'ig_compact_image',
+          status: 'completed',
+          title: 'Image generation',
+          kind: 'execute',
+          raw_output: {
+            image: { path: '/tmp/ig_compact_image.png' },
+          },
+        },
+      },
+    } as IMessageAcpToolCall;
+
+    render(<MessageToolGroupSummary messages={[message]} />);
+    fireEvent.click(screen.getByText('View Steps · 1'));
+    fireEvent.click(screen.getByText('Image generation'));
+
+    expect(mockGetConversationMessage).not.toHaveBeenCalled();
   });
 
   it('does not render image controls for tool calls without image output', () => {

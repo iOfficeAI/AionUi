@@ -16,6 +16,10 @@ export interface NormalizedToolCall {
   imagePath?: string;
 }
 
+const TOOL_PREVIEW_FIELD_LIMIT = 8 * 1024;
+const TOOL_GROUP_PREVIEW_BUDGET = 256 * 1024;
+const TOOL_PREVIEW_TRUNCATED_MARKER = '\n...[truncated]';
+
 const formatValue = (value: unknown): string => {
   if (typeof value === 'string') return value;
   try {
@@ -223,8 +227,52 @@ export function normalizeToolCall(message: IMessageToolCall): NormalizedToolCall
 
 export type ToolMessage = IMessageToolGroup | IMessageAcpToolCall | IMessageToolCall;
 
+const truncatePreviewText = (value: string, maxLength: number): string => {
+  if (value.length <= maxLength) return value;
+  const bodyLength = Math.max(0, maxLength - TOOL_PREVIEW_TRUNCATED_MARKER.length);
+  let end = bodyLength;
+  const lastCodeUnit = value.charCodeAt(end - 1);
+  if (lastCodeUnit >= 0xd800 && lastCodeUnit <= 0xdbff) end -= 1;
+  return `${value.slice(0, end)}${TOOL_PREVIEW_TRUNCATED_MARKER}`;
+};
+
+const applyToolGroupPreviewBudget = (items: NormalizedToolCall[]): NormalizedToolCall[] => {
+  let remaining = TOOL_GROUP_PREVIEW_BUDGET;
+  return items.map((item) => {
+    let truncated = item.truncated === true;
+    const consume = (value?: string): string | undefined => {
+      if (!value) return value;
+      const fieldPreview = truncatePreviewText(value, TOOL_PREVIEW_FIELD_LIMIT);
+      if (fieldPreview.length < value.length) truncated = true;
+      if (fieldPreview.length <= remaining) {
+        remaining -= fieldPreview.length;
+        return fieldPreview;
+      }
+      truncated = true;
+      if (remaining <= TOOL_PREVIEW_TRUNCATED_MARKER.length) {
+        remaining = 0;
+        return undefined;
+      }
+      const preview = truncatePreviewText(fieldPreview, remaining);
+      remaining -= preview.length;
+      return preview;
+    };
+
+    const description = consume(item.description);
+    const input = consume(item.input);
+    const output = consume(item.output);
+    return {
+      ...item,
+      description,
+      input,
+      output,
+      truncated,
+    };
+  });
+};
+
 export function normalizeToolMessages(messages: ToolMessage[]): NormalizedToolCall[] {
-  return messages
+  const normalized = messages
     .flatMap((m) => {
       if (m.type === 'tool_group') return normalizeToolGroup(m);
       if (m.type === 'acp_tool_call') return normalizeAcpToolCall(m);
@@ -232,6 +280,7 @@ export function normalizeToolMessages(messages: ToolMessage[]): NormalizedToolCa
       return undefined;
     })
     .filter((item): item is NormalizedToolCall => item !== undefined);
+  return applyToolGroupPreviewBudget(normalized);
 }
 
 export function hasRunningToolMessages(messages: ToolMessage[]): boolean {

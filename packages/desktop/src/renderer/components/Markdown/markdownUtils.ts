@@ -22,7 +22,7 @@ export const formatCode = (code: string): string => {
       },
       2
     );
-  } catch (_error) {
+  } catch {
     return content;
   }
 };
@@ -214,6 +214,34 @@ export const resolveLocalFileLinkReference = (
 
 export const resolveLocalFileLinkPath = (rawHref: string, resolvedHref?: string): string | null => {
   return resolveLocalFileLinkReference(rawHref, resolvedHref)?.filePath ?? null;
+};
+
+export const resolveMarkdownLocalFilePath = (
+  rawHref: string,
+  aliases?: Readonly<Record<string, string>>,
+  basePath?: string
+): string | null => {
+  const href = safeDecodeURIComponent(rawHref.trim());
+  if (!href) return null;
+
+  if (resolveLocalFileLinkReference(href)) return href;
+  if (/^[a-z][a-z0-9+.-]*:/i.test(href) || href.startsWith('/') || href.startsWith('#') || href.includes('?')) {
+    return null;
+  }
+
+  const hashIndex = href.indexOf('#');
+  const pathPart = (hashIndex < 0 ? href : href.slice(0, hashIndex)).replace(/\\/g, '/').replace(/^\.\//, '');
+  const hash = hashIndex < 0 ? '' : href.slice(hashIndex);
+  if (!pathPart || pathPart.split('/').some((part) => part === '..')) return null;
+
+  const alias =
+    aliases?.[pathPart] ??
+    Object.entries(aliases ?? {}).find(([key]) => key.toLowerCase() === pathPart.toLowerCase())?.[1];
+  if (alias) return `${alias}${hash}`;
+  if (!basePath) return null;
+
+  const normalizedBase = basePath.replace(/[\\/]+$/, '').replace(/\\/g, '/');
+  return `${normalizedBase}/${pathPart}${hash}`;
 };
 
 export const toLocalFileHref = (filePath: string): string => {

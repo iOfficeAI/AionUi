@@ -4,8 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { IMessageAcpToolCall } from '@/common/chat/chatLib';
-import { normalizeAcpToolCall } from '@/common/chat/normalizeToolCall';
+import type { IMessageAcpToolCall, IMessageToolCall } from '@/common/chat/chatLib';
+import { normalizeAcpToolCall, normalizeToolMessages } from '@/common/chat/normalizeToolCall';
 import { describe, expect, it } from 'vitest';
 
 describe('normalizeAcpToolCall', () => {
@@ -45,5 +45,51 @@ describe('normalizeAcpToolCall', () => {
     expect((normalized as { imagePath?: string } | undefined)?.imagePath).toBe(
       '/Users/test/.codex/generated_images/session/ig_test_image.png'
     );
+  });
+
+  it('keeps one turn tool previews within the 256 KiB aggregate budget', () => {
+    const messages: IMessageToolCall[] = Array.from({ length: 40 }, (_, index) => ({
+      id: `tool-${index}`,
+      conversation_id: 'conv-1',
+      type: 'tool_call',
+      content: {
+        call_id: `tool-${index}`,
+        name: 'Read',
+        args: {},
+        status: 'completed',
+        output: 'x'.repeat(8 * 1024),
+      },
+    }));
+
+    const normalized = normalizeToolMessages(messages);
+    const previewBytes = normalized.reduce(
+      (total, item) => total + (item.description?.length ?? 0) + (item.input?.length ?? 0) + (item.output?.length ?? 0),
+      0
+    );
+
+    expect(previewBytes).toBeLessThanOrEqual(256 * 1024);
+    expect(normalized.some((item) => item.truncated)).toBe(true);
+    expect(normalized.at(-1)?.output).toBeUndefined();
+  });
+
+  it('limits a single generic tool preview field to 8 KiB', () => {
+    const normalized = normalizeToolMessages([
+      {
+        id: 'tool-large',
+        conversation_id: 'conv-1',
+        type: 'tool_call',
+        content: {
+          call_id: 'tool-large',
+          name: 'Shell',
+          args: {},
+          status: 'completed',
+          output: '界'.repeat(16 * 1024),
+        },
+      },
+    ]);
+
+    expect(normalized[0].output?.length).toBeLessThanOrEqual(8 * 1024);
+    expect(normalized[0].output).toContain('...[truncated]');
+    expect(normalized[0].truncated).toBe(true);
   });
 });

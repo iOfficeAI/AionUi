@@ -8,7 +8,7 @@ import type { AcpPermissionRequest, PlanUpdate, ToolCallUpdate } from '@/common/
 import type { AcpAvailableCommand } from '@/common/chat/slash/types';
 import type { IResponseMessage } from '../adapter/ipcBridge';
 import { uuid } from '../utils';
-import { sanitizeAcpToolCallContent, sanitizeAcpToolUpdate } from './acpToolCallOutput';
+import { sanitizeAcpToolCallContent } from './acpToolCallOutput';
 
 export { sanitizeAcpToolCallContent } from './acpToolCallOutput';
 
@@ -295,14 +295,15 @@ export type IMessageAcpToolCall = IMessage<'acp_tool_call', ToolCallUpdate>;
 export const mergeAcpToolCallContent = (
   existing: IMessageAcpToolCall['content'],
   incoming: IMessageAcpToolCall['content']
-): IMessageAcpToolCall['content'] => ({
-  ...existing,
-  ...incoming,
-  update: sanitizeAcpToolUpdate({
-    ...existing.update,
-    ...incoming.update,
-  }),
-});
+): IMessageAcpToolCall['content'] =>
+  sanitizeAcpToolCallContent({
+    ...existing,
+    ...incoming,
+    update: {
+      ...existing.update,
+      ...incoming.update,
+    },
+  });
 
 export const isTextContentReplacement = (content: IMessageText['content'] | undefined): boolean =>
   content?.replace === true;

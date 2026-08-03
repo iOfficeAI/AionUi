@@ -4,7 +4,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { getAcpImageFileName, getAcpImagePath, sanitizeAcpToolCallContent } from '@/common/chat/acpToolCallOutput';
+import {
+  getAcpArtifactPathAliases,
+  getAcpImageFileName,
+  getAcpImagePath,
+  sanitizeAcpToolCallContent,
+} from '@/common/chat/acpToolCallOutput';
 import { composeMessage, mergeAcpToolCallContent } from '@/common/chat/chatLib';
 import type { IMessageAcpToolCall, TMessage } from '@/common/chat/chatLib';
 import { describe, expect, it, vi } from 'vitest';
@@ -61,7 +66,7 @@ describe('ACP tool call image output', () => {
     expect(sanitized.update.rawOutput?.image).toBeUndefined();
   });
 
-  it('preserves oversized non-image results even when saved_path is present', () => {
+  it('truncates oversized non-image results and marks them for on-demand loading', () => {
     const content = createAcpToolCall({
       saved_path: '/tmp/result.txt',
       result: `long text output ${'A'.repeat(128 * 1024)}`,
@@ -69,9 +74,40 @@ describe('ACP tool call image output', () => {
 
     const sanitized = sanitizeAcpToolCallContent(content);
 
-    expect(sanitized.update.rawOutput?.result).toContain('long text output');
-    expect(sanitized.update.rawOutput?.result_omitted).toBeUndefined();
-    expect(sanitized.update.rawOutput?.image).toBeUndefined();
+    const result = sanitized.update.rawOutput?.result;
+    expect(result).toContain('long text output');
+    expect(typeof result).toBe('string');
+    if (typeof result !== 'string') throw new Error('Expected compacted result to remain a string');
+    expect(result.length).toBeLessThanOrEqual(8 * 1024);
+    expect((sanitized as typeof sanitized & { _compact?: { truncated?: boolean } })._compact?.truncated).toBe(true);
+  });
+
+  it('omits oversized arrays of individually small tool values', () => {
+    const content = createAcpToolCall({
+      entries: Array.from({ length: 200 }, (_, index) => ({
+        path: `/repo/file-${index}.ts`,
+        output: 'x'.repeat(2048),
+      })),
+    }).content;
+
+    const sanitized = sanitizeAcpToolCallContent(content);
+
+    expect(sanitized.update.rawOutput?._omitted).toBe(true);
+    expect(sanitized.update.rawOutput?._reason).toBe('payload_too_large');
+    expect((sanitized as typeof sanitized & { _compact?: { truncated?: boolean } })._compact?.truncated).toBe(true);
+  });
+
+  it('bounds large ACP content output and keeps it available through the compact marker', () => {
+    const content = createAcpToolCall(undefined).content;
+    content.update.content = Array.from({ length: 40 }, () => ({
+      type: 'content',
+      content: { type: 'text', text: 'result line '.repeat(1000) },
+    }));
+
+    const sanitized = sanitizeAcpToolCallContent(content);
+
+    expect(JSON.stringify(sanitized.update.content ?? []).length).toBeLessThanOrEqual(64 * 1024);
+    expect((sanitized as typeof sanitized & { _compact?: { truncated?: boolean } })._compact?.truncated).toBe(true);
   });
 
   it('omits oversized inline image results even without saved_path', () => {
@@ -98,6 +134,24 @@ describe('ACP tool call image output', () => {
     );
     expect(nonStringResult.update.rawOutput?.result).toEqual({ value: 'not a base64 string' });
     expect(nonStringResult.update.rawOutput?.image).toBeUndefined();
+  });
+
+  it('omits Grok ReadFile nested image data before live message composition', () => {
+    const content = createAcpToolCall({
+      type: 'ReadFile',
+      image_content: {
+        data: `/9j/${'A'.repeat(128 * 1024)}`,
+        mime_type: 'image/jpeg',
+      },
+    }).content;
+
+    const sanitized = sanitizeAcpToolCallContent(content);
+    const imageContent = sanitized.update.rawOutput?.image_content as Record<string, unknown>;
+
+    expect(imageContent.data).toBeUndefined();
+    expect(imageContent.data_omitted).toBe(true);
+    expect(imageContent.data_bytes).toBe(128 * 1024 + 4);
+    expect(imageContent.mime_type).toBe('image/jpeg');
   });
 
   it('sanitizes snake_case raw_output and preserves existing image metadata', () => {
@@ -155,6 +209,7 @@ describe('ACP tool call image output', () => {
 
     expect(merged.update.rawOutput?.result).toBeUndefined();
     expect(merged.update.rawOutput?.image?.mime_type).toBe('image/webp');
+    expect((merged as typeof merged & { _compact?: { truncated?: boolean } })._compact?.truncated).toBe(true);
   });
 
   it('sanitizes newly inserted ACP tool call messages', () => {
@@ -258,6 +313,83 @@ describe('ACP tool call image output', () => {
         },
       })
     ).toBe('/tmp/result.txt');
+  });
+
+  it('resolves Grok ImageGen paths from persisted raw output', () => {
+    expect(
+      getAcpImagePath({
+        ...createAcpToolCall(undefined).content.update,
+        rawOutput: {
+          type: 'ImageGen',
+          path: 'C:\\Users\\test\\.grok\\sessions\\session-1\\images\\1.jpg',
+        },
+      })
+    ).toBe('C:\\Users\\test\\.grok\\sessions\\session-1\\images\\1.jpg');
+
+    expect(
+      getAcpImagePath({
+        ...createAcpToolCall(undefined).content.update,
+        rawOutput: {
+          type: 'ReadFile',
+          path: 'C:\\tmp\\screenshot.png',
+        },
+      })
+    ).toBeUndefined();
+  });
+
+  it('maps Grok relative artifact links to the absolute ImageGen output path', () => {
+    const absolutePath = 'C:\\Users\\test\\.grok\\sessions\\session-1\\images\\1.jpg';
+    const aliases = getAcpArtifactPathAliases({
+      ...createAcpToolCall(undefined).content.update,
+      rawOutput: {
+        type: 'ImageGen',
+        path: absolutePath,
+        filename: '1.jpg',
+        session_folder: 'images',
+      },
+    });
+
+    expect(aliases['images/1.jpg']).toBe(absolutePath);
+    expect(aliases['1.jpg']).toBe(absolutePath);
+  });
+
+  it('maps generic local artifacts but ignores relative paths and remote URLs', () => {
+    const absolutePath = 'C:\\Users\\test\\workspace\\video\\clip.mp4';
+    expect(
+      getAcpArtifactPathAliases({
+        ...createAcpToolCall(undefined).content.update,
+        rawOutput: { path: absolutePath },
+      })
+    ).toMatchObject({
+      'clip.mp4': absolutePath,
+      'video/clip.mp4': absolutePath,
+    });
+
+    expect(
+      getAcpArtifactPathAliases({
+        ...createAcpToolCall(undefined).content.update,
+        rawOutput: { path: 'images/1.jpg', saved_path: 'https://example.com/1.jpg' },
+      })
+    ).toEqual({});
+  });
+
+  it('resolves Grok ReadFile image paths without retaining nested base64', () => {
+    const update = {
+      ...createAcpToolCall(undefined).content.update,
+      raw_input: {
+        target_file: 'C:\\Users\\test\\workspace\\images\\grok-self.jpg',
+      },
+      rawOutput: {
+        type: 'ReadFile',
+        image_content: {
+          data_omitted: true,
+          data_bytes: 399040,
+          mime_type: 'image/jpeg',
+        },
+      },
+    };
+
+    expect(getAcpImagePath(update)).toBe('C:\\Users\\test\\workspace\\images\\grok-self.jpg');
   });
 
   it('falls back to a generated image file name when the path has no file name', () => {

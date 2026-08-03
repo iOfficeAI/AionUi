@@ -9,7 +9,7 @@
 
 import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 vi.mock('react-i18next', () => ({
@@ -17,6 +17,7 @@ vi.mock('react-i18next', () => ({
 }));
 
 const openFeedbackMock = vi.fn(() => Promise.resolve());
+const getImageBase64Mock = vi.hoisted(() => vi.fn());
 vi.mock('@/renderer/hooks/context/FeedbackContext', () => ({
   useFeedback: () => ({ openFeedback: openFeedbackMock }),
 }));
@@ -38,10 +39,14 @@ vi.mock('@/renderer/components/base/FileChangesPanel', () => ({
 vi.mock('@/renderer/hooks/file/useDiffPreviewHandlers', () => ({
   useDiffPreviewHandlers: () => ({ openDiff: () => {}, openFile: () => {} }),
 }));
+vi.mock('@/renderer/hooks/context/ConversationContext', () => ({
+  useConversationContextSafe: () => ({ workspace: 'C:\\Users\\test\\workspace' }),
+}));
 vi.mock('@/common', () => ({
   ipcBridge: {
     acpConversation: { respondToConfirmation: { invoke: vi.fn() } },
     conversation: { respondToConfirmation: { invoke: vi.fn() } },
+    fs: { getImageBase64: { invoke: getImageBase64Mock } },
   },
 }));
 
@@ -67,6 +72,8 @@ const buildToolGroup = (status: IMessageToolGroup['content'][number]['status']):
 describe('MessageToolGroup — FeedbackButton wiring', () => {
   beforeEach(() => {
     openFeedbackMock.mockClear();
+    getImageBase64Mock.mockReset();
+    getImageBase64Mock.mockResolvedValue('data:image/jpeg;base64,preview');
   });
 
   afterEach(() => {
@@ -97,6 +104,34 @@ describe('MessageToolGroup — FeedbackButton wiring', () => {
     expect(openFeedbackMock).toHaveBeenCalledWith({
       module: 'conversation-session',
       autoScreenshot: true,
+    });
+  });
+
+  it('resolves relative generated image paths against the conversation workspace', async () => {
+    const message = {
+      ...buildToolGroup('Success'),
+      content: [
+        {
+          call_id: 'image-1',
+          description: 'generated image',
+          name: 'ImageGeneration',
+          render_output_as_markdown: false,
+          status: 'Success',
+          result_display: {
+            img_url: 'images/1.jpg',
+            relative_path: 'images/1.jpg',
+          },
+        },
+      ],
+    } as IMessageToolGroup;
+
+    render(<MessageToolGroup message={message} />);
+
+    await waitFor(() => {
+      expect(getImageBase64Mock).toHaveBeenCalledWith({
+        path: 'images/1.jpg',
+        workspace: 'C:\\Users\\test\\workspace',
+      });
     });
   });
 });

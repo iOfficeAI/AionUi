@@ -5,6 +5,7 @@
  */
 
 import type { IConversationArtifact } from '@/common/adapter/ipcBridge';
+import { getAcpArtifactPathAliases } from '@/common/chat/acpToolCallOutput';
 import type { IMessageAcpToolCall, IMessageToolCall, IMessageToolGroup, TMessage } from '@/common/chat/chatLib';
 import { useConversationContextSafe } from '@/renderer/hooks/context/ConversationContext';
 import { useConversationRuntimeView } from '@/renderer/pages/conversation/runtime/useConversationRuntimeView';
@@ -223,12 +224,14 @@ const MessageItem: React.FC<{
   highlighted?: boolean;
   rowWidthClass: string;
   showCopyRow?: boolean;
+  localFileAliases?: Readonly<Record<string, string>>;
 }> = React.memo(
   HOC((props) => {
     const { message, highlighted, rowWidthClass } = props as {
       message: TMessage;
       highlighted?: boolean;
       rowWidthClass: string;
+      localFileAliases?: Readonly<Record<string, string>>;
     };
     return (
       <div
@@ -254,16 +257,20 @@ const MessageItem: React.FC<{
     ({
       message,
       showCopyRow,
+      localFileAliases,
     }: {
       message: TMessage;
       highlighted?: boolean;
       rowWidthClass: string;
       showCopyRow?: boolean;
+      localFileAliases?: Readonly<Record<string, string>>;
     }) => {
       const { t } = useTranslation();
       switch (message.type) {
         case 'text':
-          return <MessageText message={message} showCopyRow={showCopyRow}></MessageText>;
+          return (
+            <MessageText message={message} showCopyRow={showCopyRow} localFileAliases={localFileAliases}></MessageText>
+          );
         case 'tips':
           return <MessageTips message={message}></MessageTips>;
         case 'tool_call':
@@ -296,7 +303,8 @@ const MessageItem: React.FC<{
     prev.message.type === next.message.type &&
     prev.highlighted === next.highlighted &&
     prev.rowWidthClass === next.rowWidthClass &&
-    prev.showCopyRow === next.showCopyRow
+    prev.showCopyRow === next.showCopyRow &&
+    prev.localFileAliases === next.localFileAliases
 );
 
 const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }> = ({ emptySlot }) => {
@@ -323,6 +331,24 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
   const loadingTargetKeyRef = useRef<string>('');
   const scrollerElementRef = useRef<HTMLDivElement | null>(null);
   const contentElementRef = useRef<HTMLDivElement | null>(null);
+
+  // ACP agents often write short relative artifact paths in their final prose,
+  // while the preceding tool result contains the only resolvable absolute path.
+  // Snapshot aliases at each text message so repeated names such as images/1.jpg
+  // resolve to the artifact from the correct turn rather than a later one.
+  const localFileAliasesByMessageId = useMemo(() => {
+    const aliases: Record<string, string> = {};
+    const result: Record<string, Readonly<Record<string, string>>> = {};
+    for (const message of list) {
+      if (message.type === 'acp_tool_call' && message.content?.update) {
+        Object.assign(aliases, getAcpArtifactPathAliases(message.content.update));
+      }
+      if (message.type === 'text') {
+        result[message.id] = { ...aliases };
+      }
+    }
+    return result;
+  }, [list]);
 
   // Pre-process message list to group tool outputs into summary cards
   const processedList = useMemo(() => {
@@ -673,6 +699,7 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
         highlighted={highlighted}
         rowWidthClass={rowWidthClass}
         showCopyRow={showCopyRow}
+        localFileAliases={message.type === 'text' ? localFileAliasesByMessageId[message.id] : undefined}
       ></MessageItem>
     );
   };

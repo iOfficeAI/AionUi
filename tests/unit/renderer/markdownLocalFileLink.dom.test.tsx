@@ -195,6 +195,41 @@ describe('MarkdownView local file links', () => {
     expect(link).toHaveAttribute('href', 'https://csbu-workmate.com/docs');
   });
 
+  it('opens relative Grok artifact links through their absolute tool-output alias', () => {
+    const onLocalFileLink = vi.fn();
+    const generatedPath = 'C:\\Users\\test\\.grok\\sessions\\session-1\\images\\1.jpg';
+
+    render(
+      <MarkdownView
+        onLocalFileLink={onLocalFileLink}
+        localFileAliases={{ 'images/1.jpg': generatedPath }}
+        localFileBasePath='C:\\Users\\test\\workspace'
+      >
+        {'[images/1.jpg](images/1.jpg)'}
+      </MarkdownView>
+    );
+
+    expect(screen.queryByRole('link')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'images/1.jpg' }));
+    expect(onLocalFileLink).toHaveBeenCalledWith(generatedPath, expect.objectContaining({ filePath: generatedPath }));
+  });
+
+  it('renders relative generated images from their absolute tool-output alias', () => {
+    const generatedPath = 'C:\\Users\\test\\.grok\\sessions\\session-1\\images\\1.jpg';
+
+    render(
+      <MarkdownView localFileAliases={{ 'images/1.jpg': generatedPath }}>{'![landscape](images/1.jpg)'}</MarkdownView>
+    );
+
+    expect(screen.getByRole('img', { name: 'landscape' })).toHaveAttribute('src', generatedPath);
+  });
+
+  it('does not crash on malformed percent escapes in generated image links', () => {
+    render(<MarkdownView>{'![broken](images/bad%name.jpg)'}</MarkdownView>);
+
+    expect(screen.getByRole('img', { name: 'broken' })).toHaveAttribute('src', 'images/bad%name.jpg');
+  });
+
   it('keeps http hash links as browser anchors', () => {
     render(<MarkdownView>{'[docs](https://csbu-workmate.com/docs#L10)'}</MarkdownView>);
 

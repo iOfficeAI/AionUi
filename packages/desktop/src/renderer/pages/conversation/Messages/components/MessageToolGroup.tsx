@@ -15,6 +15,7 @@ import ButlerDiagnoseButton from '@/renderer/components/base/ButlerDiagnoseButto
 import FeedbackButton from '@/renderer/components/base/FeedbackButton';
 import FileChangesPanel from '@/renderer/components/base/FileChangesPanel';
 import { useDiffPreviewHandlers } from '@/renderer/hooks/file/useDiffPreviewHandlers';
+import { useConversationContextSafe } from '@/renderer/hooks/context/ConversationContext';
 import { parseDiff } from '@/renderer/utils/file/diffUtils';
 import MessageFileChanges from '../MessageFileChanges';
 import CollapsibleContent from '@renderer/components/chat/CollapsibleContent';
@@ -229,10 +230,11 @@ const ImageDisplay: React.FC<{
   relativePath?: string;
 }> = ({ imgUrl, relativePath }) => {
   const { t } = useTranslation();
+  const conversationContext = useConversationContextSafe();
   const [messageApi, messageContext] = Message.useMessage();
   const [imageUrl, setImageUrl] = useState<string>(imgUrl);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
+  const [hasError, setHasError] = useState(false);
   const { inPreviewGroup } = useContext(ImagePreviewContext);
 
   // 如果是本地路径，需要加载为 base64 Load local paths as base64
@@ -242,9 +244,9 @@ const ImageDisplay: React.FC<{
       setLoading(false);
     } else {
       setLoading(true);
-      setError(false);
+      setHasError(false);
       ipcBridge.fs.getImageBase64
-        .invoke({ path: imgUrl })
+        .invoke({ path: imgUrl, workspace: conversationContext?.workspace })
         .then((base64) => {
           if (!base64) {
             throw new Error('Image file not found');
@@ -254,11 +256,11 @@ const ImageDisplay: React.FC<{
         })
         .catch((error) => {
           console.error('Failed to load image:', error);
-          setError(true);
+          setHasError(true);
           setLoading(false);
         });
     }
-  }, [imgUrl]);
+  }, [conversationContext?.workspace, imgUrl]);
 
   // 获取图片 blob（复用逻辑）Get image blob (reusable logic)
   const getImageBlob = useCallback(async (): Promise<Blob> => {
@@ -360,7 +362,7 @@ const ImageDisplay: React.FC<{
   }
 
   // 错误状态 Error state
-  if (error || !imageUrl) {
+  if (hasError || !imageUrl) {
     return (
       <div className='flex items-center gap-8px my-8px text-t-secondary text-sm'>
         <span>{t('messages.imageLoadFailed', { defaultValue: 'Failed to load image' })}</span>
