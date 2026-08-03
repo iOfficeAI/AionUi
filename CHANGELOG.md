@@ -1,5 +1,39 @@
 # Changelog
 
+## [2.1.48](https://github.com/suoak/AionUi/compare/v2.1.47...v2.1.48) (2026-08-03)
+
+### Desktop
+
+#### Bug Fixes
+
+- **agent:** enforce bounded tool-output transport and prevent renderer teardown races from crashing conversations
+- **preview:** open generated Grok and Codex image/file references through managed local-file links
+- **desktop:** enable close-to-tray by default, hide the dormant desktop-pet module, and persist local crash diagnostics
+- **branding:** use the current WorkMate assistant icon and remove the legacy AionUi theme screenshot
+
+#### Build System
+
+- **desktop:** update Electron to 42.7.1
+
+### Core ([v0.1.60](https://github.com/suoak/AionCore/releases/tag/v0.1.60))
+
+#### Features
+
+- **assistant:** add the default-enabled Lark Work Assistant backed by the progressive `lark` skill
+
+#### Bug Fixes
+
+- **acp:** cap oversized tool and permission payloads before desktop streaming
+- **grok:** preserve generated-image file references while removing inline base64 payloads
+- **codex:** trust WorkMate-provisioned temporary workspaces while retaining warnings for user projects
+- **process:** improve subprocess-exit diagnostics
+
+#### Runtime
+
+- update the bundled Codex CLI to 0.145.0
+
+---
+
 ## [2.1.47](https://github.com/suoak/AionUi/compare/v2.1.46...v2.1.47) (2026-08-02)
 
 ### Desktop
