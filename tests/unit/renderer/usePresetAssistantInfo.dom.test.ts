@@ -69,7 +69,7 @@ describe('usePresetAssistantInfo', () => {
 
   it('prefers preset assistant avatar over custom runtime metadata when both identities exist', () => {
     useSWRMock.mockImplementation((key: unknown) => {
-      if (key === 'assistants') {
+      if (key === 'assistants.list') {
         return {
           data: [
             {
@@ -108,7 +108,7 @@ describe('usePresetAssistantInfo', () => {
     currentLanguage = 'zh-CN';
 
     useSWRMock.mockImplementation((key: unknown) => {
-      if (key === 'assistants') {
+      if (key === 'assistants.list') {
         return {
           data: [
             {
@@ -146,7 +146,7 @@ describe('usePresetAssistantInfo', () => {
 
   it('prefers explicit conversation assistant payload before catalog fallbacks', () => {
     useSWRMock.mockImplementation((key: unknown) => {
-      if (key === 'assistants') return { data: [], isLoading: false };
+      if (key === 'assistants.list') return { data: [], isLoading: false };
       if (key === 'extensions.acpAdapters') return { data: [], isLoading: false };
       return { data: undefined, isLoading: false };
     });
@@ -178,7 +178,7 @@ describe('usePresetAssistantInfo', () => {
 
   it('restores local absolute assistant snapshot avatars from the backend assistant catalog', () => {
     useSWRMock.mockImplementation((key: unknown) => {
-      if (key === 'assistants') {
+      if (key === 'assistants.list') {
         return {
           data: [
             {
@@ -222,7 +222,7 @@ describe('usePresetAssistantInfo', () => {
 
   it('does not expose local absolute assistant snapshot avatars when the catalog cannot restore them', () => {
     useSWRMock.mockImplementation((key: unknown) => {
-      if (key === 'assistants') return { data: [], isLoading: false };
+      if (key === 'assistants.list') return { data: [], isLoading: false };
       if (key === 'extensions.acpAdapters') return { data: [], isLoading: false };
       return { data: undefined, isLoading: false };
     });
@@ -255,7 +255,7 @@ describe('usePresetAssistantInfo', () => {
 
   it('returns assistant fallback for generated assistants whose avatar is empty', () => {
     useSWRMock.mockImplementation((key: unknown) => {
-      if (key === 'assistants') return { data: [], isLoading: false };
+      if (key === 'assistants.list') return { data: [], isLoading: false };
       if (key === 'extensions.acpAdapters') return { data: [], isLoading: false };
       return { data: undefined, isLoading: false };
     });
@@ -288,7 +288,7 @@ describe('usePresetAssistantInfo', () => {
 
   it('includes preset assistant backend when the assistant catalog resolves an identity', () => {
     useSWRMock.mockImplementation((key: unknown) => {
-      if (key === 'assistants') {
+      if (key === 'assistants.list') {
         return {
           data: [
             {
@@ -325,7 +325,7 @@ describe('usePresetAssistantInfo', () => {
 
   it('falls back to custom runtime metadata when no assistant identity exists', () => {
     useSWRMock.mockImplementation((key: unknown) => {
-      if (key === 'assistants') return { data: [], isLoading: false };
+      if (key === 'assistants.list') return { data: [], isLoading: false };
       if (key === 'extensions.acpAdapters') return { data: [], isLoading: false };
       return { data: undefined, isLoading: false };
     });
@@ -348,7 +348,7 @@ describe('usePresetAssistantInfo', () => {
 
   it('falls back to custom runtime metadata when legacy custom_agent_id is only a runtime row id', () => {
     useSWRMock.mockImplementation((key: unknown) => {
-      if (key === 'assistants') return { data: [], isLoading: false };
+      if (key === 'assistants.list') return { data: [], isLoading: false };
       if (key === 'extensions.acpAdapters') return { data: [], isLoading: false };
       return { data: undefined, isLoading: false };
     });
@@ -371,7 +371,7 @@ describe('usePresetAssistantInfo', () => {
 
   it('falls back to runtime metadata when an explicit assistant identity no longer resolves', () => {
     useSWRMock.mockImplementation((key: unknown) => {
-      if (key === 'assistants') return { data: [], isLoading: false };
+      if (key === 'assistants.list') return { data: [], isLoading: false };
       if (key === 'extensions.acpAdapters') return { data: [], isLoading: false };
       return { data: undefined, isLoading: false };
     });
@@ -395,7 +395,7 @@ describe('usePresetAssistantInfo', () => {
 
   it('does not revive a different legacy assistant when an explicit assistant identity is present', () => {
     useSWRMock.mockImplementation((key: unknown) => {
-      if (key === 'assistants') {
+      if (key === 'assistants.list') {
         return {
           data: [
             {
@@ -431,7 +431,7 @@ describe('usePresetAssistantInfo', () => {
 
   it('falls back from a stale assistant_id to a valid preset_assistant_id', () => {
     useSWRMock.mockImplementation((key: unknown) => {
-      if (key === 'assistants') {
+      if (key === 'assistants.list') {
         return {
           data: [
             {
@@ -468,7 +468,7 @@ describe('usePresetAssistantInfo', () => {
 
   it('restores assistant info from a legacy custom_agent_id when it still matches an assistant id', () => {
     useSWRMock.mockImplementation((key: unknown) => {
-      if (key === 'assistants') {
+      if (key === 'assistants.list') {
         return {
           data: [
             {
@@ -503,7 +503,7 @@ describe('usePresetAssistantInfo', () => {
 
   it('falls back to a capitalized backend name when legacy runtime rows lack agent_name', () => {
     useSWRMock.mockImplementation((key: unknown) => {
-      if (key === 'assistants') return { data: [], isLoading: false };
+      if (key === 'assistants.list') return { data: [], isLoading: false };
       if (key === 'extensions.acpAdapters') return { data: [], isLoading: false };
       return { data: undefined, isLoading: false };
     });

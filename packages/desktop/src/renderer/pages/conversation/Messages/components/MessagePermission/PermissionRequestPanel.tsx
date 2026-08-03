@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Button, Card, Radio, Typography } from '@arco-design/web-react';
+import { Button, Card, Typography } from '@arco-design/web-react';
 import { Attention, CheckOne } from '@icon-park/react';
 import classNames from 'classnames';
 import React, { useCallback, useEffect, useId, useRef, useState } from 'react';
@@ -12,7 +12,6 @@ import { useTranslation } from 'react-i18next';
 import styles from './PermissionRequestPanel.module.css';
 import {
   getPermissionOptionsIdentity,
-  getSafePermissionOptionId,
   type PermissionOperationKind,
   type PermissionPanelOption,
 } from './permissionOptions';
@@ -42,16 +41,14 @@ export const PermissionRequestPanel: React.FC<PermissionRequestPanelProps> = ({
 }) => {
   const { t } = useTranslation();
   const optionsIdentity = getPermissionOptionsIdentity(options);
-  const [selectedId, setSelectedId] = useState<string | null>(() => getSafePermissionOptionId(options));
   const [isResponding, setIsResponding] = useState(false);
   const [hasResponded, setHasResponded] = useState(false);
   const [hasError, setHasError] = useState(false);
+  const [submittingId, setSubmittingId] = useState<string | null>(null);
   const respondingRef = useRef(false);
   const requestEpochRef = useRef(0);
   const optionsEpochRef = useRef(0);
-  const optionsRef = useRef(options);
   const optionsLabelId = useId();
-  optionsRef.current = options;
 
   useEffect(() => {
     requestEpochRef.current += 1;
@@ -59,47 +56,50 @@ export const PermissionRequestPanel: React.FC<PermissionRequestPanelProps> = ({
     setIsResponding(false);
     setHasResponded(false);
     setHasError(false);
-    setSelectedId(getSafePermissionOptionId(optionsRef.current));
+    setSubmittingId(null);
   }, [requestKey]);
 
   useEffect(() => {
     optionsEpochRef.current += 1;
     setHasError(false);
     setHasResponded(false);
-    setSelectedId(getSafePermissionOptionId(optionsRef.current));
   }, [optionsIdentity]);
 
-  const handleOptionChange = useCallback((optionId: string) => {
-    setSelectedId(optionId);
-  }, []);
+  // Every option submits on a single click (allow/reject, once or always,
+  // plus neutral) — there is no separate confirm step. The in-flight guard
+  // (respondingRef) drops double-clicks and clicks during submission, and the
+  // request/option epoch guards ignore results that resolve after the request
+  // or the option set has changed underneath us.
+  const submitOption = useCallback(
+    async (option: PermissionPanelOption) => {
+      if (respondingRef.current || hasResponded || option.disabled) return;
 
-  const submitSelected = useCallback(async () => {
-    if (respondingRef.current || hasResponded || !selectedId) return;
-    const selectedOption = options.find((option) => option.id === selectedId && !option.disabled);
-    if (!selectedOption) return;
+      const requestEpoch = requestEpochRef.current;
+      const optionsEpoch = optionsEpochRef.current;
+      respondingRef.current = true;
+      setIsResponding(true);
+      setSubmittingId(option.id);
+      setHasError(false);
 
-    const requestEpoch = requestEpochRef.current;
-    const optionsEpoch = optionsEpochRef.current;
-    respondingRef.current = true;
-    setIsResponding(true);
-    setHasError(false);
-
-    try {
-      await onConfirm(selectedOption.value);
-      if (requestEpochRef.current === requestEpoch && optionsEpochRef.current === optionsEpoch) {
-        setHasResponded(true);
+      try {
+        await onConfirm(option.value);
+        if (requestEpochRef.current === requestEpoch && optionsEpochRef.current === optionsEpoch) {
+          setHasResponded(true);
+        }
+      } catch {
+        if (requestEpochRef.current === requestEpoch && optionsEpochRef.current === optionsEpoch) {
+          setHasError(true);
+        }
+      } finally {
+        if (requestEpochRef.current === requestEpoch) {
+          respondingRef.current = false;
+          setIsResponding(false);
+          setSubmittingId(null);
+        }
       }
-    } catch {
-      if (requestEpochRef.current === requestEpoch && optionsEpochRef.current === optionsEpoch) {
-        setHasError(true);
-      }
-    } finally {
-      if (requestEpochRef.current === requestEpoch) {
-        respondingRef.current = false;
-        setIsResponding(false);
-      }
-    }
-  }, [hasResponded, onConfirm, options, selectedId]);
+    },
+    [hasResponded, onConfirm]
+  );
 
   return (
     <Card className={styles.card} bordered={false} data-testid={`${testIdPrefix}-card`}>
@@ -128,33 +128,26 @@ export const PermissionRequestPanel: React.FC<PermissionRequestPanelProps> = ({
                 {t('messages.chooseAction')}
               </legend>
               {options.length > 0 ? (
-                <Radio.Group
+                <div
                   className={styles.optionsGroup}
-                  name={`${testIdPrefix}-${optionsLabelId}`}
-                  value={selectedId}
-                  disabled={isResponding}
-                  onChange={handleOptionChange}
+                  role='group'
                   aria-labelledby={optionsLabelId}
                   data-testid={`${testIdPrefix}-options`}
                 >
                   {options.map((option) => (
-                    <div
+                    <Button
                       key={option.id}
-                      className={styles.optionRow}
+                      className={styles.optionButton}
                       data-testid={option.testId}
-                      data-selected={selectedId === option.id}
                       data-disabled={Boolean(option.disabled || isResponding)}
+                      disabled={option.disabled || isResponding}
+                      loading={submittingId === option.id}
+                      onClick={() => void submitOption(option)}
                     >
-                      <Radio
-                        className={styles.optionRadio}
-                        value={option.id}
-                        disabled={option.disabled || isResponding}
-                      >
-                        <Text className={styles.optionLabel}>{option.label}</Text>
-                      </Radio>
-                    </div>
+                      <span className={styles.optionLabel}>{option.label}</span>
+                    </Button>
                   ))}
-                </Radio.Group>
+                </div>
               ) : (
                 <Text className={styles.emptyState}>{t('messages.noOptionsAvailable')}</Text>
               )}
@@ -171,19 +164,6 @@ export const PermissionRequestPanel: React.FC<PermissionRequestPanelProps> = ({
                 <span>{t('messages.permissionResponseFailed')}</span>
               </div>
             )}
-
-            <div className={styles.footer}>
-              <Button
-                type='primary'
-                size='small'
-                disabled={!selectedId || isResponding}
-                loading={isResponding}
-                onClick={() => void submitSelected()}
-                data-testid={`${testIdPrefix}-confirm`}
-              >
-                {isResponding ? t('messages.processing') : t('messages.confirm')}
-              </Button>
-            </div>
           </>
         )}
 

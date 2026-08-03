@@ -39,6 +39,12 @@
     "detailUsedByTitle": "Used by",
     "detailUsedByEmpty": "No assistants are using this skill yet.",
     "detailBuiltinAssistant": "Built-in",
+    "detailFilesTitle": "Skill files",
+    "detailFilesError": "Could not load this skill's files.",
+    "editViaChat": {
+      "buttonLabel": "Edit via chat",
+      "defaultPrompt": "I'd like to improve this Skill: {{skillName}}\n\nPlease review its content and help me make improvements. My suggestions are:"
+    },
     "usedByCount": "Used by {{count}} assistant(s)",
     "manageInHub": "Manage in Skills Hub",
     "recommend": "Recommend Skills",
@@ -105,7 +111,8 @@
     "officialSkillsEmpty": "No official skills available.",
     "noSearchResults": "No matching skills.",
     "customHint": "Import a skill folder, parent folder, or zip; up to {{maxFileSize}} per file and {{maxTotalSize}} per skill; importing the same name overwrites the existing skill.",
-    "officialHint": "Official skills bundled with AionUi — ready to use out of the box, read-only, and updated with each release."
+    "officialHint": "Official skills bundled with AionUi — ready to use out of the box, read-only, and updated with each release.",
+    "deleteAffectsNewOnlyHint": "Deleting only affects new conversations. Skills already selected in existing conversations keep working."
   },
   "authMethod": "Authentication",
   "geminiApiKey": "Gemini API Key",

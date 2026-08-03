@@ -77,9 +77,9 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
     cleanupSiderTooltips();
     blurActiveElement();
     // Do NOT call closePreview() here. conversation/index.tsx calls
-    // closePreviewIfWorkspaceChanged() once the conversation data loads, which
+    // closePreviewIfScopeChanged() once the conversation data loads, which
     // keeps the preview open when switching between conversations of the same
-    // project and closes it only when the workspace actually changes.
+    // scope and closes it only when the scope (today = workspace) actually changes.
     setIsBatchMode(false);
   };
 

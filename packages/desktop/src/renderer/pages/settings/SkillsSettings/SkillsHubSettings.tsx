@@ -128,6 +128,15 @@ interface SkillsHubSettingsProps {
   withWrapper?: boolean;
 }
 
+type SkillsTab = 'custom' | 'official';
+
+const getSkillsTabFromState = (state: unknown): SkillsTab => {
+  if (typeof state === 'object' && state !== null && 'skillsTab' in state && state.skillsTab === 'official') {
+    return 'official';
+  }
+  return 'custom';
+};
+
 const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = true }) => {
   const { t } = useTranslation();
   const layout = useLayoutContext();
@@ -145,7 +154,7 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
   const [search_query, setSearchQuery] = useState('');
   const [importHistory, setImportHistory] = useState<SkillImportRecord[]>([]);
   const [importLimits, setImportLimits] = useState<SkillImportLimits | null>(null);
-  const [activeTab, setActiveTab] = useState<'custom' | 'official'>('custom');
+  const [activeTab, setActiveTab] = useState<SkillsTab>(() => getSkillsTabFromState(location.state));
   // Batch management (Custom tab only): multi-select skills for bulk deletion.
   const [batchMode, setBatchMode] = useState(false);
   const [selectedSkillNames, setSelectedSkillNames] = useState<Set<string>>(new Set());
@@ -154,9 +163,9 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
 
   const openSkillDetail = useCallback(
     (skillName: string) => {
-      void navigate(`/settings/skills/detail/${encodeURIComponent(skillName)}`);
+      void navigate(`/settings/skills/detail/${encodeURIComponent(skillName)}`, { state: { skillsTab: activeTab } });
     },
-    [navigate]
+    [activeTab, navigate]
   );
 
   // "Custom" tab: only user-imported skills.
@@ -303,10 +312,22 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
     if (selectedSkillNames.size === 0) return;
     Modal.confirm({
       title: t('settings.skillsHub.batchDeleteConfirmTitle', { defaultValue: 'Delete Skills' }),
-      content: t('settings.skillsHub.batchDeleteConfirmContent', {
-        count: selectedSkillNames.size,
-        defaultValue: `Are you sure you want to delete the ${selectedSkillNames.size} selected skill(s)?`,
-      }),
+      content: (
+        <div>
+          <div>
+            {t('settings.skillsHub.batchDeleteConfirmContent', {
+              count: selectedSkillNames.size,
+              defaultValue: `Are you sure you want to delete the ${selectedSkillNames.size} selected skill(s)?`,
+            })}
+          </div>
+          <div className='text-12px text-t-tertiary mt-8px'>
+            {t('settings.skillsHub.deleteAffectsNewOnlyHint', {
+              defaultValue:
+                'Deleting only affects new conversations. Skills already selected in existing conversations keep working.',
+            })}
+          </div>
+        </div>
+      ),
       okButtonProps: { status: 'warning' },
       okText: t('common.delete', { defaultValue: 'Delete' }),
       wrapClassName: 'modal-delete-skill',
@@ -857,10 +878,22 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
                       e.stopPropagation();
                       Modal.confirm({
                         title: t('settings.skillsHub.deleteConfirmTitle', { defaultValue: 'Delete Skill' }),
-                        content: t('settings.skillsHub.deleteConfirmContent', {
-                          name: skill.name,
-                          defaultValue: `Are you sure you want to delete "${skill.name}"?`,
-                        }),
+                        content: (
+                          <div>
+                            <div>
+                              {t('settings.skillsHub.deleteConfirmContent', {
+                                name: skill.name,
+                                defaultValue: `Are you sure you want to delete "${skill.name}"?`,
+                              })}
+                            </div>
+                            <div className='text-12px text-t-tertiary mt-8px'>
+                              {t('settings.skillsHub.deleteAffectsNewOnlyHint', {
+                                defaultValue:
+                                  'Deleting only affects new conversations. Skills already selected in existing conversations keep working.',
+                              })}
+                            </div>
+                          </div>
+                        ),
                         okButtonProps: { status: 'danger' },
                         okText: t('common.delete', { defaultValue: 'Delete' }),
                         onOk: () => void handleDelete(skill.name),

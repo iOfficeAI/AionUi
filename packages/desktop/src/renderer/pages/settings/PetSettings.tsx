@@ -16,7 +16,8 @@ import AionScrollArea from '@/renderer/components/base/AionScrollArea';
 import { useSettingsViewMode } from '@/renderer/components/settings/SettingsModal/settingsViewContext';
 
 const PetSettings: React.FC = () => {
-  const [enabled, setEnabled] = useState(true);
+  const [enabled, setEnabled] = useState(false);
+  const [enabledResolved, setEnabledResolved] = useState(false);
   const [size, setSize] = useState(280);
   const [dnd, setDnd] = useState(false);
   const [confirmEnabled, setConfirmEnabled] = useState(true);
@@ -26,10 +27,27 @@ const PetSettings: React.FC = () => {
   const isDesktop = isElectronDesktop();
 
   useEffect(() => {
-    setEnabled(configService.get('pet.enabled') ?? true);
+    let active = true;
     setSize(configService.get('pet.size') ?? 280);
     setDnd(configService.get('pet.dnd') ?? false);
     setConfirmEnabled(configService.get('pet.confirmEnabled') ?? true);
+    systemSettings.getPetEnabled
+      .invoke()
+      .then((value) => {
+        if (!active) return;
+        setEnabled(value);
+        setEnabledResolved(true);
+      })
+      .catch(() => {
+        // IPC failure: fall back to the locked default (OFF); never fall back to ON,
+        // which would reintroduce the "UI lies" state this fix eliminates.
+        if (!active) return;
+        setEnabled(false);
+        setEnabledResolved(true);
+      });
+    return () => {
+      active = false;
+    };
   }, []);
 
   const handleEnabledChange = useCallback((checked: boolean) => {
@@ -90,7 +108,14 @@ const PetSettings: React.FC = () => {
     {
       key: 'enabled',
       label: t('pet.enable'),
-      component: <Switch checked={enabled} onChange={handleEnabledChange} />,
+      component: (
+        <Switch
+          checked={enabled}
+          loading={!enabledResolved}
+          disabled={!enabledResolved}
+          onChange={handleEnabledChange}
+        />
+      ),
     },
     {
       key: 'size',

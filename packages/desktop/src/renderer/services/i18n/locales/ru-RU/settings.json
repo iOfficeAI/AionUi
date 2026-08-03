@@ -39,6 +39,12 @@
     "detailUsedByTitle": "Используется",
     "detailUsedByEmpty": "Этот навык пока не используется ни одним ассистентом.",
     "detailBuiltinAssistant": "Встроенный",
+    "detailFilesTitle": "Файлы навыка",
+    "detailFilesError": "Не удалось загрузить файлы этого навыка.",
+    "editViaChat": {
+      "buttonLabel": "Редактировать в чате",
+      "defaultPrompt": "Я хочу улучшить этот Skill: {{skillName}}\n\nПожалуйста, просмотрите его содержимое и помогите мне внести улучшения. Мои предложения:"
+    },
     "usedByCount": "Используется ассистентами: {{count}}",
     "manageInHub": "Управление в Центре навыков",
     "recommend": "Рекомендовать навыки",
@@ -105,7 +111,8 @@
     "officialSkillsEmpty": "Нет доступных официальных навыков.",
     "noSearchResults": "Нет подходящих навыков.",
     "customHint": "Импортируйте папку навыка, родительскую папку или zip; до {{maxFileSize}} на файл и {{maxTotalSize}} на навык; импорт с тем же именем перезаписывает существующий навык.",
-    "officialHint": "Официальные навыки, входящие в состав AionUi, — готовы к использованию, только для чтения и обновляются с каждым релизом."
+    "officialHint": "Официальные навыки, входящие в состав AionUi, — готовы к использованию, только для чтения и обновляются с каждым релизом.",
+    "deleteAffectsNewOnlyHint": "Deleting only affects new conversations. Skills already selected in existing conversations keep working."
   },
   "authMethod": "Аутентификация",
   "geminiApiKey": "API-ключ Gemini",

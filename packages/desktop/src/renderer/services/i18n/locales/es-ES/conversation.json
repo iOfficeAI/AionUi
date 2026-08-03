@@ -509,7 +509,15 @@
     }
   },
   "contextUsage": {
-    "contextUsed": "contexto usado"
+    "contextUsed": "contexto usado",
+    "tokensUsed": "{{tokens}} tokens usados",
+    "windowUnknown": "Tamaño de la ventana de contexto desconocido",
+    "sessionCost": "Costo de la sesión",
+    "input": "Entrada",
+    "output": "Salida",
+    "thought": "Razonamiento",
+    "cachedRead": "Lectura de caché",
+    "cachedWrite": "Escritura de caché"
   },
   "skill_generator": {
     "title": "Generar habilidad/regla",
@@ -564,7 +572,10 @@
         "body": "Esta solicitud no produjo ninguna respuesta visible."
       },
       "ACP_EMPTY_TURN_NEEDS_AUTH": {
-        "body": "Esta solicitud no produjo ninguna respuesta visible. Puede que el agente necesite que inicies sesión primero: {{hint}}."
+        "body": "Esta solicitud no produjo ninguna respuesta visible. Si ya has iniciado sesión, puede tratarse de un problema temporal del backend o de conexión: inténtalo de nuevo o inicia una nueva conversación. Si aún no has iniciado sesión, puedes iniciar sesión: {{hint}}."
+      },
+      "ACP_EMPTY_TURN_TOKEN_LIMIT": {
+        "body": "Esta solicitud no produjo ninguna respuesta visible. La conversación actual podría estar acercándose al límite de longitud de contexto: inténtalo de nuevo o inicia una nueva conversación y vuelve a intentarlo."
       },
       "ACP_EMPTY_TURN_MAX_TOKENS": {
         "body": "Esta solicitud alcanzó el límite de tokens de salida del modelo antes de producir alguna respuesta visible."
@@ -577,5 +588,35 @@
       }
     }
   },
-  "notFound": "Conversación no encontrada o ha sido eliminada"
+  "notFound": "Conversación no encontrada o ha sido eliminada",
+  "explorer": {
+    "addFolder": "Add folder to project",
+    "removeFolder": "Remove from project",
+    "attachDuplicate": "This folder is already in the project",
+    "attachOverlap": "This folder overlaps a folder already in the project",
+    "attachFailed": "Couldn't add the folder",
+    "removeFailed": "Couldn't remove the folder",
+    "contextMenu": {
+      "rename": "Cambiar nombre",
+      "addToChat": "Añadir al chat"
+    },
+    "namePlaceholder": "Nombre",
+    "deleteConfirm": "¿Eliminar «{{name}}»? Esto no se puede deshacer.",
+    "renameFailed": "No se pudo cambiar el nombre",
+    "tabs": {
+      "files": "Archivos",
+      "changes": "Cambios"
+    },
+    "changesPlaceholder": "El control de versiones estará en una pestaña aparte — próximamente.",
+    "addedToChat": "Se añadió {{name}} al chat",
+    "imported": "{{count}} archivo(s) importado(s)",
+    "importPartialFailed": "{{copied}} copiado(s), {{failed}} con error (conflictos de nombre o no admitidos)",
+    "importFailed": "Error al importar los archivos",
+    "search": {
+      "placeholder": "Buscar archivos por nombre",
+      "searching": "Buscando…",
+      "empty": "Ningún archivo coincide",
+      "limitReached": "Mostrando los primeros {{count}} — afina la búsqueda"
+    }
+  }
 }

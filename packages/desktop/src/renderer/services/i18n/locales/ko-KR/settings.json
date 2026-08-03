@@ -39,6 +39,12 @@
     "detailUsedByTitle": "사용 중인 어시스턴트",
     "detailUsedByEmpty": "아직 이 스킬을 사용하는 어시스턴트가 없습니다.",
     "detailBuiltinAssistant": "기본 제공",
+    "detailFilesTitle": "스킬 파일",
+    "detailFilesError": "이 스킬의 파일을 불러올 수 없습니다.",
+    "editViaChat": {
+      "buttonLabel": "대화로 편집",
+      "defaultPrompt": "이 Skill을 개선하고 싶습니다: {{skillName}}\n\n내용을 검토하고 개선할 수 있도록 도와주세요. 제 수정 제안은 다음과 같습니다:"
+    },
     "usedByCount": "{{count}}개의 어시스턴트가 사용 중",
     "manageInHub": "스킬 허브에서 관리",
     "recommend": "스마트 추천",
@@ -105,7 +111,8 @@
     "officialSkillsEmpty": "사용 가능한 공식 스킬이 없습니다.",
     "noSearchResults": "일치하는 스킬이 없습니다.",
     "customHint": "스킬 폴더, 상위 폴더 또는 zip을 가져올 수 있으며, 파일당 최대 {{maxFileSize}}, 스킬당 최대 {{maxTotalSize}}입니다. 같은 이름으로 가져오면 기존 스킬을 덮어씁니다.",
-    "officialHint": "AionUi에 기본 제공되는 공식 스킬입니다. 바로 사용할 수 있고 읽기 전용이며 버전마다 업데이트됩니다."
+    "officialHint": "AionUi에 기본 제공되는 공식 스킬입니다. 바로 사용할 수 있고 읽기 전용이며 버전마다 업데이트됩니다.",
+    "deleteAffectsNewOnlyHint": "Deleting only affects new conversations. Skills already selected in existing conversations keep working."
   },
   "authMethod": "인증",
   "geminiApiKey": "Gemini API 키",

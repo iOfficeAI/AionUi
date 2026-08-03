@@ -44,5 +44,8 @@
     "label": "Nivel de razonamiento",
     "switchSuccess": "Nivel de razonamiento cambiado",
     "switchFailed": "Error al cambiar el nivel de razonamiento"
+  },
+  "warmup": {
+    "clickToWake": "Haz clic para activar este miembro"
   }
 }

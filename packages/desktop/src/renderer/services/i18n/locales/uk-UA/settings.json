@@ -39,6 +39,12 @@
     "detailUsedByTitle": "Використовується",
     "detailUsedByEmpty": "Цю навичку поки не використовує жоден асистент.",
     "detailBuiltinAssistant": "Вбудований",
+    "detailFilesTitle": "Файли навички",
+    "detailFilesError": "Не вдалося завантажити файли цієї навички.",
+    "editViaChat": {
+      "buttonLabel": "Редагувати в чаті",
+      "defaultPrompt": "Я хочу покращити цей Skill: {{skillName}}\n\nБудь ласка, перегляньте його вміст і допоможіть мені внести покращення. Мої пропозиції:"
+    },
     "usedByCount": "Використовують асистентів: {{count}}",
     "manageInHub": "Керувати в Центрі навичок",
     "recommend": "Рекомендувати навички",
@@ -105,7 +111,8 @@
     "officialSkillsEmpty": "Немає доступних офіційних навичок.",
     "noSearchResults": "Немає відповідних навичок.",
     "customHint": "Імпортуйте теку навички, батьківську теку або zip; до {{maxFileSize}} на файл і {{maxTotalSize}} на навичку; імпорт з тією самою назвою перезаписує наявну навичку.",
-    "officialHint": "Офіційні навички, що постачаються з AionUi, — готові до використання, лише для читання та оновлюються з кожним випуском."
+    "officialHint": "Офіційні навички, що постачаються з AionUi, — готові до використання, лише для читання та оновлюються з кожним випуском.",
+    "deleteAffectsNewOnlyHint": "Deleting only affects new conversations. Skills already selected in existing conversations keep working."
   },
   "authMethod": "Автентифікація",
   "geminiApiKey": "API-ключ Gemini",

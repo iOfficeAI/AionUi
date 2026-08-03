@@ -89,6 +89,8 @@ import type {
 } from '../update/updateTypes';
 import type { AgentMetadata } from '@/renderer/utils/model/agentTypes';
 import type { Theme } from '@/common/theme/types';
+import type { AttachFolderRequest, ProjectDetailDto, ProjectEntryDto } from '@/common/types/project';
+import type { ChatFileRef } from '@/common/types/chatFile';
 import type { ProtocolDetectionRequest, ProtocolDetectionResponse } from '../utils/protocolDetector';
 import {
   buildCreateConversationBody,
@@ -117,7 +119,6 @@ import {
   fromBackendTeamOptional,
   toBackendAssistant,
 } from './teamMapper';
-import { fromBackendCompareResult, type RawCompareResult } from './fileSnapshotMapper';
 import {
   absoluteToRelativePath,
   fromBackendWorkspaceFlatFiles,
@@ -253,6 +254,18 @@ export const conversation = {
   getSlashCommands: httpGet<AcpSlashCommandApiItem[], { conversation_id: string }>(
     (p) => `/api/conversations/${p.conversation_id}/slash-commands`
   ),
+  // Latest context-usage snapshot (ACP UsageUpdate shape: tokens in context /
+  // window size / cumulative cost, with per-turn counters under _meta).
+  // Null until the agent reports usage.
+  getUsage: httpGet<
+    {
+      used: number;
+      size: number;
+      cost?: { amount: number; currency: string };
+      _meta?: Record<string, unknown>;
+    } | null,
+    { conversation_id: string }
+  >((p) => `/api/conversations/${p.conversation_id}/usage`),
   askSideQuestion: httpPost<ConversationSideQuestionResult, { conversation_id: string; question: string }>(
     (p) => `/api/conversations/${p.conversation_id}/side-question`,
     (p) => ({ question: p.question })
@@ -341,10 +354,6 @@ export const conversation = {
       return fromBackendWorkspaceList(raw, p.workspace, rel);
     }) as (p: { conversation_id: string; workspace: string; path: string; search?: string }) => Promise<IDirOrFile[]>,
   },
-  responseSearchWorkSpace: stubProvider<void, { file: number; dir: number; match?: IDirOrFile }>(
-    'responseSearchWorkSpace',
-    undefined as unknown as void
-  ),
   confirmation: {
     add: wsEmitter<IConfirmation<unknown> & { conversation_id: string }>('confirmation.add'),
     update: wsEmitter<IConfirmation<unknown> & { conversation_id: string }>('confirmation.update'),
@@ -370,6 +379,29 @@ export const conversation = {
 
 export const runtime = {
   statusChanged: wsEmitter<IRuntimeStatusEvent>('runtime.statusChanged'),
+};
+
+// ---------------------------------------------------------------------------
+// Project Explorer control plane — routed to /api/projects/* (HTTP; the data
+// plane is the WS fs/* monitor). See explorer-stage3 HTTP contract.
+// ---------------------------------------------------------------------------
+
+export const project = {
+  /** GET /api/projects/{id} → full project detail incl. all pe roots (entries). */
+  get: httpGet<ProjectDetailDto, { project_id: string }>((p) => `/api/projects/${encodeURIComponent(p.project_id)}`),
+  /**
+   * POST /api/projects/{id}/folders → attach a folder, returns the single new (or,
+   * for a subdir, the existing focused) entry. 409 `project_explorer_duplicate` /
+   * `project_explorer_overlap` surface via BackendHttpError.code.
+   */
+  attachFolder: httpPost<ProjectEntryDto, { project_id: string } & AttachFolderRequest>(
+    (p) => `/api/projects/${encodeURIComponent(p.project_id)}/folders`,
+    (p) => (p.display_name ? { uri: p.uri, display_name: p.display_name } : { uri: p.uri })
+  ),
+  /** DELETE /api/projects/{id}/folders/{pe_id} → 204. Workspace entry is immutable (backend rejects). */
+  removeFolder: httpDelete<void, { project_id: string; pe_id: string }>(
+    (p) => `/api/projects/${encodeURIComponent(p.project_id)}/folders/${encodeURIComponent(p.pe_id)}`
+  ),
 };
 
 // ---------------------------------------------------------------------------
@@ -533,20 +565,54 @@ export const autoUpdate = {
 };
 
 // ---------------------------------------------------------------------------
-// Dialog — stays IPC (native file picker)
+// Dialog — native IPC picker on Electron, server-side picker on WebUI
 // ---------------------------------------------------------------------------
 
+export type ShowOpenOptions =
+  | { defaultPath?: string; properties?: OpenDialogOptions['properties']; filters?: OpenDialogOptions['filters'] }
+  | undefined;
+
+export type ShowOpenHandler = (options: ShowOpenOptions) => Promise<string[] | undefined>;
+
+/**
+ * `show-open` is an Electron-only IPC channel: on WebUI the bridge speaks over a
+ * WebSocket whose server side has no provider for it, so an invoke would hang
+ * forever with no rejection — every directory/file picker silently does nothing.
+ *
+ * The renderer registers a server-side picker here during startup. Electron is
+ * unaffected: `window.electronAPI` is present there, so the native dialog wins.
+ */
+let webShowOpenHandler: ShowOpenHandler | null = null;
+
+export const registerWebShowOpenHandler = (handler: ShowOpenHandler | null): void => {
+  webShowOpenHandler = handler;
+};
+
+const nativeShowOpen = bridge.buildProvider<string[] | undefined, ShowOpenOptions>('show-open');
+
 export const dialog = {
-  showOpen: bridge.buildProvider<
-    string[] | undefined,
-    | { defaultPath?: string; properties?: OpenDialogOptions['properties']; filters?: OpenDialogOptions['filters'] }
-    | undefined
-  >('show-open'),
+  showOpen: {
+    provider: nativeShowOpen.provider,
+    invoke: ((options?: ShowOpenOptions) => {
+      const hasElectron = typeof window !== 'undefined' && Boolean((window as { electronAPI?: unknown }).electronAPI);
+      if (!hasElectron && webShowOpenHandler) {
+        return webShowOpenHandler(options);
+      }
+      return nativeShowOpen.invoke(options);
+    }) as typeof nativeShowOpen.invoke,
+  },
 };
 
 // ---------------------------------------------------------------------------
 // File System — routed to /api/fs/* and /api/skills/*
 // ---------------------------------------------------------------------------
+
+export type SkillFileNode = {
+  name: string;
+  relativePath: string;
+  type: 'directory' | 'file';
+  children?: SkillFileNode[];
+};
 
 export const fs = {
   getFilesByDir: httpPost<Array<IDirOrFile>, { dir: string; root: string }>('/api/fs/dir'),
@@ -557,8 +623,6 @@ export const fs = {
   getImageBase64: httpPost<string | null, { path: string; workspace?: string }>('/api/fs/image-base64'),
   fetchRemoteImage: httpPost<string, { url: string }>('/api/fs/fetch-remote-image'),
   readFile: httpPost<string | null, { path: string; workspace?: string }>('/api/fs/read'),
-  readFileBuffer: httpPost<string | null, { path: string; workspace?: string }>('/api/fs/read-buffer'),
-  createTempFile: httpPost<string, { file_name: string }>('/api/fs/temp'),
   writeFile: httpPost<boolean, { path: string; data: string; workspace?: string }>('/api/fs/write'),
   createZip: httpPost<
     boolean,
@@ -576,12 +640,13 @@ export const fs = {
   >('/api/fs/zip'),
   cancelZip: httpPost<boolean, { request_id: string }>('/api/fs/zip/cancel'),
   getFileMetadata: httpPost<IFileMetadata, { path: string; workspace?: string }>('/api/fs/metadata'),
-  copyFilesToWorkspace: httpPost<
-    { copied_files: string[]; failed_files?: Array<{ path: string; error: string }> },
-    { file_paths: string[]; workspace: string; source_root?: string }
+  // Import OS files into a project entry's directory (A-paste). `target` is the
+  // drop-target pe + relative dir ('' = its root). Name conflicts are reported in
+  // `failed_files` (not overwritten); directories are rejected there this round.
+  copyFilesToProject: httpPost<
+    { copied_files: string[]; failed_files: Array<{ path: string; reason: string }> },
+    { file_paths: string[]; target: { pe_id: string; relative_path: string }; source_root?: string }
   >('/api/fs/copy'),
-  removeEntry: httpPost<void, { path: string; workspace?: string }>('/api/fs/remove'),
-  renameEntry: httpPost<{ new_path: string }, { path: string; new_name: string; workspace?: string }>('/api/fs/rename'),
   readBuiltinRule: httpPost<string, { file_name: string }>('/api/skills/builtin-rule'),
   readBuiltinSkill: httpPost<string, { file_name: string }>('/api/skills/builtin-skill'),
   readAssistantRule: httpPost<string, { assistant_id: string; locale?: string }>('/api/skills/assistant-rule/read'),
@@ -683,18 +748,13 @@ export const fs = {
   ),
   enableSkillsMarket: httpPost<void, void>('/api/skills/market/enable'),
   disableSkillsMarket: httpPost<void, void>('/api/skills/market/disable'),
+  listSkillFiles: bridge.buildProvider<SkillFileNode[], { skill_location: string }>('skills.files.list'),
+  readSkillFile: bridge.buildProvider<string, { skill_location: string; relative_path: string }>('skills.files.read'),
 };
 
 // ---------------------------------------------------------------------------
 // File Watch — routed to /api/fs/watch/*
 // ---------------------------------------------------------------------------
-
-export const fileWatch = {
-  startWatch: httpPost<void, { file_path: string }>('/api/fs/watch/start'),
-  stopWatch: httpPost<void, { file_path: string }>('/api/fs/watch/stop'),
-  stopAllWatches: httpPost<void, void>('/api/fs/watch/stop-all'),
-  fileChanged: wsEmitter<{ file_path: string; event_type: string }>('fileWatch.fileChanged'),
-};
 
 // Workspace Office file watch
 export const workspaceOfficeWatch = {
@@ -712,43 +772,6 @@ export const fileStream = {
     relative_path: string;
     operation: 'write' | 'delete';
   }>('fileStream.contentUpdate'),
-};
-
-// File snapshot providers
-export const fileSnapshot = {
-  init: httpPost<import('@/common/types/platform/fileSnapshot').SnapshotInfo, { workspace: string }>(
-    '/api/fs/snapshot/init'
-  ),
-  compare: withResponseMap(
-    httpPost<RawCompareResult, { workspace: string }>('/api/fs/snapshot/compare'),
-    fromBackendCompareResult
-  ),
-  getBaselineContent: httpPost<string | null, { workspace: string; file_path: string }>('/api/fs/snapshot/baseline'),
-  getInfo: httpPost<import('@/common/types/platform/fileSnapshot').SnapshotInfo, { workspace: string }>(
-    '/api/fs/snapshot/info'
-  ),
-  dispose: httpPost<void, { workspace: string }>('/api/fs/snapshot/dispose'),
-  stageFile: httpPost<void, { workspace: string; file_path: string }>('/api/fs/snapshot/stage'),
-  stageAll: httpPost<void, { workspace: string }>('/api/fs/snapshot/stage-all'),
-  unstageFile: httpPost<void, { workspace: string; file_path: string }>('/api/fs/snapshot/unstage'),
-  unstageAll: httpPost<void, { workspace: string }>('/api/fs/snapshot/unstage-all'),
-  discardFile: httpPost<
-    void,
-    {
-      workspace: string;
-      file_path: string;
-      operation: import('@/common/types/platform/fileSnapshot').FileChangeOperation;
-    }
-  >('/api/fs/snapshot/discard'),
-  resetFile: httpPost<
-    void,
-    {
-      workspace: string;
-      file_path: string;
-      operation: import('@/common/types/platform/fileSnapshot').FileChangeOperation;
-    }
-  >('/api/fs/snapshot/reset'),
-  getBranches: httpPost<string[], { workspace: string }>('/api/fs/snapshot/branches'),
 };
 
 // ---------------------------------------------------------------------------
@@ -1482,7 +1505,9 @@ export interface ICronJobUpdateParams {
 interface ISendMessageParams {
   input: string;
   conversation_id: string;
-  files?: string[];
+  /** Source-tagged file refs; the backend resolves each to an absolute path and
+   *  injects it into the message. See {@link ChatFileRef}. */
+  files?: ChatFileRef[];
   loading_id?: string;
   inject_skills?: string[];
 }

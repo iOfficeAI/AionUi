@@ -1,5 +1,169 @@
 # Changelog
 
+## [2.1.45](https://github.com/iOfficeAI/AionUi/compare/v2.1.44...v2.1.45) (2026-07-31)
+
+### Desktop
+
+#### Features
+
+- **explorer:** reveal highlight + @ Tab complete (#3794)
+
+#### Bug Fixes
+
+- **sendbox:** tag loading-window @mention fallback with local chat-ref (#3801)
+
+### Core ([v0.1.56](https://github.com/iOfficeAI/AionCore/releases/tag/v0.1.56))
+
+#### Features
+
+- **project:** hide OS-junk and VCS-internal noise from listings (#727)
+
+#### Bug Fixes
+
+- **agents:** persist the catalog the availability probe already fetched (#735)
+- **ai-agent:** token usage for the direct-CLI backends (claude / codex) (#733)
+- **conversation:** request plaintext thinking from claude, drop blank thought cards (#731)
+- **project/monitor:** attribute watched-subdir events to parent so tree reflects dir delete/rename (#734)
+- **session:** settle cancelled workflows and stop per-turn pump state leaking across turns (#732)
+- **team:** derive team capability from probed MCP transports, not a stored veto (#725)
+
+---
+
+## [2.1.44](https://github.com/iOfficeAI/AionUi/compare/v2.1.43...v2.1.44) (2026-07-30)
+
+### Desktop
+
+#### Features
+
+- **skills:** add file browser to detail page (#3683)
+- **search:** filename search + chat-ref (#3784)
+
+#### Bug Fixes
+
+- **preview:** restore file rendering for Explorer opens (#3786)
+- **tray:** honor close-to-tray on custom title-bar close (#3717)
+
+### Core ([v0.1.55](https://github.com/iOfficeAI/AionCore/releases/tag/v0.1.55))
+
+#### Features
+
+- **agents:** add omp (Oh My Pi) builtin ACP agent (#717)
+- **project:** fs/search filename search vertical (#720)
+
+#### Bug Fixes
+
+- **auth:** make AionUi->AionPro data adoption a one-shot event (#716)
+- **db:** pre-migration repair for migration-030 startup-blocking CHECK failures (#724)
+- prevent silent encryption-key rotation on migration upgrade (ELECTRON-3T0) (#722)
+- **project:** add temporary fs/resolve command for preview file paths (#723)
+- **session:** carry tool input on permission events so the approval card shows what is being approved (#715)
+
+---
+
+## [2.1.43](https://github.com/iOfficeAI/AionUi/compare/v2.1.42...v2.1.43) (2026-07-29)
+
+### Desktop
+
+#### Features
+
+- **conversation:** restore agent-reported context usage indicator for ACP conversations (#3772)
+- **explorer:** sort tree children directories-first (#3775)
+- **explorer:** project-scoped Explorer replacing workspace tree (#3763)
+- **team:** thread teammate warmup status and trigger to model selector
+- **team:** add warmup click-to-wake tooltip copy for all locales
+- **team:** add manual warmup entry to AcpModelSelector read-only pill
+
+#### Bug Fixes
+
+- **pet:** source enable switch initial state from authoritative value (#3777)
+- **conversation:** persist ThoughtDisplay elapsed timer across conversation switches (#3774)
+- **webui:** implement dialog.showOpen so file and folder pickers work (#3766)
+
+#### Refactoring
+
+- **webui:** reduce redundant API refetch and drop dead front-end fs accessors (#3768)
+
+#### Styling
+
+- **team:** apply oxfmt formatting to warmup selector changes
+
+### Core ([v0.1.54](https://github.com/iOfficeAI/AionCore/releases/tag/v0.1.54))
+
+#### Features
+
+- multi-account user scope isolation (#669)
+- **project:** Project Explorer backend (runtime, WS monitor, HTTP) (#701)
+- **scripts:** carry aionrs changelog into the bump PR (#703)
+
+#### Refactoring
+
+- **acp:** upgrade agent-client-protocol SDK 0.11.1 -> 2.0.0 (#708)
+
+---
+
+## [2.1.42](https://github.com/iOfficeAI/AionUi/compare/v2.1.41...v2.1.42) (2026-07-28)
+
+### Desktop
+
+#### Features
+
+- **skills:** explain delete scope in skill delete confirm dialogs (#3761)
+- **assistant:** show quick-chat button on enabled tab rows (#3748)
+- **tray:** left-click tray icon toggles show/hide on Windows/Linux (#3726)
+- **permissions:** submit permission decision in one click for one-off options (#3686)
+
+#### Bug Fixes
+
+- **startup:** skip mkdir for pre-existing backend startup directories (#3759)
+- **i18n:** soften empty-turn needs-auth copy and add token-limit tip (#3751)
+- **conversation:** wrap long unbroken url/path in user message bubble (#3727)
+
+### Core ([v0.1.53](https://github.com/iOfficeAI/AionCore/releases/tag/v0.1.53))
+
+#### Features
+
+- **agents:** add MiMo Code builtin ACP agent (#700)
+
+#### Bug Fixes
+
+- **acp:** tolerate CodeBuddy dialect and stop misreporting empty turns as needs-auth (#692)
+- **ai-agent:** resolve cron full-auto mode to backend-native YOLO (ELECTRON-3RQ) (#699)
+- **session:** force-kill direct-CLI turns on UserCancelTimeout (#702)
+- **session:** preserve codex's real error when systemError precedes the terminal (#694)
+- **team:** converge run-scoped wakes into a run at the enqueue choke-point (#690)
+- **team:** dispatch native slash commands as bare command turns (#696)
+
+---
+
+## [2.1.41](https://github.com/iOfficeAI/AionUi/compare/v2.1.40...v2.1.41) (2026-07-24)
+
+### Desktop
+
+#### Features
+
+- **notification:** notify on agent turn completion when window is unfocused (desktop) (#3715)
+- **shortcuts:** add common UI bindings (#3675)
+
+#### Bug Fixes
+
+- **team:** extend ITeamRunEvent.source with system_lifecycle (#3721)
+
+### Core ([v0.1.52](https://github.com/iOfficeAI/AionCore/releases/tag/v0.1.52))
+
+#### Features
+
+- **project:** wire project-bind side branch into owner creation (#676)
+
+#### Bug Fixes
+
+- **agent:** unify CLI probe pipeline with classified failures and adaptive slow-probe recheck (#678)
+- **channel:** quiet WeChat poll log noise with state-transition logging and exponential backoff (#683)
+- **process:** allow whitespace in workspace cwd segments (#674)
+- **session:** restore codex slash commands + recover dead resume anchors on the direct-CLI path (#679)
+- **team:** converge system/lifecycle wakes into a team run (#680)
+
+---
+
 ## [2.1.40](https://github.com/iOfficeAI/AionUi/compare/v2.1.39...v2.1.40) (2026-07-23)
 
 ### Desktop

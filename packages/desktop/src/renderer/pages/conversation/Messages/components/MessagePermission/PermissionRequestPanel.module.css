@@ -124,63 +124,53 @@
   border-radius: 8px;
 }
 
-.optionsGroup :global(.arco-radio) {
+/* Reset the Arco Button chrome so each option reads as a full-width list row. */
+.optionButton:global(.arco-btn) {
   display: flex;
-  margin: 0;
-  line-height: 1.4;
-}
-
-.optionRow {
+  width: 100%;
+  height: auto;
   min-width: 0;
-  overflow: hidden;
+  margin: 0;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 0;
   background: transparent;
+  text-align: left;
   transition: background-color 0.16s ease;
 }
 
-.optionRow + .optionRow {
+.optionButton:global(.arco-btn) + .optionButton:global(.arco-btn) {
   border-top: 1px solid var(--color-border-2);
 }
 
-.optionRow:hover:not([data-disabled='true']) {
+.optionButton:global(.arco-btn):not(:disabled):hover {
   background: var(--color-fill-1);
 }
 
-.optionRow:focus-within {
+.optionButton:global(.arco-btn):focus-visible {
   background: var(--color-primary-light-1);
 }
 
-.optionRow[data-selected='true'] {
-  background: var(--color-primary-light-1);
-}
-
-.optionRow[data-disabled='true'] {
+.optionButton:global(.arco-btn)[data-disabled='true'] {
   opacity: 0.6;
 }
 
-.optionRadio {
-  display: flex;
-  box-sizing: border-box;
-  width: 100%;
-  margin: 0;
-  align-items: center;
-  padding: 7px 10px;
-}
-
-.optionRadio :global(.arco-radio-text) {
-  display: block;
-  min-width: 0;
-  flex: 1;
-  margin-left: 8px;
+.optionButton :global(.arco-btn-loading-icon) {
+  margin-right: 8px;
 }
 
 .optionLabel {
   display: block;
   min-width: 0;
+  flex: 1;
   color: var(--color-text-1);
   font-size: 13px;
   font-weight: 500;
   line-height: 1.4;
   overflow-wrap: anywhere;
+  white-space: normal;
 }
 
 .emptyState {
@@ -191,13 +181,6 @@
   color: var(--color-text-3);
   background: var(--color-fill-1);
   font-size: 12px;
-}
-
-.footer {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  padding-top: 2px;
 }
 
 .feedback {
@@ -236,13 +219,5 @@
     align-items: stretch;
     flex-direction: column;
     gap: 2px;
-  }
-
-  .footer {
-    align-items: stretch;
-  }
-
-  .footer :global(.arco-btn) {
-    width: 100%;
   }
 }

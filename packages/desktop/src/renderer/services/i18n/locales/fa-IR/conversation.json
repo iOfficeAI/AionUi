@@ -508,7 +508,15 @@
     }
   },
   "contextUsage": {
-    "contextUsed": "زمینه استفاده‌شده"
+    "contextUsed": "زمینه استفاده‌شده",
+    "tokensUsed": "{{tokens}} توکن استفاده شده",
+    "windowUnknown": "اندازه پنجره زمینه نامشخص است",
+    "sessionCost": "هزینه جلسه",
+    "input": "ورودی",
+    "output": "خروجی",
+    "thought": "تفکر",
+    "cachedRead": "خواندن حافظه پنهان",
+    "cachedWrite": "نوشتن حافظه پنهان"
   },
   "skill_generator": {
     "title": "ساخت مهارت/قانون",
@@ -563,7 +571,10 @@
         "body": "این درخواست پاسخ قابل مشاهده‌ای تولید نکرد."
       },
       "ACP_EMPTY_TURN_NEEDS_AUTH": {
-        "body": "این درخواست هیچ پاسخ قابل‌مشاهده‌ای تولید نکرد. ممکن است لازم باشد ابتدا وارد این Agent شوید: {{hint}}."
+        "body": "این درخواست هیچ پاسخ قابل‌مشاهده‌ای تولید نکرد. اگر قبلاً وارد شده‌اید، ممکن است یک مشکل موقتی در بک‌اند یا اتصال باشد؛ دوباره تلاش کنید یا گفت‌وگوی جدیدی را آغاز کنید. اگر هنوز وارد نشده‌اید، می‌توانید وارد شوید: {{hint}}."
+      },
+      "ACP_EMPTY_TURN_TOKEN_LIMIT": {
+        "body": "این درخواست هیچ پاسخ قابل‌مشاهده‌ای تولید نکرد. ممکن است گفت‌وگوی فعلی به حد طول زمینه نزدیک شده باشد؛ دوباره تلاش کنید یا گفت‌وگوی جدیدی را آغاز کرده و دوباره امتحان کنید."
       },
       "ACP_EMPTY_TURN_MAX_TOKENS": {
         "body": "این درخواست قبل از تولید پاسخ قابل مشاهده، به حد توکن خروجی مدل رسید."
@@ -576,5 +587,35 @@
       }
     }
   },
-  "notFound": "مکالمه یافت نشد یا حذف شده است"
+  "notFound": "مکالمه یافت نشد یا حذف شده است",
+  "explorer": {
+    "addFolder": "Add folder to project",
+    "removeFolder": "Remove from project",
+    "attachDuplicate": "This folder is already in the project",
+    "attachOverlap": "This folder overlaps a folder already in the project",
+    "attachFailed": "Couldn't add the folder",
+    "removeFailed": "Couldn't remove the folder",
+    "contextMenu": {
+      "rename": "تغییر نام",
+      "addToChat": "افزودن به گفتگو"
+    },
+    "namePlaceholder": "نام",
+    "deleteConfirm": "«{{name}}» حذف شود؟ این عمل قابل بازگردانی نیست.",
+    "renameFailed": "تغییر نام ناموفق بود",
+    "tabs": {
+      "files": "پرونده‌ها",
+      "changes": "تغییرات"
+    },
+    "changesPlaceholder": "کنترل نسخه در بخشی جداگانه — به‌زودی.",
+    "addedToChat": "{{name}} به گفتگو افزوده شد",
+    "imported": "{{count}} فایل وارد شد",
+    "importPartialFailed": "{{copied}} کپی شد، {{failed}} ناموفق (تداخل نام یا پشتیبانی‌نشده)",
+    "importFailed": "وارد کردن فایل‌ها ناموفق بود",
+    "search": {
+      "placeholder": "جستجوی فایل‌ها بر اساس نام",
+      "searching": "در حال جستجو…",
+      "empty": "هیچ فایلی مطابقت ندارد",
+      "limitReached": "نمایش {{count}} مورد اول — جستجو را محدود کنید"
+    }
+  }
 }

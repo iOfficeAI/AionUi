@@ -39,6 +39,12 @@
     "detailUsedByTitle": "使用中的助手",
     "detailUsedByEmpty": "還沒有助手使用這個技能。",
     "detailBuiltinAssistant": "內建",
+    "detailFilesTitle": "技能檔案",
+    "detailFilesError": "無法載入此技能的檔案。",
+    "editViaChat": {
+      "buttonLabel": "透過對話編輯",
+      "defaultPrompt": "我想改善這個 Skill：{{skillName}}\n\n請幫我查看並改善它的內容。我的修改建議是："
+    },
     "usedByCount": "{{count}} 個助手在使用",
     "manageInHub": "前往技能中心管理",
     "recommend": "智慧推薦",
@@ -105,7 +111,8 @@
     "officialSkillsEmpty": "暫無官方技能。",
     "noSearchResults": "沒有符合的技能。",
     "customHint": "支援技能目錄、父目錄或 zip 匯入；單檔上限 {{maxFileSize}}、單技能上限 {{maxTotalSize}}；同名匯入會覆蓋現有技能。",
-    "officialHint": "AionUi 官方內建的技能，開箱即用、唯讀，隨版本更新維護。"
+    "officialHint": "AionUi 官方內建的技能，開箱即用、唯讀，隨版本更新維護。",
+    "deleteAffectsNewOnlyHint": "刪除僅影響新會話：歷史會話中已選用的技能仍可繼續使用。"
   },
   "authMethod": "驗證",
   "geminiApiKey": "Gemini API 金鑰",

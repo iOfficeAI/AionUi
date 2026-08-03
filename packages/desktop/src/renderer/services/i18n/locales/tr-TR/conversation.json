@@ -493,7 +493,15 @@
     }
   },
   "contextUsage": {
-    "contextUsed": "bağlam kullanıldı"
+    "contextUsed": "bağlam kullanıldı",
+    "tokensUsed": "{{tokens}} jeton kullanıldı",
+    "windowUnknown": "Bağlam penceresi boyutu bilinmiyor",
+    "sessionCost": "Oturum maliyeti",
+    "input": "Girdi",
+    "output": "Çıktı",
+    "thought": "Düşünme",
+    "cachedRead": "Önbellek okuma",
+    "cachedWrite": "Önbellek yazma"
   },
   "skill_generator": {
     "title": "Yetenek/Kural Oluştur",
@@ -565,7 +573,10 @@
         "body": "Bu istek görünür bir yanıt üretmedi."
       },
       "ACP_EMPTY_TURN_NEEDS_AUTH": {
-        "body": "Bu istek görünür bir yanıt üretmedi. Aracı önce oturum açmanızı gerektirebilir: {{hint}}."
+        "body": "Bu istek görünür bir yanıt üretmedi. Zaten oturum açtıysanız, bu geçici bir arka uç veya bağlantı sorunu olabilir; tekrar deneyin ya da yeni bir sohbet başlatın. Henüz oturum açmadıysanız oturum açabilirsiniz: {{hint}}."
+      },
+      "ACP_EMPTY_TURN_TOKEN_LIMIT": {
+        "body": "Bu istek görünür bir yanıt üretmedi. Geçerli sohbet bağlam uzunluğu sınırına yaklaşmış olabilir; tekrar deneyin veya yeni bir sohbet başlatıp yeniden deneyin."
       },
       "ACP_EMPTY_TURN_MAX_TOKENS": {
         "body": "Bu istek, görünür bir yanıt üretilmeden önce modelin çıktı token sınırına ulaştı."
@@ -578,5 +589,35 @@
       }
     }
   },
-  "notFound": "Konuşma bulunamadı veya silinmiş"
+  "notFound": "Konuşma bulunamadı veya silinmiş",
+  "explorer": {
+    "addFolder": "Add folder to project",
+    "removeFolder": "Remove from project",
+    "attachDuplicate": "This folder is already in the project",
+    "attachOverlap": "This folder overlaps a folder already in the project",
+    "attachFailed": "Couldn't add the folder",
+    "removeFailed": "Couldn't remove the folder",
+    "contextMenu": {
+      "rename": "Yeniden adlandır",
+      "addToChat": "Sohbete ekle"
+    },
+    "namePlaceholder": "Ad",
+    "deleteConfirm": "“{{name}}” silinsin mi? Bu geri alınamaz.",
+    "renameFailed": "Yeniden adlandırılamadı",
+    "tabs": {
+      "files": "Dosyalar",
+      "changes": "Değişiklikler"
+    },
+    "changesPlaceholder": "Kaynak denetimi ayrı bir hatta — yakında.",
+    "addedToChat": "{{name}} sohbete eklendi",
+    "imported": "{{count}} dosya içe aktarıldı",
+    "importPartialFailed": "{{copied}} kopyalandı, {{failed}} başarısız (ad çakışması veya desteklenmiyor)",
+    "importFailed": "Dosyalar içe aktarılamadı",
+    "search": {
+      "placeholder": "Dosya adına göre ara",
+      "searching": "Aranıyor…",
+      "empty": "Eşleşen dosya yok",
+      "limitReached": "İlk {{count}} gösteriliyor — daraltın"
+    }
+  }
 }

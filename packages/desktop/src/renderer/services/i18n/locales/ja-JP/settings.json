@@ -39,6 +39,12 @@
     "detailUsedByTitle": "使用中のアシスタント",
     "detailUsedByEmpty": "このスキルを使用しているアシスタントはまだありません。",
     "detailBuiltinAssistant": "組み込み",
+    "detailFilesTitle": "スキルファイル",
+    "detailFilesError": "このスキルのファイルを読み込めませんでした。",
+    "editViaChat": {
+      "buttonLabel": "チャットで編集",
+      "defaultPrompt": "この Skill を改善したいです：{{skillName}}\n\n内容を確認し、改善を手伝ってください。私の修正案は次のとおりです："
+    },
     "usedByCount": "{{count}} 件のアシスタントが使用中",
     "manageInHub": "スキルハブで管理",
     "recommend": "スマート推薦",
@@ -105,7 +111,8 @@
     "officialSkillsEmpty": "利用可能な公式スキルがありません。",
     "noSearchResults": "一致するスキルがありません。",
     "customHint": "スキルフォルダ、親フォルダ、または zip をインポートできます。1 ファイルあたり最大 {{maxFileSize}}、1 スキルあたり最大 {{maxTotalSize}}。同名でインポートすると既存のスキルを上書きします。",
-    "officialHint": "AionUi に同梱される公式スキル。すぐに使え、読み取り専用で、リリースごとに更新されます。"
+    "officialHint": "AionUi に同梱される公式スキル。すぐに使え、読み取り専用で、リリースごとに更新されます。",
+    "deleteAffectsNewOnlyHint": "Deleting only affects new conversations. Skills already selected in existing conversations keep working."
   },
   "authMethod": "認証",
   "geminiApiKey": "Gemini API キー",

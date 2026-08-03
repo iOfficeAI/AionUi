@@ -16,6 +16,7 @@ vi.mock('node:child_process', () => ({
 
 vi.mock('node:fs', () => ({
   mkdirSync: vi.fn(),
+  statSync: vi.fn(),
 }));
 
 vi.mock('node:net', () => ({
@@ -28,7 +29,7 @@ vi.mock('./agent-process-registry.js', () => ({
 }));
 
 import { spawn } from 'node:child_process';
-import { mkdirSync } from 'node:fs';
+import { mkdirSync, statSync } from 'node:fs';
 import { connect, createServer } from 'node:net';
 import { cleanupRegisteredAgentProcesses } from './agent-process-registry.js';
 import {
@@ -454,6 +455,44 @@ describe('BackendLifecycleManager.start (health timeout)', () => {
 
     expect(spawn).not.toHaveBeenCalled();
     expect(mgr.status).toBe('error');
+  });
+
+  it('skips mkdir for a pre-existing work dir so a Windows drive root can start (ELECTRON-3S4)', async () => {
+    // Windows drive roots exist but can never be mkdir'd: CreateDirectory on
+    // `D:\` reports access-denied (not already-exists), so mkdirSync throws
+    // EPERM even with recursive:true. Directory preparation must stat first
+    // and skip mkdir for directories that already exist.
+    vi.mocked(statSync).mockImplementation(((p: unknown) =>
+      p === 'D:\\' ? { isDirectory: () => true } : undefined) as unknown as typeof statSync);
+    vi.mocked(mkdirSync).mockImplementation(((p: unknown) => {
+      if (p === 'D:\\') throw new Error('EPERM: operation not permitted, mkdir D:\\');
+      return undefined;
+    }) as unknown as typeof mkdirSync);
+    // Halt startup deterministically right after directory preparation: a
+    // spawn that throws proves preparation passed without hanging on health.
+    vi.mocked(spawn).mockImplementationOnce(() => {
+      throw new Error('halted by test after directory preparation');
+    });
+
+    try {
+      const mgr = new BackendLifecycleManager(APP_META_PACKAGED, () => '/abs/path/aioncore');
+      const error = await mgr
+        .start('/db/path', '/log/dir', { cacheDir: '/cache', workDir: 'D:\\', logDir: '/log' })
+        .catch((e: unknown) => e as Error);
+
+      // Startup got PAST directory preparation and reached spawn.
+      expect((error as Error).message).toContain('spawn threw before startup');
+      expect((error as Error).message).not.toContain('directory preparation failed');
+      expect(mkdirSync).not.toHaveBeenCalledWith('D:\\', expect.anything());
+      expect(spawn).toHaveBeenCalled();
+    } finally {
+      // Implementations survive the global clearAllMocks; reset so later
+      // tests keep the default no-op fs/spawn mocks (an unconsumed spawn
+      // mockImplementationOnce would otherwise leak into the next test).
+      vi.mocked(statSync).mockReset();
+      vi.mocked(mkdirSync).mockReset();
+      vi.mocked(spawn).mockReset();
+    }
   });
 
   it('captures backend boundary code and stage from early-exit stderr', async () => {

@@ -29,6 +29,7 @@ const searchParamsMock = vi.hoisted(() => ({
   current: new URLSearchParams(),
   setSearchParams: vi.fn(),
   pathname: '/settings/capabilities',
+  state: undefined as unknown,
   navigate: vi.fn(),
 }));
 
@@ -66,7 +67,7 @@ vi.mock('@arco-design/web-react', async (importOriginal) => {
 });
 
 vi.mock('react-router-dom', () => ({
-  useLocation: () => ({ pathname: searchParamsMock.pathname }),
+  useLocation: () => ({ pathname: searchParamsMock.pathname, state: searchParamsMock.state }),
   useNavigate: () => searchParamsMock.navigate,
   useSearchParams: () => [searchParamsMock.current, searchParamsMock.setSearchParams],
 }));
@@ -103,6 +104,7 @@ describe('SkillsHubSettings', () => {
     vi.clearAllMocks();
     searchParamsMock.current = new URLSearchParams();
     searchParamsMock.pathname = '/settings/capabilities';
+    searchParamsMock.state = undefined;
     mocks.listAvailableSkills.mockResolvedValue([]);
     mocks.getSkillPaths.mockResolvedValue({
       user_skills_dir: '/tmp/user-skills',
@@ -374,6 +376,28 @@ describe('SkillsHubSettings', () => {
     expect(screen.queryByText('job-generated')).not.toBeInTheDocument();
     // The custom skill is not in the Official tab.
     expect(screen.queryByTestId('my-skill-card-sample-single')).not.toBeInTheDocument();
+  });
+
+  it('restores the originating tab and preserves it when opening another skill', async () => {
+    searchParamsMock.state = { skillsTab: 'official' };
+    mocks.listAvailableSkills.mockResolvedValue([
+      {
+        name: 'officecli',
+        description: 'Official builtin skill.',
+        location: '/tmp/builtin-skills/officecli/SKILL.md',
+        is_auto_inject: false,
+        is_custom: false,
+        source: 'builtin',
+      },
+    ]);
+
+    render(<SkillsHubSettings withWrapper={false} />);
+
+    const card = await screen.findByTestId('official-skill-card-officecli');
+    fireEvent.click(card);
+    expect(searchParamsMock.navigate).toHaveBeenCalledWith('/settings/skills/detail/officecli', {
+      state: { skillsTab: 'official' },
+    });
   });
 
   it('renders the auto-injected skills hint without an Arco popup trigger', async () => {

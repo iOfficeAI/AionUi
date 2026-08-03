@@ -39,6 +39,12 @@
     "detailUsedByTitle": "Verwendet von",
     "detailUsedByEmpty": "Noch kein Assistent verwendet diesen Skill.",
     "detailBuiltinAssistant": "Integriert",
+    "detailFilesTitle": "Skill-Dateien",
+    "detailFilesError": "Die Dateien dieses Skills konnten nicht geladen werden.",
+    "editViaChat": {
+      "buttonLabel": "Per Chat bearbeiten",
+      "defaultPrompt": "Ich möchte diesen Skill verbessern: {{skillName}}\n\nBitte prüfe den Inhalt und hilf mir, ihn zu verbessern. Meine Änderungsvorschläge sind:"
+    },
     "usedByCount": "Von {{count}} Assistent(en) verwendet",
     "manageInHub": "Im Skills-Hub verwalten",
     "recommend": "Skills empfehlen",
@@ -105,7 +111,8 @@
     "officialSkillsEmpty": "Keine offiziellen Skills verfügbar.",
     "noSearchResults": "Keine passenden Skills.",
     "customHint": "Importiere einen Skill-Ordner, übergeordneten Ordner oder eine Zip-Datei; max. {{maxFileSize}} pro Datei und {{maxTotalSize}} pro Skill; ein gleichnamiger Import überschreibt den vorhandenen Skill.",
-    "officialHint": "Offizielle, mit AionUi gebündelte Skills – sofort einsatzbereit, schreibgeschützt und mit jedem Release aktualisiert."
+    "officialHint": "Offizielle, mit AionUi gebündelte Skills – sofort einsatzbereit, schreibgeschützt und mit jedem Release aktualisiert.",
+    "deleteAffectsNewOnlyHint": "Deleting only affects new conversations. Skills already selected in existing conversations keep working."
   },
   "authMethod": "Authentifizierung",
   "geminiApiKey": "Gemini-API-Schlüssel",

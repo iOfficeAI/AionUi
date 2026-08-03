@@ -14,6 +14,21 @@
 
 import { BrowserWindow } from 'electron';
 import { ipcBridge } from '@/common';
+import { getCloseToTrayEnabled, getIsQuitting } from '@process/utils/tray';
+
+/**
+ * Resolve the window targeted by title-bar controls.
+ * Prefer the focused window; fall back to the first live window so Linux
+ * frameless close still works when focus is momentarily lost.
+ */
+function resolveControlWindow(): BrowserWindow | null {
+  const focused = BrowserWindow.getFocusedWindow();
+  if (focused && !focused.isDestroyed()) {
+    return focused;
+  }
+  const fallback = BrowserWindow.getAllWindows().find((win) => !win.isDestroyed());
+  return fallback ?? null;
+}
 
 /**
  * 为指定窗口注册最大化状态监听器
@@ -43,7 +58,7 @@ export function registerWindowMaximizeListeners(window: BrowserWindow): void {
 export function initWindowControlsBridge(): void {
   // 最小化窗口 / Minimize window
   ipcBridge.windowControls.minimize.provider(() => {
-    const window = BrowserWindow.getFocusedWindow();
+    const window = resolveControlWindow();
     if (window) {
       window.minimize();
     }
@@ -52,7 +67,7 @@ export function initWindowControlsBridge(): void {
 
   // 最大化窗口 / Maximize window
   ipcBridge.windowControls.maximize.provider(() => {
-    const window = BrowserWindow.getFocusedWindow();
+    const window = resolveControlWindow();
     if (window) {
       window.maximize();
     }
@@ -61,7 +76,7 @@ export function initWindowControlsBridge(): void {
 
   // 取消最大化窗口 / Unmaximize window
   ipcBridge.windowControls.unmaximize.provider(() => {
-    const window = BrowserWindow.getFocusedWindow();
+    const window = resolveControlWindow();
     if (window) {
       window.unmaximize();
     }
@@ -69,9 +84,18 @@ export function initWindowControlsBridge(): void {
   });
 
   // 关闭窗口 / Close window
+  // Custom title-bar close (Linux frameless, etc.) goes through this IPC path.
+  // Honor close-to-tray here so we hide instead of destroying the window —
+  // relying only on the BrowserWindow 'close' interceptor is not enough on
+  // all Linux desktop environments when the close originates from renderer IPC.
   ipcBridge.windowControls.close.provider(() => {
-    const window = BrowserWindow.getFocusedWindow();
-    if (window) {
+    const window = resolveControlWindow();
+    if (!window) {
+      return Promise.resolve();
+    }
+    if (getCloseToTrayEnabled() && !getIsQuitting()) {
+      window.hide();
+    } else {
       window.close();
     }
     return Promise.resolve();
@@ -79,7 +103,7 @@ export function initWindowControlsBridge(): void {
 
   // 获取窗口是否最大化状态 / Get window maximized state
   ipcBridge.windowControls.isMaximized.provider(() => {
-    const window = BrowserWindow.getFocusedWindow();
+    const window = resolveControlWindow();
     return Promise.resolve(window?.isMaximized() ?? false);
   });
 

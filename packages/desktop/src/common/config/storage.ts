@@ -160,11 +160,36 @@ interface IChatConversation<T, Extra> {
   channel_chat_id?: string;
   /** Explicit assistant identity for assistant-led conversations */
   assistant?: TConversationAssistantIdentity;
+  /**
+   * Owning Project id (top-level, from `ConversationResponse.project_id`, stage3
+   * contract). Drives Project-scoped Explorer mounting + preview isolation.
+   * Optional: absent until the backend that populates it ships / for
+   * conversations without a bound project.
+   */
+  project_id?: string;
 }
 
 // Token 使用统计数据类型
+export interface TokenUsageBreakdown {
+  input_tokens?: number;
+  output_tokens?: number;
+  thought_tokens?: number;
+  cached_read_tokens?: number;
+  cached_write_tokens?: number;
+}
+
+export interface TokenUsageCost {
+  amount: number;
+  /** ISO 4217 currency code, e.g. "USD" */
+  currency: string;
+}
+
 export interface TokenUsageData {
   total_tokens: number;
+  /** Per-turn token counters from the agent's end-of-turn usage report */
+  breakdown?: TokenUsageBreakdown;
+  /** Cumulative session cost as reported by the agent */
+  cost?: TokenUsageCost;
 }
 
 export type TChatConversation =

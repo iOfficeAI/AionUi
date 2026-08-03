@@ -18,14 +18,16 @@
 import { ipcBridge } from '@/common';
 import type { Assistant, UpdateAssistantRequest } from '@/common/types/agent/assistantTypes';
 import { resolveLocaleKey } from '@/common/utils';
+import { useTalkToButler } from '@/renderer/hooks/assistant/useTalkToButler';
 import AssistantAvatar from '@/renderer/pages/settings/AssistantSettings/AssistantAvatar';
 import { Button, Dropdown, Menu, Message, Spin, Typography } from '@arco-design/web-react';
 import { ArrowLeft, Close, Plus, Right } from '@icon-park/react';
 import React, { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import useSWR, { mutate as swrMutate } from 'swr';
 import SettingsPageWrapper from '../components/SettingsPageWrapper';
+import SkillFileBrowser from './SkillFileBrowser';
 import { getAssistantsUsingSkill } from './SkillUsedByStack';
 
 interface SkillInfo {
@@ -72,7 +74,9 @@ const SectionCard: React.FC<{
 const SkillDetailPage: React.FC = () => {
   const { t, i18n } = useTranslation();
   const localeKey = resolveLocaleKey(i18n.language);
+  const location = useLocation();
   const navigate = useNavigate();
+  const talkToButler = useTalkToButler();
   const { skillName = '' } = useParams<{ skillName: string }>();
   const decodedName = decodeURIComponent(skillName);
   const [saving, setSaving] = useState(false);
@@ -101,9 +105,27 @@ const SkillDetailPage: React.FC = () => {
     [localeKey]
   );
 
+  const originTab =
+    typeof location.state === 'object' &&
+    location.state !== null &&
+    'skillsTab' in location.state &&
+    location.state.skillsTab === 'official'
+      ? 'official'
+      : 'custom';
+
   const goBack = useCallback(() => {
-    void navigate('/settings/skills');
-  }, [navigate]);
+    void navigate('/settings/skills', { state: { skillsTab: originTab } });
+  }, [navigate, originTab]);
+
+  const editViaChat = useCallback(() => {
+    void talkToButler({
+      prompt: t('settings.skillsHub.editViaChat.defaultPrompt', {
+        skillName: decodedName,
+        defaultValue:
+          "I'd like to improve this Skill: {{skillName}}\n\nPlease review its content and help me make improvements. My suggestions are:",
+      }),
+    });
+  }, [decodedName, t, talkToButler]);
 
   const openAssistant = useCallback(
     (assistantId: string) => {
@@ -132,7 +154,7 @@ const SkillDetailPage: React.FC = () => {
         };
         await ipcBridge.assistants.update.invoke(update);
         Message.success(t('settings.skillsHub.detailAttachSuccess', { defaultValue: 'Assistants updated' }));
-        await Promise.all([mutateAssistants(), swrMutate('assistants'), swrMutate('agents.boundAssistants.list')]);
+        await Promise.all([mutateAssistants(), swrMutate('agents.boundAssistants.list')]);
       } catch (error) {
         console.error('Failed to update assistant skills:', error);
         Message.error(t('settings.skillsHub.detailAttachError', { defaultValue: 'Failed to update assistants' }));
@@ -164,9 +186,6 @@ const SkillDetailPage: React.FC = () => {
           >
             {t('settings.skillsHub.detailBackToList', { defaultValue: 'All skills' })}
           </Button>
-          <div className='truncate text-14px font-600 text-t-primary'>
-            {decodedName || t('settings.skillsHub.detailTitle', { defaultValue: 'Skill Details' })}
-          </div>
         </div>
 
         {loading ? (
@@ -301,6 +320,24 @@ const SkillDetailPage: React.FC = () => {
                   })}
                 </div>
               )}
+            </SectionCard>
+
+            <SectionCard
+              title={t('settings.skillsHub.detailFilesTitle', { defaultValue: 'Skill files' })}
+              data-testid='skill-detail-files'
+              extra={
+                <Button
+                  size='mini'
+                  type='text'
+                  data-testid='btn-edit-skill-via-chat'
+                  onClick={editViaChat}
+                  className='!h-24px !px-8px !text-12px !text-t-secondary hover:!text-t-primary'
+                >
+                  {t('settings.skillsHub.editViaChat.buttonLabel', { defaultValue: 'Edit via chat' })}
+                </Button>
+              }
+            >
+              <SkillFileBrowser skill={skill} />
             </SectionCard>
           </div>
         )}

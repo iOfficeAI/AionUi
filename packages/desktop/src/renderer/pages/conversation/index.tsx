@@ -6,6 +6,9 @@ import { useNavigate, useParams } from 'react-router-dom';
 import useSWR from 'swr';
 import ChatConversation from './components/ChatConversation';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
+import { previewScopeKey } from '@/renderer/pages/conversation/Preview/context/previewScope';
+import { setCurrentProject } from '@/renderer/pages/conversation/explorer/currentProjectStore';
+import { setCurrentConversation } from '@/renderer/pages/conversation/explorer/currentConversationStore';
 import { useAutoTitle } from '@/renderer/hooks/chat/useAutoTitle';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
 
@@ -13,7 +16,7 @@ const ChatConversationIndex: React.FC = () => {
   const { id } = useParams();
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { closePreviewIfWorkspaceChanged } = usePreviewContext();
+  const { closePreviewIfScopeChanged } = usePreviewContext();
   const { syncTitleFromHistory } = useAutoTitle();
   const notFoundHandledIdRef = useRef<string | undefined>(undefined);
   const defaultConversationTitle = t('conversation.welcome.newConversation');
@@ -22,15 +25,39 @@ const ChatConversationIndex: React.FC = () => {
     return getConversationOrNull(id!);
   });
 
-  // Close preview only when the workspace changes, not on every conversation
-  // switch. Same-workspace conversations (same project) keep the preview open.
-  // The ref lives in PreviewContext (app-root level) so it survives remounts.
+  // Close preview only when the isolation scope changes, not on every
+  // conversation switch. Same-scope conversations keep the preview open. The
+  // scope is `previewScopeKey` = project (falling back to workspace until the
+  // backend populates project_id). The ref lives in PreviewContext (app-root
+  // level) so it survives remounts.
   useEffect(() => {
     if (!data) return;
     const workspace = (data.extra as { workspace?: string } | undefined)?.workspace ?? null;
-    closePreviewIfWorkspaceChanged(workspace);
-  }, [data, closePreviewIfWorkspaceChanged]);
+    closePreviewIfScopeChanged(previewScopeKey(data.project_id ?? null, workspace));
+  }, [data, closePreviewIfScopeChanged]);
 
+  // Publish the active project to the module store so the Layout-level Explorer
+  // column (above this per-conversation route subtree) renders it. Not cleared on
+  // unmount — same-project conversation switches keep the value, so the column
+  // does not remount; Layout clears it when leaving the conversation route.
+  useEffect(() => {
+    if (data) setCurrentProject(data.project_id ?? null);
+  }, [data]);
+
+  // Publish the active conversation id so the Layout-level Explorer's "add to
+  // chat" can target this conversation's send box. Cleared when leaving the
+  // conversation route (id falsy) so a stale target can't leak.
+  useEffect(() => {
+    setCurrentConversation(data?.id ?? null);
+  }, [data]);
+
+  // Refetch this conversation when the backend reports it changed. This is also
+  // the project_id backfill path: opening a workspace conversation lazily
+  // backfills its project_id server-side (project_id None→Some), and the first
+  // GET can land on the pre-backfill row (project_id null). The backend emits a
+  // `conversation.listChanged` (action 'updated') once when the backfill lands;
+  // this listener refetches → the now-populated project_id flows to
+  // `setCurrentProject` above → the Explorer host appears. Responsive, no poll.
   useEffect(() => {
     if (!id) return;
 
