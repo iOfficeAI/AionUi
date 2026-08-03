@@ -416,7 +416,8 @@
     "openWith": {
       "vscode": "VS Code",
       "terminal": "ترمینال",
-      "explorer": "فایل اکسپلورر"
+      "explorer": "فایل اکسپلورر",
+      "browser": "مرورگر"
     }
   },
   "minimap": {

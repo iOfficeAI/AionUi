@@ -416,7 +416,8 @@
     "openWith": {
       "vscode": "VS Code",
       "terminal": "終端機",
-      "explorer": "檔案總管"
+      "explorer": "檔案總管",
+      "browser": "瀏覽器"
     }
   },
   "minimap": {

@@ -1297,5 +1297,14 @@
     "solveWithButler": "找管家排查"
   },
   "providerIdConflict": "Provider ID 已存在，請重試。",
-  "autoInjectedSkillsHint": "每次對話都會自動載入，無需手動啟用；由智能體自行決定何時呼叫。"
+  "autoInjectedSkillsHint": "每次對話都會自動載入，無需手動啟用；由智能體自行決定何時呼叫。",
+  "browserData": {
+    "title": "應用內瀏覽器",
+    "clearLabel": "清空瀏覽資料",
+    "clearDesc": "登出瀏覽器中所有已登入的網站，並清空快取。已開啟的瀏覽器標籤頁重新載入後生效。",
+    "clearConfirmTitle": "確定清空瀏覽資料？",
+    "clearConfirmContent": "應用內瀏覽器中所有網站的登入狀態都會被登出，且無法復原。",
+    "clearSuccess": "瀏覽資料已清空",
+    "clearFailed": "清空瀏覽資料失敗"
+  }
 }

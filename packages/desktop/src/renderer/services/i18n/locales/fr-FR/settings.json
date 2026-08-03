@@ -1295,5 +1295,14 @@
     "solveWithButler": "Demander au majordome"
   },
   "providerIdConflict": "L'ID du fournisseur existe déjà. Veuillez réessayer.",
-  "autoInjectedSkillsHint": "Chargé automatiquement dans chaque conversation – pas besoin de les activer ; l'agent décide quand les utiliser."
+  "autoInjectedSkillsHint": "Chargé automatiquement dans chaque conversation – pas besoin de les activer ; l'agent décide quand les utiliser.",
+  "browserData": {
+    "title": "Navigateur intégré",
+    "clearLabel": "Effacer les données de navigation",
+    "clearDesc": "Vous déconnecte de tous les sites où le navigateur est connecté et vide le cache. Les onglets ouverts sont concernés après rechargement.",
+    "clearConfirmTitle": "Effacer les données de navigation ?",
+    "clearConfirmContent": "Vous serez déconnecté de tous les sites du navigateur intégré. Cette action est irréversible.",
+    "clearSuccess": "Données de navigation effacées",
+    "clearFailed": "Échec de l'effacement des données de navigation"
+  }
 }

@@ -1297,5 +1297,14 @@
     "solveWithButler": "執事に相談"
   },
   "providerIdConflict": "Provider ID は既に存在します。もう一度お試しください。",
-  "autoInjectedSkillsHint": "すべての会話に自動的に読み込まれます。有効化は不要で、エージェントが使用するタイミングを判断します。"
+  "autoInjectedSkillsHint": "すべての会話に自動的に読み込まれます。有効化は不要で、エージェントが使用するタイミングを判断します。",
+  "browserData": {
+    "title": "アプリ内ブラウザー",
+    "clearLabel": "閲覧データを消去",
+    "clearDesc": "ブラウザーでログイン済みのすべてのサイトからサインアウトし、キャッシュを消去します。開いているタブは再読み込み後に反映されます。",
+    "clearConfirmTitle": "閲覧データを消去しますか？",
+    "clearConfirmContent": "アプリ内ブラウザーのすべてのサイトからサインアウトされます。この操作は取り消せません。",
+    "clearSuccess": "閲覧データを消去しました",
+    "clearFailed": "閲覧データの消去に失敗しました"
+  }
 }

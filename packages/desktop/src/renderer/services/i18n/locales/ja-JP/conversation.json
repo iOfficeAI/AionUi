@@ -416,7 +416,8 @@
     "openWith": {
       "vscode": "VS Code",
       "terminal": "ターミナル",
-      "explorer": "エクスプローラー"
+      "explorer": "エクスプローラー",
+      "browser": "ブラウザ"
     }
   },
   "minimap": {

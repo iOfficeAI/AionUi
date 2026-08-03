@@ -416,7 +416,8 @@
     "openWith": {
       "vscode": "VS Code",
       "terminal": "터미널",
-      "explorer": "파일 탐색기"
+      "explorer": "파일 탐색기",
+      "browser": "브라우저"
     }
   },
   "minimap": {

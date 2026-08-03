@@ -139,5 +139,14 @@
     "installing": "プレビューコンポーネントをインストール中...",
     "startFailed": "PPTプレビューの起動に失敗しました",
     "installHint": "公式 iOfficeAI/OfficeCLI releases ページから OfficeCLI をインストールしてください"
+  },
+  "browser": {
+    "newTab": "新しいタブ",
+    "addressPlaceholder": "URL を入力または検索",
+    "agentActiveTooltip": "エージェントがこのタブを操作しています",
+    "tabLimitReached": "タブ数の上限（{{count}}）に達したため、最も古いタブを再利用しました。",
+    "agentFirstUseTitle": "エージェントがアプリ内ブラウザーを使用しています",
+    "agentFirstUseContent": "このパネル内でページを開き、クリックや内容の読み取りができます。ログイン状態は保持されます。",
+    "agentFirstUseAction": "設定を開く"
   }
 }

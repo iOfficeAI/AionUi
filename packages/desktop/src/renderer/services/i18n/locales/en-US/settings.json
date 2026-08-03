@@ -1295,5 +1295,14 @@
     "solveWithButler": "Ask the Butler"
   },
   "providerIdConflict": "Provider ID already exists. Please try again.",
-  "autoInjectedSkillsHint": "Loaded automatically into every conversation — no need to enable them; the agent decides when to use them."
+  "autoInjectedSkillsHint": "Loaded automatically into every conversation — no need to enable them; the agent decides when to use them.",
+  "browserData": {
+    "title": "In-app browser",
+    "clearLabel": "Clear browsing data",
+    "clearDesc": "Signs out of every site the browser is logged into and clears its cache. Open browser tabs take effect after a reload.",
+    "clearConfirmTitle": "Clear browsing data?",
+    "clearConfirmContent": "You will be signed out of every site in the in-app browser. This cannot be undone.",
+    "clearSuccess": "Browsing data cleared",
+    "clearFailed": "Failed to clear browsing data"
+  }
 }

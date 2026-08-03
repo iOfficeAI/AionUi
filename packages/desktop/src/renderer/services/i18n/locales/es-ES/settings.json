@@ -1295,5 +1295,14 @@
     "solveWithButler": "Preguntar al Mayordomo"
   },
   "providerIdConflict": "El ID del proveedor ya existe. Inténtalo de nuevo.",
-  "autoInjectedSkillsHint": "Se cargan automáticamente en cada conversación: no hace falta activarlas; el agente decide cuándo usarlas."
+  "autoInjectedSkillsHint": "Se cargan automáticamente en cada conversación: no hace falta activarlas; el agente decide cuándo usarlas.",
+  "browserData": {
+    "title": "Navegador integrado",
+    "clearLabel": "Borrar datos de navegación",
+    "clearDesc": "Cierra la sesión en todos los sitios donde el navegador está conectado y borra la caché. Las pestañas abiertas se actualizan al recargar.",
+    "clearConfirmTitle": "¿Borrar los datos de navegación?",
+    "clearConfirmContent": "Se cerrará tu sesión en todos los sitios del navegador integrado. Esta acción no se puede deshacer.",
+    "clearSuccess": "Datos de navegación borrados",
+    "clearFailed": "No se pudieron borrar los datos de navegación"
+  }
 }

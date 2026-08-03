@@ -1295,5 +1295,14 @@
     "emptyOverridesError": "Enter a launch path or at least one environment variable before saving."
   },
   "providerIdConflict": "Provider-ID existiert bereits. Bitte erneut versuchen.",
-  "autoInjectedSkillsHint": "Werden automatisch in jede Unterhaltung geladen – kein Aktivieren nötig; der Agent entscheidet, wann er sie nutzt."
+  "autoInjectedSkillsHint": "Werden automatisch in jede Unterhaltung geladen – kein Aktivieren nötig; der Agent entscheidet, wann er sie nutzt.",
+  "browserData": {
+    "title": "Integrierter Browser",
+    "clearLabel": "Browserdaten löschen",
+    "clearDesc": "Meldet dich von allen Websites ab, bei denen der Browser angemeldet ist, und löscht den Cache. Offene Tabs wirken nach dem Neuladen.",
+    "clearConfirmTitle": "Browserdaten löschen?",
+    "clearConfirmContent": "Du wirst von allen Websites im integrierten Browser abgemeldet. Das kann nicht rückgängig gemacht werden.",
+    "clearSuccess": "Browserdaten gelöscht",
+    "clearFailed": "Browserdaten konnten nicht gelöscht werden"
+  }
 }

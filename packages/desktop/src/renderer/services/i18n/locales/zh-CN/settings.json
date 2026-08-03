@@ -1296,5 +1296,14 @@
     "solveWithButler": "找管家排查"
   },
   "providerIdConflict": "Provider ID 已存在，请重试。",
-  "autoInjectedSkillsHint": "每次对话都会自动加载，无需手动启用；由智能体自行决定何时调用。"
+  "autoInjectedSkillsHint": "每次对话都会自动加载，无需手动启用；由智能体自行决定何时调用。",
+  "browserData": {
+    "title": "应用内浏览器",
+    "clearLabel": "清空浏览数据",
+    "clearDesc": "退出浏览器中所有已登录的网站，并清空缓存。已打开的浏览器标签页刷新后生效。",
+    "clearConfirmTitle": "确定清空浏览数据？",
+    "clearConfirmContent": "应用内浏览器中所有网站的登录状态都会被退出，且无法恢复。",
+    "clearSuccess": "浏览数据已清空",
+    "clearFailed": "清空浏览数据失败"
+  }
 }

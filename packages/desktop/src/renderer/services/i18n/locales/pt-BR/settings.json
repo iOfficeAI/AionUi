@@ -1298,5 +1298,14 @@
     "solveWithButler": "Perguntar ao Mordomo"
   },
   "providerIdConflict": "O Provider ID já existe. Tente novamente.",
-  "autoInjectedSkillsHint": "Carregadas automaticamente em cada conversa — não é preciso ativá-las; o agente decide quando usá-las."
+  "autoInjectedSkillsHint": "Carregadas automaticamente em cada conversa — não é preciso ativá-las; o agente decide quando usá-las.",
+  "browserData": {
+    "title": "Navegador interno",
+    "clearLabel": "Limpar dados de navegação",
+    "clearDesc": "Sai de todos os sites em que o navegador está conectado e limpa o cache. As abas abertas são afetadas após recarregar.",
+    "clearConfirmTitle": "Limpar dados de navegação?",
+    "clearConfirmContent": "Você sairá de todos os sites no navegador interno. Isso não pode ser desfeito.",
+    "clearSuccess": "Dados de navegação limpos",
+    "clearFailed": "Falha ao limpar dados de navegação"
+  }
 }

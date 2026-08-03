@@ -401,7 +401,8 @@
     "openWith": {
       "vscode": "VS Code",
       "terminal": "Terminal",
-      "explorer": "Dosya Gezgini"
+      "explorer": "Dosya Gezgini",
+      "browser": "Tarayıcı"
     }
   },
   "minimap": {
