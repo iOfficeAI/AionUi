@@ -618,11 +618,32 @@ const PreviewPanel: React.FC = () => {
     } else if (content_type === 'pdf') {
       return <PDFPreview fileRef={metadata?.fileRef} file_path={metadata?.file_path} content={content} />;
     } else if (content_type === 'ppt') {
-      return <PptViewer file_path={metadata?.file_path} content={content} workspace={metadata?.workspace} />;
+      return (
+        <PptViewer
+          fileRef={metadata?.fileRef}
+          file_path={metadata?.file_path}
+          content={content}
+          workspace={metadata?.workspace}
+        />
+      );
     } else if (content_type === 'word') {
-      return <OfficeDocPreview file_path={metadata?.file_path} content={content} workspace={metadata?.workspace} />;
+      return (
+        <OfficeDocPreview
+          fileRef={metadata?.fileRef}
+          file_path={metadata?.file_path}
+          content={content}
+          workspace={metadata?.workspace}
+        />
+      );
     } else if (content_type === 'excel') {
-      return <ExcelPreview file_path={metadata?.file_path} content={content} workspace={metadata?.workspace} />;
+      return (
+        <ExcelPreview
+          fileRef={metadata?.fileRef}
+          file_path={metadata?.file_path}
+          content={content}
+          workspace={metadata?.workspace}
+        />
+      );
     } else if (content_type === 'image') {
       return (
         <ImagePreview

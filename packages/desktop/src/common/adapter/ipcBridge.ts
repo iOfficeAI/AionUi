@@ -1205,25 +1205,34 @@ export const document = {
 // Office Previews — routed to /api/*-preview/*
 // ---------------------------------------------------------------------------
 
+// Office watch bridges. start/stop additively carry a `file` (ChatFileRef) the
+// backend prefers over `file_path` (resolves pe→path server-side, keeps the same
+// watch session key for stop). `file_path` is still sent (required by the DTO;
+// '' when only a ref is available) and used as the legacy fallback.
+type OfficeStartParams = { file_path?: string; workspace?: string; file?: ChatFileRef };
+type OfficeStopParams = { file_path?: string; file?: ChatFileRef };
+const officeStartBody = (p: OfficeStartParams) => ({
+  file_path: p.file_path ?? '',
+  workspace: p.workspace,
+  file: p.file,
+});
+const officeStopBody = (p: OfficeStopParams) => ({ file_path: p.file_path ?? '', file: p.file });
+
 export const pptPreview = {
-  start: httpPost<{ url: string; error?: string }, { file_path: string; workspace?: string }>('/api/ppt-preview/start'),
-  stop: httpPost<void, { file_path: string }>('/api/ppt-preview/stop'),
+  start: httpPost<{ url: string; error?: string }, OfficeStartParams>('/api/ppt-preview/start', officeStartBody),
+  stop: httpPost<void, OfficeStopParams>('/api/ppt-preview/stop', officeStopBody),
   status: wsEmitter<{ state: 'starting' | 'installing' | 'ready' | 'error'; message?: string }>('ppt-preview.status'),
 };
 
 export const wordPreview = {
-  start: httpPost<{ url: string; error?: string }, { file_path: string; workspace?: string }>(
-    '/api/word-preview/start'
-  ),
-  stop: httpPost<void, { file_path: string }>('/api/word-preview/stop'),
+  start: httpPost<{ url: string; error?: string }, OfficeStartParams>('/api/word-preview/start', officeStartBody),
+  stop: httpPost<void, OfficeStopParams>('/api/word-preview/stop', officeStopBody),
   status: wsEmitter<{ state: 'starting' | 'installing' | 'ready' | 'error'; message?: string }>('word-preview.status'),
 };
 
 export const excelPreview = {
-  start: httpPost<{ url: string; error?: string }, { file_path: string; workspace?: string }>(
-    '/api/excel-preview/start'
-  ),
-  stop: httpPost<void, { file_path: string }>('/api/excel-preview/stop'),
+  start: httpPost<{ url: string; error?: string }, OfficeStartParams>('/api/excel-preview/start', officeStartBody),
+  stop: httpPost<void, OfficeStopParams>('/api/excel-preview/stop', officeStopBody),
   status: wsEmitter<{ state: 'starting' | 'installing' | 'ready' | 'error'; message?: string }>('excel-preview.status'),
 };
 
