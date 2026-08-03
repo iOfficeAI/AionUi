@@ -1,5 +1,5 @@
 import type { IMcpServer } from '@/common/config/storage';
-import { Button, Dropdown, Menu, Popover, Tooltip } from '@arco-design/web-react';
+import { Button, Dropdown, Menu, Popover, Switch, Tooltip } from '@arco-design/web-react';
 import { Check, CloseSmall, Info, LoadingOne, Refresh, Write, DeleteFour, SettingOne, Login } from '@icon-park/react';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
@@ -18,6 +18,9 @@ interface McpServerHeaderProps {
   onEditServer: (server: IMcpServer) => void;
   onDeleteServer: (serverId: string) => void;
   onOAuthLogin?: (server: IMcpServer) => void;
+  /** Flip "enabled by default for new conversations" (#3119) */
+  onToggleDefault?: (server: IMcpServer) => void;
+  isTogglingDefault?: boolean;
 }
 
 const getStatusIcon = (
@@ -152,6 +155,8 @@ const McpServerHeader: React.FC<McpServerHeaderProps> = ({
   onEditServer,
   onDeleteServer,
   onOAuthLogin,
+  onToggleDefault,
+  isTogglingDefault,
 }) => {
   const { t } = useTranslation();
 
@@ -200,30 +205,44 @@ const McpServerHeader: React.FC<McpServerHeaderProps> = ({
         )}
       </div>
       {!isReadOnly && (
-        <div className='flex items-center gap-2 invisible group-hover:visible' onClick={(e) => e.stopPropagation()}>
-          {!server.builtin && (
-            <Dropdown
-              trigger='hover'
-              droplist={
-                <Menu>
-                  <Menu.Item key='edit' onClick={() => onEditServer(server)}>
-                    <div className='flex items-center gap-2'>
-                      <Write size={'14'} />
-                      {t('settings.mcpEditServer')}
-                    </div>
-                  </Menu.Item>
-                  <Menu.Item key='delete' onClick={() => onDeleteServer(server.id)}>
-                    <div className='flex items-center gap-2 text-red-500'>
-                      <DeleteFour size={'14'} />
-                      {t('settings.mcpDeleteServer')}
-                    </div>
-                  </Menu.Item>
-                </Menu>
-              }
-            >
-              <Button size='mini' icon={<SettingOne size={'14'} />} />
-            </Dropdown>
+        <div className='flex items-center gap-2' onClick={(e) => e.stopPropagation()}>
+          {!server.builtin && onToggleDefault && (
+            <Tooltip content={t('settings.mcpDefaultForNewConversations') || 'Enabled by default in new conversations'}>
+              <span className='flex items-center'>
+                <Switch
+                  size='small'
+                  checked={server.enabled}
+                  loading={isTogglingDefault}
+                  onChange={() => onToggleDefault(server)}
+                />
+              </span>
+            </Tooltip>
           )}
+          <div className='flex items-center gap-2 invisible group-hover:visible'>
+            {!server.builtin && (
+              <Dropdown
+                trigger='hover'
+                droplist={
+                  <Menu>
+                    <Menu.Item key='edit' onClick={() => onEditServer(server)}>
+                      <div className='flex items-center gap-2'>
+                        <Write size={'14'} />
+                        {t('settings.mcpEditServer')}
+                      </div>
+                    </Menu.Item>
+                    <Menu.Item key='delete' onClick={() => onDeleteServer(server.id)}>
+                      <div className='flex items-center gap-2 text-red-500'>
+                        <DeleteFour size={'14'} />
+                        {t('settings.mcpDeleteServer')}
+                      </div>
+                    </Menu.Item>
+                  </Menu>
+                }
+              >
+                <Button size='mini' icon={<SettingOne size={'14'} />} />
+              </Dropdown>
+            )}
+          </div>
         </div>
       )}
     </div>

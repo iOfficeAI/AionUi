@@ -716,6 +716,7 @@
   "mcpImportFromCLI": "Scan MCP Tools",
   "mcpSelectCLI": "Select CLI",
   "mcpNoServersFound": "No MCP servers found",
+  "mcpDefaultForNewConversations": "Enabled by default in new conversations",
   "mcpImportSuccess": "Import successful",
   "mcpImportFailed": "Import failed",
   "mcpJsonInvalid": "Invalid JSON format",

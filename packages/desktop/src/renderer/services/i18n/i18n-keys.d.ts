@@ -1795,6 +1795,7 @@ export type I18nKey =
   | 'settings.mcpCheckedAtLabel'
   | 'settings.mcpConfirmButton'
   | 'settings.mcpConnected'
+  | 'settings.mcpDefaultForNewConversations'
   | 'settings.mcpDeleteConfirm'
   | 'settings.mcpDeleteError'
   | 'settings.mcpDeleteServer'

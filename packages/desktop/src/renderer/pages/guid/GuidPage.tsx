@@ -29,6 +29,7 @@ import { useGuidSend } from './hooks/useGuidSend';
 import { useTypewriterPlaceholder } from './hooks/useTypewriterPlaceholder';
 import { ensureBackendMcpCatalog } from '@/renderer/hooks/mcp/catalog';
 import { resolveGuidAssistantDefaults } from './utils/assistantDefaults';
+import { mergeEnabledByDefaultMcpIds } from './utils/mcpDefaults';
 import SpeechInputButton from '@/renderer/components/chat/SpeechInputButton';
 import { chatFileRefPath, uploadFileRef } from '@/common/types/chatFile';
 import { useOpenFileSelector } from '@/renderer/hooks/file/useOpenFileSelector';
@@ -122,9 +123,12 @@ const GuidPage: React.FC = () => {
     }
   }, []);
 
+  const effectiveMcpServerIdsRef = useRef<string[]>([]);
   const handleToggleMcpServer = useCallback((serverId: string) => {
     setGuidSelectedMcpServerIds((prev) => {
-      const current = prev ?? [];
+      // Seed from the effective selection (assistant defaults + global
+      // defaults) so unchecking one default doesn't drop the others.
+      const current = prev ?? effectiveMcpServerIdsRef.current;
       return current.includes(serverId) ? current.filter((id) => id !== serverId) : [...current, serverId];
     });
   }, []);
@@ -172,6 +176,15 @@ const GuidPage: React.FC = () => {
     () => resolveGuidAssistantDefaults(selectedAssistantDetail),
     [selectedAssistantDetail]
   );
+  // Global default MCP servers (Settings → Tools → "enabled by default") are
+  // unioned into the untouched selection; once the user toggles anything,
+  // their explicit choice wins for the conversation being composed (#3119).
+  const effectiveMcpServerIds = useMemo(
+    () =>
+      guidSelectedMcpServerIds ?? mergeEnabledByDefaultMcpIds(resolvedAssistantDefaults.mcpIds, availableMcpServers),
+    [guidSelectedMcpServerIds, resolvedAssistantDefaults.mcpIds, availableMcpServers]
+  );
+  effectiveMcpServerIdsRef.current = effectiveMcpServerIds;
   const selectedSkillNames = useMemo(() => {
     const disabledBuiltinSkillSet = new Set(
       guidDisabledBuiltinSkills ?? resolvedAssistantDefaults.disabledBuiltinSkillIds
@@ -452,7 +465,9 @@ const GuidPage: React.FC = () => {
           agentSelection.setSelectedThoughtLevelValue(fallbackThoughtLevel, { persistPreference: false });
         }
       }
-      setGuidSelectedMcpServerIds(resolvedDefaults.mcpIds);
+      // Reset to "untouched" so the effective selection re-derives from the
+      // new assistant's defaults plus global default MCP servers.
+      setGuidSelectedMcpServerIds(undefined);
     };
 
     void applyAssistantDefaults().catch((error) => {
@@ -634,7 +649,7 @@ const GuidPage: React.FC = () => {
       enabledSkills={guidEnabledSkills ?? []}
       onToggleSkill={handleToggleSkill}
       mcpServers={availableMcpServers}
-      selectedMcpServerIds={guidSelectedMcpServerIds ?? []}
+      selectedMcpServerIds={effectiveMcpServerIds}
       onToggleMcpServer={handleToggleMcpServer}
       speechInputNode={
         <SpeechInputButton

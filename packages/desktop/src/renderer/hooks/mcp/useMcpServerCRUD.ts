@@ -136,6 +136,26 @@ export const useMcpServerCRUD = (
     [persistEnabledState, saveMcpServers, t]
   );
 
+  /**
+   * Flip a server's "enabled by default" flag. Default-enabled servers are
+   * auto-selected for every new conversation (#3119). The backend owns
+   * persistence via the dedicated toggle endpoint.
+   */
+  const handleToggleServerDefault = useCallback(
+    async (server: IMcpServer): Promise<IMcpServer | undefined> => {
+      try {
+        const persisted = await mcpService.toggleServer.invoke({ id: server.id });
+        const nextServer = mergeServerState(persisted, { ...server, enabled: !server.enabled });
+        await saveMcpServers((prevServers) => prevServers.map((item) => (item.id === server.id ? nextServer : item)));
+        return nextServer;
+      } catch (error) {
+        Message.error(getMcpRequestErrorMessage(error, t('settings.mcpImportFailed')));
+        return undefined;
+      }
+    },
+    [saveMcpServers, t]
+  );
+
   const handleDeleteMcpServer = useCallback(
     async (serverId: string) => {
       await mcpService.deleteServer.invoke({ id: serverId });
@@ -150,5 +170,6 @@ export const useMcpServerCRUD = (
     handleBatchImportMcpServers,
     handleEditMcpServer,
     handleDeleteMcpServer,
+    handleToggleServerDefault,
   };
 };
