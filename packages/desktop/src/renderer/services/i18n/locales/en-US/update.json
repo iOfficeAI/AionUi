@@ -68,7 +68,7 @@
       "whyReason2": "Maintaining reliable installers for Mac and Windows carries ongoing signing, certification, and security investment;",
       "whyReason3": "Long-awaited capabilities — multiple accounts, data sync, safer mobile companion — all need a more secure, professional service foundation.",
       "promisesTitle": "Update with confidence:",
-      "promise2": "Your local data stays as it is: after your first sign-in, the new version inherits your current conversations, settings, and API keys in place — nothing to reconfigure;",
+      "promise2": "Your local data stays as it is: after your first sign-in, the new version inherits your current conversations, settings, and API keys in place — nothing to reconfigure. This is a one-time migration: once it completes, the new version holds that data and the current version is no longer its entry point;",
       "promise3": "No spending is tied to the new version: the way you use AionUi today is the way you will use it tomorrow, and everything free today stays free;",
       "choicesTitle": "You are still free to choose:",
       "choice2": "If you prefer local DIY, keep pulling the open-source code and package it yourself.",
@@ -87,7 +87,7 @@
       "introBold": "This is an invitation to download the new version of AionUi",
       "introSuffix": ": from now on, installers and updates will be provided through our official website instead of GitHub Releases, and we sincerely invite you to get the new version there.",
       "promise4": "The open-source repository stays actively maintained, core features stay in sync, and the open-source spirit remains.",
-      "noRush": "You can also keep using the current version — it will simply no longer receive updates."
+      "noRush": "If you would rather wait, the current version keeps working as usual — it simply no longer receives updates. And once you have completed the first sign-in on the new version, your local data has already moved there, so please use the new version as your day-to-day entry point."
     }
   }
 }

@@ -68,7 +68,7 @@
       "whyReason2": "Mac ve Windows için güvenilir yükleyiciler sürdürmek; imzalama, sertifikasyon ve güvenliğe süregelen yatırım gerektirir;",
       "whyReason3": "Uzun süredir beklenen özellikler — çoklu hesap, veri eşitleme, daha güvenli mobil eşlik — daha güvenli ve profesyonel bir hizmet temeline ihtiyaç duyar.",
       "promisesTitle": "Gönül rahatlığıyla güncelleyin:",
-      "promise2": "Yerel verileriniz olduğu gibi kalır: ilk oturum açmanızın ardından yeni sürüm mevcut konuşmalarınızı, ayarlarınızı ve API anahtarlarınızı yerinde devralır — yeniden yapılandırma gerekmez;",
+      "promise2": "Yerel verileriniz olduğu gibi kalır: ilk oturum açmanızın ardından yeni sürüm mevcut konuşmalarınızı, ayarlarınızı ve API anahtarlarınızı yerinde devralır — yeniden yapılandırma gerekmez. Bu devralma tek seferlik bir taşımadır: tamamlandıktan sonra bu veriler yeni sürümde tutulur ve mevcut sürüm artık onların giriş noktası olmaz;",
       "promise3": "Yeni sürümde zorunlu harcama yok: AionUi'yi bugün nasıl kullanıyorsanız yarın da öyle kullanacaksınız; bugün ücretsiz olan her şey ücretsiz kalacak;",
       "choicesTitle": "Seçim yine de size ait:",
       "choice2": "Yerel DIY'yi tercih ediyorsanız, açık kaynak kodu almaya ve kendiniz paketlemeye devam edebilirsiniz.",
@@ -87,7 +87,7 @@
       "introBold": "Bu, AionUi'nin yeni sürümünü indirmeniz için bir davettir",
       "introSuffix": ": bundan böyle yükleyiciler ve güncellemeler GitHub Releases yerine resmi web sitemiz üzerinden sunulacak. Yeni sürümü siteden edinmenizi içtenlikle rica ederiz.",
       "promise4": "Açık kaynak deposu aktif olarak güncellenmeye devam eder, çekirdek özellikler eşzamanlı kalır, açık kaynak ruhu sürer.",
-      "noRush": "Mevcut sürümü kullanmaya da devam edebilirsiniz — yalnızca artık güncelleme almayacaktır."
+      "noRush": "Şimdilik geçmek istemiyorsanız mevcut sürümü normal şekilde kullanmaya devam edebilirsiniz; yalnızca artık güncelleme almayacaktır. Ancak yeni sürümde ilk oturumu açtığınız anda yerel verileriniz oraya taşınmış olur; bundan sonra günlük kullanımınız için yeni sürümü giriş noktası olarak kullanın."
     }
   }
 }

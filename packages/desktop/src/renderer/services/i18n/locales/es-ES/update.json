@@ -62,7 +62,7 @@
       "whyReason2": "Mantener instaladores fiables para Mac y Windows exige una inversión continua en firma, certificación y seguridad;",
       "whyReason3": "Las capacidades tan esperadas — múltiples cuentas, sincronización de datos, un compañero móvil más seguro — necesitan una base de servicios más segura y profesional.",
       "promisesTitle": "Actualice con confianza:",
-      "promise2": "Sus datos locales se conservan tal cual: tras el primer inicio de sesión, la nueva versión hereda en el mismo lugar sus conversaciones, ajustes y claves API, sin necesidad de reconfigurar nada;",
+      "promise2": "Sus datos locales se conservan tal cual: tras el primer inicio de sesión, la nueva versión hereda en el mismo lugar sus conversaciones, ajustes y claves API, sin necesidad de reconfigurar nada. Se trata de una migración única: una vez completada, la nueva versión pasa a custodiar esos datos y la versión actual deja de ser su punto de acceso;",
       "promise3": "La nueva versión no exige ningún consumo: seguirá usando AionUi como hasta ahora, y lo que hoy es gratis seguirá siendo gratis;",
       "choicesTitle": "Usted sigue siendo libre de elegir:",
       "choice2": "Si prefiere el DIY local, siga descargando el código open source y empaquételo usted mismo.",
@@ -81,7 +81,7 @@
       "introBold": "Esta es una invitación para descargar la nueva versión de AionUi",
       "introSuffix": ": a partir de ahora, los instaladores y las actualizaciones se entregarán a través de nuestra web oficial y ya no mediante GitHub Releases. Le invitamos sinceramente a obtener la nueva versión en la web.",
       "promise4": "El repositorio open source sigue activo, las funciones principales se mantienen sincronizadas y el espíritu open source permanece.",
-      "noRush": "También puede seguir usando la versión actual; simplemente dejará de recibir actualizaciones."
+      "noRush": "Si prefiere esperar, la versión actual seguirá funcionando con normalidad; simplemente dejará de recibir actualizaciones. Pero en cuanto complete el primer inicio de sesión en la nueva versión, sus datos locales ya se habrán trasladado allí, así que utilice la nueva versión como punto de acceso habitual."
     }
   }
 }

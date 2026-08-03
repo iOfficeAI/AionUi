@@ -68,7 +68,7 @@
       "whyReason2": "Maintenir des installateurs fiables pour Mac et Windows exige des investissements continus en signature, certification et sécurité ;",
       "whyReason3": "Les capacités longtemps attendues — multi-comptes, synchronisation des données, compagnon mobile plus sûr — nécessitent une base de services plus sûre et professionnelle.",
       "promisesTitle": "Mettez à jour en toute confiance :",
-      "promise2": "Vos données locales restent en place : à la première connexion, la nouvelle version reprend vos conversations, réglages et clés API tels quels — rien à reconfigurer ;",
+      "promise2": "Vos données locales restent en place : à la première connexion, la nouvelle version reprend vos conversations, réglages et clés API tels quels — rien à reconfigurer. Il s'agit d'une migration unique : une fois effectuée, c'est la nouvelle version qui détient ces données, et la version actuelle n'en est plus le point d'accès ;",
       "promise3": "Aucun achat imposé dans la nouvelle version : vous utilisez AionUi demain comme aujourd'hui, et ce qui est gratuit aujourd'hui le restera ;",
       "choicesTitle": "Vous restez libre de choisir :",
       "choice2": "Si vous préférez le DIY local, continuez à récupérer le code open source et à l'empaqueter vous-même.",
@@ -87,7 +87,7 @@
       "introBold": "Ceci est une invitation à télécharger la nouvelle version d'AionUi",
       "introSuffix": " : désormais, les installateurs et les mises à jour seront fournis via notre site officiel et non plus via les GitHub Releases. Nous vous invitons sincèrement à récupérer la nouvelle version sur le site.",
       "promise4": "Le dépôt open source reste activement maintenu, les fonctionnalités clés restent synchronisées, l'esprit open source demeure.",
-      "noRush": "Vous pouvez aussi continuer à utiliser la version actuelle — elle ne recevra simplement plus de mises à jour."
+      "noRush": "Si vous préférez attendre, la version actuelle continue de fonctionner normalement — elle ne recevra simplement plus de mises à jour. En revanche, dès votre première connexion à la nouvelle version, vos données locales y ont déjà été transférées : utilisez alors la nouvelle version comme point d'accès quotidien."
     }
   }
 }

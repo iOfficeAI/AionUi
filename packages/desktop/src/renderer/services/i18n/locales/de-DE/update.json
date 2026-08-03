@@ -68,7 +68,7 @@
       "whyReason2": "Zuverlässige Installationspakete für Mac und Windows erfordern fortlaufende Investitionen in Signierung, Zertifizierung und Sicherheit;",
       "whyReason3": "Lang erwartete Funktionen — mehrere Konten, Datensynchronisation, eine sicherere mobile Anbindung — brauchen ein sichereres, professionelles Servicefundament.",
       "promisesTitle": "Aktualisieren Sie unbesorgt:",
-      "promise2": "Ihre lokalen Daten bleiben erhalten: Nach der ersten Anmeldung übernimmt die neue Version Ihre bisherigen Gespräche, Einstellungen und API-Keys an Ort und Stelle — nichts muss neu eingerichtet werden;",
+      "promise2": "Ihre lokalen Daten bleiben erhalten: Nach der ersten Anmeldung übernimmt die neue Version Ihre bisherigen Gespräche, Einstellungen und API-Keys an Ort und Stelle — nichts muss neu eingerichtet werden. Dies ist eine einmalige Migration: Danach hält die neue Version diese Daten, und die aktuelle Version ist nicht mehr ihr Zugang;",
       "promise3": "Kein Kaufzwang in der neuen Version: Sie nutzen AionUi weiter wie heute, und was heute kostenlos ist, bleibt kostenlos;",
       "choicesTitle": "Sie haben weiterhin die freie Wahl:",
       "choice2": "Wenn Sie lieber lokal selbst bauen, beziehen Sie weiterhin den Open-Source-Code und paketieren ihn selbst.",
@@ -87,7 +87,7 @@
       "introBold": "Dies ist eine Einladung zum Download der neuen AionUi-Version",
       "introSuffix": ": Installationspakete und Updates werden künftig über unsere offizielle Website statt über GitHub Releases bereitgestellt. Wir laden Sie herzlich ein, die neue Version dort herunterzuladen.",
       "promise4": "Das Open-Source-Repository wird weiter gepflegt, die Kernfunktionen bleiben synchron, der Open-Source-Gedanke bleibt bestehen.",
-      "noRush": "Sie können die aktuelle Version auch weiterhin nutzen — sie erhält lediglich keine Updates mehr."
+      "noRush": "Wenn Sie noch warten möchten, funktioniert die aktuelle Version weiterhin wie gewohnt — sie erhält lediglich keine Updates mehr. Sobald Sie sich jedoch erstmals in der neuen Version angemeldet haben, sind Ihre lokalen Daten dorthin umgezogen; nutzen Sie dann bitte die neue Version als täglichen Zugang."
     }
   }
 }
