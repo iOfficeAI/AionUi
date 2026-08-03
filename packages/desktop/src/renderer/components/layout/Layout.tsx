@@ -347,9 +347,7 @@ const Layout: React.FC<{
         startX: event.clientX,
         startWidth: collapsedRef.current ? DESKTOP_COLLAPSED_WIDTH : DEFAULT_SIDER_WIDTH,
       };
-      // Only suppress text selection while dragging. No `col-resize` cursor: the
-      // drag snaps collapsed/expanded rather than resizing, so a resize cursor
-      // would advertise something the sider cannot do.
+      document.body.style.cursor = 'col-resize';
       document.body.style.userSelect = 'none';
     },
     [isMobile]
@@ -373,6 +371,7 @@ const Layout: React.FC<{
     const endDrag = () => {
       if (!dragStateRef.current.active) return;
       dragStateRef.current.active = false;
+      document.body.style.cursor = '';
       document.body.style.userSelect = '';
     };
 
@@ -506,12 +505,8 @@ const Layout: React.FC<{
                   : sider}
               </ArcoLayout.Content>
               {!isMobile && (
-                /* Drag target on the sider's right edge. Dragging only snaps the
-                   sider between collapsed and expanded — the width itself is
-                   fixed — so deliberately no `col-resize` cursor: promising a
-                   resize the user cannot perform is worse than no hint at all. */
                 <div
-                  className='absolute top-0 h-full w-8px z-20 group'
+                  className='absolute top-0 h-full w-8px z-20 cursor-col-resize group'
                   style={{ right: '-4px' }}
                   onMouseDown={beginSiderResizeDrag}
                   aria-hidden='true'
@@ -553,12 +548,17 @@ const Layout: React.FC<{
               {previewRegionActive && (
                 <div
                   data-project-preview-region
-                  className='preview-panel flex flex-col relative overflow-visible rounded-[15px] mb-[12px] mr-[12px] ml-[8px]'
+                  className='preview-panel flex flex-col relative overflow-visible'
                   style={{
                     width: `${Math.round(previewWidthPx)}px`,
                     flexGrow: 0,
                     flexShrink: 0,
-                    border: '1px solid var(--bg-3)',
+                    // 只保留左边框作为与会话区的分界；上/右/下不留边距，
+                    // 否则窗口底色会从缝隙里透出来（深色模式下尤其突兀）。
+                    // Left border only, as the divider from the chat area. No outer
+                    // margins: any gap would expose the window's own background,
+                    // which is jarring in dark mode.
+                    borderLeft: '1px solid var(--bg-3)',
                     minWidth: `${MIN_PREVIEW_PANEL_PX}px`,
                     boxSizing: 'border-box',
                   }}
@@ -571,7 +571,7 @@ const Layout: React.FC<{
                     lineClassName: 'opacity-30 group-hover:opacity-100 group-active:opacity-100',
                     lineStyle: { width: '2px' },
                   })}
-                  <div className='h-full w-full overflow-hidden rounded-[15px]'>
+                  <div className='h-full w-full overflow-hidden'>
                     <PreviewPanel />
                   </div>
                 </div>
