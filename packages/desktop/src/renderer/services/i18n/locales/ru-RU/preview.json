@@ -139,5 +139,11 @@
     "installing": "Установка компонента предпросмотра...",
     "startFailed": "Не удалось запустить предпросмотр PPT",
     "installHint": "Установите OfficeCLI со страницы официальных выпусков iOfficeAI/OfficeCLI"
-  }
+  },
+  "refresh": "Обновить",
+  "refreshExternalChange": "Файл изменён на диске извне — нажмите, чтобы обновить",
+  "refreshTabTitle": "Обновить",
+  "refreshTabMessage": "Текущее содержимое не сохранено. Сохранить перед обновлением?",
+  "saveAndRefresh": "Сохранить и обновить",
+  "refreshWithoutSave": "Не сохранять"
 }

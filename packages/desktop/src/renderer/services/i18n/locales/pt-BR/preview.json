@@ -139,5 +139,11 @@
     "installing": "Instalando componente de visualização...",
     "startFailed": "Falha ao iniciar a visualização do PPT",
     "installHint": "Instale o OfficeCLI pela página oficial de releases iOfficeAI/OfficeCLI"
-  }
+  },
+  "refresh": "Atualizar",
+  "refreshExternalChange": "O arquivo foi alterado no disco externamente — clique para atualizar",
+  "refreshTabTitle": "Atualizar",
+  "refreshTabMessage": "O conteúdo atual não foi salvo. Salvar antes de atualizar?",
+  "saveAndRefresh": "Salvar e Atualizar",
+  "refreshWithoutSave": "Não Salvar"
 }

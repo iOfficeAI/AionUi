@@ -139,5 +139,11 @@
     "installing": "Vorschau-Komponente wird installiert...",
     "startFailed": "PPT-Vorschau konnte nicht gestartet werden",
     "installHint": "Installiere OfficeCLI über die offizielle iOfficeAI/OfficeCLI releases-Seite"
-  }
+  },
+  "refresh": "Aktualisieren",
+  "refreshExternalChange": "Datei wurde extern auf der Festplatte geändert — zum Aktualisieren klicken",
+  "refreshTabTitle": "Aktualisieren",
+  "refreshTabMessage": "Der aktuelle Inhalt ist nicht gespeichert. Vor dem Aktualisieren speichern?",
+  "saveAndRefresh": "Speichern und Aktualisieren",
+  "refreshWithoutSave": "Nicht speichern"
 }

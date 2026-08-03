@@ -139,5 +139,11 @@
     "installing": "Instalando componente de vista previa...",
     "startFailed": "Error al iniciar la vista previa de PPT",
     "installHint": "Instala OfficeCLI desde la página oficial de versiones de iOfficeAI/OfficeCLI"
-  }
+  },
+  "refresh": "Actualizar",
+  "refreshExternalChange": "El archivo se modificó externamente en el disco — haz clic para actualizar",
+  "refreshTabTitle": "Actualizar",
+  "refreshTabMessage": "El contenido actual no se ha guardado. ¿Guardar antes de actualizar?",
+  "saveAndRefresh": "Guardar y Actualizar",
+  "refreshWithoutSave": "No Guardar"
 }

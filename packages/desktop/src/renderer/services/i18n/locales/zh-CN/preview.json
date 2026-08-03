@@ -139,5 +139,11 @@
     "installing": "正在安装预览组件...",
     "startFailed": "启动 PPT 预览失败",
     "installHint": "请从官方 iOfficeAI/OfficeCLI releases 页面安装 OfficeCLI"
-  }
+  },
+  "refresh": "刷新",
+  "refreshExternalChange": "文件已在磁盘上被外部修改，点击刷新",
+  "refreshTabTitle": "刷新",
+  "refreshTabMessage": "当前内容还未保存，是否保存后再刷新？",
+  "saveAndRefresh": "保存并刷新",
+  "refreshWithoutSave": "不保存"
 }

@@ -42,6 +42,7 @@ export interface PreviewTab {
   title: string; // Tab 标题
   isDirty?: boolean; // 是否有未保存的修改 / Whether there are unsaved changes
   originalContent?: string; // 原始内容，用于对比 / Original content for comparison
+  hasExternalChange?: boolean; // 文件在磁盘上被外部改动，等待用户手动刷新 / File changed externally on disk, awaiting manual refresh
 }
 
 export interface OpenPreviewOptions {
@@ -75,6 +76,7 @@ export interface PreviewContextValue {
   switchTab: (tabId: string) => void;
   updateContent: (content: string) => void;
   saveContent: (tabId?: string) => Promise<boolean>; // 保存内容 / Save content
+  reloadTab: (tabId: string) => Promise<void>; // 强制重读磁盘内容、重置脏标记与外部变更标记 / Force-reload from disk, reset dirty and external-change flags
   findPreviewTab: (type: PreviewContentType, content?: string, metadata?: PreviewMetadata) => PreviewTab | null; // 查找匹配的 tab
   closePreviewByIdentity: (type: PreviewContentType, content?: string, metadata?: PreviewMetadata) => void; // 根据内容关闭指定 tab
   closePreviewIfScopeChanged: (scopeKey: PreviewScopeKey) => void; // 切换隔离 scope(project;见 previewScope.ts):持久化旧 scope、恢复新 scope 的 tabs+可见性(per-project)
@@ -505,6 +507,38 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
     [activeTabId, tabs]
   );
 
+  // 手动刷新：强制从磁盘重读，忽略 mtime，重置 originalContent/isDirty，清除外部变更标记。
+  // Manual refresh: force re-read from disk, ignore mtime, reset originalContent/isDirty, clear the
+  // external-change flag. No-op for tabs without a disk-backed file_path.
+  const reloadTab = useCallback(
+    async (tabId: string) => {
+      const tab = tabs.find((t) => t.id === tabId);
+      const file_path = tab?.metadata?.file_path;
+      if (!tab || !file_path) return;
+
+      const content =
+        tab.content_type === 'image'
+          ? await ipcBridge.fs.getImageBase64.invoke({ path: file_path, workspace: tab.metadata?.workspace })
+          : await ipcBridge.fs.readFile.invoke({ path: file_path, workspace: tab.metadata?.workspace });
+      if (content == null) return;
+
+      // 把 mtime 基线更新到最新，避免刷新后轮询立刻再次点亮 badge。
+      // Refresh the mtime baseline so polling doesn't immediately re-light the badge after reload.
+      const metadata = await ipcBridge.fs.getFileMetadata
+        .invoke({ path: file_path, workspace: tab.metadata?.workspace })
+        .catch((): null => null);
+      if (metadata) fileMtimeRef.current.set(file_path, metadata.lastModified);
+
+      setTabs((latest) =>
+        latest.map((t) => {
+          if (t.id !== tabId) return t;
+          return { ...t, content, originalContent: content, isDirty: false, hasExternalChange: false };
+        })
+      );
+    },
+    [tabs]
+  );
+
   const addToSendBox = useCallback((text: string) => {
     if (sendBoxHandler.current) {
       sendBoxHandler.current(text);
@@ -538,7 +572,7 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
     // 防抖定时器映射：每个文件路径对应一个定时器 / Debounce timer map: one timer per file path
     const debounceTimers = new Map<string, NodeJS.Timeout>();
 
-    const unsubscribe = ipcBridge.fileStream.contentUpdate.on(({ file_path, content, operation }) => {
+    const unsubscribe = ipcBridge.fileStream.contentUpdate.on(({ file_path, operation }) => {
       // 如果是删除操作，立即处理，不需要防抖 / If delete operation, handle immediately without debounce
       if (operation === 'delete') {
         // 清除该文件的防抖定时器 / Clear debounce timer for this file
@@ -566,7 +600,9 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
       }
 
       const timer = setTimeout(() => {
-        // 使用函数式更新来访问最新的 tabs 状态 / Use functional update to access latest tabs state
+        // 被动感知：不再自动覆盖内容，只点亮外部变更标记（刷新按钮 badge），由用户手动刷新。
+        // Passive detection: no longer auto-overwrite content; only light the external-change flag
+        // (refresh button badge) and let the user refresh manually.
         setTabs((prevTabs) => {
           // 查找受影响的 tabs / Find affected tabs
           const affectedTabs = prevTabs.filter((tab) => tab.metadata?.file_path === file_path);
@@ -578,17 +614,15 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
           return prevTabs.map((tab) => {
             if (tab.metadata?.file_path !== file_path) return tab;
 
-            // 如果正在保存或用户已编辑，不更新 / Don't update if saving or user has edited
-            if (savingFilesRef.current.has(file_path) || tab.isDirty) {
+            // 本方保存触发的变更不点亮；已点亮则保持不变（避免多余渲染）。
+            // dirty 时仍点亮（本地改 + 盘上变 = 冲突，用户应知晓，但仍不覆盖内容）。
+            // Skip our own save; keep as-is if already lit. Still light when dirty
+            // (local edit + on-disk change = conflict; user should know, but never overwrite content).
+            if (savingFilesRef.current.has(file_path) || tab.hasExternalChange) {
               return tab;
             }
 
-            return {
-              ...tab,
-              content,
-              originalContent: content,
-              isDirty: false,
-            };
+            return { ...tab, hasExternalChange: true };
           });
         });
 
@@ -614,7 +648,9 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const checkFileUpdate = useCallback(
     (tab: PreviewTab) => {
       const file_path = tab.metadata?.file_path;
-      if (!file_path || tab.isDirty || savingFilesRef.current.has(file_path)) return;
+      // 本方正在保存时跳过；dirty 不跳过（本地改 + 盘上变 = 冲突，也要让用户感知）。
+      // Skip while we're saving; do NOT skip on dirty (local edit + on-disk change = conflict, must surface).
+      if (!file_path || savingFilesRef.current.has(file_path)) return;
 
       void ipcBridge.fs.getFileMetadata
         .invoke({ path: file_path, workspace: tab.metadata?.workspace })
@@ -622,27 +658,19 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
           if (!metadata) return;
           const prevMtime = fileMtimeRef.current.get(file_path);
           fileMtimeRef.current.set(file_path, metadata.lastModified);
+          // 首次记录（prevMtime 为 undefined）或 mtime 未变：不点亮 / First record or unchanged mtime: don't light.
           if (prevMtime === undefined || metadata.lastModified === prevMtime) return;
 
-          const readPromise =
-            tab.content_type === 'image'
-              ? ipcBridge.fs.getImageBase64.invoke({ path: file_path, workspace: tab.metadata?.workspace })
-              : ipcBridge.fs.readFile.invoke({ path: file_path, workspace: tab.metadata?.workspace });
-
-          void readPromise
-            .then((content) => {
-              if (content == null) return;
-              setTabs((latest) =>
-                latest.map((t) => {
-                  if (t.metadata?.file_path !== file_path) return t;
-                  if (savingFilesRef.current.has(file_path) || t.isDirty) return t;
-                  return { ...t, content, originalContent: content, isDirty: false };
-                })
-              );
+          // 被动感知：只点亮外部变更标记（刷新按钮 badge），不重读内容——用户点刷新时才重读。
+          // Passive detection: only light the external-change flag (refresh button badge); content is
+          // re-read on manual refresh.
+          setTabs((latest) =>
+            latest.map((t) => {
+              if (t.metadata?.file_path !== file_path) return t;
+              if (savingFilesRef.current.has(file_path) || t.hasExternalChange) return t;
+              return { ...t, hasExternalChange: true };
             })
-            .catch((error) => {
-              console.error('[PreviewContext] Failed to read file after mtime change:', file_path, error);
-            });
+          );
         })
         .catch((error) => {
           console.error('[PreviewContext] Failed to get file metadata:', file_path, error);
@@ -723,6 +751,7 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
       switchTab: setActiveTabId,
       updateContent,
       saveContent,
+      reloadTab,
       findPreviewTab,
       closePreviewByIdentity,
       closePreviewIfScopeChanged,
@@ -744,6 +773,7 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setActiveTabId,
     updateContent,
     saveContent,
+    reloadTab,
     findPreviewTab,
     closePreviewByIdentity,
     closePreviewIfScopeChanged,

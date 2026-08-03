@@ -139,5 +139,11 @@
     "installing": "Installation du composant d'aperçu...",
     "startFailed": "Échec du démarrage de l'aperçu PPT",
     "installHint": "Assurez-vous qu'officecli est installé : npm run postinstall"
-  }
+  },
+  "refresh": "Actualiser",
+  "refreshExternalChange": "Le fichier a été modifié en externe sur le disque — cliquez pour actualiser",
+  "refreshTabTitle": "Actualiser",
+  "refreshTabMessage": "Le contenu actuel n'est pas enregistré. Enregistrer avant d'actualiser ?",
+  "saveAndRefresh": "Enregistrer et Actualiser",
+  "refreshWithoutSave": "Ne pas enregistrer"
 }

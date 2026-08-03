@@ -139,5 +139,11 @@
     "installing": "Встановлення компонента перегляду...",
     "startFailed": "Не вдалося запустити перегляд PPT",
     "installHint": "Встановіть OfficeCLI зі сторінки офіційних релізів iOfficeAI/OfficeCLI"
-  }
+  },
+  "refresh": "Оновити",
+  "refreshExternalChange": "Файл змінено на диску ззовні — натисніть, щоб оновити",
+  "refreshTabTitle": "Оновити",
+  "refreshTabMessage": "Поточний вміст не збережено. Зберегти перед оновленням?",
+  "saveAndRefresh": "Зберегти й оновити",
+  "refreshWithoutSave": "Не зберігати"
 }

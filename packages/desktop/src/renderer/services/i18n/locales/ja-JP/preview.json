@@ -139,5 +139,11 @@
     "installing": "プレビューコンポーネントをインストール中...",
     "startFailed": "PPTプレビューの起動に失敗しました",
     "installHint": "公式 iOfficeAI/OfficeCLI releases ページから OfficeCLI をインストールしてください"
-  }
+  },
+  "refresh": "更新",
+  "refreshExternalChange": "ファイルがディスク上で外部から変更されました。クリックして更新",
+  "refreshTabTitle": "更新",
+  "refreshTabMessage": "現在の内容はまだ保存されていません。保存してから更新しますか？",
+  "saveAndRefresh": "保存して更新",
+  "refreshWithoutSave": "保存しない"
 }

@@ -139,5 +139,11 @@
     "installing": "正在安裝預覽元件...",
     "startFailed": "啟動 PPT 預覽失敗",
     "installHint": "請從官方 iOfficeAI/OfficeCLI releases 頁面安裝 OfficeCLI"
-  }
+  },
+  "refresh": "重新整理",
+  "refreshExternalChange": "檔案已在磁碟上被外部修改，點擊重新整理",
+  "refreshTabTitle": "重新整理",
+  "refreshTabMessage": "當前內容還未儲存，是否儲存後再重新整理？",
+  "saveAndRefresh": "儲存並重新整理",
+  "refreshWithoutSave": "不儲存"
 }

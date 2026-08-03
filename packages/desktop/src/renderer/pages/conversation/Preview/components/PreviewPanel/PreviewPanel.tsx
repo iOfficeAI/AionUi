@@ -32,7 +32,7 @@ import {
   PreviewConfirmModals,
   PreviewHistoryDropdown,
   type ContextMenuState,
-  type CloseTabConfirmState,
+  type PreviewConfirmState,
   type PreviewTab,
 } from '.';
 import { DEFAULT_SPLIT_RATIO, FILE_TYPES_WITH_BUILTIN_OPEN, MAX_SPLIT_WIDTH, MIN_SPLIT_WIDTH } from '../../constants';
@@ -65,6 +65,7 @@ const PreviewPanel: React.FC = () => {
     closePreview,
     updateContent,
     saveContent,
+    reloadTab,
     addDomSnippet,
   } = usePreviewContext();
   const layout = useLayoutContext();
@@ -85,8 +86,9 @@ const PreviewPanel: React.FC = () => {
     setViewMode('preview');
   }, [activeTabId, activeTab?.metadata?.file_path, activeTab?.content_type]);
 
-  // 确认对话框状态 / Confirmation dialog states
-  const [closeTabConfirm, setCloseTabConfirm] = useState<CloseTabConfirmState>({ show: false, tabId: null });
+  // 确认对话框状态：关闭 / 刷新共用一个状态，靠 mode 区分
+  // Confirmation dialog state: close and refresh share one state, disambiguated by mode
+  const [confirm, setConfirm] = useState<PreviewConfirmState>({ show: false, tabId: null, mode: 'close' });
 
   // 右键菜单状态 / Context menu state
   const [contextMenu, setContextMenu] = useState<ContextMenuState>({ show: false, x: 0, y: 0, tabId: null });
@@ -176,7 +178,7 @@ const PreviewPanel: React.FC = () => {
       const tab = tabs.find((t) => t.id === tabId);
       // 如果tab有未保存的修改，显示确认对话框 / If tab has unsaved changes, show confirmation dialog
       if (tab?.isDirty) {
-        setCloseTabConfirm({ show: true, tabId });
+        setConfirm({ show: true, tabId, mode: 'close' });
       } else {
         // 没有未保存的修改，直接关闭 / No unsaved changes, close directly
         closeTab(tabId);
@@ -185,33 +187,53 @@ const PreviewPanel: React.FC = () => {
     [tabs, closeTab]
   );
 
-  // 保存并关闭tab / Save and close tab
-  const handleSaveAndCloseTab = useCallback(async () => {
-    if (!closeTabConfirm.tabId) return;
+  // 处理刷新：dirty 时弹确认，否则直接重读 / Handle refresh: confirm if dirty, else reload directly
+  const handleRefresh = useCallback(() => {
+    if (!activeTab) return;
+    if (activeTab.isDirty) {
+      setConfirm({ show: true, tabId: activeTab.id, mode: 'refresh' });
+    } else {
+      void reloadTab(activeTab.id);
+    }
+  }, [activeTab, reloadTab]);
+
+  // 保存后执行主操作（保存并关闭 / 保存并刷新）/ Save then run primary action (save & close / save & refresh)
+  const handleSaveConfirm = useCallback(async () => {
+    const { tabId, mode } = confirm;
+    if (!tabId) return;
 
     try {
-      const success = await saveContent(closeTabConfirm.tabId);
+      const success = await saveContent(tabId);
       if (!success) {
         throw new Error(t('common.saveFailed'));
       }
-      closeTab(closeTabConfirm.tabId);
-      setCloseTabConfirm({ show: false, tabId: null });
+      if (mode === 'refresh') {
+        await reloadTab(tabId);
+      } else {
+        closeTab(tabId);
+      }
+      setConfirm({ show: false, tabId: null, mode: 'close' });
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : t('common.unknownError');
       messageApi.error(`${t('common.saveFailed')}: ${errorMsg}`);
     }
-  }, [closeTabConfirm.tabId, saveContent, closeTab, messageApi, t]);
+  }, [confirm, saveContent, closeTab, reloadTab, messageApi, t]);
 
-  // 不保存直接关闭tab / Close tab without saving
-  const handleCloseWithoutSave = useCallback(() => {
-    if (!closeTabConfirm.tabId) return;
-    closeTab(closeTabConfirm.tabId);
-    setCloseTabConfirm({ show: false, tabId: null });
-  }, [closeTabConfirm.tabId, closeTab]);
+  // 不保存直接执行（不保存关闭 / 不保存刷新）/ Run without saving (close / refresh without save)
+  const handleDiscardConfirm = useCallback(() => {
+    const { tabId, mode } = confirm;
+    if (!tabId) return;
+    if (mode === 'refresh') {
+      void reloadTab(tabId);
+    } else {
+      closeTab(tabId);
+    }
+    setConfirm({ show: false, tabId: null, mode: 'close' });
+  }, [confirm, closeTab, reloadTab]);
 
-  // 取消关闭tab / Cancel close tab
-  const handleCancelCloseTab = useCallback(() => {
-    setCloseTabConfirm({ show: false, tabId: null });
+  // 取消确认 / Cancel confirmation
+  const handleCancelConfirm = useCallback(() => {
+    setConfirm({ show: false, tabId: null, mode: 'close' });
   }, []);
 
   // 处理 tab 右键菜单 / Handle tab context menu
@@ -655,10 +677,10 @@ const PreviewPanel: React.FC = () => {
         {/* 确认对话框 / Confirmation modals */}
         {/* eslint-disable-next-line max-len */}
         <PreviewConfirmModals
-          closeTabConfirm={closeTabConfirm}
-          onSaveAndCloseTab={handleSaveAndCloseTab}
-          onCloseWithoutSave={handleCloseWithoutSave}
-          onCancelCloseTab={handleCancelCloseTab}
+          confirm={confirm}
+          onSave={handleSaveConfirm}
+          onDiscard={handleDiscardConfirm}
+          onCancel={handleCancelConfirm}
         />
 
         {/* Tab 栏 / Tab bar */}
@@ -696,6 +718,8 @@ const PreviewPanel: React.FC = () => {
             renderHistoryDropdown={renderHistoryDropdown}
             onOpenInSystem={handleOpenInSystem}
             onDownload={handleDownload}
+            onRefresh={showOpenInSystemButton ? handleRefresh : undefined}
+            hasExternalChange={activeTab.hasExternalChange}
             onClose={closePreview}
             inspectMode={inspectMode}
             onInspectModeToggle={() => setInspectMode(!inspectMode)}

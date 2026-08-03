@@ -139,5 +139,11 @@
     "installing": "Installing preview component...",
     "startFailed": "Failed to start PPT preview",
     "installHint": "Install OfficeCLI from the official iOfficeAI/OfficeCLI releases page"
-  }
+  },
+  "refresh": "Refresh",
+  "refreshExternalChange": "File changed on disk — click to refresh",
+  "refreshTabTitle": "Refresh",
+  "refreshTabMessage": "The current content has unsaved changes. Save before refreshing?",
+  "saveAndRefresh": "Save and Refresh",
+  "refreshWithoutSave": "Don't Save"
 }

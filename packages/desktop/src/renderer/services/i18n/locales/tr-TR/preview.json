@@ -139,5 +139,11 @@
     "installing": "Önizleme bileşeni yükleniyor...",
     "startFailed": "PPT önizlemesi başlatılamadı",
     "installHint": "OfficeCLI'yi resmi iOfficeAI/OfficeCLI releases sayfasından yükleyin"
-  }
+  },
+  "refresh": "Yenile",
+  "refreshExternalChange": "Dosya diskte harici olarak değişti — yenilemek için tıklayın",
+  "refreshTabTitle": "Yenile",
+  "refreshTabMessage": "Mevcut içerik kaydedilmedi. Yenilemeden önce kaydedilsin mi?",
+  "saveAndRefresh": "Kaydet ve Yenile",
+  "refreshWithoutSave": "Kaydetme"
 }

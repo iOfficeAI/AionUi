@@ -139,5 +139,11 @@
     "installing": "미리보기 구성 요소 설치 중...",
     "startFailed": "PPT 미리보기 시작 실패",
     "installHint": "공식 iOfficeAI/OfficeCLI releases 페이지에서 OfficeCLI를 설치하세요"
-  }
+  },
+  "refresh": "새로고침",
+  "refreshExternalChange": "파일이 디스크에서 외부적으로 변경되었습니다. 클릭하여 새로고침",
+  "refreshTabTitle": "새로고침",
+  "refreshTabMessage": "현재 내용이 저장되지 않았습니다. 저장 후 새로고침하시겠습니까?",
+  "saveAndRefresh": "저장하고 새로고침",
+  "refreshWithoutSave": "저장하지 않음"
 }

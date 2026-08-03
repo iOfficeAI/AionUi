@@ -139,5 +139,11 @@
     "installing": "در حال نصب مؤلفه پیش‌نمایش...",
     "startFailed": "شروع پیش‌نمایش PPT ناموفق بود",
     "installHint": "OfficeCLI را از صفحه انتشارات رسمی iOfficeAI/OfficeCli نصب کنید"
-  }
+  },
+  "refresh": "بازخوانی",
+  "refreshExternalChange": "فایل به‌صورت خارجی روی دیسک تغییر کرد — برای بازخوانی کلیک کنید",
+  "refreshTabTitle": "بازخوانی",
+  "refreshTabMessage": "محتوای فعلی ذخیره نشده است. قبل از بازخوانی ذخیره شود؟",
+  "saveAndRefresh": "ذخیره و بازخوانی",
+  "refreshWithoutSave": "ذخیره نشود"
 }

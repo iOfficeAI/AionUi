@@ -121,6 +121,18 @@ interface PreviewToolbarProps {
   onDownload: () => void;
 
   /**
+   * 手动刷新当前预览（重读磁盘内容）；未提供时不显示刷新按钮
+   * Manually refresh the current preview (re-read from disk); refresh button is hidden when omitted
+   */
+  onRefresh?: () => void;
+
+  /**
+   * 文件在磁盘上被外部改动，点亮刷新按钮 badge 提示用户
+   * File changed externally on disk; lights the refresh button badge to notify the user
+   */
+  hasExternalChange?: boolean;
+
+  /**
    * 关闭预览面板
    * Close preview panel
    */
@@ -176,6 +188,8 @@ const PreviewToolbar: React.FC<PreviewToolbarProps> = ({
   renderHistoryDropdown,
   onOpenInSystem,
   onDownload,
+  onRefresh,
+  hasExternalChange,
   onClose,
   inspectMode,
   onInspectModeToggle,
@@ -192,6 +206,38 @@ const PreviewToolbar: React.FC<PreviewToolbarProps> = ({
     'flex items-center gap-2px px-8px py-3px rd-4px cursor-pointer transition-colors duration-150 text-12px font-medium text-t-secondary hover:text-t-primary hover:bg-bg-3';
   const toolbarBtnActive = '!text-white bg-brand hover:!text-white hover:bg-brand-hover';
   const toolbarIconSize = 12;
+
+  // 刷新按钮：点击重读磁盘内容；hasExternalChange 时右上角点亮 badge（复用 tab dirty 红点范式）。
+  // Refresh button: click to re-read from disk; a badge lights at the top-right when hasExternalChange
+  // (reuses the tab dirty red-dot style).
+  const refreshButton = onRefresh ? (
+    <div
+      className={`${toolbarBtn} relative`}
+      onClick={onRefresh}
+      title={hasExternalChange ? t('preview.refreshExternalChange') : t('preview.refresh')}
+    >
+      <svg
+        width={toolbarIconSize}
+        height={toolbarIconSize}
+        viewBox='0 0 24 24'
+        fill='none'
+        stroke='currentColor'
+        strokeWidth='2'
+        className='text-t-secondary'
+      >
+        <polyline points='23 4 23 10 17 10' />
+        <polyline points='1 20 1 14 7 14' />
+        <path d='M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15' />
+      </svg>
+      <span>{t('preview.refresh')}</span>
+      {hasExternalChange && (
+        <span
+          className='absolute -top-2px -right-2px w-6px h-6px rd-full bg-primary'
+          title={t('preview.refreshExternalChange')}
+        />
+      )}
+    </div>
+  ) : null;
 
   return (
     <div className='flex items-center justify-between h-32px px-10px bg-bg-2 flex-shrink-0 border-b border-border-1 overflow-x-auto'>
@@ -272,6 +318,7 @@ const PreviewToolbar: React.FC<PreviewToolbarProps> = ({
               <span>{t('preview.openInSystemApp')}</span>
             </div>
           )}
+          {preferActionButtonsInFront && refreshButton}
           {preferActionButtonsInFront && showDownload && (
             <div className={toolbarBtn} onClick={() => void onDownload()} title={t('preview.downloadFile')}>
               <svg
@@ -386,6 +433,7 @@ const PreviewToolbar: React.FC<PreviewToolbarProps> = ({
             </div>
           )}
 
+          {!preferActionButtonsInFront && refreshButton}
           {!preferActionButtonsInFront && showDownload && (
             <div className={toolbarBtn} onClick={() => void onDownload()} title={t('preview.downloadFile')}>
               <svg
