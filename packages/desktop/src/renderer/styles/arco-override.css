@@ -387,6 +387,20 @@ body[arco-theme='dark'] .arco-message-error {
   transition: background-color 0.12s ease;
 }
 
+/* 对齐基准线（与 ExplorerContainer.tsx / SearchPanel.tsx 保持一致）：
+   节点行外框从 12px 起，行内首个元素（展开箭头）从 20px 起。
+   arco 把所有层级的节点都渲染成 .arco-tree 的直接子元素，靠行内的缩进块表示层级，
+   所以这 8px 对每一层是同一个常量偏移，不会随深度累加。
+
+   Alignment baseline (kept in sync with ExplorerContainer.tsx / SearchPanel.tsx):
+   the node row's outer box starts at 12px and its first inner element (the expand
+   arrow) at 20px. arco renders nodes at every depth as direct children of .arco-tree
+   and expresses nesting with in-row indent blocks, so these 8px are a single constant
+   offset per level rather than something that accumulates with depth. */
+.workspace-tree .arco-tree-node {
+  padding-left: 8px;
+}
+
 .workspace-tree .arco-tree-node:hover {
   background-color: var(--color-fill-2);
 }
