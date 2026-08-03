@@ -203,16 +203,23 @@ const PreviewTabs: React.FC<PreviewTabsProps> = ({
                     />
                   )}
                 </span>
-                <Close
-                  theme='outline'
-                  size='14'
-                  fill={iconColors.secondary}
-                  className='hover:fill-primary flex-shrink-0'
+                {/* 叉叉比加号「显得」大，是因为加号有 24px 的悬停底框衬托，而叉叉是
+                    一个裸露的图标。所以这里给叉叉同样的方框（16px，比加号的 24px 小
+                    一档，因为它在 tab 内部），并把图标本身收到 12px，视觉重量就和加号
+                    一致了。
+                    The close glyph looked bigger than the plus because the plus sits in a
+                    24px hover box while the close icon was bare. Giving it the same kind
+                    of box (16px — one step down from the plus's 24px since it lives inside
+                    a tab) and trimming the glyph to 12px evens out their visual weight. */}
+                <span
+                  className='flex items-center justify-center w-16px h-16px rd-4px flex-shrink-0 hover:bg-bg-3 transition-colors'
                   onClick={(e) => {
                     e.stopPropagation();
                     onCloseTab(tab.id);
                   }}
-                />
+                >
+                  <Close theme='outline' size='12' fill={iconColors.secondary} className='hover:fill-primary' />
+                </span>
               </div>
             ))
           ) : (

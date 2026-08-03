@@ -644,6 +644,14 @@ const WebviewHost: React.FC<WebviewHostProps> = ({
             .aion-url-viewer-toolbar .toolbar-input {
               -webkit-appearance: none;
               appearance: none;
+              /* box-sizing 必须显式声明：width:100% 配 padding + border 时，
+                 content-box 会把左右各 13px（12px padding + 1px border）加在
+                 100% 之外，整行被顶宽 26px 而溢出预览框右边缘。
+                 box-sizing must be explicit: with width:100% plus padding and
+                 border, content-box adds 13px per side (12px padding + 1px
+                 border) on top of the 100%, widening the row by 26px so it
+                 overflows the preview panel's right edge. */
+              box-sizing: border-box;
               width: 100%;
               height: 30px;
               padding: 0 12px;
