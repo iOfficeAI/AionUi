@@ -15,7 +15,8 @@ interface UseOpenFileSelectorResult {
  * Unifies '+' button and '/open' builtin command handling.
  *
  * In Electron: opens native file dialog.
- * In WebUI: triggers DirectorySelectionModal via bridge events.
+ * In WebUI: routes through the registered web file picker (webFsPicker),
+ * which browses the server filesystem via `/api/fs/dir`.
  */
 export function useOpenFileSelector(options: UseOpenFileSelectorOptions): UseOpenFileSelectorResult {
   const { onFilesSelected } = options;
@@ -30,8 +31,8 @@ export function useOpenFileSelector(options: UseOpenFileSelectorOptions): UseOpe
         onFilesSelected(files);
       })
       .catch((error) => {
-        // In WebUI, dialog may fail if DirectorySelectionModal is not rendered
-        // or bridge is not properly connected. Log error for debugging.
+        // In WebUI, dialog may fail if the web file picker (webFsPicker) is not
+        // registered or the bridge is not properly connected. Log for debugging.
         console.warn('[useOpenFileSelector] Failed to open file selector:', error);
       });
   }, [onFilesSelected]);

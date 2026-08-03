@@ -98,8 +98,6 @@ export const HTTP_ROUTES: Record<string, HttpRoute> = {
   'fs.list': { method: 'POST', path: '/api/fs/list', mapResponse: 'flatFileList' },
   'fs.read': { method: 'POST', path: '/api/fs/read' },
   'fs.write': { method: 'POST', path: '/api/fs/write' },
-  'fs.rename': { method: 'POST', path: '/api/fs/rename', mapResponse: 'renameResult' },
-  'fs.remove': { method: 'POST', path: '/api/fs/remove' },
   'fs.metadata': { method: 'POST', path: '/api/fs/metadata' },
   // Office preview — officecli watch-server lifecycle.
   'word-preview.start': {
