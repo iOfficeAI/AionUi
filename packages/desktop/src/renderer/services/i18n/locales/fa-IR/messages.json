@@ -16,6 +16,11 @@
   "downloadFailed": "دانلود ناموفق بود",
   "imageLoadFailed": "بارگذاری تصویر ناموفق بود",
   "scrollToBottom": "اسکرول به انتها",
+  "anchorRail": {
+    "label": "لنگرهای پیام‌های گفتگو",
+    "tickAria": "رفتن به پیام {{index}}",
+    "searchAria": "جست‌وجو در گفتگو"
+  },
   "availableCommands": "{{count}} دستور موجود",
   "atFile.hint": "برای جستجوی فایل‌ها تایپ کنید",
   "atFile.menuLabel": "اشاره به فایل‌ها",

@@ -347,7 +347,9 @@ const Layout: React.FC<{
         startX: event.clientX,
         startWidth: collapsedRef.current ? DESKTOP_COLLAPSED_WIDTH : DEFAULT_SIDER_WIDTH,
       };
-      document.body.style.cursor = 'col-resize';
+      // Only suppress text selection while dragging. No `col-resize` cursor: the
+      // drag snaps collapsed/expanded rather than resizing, so a resize cursor
+      // would advertise something the sider cannot do.
       document.body.style.userSelect = 'none';
     },
     [isMobile]
@@ -371,7 +373,6 @@ const Layout: React.FC<{
     const endDrag = () => {
       if (!dragStateRef.current.active) return;
       dragStateRef.current.active = false;
-      document.body.style.cursor = '';
       document.body.style.userSelect = '';
     };
 
@@ -505,8 +506,12 @@ const Layout: React.FC<{
                   : sider}
               </ArcoLayout.Content>
               {!isMobile && (
+                /* Drag target on the sider's right edge. Dragging only snaps the
+                   sider between collapsed and expanded — the width itself is
+                   fixed — so deliberately no `col-resize` cursor: promising a
+                   resize the user cannot perform is worse than no hint at all. */
                 <div
-                  className='absolute top-0 h-full w-8px z-20 cursor-col-resize group'
+                  className='absolute top-0 h-full w-8px z-20 group'
                   style={{ right: '-4px' }}
                   onMouseDown={beginSiderResizeDrag}
                   aria-hidden='true'
