@@ -135,6 +135,18 @@
       "diagnosticsReportSuccess": "Diagnostics report sent",
       "diagnosticsReportFailed": "Failed to send diagnostics report",
       "diagnosticsHint": "Se isso continuar acontecendo, você pode enviar um relatório de diagnóstico."
+    },
+    "pendingSlow": {
+      "title": "Iniciando",
+      "description": "O AionCore está iniciando, aguarde. Se não responder após um tempo, você pode sair do aplicativo e abri-lo novamente."
+    },
+    "exited": {
+      "title": "A inicialização não foi concluída",
+      "description": "O AionCore não conseguiu concluir a inicialização e foi encerrado. Reinicie o aplicativo; se isso continuar acontecendo, envie o diagnóstico.",
+      "sendDiagnostics": "Enviar diagnóstico",
+      "diagnosticsSent": "Diagnóstico enviado",
+      "diagnosticsReportSuccess": "Diagnóstico enviado",
+      "diagnosticsReportFailed": "Falha ao enviar o diagnóstico, tente novamente"
     }
   },
   "fileAttach.addFiles": "Adicionar arquivos",

@@ -135,6 +135,18 @@
       "diagnosticsReportSuccess": "Diagnostics report sent",
       "diagnosticsReportFailed": "Failed to send diagnostics report",
       "diagnosticsHint": "Якщо це повторюється, ви можете надіслати звіт діагностики."
+    },
+    "pendingSlow": {
+      "title": "Запуск",
+      "description": "AionCore запускається, зачекайте. Якщо він довго не відповідає, закрийте застосунок і відкрийте його знову."
+    },
+    "exited": {
+      "title": "Запуск не завершено",
+      "description": "AionCore не зміг завершити запуск і закрився. Перезапустіть застосунок; якщо це повторюється, надішліть діагностику.",
+      "sendDiagnostics": "Надіслати діагностику",
+      "diagnosticsSent": "Діагностику надіслано",
+      "diagnosticsReportSuccess": "Діагностику надіслано",
+      "diagnosticsReportFailed": "Не вдалося надіслати діагностику, повторіть спробу пізніше"
     }
   },
   "fileAttach.addFiles": "Додати файли",

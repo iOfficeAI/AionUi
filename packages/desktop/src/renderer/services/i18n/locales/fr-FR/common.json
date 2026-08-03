@@ -135,6 +135,18 @@
       "diagnosticsReportSuccess": "Rapport de diagnostic envoyé",
       "diagnosticsReportFailed": "Échec de l'envoi du rapport de diagnostic",
       "diagnosticsHint": "Si cela se reproduit, vous pouvez envoyer un rapport de diagnostic."
+    },
+    "pendingSlow": {
+      "title": "Démarrage",
+      "description": "AionCore est en cours de démarrage, veuillez patienter. S'il ne répond pas au bout d'un moment, vous pouvez quitter l'application et la rouvrir."
+    },
+    "exited": {
+      "title": "Le démarrage ne s'est pas terminé",
+      "description": "AionCore n'a pas pu terminer son démarrage et s'est fermé. Veuillez redémarrer l'application ; si le problème persiste, envoyez un diagnostic.",
+      "sendDiagnostics": "Envoyer le diagnostic",
+      "diagnosticsSent": "Diagnostic envoyé",
+      "diagnosticsReportSuccess": "Diagnostic envoyé",
+      "diagnosticsReportFailed": "Échec de l'envoi du diagnostic, veuillez réessayer"
     }
   },
   "fileAttach.addFiles": "Ajouter des fichiers",

@@ -90,6 +90,7 @@ import { repairAllCronJobTimeZonesOnce } from '@renderer/pages/cron/repairCronJo
 import { bootstrapRendererConfig } from '@renderer/services/bootstrapRenderer';
 
 // Components and utilities
+import BackendStartingView from './components/layout/BackendStartingView';
 import Layout from './components/layout/Layout';
 import Router from './components/layout/Router';
 import Sider from './components/layout/Sider';
@@ -326,6 +327,7 @@ const BackendStartupFailureDialog: React.FC<{ failure: BackendStartupFailureInfo
   const isRecoverableDatabaseCorruption = failure.reason === 'backend_recoverable_database_corruption';
   const isTransientConcurrentStartup = failure.reason === 'backend_transient_concurrent_startup';
   const isStartupDirectoryFailure = failure.reason === 'backend_startup_directory_unavailable';
+  const isBackendExited = failure.reason === 'backend_startup_exited';
   const title = t('common.backendStartup.incompatibleRuntime.title');
   const description = isIncompatibleRuntime
     ? t('common.backendStartup.incompatibleRuntime.description')
@@ -345,7 +347,9 @@ const BackendStartupFailureDialog: React.FC<{ failure: BackendStartupFailureInfo
               ? t('common.backendStartup.startupDirectory.description')
               : isRecoverableDatabaseCorruption
                 ? t('common.backendStartup.recoverableDatabaseCorruption.description')
-                : getBackendStartupInstallationDescription(t);
+                : isBackendExited
+                  ? t('common.backendStartup.exited.description')
+                  : getBackendStartupInstallationDescription(t);
   const requiredVersions = failure.requiredVersions?.map((version) => `GLIBC_${version}`).join(', ');
 
   if (!isIncompatibleRuntime && !isPackageArchitectureMismatch) {
@@ -364,7 +368,9 @@ const BackendStartupFailureDialog: React.FC<{ failure: BackendStartupFailureInfo
                     ? 'local_data_repair'
                     : isDataMigrationFailure
                       ? 'data_migration'
-                      : 'incomplete_installation'
+                      : isBackendExited
+                        ? 'backend_exited'
+                        : 'incomplete_installation'
           }
           diagnostics={{
             source: 'backend_startup_failure',
@@ -410,27 +416,64 @@ const BackendStartupFailureDialog: React.FC<{ failure: BackendStartupFailureInfo
 
 void registerPwa();
 
-const root = createRoot(document.getElementById('root')!);
-const backendStartupFailure = window.__backendStartupFailure;
-const shouldShowBackendStartupFailureDialog =
-  backendStartupFailure?.reason === 'backend_incompatible_runtime' ||
-  backendStartupFailure?.reason === 'backend_incomplete_installation' ||
-  backendStartupFailure?.reason === 'backend_package_architecture_mismatch' ||
-  backendStartupFailure?.reason === 'backend_data_migration_failed' ||
-  backendStartupFailure?.reason === 'backend_local_data_repair_failed' ||
-  backendStartupFailure?.reason === 'backend_recoverable_database_corruption' ||
-  backendStartupFailure?.reason === 'backend_transient_concurrent_startup' ||
-  backendStartupFailure?.reason === 'backend_startup_failed';
-if (backendStartupFailure && shouldShowBackendStartupFailureDialog) {
-  root.render(
-    <Config>
-      <BackendStartupFailureDialog failure={backendStartupFailure} />
-    </Config>
+// Fatal reasons that render the blocking failure dialog (instead of the App).
+// backend_startup_pending_slow is handled separately (benign "starting" view),
+// and backend_startup_directory_unavailable intentionally stays out of this set
+// to preserve existing behavior.
+function shouldShowBackendStartupFailureDialog(reason: BackendStartupFailureInfo['reason'] | undefined): boolean {
+  return (
+    reason === 'backend_incompatible_runtime' ||
+    reason === 'backend_incomplete_installation' ||
+    reason === 'backend_package_architecture_mismatch' ||
+    reason === 'backend_data_migration_failed' ||
+    reason === 'backend_local_data_repair_failed' ||
+    reason === 'backend_recoverable_database_corruption' ||
+    reason === 'backend_transient_concurrent_startup' ||
+    reason === 'backend_startup_exited' ||
+    reason === 'backend_startup_failed'
   );
-} else {
-  root.render(
+}
+
+// Top-level gate driven by the backend startup lifecycle. It starts from the
+// one-shot preload snapshot, re-reads once on mount to resolve a READY that
+// landed before subscription, then follows backend-startup-state pushes:
+// pending-slow → benign "starting" view; ready (null) → App; exit → honest
+// failure view. This is what makes the "starting" view disappear automatically
+// on readiness without a manual restart.
+const BackendStartupGate: React.FC = () => {
+  const [state, setState] = useState<BackendStartupFailureInfo | null>(
+    () => window.__backendStartupBridge?.getState() ?? window.__backendStartupFailure ?? null
+  );
+
+  useEffect(() => {
+    const bridge = window.__backendStartupBridge;
+    if (!bridge) return;
+    setState(bridge.getState());
+    return bridge.subscribe((next) => setState(next));
+  }, []);
+
+  if (state?.reason === 'backend_startup_pending_slow') {
+    return (
+      <Config>
+        <BackendStartingView />
+      </Config>
+    );
+  }
+
+  if (state && shouldShowBackendStartupFailureDialog(state.reason)) {
+    return (
+      <Config>
+        <BackendStartupFailureDialog failure={state} />
+      </Config>
+    );
+  }
+
+  return (
     <AppProviders>
       <App />
     </AppProviders>
   );
-}
+};
+
+const root = createRoot(document.getElementById('root')!);
+root.render(<BackendStartupGate />);

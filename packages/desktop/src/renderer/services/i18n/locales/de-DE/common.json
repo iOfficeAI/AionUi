@@ -134,6 +134,18 @@
       "diagnosticsReportSuccess": "Diagnostics report sent",
       "diagnosticsReportFailed": "Failed to send diagnostics report",
       "diagnosticsHint": "Wenn dies wiederholt auftritt, können Sie einen Diagnosebericht senden."
+    },
+    "pendingSlow": {
+      "title": "Wird gestartet",
+      "description": "AionCore wird gestartet, bitte warten. Wenn es nach einer Weile nicht reagiert, können Sie die App beenden und erneut öffnen."
+    },
+    "exited": {
+      "title": "Start nicht abgeschlossen",
+      "description": "AionCore konnte den Start nicht abschließen und wurde beendet. Bitte starten Sie die App neu; wenn dies wiederholt auftritt, senden Sie bitte eine Diagnose.",
+      "sendDiagnostics": "Diagnose senden",
+      "diagnosticsSent": "Diagnose gesendet",
+      "diagnosticsReportSuccess": "Diagnose gemeldet",
+      "diagnosticsReportFailed": "Diagnose konnte nicht gesendet werden, bitte erneut versuchen"
     }
   },
   "fileAttach.addFiles": "Dateien hinzufügen",
