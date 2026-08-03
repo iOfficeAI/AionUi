@@ -16,6 +16,11 @@
   "downloadFailed": "下載失敗",
   "imageLoadFailed": "圖片載入失敗",
   "scrollToBottom": "滾動到底部",
+  "anchorRail": {
+    "label": "對話訊息錨點",
+    "tickAria": "跳轉到第 {{index}} 則訊息",
+    "searchAria": "搜尋對話內容"
+  },
   "availableCommands": "{{count}} 個可用指令",
   "atFile.hint": "輸入以搜尋檔案",
   "atFile.menuLabel": "檔案提及",

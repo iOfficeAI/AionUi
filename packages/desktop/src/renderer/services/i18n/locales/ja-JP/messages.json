@@ -16,6 +16,11 @@
   "downloadFailed": "ダウンロードに失敗しました",
   "imageLoadFailed": "画像の読み込みに失敗しました",
   "scrollToBottom": "下にスクロール",
+  "anchorRail": {
+    "label": "会話メッセージのアンカー",
+    "tickAria": "メッセージ {{index}} へ移動",
+    "searchAria": "会話を検索"
+  },
   "availableCommands": "{{count}} 個の利用可能なコマンド",
   "atFile.hint": "ファイルを検索するには入力してください",
   "atFile.menuLabel": "ファイル参照",

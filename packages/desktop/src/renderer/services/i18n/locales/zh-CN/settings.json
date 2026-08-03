@@ -1168,7 +1168,9 @@
       "command_missing": "请安装 {{command}}，然后重新测试连接。",
       "managed_runtime_unavailable": "请修复或重新安装 {{resource}}，然后重新测试连接。",
       "auth_required": "Agent 可连接，但需要先登录。请在 CLI 中登录，或在「环境变量」中补充所需的 API 密钥，然后重新测试连接。",
-      "no_provider": "尚未配置模型供应商。请在设置中添加并启用一个供应商，然后重新测试连接。"
+      "no_provider": "尚未配置模型供应商。请在设置中添加并启用一个供应商，然后重新测试连接。",
+      "version_drift_older": "已安装的 agy 低于本集成验证过的版本，部分功能可能缺失，建议升级 agy。",
+      "version_drift_newer": "已安装的 agy 高于本集成验证过的版本。通常仍可正常使用；如遇异常行为请反馈。"
     },
     "boundAssistantsTitle": "绑定此 Agent 的助手",
     "boundAssistantsCount": "{{count}} 个助手",

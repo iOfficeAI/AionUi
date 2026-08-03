@@ -16,6 +16,11 @@
   "downloadFailed": "Download fehlgeschlagen",
   "imageLoadFailed": "Bild konnte nicht geladen werden",
   "scrollToBottom": "Nach unten scrollen",
+  "anchorRail": {
+    "label": "Anker für Unterhaltungsnachrichten",
+    "tickAria": "Zu Nachricht {{index}} springen",
+    "searchAria": "Unterhaltung durchsuchen"
+  },
   "availableCommands": "{{count}} verfügbare Befehle",
   "atFile.hint": "Zum Suchen nach Dateien tippen",
   "atFile.menuLabel": "Dateierwähnungen",
