@@ -130,7 +130,9 @@ export const ExplorerPanel: React.FC<ExplorerPanelProps> = ({
   const handleSelect: TreeProps['onSelect'] = (selectedKeys, extra) => {
     const key = selectedKeys.length > 0 ? String(selectedKeys[0]) : null;
     select(key);
-    // Selecting a file (leaf) opens it in the preview panel.
+    // Selecting a file (leaf) opens it in the preview panel. Folders are expanded
+    // by arco itself via `actionOnClick` on the <Tree> below — not here, so a row
+    // click is never toggled twice.
     const data = extra?.node?.props?.dataRef as TreeNode | undefined;
     if (key && data?.isLeaf && onOpenFile) {
       const ref = keyToRef(key);
@@ -294,6 +296,17 @@ export const ExplorerPanel: React.FC<ExplorerPanelProps> = ({
         treeData={view.treeData as TreeProps['treeData']}
         expandedKeys={view.expanded}
         selectedKeys={view.selected ? [view.selected] : []}
+        /* 点一整行就展开/收起文件夹，不必精准点中前面那个小箭头（arco 默认只有
+           'select'，所以整行点击此前只会选中、不会展开）。arco 内部对同一次点击只
+           走一条展开路径（有 loadMore 且未展开时走 loadMore，否则走 onExpand），
+           所以不会重复切换；点箭头本身仍然照旧生效。
+           Clicking anywhere on a folder row expands/collapses it, instead of
+           requiring a precise hit on the small leading arrow (arco defaults to
+           'select' alone, which is why a row click previously only selected).
+           Internally arco takes exactly one expand path per click — loadMore when
+           children are absent and the node is collapsed, onExpand otherwise — so
+           nothing toggles twice, and clicking the arrow still works as before. */
+        actionOnClick={['select', 'expand']}
         loadMore={handleLoadMore}
         onExpand={handleExpand}
         onSelect={handleSelect}
