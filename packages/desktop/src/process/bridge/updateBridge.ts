@@ -96,14 +96,6 @@ const rewriteAssetUrlToCDN = (assetName: string, version: string): string => {
   return `${CDN_BASE_URL}/${version}/${assetName}`;
 };
 
-const mapAsset = (asset: GitHubReleaseApiAsset, version: string): GitHubReleaseAsset => ({
-  name: asset.name,
-  url: rewriteAssetUrlToCDN(asset.name, version),
-  fallbackUrl: asset.browser_download_url,
-  size: asset.size,
-  contentType: asset.content_type,
-});
-
 type RuntimePlatformInfo = {
   platform: NodeJS.Platform;
   arch: string;
@@ -320,12 +312,12 @@ const fetchWithAllowlistedRedirects = async (rawUrl: string, signal: AbortSignal
   throw new Error((await getI18n()).t('update.errors.tooManyRedirects'));
 };
 
-const fetchGitHubReleases = async (repo: string): Promise<GitHubReleaseApi[]> => {
+const fetchGitHubReleases = async (repo: string, timeoutMs = 30000): Promise<GitHubReleaseApi[]> => {
   const url = `https://api.github.com/repos/${repo}/releases`;
 
   // 添加超时控制，防止网络问题导致无限等待 / Add timeout to prevent infinite wait on network issues
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 秒超时 / 30 second timeout
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
     const res = await fetch(url, {
@@ -355,27 +347,63 @@ const fetchGitHubReleases = async (repo: string): Promise<GitHubReleaseApi[]> =>
   }
 };
 
-const mapRelease = (rel: GitHubReleaseApi): UpdateReleaseInfo | null => {
-  const version = normalizeTagToSemver(rel.tag_name);
-  if (!version) return null;
+const CDN_MANIFEST_TIMEOUT_MS = 15000;
+const GITHUB_NOTES_TIMEOUT_MS = 10000;
 
-  const assets = (rel.assets || [])
-    .filter((asset) => asset && asset.name && asset.browser_download_url)
-    .filter((asset) => isAllowedAssetName(asset.name))
-    .map((asset) => mapAsset(asset, version));
+/**
+ * Fetch and parse the authoritative CDN channel manifest for the current
+ * platform/arch. Any failure here fails the manual check — the CDN is the
+ * single source of truth for "is there an update".
+ */
+const fetchCdnManifest = async (): Promise<CdnLatestManifest> => {
+  const url = `${CDN_BASE_URL}/${resolveCdnChannelFile()}`;
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), CDN_MANIFEST_TIMEOUT_MS);
 
-  return {
-    tagName: rel.tag_name,
-    version,
-    name: rel.name,
-    body: rel.body,
-    htmlUrl: rel.html_url,
-    publishedAt: rel.published_at,
-    prerelease: Boolean(rel.prerelease),
-    draft: Boolean(rel.draft),
-    assets,
-    recommendedAsset: pickRecommendedAsset(assets),
-  };
+  try {
+    const res = await fetch(url, {
+      headers: { 'User-Agent': DEFAULT_USER_AGENT },
+      signal: controller.signal,
+    });
+    if (!res.ok) {
+      throw new Error((await getI18n()).t('update.errors.cdnManifestFailed', { status: res.status }));
+    }
+    const manifest = parseCdnManifest(await res.text());
+    if (!manifest) {
+      throw new Error((await getI18n()).t('update.errors.cdnManifestInvalid'));
+    }
+    return manifest;
+  } catch (err: unknown) {
+    if (err instanceof Error && err.name === 'AbortError') {
+      throw new Error((await getI18n()).t('update.errors.cdnManifestTimeout'), { cause: err });
+    }
+    throw err;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+};
+
+type ReleaseNotesEnrichment = { body?: string; htmlUrl?: string; name?: string; publishedAt?: string };
+
+/**
+ * Best-effort GitHub lookup for the release matching the CDN version. The
+ * manual check must work without GitHub (the repo stays the changelog source
+ * but may be unreachable), so every failure path resolves to an empty object.
+ */
+const fetchReleaseNotesEnrichment = async (repo: string, version: string): Promise<ReleaseNotesEnrichment> => {
+  try {
+    const releases = await fetchGitHubReleases(repo, GITHUB_NOTES_TIMEOUT_MS);
+    const match = releases.find((rel) => rel && !rel.draft && normalizeTagToSemver(rel.tag_name) === version);
+    if (!match) return {};
+    return {
+      body: match.body,
+      htmlUrl: match.html_url,
+      name: match.name,
+      publishedAt: match.published_at,
+    };
+  } catch {
+    return {};
+  }
 };
 
 type DownloadState = {
@@ -642,48 +670,44 @@ export function initUpdateBridge(): void {
     async (params): Promise<{ success: boolean; data?: UpdateCheckResult; msg?: string }> => {
       try {
         const repo = resolveRepo(params?.repo);
-        const includePrerelease = Boolean(params?.includePrerelease);
         const currentVersion = app.getVersion();
 
         // EN: Versioning note
-        // Update comparisons are pure semver: `app.getVersion()` (packaged app version) vs release `tag_name`.
-        // If you want dev/prerelease updates to work reliably, CI must inject a prerelease semver into
-        // `package.json#version` for dev builds (e.g. `1.7.2-dev.1234+sha.abcdef0`) so semver ordering holds.
-        // We intentionally avoid heuristics based on tag strings when the app version is a stable semver.
+        // Update comparisons are pure semver: `app.getVersion()` (packaged app version) vs the CDN
+        // manifest `version`. If you want dev/prerelease updates to work reliably, CI must inject a
+        // prerelease semver into `package.json#version` for dev builds (e.g. `1.7.2-dev.1234+sha.abcdef0`)
+        // so semver ordering holds.
         //
         // 中文：版本号说明
-        // 更新比较严格使用 semver：`app.getVersion()`（应用自身版本号）对比 Release 的 `tag_name`。
+        // 更新比较严格使用 semver：`app.getVersion()`（应用自身版本号）对比 CDN manifest 的 `version`。
         // 若要 dev/预发布版本更新可靠生效，需要 CI 在 dev 构建时把 `package.json#version`
         // 注入为带 prerelease 的 semver（如 `1.7.2-dev.1234+sha.abcdef0`），以保证比较顺序正确。
-        // 这里刻意不对“当前是稳定版版本号但用户勾选了 prerelease”做字符串猜测。
 
-        const releases = await fetchGitHubReleases(repo);
-        const candidates = releases
-          .filter((r) => r && !r.draft)
-          .filter((r) => (includePrerelease ? true : !r.prerelease))
-          .map(mapRelease)
-          .filter((r): r is UpdateReleaseInfo => Boolean(r));
+        // The CDN channel manifest is the authoritative source. It serves a single
+        // stable channel, so `includePrerelease` no longer affects detection.
+        const manifest = await fetchCdnManifest();
+        const latest = mapCdnManifestToRelease(manifest, repo);
 
         const currentSemver = semver.valid(currentVersion) || semver.coerce(currentVersion)?.version;
-        if (!currentSemver) {
+        if (!currentSemver || !latest) {
           return { success: true, data: { currentVersion, updateAvailable: false } };
         }
 
-        const latest = candidates
-          .filter((r) => semver.valid(r.version))
-          .toSorted((a, b) => semver.rcompare(a.version, b.version))[0];
+        // GitHub only enriches the result with release notes; it never blocks.
+        const enrichment = await fetchReleaseNotesEnrichment(repo, latest.version);
 
-        if (!latest) {
-          return { success: true, data: { currentVersion, updateAvailable: false } };
-        }
-
-        const updateAvailable = semver.gt(latest.version, currentSemver);
         return {
           success: true,
           data: {
             currentVersion,
-            updateAvailable,
-            latest,
+            updateAvailable: semver.gt(latest.version, currentSemver),
+            latest: {
+              ...latest,
+              body: enrichment.body,
+              name: enrichment.name,
+              htmlUrl: enrichment.htmlUrl ?? '',
+              publishedAt: enrichment.publishedAt ?? latest.publishedAt,
+            },
           },
         };
       } catch (err: unknown) {
