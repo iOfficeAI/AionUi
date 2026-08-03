@@ -259,7 +259,11 @@ const mapSpeechInputError = (error: unknown): SpeechInputErrorCode => {
   return 'unknown';
 };
 
-export const useSpeechInput = ({ enableGlobalHotkey = true, onLiveTranscript, onTranscript }: UseSpeechInputOptions) => {
+export const useSpeechInput = ({
+  enableGlobalHotkey = true,
+  onLiveTranscript,
+  onTranscript,
+}: UseSpeechInputOptions) => {
   const [status, setStatus] = useState<SpeechInputStatus>('idle');
   const [errorCode, setErrorCode] = useState<SpeechInputErrorCode | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);

@@ -1294,5 +1294,11 @@
     "solveWithButler": "找管家排查"
   },
   "providerIdConflict": "Provider ID 已存在，请重试。",
-  "autoInjectedSkillsHint": "每次对话都会自动加载，无需手动启用；由智能体自行决定何时调用。"
+  "autoInjectedSkillsHint": "每次对话都会自动加载，无需手动启用；由智能体自行决定何时调用。",
+  "voiceCall": "电话模式",
+  "voiceCallHint": "使用语音输入、快速模型和自动朗读进行连续对话；默认关闭。",
+  "voiceCallModel": "通话用模型（可选）",
+  "voiceCallModelFallback": "未选择时沿用会话当前模型",
+  "voiceCallModelHint": "建议选择响应快的小模型。CLI 会话仍沿用其当前模型。",
+  "voiceCallNoModels": "未检测到可选模型商，进入通话时将沿用会话当前模型"
 }

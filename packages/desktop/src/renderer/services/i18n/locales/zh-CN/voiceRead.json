@@ -1,0 +1,17 @@
+{
+  "autoOff": "关闭自动朗读",
+  "autoOn": "自动朗读最新回复",
+  "expandBar": "自动朗读 / 展开",
+  "expandBarAria": "展开朗读控制条",
+  "nextParagraph": "下一段",
+  "noVoice": "未检测到本地语音，无法朗读",
+  "pause": "暂停",
+  "prevParagraph": "上一段",
+  "rate": "语速",
+  "readSelection": "朗读选中",
+  "readThis": "朗读本条",
+  "repeat": "重复本条",
+  "resume": "继续",
+  "stop": "停止",
+  "stopThis": "停止朗读"
+}

@@ -1,0 +1,15 @@
+{
+  "error": "通话出错",
+  "exit": "退出",
+  "finishTurn": "结束本轮",
+  "interrupt": "打断并说话",
+  "listening": "正在听，请说话",
+  "modelFallback": "通话模型不可用，已沿用当前模型",
+  "retry": "重新监听",
+  "speaking": "正在朗读",
+  "startHint": "进入电话模式，语音与当前会话连续对话",
+  "starting": "正在启动",
+  "title": "电话模式",
+  "transcribing": "正在识别",
+  "waiting": "等待回复"
+}

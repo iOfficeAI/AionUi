@@ -35,6 +35,8 @@
     "guid",
     "agent",
     "team",
-    "pet"
+    "pet",
+    "voiceRead",
+    "voiceCall"
   ]
 }

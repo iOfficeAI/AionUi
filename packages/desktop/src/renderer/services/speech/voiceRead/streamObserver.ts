@@ -65,7 +65,8 @@ export function attachVoiceReadStreamObserver(conversationId: string): () => voi
 
   return () => {
     unsubscribe();
-    for (const key of [...buffers.keys()]) {
+    // Deleting the current key while iterating a Map is safe per spec.
+    for (const key of buffers.keys()) {
       if (key.startsWith(`${conversationId}:`)) buffers.delete(key);
     }
     voiceReadController.detachConversation(conversationId);

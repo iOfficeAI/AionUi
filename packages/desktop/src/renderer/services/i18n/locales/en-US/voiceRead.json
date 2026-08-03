@@ -1,0 +1,17 @@
+{
+  "autoOff": "Turn off auto read",
+  "autoOn": "Auto-read the latest reply",
+  "expandBar": "Auto read / Expand",
+  "expandBarAria": "Expand read-aloud controls",
+  "nextParagraph": "Next paragraph",
+  "noVoice": "No local voice detected; read-aloud is unavailable",
+  "pause": "Pause",
+  "prevParagraph": "Previous paragraph",
+  "rate": "Playback rate",
+  "readSelection": "Read selection",
+  "readThis": "Read this message",
+  "repeat": "Repeat this message",
+  "resume": "Resume",
+  "stop": "Stop",
+  "stopThis": "Stop reading"
+}

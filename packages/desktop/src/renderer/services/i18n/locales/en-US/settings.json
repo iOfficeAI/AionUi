@@ -1293,5 +1293,11 @@
     "solveWithButler": "Ask the Butler"
   },
   "providerIdConflict": "Provider ID already exists. Please try again.",
-  "autoInjectedSkillsHint": "Loaded automatically into every conversation — no need to enable them; the agent decides when to use them."
+  "autoInjectedSkillsHint": "Loaded automatically into every conversation — no need to enable them; the agent decides when to use them.",
+  "voiceCall": "Phone mode",
+  "voiceCallHint": "Talk continuously with voice input, a fast model, and auto read-aloud. Off by default.",
+  "voiceCallModel": "Call model (optional)",
+  "voiceCallModelFallback": "Uses the conversation's current model when unset",
+  "voiceCallModelHint": "A fast, small model is recommended. CLI conversations keep their current model.",
+  "voiceCallNoModels": "No available model providers detected; calls will use the conversation's current model."
 }

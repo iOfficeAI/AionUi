@@ -424,11 +424,7 @@ const VoiceInputSection: React.FC = () => {
             {hotkey.enabled && (
               <Form.Item label={t('settings.voiceInputHotkeyAccelerator', { defaultValue: '快捷键组合' })}>
                 <div className='flex items-center gap-8px'>
-                  <Button
-                    size='small'
-                    type={capturingHotkey ? 'primary' : 'secondary'}
-                    onClick={handleHotkeyCapture}
-                  >
+                  <Button size='small' type={capturingHotkey ? 'primary' : 'secondary'} onClick={handleHotkeyCapture}>
                     {capturingHotkey
                       ? t('settings.voiceInputHotkeyCapturing', { defaultValue: '请按下快捷键…' })
                       : hotkey.accelerator}

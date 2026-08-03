@@ -82,7 +82,9 @@ describe('VoiceCallController', () => {
     voiceCallController.start('conversation-1');
     voiceCallController.submitTranscript('你好');
 
-    const sendRequest = mocks.emit.mock.calls.find(([event]) => event === 'voiceCall.send')?.[1] as VoiceCallSendRequest;
+    const sendRequest = mocks.emit.mock.calls.find(
+      ([event]) => event === 'voiceCall.send'
+    )?.[1] as VoiceCallSendRequest;
     sendRequest.onAccepted(acceptedResult);
 
     mocks.streamListener?.({
@@ -101,21 +103,21 @@ describe('VoiceCallController', () => {
       turn_id: 'turn-current',
       conversation_id: 'conversation-1',
     });
-    expect(mocks.readCallStreamChunk).toHaveBeenCalledWith(
-      'conversation-1',
-      'assistant-current',
-      '新回复'
-    );
+    expect(mocks.readCallStreamChunk).toHaveBeenCalledWith('conversation-1', 'assistant-current', '新回复');
   });
 
   it('invalidates the old generation before barge-in cancellation completes', () => {
     voiceCallController.start('conversation-1');
     voiceCallController.submitTranscript('第一轮');
-    const sendRequest = mocks.emit.mock.calls.find(([event]) => event === 'voiceCall.send')?.[1] as VoiceCallSendRequest;
+    const sendRequest = mocks.emit.mock.calls.find(
+      ([event]) => event === 'voiceCall.send'
+    )?.[1] as VoiceCallSendRequest;
     sendRequest.onAccepted(acceptedResult);
 
     voiceCallController.interrupt();
-    const cancelRequest = mocks.emit.mock.calls.find(([event]) => event === 'voiceCall.cancel')?.[1] as VoiceCallCancelRequest;
+    const cancelRequest = mocks.emit.mock.calls.find(
+      ([event]) => event === 'voiceCall.cancel'
+    )?.[1] as VoiceCallCancelRequest;
     sendRequest.onError(new Error('late failure'));
 
     expect(voiceCallController.getSnapshot().status).toBe('starting');

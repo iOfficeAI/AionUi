@@ -14,7 +14,17 @@
 
 import type { IMessageText, TMessage } from '@/common/chat/chatLib';
 import { Tooltip } from '@arco-design/web-react';
-import { Left, Pause, PlayOne, Refresh, Right, SpeedOne, SquareSmall, VolumeMute, VolumeNotice } from '@icon-park/react';
+import {
+  Left,
+  Pause,
+  PlayOne,
+  Refresh,
+  Right,
+  SpeedOne,
+  SquareSmall,
+  VolumeMute,
+  VolumeNotice,
+} from '@icon-park/react';
 import classNames from 'classnames';
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -113,13 +123,7 @@ const VoiceReadBar: React.FC<{ conversationId: string | null; messages: TMessage
   if (!reading && !expanded) {
     return (
       <div className='absolute bottom-20px right-20px z-100 select-none'>
-        <Tooltip
-          content={
-            voiceAvailable
-              ? t('voiceRead.expandBar', { defaultValue: '自动朗读 / 展开' })
-              : noVoiceText
-          }
-        >
+        <Tooltip content={voiceAvailable ? t('voiceRead.expandBar', { defaultValue: '自动朗读 / 展开' }) : noVoiceText}>
           <div
             role='button'
             aria-label={t('voiceRead.expandBarAria', { defaultValue: '展开朗读控制条' })}
@@ -183,9 +187,7 @@ const VoiceReadBar: React.FC<{ conversationId: string | null; messages: TMessage
         </BarButton>
         <BarButton
           tooltip={
-            paused
-              ? t('voiceRead.resume', { defaultValue: '继续' })
-              : t('voiceRead.pause', { defaultValue: '暂停' })
+            paused ? t('voiceRead.resume', { defaultValue: '继续' }) : t('voiceRead.pause', { defaultValue: '暂停' })
           }
           onClick={() => controller.togglePause()}
           disabled={!reading}

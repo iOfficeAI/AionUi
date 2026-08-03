@@ -106,8 +106,8 @@ class VoiceReadEngine {
       utterance.lang = 'zh-CN';
     }
     utterance.rate = rate;
-    utterance.onend = () => callbacks.onend?.();
-    utterance.onerror = (event) => {
+    utterance.addEventListener('end', () => callbacks.onend?.());
+    utterance.addEventListener('error', (event) => {
       const code = (event as SpeechSynthesisErrorEvent).error;
       // cancel()/interrupt surface as errors; treat them like a normal end so
       // the caller's staleness guard can decide what to do.
@@ -116,7 +116,7 @@ class VoiceReadEngine {
       } else {
         callbacks.onerror?.(event);
       }
-    };
+    });
     try {
       // Escape a lingering paused state before starting a new utterance.
       synth.resume();

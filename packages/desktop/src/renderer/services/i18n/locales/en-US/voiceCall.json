@@ -1,0 +1,15 @@
+{
+  "error": "Call error",
+  "exit": "Exit",
+  "finishTurn": "End turn",
+  "interrupt": "Interrupt and speak",
+  "listening": "Listening… speak now",
+  "modelFallback": "Call model unavailable; using the current model",
+  "retry": "Listen again",
+  "speaking": "Speaking",
+  "startHint": "Enter phone mode to talk with this conversation by voice",
+  "starting": "Starting",
+  "title": "Phone mode",
+  "transcribing": "Transcribing",
+  "waiting": "Waiting for reply"
+}
