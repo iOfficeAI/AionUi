@@ -70,6 +70,23 @@ vi.mock('@process/services/i18n', () => ({
   default: { t: (key: string) => key },
 }));
 
+// The fixtures below are mac-arm64 assets and both resolveCdnChannelFile and
+// pickRecommendedAsset read the host platform/arch, so pin the runtime to keep
+// results identical on every CI runner (linux/windows x64 would otherwise
+// filter the assets out and pick no recommended asset).
+import { afterAll, beforeAll } from 'vitest';
+
+const realPlatform = process.platform;
+const realArch = process.arch;
+beforeAll(() => {
+  Object.defineProperty(process, 'platform', { value: 'darwin', configurable: true });
+  Object.defineProperty(process, 'arch', { value: 'arm64', configurable: true });
+});
+afterAll(() => {
+  Object.defineProperty(process, 'platform', { value: realPlatform, configurable: true });
+  Object.defineProperty(process, 'arch', { value: realArch, configurable: true });
+});
+
 const CDN_YML = `version: 2.1.45
 files:
   - url: AionUi-2.1.45-mac-arm64.zip

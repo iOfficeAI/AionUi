@@ -66,7 +66,22 @@ vi.mock('electron-log', () => ({
   },
 }));
 
+import { afterAll, beforeAll } from 'vitest';
 import { mapCdnManifestToRelease, parseCdnManifest, resolveCdnChannelFile } from '@process/bridge/updateBridge';
+
+// The fixtures below are mac-arm64 assets and pickRecommendedAsset scores by
+// the host platform/arch, so pin the runtime to keep results identical on
+// every CI runner (linux/windows x64 would otherwise filter the assets out).
+const realPlatform = process.platform;
+const realArch = process.arch;
+beforeAll(() => {
+  Object.defineProperty(process, 'platform', { value: 'darwin', configurable: true });
+  Object.defineProperty(process, 'arch', { value: 'arm64', configurable: true });
+});
+afterAll(() => {
+  Object.defineProperty(process, 'platform', { value: realPlatform, configurable: true });
+  Object.defineProperty(process, 'arch', { value: realArch, configurable: true });
+});
 
 const SAMPLE_YML = `version: 2.1.45
 files:
