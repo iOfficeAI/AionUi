@@ -674,7 +674,7 @@ Please check your local CLI tool authentication status`,
     },
     [effectiveHandleStop, prioritize]
   );
-  const sendBoxWidthClass = getChatSurfaceWidthClass(Boolean(teamPermission));
+  const sendBoxWidthClass = getChatSurfaceWidthClass();
 
   return (
     <div className={`${sendBoxWidthClass} flex flex-col mt-auto mb-16px`}>

@@ -9,7 +9,6 @@ import type { IMessageAcpToolCall, IMessageToolCall, IMessageToolGroup, TMessage
 import { useConversationContextSafe } from '@/renderer/hooks/context/ConversationContext';
 import { useConversationRuntimeView } from '@/renderer/pages/conversation/runtime/useConversationRuntimeView';
 import { getChatSurfaceWidthClass } from '@/renderer/pages/conversation/utils/chatSurfaceWidth';
-import { useTeamPermission } from '@/renderer/pages/team/hooks/TeamPermissionContext';
 import { iconColors } from '@/renderer/styles/colors';
 import { CHAT_MESSAGE_JUMP_EVENT, type ChatMessageJumpDetail } from '@/renderer/utils/chat/chatMinimapEvents';
 import { Image } from '@arco-design/web-react';
@@ -321,8 +320,7 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
   const pagination = useMessagePaginationState();
   const artifacts = useConversationArtifacts();
   const conversationContext = useConversationContextSafe();
-  const teamPermission = useTeamPermission();
-  const rowWidthClass = getChatSurfaceWidthClass(Boolean(teamPermission));
+  const rowWidthClass = getChatSurfaceWidthClass();
   const loadPreviousMessagePage = useLoadPreviousMessagePage(conversationContext?.conversation_id);
   const loadAnchorMessageWindow = useLoadAnchorMessageWindow(conversationContext?.conversation_id);
   useAutoPreviewOfficeFiles(conversationContext);
