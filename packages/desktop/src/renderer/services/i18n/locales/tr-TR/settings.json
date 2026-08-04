@@ -323,6 +323,8 @@
   "hardwareAcceleration": "Donanım Hızlandırma",
   "hardwareAccelerationDesc": "Arayüzü oluşturmak için GPU kullanır. Açılışta çökme veya görüntü titremesi varsa kapatın.",
   "hardwareAccelerationAutoDisabled": "Tekrarlanan GPU çökmeleri nedeniyle otomatik olarak devre dışı bırakıldı.",
+  "hardwareAccelerationAutoDisabledTitle": "Donanım hızlandırma devre dışı bırakıldı",
+  "hardwareAccelerationAutoDisabledNotice": "Tekrarlanan grafik çökmeleri algılandı; uygulamayı kararlı tutmak için donanım hızlandırma otomatik olarak kapatıldı. Ayarlar → Sistem bölümünden yeniden etkinleştirebilirsiniz.",
   "hardwareAccelerationRestartConfirm": "Yeni donanım hızlandırma ayarını uygulamak için AionUi yeniden başlatılsın mı?",
   "hardwareAccelerationUpdateFailed": "Donanım hızlandırma ayarı güncellenemedi",
   "browserNotification": {

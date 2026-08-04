@@ -323,6 +323,8 @@
   "hardwareAcceleration": "ハードウェアアクセラレーション",
   "hardwareAccelerationDesc": "GPU を使って UI を描画します。起動時にクラッシュしたり画面が乱れる場合はオフにしてください。",
   "hardwareAccelerationAutoDisabled": "GPU の繰り返しクラッシュにより自動的に無効化されました。",
+  "hardwareAccelerationAutoDisabledTitle": "ハードウェアアクセラレーションを無効化しました",
+  "hardwareAccelerationAutoDisabledNotice": "グラフィックスの繰り返しクラッシュを検出したため、アプリを安定させるためにハードウェアアクセラレーションを自動的に無効化しました。設定 → システム から再度有効にできます。",
   "hardwareAccelerationRestartConfirm": "新しいハードウェアアクセラレーション設定を反映するため AionUi を再起動しますか？",
   "hardwareAccelerationUpdateFailed": "ハードウェアアクセラレーション設定の更新に失敗しました",
   "browserNotification": {

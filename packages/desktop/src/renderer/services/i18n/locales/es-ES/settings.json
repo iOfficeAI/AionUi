@@ -321,6 +321,8 @@
   "hardwareAcceleration": "Aceleración de hardware",
   "hardwareAccelerationDesc": "Usa la GPU para renderizar la interfaz. Desactiva si la aplicación falla al iniciar o la gráfica parpadea.",
   "hardwareAccelerationAutoDisabled": "Desactivado automáticamente tras bloqueos repetidos de GPU.",
+  "hardwareAccelerationAutoDisabledTitle": "Aceleración por hardware desactivada",
+  "hardwareAccelerationAutoDisabledNotice": "Se detectaron fallos gráficos repetidos, por lo que la aceleración por hardware se desactivó automáticamente para mantener la aplicación estable. Puedes volver a activarla en Ajustes → Sistema.",
   "hardwareAccelerationRestartConfirm": "¿Reiniciar AionUi para aplicar la nueva configuración de aceleración de hardware?",
   "hardwareAccelerationUpdateFailed": "Error al actualizar la configuración de aceleración de hardware",
   "notification": "Notificaciones",

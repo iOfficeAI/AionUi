@@ -323,6 +323,8 @@
   "hardwareAcceleration": "Hardware-Beschleunigung",
   "hardwareAccelerationDesc": "GPU zur Darstellung der UI verwenden. Deaktivieren, wenn die App beim Start abstürzt oder Grafikflimmern auftritt.",
   "hardwareAccelerationAutoDisabled": "Nach wiederholten GPU-Abstürzen automatisch deaktiviert.",
+  "hardwareAccelerationAutoDisabledTitle": "Hardwarebeschleunigung deaktiviert",
+  "hardwareAccelerationAutoDisabledNotice": "Wiederholte Grafikabstürze wurden erkannt, daher wurde die Hardwarebeschleunigung automatisch deaktiviert, um die App stabil zu halten. Sie können sie unter Einstellungen → System wieder aktivieren.",
   "hardwareAccelerationRestartConfirm": "AionUi neu starten, um die neue Einstellung für Hardware-Beschleunigung anzuwenden?",
   "hardwareAccelerationUpdateFailed": "Hardware-Beschleunigung konnte nicht aktualisiert werden",
   "notification": "Benachrichtigungen",

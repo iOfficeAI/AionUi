@@ -1735,6 +1735,8 @@ export type I18nKey =
   | 'settings.groupApp'
   | 'settings.hardwareAcceleration'
   | 'settings.hardwareAccelerationAutoDisabled'
+  | 'settings.hardwareAccelerationAutoDisabledNotice'
+  | 'settings.hardwareAccelerationAutoDisabledTitle'
   | 'settings.hardwareAccelerationDesc'
   | 'settings.hardwareAccelerationRestartConfirm'
   | 'settings.hardwareAccelerationUpdateFailed'

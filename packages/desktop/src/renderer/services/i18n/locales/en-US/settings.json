@@ -323,6 +323,8 @@
   "hardwareAcceleration": "Hardware Acceleration",
   "hardwareAccelerationDesc": "Use the GPU to render the UI. Disable if the app crashes on launch or graphics flicker.",
   "hardwareAccelerationAutoDisabled": "Disabled automatically after repeated GPU crashes.",
+  "hardwareAccelerationAutoDisabledTitle": "Hardware acceleration disabled",
+  "hardwareAccelerationAutoDisabledNotice": "Repeated graphics crashes were detected, so hardware acceleration was turned off automatically to keep AionUi stable. You can re-enable it in Settings → System.",
   "hardwareAccelerationRestartConfirm": "Restart AionUi to apply the new hardware acceleration setting?",
   "hardwareAccelerationUpdateFailed": "Failed to update hardware acceleration setting",
   "browserNotification": {

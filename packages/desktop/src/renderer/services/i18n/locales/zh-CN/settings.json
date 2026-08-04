@@ -323,6 +323,8 @@
   "hardwareAcceleration": "硬件加速",
   "hardwareAccelerationDesc": "使用 GPU 渲染界面。如果启动时崩溃或画面异常，请关闭。",
   "hardwareAccelerationAutoDisabled": "因 GPU 反复崩溃已自动关闭。",
+  "hardwareAccelerationAutoDisabledTitle": "已关闭硬件加速",
+  "hardwareAccelerationAutoDisabledNotice": "检测到显卡渲染反复崩溃，已自动关闭硬件加速以保持应用稳定。可在 设置 → 系统 中重新开启。",
   "hardwareAccelerationRestartConfirm": "重启 AionUi 以应用新的硬件加速设置？",
   "hardwareAccelerationUpdateFailed": "更新硬件加速设置失败",
   "browserNotification": {
