@@ -9,7 +9,7 @@ import type { App } from 'electron';
 
 type RestartableApp = Pick<App, 'isPackaged' | 'relaunch' | 'exit'>;
 
-export function restartApplication(app: RestartableApp): IAppRestartResult {
+export function restartApplication(app: RestartableApp, relaunchArgs?: string[]): IAppRestartResult {
   if (!app.isPackaged) {
     console.info('[CSBU WorkMate] Restart skipped in development mode; manual restart required');
     return {
@@ -20,7 +20,11 @@ export function restartApplication(app: RestartableApp): IAppRestartResult {
   }
 
   console.info('[CSBU WorkMate] Relaunching application to apply changes');
-  app.relaunch();
+  if (relaunchArgs) {
+    app.relaunch({ args: relaunchArgs });
+  } else {
+    app.relaunch();
+  }
   app.exit(0);
   return {
     restarted: true,

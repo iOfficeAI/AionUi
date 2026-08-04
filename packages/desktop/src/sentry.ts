@@ -133,6 +133,17 @@ export function setSentryDeviceId(): void {
   Sentry.setTag('device_id', id);
 }
 
+export function capturePreviousNativeCrash(details: { previousAppVersion?: string; safeMode: boolean }): void {
+  Sentry.withScope((scope) => {
+    scope.setTag('csbu-workmate.failure', 'previous_native_crash');
+    scope.setTag('csbu-workmate.safe_mode', String(details.safeMode));
+    if (details.previousAppVersion) {
+      scope.setTag('csbu-workmate.previous_app_version', details.previousAppVersion);
+    }
+    Sentry.captureMessage('Previous native desktop crash detected', 'warning');
+  });
+}
+
 function getBackendStartupDetails(error: unknown): Record<string, unknown> | undefined {
   if (!error || typeof error !== 'object') return undefined;
   const details = (error as { details?: unknown }).details;

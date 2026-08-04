@@ -42,4 +42,17 @@ describe('restartApplication', () => {
     expect(app.relaunch).toHaveBeenCalledTimes(1);
     expect(app.exit).toHaveBeenCalledWith(0);
   });
+
+  it('passes one-time command-line arguments to a packaged relaunch', () => {
+    const app = {
+      isPackaged: true,
+      relaunch: vi.fn(),
+      exit: vi.fn(),
+    };
+
+    restartApplication(app, ['--safe-mode']);
+
+    expect(app.relaunch).toHaveBeenCalledWith({ args: ['--safe-mode'] });
+    expect(app.exit).toHaveBeenCalledWith(0);
+  });
 });

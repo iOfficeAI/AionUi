@@ -7,7 +7,7 @@
  * - Falls back to standard bunx if vx is not available
  */
 
-const { execSync, execFileSync, spawnSync } = require('child_process');
+const { execFileSync, spawnSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
@@ -21,16 +21,6 @@ function isVxAvailable() {
   } catch {
     return false;
   }
-}
-
-/**
- * Get bunx command for the current platform
- * Windows requires bunx.cmd, others use bunx
- * Note: does NOT add 'vx' prefix here — the caller's cmdPrefix (e.g. 'vx --with msvc')
- * already provides the vx entry point, so we must not nest another 'vx' call.
- */
-function getBunxCommand() {
-  return process.platform === 'win32' ? 'bun x' : 'bun x';
 }
 
 /**
@@ -50,6 +40,40 @@ function getCommandPrefix(platform, useVx = true) {
     return 'vx --with msvc';
   }
   return 'vx';
+}
+
+function resolvePinnedCli(tool, projectRoot) {
+  if (tool === 'prebuild-install') {
+    const betterSqliteRoot = path.dirname(require.resolve('better-sqlite3/package.json', { paths: [projectRoot] }));
+    const packageEntry = require.resolve('prebuild-install', { paths: [betterSqliteRoot] });
+    return path.join(path.dirname(packageEntry), 'bin.js');
+  }
+
+  const electronBuilderRoot = path.dirname(require.resolve('electron-builder/package.json', { paths: [projectRoot] }));
+  const appBuilderRoot = path.dirname(
+    require.resolve('app-builder-lib/package.json', { paths: [electronBuilderRoot] })
+  );
+  const packageEntry = require.resolve('@electron/rebuild', { paths: [appBuilderRoot] });
+  return path.join(path.dirname(packageEntry), 'cli.js');
+}
+
+function runPinnedNodeCli({ tool, args, cwd, env, platform, projectRoot = cwd }) {
+  const cliPath = resolvePinnedCli(tool, projectRoot);
+  if (!fs.existsSync(cliPath)) {
+    throw new Error(`Pinned ${tool} CLI not found: ${cliPath}`);
+  }
+
+  const commandPrefix = getCommandPrefix(platform);
+  const nodeArgs = [cliPath, ...args];
+  console.log(`     Running pinned ${tool}: ${process.execPath} ${nodeArgs.join(' ')}`);
+
+  if (commandPrefix) {
+    const vxArgs = platform === 'win32' || platform === 'windows' ? ['--with', 'msvc'] : [];
+    execFileSync('vx', [...vxArgs, process.execPath, ...nodeArgs], { cwd, env, stdio: 'inherit' });
+    return;
+  }
+
+  execFileSync(process.execPath, nodeArgs, { cwd, env, stdio: 'inherit' });
 }
 
 /**
@@ -128,13 +152,13 @@ function rebuildWithElectronRebuild(options) {
   const targetArch = normalizeArch(arch);
   const env = buildEnvironment(platform, targetArch, electronVersion);
 
-  const bunxCmd = getBunxCommand();
-  const rebuildCmd = `${bunxCmd} electron-rebuild --only ${modules.join(',')} --force --arch ${targetArch} --electron-version ${electronVersion}`;
-
-  execSync(rebuildCmd, {
-    stdio: 'inherit',
+  runPinnedNodeCli({
+    tool: 'electron-rebuild',
+    args: ['--only', modules.join(','), '--force', '--arch', targetArch, '--electron-version', electronVersion],
     cwd,
     env,
+    platform,
+    projectRoot: cwd,
   });
 }
 
@@ -191,10 +215,6 @@ function rebuildSingleModule(options) {
   env.npm_config_platform = platform;
   env.npm_config_target_platform = platform;
 
-  const bunxCmd = getBunxCommand();
-  const cmdPrefix = getCommandPrefix(platform);
-  const useShell = cmdPrefix.length > 0; // Need shell for vx prefix
-
   // For Linux cross-compilation, ALWAYS use prebuild-install
   // because electron-rebuild cannot cross-compile without ARM64 toolchain
   const mustUsePrebuild = platform === 'linux' && isCrossCompile;
@@ -236,8 +256,6 @@ function rebuildSingleModule(options) {
     try {
       env.npm_config_build_from_source = 'false';
       const prebuildArgs = [
-        '--yes',
-        'prebuild-install',
         '--runtime=electron',
         `--target=${electronVersion}`,
         `--platform=${platform}`,
@@ -245,26 +263,14 @@ function rebuildSingleModule(options) {
         '--force',
       ];
 
-      const fullCmd = cmdPrefix
-        ? `${cmdPrefix} ${bunxCmd} ${prebuildArgs.join(' ')}`
-        : `${bunxCmd} ${prebuildArgs.join(' ')}`;
-      console.log(`     Running: ${fullCmd}`);
-
-      if (useShell) {
-        execSync(fullCmd, {
-          cwd: moduleRoot,
-          env,
-          stdio: 'inherit',
-          shell: true,
-        });
-      } else {
-        execFileSync(bunxCmd, prebuildArgs, {
-          cwd: moduleRoot,
-          env,
-          stdio: 'inherit',
-          shell: true,
-        });
-      }
+      runPinnedNodeCli({
+        tool: 'prebuild-install',
+        args: prebuildArgs,
+        cwd: moduleRoot,
+        env,
+        platform,
+        projectRoot,
+      });
 
       console.log(`     ✓ prebuild-install succeeded`);
       return true;
@@ -289,35 +295,21 @@ function rebuildSingleModule(options) {
   try {
     env.npm_config_build_from_source = 'true';
     const rebuildArgs = [
-      '--yes',
-      'electron-rebuild',
       '--only',
       moduleName,
       '--force',
       `--platform=${platform}`,
       `--arch=${targetArch}`,
+      `--electron-version=${electronVersion}`,
     ];
-
-    const fullCmd = cmdPrefix
-      ? `${cmdPrefix} ${bunxCmd} ${rebuildArgs.join(' ')}`
-      : `${bunxCmd} ${rebuildArgs.join(' ')}`;
-    console.log(`     Running: ${fullCmd}`);
-
-    if (useShell) {
-      execSync(fullCmd, {
-        cwd: projectRoot,
-        env,
-        stdio: 'inherit',
-        shell: true,
-      });
-    } else {
-      execFileSync(bunxCmd, rebuildArgs, {
-        cwd: projectRoot,
-        env,
-        stdio: 'inherit',
-        shell: true,
-      });
-    }
+    runPinnedNodeCli({
+      tool: 'electron-rebuild',
+      args: rebuildArgs,
+      cwd: projectRoot,
+      env,
+      platform,
+      projectRoot,
+    });
     return true;
   } catch (error) {
     console.error(`❌ Failed to rebuild ${moduleName}:`, error.message);
@@ -396,6 +388,6 @@ module.exports = {
   verifyModuleBinary,
   canCrossCompileFromSource,
   isVxAvailable,
-  getBunxCommand,
   getCommandPrefix,
+  resolvePinnedCli,
 };

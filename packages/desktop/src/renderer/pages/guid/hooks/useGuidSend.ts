@@ -140,8 +140,14 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
             .filter((server) => (defaultSelectedMcpServerIds ?? []).includes(server.id))
             .map((server) => toSessionMcpServer(server));
 
+    // Provider models belong to aionrs. CLI agents own their model catalogs, so
+    // passing the provider model before their first catalog probe can make the
+    // first turn fail with an unknown-model error.
     const assistantOverrideModel =
-      selectedAcpModel || currentAcpCachedModelInfo?.current_model_id || current_model?.use_model || undefined;
+      selectedAcpModel ||
+      currentAcpCachedModelInfo?.current_model_id ||
+      (assistantBackend === 'aionrs' ? current_model?.use_model : undefined) ||
+      undefined;
     const assistantOverrides = {
       model: assistantOverrideModel,
       permission: selectedMode || undefined,

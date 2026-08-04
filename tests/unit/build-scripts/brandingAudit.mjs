@@ -36,6 +36,7 @@ export function auditBranding(root = DEFAULT_ROOT) {
 
   if (packageJson.name !== 'csbu-workmate') violations.push('package.json name must be csbu-workmate');
   if (packageJson.productName !== 'CSBU WorkMate') violations.push('package.json productName must be CSBU WorkMate');
+  if (packageJson.author?.name !== 'CSBU') violations.push('package.json author name must be CSBU');
   if (!packageJson.dependencies?.['@csbu-workmate/web-host']) {
     violations.push('workspace packages must use the @csbu-workmate scope');
   }

@@ -108,6 +108,23 @@ const INSTALLER_ERROR_SCENARIOS = [
     diagnostics: 'scenario=active-marker-write-failed phase=active-installer-marker-write result=failed',
   },
   {
+    id: 'install-state-write-failed',
+    defineName: 'CSBU_WORKMATE_E_INSTALL_STATE_WRITE_FAILED',
+    code: 'E1080',
+    message: 'CSBU WorkMate could not save the local installation state required for future updates.',
+    action: 'Check that Local AppData is writable, then run the installer again.',
+    diagnostics: 'scenario=install-state-write-failed phase=install-state-write result=failed',
+  },
+  {
+    id: 'legacy-machine-install',
+    defineName: 'CSBU_WORKMATE_E_LEGACY_MACHINE_INSTALL',
+    code: 'E1081',
+    message:
+      'An older all-users installation of CSBU WorkMate was found. This release supports current-user installation only.',
+    action: 'Uninstall the older all-users version first, then run this installer again.',
+    diagnostics: 'scenario=legacy-machine-install phase=legacy-machine-install result=blocked',
+  },
+  {
     id: 'invalid-install-path',
     defineName: 'CSBU_WORKMATE_E_INVALID_INSTALL_PATH',
     code: 'E1090',
@@ -205,9 +222,6 @@ function getInstallerErrorScenarioMatrix() {
   const scenarioDefineNames = INSTALLER_ERROR_SCENARIOS.map((scenario) => scenario.defineName);
   const scenarioIds = INSTALLER_ERROR_SCENARIOS.map((scenario) => scenario.id);
 
-  if (definitions.length !== 12) {
-    throw new Error(`Expected 12 installer error code definitions, found ${definitions.length}: ${codes.join(', ')}`);
-  }
   if (new Set(codes).size !== definitions.length) {
     throw new Error(`Duplicate installer error codes in NSIS definitions: ${codes.join(', ')}`);
   }

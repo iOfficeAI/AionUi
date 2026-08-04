@@ -18,6 +18,23 @@ type LocalCrashReporterDeps = {
   logError: (message: string, value: unknown) => void;
 };
 
+export const WINDOWS_APP_USER_MODEL_ID = 'com.csbu.workmate';
+export const SAFE_MODE_SWITCH = '--safe-mode';
+
+export const isSafeModeLaunch = (argv: readonly string[] = process.argv): boolean => argv.includes(SAFE_MODE_SWITCH);
+
+export function configureWindowsNotificationIdentity({
+  platform,
+  setAppUserModelId,
+}: {
+  platform: NodeJS.Platform;
+  setAppUserModelId: (id: string) => void;
+}): void {
+  if (platform === 'win32') {
+    setAppUserModelId(WINDOWS_APP_USER_MODEL_ID);
+  }
+}
+
 function safelyLog(log: (message: string, value: unknown) => void, message: string, value: unknown): void {
   try {
     log(message, value);

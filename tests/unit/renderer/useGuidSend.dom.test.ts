@@ -246,6 +246,34 @@ describe('useGuidSend', () => {
     expect(payload.extra.backend).toBeUndefined();
   });
 
+  it('does not pass an aionrs provider model to a CLI agent before its catalog loads', async () => {
+    const deps = createDeps();
+    deps.selectedAssistantBackend = 'antigravity';
+    deps.selectedAcpModel = null;
+    deps.currentAcpCachedModelInfo = null;
+    deps.current_model = { id: 'p1', name: 'Gemini', use_model: 'gemini-provider-model' } as never;
+
+    const { result } = renderHook(() => useGuidSend(deps));
+    await act(async () => result.current.handleSend());
+
+    const payload = createConversationInvokeMock.mock.calls[0][0];
+    expect(payload.assistant.conversation_overrides.model).toBeUndefined();
+  });
+
+  it('continues to pass the provider model to aionrs', async () => {
+    const deps = createDeps();
+    deps.selectedAssistantBackend = 'aionrs';
+    deps.selectedAcpModel = null;
+    deps.currentAcpCachedModelInfo = null;
+    deps.current_model = { id: 'p1', name: 'Gemini', use_model: 'gemini-provider-model' } as never;
+
+    const { result } = renderHook(() => useGuidSend(deps));
+    await act(async () => result.current.handleSend());
+
+    const payload = createConversationInvokeMock.mock.calls[0][0];
+    expect(payload.assistant.conversation_overrides.model).toBe('gemini-provider-model');
+  });
+
   it('does not create a conversation without assistant identity', async () => {
     const deps = createDeps();
     deps.selectedAssistantId = null;

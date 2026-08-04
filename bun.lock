@@ -148,6 +148,7 @@
         "oxlint": "^1.56.0",
         "patch-package": "^8.0.0",
         "playwright": "^1.59.1",
+        "resedit": "^1.7.2",
         "ts-morph": "^28.0.0",
         "ts-node": "^10.9.2",
         "tsx": "^4.19.1",

@@ -55,7 +55,13 @@ function writeConfig(cfg: GpuConfig): void {
  * Must be called BEFORE app.ready.
  * Reads persisted gpu config and disables hardware acceleration if needed.
  */
-export function applyGpuRecoveryFlags(): void {
+export function applyGpuRecoveryFlags(safeMode = false): void {
+  if (safeMode) {
+    app.disableHardwareAcceleration();
+    console.log('[GPU] hardware acceleration disabled (safe mode)');
+    return;
+  }
+
   const cfg = readConfig();
 
   if (cfg.userOverride === 'force-off') {

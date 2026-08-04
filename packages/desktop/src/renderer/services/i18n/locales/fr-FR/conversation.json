@@ -1,4 +1,7 @@
 {
+  "officePreview": {
+    "fileWatchUnavailable": "La surveillance des fichiers en temps réel est indisponible, car le système manque peut-être de descripteurs de surveillance. L’aperçu automatique des nouveaux fichiers Office est désactivé. Augmentez la limite du système ou fermez les programmes utilisant de nombreux observateurs."
+  },
   "welcome": {
     "title": "Bonjour, quel est votre plan pour aujourd'hui ?",
     "placeholder": "Envoyez un message, téléversez des fichiers, ouvrez un dossier, créez une tâche planifiée ou tapez / pour les commandes...",

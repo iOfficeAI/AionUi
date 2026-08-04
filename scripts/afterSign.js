@@ -1,56 +1,14 @@
-const { execSync, spawnSync } = require('child_process');
-const fs = require('fs');
+const { execSync } = require('child_process');
 const path = require('path');
-
-function stripWindowsExecutableVersionInfo(appOutDir, packager) {
-  const resourceHackerPath = process.env.RESOURCE_HACKER_PATH;
-  if (!resourceHackerPath) {
-    return;
-  }
-
-  const productFilename = packager?.appInfo?.productFilename || 'CSBU WorkMate';
-  const executablePath = path.join(appOutDir, `${productFilename}.exe`);
-  if (!fs.existsSync(executablePath)) {
-    throw new Error(`Windows executable not found for VERSIONINFO removal: ${executablePath}`);
-  }
-  if (!fs.existsSync(resourceHackerPath)) {
-    throw new Error(`Resource Hacker not found: ${resourceHackerPath}`);
-  }
-
-  const scriptPath = path.resolve(__dirname, '../resources/windows/support/strip-exe-version-info.ps1');
-  const windowsDirectory = process.env.SystemRoot || 'C:\\Windows';
-  const powershellPath = path.join(windowsDirectory, 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe');
-  const result = spawnSync(
-    powershellPath,
-    [
-      '-NoLogo',
-      '-NoProfile',
-      '-NonInteractive',
-      '-ExecutionPolicy',
-      'Bypass',
-      '-File',
-      scriptPath,
-      '-TargetPath',
-      executablePath,
-      '-ResourceHackerPath',
-      resourceHackerPath,
-    ],
-    { stdio: 'inherit', windowsHide: true }
-  );
-
-  if (result.error) {
-    throw new Error(`Failed to start VERSIONINFO removal: ${result.error.message}`);
-  }
-  if (result.status !== 0) {
-    throw new Error(`VERSIONINFO removal failed with exit code ${result.status}`);
-  }
-}
+const { setWindowsProductName } = require('./afterPack');
 
 exports.default = async function afterSign(context) {
   const { electronPlatformName, appOutDir } = context;
 
   if (electronPlatformName === 'win32') {
-    stripWindowsExecutableVersionInfo(appOutDir, context.packager);
+    const executablePath = path.join(appOutDir, `${context.packager.appInfo.productFilename}.exe`);
+    await setWindowsProductName(executablePath);
+    console.log('Windows ProductName set to 锐捷Codex after resource editing');
     return;
   }
 

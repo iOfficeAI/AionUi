@@ -158,5 +158,15 @@
     "second_short": "秒"
   },
   "selectedCount": "選択済み {{count}}",
-  "selectedSkills": "選択済みスキル"
+  "selectedSkills": "選択済みスキル",
+  "crashRecovery": {
+    "title": "前回のクラッシュを検出しました",
+    "description": "前回、ネイティブプロセスのクラッシュによりアプリが終了しました。一度だけセーフモードで再起動するか、通常どおり続行できます。セーフモードではハードウェアアクセラレーションとデスクトップペットのみ無効になります。",
+    "openReports": "クラッシュフォルダーを開く",
+    "continueNormally": "通常どおり続行",
+    "restartSafeMode": "セーフモードで再起動",
+    "openReportsFailed": "クラッシュフォルダーを開けませんでした",
+    "actionFailed": "復旧操作に失敗しました。もう一度お試しください。",
+    "restartFailed": "開発モードでは自動再起動できません。--safe-mode を付けて手動で起動してください。"
+  }
 }

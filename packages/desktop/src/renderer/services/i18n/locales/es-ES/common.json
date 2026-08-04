@@ -158,5 +158,15 @@
   },
   "goBack": "Back",
   "selectedCount": "{{count}} seleccionado(s)",
-  "selectedSkills": "Habilidades seleccionadas"
+  "selectedSkills": "Habilidades seleccionadas",
+  "crashRecovery": {
+    "title": "Se detectó un bloqueo anterior",
+    "description": "La aplicación se cerró anteriormente por un bloqueo de un proceso nativo. Puedes reiniciar una vez en modo seguro o continuar normalmente. El modo seguro solo desactiva la aceleración de hardware y la mascota de escritorio.",
+    "openReports": "Abrir carpeta de bloqueos",
+    "continueNormally": "Continuar normalmente",
+    "restartSafeMode": "Reiniciar en modo seguro",
+    "openReportsFailed": "No se pudo abrir la carpeta de bloqueos",
+    "actionFailed": "La acción de recuperación falló. Inténtalo de nuevo.",
+    "restartFailed": "El reinicio automático no está disponible en modo de desarrollo. Inicia manualmente con --safe-mode."
+  }
 }

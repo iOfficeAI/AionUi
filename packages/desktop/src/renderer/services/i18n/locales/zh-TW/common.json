@@ -158,5 +158,15 @@
     "second_short": "秒"
   },
   "selectedCount": "已選 {{count}}",
-  "selectedSkills": "已選技能"
+  "selectedSkills": "已選技能",
+  "crashRecovery": {
+    "title": "偵測到上次異常崩潰",
+    "description": "應用程式上次因原生程序崩潰而退出。你可以使用一次性安全模式重新啟動，或繼續正常使用。安全模式只會停用硬體加速和桌面寵物。",
+    "openReports": "開啟崩潰目錄",
+    "continueNormally": "繼續正常啟動",
+    "restartSafeMode": "以安全模式重新啟動",
+    "openReportsFailed": "無法開啟崩潰目錄",
+    "actionFailed": "復原操作失敗，請重試",
+    "restartFailed": "開發模式無法自動重新啟動，請手動使用 --safe-mode 啟動"
+  }
 }

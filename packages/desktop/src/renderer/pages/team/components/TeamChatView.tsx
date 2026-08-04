@@ -221,6 +221,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({
 
     switch (conversation.type) {
       case 'acp':
+      case 'antigravity':
         return (
           <AcpChat
             key={conversation.id}

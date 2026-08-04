@@ -10,7 +10,7 @@ This directory contains scripts for building and packaging CSBU WorkMate across 
 | `rebuildNativeModules.js` | 219   | **Unified native module rebuild utility**              |
 | `beforeBuild.js`          | 38    | Pre-packaging native module rebuild hook               |
 | `afterPack.js`            | —     | Post-packaging resource and native module verification |
-| `afterSign.js`            | —     | Windows metadata removal and macOS notarization        |
+| `afterSign.js`            | —     | macOS signing and notarization                         |
 
 **Total**: 487 lines (down from 711 lines before optimization)
 
@@ -30,7 +30,7 @@ electron-builder
     ├─→ beforeBuild.js → rebuildNativeModules.js (all platforms)
     ├─→ Package app
     ├─→ afterPack.js → rebuild native modules and verify packaged resources
-    └─→ afterSign.js → remove Windows VERSIONINFO after rcedit or notarize macOS
+    └─→ afterSign.js → sign or notarize macOS
 ```
 
 ## Native Module Rebuild Strategy
@@ -104,7 +104,7 @@ const { rebuildWithElectronRebuild } = require('./scripts/rebuildNativeModules')
 rebuildWithElectronRebuild({
   platform: 'linux',
   arch: 'arm64',
-  electronVersion: '37.3.1',
+  electronVersion: '37.10.3',
 });
 ```
 
@@ -118,7 +118,7 @@ rebuildSingleModule({
   moduleRoot: '/path/to/app.asar.unpacked/node_modules/better-sqlite3',
   platform: 'linux',
   arch: 'arm64',
-  electronVersion: '37.3.1',
+  electronVersion: '37.10.3',
 });
 ```
 
@@ -135,17 +135,13 @@ rebuildSingleModule({
 - Rebuilds `better-sqlite3` in **packaged app** (`app.asar.unpacked/`)
 - Handles cross-compilation issues
 - Uses `prebuild-install` for faster builds (downloads prebuilt binary)
-- On opted-in Windows builds, removes application `VERSIONINFO` with Resource Hacker before NSIS packaging
+- Preserves Windows `VERSIONINFO`; Electron reads it while initializing native toast notifications
 
 ### Manual GitHub build
 
 Run the **Manual Build** workflow and select a platform. The optional `version` input overrides the artifact version
-without changing the repository. Windows builds enable `strip_windows_exe_metadata` by default; manual builds can opt
-out when metadata is needed for diagnostics.
-
-The Windows metadata flow removes `VERSIONINFO` from the packaged application in `afterPack` and from the temporary
-NSIS header through `!packhdr`. Do not edit the completed installer with Resource Hacker: that changes bytes covered by
-the NSIS integrity check and produces an `Installer integrity check has failed` error.
+without changing the repository. Windows application, installer, and uninstaller executables must retain their
+`VERSIONINFO`; release checks fail when required product or version values are missing.
 
 ## Troubleshooting
 

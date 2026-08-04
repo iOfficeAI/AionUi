@@ -82,6 +82,17 @@ describe('gpuRecovery', () => {
     expect(disableHardwareAcceleration).not.toHaveBeenCalled();
   });
 
+  it('safe mode overrides force-on without changing the persisted preference', async () => {
+    const persisted = JSON.stringify({ userOverride: 'force-on' });
+    fs.writeFileSync(configFile(), persisted);
+    const { applyGpuRecoveryFlags } = await import('@/process/utils/gpuRecovery');
+
+    applyGpuRecoveryFlags(true);
+
+    expect(disableHardwareAcceleration).toHaveBeenCalledOnce();
+    expect(fs.readFileSync(configFile(), 'utf8')).toBe(persisted);
+  });
+
   it('resets crash counter when last crash is older than 24h', async () => {
     fs.writeFileSync(
       configFile(),

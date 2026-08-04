@@ -184,7 +184,7 @@ export const ExplorerContainer: React.FC<ExplorerContainerProps> = ({ projectId 
         peId,
         relativePath
       );
-      openPreview(content, contentType, metadata, { replace: true });
+      openPreview(content, contentType, metadata);
     } catch (e) {
       Message.error(t(previewErrorToI18nKey(classifyPreviewError(e))));
     }

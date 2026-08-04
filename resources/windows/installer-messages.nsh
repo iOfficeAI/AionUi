@@ -49,6 +49,16 @@
 !define CSBU_WORKMATE_MSG_UNINSTALLER_REPAIR_ACTION_EN "Close CSBU WorkMate, restart Windows if needed, then run this installer again."
 !define CSBU_WORKMATE_MSG_UNINSTALLER_REPAIR_ACTION_ZH "请关闭 CSBU WorkMate，必要时重启 Windows，然后再次运行此安装器。"
 
+!define CSBU_WORKMATE_MSG_INSTALL_STATE_WRITE_FAILED_EN "CSBU WorkMate could not save the local installation state required for future updates."
+!define CSBU_WORKMATE_MSG_INSTALL_STATE_WRITE_FAILED_ZH "CSBU WorkMate 无法保存后续更新所需的本地安装状态。"
+!define CSBU_WORKMATE_MSG_INSTALL_STATE_WRITE_ACTION_EN "Check that Local AppData is writable, then run the installer again."
+!define CSBU_WORKMATE_MSG_INSTALL_STATE_WRITE_ACTION_ZH "请确认本地应用数据目录可写，然后重新运行安装器。"
+
+!define CSBU_WORKMATE_MSG_LEGACY_MACHINE_INSTALL_EN "An older all-users installation of CSBU WorkMate was found. This release supports current-user installation only."
+!define CSBU_WORKMATE_MSG_LEGACY_MACHINE_INSTALL_ZH "检测到旧的全用户 CSBU WorkMate 安装。本版本仅支持当前用户安装。"
+!define CSBU_WORKMATE_MSG_LEGACY_MACHINE_INSTALL_ACTION_EN "Uninstall the older all-users version first, then run this installer again."
+!define CSBU_WORKMATE_MSG_LEGACY_MACHINE_INSTALL_ACTION_ZH "请先卸载旧的全用户版本，然后重新运行此安装器。"
+
 !define CSBU_WORKMATE_MSG_OLD_UNINSTALL_FAILED_EN "The previous CSBU WorkMate uninstaller returned an error."
 !define CSBU_WORKMATE_MSG_OLD_UNINSTALL_FAILED_ZH "之前的 CSBU WorkMate 卸载器返回错误。"
 !define CSBU_WORKMATE_MSG_OLD_UNINSTALL_ACTION_EN "Close the program listed above, then run this installer again. If no program is listed, restart Windows and run this installer again."

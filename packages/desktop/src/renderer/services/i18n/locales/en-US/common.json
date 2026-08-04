@@ -158,5 +158,15 @@
     "second_short": "s"
   },
   "selectedCount": "Selected {{count}}",
-  "selectedSkills": "Selected skills"
+  "selectedSkills": "Selected skills",
+  "crashRecovery": {
+    "title": "A previous crash was detected",
+    "description": "The app previously exited because of a native process crash. You can restart once in safe mode or continue normally. Safe mode only disables hardware acceleration and the desktop pet.",
+    "openReports": "Open crash reports",
+    "continueNormally": "Continue normally",
+    "restartSafeMode": "Restart in safe mode",
+    "openReportsFailed": "Could not open the crash reports folder",
+    "actionFailed": "The recovery action failed. Please try again.",
+    "restartFailed": "Automatic restart is unavailable in development mode. Start manually with --safe-mode."
+  }
 }

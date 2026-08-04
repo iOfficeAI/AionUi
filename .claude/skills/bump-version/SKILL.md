@@ -5,7 +5,9 @@ description: Use when bumping the CSBU WorkMate version: query AionCore release,
 
 # Bump Version
 
-Automate the CSBU WorkMate release preparation: query AionCore release → verify artifacts → update versions → generate CHANGELOG → branch → PR → tag.
+Automate the complete CSBU WorkMate release: query AionCore release → verify artifacts → update versions → generate CHANGELOG → branch → PR → tag → monitor every build → publish and verify the GitHub Release.
+
+> **Mandatory safety record:** Read [`docs/contributing/release-safety.md`](../../../docs/contributing/release-safety.md) before changing release dependencies or pushing a production tag. The v2.1.48 incident proved that a successful source PR is not evidence that Electron's cross-platform native packaging works.
 
 **Usage:** `/bump-version [version] [flags]`
 
@@ -25,6 +27,12 @@ git status --short
 
 - **Not on `main`** → Stop: "Please switch to main before running bump-version."
 - **Dirty working tree** → Stop: "There are uncommitted changes. Please commit or stash them first."
+
+Resolve the repository explicitly and pass it to every `gh` command. Do not rely on the CLI's default repository when the checkout has both `origin` and `upstream` remotes:
+
+```bash
+gh repo view --json nameWithOwner --jq .nameWithOwner
+```
 
 ### Step 2: Pull Latest
 
@@ -48,7 +56,7 @@ Display: "Bumping CSBU WorkMate: {current} → {target}"
 **Skip entirely if `--skip-core` is set.**
 
 ```bash
-gh release view --repo iOfficeAI/AionCore --json tagName,body
+gh release view --repo suoak/AionCore --json tagName,body
 ```
 
 - If `--core <version>` provided → use that tag instead of latest
@@ -60,7 +68,7 @@ gh release view --repo iOfficeAI/AionCore --json tagName,body
 **Skip if `--skip-core`.**
 
 ```bash
-gh release view <tag> --repo iOfficeAI/AionCore --json assets --jq '.assets[].name'
+gh release view <tag> --repo suoak/AionCore --json assets --jq '.assets[].name'
 ```
 
 Verify all 7 expected assets exist:
@@ -131,7 +139,7 @@ Prepend the new entry in this format:
 
 - **thinking:** add streaming indicator (#3015)
 
-### Core ([{core tag}](https://github.com/iOfficeAI/AionCore/releases/tag/{core tag}))
+### Core ([{core tag}](https://github.com/suoak/AionCore/releases/tag/{core tag}))
 
 #### Bug Fixes
 
@@ -147,7 +155,22 @@ Rules:
 - Date format: `YYYY-MM-DD`
 - Always keep the top-level `# Changelog` header exactly once
 
-### Step 8: Quality Checks
+### Step 8: Release Dependency Compatibility Gate
+
+Compare the candidate with the previous production tag:
+
+```bash
+git diff v{previous}..HEAD -- package.json bun.lock
+```
+
+Inspect at least `electron`, `electronRebuild.electronVersion`, `electron-builder`, native modules, and packaging scripts.
+
+- If Electron or another native packaging dependency changed, it must be an independent PR and must complete the full six-platform desktop matrix on a prerelease candidate before a production tag is created.
+- Keep `electron` and `electronRebuild.electronVersion` compatible. Do not assume a clean install, typecheck, or unit-test pass validates native rebuilding.
+- Do not combine an unproven Electron major upgrade with the production version-bump PR.
+- A failed production tag is immutable. Never delete, move, or overwrite it; fix the cause and increment to a new patch version.
+
+### Step 9: Quality Checks
 
 ```bash
 bun run lint
@@ -159,7 +182,7 @@ bunx tsc --noEmit
 - **format** → Auto-fixes silently.
 - **tsc fails** → Stop: "TypeScript errors found. Please fix them before bumping."
 
-### Step 9: Run Tests
+### Step 10: Run Tests
 
 ```bash
 bunx vitest run
@@ -167,7 +190,7 @@ bunx vitest run
 
 Fails → Stop: "Tests failed. Please fix before bumping."
 
-### Step 10: Branch, Commit, Push
+### Step 11: Branch, Commit, Push
 
 ```bash
 git checkout -b chore/bump-version-{target}
@@ -182,7 +205,7 @@ If `--skip-core`:
 git commit -m "chore: bump version to {target}"
 ```
 
-### Step 11: Create PR + Enable Auto-Merge
+### Step 12: Create PR + Enable Auto-Merge
 
 ```bash
 gh pr create --base main \
@@ -198,7 +221,7 @@ gh pr merge {PR_NUMBER} --auto --squash
 
 Display: "PR created: {URL}. Auto-merge enabled — will merge automatically once CI passes."
 
-### Step 12: Poll for Merge
+### Step 13: Poll for Merge
 
 Check PR merge status every 5 minutes:
 
@@ -210,7 +233,7 @@ gh pr view {PR_NUMBER} --json state,mergedAt,mergeStateStatus
 
 | `state`                                                                     | Action                                                                                 |
 | --------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| `MERGED`                                                                    | Proceed to Step 13                                                                     |
+| `MERGED`                                                                    | Proceed to Step 14                                                                     |
 | `CLOSED` (not merged)                                                       | Stop: "PR was closed without merging. Please check and confirm how to proceed."        |
 | `OPEN` with `mergeStateStatus: BLOCKED` or CI failure persisting > 3 checks | Stop: "PR merge is blocked (CI failure or review required). Please investigate: {URL}" |
 | `OPEN` otherwise                                                            | Wait 5 minutes, check again                                                            |
@@ -221,7 +244,7 @@ gh pr view {PR_NUMBER} --json state,mergedAt,mergeStateStatus
 
 **Wait for user confirmation only in this timeout case.**
 
-### Step 13: Cleanup + Tag
+### Step 14: Cleanup + Tag
 
 After merge is confirmed (either via polling or user confirmation):
 
@@ -250,10 +273,38 @@ git push origin v{target}
 Wait a few seconds for GitHub to pick up the tag push, then fetch the triggered workflow run:
 
 ```bash
-gh run list --workflow=release.yml --branch v{target} --limit 1 --json databaseId,url
+gh run list --repo {owner/repo} --workflow build-and-release.yml --branch v{target} --limit 1 --json databaseId,url
 ```
 
-Display: "Tag v{target} created and pushed. Release build triggered! Action: {run URL}"
+The tag push is not release completion. Continue to Step 15.
+
+### Step 15: Monitor, Publish, and Verify Release
+
+Poll the workflow until it reaches a terminal state:
+
+```bash
+gh run view --repo {owner/repo} {run-id} --json status,conclusion,url,jobs
+```
+
+All of the following are mandatory:
+
+1. Code Quality succeeds.
+2. Desktop builds succeed for macOS x64/ARM64, Windows x64/ARM64, and Linux x64/ARM64.
+3. Web CLI packages and smoke tests succeed.
+4. Create Release succeeds.
+
+Any required job failure → stop, inspect the exact failed step, fix it in a new version, and never reuse the failed production tag.
+
+The workflow intentionally creates a draft. After every required job succeeds, inspect the draft assets, then publish it:
+
+```bash
+gh release view --repo {owner/repo} v{target} --json url,isDraft,isPrerelease,assets
+gh release edit --repo {owner/repo} v{target} --draft=false
+gh release view --repo {owner/repo} v{target} \
+  --json url,isDraft,isPrerelease,publishedAt,assets
+```
+
+Release completion requires `isDraft == false`, a non-null `publishedAt`, and every expected asset in state `uploaded`. Verify Windows installers, both macOS architectures, both Linux architectures, updater metadata, checksums, Web CLI archives, and `install-web.sh`. Report the public `/releases/tag/v{target}` URL—not an `untagged-*` draft URL.
 
 ## Quick Reference
 
@@ -265,10 +316,12 @@ Display: "Tag v{target} created and pushed. Release build triggered! Action: {ru
  5. Verify AionCore artifacts (7 files)
  6. Edit package.json (version + aioncoreVersion)
  7. Generate CHANGELOG entry (frontend commits + AionCore release body)
- 8. lint + format + tsc
- 9. vitest run
-10. branch → commit → push
-11. gh pr create → enable auto-merge (squash)
-12. poll merge status (every 5min, max 30min) → stop on failure
-13. cleanup → git tag → git push tag
+ 8. Check Electron/native packaging compatibility; use a prerelease candidate for changes
+ 9. lint + format + tsc
+10. vitest run
+11. branch → commit → push
+12. gh pr create → enable auto-merge (squash)
+13. poll merge status (every 5min, max 30min) → stop on failure
+14. cleanup → git tag → git push tag
+15. wait for every matrix job → inspect draft assets → publish → verify public release
 ```

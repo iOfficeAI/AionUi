@@ -158,5 +158,15 @@
     "second_short": "秒"
   },
   "selectedCount": "已选 {{count}}",
-  "selectedSkills": "已选技能"
+  "selectedSkills": "已选技能",
+  "crashRecovery": {
+    "title": "检测到上次异常崩溃",
+    "description": "应用上次因原生进程崩溃而退出。你可以使用一次性安全模式重新启动，或继续正常使用。安全模式仅关闭硬件加速和桌面宠物。",
+    "openReports": "打开崩溃目录",
+    "continueNormally": "继续正常启动",
+    "restartSafeMode": "以安全模式重启",
+    "openReportsFailed": "无法打开崩溃目录",
+    "actionFailed": "恢复操作失败，请重试",
+    "restartFailed": "开发模式无法自动重启，请手动使用 --safe-mode 启动"
+  }
 }

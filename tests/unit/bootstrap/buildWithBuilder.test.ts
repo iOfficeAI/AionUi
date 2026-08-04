@@ -235,7 +235,7 @@ childProcess.execSync = function mockedExecSync(command) {
     expect(cannotCloseBranch).not.toMatch(/^\s*Quit\s*$/m);
   });
 
-  it('covers each of the 12 Windows installer error codes with one explicit e2e scenario', () => {
+  it('covers each Windows installer error code with one explicit e2e scenario', () => {
     const expectedDefinitions = readInstallerErrorDefinitions();
     const result = spawnSync(
       process.execPath,
@@ -254,11 +254,11 @@ childProcess.execSync = function mockedExecSync(command) {
     const scenarioDefineNames = matrix.scenarios?.map((scenario) => scenario.defineName);
     const scenarioIds = matrix.scenarios?.map((scenario) => scenario.id);
 
-    expect(expectedDefinitions).toHaveLength(12);
-    expect(new Set(expectedCodes).size).toBe(12);
+    expect(expectedDefinitions.length).toBeGreaterThan(0);
+    expect(new Set(expectedCodes).size).toBe(expectedDefinitions.length);
     expect(matrix.codes).toEqual(expectedCodes);
-    expect(matrix.scenarios).toHaveLength(12);
-    expect(new Set(scenarioIds).size).toBe(12);
+    expect(matrix.scenarios).toHaveLength(expectedDefinitions.length);
+    expect(new Set(scenarioIds).size).toBe(expectedDefinitions.length);
     expect(scenarioCodes).toEqual(expectedCodes);
     expect(scenarioDefineNames).toEqual(expectedDefineNames);
   });

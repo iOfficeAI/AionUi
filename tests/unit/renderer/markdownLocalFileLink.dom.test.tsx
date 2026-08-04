@@ -93,6 +93,42 @@ describe('MarkdownView local file links', () => {
     expect(copyTextMock).toHaveBeenCalledWith('C:/Users/Administrator/AppData/Roaming/CSBU WorkMate/report.xlsx');
   });
 
+  it('preserves Windows separators before punctuation in angle-wrapped local links', () => {
+    const onLocalFileLink = vi.fn();
+
+    render(
+      <MarkdownView onLocalFileLink={onLocalFileLink}>
+        {'[generated.png](<C:\\Users\\admin\\.codex\\_cache\\-draft\\generated.png>)'}
+      </MarkdownView>
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'generated.png' }));
+    expect(onLocalFileLink).toHaveBeenCalledWith(
+      'C:/Users/admin/.codex/_cache/-draft/generated.png',
+      expect.objectContaining({
+        filePath: 'C:/Users/admin/.codex/_cache/-draft/generated.png',
+      })
+    );
+  });
+
+  it('opens angle-wrapped Windows paths containing spaces and parentheses', () => {
+    const onLocalFileLink = vi.fn();
+
+    render(
+      <MarkdownView onLocalFileLink={onLocalFileLink}>
+        {'[report.png](<C:\\Program Files (x86)\\.cache\\report.png>)'}
+      </MarkdownView>
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'report.png' }));
+    expect(onLocalFileLink).toHaveBeenCalledWith(
+      'C:/Program Files (x86)/.cache/report.png',
+      expect.objectContaining({
+        filePath: 'C:/Program Files (x86)/.cache/report.png',
+      })
+    );
+  });
+
   it('renders line references as file chips and copies the full reference', () => {
     const onLocalFileLink = vi.fn();
 
@@ -195,6 +231,14 @@ describe('MarkdownView local file links', () => {
     expect(link).toHaveAttribute('href', 'https://csbu-workmate.com/docs');
   });
 
+  it('keeps markdown link titles separate from destinations', () => {
+    render(<MarkdownView>{'[docs](https://csbu-workmate.com/docs "Documentation")'}</MarkdownView>);
+
+    const link = screen.getByRole('link', { name: 'docs' });
+    expect(link).toHaveAttribute('href', 'https://csbu-workmate.com/docs');
+    expect(link).toHaveAttribute('title', 'Documentation');
+  });
+
   it('opens relative Grok artifact links through their absolute tool-output alias', () => {
     const onLocalFileLink = vi.fn();
     const generatedPath = 'C:\\Users\\test\\.grok\\sessions\\session-1\\images\\1.jpg';
@@ -222,6 +266,17 @@ describe('MarkdownView local file links', () => {
     );
 
     expect(screen.getByRole('img', { name: 'landscape' })).toHaveAttribute('src', generatedPath);
+  });
+
+  it('preserves Windows separators in direct local image destinations', () => {
+    render(
+      <MarkdownView>{'![landscape](C:\\Users\\admin\\.codex\\generated_images\\session\\generated.png)'}</MarkdownView>
+    );
+
+    expect(screen.getByRole('img', { name: 'landscape' })).toHaveAttribute(
+      'src',
+      'C:/Users/admin/.codex/generated_images/session/generated.png'
+    );
   });
 
   it('does not crash on malformed percent escapes in generated image links', () => {

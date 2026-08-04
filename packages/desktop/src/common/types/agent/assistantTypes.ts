@@ -25,6 +25,19 @@ export function isAionrsAssistant(assistant?: Pick<Assistant, 'agent'> | null): 
   return assistant?.agent?.type === 'aionrs';
 }
 
+type AssistantBrandIdentity = {
+  agent?: Pick<AssistantAgent, 'type' | 'acp_backend'>;
+  backend?: string;
+  id?: string;
+  source?: string;
+};
+
+/** Product-owned generated/butler assistants always follow the current app brand. */
+export function usesWorkMateBrand(assistant?: AssistantBrandIdentity | null): boolean {
+  const backend = assistant?.backend || assistant?.agent?.acp_backend || assistant?.agent?.type;
+  return backend === 'aionrs' && (assistant?.source === 'generated' || assistant?.id === 'aionui-assistant');
+}
+
 export interface Assistant {
   id: string;
   source: AssistantSource;

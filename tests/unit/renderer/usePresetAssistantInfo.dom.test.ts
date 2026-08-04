@@ -8,6 +8,7 @@ import { renderHook } from '@testing-library/react';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import type { TChatConversation } from '@/common/config/storage';
 import { resolveAssistantConfigId, usePresetAssistantInfo } from '@/renderer/hooks/agent/usePresetAssistantInfo';
+import workMateLogo from '@/renderer/assets/logos/brand/app.png';
 
 const useSWRMock = vi.fn();
 let currentLanguage = 'en-US';
@@ -65,6 +66,28 @@ describe('usePresetAssistantInfo', () => {
   beforeEach(() => {
     useSWRMock.mockReset();
     currentLanguage = 'en-US';
+  });
+
+  it('uses the current product logo for a persisted generated AionRS assistant snapshot', () => {
+    useSWRMock.mockImplementation((key: unknown) => {
+      if (key === 'assistants.list') return { data: [], isLoading: false };
+      if (key === 'extensions.acpAdapters') return { data: [], isLoading: false };
+      return { data: undefined, isLoading: false };
+    });
+    const conversation = makeConversation({});
+    conversation.type = 'aionrs';
+    conversation.assistant = {
+      id: 'generated-aionrs',
+      source: 'generated',
+      name: 'CSBU WorkMate',
+      avatar: '/api/assets/logos/brand/aion.svg',
+      backend: 'aionrs',
+    };
+
+    const { result } = renderHook(() => usePresetAssistantInfo(conversation));
+
+    expect(result.current.info?.logo).toBe(workMateLogo);
+    expect(result.current.info?.isEmoji).toBe(false);
   });
 
   it('prefers preset assistant avatar over custom runtime metadata when both identities exist', () => {

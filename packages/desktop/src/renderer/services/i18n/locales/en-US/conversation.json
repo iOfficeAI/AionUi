@@ -1,4 +1,7 @@
 {
+  "officePreview": {
+    "fileWatchUnavailable": "Live file watching is unavailable because the system may have run out of file-watch handles. Auto-preview of new Office files is disabled. Increase the system file-watch limit or close programs using many watchers."
+  },
   "welcome": {
     "title": "Hi, what's your plan for today?",
     "placeholder": "Send a message, upload files, open a folder, create a scheduled task, or type / for commands...",

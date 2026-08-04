@@ -23,6 +23,8 @@ const crypto = require('crypto');
 // "Device not configured" hdiutil errors (electron-builder#8415, actions/runner-images#12323).
 const DMG_RETRY_MAX = 3;
 const DMG_RETRY_DELAY_SEC = 30;
+const WINDOWS_UNPACK_RETRY_MAX = 1;
+const WINDOWS_UNPACK_RETRY_DELAY_MS = 3000;
 
 // Incremental build: hash of source files to detect changes
 const INCREMENTAL_CACHE_FILE = 'out/.build-hash';
@@ -56,48 +58,6 @@ function patchElectronBuilderNsisInstaller() {
     } catch (error) {
       console.warn(`Warning: app-builder-lib is not resolvable; skipping NSIS template patch: ${error.message}`);
       return;
-    }
-  }
-
-  if (process.env.RESOURCE_HACKER_PATH) {
-    const nsisTargetPath = path.join(appBuilderDir, 'out', 'targets', 'nsis', 'NsisTarget.js');
-    if (!fs.existsSync(nsisTargetPath)) {
-      throw new Error(`electron-builder NSIS target not found: ${nsisTargetPath}`);
-    }
-
-    const originalTarget = fs.readFileSync(nsisTargetPath, 'utf8');
-    const metadataFreeMarker = '// CSBU_WORKMATE_METADATA_FREE: VERSIONINFO commands intentionally omitted.';
-    let patchedTarget = originalTarget;
-
-    const installerVersionCommands = [
-      '            VIProductVersion: appInfo.getVersionInWeirdWindowsForm(),',
-      '            VIAddVersionKey: this.computeVersionKey(),',
-    ].join('\n');
-    if (patchedTarget.includes(installerVersionCommands)) {
-      patchedTarget = patchedTarget.replace(installerVersionCommands, `            ${metadataFreeMarker}`);
-    } else if (!patchedTarget.includes(metadataFreeMarker)) {
-      throw new Error(
-        'electron-builder NSIS installer VERSIONINFO template changed; update patchElectronBuilderNsisInstaller.'
-      );
-    }
-
-    const uninstallerVersionCommands = [
-      '            commandsUninstaller.VIProductVersion = appInfo.shortVersionWindows;',
-      '            commandsUninstaller.VIAddVersionKey = this.computeVersionKey(true);',
-    ].join('\n');
-    if (patchedTarget.includes(uninstallerVersionCommands)) {
-      patchedTarget = patchedTarget.replace(uninstallerVersionCommands, `            ${metadataFreeMarker}`);
-    } else if (
-      (patchedTarget.match(new RegExp(metadataFreeMarker.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g')) || []).length < 2
-    ) {
-      throw new Error(
-        'electron-builder NSIS uninstaller VERSIONINFO template changed; update patchElectronBuilderNsisInstaller.'
-      );
-    }
-
-    if (patchedTarget !== originalTarget) {
-      fs.writeFileSync(nsisTargetPath, patchedTarget);
-      console.log('Patched electron-builder NSIS VERSIONINFO commands.');
     }
   }
 
@@ -509,10 +469,6 @@ function killWindowsProcesses(imageNames) {
   }
 }
 
-function formatExecError(error) {
-  return [error?.message, error?.stdout?.toString?.(), error?.stderr?.toString?.()].filter(Boolean).join('\n').trim();
-}
-
 function escapeNsisDefineValue(value) {
   return String(value ?? '')
     .replace(/\\/g, '\\\\')
@@ -618,13 +574,43 @@ function buildWithDmgRetry(cmd, targetArch) {
   }
 }
 
+function buildWithTransientWindowsUnpackRetry(cmd, targetArch) {
+  try {
+    buildWithDmgRetry(cmd, targetArch);
+    return;
+  } catch (error) {
+    const outDir = path.resolve(__dirname, '../out');
+    const temporaryDir = path.join(outDir, 'win-unpacked.tmp');
+    const finalDir = path.join(outDir, 'win-unpacked');
+    const hasRenameRaceSignature =
+      process.platform === 'win32' && fs.existsSync(temporaryDir) && !fs.existsSync(finalDir);
+
+    if (!hasRenameRaceSignature) throw error;
+
+    console.log('\n🔄 Windows package extraction left win-unpacked.tmp without win-unpacked.');
+    console.log('   Retrying once after the transient file lock has cleared...');
+    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, WINDOWS_UNPACK_RETRY_DELAY_MS);
+    fs.rmSync(temporaryDir, { recursive: true, force: true });
+
+    for (let attempt = 1; attempt <= WINDOWS_UNPACK_RETRY_MAX; attempt++) {
+      try {
+        buildWithDmgRetry(cmd, targetArch);
+        console.log('✅ Windows packaging completed after transient unpack retry');
+        return;
+      } catch (retryError) {
+        if (attempt === WINDOWS_UNPACK_RETRY_MAX) throw retryError;
+      }
+    }
+  }
+}
+
 // Clean stale Windows packaging outputs from previous runs
 function cleanupWindowsPackOutput() {
   const outDir = path.resolve(__dirname, '../out');
   if (!fs.existsSync(outDir)) return;
 
   const removed = [];
-  const winUnpackedDirRe = /^win(?:-[a-z0-9]+)?-unpacked$/i;
+  const winUnpackedDirRe = /^win(?:-[a-z0-9]+)?-unpacked(?:\.tmp)?$/i;
   const winArtifactFileRe = /-win-[^.]+\.(?:exe|msi|zip|7z)$/i;
 
   for (const entry of fs.readdirSync(outDir, { withFileTypes: true })) {
@@ -735,7 +721,10 @@ if (archArgs.length > 1) {
 console.log(`🔨 Building for architecture: ${targetArch}`);
 console.log(`📋 Builder arguments: ${builderArgs || '(none)'}`);
 if (skipVite) console.log('⚡ --skip-vite: Will skip Vite compilation if output exists');
-if (skipNative) console.log('⚡ --skip-native: Will skip native module rebuilding');
+if (skipNative) {
+  process.env.SKIP_NATIVE_REBUILD = 'true';
+  console.log('⚡ --skip-native: Will skip native module rebuilding');
+}
 if (packOnly) console.log('⚡ --pack-only: Will skip electron-builder distributable creation');
 if (forceBuild) console.log('⚡ --force: Force full rebuild');
 
@@ -917,47 +906,9 @@ try {
 
   const builderCommand = `bunx electron-builder --config packages/desktop/electron-builder.yml ${builderArgs} ${archFlag} ${nsisInclude} ${publishArg}`;
   try {
-    buildWithDmgRetry(builderCommand, targetArch);
+    buildWithTransientWindowsUnpackRetry(builderCommand, targetArch);
   } catch (error) {
-    const winExePath = path.join(outDir, 'win-unpacked', 'CSBU WorkMate.exe');
-    const firstError = formatExecError(error);
-    const canRetryWithoutExecutableEdit =
-      process.platform === 'win32' && isWindowsBuild && process.env.CI !== 'true' && fs.existsSync(winExePath);
-
-    if (!canRetryWithoutExecutableEdit) {
-      throw error;
-    }
-
-    console.log('⚠️  Windows local build failed after CSBU WorkMate.exe was produced.');
-    if (firstError) {
-      console.log('   First failure summary:');
-      console.log(
-        firstError
-          .split(/\r?\n/)
-          .slice(0, 6)
-          .map((line) => `   ${line}`)
-          .join('\n')
-      );
-    }
-    console.log('   Retrying local build with win.signAndEditExecutable=false...');
-    console.log('   This fallback is intended for transient rcedit / file-lock failures on developer machines.');
-    killWindowsProcesses(['CSBU WorkMate.exe', 'electron.exe']);
-    cleanupWindowsPackOutput();
-
-    try {
-      buildWithDmgRetry(`${builderCommand} --config.win.signAndEditExecutable=false`, targetArch);
-    } catch (retryError) {
-      const retryFailure = formatExecError(retryError);
-      throw new Error(
-        [
-          'Windows local retry with win.signAndEditExecutable=false also failed.',
-          'First failure:',
-          firstError || String(error),
-          'Retry failure:',
-          retryFailure || String(retryError),
-        ].join('\n')
-      );
-    }
+    throw error;
   }
 
   console.log('✅ Build completed!');

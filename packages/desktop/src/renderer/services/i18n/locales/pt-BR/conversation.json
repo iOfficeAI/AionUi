@@ -1,4 +1,7 @@
 {
+  "officePreview": {
+    "fileWatchUnavailable": "O monitoramento de arquivos em tempo real não está disponível porque o sistema pode ter esgotado os identificadores de monitoramento. A visualização automática de novos arquivos do Office foi desativada. Aumente o limite do sistema ou feche programas que usam muitos monitores."
+  },
   "welcome": {
     "title": "Olá, qual é o seu plano para hoje?",
     "placeholder": "Envie uma mensagem, faça upload de arquivos, abra uma pasta, crie uma tarefa agendada ou digite / para comandos...",

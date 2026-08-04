@@ -181,10 +181,15 @@
     ${endif}
   ${else}
     !insertmacro CSBU_WORKMATE_LOG_EVENT "remove-final errors=0 instDir=$INSTDIR removeDirResult=$CsbuWorkMateRemoveDirResult removeResidueCount=$CsbuWorkMateRemoveResidueCount removeResidueRoot=$CsbuWorkMateRemoveResidueRoot atomicFailedPath=$CsbuWorkMateAtomicFailedPath atomicSucceeded=$CsbuWorkMateAtomicRemoveSucceeded"
+    ${ifNot} ${isUpdated}
+      !insertmacro CSBU_WORKMATE_DELETE_INSTALL_STATE
+      !insertmacro CSBU_WORKMATE_LOG_EVENT "event=install-state-delete reason=user-uninstall"
+    ${endif}
   ${endif}
 !macroend
 
 !macro customUnInit
+  !insertmacro CSBU_WORKMATE_STAGE_INSTALL_STATE_HELPER
   !insertmacro CSBU_WORKMATE_LOG_EVENT "uninit instDir=$INSTDIR"
 !macroend
 

@@ -31,11 +31,6 @@ on:
         description: 'Optional AionCore Manual Build workflow run id to bundle instead of the pinned release'
         type: string
         default: ''
-      strip_windows_exe_metadata:
-        description: 'Remove VERSIONINFO from Windows application, installer, and uninstaller executables'
-        type: boolean
-        default: true
-
 env:
   BUN_INSTALL_REGISTRY: 'https://registry.npmjs.org/'
   CSBU_WORKMATE_HUB_TAG: 'dist-ebc6a2b'
@@ -193,31 +188,6 @@ jobs:
         run: |
           echo "Setting Windows SDK version for ConPty support"
           echo "WindowsTargetPlatformVersion=10.0.19041.0" >> $env:GITHUB_ENV
-
-      - name: Setup Resource Hacker for metadata-free Windows executables
-        if: startsWith(matrix.platform, 'windows') && inputs.strip_windows_exe_metadata
-        shell: pwsh
-        run: |
-          $ErrorActionPreference = 'Stop'
-          $downloadUrl = 'https://angusj.com/resourcehacker/resource_hacker.zip'
-          $expectedSha256 = '52F81EE4778070D6AA72D8719A1A68FEA2F288005DEB02667542754F747776F8'
-          $toolDirectory = Join-Path $env:RUNNER_TEMP 'resource-hacker-5.2.8'
-          $archivePath = Join-Path $env:RUNNER_TEMP 'resource_hacker.zip'
-
-          Invoke-WebRequest -Uri $downloadUrl -OutFile $archivePath
-          $actualSha256 = (Get-FileHash -LiteralPath $archivePath -Algorithm SHA256).Hash
-          if ($actualSha256 -ne $expectedSha256) {
-            throw "Resource Hacker checksum mismatch: expected $expectedSha256, got $actualSha256"
-          }
-
-          Expand-Archive -LiteralPath $archivePath -DestinationPath $toolDirectory -Force
-          $resourceHackerPath = Join-Path $toolDirectory 'ResourceHacker.exe'
-          if (-not (Test-Path -LiteralPath $resourceHackerPath)) {
-            throw "Resource Hacker executable not found: $resourceHackerPath"
-          }
-
-          "RESOURCE_HACKER_PATH=$resourceHackerPath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          Write-Host "Resource Hacker 5.2.8 configured for pre-NSIS metadata removal"
 
       - name: Setup MSBuild (for Windows only)
         if: startsWith(matrix.platform, 'windows')
@@ -501,10 +471,9 @@ jobs:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Verify Windows EXE metadata was removed
+      - name: Verify Windows EXE metadata is present
         if: >-
           startsWith(matrix.platform, 'windows') &&
-          inputs.strip_windows_exe_metadata &&
           steps.windows-build.outputs.result == 'success'
         shell: pwsh
         run: |
@@ -525,27 +494,35 @@ jobs:
 
           foreach ($target in $targets) {
             $info = $target.VersionInfo
-            $values = @(
-              $info.CompanyName,
-              $info.FileDescription,
-              $info.FileVersion,
-              $info.InternalName,
-              $info.LegalCopyright,
-              $info.OriginalFilename,
-              $info.ProductName,
-              $info.ProductVersion
-            ) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
-
-            if ($values.Count -gt 0) {
-              throw "VERSIONINFO remains in $($target.FullName): $($values -join ', ')"
+            $requiredValues = @{
+              CompanyName = $info.CompanyName
+              FileVersion = $info.FileVersion
+              ProductName = $info.ProductName
+              ProductVersion = $info.ProductVersion
             }
-            Write-Host "Verified metadata-free executable: $($target.FullName)"
+            $missing = @($requiredValues.GetEnumerator() | Where-Object {
+              [string]::IsNullOrWhiteSpace([string]$_.Value)
+            } | ForEach-Object Key)
+            if ($missing.Count -gt 0) {
+              throw "Required VERSIONINFO is missing from $($target.FullName): $($missing -join ', ')"
+            }
+            if ($info.CompanyName -ne 'CSBU') {
+              throw "Unexpected CompanyName in $($target.FullName): $($info.CompanyName)"
+            }
+            $expectedProductName = if ($applicationExecutables.FullName -contains $target.FullName) {
+              '锐捷Codex'
+            } else {
+              'CSBU WorkMate'
+            }
+            if ($info.ProductName -ne $expectedProductName) {
+              throw "Unexpected ProductName in $($target.FullName): $($info.ProductName)"
+            }
+            Write-Host "Verified executable metadata: $($target.FullName)"
           }
 
       - name: Verify installed Windows uninstaller metadata
         if: >-
           startsWith(matrix.platform, 'windows') &&
-          inputs.strip_windows_exe_metadata &&
           steps.windows-build.outputs.result == 'success'
         shell: pwsh
         run: |
@@ -558,8 +535,14 @@ jobs:
           }
 
           $installDirectory = Join-Path $env:RUNNER_TEMP "csbu-workmate-metadata-smoke-${{ matrix.arch }}"
+          $installStatePath = Join-Path $env:LOCALAPPDATA 'CSBU WorkMate\installer-state.ini'
+          $installRegistryPath = 'HKCU:\Software\d1c5b48c-1cbe-5096-9ab3-71e40b612193'
+          $uninstallRegistryPath = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\d1c5b48c-1cbe-5096-9ab3-71e40b612193'
           if (Test-Path -LiteralPath $installDirectory) {
             Remove-Item -LiteralPath $installDirectory -Recurse -Force
+          }
+          if (Test-Path -LiteralPath $installStatePath) {
+            Remove-Item -LiteralPath $installStatePath -Force
           }
 
           try {
@@ -582,24 +565,41 @@ jobs:
             if (-not $uninstaller) {
               throw "Installed uninstaller executable was not found under $installDirectory"
             }
+            if (-not (Test-Path -LiteralPath $installStatePath)) {
+              throw "Registry-free installer state was not created: $installStatePath"
+            }
+            foreach ($registryPath in @($installRegistryPath, $uninstallRegistryPath)) {
+              if (Test-Path -LiteralPath $registryPath) {
+                throw "Windows uninstall registration remains after installation: $registryPath"
+              }
+            }
 
             foreach ($target in @((Get-Item -LiteralPath $installedApplication), $uninstaller)) {
               $info = $target.VersionInfo
-              $values = @(
-                $info.CompanyName,
-                $info.FileDescription,
-                $info.FileVersion,
-                $info.InternalName,
-                $info.LegalCopyright,
-                $info.OriginalFilename,
-                $info.ProductName,
-                $info.ProductVersion
-              ) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
-
-              if ($values.Count -gt 0) {
-                throw "Installed executable VERSIONINFO remains in $($target.FullName): $($values -join ', ')"
+              $requiredValues = @{
+                CompanyName = $info.CompanyName
+                FileVersion = $info.FileVersion
+                ProductName = $info.ProductName
+                ProductVersion = $info.ProductVersion
               }
-              Write-Host "Verified installed metadata-free executable: $($target.FullName)"
+              $missing = @($requiredValues.GetEnumerator() | Where-Object {
+                [string]::IsNullOrWhiteSpace([string]$_.Value)
+              } | ForEach-Object Key)
+              if ($missing.Count -gt 0) {
+                throw "Required installed VERSIONINFO is missing from $($target.FullName): $($missing -join ', ')"
+              }
+              if ($info.CompanyName -ne 'CSBU') {
+                throw "Unexpected installed CompanyName in $($target.FullName): $($info.CompanyName)"
+              }
+              $expectedProductName = if ($target.FullName -eq $installedApplication) {
+                '锐捷Codex'
+              } else {
+                'CSBU WorkMate'
+              }
+              if ($info.ProductName -ne $expectedProductName) {
+                throw "Unexpected installed ProductName in $($target.FullName): $($info.ProductName)"
+              }
+              Write-Host "Verified installed executable metadata: $($target.FullName)"
             }
 
             $uninstallProcess = Start-Process `
@@ -610,6 +610,14 @@ jobs:
               -NoNewWindow
             if ($uninstallProcess.ExitCode -ne 0) {
               throw "Silent uninstallation failed with exit code $($uninstallProcess.ExitCode)"
+            }
+            if (Test-Path -LiteralPath $installStatePath) {
+              throw "Installer state remains after uninstallation: $installStatePath"
+            }
+            foreach ($registryPath in @($installRegistryPath, $uninstallRegistryPath)) {
+              if (Test-Path -LiteralPath $registryPath) {
+                throw "Windows uninstall registration remains after uninstallation: $registryPath"
+              }
             }
           } finally {
             if (Test-Path -LiteralPath $installDirectory) {

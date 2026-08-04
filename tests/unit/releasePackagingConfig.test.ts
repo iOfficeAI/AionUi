@@ -22,6 +22,15 @@ function yamlBlock(content: string, key: string): string {
 }
 
 describe('release packaging configuration', () => {
+  it('keeps the native rebuild target aligned with the Electron runtime', () => {
+    const packageJson = JSON.parse(readProjectFile('package.json')) as {
+      devDependencies: { electron: string };
+      electronRebuild: { electronVersion: string };
+    };
+
+    expect(packageJson.electronRebuild.electronVersion).toBe(packageJson.devDependencies.electron);
+  });
+
   it('keeps mac zip artifacts enabled', () => {
     const config = readProjectFile('packages/desktop/electron-builder.yml');
     const macBlock = yamlBlock(config, 'mac');
@@ -51,31 +60,22 @@ describe('release packaging configuration', () => {
     expect(script).toMatch(/--mac\s+dmg\s+zip\s+--\$\{targetArch\}\s+--prepackaged/);
   });
 
-  it('enables metadata-free Windows executables for release builds', () => {
-    const releaseWorkflow = readProjectFile('.github/workflows/build-and-release.yml');
+  it('does not expose the crash-prone Windows metadata stripping option', () => {
+    const workflows = [
+      readProjectFile('.github/workflows/build-and-release.yml'),
+      readProjectFile('.github/workflows/build-manual.yml'),
+      readProjectFile('.github/workflows/_build-reusable.yml'),
+    ].join('\n');
 
-    expect(releaseWorkflow).toContain('strip_windows_exe_metadata: true');
+    expect(workflows).not.toContain('strip_windows_exe_metadata');
+    expect(workflows).not.toContain('RESOURCE_HACKER_PATH');
+    expect(workflows).not.toContain('Resource Hacker');
   });
 
-  it('passes manual version and Windows metadata options to the reusable build', () => {
+  it('passes the manual version to the reusable build', () => {
     const manualWorkflow = readProjectFile('.github/workflows/build-manual.yml');
 
     expect(manualWorkflow).toContain('version: ${{ inputs.version }}');
-    expect(manualWorkflow).toMatch(
-      /strip_windows_exe_metadata:\r?\n\s+description:.*\r?\n\s+required: false\r?\n\s+type: boolean\r?\n\s+default: true/
-    );
-    expect(manualWorkflow).toContain('strip_windows_exe_metadata: ${{ inputs.strip_windows_exe_metadata }}');
-  });
-
-  it('prepares the manual package version and pinned Resource Hacker tool', () => {
-    const reusableWorkflow = readProjectFile('.github/workflows/_build-reusable.yml');
-
-    expect(reusableWorkflow).toMatch(
-      /strip_windows_exe_metadata:\r?\n\s+description:.*\r?\n\s+type: boolean\r?\n\s+default: true/
-    );
-    expect(reusableWorkflow).toContain('Apply package version override');
-    expect(reusableWorkflow).toContain('Setup Resource Hacker for metadata-free Windows executables');
-    expect(reusableWorkflow).toContain('52F81EE4778070D6AA72D8719A1A68FEA2F288005DEB02667542754F747776F8');
   });
 
   it('keeps Sentry source map upload optional when release secrets are unavailable', () => {
@@ -122,31 +122,41 @@ describe('release packaging configuration', () => {
     expect(workflows.match(/bun run lint -- --quiet/g)).toHaveLength(3);
   });
 
-  it('removes application VERSIONINFO after electron-builder edits resources', () => {
-    const afterPack = readProjectFile('scripts/afterPack.js');
+  it('preserves application VERSIONINFO after electron-builder edits resources', () => {
     const afterSign = readProjectFile('scripts/afterSign.js');
-    const metadataScript = readProjectFile('resources/windows/support/strip-exe-version-info.ps1');
-
-    expect(afterPack).not.toContain('stripWindowsExecutableVersionInfo');
-    expect(afterSign).toContain('stripWindowsExecutableVersionInfo(appOutDir, context.packager)');
-    expect(metadataScript).toContain("'-mask', 'VERSIONINFO,,'");
-    expect(metadataScript).toContain('Test-PeCertificateTable');
-    expect(metadataScript).toContain('Authenticode certificate table');
-    expect(metadataScript).not.toContain('Get-AuthenticodeSignature');
-  });
-
-  it('prevents installer VERSIONINFO before NSIS assembles integrity data', () => {
-    const nsisInclude = readProjectFile('resources/windows/installer-update-verify.nsh');
     const buildScript = readProjectFile('scripts/build-with-builder.js');
 
-    expect(nsisInclude).toContain('!packhdr');
-    expect(nsisInclude).toContain('strip-exe-version-info.ps1');
+    expect(afterSign).not.toContain('stripWindowsExecutableVersionInfo');
+    expect(afterSign).not.toContain('RESOURCE_HACKER_PATH');
+    expect(buildScript).not.toContain('CSBU_WORKMATE_METADATA_FREE');
+  });
+
+  it('sets only the packaged application ProductName without changing its brand identity', () => {
+    const packageJson = JSON.parse(readProjectFile('package.json')) as {
+      author: { name: string };
+      productName: string;
+    };
+    const afterPack = readProjectFile('scripts/afterPack.js');
+    const afterSign = readProjectFile('scripts/afterSign.js');
+    const reusableWorkflow = readProjectFile('.github/workflows/_build-reusable.yml');
+
+    expect(packageJson.author.name).toBe('CSBU');
+    expect(packageJson.productName).toBe('CSBU WorkMate');
+    expect(afterPack).toContain("const WINDOWS_PRODUCT_NAME = '锐捷Codex'");
+    expect(afterPack).toContain('versionInfo.setStringValues(language, { ProductName: productName })');
+    expect(afterPack).not.toContain('await setWindowsProductName(executablePath)');
+    expect(afterSign).toContain('await setWindowsProductName(executablePath)');
+    expect(reusableWorkflow).toContain("'锐捷Codex'");
+    expect(reusableWorkflow).toContain("'CSBU WorkMate'");
+    expect(reusableWorkflow).toContain('if ($info.ProductName -ne $expectedProductName)');
+  });
+
+  it('preserves installer VERSIONINFO while keeping NSIS integrity checks enabled', () => {
+    const nsisInclude = readProjectFile('resources/windows/installer-update-verify.nsh');
+
+    expect(nsisInclude).not.toContain('!packhdr');
+    expect(nsisInclude).not.toContain('strip-exe-version-info.ps1');
     expect(nsisInclude).not.toMatch(/CRCCheck\s+off/i);
-    expect(buildScript).toContain('VIProductVersion: appInfo.getVersionInWeirdWindowsForm()');
-    expect(buildScript).toContain('VIAddVersionKey: this.computeVersionKey()');
-    expect(buildScript).toContain('commandsUninstaller.VIProductVersion = appInfo.shortVersionWindows');
-    expect(buildScript).toContain('commandsUninstaller.VIAddVersionKey = this.computeVersionKey(true)');
-    expect(buildScript).toContain('Patched electron-builder NSIS VERSIONINFO commands.');
   });
 
   it('installs and verifies the generated Windows uninstaller', () => {
@@ -154,8 +164,19 @@ describe('release packaging configuration', () => {
 
     expect(reusableWorkflow).toContain('Verify installed Windows uninstaller metadata');
     expect(reusableWorkflow).toContain("-Filter 'Uninstall*.exe'");
-    expect(reusableWorkflow).toContain('Installed executable VERSIONINFO remains');
+    expect(reusableWorkflow).toContain('Required installed VERSIONINFO is missing');
     expect(reusableWorkflow).toContain("-ArgumentList '/S'");
+  });
+
+  it('keeps successful current-user installs out of the Windows uninstall registry', () => {
+    const config = readProjectFile('packages/desktop/electron-builder.yml');
+    const reusableWorkflow = readProjectFile('.github/workflows/_build-reusable.yml');
+    const installerState = readProjectFile('resources/windows/support/installer-state.ps1');
+
+    expect(config).toContain('allowElevation: false');
+    expect(installerState).toContain("'installer-state.ini'");
+    expect(reusableWorkflow).toContain('Windows uninstall registration remains after installation');
+    expect(reusableWorkflow).toContain('Registry-free installer state was not created');
   });
 
   it('runs push checks for every branch and cancels stale branch runs', () => {

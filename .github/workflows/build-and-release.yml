@@ -90,7 +90,6 @@ jobs:
     with:
       ref: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || '' }}
       skip_code_quality: true
-      strip_windows_exe_metadata: true
       matrix: >-
         {"include":[
           {"platform":"macos-arm64","os":"macos-14","command":"node scripts/build-with-builder.js arm64 --mac --arm64","artifact-name":"macos-build-arm64","arch":"arm64"},

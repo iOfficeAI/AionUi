@@ -1,5 +1,7 @@
 import type { TChatConversation } from '@/common/config/storage';
+import { usesWorkMateBrand } from '@/common/types/agent/assistantTypes';
 import type { PresetAssistantInfo } from '@/renderer/hooks/agent/usePresetAssistantInfo';
+import workMateLogo from '@/renderer/assets/logos/brand/app.png';
 import { resolveAssistantAvatar } from '@/renderer/utils/model/assistantAvatar';
 import { resolveAgentLogo } from '@/renderer/utils/model/agentLogo';
 import type { AgentLogoMap } from '@/renderer/utils/model/agentLogo';
@@ -66,6 +68,14 @@ export function resolveConversationLeadingMark(
   assistantInfo: PresetAssistantInfo | undefined,
   logos: AgentLogoMap
 ): ConversationLeadingMark {
+  if (usesWorkMateBrand(conversation.assistant)) {
+    return {
+      kind: 'image',
+      value: workMateLogo,
+      label: conversation.assistant?.name || conversation.assistant?.id || 'CSBU WorkMate',
+    };
+  }
+
   if (assistantInfo) {
     if (assistantInfo.isFallback) {
       return {

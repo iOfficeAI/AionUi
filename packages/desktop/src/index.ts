@@ -7,9 +7,15 @@
 // configureChromium sets app name (dev isolation) and Chromium flags — must run before
 // ANY module that calls app.getPath('userData'), because Electron caches the path on first call.
 import './process/utils/configureChromium';
-import { installGpuCrashHandler } from './process/utils/gpuRecovery';
+import { getGpuStatus, installGpuCrashHandler } from './process/utils/gpuRecovery';
 import { DESKTOP_PET_FEATURE_ENABLED } from './common/config/constants';
-import { captureBackendStartupFailure, initSentry, scheduleStartupLogReport, setSentryDeviceId } from './sentry';
+import {
+  captureBackendStartupFailure,
+  capturePreviousNativeCrash,
+  initSentry,
+  scheduleStartupLogReport,
+  setSentryDeviceId,
+} from './sentry';
 
 initSentry();
 
@@ -25,7 +31,13 @@ import { startBackendOrExit } from './process/startup/backendStartup';
 import { assertStartupArchitectureCompatible } from './process/startup/architectureCompatibility';
 import { classifyBackendStartupFailure } from './process/startup/backendStartupFailure';
 import { installQuitCleanup } from './process/startup/quitCleanup';
-import { installMainProcessDiagnostics, startLocalCrashReporter } from './process/startup/mainProcessDiagnostics';
+import {
+  configureWindowsNotificationIdentity,
+  installMainProcessDiagnostics,
+  isSafeModeLaunch,
+  startLocalCrashReporter,
+} from './process/startup/mainProcessDiagnostics';
+import { CrashRecoveryService, setCrashRecoveryService } from './process/services/CrashRecoveryService';
 import { shouldRegisterBackendStartup } from './process/startup/singleInstanceGating';
 import { ProcessConfig } from './process/utils/initStorage';
 import type { BackendStartupFailureInfo } from './common/types/platform/electron';
@@ -77,6 +89,11 @@ import {
 import { readCloseToTraySetting } from './process/utils/closeToTraySetting';
 // @ts-expect-error - electron-squirrel-startup doesn't have types
 import electronSquirrelStartup from 'electron-squirrel-startup';
+
+configureWindowsNotificationIdentity({
+  platform: process.platform,
+  setAppUserModelId: (id) => app.setAppUserModelId(id),
+});
 
 // ============ Single Instance Lock ============
 // Acquire lock early so the second instance quits before doing unnecessary work.
@@ -199,6 +216,46 @@ const isWebUIMode = hasSwitch('webui');
 const isRemoteMode = hasSwitch('remote');
 const isResetPasswordMode = hasCommand('--resetpass');
 const isVersionMode = hasCommand('--version') || hasCommand('-v');
+const safeMode = isSafeModeLaunch();
+
+if (gotTheLock && !isWebUIMode && !isResetPasswordMode && !isVersionMode) {
+  const crashRecoveryService = new CrashRecoveryService({
+    appVersion: app.getVersion(),
+    arch: process.arch,
+    crashDumpsPath: app.getPath('crashDumps'),
+    electronVersion: process.versions.electron,
+    pid: process.pid,
+    platform: process.platform,
+    safeMode,
+    userDataPath: app.getPath('userData'),
+  });
+  setCrashRecoveryService(crashRecoveryService);
+  process.on('exit', () => crashRecoveryService.markCleanExit());
+
+  const recoveryState = crashRecoveryService.getRecoveryState();
+  if (recoveryState.detected) {
+    console.warn('[CrashRecovery] Previous native crash detected', {
+      occurredAt: recoveryState.occurredAt,
+      previousAppVersion: recoveryState.previousAppVersion,
+      reportId: recoveryState.reportId,
+    });
+    capturePreviousNativeCrash({ previousAppVersion: recoveryState.previousAppVersion, safeMode });
+  }
+}
+
+crashReporter.addExtraParameter('safe_mode', String(safeMode));
+crashReporter.addExtraParameter('startup_phase', 'initializing');
+const gpuStatus = getGpuStatus();
+const gpuMode = safeMode
+  ? 'disabled-safe-mode'
+  : (gpuStatus.userOverride ?? (gpuStatus.autoDisabled ? 'disabled-auto-recovery' : 'automatic'));
+crashReporter.addExtraParameter('gpu_mode', gpuMode);
+crashReporter.addExtraParameter(
+  'desktop_pet_state',
+  safeMode ? 'disabled-safe-mode' : DESKTOP_PET_FEATURE_ENABLED ? 'pending' : 'feature-disabled'
+);
+crashReporter.addExtraParameter('window_state', 'not-created');
+crashReporter.addExtraParameter('session_phase', 'startup');
 
 // Flag to distinguish intentional quit from unexpected exit in WebUI mode
 let isExplicitQuit = false;
@@ -868,9 +925,19 @@ const handleAppReady = async (): Promise<void> => {
     createWindow({ showOnReady: showMainWindowOnReady });
     appReadyDone = true;
     mark('createWindow');
+    crashReporter.addExtraParameter('startup_phase', 'ready');
+    crashReporter.addExtraParameter('window_state', 'created');
+    crashReporter.addExtraParameter('session_phase', 'running');
+
+    if (isE2ETestMode && process.env.CSBU_WORKMATE_E2E_NATIVE_CRASH === '1') {
+      crashReporter.addExtraParameter('session_phase', 'e2e-native-crash');
+      // Leave enough time for Playwright to finish its Electron connection
+      // handshake before intentionally terminating the main process.
+      setTimeout(() => process.crash(), 3000);
+    }
 
     // Initialize desktop pet (delayed to not block main window)
-    if (DESKTOP_PET_FEATURE_ENABLED) {
+    if (DESKTOP_PET_FEATURE_ENABLED && !safeMode) {
       setTimeout(() => {
         void (async () => {
           try {
@@ -882,8 +949,12 @@ const handleAppReady = async (): Promise<void> => {
               const { createPetWindow, setPetConfirmEnabled } = await import('./process/pet/petManager');
               setPetConfirmEnabled(confirmEnabled);
               createPetWindow();
+              crashReporter.addExtraParameter('desktop_pet_state', 'initialized');
+            } else {
+              crashReporter.addExtraParameter('desktop_pet_state', 'disabled-by-user');
             }
           } catch (error) {
+            crashReporter.addExtraParameter('desktop_pet_state', 'initialization-failed');
             console.error('[Pet] Failed to initialize:', error);
           }
         })();

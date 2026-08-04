@@ -158,5 +158,15 @@
     "second_short": "sn"
   },
   "selectedCount": "{{count}} seçili",
-  "selectedSkills": "Seçili beceriler"
+  "selectedSkills": "Seçili beceriler",
+  "crashRecovery": {
+    "title": "Önceki bir çökme algılandı",
+    "description": "Uygulama daha önce yerel bir işlem çökmesi nedeniyle kapandı. Bir kez güvenli modda yeniden başlatabilir veya normal şekilde devam edebilirsiniz. Güvenli mod yalnızca donanım hızlandırmayı ve masaüstü evcil hayvanını devre dışı bırakır.",
+    "openReports": "Çökme klasörünü aç",
+    "continueNormally": "Normal devam et",
+    "restartSafeMode": "Güvenli modda yeniden başlat",
+    "openReportsFailed": "Çökme klasörü açılamadı",
+    "actionFailed": "Kurtarma işlemi başarısız oldu. Lütfen tekrar deneyin.",
+    "restartFailed": "Geliştirme modunda otomatik yeniden başlatma kullanılamaz. --safe-mode ile elle başlatın."
+  }
 }

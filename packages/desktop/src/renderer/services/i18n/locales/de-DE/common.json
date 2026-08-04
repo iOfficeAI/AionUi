@@ -158,5 +158,15 @@
   },
   "goBack": "Zurück",
   "selectedCount": "{{count}} ausgewählt",
-  "selectedSkills": "Ausgewählte Skills"
+  "selectedSkills": "Ausgewählte Skills",
+  "crashRecovery": {
+    "title": "Ein vorheriger Absturz wurde erkannt",
+    "description": "Die App wurde zuvor durch den Absturz eines nativen Prozesses beendet. Sie können einmalig im abgesicherten Modus neu starten oder normal fortfahren. Der abgesicherte Modus deaktiviert nur Hardwarebeschleunigung und Desktop-Pet.",
+    "openReports": "Absturzordner öffnen",
+    "continueNormally": "Normal fortfahren",
+    "restartSafeMode": "Abgesichert neu starten",
+    "openReportsFailed": "Der Absturzordner konnte nicht geöffnet werden",
+    "actionFailed": "Die Wiederherstellungsaktion ist fehlgeschlagen. Bitte erneut versuchen.",
+    "restartFailed": "Im Entwicklungsmodus ist kein automatischer Neustart möglich. Bitte manuell mit --safe-mode starten."
+  }
 }

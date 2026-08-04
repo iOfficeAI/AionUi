@@ -1,4 +1,7 @@
 {
+  "officePreview": {
+    "fileWatchUnavailable": "Sistemdeki dosya izleme tanıtıcıları tükenmiş olabileceğinden canlı dosya izleme kullanılamıyor. Yeni Office dosyalarının otomatik önizlemesi devre dışı bırakıldı. Sistem sınırını artırın veya çok sayıda izleyici kullanan programları kapatın."
+  },
   "welcome": {
     "title": "Merhaba, bugünkü planın nedir?",
     "placeholder": "Mesaj gönder, dosya yükle, klasör aç veya komutlar için / yaz...",

@@ -11,6 +11,33 @@ const {
 const { verifyBundledAioncoreResources } = require('../packages/shared-scripts/src/verify-bundled-aioncore-resources');
 const { verifyBundledLarkCliResources } = require('../packages/shared-scripts/src/prepare-lark-cli');
 
+const WINDOWS_PRODUCT_NAME = '锐捷Codex';
+
+async function setWindowsProductName(executablePath, productName = WINDOWS_PRODUCT_NAME) {
+  const { NtExecutable, NtExecutableResource, Resource } = require('resedit');
+  const executable = NtExecutable.from(await fs.promises.readFile(executablePath));
+  const resources = NtExecutableResource.from(executable);
+  const versionInfoEntries = Resource.VersionInfo.fromEntries(resources.entries);
+
+  if (versionInfoEntries.length === 0) {
+    throw new Error(`Cannot set ProductName because VERSIONINFO is missing: ${executablePath}`);
+  }
+
+  for (const versionInfo of versionInfoEntries) {
+    const languages = versionInfo.getAllLanguagesForStringValues();
+    if (languages.length === 0) {
+      throw new Error(`Cannot set ProductName because VERSIONINFO has no string table: ${executablePath}`);
+    }
+    for (const language of languages) {
+      versionInfo.setStringValues(language, { ProductName: productName });
+    }
+    versionInfo.outputToResourceEntries(resources.entries);
+  }
+
+  resources.outputResource(executable);
+  await fs.promises.writeFile(executablePath, Buffer.from(executable.generate()));
+}
+
 /**
  * afterPack hook for electron-builder
  * Rebuilds native modules for cross-architecture builds
@@ -61,6 +88,7 @@ module.exports = async function afterPack(context) {
 
   const isCrossCompile = buildArch !== targetArch;
   const forceRebuild = process.env.FORCE_NATIVE_REBUILD === 'true';
+  const skipNativeRebuild = process.env.SKIP_NATIVE_REBUILD === 'true';
   const needsSameArchRebuild = electronPlatformName === 'win32'; // 只有 Windows 需要同架构重建以匹配 Electron ABI | Only Windows needs same-arch rebuild to match Electron ABI
   // Linux 使用预编译二进制，避免 GLIBC 版本依赖 | Linux uses prebuilt binaries which are GLIBC-independent
 
@@ -89,6 +117,11 @@ module.exports = async function afterPack(context) {
     verifyBundledResources(resourcesDir, electronPlatformName, targetArch);
   } else {
     throw new Error(`resources directory not found: ${resourcesDir}`);
+  }
+
+  if (skipNativeRebuild) {
+    console.log('   ⚡ Native module rebuilding skipped by --skip-native\n');
+    return;
   }
 
   if (!isCrossCompile && !needsSameArchRebuild && !forceRebuild) {
@@ -238,3 +271,6 @@ module.exports = async function afterPack(context) {
 
   console.log(`✅ All native modules rebuilt successfully for ${targetArch}\n`);
 };
+
+module.exports.setWindowsProductName = setWindowsProductName;
+module.exports.WINDOWS_PRODUCT_NAME = WINDOWS_PRODUCT_NAME;

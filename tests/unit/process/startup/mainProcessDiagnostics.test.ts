@@ -1,7 +1,35 @@
 import { describe, expect, it, vi } from 'vitest';
-import { installMainProcessDiagnostics, startLocalCrashReporter } from '@process/startup/mainProcessDiagnostics';
+import {
+  configureWindowsNotificationIdentity,
+  installMainProcessDiagnostics,
+  isSafeModeLaunch,
+  startLocalCrashReporter,
+  WINDOWS_APP_USER_MODEL_ID,
+} from '@process/startup/mainProcessDiagnostics';
 
 type Listener = (...args: never[]) => void;
+
+describe('main process launch configuration', () => {
+  it('sets an explicit Windows application identity before notifications are created', () => {
+    const setAppUserModelId = vi.fn();
+
+    configureWindowsNotificationIdentity({ platform: 'win32', setAppUserModelId });
+
+    expect(setAppUserModelId).toHaveBeenCalledWith(WINDOWS_APP_USER_MODEL_ID);
+  });
+
+  it('does not set a Windows application identity on macOS or Linux', () => {
+    const setAppUserModelId = vi.fn();
+    configureWindowsNotificationIdentity({ platform: 'darwin', setAppUserModelId });
+    configureWindowsNotificationIdentity({ platform: 'linux', setAppUserModelId });
+    expect(setAppUserModelId).not.toHaveBeenCalled();
+  });
+
+  it('recognizes safe mode as a one-time launch switch', () => {
+    expect(isSafeModeLaunch(['app', '--safe-mode'])).toBe(true);
+    expect(isSafeModeLaunch(['app'])).toBe(false);
+  });
+});
 
 describe('installMainProcessDiagnostics', () => {
   function setup() {

@@ -25,7 +25,7 @@ import { getLastAssistantText } from '@/renderer/utils/chat/getLastAssistantText
 import { emitter, type ReplyQuote, useAddEventListener } from '@/renderer/utils/emitter';
 import { mergeFileSelectionItems, type FileSelectionItem } from '@/renderer/utils/file/fileSelection';
 import type { FileOrFolderItem } from '@/renderer/utils/file/fileTypes';
-import { filterWorkspaceMentionItems } from '@/renderer/utils/file/workspaceMentions';
+import { filterWorkspaceMentionItems, workspaceMentionItemFromListing } from '@/renderer/utils/file/workspaceMentions';
 import { useProjectMentionSearch } from '@/renderer/pages/conversation/explorer/search/useProjectMentionSearch';
 import { peLabeledPath } from '@/renderer/pages/conversation/explorer/search/searchModel';
 import { copyText } from '@/renderer/utils/ui/clipboard';
@@ -759,12 +759,7 @@ const SendBox: React.FC<{
         if (cancelled) {
           return;
         }
-        const files = result.map((item) => ({
-          path: item.fullPath,
-          name: item.name,
-          isFile: true,
-          relativePath: item.relativePath || undefined,
-        }));
+        const files = result.map(workspaceMentionItemFromListing);
         setWorkspaceMentionItems(files);
       })
       .catch((error) => {

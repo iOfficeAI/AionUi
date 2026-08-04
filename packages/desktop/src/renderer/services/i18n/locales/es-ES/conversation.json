@@ -1,4 +1,7 @@
 {
+  "officePreview": {
+    "fileWatchUnavailable": "La supervisión de archivos en tiempo real no está disponible porque el sistema puede haberse quedado sin identificadores de supervisión. La vista previa automática de nuevos archivos de Office está desactivada. Aumenta el límite del sistema o cierra programas que usen muchos supervisores."
+  },
   "welcome": {
     "title": "Hola, ¿qué tienes planeado hoy?",
     "placeholder": "Envía un mensaje, sube archivos, abre una carpeta, crea una tarea programada o escribe / para ver los comandos...",

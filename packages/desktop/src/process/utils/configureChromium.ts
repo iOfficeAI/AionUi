@@ -11,6 +11,7 @@ import * as path from 'path';
 import os from 'os';
 import { getDevAppName } from '@/common/platform';
 import { applyGpuRecoveryFlags } from './gpuRecovery';
+import { isSafeModeLaunch } from '../startup/mainProcessDiagnostics';
 
 // ============ E2E test isolation ============
 // When running under E2E with an explicit sandbox dir, redirect userData there
@@ -24,6 +25,7 @@ const e2eUserDataDir =
 if (e2eUserDataDir && e2eUserDataDir.trim() !== '') {
   fs.mkdirSync(e2eUserDataDir, { recursive: true });
   app.setPath('userData', e2eUserDataDir);
+  app.setPath('crashDumps', path.join(e2eUserDataDir, 'Crashpad'));
 }
 
 // ============ Environment Separation ============
@@ -42,7 +44,7 @@ if (!app.isPackaged && !e2eUserDataDir) {
 }
 
 // app.disableHardwareAcceleration() must run before app is ready.
-applyGpuRecoveryFlags();
+applyGpuRecoveryFlags(isSafeModeLaunch());
 
 // Configure Chromium command-line flags for WebUI and CLI modes
 // 为 WebUI 和 CLI 模式配置 Chromium 命令行参数

@@ -8,11 +8,11 @@ import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { TChatConversation } from '@/common/config/storage';
 import { ipcBridge } from '@/common';
-import { assistantRuntimeKey, type Assistant } from '@/common/types/agent/assistantTypes';
+import { assistantRuntimeKey, type Assistant, usesWorkMateBrand } from '@/common/types/agent/assistantTypes';
 import { resolveLocaleKey } from '@/common/utils';
-import type { AgentLogoMap } from '@/renderer/utils/model/agentLogo';
 import { resolveAgentLogo, useAgentLogos } from '@/renderer/utils/model/agentLogo';
 import { isLikelyLocalFilePath, resolveAssistantAvatar } from '@/renderer/utils/model/assistantAvatar';
+import workMateLogo from '@/renderer/assets/logos/brand/app.png';
 import useSWR from 'swr';
 export interface PresetAssistantInfo {
   name: string;
@@ -214,8 +214,9 @@ function hasMatchingEnabledSkills(candidateSkills: string[] | undefined, enabled
 function buildPresetInfoFromAssistant(assistant: Assistant, locale: string): PresetAssistantInfo {
   const localeKey = resolveLocaleKey(locale);
   const name = assistant.name_i18n?.[localeKey] || assistant.name_i18n?.[locale] || assistant.name || assistant.id;
-  const avatar = typeof assistant.avatar === 'string' ? assistant.avatar : '';
-  const normalized = normalizeAvatar(avatar);
+  const normalized = usesWorkMateBrand(assistant)
+    ? { logo: workMateLogo, isEmoji: false }
+    : normalizeAvatar(typeof assistant.avatar === 'string' ? assistant.avatar : '');
   return {
     name,
     logo: normalized.logo,
@@ -229,7 +230,9 @@ function buildPresetInfoFromAssistant(assistant: Assistant, locale: string): Pre
 function buildPresetInfoFromConversationAssistant(
   assistant: NonNullable<TChatConversation['assistant']>
 ): PresetAssistantInfo {
-  const normalized = normalizeAvatar(assistant.avatar);
+  const normalized = usesWorkMateBrand(assistant)
+    ? { logo: workMateLogo, isEmoji: false }
+    : normalizeAvatar(assistant.avatar);
   return {
     name: assistant.name,
     logo: normalized.logo,

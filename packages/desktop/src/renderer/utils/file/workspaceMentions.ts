@@ -1,6 +1,17 @@
+import type { IWorkspaceFlatFile } from '@/common/adapter/ipcBridge';
+import { localFileRef } from '@/common/types/chatFile';
 import type { FileOrFolderItem } from '@/renderer/utils/file/fileTypes';
 
 const DEFAULT_MENTION_RESULT_LIMIT = 8;
+
+/** Map a workspace listing entry to a local file reference for chat. */
+export const workspaceMentionItemFromListing = (item: IWorkspaceFlatFile): FileOrFolderItem => ({
+  path: item.fullPath,
+  name: item.name,
+  isFile: true,
+  relativePath: item.relativePath || undefined,
+  chatRef: localFileRef(item.fullPath),
+});
 
 function normalizeSearchValue(value: string | null | undefined): string {
   return typeof value === 'string' ? value.trim().toLowerCase() : '';

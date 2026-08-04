@@ -94,6 +94,10 @@ type AutoUpdaterCacheAccess = {
   constructor?: { name?: string };
 };
 
+type WindowsNsisUpdaterAccess = {
+  installDirectory?: string;
+};
+
 /** Events emitted by AutoUpdaterService */
 export interface AutoUpdaterEvents {
   'update-status': (status: AutoUpdateStatus) => void;
@@ -130,6 +134,12 @@ class AutoUpdaterService extends EventEmitter {
     // Disable auto-download for manual control
     autoUpdater.autoDownload = false;
     autoUpdater.autoInstallOnAppQuit = true;
+    if (process.platform === 'win32' && app.isPackaged) {
+      (autoUpdater as WindowsNsisUpdaterAccess).installDirectory = path.dirname(process.execPath);
+      log.info('[auto-update] Windows install directory pinned for registry-free updates', {
+        installDirectory: path.dirname(process.execPath),
+      });
+    }
     this.configureDevAutoUpdateDebug();
     const cdnFeedOptions = buildCdnFeedOptions();
 

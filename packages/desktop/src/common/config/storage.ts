@@ -195,7 +195,7 @@ export interface TokenUsageData {
 export type TChatConversation =
   | Omit<
       IChatConversation<
-        'acp',
+        'acp' | 'antigravity',
         {
           workspace?: string;
           backend: string;

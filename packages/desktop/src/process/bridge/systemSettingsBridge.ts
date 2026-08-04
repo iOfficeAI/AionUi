@@ -16,6 +16,7 @@ import { ipcBridge } from '@/common';
 import { ProcessConfig } from '@process/utils/initStorage';
 import { changeLanguage } from '@process/services/i18n';
 import type { PetSize } from '@process/pet/petTypes';
+import { isSafeModeLaunch } from '@process/startup/mainProcessDiagnostics';
 import { createOrUpdateTray, destroyTray, setCloseToTrayEnabled } from '@process/utils/tray';
 import { readCloseToTraySetting, writeCloseToTraySetting } from '@process/utils/closeToTraySetting';
 
@@ -59,11 +60,16 @@ export function initSystemSettingsBridge(): void {
 
   // Desktop pet settings
   ipcBridge.systemSettings.getPetEnabled.provider(async () => {
+    if (isSafeModeLaunch()) return false;
     const value = await ProcessConfig.get('pet.enabled');
     return value ?? false;
   });
 
   ipcBridge.systemSettings.setPetEnabled.provider(async ({ enabled }) => {
+    if (isSafeModeLaunch() && enabled) {
+      console.warn('[SystemSettings] Desktop pet remains disabled in safe mode');
+      return;
+    }
     const { createPetWindow, destroyPetWindow, isPetSupported } = await import('@process/pet/petManager');
     if (enabled && !isPetSupported()) {
       console.warn('[SystemSettings] Desktop pet is not supported in headless mode');

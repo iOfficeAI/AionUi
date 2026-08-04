@@ -638,7 +638,7 @@ export const useAcpMessage = (
         setHasHydratedRunningState(true);
 
         // Restore persisted context usage data
-        if (res.type === 'acp' && res.extra?.last_token_usage) {
+        if ((res.type === 'acp' || res.type === 'antigravity') && res.extra?.last_token_usage) {
           const { last_token_usage, last_context_limit } = res.extra;
           if (last_token_usage.total_tokens > 0) {
             setTokenUsage(last_token_usage);

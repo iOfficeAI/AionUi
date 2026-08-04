@@ -5,8 +5,8 @@
  */
 
 import type { TChatConversation } from '@/common/config/storage';
-import type { PresetAssistantInfo } from '@/renderer/hooks/agent/usePresetAssistantInfo';
 import { resolveConversationLeadingMark } from '@/renderer/pages/conversation/utils/conversationAssistantIdentity';
+import workMateLogo from '@/renderer/assets/logos/brand/app.png';
 import { describe, expect, it } from 'vitest';
 
 const TEST_LOGOS = {
@@ -15,6 +15,57 @@ const TEST_LOGOS = {
 };
 
 describe('resolveConversationLeadingMark', () => {
+  it('replaces a generated AionRS assistant legacy avatar with the current product brand', () => {
+    const result = resolveConversationLeadingMark(
+      makeConversation({
+        type: 'aionrs',
+        assistant: {
+          id: 'generated-aionrs',
+          source: 'generated',
+          name: 'CSBU WorkMate',
+          avatar: '/api/assets/logos/brand/aion.svg',
+          backend: 'aionrs',
+        },
+      }),
+      {
+        name: 'CSBU WorkMate',
+        logo: '/api/assets/logos/brand/aion.svg',
+        isEmoji: false,
+        backend: 'aionrs',
+        assistantId: 'generated-aionrs',
+      },
+      TEST_LOGOS
+    );
+
+    expect(result).toEqual({ kind: 'image', value: workMateLogo, label: 'CSBU WorkMate' });
+  });
+
+  it('keeps a user-created AionRS assistant custom avatar', () => {
+    const customAvatar = '/api/assistants/custom/avatar';
+    const result = resolveConversationLeadingMark(
+      makeConversation({
+        type: 'aionrs',
+        assistant: {
+          id: 'custom-aionrs',
+          source: 'user',
+          name: 'Custom Assistant',
+          avatar: customAvatar,
+          backend: 'aionrs',
+        },
+      }),
+      {
+        name: 'Custom Assistant',
+        logo: customAvatar,
+        isEmoji: false,
+        backend: 'aionrs',
+        assistantId: 'custom-aionrs',
+      },
+      TEST_LOGOS
+    );
+
+    expect(result).toEqual({ kind: 'image', value: customAvatar, label: 'Custom Assistant' });
+  });
+
   it('prefers the assistant image avatar when assistant info exists', () => {
     const result = resolveConversationLeadingMark(
       makeConversation(),

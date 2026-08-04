@@ -158,5 +158,15 @@
     "second_short": "s"
   },
   "selectedCount": "{{count}} selecionado(s)",
-  "selectedSkills": "Habilidades selecionadas"
+  "selectedSkills": "Habilidades selecionadas",
+  "crashRecovery": {
+    "title": "Uma falha anterior foi detectada",
+    "description": "O aplicativo foi encerrado anteriormente devido à falha de um processo nativo. Você pode reiniciar uma vez no modo de segurança ou continuar normalmente. O modo de segurança desativa apenas a aceleração de hardware e o mascote da área de trabalho.",
+    "openReports": "Abrir pasta de falhas",
+    "continueNormally": "Continuar normalmente",
+    "restartSafeMode": "Reiniciar no modo de segurança",
+    "openReportsFailed": "Não foi possível abrir a pasta de falhas",
+    "actionFailed": "A ação de recuperação falhou. Tente novamente.",
+    "restartFailed": "A reinicialização automática não está disponível no modo de desenvolvimento. Inicie manualmente com --safe-mode."
+  }
 }

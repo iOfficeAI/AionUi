@@ -15,6 +15,7 @@ import * as path from 'path';
 import { ipcBridge } from '@/common';
 import i18n from '@process/services/i18n';
 import { CLOSE_TO_TRAY_DEFAULT_ENABLED, DESKTOP_PET_FEATURE_ENABLED } from '@/common/config/constants';
+import { isSafeModeLaunch } from '@process/startup/mainProcessDiagnostics';
 
 let tray: TrayInstance | null = null;
 let closeToTrayEnabled = CLOSE_TO_TRAY_DEFAULT_ENABLED;
@@ -165,7 +166,7 @@ const buildTrayContextMenu = async (): Promise<Electron.Menu> => {
     },
   });
 
-  if (DESKTOP_PET_FEATURE_ENABLED) {
+  if (DESKTOP_PET_FEATURE_ENABLED && !isSafeModeLaunch()) {
     template.push({ type: 'separator' });
     template.push({
       label: `🐾 ${i18n.t('pet.desktopPet')}`,

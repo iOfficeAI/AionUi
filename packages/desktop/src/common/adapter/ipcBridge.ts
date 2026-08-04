@@ -630,6 +630,14 @@ export interface IAppRestartResult {
   reason?: 'dev-mode';
 }
 
+export type CrashRecoveryState = {
+  detected: boolean;
+  occurredAt?: number;
+  previousAppVersion?: string;
+  reportId?: string;
+  safeMode: boolean;
+};
+
 export type IRendererLogLevel = 'debug' | 'info' | 'warn' | 'error';
 
 export interface IRendererLogEntry {
@@ -645,6 +653,10 @@ export interface IRendererLogEntry {
 
 export const application = {
   restart: bridge.buildProvider<IAppRestartResult, void>('restart-app'),
+  getCrashRecoveryState: bridge.buildProvider<CrashRecoveryState, void>('app.crash-recovery.get-state'),
+  dismissCrashRecovery: bridge.buildProvider<void, { reportId: string }>('app.crash-recovery.dismiss'),
+  openCrashReports: bridge.buildProvider<void, void>('app.crash-recovery.open-reports'),
+  restartInSafeMode: bridge.buildProvider<IAppRestartResult, void>('app.crash-recovery.restart-safe-mode'),
   openDevTools: bridge.buildProvider<boolean, void>('open-dev-tools'),
   isDevToolsOpened: bridge.buildProvider<boolean, void>('is-dev-tools-opened'),
   systemInfo: withResponseMap(

@@ -99,6 +99,7 @@ import HOC from './utils/ui/HOC';
 import type { BackendStartupFailureInfo } from '@/common/types/platform/electron';
 import type { IRuntimeStatusEvent, RuntimeFailureKind } from '@/common/adapter/ipcBridge';
 import {
+  CrashRecoveryModalHost,
   InstallationIntegrityContent,
   InstallationIntegrityModalHost,
   type InstallationIntegrityDiagnostics,
@@ -423,12 +424,16 @@ const shouldShowBackendStartupFailureDialog =
 if (backendStartupFailure && shouldShowBackendStartupFailureDialog) {
   root.render(
     <Config>
+      <CrashRecoveryModalHost />
       <BackendStartupFailureDialog failure={backendStartupFailure} />
     </Config>
   );
 } else {
   root.render(
     <AppProviders>
+      <Config>
+        <CrashRecoveryModalHost />
+      </Config>
       <App />
     </AppProviders>
   );

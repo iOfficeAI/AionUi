@@ -99,13 +99,9 @@ Var /GLOBAL CsbuWorkMateActiveMarkerResult
 !macroend
 
 !macro CSBU_WORKMATE_INSTALLER_CUSTOM_HEADER
-  !if /FileExists "$%RESOURCE_HACKER_PATH"
-    ; Modify the temporary NSIS header before payload/CRC assembly. Editing the
-    ; completed installer would invalidate its integrity check.
-    !packhdr "$%TEMP%\csbu-workmate-nsis-header.exe" '"$%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe" -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "${PROJECT_DIR}\resources\windows\support\strip-exe-version-info.ps1" -TargetPath "$%TEMP%\csbu-workmate-nsis-header.exe" -ResourceHackerPath "$%RESOURCE_HACKER_PATH"'
-  !endif
   !insertmacro CSBU_WORKMATE_OVERRIDE_SINGLE_INSTANCE
   !insertmacro CSBU_WORKMATE_OVERRIDE_APP_CANNOT_BE_CLOSED_MESSAGE
+  !insertmacro CSBU_WORKMATE_DEFINE_INSTALLER_LIFECYCLE_CALLBACKS
 !macroend
 
 !macro CSBU_WORKMATE_RELEASE_INSTALL_DIR_OUTDIR
@@ -210,6 +206,7 @@ Var /GLOBAL CsbuWorkMateActiveMarkerResult
   !insertmacro CSBU_WORKMATE_VERIFY_CORE_APP_FILES
   !insertmacro CSBU_WORKMATE_VERIFY_BUNDLED_AIONCORE_RESOURCES "${CSBU_WORKMATE_RUNTIME_KEY}"
   !insertmacro CSBU_WORKMATE_LOG_EVENT "verify-install ok instDir=$INSTDIR"
+  !insertmacro CSBU_WORKMATE_FINALIZE_REGISTRY_FREE_INSTALL
   !insertmacro CSBU_WORKMATE_CLEAR_ACTIVE_INSTALLER_MARKER
   !insertmacro CSBU_WORKMATE_SESSION_SUCCESS
 !macroend

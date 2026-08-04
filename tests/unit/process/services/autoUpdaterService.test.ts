@@ -18,6 +18,7 @@ const autoUpdaterMock = vi.hoisted(() => ({
   allowDowngrade: false,
   channel: undefined as string | undefined,
   currentVersion: { version: '2.1.13' },
+  installDirectory: undefined as string | undefined,
   setFeedURL: vi.fn(),
   on: vi.fn(),
   removeListener: vi.fn(),
@@ -87,6 +88,7 @@ describe('AutoUpdaterService', () => {
     autoUpdaterMock.allowPrerelease = false;
     autoUpdaterMock.allowDowngrade = false;
     autoUpdaterMock.channel = undefined;
+    autoUpdaterMock.installDirectory = undefined;
     appMock.getPath.mockImplementation(() => '/tmp/csbu-workmate-test');
     delete (autoUpdaterMock as { updateInfoAndProvider?: unknown }).updateInfoAndProvider;
     appMock.isPackaged = false;
@@ -140,6 +142,24 @@ describe('AutoUpdaterService', () => {
       url: 'https://updates.csbu.internal/releases',
       updateProvider: CdnGenericProvider,
     });
+  });
+
+  it('pins packaged Windows updates to the current executable directory', async () => {
+    setPlatform('win32');
+    appMock.isPackaged = true;
+
+    await import('@/process/services/autoUpdaterService');
+
+    expect(autoUpdaterMock.installDirectory).toBe(path.dirname(process.execPath));
+  });
+
+  it('does not pin the NSIS install directory outside packaged Windows builds', async () => {
+    setPlatform('linux');
+    appMock.isPackaged = true;
+
+    await import('@/process/services/autoUpdaterService');
+
+    expect(autoUpdaterMock.installDirectory).toBeUndefined();
   });
 
   it('enables forced updater checks in unpacked dev builds when requested', async () => {

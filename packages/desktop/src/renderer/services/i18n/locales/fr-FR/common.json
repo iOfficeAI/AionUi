@@ -156,5 +156,15 @@
   "unit": {
     "minute_short": "m",
     "second_short": "s"
+  },
+  "crashRecovery": {
+    "title": "Un plantage précédent a été détecté",
+    "description": "L’application s’est précédemment arrêtée à cause du plantage d’un processus natif. Vous pouvez redémarrer une fois en mode sans échec ou continuer normalement. Le mode sans échec désactive uniquement l’accélération matérielle et l’animal de bureau.",
+    "openReports": "Ouvrir le dossier des plantages",
+    "continueNormally": "Continuer normalement",
+    "restartSafeMode": "Redémarrer en mode sans échec",
+    "openReportsFailed": "Impossible d’ouvrir le dossier des plantages",
+    "actionFailed": "L’action de récupération a échoué. Veuillez réessayer.",
+    "restartFailed": "Le redémarrage automatique n’est pas disponible en mode développement. Démarrez manuellement avec --safe-mode."
   }
 }

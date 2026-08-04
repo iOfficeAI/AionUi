@@ -158,5 +158,15 @@
     "second_short": "초"
   },
   "selectedCount": "선택됨 {{count}}",
-  "selectedSkills": "선택된 스킬"
+  "selectedSkills": "선택된 스킬",
+  "crashRecovery": {
+    "title": "이전 충돌이 감지되었습니다",
+    "description": "이전에 네이티브 프로세스 충돌로 앱이 종료되었습니다. 일회성 안전 모드로 다시 시작하거나 정상적으로 계속할 수 있습니다. 안전 모드는 하드웨어 가속과 데스크톱 펫만 비활성화합니다.",
+    "openReports": "충돌 폴더 열기",
+    "continueNormally": "정상적으로 계속",
+    "restartSafeMode": "안전 모드로 다시 시작",
+    "openReportsFailed": "충돌 폴더를 열 수 없습니다",
+    "actionFailed": "복구 작업에 실패했습니다. 다시 시도해 주세요.",
+    "restartFailed": "개발 모드에서는 자동 재시작할 수 없습니다. --safe-mode로 수동 실행하세요."
+  }
 }

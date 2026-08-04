@@ -1,4 +1,7 @@
 {
+  "officePreview": {
+    "fileWatchUnavailable": "Die Live-Dateiüberwachung ist nicht verfügbar, da möglicherweise keine Dateiüberwachungs-Handles mehr frei sind. Die automatische Vorschau neuer Office-Dateien ist deaktiviert. Erhöhen Sie das Systemlimit oder schließen Sie Programme mit vielen Dateiüberwachungen."
+  },
   "welcome": {
     "title": "Hallo, was hast du heute vor?",
     "placeholder": "Nachricht senden, Dateien hochladen, Ordner öffnen, eine geplante Aufgabe erstellen oder / für Befehle eingeben...",

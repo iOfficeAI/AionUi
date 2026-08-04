@@ -39,16 +39,38 @@ const normalizeLocalFileLinkDestinations = (
   markdown: string,
   aliases?: Readonly<Record<string, string>>,
   basePath?: string
-): string =>
-  markdown.replace(
-    /(!?\[[^\]\n]*\]\()([^)\n]*[ \t][^)\n]*)(\))/g,
-    (match, prefix: string, destination: string, suffix: string) => {
-      const trimmedDestination = destination.trim();
-      if (!resolveMarkdownLocalFilePath(trimmedDestination, aliases, basePath)) return match;
+): string => {
+  const normalizeDestination = (destination: string): string | null => {
+    const trimmedDestination = destination.trim();
+    if (!resolveMarkdownLocalFilePath(trimmedDestination, aliases, basePath)) return null;
 
-      return `${prefix}${encodeURI(trimmedDestination)}${suffix}`;
+    // CommonMark treats a backslash before ASCII punctuation as an escape.
+    // Normalize Windows separators before parsing so paths such as `\.codex`
+    // do not become `.codex` and point at a different file.
+    return encodeURI(trimmedDestination.replace(/\\/g, '/'));
+  };
+
+  const angleWrappedNormalized = markdown.replace(
+    /(!?\[[^\]\n]*\]\(<)([^>\n]+)(>)([ \t]+(?:"[^"\n]*"|'[^'\n]*'|\([^)\n]*\)))?(\))/g,
+    (match, prefix: string, destination: string, closingAngle: string, title: string = '', suffix: string) => {
+      const normalizedDestination = normalizeDestination(destination);
+      if (!normalizedDestination) return match;
+      return `${prefix}${normalizedDestination}${closingAngle}${title}${suffix}`;
     }
   );
+
+  return angleWrappedNormalized.replace(
+    /(!?\[[^\]\n]*\]\()([^)\n]+)(\))/g,
+    (match, prefix: string, destinationWithTitle: string, suffix: string) => {
+      const titleMatch = /^(.*?)([ \t]+(?:"[^"\n]*"|'[^'\n]*'|\([^)\n]*\)))$/.exec(destinationWithTitle);
+      const destination = titleMatch?.[1] ?? destinationWithTitle;
+      const title = titleMatch?.[2] ?? '';
+      const normalizedDestination = normalizeDestination(destination);
+      if (!normalizedDestination) return match;
+      return `${prefix}${normalizedDestination}${title}${suffix}`;
+    }
+  );
+};
 
 type MarkdownViewProps = {
   children: string;

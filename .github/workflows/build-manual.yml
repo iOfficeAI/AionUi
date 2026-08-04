@@ -30,11 +30,6 @@ on:
         required: false
         type: string
         default: ''
-      strip_windows_exe_metadata:
-        description: 'Remove VERSIONINFO from the Windows application, installer, and uninstaller'
-        required: false
-        type: boolean
-        default: true
       skip_code_quality:
         description: 'Skip code quality checks (faster builds for debugging)'
         required: false
@@ -99,7 +94,6 @@ jobs:
       version: ${{ inputs.version }}
       skip_code_quality: ${{ inputs.skip_code_quality }}
       aioncore_run_id: ${{ inputs.aioncore_run_id }}
-      strip_windows_exe_metadata: ${{ inputs.strip_windows_exe_metadata }}
       append_commit_hash: true
       upload_installers_only: true
     secrets: inherit

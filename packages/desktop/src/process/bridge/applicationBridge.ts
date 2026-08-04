@@ -5,7 +5,7 @@
  */
 
 import type { BrowserWindow } from 'electron';
-import { app } from 'electron';
+import { app, shell } from 'electron';
 import { ipcBridge } from '@/common';
 import { ProcessConfig } from '@process/utils/initStorage';
 import { getZoomFactor, setZoomFactor } from '@process/utils/zoom';
@@ -14,6 +14,8 @@ import { getGpuStatus, setGpuUserOverride } from '@process/utils/gpuRecovery';
 import { initApplicationBridgeCore } from './applicationBridgeCore';
 import type { IStartOnBootStatus } from '@/common/adapter/ipcBridge';
 import { restartApplication } from './restartApplication';
+import { getCrashRecoveryService } from '@process/services/CrashRecoveryService';
+import { SAFE_MODE_SWITCH } from '@process/startup/mainProcessDiagnostics';
 import { getWindowsStartOnBootEnabled, setWindowsStartOnBootEnabled } from '@process/services/StartOnBootService';
 
 let mainWindowRef: BrowserWindow | null = null;
@@ -94,6 +96,25 @@ export function initApplicationBridge(): void {
     // main window's before-quit hook; agent children are killed transitively
     // when backend exits.
     return restartApplication(app);
+  });
+
+  ipcBridge.application.getCrashRecoveryState.provider(async () => {
+    return getCrashRecoveryService()?.getRecoveryState() ?? { detected: false, safeMode: false };
+  });
+
+  ipcBridge.application.dismissCrashRecovery.provider(async ({ reportId }) => {
+    getCrashRecoveryService()?.dismiss(reportId);
+  });
+
+  ipcBridge.application.openCrashReports.provider(async () => {
+    const error = await shell.openPath(app.getPath('crashDumps'));
+    if (error) throw new Error(error);
+  });
+
+  ipcBridge.application.restartInSafeMode.provider(async () => {
+    const args = process.argv.slice(1).filter((argument) => argument !== SAFE_MODE_SWITCH);
+    args.push(SAFE_MODE_SWITCH);
+    return restartApplication(app, args);
   });
 
   ipcBridge.application.isDevToolsOpened.provider(() => {
