@@ -590,9 +590,27 @@ const WebviewHost: React.FC<WebviewHostProps> = ({
   );
 
   // Build webview attributes
+  /**
+   * 这个 webview 渲染任意外部网页，所以三个开关都按「不信任页面」来设。
+   *
+   * contextIsolation=yes 是刻意打开的：Electron 官方建议即使关掉 nodeIntegration 也保持
+   * 隔离，多一层纵深。我们不依赖与页面共享 JS 上下文 —— 注入脚本和宿主之间靠
+   * postMessage → console.log → 'console-message' 事件通信（见 handleConsoleMessage），
+   * 全程在页面世界里，隔离开着照样成立。别为了图方便把它关回 no：那样以后任何
+   * preload / IPC 暴露都会被不可信页面直接摸到。
+   *
+   * This webview renders arbitrary external pages, so all three flags assume the page is
+   * untrusted. contextIsolation is deliberately on: Electron recommends keeping it even
+   * with nodeIntegration off, for defence in depth. Nothing here needs a shared JS context
+   * with the page — the injected script talks to the host via
+   * postMessage → console.log → the 'console-message' event (see handleConsoleMessage),
+   * which stays entirely in the page world and works with isolation enabled. Do not flip
+   * this back to `no` for convenience: any future preload or IPC surface would then be
+   * directly reachable by untrusted pages.
+   */
   const webviewAttrs: Record<string, string> = {
     allowpopups: 'false',
-    webpreferences: 'contextIsolation=no, nodeIntegration=no, nativeWindowOpen=no',
+    webpreferences: 'contextIsolation=yes, nodeIntegration=no, nativeWindowOpen=no',
   };
   if (partition) {
     webviewAttrs.partition = partition;
