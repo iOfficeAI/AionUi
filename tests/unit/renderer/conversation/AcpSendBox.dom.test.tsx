@@ -59,16 +59,19 @@ vi.mock('@/renderer/components/chat/SendBox', () => ({
   default: ({
     onSend,
     onChange,
+    tools,
     rightTools,
     sendButtonPrefix,
   }: {
     onSend: (message: string) => Promise<void>;
     onChange?: (value: string) => void;
+    tools?: React.ReactNode;
     rightTools?: React.ReactNode;
     sendButtonPrefix?: React.ReactNode;
   }) => (
     <div>
-      {rightTools}
+      <div data-testid='mock-sendbox-tools'>{tools}</div>
+      <div data-testid='mock-sendbox-right-tools'>{rightTools}</div>
       {sendButtonPrefix}
       <button type='button' onClick={() => onChange?.('hello')}>
         change
@@ -85,7 +88,14 @@ vi.mock('@/renderer/components/chat/SendBox', () => ({
   ),
 }));
 
-vi.mock('@/renderer/components/agent/AgentModeSelector', () => ({ default: () => null }));
+vi.mock('@/renderer/components/agent/AgentModeSelector', () => ({
+  default: () => <div data-testid='mock-agent-mode-selector' />,
+}));
+vi.mock('@/renderer/components/agent/AcpModelSelector', () => ({
+  default: ({ placement }: { placement?: string }) => (
+    <div data-testid='mock-acp-model-selector' data-placement={placement} />
+  ),
+}));
 vi.mock('@/renderer/components/chat/CommandQueuePanel', () => ({ default: () => null }));
 vi.mock('@/renderer/components/chat/MobileActionSheet', () => ({
   default: ({
@@ -206,6 +216,11 @@ vi.mock('@/renderer/pages/conversation/platforms/acp/useAcpInitialMessage', () =
   useAcpInitialMessage: vi.fn(),
 }));
 vi.mock('@arco-design/web-react', () => ({
+  Button: ({ children, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement>) => (
+    <button type='button' {...props}>
+      {children}
+    </button>
+  ),
   Message: {
     success: vi.fn(),
     error: vi.fn(),
@@ -314,6 +329,24 @@ describe('AcpSendBox', () => {
       />
     );
     expect(container.querySelector('.context-usage-indicator')).toBeNull();
+  });
+
+  it('keeps permission on the left while the context ring and model selector sit on the composer right', () => {
+    render(
+      <AcpSendBox
+        conversation_id='conv-1'
+        backend='codex'
+        workspacePath='/tmp/workspace'
+        messageState={{ ...makeMessageState(), tokenUsage: { total_tokens: 500_000 }, context_limit: 1_000_000 }}
+      />
+    );
+
+    expect(screen.getByTestId('mock-sendbox-tools')).toContainElement(screen.getByTestId('mock-agent-mode-selector'));
+    expect(screen.getByTestId('mock-sendbox-right-tools')).toContainElement(
+      screen.getByTestId('mock-acp-model-selector')
+    );
+    expect(screen.getByTestId('mock-acp-model-selector')).toHaveAttribute('data-placement', 'composer');
+    expect(screen.getByTestId('mock-sendbox-right-tools').querySelector('.context-usage-indicator')).not.toBeNull();
   });
 
   it('suppresses internal error cards and loading reset for active-turn busy conflicts', async () => {

@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Popover } from '@arco-design/web-react';
+import { Button, Popover } from '@arco-design/web-react';
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -32,10 +32,11 @@ const ContextUsageIndicator: React.FC<ContextUsageIndicatorProps> = ({
 
   const hasWindow = context_limit > 0;
 
-  const { percentage, displayTotal, displayLimit, isWarning, isDanger } = useMemo(() => {
+  const { percentage, visualPercentage, displayTotal, displayLimit, isWarning, isDanger } = useMemo(() => {
     if (!tokenUsage) {
       return {
         percentage: 0,
+        visualPercentage: 0,
         displayTotal: '0',
         displayLimit: '0',
         isWarning: false,
@@ -47,6 +48,7 @@ const ContextUsageIndicator: React.FC<ContextUsageIndicatorProps> = ({
     if (!hasWindow) {
       return {
         percentage: 0,
+        visualPercentage: 0,
         displayTotal: formatTokenCount(total),
         displayLimit: '0',
         isWarning: false,
@@ -58,6 +60,7 @@ const ContextUsageIndicator: React.FC<ContextUsageIndicatorProps> = ({
 
     return {
       percentage: pct,
+      visualPercentage: Math.min(pct, 100),
       displayTotal: formatTokenCount(total),
       displayLimit: formatTokenCount(context_limit, true),
       isWarning: pct > 70,
@@ -73,7 +76,7 @@ const ContextUsageIndicator: React.FC<ContextUsageIndicatorProps> = ({
   const strokeWidth = 2.5;
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
-  const strokeDashoffset = circumference - (percentage / 100) * circumference;
+  const strokeDashoffset = circumference - (visualPercentage / 100) * circumference;
 
   // 根据状态获取颜色
   const getStrokeColor = () => {
@@ -83,9 +86,7 @@ const ContextUsageIndicator: React.FC<ContextUsageIndicatorProps> = ({
   };
 
   // 背景圆环颜色 - 适配深浅主题
-  const getTrackColor = () => {
-    return 'var(--color-fill-3)';
-  };
+  const trackColor = 'var(--color-fill-3)';
 
   const breakdown = tokenUsage.breakdown;
   const breakdownParts: string[] = [];
@@ -153,22 +154,24 @@ const ContextUsageIndicator: React.FC<ContextUsageIndicatorProps> = ({
     </div>
   );
 
+  const accessibleLabel = hasWindow
+    ? `${percentage.toFixed(1)}% · ${displayTotal} / ${displayLimit} ${t('conversation.contextUsage.contextUsed', 'context used')}`
+    : t('conversation.contextUsage.tokensUsed', '{{tokens}} tokens used', { tokens: displayTotal });
+
   return (
-    <Popover content={popoverContent} position='top' trigger='hover' className='context-usage-popover'>
-      <div
-        className={`context-usage-indicator cursor-pointer flex items-center justify-center ${className}`}
-        style={{ width: size, height: size }}
+    <Popover content={popoverContent} position='top' trigger='click' className='context-usage-popover'>
+      <Button
+        type='text'
+        shape='circle'
+        size='mini'
+        aria-label={accessibleLabel}
+        data-context-percentage={visualPercentage.toFixed(1)}
+        className={`context-usage-indicator flex items-center justify-center ${className}`}
+        style={{ width: size, height: size, minWidth: size, padding: 0 }}
       >
         <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ transform: 'rotate(-90deg)' }}>
           {/* 背景圆环 */}
-          <circle
-            cx={size / 2}
-            cy={size / 2}
-            r={radius}
-            fill='none'
-            stroke={getTrackColor()}
-            strokeWidth={strokeWidth}
-          />
+          <circle cx={size / 2} cy={size / 2} r={radius} fill='none' stroke={trackColor} strokeWidth={strokeWidth} />
           {/* 进度圆环 — only when the denominator is known; otherwise the hollow track alone signals "count available, window unknown" */}
           {hasWindow && (
             <circle
@@ -185,7 +188,7 @@ const ContextUsageIndicator: React.FC<ContextUsageIndicatorProps> = ({
             />
           )}
         </svg>
-      </div>
+      </Button>
     </Popover>
   );
 };

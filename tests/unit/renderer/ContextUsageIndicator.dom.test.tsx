@@ -19,6 +19,11 @@ vi.mock('react-i18next', () => ({
 }));
 
 vi.mock('@arco-design/web-react', () => ({
+  Button: ({ children, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement>) => (
+    <button type='button' {...props}>
+      {children}
+    </button>
+  ),
   Popover: ({ children, content }: { children?: React.ReactNode; content?: React.ReactNode }) => (
     <>
       {children}
@@ -36,7 +41,20 @@ describe('ContextUsageIndicator', () => {
     );
 
     expect(container.querySelectorAll('circle')).toHaveLength(2);
+    expect(container.querySelector('.context-usage-indicator')).toHaveAttribute(
+      'aria-label',
+      '4.8% · 12.6K / 262.1K context used'
+    );
+    expect(container.querySelector('.context-usage-indicator')).toHaveAttribute('data-context-percentage', '4.8');
     expect(getByTestId('popover-content').textContent).toContain('4.8% · 12.6K / 262.1K');
+  });
+
+  it('caps the visual fill at a complete circle when token usage exceeds the reported window', () => {
+    const { container } = render(
+      <ContextUsageIndicator tokenUsage={{ total_tokens: 400_000 }} context_limit={200_000} />
+    );
+
+    expect(container.querySelector('.context-usage-indicator')).toHaveAttribute('data-context-percentage', '100.0');
   });
 
   it('renders a hollow ring and a raw-count popover when the window size is unknown', () => {
@@ -51,6 +69,7 @@ describe('ContextUsageIndicator', () => {
     expect(popover).toContain('12.6K tokens used');
     expect(popover).toContain('Context window size unknown');
     expect(popover).not.toContain('%');
+    expect(container.querySelector('.context-usage-indicator')).toHaveAttribute('aria-label', '12.6K tokens used');
   });
 
   it('renders nothing without any usage report', () => {

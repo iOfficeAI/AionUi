@@ -7,7 +7,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import React from 'react';
-import AgentModeSelector from '@/renderer/components/agent/AgentModeSelector';
+import AgentModeSelector, { getPermissionTone } from '@/renderer/components/agent/AgentModeSelector';
 
 const { useAcpConfigOptionsMock } = vi.hoisted(() => ({
   useAcpConfigOptionsMock: vi.fn(),
@@ -266,5 +266,24 @@ describe('AgentModeSelector', () => {
       'data-tooltip-content',
       'Run without permission prompts'
     );
+  });
+
+  it('uses a risk-specific compact pill class for the observed permission mode', async () => {
+    render(<AgentModeSelector backend='claude' conversation_id='conv-1' compact compactLabelPrefix='权限' />);
+
+    await waitFor(() => expect(screen.getByTestId('agent-mode-selector-claude')).toBeInTheDocument());
+    expect(screen.getByTestId('agent-mode-selector-claude')).toHaveClass('agent-mode-compact-pill--permission-default');
+  });
+});
+
+describe('getPermissionTone', () => {
+  it.each([
+    ['read-only', 'read'],
+    ['plan', 'plan'],
+    ['acceptEdits', 'write'],
+    ['agent-full-access', 'full'],
+    ['bypassPermissions', 'full'],
+  ] as const)('maps %s to the %s visual risk tone', (mode, tone) => {
+    expect(getPermissionTone(mode)).toBe(tone);
   });
 });

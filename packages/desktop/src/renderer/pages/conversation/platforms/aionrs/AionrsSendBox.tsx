@@ -14,6 +14,7 @@ import MobileActionSheet, {
   useAttachEntry,
 } from '@/renderer/components/chat/MobileActionSheet';
 import SendBox from '@/renderer/components/chat/SendBox';
+import { createConversationComposerControlSlots } from '@/renderer/components/chat/SendBox/composerControls';
 import ThoughtDisplay from '@/renderer/components/chat/ThoughtDisplay';
 import FileAttachButton from '@/renderer/components/media/FileAttachButton';
 import FilePreview from '@/renderer/components/media/FilePreview';
@@ -51,6 +52,7 @@ import { Brain, MagicHat, Shield } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { classifyConversationBusyError } from '../conversationBusyError';
+import AionrsModelSelector from './AionrsModelSelector';
 import { useAionrsMessage } from './useAionrsMessage';
 import type { AionrsModelSelection } from './useAionrsModelSelection';
 
@@ -121,7 +123,16 @@ const AionrsSendBox: React.FC<{
   agent_name?: string;
   teamSendMessage?: (payload: { input: string; files: ChatFileRef[] }) => Promise<void>;
   teamRuntime?: TeamSendBoxRuntime;
-}> = ({ conversation_id, modelSelection, session_mode, agent_name, teamSendMessage, teamRuntime }) => {
+  hideComposerModelSelector?: boolean;
+}> = ({
+  conversation_id,
+  modelSelection,
+  session_mode,
+  agent_name,
+  teamSendMessage,
+  teamRuntime,
+  hideComposerModelSelector,
+}) => {
   const [dynamicModes, setDynamicModes] = useState<AgentModeOption[]>([]);
   const [currentMode, setCurrentMode] = useState<string | undefined>(session_mode);
   const [isMobileSheetOpen, setIsMobileSheetOpen] = useState(false);
@@ -185,6 +196,19 @@ const AionrsSendBox: React.FC<{
   });
   const runtimeMode = runtimeConfig.mode;
   const runtimeThoughtLevel = runtimeConfig.thoughtLevel;
+  const handleThoughtLevelSetOption = useCallback(
+    async (optionId: string, value: string) => {
+      try {
+        const result = await runtimeConfig.setConfigOption(optionId, value);
+        Message.success(t('agent.thoughtLevel.switchSuccess'));
+        return result;
+      } catch (error) {
+        Message.error(t(configErrorMessageKey(error)));
+        throw error;
+      }
+    },
+    [runtimeConfig, t]
+  );
 
   useEffect(() => {
     if (!runtimeMode?.currentValue) return;
@@ -541,10 +565,7 @@ const AionrsSendBox: React.FC<{
             active: runtimeThoughtLevel.currentValue === item.value,
           })),
           onSelect: (value) => {
-            void runtimeConfig
-              .setConfigOption(runtimeThoughtLevel.id, value)
-              .then(() => Message.success(t('agent.thoughtLevel.switchSuccess')))
-              .catch((error) => Message.error(t(configErrorMessageKey(error))));
+            void handleThoughtLevelSetOption(runtimeThoughtLevel.id, value).catch(() => {});
           },
         },
       });
@@ -601,6 +622,7 @@ const AionrsSendBox: React.FC<{
     attachEntries,
     currentMode,
     dynamicModes,
+    handleThoughtLevelSetOption,
     handleSheetModeChange,
     handleSheetModelSelect,
     isMobile,
@@ -672,6 +694,41 @@ const AionrsSendBox: React.FC<{
     [effectiveHandleStop, prioritize]
   );
   const sendBoxWidthClass = getChatSurfaceWidthClass(Boolean(teamPermission));
+  const composerControlSlots = createConversationComposerControlSlots({
+    attachment: (
+      <FileAttachButton
+        openFileSelector={openFileSelector}
+        onLocalFilesAdded={handleFilesAdded}
+        loadedMcpStatuses={loadedMcpStatuses}
+      />
+    ),
+    permission: (
+      <AgentModeSelector
+        backend='aionrs'
+        conversation_id={conversation_id}
+        compact
+        initialMode={session_mode}
+        dynamicModes={dynamicModes}
+        compactLeadingIcon={<Shield theme='outline' size='14' fill={iconColors.secondary} />}
+        modeLabelFormatter={(mode) => t(`agentMode.${mode.value}`, { defaultValue: mode.label })}
+        compactLabelPrefix={t('agentMode.permission')}
+        hideCompactLabelPrefixOnMobile
+        onModeChanged={propagateMode}
+        beforeRuntimeSync={prepareRuntimeConfig}
+        beforeRuntimeSet={teamPermission?.warmupSession}
+        loadConfigOptions={teamPermission?.loadConfigOptions}
+      />
+    ),
+    model: hideComposerModelSelector ? null : (
+      <AionrsModelSelector
+        selection={modelSelection}
+        thoughtLevel={runtimeThoughtLevel}
+        setStatus={runtimeConfig.setStatus}
+        onSetThoughtLevel={handleThoughtLevelSetOption}
+        placement='composer'
+      />
+    ),
+  });
 
   return (
     <div className={`${sendBoxWidthClass} flex flex-col mt-auto mb-16px`}>
@@ -726,32 +783,7 @@ const AionrsSendBox: React.FC<{
         supportedExts={allSupportedExts}
         defaultMultiLine={!isMobile}
         lockMultiLine={!isMobile}
-        tools={
-          <FileAttachButton
-            openFileSelector={openFileSelector}
-            onLocalFilesAdded={handleFilesAdded}
-            loadedMcpStatuses={loadedMcpStatuses}
-          />
-        }
-        rightTools={
-          <div className='flex items-center gap-8px min-w-0'>
-            <AgentModeSelector
-              backend='aionrs'
-              conversation_id={conversation_id}
-              compact
-              initialMode={session_mode}
-              dynamicModes={dynamicModes}
-              compactLeadingIcon={<Shield theme='outline' size='14' fill={iconColors.secondary} />}
-              modeLabelFormatter={(mode) => t(`agentMode.${mode.value}`, { defaultValue: mode.label })}
-              compactLabelPrefix={t('agentMode.permission')}
-              hideCompactLabelPrefixOnMobile
-              onModeChanged={propagateMode}
-              beforeRuntimeSync={prepareRuntimeConfig}
-              beforeRuntimeSet={teamPermission?.warmupSession}
-              loadConfigOptions={teamPermission?.loadConfigOptions}
-            />
-          </div>
-        }
+        {...composerControlSlots}
         prefix={
           <>
             {uploadFile.length > 0 && (

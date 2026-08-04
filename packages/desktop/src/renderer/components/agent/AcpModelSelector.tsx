@@ -57,6 +57,8 @@ const AcpModelSelector: React.FC<{
   prepareRuntime?: () => Promise<void>;
   prepareSetRuntime?: () => Promise<void>;
   loadConfigOptions?: AcpConfigOptionsLoader;
+  /** Render in the conversation header or the desktop composer. */
+  placement?: 'header' | 'composer';
   /** Deprecated: runtime config loading now ensures the conversation runtime. */
   waitForWarmup?: boolean;
   /**
@@ -68,7 +70,16 @@ const AcpModelSelector: React.FC<{
     status: AcpWarmupStatus;
     trigger?: () => Promise<void>;
   };
-}> = ({ conversation_id, backend, initialModelId, prepareRuntime, prepareSetRuntime, loadConfigOptions, warmup }) => {
+}> = ({
+  conversation_id,
+  backend,
+  initialModelId,
+  prepareRuntime,
+  prepareSetRuntime,
+  loadConfigOptions,
+  placement = 'header',
+  warmup,
+}) => {
   const { t } = useTranslation();
   const layout = useLayoutContext();
   const isMobileHeaderCompact = Boolean(layout?.isMobile);
@@ -112,6 +123,9 @@ const AcpModelSelector: React.FC<{
     [isRuntimeSetting, setConfigOption, thoughtLevel, t]
   );
   const tooltipContent = combinedLabel;
+  const selectorClassName = `sendbox-model-btn agent-mode-compact-pill ${
+    placement === 'composer' ? 'composer-model-selector' : 'header-model-btn conversation-model-selector'
+  }`;
 
   const renderLogo = () => <Brain theme='outline' size='14' fill={iconColors.secondary} className='shrink-0' />;
 
@@ -153,7 +167,7 @@ const AcpModelSelector: React.FC<{
       <Tooltip content={tooltip} position='top'>
         <RuntimeSelectorPill
           testId='acp-model-selector-warmup'
-          className='sendbox-model-btn header-model-btn agent-mode-compact-pill'
+          className={selectorClassName}
           label={label}
           leading={renderLogo()}
           loading={showWarmupSpinner}
@@ -254,7 +268,7 @@ const AcpModelSelector: React.FC<{
     >
       <RuntimeSelectorPill
         testId='acp-model-selector'
-        className='sendbox-model-btn header-model-btn agent-mode-compact-pill'
+        className={selectorClassName}
         label={combinedLabel}
         leading={renderLogo()}
         trailing={<Down theme='outline' size={12} fill={iconColors.secondary} className='shrink-0' />}

@@ -117,6 +117,7 @@ describe('TeamChatView', () => {
 
     render(
       <TeamChatView
+        hideComposerModelSelector
         conversation={{
           id: 'conv-1',
           type: 'acp',
@@ -139,6 +140,7 @@ describe('TeamChatView', () => {
         loadedSkills: ['excel'],
         loadedMcpServers: ['office'],
         loadedMcpStatuses: mcpStatuses,
+        hideComposerModelSelector: true,
       })
     );
   });
@@ -149,6 +151,7 @@ describe('TeamChatView', () => {
 
     render(
       <TeamChatView
+        hideComposerModelSelector
         conversation={{
           id: 'conv-1',
           type: 'aionrs',
@@ -179,6 +182,7 @@ describe('TeamChatView', () => {
         loadedSkills: ['excel'],
         loadedMcpServers: ['office'],
         loadedMcpStatuses: mcpStatuses,
+        hideComposerModelSelector: true,
       })
     );
   });

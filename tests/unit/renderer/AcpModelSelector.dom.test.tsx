@@ -10,6 +10,7 @@ import React from 'react';
 import AcpModelSelector from '@/renderer/components/agent/AcpModelSelector';
 import type { AcpModelInfo } from '@/common/types/platform/acpTypes';
 import type { AcpConfigSetStatus, AcpDerivedOption } from '@/renderer/hooks/agent/useAcpConfigOptions';
+import { RUNTIME_SUBMENU_TRIGGER_PROPS } from '@/renderer/components/agent/runtimeSelectorOptions';
 
 const { messageSuccessMock, messageErrorMock, useAcpModelInfoMock } = vi.hoisted(() => ({
   messageSuccessMock: vi.fn(),
@@ -480,5 +481,11 @@ describe('AcpModelSelector runtime options', () => {
     await act(async () => {
       resolveTrigger?.();
     });
+  });
+});
+
+describe('runtime selector submenu placement', () => {
+  it('opens nested option lists to the right before auto-fitting at the viewport edge', () => {
+    expect(RUNTIME_SUBMENU_TRIGGER_PROPS).toEqual({ position: 'rt', autoFitPosition: true });
   });
 });

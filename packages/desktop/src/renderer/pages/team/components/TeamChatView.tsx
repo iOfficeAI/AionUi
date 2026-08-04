@@ -62,6 +62,7 @@ const AionrsTeamChat: React.FC<{
   loadedSkills?: string[];
   loadedMcpServers?: string[];
   loadedMcpStatuses?: IConversationMcpStatus[];
+  hideComposerModelSelector?: boolean;
 }> = ({
   conversation,
   emptySlot,
@@ -71,6 +72,7 @@ const AionrsTeamChat: React.FC<{
   loadedSkills,
   loadedMcpServers,
   loadedMcpStatuses,
+  hideComposerModelSelector,
 }) => {
   const onSelectModel = useCallback(
     async (_provider: IProvider, modelName: string) => {
@@ -95,6 +97,7 @@ const AionrsTeamChat: React.FC<{
       loadedSkills={loadedSkills}
       loadedMcpServers={loadedMcpServers}
       loadedMcpStatuses={loadedMcpStatuses}
+      hideComposerModelSelector={hideComposerModelSelector}
     />
   );
 };
@@ -102,6 +105,7 @@ const AionrsTeamChat: React.FC<{
 type TeamChatViewProps = {
   conversation: TChatConversation;
   hideSendBox?: boolean;
+  hideComposerModelSelector?: boolean;
   /** When set, shows the team greeting empty state */
   team_id?: string;
   slot_id?: string;
@@ -121,6 +125,7 @@ type TeamChatViewProps = {
 const TeamChatView: React.FC<TeamChatViewProps> = ({
   conversation,
   hideSendBox,
+  hideComposerModelSelector,
   team_id,
   slot_id,
   assistant_name,
@@ -241,6 +246,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({
             loadedSkills={capabilitySnapshot?.skills}
             loadedMcpServers={capabilitySnapshot?.mcp_servers}
             loadedMcpStatuses={capabilitySnapshot?.mcp_statuses}
+            hideComposerModelSelector={hideComposerModelSelector}
           />
         );
       case 'aionrs':
@@ -255,6 +261,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({
             loadedSkills={capabilitySnapshot?.skills}
             loadedMcpServers={capabilitySnapshot?.mcp_servers}
             loadedMcpStatuses={capabilitySnapshot?.mcp_statuses}
+            hideComposerModelSelector={hideComposerModelSelector}
           />
         );
       default:

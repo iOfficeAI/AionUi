@@ -40,6 +40,7 @@ const AcpChat: React.FC<{
   loadedMcpStatuses?: IConversationMcpStatus[];
   teamSendMessage?: (payload: { input: string; files: ChatFileRef[] }) => Promise<void>;
   teamRuntime?: TeamSendBoxRuntime;
+  hideComposerModelSelector?: boolean;
   assistantId?: string;
 }> = ({
   conversation_id,
@@ -55,6 +56,7 @@ const AcpChat: React.FC<{
   loadedMcpStatuses,
   teamSendMessage,
   teamRuntime,
+  hideComposerModelSelector,
   assistantId,
 }) => {
   useMessageLstCache(conversation_id);
@@ -94,6 +96,7 @@ const AcpChat: React.FC<{
               messageState={messageState}
               teamSendMessage={teamSendMessage}
               teamRuntime={teamRuntime}
+              hideComposerModelSelector={hideComposerModelSelector}
             ></AcpSendBox>
           )}
         </div>
