@@ -323,6 +323,8 @@
   "hardwareAcceleration": "Аппаратное ускорение",
   "hardwareAccelerationDesc": "Использовать GPU для отрисовки интерфейса. Отключите при сбоях запуска или артефактах изображения.",
   "hardwareAccelerationAutoDisabled": "Автоматически отключено из-за повторных сбоев GPU.",
+  "hardwareAccelerationAutoDisabledTitle": "Аппаратное ускорение отключено",
+  "hardwareAccelerationAutoDisabledNotice": "Обнаружены повторяющиеся сбои графики, поэтому аппаратное ускорение было автоматически отключено для стабильной работы приложения. Вы можете снова включить его в разделе Настройки → Система.",
   "hardwareAccelerationRestartConfirm": "Перезапустить AionUi, чтобы применить новые настройки аппаратного ускорения?",
   "hardwareAccelerationUpdateFailed": "Не удалось обновить настройку аппаратного ускорения",
   "browserNotification": {

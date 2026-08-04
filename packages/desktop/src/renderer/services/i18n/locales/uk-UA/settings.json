@@ -323,6 +323,8 @@
   "hardwareAcceleration": "Апаратне прискорення",
   "hardwareAccelerationDesc": "Використовувати GPU для відображення інтерфейсу. Вимкніть, якщо застосунок вилітає під час запуску або зображення спотворюється.",
   "hardwareAccelerationAutoDisabled": "Автоматично вимкнено через повторні збої GPU.",
+  "hardwareAccelerationAutoDisabledTitle": "Апаратне прискорення вимкнено",
+  "hardwareAccelerationAutoDisabledNotice": "Виявлено повторювані збої графіки, тому апаратне прискорення було автоматично вимкнено для стабільної роботи застосунку. Ви можете знову увімкнути його у розділі Налаштування → Система.",
   "hardwareAccelerationRestartConfirm": "Перезапустити AionUi, щоб застосувати нові налаштування апаратного прискорення?",
   "hardwareAccelerationUpdateFailed": "Не вдалося оновити налаштування апаратного прискорення",
   "browserNotification": {

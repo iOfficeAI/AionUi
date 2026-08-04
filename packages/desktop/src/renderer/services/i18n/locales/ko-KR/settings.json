@@ -323,6 +323,8 @@
   "hardwareAcceleration": "하드웨어 가속",
   "hardwareAccelerationDesc": "GPU를 사용하여 UI를 렌더링합니다. 실행 시 충돌하거나 화면이 깜박이면 끄세요.",
   "hardwareAccelerationAutoDisabled": "GPU가 반복적으로 충돌하여 자동으로 비활성화되었습니다.",
+  "hardwareAccelerationAutoDisabledTitle": "하드웨어 가속이 비활성화됨",
+  "hardwareAccelerationAutoDisabledNotice": "그래픽 렌더링이 반복적으로 충돌하여 앱 안정성을 위해 하드웨어 가속을 자동으로 껐습니다. 설정 → 시스템에서 다시 켤 수 있습니다.",
   "hardwareAccelerationRestartConfirm": "새 하드웨어 가속 설정을 적용하려면 AionUi를 다시 시작하시겠습니까?",
   "hardwareAccelerationUpdateFailed": "하드웨어 가속 설정을 업데이트하지 못했습니다",
   "browserNotification": {

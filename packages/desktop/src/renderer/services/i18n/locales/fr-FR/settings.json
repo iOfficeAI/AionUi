@@ -323,6 +323,8 @@
   "hardwareAcceleration": "Accélération matérielle",
   "hardwareAccelerationDesc": "Utilisez le GPU pour restituer l'interface utilisateur. Désactivez-le si l'application plante au lancement ou si les graphiques scintillent.",
   "hardwareAccelerationAutoDisabled": "Désactivé automatiquement après des pannes répétées du GPU.",
+  "hardwareAccelerationAutoDisabledTitle": "Accélération matérielle désactivée",
+  "hardwareAccelerationAutoDisabledNotice": "Des plantages graphiques répétés ont été détectés ; l'accélération matérielle a donc été désactivée automatiquement pour garder l'application stable. Vous pouvez la réactiver dans Paramètres → Système.",
   "hardwareAccelerationRestartConfirm": "Redémarrer AionUi pour appliquer le nouveau paramètre d'accélération matérielle ?",
   "hardwareAccelerationUpdateFailed": "Échec de la mise à jour du paramètre d'accélération matérielle",
   "browserNotification": {

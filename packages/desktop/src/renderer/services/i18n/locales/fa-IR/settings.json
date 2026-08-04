@@ -323,6 +323,8 @@
   "hardwareAcceleration": "شتاب‌دهی سخت‌افزاری",
   "hardwareAccelerationDesc": "از GPU برای رندر رابط کاربری استفاده کنید. اگر برنامه هنگام اجرا کرش می‌کند یا تصویر چشمک می‌زند، غیرفعال کنید.",
   "hardwareAccelerationAutoDisabled": "پس از کرش‌های مکرر GPU به‌صورت خودکار غیرفعال شد.",
+  "hardwareAccelerationAutoDisabledTitle": "شتاب‌دهی سخت‌افزاری غیرفعال شد",
+  "hardwareAccelerationAutoDisabledNotice": "خرابی‌های مکرر گرافیکی شناسایی شد، بنابراین برای پایداری برنامه، شتاب‌دهی سخت‌افزاری به‌طور خودکار خاموش شد. می‌توانید آن را در تنظیمات ← سیستم دوباره فعال کنید.",
   "hardwareAccelerationRestartConfirm": "برای اعمال تنظیم شتاب‌دهی سخت‌افزاری، AionUi را ری‌استارت کنید؟",
   "hardwareAccelerationUpdateFailed": "به‌روزرسانی تنظیم شتاب‌دهی سخت‌افزاری ناموفق بود",
   "browserNotification": {
