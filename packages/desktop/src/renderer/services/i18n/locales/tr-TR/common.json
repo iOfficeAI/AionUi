@@ -144,11 +144,11 @@
     },
     "pendingSlow": {
       "title": "Başlatılıyor",
-      "description": "AionCore başlatılıyor, lütfen bekleyin. Bir süre yanıt vermezse uygulamadan çıkıp yeniden açabilirsiniz."
+      "description": "CSBU WorkMate backend başlatılıyor, lütfen bekleyin. Bir süre yanıt vermezse uygulamadan çıkıp yeniden açabilirsiniz."
     },
     "exited": {
       "title": "Başlatma tamamlanmadı",
-      "description": "AionCore başlatmayı tamamlayamadı ve kapandı. Lütfen uygulamayı yeniden başlatın; sorun devam ederse tanılama gönderin.",
+      "description": "CSBU WorkMate backend başlatmayı tamamlayamadı ve kapandı. Lütfen uygulamayı yeniden başlatın; sorun devam ederse tanılama gönderin.",
       "sendDiagnostics": "Tanılama gönder",
       "diagnosticsSent": "Tanılama gönderildi",
       "diagnosticsReportSuccess": "Tanılama bildirildi",

@@ -144,11 +144,11 @@
     },
     "pendingSlow": {
       "title": "正在啟動",
-      "description": "AionCore 正在啟動，請稍候。若長時間無回應，可結束應用程式後再試。"
+      "description": "CSBU WorkMate backend 正在啟動，請稍候。若長時間無回應，可結束應用程式後再試。"
     },
     "exited": {
       "title": "啟動未完成",
-      "description": "AionCore 未能完成啟動並已結束。請重新啟動應用程式；若反覆出現，請回報診斷資訊。",
+      "description": "CSBU WorkMate backend 未能完成啟動並已結束。請重新啟動應用程式；若反覆出現，請回報診斷資訊。",
       "sendDiagnostics": "傳送診斷",
       "diagnosticsSent": "診斷已傳送",
       "diagnosticsReportSuccess": "診斷資訊已回報",

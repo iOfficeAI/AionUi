@@ -143,11 +143,11 @@
     },
     "pendingSlow": {
       "title": "Iniciando",
-      "description": "AionCore se está iniciando, espera un momento. Si no responde después de un rato, puedes salir de la aplicación y volver a abrirla."
+      "description": "CSBU WorkMate backend se está iniciando, espera un momento. Si no responde después de un rato, puedes salir de la aplicación y volver a abrirla."
     },
     "exited": {
       "title": "El inicio no se completó",
-      "description": "AionCore no pudo completar el inicio y se cerró. Reinicia la aplicación; si esto sigue ocurriendo, envía un diagnóstico.",
+      "description": "CSBU WorkMate backend no pudo completar el inicio y se cerró. Reinicia la aplicación; si esto sigue ocurriendo, envía un diagnóstico.",
       "sendDiagnostics": "Enviar diagnóstico",
       "diagnosticsSent": "Diagnóstico enviado",
       "diagnosticsReportSuccess": "Diagnóstico enviado",
