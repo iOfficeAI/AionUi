@@ -54,19 +54,24 @@ export const resolveBrowserUrl = (deps: ResolveBrowserUrlDeps): string | null =>
 /**
  * 单目标 CDP 通道的访问口令。
  *
- * 端口绑在 127.0.0.1，但本机任意进程都能连 localhost，所以还需要一个口令才能确认
- * 「对面是我们自己 spawn 出来的 MCP」。口令由主进程随机生成后写进 env，顺着
- * 进程继承链传到这里 —— 只有我们这棵进程树里的成员拿得到它。
+ * 口令由主进程随机生成后写进 env，顺着进程继承链传到这里。它的作用是**阻止盲连**：
+ * 没读过发现段、不带口令的连接一律被通道 403 掉。
  *
- * 与端口同样的判断：拿不到就返回 null，让调用方拒绝启动，而不是无口令连接。
+ * 但它**不是身份证明** —— HTTP 发现段不鉴权且响应里就带着口令，同机同用户的任意进程
+ * 一个 GET 就能取回来（详见 cdpBridge.ts 里的威胁模型说明）。所以这里要求 env 里有口令，
+ * 真正的意义是「通道确实起来了」的凭证：缺了就说明桥没起（或 CDP 被关掉了），此时必须
+ * 退出，而不是让 MCP 回退去开一个用户看不见的独立 Chrome。
  *
- * Access token for the single-target CDP bridge. The port is bound to 127.0.0.1, but any
- * local process can reach localhost, so a token is what actually proves the peer is the
- * MCP we spawned. The main process generates it randomly and writes it into the env, so
- * it travels down the same inheritance chain and only members of our process tree hold it.
+ * Access token for the single-target CDP bridge. The main process generates it randomly and
+ * writes it into the env, from where it travels down the process inheritance chain. Its job is
+ * to **prevent blind connections**: anything connecting without it (i.e. without having read
+ * discovery) is refused with a 403.
  *
- * Same rule as the port: missing means return null so the caller refuses to start, rather
- * than connecting without one.
+ * It is **not proof of identity** — HTTP discovery is unauthenticated and its response embeds
+ * the token, so any process running as the same user can fetch it with one GET (see the threat
+ * model note in cdpBridge.ts). Requiring it here really means "the bridge is up": its absence
+ * means there is no bridge (or CDP is switched off), and we must exit rather than let the MCP
+ * fall back to spawning a separate Chrome the user cannot see.
  */
 export const resolveBridgeToken = (deps: ResolveBrowserUrlDeps): string | null => {
   const raw = deps.env.AIONUI_CDP_BRIDGE_TOKEN?.trim();

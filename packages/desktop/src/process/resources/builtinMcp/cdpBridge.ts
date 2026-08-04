@@ -213,25 +213,39 @@ const writeJson = (res: ServerResponse, body: unknown) => {
  * 只会让 puppeteer 被自己的 403 挡死。
  *
  * 于是分两层：
- *  - HTTP 发现段（/json/version、/json/list）不校验口令。它只吐出目标标题、URL 和
- *    带口令的 ws 地址，不提供任何操作能力。
- *  - WebSocket 段强制校验口令。所有实际控制都走这里，没有口令连不上。
+ *  - HTTP 发现段（/json/version、/json/list）不校验口令，响应里带着含口令的 ws 地址。
+ *  - WebSocket 段强制校验口令，所有实际控制都走这里。
  *
- * 端口本身也是一道屏障：listen(0) 由系统随机分配，只有继承了 env 的进程知道它。
+ * ⚠️ 威胁模型要说实话：因为发现段不鉴权且会吐出口令，同机同用户的任意进程扫到这个端口后
+ * 一个 GET 就能取回口令再连 WS。所以口令的作用是**阻止盲连**（不知道端口/没读过发现段
+ * 的连接一律 403），**不是身份证明** —— 它无法证明对端就是我们 spawn 的那个 MCP。
+ * 对本机进程而言，真实屏障只有「listen(0) 随机分配的临时端口」这一层。
  *
- * The token guards only the WebSocket leg, not HTTP discovery — a design forced by
- * testing: puppeteer runs `new URL('/json/version', browserURL)`, and an absolute path
- * discards the entire query string, so a token on browserURL never reaches the server and
- * would only make puppeteer trip over its own 403.
+ * 这与 Chrome 原生 remote-debugging-port 的 /json/version 是同一水平，不是回归；本方案真正
+ * 的收益在别处：只暴露侧边浏览器那一个 webview，绝不暴露主窗口（见 attachInternal 的
+ * getType() 校验）。把「同用户本机进程」算作可信边界是这里的显式假设。
+ *
+ * The token guards only the WebSocket leg, not HTTP discovery — a design forced by testing:
+ * puppeteer runs `new URL('/json/version', browserURL)`, and an absolute path discards the
+ * entire query string, so a token on browserURL never reaches the server and would only make
+ * puppeteer trip over its own 403.
  *
  * Hence two tiers:
- *  - HTTP discovery (/json/version, /json/list) is unauthenticated. It only reveals the
- *    target's title, URL and a tokened ws address; it grants no control.
- *  - The WebSocket enforces the token. All actual control flows there and is unreachable
- *    without it.
+ *  - HTTP discovery (/json/version, /json/list) is unauthenticated and its response carries
+ *    a tokened ws address.
+ *  - The WebSocket enforces the token; all actual control flows there.
  *
- * The port is a barrier too: listen(0) is OS-assigned, so only processes that inherited
- * the env know it.
+ * ⚠️ Be honest about the threat model: because discovery is unauthenticated and hands the
+ * token out, any process running as the same user can scan this port and retrieve the token
+ * with one GET, then connect. The token therefore **prevents blind connections** (anything
+ * that has not read discovery gets a 403); it is **not proof of identity** and cannot show
+ * the peer is the MCP we spawned. Against local processes the only real barrier is the
+ * ephemeral, OS-assigned listen(0) port.
+ *
+ * This matches Chrome's own remote-debugging-port /json/version and is not a regression. The
+ * real gain of this design lies elsewhere: only the in-app browser webview is exposed and the
+ * main window never is (see the getType() check in attachInternal). Treating same-user local
+ * processes as inside the trust boundary is an explicit assumption here.
  */
 export const startCdpBridge = async (): Promise<CdpBridgeHandle> => {
   const token = randomBytes(24).toString('hex');
