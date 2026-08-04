@@ -54,7 +54,7 @@
 </h3>
 
 <p align="center">
-  <sub><strong>Kimi K3</strong> yayında ve AionUi'de kutudan çıktığı gibi çalışıyor — <a href="https://www.kimi.com/code?aff=aionui" target="_blank">Kimi For Coding planı edinin</a> veya API anahtarı alın (<a href="https://platform.kimi.ai?aff=aionui" target="_blank">Global</a> / <a href="https://platform.kimi.com?aff=aionui" target="_blank">Çin</a>)</sub>
+  <sub><strong>Kimi K3</strong> yayında ve AionUi'de kutudan çıktığı gibi çalışıyor — <a href="https://www.kimi.com/code?aff=aionui" target="_blank">Kimi For Coding planı edinin</a> veya API anahtarı alın (<a href="https://platform.kimi.ai?track_id=track-32e04532b08d460fac729191744fa75c&aff=aionui" target="_blank">Global</a> / <a href="https://platform.kimi.com?track_id=track-98f92981df1c4c61b2c68930ba3ab658&aff=aionui" target="_blank">Çin</a>)</sub>
 </p>
 
 ---

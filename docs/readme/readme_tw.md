@@ -54,7 +54,7 @@
 </h3>
 
 <p align="center">
-  <sub><strong>Kimi K3</strong> 已發布，在 AionUi 中開箱即用——<a href="https://www.kimi.com/code?aff=aionui" target="_blank">訂閱 Kimi For Coding</a>，或取得 API Key（<a href="https://platform.kimi.com?aff=aionui" target="_blank">中國</a> / <a href="https://platform.kimi.ai?aff=aionui" target="_blank">國際</a>）</sub>
+  <sub><strong>Kimi K3</strong> 已發布，在 AionUi 中開箱即用——<a href="https://www.kimi.com/code?aff=aionui" target="_blank">訂閱 Kimi For Coding</a>，或取得 API Key（<a href="https://platform.kimi.com?track_id=track-98f92981df1c4c61b2c68930ba3ab658&aff=aionui" target="_blank">中國</a> / <a href="https://platform.kimi.ai?track_id=track-32e04532b08d460fac729191744fa75c&aff=aionui" target="_blank">國際</a>）</sub>
 </p>
 
 ---
