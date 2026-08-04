@@ -5,7 +5,7 @@ import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { useResizableSplit } from '@/renderer/hooks/ui/useResizableSplit';
 import ChatTitleEditor from '@/renderer/pages/conversation/components/ChatTitleEditor';
 import MobileWorkspaceOverlay from './MobileWorkspaceOverlay';
-import WorkspacePanelHeader, { DesktopWorkspaceToggle } from './WorkspacePanelHeader';
+import WorkspacePanelHeader from './WorkspacePanelHeader';
 import { useContainerWidth } from '@/renderer/pages/conversation/hooks/useContainerWidth';
 import { useLayoutConstraints } from '@/renderer/pages/conversation/hooks/useLayoutConstraints';
 import { useTitleRename } from '@/renderer/pages/conversation/hooks/useTitleRename';
@@ -13,7 +13,6 @@ import { useWorkspaceCollapse } from '@/renderer/pages/conversation/hooks/useWor
 import { PreviewPanel, usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import { dispatchWorkspaceToggleEvent } from '@/renderer/utils/workspace/workspaceEvents';
 import classNames from 'classnames';
-import { isMacEnvironment, isWindowsEnvironment } from '@/renderer/pages/conversation/utils/detectPlatform';
 import {
   DEFAULT_WORKSPACE_PANEL_PX,
   MAX_WORKSPACE_PANEL_PX,
@@ -22,7 +21,6 @@ import {
   calcLayoutMetrics,
 } from '@/renderer/pages/conversation/utils/layoutCalc';
 import { Layout as ArcoLayout } from '@arco-design/web-react';
-import { ExpandLeft, ExpandRight } from '@icon-park/react';
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import './chat-layout.css';
@@ -69,8 +67,6 @@ const ChatLayout: React.FC<{
   const { conversation_id, workspacePath, isTemporaryWorkspace } = props;
   const { backend, presetAssistant, agent_name, workspaceEnabled = true, workspacePreferenceKey } = props;
   const layout = useLayoutContext();
-  const isMacRuntime = isMacEnvironment();
-  const isWindowsRuntime = isWindowsEnvironment();
   const isDesktop = !layout?.isMobile;
   const isMobile = Boolean(layout?.isMobile);
 
@@ -218,19 +214,7 @@ const ChatLayout: React.FC<{
           }
         />
       </FlexFullContainer>
-      <div className='flex items-center gap-12px shrink-0'>
-        {props.headerExtra}
-        {isWindowsRuntime && workspaceEnabled && (
-          <button
-            type='button'
-            className='workspace-header__toggle'
-            aria-label='Toggle workspace'
-            onClick={() => dispatchWorkspaceToggleEvent()}
-          >
-            {rightSiderCollapsed ? <ExpandRight size={16} /> : <ExpandLeft size={16} />}
-          </button>
-        )}
-      </div>
+      <div className='flex items-center gap-12px shrink-0'>{props.headerExtra}</div>
     </ArcoLayout.Header>
   );
 
@@ -330,7 +314,6 @@ const ChatLayout: React.FC<{
               !rightSiderCollapsed &&
               createWorkspaceDragHandle({ className: 'absolute left-0 top-0 bottom-0', style: {}, reverse: true })}
             <WorkspacePanelHeader
-              showToggle={!isMacRuntime && !isWindowsRuntime}
               collapsed={rightSiderCollapsed}
               onToggle={() => dispatchWorkspaceToggleEvent()}
               togglePlacement={layout?.isMobile ? 'left' : 'right'}
@@ -357,11 +340,6 @@ const ChatLayout: React.FC<{
             workspacePath={workspacePath}
             isTemporaryWorkspace={isTemporaryWorkspace}
           />
-        )}
-
-        {/* Desktop expand button when workspace is collapsed */}
-        {!isMacRuntime && !isWindowsRuntime && workspaceEnabled && rightSiderCollapsed && !layout?.isMobile && (
-          <DesktopWorkspaceToggle />
         )}
       </div>
     </ArcoLayout>
