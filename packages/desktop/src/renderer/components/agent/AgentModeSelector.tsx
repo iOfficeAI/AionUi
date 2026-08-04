@@ -26,6 +26,36 @@ const configErrorMessageKey = (error: unknown) => {
   return 'agent.config.failed';
 };
 
+type PermissionTone = 'read' | 'plan' | 'write' | 'full' | 'default';
+
+/**
+ * Keep permission risk legible in the compact composer control without
+ * depending on backend-specific display labels. Backends may localize labels,
+ * but their mode values remain the stable runtime contract.
+ */
+export const getPermissionTone = (mode: string): PermissionTone => {
+  const normalizedMode = mode.trim().toLowerCase();
+  if (normalizedMode.includes('read') || normalizedMode.includes('safe')) return 'read';
+  if (normalizedMode.includes('plan')) return 'plan';
+  if (
+    normalizedMode.includes('full') ||
+    normalizedMode.includes('bypass') ||
+    normalizedMode.includes('yolo') ||
+    normalizedMode.includes('dontask')
+  ) {
+    return 'full';
+  }
+  if (
+    normalizedMode.includes('edit') ||
+    normalizedMode.includes('write') ||
+    normalizedMode.includes('build') ||
+    normalizedMode.includes('accept')
+  ) {
+    return 'write';
+  }
+  return 'default';
+};
+
 export interface AgentModeSelectorProps {
   /** Agent backend type / 代理后端类型 */
   backend?: string;
@@ -262,6 +292,7 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
           ? baseCompactLabel
           : `${compactLabelPrefix} · ${baseCompactLabel}`
         : baseCompactLabel);
+    const permissionTone = getPermissionTone(current_mode);
     if (!canInteract && legacyCompactBehavior) {
       return null;
     }
@@ -270,7 +301,7 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
       <span data-testid='mode-selector' data-current-mode={current_mode} className='inline-flex'>
         <RuntimeSelectorPill
           testId={backend ? `agent-mode-selector-${backend}` : 'agent-mode-selector'}
-          className={`sendbox-model-btn agent-mode-compact-pill ${canInteract ? '' : 'agent-mode-compact-pill--readonly'}`}
+          className={`sendbox-model-btn agent-mode-compact-pill agent-mode-compact-pill--permission-${permissionTone} ${canInteract ? '' : 'agent-mode-compact-pill--readonly'}`}
           label={compactLabel}
           leading={
             <>

@@ -30,7 +30,7 @@
   "errorTitle": "Update failed",
   "installerLastFailure": {
     "title": "Last update did not finish",
-    "description": "AionUi could not be closed during the previous silent update. You can retry the update, view the installer log, or send feedback.",
+    "description": "GEAUi could not be closed during the previous silent update. You can retry the update, view the installer log, or send feedback.",
     "retryUpdate": "Retry update",
     "viewLog": "View log"
   },

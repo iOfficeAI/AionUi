@@ -40,7 +40,7 @@
     "subAgentsPlaceholder": "选择协作助手",
     "confirm": "确认创建",
     "noSupportedAgents": "未检测到可用的助手",
-    "supportedAgentsHint": "目前支持 Claude 和 Aion CLI 助手，更多助手适配中",
+    "supportedAgentsHint": "目前支持 Claude 和 GEA CLI 助手，更多助手适配中",
     "leaderDesc": "接收你的指令，拆解任务并分配给团队中的助手",
     "searchPlaceholder": "搜索",
     "noSearchResults": "未找到结果",

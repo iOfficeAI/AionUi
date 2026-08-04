@@ -1,6 +1,6 @@
 {
-  "pageTitle": "AionUi - 登录",
-  "brand": "AionUi",
+  "pageTitle": "GEAUi - 登录",
+  "brand": "GEAUi",
   "subtitle": "欢迎回来，请登录您的账户",
   "username": "用户名",
   "usernamePlaceholder": "请输入用户名",
@@ -15,6 +15,20 @@
   "languageToggle": "切换语言",
   "footerPrimary": "命令行 AI 的现代化体验",
   "footerSecondary": "高效且优雅",
+  "lark": {
+    "title": "飞书扫码登录",
+    "instruction": "使用手机飞书扫描二维码并确认授权",
+    "loading": "正在生成二维码...",
+    "qrCodeLabel": "飞书登录二维码",
+    "waiting": "等待手机确认...",
+    "expired": "二维码已过期",
+    "refresh": "刷新二维码",
+    "errors": {
+      "networkError": "无法连接 GEA，请重试",
+      "serverError": "GEA 登录服务暂不可用",
+      "invalidResponse": "GEA 返回的登录数据格式异常"
+    }
+  },
   "errors": {
     "empty": "请输入用户名和密码",
     "invalidCredentials": "用户名或密码错误",

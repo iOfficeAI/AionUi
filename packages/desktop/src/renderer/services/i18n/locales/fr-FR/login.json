@@ -1,6 +1,6 @@
 {
-  "pageTitle": "AionUi - Connexion",
-  "brand": "AionUi",
+  "pageTitle": "GEAUi - Connexion",
+  "brand": "GEAUi",
   "subtitle": "Bienvenue, veuillez vous connecter à votre compte",
   "username": "Nom d'utilisateur",
   "usernamePlaceholder": "Entrez votre nom d'utilisateur",
@@ -15,6 +15,20 @@
   "languageToggle": "Changer de langue",
   "footerPrimary": "Transformez votre IA en ligne de commande",
   "footerSecondary": "Moderne et efficace",
+  "lark": {
+    "title": "Se connecter avec Feishu",
+    "instruction": "Ouvrez Feishu sur votre téléphone, scannez le code QR et confirmez l’autorisation",
+    "loading": "Génération du code QR...",
+    "qrCodeLabel": "Code QR de connexion Feishu",
+    "waiting": "En attente de confirmation sur votre téléphone...",
+    "expired": "Ce code QR a expiré",
+    "refresh": "Actualiser le code QR",
+    "errors": {
+      "networkError": "Impossible de se connecter à GEA. Veuillez réessayer",
+      "serverError": "Le service de connexion GEA est temporairement indisponible",
+      "invalidResponse": "GEA a renvoyé une réponse de connexion invalide"
+    }
+  },
   "errors": {
     "empty": "Veuillez entrer un nom d'utilisateur et un mot de passe",
     "invalidCredentials": "Nom d'utilisateur ou mot de passe invalide",

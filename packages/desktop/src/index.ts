@@ -57,6 +57,7 @@ import {
   showOrCreateMainWindow,
 } from './process/utils/mainWindowLifecycle';
 import {
+  createWebHostLarkAuth,
   loadUserWebUIConfig,
   resolveRemoteAccess,
   resolveWebUIPort,
@@ -246,6 +247,9 @@ ipcMain.handle('backend:recover-corrupted-database', async () => {
             cacheDir: sysDir.cacheDir,
             workDir: sysDir.workDir,
             logDir: sysDir.logDir,
+            hubDir: app.isPackaged
+              ? path.join(process.resourcesPath, 'hub')
+              : path.join(app.getAppPath(), 'resources/hub'),
           },
           {
             allowPendingOnHealthTimeout: false,
@@ -695,6 +699,9 @@ const handleAppReady = async (): Promise<void> => {
             cacheDir: sysDir.cacheDir,
             workDir: sysDir.workDir,
             logDir: sysDir.logDir,
+            hubDir: app.isPackaged
+              ? path.join(process.resourcesPath, 'hub')
+              : path.join(app.getAppPath(), 'resources/hub'),
           },
           {
             allowPendingOnHealthTimeout: !(isWebUIMode || isResetPasswordMode),
@@ -835,6 +842,7 @@ const handleAppReady = async (): Promise<void> => {
             return port;
           })(),
         },
+        larkAuth: createWebHostLarkAuth(),
       });
       console.log(`[WebUI] Headless server started (port=${handle.port}, backendPort=${handle.backendPort})`);
     } catch (err) {

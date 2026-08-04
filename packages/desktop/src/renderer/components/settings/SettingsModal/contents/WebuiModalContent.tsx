@@ -6,9 +6,7 @@
 
 import { WEBUI_DEFAULT_PORT } from '@/common/config/constants';
 import { shell, webui, type IWebUIStatus } from '@/common/adapter/ipcBridge';
-import { isBackendHttpError } from '@/common/adapter/httpBridge';
 import { configService } from '@/common/config/configService';
-import AionModal from '@/renderer/components/base/AionModal';
 import AionScrollArea from '@/renderer/components/base/AionScrollArea';
 import { useTalkToButler } from '@/renderer/hooks/assistant/useTalkToButler';
 import ChannelDingTalkLogo from '@/renderer/assets/channel-logos/dingtalk.svg';
@@ -19,9 +17,9 @@ import ChannelTelegramLogo from '@/renderer/assets/channel-logos/telegram.svg';
 import ChannelWecomLogo from '@/renderer/assets/channel-logos/wecom.svg';
 import ChannelWeixinLogo from '@/renderer/assets/channel-logos/weixin.svg';
 import { isElectronDesktop } from '@/renderer/utils/platform';
-import { Button, Form, Input, Message, Switch, Tabs, Tooltip } from '@arco-design/web-react';
-import { CheckOne, Communication, Copy, Earth, EditTwo, Refresh } from '@icon-park/react';
-import React, { Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import { Message, Switch, Tabs, Tooltip } from '@arco-design/web-react';
+import { CheckOne, Communication, Copy, Earth } from '@icon-park/react';
+import React, { Suspense, useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSettingsViewMode } from '../settingsViewContext';
 
@@ -58,10 +56,6 @@ const CHANNEL_LOGOS = [
 ] as const;
 
 const ChannelModalContentLazy = React.lazy(() => import('./channels/ChannelModalContent'));
-const QRCodeSVGLazy = React.lazy(async () => {
-  const mod = await import('qrcode.react');
-  return { default: mod.QRCodeSVG };
-});
 
 const DESKTOP_WEBUI_ENABLED_KEY = 'webui.desktop.enabled';
 const DESKTOP_WEBUI_ALLOW_REMOTE_KEY = 'webui.desktop.allowRemote';
@@ -81,32 +75,14 @@ const WebuiModalContent: React.FC = () => {
   const isDesktop = isElectronDesktop();
 
   const [status, setStatus] = useState<IWebUIStatus | null>(null);
-  const [loading, setLoading] = useState(false);
   const [startLoading, setStartLoading] = useState(false);
   const port = WEBUI_DEFAULT_PORT;
   const [webuiEnabled, setWebuiEnabled] = useState(false);
   const [allowRemotePreference, setAllowRemotePreference] = useState(false);
   const [cachedIP, setCachedIP] = useState<string | null>(null);
-  const [cachedPassword, setCachedPassword] = useState<string | null>(null);
-  // 标记密码是否可以明文显示（首次启动且未复制过）/ Flag for plaintext password display (first startup and not copied)
-  const [canShowPlainPassword, setCanShowPlainPassword] = useState(false);
-  // 设置新密码弹窗 / Set new password modal
-  const [setPasswordModalVisible, setSetPasswordModalVisible] = useState(false);
-  const [passwordLoading, setPasswordLoading] = useState(false);
-  const [setUsernameModalVisible, setSetUsernameModalVisible] = useState(false);
-  const [usernameLoading, setUsernameLoading] = useState(false);
-  const [form] = Form.useForm();
-  const [usernameForm] = Form.useForm();
-
-  // 二维码登录相关状态 / QR code login related state
-  const [qrUrl, setQrUrl] = useState<string | null>(null);
-  const [qrExpiresAt, setQrExpiresAt] = useState<number | null>(null);
-  const [qrLoading, setQrLoading] = useState(false);
-  const qrRefreshTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // 加载状态 / Load status
   const loadStatus = useCallback(async () => {
-    setLoading(true);
     try {
       const savedAllowRemote = configService.get(DESKTOP_WEBUI_ALLOW_REMOTE_KEY) ?? false;
       setAllowRemotePreference(savedAllowRemote === true);
@@ -136,13 +112,6 @@ const WebuiModalContent: React.FC = () => {
             setCachedIP(match[1]);
           }
         }
-        if (statusData.initialPassword) {
-          setCachedPassword(statusData.initialPassword);
-          // 有初始密码说明可以显示明文 / Having initial password means can show plaintext
-          setCanShowPlainPassword(true);
-        }
-        // 注意：如果 running 但没有密码，会在下面的 useEffect 中自动重置
-        // Note: If running but no password, auto-reset will be triggered in the useEffect below
       } else {
         // getStatus failed — fall back to treating server as stopped rather
         // than believing a possibly-stale config flag.
@@ -161,8 +130,6 @@ const WebuiModalContent: React.FC = () => {
     } catch (error) {
       console.error('[WebuiModal] Failed to load WebUI status:', error);
       setWebuiEnabled(false);
-    } finally {
-      setLoading(false);
     }
   }, []);
 
@@ -198,20 +165,6 @@ const WebuiModalContent: React.FC = () => {
     });
     return () => unsubscribe();
   }, []);
-
-  // 注意：不再自动重置密码，用户已有密码存储在数据库中
-  // Note: No longer auto-reset password, user already has password stored in database
-  // 如果用户忘记密码，可以手动点击重置按钮
-  // If user forgets password, they can manually click reset button
-  useEffect(() => {
-    // 仅在组件首次加载且没有显示过密码时，标记为密文状态
-    // Only when component first loads and password hasn't been shown, mark as hidden
-    if (status?.running && !status?.initialPassword && !cachedPassword && !loading) {
-      // 不自动重置，只是确保密码显示为 ******
-      // Don't auto-reset, just ensure password shows as ******
-      setCanShowPlainPassword(false);
-    }
-  }, [status?.running, status?.initialPassword, cachedPassword, loading]);
 
   // 获取当前 IP 地址 / Get current IP
   const getLocalIP = useCallback(() => {
@@ -257,13 +210,7 @@ const WebuiModalContent: React.FC = () => {
         const startResult = await webui.start.invoke({ port, allowRemote: allowRemotePreference });
 
         const responseIP = startResult.lanIP || currentIP;
-        const responsePassword = startResult.initialPassword;
-
         if (responseIP) setCachedIP(responseIP);
-        if (responsePassword) {
-          setCachedPassword(responsePassword);
-          setCanShowPlainPassword(true);
-        }
 
         setStatus((prev) => ({
           ...(prev || { adminUsername: 'admin' }),
@@ -273,7 +220,6 @@ const WebuiModalContent: React.FC = () => {
           localUrl,
           networkUrl: allowRemotePreference && responseIP ? `http://${responseIP}:${port}` : undefined,
           lanIP: responseIP,
-          initialPassword: responsePassword || cachedPassword || prev?.initialPassword,
         }));
 
         await configService.set(DESKTOP_WEBUI_ENABLED_KEY, true);
@@ -321,10 +267,7 @@ const WebuiModalContent: React.FC = () => {
         const startResult = await webui.start.invoke({ port, allowRemote: checked });
 
         const responseIP = startResult.lanIP;
-        const responsePassword = startResult.initialPassword;
-
         if (responseIP) setCachedIP(responseIP);
-        if (responsePassword) setCachedPassword(responsePassword);
 
         setStatus((prev) => ({
           ...(prev || { adminUsername: 'admin' }),
@@ -334,7 +277,6 @@ const WebuiModalContent: React.FC = () => {
           localUrl: `http://localhost:${port}`,
           networkUrl: checked && responseIP ? `http://${responseIP}:${port}` : undefined,
           lanIP: responseIP,
-          initialPassword: responsePassword || cachedPassword || prev?.initialPassword,
         }));
 
         await configService.set(DESKTOP_WEBUI_ALLOW_REMOTE_KEY, checked);
@@ -389,170 +331,6 @@ const WebuiModalContent: React.FC = () => {
     void navigator.clipboard.writeText(text);
     Message.success(t('common.copySuccess'));
   };
-
-  // 打开设置新密码弹窗 / Open set new password modal
-  const handleResetPassword = () => {
-    form.resetFields();
-    setSetPasswordModalVisible(true);
-  };
-
-  const handleResetUsername = () => {
-    usernameForm.setFieldsValue({
-      newUsername: status?.adminUsername || 'admin',
-    });
-    setSetUsernameModalVisible(true);
-  };
-
-  // 提交新密码 / Submit new password
-  const handleSetNewPassword = async () => {
-    try {
-      const values = await form.validate();
-      setPasswordLoading(true);
-
-      // changePassword goes through httpBridge; on 4xx/5xx it throws
-      // BackendHttpError, caught below and translated via errorCodeMap.
-      await webui.changePassword.invoke({
-        newPassword: values.newPassword,
-      });
-      Message.success(t('settings.webui.passwordChanged'));
-      setSetPasswordModalVisible(false);
-      form.resetFields();
-      // 更新缓存的密码为新密码，不再显示明文 / Update cached password, no longer show plaintext
-      setCachedPassword(values.newPassword);
-      setCanShowPlainPassword(false);
-      setStatus((prev) => (prev ? { ...prev, initialPassword: undefined } : null));
-    } catch (error) {
-      console.error('Set new password error:', error);
-      const errorCodeMap: Record<string, string> = {
-        PASSWORD_TOO_SHORT: t('settings.webui.passwordTooShort'),
-        PASSWORD_TOO_LONG: t('settings.webui.passwordTooLong'),
-        PASSWORD_TOO_COMMON: t('settings.webui.passwordTooCommon'),
-      };
-      const rawMsg =
-        isBackendHttpError(error) && error.backendMessage
-          ? error.backendMessage
-          : error instanceof Error
-            ? error.message
-            : '';
-      const codes = rawMsg.split('; ');
-      const translated = codes.map((code) => errorCodeMap[code]).filter(Boolean);
-      Message.error(translated.length > 0 ? translated.join('; ') : rawMsg || t('settings.webui.passwordChangeFailed'));
-    } finally {
-      setPasswordLoading(false);
-    }
-  };
-
-  const handleSetNewUsername = async () => {
-    try {
-      const values = await usernameForm.validate();
-      setUsernameLoading(true);
-
-      // HTTP bridge: changeUsername returns { username: string } directly;
-      // httpBridge throws BackendHttpError on 4xx/5xx — caught below.
-      const result = await webui.changeUsername.invoke({
-        newUsername: values.newUsername,
-      });
-      const nextUsername = result?.username ?? values.newUsername.trim();
-      Message.success(t('settings.webui.usernameChanged'));
-      setSetUsernameModalVisible(false);
-      usernameForm.resetFields();
-      setStatus((prev) => (prev ? { ...prev, adminUsername: nextUsername } : null));
-    } catch (error) {
-      console.error('Set new username error:', error);
-      const fallback = t('settings.webui.usernameChangeFailed');
-      const msg = isBackendHttpError(error) && error.backendMessage ? error.backendMessage : fallback;
-      Message.error(msg);
-    } finally {
-      setUsernameLoading(false);
-    }
-  };
-
-  // 生成二维码 / Generate QR code
-  const generateQRCode = useCallback(async () => {
-    if (!status?.running) return;
-
-    setQrLoading(true);
-    try {
-      // Backend returns only { token, expires_at_ms }; the scannable URL is
-      // composed here from the current status so it points at the right host
-      // (networkUrl for remote-enabled servers, localUrl otherwise).
-      const qrData = await webui.generateQRToken.invoke();
-
-      if (qrData) {
-        const baseUrl =
-          status.allowRemote && status.networkUrl
-            ? status.networkUrl
-            : (status.localUrl ?? `http://localhost:${status.port ?? port}`);
-        setQrUrl(`${baseUrl}/qr-login?token=${qrData.token}`);
-        setQrExpiresAt(qrData.expires_at_ms);
-
-        // 设置自动刷新定时器（4分钟后自动刷新，因为 token 5分钟过期）
-        // Set auto-refresh timer (refresh after 4 minutes, as token expires in 5 minutes)
-        if (qrRefreshTimerRef.current) {
-          clearTimeout(qrRefreshTimerRef.current);
-        }
-        qrRefreshTimerRef.current = setTimeout(
-          () => {
-            void generateQRCode();
-          },
-          4 * 60 * 1000
-        );
-      } else {
-        console.error('Generate QR code failed: no data returned');
-        Message.error(t('settings.webui.qrGenerateFailed'));
-      }
-    } catch (error) {
-      console.error('Generate QR code error:', error);
-      Message.error(t('settings.webui.qrGenerateFailed'));
-    } finally {
-      setQrLoading(false);
-    }
-  }, [status?.running, status?.allowRemote, status?.networkUrl, status?.localUrl, status?.port, port, t]);
-
-  // 当服务器启动且允许远程访问时自动生成二维码 / Auto-generate QR code when server starts and remote access is allowed
-  useEffect(() => {
-    if (status?.running && status.allowRemote && !qrUrl) {
-      void generateQRCode();
-    }
-    // 清理定时器 / Cleanup timer
-    return () => {
-      if (qrRefreshTimerRef.current) {
-        clearTimeout(qrRefreshTimerRef.current);
-      }
-    };
-  }, [status?.allowRemote, status?.running, generateQRCode, qrUrl]);
-
-  // 服务器停止或关闭远程访问时清除二维码 / Clear QR code when server stops or remote access is disabled
-  useEffect(() => {
-    if (!status?.running || !status.allowRemote) {
-      setQrUrl(null);
-      setQrExpiresAt(null);
-      if (qrRefreshTimerRef.current) {
-        clearTimeout(qrRefreshTimerRef.current);
-        qrRefreshTimerRef.current = null;
-      }
-    }
-  }, [status?.allowRemote, status?.running]);
-
-  // 格式化过期时间 / Format expiration time
-  const formatExpiresAt = (timestamp: number) => {
-    const date = new Date(timestamp);
-    return date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
-  };
-
-  // 获取实际密码 / Get actual password
-  const actualPassword = status?.initialPassword || cachedPassword;
-  // 获取显示的密码 / Get display password
-  // 密码默认显示 ***，只在首次启动时显示明文 / Password shows *** by default, only show plaintext on first startup
-  // 重置中显示加载状态 / Show loading state when resetting
-  const getDisplayPassword = () => {
-    // 可以显示明文且有密码时显示明文 / Show plaintext when allowed and has password
-    if (canShowPlainPassword && actualPassword) return actualPassword;
-    // 否则显示 ****** / Otherwise show ******
-    return t('settings.webui.passwordHidden');
-  };
-  const displayPassword = getDisplayPassword();
-  const displayUsername = status?.adminUsername || 'admin';
 
   // 浏览器端只显示 Channels 配置，不显示 WebUI 服务配置 / In browser mode, only show Channels config, not WebUI service config
   if (!isDesktop) {
@@ -668,7 +446,7 @@ const WebuiModalContent: React.FC = () => {
                     void talkToButler({
                       prompt: t('settings.talkToButler.prompt.setupRemote', {
                         defaultValue:
-                          'Help me set up remote access so I can open AionUi from my phone or over the internet.',
+                          'Help me set up remote access so I can open GEAUi from my phone or over the internet.',
                       }),
                     })
                   }
@@ -680,121 +458,6 @@ const WebuiModalContent: React.FC = () => {
           >
             <Switch checked={allowRemotePreference} onChange={handleAllowRemoteChange} />
           </PreferenceRow>
-        </div>
-
-        {/* 登录信息卡片 / Login Info Card */}
-        <div className='px-[12px] md:px-[28px] py-14px bg-2 rd-16px'>
-          <div className='text-14px font-500 mb-8px text-t-primary'>{t('settings.webui.loginInfo')}</div>
-
-          {/* 账号 / Account */}
-          <div className='flex items-center justify-between gap-12px py-12px'>
-            <span className='text-14px text-t-secondary shrink-0'>{t('settings.webui.username')}:</span>
-            <div className='inline-flex items-center gap-8px rd-100px border border-line bg-fill-1 px-10px py-4px min-w-0'>
-              <span className='text-14px text-t-primary truncate'>{displayUsername}</span>
-              <Tooltip content={t('common.copy')}>
-                <Button
-                  type='text'
-                  size='mini'
-                  className='rd-100px !px-6px inline-flex items-center !h-24px'
-                  onClick={() => handleCopy(displayUsername)}
-                >
-                  <Copy size={14} />
-                </Button>
-              </Tooltip>
-              <Tooltip content={t('settings.webui.editUsernameTooltip')}>
-                <Button
-                  type='text'
-                  size='mini'
-                  className='rd-100px !px-6px inline-flex items-center !h-24px'
-                  onClick={handleResetUsername}
-                >
-                  <EditTwo size={14} />
-                </Button>
-              </Tooltip>
-            </div>
-          </div>
-
-          {/* 密码 / Password */}
-          <div className='flex items-center justify-between gap-12px py-12px'>
-            <span className='text-14px text-t-secondary shrink-0'>{t('settings.webui.initialPassword')}:</span>
-            <div className='inline-flex items-center gap-8px rd-100px border border-line bg-fill-1 px-10px py-4px min-w-0'>
-              <span className='text-14px text-t-primary truncate'>{displayPassword}</span>
-              <Tooltip content={t('settings.webui.resetPasswordTooltip')}>
-                <Button
-                  type='text'
-                  size='mini'
-                  className='rd-100px !px-6px inline-flex items-center !h-24px'
-                  onClick={handleResetPassword}
-                >
-                  <EditTwo size={14} />
-                </Button>
-              </Tooltip>
-            </div>
-          </div>
-
-          {/* 二维码登录（仅服务器运行且允许远程访问时显示）/ QR Code Login (only when server running and remote access allowed) */}
-          {status?.running && status.allowRemote && (
-            <>
-              <div className='border-t border-line my-12px' />
-              <div className='text-14px font-500 mb-4px text-t-primary'>{t('settings.webui.qrLogin')}</div>
-              <div className='text-12px text-t-tertiary mb-12px'>{t('settings.webui.qrLoginHint')}</div>
-
-              <div className='flex flex-col items-center gap-12px'>
-                {/* 二维码显示区域 / QR Code display area */}
-                <div className='p-12px bg-fill-1 border border-line rd-10px'>
-                  {qrLoading ? (
-                    <div className='w-140px h-140px flex items-center justify-center'>
-                      <span className='text-14px text-t-tertiary'>{t('common.loading')}</span>
-                    </div>
-                  ) : qrUrl ? (
-                    <div className='p-8px bg-white rd-8px'>
-                      <Suspense
-                        fallback={
-                          <div className='w-140px h-140px flex items-center justify-center'>
-                            <span className='text-14px text-t-tertiary'>{t('common.loading')}</span>
-                          </div>
-                        }
-                      >
-                        <QRCodeSVGLazy value={qrUrl} size={140} level='M' />
-                      </Suspense>
-                    </div>
-                  ) : (
-                    <div className='w-140px h-140px flex items-center justify-center'>
-                      <span className='text-14px text-t-tertiary'>{t('settings.webui.qrGenerateFailed')}</span>
-                    </div>
-                  )}
-                </div>
-
-                {/* 过期时间、复制链接和刷新按钮 / Expiration time, copy link and refresh button */}
-                <div className='flex items-center gap-8px'>
-                  {qrExpiresAt && (
-                    <span className='text-12px text-t-tertiary'>
-                      {t('settings.webui.qrExpires', { time: formatExpiresAt(qrExpiresAt) })}
-                    </span>
-                  )}
-                  {qrUrl && (
-                    <Tooltip content={t('settings.webui.copyQrLink')}>
-                      <button
-                        className='p-4px bg-transparent border-none text-t-tertiary hover:text-t-primary cursor-pointer'
-                        onClick={() => handleCopy(qrUrl)}
-                      >
-                        <Copy size={16} />
-                      </button>
-                    </Tooltip>
-                  )}
-                  <Tooltip content={t('settings.webui.refreshQr')}>
-                    <button
-                      className='p-4px bg-transparent border-none text-t-tertiary hover:text-t-primary cursor-pointer'
-                      onClick={() => void generateQRCode()}
-                      disabled={qrLoading}
-                    >
-                      <Refresh size={16} className={qrLoading ? 'animate-spin' : ''} />
-                    </button>
-                  </Tooltip>
-                </div>
-              </div>
-            </>
-          )}
         </div>
       </div>
     </AionScrollArea>
@@ -857,99 +520,6 @@ const WebuiModalContent: React.FC = () => {
           </Suspense>
         </div>
       )}
-
-      <AionModal
-        visible={setUsernameModalVisible}
-        onCancel={() => setSetUsernameModalVisible(false)}
-        onOk={handleSetNewUsername}
-        confirmLoading={usernameLoading}
-        title={t('settings.webui.setNewUsername')}
-        size='small'
-      >
-        <Form form={usernameForm} layout='vertical' className='pt-16px'>
-          <Form.Item
-            label={t('settings.webui.newUsername')}
-            field='newUsername'
-            rules={[
-              { required: true, message: t('settings.webui.newUsernameRequired') },
-              {
-                validator: (value, callback) => {
-                  if (typeof value !== 'string') {
-                    callback();
-                    return;
-                  }
-
-                  const trimmed = value.trim();
-                  if (trimmed.length < 3) {
-                    callback(t('settings.webui.usernameMinLength'));
-                    return;
-                  }
-
-                  if (trimmed.length > 32) {
-                    callback(t('settings.webui.usernameMaxLength'));
-                    return;
-                  }
-
-                  if (!/^[a-zA-Z0-9_-]+$/.test(trimmed)) {
-                    callback(t('settings.webui.usernameFormatError'));
-                    return;
-                  }
-
-                  if (/^[_-]|[_-]$/.test(trimmed)) {
-                    callback(t('settings.webui.usernameEdgeError'));
-                    return;
-                  }
-
-                  callback();
-                },
-              },
-            ]}
-          >
-            <Input placeholder={t('settings.webui.newUsernamePlaceholder')} />
-          </Form.Item>
-        </Form>
-      </AionModal>
-
-      {/* 设置新密码弹窗 / Set New Password Modal */}
-      <AionModal
-        visible={setPasswordModalVisible}
-        onCancel={() => setSetPasswordModalVisible(false)}
-        onOk={handleSetNewPassword}
-        confirmLoading={passwordLoading}
-        title={t('settings.webui.setNewPassword')}
-        size='small'
-      >
-        <Form form={form} layout='vertical' className='pt-16px'>
-          <Form.Item
-            label={t('settings.webui.newPassword')}
-            field='newPassword'
-            rules={[
-              { required: true, message: t('settings.webui.newPasswordRequired') },
-              { minLength: 8, message: t('settings.webui.passwordMinLength') },
-            ]}
-          >
-            <Input.Password placeholder={t('settings.webui.newPasswordPlaceholder')} />
-          </Form.Item>
-          <Form.Item
-            label={t('settings.webui.confirmPassword')}
-            field='confirmPassword'
-            rules={[
-              { required: true, message: t('settings.webui.confirmPasswordRequired') },
-              {
-                validator: (value, callback) => {
-                  if (value !== form.getFieldValue('newPassword')) {
-                    callback(t('settings.webui.passwordMismatch'));
-                  } else {
-                    callback();
-                  }
-                },
-              },
-            ]}
-          >
-            <Input.Password placeholder={t('settings.webui.confirmPasswordPlaceholder')} />
-          </Form.Item>
-        </Form>
-      </AionModal>
     </div>
   );
 };

@@ -4,6 +4,7 @@ import { isBackendHttpError } from '@/common/adapter/httpBridge';
 import { isSideQuestionSupported } from '@/common/chat/sideQuestion';
 import { parseError, uuid } from '@/common/utils';
 import AgentModeSelector from '@/renderer/components/agent/AgentModeSelector';
+import AcpModelSelector from '@/renderer/components/agent/AcpModelSelector';
 import ContextUsageIndicator from '@/renderer/components/agent/ContextUsageIndicator';
 import CommandQueuePanel from '@/renderer/components/chat/CommandQueuePanel';
 import MobileActionSheet, {
@@ -12,6 +13,7 @@ import MobileActionSheet, {
   useAttachEntry,
 } from '@/renderer/components/chat/MobileActionSheet';
 import SendBox from '@/renderer/components/chat/SendBox';
+import { createConversationComposerControlSlots } from '@/renderer/components/chat/SendBox/composerControls';
 import ThoughtDisplay from '@/renderer/components/chat/ThoughtDisplay';
 import FileAttachButton from '@/renderer/components/media/FileAttachButton';
 import FilePreview from '@/renderer/components/media/FilePreview';
@@ -110,7 +112,17 @@ const AcpSendBox: React.FC<{
   messageState: UseAcpMessageReturn;
   teamSendMessage?: (payload: { input: string; files: ChatFileRef[] }) => Promise<void>;
   teamRuntime?: TeamSendBoxRuntime;
-}> = ({ conversation_id, backend, session_mode, agent_name, messageState, teamSendMessage, teamRuntime }) => {
+  hideComposerModelSelector?: boolean;
+}> = ({
+  conversation_id,
+  backend,
+  session_mode,
+  agent_name,
+  messageState,
+  teamSendMessage,
+  teamRuntime,
+  hideComposerModelSelector,
+}) => {
   const {
     aiProcessing,
     setAiProcessing,
@@ -388,7 +400,6 @@ Please check your local CLI tool authentication status`,
     enqueue,
     remove,
     prioritize,
-    sendNow,
     clear,
     reorder,
     toggleMode,
@@ -675,6 +686,44 @@ Please check your local CLI tool authentication status`,
     [effectiveHandleStop, prioritize]
   );
   const sendBoxWidthClass = getChatSurfaceWidthClass(Boolean(teamPermission));
+  const composerControlSlots = createConversationComposerControlSlots({
+    attachment: (
+      <FileAttachButton
+        openFileSelector={openFileSelector}
+        onLocalFilesAdded={handleFilesAdded}
+        loadedMcpStatuses={loadedMcpStatuses}
+      />
+    ),
+    permission: showModeSelector ? (
+      <AgentModeSelector
+        backend={backend}
+        conversation_id={conversation_id}
+        compact
+        initialMode={session_mode}
+        compactLeadingIcon={<Shield theme='outline' size='14' fill={iconColors.secondary} />}
+        modeLabelFormatter={(mode) => t(`agentMode.${mode.value}`, { defaultValue: mode.label })}
+        compactLabelPrefix={t('agentMode.permission')}
+        hideCompactLabelPrefixOnMobile
+        onModeChanged={isLeaderInTeam ? teamPermission?.propagateMode : undefined}
+        beforeRuntimeSync={prepareRuntimeConfig}
+        beforeRuntimeSet={teamPermission?.warmupSession}
+        loadConfigOptions={teamPermission?.loadConfigOptions}
+      />
+    ) : null,
+    usage: tokenUsage ? (
+      <ContextUsageIndicator tokenUsage={tokenUsage} context_limit={context_limit} size={18} />
+    ) : null,
+    model: hideComposerModelSelector ? null : (
+      <AcpModelSelector
+        conversation_id={conversation_id}
+        backend={backend}
+        placement='composer'
+        prepareRuntime={prepareRuntimeConfig}
+        prepareSetRuntime={teamPermission?.warmupSession}
+        loadConfigOptions={teamPermission?.loadConfigOptions}
+      />
+    ),
+  });
 
   return (
     <div className={`${sendBoxWidthClass} flex flex-col mt-auto mb-16px`}>
@@ -724,33 +773,7 @@ Please check your local CLI tool authentication status`,
         supportedExts={allSupportedExts}
         defaultMultiLine={!isMobile}
         lockMultiLine={!isMobile}
-        tools={
-          <FileAttachButton
-            openFileSelector={openFileSelector}
-            onLocalFilesAdded={handleFilesAdded}
-            loadedMcpStatuses={loadedMcpStatuses}
-          />
-        }
-        rightTools={
-          <div className='flex items-center gap-8px min-w-0'>
-            {showModeSelector && (
-              <AgentModeSelector
-                backend={backend}
-                conversation_id={conversation_id}
-                compact
-                initialMode={session_mode}
-                compactLeadingIcon={<Shield theme='outline' size='14' fill={iconColors.secondary} />}
-                modeLabelFormatter={(mode) => t(`agentMode.${mode.value}`, { defaultValue: mode.label })}
-                compactLabelPrefix={t('agentMode.permission')}
-                hideCompactLabelPrefixOnMobile
-                onModeChanged={isLeaderInTeam ? teamPermission?.propagateMode : undefined}
-                beforeRuntimeSync={prepareRuntimeConfig}
-                beforeRuntimeSet={teamPermission?.warmupSession}
-                loadConfigOptions={teamPermission?.loadConfigOptions}
-              />
-            )}
-          </div>
-        }
+        {...composerControlSlots}
         prefix={
           <>
             {uploadFile.length > 0 && (
@@ -795,15 +818,6 @@ Please check your local CLI tool authentication status`,
         onSlashBuiltinCommand={onSlashBuiltinCommand}
         allowSendWhileLoading
         compactActions={false}
-        sendButtonPrefix={
-          // Agents reporting a window size (UsageUpdate.size) get a progress
-          // ring; agents reporting only a token count get a hollow ring whose
-          // popover shows the raw count — never a percentage against a
-          // guessed denominator. No usage report at all → nothing.
-          tokenUsage ? (
-            <ContextUsageIndicator tokenUsage={tokenUsage} context_limit={context_limit} size={24} />
-          ) : undefined
-        }
       ></SendBox>
       {isMobile && (
         <>

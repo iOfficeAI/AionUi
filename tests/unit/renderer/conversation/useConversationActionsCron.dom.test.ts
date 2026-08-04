@@ -8,8 +8,10 @@ import type { TChatConversation } from '@/common/config/storage';
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { navigateMock, requestPrefillMock, routeState } = vi.hoisted(() => ({
+const { emitterEmitMock, navigateMock, removeConversationMock, requestPrefillMock, routeState } = vi.hoisted(() => ({
+  emitterEmitMock: vi.fn(),
   navigateMock: vi.fn(),
+  removeConversationMock: vi.fn(),
   requestPrefillMock: vi.fn(),
   routeState: { id: 'current-conversation' as string | undefined },
 }));
@@ -19,6 +21,18 @@ vi.mock('react-i18next', () => ({
     t: (key: string) => (key === 'cron.status.defaultPrompt' ? 'Create with /cron in AionUi' : key),
   }),
 }));
+
+vi.mock('@arco-design/web-react', async () => {
+  const actual = await vi.importActual<typeof import('@arco-design/web-react')>('@arco-design/web-react');
+  return {
+    ...actual,
+    Message: {
+      error: vi.fn(),
+      success: vi.fn(),
+      warning: vi.fn(),
+    },
+  };
+});
 
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
@@ -32,7 +46,7 @@ vi.mock('react-router-dom', async () => {
 vi.mock('@/common', () => ({
   ipcBridge: {
     conversation: {
-      remove: { invoke: vi.fn() },
+      remove: { invoke: removeConversationMock },
       update: { invoke: vi.fn() },
     },
   },
@@ -47,7 +61,7 @@ vi.mock('@/renderer/pages/conversation/utils/conversationCache', () => ({
 }));
 
 vi.mock('@/renderer/utils/emitter', () => ({
-  emitter: { emit: vi.fn() },
+  emitter: { emit: emitterEmitMock },
 }));
 
 vi.mock('@/renderer/utils/ui/focus', () => ({
@@ -124,4 +138,35 @@ describe('create scheduled task conversation action', () => {
       });
     }
   );
+});
+
+describe('delete conversation action', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    routeState.id = 'current-conversation';
+  });
+
+  it('opens and cancels the controlled confirmation dialog', () => {
+    const { result } = renderActions();
+
+    act(() => result.current.handleDeleteClick('conversation-to-delete'));
+    expect(result.current.deleteConversationId).toBe('conversation-to-delete');
+
+    act(() => result.current.handleDeleteCancel());
+    expect(result.current.deleteConversationId).toBeNull();
+  });
+
+  it('deletes the selected conversation and closes the dialog', async () => {
+    removeConversationMock.mockResolvedValue(true);
+    const { result } = renderActions();
+
+    act(() => result.current.handleDeleteClick('conversation-to-delete'));
+    await act(async () => result.current.handleDeleteConfirm());
+
+    expect(removeConversationMock).toHaveBeenCalledWith({ id: 'conversation-to-delete' });
+    expect(emitterEmitMock).toHaveBeenCalledWith('conversation.deleted', 'conversation-to-delete');
+    expect(emitterEmitMock).toHaveBeenCalledWith('chat.history.refresh');
+    expect(result.current.deleteConversationId).toBeNull();
+    expect(result.current.deleteConversationLoading).toBe(false);
+  });
 });

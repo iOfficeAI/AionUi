@@ -35,13 +35,20 @@ const AionrsModelSelector: React.FC<{
   /** Kept for call-site compatibility; the two-level submenu no longer gates on set status here. */
   setStatus?: AcpConfigSetStatus;
   onSetThoughtLevel?: (optionId: string, value: string) => Promise<unknown>;
-}> = ({ selection, disabled = false, thoughtLevel = null, onSetThoughtLevel }) => {
+  placement?: 'header' | 'composer';
+}> = ({ selection, disabled = false, thoughtLevel = null, onSetThoughtLevel, placement = 'header' }) => {
   const { t } = useTranslation();
   const { isOpen: isPreviewOpen } = usePreviewContext();
   const layout = useLayoutContext();
   const compact = isPreviewOpen || layout?.isMobile;
   const isMobileHeaderCompact = Boolean(layout?.isMobile);
   const defaultModelLabel = t('common.defaultModel');
+  const selectorClassName = classNames(
+    'sendbox-model-btn',
+    placement === 'composer' ? 'agent-mode-compact-pill composer-model-selector' : 'header-model-btn',
+    compact && '!max-w-[120px]',
+    isMobileHeaderCompact && '!max-w-[160px]'
+  );
 
   const current_model = selection?.current_model;
 
@@ -50,16 +57,7 @@ const AionrsModelSelector: React.FC<{
   if (disabled || !selection) {
     return (
       <Tooltip content={t('conversation.welcome.modelSwitchNotSupported')} position='top'>
-        <Button
-          className={classNames(
-            'sendbox-model-btn header-model-btn',
-            compact && '!max-w-[120px]',
-            isMobileHeaderCompact && '!max-w-[160px]'
-          )}
-          shape='round'
-          size='small'
-          style={{ cursor: 'default' }}
-        >
+        <Button className={selectorClassName} shape='round' size='small' style={{ cursor: 'default' }}>
           <span className='flex items-center gap-6px min-w-0'>
             {renderLogo()}
             <span className={compact ? 'block truncate' : undefined}>{t('conversation.welcome.useCliModel')}</span>
@@ -161,16 +159,7 @@ const AionrsModelSelector: React.FC<{
         </Menu>
       }
     >
-      <Button
-        data-testid='aionrs-model-selector'
-        className={classNames(
-          'sendbox-model-btn header-model-btn',
-          compact && '!max-w-[120px]',
-          isMobileHeaderCompact && '!max-w-[160px]'
-        )}
-        shape='round'
-        size='small'
-      >
+      <Button data-testid='aionrs-model-selector' className={selectorClassName} shape='round' size='small'>
         <span className='flex items-center gap-6px min-w-0'>
           {renderLogo()}
           <span className={compact ? 'block truncate' : undefined}>{combinedLabel}</span>

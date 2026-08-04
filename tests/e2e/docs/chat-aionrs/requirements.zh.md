@@ -1,4 +1,4 @@
-# Aion CLI (aionrs) E2E 测试需求
+# GEA CLI (aionrs) E2E 测试需求
 
 **版本**: v1.1（修订版）
 **作者**: chat-aionrs-analyst

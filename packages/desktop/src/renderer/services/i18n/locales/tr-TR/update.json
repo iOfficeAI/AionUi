@@ -30,7 +30,7 @@
   "errorTitle": "Güncelleme başarısız",
   "installerLastFailure": {
     "title": "Son güncelleme tamamlanmadı",
-    "description": "Önceki sessiz güncelleme sırasında AionUi kapatılamadı. Güncellemeyi yeniden deneyebilir, kurulum günlüğünü görüntüleyebilir veya geri bildirim gönderebilirsiniz.",
+    "description": "Önceki sessiz güncelleme sırasında GEAUi kapatılamadı. Güncellemeyi yeniden deneyebilir, kurulum günlüğünü görüntüleyebilir veya geri bildirim gönderebilirsiniz.",
     "retryUpdate": "Güncellemeyi yeniden dene",
     "viewLog": "Günlüğü görüntüle"
   },

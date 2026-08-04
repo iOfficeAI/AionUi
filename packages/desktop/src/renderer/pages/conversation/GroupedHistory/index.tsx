@@ -21,6 +21,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import WorkspaceCollapse from '../components/WorkspaceCollapse';
 import ConversationRow from './ConversationRow';
 import SortableConversationRow from './SortableConversationRow';
+import ConversationDeleteModal from './components/ConversationDeleteModal';
 import { useBatchSelection } from './hooks/useBatchSelection';
 import { useConversationActions } from './hooks/useConversationActions';
 import { useConversations } from './hooks/useConversations';
@@ -105,9 +106,13 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
     renameModalName,
     setRenameModalName,
     renameLoading,
+    deleteConversationId,
+    deleteConversationLoading,
     dropdownVisibleId,
     handleConversationClick,
     handleDeleteClick,
+    handleDeleteCancel,
+    handleDeleteConfirm,
     handleBatchDelete,
     handleEditStart,
     handleRenameConfirm,
@@ -254,6 +259,13 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
           allowClear
         />
       </Modal>
+
+      <ConversationDeleteModal
+        visible={deleteConversationId !== null}
+        loading={deleteConversationLoading}
+        onCancel={handleDeleteCancel}
+        onConfirm={handleDeleteConfirm}
+      />
 
       {batchMode && !collapsed && (
         <div className='px-12px pb-8px pt-2px sticky top-0 z-20 bg-[var(--bg-2)]'>

@@ -39,6 +39,7 @@ const AionrsChat: React.FC<{
   agent_name?: string;
   teamSendMessage?: (payload: { input: string; files: ChatFileRef[] }) => Promise<void>;
   teamRuntime?: TeamSendBoxRuntime;
+  hideComposerModelSelector?: boolean;
   assistantId?: string;
 }> = ({
   conversation_id,
@@ -53,6 +54,7 @@ const AionrsChat: React.FC<{
   agent_name,
   teamSendMessage,
   teamRuntime,
+  hideComposerModelSelector,
   assistantId,
 }) => {
   useMessageLstCache(conversation_id);
@@ -88,6 +90,7 @@ const AionrsChat: React.FC<{
             agent_name={agent_name}
             teamSendMessage={teamSendMessage}
             teamRuntime={teamRuntime}
+            hideComposerModelSelector={hideComposerModelSelector}
           />
         </div>
       </ConversationArtifactProvider>

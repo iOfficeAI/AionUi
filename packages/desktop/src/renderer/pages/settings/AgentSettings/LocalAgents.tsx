@@ -17,6 +17,7 @@ import TalkToButlerButton from '@/renderer/components/base/TalkToButlerButton';
 import React, { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import AgentCard from './AgentCard';
+import { AgentHubModal } from './AgentHubModal';
 import { isDeprecatedRuntimeAgentType } from '@/renderer/utils/model/agentTypeSupportPolicy';
 import InlineAgentEditor, { type CustomAgentDraft } from './InlineAgentEditor';
 import { getBoundAssistants, useAssistantsForAgents } from './BoundAssistants';
@@ -38,6 +39,7 @@ const LocalAgents: React.FC = () => {
   const [testingAgentId, setTestingAgentId] = useState<string | null>(null);
   const [agentFilter, setAgentFilter] = useState<AgentAvailabilityFilter>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [hubModalVisible, setHubModalVisible] = useState(false);
   const { assistants } = useAssistantsForAgents();
 
   // Management view: includes user-disabled custom agents so they stay
@@ -239,6 +241,14 @@ const LocalAgents: React.FC = () => {
                 onChange={setSearchQuery}
               />
             )}
+            <Button
+              type='secondary'
+              size='small'
+              data-testid='btn-open-agent-hub'
+              onClick={() => setHubModalVisible(true)}
+            >
+              {t('settings.agentManagement.installFromMarket')}
+            </Button>
             <TalkToButlerButton
               label={t('settings.agentManagement.addCustomAgent', { defaultValue: 'Add custom Agent' })}
               chatLabel={t('settings.talkToButler.addViaChat', { defaultValue: 'Add via chat' })}
@@ -377,6 +387,8 @@ const LocalAgents: React.FC = () => {
           ) : null}
         </div>
       </div>
+
+      {hubModalVisible ? <AgentHubModal visible={hubModalVisible} onCancel={() => setHubModalVisible(false)} /> : null}
     </div>
   );
 };

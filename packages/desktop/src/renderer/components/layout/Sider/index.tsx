@@ -1,5 +1,5 @@
 import classNames from 'classnames';
-import React, { Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import React, { Suspense, useCallback, useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { usePreviewContext } from '@renderer/pages/conversation/Preview/context/PreviewContext';
 import { cleanupSiderTooltips, getSiderTooltipProps } from '@renderer/utils/ui/siderTooltip';
@@ -7,6 +7,10 @@ import { useAuth } from '@renderer/hooks/context/AuthContext';
 import { useLayoutContext } from '@renderer/hooks/context/LayoutContext';
 import { blurActiveElement } from '@renderer/utils/ui/focus';
 import { useThemeContext } from '@renderer/hooks/context/ThemeContext';
+import { isElectronDesktop } from '@renderer/utils/platform';
+import { WEBUI_DEFAULT_PORT } from '@/common/config/constants';
+import { shell, webui } from '@/common/adapter/ipcBridge';
+import { configService } from '@/common/config/configService';
 import { SiderToolbar, SiderSearchEntry, SiderScheduledEntry, SiderAssistantEntry } from './SiderNav';
 import SiderFooter from './SiderFooter';
 import TeamSiderSection from './TeamSiderSection';
@@ -14,6 +18,23 @@ import siderStyles from './Sider.module.css';
 
 const WorkspaceGroupedHistory = React.lazy(() => import('@renderer/pages/conversation/GroupedHistory'));
 const SettingsSider = React.lazy(() => import('@renderer/pages/settings/components/SettingsSider'));
+
+const DESKTOP_WEBUI_ENABLED_KEY = 'webui.desktop.enabled';
+const DESKTOP_WEBUI_ALLOW_REMOTE_KEY = 'webui.desktop.allowRemote';
+
+export async function openDesktopWebui(): Promise<void> {
+  const status = await webui.getStatus.invoke();
+  let port = status?.port ?? WEBUI_DEFAULT_PORT;
+
+  if (!status?.running) {
+    const allowRemote = configService.get(DESKTOP_WEBUI_ALLOW_REMOTE_KEY) === true;
+    const startResult = await webui.start.invoke({ port: WEBUI_DEFAULT_PORT, allowRemote });
+    port = startResult.port;
+    await configService.set(DESKTOP_WEBUI_ENABLED_KEY, true);
+  }
+
+  await shell.openExternal.invoke(`http://localhost:${port}`);
+}
 
 interface SiderProps {
   onSessionClick?: () => void;
@@ -24,23 +45,15 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
   const layout = useLayoutContext();
   const isMobile = layout?.isMobile ?? false;
   const location = useLocation();
-  const { pathname, search, hash } = location;
+  const { pathname } = location;
 
   const navigate = useNavigate();
   const { closePreview } = usePreviewContext();
-  const { logout, status } = useAuth();
+  const { logout, status, user } = useAuth();
   const { theme, setTheme } = useThemeContext();
   const [isBatchMode, setIsBatchMode] = useState(false);
   const isSettings = pathname.startsWith('/settings');
-  const lastNonSettingsPathRef = useRef('/guid');
-  const showLogout =
-    typeof window !== 'undefined' && !(window as { electronAPI?: unknown }).electronAPI && status === 'authenticated';
-
-  useEffect(() => {
-    if (!pathname.startsWith('/settings')) {
-      lastNonSettingsPathRef.current = `${pathname}${search}${hash}`;
-    }
-  }, [pathname, search, hash]);
+  const showAccount = status === 'authenticated';
 
   const handleNewChat = () => {
     cleanupSiderTooltips();
@@ -58,12 +71,7 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
   const handleSettingsClick = () => {
     cleanupSiderTooltips();
     blurActiveElement();
-    if (isSettings) {
-      const target = lastNonSettingsPathRef.current || '/guid';
-      Promise.resolve(navigate(target)).catch((error) => {
-        console.error('Navigation failed:', error);
-      });
-    } else {
+    if (!isSettings) {
       Promise.resolve(navigate('/settings/agent')).catch((error) => {
         console.error('Navigation failed:', error);
       });
@@ -71,6 +79,14 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
     if (onSessionClick) {
       onSessionClick();
     }
+  };
+
+  const handleWebuiClick = () => {
+    cleanupSiderTooltips();
+    blurActiveElement();
+    void openDesktopWebui().catch((error) => {
+      console.error('Failed to open WebUI:', error);
+    });
   };
 
   const handleConversationSelect = () => {
@@ -129,7 +145,7 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
   }, [closePreview, logout, onSessionClick]);
 
   useEffect(() => {
-    if (!showLogout) return;
+    if (!showAccount) return;
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if ((event.metaKey || event.ctrlKey) && event.shiftKey && event.key.toLowerCase() === 'l') {
@@ -142,7 +158,7 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [handleLogout, showLogout]);
+  }, [handleLogout, showAccount]);
 
   const tooltipEnabled = collapsed && !isMobile;
   const siderTooltipProps = getSiderTooltipProps(tooltipEnabled);
@@ -236,8 +252,10 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
         theme={theme}
         siderTooltipProps={siderTooltipProps}
         onSettingsClick={handleSettingsClick}
+        onWebuiClick={isElectronDesktop() ? handleWebuiClick : undefined}
         onThemeToggle={handleQuickThemeToggle}
-        showLogout={showLogout}
+        showAccount={showAccount}
+        user={user}
         onLogoutClick={handleLogout}
       />
     </div>

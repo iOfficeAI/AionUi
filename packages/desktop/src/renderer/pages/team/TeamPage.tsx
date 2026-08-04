@@ -221,6 +221,7 @@ const AssistantChatSlot: React.FC<{
             teamRunView={teamRunView}
             onTeamRunAck={onTeamRunAck}
             onRunStateStale={() => onRunStateStale('pause.stale')}
+            hideComposerModelSelector={!isMobile}
           />
         ) : (
           <div className='flex flex-1 items-center justify-center'>

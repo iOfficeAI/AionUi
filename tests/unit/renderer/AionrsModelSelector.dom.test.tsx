@@ -161,6 +161,16 @@ describe('AionrsModelSelector runtime options', () => {
     expect(screen.getByTestId('aionrs-model-selector')).toHaveTextContent('gpt-5.2 · High');
   });
 
+  it('uses the shared composer styling when rendered in the send box', () => {
+    render(<AionrsModelSelector selection={makeSelection()} placement='composer' />);
+
+    expect(screen.getByTestId('aionrs-model-selector')).toHaveClass(
+      'agent-mode-compact-pill',
+      'composer-model-selector'
+    );
+    expect(screen.getByTestId('aionrs-model-selector')).not.toHaveClass('header-model-btn');
+  });
+
   it('shows the model submenu before the thought level submenu, each with its current value', () => {
     render(
       <AionrsModelSelector

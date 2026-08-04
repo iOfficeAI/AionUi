@@ -1,6 +1,6 @@
 {
-  "pageTitle": "AionUi - 로그인",
-  "brand": "AionUi",
+  "pageTitle": "GEAUi - 로그인",
+  "brand": "GEAUi",
   "subtitle": "다시 오신 것을 환영합니다. 계정에 로그인하세요",
   "username": "사용자 이름",
   "usernamePlaceholder": "사용자 이름을 입력하세요",
@@ -15,6 +15,20 @@
   "languageToggle": "언어 변경",
   "footerPrimary": "명령줄 AI의 혁신",
   "footerSecondary": "현대적이고 효율적인",
+  "lark": {
+    "title": "Feishu로 로그인",
+    "instruction": "휴대폰에서 Feishu를 열고 QR 코드를 스캔한 뒤 인증하세요",
+    "loading": "QR 코드 생성 중...",
+    "qrCodeLabel": "Feishu 로그인 QR 코드",
+    "waiting": "휴대폰 확인을 기다리는 중...",
+    "expired": "QR 코드가 만료되었습니다",
+    "refresh": "QR 코드 새로고침",
+    "errors": {
+      "networkError": "GEA에 연결할 수 없습니다. 다시 시도하세요",
+      "serverError": "GEA 로그인 서비스를 일시적으로 사용할 수 없습니다",
+      "invalidResponse": "GEA에서 잘못된 로그인 응답을 반환했습니다"
+    }
+  },
   "errors": {
     "empty": "사용자 이름과 비밀번호를 입력하세요",
     "invalidCredentials": "잘못된 사용자 이름 또는 비밀번호",

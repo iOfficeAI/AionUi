@@ -1,4 +1,4 @@
-import { startWebHost, startStaticServer } from '@aionui/web-host';
+import { createGeaLarkAuth, startWebHost, startStaticServer } from '@aionui/web-host';
 import type { WebHostHandle, StaticServerHandle } from '@aionui/web-host';
 import { setTimeout as delay } from 'node:timers/promises';
 import fs from 'node:fs';
@@ -6,7 +6,6 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { openBrowserUrl, shouldAutoOpenBrowser } from './browser.js';
-import { ensureAdminPassword } from './ensureAdminPassword.js';
 
 // tarball layout:
 //   aionui-web/
@@ -34,24 +33,8 @@ function resolveCliRoot(): string {
 
 const cliRoot = resolveCliRoot();
 
-// `isPackaged` mirrors AppMetadata.isPackaged: true when running as the
-// bun-compiled single-file binary inside a release tarball. Only the
-// resetpass hint text varies by mode today.
-//
-// Note on macOS quarantine: we tried stripping `com.apple.quarantine` from
-// cliRoot at process start, but Gatekeeper refuses exec _before_ our code
-// runs, so the first launch still fails. Users must either run
-// `xattr -dr com.apple.quarantine <path>` manually or use `install-web.sh`,
-// which does it for them. Until we sign + notarize, there is nothing the
-// binary itself can do about first-launch quarantine.
-const isPackaged = (() => {
-  const exeName = path.basename(process.execPath).toLowerCase();
-  return exeName === 'aionui-web' || exeName === 'aionui-web.exe';
-})();
-
 const BACKEND_BINARY = process.platform === 'win32' ? 'aioncore.exe' : 'aioncore';
 const DEFAULT_PORT = 25808;
-const RESET_COMMAND = isPackaged ? 'aionui-web resetpass' : 'bun run resetpass';
 
 let currentHandle: WebHostHandle | StaticServerHandle | null = null;
 
@@ -217,6 +200,7 @@ async function runStart(flags: Map<string, string | true>): Promise<void> {
         kind: 'ownBackend',
         resolveBackend: () => backendBin,
       },
+      larkAuth: createGeaLarkAuth(),
     });
 
     currentHandle = handle;
@@ -225,20 +209,6 @@ async function runStart(flags: Map<string, string | true>): Promise<void> {
     console.log('AionUi WebUI is ready');
     console.log(`  Local  : ${handle.localUrl}`);
     if (handle.networkUrl) console.log(`  Network: ${handle.networkUrl}`);
-
-    // First-launch bootstrap: if SQLite has no admin password yet, seed one via
-    // backend and print plaintext credentials. Failure must not abort startup —
-    // the user can always fall back to running resetpass manually.
-    await ensureAdminPassword(
-      { backendPort: handle.backendPort, resetCommand: RESET_COMMAND },
-      {
-        fetch: (...args) => fetch(...args),
-        log: (msg) => console.log(msg),
-        warn: (msg) => console.warn(msg),
-        sleep: (ms) => delay(ms),
-        now: () => Date.now(),
-      }
-    );
 
     if (autoOpenBrowser) {
       const openResult = openBrowserUrl(handle.localUrl);

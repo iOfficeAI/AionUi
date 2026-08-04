@@ -1,10 +1,12 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { promises as fs } from 'node:fs';
 import http from 'node:http';
+import netModule from 'node:net';
 import os from 'node:os';
 import path from 'node:path';
 import type { AddressInfo } from 'node:net';
 import { startStaticServer, type StaticServerHandle } from './static-server.js';
+import type { WebHostLarkAuth } from './types.js';
 
 async function mkRendererFixture(): Promise<string> {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'ws-static-'));
@@ -150,6 +152,113 @@ describe('static-server', () => {
     const r = await fetch(`${handle.localUrl}/logout`, { method: 'POST' });
     expect(r.status).toBe(200);
     expect(r.headers.get('set-cookie')).toMatch(/Max-Age=0/);
+  });
+
+  it('uses a Lark browser session and keeps the backend session private', async () => {
+    let forwardedCookie = '';
+    const backend = await startMockBackend((req, res) => {
+      if (req.url === '/api/auth/internal/users/system') {
+        res.writeHead(200, { 'content-type': 'application/json' });
+        res.end(JSON.stringify({ success: true, data: { username: 'internal-user' } }));
+        return;
+      }
+      if (req.url === '/api/webui/reset-password' && req.method === 'POST') {
+        res.writeHead(200, { 'content-type': 'application/json' });
+        res.end(JSON.stringify({ success: true, data: { new_password: 'internal-password' } }));
+        return;
+      }
+      if (req.url === '/login' && req.method === 'POST') {
+        res.writeHead(200, {
+          'content-type': 'application/json',
+          'set-cookie': 'aionui-session=backend-token; Path=/; HttpOnly',
+        });
+        res.end(JSON.stringify({ success: true }));
+        return;
+      }
+      if (req.url === '/api/anything') {
+        forwardedCookie = req.headers.cookie ?? '';
+        res.writeHead(200, { 'content-type': 'application/json' });
+        res.end(JSON.stringify({ success: true }));
+        return;
+      }
+      res.writeHead(404).end();
+    });
+    stopBackend = backend.close;
+
+    const user = { id: 'user-1', username: 'zhangsan', realname: '张三' };
+    const larkAuth = {
+      createQrSession: async () => ({
+        success: true as const,
+        data: { expiresIn: 300, loginUrl: 'https://gea.example/login', qrcodeId: 'qr-1' },
+      }),
+      pollQrSession: async () => ({
+        success: true as const,
+        data: { status: 'authenticated' as const, user },
+      }),
+    } satisfies WebHostLarkAuth;
+    handle = await startStaticServer({
+      staticDir,
+      backendPort: backend.port,
+      port: 0,
+      larkAuth,
+    });
+
+    expect((await fetch(`${handle.localUrl}/api/anything`)).status).toBe(401);
+    const publicPort = handle.port;
+    const unauthenticatedUpgradeStatus = await new Promise<string>((resolve, reject) => {
+      const socket = netModule.connect({ host: '127.0.0.1', port: publicPort }, () => {
+        socket.write(
+          'GET /ws HTTP/1.1\r\n' +
+            `Host: 127.0.0.1:${publicPort}\r\n` +
+            'Upgrade: websocket\r\n' +
+            'Connection: Upgrade\r\n' +
+            'Sec-WebSocket-Version: 13\r\n' +
+            'Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\n' +
+            '\r\n'
+        );
+      });
+      socket.on('data', (data) => {
+        socket.destroy();
+        resolve(data.toString('ascii').split('\r\n', 1)[0]);
+      });
+      socket.on('error', reject);
+    });
+    expect(unauthenticatedUpgradeStatus).toContain('401 Unauthorized');
+
+    const qrResponse = await fetch(`${handle.localUrl}/api/lark-auth/qr-session`, { method: 'POST' });
+    expect(await qrResponse.json()).toMatchObject({ success: true, data: { qrcodeId: 'qr-1' } });
+
+    const pollResponse = await fetch(`${handle.localUrl}/api/lark-auth/poll`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ qrcodeId: 'qr-1' }),
+    });
+    const browserCookie = pollResponse.headers.get('set-cookie')?.split(';', 1)[0];
+    expect(browserCookie).toMatch(/^aionui-web-session=/);
+
+    const userResponse = await fetch(`${handle.localUrl}/api/auth/user`, {
+      headers: { cookie: browserCookie ?? '' },
+    });
+    expect(await userResponse.json()).toEqual({ success: true, user });
+
+    const apiResponse = await fetch(`${handle.localUrl}/api/anything`, {
+      headers: { cookie: browserCookie ?? '' },
+    });
+    expect(apiResponse.status).toBe(200);
+    expect(forwardedCookie).toBe('aionui-session=backend-token');
+
+    const logoutResponse = await fetch(`${handle.localUrl}/api/lark-auth/logout`, {
+      method: 'POST',
+      headers: { cookie: browserCookie ?? '' },
+    });
+    expect(logoutResponse.headers.get('set-cookie')).toMatch(/Max-Age=0/);
+    expect(
+      (
+        await fetch(`${handle.localUrl}/api/anything`, {
+          headers: { cookie: browserCookie ?? '' },
+        })
+      ).status
+    ).toBe(401);
   });
 
   it('/api proxy returns 502 when backend unreachable', async () => {

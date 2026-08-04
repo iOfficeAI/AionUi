@@ -43,11 +43,17 @@ vi.mock('@/renderer/components/chat/SendBox', () => ({
   default: ({
     onSend,
     onChange,
+    tools,
+    rightTools,
   }: {
     onSend: (message: string) => Promise<void>;
     onChange?: (value: string) => void;
+    tools?: React.ReactNode;
+    rightTools?: React.ReactNode;
   }) => (
     <div>
+      <div data-testid='mock-sendbox-tools'>{tools}</div>
+      <div data-testid='mock-sendbox-right-tools'>{rightTools}</div>
       <button type='button' onClick={() => onChange?.('hello')}>
         change
       </button>
@@ -58,7 +64,14 @@ vi.mock('@/renderer/components/chat/SendBox', () => ({
   ),
 }));
 
-vi.mock('@/renderer/components/agent/AgentModeSelector', () => ({ default: () => null }));
+vi.mock('@/renderer/components/agent/AgentModeSelector', () => ({
+  default: () => <div data-testid='mock-agent-mode-selector' />,
+}));
+vi.mock('@/renderer/pages/conversation/platforms/aionrs/AionrsModelSelector', () => ({
+  default: ({ placement }: { placement?: string }) => (
+    <div data-testid='mock-aionrs-model-selector' data-placement={placement} />
+  ),
+}));
 vi.mock('@/renderer/components/chat/CommandQueuePanel', () => ({ default: () => null }));
 vi.mock('@/renderer/components/chat/MobileActionSheet', () => ({
   default: () => null,
@@ -253,6 +266,16 @@ describe('AionrsSendBox', () => {
     });
 
     expect(warmupSession).not.toHaveBeenCalled();
+  });
+
+  it('uses the shared conversation composer control layout', () => {
+    render(<AionrsSendBox conversation_id='conv-1' modelSelection={modelSelection} />);
+
+    expect(screen.getByTestId('mock-sendbox-tools')).toContainElement(screen.getByTestId('mock-agent-mode-selector'));
+    expect(screen.getByTestId('mock-sendbox-right-tools')).toContainElement(
+      screen.getByTestId('mock-aionrs-model-selector')
+    );
+    expect(screen.getByTestId('mock-aionrs-model-selector')).toHaveAttribute('data-placement', 'composer');
   });
 
   it('still warms up team session before sending', async () => {

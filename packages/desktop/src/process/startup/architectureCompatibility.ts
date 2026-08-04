@@ -29,7 +29,7 @@ export class StartupArchitectureMismatchError extends Error {
   readonly details: StartupArchitectureMismatchDetails;
 
   constructor(details: StartupArchitectureMismatchDetails) {
-    super('AionUi package architecture does not match this Mac. Please download the matching package.');
+    super('GEAUi package architecture does not match this Mac. Please download the matching package.');
     this.name = 'StartupArchitectureMismatchError';
     this.details = details;
   }

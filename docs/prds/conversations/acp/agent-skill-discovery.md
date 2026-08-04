@@ -6,16 +6,16 @@
 
 本文调研 `agent_metadata` 表中 `agent_type = 'acp'` 的 agent，重点确认：
 
-- AionCore 如何判断 ACP agent 是否支持原生 skill 目录。
+- GEACore 如何判断 ACP agent 是否支持原生 skill 目录。
 - agent 在什么时候扫描 skill 目录。
 - 会话开始后临时新增 skill 是否可以被当前会话识别。
 
 简要结论：
 
 - ACP 协议本身没有定义标准的 skill 加载方法。
-- AionCore 通过 `agent_metadata.native_skills_dirs` 判断 ACP backend 是否走原生 skill 目录。
+- GEACore 通过 `agent_metadata.native_skills_dirs` 判断 ACP backend 是否走原生 skill 目录。
 - 会话中新增 skill 是否可用，取决于底层 agent CLI 自己的扫描或热加载能力。
-- AionCore 当前只会重新链接会话创建时写入 `extra.skills` 的 skill 快照，因此产品层还没有完整支持“会话中由用户临时新增 skill”。
+- GEACore 当前只会重新链接会话创建时写入 `extra.skills` 的 skill 快照，因此产品层还没有完整支持“会话中由用户临时新增 skill”。
 
 ## ACP 协议边界
 
@@ -28,7 +28,7 @@ ACP 支持通过 `_meta` 字段和自定义扩展方法做 vendor 扩展，也�
 - https://agentclientprotocol.com/protocol/v1/schema
 - https://agentclientprotocol.com/get-started/introduction
 
-## AionCore 当前链路
+## GEACore 当前链路
 
 ### 判断来源
 
@@ -46,7 +46,7 @@ ACP 支持通过 `_meta` 字段和自定义扩展方法做 vendor 扩展，也�
 
 ### 会话创建时链接
 
-创建会话时，AionCore 会计算 `initial_skills`，写入 `extra.skills`，并且只在 `initial_skills` 非空时把 skill 链接到 workspace 中。
+创建会话时，GEACore 会计算 `initial_skills`，写入 `extra.skills`，并且只在 `initial_skills` 非空时把 skill 链接到 workspace 中。
 
 相关代码：
 
@@ -55,11 +55,11 @@ ACP 支持通过 `_meta` 字段和自定义扩展方法做 vendor 扩展，也�
   - Lines 887-919：对支持原生 skill 目录的 agent 创建 workspace skill 链接。
   - Lines 922-927：把 `extra.skills` 写入会话。
 
-这意味着：如果初始 skill 为空，AionCore 当前不会主动创建顶层 native skill 目录，例如 `.claude/skills`。
+这意味着：如果初始 skill 为空，GEACore 当前不会主动创建顶层 native skill 目录，例如 `.claude/skills`。
 
 ### 每轮发送前重新链接
 
-发送消息和 warmup 前，AionCore 会重新确保 workspace skill links 存在，但它读取的是 session context 中的 skill 列表，而这个列表来自不可变的 `extra.skills` 快照。
+发送消息和 warmup 前，GEACore 会重新确保 workspace skill links 存在，但它读取的是 session context 中的 skill 列表，而这个列表来自不可变的 `extra.skills` 快照。
 
 相关代码：
 
@@ -74,7 +74,7 @@ ACP 支持通过 `_meta` 字段和自定义扩展方法做 vendor 扩展，也�
 
 ### Prompt injection fallback
 
-如果 ACP agent 没有配置 native skill dirs，AionCore 会走 prompt injection。
+如果 ACP agent 没有配置 native skill dirs，GEACore 会走 prompt injection。
 
 相关代码：
 
@@ -103,13 +103,13 @@ ACP 支持通过 `_meta` 字段和自定义扩展方法做 vendor 扩展，也�
 | `opencode`  | OpenCode    | `.opencode/skills`   | OpenCode 文档确认 `.opencode/skills`、`.claude/skills`、`.agents/skills` | 未确认热加载；文档只说明发现和按需加载                    |
 | `vibe`      | Vibe        | `.vibe/skills`       | Mistral 文档确认 `.vibe/skills` 和 `.agents/skills`                      | 未确认热加载；文档只说明发现路径                          |
 | `cursor`    | Cursor      | `.cursor/skills`     | 本轮未确认                                                               | 未知                                                      |
-| `auggie`    | Auggie      | `NULL`               | AionCore 行没有 native dir                                               | 只能走 prompt injection                                   |
-| `copilot`   | Copilot     | `NULL`               | AionCore 行没有 native dir                                               | 只能走 prompt injection                                   |
-| `qoder`     | Qoder       | `NULL`               | AionCore 行没有 native dir                                               | 只能走 prompt injection                                   |
-| `kiro`      | Kiro        | `NULL`               | AionCore 行没有 native dir                                               | 只能走 prompt injection                                   |
-| `hermes`    | Hermes      | `NULL`               | AionCore 行没有 native dir                                               | 只能走 prompt injection                                   |
-| `snow`      | Snow        | `NULL`               | AionCore 行没有 native dir                                               | 只能走 prompt injection                                   |
-| `openclaw`  | OpenClaw    | `NULL`               | AionCore 行没有 native dir                                               | 只能走 prompt injection                                   |
+| `auggie`    | Auggie      | `NULL`               | GEACore 行没有 native dir                                                | 只能走 prompt injection                                   |
+| `copilot`   | Copilot     | `NULL`               | GEACore 行没有 native dir                                                | 只能走 prompt injection                                   |
+| `qoder`     | Qoder       | `NULL`               | GEACore 行没有 native dir                                                | 只能走 prompt injection                                   |
+| `kiro`      | Kiro        | `NULL`               | GEACore 行没有 native dir                                                | 只能走 prompt injection                                   |
+| `hermes`    | Hermes      | `NULL`               | GEACore 行没有 native dir                                                | 只能走 prompt injection                                   |
+| `snow`      | Snow        | `NULL`               | GEACore 行没有 native dir                                                | 只能走 prompt injection                                   |
+| `openclaw`  | OpenClaw    | `NULL`               | GEACore 行没有 native dir                                                | 只能走 prompt injection                                   |
 
 ## Agent 扫描 skill 目录的时机
 
@@ -119,10 +119,10 @@ Claude Code 是最明确支持会话中插入 skill 的 agent。
 
 官方文档说明：Claude Code 会自动监听所有 skill 目录中的 `SKILL.md` 变化；如果在 `~/.claude/skills/`、项目 `.claude/skills/` 或通过 `--add-dir` 加入的 `.claude/skills/` 中新增、修改、删除 skill，变更会在当前 session 生效。文档同时说明：如果 Claude Code 启动时顶层 skill 目录不存在，启动后再创建这个顶层目录需要重启 Claude Code 才能被检测到。
 
-对 AionCore 的含义：
+对 GEACore 的含义：
 
 - 如果 `.claude/skills` 在 Claude session 启动前已经存在，那么下一轮 prompt 前插入新的 skill 软链，理论上可以在当前会话生效。
-- 如果会话初始没有 skill，AionCore 没有创建 `.claude/skills`，之后再创建这个顶层目录可能不会被 Claude Code watcher 发现，需要重启。
+- 如果会话初始没有 skill，GEACore 没有创建 `.claude/skills`，之后再创建这个顶层目录可能不会被 Claude Code watcher 发现，需要重启。
 
 资料来源：
 
@@ -132,7 +132,7 @@ Claude Code 是最明确支持会话中插入 skill 的 agent。
 
 OpenAI 当前 Codex skills 文档说明：Codex 会自动检测 skill 变化，支持 symlinked skill folders，并扫描 repo、user、admin、system 等位置。当前公开文档中的 repo 路径是 `.agents/skills`，不是 `.codex/skills`。
 
-对 AionCore 的含义：
+对 GEACore 的含义：
 
 - 当前 builtin `codex` 行配置的是 `.codex/skills`，这和 OpenAI 当前公开文档不一致。
 - 如果要支持 Codex 原生 skill，建议补充 `.agents/skills`，或者先确认 `@zed-industries/codex-acp` 对应 Codex 版本实际读取的目录。
@@ -145,7 +145,7 @@ OpenAI 当前 Codex skills 文档说明：Codex 会自动检测 skill 变化，�
 
 Gemini CLI 文档说明：skills 在 session start 时从 built-in、extension、user、workspace 四个层级发现。workspace skills 可以放在 `.gemini/skills/` 或 `.agents/skills/`。getting-started 文档说明 `/skills reload` 可以在不重启 session 的情况下刷新 skill 列表。
 
-对 AionCore 的含义：
+对 GEACore 的含义：
 
 - 链接到 `.gemini/skills` 是可行的。
 - 如果要在当前会话新增 skill，需要触发 `/skills reload`，或者引导 agent/user 执行 reload。
@@ -160,7 +160,7 @@ Gemini CLI 文档说明：skills 在 session start 时从 built-in、extension�
 
 Qwen Code 文档说明：个人 skills 位于 `~/.qwen/skills/`，项目 skills 位于 `.qwen/skills/`，skill 变更会在下一次 Qwen Code 启动时生效；如果 Qwen Code 已在运行，需要重启才能加载更新。
 
-对 AionCore 的含义：
+对 GEACore 的含义：
 
 - 软链插入可以为下一次 session 准备 skill 文件。
 - 它不能可靠支持同一会话内的原生热加载；如果要临时可用，应走 prompt injection 或新建会话。
@@ -173,9 +173,9 @@ Qwen Code 文档说明：个人 skills 位于 `~/.qwen/skills/`，项目 skills 
 
 CodeBuddy 文档说明：项目 skills 位于 `.codebuddy/skills/`，用户 skills 位于 `~/.codebuddy/skills/`；skill 可以由 AI 自动选择，也可以手动调用，`/skills` 会展示当前加载的 skills。
 
-对 AionCore 的含义：
+对 GEACore 的含义：
 
-- AionCore 当前 `.codebuddy/skills` 配置与文档一致。
+- GEACore 当前 `.codebuddy/skills` 配置与文档一致。
 - 本轮查到的文档没有说明运行中新增 skill 是否会被自动检测。
 
 资料来源：
@@ -186,9 +186,9 @@ CodeBuddy 文档说明：项目 skills 位于 `.codebuddy/skills/`，用户 skil
 
 Factory Droid 文档说明：skills 位于 `<repo>/.factory/skills/`、`~/.factory/skills/`，也兼容 `<repo>/.agent/skills/`。skill 可以通过 `/skill-name` 调用，也可以在相关任务中自动触发。
 
-对 AionCore 的含义：
+对 GEACore 的含义：
 
-- AionCore 当前 `.factory/skills` 配置与文档一致。
+- GEACore 当前 `.factory/skills` 配置与文档一致。
 - 本轮查到的文档没有说明运行中新增 skill 是否会被自动检测。
 
 资料来源：
@@ -199,9 +199,9 @@ Factory Droid 文档说明：skills 位于 `<repo>/.factory/skills/`、`~/.facto
 
 OpenCode 文档说明：会查找项目 `.opencode/skills/<name>/SKILL.md`、global `~/.config/opencode/skills`、Claude-compatible `.claude/skills` 和 agent-compatible `.agents/skills`。它会从当前工作目录向上查找到 git worktree。
 
-对 AionCore 的含义：
+对 GEACore 的含义：
 
-- AionCore 当前 `.opencode/skills` 配置匹配其中一个文档路径。
+- GEACore 当前 `.opencode/skills` 配置匹配其中一个文档路径。
 - 可以考虑额外加入 `.agents/skills` 或 `.claude/skills` 提升兼容性。
 - 本轮查到的文档没有说明 live watcher 或 reload 行为。
 
@@ -213,9 +213,9 @@ OpenCode 文档说明：会查找项目 `.opencode/skills/<name>/SKILL.md`、glo
 
 Mistral Vibe 文档说明：CLI 会从 `skill_paths`、受信任目录中的项目 `./.vibe/skills/` 或 `./.agents/skills/`、以及用户 `~/.vibe/skills/` 发现 skills。
 
-对 AionCore 的含义：
+对 GEACore 的含义：
 
-- AionCore 当前 `.vibe/skills` 配置与文档一致。
+- GEACore 当前 `.vibe/skills` 配置与文档一致。
 - 可以考虑额外加入 `.agents/skills` 提升兼容性。
 - 本轮查到的文档没有说明 live watcher 或 reload 行为。
 
@@ -229,9 +229,9 @@ Mistral Vibe 文档说明：CLI 会从 `skill_paths`、受信任目录中的项�
 
 已经具备：
 
-- AionCore 可以通过 `link_workspace_skills` 在 workspace 中创建 skill 软链。
-- AionCore 会在发送消息和 warmup 前重新确保创建时快照里的 skill links。
-- AionUi 的 send message 参数里已经有 `inject_skills` 字段。
+- GEACore 可以通过 `link_workspace_skills` 在 workspace 中创建 skill 软链。
+- GEACore 会在发送消息和 warmup 前重新确保创建时快照里的 skill links。
+- GEAUi 的 send message 参数里已经有 `inject_skills` 字段。
 
 缺口：
 
@@ -262,6 +262,6 @@ Mistral Vibe 文档说明：CLI 会从 `skill_paths`、受信任目录中的项�
 
 ## 结论
 
-对 Claude Code 来说，答案基本是“可以支持”：只要 AionCore 在 session 启动前确保 `.claude/skills` 存在，那么会话中插入新的 skill 目录或软链，应该能被当前 session 识别。
+对 Claude Code 来说，答案基本是“可以支持”：只要 GEACore 在 session 启动前确保 `.claude/skills` 存在，那么会话中插入新的 skill 目录或软链，应该能被当前 session 识别。
 
-对整个 ACP agent 集合来说，不能说 ACP 本身支持动态 skill 加载。AionCore 能在会话中创建文件和软链，但最终是否生效由各 agent 的扫描机制决定。产品上应该做 capability matrix，而不是把它描述为 ACP 的统一特性。
+对整个 ACP agent 集合来说，不能说 ACP 本身支持动态 skill 加载。GEACore 能在会话中创建文件和软链，但最终是否生效由各 agent 的扫描机制决定。产品上应该做 capability matrix，而不是把它描述为 ACP 的统一特性。

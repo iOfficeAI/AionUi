@@ -56,6 +56,25 @@
 
 /* Header model pill — only cap width on mobile, where the titlebar slot has
    limited horizontal room. Desktop lets the pill grow to fit the full name. */
+.chat-layout-header .conversation-model-selector,
+.chat-layout-header .conversation-model-selector:hover,
+.chat-layout-header .conversation-model-selector:active,
+.chat-layout-header .conversation-model-selector:focus,
+.chat-layout-header .conversation-model-selector:focus-visible {
+  min-height: 30px !important;
+  padding: 0 10px !important;
+  color: var(--text-secondary) !important;
+  background: color-mix(in srgb, var(--color-fill-2) 80%, transparent) !important;
+  border: 1px solid color-mix(in srgb, var(--color-border-2) 76%, transparent) !important;
+  box-shadow: none !important;
+}
+
+.chat-layout-header .conversation-model-selector:hover,
+.chat-layout-header .conversation-model-selector:focus-visible {
+  color: var(--text-primary) !important;
+  background: var(--color-fill-2) !important;
+}
+
 @media (max-width: 767px) {
   .header-model-btn {
     max-width: 140px;

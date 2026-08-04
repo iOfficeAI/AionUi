@@ -134,6 +134,102 @@
   color: var(--text-primary) !important;
 }
 
+/* The composer is the last chance to make the active permission explicit
+   before a message starts a runtime turn. Tones follow increasing capability:
+   read (blue), planning (violet), workspace writes (amber), unrestricted
+   execution (red). They stay subtle enough to coexist with the neutral model
+   picker and inherit the app's light/dark semantic tokens. */
+.sendbox-actions .agent-mode-compact-pill--permission-read,
+.sendbox-tools .agent-mode-compact-pill--permission-read,
+.sendbox-actions .agent-mode-compact-pill--permission-read:hover,
+.sendbox-tools .agent-mode-compact-pill--permission-read:hover,
+.sendbox-actions .agent-mode-compact-pill--permission-read:active,
+.sendbox-tools .agent-mode-compact-pill--permission-read:active,
+.sendbox-actions .agent-mode-compact-pill--permission-read:focus,
+.sendbox-tools .agent-mode-compact-pill--permission-read:focus,
+.sendbox-actions .agent-mode-compact-pill--permission-read:focus-visible,
+.sendbox-tools .agent-mode-compact-pill--permission-read:focus-visible {
+  color: rgb(var(--primary-6)) !important;
+  background: color-mix(in srgb, rgb(var(--primary-1)) 76%, transparent) !important;
+  border: 1px solid color-mix(in srgb, rgb(var(--primary-6)) 24%, transparent) !important;
+}
+
+.sendbox-actions .agent-mode-compact-pill--permission-plan,
+.sendbox-tools .agent-mode-compact-pill--permission-plan,
+.sendbox-actions .agent-mode-compact-pill--permission-plan:hover,
+.sendbox-tools .agent-mode-compact-pill--permission-plan:hover,
+.sendbox-actions .agent-mode-compact-pill--permission-plan:active,
+.sendbox-tools .agent-mode-compact-pill--permission-plan:active,
+.sendbox-actions .agent-mode-compact-pill--permission-plan:focus,
+.sendbox-tools .agent-mode-compact-pill--permission-plan:focus,
+.sendbox-actions .agent-mode-compact-pill--permission-plan:focus-visible,
+.sendbox-tools .agent-mode-compact-pill--permission-plan:focus-visible {
+  color: rgb(var(--arcoblue-6)) !important;
+  background: color-mix(in srgb, rgb(var(--arcoblue-1)) 82%, transparent) !important;
+  border: 1px solid color-mix(in srgb, rgb(var(--arcoblue-6)) 24%, transparent) !important;
+}
+
+.sendbox-actions .agent-mode-compact-pill--permission-write,
+.sendbox-tools .agent-mode-compact-pill--permission-write,
+.sendbox-actions .agent-mode-compact-pill--permission-write:hover,
+.sendbox-tools .agent-mode-compact-pill--permission-write:hover,
+.sendbox-actions .agent-mode-compact-pill--permission-write:active,
+.sendbox-tools .agent-mode-compact-pill--permission-write:active,
+.sendbox-actions .agent-mode-compact-pill--permission-write:focus,
+.sendbox-tools .agent-mode-compact-pill--permission-write:focus,
+.sendbox-actions .agent-mode-compact-pill--permission-write:focus-visible,
+.sendbox-tools .agent-mode-compact-pill--permission-write:focus-visible {
+  color: rgb(var(--warning-6)) !important;
+  background: color-mix(in srgb, rgb(var(--warning-1)) 78%, transparent) !important;
+  border: 1px solid color-mix(in srgb, rgb(var(--warning-6)) 28%, transparent) !important;
+}
+
+.sendbox-actions .agent-mode-compact-pill--permission-full,
+.sendbox-tools .agent-mode-compact-pill--permission-full,
+.sendbox-actions .agent-mode-compact-pill--permission-full:hover,
+.sendbox-tools .agent-mode-compact-pill--permission-full:hover,
+.sendbox-actions .agent-mode-compact-pill--permission-full:active,
+.sendbox-tools .agent-mode-compact-pill--permission-full:active,
+.sendbox-actions .agent-mode-compact-pill--permission-full:focus,
+.sendbox-tools .agent-mode-compact-pill--permission-full:focus,
+.sendbox-actions .agent-mode-compact-pill--permission-full:focus-visible,
+.sendbox-tools .agent-mode-compact-pill--permission-full:focus-visible {
+  color: rgb(var(--danger-6)) !important;
+  background: color-mix(in srgb, rgb(var(--danger-1)) 78%, transparent) !important;
+  border: 1px solid color-mix(in srgb, rgb(var(--danger-6)) 28%, transparent) !important;
+}
+
+.sendbox-actions .agent-mode-compact-pill--permission-default,
+.sendbox-tools .agent-mode-compact-pill--permission-default,
+.sendbox-actions .agent-mode-compact-pill--permission-default:hover,
+.sendbox-tools .agent-mode-compact-pill--permission-default:hover,
+.sendbox-actions .agent-mode-compact-pill--permission-default:active,
+.sendbox-tools .agent-mode-compact-pill--permission-default:active,
+.sendbox-actions .agent-mode-compact-pill--permission-default:focus,
+.sendbox-tools .agent-mode-compact-pill--permission-default:focus,
+.sendbox-actions .agent-mode-compact-pill--permission-default:focus-visible,
+.sendbox-tools .agent-mode-compact-pill--permission-default:focus-visible {
+  color: var(--text-secondary) !important;
+  background: color-mix(in srgb, var(--color-fill-2) 74%, transparent) !important;
+  border: 1px solid color-mix(in srgb, var(--color-border-2) 80%, transparent) !important;
+}
+
+.context-usage-indicator,
+.context-usage-indicator:hover,
+.context-usage-indicator:active,
+.context-usage-indicator:focus,
+.context-usage-indicator:focus-visible {
+  padding: 0 !important;
+  border: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+}
+
+.context-usage-indicator:hover,
+.context-usage-indicator:focus-visible {
+  background: color-mix(in srgb, var(--color-fill-2) 80%, transparent) !important;
+}
+
 .speech-input-control {
   display: inline-flex;
   align-items: center;

@@ -81,6 +81,7 @@ export type BackendDirConfig = {
   cacheDir: string;
   workDir: string;
   logDir: string;
+  hubDir?: string;
 };
 
 export type BackendLaunchOptions = {
@@ -216,10 +217,10 @@ export function buildSpawnArgs(config: SpawnConfig): string[] {
 }
 
 /**
- * Backend reads AIONUI_{CACHE,WORK,LOG}_DIR env vars to report system dirs
- * (see AionCore/crates/aionui-system/src/sysinfo.rs). Inject them so the
- * backend's `/api/system/info` matches what Electron main persists in
- * ProcessEnv('aionui.dir').
+ * Backend reads AIONUI_{CACHE,WORK,LOG}_DIR env vars to report system dirs and
+ * AIONUI_HUB_DIR as an offline marketplace fallback. Inject them so the
+ * backend sees the same packaged resources and persisted directories as the
+ * Electron main process.
  */
 export function buildSpawnEnv(dirs: BackendDirConfig): NodeJS.ProcessEnv {
   return {
@@ -227,6 +228,7 @@ export function buildSpawnEnv(dirs: BackendDirConfig): NodeJS.ProcessEnv {
     AIONUI_CACHE_DIR: dirs.cacheDir,
     AIONUI_WORK_DIR: dirs.workDir,
     AIONUI_LOG_DIR: dirs.logDir,
+    ...(dirs.hubDir ? { AIONUI_HUB_DIR: dirs.hubDir } : {}),
   };
 }
 

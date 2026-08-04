@@ -1,6 +1,6 @@
 # ACP 图片输出展示
 
-AionUi 对 ACP 工具调用中的图片结果使用文件路径展示，不依赖 inline base64。
+GEAUi 对 ACP 工具调用中的图片结果使用文件路径展示，不依赖 inline base64。
 
 ## 数据约定
 

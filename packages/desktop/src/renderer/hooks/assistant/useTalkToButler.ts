@@ -60,7 +60,7 @@ export const useTalkToButler = (): ((args: TalkToButlerArgs) => Promise<void>) =
             await ipcBridge.assistants.setState.invoke({ id: butler.id, enabled: true });
             await swrMutate('assistants.list');
             Message.success(
-              t('settings.talkToButler.enabledToast', { defaultValue: 'Enabled the AionUi Butler for you' })
+              t('settings.talkToButler.enabledToast', { defaultValue: 'Enabled the GEAUi Butler for you' })
             );
           }
         }

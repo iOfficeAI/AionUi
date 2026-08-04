@@ -30,7 +30,7 @@
   "errorTitle": "更新失敗",
   "installerLastFailure": {
     "title": "上次更新未完成",
-    "description": "上次靜默更新時未能關閉 AionUi。你可以重試更新、查看安裝日誌，或傳送回饋。",
+    "description": "上次靜默更新時未能關閉 GEAUi。你可以重試更新、查看安裝日誌，或傳送回饋。",
     "retryUpdate": "重試更新",
     "viewLog": "查看日誌"
   },

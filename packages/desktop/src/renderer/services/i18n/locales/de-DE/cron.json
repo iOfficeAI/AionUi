@@ -13,7 +13,7 @@
     "error": "Fehler",
     "unread": "Neue Ausführung",
     "unconfigured": "Keine geplante Aufgabe",
-    "defaultPrompt": "Täglich um 10 Uhr die neuesten KI-Nachrichten suchen, zusammenfassen und einen Erkenntnisbericht ausgeben. (Bitte verwende den /cron-Skill, um eine geplante Aufgabe in AionUi zu erstellen.)"
+    "defaultPrompt": "Täglich um 10 Uhr die neuesten KI-Nachrichten suchen, zusammenfassen und einen Erkenntnisbericht ausgeben. (Bitte verwende den /cron-Skill, um eine geplante Aufgabe in GEAUi zu erstellen.)"
   },
   "actions": {
     "goTo": "Chat anzeigen",
@@ -53,10 +53,10 @@
     "newTask": "Neue Aufgabe",
     "createViaChat": "Per Chat erstellen",
     "createManually": "Manuell erstellen",
-    "description": "Aufgaben nach Zeitplan ausführen. Du kannst AionUi auch in jedem Gespräch bitten, eine zu erstellen.",
+    "description": "Aufgaben nach Zeitplan ausführen. Du kannst GEAUi auch in jedem Gespräch bitten, eine zu erstellen.",
     "awakeBanner": "Geplante Aufgaben werden nur ausgeführt, wenn dein Computer aktiv ist.",
     "keepAwake": "Aktiv halten",
-    "keepAwakeTooltip": "Wenn aktiviert, verhindert AionUi, dass dein Computer in den Ruhezustand geht",
+    "keepAwakeTooltip": "Wenn aktiviert, verhindert GEAUi, dass dein Computer in den Ruhezustand geht",
     "createTask": "Geplante Aufgabe erstellen",
     "editTask": "Geplante Aufgabe bearbeiten",
     "createSuccess": "Aufgabe erfolgreich erstellt",
@@ -104,7 +104,7 @@
       "selectFolder": "Ordner auswählen",
       "clearFolder": "Leeren",
       "model": "Modell",
-      "aionrsModelRequired": "Bitte wähle ein Modell für Aion CLI",
+      "aionrsModelRequired": "Bitte wähle ein Modell für GEA CLI",
       "aionrsNoProvider": "Keine verfügbaren Modelle",
       "assistantLockedExistingConversation": "Aufgaben mit laufendem Gespräch müssen den ursprünglichen Assistenten behalten. Erstelle eine neue Aufgabe, um einen anderen Assistenten zu verwenden.",
       "teamTaskExecutionModeLockedReason": "Geplante Team-Aufgaben müssen im zugehörigen Team-Gespräch weiterlaufen, deshalb kann der Ausführungsmodus nicht geändert werden.",

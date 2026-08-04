@@ -47,7 +47,7 @@ describe('useDesktopTurnNotification', () => {
     emitStream({ type: 'finish', conversation_id: 's1', turn_id: 't1' });
     expect(showInvoke).toHaveBeenCalledTimes(1);
     expect(showInvoke).toHaveBeenCalledWith({
-      title: 'AionUi',
+      title: 'GEAUi',
       body: 'settings.browserNotification.bodyTurnCompleted',
       conversation_id: 's1',
     });

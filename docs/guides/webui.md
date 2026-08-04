@@ -1,6 +1,6 @@
-# AionUi WebUI Mode - Startup Guide
+# GEAUi WebUI Mode - Startup Guide
 
-AionUi supports WebUI mode, allowing you to access the application through a web browser. This guide covers how to start WebUI mode on all supported platforms.
+GEAUi supports WebUI mode, allowing you to access the application through a web browser. This guide covers how to start WebUI mode on all supported platforms.
 
 ## Table of Contents
 
@@ -16,10 +16,10 @@ AionUi supports WebUI mode, allowing you to access the application through a web
 
 ## What is WebUI Mode?
 
-WebUI mode starts AionUi with an embedded web server, allowing you to:
+WebUI mode starts GEAUi with an embedded web server, allowing you to:
 
 - Access the application through any modern web browser
-- Use AionUi from remote devices on the same network (with `--remote` flag)
+- Use GEAUi from remote devices on the same network (with `--remote` flag)
 - Run the application headless on servers
 
 Default access URL: `http://localhost:3000` (port may vary, check the application output)
@@ -47,7 +47,7 @@ AionUi.exe --webui
    ```
    "C:\Program Files\AionUi\AionUi.exe" --webui
    ```
-3. Name it **AionUi WebUI**
+3. Name it **GEAUi WebUI**
 4. Click **Finish**
 5. Double-click the shortcut to launch
 
@@ -104,13 +104,13 @@ chmod +x start-aionui-webui.sh
    ```bash
    /Applications/AionUi.app/Contents/MacOS/AionUi --webui
    ```
-5. Save as **AionUi WebUI.app**
+5. Save as **GEAUi WebUI.app**
 6. Double-click to launch
 
 ### Method 4: Add to Dock
 
 1. Create an Automator app (Method 3)
-2. Drag **AionUi WebUI.app** to your Dock
+2. Drag **GEAUi WebUI.app** to your Dock
 3. Click the Dock icon to start WebUI mode anytime
 
 ---
@@ -218,11 +218,11 @@ sudo systemctl status aionui-webui.service
 
 ## Android (Termux)
 
-**Important Note**: Electron desktop mode is **not supported** on Android. However, you can run AionUi in WebUI mode using Termux with a prooted Linux environment.
+**Important Note**: Electron desktop mode is **not supported** on Android. However, you can run GEAUi in WebUI mode using Termux with a prooted Linux environment.
 
-> **Community Contribution**: This guide is contributed by [@Manamama](https://github.com/Manamama). Special thanks for making AionUi accessible on Android devices! 🙏
+> **Community Contribution**: This guide is contributed by [@Manamama](https://github.com/Manamama). Special thanks for making GEAUi accessible on Android devices! 🙏
 >
-> **Original Tutorial**: [Running AionUi WebUI on Android via Termux + Proot Ubuntu](https://gist.github.com/Manamama/b4f903c279b5e73bdad4c2c0a58d5ddd)
+> **Original Tutorial**: [Running GEAUi WebUI on Android via Termux + Proot Ubuntu](https://gist.github.com/Manamama/b4f903c279b5e73bdad4c2c0a58d5ddd)
 >
 > **Related Issues**: [#217 - Android Support Discussion](https://github.com/iOfficeAI/AionUi/issues/217)
 
@@ -281,7 +281,7 @@ apt install -y \
     libcups2
 ```
 
-#### 4. Download and Install AionUi
+#### 4. Download and Install GEAUi
 
 ```bash
 # Download the ARM64 .deb package (replace VERSION with the actual version)
@@ -298,7 +298,7 @@ apt install -y ./AionUi_*.deb
 which AionUi
 ```
 
-#### 5. Launch AionUi WebUI
+#### 5. Launch GEAUi WebUI
 
 ```bash
 # Start AionUi in WebUI mode with no-sandbox flag
@@ -331,7 +331,7 @@ These errors are related to D-Bus and X server, which are not needed for WebUI m
 
 ### Remote Access on LAN
 
-To access AionUi from other devices on your local network:
+To access GEAUi from other devices on your local network:
 
 ```bash
 # Start with --remote flag
@@ -364,11 +364,11 @@ chmod +x /opt/AionUi/aionui
 
 #### Out of Memory
 
-AionUi requires sufficient RAM. Close other apps if you encounter memory issues.
+GEAUi requires sufficient RAM. Close other apps if you encounter memory issues.
 
 #### Cannot Access from Browser
 
-1. Check if AionUi is running: look for "Server started" message
+1. Check if GEAUi is running: look for "Server started" message
 2. Try using Termux's built-in browser or Chrome
 3. Clear browser cache
 
@@ -377,18 +377,18 @@ AionUi requires sufficient RAM. Close other apps if you encounter memory issues.
 1. **Use a lightweight browser** - Chrome or Firefox Focus recommended
 2. **Close background apps** - Free up RAM for better performance
 3. **Use WiFi** - More stable than mobile data for remote access
-4. **Keep device charged** - Running AionUi consumes battery
+4. **Keep device charged** - Running GEAUi consumes battery
 
 ### Tested Environment
 
 - **Device**: Android 14
 - **Termux Version**: 0.118.0
-- **AionUi Version**: Latest release (e.g. 1.5.2)
+- **GEAUi Version**: Latest release (e.g. 1.5.2)
 - **Proot-distro**: Ubuntu (latest)
 
 ### Creating a Startup Script
 
-For convenience, create a script to launch AionUi quickly:
+For convenience, create a script to launch GEAUi quickly:
 
 ```bash
 # Create script in Ubuntu (proot)
@@ -504,7 +504,7 @@ sudo ufw allow 3000/tcp
 ```
 
 **macOS:**
-Go to **System Preferences** → **Security & Privacy** → **Firewall** → **Firewall Options** → Add AionUi
+Go to **System Preferences** → **Security & Privacy** → **Firewall** → **Firewall Options** → Add GEAUi
 
 ### Application Not Found
 
@@ -690,10 +690,10 @@ If you encounter any issues:
 2. Search [existing issues](https://github.com/iOfficeAI/AionUi/issues)
 3. Create a [new issue](https://github.com/iOfficeAI/AionUi/issues/new) with:
    - Your OS and version
-   - AionUi version
+   - GEAUi version
    - Steps to reproduce
    - Error messages or logs
 
 ---
 
-**Happy using AionUi in WebUI mode!** 🚀
+**Happy using GEAUi in WebUI mode!** 🚀

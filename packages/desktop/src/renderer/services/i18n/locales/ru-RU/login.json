@@ -1,6 +1,6 @@
 {
-  "pageTitle": "AionUi — Вход",
-  "brand": "AionUi",
+  "pageTitle": "GEAUi — Вход",
+  "brand": "GEAUi",
   "subtitle": "Добро пожаловать! Войдите в свой аккаунт",
   "username": "Имя пользователя",
   "usernamePlaceholder": "Введите имя пользователя",
@@ -15,6 +15,20 @@
   "languageToggle": "Сменить язык",
   "footerPrimary": "Преобразуйте свой ИИ командной строки",
   "footerSecondary": "Современно и эффективно",
+  "lark": {
+    "title": "Войти через Feishu",
+    "instruction": "Откройте Feishu на телефоне, отсканируйте QR-код и подтвердите авторизацию",
+    "loading": "Создание QR-кода...",
+    "qrCodeLabel": "QR-код для входа через Feishu",
+    "waiting": "Ожидание подтверждения на телефоне...",
+    "expired": "Срок действия QR-кода истёк",
+    "refresh": "Обновить QR-код",
+    "errors": {
+      "networkError": "Не удалось подключиться к GEA. Повторите попытку",
+      "serverError": "Сервис входа GEA временно недоступен",
+      "invalidResponse": "GEA вернул некорректный ответ входа"
+    }
+  },
   "errors": {
     "empty": "Введите имя пользователя и пароль",
     "invalidCredentials": "Неверное имя пользователя или пароль",

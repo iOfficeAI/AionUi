@@ -1,6 +1,6 @@
-# AionUi Headless Server Deployment Guide
+# GEAUi Headless Server Deployment Guide
 
-Deploy AionUi WebUI on headless Linux servers — cloud VMs, Kubernetes Pods, and containers — with proxy auto-fallback support.
+Deploy GEAUi WebUI on headless Linux servers — cloud VMs, Kubernetes Pods, and containers — with proxy auto-fallback support.
 
 **Translations**: [中文版](#中文版--chinese-version) below.
 
@@ -21,7 +21,7 @@ Deploy AionUi WebUI on headless Linux servers — cloud VMs, Kubernetes Pods, an
 
 - Linux x86_64 (Ubuntu 20.04+ / Debian 11+ recommended)
 - At least 2GB RAM
-- AionUi `.deb` package from [Releases](https://github.com/iOfficeAI/AionUi/releases)
+- GEAUi `.deb` package from [Releases](https://github.com/iOfficeAI/AionUi/releases)
 
 ---
 
@@ -42,7 +42,7 @@ sudo apt-get install -f  # Fix missing dependencies
 
 ## Virtual Display (Xvfb)
 
-AionUi is an Electron app and requires a display server. On headless servers (no monitor), use Xvfb to create a virtual display:
+GEAUi is an Electron app and requires a display server. On headless servers (no monitor), use Xvfb to create a virtual display:
 
 ```bash
 sudo apt-get install -y xvfb
@@ -134,13 +134,13 @@ esac
 chmod +x /opt/AionUi/start-aionui.sh
 ```
 
-> **Tip**: `WORKDIR` determines the directory AionUi can access for file operations. Set it to your project workspace.
+> **Tip**: `WORKDIR` determines the directory GEAUi can access for file operations. Set it to your project workspace.
 
 ---
 
 ## Remote Access
 
-AionUi WebUI listens on port **25808**. Choose a method based on your network setup:
+GEAUi WebUI listens on port **25808**. Choose a method based on your network setup:
 
 ### Option A: Direct Access (Public IP)
 
@@ -187,7 +187,7 @@ ssh -R 7897:127.0.0.1:7897 user@YOUR_SERVER_IP
 
 > Replace `7897` with your actual proxy port. The tunnel is active as long as the SSH session is open.
 
-### Step 2: PAC File for AionUi (Electron / Chromium Layer)
+### Step 2: PAC File for GEAUi (Electron / Chromium Layer)
 
 Using `--proxy-server` is fragile — when the proxy goes down, **all** requests fail including the WebUI itself. Instead, use a **PAC (Proxy Auto-Configuration) file** that provides automatic fallback.
 
@@ -253,13 +253,13 @@ PROMPT_COMMAND="_auto_proxy;${PROMPT_COMMAND}"
 - SSH tunnel disconnected → proxy env vars cleared, commands use direct connection
 - No manual intervention or terminal restart needed
 
-### Step 4: AionUi Internal Proxy (Gemini API)
+### Step 4: GEAUi Internal Proxy (Gemini API)
 
-For Gemini API calls, configure the proxy inside AionUi WebUI:
+For Gemini API calls, configure the proxy inside GEAUi WebUI:
 
 **Settings → Gemini Settings → Proxy** → `http://127.0.0.1:7897`
 
-> This proxy is handled by AionUi's Node.js layer (separate from the Chromium layer). When the SSH tunnel is down, Gemini API calls will fail, but the WebUI and other APIs remain functional.
+> This proxy is handled by GEAUi's Node.js layer (separate from the Chromium layer). When the SSH tunnel is down, Gemini API calls will fail, but the WebUI and other APIs remain functional.
 
 ---
 
@@ -268,7 +268,7 @@ For Gemini API calls, configure the proxy inside AionUi WebUI:
 | Issue                                     | Solution                                                     |
 | ----------------------------------------- | ------------------------------------------------------------ |
 | `dpkg` dependency errors in containers    | `dpkg --force-all -i AionUi-linux-amd64.deb`                 |
-| AionUi can only access `/tmp`             | Set `WORKDIR` in the startup script to your workspace path   |
+| GEAUi can only access `/tmp`              | Set `WORKDIR` in the startup script to your workspace path   |
 | WebUI not accessible remotely             | Check firewall rules, or use ngrok / SSH tunnel              |
 | All requests fail when proxy is down      | Use PAC file (`--proxy-pac-url`) instead of `--proxy-server` |
 | `curl` fails after SSH tunnel disconnects | Add `PROMPT_COMMAND` auto-detect to `~/.bashrc` (see Step 3) |
@@ -316,15 +316,15 @@ For Gemini API calls, configure the proxy inside AionUi WebUI:
 
 # 中文版 / Chinese Version
 
-# AionUi 无头服务器部署指南
+# GEAUi 无头服务器部署指南
 
-在无图形界面的 Linux 服务器（云主机、K8s Pod、容器）上部署 AionUi WebUI，支持代理自动回退。
+在无图形界面的 Linux 服务器（云主机、K8s Pod、容器）上部署 GEAUi WebUI，支持代理自动回退。
 
 ## 前置条件
 
 - Linux x86_64（推荐 Ubuntu 20.04+ / Debian 11+）
 - 至少 2GB 内存
-- AionUi `.deb` 安装包（[下载地址](https://github.com/iOfficeAI/AionUi/releases)）
+- GEAUi `.deb` 安装包（[下载地址](https://github.com/iOfficeAI/AionUi/releases)）
 
 ## 安装
 
@@ -341,7 +341,7 @@ sudo apt-get install -f  # 修复依赖
 
 ## 虚拟显示 (Xvfb)
 
-AionUi 是 Electron 应用，需要显示服务。无头服务器需安装 Xvfb：
+GEAUi 是 Electron 应用，需要显示服务。无头服务器需安装 Xvfb：
 
 ```bash
 sudo apt-get install -y xvfb
@@ -420,7 +420,7 @@ esac
 
 ## 远程访问
 
-AionUi WebUI 监听端口 **25808**，根据网络环境选择访问方式：
+GEAUi WebUI 监听端口 **25808**，根据网络环境选择访问方式：
 
 | 方式       | 适用场景              | 命令                                       |
 | ---------- | --------------------- | ------------------------------------------ |
@@ -438,7 +438,7 @@ AionUi WebUI 监听端口 **25808**，根据网络环境选择访问方式：
 ssh -R 7897:127.0.0.1:7897 user@YOUR_SERVER
 ```
 
-### 第二步：PAC 代理文件（AionUi Electron 层）
+### 第二步：PAC 代理文件（GEAUi Electron 层）
 
 `--proxy-server` 的问题：代理一断，**所有请求**全挂。改用 PAC 文件实现自动回退。
 
@@ -486,7 +486,7 @@ PROMPT_COMMAND="_auto_proxy;${PROMPT_COMMAND}"
 
 **原理**：`PROMPT_COMMAND` 在每次命令提示符前执行，自动检测代理端口是否可达，实时切换。
 
-### 第四步：AionUi 内置代理（Gemini API）
+### 第四步：GEAUi 内置代理（Gemini API）
 
 在 WebUI 中设置：**Settings → Gemini Settings → Proxy** → `http://127.0.0.1:7897`
 
@@ -497,7 +497,7 @@ PROMPT_COMMAND="_auto_proxy;${PROMPT_COMMAND}"
 | 问题                   | 解决方案                              |
 | ---------------------- | ------------------------------------- |
 | 容器内 dpkg 依赖报错   | `dpkg --force-all -i` 强制安装        |
-| AionUi 只能访问 /tmp   | 修改启动脚本中的 `WORKDIR`            |
+| GEAUi 只能访问 /tmp    | 修改启动脚本中的 `WORKDIR`            |
 | 远程无法访问 WebUI     | 检查防火墙/安全组，或使用 ngrok       |
 | 代理断开后所有请求失败 | 用 PAC 文件替代 `--proxy-server`      |
 | SSH 断开后 curl 失败   | bashrc 添加 `PROMPT_COMMAND` 自动检测 |

@@ -42,6 +42,12 @@ import type {
   SetConfigOptionResponse,
 } from '../types/platform/acpTypes';
 import type {
+  LarkAuthResult,
+  LarkAuthStatus,
+  LarkQrLoginPollResult,
+  LarkQrLoginSession,
+} from '../types/platform/larkAuth';
+import type {
   CreateProviderRequest,
   FetchModelsAnonymousRequest,
   FetchModelsResponse,
@@ -534,6 +540,19 @@ export const application = {
     'app.log-stream'
   ),
   devToolsStateChanged: bridge.buildEmitter<{ isOpen: boolean }>('app.devtools-state-changed'),
+};
+
+// ---------------------------------------------------------------------------
+// Lark Auth — stays IPC so GEA requests and tokens remain in the main process
+// ---------------------------------------------------------------------------
+
+export const larkAuth = {
+  createQrSession: bridge.buildProvider<LarkAuthResult<LarkQrLoginSession>, void>('lark-auth.create-qr-session'),
+  pollQrSession: bridge.buildProvider<LarkAuthResult<LarkQrLoginPollResult>, { qrcodeId: string }>(
+    'lark-auth.poll-qr-session'
+  ),
+  status: bridge.buildProvider<LarkAuthResult<LarkAuthStatus>, void>('lark-auth.status'),
+  logout: bridge.buildProvider<LarkAuthResult<LarkAuthStatus>, void>('lark-auth.logout'),
 };
 
 // ---------------------------------------------------------------------------
