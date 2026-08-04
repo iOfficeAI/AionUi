@@ -174,6 +174,13 @@ interface IChatConversation<T, Extra> {
    * be forked (codex), otherwise only the latest turn (claude / ACP HEAD fork).
    */
   fork_capability?: { at_turn: boolean };
+  /**
+   * Prompt media capability (from `ConversationResponse.prompt_capability`).
+   * Filled ONLY on the single-conversation detail response (never on lists).
+   * Absent = unknown/unsupported — media attachments are delivered to the
+   * agent as file paths instead of native image/audio content blocks.
+   */
+  prompt_capability?: { image: boolean; audio: boolean };
 }
 
 /**

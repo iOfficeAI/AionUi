@@ -566,7 +566,8 @@
     "sendboxHint": "Preparando el entorno de ejecución. El primer inicio puede tardar un poco más."
   },
   "sendbox": {
-    "hint": "Escribe / para comandos, @ para referenciar archivos y ↑/↓ para el historial de mensajes"
+    "hint": "Escribe / para comandos, @ para referenciar archivos y ↑/↓ para el historial de mensajes",
+    "mediaPathFallback": "Este agente no admite este tipo de archivo de forma nativa; se enviará como ruta de archivo."
   },
   "agentTip": {
     "codes": {

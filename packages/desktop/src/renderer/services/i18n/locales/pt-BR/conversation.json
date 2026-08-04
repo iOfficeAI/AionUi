@@ -571,7 +571,8 @@
     "sendboxHint": "Preparando o ambiente de execução. A primeira inicialização pode demorar um pouco mais."
   },
   "sendbox": {
-    "hint": "Digite / para comandos, @ para referenciar arquivos, ↑/↓ para o histórico de mensagens"
+    "hint": "Digite / para comandos, @ para referenciar arquivos, ↑/↓ para o histórico de mensagens",
+    "mediaPathFallback": "Este agente não tem suporte nativo para este tipo de arquivo; ele será enviado como um caminho de arquivo."
   },
   "agentTip": {
     "codes": {

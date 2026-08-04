@@ -639,6 +639,7 @@ export type I18nKey =
   | 'conversation.officePreview.fileWatchUnavailable'
   | 'conversation.runtimePreparing.sendboxHint'
   | 'conversation.sendbox.hint'
+  | 'conversation.sendbox.mediaPathFallback'
   | 'conversation.sideQuestion.alreadyRunning'
   | 'conversation.sideQuestion.answered'
   | 'conversation.sideQuestion.attachmentsNotAllowed'
