@@ -233,7 +233,7 @@ const MessageText: React.FC<{
     <Tooltip content={t('messages.fork.action')}>
       <div
         className='p-4px rd-4px cursor-pointer hover:bg-3 transition-colors opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto focus-within:opacity-100 focus-within:pointer-events-auto'
-        onClick={() => void forkConversation(message.id)}
+        onClick={() => void forkConversation(message.msg_id ?? message.id)}
         style={{ lineHeight: 0 }}
         data-testid='message-fork-button'
       >
