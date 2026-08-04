@@ -479,8 +479,16 @@ describe('SkillsHubSettings', () => {
     expect(screen.queryByTestId('my-skill-card-sample-single')).not.toBeInTheDocument();
   });
 
-  it('labels the built-in Lark skill with its external CLI dependency', async () => {
+  it('shows the built-in Lark skill first and labels its external CLI dependency', async () => {
     mocks.listAvailableSkills.mockResolvedValue([
+      {
+        name: 'officecli',
+        description: 'Create and edit Office documents.',
+        location: '/tmp/builtin-skills/officecli',
+        is_auto_inject: false,
+        is_custom: false,
+        source: 'builtin',
+      },
       {
         name: 'lark',
         description: 'Use Lark CLI.',
@@ -494,7 +502,10 @@ describe('SkillsHubSettings', () => {
     render(<SkillsHubSettings withWrapper={false} />);
     fireEvent.click(await screen.findByTestId('settings-tab-official'));
 
-    expect(await screen.findByText('settings.skillsHub.larkSetup.dependencyLabel')).toBeInTheDocument();
+    const larkCard = await screen.findByTestId('official-skill-card-lark');
+    const officeCard = screen.getByTestId('official-skill-card-officecli');
+    expect(larkCard.compareDocumentPosition(officeCard) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.getByText('settings.skillsHub.larkSetup.dependencyLabel')).toBeInTheDocument();
   });
 
   it('restores the originating tab and preserves it when opening another skill', async () => {

@@ -180,7 +180,10 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
   // "Official" tab: built-in non-auto-injected skills shown as the primary list,
   // with extension skills and auto-injected skills kept as separate read-only sections.
   const officialSkills = useMemo(
-    () => availableSkills.filter((s) => s.source === 'builtin' && !s.is_auto_inject),
+    () =>
+      availableSkills
+        .filter((s) => s.source === 'builtin' && !s.is_auto_inject)
+        .sort((a, b) => Number(b.name === 'lark') - Number(a.name === 'lark')),
     [availableSkills]
   );
   const builtinAutoSkills = useMemo(() => availableSkills.filter(isAutoInjectedBuiltinSkill), [availableSkills]);
