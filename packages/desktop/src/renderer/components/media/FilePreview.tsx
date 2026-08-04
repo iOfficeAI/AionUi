@@ -8,7 +8,7 @@ import { Close } from '@icon-park/react';
 import React, { useEffect, useState } from 'react';
 import { getFileExtension } from '@/renderer/services/FileService';
 import { ipcBridge } from '@/common';
-import { Image } from '@arco-design/web-react';
+import { Image, Tooltip } from '@arco-design/web-react';
 import fileIcon from '@/renderer/assets/icons/file-icon.svg';
 
 const IMAGE_EXTS = new Set(['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.svg']);
@@ -37,9 +37,11 @@ interface FilePreviewProps {
   path: string;
   onRemove: () => void;
   readonly?: boolean;
+  /** Optional tooltip shown on the chip (e.g. "sent as a file path"). */
+  hint?: string;
 }
 
-const FilePreview: React.FC<FilePreviewProps> = ({ path, onRemove, readonly = false }) => {
+const FilePreview: React.FC<FilePreviewProps> = ({ path, onRemove, readonly = false, hint }) => {
   // Defensive check: ensure path is a string
   if (typeof path !== 'string') {
     console.error('[FilePreview] Invalid path type:', typeof path, path);
@@ -111,8 +113,10 @@ const FilePreview: React.FC<FilePreviewProps> = ({ path, onRemove, readonly = fa
     onRemove();
   };
 
+  const withHint = (chip: React.ReactElement) => (hint ? <Tooltip content={hint}>{chip}</Tooltip> : chip);
+
   if (isImage) {
-    return (
+    return withHint(
       <div className='relative inline-block'>
         <div className='rd-8px overflow-hidden border-1 border-solid b-color-border-2'>
           <Image
@@ -138,7 +142,7 @@ const FilePreview: React.FC<FilePreviewProps> = ({ path, onRemove, readonly = fa
     );
   }
 
-  return (
+  return withHint(
     <div className='relative inline-block mb-10px'>
       <div
         className='h-60px flex items-center gap-12px px-12px rd-8px bg-bg-2 border border-solid'

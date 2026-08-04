@@ -69,6 +69,13 @@ export interface ConversationContextValue {
    * fork entry point. See `common/chat/forkConversation.ts`.
    */
   forkCapability?: { at_turn: boolean };
+
+  /**
+   * Prompt media capability from the conversation detail response
+   * (`prompt_capability`). Absent = unknown/unsupported — image/audio
+   * attachments reach the agent as file paths, and the send box hints so.
+   */
+  promptCapability?: { image: boolean; audio: boolean };
 }
 
 /**

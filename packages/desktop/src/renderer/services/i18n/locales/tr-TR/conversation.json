@@ -568,7 +568,8 @@
     "sendboxHint": "Çalışma ortamı hazırlanıyor. İlk başlatma biraz daha uzun sürebilir."
   },
   "sendbox": {
-    "hint": "Komutlar için /, dosya için @ yazın, ↑/↓ ile mesaj geçmişi"
+    "hint": "Komutlar için /, dosya için @ yazın, ↑/↓ ile mesaj geçmişi",
+    "mediaPathFallback": "Bu ajan bu dosya türünü yerel olarak desteklemiyor; dosya yolu olarak gönderilecek."
   },
   "agentTip": {
     "codes": {
