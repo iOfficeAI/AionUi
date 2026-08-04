@@ -1,5 +1,21 @@
 # Changelog
 
+## [2.1.50](https://github.com/suoak/AionUi/compare/v2.1.49...v2.1.50) (2026-08-04)
+
+### Desktop
+
+#### Bug Fixes
+
+- **desktop:** improve crash recovery and Windows installer reliability
+
+### Core ([v0.1.61](https://github.com/suoak/AionCore/releases/tag/v0.1.61))
+
+#### Features
+
+- **assistant:** add the Lark Work Assistant SVG avatar
+
+---
+
 ## [2.1.49](https://github.com/suoak/AionUi/compare/v2.1.48...v2.1.49) (2026-08-03)
 
 ### Desktop
