@@ -76,7 +76,7 @@
 
 **GEAUi 不只是個聊天工具。** 它是一個真正的 Cowork 平台，AI Agent 就像您的得力助手，在電腦上幫您處理各種任務——讀檔案、寫程式碼、查資料、自動化工作流。Agent 的一舉一動都在您的掌控之中，透明可見。
 
-|                       | 傳統 AI 聊天客戶端 | **GEAUi (Cowork)**                                                                                    |
+|                       | 傳統 AI 聊天客戶端 | **GEAUi (Cowork)**                                                                                     |
 | :-------------------- | :----------------- | :----------------------------------------------------------------------------------------------------- |
 | AI 可以操作您的檔案   | 有限或不可用       | **是 — 內建 Agent，完全檔案存取**                                                                      |
 | AI 可以執行多步驟任務 | 有限               | **是 — 自主執行，需您批准**                                                                            |
@@ -206,14 +206,14 @@ GEAUi 自帶完整的 AI Agent 引擎。不像其他工具需要您手動安裝�
 
 其他 AI 應用可能只給您個聊天視窗，**但 GEAUi 給您的是完整的 Cowork Agent**。
 
-| 您的 API 金鑰              | 您獲得的功能                                 |
-| :------------------------- | :------------------------------------------- |
-| Gemini API 金鑰            | Gemini 驅動的 Cowork Agent                   |
-| OpenAI API 金鑰            | GPT 驅動的 Cowork Agent                      |
-| Anthropic API 金鑰         | Claude 驅動的 Cowork Agent                   |
+| 您的 API 金鑰              | 您獲得的功能                                |
+| :------------------------- | :------------------------------------------ |
+| Gemini API 金鑰            | Gemini 驅動的 Cowork Agent                  |
+| OpenAI API 金鑰            | GPT 驅動的 Cowork Agent                     |
+| Anthropic API 金鑰         | Claude 驅動的 Cowork Agent                  |
 | AWS Bedrock 憑證           | 透過 GEA CLI（aionrs）的 Bedrock 驅動 Agent |
-| Ollama / LM Studio（本地） | 本地模型 Cowork Agent                        |
-| NewAPI 閘道                | 統一存取 20+ 模型                            |
+| Ollama / LM Studio（本地） | 本地模型 Cowork Agent                       |
+| NewAPI 閘道                | 統一存取 20+ 模型                           |
 
 不管用哪個模型，Agent 的能力都一樣強大——檔案讀寫、網路搜尋、圖像生成、工具調用，一個不少。GEAUi 支援 **30+ 個 AI 平台**，雲端本地都能用。
 
@@ -532,7 +532,7 @@ _同時開啟多個對話，任務不會亂，每個都有獨立記憶，效率�
 
 GEAUi 是一個**免費開源的 Multi-AI Agent 桌面應用**。相比只能在 macOS 上用、還只能綁定 Claude 的 Claude Cowork，GEAUi 支援全模型、跨平台，是它的全面升級版。
 
-| 維度     | Claude Cowork | GEAUi                                                 |
+| 維度     | Claude Cowork | GEAUi                                                  |
 | :------- | :------------ | :----------------------------------------------------- |
 | OS       | 僅 macOS      | macOS / Windows / Linux                                |
 | 模型支援 | 僅 Claude     | Gemini、Claude、DeepSeek、OpenAI、Ollama 等            |

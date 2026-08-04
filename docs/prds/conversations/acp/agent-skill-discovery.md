@@ -103,13 +103,13 @@ ACP 支持通过 `_meta` 字段和自定义扩展方法做 vendor 扩展，也�
 | `opencode`  | OpenCode    | `.opencode/skills`   | OpenCode 文档确认 `.opencode/skills`、`.claude/skills`、`.agents/skills` | 未确认热加载；文档只说明发现和按需加载                    |
 | `vibe`      | Vibe        | `.vibe/skills`       | Mistral 文档确认 `.vibe/skills` 和 `.agents/skills`                      | 未确认热加载；文档只说明发现路径                          |
 | `cursor`    | Cursor      | `.cursor/skills`     | 本轮未确认                                                               | 未知                                                      |
-| `auggie`    | Auggie      | `NULL`               | GEACore 行没有 native dir                                               | 只能走 prompt injection                                   |
-| `copilot`   | Copilot     | `NULL`               | GEACore 行没有 native dir                                               | 只能走 prompt injection                                   |
-| `qoder`     | Qoder       | `NULL`               | GEACore 行没有 native dir                                               | 只能走 prompt injection                                   |
-| `kiro`      | Kiro        | `NULL`               | GEACore 行没有 native dir                                               | 只能走 prompt injection                                   |
-| `hermes`    | Hermes      | `NULL`               | GEACore 行没有 native dir                                               | 只能走 prompt injection                                   |
-| `snow`      | Snow        | `NULL`               | GEACore 行没有 native dir                                               | 只能走 prompt injection                                   |
-| `openclaw`  | OpenClaw    | `NULL`               | GEACore 行没有 native dir                                               | 只能走 prompt injection                                   |
+| `auggie`    | Auggie      | `NULL`               | GEACore 行没有 native dir                                                | 只能走 prompt injection                                   |
+| `copilot`   | Copilot     | `NULL`               | GEACore 行没有 native dir                                                | 只能走 prompt injection                                   |
+| `qoder`     | Qoder       | `NULL`               | GEACore 行没有 native dir                                                | 只能走 prompt injection                                   |
+| `kiro`      | Kiro        | `NULL`               | GEACore 行没有 native dir                                                | 只能走 prompt injection                                   |
+| `hermes`    | Hermes      | `NULL`               | GEACore 行没有 native dir                                                | 只能走 prompt injection                                   |
+| `snow`      | Snow        | `NULL`               | GEACore 行没有 native dir                                                | 只能走 prompt injection                                   |
+| `openclaw`  | OpenClaw    | `NULL`               | GEACore 行没有 native dir                                                | 只能走 prompt injection                                   |
 
 ## Agent 扫描 skill 目录的时机
 
