@@ -13,7 +13,7 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useR
 import { BROWSER_BLANK_URL, BROWSER_TAB_FALLBACK_TITLE, MAX_BROWSER_TABS } from '../browser/constants';
 import { isBrowserMcpActivity, isBrowserMcpSettled } from '../browser/agentActivity';
 import { maybeNotifyFirstAgentBrowserUse } from '../browser/firstUseNotice';
-import type { PreviewScopeKey } from './previewScope';
+import { listPersistedPreviewScopeKeys, previewScopeStorageKey, type PreviewScopeKey } from './previewScope';
 
 /** DOM 片段数据结构 / DOM snippet data structure */
 export interface DomSnippet {
@@ -141,6 +141,15 @@ export interface PreviewContextValue {
    * the silent tab reuse looking like a bug.
    */
   browserTabLimitHitAt: number | null;
+  /**
+   * Timestamp of the most recent time persisting tabs had to be given up because
+   * local storage is full (null when it never happened).
+   *
+   * Surfaced so the UI can say it out loud: persistence failing silently meant a
+   * user's tabs simply stopped coming back after switching projects, with nothing
+   * connecting that to a full storage quota.
+   */
+  persistQuotaExceededAt: number | null;
   saveContent: (tabId?: string) => Promise<boolean>; // 保存内容 / Save content
   findPreviewTab: (type: PreviewContentType, content?: string, metadata?: PreviewMetadata) => PreviewTab | null; // 查找匹配的 tab
   closePreviewByIdentity: (type: PreviewContentType, content?: string, metadata?: PreviewMetadata) => void; // 根据内容关闭指定 tab
@@ -162,7 +171,22 @@ const PreviewContext = createContext<PreviewContextValue | null>(null);
 // Persistence is per **preview scope** (project id, or workspace fallback — see
 // `previewScope.ts`), so each project restores its own open tabs + visibility
 // when switching conversations / projects. Key: `aionui_preview:<scope>`.
-const previewScopeStorageKey = (scope: string): string => `aionui_preview:${scope}`;
+
+/**
+ * How many scopes keep persisted state, least-recently-written evicted first.
+ *
+ * Sizing: a scope holds at most a handful of text tabs, each capped at
+ * {@link MAX_PERSISTED_TAB_CONTENT_LENGTH} (80k chars) — so a *pathological*
+ * scope approaches a few hundred KB, while a typical one is a few KB. Browsers
+ * give an origin roughly 5–10 MB of localStorage, shared with everything else the
+ * app stores. 12 keeps the realistic footprint comfortably inside that (~tens of
+ * KB typical) and still bounds the worst case, while being far more scopes than
+ * anyone switches between in a session.
+ *
+ * Previously unbounded: every project ever opened kept its entry forever, with no
+ * cleanup anywhere, so the quota could only ever be approached, never released.
+ */
+const MAX_PERSISTED_SCOPES = 12;
 
 /** Persisted per-scope preview state. */
 type PersistedScopeState = { isOpen: boolean; tabs: PreviewTab[]; activeTabId: string | null };
@@ -261,14 +285,76 @@ const loadScopeState = (scope: string): PersistedScopeState => {
   }
 };
 
+/**
+ * Drop the coldest scope entries until at most `keep` remain **in total**.
+ *
+ * `protectedKey` is never evicted (it is the scope just written, which the user is
+ * looking at) but it still counts toward `keep` — otherwise the stored total would
+ * settle at `keep + 1`.
+ *
+ * Recency comes from the `savedAt` stamp written with each entry; entries from
+ * before that stamp existed (or with a corrupt one) sort oldest and are evicted
+ * first, which is the right bias — they are by definition the least recently
+ * written by this build.
+ */
+const evictColdestScopes = (keep: number, protectedKey?: string): void => {
+  const allKeys = listPersistedPreviewScopeKeys();
+  const evictable = allKeys
+    .filter((key) => key !== protectedKey)
+    .map((key) => {
+      let savedAt = 0;
+      try {
+        const parsed = JSON.parse(localStorage.getItem(key) ?? '{}') as { savedAt?: unknown };
+        if (typeof parsed.savedAt === 'number') savedAt = parsed.savedAt;
+      } catch {
+        // Unparseable entry — treat as coldest so it is the first to go.
+      }
+      return { key, savedAt };
+    })
+    .toSorted((a, b) => a.savedAt - b.savedAt);
+
+  // Count every stored scope, including the protected one, against the cap.
+  const excess = Math.min(allKeys.length - keep, evictable.length);
+  for (let i = 0; i < excess; i++) {
+    localStorage.removeItem(evictable[i].key);
+  }
+};
+
+/**
+ * Called when persistence had to be abandoned because storage is full.
+ *
+ * Wired by the provider to a visible warning. Silence was the old behaviour and
+ * the reason this needed fixing: writes failed, tabs stopped coming back after a
+ * project switch, and nothing ever told the user why.
+ */
+let onPersistQuotaExceeded: (() => void) | null = null;
+
 /** Persist a scope's preview state (lightweight text tabs + active tab + visibility). */
 const persistScopeState = (scope: string, state: PersistedScopeState): void => {
-  try {
+  const key = previewScopeStorageKey(scope);
+  const write = (): void => {
     const tabs = sanitizeTabsForPersistence(state.tabs);
     const activeTabId = tabs.some((t) => t.id === state.activeTabId) ? state.activeTabId : (tabs[0]?.id ?? null);
-    localStorage.setItem(previewScopeStorageKey(scope), JSON.stringify({ isOpen: state.isOpen, tabs, activeTabId }));
+    localStorage.setItem(key, JSON.stringify({ isOpen: state.isOpen, tabs, activeTabId, savedAt: Date.now() }));
+  };
+
+  try {
+    write();
+    // Bound the number of scopes kept. Runs after a successful write so the scope
+    // just written is never the one evicted.
+    evictColdestScopes(MAX_PERSISTED_SCOPES, key);
   } catch {
-    // storage full / unavailable — non-fatal
+    // Out of quota (or storage unavailable). Free the coldest scopes and retry
+    // once — persistence recovering on its own is better than a warning the user
+    // can do nothing about.
+    try {
+      evictColdestScopes(Math.floor(MAX_PERSISTED_SCOPES / 2), key);
+      write();
+    } catch {
+      // Still failing: this scope's tabs will not come back. Say so rather than
+      // letting persistence die quietly.
+      onPersistQuotaExceeded?.();
+    }
   }
 };
 
@@ -291,6 +377,17 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
   // Set when a browser-tab open was folded into an existing tab because the cap
   // was reached, so the UI can tell the user instead of silently reusing a tab.
   const [browserTabLimitHitAt, setBrowserTabLimitHitAt] = useState<number | null>(null);
+  // Set when a persist attempt was abandoned on a full quota, so the UI can warn
+  // instead of letting persistence stop working unannounced.
+  const [persistQuotaExceededAt, setPersistQuotaExceededAt] = useState<number | null>(null);
+
+  // Route the module-level persist failure hook into this provider's state.
+  useEffect(() => {
+    onPersistQuotaExceeded = () => setPersistQuotaExceededAt(Date.now());
+    return () => {
+      onPersistQuotaExceeded = null;
+    };
+  }, []);
   // const [sendBoxHandler, setSendBoxHandlerState] = useState<((text: string) => void) | null>(null);
   const sendBoxHandler = useRef<((text: string) => void) | null>(null);
   const [domSnippets, setDomSnippets] = useState<DomSnippet[]>([]);
@@ -943,6 +1040,7 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
       updateTab,
       openBrowserTab,
       browserTabLimitHitAt,
+      persistQuotaExceededAt,
       saveContent,
       findPreviewTab,
       closePreviewByIdentity,
@@ -967,6 +1065,7 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
     updateTab,
     openBrowserTab,
     browserTabLimitHitAt,
+    persistQuotaExceededAt,
     saveContent,
     findPreviewTab,
     closePreviewByIdentity,

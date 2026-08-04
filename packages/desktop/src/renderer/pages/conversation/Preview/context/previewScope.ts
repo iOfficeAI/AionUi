@@ -31,3 +31,40 @@ export function previewScopeKey(
 ): PreviewScopeKey {
   return projectId || workspace || null;
 }
+
+/**
+ * localStorage key prefix for a scope's persisted preview state.
+ *
+ * Lives in this pure module (rather than beside the persistence code in
+ * `PreviewContext`) so non-preview callers — logout cleanup in particular — can
+ * identify these keys without importing the whole preview panel into their path.
+ */
+export const PREVIEW_SCOPE_KEY_PREFIX = 'aionui_preview:';
+
+/** Storage key holding the persisted state for one preview scope. */
+export const previewScopeStorageKey = (scope: string): string => `${PREVIEW_SCOPE_KEY_PREFIX}${scope}`;
+
+/** Every persisted preview-scope key currently present in localStorage. */
+export const listPersistedPreviewScopeKeys = (): string[] => {
+  const keys: string[] = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key?.startsWith(PREVIEW_SCOPE_KEY_PREFIX)) keys.push(key);
+  }
+  return keys;
+};
+
+/**
+ * Drop every persisted preview scope.
+ *
+ * Called on logout: these entries are keyed by project id and hold file content,
+ * so leaving them would show the next account the previous one's open tabs.
+ * Nothing cleaned them up before — the logout sweep only matched auth/csrf/token.
+ */
+export const clearPersistedPreviewScopes = (): void => {
+  try {
+    listPersistedPreviewScopeKeys().forEach((key) => localStorage.removeItem(key));
+  } catch {
+    // Storage unavailable — nothing to clear.
+  }
+};

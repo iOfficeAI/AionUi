@@ -22,6 +22,8 @@
   "continueEdit": "Continuer la modification",
   "closeTabTitle": "Fermer l'onglet",
   "closeTabMessage": "Le contenu actuel n'a pas été enregistré. Voulez-vous enregistrer avant de fermer ?",
+  "closeTabsTitle": "Fermer les onglets",
+  "closeTabsMessage": "{{count}} onglets contiennent des modifications non enregistrées. Les enregistrer avant de fermer ?",
   "saveAndClose": "Enregistrer et fermer",
   "closeWithoutSave": "Ne pas enregistrer",
   "pptTitle": "Présentation PowerPoint",
@@ -136,5 +138,7 @@
     "agentFirstUseTitle": "L'agent utilise le navigateur intégré",
     "agentFirstUseContent": "Il peut ouvrir des pages, cliquer et lire du contenu dans ce panneau. Votre connexion est conservée.",
     "agentFirstUseAction": "Ouvrir les paramètres"
-  }
+  },
+  "saveConflict": "Échec de l'enregistrement : ce fichier a changé sur le disque depuis que vous l'avez ouvert. Rechargez pour voir les autres modifications — vos modifications sont toujours là, non enregistrées.",
+  "persistQuotaExceeded": "Le stockage local est plein : les onglets ouverts de ce projet ne peuvent plus être mémorisés. Fermez des onglets ou effacez les données du site."
 }

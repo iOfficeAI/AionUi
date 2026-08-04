@@ -22,6 +22,8 @@
   "continueEdit": "Continue Editing",
   "closeTabTitle": "Close Tab",
   "closeTabMessage": "The current content has not been saved. Do you want to save before closing?",
+  "closeTabsTitle": "Close Tabs",
+  "closeTabsMessage": "{{count}} tabs have unsaved changes. Save them before closing?",
   "saveAndClose": "Save and Close",
   "closeWithoutSave": "Don't Save",
   "pptTitle": "PowerPoint Presentation",
@@ -136,5 +138,7 @@
     "agentFirstUseTitle": "The agent is using the in-app browser",
     "agentFirstUseContent": "It can open pages, click and read content in this panel. Your sign-in state is kept between sessions.",
     "agentFirstUseAction": "Open settings"
-  }
+  },
+  "saveConflict": "Could not save: this file changed on disk since you opened it. Reload to see the other changes — your edits are still here, unsaved.",
+  "persistQuotaExceeded": "Local storage is full, so open tabs can no longer be remembered for this project. Close some tabs or clear site data."
 }

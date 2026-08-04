@@ -22,6 +22,8 @@
   "continueEdit": "继续编辑",
   "closeTabTitle": "关闭标签页",
   "closeTabMessage": "当前内容还未保存，是否保存后再关闭？",
+  "closeTabsTitle": "关闭标签页",
+  "closeTabsMessage": "有 {{count}} 个标签页未保存，是否保存后再关闭？",
   "saveAndClose": "保存并关闭",
   "closeWithoutSave": "不保存",
   "pptTitle": "PowerPoint 演示文稿",
@@ -136,5 +138,7 @@
     "agentFirstUseTitle": "Agent 正在使用应用内浏览器",
     "agentFirstUseContent": "它可以在这个面板里打开网页、点击和读取内容。你的登录状态会被保留。",
     "agentFirstUseAction": "前往设置"
-  }
+  },
+  "saveConflict": "保存失败：该文件在你打开后已被改动。可重新加载查看其他改动——你的编辑仍在，尚未保存。",
+  "persistQuotaExceeded": "本地存储已满，无法再记住该项目打开的标签页。请关闭一些标签页或清理站点数据。"
 }

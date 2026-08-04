@@ -8,7 +8,13 @@ import { ipcBridge } from '@/common';
 import { downloadFileFromPath, downloadTextContent } from '@/renderer/utils/file/download';
 import { formatFileSize } from '@/renderer/services/FileService';
 import { classifyPreviewError, previewErrorToI18nKey } from '@/renderer/utils/previewError';
-import { canOpenInSystem, isOpenableFileRef, wouldDownloadEmptyFile } from './previewToolbarUtils';
+import {
+  canOpenInSystem,
+  classifySaveOutcome,
+  dirtyTabsInBatch,
+  isOpenableFileRef,
+  wouldDownloadEmptyFile,
+} from './previewToolbarUtils';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { toLocalFileHref } from '@/renderer/components/Markdown/markdownUtils';
 import { PreviewToolbarExtrasProvider, type PreviewToolbarExtras } from '../../context/PreviewToolbarExtrasContext';
@@ -67,6 +73,7 @@ const PreviewPanel: React.FC = () => {
     updateTab,
     openBrowserTab,
     browserTabLimitHitAt,
+    persistQuotaExceededAt,
   } = usePreviewContext();
   const layout = useLayoutContext();
 
@@ -110,9 +117,41 @@ const PreviewPanel: React.FC = () => {
   // hook; kept local now that the hook is gone.
   const [messageApi, messageContextHolder] = Message.useMessage();
 
+  /**
+   * Save the active tab and report the outcome.
+   *
+   * The result must not be dropped. `saveContent` rethrows, and a 409 means the
+   * file changed on disk since this tab read it, so the write was refused — but
+   * the previous `void saveContent()` discarded that rejection: no message, and
+   * the tab kept looking exactly as it does after a successful save. The user
+   * believed their edit was on disk when nothing had been written.
+   *
+   * `saveContent` only clears the dirty flag on success, so the tab correctly
+   * stays dirty here; all this has to do is say so out loud.
+   */
+  const handleSaveActiveTab = useCallback(async () => {
+    let result: boolean | undefined;
+    let thrown: unknown;
+    try {
+      result = await saveContent();
+    } catch (error) {
+      thrown = error;
+    }
+
+    const outcome = classifySaveOutcome(result, thrown);
+    if (outcome.kind === 'saved') return;
+    if (outcome.kind === 'conflict') {
+      // The file moved under us. Name that specifically and leave the tab dirty so
+      // the edit is still there to retry or copy out.
+      messageApi.error(t('preview.saveConflict'));
+      return;
+    }
+    messageApi.error(outcome.detail ? `${t('common.saveFailed')}: ${outcome.detail}` : t('common.saveFailed'));
+  }, [saveContent, messageApi, t]);
+
   usePreviewKeyboardShortcuts({
     isDirty: activeTab?.isDirty,
-    onSave: () => void saveContent(),
+    onSave: () => void handleSaveActiveTab(),
   });
 
   // 新建浏览器 tab（tab 栏加号）/ New browser tab (plus button in the tab bar)
@@ -130,6 +169,16 @@ const PreviewPanel: React.FC = () => {
     if (!browserTabLimitHitAt) return;
     messageApi.warning?.(t('preview.browser.tabLimitReached', { count: MAX_BROWSER_TABS }));
   }, [browserTabLimitHitAt, messageApi, t]);
+
+  /**
+   * Local storage filled up, so this scope's tabs will not be restored later.
+   * Worth interrupting for: the alternative is tabs quietly failing to come back
+   * with nothing linking that to storage.
+   */
+  useEffect(() => {
+    if (!persistQuotaExceededAt) return;
+    messageApi.warning?.(t('preview.persistQuotaExceeded'));
+  }, [persistQuotaExceededAt, messageApi, t]);
 
   const setToolbarExtrasCallback = useCallback((extras: PreviewToolbarExtras | null) => {
     setToolbarExtras(extras);
@@ -175,6 +224,39 @@ const PreviewPanel: React.FC = () => {
     [updateContent]
   );
 
+  // 批量关闭的统一入口：有未保存的就先确认，否则直接关。
+  // 四个右键项和「收起面板」全部走这里 —— 以前它们各自 forEach(closeTab)，
+  // 绕过了单 tab 才有的确认，未保存的编辑被静默丢弃。
+  //
+  // Single entry point for batch closes: confirm first when anything is unsaved,
+  // otherwise close straight away. All four context-menu items and the panel
+  // collapse funnel through here; previously each ran its own forEach(closeTab),
+  // bypassing the confirmation that a single close had and silently discarding
+  // unsaved edits.
+  const requestCloseBatch = useCallback(
+    (tabsToClose: PreviewTab[], onAllClean?: () => void) => {
+      setContextMenu({ show: false, x: 0, y: 0, tabId: null });
+      if (tabsToClose.length === 0) return;
+
+      const dirty = dirtyTabsInBatch(tabsToClose);
+      if (dirty.length === 0) {
+        if (onAllClean) onAllClean();
+        else tabsToClose.forEach((tab) => closeTab(tab.id));
+        return;
+      }
+
+      setCloseTabConfirm({
+        show: true,
+        // Single dirty tab in the batch → reuse the existing per-tab flow so
+        // "save and close" can target it directly.
+        tabId: dirty.length === 1 ? dirty[0].id : null,
+        batchTabIds: tabsToClose.map((tab) => tab.id),
+        dirtyCount: dirty.length,
+      });
+    },
+    [closeTab]
+  );
+
   // 处理关闭tab / Handle close tab
   const handleCloseTab = useCallback(
     (tabId: string) => {
@@ -190,29 +272,59 @@ const PreviewPanel: React.FC = () => {
     [tabs, closeTab]
   );
 
+  /** Close everything the pending confirmation covers, then clear it. */
+  const finishPendingClose = useCallback(() => {
+    setCloseTabConfirm((pending) => {
+      const ids = pending.batchTabIds?.length ? pending.batchTabIds : pending.tabId ? [pending.tabId] : [];
+      ids.forEach((id) => closeTab(id));
+      // A batch that came from collapsing the panel also has to hide it; with no
+      // tabs left closeTab already does that, so this only covers the case where
+      // the user kept some tabs.
+      return { show: false, tabId: null };
+    });
+  }, [closeTab]);
+
   // 保存并关闭tab / Save and close tab
   const handleSaveAndCloseTab = useCallback(async () => {
-    if (!closeTabConfirm.tabId) return;
+    const pending = closeTabConfirm;
+    const dirtyIds = (pending.batchTabIds?.length ? pending.batchTabIds : pending.tabId ? [pending.tabId] : []).filter(
+      (id) => tabs.find((tab) => tab.id === id)?.isDirty
+    );
+    if (dirtyIds.length === 0) return;
 
     try {
-      const success = await saveContent(closeTabConfirm.tabId);
-      if (!success) {
-        throw new Error(t('common.saveFailed'));
+      // Save every unsaved tab in the batch before closing any of them: closing
+      // first would destroy the edits this dialog exists to protect.
+      //
+      // Sequential on purpose — `Promise.all` would be wrong here, not just
+      // different: each save reads and writes the shared save-in-flight set and
+      // mtime map keyed by file identity, and the first failure must stop the run
+      // so the remaining tabs stay open with their edits intact.
+      for (const id of dirtyIds) {
+        // eslint-disable-next-line no-await-in-loop
+        const success = await saveContent(id);
+        if (!success) {
+          throw new Error(t('common.saveFailed'));
+        }
       }
-      closeTab(closeTabConfirm.tabId);
-      setCloseTabConfirm({ show: false, tabId: null });
+      finishPendingClose();
     } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : t('common.unknownError');
-      messageApi.error(`${t('common.saveFailed')}: ${errorMsg}`);
+      // Same conflict case as Ctrl+S: name it, and do NOT close the tab — closing
+      // would throw away the edit the save just failed to persist.
+      const outcome = classifySaveOutcome(undefined, error);
+      if (outcome.kind === 'conflict') {
+        messageApi.error(t('preview.saveConflict'));
+      } else {
+        const detail = outcome.kind === 'failed' ? outcome.detail : undefined;
+        messageApi.error(detail ? `${t('common.saveFailed')}: ${detail}` : t('common.saveFailed'));
+      }
     }
-  }, [closeTabConfirm.tabId, saveContent, closeTab, messageApi, t]);
+  }, [closeTabConfirm, tabs, saveContent, finishPendingClose, messageApi, t]);
 
   // 不保存直接关闭tab / Close tab without saving
   const handleCloseWithoutSave = useCallback(() => {
-    if (!closeTabConfirm.tabId) return;
-    closeTab(closeTabConfirm.tabId);
-    setCloseTabConfirm({ show: false, tabId: null });
-  }, [closeTabConfirm.tabId, closeTab]);
+    finishPendingClose();
+  }, [finishPendingClose]);
 
   // 取消关闭tab / Cancel close tab
   const handleCancelCloseTab = useCallback(() => {
@@ -236,12 +348,9 @@ const PreviewPanel: React.FC = () => {
     (tabId: string) => {
       const currentIndex = tabs.findIndex((t) => t.id === tabId);
       if (currentIndex <= 0) return;
-
-      const tabsToClose = tabs.slice(0, currentIndex);
-      tabsToClose.forEach((tab) => closeTab(tab.id));
-      setContextMenu({ show: false, x: 0, y: 0, tabId: null });
+      requestCloseBatch(tabs.slice(0, currentIndex));
     },
-    [tabs, closeTab]
+    [tabs, requestCloseBatch]
   );
 
   // 关闭右侧 tabs / Close tabs to the right
@@ -249,29 +358,33 @@ const PreviewPanel: React.FC = () => {
     (tabId: string) => {
       const currentIndex = tabs.findIndex((t) => t.id === tabId);
       if (currentIndex < 0 || currentIndex >= tabs.length - 1) return;
-
-      const tabsToClose = tabs.slice(currentIndex + 1);
-      tabsToClose.forEach((tab) => closeTab(tab.id));
-      setContextMenu({ show: false, x: 0, y: 0, tabId: null });
+      requestCloseBatch(tabs.slice(currentIndex + 1));
     },
-    [tabs, closeTab]
+    [tabs, requestCloseBatch]
   );
 
   // 关闭其他 tabs / Close other tabs
   const handleCloseOthers = useCallback(
     (tabId: string) => {
-      const tabsToClose = tabs.filter((t) => t.id !== tabId);
-      tabsToClose.forEach((tab) => closeTab(tab.id));
-      setContextMenu({ show: false, x: 0, y: 0, tabId: null });
+      requestCloseBatch(tabs.filter((t) => t.id !== tabId));
     },
-    [tabs, closeTab]
+    [tabs, requestCloseBatch]
   );
 
   // 关闭全部 tabs / Close all tabs
   const handleCloseAll = useCallback(() => {
-    tabs.forEach((tab) => closeTab(tab.id));
-    setContextMenu({ show: false, x: 0, y: 0, tabId: null });
-  }, [tabs, closeTab]);
+    requestCloseBatch(tabs);
+  }, [tabs, requestCloseBatch]);
+
+  // 收起面板：只改可见性，tab 留着照常持久化 —— 但仍要过 dirty 确认，
+  // 否则「收起」会变成一条静默丢弃未保存内容的路径。
+  //
+  // Collapsing the panel only flips visibility and keeps the tabs persisted, but
+  // it still has to pass the dirty check: otherwise "collapse" becomes another
+  // route that silently discards unsaved edits.
+  const handleClosePanel = useCallback(() => {
+    requestCloseBatch(tabs, closePreview);
+  }, [tabs, requestCloseBatch, closePreview]);
 
   // 如果预览面板未打开，不渲染 / Don't render if preview panel is not open
   if (!isOpen || !activeTab) return null;
@@ -762,7 +875,7 @@ const PreviewPanel: React.FC = () => {
           onSwitchTab={switchTab}
           onCloseTab={handleCloseTab}
           onContextMenu={handleTabContextMenu}
-          onClosePanel={closePreview}
+          onClosePanel={handleClosePanel}
           // 只要面板里已经有任意 tab（文件或浏览器），就露出「新建浏览器 tab」的加号，
           // 不必等用户先手动开过一次浏览器。面板本身为空时才隐藏，避免出现一个没有
           // 上下文的孤立加号。
@@ -792,7 +905,7 @@ const PreviewPanel: React.FC = () => {
             onSplitScreenToggle={() => setIsSplitScreenEnabled(!isSplitScreenEnabled)}
             onOpenInSystem={handleOpenInSystem}
             onDownload={handleDownload}
-            onClose={closePreview}
+            onClose={handleClosePanel}
             inspectMode={inspectMode}
             onInspectModeToggle={() => setInspectMode(!inspectMode)}
             leftExtra={toolbarExtras?.left}

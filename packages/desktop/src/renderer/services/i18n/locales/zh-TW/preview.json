@@ -22,6 +22,8 @@
   "continueEdit": "繼續編輯",
   "closeTabTitle": "關閉標籤頁",
   "closeTabMessage": "當前內容還未儲存，是否儲存後再關閉？",
+  "closeTabsTitle": "關閉標籤頁",
+  "closeTabsMessage": "有 {{count}} 個標籤頁尚未儲存，是否儲存後再關閉？",
   "saveAndClose": "儲存並關閉",
   "closeWithoutSave": "不儲存",
   "pptTitle": "PowerPoint 簡報",
@@ -136,5 +138,7 @@
     "agentFirstUseTitle": "Agent 正在使用應用內瀏覽器",
     "agentFirstUseContent": "它可以在這個面板裡開啟網頁、點擊和讀取內容。你的登入狀態會被保留。",
     "agentFirstUseAction": "前往設定"
-  }
+  },
+  "saveConflict": "儲存失敗：該檔案在你開啟後已被變更。可重新載入查看其他變更——你的編輯仍在，尚未儲存。",
+  "persistQuotaExceeded": "本機儲存空間已滿，無法再記住該專案開啟的標籤頁。請關閉一些標籤頁或清理網站資料。"
 }

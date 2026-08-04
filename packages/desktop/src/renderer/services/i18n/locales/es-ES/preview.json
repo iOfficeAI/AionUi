@@ -22,6 +22,8 @@
   "continueEdit": "Continuar editando",
   "closeTabTitle": "Cerrar pestaña",
   "closeTabMessage": "El contenido actual no se ha guardado. ¿Deseas guardarlo antes de cerrar?",
+  "closeTabsTitle": "Cerrar pestañas",
+  "closeTabsMessage": "{{count}} pestañas tienen cambios sin guardar. ¿Guardar antes de cerrar?",
   "saveAndClose": "Guardar y cerrar",
   "closeWithoutSave": "No guardar",
   "pptTitle": "Presentación de PowerPoint",
@@ -136,5 +138,7 @@
     "agentFirstUseTitle": "El agente está usando el navegador integrado",
     "agentFirstUseContent": "Puede abrir páginas, hacer clic y leer contenido en este panel. Tu sesión se conserva.",
     "agentFirstUseAction": "Abrir ajustes"
-  }
+  },
+  "saveConflict": "No se pudo guardar: este archivo cambió en el disco después de que lo abrieras. Vuelve a cargarlo para ver los otros cambios; tus ediciones siguen aquí, sin guardar.",
+  "persistQuotaExceeded": "El almacenamiento local está lleno, así que ya no se pueden recordar las pestañas abiertas de este proyecto. Cierra algunas pestañas o borra los datos del sitio."
 }

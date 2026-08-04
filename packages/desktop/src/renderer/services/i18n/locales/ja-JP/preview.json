@@ -22,6 +22,8 @@
   "continueEdit": "編集を続ける",
   "closeTabTitle": "タブを閉じる",
   "closeTabMessage": "現在の内容はまだ保存されていません。保存してから閉じますか？",
+  "closeTabsTitle": "タブを閉じる",
+  "closeTabsMessage": "未保存のタブが {{count}} 件あります。保存してから閉じますか？",
   "saveAndClose": "保存して閉じる",
   "closeWithoutSave": "保存しない",
   "pptTitle": "PowerPoint プレゼンテーション",
@@ -136,5 +138,7 @@
     "agentFirstUseTitle": "エージェントがアプリ内ブラウザーを使用しています",
     "agentFirstUseContent": "このパネル内でページを開き、クリックや内容の読み取りができます。ログイン状態は保持されます。",
     "agentFirstUseAction": "設定を開く"
-  }
+  },
+  "saveConflict": "保存できませんでした：このファイルは開いた後に変更されています。再読み込みで他の変更を確認できます——あなたの編集は未保存のまま残っています。",
+  "persistQuotaExceeded": "ローカルストレージが満杯のため、このプロジェクトで開いているタブを記憶できません。タブを閉じるか、サイトデータを消去してください。"
 }

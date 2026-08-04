@@ -22,6 +22,8 @@
   "continueEdit": "Weiter bearbeiten",
   "closeTabTitle": "Tab schließen",
   "closeTabMessage": "Der aktuelle Inhalt wurde nicht gespeichert. Vor dem Schließen speichern?",
+  "closeTabsTitle": "Tabs schließen",
+  "closeTabsMessage": "{{count}} Tabs haben ungespeicherte Änderungen. Vor dem Schließen speichern?",
   "saveAndClose": "Speichern und schließen",
   "closeWithoutSave": "Nicht speichern",
   "pptTitle": "PowerPoint-Präsentation",
@@ -136,5 +138,7 @@
     "agentFirstUseTitle": "Der Agent nutzt den integrierten Browser",
     "agentFirstUseContent": "Er kann in diesem Bereich Seiten öffnen, klicken und Inhalte lesen. Deine Anmeldung bleibt erhalten.",
     "agentFirstUseAction": "Einstellungen öffnen"
-  }
+  },
+  "saveConflict": "Speichern fehlgeschlagen: Diese Datei wurde auf der Festplatte geändert, nachdem Sie sie geöffnet haben. Neu laden, um die anderen Änderungen zu sehen — Ihre Bearbeitungen sind noch da, ungespeichert.",
+  "persistQuotaExceeded": "Der lokale Speicher ist voll, offene Tabs dieses Projekts können nicht mehr gemerkt werden. Schließen Sie einige Tabs oder löschen Sie die Websitedaten."
 }

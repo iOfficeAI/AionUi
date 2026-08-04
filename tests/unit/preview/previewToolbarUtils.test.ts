@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
+  batchNeedsCloseConfirm,
   canOpenInSystem,
+  classifySaveOutcome,
+  dirtyTabsInBatch,
   isOpenableFileRef,
   shouldShowDownload,
   wouldDownloadEmptyFile,
@@ -99,5 +102,96 @@ describe('wouldDownloadEmptyFile', () => {
   it('does not interfere with normal tabs that have content', () => {
     expect(wouldDownloadEmptyFile(false, false)).toBe(false);
     expect(wouldDownloadEmptyFile(false, true)).toBe(false);
+  });
+});
+
+// Closing one dirty tab always asked for confirmation; closing several at once
+// (left / right / others / all, or collapsing the panel) went straight through and
+// discarded the edits. These pin the guard that removes that asymmetry — the
+// unsafe path was also the easier one to reach (a right-click).
+const clean = (id: string) => ({ id });
+const dirty = (id: string) => ({ id, isDirty: true });
+const httpError = (status: number): Error =>
+  Object.assign(new Error(`Backend PUT failed (${status})`), { name: 'BackendHttpError', status });
+
+describe('batch close confirmation', () => {
+  describe('dirtyTabsInBatch', () => {
+    it('picks out only the unsaved tabs', () => {
+      expect(dirtyTabsInBatch([clean('a'), dirty('b'), clean('c'), dirty('d')]).map((t) => t.id)).toEqual(['b', 'd']);
+    });
+
+    it('returns nothing for an all-clean batch', () => {
+      expect(dirtyTabsInBatch([clean('a'), clean('b')])).toEqual([]);
+    });
+
+    // `isDirty` is optional, and only an explicit true counts.
+    it('treats a missing or false isDirty as clean', () => {
+      expect(dirtyTabsInBatch([{ id: 'a' }, { id: 'b', isDirty: false }])).toEqual([]);
+    });
+
+    it('handles an empty batch', () => {
+      expect(dirtyTabsInBatch([])).toEqual([]);
+    });
+  });
+
+  describe('batchNeedsCloseConfirm', () => {
+    it('requires confirmation when any tab is unsaved', () => {
+      expect(batchNeedsCloseConfirm([clean('a'), dirty('b')])).toBe(true);
+    });
+
+    it('requires confirmation for a single unsaved tab', () => {
+      expect(batchNeedsCloseConfirm([dirty('a')])).toBe(true);
+    });
+
+    // A prompt with nothing at stake only trains the user to dismiss prompts.
+    it('closes an all-clean batch without asking', () => {
+      expect(batchNeedsCloseConfirm([clean('a'), clean('b'), clean('c')])).toBe(false);
+    });
+
+    it('does not ask about an empty batch', () => {
+      expect(batchNeedsCloseConfirm([])).toBe(false);
+    });
+  });
+});
+
+// A save that failed must never be reported as one that succeeded. The original
+// bug: Ctrl+S ran `void saveContent()`, so a refused write produced no message and
+// the tab kept its post-save look — the user believed the edit was on disk.
+describe('classifySaveOutcome', () => {
+  it('reports a successful write as saved', () => {
+    expect(classifySaveOutcome(true)).toEqual({ kind: 'saved' });
+  });
+
+  // 409 means conflict detection worked and the file moved under us — it needs its
+  // own wording, not a generic failure.
+  it('classifies a 409 as a conflict', () => {
+    expect(classifySaveOutcome(undefined, httpError(409))).toEqual({ kind: 'conflict' });
+  });
+
+  it('classifies other backend errors as plain failures', () => {
+    expect(classifySaveOutcome(undefined, httpError(500)).kind).toBe('failed');
+  });
+
+  // The trap: `false` is a refusal, and must not fall through to 'saved'.
+  it('treats a false result as a failure, not a success', () => {
+    expect(classifySaveOutcome(false)).toEqual({ kind: 'failed' });
+  });
+
+  it('treats an undefined result as a failure', () => {
+    expect(classifySaveOutcome(undefined)).toEqual({ kind: 'failed' });
+  });
+
+  it('carries the error message as detail when there is one', () => {
+    const outcome = classifySaveOutcome(undefined, new Error('disk went away'));
+    expect(outcome).toEqual({ kind: 'failed', detail: 'disk went away' });
+  });
+
+  it('handles a non-Error throw without inventing a detail', () => {
+    expect(classifySaveOutcome(undefined, 'something odd')).toEqual({ kind: 'failed', detail: undefined });
+  });
+
+  // An error takes precedence: a stale `true` alongside a rejection must not win.
+  it('prefers the error over a resolved value', () => {
+    expect(classifySaveOutcome(true, httpError(409))).toEqual({ kind: 'conflict' });
   });
 });

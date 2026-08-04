@@ -70,3 +70,60 @@ export const canOpenInSystem = (hasFilePath: boolean, fileRef?: ChatFileRef): bo
  */
 export const wouldDownloadEmptyFile = (isOversized: boolean, hasFilePath: boolean): boolean =>
   isOversized && !hasFilePath;
+
+/** Minimal tab shape the close-batch helpers need. */
+type ClosableTab = { id: string; isDirty?: boolean };
+
+/**
+ * Which tabs in a to-be-closed batch still hold unsaved edits.
+ *
+ * Closing a single dirty tab has always asked for confirmation, while closing
+ * several at once (left / right / others / all, or collapsing the panel) went
+ * straight through and discarded the edits with no prompt — the same "close"
+ * gesture with two different safety levels, and the unsafe one is the one that
+ * takes a right-click to reach.
+ */
+export const dirtyTabsInBatch = <T extends ClosableTab>(batch: readonly T[]): T[] =>
+  batch.filter((tab) => tab.isDirty === true);
+
+/**
+ * Whether closing this batch needs confirmation first.
+ *
+ * Clean batches close immediately: a prompt with nothing at stake only teaches
+ * the user to dismiss prompts without reading them.
+ */
+export const batchNeedsCloseConfirm = (batch: readonly ClosableTab[]): boolean => dirtyTabsInBatch(batch).length > 0;
+
+/** What the UI should tell the user after attempting a save. */
+export type SaveOutcome =
+  /** Written to disk. Nothing to report. */
+  | { kind: 'saved' }
+  /** The file changed on disk since this tab read it; the write was refused. */
+  | { kind: 'conflict' }
+  /** Anything else — carries a message to append. */
+  | { kind: 'failed'; detail?: string };
+
+/**
+ * Classify the result of a save attempt.
+ *
+ * Exists so the outcome is decided in one testable place instead of inside a
+ * component callback. The failure this guards against is a save that reports
+ * success it did not have: the previous Ctrl+S path discarded `saveContent`'s
+ * promise entirely, so a refused write produced no message at all and the tab kept
+ * looking exactly as it does after a successful save.
+ *
+ * @param result Resolved value of the save, or `undefined` when it threw.
+ * @param error  Thrown value, if any.
+ */
+export const classifySaveOutcome = (result: boolean | undefined, error?: unknown): SaveOutcome => {
+  if (error !== undefined && error !== null) {
+    // A 409 is the interesting one: it means conflict detection worked and the
+    // file moved under us, which needs different wording than a generic failure.
+    const status = (error as { status?: unknown }).status;
+    if (status === 409) return { kind: 'conflict' };
+    return { kind: 'failed', detail: error instanceof Error ? error.message : undefined };
+  }
+  // `false` is a refusal too, not a success — it must never fall through to 'saved'.
+  if (result !== true) return { kind: 'failed' };
+  return { kind: 'saved' };
+};

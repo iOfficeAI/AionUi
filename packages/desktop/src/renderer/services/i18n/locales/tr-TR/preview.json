@@ -22,6 +22,8 @@
   "continueEdit": "Düzenlemeye Devam Et",
   "closeTabTitle": "Sekmeyi Kapat",
   "closeTabMessage": "Mevcut içerik kaydedilmedi. Kapatmadan önce kaydetmek ister misiniz?",
+  "closeTabsTitle": "Sekmeleri Kapat",
+  "closeTabsMessage": "{{count}} sekmede kaydedilmemiş değişiklik var. Kapatmadan önce kaydedilsin mi?",
   "saveAndClose": "Kaydet ve Kapat",
   "closeWithoutSave": "Kaydetme",
   "pptTitle": "PowerPoint Sunumu",
@@ -136,5 +138,7 @@
     "agentFirstUseTitle": "Aracı uygulama içi tarayıcıyı kullanıyor",
     "agentFirstUseContent": "Bu panelde sayfa açabilir, tıklayabilir ve içerik okuyabilir. Oturum bilgileriniz korunur.",
     "agentFirstUseAction": "Ayarları aç"
-  }
+  },
+  "saveConflict": "Kaydedilemedi: bu dosya siz açtıktan sonra diskte değişti. Diğer değişiklikleri görmek için yeniden yükleyin — düzenlemeleriniz kaydedilmemiş olarak duruyor.",
+  "persistQuotaExceeded": "Yerel depolama dolu, bu proje için açık sekmeler artık hatırlanamıyor. Bazı sekmeleri kapatın veya site verilerini temizleyin."
 }
