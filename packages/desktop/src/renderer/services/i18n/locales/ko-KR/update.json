@@ -59,7 +59,7 @@
   "minimize": "최소화",
   "restoreUpdateNotification": "업데이트 진행 상황 복원",
   "migration": {
-    "capsule": "새 버전 안내",
+    "capsule": "사용자에게 드리는 편지",
     "letter": {
       "title": "AionUi 팀이 보내는 편지",
       "whyTitle": "왜 이렇게 하나요?",

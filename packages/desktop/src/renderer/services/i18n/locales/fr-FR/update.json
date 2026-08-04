@@ -59,7 +59,7 @@
   "minimize": "Minimiser",
   "restoreUpdateNotification": "Restaurer la progression de la mise à jour",
   "migration": {
-    "capsule": "Nouvelle version disponible",
+    "capsule": "Une lettre à nos utilisateurs",
     "letter": {
       "title": "Une lettre de l'équipe AionUi",
       "whyTitle": "Pourquoi ce changement ?",

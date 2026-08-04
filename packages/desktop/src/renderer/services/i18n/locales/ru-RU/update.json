@@ -59,7 +59,7 @@
   "minimize": "Свернуть",
   "restoreUpdateNotification": "Восстановить прогресс обновления",
   "migration": {
-    "capsule": "Доступна новая версия",
+    "capsule": "Письмо нашим пользователям",
     "letter": {
       "title": "Письмо от команды AionUi",
       "whyTitle": "Почему это изменение?",
