@@ -1206,7 +1206,9 @@
       "command_missing": "Install {{command}} and retry the connection test.",
       "managed_runtime_unavailable": "Repair or reinstall {{resource}}, then retry the connection test.",
       "auth_required": "에이전트에 연결할 수 있지만 로그인이 필요합니다. CLI에서 로그인하거나 「환경 변수」에 필요한 API 키를 추가한 후 연결 테스트를 다시 시도하세요.",
-      "no_provider": "모델 제공자가 구성되지 않았습니다. 설정에서 제공자를 추가하고 활성화한 후 연결 테스트를 다시 시도하세요."
+      "no_provider": "모델 제공자가 구성되지 않았습니다. 설정에서 제공자를 추가하고 활성화한 후 연결 테스트를 다시 시도하세요.",
+      "version_drift_older": "설치된 agy가 이 통합이 검증한 버전보다 이전이라 일부 기능이 없을 수 있습니다. 업그레이드를 권장합니다.",
+      "version_drift_newer": "설치된 agy가 이 통합이 검증한 버전보다 최신입니다. 대개 정상 동작하지만, 이상이 있으면 알려주세요."
     },
     "boundAssistantsTitle": "이 에이전트를 사용하는 어시스턴트",
     "boundAssistantsCount": "어시스턴트 {{count}}개",
@@ -1346,5 +1348,7 @@
     "solveWithButler": "집사에게 문의"
   },
   "providerIdConflict": "Provider ID가 이미 있습니다. 다시 시도하세요.",
-  "autoInjectedSkillsHint": "모든 대화에 자동으로 로드됩니다. 활성화할 필요가 없으며, 에이전트가 사용 시점을 결정합니다."
+  "autoInjectedSkillsHint": "모든 대화에 자동으로 로드됩니다. 활성화할 필요가 없으며, 에이전트가 사용 시점을 결정합니다.",
+  "hardwareAccelerationAutoDisabledTitle": "하드웨어 가속이 비활성화됨",
+  "hardwareAccelerationAutoDisabledNotice": "그래픽 렌더링이 반복적으로 충돌하여 앱 안정성을 위해 하드웨어 가속을 자동으로 껐습니다. 설정 → 시스템에서 다시 켤 수 있습니다."
 }

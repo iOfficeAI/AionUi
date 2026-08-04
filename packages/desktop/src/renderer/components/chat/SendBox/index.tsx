@@ -759,6 +759,8 @@ const SendBox: React.FC<{
         if (cancelled) {
           return;
         }
+        // Loading-window fallback items carry a `local` chat-ref so a send does
+        // not fall back to an `upload` ref → managed-dir 400 (ELECTRON-3TG).
         const files = result.map(workspaceMentionItemFromListing);
         setWorkspaceMentionItems(files);
       })

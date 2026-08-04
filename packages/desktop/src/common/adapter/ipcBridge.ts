@@ -90,7 +90,7 @@ import type {
 import type { AgentMetadata } from '@/renderer/utils/model/agentTypes';
 import type { Theme } from '@/common/theme/types';
 import type { AttachFolderRequest, ProjectDetailDto, ProjectEntryDto } from '@/common/types/project';
-import type { ChatFileRef } from '@/common/types/chatFile';
+import type { ChatFileRef, ContentEncoding } from '@/common/types/chatFile';
 import type { ProtocolDetectionRequest, ProtocolDetectionResponse } from '../utils/protocolDetector';
 import { normalizeLegacyBrandText } from '../utils/utils';
 import {
@@ -588,6 +588,7 @@ export type RuntimeFailureKind =
   | 'unsupported_platform'
   | 'bundled_resource_missing'
   | 'bundled_resource_invalid'
+  | 'activation_io_failed'
   | 'unknown';
 
 export interface IRuntimeStatusScope {
@@ -816,8 +817,35 @@ export type OfficialSkillFile = {
   sha256: string;
 };
 
+/** Raw metadata as the backend serializes it (snake_case). */
+type RawFileMetadata = {
+  name: string;
+  path: string;
+  size: number;
+  type: string;
+  last_modified: number;
+  is_directory?: boolean;
+};
+
+/** Map backend snake_case metadata to the camelCase {@link IFileMetadata}. */
+function fromBackendFileMetadata(raw: RawFileMetadata): IFileMetadata {
+  return {
+    name: raw.name,
+    path: raw.path,
+    size: raw.size,
+    type: raw.type,
+    lastModified: raw.last_modified,
+    isDirectory: raw.is_directory,
+  };
+}
+
 export const fs = {
   getFilesByDir: httpPost<Array<IDirOrFile>, { dir: string; root: string }>('/api/fs/dir'),
+  // Reveal a project-scoped entry in the OS file manager (Finder/Explorer).
+  // The backend resolves the pe-ref to an absolute path (resolve_reference) and
+  // calls shell.showItemInFolder — the front end never builds the absolute path
+  // (avoids the Windows verbatim `\\?\` pitfall). Electron-only at the call site.
+  reveal: httpPost<void, { pe_id: string; relative_path: string }>('/api/fs/reveal'),
   listWorkspaceFiles: withResponseMap(
     httpPost<Array<RawWorkspaceFlatFile>, { root: string }>('/api/fs/list'),
     fromBackendWorkspaceFlatFiles
@@ -826,22 +854,25 @@ export const fs = {
   fetchRemoteImage: httpPost<string, { url: string }>('/api/fs/fetch-remote-image'),
   readFile: httpPost<string | null, { path: string; workspace?: string }>('/api/fs/read'),
   writeFile: httpPost<boolean, { path: string; data: string; workspace?: string }>('/api/fs/write'),
-  createZip: httpPost<
-    boolean,
-    {
-      path: string;
-      workspace?: string;
-      source_root?: string;
-      request_id?: string;
-      files: Array<{
-        name: string;
-        content?: string | Uint8Array;
-        source_path?: string;
-      }>;
-    }
-  >('/api/fs/zip'),
-  cancelZip: httpPost<boolean, { request_id: string }>('/api/fs/zip/cancel'),
   getFileMetadata: httpPost<IFileMetadata, { path: string; workspace?: string }>('/api/fs/metadata'),
+  // ── ChatFileRef content endpoints (PR-2: preview I/O by ref identity) ──────
+  // Read a file addressed by ChatFileRef; `encoding` selects text (utf8) vs image
+  // data URL (dataurl) vs raw base64. Backend: POST /api/fs/content → String.
+  readContent: httpPost<string, { file: ChatFileRef; encoding: ContentEncoding }>('/api/fs/content'),
+  // Write a file addressed by ChatFileRef. Optimistic concurrency: when `ifMatch`
+  // (last-known mtime ms) is set it travels as the `If-Match` header, and a stale
+  // value yields 409 Conflict (surfaced as BackendHttpError.status). PUT /api/fs/content.
+  writeContent: httpPut<boolean, { file: ChatFileRef; data: string; ifMatch?: number }>(
+    '/api/fs/content',
+    ({ file, data }) => ({ file, data }),
+    ({ ifMatch }) => (ifMatch != null ? { 'If-Match': String(ifMatch) } : undefined)
+  ),
+  // Metadata for a ChatFileRef-addressed file; backend snake_case is mapped to the
+  // camelCase IFileMetadata the preview layer reads. POST /api/fs/content/metadata.
+  getContentMetadata: withResponseMap(
+    httpPost<RawFileMetadata, { file: ChatFileRef }>('/api/fs/content/metadata'),
+    fromBackendFileMetadata
+  ),
   // Import OS files into a project entry's directory (A-paste). `target` is the
   // drop-target pe + relative dir ('' = its root). Name conflicts are reported in
   // `failed_files` (not overwritten); directories are rejected there this round.
@@ -1403,25 +1434,34 @@ export const document = {
 // Office Previews — routed to /api/*-preview/*
 // ---------------------------------------------------------------------------
 
+// Office watch bridges. start/stop additively carry a `file` (ChatFileRef) the
+// backend prefers over `file_path` (resolves pe→path server-side, keeps the same
+// watch session key for stop). `file_path` is still sent (required by the DTO;
+// '' when only a ref is available) and used as the legacy fallback.
+type OfficeStartParams = { file_path?: string; workspace?: string; file?: ChatFileRef };
+type OfficeStopParams = { file_path?: string; file?: ChatFileRef };
+const officeStartBody = (p: OfficeStartParams) => ({
+  file_path: p.file_path ?? '',
+  workspace: p.workspace,
+  file: p.file,
+});
+const officeStopBody = (p: OfficeStopParams) => ({ file_path: p.file_path ?? '', file: p.file });
+
 export const pptPreview = {
-  start: httpPost<{ url: string; error?: string }, { file_path: string; workspace?: string }>('/api/ppt-preview/start'),
-  stop: httpPost<void, { file_path: string }>('/api/ppt-preview/stop'),
+  start: httpPost<{ url: string; error?: string }, OfficeStartParams>('/api/ppt-preview/start', officeStartBody),
+  stop: httpPost<void, OfficeStopParams>('/api/ppt-preview/stop', officeStopBody),
   status: wsEmitter<{ state: 'starting' | 'installing' | 'ready' | 'error'; message?: string }>('ppt-preview.status'),
 };
 
 export const wordPreview = {
-  start: httpPost<{ url: string; error?: string }, { file_path: string; workspace?: string }>(
-    '/api/word-preview/start'
-  ),
-  stop: httpPost<void, { file_path: string }>('/api/word-preview/stop'),
+  start: httpPost<{ url: string; error?: string }, OfficeStartParams>('/api/word-preview/start', officeStartBody),
+  stop: httpPost<void, OfficeStopParams>('/api/word-preview/stop', officeStopBody),
   status: wsEmitter<{ state: 'starting' | 'installing' | 'ready' | 'error'; message?: string }>('word-preview.status'),
 };
 
 export const excelPreview = {
-  start: httpPost<{ url: string; error?: string }, { file_path: string; workspace?: string }>(
-    '/api/excel-preview/start'
-  ),
-  stop: httpPost<void, { file_path: string }>('/api/excel-preview/stop'),
+  start: httpPost<{ url: string; error?: string }, OfficeStartParams>('/api/excel-preview/start', officeStartBody),
+  stop: httpPost<void, OfficeStopParams>('/api/excel-preview/stop', officeStopBody),
   status: wsEmitter<{ state: 'starting' | 'installing' | 'ready' | 'error'; message?: string }>('excel-preview.status'),
 };
 

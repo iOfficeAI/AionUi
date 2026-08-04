@@ -1216,7 +1216,9 @@
       "command_missing": "Installez {{command}} et réessayez le test de connexion.",
       "managed_runtime_unavailable": "Réparez ou réinstallez {{resource}}, puis réessayez le test de connexion.",
       "auth_required": "L'agent est joignable mais nécessite une connexion. Connectez-vous via la CLI ou ajoutez la clé API requise sous Variables d'environnement, puis réessayez le test de connexion.",
-      "no_provider": "Aucun fournisseur de modèles n'est configuré. Ajoutez et activez un fournisseur dans Paramètres, puis réessayez le test de connexion."
+      "no_provider": "Aucun fournisseur de modèles n'est configuré. Ajoutez et activez un fournisseur dans Paramètres, puis réessayez le test de connexion.",
+      "version_drift_older": "La version installée d'agy est antérieure à celle validée pour cette intégration ; certaines fonctionnalités peuvent manquer. Une mise à jour est conseillée.",
+      "version_drift_newer": "La version installée d'agy est postérieure à celle validée pour cette intégration. Elle devrait fonctionner ; signalez tout comportement anormal."
     },
     "boundAssistantsTitle": "Assistants utilisant cet agent",
     "boundAssistantsCount": "{{count}} assistant(s)",
@@ -1344,5 +1346,7 @@
     "solveWithButler": "Demander au majordome"
   },
   "providerIdConflict": "L'ID du fournisseur existe déjà. Veuillez réessayer.",
-  "autoInjectedSkillsHint": "Chargé automatiquement dans chaque conversation – pas besoin de les activer ; l'agent décide quand les utiliser."
+  "autoInjectedSkillsHint": "Chargé automatiquement dans chaque conversation – pas besoin de les activer ; l'agent décide quand les utiliser.",
+  "hardwareAccelerationAutoDisabledTitle": "Accélération matérielle désactivée",
+  "hardwareAccelerationAutoDisabledNotice": "Des plantages graphiques répétés ont été détectés ; l'accélération matérielle a donc été désactivée automatiquement pour garder l'application stable. Vous pouvez la réactiver dans Paramètres → Système."
 }

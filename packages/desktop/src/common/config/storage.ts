@@ -195,6 +195,9 @@ export interface TokenUsageData {
 export type TChatConversation =
   | Omit<
       IChatConversation<
+        // Antigravity (agy CLI) shares this shape exactly: the backend reports
+        // its own conversation type, but the renderer treats it as an ACP-family
+        // conversation because the extra payload and event stream are identical.
         'acp' | 'antigravity',
         {
           workspace?: string;

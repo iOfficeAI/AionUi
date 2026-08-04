@@ -1216,7 +1216,9 @@
       "command_missing": "Install {{command}} and retry the connection test.",
       "managed_runtime_unavailable": "Repair or reinstall {{resource}}, then retry the connection test.",
       "auth_required": "O agente está acessível, mas requer login. Faça login pelo CLI ou adicione a chave de API necessária em Variáveis de Ambiente e tente o teste de conexão novamente.",
-      "no_provider": "Nenhum provedor de modelo está configurado. Adicione e ative um provedor nas Configurações e tente o teste de conexão novamente."
+      "no_provider": "Nenhum provedor de modelo está configurado. Adicione e ative um provedor nas Configurações e tente o teste de conexão novamente.",
+      "version_drift_older": "A versão instalada do agy é anterior à verificada nesta integração; alguns recursos podem estar ausentes. Considere atualizar.",
+      "version_drift_newer": "A versão instalada do agy é mais recente que a verificada nesta integração. Deve continuar funcionando; relate qualquer comportamento estranho."
     },
     "boundAssistantsTitle": "Assistentes que usam este agente",
     "boundAssistantsCount": "{{count}} assistente(s)",
@@ -1347,5 +1349,7 @@
     "solveWithButler": "Perguntar ao Mordomo"
   },
   "providerIdConflict": "O Provider ID já existe. Tente novamente.",
-  "autoInjectedSkillsHint": "Carregadas automaticamente em cada conversa — não é preciso ativá-las; o agente decide quando usá-las."
+  "autoInjectedSkillsHint": "Carregadas automaticamente em cada conversa — não é preciso ativá-las; o agente decide quando usá-las.",
+  "hardwareAccelerationAutoDisabledTitle": "Aceleração de hardware desativada",
+  "hardwareAccelerationAutoDisabledNotice": "Foram detectadas falhas repetidas de renderização gráfica, então a aceleração de hardware foi desativada automaticamente para manter o aplicativo estável. Você pode reativá-la em Configurações → Sistema."
 }

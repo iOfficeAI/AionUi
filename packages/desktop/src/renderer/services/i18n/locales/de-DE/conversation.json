@@ -587,6 +587,15 @@
       },
       "ACP_EMPTY_TURN_REFUSAL": {
         "body": "Das Modell hat diese Anfrage abgelehnt, bevor eine sichtbare Antwort erzeugt wurde."
+      },
+      "ANTIGRAVITY_STEPS_FAILED": {
+        "body": "{{count}} Schritt(e) sind fehlgeschlagen und wurden NICHT ausgeführt. agy schließt solche Durchläufe trotzdem als erfolgreich ab – prüfe daher das tatsächliche Ergebnis statt der Antwort."
+      },
+      "ANTIGRAVITY_VERSION_OLDER": {
+        "body": "Das installierte agy {{reported}} ist älter als die für diese Integration geprüfte Version {{verified}}; einzelne Funktionen fehlen möglicherweise. Ein Update wird empfohlen."
+      },
+      "ANTIGRAVITY_VERSION_NEWER": {
+        "body": "Das installierte agy {{reported}} ist neuer als die für diese Integration geprüfte Version {{verified}}. Es sollte weiterhin funktionieren – melde bitte alles, was sich seltsam verhält."
       }
     }
   },

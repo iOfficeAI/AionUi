@@ -13,6 +13,7 @@
  */
 
 import { Dropdown, Menu, Tree } from '@arco-design/web-react';
+import { isElectronDesktop } from '@/renderer/utils/platform';
 import type { TreeProps } from '@arco-design/web-react';
 import { Caution } from '@icon-park/react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
@@ -44,6 +45,10 @@ export type ExplorerPanelProps = {
   /** Add a file/folder node to the active conversation's send box. Omit to hide
    * the item (e.g. no single active conversation, as on the team route). */
   onAddToChat?: (peId: string, relativePath: string, name: string, isFile: boolean) => void;
+  /** Reveal the node in the OS file manager (Finder/Explorer). The handler
+   * resolves the pe-ref to an absolute path backend-side; the item is only shown
+   * on Electron desktop (WebUI has no local shell / may be remote). Omit to hide. */
+  onRevealInFolder?: (peId: string, relativePath: string) => void;
   /** Import OS files (A-paste) dropped onto a node into that node's directory
    * (a file node routes to its parent dir). `filePaths` are absolute OS paths
    * (Electron only — empty in the browser, where the drop is ignored). Omit to
@@ -60,6 +65,7 @@ export const ExplorerPanel: React.FC<ExplorerPanelProps> = ({
   onRename,
   onDelete,
   onAddToChat,
+  onRevealInFolder,
   onImportFiles,
 }) => {
   const view = useExplorerView();
@@ -192,7 +198,10 @@ export const ExplorerPanel: React.FC<ExplorerPanelProps> = ({
       // Root nodes only expose "remove from project" + (when available) "add to
       // chat". Non-root nodes get add-to-chat + rename/delete. If a node would
       // have no menu items at all, render the bare title (no dropdown).
-      const hasMenu = onAddToChat || (isRoot ? onRemoveRoot : onRename || onDelete);
+      // Reveal-in-folder is Electron-only (needs a local OS shell; WebUI may be
+      // remote and has no shell permission), so gate the menu item on the runtime.
+      const canReveal = Boolean(onRevealInFolder) && isElectronDesktop();
+      const hasMenu = onAddToChat || canReveal || (isRoot ? onRemoveRoot : onRename || onDelete);
       if (!hasMenu) return title;
 
       const onClickMenuItem = (menuKey: string) => {
@@ -200,6 +209,7 @@ export const ExplorerPanel: React.FC<ExplorerPanelProps> = ({
         else if (menuKey === 'rename') onRename?.(peId, rel, name);
         else if (menuKey === 'delete') onDelete?.(peId, rel, name);
         else if (menuKey === 'remove' && removable) onRemoveRoot?.(peId);
+        else if (menuKey === 'revealInFolder') onRevealInFolder?.(peId, rel);
       };
 
       return (
@@ -217,6 +227,9 @@ export const ExplorerPanel: React.FC<ExplorerPanelProps> = ({
               <Menu onClickMenuItem={onClickMenuItem}>
                 {onAddToChat && (
                   <Menu.Item key='addToChat'>{t('conversation.explorer.contextMenu.addToChat')}</Menu.Item>
+                )}
+                {canReveal && (
+                  <Menu.Item key='revealInFolder'>{t('conversation.workspace.contextMenu.openLocation')}</Menu.Item>
                 )}
                 {!isRoot && onRename && (
                   <Menu.Item key='rename'>{t('conversation.explorer.contextMenu.rename')}</Menu.Item>

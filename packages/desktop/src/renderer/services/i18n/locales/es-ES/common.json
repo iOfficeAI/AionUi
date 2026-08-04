@@ -124,7 +124,13 @@
       "diagnosticsSent": "Diagnostics sent",
       "diagnosticsReportSuccess": "Diagnostics report sent",
       "diagnosticsReportFailed": "Failed to send diagnostics report",
-      "rebuildFailed": "Failed to back up old DB and rebuild new DB"
+      "rebuildFailed": "Failed to back up old DB and rebuild new DB",
+      "confirmDialog": {
+        "title": "¿Reconstruir la base de datos?",
+        "content": "Esta acción hará una copia de seguridad de la base de datos dañada actual y creará una totalmente nueva y vacía. Las conversaciones anteriores ya no se mostrarán (la base de datos antigua se conserva como archivo de copia de seguridad). ¿Desea continuar?",
+        "okText": "Confirmar reconstrucción",
+        "cancelText": "Cancelar"
+      }
     },
     "transientConcurrentStartup": {
       "title": "CSBU WorkMate se está iniciando",
@@ -134,6 +140,18 @@
       "diagnosticsReportSuccess": "Diagnostics report sent",
       "diagnosticsReportFailed": "Failed to send diagnostics report",
       "diagnosticsHint": "Si esto sigue ocurriendo, puedes enviar un informe de diagnóstico."
+    },
+    "pendingSlow": {
+      "title": "Iniciando",
+      "description": "AionCore se está iniciando, espera un momento. Si no responde después de un rato, puedes salir de la aplicación y volver a abrirla."
+    },
+    "exited": {
+      "title": "El inicio no se completó",
+      "description": "AionCore no pudo completar el inicio y se cerró. Reinicia la aplicación; si esto sigue ocurriendo, envía un diagnóstico.",
+      "sendDiagnostics": "Enviar diagnóstico",
+      "diagnosticsSent": "Diagnóstico enviado",
+      "diagnosticsReportSuccess": "Diagnóstico enviado",
+      "diagnosticsReportFailed": "No se pudo enviar el diagnóstico, inténtalo de nuevo"
     }
   },
   "fileAttach.addFiles": "Agregar archivos",

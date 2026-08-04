@@ -36,6 +36,7 @@ import type { PreviewContentType } from '@/common/types/office/preview';
 
 import { emitter } from '@/renderer/utils/emitter';
 import { projectFileRef } from '@/common/types/chatFile';
+import type { ChatFileRef } from '@/common/types/chatFile';
 import type { FileOrFolderItem } from '@/renderer/utils/file/fileTypes';
 
 import { ExplorerPanel } from './ExplorerPanel';
@@ -59,85 +60,45 @@ const pathToFileUri = (p: string): string => {
   return `file://${encodeURI(withLeadingSlash)}`;
 };
 
-// PATCH(ELECTRON-3SZ): image file extension → data-URL MIME. The WS `fs/read`
-// base64 payload is bare (no `data:` prefix), but ImageViewer feeds `content`
-// straight into <img src>, so the Explorer open path must wrap it. Remove with
-// the rest of this patch once Preview consumes {pe_id, relative_path} directly.
-const IMAGE_MIME_BY_EXT: Record<string, string> = {
-  png: 'image/png',
-  jpg: 'image/jpeg',
-  jpeg: 'image/jpeg',
-  gif: 'image/gif',
-  svg: 'image/svg+xml',
-  webp: 'image/webp',
-  bmp: 'image/bmp',
-  ico: 'image/x-icon',
-  tif: 'image/tiff',
-  tiff: 'image/tiff',
-  avif: 'image/avif',
-};
-
-/** PATCH(ELECTRON-3SZ): wrap a bare base64 image body into a renderable data URL. */
-const imageDataUrl = (fileName: string, base64: string): string => {
-  const ext = fileName.slice(fileName.lastIndexOf('.') + 1).toLowerCase();
-  const mime = IMAGE_MIME_BY_EXT[ext] ?? 'image/png';
-  return `data:${mime};base64,${base64}`;
-};
-
-/** PATCH(ELECTRON-3SZ): minimal WS-RPC surface the preview payload builder needs. Remove with it. */
-type PreviewRpcClient = { request(method: string, params?: unknown): Promise<unknown> };
-
-/** PATCH(ELECTRON-3SZ): args passed to `openPreview` for an Explorer-opened file. Remove with it. */
+/** Args passed to `openPreview` for an Explorer-opened file. */
 export type ExplorerPreviewPayload = {
   content: string;
   contentType: PreviewContentType;
   metadata: {
     title: string;
     file_name: string;
-    file_path?: string;
-    workspace?: string;
+    // Project ChatFileRef identity — the sole identity for an explorer-opened
+    // file. Preview I/O addresses it by pe id + relative path (content over
+    // /api/fs/content, pdf over /api/fs/stream, office via officecli resolve),
+    // so the renderer never sees an absolute path.
+    fileRef: ChatFileRef;
     language: string;
     editable?: boolean;
   };
 };
 
-// PATCH(ELECTRON-3SZ): the Explorer tree only knows `{pe_id, relative_path}`, but
-// three viewer families can't render from the WS `fs/read` content alone, so this
-// builder special-cases them:
-//   - image: fs/read base64 is bare (no `data:` prefix); ImageViewer feeds
-//     `content` straight into <img src>, so wrap it into a data URL.
-//   - pdf/office: need a real local absolute path (PDF via file://, office via
-//     `officecli watch`), so resolve pe → absolute path with `fs/resolve`.
-// Exposing the absolute path to the renderer breaks the "front-end never sees
-// absolute paths" boundary — this whole helper is an emergency patch and MUST be
-// removed once Preview consumes `{pe_id, relative_path}` end-to-end.
+// The Explorer tree knows `{pe_id, relative_path}`, mapped straight to a Project
+// ChatFileRef. Text/image read their content eagerly over `/api/fs/content`
+// (utf8 / dataurl — the backend prepends the image data-URL prefix); pdf and
+// office carry no content (pdf renders from the stream URL, office resolves the
+// ref server-side for its watch). No absolute path is ever exposed — the old WS
+// path-resolve patch is gone.
 export const buildExplorerPreviewPayload = async (
-  client: PreviewRpcClient,
   peId: string,
   relativePath: string
 ): Promise<ExplorerPreviewPayload> => {
   const name = relativePath.split('/').pop() || relativePath;
   const contentType = getContentTypeByExtension(name);
-  const file = { pe_id: peId, relative_path: relativePath };
+  const fileRef = projectFileRef(peId, relativePath);
 
   let content = '';
-  let file_path: string | undefined;
-  let workspace: string | undefined;
-
   if (contentType === 'image') {
-    const res = (await client.request('fs/read', { file, encoding: 'base64' })) as { content?: string };
-    const base64 = res.content ?? '';
-    content = base64 ? imageDataUrl(name, base64) : '';
+    content = await ipcBridge.fs.readContent.invoke({ file: fileRef, encoding: 'dataurl' });
   } else if (contentType === 'pdf' || contentType === 'word' || contentType === 'excel' || contentType === 'ppt') {
-    const res = (await client.request('fs/resolve', { file })) as {
-      absolute_path?: string;
-      workspace_root?: string;
-    };
-    file_path = res.absolute_path;
-    workspace = res.workspace_root;
+    // Binary preview: no content read. pdf renders via the /api/fs/stream URL
+    // built from fileRef; office resolves fileRef server-side for its watch.
   } else {
-    const res = (await client.request('fs/read', { file, encoding: 'utf-8' })) as { content?: string };
-    content = res.content ?? '';
+    content = await ipcBridge.fs.readContent.invoke({ file: fileRef, encoding: 'utf8' });
   }
 
   return {
@@ -146,8 +107,7 @@ export const buildExplorerPreviewPayload = async (
     metadata: {
       title: name,
       file_name: name,
-      file_path,
-      workspace,
+      fileRef,
       language: name.split('.').pop() || '',
       editable: contentType === 'markdown' || contentType === 'image' ? false : undefined,
     },
@@ -172,18 +132,14 @@ export const ExplorerContainer: React.FC<ExplorerContainerProps> = ({ projectId 
   }, [projectId, data]);
 
   // Open a file in the preview panel. The tree only knows `{pe_id, relative_path}`,
-  // so content is read over the WS `fs/read` command (not an absolute path). Per-
-  // project preview isolation is handled by the scope key (C5); switching files
-  // replaces the active tab.
+  // mapped to a Project ChatFileRef — content is read over `/api/fs/content` (text/
+  // image) and pdf/office render from the ref, so no absolute path is resolved.
+  // Per-project preview isolation is handled by the scope key (C5); opening a file
+  // appends a new tab (dedup keeps an already-open file focused) so multiple files
+  // can stay open at once.
   const handleOpenFile = async (peId: string, relativePath: string): Promise<void> => {
     try {
-      // PATCH(ELECTRON-3SZ): payload building (incl. absolute-path resolve) lives
-      // in `buildExplorerPreviewPayload` — remove with the rest of that patch.
-      const { content, contentType, metadata } = await buildExplorerPreviewPayload(
-        initExplorerRuntime(),
-        peId,
-        relativePath
-      );
+      const { content, contentType, metadata } = await buildExplorerPreviewPayload(peId, relativePath);
       openPreview(content, contentType, metadata);
     } catch (e) {
       Message.error(t(previewErrorToI18nKey(classifyPreviewError(e))));
@@ -285,6 +241,16 @@ export const ExplorerContainer: React.FC<ExplorerContainerProps> = ({ projectId 
     emitter.emit('codex.selected.file.append', payload, activeConversationId);
     emitter.emit('aionrs.selected.file.append', payload, activeConversationId);
     Message.success(t('conversation.explorer.addedToChat', { name }));
+  };
+
+  // Reveal a node in the OS file manager. The backend resolves the pe-ref to an
+  // absolute path and calls shell.showItemInFolder — the front end never builds
+  // the absolute path (avoids the Windows verbatim `\\?\` pitfall). The menu item
+  // itself is Electron-gated in ExplorerPanel; on failure surface a friendly toast.
+  const handleRevealInFolder = (peId: string, rel: string): void => {
+    void ipcBridge.fs.reveal.invoke({ pe_id: peId, relative_path: rel }).catch(() => {
+      Message.error(t('conversation.workspace.contextMenu.revealFailed'));
+    });
   };
 
   // Search result default action: locate the hit in the tree — switch to the
@@ -400,6 +366,7 @@ export const ExplorerContainer: React.FC<ExplorerContainerProps> = ({ projectId 
             onRename={handleRename}
             onDelete={handleDelete}
             onAddToChat={activeConversationId ? handleAddToChat : undefined}
+            onRevealInFolder={handleRevealInFolder}
             onImportFiles={handleImportFiles}
           />
         </SearchPanel>

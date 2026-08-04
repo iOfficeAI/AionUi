@@ -1220,7 +1220,9 @@
       "command_missing": "請安裝 {{command}}，然後重新測試連線。",
       "managed_runtime_unavailable": "請修復或重新安裝 {{resource}}，然後重新測試連線。",
       "auth_required": "Agent 可連線，但需要先登入。請在 CLI 中登入，或在「環境變數」中補充所需的 API 金鑰，然後重新測試連線。",
-      "no_provider": "尚未設定模型供應商。請在設定中新增並啟用一個供應商，然後重新測試連線。"
+      "no_provider": "尚未設定模型供應商。請在設定中新增並啟用一個供應商，然後重新測試連線。",
+      "version_drift_older": "已安裝的 agy 低於本整合驗證過的版本，部分功能可能缺失，建議升級 agy。",
+      "version_drift_newer": "已安裝的 agy 高於本整合驗證過的版本。通常仍可正常使用；如遇異常行為請回報。"
     },
     "boundAssistantsTitle": "綁定此 Agent 的助手",
     "boundAssistantsCount": "{{count}} 個助手",
@@ -1346,5 +1348,7 @@
     "solveWithButler": "找管家排查"
   },
   "providerIdConflict": "Provider ID 已存在，請重試。",
-  "autoInjectedSkillsHint": "每次對話都會自動載入，無需手動啟用；由智能體自行決定何時呼叫。"
+  "autoInjectedSkillsHint": "每次對話都會自動載入，無需手動啟用；由智能體自行決定何時呼叫。",
+  "hardwareAccelerationAutoDisabledTitle": "已關閉硬體加速",
+  "hardwareAccelerationAutoDisabledNotice": "偵測到顯示卡渲染反覆崩潰，已自動關閉硬體加速以維持應用程式穩定。可在 設定 → 系統 中重新開啟。"
 }

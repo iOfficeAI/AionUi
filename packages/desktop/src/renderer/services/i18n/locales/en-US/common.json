@@ -125,7 +125,13 @@
       "diagnosticsSent": "Diagnostics sent",
       "diagnosticsReportSuccess": "Diagnostics report sent",
       "diagnosticsReportFailed": "Failed to send diagnostics report",
-      "rebuildFailed": "Failed to back up old DB and rebuild new DB"
+      "rebuildFailed": "Failed to back up old DB and rebuild new DB",
+      "confirmDialog": {
+        "title": "Rebuild the database?",
+        "content": "This will back up the currently corrupted database and create a brand-new empty one. Past conversations will no longer be shown (the old database is kept as a backup file). Continue?",
+        "okText": "Confirm rebuild",
+        "cancelText": "Cancel"
+      }
     },
     "transientConcurrentStartup": {
       "title": "CSBU WorkMate is starting up",
@@ -135,6 +141,18 @@
       "diagnosticsReportSuccess": "Diagnostics report sent",
       "diagnosticsReportFailed": "Failed to send diagnostics report",
       "diagnosticsHint": "If this keeps happening, you can send a diagnostics report."
+    },
+    "pendingSlow": {
+      "title": "Starting up",
+      "description": "AionCore is starting up, please wait. If it doesn't respond after a while, you can quit and reopen the app."
+    },
+    "exited": {
+      "title": "Startup didn't complete",
+      "description": "AionCore couldn't finish starting and has exited. Please restart the app; if this keeps happening, please send diagnostics.",
+      "sendDiagnostics": "Send diagnostics",
+      "diagnosticsSent": "Diagnostics sent",
+      "diagnosticsReportSuccess": "Diagnostics reported",
+      "diagnosticsReportFailed": "Failed to send diagnostics, please retry"
     }
   },
   "fileAttach.addFiles": "Add files",

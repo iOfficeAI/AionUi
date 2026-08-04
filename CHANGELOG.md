@@ -90,6 +90,45 @@
 
 ---
 
+## [2.1.46](https://github.com/iOfficeAI/AionUi/compare/v2.1.45...v2.1.46) (2026-08-03)
+
+### Desktop
+
+#### Features
+
+- **update:** make manual update check CDN-authoritative (#3830)
+- **conversation:** add a message anchor rail with a search entry point (#3824)
+- **explorer:** add reveal-in-folder context menu (Electron only) (#3820)
+
+#### Bug Fixes
+
+- **startup:** stop misreporting slow backend startup as broken installation (#3831)
+- **runtime:** reconcile self-healed install-integrity failures before alerting (#3828)
+- **guid:** stop a CLI agent's first turn from using the aionrs provider model (#3827)
+- **conversation:** make Antigravity conversations usable in the UI (#3812)
+- **preview:** restore multi-tab when opening files from explorer (#3821)
+- **office-preview:** degrade gracefully on FILE_WATCH_UNAVAILABLE (#3819)
+
+### Core ([v0.1.57](https://github.com/iOfficeAI/AionCore/releases/tag/v0.1.57))
+
+#### Features
+
+- **agent:** add Antigravity (agy CLI) as a direct-CLI agent (#741)
+- **fs:** add /api/fs/reveal endpoint (resolve pe-ref + show in folder) (#754)
+- **session:** make background work visible — live progress cards and out-of-turn delivery (#758)
+
+#### Bug Fixes
+
+- **conversation:** apply a cancel that arrives while the agent is still building (#747)
+- **db:** widen migration-030 pre-repair gate to any pre-030 start point (#756)
+- **file-watch:** degrade gracefully when watcher init fails instead of killing backend (#751)
+- **file:** strip verbatim \\?\ prefix from non-browse path outputs (#736)
+- **process:** reap tool subprocesses that left the process group (#753)
+- **runtime:** retry transient bundled-node activation copy and reclassify persistent I/O failures (#760)
+- **server:** emit AIONCORE_READY marker once serving begins (#761)
+
+---
+
 ## [2.1.45](https://github.com/CSBU/CSBU-WorkMate/compare/v2.1.44...v2.1.45) (2026-08-01)
 
 ### Desktop

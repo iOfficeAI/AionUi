@@ -15,6 +15,11 @@
   "downloadFailed": "Не вдалося завантажити",
   "imageLoadFailed": "Не вдалося завантажити зображення",
   "scrollToBottom": "Прокрутити донизу",
+  "anchorRail": {
+    "label": "Якорі повідомлень розмови",
+    "tickAria": "Перейти до повідомлення {{index}}",
+    "searchAria": "Пошук у розмові"
+  },
   "availableCommands": "Доступні команди: {{count}}",
   "atFile.hint": "Введіть, щоб знайти файли",
   "atFile.menuLabel": "Згадки файлів",

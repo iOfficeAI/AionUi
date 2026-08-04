@@ -42,6 +42,9 @@ vi.mock('@/common', () => ({
       getFileMetadata: { invoke: vi.fn() },
       getImageBase64: { invoke: vi.fn() },
       readFile: { invoke: vi.fn() },
+      // ChatFileRef content endpoints — useLocalFilePreview reads by Local ref.
+      getContentMetadata: { invoke: vi.fn() },
+      readContent: { invoke: vi.fn() },
     },
   },
 }));
@@ -161,6 +164,9 @@ describe('MessageText attachment paths', () => {
     vi.mocked(ipcBridge.fs.getFileMetadata.invoke).mockReset();
     vi.mocked(ipcBridge.fs.getImageBase64.invoke).mockReset();
     vi.mocked(ipcBridge.fs.readFile.invoke).mockReset();
+    // Default: file exists (metadata resolves); tests that read set readContent.
+    vi.mocked(ipcBridge.fs.getContentMetadata.invoke).mockReset().mockResolvedValue(fileMetadata('/x'));
+    vi.mocked(ipcBridge.fs.readContent.invoke).mockReset().mockResolvedValue('');
   });
 
   const renderMessageWithLocalLink = (content = '[report](/missing/report.xlsx)') => {
@@ -441,7 +447,8 @@ describe('MessageText attachment paths', () => {
   });
 
   it('opens a missing-file preview when a local markdown link no longer exists', async () => {
-    vi.mocked(ipcBridge.fs.getFileMetadata.invoke).mockResolvedValue(null);
+    // Missing file: the content-metadata existence check rejects (backend 404).
+    vi.mocked(ipcBridge.fs.getContentMetadata.invoke).mockRejectedValue(new Error('not found'));
     localFileLinkMocks.payload = {
       path: '/missing/report.xlsx',
       reference: {
@@ -484,8 +491,7 @@ describe('MessageText attachment paths', () => {
         column: 7,
       },
     };
-    vi.mocked(ipcBridge.fs.getFileMetadata.invoke).mockResolvedValue(fileMetadata(filePath));
-    vi.mocked(ipcBridge.fs.readFile.invoke).mockResolvedValue('const value = 1;\n');
+    vi.mocked(ipcBridge.fs.readContent.invoke).mockResolvedValue('const value = 1;\n');
 
     renderMessageWithLocalLink('[app.ts](/workspace/demo/src/app.ts:42:7)');
 
@@ -497,6 +503,7 @@ describe('MessageText attachment paths', () => {
         'code',
         expect.objectContaining({
           file_name: 'app.ts',
+          fileRef: { kind: 'local', path: filePath },
           file_path: filePath,
           workspace: '/workspace/demo',
           language: 'ts',
@@ -506,6 +513,11 @@ describe('MessageText attachment paths', () => {
         }),
         { replace: true }
       );
+    });
+    // Content read by Local ChatFileRef over /content (utf8), not the legacy path endpoints.
+    expect(ipcBridge.fs.readContent.invoke).toHaveBeenCalledWith({
+      file: { kind: 'local', path: filePath },
+      encoding: 'utf8',
     });
   });
 
@@ -520,8 +532,7 @@ describe('MessageText attachment paths', () => {
         endLine: 20,
       },
     };
-    vi.mocked(ipcBridge.fs.getFileMetadata.invoke).mockResolvedValue(fileMetadata(filePath));
-    vi.mocked(ipcBridge.fs.readFile.invoke).mockResolvedValue('const value = 1;\n');
+    vi.mocked(ipcBridge.fs.readContent.invoke).mockResolvedValue('const value = 1;\n');
 
     renderMessageWithLocalLink('[app.ts](/workspace/demo/src/app.ts#L10-L20)');
 
@@ -578,8 +589,7 @@ describe('MessageText attachment paths', () => {
   it('opens image local markdown links from base64 content without reading text content', async () => {
     const filePath = '/workspace/demo/assets/chart.png';
     localFileLinkMocks.payload = { path: filePath, reference: undefined };
-    vi.mocked(ipcBridge.fs.getFileMetadata.invoke).mockResolvedValue(fileMetadata(filePath));
-    vi.mocked(ipcBridge.fs.getImageBase64.invoke).mockResolvedValue('data:image/png;base64,abc123');
+    vi.mocked(ipcBridge.fs.readContent.invoke).mockResolvedValue('data:image/png;base64,abc123');
 
     renderMessageWithLocalLink('[chart.png](/workspace/demo/assets/chart.png)');
 
@@ -591,6 +601,7 @@ describe('MessageText attachment paths', () => {
         'image',
         expect.objectContaining({
           file_name: 'chart.png',
+          fileRef: { kind: 'local', path: filePath },
           file_path: filePath,
           workspace: '/workspace/demo',
           language: 'png',
@@ -599,15 +610,18 @@ describe('MessageText attachment paths', () => {
         { replace: true }
       );
     });
-    expect(ipcBridge.fs.readFile.invoke).not.toHaveBeenCalled();
+    // Image read as a data URL over /content (dataurl encoding).
+    expect(ipcBridge.fs.readContent.invoke).toHaveBeenCalledWith({
+      file: { kind: 'local', path: filePath },
+      encoding: 'dataurl',
+    });
   });
 
   it('opens large code local markdown links with truncated read content', async () => {
     const filePath = '/workspace/demo/logs/app.log';
     const content = 'a'.repeat(LARGE_TEXT_PREVIEW_THRESHOLD + 1);
     localFileLinkMocks.payload = { path: filePath, reference: undefined };
-    vi.mocked(ipcBridge.fs.getFileMetadata.invoke).mockResolvedValue(fileMetadata(filePath));
-    vi.mocked(ipcBridge.fs.readFile.invoke).mockResolvedValue(content);
+    vi.mocked(ipcBridge.fs.readContent.invoke).mockResolvedValue(content);
 
     renderMessageWithLocalLink('[app.log](/workspace/demo/logs/app.log)');
 

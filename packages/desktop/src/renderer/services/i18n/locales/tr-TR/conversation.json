@@ -588,6 +588,15 @@
       },
       "ACP_EMPTY_TURN_REFUSAL": {
         "body": "Model, görünür bir yanıt üretmeden önce bu isteği reddetti."
+      },
+      "ANTIGRAVITY_STEPS_FAILED": {
+        "body": "{{count}} adım başarısız oldu ve etkili OLMADI. agy bu turları yine de başarılı olarak bitirir; bu yüzden yanıta değil gerçek sonuca bakın."
+      },
+      "ANTIGRAVITY_VERSION_OLDER": {
+        "body": "Kurulu agy {{reported}} sürümü, bu entegrasyonun doğrulandığı {{verified}} sürümünden eski; bazı özellikler eksik olabilir. agy'yi güncellemeniz önerilir."
+      },
+      "ANTIGRAVITY_VERSION_NEWER": {
+        "body": "Kurulu agy {{reported}} sürümü, bu entegrasyonun doğrulandığı {{verified}} sürümünden yeni. Yine de çalışması beklenir; tuhaf davranışları bildirin."
       }
     }
   },

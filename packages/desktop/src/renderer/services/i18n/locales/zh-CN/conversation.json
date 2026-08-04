@@ -19,7 +19,8 @@
     "quickActionFeedback": "反馈问题",
     "skillsMarket": "CSBU WorkMate Skills Market",
     "skillsMarketDesc": "按需搜索并调用社区 Skills，一次配置，所有Agent通用。",
-    "skillsMarketDetails": "详情 >>"
+    "skillsMarketDetails": "详情 >>",
+    "quickActionStar": "喜欢我们？点个星吧"
   },
   "history": {
     "recents": "最近",
@@ -586,6 +587,15 @@
       },
       "ACP_EMPTY_TURN_REFUSAL": {
         "body": "模型在产生任何可见回复前拒绝了这次请求。"
+      },
+      "ANTIGRAVITY_STEPS_FAILED": {
+        "body": "本轮有 {{count}} 个步骤失败且未生效。agy 仍会把这类轮次标记为成功，请核对实际结果而非回复内容。"
+      },
+      "ANTIGRAVITY_VERSION_OLDER": {
+        "body": "已安装的 agy {{reported}} 低于本集成验证过的 {{verified}}，部分功能可能缺失，建议升级 agy。"
+      },
+      "ANTIGRAVITY_VERSION_NEWER": {
+        "body": "已安装的 agy {{reported}} 高于本集成验证过的 {{verified}}。通常仍可正常使用；如遇异常行为请反馈。"
       }
     }
   },

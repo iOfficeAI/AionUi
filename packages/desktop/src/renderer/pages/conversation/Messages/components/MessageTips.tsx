@@ -16,6 +16,10 @@ import FeedbackButton from '@renderer/components/base/FeedbackButton';
 import CollapsibleContent from '@renderer/components/chat/CollapsibleContent';
 import { iconColors } from '@/renderer/styles/colors';
 
+// One entry per `IMessageTips['type']`. `info` was missing, and the render
+// falls back to `warning`, so every informational tip was drawn with the alarm
+// icon — a backend that deliberately downgrades a notice to Info still reached
+// the user as a warning.
 export const icon = {
   success: <CheckOne theme='filled' size='16' fill={iconColors.success} className='m-t-2px' />,
   info: <Info theme='filled' size='16' strokeLinejoin='bevel' className='m-t-2px' fill={iconColors.brand} />,

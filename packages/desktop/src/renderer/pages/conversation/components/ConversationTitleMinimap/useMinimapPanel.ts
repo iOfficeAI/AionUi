@@ -4,7 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { dispatchChatMessageJump } from '@/renderer/utils/chat/chatMinimapEvents';
+import type { ChatSearchPanelOpenDetail } from '@/renderer/utils/chat/chatMinimapEvents';
+import { CHAT_SEARCH_PANEL_OPEN_EVENT, dispatchChatMessageJump } from '@/renderer/utils/chat/chatMinimapEvents';
 import { loadAllConversationMessagesPaged } from '@/renderer/utils/chat/messagePagination';
 import { isPrimaryApplicationShortcut } from '@/renderer/utils/ui/keyboardShortcuts';
 import type { RefInputType } from '@arco-design/web-react/es/Input/interface';
@@ -269,6 +270,21 @@ export const useMinimapPanel = (conversation_id?: string): UseMinimapPanelReturn
       document.removeEventListener('keydown', handleKeyDown);
     };
   }, [visible]);
+
+  // Open on request from the anchor rail, which now carries the primary search
+  // entry. Scoped to this conversation so a stale rail cannot open the wrong panel.
+  useEffect(() => {
+    if (!conversation_id) return;
+    const handleOpenRequest = (event: Event) => {
+      const detail = (event as CustomEvent<ChatSearchPanelOpenDetail>).detail;
+      if (!detail || detail.conversation_id !== conversation_id) return;
+      openSearchPanel();
+    };
+    window.addEventListener(CHAT_SEARCH_PANEL_OPEN_EVENT, handleOpenRequest);
+    return () => {
+      window.removeEventListener(CHAT_SEARCH_PANEL_OPEN_EVENT, handleOpenRequest);
+    };
+  }, [conversation_id, openSearchPanel]);
 
   // Global search shortcut (Cmd/Ctrl+F)
   useEffect(() => {

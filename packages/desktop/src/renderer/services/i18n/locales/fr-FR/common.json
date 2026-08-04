@@ -125,7 +125,13 @@
       "diagnosticsSent": "Diagnostics envoyés",
       "diagnosticsReportSuccess": "Rapport de diagnostic envoyé",
       "diagnosticsReportFailed": "Échec de l'envoi du rapport de diagnostic",
-      "rebuildFailed": "Échec de la sauvegarde de l'ancienne base de données et de la reconstruction de la nouvelle base de données"
+      "rebuildFailed": "Échec de la sauvegarde de l'ancienne base de données et de la reconstruction de la nouvelle base de données",
+      "confirmDialog": {
+        "title": "Reconstruire la base de données ?",
+        "content": "Cette opération sauvegardera la base de données actuellement corrompue et créera une toute nouvelle base vide. Les conversations passées ne seront plus affichées (l'ancienne base est conservée comme fichier de sauvegarde). Continuer ?",
+        "okText": "Confirmer la reconstruction",
+        "cancelText": "Annuler"
+      }
     },
     "transientConcurrentStartup": {
       "title": "CSBU WorkMate démarre",
@@ -135,6 +141,18 @@
       "diagnosticsReportSuccess": "Rapport de diagnostic envoyé",
       "diagnosticsReportFailed": "Échec de l'envoi du rapport de diagnostic",
       "diagnosticsHint": "Si cela se reproduit, vous pouvez envoyer un rapport de diagnostic."
+    },
+    "pendingSlow": {
+      "title": "Démarrage",
+      "description": "AionCore est en cours de démarrage, veuillez patienter. S'il ne répond pas au bout d'un moment, vous pouvez quitter l'application et la rouvrir."
+    },
+    "exited": {
+      "title": "Le démarrage ne s'est pas terminé",
+      "description": "AionCore n'a pas pu terminer son démarrage et s'est fermé. Veuillez redémarrer l'application ; si le problème persiste, envoyez un diagnostic.",
+      "sendDiagnostics": "Envoyer le diagnostic",
+      "diagnosticsSent": "Diagnostic envoyé",
+      "diagnosticsReportSuccess": "Diagnostic envoyé",
+      "diagnosticsReportFailed": "Échec de l'envoi du diagnostic, veuillez réessayer"
     }
   },
   "fileAttach.addFiles": "Ajouter des fichiers",

@@ -16,6 +16,11 @@
   "downloadFailed": "Не удалось скачать",
   "imageLoadFailed": "Не удалось загрузить изображение",
   "scrollToBottom": "Прокрутить вниз",
+  "anchorRail": {
+    "label": "Якоря сообщений диалога",
+    "tickAria": "Перейти к сообщению {{index}}",
+    "searchAria": "Поиск по переписке"
+  },
   "availableCommands": "{{count}} доступных команд",
   "slash.title": "Команды",
   "slash.hint": "Введите / для открытия меню команд",

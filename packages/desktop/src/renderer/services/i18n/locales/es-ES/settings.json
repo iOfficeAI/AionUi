@@ -1206,7 +1206,9 @@
       "command_missing": "Install {{command}} and retry the connection test.",
       "managed_runtime_unavailable": "Repair or reinstall {{resource}}, then retry the connection test.",
       "auth_required": "The agent is reachable but requires sign-in. Log in via the CLI, or add the required API key under Environment Variables, then retry the connection test.",
-      "no_provider": "No model provider is configured. Add and enable a provider in Settings, then retry the connection test."
+      "no_provider": "No model provider is configured. Add and enable a provider in Settings, then retry the connection test.",
+      "version_drift_older": "La versión instalada de agy es anterior a la verificada para esta integración; puede que falten funciones. Se recomienda actualizar.",
+      "version_drift_newer": "La versión instalada de agy es posterior a la verificada para esta integración. Debería seguir funcionando; informa de cualquier comportamiento extraño."
     },
     "boundAssistantsTitle": "Assistants using this agent",
     "boundAssistantsCount": "{{count}} assistant(s)",
@@ -1344,5 +1346,7 @@
     "solveWithButler": "Preguntar al Mayordomo"
   },
   "providerIdConflict": "El ID del proveedor ya existe. Inténtalo de nuevo.",
-  "autoInjectedSkillsHint": "Se cargan automáticamente en cada conversación: no hace falta activarlas; el agente decide cuándo usarlas."
+  "autoInjectedSkillsHint": "Se cargan automáticamente en cada conversación: no hace falta activarlas; el agente decide cuándo usarlas.",
+  "hardwareAccelerationAutoDisabledTitle": "Aceleración por hardware desactivada",
+  "hardwareAccelerationAutoDisabledNotice": "Se detectaron fallos gráficos repetidos, por lo que la aceleración por hardware se desactivó automáticamente para mantener la aplicación estable. Puedes volver a activarla en Ajustes → Sistema."
 }

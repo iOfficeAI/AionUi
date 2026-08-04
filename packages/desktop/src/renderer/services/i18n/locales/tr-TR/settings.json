@@ -1204,7 +1204,9 @@
       "command_missing": "Install {{command}} and retry the connection test.",
       "managed_runtime_unavailable": "Repair or reinstall {{resource}}, then retry the connection test.",
       "auth_required": "Aracıya erişilebilir ancak oturum açılması gerekiyor. CLI üzerinden giriş yapın veya gerekli API anahtarını Ortam Değişkenleri altına ekleyin, ardından bağlantı testini yeniden deneyin.",
-      "no_provider": "Yapılandırılmış bir model sağlayıcısı yok. Ayarlar'da bir sağlayıcı ekleyip etkinleştirin, ardından bağlantı testini yeniden deneyin."
+      "no_provider": "Yapılandırılmış bir model sağlayıcısı yok. Ayarlar'da bir sağlayıcı ekleyip etkinleştirin, ardından bağlantı testini yeniden deneyin.",
+      "version_drift_older": "Kurulu agy sürümü, bu entegrasyonun doğrulandığı sürümden eski; bazı özellikler eksik olabilir. Güncellemeniz önerilir.",
+      "version_drift_newer": "Kurulu agy sürümü, bu entegrasyonun doğrulandığı sürümden yeni. Yine de çalışması beklenir; tuhaf davranışları bildirin."
     },
     "boundAssistantsTitle": "Bu ajanı kullanan asistanlar",
     "boundAssistantsCount": "{{count}} asistan",
@@ -1344,5 +1346,7 @@
     "solveWithButler": "Kâhya'ya sor"
   },
   "providerIdConflict": "Provider ID zaten var. Lütfen tekrar deneyin.",
-  "autoInjectedSkillsHint": "Her sohbete otomatik olarak yüklenir — etkinleştirmeye gerek yoktur; aracı bunları ne zaman kullanacağına karar verir."
+  "autoInjectedSkillsHint": "Her sohbete otomatik olarak yüklenir — etkinleştirmeye gerek yoktur; aracı bunları ne zaman kullanacağına karar verir.",
+  "hardwareAccelerationAutoDisabledTitle": "Donanım hızlandırma devre dışı bırakıldı",
+  "hardwareAccelerationAutoDisabledNotice": "Tekrarlanan grafik çökmeleri algılandı; uygulamayı kararlı tutmak için donanım hızlandırma otomatik olarak kapatıldı. Ayarlar → Sistem bölümünden yeniden etkinleştirebilirsiniz."
 }

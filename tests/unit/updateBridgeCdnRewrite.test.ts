@@ -135,17 +135,42 @@ const makeDeferred = () => {
   return { promise, resolve, reject };
 };
 
+// The check flow is CDN-first: the channel yml is the authoritative source of
+// version + assets, GitHub only enriches release notes. Serve both hosts.
+const CDN_CHANNEL_YML = `version: 1.9.22
+files:
+  - url: CSBU-WorkMate-1.9.22-mac-arm64.dmg
+    size: 123
+  - url: CSBU-WorkMate-1.9.22-win-x64.exe
+    size: 456
+  - url: CSBU-WorkMate-1.9.22-linux-amd64.deb
+    size: 789
+path: CSBU-WorkMate-1.9.22-mac-arm64.dmg
+releaseDate: '2026-04-29T00:00:00Z'
+`;
+
+const stubCdnAndGitHubFetch = () => {
+  const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+    const url = String(input);
+    if (url.startsWith('https://updates.csbu.internal/releases/latest')) {
+      return new Response(CDN_CHANNEL_YML, { status: 200 });
+    }
+    if (url.startsWith('https://api.github.com/')) {
+      return new Response(JSON.stringify(makeGitHubReleaseResponse()), { status: 200 });
+    }
+    throw new Error(`unexpected fetch: ${url}`);
+  });
+  vi.stubGlobal('fetch', fetchMock);
+  return fetchMock;
+};
+
 describe('updateBridge CDN URL rewriting', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
   it('rewrites asset.url to the CDN path and keeps GitHub URL in fallbackUrl', async () => {
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => makeGitHubReleaseResponse(),
-    });
-    vi.stubGlobal('fetch', fetchMock);
+    const fetchMock = stubCdnAndGitHubFetch();
 
     try {
       const handler = await getCheckHandler();
@@ -167,17 +192,14 @@ describe('updateBridge CDN URL rewriting', () => {
       expect(linuxAsset?.url).toBe(
         'https://updates.csbu.internal/releases/1.9.22/CSBU-WorkMate-1.9.22-linux-amd64.deb'
       );
+      expect(fetchMock).toHaveBeenCalled();
     } finally {
       vi.unstubAllGlobals();
     }
   });
 
   it('uses the normalized version (no v prefix) in the CDN path', async () => {
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => makeGitHubReleaseResponse(),
-    });
-    vi.stubGlobal('fetch', fetchMock);
+    stubCdnAndGitHubFetch();
 
     try {
       const handler = await getCheckHandler();

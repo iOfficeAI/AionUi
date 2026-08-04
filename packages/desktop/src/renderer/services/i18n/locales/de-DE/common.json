@@ -124,7 +124,13 @@
       "diagnosticsSent": "Diagnose gesendet",
       "diagnosticsReportSuccess": "Diagnosebericht gesendet",
       "diagnosticsReportFailed": "Diagnosebericht konnte nicht gesendet werden",
-      "rebuildFailed": "Alte DB konnte nicht gesichert und neue DB nicht erstellt werden"
+      "rebuildFailed": "Alte DB konnte nicht gesichert und neue DB nicht erstellt werden",
+      "confirmDialog": {
+        "title": "Datenbank neu aufbauen?",
+        "content": "Dieser Vorgang sichert die aktuell beschädigte Datenbank und erstellt eine völlig neue leere Datenbank. Frühere Unterhaltungen werden nicht mehr angezeigt (die alte Datenbank bleibt als Sicherungsdatei erhalten). Fortfahren?",
+        "okText": "Neuaufbau bestätigen",
+        "cancelText": "Abbrechen"
+      }
     },
     "transientConcurrentStartup": {
       "title": "CSBU WorkMate wird gestartet",
@@ -134,6 +140,18 @@
       "diagnosticsReportSuccess": "Diagnostics report sent",
       "diagnosticsReportFailed": "Failed to send diagnostics report",
       "diagnosticsHint": "Wenn dies wiederholt auftritt, können Sie einen Diagnosebericht senden."
+    },
+    "pendingSlow": {
+      "title": "Wird gestartet",
+      "description": "AionCore wird gestartet, bitte warten. Wenn es nach einer Weile nicht reagiert, können Sie die App beenden und erneut öffnen."
+    },
+    "exited": {
+      "title": "Start nicht abgeschlossen",
+      "description": "AionCore konnte den Start nicht abschließen und wurde beendet. Bitte starten Sie die App neu; wenn dies wiederholt auftritt, senden Sie bitte eine Diagnose.",
+      "sendDiagnostics": "Diagnose senden",
+      "diagnosticsSent": "Diagnose gesendet",
+      "diagnosticsReportSuccess": "Diagnose gemeldet",
+      "diagnosticsReportFailed": "Diagnose konnte nicht gesendet werden, bitte erneut versuchen"
     }
   },
   "fileAttach.addFiles": "Dateien hinzufügen",

@@ -1206,7 +1206,9 @@
       "command_missing": "Install {{command}} and retry the connection test.",
       "managed_runtime_unavailable": "Repair or reinstall {{resource}}, then retry the connection test.",
       "auth_required": "エージェントに接続できますが、サインインが必要です。CLI でログインするか、「環境変数」に必要な API キーを追加してから、接続テストを再実行してください。",
-      "no_provider": "モデルプロバイダーが設定されていません。設定でプロバイダーを追加して有効にしてから、接続テストを再実行してください。"
+      "no_provider": "モデルプロバイダーが設定されていません。設定でプロバイダーを追加して有効にしてから、接続テストを再実行してください。",
+      "version_drift_older": "インストールされている agy は、この統合が検証したバージョンより古いため、一部の機能が利用できない可能性があります。更新をご検討ください。",
+      "version_drift_newer": "インストールされている agy は、この統合が検証したバージョンより新しいものです。通常は問題なく動作しますが、異常があればご報告ください。"
     },
     "boundAssistantsTitle": "このエージェントを使用するアシスタント",
     "boundAssistantsCount": "{{count}} 個のアシスタント",
@@ -1346,5 +1348,7 @@
     "solveWithButler": "執事に相談"
   },
   "providerIdConflict": "Provider ID は既に存在します。もう一度お試しください。",
-  "autoInjectedSkillsHint": "すべての会話に自動的に読み込まれます。有効化は不要で、エージェントが使用するタイミングを判断します。"
+  "autoInjectedSkillsHint": "すべての会話に自動的に読み込まれます。有効化は不要で、エージェントが使用するタイミングを判断します。",
+  "hardwareAccelerationAutoDisabledTitle": "ハードウェアアクセラレーションを無効化しました",
+  "hardwareAccelerationAutoDisabledNotice": "グラフィックスの繰り返しクラッシュを検出したため、アプリを安定させるためにハードウェアアクセラレーションを自動的に無効化しました。設定 → システム から再度有効にできます。"
 }

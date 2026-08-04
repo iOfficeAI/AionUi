@@ -125,7 +125,13 @@
       "diagnosticsSent": "Tanılama gönderildi",
       "diagnosticsReportSuccess": "Tanılama raporu gönderildi",
       "diagnosticsReportFailed": "Tanılama raporu gönderilemedi",
-      "rebuildFailed": "Eski DB yedeklenip yeni DB oluşturulamadı"
+      "rebuildFailed": "Eski DB yedeklenip yeni DB oluşturulamadı",
+      "confirmDialog": {
+        "title": "Veritabanı yeniden oluşturulsun mu?",
+        "content": "Bu işlem, mevcut bozuk veritabanını yedekler ve tamamen yeni, boş bir veritabanı oluşturur. Geçmiş sohbetler artık gösterilmeyecek (eski veritabanı yedek dosyası olarak saklanır). Devam edilsin mi?",
+        "okText": "Yeniden oluşturmayı onayla",
+        "cancelText": "İptal"
+      }
     },
     "transientConcurrentStartup": {
       "title": "CSBU WorkMate başlatılıyor",
@@ -135,6 +141,18 @@
       "diagnosticsReportSuccess": "Diagnostics report sent",
       "diagnosticsReportFailed": "Failed to send diagnostics report",
       "diagnosticsHint": "Bu durum tekrar ederse bir tanılama raporu gönderebilirsiniz."
+    },
+    "pendingSlow": {
+      "title": "Başlatılıyor",
+      "description": "AionCore başlatılıyor, lütfen bekleyin. Bir süre yanıt vermezse uygulamadan çıkıp yeniden açabilirsiniz."
+    },
+    "exited": {
+      "title": "Başlatma tamamlanmadı",
+      "description": "AionCore başlatmayı tamamlayamadı ve kapandı. Lütfen uygulamayı yeniden başlatın; sorun devam ederse tanılama gönderin.",
+      "sendDiagnostics": "Tanılama gönder",
+      "diagnosticsSent": "Tanılama gönderildi",
+      "diagnosticsReportSuccess": "Tanılama bildirildi",
+      "diagnosticsReportFailed": "Tanılama gönderilemedi, lütfen tekrar deneyin"
     }
   },
   "fileAttach.addFiles": "Dosya ekle",

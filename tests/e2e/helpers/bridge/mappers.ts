@@ -10,7 +10,6 @@ export type ResponseMapperKey =
   | 'dirOrFileTree'
   | 'flatFileList'
   | 'snapshotCompare'
-  | 'renameResult'
   | 'previewSnapshotInfo'
   | 'previewSnapshotContent'
   | 'conversation';
@@ -111,14 +110,6 @@ export const RESPONSE_MAPPERS: Record<ResponseMapperKey, (data: unknown) => unkn
     return {
       staged: Array.isArray(d.staged) ? d.staged.map((e) => mapFileChange(e as Record<string, unknown>)) : [],
       unstaged: Array.isArray(d.unstaged) ? d.unstaged.map((e) => mapFileChange(e as Record<string, unknown>)) : [],
-    };
-  },
-  renameResult: (data) => {
-    if (!data || typeof data !== 'object') return data;
-    const d = data as Record<string, unknown>;
-    return {
-      ...d,
-      newPath: (d.new_path as string | undefined) ?? (d.newPath as string | undefined),
     };
   },
   previewSnapshotInfo: (data) => {

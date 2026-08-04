@@ -140,9 +140,18 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
             .filter((server) => (defaultSelectedMcpServerIds ?? []).includes(server.id))
             .map((server) => toSessionMcpServer(server));
 
-    // Provider models belong to aionrs. CLI agents own their model catalogs, so
-    // passing the provider model before their first catalog probe can make the
-    // first turn fail with an unknown-model error.
+    // `current_model` is the aionrs provider selection and means nothing to a
+    // CLI agent, which owns its own model list. Used as a blanket fallback it
+    // leaked into the FIRST turn of every CLI conversation: before the agent's
+    // catalog has been probed the two preceding options are empty, so a brand
+    // new Antigravity conversation started with e.g. `gemini-3.1-pro-preview`
+    // — a provider model agy has never heard of — and the turn failed with
+    // USER_LLM_PROVIDER_MODEL_NOT_FOUND. Once the catalog lands the second
+    // option wins, which is why it only ever reproduced on first use.
+    //
+    // Omitting it lets the agent start on its own default, which is what a user
+    // who has not picked a model means. The cron dialog already gates the same
+    // value this way (`resolvedBackend !== 'aionrs' → undefined`).
     const assistantOverrideModel =
       selectedAcpModel ||
       currentAcpCachedModelInfo?.current_model_id ||

@@ -115,3 +115,115 @@ describe('classifyBackendStartupFailure — genuine data damage still severe', (
     });
   });
 });
+
+// Sentry 127971136 — a health-check timeout on a process that was observed
+// listening and kept alive is a recoverable "slow startup", and a listening
+// process that then exits is an honest failure. Neither may fall back to the
+// generic bucket that renders the misleading "incomplete installation / reinstall"
+// copy.
+describe('classifyBackendStartupFailure — slow startup / exited', () => {
+  it('AC-1: classifies a listening, kept-alive health_timeout as backend_startup_pending_slow', () => {
+    const result = classifyBackendStartupFailure({
+      details: {
+        stage: 'health_timeout',
+        serverListeningObserved: true,
+        healthTimeoutKeptAlive: true,
+      },
+      message: 'aioncore failed to start within timeout',
+      name: 'BackendStartupError',
+    });
+
+    expect(result.reason).toBe('backend_startup_pending_slow');
+    expect(result.reason).not.toBe('backend_startup_failed');
+    expect(result.reason).not.toBe('backend_incomplete_installation');
+  });
+
+  it('AC-2: classifies a listening process that exits within the health window as backend_startup_exited', () => {
+    const result = classifyBackendStartupFailure({
+      details: {
+        stage: 'early_exit',
+        serverListeningObserved: true,
+      },
+      message: 'aioncore exited before health check passed',
+      name: 'BackendStartupError',
+    });
+
+    expect(result.reason).toBe('backend_startup_exited');
+    expect(result.reason).not.toBe('backend_startup_failed');
+    expect(result.reason).not.toBe('backend_incomplete_installation');
+  });
+
+  it('AC-2: classifies a listening process that exits after the pending timeout as backend_startup_exited', () => {
+    const result = classifyBackendStartupFailure({
+      details: {
+        stage: 'early_exit',
+        serverListeningObserved: true,
+      },
+      message: 'aioncore exited after startup health timeout',
+      name: 'BackendStartupError',
+    });
+
+    expect(result.reason).toBe('backend_startup_exited');
+    expect(result.reason).not.toBe('backend_startup_failed');
+    expect(result.reason).not.toBe('backend_incomplete_installation');
+  });
+
+  it('AC-2b: an early_exit never observed listening does not become backend_startup_exited', () => {
+    const result = classifyBackendStartupFailure({
+      details: {
+        stage: 'early_exit',
+        serverListeningObserved: false,
+      },
+      message: 'aioncore exited before health check passed',
+      name: 'BackendStartupError',
+    });
+
+    expect(result.reason).not.toBe('backend_startup_exited');
+    expect(result.reason).not.toBe('backend_startup_pending_slow');
+    expect(result.reason).toBe('backend_startup_failed');
+  });
+
+  it('AC-2b: a health_timeout without the kept-alive marker (e.g. killed) does not become pending-slow', () => {
+    const result = classifyBackendStartupFailure({
+      details: {
+        stage: 'health_timeout',
+        serverListeningObserved: true,
+        // healthTimeoutKeptAlive absent: the process was killed, not kept pending.
+      },
+      message: 'aioncore failed to start within timeout',
+      name: 'BackendStartupError',
+    });
+
+    expect(result.reason).not.toBe('backend_startup_pending_slow');
+    expect(result.reason).toBe('backend_startup_failed');
+  });
+
+  it('AC-3: a genuine missing bundled backend on a packaged app still classifies as incomplete installation', () => {
+    const result = classifyBackendStartupFailure({
+      details: {
+        stage: 'resolve_binary',
+        isPackaged: true,
+        resourcesDirEntries: ['app.asar', 'app.asar.unpacked/', 'hub/', 'pet-states/', 'pwa/'],
+      },
+      message: 'aioncore startup failed while resolving backend binary',
+      name: 'BackendStartupError',
+    });
+
+    expect(result.reason).toBe('backend_incomplete_installation');
+  });
+
+  it('regression: a listening, kept-alive health_timeout must not fall back to backend_startup_failed', () => {
+    const result = classifyBackendStartupFailure({
+      details: {
+        stage: 'health_timeout',
+        serverListeningObserved: true,
+        healthTimeoutKeptAlive: true,
+      },
+      message: 'aioncore failed to start within timeout',
+      name: 'BackendStartupError',
+    });
+
+    expect(result.reason).not.toBe('backend_startup_failed');
+    expect(result.reason).not.toBe('backend_incomplete_installation');
+  });
+});

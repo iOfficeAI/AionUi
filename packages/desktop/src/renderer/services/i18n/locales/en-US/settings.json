@@ -1218,7 +1218,9 @@
       "command_missing": "Install {{command}} and retry the connection test.",
       "managed_runtime_unavailable": "Repair or reinstall {{resource}}, then retry the connection test.",
       "auth_required": "The agent is reachable but requires sign-in. Log in via the CLI, or add the required API key under Environment Variables, then retry the connection test.",
-      "no_provider": "No model provider is configured. Add and enable a provider in Settings, then retry the connection test."
+      "no_provider": "No model provider is configured. Add and enable a provider in Settings, then retry the connection test.",
+      "version_drift_older": "The installed agy is older than the version this integration was verified against; some features may be missing. Consider upgrading agy.",
+      "version_drift_newer": "The installed agy is newer than the version this integration was verified against. It should still work; report anything that behaves oddly."
     },
     "boundAssistantsTitle": "Assistants using this agent",
     "boundAssistantsCount": "{{count}} assistant(s)",
@@ -1344,5 +1346,7 @@
     "solveWithButler": "Ask the Butler"
   },
   "providerIdConflict": "Provider ID already exists. Please try again.",
-  "autoInjectedSkillsHint": "Loaded automatically into every conversation — no need to enable them; the agent decides when to use them."
+  "autoInjectedSkillsHint": "Loaded automatically into every conversation — no need to enable them; the agent decides when to use them.",
+  "hardwareAccelerationAutoDisabledTitle": "Hardware acceleration disabled",
+  "hardwareAccelerationAutoDisabledNotice": "Repeated graphics crashes were detected, so hardware acceleration was turned off automatically to keep CSBU WorkMate stable. You can re-enable it in Settings → System."
 }

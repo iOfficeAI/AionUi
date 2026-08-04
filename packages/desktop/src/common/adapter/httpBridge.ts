@@ -150,6 +150,8 @@ export function isBackendHttpError(error: unknown): error is BackendHttpError {
  */
 export type HttpRequestOptions = {
   silentStatuses?: number[];
+  /** Extra request headers merged on top of the default `Content-Type`. */
+  headers?: Record<string, string>;
 };
 
 const SENSITIVE_LOG_KEY_PATTERN = /api[_-]?key|authorization|auth[_-]?token|access[_-]?token|refresh[_-]?token|secret/i;
@@ -181,6 +183,10 @@ export async function httpRequest<T>(
 
   if (body !== undefined) {
     headers['Content-Type'] = 'application/json';
+  }
+
+  if (options?.headers) {
+    Object.assign(headers, options.headers);
   }
 
   console.debug(
@@ -277,14 +283,16 @@ export function httpPost<Data, Params = undefined>(
 
 export function httpPut<Data, Params = undefined>(
   path: string | ((params: Params) => string),
-  mapBody?: (params: Params) => unknown
+  mapBody?: (params: Params) => unknown,
+  mapHeaders?: (params: Params) => Record<string, string> | undefined
 ): ProviderLike<Data, Params> {
   return {
     provider: () => {},
     invoke: (async (params?: Params) => {
       const resolvedPath = typeof path === 'function' ? path(params!) : path;
       const body = mapBody ? mapBody(params!) : params;
-      return httpRequest<Data>('PUT', resolvedPath, body);
+      const headers = mapHeaders ? mapHeaders(params!) : undefined;
+      return httpRequest<Data>('PUT', resolvedPath, body, headers ? { headers } : undefined);
     }) as ProviderLike<Data, Params>['invoke'],
   };
 }

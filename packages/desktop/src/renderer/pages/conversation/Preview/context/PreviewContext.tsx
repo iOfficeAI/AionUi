@@ -6,6 +6,8 @@
 
 import { ipcBridge } from '@/common';
 import type { PreviewContentType } from '@/common/types/office/preview';
+import type { ChatFileRef, ContentEncoding } from '@/common/types/chatFile';
+import { chatFileRefKey, isChatFileRef } from '@/common/types/chatFile';
 import { emitter } from '@/renderer/utils/emitter';
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import type { PreviewScopeKey } from './previewScope';
@@ -25,6 +27,12 @@ export interface PreviewMetadata {
   title?: string;
   diff?: string;
   file_name?: string;
+  // ChatFileRef identity — the terminal identity for preview content I/O
+  // (read/write/metadata over /api/fs/content). Project refs carry pe identity
+  // (explorer files), local/upload refs carry a backend-host path. Preferred over
+  // file_path/workspace, which are retained only for viewers not yet migrated
+  // (pdf file://, office, shell.openFile, download).
+  fileRef?: ChatFileRef;
   file_path?: string; // 工作空间文件的绝对路径 / Absolute file path in workspace
   workspace?: string; // 工作空间根目录 / Workspace root directory
   editable?: boolean; // 是否可编辑 / Whether editable
@@ -132,11 +140,20 @@ const parsePersistedTabs = (value: unknown): PreviewTab[] => {
     })
     .filter((tab) => PERSISTABLE_CONTENT_TYPES.has(tab.content_type))
     .filter((tab) => tab.content.length <= MAX_PERSISTED_TAB_CONTENT_LENGTH)
-    .map((tab) => ({
-      ...tab,
-      originalContent: typeof tab.originalContent === 'string' ? tab.originalContent : tab.content,
-      isDirty: false,
-    }));
+    .map((tab) => {
+      // Drop a persisted fileRef that no longer matches the ChatFileRef shape
+      // (defensive against stale/tampered localStorage), keeping the rest intact.
+      const metadata =
+        tab.metadata?.fileRef && !isChatFileRef(tab.metadata.fileRef)
+          ? { ...tab.metadata, fileRef: undefined }
+          : tab.metadata;
+      return {
+        ...tab,
+        metadata,
+        originalContent: typeof tab.originalContent === 'string' ? tab.originalContent : tab.content,
+        isDirty: false,
+      };
+    });
 };
 
 const EMPTY_SCOPE_STATE: PersistedScopeState = { isOpen: false, tabs: [], activeTabId: null };
@@ -217,6 +234,7 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
       const normalizedFileName = normalize(meta?.file_name);
       const normalizedTitle = normalize(meta?.title);
       const normalizedFilePath = normalize(meta?.file_path);
+      const refKey = meta?.fileRef ? chatFileRefKey(meta.fileRef) : '';
 
       return (
         tabList.find((tab) => {
@@ -224,8 +242,13 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
           const tabFileName = normalize(tab.metadata?.file_name);
           const tabTitle = normalize(tab.metadata?.title);
           const tabFilePath = normalize(tab.metadata?.file_path);
+          const tabRefKey = tab.metadata?.fileRef ? chatFileRefKey(tab.metadata.fileRef) : '';
 
-          // 优先通过 file_path 匹配（最可靠）/ Prefer matching by file_path (most reliable)
+          // 优先通过 ChatFileRef 身份匹配（终态身份，最可靠）
+          // Prefer matching by ChatFileRef identity (terminal identity, most reliable)
+          if (refKey && tabRefKey && refKey === tabRefKey) return true;
+
+          // 再通过 file_path 匹配（未迁移到 ref 的来源）/ Then match by file_path (sources not yet on a ref)
           if (normalizedFilePath && tabFilePath && normalizedFilePath === tabFilePath) return true;
 
           // 通过 file_name 匹配时，需要确保路径兼容（避免同名文件在不同目录的冲突）
@@ -385,10 +408,10 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const closeTab = useCallback(
     (tabId: string) => {
       setTabs((prevTabs) => {
-        // Clean up mtime record for the closed tab
+        // Clean up mtime record for the closed tab (keyed by ChatFileRef identity)
         const tabToClose = prevTabs.find((tab) => tab.id === tabId);
-        if (tabToClose?.metadata?.file_path) {
-          fileMtimeRef.current.delete(tabToClose.metadata.file_path);
+        if (tabToClose?.metadata?.fileRef) {
+          fileMtimeRef.current.delete(chatFileRefKey(tabToClose.metadata.fileRef));
         }
 
         const newTabs = prevTabs.filter((tab) => tab.id !== tabId);
@@ -459,20 +482,18 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
       const tab = tabs.find((t) => t.id === targetTabId);
       if (!tab) return false;
 
-      // 如果有 file_path 和 workspace，写回工作空间文件 / If file_path and workspace exist, write back to workspace file
-      if (tab.metadata?.file_path && tab.metadata?.workspace) {
+      // 写回由 ChatFileRef 身份寻址的文件 / Write back to the file addressed by ChatFileRef identity
+      const fileRef = tab.metadata?.fileRef;
+      if (fileRef) {
+        const saveKey = chatFileRefKey(fileRef);
         try {
-          const file_path = tab.metadata.file_path;
+          // 标记正在保存（避免触发轮询/流式回调）/ Mark as saving (avoid triggering poll/stream callbacks)
+          savingFilesRef.current.add(saveKey);
 
-          // 标记文件正在保存（避免触发文件监听回调）/ Mark file as being saved (to avoid triggering file watch callback)
-          savingFilesRef.current.add(file_path);
-
-          // 使用 IPC 写入文件 / Write file via IPC
-          const success = await ipcBridge.fs.writeFile.invoke({
-            path: file_path,
-            data: tab.content,
-            workspace: tab.metadata.workspace,
-          });
+          // PUT /content：带 If-Match(上次已知 mtime) 乐观并发，冲突后端返 409
+          // PUT /content: optimistic concurrency via If-Match (last-known mtime); backend returns 409 on conflict
+          const ifMatch = fileMtimeRef.current.get(saveKey);
+          const success = await ipcBridge.fs.writeContent.invoke({ file: fileRef, data: tab.content, ifMatch });
 
           if (success) {
             setTabs((prevTabs) =>
@@ -483,20 +504,27 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
                 return t;
               })
             );
+            // 保存成功后刷新已知 mtime，供下次保存发送新鲜 If-Match
+            // Refresh known mtime after a successful save so the next save sends a fresh If-Match
+            void ipcBridge.fs.getContentMetadata
+              .invoke({ file: fileRef })
+              .then((metadata) => {
+                if (metadata) fileMtimeRef.current.set(saveKey, metadata.lastModified);
+              })
+              .catch(() => {
+                // metadata refresh is best-effort — a stale If-Match just re-triggers 409, never data loss
+              });
           }
 
-          // 延迟移除保存标记（给文件监听一点时间忽略变化）/ Delay removing save flag (give file watch time to ignore change)
+          // 延迟移除保存标记（给变更检测一点时间忽略本次写入）/ Delay removing save flag (give change detection time to ignore this write)
           setTimeout(() => {
-            savingFilesRef.current.delete(file_path);
+            savingFilesRef.current.delete(saveKey);
           }, 500);
 
           return success;
         } catch (error) {
-          // 发生错误，静默处理（只记录到控制台）/ Error occurred, handle silently (log only)
           // 确保移除保存标记 / Ensure save flag is removed
-          if (tab.metadata?.file_path) {
-            savingFilesRef.current.delete(tab.metadata.file_path);
-          }
+          savingFilesRef.current.delete(saveKey);
           throw error;
         }
       }
@@ -579,7 +607,9 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
             if (tab.metadata?.file_path !== file_path) return tab;
 
             // 如果正在保存或用户已编辑，不更新 / Don't update if saving or user has edited
-            if (savingFilesRef.current.has(file_path) || tab.isDirty) {
+            // (save flag is keyed by ChatFileRef identity)
+            const savingKey = tab.metadata?.fileRef ? chatFileRefKey(tab.metadata.fileRef) : undefined;
+            if ((savingKey && savingFilesRef.current.has(savingKey)) || tab.isDirty) {
               return tab;
             }
 
@@ -613,39 +643,40 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
   // is unreliable after the first emission in Electron (only the first event reaches the renderer).
   const checkFileUpdate = useCallback(
     (tab: PreviewTab) => {
-      const file_path = tab.metadata?.file_path;
-      if (!file_path || tab.isDirty || savingFilesRef.current.has(file_path)) return;
+      const fileRef = tab.metadata?.fileRef;
+      if (!fileRef || tab.isDirty) return;
+      const refKey = chatFileRefKey(fileRef);
+      if (savingFilesRef.current.has(refKey)) return;
 
-      void ipcBridge.fs.getFileMetadata
-        .invoke({ path: file_path, workspace: tab.metadata?.workspace })
+      void ipcBridge.fs.getContentMetadata
+        .invoke({ file: fileRef })
         .then((metadata) => {
           if (!metadata) return;
-          const prevMtime = fileMtimeRef.current.get(file_path);
-          fileMtimeRef.current.set(file_path, metadata.lastModified);
+          const prevMtime = fileMtimeRef.current.get(refKey);
+          fileMtimeRef.current.set(refKey, metadata.lastModified);
           if (prevMtime === undefined || metadata.lastModified === prevMtime) return;
 
-          const readPromise =
-            tab.content_type === 'image'
-              ? ipcBridge.fs.getImageBase64.invoke({ path: file_path, workspace: tab.metadata?.workspace })
-              : ipcBridge.fs.readFile.invoke({ path: file_path, workspace: tab.metadata?.workspace });
+          const encoding: ContentEncoding = tab.content_type === 'image' ? 'dataurl' : 'utf8';
 
-          void readPromise
+          void ipcBridge.fs.readContent
+            .invoke({ file: fileRef, encoding })
             .then((content) => {
               if (content == null) return;
               setTabs((latest) =>
                 latest.map((t) => {
-                  if (t.metadata?.file_path !== file_path) return t;
-                  if (savingFilesRef.current.has(file_path) || t.isDirty) return t;
+                  const tRef = t.metadata?.fileRef;
+                  if (!tRef || chatFileRefKey(tRef) !== refKey) return t;
+                  if (savingFilesRef.current.has(refKey) || t.isDirty) return t;
                   return { ...t, content, originalContent: content, isDirty: false };
                 })
               );
             })
             .catch((error) => {
-              console.error('[PreviewContext] Failed to read file after mtime change:', file_path, error);
+              console.error('[PreviewContext] Failed to read content after mtime change:', refKey, error);
             });
         })
         .catch((error) => {
-          console.error('[PreviewContext] Failed to get file metadata:', file_path, error);
+          console.error('[PreviewContext] Failed to get content metadata:', refKey, error);
         });
     },
     [setTabs]
@@ -656,11 +687,11 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const activeTabRef = useRef<PreviewTab | null>(null);
   activeTabRef.current = activeTab;
 
-  const activeFilePath = activeTab?.metadata?.file_path;
+  const activeFileKey = activeTab?.metadata?.fileRef ? chatFileRefKey(activeTab.metadata.fileRef) : undefined;
 
   // Poll active tab every 1s
   useEffect(() => {
-    if (!activeFilePath) return;
+    if (!activeFileKey) return;
 
     const pollId = setInterval(() => {
       const current = activeTabRef.current;
@@ -674,7 +705,7 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
     return () => {
       clearInterval(pollId);
     };
-  }, [activeFilePath, checkFileUpdate]);
+  }, [activeFileKey, checkFileUpdate]);
 
   // 监听 preview.open 事件（用于 agent 打开网页预览）/ Listen to preview.open event (for agent to open web preview)
   // 同时监听 IPC 和 renderer emitter 两种方式 / Listen to both IPC and renderer emitter
