@@ -481,6 +481,7 @@ export type I18nKey =
   | 'conversation.chat.speech.pickFileTooltip'
   | 'conversation.chat.speech.processing'
   | 'conversation.chat.speech.recordTooltip'
+  | 'conversation.chat.speech.recordTooltipWithShortcut'
   | 'conversation.chat.speech.recordingUnsupported'
   | 'conversation.chat.speech.startShort'
   | 'conversation.chat.speech.stopShort'

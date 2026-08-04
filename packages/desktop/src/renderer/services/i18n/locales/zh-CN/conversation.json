@@ -448,6 +448,7 @@
     "switchAgentFailed": "切换 Agent 失败",
     "speech": {
       "recordTooltip": "开始语音输入",
+      "recordTooltipWithShortcut": "语音输入 cmd+M",
       "pickFileTooltip": "选择音频文件",
       "stopTooltip": "停止录音",
       "processing": "正在转写音频...",
