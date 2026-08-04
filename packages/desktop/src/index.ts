@@ -532,11 +532,16 @@ const createWindow = ({ showOnReady = true }: { showOnReady?: boolean } = {}): v
         autoUpdaterService.setBeforeQuitAndInstall(async () => {
           await backendManager.stop();
         });
-        // Check for updates after 3 seconds delay
-        // 3秒后检查更新
-        setTimeout(() => {
-          void autoUpdaterService.checkForUpdatesAndNotify();
-        }, 3000);
+        // Check for updates after 3 seconds delay. Skipped in the discontinued
+        // build: AionUi's final version guides users to the website instead of
+        // auto-checking, so startup stays silent. The flag is a compile-time
+        // literal, so this branch is tree-shaken out of non-discontinued builds.
+        // 3秒后检查更新。停更版启动静默，不做应用内检测。
+        if (!process.env.IS_DISCONTINUED_BUILD) {
+          setTimeout(() => {
+            void autoUpdaterService.checkForUpdatesAndNotify();
+          }, 3000);
+        }
       })
       .catch((error) => {
         console.error('[App] Failed to initialize autoUpdaterService:', error);
