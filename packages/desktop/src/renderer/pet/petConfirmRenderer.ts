@@ -47,7 +47,7 @@ function renderConfirmation(confirmation: IConfirmation): void {
   descriptionEl.textContent = confirmation.description;
 
   // Render options — shortcut badge before label (matches the main confirmation message style)
-  optionsEl.innerHTML = '';
+  optionsEl.replaceChildren();
   confirmation.options.forEach((option, index) => {
     const btn = document.createElement('div');
     btn.className = 'option-btn';

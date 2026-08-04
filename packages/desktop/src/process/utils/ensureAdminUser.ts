@@ -22,6 +22,15 @@ type AuthStatusResponse = {
   is_authenticated?: boolean;
 };
 
+/**
+ * Validate a legacy password hash format.
+ * Returns true if the hash is valid hex with length 32-128 characters.
+ */
+export const isValidLegacyPasswordHash = (hash: string): boolean => {
+  const hashRegex = /^[a-fA-F0-9]+$/;
+  return hashRegex.test(hash) && hash.length >= 32 && hash.length <= 128;
+};
+
 export async function ensureAdminUser(backendPort: number): Promise<void> {
   try {
     // 1. Ask backend whether SQLite already has a real user.
@@ -42,6 +51,12 @@ export async function ensureAdminUser(backendPort: number): Promise<void> {
     if (!exists || !legacyHash) {
       // Fresh install: no legacy credentials to migrate. Leave SQLite empty;
       // first-use password generation (Phase 1b) handles initial setup.
+      return;
+    }
+
+    // Validate legacy hash format before migration
+    if (!isValidLegacyPasswordHash(legacyHash)) {
+      console.error('Invalid legacy password hash format — skipping migration');
       return;
     }
 
