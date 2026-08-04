@@ -59,6 +59,19 @@ import './preview.css';
  * 支持多 Tab 切换，每个 Tab 可以显示不同类型的内容
  * Supports multiple tabs, each tab can display different types of content
  */
+/**
+ * A save the backend declined without an error to explain it.
+ *
+ * Distinct from a thrown backend error so the handler can report a plain failure
+ * rather than treating the sentinel's own text as extra detail.
+ */
+class SaveRefusedError extends Error {
+  constructor() {
+    super('save refused');
+    this.name = 'SaveRefusedError';
+  }
+}
+
 const PreviewPanel: React.FC = () => {
   const { t } = useTranslation();
   const {
@@ -306,7 +319,11 @@ const PreviewPanel: React.FC = () => {
         // eslint-disable-next-line no-await-in-loop
         const success = await saveContent(id);
         if (!success) {
-          throw new Error(t('common.saveFailed'));
+          // A refusal with no error to report. Throwing `new Error(t('common.saveFailed'))`
+          // here produced "save failed: save failed" — the message became the `detail`
+          // that the catch below prefixes, so the same sentence was concatenated onto
+          // itself. A sentinel carries the outcome without pretending to add detail.
+          throw new SaveRefusedError();
         }
       }
       finishPendingClose();

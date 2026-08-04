@@ -237,3 +237,25 @@ describe('shouldOfferOpenInSystem', () => {
     );
   });
 });
+
+// A refusal that carries no explanation must not have its own text echoed back as
+// detail: the caller prefixes detail with "save failed", so passing "save failed"
+// through produced "save failed: save failed".
+describe('classifySaveOutcome and bare refusals', () => {
+  it('reports a refusal without inventing a detail to append', () => {
+    const refusal = Object.assign(new Error('save refused'), { name: 'SaveRefusedError' });
+    expect(classifySaveOutcome(undefined, refusal)).toEqual({ kind: 'failed' });
+  });
+
+  it('still surfaces detail from a genuine error', () => {
+    expect(classifySaveOutcome(undefined, new Error('disk full'))).toEqual({
+      kind: 'failed',
+      detail: 'disk full',
+    });
+  });
+
+  it('a conflict still wins over the refusal check', () => {
+    const conflict = Object.assign(new Error('save refused'), { name: 'SaveRefusedError', status: 409 });
+    expect(classifySaveOutcome(undefined, conflict)).toEqual({ kind: 'conflict' });
+  });
+});

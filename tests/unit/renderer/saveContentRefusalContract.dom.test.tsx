@@ -4,7 +4,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-// Save failures must stay visible, and a failed save must NOT look like a saved one.
+// `saveContent`'s contract when a write is refused: it reports the failure to its
+// caller and leaves the tab dirty.
+//
+// This is the CONTRACT layer — no DOM assertions live here. Whether the user
+// actually sees a message is covered separately by previewPanelNotices.dom.test.tsx,
+// which renders the panel. (The file was previously named "...SaveFailureVisible",
+// which promised the visible half and delivered the contract half.)
 //
 // The bug being pinned: Ctrl+S ran `void saveContent()`, throwing the promise away.
 // A 409 (the file changed on disk since this tab read it) means the write was

@@ -104,6 +104,23 @@ const openOversizedTab = (): void => {
   });
 };
 
+/**
+ * An unsupported-format tab: identified, but nothing here can render it. Also has
+ * no content, so downloading would produce a 0-byte file just like an oversized one
+ * — but for a different reason, which the message has to reflect.
+ */
+const openUnsupportedTab = (): void => {
+  act(() => {
+    ctx.openPreview('', 'unsupported', {
+      title: 'photo.heic',
+      file_name: 'photo.heic',
+      language: 'heic',
+      fileRef: { kind: 'project', pe_id: 'peA', relative_path: 'pics/photo.heic' },
+      editable: false,
+    });
+  });
+};
+
 beforeEach(() => {
   localStorage.clear();
 });
@@ -131,6 +148,28 @@ describe('preview panel notices reach the DOM', () => {
       await waitFor(() => {
         expect(screen.getByText('preview.oversized.downloadUnavailable')).toBeInTheDocument();
       });
+    },
+    TIMEOUT_MS
+  );
+
+  // Same refusal, different reason. Telling the user a 2 MB HEIC is "too large to
+  // download" is simply false, so the two states must not share one sentence — and
+  // nothing enforced that until this test.
+  it(
+    'explains an unsupported download refusal by format, not by size',
+    async () => {
+      const { rerender } = render(<Harness showPanel={false} />);
+      openUnsupportedTab();
+      act(() => rerender(<Harness showPanel />));
+
+      const downloadButton = await screen.findByTitle('preview.downloadFile');
+      fireEvent.click(downloadButton);
+
+      await waitFor(() => {
+        expect(screen.getByText('preview.unsupported.downloadUnavailable')).toBeInTheDocument();
+      });
+      // The size explanation must not appear for a format problem.
+      expect(screen.queryByText('preview.oversized.downloadUnavailable')).not.toBeInTheDocument();
     },
     TIMEOUT_MS
   );

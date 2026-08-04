@@ -19,10 +19,17 @@ interface FileTypeInfo {
 // same judgement serving different entry points (this one: diff cards / message
 // file changes; that one: explorer + local-file links), so a mapping that lands in
 // only one makes the same file open differently depending on where it was clicked.
-const EXTENSION_MAP: Record<string, FileTypeInfo> = {
+/**
+ * Exported for the consistency test that checks this table against
+ * `FILE_EXTENSION_MAP`. Read it for the key set only — resolution must go through
+ * {@link getFileTypeInfo} so the fallback applies.
+ */
+export const EXTENSION_MAP: Record<string, FileTypeInfo> = {
   // Markdown
   md: { contentType: 'markdown', editable: true, language: 'markdown' },
   markdown: { contentType: 'markdown', editable: true, language: 'markdown' },
+  mdown: { contentType: 'markdown', editable: true, language: 'markdown' },
+  mkd: { contentType: 'markdown', editable: true, language: 'markdown' },
   // HTML
   html: { contentType: 'html', editable: true, language: 'html' },
   htm: { contentType: 'html', editable: true, language: 'html' },

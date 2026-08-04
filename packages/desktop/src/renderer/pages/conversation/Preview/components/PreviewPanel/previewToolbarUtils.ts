@@ -161,6 +161,10 @@ export const classifySaveOutcome = (result: boolean | undefined, error?: unknown
     // file moved under us, which needs different wording than a generic failure.
     const status = (error as { status?: unknown }).status;
     if (status === 409) return { kind: 'conflict' };
+    // A bare refusal carries no explanation. Passing its own text through as
+    // `detail` is what produced "save failed: save failed", since the caller
+    // prefixes the detail with the same sentence.
+    if ((error as { name?: unknown }).name === 'SaveRefusedError') return { kind: 'failed' };
     return { kind: 'failed', detail: error instanceof Error ? error.message : undefined };
   }
   // `false` is a refusal too, not a success — it must never fall through to 'saved'.

@@ -17,8 +17,13 @@
 // the same file behave differently depending on where it was clicked.
 
 import { describe, expect, it } from 'vitest';
-import { getContentTypeByExtension, isOfficeFile, isTextFile } from '@/renderer/pages/conversation/Preview/fileUtils';
-import { getFileTypeInfo } from '@/renderer/utils/file/fileType';
+import {
+  FILE_EXTENSION_MAP,
+  getContentTypeByExtension,
+  isOfficeFile,
+  isTextFile,
+} from '@/renderer/pages/conversation/Preview/fileUtils';
+import { EXTENSION_MAP, getFileTypeInfo } from '@/renderer/utils/file/fileType';
 
 /** Formats officecli genuinely renders. */
 const OOXML = [
@@ -117,40 +122,26 @@ describe('unchanged mappings still hold', () => {
 // message file-change rows. They must not disagree, or the same file opens one way
 // from the tree and another way from a message.
 describe('both type judgements agree', () => {
+  /**
+   * Every extension either table maps, derived from their key sets rather than
+   * hand-listed — a hand-written list silently omits whatever the author forgot,
+   * which is how `.mdown` / `.mkd` sat in one table and not the other.
+   *
+   * Deriving the *inputs* this way is safe; the assertion still calls the two
+   * public resolvers separately and compares their answers, so the two tables
+   * remain independent sources. (Comparing a table against itself would be
+   * tautological and pass no matter how far they drift.)
+   */
   const everyMappedExtension = [
-    'md',
-    'markdown',
-    'html',
-    'htm',
-    'diff',
-    'patch',
-    'pdf',
-    'docx',
-    'xlsx',
-    'pptx',
-    'csv',
-    'doc',
-    'xls',
-    'ppt',
-    'odt',
-    'ods',
-    'odp',
-    'docm',
-    'xlsm',
-    'pptm',
-    'heic',
-    'png',
-    'jpg',
-    'jpeg',
-    'gif',
-    'bmp',
-    'webp',
-    'svg',
-    'ico',
-    'tif',
-    'tiff',
-    'avif',
-  ];
+    ...new Set([...Object.values(FILE_EXTENSION_MAP).flat(), ...Object.keys(EXTENSION_MAP)]),
+  ].toSorted();
+
+  it('derives a non-trivial extension list (guards against an empty sweep)', () => {
+    expect(everyMappedExtension.length).toBeGreaterThan(25);
+    // The gap that motivated deriving instead of hand-listing.
+    expect(everyMappedExtension).toContain('mdown');
+    expect(everyMappedExtension).toContain('mkd');
+  });
 
   it.each(everyMappedExtension)('.%s resolves to the same content type in both maps', (ext) => {
     const name = `sample.${ext}`;
