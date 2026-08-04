@@ -11,7 +11,7 @@ import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { useLocalFilePreview } from '@/renderer/pages/conversation/Preview/hooks/useLocalFilePreview';
 import { iconColors } from '@/renderer/styles/colors';
 import { Alert, Message, Tooltip } from '@arco-design/web-react';
-import { Copy, SplitBranch } from '@icon-park/react';
+import { Copy } from '@icon-park/react';
 import classNames from 'classnames';
 import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -24,6 +24,7 @@ import { stripThinkTags, hasThinkTags } from '@renderer/utils/chat/thinkTagFilte
 import { stripSkillSuggest, hasSkillSuggest } from '@renderer/utils/chat/skillSuggestParser';
 import { isForkEnabled } from '@/common/chat/forkConversation';
 import { useForkConversation } from '@/renderer/hooks/chat/useForkConversation';
+import ForkBranchIcon from '@renderer/components/base/ForkBranchIcon';
 
 /**
  * Format a timestamp for message display.
@@ -232,7 +233,7 @@ const MessageText: React.FC<{ message: IMessageText; showCopyRow?: boolean; isLa
         style={{ lineHeight: 0 }}
         data-testid='message-fork-button'
       >
-        <SplitBranch theme='outline' size='16' fill={iconColors.secondary} />
+        <ForkBranchIcon size={16} fill={iconColors.secondary} />
       </div>
     </Tooltip>
   ) : null;

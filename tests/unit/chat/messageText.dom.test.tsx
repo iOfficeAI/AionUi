@@ -151,7 +151,6 @@ vi.mock('@arco-design/web-react', () => ({
 
 vi.mock('@icon-park/react', () => ({
   Copy: () => <span data-testid='copy-icon' />,
-  SplitBranch: () => <span data-testid='fork-icon' />,
 }));
 
 vi.mock('react-i18next', () => ({
