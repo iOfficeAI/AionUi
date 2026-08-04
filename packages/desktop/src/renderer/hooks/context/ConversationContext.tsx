@@ -62,6 +62,13 @@ export interface ConversationContextValue {
    * Assistant id bound to this conversation snapshot, if any.
    */
   assistantId?: string;
+
+  /**
+   * Session-fork capability from the conversation detail response
+   * (`fork_capability`). Absent = the agent cannot fork → hide the message
+   * fork entry point. See `common/chat/forkConversation.ts`.
+   */
+  forkCapability?: { at_turn: boolean };
 }
 
 /**

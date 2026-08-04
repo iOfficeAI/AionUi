@@ -72,5 +72,13 @@
     "yesAlwaysAllowTool": "Evet, \"{{serverName}}\" sunucusundan \"{{toolName}}\" aracına her zaman izin ver",
     "yesAlwaysAllowServer": "Evet, \"{{serverName}}\" sunucusundaki tüm araçlara her zaman izin ver",
     "no": "Hayır (esc)"
+  },
+  "fork": {
+    "action": "Buradan çatalla",
+    "errorTurnInFlight": "Çatallamadan önce mevcut yanıtın bitmesini bekleyin",
+    "errorParentUnbound": "Bu konuşmanın henüz çatallanacak bir arka uç oturumu yok",
+    "errorPointUnsupported": "Bu ajan yalnızca en son mesajdan çatallayabilir",
+    "errorUnsupported": "Bu ajan çatallamayı desteklemiyor",
+    "errorGeneric": "Çatallama başarısız: {{message}}"
   }
 }

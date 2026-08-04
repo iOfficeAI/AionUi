@@ -74,5 +74,13 @@
   },
   "copyLastOutput": {
     "empty": "No response to copy yet"
+  },
+  "fork": {
+    "action": "Відгалузити звідси",
+    "errorTurnInFlight": "Дочекайтеся завершення поточної відповіді перед відгалуженням",
+    "errorParentUnbound": "У цієї розмови ще немає серверної сесії для відгалуження",
+    "errorPointUnsupported": "Цей агент може відгалужуватися лише від останнього повідомлення",
+    "errorUnsupported": "Цей агент не підтримує відгалуження",
+    "errorGeneric": "Не вдалося створити відгалуження: {{message}}"
   }
 }

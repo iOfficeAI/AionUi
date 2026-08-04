@@ -72,5 +72,13 @@
     "yesAlwaysAllowTool": "Ja, Tool \"{{toolName}}\" vom Server \"{{serverName}}\" immer erlauben",
     "yesAlwaysAllowServer": "Ja, alle Tools vom Server \"{{serverName}}\" immer erlauben",
     "no": "Nein (Esc)"
+  },
+  "fork": {
+    "action": "Ab hier verzweigen",
+    "errorTurnInFlight": "Warten Sie, bis die aktuelle Antwort abgeschlossen ist, bevor Sie verzweigen",
+    "errorParentUnbound": "Diese Unterhaltung hat noch keine Backend-Sitzung zum Verzweigen",
+    "errorPointUnsupported": "Dieser Agent kann nur ab der neuesten Nachricht verzweigen",
+    "errorUnsupported": "Dieser Agent unterstützt kein Verzweigen",
+    "errorGeneric": "Verzweigen fehlgeschlagen: {{message}}"
   }
 }

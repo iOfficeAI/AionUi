@@ -235,6 +235,19 @@ export const conversation = {
     }
   ),
   reset: httpPost<void, IResetConversationParams>((p) => `/api/conversations/${p.id}/reset`),
+  /**
+   * Fork the conversation at a message (inclusive) into a new conversation.
+   * The backend session materializes on the fork's first open — callers should
+   * follow up with `ensureRuntime` on the returned id to surface failures
+   * eagerly. Error reasons carry stable `FORK_*` prefixes for i18n mapping.
+   */
+  fork: withResponseMap(
+    httpPost<TChatConversation, { conversation_id: string; message_id: string }>(
+      (p) => `/api/conversations/${p.conversation_id}/fork`,
+      (p) => ({ message_id: p.message_id })
+    ),
+    fromApiConversation
+  ),
   ensureRuntime: httpPost<EnsureConversationRuntimeResponse, { conversation_id: string }>(
     (p) => `/api/conversations/${p.conversation_id}/runtime/ensure`,
     () => undefined
@@ -1670,6 +1683,9 @@ export interface IResponseMessage {
   turn_id?: string;
   conversation_id: string;
   created_at?: number;
+  /** Backend turn anchor (codex Turn.id) for fork gating; mirrors the
+   *  persisted messages.backend_turn_id so live frames gate like history. */
+  backend_turn_id?: string;
   hidden?: boolean;
   position?: 'left' | 'right' | 'center' | 'pop';
   status?: 'finish' | 'pending' | 'error' | 'work';

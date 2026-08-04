@@ -74,7 +74,9 @@
     "removeProjectConfirm": "Supprimer le projet \"{{name}}\" ? Sa ou ses conversations {{count}} seront également supprimées.",
     "newConversationInProject": "Nouveau chat dans ce projet",
     "deleting": "Suppression...",
-    "reorderPinned": "Faites glisser pour réorganiser la conversation épinglée"
+    "reorderPinned": "Faites glisser pour réorganiser la conversation épinglée",
+    "forkedFrom": "Bifurquée depuis « {{name}} »",
+    "forkedConversation": "Conversation bifurquée"
   },
   "historySearch": {
     "tooltip": "Rechercher des messages",
