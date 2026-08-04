@@ -6,16 +6,16 @@
 
 import { conversation } from '@/common/adapter/ipcBridge';
 import type { IAskQuestion, IMessageAsk } from '@/common/chat/chatLib';
-import { Button, Card, Checkbox, Input, Radio, Typography } from '@arco-design/web-react';
+import { Button, Card, Checkbox, Input, Radio } from '@arco-design/web-react';
 import { CheckOne } from '@icon-park/react';
 import React, { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-// Deliberately the SAME stylesheet as the permission card: the question card is
-// the permission card's sibling in the conversation flow and must not look like
-// a foreign widget (user feedback, 2026-08-04).
+// The permission panel's stylesheet supplies the shared card chrome; own.* adds
+// the question-specific pieces (option rows with secondary description lines),
+// built on the same tokens so the two cards read as siblings (user feedback,
+// 2026-08-04: same style family, and long text must wrap instead of clipping).
 import styles from './components/MessagePermission/PermissionRequestPanel.module.css';
-
-const { Text } = Typography;
+import own from './MessageQuestion.module.css';
 
 const OTHER_VALUE = '__aionui_other__';
 
@@ -97,45 +97,50 @@ const MessageQuestion: React.FC<MessageQuestionProps> = React.memo(({ message })
           // Wire spelling is multi_select (the ws relay snake_cases all keys).
           const multi = q.multiSelect === true || q.multi_select === true;
           return (
-            <fieldset key={qi} className={styles.optionsFieldset} disabled={submitted !== null} data-testid={`message-question-item-${qi}`}>
-              <legend className={styles.optionsLegend}>{q.header || t('messages.chooseAction')}</legend>
-              <div className={styles.heading}>
-                <div className={styles.titleRow}>
-                  <Text className={styles.title}>{q.question}</Text>
-                </div>
-              </div>
+            <div key={qi} className={own.questionBlock} data-testid={`message-question-item-${qi}`}>
+              {q.header ? <div className={own.header}>{q.header}</div> : null}
+              <div className={own.question}>{q.question}</div>
               {multi ? (
-                <Checkbox.Group direction='vertical' value={d.labels} onChange={(labels) => updateDraft(qi, { labels: labels as string[] })} disabled={submitted !== null}>
+                <Checkbox.Group className={own.optionList} value={d.labels} onChange={(labels) => updateDraft(qi, { labels: labels as string[] })} disabled={submitted !== null}>
                   {q.options.map((opt) => (
-                    <Checkbox key={opt.label} value={opt.label} data-testid={`message-question-option-${qi}-${opt.label}`}>
-                      <span>{opt.label}</span>
-                      {opt.description ? <Text className={styles.description}> {opt.description}</Text> : null}
+                    <Checkbox key={opt.label} className={own.optionRow} value={opt.label} data-testid={`message-question-option-${qi}-${opt.label}`}>
+                      <span className={own.optionText}>
+                        <span className={own.optionLabel}>{opt.label}</span>
+                        {opt.description ? <span className={own.optionDesc}>{opt.description}</span> : null}
+                      </span>
                     </Checkbox>
                   ))}
                 </Checkbox.Group>
               ) : (
-                <Radio.Group direction='vertical' value={d.otherSelected ? OTHER_VALUE : d.labels[0]} onChange={(value) => (value === OTHER_VALUE ? updateDraft(qi, { labels: [], otherSelected: true }) : updateDraft(qi, { labels: [value], otherSelected: false }))} disabled={submitted !== null}>
+                <Radio.Group className={own.optionList} value={d.otherSelected ? OTHER_VALUE : d.labels[0]} onChange={(value) => (value === OTHER_VALUE ? updateDraft(qi, { labels: [], otherSelected: true }) : updateDraft(qi, { labels: [value], otherSelected: false }))} disabled={submitted !== null}>
                   {q.options.map((opt) => (
-                    <Radio key={opt.label} value={opt.label} data-testid={`message-question-option-${qi}-${opt.label}`}>
-                      <span>{opt.label}</span>
-                      {opt.description ? <Text className={styles.description}> {opt.description}</Text> : null}
+                    <Radio key={opt.label} className={own.optionRow} value={opt.label} data-testid={`message-question-option-${qi}-${opt.label}`}>
+                      <span className={own.optionText}>
+                        <span className={own.optionLabel}>{opt.label}</span>
+                        {opt.description ? <span className={own.optionDesc}>{opt.description}</span> : null}
+                      </span>
                     </Radio>
                   ))}
-                  <Radio value={OTHER_VALUE} data-testid={`message-question-option-${qi}-other`}>
-                    {t('messages.askOther')}
+                  <Radio className={own.optionRow} value={OTHER_VALUE} data-testid={`message-question-option-${qi}-other`}>
+                    <span className={own.optionText}>
+                      <span className={own.optionLabel}>{t('messages.askOther')}</span>
+                    </span>
                   </Radio>
+                  {d.otherSelected ? <Input className={own.otherInput} placeholder={t('messages.askOtherPlaceholder')} value={d.other} onChange={(v) => updateDraft(qi, { other: v })} disabled={submitted !== null} data-testid={`message-question-other-input-${qi}`} /> : null}
                 </Radio.Group>
               )}
-              {!multi && d.otherSelected ? <Input className={styles.detail} placeholder={t('messages.askOtherPlaceholder')} value={d.other} onChange={(v) => updateDraft(qi, { other: v })} disabled={submitted !== null} data-testid={`message-question-other-input-${qi}`} /> : null}
-            </fieldset>
+            </div>
           );
         })}
         {submitted === null ? (
-          <div className={styles.optionsGroup}>
-            <Button type='primary' className={styles.optionButton} disabled={!allAnswered} onClick={handleSubmit} data-testid='message-question-submit'>
+          // Plain Arco buttons on purpose: styles.optionButton resets the button
+          // chrome to a transparent full-width list row (for permission option
+          // lists), which turned the primary submit into white-on-white.
+          <div className={own.actions}>
+            <Button type='primary' size='small' disabled={!allAnswered} onClick={handleSubmit} data-testid='message-question-submit'>
               {t('messages.askSubmit')}
             </Button>
-            <Button className={styles.optionButton} onClick={handleDecline} data-testid='message-question-decline'>
+            <Button size='small' onClick={handleDecline} data-testid='message-question-decline'>
               {t('messages.askDecline')}
             </Button>
           </div>
