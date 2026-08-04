@@ -448,6 +448,7 @@
     "switchAgentFailed": "Failed to switch agent",
     "speech": {
       "recordTooltip": "Start voice input",
+      "recordTooltipWithShortcut": "Voice input cmd+M",
       "pickFileTooltip": "Select an audio file",
       "stopTooltip": "Stop recording",
       "processing": "Transcribing audio...",

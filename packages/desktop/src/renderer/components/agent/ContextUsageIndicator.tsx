@@ -26,7 +26,7 @@ const ContextUsageIndicator: React.FC<ContextUsageIndicatorProps> = ({
   tokenUsage,
   context_limit,
   className = '',
-  size = 24,
+  size = 20,
 }) => {
   const { t } = useTranslation();
 
@@ -70,7 +70,7 @@ const ContextUsageIndicator: React.FC<ContextUsageIndicatorProps> = ({
   }
 
   // 计算圆环参数
-  const strokeWidth = 2.5;
+  const strokeWidth = 2;
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
   const strokeDashoffset = circumference - (percentage / 100) * circumference;
@@ -157,7 +157,7 @@ const ContextUsageIndicator: React.FC<ContextUsageIndicatorProps> = ({
     <Popover content={popoverContent} position='top' trigger='hover' className='context-usage-popover'>
       <div
         className={`context-usage-indicator cursor-pointer flex items-center justify-center ${className}`}
-        style={{ width: size, height: size }}
+        style={{ width: 32, height: 32 }}
       >
         <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ transform: 'rotate(-90deg)' }}>
           {/* 背景圆环 */}
