@@ -4,15 +4,31 @@
 
 ### Desktop
 
+#### Features
+
+- **conversation:** tag agent-derived conversation titles for automatic naming
+- **preview:** migrate PDF and Office preview loading to managed file references
+- **conversation:** add a message anchor rail with search entry
+- **explorer:** add reveal-in-folder support on desktop
+- **update:** make manual update checks CDN-authoritative
+
 #### Bug Fixes
 
 - **desktop:** improve crash recovery and Windows installer reliability
+- **build:** preserve correct Windows executable metadata
+- **chat:** render Codex image-generation output
+- **renderer:** require a second confirmation before rebuilding the database
+- **skills:** prioritize the Lark integration in official skills
+- **branding:** normalize upstream startup copy for CSBU WorkMate
+- **runtime:** reconcile self-healed installation failures before alerting
+- **office-preview:** degrade gracefully when file watching is unavailable
 
-### Core ([v0.1.61](https://github.com/suoak/AionCore/releases/tag/v0.1.61))
+### Core ([v0.1.63](https://github.com/suoak/AionCore/releases/tag/v0.1.63))
 
-#### Features
+#### Bug Fixes
 
-- **assistant:** add the Lark Work Assistant SVG avatar
+- **office:** discover OfficeCLI installed under the legacy Windows Programs directory
+- **office:** retain bounded installer diagnostics when automatic installation fails
 
 ---
 
