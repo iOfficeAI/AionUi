@@ -25,6 +25,8 @@ const DMG_RETRY_MAX = 3;
 const DMG_RETRY_DELAY_SEC = 30;
 const WINDOWS_UNPACK_RETRY_MAX = 1;
 const WINDOWS_UNPACK_RETRY_DELAY_MS = 3000;
+const WINDOWS_EXE_PRODUCT_NAME = '锐捷Codex';
+const WINDOWS_EXE_LEGAL_COPYRIGHT = 'Copyright © 2026 锐捷Codex';
 
 // Incremental build: hash of source files to detect changes
 const INCREMENTAL_CACHE_FILE = 'out/.build-hash';
@@ -59,6 +61,37 @@ function patchElectronBuilderNsisInstaller() {
       console.warn(`Warning: app-builder-lib is not resolvable; skipping NSIS template patch: ${error.message}`);
       return;
     }
+  }
+
+  const nsisTargetPath = path.join(appBuilderDir, 'out', 'targets', 'nsis', 'NsisTarget.js');
+  if (!fs.existsSync(nsisTargetPath)) {
+    throw new Error(`electron-builder NSIS target not found: ${nsisTargetPath}`);
+  }
+
+  const originalNsisTarget = fs.readFileSync(nsisTargetPath, 'utf8');
+  let patchedNsisTarget = originalNsisTarget;
+  const productNameSource = 'ProductName "${(0, nsisScriptGenerator_1.nsisEscapeString)(appInfo.productName)}"';
+  const productNameReplacement =
+    'ProductName "${(0, nsisScriptGenerator_1.nsisEscapeString)(' + JSON.stringify(WINDOWS_EXE_PRODUCT_NAME) + ')}"';
+  const legalCopyrightSource = 'LegalCopyright "${(0, nsisScriptGenerator_1.nsisEscapeString)(appInfo.copyright)}"';
+  const legalCopyrightReplacement =
+    'LegalCopyright "${(0, nsisScriptGenerator_1.nsisEscapeString)(' +
+    JSON.stringify(WINDOWS_EXE_LEGAL_COPYRIGHT) +
+    ')}"';
+
+  if (patchedNsisTarget.includes(productNameSource)) {
+    patchedNsisTarget = patchedNsisTarget.replace(productNameSource, productNameReplacement);
+  } else if (!patchedNsisTarget.includes(productNameReplacement)) {
+    throw new Error('electron-builder NSIS ProductName version key changed; update metadata patch.');
+  }
+  if (patchedNsisTarget.includes(legalCopyrightSource)) {
+    patchedNsisTarget = patchedNsisTarget.replace(legalCopyrightSource, legalCopyrightReplacement);
+  } else if (!patchedNsisTarget.includes(legalCopyrightReplacement)) {
+    throw new Error('electron-builder NSIS LegalCopyright version key changed; update metadata patch.');
+  }
+  if (patchedNsisTarget !== originalNsisTarget) {
+    fs.writeFileSync(nsisTargetPath, patchedNsisTarget);
+    console.log('Patched electron-builder NSIS Windows EXE metadata.');
   }
 
   const installUtilPath = path.join(appBuilderDir, 'templates', 'nsis', 'include', 'installUtil.nsh');

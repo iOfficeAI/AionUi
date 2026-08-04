@@ -131,24 +131,30 @@ describe('release packaging configuration', () => {
     expect(buildScript).not.toContain('CSBU_WORKMATE_METADATA_FREE');
   });
 
-  it('sets only the packaged application ProductName without changing its brand identity', () => {
+  it('sets the requested ProductName and LegalCopyright on every Windows executable', () => {
     const packageJson = JSON.parse(readProjectFile('package.json')) as {
       author: { name: string };
       productName: string;
     };
     const afterPack = readProjectFile('scripts/afterPack.js');
     const afterSign = readProjectFile('scripts/afterSign.js');
+    const buildScript = readProjectFile('scripts/build-with-builder.js');
     const reusableWorkflow = readProjectFile('.github/workflows/_build-reusable.yml');
 
     expect(packageJson.author.name).toBe('CSBU');
     expect(packageJson.productName).toBe('CSBU WorkMate');
     expect(afterPack).toContain("const WINDOWS_PRODUCT_NAME = '锐捷Codex'");
-    expect(afterPack).toContain('versionInfo.setStringValues(language, { ProductName: productName })');
-    expect(afterPack).not.toContain('await setWindowsProductName(executablePath)');
-    expect(afterSign).toContain('await setWindowsProductName(executablePath)');
+    expect(afterPack).toContain("const WINDOWS_LEGAL_COPYRIGHT = 'Copyright © 2026 锐捷Codex'");
+    expect(afterPack).toContain('LegalCopyright: legalCopyright');
+    expect(afterPack).toContain('ProductName: productName');
+    expect(afterSign).toContain('await setWindowsExecutableMetadata(executablePath)');
+    expect(buildScript).toContain("const WINDOWS_EXE_PRODUCT_NAME = '锐捷Codex'");
+    expect(buildScript).toContain("const WINDOWS_EXE_LEGAL_COPYRIGHT = 'Copyright © 2026 锐捷Codex'");
+    expect(buildScript).toContain('Patched electron-builder NSIS Windows EXE metadata.');
     expect(reusableWorkflow).toContain("'锐捷Codex'");
-    expect(reusableWorkflow).toContain("'CSBU WorkMate'");
+    expect(reusableWorkflow).toContain("'Copyright © 2026 锐捷Codex'");
     expect(reusableWorkflow).toContain('if ($info.ProductName -ne $expectedProductName)');
+    expect(reusableWorkflow).toContain('if ($info.LegalCopyright -ne $expectedLegalCopyright)');
   });
 
   it('preserves installer VERSIONINFO while keeping NSIS integrity checks enabled', () => {

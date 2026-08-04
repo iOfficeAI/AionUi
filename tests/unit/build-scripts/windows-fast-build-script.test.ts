@@ -5,8 +5,12 @@ import { parse, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { NtExecutable, NtExecutableResource, Resource } from 'resedit';
 
-const { setWindowsProductName } = require('../../../scripts/afterPack.js') as {
-  setWindowsProductName: (executablePath: string, productName?: string) => Promise<void>;
+const { setWindowsExecutableMetadata } = require('../../../scripts/afterPack.js') as {
+  setWindowsExecutableMetadata: (
+    executablePath: string,
+    productName?: string,
+    legalCopyright?: string
+  ) => Promise<void>;
 };
 
 const packageJson = JSON.parse(readFileSync('package.json', 'utf8')) as {
@@ -60,7 +64,7 @@ describe('Windows fast build scripts', () => {
     expect(nativeRebuildScript).not.toContain('bun x');
   });
 
-  it.runIf(process.platform === 'win32')('changes only the packaged application ProductName', async () => {
+  it.runIf(process.platform === 'win32')('changes only the requested packaged application metadata', async () => {
     const tempDirectory = mkdtempSync(resolve(tmpdir(), 'csbu-product-name-'));
     const executablePath = resolve(tempDirectory, 'CSBU WorkMate.exe');
 
@@ -68,10 +72,11 @@ describe('Windows fast build scripts', () => {
       copyFileSync(resolve('node_modules/electron/dist/electron.exe'), executablePath);
       const before = readWindowsVersionStrings(executablePath);
 
-      await setWindowsProductName(executablePath, '锐捷Codex');
+      await setWindowsExecutableMetadata(executablePath);
 
       const after = readWindowsVersionStrings(executablePath);
       expect(after.ProductName).toBe('锐捷Codex');
+      expect(after.LegalCopyright).toBe('Copyright © 2026 锐捷Codex');
       expect(after.CompanyName).toBe(before.CompanyName);
       expect(after.FileVersion).toBe(before.FileVersion);
     } finally {
@@ -85,7 +90,7 @@ describe('Windows fast build scripts', () => {
 
     try {
       writeFileSync(invalidExecutablePath, 'not a PE executable');
-      await expect(setWindowsProductName(invalidExecutablePath)).rejects.toThrow();
+      await expect(setWindowsExecutableMetadata(invalidExecutablePath)).rejects.toThrow();
     } finally {
       rmSync(tempDirectory, { force: true, recursive: true });
     }
