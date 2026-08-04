@@ -215,7 +215,13 @@ export const conversation = {
     (list) => list.map(fromApiConversation)
   ),
   remove: httpDelete<boolean, { id: string }>((p) => `/api/conversations/${p.id}`),
-  update: httpPatch<boolean, { id: string; updates: Partial<TChatConversation>; merge_extra?: boolean }>(
+  // `name_source` qualifies a `name` change: 'user' = explicit rename (backend
+  // locks the name against agent-generated titles; also the default when absent),
+  // 'auto' = frontend-derived default title (stays agent-overwritable).
+  update: httpPatch<
+    boolean,
+    { id: string; updates: Partial<TChatConversation> & { name_source?: 'user' | 'auto' }; merge_extra?: boolean }
+  >(
     (p) => `/api/conversations/${p.id}`,
     (p) => {
       const updates = p.updates as Record<string, unknown>;
