@@ -1,6 +1,6 @@
 ---
 name: bump-version
-description: Use when bumping the AionUi version: query AionCore release, verify artifacts, update package.json, generate CHANGELOG, branch, commit, push, create PR, auto-merge, tag release.
+description: Use when bumping the AionUi version OR only its aioncoreVersion dependency: query AionCore release, verify (and wait for) artifacts, update package.json, generate CHANGELOG, branch, commit, push, create PR, auto-merge, tag release. `--core-only` ships a dependency-only PR (no AionUi version bump, no CHANGELOG, no tag) — use it whenever the user says 升级 aioncore / 改 aioncoreVersion / bump the core version, even if they don't say PR.
 ---
 
 # Bump Version
@@ -13,6 +13,7 @@ Automate the AionUi release preparation: query AionCore release → verify artif
 - `/bump-version 2.2.0` — explicit AionUi version + latest AionCore
 - `/bump-version 2.2.0 --core v0.1.12` — explicit both versions
 - `/bump-version --skip-core` — pure frontend release (don't touch aioncoreVersion)
+- `/bump-version --core-only [--core vX.Y.Z]` — dependency-only PR: bump ONLY `aioncoreVersion` (no AionUi version bump, no CHANGELOG, no tag). Typical after an AionCore release merges and main just needs to pick it up.
 
 ## Workflow
 
@@ -35,6 +36,8 @@ git pull --rebase origin main
 Fails → Stop: "Failed to pull latest code. Please resolve conflicts or network issues first."
 
 ### Step 3: Determine AionUi Target Version
+
+**Skip entirely if `--core-only`** — the AionUi `version` field is not touched.
 
 Read `package.json` → extract `version` field.
 
@@ -73,16 +76,33 @@ Verify all 7 expected assets exist:
 - `aioncore-<tag>-aarch64-pc-windows-msvc.zip`
 - `aioncore-checksums.txt`
 
-Missing → Stop: "AionCore {tag} is missing artifacts: {list}. Wait for CI to complete or check for build failures."
+If artifacts are missing, don't immediately stop — a release tag appears the
+moment release-please merges, but binaries land only when the Release workflow
+finishes (often 20–40 min later). Check and wait instead of making the user
+babysit:
+
+```bash
+gh run list --repo iOfficeAI/AionCore --workflow Release --limit 1 --json databaseId,status
+# status in_progress/queued → watch it in a BACKGROUND Bash task:
+gh run watch <run-id> --repo iOfficeAI/AionCore --exit-status --interval 60
+```
+
+Tell the user you're waiting, continue on the completion notification, and
+re-verify the 7 assets. Only stop if the workflow FAILED or assets are still
+missing after it completes — that's an AionCore CI problem this skill must not
+paper over: "AionCore {tag} is missing artifacts: {list}."
 
 ### Step 6: Update package.json
 
 Use Edit tool to replace:
 
-- `"version": "{current}"` → `"version": "{target}"`
+- `"version": "{current}"` → `"version": "{target}"` (skip if `--core-only`)
 - `"aioncoreVersion": "{old}"` → `"aioncoreVersion": "{new core tag}"` (skip if `--skip-core`)
 
 ### Step 7: Generate CHANGELOG Entry
+
+**Skip entirely if `--core-only`** — the AionCore release notes already live on
+its GitHub release; the AionUi CHANGELOG entry is composed at full-release time.
 
 #### 7a: Determine Previous Tag
 
@@ -182,6 +202,15 @@ If `--skip-core`:
 git commit -m "chore: bump version to {target}"
 ```
 
+If `--core-only` (branch `chore/bump-aioncore-{core tag}`, only package.json staged):
+
+```bash
+git commit -m "chore: bump aioncore to {core tag}"
+```
+
+Per project rules every PR references an issue — for a routine `--core-only`
+bump create a small tracking issue first unless the user pointed at one.
+
 ### Step 11: Create PR + Enable Auto-Merge
 
 ```bash
@@ -220,6 +249,10 @@ gh pr view {PR_NUMBER} --json state,mergedAt,mergeStateStatus
 > "PR has not merged after 30 minutes. Please check status: {URL}. Reply 'continue' when merged, or 'abort' to stop."
 
 **Wait for user confirmation only in this timeout case.**
+
+**If `--core-only`**: polling ends the flow — after merge, clean up the branch
+but do NOT tag or trigger a release build. Steps 13's tag/release parts do not
+apply.
 
 ### Step 13: Cleanup + Tag
 
