@@ -116,6 +116,12 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
   const handleLogout = useCallback(async () => {
     cleanupSiderTooltips();
     blurActiveElement();
+    // Only hides the panel — deliberately NOT clearPreviewForScope().
+    //
+    // The stored tabs are removed by `clearAuthCache` on the way out, which deletes
+    // every `aionui_preview:` key directly. Discarding in-memory tabs here would
+    // add nothing and would risk the opposite problem: if logout fails below we
+    // return early, and the user should still find their tabs where they left them.
     closePreview();
     try {
       await logout();

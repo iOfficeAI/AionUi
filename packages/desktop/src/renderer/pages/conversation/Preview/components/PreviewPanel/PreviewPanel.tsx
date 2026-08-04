@@ -389,9 +389,19 @@ const PreviewPanel: React.FC = () => {
   }, [tabs, requestCloseBatch, closePreview]);
 
   // 如果预览面板未打开，不渲染 / Don't render if preview panel is not open
-  if (!isOpen || !activeTab) return null;
-
-  const { content, content_type, metadata } = activeTab;
+  // Destructure defensively and bail out AFTER the last hook below.
+  //
+  // React requires the same hooks to run on every render of a component, and
+  // `handleDownload` / `handleOpenInSystem` are declared further down — so
+  // returning here would change the hook count between "panel closed" and "panel
+  // open" and React aborts the render with "Rendered more hooks than during the
+  // previous render". That is why the panel could not be rendered across an
+  // open/close transition at all, which in turn is why it had no render tests.
+  const { content, content_type, metadata } = activeTab ?? {
+    content: '',
+    content_type: 'code' as const,
+    metadata: undefined,
+  };
   const isMarkdown = content_type === 'markdown';
   const isHTML = content_type === 'html';
   const isEditable = metadata?.editable !== false; // 默认可编辑 / Default editable
@@ -556,6 +566,9 @@ const PreviewPanel: React.FC = () => {
       }
     }
   }, [metadata?.fileRef, metadata?.file_path, messageApi, t]);
+
+  // Every hook has now run, so bailing out here keeps the hook count stable.
+  if (!isOpen || !activeTab) return null;
 
   const renderMissingFile = () => {
     const filePath = metadata?.file_path;

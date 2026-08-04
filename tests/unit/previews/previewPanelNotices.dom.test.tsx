@@ -33,6 +33,11 @@ vi.mock('react-i18next', () => ({
   }),
 }));
 
+// Opening a text tab mounts a CodeMirror editor, which reads the theme context.
+vi.mock('@/renderer/hooks/context/ThemeContext', () => ({
+  useThemeContext: () => ({ theme: 'light' }),
+}));
+
 vi.mock('@/common', () => ({
   ipcBridge: {
     fileStream: { contentUpdate: { on: () => () => {} } },
@@ -152,4 +157,25 @@ describe('the notice keys exist in en-US', () => {
     expect((enPreview as { closeTabsTitle?: string }).closeTabsTitle).toBeTruthy();
     expect((enPreview as { closeTabsMessage?: string }).closeTabsMessage).toContain('{{count}}');
   });
+});
+
+// The panel used to declare two `useCallback`s after its `if (!isOpen || !activeTab)
+// early return, so opening a tab changed its hook count mid-life and React aborted
+// with "Rendered more hooks than during the previous render". Nothing caught it
+// because nothing rendered the panel across that transition — the missing test and
+// the bug kept each other alive. The guard now sits below every hook.
+describe('the panel survives being opened while mounted', () => {
+  it(
+    'renders through a closed to open transition without a hook-count error',
+    () => {
+      render(<Harness showPanel />);
+
+      expect(() => {
+        act(() => {
+          ctx.openPreview('body', 'code', { title: 'a.ts', file_name: 'a.ts' });
+        });
+      }).not.toThrow();
+    },
+    TIMEOUT_MS
+  );
 });

@@ -14,6 +14,7 @@ import { BROWSER_BLANK_URL, BROWSER_TAB_FALLBACK_TITLE, MAX_BROWSER_TABS } from 
 import { isBrowserMcpActivity, isBrowserMcpSettled } from '../browser/agentActivity';
 import { maybeNotifyFirstAgentBrowserUse } from '../browser/firstUseNotice';
 import { listPersistedPreviewScopeKeys, previewScopeStorageKey, type PreviewScopeKey } from './previewScope';
+import { reflessTabKey } from './reflessTabKey';
 
 /** DOM 片段数据结构 / DOM snippet data structure */
 export interface DomSnippet {
@@ -118,6 +119,8 @@ export interface PreviewContextValue {
    */
   openBrowserTab: (url?: string) => void;
   closePreview: () => void;
+  /** Discard this scope's tabs entirely (see closePreview for the difference). */
+  clearPreviewForScope: () => void;
   closeTab: (tabId: string) => void;
   switchTab: (tabId: string) => void;
   updateContent: (content: string) => void;
@@ -199,14 +202,29 @@ const MAX_PERSISTED_TAB_CONTENT_LENGTH = 80_000;
 // so they are always well under the size cap.
 const PERSISTABLE_CONTENT_TYPES = new Set<PreviewContentType>(['markdown', 'html', 'code', 'diff', 'browser']);
 
+/**
+ * Prepare tabs for persistence.
+ *
+ * Unsaved edits are stored **as unsaved** — content, original content and the dirty
+ * flag all as they stand. Previously this forced `isDirty: false` and overwrote
+ * `originalContent` with the edited text, so an unsaved edit was written to disk
+ * looking exactly like a saved one: on restart the tab showed no dirty marker, and
+ * the user had no way to tell that their change had never reached the file.
+ *
+ * Keeping the flag is also what makes "switch away and back leaves things as they
+ * were" true rather than approximately true — the restored tab is still dirty, still
+ * marked, and Cmd+S still writes it.
+ */
 const sanitizeTabsForPersistence = (input: PreviewTab[]): PreviewTab[] => {
   return input
     .filter((tab) => PERSISTABLE_CONTENT_TYPES.has(tab.content_type))
     .filter((tab) => tab.content.length <= MAX_PERSISTED_TAB_CONTENT_LENGTH)
     .map((tab) => ({
       ...tab,
-      isDirty: false,
-      originalContent: tab.content,
+      // Preserve the edit and the fact that it is unsaved. `originalContent` keeps
+      // the last saved text so the dirty comparison still works after restore.
+      isDirty: tab.isDirty === true,
+      originalContent: typeof tab.originalContent === 'string' ? tab.originalContent : tab.content,
       // Agent activity is a live, per-session signal — never restore it as active.
       metadata: tab.metadata?.agentActive ? { ...tab.metadata, agentActive: false } : tab.metadata,
     }));
@@ -238,34 +256,38 @@ const isLegacyTruncatedTab = (tab: PreviewTab): boolean => {
 const parsePersistedTabs = (value: unknown): PreviewTab[] => {
   if (!Array.isArray(value)) return [];
 
-  return value
-    .filter((tab): tab is PreviewTab => {
-      if (!tab || typeof tab !== 'object') return false;
-      const candidate = tab as Partial<PreviewTab>;
-      return (
-        typeof candidate.id === 'string' &&
-        typeof candidate.title === 'string' &&
-        typeof candidate.content === 'string' &&
-        typeof candidate.content_type === 'string'
-      );
-    })
-    .filter((tab) => !isLegacyTruncatedTab(tab))
-    .filter((tab) => PERSISTABLE_CONTENT_TYPES.has(tab.content_type))
-    .filter((tab) => tab.content.length <= MAX_PERSISTED_TAB_CONTENT_LENGTH)
-    .map((tab) => {
-      // Drop a persisted fileRef that no longer matches the ChatFileRef shape
-      // (defensive against stale/tampered localStorage), keeping the rest intact.
-      const metadata =
-        tab.metadata?.fileRef && !isChatFileRef(tab.metadata.fileRef)
-          ? { ...tab.metadata, fileRef: undefined }
-          : tab.metadata;
-      return {
+  return (
+    value
+      .filter((tab): tab is PreviewTab => {
+        if (!tab || typeof tab !== 'object') return false;
+        const candidate = tab as Partial<PreviewTab>;
+        return (
+          typeof candidate.id === 'string' &&
+          typeof candidate.title === 'string' &&
+          typeof candidate.content === 'string' &&
+          typeof candidate.content_type === 'string'
+        );
+      })
+      .filter((tab) => !isLegacyTruncatedTab(tab))
+      .filter((tab) => PERSISTABLE_CONTENT_TYPES.has(tab.content_type))
+      .filter((tab) => tab.content.length <= MAX_PERSISTED_TAB_CONTENT_LENGTH)
+      // A stored ref that no longer matches the ChatFileRef shape (stale or tampered
+      // storage) means this tab's identity is unusable. Drop the whole tab.
+      //
+      // The previous behaviour — strip the ref, keep the tab — was worse than it
+      // looked: the tab silently became ref-less, so it no longer matched itself on
+      // reopen and the same file opened a second tab. It also could not be saved,
+      // since writing goes through the ref. Keeping a tab that can neither dedup nor
+      // save only postpones the confusion.
+      .filter((tab) => !tab.metadata?.fileRef || isChatFileRef(tab.metadata.fileRef))
+      .map((tab) => ({
         ...tab,
-        metadata,
         originalContent: typeof tab.originalContent === 'string' ? tab.originalContent : tab.content,
-        isDirty: false,
-      };
-    });
+        // Restore the unsaved state as it was stored. Forcing `false` here is what
+        // made a restored unsaved edit look saved.
+        isDirty: tab.isDirty === true,
+      }))
+  );
 };
 
 const EMPTY_SCOPE_STATE: PersistedScopeState = { isOpen: false, tabs: [], activeTabId: null };
@@ -423,8 +445,6 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
     return tabs.find((tab) => tab.id === activeTabId) || null;
   }, [tabs, activeTabId]);
 
-  const normalize = useCallback((value?: string | null) => value?.trim() || '', []);
-
   // 从可能包含描述的字符串中提取文件名 / Extract filename from string that may contain description
   const extractFileName = useCallback((str?: string): string | undefined => {
     if (!str) return undefined;
@@ -433,68 +453,58 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
     return match ? match[1] : str;
   }, []);
 
+  /**
+   * Find an already-open tab with the same identity, or null.
+   *
+   * Two levels, and nothing else:
+   *
+   *   L1  both sides carry a ChatFileRef → compare `chatFileRefKey`
+   *   L2  neither carries one            → compare the ref-less namespace key
+   *   one side has a ref, the other does not → not the same tab
+   *
+   * The mixed case returns false on purpose rather than guessing. This replaced a
+   * five-level fallback chain (ref → file_path → file_name+path → title → whole
+   * content) whose lower levels caused real damage: two diffs of same-named files
+   * in different directories were treated as one tab and overwrote each other,
+   * while the same file opened from two entry points produced two tabs — the exact
+   * inverse of what dedup is for.
+   *
+   * `file_path` is deliberately not a fallback. Once entry points upgrade a local
+   * path to a project ref, the same file always yields the same ref, so path
+   * matching adds nothing — and a display path is the last thing that should carry
+   * identity.
+   */
   const findPreviewTabInList = useCallback(
     (tabList: PreviewTab[], type: PreviewContentType, content?: string, meta?: PreviewMetadata) => {
       // Browser tabs are never deduped: each one is an independent page the user
-      // (or an agent) opened on purpose. They carry no file identity, so the
-      // title/content fallbacks below would wrongly merge two fresh tabs that
-      // happen to share a placeholder title.
+      // (or an agent) opened on purpose, and they carry no file identity.
       if (type === 'browser') return null;
 
-      const normalizedFileName = normalize(meta?.file_name);
-      const normalizedTitle = normalize(meta?.title);
-      const normalizedFilePath = normalize(meta?.file_path);
       const refKey = meta?.fileRef ? chatFileRefKey(meta.fileRef) : '';
+      const reflessKey = refKey ? null : reflessTabKey(type, content, meta);
 
       return (
         tabList.find((tab) => {
+          // Type is a precondition, not a tiebreaker: the same path rendered as
+          // source and as a diff are legitimately two different tabs.
           if (tab.content_type !== type) return false;
-          const tabFileName = normalize(tab.metadata?.file_name);
-          const tabTitle = normalize(tab.metadata?.title);
-          const tabFilePath = normalize(tab.metadata?.file_path);
+
           const tabRefKey = tab.metadata?.fileRef ? chatFileRefKey(tab.metadata.fileRef) : '';
 
-          // 优先通过 ChatFileRef 身份匹配（终态身份，最可靠）
-          // Prefer matching by ChatFileRef identity (terminal identity, most reliable)
-          if (refKey && tabRefKey && refKey === tabRefKey) return true;
+          // L1 — the only authoritative identity.
+          if (refKey && tabRefKey) return refKey === tabRefKey;
 
-          // 再通过 file_path 匹配（未迁移到 ref 的来源）/ Then match by file_path (sources not yet on a ref)
-          if (normalizedFilePath && tabFilePath && normalizedFilePath === tabFilePath) return true;
+          // Mixed: one side has an identity and the other does not. They may well
+          // be the same file, but merging on a guess risks silent overwrites.
+          if (refKey || tabRefKey) return false;
 
-          // 通过 file_name 匹配时，需要确保路径兼容（避免同名文件在不同目录的冲突）
-          // When matching by file_name, ensure path compatibility (avoid conflicts of same-named files in different directories)
-          if (normalizedFileName && tabFileName && normalizedFileName === tabFileName) {
-            // 如果两边都有 file_path，则必须完全匹配
-            // If both have file_path, they must match exactly
-            if (normalizedFilePath && tabFilePath) {
-              return normalizedFilePath === tabFilePath;
-            }
-            // 如果只有一边有 file_path，不能仅凭 file_name 匹配
-            // If only one side has file_path, cannot match by file_name alone
-            if (normalizedFilePath || tabFilePath) {
-              return false;
-            }
-            // 都没有 file_path 时，可以通过 file_name 匹配
-            // When neither has file_path, can match by file_name
-            return true;
-          }
-
-          // 再通过 title 匹配 / Then match by title
-          if (!normalizedFileName && normalizedTitle && tabTitle && normalizedTitle === tabTitle) return true;
-
-          // 最后才通过 content 匹配（仅用于小文件）/ Finally match by content (only for small files)
-          // 对于大文件（PPT/Excel/Word），不使用 content 比较，避免性能问题
-          // For large files (PPT/Excel/Word), skip content comparison to avoid performance issues
-          if (!normalizedFileName && !normalizedTitle && !normalizedFilePath && content !== undefined) {
-            // 只对小于 100KB 的内容进行比较 / Only compare content smaller than 100KB
-            if (content.length < 100000 && tab.content === content) return true;
-          }
-
-          return false;
+          // L2 — both ref-less. Only the cases with an explicit key dedup at all.
+          if (!reflessKey) return false;
+          return reflessKey === reflessTabKey(tab.content_type, tab.content, tab.metadata);
         }) || null
       );
     },
-    [normalize]
+    []
   );
 
   const findPreviewTab = useCallback(
@@ -653,7 +663,39 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
     [openPreview]
   );
 
+  /**
+   * Hide the preview panel, keeping its tabs.
+   *
+   * Only visibility changes. The tabs stay in memory and stay persisted, so the
+   * user gets them back when the panel reopens — which is what "collapse" should
+   * mean and what the persisted shape already supported: `loadScopeState` restores
+   * on `isOpen === true && tabs.length > 0`, so `isOpen` and `tabs` were always
+   * independent and "closed but holding tabs" was already a legal state.
+   *
+   * This used to also `setTabs([])`, and the damage went well beyond the current
+   * view: the persist effect depends on `tabs`, so ~150ms later it wrote the now-
+   * empty list back over `aionui_preview:<scope>`. One click on "new conversation"
+   * erased that project's entire remembered tab list — saved tabs included, not
+   * just unsaved ones. A dirty-state confirmation would not have helped, because
+   * clean tabs were being destroyed too.
+   *
+   * Use {@link clearPreviewForScope} when the intent really is to discard.
+   */
   const closePreview = useCallback(() => {
+    setIsOpen(false);
+    // DOM snippets are per-session scratch state tied to the visible HTML inspector,
+    // not tab content, so they are cleared with the view.
+    setDomSnippets([]);
+  }, []);
+
+  /**
+   * Discard this scope's tabs outright — the panel closes and nothing is restored.
+   *
+   * Separated from {@link closePreview} because "I am done with these files" and "get
+   * this panel out of my way" were the same function, and every caller meant the
+   * latter.
+   */
+  const clearPreviewForScope = useCallback(() => {
     setIsOpen(false);
     setTabs([]);
     setActiveTabId(null);
@@ -1034,6 +1076,7 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
       activeTab,
       openPreview,
       closePreview,
+      clearPreviewForScope,
       closeTab,
       switchTab: setActiveTabId,
       updateContent,
@@ -1059,6 +1102,7 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
     activeTab,
     openPreview,
     closePreview,
+    clearPreviewForScope,
     closeTab,
     setActiveTabId,
     updateContent,
