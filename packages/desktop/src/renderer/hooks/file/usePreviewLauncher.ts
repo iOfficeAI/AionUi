@@ -6,6 +6,7 @@
 
 import { ipcBridge } from '@/common';
 import { joinPath } from '@/common/chat/chatLib';
+import { localFileRef } from '@/common/types/chatFile';
 import type { PreviewContentType } from '@/common/types/office/preview';
 import { useConversationContextSafe } from '@/renderer/hooks/context/ConversationContext';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
@@ -96,6 +97,11 @@ export const usePreviewLauncher = () => {
       // 优先使用工作区 + 相对路径拼接绝对路径 / Prefer workspace + relative path to build absolute path
       const absolutePath = workspace && relativePath ? joinPath(workspace, relativePath) : undefined;
       const resolvedPath = absolutePath || originalPath || relativePath || undefined;
+      // Backend-host absolute path (agent workspace file, no pe identity) → a Local
+      // ChatFileRef for content I/O over /api/fs/content. Only when we have an
+      // absolute-ish path to read (a bare relativePath can't resolve on the backend).
+      const readPath = absolutePath || originalPath;
+      const fileRef = readPath ? localFileRef(readPath) : undefined;
 
       // 文件名和标题计算 / Compute file name and title
       const computedFileName =
@@ -106,6 +112,7 @@ export const usePreviewLauncher = () => {
       const metadata = {
         title: previewTitle,
         file_name: computedFileName || previewTitle,
+        fileRef,
         file_path: resolvedPath,
         workspace,
         language,
@@ -126,12 +133,10 @@ export const usePreviewLauncher = () => {
 
       try {
         // 2. 尝试读取实际文件内容（覆盖乐观预览） / Try to read actual file content (override optimistic preview)
-        if (absolutePath || originalPath) {
+        if (fileRef) {
           try {
-            const pathToRead = absolutePath || originalPath;
-
             if (contentType === 'image') {
-              const base64 = await ipcBridge.fs.getImageBase64.invoke({ path: pathToRead!, workspace });
+              const base64 = await ipcBridge.fs.readContent.invoke({ file: fileRef, encoding: 'dataurl' });
               if (!base64) {
                 setErrorKind(classifyPreviewError(base64));
                 return;
@@ -156,7 +161,7 @@ export const usePreviewLauncher = () => {
 
             // 使用 Promise.race 防止长时间卡死 / Use Promise.race to prevent hanging
             const content = await Promise.race([
-              ipcBridge.fs.readFile.invoke({ path: pathToRead!, workspace }),
+              ipcBridge.fs.readContent.invoke({ file: fileRef, encoding: 'utf8' }),
               new Promise<never>((_, reject) => setTimeout(() => reject(new Error('File read timeout')), 5000)),
             ]);
             if (content == null) {

@@ -227,6 +227,11 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({
 
     switch (conversation.type) {
       case 'acp':
+      // Antigravity renders through the ACP chat surface here for the same
+      // reason it does outside a team: same extra payload, same event stream,
+      // same send box. Without this it falls to `default: null` and the
+      // teammate shows neither a message list nor an input box.
+      case 'antigravity':
         return (
           <AcpChat
             key={conversation.id}

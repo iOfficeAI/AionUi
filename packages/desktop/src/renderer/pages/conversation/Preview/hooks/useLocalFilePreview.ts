@@ -5,6 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
+import { localFileRef } from '@/common/types/chatFile';
 import type { PreviewContentType } from '@/common/types/office/preview';
 import type { LocalFileLinkReference } from '@/renderer/components/Markdown/markdownUtils';
 import {
@@ -35,21 +36,20 @@ export const useLocalFilePreview = (workspace?: string) => {
     async (file_path: string, reference?: LocalFileLinkReference) => {
       const fileName = getFileNameFromPath(file_path);
       const contentType = getContentTypeByExtension(fileName);
+      // Local-file links point at a backend-host absolute path (no pe identity) →
+      // a Local ChatFileRef, read over /api/fs/content.
+      const fileRef = localFileRef(file_path);
       let content = '';
       let isLargeTextTruncated = false;
 
       try {
-        const metadata = await ipcBridge.fs.getFileMetadata.invoke({ path: file_path, workspace });
-        if (metadata == null) throw null;
+        // Existence pre-check: getContentMetadata throws when the file is missing.
+        await ipcBridge.fs.getContentMetadata.invoke({ file: fileRef });
 
         if (contentType === 'image') {
-          const imageContent = await ipcBridge.fs.getImageBase64.invoke({ path: file_path, workspace });
-          if (imageContent == null) throw null;
-          content = imageContent;
+          content = await ipcBridge.fs.readContent.invoke({ file: fileRef, encoding: 'dataurl' });
         } else if (shouldReadPreviewContent(contentType)) {
-          const textContent = await ipcBridge.fs.readFile.invoke({ path: file_path, workspace });
-          if (textContent == null) throw null;
-          content = textContent;
+          content = await ipcBridge.fs.readContent.invoke({ file: fileRef, encoding: 'utf8' });
 
           if (contentType === 'code' && content.length > LARGE_TEXT_PREVIEW_THRESHOLD) {
             content = content.slice(0, LARGE_TEXT_PREVIEW_MAX_LENGTH);
@@ -63,6 +63,7 @@ export const useLocalFilePreview = (workspace?: string) => {
           {
             title: fileName,
             file_name: fileName,
+            fileRef,
             file_path,
             workspace,
             language: getPreviewLanguage(fileName),
@@ -80,6 +81,7 @@ export const useLocalFilePreview = (workspace?: string) => {
           {
             title: fileName,
             file_name: fileName,
+            fileRef,
             file_path,
             workspace,
             language: getPreviewLanguage(fileName),

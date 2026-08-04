@@ -120,7 +120,10 @@ const _AddNewConversation: React.FC<{ conversation: TChatConversation }> = ({ co
                 modified_at: Date.now(),
                 // Clear ACP session fields to prevent new conversation from inheriting old session context
                 extra:
-                  source.type === 'acp'
+                  // Antigravity stores its resume anchor in the same fields, so
+                  // it must be cleared too — otherwise the clone resumes the
+                  // source conversation's agy session instead of starting clean.
+                  source.type === 'acp' || source.type === 'antigravity'
                     ? { ...source.extra, acp_session_id: undefined, acp_session_updated_at: undefined }
                     : source.extra,
               } as TChatConversation,
@@ -282,6 +285,12 @@ const ChatConversation: React.FC<{
     }
     switch (conversation.type) {
       case 'acp':
+      // Antigravity reports its own conversation type but renders through the
+      // ACP chat surface: same extra payload, same event stream, same send box.
+      // Without this case it falls to `default: null` — the chat area renders
+      // empty, no send box mounts, and the queued initial message in
+      // `acp_initial_message_<id>` is never delivered, so the turn never starts.
+      case 'antigravity':
         return (
           <AcpChat
             key={conversation.id}
@@ -330,7 +339,10 @@ const ChatConversation: React.FC<{
     if (!conversation || isAionrsConversation) return undefined;
     if (isMobile) return undefined;
     if (isLegacyReadOnlyConversation) return undefined;
-    if (conversation.type === 'acp') {
+    // Antigravity included: the backend discovers agy's model list and writes it
+    // into the same catalog the ACP picker reads, so it must not fall through to
+    // the disabled selector below.
+    if (conversation.type === 'acp' || conversation.type === 'antigravity') {
       const extra = conversation.extra as { current_model_id?: string };
       return (
         <AcpModelSelector

@@ -246,6 +246,68 @@ describe('useGuidSend', () => {
     expect(payload.extra.backend).toBeUndefined();
   });
 
+  it('does not hand a CLI agent the aionrs provider model on its first turn', async () => {
+    // Reproduces the first-use failure: before the agent's catalog has been
+    // probed there is no ACP model to offer, and the provider selection used to
+    // fill the gap. A brand new Antigravity conversation therefore started on
+    // `gemini-3.1-pro-preview` — a model agy has never heard of — and the turn
+    // died with USER_LLM_PROVIDER_MODEL_NOT_FOUND. Once the catalog landed the
+    // earlier option won again, which is why it only ever showed up on a fresh
+    // machine.
+    const deps = createDeps();
+    deps.selectedAssistantBackend = 'antigravity';
+    deps.selectedAcpModel = null;
+    deps.currentAcpCachedModelInfo = null;
+    deps.current_model = { id: 'p1', name: 'Gemini', use_model: 'gemini-3.1-pro-preview' } as never;
+
+    const { result } = renderHook(() => useGuidSend(deps));
+    await act(async () => {
+      await result.current.handleSend();
+    });
+
+    const payload = createConversationInvokeMock.mock.calls[0][0];
+    // No model at all: the agent then starts on its own default, which is what
+    // "the user has not picked one" actually means.
+    expect(payload.assistant.conversation_overrides.model).toBeUndefined();
+  });
+
+  it('still gives aionrs its provider model', async () => {
+    // The fallback exists for aionrs, whose model IS the provider selection.
+    const deps = createDeps();
+    deps.selectedAssistantBackend = 'aionrs';
+    deps.selectedAcpModel = null;
+    deps.currentAcpCachedModelInfo = null;
+    deps.current_model = { id: 'p1', name: 'Gemini', use_model: 'gemini-3.1-pro-preview' } as never;
+
+    const { result } = renderHook(() => useGuidSend(deps));
+    await act(async () => {
+      await result.current.handleSend();
+    });
+
+    const payload = createConversationInvokeMock.mock.calls[0][0];
+    expect(payload.assistant.conversation_overrides.model).toBe('gemini-3.1-pro-preview');
+  });
+
+  it('prefers the agent catalog model once it has been probed', async () => {
+    // The path that makes this bug invisible after first use.
+    const deps = createDeps();
+    deps.selectedAssistantBackend = 'antigravity';
+    deps.selectedAcpModel = null;
+    deps.currentAcpCachedModelInfo = {
+      current_model_id: 'gemini-3.6-flash-low',
+      available_models: [{ id: 'gemini-3.6-flash-low', label: 'low' }],
+    } as never;
+    deps.current_model = { id: 'p1', name: 'Gemini', use_model: 'gemini-3.1-pro-preview' } as never;
+
+    const { result } = renderHook(() => useGuidSend(deps));
+    await act(async () => {
+      await result.current.handleSend();
+    });
+
+    const payload = createConversationInvokeMock.mock.calls[0][0];
+    expect(payload.assistant.conversation_overrides.model).toBe('gemini-3.6-flash-low');
+  });
+
   it('does not create a conversation without assistant identity', async () => {
     const deps = createDeps();
     deps.selectedAssistantId = null;

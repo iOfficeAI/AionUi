@@ -590,6 +590,15 @@
       },
       "ACP_EMPTY_TURN_REFUSAL": {
         "body": "O modelo recusou esta solicitação antes de produzir qualquer resposta visível."
+      },
+      "ANTIGRAVITY_STEPS_FAILED": {
+        "body": "{{count}} etapa(s) falharam e NÃO tiveram efeito. O agy encerra esses turnos como bem-sucedidos mesmo assim, então confira o resultado real em vez da resposta."
+      },
+      "ANTIGRAVITY_VERSION_OLDER": {
+        "body": "A versão instalada do agy {{reported}} é anterior à {{verified}} verificada nesta integração; alguns recursos podem estar ausentes. Considere atualizar o agy."
+      },
+      "ANTIGRAVITY_VERSION_NEWER": {
+        "body": "A versão instalada do agy {{reported}} é mais recente que a {{verified}} verificada nesta integração. Deve continuar funcionando; relate qualquer comportamento estranho."
       }
     }
   },

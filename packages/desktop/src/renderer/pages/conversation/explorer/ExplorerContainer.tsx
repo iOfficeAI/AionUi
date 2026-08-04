@@ -36,6 +36,7 @@ import type { PreviewContentType } from '@/common/types/office/preview';
 
 import { emitter } from '@/renderer/utils/emitter';
 import { projectFileRef } from '@/common/types/chatFile';
+import type { ChatFileRef } from '@/common/types/chatFile';
 import type { FileOrFolderItem } from '@/renderer/utils/file/fileTypes';
 
 import { ExplorerPanel } from './ExplorerPanel';
@@ -59,41 +60,20 @@ const pathToFileUri = (p: string): string => {
   return `file://${encodeURI(withLeadingSlash)}`;
 };
 
-// PATCH(ELECTRON-3SZ): image file extension → data-URL MIME. The WS `fs/read`
-// base64 payload is bare (no `data:` prefix), but ImageViewer feeds `content`
-// straight into <img src>, so the Explorer open path must wrap it. Remove with
-// the rest of this patch once Preview consumes {pe_id, relative_path} directly.
-const IMAGE_MIME_BY_EXT: Record<string, string> = {
-  png: 'image/png',
-  jpg: 'image/jpeg',
-  jpeg: 'image/jpeg',
-  gif: 'image/gif',
-  svg: 'image/svg+xml',
-  webp: 'image/webp',
-  bmp: 'image/bmp',
-  ico: 'image/x-icon',
-  tif: 'image/tiff',
-  tiff: 'image/tiff',
-  avif: 'image/avif',
-};
-
-/** PATCH(ELECTRON-3SZ): wrap a bare base64 image body into a renderable data URL. */
-const imageDataUrl = (fileName: string, base64: string): string => {
-  const ext = fileName.slice(fileName.lastIndexOf('.') + 1).toLowerCase();
-  const mime = IMAGE_MIME_BY_EXT[ext] ?? 'image/png';
-  return `data:${mime};base64,${base64}`;
-};
-
-/** PATCH(ELECTRON-3SZ): minimal WS-RPC surface the preview payload builder needs. Remove with it. */
+/** PATCH(ELECTRON-3SZ): minimal WS-RPC surface the pdf/office resolve branch needs. Remove with PR-3. */
 type PreviewRpcClient = { request(method: string, params?: unknown): Promise<unknown> };
 
-/** PATCH(ELECTRON-3SZ): args passed to `openPreview` for an Explorer-opened file. Remove with it. */
+/** Args passed to `openPreview` for an Explorer-opened file. */
 export type ExplorerPreviewPayload = {
   content: string;
   contentType: PreviewContentType;
   metadata: {
     title: string;
     file_name: string;
+    // Project ChatFileRef identity — carries the pe id + relative path so preview
+    // content I/O (read/write/metadata) addresses the file over /api/fs/content
+    // without the renderer ever seeing an absolute path.
+    fileRef: ChatFileRef;
     file_path?: string;
     workspace?: string;
     language: string;
@@ -101,16 +81,13 @@ export type ExplorerPreviewPayload = {
   };
 };
 
-// PATCH(ELECTRON-3SZ): the Explorer tree only knows `{pe_id, relative_path}`, but
-// three viewer families can't render from the WS `fs/read` content alone, so this
-// builder special-cases them:
-//   - image: fs/read base64 is bare (no `data:` prefix); ImageViewer feeds
-//     `content` straight into <img src>, so wrap it into a data URL.
-//   - pdf/office: need a real local absolute path (PDF via file://, office via
-//     `officecli watch`), so resolve pe → absolute path with `fs/resolve`.
-// Exposing the absolute path to the renderer breaks the "front-end never sees
-// absolute paths" boundary — this whole helper is an emergency patch and MUST be
-// removed once Preview consumes `{pe_id, relative_path}` end-to-end.
+// The Explorer tree knows `{pe_id, relative_path}`. Text + image now carry a
+// Project ChatFileRef and read their content over `/api/fs/content` (utf8 / dataurl
+// — the backend prepends the image data-URL prefix), so no absolute path leaks.
+// PATCH(ELECTRON-3SZ): pdf/office still need a real local absolute path (PDF via
+// file://, office via `officecli watch`), so they resolve pe → absolute path with
+// WS `fs/resolve`. That last resolve (and this patch marker) is removed in PR-3
+// once pdf streams over HTTP and office resolves its path in the backend.
 export const buildExplorerPreviewPayload = async (
   client: PreviewRpcClient,
   peId: string,
@@ -118,26 +95,24 @@ export const buildExplorerPreviewPayload = async (
 ): Promise<ExplorerPreviewPayload> => {
   const name = relativePath.split('/').pop() || relativePath;
   const contentType = getContentTypeByExtension(name);
-  const file = { pe_id: peId, relative_path: relativePath };
+  const fileRef = projectFileRef(peId, relativePath);
 
   let content = '';
   let file_path: string | undefined;
   let workspace: string | undefined;
 
   if (contentType === 'image') {
-    const res = (await client.request('fs/read', { file, encoding: 'base64' })) as { content?: string };
-    const base64 = res.content ?? '';
-    content = base64 ? imageDataUrl(name, base64) : '';
+    content = await ipcBridge.fs.readContent.invoke({ file: fileRef, encoding: 'dataurl' });
   } else if (contentType === 'pdf' || contentType === 'word' || contentType === 'excel' || contentType === 'ppt') {
-    const res = (await client.request('fs/resolve', { file })) as {
+    // PATCH(ELECTRON-3SZ): pdf/office need an absolute path — resolve pe → path (PR-3 removes this).
+    const res = (await client.request('fs/resolve', { file: { pe_id: peId, relative_path: relativePath } })) as {
       absolute_path?: string;
       workspace_root?: string;
     };
     file_path = res.absolute_path;
     workspace = res.workspace_root;
   } else {
-    const res = (await client.request('fs/read', { file, encoding: 'utf-8' })) as { content?: string };
-    content = res.content ?? '';
+    content = await ipcBridge.fs.readContent.invoke({ file: fileRef, encoding: 'utf8' });
   }
 
   return {
@@ -146,6 +121,7 @@ export const buildExplorerPreviewPayload = async (
     metadata: {
       title: name,
       file_name: name,
+      fileRef,
       file_path,
       workspace,
       language: name.split('.').pop() || '',
@@ -173,8 +149,9 @@ export const ExplorerContainer: React.FC<ExplorerContainerProps> = ({ projectId 
 
   // Open a file in the preview panel. The tree only knows `{pe_id, relative_path}`,
   // so content is read over the WS `fs/read` command (not an absolute path). Per-
-  // project preview isolation is handled by the scope key (C5); switching files
-  // replaces the active tab.
+  // project preview isolation is handled by the scope key (C5); opening a file
+  // appends a new tab (dedup keeps an already-open file focused) so multiple
+  // files can stay open at once.
   const handleOpenFile = async (peId: string, relativePath: string): Promise<void> => {
     try {
       // PATCH(ELECTRON-3SZ): payload building (incl. absolute-path resolve) lives
@@ -184,7 +161,7 @@ export const ExplorerContainer: React.FC<ExplorerContainerProps> = ({ projectId 
         peId,
         relativePath
       );
-      openPreview(content, contentType, metadata, { replace: true });
+      openPreview(content, contentType, metadata);
     } catch (e) {
       Message.error(t(previewErrorToI18nKey(classifyPreviewError(e))));
     }
@@ -285,6 +262,16 @@ export const ExplorerContainer: React.FC<ExplorerContainerProps> = ({ projectId 
     emitter.emit('codex.selected.file.append', payload, activeConversationId);
     emitter.emit('aionrs.selected.file.append', payload, activeConversationId);
     Message.success(t('conversation.explorer.addedToChat', { name }));
+  };
+
+  // Reveal a node in the OS file manager. The backend resolves the pe-ref to an
+  // absolute path and calls shell.showItemInFolder — the front end never builds
+  // the absolute path (avoids the Windows verbatim `\\?\` pitfall). The menu item
+  // itself is Electron-gated in ExplorerPanel; on failure surface a friendly toast.
+  const handleRevealInFolder = (peId: string, rel: string): void => {
+    void ipcBridge.fs.reveal.invoke({ pe_id: peId, relative_path: rel }).catch(() => {
+      Message.error(t('conversation.workspace.contextMenu.revealFailed'));
+    });
   };
 
   // Search result default action: locate the hit in the tree — switch to the
@@ -400,6 +387,7 @@ export const ExplorerContainer: React.FC<ExplorerContainerProps> = ({ projectId 
             onRename={handleRename}
             onDelete={handleDelete}
             onAddToChat={activeConversationId ? handleAddToChat : undefined}
+            onRevealInFolder={handleRevealInFolder}
             onImportFiles={handleImportFiles}
           />
         </SearchPanel>

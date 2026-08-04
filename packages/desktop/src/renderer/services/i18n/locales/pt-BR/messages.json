@@ -16,6 +16,11 @@
   "downloadFailed": "Falha ao baixar",
   "imageLoadFailed": "Falha ao carregar a imagem",
   "scrollToBottom": "Rolar para o final",
+  "anchorRail": {
+    "label": "Âncoras das mensagens da conversa",
+    "tickAria": "Ir para a mensagem {{index}}",
+    "searchAria": "Pesquisar na conversa"
+  },
   "availableCommands": "{{count}} Comandos Disponíveis",
   "atFile.hint": "Digite para procurar arquivos",
   "atFile.menuLabel": "Menções de arquivo",

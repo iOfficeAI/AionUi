@@ -16,6 +16,11 @@
   "downloadFailed": "다운로드 실패",
   "imageLoadFailed": "이미지 로드 실패",
   "scrollToBottom": "맨 아래로 스크롤",
+  "anchorRail": {
+    "label": "대화 메시지 앵커",
+    "tickAria": "{{index}}번째 메시지로 이동",
+    "searchAria": "대화 검색"
+  },
   "availableCommands": "{{count}}개의 사용 가능한 명령어",
   "atFile.hint": "파일을 검색하려면 입력하세요",
   "atFile.menuLabel": "파일 멘션",

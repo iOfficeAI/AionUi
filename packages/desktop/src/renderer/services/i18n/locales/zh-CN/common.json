@@ -135,6 +135,18 @@
       "diagnosticsReportSuccess": "诊断报告已发送",
       "diagnosticsReportFailed": "诊断报告发送失败",
       "diagnosticsHint": "如果该问题反复出现，您可以发送诊断报告。"
+    },
+    "pendingSlow": {
+      "title": "正在启动",
+      "description": "AionCore 正在启动，请稍候。若长时间无响应，可退出应用后重试。"
+    },
+    "exited": {
+      "title": "启动未完成",
+      "description": "AionCore 未能完成启动并已退出。请重启应用；若反复出现，请上报诊断信息。",
+      "sendDiagnostics": "发送诊断",
+      "diagnosticsSent": "诊断已发送",
+      "diagnosticsReportSuccess": "诊断信息已上报",
+      "diagnosticsReportFailed": "诊断上报失败，请稍后重试"
     }
   },
   "fileAttach.addFiles": "添加文件",

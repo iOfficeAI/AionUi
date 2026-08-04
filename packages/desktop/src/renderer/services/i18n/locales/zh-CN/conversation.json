@@ -1,4 +1,7 @@
 {
+  "officePreview": {
+    "fileWatchUnavailable": "文件实时监听不可用——系统的文件监听句柄（inotify）可能已耗尽，新 Office 文件的自动预览已停用。请提高 fs.inotify.max_user_instances，或关闭占用大量文件监听的程序。"
+  },
   "welcome": {
     "title": "Hi，今天有什么安排？",
     "placeholder": "发消息、上传文件、打开文件夹、创建定时任务，或输入 / 唤起命令...",
@@ -584,6 +587,15 @@
       },
       "ACP_EMPTY_TURN_REFUSAL": {
         "body": "模型在产生任何可见回复前拒绝了这次请求。"
+      },
+      "ANTIGRAVITY_STEPS_FAILED": {
+        "body": "本轮有 {{count}} 个步骤失败且未生效。agy 仍会把这类轮次标记为成功，请核对实际结果而非回复内容。"
+      },
+      "ANTIGRAVITY_VERSION_OLDER": {
+        "body": "已安装的 agy {{reported}} 低于本集成验证过的 {{verified}}，部分功能可能缺失，建议升级 agy。"
+      },
+      "ANTIGRAVITY_VERSION_NEWER": {
+        "body": "已安装的 agy {{reported}} 高于本集成验证过的 {{verified}}。通常仍可正常使用；如遇异常行为请反馈。"
       }
     }
   },

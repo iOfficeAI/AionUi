@@ -27,6 +27,7 @@ import HOC from '@renderer/utils/ui/HOC';
 import type { FileChangeInfo } from './MessageFileChanges';
 import MessageFileChanges, { parseDiff } from './MessageFileChanges';
 import { useConversationArtifacts } from './artifacts';
+import { MessageAnchorRail } from './anchorRail';
 import {
   useLoadAnchorMessageWindow,
   useLoadPreviousMessagePage,
@@ -731,6 +732,8 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
       )}
 
       <SelectionReplyButton messages={list} />
+
+      <MessageAnchorRail />
     </div>
   );
 };

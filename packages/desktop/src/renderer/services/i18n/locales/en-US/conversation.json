@@ -1,4 +1,7 @@
 {
+  "officePreview": {
+    "fileWatchUnavailable": "Live file watching is unavailable — the system may have run out of file-watch handles (inotify). Auto-preview of new Office files is disabled. Raise fs.inotify.max_user_instances or close programs holding many file watches."
+  },
   "welcome": {
     "title": "Hi, what's your plan for today?",
     "placeholder": "Send a message, upload files, open a folder, create a scheduled task, or type / for commands...",
@@ -584,6 +587,15 @@
       },
       "ACP_EMPTY_TURN_REFUSAL": {
         "body": "The model refused this request before producing any visible reply."
+      },
+      "ANTIGRAVITY_STEPS_FAILED": {
+        "body": "{{count}} step(s) failed and did NOT take effect. agy ends such turns as successful, so check the result rather than the reply."
+      },
+      "ANTIGRAVITY_VERSION_OLDER": {
+        "body": "agy {{reported}} is older than the {{verified}} this integration was verified against; some features may be missing. Consider upgrading agy."
+      },
+      "ANTIGRAVITY_VERSION_NEWER": {
+        "body": "agy {{reported}} is newer than the {{verified}} this integration was verified against. It should still work; report anything that behaves oddly."
       }
     }
   },

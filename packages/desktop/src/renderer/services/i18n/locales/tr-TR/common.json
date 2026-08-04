@@ -135,6 +135,18 @@
       "diagnosticsReportSuccess": "Diagnostics report sent",
       "diagnosticsReportFailed": "Failed to send diagnostics report",
       "diagnosticsHint": "Bu durum tekrar ederse bir tanılama raporu gönderebilirsiniz."
+    },
+    "pendingSlow": {
+      "title": "Başlatılıyor",
+      "description": "AionCore başlatılıyor, lütfen bekleyin. Bir süre yanıt vermezse uygulamadan çıkıp yeniden açabilirsiniz."
+    },
+    "exited": {
+      "title": "Başlatma tamamlanmadı",
+      "description": "AionCore başlatmayı tamamlayamadı ve kapandı. Lütfen uygulamayı yeniden başlatın; sorun devam ederse tanılama gönderin.",
+      "sendDiagnostics": "Tanılama gönder",
+      "diagnosticsSent": "Tanılama gönderildi",
+      "diagnosticsReportSuccess": "Tanılama bildirildi",
+      "diagnosticsReportFailed": "Tanılama gönderilemedi, lütfen tekrar deneyin"
     }
   },
   "fileAttach.addFiles": "Dosya ekle",

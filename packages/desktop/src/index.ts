@@ -281,10 +281,21 @@ ipcMain.handle('backend:recover-corrupted-database', async () => {
   });
 });
 
+// Push the latest backend startup state to the renderer so it can either show
+// the "starting" view, switch to the honest-failure view, or return to the App.
+// The renderer only reads window.__backendStartupFailure once at preload; this
+// channel delivers subsequent ready/exit transitions.
+function broadcastBackendStartupState(state: BackendStartupFailureInfo | null): void {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('backend-startup-state', state);
+  }
+}
+
 function markBackendStartupFailed(error: unknown): void {
   backendStartupFailed = true;
   backendStartupFailureInfo = classifyBackendStartupFailure(error);
   (globalThis as typeof globalThis & { __backendStartupFailed?: boolean }).__backendStartupFailed = true;
+  broadcastBackendStartupState(backendStartupFailureInfo);
 }
 
 function registerCronResumeBridge(backendPort: number): void {
@@ -358,6 +369,8 @@ function markBackendReady(backendPort: number, source: string): void {
   backendStartupFailed = false;
   backendStartupFailureInfo = null;
   (globalThis as typeof globalThis & { __backendStartupFailed?: boolean }).__backendStartupFailed = false;
+  // Backend is ready: tell the renderer to drop any "starting" view and show the App.
+  broadcastBackendStartupState(null);
   void ensureAdminUserOnce(backendPort);
   scheduleBackendMigrations();
 }
@@ -397,6 +410,12 @@ function resolveDebugBackendStartupFailure(): BackendStartupFailureInfo | null {
       missingRuntimeDir: true,
       missingResources: ['managed node runtime', 'ACP adapters'],
     };
+  }
+  if (reason === 'backend_startup_pending_slow') {
+    return { reason };
+  }
+  if (reason === 'backend_startup_exited') {
+    return { reason };
   }
 
   console.warn(`[AionUi] Ignoring unknown AIONUI_DEBUG_BACKEND_STARTUP_FAILURE value: ${reason}`);
@@ -681,6 +700,13 @@ const handleAppReady = async (): Promise<void> => {
             allowPendingOnHealthTimeout: !(isWebUIMode || isResetPasswordMode),
             onHealthTimeout: async (error) => {
               markBackendStartupFailed(error);
+              // Hard rule: while the process is still alive, a health timeout is a
+              // recoverable "still starting" state — never auto-report to Sentry
+              // or escalate to a fatal dialog. Only genuinely abnormal shapes that
+              // fall through to a non-pending reason are captured.
+              if (backendStartupFailureInfo?.reason === 'backend_startup_pending_slow') {
+                return;
+              }
               await captureBackendStartupFailure(error);
             },
             onPendingExit: async (error) => {
