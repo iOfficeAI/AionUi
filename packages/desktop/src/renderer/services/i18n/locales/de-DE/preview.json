@@ -139,5 +139,14 @@
     "installing": "Vorschau-Komponente wird installiert...",
     "startFailed": "PPT-Vorschau konnte nicht gestartet werden",
     "installHint": "Installiere OfficeCLI über die offizielle iOfficeAI/OfficeCLI releases-Seite"
+  },
+  "browser": {
+    "newTab": "Neuer Tab",
+    "addressPlaceholder": "URL eingeben oder suchen",
+    "agentActiveTooltip": "Der Agent bedient diesen Tab",
+    "tabLimitReached": "Tab-Limit erreicht ({{count}}). Der älteste Tab wurde wiederverwendet.",
+    "agentFirstUseTitle": "Der Agent nutzt den integrierten Browser",
+    "agentFirstUseContent": "Er kann in diesem Bereich Seiten öffnen, klicken und Inhalte lesen. Deine Anmeldung bleibt erhalten.",
+    "agentFirstUseAction": "Einstellungen öffnen"
   }
 }

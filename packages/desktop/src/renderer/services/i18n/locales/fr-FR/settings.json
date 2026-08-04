@@ -1297,5 +1297,19 @@
     "solveWithButler": "Demander au majordome"
   },
   "providerIdConflict": "L'ID du fournisseur existe déjà. Veuillez réessayer.",
-  "autoInjectedSkillsHint": "Chargé automatiquement dans chaque conversation – pas besoin de les activer ; l'agent décide quand les utiliser."
+  "autoInjectedSkillsHint": "Chargé automatiquement dans chaque conversation – pas besoin de les activer ; l'agent décide quand les utiliser.",
+  "browserData": {
+    "title": "Navigateur intégré",
+    "agentControlLabel": "Autoriser l'agent à utiliser le navigateur intégré",
+    "agentControlDesc": "Lorsque cette option est activée, l'agent peut ouvrir des pages, cliquer et remplir des formulaires à votre place dans le navigateur intégré — par exemple pour faire une recherche ou terminer une démarche sur un site. Il ne peut piloter que cette vue de navigateur : il n'a pas accès à l'interface d'AionUi elle-même et n'ouvre jamais de fenêtre Chrome distincte. Désactivée, le navigateur reste utilisable par vous ; seul l'agent perd l'accès.",
+    "agentControlSaved": "Paramètre enregistré",
+    "agentControlFailed": "Échec de l'enregistrement du paramètre",
+    "agentControlRestartRequired": "Ce paramètre prend effet après le redémarrage de l'application.",
+    "clearLabel": "Effacer les données de navigation",
+    "clearDesc": "Vous déconnecte de tous les sites où le navigateur est connecté et vide le cache. Les onglets ouverts sont concernés après rechargement.",
+    "clearConfirmTitle": "Effacer les données de navigation ?",
+    "clearConfirmContent": "Vous serez déconnecté de tous les sites du navigateur intégré. Cette action est irréversible.",
+    "clearSuccess": "Données de navigation effacées",
+    "clearFailed": "Échec de l'effacement des données de navigation"
+  }
 }

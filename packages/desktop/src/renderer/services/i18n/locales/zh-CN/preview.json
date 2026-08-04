@@ -139,5 +139,14 @@
     "installing": "正在安装预览组件...",
     "startFailed": "启动 PPT 预览失败",
     "installHint": "请从官方 iOfficeAI/OfficeCLI releases 页面安装 OfficeCLI"
+  },
+  "browser": {
+    "newTab": "新建标签页",
+    "addressPlaceholder": "输入网址或搜索内容",
+    "agentActiveTooltip": "Agent 正在操作此标签页",
+    "tabLimitReached": "标签页数量已达上限（{{count}} 个），已复用最早打开的标签页。",
+    "agentFirstUseTitle": "Agent 正在使用应用内浏览器",
+    "agentFirstUseContent": "它可以在这个面板里打开网页、点击和读取内容。你的登录状态会被保留。",
+    "agentFirstUseAction": "前往设置"
   }
 }

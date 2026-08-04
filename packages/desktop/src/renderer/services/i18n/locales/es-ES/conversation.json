@@ -418,7 +418,8 @@
     "openWith": {
       "vscode": "VS Code",
       "terminal": "Terminal",
-      "explorer": "Explorador de archivos"
+      "explorer": "Explorador de archivos",
+      "browser": "Navegador"
     }
   },
   "minimap": {

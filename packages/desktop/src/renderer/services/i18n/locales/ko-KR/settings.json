@@ -1299,5 +1299,19 @@
     "solveWithButler": "집사에게 문의"
   },
   "providerIdConflict": "Provider ID가 이미 있습니다. 다시 시도하세요.",
-  "autoInjectedSkillsHint": "모든 대화에 자동으로 로드됩니다. 활성화할 필요가 없으며, 에이전트가 사용 시점을 결정합니다."
+  "autoInjectedSkillsHint": "모든 대화에 자동으로 로드됩니다. 활성화할 필요가 없으며, 에이전트가 사용 시점을 결정합니다.",
+  "browserData": {
+    "title": "앱 내 브라우저",
+    "agentControlLabel": "앱 내 브라우저의 에이전트 조작 허용",
+    "agentControlDesc": "켜면 에이전트가 앱 내 브라우저에서 페이지를 열고 클릭하거나 양식을 채워 줍니다(자료 검색, 웹사이트 절차 완료 등). 조작 대상은 앱 내 브라우저 화면 하나뿐이며, AionUi 인터페이스 자체에는 접근할 수 없고 별도의 Chrome 창도 열지 않습니다. 끄면 브라우저는 계속 직접 사용할 수 있고 에이전트만 조작할 수 없게 됩니다.",
+    "agentControlSaved": "설정이 저장되었습니다",
+    "agentControlFailed": "설정 저장에 실패했습니다",
+    "agentControlRestartRequired": "이 설정은 앱을 다시 시작한 후 적용됩니다.",
+    "clearLabel": "인터넷 사용 정보 삭제",
+    "clearDesc": "브라우저에 로그인된 모든 사이트에서 로그아웃하고 캐시를 삭제합니다. 열려 있는 탭은 새로 고침 후 적용됩니다.",
+    "clearConfirmTitle": "인터넷 사용 정보를 삭제할까요?",
+    "clearConfirmContent": "앱 내 브라우저의 모든 사이트에서 로그아웃됩니다. 되돌릴 수 없습니다.",
+    "clearSuccess": "인터넷 사용 정보를 삭제했습니다",
+    "clearFailed": "인터넷 사용 정보 삭제에 실패했습니다"
+  }
 }

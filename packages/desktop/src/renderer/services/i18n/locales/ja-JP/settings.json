@@ -1299,5 +1299,19 @@
     "solveWithButler": "執事に相談"
   },
   "providerIdConflict": "Provider ID は既に存在します。もう一度お試しください。",
-  "autoInjectedSkillsHint": "すべての会話に自動的に読み込まれます。有効化は不要で、エージェントが使用するタイミングを判断します。"
+  "autoInjectedSkillsHint": "すべての会話に自動的に読み込まれます。有効化は不要で、エージェントが使用するタイミングを判断します。",
+  "browserData": {
+    "title": "アプリ内ブラウザー",
+    "agentControlLabel": "アプリ内ブラウザのエージェント操作を許可",
+    "agentControlDesc": "オンにすると、エージェントがアプリ内ブラウザでページを開いたり、クリックやフォーム入力を代行できます（調べ物やサイト上の手続きなど）。操作できるのはアプリ内ブラウザのビューのみで、AionUi の画面自体には触れられず、別の Chrome ウィンドウを開くこともありません。オフにしてもブラウザは通常どおり使えますが、エージェントは操作できなくなります。",
+    "agentControlSaved": "設定を保存しました",
+    "agentControlFailed": "設定の保存に失敗しました",
+    "agentControlRestartRequired": "この設定はアプリを再起動すると有効になります。",
+    "clearLabel": "閲覧データを消去",
+    "clearDesc": "ブラウザーでログイン済みのすべてのサイトからサインアウトし、キャッシュを消去します。開いているタブは再読み込み後に反映されます。",
+    "clearConfirmTitle": "閲覧データを消去しますか？",
+    "clearConfirmContent": "アプリ内ブラウザーのすべてのサイトからサインアウトされます。この操作は取り消せません。",
+    "clearSuccess": "閲覧データを消去しました",
+    "clearFailed": "閲覧データの消去に失敗しました"
+  }
 }

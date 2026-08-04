@@ -5,11 +5,27 @@
  */
 
 import { iconColors } from '@/renderer/styles/colors';
-import { Close } from '@icon-park/react';
+import { Close, Plus } from '@icon-park/react';
 import { IconShrink } from '@arco-design/web-react/icon';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import type { TabFadeState } from '../../hooks/useTabOverflow';
+
+/**
+ * 单个 tab 的最大宽度。
+ *
+ * 网页标题可以任意长（"某某官网 - 首页 - 欢迎光临……"），不设上限时一个 tab 就能
+ * 撑满整条 tab 栏，用户完全看不出还有别的 tab。180px 够放下十几个中文字或一个可
+ * 辨识的域名，同时保证预览框在最小宽度（260px）下仍能露出第二个 tab 的边缘，给出
+ * "还有更多"的视觉线索。
+ *
+ * Maximum width of a single tab. Page titles can be arbitrarily long, and without a
+ * cap one tab fills the whole strip so the user cannot tell other tabs exist. 180px
+ * fits a recognizable domain or a dozen CJK characters while still leaving the edge
+ * of a second tab visible at the panel's 260px minimum width — the visual cue that
+ * more tabs are there.
+ */
+const MAX_TAB_WIDTH_PX = 180;
 
 /**
  * Tab 信息
@@ -32,6 +48,18 @@ export interface PreviewTab {
    * Whether there are unsaved changes
    */
   isDirty?: boolean;
+
+  /**
+   * 站点图标 URL，仅浏览器 tab 有
+   * Site icon URL, browser tabs only
+   */
+  favicon?: string;
+
+  /**
+   * Agent 正在操作该浏览器 tab
+   * Agent is currently driving this browser tab
+   */
+  agentActive?: boolean;
 }
 
 /**
@@ -86,6 +114,13 @@ interface PreviewTabsProps {
    * Close preview panel callback
    */
   onClosePanel?: () => void;
+
+  /**
+   * 新建浏览器 tab 回调；仅在已有浏览器 tab 时提供，避免在纯文档场景出现无意义的加号
+   * New browser tab callback. Only supplied when a browser tab already exists, so
+   * the plus button never appears in a document-only panel.
+   */
+  onNewBrowserTab?: () => void;
 }
 
 /**
@@ -107,6 +142,7 @@ const PreviewTabs: React.FC<PreviewTabsProps> = ({
   onCloseTab,
   onContextMenu,
   onClosePanel,
+  onNewBrowserTab,
 }) => {
   const { t } = useTranslation();
   const { left: showLeftFade, right: showRightFade } = tabFadeState;
@@ -124,30 +160,81 @@ const PreviewTabs: React.FC<PreviewTabsProps> = ({
               <div
                 key={tab.id}
                 className={`flex items-center gap-6px px-10px h-full cursor-pointer transition-colors flex-shrink-0 ${tab.id === activeTabId ? 'bg-bg-1 text-t-primary' : 'text-t-secondary hover:bg-bg-3'}`}
+                style={{ maxWidth: `${MAX_TAB_WIDTH_PX}px` }}
                 onClick={() => onSwitchTab(tab.id)}
                 onContextMenu={(e) => onContextMenu(e, tab.id)}
               >
-                <span className='text-12px whitespace-nowrap flex items-center gap-4px'>
-                  {tab.title}
+                {/* min-w-0 是省略号生效的前提：flex 子项默认按内容撑开，不允许收缩
+                    min-w-0 is what makes truncation possible: a flex child defaults
+                    to its content width and refuses to shrink below it. */}
+                <span className='text-12px flex items-center gap-4px min-w-0'>
+                  {/* 站点图标（浏览器 tab）/ Site icon (browser tabs) */}
+                  {tab.favicon && (
+                    <img
+                      src={tab.favicon}
+                      alt=''
+                      className='w-12px h-12px flex-shrink-0 rd-2px'
+                      // 图标加载失败时静默隐藏，避免出现破图占位 / Hide silently on load failure
+                      onError={(e) => {
+                        (e.currentTarget as HTMLImageElement).style.display = 'none';
+                      }}
+                    />
+                  )}
+                  {/* 只让标题文字收缩并省略；图标与指示器保持完整可见。
+                      title 属性提供完整标题，避免截断后信息丢失。
+                      Only the title text shrinks and ellipsizes; icons and indicators
+                      stay fully visible. The title attribute exposes the full text so
+                      truncation never hides information. */}
+                  <span className='truncate' title={tab.title}>
+                    {tab.title}
+                  </span>
+                  {/* Agent 操作中指示器 / Agent activity indicator */}
+                  {tab.agentActive && (
+                    <span
+                      className='w-6px h-6px rd-full bg-success animate-pulse flex-shrink-0'
+                      title={t('preview.browser.agentActiveTooltip')}
+                    />
+                  )}
                   {/* 未保存指示器 / Unsaved indicator */}
                   {tab.isDirty && (
-                    <span className='w-6px h-6px rd-full bg-primary' title={t('preview.unsavedChangesTitle')} />
+                    <span
+                      className='w-6px h-6px rd-full bg-primary flex-shrink-0'
+                      title={t('preview.unsavedChangesTitle')}
+                    />
                   )}
                 </span>
-                <Close
-                  theme='outline'
-                  size='14'
-                  fill={iconColors.secondary}
-                  className='hover:fill-primary'
+                {/* 叉叉比加号「显得」大，是因为加号有 24px 的悬停底框衬托，而叉叉是
+                    一个裸露的图标。所以这里给叉叉同样的方框（16px，比加号的 24px 小
+                    一档，因为它在 tab 内部），并把图标本身收到 12px，视觉重量就和加号
+                    一致了。
+                    The close glyph looked bigger than the plus because the plus sits in a
+                    24px hover box while the close icon was bare. Giving it the same kind
+                    of box (16px — one step down from the plus's 24px since it lives inside
+                    a tab) and trimming the glyph to 12px evens out their visual weight. */}
+                <span
+                  className='flex items-center justify-center w-16px h-16px rd-4px flex-shrink-0 hover:bg-bg-3 transition-colors'
                   onClick={(e) => {
                     e.stopPropagation();
                     onCloseTab(tab.id);
                   }}
-                />
+                >
+                  <Close theme='outline' size='12' fill={iconColors.secondary} className='hover:fill-primary' />
+                </span>
               </div>
             ))
           ) : (
             <div className='text-12px text-t-tertiary px-10px'>{t('preview.noTabs')}</div>
+          )}
+
+          {/* 新建浏览器 tab / New browser tab */}
+          {onNewBrowserTab && (
+            <div
+              className='flex items-center justify-center w-24px h-24px ml-4px rd-4px cursor-pointer flex-shrink-0 hover:bg-bg-3 transition-colors'
+              onClick={onNewBrowserTab}
+              title={t('preview.browser.newTab')}
+            >
+              <Plus theme='outline' size='14' fill={iconColors.secondary} />
+            </div>
           )}
         </div>
 

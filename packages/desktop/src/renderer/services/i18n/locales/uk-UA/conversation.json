@@ -418,7 +418,8 @@
     "openWith": {
       "vscode": "VS Code",
       "terminal": "Термінал",
-      "explorer": "Провідник"
+      "explorer": "Провідник",
+      "browser": "Браузер"
     }
   },
   "minimap": {

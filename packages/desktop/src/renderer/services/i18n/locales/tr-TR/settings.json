@@ -1297,5 +1297,19 @@
     "solveWithButler": "Kâhya'ya sor"
   },
   "providerIdConflict": "Provider ID zaten var. Lütfen tekrar deneyin.",
-  "autoInjectedSkillsHint": "Her sohbete otomatik olarak yüklenir — etkinleştirmeye gerek yoktur; aracı bunları ne zaman kullanacağına karar verir."
+  "autoInjectedSkillsHint": "Her sohbete otomatik olarak yüklenir — etkinleştirmeye gerek yoktur; aracı bunları ne zaman kullanacağına karar verir.",
+  "browserData": {
+    "title": "Uygulama içi tarayıcı",
+    "agentControlLabel": "Aracının uygulama içi tarayıcıyı kullanmasına izin ver",
+    "agentControlDesc": "Açık olduğunda aracı, uygulama içi tarayıcıda sizin adınıza sayfa açabilir, tıklayabilir ve form doldurabilir; örneğin bir şey araştırmak veya bir sitedeki işlemi tamamlamak için. Yalnızca bu tek tarayıcı görünümünü kullanabilir: AionUi arayüzünün kendisine erişemez ve hiçbir zaman ayrı bir Chrome penceresi açmaz. Kapattığınızda tarayıcıyı kendiniz kullanmaya devam edebilirsiniz; erişimi yalnızca aracı kaybeder.",
+    "agentControlSaved": "Ayar kaydedildi",
+    "agentControlFailed": "Ayar kaydedilemedi",
+    "agentControlRestartRequired": "Bu ayar, uygulamayı yeniden başlattıktan sonra geçerli olur.",
+    "clearLabel": "Tarama verilerini temizle",
+    "clearDesc": "Tarayıcıda oturum açılmış tüm sitelerden çıkış yapar ve önbelleği temizler. Açık sekmelerde yenilemeden sonra geçerli olur.",
+    "clearConfirmTitle": "Tarama verileri temizlensin mi?",
+    "clearConfirmContent": "Uygulama içi tarayıcıdaki tüm sitelerden çıkış yapılacak. Bu işlem geri alınamaz.",
+    "clearSuccess": "Tarama verileri temizlendi",
+    "clearFailed": "Tarama verileri temizlenemedi"
+  }
 }

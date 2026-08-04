@@ -268,14 +268,21 @@ const ChatLayout: React.FC<{
             {isPreviewOpen && (
               <div
                 className={classNames(
-                  'preview-panel flex flex-col relative overflow-visible rounded-[15px]',
-                  isDesktop ? 'mb-[12px] mr-[12px] ml-[8px]' : 'm-[8px]'
+                  'preview-panel flex flex-col relative overflow-visible',
+                  // 移动端预览是覆盖层，保留内缩和圆角；桌面端不留边距，
+                  // 否则窗口底色会从缝隙透出（深色模式下尤其突兀）。
+                  // On mobile the preview is an overlay, so it keeps its inset and
+                  // rounding. On desktop no margin: a gap would expose the window's
+                  // own background, which is jarring in dark mode.
+                  isDesktop ? '' : 'm-[8px] rounded-[15px]'
                 )}
                 style={{
                   flexGrow: 1,
                   flexShrink: 1,
                   flexBasis: 0,
-                  border: '1px solid var(--bg-3)',
+                  // 桌面端只用左边框分界；移动端覆盖层保留完整描边
+                  // Desktop: left divider only. Mobile overlay keeps a full border.
+                  ...(isDesktop ? { borderLeft: '1px solid var(--bg-3)' } : { border: '1px solid var(--bg-3)' }),
                   minWidth: isDesktop ? '260px' : 0,
                   maxWidth: isMobile ? 'calc(100% - 16px)' : undefined,
                   width: isMobile ? 'calc(100% - 16px)' : undefined,
@@ -290,7 +297,7 @@ const ChatLayout: React.FC<{
                     lineClassName: 'opacity-30 group-hover:opacity-100 group-active:opacity-100',
                     lineStyle: { width: '2px' },
                   })}
-                <div className='h-full w-full overflow-hidden rounded-[15px]'>
+                <div className={classNames('h-full w-full overflow-hidden', isDesktop ? '' : 'rounded-[15px]')}>
                   <PreviewPanel />
                 </div>
               </div>
