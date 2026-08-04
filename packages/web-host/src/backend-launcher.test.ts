@@ -234,10 +234,12 @@ describe('buildSpawnEnv', () => {
       cacheDir: '/c',
       workDir: '/w',
       logDir: '/l',
+      hubDir: '/hub',
     });
     expect(env.AIONUI_CACHE_DIR).toBe('/c');
     expect(env.AIONUI_WORK_DIR).toBe('/w');
     expect(env.AIONUI_LOG_DIR).toBe('/l');
+    expect(env.AIONUI_HUB_DIR).toBe('/hub');
     expect(env.PATH).toBe(process.env.PATH); // inherits
   });
 });

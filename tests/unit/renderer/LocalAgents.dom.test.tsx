@@ -90,7 +90,16 @@ vi.mock('@renderer/utils/platform', async () => {
 // Keep the test focused on LocalAgents' own logic — stub heavy children.
 vi.mock('@/renderer/components/base/AionModal', () => ({ default: () => null }));
 vi.mock('@renderer/pages/settings/AgentSettings/InlineAgentEditor', () => ({ default: () => null }));
-vi.mock('@renderer/pages/settings/AgentSettings/AgentHubModal', () => ({ AgentHubModal: () => null }));
+vi.mock('@renderer/pages/settings/AgentSettings/AgentHubModal', () => ({
+  AgentHubModal: ({ visible, onCancel }: { visible: boolean; onCancel: () => void }) =>
+    visible ? (
+      <div data-testid='agent-hub-modal'>
+        <button type='button' onClick={onCancel}>
+          close-hub-modal
+        </button>
+      </div>
+    ) : null,
+}));
 
 import LocalAgents from '@renderer/pages/settings/AgentSettings/LocalAgents';
 import AgentModalContent from '@renderer/components/settings/SettingsModal/contents/AgentModalContent';
@@ -266,7 +275,7 @@ describe('LocalAgents', () => {
     expect(screen.getByText('settings.agentManagement.statusMissing')).toBeInTheDocument();
   });
 
-  it('does not render the market-install CTA in the diagnostics-only agent page', () => {
+  it('opens and closes the Agent Hub from the management page', () => {
     useManagedAgents.mockReturnValue({
       agents: makeAgents(),
       revalidate: vi.fn(),
@@ -275,8 +284,13 @@ describe('LocalAgents', () => {
 
     render(<LocalAgents />);
 
-    expect(screen.queryByText('settings.agentManagement.installFromMarket')).toBeNull();
-    expect(screen.queryByText('settings.agentManagement.discoverMoreAgents')).toBeNull();
+    expect(screen.queryByTestId('agent-hub-modal')).toBeNull();
+
+    fireEvent.click(screen.getByText('settings.agentManagement.installFromMarket'));
+    expect(screen.getByTestId('agent-hub-modal')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText('close-hub-modal'));
+    expect(screen.queryByTestId('agent-hub-modal')).toBeNull();
   });
 
   it('renders the setup-guide action for official agents diagnostics', () => {

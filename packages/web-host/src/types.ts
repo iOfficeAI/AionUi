@@ -25,6 +25,7 @@ export type BackendSystemDirs = {
   cacheDir: string;
   workDir: string;
   logDir: string;
+  hubDir?: string;
 };
 
 /**

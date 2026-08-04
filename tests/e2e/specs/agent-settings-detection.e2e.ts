@@ -1,12 +1,12 @@
 /**
- * Agent Settings Detection — diagnostics-only E2E tests.
+ * Agent Settings Detection — management E2E tests.
  *
- * Phase 2 turns Agent Settings into a management/diagnostics surface rather
- * than a business-facing picker. These tests lock the page to that contract:
+ * Phase 2 turns Agent Settings into a management/diagnostics surface. These
+ * tests lock the page to that contract while keeping Agent Hub discoverable:
  * - sections come from `/api/agents/management`
  * - official/custom buckets stay visible
  * - a troubleshoot/repair affordance exists per agent
- * - legacy market/chat/preset affordances do not reappear
+ * - Agent Hub remains available without restoring legacy chat/preset affordances
  */
 import { test, expect } from '../fixtures';
 import { goToSettings, expectUrlContains, settingsSiderItemById, httpGet } from '../helpers';
@@ -32,6 +32,7 @@ const TEXT = {
   commandLabel: ['Command', '命令'],
   commandPlaceholder: ['e.g. my-agent or /usr/local/bin/my-agent', '例如 my-agent 或 /usr/local/bin/my-agent'],
   installFromMarket: ['Install from Market', '从市场安装'],
+  hubContributionAction: ['Open a PR on AionHub', '前往 AionHub 提交 PR'],
   discoverMoreAgents: ['Discover More Agents', '发现更多 Agent'],
   startChat: ['Start Chat', '开始对话'],
 } as const;
@@ -77,13 +78,17 @@ test.describe('Agent Settings Detection', () => {
     }
   });
 
-  test('keeps the page diagnostics-only and removes legacy market/chat affordances', async ({ page }) => {
+  test('keeps diagnostics primary while exposing Agent Hub', async ({ page }) => {
     await goToSettings(page, 'agent');
 
     await expectAnyText(page, TEXT.customAgents);
-    await expectNoText(page, TEXT.installFromMarket);
+    await expectAnyText(page, TEXT.installFromMarket);
     await expectNoText(page, TEXT.discoverMoreAgents);
     await expectNoText(page, TEXT.startChat);
+
+    await page.getByTestId('btn-open-agent-hub').click();
+    await expectAnyText(page, TEXT.hubContributionAction);
+    await page.getByRole('button', { name: 'Close' }).click();
   });
 
   test('opens the custom agent editor from the diagnostics page', async ({ page }) => {
@@ -107,7 +112,7 @@ test.describe('Agent Settings Detection', () => {
 
     await expectAnyText(page, TEXT.customAgents);
     await expectAnyText(page, TEXT.setupGuide);
-    await expectNoText(page, TEXT.installFromMarket);
+    await expectAnyText(page, TEXT.installFromMarket);
     await expectNoText(page, TEXT.discoverMoreAgents);
   });
 });

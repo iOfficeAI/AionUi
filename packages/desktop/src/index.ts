@@ -247,6 +247,9 @@ ipcMain.handle('backend:recover-corrupted-database', async () => {
             workDir: sysDir.workDir,
             logDir: sysDir.logDir,
           },
+            hubDir: app.isPackaged
+              ? path.join(process.resourcesPath, 'hub')
+              : path.join(app.getAppPath(), 'resources/hub'),
           {
             allowPendingOnHealthTimeout: false,
             onHealthTimeout: async (error) => {
@@ -696,6 +699,9 @@ const handleAppReady = async (): Promise<void> => {
             workDir: sysDir.workDir,
             logDir: sysDir.logDir,
           },
+            hubDir: app.isPackaged
+              ? path.join(process.resourcesPath, 'hub')
+              : path.join(app.getAppPath(), 'resources/hub'),
           {
             allowPendingOnHealthTimeout: !(isWebUIMode || isResetPasswordMode),
             onHealthTimeout: async (error) => {
