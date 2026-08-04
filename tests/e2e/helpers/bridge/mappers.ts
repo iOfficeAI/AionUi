@@ -10,8 +10,6 @@ export type ResponseMapperKey =
   | 'dirOrFileTree'
   | 'flatFileList'
   | 'snapshotCompare'
-  | 'previewSnapshotInfo'
-  | 'previewSnapshotContent'
   | 'conversation';
 
 type DirOrFileRaw = {
@@ -110,31 +108,6 @@ export const RESPONSE_MAPPERS: Record<ResponseMapperKey, (data: unknown) => unkn
     return {
       staged: Array.isArray(d.staged) ? d.staged.map((e) => mapFileChange(e as Record<string, unknown>)) : [],
       unstaged: Array.isArray(d.unstaged) ? d.unstaged.map((e) => mapFileChange(e as Record<string, unknown>)) : [],
-    };
-  },
-  previewSnapshotInfo: (data) => {
-    if (Array.isArray(data)) {
-      return data.map((entry) => RESPONSE_MAPPERS.previewSnapshotInfo(entry));
-    }
-    if (!data || typeof data !== 'object') return data;
-    const d = data as Record<string, unknown>;
-    return {
-      ...d,
-      contentType: (d.content_type as string | undefined) ?? (d.contentType as string | undefined),
-    };
-  },
-  previewSnapshotContent: (data) => {
-    if (!data || typeof data !== 'object') return data;
-    const d = data as Record<string, unknown>;
-    const snapshot = d.snapshot as Record<string, unknown> | undefined;
-    return {
-      ...d,
-      snapshot: snapshot
-        ? {
-            ...snapshot,
-            contentType: (snapshot.content_type as string | undefined) ?? (snapshot.contentType as string | undefined),
-          }
-        : snapshot,
     };
   },
   conversation: (data) => mapConversation(data),

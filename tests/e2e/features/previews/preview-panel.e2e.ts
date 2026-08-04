@@ -1,12 +1,11 @@
 /**
  * Preview panel + office document E2E.
  *
- * Covers the four user-visible preview flows that run against aioncore
+ * Covers the user-visible preview flows that run against aioncore
  * in --local mode (no auth, no CSRF):
  *   1. Document conversion API (/api/document/convert)
  *   2. Preview panel rendering inside a conversation
  *   3. Office preview start/stop lifecycle (word / excel / ppt)
- *   4. Preview history save + list + retrieve
  *
  * Office previews require the `officecli` binary. When the backend responds
  * with an install-required error, those assertions test.skip() gracefully.
@@ -19,7 +18,6 @@ import { goToGuid, invokeBridge } from '../../helpers';
 
 type OfficeStartResult = { url?: string; error?: string } | null;
 type ConvertResponse = { to: string; result: { success?: boolean; data?: unknown; error?: string } } | null;
-type SnapshotInfo = { id: string; label: string; created_at: number; size: number; contentType: string };
 
 const OFFICECLI_MISSING = /officecli|not installed|install.?hint|ENOENT/i;
 const OFFICECLI_INSTALL_ERRORS = new Set(['OFFICECLI_NOT_FOUND', 'OFFICECLI_INSTALL_FAILED']);
@@ -203,33 +201,5 @@ test.describe('Preview panel & office documents', () => {
       expect(ppt.url).toMatch(/^https?:\/\/|\/api\/(office-watch-proxy|ppt-proxy)\//);
       await invokeBridge(page, 'ppt-preview.stop', { file_path: pptxPath }, 10_000).catch(() => {});
     }
-  });
-
-  test('preview history: save a snapshot, then list it', async ({ page }) => {
-    await goToGuid(page);
-    const target = {
-      contentType: 'markdown' as const,
-      file_name: `e2e-${Date.now()}.md`,
-      title: 'E2E snapshot',
-    };
-    const content = `# snapshot\n${Date.now()}\n`;
-
-    const saved = await invokeBridge<SnapshotInfo>(page, 'preview-history.save', { target, content }, 15_000);
-    expect(saved).toBeTruthy();
-    expect(saved.id).toBeTruthy();
-    expect(saved.contentType).toBe('markdown');
-
-    const listed = await invokeBridge<SnapshotInfo[]>(page, 'preview-history.list', { target }, 10_000);
-    expect(Array.isArray(listed)).toBeTruthy();
-    expect(listed.find((s) => s.id === saved.id)).toBeTruthy();
-
-    const fetched = await invokeBridge<{ snapshot: SnapshotInfo; content: string } | null>(
-      page,
-      'preview-history.get-content',
-      { target, snapshotId: saved.id },
-      10_000
-    );
-    expect(fetched).not.toBeNull();
-    expect(fetched!.content).toBe(content);
   });
 });

@@ -1,8 +1,11 @@
 /**
- * E2E: Preview history and view mode toggle — real user flow.
+ * E2E: preview view-mode toggle — real user flow.
  *
- * Seeds a workspace with files, opens a preview via file click, then
- * exercises the Editor/Preview toggle and history dropdown.
+ * Seeds a workspace with files, opens a preview via file click, then exercises
+ * the Editor/Preview toggle.
+ *
+ * The version-history dropdown this file also used to cover is gone: that
+ * feature (and its backend routes) were removed, so the test went with it.
  */
 import { test, expect } from '../../fixtures';
 import { goToGuid } from '../../helpers';
@@ -10,7 +13,7 @@ import fs from 'fs';
 import path from 'path';
 import os from 'os';
 
-test.describe('Preview — history and view toggle', () => {
+test.describe('Preview — view mode toggle', () => {
   let workspace: string;
 
   test.beforeAll(() => {
@@ -106,45 +109,5 @@ test.describe('Preview — history and view toggle', () => {
       // At least one mode should have content
       expect(hasEditor || hasViewer).toBeTruthy();
     }
-  });
-
-  test('history dropdown opens and shows version list', async ({ page, electronApp }) => {
-    test.setTimeout(120_000);
-
-    const panel = await openPreviewViaFileClick(page, electronApp, 'app.html');
-    if (!panel) {
-      test.skip(true, 'Preview panel not available');
-      return;
-    }
-
-    // Find history button by title (i18n: "历史版本" or "History versions")
-    const historyBtn = panel
-      .locator('[title*="history"], [title*="History"], [title*="版本"], [title*="历史"]')
-      .first();
-
-    if (!(await historyBtn.isVisible({ timeout: 5_000 }).catch(() => false))) {
-      test.skip(true, 'History button not visible in toolbar');
-      return;
-    }
-
-    await historyBtn.click();
-    await page.screenshot({ path: 'tests/e2e/results/preview-hist-03-dropdown.png' });
-
-    // Dropdown should appear with either entries or "no history" message
-    const dropdown = page.locator('.arco-trigger-popup, .arco-dropdown, .arco-popover').last();
-    const dropdownVisible = await dropdown.isVisible({ timeout: 5_000 }).catch(() => false);
-
-    if (dropdownVisible) {
-      // Should show either version entries or empty state text
-      const hasEntries = await dropdown.locator('[class*="item"]').count();
-      const hasEmptyText = await dropdown
-        .getByText(/no history|暂无|没有/i)
-        .isVisible()
-        .catch(() => false);
-      expect(hasEntries > 0 || hasEmptyText).toBeTruthy();
-    }
-
-    // Dismiss
-    await page.keyboard.press('Escape');
   });
 });
