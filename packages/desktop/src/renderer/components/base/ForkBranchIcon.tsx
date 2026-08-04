@@ -31,13 +31,13 @@ const ForkBranchIcon: React.FC<{ size?: number | string; fill?: string; classNam
     aria-hidden='true'
   >
     {/* incoming track */}
-    <path d='M3 12h5' />
+    <path d='M3 12h6' />
     {/* dominant branch: up-right arrow */}
-    <path d='M8 12 18 5' />
-    <path d='M12 5h6v6' />
+    <path d='M9 12l9-7' />
+    <path d='M13.5 4.5H18.5V9.5' />
     {/* original path: smaller down-right arrow */}
-    <path d='M8 12l7 7' />
-    <path d='M15 14v5h-5' />
+    <path d='M9 12l5 5' />
+    <path d='M14.5 13.5v4h-4' />
   </svg>
 );
 
