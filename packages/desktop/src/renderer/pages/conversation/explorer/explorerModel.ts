@@ -295,7 +295,7 @@ export function buildTreeData(cache: FactCache, expanded: ReadonlySet<PeKey>, ro
     // Sort a copy — never mutate the cached listing.
     return entries
       .slice()
-      .sort(compareEntriesForDisplay)
+      .toSorted(compareEntriesForDisplay)
       .map((entry) => {
         const childRel = joinRel(dirRel, entry.name);
         const isDir = entry.kind === 'dir';
