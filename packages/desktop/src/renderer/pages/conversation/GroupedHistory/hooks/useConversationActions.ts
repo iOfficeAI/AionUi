@@ -41,6 +41,8 @@ export const useConversationActions = ({
   const [renameModalName, setRenameModalName] = useState<string>('');
   const [renameModalId, setRenameModalId] = useState<string | null>(null);
   const [renameLoading, setRenameLoading] = useState(false);
+  const [deleteConversationId, setDeleteConversationId] = useState<string | null>(null);
+  const [deleteConversationLoading, setDeleteConversationLoading] = useState(false);
   const [dropdownVisibleId, setDropdownVisibleId] = useState<string | null>(null);
   const { id } = useParams();
   const { t } = useTranslation();
@@ -89,35 +91,35 @@ export const useConversationActions = ({
     [id, navigate]
   );
 
-  const handleDeleteClick = useCallback(
-    (conversation_id: string) => {
-      Modal.confirm({
-        title: t('conversation.history.deleteTitle'),
-        content: t('conversation.history.deleteConfirm'),
-        okText: t('conversation.history.confirmDelete'),
-        cancelText: t('conversation.history.cancelDelete'),
-        okButtonProps: { status: 'warning' },
-        onOk: async () => {
-          try {
-            const success = await removeConversation(conversation_id);
-            if (success) {
-              emitter.emit('chat.history.refresh');
-              Message.success(t('conversation.history.deleteSuccess'));
-            } else {
-              Message.error(t('conversation.history.deleteFailed'));
-            }
-          } catch (error) {
-            console.error('Failed to remove conversation:', error);
-            Message.error(t('conversation.history.deleteFailed'));
-          }
-        },
-        style: { borderRadius: '12px' },
-        alignCenter: true,
-        getPopupContainer: () => document.body,
-      });
-    },
-    [removeConversation, t]
-  );
+  const handleDeleteClick = useCallback((conversation_id: string) => {
+    setDeleteConversationId(conversation_id);
+  }, []);
+
+  const handleDeleteCancel = useCallback(() => {
+    if (deleteConversationLoading) return;
+    setDeleteConversationId(null);
+  }, [deleteConversationLoading]);
+
+  const handleDeleteConfirm = useCallback(async () => {
+    if (!deleteConversationId) return;
+
+    setDeleteConversationLoading(true);
+    try {
+      const success = await removeConversation(deleteConversationId);
+      if (success) {
+        emitter.emit('chat.history.refresh');
+        Message.success(t('conversation.history.deleteSuccess'));
+      } else {
+        Message.error(t('conversation.history.deleteFailed'));
+      }
+    } catch (error) {
+      console.error('Failed to remove conversation:', error);
+      Message.error(t('conversation.history.deleteFailed'));
+    } finally {
+      setDeleteConversationLoading(false);
+      setDeleteConversationId(null);
+    }
+  }, [deleteConversationId, removeConversation, t]);
 
   const handleBatchDelete = useCallback(() => {
     if (selectedConversationIds.size === 0) {
@@ -308,9 +310,13 @@ export const useConversationActions = ({
     renameModalName,
     setRenameModalName,
     renameLoading,
+    deleteConversationId,
+    deleteConversationLoading,
     dropdownVisibleId,
     handleConversationClick,
     handleDeleteClick,
+    handleDeleteCancel,
+    handleDeleteConfirm,
     handleBatchDelete,
     handleEditStart,
     handleRenameConfirm,
