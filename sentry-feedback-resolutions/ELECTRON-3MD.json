@@ -1,0 +1,25 @@
+{
+  "case": "ELECTRON-3MD",
+  "cluster": "team-wakeup",
+  "related_cases": ["ELECTRON-3ME", "ELECTRON-3MF", "ELECTRON-3NC", "ELECTRON-3NB", "ELECTRON-3NJ"],
+  "sentry_link": "https://iofficeai.sentry.io/issues/ELECTRON-3MD",
+  "status": "candidate-fixed",
+  "fixed_by": "none (analysis only; report does not modify code)",
+  "fix_version": "unfixed",
+  "verification": "pending",
+  "root_cause_summary": "Team agent rebuild is all-or-nothing: one teammate ACP warmup failure triggers kill_and_wait on every already-attached agent and returns 400, so the whole team never starts (aionui-team service.rs:1476-1484, present in v0.1.48 and v0.1.50). The underlying failure reason (codex ACP handshake cause) is flattened to an opaque 'Invalid request: ACP error' (provisioning.rs:390 + protocol/error.rs suppresses stderr and SDK default messages). Also: SIGKILL to process group fails with Operation not permitted, leaking processes.",
+  "evidence": "app 2.1.37 -> aioncore v0.1.48. Screenshot shows Codex CLI red error badge on '正在唤醒团队'. Logs show repeated 'team agent rebuild attach failed ... Invalid request: ACP error' for codex(gpt-5.5) and codebuddy(gemini), all-or-nothing cleanup, 400 on POST /session, infinite retry.",
+  "version_matched_code": {
+    "aioncore_v0.1.48": ["crates/aionui-team/src/service.rs:1476-1484", "crates/aionui-team/src/provisioning.rs:390"],
+    "aioncore_v0.1.50": ["crates/aionui-team/src/service.rs:1476-1484 (still present -> not fixed)"],
+    "acp_error_flatten": [
+      "crates/aionui-ai-agent/src/protocol/error.rs (StartupCrash omits stderr; SDK_DEFAULT_MESSAGES discards 'Invalid request')"
+    ]
+  },
+  "fix_direction": "In target repo aionCore off latest main via worktree: (1) tolerate partial team rebuild success; (2) propagate structured ACP/CLI failure cause into surfaced error + feedback.runtime.* fields; (3) fix process-group SIGKILL Operation-not-permitted cleanup.",
+  "diagnostics_changed": false,
+  "report_path": "feedback-diagnostics-db-json.md",
+  "ledger_sidecar": "feedback-diagnostics-db-json.ledger.json",
+  "updated_at": "2026-07-23T04:36:05Z",
+  "needs_report_reconcile": false
+}

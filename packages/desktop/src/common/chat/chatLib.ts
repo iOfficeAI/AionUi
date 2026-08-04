@@ -105,6 +105,13 @@ interface IMessage<T extends TMessageType, Content extends Record<string, any>> 
    * Hidden from UI display but persisted to DB and sent to agent.
    */
   hidden?: boolean;
+  /**
+   * Backend turn anchor (codex `Turn.id`) stamped on rows persisted while that
+   * turn streamed. Presence means a mid-history fork can anchor at (or after)
+   * this message; absent on legacy/copied rows, live-streamed frames (until
+   * reload), and backends without turn-anchored forks.
+   */
+  backend_turn_id?: string;
 }
 
 export type CronMessageMeta = {

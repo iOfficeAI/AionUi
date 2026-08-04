@@ -672,13 +672,13 @@ describe('MessageText fork entry point', () => {
 
   const renderWithCapability = (
     capability: { at_turn: boolean } | undefined,
-    props: { isLastMessage?: boolean } = {}
+    props: { isLastMessage?: boolean; hasForkAnchor?: boolean } = {}
   ) => {
     render(
       <ConversationProvider
         value={{ conversation_id: 'conv-fork', workspace: '/workspace/demo', type: 'acp', forkCapability: capability }}
       >
-        <MessageText message={forkMessage()} isLastMessage={props.isLastMessage} />
+        <MessageText message={forkMessage()} isLastMessage={props.isLastMessage} hasForkAnchor={props.hasForkAnchor} />
       </ConversationProvider>
     );
   };
@@ -694,9 +694,14 @@ describe('MessageText fork entry point', () => {
     expect(screen.queryByTestId('message-fork-button')).toBeNull();
   });
 
-  it('shows the fork button on any message for at_turn backends', () => {
-    renderWithCapability({ at_turn: true }, { isLastMessage: false });
+  it('shows the fork button on anchored mid-history messages for at_turn backends', () => {
+    renderWithCapability({ at_turn: true }, { isLastMessage: false, hasForkAnchor: true });
     expect(screen.getByTestId('message-fork-button')).toBeInTheDocument();
+  });
+
+  it('hides the fork button on un-anchored legacy messages even for at_turn backends', () => {
+    renderWithCapability({ at_turn: true }, { isLastMessage: false, hasForkAnchor: false });
+    expect(screen.queryByTestId('message-fork-button')).toBeNull();
   });
 
   it('limits head-only backends to the last message', () => {
@@ -710,7 +715,7 @@ describe('MessageText fork entry point', () => {
   });
 
   it('clicking fork calls the API, refreshes, navigates, and pre-warms the runtime', async () => {
-    renderWithCapability({ at_turn: true }, { isLastMessage: false });
+    renderWithCapability({ at_turn: true }, { isLastMessage: false, hasForkAnchor: true });
     fireEvent.click(screen.getByTestId('message-fork-button'));
     await waitFor(() => {
       expect(forkMocks.fork).toHaveBeenCalledWith({ conversation_id: 'conv-fork', message_id: 'msg-fork-1' });

@@ -147,11 +147,12 @@ const useFormatContent = (content: string) => {
   }, [content]);
 };
 
-const MessageText: React.FC<{ message: IMessageText; showCopyRow?: boolean; isLastMessage?: boolean }> = ({
-  message,
-  showCopyRow = true,
-  isLastMessage = false,
-}) => {
+const MessageText: React.FC<{
+  message: IMessageText;
+  showCopyRow?: boolean;
+  isLastMessage?: boolean;
+  hasForkAnchor?: boolean;
+}> = ({ message, showCopyRow = true, isLastMessage = false, hasForkAnchor = false }) => {
   const logos = useAgentLogos();
   // Filter think tags from content before rendering
   // 在渲染前过滤 think 标签
@@ -224,7 +225,10 @@ const MessageText: React.FC<{ message: IMessageText; showCopyRow?: boolean; isLa
   // Fork entry point: only when the agent declares the capability, and only on
   // messages the backend can actually fork at (any message for at_turn/codex,
   // the last message otherwise) — see `isForkEnabled`.
-  const showForkButton = isForkEnabled(conversationContext?.forkCapability, isLastMessage);
+  const showForkButton = isForkEnabled(conversationContext?.forkCapability, {
+    isLastMessage,
+    hasTurnAnchor: hasForkAnchor,
+  });
   const forkButton = showForkButton ? (
     <Tooltip content={t('messages.fork.action')}>
       <div

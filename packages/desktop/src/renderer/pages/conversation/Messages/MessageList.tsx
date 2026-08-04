@@ -225,6 +225,7 @@ const MessageItem: React.FC<{
   rowWidthClass: string;
   showCopyRow?: boolean;
   isLastMessage?: boolean;
+  hasForkAnchor?: boolean;
 }> = React.memo(
   HOC((props) => {
     const { message, highlighted, rowWidthClass } = props as {
@@ -257,17 +258,26 @@ const MessageItem: React.FC<{
       message,
       showCopyRow,
       isLastMessage,
+      hasForkAnchor,
     }: {
       message: TMessage;
       highlighted?: boolean;
       rowWidthClass: string;
       showCopyRow?: boolean;
       isLastMessage?: boolean;
+      hasForkAnchor?: boolean;
     }) => {
       const { t } = useTranslation();
       switch (message.type) {
         case 'text':
-          return <MessageText message={message} showCopyRow={showCopyRow} isLastMessage={isLastMessage}></MessageText>;
+          return (
+            <MessageText
+              message={message}
+              showCopyRow={showCopyRow}
+              isLastMessage={isLastMessage}
+              hasForkAnchor={hasForkAnchor}
+            ></MessageText>
+          );
         case 'tips':
           return <MessageTips message={message}></MessageTips>;
         case 'tool_call':
@@ -301,7 +311,8 @@ const MessageItem: React.FC<{
     prev.highlighted === next.highlighted &&
     prev.rowWidthClass === next.rowWidthClass &&
     prev.showCopyRow === next.showCopyRow &&
-    prev.isLastMessage === next.isLastMessage
+    prev.isLastMessage === next.isLastMessage &&
+    prev.hasForkAnchor === next.hasForkAnchor
 );
 
 const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }> = ({ emptySlot }) => {
@@ -486,6 +497,27 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
       return (item as TMessage).id;
     }
     return undefined;
+  }, [processedList]);
+
+  // Mirror of the server's fork-anchor resolution ("nearest backend_turn_id at
+  // or before the message"): a message is mid-history forkable once ANY message
+  // at-or-before it carries a turn anchor. Legacy/copied rows before the first
+  // anchor stay un-forkable and their entry is hidden instead of 422-ing.
+  const forkAnchoredIds = useMemo(() => {
+    const ids = new Set<string>();
+    let seenAnchor = false;
+    for (const item of processedList) {
+      if (
+        'type' in item &&
+        (item.type === 'file_summary' || item.type === 'tool_summary' || item.type === 'artifact')
+      ) {
+        continue;
+      }
+      const message = item as TMessage;
+      if (message.backend_turn_id) seenAnchor = true;
+      if (seenAnchor) ids.add(message.id);
+    }
+    return ids;
   }, [processedList]);
 
   // Use auto-scroll hook
@@ -696,6 +728,7 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
         rowWidthClass={rowWidthClass}
         showCopyRow={showCopyRow}
         isLastMessage={message.id === lastMessageId}
+        hasForkAnchor={forkAnchoredIds.has(message.id)}
       ></MessageItem>
     );
   };

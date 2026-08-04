@@ -7,10 +7,11 @@
 import React from 'react';
 
 /**
- * Conversation-fork glyph: a track that branches off with an up-right arrow
- * (the "continue in a new task" affordance). Hand-drawn because icon-park has
- * no branch-out-arrow shape; props mirror the icon-park subset our buttons
- * already pass (`size` / `fill` / `className`).
+ * Conversation-fork glyph (Codex-style): a track that splits into two arrows —
+ * a dominant up-right one (the new branch) and a smaller down-right one (the
+ * original continuing). Hand-drawn because icon-park has no branch-out-arrow
+ * shape; props mirror the icon-park subset our buttons already pass
+ * (`size` / `fill` / `className`).
  */
 const ForkBranchIcon: React.FC<{ size?: number | string; fill?: string; className?: string }> = ({
   size = 16,
@@ -29,12 +30,14 @@ const ForkBranchIcon: React.FC<{ size?: number | string; fill?: string; classNam
     className={className}
     aria-hidden='true'
   >
-    {/* the original track, continuing straight */}
-    <path d='M4 17h10' />
-    {/* the branch splitting off the track… */}
-    <path d='M9 17 19 7' />
-    {/* …ending in an up-right arrowhead */}
-    <path d='M13 7h6v6' />
+    {/* incoming track */}
+    <path d='M3 12h5' />
+    {/* dominant branch: up-right arrow */}
+    <path d='M8 12 18 5' />
+    <path d='M12 5h6v6' />
+    {/* original path: smaller down-right arrow */}
+    <path d='M8 12l7 7' />
+    <path d='M15 14v5h-5' />
   </svg>
 );
 

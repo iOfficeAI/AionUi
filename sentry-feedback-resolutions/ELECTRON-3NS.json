@@ -1,0 +1,32 @@
+{
+  "case": "ELECTRON-3NS",
+  "cluster": "window-controls",
+  "related_cases": [
+    "ELECTRON-3M7",
+    "ELECTRON-3KS",
+    "ELECTRON-3KN",
+    "ELECTRON-3KH",
+    "ELECTRON-3KG",
+    "ELECTRON-3KD",
+    "ELECTRON-3KC",
+    "ELECTRON-3KB",
+    "ELECTRON-3KA",
+    "ELECTRON-3K9",
+    "ELECTRON-3K6",
+    "ELECTRON-3K5",
+    "ELECTRON-3K4"
+  ],
+  "sentry_link": "https://iofficeai.sentry.io/issues/ELECTRON-3NS",
+  "status": "candidate-fixed",
+  "fixed_by": "per user (fix commit/version not yet located on main)",
+  "fix_version": "pending",
+  "verification": "user-confirmed fixed; exact fix commit/ship version to confirm",
+  "root_cause_summary": "Cluster of 14 feedback cases (zh/en/ja/es, Win11/macOS/Linux): top-right window controls (minimize/maximize/close) and right half of the titlebar unclickable, many say 'after upgrade/update'. Classic drag-region regression signature (-webkit-app-region: drag covering the controls) though the exact fix was not located in main's WindowControls.tsx/titlebar.css history.",
+  "evidence": "User stated this is already fixed. Renderer WindowControls.tsx uses ipcBridge.windowControls.* (min/max/close/isMaximized); titlebar.css sets .app-window-controls -webkit-app-region: no-drag. Fix not visible in main history of these files -> likely separate branch / native window-frame change / other file / unmerged.",
+  "fix_direction": "Confirm the exact fix commit and ship version; then move all 14 cluster cases to fixed/verified in ledger and resolve the Sentry issues.",
+  "diagnostics_changed": false,
+  "report_path": "feedback-diagnostics-db-json.md",
+  "ledger_sidecar": "feedback-diagnostics-db-json.ledger.json",
+  "updated_at": "2026-07-23T04:36:05Z",
+  "needs_report_reconcile": false
+}
