@@ -58,6 +58,9 @@ vi.mock('@/common', () => ({
       consumeInstallerLastFailure: { invoke: vi.fn().mockResolvedValue({ success: true, data: null }) },
       open: { on: vi.fn(() => vi.fn()) },
     },
+    systemSettings: {
+      getAutoUpdateCheckEnabled: { invoke: vi.fn(() => Promise.resolve(true)) },
+    },
     shell: {
       openExternal: { invoke: vi.fn() },
       openFile: { invoke: vi.fn() },

@@ -79,6 +79,7 @@ export const useUpdateNotificationController = () => {
   const stateRef = useRef(state);
   const restoreDownloadedPendingRef = useRef(true);
   const pendingAutoAvailableRef = useRef<AutoUpdateStatus | null>(null);
+  const autoUpdateCheckEnabledRef = useRef(true);
   const dispatch = useCallback((event: UpdateNotificationEvent) => {
     stateRef.current = reduceNotificationState(stateRef.current, event);
     dispatchState(event);
@@ -87,6 +88,15 @@ export const useUpdateNotificationController = () => {
   useEffect(() => {
     stateRef.current = state;
   }, [state]);
+
+  useEffect(() => {
+    void ipcBridge.systemSettings.getAutoUpdateCheckEnabled
+      .invoke()
+      .then((enabled) => {
+        autoUpdateCheckEnabledRef.current = enabled;
+      })
+      .catch(() => {});
+  }, []);
 
   const loadManualReleaseInfoForDisplay = useCallback(async () => {
     try {
@@ -275,6 +285,7 @@ export const useUpdateNotificationController = () => {
 
       switch (evt.status) {
         case 'available':
+          if (!autoUpdateCheckEnabledRef.current) break;
           if (restoreDownloadedPendingRef.current) {
             pendingAutoAvailableRef.current = evt;
             break;

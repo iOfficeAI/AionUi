@@ -1280,6 +1280,10 @@ export const theme = {
 export const systemSettings = {
   getCloseToTray: bridge.buildProvider<boolean, void>('system-settings:get-close-to-tray'),
   setCloseToTray: bridge.buildProvider<void, { enabled: boolean }>('system-settings:set-close-to-tray'),
+  getAutoUpdateCheckEnabled: bridge.buildProvider<boolean, void>('system-settings:get-auto-update-check-enabled'),
+  setAutoUpdateCheckEnabled: bridge.buildProvider<void, { enabled: boolean }>(
+    'system-settings:set-auto-update-check-enabled'
+  ),
   getNotificationEnabled: httpGetClientSetting<boolean>('notificationEnabled'),
   setNotificationEnabled: httpPut<void, { enabled: boolean }>('/api/settings/client', (p) => ({
     notificationEnabled: p.enabled,

@@ -78,6 +78,9 @@ vi.mock('@/common', () => ({
         }),
       },
     },
+    systemSettings: {
+      getAutoUpdateCheckEnabled: { invoke: vi.fn(() => Promise.resolve(true)) },
+    },
     shell: {
       openExternal: { invoke: mocks.shellOpenExternalMock },
       openFile: { invoke: mocks.shellOpenFileMock },

@@ -320,6 +320,8 @@
   "startOnBootUnsupported": "Available only in packaged macOS and Windows apps.",
   "startOnBootUpdateFailed": "Failed to update start on boot setting",
   "closeToTray": "Close to Tray",
+  "autoUpdateCheck": "Automatic Update Checks",
+  "autoUpdateCheckDesc": "Automatically check for new versions on startup. You can still check manually from the About page.",
   "hardwareAcceleration": "Hardware Acceleration",
   "hardwareAccelerationDesc": "Use the GPU to render the UI. Disable if the app crashes on launch or graphics flicker.",
   "hardwareAccelerationAutoDisabled": "Disabled automatically after repeated GPU crashes.",

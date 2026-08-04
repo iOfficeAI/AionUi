@@ -532,10 +532,14 @@ const createWindow = ({ showOnReady = true }: { showOnReady?: boolean } = {}): v
         autoUpdaterService.setBeforeQuitAndInstall(async () => {
           await backendManager.stop();
         });
-        // Check for updates after 3 seconds delay
+        // Check for updates after 3 seconds delay (unless the user disabled it)
         // 3秒后检查更新
         setTimeout(() => {
-          void autoUpdaterService.checkForUpdatesAndNotify();
+          void ProcessConfig.get('system.autoUpdateCheckEnabled').then((enabled) => {
+            if (enabled !== false) {
+              void autoUpdaterService.checkForUpdatesAndNotify();
+            }
+          });
         }, 3000);
       })
       .catch((error) => {

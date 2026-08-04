@@ -45,6 +45,8 @@ export interface IConfigStorageRefer {
   'upload.saveToWorkspace'?: boolean;
   // 关闭窗口时最小化到系统托盘 / Minimize to system tray when closing window
   'system.closeToTray'?: boolean;
+  // Automatically check for updates on startup
+  'system.autoUpdateCheckEnabled'?: boolean;
   // 任务完成时显示系统通知 / Show system notification when task completes
   'system.notificationEnabled'?: boolean;
   // 定时任务完成时显示系统通知 / Show system notification when scheduled task completes

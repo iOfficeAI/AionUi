@@ -75,6 +75,8 @@ vi.mock('@/common', () => ({
     systemSettings: {
       getCloseToTray: { invoke: vi.fn(() => Promise.resolve(false)) },
       setCloseToTray: { invoke: vi.fn(() => Promise.resolve()) },
+      getAutoUpdateCheckEnabled: { invoke: vi.fn(() => Promise.resolve(true)) },
+      setAutoUpdateCheckEnabled: { invoke: vi.fn(() => Promise.resolve()) },
     },
     dialog: {
       showOpen: { invoke: showOpenMock },
