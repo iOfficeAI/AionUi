@@ -15,6 +15,20 @@
   "languageToggle": "Dili değiştir",
   "footerPrimary": "Komut satırı AI'nızı dönüştürün",
   "footerSecondary": "Modern ve Verimli",
+  "lark": {
+    "title": "Feishu ile giriş yap",
+    "instruction": "Telefonunuzda Feishu'yu açın, QR kodunu tarayın ve yetkilendirmeyi onaylayın",
+    "loading": "QR kodu oluşturuluyor...",
+    "qrCodeLabel": "Feishu giriş QR kodu",
+    "waiting": "Telefonda onay bekleniyor...",
+    "expired": "Bu QR kodunun süresi doldu",
+    "refresh": "QR kodunu yenile",
+    "errors": {
+      "networkError": "GEA'ya bağlanılamıyor. Lütfen tekrar deneyin",
+      "serverError": "GEA giriş hizmeti geçici olarak kullanılamıyor",
+      "invalidResponse": "GEA geçersiz bir giriş yanıtı döndürdü"
+    }
+  },
   "errors": {
     "empty": "Lütfen kullanıcı adı ve şifre girin",
     "invalidCredentials": "Geçersiz kullanıcı adı veya şifre",

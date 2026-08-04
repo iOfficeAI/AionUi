@@ -14,8 +14,20 @@ import { getGpuStatus, setGpuUserOverride } from '@process/utils/gpuRecovery';
 import { initApplicationBridgeCore } from './applicationBridgeCore';
 import type { IStartOnBootStatus } from '@/common/adapter/ipcBridge';
 import { restartApplication } from './restartApplication';
+import { LarkAuthService, LarkAuthServiceError } from '@process/services/LarkAuthService';
+import type { LarkAuthErrorCode, LarkAuthResult } from '@/common/types/platform/larkAuth';
 
 let mainWindowRef: BrowserWindow | null = null;
+const larkAuthService = new LarkAuthService();
+
+const withLarkAuthResult = async <T>(operation: () => Promise<T> | T): Promise<LarkAuthResult<T>> => {
+  try {
+    return { success: true, data: await operation() };
+  } catch (error) {
+    const code: LarkAuthErrorCode = error instanceof LarkAuthServiceError ? error.code : 'serverError';
+    return { success: false, code };
+  }
+};
 
 const START_ON_BOOT_UNSUPPORTED_MESSAGE = 'Start on boot is only available in packaged macOS and Windows apps.';
 export const START_ON_BOOT_WINDOWS_ARG = '--start-on-boot';
@@ -98,6 +110,18 @@ export function setApplicationMainWindow(win: BrowserWindow): void {
 export function initApplicationBridge(): void {
   // Platform-agnostic handlers: systemInfo, updateSystemInfo, getPath
   initApplicationBridgeCore();
+
+  ipcBridge.larkAuth.createQrSession.provider(() => withLarkAuthResult(() => larkAuthService.createQrSession()));
+  ipcBridge.larkAuth.pollQrSession.provider(({ qrcodeId }) =>
+    withLarkAuthResult(() => larkAuthService.pollQrSession(qrcodeId))
+  );
+  ipcBridge.larkAuth.status.provider(() => withLarkAuthResult(() => larkAuthService.getStatus()));
+  ipcBridge.larkAuth.logout.provider(() =>
+    withLarkAuthResult(() => {
+      larkAuthService.logout();
+      return larkAuthService.getStatus();
+    })
+  );
 
   ipcBridge.application.restart.provider(async () => {
     // Backend subprocess shutdown is handled by backendManager.stop() in the

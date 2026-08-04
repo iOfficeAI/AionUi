@@ -15,6 +15,20 @@
   "languageToggle": "切換語言",
   "footerPrimary": "命令列 AI 的現代化體驗",
   "footerSecondary": "高效且優雅",
+  "lark": {
+    "title": "飛書掃碼登入",
+    "instruction": "使用手機飛書掃描 QR Code 並確認授權",
+    "loading": "正在產生 QR Code...",
+    "qrCodeLabel": "飛書登入 QR Code",
+    "waiting": "等待手機確認...",
+    "expired": "QR Code 已過期",
+    "refresh": "重新整理 QR Code",
+    "errors": {
+      "networkError": "無法連線至 GEA，請重試",
+      "serverError": "GEA 登入服務暫時無法使用",
+      "invalidResponse": "GEA 傳回的登入資料格式異常"
+    }
+  },
   "errors": {
     "empty": "請輸入使用者名稱與密碼",
     "invalidCredentials": "使用者名稱或密碼錯誤",

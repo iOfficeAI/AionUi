@@ -15,6 +15,20 @@
   "languageToggle": "Change language",
   "footerPrimary": "Transform your command-line AI",
   "footerSecondary": "Modern & Efficient",
+  "lark": {
+    "title": "Sign in with Feishu",
+    "instruction": "Open Feishu on your phone, scan the QR code, and confirm authorization",
+    "loading": "Generating QR code...",
+    "qrCodeLabel": "Feishu sign-in QR code",
+    "waiting": "Waiting for confirmation on your phone...",
+    "expired": "This QR code has expired",
+    "refresh": "Refresh QR code",
+    "errors": {
+      "networkError": "Unable to connect to GEA. Please try again",
+      "serverError": "The GEA sign-in service is temporarily unavailable",
+      "invalidResponse": "GEA returned an invalid sign-in response"
+    }
+  },
   "errors": {
     "empty": "Please enter username and password",
     "invalidCredentials": "Invalid username or password",

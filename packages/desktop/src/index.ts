@@ -57,6 +57,7 @@ import {
   showOrCreateMainWindow,
 } from './process/utils/mainWindowLifecycle';
 import {
+  createWebHostLarkAuth,
   loadUserWebUIConfig,
   resolveRemoteAccess,
   resolveWebUIPort,
@@ -841,6 +842,7 @@ const handleAppReady = async (): Promise<void> => {
             return port;
           })(),
         },
+        larkAuth: createWebHostLarkAuth(),
       });
       console.log(`[WebUI] Headless server started (port=${handle.port}, backendPort=${handle.backendPort})`);
     } catch (err) {

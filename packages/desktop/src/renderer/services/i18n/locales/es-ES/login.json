@@ -15,6 +15,20 @@
   "languageToggle": "Cambiar idioma",
   "footerPrimary": "Transforma tu IA de línea de comandos",
   "footerSecondary": "Moderno y eficiente",
+  "lark": {
+    "title": "Iniciar sesión con Feishu",
+    "instruction": "Abre Feishu en tu teléfono, escanea el código QR y confirma la autorización",
+    "loading": "Generando código QR...",
+    "qrCodeLabel": "Código QR de inicio de sesión de Feishu",
+    "waiting": "Esperando la confirmación en tu teléfono...",
+    "expired": "Este código QR ha caducado",
+    "refresh": "Actualizar código QR",
+    "errors": {
+      "networkError": "No se puede conectar con GEA. Inténtalo de nuevo",
+      "serverError": "El servicio de inicio de sesión de GEA no está disponible temporalmente",
+      "invalidResponse": "GEA devolvió una respuesta de inicio de sesión no válida"
+    }
+  },
   "errors": {
     "empty": "Ingresa usuario y contraseña",
     "invalidCredentials": "Usuario o contraseña inválidos",

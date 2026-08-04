@@ -15,6 +15,20 @@
   "languageToggle": "Sprache ändern",
   "footerPrimary": "Verwandle deine Kommandozeilen-KI",
   "footerSecondary": "Modern & Effizient",
+  "lark": {
+    "title": "Mit Feishu anmelden",
+    "instruction": "Öffne Feishu auf deinem Smartphone, scanne den QR-Code und bestätige die Autorisierung",
+    "loading": "QR-Code wird erstellt...",
+    "qrCodeLabel": "Feishu-Anmelde-QR-Code",
+    "waiting": "Warten auf Bestätigung am Smartphone...",
+    "expired": "Dieser QR-Code ist abgelaufen",
+    "refresh": "QR-Code aktualisieren",
+    "errors": {
+      "networkError": "Verbindung zu GEA fehlgeschlagen. Bitte erneut versuchen",
+      "serverError": "Der GEA-Anmeldedienst ist vorübergehend nicht verfügbar",
+      "invalidResponse": "GEA hat eine ungültige Anmeldeantwort zurückgegeben"
+    }
+  },
   "errors": {
     "empty": "Bitte Benutzername und Passwort eingeben",
     "invalidCredentials": "Ungültiger Benutzername oder Passwort",
