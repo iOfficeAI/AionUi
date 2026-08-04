@@ -14,6 +14,7 @@ import {
   buildTeamStopHandler,
   buildTeamWorkStatusText,
 } from './teamSendRuntime';
+import type { TeamSendBoxRuntime } from './teamSendRuntime';
 import type { TeamRunViewState } from '../hooks/useTeamRunView';
 import TeamChatEmptyState from './TeamChatEmptyState';
 import { usePresetAssistantInfo } from '@/renderer/hooks/agent/usePresetAssistantInfo';
@@ -206,6 +207,25 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({
         sessionStopped: () => t('team.work.sessionStopped', { defaultValue: 'The team session has stopped.' }),
       });
   const isRuntimeFailed = slot_id ? slotWork?.blocked_reason === 'runtime_failed' : false;
+  const interruptAndSend =
+    team_id && slot_id && !isLeader && slotWork?.active_turn_id
+      ? async ({ input, files }: Parameters<NonNullable<TeamSendBoxRuntime['onInterruptSend']>>[0]) => {
+          try {
+            await ipcBridge.team.interruptAgent.invoke({
+              team_id,
+              slot_id,
+              input,
+              files,
+              reason: 'leader_intervention',
+              queued_policy: 'retain',
+            });
+          } catch (error) {
+            console.error('[TeamChatView] interrupt agent failed', error);
+            Message.error(t('team.interruptAgentFailed'));
+            throw error;
+          }
+        }
+      : undefined;
   const teamRuntime =
     team_id && slot_id
       ? {
@@ -230,6 +250,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({
           // Only offer "retry start" when this slot's runtime failed; it triggers
           // a directed per-member attach (not warmupSession/ensure_session).
           onRetryStart: isRuntimeFailed ? buildTeamRetryStartHandler({ team_id, slot_id }) : undefined,
+          onInterruptSend: interruptAndSend,
         }
       : undefined;
   const content = (() => {

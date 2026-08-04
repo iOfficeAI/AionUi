@@ -2,6 +2,7 @@ import { ipcBridge } from '@/common';
 import { isBackendHttpError } from '@/common/adapter/httpBridge';
 import type { ConversationCommandQueueRuntimeGate } from '@/renderer/pages/conversation/platforms/useConversationCommandQueue';
 import type { ITeamSlotWork, TeamSlotBlockedReason } from '@/common/types/team/teamTypes';
+import type { ChatFileRef } from '@/common/types/chatFile';
 import type { TeamRunViewState } from '../hooks/useTeamRunView';
 
 export type TeamSendBoxRuntime = {
@@ -11,6 +12,7 @@ export type TeamSendBoxRuntime = {
   statusText?: string;
   startedAtMs: number | null;
   onStop?: () => Promise<void>;
+  onInterruptSend?: (payload: { input: string; files: ChatFileRef[] }) => Promise<void>;
   /**
    * Present only when the slot is in `runtime_failed`; triggers a directed
    * per-member attach retry (NOT warmupSession/ensure_session).

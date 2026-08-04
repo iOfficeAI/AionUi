@@ -2466,6 +2466,8 @@ export type I18nKey =
   | 'team.emptyState.suggestions.debate'
   | 'team.emptyState.suggestions.expert_review'
   | 'team.emptyState.suggestions.interview'
+  | 'team.interruptAgentFailed'
+  | 'team.interruptAndSend'
   | 'team.newAgent'
   | 'team.noMessages'
   | 'team.removeAgent.confirmContent'

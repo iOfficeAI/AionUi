@@ -117,6 +117,8 @@
     "retry": "Retry"
   },
   "reorderMember": "ドラッグしてメンバーの順序を変更",
+  "interruptAndSend": "中断して送信",
+  "interruptAgentFailed": "エージェントの中断に失敗しました。もう一度お試しください。",
   "clearCommand": {
     "member": "このメンバーのコンテキストをクリア",
     "leader": "メンバーのコンテキストをクリア: /clear <メンバー名>"

@@ -152,6 +152,10 @@ const AssistantChatSlot: React.FC<{
   const initialModelId = (conversation?.extra as { current_model_id?: string })?.current_model_id;
   const isAcpLike = conversation?.type === 'acp' || isAcpLikeBackend(assistant.assistant_backend);
   const cronJobId = resolveCronJobId(conversation?.extra);
+  const handleTeamModelChange = useCallback(
+    (model_id: string) => ipcBridge.team.updateAgentModel.invoke({ team_id, slot_id: assistant.slot_id, model_id }),
+    [assistant.slot_id, team_id]
+  );
   // Reuse the existing single-teammate attach/warmup path; withhold the trigger
   // while the whole team is warming so manual wake is gated by phase.
   const warmup = useMemo<{ status: AcpWarmupStatus; trigger?: () => Promise<void> }>(
@@ -187,6 +191,7 @@ const AssistantChatSlot: React.FC<{
                 initialModelId={initialModelId}
                 prepareSetRuntime={teamPermission?.warmupSession}
                 loadConfigOptions={teamPermission?.loadConfigOptions}
+                onModelChange={handleTeamModelChange}
                 warmup={warmup}
               />
             </div>

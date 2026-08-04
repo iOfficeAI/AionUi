@@ -117,6 +117,8 @@
     "retry": "Retry"
   },
   "reorderMember": "Drag to reorder member",
+  "interruptAndSend": "Interrupt & send",
+  "interruptAgentFailed": "Failed to interrupt this agent. Please try again.",
   "clearCommand": {
     "member": "Clear this member's context",
     "leader": "Clear a member's context: /clear <member name>"

@@ -219,6 +219,35 @@ describe('AcpModelSelector runtime options', () => {
     expect(useAcpModelInfoMock).toHaveBeenCalledWith(expect.objectContaining({ prepareSetRuntime }));
   });
 
+  it('persists an observed team model before reporting selection success', async () => {
+    let resolvePersistence: (() => void) | undefined;
+    const persistence = new Promise<void>((resolve) => {
+      resolvePersistence = resolve;
+    });
+    const onModelChange = vi.fn(() => persistence);
+    render(<AcpModelSelector conversation_id='conversation-1' backend='codex' onModelChange={onModelChange} />);
+    const hookArgs = useAcpModelInfoMock.mock.calls[0][0];
+
+    const success = hookArgs.onSelectModelSuccess('gpt-5.6-sol');
+    await waitFor(() => expect(onModelChange).toHaveBeenCalledWith('gpt-5.6-sol'));
+    expect(messageSuccessMock).not.toHaveBeenCalled();
+
+    resolvePersistence?.();
+    await success;
+    expect(messageSuccessMock).toHaveBeenCalledWith('agent.model.switchSuccess');
+  });
+
+  it('does not report success when team model persistence fails', async () => {
+    const persistenceError = new Error('team persistence failed');
+    const onModelChange = vi.fn().mockRejectedValue(persistenceError);
+    render(<AcpModelSelector conversation_id='conversation-1' backend='codex' onModelChange={onModelChange} />);
+    const hookArgs = useAcpModelInfoMock.mock.calls[0][0];
+
+    await expect(hookArgs.onSelectModelSuccess('gpt-5.6-sol')).rejects.toBe(persistenceError);
+
+    expect(messageSuccessMock).not.toHaveBeenCalled();
+  });
+
   it('shows the model submenu before the thought level submenu, each with its current value', () => {
     render(<AcpModelSelector conversation_id='conversation-1' backend='codex' />);
 

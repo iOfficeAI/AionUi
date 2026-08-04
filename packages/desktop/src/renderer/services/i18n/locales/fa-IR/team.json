@@ -117,6 +117,8 @@
     "retry": "Retry"
   },
   "reorderMember": "برای تغییر ترتیب عضو بکشید",
+  "interruptAndSend": "توقف و ارسال",
+  "interruptAgentFailed": "توقف عامل ناموفق بود. دوباره تلاش کنید.",
   "clearCommand": {
     "member": "پاک کردن زمینه این عضو",
     "leader": "پاک کردن زمینه یک عضو: /clear <نام عضو>"

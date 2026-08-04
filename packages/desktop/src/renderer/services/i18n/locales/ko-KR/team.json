@@ -117,6 +117,8 @@
     "retry": "Retry"
   },
   "reorderMember": "드래그하여 멤버 순서 변경",
+  "interruptAndSend": "중단하고 보내기",
+  "interruptAgentFailed": "에이전트를 중단하지 못했습니다. 다시 시도하세요.",
   "clearCommand": {
     "member": "이 멤버의 컨텍스트 지우기",
     "leader": "멤버 컨텍스트 지우기: /clear <멤버 이름>"

@@ -117,6 +117,8 @@
     "retry": "Retry"
   },
   "reorderMember": "Arrastra para reordenar el miembro",
+  "interruptAndSend": "Interrumpir y enviar",
+  "interruptAgentFailed": "No se pudo interrumpir al agente. Inténtalo de nuevo.",
   "clearCommand": {
     "member": "Borrar el contexto de este miembro",
     "leader": "Borrar el contexto de un miembro: /clear <nombre del miembro>"

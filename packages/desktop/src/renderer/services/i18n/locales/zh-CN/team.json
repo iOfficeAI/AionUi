@@ -117,6 +117,8 @@
     "retry": "重试"
   },
   "reorderMember": "拖动以调整成员顺序",
+  "interruptAndSend": "打断并发送",
+  "interruptAgentFailed": "打断成员失败，请重试。",
   "clearCommand": {
     "member": "清空该成员的上下文",
     "leader": "清空指定成员的上下文:/clear <成员名>"

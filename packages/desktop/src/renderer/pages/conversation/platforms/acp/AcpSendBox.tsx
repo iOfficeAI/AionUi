@@ -44,8 +44,8 @@ import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { localSelectionItems, mergeFileSelectionItems } from '@/renderer/utils/file/fileSelection';
 import { collectChatFileRefs, splitChatFileRefs } from '@/renderer/utils/file/messageFiles';
 import type { ChatFileRef } from '@/common/types/chatFile';
-import { Message, Tag } from '@arco-design/web-react';
-import { Brain, MagicHat, Shield } from '@icon-park/react';
+import { Button, Message, Tag } from '@arco-design/web-react';
+import { Brain, Lightning, MagicHat, Shield } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { classifyConversationBusyError } from '../conversationBusyError';
@@ -434,6 +434,22 @@ Please check your local CLI tool authentication status`,
     await executeCommand({ input: message, files: allFiles });
   };
 
+  const [interrupting, setInterrupting] = useState(false);
+  const handleInterruptSend = async () => {
+    if (!teamRuntime?.onInterruptSend || !content.trim() || interrupting) return;
+    const files = collectChatFileRefs(uploadFile, atPath);
+    const input = content;
+    setContent('');
+    clearFiles();
+    emitter.emit('acp.selected.file.clear');
+    setInterrupting(true);
+    try {
+      await teamRuntime.onInterruptSend({ input, files });
+    } finally {
+      setInterrupting(false);
+    }
+  };
+
   const handleEditQueuedCommand = useCallback(
     (item: ConversationCommandQueueItem) => {
       remove(item.id);
@@ -812,9 +828,22 @@ Please check your local CLI tool authentication status`,
           // ring; agents reporting only a token count get a hollow ring whose
           // popover shows the raw count — never a percentage against a
           // guessed denominator. No usage report at all → nothing.
-          tokenUsage ? (
-            <ContextUsageIndicator tokenUsage={tokenUsage} context_limit={context_limit} size={24} />
-          ) : undefined
+          <>
+            {teamRuntime?.onInterruptSend && content.trim() && (
+              <Button
+                size='mini'
+                type='secondary'
+                icon={<Lightning />}
+                loading={interrupting}
+                onClick={() => void handleInterruptSend()}
+              >
+                {t('team.interruptAndSend')}
+              </Button>
+            )}
+            {tokenUsage ? (
+              <ContextUsageIndicator tokenUsage={tokenUsage} context_limit={context_limit} size={24} />
+            ) : undefined}
+          </>
         }
       ></SendBox>
       {isMobile && (

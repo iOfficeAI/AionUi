@@ -69,10 +69,12 @@ import type {
   ITeamTaskChangedEvent,
   ICancelTeamChildTurnParams,
   ICancelTeamRunParams,
+  IInterruptTeamAgentParams,
   IPauseTeamSlotParams,
   ISendTeamAgentMessageParams,
   ISendTeamMessageParams,
   ITeamTeammateMessageEvent,
+  ITeamInterruptAgentResponse,
   TTeam,
   TeamAssistant,
 } from '../types/team/teamTypes';
@@ -2018,6 +2020,10 @@ export const team = {
     (p) => `/api/teams/${p.team_id}/agents/${p.slot_id}/name`,
     (p) => ({ name: p.new_name })
   ),
+  updateAgentModel: httpPatch<void, { team_id: string; slot_id: string; model_id: string }>(
+    (p) => `/api/teams/${p.team_id}/agents/${p.slot_id}/model`,
+    (p) => ({ model_id: p.model_id })
+  ),
   renameTeam: httpPatch<void, { id: string; name: string }>(
     (p) => `/api/teams/${p.id}/name`,
     (p) => ({ name: p.name })
@@ -2039,6 +2045,15 @@ export const team = {
     (p) => ({
       content: p.input,
       files: p.files,
+    })
+  ),
+  interruptAgent: httpPost<ITeamInterruptAgentResponse, IInterruptTeamAgentParams>(
+    (p) => `/api/teams/${p.team_id}/agents/${p.slot_id}/interrupt`,
+    (p) => ({
+      message: p.input,
+      files: p.files,
+      reason: p.reason,
+      queued_policy: p.queued_policy ?? 'retain',
     })
   ),
   attachAgent: httpPost<void, { team_id: string; slot_id: string }>(

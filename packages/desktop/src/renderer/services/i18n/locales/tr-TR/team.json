@@ -117,6 +117,8 @@
     "retry": "Retry"
   },
   "reorderMember": "Üye sırasını değiştirmek için sürükleyin",
+  "interruptAndSend": "Kes ve gönder",
+  "interruptAgentFailed": "Aracı kesme başarısız oldu. Lütfen tekrar deneyin.",
   "clearCommand": {
     "member": "Bu üyenin bağlamını temizle",
     "leader": "Bir üyenin bağlamını temizle: /clear <üye adı>"

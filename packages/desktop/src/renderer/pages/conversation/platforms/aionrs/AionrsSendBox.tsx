@@ -47,8 +47,8 @@ import type { SlashCommandItem } from '@/common/chat/slash/types';
 import { localSelectionItems, mergeFileSelectionItems } from '@/renderer/utils/file/fileSelection';
 import { collectChatFileRefs, splitChatFileRefs } from '@/renderer/utils/file/messageFiles';
 import type { AgentModeOption } from '@/renderer/utils/model/agentTypes';
-import { Message, Tag } from '@arco-design/web-react';
-import { Brain, MagicHat, Shield } from '@icon-park/react';
+import { Button, Message, Tag } from '@arco-design/web-react';
+import { Brain, Lightning, MagicHat, Shield } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { classifyConversationBusyError } from '../conversationBusyError';
@@ -403,6 +403,22 @@ const AionrsSendBox: React.FC<{
     }
 
     await executeCommand({ input: message, files: filesToSend });
+  };
+
+  const [interrupting, setInterrupting] = useState(false);
+  const handleInterruptSend = async () => {
+    if (!teamRuntime?.onInterruptSend || !content.trim() || interrupting) return;
+    const files = collectChatFileRefs(uploadFile, atPath);
+    const input = content;
+    setContent('');
+    clearFiles();
+    emitter.emit('aionrs.selected.file.clear');
+    setInterrupting(true);
+    try {
+      await teamRuntime.onInterruptSend({ input, files });
+    } finally {
+      setInterrupting(false);
+    }
   };
 
   const handleEditQueuedCommand = useCallback(
@@ -809,6 +825,19 @@ const AionrsSendBox: React.FC<{
         extraSlashCommands={extraSlashCommands}
         onSlashBuiltinCommand={onSlashBuiltinCommand}
         allowSendWhileLoading
+        sendButtonPrefix={
+          teamRuntime?.onInterruptSend && content.trim() ? (
+            <Button
+              size='mini'
+              type='secondary'
+              icon={<Lightning />}
+              loading={interrupting}
+              onClick={() => void handleInterruptSend()}
+            >
+              {t('team.interruptAndSend')}
+            </Button>
+          ) : undefined
+        }
       />
       {isMobile && (
         <>

@@ -69,6 +69,8 @@
     }
   },
   "reorderMember": "Faites glisser pour réorganiser le membre",
+  "interruptAndSend": "Interrompre et envoyer",
+  "interruptAgentFailed": "Impossible d’interrompre l’agent. Veuillez réessayer.",
   "clearCommand": {
     "member": "Effacer le contexte de ce membre",
     "leader": "Effacer le contexte d'un membre : /clear <nom du membre>"
