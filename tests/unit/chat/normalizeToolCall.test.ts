@@ -92,4 +92,43 @@ describe('normalizeAcpToolCall', () => {
     expect(normalized[0].output).toContain('...[truncated]');
     expect(normalized[0].truncated).toBe(true);
   });
+
+  it('preserves Codex image generation paths for grouped tool summaries', () => {
+    const imagePath = String.raw`C:\Users\test\.codex\generated_images\session\image.png`;
+    const normalized = normalizeToolMessages([
+      {
+        id: 'image-call',
+        conversation_id: 'conv-1',
+        type: 'tool_call',
+        content: {
+          call_id: 'image-call',
+          name: 'imageGeneration',
+          args: {},
+          status: 'completed',
+          output: imagePath,
+        },
+      },
+    ]);
+
+    expect(normalized[0].imagePath).toBe(imagePath);
+  });
+
+  it('does not treat non-image tool output as a local image', () => {
+    const normalized = normalizeToolMessages([
+      {
+        id: 'shell-call',
+        conversation_id: 'conv-1',
+        type: 'tool_call',
+        content: {
+          call_id: 'shell-call',
+          name: 'Shell',
+          args: {},
+          status: 'completed',
+          output: String.raw`C:\Users\test\notes.png`,
+        },
+      },
+    ]);
+
+    expect(normalized[0].imagePath).toBeUndefined();
+  });
 });

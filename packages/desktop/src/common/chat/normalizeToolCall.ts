@@ -188,6 +188,15 @@ export function normalizeAcpToolCall(message: IMessageAcpToolCall): NormalizedTo
 
 // ===== tool_call → NormalizedToolCall =====
 
+const LOCAL_IMAGE_PATH_RE = /\.(?:png|jpe?g|webp|gif)$/i;
+
+const getToolCallImagePath = (name: string, output?: string): string | undefined => {
+  if (name !== 'imageGeneration' || !output) return undefined;
+  const path = output.trim();
+  const isAbsoluteLocalPath = /^[A-Za-z]:[\\/]/.test(path) || path.startsWith('\\\\') || path.startsWith('/');
+  return isAbsoluteLocalPath && LOCAL_IMAGE_PATH_RE.test(path) ? path : undefined;
+};
+
 function normalizeToolCallStatus(status?: string): NormalizedToolStatus {
   switch (status) {
     case 'completed':
@@ -220,6 +229,7 @@ export function normalizeToolCall(message: IMessageToolCall): NormalizedToolCall
     description: description || undefined,
     input: displayInput,
     output,
+    imagePath: getToolCallImagePath(name, output),
   };
 }
 

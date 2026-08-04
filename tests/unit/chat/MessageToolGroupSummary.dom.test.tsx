@@ -53,7 +53,7 @@ vi.mock('@arco-design/web-react', async () => {
   };
 });
 
-describe('MessageToolGroupSummary ACP image output', () => {
+describe('MessageToolGroupSummary image output', () => {
   beforeEach(() => {
     mockDownloadFileFromPath.mockReset();
     mockDownloadFileFromPath.mockResolvedValue(undefined);
@@ -242,5 +242,27 @@ describe('MessageToolGroupSummary ACP image output', () => {
 
     expect(screen.queryByTestId('local-image')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('acp.image.download_aria')).not.toBeInTheDocument();
+  });
+
+  it('renders a Codex image generation result from a generic tool call', () => {
+    const imagePath = String.raw`C:\Users\test\.codex\generated_images\session\image.png`;
+    const message: IMessageToolCall = {
+      id: 'image-call',
+      conversation_id: 'conv-1',
+      type: 'tool_call',
+      content: {
+        call_id: 'image-call',
+        name: 'imageGeneration',
+        args: {},
+        status: 'completed',
+        output: imagePath,
+      },
+    };
+
+    render(<MessageToolGroupSummary messages={[message]} />);
+    fireEvent.click(screen.getByText('View Steps · 1'));
+
+    expect(screen.getByTestId('local-image')).toHaveAttribute('src', imagePath);
+    expect(screen.getByTestId('local-image')).toHaveAttribute('alt', 'image.png');
   });
 });
