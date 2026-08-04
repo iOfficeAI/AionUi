@@ -140,6 +140,50 @@ test.describe('Preview — oversized gate (Explorer entry point)', () => {
     await expect(panel).not.toContainText('xxxxxxxxxxxxxxxxxxxx');
   });
 
+  test('the oversized notice never compares a size to itself', async ({ page }) => {
+    /**
+     * `over-ceiling.md` is one byte over the limit — the smallest difference, and
+     * the case that produced "1 MB exceeds 1 MB". Two identical numbers read as a
+     * bug in the app rather than an explanation of the file, so the notice raises
+     * precision until they differ and falls back to "> <limit>" when no sane
+     * precision can separate them.
+     *
+     * Written as a positive check on the rendered sentence rather than a bare
+     * "does not contain": a plain negative assertion here would also pass if the
+     * notice failed to render at all, which is the classic way this kind of test
+     * ends up green while proving nothing.
+     */
+    test.setTimeout(120_000);
+    await goToGuid(page);
+    conversationId = await createProjectConversation(page, workspace);
+
+    await page.getByText('over-ceiling.md', { exact: true }).first().click();
+
+    const panel = page.locator(PREVIEW_PANEL);
+    await expect(panel).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByText(OVERSIZED_HEADING).first()).toBeVisible({ timeout: 10_000 });
+
+    // Pull the sentence out first, so a missing notice fails here rather than
+    // silently satisfying a negative assertion below.
+    const notice = (await panel.innerText()).replace(/\s+/g, ' ');
+    expect(notice).toMatch(/1 MB|1 兆|> /);
+
+    /**
+     * The failure being guarded against is a *bare* size that equals the limit —
+     * "1 MB exceeds 1 MB". A `>`-qualified size is the intended fallback and
+     * reads correctly even though the number matches, so strip those qualified
+     * mentions before comparing; otherwise this assertion fails on the very fix
+     * it is meant to verify.
+     */
+    const bareSizes =
+      notice.replace(/[>≥]\s*\d+(?:\.\d+)?\s*[KMGT]?B/gi, ' ').match(/\d+(?:\.\d+)?\s*[KMGT]?B/gi) ?? [];
+    const distinct = new Set(bareSizes.map((s) => s.replace(/\s+/g, '').toUpperCase()));
+    expect(
+      bareSizes.length < 2 || distinct.size > 1,
+      `oversized notice compares a size to itself: bare sizes=${JSON.stringify(bareSizes)} in "${notice.slice(0, 200)}"`
+    ).toBe(true);
+  });
+
   test('an oversized tab exposes no editor and no way to write the file back', async ({ page }) => {
     /**
      * This is the assertion L0 is really about. A notice is cosmetic; what
