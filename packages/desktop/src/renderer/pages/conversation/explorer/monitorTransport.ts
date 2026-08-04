@@ -13,9 +13,10 @@
 
 import { wsEmitter, wsSend } from '@/common/adapter/httpBridge';
 
-import type { DirRef, Entry } from './explorerModel';
+import { refToKey, type DirRef, type Entry } from './explorerModel';
 import type { SubscribeResult } from './explorerStore';
 import { applyMonitorNotification, configureExplorerStore, onReconnect } from './explorerStore';
+import { configurePreviewWatch, notifyPreviewWatchChange } from '../Preview/context/previewWatchStore';
 import type { MonitorTransport } from './monitorClient';
 import { MonitorClient } from './monitorClient';
 import {
@@ -48,8 +49,24 @@ type MonitorRequestResult = { snapshots: Array<{ target: DirRef; entries: Entry[
 export const dispatchMonitorNotification = (method: string, params: unknown): void => {
   if (method === 'fs/searchMatch') {
     applySearchMatch(params as SearchMatchParams);
-  } else {
-    applyMonitorNotification(method, params);
+    return;
+  }
+
+  applyMonitorNotification(method, params);
+
+  // Fan out directory changes to the preview panel as well.
+  //
+  // The panel subscribes to the directories holding its open files, which the
+  // explorer may or may not also be watching — the backend folds duplicate
+  // subscriptions into one watch, so both get the same delta over this one
+  // connection and it has to reach both consumers. Routing rather than a second
+  // connection: a `fs/delta` here is already the notification the panel needs.
+  //
+  // Only `fs/delta` carries "something changed"; `fs/snapshot` is the initial
+  // listing that arrives in the subscribe response, which is not a change.
+  if (method === 'fs/delta') {
+    const target = (params as { target?: DirRef } | undefined)?.target;
+    if (target) notifyPreviewWatchChange(refToKey(target));
   }
 };
 
@@ -76,6 +93,16 @@ export function initExplorerRuntime(): MonitorClient {
       const result = (await monitor.request('fs/subscribe', { targets: refs })) as MonitorRequestResult;
       return { snapshots: result.snapshots };
     },
+    unsubscribe: (refs: DirRef[]): void => {
+      monitor.notify('fs/unsubscribe', { targets: refs });
+    },
+  });
+
+  // The preview panel subscribes on its own behalf over this same client. It needs
+  // its own subscriptions because the explorer's track what is expanded on screen
+  // and drop on collapse, while a preview tab stays open regardless.
+  configurePreviewWatch({
+    subscribe: (refs: DirRef[]) => monitor.request('fs/subscribe', { targets: refs }),
     unsubscribe: (refs: DirRef[]): void => {
       monitor.notify('fs/unsubscribe', { targets: refs });
     },
