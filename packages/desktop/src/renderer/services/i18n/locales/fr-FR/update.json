@@ -30,7 +30,7 @@
   "errorTitle": "Échec de la mise à jour",
   "installerLastFailure": {
     "title": "La dernière mise à jour n'a pas été terminée",
-    "description": "AionUi n'a pas pu être fermé lors de la précédente mise à jour silencieuse. Vous pouvez réessayer la mise à jour, afficher le journal du programme d'installation ou envoyer des commentaires.",
+    "description": "GEAUi n'a pas pu être fermé lors de la précédente mise à jour silencieuse. Vous pouvez réessayer la mise à jour, afficher le journal du programme d'installation ou envoyer des commentaires.",
     "retryUpdate": "Réessayez la mise à jour",
     "viewLog": "Afficher le journal"
   },

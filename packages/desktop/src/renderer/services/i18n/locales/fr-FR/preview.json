@@ -79,7 +79,7 @@
       "outsideSandbox": "Ce fichier se trouve en dehors du bac à sable du projet actuel."
     },
     "serverInstall": {
-      "hint": "AionUi fonctionne sur un serveur. Installez le composant d'aperçu sur ce serveur, puis réessayez :",
+      "hint": "GEAUi fonctionne sur un serveur. Installez le composant d'aperçu sur ce serveur, puis réessayez :",
       "icuNote": "S'il ne démarre toujours pas, installez la bibliothèque ICU sur le serveur (Debian/Ubuntu : apt-get install -y libicu-dev)."
     }
   },

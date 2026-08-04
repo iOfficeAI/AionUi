@@ -658,7 +658,7 @@ jobs:
             out/*.msi
             out/*.dmg
             out/*.deb
-            out/AionUi-*-mac-*.zip
+            out/GEAUi-*-mac-*.zip
             out/*.yml
           if-no-files-found: warn
           retention-days: 7

@@ -13,7 +13,7 @@
     "error": "エラー",
     "unread": "新しい実行",
     "unconfigured": "スケジュールタスク未設定",
-    "defaultPrompt": "毎日午前10時に、最新のAIニュースを検索し、まとめてインサイトレポートを出力してください。（AionUi でスケジュールタスクを作成するには、/cron スキルを使用してください。）"
+    "defaultPrompt": "毎日午前10時に、最新のAIニュースを検索し、まとめてインサイトレポートを出力してください。（GEAUi でスケジュールタスクを作成するには、/cron スキルを使用してください。）"
   },
   "actions": {
     "goTo": "チャットを表示",
@@ -66,10 +66,10 @@
     "newTask": "新規タスク",
     "createViaChat": "チャットで作成",
     "createManually": "手動で作成",
-    "description": "タスクをスケジュールで自動実行できます。どの会話でも AionUi に依頼して定期タスクを作成することもできます。",
+    "description": "タスクをスケジュールで自動実行できます。どの会話でも GEAUi に依頼して定期タスクを作成することもできます。",
     "awakeBanner": "スケジュールタスクはコンピュータが起動している間のみ実行されます。",
     "keepAwake": "スリープを防止",
-    "keepAwakeTooltip": "有効にすると、AionUi がコンピュータのスリープを防止します",
+    "keepAwakeTooltip": "有効にすると、GEAUi がコンピュータのスリープを防止します",
     "createTask": "スケジュールタスクを作成",
     "editTask": "スケジュールタスクを編集",
     "createSuccess": "タスクが正常に作成されました",
@@ -120,7 +120,7 @@
       "selectFolder": "フォルダを選択",
       "clearFolder": "クリア",
       "model": "モデル",
-      "aionrsModelRequired": "Aion CLI のモデルを選択してください",
+      "aionrsModelRequired": "GEA CLI のモデルを選択してください",
       "aionrsNoProvider": "利用可能なモデルがありません",
       "assistantLockedExistingConversation": "同じ会話で実行するタスクは元のアシスタントを維持する必要があります。別のアシスタントを使うには新しいタスクを作成してください。",
       "teamTaskExecutionModeLockedReason": "Team のスケジュールタスクは所属する Team 会話で継続実行する必要があるため、実行モードは変更できません。"

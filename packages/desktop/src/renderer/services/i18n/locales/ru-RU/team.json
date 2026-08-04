@@ -40,7 +40,7 @@
     "subAgentsPlaceholder": "Выбрать ассистентов команды",
     "confirm": "Confirm Create",
     "noSupportedAgents": "Нет доступных поддерживаемых ассистентов",
-    "supportedAgentsHint": "Сейчас поддерживаются ассистенты Claude и Aion CLI. Другие ассистенты появятся позже.",
+    "supportedAgentsHint": "Сейчас поддерживаются ассистенты Claude и GEA CLI. Другие ассистенты появятся позже.",
     "leaderDesc": "Понимает ваши цели и координирует ассистентов для выполнения задач",
     "searchPlaceholder": "Search",
     "noSearchResults": "Ничего не найдено",

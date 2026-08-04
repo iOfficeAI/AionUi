@@ -40,7 +40,7 @@
     "subAgentsPlaceholder": "Select teammate assistants",
     "confirm": "Confirm Create",
     "noSupportedAgents": "No supported assistants available",
-    "supportedAgentsHint": "Currently supports Claude and Aion CLI assistants. More assistants coming soon.",
+    "supportedAgentsHint": "Currently supports Claude and GEA CLI assistants. More assistants coming soon.",
     "leaderDesc": "Understands your goals and coordinates assistants to complete tasks",
     "searchPlaceholder": "Search",
     "noSearchResults": "No results found",

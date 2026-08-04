@@ -1,10 +1,10 @@
 appId: com.aionui.app
-productName: AionUi
-executableName: AionUi
-copyright: Copyright © 2024 AionUi
+productName: GEAUi
+executableName: GEAUi
+copyright: Copyright © 2024 GEAUi
 
 protocols:
-  - name: AionUi Protocol
+  - name: GEAUi Protocol
     schemes:
       - aionui
 
@@ -169,15 +169,15 @@ linux:
   icon: resources/app.png
   artifactName: ${productName}-${version}-${os}-${arch}.${ext}
   category: Utility
-  maintainer: aionui
-  vendor: aionui
+  maintainer: GEAUi
+  vendor: GEAUi
   synopsis: ${description}
   description: ${description}
   desktop:
     entry:
-      Name: AionUi
+      Name: GEAUi
       Comment: ${description}
-      Icon: AionUi
+      Icon: GEAUi
       Categories: Office;Utility;
       MimeType: x-scheme-handler/aionui;
 

@@ -446,7 +446,7 @@ const WebuiModalContent: React.FC = () => {
                     void talkToButler({
                       prompt: t('settings.talkToButler.prompt.setupRemote', {
                         defaultValue:
-                          'Help me set up remote access so I can open AionUi from my phone or over the internet.',
+                          'Help me set up remote access so I can open GEAUi from my phone or over the internet.',
                       }),
                     })
                   }

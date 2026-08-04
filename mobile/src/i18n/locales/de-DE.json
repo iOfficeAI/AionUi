@@ -16,11 +16,11 @@
   },
   "connect": {
     "scanTitle": "QR-Code scannen",
-    "scanHint": "Öffne AionUi Desktop → Einstellungen → WebUI → QR-Code anzeigen",
+    "scanHint": "Öffne GEAUi Desktop → Einstellungen → WebUI → QR-Code anzeigen",
     "cameraPermissionTitle": "Kamerazugriff erforderlich",
-    "cameraPermissionMessage": "AionUi benötigt Kamerazugriff, um QR-Codes für die schnelle Server-Anmeldung zu scannen.",
+    "cameraPermissionMessage": "GEAUi benötigt Kamerazugriff, um QR-Codes für die schnelle Server-Anmeldung zu scannen.",
     "requestPermission": "Kamera erlauben",
-    "invalidQRCode": "Ungültiger QR-Code. Bitte scanne den QR-Code von AionUi Desktop.",
+    "invalidQRCode": "Ungültiger QR-Code. Bitte scanne den QR-Code von GEAUi Desktop.",
     "verifying": "Verifizieren...",
     "connectionFailed": "Verbindung fehlgeschlagen",
     "invalidToken": "Ungültiger oder abgelaufener Token",
@@ -29,7 +29,7 @@
     "pasteLinkHint": "Füge den QR-Code-Link vom Desktop ein",
     "urlPlaceholder": "Füge QR-Login-URL hier ein",
     "connect": "Verbinden",
-    "invalidURL": "Ungültige URL. Bitte füge den QR-Login-Link von AionUi Desktop ein."
+    "invalidURL": "Ungültige URL. Bitte füge den QR-Login-Link von GEAUi Desktop ein."
   },
   "tabs": {
     "chat": "Chat",

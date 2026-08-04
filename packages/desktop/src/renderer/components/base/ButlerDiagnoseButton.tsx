@@ -32,7 +32,7 @@ const ButlerDiagnoseButton: React.FC<ButlerDiagnoseButtonProps> = ({ errorText, 
       event.stopPropagation();
       const prompt = t('settings.talkToButler.prompt.diagnoseChatError', {
         defaultValue:
-          'I ran into an error during a conversation in AionUi, please help me diagnose it.\n\n[Error] {{error}}\n\nPlease diagnose the cause and tell me how to fix it.',
+          'I ran into an error during a conversation in GEAUi, please help me diagnose it.\n\n[Error] {{error}}\n\nPlease diagnose the cause and tell me how to fix it.',
         error: errorText.trim(),
       });
       talkToButler({ prompt }).catch((err) => {

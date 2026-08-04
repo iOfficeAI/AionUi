@@ -12,10 +12,10 @@
     "clearWorkspace": "Видалити проєкт",
     "openFolder": "Відкрити папку",
     "none": "Немає",
-    "quickActionsTitle": "Що вміє AionUi?",
+    "quickActionsTitle": "Що вміє GEAUi?",
     "quickActionFeedback": "Повідомити про проблему",
     "quickActionStar": "Подобається? Поставте нам зірку!",
-    "skillsMarket": "Маркет навичок AionUi",
+    "skillsMarket": "Маркет навичок GEAUi",
     "skillsMarketDesc": "Шукайте та активуйте навички спільноти за запитом. Налаштуйте один раз — доступно для всіх агентів.",
     "skillsMarketDetails": "Докладніше >>"
   },
@@ -306,7 +306,7 @@
       },
       "MCP_HTTP_RESPONSE_READ_FAILED": {
         "title": "Failed to read the team helper response",
-        "body": "AionUi could not read the local team helper response. Retry once, and if it keeps happening, restart the app."
+        "body": "GEAUi could not read the local team helper response. Retry once, and if it keeps happening, restart the app."
       },
       "MCP_TOOL_REMOTE_ERROR": {
         "title": "The local team helper rejected the request",
@@ -314,11 +314,11 @@
       },
       "MCP_TOOL_RESPONSE_UNEXPECTED": {
         "title": "The team helper returned an unexpected response",
-        "body": "AionUi received an unexpected response from the local team helper. Retry once, and report it if the problem persists."
+        "body": "GEAUi received an unexpected response from the local team helper. Retry once, and report it if the problem persists."
       },
       "MCP_TCP_READ_FAILED": {
         "title": "Failed to read from the local team helper",
-        "body": "AionUi could not read the local team helper TCP response. Retry once, and restart the app if it keeps failing."
+        "body": "GEAUi could not read the local team helper TCP response. Retry once, and restart the app if it keeps failing."
       },
       "TEAM_SERVICE_UNAVAILABLE": {
         "title": "Team service is not ready yet",
