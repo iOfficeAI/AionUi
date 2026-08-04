@@ -145,5 +145,20 @@
     "agentFirstUseAction": "Einstellungen öffnen"
   },
   "saveConflict": "Speichern fehlgeschlagen: Diese Datei wurde auf der Festplatte geändert, nachdem Sie sie geöffnet haben. Neu laden, um die anderen Änderungen zu sehen — Ihre Bearbeitungen sind noch da, ungespeichert.",
-  "persistQuotaExceeded": "Der lokale Speicher ist voll, offene Tabs dieses Projekts können nicht mehr gemerkt werden. Schließen Sie einige Tabs oder löschen Sie die Websitedaten."
+  "persistQuotaExceeded": "Der lokale Speicher ist voll, offene Tabs dieses Projekts können nicht mehr gemerkt werden. Schließen Sie einige Tabs oder löschen Sie die Websitedaten.",
+  "refresh": {
+    "label": "Aktualisieren",
+    "tooltip": "Von der Festplatte neu laden",
+    "hasUpdate": "Diese Datei wurde auf der Festplatte geändert — zum Neuladen klicken",
+    "noSignalSource": "Diese Datei liegt außerhalb des Projekts, Änderungen werden nicht gemeldet",
+    "unavailable": "Diese Datei kann nicht gefunden werden",
+    "failed": "Diese Datei konnte nicht neu geladen werden",
+    "confirmTitle": "Neu laden und ungespeicherte Änderungen verlieren?",
+    "confirmMessage": "Dieser Tab hat ungespeicherte Änderungen. Neuladen ersetzt sie durch den Inhalt der Festplatte.",
+    "saveAndRefresh": "Speichern, dann aktualisieren",
+    "discardAndRefresh": "Änderungen verwerfen und aktualisieren",
+    "saveConflictAborted": "Nicht neu geladen: Die Datei wurde nach dem Öffnen geändert, Ihre Bearbeitung wurde nicht gespeichert.",
+    "saveFailedAborted": "Nicht neu geladen: Das Speichern ist fehlgeschlagen, Ihre Änderungen sind noch da.",
+    "officeNotWired": "Das Neuladen von Office-Dokumenten ist noch nicht verfügbar — schließen Sie die Datei und öffnen Sie sie erneut."
+  }
 }

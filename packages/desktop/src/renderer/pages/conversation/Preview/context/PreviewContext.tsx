@@ -6,7 +6,7 @@
 
 import { ipcBridge } from '@/common';
 import type { PreviewContentType } from '@/common/types/office/preview';
-import type { ChatFileRef } from '@/common/types/chatFile';
+import type { ChatFileRef, ContentEncoding } from '@/common/types/chatFile';
 import { chatFileRefKey, isChatFileRef } from '@/common/types/chatFile';
 import { emitter } from '@/renderer/utils/emitter';
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
@@ -14,8 +14,9 @@ import { BROWSER_BLANK_URL, BROWSER_TAB_FALLBACK_TITLE, MAX_BROWSER_TABS } from 
 import { isBrowserMcpActivity, isBrowserMcpSettled } from '../browser/agentActivity';
 import { maybeNotifyFirstAgentBrowserUse } from '../browser/firstUseNotice';
 import { listPersistedPreviewScopeKeys, previewScopeStorageKey, type PreviewScopeKey } from './previewScope';
+import { peKey } from '@/renderer/pages/conversation/explorer/explorerModel';
 import { reflessTabKey } from './reflessTabKey';
-import { reconcilePreviewWatch, resetPreviewWatch } from './previewWatchStore';
+import { onPreviewWatchChange, reconcilePreviewWatch, resetPreviewWatch } from './previewWatchStore';
 
 /** DOM 片段数据结构 / DOM snippet data structure */
 export interface DomSnippet {
@@ -155,6 +156,18 @@ export interface PreviewContextValue {
    */
   persistQuotaExceededAt: number | null;
   saveContent: (tabId?: string) => Promise<boolean>; // 保存内容 / Save content
+  /** Re-read a tab from disk, replacing its content and clearing its dirty mark. */
+  reloadTabContent: (tabId: string) => Promise<boolean>;
+  /**
+   * Tab ids with a reported, unconsumed change on disk.
+   *
+   * Drives the refresh control's amber state. Keyed by tab so two tabs in the same
+   * watched directory are flagged independently — the directory changed, but only the
+   * tabs whose own file changed should say so.
+   */
+  tabsWithUpdate: ReadonlySet<string>;
+  /** Clear a tab's pending-change mark (after a reload, or when it is dismissed). */
+  clearTabUpdate: (tabId: string) => void;
   findPreviewTab: (type: PreviewContentType, content?: string, metadata?: PreviewMetadata) => PreviewTab | null; // 查找匹配的 tab
   closePreviewByIdentity: (type: PreviewContentType, content?: string, metadata?: PreviewMetadata) => void; // 根据内容关闭指定 tab
   closePreviewIfScopeChanged: (scopeKey: PreviewScopeKey) => void; // 切换隔离 scope(project;见 previewScope.ts):持久化旧 scope、恢复新 scope 的 tabs+可见性(per-project)
@@ -201,6 +214,13 @@ const MAX_PERSISTED_TAB_CONTENT_LENGTH = 80_000;
 // `browser` tabs persist so switching projects/conversations restores the same
 // open pages (per-project, see `previewScope.ts`). Their `content` is just a URL,
 // so they are always well under the size cap.
+/**
+ * Types whose content never comes from `/api/fs/content`: pdf streams from a URL,
+ * office renders through its own process, and an unsupported format has nothing to
+ * render. Reloading these means telling their viewer to re-fetch, not re-reading text.
+ */
+const CONTENT_FREE_PREVIEW_TYPES = new Set<PreviewContentType>(['pdf', 'word', 'excel', 'ppt', 'unsupported']);
+
 const PERSISTABLE_CONTENT_TYPES = new Set<PreviewContentType>(['markdown', 'html', 'code', 'diff', 'browser']);
 
 /**
@@ -425,6 +445,54 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
   // Set when a persist attempt was abandoned on a full quota, so the UI can warn
   // instead of letting persistence stop working unannounced.
   const [persistQuotaExceededAt, setPersistQuotaExceededAt] = useState<number | null>(null);
+
+  // Tabs whose file has been reported as changed and not yet re-read.
+  const [tabsWithUpdate, setTabsWithUpdate] = useState<ReadonlySet<string>>(() => new Set());
+
+  const clearTabUpdate = useCallback((tabId: string) => {
+    setTabsWithUpdate((prev) => {
+      if (!prev.has(tabId)) return prev;
+      const next = new Set(prev);
+      next.delete(tabId);
+      return next;
+    });
+  }, []);
+
+  // Translate "a watched directory changed" into "these tabs may be stale".
+  //
+  // The signal names a directory, not a file — that is what the channel reports — so
+  // every tab living in it is flagged. Marking rather than reloading is deliberate:
+  // silently replacing what is on screen is what the old poller did, and it could
+  // overwrite an edit in progress. The user decides when to take the new content.
+  useEffect(() => {
+    return onPreviewWatchChange((changedDir, changedNames) => {
+      // Nothing was reported as modified — the directory's listing changed (something
+      // added, removed or renamed), which says nothing about the documents on screen.
+      if (changedNames.length === 0) return;
+      const changed = new Set(changedNames);
+
+      const affected = tabsRef.current
+        .filter((tab) => {
+          const ref = tab.metadata?.fileRef;
+          if (!ref || ref.kind !== 'project') return false;
+          const lastSlash = ref.relative_path.lastIndexOf('/');
+          const dir = lastSlash < 0 ? '' : ref.relative_path.slice(0, lastSlash);
+          if (peKey(ref.pe_id, dir) !== changedDir) return false;
+          // Match the file itself, not just its directory: several tabs often share a
+          // directory, and flagging all of them would send the user to re-read files
+          // that never changed.
+          const name = lastSlash < 0 ? ref.relative_path : ref.relative_path.slice(lastSlash + 1);
+          return changed.has(name);
+        })
+        .map((tab) => tab.id);
+      if (affected.length === 0) return;
+      setTabsWithUpdate((prev) => {
+        const next = new Set(prev);
+        for (const id of affected) next.add(id);
+        return next;
+      });
+    });
+  }, []);
 
   // Route the module-level persist failure hook into this provider's state.
   useEffect(() => {
@@ -855,6 +923,54 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
     );
   }, []);
 
+  /**
+   * Re-read a tab's content from disk, replacing what is on screen.
+   *
+   * Used by the refresh control once the user has decided what to do about any unsaved
+   * edit. The tab comes back clean, because after this its content *is* what the file
+   * holds — leaving the dirty marker set would claim there are unsaved changes when
+   * there are none.
+   *
+   * Refreshes the save-conflict timestamp too. Without that, the very next save would
+   * carry the mtime from before this reload and be rejected as a conflict against a
+   * change the user has already taken on board.
+   *
+   * Returns false when there is nothing to re-read (no ref, or the read failed); the
+   * caller decides whether that is worth reporting.
+   */
+  const reloadTabContent = useCallback(async (tabId: string): Promise<boolean> => {
+    const tab = tabsRef.current.find((t) => t.id === tabId);
+    const fileRef = tab?.metadata?.fileRef;
+    if (!tab || !fileRef) return false;
+
+    // pdf and office render from their own sources rather than from `content`, so
+    // there is nothing to fetch here; their reload paths live in the viewers.
+    if (CONTENT_FREE_PREVIEW_TYPES.has(tab.content_type)) return false;
+
+    const encoding: ContentEncoding = tab.content_type === 'image' ? 'dataurl' : 'utf8';
+    try {
+      const content = await ipcBridge.fs.readContent.invoke({ file: fileRef, encoding });
+      if (content == null) return false;
+
+      setTabs((prev) =>
+        prev.map((t) => (t.id === tabId ? { ...t, content, originalContent: content, isDirty: false } : t))
+      );
+
+      // Best-effort: a stale timestamp only costs one rejected save, which the user
+      // is told about, so it is not worth failing the reload over.
+      void ipcBridge.fs.getContentMetadata
+        .invoke({ file: fileRef })
+        .then((metadata) => {
+          if (metadata) fileMtimeRef.current.set(chatFileRefKey(fileRef), metadata.lastModified);
+        })
+        .catch(() => {});
+
+      return true;
+    } catch {
+      return false;
+    }
+  }, []);
+
   const saveContent = useCallback(
     async (tabId?: string) => {
       const targetTabId = tabId || activeTabId;
@@ -1132,6 +1248,9 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
       browserTabLimitHitAt,
       persistQuotaExceededAt,
       saveContent,
+      reloadTabContent,
+      tabsWithUpdate,
+      clearTabUpdate,
       findPreviewTab,
       closePreviewByIdentity,
       closePreviewIfScopeChanged,
@@ -1158,6 +1277,9 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
     browserTabLimitHitAt,
     persistQuotaExceededAt,
     saveContent,
+    reloadTabContent,
+    tabsWithUpdate,
+    clearTabUpdate,
     findPreviewTab,
     closePreviewByIdentity,
     closePreviewIfScopeChanged,

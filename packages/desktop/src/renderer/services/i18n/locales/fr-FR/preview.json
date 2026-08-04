@@ -145,5 +145,20 @@
     "agentFirstUseAction": "Ouvrir les paramètres"
   },
   "saveConflict": "Échec de l'enregistrement : ce fichier a changé sur le disque depuis que vous l'avez ouvert. Rechargez pour voir les autres modifications — vos modifications sont toujours là, non enregistrées.",
-  "persistQuotaExceeded": "Le stockage local est plein : les onglets ouverts de ce projet ne peuvent plus être mémorisés. Fermez des onglets ou effacez les données du site."
+  "persistQuotaExceeded": "Le stockage local est plein : les onglets ouverts de ce projet ne peuvent plus être mémorisés. Fermez des onglets ou effacez les données du site.",
+  "refresh": {
+    "label": "Actualiser",
+    "tooltip": "Recharger depuis le disque",
+    "hasUpdate": "Ce fichier a changé sur le disque — cliquez pour le recharger",
+    "noSignalSource": "Ce fichier n'est pas dans le projet, les modifications ne seront pas signalées",
+    "unavailable": "Ce fichier est introuvable",
+    "failed": "Impossible de recharger ce fichier",
+    "confirmTitle": "Recharger et perdre les modifications non enregistrées ?",
+    "confirmMessage": "Cet onglet contient des modifications non enregistrées. Recharger les remplacera par le contenu du disque.",
+    "saveAndRefresh": "Enregistrer puis actualiser",
+    "discardAndRefresh": "Abandonner les modifications et actualiser",
+    "saveConflictAborted": "Non rechargé : le fichier a changé depuis que vous l'avez ouvert, votre modification n'a pas été enregistrée.",
+    "saveFailedAborted": "Non rechargé : l'enregistrement a échoué, vos modifications sont toujours là.",
+    "officeNotWired": "L'actualisation des documents Office n'est pas encore disponible — fermez puis rouvrez le fichier pour voir les modifications."
+  }
 }

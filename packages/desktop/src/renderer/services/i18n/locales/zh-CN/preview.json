@@ -145,5 +145,20 @@
     "agentFirstUseAction": "前往设置"
   },
   "saveConflict": "保存失败：该文件在你打开后已被改动。可重新加载查看其他改动——你的编辑仍在，尚未保存。",
-  "persistQuotaExceeded": "本地存储已满，无法再记住该项目打开的标签页。请关闭一些标签页或清理站点数据。"
+  "persistQuotaExceeded": "本地存储已满，无法再记住该项目打开的标签页。请关闭一些标签页或清理站点数据。",
+  "refresh": {
+    "label": "刷新",
+    "tooltip": "从磁盘重新加载",
+    "hasUpdate": "该文件已在磁盘上改动——点击重新加载",
+    "noSignalSource": "该文件不在项目内，不会自动提示更新",
+    "unavailable": "无法定位该文件",
+    "failed": "无法重新加载该文件",
+    "confirmTitle": "重新加载将丢失未保存的修改？",
+    "confirmMessage": "该标签页有未保存的修改，重新加载会用磁盘上的内容覆盖它们。",
+    "saveAndRefresh": "先保存再刷新",
+    "discardAndRefresh": "放弃修改并刷新",
+    "saveConflictAborted": "未刷新：该文件在你打开后已被改动，你的编辑没有保存成功。",
+    "saveFailedAborted": "未刷新：保存失败，你的修改仍然保留。",
+    "officeNotWired": "Office 文档的刷新尚未接入——请关闭后重新打开文件以查看改动。"
+  }
 }

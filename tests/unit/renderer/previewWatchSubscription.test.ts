@@ -278,3 +278,60 @@ describe('the shared reconcile helper stays independent of its callers', () => {
     expect([...currentPreviewWatchTargets()]).toEqual(before);
   });
 });
+
+// Switching project must leave the NEW project's directories subscribed.
+//
+// The order inside the scope switch is load-bearing: releasing the outgoing
+// directories has to happen before the incoming tabs are applied. Reversed, the
+// effect that follows would subscribe the new scope's directories first and the
+// release would then drop everything currently held — including what it had just
+// added — leaving the newly opened project with no signals at all until some
+// unrelated tab change happened to reconcile again.
+//
+// Asserted as an END STATE rather than as "the release did not happen after": a
+// "nothing occurred" assertion cannot tell a correct order from a broken one, which
+// is the shape that already produced a false pass once in this work.
+describe('switching scope leaves the incoming project subscribed', () => {
+  const port = { subscribe: vi.fn(async () => ({ snapshots: [] })), unsubscribe: vi.fn() };
+
+  beforeEach(() => {
+    port.subscribe.mockClear();
+    port.unsubscribe.mockClear();
+    configurePreviewWatch(port);
+    resetPreviewWatch();
+  });
+
+  it('holds the new scope directories and none of the old ones', () => {
+    // Project A is open and watched.
+    reconcilePreviewWatch([projectTab('peA', 'src/a.ts')]);
+    expect(currentPreviewWatchTargets().has(peKey('peA', 'src'))).toBe(true);
+
+    // The scope switch: release, then apply the incoming project's tabs.
+    resetPreviewWatch();
+    reconcilePreviewWatch([projectTab('peB', 'lib/b.ts')]);
+
+    expect([...currentPreviewWatchTargets()]).toEqual([peKey('peB', 'lib')]);
+  });
+
+  it('ends up subscribed even when both projects use the same relative path', () => {
+    reconcilePreviewWatch([projectTab('peA', 'src/a.ts')]);
+
+    resetPreviewWatch();
+    reconcilePreviewWatch([projectTab('peB', 'src/a.ts')]);
+
+    // Same directory name, different project — the pe id keeps them distinct, so the
+    // release must not have taken the incoming one with it.
+    expect(currentPreviewWatchTargets().has(peKey('peB', 'src'))).toBe(true);
+    expect(currentPreviewWatchTargets().has(peKey('peA', 'src'))).toBe(false);
+  });
+
+  it('actually issued a subscribe for the incoming project', () => {
+    reconcilePreviewWatch([projectTab('peA', 'src/a.ts')]);
+    port.subscribe.mockClear();
+
+    resetPreviewWatch();
+    reconcilePreviewWatch([projectTab('peB', 'lib/b.ts')]);
+
+    expect(port.subscribe).toHaveBeenCalledWith([{ pe_id: 'peB', relative_path: 'lib' }]);
+  });
+});

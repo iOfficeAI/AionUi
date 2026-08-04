@@ -52,9 +52,39 @@ describe('dispatchMonitorNotification (real routing)', () => {
     const delta = { target: { pe_id: 'p', relative_path: 'src' }, changes: [] };
     dispatchMonitorNotification('fs/delta', delta);
 
-    expect(notifyPreviewWatchChange).toHaveBeenCalledWith('p\u0000src');
+    expect(notifyPreviewWatchChange).toHaveBeenCalledWith('p\u0000src', []);
     // The explorer still gets it — this is a fan-out, not a redirect.
     expect(applyMonitorNotification).toHaveBeenCalledWith('fs/delta', delta);
+  });
+
+  // The panel needs to know WHICH file changed, not just that its directory did:
+  // several tabs usually share a directory, and flagging all of them would send the
+  // user to re-read files that never changed.
+  it('passes along the names reported as modified', () => {
+    dispatchMonitorNotification('fs/delta', {
+      target: { pe_id: 'p', relative_path: 'src' },
+      changes: [
+        { op: 'modified', name: 'a.ts' },
+        { op: 'modified', name: 'b.ts' },
+      ],
+    });
+
+    expect(notifyPreviewWatchChange).toHaveBeenCalledWith('p\u0000src', ['a.ts', 'b.ts']);
+  });
+
+  // Listing changes are the explorer's business; none of them means an open document
+  // is now stale.
+  it('does not report added, removed or renamed entries as modified', () => {
+    dispatchMonitorNotification('fs/delta', {
+      target: { pe_id: 'p', relative_path: 'src' },
+      changes: [
+        { op: 'added', name: 'new.ts', kind: 'file' },
+        { op: 'removed', name: 'gone.ts' },
+        { op: 'renamed', from: 'old.ts', to: 'renamed.ts' },
+      ],
+    });
+
+    expect(notifyPreviewWatchChange).toHaveBeenCalledWith('p\u0000src', []);
   });
 
   // A snapshot is the initial listing returned when subscribing, not a change; the

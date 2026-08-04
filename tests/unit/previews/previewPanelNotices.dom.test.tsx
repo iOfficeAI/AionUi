@@ -218,3 +218,94 @@ describe('the panel survives being opened while mounted', () => {
     TIMEOUT_MS
   );
 });
+
+// The refresh control is the only thing telling a user that a file they have open
+// changed underneath them, so its two appearances are asserted through a stable
+// `data-*` hook rather than through whichever class currently paints "amber" — a
+// colour assertion breaks on restyling without the behaviour changing at all.
+describe('the refresh control reflects what it can promise', () => {
+  const openProjectTab = (): void => {
+    act(() => {
+      ctx.openPreview('body', 'code', {
+        title: 'a.ts',
+        file_name: 'a.ts',
+        fileRef: { kind: 'project', pe_id: 'peA', relative_path: 'src/a.ts' },
+      });
+    });
+  };
+
+  it(
+    'shows a plain state for a project file with nothing reported',
+    async () => {
+      const { rerender } = render(<Harness showPanel={false} />);
+      openProjectTab();
+      act(() => rerender(<Harness showPanel />));
+
+      const control = await screen.findByTestId('preview-refresh');
+      expect(control.getAttribute('data-refresh-state')).toBe('idle');
+    },
+    TIMEOUT_MS
+  );
+
+  it(
+    'marks a file outside the project as having no signal source',
+    async () => {
+      const { rerender } = render(<Harness showPanel={false} />);
+      act(() => {
+        ctx.openPreview('body', 'code', {
+          title: 'a.ts',
+          file_name: 'a.ts',
+          fileRef: { kind: 'local', path: '/elsewhere/a.ts' },
+        });
+      });
+      act(() => rerender(<Harness showPanel />));
+
+      const control = await screen.findByTestId('preview-refresh');
+      expect(control.getAttribute('data-refresh-state')).toBe('idle-no-signal');
+    },
+    TIMEOUT_MS
+  );
+
+  // Refreshing an oversized file would re-reach the same verdict, so offering the
+  // control at all would be offering something that cannot work.
+  it(
+    'is absent for a file too large to preview',
+    async () => {
+      const { rerender } = render(<Harness showPanel={false} />);
+      openOversizedTab();
+      act(() => rerender(<Harness showPanel />));
+
+      await screen.findByTitle('preview.downloadFile'); // toolbar is up
+      expect(screen.queryByTestId('preview-refresh')).not.toBeInTheDocument();
+    },
+    TIMEOUT_MS
+  );
+
+  it(
+    'is absent for a format that cannot be rendered',
+    async () => {
+      const { rerender } = render(<Harness showPanel={false} />);
+      openUnsupportedTab();
+      act(() => rerender(<Harness showPanel />));
+
+      await screen.findByTitle('preview.downloadFile');
+      expect(screen.queryByTestId('preview-refresh')).not.toBeInTheDocument();
+    },
+    TIMEOUT_MS
+  );
+
+  it(
+    'is present but inert for a tab with no addressable file',
+    async () => {
+      const { rerender } = render(<Harness showPanel={false} />);
+      act(() => {
+        ctx.openPreview('body', 'code', { title: 'scratch', file_name: 'scratch' });
+      });
+      act(() => rerender(<Harness showPanel />));
+
+      const control = await screen.findByTestId('preview-refresh');
+      expect(control.getAttribute('data-refresh-state')).toBe('disabled');
+    },
+    TIMEOUT_MS
+  );
+});

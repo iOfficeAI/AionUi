@@ -145,5 +145,20 @@
     "agentFirstUseAction": "前往設定"
   },
   "saveConflict": "儲存失敗：該檔案在你開啟後已被變更。可重新載入查看其他變更——你的編輯仍在，尚未儲存。",
-  "persistQuotaExceeded": "本機儲存空間已滿，無法再記住該專案開啟的標籤頁。請關閉一些標籤頁或清理網站資料。"
+  "persistQuotaExceeded": "本機儲存空間已滿，無法再記住該專案開啟的標籤頁。請關閉一些標籤頁或清理網站資料。",
+  "refresh": {
+    "label": "重新整理",
+    "tooltip": "從磁碟重新載入",
+    "hasUpdate": "該檔案已在磁碟上變更——點擊重新載入",
+    "noSignalSource": "該檔案不在專案內，不會自動提示更新",
+    "unavailable": "無法定位該檔案",
+    "failed": "無法重新載入該檔案",
+    "confirmTitle": "重新載入將遺失未儲存的變更？",
+    "confirmMessage": "此標籤頁有未儲存的變更，重新載入會以磁碟上的內容覆蓋它們。",
+    "saveAndRefresh": "先儲存再重新整理",
+    "discardAndRefresh": "放棄變更並重新整理",
+    "saveConflictAborted": "未重新整理：該檔案在你開啟後已被變更，你的編輯未儲存成功。",
+    "saveFailedAborted": "未重新整理：儲存失敗，你的變更仍然保留。",
+    "officeNotWired": "Office 文件的重新整理尚未接入——請關閉後重新開啟檔案以查看變更。"
+  }
 }

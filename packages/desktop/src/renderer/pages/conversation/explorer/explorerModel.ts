@@ -134,7 +134,17 @@ export function applySnapshot(cache: FactCache, key: PeKey, entries: Entry[]): F
 export type Change =
   | { op: 'added'; name: string; kind: EntryKind; excluded?: boolean }
   | { op: 'removed'; name: string }
-  | { op: 'renamed'; from: string; to: string };
+  | { op: 'renamed'; from: string; to: string }
+  /**
+   * An existing entry's contents changed. Carries no timestamp by design — it says
+   * that something changed, not what it now is, so a consumer re-reads rather than
+   * trusting a value from the notification.
+   *
+   * The directory listing is unaffected (the entry is already in it), so the fact
+   * cache ignores this op; it exists for consumers watching a particular file, such
+   * as the preview panel's refresh indicator.
+   */
+  | { op: 'modified'; name: string };
 
 /**
  * `fs/delta`: apply incremental changes to one directory's listing. Unknown

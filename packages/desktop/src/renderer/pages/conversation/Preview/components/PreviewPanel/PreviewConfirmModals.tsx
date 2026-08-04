@@ -48,6 +48,19 @@ export interface CloseTabConfirmState {
 }
 
 /**
+ * 刷新确认状态 / Refresh confirmation state
+ *
+ * Reloading a tab replaces its content with what is on disk, so an unsaved edit has
+ * to be dealt with first — dropped deliberately, or saved. Skipping this prompt would
+ * make "refresh" destroy work, which is the one thing the refresh button must not do.
+ */
+export interface RefreshConfirmState {
+  show: boolean;
+  /** Tab awaiting the user's decision. */
+  tabId: string | null;
+}
+
+/**
  * PreviewConfirmModals 组件属性
  * PreviewConfirmModals component props
  */
@@ -57,6 +70,21 @@ interface PreviewConfirmModalsProps {
    * Close tab confirmation state
    */
   closeTabConfirm: CloseTabConfirmState;
+
+  /**
+   * 刷新确认状态
+   * Refresh confirmation state
+   */
+  refreshConfirm?: RefreshConfirmState;
+
+  /** 先保存再刷新 / Save first, then reload */
+  onSaveAndRefresh?: () => void;
+
+  /** 放弃修改并刷新 / Discard the edit and reload */
+  onRefreshWithoutSave?: () => void;
+
+  /** 取消刷新 / Cancel the reload */
+  onCancelRefresh?: () => void;
 
   /**
    * 保存并关闭 Tab
@@ -86,6 +114,10 @@ interface PreviewConfirmModalsProps {
  */
 const PreviewConfirmModals: React.FC<PreviewConfirmModalsProps> = ({
   closeTabConfirm,
+  refreshConfirm,
+  onSaveAndRefresh,
+  onRefreshWithoutSave,
+  onCancelRefresh,
   onSaveAndCloseTab,
   onCloseWithoutSave,
   onCancelCloseTab,
@@ -140,6 +172,43 @@ const PreviewConfirmModals: React.FC<PreviewConfirmModalsProps> = ({
         <div className='text-14px text-t-secondary'>
           {isBatch ? t('preview.closeTabsMessage', { count: dirtyCount }) : t('preview.closeTabMessage')}
         </div>
+      </Modal>
+
+      {/* 刷新前的未保存确认 / Unsaved-work confirmation before reloading */}
+      <Modal
+        visible={refreshConfirm?.show === true}
+        title={t('preview.refresh.confirmTitle')}
+        onCancel={onCancelRefresh}
+        onOk={onSaveAndRefresh}
+        okText={t('preview.refresh.saveAndRefresh')}
+        cancelText={t('common.cancel')}
+        style={{ borderRadius: '12px' }}
+        alignCenter
+        getPopupContainer={() => document.body}
+        footer={
+          <div className='flex justify-end gap-8px'>
+            <button
+              className='px-16px py-6px cursor-pointer border-none hover:bg-bg-3 transition-colors text-14px text-t-primary'
+              onClick={onCancelRefresh}
+            >
+              {t('common.cancel')}
+            </button>
+            <button
+              className='px-16px py-6px cursor-pointer border-none hover:bg-bg-3 transition-colors text-14px text-t-primary'
+              onClick={onRefreshWithoutSave}
+            >
+              {t('preview.refresh.discardAndRefresh')}
+            </button>
+            <button
+              className='px-16px py-6px cursor-pointer border-none bg-primary text-white hover:opacity-80 transition-opacity text-14px'
+              onClick={onSaveAndRefresh}
+            >
+              {t('preview.refresh.saveAndRefresh')}
+            </button>
+          </div>
+        }
+      >
+        <div className='text-14px text-t-secondary'>{t('preview.refresh.confirmMessage')}</div>
       </Modal>
     </>
   );

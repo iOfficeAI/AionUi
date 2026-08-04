@@ -13,7 +13,7 @@
 
 import { wsEmitter, wsSend } from '@/common/adapter/httpBridge';
 
-import { refToKey, type DirRef, type Entry } from './explorerModel';
+import { refToKey, type Change, type DirRef, type Entry } from './explorerModel';
 import type { SubscribeResult } from './explorerStore';
 import { applyMonitorNotification, configureExplorerStore, onReconnect } from './explorerStore';
 import { configurePreviewWatch, notifyPreviewWatchChange } from '../Preview/context/previewWatchStore';
@@ -65,8 +65,16 @@ export const dispatchMonitorNotification = (method: string, params: unknown): vo
   // Only `fs/delta` carries "something changed"; `fs/snapshot` is the initial
   // listing that arrives in the subscribe response, which is not a change.
   if (method === 'fs/delta') {
-    const target = (params as { target?: DirRef } | undefined)?.target;
-    if (target) notifyPreviewWatchChange(refToKey(target));
+    const delta = params as { target?: DirRef; changes?: Change[] } | undefined;
+    if (delta?.target) {
+      // Only `modified` names a file whose contents changed; additions, removals and
+      // renames alter the listing, which is the explorer's concern rather than a
+      // signal that an open document is now stale.
+      const modified = (delta.changes ?? [])
+        .filter((change): change is Extract<Change, { op: 'modified' }> => change.op === 'modified')
+        .map((change) => change.name);
+      notifyPreviewWatchChange(refToKey(delta.target), modified);
+    }
   }
 };
 

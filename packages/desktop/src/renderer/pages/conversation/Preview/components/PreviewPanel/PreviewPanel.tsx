@@ -9,6 +9,8 @@ import { downloadFileFromPath, downloadTextContent } from '@/renderer/utils/file
 import { formatFileSize } from '@/renderer/services/FileService';
 import { formatSizeAboveLimit } from '@/renderer/utils/file/previewPayload';
 import { classifyPreviewError, previewErrorToI18nKey } from '@/renderer/utils/previewError';
+import { isRefreshActionable, mayRefreshAfterSave, refreshButtonState, refreshStateToken } from './refreshButtonState';
+import { reloadViaViewer } from '../../context/tabReloaderRegistry';
 import {
   canOpenInSystem,
   classifySaveOutcome,
@@ -45,6 +47,7 @@ import {
   PreviewConfirmModals,
   type ContextMenuState,
   type CloseTabConfirmState,
+  type RefreshConfirmState,
   type PreviewTab,
 } from '.';
 import { DEFAULT_SPLIT_RATIO, FILE_TYPES_WITH_BUILTIN_OPEN, MAX_SPLIT_WIDTH, MIN_SPLIT_WIDTH } from '../../constants';
@@ -84,6 +87,9 @@ const PreviewPanel: React.FC = () => {
     closePreview,
     updateContent,
     saveContent,
+    reloadTabContent,
+    tabsWithUpdate,
+    clearTabUpdate,
     addDomSnippet,
     updateTab,
     openBrowserTab,
@@ -110,6 +116,7 @@ const PreviewPanel: React.FC = () => {
 
   // 确认对话框状态 / Confirmation dialog states
   const [closeTabConfirm, setCloseTabConfirm] = useState<CloseTabConfirmState>({ show: false, tabId: null });
+  const [refreshConfirm, setRefreshConfirm] = useState<RefreshConfirmState>({ show: false, tabId: null });
 
   // 右键菜单状态 / Context menu state
   const [contextMenu, setContextMenu] = useState<ContextMenuState>({ show: false, x: 0, y: 0, tabId: null });
@@ -163,6 +170,100 @@ const PreviewPanel: React.FC = () => {
     }
     messageApi.error(outcome.detail ? `${t('common.saveFailed')}: ${outcome.detail}` : t('common.saveFailed'));
   }, [saveContent, messageApi, t]);
+
+  /**
+   * Re-read the active tab from disk and clear its pending-change mark.
+   *
+   * Only reached once any unsaved edit has been dealt with — see the click handler.
+   */
+  const runRefresh = useCallback(
+    async (tabId: string) => {
+      // A viewer that renders its own content knows how to refresh it. pdf registers
+      // here because its stream URL never changes, so only the webview can fetch
+      // fresh bytes.
+      if (reloadViaViewer(tabId)) {
+        clearTabUpdate(tabId);
+        return;
+      }
+
+      // office documents are rendered by a separate process that does not watch the
+      // filesystem, so refreshing one means asking that process to re-read the file.
+      // Not wired yet — the endpoint exists (POST /api/{word|excel|ppt}-preview/refresh)
+      // but connecting it is a follow-up, so say so rather than appear to succeed.
+      const tabType = tabs.find((tab) => tab.id === tabId)?.content_type;
+      if (tabType === 'word' || tabType === 'excel' || tabType === 'ppt') {
+        messageApi.info(t('preview.refresh.officeNotWired'));
+        return;
+      }
+
+      if (await reloadTabContent(tabId)) {
+        clearTabUpdate(tabId);
+        return;
+      }
+      // The file could not be read. Worth saying: the user asked for this, and what is
+      // on screen is now known to be out of date.
+      messageApi.error(t('preview.refresh.failed'));
+    },
+    [tabs, reloadTabContent, clearTabUpdate, messageApi, t]
+  );
+
+  /**
+   * The refresh button.
+   *
+   * With unsaved changes, ask first: reloading replaces the content, so doing it
+   * silently would discard the edit.
+   */
+  const handleRefreshClick = useCallback(() => {
+    if (!activeTabId) return;
+    if (activeTab?.isDirty) {
+      setRefreshConfirm({ show: true, tabId: activeTabId });
+      return;
+    }
+    void runRefresh(activeTabId);
+  }, [activeTabId, activeTab?.isDirty, runRefresh]);
+
+  /** "Discard my changes and reload" — the edit is knowingly given up. */
+  const handleRefreshWithoutSave = useCallback(() => {
+    const tabId = refreshConfirm.tabId;
+    setRefreshConfirm({ show: false, tabId: null });
+    if (tabId) void runRefresh(tabId);
+  }, [refreshConfirm.tabId, runRefresh]);
+
+  /**
+   * "Save first, then reload" — and if the save does not land, the reload must not run.
+   *
+   * This is the one path here that can destroy work. A refused save (a conflict
+   * because the file changed underneath, or any other failure) followed by a reload
+   * would replace the edit with the file's contents and lose it, and the user would
+   * blame refresh rather than the save.
+   */
+  const handleSaveAndRefresh = useCallback(async () => {
+    const tabId = refreshConfirm.tabId;
+    setRefreshConfirm({ show: false, tabId: null });
+    if (!tabId) return;
+
+    let result: boolean | undefined;
+    let thrown: unknown;
+    try {
+      result = await saveContent(tabId);
+    } catch (error) {
+      thrown = error;
+    }
+
+    const outcome = classifySaveOutcome(result, thrown);
+    if (!mayRefreshAfterSave(outcome)) {
+      // Report why, and leave the tab as it is — still dirty, edit intact.
+      messageApi.error(
+        outcome.kind === 'conflict' ? t('preview.refresh.saveConflictAborted') : t('preview.refresh.saveFailedAborted')
+      );
+      return;
+    }
+    await runRefresh(tabId);
+  }, [refreshConfirm.tabId, saveContent, runRefresh, messageApi, t]);
+
+  const handleCancelRefresh = useCallback(() => {
+    setRefreshConfirm({ show: false, tabId: null });
+  }, []);
 
   usePreviewKeyboardShortcuts({
     isDirty: activeTab?.isDirty,
@@ -435,6 +536,13 @@ const PreviewPanel: React.FC = () => {
   // Needs both an addressable file AND a reason to offer the action. The escape
   // hatch (oversized / unsupported) is inside shouldOfferOpenInSystem and is
   // deliberately not type-filtered — see that function.
+  // Recomputed every render, never captured: a chat-link file becomes a project file
+  // after an async resolve, which changes what this control can promise.
+  const refreshState = refreshButtonState(
+    { content_type, metadata },
+    activeTabId ? tabsWithUpdate.has(activeTabId) : false
+  );
+
   const showOpenInSystemButton =
     canOpenInSystem(Boolean(metadata?.file_path), metadata?.fileRef) &&
     shouldOfferOpenInSystem(content_type, Boolean(metadata?.oversized), FILE_TYPES_WITH_BUILTIN_OPEN);
@@ -856,7 +964,14 @@ const PreviewPanel: React.FC = () => {
         </div>
       );
     } else if (content_type === 'pdf') {
-      return <PDFPreview fileRef={metadata?.fileRef} file_path={metadata?.file_path} content={content} />;
+      return (
+        <PDFPreview
+          tabId={activeTabId ?? undefined}
+          fileRef={metadata?.fileRef}
+          file_path={metadata?.file_path}
+          content={content}
+        />
+      );
     } else if (content_type === 'ppt') {
       return (
         <PptViewer
@@ -926,6 +1041,10 @@ const PreviewPanel: React.FC = () => {
         {/* eslint-disable-next-line max-len */}
         <PreviewConfirmModals
           closeTabConfirm={closeTabConfirm}
+          refreshConfirm={refreshConfirm}
+          onSaveAndRefresh={() => void handleSaveAndRefresh()}
+          onRefreshWithoutSave={handleRefreshWithoutSave}
+          onCancelRefresh={handleCancelRefresh}
           onSaveAndCloseTab={handleSaveAndCloseTab}
           onCloseWithoutSave={handleCloseWithoutSave}
           onCancelCloseTab={handleCancelCloseTab}
@@ -963,6 +1082,9 @@ const PreviewPanel: React.FC = () => {
             file_name={metadata?.file_name || activeTab.title}
             showOpenInSystemButton={showOpenInSystemButton}
             hasFilePath={Boolean(metadata?.file_path)}
+            refreshState={refreshStateToken(refreshState)}
+            refreshActionable={isRefreshActionable(refreshState)}
+            onRefresh={handleRefreshClick}
             hasNoRenderableContent={Boolean(metadata?.oversized) || content_type === 'unsupported'}
             onViewModeChange={(mode) => {
               setViewMode(mode);

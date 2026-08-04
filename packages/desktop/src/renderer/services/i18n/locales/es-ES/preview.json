@@ -145,5 +145,20 @@
     "agentFirstUseAction": "Abrir ajustes"
   },
   "saveConflict": "No se pudo guardar: este archivo cambió en el disco después de que lo abrieras. Vuelve a cargarlo para ver los otros cambios; tus ediciones siguen aquí, sin guardar.",
-  "persistQuotaExceeded": "El almacenamiento local está lleno, así que ya no se pueden recordar las pestañas abiertas de este proyecto. Cierra algunas pestañas o borra los datos del sitio."
+  "persistQuotaExceeded": "El almacenamiento local está lleno, así que ya no se pueden recordar las pestañas abiertas de este proyecto. Cierra algunas pestañas o borra los datos del sitio.",
+  "refresh": {
+    "label": "Actualizar",
+    "tooltip": "Volver a cargar desde el disco",
+    "hasUpdate": "Este archivo cambió en el disco: haz clic para recargarlo",
+    "noSignalSource": "Este archivo no está en el proyecto, así que no se anunciarán los cambios",
+    "unavailable": "No se puede localizar este archivo",
+    "failed": "No se pudo recargar este archivo",
+    "confirmTitle": "¿Recargar y perder los cambios sin guardar?",
+    "confirmMessage": "Esta pestaña tiene cambios sin guardar. Recargar los reemplaza por el contenido del disco.",
+    "saveAndRefresh": "Guardar y actualizar",
+    "discardAndRefresh": "Descartar cambios y actualizar",
+    "saveConflictAborted": "No se recargó: el archivo cambió desde que lo abriste, así que tu edición no se guardó.",
+    "saveFailedAborted": "No se recargó: el guardado falló, tus cambios siguen aquí.",
+    "officeNotWired": "Actualizar documentos de Office todavía no está disponible: cierra y vuelve a abrir el archivo para ver los cambios."
+  }
 }

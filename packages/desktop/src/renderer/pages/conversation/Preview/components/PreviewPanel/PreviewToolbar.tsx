@@ -83,6 +83,18 @@ interface PreviewToolbarProps {
   hasFilePath: boolean;
 
   /**
+   * 刷新按钮状态 token；`'hidden'` 或未提供时不渲染。
+   * Refresh control state token; not rendered when `'hidden'` or absent.
+   */
+  refreshState?: string;
+
+  /** 刷新按钮是否可点 / Whether the refresh control accepts a click */
+  refreshActionable?: boolean;
+
+  /** 点击刷新 / Reload the current tab */
+  onRefresh?: () => void;
+
+  /**
    * 设置视图模式
    * Set view mode
    */
@@ -155,6 +167,9 @@ const PreviewToolbar: React.FC<PreviewToolbarProps> = ({
   showOpenInSystemButton,
   hasNoRenderableContent = false,
   hasFilePath,
+  refreshState,
+  refreshActionable = false,
+  onRefresh,
   onViewModeChange,
   onSplitScreenToggle,
   onOpenInSystem,
@@ -280,6 +295,46 @@ const PreviewToolbar: React.FC<PreviewToolbarProps> = ({
         </div>
 
         <div className='flex items-center gap-4px flex-shrink-0'>
+          {/* 刷新：放在这个稳定容器里，不进下面那两个「前置/后置」重复块 ——
+              那两块由 preferActionButtonsInFront 二选一，只有 PDF 注入 leftExtra，
+              所以按钮会随 tab 类型左右跳。
+              Refresh lives in this stable container rather than in the duplicated
+              front/back action blocks below: those two are selected by
+              preferActionButtonsInFront, and only PDF injects leftExtra, so anything
+              placed in them jumps sides when the tab type changes. */}
+          {refreshState !== undefined && refreshState !== 'hidden' && (
+            <div
+              data-testid='preview-refresh'
+              data-refresh-state={refreshState}
+              className={`${toolbarBtn} ${refreshState === 'updated' ? '!text-warning-6' : ''} ${
+                refreshActionable ? '' : '!cursor-not-allowed opacity-50'
+              }`}
+              onClick={refreshActionable ? onRefresh : undefined}
+              title={
+                refreshState === 'updated'
+                  ? t('preview.refresh.hasUpdate')
+                  : refreshState === 'idle-no-signal'
+                    ? t('preview.refresh.noSignalSource')
+                    : refreshState === 'disabled'
+                      ? t('preview.refresh.unavailable')
+                      : t('preview.refresh.tooltip')
+              }
+            >
+              <svg
+                width={toolbarIconSize}
+                height={toolbarIconSize}
+                viewBox='0 0 24 24'
+                fill='none'
+                stroke='currentColor'
+                strokeWidth='2'
+              >
+                <path d='M21 12a9 9 0 1 1-3-6.7' />
+                <polyline points='21 3 21 9 15 9' />
+              </svg>
+              <span>{t('preview.refresh.label')}</span>
+            </div>
+          )}
+
           {rightExtra}
 
           {!preferActionButtonsInFront && showOpenInSystemButton && (

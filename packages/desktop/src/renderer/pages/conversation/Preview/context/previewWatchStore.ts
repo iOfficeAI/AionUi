@@ -34,8 +34,14 @@ let port: PreviewWatchPort | null = null;
 /** Directories currently subscribed on the panel's behalf. */
 let current: Set<PeKey> = new Set();
 
-/** Listeners notified when a directory the panel watches reports a change. */
-const changeListeners = new Set<(key: PeKey) => void>();
+/**
+ * Listeners notified when a watched directory reports changed files.
+ *
+ * `changedNames` are the entry names the backend flagged as modified within that
+ * directory. Empty means "something happened here but no file was named" — a rename
+ * or an addition — which the panel treats as affecting nothing it has open.
+ */
+const changeListeners = new Set<(key: PeKey, changedNames: readonly string[]) => void>();
 
 /** Wire the store to the monitor connection. Idempotent. */
 export const configurePreviewWatch = (next: PreviewWatchPort | null): void => {
@@ -88,7 +94,7 @@ export const currentPreviewWatchTargets = (): ReadonlySet<PeKey> => current;
  * The payload is the directory, not the file: the `fs` channel reports directory
  * deltas, and mapping a delta back to the affected tabs is the caller's job.
  */
-export const onPreviewWatchChange = (listener: (key: PeKey) => void): (() => void) => {
+export const onPreviewWatchChange = (listener: (key: PeKey, changedNames: readonly string[]) => void): (() => void) => {
   changeListeners.add(listener);
   return () => changeListeners.delete(listener);
 };
@@ -100,7 +106,7 @@ export const onPreviewWatchChange = (listener: (key: PeKey) => void): (() => voi
  * shared with the explorer, which subscribes to its own set, so this store sees
  * traffic that is none of its business.
  */
-export const notifyPreviewWatchChange = (key: PeKey): void => {
+export const notifyPreviewWatchChange = (key: PeKey, changedNames: readonly string[] = []): void => {
   if (!current.has(key)) return;
-  for (const listener of changeListeners) listener(key);
+  for (const listener of changeListeners) listener(key, changedNames);
 };

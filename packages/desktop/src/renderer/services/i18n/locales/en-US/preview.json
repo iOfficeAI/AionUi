@@ -145,5 +145,20 @@
     "agentFirstUseAction": "Open settings"
   },
   "saveConflict": "Could not save: this file changed on disk since you opened it. Reload to see the other changes — your edits are still here, unsaved.",
-  "persistQuotaExceeded": "Local storage is full, so open tabs can no longer be remembered for this project. Close some tabs or clear site data."
+  "persistQuotaExceeded": "Local storage is full, so open tabs can no longer be remembered for this project. Close some tabs or clear site data.",
+  "refresh": {
+    "label": "Refresh",
+    "tooltip": "Reload from disk",
+    "hasUpdate": "This file changed on disk — reload to see it",
+    "noSignalSource": "This file is not in the project, so changes will not be announced",
+    "unavailable": "This file cannot be located",
+    "failed": "Could not reload this file",
+    "confirmTitle": "Reload and lose unsaved changes?",
+    "confirmMessage": "This tab has unsaved changes. Reloading replaces them with what is on disk.",
+    "saveAndRefresh": "Save, then reload",
+    "discardAndRefresh": "Discard changes and reload",
+    "saveConflictAborted": "Not reloaded: this file changed on disk since you opened it, so your edit was not saved.",
+    "saveFailedAborted": "Not reloaded: the save failed, so your changes are still here.",
+    "officeNotWired": "Refreshing Office documents is not available yet — close and reopen the file to see changes."
+  }
 }

@@ -44,6 +44,12 @@ import {
   type PreviewContextValue,
 } from '@/renderer/pages/conversation/Preview/context/PreviewContext';
 import { previewScopeStorageKey } from '@/renderer/pages/conversation/Preview/context/previewScope';
+import {
+  configurePreviewWatch,
+  currentPreviewWatchTargets,
+  resetPreviewWatch,
+} from '@/renderer/pages/conversation/Preview/context/previewWatchStore';
+import { peKey } from '@/renderer/pages/conversation/explorer/explorerModel';
 
 let ctx: PreviewContextValue;
 const Probe: React.FC = () => {
@@ -365,5 +371,70 @@ describe('hiding the panel does not refresh the storage recency stamp', () => {
     flushPersist();
 
     expect(savedAt()).toBe(before);
+  });
+});
+
+// Switching project must leave the incoming project's directories watched.
+//
+// This exercises the ordering inside the scope switch through the provider, which is
+// where it can actually go wrong: releasing the outgoing subscriptions has to precede
+// applying the incoming tabs. Reversed, the tabs effect subscribes the new
+// directories and the release then drops everything held — the new project included —
+// so it receives no change signals until something unrelated reconciles again.
+describe('switching project keeps the new project watched', () => {
+  const port = { subscribe: vi.fn(async () => ({ snapshots: [] })), unsubscribe: vi.fn() };
+
+  beforeEach(() => {
+    port.subscribe.mockClear();
+    port.unsubscribe.mockClear();
+    configurePreviewWatch(port);
+    resetPreviewWatch();
+  });
+
+  // Switching INTO a project that already has tabs is the case that distinguishes the
+  // order: the restored tabs are applied in the same pass as the release, so if the
+  // release ran last it would drop the subscriptions the restore had just created.
+  // (Switching into an empty project cannot tell the two apart — there is nothing for
+  // the effect to subscribe, so both orders end up empty.)
+  it('holds the incoming project directory when its tabs are restored', () => {
+    localStorage.setItem(
+      previewScopeStorageKey('proj-b'),
+      JSON.stringify({
+        isOpen: true,
+        activeTabId: 'tab-b',
+        tabs: [
+          {
+            id: 'tab-b',
+            title: 'b.ts',
+            content: 'b',
+            content_type: 'code',
+            metadata: {
+              file_name: 'b.ts',
+              fileRef: { kind: 'project', pe_id: 'peB', relative_path: 'lib/b.ts' },
+            },
+          },
+        ],
+      })
+    );
+
+    mount();
+    act(() => ctx.closePreviewIfScopeChanged('proj-a'));
+    act(() => ctx.openPreview('a', 'code', { file_name: 'a.ts', fileRef: projectRef('src/a.ts') }));
+    expect(currentPreviewWatchTargets().has(peKey('peA', 'src'))).toBe(true);
+
+    act(() => ctx.closePreviewIfScopeChanged('proj-b'));
+
+    // B's restored tab must be watched; A's must not still be.
+    expect([...currentPreviewWatchTargets()]).toEqual([peKey('peB', 'lib')]);
+  });
+
+  it('leaves nothing watched when the incoming project has no tabs', () => {
+    mount();
+    act(() => ctx.closePreviewIfScopeChanged('proj-a'));
+    act(() => ctx.openPreview('a', 'code', { file_name: 'a.ts', fileRef: projectRef('src/a.ts') }));
+
+    act(() => ctx.closePreviewIfScopeChanged('proj-empty'));
+
+    expect(currentPreviewWatchTargets().size).toBe(0);
   });
 });
