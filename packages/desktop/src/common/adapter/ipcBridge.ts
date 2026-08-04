@@ -1683,6 +1683,9 @@ export interface IResponseMessage {
   turn_id?: string;
   conversation_id: string;
   created_at?: number;
+  /** Backend turn anchor (codex Turn.id) for fork gating; mirrors the
+   *  persisted messages.backend_turn_id so live frames gate like history. */
+  backend_turn_id?: string;
   hidden?: boolean;
   position?: 'left' | 'right' | 'center' | 'pop';
   status?: 'finish' | 'pending' | 'error' | 'work';
