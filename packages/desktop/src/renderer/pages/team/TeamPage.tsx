@@ -122,6 +122,7 @@ const AssistantChatSlot: React.FC<{
   onToggleFullscreen?: () => void;
   teamRunView: TeamRunViewState;
   onTeamRunAck: ReturnType<typeof useTeamRunView>['applyAck'];
+  onTeamSlotPaused: ReturnType<typeof useTeamRunView>['applyLocalPause'];
   onRunStateStale: ReturnType<typeof useTeamRunView>['reconcile'];
   /** teammate 的真实 warmup 运行态；缺省视为 'dormant'。单聊不传。 */
   warmupStatus?: AcpWarmupStatus;
@@ -136,6 +137,7 @@ const AssistantChatSlot: React.FC<{
   onToggleFullscreen,
   teamRunView,
   onTeamRunAck,
+  onTeamSlotPaused,
   onRunStateStale,
   warmupStatus,
   warmupDisabled,
@@ -234,7 +236,8 @@ const AssistantChatSlot: React.FC<{
             isLeader={isLeader}
             teamRunView={teamRunView}
             onTeamRunAck={onTeamRunAck}
-            onRunStateStale={() => onRunStateStale('pause.stale')}
+            onTeamSlotPaused={onTeamSlotPaused}
+            onRunStateStale={() => onRunStateStale('pause.result')}
           />
         ) : (
           <div className='flex flex-1 items-center justify-center'>
@@ -543,6 +546,7 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({
                       onToggleFullscreen={() => setViewMode('parallel')}
                       teamRunView={teamRun.state}
                       onTeamRunAck={teamRun.applyAck}
+                      onTeamSlotPaused={teamRun.applyLocalPause}
                       onRunStateStale={teamRun.reconcile}
                       warmupStatus={warmupRuntimeStatus.get(assistant.slot_id)?.status ?? 'dormant'}
                       warmupDisabled={isWarmingUp}
@@ -607,6 +611,7 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({
                           }}
                           teamRunView={teamRun.state}
                           onTeamRunAck={teamRun.applyAck}
+                          onTeamSlotPaused={teamRun.applyLocalPause}
                           onRunStateStale={teamRun.reconcile}
                           warmupStatus={warmupRuntimeStatus.get(assistant.slot_id)?.status ?? 'dormant'}
                           warmupDisabled={isWarmingUp}

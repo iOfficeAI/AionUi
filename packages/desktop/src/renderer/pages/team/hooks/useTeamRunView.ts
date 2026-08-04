@@ -4,6 +4,7 @@ import type {
   ITeamChildTurnEvent,
   ITeamRunAck,
   ITeamRunEvent,
+  ITeamRunStateResponse,
   ITeamSlotWork,
   ITeamSlotWorkChangedEvent,
   TeamRunStatus,
@@ -12,6 +13,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 export type TeamRunViewRun = ITeamRunEvent;
 export type TeamRunViewChildTurn = ITeamChildTurnEvent;
+export type TeamRunReconcileResult = 'applied' | 'superseded' | 'failed';
 
 const TERMINAL_RUN_STATUSES = new Set<TeamRunStatus>(['completed', 'cancelled', 'failed']);
 const TERMINAL_AGENT_STATUSES = new Set(['idle', 'completed', 'failed', 'dormant']);
@@ -71,19 +73,28 @@ const debugTeamChildTurnEvent = (source: string, event: ITeamChildTurnEvent) => 
   });
 };
 
-const indexSlotWork = (slotWork: ITeamSlotWork[]): Record<string, ITeamSlotWork | undefined> => {
+const indexSlotWork = (slotWork?: ITeamSlotWork[] | null): Record<string, ITeamSlotWork | undefined> => {
   const indexed: Record<string, ITeamSlotWork | undefined> = {};
-  for (const work of slotWork) {
+  for (const work of slotWork ?? []) {
     indexed[work.slot_id] = work;
   }
   return indexed;
 };
+
+const mergeSlotWork = (
+  current: Record<string, ITeamSlotWork | undefined>,
+  incoming?: ITeamSlotWork[] | null
+): Record<string, ITeamSlotWork | undefined> => ({
+  ...current,
+  ...indexSlotWork(incoming),
+});
 
 const hasOrphanedProcessingWork = (state: TeamRunViewState): boolean => {
   if (state.activeRun || state.sessionStopped) return false;
   return Object.values(state.slotWorkBySlot).some(
     (work) =>
       work &&
+      work.state !== 'paused' &&
       (work.state === 'queued' ||
         work.state === 'starting' ||
         work.state === 'running' ||
@@ -103,6 +114,38 @@ export const useTeamRunView = (team_id: string) => {
     setState(emptyState);
   }, [team_id]);
 
+  const reconcile = useCallback(
+    async (source = 'manual'): Promise<TeamRunReconcileResult> => {
+      const requestSnapshot = async (attempt: 0 | 1): Promise<TeamRunReconcileResult> => {
+        const seq = ++reconcileSeq.current;
+        const requestedAtLiveEventVersion = liveEventVersion.current;
+        let snapshot: ITeamRunStateResponse;
+        try {
+          snapshot = await ipcBridge.team.getRunState.invoke({ team_id });
+        } catch (error) {
+          console.warn('[Renderer:teamRunView] run_state_reconcile_failed', { source, team_id, error });
+          return 'failed';
+        }
+
+        if (seq !== reconcileSeq.current || requestedAtLiveEventVersion !== liveEventVersion.current) {
+          return attempt === 0 ? requestSnapshot(1) : 'superseded';
+        }
+
+        const activeRun = snapshot.active_run ?? undefined;
+        if (activeRun) debugTeamRunEvent(`reconcile:${source}`, activeRun);
+        setState({
+          activeRun,
+          childTurnsBySlot: {},
+          slotWorkBySlot: indexSlotWork(snapshot.slot_work),
+          sessionStopped: false,
+        });
+        return 'applied';
+      };
+      return requestSnapshot(0);
+    },
+    [team_id]
+  );
+
   const applyRunEvent = useCallback(
     (event: ITeamRunEvent, source = 'websocket') => {
       if (event.team_id !== team_id) return;
@@ -113,19 +156,22 @@ export const useTeamRunView = (team_id: string) => {
           return {
             activeRun: undefined,
             childTurnsBySlot: prev.childTurnsBySlot,
-            slotWorkBySlot: indexSlotWork(event.slot_work),
+            slotWorkBySlot: mergeSlotWork(prev.slotWorkBySlot, event.slot_work),
             sessionStopped: false,
           };
         }
         return {
           activeRun: event,
           childTurnsBySlot: prev.childTurnsBySlot,
-          slotWorkBySlot: indexSlotWork(event.slot_work),
+          slotWorkBySlot: mergeSlotWork(prev.slotWorkBySlot, event.slot_work),
           sessionStopped: false,
         };
       });
+      if (TERMINAL_RUN_STATUSES.has(event.status)) {
+        void reconcile(`terminal-run:${event.status}`);
+      }
     },
-    [team_id]
+    [reconcile, team_id]
   );
 
   const applyAck = useCallback(
@@ -133,32 +179,6 @@ export const useTeamRunView = (team_id: string) => {
       applyRunEvent(ack.run, 'ack');
     },
     [applyRunEvent]
-  );
-
-  const reconcile = useCallback(
-    async (source = 'manual'): Promise<boolean> => {
-      const seq = ++reconcileSeq.current;
-      const requestedAtLiveEventVersion = liveEventVersion.current;
-      try {
-        const snapshot = await ipcBridge.team.getRunState.invoke({ team_id });
-        setState((prev) => {
-          if (seq !== reconcileSeq.current || requestedAtLiveEventVersion !== liveEventVersion.current) return prev;
-          const activeRun = snapshot.active_run ?? undefined;
-          if (activeRun) debugTeamRunEvent(`reconcile:${source}`, activeRun);
-          return {
-            activeRun,
-            childTurnsBySlot: {},
-            slotWorkBySlot: indexSlotWork(snapshot.slot_work),
-            sessionStopped: false,
-          };
-        });
-        return true;
-      } catch (error) {
-        console.warn('[Renderer:teamRunView] run_state_reconcile_failed', { source, team_id, error });
-        return false;
-      }
-    },
-    [team_id]
   );
 
   const applyChildStarted = useCallback(
@@ -212,6 +232,29 @@ export const useTeamRunView = (team_id: string) => {
     [team_id]
   );
 
+  const applyLocalPause = useCallback((slot_id: string) => {
+    liveEventVersion.current += 1;
+    setState((prev) => {
+      const work = prev.slotWorkBySlot[slot_id];
+      if (!work) return prev;
+      return {
+        ...prev,
+        slotWorkBySlot: {
+          ...prev.slotWorkBySlot,
+          [slot_id]: {
+            ...work,
+            state: 'paused',
+            active_turn_id: null,
+            active_turn_started_at_ms: null,
+            active_turn_elapsed_ms: null,
+            active_turn_slow: null,
+            active_turn_slow_threshold_ms: null,
+          },
+        },
+      };
+    });
+  }, []);
+
   useEffect(() => {
     void reconcile('load');
   }, [reconcile]);
@@ -226,7 +269,7 @@ export const useTeamRunView = (team_id: string) => {
     let retryTimer: ReturnType<typeof setTimeout> | undefined;
     const reconcileOrphan = async () => {
       const reconciled = await reconcile('orphaned-slot-work');
-      if (!cancelled && !reconciled) {
+      if (!cancelled && reconciled !== 'applied') {
         retryTimer = setTimeout(() => void reconcileOrphan(), ORPHAN_RECONCILE_DELAY_MS);
       }
     };
@@ -298,8 +341,9 @@ export const useTeamRunView = (team_id: string) => {
     () => ({
       state,
       applyAck,
+      applyLocalPause,
       reconcile,
     }),
-    [applyAck, reconcile, state]
+    [applyAck, applyLocalPause, reconcile, state]
   );
 };
