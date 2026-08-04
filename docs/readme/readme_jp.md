@@ -30,7 +30,7 @@
 </p>
 
 <p align="center">
-  <a href="../../readme.md">English</a> | <a href="./readme_ch.md">简体中文</a> | <a href="./readme_tw.md">繁體中文</a> | <strong>日本語</strong> | <a href="./readme_ko.md">한국어</a> | <a href="./readme_es.md">Español</a> | <a href="./readme_pt.md">Português</a> | <a href="./readme_tr.md">Türkçe</a> | <a href="./readme_ru.md">Русский</a> | <a href="./readme_uk.md">Українська</a> | <a href="https://www.aionui.com" target="_blank">公式サイト</a>
+  <a href="../../readme.md">Development Guide</a> | <a href="./readme_ch.md">简体中文</a> | <a href="./readme_tw.md">繁體中文</a> | <strong>日本語</strong> | <a href="./readme_ko.md">한국어</a> | <a href="./readme_es.md">Español</a> | <a href="./readme_pt.md">Português</a> | <a href="./readme_tr.md">Türkçe</a> | <a href="./readme_ru.md">Русский</a> | <a href="./readme_uk.md">Українська</a> | <a href="https://www.aionui.com" target="_blank">公式サイト</a>
 </p>
 
 <p align="center">
@@ -662,7 +662,7 @@ PR を開く前に [CONTRIBUTING.md](../../CONTRIBUTING.md) をお読みくだ�
 
 ### 開発環境セットアップ
 
-AionUi のローカル開発では、Electron フロントエンド用の AionUi とローカルバックエンド用の AionCore の 2 つのリポジトリを使います。macOS、Linux、Windows の完全なセットアップ手順は [Development Guide](../contributing/development.md) を参照してください。
+GEAUi のローカル開発では、Electron フロントエンド用の GEAUi とローカルバックエンド用の GEACore の 2 つのリポジトリを使います。macOS、Linux、Windows の完全なセットアップ手順は [Development Guide](../contributing/development.md) を参照してください。
 
 ---
 

@@ -4,7 +4,7 @@
 
 - **Node.js** 22 or higher
 - **bun** — Package manager & runtime ([install](https://bun.sh))
-- **Rust stable + Cargo** — Required to build the local AionCore backend ([install](https://rustup.rs))
+- **Rust stable + Cargo** — Required to build the local GEACore backend ([install](https://rustup.rs))
 - **Python** 3.11+ (for native module compilation)
 - **prek** — PR code checker (`npm install -g @j178/prek`)
 
@@ -12,10 +12,10 @@ On Windows, install the Rust MSVC toolchain. If Rust compilation fails because n
 
 ## Repository Layout
 
-AionUi development uses two repositories:
+GEAUi development uses two repositories:
 
-- **AionCore** (`https://github.com/iOfficeAI/AionCore.git`) builds the local backend binary: `aioncore` on macOS/Linux and `aioncore.exe` on Windows.
-- **AionUi** (`https://github.com/iOfficeAI/AionUi.git`) starts the Electron desktop app and launches the backend binary automatically.
+- **GEACore** (`https://github.com/iOfficeAI/AionCore.git`) builds the local backend binary: `aioncore` on macOS/Linux and `aioncore.exe` on Windows.
+- **GEAUi** (`https://github.com/iOfficeAI/AionUi.git`) starts the Electron desktop app and launches the backend binary automatically.
 
 Keep the repositories side by side when possible:
 
@@ -25,7 +25,7 @@ workspace/
 `-- AionUi/
 ```
 
-The desktop development server resolves the backend from the `PATH` inherited by `bun run start`. Install AionCore first, verify the binary is discoverable in the same terminal, then start AionUi.
+The desktop development server resolves the backend from the `PATH` inherited by `bun run start`. Install GEACore first, verify the binary is discoverable in the same terminal, then start GEAUi.
 
 ## Quick Start
 
@@ -38,7 +38,7 @@ git clone https://github.com/iOfficeAI/AionUi.git
 
 Use the `main` branch for both repositories unless a maintainer asks you to test another branch.
 
-### 2. Build and Install AionCore
+### 2. Build and Install GEACore
 
 Run these commands from the `AionCore` repository.
 
@@ -76,7 +76,7 @@ aioncore --help
 
 If `where.exe aioncore` prints nothing, make sure `%USERPROFILE%\.cargo\bin` is in your user `Path`, open a new PowerShell window, and verify again.
 
-### 3. Start AionUi
+### 3. Start GEAUi
 
 Run these commands from the `AionUi` repository in a terminal where `aioncore` is discoverable.
 
@@ -90,11 +90,11 @@ bun install
 bun run start
 ```
 
-During startup, AionUi launches `aioncore` automatically and passes the backend port to the renderer. You do not need to start AionCore in a separate terminal.
+During startup, GEAUi launches `aioncore` automatically and passes the backend port to the renderer. You do not need to start GEACore in a separate terminal.
 
 ## Updating the Local Backend
 
-When you pull or change AionCore, reinstall the backend binary and restart AionUi:
+When you pull or change GEACore, reinstall the backend binary and restart GEAUi:
 
 ```bash
 cd ../AionCore
@@ -104,15 +104,15 @@ cd ../AionUi
 bun run start
 ```
 
-Use `--force` when rebuilding local changes with the same AionCore package version; otherwise Cargo may keep the already installed binary.
+Use `--force` when rebuilding local changes with the same GEACore package version; otherwise Cargo may keep the already installed binary.
 
 ## Backend Startup Troubleshooting
 
 ### `Cannot find "aioncore" binary`
 
-AionUi cannot find the backend from the `PATH` inherited by `bun run start`.
+GEAUi cannot find the backend from the `PATH` inherited by `bun run start`.
 
-Check from the same terminal where you start AionUi:
+Check from the same terminal where you start GEAUi:
 
 ```bash
 # macOS / Linux
@@ -122,19 +122,19 @@ which aioncore
 where.exe aioncore
 ```
 
-If the command fails, add Cargo's binary directory to `PATH` and start AionUi from a new terminal.
+If the command fails, add Cargo's binary directory to `PATH` and start GEAUi from a new terminal.
 
-### `aioncore` Works in a Terminal but AionUi Still Cannot Find It
+### `aioncore` Works in a Terminal but GEAUi Still Cannot Find It
 
 Make sure you start `bun run start` from the same terminal environment that can run `aioncore --help`. IDE terminals and GUI-launched shells can inherit a different `PATH`; restart the IDE or launch it from a terminal after updating `PATH`.
 
 ### Backend Changes Do Not Show Up
 
-Quit AionUi, reinstall AionCore with `cargo install --path crates/aionui-app --locked --force`, then start AionUi again. The Electron app owns the backend subprocess during development, so a running AionUi instance will not pick up a newly installed binary until it restarts.
+Quit GEAUi, reinstall GEACore with `cargo install --path crates/aionui-app --locked --force`, then start GEAUi again. The Electron app owns the backend subprocess during development, so a running GEAUi instance will not pick up a newly installed binary until it restarts.
 
 ### Windows Rust Build Errors
 
-Use the Rust MSVC toolchain and install Microsoft C++ Build Tools. After installing or changing toolchains, open a new PowerShell window and rerun the AionCore install command.
+Use the Rust MSVC toolchain and install Microsoft C++ Build Tools. After installing or changing toolchains, open a new PowerShell window and rerun the GEACore install command.
 
 ## Scripts Reference
 
@@ -255,7 +255,7 @@ prek run --from-ref origin/main --to-ref HEAD
 
 ## Build System
 
-AionUi uses **electron-vite** for fast bundling:
+GEAUi uses **electron-vite** for fast bundling:
 
 - **Main process**: bundled with Vite (ESM)
 - **Renderer process**: bundled with Vite (React + TypeScript)

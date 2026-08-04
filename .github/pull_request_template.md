@@ -1,6 +1,6 @@
 # Pull Request
 
-> Please read [CONTRIBUTING.md](CONTRIBUTING.md) before submitting. PRs that ignore the rules below may be closed and asked to resubmit.
+> Please read [CONTRIBUTING.md](../CONTRIBUTING.md) before submitting. PRs that ignore the rules below may be closed and asked to resubmit.
 
 ## Description
 

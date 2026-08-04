@@ -1,154 +1,27 @@
-# AionUi - Project Guide
+# AionUi 项目约定
 
-All contributors (human and AI) must follow [CONTRIBUTING.md](CONTRIBUTING.md) before opening a PR. ([Chinese version](CONTRIBUTING.zh.md))
+## 项目事实
 
-## Code Conventions
+- AionUi 是 Electron、WebUI 和移动端的产品与编排层；Agent 运行时、业务 API 和主数据由外部 AionCore 提供。
+- 桌面入口是 `packages/desktop/src/index.ts`；前端在 `packages/desktop/src/renderer/`；仅原生能力经 `packages/desktop/src/preload/` 连接。
+- 业务调用经 `packages/desktop/src/common/adapter/` 的 HTTP/WS 契约完成；不要为后端业务新增绕过该层的 Electron IPC。
 
-### File & Directory Structure
+## 高风险约束
 
-- **Directory size limit**: Prefer ≤ **10** direct children per directory; new or substantially reorganized directories must satisfy this.
+- Main 进程只能使用 Node.js/Electron Main API；Renderer 只能使用浏览器/React API。跨进程能力只能经 preload 暴露。
+- 新增或修改的用户可见文本必须使用 i18n key；新 UI 优先复用项目已有业务组件与封装，其次使用 `@arco-design/web-react`，禁止新增原生交互元素。布局、间距和交互状态沿用同类页面的现有风格，颜色使用语义 Token 或 CSS 变量。
+- 保持变更聚焦。不得因当前改动顺带清理既有目录结构或单文件目录问题，也不要改动不属于本次任务的脏文件。
+- 源文档已有 `*.zh-CN.md` 对应版本时，修改源文档必须同步更新译文；命令、路径、URL、环境变量和代码块保持可执行。
 
-See [docs/contributing/file-structure.md](docs/contributing/file-structure.md) for complete rules. Agents must also follow the `architecture` skill (`.claude/skills/architecture/SKILL.md`) when creating files or modules.
+## 条件资料
 
-### Naming
+- 创建、移动或拆分文件/模块时，阅读 [文件与目录结构](docs/contributing/file-structure.zh-CN.md)。
+- 修改运行行为、修复缺陷或新增测试时，阅读 [E2E 测试指南](tests/e2e/README.zh-CN.md) 中相关部分，并运行与改动最接近的检查。
+- 修改开发、构建、发布或 PR 流程时，阅读 [贡献指南](CONTRIBUTING.zh.md)。
+- 修改 WebUI、AionCore 启动或本地后端配置时，阅读 [开发指南](docs/contributing/development.zh-CN.md)。
 
-- **Components**: PascalCase (`Button.tsx`, `Modal.tsx`)
-- **Utilities**: camelCase (`formatDate.ts`)
-- **Hooks**: camelCase with `use` prefix (`useTheme.ts`)
-- **Constants files**: camelCase (`constants.ts`) — values inside use UPPER_SNAKE_CASE
-- **Type files**: camelCase (`types.ts`)
-- **Style files**: kebab-case or `ComponentName.module.css`
-- **Unused params**: prefix with `_`
+## 验证与交付
 
-### UI Library & Icons
-
-- **Components**: `@arco-design/web-react` — no raw interactive HTML (`<button>`, `<input>`, `<select>`, etc.)
-- **Icons**: `@icon-park/react`
-
-### CSS
-
-- Prefer **UnoCSS utility classes**; complex styles use **CSS Modules** (`ComponentName.module.css`)
-- Colors must use **semantic tokens** from `uno.config.ts` or CSS variables — no hardcoded values
-- Arco theme overrides go in `packages/desktop/src/renderer/styles/arco-override.css`; component-scoped Arco overrides use CSS Module with `:global()`
-- Global styles only in `packages/desktop/src/renderer/styles/`
-
-Formatting rules (Oxfmt, Prettier-compatible):
-
-- Single-element arrays that fit on one line → inline: `[{ id: 'a', value: 'b' }]`
-- Trailing commas required in multi-line arrays/objects
-- Single quotes for strings
-
-### TypeScript
-
-- Strict mode enabled — no `any`, no implicit returns
-- Use path aliases: `@/*`, `@process/*`, `@renderer/*`
-- Prefer `type` over `interface` (per Oxlint config)
-- English for code comments; JSDoc for public functions
-
-### Internationalization (i18n)
-
-New or changed user-facing text must use i18n keys; do not introduce hardcoded strings. Languages and modules are defined in `packages/desktop/src/common/config/i18n-config.json`.
-
-See the `i18n` skill (`.claude/skills/i18n/SKILL.md`) for complete workflow, key naming, and validation steps.
-
-## Architecture
-
-Two process types — never mix their APIs:
-
-| Process  | Path                             | Restriction     |
-| -------- | -------------------------------- | --------------- |
-| Main     | `packages/desktop/src/process/`  | No DOM APIs     |
-| Renderer | `packages/desktop/src/renderer/` | No Node.js APIs |
-
-Cross-process communication must go through the IPC bridge (`packages/desktop/src/preload/`).
-See [docs/architecture/overview.md](docs/architecture/overview.md) for details.
-
-## Testing
-
-**Framework**: Vitest 4 (`vitest.config.ts`). Project coverage target is ≥ 80%; ordinary changes should add focused tests for changed behavior.
-
-```bash
-bun run test              # run all tests
-bun run test:coverage     # with coverage report
-```
-
-See the `testing` skill (`.claude/skills/testing/SKILL.md`) for complete workflow and quality rules.
-
-## Workflow
-
-### Scope & Enforcement
-
-- **Hard blockers**: process boundary violations, TypeScript errors, failing tests, unsafe IPC usage, missing i18n for new or changed user-facing text, and raw interactive HTML in new UI.
-- **Current-change requirements**: naming, CSS, file placement, tests, docs, directory size, and single-file-directory rules apply to files created or meaningfully modified by the current change.
-- **Ratchet rules**: existing directory size or single-file-directory violations do not require cleanup during ordinary feature work or bugfixes, but the current change must not make them worse.
-- **No scope expansion**: implementation plans and reviews must not create extra tasks, phases, or acceptance criteria for cleanup unless the user asks for that scope.
-- **Ignored working docs**: `docs/superpowers/` is intentionally gitignored for local Superpowers specs and plans. Do not force-add or otherwise commit files from this directory.
-
-### During Development
-
-Auto-fix as you edit:
-
-```bash
-bun run lint:fix       # auto-fix lint issues (oxlint)
-bun run format         # auto-format all files (oxfmt)
-bunx tsc --noEmit      # verify no type errors
-```
-
-If your changes touch `packages/desktop/src/renderer/`, `locales/`, or `packages/desktop/src/common/config/i18n`, also run:
-
-```bash
-bun run i18n:types
-node scripts/check-i18n.js
-```
-
-### Before Pushing
-
-AI agents must not push unless explicitly asked. When pushing, use `just push`, never `git push`:
-
-```bash
-just push                          # lint → format-check → typecheck → test → git push
-just push -u origin feat/branch    # same checks, with extra git push args
-```
-
-Any step that fails aborts the push. Fix the issue, commit, then retry.
-
-> **Note for AI agents**: `just push` uses `--quiet` for lint — only errors cause failure. The project has many pre-existing lint _warnings_ which do NOT indicate failure. Judge success by exit code, not by output volume.
-
-### Before PR (optional stricter check)
-
-`prek` replicates the **exact CI pipeline** (includes end-of-file, trailing whitespace checks on all file types):
-
-```bash
-# One-time setup
-npm install -g @j178/prek
-
-# Run
-prek run --from-ref origin/main --to-ref HEAD
-```
-
-> `prek` is read-only — it reports but does not fix. If it reports issues, run the auto-fix commands above, commit, then re-run.
-
-### Commit & PR Format
-
-Commits and PR titles must follow the Conventional Commit format defined in [CONTRIBUTING.md](CONTRIBUTING.md):
-
-```text
-<type>(<scope>): <subject>
-```
-
-Allowed types: `feat`, `fix`, `perf`, `refactor`, `docs`, `style`, `chore`, `test`, `ci`, `build`.
-
-When opening a PR, fill in the PR body using [.github/pull_request_template.md](.github/pull_request_template.md) and complete its checklists honestly (only check items you actually ran or verified).
-
-**NEVER add AI signatures** (Co-Authored-By, Generated with, etc.).
-
-## Skills Index
-
-| Skill            | Purpose                                                                     | Triggers                                                                                               |
-| ---------------- | --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| **architecture** | File & directory structure conventions for all process types                | Creating files, adding modules, architectural decisions                                                |
-| **i18n**         | Internationalization workflow and standards                                 | Adding or changing user-facing text, modifying `locales/` or `packages/desktop/src/common/config/i18n` |
-| **testing**      | Testing workflow and quality standards                                      | Writing tests, changing runtime behavior, fixing bugs, or claiming behavior is verified                |
-| **bump-version** | Version bump workflow: update package.json, checks, branch, PR, tag release | Bumping version, `/bump-version`                                                                       |
-
-> Skills are located in `.claude/skills/` and contain project conventions that apply to **all** agents and contributors.
+- 行为变更至少运行相关测试或静态检查；未运行时说明原因和风险边界。
+- 只有用户明确要求时才推送。推送前使用 `just push`，不要直接执行 `git push`。
+- Commit 和 PR 标题使用英文 Conventional Commit 格式；不得添加 AI 签名。

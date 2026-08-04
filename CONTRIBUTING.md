@@ -8,7 +8,7 @@ See [docs/contributing/development.md](docs/contributing/development.md) for env
 
 - Node.js 22+
 - [bun](https://bun.sh)
-- [Rust stable + Cargo](https://rustup.rs) for the local AionCore backend
+- [Rust stable + Cargo](https://rustup.rs) for the local GEACore backend
 - [prek](https://github.com/j178/prek) (`npm install -g @j178/prek`)
 
 ## Rule 1: Atomic PRs
