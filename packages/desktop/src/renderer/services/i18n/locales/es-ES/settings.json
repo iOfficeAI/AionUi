@@ -331,6 +331,8 @@
   "groupAbout": "Otros",
   "agentIdleTimeout": "Tiempo de inactividad del agente (min)",
   "agentIdleTimeoutDesc": "Terminar procesos de agente inactivos después de este tiempo para liberar memoria",
+  "previewTextSizeLimit": "Límite de tamaño de vista previa (MB)",
+  "previewTextSizeLimitDesc": "Los archivos de texto que superen este tamaño se abren con un aviso en lugar del contenido. Solo se aplica a las pestañas nuevas.",
   "gemini": "Gemini CLI",
   "model": "Modelo",
   "system": "Sistema",

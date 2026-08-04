@@ -333,6 +333,8 @@
   "groupAbout": "Sonstiges",
   "agentIdleTimeout": "Agenten-Leerlaufzeitüberschreitung (Min.)",
   "agentIdleTimeoutDesc": "Inaktive Agentenprozesse nach dieser Dauer beenden, um Speicher freizugeben",
+  "previewTextSizeLimit": "Vorschau-Größenlimit (MB)",
+  "previewTextSizeLimitDesc": "Textdateien über dieser Größe werden mit einem Hinweis statt mit Inhalt geöffnet. Gilt nur für neu geöffnete Tabs.",
   "gemini": "Gemini CLI",
   "model": "Modell",
   "system": "System",

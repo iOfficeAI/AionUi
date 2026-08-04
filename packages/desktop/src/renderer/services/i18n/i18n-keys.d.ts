@@ -1248,6 +1248,8 @@ export type I18nKey =
   | 'settings.agentDisplayName'
   | 'settings.agentIdleTimeout'
   | 'settings.agentIdleTimeoutDesc'
+  | 'settings.previewTextSizeLimit'
+  | 'settings.previewTextSizeLimitDesc'
   | 'settings.agentManagement.addAgent'
   | 'settings.agentManagement.addCustomAgent'
   | 'settings.agentManagement.advancedConfig'

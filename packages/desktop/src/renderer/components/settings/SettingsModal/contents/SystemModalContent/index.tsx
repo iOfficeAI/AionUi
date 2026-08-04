@@ -11,6 +11,12 @@ import AionScrollArea from '@/renderer/components/base/AionScrollArea';
 import FeedbackButton from '@/renderer/components/base/FeedbackButton';
 import LanguageSwitcher from '@/renderer/components/settings/LanguageSwitcher';
 import { getClientBusinessSetting, setClientBusinessSetting } from '@/renderer/services/clientBusinessSettings';
+import {
+  DEFAULT_TEXT_PREVIEW_LIMIT_MB,
+  MAX_TEXT_PREVIEW_LIMIT_MB,
+  MIN_TEXT_PREVIEW_LIMIT_MB,
+  normalizeTextPreviewLimitMb,
+} from '@/renderer/utils/file/previewPayload';
 import { notifyManualRestartRequired } from '@/renderer/utils/appRestart';
 import { isElectronDesktop } from '@/renderer/utils/platform';
 import { Alert, Collapse, Form, InputNumber, Message, Modal, Switch } from '@arco-design/web-react';
@@ -53,6 +59,7 @@ const SystemModalContent: React.FC = () => {
   const [cronNotificationEnabled, setCronNotificationEnabled] = useState(false);
   const [promptTimeout, setPromptTimeout] = useState<number>(300);
   const [agentIdleTimeout, setAgentIdleTimeout] = useState<number>(5);
+  const [previewLimitMb, setPreviewLimitMb] = useState<number>(DEFAULT_TEXT_PREVIEW_LIMIT_MB);
   const [saveUploadToWorkspace, setSaveUploadToWorkspace] = useState(false);
 
   useEffect(() => {
@@ -100,9 +107,10 @@ const SystemModalContent: React.FC = () => {
 
     const loadAcpTimeouts = async () => {
       try {
-        const [storedPromptTimeout, storedAgentIdleTimeout] = await Promise.all([
+        const [storedPromptTimeout, storedAgentIdleTimeout, storedPreviewLimitMb] = await Promise.all([
           getClientBusinessSetting('acp.promptTimeout'),
           getClientBusinessSetting('acp.agentIdleTimeout'),
+          getClientBusinessSetting('preview.textSizeLimitMb'),
         ]);
         if (cancelled) {
           return;
@@ -113,6 +121,12 @@ const SystemModalContent: React.FC = () => {
         }
         if (typeof storedAgentIdleTimeout === 'number' && storedAgentIdleTimeout > 0) {
           setAgentIdleTimeout(storedAgentIdleTimeout);
+        }
+        // Normalized rather than range-checked inline: the same clamp guards the
+        // stored value, the field, and the size check, so a hand-edited or legacy
+        // entry cannot present one limit here and apply another when a file opens.
+        if (storedPreviewLimitMb !== undefined) {
+          setPreviewLimitMb(normalizeTextPreviewLimitMb(storedPreviewLimitMb));
         }
       } catch {
         // Keep the in-memory defaults when backend settings are unavailable.
@@ -250,6 +264,26 @@ const SystemModalContent: React.FC = () => {
     void setClientBusinessSetting('acp.agentIdleTimeout', clamped).catch(() => {});
   }, [agentIdleTimeout]);
 
+  const handlePreviewLimitMbChange = useCallback((val: number | string) => {
+    setPreviewLimitMb(val as number);
+  }, []);
+
+  /**
+   * Persist on blur, not on every keystroke: the field is cleared to empty while
+   * retyping, and writing that intermediate state would store a limit the user never
+   * chose. The clamp runs here too, so the stored value is always one the size check
+   * would accept.
+   *
+   * Only newly opened preview tabs see the new limit — tabs already open captured
+   * theirs when they opened. That is deliberate: reclassifying an open tab would move
+   * a file being edited into the "too large to show" state mid-edit.
+   */
+  const handlePreviewLimitMbBlur = useCallback(() => {
+    const clamped = normalizeTextPreviewLimitMb(previewLimitMb);
+    setPreviewLimitMb(clamped);
+    void setClientBusinessSetting('preview.textSizeLimitMb', clamped).catch(() => {});
+  }, [previewLimitMb]);
+
   const handleSaveUploadToWorkspaceChange = useCallback((checked: boolean) => {
     setSaveUploadToWorkspace(checked);
     configService.set('upload.saveToWorkspace', checked).catch(() => {
@@ -332,6 +366,23 @@ const SystemModalContent: React.FC = () => {
           step={5}
           style={{ width: 120 }}
           suffix='min'
+        />
+      ),
+    },
+    {
+      key: 'previewTextSizeLimit',
+      label: t('settings.previewTextSizeLimit'),
+      description: t('settings.previewTextSizeLimitDesc'),
+      component: (
+        <InputNumber
+          value={previewLimitMb}
+          onChange={handlePreviewLimitMbChange}
+          onBlur={handlePreviewLimitMbBlur}
+          min={MIN_TEXT_PREVIEW_LIMIT_MB}
+          max={MAX_TEXT_PREVIEW_LIMIT_MB}
+          step={1}
+          style={{ width: 120 }}
+          suffix='MB'
         />
       ),
     },
