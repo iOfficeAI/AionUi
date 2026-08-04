@@ -29,7 +29,9 @@ export const useAutoTitle = () => {
 
         const success = await ipcBridge.conversation.update.invoke({
           id: conversation_id,
-          updates: { name: newTitle },
+          // 'auto': a derived default title, not a user rename — the backend
+          // keeps it overwritable by agent-generated session titles.
+          updates: { name: newTitle, name_source: 'auto' },
         });
         if (!success) {
           return;
