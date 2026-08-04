@@ -60,8 +60,11 @@
   "noTabs": "No tabs open",
   "openInPanelTooltip": "View in preview panel",
   "mermaidTitle": "Mermaid Diagram",
-  "largeTextTruncatedHint": "Large file preview mode: showing first {{count}} characters for performance.",
-  "truncatedBanner": "Preview content was truncated. Click download to view the full file.",
+  "oversized": {
+    "title": "File too large to preview",
+    "detail": "File size {{size}} exceeds the {{threshold}} limit. Please open it in a system editor.",
+    "downloadUnavailable": "This file is too large to download here. Use “Open in system” instead."
+  },
   "aiWriting": "AI is writing…",
   "errors": {
     "missingFilePath": "File path is missing",

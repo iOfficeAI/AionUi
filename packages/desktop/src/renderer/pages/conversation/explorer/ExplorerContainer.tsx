@@ -38,6 +38,7 @@ import { emitter } from '@/renderer/utils/emitter';
 import { projectFileRef } from '@/common/types/chatFile';
 import type { ChatFileRef } from '@/common/types/chatFile';
 import type { FileOrFolderItem } from '@/renderer/utils/file/fileTypes';
+import { resolvePreviewPayload } from '@/renderer/utils/file/previewPayload';
 
 import { ExplorerPanel } from './ExplorerPanel';
 import { buildRemoveRequest, buildRenameRequest, parentRel, peKey, type RenameRequest } from './explorerModel';
@@ -74,15 +75,18 @@ export type ExplorerPreviewPayload = {
     fileRef: ChatFileRef;
     language: string;
     editable?: boolean;
+    oversized?: boolean;
+    sizeBytes?: number;
+    thresholdBytes?: number;
+    lastModified?: number;
   };
 };
 
 // The Explorer tree knows `{pe_id, relative_path}`, mapped straight to a Project
-// ChatFileRef. Text/image read their content eagerly over `/api/fs/content`
-// (utf8 / dataurl — the backend prepends the image data-URL prefix); pdf and
-// office carry no content (pdf renders from the stream URL, office resolves the
-// ref server-side for its watch). No absolute path is ever exposed — the old WS
-// path-resolve patch is gone.
+// ChatFileRef. Reading goes through the shared `resolvePreviewPayload` gate, so
+// this entry point applies the same size ceiling and picks up the same
+// save-conflict timestamp as every other way of opening a file. No absolute path
+// is ever exposed — the old WS path-resolve patch is gone.
 export const buildExplorerPreviewPayload = async (
   peId: string,
   relativePath: string
@@ -91,25 +95,23 @@ export const buildExplorerPreviewPayload = async (
   const contentType = getContentTypeByExtension(name);
   const fileRef = projectFileRef(peId, relativePath);
 
-  let content = '';
-  if (contentType === 'image') {
-    content = await ipcBridge.fs.readContent.invoke({ file: fileRef, encoding: 'dataurl' });
-  } else if (contentType === 'pdf' || contentType === 'word' || contentType === 'excel' || contentType === 'ppt') {
-    // Binary preview: no content read. pdf renders via the /api/fs/stream URL
-    // built from fileRef; office resolves fileRef server-side for its watch.
-  } else {
-    content = await ipcBridge.fs.readContent.invoke({ file: fileRef, encoding: 'utf8' });
-  }
+  const payload = await resolvePreviewPayload(fileRef, contentType);
 
   return {
-    content,
+    content: payload.content,
     contentType,
     metadata: {
       title: name,
       file_name: name,
       fileRef,
       language: name.split('.').pop() || '',
-      editable: contentType === 'markdown' || contentType === 'image' ? false : undefined,
+      // An oversized file is read-only regardless of type: there is no content to
+      // edit, and letting it reach an editor is what previously destroyed files.
+      editable: contentType === 'markdown' || contentType === 'image' || payload.oversized ? false : undefined,
+      oversized: payload.oversized,
+      sizeBytes: payload.sizeBytes,
+      thresholdBytes: payload.thresholdBytes,
+      lastModified: payload.lastModified,
     },
   };
 };

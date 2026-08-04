@@ -688,6 +688,14 @@ export const fs = {
   // calls shell.showItemInFolder — the front end never builds the absolute path
   // (avoids the Windows verbatim `\\?\` pitfall). Electron-only at the call site.
   reveal: httpPost<void, { pe_id: string; relative_path: string }>('/api/fs/reveal'),
+  // Open a file in the OS default application, addressed by ChatFileRef so it
+  // works for all three ref kinds (project / local / upload). The backend
+  // resolves the ref and shells out; the front end never receives an absolute
+  // path — errors come back as codes only (FILE_NOT_FOUND / REVEAL_FAILED /
+  // INTERNAL_ERROR), never a message containing a path. This is the escape hatch
+  // for tabs that cannot be previewed (oversized, unsupported), including
+  // explorer-opened files that deliberately carry no file_path.
+  openSystem: httpPost<void, { file: ChatFileRef }>('/api/fs/open-system'),
   listWorkspaceFiles: withResponseMap(
     httpPost<Array<RawWorkspaceFlatFile>, { root: string }>('/api/fs/list'),
     fromBackendWorkspaceFlatFiles

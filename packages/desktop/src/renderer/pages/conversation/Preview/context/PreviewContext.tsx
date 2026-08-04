@@ -6,7 +6,7 @@
 
 import { ipcBridge } from '@/common';
 import type { PreviewContentType } from '@/common/types/office/preview';
-import type { ChatFileRef, ContentEncoding } from '@/common/types/chatFile';
+import type { ChatFileRef } from '@/common/types/chatFile';
 import { chatFileRefKey, isChatFileRef } from '@/common/types/chatFile';
 import { emitter } from '@/renderer/utils/emitter';
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
@@ -39,7 +39,22 @@ export interface PreviewMetadata {
   file_path?: string; // 工作空间文件的绝对路径 / Absolute file path in workspace
   workspace?: string; // 工作空间根目录 / Workspace root directory
   editable?: boolean; // 是否可编辑 / Whether editable
-  truncated?: boolean; // 预览内容是否被截断 / Whether preview content was truncated
+  // 文件超过大小上限：内容从未被读取，只显示提示 + 逃生按钮
+  // File exceeds its size ceiling: content was never read; the tab shows an
+  // explanation plus an escape hatch instead of an editor.
+  oversized?: boolean;
+  sizeBytes?: number; // 实际文件大小 / Actual file size, for the oversized message
+  // 打开时生效的上限快照。刻意不在渲染时重算 —— 否则日后阈值改成设置项时，
+  // 调小设置会让已打开的 tab 显示新阈值，破坏「只影响新开 tab」的约束。
+  // Ceiling captured at open time. Deliberately not recomputed at render time:
+  // once the threshold becomes a setting, recomputing would let a changed
+  // setting alter tabs already on screen.
+  thresholdBytes?: number;
+  // 上次已知修改时间，保存时作为 If-Match 乐观并发条件。
+  // openPreview 会把它写进 fileMtimeRef —— 那是这个字段唯一的用途。
+  // Last-known mtime, the If-Match condition for save-time conflict detection.
+  // openPreview copies it into fileMtimeRef, which is this field's only purpose.
+  lastModified?: number;
   targetLine?: number; // 打开文件后定位到的目标行 / Target line to reveal after opening
   targetColumn?: number; // 打开文件后定位到的目标列 / Target column to reveal after opening
   missingFile?: boolean; // 文件不存在或无法读取 / Whether the referenced file is missing or unreadable
@@ -173,6 +188,29 @@ const sanitizeTabsForPersistence = (input: PreviewTab[]): PreviewTab[] => {
     }));
 };
 
+/**
+ * Legacy migration: earlier builds truncated a long text preview to 40,000
+ * characters and persisted the remnant (the cap above is 80,000, so it fitted),
+ * flagged by a `truncated: true` metadata field that no longer exists.
+ *
+ * That flag drove the only on-screen warning that the content was a fragment.
+ * Restoring such a tab now would show the fragment with no indication at all —
+ * silently presenting part of a document as the whole file.
+ *
+ * So drop these tabs on restore. Note the old threshold compared the *length of
+ * content already read*, not the file size, so a file of any size could end up
+ * truncated here — reopening one may well land in the oversized state rather than
+ * loading fully. Either outcome is honest, which the restored fragment is not.
+ * Nothing recoverable is lost: those tabs persisted as read-only, so they hold no
+ * unsaved edits, and their remnant was never writable back to disk.
+ */
+const isLegacyTruncatedTab = (tab: PreviewTab): boolean => {
+  // `truncated` is deliberately absent from PreviewMetadata now, so read it
+  // through a narrowed view rather than resurrecting the field.
+  const legacyMetadata = tab.metadata as (PreviewMetadata & { truncated?: unknown }) | undefined;
+  return legacyMetadata?.truncated === true;
+};
+
 const parsePersistedTabs = (value: unknown): PreviewTab[] => {
   if (!Array.isArray(value)) return [];
 
@@ -187,6 +225,7 @@ const parsePersistedTabs = (value: unknown): PreviewTab[] => {
         typeof candidate.content_type === 'string'
       );
     })
+    .filter((tab) => !isLegacyTruncatedTab(tab))
     .filter((tab) => PERSISTABLE_CONTENT_TYPES.has(tab.content_type))
     .filter((tab) => tab.content.length <= MAX_PERSISTED_TAB_CONTENT_LENGTH)
     .map((tab) => {
@@ -270,6 +309,17 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   // 追踪是否正在保存（避免与流式更新冲突）/ Track if currently saving (to avoid conflicts with streaming updates)
   const savingFilesRef = useRef<Set<string>>(new Set());
+
+  // 每个文件上次已知的 mtime，保存时作为 If-Match 条件。
+  // 两个填充点：打开 tab 时（openPreview 从 metadata.lastModified 取）和保存成功后。
+  // 缺了前者，每个 tab 的首次保存都会不带 If-Match ⇒ 后端跳过冲突检测 ⇒ 静默覆盖。
+  //
+  // Last-known mtime per file, used as the If-Match condition on save. Two fill
+  // points: opening a tab (openPreview, from metadata.lastModified) and a
+  // successful save. Without the former, the first save of every tab would carry
+  // no If-Match, so the backend would skip conflict detection and silently
+  // overwrite a concurrent external edit.
+  const fileMtimeRef = useRef<Map<string, number>>(new Map());
 
   // 获取当前激活的 tab / Get active tab
   const activeTab = useMemo(() => {
@@ -377,6 +427,20 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
        * invokes it twice.
        */
       const currentTabs = tabsRef.current;
+
+      // 记下打开时的 mtime，作为下次保存的 If-Match 条件。
+      // 必须在 setTabs 之外做 —— updater 在 StrictMode 下会跑两次，且必须保持纯函数。
+      // 这是「打开 tab 时取一次」那个填充点：没有它，每个 tab 的首次保存都不带
+      // If-Match，后端会跳过冲突检测并静默覆盖别人的改动。
+      //
+      // Record the mtime known at open time as the next save's If-Match condition.
+      // Done outside setTabs: the updater runs twice under StrictMode and must
+      // stay pure. This is the "read once when the tab opens" fill point — without
+      // it the first save of every tab carries no If-Match, so the backend skips
+      // conflict detection and silently overwrites a concurrent external edit.
+      if (meta?.fileRef && meta.lastModified != null) {
+        fileMtimeRef.current.set(chatFileRefKey(meta.fileRef), meta.lastModified);
+      }
 
       // 已打开同一内容：聚焦现有 tab，不新建 / Same content already open: focus it
       const existingTab = findPreviewTabInList(currentTabs, type, new_content, meta);
@@ -519,9 +583,6 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
     },
     [isOpen, tabs, activeTabId]
   );
-
-  // Track last-known mtime per file path for external change detection
-  const fileMtimeRef = useRef<Map<string, number>>(new Map());
 
   const closeTab = useCallback(
     (tabId: string) => {
@@ -770,76 +831,6 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
       debounceTimers.clear();
     };
   }, [closeTab]); // 只依赖 closeTab，不依赖 tabs，避免重复订阅 / Only depend on closeTab, not tabs, to avoid re-subscribing
-
-  // File mtime polling: detect external file changes (Claude Code CLI, Gemini, etc.) by comparing lastModified.
-  // Only polls the active tab to minimize IPC overhead; checks other tabs once on tab switch.
-  // Uses polling instead of fileWatch IPC events because buildEmitter's main→renderer event delivery
-  // is unreliable after the first emission in Electron (only the first event reaches the renderer).
-  const checkFileUpdate = useCallback(
-    (tab: PreviewTab) => {
-      const fileRef = tab.metadata?.fileRef;
-      if (!fileRef || tab.isDirty) return;
-      const refKey = chatFileRefKey(fileRef);
-      if (savingFilesRef.current.has(refKey)) return;
-
-      void ipcBridge.fs.getContentMetadata
-        .invoke({ file: fileRef })
-        .then((metadata) => {
-          if (!metadata) return;
-          const prevMtime = fileMtimeRef.current.get(refKey);
-          fileMtimeRef.current.set(refKey, metadata.lastModified);
-          if (prevMtime === undefined || metadata.lastModified === prevMtime) return;
-
-          const encoding: ContentEncoding = tab.content_type === 'image' ? 'dataurl' : 'utf8';
-
-          void ipcBridge.fs.readContent
-            .invoke({ file: fileRef, encoding })
-            .then((content) => {
-              if (content == null) return;
-              setTabs((latest) =>
-                latest.map((t) => {
-                  const tRef = t.metadata?.fileRef;
-                  if (!tRef || chatFileRefKey(tRef) !== refKey) return t;
-                  if (savingFilesRef.current.has(refKey) || t.isDirty) return t;
-                  return { ...t, content, originalContent: content, isDirty: false };
-                })
-              );
-            })
-            .catch((error) => {
-              console.error('[PreviewContext] Failed to read content after mtime change:', refKey, error);
-            });
-        })
-        .catch((error) => {
-          console.error('[PreviewContext] Failed to get content metadata:', refKey, error);
-        });
-    },
-    [setTabs]
-  );
-
-  // Keep a ref to activeTab so the polling interval always sees the latest object
-  // without re-running the effect on every tabs state change.
-  const activeTabRef = useRef<PreviewTab | null>(null);
-  activeTabRef.current = activeTab;
-
-  const activeFileKey = activeTab?.metadata?.fileRef ? chatFileRefKey(activeTab.metadata.fileRef) : undefined;
-
-  // Poll active tab every 1s
-  useEffect(() => {
-    if (!activeFileKey) return;
-
-    const pollId = setInterval(() => {
-      const current = activeTabRef.current;
-      if (current) checkFileUpdate(current);
-    }, 1000);
-
-    // Check immediately on tab switch
-    const current = activeTabRef.current;
-    if (current) checkFileUpdate(current);
-
-    return () => {
-      clearInterval(pollId);
-    };
-  }, [activeFileKey, checkFileUpdate]);
 
   // 监听 preview.open 事件（用于 agent 打开网页预览）/ Listen to preview.open event (for agent to open web preview)
   // 同时监听 IPC 和 renderer emitter 两种方式 / Listen to both IPC and renderer emitter

@@ -60,8 +60,11 @@
   "noTabs": "タブはありません",
   "openInPanelTooltip": "プレビューパネルで表示",
   "mermaidTitle": "Mermaid 図",
-  "largeTextTruncatedHint": "大きなファイルのプレビューでは、パフォーマンスのため先頭 {{count}} 文字のみ表示します。",
-  "truncatedBanner": "プレビュー内容は途中で切り詰められています。完全な内容はダウンロードして確認してください。",
+  "oversized": {
+    "title": "ファイルが大きすぎてプレビューできません",
+    "detail": "ファイルサイズ {{size}} が上限 {{threshold}} を超えています。システムのエディタで開いてください。",
+    "downloadUnavailable": "このファイルは大きすぎてここではダウンロードできません。「システムで開く」をご利用ください。"
+  },
   "aiWriting": "AI が書き込み中…",
   "errors": {
     "missingFilePath": "ファイルパスが指定されていません",

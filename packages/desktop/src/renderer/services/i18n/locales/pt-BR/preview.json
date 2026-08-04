@@ -60,8 +60,11 @@
   "noTabs": "Nenhuma guia aberta",
   "openInPanelTooltip": "Ver no painel de visualização",
   "mermaidTitle": "Diagrama Mermaid",
-  "largeTextTruncatedHint": "Modo de pré-visualização de arquivos grandes: mostrando os primeiros {{count}} caracteres para melhor desempenho.",
-  "truncatedBanner": "O conteúdo da pré-visualização foi truncado. Clique em baixar para visualizar o arquivo completo.",
+  "oversized": {
+    "title": "Arquivo muito grande para pré-visualizar",
+    "detail": "O tamanho do arquivo {{size}} excede o limite de {{threshold}}. Abra-o em um editor do sistema.",
+    "downloadUnavailable": "Este arquivo é muito grande para baixar aqui. Use “Abrir no sistema”."
+  },
   "aiWriting": "A IA está escrevendo…",
   "errors": {
     "missingFilePath": "O caminho do arquivo está ausente",

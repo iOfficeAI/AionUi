@@ -67,6 +67,30 @@ interface PreviewToolbarProps {
   showOpenInSystemButton: boolean;
 
   /**
+   * 文件超过大小上限：内容未被读取。
+   * 视图切换与分屏对一个没有内容的 tab 无意义，故隐藏；
+   * 但「在系统中打开」与「下载」照常显示 —— 那是用户唯一的出路。
+   *
+   * File exceeds the size ceiling, so no content was read. View-mode switching
+   * and split screen are meaningless for a tab with no content and are hidden,
+   * while "open in system" and "download" stay — they are the only way out.
+   */
+  isOversized?: boolean;
+
+  /**
+   * 文件是否在磁盘上（有 file_path）。
+   * 刻意与 showOpenInSystemButton 分开传：后者现在也接受纯 fileRef（逃生出口），
+   * 不再等价于「文件在磁盘上」，继续复用它会让 Explorer 打开的 code/md tab
+   * 悄悄丢掉下载按钮。
+   *
+   * Whether the file exists on disk (has a file_path). Passed separately from
+   * showOpenInSystemButton on purpose: that flag now also accepts a bare fileRef
+   * (the escape hatch), so it no longer means "on disk". Reusing it here would
+   * silently drop the download button from explorer-opened code/markdown tabs.
+   */
+  hasFilePath: boolean;
+
+  /**
    * 历史目标
    * History target
    */
@@ -167,6 +191,8 @@ const PreviewToolbar: React.FC<PreviewToolbarProps> = ({
   isSplitScreenEnabled,
   file_name,
   showOpenInSystemButton,
+  isOversized = false,
+  hasFilePath,
   historyTarget,
   snapshotSaving,
   onViewModeChange,
@@ -185,8 +211,11 @@ const PreviewToolbar: React.FC<PreviewToolbarProps> = ({
   const { t } = useTranslation();
   const isDiff = content_type === 'diff';
   const preferActionButtonsInFront = Boolean(leftExtra);
-  // showOpenInSystemButton === Boolean(metadata.file_path) upstream — i.e. "file is on disk".
-  const showDownload = shouldShowDownload(content_type, showOpenInSystemButton);
+  // 下载的隐藏规则看的是「文件是否在磁盘上」，用 hasFilePath 而不是
+  // showOpenInSystemButton（后者已包含纯 fileRef 的情况）。
+  // The download rule keys off "is the file on disk", so use hasFilePath rather
+  // than showOpenInSystemButton (which now also covers bare-fileRef tabs).
+  const showDownload = shouldShowDownload(content_type, hasFilePath);
 
   const toolbarBtn =
     'flex items-center gap-2px px-8px py-3px rd-4px cursor-pointer transition-colors duration-150 text-12px font-medium text-t-secondary hover:text-t-primary hover:bg-bg-3';
@@ -198,7 +227,7 @@ const PreviewToolbar: React.FC<PreviewToolbarProps> = ({
       <div className='flex items-center justify-between gap-8px w-full' style={{ minWidth: 'max-content' }}>
         {/* 左侧：Tabs（Markdown/HTML）+ 文件名 / Left: Tabs (Markdown/HTML) + Filename */}
         <div className='flex items-center h-full gap-8px'>
-          {(isMarkdown || isHTML || isDiff) && (
+          {(isMarkdown || isHTML || isDiff) && !isOversized && (
             <>
               <div className='flex items-center h-full gap-0'>
                 <div
@@ -405,7 +434,7 @@ const PreviewToolbar: React.FC<PreviewToolbarProps> = ({
             </div>
           )}
 
-          {isHTML && onInspectModeToggle && (
+          {isHTML && !isOversized && onInspectModeToggle && (
             <div
               className={`${toolbarBtn} ${inspectMode ? toolbarBtnActive : ''}`}
               onClick={onInspectModeToggle}

@@ -9,8 +9,10 @@ import { html } from '@codemirror/lang-html';
 import { history, historyKeymap } from '@codemirror/commands';
 import { keymap } from '@codemirror/view';
 import { Prec } from '@codemirror/state';
+import type { Extension } from '@codemirror/state';
 import CodeMirror from '@uiw/react-codemirror';
 import { codeEditorSurfaceTheme } from '../../theme/codeEditorTheme';
+import { shouldDisableHighlighting } from '../../theme/languageLoader';
 import React, { useMemo, useRef, useCallback } from 'react';
 import { useCodeMirrorScroll, useScrollSyncTarget } from '../../hooks/useScrollSyncHelpers';
 
@@ -64,16 +66,39 @@ const HTMLEditor: React.FC<HTMLEditorProps> = ({ value, onChange, containerRef, 
     [onChange]
   );
 
+  // 大文件降级：只摘掉 HTML 语法解析，保留 history / historyKeymap。
+  // 🔴 不能照抄 CodeEditor 的写法把整个 extensions 清空 —— 下面 basicSetup 显式
+  // `history: false`，撤销/重做完全依赖这里的 history()。清空会让大文件失去撤销。
+  //
+  // Large-file degradation: drop only HTML syntax parsing, keep history and its
+  // keymap. Deliberately NOT the "empty the extensions array" shape used by
+  // CodeEditor: basicSetup below sets `history: false`, so undo/redo depends
+  // entirely on the history() here — clearing it would strip undo from exactly
+  // the large files that need it most.
+  const disableHighlight = shouldDisableHighlighting(value.length);
+
   // 配置扩展，包含 HTML 语法和历史记录支持
   // Configure extensions including HTML syntax and history support
-  const extensions = useMemo(
+  const extensions = useMemo<Extension[]>(
     () => [
-      html(),
+      ...(disableHighlight ? [] : [html()]),
       history(), // 显式添加历史记录支持 / Explicitly add history support
       keymap.of(historyKeymap), // 添加历史记录快捷键 / Add history keymaps
       Prec.highest(codeEditorSurfaceTheme()), // surface bg follows theme tokens
     ],
-    []
+    [disableHighlight]
+  );
+
+  const basicSetupConfig = useMemo(
+    () => ({
+      lineNumbers: true,
+      highlightActiveLineGutter: true,
+      highlightActiveLine: true,
+      // 折叠依赖语法树，降级时一起关 / Folding relies on the syntax tree; off when degraded
+      foldGutter: !disableHighlight,
+      history: false, // 关闭 basicSetup 的 history，使用我们自己的 / Disable basicSetup history, use our own
+    }),
+    [disableHighlight]
   );
 
   return (
@@ -86,13 +111,7 @@ const HTMLEditor: React.FC<HTMLEditorProps> = ({ value, onChange, containerRef, 
           theme={theme === 'dark' ? 'dark' : 'light'}
           extensions={extensions}
           onChange={handleChange}
-          basicSetup={{
-            lineNumbers: true,
-            highlightActiveLineGutter: true,
-            highlightActiveLine: true,
-            foldGutter: true,
-            history: false, // 关闭 basicSetup 的 history，使用我们自己的 / Disable basicSetup history, use our own
-          }}
+          basicSetup={basicSetupConfig}
           style={{
             fontSize: '14px',
             height: '100%',

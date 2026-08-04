@@ -6,6 +6,9 @@
 
 import { ipcBridge } from '@/common';
 import { downloadFileFromPath, downloadTextContent } from '@/renderer/utils/file/download';
+import { formatFileSize } from '@/renderer/services/FileService';
+import { classifyPreviewError, previewErrorToI18nKey } from '@/renderer/utils/previewError';
+import { canOpenInSystem, isOpenableFileRef, wouldDownloadEmptyFile } from './previewToolbarUtils';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { toLocalFileHref } from '@/renderer/components/Markdown/markdownUtils';
 import { PreviewToolbarExtrasProvider, type PreviewToolbarExtras } from '../../context/PreviewToolbarExtrasContext';
@@ -302,14 +305,34 @@ const PreviewPanel: React.FC = () => {
   // (Word, PPT, PDF, Excel components provide their own)
   const hasBuiltInOpenButton = (FILE_TYPES_WITH_BUILTIN_OPEN as readonly string[]).includes(content_type);
 
-  // 对所有有 file_path 的文件显示"在系统中打开"按钮（统一在工具栏显示）
-  // Show "Open in System" button for all files with file_path (unified in toolbar)
-  const showOpenInSystemButton = Boolean(metadata?.file_path);
+  // 「在系统中打开」：有 file_path 或有 fileRef 都能打开。
+  // fileRef 分支是超限 / 不支持态的逃生出口 —— Explorer 打开的 tab 刻意不带
+  // 绝对路径（见 ExplorerContainer 的 "No absolute path is ever exposed"），
+  // 只认 file_path 会让那些 tab 一个能点的按钮都没有。
+  //
+  // "Open in system": available with either a file_path or a fileRef. The fileRef
+  // branch is the escape hatch for oversized / unsupported tabs — explorer-opened
+  // tabs deliberately carry no absolute path, so keying off file_path alone left
+  // them with no actionable button at all.
+  const showOpenInSystemButton = canOpenInSystem(Boolean(metadata?.file_path), metadata?.fileRef);
 
   // 下载文件到本地 / Download file to local system
   const handleDownload = useCallback(async () => {
     try {
       const rawFileName = metadata?.file_name || `${content_type}-${Date.now()}`;
+
+      // 超限 tab 的内容从未被读取（content === ''）。若继续往下走，会走到
+      // downloadTextContent('') 导出一个 0 字节空文件 —— 用户以为下载成功，
+      // 拿到的是空文件。宁可明确报错，也不能产出静默错误的数据。
+      //
+      // An oversized tab never read its content (content === ''). Falling through
+      // would hand downloadTextContent an empty string and produce a 0-byte file:
+      // the download looks successful and silently yields nothing. Fail loudly
+      // instead — the file itself is still reachable via "open in system".
+      if (wouldDownloadEmptyFile(Boolean(metadata?.oversized), Boolean(metadata?.file_path))) {
+        messageApi.error(t('preview.oversized.downloadUnavailable'));
+        return;
+      }
 
       if (metadata?.file_path) {
         // All files with a disk path (binary, image, zip, etc.) — unified path
@@ -379,7 +402,15 @@ const PreviewPanel: React.FC = () => {
 
   // 在系统默认应用中打开文件 / Open file in system default application
   const handleOpenInSystem = useCallback(async () => {
-    if (!metadata?.file_path) {
+    // 只接受真正指向文件的 ref —— project ref 的空 relative_path 表示 pe root
+    // 本身（一个目录），送去 shell 打开就不是这个按钮承诺的行为了。
+    // Only accept a ref that addresses a file: an empty relative_path on a project
+    // ref denotes the pe root — a directory — and shell-opening that is not what
+    // this button promises.
+    const fileRef = isOpenableFileRef(metadata?.fileRef) ? metadata?.fileRef : undefined;
+    const filePath = metadata?.file_path;
+
+    if (!fileRef && !filePath) {
       try {
         messageApi.error(t('preview.openInSystemFailed'));
       } catch {
@@ -389,8 +420,17 @@ const PreviewPanel: React.FC = () => {
     }
 
     try {
-      // 使用系统默认应用打开文件 / Open file with system default application
-      await ipcBridge.shell.openFile.invoke(metadata.file_path);
+      if (fileRef) {
+        // 按 ChatFileRef 身份打开：后端 resolve 后调系统打开，前端拿不到绝对路径。
+        // 这条分支让 Explorer 打开的 tab（刻意无 file_path）也有逃生出口。
+        //
+        // Open by ChatFileRef identity: the backend resolves it and shells out, so
+        // the renderer never sees an absolute path. This branch is what gives
+        // explorer-opened tabs (deliberately without file_path) an escape hatch.
+        await ipcBridge.fs.openSystem.invoke({ file: fileRef });
+      } else if (filePath) {
+        await ipcBridge.shell.openFile.invoke(filePath);
+      }
       try {
         messageApi.success(t('preview.openInSystemSuccess'));
       } catch {
@@ -398,12 +438,17 @@ const PreviewPanel: React.FC = () => {
       }
     } catch (err) {
       try {
-        messageApi.error(t('preview.openInSystemFailed'));
+        // 按错误码选本地文案，不透传后端 message（后端已保证响应不含绝对路径，
+        // 前端也不该把它当文案来源）。
+        // Pick a local message from the error code; never surface the backend
+        // message (the backend guarantees it holds no absolute path, and the
+        // front end should not treat it as copy either).
+        messageApi.error(t(previewErrorToI18nKey(classifyPreviewError(err))));
       } catch {
         // Context holder may be unmounted after async operation
       }
     }
-  }, [metadata?.file_path, messageApi, t]);
+  }, [metadata?.fileRef, metadata?.file_path, messageApi, t]);
 
   // 渲染历史下拉菜单 / Render history dropdown
   const renderHistoryDropdown = () => {
@@ -441,9 +486,33 @@ const PreviewPanel: React.FC = () => {
     );
   };
 
+  // 超过大小上限：内容从未被读取，所以只说明原因 + 给逃生出口。
+  // 刻意不进编辑器 —— 半截内容进了可保存的编辑器就会毁掉未读的部分。
+  //
+  // Over the size ceiling: content was never read, so explain why and offer the
+  // escape hatch. Deliberately never reaches an editor — partial content in a
+  // saveable editor is what destroyed the unread remainder of the file.
+  const renderOversized = () => {
+    const sizeBytes = metadata?.sizeBytes;
+    const thresholdBytes = metadata?.thresholdBytes;
+
+    return (
+      <div className='flex flex-1 flex-col items-center justify-center gap-10px px-24px text-center'>
+        <div className='text-15px font-medium text-t-primary'>{t('preview.oversized.title')}</div>
+        <div className='max-w-560px text-12px leading-18px text-t-secondary'>
+          {t('preview.oversized.detail', {
+            size: formatFileSize(sizeBytes ?? 0),
+            threshold: formatFileSize(thresholdBytes ?? 0),
+          })}
+        </div>
+      </div>
+    );
+  };
+
   // 渲染预览内容 / Render preview content
   const renderContent = () => {
     if (metadata?.missingFile) return renderMissingFile();
+    if (metadata?.oversized) return renderOversized();
 
     // 浏览器 tab 由常驻的 BrowserTabLayer 渲染，不能走这里 —— 否则切 tab 会重新加载页面
     // Browser tabs are rendered by the always-mounted BrowserTabLayer; rendering
@@ -748,6 +817,8 @@ const PreviewPanel: React.FC = () => {
             isSplitScreenEnabled={isSplitScreenEnabled}
             file_name={metadata?.file_name || activeTab.title}
             showOpenInSystemButton={showOpenInSystemButton}
+            hasFilePath={Boolean(metadata?.file_path)}
+            isOversized={Boolean(metadata?.oversized)}
             historyTarget={historyTarget}
             snapshotSaving={snapshotSaving}
             onViewModeChange={(mode) => {
@@ -766,12 +837,6 @@ const PreviewPanel: React.FC = () => {
             leftExtra={toolbarExtras?.left}
             rightExtra={toolbarExtras?.right}
           />
-        )}
-
-        {metadata?.truncated && (
-          <div className='sticky top-0 z-1 px-16px py-10px text-12px bg-warning-1 text-warning-7 border-b border-warning-3'>
-            {t('preview.truncatedBanner')}
-          </div>
         )}
 
         {/* 预览内容 / Preview content */}

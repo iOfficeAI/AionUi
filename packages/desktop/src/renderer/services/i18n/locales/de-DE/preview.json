@@ -60,8 +60,11 @@
   "noTabs": "Keine Tabs geöffnet",
   "openInPanelTooltip": "Im Vorschau-Panel anzeigen",
   "mermaidTitle": "Mermaid-Diagramm",
-  "largeTextTruncatedHint": "Großdatei-Vorschaumodus: Die ersten {{count}} Zeichen werden aus Leistungsgründen angezeigt.",
-  "truncatedBanner": "Vorschau-Inhalt wurde gekürzt. Klicke auf Download, um die vollständige Datei anzuzeigen.",
+  "oversized": {
+    "title": "Datei zu groß für die Vorschau",
+    "detail": "Die Dateigröße {{size}} überschreitet das Limit von {{threshold}}. Bitte in einem Systemeditor öffnen.",
+    "downloadUnavailable": "Diese Datei ist zu groß für den Download hier. Verwenden Sie stattdessen „Im System öffnen“."
+  },
   "aiWriting": "KI schreibt…",
   "errors": {
     "missingFilePath": "Dateipfad fehlt",

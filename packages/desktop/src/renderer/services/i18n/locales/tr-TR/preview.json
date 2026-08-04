@@ -60,8 +60,11 @@
   "noTabs": "Açık sekme yok",
   "openInPanelTooltip": "Önizleme panelinde görüntüle",
   "mermaidTitle": "Mermaid Diyagramı",
-  "largeTextTruncatedHint": "Büyük dosya önizleme modu: performans için yalnızca ilk {{count}} karakter gösteriliyor.",
-  "truncatedBanner": "Önizleme içeriği kısaltıldı. Tam dosyayı görmek için indir seçeneğini kullanın.",
+  "oversized": {
+    "title": "Dosya önizleme için çok büyük",
+    "detail": "Dosya boyutu {{size}}, {{threshold}} sınırını aşıyor. Lütfen bir sistem düzenleyicisinde açın.",
+    "downloadUnavailable": "Bu dosya burada indirilemeyecek kadar büyük. Bunun yerine “Sistemde aç”ı kullanın."
+  },
   "aiWriting": "Yapay zeka yazıyor…",
   "errors": {
     "missingFilePath": "Dosya yolu eksik",

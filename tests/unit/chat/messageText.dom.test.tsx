@@ -12,10 +12,6 @@ import { ipcBridge } from '@/common';
 import { ConversationProvider } from '@/renderer/hooks/context/ConversationContext';
 import MessageText from '@/renderer/pages/conversation/Messages/components/MessageText';
 import { copyText } from '@/renderer/utils/ui/clipboard';
-import {
-  LARGE_TEXT_PREVIEW_MAX_LENGTH,
-  LARGE_TEXT_PREVIEW_THRESHOLD,
-} from '@/renderer/pages/conversation/Preview/constants';
 
 const previewMocks = vi.hoisted(() => ({
   openPreview: vi.fn(),
@@ -524,7 +520,8 @@ describe('MessageText attachment paths', () => {
           language: 'ts',
           targetLine: 42,
           targetColumn: 7,
-          truncated: false,
+          oversized: false,
+          lastModified: 1_717_000_000,
         }),
         { replace: true }
       );
@@ -564,7 +561,8 @@ describe('MessageText attachment paths', () => {
           language: 'ts',
           targetLine: 10,
           targetColumn: undefined,
-          truncated: false,
+          oversized: false,
+          lastModified: 1_717_000_000,
         }),
         { replace: true }
       );
@@ -632,11 +630,20 @@ describe('MessageText attachment paths', () => {
     });
   });
 
-  it('opens large code local markdown links with truncated read content', async () => {
+  // Supersedes the old "truncated read content" case. Truncation is gone: an
+  // oversized file is not read at all, because a partially read document reaching
+  // a saveable editor is what destroyed the unread remainder on save.
+  it('opens oversized local markdown links without reading content, read-only', async () => {
     const filePath = '/workspace/demo/logs/app.log';
-    const content = 'a'.repeat(LARGE_TEXT_PREVIEW_THRESHOLD + 1);
+    const oversize = 1024 * 1024 + 1;
     localFileLinkMocks.payload = { path: filePath, reference: undefined };
-    vi.mocked(ipcBridge.fs.readContent.invoke).mockResolvedValue(content);
+    vi.mocked(ipcBridge.fs.getContentMetadata.invoke).mockResolvedValue({
+      name: 'app.log',
+      path: filePath,
+      size: oversize,
+      type: 'file',
+      lastModified: 1_717_000_000,
+    });
 
     renderMessageWithLocalLink('[app.log](/workspace/demo/logs/app.log)');
 
@@ -644,17 +651,21 @@ describe('MessageText attachment paths', () => {
 
     await waitFor(() => {
       expect(previewMocks.openPreview).toHaveBeenCalledWith(
-        content.slice(0, LARGE_TEXT_PREVIEW_MAX_LENGTH),
+        '',
         'code',
         expect.objectContaining({
           file_name: 'app.log',
           file_path: filePath,
-          truncated: true,
+          oversized: true,
+          sizeBytes: oversize,
+          thresholdBytes: 1024 * 1024,
           editable: false,
         }),
         { replace: true }
       );
     });
+    // The whole point: the content endpoint is never hit for an oversized file.
+    expect(ipcBridge.fs.readContent.invoke).not.toHaveBeenCalled();
   });
 });
 
