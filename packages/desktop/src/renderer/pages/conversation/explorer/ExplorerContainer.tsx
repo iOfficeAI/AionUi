@@ -60,9 +60,6 @@ const pathToFileUri = (p: string): string => {
   return `file://${encodeURI(withLeadingSlash)}`;
 };
 
-/** PATCH(ELECTRON-3SZ): minimal WS-RPC surface the pdf/office resolve branch needs. Remove with PR-3. */
-type PreviewRpcClient = { request(method: string, params?: unknown): Promise<unknown> };
-
 /** Args passed to `openPreview` for an Explorer-opened file. */
 export type ExplorerPreviewPayload = {
   content: string;
@@ -70,26 +67,23 @@ export type ExplorerPreviewPayload = {
   metadata: {
     title: string;
     file_name: string;
-    // Project ChatFileRef identity — carries the pe id + relative path so preview
-    // content I/O (read/write/metadata) addresses the file over /api/fs/content
-    // without the renderer ever seeing an absolute path.
+    // Project ChatFileRef identity — the sole identity for an explorer-opened
+    // file. Preview I/O addresses it by pe id + relative path (content over
+    // /api/fs/content, pdf over /api/fs/stream, office via officecli resolve),
+    // so the renderer never sees an absolute path.
     fileRef: ChatFileRef;
-    file_path?: string;
-    workspace?: string;
     language: string;
     editable?: boolean;
   };
 };
 
-// The Explorer tree knows `{pe_id, relative_path}`. Text + image now carry a
-// Project ChatFileRef and read their content over `/api/fs/content` (utf8 / dataurl
-// — the backend prepends the image data-URL prefix), so no absolute path leaks.
-// PATCH(ELECTRON-3SZ): pdf/office still need a real local absolute path (PDF via
-// file://, office via `officecli watch`), so they resolve pe → absolute path with
-// WS `fs/resolve`. That last resolve (and this patch marker) is removed in PR-3
-// once pdf streams over HTTP and office resolves its path in the backend.
+// The Explorer tree knows `{pe_id, relative_path}`, mapped straight to a Project
+// ChatFileRef. Text/image read their content eagerly over `/api/fs/content`
+// (utf8 / dataurl — the backend prepends the image data-URL prefix); pdf and
+// office carry no content (pdf renders from the stream URL, office resolves the
+// ref server-side for its watch). No absolute path is ever exposed — the old WS
+// path-resolve patch is gone.
 export const buildExplorerPreviewPayload = async (
-  client: PreviewRpcClient,
   peId: string,
   relativePath: string
 ): Promise<ExplorerPreviewPayload> => {
@@ -98,19 +92,11 @@ export const buildExplorerPreviewPayload = async (
   const fileRef = projectFileRef(peId, relativePath);
 
   let content = '';
-  let file_path: string | undefined;
-  let workspace: string | undefined;
-
   if (contentType === 'image') {
     content = await ipcBridge.fs.readContent.invoke({ file: fileRef, encoding: 'dataurl' });
   } else if (contentType === 'pdf' || contentType === 'word' || contentType === 'excel' || contentType === 'ppt') {
-    // PATCH(ELECTRON-3SZ): pdf/office need an absolute path — resolve pe → path (PR-3 removes this).
-    const res = (await client.request('fs/resolve', { file: { pe_id: peId, relative_path: relativePath } })) as {
-      absolute_path?: string;
-      workspace_root?: string;
-    };
-    file_path = res.absolute_path;
-    workspace = res.workspace_root;
+    // Binary preview: no content read. pdf renders via the /api/fs/stream URL
+    // built from fileRef; office resolves fileRef server-side for its watch.
   } else {
     content = await ipcBridge.fs.readContent.invoke({ file: fileRef, encoding: 'utf8' });
   }
@@ -122,8 +108,6 @@ export const buildExplorerPreviewPayload = async (
       title: name,
       file_name: name,
       fileRef,
-      file_path,
-      workspace,
       language: name.split('.').pop() || '',
       editable: contentType === 'markdown' || contentType === 'image' ? false : undefined,
     },
@@ -148,19 +132,14 @@ export const ExplorerContainer: React.FC<ExplorerContainerProps> = ({ projectId 
   }, [projectId, data]);
 
   // Open a file in the preview panel. The tree only knows `{pe_id, relative_path}`,
-  // so content is read over the WS `fs/read` command (not an absolute path). Per-
-  // project preview isolation is handled by the scope key (C5); opening a file
-  // appends a new tab (dedup keeps an already-open file focused) so multiple
-  // files can stay open at once.
+  // mapped to a Project ChatFileRef — content is read over `/api/fs/content` (text/
+  // image) and pdf/office render from the ref, so no absolute path is resolved.
+  // Per-project preview isolation is handled by the scope key (C5); opening a file
+  // appends a new tab (dedup keeps an already-open file focused) so multiple files
+  // can stay open at once.
   const handleOpenFile = async (peId: string, relativePath: string): Promise<void> => {
     try {
-      // PATCH(ELECTRON-3SZ): payload building (incl. absolute-path resolve) lives
-      // in `buildExplorerPreviewPayload` — remove with the rest of that patch.
-      const { content, contentType, metadata } = await buildExplorerPreviewPayload(
-        initExplorerRuntime(),
-        peId,
-        relativePath
-      );
+      const { content, contentType, metadata } = await buildExplorerPreviewPayload(peId, relativePath);
       openPreview(content, contentType, metadata);
     } catch (e) {
       Message.error(t(previewErrorToI18nKey(classifyPreviewError(e))));

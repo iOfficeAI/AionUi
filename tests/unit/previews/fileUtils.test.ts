@@ -13,7 +13,6 @@ import {
   isOfficeFile,
   FILE_EXTENSION_MAP,
 } from '@/renderer/pages/conversation/Preview/fileUtils';
-import { buildPdfSrc } from '@/renderer/pages/conversation/Preview/previewUrls';
 
 describe('fileUtils', () => {
   describe('getFileExtension', () => {
@@ -136,37 +135,6 @@ describe('fileUtils', () => {
   });
 });
 
-describe('previewUrls', () => {
-  describe('buildPdfSrc', () => {
-    it('builds file:// URI from file_path', () => {
-      const result = buildPdfSrc('/path/to/doc.pdf');
-      expect(result).toBe('file:///path/to/doc.pdf');
-    });
-
-    it('returns content when file_path is absent', () => {
-      const result = buildPdfSrc(undefined, 'base64data');
-      expect(result).toBe('base64data');
-    });
-
-    it('returns empty string when both absent', () => {
-      const result = buildPdfSrc(undefined, undefined);
-      expect(result).toBe('');
-    });
-
-    it('encodes URI properly', () => {
-      const result = buildPdfSrc('/path/with spaces/doc.pdf');
-      expect(result).toContain('file:///path/with%20spaces/doc.pdf');
-    });
-
-    it('builds a valid file:/// URI from a Windows backslash path', () => {
-      // Regression: raw Windows paths previously produced `file://C:%5C...` (ERR_FAILED → blank preview).
-      const result = buildPdfSrc('C:\\Users\\me\\doc.pdf');
-      expect(result).toBe('file:///C:/Users/me/doc.pdf');
-    });
-
-    it('encodes non-ASCII segments in a Windows path', () => {
-      const result = buildPdfSrc('C:\\临时空间\\文章.pdf');
-      expect(result).toBe(`file:///C:/${encodeURIComponent('临时空间')}/${encodeURIComponent('文章')}.pdf`);
-    });
-  });
-});
+// buildPdfSrc's stream-URL contract is covered in previewUrls.dom.test.ts
+// (it now builds a backend /api/fs/stream URL from a ChatFileRef, replacing the
+// old file:// path behaviour).
