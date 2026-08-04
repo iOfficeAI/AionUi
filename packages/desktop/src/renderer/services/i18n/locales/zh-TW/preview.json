@@ -1,18 +1,5 @@
 {
-  "historyVersions": "歷史版本",
-  "currentFile": "當前檔案",
   "loading": "載入中...",
-  "loadHistoryFailed": "載入歷史版本失敗",
-  "noHistory": "暫無歷史版本",
-  "snapshotSaved": "已儲存快照",
-  "snapshotSaveFailed": "儲存快照失敗",
-  "historyLoaded": "已載入歷史版本內容",
-  "historyLoadFailed": "載入歷史版本失敗",
-  "tooFrequent": "操作過於頻繁，請稍後再試",
-  "saveSnapshot": "儲存當前快照",
-  "snapshotNotSupported": "當前內容不支援快照",
-  "history": "歷史",
-  "historyNotSupported": "當前內容不支援歷史版本",
   "downloadFile": "下載檔案",
   "closePreview": "關閉預覽",
   "collapsePanel": "收起面板",
@@ -21,7 +8,6 @@
   "preview": "預覽",
   "editor": "編輯器",
   "previewEffect": "預覽效果",
-  "snapshot": "快照",
   "downloadMarkdown": "下載 Markdown 檔案",
   "downloadCode": "下載 {{language}} 檔案",
   "downloadDiff": "下載 Diff 檔案",
@@ -69,8 +55,7 @@
   "errors": {
     "missingFilePath": "未提供檔案路徑",
     "openWithoutPath": "無法開啟：未提供檔案路徑",
-    "conversionFailed": "轉換失敗",
-    "emptySnapshot": "快照內容為空"
+    "conversionFailed": "轉換失敗"
   },
   "office": {
     "installLinkText": "開啟 officecli 安裝說明",

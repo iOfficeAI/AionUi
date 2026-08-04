@@ -1,18 +1,5 @@
 {
-  "historyVersions": "History Versions",
-  "currentFile": "Current File",
   "loading": "Loading...",
-  "loadHistoryFailed": "Failed to load history",
-  "noHistory": "No history versions",
-  "snapshotSaved": "Snapshot saved",
-  "snapshotSaveFailed": "Failed to save snapshot",
-  "historyLoaded": "History version loaded",
-  "historyLoadFailed": "Failed to load history version",
-  "tooFrequent": "Too frequent, please try later",
-  "saveSnapshot": "Save current snapshot",
-  "snapshotNotSupported": "Current content does not support snapshot",
-  "history": "History",
-  "historyNotSupported": "Current content does not support history",
   "downloadFile": "Download file",
   "closePreview": "Close preview",
   "collapsePanel": "Collapse panel",
@@ -21,7 +8,6 @@
   "preview": "Preview",
   "editor": "Editor",
   "previewEffect": "Preview",
-  "snapshot": "Snapshot",
   "downloadMarkdown": "Download Markdown file",
   "downloadCode": "Download {{language}} file",
   "downloadDiff": "Download Diff file",
@@ -69,8 +55,7 @@
   "errors": {
     "missingFilePath": "File path is missing",
     "openWithoutPath": "Unable to open: file path is not provided",
-    "conversionFailed": "Conversion failed",
-    "emptySnapshot": "Snapshot content is empty"
+    "conversionFailed": "Conversion failed"
   },
   "office": {
     "installLinkText": "Open officecli install guide",

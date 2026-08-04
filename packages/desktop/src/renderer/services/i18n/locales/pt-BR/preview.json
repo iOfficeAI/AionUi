@@ -1,18 +1,5 @@
 {
-  "historyVersions": "Versões do Histórico",
-  "currentFile": "Arquivo Atual",
   "loading": "Carregando...",
-  "loadHistoryFailed": "Falha ao carregar o histórico",
-  "noHistory": "Nenhuma versão no histórico",
-  "snapshotSaved": "Instantâneo salvo",
-  "snapshotSaveFailed": "Falha ao salvar instantâneo",
-  "historyLoaded": "Versão do histórico carregada",
-  "historyLoadFailed": "Falha ao carregar a versão do histórico",
-  "tooFrequent": "Muito frequente, por favor tente mais tarde",
-  "saveSnapshot": "Salvar instantâneo atual",
-  "snapshotNotSupported": "O conteúdo atual não suporta instantâneo",
-  "history": "Histórico",
-  "historyNotSupported": "O conteúdo atual não suporta histórico",
   "downloadFile": "Baixar arquivo",
   "closePreview": "Fechar visualização",
   "collapsePanel": "Recolher painel",
@@ -21,7 +8,6 @@
   "preview": "Pré-visualização",
   "editor": "Editor",
   "previewEffect": "Visualização",
-  "snapshot": "Instantâneo",
   "downloadMarkdown": "Baixar arquivo Markdown",
   "downloadCode": "Baixar arquivo {{language}}",
   "downloadDiff": "Baixar arquivo Diff",
@@ -69,8 +55,7 @@
   "errors": {
     "missingFilePath": "O caminho do arquivo está ausente",
     "openWithoutPath": "Não é possível abrir: o caminho do arquivo não foi fornecido",
-    "conversionFailed": "A conversão falhou",
-    "emptySnapshot": "O conteúdo do instantâneo está vazio"
+    "conversionFailed": "A conversão falhou"
   },
   "office": {
     "installLinkText": "Abrir guia de instalação do officecli",

@@ -313,8 +313,6 @@
   "cacheClearFailed": "پاکسازی کش ناموفق بود",
   "language": "زبان",
   "saveUploadToWorkspace": "ذخیره آپلودها در پوشه پروژه",
-  "autoPreviewOfficeFiles": "پیش‌نمایش خودکار فایل‌های آفیس",
-  "autoPreviewOfficeFilesDesc": "فایل‌های جدید Word، Excel و PowerPoint ایجادشده در پروژه فعلی به‌صورت خودکار باز می‌شوند. فایل‌های موقت قفل آفیس نادیده گرفته می‌شوند.",
   "startOnBoot": "اجرا هنگام راه‌اندازی",
   "startOnBootDesc": "AionUi هنگام ورود به macOS یا Windows به‌صورت خودکار اجرا شود.",
   "startOnBootUnsupported": "فقط در نسخه‌های بسته‌بندی‌شده macOS و Windows در دسترس است.",

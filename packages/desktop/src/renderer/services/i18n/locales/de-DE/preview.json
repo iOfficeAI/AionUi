@@ -1,18 +1,5 @@
 {
-  "historyVersions": "Versionshistorie",
-  "currentFile": "Aktuelle Datei",
   "loading": "Wird geladen...",
-  "loadHistoryFailed": "Verlauf konnte nicht geladen werden",
-  "noHistory": "Keine Versionshistorie",
-  "snapshotSaved": "Schnappschuss gespeichert",
-  "snapshotSaveFailed": "Schnappschuss speichern fehlgeschlagen",
-  "historyLoaded": "Verlaufsversion geladen",
-  "historyLoadFailed": "Verlaufsversion konnte nicht geladen werden",
-  "tooFrequent": "Zu häufig, bitte später versuchen",
-  "saveSnapshot": "Aktuellen Schnappschuss speichern",
-  "snapshotNotSupported": "Aktueller Inhalt unterstützt keine Schnappschüsse",
-  "history": "Verlauf",
-  "historyNotSupported": "Aktueller Inhalt unterstützt keinen Verlauf",
   "downloadFile": "Datei herunterladen",
   "closePreview": "Vorschau schließen",
   "collapsePanel": "Panel einklappen",
@@ -21,7 +8,6 @@
   "preview": "Vorschau",
   "editor": "Editor",
   "previewEffect": "Vorschau",
-  "snapshot": "Schnappschuss",
   "downloadMarkdown": "Markdown-Datei herunterladen",
   "downloadCode": "{{language}}-Datei herunterladen",
   "downloadDiff": "Diff-Datei herunterladen",
@@ -69,8 +55,7 @@
   "errors": {
     "missingFilePath": "Dateipfad fehlt",
     "openWithoutPath": "Öffnen nicht möglich: Dateipfad ist nicht angegeben",
-    "conversionFailed": "Konvertierung fehlgeschlagen",
-    "emptySnapshot": "Schnappschuss-Inhalt ist leer"
+    "conversionFailed": "Konvertierung fehlgeschlagen"
   },
   "office": {
     "installLinkText": "officecli-Installationsanleitung öffnen",

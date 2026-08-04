@@ -1,18 +1,5 @@
 {
-  "historyVersions": "이전 버전",
-  "currentFile": "현재 파일",
   "loading": "로딩 중...",
-  "loadHistoryFailed": "기록을 불러오지 못했습니다",
-  "noHistory": "이전 버전 없음",
-  "snapshotSaved": "스냅샷 저장됨",
-  "snapshotSaveFailed": "스냅샷 저장 실패",
-  "historyLoaded": "이전 버전 로드됨",
-  "historyLoadFailed": "이전 버전을 불러오지 못했습니다",
-  "tooFrequent": "너무 빈번합니다. 나중에 다시 시도하세요",
-  "saveSnapshot": "현재 스냅샷 저장",
-  "snapshotNotSupported": "현재 콘텐츠는 스냅샷을 지원하지 않습니다",
-  "history": "기록",
-  "historyNotSupported": "현재 콘텐츠는 기록을 지원하지 않습니다",
   "downloadFile": "파일 다운로드",
   "closePreview": "미리보기 닫기",
   "collapsePanel": "패널 접기",
@@ -21,7 +8,6 @@
   "preview": "미리보기",
   "editor": "에디터",
   "previewEffect": "미리보기 효과",
-  "snapshot": "스냅샷",
   "downloadMarkdown": "Markdown 파일 다운로드",
   "downloadCode": "{{language}} 파일 다운로드",
   "downloadDiff": "Diff 파일 다운로드",
@@ -69,8 +55,7 @@
   "errors": {
     "missingFilePath": "파일 경로가 누락되었습니다",
     "openWithoutPath": "열 수 없음: 파일 경로가 제공되지 않았습니다",
-    "conversionFailed": "변환 실패",
-    "emptySnapshot": "스냅샷 내용이 비어 있습니다"
+    "conversionFailed": "변환 실패"
   },
   "office": {
     "installLinkText": "officecli 설치 안내 열기",

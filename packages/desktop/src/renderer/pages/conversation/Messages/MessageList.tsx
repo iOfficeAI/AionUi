@@ -46,7 +46,6 @@ import MessageText from './components/MessageText';
 import MessageThinking from './components/MessageThinking';
 import type { WriteFileResult } from './types';
 import { useAutoScroll } from './useAutoScroll';
-import { useAutoPreviewOfficeFiles } from '@/renderer/hooks/file/useAutoPreviewOfficeFiles';
 import SelectionReplyButton from './components/SelectionReplyButton';
 
 type IMessageVO =
@@ -323,7 +322,6 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
   const rowWidthClass = getChatSurfaceWidthClass();
   const loadPreviousMessagePage = useLoadPreviousMessagePage(conversationContext?.conversation_id);
   const loadAnchorMessageWindow = useLoadAnchorMessageWindow(conversationContext?.conversation_id);
-  useAutoPreviewOfficeFiles(conversationContext);
   // While the agent is still streaming, the in-progress turn's last text keeps
   // moving down, so we defer its copy/timestamp row until the turn finishes to
   // avoid the row flashing in and the layout reflowing mid-stream.

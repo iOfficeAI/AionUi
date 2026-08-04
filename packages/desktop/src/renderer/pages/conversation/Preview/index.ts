@@ -19,9 +19,6 @@
  * // 使用组件
  * import { PreviewPanel, MarkdownViewer } from '@/renderer/pages/conversation/Preview';
  *
- * // 使用Hooks
- * import { usePreviewHistory } from '@/renderer/pages/conversation/Preview';
- *
  * // 使用类型
  * import type { PreviewContentType } from '@/renderer/pages/conversation/Preview';
  * ```

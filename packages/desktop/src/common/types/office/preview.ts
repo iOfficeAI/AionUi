@@ -17,26 +17,6 @@ export type PreviewContentType =
   | 'url'
   | 'browser';
 
-export interface PreviewHistoryTarget {
-  contentType: PreviewContentType;
-  file_path?: string;
-  workspace?: string;
-  file_name?: string;
-  title?: string;
-  language?: string;
-  conversation_id?: string;
-}
-
-export interface PreviewSnapshotInfo {
-  id: string;
-  label: string;
-  created_at: number;
-  size: number;
-  contentType: PreviewContentType;
-  file_name?: string;
-  file_path?: string;
-}
-
 export interface RemoteImageFetchRequest {
   url: string;
 }

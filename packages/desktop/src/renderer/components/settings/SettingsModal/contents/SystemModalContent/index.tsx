@@ -54,7 +54,6 @@ const SystemModalContent: React.FC = () => {
   const [promptTimeout, setPromptTimeout] = useState<number>(300);
   const [agentIdleTimeout, setAgentIdleTimeout] = useState<number>(5);
   const [saveUploadToWorkspace, setSaveUploadToWorkspace] = useState(false);
-  const [autoPreviewOfficeFiles, setAutoPreviewOfficeFiles] = useState(true);
 
   useEffect(() => {
     if (!isDesktop) {
@@ -94,7 +93,6 @@ const SystemModalContent: React.FC = () => {
     setNotificationEnabled(configService.get('system.notificationEnabled') ?? true);
     setCronNotificationEnabled(configService.get('system.cronNotificationEnabled') ?? false);
     setSaveUploadToWorkspace(configService.get('upload.saveToWorkspace') ?? false);
-    setAutoPreviewOfficeFiles(configService.get('system.autoPreviewOfficeFiles') ?? true);
   }, [isDesktop]);
 
   useEffect(() => {
@@ -260,14 +258,6 @@ const SystemModalContent: React.FC = () => {
     });
   }, []);
 
-  const handleAutoPreviewOfficeFilesChange = useCallback((checked: boolean) => {
-    setAutoPreviewOfficeFiles(checked);
-    configService.set('system.autoPreviewOfficeFiles', checked).catch(() => {
-      setAutoPreviewOfficeFiles(!checked);
-      configService.setLocal('system.autoPreviewOfficeFiles', !checked);
-    });
-  }, []);
-
   // Get system directory info
   const { data: systemInfo } = useSWR('system.dir.info', () => ipcBridge.application.systemInfo.invoke());
 
@@ -349,12 +339,6 @@ const SystemModalContent: React.FC = () => {
       key: 'saveUploadToWorkspace',
       label: t('settings.saveUploadToWorkspace'),
       component: <Switch checked={saveUploadToWorkspace} onChange={handleSaveUploadToWorkspaceChange} />,
-    },
-    {
-      key: 'autoPreviewOfficeFiles',
-      label: t('settings.autoPreviewOfficeFiles'),
-      description: t('settings.autoPreviewOfficeFilesDesc'),
-      component: <Switch checked={autoPreviewOfficeFiles} onChange={handleAutoPreviewOfficeFilesChange} />,
     },
   ];
 

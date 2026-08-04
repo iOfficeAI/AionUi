@@ -1,18 +1,5 @@
 {
-  "historyVersions": "Исторические версии",
-  "currentFile": "Текущий файл",
   "loading": "Загрузка...",
-  "loadHistoryFailed": "Не удалось загрузить историю",
-  "noHistory": "Нет исторических версий",
-  "snapshotSaved": "Снимок сохранён",
-  "snapshotSaveFailed": "Не удалось сохранить снимок",
-  "historyLoaded": "Историческая версия загружена",
-  "historyLoadFailed": "Не удалось загрузить историческую версию",
-  "tooFrequent": "Слишком часто, попробуйте позже",
-  "saveSnapshot": "Сохранить текущий снимок",
-  "snapshotNotSupported": "Текущий контент не поддерживает снимки",
-  "history": "История",
-  "historyNotSupported": "Текущий контент не поддерживает историю",
   "downloadFile": "Скачать файл",
   "closePreview": "Закрыть предпросмотр",
   "collapsePanel": "Свернуть панель",
@@ -21,7 +8,6 @@
   "preview": "Предпросмотр",
   "editor": "Редактор",
   "previewEffect": "Предпросмотр",
-  "snapshot": "Снимок",
   "downloadMarkdown": "Скачать Markdown-файл",
   "downloadCode": "Скачать {{language}}-файл",
   "downloadDiff": "Скачать Diff-файл",
@@ -69,8 +55,7 @@
   "errors": {
     "missingFilePath": "Путь к файлу отсутствует",
     "openWithoutPath": "Невозможно открыть: путь к файлу не указан",
-    "conversionFailed": "Ошибка конвертации",
-    "emptySnapshot": "Содержимое снимка пусто"
+    "conversionFailed": "Ошибка конвертации"
   },
   "office": {
     "installLinkText": "Открыть инструкцию по установке officecli",

@@ -1,18 +1,5 @@
 {
-  "historyVersions": "Versions historiques",
-  "currentFile": "Fichier actuel",
   "loading": "Chargement...",
-  "loadHistoryFailed": "Échec du chargement de l'historique",
-  "noHistory": "Aucune version historique",
-  "snapshotSaved": "Instantané enregistré",
-  "snapshotSaveFailed": "Échec de l'enregistrement de l'instantané",
-  "historyLoaded": "Version historique chargée",
-  "historyLoadFailed": "Échec du chargement de la version historique",
-  "tooFrequent": "Trop fréquent, veuillez réessayer plus tard",
-  "saveSnapshot": "Enregistrer l'instantané actuel",
-  "snapshotNotSupported": "Le contenu actuel ne supporte pas les instantanés",
-  "history": "Historique",
-  "historyNotSupported": "Le contenu actuel ne supporte pas l'historique",
   "downloadFile": "Télécharger le fichier",
   "closePreview": "Fermer l'aperçu",
   "collapsePanel": "Réduire le panneau",
@@ -21,7 +8,6 @@
   "preview": "Aperçu",
   "editor": "Éditeur",
   "previewEffect": "Aperçu",
-  "snapshot": "Instantané",
   "downloadMarkdown": "Télécharger le fichier Markdown",
   "downloadCode": "Télécharger le fichier {{language}}",
   "downloadDiff": "Télécharger le fichier Diff",
@@ -69,8 +55,7 @@
   "errors": {
     "missingFilePath": "Chemin du fichier manquant",
     "openWithoutPath": "Impossible d'ouvrir : le chemin du fichier n'est pas fourni",
-    "conversionFailed": "Échec de la conversion",
-    "emptySnapshot": "Le contenu de l'instantané est vide"
+    "conversionFailed": "Échec de la conversion"
   },
   "office": {
     "installLinkText": "Guide d'installation d'OfficeCli ouvert",

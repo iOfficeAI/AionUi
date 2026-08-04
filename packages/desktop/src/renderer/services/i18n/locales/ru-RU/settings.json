@@ -313,8 +313,6 @@
   "cacheClearFailed": "Не удалось очистить кэш",
   "language": "Язык",
   "saveUploadToWorkspace": "Сохранять загрузки в папку проекта",
-  "autoPreviewOfficeFiles": "Автопросмотр новых файлов Office",
-  "autoPreviewOfficeFilesDesc": "Автоматически открывает новые файлы Word, Excel и PowerPoint в текущем проекте. Временные файлы блокировки Office игнорируются.",
   "startOnBoot": "Запуск при старте системы",
   "startOnBootDesc": "Автоматически запускать AionUi при входе в macOS или Windows.",
   "startOnBootUnsupported": "Доступно только в упакованных приложениях macOS и Windows.",

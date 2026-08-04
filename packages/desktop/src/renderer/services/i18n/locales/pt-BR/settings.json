@@ -313,8 +313,6 @@
   "cacheClearFailed": "Falha ao limpar o cache",
   "language": "Idioma",
   "saveUploadToWorkspace": "Salvar Uploads na Pasta do Projeto",
-  "autoPreviewOfficeFiles": "Auto Visualizar Novos Arquivos Office",
-  "autoPreviewOfficeFilesDesc": "Abre automaticamente os novos arquivos Word, Excel e PowerPoint no projeto atual. Arquivos temporários de trava do Office são ignorados.",
   "startOnBoot": "Iniciar com o Sistema",
   "startOnBootDesc": "Inicia o AionUi automaticamente ao entrar no macOS ou Windows.",
   "startOnBootUnsupported": "Disponível apenas em aplicativos empacotados para macOS e Windows.",

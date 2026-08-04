@@ -1,18 +1,5 @@
 {
-  "historyVersions": "Версії історії",
-  "currentFile": "Поточний файл",
   "loading": "Завантаження...",
-  "loadHistoryFailed": "Не вдалося завантажити історію",
-  "noHistory": "Немає версій історії",
-  "snapshotSaved": "Знімок збережено",
-  "snapshotSaveFailed": "Не вдалося зберегти знімок",
-  "historyLoaded": "Версію історії завантажено",
-  "historyLoadFailed": "Не вдалося завантажити версію історії",
-  "tooFrequent": "Занадто часто, будь ласка, спробуйте пізніше",
-  "saveSnapshot": "Зберегти поточний знімок",
-  "snapshotNotSupported": "Поточний вміст не підтримує знімки",
-  "history": "Історія",
-  "historyNotSupported": "Поточний вміст не підтримує історію",
   "downloadFile": "Завантажити файл",
   "closePreview": "Закрити перегляд",
   "collapsePanel": "Згорнути панель",
@@ -21,7 +8,6 @@
   "preview": "Перегляд",
   "editor": "Редактор",
   "previewEffect": "Ефект",
-  "snapshot": "Знімок",
   "downloadMarkdown": "Завантажити файл Markdown",
   "downloadCode": "Завантажити файл {{language}}",
   "downloadDiff": "Завантажити файл Diff",
@@ -69,8 +55,7 @@
   "errors": {
     "missingFilePath": "Шлях до файлу відсутній",
     "openWithoutPath": "Неможливо відкрити: шлях до файлу не надано",
-    "conversionFailed": "Конвертація не вдалася",
-    "emptySnapshot": "Вміст знімка порожній"
+    "conversionFailed": "Конвертація не вдалася"
   },
   "office": {
     "installLinkText": "Відкрити інструкцію зі встановлення officecli",

@@ -1,18 +1,5 @@
 {
-  "historyVersions": "Versiones del historial",
-  "currentFile": "Archivo actual",
   "loading": "Cargando...",
-  "loadHistoryFailed": "Error al cargar el historial",
-  "noHistory": "Sin versiones en el historial",
-  "snapshotSaved": "Instantánea guardada",
-  "snapshotSaveFailed": "Error al guardar la instantánea",
-  "historyLoaded": "Versión del historial cargada",
-  "historyLoadFailed": "Error al cargar la versión del historial",
-  "tooFrequent": "Demasiado frecuente, intenta más tarde",
-  "saveSnapshot": "Guardar instantánea actual",
-  "snapshotNotSupported": "El contenido actual no admite instantáneas",
-  "history": "Historial",
-  "historyNotSupported": "El contenido actual no admite historial",
   "downloadFile": "Descargar archivo",
   "closePreview": "Cerrar vista previa",
   "collapsePanel": "Contraer panel",
@@ -21,7 +8,6 @@
   "preview": "Vista previa",
   "editor": "Editor",
   "previewEffect": "Vista previa",
-  "snapshot": "Instantánea",
   "downloadMarkdown": "Descargar archivo Markdown",
   "downloadCode": "Descargar archivo {{language}}",
   "downloadDiff": "Descargar archivo Diff",
@@ -69,8 +55,7 @@
   "errors": {
     "missingFilePath": "Falta la ruta del archivo",
     "openWithoutPath": "No se puede abrir: no se proporcionó la ruta del archivo",
-    "conversionFailed": "Error de conversión",
-    "emptySnapshot": "El contenido de la instantánea está vacío"
+    "conversionFailed": "Error de conversión"
   },
   "office": {
     "installLinkText": "Abrir guía de instalación de officecli",

@@ -1,7 +1,4 @@
 {
-  "officePreview": {
-    "fileWatchUnavailable": "文件实时监听不可用——系统的文件监听句柄（inotify）可能已耗尽，新 Office 文件的自动预览已停用。请提高 fs.inotify.max_user_instances，或关闭占用大量文件监听的程序。"
-  },
   "welcome": {
     "title": "Hi，今天有什么安排？",
     "placeholder": "发消息、上传文件、打开文件夹、创建定时任务，或输入 / 唤起命令...",

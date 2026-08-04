@@ -10,12 +10,6 @@
  */
 
 /**
- * 快照保存防抖时间（毫秒）
- * Snapshot save debounce time (milliseconds)
- */
-export const SNAPSHOT_DEBOUNCE_TIME = 1000;
-
-/**
  * 滚动同步防抖时间（毫秒）
  * Scroll sync debounce time (milliseconds)
  */

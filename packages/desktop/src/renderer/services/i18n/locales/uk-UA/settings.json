@@ -313,8 +313,6 @@
   "cacheClearFailed": "Не вдалося очистити кеш",
   "language": "Мова",
   "saveUploadToWorkspace": "Зберігати завантаження в папці проєкту",
-  "autoPreviewOfficeFiles": "Автоперегляд нових файлів Office",
-  "autoPreviewOfficeFilesDesc": "Автоматично відкривати новостворені файли Word, Excel та PowerPoint.",
   "startOnBoot": "Запуск при завантаженні",
   "startOnBootDesc": "Автоматично запускати AionUi при вході в систему.",
   "startOnBootUnsupported": "Доступно лише в упакованих програмах для macOS та Windows.",

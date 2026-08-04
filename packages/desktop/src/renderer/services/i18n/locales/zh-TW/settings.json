@@ -313,8 +313,6 @@
   "cacheClearFailed": "Failed to clear cache",
   "language": "語言",
   "saveUploadToWorkspace": "上傳檔案儲存到專案資料夾",
-  "autoPreviewOfficeFiles": "自動預覽新建 Office 文件",
-  "autoPreviewOfficeFilesDesc": "自動打開目前專案中新建立的 Word、Excel 與 PowerPoint 文件，並忽略 Office 臨時鎖定文件。",
   "startOnBoot": "開機啟動",
   "startOnBootDesc": "登入 macOS 或 Windows 後自動啟動 AionUi。",
   "startOnBootUnsupported": "僅在打包後的 macOS 與 Windows 用戶端中可用。",

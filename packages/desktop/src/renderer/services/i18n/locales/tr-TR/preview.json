@@ -1,18 +1,5 @@
 {
-  "historyVersions": "Geçmiş Sürümler",
-  "currentFile": "Mevcut Dosya",
   "loading": "Yükleniyor...",
-  "loadHistoryFailed": "Geçmiş yüklenemedi",
-  "noHistory": "Geçmiş sürüm yok",
-  "snapshotSaved": "Anlık görüntü kaydedildi",
-  "snapshotSaveFailed": "Anlık görüntü kaydedilemedi",
-  "historyLoaded": "Geçmiş sürüm yüklendi",
-  "historyLoadFailed": "Geçmiş sürüm yüklenemedi",
-  "tooFrequent": "Çok sık işlem, lütfen daha sonra tekrar deneyin",
-  "saveSnapshot": "Mevcut anlık görüntüyü kaydet",
-  "snapshotNotSupported": "Mevcut içerik anlık görüntüyü desteklemiyor",
-  "history": "Geçmiş",
-  "historyNotSupported": "Mevcut içerik geçmişi desteklemiyor",
   "downloadFile": "Dosyayı İndir",
   "closePreview": "Önizlemeyi Kapat",
   "collapsePanel": "Paneli Daralt",
@@ -21,7 +8,6 @@
   "preview": "Önizleme",
   "editor": "Editör",
   "previewEffect": "Önizleme",
-  "snapshot": "Anlık Görüntü",
   "downloadMarkdown": "Markdown Dosyasını İndir",
   "downloadCode": "{{language}} Dosyasını İndir",
   "downloadDiff": "Diff Dosyasını İndir",
@@ -69,8 +55,7 @@
   "errors": {
     "missingFilePath": "Dosya yolu eksik",
     "openWithoutPath": "Açılamadı: dosya yolu sağlanmadı",
-    "conversionFailed": "Dönüştürme başarısız",
-    "emptySnapshot": "Anlık görüntü içeriği boş"
+    "conversionFailed": "Dönüştürme başarısız"
   },
   "office": {
     "installLinkText": "officecli kurulum kılavuzunu aç",

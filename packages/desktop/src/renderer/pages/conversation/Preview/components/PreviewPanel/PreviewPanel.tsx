@@ -14,7 +14,7 @@ import { toLocalFileHref } from '@/renderer/components/Markdown/markdownUtils';
 import { PreviewToolbarExtrasProvider, type PreviewToolbarExtras } from '../../context/PreviewToolbarExtrasContext';
 import { usePreviewContext } from '../../context/PreviewContext';
 import { useResizableSplit } from '@/renderer/hooks/ui/useResizableSplit';
-import { Link } from '@arco-design/web-react';
+import { Link, Message } from '@arco-design/web-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import DiffPreview from '../viewers/DiffViewer';
 import ExcelPreview from '../viewers/ExcelViewer';
@@ -35,19 +35,12 @@ import {
   PreviewToolbar,
   PreviewContextMenu,
   PreviewConfirmModals,
-  PreviewHistoryDropdown,
   type ContextMenuState,
   type CloseTabConfirmState,
   type PreviewTab,
 } from '.';
 import { DEFAULT_SPLIT_RATIO, FILE_TYPES_WITH_BUILTIN_OPEN, MAX_SPLIT_WIDTH, MIN_SPLIT_WIDTH } from '../../constants';
-import {
-  usePreviewHistory,
-  usePreviewKeyboardShortcuts,
-  useScrollSync,
-  useTabOverflow,
-  useThemeDetection,
-} from '../../hooks';
+import { usePreviewKeyboardShortcuts, useScrollSync, useTabOverflow, useThemeDetection } from '../../hooks';
 import { useTranslation } from 'react-i18next';
 import './preview.css';
 
@@ -112,22 +105,10 @@ const PreviewPanel: React.FC = () => {
     previewContainerRef,
   });
 
-  // eslint-disable-next-line max-len
-  const {
-    historyVersions,
-    historyLoading,
-    snapshotSaving,
-    historyError,
-    historyTarget,
-    refreshHistory,
-    handleSaveSnapshot,
-    handleSnapshotSelect,
-    messageApi,
-    messageContextHolder,
-  } = usePreviewHistory({
-    activeTab,
-    updateContent,
-  });
+  // Toast handle for this panel's own messages (download failures, the oversized
+  // notice, "open in system" errors). Previously supplied by the version-history
+  // hook; kept local now that the hook is gone.
+  const [messageApi, messageContextHolder] = Message.useMessage();
 
   usePreviewKeyboardShortcuts({
     isDirty: activeTab?.isDirty,
@@ -449,21 +430,6 @@ const PreviewPanel: React.FC = () => {
       }
     }
   }, [metadata?.fileRef, metadata?.file_path, messageApi, t]);
-
-  // 渲染历史下拉菜单 / Render history dropdown
-  const renderHistoryDropdown = () => {
-    // eslint-disable-next-line max-len
-    return (
-      <PreviewHistoryDropdown
-        historyVersions={historyVersions}
-        historyLoading={historyLoading}
-        historyError={historyError}
-        historyTarget={historyTarget}
-        currentTheme={currentTheme}
-        onSnapshotSelect={handleSnapshotSelect}
-      />
-    );
-  };
 
   const renderMissingFile = () => {
     const filePath = metadata?.file_path;
@@ -819,16 +785,11 @@ const PreviewPanel: React.FC = () => {
             showOpenInSystemButton={showOpenInSystemButton}
             hasFilePath={Boolean(metadata?.file_path)}
             isOversized={Boolean(metadata?.oversized)}
-            historyTarget={historyTarget}
-            snapshotSaving={snapshotSaving}
             onViewModeChange={(mode) => {
               setViewMode(mode);
               setIsSplitScreenEnabled(false); // 切换视图模式时关闭分屏 / Disable split when switching view mode
             }}
             onSplitScreenToggle={() => setIsSplitScreenEnabled(!isSplitScreenEnabled)}
-            onSaveSnapshot={handleSaveSnapshot}
-            onRefreshHistory={refreshHistory}
-            renderHistoryDropdown={renderHistoryDropdown}
             onOpenInSystem={handleOpenInSystem}
             onDownload={handleDownload}
             onClose={closePreview}

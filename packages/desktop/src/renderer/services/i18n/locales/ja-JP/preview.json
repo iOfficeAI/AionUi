@@ -1,18 +1,5 @@
 {
-  "historyVersions": "履歴バージョン",
-  "currentFile": "現在のファイル",
   "loading": "読み込み中...",
-  "loadHistoryFailed": "履歴の読み込みに失敗しました",
-  "noHistory": "履歴バージョンはありません",
-  "snapshotSaved": "スナップショットを保存しました",
-  "snapshotSaveFailed": "スナップショットの保存に失敗しました",
-  "historyLoaded": "履歴バージョンを読み込みました",
-  "historyLoadFailed": "履歴バージョンの読み込みに失敗しました",
-  "tooFrequent": "操作が頻繁すぎます。しばらくしてから再試行してください",
-  "saveSnapshot": "現在のスナップショットを保存",
-  "snapshotNotSupported": "現在のコンテンツはスナップショットをサポートしていません",
-  "history": "履歴",
-  "historyNotSupported": "現在のコンテンツは履歴をサポートしていません",
   "downloadFile": "ファイルをダウンロード",
   "closePreview": "プレビューを閉じる",
   "collapsePanel": "パネルを閉じる",
@@ -21,7 +8,6 @@
   "preview": "プレビュー",
   "editor": "エディタ",
   "previewEffect": "プレビュー",
-  "snapshot": "スナップショット",
   "downloadMarkdown": "Markdown ファイルをダウンロード",
   "downloadCode": "{{language}} ファイルをダウンロード",
   "downloadDiff": "Diff ファイルをダウンロード",
@@ -69,8 +55,7 @@
   "errors": {
     "missingFilePath": "ファイルパスが指定されていません",
     "openWithoutPath": "ファイルパスがないため開けません",
-    "conversionFailed": "変換に失敗しました",
-    "emptySnapshot": "スナップショット内容が空です"
+    "conversionFailed": "変換に失敗しました"
   },
   "office": {
     "installLinkText": "officecli のインストール手順を開く",
