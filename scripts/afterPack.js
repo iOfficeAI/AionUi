@@ -12,8 +12,13 @@ const { verifyBundledAioncoreResources } = require('../packages/shared-scripts/s
 const { verifyBundledLarkCliResources } = require('../packages/shared-scripts/src/prepare-lark-cli');
 
 const WINDOWS_PRODUCT_NAME = '锐捷Codex';
+const WINDOWS_LEGAL_COPYRIGHT = 'Copyright © 2026 锐捷Codex';
 
-async function setWindowsProductName(executablePath, productName = WINDOWS_PRODUCT_NAME) {
+async function setWindowsExecutableMetadata(
+  executablePath,
+  productName = WINDOWS_PRODUCT_NAME,
+  legalCopyright = WINDOWS_LEGAL_COPYRIGHT
+) {
   const { NtExecutable, NtExecutableResource, Resource } = require('resedit');
   const executable = NtExecutable.from(await fs.promises.readFile(executablePath));
   const resources = NtExecutableResource.from(executable);
@@ -29,7 +34,10 @@ async function setWindowsProductName(executablePath, productName = WINDOWS_PRODU
       throw new Error(`Cannot set ProductName because VERSIONINFO has no string table: ${executablePath}`);
     }
     for (const language of languages) {
-      versionInfo.setStringValues(language, { ProductName: productName });
+      versionInfo.setStringValues(language, {
+        LegalCopyright: legalCopyright,
+        ProductName: productName,
+      });
     }
     versionInfo.outputToResourceEntries(resources.entries);
   }
@@ -272,5 +280,6 @@ module.exports = async function afterPack(context) {
   console.log(`✅ All native modules rebuilt successfully for ${targetArch}\n`);
 };
 
-module.exports.setWindowsProductName = setWindowsProductName;
+module.exports.setWindowsExecutableMetadata = setWindowsExecutableMetadata;
+module.exports.WINDOWS_LEGAL_COPYRIGHT = WINDOWS_LEGAL_COPYRIGHT;
 module.exports.WINDOWS_PRODUCT_NAME = WINDOWS_PRODUCT_NAME;

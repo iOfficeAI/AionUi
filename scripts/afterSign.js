@@ -1,14 +1,14 @@
 const { execSync } = require('child_process');
 const path = require('path');
-const { setWindowsProductName } = require('./afterPack');
+const { setWindowsExecutableMetadata } = require('./afterPack');
 
 exports.default = async function afterSign(context) {
   const { electronPlatformName, appOutDir } = context;
 
   if (electronPlatformName === 'win32') {
     const executablePath = path.join(appOutDir, `${context.packager.appInfo.productFilename}.exe`);
-    await setWindowsProductName(executablePath);
-    console.log('Windows ProductName set to 锐捷Codex after resource editing');
+    await setWindowsExecutableMetadata(executablePath);
+    console.log('Windows EXE ProductName and LegalCopyright metadata updated');
     return;
   }
 

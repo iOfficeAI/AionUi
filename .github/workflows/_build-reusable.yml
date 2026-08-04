@@ -497,6 +497,7 @@ jobs:
             $requiredValues = @{
               CompanyName = $info.CompanyName
               FileVersion = $info.FileVersion
+              LegalCopyright = $info.LegalCopyright
               ProductName = $info.ProductName
               ProductVersion = $info.ProductVersion
             }
@@ -509,13 +510,13 @@ jobs:
             if ($info.CompanyName -ne 'CSBU') {
               throw "Unexpected CompanyName in $($target.FullName): $($info.CompanyName)"
             }
-            $expectedProductName = if ($applicationExecutables.FullName -contains $target.FullName) {
-              '锐捷Codex'
-            } else {
-              'CSBU WorkMate'
-            }
+            $expectedProductName = '锐捷Codex'
+            $expectedLegalCopyright = 'Copyright © 2026 锐捷Codex'
             if ($info.ProductName -ne $expectedProductName) {
               throw "Unexpected ProductName in $($target.FullName): $($info.ProductName)"
+            }
+            if ($info.LegalCopyright -ne $expectedLegalCopyright) {
+              throw "Unexpected LegalCopyright in $($target.FullName): $($info.LegalCopyright)"
             }
             Write-Host "Verified executable metadata: $($target.FullName)"
           }
@@ -579,6 +580,7 @@ jobs:
               $requiredValues = @{
                 CompanyName = $info.CompanyName
                 FileVersion = $info.FileVersion
+                LegalCopyright = $info.LegalCopyright
                 ProductName = $info.ProductName
                 ProductVersion = $info.ProductVersion
               }
@@ -591,13 +593,13 @@ jobs:
               if ($info.CompanyName -ne 'CSBU') {
                 throw "Unexpected installed CompanyName in $($target.FullName): $($info.CompanyName)"
               }
-              $expectedProductName = if ($target.FullName -eq $installedApplication) {
-                '锐捷Codex'
-              } else {
-                'CSBU WorkMate'
-              }
+              $expectedProductName = '锐捷Codex'
+              $expectedLegalCopyright = 'Copyright © 2026 锐捷Codex'
               if ($info.ProductName -ne $expectedProductName) {
                 throw "Unexpected installed ProductName in $($target.FullName): $($info.ProductName)"
+              }
+              if ($info.LegalCopyright -ne $expectedLegalCopyright) {
+                throw "Unexpected installed LegalCopyright in $($target.FullName): $($info.LegalCopyright)"
               }
               Write-Host "Verified installed executable metadata: $($target.FullName)"
             }
