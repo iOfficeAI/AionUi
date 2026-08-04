@@ -212,7 +212,7 @@ describe('change notifications', () => {
     const stop = onPreviewWatchChange((key) => seen.push(key));
     reconcilePreviewWatch([projectTab('peA', 'src/a.ts')]);
 
-    notifyPreviewWatchChange(peKey('peA', 'src'));
+    notifyPreviewWatchChange(peKey('peA', 'src'), { kind: 'files', names: ['a.ts'] });
 
     expect(seen).toEqual([peKey('peA', 'src')]);
     stop();
@@ -224,7 +224,7 @@ describe('change notifications', () => {
     const stop = onPreviewWatchChange((key) => seen.push(key));
     reconcilePreviewWatch([projectTab('peA', 'src/a.ts')]);
 
-    notifyPreviewWatchChange(peKey('peA', 'somewhere-else'));
+    notifyPreviewWatchChange(peKey('peA', 'somewhere-else'), { kind: 'files', names: ['a.ts'] });
 
     expect(seen).toEqual([]);
     stop();
@@ -236,7 +236,7 @@ describe('change notifications', () => {
     reconcilePreviewWatch([projectTab('peA', 'src/a.ts')]);
     stop();
 
-    notifyPreviewWatchChange(peKey('peA', 'src'));
+    notifyPreviewWatchChange(peKey('peA', 'src'), { kind: 'files', names: ['a.ts'] });
 
     expect(seen).toEqual([]);
   });

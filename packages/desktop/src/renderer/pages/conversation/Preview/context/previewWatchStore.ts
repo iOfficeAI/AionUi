@@ -35,13 +35,33 @@ let port: PreviewWatchPort | null = null;
 let current: Set<PeKey> = new Set();
 
 /**
- * Listeners notified when a watched directory reports changed files.
+ * What a watched directory reported.
  *
- * `changedNames` are the entry names the backend flagged as modified within that
- * directory. Empty means "something happened here but no file was named" — a rename
- * or an addition — which the panel treats as affecting nothing it has open.
+ * Two shapes rather than a name list, because a list cannot distinguish "these files
+ * changed" from "something changed and I cannot tell you what". An empty list used to
+ * carry both meanings, and the second one lost: an unrecognised delta op produced no
+ * names, which read as "nothing here concerns you" and flagged no tab at all.
+ *
+ * `files` therefore requires at least one name — a caller with nothing to name has to
+ * choose `directory` or send nothing, and cannot fall into the ambiguity by accident.
  */
-const changeListeners = new Set<(key: PeKey, changedNames: readonly string[]) => void>();
+export type PreviewChangeSignal =
+  /** These entries changed on disk. The precise case: only the named tabs are stale. */
+  | { kind: 'files'; names: readonly [string, ...string[]] }
+  /**
+   * Something in the directory changed but the report does not say what, so every tab
+   * living there has to be treated as possibly stale.
+   *
+   * `reason` exists because the two ways this happens need different responses from
+   * whoever is reading the logs, even though the panel handles them identically:
+   * `overflow` is the kernel dropping events under load — expected, occasional, no
+   * action. `unknown-op` means the backend is sending a change op this build does not
+   * know, i.e. the two sides have drifted and someone has to catch up.
+   */
+  | { kind: 'directory'; reason: 'overflow' | 'unknown-op' };
+
+/** Listeners notified when a watched directory reports a change. */
+const changeListeners = new Set<(key: PeKey, signal: PreviewChangeSignal) => void>();
 
 /** Wire the store to the monitor connection. Idempotent. */
 export const configurePreviewWatch = (next: PreviewWatchPort | null): void => {
@@ -91,10 +111,11 @@ export const currentPreviewWatchTargets = (): ReadonlySet<PeKey> => current;
 /**
  * Subscribe to "a directory the panel watches changed".
  *
- * The payload is the directory, not the file: the `fs` channel reports directory
- * deltas, and mapping a delta back to the affected tabs is the caller's job.
+ * The signal names a directory plus what is known about it; mapping that back to the
+ * affected tabs is the caller's job — see [`PreviewChangeSignal`] for why the
+ * "I cannot tell you what changed" case is a shape of its own.
  */
-export const onPreviewWatchChange = (listener: (key: PeKey, changedNames: readonly string[]) => void): (() => void) => {
+export const onPreviewWatchChange = (listener: (key: PeKey, signal: PreviewChangeSignal) => void): (() => void) => {
   changeListeners.add(listener);
   return () => changeListeners.delete(listener);
 };
@@ -105,8 +126,11 @@ export const onPreviewWatchChange = (listener: (key: PeKey, changedNames: readon
  * Changes for directories the panel is not watching are dropped: the connection is
  * shared with the explorer, which subscribes to its own set, so this store sees
  * traffic that is none of its business.
+ *
+ * No default for `signal`: making it optional is what let "nothing to report" and
+ * "cannot say" collapse into one call.
  */
-export const notifyPreviewWatchChange = (key: PeKey, changedNames: readonly string[] = []): void => {
+export const notifyPreviewWatchChange = (key: PeKey, signal: PreviewChangeSignal): void => {
   if (!current.has(key)) return;
-  for (const listener of changeListeners) listener(key, changedNames);
+  for (const listener of changeListeners) listener(key, signal);
 };

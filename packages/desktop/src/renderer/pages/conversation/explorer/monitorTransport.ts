@@ -16,7 +16,11 @@ import { wsEmitter, wsSend } from '@/common/adapter/httpBridge';
 import { refToKey, type Change, type DirRef, type Entry } from './explorerModel';
 import type { SubscribeResult } from './explorerStore';
 import { applyMonitorNotification, configureExplorerStore, onReconnect } from './explorerStore';
-import { configurePreviewWatch, notifyPreviewWatchChange } from '../Preview/context/previewWatchStore';
+import {
+  configurePreviewWatch,
+  notifyPreviewWatchChange,
+  type PreviewChangeSignal,
+} from '../Preview/context/previewWatchStore';
 import type { MonitorTransport } from './monitorClient';
 import { MonitorClient } from './monitorClient';
 import {
@@ -61,32 +65,77 @@ export const dispatchMonitorNotification = (method: string, params: unknown): vo
   // subscriptions into one watch, so both get the same delta over this one
   // connection and it has to reach both consumers. Routing rather than a second
   // connection: a `fs/delta` here is already the notification the panel needs.
-  //
-  // Only `fs/delta` is used as a change signal.
-  //
-  // A `fs/snapshot` NOTIFICATION is not the initial listing — that arrives in the
-  // subscribe response and never comes through here. It appears when the kernel drops
-  // events and the backend rescans instead, i.e. "too much changed to enumerate". It
-  // would be the right thing to react to, but the wire form carries no modification
-  // time and no marker distinguishing it, so there is no way to tell which of the
-  // listed files actually changed.
-  //
-  // Consequence, deliberately accepted for now: when a tool rewrites many files at
-  // once, the refresh indicator does not light up. Reloading by hand still fetches the
-  // current content. Fixing it properly needs the backend to mark those snapshots;
-  // tracked separately.
   if (method === 'fs/delta') {
     const delta = params as { target?: DirRef; changes?: Change[] } | undefined;
     if (delta?.target) {
-      // Only `modified` names a file whose contents changed; additions, removals and
-      // renames alter the listing, which is the explorer's concern rather than a
-      // signal that an open document is now stale.
-      const modified = (delta.changes ?? [])
-        .filter((change): change is Extract<Change, { op: 'modified' }> => change.op === 'modified')
-        .map((change) => change.name);
-      notifyPreviewWatchChange(refToKey(delta.target), modified);
+      const signal = classifyDelta(delta.changes ?? []);
+      if (signal) notifyPreviewWatchChange(refToKey(delta.target), signal);
+    }
+    return;
+  }
+
+  // A `fs/snapshot` NOTIFICATION is not the initial listing — that arrives in the
+  // subscribe response and never comes through here. It only appears after the kernel
+  // dropped events and the backend rescanned instead, which the backend now marks
+  // (`reason: 'overflow'`).
+  //
+  // Reacting conservatively is the only correct option: a rescan *replaces* the
+  // per-file deltas coalesced into its debounce window rather than accompanying them,
+  // so the changes it stands for are gone, not pending. The listing it carries has no
+  // modification times, so there is no way to narrow it to the files that changed.
+  //
+  // The marker is treated as confirmation rather than as the test. A snapshot can only
+  // reach this fan-out from an overflow rescan (verified in aioncore: the subscribe
+  // reply is returned to its caller and never dispatched as a notification), so
+  // requiring `reason` would make a backend that predates the marker fail silently —
+  // exactly the failure this change exists to remove.
+  if (method === 'fs/snapshot') {
+    const snapshot = params as { target?: DirRef } | undefined;
+    if (snapshot?.target) {
+      notifyPreviewWatchChange(refToKey(snapshot.target), { kind: 'directory', reason: 'overflow' });
     }
   }
+};
+
+/**
+ * Decide what a delta tells the preview panel, or `null` when it tells it nothing.
+ *
+ * `modified` is the only op that says an open document is now stale; additions,
+ * removals and renames change the listing, which is the explorer's concern. So the
+ * precise answer is the modified names — but only when every op was understood.
+ *
+ * An op this build does not recognise means the backend has moved ahead, and it may
+ * well be the one carrying "this file's contents changed". Dropping it would look
+ * identical to "nothing relevant happened", which is how the `modified` op itself went
+ * unnoticed here for five blocks of work. Falling back to the whole directory costs a
+ * few unnecessary re-reads and cannot cost a silently stale document.
+ *
+ * Returning `null` rather than a third "nothing to report" variant keeps that state out
+ * of the signal type: a caller with nothing to say says nothing, so no listener has to
+ * decide what an empty report means.
+ */
+const classifyDelta = (changes: readonly Change[]): PreviewChangeSignal | null => {
+  const names: string[] = [];
+  let unknown = false;
+
+  for (const change of changes) {
+    switch (change.op) {
+      case 'modified':
+        names.push(change.name);
+        break;
+      case 'added':
+      case 'removed':
+      case 'renamed':
+        break;
+      default:
+        unknown = true;
+        break;
+    }
+  }
+
+  if (unknown) return { kind: 'directory', reason: 'unknown-op' };
+  if (names.length === 0) return null;
+  return { kind: 'files', names: names as [string, ...string[]] };
 };
 
 let client: MonitorClient | null = null;

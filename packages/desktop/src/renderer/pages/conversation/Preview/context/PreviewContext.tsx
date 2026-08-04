@@ -460,27 +460,21 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   // Translate "a watched directory changed" into "these tabs may be stale".
   //
-  // If you are here because the refresh indicator did not light up: check whether the
-  // change arrived as a delta at all. When a tool rewrites many files at once the
-  // kernel drops events, and the backend then sends a full listing instead of per-file
-  // changes — which carries nothing this can act on, so no tab is flagged. A rescan
-  // also supersedes the per-file changes coalesced alongside it, so the precise
-  // information for that moment is gone rather than merely delayed.
+  // Marking rather than reloading is deliberate: silently replacing what is on screen
+  // is what the old poller did, and it could overwrite an edit in progress. The user
+  // decides when to take the new content.
   //
-  // That is a known gap in the notification protocol, not a fault in this module or in
-  // the indicator's own logic. Reloading by hand still fetches current content.
+  // If you are here because the refresh indicator did not light up: check what the
+  // signal was. A `files` signal only flags the tabs it names, so a change to a file no
+  // tab has open correctly flags nothing. A `directory` signal flags every tab in that
+  // directory, because the report could not say which file changed.
   //
-  // The signal names a directory, not a file — that is what the channel reports — so
-  // every tab living in it is flagged. Marking rather than reloading is deliberate:
-  // silently replacing what is on screen is what the old poller did, and it could
-  // overwrite an edit in progress. The user decides when to take the new content.
+  // What still gets lost: a change the backend never reported at all. The kernel drops
+  // events under load, and the rescan that follows *replaces* the per-file changes
+  // coalesced into its window rather than accompanying them — those are gone, not
+  // delayed. The directory signal is what keeps that from passing as silence.
   useEffect(() => {
-    return onPreviewWatchChange((changedDir, changedNames) => {
-      // Nothing was reported as modified — the directory's listing changed (something
-      // added, removed or renamed), which says nothing about the documents on screen.
-      if (changedNames.length === 0) return;
-      const changed = new Set(changedNames);
-
+    return onPreviewWatchChange((changedDir, signal) => {
       const affected = tabsRef.current
         .filter((tab) => {
           const ref = tab.metadata?.fileRef;
@@ -488,11 +482,13 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
           const lastSlash = ref.relative_path.lastIndexOf('/');
           const dir = lastSlash < 0 ? '' : ref.relative_path.slice(0, lastSlash);
           if (peKey(ref.pe_id, dir) !== changedDir) return false;
-          // Match the file itself, not just its directory: several tabs often share a
-          // directory, and flagging all of them would send the user to re-read files
-          // that never changed.
+          // A named report is matched per file: several tabs usually share a directory,
+          // and flagging all of them would send the user to re-read files that never
+          // changed. Without names there is nothing to narrow by, so living in the
+          // directory is enough.
+          if (signal.kind === 'directory') return true;
           const name = lastSlash < 0 ? ref.relative_path : ref.relative_path.slice(lastSlash + 1);
-          return changed.has(name);
+          return signal.names.includes(name);
         })
         .map((tab) => tab.id);
       if (affected.length === 0) return;

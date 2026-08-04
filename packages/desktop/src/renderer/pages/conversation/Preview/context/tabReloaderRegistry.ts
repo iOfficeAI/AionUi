@@ -28,8 +28,22 @@ const reloaders = new Map<string, () => void>();
  * ```ts
  * useEffect(() => registerTabReloader(tabId, () => webviewRef.current?.reload()), [tabId]);
  * ```
+ *
+ * One registration per tab. Today only the pdf viewer registers and the panel renders
+ * one viewer at a time, so a live overwrite cannot happen — but the moment a second
+ * viewer type opts in (office is the expected one), two viewers showing the same tab
+ * would leave the loser silently unreloadable, and "the refresh button does nothing"
+ * is not a symptom anyone traces back to here. Warning rather than refusing: the last
+ * registration is still the better guess, and breaking a viewer over a wiring mistake
+ * would be worse than a noisy console.
  */
 export const registerTabReloader = (tabId: string, reload: () => void): (() => void) => {
+  const displaced = reloaders.get(tabId);
+  if (displaced && displaced !== reload) {
+    console.warn(
+      `[preview] two viewers registered a reloader for tab "${tabId}"; the earlier one is now unreachable and its refresh would do nothing.`
+    );
+  }
   reloaders.set(tabId, reload);
   return () => {
     // Only remove our own entry: a remount may already have replaced it.

@@ -49,10 +49,13 @@ describe('dispatchMonitorNotification (real routing)', () => {
   // explorer may not have expanded. One backend watch serves both, so the same delta
   // has to reach both consumers over this single connection.
   it('also hands a fs/delta to the preview panel', () => {
-    const delta = { target: { pe_id: 'p', relative_path: 'src' }, changes: [] };
+    const delta = {
+      target: { pe_id: 'p', relative_path: 'src' },
+      changes: [{ op: 'modified', name: 'a.ts' }],
+    };
     dispatchMonitorNotification('fs/delta', delta);
 
-    expect(notifyPreviewWatchChange).toHaveBeenCalledWith('p\u0000src', []);
+    expect(notifyPreviewWatchChange).toHaveBeenCalledWith('p\u0000src', { kind: 'files', names: ['a.ts'] });
     // The explorer still gets it — this is a fan-out, not a redirect.
     expect(applyMonitorNotification).toHaveBeenCalledWith('fs/delta', delta);
   });
@@ -69,12 +72,14 @@ describe('dispatchMonitorNotification (real routing)', () => {
       ],
     });
 
-    expect(notifyPreviewWatchChange).toHaveBeenCalledWith('p\u0000src', ['a.ts', 'b.ts']);
+    expect(notifyPreviewWatchChange).toHaveBeenCalledWith('p\u0000src', { kind: 'files', names: ['a.ts', 'b.ts'] });
   });
 
   // Listing changes are the explorer's business; none of them means an open document
-  // is now stale.
-  it('does not report added, removed or renamed entries as modified', () => {
+  // is now stale. Saying nothing rather than reporting an empty list: an empty report
+  // would have to mean both "nothing concerns you" and "cannot tell you what changed",
+  // and it was the second meaning that silently lost.
+  it('says nothing to the panel about added, removed or renamed entries', () => {
     dispatchMonitorNotification('fs/delta', {
       target: { pe_id: 'p', relative_path: 'src' },
       changes: [
@@ -84,14 +89,57 @@ describe('dispatchMonitorNotification (real routing)', () => {
       ],
     });
 
-    expect(notifyPreviewWatchChange).toHaveBeenCalledWith('p\u0000src', []);
+    expect(notifyPreviewWatchChange).not.toHaveBeenCalled();
   });
 
-  // A snapshot is the initial listing returned when subscribing, not a change; the
-  // panel treating it as one would flag "this file changed" the moment it opened.
-  it('does not treat fs/snapshot as a change for the preview panel', () => {
+  // A delta op this build does not know may be the one meaning "contents changed", so
+  // it must not be filtered out as irrelevant. Reporting the whole directory costs some
+  // unnecessary re-reads; dropping it costs a document that is stale on screen with
+  // nothing saying so.
+  it('falls back to the whole directory for an op it does not recognise', () => {
+    dispatchMonitorNotification('fs/delta', {
+      target: { pe_id: 'p', relative_path: 'src' },
+      changes: [{ op: 'somethingNewer', name: 'a.ts' }],
+    });
+
+    expect(notifyPreviewWatchChange).toHaveBeenCalledWith('p\u0000src', { kind: 'directory', reason: 'unknown-op' });
+  });
+
+  // Even mixed with ops it does understand: the recognised names are not the whole
+  // story, so narrowing to them would drop whatever the unknown op was reporting.
+  it('does not narrow to the recognised names when an unknown op is present', () => {
+    dispatchMonitorNotification('fs/delta', {
+      target: { pe_id: 'p', relative_path: 'src' },
+      changes: [
+        { op: 'modified', name: 'a.ts' },
+        { op: 'somethingNewer', name: 'b.ts' },
+      ],
+    });
+
+    expect(notifyPreviewWatchChange).toHaveBeenCalledWith('p\u0000src', { kind: 'directory', reason: 'unknown-op' });
+  });
+
+  // A `fs/snapshot` NOTIFICATION is not the initial listing — that comes back in the
+  // subscribe response and never reaches this dispatcher. It appears only after the
+  // kernel dropped events and the backend rescanned, and that rescan REPLACES the
+  // per-file deltas for its window, so ignoring it loses those changes outright rather
+  // than delaying them.
+  it('treats a fs/snapshot notification as a whole-directory change', () => {
     dispatchMonitorNotification('fs/snapshot', { target: { pe_id: 'p', relative_path: 'src' }, entries: [] });
-    expect(notifyPreviewWatchChange).not.toHaveBeenCalled();
+    expect(notifyPreviewWatchChange).toHaveBeenCalledWith('p\u0000src', { kind: 'directory', reason: 'overflow' });
+  });
+
+  // The backend marks those snapshots (`reason: 'overflow'`), but the marker is
+  // confirmation rather than the test: a snapshot can only reach this fan-out from an
+  // overflow rescan. Requiring the field would make an older backend fail silently,
+  // which is the failure mode this change exists to remove.
+  it('does not require the backend marker to react', () => {
+    dispatchMonitorNotification('fs/snapshot', {
+      target: { pe_id: 'p', relative_path: 'src' },
+      entries: [],
+      reason: 'overflow',
+    });
+    expect(notifyPreviewWatchChange).toHaveBeenCalledWith('p\u0000src', { kind: 'directory', reason: 'overflow' });
   });
 
   it('does not involve the preview panel in search traffic', () => {
