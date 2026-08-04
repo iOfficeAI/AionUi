@@ -460,6 +460,16 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   // Translate "a watched directory changed" into "these tabs may be stale".
   //
+  // If you are here because the refresh indicator did not light up: check whether the
+  // change arrived as a delta at all. When a tool rewrites many files at once the
+  // kernel drops events, and the backend then sends a full listing instead of per-file
+  // changes — which carries nothing this can act on, so no tab is flagged. A rescan
+  // also supersedes the per-file changes coalesced alongside it, so the precise
+  // information for that moment is gone rather than merely delayed.
+  //
+  // That is a known gap in the notification protocol, not a fault in this module or in
+  // the indicator's own logic. Reloading by hand still fetches current content.
+  //
   // The signal names a directory, not a file — that is what the channel reports — so
   // every tab living in it is flagged. Marking rather than reloading is deliberate:
   // silently replacing what is on screen is what the old poller did, and it could
@@ -817,13 +827,17 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
       const prev = currentScopeRef.current;
       if (prev === scopeKey) return;
       if (prev != null) persistScopeState(prev, { isOpen, tabs, activeTabId });
-      // Release the leaving scope's directory subscriptions outright.
+      // Release the leaving scope's directory subscriptions.
       //
-      // The effect that follows `setTabs` below would eventually reconcile to the
-      // new scope's set anyway, but dropping first keeps the two scopes from
-      // overlapping: the incoming tabs are a different project's, so none of the
-      // outgoing directories can still be wanted, and holding them across the switch
-      // would leave the previous project watched for as long as the reconcile takes.
+      // Placed before the state updates as a matter of habit, not because the position
+      // currently matters: this callback is synchronous, so React flushes the tabs
+      // effect only after the whole body returns, and the release therefore happens
+      // first wherever it is written. Measured both orders — the resulting subscription
+      // set is identical.
+      //
+      // Kept here because that stops being true the moment anything in this function
+      // awaits: the effect could then run mid-body, and a release placed afterwards
+      // would drop the subscriptions the restore had just created.
       resetPreviewWatch();
       currentScopeRef.current = scopeKey;
       const loaded = scopeKey != null ? loadScopeState(scopeKey) : EMPTY_SCOPE_STATE;

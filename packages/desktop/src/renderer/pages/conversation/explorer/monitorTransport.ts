@@ -62,8 +62,19 @@ export const dispatchMonitorNotification = (method: string, params: unknown): vo
   // connection and it has to reach both consumers. Routing rather than a second
   // connection: a `fs/delta` here is already the notification the panel needs.
   //
-  // Only `fs/delta` carries "something changed"; `fs/snapshot` is the initial
-  // listing that arrives in the subscribe response, which is not a change.
+  // Only `fs/delta` is used as a change signal.
+  //
+  // A `fs/snapshot` NOTIFICATION is not the initial listing — that arrives in the
+  // subscribe response and never comes through here. It appears when the kernel drops
+  // events and the backend rescans instead, i.e. "too much changed to enumerate". It
+  // would be the right thing to react to, but the wire form carries no modification
+  // time and no marker distinguishing it, so there is no way to tell which of the
+  // listed files actually changed.
+  //
+  // Consequence, deliberately accepted for now: when a tool rewrites many files at
+  // once, the refresh indicator does not light up. Reloading by hand still fetches the
+  // current content. Fixing it properly needs the backend to mark those snapshots;
+  // tracked separately.
   if (method === 'fs/delta') {
     const delta = params as { target?: DirRef; changes?: Change[] } | undefined;
     if (delta?.target) {

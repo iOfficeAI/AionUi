@@ -376,11 +376,11 @@ describe('hiding the panel does not refresh the storage recency stamp', () => {
 
 // Switching project must leave the incoming project's directories watched.
 //
-// This exercises the ordering inside the scope switch through the provider, which is
-// where it can actually go wrong: releasing the outgoing subscriptions has to precede
-// applying the incoming tabs. Reversed, the tabs effect subscribes the new
-// directories and the release then drops everything held — the new project included —
-// so it receives no change signals until something unrelated reconciles again.
+// Asserts the OUTCOME — the incoming project ends up watched — and nothing about the
+// order in which the switch does its work. Both orders currently produce this same
+// result, because the switch is synchronous and React flushes the subscription effect
+// only after it returns; a test claiming to pin the order would be claiming a
+// guarantee it does not provide.
 describe('switching project keeps the new project watched', () => {
   const port = { subscribe: vi.fn(async () => ({ snapshots: [] })), unsubscribe: vi.fn() };
 
@@ -391,11 +391,12 @@ describe('switching project keeps the new project watched', () => {
     resetPreviewWatch();
   });
 
-  // Switching INTO a project that already has tabs is the case that distinguishes the
-  // order: the restored tabs are applied in the same pass as the release, so if the
-  // release ran last it would drop the subscriptions the restore had just created.
-  // (Switching into an empty project cannot tell the two apart — there is nothing for
-  // the effect to subscribe, so both orders end up empty.)
+  // Uses a project with restored tabs, since a project with none would pass whether or
+  // not the restore subscribed anything.
+  //
+  // (Written while investigating whether the release/restore order matters. It does
+  // not, currently — see the comment on closePreviewIfScopeChanged — so this asserts
+  // the outcome only.)
   it('holds the incoming project directory when its tabs are restored', () => {
     localStorage.setItem(
       previewScopeStorageKey('proj-b'),
