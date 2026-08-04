@@ -42,6 +42,42 @@ export const isOpenableFileRef = (fileRef?: ChatFileRef): boolean => {
 };
 
 /**
+ * Whether "open in system" applies to this tab at all.
+ *
+ * Two independent reasons to offer it, and the order matters:
+ *
+ * 1. **Escape hatch — unconditional.** When the panel cannot show the file
+ *    (oversized, or a format we cannot render), this button is the user's *only*
+ *    route to their own file. It must never be filtered by content type: doing so
+ *    leaves a tab that says "please open this in a system editor" above no button
+ *    at all.
+ * 2. **Convenience — by type.** For formats that render but are better handled by a
+ *    real application (Office, PDF), offer it as a shortcut.
+ *
+ * Everything else — markdown, code, csv, images — renders fine here and gets no
+ * button, which is what keeps the toolbar from filling with actions that add
+ * nothing.
+ *
+ * Deliberately asymmetric with the neighbouring buttons in the escape-hatch state:
+ * refresh hides (re-reading yields the same verdict), this one shows, and download
+ * follows its own rule. That reads like an inconsistency and is not one.
+ *
+ * @param contentType     Tab's content type.
+ * @param isOversized     Tab exceeded the size ceiling, so nothing was read.
+ * @param builtinOpenTypes Types offered the convenience shortcut.
+ */
+export const shouldOfferOpenInSystem = (
+  contentType: string,
+  isOversized: boolean,
+  builtinOpenTypes: readonly string[]
+): boolean => {
+  // Reason 1 — the escape hatch. Checked first and never type-filtered.
+  if (isOversized || contentType === 'unsupported') return true;
+  // Reason 2 — convenience for formats a real app handles better.
+  return builtinOpenTypes.includes(contentType);
+};
+
+/**
  * Whether "open in system" can act on this tab.
  *
  * A `fileRef` is enough: the backend resolves it and shells out, so no absolute
@@ -49,6 +85,10 @@ export const isOpenableFileRef = (fileRef?: ChatFileRef): boolean => {
  * deliberately carry no `file_path` — requiring one left every oversized or
  * unsupported file opened from the tree with no actionable button at all, which is
  * the one state where this button is the user's only way to reach the file.
+ *
+ * Answers "do we have an addressable file?", which is separate from
+ * {@link shouldOfferOpenInSystem}'s "should this tab offer the action?" — the
+ * button needs both.
  *
  * @param hasFilePath - Tab carries an absolute path (legacy entry points)
  * @param fileRef     - Tab's ChatFileRef identity, if any
@@ -59,17 +99,17 @@ export const canOpenInSystem = (hasFilePath: boolean, fileRef?: ChatFileRef): bo
 /**
  * Whether downloading this tab would produce an empty file.
  *
- * An oversized tab never read its content, so its in-memory content is `''`. With
- * no `file_path` to copy from disk, the text download path would happily write
- * that empty string out: the browser reports a successful download and the user
- * receives a 0-byte file. Refusing is the honest outcome — the real file is still
- * reachable through "open in system".
+ * A tab that read no content — oversized, or a format that cannot be rendered —
+ * holds `''`. With no `file_path` to copy from disk, the text download path would
+ * happily write that empty string out: the browser reports a successful download
+ * and the user receives a 0-byte file. Refusing is the honest outcome — the real
+ * file is still reachable through "open in system".
  *
- * @param isOversized - Tab is in the oversized state (content was never read)
- * @param hasFilePath - A disk path exists, so the download can copy the real file
+ * @param hasNoContent - Nothing was read for this tab (oversized or unsupported)
+ * @param hasFilePath  - A disk path exists, so the download can copy the real file
  */
-export const wouldDownloadEmptyFile = (isOversized: boolean, hasFilePath: boolean): boolean =>
-  isOversized && !hasFilePath;
+export const wouldDownloadEmptyFile = (hasNoContent: boolean, hasFilePath: boolean): boolean =>
+  hasNoContent && !hasFilePath;
 
 /** Minimal tab shape the close-batch helpers need. */
 type ClosableTab = { id: string; isDirty?: boolean };

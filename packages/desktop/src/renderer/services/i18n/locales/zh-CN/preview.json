@@ -53,6 +53,11 @@
     "detail": "文件尺寸 {{size}} 超过 {{threshold}}，请用系统编辑器打开。",
     "downloadUnavailable": "文件过大，无法在此下载。请改用「在系统中打开」。"
   },
+  "unsupported": {
+    "title": "暂不支持预览此格式",
+    "detail": "{{format}} 文件无法在此预览，请用系统应用打开。",
+    "downloadUnavailable": "该文件无法在此下载。请改用「在系统中打开」。"
+  },
   "aiWriting": "AI 正在写入…",
   "errors": {
     "missingFilePath": "未提供文件路径",

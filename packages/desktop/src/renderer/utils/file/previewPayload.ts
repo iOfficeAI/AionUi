@@ -36,11 +36,12 @@ const IMAGE_PREVIEW_MAX_BYTES = 20 * 1024 * 1024;
 const TEXT_READ_TIMEOUT_MS = 5000;
 
 /**
- * Types rendered without reading content: pdf loads from the stream URL and
- * office resolves the ref server-side for its own watch. They carry no editable
- * content, so no size gate applies either.
+ * Types rendered without reading content: pdf loads from the stream URL, office
+ * resolves the ref server-side for its own watch, and `unsupported` has nothing to
+ * render at all (it shows an explanation plus the escape hatch). They carry no
+ * editable content, so no size gate applies either.
  */
-const CONTENT_FREE_TYPES = new Set<PreviewContentType>(['pdf', 'word', 'excel', 'ppt']);
+const CONTENT_FREE_TYPES = new Set<PreviewContentType>(['pdf', 'word', 'excel', 'ppt', 'unsupported']);
 
 /**
  * Size ceiling for a content type, or `undefined` when the type has no gate.
@@ -131,4 +132,36 @@ export const resolvePreviewPayload = async (
     new Promise<never>((_, reject) => setTimeout(() => reject(new Error('File read timeout')), TEXT_READ_TIMEOUT_MS)),
   ]);
   return { ...base, content: content ?? '' };
+};
+
+/**
+ * Format a byte count for the oversized notice, guaranteeing it reads as larger
+ * than `limitBytes`.
+ *
+ * The plain formatter rounds to 2 decimals, so a file one byte over a 1 MB ceiling
+ * renders as "1 MB" — and the message became "1 MB exceeds 1 MB", which reads as a
+ * bug in the app rather than an explanation. Since the caller only reaches this
+ * when the file genuinely is larger, showing two equal numbers is always wrong.
+ *
+ * Adds precision only when needed, then falls back to an explicit "more than"
+ * phrasing for differences too small to render at any sane precision.
+ *
+ * @param bytes      Actual file size.
+ * @param limitBytes The ceiling it exceeded.
+ * @param format     Byte formatter (injected so this stays pure and testable).
+ */
+export const formatSizeAboveLimit = (
+  bytes: number,
+  limitBytes: number,
+  format: (value: number, decimals?: number) => string
+): string => {
+  const limitText = format(limitBytes);
+  // Try increasing precision until the two values are visibly different.
+  for (const decimals of [2, 3, 4]) {
+    const sizeText = format(bytes, decimals);
+    if (sizeText !== limitText) return sizeText;
+  }
+  // Differences under ~0.0001 of a unit: state the relationship instead of a
+  // number that would still round to the limit.
+  return `> ${limitText}`;
 };

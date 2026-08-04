@@ -23,12 +23,23 @@ vi.mock('@/common', () => ({
   },
 }));
 
-import { resolvePreviewPayload } from '@/renderer/utils/file/previewPayload';
+import { formatSizeAboveLimit, resolvePreviewPayload } from '@/renderer/utils/file/previewPayload';
 
 const TEXT_CEILING = 1024 * 1024;
 const IMAGE_CEILING = 20 * 1024 * 1024;
 
 const ref = { kind: 'local' as const, path: '/abs/file.txt' };
+
+const MB = 1024 * 1024;
+
+/** Mirrors the app's byte formatter, with selectable precision. */
+const format = (bytes: number, decimals = 2): string => {
+  if (bytes === 0) return '0 Bytes';
+  const k = 1024;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(decimals))} ${sizes[i]}`;
+};
 
 const meta = (size: number, lastModified = 1_700_000_000_000) => ({
   name: 'file.txt',
@@ -160,5 +171,55 @@ describe('resolvePreviewPayload', () => {
     const out = await resolvePreviewPayload(ref, 'code');
 
     expect(out.content).toBe('');
+  });
+});
+
+// The oversized notice has to state two sizes that differ. At the default 2 decimals
+// a file one byte over a 1 MB ceiling also renders as "1 MB", so the sentence became
+// "1 MB exceeds 1 MB" — which reads as a bug in the app, not an explanation.
+describe('formatSizeAboveLimit', () => {
+  it('never renders the size identically to the limit it exceeded', () => {
+    expect(formatSizeAboveLimit(MB + 1, MB, format)).not.toBe(format(MB));
+  });
+
+  it.each([MB + 1, MB + 100, MB + 5000, MB + 50_000])('distinguishes %i bytes from a 1 MB limit', (size) => {
+    expect(formatSizeAboveLimit(size, MB, format)).not.toBe(format(MB));
+  });
+
+  // Asserting only "differs from the limit" is not enough: the `> 1 MB` fallback
+  // also differs, so a version that never raised precision would still pass. These
+  // pin that extra precision is genuinely used when it can separate the two, and
+  // that the fallback is reserved for when it truly cannot.
+  it('raises precision rather than falling back when a real number can separate them', () => {
+    expect(formatSizeAboveLimit(MB + 5000, MB, format)).toBe('1.005 MB');
+  });
+
+  it('shows an exact figure at the precision that first distinguishes it', () => {
+    expect(formatSizeAboveLimit(MB + 100, MB, format)).toBe('1.0001 MB');
+  });
+
+  it('reserves the fallback for differences no precision can show', () => {
+    // One byte over: even 4 decimals still renders "1 MB".
+    expect(formatSizeAboveLimit(MB + 1, MB, format)).toBe('> 1 MB');
+  });
+
+  it('leaves comfortably larger sizes formatted normally', () => {
+    expect(formatSizeAboveLimit(5 * MB, MB, format)).toBe('5 MB');
+    expect(formatSizeAboveLimit(1.2 * MB, MB, format)).toBe('1.2 MB');
+  });
+
+  // A one-byte difference cannot be shown at any sane precision, so state the
+  // relationship rather than print a number that still rounds to the limit.
+  it('falls back to a "greater than" phrasing when no precision separates them', () => {
+    const out = formatSizeAboveLimit(MB + 1, MB, (bytes, decimals = 2) =>
+      // A formatter that always collapses to the same text, worst case.
+      decimals >= 0 ? '1 MB' : '1 MB'
+    );
+    expect(out).toBe('> 1 MB');
+  });
+
+  it('works for the image ceiling too', () => {
+    const imageCeiling = 20 * MB;
+    expect(formatSizeAboveLimit(imageCeiling + 1, imageCeiling, format)).not.toBe(format(imageCeiling));
   });
 });

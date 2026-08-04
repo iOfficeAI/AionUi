@@ -53,6 +53,11 @@
     "detail": "La taille du fichier {{size}} dépasse la limite de {{threshold}}. Veuillez l'ouvrir dans un éditeur système.",
     "downloadUnavailable": "Ce fichier est trop volumineux pour être téléchargé ici. Utilisez « Ouvrir dans le système »."
   },
+  "unsupported": {
+    "title": "Aperçu non pris en charge pour ce format",
+    "detail": "Les fichiers {{format}} ne peuvent pas être affichés ici. Ouvrez-les dans une application système.",
+    "downloadUnavailable": "Ce fichier ne peut pas être téléchargé ici. Utilisez « Ouvrir dans le système »."
+  },
   "aiWriting": "L’IA écrit…",
   "errors": {
     "missingFilePath": "Chemin du fichier manquant",

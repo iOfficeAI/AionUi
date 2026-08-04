@@ -58,15 +58,16 @@ interface PreviewToolbarProps {
   showOpenInSystemButton: boolean;
 
   /**
-   * 文件超过大小上限：内容未被读取。
-   * 视图切换与分屏对一个没有内容的 tab 无意义，故隐藏；
+   * 这个 tab 没有内容可操作（超过大小上限，或格式无法渲染）。
+   * 视图切换、分屏、审查元素都是对内容的操作，隐藏；
    * 但「在系统中打开」与「下载」照常显示 —— 那是用户唯一的出路。
    *
-   * File exceeds the size ceiling, so no content was read. View-mode switching
-   * and split screen are meaningless for a tab with no content and are hidden,
-   * while "open in system" and "download" stay — they are the only way out.
+   * The tab has no content to act on — either it exceeded the size ceiling or its
+   * format cannot be rendered. View-mode switching, split screen and inspect all
+   * operate on content, so they are hidden; "open in system" and "download" stay,
+   * because they are the only way the user reaches the file.
    */
-  isOversized?: boolean;
+  hasNoRenderableContent?: boolean;
 
   /**
    * 文件是否在磁盘上（有 file_path）。
@@ -152,7 +153,7 @@ const PreviewToolbar: React.FC<PreviewToolbarProps> = ({
   isSplitScreenEnabled,
   file_name,
   showOpenInSystemButton,
-  isOversized = false,
+  hasNoRenderableContent = false,
   hasFilePath,
   onViewModeChange,
   onSplitScreenToggle,
@@ -183,7 +184,7 @@ const PreviewToolbar: React.FC<PreviewToolbarProps> = ({
       <div className='flex items-center justify-between gap-8px w-full' style={{ minWidth: 'max-content' }}>
         {/* 左侧：Tabs（Markdown/HTML）+ 文件名 / Left: Tabs (Markdown/HTML) + Filename */}
         <div className='flex items-center h-full gap-8px'>
-          {(isMarkdown || isHTML || isDiff) && !isOversized && (
+          {(isMarkdown || isHTML || isDiff) && !hasNoRenderableContent && (
             <>
               <div className='flex items-center h-full gap-0'>
                 <div
@@ -319,7 +320,7 @@ const PreviewToolbar: React.FC<PreviewToolbarProps> = ({
             </div>
           )}
 
-          {isHTML && !isOversized && onInspectModeToggle && (
+          {isHTML && !hasNoRenderableContent && onInspectModeToggle && (
             <div
               className={`${toolbarBtn} ${inspectMode ? toolbarBtnActive : ''}`}
               onClick={onInspectModeToggle}

@@ -5,6 +5,7 @@ import {
   classifySaveOutcome,
   dirtyTabsInBatch,
   isOpenableFileRef,
+  shouldOfferOpenInSystem,
   shouldShowDownload,
   wouldDownloadEmptyFile,
 } from '@renderer/pages/conversation/Preview/components/PreviewPanel/previewToolbarUtils';
@@ -193,5 +194,46 @@ describe('classifySaveOutcome', () => {
   // An error takes precedence: a stale `true` alongside a rejection must not win.
   it('prefers the error over a resolved value', () => {
     expect(classifySaveOutcome(true, httpError(409))).toEqual({ kind: 'conflict' });
+  });
+});
+
+// The escape hatch. When the panel cannot show a file, "open in system" is the only
+// route the user has to their own file — so the type whitelist must layer ON TOP of
+// that, never replace it. Filtering the escape-hatch states by content type leaves a
+// tab that says "open this in a system editor" above no button at all.
+describe('shouldOfferOpenInSystem', () => {
+  const BUILTIN = ['word', 'ppt', 'pdf', 'excel'] as const;
+
+  describe('escape hatch — never filtered by type', () => {
+    it('offers it for an oversized text file, which no whitelist would include', () => {
+      expect(shouldOfferOpenInSystem('code', true, BUILTIN)).toBe(true);
+    });
+
+    it('offers it for an oversized markdown file', () => {
+      expect(shouldOfferOpenInSystem('markdown', true, BUILTIN)).toBe(true);
+    });
+
+    it('offers it for an unsupported format', () => {
+      expect(shouldOfferOpenInSystem('unsupported', false, BUILTIN)).toBe(true);
+    });
+
+    // The regression that matters: an empty whitelist must not disarm the hatch.
+    it('still offers it when the whitelist is empty', () => {
+      expect(shouldOfferOpenInSystem('code', true, [])).toBe(true);
+      expect(shouldOfferOpenInSystem('unsupported', false, [])).toBe(true);
+    });
+  });
+
+  describe('convenience — by type', () => {
+    it.each(['word', 'ppt', 'pdf', 'excel'])('offers it for %s, better handled by a real app', (type) => {
+      expect(shouldOfferOpenInSystem(type, false, BUILTIN)).toBe(true);
+    });
+
+    it.each(['markdown', 'code', 'csv', 'image', 'diff', 'html'])(
+      'does not offer it for %s, which renders fine here',
+      (type) => {
+        expect(shouldOfferOpenInSystem(type, false, BUILTIN)).toBe(false);
+      }
+    );
   });
 });

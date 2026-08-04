@@ -53,6 +53,11 @@
     "detail": "File size {{size}} exceeds the {{threshold}} limit. Please open it in a system editor.",
     "downloadUnavailable": "This file is too large to download here. Use “Open in system” instead."
   },
+  "unsupported": {
+    "title": "Preview not supported for this format",
+    "detail": "{{format}} files cannot be previewed here. Open it in a system application instead.",
+    "downloadUnavailable": "This file cannot be downloaded here. Use “Open in system” instead."
+  },
   "aiWriting": "AI is writing…",
   "errors": {
     "missingFilePath": "File path is missing",

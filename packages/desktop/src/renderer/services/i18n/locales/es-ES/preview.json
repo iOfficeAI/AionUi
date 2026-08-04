@@ -53,6 +53,11 @@
     "detail": "El tamaño del archivo {{size}} supera el límite de {{threshold}}. Ábrelo en un editor del sistema.",
     "downloadUnavailable": "Este archivo es demasiado grande para descargarlo aquí. Usa “Abrir en el sistema”."
   },
+  "unsupported": {
+    "title": "La vista previa no admite este formato",
+    "detail": "Los archivos {{format}} no se pueden previsualizar aquí. Ábrelos en una aplicación del sistema.",
+    "downloadUnavailable": "Este archivo no se puede descargar aquí. Usa “Abrir en el sistema”."
+  },
   "aiWriting": "La IA está escribiendo...",
   "errors": {
     "missingFilePath": "Falta la ruta del archivo",

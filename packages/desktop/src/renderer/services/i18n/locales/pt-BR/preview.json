@@ -53,6 +53,11 @@
     "detail": "O tamanho do arquivo {{size}} excede o limite de {{threshold}}. Abra-o em um editor do sistema.",
     "downloadUnavailable": "Este arquivo é muito grande para baixar aqui. Use “Abrir no sistema”."
   },
+  "unsupported": {
+    "title": "Pré-visualização não suportada para este formato",
+    "detail": "Arquivos {{format}} não podem ser pré-visualizados aqui. Abra em um aplicativo do sistema.",
+    "downloadUnavailable": "Este arquivo não pode ser baixado aqui. Use “Abrir no sistema”."
+  },
   "aiWriting": "A IA está escrevendo…",
   "errors": {
     "missingFilePath": "O caminho do arquivo está ausente",

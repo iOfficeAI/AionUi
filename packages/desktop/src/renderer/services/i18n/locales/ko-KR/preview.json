@@ -53,6 +53,11 @@
     "detail": "파일 크기 {{size}}이(가) 제한 {{threshold}}을(를) 초과합니다. 시스템 편집기로 열어 주세요.",
     "downloadUnavailable": "이 파일은 너무 커서 여기서 다운로드할 수 없습니다. '시스템에서 열기'를 사용하세요."
   },
+  "unsupported": {
+    "title": "이 형식은 미리보기를 지원하지 않습니다",
+    "detail": "{{format}} 파일은 여기서 미리 볼 수 없습니다. 시스템 응용 프로그램으로 열어 주세요.",
+    "downloadUnavailable": "이 파일은 여기서 다운로드할 수 없습니다. '시스템에서 열기'를 사용하세요."
+  },
   "aiWriting": "AI가 작성 중…",
   "errors": {
     "missingFilePath": "파일 경로가 누락되었습니다",

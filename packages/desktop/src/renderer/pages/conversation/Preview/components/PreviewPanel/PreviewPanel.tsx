@@ -7,10 +7,12 @@
 import { ipcBridge } from '@/common';
 import { downloadFileFromPath, downloadTextContent } from '@/renderer/utils/file/download';
 import { formatFileSize } from '@/renderer/services/FileService';
+import { formatSizeAboveLimit } from '@/renderer/utils/file/previewPayload';
 import { classifyPreviewError, previewErrorToI18nKey } from '@/renderer/utils/previewError';
 import {
   canOpenInSystem,
   classifySaveOutcome,
+  shouldOfferOpenInSystem,
   dirtyTabsInBatch,
   isOpenableFileRef,
   wouldDownloadEmptyFile,
@@ -394,11 +396,6 @@ const PreviewPanel: React.FC = () => {
   const isHTML = content_type === 'html';
   const isEditable = metadata?.editable !== false; // 默认可编辑 / Default editable
 
-  // 检查文件类型是否已有内置的打开按钮（Word、PPT、PDF、Excel 组件内部已提供）
-  // Check if file type already has built-in open button
-  // (Word, PPT, PDF, Excel components provide their own)
-  const hasBuiltInOpenButton = (FILE_TYPES_WITH_BUILTIN_OPEN as readonly string[]).includes(content_type);
-
   // 「在系统中打开」：有 file_path 或有 fileRef 都能打开。
   // fileRef 分支是超限 / 不支持态的逃生出口 —— Explorer 打开的 tab 刻意不带
   // 绝对路径（见 ExplorerContainer 的 "No absolute path is ever exposed"），
@@ -408,7 +405,12 @@ const PreviewPanel: React.FC = () => {
   // branch is the escape hatch for oversized / unsupported tabs — explorer-opened
   // tabs deliberately carry no absolute path, so keying off file_path alone left
   // them with no actionable button at all.
-  const showOpenInSystemButton = canOpenInSystem(Boolean(metadata?.file_path), metadata?.fileRef);
+  // Needs both an addressable file AND a reason to offer the action. The escape
+  // hatch (oversized / unsupported) is inside shouldOfferOpenInSystem and is
+  // deliberately not type-filtered — see that function.
+  const showOpenInSystemButton =
+    canOpenInSystem(Boolean(metadata?.file_path), metadata?.fileRef) &&
+    shouldOfferOpenInSystem(content_type, Boolean(metadata?.oversized), FILE_TYPES_WITH_BUILTIN_OPEN);
 
   // 下载文件到本地 / Download file to local system
   const handleDownload = useCallback(async () => {
@@ -423,8 +425,19 @@ const PreviewPanel: React.FC = () => {
       // would hand downloadTextContent an empty string and produce a 0-byte file:
       // the download looks successful and silently yields nothing. Fail loudly
       // instead — the file itself is still reachable via "open in system".
-      if (wouldDownloadEmptyFile(Boolean(metadata?.oversized), Boolean(metadata?.file_path))) {
-        messageApi.error(t('preview.oversized.downloadUnavailable'));
+      if (
+        wouldDownloadEmptyFile(
+          Boolean(metadata?.oversized) || content_type === 'unsupported',
+          Boolean(metadata?.file_path)
+        )
+      ) {
+        // Different reason, different sentence: telling the user an unsupported
+        // format is "too large" would be simply false.
+        messageApi.error(
+          content_type === 'unsupported'
+            ? t('preview.unsupported.downloadUnavailable')
+            : t('preview.oversized.downloadUnavailable')
+        );
         return;
       }
 
@@ -580,7 +593,10 @@ const PreviewPanel: React.FC = () => {
         <div className='text-15px font-medium text-t-primary'>{t('preview.oversized.title')}</div>
         <div className='max-w-560px text-12px leading-18px text-t-secondary'>
           {t('preview.oversized.detail', {
-            size: formatFileSize(sizeBytes ?? 0),
+            // Rendered at whatever precision it takes to actually look bigger than
+            // the limit — at 2 decimals a file one byte over 1 MB also prints
+            // "1 MB", making the sentence say "1 MB exceeds 1 MB".
+            size: formatSizeAboveLimit(sizeBytes ?? 0, thresholdBytes ?? 0, formatFileSize),
             threshold: formatFileSize(thresholdBytes ?? 0),
           })}
         </div>
@@ -588,10 +604,28 @@ const PreviewPanel: React.FC = () => {
     );
   };
 
+  // 无法渲染的格式：说明原因 + 给逃生出口，而不是送进一个打不开它的渲染器。
+  // 以前这些格式被路由给 officecli，失败提示还引导用户去装 officecli ——
+  // 而装了对这些格式也没用。
+  //
+  // A format we can name but not render: explain that, and offer the escape hatch,
+  // instead of handing it to a renderer that cannot open it. These formats used to
+  // be routed to officecli, whose failure message told the user to install
+  // officecli — which would not have helped for any of them.
+  const renderUnsupported = () => (
+    <div className='flex flex-1 flex-col items-center justify-center gap-10px px-24px text-center'>
+      <div className='text-15px font-medium text-t-primary'>{t('preview.unsupported.title')}</div>
+      <div className='max-w-560px text-12px leading-18px text-t-secondary'>
+        {t('preview.unsupported.detail', { format: (metadata?.language || '').toUpperCase() })}
+      </div>
+    </div>
+  );
+
   // 渲染预览内容 / Render preview content
   const renderContent = () => {
     if (metadata?.missingFile) return renderMissingFile();
     if (metadata?.oversized) return renderOversized();
+    if (content_type === 'unsupported') return renderUnsupported();
 
     // 浏览器 tab 由常驻的 BrowserTabLayer 渲染，不能走这里 —— 否则切 tab 会重新加载页面
     // Browser tabs are rendered by the always-mounted BrowserTabLayer; rendering
@@ -773,8 +807,10 @@ const PreviewPanel: React.FC = () => {
           onViewModeChange={setViewMode}
         />
       );
-    } else if (content_type === 'code') {
+    } else if (content_type === 'code' || content_type === 'csv') {
       // 统一：始终可编辑的 CodeEditor（看=改）/ Unified: always-editable CodeEditor (view = edit)
+      // csv 走同一分支：它本来就是纯文本，只是恰好有表格结构。
+      // csv shares this branch: it is plain text that happens to be tabular.
       return (
         <div className='flex-1 overflow-hidden'>
           <CodeEditor
@@ -897,7 +933,7 @@ const PreviewPanel: React.FC = () => {
             file_name={metadata?.file_name || activeTab.title}
             showOpenInSystemButton={showOpenInSystemButton}
             hasFilePath={Boolean(metadata?.file_path)}
-            isOversized={Boolean(metadata?.oversized)}
+            hasNoRenderableContent={Boolean(metadata?.oversized) || content_type === 'unsupported'}
             onViewModeChange={(mode) => {
               setViewMode(mode);
               setIsSplitScreenEnabled(false); // 切换视图模式时关闭分屏 / Disable split when switching view mode

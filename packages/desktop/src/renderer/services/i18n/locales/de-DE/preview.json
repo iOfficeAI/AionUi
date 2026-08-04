@@ -53,6 +53,11 @@
     "detail": "Die Dateigröße {{size}} überschreitet das Limit von {{threshold}}. Bitte in einem Systemeditor öffnen.",
     "downloadUnavailable": "Diese Datei ist zu groß für den Download hier. Verwenden Sie stattdessen „Im System öffnen“."
   },
+  "unsupported": {
+    "title": "Vorschau für dieses Format nicht unterstützt",
+    "detail": "{{format}}-Dateien können hier nicht angezeigt werden. Öffnen Sie sie in einer Systemanwendung.",
+    "downloadUnavailable": "Diese Datei kann hier nicht heruntergeladen werden. Verwenden Sie „Im System öffnen“."
+  },
   "aiWriting": "KI schreibt…",
   "errors": {
     "missingFilePath": "Dateipfad fehlt",

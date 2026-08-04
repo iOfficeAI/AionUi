@@ -266,8 +266,11 @@ export function getTextFromDropEvent(event: DragEvent): string {
 }
 
 // 格式化文件大小（使用统一的formatBytes实现）
-export function formatFileSize(bytes: number): string {
-  return formatBytes(bytes, 2); // 保持2位精度以兼容之前的行为
+// `decimals` defaults to 2 to preserve the previous behaviour; callers that must
+// distinguish two nearby sizes (e.g. "just over the 1 MB limit" vs "1 MB") can ask
+// for more precision.
+export function formatFileSize(bytes: number, decimals = 2): string {
+  return formatBytes(bytes, decimals);
 }
 
 /**
