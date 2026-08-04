@@ -36,6 +36,12 @@ const localFileLinkMocks = vi.hoisted(() => ({
 }));
 const mockFilePreview = vi.fn(({ path }: { path: string }) => <div data-testid='file-preview'>{path}</div>);
 
+const forkMocks = vi.hoisted(() => ({
+  fork: vi.fn(),
+  ensureRuntime: vi.fn().mockResolvedValue(undefined),
+  navigate: vi.fn(),
+}));
+
 vi.mock('@/common', () => ({
   ipcBridge: {
     fs: {
@@ -46,7 +52,16 @@ vi.mock('@/common', () => ({
       getContentMetadata: { invoke: vi.fn() },
       readContent: { invoke: vi.fn() },
     },
+    conversation: {
+      fork: { invoke: forkMocks.fork },
+      ensureRuntime: { invoke: forkMocks.ensureRuntime },
+    },
   },
+}));
+
+// useForkConversation needs a router context; MessageText renders without one.
+vi.mock('react-router-dom', () => ({
+  useNavigate: () => forkMocks.navigate,
 }));
 
 vi.mock('@/renderer/pages/conversation/Preview/context/PreviewContext', () => ({
@@ -136,6 +151,7 @@ vi.mock('@arco-design/web-react', () => ({
 
 vi.mock('@icon-park/react', () => ({
   Copy: () => <span data-testid='copy-icon' />,
+  SplitBranch: () => <span data-testid='fork-icon' />,
 }));
 
 vi.mock('react-i18next', () => ({
@@ -639,6 +655,68 @@ describe('MessageText attachment paths', () => {
         }),
         { replace: true }
       );
+    });
+  });
+});
+
+describe('MessageText fork entry point', () => {
+  const forkMessage = (overrides: Partial<IMessageText> = {}): IMessageText => ({
+    id: 'msg-fork-1',
+    msg_id: 'msg-fork-1',
+    conversation_id: 'conv-fork',
+    type: 'text',
+    position: 'left',
+    createdAt: Date.now(),
+    content: { content: 'assistant reply' },
+    ...overrides,
+  });
+
+  const renderWithCapability = (
+    capability: { at_turn: boolean } | undefined,
+    props: { isLastMessage?: boolean } = {}
+  ) => {
+    render(
+      <ConversationProvider
+        value={{ conversation_id: 'conv-fork', workspace: '/workspace/demo', type: 'acp', forkCapability: capability }}
+      >
+        <MessageText message={forkMessage()} isLastMessage={props.isLastMessage} />
+      </ConversationProvider>
+    );
+  };
+
+  beforeEach(() => {
+    forkMocks.fork.mockReset().mockResolvedValue({ id: 'conv-forked' });
+    forkMocks.ensureRuntime.mockReset().mockResolvedValue(undefined);
+    forkMocks.navigate.mockReset();
+  });
+
+  it('hides the fork button when the agent declares no capability', () => {
+    renderWithCapability(undefined, { isLastMessage: true });
+    expect(screen.queryByTestId('message-fork-button')).toBeNull();
+  });
+
+  it('shows the fork button on any message for at_turn backends', () => {
+    renderWithCapability({ at_turn: true }, { isLastMessage: false });
+    expect(screen.getByTestId('message-fork-button')).toBeInTheDocument();
+  });
+
+  it('limits head-only backends to the last message', () => {
+    renderWithCapability({ at_turn: false }, { isLastMessage: false });
+    expect(screen.queryByTestId('message-fork-button')).toBeNull();
+  });
+
+  it('shows the fork button on the last message for head-only backends', () => {
+    renderWithCapability({ at_turn: false }, { isLastMessage: true });
+    expect(screen.getByTestId('message-fork-button')).toBeInTheDocument();
+  });
+
+  it('clicking fork calls the API, refreshes, navigates, and pre-warms the runtime', async () => {
+    renderWithCapability({ at_turn: true }, { isLastMessage: false });
+    fireEvent.click(screen.getByTestId('message-fork-button'));
+    await waitFor(() => {
+      expect(forkMocks.fork).toHaveBeenCalledWith({ conversation_id: 'conv-fork', message_id: 'msg-fork-1' });
+      expect(forkMocks.navigate).toHaveBeenCalledWith('/conversation/conv-forked');
+      expect(forkMocks.ensureRuntime).toHaveBeenCalledWith({ conversation_id: 'conv-forked' });
     });
   });
 });

@@ -72,5 +72,13 @@
     "yesAlwaysAllowTool": "是，始終允許來自伺服器 \"{{serverName}}\" 的工具 \"{{toolName}}\"",
     "yesAlwaysAllowServer": "是，始終允許來自伺服器 \"{{serverName}}\" 的所有工具",
     "no": "否 (esc)"
+  },
+  "fork": {
+    "action": "從此處分叉",
+    "errorTurnInFlight": "請等待目前回覆完成後再分叉",
+    "errorParentUnbound": "此對話尚無可分叉的後端工作階段",
+    "errorPointUnsupported": "此智慧代理僅支援從最新訊息分叉",
+    "errorUnsupported": "此智慧代理不支援對話分叉",
+    "errorGeneric": "分叉失敗：{{message}}"
   }
 }

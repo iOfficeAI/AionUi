@@ -224,6 +224,7 @@ const MessageItem: React.FC<{
   highlighted?: boolean;
   rowWidthClass: string;
   showCopyRow?: boolean;
+  isLastMessage?: boolean;
 }> = React.memo(
   HOC((props) => {
     const { message, highlighted, rowWidthClass } = props as {
@@ -255,16 +256,18 @@ const MessageItem: React.FC<{
     ({
       message,
       showCopyRow,
+      isLastMessage,
     }: {
       message: TMessage;
       highlighted?: boolean;
       rowWidthClass: string;
       showCopyRow?: boolean;
+      isLastMessage?: boolean;
     }) => {
       const { t } = useTranslation();
       switch (message.type) {
         case 'text':
-          return <MessageText message={message} showCopyRow={showCopyRow}></MessageText>;
+          return <MessageText message={message} showCopyRow={showCopyRow} isLastMessage={isLastMessage}></MessageText>;
         case 'tips':
           return <MessageTips message={message}></MessageTips>;
         case 'tool_call':
@@ -297,7 +300,8 @@ const MessageItem: React.FC<{
     prev.message.type === next.message.type &&
     prev.highlighted === next.highlighted &&
     prev.rowWidthClass === next.rowWidthClass &&
-    prev.showCopyRow === next.showCopyRow
+    prev.showCopyRow === next.showCopyRow &&
+    prev.isLastMessage === next.isLastMessage
 );
 
 const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }> = ({ emptySlot }) => {
@@ -466,6 +470,23 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
     if (isProcessing && lastTurnTextId) ids.delete(lastTurnTextId);
     return ids;
   }, [processedList, isProcessing]);
+
+  // The last REAL message in the visible timeline (pseudo entries like
+  // file/tool summaries don't count). HEAD-fork backends (claude/ACP) only
+  // show the fork entry point here — see `isForkEnabled`.
+  const lastMessageId = useMemo(() => {
+    for (let i = processedList.length - 1; i >= 0; i--) {
+      const item = processedList[i];
+      if (
+        'type' in item &&
+        (item.type === 'file_summary' || item.type === 'tool_summary' || item.type === 'artifact')
+      ) {
+        continue;
+      }
+      return (item as TMessage).id;
+    }
+    return undefined;
+  }, [processedList]);
 
   // Use auto-scroll hook
   const {
@@ -674,6 +695,7 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
         highlighted={highlighted}
         rowWidthClass={rowWidthClass}
         showCopyRow={showCopyRow}
+        isLastMessage={message.id === lastMessageId}
       ></MessageItem>
     );
   };

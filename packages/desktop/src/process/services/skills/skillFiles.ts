@@ -68,7 +68,7 @@ const listDirectory = async (root: string, directory: string): Promise<SkillFile
     }
   }
 
-  return nodes.sort(compareEntries);
+  return nodes.toSorted(compareEntries);
 };
 
 export const createSkillFileService = () => ({
