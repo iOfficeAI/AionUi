@@ -22,7 +22,7 @@
 // answers yes long after a correct unsubscribe and would read as success.
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { peKey } from '@/renderer/pages/conversation/explorer/explorerModel';
+import { peKey, reconcileDiff } from '@/renderer/pages/conversation/explorer/explorerModel';
 import { deriveWatchTargets } from '@/renderer/pages/conversation/Preview/context/previewWatchTargets';
 import {
   configurePreviewWatch,
@@ -239,5 +239,42 @@ describe('change notifications', () => {
     notifyPreviewWatchChange(peKey('peA', 'src'));
 
     expect(seen).toEqual([]);
+  });
+});
+
+// `reconcileDiff` was written for the explorer and now has a second caller. That
+// change of status is itself worth a guard: the two features keep separate wanted
+// sets, so the shared helper must answer purely from its arguments. If it ever
+// started consulting the explorer's state, preview reconciliation would silently
+// subscribe or unsubscribe on the explorer's behalf.
+describe('the shared reconcile helper stays independent of its callers', () => {
+  it('answers only from its arguments', () => {
+    const a = new Set(['x', 'y']);
+    const b = new Set(['y', 'z']);
+
+    expect(reconcileDiff(a, b)).toEqual({ toAdd: ['x'], toRemove: ['z'] });
+    // Same inputs, same answer, regardless of anything either store has done.
+    expect(reconcileDiff(a, b)).toEqual({ toAdd: ['x'], toRemove: ['z'] });
+  });
+
+  it('does not mutate the sets it is given', () => {
+    const want = new Set(['x']);
+    const current = new Set(['y']);
+
+    reconcileDiff(want, current);
+
+    expect([...want]).toEqual(['x']);
+    expect([...current]).toEqual(['y']);
+  });
+
+  it('leaves the preview subscription set alone when called directly', () => {
+    configurePreviewWatch({ subscribe: async () => ({}), unsubscribe: () => {} });
+    resetPreviewWatch();
+    reconcilePreviewWatch([projectTab('peA', 'src/a.ts')]);
+    const before = [...currentPreviewWatchTargets()];
+
+    reconcileDiff(new Set(['unrelated']), new Set(['other']));
+
+    expect([...currentPreviewWatchTargets()]).toEqual(before);
   });
 });

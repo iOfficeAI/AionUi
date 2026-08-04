@@ -15,15 +15,16 @@
 
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 
-const h = vi.hoisted(() => ({ readContent: vi.fn(), getContentMetadata: vi.fn() }));
+const h = vi.hoisted(() => ({ readContent: vi.fn(), getContentMetadata: vi.fn(), resolveRef: vi.fn() }));
 
 vi.mock('@/common', () => ({
   ipcBridge: {
     fs: { readContent: { invoke: h.readContent }, getContentMetadata: { invoke: h.getContentMetadata } },
+    project: { resolveRef: { invoke: h.resolveRef } },
   },
 }));
 
-import { formatSizeAboveLimit, resolvePreviewPayload } from '@/renderer/utils/file/previewPayload';
+import { formatSizeAboveLimit, resolvePreviewPayload, upgradeFileRef } from '@/renderer/utils/file/previewPayload';
 
 const TEXT_CEILING = 1024 * 1024;
 const IMAGE_CEILING = 20 * 1024 * 1024;
@@ -221,5 +222,54 @@ describe('formatSizeAboveLimit', () => {
   it('works for the image ceiling too', () => {
     const imageCeiling = 20 * MB;
     expect(formatSizeAboveLimit(imageCeiling + 1, imageCeiling, format)).not.toBe(format(imageCeiling));
+  });
+});
+
+// One file described two ways — a project ref from the explorer, an absolute path
+// from a chat link — is still one file. Resolving to the stronger identity before
+// opening is what keeps it as one tab and lets it receive change signals; the
+// backend decides, because "same path" depends on per-platform case folding.
+describe('upgradeFileRef', () => {
+  const localRef = { kind: 'local' as const, path: '/ws/proj/src/a.ts' };
+  const projectRef = { kind: 'project' as const, pe_id: 'peA', relative_path: 'src/a.ts' };
+
+  beforeEach(() => {
+    h.resolveRef.mockReset();
+  });
+
+  it('returns the upgraded ref the backend resolved', async () => {
+    h.resolveRef.mockResolvedValue({ file: projectRef, upgraded: true });
+
+    await expect(upgradeFileRef(localRef, 'proj-1')).resolves.toEqual(projectRef);
+    expect(h.resolveRef).toHaveBeenCalledWith({ project_id: 'proj-1', file: localRef });
+  });
+
+  it('keeps the local ref when the file lives outside every root', async () => {
+    h.resolveRef.mockResolvedValue({ file: localRef, upgraded: false });
+
+    await expect(upgradeFileRef(localRef, 'proj-1')).resolves.toEqual(localRef);
+  });
+
+  // No project means no roots to resolve against, and inventing one would compare
+  // the path against the wrong project's roots.
+  it('skips the request entirely when there is no current project', async () => {
+    await expect(upgradeFileRef(localRef, null)).resolves.toEqual(localRef);
+    expect(h.resolveRef).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['project', { kind: 'project' as const, pe_id: 'peA', relative_path: 'src/a.ts' }],
+    ['upload', { kind: 'upload' as const, path: '/managed/uploads/a.ts' }],
+  ])('does not spend a round trip on an already-terminal %s ref', async (_label, terminalRef) => {
+    await expect(upgradeFileRef(terminalRef, 'proj-1')).resolves.toEqual(terminalRef);
+    expect(h.resolveRef).not.toHaveBeenCalled();
+  });
+
+  // Losing the upgrade costs dedup and automatic signals; failing the open would
+  // cost the user the file. The first is the better trade.
+  it('falls back to the original ref when the request fails', async () => {
+    h.resolveRef.mockRejectedValue(new Error('offline'));
+
+    await expect(upgradeFileRef(localRef, 'proj-1')).resolves.toEqual(localRef);
   });
 });

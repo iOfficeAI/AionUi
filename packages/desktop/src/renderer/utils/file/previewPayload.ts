@@ -226,3 +226,34 @@ export const formatSizeAboveLimit = (
   // number that would still round to the limit.
   return `> ${limitText}`;
 };
+
+/**
+ * Resolve a file ref to the strongest identity available before opening it.
+ *
+ * The explorer and a chat link describe the same file differently — a project ref
+ * versus an absolute local path — so without this, one file becomes two tabs and
+ * only one of them can receive change signals. The backend decides, because whether
+ * two paths are "the same" depends on case-folding rules that vary per platform.
+ *
+ * Best-effort by design. When there is no current project, or the request fails,
+ * the original ref is returned and the file simply opens without the extras a
+ * project identity brings (dedup against another entry point, automatic refresh
+ * signals). That is the same position `upload` and outside-any-root files are
+ * already in, so it degrades into an existing, handled state rather than an error.
+ *
+ * @param fileRef   Ref as the entry point built it.
+ * @param projectId Current project, or null when there is none.
+ */
+export const upgradeFileRef = async (fileRef: ChatFileRef, projectId: string | null): Promise<ChatFileRef> => {
+  // A project ref is already terminal and an upload belongs to no root; the backend
+  // short-circuits both, so skipping the round trip here just avoids paying for an
+  // answer we know. Explorer opens take this path.
+  if (!projectId || fileRef.kind !== 'local') return fileRef;
+
+  try {
+    const { file } = await ipcBridge.project.resolveRef.invoke({ project_id: projectId, file: fileRef });
+    return file;
+  } catch {
+    return fileRef;
+  }
+};

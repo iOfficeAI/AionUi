@@ -15,6 +15,7 @@ import { isBrowserMcpActivity, isBrowserMcpSettled } from '../browser/agentActiv
 import { maybeNotifyFirstAgentBrowserUse } from '../browser/firstUseNotice';
 import { listPersistedPreviewScopeKeys, previewScopeStorageKey, type PreviewScopeKey } from './previewScope';
 import { reflessTabKey } from './reflessTabKey';
+import { reconcilePreviewWatch, resetPreviewWatch } from './previewWatchStore';
 
 /** DOM 片段数据结构 / DOM snippet data structure */
 export interface DomSnippet {
@@ -448,6 +449,20 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
     return () => clearTimeout(timer);
   }, [tabs, activeTabId, isOpen]);
 
+  // Keep the panel's directory subscriptions in step with its open tabs.
+  //
+  // Driven by tab state, not by an "a tab opened" event: a file reached from a chat
+  // link starts with a local ref and only gains its project identity after an async
+  // upgrade, whose write-back lands here as a metadata change. Recomputing on every
+  // tabs change is what picks that up — deciding once at open time would leave that
+  // file without signals forever, and without any error to notice.
+  //
+  // Reconciliation diffs wanted against subscribed, so the extra passes this causes
+  // (StrictMode, or any other feature writing to tab metadata) cost nothing.
+  useEffect(() => {
+    reconcilePreviewWatch(tabs);
+  }, [tabs]);
+
   // 追踪是否正在保存（避免与流式更新冲突）/ Track if currently saving (to avoid conflicts with streaming updates)
   const savingFilesRef = useRef<Set<string>>(new Set());
 
@@ -734,8 +749,18 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
       const prev = currentScopeRef.current;
       if (prev === scopeKey) return;
       if (prev != null) persistScopeState(prev, { isOpen, tabs, activeTabId });
+      // Release the leaving scope's directory subscriptions outright.
+      //
+      // The effect that follows `setTabs` below would eventually reconcile to the
+      // new scope's set anyway, but dropping first keeps the two scopes from
+      // overlapping: the incoming tabs are a different project's, so none of the
+      // outgoing directories can still be wanted, and holding them across the switch
+      // would leave the previous project watched for as long as the reconcile takes.
+      resetPreviewWatch();
       currentScopeRef.current = scopeKey;
       const loaded = scopeKey != null ? loadScopeState(scopeKey) : EMPTY_SCOPE_STATE;
+      // Subscriptions for these tabs come from the tabs effect, which this setTabs
+      // triggers — restored tabs are subscribed exactly like freshly opened ones.
       setTabs(loaded.tabs);
       setActiveTabId(loaded.activeTabId);
       activeTabIdRef.current = loaded.activeTabId;

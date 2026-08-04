@@ -8,7 +8,8 @@ import { localFileRef } from '@/common/types/chatFile';
 import type { LocalFileLinkReference } from '@/renderer/components/Markdown/markdownUtils';
 import { getContentTypeByExtension } from '@/renderer/pages/conversation/Preview/fileUtils';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview/context/PreviewContext';
-import { resolvePreviewPayload } from '@/renderer/utils/file/previewPayload';
+import { resolvePreviewPayload, upgradeFileRef } from '@/renderer/utils/file/previewPayload';
+import { getCurrentProject } from '@/renderer/pages/conversation/explorer/currentProjectStore';
 import { useCallback } from 'react';
 
 const getFileNameFromPath = (file_path: string): string => {
@@ -30,7 +31,11 @@ export const useLocalFilePreview = (workspace?: string) => {
       const contentType = getContentTypeByExtension(fileName);
       // Local-file links point at a backend-host absolute path (no pe identity) →
       // a Local ChatFileRef, read over /api/fs/content.
-      const fileRef = localFileRef(file_path);
+      //
+      // Upgraded before anything else uses it: the same file opened from the
+      // explorer carries a project ref, so without this the two entry points would
+      // produce two tabs for one file, and this one would get no change signals.
+      const fileRef = await upgradeFileRef(localFileRef(file_path), getCurrentProject());
 
       try {
         // Shared gate: applies the size ceiling, reads content only when the file

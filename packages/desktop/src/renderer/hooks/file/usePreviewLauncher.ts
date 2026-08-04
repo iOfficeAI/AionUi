@@ -9,7 +9,8 @@ import { localFileRef } from '@/common/types/chatFile';
 import type { PreviewContentType } from '@/common/types/office/preview';
 import { useConversationContextSafe } from '@/renderer/hooks/context/ConversationContext';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
-import { resolvePreviewPayload } from '@/renderer/utils/file/previewPayload';
+import { resolvePreviewPayload, upgradeFileRef } from '@/renderer/utils/file/previewPayload';
+import { getCurrentProject } from '@/renderer/pages/conversation/explorer/currentProjectStore';
 import { classifyPreviewError, type PreviewErrorKind } from '@/renderer/utils/previewError';
 import { useCallback, useState } from 'react';
 
@@ -81,7 +82,10 @@ export const usePreviewLauncher = () => {
       // ChatFileRef for content I/O over /api/fs/content. Only when we have an
       // absolute-ish path to read (a bare relativePath can't resolve on the backend).
       const readPath = absolutePath || originalPath;
-      const fileRef = readPath ? localFileRef(readPath) : undefined;
+      // Upgraded to a project identity where possible, so a file opened from a tool
+      // card and the same file opened from the explorer are one tab, and this one can
+      // receive change signals too.
+      const fileRef = readPath ? await upgradeFileRef(localFileRef(readPath), getCurrentProject()) : undefined;
 
       // 文件名和标题计算 / Compute file name and title
       const computedFileName =

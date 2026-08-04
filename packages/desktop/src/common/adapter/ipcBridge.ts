@@ -417,6 +417,27 @@ export const project = {
    * for a subdir, the existing focused) entry. 409 `project_explorer_duplicate` /
    * `project_explorer_overlap` surface via BackendHttpError.code.
    */
+  /**
+   * POST /api/projects/{id}/resolve-ref → the strongest identity for a file.
+   *
+   * The explorer and a chat link describe the same file differently (`project` vs
+   * `local`), so anything keyed on the ref — tab identity, change subscriptions —
+   * would otherwise treat one file as two. This resolves a local path that lives
+   * under one of the project's roots into its project form.
+   *
+   * Always answers with a usable ref: `project` and `upload` come back untouched,
+   * and a path outside every root — or one that does not exist — is echoed back
+   * rather than raising, so a caller mid-way through opening a missing file still
+   * has something to render with. `upgraded` says whether it changed.
+   *
+   * The comparison stays server-side because case folding is a compile-time
+   * platform decision; comparing path strings here would miss matches on macOS and
+   * merge distinct files on Linux.
+   */
+  resolveRef: httpPost<{ file: ChatFileRef; upgraded: boolean }, { project_id: string; file: ChatFileRef }>(
+    (p) => `/api/projects/${encodeURIComponent(p.project_id)}/resolve-ref`,
+    (p) => ({ file: p.file })
+  ),
   attachFolder: httpPost<ProjectEntryDto, { project_id: string } & AttachFolderRequest>(
     (p) => `/api/projects/${encodeURIComponent(p.project_id)}/folders`,
     (p) => (p.display_name ? { uri: p.uri, display_name: p.display_name } : { uri: p.uri })
