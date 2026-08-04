@@ -64,6 +64,7 @@ type TMessageType =
   | 'agent_status'
   | 'permission'
   | 'acp_permission'
+  | 'ask'
   | 'acp_tool_call'
   | 'plan'
   | 'thinking'
@@ -295,6 +296,27 @@ export type IMessageAgentStatus = IMessage<
 
 export type IMessageAcpPermission = IMessage<'acp_permission', AcpPermissionRequest>;
 
+/** One structured question inside an `ask` frame (claude AskUserQuestion shape;
+ *  qwen/grok converged on the same layout — cross-vendor contract). */
+export interface IAskQuestion {
+  question: string;
+  header?: string;
+  multiSelect?: boolean;
+  options: Array<{ label: string; description?: string }>;
+}
+
+/** Structured question card (AgentStreamEvent::Ask, wire tag `ask`). Answered via
+ *  confirmMessage with `{answers:[{question, labels[]}]}` or `{ask_decline:true}`;
+ *  call_id = request_id (the claude control correlation key). */
+export type IMessageAsk = IMessage<
+  'ask',
+  {
+    session_id: string;
+    request_id: string;
+    questions: IAskQuestion[];
+  }
+>;
+
 export type IMessagePermission = IMessage<'permission', IConfirmation>;
 
 export type IMessageAcpToolCall = IMessage<'acp_tool_call', ToolCallUpdate>;
@@ -377,6 +399,7 @@ export type TMessage =
   | IMessageAgentStatus
   | IMessagePermission
   | IMessageAcpPermission
+  | IMessageAsk
   | IMessageAcpToolCall
   | IMessagePlan
   | IMessageThinking
@@ -748,6 +771,17 @@ const transformMessageInner = (message: IResponseMessage): TMessage | undefined 
       return {
         id: uuid(),
         type: 'permission',
+        msg_id: message.msg_id,
+        position: 'left',
+        conversation_id: message.conversation_id,
+        created_at,
+        content: message.data as any,
+      };
+    }
+    case 'ask': {
+      return {
+        id: uuid(),
+        type: 'ask',
         msg_id: message.msg_id,
         position: 'left',
         conversation_id: message.conversation_id,

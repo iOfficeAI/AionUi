@@ -80,5 +80,12 @@
     "errorPointUnsupported": "このエージェントは最新メッセージからのみ分岐できます",
     "errorUnsupported": "このエージェントは分岐をサポートしていません",
     "errorGeneric": "分岐に失敗しました：{{message}}"
-  }
+  },
+  "askSubmit": "送信",
+  "askDecline": "回答しない",
+  "askAnswered": "回答済み",
+  "askDeclined": "スキップ済み",
+  "askOther": "その他",
+  "askOtherPlaceholder": "回答を入力",
+  "requestDetails": "リクエスト内容:"
 }

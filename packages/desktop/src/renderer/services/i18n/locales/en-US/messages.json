@@ -80,5 +80,12 @@
     "errorPointUnsupported": "This agent can only fork from the latest message",
     "errorUnsupported": "This agent does not support forking",
     "errorGeneric": "Fork failed: {{message}}"
-  }
+  },
+  "askSubmit": "Submit",
+  "askDecline": "Dismiss",
+  "askAnswered": "Answered",
+  "askDeclined": "Dismissed",
+  "askOther": "Other",
+  "askOtherPlaceholder": "Type your answer",
+  "requestDetails": "Request details:"
 }

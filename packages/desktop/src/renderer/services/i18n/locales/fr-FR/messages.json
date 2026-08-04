@@ -80,5 +80,12 @@
     "errorPointUnsupported": "Cet agent ne peut bifurquer qu'à partir du dernier message",
     "errorUnsupported": "Cet agent ne prend pas en charge la bifurcation",
     "errorGeneric": "Échec de la bifurcation : {{message}}"
-  }
+  },
+  "askSubmit": "Envoyer",
+  "askDecline": "Ne pas répondre",
+  "askAnswered": "Répondu",
+  "askDeclined": "Ignoré",
+  "askOther": "Autre",
+  "askOtherPlaceholder": "Saisissez votre réponse",
+  "requestDetails": "Détails de la demande :"
 }

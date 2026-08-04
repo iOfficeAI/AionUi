@@ -80,5 +80,12 @@
     "errorPointUnsupported": "此智慧代理僅支援從最新訊息分叉",
     "errorUnsupported": "此智慧代理不支援對話分叉",
     "errorGeneric": "分叉失敗：{{message}}"
-  }
+  },
+  "askSubmit": "提交",
+  "askDecline": "不回答",
+  "askAnswered": "已回答",
+  "askDeclined": "已跳過",
+  "askOther": "其它",
+  "askOtherPlaceholder": "輸入你的回答",
+  "requestDetails": "請求內容："
 }
