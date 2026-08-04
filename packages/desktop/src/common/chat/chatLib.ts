@@ -301,7 +301,10 @@ export type IMessageAcpPermission = IMessage<'acp_permission', AcpPermissionRequ
 export interface IAskQuestion {
   question: string;
   header?: string;
+  /** The ws relay snake_cases every key (normalize_keys_to_snake_case), so the
+   *  wire spelling is multi_select; multiSelect kept for direct payloads. */
   multiSelect?: boolean;
+  multi_select?: boolean;
   options: Array<{ label: string; description?: string }>;
 }
 
