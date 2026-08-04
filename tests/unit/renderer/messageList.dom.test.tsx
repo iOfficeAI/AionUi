@@ -293,7 +293,13 @@ describe('MessageList', () => {
     expect(messageRow.className).not.toContain('max-w-780px');
   });
 
-  it('uses the full available row width in team mode', () => {
+  it('uses the same container-responsive width in team mode', () => {
+    // Team and standalone rows share one class. Width is decided by the column the
+    // rows are given, not by the mode: `.chat-surface-fluid` is full-width until
+    // its container passes the gutter threshold. A team parallel column (~400px)
+    // therefore still renders full width, while team single view — which fills the
+    // chat area — gets the same gutters as a standalone conversation, leaving room
+    // for the anchor rail instead of crowding the text.
     useTeamPermissionMock.mockReturnValue({
       isTeamMode: true,
       isLeaderAgent: true,
@@ -308,8 +314,8 @@ describe('MessageList', () => {
     });
 
     const messageRow = screen.getByTestId('message-text-left');
-    expect(messageRow.className).toContain('w-full');
-    expect(messageRow.className).toContain('max-w-full');
+    expect(messageRow.className).toContain('chat-surface-fluid');
+    // No hardcoded viewport-based widths: the container query owns the breakpoint.
     expect(messageRow.className).not.toContain('w-[calc(100%-24px)]');
     expect(messageRow.className).not.toContain('md:w-[calc(100%-clamp(80px,10vw,240px))]');
   });
