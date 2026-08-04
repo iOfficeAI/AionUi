@@ -48,6 +48,7 @@ import { reveal, select } from './explorerStore';
 import { useCurrentConversation } from './currentConversationStore';
 import { SearchPanel } from './search/SearchPanel';
 import type { SearchHit } from './search/searchModel';
+import { ScmPanel } from '../SourceControl/ScmPanel';
 
 export type ExplorerContainerProps = {
   /** Owning project id — scopes the store's fact cache + localStorage UI state. */
@@ -205,8 +206,10 @@ export const ExplorerContainer: React.FC<ExplorerContainerProps> = ({ projectId 
   // commands; the change is pushed back as a delta on the parent dir's
   // subscription, so the tree updates itself (single source, no manual refetch).
   // Component switcher tab (host component switcher, this round in-container):
-  // 'files' = the Explorer, 'changes' = source-control placeholder (that lane is
-  // not built yet — the tab exists but shows an empty state).
+  // 'files' = the Explorer, 'changes' = the Source Control panel. Switching tabs
+  // unmounts the inactive one for `changes`, which is safe because the SCM
+  // subscription is owned by its store per project, not by the component's mount
+  // (see ScmPanel's lifecycle note) — a tab switch never drops the backend watch.
   const [activeTab, setActiveTab] = useState<'files' | 'changes'>('files');
   const [renameDialog, setRenameDialog] = useState<RenameRequest | null>(null);
   const [nameValue, setNameValue] = useState('');
@@ -348,8 +351,7 @@ export const ExplorerContainer: React.FC<ExplorerContainerProps> = ({ projectId 
 
   return (
     <div className='h-full flex flex-col min-h-0'>
-      {/* Host component-switcher tab bar: 文件 = explorer, 变更 = source-control
-          placeholder (that lane isn't built — tab present, empty state only).
+      {/* Host component-switcher tab bar: 文件 = explorer, 变更 = source control.
           Tabs are left-aligned and scroll horizontally when they overflow; the
           attach + open-externally cluster is pinned right (flex-shrink-0) with
           container padding, so it never scrolls with the tabs nor clips at narrow
@@ -428,8 +430,8 @@ export const ExplorerContainer: React.FC<ExplorerContainerProps> = ({ projectId 
         </SearchPanel>
       </div>
       {activeTab === 'changes' && (
-        <div className='flex-1 min-h-0 flex items-center justify-center px-16px text-center text-t-secondary text-13px'>
-          {t('conversation.explorer.changesPlaceholder')}
+        <div className='flex-1 min-h-0'>
+          <ScmPanel projectId={projectId} />
         </div>
       )}
       <Modal

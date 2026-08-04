@@ -19,22 +19,42 @@ export type RpcErrorShape = {
   code: number;
   message: string;
   data?: unknown;
+  /**
+   * True when this error was produced **locally by the transport**, not received
+   * from the server. Callers must branch on this flag rather than on the numeric
+   * range: local pseudo-codes and protocol codes share one `code` field, and
+   * guessing by sign or magnitude silently mis-classifies the moment either side
+   * adds a code.
+   */
+  transport?: boolean;
 };
 
 /** A JSON-RPC error surfaced to a request caller. */
 export class RpcError extends Error {
   readonly code: number;
   readonly data?: unknown;
+  /** See {@link RpcErrorShape.transport}. False for any server-sent error. */
+  readonly transport: boolean;
 
   constructor(shape: RpcErrorShape) {
     super(shape.message);
     this.name = 'RpcError';
     this.code = shape.code;
     this.data = shape.data;
+    this.transport = shape.transport === true;
   }
 }
 
-/** Local pseudo-codes for transport conditions (distinct from protocol codes). */
+/**
+ * Local pseudo-codes for transport conditions. **Not protocol codes** — every
+ * `RpcError` carrying one also sets `transport: true`.
+ *
+ * The distinction matters most for {@link RPC_RECONNECTED}: it means "no response
+ * will ever arrive", **not** "the request did not run". The request may well have
+ * reached the backend and completed. Telling the user "the operation did not
+ * complete" would make them redo it — and for a discard that is a second
+ * irreversible destruction. The front end must not assert something it cannot know.
+ */
 export const RPC_DISCONNECTED = -1;
 export const RPC_RECONNECTED = -2;
 /** A response frame carrying an id but neither `result` nor `error` (malformed). */
@@ -176,7 +196,7 @@ export class MonitorClient {
         ok ? '' : 'DROPPED(offline)'
       );
       if (!ok) {
-        reject(new RpcError({ code: RPC_DISCONNECTED, message: 'monitor transport not connected' }));
+        reject(new RpcError({ code: RPC_DISCONNECTED, message: 'monitor transport not connected', transport: true }));
         return;
       }
       this.pending.set(id, { resolve, reject });
@@ -201,13 +221,15 @@ export class MonitorClient {
     const entry = this.pending.get(id);
     if (!entry) return;
     this.pending.delete(id);
-    entry.reject(new RpcError({ code: RPC_ABANDONED, message: 'streaming request superseded' }));
+    entry.reject(new RpcError({ code: RPC_ABANDONED, message: 'streaming request superseded', transport: true }));
   }
 
   /** Tear down subscriptions and reject any in-flight requests. */
   dispose(): void {
     for (const off of this.disposers.splice(0)) off();
-    this.rejectAllPending(new RpcError({ code: RPC_DISCONNECTED, message: 'monitor client disposed' }));
+    this.rejectAllPending(
+      new RpcError({ code: RPC_DISCONNECTED, message: 'monitor client disposed', transport: true })
+    );
   }
 
   private handleFrame(raw: unknown): void {
@@ -244,14 +266,22 @@ export class MonitorClient {
       const entry = this.pending.get(frame.id);
       if (entry) {
         this.pending.delete(frame.id);
-        entry.reject(new RpcError({ code: RPC_MALFORMED_RESPONSE, message: 'malformed response: no result or error' }));
+        entry.reject(
+          new RpcError({
+            code: RPC_MALFORMED_RESPONSE,
+            message: 'malformed response: no result or error',
+            transport: true,
+          })
+        );
       }
     }
   }
 
   private handleReconnect(): void {
     // The old connection's in-flight requests will never get a response.
-    this.rejectAllPending(new RpcError({ code: RPC_RECONNECTED, message: 'monitor connection reset' }));
+    this.rejectAllPending(
+      new RpcError({ code: RPC_RECONNECTED, message: 'monitor connection reset', transport: true })
+    );
     this.onReconnectCb?.();
   }
 

@@ -621,7 +621,6 @@
       "files": "Dosyalar",
       "changes": "Değişiklikler"
     },
-    "changesPlaceholder": "Kaynak denetimi ayrı bir hatta — yakında.",
     "addedToChat": "{{name}} sohbete eklendi",
     "imported": "{{count}} dosya içe aktarıldı",
     "importPartialFailed": "{{copied}} kopyalandı, {{failed}} başarısız (ad çakışması veya desteklenmiyor)",
@@ -631,6 +630,73 @@
       "searching": "Aranıyor…",
       "empty": "Eşleşen dosya yok",
       "limitReached": "İlk {{count}} gösteriliyor — daraltın"
+    },
+    "scm": {
+      "notARepository": "Bu klasör sürüm denetiminde değil",
+      "noChanges": "Değişiklik yok",
+      "loading": "Değişiklikler yükleniyor…",
+      "loadFailed": "Değişiklikler yüklenemedi",
+      "refresh": "Yenile",
+      "groups": {
+        "staged": "Hazırlanan değişiklikler",
+        "unstaged": "Değişiklikler",
+        "changes": "Değişiklikler",
+        "blocked": "Çözülmesi gerekiyor"
+      },
+      "state": {
+        "created": "Eklendi",
+        "modified": "Değiştirildi",
+        "deleted": "Silindi",
+        "renamed": "Yeniden adlandırıldı",
+        "conflicted": "Çakışma",
+        "unknown": "Tanınmayan durum"
+      },
+      "badge": {
+        "created": "A",
+        "modified": "M",
+        "deleted": "D",
+        "renamed": "R",
+        "conflicted": "!",
+        "unknown": "?"
+      },
+      "conflictedHint": "Bu çakışmayı önce AionUi dışında çözün",
+      "opaqueHint": "Bu durum daha yeni bir arka uçtan geliyor — salt okunur gösteriliyor",
+      "degraded": "git dizini güncellenemediği için yenileme daha yavaş bir modda çalışıyor",
+      "truncated": "Listelenecek çok fazla değişiklik var — yalnızca ilk kısım gösteriliyor",
+      "renamedFrom": "{{from}} → {{to}}",
+      "diff": {
+        "loading": "Fark yükleniyor…",
+        "failed": "Fark yüklenemedi",
+        "binary": "İkili dosya — metin farkı yok",
+        "truncated": "Fark kısaltıldı (büyük dosya)",
+        "empty": "Metinsel değişiklik yok",
+        "close": "Farkı kapat"
+      },
+      "actions": {
+        "stage": "Değişiklikleri hazırla",
+        "unstage": "Hazırlamayı geri al",
+        "discard": "Değişiklikleri sil",
+        "stageAll": "Tümünü hazırla",
+        "unstageAll": "Tümünün hazırlamasını geri al",
+        "blockedHint": "Hazırlamadan veya silmeden önce çakışmayı AionUi dışında çözün",
+        "confirmDiscardTitle": "Değişiklikler silinsin mi?",
+        "confirmDiscardTracked": "{{count}} dosyadaki düzenlemeler kaybolacak. Bu geri alınamaz.",
+        "confirmDiscardUntracked": "{{count}} yeni dosya çöp kutusuna taşınacak.",
+        "confirmDiscardMixed": "{{tracked}} dosyadaki düzenlemeler geri alınamaz şekilde kaybolacak; {{untracked}} yeni dosya çöp kutusuna gidecek.",
+        "discardConfirmButton": "Sil",
+        "okStage": "{{count}} dosya hazırlandı",
+        "okUnstage": "{{count}} dosyanın hazırlaması geri alındı",
+        "okDiscard": "{{count}} dosya silindi",
+        "partial": "{{total}} işlemden {{succeeded}} tamamlandı —— {{failed}} tamamlanamadı",
+        "partialDetail": "Tamamlanamayan: {{files}}",
+        "rejectedBlocked": "Hiçbir şey değişmedi —— önce çakışmayı çözün",
+        "rejectedUnsupported": "Bu depo bu işlemi desteklemiyor",
+        "rejectedFailed": "İşlem tamamlanamadı",
+        "retry": "Yeniden dene",
+        "notSent": "İstek arka uca ulaşmadı, hiçbir şey değişmedi. Yeniden deneyebilirsiniz.",
+        "outcomeUnknown": "Yanıt gelmeden bağlantı sıfırlandı — bu işlem tamamlanmış da olabilir, olmamış da. Yeniden denemeden önce yenileyip dosya listesini kontrol edin.",
+        "allFailed": "{{count}} dosyanın hiçbiri işlenemedi"
+      }
     }
   },
   "terminal": {

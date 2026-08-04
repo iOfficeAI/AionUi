@@ -620,7 +620,6 @@
       "files": "Dateien",
       "changes": "Änderungen"
     },
-    "changesPlaceholder": "Die Versionsverwaltung folgt in einem eigenen Bereich — bald.",
     "addedToChat": "{{name}} zum Chat hinzugefügt",
     "imported": "{{count}} Datei(en) importiert",
     "importPartialFailed": "{{copied}} kopiert, {{failed}} fehlgeschlagen (Namenskonflikte oder nicht unterstützt)",
@@ -630,6 +629,73 @@
       "searching": "Suche läuft…",
       "empty": "Keine passenden Dateien",
       "limitReached": "Erste {{count}} werden angezeigt — eingrenzen"
+    },
+    "scm": {
+      "notARepository": "Dieser Ordner steht nicht unter Versionskontrolle",
+      "noChanges": "Keine Änderungen",
+      "loading": "Änderungen werden geladen…",
+      "loadFailed": "Änderungen konnten nicht geladen werden",
+      "refresh": "Aktualisieren",
+      "groups": {
+        "staged": "Vorgemerkte Änderungen",
+        "unstaged": "Änderungen",
+        "changes": "Änderungen",
+        "blocked": "Muss gelöst werden"
+      },
+      "state": {
+        "created": "Hinzugefügt",
+        "modified": "Geändert",
+        "deleted": "Gelöscht",
+        "renamed": "Umbenannt",
+        "conflicted": "Konflikt",
+        "unknown": "Unbekannter Status"
+      },
+      "badge": {
+        "created": "A",
+        "modified": "M",
+        "deleted": "D",
+        "renamed": "R",
+        "conflicted": "!",
+        "unknown": "?"
+      },
+      "conflictedHint": "Lösen Sie diesen Konflikt zuerst außerhalb von AionUi",
+      "opaqueHint": "Dieser Status kommt von einem neueren Backend — nur lesend angezeigt",
+      "degraded": "Die Aktualisierung läuft langsamer, weil der git-Index nicht geschrieben werden kann",
+      "truncated": "Zu viele Änderungen — nur der erste Teil wird angezeigt",
+      "renamedFrom": "{{from}} → {{to}}",
+      "diff": {
+        "loading": "Unterschiede werden geladen…",
+        "failed": "Unterschiede konnten nicht geladen werden",
+        "binary": "Binärdatei — kein Textvergleich",
+        "truncated": "Unterschiede gekürzt (große Datei)",
+        "empty": "Keine textlichen Änderungen",
+        "close": "Unterschiede schließen"
+      },
+      "actions": {
+        "stage": "Änderungen vormerken",
+        "unstage": "Vormerkung aufheben",
+        "discard": "Änderungen verwerfen",
+        "stageAll": "Alle vormerken",
+        "unstageAll": "Alle Vormerkungen aufheben",
+        "blockedHint": "Lösen Sie den Konflikt außerhalb von AionUi, bevor Sie vormerken oder verwerfen",
+        "confirmDiscardTitle": "Änderungen verwerfen?",
+        "confirmDiscardTracked": "Die Änderungen an {{count}} Dateien gehen verloren. Das kann nicht rückgängig gemacht werden.",
+        "confirmDiscardUntracked": "{{count}} neue Dateien werden in den Papierkorb verschoben.",
+        "confirmDiscardMixed": "Änderungen an {{tracked}} Datei(en) gehen unwiderruflich verloren; {{untracked}} neue Datei(en) landen im Papierkorb.",
+        "discardConfirmButton": "Verwerfen",
+        "okStage": "{{count}} Dateien vorgemerkt",
+        "okUnstage": "Vormerkung für {{count}} Dateien aufgehoben",
+        "okDiscard": "{{count}} Dateien verworfen",
+        "partial": "{{succeeded}} von {{total}} erledigt —— {{failed}} konnten nicht abgeschlossen werden",
+        "partialDetail": "Nicht abgeschlossen: {{files}}",
+        "rejectedBlocked": "Es wurde nichts geändert —— lösen Sie zuerst den Konflikt",
+        "rejectedUnsupported": "Dieses Repository unterstützt diese Aktion nicht",
+        "rejectedFailed": "Die Aktion konnte nicht abgeschlossen werden",
+        "retry": "Wiederholen",
+        "notSent": "Die Anfrage hat das Backend nicht erreicht — es wurde nichts geändert. Sie können es erneut versuchen.",
+        "outcomeUnknown": "Die Verbindung wurde vor einer Antwort zurückgesetzt — diese Aktion kann abgeschlossen sein oder auch nicht. Aktualisieren und die Dateiliste prüfen, bevor Sie es erneut versuchen.",
+        "allFailed": "Keine der {{count}} Datei(en) konnte verarbeitet werden"
+      }
     }
   },
   "terminal": {
