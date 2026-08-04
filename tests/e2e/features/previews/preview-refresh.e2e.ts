@@ -31,15 +31,15 @@ const REFRESH_BUTTON = '[data-refresh-state]';
 const CONFIRM_TITLE = /Reload and lose unsaved changes|重新加载将丢失未保存的修改/;
 
 /** `preview.refresh.saveAndRefresh` / `discardAndRefresh` — the two proceed paths. */
-const SAVE_AND_REFRESH = /Save, then refresh|先保存再刷新/;
-const DISCARD_AND_REFRESH = /Discard changes and refresh|放弃修改并刷新/;
+const SAVE_AND_REFRESH = /Save, then reload|先保存再刷新/;
+const DISCARD_AND_REFRESH = /Discard changes and reload|放弃修改并刷新/;
 
 /**
  * `preview.refresh.saveConflictAborted` — the message that says the reload was
  * abandoned because the save hit a conflict. Its presence is a supporting signal;
  * the load-bearing assertion is that the edit survived.
  */
-const CONFLICT_ABORTED = /Not refreshed|未刷新/;
+const CONFLICT_ABORTED = /Not reloaded|未刷新/;
 
 type BackendWindow = Window & { __backendPort?: number };
 type ProjectIds = { conversationId: string; projectId: string };
