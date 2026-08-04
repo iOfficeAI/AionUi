@@ -167,6 +167,18 @@ test.describe('Preview — tab identity and persistence', () => {
    * chat message carrying a file link, which needs a live agent — the dependency
    * this suite has otherwise avoided. Left to the person wiring the upgrade to
    * decide, with the unit-level identity tests covering key equality meanwhile.
+   *
+   * When to revisit: when `resolve-ref` gains a caller under `packages/`. At that
+   * point the two keys can compare equal, and this gap becomes worth closing —
+   * either by finding an adding, non-project-ref entry point, or by asserting the
+   * convergence one layer down (that both entry points end up with the same
+   * `chatFileRefKey`) instead of counting rendered tabs.
+   *
+   * Deliberately not left as `test.fail()`: that marker asserts only "this must
+   * fail", so any failure satisfies it — a wrong selector, an unopened panel, a
+   * timeout. Combined with a `toBe(1)` that is already 1 for an unrelated reason,
+   * it would have passed for being broken. An honest gap beats a marker that
+   * cannot tell the difference between the bug and the harness.
    */
 
   test('unsaved edits come back unsaved after leaving and returning to the scope', async ({ page }) => {
