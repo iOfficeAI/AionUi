@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="../../resources/aionui-banner-1.png" alt="AionUi - Cowork with AI Agents" width="100%">
+  <img src="../../resources/aionui-banner-1.png" alt="GEAUi - Cowork with AI Agents" width="100%">
 </p>
 
 <p align="center">
@@ -41,12 +41,12 @@
 
 <p align="center">
   <a href="https://x.com/AionUi/status/2079493379914961069">
-    <img src="../../resources/kimi/contributor-bonus-black-blue.jpg" alt="AionUi × Kimi Katkıda Bulunan Bonusu" width="600">
+    <img src="../../resources/kimi/contributor-bonus-black-blue.jpg" alt="GEAUi × Kimi Katkıda Bulunan Bonusu" width="600">
   </a>
 </p>
 
 <p align="center">
-  🎁 <strong>AionUi × Kimi Ortaklığı</strong>: Katkıda bulunanlara <strong>ücretsiz premium Kimi "Allegretto" planları (aylık $39 · ¥199 değerinde)</strong>!
+  🎁 <strong>GEAUi × Kimi Ortaklığı</strong>: Katkıda bulunanlara <strong>ücretsiz premium Kimi "Allegretto" planları (aylık $39 · ¥199 değerinde)</strong>!
 </p>
 
 <h3 align="center">
@@ -54,7 +54,7 @@
 </h3>
 
 <p align="center">
-  <sub><strong>Kimi K3</strong> yayında ve AionUi'de kutudan çıktığı gibi çalışıyor — <a href="https://www.kimi.com/code?aff=aionui" target="_blank">Kimi For Coding planı edinin</a> veya API anahtarı alın (<a href="https://platform.kimi.ai?aff=aionui" target="_blank">Global</a> / <a href="https://platform.kimi.com?aff=aionui" target="_blank">Çin</a>)</sub>
+  <sub><strong>Kimi K3</strong> yayında ve GEAUi'de kutudan çıktığı gibi çalışıyor — <a href="https://www.kimi.com/code?aff=aionui" target="_blank">Kimi For Coding planı edinin</a> veya API anahtarı alın (<a href="https://platform.kimi.ai?aff=aionui" target="_blank">Global</a> / <a href="https://platform.kimi.com?aff=aionui" target="_blank">Çin</a>)</sub>
 </p>
 
 ---
@@ -64,7 +64,7 @@
 <p align="center">
 
 [✨ Cowork Eylemde](#-cowork-eylemde) ·
-[🤔 Neden AionUi'yi Seçmelisiniz?](#-neden-aionui-claude-cowork-yerine) ·
+[🤔 Neden GEAUi'yi Seçmelisiniz?](#-neden-geaui-claude-cowork-yerine) ·
 [🚀 Hızlı Başlangıç](#-hızlı-başlangıç) ·
 [💬 Topluluk](#-topluluk-ve-destek)
 
@@ -74,9 +74,9 @@
 
 ## Cowork — Sizinle Çalışan AI Agents
 
-**AionUi sadece bir sohbet istemcisi değil.** AI Agents'ın bilgisayarınızda sizinle çalıştığı bir Cowork platformudur — dosya okuma, kod yazma, web'de gezinme ve görevleri otomatikleştirme. Agent'ın yaptığı her şeyi görürsünüz ve her zaman kontrol sizdedir.
+**GEAUi sadece bir sohbet istemcisi değil.** AI Agents'ın bilgisayarınızda sizinle çalıştığı bir Cowork platformudur — dosya okuma, kod yazma, web'de gezinme ve görevleri otomatikleştirme. Agent'ın yaptığı her şeyi görürsünüz ve her zaman kontrol sizdedir.
 
-|                                        | Geleneksel AI Sohbet İstemcileri | **AionUi (Cowork)**                                                                                                             |
+|                                        | Geleneksel AI Sohbet İstemcileri | **GEAUi (Cowork)**                                                                                                             |
 | :------------------------------------- | :------------------------------- | :------------------------------------------------------------------------------------------------------------------------------ |
 | AI dosyalarınızda işlem yapabilir      | Sınırlı veya Yok                 | **Evet — tam dosya erişimi ile yerleşik Agent**                                                                                 |
 | AI çok adımlı görevleri çalıştırabilir | Sınırlı                          | **Evet — onayınızla özerk**                                                                                                     |
@@ -86,14 +86,14 @@
 | Fiyat                                  | Ücretsiz / Ücretli               | **Ücretsiz ve Açık Kaynak**                                                                                                     |
 
 <p align="center">
-  <img src="../../resources/offica-ai BANNER-function.png" alt="AionUi Cowork Platform" width="800">
+  <img src="../../resources/offica-ai BANNER-function.png" alt="GEAUi Cowork Platform" width="800">
 </p>
 
 ---
 
 ## Yerleşik Agent — Kur ve Kullan, Sıfır Yapılandırma
 
-AionUi tam bir AI Agent motoru ile birlikte gelir. CLI Agent'ları ayrı olarak kurmanızı gerektiren araçların aksine, **AionUi kurduğunuz anda çalışır**.
+GEAUi tam bir AI Agent motoru ile birlikte gelir. CLI Agent'ları ayrı olarak kurmanızı gerektiren araçların aksine, **GEAUi kurduğunuz anda çalışır**.
 
 - **Kurulacak CLI araçları yok** — Agent motoru yerleşiktir
 - **Karmaşık kurulum yok** — başlamak için herhangi bir API anahtarı yapıştırın
@@ -108,9 +108,9 @@ AionUi tam bir AI Agent motoru ile birlikte gelir. CLI Agent'ları ayrı olarak 
 
 ## Çoklu Agent Modu — Zaten CLI Agent'larınız var mı? Getirin
 
-Zaten Claude Code, Codex, Hermes Agent veya OpenClaw kullanıyorsanız, AionUi bunları otomatik olarak algılar ve hepsiyle Cowork yapmanıza izin verir — yerleşik Agent ile birlikte.
+Zaten Claude Code, Codex, Hermes Agent veya OpenClaw kullanıyorsanız, GEAUi bunları otomatik olarak algılar ve hepsiyle Cowork yapmanıza izin verir — yerleşik Agent ile birlikte.
 
-**Desteklenen Agents:** Yerleşik Agent (sıfır kurulum) • Claude Code • Codex • Qwen Code • Goose AI • OpenClaw • Augment Code • CodeBuddy • Kimi CLI • OpenCode • Factory Droid • GitHub Copilot • Qoder CLI • Mistral Vibe • Nanobot • Aion CLI (aionrs, AionUi ile birlikte dağıtılan Rust tabanlı arka uç servisi) • Snow CLI • Hermes Agent • Cursor Agent ve daha fazlası
+**Desteklenen Agents:** Yerleşik Agent (sıfır kurulum) • Claude Code • Codex • Qwen Code • Goose AI • OpenClaw • Augment Code • CodeBuddy • Kimi CLI • OpenCode • Factory Droid • GitHub Copilot • Qoder CLI • Mistral Vibe • Nanobot • GEA CLI (aionrs, GEAUi ile birlikte dağıtılan Rust tabanlı arka uç servisi) • Snow CLI • Hermes Agent • Cursor Agent ve daha fazlası
 
 <p align="center">
   <img src="../../resources/multi-agent支持openclaw.gif" alt="Multi-Agent Cowork" width="800">
@@ -130,8 +130,8 @@ Birden fazla AI Agent'ı organize bir ekip olarak çalıştırın: bir **Leader*
   <img src="../../resources/AionUi_team.gif" alt="Team Mode overview" width="800">
 </p>
 
-- **Paralel çoklu agent çalıştırma** — Leader görevleri alt görevlere bölerek paralel çalışan Teammate Agent'lara devreder; her Teammate ACP (Agent Communication Protocol, AionUi'nin çoklu agent koordinasyon katmanı), Gemini veya Aionrs aracılığıyla kendi modelini kullanır
-- **Leader orkestrasyonu** — Leader atar, izler ve sonuçları toplar; desteklenen arka uçlar: Claude Code, Codex, Hermes Agent, Gemini, Snow CLI ve Aion CLI
+- **Paralel çoklu agent çalıştırma** — Leader görevleri alt görevlere bölerek paralel çalışan Teammate Agent'lara devreder; her Teammate ACP (Agent Communication Protocol, GEAUi'nin çoklu agent koordinasyon katmanı), Gemini veya Aionrs aracılığıyla kendi modelini kullanır
+- **Leader orkestrasyonu** — Leader atar, izler ve sonuçları toplar; desteklenen arka uçlar: Claude Code, Codex, Hermes Agent, Gemini, Snow CLI ve GEA CLI
 - **Ekip izole çalışma alanı** — tüm Agent'lar aynı klasörü paylaşır; her birinin bekleyen onaylar için kenar çubuğu rozeti ile kendi izin onay iletişim kutusu vardır
 
 <details>
@@ -140,7 +140,7 @@ Birden fazla AI Agent'ı organize bir ekip olarak çalıştırın: bir **Leader*
 <br>
 
 - **Paylaşılan çalışma alanı** — tüm Agent'lar aynı klasörü okur/yazar; dosya paneli süreç boyunca görünür kalır
-- **Desteklenen arka uçlar** — Claude Code, Codex, Gemini, Snow CLI, Aion CLI (aionrs); `mcpCapabilities.stdio` ile diğer ACP arka uçları otomatik desteklenir
+- **Desteklenen arka uçlar** — Claude Code, Codex, Gemini, Snow CLI, GEA CLI (aionrs); `mcpCapabilities.stdio` ile diğer ACP arka uçları otomatik desteklenir
 - **Dinamik ölçeklendirme** — ekip çalışırken Teammate ekleyip kaldırabilirsiniz; sessiz Agent'lar otomatik olarak başarısız durumuna yükseltilir ve tek tıkla kaldırılabilir
 - **Ayrıntılı izinler** — her Agent'ın kendi izin onay iletişim kutusu var; kenar çubuğu rozeti bekleyen onayları gösterir
 - **Dosya paylaşımı** — Leader, Teammate'lere dosya eklerini iletebilir
@@ -151,7 +151,7 @@ Birden fazla AI Agent'ı organize bir ekip olarak çalıştırın: bir **Leader*
 
 ## Herhangi bir API Anahtarı, Tam Cowork Agent Gücü
 
-Diğer AI uygulamaları size API anahtarınızla bir sohbet kutusu verir. **AionUi size tam bir Cowork Agent verir.**
+Diğer AI uygulamaları size API anahtarınızla bir sohbet kutusu verir. **GEAUi size tam bir Cowork Agent verir.**
 
 | API Anahtarınız            | Ne Alırsınız                 |
 | :------------------------- | :--------------------------- |
@@ -161,7 +161,7 @@ Diğer AI uygulamaları size API anahtarınızla bir sohbet kutusu verir. **Aion
 | Ollama / LM Studio (yerel) | Yerel model Cowork Agent     |
 | NewAPI Gateway             | 20+ modele birleşik erişim   |
 
-Aynı Agent yetenekleri — dosya okuma/yazma, web arama, görüntü oluşturma, araç kullanımı — hangi modelin güç verdiğine bakılmaksızın. AionUi bulut hizmetleri ve yerel dağıtımlar dahil **30+ AI platformunu** destekler.
+Aynı Agent yetenekleri — dosya okuma/yazma, web arama, görüntü oluşturma, araç kullanımı — hangi modelin güç verdiğine bakılmaksızın. GEAUi bulut hizmetleri ve yerel dağıtımlar dahil **30+ AI platformunu** destekler.
 
 <p align="center">
   <img src="../../resources/llm_newapi.png" alt="Multi-Model Support" width="800">
@@ -180,7 +180,7 @@ Aynı Agent yetenekleri — dosya okuma/yazma, web arama, görüntü oluşturma,
 - **Uluslararası Platformlar** — DeepSeek, MiniMax, Novita, OpenRouter, SiliconFlow, xAI, Ark (Volcengine), Poe
 - **Yerel Modeller** — Ollama, LM Studio (yerel API uç noktası ile özel platform aracılığıyla)
 
-AionUi ayrıca [NewAPI](https://github.com/QuantumNous/new-api) ağ geçidi hizmetini destekler — çeşitli LLM'leri toplayan ve dağıtan birleşik bir AI model merkezi. Çeşitli görev gereksinimlerini karşılamak için aynı arayüzde farklı modeller arasında esnek bir şekilde geçiş yapın.
+GEAUi ayrıca [NewAPI](https://github.com/QuantumNous/new-api) ağ geçidi hizmetini destekler — çeşitli LLM'leri toplayan ve dağıtan birleşik bir AI model merkezi. Çeşitli görev gereksinimlerini karşılamak için aynı arayüzde farklı modeller arasında esnek bir şekilde geçiş yapın.
 
 </details>
 
@@ -191,7 +191,7 @@ AionUi ayrıca [NewAPI](https://github.com/QuantumNous/new-api) ağ geçidi hizm
 _21 yerleşik profesyonel asistan ve üç katmanlı beceri sistemi ile genişletilebilir asistan sistemi. Kendi asistanlarınızı ve becerilerinizi oluşturun ve yönetin._
 
 - **Özel Asistanlar Oluştur** — Özel kurallar ve yeteneklerle kendi asistanlarınızı tanımlayın
-- **Üç katmanlı Beceriler** — Yerleşik beceriler (AionUi ile birlikte gelen), özel beceriler (kendinizinkiler) ve Extension becerileri (üçüncü taraf uzantılar tarafından katkıda bulunulan); beceri göstergesi ile konuşma başına etkinleştirin/devre dışı bırakın
+- **Üç katmanlı Beceriler** — Yerleşik beceriler (GEAUi ile birlikte gelen), özel beceriler (kendinizinkiler) ve Extension becerileri (üçüncü taraf uzantılar tarafından katkıda bulunulan); beceri göstergesi ile konuşma başına etkinleştirin/devre dışı bırakın
 - **Konuşma Başına Kontrol** — Sohbet başlığındaki beceri göstergesi aktif becerileri gösterir; ihtiyaç halinde becerileri arayın ve hariç tutun
 
 <p align="center">
@@ -203,7 +203,7 @@ _21 yerleşik profesyonel asistan ve üç katmanlı beceri sistemi ile genişlet
 
 <br>
 
-AionUi önceden tanımlanmış yeteneklere sahip **21 profesyonel asistan** içerir, özel beceriler aracılığıyla genişletilebilir:
+GEAUi önceden tanımlanmış yeteneklere sahip **21 profesyonel asistan** içerir, özel beceriler aracılığıyla genişletilebilir:
 
 - **🤝 Cowork** — Özerk görev yürütme (dosya işlemleri, belge işleme, iş akışı planlama)
 - **📊 PPT Creator / Morph PPT / Morph PPT 3D** — Morph geçişleri ile PPTX sunumları oluşturur ve canlandırır
@@ -224,7 +224,7 @@ AionUi önceden tanımlanmış yeteneklere sahip **21 profesyonel asistan** içe
 - **🔧 OpenClaw Kurulumu** — OpenClaw entegrasyonu için kurulum ve yapılandırma asistanı
 - **📖 Hikaye Rol Oynama** — Karakter kartları ve dünya bilgisi ile sürükleyici hikaye rol oynama (SillyTavern uyumlu)
 
-**Özel Beceriler**: `skills/` dizininde beceriler oluşturun, AI yeteneklerini genişletmek için asistanlar için becerileri etkinleştirin/devre dışı bırakın. Beceriler üç kaynaktan gelir: yerleşik (AionUi ile birlikte gelen), özel (kendinizinkiler) ve Extension (Extension SDK aracılığıyla katkıda bulunulan). Yerleşik beceriler `pptx`, `docx`, `pdf`, `xlsx`, `mermaid` ve daha fazlasını içerir.
+**Özel Beceriler**: `skills/` dizininde beceriler oluşturun, AI yeteneklerini genişletmek için asistanlar için becerileri etkinleştirin/devre dışı bırakın. Beceriler üç kaynaktan gelir: yerleşik (GEAUi ile birlikte gelen), özel (kendinizinkiler) ve Extension (Extension SDK aracılığıyla katkıda bulunulan). Yerleşik beceriler `pptx`, `docx`, `pdf`, `xlsx`, `mermaid` ve daha fazlasını içerir.
 
 > 💡 Her asistan bir markdown dosyası ile tanımlanır. Örnekler için `assistant/` dizinine bakın.
 
@@ -234,7 +234,7 @@ AionUi önceden tanımlanmış yeteneklere sahip **21 profesyonel asistan** içe
 
 ## Her Yerden Cowork
 
-_7/24 AI asistanınız — AionUi'ye herhangi bir cihazdan, her yerden erişin._
+_7/24 AI asistanınız — GEAUi'ye herhangi bir cihazdan, her yerden erişin._
 
 - **WebUI Modu** — telefondan, tabletten veya herhangi bir bilgisayardan tarayıcı aracılığıyla erişin. LAN, çapraz ağ ve sunucu dağıtımını destekler. QR kod veya şifre girişi.
 
@@ -245,7 +245,7 @@ _7/24 AI asistanınız — AionUi'ye herhangi bir cihazdan, her yerden erişin._
   - **WeChat** — Kişisel WeChat hesabı entegrasyonu
   - **WeCom (企业微信), Slack, Discord** ve yakında daha fazla platform
 
-> **Kurulum:** AionUi Ayarları → WebUI Ayarları → Kanal, Bot Token'ı yapılandırın.
+> **Kurulum:** GEAUi Ayarları → WebUI Ayarları → Kanal, Bot Token'ı yapılandırın.
 
 <p align="center">
   <img src="../../resources/webui-remote.gif" alt="WebUI remote access demo" width="800">
@@ -291,7 +291,7 @@ _Bir kez ayarlayın, AI Agent zamanlamaya göre otomatik olarak çalışır — 
 - **Konuşmaya Bağlı** — Her zamanlanmış görev bir konuşmaya bağlıdır, bağlamı ve geçmişi korur
 - **Otomatik Yürütme** — Görevler zamanlanmış saatlerde otomatik olarak çalışır, konuşmaya mesaj gönderir
 - **Kolay Yönetim** — Zamanlanmış görevleri istediğiniz zaman oluşturun, değiştirin, etkinleştirin/devre dışı bırakın, silin ve görüntüleyin
-- **Uyanık kal** — AionUi görevler aktifken sistem uyku moduna geçmeyi otomatik olarak önler ve uyandıktan sonra kaçırılan tetikleyicileri algılar
+- **Uyanık kal** — GEAUi görevler aktifken sistem uyku moduna geçmeyi otomatik olarak önler ve uyandıktan sonra kaçırılan tetikleyicileri algılar
 - **Gelişmiş yapılandırma** — her görevin kendi model, çalışma alanı dizini ve akıl yürütme eforu ayarları olabilir
 
 **Gerçek Dünya Örnekleri:**
@@ -469,16 +469,16 @@ _Birden fazla konuşma açın, görevler karışmaz, bağımsız bellek, verimli
 
 ---
 
-## 🤔 Neden AionUi, Claude Cowork Yerine?
+## 🤔 Neden GEAUi, Claude Cowork Yerine?
 
 <details>
 <summary><strong>Detaylı karşılaştırmayı görmek için tıklayın</strong></summary>
 
 <br>
 
-AionUi **ücretsiz ve açık kaynaklı bir Çoklu AI Agent Masaüstü** uygulamasıdır. Sadece macOS'ta çalışan ve Claude'ye kilitli Claude Cowork ile karşılaştırıldığında, AionUi tam model, çapraz platform geliştirilmiş versiyonudur.
+GEAUi **ücretsiz ve açık kaynaklı bir Çoklu AI Agent Masaüstü** uygulamasıdır. Sadece macOS'ta çalışan ve Claude'ye kilitli Claude Cowork ile karşılaştırıldığında, GEAUi tam model, çapraz platform geliştirilmiş versiyonudur.
 
-| Boyut           | Claude Cowork | AionUi                                            |
+| Boyut           | Claude Cowork | GEAUi                                            |
 | :-------------- | :------------ | :------------------------------------------------ |
 | İşletim Sistemi | Sadece macOS  | macOS / Windows / Linux                           |
 | Model Desteği   | Sadece Claude | Gemini, Claude, DeepSeek, OpenAI, Ollama, ...     |
@@ -501,17 +501,17 @@ Derin AI Ofis Senaryosu Desteği:
 
 <details>
 <summary><strong>S: Önce Gemini CLI veya Claude Code'u kurmam gerekiyor mu?</strong></summary>
-C: <strong>Hayır.</strong> AionUi kurulumdan hemen sonra çalışan yerleşik bir AI Agent'a sahiptir. Başlamak için herhangi bir API anahtarı girmeniz yeterli. Ayrıca Claude Code veya Gemini CLI gibi CLI araçlarınız da kuruluysa, AionUi bunları otomatik olarak algılayacak ve daha fazla yetenek için entegre edecektir.
+C: <strong>Hayır.</strong> GEAUi kurulumdan hemen sonra çalışan yerleşik bir AI Agent'a sahiptir. Başlamak için herhangi bir API anahtarı girmeniz yeterli. Ayrıca Claude Code veya Gemini CLI gibi CLI araçlarınız da kuruluysa, GEAUi bunları otomatik olarak algılayacak ve daha fazla yetenek için entegre edecektir.
 </details>
 
 <details>
-<summary><strong>S: AionUi ile ne yapabilirim?</strong></summary>
-C: AionUi sizin <strong>özel Cowork çalışma alanınızdır</strong>. Yerleşik Agent klasörleri toplu olarak organize edebilir, Excel verilerini işleyebilir, belgeler oluşturabilir, web'de arama yapabilir ve görüntüler oluşturabilir. Çoklu Agent Modu ile aynı arayüz üzerinden Claude Code, Codex ve diğer güçlü CLI Agent'larından da yararlanabilirsiniz.
+<summary><strong>S: GEAUi ile ne yapabilirim?</strong></summary>
+C: GEAUi sizin <strong>özel Cowork çalışma alanınızdır</strong>. Yerleşik Agent klasörleri toplu olarak organize edebilir, Excel verilerini işleyebilir, belgeler oluşturabilir, web'de arama yapabilir ve görüntüler oluşturabilir. Çoklu Agent Modu ile aynı arayüz üzerinden Claude Code, Codex ve diğer güçlü CLI Agent'larından da yararlanabilirsiniz.
 </details>
 
 <details>
 <summary><strong>S: Ücretsiz mi?</strong></summary>
-C: AionUi tamamen ücretsiz ve açık kaynaklıdır. Yalnızca seçtiğiniz sağlayıcının API kullanımı için ödeme yaparsınız ve tercih ettiğiniz herhangi bir sağlayıcıdan API anahtarları kullanabilirsiniz.
+C: GEAUi tamamen ücretsiz ve açık kaynaklıdır. Yalnızca seçtiğiniz sağlayıcının API kullanımı için ödeme yaparsınız ve tercih ettiğiniz herhangi bir sağlayıcıdan API anahtarları kullanabilirsiniz.
 </details>
 
 <details>
@@ -521,7 +521,7 @@ C: Tüm veriler yerel olarak bir SQLite veritabanında saklanır. Hiçbir şey h
 
 ---
 
-## İnsanların AionUi'yi Nasıl Kullandığını Görün
+## İnsanların GEAUi'yi Nasıl Kullandığını Görün
 
 <p align="center">
   <a href="https://www.youtube.com/watch?v=vWxE6VO9TKo" target="_blank">
@@ -555,7 +555,7 @@ C: Tüm veriler yerel olarak bir SQLite veritabanında saklanır. Hiçbir şey h
 - [Sıradan insanların Claude Code'u bir APP gibi kullanmasını sağlamak](https://mp.weixin.qq.com/s/TsMojSbkUUFvsd-HQCazZg) — Tembel Kedi Balık Sever
 - [5500 Stars: Açık Kaynak Anthropic'in AI Araç Setini Nasıl Kırıyor](https://mp.weixin.qq.com/s/saEk49cYV6MqBgw19Lw6Gw) — AI Silikon Anı
 
-> **AionUi hakkında bir video yaptınız mı?** [X'te bize bildirin](https://x.com/AionUi) ve burada öne çıkaralım!
+> **GEAUi hakkında bir video yaptınız mı?** [X'te bize bildirin](https://x.com/AionUi) ve burada öne çıkaralım!
 
 ---
 
@@ -586,7 +586,7 @@ brew install aionui
 
 ### 3 Adımda Başlayın
 
-1. **Kurun** AionUi
+1. **Kurun** GEAUi
 2. **Girin** başlamak için herhangi bir API anahtarı
 3. **Cowork'a başlayın** — yerleşik AI Agent kullanıma hazır
 

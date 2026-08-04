@@ -1,4 +1,4 @@
-# Aion CLI (aionrs) E2E 测试用例
+# GEA CLI (aionrs) E2E 测试用例
 
 **版本**: Gate 2 初稿
 **作者**: chat-aionrs-designer

@@ -794,10 +794,10 @@ Gateway 通过 `agent` / `agent.event` 事件推送工具调用信息：
 
 > 此功能与 Remote Agent 设置页无直接 UI 交互，降级为关联模块说明。
 
-`openclawConflictDetector.ts` 检测 OpenClaw 的 Lark/Telegram channels 是否与 AionUi Channels 使用相同凭据：
+`openclawConflictDetector.ts` 检测 OpenClaw 的 Lark/Telegram channels 是否与 GEAUi Channels 使用相同凭据：
 
-- **Lark 冲突**: 比较 `channels.feishu.accounts[*].appId` 与 AionUi appId
-- **Telegram 冲突**: 比较 `channels.telegram.botToken` 与 AionUi botToken
+- **Lark 冲突**: 比较 `channels.feishu.accounts[*].appId` 与 GEAUi appId
+- **Telegram 冲突**: 比较 `channels.telegram.botToken` 与 GEAUi botToken
 - 配置读取路径: 环境变量 → `~/.openclaw/openclaw.json` → 遗留路径
 
 **当前限制**：冲突检测结果通过 `console.warn` 输出，无 UI 呈现。导出的 `getConflictResolutionSteps()` 提供解决方案建议文本，但尚未集成到任何 UI 组件中。

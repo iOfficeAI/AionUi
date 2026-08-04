@@ -1,7 +1,7 @@
 # 对话 - 模型选择器（父级 + 二级子菜单）
 
 > 本文档聚焦「模型选择器」的下拉交互重构。
-> 涉及范围：对话面板（单聊 + 群聊，含 Claude/Codex 等 ACP 平台与 Aion CLI/aionrs 平台）以及首页新建对话页的模型选择器。不改后端，全部在渲染层完成。
+> 涉及范围：对话面板（单聊 + 群聊，含 Claude/Codex 等 ACP 平台与 GEA CLI/aionrs 平台）以及首页新建对话页的模型选择器。不改后端，全部在渲染层完成。
 
 ---
 
@@ -116,7 +116,7 @@
 
 - **ACP 平台**（Claude / Codex 等）单聊与群聊 —— 扁平模型列表。
 - **首页新建对话页** —— ACP agent 扁平模型列表；aionrs 走 provider 分组（见 F-MODEL-06）。
-- **Aion CLI（aionrs）平台** —— 见 F-MODEL-06（模型按 provider 分组）。
+- **GEA CLI（aionrs）平台** —— 见 F-MODEL-06（模型按 provider 分组）。
 
 **正常流程**（用户视角）：
 
@@ -130,9 +130,9 @@
 
 ---
 
-## (F-MODEL-06) Aion CLI 平台：模型按 provider 分组 [新增]
+## (F-MODEL-06) GEA CLI 平台：模型按 provider 分组 [新增]
 
-**用户故事**：作为使用 Aion CLI 的用户，我的模型是按 provider（如 Anthropic / OpenAI）组织的，我希望在二级子菜单里仍按 provider 分组查看，同时能搜索。
+**用户故事**：作为使用 GEA CLI 的用户，我的模型是按 provider（如 Anthropic / OpenAI）组织的，我希望在二级子菜单里仍按 provider 分组查看，同时能搜索。
 
 **正常流程**（用户视角）：
 
@@ -143,7 +143,7 @@
 
 **验收标准**：
 
-- [ ] Aion CLI 模型二级子菜单按 provider 分组（不显示健康圆点）。
+- [ ] GEA CLI 模型二级子菜单按 provider 分组（不显示健康圆点）。
 - [ ] 搜索跨分组过滤，仅显示命中的分组，无命中显示空状态。
 - [ ] 一级两行结构与向左弹出与其它入口一致。
 

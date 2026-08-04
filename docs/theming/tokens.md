@@ -1,11 +1,11 @@
 # Theme Tokens Reference / 主题语义 Token 参考
 
-This is the canonical list of semantic design tokens used by AionUi's theming system.
+This is the canonical list of semantic design tokens used by GEAUi's theming system.
 A **Theme** (`packages/desktop/src/common/theme/types.ts`) can override any of these via its
 optional `tokens` map, or via raw `css`. Built-in `Light`/`Dark` rely on the base stylesheet
 below (driven by `appearance` → `data-theme`); decorative & user themes use `css`.
 
-> 这是 AionUi 主题系统的语义 Token 权威清单。一个 **Theme** 可以通过可选的 `tokens` 映射
+> 这是 GEAUi 主题系统的语义 Token 权威清单。一个 **Theme** 可以通过可选的 `tokens` 映射
 > 或 `css` 字段覆盖这些变量。内置 `Light`/`Dark` 依赖下面的基底样式表(由 `appearance` →
 > `data-theme` 驱动);装饰主题与用户主题用 `css` 字段。
 

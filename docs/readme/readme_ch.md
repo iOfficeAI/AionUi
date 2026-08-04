@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="../../resources/aionui-banner-1.png" alt="AionUi - Cowork with AI Agents" width="100%">
+  <img src="../../resources/aionui-banner-1.png" alt="GEAUi - Cowork with AI Agents" width="100%">
 </p>
 
 <p align="center">
@@ -41,12 +41,12 @@
 
 <p align="center">
   <a href="https://github.com/iOfficeAI/AionUi/discussions/3640">
-    <img src="../../resources/kimi/contributor-bonus-black-blue.jpg" alt="AionUi × Kimi 贡献者激励" width="600">
+    <img src="../../resources/kimi/contributor-bonus-black-blue.jpg" alt="GEAUi × Kimi 贡献者激励" width="600">
   </a>
 </p>
 
 <p align="center">
-  🎁 <strong>AionUi × Kimi 战略合作</strong>：面向贡献者免费赠送 <strong>Kimi「Allegretto」订阅计划（价值 ¥199/月 · $39/月）</strong>！
+  🎁 <strong>GEAUi × Kimi 战略合作</strong>：面向贡献者免费赠送 <strong>Kimi「Allegretto」订阅计划（价值 ¥199/月 · $39/月）</strong>！
 </p>
 
 <h3 align="center">
@@ -54,7 +54,7 @@
 </h3>
 
 <p align="center">
-  <sub><strong>Kimi K3</strong> 已发布，在 AionUi 中开箱即用——<a href="https://www.kimi.com/code?aff=aionui" target="_blank">订阅 Kimi For Coding</a>，或获取 API Key（<a href="https://platform.kimi.com?aff=aionui" target="_blank">国内</a> / <a href="https://platform.kimi.ai?aff=aionui" target="_blank">海外</a>）· 也欢迎转发我们在 <a href="https://x.com/AionUi/status/2079493379914961069" target="_blank">X 上的活动帖</a></sub>
+  <sub><strong>Kimi K3</strong> 已发布，在 GEAUi 中开箱即用——<a href="https://www.kimi.com/code?aff=aionui" target="_blank">订阅 Kimi For Coding</a>，或获取 API Key（<a href="https://platform.kimi.com?aff=aionui" target="_blank">国内</a> / <a href="https://platform.kimi.ai?aff=aionui" target="_blank">海外</a>）· 也欢迎转发我们在 <a href="https://x.com/AionUi/status/2079493379914961069" target="_blank">X 上的活动帖</a></sub>
 </p>
 
 ---
@@ -64,7 +64,7 @@
 <p align="center">
 
 [✨ Cowork 演示](#-cowork-演示) ·
-[🤔 为什么选择 AionUi？](#-为什么选择-aionui-而非-claude-cowork) ·
+[🤔 为什么选择 GEAUi？](#-为什么选择-geaui-而非-claude-cowork) ·
 [🚀 快速开始](#-快速开始) ·
 [💬 社区](#-社区与支持)
 
@@ -74,9 +74,9 @@
 
 ## Cowork — AI Agent 与您并肩工作
 
-**AionUi 不只是个聊天工具。** 它是一个真正的 Cowork 平台，AI Agent 就像您的得力助手，在电脑上帮您处理各种任务——读文件、写代码、查资料、自动化工作流。Agent 的一举一动都在您的掌控之中，透明可见。
+**GEAUi 不只是个聊天工具。** 它是一个真正的 Cowork 平台，AI Agent 就像您的得力助手，在电脑上帮您处理各种任务——读文件、写代码、查资料、自动化工作流。Agent 的一举一动都在您的掌控之中，透明可见。
 
-|                       | 传统 AI 聊天客户端 | **AionUi (Cowork)**                                                                                    |
+|                       | 传统 AI 聊天客户端 | **GEAUi (Cowork)**                                                                                    |
 | :-------------------- | :----------------- | :----------------------------------------------------------------------------------------------------- |
 | AI 可以操作您的文件   | 有限或不可用       | **是 — 内置 Agent，完全文件访问**                                                                      |
 | AI 可以执行多步骤任务 | 有限               | **是 — 自主执行，需您批准**                                                                            |
@@ -86,14 +86,14 @@
 | 价格                  | 免费 / 付费        | **免费且开源**                                                                                         |
 
 <p align="center">
-  <img src="../../resources/offica-ai BANNER-function.png" alt="AionUi Cowork Platform" width="800">
+  <img src="../../resources/offica-ai BANNER-function.png" alt="GEAUi Cowork Platform" width="800">
 </p>
 
 ---
 
 ## 内置 Agent — 安装即用，零配置
 
-AionUi 自带完整的 AI Agent。不像其他工具需要你手动安装各种 CLI 工具，**AionUi 装好就能用，开箱即用**。
+GEAUi 自带完整的 AI Agent。不像其他工具需要你手动安装各种 CLI 工具，**GEAUi 装好就能用，开箱即用**。
 
 - **无需安装 CLI 工具** — Agent 引擎已内置
 - **无需复杂配置** — 粘贴任意 API 密钥即可开始
@@ -106,7 +106,7 @@ AionUi 自带完整的 AI Agent。不像其他工具需要你手动安装各种 
 
 ### **办公助手（PPT / Word / Excel）**
 
-想把文档/表格直接交给 Agent？AionUi 内置 **[OfficeCLI](https://github.com/iOfficeAI/OfficeCLI)**，让 PPT（Morph 转场）、Word（`.docx`）与 Excel（`.xlsx/.xlsm/.csv`）从需求到可交付结果更高效、更稳定。
+想把文档/表格直接交给 Agent？GEAUi 内置 **[OfficeCLI](https://github.com/iOfficeAI/OfficeCLI)**，让 PPT（Morph 转场）、Word（`.docx`）与 Excel（`.xlsx/.xlsm/.csv`）从需求到可交付结果更高效、更稳定。
 三类助手对应各自的文件工作流：生成的成稿可直接编辑、可复用。
 
 #### **PPT 助手**
@@ -161,9 +161,9 @@ AionUi 自带完整的 AI Agent。不像其他工具需要你手动安装各种 
 
 ## 多 Agent 模式 — 已有 CLI 工具？一起用起来
 
-如果你已经在用 Claude Code、Codex、Hermes Agent 或 OpenClaw，AionUi 会自动发现它们，让你同时和这些 Agent 一起协作——当然，还有内置 Agent。
+如果你已经在用 Claude Code、Codex、Hermes Agent 或 OpenClaw，GEAUi 会自动发现它们，让你同时和这些 Agent 一起协作——当然，还有内置 Agent。
 
-**支持的 Agent：** 内置 Agent（零配置） • Claude Code • Codex • Qwen Code • Goose AI • OpenClaw • Augment Code • CodeBuddy • Kimi CLI • OpenCode • Factory Droid • GitHub Copilot • Qoder CLI • Mistral Vibe • Nanobot • Aion CLI（aionrs，AionUi 随附的 Rust 后端服务） • Snow CLI • Hermes Agent • Cursor Agent 等
+**支持的 Agent：** 内置 Agent（零配置） • Claude Code • Codex • Qwen Code • Goose AI • OpenClaw • Augment Code • CodeBuddy • Kimi CLI • OpenCode • Factory Droid • GitHub Copilot • Qoder CLI • Mistral Vibe • Nanobot • GEA CLI（aionrs，GEAUi 随附的 Rust 后端服务） • Snow CLI • Hermes Agent • Cursor Agent 等
 
 <p align="center">
   <img src="../../resources/multi-agent支持openclaw.gif" alt="Multi-Agent Cowork" width="800">
@@ -183,8 +183,8 @@ AionUi 自带完整的 AI Agent。不像其他工具需要你手动安装各种 
   <img src="../../resources/AionUi_team.gif" alt="Team Mode overview" width="800">
 </p>
 
-- **多 Agent 并行执行** — Leader 将任务分解为子任务并委派给并行运行的 Teammate Agent；每个 Teammate 通过 ACP（Agent Communication Protocol，AionUi 的多 Agent 协调层）、Gemini 或 Aionrs 使用独立模型
-- **Leader 统筹编排** — Leader 分配、追踪并汇总结果；支持的后端包括 Claude Code、Codex、Hermes Agent、Gemini、Snow CLI 和 Aion CLI
+- **多 Agent 并行执行** — Leader 将任务分解为子任务并委派给并行运行的 Teammate Agent；每个 Teammate 通过 ACP（Agent Communication Protocol，GEAUi 的多 Agent 协调层）、Gemini 或 Aionrs 使用独立模型
+- **Leader 统筹编排** — Leader 分配、追踪并汇总结果；支持的后端包括 Claude Code、Codex、Hermes Agent、Gemini、Snow CLI 和 GEA CLI
 - **团队隔离工作空间** — 所有 Agent 共享同一文件夹；每个 Agent 有独立的权限确认弹窗，侧边栏角标显示待确认项
 
 <details>
@@ -193,7 +193,7 @@ AionUi 自带完整的 AI Agent。不像其他工具需要你手动安装各种 
 <br>
 
 - **共享工作空间** — 所有 Agent 读写同一文件夹；文件面板全程可见
-- **支持的后端** — Claude Code、Codex、Gemini、Snow CLI、Aion CLI（aionrs）；其他具备 `mcpCapabilities.stdio` 的 ACP 后端自动支持
+- **支持的后端** — Claude Code、Codex、Gemini、Snow CLI、GEA CLI（aionrs）；其他具备 `mcpCapabilities.stdio` 的 ACP 后端自动支持
 - **动态伸缩** — 可在团队运行时添加或移除 Teammate；静默 Agent 自动升级为失败状态，支持一键移除
 - **细粒度权限** — 每个 Agent 有独立的权限确认弹窗；侧边栏角标显示待确认项
 - **文件共享** — Leader 可向 Teammate 传递文件附件
@@ -204,18 +204,18 @@ AionUi 自带完整的 AI Agent。不像其他工具需要你手动安装各种 
 
 ## 任意 API 密钥，都能获得完整 Cowork 能力
 
-其他 AI 应用可能只给你个聊天窗口，**但 AionUi 给你的是完整的 Cowork Agent**。
+其他 AI 应用可能只给你个聊天窗口，**但 GEAUi 给你的是完整的 Cowork Agent**。
 
 | 您的 API 密钥              | 您获得的功能                                 |
 | :------------------------- | :------------------------------------------- |
 | Gemini API 密钥            | Gemini 驱动的 Cowork Agent                   |
 | OpenAI API 密钥            | GPT 驱动的 Cowork Agent                      |
 | Anthropic API 密钥         | Claude 驱动的 Cowork Agent                   |
-| AWS Bedrock 凭证           | 通过 Aion CLI（aionrs）的 Bedrock 驱动 Agent |
+| AWS Bedrock 凭证           | 通过 GEA CLI（aionrs）的 Bedrock 驱动 Agent |
 | Ollama / LM Studio（本地） | 本地模型 Cowork Agent                        |
 | NewAPI 网关                | 统一访问 20+ 模型                            |
 
-不管用哪个模型，Agent 的能力都一样强大——文件读写、网络搜索、图像生成、工具调用，一个不少。AionUi 支持 **30+ 个 AI 平台**，云端本地都能用。
+不管用哪个模型，Agent 的能力都一样强大——文件读写、网络搜索、图像生成、工具调用，一个不少。GEAUi 支持 **30+ 个 AI 平台**，云端本地都能用。
 
 <p align="center">
   <img src="../../resources/llm_newapi.png" alt="Multi-Model Support" width="800">
@@ -234,7 +234,7 @@ AionUi 自带完整的 AI Agent。不像其他工具需要你手动安装各种 
 - **国际平台** — DeepSeek、MiniMax、Novita、OpenRouter、SiliconFlow、xAI、Ark (火山引擎)、Poe
 - **本地模型** — Ollama、LM Studio（通过自定义平台设置本地 API 端点）
 
-AionUi 还支持 [NewAPI](https://github.com/QuantumNous/new-api) 网关服务 — 一个统一的 AI 模型中心，聚合和分发各种大语言模型。在同一界面中灵活切换不同模型，满足各种任务需求。
+GEAUi 还支持 [NewAPI](https://github.com/QuantumNous/new-api) 网关服务 — 一个统一的 AI 模型中心，聚合和分发各种大语言模型。在同一界面中灵活切换不同模型，满足各种任务需求。
 
 </details>
 
@@ -245,7 +245,7 @@ AionUi 还支持 [NewAPI](https://github.com/QuantumNous/new-api) 网关服务 �
 _灵活的助手系统，内置 21 个专业助手，支持三层技能体系，可自由创建和管理助手与技能。_
 
 - **打造专属助手** — 按你的需求定制助手，设置专属规则和能力
-- **三层技能体系** — 内置技能（随 AionUi 附带）、自定义技能（你自己的）以及扩展技能（第三方扩展贡献）；通过技能指示器按对话启用/禁用
+- **三层技能体系** — 内置技能（随 GEAUi 附带）、自定义技能（你自己的）以及扩展技能（第三方扩展贡献）；通过技能指示器按对话启用/禁用
 - **对话级控制** — 聊天头部的技能指示器显示当前对话的活跃技能；可随时搜索和排除技能
 
 <p align="center">
@@ -257,7 +257,7 @@ _灵活的助手系统，内置 21 个专业助手，支持三层技能体系，
 
 <br>
 
-AionUi 内置 **21 个专业助手**，每个都有独特能力，还能通过自定义技能继续扩展：
+GEAUi 内置 **21 个专业助手**，每个都有独特能力，还能通过自定义技能继续扩展：
 
 - **🤝 Cowork** — 自主任务执行（文件操作、文档处理、工作流规划）
 - **📊 PPT 生成器 / Morph PPT / Morph PPT 3D** — 生成并制作带 Morph 转场的 PPTX 演示文稿
@@ -278,7 +278,7 @@ AionUi 内置 **21 个专业助手**，每个都有独特能力，还能通过�
 - **🔧 OpenClaw 设置** — OpenClaw 集成的设置和配置助手
 - **📖 故事角色扮演** — 沉浸式故事角色扮演，支持角色卡和世界信息（兼容 SillyTavern）
 
-**自定义技能**：在 `skills/` 目录下创建你的专属技能，随时为助手开启或关闭，让 AI 能力无限扩展。技能来源分三层：内置（随 AionUi 附带）、自定义（你自己的）以及扩展（通过扩展 SDK 贡献）。内置技能有 `pptx`、`docx`、`pdf`、`xlsx`、`mermaid` 等。
+**自定义技能**：在 `skills/` 目录下创建你的专属技能，随时为助手开启或关闭，让 AI 能力无限扩展。技能来源分三层：内置（随 GEAUi 附带）、自定义（你自己的）以及扩展（通过扩展 SDK 贡献）。内置技能有 `pptx`、`docx`、`pdf`、`xlsx`、`mermaid` 等。
 
 > 💡 每个助手都用 markdown 文件定义，想看看怎么做的？去 `assistant/` 目录找例子。
 
@@ -299,7 +299,7 @@ _你的 24/7 AI 助手 — 手机、平板、电脑，随时随地都能用。_
   - **WeChat** — 微信个人号接入
   - **WeCom（企业微信）**、**Slack**、**Discord** 等更多平台即将推出
 
-> **设置：** AionUi 设置 → WebUI 设置 → Channel，配置 Bot Token。
+> **设置：** GEAUi 设置 → WebUI 设置 → Channel，配置 Bot Token。
 
 <p align="center">
   <img src="../../resources/webui-remote.gif" alt="WebUI remote access demo" width="800">
@@ -345,7 +345,7 @@ _一次设置，AI Agent 就会按你的计划自动工作 — 真正的 24/7 �
 - **绑定会话** — 每个定时任务都绑定到特定会话，上下文和历史记录都会保留
 - **自动执行** — 到点就自动运行，结果直接发到对应会话
 - **管理方便** — 随时创建、修改、开启/关闭、删除或查看定时任务
-- **防休眠** — AionUi 会自动阻止系统休眠，任务激活期间检测唤醒后的漏触发
+- **防休眠** — GEAUi 会自动阻止系统休眠，任务激活期间检测唤醒后的漏触发
 - **高级配置** — 每个任务可单独设置模型、工作目录和推理力度
 
 **实际示例：**
@@ -523,16 +523,16 @@ _同时开多个对话，任务不会乱，每个都有独立记忆，效率直�
 
 ---
 
-## 🤔 为什么选择 AionUi 而非 Claude Cowork？
+## 🤔 为什么选择 GEAUi 而非 Claude Cowork？
 
 <details>
 <summary><strong>点击查看详细对比</strong></summary>
 
 <br>
 
-AionUi 是一个**免费开源的 Multi-AI Agent 桌面应用**。相比只能在 macOS 上用、还只能绑定 Claude 的 Claude Cowork，AionUi 支持全模型、跨平台，是它的全面升级版。
+GEAUi 是一个**免费开源的 Multi-AI Agent 桌面应用**。相比只能在 macOS 上用、还只能绑定 Claude 的 Claude Cowork，GEAUi 支持全模型、跨平台，是它的全面升级版。
 
-| 维度     | Claude Cowork | AionUi                                                 |
+| 维度     | Claude Cowork | GEAUi                                                 |
 | :------- | :------------ | :----------------------------------------------------- |
 | OS       | 仅 macOS      | macOS / Windows / Linux                                |
 | 模型支持 | 仅 Claude     | Gemini、Claude、DeepSeek、OpenAI、Ollama 等            |
@@ -555,17 +555,17 @@ AionUi 是一个**免费开源的 Multi-AI Agent 桌面应用**。相比只能�
 
 <details>
 <summary><strong>问：我需要先安装 Gemini CLI 或 Claude Code 吗？</strong></summary>
-答：<strong>完全不需要。</strong> AionUi 自带 AI Agent，装好就能用。输入任意 API 密钥即可开始。如果你已经装了 Claude Code 或 Gemini CLI 这些 CLI 工具，AionUi 会自动发现并集成它们，功能更强大。
+答：<strong>完全不需要。</strong> GEAUi 自带 AI Agent，装好就能用。输入任意 API 密钥即可开始。如果你已经装了 Claude Code 或 Gemini CLI 这些 CLI 工具，GEAUi 会自动发现并集成它们，功能更强大。
 </details>
 
 <details>
-<summary><strong>问：我可以用 AionUi 做什么？</strong></summary>
-答：AionUi 就是你的<strong>私有 Cowork 工作空间</strong>。内置 Agent 可以帮你批量整理文件夹、处理 Excel 数据、生成文档、搜索网络、生成图像。通过多 Agent 模式，你还能在同一界面同时使用 Claude Code、Codex 和其他强大的 CLI Agent。
+<summary><strong>问：我可以用 GEAUi 做什么？</strong></summary>
+答：GEAUi 就是你的<strong>私有 Cowork 工作空间</strong>。内置 Agent 可以帮你批量整理文件夹、处理 Excel 数据、生成文档、搜索网络、生成图像。通过多 Agent 模式，你还能在同一界面同时使用 Claude Code、Codex 和其他强大的 CLI Agent。
 </details>
 
 <details>
 <summary><strong>问：它是免费的吗？</strong></summary>
-答：AionUi 完全免费且开源。你只需为所选服务商的 API 用量付费，可以使用任何你喜欢的服务商的 API 密钥。
+答：GEAUi 完全免费且开源。你只需为所选服务商的 API 用量付费，可以使用任何你喜欢的服务商的 API 密钥。
 </details>
 
 <details>
@@ -575,7 +575,7 @@ AionUi 是一个**免费开源的 Multi-AI Agent 桌面应用**。相比只能�
 
 ---
 
-## 看看大家是怎么用 AionUi 的
+## 看看大家是怎么用 GEAUi 的
 
 <p align="center">
   <a href="https://www.youtube.com/watch?v=vWxE6VO9TKo" target="_blank">
@@ -609,7 +609,7 @@ AionUi 是一个**免费开源的 Multi-AI Agent 桌面应用**。相比只能�
 - [让普通人像使用 APP 一样使用 Claude Code](https://mp.weixin.qq.com/s/TsMojSbkUUFvsd-HQCazZg) — 懒猫爱摸鱼
 - [5500 Stars：开源如何打破 Anthropic 的 AI 工具护城河](https://mp.weixin.qq.com/s/saEk49cYV6MqBgw19Lw6Gw) — AI 硅基时刻
 
-> **制作了关于 AionUi 的视频？** [在 X 上告诉我们](https://x.com/AionUi)，我们会在这里展示！
+> **制作了关于 GEAUi 的视频？** [在 X 上告诉我们](https://x.com/AionUi)，我们会在这里展示！
 
 ---
 
@@ -640,7 +640,7 @@ brew install aionui
 
 ### 三步上手
 
-1. **安装** AionUi
+1. **安装** GEAUi
 2. **输入** 任意 API 密钥即可开始
 3. **开始 Cowork** — 内置 AI Agent 已经准备好了
 
@@ -703,7 +703,7 @@ brew install aionui
 
 ### 开发环境搭建
 
-AionUi 本地开发涉及两个仓库：AionUi 负责 Electron 前端，AionCore 负责本地后端。完整的 macOS、Linux 和 Windows 搭建流程请看 [开发指南](../contributing/development.md)。
+GEAUi 本地开发涉及两个仓库：GEAUi 负责 Electron 前端，GEACore 负责本地后端。完整的 macOS、Linux 和 Windows 搭建流程请看 [开发指南](../contributing/development.md)。
 
 ---
 
@@ -727,7 +727,7 @@ AionUi 本地开发涉及两个仓库：AionUi 负责 Electron 前端，AionCore
   </a>
 </td>
 <td>
-  <a href="https://packycode.com" target="_blank">PackyCode</a> 是一家可靠高效的 API 中继服务提供商，为 Claude Code、Codex、Gemini 等平台提供中继服务。感谢 PackyCode 为支持 AionUi 用户低成本使用，为我们的用户提供专属 <a href="https://www.packyapi.com/register?aff=aionui" target="_blank">9折优惠</a>，付款时使用优惠码 <code>aionui</code> 可立减 10%。
+  <a href="https://packycode.com" target="_blank">PackyCode</a> 是一家可靠高效的 API 中继服务提供商，为 Claude Code、Codex、Gemini 等平台提供中继服务。感谢 PackyCode 为支持 GEAUi 用户低成本使用，为我们的用户提供专属 <a href="https://www.packyapi.com/register?aff=aionui" target="_blank">9折优惠</a>，付款时使用优惠码 <code>aionui</code> 可立减 10%。
 </td>
 </tr>
 <tr>
@@ -735,7 +735,7 @@ AionUi 本地开发涉及两个仓库：AionUi 负责 Electron 前端，AionCore
   <a href="https://atomgit.com/iOfficeAI/AionUi" target="_blank">AtomGit</a>
 </td>
 <td>
-  <a href="https://atomgit.com/iOfficeAI/AionUi" target="_blank">AtomGit</a> — 面向全球开发者的开源社区与代码托管平台。AionUi 已在 AtomGit 上线，欢迎访问。
+  <a href="https://atomgit.com/iOfficeAI/AionUi" target="_blank">AtomGit</a> — 面向全球开发者的开源社区与代码托管平台。GEAUi 已在 AtomGit 上线，欢迎访问。
 </td>
 </tr>
 </table>
