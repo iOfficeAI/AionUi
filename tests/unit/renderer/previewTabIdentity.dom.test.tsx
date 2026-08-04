@@ -338,3 +338,32 @@ describe('closing the panel does not discard the project’s tabs', () => {
     expect(storedTabs()).toHaveLength(0);
   });
 });
+
+// The LRU that bounds stored scopes ranks them by `savedAt`, so a write with no
+// content change would make a scope look "hot" and outrank scopes that really do
+// hold tabs. Hiding the panel must therefore not trigger a persist at all — which
+// falls out of `closePreview` no longer touching `tabs`, but is worth pinning since
+// the two features were built separately and only interact through this field.
+describe('hiding the panel does not refresh the storage recency stamp', () => {
+  const savedAt = (): number | undefined => {
+    const raw = localStorage.getItem(previewScopeStorageKey(SCOPE));
+    if (!raw) return undefined;
+    return (JSON.parse(raw) as { savedAt?: number }).savedAt;
+  };
+
+  it('leaves savedAt untouched when the panel is closed', () => {
+    mount();
+    act(() => ctx.closePreviewIfScopeChanged(SCOPE));
+    act(() => ctx.openPreview('body', 'code', { file_name: 'a.ts', fileRef: projectRef('a.ts') }));
+    flushPersist();
+    const before = savedAt();
+    expect(before).toBeGreaterThan(0);
+
+    // Advance real time so a fresh write would produce a visibly newer stamp.
+    act(() => void vi.advanceTimersByTime(5_000));
+    act(() => ctx.closePreview());
+    flushPersist();
+
+    expect(savedAt()).toBe(before);
+  });
+});

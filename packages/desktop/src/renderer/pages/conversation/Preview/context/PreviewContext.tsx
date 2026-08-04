@@ -307,6 +307,16 @@ const loadScopeState = (scope: string): PersistedScopeState => {
   }
 };
 
+/** Parse one stored scope entry, or null when absent/corrupt. */
+const readPersistedEntry = (key: string): { tabs?: unknown; savedAt?: unknown } | null => {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? (JSON.parse(raw) as { tabs?: unknown; savedAt?: unknown }) : null;
+  } catch {
+    return null;
+  }
+};
+
 /**
  * Drop the coldest scope entries until at most `keep` remain **in total**.
  *
@@ -357,7 +367,19 @@ const persistScopeState = (scope: string, state: PersistedScopeState): void => {
   const write = (): void => {
     const tabs = sanitizeTabsForPersistence(state.tabs);
     const activeTabId = tabs.some((t) => t.id === state.activeTabId) ? state.activeTabId : (tabs[0]?.id ?? null);
-    localStorage.setItem(key, JSON.stringify({ isOpen: state.isOpen, tabs, activeTabId, savedAt: Date.now() }));
+    const payload = { isOpen: state.isOpen, tabs, activeTabId };
+
+    // `savedAt` drives LRU eviction, so it has to mean "the tabs here last changed",
+    // not "this key was last written". Writes also happen for visibility-only changes
+    // — collapsing the panel persists `isOpen` — and letting those bump the stamp
+    // would make a scope the user merely glanced at outrank one holding real work,
+    // evicting the wrong entry. So carry the previous stamp forward when the stored
+    // tab set is unchanged.
+    const previous = readPersistedEntry(key);
+    const tabsUnchanged = previous !== null && JSON.stringify(previous.tabs) === JSON.stringify(tabs);
+    const savedAt = tabsUnchanged && typeof previous.savedAt === 'number' ? previous.savedAt : Date.now();
+
+    localStorage.setItem(key, JSON.stringify({ ...payload, savedAt }));
   };
 
   try {
