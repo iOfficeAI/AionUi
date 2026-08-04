@@ -28,6 +28,39 @@ export type BackendSystemDirs = {
   hubDir?: string;
 };
 
+export type WebHostLarkAuthUser = {
+  avatar?: string;
+  email?: string;
+  id: string;
+  phone?: string;
+  realname: string;
+  username: string;
+};
+
+export type WebHostLarkQrLoginSession = {
+  expiresIn: number;
+  loginUrl: string;
+  qrcodeId: string;
+};
+
+export type WebHostLarkQrLoginPollResult = {
+  status: 'authenticated' | 'expired' | 'pending';
+  user?: WebHostLarkAuthUser;
+};
+
+export type WebHostLarkAuthResult<T> =
+  | { success: true; data: T }
+  | { success: false; code: 'invalidResponse' | 'networkError' | 'serverError' };
+
+/**
+ * Lark authentication operations supplied by the host process.
+ * GEA access tokens stay inside the host process and are never exposed here.
+ */
+export type WebHostLarkAuth = {
+  createQrSession: () => Promise<WebHostLarkAuthResult<WebHostLarkQrLoginSession>>;
+  pollQrSession: (qrcodeId: string) => Promise<WebHostLarkAuthResult<WebHostLarkQrLoginPollResult>>;
+};
+
 /**
  * Options for starting WebHost
  */
@@ -40,6 +73,7 @@ export type WebHostOptions = {
   logDir?: string;
   dirs?: BackendSystemDirs;
   backend: { kind: 'ownBackend'; resolveBackend: BackendBinaryResolver } | { kind: 'useExistingBackend'; port: number };
+  larkAuth?: WebHostLarkAuth;
 };
 
 /**
