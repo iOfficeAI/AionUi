@@ -74,7 +74,9 @@
     "removeProjectConfirm": "\"{{name}}\" 프로젝트를 제거하시겠습니까? 프로젝트의 {{count}}개 대화도 함께 제거됩니다.",
     "newConversationInProject": "이 프로젝트에서 새 대화",
     "deleting": "삭제 중...",
-    "reorderPinned": "드래그하여 고정된 대화 순서 변경"
+    "reorderPinned": "드래그하여 고정된 대화 순서 변경",
+    "forkedFrom": "“{{name}}”에서 분기됨",
+    "forkedConversation": "분기된 대화"
   },
   "historySearch": {
     "tooltip": "메시지 검색",
@@ -416,7 +418,8 @@
     "openWith": {
       "vscode": "VS Code",
       "terminal": "터미널",
-      "explorer": "파일 탐색기"
+      "explorer": "파일 탐색기",
+      "browser": "브라우저"
     }
   },
   "minimap": {
@@ -563,7 +566,8 @@
     "sendboxHint": "실행 환경을 준비하는 중입니다. 첫 시작은 조금 더 오래 걸릴 수 있습니다."
   },
   "sendbox": {
-    "hint": "/ 로 명령, @ 로 파일 참조, ↑/↓ 로 메시지 기록 전환"
+    "hint": "/ 로 명령, @ 로 파일 참조, ↑/↓ 로 메시지 기록 전환",
+    "mediaPathFallback": "이 에이전트는 이 파일 형식을 기본적으로 지원하지 않으므로 파일 경로로 전송됩니다."
   },
   "agentTip": {
     "codes": {

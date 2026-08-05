@@ -220,7 +220,13 @@ export const conversation = {
     (list) => list.map(fromApiConversation)
   ),
   remove: httpDelete<boolean, { id: string }>((p) => `/api/conversations/${p.id}`),
-  update: httpPatch<boolean, { id: string; updates: Partial<TChatConversation>; merge_extra?: boolean }>(
+  // `name_source` qualifies a `name` change: 'user' = explicit rename (backend
+  // locks the name against agent-generated titles; also the default when absent),
+  // 'auto' = frontend-derived default title (stays agent-overwritable).
+  update: httpPatch<
+    boolean,
+    { id: string; updates: Partial<TChatConversation> & { name_source?: 'user' | 'auto' }; merge_extra?: boolean }
+  >(
     (p) => `/api/conversations/${p.id}`,
     (p) => {
       const updates = p.updates as Record<string, unknown>;
@@ -234,6 +240,19 @@ export const conversation = {
     }
   ),
   reset: httpPost<void, IResetConversationParams>((p) => `/api/conversations/${p.id}/reset`),
+  /**
+   * Fork the conversation at a message (inclusive) into a new conversation.
+   * The backend session materializes on the fork's first open — callers should
+   * follow up with `ensureRuntime` on the returned id to surface failures
+   * eagerly. Error reasons carry stable `FORK_*` prefixes for i18n mapping.
+   */
+  fork: withResponseMap(
+    httpPost<TChatConversation, { conversation_id: string; message_id: string }>(
+      (p) => `/api/conversations/${p.conversation_id}/fork`,
+      (p) => ({ message_id: p.message_id })
+    ),
+    fromApiConversation
+  ),
   ensureRuntime: httpPost<EnsureConversationRuntimeResponse, { conversation_id: string }>(
     (p) => `/api/conversations/${p.conversation_id}/runtime/ensure`,
     () => undefined
@@ -417,12 +436,6 @@ export interface ICdpStatus {
   enabled: boolean;
   port: number | null;
   startupEnabled: boolean;
-  instances: Array<{
-    pid: number;
-    port: number;
-    cwd: string;
-    startTime: number;
-  }>;
   configEnabled: boolean;
   isDevMode: boolean;
 }
@@ -526,6 +539,32 @@ export const application = {
   setZoomFactor: bridge.buildProvider<number, { factor: number }>('app.set-zoom-factor'),
   getCdpStatus: bridge.buildProvider<IBridgeResponse<ICdpStatus>, void>('app.get-cdp-status'),
   updateCdpConfig: bridge.buildProvider<IBridgeResponse<ICdpConfig>, Partial<ICdpConfig>>('app.update-cdp-config'),
+  /**
+   * 清空应用内浏览器的登录态与缓存（cookie / localStorage / 缓存）。
+   * 登录态是全局共享的，所以这是唯一的"退出所有网站登录"入口。
+   *
+   * Clear the in-app browser's sign-in state and cache (cookies / localStorage /
+   * caches). Sign-in state is globally shared, so this is the only way to sign out
+   * of every site the agent or user logged into.
+   */
+  clearBrowserData: bridge.buildProvider<IBridgeResponse<void>, void>('app.clear-browser-data'),
+  /**
+   * 渲染进程把侧边浏览器 webview 的 webContents id 报给主进程，用于把单目标 CDP 通道
+   * 附加到它。
+   *
+   * 为什么必须由渲染进程报：webview 的句柄只存在于渲染进程（webviewRef），主进程无法
+   * 凭空知道哪个 webContents 是「侧边浏览器」。主进程会校验 getType() === 'webview'，
+   * 所以即使这个通道被误用也无法拿主窗口去附加。
+   *
+   * The renderer reports the in-app browser webview's webContents id so the single-target
+   * CDP bridge can attach to it. It must come from the renderer because the webview handle
+   * only exists there (webviewRef); main cannot otherwise tell which WebContents is the
+   * in-app browser. Main validates getType() === 'webview', so even a misused call cannot
+   * attach to the main window.
+   */
+  reportBrowserWebContentsId: bridge.buildProvider<IBridgeResponse<void>, { webContentsId: number }>(
+    'app.report-browser-webcontents-id'
+  ),
   getStartOnBootStatus: bridge.buildProvider<IBridgeResponse<IStartOnBootStatus>, void>('app.get-start-on-boot-status'),
   setStartOnBoot: bridge.buildProvider<IBridgeResponse<IStartOnBootStatus>, { enabled: boolean }>(
     'app.set-start-on-boot'
@@ -1210,25 +1249,34 @@ export const document = {
 // Office Previews — routed to /api/*-preview/*
 // ---------------------------------------------------------------------------
 
+// Office watch bridges. start/stop additively carry a `file` (ChatFileRef) the
+// backend prefers over `file_path` (resolves pe→path server-side, keeps the same
+// watch session key for stop). `file_path` is still sent (required by the DTO;
+// '' when only a ref is available) and used as the legacy fallback.
+type OfficeStartParams = { file_path?: string; workspace?: string; file?: ChatFileRef };
+type OfficeStopParams = { file_path?: string; file?: ChatFileRef };
+const officeStartBody = (p: OfficeStartParams) => ({
+  file_path: p.file_path ?? '',
+  workspace: p.workspace,
+  file: p.file,
+});
+const officeStopBody = (p: OfficeStopParams) => ({ file_path: p.file_path ?? '', file: p.file });
+
 export const pptPreview = {
-  start: httpPost<{ url: string; error?: string }, { file_path: string; workspace?: string }>('/api/ppt-preview/start'),
-  stop: httpPost<void, { file_path: string }>('/api/ppt-preview/stop'),
+  start: httpPost<{ url: string; error?: string }, OfficeStartParams>('/api/ppt-preview/start', officeStartBody),
+  stop: httpPost<void, OfficeStopParams>('/api/ppt-preview/stop', officeStopBody),
   status: wsEmitter<{ state: 'starting' | 'installing' | 'ready' | 'error'; message?: string }>('ppt-preview.status'),
 };
 
 export const wordPreview = {
-  start: httpPost<{ url: string; error?: string }, { file_path: string; workspace?: string }>(
-    '/api/word-preview/start'
-  ),
-  stop: httpPost<void, { file_path: string }>('/api/word-preview/stop'),
+  start: httpPost<{ url: string; error?: string }, OfficeStartParams>('/api/word-preview/start', officeStartBody),
+  stop: httpPost<void, OfficeStopParams>('/api/word-preview/stop', officeStopBody),
   status: wsEmitter<{ state: 'starting' | 'installing' | 'ready' | 'error'; message?: string }>('word-preview.status'),
 };
 
 export const excelPreview = {
-  start: httpPost<{ url: string; error?: string }, { file_path: string; workspace?: string }>(
-    '/api/excel-preview/start'
-  ),
-  stop: httpPost<void, { file_path: string }>('/api/excel-preview/stop'),
+  start: httpPost<{ url: string; error?: string }, OfficeStartParams>('/api/excel-preview/start', officeStartBody),
+  stop: httpPost<void, OfficeStopParams>('/api/excel-preview/stop', officeStopBody),
   status: wsEmitter<{ state: 'starting' | 'installing' | 'ready' | 'error'; message?: string }>('excel-preview.status'),
 };
 
@@ -1660,6 +1708,9 @@ export interface IResponseMessage {
   turn_id?: string;
   conversation_id: string;
   created_at?: number;
+  /** Backend turn anchor (codex Turn.id) for fork gating; mirrors the
+   *  persisted messages.backend_turn_id so live frames gate like history. */
+  backend_turn_id?: string;
   hidden?: boolean;
   position?: 'left' | 'right' | 'center' | 'pop';
   status?: 'finish' | 'pending' | 'error' | 'work';

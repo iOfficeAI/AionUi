@@ -60,5 +60,37 @@
   "releaseLog": "Registro de versões",
   "cancel": "Cancelar",
   "minimize": "Minimizar",
-  "restoreUpdateNotification": "Restaurar progresso da atualização"
+  "restoreUpdateNotification": "Restaurar progresso da atualização",
+  "migration": {
+    "capsule": "Uma carta aos nossos usuários",
+    "letter": {
+      "title": "Uma carta da equipe AionUi",
+      "whyTitle": "Por que essa mudança?",
+      "whyLead": "O modelo antigo — distribuir um instalador que cada um roda localmente — não sustentava a experiência que queremos entregar:",
+      "whyReason1": "Depois que o instalador era distribuído, não conseguíamos mais alcançá-lo: correções não chegavam a tempo e as skills e assistentes mais recentes não podiam ser sincronizados;",
+      "whyReason2": "Manter instaladores confiáveis para Mac e Windows exige investimento contínuo em assinatura, certificação e segurança;",
+      "whyReason3": "As capacidades tão aguardadas — múltiplas contas, sincronização de dados, um companheiro móvel mais seguro — precisam de uma base de serviços mais segura e profissional.",
+      "promisesTitle": "Atualize com tranquilidade:",
+      "promise2": "Seus dados locais permanecem como estão: após o primeiro login, a nova versão herda no mesmo lugar suas conversas, configurações e chaves de API — nada precisa ser reconfigurado. Essa herança é uma migração única: depois de concluída, a nova versão passa a guardar esses dados e a versão atual deixa de ser o ponto de acesso a eles;",
+      "promise3": "A nova versão não exige nenhum consumo: você continua usando o AionUi como hoje, e o que é gratuito hoje continuará gratuito;",
+      "choicesTitle": "Você continua livre para escolher:",
+      "choice2": "Se você prefere o DIY local, continue baixando o código open source e empacote você mesmo.",
+      "closing": "Por fim, obrigado por acompanhar o AionUi até aqui — esperamos encontrá-lo na nova versão.",
+      "signature": "Equipe AionUi",
+      "downloadNew": "Baixar a nova versão",
+      "greeting": "Caro usuário do AionUi,",
+      "whyOutroPrefix": "Por isso, ",
+      "whyOutroBold": "a nova versão exige login para ser usada",
+      "whyOutroSuffix": " (login com Google é suportado, e mais opções estão a caminho). Queremos construir o AionUi como um produto de verdade, para o longo prazo — com as contas, tudo isso finalmente tem um ponto de partida, e poderemos responder muito melhor aos seus reportes.",
+      "choice1Bold": "Se você usa o AionUi no dia a dia, recomendamos atualizar para a nova versão",
+      "choice1Rest": ": novas capacidades, skills e assistentes chegarão primeiro até você, e os próximos serviços baseados em conta, como sincronização de dados, se abrirão sem atritos;",
+      "promise1Bold": "Suas conversas e arquivos continuam locais",
+      "promise1Rest": ": os agentes rodam no seu próprio computador, e suas conversas e arquivos nunca são enviados aos nossos servidores;",
+      "introPrefix": "Obrigado pelo seu apoio contínuo ao AionUi. ",
+      "introBold": "Este é um convite para baixar a nova versão do AionUi",
+      "introSuffix": ": de agora em diante, os instaladores e as atualizações serão fornecidos pelo nosso site oficial, e não mais pelo GitHub Releases. Convidamos você sinceramente a obter a nova versão no site.",
+      "promise4": "O repositório open source continua ativo, os recursos principais permanecem sincronizados e o espírito open source se mantém.",
+      "noRush": "Se preferir esperar, a versão atual continua funcionando normalmente — apenas não receberá mais atualizações. Mas, assim que você concluir o primeiro login na nova versão, seus dados locais já terão sido migrados para lá; use então a nova versão como seu ponto de acesso do dia a dia."
+    }
+  }
 }

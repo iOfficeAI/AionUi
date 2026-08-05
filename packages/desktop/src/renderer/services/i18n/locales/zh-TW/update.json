@@ -60,5 +60,37 @@
   "releaseLog": "更新日誌",
   "cancel": "取消",
   "minimize": "最小化",
-  "restoreUpdateNotification": "恢復更新進度"
+  "restoreUpdateNotification": "恢復更新進度",
+  "migration": {
+    "capsule": "致用戶的一封信",
+    "letter": {
+      "title": "來自 AionUi 團隊的一封信",
+      "whyTitle": "為什麼要這樣做？",
+      "whyLead": "過去「打包分發、各自本地運行」的方式，一直難以支撐我們想帶給您的體驗：",
+      "whyReason1": "安裝包一旦發出，我們就無法再觸達它——修復無法及時送達，最新的技能與助手也無法為您同步；",
+      "whyReason2": "為 Mac 和 Windows 維護可靠的安裝包，背後是持續的簽名、認證與安全投入；",
+      "whyReason3": "大家期待已久的多帳號、資料同步、更安全的手機端協同，都需要更安全、專業的服務體系作為基礎。",
+      "promisesTitle": "請放心更新：",
+      "promise2": "您的本地資料原樣保留：新版本首次登入後會原地繼承當前的會話、設定與 API Key，無需重新設定。這是一次性的遷移——完成後這份資料便由新版本持有，當前版本不再作為它的入口；",
+      "promise3": "新版本沒有綁定消費：現在怎麼用，以後還怎麼用；現在免費的功能，以後也都是免費的；",
+      "choicesTitle": "您依舊可以自由選擇：",
+      "choice2": "如果您更喜歡本地 DIY，可以持續更新開源原始碼，自行打包使用。",
+      "closing": "最後，感謝您陪 AionUi 走到今天，期待在新版與您相遇。",
+      "signature": "AionUi 團隊",
+      "downloadNew": "前往官網下載新版",
+      "greeting": "親愛的 AionUi 用戶：",
+      "whyOutroPrefix": "因此，",
+      "whyOutroBold": "新版本需要登入後使用",
+      "whyOutroSuffix": "（支援 Google 登入，更多登入方式正在路上）。我們希望把 AionUi 真正當作一個產品認真做下去，有了帳號，這些才有了起點；您回報的問題，我們也能更好地回應。",
+      "choice1Bold": "如果您日常使用 AionUi，建議您升級到新版本",
+      "choice1Rest": "：今後新的能力、技能與助手都會第一時間到達您手上，後續基於帳號的資料同步等服務，也都會為您順暢開啟；",
+      "promise1Bold": "您的對話與檔案依舊只在本地",
+      "promise1Rest": "：Agent 在您自己的電腦上運行，對話內容與檔案不會上傳到我們的伺服器；",
+      "introPrefix": "感謝您一直以來對 AionUi 的支持，",
+      "introBold": "這是一封 AionUi 新版本的下載邀請信",
+      "introSuffix": "：今後 AionUi 的安裝包與更新將由官網提供，不再走 GitHub Release 渠道，我們誠邀您移步官網下載新版。",
+      "promise4": "開源倉庫持續更新，核心功能保持同步，開源精神不變。",
+      "noRush": "如果您暫不升級，當前版本仍可照常使用，只是不會再收到更新；而一旦在新版本完成首次登入，本地資料便已遷移過去，請以新版本作為日常入口。"
+    }
+  }
 }

@@ -60,5 +60,37 @@
   "releaseLog": "Sürüm günlüğü",
   "cancel": "İptal",
   "minimize": "Küçült",
-  "restoreUpdateNotification": "Güncelleme ilerlemesini geri yükle"
+  "restoreUpdateNotification": "Güncelleme ilerlemesini geri yükle",
+  "migration": {
+    "capsule": "Kullanıcılarımıza bir mektup",
+    "letter": {
+      "title": "AionUi ekibinden bir mektup",
+      "whyTitle": "Neden bu değişiklik?",
+      "whyLead": "Eski \"yükleyiciyi dağıt, herkes yerelde çalıştırsın\" modeli, sunmak istediğimiz deneyimi taşıyamıyordu:",
+      "whyReason1": "Yükleyici dağıtıldıktan sonra ona bir daha ulaşamıyorduk — düzeltmeler zamanında ulaşamıyor, en yeni beceriler ve asistanlar eşitlenemiyordu;",
+      "whyReason2": "Mac ve Windows için güvenilir yükleyiciler sürdürmek; imzalama, sertifikasyon ve güvenliğe süregelen yatırım gerektirir;",
+      "whyReason3": "Uzun süredir beklenen özellikler — çoklu hesap, veri eşitleme, daha güvenli mobil eşlik — daha güvenli ve profesyonel bir hizmet temeline ihtiyaç duyar.",
+      "promisesTitle": "Gönül rahatlığıyla güncelleyin:",
+      "promise2": "Yerel verileriniz olduğu gibi kalır: ilk oturum açmanızın ardından yeni sürüm mevcut konuşmalarınızı, ayarlarınızı ve API anahtarlarınızı yerinde devralır — yeniden yapılandırma gerekmez. Bu devralma tek seferlik bir taşımadır: tamamlandıktan sonra bu veriler yeni sürümde tutulur ve mevcut sürüm artık onların giriş noktası olmaz;",
+      "promise3": "Yeni sürümde zorunlu harcama yok: AionUi'yi bugün nasıl kullanıyorsanız yarın da öyle kullanacaksınız; bugün ücretsiz olan her şey ücretsiz kalacak;",
+      "choicesTitle": "Seçim yine de size ait:",
+      "choice2": "Yerel DIY'yi tercih ediyorsanız, açık kaynak kodu almaya ve kendiniz paketlemeye devam edebilirsiniz.",
+      "closing": "Son olarak, AionUi ile bugüne kadar geldiğiniz için teşekkürler — yeni sürümde görüşmek dileğiyle.",
+      "signature": "AionUi Ekibi",
+      "downloadNew": "Yeni sürümü indir",
+      "greeting": "Sevgili AionUi kullanıcısı,",
+      "whyOutroPrefix": "Bu nedenle ",
+      "whyOutroBold": "yeni sürümün kullanımı için oturum açmak gerekiyor",
+      "whyOutroSuffix": " (Google ile oturum açma destekleniyor, daha fazla seçenek yolda). AionUi'yi uzun vadede gerçek bir ürün olarak geliştirmek istiyoruz — hesaplarla bunların nihayet bir başlangıç noktası oluyor ve bildirimlerinize çok daha iyi yanıt verebileceğiz.",
+      "choice1Bold": "AionUi'yi günlük kullanıyorsanız yeni sürüme yükseltmenizi öneririz",
+      "choice1Rest": ": yeni yetenekler, beceriler ve asistanlar önce size ulaşır; veri eşitleme gibi hesap tabanlı gelecek hizmetler de sizin için sorunsuzca açılır;",
+      "promise1Bold": "Konuşmalarınız ve dosyalarınız yerelde kalır",
+      "promise1Rest": ": ajanlar kendi bilgisayarınızda çalışır; konuşmalarınız ve dosyalarınız sunucularımıza asla yüklenmez;",
+      "introPrefix": "AionUi'ye verdiğiniz sürekli destek için teşekkür ederiz. ",
+      "introBold": "Bu, AionUi'nin yeni sürümünü indirmeniz için bir davettir",
+      "introSuffix": ": bundan böyle yükleyiciler ve güncellemeler GitHub Releases yerine resmi web sitemiz üzerinden sunulacak. Yeni sürümü siteden edinmenizi içtenlikle rica ederiz.",
+      "promise4": "Açık kaynak deposu aktif olarak güncellenmeye devam eder, çekirdek özellikler eşzamanlı kalır, açık kaynak ruhu sürer.",
+      "noRush": "Şimdilik geçmek istemiyorsanız mevcut sürümü normal şekilde kullanmaya devam edebilirsiniz; yalnızca artık güncelleme almayacaktır. Ancak yeni sürümde ilk oturumu açtığınız anda yerel verileriniz oraya taşınmış olur; bundan sonra günlük kullanımınız için yeni sürümü giriş noktası olarak kullanın."
+    }
+  }
 }

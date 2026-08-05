@@ -33,6 +33,7 @@ type SearchableEvent = {
   exception?: { values?: unknown[] };
   contexts?: Record<string, unknown>;
   extra?: Record<string, unknown>;
+  tags?: Record<string, unknown>;
 };
 
 function collectStringLeaves(value: unknown, haystacks: string[], seen = new WeakSet<object>(), depth = 0): void {
@@ -78,6 +79,19 @@ function collectEventSearchText(event: SearchableEvent): string[] {
   return haystacks;
 }
 
+// Drop native GPU-process crashes (minidumps). The message-based patterns above
+// only catch GPU crashes that log a fatal reason; illegal-instruction / mojo
+// teardown minidumps on unsupported GPUs (e.g. ELECTRON-3WS: Intel HD 4000 with a
+// 2013 driver) carry no such message and slip through. gpuRecovery self-heals
+// repeated GPU crashes, so this telemetry has no triage value. Detected by the
+// crashpad process-type annotation ("gpu-process") or the event.process tag.
+function isGpuProcessCrashEvent(event: SearchableEvent, haystacks: string[]): boolean {
+  if (event.tags?.['event.process'] === 'gpu') {
+    return true;
+  }
+  return haystacks.some((h) => h.includes('gpu-process'));
+}
+
 function hasBackendStartupFailed(): boolean {
   return (globalThis as typeof globalThis & { __backendStartupFailed?: boolean }).__backendStartupFailed === true;
 }
@@ -106,6 +120,9 @@ export function initSentry(): void {
     beforeSend(event) {
       const haystacks = collectEventSearchText(event);
       if (GPU_CRASH_DROP_PATTERNS.some((re) => haystacks.some((h) => re.test(h)))) {
+        return null;
+      }
+      if (isGpuProcessCrashEvent(event, haystacks)) {
         return null;
       }
       if (isBackendStartupSecondaryEvent(event, haystacks)) {

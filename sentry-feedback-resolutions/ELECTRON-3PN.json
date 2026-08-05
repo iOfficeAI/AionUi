@@ -1,0 +1,14 @@
+{
+  "case": "ELECTRON-3PN",
+  "sentry_link": "https://iofficeai.sentry.io/issues/136120519/",
+  "status": "candidate-fixed",
+  "fixed_by": ["https://github.com/iOfficeAI/AionCore/pull/678"],
+  "fix_version": "pending-merge (AionCore > v0.1.51)",
+  "verification": "cargo nextest run --workspace 7431 passed; new tests: probe classification x4, adaptive pipeline x4, manual-check semantics x5; Sentry non-recurrence pending release",
+  "root_cause_summary": "pi CLI (~19.3k files) cold-loads --version in 5.6-6.8s on affected Windows host; fixed 5s CLI_VERSION_TIMEOUT condemned it to Missing (treated as not installed, generated assistant not materialized). Fix: classified probe failures, timeout->Unchecked + background 30s recheck, adaptive inline skip from measured history, manual check un-short-circuited, claude/codex + commandless builtins get PATH+--version.",
+  "diagnostics_changed": "last_check_error_code/message now carry classification + measured duration (version_probe_failed / version_probe_timeout) with UI guidance",
+  "report_path": "feedback-diagnostics-db-json.md",
+  "ledger_sidecar": "feedback-diagnostics-db-json.ledger.json",
+  "updated_at": "2026-07-24",
+  "needs_report_reconcile": false
+}

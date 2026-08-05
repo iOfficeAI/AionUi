@@ -139,5 +139,14 @@
     "installing": "Instalando componente de vista previa...",
     "startFailed": "Error al iniciar la vista previa de PPT",
     "installHint": "Instala OfficeCLI desde la página oficial de versiones de iOfficeAI/OfficeCLI"
+  },
+  "browser": {
+    "newTab": "Nueva pestaña",
+    "addressPlaceholder": "Escribe una URL o busca",
+    "agentActiveTooltip": "El agente está operando esta pestaña",
+    "tabLimitReached": "Se alcanzó el límite de pestañas ({{count}}). Se reutilizó la pestaña más antigua.",
+    "agentFirstUseTitle": "El agente está usando el navegador integrado",
+    "agentFirstUseContent": "Puede abrir páginas, hacer clic y leer contenido en este panel. Tu sesión se conserva.",
+    "agentFirstUseAction": "Abrir ajustes"
   }
 }

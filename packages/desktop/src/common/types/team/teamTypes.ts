@@ -118,9 +118,9 @@ export type ITeamRunEvent = {
 };
 
 export type ITeamRunStateResponse = {
-  session_generation: string | null;
+  session_generation?: string | null;
   active_run: ITeamRunEvent | null;
-  slot_work: ITeamSlotWork[];
+  slot_work?: ITeamSlotWork[];
 };
 
 export type ITeamChildTurnEvent = {

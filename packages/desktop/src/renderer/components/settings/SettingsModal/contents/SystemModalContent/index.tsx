@@ -20,6 +20,7 @@ import useSWR from 'swr';
 import { useSettingsViewMode } from '../../settingsViewContext';
 import BrowserNotificationGrant from './BrowserNotificationGrant';
 import DevSettings from './DevSettings';
+import BrowserDataSection from './BrowserDataSection';
 import DirInputItem from './DirInputItem';
 import PreferenceRow from './PreferenceRow';
 import VoiceInputSection from './VoiceInputSection';
@@ -476,6 +477,9 @@ const SystemModalContent: React.FC = () => {
 
           {/* Voice input (speech-to-text) settings */}
           <VoiceInputSection />
+
+          {/* In-app browser: sign-in state and cache */}
+          <BrowserDataSection />
 
           {/* Developer settings: DevTools + CDP (only visible in dev mode) */}
           <DevSettings />

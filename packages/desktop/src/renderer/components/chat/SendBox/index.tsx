@@ -1399,15 +1399,11 @@ const SendBox: React.FC<{
   ) : null;
 
   // On mobile compact mode, the parent supplies the action sheet — collapse
-  // tools/rightTools into the `+` launcher and skip the inline speech button.
+  // tools/rightTools into the `+` launcher while keeping voice input accessible.
   const renderedTools = isMobileCompact ? mobilePlusButton : tools;
   const renderedRightTools = isMobileCompact ? null : rightTools;
-  const renderedSpeechButton = isMobileCompact ? null : (
-    <SpeechInputButton
-      disabled={disabled || isLoading || loading || isUploading}
-      onLiveTranscript={handleLiveTranscript}
-      onTranscript={handleSpeechTranscript}
-    />
+  const renderedSpeechButton = (
+    <SpeechInputButton onLiveTranscript={handleLiveTranscript} onTranscript={handleSpeechTranscript} />
   );
 
   const renderHighlightedInputValue = useCallback(() => {
@@ -1709,7 +1705,7 @@ const SendBox: React.FC<{
             ></Input.TextArea>
           </div>
           {isSingleLine && (
-            <div className='flex items-center gap-2'>
+            <div className='flex items-center gap-1'>
               {renderedSpeechButton}
               {sendButtonPrefix}
               {renderActionButtons()}
@@ -1729,7 +1725,7 @@ const SendBox: React.FC<{
             >
               {renderedTools}
             </div>
-            <div className='sendbox-actions flex items-center gap-2'>
+            <div className='sendbox-actions flex items-center gap-1'>
               {renderedRightTools}
               {renderedSpeechButton}
               {sendButtonPrefix}

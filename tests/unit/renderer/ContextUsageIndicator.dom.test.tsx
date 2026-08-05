@@ -35,6 +35,12 @@ describe('ContextUsageIndicator', () => {
       <ContextUsageIndicator tokenUsage={{ total_tokens: 12_600 }} context_limit={262_144} />
     );
 
+    const ring = container.querySelector('.context-usage-indicator') as HTMLElement;
+    expect(ring.style.width).toBe('32px');
+    expect(ring.style.height).toBe('32px');
+    const progressSvg = ring.querySelector('svg');
+    expect(progressSvg?.getAttribute('width')).toBe('20');
+    expect(progressSvg?.getAttribute('height')).toBe('20');
     expect(container.querySelectorAll('circle')).toHaveLength(2);
     expect(getByTestId('popover-content').textContent).toContain('4.8% · 12.6K / 262.1K');
   });
