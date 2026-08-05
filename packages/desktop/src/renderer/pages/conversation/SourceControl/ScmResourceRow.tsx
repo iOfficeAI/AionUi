@@ -48,12 +48,56 @@ type StateKeySuffix = ScmKnownResourceState | 'unknown';
 const stateKeySuffix = (resource: ScmResource, kind: ScmResourceKind): StateKeySuffix =>
   kind === 'opaque' ? 'unknown' : (resource.state as ScmKnownResourceState);
 
-/** Badge colour per kind. conflicted/opaque are deliberately not "just modified". */
-const BADGE_CLASS: Record<ScmResourceKind, string> = {
-  regular: 'text-t-secondary',
-  renamed: 'text-t-secondary',
-  conflicted: 'text-danger',
-  opaque: 'text-t-tertiary',
+/**
+ * Badge styling for the A/M/D letter, keyed on the **suffix** — i.e. on `kind`
+ * first, then on the narrowed known state (see {@link stateKeySuffix}).
+ *
+ * Why keyed on the suffix and not on `resource.state`: `ScmResourceState` is an
+ * **open union** (`ScmKnownResourceState | (string & {})`), so a map keyed on the
+ * raw state could never be exhaustive and would need a non-null assertion at the
+ * lookup — exactly the "two-way branch meets a third value" shape that has bitten
+ * this file before. `stateKeySuffix` collapses every unrecognized state to
+ * `'unknown'` first, so this map IS total over its key type with no assertion.
+ *
+ * Colours come from the theme's semantic tokens (`--success` / `--warning` /
+ * `--danger`, defined per light and dark scheme in
+ * `styles/themes/default-color-scheme.css`), so they follow the theme with no
+ * hard-coded hex here:
+ *
+ *  - `created`  → success  (added)
+ *  - `modified` → warning  (changed in place)
+ *  - `deleted`  → danger   (gone)
+ *  - `renamed`  → success: a rename is the *presence* half of a move. When rename
+ *    detection is skipped the same move surfaces as `deleted` + `created`, and
+ *    colouring `renamed` like `created` keeps those two renderings visually
+ *    consistent instead of inventing a fourth hue for the same event.
+ *  - `unknown`  → tertiary (see below)
+ */
+const BADGE_CLASS: Record<StateKeySuffix, string> = {
+  created: 'text-success',
+  modified: 'text-warning',
+  deleted: 'text-danger',
+  renamed: 'text-success',
+  /**
+   * `conflicted` must NOT be plain `text-danger`.
+   *
+   * `deleted` is danger-coloured, and these two states are the pair a user most
+   * needs to tell apart: a deleted file is an ordinary change with actions
+   * available, while a conflicted file has **every action disabled** (no buttons
+   * at all, see `canDiscard` / `stagingActions`). If conflicted merely looks like
+   * deleted, the user hunts for buttons that were never there.
+   *
+   * So it is distinguished by **shape, not only hue** — a filled chip
+   * (`bg-danger-light-1` + `border-danger-4` + a deeper `text-danger-6`), which is
+   * the same treatment `CronStatusTag` uses for a status that needs to stand out.
+   * All four are Arco theme variables, so this still follows the theme. Being
+   * heavier than the plain letters is intentional: this is the state that most
+   * needs attention, so it must not read as *less* prominent than `deleted`.
+   */
+  conflicted: 'bg-danger-light-1 border border-danger-4 text-danger-6 rd-2px',
+  /** Unknown to this build: shown, but deliberately the quietest — we cannot say
+   *  what it means, so it must not borrow another state's colour. */
+  unknown: 'text-t-tertiary',
 };
 
 export type ScmResourceRowProps = {
@@ -182,7 +226,7 @@ export const ScmResourceRow: React.FC<ScmResourceRowProps> = ({
     >
       <span
         aria-label={t(`conversation.explorer.scm.state.${suffix}`)}
-        className={`flex-shrink-0 w-14px text-center text-12px font-medium ${BADGE_CLASS[kind]}`}
+        className={`flex-shrink-0 w-14px text-center text-12px font-medium ${BADGE_CLASS[suffix]}`}
       >
         {t(`conversation.explorer.scm.badge.${suffix}`)}
       </span>

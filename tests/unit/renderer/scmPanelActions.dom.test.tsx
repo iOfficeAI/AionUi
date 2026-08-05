@@ -635,3 +635,98 @@ describe('blocked group states its reason inline', () => {
     expect(document.querySelector('[data-scm-blocked-hint]')).toBeNull();
   });
 });
+
+describe('status letter colour follows the state (and the theme)', () => {
+  /** The A/M/D letter element for a row, found by its state badge. */
+  const badgeOf = (name: string): HTMLElement => {
+    const badge = rowFor(name).querySelector('[aria-label^="conversation.explorer.scm.state."]');
+    if (!badge) throw new Error(`no badge for ${name}`);
+    return badge as HTMLElement;
+  };
+
+  it('colours created / modified / deleted with the three semantic theme tokens', async () => {
+    // Asserting on `text-success` / `text-warning` / `text-danger` rather than on hex
+    // values is the point, not an accident: those classes resolve to `--success` /
+    // `--warning` / `--danger`, which are defined once per light and dark scheme in
+    // `styles/themes/default-color-scheme.css`. A hard-coded hex here would pass this
+    // test and then be wrong in one of the two themes.
+    install({
+      resources: [
+        resource('added.ts', { state: 'created', staged: false }),
+        resource('changed.ts', { state: 'modified', staged: false }),
+        resource('gone.ts', { state: 'deleted', staged: false }),
+      ],
+    });
+    render(<ScmPanel projectId='p1' />);
+    await screen.findByText('added.ts');
+
+    expect(badgeOf('added.ts').className).toContain('text-success');
+    expect(badgeOf('changed.ts').className).toContain('text-warning');
+    expect(badgeOf('gone.ts').className).toContain('text-danger');
+  });
+
+  it('gives DELETED and CONFLICTED different classes — they must never be unified', async () => {
+    // ⚠️ This is the reverse assertion that guards the whole point of the change.
+    // Both states are "red-ish", so a future "let's unify the red states" cleanup
+    // would keep every forward assertion above green while destroying the one
+    // distinction that matters: a deleted row has actions, a conflicted row has
+    // NONE. If they look alike, the user hunts for buttons that were never there.
+    install({
+      resources: [
+        resource('gone.ts', { state: 'deleted', staged: false }),
+        resource('clash.ts', { state: 'conflicted', staged: undefined }),
+      ],
+    });
+    render(<ScmPanel projectId='p1' />);
+    await screen.findByText('clash.ts');
+
+    const deleted = badgeOf('gone.ts').className;
+    const conflicted = badgeOf('clash.ts').className;
+    expect(conflicted).not.toBe(deleted);
+    // And the difference is structural (a chip), not merely a different shade —
+    // shade alone would not survive a colour-blind or low-contrast display.
+    expect(conflicted).toContain('bg-danger-light-1');
+    expect(conflicted).toContain('border-danger-4');
+    expect(deleted).not.toContain('bg-danger-light-1');
+  });
+
+  it('keeps conflicted at least as prominent as deleted (never quieter)', async () => {
+    // It is the state that most needs attention; making it subtler than an ordinary
+    // change would invert the priority.
+    install({ resources: [resource('clash.ts', { state: 'conflicted', staged: undefined })] });
+    render(<ScmPanel projectId='p1' />);
+    await screen.findByText('clash.ts');
+
+    const cls = badgeOf('clash.ts').className;
+    expect(cls).not.toContain('text-t-tertiary'); // the "quietest" token
+    expect(cls).not.toContain('text-t-secondary');
+  });
+
+  it('colours renamed like created — the two renderings of one move stay consistent', async () => {
+    // Over the rename-detection budget the same move arrives as `deleted` + `created`
+    // instead of one `renamed`. Colouring renamed like created keeps both renderings
+    // reading as "the file is here now" rather than inventing a fourth hue.
+    install({ resources: [resource('moved.ts', { state: 'renamed', rename_from: 'old.ts', staged: false })] });
+    render(<ScmPanel projectId='p1' />);
+    // This file's i18n mock renders interpolations as `key:{json}` (see the
+    // react-i18next mock at the top), so the label is matched on that shape.
+    const label = await screen.findByText(/scm\.renamedFrom/);
+    const badge = label
+      .closest('[data-scm-resource]')
+      ?.querySelector('[aria-label^="conversation.explorer.scm.state."]');
+    expect(badge?.className).toContain('text-success');
+  });
+
+  it('leaves an UNKNOWN state on the quiet token, borrowing no other state colour', async () => {
+    // We cannot say what it means, so it must not wear created/modified/deleted's colour.
+    install({ resources: [resource('future.ts', { state: 'merge', staged: false })] });
+    render(<ScmPanel projectId='p1' />);
+    await screen.findByText('future.ts');
+
+    const cls = badgeOf('future.ts').className;
+    expect(cls).toContain('text-t-tertiary');
+    for (const borrowed of ['text-success', 'text-warning', 'text-danger']) {
+      expect(cls).not.toContain(borrowed);
+    }
+  });
+});
