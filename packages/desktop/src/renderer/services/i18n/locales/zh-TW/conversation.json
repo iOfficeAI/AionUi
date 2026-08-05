@@ -630,5 +630,12 @@
       "empty": "沒有符合的檔案",
       "limitReached": "僅顯示前 {{count}} 項 — 請縮小範圍"
     }
+  },
+  "terminal": {
+    "running": "執行中",
+    "stopped": "已停止",
+    "exited": "結束碼 {{code}}",
+    "stop": "停止",
+    "truncated": "(較早輸出已截斷)"
   }
 }

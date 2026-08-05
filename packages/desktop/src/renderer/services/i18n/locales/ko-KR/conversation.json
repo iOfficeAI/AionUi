@@ -630,5 +630,12 @@
       "empty": "일치하는 파일이 없습니다",
       "limitReached": "처음 {{count}}개 표시 — 범위를 좁혀 주세요"
     }
+  },
+  "terminal": {
+    "running": "실행 중",
+    "stopped": "중지됨",
+    "exited": "종료 코드 {{code}}",
+    "stop": "중지",
+    "truncated": "(이전 출력 잘림)"
   }
 }

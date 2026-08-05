@@ -636,5 +636,12 @@
       "empty": "Nenhum arquivo corresponde",
       "limitReached": "Mostrando os primeiros {{count}} — refine a busca"
     }
+  },
+  "terminal": {
+    "running": "Executando",
+    "stopped": "Parado",
+    "exited": "Saída {{code}}",
+    "stop": "Parar",
+    "truncated": "(saída anterior truncada)"
   }
 }

@@ -67,7 +67,8 @@ type TMessageType =
   | 'acp_tool_call'
   | 'plan'
   | 'thinking'
-  | 'available_commands';
+  | 'available_commands'
+  | 'acp_terminal_output';
 
 interface IMessage<T extends TMessageType, Content extends Record<string, any>> {
   /**
@@ -299,6 +300,19 @@ export type IMessagePermission = IMessage<'permission', IConfirmation>;
 
 export type IMessageAcpToolCall = IMessage<'acp_tool_call', ToolCallUpdate>;
 
+/** Live snapshot of a client-hosted terminal (ACP terminal/*). Stream-only —
+ * never persisted; the card disappears on conversation reload. */
+export interface AcpTerminalOutputContent {
+  terminal_id: string;
+  command: string;
+  /** Cumulative output (backend sends the full buffer each frame). */
+  output: string;
+  truncated: boolean;
+  exit_status?: { exit_code?: number | null; signaled?: boolean } | null;
+}
+
+export type IMessageAcpTerminalOutput = IMessage<'acp_terminal_output', AcpTerminalOutputContent>;
+
 export const mergeAcpToolCallContent = (
   existing: IMessageAcpToolCall['content'],
   incoming: IMessageAcpToolCall['content']
@@ -380,7 +394,8 @@ export type TMessage =
   | IMessageAcpToolCall
   | IMessagePlan
   | IMessageThinking
-  | IMessageAvailableCommands;
+  | IMessageAvailableCommands
+  | IMessageAcpTerminalOutput;
 
 // 统一所有需要用户交互的用户类型
 export interface IConfirmation<Option extends any = any> {
@@ -764,6 +779,21 @@ const transformMessageInner = (message: IResponseMessage): TMessage | undefined 
         conversation_id: message.conversation_id,
         created_at,
         content: message.data as any,
+      };
+    }
+    case 'acp_terminal_output': {
+      const terminal = message.data as any;
+      return {
+        // Deterministic id per terminal: every frame of a turn shares one
+        // msg_id, so a uuid per frame would stack cards and the msg_id
+        // fallback merge would collapse two terminals into one.
+        id: `term:${message.msg_id}:${terminal?.terminal_id ?? ''}`,
+        type: 'acp_terminal_output',
+        msg_id: message.msg_id,
+        position: 'left',
+        conversation_id: message.conversation_id,
+        created_at,
+        content: terminal,
       };
     }
     case 'acp_tool_call': {

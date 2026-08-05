@@ -634,5 +634,12 @@
       "empty": "No files match",
       "limitReached": "Showing first {{count}} — refine to narrow"
     }
+  },
+  "terminal": {
+    "running": "Running",
+    "stopped": "Stopped",
+    "exited": "Exit {{code}}",
+    "stop": "Stop",
+    "truncated": "(earlier output truncated)"
   }
 }
