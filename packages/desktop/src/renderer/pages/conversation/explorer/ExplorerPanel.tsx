@@ -12,10 +12,10 @@
  * a right-click "Remove from project" action; the workspace root is immutable.
  */
 
-import { Dropdown, Menu, Tree } from '@arco-design/web-react';
+import { Button, Dropdown, Menu, Tree } from '@arco-design/web-react';
 import { isElectronDesktop } from '@/renderer/utils/platform';
 import type { TreeProps } from '@arco-design/web-react';
-import { Caution } from '@icon-park/react';
+import { Caution, MoreOne } from '@icon-park/react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -203,6 +203,7 @@ export const ExplorerPanel: React.FC<ExplorerPanelProps> = ({
       // Reveal-in-folder is Electron-only (needs a local OS shell; WebUI may be
       // remote and has no shell permission), so gate the menu item on the runtime.
       const canReveal = Boolean(onRevealInFolder) && isElectronDesktop();
+      const showWebActions = !isElectronDesktop();
       const hasMenu = onAddToChat || canReveal || (isRoot ? onRemoveRoot : onRename || onDelete);
       if (!hasMenu) return title;
 
@@ -226,29 +227,44 @@ export const ExplorerPanel: React.FC<ExplorerPanelProps> = ({
         else if (menuKey === 'revealInFolder') onRevealInFolder?.(peId, rel);
       };
 
+      const renderMenu = () => (
+        <Menu onClickMenuItem={onClickMenuItem}>
+          {onAddToChat && <Menu.Item key='addToChat'>{t('conversation.explorer.contextMenu.addToChat')}</Menu.Item>}
+          {canReveal && (
+            <Menu.Item key='revealInFolder'>{t('conversation.workspace.contextMenu.openLocation')}</Menu.Item>
+          )}
+          {!isRoot && onRename && <Menu.Item key='rename'>{t('conversation.explorer.contextMenu.rename')}</Menu.Item>}
+          {!isRoot && onDelete && <Menu.Item key='delete'>{t('common.delete')}</Menu.Item>}
+          {isRoot && onRemoveRoot && (
+            <Menu.Item key='remove' disabled={!removable}>
+              {t('conversation.explorer.removeFolder')}
+            </Menu.Item>
+          )}
+        </Menu>
+      );
+
+      const rowTitle = showWebActions ? (
+        <span className='flex items-center min-w-0 w-full'>
+          <span className='min-w-0 flex-1'>{title}</span>
+          <span onClick={(event) => event.stopPropagation()} onContextMenu={(event) => event.stopPropagation()}>
+            <Dropdown trigger='click' position='br' droplist={renderMenu()}>
+              <Button
+                type='text'
+                size='mini'
+                className='flex-shrink-0'
+                aria-label={t('common.more')}
+                icon={<MoreOne theme='outline' size='16' />}
+              />
+            </Dropdown>
+          </span>
+        </span>
+      ) : (
+        title
+      );
+
       return (
-        <Dropdown
-          trigger='contextMenu'
-          position='bl'
-          droplist={
-            <Menu onClickMenuItem={onClickMenuItem}>
-              {onAddToChat && <Menu.Item key='addToChat'>{t('conversation.explorer.contextMenu.addToChat')}</Menu.Item>}
-              {canReveal && (
-                <Menu.Item key='revealInFolder'>{t('conversation.workspace.contextMenu.openLocation')}</Menu.Item>
-              )}
-              {!isRoot && onRename && (
-                <Menu.Item key='rename'>{t('conversation.explorer.contextMenu.rename')}</Menu.Item>
-              )}
-              {!isRoot && onDelete && <Menu.Item key='delete'>{t('common.delete')}</Menu.Item>}
-              {isRoot && onRemoveRoot && (
-                <Menu.Item key='remove' disabled={!removable}>
-                  {t('conversation.explorer.removeFolder')}
-                </Menu.Item>
-              )}
-            </Menu>
-          }
-        >
-          {title}
+        <Dropdown trigger='contextMenu' position='bl' droplist={renderMenu()}>
+          {rowTitle}
         </Dropdown>
       );
     },

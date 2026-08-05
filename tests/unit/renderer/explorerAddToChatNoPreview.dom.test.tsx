@@ -23,6 +23,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (k: string) => k }) }));
 vi.mock('@/renderer/pages/conversation/explorer/monitorTransport', () => ({ initExplorerRuntime: () => ({}) }));
+vi.mock('@/renderer/utils/platform', () => ({ isElectronDesktop: () => false }));
 
 import type { DirRef, Entry, PeKey } from '@/renderer/pages/conversation/explorer/explorerModel';
 import { peKey, refToKey } from '@/renderer/pages/conversation/explorer/explorerModel';
@@ -82,6 +83,23 @@ describe('ExplorerPanel add-to-chat does not open preview', () => {
 
     fireEvent.click(await screen.findByText('a.ts'));
     expect(onOpenFile).toHaveBeenCalledWith('pe1', 'a.ts');
+  });
+
+  it('offers the same add-to-chat action from the WebUI more button', async () => {
+    const onOpenFile = vi.fn();
+    const onAddToChat = vi.fn();
+    renderPanel(onOpenFile, onAddToChat);
+
+    await screen.findByText('a.ts');
+    const moreButtons = screen.getAllByLabelText('common.more');
+    const moreButton = moreButtons.at(-1);
+
+    expect(moreButton).toBeDefined();
+    fireEvent.click(moreButton!);
+    fireEvent.click(await screen.findByText('conversation.explorer.contextMenu.addToChat'));
+
+    expect(onAddToChat).toHaveBeenCalledWith('pe1', 'a.ts', 'a.ts', true);
+    expect(onOpenFile).not.toHaveBeenCalled();
   });
 
   /**
