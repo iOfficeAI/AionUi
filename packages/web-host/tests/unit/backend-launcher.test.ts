@@ -24,22 +24,22 @@ vi.mock('node:net', () => ({
   connect: vi.fn(),
 }));
 
-vi.mock('./agent-process-registry.js', () => ({
+vi.mock('../../src/agent-process-registry.js', () => ({
   cleanupRegisteredAgentProcesses: vi.fn().mockResolvedValue(undefined),
 }));
 
 import { spawn } from 'node:child_process';
 import { mkdirSync, statSync } from 'node:fs';
 import { connect, createServer } from 'node:net';
-import { cleanupRegisteredAgentProcesses } from './agent-process-registry.js';
+import { cleanupRegisteredAgentProcesses } from '../../src/agent-process-registry.js';
 import {
   buildSpawnArgs,
   buildSpawnEnv,
   findAvailablePort,
   BackendLifecycleManager,
   BackendStartupError,
-} from './backend-launcher.js';
-import type { AppMetadata } from './types.js';
+} from '../../src/backend-launcher.js';
+import type { AppMetadata } from '../../src/types.js';
 
 const APP_META: AppMetadata = {
   version: '1.2.3',

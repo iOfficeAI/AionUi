@@ -18,6 +18,7 @@ const {
   capturedAssistantSelectionAreaProps,
   capturedGuidInputCardProps,
   capturedGuidSendDeps,
+  ensureBackendMcpCatalogMock,
   resolveGuidAssistantDefaultsMock,
   sendMock,
   navigateMock,
@@ -112,6 +113,7 @@ const {
   capturedAssistantSelectionAreaProps: [] as Array<Record<string, unknown>>,
   capturedGuidInputCardProps: [] as Array<Record<string, unknown>>,
   capturedGuidSendDeps: [] as Array<Record<string, unknown>>,
+  ensureBackendMcpCatalogMock: vi.fn(),
   resolveGuidAssistantDefaultsMock: vi.fn(() => ({
     disabledBuiltinSkillIds: [],
     skillIds: [],
@@ -146,7 +148,7 @@ vi.mock('@/common', () => ({
 }));
 
 vi.mock('@/renderer/hooks/mcp/catalog', () => ({
-  ensureBackendMcpCatalog: vi.fn().mockResolvedValue({ allServers: [] }),
+  ensureBackendMcpCatalog: (...args: unknown[]) => ensureBackendMcpCatalogMock(...args),
 }));
 
 vi.mock('@/renderer/hooks/chat/useInputFocusRing', () => ({
@@ -310,6 +312,8 @@ describe('GuidPage', () => {
     capturedAssistantSelectionAreaProps.length = 0;
     capturedGuidInputCardProps.length = 0;
     capturedGuidSendDeps.length = 0;
+    ensureBackendMcpCatalogMock.mockReset();
+    ensureBackendMcpCatalogMock.mockResolvedValue({ allServers: [] });
     useGuidAssistantSelectionMock.mockClear();
     resolveGuidAssistantDefaultsMock.mockReturnValue({
       disabledBuiltinSkillIds: [],
@@ -555,6 +559,43 @@ describe('GuidPage', () => {
         guidEnabledSkills: undefined,
         guidDisabledBuiltinSkills: undefined,
       });
+    });
+  });
+
+  it('prefers the built-in GEA gateway over the legacy SSE server for new conversations', async () => {
+    ensureBackendMcpCatalogMock.mockResolvedValue({
+      allServers: [
+        {
+          id: 'legacy-gea',
+          name: 'gea',
+          builtin: false,
+          enabled: true,
+          transport: {
+            type: 'sse',
+            url: 'https://gea.synear.cn/gea-boot/ai/gateway/mcp/proxy/sse',
+          },
+        },
+        {
+          id: 'gea-gateway',
+          name: 'gea-gateway',
+          builtin: true,
+          enabled: true,
+          transport: { type: 'http', url: 'http://127.0.0.1:61170/mcp' },
+        },
+      ],
+    });
+    swrMock.useSWRMock.mockReturnValue({ data: assistantDetailFixture });
+    resolveGuidAssistantDefaultsMock.mockReturnValue({
+      disabledBuiltinSkillIds: [],
+      skillIds: [],
+      mcpIds: ['legacy-gea'],
+    });
+
+    render(<GuidPage />);
+
+    await vi.waitFor(() => {
+      expect(capturedGuidSendDeps.at(-1)?.selectedMcpServerIds).toEqual(['gea-gateway']);
+      expect(capturedGuidActionRowProps.at(-1)?.selectedMcpServerIds).toEqual(['gea-gateway']);
     });
   });
 

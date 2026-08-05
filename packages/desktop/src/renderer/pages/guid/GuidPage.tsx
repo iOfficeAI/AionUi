@@ -53,6 +53,28 @@ type GuidNavigationState = {
   [key: string]: unknown;
 };
 
+const BUILTIN_GEA_MCP_NAME = 'gea-gateway';
+const LEGACY_GEA_MCP_NAME = 'gea';
+const LEGACY_GEA_MCP_URL = 'https://gea.synear.cn/gea-boot/ai/gateway/mcp/proxy/sse';
+
+const resolveGuidMcpDefaults = (mcpIds: string[], servers: IMcpServer[]): string[] => {
+  const gateway = servers.find((server) => server.builtin === true && server.name === BUILTIN_GEA_MCP_NAME);
+  if (!gateway) return mcpIds;
+
+  const legacyIds = new Set(
+    servers
+      .filter(
+        (server) =>
+          server.name === LEGACY_GEA_MCP_NAME &&
+          server.transport.type === 'sse' &&
+          server.transport.url.replace(/\/+$/, '') === LEGACY_GEA_MCP_URL
+      )
+      .map((server) => server.id)
+  );
+
+  return [...new Set([...mcpIds.filter((id) => !legacyIds.has(id)), gateway.id])];
+};
+
 const GuidPage: React.FC = () => {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
@@ -171,6 +193,10 @@ const GuidPage: React.FC = () => {
   const resolvedAssistantDefaults = useMemo(
     () => resolveGuidAssistantDefaults(selectedAssistantDetail),
     [selectedAssistantDetail]
+  );
+  const resolvedMcpDefaults = useMemo(
+    () => resolveGuidMcpDefaults(resolvedAssistantDefaults.mcpIds, availableMcpServers),
+    [availableMcpServers, resolvedAssistantDefaults.mcpIds]
   );
   const selectedSkillNames = useMemo(() => {
     const disabledBuiltinSkillSet = new Set(
@@ -386,6 +412,7 @@ const GuidPage: React.FC = () => {
       },
       availableModes: agentSelection.currentAgentModeOptions.map((mode) => mode.value),
       availableThoughtLevels: agentSelection.currentThoughtLevelOption?.options.map((option) => option.value) ?? [],
+      resolvedMcpDefaults,
     });
     if (appliedAssistantDefaultsKeyRef.current === signature) {
       return;
@@ -452,7 +479,7 @@ const GuidPage: React.FC = () => {
           agentSelection.setSelectedThoughtLevelValue(fallbackThoughtLevel, { persistPreference: false });
         }
       }
-      setGuidSelectedMcpServerIds(resolvedDefaults.mcpIds);
+      setGuidSelectedMcpServerIds(resolvedMcpDefaults);
     };
 
     void applyAssistantDefaults().catch((error) => {
@@ -469,6 +496,7 @@ const GuidPage: React.FC = () => {
     modelSelection.modelList,
     modelSelection.resetCurrentModel,
     modelSelection.setCurrentModel,
+    resolvedMcpDefaults,
     selectedAssistantId,
     selectedAssistantDetail,
   ]);

@@ -10,7 +10,8 @@ import * as path from 'path';
 import { networkInterfaces } from 'os';
 import { getSystemDir } from './initStorage';
 import { httpRequest } from '@/common/adapter/httpBridge';
-import { createGeaLarkAuth, startWebHost, type WebHostHandle } from '@aionui/web-host';
+import { startWebHost, type WebHostHandle } from '@aionui/web-host';
+import { createSharedWebHostLarkAuth } from '@process/services/LarkAuthService';
 import { getDataPath } from './utils';
 
 const WEBUI_CONFIG_FILE = 'webui.config.json';
@@ -18,7 +19,7 @@ const DESKTOP_WEBUI_ENABLED_KEY = 'webui.desktop.enabled';
 const DESKTOP_WEBUI_ALLOW_REMOTE_KEY = 'webui.desktop.allowRemote';
 const DESKTOP_WEBUI_PORT_KEY = 'webui.desktop.port';
 
-export const createWebHostLarkAuth = createGeaLarkAuth;
+export const createWebHostLarkAuth = createSharedWebHostLarkAuth;
 
 /**
  * Read WebUI preferences from the backend's /api/settings/client store.
