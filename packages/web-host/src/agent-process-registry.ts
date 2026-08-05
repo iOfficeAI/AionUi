@@ -35,6 +35,16 @@ export function resolveAgentProcessRegistryPath(dataDir: string): string {
 export async function cleanupRegisteredAgentProcesses(dataDir?: string): Promise<void> {
   if (!dataDir) return;
 
+  try {
+    await cleanupRegisteredAgentProcessesInner(dataDir);
+  } catch (error) {
+    // Orphan reaping is best-effort bookkeeping: no failure here may abort
+    // the application stop flow (backend-launcher stop() has no catch).
+    console.warn('[web-host] agent process cleanup failed; continuing shutdown', error);
+  }
+}
+
+async function cleanupRegisteredAgentProcessesInner(dataDir: string): Promise<void> {
   const registryPath = resolveAgentProcessRegistryPath(dataDir);
   const registry = await readRegistry(registryPath);
   if (registry.processes.length === 0) return;
@@ -51,9 +61,18 @@ export async function cleanupRegisteredAgentProcesses(dataDir?: string): Promise
     }
   }
 
-  const survivors = registry.processes.filter((entry) => isRegisteredProcessTreeAlive(entry));
+  // Re-read before writing back: entries registered concurrently by another
+  // backend during the kill sequence (seconds) must survive. Only pids we
+  // attempted to kill this round are filtered down to the still-alive ones;
+  // untouched entries are kept verbatim. This shrinks the lock-free RMW loss
+  // window from the whole kill sequence to the re-read→rename gap.
+  const attempted = new Set(registry.processes.map((entry) => entry.pid));
+  const latest = await readRegistry(registryPath);
+  const survivors = latest.processes.filter(
+    (entry) => !attempted.has(entry.pid) || isRegisteredProcessTreeAlive(entry)
+  );
   await writeRegistry(registryPath, {
-    version: registry.version,
+    version: latest.version,
     processes: survivors,
   });
 }
