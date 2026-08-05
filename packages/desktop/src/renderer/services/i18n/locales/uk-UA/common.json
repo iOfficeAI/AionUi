@@ -153,6 +153,22 @@
       "diagnosticsSent": "Діагностику надіслано",
       "diagnosticsReportSuccess": "Діагностику надіслано",
       "diagnosticsReportFailed": "Не вдалося надіслати діагностику, повторіть спробу пізніше"
+    },
+    "portReportTimeout": {
+      "title": "Час запуску вичерпано",
+      "description": "AionCore не завершив запуск за очікуваний час. Перезапустіть застосунок; якщо це повторюється, надішліть діагностику.",
+      "sendDiagnostics": "Надіслати діагностику",
+      "diagnosticsSent": "Діагностику надіслано",
+      "diagnosticsReportSuccess": "Діагностику надіслано",
+      "diagnosticsReportFailed": "Не вдалося надіслати діагностику, повторіть спробу пізніше"
+    },
+    "startupFailed": {
+      "title": "Не вдалося запустити",
+      "description": "AionCore не вдалося запустити. Перезапустіть застосунок; якщо це повторюється, надішліть діагностику.",
+      "sendDiagnostics": "Надіслати діагностику",
+      "diagnosticsSent": "Діагностику надіслано",
+      "diagnosticsReportSuccess": "Діагностику надіслано",
+      "diagnosticsReportFailed": "Не вдалося надіслати діагностику, повторіть спробу пізніше"
     }
   },
   "fileAttach.addFiles": "Додати файли",

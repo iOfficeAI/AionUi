@@ -152,6 +152,22 @@
       "diagnosticsSent": "Diagnose gesendet",
       "diagnosticsReportSuccess": "Diagnose gemeldet",
       "diagnosticsReportFailed": "Diagnose konnte nicht gesendet werden, bitte erneut versuchen"
+    },
+    "portReportTimeout": {
+      "title": "Zeitüberschreitung beim Start",
+      "description": "AionCore konnte den Start nicht innerhalb der erwarteten Zeit abschließen. Bitte starten Sie die App neu; wenn dies wiederholt auftritt, senden Sie bitte eine Diagnose.",
+      "sendDiagnostics": "Diagnose senden",
+      "diagnosticsSent": "Diagnose gesendet",
+      "diagnosticsReportSuccess": "Diagnose gemeldet",
+      "diagnosticsReportFailed": "Diagnose konnte nicht gesendet werden, bitte erneut versuchen"
+    },
+    "startupFailed": {
+      "title": "Start fehlgeschlagen",
+      "description": "AionCore konnte nicht gestartet werden. Bitte starten Sie die App neu; wenn dies wiederholt auftritt, senden Sie bitte eine Diagnose.",
+      "sendDiagnostics": "Diagnose senden",
+      "diagnosticsSent": "Diagnose gesendet",
+      "diagnosticsReportSuccess": "Diagnose gemeldet",
+      "diagnosticsReportFailed": "Diagnose konnte nicht gesendet werden, bitte erneut versuchen"
     }
   },
   "fileAttach.addFiles": "Dateien hinzufügen",

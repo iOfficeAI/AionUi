@@ -153,6 +153,22 @@
       "diagnosticsSent": "진단을 보냈습니다",
       "diagnosticsReportSuccess": "진단 정보를 보고했습니다",
       "diagnosticsReportFailed": "진단 전송에 실패했습니다. 나중에 다시 시도해 주세요."
+    },
+    "portReportTimeout": {
+      "title": "시작 시간 초과",
+      "description": "AionCore가 예상 시간 내에 시작을 완료하지 못했습니다. 앱을 다시 시작해 주세요. 계속 발생하면 진단 정보를 보내 주세요.",
+      "sendDiagnostics": "진단 보내기",
+      "diagnosticsSent": "진단을 보냈습니다",
+      "diagnosticsReportSuccess": "진단 정보를 보고했습니다",
+      "diagnosticsReportFailed": "진단 전송에 실패했습니다. 나중에 다시 시도해 주세요."
+    },
+    "startupFailed": {
+      "title": "시작 실패",
+      "description": "AionCore를 시작하지 못했습니다. 앱을 다시 시작해 주세요. 계속 발생하면 진단 정보를 보내 주세요.",
+      "sendDiagnostics": "진단 보내기",
+      "diagnosticsSent": "진단을 보냈습니다",
+      "diagnosticsReportSuccess": "진단 정보를 보고했습니다",
+      "diagnosticsReportFailed": "진단 전송에 실패했습니다. 나중에 다시 시도해 주세요."
     }
   },
   "fileAttach.addFiles": "파일 추가",

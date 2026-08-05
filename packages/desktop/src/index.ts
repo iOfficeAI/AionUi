@@ -417,6 +417,9 @@ function resolveDebugBackendStartupFailure(): BackendStartupFailureInfo | null {
   if (reason === 'backend_startup_exited') {
     return { reason };
   }
+  if (reason === 'backend_startup_port_report_timeout') {
+    return { reason };
+  }
 
   console.warn(`[AionUi] Ignoring unknown AIONUI_DEBUG_BACKEND_STARTUP_FAILURE value: ${reason}`);
   return null;

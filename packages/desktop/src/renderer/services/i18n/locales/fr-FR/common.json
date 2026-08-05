@@ -153,6 +153,22 @@
       "diagnosticsSent": "Diagnostic envoyé",
       "diagnosticsReportSuccess": "Diagnostic envoyé",
       "diagnosticsReportFailed": "Échec de l'envoi du diagnostic, veuillez réessayer"
+    },
+    "portReportTimeout": {
+      "title": "Délai de démarrage dépassé",
+      "description": "AionCore n'a pas terminé son démarrage dans le délai prévu. Veuillez redémarrer l'application ; si le problème persiste, envoyez un diagnostic.",
+      "sendDiagnostics": "Envoyer le diagnostic",
+      "diagnosticsSent": "Diagnostic envoyé",
+      "diagnosticsReportSuccess": "Diagnostic envoyé",
+      "diagnosticsReportFailed": "Échec de l'envoi du diagnostic, veuillez réessayer"
+    },
+    "startupFailed": {
+      "title": "Échec du démarrage",
+      "description": "AionCore n'a pas pu démarrer. Veuillez redémarrer l'application ; si le problème persiste, envoyez un diagnostic.",
+      "sendDiagnostics": "Envoyer le diagnostic",
+      "diagnosticsSent": "Diagnostic envoyé",
+      "diagnosticsReportSuccess": "Diagnostic envoyé",
+      "diagnosticsReportFailed": "Échec de l'envoi du diagnostic, veuillez réessayer"
     }
   },
   "fileAttach.addFiles": "Ajouter des fichiers",

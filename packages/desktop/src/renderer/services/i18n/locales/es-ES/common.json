@@ -152,6 +152,22 @@
       "diagnosticsSent": "Diagnóstico enviado",
       "diagnosticsReportSuccess": "Diagnóstico enviado",
       "diagnosticsReportFailed": "No se pudo enviar el diagnóstico, inténtalo de nuevo"
+    },
+    "portReportTimeout": {
+      "title": "Tiempo de inicio agotado",
+      "description": "AionCore no terminó de iniciarse en el tiempo previsto. Reinicia la aplicación; si esto sigue ocurriendo, envía un diagnóstico.",
+      "sendDiagnostics": "Enviar diagnóstico",
+      "diagnosticsSent": "Diagnóstico enviado",
+      "diagnosticsReportSuccess": "Diagnóstico enviado",
+      "diagnosticsReportFailed": "No se pudo enviar el diagnóstico, inténtalo de nuevo"
+    },
+    "startupFailed": {
+      "title": "Error al iniciar",
+      "description": "AionCore no pudo iniciarse. Reinicia la aplicación; si esto sigue ocurriendo, envía un diagnóstico.",
+      "sendDiagnostics": "Enviar diagnóstico",
+      "diagnosticsSent": "Diagnóstico enviado",
+      "diagnosticsReportSuccess": "Diagnóstico enviado",
+      "diagnosticsReportFailed": "No se pudo enviar el diagnóstico, inténtalo de nuevo"
     }
   },
   "fileAttach.addFiles": "Agregar archivos",

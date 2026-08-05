@@ -153,6 +153,22 @@
       "diagnosticsSent": "تشخیص ارسال شد",
       "diagnosticsReportSuccess": "تشخیص گزارش شد",
       "diagnosticsReportFailed": "ارسال تشخیص ناموفق بود، لطفاً بعداً دوباره تلاش کنید"
+    },
+    "portReportTimeout": {
+      "title": "مهلت راه‌اندازی به پایان رسید",
+      "description": "AionCore نتوانست راه‌اندازی را در زمان مورد انتظار کامل کند. لطفاً برنامه را دوباره راه‌اندازی کنید؛ اگر این مشکل تکرار شد، اطلاعات تشخیصی را ارسال کنید.",
+      "sendDiagnostics": "ارسال تشخیص",
+      "diagnosticsSent": "تشخیص ارسال شد",
+      "diagnosticsReportSuccess": "تشخیص گزارش شد",
+      "diagnosticsReportFailed": "ارسال تشخیص ناموفق بود، لطفاً بعداً دوباره تلاش کنید"
+    },
+    "startupFailed": {
+      "title": "راه‌اندازی ناموفق بود",
+      "description": "AionCore نتوانست راه‌اندازی شود. لطفاً برنامه را دوباره راه‌اندازی کنید؛ اگر این مشکل تکرار شد، اطلاعات تشخیصی را ارسال کنید.",
+      "sendDiagnostics": "ارسال تشخیص",
+      "diagnosticsSent": "تشخیص ارسال شد",
+      "diagnosticsReportSuccess": "تشخیص گزارش شد",
+      "diagnosticsReportFailed": "ارسال تشخیص ناموفق بود، لطفاً بعداً دوباره تلاش کنید"
     }
   },
   "fileAttach.addFiles": "افزودن فایل‌ها",

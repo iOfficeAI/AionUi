@@ -153,6 +153,22 @@
       "diagnosticsSent": "診斷已傳送",
       "diagnosticsReportSuccess": "診斷資訊已回報",
       "diagnosticsReportFailed": "診斷回報失敗，請稍後再試"
+    },
+    "portReportTimeout": {
+      "title": "啟動逾時",
+      "description": "AionCore 未在預期時間內完成啟動。請重新啟動應用程式；若反覆出現，請傳送診斷。",
+      "sendDiagnostics": "傳送診斷",
+      "diagnosticsSent": "診斷已傳送",
+      "diagnosticsReportSuccess": "診斷資訊已回報",
+      "diagnosticsReportFailed": "診斷回報失敗，請稍後再試"
+    },
+    "startupFailed": {
+      "title": "啟動失敗",
+      "description": "AionCore 啟動失敗。請重新啟動應用程式；若反覆出現，請傳送診斷。",
+      "sendDiagnostics": "傳送診斷",
+      "diagnosticsSent": "診斷已傳送",
+      "diagnosticsReportSuccess": "診斷資訊已回報",
+      "diagnosticsReportFailed": "診斷回報失敗，請稍後再試"
     }
   },
   "fileAttach.addFiles": "新增檔案",

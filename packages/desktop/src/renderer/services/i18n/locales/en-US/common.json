@@ -153,6 +153,22 @@
       "diagnosticsSent": "Diagnostics sent",
       "diagnosticsReportSuccess": "Diagnostics reported",
       "diagnosticsReportFailed": "Failed to send diagnostics, please retry"
+    },
+    "portReportTimeout": {
+      "title": "Startup timed out",
+      "description": "AionCore didn't finish starting within the expected time. Please restart the app; if this keeps happening, please send diagnostics.",
+      "sendDiagnostics": "Send diagnostics",
+      "diagnosticsSent": "Diagnostics sent",
+      "diagnosticsReportSuccess": "Diagnostics reported",
+      "diagnosticsReportFailed": "Failed to send diagnostics, please retry"
+    },
+    "startupFailed": {
+      "title": "Startup failed",
+      "description": "AionCore failed to start. Please restart the app; if this keeps happening, please send diagnostics.",
+      "sendDiagnostics": "Send diagnostics",
+      "diagnosticsSent": "Diagnostics sent",
+      "diagnosticsReportSuccess": "Diagnostics reported",
+      "diagnosticsReportFailed": "Failed to send diagnostics, please retry"
     }
   },
   "fileAttach.addFiles": "Add files",

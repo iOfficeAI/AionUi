@@ -153,6 +153,22 @@
       "diagnosticsSent": "診断を送信しました",
       "diagnosticsReportSuccess": "診断情報を送信しました",
       "diagnosticsReportFailed": "診断の送信に失敗しました。しばらくしてから再試行してください。"
+    },
+    "portReportTimeout": {
+      "title": "起動がタイムアウトしました",
+      "description": "AionCore は想定時間内に起動を完了できませんでした。アプリを再起動してください。繰り返し発生する場合は、診断情報を送信してください。",
+      "sendDiagnostics": "診断を送信",
+      "diagnosticsSent": "診断を送信しました",
+      "diagnosticsReportSuccess": "診断情報を送信しました",
+      "diagnosticsReportFailed": "診断の送信に失敗しました。しばらくしてから再試行してください。"
+    },
+    "startupFailed": {
+      "title": "起動に失敗しました",
+      "description": "AionCore を起動できませんでした。アプリを再起動してください。繰り返し発生する場合は、診断情報を送信してください。",
+      "sendDiagnostics": "診断を送信",
+      "diagnosticsSent": "診断を送信しました",
+      "diagnosticsReportSuccess": "診断情報を送信しました",
+      "diagnosticsReportFailed": "診断の送信に失敗しました。しばらくしてから再試行してください。"
     }
   },
   "fileAttach.addFiles": "ファイルを追加",

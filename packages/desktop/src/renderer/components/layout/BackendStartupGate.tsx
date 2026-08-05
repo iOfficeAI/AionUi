@@ -24,6 +24,7 @@ export function shouldShowBackendStartupFailureDialog(
     reason === 'backend_recoverable_database_corruption' ||
     reason === 'backend_transient_concurrent_startup' ||
     reason === 'backend_startup_exited' ||
+    reason === 'backend_startup_port_report_timeout' ||
     reason === 'backend_startup_failed'
   );
 }

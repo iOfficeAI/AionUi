@@ -153,6 +153,22 @@
       "diagnosticsSent": "Tanılama gönderildi",
       "diagnosticsReportSuccess": "Tanılama bildirildi",
       "diagnosticsReportFailed": "Tanılama gönderilemedi, lütfen tekrar deneyin"
+    },
+    "portReportTimeout": {
+      "title": "Başlatma zaman aşımına uğradı",
+      "description": "AionCore beklenen süre içinde başlatmayı tamamlayamadı. Lütfen uygulamayı yeniden başlatın; sorun devam ederse tanılama gönderin.",
+      "sendDiagnostics": "Tanılama gönder",
+      "diagnosticsSent": "Tanılama gönderildi",
+      "diagnosticsReportSuccess": "Tanılama bildirildi",
+      "diagnosticsReportFailed": "Tanılama gönderilemedi, lütfen tekrar deneyin"
+    },
+    "startupFailed": {
+      "title": "Başlatma başarısız oldu",
+      "description": "AionCore başlatılamadı. Lütfen uygulamayı yeniden başlatın; sorun devam ederse tanılama gönderin.",
+      "sendDiagnostics": "Tanılama gönder",
+      "diagnosticsSent": "Tanılama gönderildi",
+      "diagnosticsReportSuccess": "Tanılama bildirildi",
+      "diagnosticsReportFailed": "Tanılama gönderilemedi, lütfen tekrar deneyin"
     }
   },
   "fileAttach.addFiles": "Dosya ekle",

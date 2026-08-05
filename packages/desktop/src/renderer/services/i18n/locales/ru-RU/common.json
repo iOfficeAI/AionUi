@@ -152,6 +152,22 @@
       "diagnosticsSent": "Диагностика отправлена",
       "diagnosticsReportSuccess": "Диагностика отправлена",
       "diagnosticsReportFailed": "Не удалось отправить диагностику, повторите попытку позже"
+    },
+    "portReportTimeout": {
+      "title": "Время запуска истекло",
+      "description": "AionCore не завершил запуск за ожидаемое время. Перезапустите приложение; если это повторяется, отправьте диагностику.",
+      "sendDiagnostics": "Отправить диагностику",
+      "diagnosticsSent": "Диагностика отправлена",
+      "diagnosticsReportSuccess": "Диагностика отправлена",
+      "diagnosticsReportFailed": "Не удалось отправить диагностику, повторите попытку позже"
+    },
+    "startupFailed": {
+      "title": "Сбой запуска",
+      "description": "AionCore не удалось запустить. Перезапустите приложение; если это повторяется, отправьте диагностику.",
+      "sendDiagnostics": "Отправить диагностику",
+      "diagnosticsSent": "Диагностика отправлена",
+      "diagnosticsReportSuccess": "Диагностика отправлена",
+      "diagnosticsReportFailed": "Не удалось отправить диагностику, повторите попытку позже"
     }
   },
   "fileAttach.addFiles": "Добавить файлы",
