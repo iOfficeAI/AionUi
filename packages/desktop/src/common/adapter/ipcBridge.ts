@@ -293,6 +293,13 @@ export const conversation = {
     (p) => `/api/conversations/${p.conversation_id}/confirmations/${encodeURIComponent(p.call_id)}/confirm`,
     (p) => ({ msg_id: p.msg_id, data: p.confirm_key })
   ),
+  // Dedicated answer channel for the structured question card (AskUserQuestion)
+  // — question answers must not ride the permission confirm endpoint
+  // (2026-08-05 ruling). Send either answers[] or decline:true, never both.
+  answerAsk: httpPost<void, IAnswerAskParams>(
+    (p) => `/api/conversations/${p.conversation_id}/asks/${encodeURIComponent(p.request_id)}/answer`,
+    (p) => (p.decline ? { decline: true } : { answers: p.answers ?? [] })
+  ),
   listArtifacts: httpGet<IConversationArtifact[], { conversation_id: string }>(
     (p) => `/api/conversations/${p.conversation_id}/artifacts`
   ),
@@ -1598,6 +1605,13 @@ export interface ISendMessageResult {
   msg_id: string;
   turn_id: string;
   runtime: TConversationRuntimeSummary;
+}
+
+export interface IAnswerAskParams {
+  conversation_id: string;
+  request_id: string;
+  answers?: Array<{ question: string; labels: string[] }>;
+  decline?: boolean;
 }
 
 export interface IConfirmMessageParams {

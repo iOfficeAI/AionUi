@@ -56,36 +56,27 @@ const MessageQuestion: React.FC<MessageQuestionProps> = React.memo(({ message })
   const answered = (d: Draft) => d.labels.length > 0 || (d.otherSelected && d.other.trim().length > 0);
   const allAnswered = questions.length > 0 && drafts.every(answered);
 
-  const send = useCallback(
-    async (payload: Record<string, unknown>) => {
-      await conversation.confirmMessage.invoke({
-        confirm_key: JSON.stringify(payload),
-        msg_id: message.id,
-        conversation_id: message.conversation_id,
-        call_id: content.request_id || message.id,
-      });
-    },
-    [content.request_id, message.conversation_id, message.id]
-  );
+  const requestId = content.request_id || message.id;
 
   const handleSubmit = useCallback(async () => {
     // claude keys its answers map by the question TEXT; a multi-select answer
     // is an array of labels (claude joins with ", "). Other-text rides as a
-    // plain label — claude accepts arbitrary answer strings.
+    // plain label — claude accepts arbitrary answer strings. Sent over the
+    // DEDICATED ask channel, not the permission confirm endpoint.
     const answers = questions.map((q, i) => {
       const d = drafts[i];
       const labels = [...d.labels];
       if (d.otherSelected && d.other.trim()) labels.push(d.other.trim());
       return { question: q.question, labels };
     });
-    await send({ answers });
+    await conversation.answerAsk.invoke({ conversation_id: message.conversation_id, request_id: requestId, answers });
     setSubmitted('answered');
-  }, [drafts, questions, send]);
+  }, [drafts, questions, message.conversation_id, requestId]);
 
   const handleDecline = useCallback(async () => {
-    await send({ ask_decline: true });
+    await conversation.answerAsk.invoke({ conversation_id: message.conversation_id, request_id: requestId, decline: true });
     setSubmitted('declined');
-  }, [send]);
+  }, [message.conversation_id, requestId]);
 
   if (!questions.length) return null;
 

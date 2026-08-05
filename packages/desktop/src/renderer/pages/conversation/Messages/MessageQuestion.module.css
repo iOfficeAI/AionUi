@@ -36,10 +36,16 @@
 }
 
 /* One full-width selectable row. The Arco Radio/Checkbox IS the row (label
- * semantics: the whole row toggles), control aligned to the first text line. */
+ * semantics: the whole row toggles), control aligned to the first text line.
+ * display needs !important: Arco's vertical group rule
+ * (.arco-radio-group-direction-vertical .arco-radio { display: block }) is a
+ * two-class selector that beats this single class — with block layout the
+ * inline text span flowed under the row's right padding and hugged the border
+ * (E2/E3 extreme-case catch). */
 .optionRow {
-  display: flex;
+  display: flex !important;
   width: 100%;
+  box-sizing: border-box;
   margin: 0;
   align-items: flex-start;
   padding: 10px 12px;
@@ -52,6 +58,23 @@
 
 .optionRow + .optionRow {
   border-top: 1px solid var(--color-border-2);
+}
+
+/* Optically center the radio/checkbox control on the FIRST text line: rows are
+ * top-aligned (descriptions wrap below), and Arco's control sits flush with the
+ * block top — 3px nudges its 15px circle to the middle of the 21px label line
+ * (14px * 1.5 line-height). Without this the circle floats visibly high. */
+.optionRow :global(.arco-icon-hover) {
+  margin-top: 3px;
+}
+
+/* The Arco text span must own the remaining row width and shrink inside it —
+ * without flex:1 + min-width:0 a long URL/CJK run rides over the row's right
+ * padding and hugs the border (E2 extreme-case catch). */
+.optionRow :global(.arco-radio-text),
+.optionRow :global(.arco-checkbox-text) {
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .optionText {
