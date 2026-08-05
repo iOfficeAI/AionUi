@@ -77,9 +77,6 @@ interface PreviewConfirmModalsProps {
    */
   refreshConfirm?: RefreshConfirmState;
 
-  /** 先保存再刷新 / Save first, then reload */
-  onSaveAndRefresh?: () => void;
-
   /** 放弃修改并刷新 / Discard the edit and reload */
   onRefreshWithoutSave?: () => void;
 
@@ -115,7 +112,6 @@ interface PreviewConfirmModalsProps {
 const PreviewConfirmModals: React.FC<PreviewConfirmModalsProps> = ({
   closeTabConfirm,
   refreshConfirm,
-  onSaveAndRefresh,
   onRefreshWithoutSave,
   onCancelRefresh,
   onSaveAndCloseTab,
@@ -179,8 +175,8 @@ const PreviewConfirmModals: React.FC<PreviewConfirmModalsProps> = ({
         visible={refreshConfirm?.show === true}
         title={t('preview.refresh.confirmTitle')}
         onCancel={onCancelRefresh}
-        onOk={onSaveAndRefresh}
-        okText={t('preview.refresh.saveAndRefresh')}
+        onOk={onRefreshWithoutSave}
+        okText={t('preview.refresh.discardAndRefresh')}
         cancelText={t('common.cancel')}
         style={{ borderRadius: '12px' }}
         alignCenter
@@ -194,16 +190,10 @@ const PreviewConfirmModals: React.FC<PreviewConfirmModalsProps> = ({
               {t('common.cancel')}
             </button>
             <button
-              className='px-16px py-6px cursor-pointer border-none hover:bg-bg-3 transition-colors text-14px text-t-primary'
+              className='px-16px py-6px cursor-pointer border-none bg-primary text-white hover:opacity-80 transition-opacity text-14px'
               onClick={onRefreshWithoutSave}
             >
               {t('preview.refresh.discardAndRefresh')}
-            </button>
-            <button
-              className='px-16px py-6px cursor-pointer border-none bg-primary text-white hover:opacity-80 transition-opacity text-14px'
-              onClick={onSaveAndRefresh}
-            >
-              {t('preview.refresh.saveAndRefresh')}
             </button>
           </div>
         }

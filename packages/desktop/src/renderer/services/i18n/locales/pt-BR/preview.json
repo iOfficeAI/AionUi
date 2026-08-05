@@ -155,10 +155,7 @@
     "failed": "Não foi possível recarregar este arquivo",
     "confirmTitle": "Recarregar e perder alterações não salvas?",
     "confirmMessage": "Esta aba tem alterações não salvas. Recarregar as substitui pelo conteúdo do disco.",
-    "saveAndRefresh": "Salvar e recarregar",
     "discardAndRefresh": "Descartar alterações e recarregar",
-    "saveConflictAborted": "Não recarregado: o arquivo mudou desde que você o abriu, então sua edição não foi salva.",
-    "saveFailedAborted": "Não recarregado: a gravação falhou, suas alterações continuam aqui.",
     "officeNotWired": "A atualização de documentos do Office ainda não está disponível — feche e reabra o arquivo para ver as alterações."
   }
 }

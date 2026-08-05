@@ -155,10 +155,7 @@
     "failed": "Could not reload this file",
     "confirmTitle": "Reload and lose unsaved changes?",
     "confirmMessage": "This tab has unsaved changes. Reloading replaces them with what is on disk.",
-    "saveAndRefresh": "Save, then reload",
     "discardAndRefresh": "Discard changes and reload",
-    "saveConflictAborted": "Not reloaded: this file changed on disk since you opened it, so your edit was not saved.",
-    "saveFailedAborted": "Not reloaded: the save failed, so your changes are still here.",
     "officeNotWired": "Refreshing Office documents is not available yet — close and reopen the file to see changes."
   }
 }

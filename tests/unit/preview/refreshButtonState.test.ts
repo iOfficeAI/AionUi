@@ -22,7 +22,6 @@ import {
 } from '@/renderer/pages/conversation/Preview/context/tabReloaderRegistry';
 import {
   isRefreshActionable,
-  mayRefreshAfterSave,
   isRefreshVisible,
   refreshButtonState,
   refreshStateToken,
@@ -171,38 +170,6 @@ describe('the state token used as a test hook', () => {
 // actually on disk. If a refused save let the reload proceed, the user would lose the
 // edit and read it as "refresh ate my work" rather than "the save failed" — which is
 // exactly why the save-outcome classifier exists.
-describe('whether a reload may follow a save', () => {
-  it('proceeds only when the save actually landed', () => {
-    expect(mayRefreshAfterSave({ kind: 'saved' })).toBe(true);
-  });
-
-  // The file changed underneath: reloading now would replace the user's edit with
-  // whoever else's change, and the edit is gone.
-  it('refuses after a conflict', () => {
-    expect(mayRefreshAfterSave({ kind: 'conflict' })).toBe(false);
-  });
-
-  it('refuses after any other failure', () => {
-    expect(mayRefreshAfterSave({ kind: 'failed' })).toBe(false);
-    expect(mayRefreshAfterSave({ kind: 'failed', detail: 'disk full' })).toBe(false);
-  });
-
-  // Guards the shape of the check itself: it must key on "saved", not on "nothing was
-  // thrown". A save that declines without throwing is still a refusal.
-  it('treats every non-saved outcome as a refusal', () => {
-    const outcomes = [
-      { kind: 'conflict' } as const,
-      { kind: 'failed' } as const,
-      { kind: 'failed', detail: 'x' } as const,
-    ];
-    expect(outcomes.every((outcome) => mayRefreshAfterSave(outcome) === false)).toBe(true);
-  });
-});
-
-// A pdf cannot be refreshed by re-reading content: its stream address is derived from
-// the file identity and carries no timestamp, so assigning it again fetches nothing
-// new. The viewer holding the webview registers how to reload itself, keyed by tab so
-// switching tabs cannot reload the wrong document.
 describe('viewer-owned reloads', () => {
   beforeEach(() => resetTabReloadersForTest());
 

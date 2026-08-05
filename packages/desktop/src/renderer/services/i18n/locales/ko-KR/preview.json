@@ -155,10 +155,7 @@
     "failed": "이 파일을 다시 불러올 수 없습니다",
     "confirmTitle": "다시 불러와 저장하지 않은 변경을 버릴까요?",
     "confirmMessage": "이 탭에는 저장하지 않은 변경이 있습니다. 다시 불러오면 디스크의 내용으로 대체됩니다.",
-    "saveAndRefresh": "저장한 후 새로 고침",
     "discardAndRefresh": "변경을 버리고 새로 고침",
-    "saveConflictAborted": "새로 고치지 않았습니다: 파일이 열어 둔 사이 변경되어 편집이 저장되지 않았습니다.",
-    "saveFailedAborted": "새로 고치지 않았습니다: 저장에 실패했으며 변경 내용은 그대로 있습니다.",
     "officeNotWired": "Office 문서 새로 고침은 아직 지원되지 않습니다 — 파일을 닫고 다시 열면 변경 내용이 보입니다."
   }
 }

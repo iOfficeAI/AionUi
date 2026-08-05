@@ -9,7 +9,7 @@ import { downloadFileFromPath, downloadTextContent } from '@/renderer/utils/file
 import { formatFileSize } from '@/renderer/services/FileService';
 import { formatSizeAboveLimit } from '@/renderer/utils/file/previewPayload';
 import { classifyPreviewError, previewErrorToI18nKey } from '@/renderer/utils/previewError';
-import { isRefreshActionable, mayRefreshAfterSave, refreshButtonState, refreshStateToken } from './refreshButtonState';
+import { isRefreshActionable, refreshButtonState, refreshStateToken } from './refreshButtonState';
 import { reloadViaViewer } from '../../context/tabReloaderRegistry';
 import {
   canOpenInSystem,
@@ -240,38 +240,6 @@ const PreviewPanel: React.FC = () => {
     setRefreshConfirm({ show: false, tabId: null });
     if (tabId) void runRefresh(tabId);
   }, [refreshConfirm.tabId, runRefresh]);
-
-  /**
-   * "Save first, then reload" — and if the save does not land, the reload must not run.
-   *
-   * This is the one path here that can destroy work. A refused save (a conflict
-   * because the file changed underneath, or any other failure) followed by a reload
-   * would replace the edit with the file's contents and lose it, and the user would
-   * blame refresh rather than the save.
-   */
-  const handleSaveAndRefresh = useCallback(async () => {
-    const tabId = refreshConfirm.tabId;
-    setRefreshConfirm({ show: false, tabId: null });
-    if (!tabId) return;
-
-    let result: boolean | undefined;
-    let thrown: unknown;
-    try {
-      result = await saveContent(tabId);
-    } catch (error) {
-      thrown = error;
-    }
-
-    const outcome = classifySaveOutcome(result, thrown);
-    if (!mayRefreshAfterSave(outcome)) {
-      // Report why, and leave the tab as it is — still dirty, edit intact.
-      messageApi.error(
-        outcome.kind === 'conflict' ? t('preview.refresh.saveConflictAborted') : t('preview.refresh.saveFailedAborted')
-      );
-      return;
-    }
-    await runRefresh(tabId);
-  }, [refreshConfirm.tabId, saveContent, runRefresh, messageApi, t]);
 
   const handleCancelRefresh = useCallback(() => {
     setRefreshConfirm({ show: false, tabId: null });
@@ -1054,7 +1022,6 @@ const PreviewPanel: React.FC = () => {
         <PreviewConfirmModals
           closeTabConfirm={closeTabConfirm}
           refreshConfirm={refreshConfirm}
-          onSaveAndRefresh={() => void handleSaveAndRefresh()}
           onRefreshWithoutSave={handleRefreshWithoutSave}
           onCancelRefresh={handleCancelRefresh}
           onSaveAndCloseTab={handleSaveAndCloseTab}

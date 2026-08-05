@@ -155,10 +155,7 @@
     "failed": "Impossible de recharger ce fichier",
     "confirmTitle": "Recharger et perdre les modifications non enregistrées ?",
     "confirmMessage": "Cet onglet contient des modifications non enregistrées. Recharger les remplacera par le contenu du disque.",
-    "saveAndRefresh": "Enregistrer puis actualiser",
     "discardAndRefresh": "Abandonner les modifications et actualiser",
-    "saveConflictAborted": "Non rechargé : le fichier a changé depuis que vous l'avez ouvert, votre modification n'a pas été enregistrée.",
-    "saveFailedAborted": "Non rechargé : l'enregistrement a échoué, vos modifications sont toujours là.",
     "officeNotWired": "L'actualisation des documents Office n'est pas encore disponible — fermez puis rouvrez le fichier pour voir les modifications."
   }
 }

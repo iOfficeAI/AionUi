@@ -6,7 +6,6 @@
 
 import type { ChatFileRef } from '@/common/types/chatFile';
 import type { PreviewContentType } from '@/common/types/office/preview';
-import type { SaveOutcome } from './previewToolbarUtils';
 
 /**
  * What the refresh control should look like and whether it does anything.
@@ -94,19 +93,3 @@ export const isRefreshActionable = (state: RefreshButtonState): boolean =>
  */
 export const refreshStateToken = (state: RefreshButtonState): string =>
   state.kind === 'idle' && state.reason === 'no-signal-source' ? 'idle-no-signal' : state.kind;
-
-/**
- * Whether a reload may proceed after attempting to save first.
- *
- * A reload replaces what is on screen with what the file holds, so it must only run
- * once the pending edit is safely on disk. If the save was refused — a conflict
- * because the file moved underneath, or any other failure — reloading would discard
- * the very edit the user asked to keep, and they would read the result as "refresh
- * ate my work" rather than "the save failed".
- *
- * Deliberately keyed on "was it saved" rather than "did it throw": a save can decline
- * without throwing, and treating that as success is how a silent overwrite happens.
- *
- * @param outcome Result of the save attempt, from {@link classifySaveOutcome}.
- */
-export const mayRefreshAfterSave = (outcome: SaveOutcome): boolean => outcome.kind === 'saved';

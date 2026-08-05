@@ -151,6 +151,38 @@ describe('refreshing a tab with unsaved changes', () => {
     TIMEOUT_MS
   );
 
+  it(
+    'declining the dialog leaves the edit alone',
+    async () => {
+      // The dialog now offers exactly two ways out, and only one of them may reload.
+      // Asserting the dialog appears is not enough: a "cancel" wired to the discard
+      // handler would still show it and then destroy the edit anyway — which is the
+      // one thing this whole confirmation exists to prevent.
+      const { rerender } = render(<Harness showPanel={false} />);
+      openProjectTab();
+      act(() => rerender(<Harness showPanel />));
+
+      act(() => ctx.updateContent('edited but not saved'));
+      await waitFor(() => expect(ctx.activeTab?.isDirty).toBe(true));
+
+      fireEvent.click(await screen.findByTestId('preview-refresh'));
+      await waitFor(() => {
+        expect(screen.getByText('preview.refresh.confirmTitle')).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByText('common.cancel'));
+
+      // Nothing was read: the edit stands untouched. (The dialog element itself
+      // lingers in the DOM after Arco hides it, so asserting on its absence would
+      // test the modal library rather than this guard — the load-bearing fact is
+      // that no reload happened.)
+      expect(readContent).not.toHaveBeenCalled();
+      expect(ctx.activeTab?.content).toBe('edited but not saved');
+      expect(ctx.activeTab?.isDirty).toBe(true);
+    },
+    TIMEOUT_MS
+  );
+
   // The positive control for the assertion above. If a click could not reach the
   // handler at all, this fails while the dirty case would still look correct.
   it(

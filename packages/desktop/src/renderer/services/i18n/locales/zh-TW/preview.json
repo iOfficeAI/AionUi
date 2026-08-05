@@ -155,10 +155,7 @@
     "failed": "無法重新載入該檔案",
     "confirmTitle": "重新載入將遺失未儲存的變更？",
     "confirmMessage": "此標籤頁有未儲存的變更，重新載入會以磁碟上的內容覆蓋它們。",
-    "saveAndRefresh": "先儲存再重新整理",
     "discardAndRefresh": "放棄變更並重新整理",
-    "saveConflictAborted": "未重新整理：該檔案在你開啟後已被變更，你的編輯未儲存成功。",
-    "saveFailedAborted": "未重新整理：儲存失敗，你的變更仍然保留。",
     "officeNotWired": "Office 文件的重新整理尚未接入——請關閉後重新開啟檔案以查看變更。"
   }
 }

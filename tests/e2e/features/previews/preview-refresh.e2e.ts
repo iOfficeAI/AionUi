@@ -30,16 +30,8 @@ const REFRESH_BUTTON = '[data-refresh-state]';
 /** `preview.refresh.confirmTitle` — the dirty-tab confirmation. */
 const CONFIRM_TITLE = /Reload and lose unsaved changes|重新加载将丢失未保存的修改/;
 
-/** `preview.refresh.saveAndRefresh` / `discardAndRefresh` — the two proceed paths. */
-const SAVE_AND_REFRESH = /Save, then reload|先保存再刷新/;
+/** `preview.refresh.discardAndRefresh` — the only path that proceeds to a reload. */
 const DISCARD_AND_REFRESH = /Discard changes and reload|放弃修改并刷新/;
-
-/**
- * `preview.refresh.saveConflictAborted` — the message that says the reload was
- * abandoned because the save hit a conflict. Its presence is a supporting signal;
- * the load-bearing assertion is that the edit survived.
- */
-const CONFLICT_ABORTED = /Not reloaded|未刷新/;
 
 type BackendWindow = Window & { __backendPort?: number };
 type ProjectIds = { conversationId: string; projectId: string };
@@ -213,52 +205,66 @@ test.describe('Preview — refresh button', () => {
     expect(await panel.innerText()).not.toContain('EDIT-TO-BE-DISCARDED');
   });
 
-  test('a refused save aborts the reload and leaves the edit on screen', async ({ page }) => {
+  test('a dirty tab can never reach the reload without the user saying so', async ({ page }) => {
     /**
-     * 🔴 The one path in this feature that can *create* data loss.
+     * 🔴 The guard that keeps this feature from *creating* data loss.
      *
-     * "Save, then refresh" only earns the reload if the save actually landed. Here
-     * it cannot: the file is modified on disk after the tab read it, so the write
-     * is refused with a conflict. If the reload ran anyway it would replace the
-     * screen with the disk copy and the edit would be gone — and the user would
-     * blame refresh, not the failed save.
+     * The reload replaces the screen with the file on disk, so the only edit it may
+     * ever discard is one the user knowingly gave up. "Save, then reload" used to be
+     * a third option here and carried its own hazard — a refused save followed by a
+     * reload would have destroyed the edit. That option is gone (it read as
+     * "discard my work" to the user anyway, since the reload immediately overwrites
+     * the screen with what was just written), which removes that hazard but also
+     * removes the test that covered it.
      *
-     * The load-bearing assertion is therefore "the edit is still on screen", not
-     * "a message appeared". A message is easy to render while still having
-     * clobbered the document.
+     * What still has to hold is the property underneath it, and it is stronger than
+     * what the old test checked: **no path from the refresh button reaches a reload
+     * of a dirty tab except through the user's explicit "discard".** Cancelling, or
+     * dismissing the dialog, must leave the edit exactly where it was.
+     *
+     * The load-bearing assertion is "the edit is still on screen and the disk copy
+     * is not", not "a dialog appeared" — a dialog is easy to render while having
+     * already clobbered the document.
      */
     test.setTimeout(120_000);
     await goToGuid(page);
     ids = await createProjectConversation(page, workspace);
 
     const { panel, editor } = await openFileForEditing(page, 'editable.txt');
-    await typeUnsavedEdit(page, editor, 'EDIT-MUST-SURVIVE-409');
+    await typeUnsavedEdit(page, editor, 'EDIT-MUST-SURVIVE-REFRESH');
 
     /**
-     * Make the on-disk file newer than what this tab read. The save carries the
-     * mtime it opened with as an If-Match precondition, so the backend refuses it.
+     * Change the file underneath the tab, so a reload would visibly replace the
+     * edit. Without this the assertion could pass on a tab that reloaded its own
+     * unchanged content.
      */
     fs.writeFileSync(path.join(workspace, 'editable.txt'), 'disk body v2 WRITTEN-BY-SOMEONE-ELSE\n');
 
+    // Ask to refresh, then decline. Twice, by both routes out of the dialog.
     await panel.locator(REFRESH_BUTTON).first().click();
     await expect(page.getByText(CONFIRM_TITLE).first()).toBeVisible({ timeout: 10_000 });
-    await page.getByText(SAVE_AND_REFRESH).first().click();
+    await page.keyboard.press('Escape');
+    await expect(page.getByText(CONFIRM_TITLE).first()).toBeHidden({ timeout: 10_000 });
 
-    // The edit must survive. This is the assertion the whole test exists for.
+    // Second route out: open it again and dismiss again. The edit must survive every
+    // exit that is not an explicit discard.
+    await panel.locator(REFRESH_BUTTON).first().click();
+    await expect(page.getByText(CONFIRM_TITLE).first()).toBeVisible({ timeout: 10_000 });
+    await page.keyboard.press('Escape');
+    await expect(page.getByText(CONFIRM_TITLE).first()).toBeHidden({ timeout: 10_000 });
+
+    // The edit must survive both refusals. This is what the test exists for.
     await expect
-      .poll(async () => (await panel.innerText().catch(() => '')).includes('EDIT-MUST-SURVIVE-409'), {
+      .poll(async () => (await panel.innerText().catch(() => '')).includes('EDIT-MUST-SURVIVE-REFRESH'), {
         timeout: 20_000,
-        message: 'the refused save still let the reload run, discarding the edit',
+        message: 'declining the refresh still let the reload run, discarding the edit',
       })
       .toBe(true);
 
     // And the disk version must not have replaced it.
     expect(
       await panel.innerText(),
-      'the reload ran despite the save being refused — the edit was overwritten'
+      'a reload ran without the user choosing to discard — the edit was overwritten'
     ).not.toContain('WRITTEN-BY-SOMEONE-ELSE');
-
-    // Supporting signal: the user is told why nothing reloaded.
-    await expect(page.getByText(CONFLICT_ABORTED).first()).toBeVisible({ timeout: 10_000 });
   });
 });

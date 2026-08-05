@@ -155,10 +155,7 @@
     "failed": "No se pudo recargar este archivo",
     "confirmTitle": "¿Recargar y perder los cambios sin guardar?",
     "confirmMessage": "Esta pestaña tiene cambios sin guardar. Recargar los reemplaza por el contenido del disco.",
-    "saveAndRefresh": "Guardar y actualizar",
     "discardAndRefresh": "Descartar cambios y actualizar",
-    "saveConflictAborted": "No se recargó: el archivo cambió desde que lo abriste, así que tu edición no se guardó.",
-    "saveFailedAborted": "No se recargó: el guardado falló, tus cambios siguen aquí.",
     "officeNotWired": "Actualizar documentos de Office todavía no está disponible: cierra y vuelve a abrir el archivo para ver los cambios."
   }
 }

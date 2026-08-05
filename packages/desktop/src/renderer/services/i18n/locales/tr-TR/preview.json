@@ -155,10 +155,7 @@
     "failed": "Bu dosya yeniden yüklenemedi",
     "confirmTitle": "Yeniden yükleyip kaydedilmemiş değişiklikler kaybedilsin mi?",
     "confirmMessage": "Bu sekmede kaydedilmemiş değişiklikler var. Yeniden yükleme onları diskteki içerikle değiştirir.",
-    "saveAndRefresh": "Kaydet, sonra yenile",
     "discardAndRefresh": "Değişiklikleri sil ve yenile",
-    "saveConflictAborted": "Yenilenmedi: dosya siz açtıktan sonra değişti, bu yüzden düzenlemeniz kaydedilmedi.",
-    "saveFailedAborted": "Yenilenmedi: kaydetme başarısız oldu, değişiklikleriniz hâlâ burada.",
     "officeNotWired": "Office belgelerini yenileme henüz kullanılamıyor — değişiklikleri görmek için dosyayı kapatıp yeniden açın."
   }
 }
