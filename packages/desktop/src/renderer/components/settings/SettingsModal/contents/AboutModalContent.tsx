@@ -15,6 +15,8 @@ import FeedbackReportModal from './FeedbackReportModal';
 import { ipcBridge } from '@/common';
 import { getIncludePrerelease, runUpdateCheck } from '@/renderer/components/settings/checkForUpdatesShared';
 import { UPDATE_AVAILABLE_EVENT } from '@/renderer/components/settings/useUpdateNotificationController';
+import { IS_DISCONTINUED_BUILD } from '@/renderer/utils/discontinuedBuild';
+import { OPEN_MIGRATION_DIALOG_EVENT } from '@/renderer/components/settings/UpdateMigrationDialog';
 import {
   getUpdateReadyState,
   setUpdateReadyState,
@@ -64,6 +66,13 @@ const AboutModalContent: React.FC = () => {
   };
 
   const checkUpdate = async () => {
+    // Discontinued build: guide to the AionPro website instead of any in-app
+    // version detection. Dead-branched out of normal builds by the flag.
+    if (IS_DISCONTINUED_BUILD) {
+      window.dispatchEvent(new CustomEvent(OPEN_MIGRATION_DIALOG_EVENT));
+      return;
+    }
+
     if (updateReadyState.ready) {
       if (updateReadyState.preparing) return;
       if (updateReadyState.filePath) {

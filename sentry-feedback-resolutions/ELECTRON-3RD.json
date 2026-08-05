@@ -1,0 +1,25 @@
+{
+  "case": "ELECTRON-3RD",
+  "sentry_link": "https://iofficeai.sentry.io/issues/136692046/",
+  "status": "active",
+  "fixed_by": null,
+  "fix_version": null,
+  "verification": "pending",
+  "root_cause_summary": "User runs claude-via-DeepSeek (cc-switch style). Timeline from logs: 07-23 turns failed with UserLlmProviderBillingRequired (requests REACHED DeepSeek - key valid, account in arrears). 07-27 (after AionUi upgrade to 2.1.41 + DeepSeek recharge + key rotation) every claude turn fails in ~3s with UserLlmProviderAuthFailed, visible text = 'Invalid API key . Fix external API key' (39 chars, matches text_len). PROVEN: (1) AionUi spawns its own bundled claude 2.1.215 (managed-resources), not the user's PATH claude; (2) aioncore v0.1.52 session-port path (SessionAgentTask, 'GAP #5') is supposed to inject DeepSeek creds by reading cc-switch config (~/.cc-switch/settings.json currentProviderClaude + ~/.cc-switch/cc-switch.db providers.settings_config.env) - but logs show ZERO cc-switch lines: the read silently returned empty (silent paths: settings.json missing/unreadable or currentProviderClaude empty), so claude spawned with only AIONUI_* env and NO ANTHROPIC_* creds; (3) user DID rotate the key in AionUi's DeepSeek provider (db-diagnostics: provider 50ee8feb updated_at 07-27 02:22, health check success 02:54 - new key valid) but the claude ACP spawn path NEVER reads AionUi's provider store, so that change had no effect ('换key也不行'); (4) agent_metadata Claude Code: last_check_error_code=auth_required, last_success_at 07-23 09:32. INFERRED (most consistent mechanism): bundled claude fell back to a stale external key source (~/.claude settings env / apiKeyHelper) holding the pre-rotation invalidated key -> DeepSeek 401; local terminal claude works because the shell env (or cc-switch re-apply) carries the NEW key, which GUI-launched AionUi never sees. The upgrade is possibly a red herring: cc-switch injection may have been silently empty all along, with pre-arrears success riding on the then-valid old key in ~/.claude; key rotation is what broke it.",
+  "user_impact": "claude backend unusable inside AionUi while working in terminal; user tried recharge + key rotation in AionUi provider settings with no effect.",
+  "diagnostics_changed": false,
+  "diagnostic_gap": "1) cc_switch read_claude_provider_env has SILENT empty paths (settings.json missing / currentProviderClaude empty) - no log line, making 'why was nothing injected' undiagnosable from logs; noisy paths (db missing/parse fail) do log. 2) Nothing records which auth source the spawned claude actually used. 3) User's cc-switch version/layout unknown (v2 config.json vs v3 settings.json+cc-switch.db) - layout mismatch would silently disable the integration.",
+  "next_action": "PRODUCT: (a) add an info/warn log when claude backend spawn finds no cc-switch env (which path condition failed) - one line would have made this case one-glance; (b) verify aioncore cc_switch layout expectations against current cc-switch releases (v2 ~/.cc-switch/config.json vs v3 settings.json + cc-switch.db, key currentProviderClaude); (c) consider wiring AionUi's own custom-provider (anthropic-compatible) creds into claude ACP spawn when the selected model belongs to that provider - would make the user's in-app key rotation actually effective. USER-SIDE WORKAROUND: re-apply the provider in cc-switch so the new key lands where claude reads it, or set ANTHROPIC_BASE_URL=https://api.deepseek.com/anthropic + ANTHROPIC_AUTH_TOKEN=<new key> in AionUi's Claude Code agent env settings (currently empty, env_bytes=2).",
+  "version_chain": {
+    "aionui": "v2.1.41",
+    "aioncore": "v0.1.52 (bundled; session-port SessionAgentTask path confirmed in logs)",
+    "bundled_claude_cli": "2.1.215 (managed-resources, darwin-arm64)",
+    "aionrs": "n/a (claude ACP path)"
+  },
+  "code_version_inspected": "aionCore v0.1.52: crates/aionui-ai-agent/src/session_agent.rs:1227-1270 (GAP #5 cc-switch injection), crates/aionui-ai-agent/src/cc_switch/{provider_env.rs,paths.rs} (silent-empty paths), agent_task.rs:336 (model info merge)",
+  "evidence_inspected": "screenshot (Invalid API key . Fix external API key in claude conversation, model=Default); logs.gz 95k lines across 07-23/24/27 (aioncore + app + aionrs sections); db-diagnostics.json.gz (model-auth providers, agent_metadata, acp_session)",
+  "report_path": "feedback-diagnostics-db-json.md",
+  "ledger_sidecar": "feedback-diagnostics-db-json.ledger.json",
+  "needs_report_reconcile": false,
+  "updated_at": "2026-07-28"
+}

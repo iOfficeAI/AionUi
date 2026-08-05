@@ -367,7 +367,9 @@ describe('AcpSendBox', () => {
     expect(wrapper?.className).not.toContain('max-w-800px');
   });
 
-  it('uses the full available width in team mode', () => {
+  it('uses the same container-responsive width in team mode', () => {
+    // The send box shares one width class with standalone mode; the container query
+    // decides whether gutters appear, so a narrow team column still fills its width.
     useTeamPermissionMock.mockReturnValue({
       isTeamMode: true,
       isLeaderAgent: true,
@@ -387,8 +389,7 @@ describe('AcpSendBox', () => {
     );
 
     const wrapper = screen.getByRole('button', { name: 'send' }).parentElement?.parentElement;
-    expect(wrapper?.className).toContain('w-full');
-    expect(wrapper?.className).toContain('max-w-full');
+    expect(wrapper?.className).toContain('chat-surface-fluid');
     expect(wrapper?.className).not.toContain('w-[calc(100%-24px)]');
     expect(wrapper?.className).not.toContain('md:w-[calc(100%-clamp(80px,10vw,240px))]');
   });

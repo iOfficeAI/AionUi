@@ -25,6 +25,8 @@ import OfficeDocPreview from '../viewers/OfficeDocViewer';
 import PptViewer from '../viewers/PptViewer';
 import CodeEditor from '../editors/CodeEditor';
 import URLViewer from '../viewers/URLViewer';
+import BrowserTabLayer from '../../browser/BrowserTabLayer';
+import { MAX_BROWSER_TABS } from '../../browser/constants';
 import {
   PreviewTabs,
   PreviewToolbar,
@@ -66,6 +68,9 @@ const PreviewPanel: React.FC = () => {
     updateContent,
     saveContent,
     addDomSnippet,
+    updateTab,
+    openBrowserTab,
+    browserTabLimitHitAt,
   } = usePreviewContext();
   const layout = useLayoutContext();
 
@@ -125,6 +130,22 @@ const PreviewPanel: React.FC = () => {
     isDirty: activeTab?.isDirty,
     onSave: () => void saveContent(),
   });
+
+  // 新建浏览器 tab（tab 栏加号）/ New browser tab (plus button in the tab bar)
+  const handleNewBrowserTab = useCallback(() => openBrowserTab(), [openBrowserTab]);
+
+  /**
+   * 浏览器 tab 达上限时提示用户。上限触达会复用最旧的 tab，如果不说一声，
+   * 用户看到的是"点了新建但旧 tab 内容变了"——像 bug。
+   *
+   * Warn when the browser tab cap is hit. Hitting the cap reuses the oldest tab;
+   * without this notice the user just sees an old tab's content change, which
+   * reads as a bug.
+   */
+  useEffect(() => {
+    if (!browserTabLimitHitAt) return;
+    messageApi.warning?.(t('preview.browser.tabLimitReached', { count: MAX_BROWSER_TABS }));
+  }, [browserTabLimitHitAt, messageApi, t]);
 
   const setToolbarExtrasCallback = useCallback((extras: PreviewToolbarExtras | null) => {
     setToolbarExtras(extras);
@@ -424,6 +445,11 @@ const PreviewPanel: React.FC = () => {
   const renderContent = () => {
     if (metadata?.missingFile) return renderMissingFile();
 
+    // 浏览器 tab 由常驻的 BrowserTabLayer 渲染，不能走这里 —— 否则切 tab 会重新加载页面
+    // Browser tabs are rendered by the always-mounted BrowserTabLayer; rendering
+    // them here would reload the page on every tab switch.
+    if (content_type === 'browser') return null;
+
     // Markdown 模式 / Markdown mode
     if (isMarkdown) {
       // 分屏模式：左右分割（编辑器 + 预览）/ Split-screen mode: Editor + Preview
@@ -616,16 +642,38 @@ const PreviewPanel: React.FC = () => {
         </div>
       );
     } else if (content_type === 'pdf') {
-      return <PDFPreview file_path={metadata?.file_path} content={content} />;
+      return <PDFPreview fileRef={metadata?.fileRef} file_path={metadata?.file_path} content={content} />;
     } else if (content_type === 'ppt') {
-      return <PptViewer file_path={metadata?.file_path} content={content} workspace={metadata?.workspace} />;
+      return (
+        <PptViewer
+          fileRef={metadata?.fileRef}
+          file_path={metadata?.file_path}
+          content={content}
+          workspace={metadata?.workspace}
+        />
+      );
     } else if (content_type === 'word') {
-      return <OfficeDocPreview file_path={metadata?.file_path} content={content} workspace={metadata?.workspace} />;
+      return (
+        <OfficeDocPreview
+          fileRef={metadata?.fileRef}
+          file_path={metadata?.file_path}
+          content={content}
+          workspace={metadata?.workspace}
+        />
+      );
     } else if (content_type === 'excel') {
-      return <ExcelPreview file_path={metadata?.file_path} content={content} workspace={metadata?.workspace} />;
+      return (
+        <ExcelPreview
+          fileRef={metadata?.fileRef}
+          file_path={metadata?.file_path}
+          content={content}
+          workspace={metadata?.workspace}
+        />
+      );
     } else if (content_type === 'image') {
       return (
         <ImagePreview
+          fileRef={metadata?.fileRef}
           file_path={metadata?.file_path}
           content={content}
           file_name={metadata?.file_name || metadata?.title}
@@ -645,11 +693,19 @@ const PreviewPanel: React.FC = () => {
     id: tab.id,
     title: tab.title,
     isDirty: tab.isDirty,
+    favicon: tab.content_type === 'browser' ? tab.metadata?.favicon : undefined,
+    agentActive: tab.content_type === 'browser' ? tab.metadata?.agentActive : undefined,
   }));
+
+  // 浏览器 tab 常驻挂载，切 tab 不销毁 webview / Browser tabs stay mounted across switches
+  const browserTabs = tabs.filter((tab) => tab.content_type === 'browser');
 
   return (
     <PreviewToolbarExtrasProvider value={toolbarExtrasContextValue}>
-      <div className='h-full flex flex-col bg-1 rounded-[16px]'>
+      {/* bg-1 是必需的：面板必须自己铺满底色，不能依赖外层容器
+          bg-1 is required: the panel paints its own background rather than
+          relying on an outer container, so no window backdrop shows through. */}
+      <div className='h-full flex flex-col bg-1'>
         {messageContextHolder}
 
         {/* 确认对话框 / Confirmation modals */}
@@ -672,10 +728,18 @@ const PreviewPanel: React.FC = () => {
           onCloseTab={handleCloseTab}
           onContextMenu={handleTabContextMenu}
           onClosePanel={closePreview}
+          // 只要面板里已经有任意 tab（文件或浏览器），就露出「新建浏览器 tab」的加号，
+          // 不必等用户先手动开过一次浏览器。面板本身为空时才隐藏，避免出现一个没有
+          // 上下文的孤立加号。
+          // Show the "new browser tab" plus as soon as the panel holds any tab (file or
+          // browser) instead of requiring the user to open a browser first. It stays
+          // hidden only while the panel is empty, so the plus never appears alone.
+          onNewBrowserTab={previewTabs.length > 0 ? handleNewBrowserTab : undefined}
         />
 
-        {/* 工具栏（URL 类型不显示工具栏，因为不需要下载/编辑等功能）/ Toolbar (hidden for URL type as it doesn't need download/edit features) */}
-        {content_type !== 'url' && !metadata?.missingFile && (
+        {/* 工具栏（URL / 浏览器 类型不显示工具栏，因为不需要下载/编辑等功能）
+            Toolbar (hidden for URL and browser types — no download/edit needed) */}
+        {content_type !== 'url' && content_type !== 'browser' && !metadata?.missingFile && (
           <PreviewToolbar
             content_type={content_type}
             isMarkdown={isMarkdown}
@@ -712,6 +776,10 @@ const PreviewPanel: React.FC = () => {
 
         {/* 预览内容 / Preview content */}
         {renderContent()}
+
+        {/* 浏览器层：常驻挂载，切 tab 不重新加载页面
+            Browser layer: always mounted so tab switches don't reload pages */}
+        <BrowserTabLayer browserTabs={browserTabs} activeTabId={activeTabId} updateTab={updateTab} />
 
         {/* Tab 右键菜单 / Tab context menu */}
         {/* eslint-disable-next-line max-len */}

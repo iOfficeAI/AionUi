@@ -139,5 +139,14 @@
     "installing": "미리보기 구성 요소 설치 중...",
     "startFailed": "PPT 미리보기 시작 실패",
     "installHint": "공식 iOfficeAI/OfficeCLI releases 페이지에서 OfficeCLI를 설치하세요"
+  },
+  "browser": {
+    "newTab": "새 탭",
+    "addressPlaceholder": "URL 입력 또는 검색",
+    "agentActiveTooltip": "에이전트가 이 탭을 조작하고 있습니다",
+    "tabLimitReached": "탭 수 한도({{count}})에 도달하여 가장 오래된 탭을 재사용했습니다.",
+    "agentFirstUseTitle": "에이전트가 앱 내 브라우저를 사용하고 있습니다",
+    "agentFirstUseContent": "이 패널에서 페이지를 열고 클릭하고 내용을 읽을 수 있습니다. 로그인 상태는 유지됩니다.",
+    "agentFirstUseAction": "설정 열기"
   }
 }

@@ -92,6 +92,7 @@ import { bootstrapRendererConfig } from '@renderer/services/bootstrapRenderer';
 // Components and utilities
 import BackendStartingView from './components/layout/BackendStartingView';
 import BackendStartupGate from './components/layout/BackendStartupGate';
+import GpuAutoDisableNotice from './components/layout/GpuAutoDisableNotice';
 import Layout from './components/layout/Layout';
 import Router from './components/layout/Router';
 import Sider from './components/layout/Sider';
@@ -283,7 +284,13 @@ const AppProviders: React.FC<PropsWithChildren> = ({ children }) =>
           React.createElement(
             FeedbackProvider,
             null,
-            React.createElement(React.Fragment, null, React.createElement(RuntimeFailureDialogs, null), children)
+            React.createElement(
+              React.Fragment,
+              null,
+              React.createElement(RuntimeFailureDialogs, null),
+              React.createElement(GpuAutoDisableNotice, null),
+              children
+            )
           )
         )
       )

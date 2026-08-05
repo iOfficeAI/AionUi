@@ -72,5 +72,13 @@
     "yesAlwaysAllowTool": "はい、サーバー \"{{serverName}}\" のツール \"{{toolName}}\" を常に許可",
     "yesAlwaysAllowServer": "はい、サーバー \"{{serverName}}\" のすべてのツールを常に許可",
     "no": "いいえ (esc)"
+  },
+  "fork": {
+    "action": "ここから分岐",
+    "errorTurnInFlight": "現在の応答が完了してから分岐してください",
+    "errorParentUnbound": "この会話にはまだ分岐できるバックエンドセッションがありません",
+    "errorPointUnsupported": "このエージェントは最新メッセージからのみ分岐できます",
+    "errorUnsupported": "このエージェントは分岐をサポートしていません",
+    "errorGeneric": "分岐に失敗しました：{{message}}"
   }
 }

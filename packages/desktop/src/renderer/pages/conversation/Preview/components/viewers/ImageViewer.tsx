@@ -5,21 +5,23 @@
  */
 
 import { ipcBridge } from '@/common';
+import type { ChatFileRef } from '@/common/types/chatFile';
 import { Image } from '@arco-design/web-react';
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 interface ImagePreviewProps {
+  fileRef?: ChatFileRef;
   file_path?: string;
   content?: string;
   file_name?: string;
   workspace?: string;
 }
 
-const ImagePreview: React.FC<ImagePreviewProps> = ({ file_path, content, file_name, workspace }) => {
+const ImagePreview: React.FC<ImagePreviewProps> = ({ fileRef, file_path, content, file_name, workspace }) => {
   const { t } = useTranslation();
   const [imageSrc, setImageSrc] = useState<string>(content || '');
-  const [loading, setLoading] = useState<boolean>(!!file_path && !content);
+  const [loading, setLoading] = useState<boolean>((!!fileRef || !!file_path) && !content);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -33,7 +35,7 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({ file_path, content, file_na
         return;
       }
 
-      if (!file_path) {
+      if (!fileRef && !file_path) {
         setImageSrc('');
         setLoading(false);
         return;
@@ -42,7 +44,11 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({ file_path, content, file_na
       try {
         setLoading(true);
         setError(null);
-        const base64 = await ipcBridge.fs.getImageBase64.invoke({ path: file_path, workspace });
+        // Prefer the ChatFileRef identity (data-URL from /api/fs/content); fall back
+        // to the legacy {path, workspace} image endpoint for callers not yet migrated.
+        const base64 = fileRef
+          ? await ipcBridge.fs.readContent.invoke({ file: fileRef, encoding: 'dataurl' })
+          : await ipcBridge.fs.getImageBase64.invoke({ path: file_path!, workspace });
         if (!base64) {
           throw new Error('Image file not found');
         }
@@ -64,7 +70,7 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({ file_path, content, file_na
     return () => {
       isMounted = false;
     };
-  }, [content, file_path, t, workspace]);
+  }, [content, fileRef, file_path, t, workspace]);
 
   const renderStatus = () => {
     if (loading) {

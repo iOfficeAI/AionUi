@@ -232,7 +232,7 @@ export const InstallationIntegrityContent: React.FC<{ description: string; diagn
   </div>
 );
 
-const InstallationIntegrityFooter: React.FC<{
+export const InstallationIntegrityFooter: React.FC<{
   diagnostics?: InstallationIntegrityDiagnostics;
   diagnosticsKind?: InstallationIntegrityDialogKind;
 }> = ({ diagnostics, diagnosticsKind = 'incomplete_installation' }) => {
@@ -294,15 +294,25 @@ const InstallationIntegrityFooter: React.FC<{
     }
   };
 
-  const handleRecoverCorruptedDatabase = async () => {
+  const handleRecoverCorruptedDatabase = () => {
     if (recovering) return;
-    setRecovering(true);
-    try {
-      await actions.onRecoverCorruptedDatabase();
-    } catch {
-      Message.error(t('common.backendStartup.recoverableDatabaseCorruption.rebuildFailed'));
-      setRecovering(false);
-    }
+    // Rebuild is destructive (backs up the corrupted DB and creates an empty one),
+    // so gate it behind an explicit second confirmation before invoking recovery.
+    Modal.confirm({
+      title: t('common.backendStartup.recoverableDatabaseCorruption.confirmDialog.title'),
+      content: t('common.backendStartup.recoverableDatabaseCorruption.confirmDialog.content'),
+      okText: t('common.backendStartup.recoverableDatabaseCorruption.confirmDialog.okText'),
+      cancelText: t('common.backendStartup.recoverableDatabaseCorruption.confirmDialog.cancelText'),
+      onOk: async () => {
+        setRecovering(true);
+        try {
+          await actions.onRecoverCorruptedDatabase();
+        } catch {
+          Message.error(t('common.backendStartup.recoverableDatabaseCorruption.rebuildFailed'));
+          setRecovering(false);
+        }
+      },
+    });
   };
 
   return (
@@ -324,7 +334,8 @@ const InstallationIntegrityFooter: React.FC<{
         <Button
           data-testid='recoverable-database-corruption-rebuild'
           loading={recovering}
-          type='primary'
+          status='danger'
+          type='outline'
           onClick={handleRecoverCorruptedDatabase}
         >
           {actions.recoverText}

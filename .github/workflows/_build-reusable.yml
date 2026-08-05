@@ -31,6 +31,11 @@ on:
 env:
   BUN_INSTALL_REGISTRY: 'https://registry.npmjs.org/'
   AIONUI_HUB_TAG: 'dist-ebc6a2b'
+  # Discontinued-build flag: only AionUi's final `-final` tag (e.g.
+  # v2.1.40-final) produces a build that guides users to the AionPro website.
+  # AionPro's own release tags never contain `-final`, so this stays 'false'
+  # there and in-app update behavior is untouched.
+  IS_DISCONTINUED_BUILD: ${{ contains(github.ref_name, '-final') && 'true' || 'false' }}
 
 jobs:
   code-quality:

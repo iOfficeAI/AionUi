@@ -118,14 +118,20 @@
     },
     "recoverableDatabaseCorruption": {
       "title": "Local data is corrupted",
-      "description": "AionUi detected that the local database is corrupted and cannot continue startup. After confirmation, AionUi will back up the old database and create a new local database to continue startup. Historical local data will not be shown for now, and the old database will be kept as a backup.",
+      "description": "AionUi detected that the local database is corrupted and cannot continue startup. After confirmation, AionUi will back up the old database and create a new local database to continue startup. Past conversations will no longer be shown, and the old database will be kept as a backup file.",
       "confirmRebuild": "Back up old DB and rebuild new DB",
       "sendDiagnostics": "Send diagnostics",
       "diagnosticsHint": "Sending diagnostics will not modify the local database.",
       "diagnosticsSent": "Diagnostics sent",
       "diagnosticsReportSuccess": "Diagnostics report sent",
       "diagnosticsReportFailed": "Failed to send diagnostics report",
-      "rebuildFailed": "Failed to back up old DB and rebuild new DB"
+      "rebuildFailed": "Failed to back up old DB and rebuild new DB",
+      "confirmDialog": {
+        "title": "Rebuild the database?",
+        "content": "This will back up the currently corrupted database and create a brand-new empty one. Past conversations will no longer be shown (the old database is kept as a backup file). Continue?",
+        "okText": "Confirm rebuild",
+        "cancelText": "Cancel"
+      }
     },
     "transientConcurrentStartup": {
       "title": "AionUi is starting up",

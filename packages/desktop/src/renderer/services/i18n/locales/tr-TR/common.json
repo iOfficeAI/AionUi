@@ -118,14 +118,20 @@
     },
     "recoverableDatabaseCorruption": {
       "title": "Yerel veriler bozulmuş",
-      "description": "AionUi yerel veritabanının bozulduğunu algıladı ve başlatmaya devam edemiyor. Onaydan sonra eski veritabanı yedeklenecek ve başlatmaya devam etmek için yeni bir yerel veritabanı oluşturulacak. Geçmiş yerel veriler şimdilik gösterilmeyecek, eski veritabanı yedek olarak saklanacak.",
+      "description": "AionUi yerel veritabanının bozulduğunu algıladı ve başlatmaya devam edemiyor. Onaydan sonra eski veritabanı yedeklenecek ve başlatmaya devam etmek için yeni bir yerel veritabanı oluşturulacak. Geçmiş sohbetler artık gösterilmeyecek ve eski veritabanı yedek dosyası olarak saklanacak.",
       "confirmRebuild": "Eski DB'yi yedekle ve yeni DB oluştur",
       "sendDiagnostics": "Tanılama gönder",
       "diagnosticsHint": "Tanılama göndermek yerel veritabanını değiştirmez.",
       "diagnosticsSent": "Tanılama gönderildi",
       "diagnosticsReportSuccess": "Tanılama raporu gönderildi",
       "diagnosticsReportFailed": "Tanılama raporu gönderilemedi",
-      "rebuildFailed": "Eski DB yedeklenip yeni DB oluşturulamadı"
+      "rebuildFailed": "Eski DB yedeklenip yeni DB oluşturulamadı",
+      "confirmDialog": {
+        "title": "Veritabanı yeniden oluşturulsun mu?",
+        "content": "Bu işlem, mevcut bozuk veritabanını yedekler ve tamamen yeni, boş bir veritabanı oluşturur. Geçmiş sohbetler artık gösterilmeyecek (eski veritabanı yedek dosyası olarak saklanır). Devam edilsin mi?",
+        "okText": "Yeniden oluşturmayı onayla",
+        "cancelText": "İptal"
+      }
     },
     "transientConcurrentStartup": {
       "title": "AionUi başlatılıyor",

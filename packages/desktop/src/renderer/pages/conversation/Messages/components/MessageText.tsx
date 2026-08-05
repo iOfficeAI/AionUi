@@ -22,6 +22,9 @@ import HorizontalFileList from '@renderer/components/media/HorizontalFileList';
 import MarkdownView from '@renderer/components/Markdown';
 import { stripThinkTags, hasThinkTags } from '@renderer/utils/chat/thinkTagFilter';
 import { stripSkillSuggest, hasSkillSuggest } from '@renderer/utils/chat/skillSuggestParser';
+import { isForkEnabled } from '@/common/chat/forkConversation';
+import { useForkConversation } from '@/renderer/hooks/chat/useForkConversation';
+import ForkBranchIcon from '@renderer/components/base/ForkBranchIcon';
 
 /**
  * Format a timestamp for message display.
@@ -144,7 +147,12 @@ const useFormatContent = (content: string) => {
   }, [content]);
 };
 
-const MessageText: React.FC<{ message: IMessageText; showCopyRow?: boolean }> = ({ message, showCopyRow = true }) => {
+const MessageText: React.FC<{
+  message: IMessageText;
+  showCopyRow?: boolean;
+  isLastMessage?: boolean;
+  hasForkAnchor?: boolean;
+}> = ({ message, showCopyRow = true, isLastMessage = false, hasForkAnchor = false }) => {
   const logos = useAgentLogos();
   // Filter think tags from content before rendering
   // 在渲染前过滤 think 标签
@@ -174,6 +182,7 @@ const MessageText: React.FC<{ message: IMessageText; showCopyRow?: boolean }> = 
   const { data, json } = useFormatContent(text);
   const shouldRenderPlainText = isUserMessage;
   const conversationContext = useConversationContextSafe();
+  const forkConversation = useForkConversation(conversationContext?.conversation_id);
   const layout = useLayoutContext();
   const isMobile = layout?.isMobile ?? false;
   const handleLocalFileLink = useLocalFilePreview(conversationContext?.workspace);
@@ -212,6 +221,26 @@ const MessageText: React.FC<{ message: IMessageText; showCopyRow?: boolean }> = 
       </div>
     </Tooltip>
   );
+
+  // Fork entry point: only when the agent declares the capability, and only on
+  // messages the backend can actually fork at (any message for at_turn/codex,
+  // the last message otherwise) — see `isForkEnabled`.
+  const showForkButton = isForkEnabled(conversationContext?.forkCapability, {
+    isLastMessage,
+    hasTurnAnchor: hasForkAnchor,
+  });
+  const forkButton = showForkButton ? (
+    <Tooltip content={t('messages.fork.action')}>
+      <div
+        className='p-4px rd-4px cursor-pointer hover:bg-3 transition-colors opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto focus-within:opacity-100 focus-within:pointer-events-auto'
+        onClick={() => void forkConversation(message.msg_id ?? message.id)}
+        style={{ lineHeight: 0 }}
+        data-testid='message-fork-button'
+      >
+        <ForkBranchIcon size={16} fill={iconColors.secondary} />
+      </div>
+    </Tooltip>
+  ) : null;
 
   const cronMeta = message.content.cronMeta;
   const senderName = message.content.senderName;
@@ -305,6 +334,7 @@ const MessageText: React.FC<{ message: IMessageText; showCopyRow?: boolean }> = 
             })}
           >
             {copyButton}
+            {forkButton}
             {message.created_at && (
               <span className='text-12px text-t-secondary opacity-0 group-hover:opacity-100 transition-opacity select-none'>
                 {formatMessageTime(message.created_at)}

@@ -1,5 +1,4 @@
 import { WORKSPACE_HEADER_HEIGHT } from '@/renderer/pages/conversation/utils/layoutCalc';
-import { dispatchWorkspaceToggleEvent } from '@/renderer/utils/workspace/workspaceEvents';
 import { ExpandLeft, ExpandRight } from '@icon-park/react';
 import React from 'react';
 import WorkspaceOpenButton from './WorkspaceOpenButton';
@@ -56,19 +55,6 @@ const WorkspacePanelHeader: React.FC<WorkspaceHeaderProps> = ({
       </button>
     )}
   </div>
-);
-
-// Small floating button shown when the workspace panel is collapsed on desktop
-export const DesktopWorkspaceToggle: React.FC = () => (
-  <button
-    type='button'
-    className='workspace-toggle-floating workspace-header__toggle absolute top-1/2 right-2 z-10'
-    style={{ transform: 'translateY(-50%)' }}
-    onClick={() => dispatchWorkspaceToggleEvent()}
-    aria-label='Expand workspace'
-  >
-    <ExpandLeft size={16} />
-  </button>
 );
 
 export default WorkspacePanelHeader;
