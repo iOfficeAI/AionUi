@@ -52,15 +52,15 @@ const MessageAcpTerminalOutput: React.FC<{ message: IMessageAcpTerminalOutput }>
 
   const exit = content.exit_status;
   const statusTag = running ? (
-    <Tag color='arcoblue' size='small'>
+    <Tag color='arcoblue' size='small' data-testid='terminal-card-status'>
       {t('conversation.terminal.running', { defaultValue: 'Running' })}
     </Tag>
   ) : exit?.signaled ? (
-    <Tag color='orange' size='small'>
+    <Tag color='orange' size='small' data-testid='terminal-card-status'>
       {t('conversation.terminal.stopped', { defaultValue: 'Stopped' })}
     </Tag>
   ) : (
-    <Tag color={exit?.exit_code === 0 ? 'green' : 'red'} size='small'>
+    <Tag color={exit?.exit_code === 0 ? 'green' : 'red'} size='small' data-testid='terminal-card-status'>
       {t('conversation.terminal.exited', { defaultValue: 'Exit {{code}}', code: exit?.exit_code ?? '?' })}
     </Tag>
   );
@@ -68,10 +68,12 @@ const MessageAcpTerminalOutput: React.FC<{ message: IMessageAcpTerminalOutput }>
   return (
     <Card className='w-full mb-2' size='small' bordered>
       <div className='flex items-center gap-2 mb-2 min-w-0'>
-        <code className='text-13px font-mono text-t-primary truncate flex-1'>$ {content.command}</code>
+        <code className='text-13px font-mono text-t-primary truncate flex-1' data-testid='terminal-card-command'>
+          $ {content.command}
+        </code>
         {statusTag}
         {running && (
-          <Button size='mini' status='danger' loading={killing} onClick={handleStop}>
+          <Button size='mini' status='danger' loading={killing} onClick={handleStop} data-testid='terminal-card-stop'>
             {t('conversation.terminal.stop', { defaultValue: 'Stop' })}
           </Button>
         )}
@@ -79,6 +81,7 @@ const MessageAcpTerminalOutput: React.FC<{ message: IMessageAcpTerminalOutput }>
       {(content.output || running) && (
         <pre
           ref={outputRef}
+          data-testid='terminal-card-output'
           className='bg-1 p-2 rounded text-xs font-mono overflow-x-auto overflow-y-auto max-h-320px whitespace-pre-wrap m-0'
         >
           {content.truncated
