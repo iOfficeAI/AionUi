@@ -72,5 +72,13 @@
     "yesAlwaysAllowTool": "Oui, toujours autoriser l'outil \"{{toolName}}\" du serveur \"{{serverName}}\"",
     "yesAlwaysAllowServer": "Oui, toujours autoriser tous les outils du serveur \"{{serverName}}\"",
     "no": "Non (Échap)"
+  },
+  "fork": {
+    "action": "Bifurquer à partir d'ici",
+    "errorTurnInFlight": "Attendez la fin de la réponse en cours avant de bifurquer",
+    "errorParentUnbound": "Cette conversation n'a pas encore de session backend à bifurquer",
+    "errorPointUnsupported": "Cet agent ne peut bifurquer qu'à partir du dernier message",
+    "errorUnsupported": "Cet agent ne prend pas en charge la bifurcation",
+    "errorGeneric": "Échec de la bifurcation : {{message}}"
   }
 }

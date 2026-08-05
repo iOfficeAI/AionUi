@@ -11,7 +11,8 @@ import classNames from 'classnames';
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useMessageList } from '../hooks';
-import { buildMessageAnchors, type MessageAnchorItem } from './anchors';
+import type { MessageAnchorItem } from './anchors';
+import { useConversationAnchors } from './useConversationAnchors';
 import {
   needsScroll,
   resolveScrollTopForIndex,
@@ -63,7 +64,9 @@ const MessageAnchorRail: React.FC = () => {
   const conversationContext = useConversationContextSafe();
   const conversationId = conversationContext?.conversation_id;
 
-  const anchors = useMemo(() => buildMessageAnchors(messages), [messages]);
+  // Covers the whole conversation, not just the pages the chat area has loaded, so
+  // reopening an old conversation shows every turn without scrolling up first.
+  const anchors = useConversationAnchors(conversationId, messages);
 
   // A callback ref, not a plain one: the rail is not rendered until a second
   // anchor arrives, so a mount-only effect would run while there is no element to

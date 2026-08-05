@@ -26,6 +26,13 @@ export type ChatFileRef =
   | { kind: 'upload'; path: string }
   | { kind: 'local'; path: string };
 
+/**
+ * How `POST /api/fs/content` encodes returned file content. Mirrors the aioncore
+ * `ContentEncoding` (serde lowercase): `utf8` for text, `dataurl` for images
+ * (backend prepends `data:<mime>;base64,`), `base64` for raw bytes.
+ */
+export type ContentEncoding = 'utf8' | 'base64' | 'dataurl';
+
 /** Build a project-scoped file ref from an Explorer tree node's identity. */
 export const projectFileRef = (pe_id: string, relative_path: string): ChatFileRef => ({
   kind: 'project',

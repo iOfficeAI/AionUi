@@ -139,5 +139,14 @@
     "installing": "Önizleme bileşeni yükleniyor...",
     "startFailed": "PPT önizlemesi başlatılamadı",
     "installHint": "OfficeCLI'yi resmi iOfficeAI/OfficeCLI releases sayfasından yükleyin"
+  },
+  "browser": {
+    "newTab": "Yeni sekme",
+    "addressPlaceholder": "Bir URL girin veya arama yapın",
+    "agentActiveTooltip": "Aracı bu sekmeyi kullanıyor",
+    "tabLimitReached": "Sekme sınırına ulaşıldı ({{count}}). En eski sekme yeniden kullanıldı.",
+    "agentFirstUseTitle": "Aracı uygulama içi tarayıcıyı kullanıyor",
+    "agentFirstUseContent": "Bu panelde sayfa açabilir, tıklayabilir ve içerik okuyabilir. Oturum bilgileriniz korunur.",
+    "agentFirstUseAction": "Ayarları aç"
   }
 }

@@ -74,7 +74,9 @@
     "removeProjectConfirm": "確定要移除專案「{{name}}」嗎？專案下的 {{count}} 個對話也會被一起移除。",
     "newConversationInProject": "在此專案中新建對話",
     "deleting": "刪除中...",
-    "reorderPinned": "拖動以調整置頂會話順序"
+    "reorderPinned": "拖動以調整置頂會話順序",
+    "forkedFrom": "分叉自「{{name}}」",
+    "forkedConversation": "分叉對話"
   },
   "historySearch": {
     "tooltip": "搜尋訊息",
@@ -416,7 +418,8 @@
     "openWith": {
       "vscode": "VS Code",
       "terminal": "終端機",
-      "explorer": "檔案總管"
+      "explorer": "檔案總管",
+      "browser": "瀏覽器"
     }
   },
   "minimap": {
@@ -563,7 +566,8 @@
     "sendboxHint": "正在準備執行環境。首次啟動可能會稍慢一些。"
   },
   "sendbox": {
-    "hint": "輸入 / 喚起命令，@ 引用檔案，↑/↓ 切換歷史訊息"
+    "hint": "輸入 / 喚起命令，@ 引用檔案，↑/↓ 切換歷史訊息",
+    "mediaPathFallback": "該 Agent 不原生支援此檔案類型，將以檔案路徑形式傳送。"
   },
   "agentTip": {
     "codes": {

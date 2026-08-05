@@ -8,6 +8,45 @@
  * AionUI应用程序共用常量
  */
 
+// ===== 应用内浏览器 / In-app browser =====
+
+/**
+ * 所有浏览器 tab 共享的持久化 session partition。
+ *
+ * 放在 common 而不是渲染进程：渲染进程用它创建 webview，主进程用它清理登录态和
+ * 缓存 —— 两边必须是同一个字符串，写死两份迟早对不上。
+ *
+ * The persistent session partition shared by every in-app browser tab. It lives in
+ * common rather than the renderer because the renderer uses it to create webviews
+ * while the main process uses it to clear sign-in state and caches; two hardcoded
+ * copies would eventually drift apart.
+ *
+ * 用同一个固定值（而非按 tab / 项目区分）是刻意的：登录态需要在所有 tab、所有项目
+ * 之间共享，并在重启后保留 —— 这样用户可以替 Agent 过登录关。
+ *
+ * A single fixed value (rather than per-tab or per-project) is deliberate: sign-in
+ * state must be shared across all tabs and projects and survive restarts, so a
+ * user can log in once on the agent's behalf.
+ */
+export const BROWSER_SESSION_PARTITION = 'persist:aionui-browser';
+
+/**
+ * 内置浏览器 MCP 的注册名。
+ *
+ * 放在 common 的理由和上面一样，而且更强：主进程用它注册这个内置 MCP，渲染进程用它
+ * 从工具调用流里认出「Agent 正在操作浏览器」并点亮角标。两边必须是同一个字符串，
+ * 各写一份早晚会不一致 —— 而不一致的表现是角标永远不亮，很难查。
+ *
+ * Registered name of the built-in browser MCP.
+ *
+ * Lives in common for the same reason as the partition above, only more so: the
+ * main process registers the built-in MCP under this name, while the renderer uses
+ * it to recognise "the agent is driving the browser" in the tool-call stream and
+ * light up the activity badge. Both sides must agree exactly; separate copies would
+ * eventually drift, and the symptom of drift is a badge that silently never lights.
+ */
+export const BUILTIN_BROWSER_MCP_NAME = 'aionui-browser';
+
 // ===== 文件处理相关常量 =====
 
 /** 临时文件时间戳分隔符 */

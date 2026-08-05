@@ -72,5 +72,13 @@
     "yesAlwaysAllowTool": "بله، همیشه اجازه ابزار «{{toolName}}» از سرور «{{serverName}}» بده",
     "yesAlwaysAllowServer": "بله، همیشه اجازه تمام ابزارها از سرور «{{serverName}}» بده",
     "no": "خیر (esc)"
+  },
+  "fork": {
+    "action": "انشعاب از اینجا",
+    "errorTurnInFlight": "پیش از انشعاب صبر کنید تا پاسخ فعلی کامل شود",
+    "errorParentUnbound": "این گفتگو هنوز نشست پشتیبانی برای انشعاب ندارد",
+    "errorPointUnsupported": "این عامل فقط از آخرین پیام می‌تواند انشعاب بگیرد",
+    "errorUnsupported": "این عامل از انشعاب پشتیبانی نمی‌کند",
+    "errorGeneric": "انشعاب ناموفق بود: {{message}}"
   }
 }

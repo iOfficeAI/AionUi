@@ -74,7 +74,9 @@
     "removeProjectConfirm": "プロジェクト「{{name}}」を削除しますか？プロジェクト内の {{count}} 件の会話も削除されます。",
     "newConversationInProject": "このプロジェクト内で新しい会話",
     "deleting": "削除中...",
-    "reorderPinned": "ドラッグしてピン留め会話の順序を変更"
+    "reorderPinned": "ドラッグしてピン留め会話の順序を変更",
+    "forkedFrom": "「{{name}}」から分岐",
+    "forkedConversation": "分岐した会話"
   },
   "historySearch": {
     "tooltip": "メッセージを検索",
@@ -416,7 +418,8 @@
     "openWith": {
       "vscode": "VS Code",
       "terminal": "ターミナル",
-      "explorer": "エクスプローラー"
+      "explorer": "エクスプローラー",
+      "browser": "ブラウザ"
     }
   },
   "minimap": {
@@ -563,7 +566,8 @@
     "sendboxHint": "実行環境を準備しています。初回起動は少し時間がかかる場合があります。"
   },
   "sendbox": {
-    "hint": "/ でコマンド、@ でファイルを参照、↑/↓ でメッセージ履歴"
+    "hint": "/ でコマンド、@ でファイルを参照、↑/↓ でメッセージ履歴",
+    "mediaPathFallback": "このエージェントはこのファイル形式をネイティブに扱えないため、ファイルパスとして送信されます。"
   },
   "agentTip": {
     "codes": {

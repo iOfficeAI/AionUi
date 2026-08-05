@@ -139,5 +139,14 @@
     "installing": "در حال نصب مؤلفه پیش‌نمایش...",
     "startFailed": "شروع پیش‌نمایش PPT ناموفق بود",
     "installHint": "OfficeCLI را از صفحه انتشارات رسمی iOfficeAI/OfficeCli نصب کنید"
+  },
+  "browser": {
+    "newTab": "زبانه جدید",
+    "addressPlaceholder": "نشانی اینترنتی را وارد کنید یا جست‌وجو کنید",
+    "agentActiveTooltip": "عامل در حال کار با این زبانه است",
+    "tabLimitReached": "به سقف تعداد زبانه‌ها ({{count}}) رسیدید. قدیمی‌ترین زبانه دوباره استفاده شد.",
+    "agentFirstUseTitle": "عامل از مرورگر درون‌برنامه استفاده می‌کند",
+    "agentFirstUseContent": "می‌تواند در این پنل صفحه باز کند، کلیک کند و محتوا را بخواند. وضعیت ورود شما حفظ می‌شود.",
+    "agentFirstUseAction": "باز کردن تنظیمات"
   }
 }

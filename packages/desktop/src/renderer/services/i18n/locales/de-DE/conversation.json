@@ -74,7 +74,9 @@
     "removeProjectConfirm": "Projekt \"{{name}}\" entfernen? Die {{count}} zugehörige(n) Unterhaltung(en) werden ebenfalls entfernt.",
     "newConversationInProject": "Neuer Chat in diesem Projekt",
     "deleting": "Wird gelöscht...",
-    "reorderPinned": "Ziehen, um angeheftete Unterhaltung neu anzuordnen"
+    "reorderPinned": "Ziehen, um angeheftete Unterhaltung neu anzuordnen",
+    "forkedFrom": "Verzweigt von „{{name}}“",
+    "forkedConversation": "Verzweigte Unterhaltung"
   },
   "historySearch": {
     "tooltip": "Nachrichten durchsuchen",
@@ -416,7 +418,8 @@
     "openWith": {
       "vscode": "VS Code",
       "terminal": "Terminal",
-      "explorer": "Datei-Explorer"
+      "explorer": "Datei-Explorer",
+      "browser": "Browser"
     }
   },
   "minimap": {
@@ -564,7 +567,8 @@
     "sendboxHint": "Laufzeit-Umgebung wird vorbereitet. Der erste Start kann etwas länger dauern."
   },
   "sendbox": {
-    "hint": "Tippe / für Befehle, @ um Dateien zu referenzieren, ↑/↓ für den Nachrichtenverlauf"
+    "hint": "Tippe / für Befehle, @ um Dateien zu referenzieren, ↑/↓ für den Nachrichtenverlauf",
+    "mediaPathFallback": "Dieser Agent unterstützt diesen Dateityp nicht nativ; die Datei wird als Dateipfad gesendet."
   },
   "agentTip": {
     "codes": {

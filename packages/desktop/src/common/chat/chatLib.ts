@@ -105,6 +105,13 @@ interface IMessage<T extends TMessageType, Content extends Record<string, any>> 
    * Hidden from UI display but persisted to DB and sent to agent.
    */
   hidden?: boolean;
+  /**
+   * Backend turn anchor (codex `Turn.id`) stamped on rows persisted while that
+   * turn streamed. Presence means a mid-history fork can anchor at (or after)
+   * this message; absent on legacy/copied rows, live-streamed frames (until
+   * reload), and backends without turn-anchored forks.
+   */
+  backend_turn_id?: string;
 }
 
 export type CronMessageMeta = {
@@ -626,7 +633,7 @@ const isChatMessagePosition = (value: unknown): value is NonNullable<TMessage['p
 const isChatMessageStatus = (value: unknown): value is NonNullable<TMessage['status']> =>
   value === 'finish' || value === 'pending' || value === 'error' || value === 'work';
 
-export const transformMessage = (message: IResponseMessage): TMessage | undefined => {
+const transformMessageInner = (message: IResponseMessage): TMessage | undefined => {
   const created_at = message.created_at ?? Date.now();
   switch (message.type) {
     case 'error': {
@@ -1013,4 +1020,14 @@ export const handleImageGenerationWithWorkspace = (message: TMessage, workspace:
   };
 
   return processedMessage;
+};
+
+export const transformMessage = (message: IResponseMessage): TMessage | undefined => {
+  const transformed = transformMessageInner(message);
+  // Stamp the backend turn anchor so live-streamed messages gate the fork
+  // entry exactly like history-loaded rows (see isForkEnabled).
+  if (transformed && message.backend_turn_id) {
+    transformed.backend_turn_id = message.backend_turn_id;
+  }
+  return transformed;
 };

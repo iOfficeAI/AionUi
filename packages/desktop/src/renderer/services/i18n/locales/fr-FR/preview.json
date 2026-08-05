@@ -139,5 +139,14 @@
     "installing": "Installation du composant d'aperçu...",
     "startFailed": "Échec du démarrage de l'aperçu PPT",
     "installHint": "Assurez-vous qu'officecli est installé : npm run postinstall"
+  },
+  "browser": {
+    "newTab": "Nouvel onglet",
+    "addressPlaceholder": "Saisissez une URL ou recherchez",
+    "agentActiveTooltip": "L'agent utilise cet onglet",
+    "tabLimitReached": "Limite d'onglets atteinte ({{count}}). L'onglet le plus ancien a été réutilisé.",
+    "agentFirstUseTitle": "L'agent utilise le navigateur intégré",
+    "agentFirstUseContent": "Il peut ouvrir des pages, cliquer et lire du contenu dans ce panneau. Votre connexion est conservée.",
+    "agentFirstUseAction": "Ouvrir les paramètres"
   }
 }

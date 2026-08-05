@@ -139,5 +139,14 @@
     "installing": "Installing preview component...",
     "startFailed": "Failed to start PPT preview",
     "installHint": "Install OfficeCLI from the official iOfficeAI/OfficeCLI releases page"
+  },
+  "browser": {
+    "newTab": "New tab",
+    "addressPlaceholder": "Enter a URL or search",
+    "agentActiveTooltip": "The agent is operating this tab",
+    "tabLimitReached": "Browser tab limit reached ({{count}}). The oldest tab was reused.",
+    "agentFirstUseTitle": "The agent is using the in-app browser",
+    "agentFirstUseContent": "It can open pages, click and read content in this panel. Your sign-in state is kept between sessions.",
+    "agentFirstUseAction": "Open settings"
   }
 }

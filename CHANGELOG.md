@@ -1,5 +1,44 @@
 # Changelog
 
+## [2.1.47](https://github.com/iOfficeAI/AionUi/compare/v2.1.46...v2.1.47-final) (2026-08-04)
+
+### Desktop
+
+#### Features
+
+- **conversation:** message-level fork entry with capability-gated visibility (#3843)
+- **conversation:** tag derived titles with name_source for agent auto-naming (#3839)
+- **preview:** add agent-controllable in-app browser over a single-target CDP bridge (#3826)
+- **preview:** pdf via stream URL + office ChatFileRef + drop fs/resolve (#3837)
+- **preview:** migrate content I/O to ChatFileRef /content endpoints (#3825)
+- **update:** discontinue AionUi in-app updates and guide migration to the official website (#3730)
+
+#### Bug Fixes
+
+- **conversation:** keep the anchor rail clear of text and cover full history (#3848)
+- **desktop:** silence GPU-process crash noise and surface HW-accel auto-disable (#3838)
+- **renderer:** gate database rebuild behind a second confirmation (#3840)
+- **renderer:** keep workspace toggle in titlebar (#3845)
+- **team:** handle omitted slot work in run state (#3847)
+
+### Core ([v0.1.58](https://github.com/iOfficeAI/AionCore/releases/tag/v0.1.58))
+
+#### Features
+
+- **conversation:** agent-driven session auto-naming (ACP session_info_update + claude generate_session_title) (#768)
+- **conversation:** fork a conversation into a new one at a chosen message (#772)
+- **fs:** add ChatFileRef content endpoints (#757)
+- **fs:** pdf stream endpoint + office ChatFileRef resolve + retire fs/resolve & WS fs/read (#762)
+
+#### Bug Fixes
+
+- **agent:** keep the thought-level picker on a resumed conversation (#763)
+- **runtime:** add bounded retry to managed node version probe (#771)
+- **session:** keep claude session cost cumulative across process respawns (#767)
+- **session:** settle cards through teardown and resume so no stored row spins forever (#766)
+
+---
+
 ## [2.1.46](https://github.com/iOfficeAI/AionUi/compare/v2.1.45...v2.1.46) (2026-08-03)
 
 ### Desktop

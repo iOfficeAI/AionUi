@@ -30,6 +30,12 @@ body {
   font-family:
     -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', 'PingFang SC',
     'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+  /* 根元素必须自己铺底色。Electron 窗口底色是固定的白色，html/body 若保持透明，
+     任何布局缝隙都会漏出白色 —— 深色模式下就是刺眼的白边。
+     The root must paint its own background. The Electron window's own background
+     is a fixed white, so if html/body stay transparent any layout gap leaks white
+     through — glaringly so in dark mode. */
+  background-color: var(--bg-1);
 }
 
 html body .arco-tooltip-content,
@@ -379,6 +385,20 @@ body[arco-theme='dark'] .arco-message-error {
    Paint the whole node row, not the narrower title block. */
 .workspace-tree .arco-tree-node {
   transition: background-color 0.12s ease;
+}
+
+/* 对齐基准线（与 ExplorerContainer.tsx / SearchPanel.tsx 保持一致）：
+   节点行外框从 12px 起，行内首个元素（展开箭头）从 20px 起。
+   arco 把所有层级的节点都渲染成 .arco-tree 的直接子元素，靠行内的缩进块表示层级，
+   所以这 8px 对每一层是同一个常量偏移，不会随深度累加。
+
+   Alignment baseline (kept in sync with ExplorerContainer.tsx / SearchPanel.tsx):
+   the node row's outer box starts at 12px and its first inner element (the expand
+   arrow) at 20px. arco renders nodes at every depth as direct children of .arco-tree
+   and expresses nesting with in-row indent blocks, so these 8px are a single constant
+   offset per level rather than something that accumulates with depth. */
+.workspace-tree .arco-tree-node {
+  padding-left: 8px;
 }
 
 .workspace-tree .arco-tree-node:hover {
