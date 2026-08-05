@@ -420,6 +420,9 @@ export interface IConfirmation<Option extends any = any> {
     value: Option;
     params?: Record<string, string>; // Translation interpolation parameters
   }>;
+  /** AskUserQuestion recovery: the bare questions[] payload — when present the
+   *  recovery path rebuilds the real question card instead of a permission card. */
+  questions?: IAskQuestion[];
   /**
    * Command type for exec confirmations (e.g., 'curl', 'npm', 'git')
    * Used for "always allow" permission memory
