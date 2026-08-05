@@ -267,6 +267,18 @@ function classifyBackendStartupExited(details: ErrorWithDetails['details']): Bac
   return { reason: 'backend_startup_exited' };
 }
 
+// A spawned process that never reported its listening port within the
+// port-report window (stage `listen_timeout`) timed out while starting — it is
+// NOT a broken installation. Unlike pending-slow/exited this gate must not
+// require `serverListeningObserved === true`: on this stage it is always false
+// by definition (Sentry 136646113).
+function classifyPortReportTimeout(details: ErrorWithDetails['details']): BackendStartupFailureInfo | undefined {
+  if (!details) return undefined;
+  if (details.stage !== 'listen_timeout') return undefined;
+
+  return { reason: 'backend_startup_port_report_timeout' };
+}
+
 export function classifyBackendStartupFailure(error: unknown): BackendStartupFailureInfo {
   const details = getBackendStartupDetails(error);
   const packageArchitectureMismatch = classifyPackageArchitectureMismatch(details);
@@ -330,6 +342,9 @@ export function classifyBackendStartupFailure(error: unknown): BackendStartupFai
 
   const backendStartupExited = classifyBackendStartupExited(details);
   if (backendStartupExited) return backendStartupExited;
+
+  const portReportTimeout = classifyPortReportTimeout(details);
+  if (portReportTimeout) return portReportTimeout;
 
   return {
     reason: 'backend_startup_failed',

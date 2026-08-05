@@ -153,6 +153,9 @@ export default defineConfig(({ mode }) => {
         'process.env.NODE_ENV': JSON.stringify(mode),
         'process.env.env': JSON.stringify(process.env.env),
         'process.env.SENTRY_DSN': JSON.stringify(process.env.SENTRY_DSN ?? ''),
+        // Discontinued-build fork flag (see discontinuedBuild.ts). Only AionUi's
+        // final `-final` tag build sets IS_DISCONTINUED_BUILD=true in CI.
+        'process.env.IS_DISCONTINUED_BUILD': JSON.stringify(process.env.IS_DISCONTINUED_BUILD === 'true'),
       },
     },
 
@@ -303,6 +306,8 @@ export default defineConfig(({ mode }) => {
         // can show it without importing packages/desktop/package.json, which is
         // a workspace-internal placeholder frozen at "0.0.0".
         __APP_VERSION__: JSON.stringify(rootPackageJson.version),
+        // Renderer-side discontinued-build flag; consumed via discontinuedBuild.ts.
+        __IS_DISCONTINUED_BUILD__: JSON.stringify(process.env.IS_DISCONTINUED_BUILD === 'true'),
         global: 'globalThis',
       },
       optimizeDeps: {

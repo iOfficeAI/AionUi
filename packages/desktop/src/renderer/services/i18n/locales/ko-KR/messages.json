@@ -72,5 +72,13 @@
     "yesAlwaysAllowTool": "예, 서버 \"{{serverName}}\"의 도구 \"{{toolName}}\" 항상 허용",
     "yesAlwaysAllowServer": "예, 서버 \"{{serverName}}\"의 모든 도구 항상 허용",
     "no": "아니요 (esc)"
+  },
+  "fork": {
+    "action": "여기서 분기",
+    "errorTurnInFlight": "현재 응답이 완료된 후 분기하세요",
+    "errorParentUnbound": "이 대화에는 아직 분기할 백엔드 세션이 없습니다",
+    "errorPointUnsupported": "이 에이전트는 최신 메시지에서만 분기할 수 있습니다",
+    "errorUnsupported": "이 에이전트는 분기를 지원하지 않습니다",
+    "errorGeneric": "분기 실패: {{message}}"
   }
 }

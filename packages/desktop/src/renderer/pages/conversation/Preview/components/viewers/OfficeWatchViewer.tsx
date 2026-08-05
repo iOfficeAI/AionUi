@@ -5,6 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
+import type { ChatFileRef } from '@/common/types/chatFile';
 import { getBaseUrl, isBackendHttpError } from '@/common/adapter/httpBridge';
 import WebviewHost from '@/renderer/components/media/WebviewHost';
 import { openExternalUrl } from '@/renderer/utils/platform';
@@ -73,6 +74,9 @@ export const OFFICECLI_INSTALL_URL = 'https://github.com/iOfficeAI/OfficeCLI/rel
 
 interface OfficeWatchViewerProps {
   docType: DocType;
+  // Preferred identity: the backend resolves pe→path and keys the watch by it, so
+  // start/stop match even when the tab has no device path (explorer office files).
+  fileRef?: ChatFileRef;
   file_path?: string;
   content?: string;
   workspace?: string;
@@ -154,7 +158,7 @@ export function resolveOfficeErrorActions(
  * Used by PptViewer, OfficeDocViewer, and ExcelViewer — each passes its
  * docType to select the correct IPC bridge, proxy path, and i18n keys.
  */
-const OfficeWatchViewer: React.FC<OfficeWatchViewerProps> = ({ docType, file_path, workspace }) => {
+const OfficeWatchViewer: React.FC<OfficeWatchViewerProps> = ({ docType, fileRef, file_path, workspace }) => {
   const { t } = useTranslation();
   const keys = I18N_KEYS[docType];
 
@@ -163,13 +167,17 @@ const OfficeWatchViewer: React.FC<OfficeWatchViewerProps> = ({ docType, file_pat
   const [status, setStatus] = useState<'starting' | 'installing'>('starting');
   const [error, setError] = useState<OfficeWatchErrorState | null>(null);
   const [retryKey, setRetryKey] = useState(0);
+  // Mirror both identities for the unmount cleanup; stop prefers the ref.
   const file_pathRef = useRef(file_path);
+  const fileRefRef = useRef(fileRef);
 
   useEffect(() => {
     file_pathRef.current = file_path;
+    fileRefRef.current = fileRef;
     const bridge = BRIDGE[docType];
 
-    if (!file_path) {
+    // A ChatFileRef alone is enough (explorer office tabs have no device path).
+    if (!fileRef && !file_path) {
       setLoading(false);
       setError({ message: t('preview.errors.missingFilePath') });
       return;
@@ -188,7 +196,7 @@ const OfficeWatchViewer: React.FC<OfficeWatchViewerProps> = ({ docType, file_pat
       setStatus('starting');
       setError(null);
       try {
-        const result = await bridge.start.invoke({ file_path, workspace });
+        const result = await bridge.start.invoke({ file_path, workspace, file: fileRef });
         const errorCode = normalizeOfficeWatchErrorCode(result.error);
         if (errorCode) {
           setError({
@@ -233,11 +241,13 @@ const OfficeWatchViewer: React.FC<OfficeWatchViewerProps> = ({ docType, file_pat
     return () => {
       cancelled = true;
       unsubStatus();
-      if (file_pathRef.current) {
-        bridge.stop.invoke({ file_path: file_pathRef.current }).catch(() => {});
+      // Stop the same identity we started (backend prefers `file`), so the watch
+      // session is matched and the officecli subprocess is not leaked.
+      if (fileRefRef.current || file_pathRef.current) {
+        bridge.stop.invoke({ file_path: file_pathRef.current, file: fileRefRef.current }).catch(() => {});
       }
     };
-  }, [docType, file_path, retryKey, t, workspace]);
+  }, [docType, fileRef, file_path, retryKey, t, workspace]);
 
   if (loading) {
     return (

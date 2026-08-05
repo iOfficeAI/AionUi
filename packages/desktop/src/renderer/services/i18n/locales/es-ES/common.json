@@ -117,14 +117,20 @@
     },
     "recoverableDatabaseCorruption": {
       "title": "Local data is corrupted",
-      "description": "AionUi detected that the local database is corrupted and cannot continue startup. After confirmation, AionUi will back up the old database and create a new local database to continue startup. Historical local data will not be shown for now, and the old database will be kept as a backup.",
+      "description": "AionUi detectó que la base de datos local está dañada y no puede continuar el inicio. Tras la confirmación, AionUi hará una copia de seguridad de la base de datos antigua y creará una nueva base de datos local para continuar el inicio. Las conversaciones anteriores ya no se mostrarán y la base de datos antigua se conservará como archivo de copia de seguridad.",
       "confirmRebuild": "Back up old DB and rebuild new DB",
       "sendDiagnostics": "Send diagnostics",
       "diagnosticsHint": "Sending diagnostics will not modify the local database.",
       "diagnosticsSent": "Diagnostics sent",
       "diagnosticsReportSuccess": "Diagnostics report sent",
       "diagnosticsReportFailed": "Failed to send diagnostics report",
-      "rebuildFailed": "Failed to back up old DB and rebuild new DB"
+      "rebuildFailed": "Failed to back up old DB and rebuild new DB",
+      "confirmDialog": {
+        "title": "¿Reconstruir la base de datos?",
+        "content": "Esta acción hará una copia de seguridad de la base de datos dañada actual y creará una totalmente nueva y vacía. Las conversaciones anteriores ya no se mostrarán (la base de datos antigua se conserva como archivo de copia de seguridad). ¿Desea continuar?",
+        "okText": "Confirmar reconstrucción",
+        "cancelText": "Cancelar"
+      }
     },
     "transientConcurrentStartup": {
       "title": "AionUi se está iniciando",
@@ -142,6 +148,22 @@
     "exited": {
       "title": "El inicio no se completó",
       "description": "AionCore no pudo completar el inicio y se cerró. Reinicia la aplicación; si esto sigue ocurriendo, envía un diagnóstico.",
+      "sendDiagnostics": "Enviar diagnóstico",
+      "diagnosticsSent": "Diagnóstico enviado",
+      "diagnosticsReportSuccess": "Diagnóstico enviado",
+      "diagnosticsReportFailed": "No se pudo enviar el diagnóstico, inténtalo de nuevo"
+    },
+    "portReportTimeout": {
+      "title": "Tiempo de inicio agotado",
+      "description": "AionCore no terminó de iniciarse en el tiempo previsto. Reinicia la aplicación; si esto sigue ocurriendo, envía un diagnóstico.",
+      "sendDiagnostics": "Enviar diagnóstico",
+      "diagnosticsSent": "Diagnóstico enviado",
+      "diagnosticsReportSuccess": "Diagnóstico enviado",
+      "diagnosticsReportFailed": "No se pudo enviar el diagnóstico, inténtalo de nuevo"
+    },
+    "startupFailed": {
+      "title": "Error al iniciar",
+      "description": "AionCore no pudo iniciarse. Reinicia la aplicación; si esto sigue ocurriendo, envía un diagnóstico.",
       "sendDiagnostics": "Enviar diagnóstico",
       "diagnosticsSent": "Diagnóstico enviado",
       "diagnosticsReportSuccess": "Diagnóstico enviado",

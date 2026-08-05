@@ -15,6 +15,7 @@
 import type { IConfirmation } from '@/common/chat/chatLib';
 import type { AcpSlashCommandApiItem } from '@/common/chat/slash/types';
 import { bridge } from '@/common/platform/bridge';
+import { buildListTasksPath } from './teamTaskPath';
 import type { OpenDialogOptions } from 'electron';
 import type {
   ICssTheme,
@@ -55,9 +56,12 @@ import type {
   ITeamAgentRuntimeStatusEvent,
   ITeamAgentSpawnedEvent,
   ITeamAgentStatusEvent,
+  ITeamActivityPage,
   ITeamChildTurnEvent,
   ITeamCreatedEvent,
   ITeamListChangedEvent,
+  ITeamMailboxChangedEvent,
+  ITeamMailboxMessage,
   ITeamRemovedEvent,
   ITeamRenamedEvent,
   ITeamRunAck,
@@ -67,6 +71,7 @@ import type {
   ITeamSessionStatusChangedEvent,
   ITeamSlotWorkChangedEvent,
   ITeamTaskChangedEvent,
+  ITeamTaskItem,
   ICancelTeamChildTurnParams,
   ICancelTeamRunParams,
   IPauseTeamSlotParams,
@@ -90,7 +95,7 @@ import type {
 import type { AgentMetadata } from '@/renderer/utils/model/agentTypes';
 import type { Theme } from '@/common/theme/types';
 import type { AttachFolderRequest, ProjectDetailDto, ProjectEntryDto } from '@/common/types/project';
-import type { ChatFileRef } from '@/common/types/chatFile';
+import type { ChatFileRef, ContentEncoding } from '@/common/types/chatFile';
 import type { ProtocolDetectionRequest, ProtocolDetectionResponse } from '../utils/protocolDetector';
 import {
   buildCreateConversationBody,
@@ -215,7 +220,13 @@ export const conversation = {
     (list) => list.map(fromApiConversation)
   ),
   remove: httpDelete<boolean, { id: string }>((p) => `/api/conversations/${p.id}`),
-  update: httpPatch<boolean, { id: string; updates: Partial<TChatConversation>; merge_extra?: boolean }>(
+  // `name_source` qualifies a `name` change: 'user' = explicit rename (backend
+  // locks the name against agent-generated titles; also the default when absent),
+  // 'auto' = frontend-derived default title (stays agent-overwritable).
+  update: httpPatch<
+    boolean,
+    { id: string; updates: Partial<TChatConversation> & { name_source?: 'user' | 'auto' }; merge_extra?: boolean }
+  >(
     (p) => `/api/conversations/${p.id}`,
     (p) => {
       const updates = p.updates as Record<string, unknown>;
@@ -229,6 +240,19 @@ export const conversation = {
     }
   ),
   reset: httpPost<void, IResetConversationParams>((p) => `/api/conversations/${p.id}/reset`),
+  /**
+   * Fork the conversation at a message (inclusive) into a new conversation.
+   * The backend session materializes on the fork's first open — callers should
+   * follow up with `ensureRuntime` on the returned id to surface failures
+   * eagerly. Error reasons carry stable `FORK_*` prefixes for i18n mapping.
+   */
+  fork: withResponseMap(
+    httpPost<TChatConversation, { conversation_id: string; message_id: string }>(
+      (p) => `/api/conversations/${p.conversation_id}/fork`,
+      (p) => ({ message_id: p.message_id })
+    ),
+    fromApiConversation
+  ),
   ensureRuntime: httpPost<EnsureConversationRuntimeResponse, { conversation_id: string }>(
     (p) => `/api/conversations/${p.conversation_id}/runtime/ensure`,
     () => undefined
@@ -412,12 +436,6 @@ export interface ICdpStatus {
   enabled: boolean;
   port: number | null;
   startupEnabled: boolean;
-  instances: Array<{
-    pid: number;
-    port: number;
-    cwd: string;
-    startTime: number;
-  }>;
   configEnabled: boolean;
   isDevMode: boolean;
 }
@@ -521,6 +539,32 @@ export const application = {
   setZoomFactor: bridge.buildProvider<number, { factor: number }>('app.set-zoom-factor'),
   getCdpStatus: bridge.buildProvider<IBridgeResponse<ICdpStatus>, void>('app.get-cdp-status'),
   updateCdpConfig: bridge.buildProvider<IBridgeResponse<ICdpConfig>, Partial<ICdpConfig>>('app.update-cdp-config'),
+  /**
+   * 清空应用内浏览器的登录态与缓存（cookie / localStorage / 缓存）。
+   * 登录态是全局共享的，所以这是唯一的"退出所有网站登录"入口。
+   *
+   * Clear the in-app browser's sign-in state and cache (cookies / localStorage /
+   * caches). Sign-in state is globally shared, so this is the only way to sign out
+   * of every site the agent or user logged into.
+   */
+  clearBrowserData: bridge.buildProvider<IBridgeResponse<void>, void>('app.clear-browser-data'),
+  /**
+   * 渲染进程把侧边浏览器 webview 的 webContents id 报给主进程，用于把单目标 CDP 通道
+   * 附加到它。
+   *
+   * 为什么必须由渲染进程报：webview 的句柄只存在于渲染进程（webviewRef），主进程无法
+   * 凭空知道哪个 webContents 是「侧边浏览器」。主进程会校验 getType() === 'webview'，
+   * 所以即使这个通道被误用也无法拿主窗口去附加。
+   *
+   * The renderer reports the in-app browser webview's webContents id so the single-target
+   * CDP bridge can attach to it. It must come from the renderer because the webview handle
+   * only exists there (webviewRef); main cannot otherwise tell which WebContents is the
+   * in-app browser. Main validates getType() === 'webview', so even a misused call cannot
+   * attach to the main window.
+   */
+  reportBrowserWebContentsId: bridge.buildProvider<IBridgeResponse<void>, { webContentsId: number }>(
+    'app.report-browser-webcontents-id'
+  ),
   getStartOnBootStatus: bridge.buildProvider<IBridgeResponse<IStartOnBootStatus>, void>('app.get-start-on-boot-status'),
   setStartOnBoot: bridge.buildProvider<IBridgeResponse<IStartOnBootStatus>, { enabled: boolean }>(
     'app.set-start-on-boot'
@@ -615,6 +659,28 @@ export type SkillFileNode = {
   children?: SkillFileNode[];
 };
 
+/** Raw metadata as the backend serializes it (snake_case). */
+type RawFileMetadata = {
+  name: string;
+  path: string;
+  size: number;
+  type: string;
+  last_modified: number;
+  is_directory?: boolean;
+};
+
+/** Map backend snake_case metadata to the camelCase {@link IFileMetadata}. */
+function fromBackendFileMetadata(raw: RawFileMetadata): IFileMetadata {
+  return {
+    name: raw.name,
+    path: raw.path,
+    size: raw.size,
+    type: raw.type,
+    lastModified: raw.last_modified,
+    isDirectory: raw.is_directory,
+  };
+}
+
 export const fs = {
   getFilesByDir: httpPost<Array<IDirOrFile>, { dir: string; root: string }>('/api/fs/dir'),
   // Reveal a project-scoped entry in the OS file manager (Finder/Explorer).
@@ -631,6 +697,24 @@ export const fs = {
   readFile: httpPost<string | null, { path: string; workspace?: string }>('/api/fs/read'),
   writeFile: httpPost<boolean, { path: string; data: string; workspace?: string }>('/api/fs/write'),
   getFileMetadata: httpPost<IFileMetadata, { path: string; workspace?: string }>('/api/fs/metadata'),
+  // ── ChatFileRef content endpoints (PR-2: preview I/O by ref identity) ──────
+  // Read a file addressed by ChatFileRef; `encoding` selects text (utf8) vs image
+  // data URL (dataurl) vs raw base64. Backend: POST /api/fs/content → String.
+  readContent: httpPost<string, { file: ChatFileRef; encoding: ContentEncoding }>('/api/fs/content'),
+  // Write a file addressed by ChatFileRef. Optimistic concurrency: when `ifMatch`
+  // (last-known mtime ms) is set it travels as the `If-Match` header, and a stale
+  // value yields 409 Conflict (surfaced as BackendHttpError.status). PUT /api/fs/content.
+  writeContent: httpPut<boolean, { file: ChatFileRef; data: string; ifMatch?: number }>(
+    '/api/fs/content',
+    ({ file, data }) => ({ file, data }),
+    ({ ifMatch }) => (ifMatch != null ? { 'If-Match': String(ifMatch) } : undefined)
+  ),
+  // Metadata for a ChatFileRef-addressed file; backend snake_case is mapped to the
+  // camelCase IFileMetadata the preview layer reads. POST /api/fs/content/metadata.
+  getContentMetadata: withResponseMap(
+    httpPost<RawFileMetadata, { file: ChatFileRef }>('/api/fs/content/metadata'),
+    fromBackendFileMetadata
+  ),
   // Import OS files into a project entry's directory (A-paste). `target` is the
   // drop-target pe + relative dir ('' = its root). Name conflicts are reported in
   // `failed_files` (not overwritten); directories are rejected there this round.
@@ -1165,25 +1249,34 @@ export const document = {
 // Office Previews — routed to /api/*-preview/*
 // ---------------------------------------------------------------------------
 
+// Office watch bridges. start/stop additively carry a `file` (ChatFileRef) the
+// backend prefers over `file_path` (resolves pe→path server-side, keeps the same
+// watch session key for stop). `file_path` is still sent (required by the DTO;
+// '' when only a ref is available) and used as the legacy fallback.
+type OfficeStartParams = { file_path?: string; workspace?: string; file?: ChatFileRef };
+type OfficeStopParams = { file_path?: string; file?: ChatFileRef };
+const officeStartBody = (p: OfficeStartParams) => ({
+  file_path: p.file_path ?? '',
+  workspace: p.workspace,
+  file: p.file,
+});
+const officeStopBody = (p: OfficeStopParams) => ({ file_path: p.file_path ?? '', file: p.file });
+
 export const pptPreview = {
-  start: httpPost<{ url: string; error?: string }, { file_path: string; workspace?: string }>('/api/ppt-preview/start'),
-  stop: httpPost<void, { file_path: string }>('/api/ppt-preview/stop'),
+  start: httpPost<{ url: string; error?: string }, OfficeStartParams>('/api/ppt-preview/start', officeStartBody),
+  stop: httpPost<void, OfficeStopParams>('/api/ppt-preview/stop', officeStopBody),
   status: wsEmitter<{ state: 'starting' | 'installing' | 'ready' | 'error'; message?: string }>('ppt-preview.status'),
 };
 
 export const wordPreview = {
-  start: httpPost<{ url: string; error?: string }, { file_path: string; workspace?: string }>(
-    '/api/word-preview/start'
-  ),
-  stop: httpPost<void, { file_path: string }>('/api/word-preview/stop'),
+  start: httpPost<{ url: string; error?: string }, OfficeStartParams>('/api/word-preview/start', officeStartBody),
+  stop: httpPost<void, OfficeStopParams>('/api/word-preview/stop', officeStopBody),
   status: wsEmitter<{ state: 'starting' | 'installing' | 'ready' | 'error'; message?: string }>('word-preview.status'),
 };
 
 export const excelPreview = {
-  start: httpPost<{ url: string; error?: string }, { file_path: string; workspace?: string }>(
-    '/api/excel-preview/start'
-  ),
-  stop: httpPost<void, { file_path: string }>('/api/excel-preview/stop'),
+  start: httpPost<{ url: string; error?: string }, OfficeStartParams>('/api/excel-preview/start', officeStartBody),
+  stop: httpPost<void, OfficeStopParams>('/api/excel-preview/stop', officeStopBody),
   status: wsEmitter<{ state: 'starting' | 'installing' | 'ready' | 'error'; message?: string }>('excel-preview.status'),
 };
 
@@ -1615,6 +1708,9 @@ export interface IResponseMessage {
   turn_id?: string;
   conversation_id: string;
   created_at?: number;
+  /** Backend turn anchor (codex Turn.id) for fork gating; mirrors the
+   *  persisted messages.backend_turn_id so live frames gate like history. */
+  backend_turn_id?: string;
   hidden?: boolean;
   position?: 'left' | 'right' | 'center' | 'pop';
   status?: 'finish' | 'pending' | 'error' | 'work';
@@ -2002,6 +2098,31 @@ export const team = {
     (p) => ({ mode: p.session_mode })
   ),
   getRunState: httpGet<ITeamRunStateResponse, { team_id: string }>((p) => `/api/teams/${p.team_id}/run-state`),
+  listMailbox: httpGet<ITeamMailboxMessage[], { team_id: string; limit?: number }>(
+    (p) => `/api/teams/${p.team_id}/mailbox?limit=${p.limit ?? 500}`
+  ),
+  listTasks: httpGet<ITeamTaskItem[], { team_id: string; limit?: number; ids?: string[] }>((p) =>
+    buildListTasksPath(p)
+  ),
+  listActivity: httpGet<
+    ITeamActivityPage,
+    {
+      team_id: string;
+      limit?: number;
+      cursor_ts?: number;
+      cursor_id?: string;
+      direction?: 'desc' | 'asc';
+      kind?: 'all' | 'message' | 'task';
+    }
+  >((p) => {
+    const q = new URLSearchParams();
+    if (p.limit != null) q.set('limit', String(p.limit));
+    if (p.cursor_ts != null) q.set('cursor_ts', String(p.cursor_ts));
+    if (p.cursor_id != null) q.set('cursor_id', p.cursor_id);
+    if (p.direction) q.set('direction', p.direction);
+    if (p.kind) q.set('kind', p.kind);
+    return `/api/teams/${p.team_id}/activity?${q.toString()}`;
+  }),
   sendMessage: httpPost<ITeamRunAck, ISendTeamMessageParams>(
     (p) => `/api/teams/${p.team_id}/messages`,
     (p) => ({
@@ -2050,6 +2171,7 @@ export const team = {
   teammateMessage: wsEmitter<ITeamTeammateMessageEvent>('team.teammateMessage'),
   sessionStatusChanged: wsEmitter<ITeamSessionStatusChangedEvent>('team.sessionStatusChanged'),
   taskChanged: wsEmitter<ITeamTaskChangedEvent>('team.taskChanged'),
+  mailboxChanged: wsEmitter<ITeamMailboxChangedEvent>('team.mailboxChanged'),
   sessionChanged: wsEmitter<ITeamSessionChangedEvent>('team.sessionChanged'),
   runAccepted: wsEmitter<ITeamRunEvent>('team.runAccepted'),
   runStarted: wsEmitter<ITeamRunEvent>('team.runStarted'),

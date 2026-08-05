@@ -188,7 +188,7 @@
 }
 
 body {
-  font-family: 'Meiryo', 'Yu Gothic UI', 'Hiragino Kaku Gothic ProN', 'Microsoft YaHei', 'PingFang SC', sans-serif;
+  font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
   letter-spacing: 0.015em;
   background-color: var(--bg-base) !important;
 }

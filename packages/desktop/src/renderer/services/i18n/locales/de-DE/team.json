@@ -101,7 +101,8 @@
   "view": {
     "label": "View",
     "parallel": "Parallel",
-    "single": "Single"
+    "single": "Single",
+    "board": "Board"
   },
   "warmup": {
     "title": "Waking up the team…",
@@ -116,5 +117,40 @@
     "leaderFailedHint": "Switch its model above, then retry.",
     "retry": "Retry"
   },
-  "reorderMember": "Ziehen, um Mitglied neu anzuordnen"
+  "reorderMember": "Ziehen, um Mitglied neu anzuordnen",
+  "activity": {
+    "control": {
+      "sortNewest": "Neueste",
+      "sortOldest": "Älteste",
+      "filterAll": "Alle",
+      "filterMessages": "Nachrichten",
+      "filterTasks": "Aufgaben",
+      "allMembers": "Alle Mitglieder",
+      "showSystem": "Systemnachrichten",
+      "showTerminal": "Erledigte Aufgaben"
+    },
+    "fallbackLane": "Nicht zugewiesen / extern",
+    "empty": "Noch keine Aktivität",
+    "userIdentity": "Benutzer / extern",
+    "broadcast": "An alle senden",
+    "read": "Gelesen",
+    "unread": "Ungelesen",
+    "attachments": "{{count}} Dateien",
+    "expand": "Aufklappen",
+    "collapse": "Einklappen",
+    "blockedBy": "blockiert von #{{id}}",
+    "blockedByNamed": "blockiert von {{name}}",
+    "blockerUnknown": "Aufgabe nicht verfügbar",
+    "status": {
+      "pending": "Ausstehend",
+      "in_progress": "In Bearbeitung",
+      "completed": "Abgeschlossen",
+      "deleted": "Gelöscht"
+    },
+    "msgType": {
+      "message": "Nachricht",
+      "idle_notification": "Leerlaufhinweis",
+      "shutdown_request": "Stopp-Anfrage"
+    }
+  }
 }

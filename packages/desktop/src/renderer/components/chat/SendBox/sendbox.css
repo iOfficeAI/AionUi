@@ -137,9 +137,11 @@
 .speech-input-control {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 10px;
   min-width: 0;
   flex-shrink: 0;
+  height: 32px;
 }
 
 .speech-input-feedback {
@@ -153,10 +155,6 @@
   background: transparent;
   border: none;
   padding: 0;
-}
-
-.speech-input-feedback--processing {
-  color: var(--color-text-3);
 }
 
 .speech-input-feedback__waveform {
@@ -180,11 +178,6 @@
     background-color 120ms ease;
 }
 
-.speech-input-feedback--processing .speech-input-feedback__bar {
-  animation: speech-processing-pulse 1.2s ease-in-out infinite;
-  background: color-mix(in srgb, var(--color-text-3) 72%, transparent);
-}
-
 .speech-input-feedback__label {
   flex: 0 0 auto;
   font-size: 12px;
@@ -198,15 +191,18 @@
 }
 
 .speech-input-button {
-  width: 32px;
-  min-width: 32px;
-  height: 32px;
+  width: 32px !important;
+  min-width: 32px !important;
+  height: 32px !important;
+  min-height: 32px !important;
+  flex: 0 0 32px;
   padding: 0 !important;
   border: none !important;
   box-shadow: none !important;
   background: transparent !important;
   color: var(--color-text-3) !important;
-  border-radius: 999px !important;
+  border-radius: 50% !important;
+  overflow: hidden;
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
@@ -223,8 +219,17 @@
   line-height: 1 !important;
 }
 
+.speech-input-button .arco-btn-icon {
+  position: static !important;
+  transform: none !important;
+}
+
 .speech-input-button svg {
   display: block;
+  width: 18px;
+  height: 18px;
+  margin: 0 auto;
+  flex: 0 0 auto;
 }
 
 .speech-loader-spinner {
@@ -288,16 +293,6 @@
   box-shadow: none !important;
   background: color-mix(in srgb, var(--color-fill-2) 86%, transparent) !important;
   color: var(--color-text-2) !important;
-}
-
-@keyframes speech-processing-pulse {
-  0%,
-  100% {
-    opacity: 0.4;
-  }
-  50% {
-    opacity: 1;
-  }
 }
 
 @keyframes speech-loader-spin {

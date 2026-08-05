@@ -74,7 +74,9 @@
     "removeProjectConfirm": "\"{{name}}\" projesi kaldırılsın mı? Projedeki {{count}} konuşma da kaldırılacak.",
     "newConversationInProject": "Bu projede yeni konuşma",
     "deleting": "Siliniyor...",
-    "reorderPinned": "Sabitlenmiş sohbetin sırasını değiştirmek için sürükleyin"
+    "reorderPinned": "Sabitlenmiş sohbetin sırasını değiştirmek için sürükleyin",
+    "forkedFrom": "“{{name}}” konuşmasından çatallandı",
+    "forkedConversation": "Çatallanmış konuşma"
   },
   "historySearch": {
     "tooltip": "Mesajları ara",
@@ -401,7 +403,8 @@
     "openWith": {
       "vscode": "VS Code",
       "terminal": "Terminal",
-      "explorer": "Dosya Gezgini"
+      "explorer": "Dosya Gezgini",
+      "browser": "Tarayıcı"
     }
   },
   "minimap": {
@@ -565,7 +568,8 @@
     "sendboxHint": "Çalışma ortamı hazırlanıyor. İlk başlatma biraz daha uzun sürebilir."
   },
   "sendbox": {
-    "hint": "Komutlar için /, dosya için @ yazın, ↑/↓ ile mesaj geçmişi"
+    "hint": "Komutlar için /, dosya için @ yazın, ↑/↓ ile mesaj geçmişi",
+    "mediaPathFallback": "Bu ajan bu dosya türünü yerel olarak desteklemiyor; dosya yolu olarak gönderilecek."
   },
   "agentTip": {
     "codes": {

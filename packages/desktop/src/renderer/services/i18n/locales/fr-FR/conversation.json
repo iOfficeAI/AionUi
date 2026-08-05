@@ -74,7 +74,9 @@
     "removeProjectConfirm": "Supprimer le projet \"{{name}}\" ? Sa ou ses conversations {{count}} seront également supprimées.",
     "newConversationInProject": "Nouveau chat dans ce projet",
     "deleting": "Suppression...",
-    "reorderPinned": "Faites glisser pour réorganiser la conversation épinglée"
+    "reorderPinned": "Faites glisser pour réorganiser la conversation épinglée",
+    "forkedFrom": "Bifurquée depuis « {{name}} »",
+    "forkedConversation": "Conversation bifurquée"
   },
   "historySearch": {
     "tooltip": "Rechercher des messages",
@@ -416,7 +418,8 @@
     "openWith": {
       "vscode": "VS Code",
       "terminal": "Terminal",
-      "explorer": "Explorateur de fichiers"
+      "explorer": "Explorateur de fichiers",
+      "browser": "Navigateur"
     }
   },
   "minimap": {
@@ -562,7 +565,8 @@
     "sendboxHint": "Préparation de l'environnement d'exécution. Le premier démarrage peut prendre un peu plus de temps."
   },
   "sendbox": {
-    "hint": "Tapez / pour les commandes, @ pour référencer des fichiers, ↑/↓ pour l'historique des messages"
+    "hint": "Tapez / pour les commandes, @ pour référencer des fichiers, ↑/↓ pour l'historique des messages",
+    "mediaPathFallback": "Cet agent ne prend pas en charge nativement ce type de fichier ; il sera envoyé sous forme de chemin de fichier."
   },
   "agentTip": {
     "codes": {

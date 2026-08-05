@@ -92,6 +92,7 @@ import { bootstrapRendererConfig } from '@renderer/services/bootstrapRenderer';
 // Components and utilities
 import BackendStartingView from './components/layout/BackendStartingView';
 import BackendStartupGate from './components/layout/BackendStartupGate';
+import GpuAutoDisableNotice from './components/layout/GpuAutoDisableNotice';
 import Layout from './components/layout/Layout';
 import Router from './components/layout/Router';
 import Sider from './components/layout/Sider';
@@ -283,7 +284,13 @@ const AppProviders: React.FC<PropsWithChildren> = ({ children }) =>
           React.createElement(
             FeedbackProvider,
             null,
-            React.createElement(React.Fragment, null, React.createElement(RuntimeFailureDialogs, null), children)
+            React.createElement(
+              React.Fragment,
+              null,
+              React.createElement(RuntimeFailureDialogs, null),
+              React.createElement(GpuAutoDisableNotice, null),
+              children
+            )
           )
         )
       )
@@ -341,6 +348,8 @@ const BackendStartupFailureDialog: React.FC<{ failure: BackendStartupFailureInfo
   const isTransientConcurrentStartup = failure.reason === 'backend_transient_concurrent_startup';
   const isStartupDirectoryFailure = failure.reason === 'backend_startup_directory_unavailable';
   const isBackendExited = failure.reason === 'backend_startup_exited';
+  const isPortReportTimeout = failure.reason === 'backend_startup_port_report_timeout';
+  const isIncompleteInstallation = failure.reason === 'backend_incomplete_installation';
   const title = t('common.backendStartup.incompatibleRuntime.title');
   const description = isIncompatibleRuntime
     ? t('common.backendStartup.incompatibleRuntime.description')
@@ -362,7 +371,11 @@ const BackendStartupFailureDialog: React.FC<{ failure: BackendStartupFailureInfo
                 ? t('common.backendStartup.recoverableDatabaseCorruption.description')
                 : isBackendExited
                   ? t('common.backendStartup.exited.description')
-                  : getBackendStartupInstallationDescription(t);
+                  : isPortReportTimeout
+                    ? t('common.backendStartup.portReportTimeout.description')
+                    : isIncompleteInstallation
+                      ? getBackendStartupInstallationDescription(t)
+                      : t('common.backendStartup.startupFailed.description');
   const requiredVersions = failure.requiredVersions?.map((version) => `GLIBC_${version}`).join(', ');
 
   if (!isIncompatibleRuntime && !isPackageArchitectureMismatch) {
@@ -383,7 +396,11 @@ const BackendStartupFailureDialog: React.FC<{ failure: BackendStartupFailureInfo
                       ? 'data_migration'
                       : isBackendExited
                         ? 'backend_exited'
-                        : 'incomplete_installation'
+                        : isPortReportTimeout
+                          ? 'port_report_timeout'
+                          : isIncompleteInstallation
+                            ? 'incomplete_installation'
+                            : 'startup_failed'
           }
           diagnostics={{
             source: 'backend_startup_failure',

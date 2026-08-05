@@ -4,11 +4,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import React from 'react';
 import GuidActionRow from '@/renderer/pages/guid/components/GuidActionRow';
 import type { IMcpServer } from '@/common/config/storage';
+import { ipcBridge } from '@/common';
+
+const environment = vi.hoisted(() => ({ isMobile: false, isDesktop: true }));
 
 vi.mock('@/common', () => ({
   ipcBridge: {
@@ -25,7 +28,7 @@ vi.mock('react-i18next', () => ({
 }));
 
 vi.mock('@/renderer/hooks/context/LayoutContext', () => ({
-  useLayoutContext: () => ({ isMobile: false }),
+  useLayoutContext: () => ({ isMobile: environment.isMobile }),
 }));
 
 vi.mock('@/renderer/components/agent/AgentModeSelector', () => ({
@@ -33,7 +36,15 @@ vi.mock('@/renderer/components/agent/AgentModeSelector', () => ({
 }));
 
 vi.mock('@/renderer/components/chat/MobileActionSheet', () => ({
-  default: () => null,
+  default: ({ entries }: { entries: Array<{ key: string; label: string; onClick?: () => void }> }) => (
+    <div data-testid='mobile-action-sheet'>
+      {entries.map((entry) => (
+        <button key={entry.key} type='button' data-testid={entry.key} onClick={entry.onClick}>
+          {entry.label}
+        </button>
+      ))}
+    </div>
+  ),
 }));
 
 vi.mock('@/renderer/services/FileService', () => ({
@@ -42,7 +53,7 @@ vi.mock('@/renderer/services/FileService', () => ({
 }));
 
 vi.mock('@/renderer/utils/platform', () => ({
-  isElectronDesktop: () => true,
+  isElectronDesktop: () => environment.isDesktop,
 }));
 
 vi.mock('@icon-park/react', () => {
@@ -50,8 +61,10 @@ vi.mock('@icon-park/react', () => {
   return {
     ArrowUp: Icon,
     Brain: Icon,
+    FolderOpen: Icon,
     FolderUpload: Icon,
     Lightning: Icon,
+    Paperclip: Icon,
     Plus: Icon,
     Search: Icon,
     Shield: Icon,
@@ -169,6 +182,29 @@ const renderActionRow = (overrides: Partial<React.ComponentProps<typeof GuidActi
 describe('GuidActionRow skill/MCP submenu search', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    environment.isMobile = false;
+    environment.isDesktop = true;
+  });
+
+  it('offers both host files and device upload in the mobile WebUI action sheet', () => {
+    environment.isMobile = true;
+    environment.isDesktop = false;
+    renderActionRow({ allSkills: [], mcpServers: [] });
+
+    expect(screen.getByTestId('attach-host-files')).toHaveTextContent('Add files');
+    expect(screen.getByTestId('attach-my-device')).toHaveTextContent('Upload from device');
+  });
+
+  it('adds files selected from the host picker in mobile WebUI', async () => {
+    environment.isMobile = true;
+    environment.isDesktop = false;
+    const onFilesPicked = vi.fn();
+    vi.mocked(ipcBridge.dialog.showOpen.invoke).mockResolvedValue(['/host/project/a.txt']);
+    renderActionRow({ allSkills: [], mcpServers: [], onFilesPicked });
+
+    fireEvent.click(screen.getByTestId('attach-host-files'));
+
+    await waitFor(() => expect(onFilesPicked).toHaveBeenCalledWith(['/host/project/a.txt']));
   });
 
   it('shows both search boxes when skills and MCP servers exceed the threshold', () => {
