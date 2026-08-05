@@ -8,6 +8,7 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Assistant } from '@/common/types/agent/assistantTypes';
+import workMateLogo from '@/renderer/assets/logos/brand/app.png';
 
 const createTeamInvokeMock = vi.fn();
 const resolveDefaultTeamAgentModelMock = vi.fn();
@@ -146,6 +147,18 @@ describe('TeamCreateModal', () => {
     fireEvent.click(screen.getByTestId('team-create-agent-option-blocked-reviewer'));
 
     expect(createButton).toBeDisabled();
+  });
+
+  it('shows the current WorkMate brand icon for the built-in assistant in available and selected lists', () => {
+    render(<TeamCreateModal visible onClose={vi.fn()} onCreated={vi.fn()} />);
+
+    const option = screen.getByTestId('team-create-agent-option-bare-aionrs');
+    expect(within(option).getByRole('img', { name: 'CSBU WorkMate' })).toHaveAttribute('src', workMateLogo);
+
+    fireEvent.click(option);
+
+    const selectedMember = screen.getAllByTestId(/team-create-member-draft-/)[0];
+    expect(within(selectedMember).getByRole('img', { name: 'CSBU WorkMate' })).toHaveAttribute('src', workMateLogo);
   });
 
   it('keeps blocked assistant rows single-line while the reason stays out of the row', () => {
@@ -441,6 +454,7 @@ function assistants(): Assistant[] {
       source: 'generated',
       agent_id: 'agent-aionrs',
       agent: { type: 'aionrs', source: 'internal' },
+      avatar: '/api/assets/logos/brand/aion.svg',
       team_selectable: true,
     }),
     assistant({

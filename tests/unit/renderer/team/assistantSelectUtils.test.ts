@@ -5,6 +5,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
+import workMateLogo from '@/renderer/assets/logos/brand/app.png';
 import {
   assistantToOption,
   filterTeamSupportedAssistants,
@@ -18,7 +19,7 @@ describe('assistantSelectUtils', () => {
       name: 'CSBU WorkMate',
       name_i18n: { 'zh-CN': 'CSBU WorkMate' },
       source: 'generated',
-      preset_agent_type: 'aionrs',
+      agent: { type: 'aionrs', source: 'internal' },
     });
 
     const option = assistantToOption(bareAssistant, 'zh-CN');
@@ -26,12 +27,40 @@ describe('assistantSelectUtils', () => {
     expect(option.name).toBe('CSBU WorkMate');
   });
 
+  it('uses the current WorkMate brand icon for the generated aionrs assistant', () => {
+    const option = assistantToOption(
+      makeAssistant({
+        id: 'bare-aionrs',
+        name: 'CSBU WorkMate',
+        source: 'generated',
+        avatar: '/api/assets/logos/brand/aion.svg',
+        agent: { type: 'aionrs', source: 'internal' },
+      })
+    );
+
+    expect(option.icon).toBe(workMateLogo);
+  });
+
+  it('preserves custom assistant avatars even when they use the aionrs runtime', () => {
+    const option = assistantToOption(
+      makeAssistant({
+        id: 'custom-aionrs',
+        name: 'Custom Assistant',
+        source: 'user',
+        avatar: '🦉',
+        agent: { type: 'aionrs', source: 'internal' },
+      })
+    );
+
+    expect(option.icon).toBe('🦉');
+  });
+
   it('preserves backend-provided team availability for selectable assistants', () => {
     const remoteAssistant = makeAssistant({
       id: 'bare-remote',
       name: 'Remote Runner',
       source: 'generated',
-      preset_agent_type: 'remote',
+      agent: { type: 'remote', source: 'custom' },
       team_selectable: true,
       team_block_reason: undefined,
     });
@@ -47,7 +76,7 @@ describe('assistantSelectUtils', () => {
       id: 'unchecked',
       name: 'Unchecked',
       source: 'generated',
-      preset_agent_type: 'aionrs',
+      agent: { type: 'aionrs', source: 'internal' },
       agent_status: 'unchecked',
       team_selectable: true,
     });
@@ -58,9 +87,7 @@ describe('assistantSelectUtils', () => {
   });
 });
 
-function makeAssistant(
-  overrides: Partial<Assistant> & Pick<Assistant, 'id' | 'name' | 'source' | 'preset_agent_type'>
-): Assistant {
+function makeAssistant(overrides: Partial<Assistant> & Pick<Assistant, 'id' | 'name' | 'source'>): Assistant {
   return {
     id: overrides.id,
     source: overrides.source,
@@ -69,7 +96,7 @@ function makeAssistant(
     description_i18n: {},
     enabled: true,
     sort_order: 0,
-    preset_agent_type: overrides.preset_agent_type,
+    agent_id: overrides.agent_id ?? `agent-${overrides.id}`,
     enabled_skills: [],
     custom_skill_names: [],
     disabled_builtin_skills: [],

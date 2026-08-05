@@ -1,8 +1,9 @@
 import React from 'react';
 import { Robot } from '@icon-park/react';
+import workMateLogo from '@/renderer/assets/logos/brand/app.png';
 import { resolveAssistantAvatar } from '@renderer/utils/model/assistantAvatar';
 import { resolveAssistantName } from '@renderer/utils/model/assistantDisplay';
-import { assistantRuntimeKey, type Assistant } from '@/common/types/agent/assistantTypes';
+import { assistantRuntimeKey, usesWorkMateBrand, type Assistant } from '@/common/types/agent/assistantTypes';
 
 /** Team leader selector entry derived from the unified assistant catalog. */
 export type TeamAssistantOption = {
@@ -12,6 +13,8 @@ export type TeamAssistantOption = {
   backend?: string;
   /** Avatar token — a backend-resolved URL or an emoji. */
   icon?: string;
+  /** Product-owned assistants use the bundled app identity, not a catalog snapshot. */
+  isWorkMateBranded?: boolean;
   /** Whether this assistant can currently be used in team mode. */
   team_selectable?: boolean;
   /** Why this assistant cannot currently be used in team mode. */
@@ -19,11 +22,13 @@ export type TeamAssistantOption = {
 };
 
 export function assistantToOption(assistant: Assistant, localeKey = 'en-US'): TeamAssistantOption {
+  const isWorkMateBranded = usesWorkMateBrand(assistant);
   return {
     id: assistant.id,
     name: resolveAssistantName(assistant, localeKey, assistant.name),
     backend: assistantRuntimeKey(assistant),
-    icon: assistant.avatar,
+    icon: isWorkMateBranded ? workMateLogo : assistant.avatar,
+    isWorkMateBranded,
     team_selectable: assistant.team_selectable,
     team_block_reason: assistant.team_block_reason,
   };
@@ -56,7 +61,9 @@ export const AssistantOptionLabel: React.FC<AssistantOptionLabelProps> = ({
   size = 'compact',
   muted = false,
 }) => {
-  const avatar = resolveAssistantAvatar(assistant.icon);
+  const avatar = assistant.isWorkMateBranded
+    ? ({ kind: 'image', value: workMateLogo } as const)
+    : resolveAssistantAvatar(assistant.icon);
   const isLarge = size === 'large';
   const iconSize = isLarge ? 18 : 16;
   const avatarToneClass = muted ? 'bg-fill-1 text-t-tertiary opacity-75' : 'bg-fill-2 text-t-primary';
