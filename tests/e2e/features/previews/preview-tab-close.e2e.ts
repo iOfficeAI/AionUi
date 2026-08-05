@@ -36,10 +36,7 @@ function tabByTitle(page: import('@playwright/test').Page, title: string) {
     .locator('xpath=ancestor::div[contains(@class,"cursor-pointer")][1]');
 }
 
-async function openConversationWithWorkspace(
-  page: import('@playwright/test').Page,
-  workspace: string
-): Promise<void> {
+async function openConversationWithWorkspace(page: import('@playwright/test').Page, workspace: string): Promise<void> {
   await goToGuid(page);
   const id = await page.evaluate(async (ws) => {
     const port = (window as { __backendPort?: number }).__backendPort;

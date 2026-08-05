@@ -6,11 +6,7 @@
  * they're unit-testable and don't require a browser context.
  */
 
-export type ResponseMapperKey =
-  | 'dirOrFileTree'
-  | 'flatFileList'
-  | 'snapshotCompare'
-  | 'conversation';
+export type ResponseMapperKey = 'dirOrFileTree' | 'flatFileList' | 'snapshotCompare' | 'conversation';
 
 type DirOrFileRaw = {
   name: string;

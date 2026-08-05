@@ -19,7 +19,10 @@ async function openSystemSettings(page: import('@playwright/test').Page) {
   await goToGuid(page);
   await page.evaluate(() => window.location.assign('#/settings'));
   // 'System' / 「系统」 — both spellings, so the file does not silently test one locale.
-  await page.getByText(/^(系统|System)$/).first().click();
+  await page
+    .getByText(/^(系统|System)$/)
+    .first()
+    .click();
   await expect(page.getByText(/预览大小上限|Preview Size Limit/i).first()).toBeVisible({ timeout: 20_000 });
   // The section has three numeric fields; this one is last.
   return page.locator('.arco-input-number input').last();
