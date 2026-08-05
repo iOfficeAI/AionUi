@@ -5,16 +5,17 @@
 
 ## 运行元数据
 
-- **prior_report（历史报告）**：无（baseline 首次运行）
+- **prior_report（历史报告）**：`feedback-diagnostics-db-json.md`（本文件，2026-07-28 增量版）
 - **report_path**：`feedback-diagnostics-db-json.md`
 - **ledger_sidecar**：`feedback-diagnostics-db-json.ledger.json`
 - **resolution_registry**：`sentry-feedback-resolutions/`
-- **ledger_source**：baseline
-- **scope_match**：exact（全新 baseline）
-- **run_started_at**：2026-07-23T04:36:05Z（本地运行时间）
-- **previous_processed_until**：无
-- **current_query_cutoff**：约 2026-07-23T04:15Z（Sentry 查询时间）
-- **processed_until**：约 2026-07-22T16:00Z（本次处理到的最新反馈事件）
+- **ledger_source**：discovered file（本文件既有 Case Ledger + 处理游标）
+- **scope_match**：partial（本次仅由 webhook 触发单案 ELECTRON-3XN，AionUi@2.1.47，超出原 2.1.36–2.1.41 范围指纹，按增量追加处理，不重跑历史 case）
+- **run_started_at**：2026-08-05T10:39Z（本地运行时间）
+- **previous_processed_until**：2026-07-28T04:13:45Z（上次增量游标）
+- **current_query_cutoff**：2026-08-05T10:30:33Z（本次 Sentry 事件时间）
+- **processed_until**：2026-08-05T10:30:33Z（本次处理到的最新反馈事件，ELECTRON-3XN）
+- **本次增量范围说明**：webhook 单案触发（Sentry issue.created，issue 138983003），仅分析 ELECTRON-3XN，不重跑历史 active/candidate-fixed case。
 
 ### Scope Fingerprint（范围指纹）
 
@@ -59,6 +60,7 @@ Sentry **事件正文本身只有用户文字 + 设备/上下文标签**（`app.
 | case                                              | sentry                                                  | status           | last_event(UTC) | analyzed_at | fix_version                                                              | 下一步                                                                                                                             |
 | ------------------------------------------------- | ------------------------------------------------------- | ---------------- | --------------- | ----------- | ------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
 | **BUG 集群（我方缺陷，active）**                  |
+| ELECTRON-3XN                                      | [link](https://iofficeai.sentry.io/issues/ELECTRON-3XN) | active           | 2026-08-05      | 2026-08-05  | 未修复(release-distribute workflow 30986701877 失败)                    | **增量(2.1.47)**：官网下载按钮 403（版本号 `2.1.47-final` 与 CDN 制品路径 `2.1.47` 不一致，release-distribute 校验拦截未上传）；见深挖 8 |
 | ELECTRON-3MD                                      | [link](https://iofficeai.sentry.io/issues/ELECTRON-3MD) | active           | 2026-07-20      | 2026-07-23  | 未修复(至 v0.1.50)                                                       | team rebuild 全有或全无 + ACP 错误细节丢失                                                                                         |
 | ELECTRON-3ME                                      | [link](https://iofficeai.sentry.io/issues/ELECTRON-3ME) | active           | 2026-07-20      | 2026-07-23  | 未修复                                                                   | 同 3MD（codex）归并                                                                                                                |
 | ELECTRON-3MF                                      | [link](https://iofficeai.sentry.io/issues/ELECTRON-3MF) | active           | 2026-07-20      | 2026-07-23  | 未修复                                                                   | 同集群（copilot）归并                                                                                                              |
@@ -334,18 +336,44 @@ _说明：7d 窗口内的原生崩溃类 issue（RaiseException、HandleFatal、
 - **Diagnostics to add**：① cc-switch 读取静默为空时打一行 info/warn（缺哪个条件）——本案有这一行即可秒诊；② 记录 spawn 的 claude 实际命中的 auth 来源。
 - **Fix tracking**：无 PR。见 `sentry-feedback-resolutions/ELECTRON-3RD.json`（含用户侧 workaround 与产品侧三个方向）。
 
+## 深挖 8 — ELECTRON-3XN「系统设置：官网无法下载」（system-settings）—— release-distribute 分发管线版本号不一致（已确认，版本匹配 v2.1.47）
+
+> 增量案件（webhook Sentry issue.created，2026-08-05，AionUi@2.1.47）。反馈文本无正文（module=system-settings 分类前缀即完整用户描述），证据以 breadcrumbs + logs.gz + db-diagnostics.json.gz + 外部核实（GitHub Actions/S3 CDN 直接探测）为主，无独立截图附件。
+
+- **Case**：[ELECTRON-3XN](https://iofficeai.sentry.io/issues/138983003/)，event `53a01d9d5aff45eea9b329b3c586b80d`，2026-08-05T10:30:33Z。app 2.1.47，Windows 10.0.26200 x64，zh-CN/Asia-Shanghai。反馈路由 `#/settings/about`，module=`system-settings`。
+- **Lifecycle**：new → active（本报告范围内首次出现，webhook 单案触发）。
+- **Evidence inspected**：`logs.gz`（解压为 `logs`，app+aioncore 日志）、`db-diagnostics.json.gz`（4 个 profile 全读，均为空/健康，本案无增量）；breadcrumbs 全量读取（含逐条 timestamp）；额外对外部证据核实：GitHub Releases API、GitHub Actions 工作流运行记录、CDN(`static.aionui.com`)与网站前端 JS bundle 直接 HTTP 探测。无独立 screenshot 附件（仅 breadcrumbs 里的 UI 交互轨迹）。
+- **What breadcrumbs/logs prove（决定性）**：
+  - 10:29:22.674 用户点击"关于"页的主按钮（`arco-btn-primary`），10:29:24.163 触发 `POST /api/shell/open-external {"url":"https://www.aionui.com/"}`，10:29:24.173 返回 `200 OK`（即 `AboutModalContent.tsx` 的官网链接 `https://www.aionui.com` via `shell.openExternal`，跳转本身成功——问题不在"打不开网站"）。
+  - aioncore 侧日志证实自身的自动更新检查：`Checking latest version from URL: https://static.aionui.com/releases/latest.yml` → `Update for version 2.1.47 is not available (latest version: 2.1.46, downgrade is disallowed)`——**即 2.1.47 从未在 CDN 更新元数据(`latest.yml`)里出现过，客户端自动更新与网站下载共享同一个 CDN 发布管线**。
+  - 用户随后填写反馈"官网无法下载"并提交（`GET /api/system/diagnostics/feedback-report` 200）。结合点击轨迹：用户是在打开官网后尝试下载 2.1.47 时失败。
+- **What db proves**：本案 db-diagnostics 4 个 profile（model-auth/client-ui-settings/workspace-summary/mcp-tools/global-summary）均为空/健康，与"官网下载"这一渠道类问题无关——db 对本案根因**无增量**，纯粹是客户端本地状态健康，问题在服务端分发侧。
+- **外部核实（决定性，替代缺失的截图证据）**：
+  1. `GET https://api.github.com/repos/iOfficeAI/AionUi/releases/latest` → `tag_name: "v2.1.47-final"`，`published_at: 2026-08-05T07:52:23Z`（即用户反馈前 ~2.6 小时刚发布，`prerelease:false`）。
+  2. AionUi 官网前端 bundle（`assets/index-BeP5l5W4.js`）反混淆定位到下载按钮逻辑：`Jl(t,a,n,s){...return \`${pA}/${t}/AionUi-${t}-${u}.${s}\`}`，其中 `pA="https://static.aionui.com/releases"`、`t` 直接取 GitHub Release API 的 `tag_name.replace(/^v/, "")`。**即网站把 tag `v2.1.47-final` 去掉 `v` 后原样当版本号拼进下载 URL**：`https://static.aionui.com/releases/2.1.47-final/AionUi-2.1.47-final-win-x64.exe`。
+  3. 直接探测该 URL → **HTTP 403**（CloudFront/S3 拒绝，对象不存在）。同理探测 `.../releases/2.1.47/AionUi-2.1.47-win-x64.exe`（不带 `-final`）→ 同样 **403**。当前 `latest.yml` 与 `.../releases/2.1.46/AionUi-2.1.46-win-x64.exe` → 均为 **200**（上一版本仍可下载）。
+  4. `.github/workflows/release-distribute.yml` 运行记录：`v2.1.47-final` 对应的 run `30986701877`（2026-08-05T07:52:25Z，released 事件触发）**结论 `failure`**，失败在 `Validate updater metadata` 步骤，日志：`##[error]dist/latest.yml version is 2.1.47, expected 2.1.47-final.`——即工作流按 tag 去掉 `v` 得到期望版本号 `2.1.47-final`，但 electron-builder 产出的 `latest.yml` 里 `version` 字段是 package.json 的 `2.1.47`（不含 `-final` 后缀），二者不一致触发 `exit 1`，导致**"上传安装包(Upload assets)"与"上传更新元数据(Upload updater metadata)"两步被 skip，2.1.47 从未被拷贝到 S3/CDN**。此后至今（`v2.1.46` 之后）无任何针对 `release-distribute.yml` 的重跑或补发，`static.aionui.com` 仍停留在 2.1.46。
+  5. Tag 命名 `v2.1.47-final` 的由来：PR #3852（`chore: bump version to 2.1.47 and aioncore to v0.1.58`，author `kaizhou-lab`）把 `package.json.version` 设为 `2.1.47`；随 PR #3730（discontinue in-app updates）引入的约定，本次发布**人工/流程在打 tag 时额外加了 `-final` 后缀**（标记"最后一个开源分发版本"），但 `package.json` 版本号本身未跟着改成 `2.1.47-final`——两处版本号来源（tag vs package.json）从此不再同构，而 `release-distribute.yml` 的校验逻辑假设二者永远相同（`VERSION="${TAG#v}"` 直接对比 `metadata_version`）。
+- **Version chain inspected**：AionUi tag `v2.1.47-final`（commit `42be46d`）；本案根因在 AionUi 仓库的发布 CI（`.github/workflows/release-distribute.yml`）与官网静态资源仓库（`www.aionui.com` 前端 bundle），均不涉及 aioncore/aionrs 运行时代码，故不适用版本链下钻。
+- **Code/workflow version inspected**：`.github/workflows/release-distribute.yml`（HEAD，`Validate updater metadata` 步骤，行 108-135）；`packages/desktop/src/renderer/components/settings/SettingsModal/contents/AboutModalContent.tsx`（官网链接与反馈入口）；官网前端 bundle 反混淆代码（下载按钮 URL 拼接逻辑，无法定位仓库路径——网站代码不在 `iOfficeAI/AionUi` 仓库内，只能从生产 bundle 反推）。
+- **Conclusion**：**我方发布流程缺陷（release-engineering bug），非用户网络/环境问题**。`v2.1.47-final` 发布时 tag 后缀 `-final` 与 `package.json`/`latest.yml` 中的版本号 `2.1.47` 不一致，触发 `release-distribute.yml` 的一致性校验并 `exit 1`，导致该版本安装包与更新元数据从未同步到 CDN（`static.aionui.com`）；而官网下载按钮的 URL 是从 GitHub Release `tag_name` 直接拼出来的，永远指向"CDN 上不存在的 `2.1.47-final` 路径"，与 CDN 实际保留的"上一个成功版本 2.1.46"路径也不匹配——所以按钮点了必 403，且没有清晰的用户可读错误（网站前端未捕获资源 404/403 作为异常提示）。
+- **Can we solve or locate it now?**：**yes（已定位，根因清楚）**。且**影响面不止本用户**：从 2026-08-05T07:52 发布至今，任何试图从官网下载 AionUi 的用户都会遇到同样的 403（CDN 仍停在 2.1.46,而 GitHub Releases 页面本身的直链——如 `github.com/.../download/v2.1.47-final/AionUi-2.1.47-win-x64.exe`——是可用的，只是官网按钮没有走这条路）。
+- **Fix tracking**：无 PR/commit（本报告不修复代码）。建议方向：①**立即缓解**——对 `v2.1.47-final` 手动触发 `release-distribute.yml` 的 `workflow_dispatch`（该 workflow 已支持手动指定 tag 重跑），但需先修正 `dist/latest.yml` 的 version 字段或校验逻辑，否则重跑仍会在同一步失败；②**根因修复**——`Validate updater metadata` 的校验目标应改为"tag 去掉 `v` 前缀、去掉可选的非语义后缀（如 `-final`/`-dev-<sha>`）后与 `latest.yml` version 做语义版本比较"，或者反过来让打 tag 的流程把 `-final` 之类后缀也同步写入 `package.json`/`latest.yml`（但会污染 electron-updater 语义版本比较，不推荐）；③**官网侧兜底**——下载按钮 URL 拼接应对 CDN 404/403 做前端探测/兜底（如失败回退到 GitHub Releases 直链 `eo` 常量，代码里已经有这个 fallback 变量但仅用于"未拿到 tag_name"的场景，未覆盖"CDN 404"场景）。
+- **Diagnostics to add**：release-distribute 工作流失败时应产生用户可见的告警（当前只在 GitHub Actions UI 里可见，无 Slack/邮件通知，团队要隔一天靠用户反馈才发现）；官网前端下载按钮点击失败（fetch HEAD 403/404）应上报到网站自身的错误监控，而不是让用户在客户端里提交一条无上下文的模糊反馈。
+
 ## 已解决 / candidate-fixed
 
 - **窗口控制回归**（最小化/最大化/关闭失效、右上角区域点不动）—— 14 个 case（3NS、3M7、3KS、3KN、3KH、3KG、3KD、3KC、3KB、3KA、3K9、3K6、3K5、3K4），跨 zh/en/ja/es、Win11/macOS/Linux，多个明确写"升级/更新后"。**用户告知此问题已修复。** 修复 commit/版本尚未在 `main` 上定位到（`main` 的 titlebar/WindowControls 历史未见对应修复，可能在单独分支、原生窗口框改动或其他文件/未合并）。已记入 `sentry-feedback-resolutions/ELECTRON-3NS.json`（集群 note）。下一步：确认确切修复 commit 与发布版本后，把该集群转 `fixed`/`verified` 并 resolve 对应 Sentry issue。
 
 ## Skipped Existing Cases
 
-无（baseline 运行，无历史 ledger 可跳过）。
+本次为 webhook 单案增量运行（仅 ELECTRON-3XN），按 rerun 规则跳过所有既有 `active`/`candidate-fixed`/`archived-non-bug` case（未出现新事件/新证据，不满足重新分析条件）：3MD/3ME/3MF/3NC/3NB/3NJ/3PB/3NH/3P5/3P8/3M5/3M4/3KX/3M2/3PN/3N3/3N2/3P3/3NS 及其同集群 case、3S4、3RD/3R7/3RE 等（详见上方 Case Ledger 与 `feedback-diagnostics-db-json.ledger.json`）。
 
 ---
 
 ## 聚合分组（仅 active 反馈）
 
+- **我方发布/CDN 分发缺陷**：release-distribute 工作流版本号一致性校验（tag `-final` 后缀 vs package.json/latest.yml 版本号）导致 2.1.47 未同步到 CDN，官网下载按钮 403（3XN，深挖 8）。
 - **我方产品/工具缺陷**：team-wakeup 全有或全无 + ACP 错误不透明（3MD/3ME/3MF/3NC/3NB/3NJ）；流式 CJK 乱码解码（3NH/3P5）；图片未作 vision 交付 + 沙箱路径缺口（3M4/3M5/3P8）；pi 探测 5s 超时不适配超大 npx 包（3PN，深挖 5）。
 - **供应商/用户环境**：3N3（商汤额度耗尽，供应商侧）；3N2（kilo 需登录 + 更新 DB 迁移错配）；3P3（本地模型上下文占满）。
 - **需求（非 bug）**：3P9、3P0、3NX、3NR、3N6、3M3、3M0、3KZ、3KY、3MQ、3KV、3KP。

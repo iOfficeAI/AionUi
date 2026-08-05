@@ -22,7 +22,10 @@
     "processed_until": "2026-07-23T13:12:13Z",
     "last_incremental_run_started_at": "2026-07-28",
     "last_incremental_processed_until": "2026-07-28T04:13:45Z",
-    "last_incremental_scope_note": "extended to AionUi@2.1.41; ELECTRON-3S4 has screenshot+logs.gz only (no db-diagnostics.json.gz)"
+    "last_incremental_scope_note": "extended to AionUi@2.1.41; ELECTRON-3S4 has screenshot+logs.gz only (no db-diagnostics.json.gz)",
+    "webhook_incremental_run_started_at": "2026-08-05T10:39:00Z",
+    "webhook_incremental_processed_until": "2026-08-05T10:30:33Z",
+    "webhook_incremental_scope_note": "single-case webhook trigger (Sentry issue.created, issue 138983003 / ELECTRON-3XN, AionUi@2.1.47); no db-diagnostics.json.gz increment (all profiles empty/healthy), root cause confirmed via external verification (GitHub Releases API, GitHub Actions run 30986701877, static.aionui.com/CDN HTTP probes, production website JS bundle deobfuscation) rather than app-side attachments alone; did not rerun prior active/candidate-fixed cases"
   },
   "version_chain": {
     "2.1.37": {
@@ -43,6 +46,16 @@
     }
   },
   "cases": [
+    {
+      "case": "ELECTRON-3XN",
+      "status": "active",
+      "category": "our-bug (release-engineering: release-distribute.yml version-consistency guard blocked CDN sync for v2.1.47-final; website download button 403)",
+      "cluster": "release-distribution",
+      "app_version": "2.1.47",
+      "last_event": "2026-08-05",
+      "conclusion": "Confirmed via external verification (no code fix needed to locate): GitHub Release tag v2.1.47-final has suffix '-final' not present in package.json/latest.yml version '2.1.47'. release-distribute.yml run 30986701877 failed at 'Validate updater metadata' step ('dist/latest.yml version is 2.1.47, expected 2.1.47-final'), skipping upload to static.aionui.com. Website download button builds URL from tag_name verbatim (static.aionui.com/releases/2.1.47-final/AionUi-2.1.47-final-win-x64.exe) -> HTTP 403 (object never uploaded). CDN still serves 2.1.46 as latest (in-app auto-update also confirms 'latest version: 2.1.46'). No rerun/manual dispatch of release-distribute.yml since the failure.",
+      "fix_version": "unfixed (workflow run 30986701877 failed 2026-08-05T07:52Z; no retry as of case analysis 2026-08-05T10:39Z)"
+    },
     {
       "case": "ELECTRON-3MD",
       "status": "active",
