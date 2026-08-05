@@ -21,6 +21,13 @@ export const AGENT_PROCESS_REGISTRY_RELATIVE_PATH = path.join('runtime', 'agent-
 
 const TERM_GRACE_MS = 1_000;
 
+let registryFileCounter = 0;
+
+function nextRegistryFileCounter(): number {
+  registryFileCounter += 1;
+  return registryFileCounter;
+}
+
 export function resolveAgentProcessRegistryPath(dataDir: string): string {
   return path.join(dataDir, AGENT_PROCESS_REGISTRY_RELATIVE_PATH);
 }
@@ -52,13 +59,9 @@ export async function cleanupRegisteredAgentProcesses(dataDir?: string): Promise
 }
 
 async function readRegistry(registryPath: string): Promise<AgentProcessRegistry> {
+  let raw: string;
   try {
-    const raw = await readFile(registryPath, 'utf8');
-    const parsed = JSON.parse(raw) as Partial<AgentProcessRegistry>;
-    return {
-      version: parsed.version ?? 1,
-      processes: Array.isArray(parsed.processes) ? parsed.processes.filter(isRegisteredProcess) : [],
-    };
+    raw = await readFile(registryPath, 'utf8');
   } catch (error) {
     if (isNotFound(error)) {
       return {
@@ -67,6 +70,36 @@ async function readRegistry(registryPath: string): Promise<AgentProcessRegistry>
       };
     }
     throw error;
+  }
+
+  try {
+    const parsed = JSON.parse(raw) as Partial<AgentProcessRegistry>;
+    return {
+      version: parsed.version ?? 1,
+      processes: Array.isArray(parsed.processes) ? parsed.processes.filter(isRegisteredProcess) : [],
+    };
+  } catch (error) {
+    // Fail-safe on corruption: the registry is pure bookkeeping for orphan
+    // reaping, so a torn/empty file must not abort shutdown cleanup.
+    // Quarantine it for forensics and continue with an empty registry.
+    console.warn(`[web-host] agent process registry ${registryPath} is corrupt; quarantining and continuing empty`, error);
+    await quarantineCorruptRegistry(registryPath);
+    return {
+      version: 1,
+      processes: [],
+    };
+  }
+}
+
+async function quarantineCorruptRegistry(registryPath: string): Promise<void> {
+  const quarantinePath = path.join(
+    path.dirname(registryPath),
+    `.${path.basename(registryPath)}.corrupt.${process.pid}.${nextRegistryFileCounter()}`
+  );
+  try {
+    await rename(registryPath, quarantinePath);
+  } catch (error) {
+    console.warn(`[web-host] failed to quarantine corrupt agent process registry ${registryPath}`, error);
   }
 }
 
