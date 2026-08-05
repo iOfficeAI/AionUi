@@ -49,6 +49,10 @@ vi.mock('@/process/utils/migrateAssistants', () => ({
   migrateAssistantsToBackend: vi.fn().mockResolvedValue(true),
 }));
 
+vi.mock('@/process/services/LarkAuthService', () => ({
+  ensureGeaMcpBridgeStarted: vi.fn().mockResolvedValue({ url: 'http://127.0.0.1:45678/mcp' }),
+}));
+
 const provider: IProvider = {
   id: 'provider-1',
   platform: 'gemini',

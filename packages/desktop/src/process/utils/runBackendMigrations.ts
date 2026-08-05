@@ -15,6 +15,7 @@ import {
   type ImageGenerationMcpEnvResolveResult,
 } from '@/common/config/imageGenerationMcpEnv';
 import { BUILTIN_IMAGE_GEN_NAME, type IMcpServer, type IProvider } from '@/common/config/storage';
+import { ensureGeaMcpBridgeStarted } from '@process/services/LarkAuthService';
 import { getBuiltinMcpScriptPath, type ProcessConfig as ProcessConfigType } from './initStorage';
 import { migrateAssistantsToBackend } from './migrateAssistants';
 
@@ -23,6 +24,7 @@ type MigrationStepResult = boolean;
 type McpImportServer = Partial<IMcpServer> & Pick<IMcpServer, 'name' | 'transport'>;
 type BackendClientPreferences = Record<string, unknown>;
 const BUILTIN_CHROME_DEVTOOLS_NAME = 'chrome-devtools';
+const BUILTIN_GEA_MCP_NAME = 'gea-gateway';
 
 const LEGACY_BACKEND_CLIENT_PREFERENCE_KEYS = [
   'assistants',
@@ -160,13 +162,23 @@ function isSameStdioTransport(left: IMcpServer['transport'], right: IMcpServer['
   );
 }
 
-function buildDefaultMcpServers(): McpImportServer[] {
+function buildDefaultMcpServers(geaMcpUrl: string): McpImportServer[] {
   const chromeConfig = {
     command: 'npx',
     args: ['-y', 'chrome-devtools-mcp@latest'],
   };
 
   return [
+    {
+      name: BUILTIN_GEA_MCP_NAME,
+      enabled: true,
+      builtin: true,
+      transport: {
+        type: 'http',
+        url: geaMcpUrl,
+      },
+      original_json: JSON.stringify({ mcpServers: { [BUILTIN_GEA_MCP_NAME]: { url: geaMcpUrl } } }, null, 2),
+    },
     {
       name: BUILTIN_CHROME_DEVTOOLS_NAME,
       description: 'Default MCP server: chrome-devtools',
@@ -252,10 +264,11 @@ function buildOriginalJsonFromTransport(server: Pick<IMcpServer, 'name' | 'descr
 }
 
 async function ensureBootstrapMcpServersInDb(configFile: ConfigFile): Promise<void> {
-  const [backendPrefs, fileImageConfig, providers] = await Promise.all([
+  const [backendPrefs, fileImageConfig, providers, geaMcpBridge] = await Promise.all([
     fetchBackendClientPreferences(),
     configFile.get('tools.imageGenerationModel').catch((): undefined => undefined),
     fetchProviders(),
+    ensureGeaMcpBridgeStarted(),
   ]);
   const imageConfig = resolveImageGenerationMigrationConfig(backendPrefs, fileImageConfig);
   const imageConfigSource = resolveImageGenerationMigrationConfigSource(backendPrefs, fileImageConfig);
@@ -267,7 +280,7 @@ async function ensureBootstrapMcpServersInDb(configFile: ConfigFile): Promise<vo
   const imageEnvResolution = resolveImageGenerationMcpEnv(imageConfig, providers, existingImageEnv);
   logImageGenerationEnvResolution(imageEnvResolution, 'bootstrap');
   const imageServer = buildBuiltinImageGenerationServer(imageEnvResolution, imageConfig);
-  const defaultServers = buildDefaultMcpServers();
+  const defaultServers = buildDefaultMcpServers(geaMcpBridge.url);
   const missing = [...defaultServers, imageServer].filter((server) => !existingByName.has(server.name));
   let imageServerUpdated = false;
 
@@ -288,6 +301,26 @@ async function ensureBootstrapMcpServersInDb(configFile: ConfigFile): Promise<vo
       data: {
         builtin: true,
         original_json: buildOriginalJsonFromTransport(existingChromeDevtools),
+      },
+    });
+  }
+
+  const existingGeaMcp = existingByName.get(BUILTIN_GEA_MCP_NAME);
+  const expectedGeaMcp = defaultServers.find((server) => server.name === BUILTIN_GEA_MCP_NAME);
+  if (
+    existingGeaMcp &&
+    expectedGeaMcp &&
+    (existingGeaMcp.builtin !== true ||
+      existingGeaMcp.transport.type !== 'http' ||
+      existingGeaMcp.transport.url !== geaMcpBridge.url ||
+      existingGeaMcp.original_json !== expectedGeaMcp.original_json)
+  ) {
+    await mcpService.updateServer.invoke({
+      id: existingGeaMcp.id,
+      data: {
+        builtin: true,
+        transport: expectedGeaMcp.transport,
+        original_json: expectedGeaMcp.original_json,
       },
     });
   }

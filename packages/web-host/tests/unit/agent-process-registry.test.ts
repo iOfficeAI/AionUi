@@ -4,7 +4,7 @@ import path from 'node:path';
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { cleanupRegisteredAgentProcesses, resolveAgentProcessRegistryPath } from './agent-process-registry.js';
+import { cleanupRegisteredAgentProcesses, resolveAgentProcessRegistryPath } from '../../src/agent-process-registry.js';
 
 describe('cleanupRegisteredAgentProcesses', () => {
   afterEach(() => {

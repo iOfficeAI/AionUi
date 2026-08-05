@@ -200,6 +200,7 @@
       "name": "@aionui/web-host",
       "version": "0.0.0",
       "dependencies": {
+        "@modelcontextprotocol/sdk": "^1.20.0",
         "serve-handler": "^6.1.5",
       },
       "devDependencies": {

@@ -14,11 +14,11 @@ import { getGpuStatus, setGpuUserOverride } from '@process/utils/gpuRecovery';
 import { initApplicationBridgeCore } from './applicationBridgeCore';
 import type { IStartOnBootStatus } from '@/common/adapter/ipcBridge';
 import { restartApplication } from './restartApplication';
-import { LarkAuthService, LarkAuthServiceError } from '@process/services/LarkAuthService';
+import { getSharedLarkAuthService, LarkAuthServiceError } from '@process/services/LarkAuthService';
 import type { LarkAuthErrorCode, LarkAuthResult } from '@/common/types/platform/larkAuth';
 
 let mainWindowRef: BrowserWindow | null = null;
-const larkAuthService = new LarkAuthService();
+const larkAuthService = getSharedLarkAuthService();
 
 const withLarkAuthResult = async <T>(operation: () => Promise<T> | T): Promise<LarkAuthResult<T>> => {
   try {

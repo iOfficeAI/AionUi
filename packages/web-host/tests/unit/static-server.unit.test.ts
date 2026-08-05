@@ -5,8 +5,8 @@ import netModule from 'node:net';
 import os from 'node:os';
 import path from 'node:path';
 import type { AddressInfo } from 'node:net';
-import { startStaticServer, type StaticServerHandle } from './static-server.js';
-import type { WebHostLarkAuth } from './types.js';
+import { startStaticServer, type StaticServerHandle } from '../../src/static-server.js';
+import type { WebHostLarkAuth } from '../../src/types.js';
 
 async function mkRendererFixture(): Promise<string> {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'ws-static-'));
