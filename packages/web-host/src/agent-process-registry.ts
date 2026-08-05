@@ -101,7 +101,10 @@ async function readRegistry(registryPath: string): Promise<AgentProcessRegistry>
     // Fail-safe on corruption: the registry is pure bookkeeping for orphan
     // reaping, so a torn/empty file must not abort shutdown cleanup.
     // Quarantine it for forensics and continue with an empty registry.
-    console.warn(`[web-host] agent process registry ${registryPath} is corrupt; quarantining and continuing empty`, error);
+    console.warn(
+      `[web-host] agent process registry ${registryPath} is corrupt; quarantining and continuing empty`,
+      error
+    );
     await quarantineCorruptRegistry(registryPath);
     return {
       version: 1,
