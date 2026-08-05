@@ -47,7 +47,11 @@ export function buildPendingConfirmationMessage(
 }
 
 export function hasPermissionMessageForCallId(list: TMessage[], callId: string): boolean {
-  return list.some((message) => (message.type === 'permission' && message.content?.call_id === callId) || (message.type === 'ask' && message.content?.request_id === callId));
+  return list.some(
+    (message) =>
+      (message.type === 'permission' && message.content?.call_id === callId) ||
+      (message.type === 'ask' && message.content?.request_id === callId)
+  );
 }
 
 export function removePermissionMessage(list: TMessage[], target: { id?: string; call_id?: string }): TMessage[] {

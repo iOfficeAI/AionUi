@@ -64,7 +64,10 @@ const MessageAcpPermission: React.FC<MessageAcpPermissionProps> = React.memo(({ 
   // produced cards like「命令: AskUserQuestion」with the actual question text —
   // the only user-readable content — silently dropped). No per-agent sniffing:
   // whatever the agent sent, the user can at least read it.
-  const command = typeof tool_call.raw_input?.command === 'string' && tool_call.raw_input.command ? tool_call.raw_input.command : undefined;
+  const command =
+    typeof tool_call.raw_input?.command === 'string' && tool_call.raw_input.command
+      ? tool_call.raw_input.command
+      : undefined;
   let rawDump: string | undefined;
   if (!command && tool_call.raw_input && typeof tool_call.raw_input === 'object') {
     const rest = Object.fromEntries(Object.entries(tool_call.raw_input).filter(([key]) => key !== 'description'));

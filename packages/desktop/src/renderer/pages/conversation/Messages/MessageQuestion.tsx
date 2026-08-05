@@ -45,7 +45,10 @@ const emptyDraft = (): Draft => ({ labels: [], other: '', otherSelected: false }
 const MessageQuestion: React.FC<MessageQuestionProps> = React.memo(({ message }) => {
   const { t } = useTranslation();
   const content = message.content || ({} as IMessageAsk['content']);
-  const questions = useMemo<IAskQuestion[]>(() => (Array.isArray(content.questions) ? content.questions : []), [content.questions]);
+  const questions = useMemo<IAskQuestion[]>(
+    () => (Array.isArray(content.questions) ? content.questions : []),
+    [content.questions]
+  );
   const [drafts, setDrafts] = useState<Draft[]>(() => questions.map(emptyDraft));
   const [submitted, setSubmitted] = useState<'answered' | 'declined' | null>(null);
 
@@ -74,7 +77,11 @@ const MessageQuestion: React.FC<MessageQuestionProps> = React.memo(({ message })
   }, [drafts, questions, message.conversation_id, requestId]);
 
   const handleDecline = useCallback(async () => {
-    await conversation.answerAsk.invoke({ conversation_id: message.conversation_id, request_id: requestId, decline: true });
+    await conversation.answerAsk.invoke({
+      conversation_id: message.conversation_id,
+      request_id: requestId,
+      decline: true,
+    });
     setSubmitted('declined');
   }, [message.conversation_id, requestId]);
 
@@ -92,9 +99,19 @@ const MessageQuestion: React.FC<MessageQuestionProps> = React.memo(({ message })
               {q.header ? <div className={own.header}>{q.header}</div> : null}
               <div className={own.question}>{q.question}</div>
               {multi ? (
-                <Checkbox.Group className={own.optionList} value={d.labels} onChange={(labels) => updateDraft(qi, { labels: labels as string[] })} disabled={submitted !== null}>
+                <Checkbox.Group
+                  className={own.optionList}
+                  value={d.labels}
+                  onChange={(labels) => updateDraft(qi, { labels: labels as string[] })}
+                  disabled={submitted !== null}
+                >
                   {q.options.map((opt) => (
-                    <Checkbox key={opt.label} className={own.optionRow} value={opt.label} data-testid={`message-question-option-${qi}-${opt.label}`}>
+                    <Checkbox
+                      key={opt.label}
+                      className={own.optionRow}
+                      value={opt.label}
+                      data-testid={`message-question-option-${qi}-${opt.label}`}
+                    >
                       <span className={own.optionText}>
                         <span className={own.optionLabel}>{opt.label}</span>
                         {opt.description ? <span className={own.optionDesc}>{opt.description}</span> : null}
@@ -103,21 +120,48 @@ const MessageQuestion: React.FC<MessageQuestionProps> = React.memo(({ message })
                   ))}
                 </Checkbox.Group>
               ) : (
-                <Radio.Group className={own.optionList} value={d.otherSelected ? OTHER_VALUE : d.labels[0]} onChange={(value) => (value === OTHER_VALUE ? updateDraft(qi, { labels: [], otherSelected: true }) : updateDraft(qi, { labels: [value], otherSelected: false }))} disabled={submitted !== null}>
+                <Radio.Group
+                  className={own.optionList}
+                  value={d.otherSelected ? OTHER_VALUE : d.labels[0]}
+                  onChange={(value) =>
+                    value === OTHER_VALUE
+                      ? updateDraft(qi, { labels: [], otherSelected: true })
+                      : updateDraft(qi, { labels: [value], otherSelected: false })
+                  }
+                  disabled={submitted !== null}
+                >
                   {q.options.map((opt) => (
-                    <Radio key={opt.label} className={own.optionRow} value={opt.label} data-testid={`message-question-option-${qi}-${opt.label}`}>
+                    <Radio
+                      key={opt.label}
+                      className={own.optionRow}
+                      value={opt.label}
+                      data-testid={`message-question-option-${qi}-${opt.label}`}
+                    >
                       <span className={own.optionText}>
                         <span className={own.optionLabel}>{opt.label}</span>
                         {opt.description ? <span className={own.optionDesc}>{opt.description}</span> : null}
                       </span>
                     </Radio>
                   ))}
-                  <Radio className={own.optionRow} value={OTHER_VALUE} data-testid={`message-question-option-${qi}-other`}>
+                  <Radio
+                    className={own.optionRow}
+                    value={OTHER_VALUE}
+                    data-testid={`message-question-option-${qi}-other`}
+                  >
                     <span className={own.optionText}>
                       <span className={own.optionLabel}>{t('messages.askOther')}</span>
                     </span>
                   </Radio>
-                  {d.otherSelected ? <Input className={own.otherInput} placeholder={t('messages.askOtherPlaceholder')} value={d.other} onChange={(v) => updateDraft(qi, { other: v })} disabled={submitted !== null} data-testid={`message-question-other-input-${qi}`} /> : null}
+                  {d.otherSelected ? (
+                    <Input
+                      className={own.otherInput}
+                      placeholder={t('messages.askOtherPlaceholder')}
+                      value={d.other}
+                      onChange={(v) => updateDraft(qi, { other: v })}
+                      disabled={submitted !== null}
+                      data-testid={`message-question-other-input-${qi}`}
+                    />
+                  ) : null}
                 </Radio.Group>
               )}
             </div>
@@ -128,7 +172,13 @@ const MessageQuestion: React.FC<MessageQuestionProps> = React.memo(({ message })
           // chrome to a transparent full-width list row (for permission option
           // lists), which turned the primary submit into white-on-white.
           <div className={own.actions}>
-            <Button type='primary' size='small' disabled={!allAnswered} onClick={handleSubmit} data-testid='message-question-submit'>
+            <Button
+              type='primary'
+              size='small'
+              disabled={!allAnswered}
+              onClick={handleSubmit}
+              data-testid='message-question-submit'
+            >
               {t('messages.askSubmit')}
             </Button>
             <Button size='small' onClick={handleDecline} data-testid='message-question-decline'>
@@ -136,7 +186,12 @@ const MessageQuestion: React.FC<MessageQuestionProps> = React.memo(({ message })
             </Button>
           </div>
         ) : (
-          <div className={`${styles.feedback} ${styles.success}`} role='status' aria-live='polite' data-testid='message-question-status'>
+          <div
+            className={`${styles.feedback} ${styles.success}`}
+            role='status'
+            aria-live='polite'
+            data-testid='message-question-status'
+          >
             <CheckOne theme='outline' size='16' aria-hidden='true' />
             <span>{submitted === 'answered' ? t('messages.askAnswered') : t('messages.askDeclined')}</span>
           </div>
