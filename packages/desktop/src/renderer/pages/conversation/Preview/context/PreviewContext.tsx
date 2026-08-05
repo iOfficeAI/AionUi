@@ -221,7 +221,86 @@ const MAX_PERSISTED_TAB_CONTENT_LENGTH = 80_000;
  */
 const CONTENT_FREE_PREVIEW_TYPES = new Set<PreviewContentType>(['pdf', 'word', 'excel', 'ppt', 'unsupported']);
 
-const PERSISTABLE_CONTENT_TYPES = new Set<PreviewContentType>(['markdown', 'html', 'code', 'diff', 'browser']);
+/**
+ * Types restored from their identity instead of from stored content.
+ *
+ * Their viewers already re-fetch from the `fileRef`: a pdf builds a stream URL from
+ * it, office hands it to its own process and ignores `content` entirely, and the image
+ * viewer re-reads when `content` is absent. So persisting the bytes buys nothing that
+ * reopening does not, and for images it costs a great deal — a 20 MB data URL (the
+ * image ceiling) would blow the storage quota on its own and start evicting other
+ * projects' tabs through the LRU.
+ *
+ * Storing an empty `content` for these is safe rather than merely cheap: none of them
+ * reaches an editor, so none can become dirty, and Ctrl+S only writes a dirty tab.
+ * There is no path by which the blank stands in for the file's contents.
+ *
+ * A tab of one of these types without a `fileRef` has no identity to restore from, so
+ * it is dropped instead of being restored as a permanently empty viewer.
+ */
+const IDENTITY_RESTORED_TYPES = new Set<PreviewContentType>([...CONTENT_FREE_PREVIEW_TYPES, 'image']);
+
+/**
+ * Types worth persisting at all.
+ *
+ * Everything the panel can open, which is the point: this used to list only the text
+ * types, so switching project and back silently dropped every image, pdf and office
+ * tab. The tabs were still in memory — collapsing and reopening the panel restored all
+ * of them — so the loss appeared only when the panel's state went through storage,
+ * which made it look like the file types were unsupported rather than unsaved.
+ */
+const PERSISTABLE_CONTENT_TYPES = new Set<PreviewContentType>([
+  'markdown',
+  'html',
+  'code',
+  'csv',
+  'diff',
+  'browser',
+  'image',
+  'pdf',
+  'word',
+  'excel',
+  'ppt',
+  'unsupported',
+]);
+
+/**
+ * Reduce one tab to what should be written, or `null` to drop it.
+ *
+ * The split is by what restoring actually needs. A text tab's content has to be stored
+ * because an unsaved edit exists nowhere else — that is the data loss this whole area
+ * has been about. Everything else is reopened from its identity, so its bytes are
+ * redundant at best and quota-breaking at worst.
+ */
+const tabForPersistence = (tab: PreviewTab): PreviewTab | null => {
+  const shared = {
+    ...tab,
+    // Agent activity is a live, per-session signal — never restore it as active.
+    metadata: tab.metadata?.agentActive ? { ...tab.metadata, agentActive: false } : tab.metadata,
+  };
+
+  if (IDENTITY_RESTORED_TYPES.has(tab.content_type)) {
+    // A missing `fileRef` is not rejected here. Dropping unrestorable tabs is the
+    // reader's job, whose guard covers every stored record rather than only the ones
+    // this build wrote — refusing here as well would be a second copy of the same rule,
+    // and two guards for one rule invite deleting either as "already covered".
+    //
+    // Blanked before any size check, so a large image is stored rather than dropped for
+    // being large: the size cap exists to keep bulky text out of storage, and there is
+    // no text here to keep out.
+    return { ...shared, content: '', originalContent: '', isDirty: false };
+  }
+
+  if (tab.content.length > MAX_PERSISTED_TAB_CONTENT_LENGTH) return null;
+
+  return {
+    ...shared,
+    // Preserve the edit and the fact that it is unsaved. `originalContent` keeps
+    // the last saved text so the dirty comparison still works after restore.
+    isDirty: tab.isDirty === true,
+    originalContent: typeof tab.originalContent === 'string' ? tab.originalContent : tab.content,
+  };
+};
 
 /**
  * Prepare tabs for persistence.
@@ -239,16 +318,8 @@ const PERSISTABLE_CONTENT_TYPES = new Set<PreviewContentType>(['markdown', 'html
 const sanitizeTabsForPersistence = (input: PreviewTab[]): PreviewTab[] => {
   return input
     .filter((tab) => PERSISTABLE_CONTENT_TYPES.has(tab.content_type))
-    .filter((tab) => tab.content.length <= MAX_PERSISTED_TAB_CONTENT_LENGTH)
-    .map((tab) => ({
-      ...tab,
-      // Preserve the edit and the fact that it is unsaved. `originalContent` keeps
-      // the last saved text so the dirty comparison still works after restore.
-      isDirty: tab.isDirty === true,
-      originalContent: typeof tab.originalContent === 'string' ? tab.originalContent : tab.content,
-      // Agent activity is a live, per-session signal — never restore it as active.
-      metadata: tab.metadata?.agentActive ? { ...tab.metadata, agentActive: false } : tab.metadata,
-    }));
+    .map(tabForPersistence)
+    .filter((tab): tab is PreviewTab => tab !== null);
 };
 
 /**
@@ -291,7 +362,15 @@ const parsePersistedTabs = (value: unknown): PreviewTab[] => {
       })
       .filter((tab) => !isLegacyTruncatedTab(tab))
       .filter((tab) => PERSISTABLE_CONTENT_TYPES.has(tab.content_type))
-      .filter((tab) => tab.content.length <= MAX_PERSISTED_TAB_CONTENT_LENGTH)
+      // The size cap applies to stored text only. Identity-restored tabs were written
+      // with an empty content, so they pass it either way — but checking them against a
+      // text limit would be asserting something about a value that carries no text.
+      .filter(
+        (tab) => IDENTITY_RESTORED_TYPES.has(tab.content_type) || tab.content.length <= MAX_PERSISTED_TAB_CONTENT_LENGTH
+      )
+      // An identity-restored tab has nothing but its ref to reopen from, so one without
+      // a ref would restore as a viewer that can never show anything.
+      .filter((tab) => !IDENTITY_RESTORED_TYPES.has(tab.content_type) || Boolean(tab.metadata?.fileRef))
       // A stored ref that no longer matches the ChatFileRef shape (stale or tampered
       // storage) means this tab's identity is unusable. Drop the whole tab.
       //
