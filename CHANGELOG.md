@@ -1,5 +1,25 @@
 # Changelog
 
+## [2.1.51](https://github.com/suoak/AionUi/compare/v2.1.50...v2.1.51) (2026-08-05)
+
+### Desktop
+
+#### Bug Fixes
+
+- **team:** use the current CSBU WorkMate brand icon when creating teams (#16)
+
+### Core ([v0.1.64](https://github.com/suoak/AionCore/releases/tag/v0.1.64))
+
+#### Bug Fixes
+
+- **conversation:** use CSBU WorkMate branded automatic workspace names while accepting legacy Aionrs paths
+
+#### Runtime
+
+- bundle `suoak/aionrs` v0.2.10 with bounded rate-limit retries and PowerShell UTF-8 handling
+
+---
+
 ## [2.1.50](https://github.com/suoak/AionUi/compare/v2.1.49...v2.1.50) (2026-08-04)
 
 ### Desktop
