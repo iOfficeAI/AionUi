@@ -83,7 +83,7 @@ export function logDroppedToolCallWithoutCallId(message: TMessage | undefined): 
 
 // 构建消息索引
 // Build message index
-function buildMessageIndex(list: TMessage[]): MessageIndex {
+export function buildMessageIndex(list: TMessage[]): MessageIndex {
   const msgIdIndex = new Map<string, number>();
   const call_idIndex = new Map<string, number>();
   const tool_call_idIndex = new Map<string, number>();
@@ -127,7 +127,11 @@ const sanitizeMessageForList = (message: TMessage): TMessage =>
 
 // 使用索引优化的消息合并函数
 // Index-optimized message compose function
-function composeMessageWithIndex(message: TMessage | undefined, list: TMessage[], index: MessageIndex): TMessage[] {
+export function composeMessageWithIndex(
+  message: TMessage | undefined,
+  list: TMessage[],
+  index: MessageIndex
+): TMessage[] {
   if (!message) return list || [];
 
   if (logDroppedToolCallWithoutCallId(message)) {
@@ -177,6 +181,22 @@ function composeMessageWithIndex(message: TMessage | undefined, list: TMessage[]
       }
     }
     // 未找到，添加新消息并更新索引
+    // A TERMINAL frame that finds no card to settle is suspicious: it means the
+    // running card is somewhere else (or was never indexed), so the user is left
+    // with a spinner that never stops plus a duplicate card. Codex's detached
+    // exec makes this reachable — its terminal lands minutes later, under a
+    // different turn. Log it so the next occurrence is diagnosable.
+    const status = (message.content as { status?: string } | undefined)?.status;
+    if (status === 'completed' || status === 'error' || status === 'canceled') {
+      console.warn('[tool-call] terminal frame found no card to settle; appending a new one', {
+        conversation_id: message.conversation_id,
+        msg_id: message.msg_id,
+        call_id: message.content.call_id,
+        status,
+        indexed_call_ids: index.call_idIndex.size,
+        list_len: list.length,
+      });
+    }
     const newIdx = list.length;
     index.call_idIndex.set(message.content.call_id, newIdx);
     const msgIndexKey = getMessageIndexKey(message);
