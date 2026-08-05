@@ -138,6 +138,52 @@ describe('PersonalModelGatewayService', () => {
     });
   });
 
+  it('disables and clears a managed provider when GEA no longer returns models', async () => {
+    const vault = new MemoryVault();
+    const providerStore = new MemoryProviderStore();
+    const proxy: PersonalModelProxy = {
+      deactivate: vi.fn().mockResolvedValue(undefined),
+      register: vi.fn().mockResolvedValue({ apiKey: 'local-key', baseUrl: 'http://127.0.0.1:1/personal/p' }),
+    };
+    const service = new PersonalModelGatewayService(vault, providerStore, proxy);
+    const user = { id: 'user-1', username: 'zhangsan', realname: '张三' };
+    await service.sync(user, createAuthClient());
+
+    const emptyAuth = createAuthClient('ENABLED');
+    vi.mocked(emptyAuth.listPersonalModels).mockResolvedValue([]);
+    await service.sync(user, emptyAuth);
+
+    expect(providerStore.providers[0]).toMatchObject({
+      enabled: false,
+      models: [],
+      model_enabled: {},
+    });
+  });
+
+  it('replaces a stale GEA model name when model discovery changes', async () => {
+    const vault = new MemoryVault();
+    const providerStore = new MemoryProviderStore();
+    const proxy: PersonalModelProxy = {
+      deactivate: vi.fn().mockResolvedValue(undefined),
+      register: vi.fn().mockResolvedValue({ apiKey: 'local-key', baseUrl: 'http://127.0.0.1:1/personal/p' }),
+    };
+    const service = new PersonalModelGatewayService(vault, providerStore, proxy);
+    const user = { id: 'user-1', username: 'zhangsan', realname: '张三' };
+    const initialAuth = createAuthClient();
+    vi.mocked(initialAuth.listPersonalModels).mockResolvedValue(['liteLLM']);
+    await service.sync(user, initialAuth);
+
+    const refreshedAuth = createAuthClient('ENABLED');
+    vi.mocked(refreshedAuth.listPersonalModels).mockResolvedValue(['deepseek-chat']);
+    await service.sync(user, refreshedAuth);
+
+    expect(providerStore.providers[0]).toMatchObject({
+      models: ['deepseek-chat'],
+      model_enabled: { 'deepseek-chat': true },
+    });
+    expect(providerStore.providers[0].model_enabled).not.toHaveProperty('liteLLM');
+  });
+
   it('does not claim a one-time secret when secure storage is unavailable', async () => {
     const vault = new MemoryVault();
     vault.available = false;
@@ -216,5 +262,52 @@ describe('LocalPersonalModelProxy', () => {
 
     expect(response.status).toBe(200);
     expect(upstreamAuthorization).toBe('Bearer sk-user-sensitive');
+  });
+
+  it('completes a chat through the provider created from the authenticated user credential', async () => {
+    let upstreamPath = '';
+    let upstreamModel = '';
+    upstream = http.createServer((req, res) => {
+      upstreamPath = req.url ?? '';
+      let body = '';
+      req.setEncoding('utf8');
+      req.on('data', (chunk) => {
+        body += chunk;
+      });
+      req.on('end', () => {
+        upstreamModel = (JSON.parse(body) as { model: string }).model;
+        res.writeHead(200, { 'content-type': 'application/json' });
+        res.end(JSON.stringify({ choices: [{ message: { content: 'pong' } }] }));
+      });
+    });
+    await new Promise<void>((resolve) => upstream!.listen(0, '127.0.0.1', resolve));
+    const upstreamPort = (upstream.address() as AddressInfo).port;
+    proxy = new LocalPersonalModelProxy();
+    const vault = new MemoryVault();
+    const providerStore = new MemoryProviderStore();
+    const authClient = createAuthClient();
+    vi.mocked(authClient.claimPersonalModelCredential).mockResolvedValue({
+      credentialId: 'credential-1',
+      accessKeyId: 'uk-gea-1',
+      agentCode: 'sales-forecast',
+      status: 'ENABLED',
+      baseUrl: `http://127.0.0.1:${upstreamPort}/v1`,
+      secret: 'sk-user-sensitive',
+    });
+    vi.mocked(authClient.listPersonalModels).mockResolvedValue(['deepseek-chat']);
+    const service = new PersonalModelGatewayService(vault, providerStore, proxy);
+
+    await service.sync({ id: 'user-1', username: 'zhangsan', realname: '张三' }, authClient);
+    const provider = providerStore.providers[0];
+    const response = await fetch(`${provider.base_url}/chat/completions`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${provider.api_key}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: provider.models[0], messages: [{ role: 'user', content: 'ping' }] }),
+    });
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({ choices: [{ message: { content: 'pong' } }] });
+    expect(upstreamPath).toBe('/v1/chat/completions');
+    expect(upstreamModel).toBe('deepseek-chat');
   });
 });

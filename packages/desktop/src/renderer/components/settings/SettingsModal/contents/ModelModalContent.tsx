@@ -383,7 +383,8 @@ const ModelModalContent: React.FC = () => {
         {t('settings.clearStatus')}
       </Button>
       <TalkToButlerButton
-        label={t('settings.addModel')}
+        label={geaSyncing ? t('settings.personalModelFetching') : t('settings.addModel')}
+        loading={geaSyncing}
         data-testid='add-model-menu'
         chatLabel={t('settings.talkToButler.addViaChat', { defaultValue: 'Add via chat' })}
         extraActions={[

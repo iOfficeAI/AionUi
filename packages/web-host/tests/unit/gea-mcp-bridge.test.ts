@@ -40,4 +40,34 @@ describe('startGeaMcpBridge', () => {
 
     await client.close();
   });
+
+  it('exposes OpenAI-compatible aliases and calls the original GEA tool', async () => {
+    const dottedTool = {
+      name: 'gateway.session.currentUser.resolve',
+      description: '解析当前用户',
+      inputSchema: { type: 'object', properties: {} },
+      sourceCode: 'mcp-current-user',
+    };
+    const callTool = vi.fn().mockResolvedValue({ result: '{"id":"user-1"}' });
+    const authService = {
+      createMcpGatewaySession: vi.fn().mockResolvedValue({
+        listTools: vi.fn().mockResolvedValue([dottedTool]),
+        callTool,
+      }),
+    } as unknown as GeaLarkAuthService;
+    handle = await startGeaMcpBridge(authService, 'sales_forecast');
+
+    const client = new Client({ name: 'test-client', version: '1.0.0' });
+    await client.connect(new StreamableHTTPClientTransport(new URL(handle.url)));
+
+    await expect(client.listTools()).resolves.toMatchObject({
+      tools: [{ name: 'gateway_session_currentUser_resolve' }],
+    });
+    await expect(client.callTool({ name: 'gateway_session_currentUser_resolve', arguments: {} })).resolves.toEqual({
+      content: [{ type: 'text', text: '{"id":"user-1"}' }],
+    });
+    expect(callTool).toHaveBeenCalledWith(dottedTool, {});
+
+    await client.close();
+  });
 });

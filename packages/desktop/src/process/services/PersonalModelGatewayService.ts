@@ -143,6 +143,18 @@ export class PersonalModelGatewayService {
         failureReason = 'modelDiscoveryFailed';
         const models = await authClient.listPersonalModels(record.baseUrl, record.secret);
         if (models.length === 0) {
+          if (existing) {
+            const unavailable: IProvider = {
+              ...existing,
+              enabled: false,
+              models: [],
+              model_enabled: {},
+              model_health: undefined,
+              model_settings: undefined,
+            };
+            await this.providerStore.save(unavailable, true);
+            providersById.set(providerId, unavailable);
+          }
           skipped += 1;
           continue;
         }

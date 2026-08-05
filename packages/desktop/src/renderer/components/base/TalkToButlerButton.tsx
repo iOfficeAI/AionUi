@@ -43,6 +43,7 @@ export type TalkToButlerButtonProps = {
   extraActions?: TalkToButlerExtraAction[];
   type?: 'primary' | 'outline' | 'secondary' | 'default';
   size?: 'mini' | 'small' | 'default' | 'large';
+  loading?: boolean;
   className?: string;
   'data-testid'?: string;
 };
@@ -69,6 +70,7 @@ const TalkToButlerButton: React.FC<TalkToButlerButtonProps> = ({
   extraActions,
   type = 'primary',
   size = 'small',
+  loading = false,
   className,
   ['data-testid']: testId,
 }) => {
@@ -111,6 +113,7 @@ const TalkToButlerButton: React.FC<TalkToButlerButtonProps> = ({
       <Button
         type={type}
         size={size}
+        loading={loading}
         className={classNames('!h-32px !rounded-8px !px-14px', className)}
         data-testid={testId}
       >

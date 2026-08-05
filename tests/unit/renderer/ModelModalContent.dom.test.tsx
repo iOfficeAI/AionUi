@@ -53,24 +53,7 @@ vi.mock('@/renderer/components/base/AionScrollArea', () => ({
   default: ({ children }: React.PropsWithChildren) => <div>{children}</div>,
 }));
 
-vi.mock('@/renderer/components/base/TalkToButlerButton', () => ({
-  default: ({
-    extraActions,
-    label,
-  }: {
-    extraActions?: Array<{ key: string; label: string; onClick: () => void }>;
-    label: React.ReactNode;
-  }) => (
-    <div>
-      <button>{label}</button>
-      {extraActions?.map((action) => (
-        <button key={action.key} onClick={action.onClick}>
-          {action.label}
-        </button>
-      ))}
-    </div>
-  ),
-}));
+vi.mock('@/renderer/hooks/assistant/useTalkToButler', () => ({ useTalkToButler: () => vi.fn() }));
 
 vi.mock('@/renderer/hooks/system/useDeepLink', () => ({ consumePendingDeepLink: () => null }));
 
@@ -103,6 +86,12 @@ const expandProvider = () => {
   fireEvent.click(header!);
 };
 
+const triggerGeaSync = async () => {
+  fireEvent.click(screen.getByTestId('add-model-menu'));
+  const item = await screen.findByTestId('add-model-menu-gea');
+  fireEvent.click((item.closest('[role="menuitem"]') ?? item) as HTMLElement);
+};
+
 describe('ModelModalContent managed personal model controls', () => {
   beforeEach(() => {
     mocks.mutate.mockReset();
@@ -117,10 +106,34 @@ describe('ModelModalContent managed personal model controls', () => {
     mocks.providers = [];
     render(<ModelModalContent />);
 
-    fireEvent.click(screen.getByText('settings.personalModelFetchFromGea'));
+    await triggerGeaSync();
 
     await waitFor(() => expect(mocks.syncPersonalModels).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(mocks.mutate).toHaveBeenCalled());
+  });
+
+  it('keeps visible feedback on the add-model button while GEA sync is pending', async () => {
+    let resolveSync!: (value: Awaited<ReturnType<typeof mocks.syncPersonalModels>>) => void;
+    mocks.syncPersonalModels.mockReturnValue(
+      new Promise((resolve) => {
+        resolveSync = resolve;
+      })
+    );
+    mocks.providers = [];
+    render(<ModelModalContent />);
+
+    await triggerGeaSync();
+
+    await waitFor(() => {
+      const button = screen.getByTestId('add-model-menu');
+      expect(button).toHaveTextContent('settings.personalModelFetching');
+      expect(button).toHaveClass('arco-btn-loading');
+    });
+
+    resolveSync({
+      success: true,
+      data: { configured: 0, failed: 0, skipped: 0, status: 'completed' },
+    });
   });
 
   it('keeps only enable switches for an automatically managed provider', () => {

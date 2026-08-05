@@ -6,7 +6,13 @@
 
 import { describe, expect, it, vi } from 'vitest';
 import type { LarkAuthServiceError } from '@/process/services/LarkAuthService';
-import { LarkAuthService, resolveDesktopLarkAuthStatus } from '@/process/services/LarkAuthService';
+import {
+  configureSharedPersonalModelGateway,
+  getSharedLarkAuthService,
+  LarkAuthService,
+  pollSharedLarkAuthSession,
+  resolveDesktopLarkAuthStatus,
+} from '@/process/services/LarkAuthService';
 
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -34,6 +40,22 @@ describe('LarkAuthService', () => {
     };
 
     expect(resolveDesktopLarkAuthStatus(true, status)).toBe(status);
+  });
+
+  it('automatically syncs personal models for the authenticated GEA user', async () => {
+    const service = getSharedLarkAuthService();
+    const user = { id: '10086', realname: '张三', username: 'zhangsan' };
+    const pollSpy = vi.spyOn(service, 'pollQrSession').mockResolvedValue({ status: 'authenticated', user });
+    const sync = vi.fn().mockResolvedValue({ configured: 1, failed: 0, skipped: 0, status: 'completed' });
+    configureSharedPersonalModelGateway({ deactivate: vi.fn(), sync });
+
+    await expect(pollSharedLarkAuthSession('QRCODELOGIN:1')).resolves.toEqual({
+      status: 'authenticated',
+      user,
+      personalModelSync: { configured: 1, failed: 0, skipped: 0, status: 'completed' },
+    });
+    expect(sync).toHaveBeenCalledWith(user, service);
+    pollSpy.mockRestore();
   });
 
   it('creates a QR session using the GEA state format', async () => {
@@ -204,7 +226,7 @@ describe('LarkAuthService', () => {
       .mockResolvedValueOnce(
         jsonResponse({
           success: true,
-          result: { userInfo: { id: '10086', username: 'zhangsan', realname: '张三' } },
+          result: { userInfo: { id: '10086', username: 'zhangsan', realname: '张三', loginTenantId: 1 } },
         })
       )
       .mockResolvedValueOnce(
@@ -253,7 +275,10 @@ describe('LarkAuthService', () => {
     const claimed = await service.claimPersonalModelCredential('credential-1', '1');
     await expect(service.listPersonalModels(claimed.baseUrl, claimed.secret)).resolves.toEqual(['deepseek-v4-flash']);
 
-    expect(fetchImpl.mock.calls[2][1]?.headers).toMatchObject({ 'X-Access-Token': 'platform-token' });
+    expect(fetchImpl.mock.calls[2][1]?.headers).toMatchObject({
+      'X-Access-Token': 'platform-token',
+      'X-Tenant-Id': '1',
+    });
     expect(fetchImpl.mock.calls[3][0]).toContain('/my/claim?id=credential-1');
     expect(fetchImpl.mock.calls[3][1]).toMatchObject({
       method: 'POST',

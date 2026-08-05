@@ -87,8 +87,10 @@ type UserInfoResponse = {
     avatar?: unknown;
     email?: unknown;
     id?: unknown;
+    loginTenantId?: unknown;
     phone?: unknown;
     realname?: unknown;
+    tenantId?: unknown;
     username?: unknown;
   };
 };
@@ -189,6 +191,7 @@ export class GeaLarkAuthService {
   private readonly fetchImpl: FetchLike;
   private accessToken: string | null = null;
   private authGeneration = 0;
+  private currentTenantId = DEFAULT_GEA_TENANT_ID;
   private currentUser: WebHostLarkAuthUser | null = null;
 
   constructor(options: { baseUrl?: string; fetchImpl?: FetchLike } = {}) {
@@ -245,9 +248,10 @@ export class GeaLarkAuthService {
       throw new GeaLarkAuthServiceError('invalidResponse');
     }
 
-    const user = await this.fetchCurrentUser(token);
+    const { tenantId, user } = await this.fetchCurrentUser(token);
     this.accessToken = token;
     this.authGeneration += 1;
+    this.currentTenantId = tenantId;
     this.currentUser = user;
     return { status: 'authenticated', user };
   }
@@ -261,6 +265,7 @@ export class GeaLarkAuthService {
   logout(): void {
     this.accessToken = null;
     this.authGeneration += 1;
+    this.currentTenantId = DEFAULT_GEA_TENANT_ID;
     this.currentUser = null;
   }
 
@@ -277,7 +282,9 @@ export class GeaLarkAuthService {
       });
       const payload = await this.requestPersonalModelJson<GeaResponse<PersonalCredentialListResponse>>(
         `/aidata/user-agent-credential/my/list?${query.toString()}`,
-        accessToken
+        accessToken,
+        'GET',
+        this.currentTenantId
       );
       if (payload.success !== true || !Array.isArray(payload.result?.records)) {
         throw new GeaPersonalModelError('GEA_PERSONAL_CREDENTIAL_LIST_INVALID');
@@ -498,7 +505,7 @@ export class GeaLarkAuthService {
     }
   }
 
-  private async fetchCurrentUser(token: string): Promise<WebHostLarkAuthUser> {
+  private async fetchCurrentUser(token: string): Promise<{ tenantId: string; user: WebHostLarkAuthUser }> {
     let response: Response;
     try {
       response = await this.fetchImpl(`${this.baseUrl}/sys/user/getUserInfo`, {
@@ -519,12 +526,15 @@ export class GeaLarkAuthService {
 
     const avatar = typeof raw?.avatar === 'string' ? resolveAvatarUrl(this.baseUrl, raw.avatar) : undefined;
     return {
-      id,
-      username,
-      realname,
-      ...(avatar ? { avatar } : {}),
-      ...(typeof raw?.email === 'string' && raw.email.trim() ? { email: raw.email.trim() } : {}),
-      ...(typeof raw?.phone === 'string' && raw.phone.trim() ? { phone: raw.phone.trim() } : {}),
+      tenantId: resolveUserTenantId(raw),
+      user: {
+        id,
+        username,
+        realname,
+        ...(avatar ? { avatar } : {}),
+        ...(typeof raw?.email === 'string' && raw.email.trim() ? { email: raw.email.trim() } : {}),
+        ...(typeof raw?.phone === 'string' && raw.phone.trim() ? { phone: raw.phone.trim() } : {}),
+      },
     };
   }
 }
@@ -551,6 +561,13 @@ function normalizeTenantId(value: unknown): string {
     throw new GeaPersonalModelError('GEA_PERSONAL_TENANT_ID_INVALID');
   }
   return tenantId;
+}
+
+function resolveUserTenantId(value: UserInfoResponse['userInfo']): string {
+  const tenantId = value?.loginTenantId ?? value?.tenantId;
+  return tenantId === undefined || tenantId === null || tenantId === ''
+    ? DEFAULT_GEA_TENANT_ID
+    : normalizeTenantId(tenantId);
 }
 
 function parseClaimedPersonalCredential(value: PersonalCredentialClaimResponse): GeaClaimedPersonalModelCredential {

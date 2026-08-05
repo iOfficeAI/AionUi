@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import http, { type IncomingMessage, type ServerResponse } from 'node:http';
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
@@ -13,6 +13,11 @@ import {
 type BridgeSession = {
   server: Server;
   transport: StreamableHTTPServerTransport;
+};
+
+type ExposedGeaMcpGatewayTool = {
+  exposedName: string;
+  tool: GeaMcpGatewayTool;
 };
 
 export type GeaMcpBridgeHandle = {
@@ -42,6 +47,22 @@ function resultText(value: unknown): string {
   return JSON.stringify(value ?? null);
 }
 
+const MAX_TOOL_NAME_LENGTH = 64;
+
+function createCompatibleToolName(name: string, usedNames: Set<string>): string {
+  const sanitized = name.replace(/[^a-zA-Z0-9_-]/g, '_') || 'gea_tool';
+  if (sanitized.length <= MAX_TOOL_NAME_LENGTH && !usedNames.has(sanitized)) {
+    return sanitized;
+  }
+
+  for (let attempt = 0; ; attempt += 1) {
+    const digest = createHash('sha256').update(`${name}\0${attempt}`).digest('hex').slice(0, 8);
+    const prefix = sanitized.slice(0, MAX_TOOL_NAME_LENGTH - digest.length - 1);
+    const candidate = `${prefix}_${digest}`;
+    if (!usedNames.has(candidate)) return candidate;
+  }
+}
+
 function createMcpServer(authService: GeaLarkAuthService, agentCode: string): Server {
   const server = new Server(
     { name: 'gea-gateway', version: '1.0.0' },
@@ -52,25 +73,28 @@ function createMcpServer(authService: GeaLarkAuthService, agentCode: string): Se
   let gatewaySession: GeaMcpGatewaySession | null = null;
   let toolsByName = new Map<string, GeaMcpGatewayTool>();
 
-  const loadTools = async (): Promise<GeaMcpGatewayTool[]> => {
+  const loadTools = async (): Promise<ExposedGeaMcpGatewayTool[]> => {
     gatewaySession ??= await authService.createMcpGatewaySession(agentCode);
     const tools = await gatewaySession.listTools();
     const nextTools = new Map<string, GeaMcpGatewayTool>();
+    const originalNames = new Set<string>();
     for (const tool of tools) {
-      if (nextTools.has(tool.name)) {
+      if (originalNames.has(tool.name)) {
         throw new GeaMcpGatewayError('GEA_MCP_DUPLICATE_TOOL_NAME');
       }
-      nextTools.set(tool.name, tool);
+      originalNames.add(tool.name);
+      const exposedName = createCompatibleToolName(tool.name, new Set(nextTools.keys()));
+      nextTools.set(exposedName, tool);
     }
     toolsByName = nextTools;
-    return tools;
+    return [...nextTools].map(([exposedName, tool]) => ({ exposedName, tool }));
   };
 
   server.setRequestHandler(ListToolsRequestSchema, async () => {
     const tools = await loadTools();
     return {
-      tools: tools.map((tool) => ({
-        name: tool.name,
+      tools: tools.map(({ exposedName, tool }) => ({
+        name: exposedName,
         inputSchema: tool.inputSchema,
         ...(tool.description ? { description: tool.description } : {}),
       })),
