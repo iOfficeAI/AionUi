@@ -127,7 +127,7 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
     }
     // Discard this account's tabs from memory.
     //
-    // `clearAuthCache` (inside logout) already deletes the stored `aionui_preview:`
+    // `clearAuthCache` (inside logout) already deletes the stored `preview-ui:`
     // keys, but PreviewProvider is mounted at the app root and does not unmount on
     // logout, so its state survives. The persist effect depends on [tabs,
     // activeTabId, isOpen] and is still live — so the next change of any of those

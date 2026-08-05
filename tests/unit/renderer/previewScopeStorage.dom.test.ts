@@ -6,7 +6,7 @@
 
 // Persisted preview scopes are bounded and can be cleared.
 //
-// Before this, `aionui_preview:<scope>` had no cleanup anywhere: every project ever
+// Before this, `preview-ui:<scope>` had no cleanup anywhere: every project ever
 // opened kept its entry forever, logout didn't touch it (that sweep only matched
 // auth/csrf/token), and a full quota was swallowed by a bare `catch {}` — so
 // persistence stopped working with nothing telling the user why their tabs no

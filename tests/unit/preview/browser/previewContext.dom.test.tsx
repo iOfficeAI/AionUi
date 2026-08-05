@@ -136,7 +136,7 @@ describe('PreviewContext browser tabs', () => {
 });
 
 describe('PreviewContext browser tab persistence', () => {
-  const readScope = (scope: string) => JSON.parse(localStorage.getItem(`aionui_preview:${scope}`) ?? '{}');
+  const readScope = (scope: string) => JSON.parse(localStorage.getItem(`preview-ui:${scope}`) ?? '{}');
 
   it('persists browser tabs per project so switching projects restores the right pages', async () => {
     renderProvider();

@@ -38,8 +38,15 @@ export function previewScopeKey(
  * Lives in this pure module (rather than beside the persistence code in
  * `PreviewContext`) so non-preview callers — logout cleanup in particular — can
  * identify these keys without importing the whole preview panel into their path.
+ *
+ * `preview-ui:` matches the Explorer's `explorer-ui:` so the two panels' persisted UI
+ * state reads as one family. Renamed from `aionui_preview:` with no migration: that
+ * earlier prefix appears in release tags, but the product had no real users at the
+ * rename, so no stored data existed under the old key to carry over. Were that not the
+ * case, this change would have needed a read-time migration — a bare rename would
+ * otherwise strand every existing user's open tabs under a key nothing reads.
  */
-export const PREVIEW_SCOPE_KEY_PREFIX = 'aionui_preview:';
+export const PREVIEW_SCOPE_KEY_PREFIX = 'preview-ui:';
 
 /** Storage key holding the persisted state for one preview scope. */
 export const previewScopeStorageKey = (scope: string): string => `${PREVIEW_SCOPE_KEY_PREFIX}${scope}`;

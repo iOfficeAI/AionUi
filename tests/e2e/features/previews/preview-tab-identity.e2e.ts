@@ -100,7 +100,7 @@ async function readPersistedScope(
   scope: string
 ): Promise<{ isOpen: boolean | null; tabCount: number; titles: string[] }> {
   return page.evaluate((s) => {
-    const raw = localStorage.getItem(`aionui_preview:${s}`);
+    const raw = localStorage.getItem(`preview-ui:${s}`);
     if (!raw) return { isOpen: null, tabCount: 0, titles: [] };
     const parsed = JSON.parse(raw) as { isOpen?: boolean; tabs?: Array<{ title?: string }> };
     return {
@@ -227,7 +227,7 @@ test.describe('Preview — tab identity and persistence', () => {
       .poll(
         async () => {
           const t = await page.evaluate((scope) => {
-            const raw = localStorage.getItem(`aionui_preview:${scope}`);
+            const raw = localStorage.getItem(`preview-ui:${scope}`);
             if (!raw) return '';
             const parsed = JSON.parse(raw) as { tabs?: Array<{ title?: string; content?: string }> };
             return parsed.tabs?.find((x) => x.title === 'notes.txt')?.content ?? '';
@@ -265,7 +265,7 @@ test.describe('Preview — tab identity and persistence', () => {
      * save then compared against the wrong baseline.
      */
     const tab = await page.evaluate((scope) => {
-      const raw = localStorage.getItem(`aionui_preview:${scope}`);
+      const raw = localStorage.getItem(`preview-ui:${scope}`);
       if (!raw) return null;
       const parsed = JSON.parse(raw) as {
         tabs?: Array<{ title?: string; content?: string; originalContent?: string; isDirty?: boolean }>;

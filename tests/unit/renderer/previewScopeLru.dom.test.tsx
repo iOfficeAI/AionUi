@@ -97,7 +97,7 @@ describe('persisted scope count is bounded', () => {
 
     // The scope written last must survive — evicting it would drop the tabs the
     // user is looking at right now.
-    expect(listPersistedPreviewScopeKeys()).toContain('aionui_preview:proj-19');
+    expect(listPersistedPreviewScopeKeys()).toContain('preview-ui:proj-19');
   });
 
   it('evicts the coldest scope, not an arbitrary one', () => {
@@ -109,7 +109,7 @@ describe('persisted scope count is bounded', () => {
     }
 
     // proj-0 is the oldest write, so it should be gone well before proj-19.
-    expect(listPersistedPreviewScopeKeys()).not.toContain('aionui_preview:proj-0');
+    expect(listPersistedPreviewScopeKeys()).not.toContain('preview-ui:proj-0');
   });
 
   it('does not evict anything while under the cap', () => {

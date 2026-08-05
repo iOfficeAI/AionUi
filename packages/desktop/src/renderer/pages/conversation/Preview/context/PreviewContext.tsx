@@ -187,7 +187,7 @@ const PreviewContext = createContext<PreviewContextValue | null>(null);
 
 // Persistence is per **preview scope** (project id, or workspace fallback — see
 // `previewScope.ts`), so each project restores its own open tabs + visibility
-// when switching conversations / projects. Key: `aionui_preview:<scope>`.
+// when switching conversations / projects. Key: `preview-ui:<scope>`.
 
 /**
  * How many scopes keep persisted state, least-recently-written evicted first.
@@ -604,7 +604,7 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [domSnippets, setDomSnippets] = useState<DomSnippet[]>([]);
 
   // Persist the active scope's preview state (open tabs + active tab + visibility)
-  // to `aionui_preview:<scope>`, debounced. Keeps activeTabIdRef in sync eagerly.
+  // to `preview-ui:<scope>`, debounced. Keeps activeTabIdRef in sync eagerly.
   useEffect(() => {
     activeTabIdRef.current = activeTabId;
     const scope = currentScopeRef.current;
@@ -877,7 +877,7 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
    *
    * This used to also `setTabs([])`, and the damage went well beyond the current
    * view: the persist effect depends on `tabs`, so ~150ms later it wrote the now-
-   * empty list back over `aionui_preview:<scope>`. One click on "new conversation"
+   * empty list back over `preview-ui:<scope>`. One click on "new conversation"
    * erased that project's entire remembered tab list — saved tabs included, not
    * just unsaved ones. A dirty-state confirmation would not have helped, because
    * clean tabs were being destroyed too.

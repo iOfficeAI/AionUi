@@ -53,7 +53,7 @@ const mount = (): void => {
 };
 
 const SCOPE = '/ws/legacy';
-const storageKey = (scope: string) => `aionui_preview:${scope}`;
+const storageKey = (scope: string) => `preview-ui:${scope}`;
 
 /** A persisted tab as an older build would have written it. */
 const legacyTab = (over: Record<string, unknown> = {}) => ({
