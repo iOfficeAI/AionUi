@@ -29,7 +29,7 @@ import { isBackendHttpError } from '@/common/adapter/httpBridge';
 import { PROJECT_ERROR_DUPLICATE, PROJECT_ERROR_OVERLAP } from '@/common/types/project';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import WorkspaceOpenButton from '@/renderer/pages/conversation/components/ChatLayout/WorkspaceOpenButton';
-import { getContentTypeByExtension } from '@/renderer/pages/conversation/Preview/fileUtils';
+import { getFileTypeInfo } from '@/renderer/utils/file/fileType';
 import { classifyPreviewError, previewErrorToI18nKey } from '@/renderer/utils/previewError';
 // PATCH(ELECTRON-3SZ): used only by the preview payload patch below — remove with it.
 import type { PreviewContentType } from '@/common/types/office/preview';
@@ -92,7 +92,7 @@ export const buildExplorerPreviewPayload = async (
   relativePath: string
 ): Promise<ExplorerPreviewPayload> => {
   const name = relativePath.split('/').pop() || relativePath;
-  const contentType = getContentTypeByExtension(name);
+  const { contentType, editable } = getFileTypeInfo(name);
   const fileRef = projectFileRef(peId, relativePath);
 
   const payload = await resolvePreviewPayload(fileRef, contentType);
@@ -105,22 +105,23 @@ export const buildExplorerPreviewPayload = async (
       file_name: name,
       fileRef,
       language: name.split('.').pop() || '',
-      // Read-only is the exception, not the default: text of any kind is editable here,
-      // including markdown and every extension the type table does not name (.rs,
-      // .dart, .gitignore). Only two cases are forced false, and neither is about the
-      // file's type being unsuitable for editing:
+      // Taken from the type table, then tightened — never decided here.
       //
-      // - an image has no text to edit in the first place
-      // - an oversized file was never fully read, so letting its partial content reach
-      //   an editor is what previously destroyed files by saving the fragment back
+      // This entry point used to compute editability itself, which made it a second
+      // source for one fact. It happened to agree with the table on everything that
+      // mattered, and "happened to agree" is the whole problem: nothing kept the two in
+      // step, and the day they diverged the symptom would be one file behaving
+      // differently depending on whether it was opened from the tree or from a message.
+      // It also produced a wrong answer that something else then reasoned from —
+      // markdown was marked read-only here, and persistence nearly took that to mean
+      // its content could not have been edited.
       //
-      // markdown used to be in this list too, which was wrong — it is ordinary text
-      // that the panel has always been able to edit and save. The flag never took
-      // effect for it (the markdown branch renders its own viewer and does not consult
-      // `editable`), so the practical damage was to anything reasoning from the flag
-      // rather than to editing itself: persistence, for one, nearly used "read-only"
-      // as a proxy for "content cannot have been changed".
-      editable: contentType === 'image' || payload.oversized ? false : undefined,
+      // `oversized` still has to be applied on top, because it is a fact about this
+      // read rather than about the type: the file was never fully loaded, so letting a
+      // fragment reach a saveable editor is what destroyed files before. Tightening is
+      // the only direction available here, so this can restrict what the table allows
+      // and can never contradict it.
+      editable: payload.oversized ? false : editable,
       oversized: payload.oversized,
       sizeBytes: payload.sizeBytes,
       thresholdBytes: payload.thresholdBytes,

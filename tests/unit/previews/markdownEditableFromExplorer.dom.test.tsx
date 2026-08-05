@@ -59,6 +59,8 @@ const openMarkdownFromExplorer = (): void => {
       title: 'readme.md',
       file_name: 'readme.md',
       language: 'md',
+      // What buildExplorerPreviewPayload now produces for a .md: the type table's value.
+      editable: true,
       fileRef: { ...FILE_REF },
     });
   });
@@ -83,9 +85,9 @@ describe('a markdown file opened from the Explorer', () => {
     );
     openMarkdownFromExplorer();
 
-    // `undefined` rather than `true`: the default is editable, so the absence of the
-    // flag is the statement. Asserting `true` would demand a value nothing sets.
-    expect(ctx.activeTab?.metadata?.editable).toBeUndefined();
+    // Explicitly true, from the type table. Not `undefined`: the value is looked up
+    // rather than left to a default, so its absence would mean the lookup was skipped.
+    expect(ctx.activeTab?.metadata?.editable).toBe(true);
   });
 
   it('becomes dirty when edited and writes the edit to the file', async () => {

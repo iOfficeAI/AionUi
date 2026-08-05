@@ -106,17 +106,19 @@ describe('buildExplorerPreviewPayload', () => {
     expect(out.content).toBe('# hello');
     expect(out.metadata.fileRef).toEqual({ kind: 'project', pe_id: 'peA', relative_path: 'notes/readme.md' });
     // Editable like any other text. It was marked read-only here for a while, which was
-    // wrong: markdown is what the panel's editor was built for.
-    expect(out.metadata.editable).toBeUndefined();
+    // wrong: markdown is what the panel's editor was built for. Now stated explicitly
+    // rather than left undefined, because the value comes from the type table instead of
+    // being inferred here.
+    expect(out.metadata.editable).toBe(true);
   });
 
-  it('code: reads utf8 and stays editable (editable undefined)', async () => {
+  it('code: reads utf8 and stays editable', async () => {
     h.getContentMetadata.mockReset().mockResolvedValue(meta(3));
     h.readContent.mockReset().mockResolvedValue('x=1');
     const out = await buildExplorerPreviewPayload('peA', 'main.py');
     expect(out.contentType).toBe('code');
     expect(out.content).toBe('x=1');
-    expect(out.metadata.editable).toBeUndefined();
+    expect(out.metadata.editable).toBe(true);
   });
 
   it('uses the file basename for title/file_name/language', async () => {
