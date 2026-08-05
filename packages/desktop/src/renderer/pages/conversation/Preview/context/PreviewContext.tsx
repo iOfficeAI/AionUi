@@ -46,10 +46,8 @@ export interface PreviewTab {
 
 export interface OpenPreviewOptions {
   /**
-   * Reuse the active tab instead of opening a new one — used by file-tree
-   * browsing so switching files swaps the single preview instead of stacking
-   * tabs. Ignored when the active tab has unsaved edits (falls back to a new
-   * tab to avoid losing changes).
+   * Reuse the active tab instead of opening a new one. Ignored when the active
+   * tab has unsaved edits (falls back to a new tab to avoid losing changes).
    */
   replace?: boolean;
 }
@@ -273,14 +271,13 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const openPreview = useCallback(
     (new_content: string, type: PreviewContentType, meta?: PreviewMetadata, options?: OpenPreviewOptions) => {
-      let nextActiveTabId: string | null = null;
-
       setTabs((prevTabs) => {
         // 如果同一个文件已经打开，则直接激活现有 tab，避免重复 / Focus existing tab when the same file is opened again
         const existingTab = findPreviewTabInList(prevTabs, type, new_content, meta);
 
         if (existingTab) {
-          nextActiveTabId = existingTab.id;
+          activeTabIdRef.current = existingTab.id;
+          setActiveTabId(existingTab.id);
           return prevTabs.map((tab) => {
             if (tab.id !== existingTab.id) return tab;
 
@@ -324,7 +321,7 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
           originalContent: new_content, // 保存原始内容 / Save original content
         };
 
-        // Single-preview browse mode: reuse the active tab in place instead of
+        // Explicit replacement mode: reuse the active tab in place instead of
         // stacking a new one — unless it has unsaved edits, then fall back to a
         // new tab so changes aren't lost.
         if (options?.replace) {
@@ -333,19 +330,17 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
             : -1;
           const activeTab = activeIdx >= 0 ? prevTabs[activeIdx] : null;
           if (activeTab && !activeTab.isDirty) {
-            nextActiveTabId = activeTab.id;
+            activeTabIdRef.current = activeTab.id;
+            setActiveTabId(activeTab.id);
             const replacedTab: PreviewTab = { ...newTab, id: activeTab.id };
             return prevTabs.map((tab, idx) => (idx === activeIdx ? replacedTab : tab));
           }
         }
 
-        nextActiveTabId = tabId;
+        activeTabIdRef.current = tabId;
+        setActiveTabId(tabId);
         return [...prevTabs, newTab];
       });
-
-      if (nextActiveTabId) {
-        setActiveTabId(nextActiveTabId);
-      }
       setIsOpen(true);
     },
     [extractFileName, findPreviewTabInList]
