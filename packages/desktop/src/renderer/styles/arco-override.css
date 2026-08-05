@@ -1,5 +1,43 @@
 /* Arco Design custom overrides - non-theme related */
 
+/*
+ * Arco Spin 垂直居中修正。
+ *
+ * 现象：「思考过程」「执行步骤」这类标题栏，加载中显示 <Spin size={12} />，完成后换成
+ * icon-park 的静态图标。实测加载中的转圈圈比相邻文字、以及完成后的静态图标低 3.5px，
+ * 看起来整体偏下、切换状态时还会跳一下。
+ *
+ * 成因有三层叠加（数值均为 Chromium 实测）：
+ *   1. Arco 给所有 `.arco-icon` 设了 `vertical-align: -2px`，SVG 被强行下移；
+ *   2. `.arco-spin-icon` 是 inline-block，SVG 按文字基线排布，行盒被撑到 23px
+ *      （只为容纳 12px 的图标），底部留下大段基线间隙；
+ *   3. `.arco-spin` 自身也是 inline-block，行盒 13.58px 容纳 12px 图标，再贡献 0.78px。
+ *
+ * 修正：让这两层都变成居中的 inline-flex 并清掉基线偏移 —— 与 base.css 里的 `.i-icon`
+ * 修正同一思路。实测偏移由 3.5px 精确归零，与静态图标像素级对齐。
+ *
+ * 为何改 `.arco-spin` 是安全的（已实测验证）：
+ *   - 包裹式用法 `<Spin loading>内容</Spin>`：display 由 inline-block 变 inline-flex，
+ *     但被包裹内容尺寸、遮罩层圈圈的居中、后续兄弟元素位置均零变化（`.arco-spin-children`
+ *     是唯一的流内子元素，遮罩层为绝对定位）。
+ *   - 传了自定义 flex 类的用法（如 `<Spin loading className='flex flex-1 …'/>`）：
+ *     行内/工具类 display 优先级更高，不受影响。
+ *   - 图标只匹配 `.arco-spin` 的直接子级，包裹式用法的图标嵌在
+ *     `.arco-spin-loading-layer-inner` 内，不会被这条规则命中。
+ */
+.arco-spin,
+.arco-spin > .arco-spin-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+}
+
+.arco-spin > .arco-spin-icon > .arco-icon {
+  display: block;
+  vertical-align: middle;
+}
+
 /* Centralized font tokens. --font-mono is inherited (custom properties cross
    the shadow DOM boundary), so Markdown rendered in shadow roots can reference it.
    集中的字体 token。--font-mono 会被继承（自定义属性可穿透 Shadow DOM 边界），
