@@ -244,7 +244,7 @@ const AIONCORE_LISTENING_PREFIX = 'AIONCORE_LISTENING ';
 // signal — matched by exact whole-line equality. The port is already known from
 // the earlier AIONCORE_LISTENING line, so this marker carries no payload.
 const AIONCORE_READY_MARKER = 'AIONCORE_READY';
-const BACKEND_PORT_REPORT_TIMEOUT_MS = 30_000;
+const BACKEND_PORT_REPORT_TIMEOUT_MS = 60_000;
 
 // Benign boundary code emitted by an aioncore instance that yielded the
 // data-dir instance guard to a peer that already owns it (Sentry 135525166).
