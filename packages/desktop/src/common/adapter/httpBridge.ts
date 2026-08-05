@@ -6,15 +6,13 @@
  * so existing renderer code works without changes.
  */
 
+import { getPublicBasePath, isWebUiBrowserMode, joinPublicPath } from '@/common/publicPath';
+
+export { joinPublicPath, getPublicBasePath } from '@/common/publicPath';
+
 // ---------------------------------------------------------------------------
 // Base URL
 // ---------------------------------------------------------------------------
-
-declare global {
-  interface Window {
-    __backendPort?: number;
-  }
-}
 
 /**
  * Resolve the backend port, honoring both renderer and main-process contexts.
@@ -40,20 +38,10 @@ function getBackendPort(): number {
   return g.__backendPort ?? 13400;
 }
 
-/**
- * WebUI (browser) mode: no Electron preload, so `window.__backendPort` is not
- * injected. Use same-origin URLs; web-host's static-server handles the reverse
- * proxy / WS upgrade to the backend.
- */
-function isWebUiBrowserMode(): boolean {
-  return typeof window !== 'undefined' && typeof document !== 'undefined' && !(window as Window).__backendPort;
-}
-
 export function getBaseUrl(): string {
   if (isWebUiBrowserMode()) {
-    // Same-origin: calls like fetch(`${baseUrl}/api/foo`) resolve to `/api/foo`
-    // on whatever host the page was served from.
-    return '';
+    // Same-origin with optional public prefix for subpath reverse proxies.
+    return getPublicBasePath();
   }
   return `http://127.0.0.1:${getBackendPort()}`;
 }
@@ -61,7 +49,7 @@ export function getBaseUrl(): string {
 function getWsUrl(): string {
   if (isWebUiBrowserMode()) {
     const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    return `${proto}//${window.location.host}/ws`;
+    return `${proto}//${window.location.host}${joinPublicPath('/ws')}`;
   }
   return `ws://127.0.0.1:${getBackendPort()}/ws`;
 }
@@ -178,7 +166,7 @@ export async function httpRequest<T>(
   body?: unknown,
   options?: HttpRequestOptions
 ): Promise<T> {
-  const url = `${getBaseUrl()}${path}`;
+  const url = isWebUiBrowserMode() ? joinPublicPath(path) : `${getBaseUrl()}${path}`;
   const headers: Record<string, string> = {};
 
   if (body !== undefined) {

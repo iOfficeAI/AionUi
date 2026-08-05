@@ -35,6 +35,8 @@ export type WebHostOptions = {
   staticDir: string;
   port?: number;
   allowRemote?: boolean;
+  /** Public URL prefix when mounted behind a subpath reverse proxy. */
+  publicBasePath?: string;
   dataDir?: string;
   logDir?: string;
   dirs?: BackendSystemDirs;

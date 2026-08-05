@@ -120,6 +120,34 @@ function resolveAllowRemote(flags: Map<string, string | true>): boolean {
   return ['1', 'true', 'yes', 'on'].includes(env.trim().toLowerCase());
 }
 
+function resolvePublicBasePath(flags: Map<string, string | true>, dataDir: string): string | undefined {
+  const cli = flags.get('base-path') ?? flags.get('webui-base-path');
+  const raw = typeof cli === 'string' ? cli : process.env.AIONUI_BASE_PATH;
+  if (raw === undefined) {
+    try {
+      const configPath = path.join(dataDir, 'webui.config.json');
+      if (fs.existsSync(configPath)) {
+        const parsed = JSON.parse(fs.readFileSync(configPath, 'utf8')) as { basePath?: string };
+        if (parsed.basePath !== undefined) {
+          const fromConfig = String(parsed.basePath).trim();
+          if (!fromConfig || fromConfig.toLowerCase() === 'auto') return undefined;
+          let value = fromConfig;
+          if (!value.startsWith('/')) value = `/${value}`;
+          return value.replace(/\/+$/, '') || '';
+        }
+      }
+    } catch {
+      /* ignore malformed config */
+    }
+    return undefined;
+  }
+  const trimmed = raw.trim();
+  if (!trimmed || trimmed.toLowerCase() === 'auto') return undefined;
+  let value = trimmed;
+  if (!value.startsWith('/')) value = `/${value}`;
+  return value.replace(/\/+$/, '') || '';
+}
+
 function readPackageVersion(): string {
   try {
     const pkgPath = path.join(cliRoot, 'package.json');
@@ -139,6 +167,7 @@ async function runStart(flags: Map<string, string | true>): Promise<void> {
   fs.mkdirSync(logDir, { recursive: true });
   const port = resolvePort(flags);
   const allowRemote = resolveAllowRemote(flags);
+  const publicBasePath = resolvePublicBasePath(flags, dataDir);
   const version = readPackageVersion();
   const autoOpenBrowser = shouldAutoOpenBrowser({
     allowRemote,
@@ -158,7 +187,9 @@ async function runStart(flags: Map<string, string | true>): Promise<void> {
   console.log(`[aionui-web] log dir    : ${logDir}`);
   console.log(`[aionui-web] static dir : ${staticDir}`);
   console.log(`[aionui-web] backend bin: ${backendBin}`);
-  console.log(`[aionui-web] launching  : port=${port} allowRemote=${allowRemote}`);
+  console.log(
+    `[aionui-web] launching  : port=${port} allowRemote=${allowRemote} basePath=${publicBasePath ?? '(auto)'}`
+  );
 
   const backendAvailable = fs.existsSync(backendBin);
 
@@ -178,6 +209,7 @@ async function runStart(flags: Map<string, string | true>): Promise<void> {
       backendPort: 0, // invalid port → API proxy will fail cleanly
       port,
       allowRemote,
+      publicBasePath,
     });
     currentHandle = handle;
 
@@ -206,6 +238,7 @@ async function runStart(flags: Map<string, string | true>): Promise<void> {
       staticDir,
       port,
       allowRemote,
+      publicBasePath,
       dataDir,
       logDir,
       dirs: {

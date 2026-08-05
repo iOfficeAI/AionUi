@@ -58,6 +58,7 @@ async function writeWebUIDesktopEnabled(enabled: boolean): Promise<void> {
 export type WebUIUserConfig = {
   port?: number | string;
   allowRemote?: boolean;
+  basePath?: string;
   // Legacy fields, retired in favor of SQLite users table. Present only when
   // reading an older webui.config.json; stripped on every rewrite.
   passwordHash?: string;
@@ -118,6 +119,7 @@ export const saveUserWebUIConfig = async (config: WebUIUserConfig): Promise<void
   const sanitized: WebUIUserConfig = {};
   if (config.port !== undefined) sanitized.port = config.port;
   if (config.allowRemote !== undefined) sanitized.allowRemote = config.allowRemote;
+  if (config.basePath !== undefined) sanitized.basePath = config.basePath;
   if (config.adminUsername !== undefined) sanitized.adminUsername = config.adminUsername;
 
   await fs.promises.mkdir(userDataPath, { recursive: true });
@@ -157,6 +159,32 @@ export const resolveRemoteAccess = (config: WebUIUserConfig, isRemoteMode: boole
   const configRemote = config.allowRemote === true;
 
   return isRemoteMode || hostRequestsRemote || envRemote === true || configRemote;
+};
+
+const normalizeConfiguredBasePath = (value: unknown): string | null => {
+  if (value === undefined || value === null) return null;
+  const raw = String(value).trim();
+  if (!raw) return '';
+  if (raw.toLowerCase() === 'auto') return null;
+  let path = raw;
+  if (!path.startsWith('/')) path = `/${path}`;
+  return path.replace(/\/+$/, '') || '';
+};
+
+/** Resolve public base path for subpath reverse-proxy deployments (CLI > env > config). */
+export const resolveWebUIBasePath = (
+  config: WebUIUserConfig,
+  getSwitchValue: (flag: string) => string | undefined
+): string | undefined => {
+  const cli = getSwitchValue('base-path') ?? getSwitchValue('webui-base-path');
+  const env = process.env.AIONUI_BASE_PATH;
+  const fromCli = cli !== undefined ? normalizeConfiguredBasePath(cli) : null;
+  if (fromCli !== null) return fromCli;
+  const fromEnv = env !== undefined ? normalizeConfiguredBasePath(env) : null;
+  if (fromEnv !== null) return fromEnv;
+  const fromConfig = config.basePath !== undefined ? normalizeConfiguredBasePath(config.basePath) : null;
+  if (fromConfig !== null) return fromConfig;
+  return undefined;
 };
 
 // ---------------------------------------------------------------------------
@@ -215,7 +243,11 @@ const toDesktopHandle = (handle: WebHostHandle, allowRemote: boolean): DesktopWe
  * Shared by the boot-time auto-restore path and the interactive
  * Settings → "Enable WebUI" IPC handler.
  */
-export async function startDesktopWebUI(opts: { port?: number; allowRemote?: boolean }): Promise<DesktopWebUIHandle> {
+export async function startDesktopWebUI(opts: {
+  port?: number;
+  allowRemote?: boolean;
+  basePath?: string;
+}): Promise<DesktopWebUIHandle> {
   // If already running, tear down first so we honour the new port / allowRemote.
   if (currentHandle) {
     await stopDesktopWebUI();
@@ -247,6 +279,7 @@ export async function startDesktopWebUI(opts: { port?: number; allowRemote?: boo
     staticDir: path.join(__dirname, '../renderer'),
     port: preferredPort,
     allowRemote,
+    publicBasePath: opts.basePath,
     // Must align with the desktop IPC path's backend dataDir (src/index.ts), otherwise
     // users see divergent SQLite state between desktop app and bundled WebUI.
     dataDir: getDataPath(),
