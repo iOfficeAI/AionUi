@@ -1,4 +1,5 @@
 name: '🔨 Manual Build'
+run-name: 'Manual Build · ${{ inputs.platform }} · ${{ inputs.branch }}'
 
 permissions:
   contents: write
