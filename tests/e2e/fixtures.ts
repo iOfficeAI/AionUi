@@ -139,7 +139,7 @@ async function resolveMainWindow(electronApp: ElectronApplication): Promise<Page
     return resolveWindowBefore(deadline);
   };
 
-  return resolveWindowBefore(Date.now() + 30_000);
+  return resolveWindowBefore(Date.now() + 90_000);
 }
 
 /**
