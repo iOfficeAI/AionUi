@@ -59,7 +59,20 @@ const SystemModalContent: React.FC = () => {
   const [cronNotificationEnabled, setCronNotificationEnabled] = useState(false);
   const [promptTimeout, setPromptTimeout] = useState<number>(300);
   const [agentIdleTimeout, setAgentIdleTimeout] = useState<number>(5);
+  /**
+   * The committed limit — what is stored, and what the field falls back to.
+   *
+   * The field itself is left uncontrolled while typing. Arco's `InputNumber` skips its
+   * internal "user is typing" state whenever a `value` prop is present, and then
+   * renders the number it parsed rather than the characters that were entered. `1.` is
+   * not a number, so the dot was dropped on the keystroke that produced it and `1.5`
+   * came out as `15`.
+   *
+   * Remounting on commit (via `key`) is what lets an uncontrolled field still show a
+   * clamped result: type `0.2`, blur, and the field comes back as the accepted `1`.
+   */
   const [previewLimitMb, setPreviewLimitMb] = useState<number>(DEFAULT_TEXT_PREVIEW_LIMIT_MB);
+  const previewLimitDraftRef = useRef<string>(String(DEFAULT_TEXT_PREVIEW_LIMIT_MB));
   const [saveUploadToWorkspace, setSaveUploadToWorkspace] = useState(false);
 
   useEffect(() => {
@@ -126,7 +139,9 @@ const SystemModalContent: React.FC = () => {
         // stored value, the field, and the size check, so a hand-edited or legacy
         // entry cannot present one limit here and apply another when a file opens.
         if (storedPreviewLimitMb !== undefined) {
-          setPreviewLimitMb(normalizeTextPreviewLimitMb(storedPreviewLimitMb));
+          const stored = normalizeTextPreviewLimitMb(storedPreviewLimitMb);
+          setPreviewLimitMb(stored);
+          previewLimitDraftRef.current = String(stored);
         }
       } catch {
         // Keep the in-memory defaults when backend settings are unavailable.
@@ -264,8 +279,20 @@ const SystemModalContent: React.FC = () => {
     void setClientBusinessSetting('acp.agentIdleTimeout', clamped).catch(() => {});
   }, [agentIdleTimeout]);
 
+  /**
+   * Keep what the user typed, not a number parsed from it.
+   *
+   * A decimal is typed one character at a time, and `1.` is a necessary intermediate
+   * state on the way to `1.5`. Storing it as a number turns it back into `1`, the
+   * controlled value re-renders the field as `"1"`, and the trailing dot is gone
+   * before the next keystroke arrives — so `1.5` came out as `15`. Holding the raw
+   * string lets the dot survive until the value is actually used.
+   *
+   * Nothing downstream sees this string: {@link handlePreviewLimitMbBlur} is the only
+   * writer, and it normalizes first.
+   */
   const handlePreviewLimitMbChange = useCallback((val: number | string) => {
-    setPreviewLimitMb(val as number);
+    previewLimitDraftRef.current = val === undefined || val === null ? '' : String(val);
   }, []);
 
   /**
@@ -279,10 +306,14 @@ const SystemModalContent: React.FC = () => {
    * a file being edited into the "too large to show" state mid-edit.
    */
   const handlePreviewLimitMbBlur = useCallback(() => {
-    const clamped = normalizeTextPreviewLimitMb(previewLimitMb);
+    const typed = previewLimitDraftRef.current.trim();
+    // An emptied field means "unset", which normalize turns into the default; Number('')
+    // would be 0 and clamp up to the minimum instead, silently choosing for the user.
+    const clamped = normalizeTextPreviewLimitMb(typed === '' ? undefined : Number(typed));
     setPreviewLimitMb(clamped);
+    previewLimitDraftRef.current = String(clamped);
     void setClientBusinessSetting('preview.textSizeLimitMb', clamped).catch(() => {});
-  }, [previewLimitMb]);
+  }, []);
 
   const handleSaveUploadToWorkspaceChange = useCallback((checked: boolean) => {
     setSaveUploadToWorkspace(checked);
@@ -375,12 +406,13 @@ const SystemModalContent: React.FC = () => {
       description: t('settings.previewTextSizeLimitDesc'),
       component: (
         <InputNumber
-          value={previewLimitMb}
+          key={`preview-limit-${previewLimitMb}`}
+          defaultValue={previewLimitMb}
           onChange={handlePreviewLimitMbChange}
           onBlur={handlePreviewLimitMbBlur}
           min={MIN_TEXT_PREVIEW_LIMIT_MB}
           max={MAX_TEXT_PREVIEW_LIMIT_MB}
-          step={1}
+          step={0.5}
           style={{ width: 120 }}
           suffix='MB'
         />
