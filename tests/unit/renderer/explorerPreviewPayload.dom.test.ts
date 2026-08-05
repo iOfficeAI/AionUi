@@ -105,7 +105,9 @@ describe('buildExplorerPreviewPayload', () => {
     expect(out.contentType).toBe('markdown');
     expect(out.content).toBe('# hello');
     expect(out.metadata.fileRef).toEqual({ kind: 'project', pe_id: 'peA', relative_path: 'notes/readme.md' });
-    expect(out.metadata.editable).toBe(false); // markdown is non-editable in preview
+    // Editable like any other text. It was marked read-only here for a while, which was
+    // wrong: markdown is what the panel's editor was built for.
+    expect(out.metadata.editable).toBeUndefined();
   });
 
   it('code: reads utf8 and stays editable (editable undefined)', async () => {

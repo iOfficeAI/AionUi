@@ -105,9 +105,22 @@ export const buildExplorerPreviewPayload = async (
       file_name: name,
       fileRef,
       language: name.split('.').pop() || '',
-      // An oversized file is read-only regardless of type: there is no content to
-      // edit, and letting it reach an editor is what previously destroyed files.
-      editable: contentType === 'markdown' || contentType === 'image' || payload.oversized ? false : undefined,
+      // Read-only is the exception, not the default: text of any kind is editable here,
+      // including markdown and every extension the type table does not name (.rs,
+      // .dart, .gitignore). Only two cases are forced false, and neither is about the
+      // file's type being unsuitable for editing:
+      //
+      // - an image has no text to edit in the first place
+      // - an oversized file was never fully read, so letting its partial content reach
+      //   an editor is what previously destroyed files by saving the fragment back
+      //
+      // markdown used to be in this list too, which was wrong — it is ordinary text
+      // that the panel has always been able to edit and save. The flag never took
+      // effect for it (the markdown branch renders its own viewer and does not consult
+      // `editable`), so the practical damage was to anything reasoning from the flag
+      // rather than to editing itself: persistence, for one, nearly used "read-only"
+      // as a proxy for "content cannot have been changed".
+      editable: contentType === 'image' || payload.oversized ? false : undefined,
       oversized: payload.oversized,
       sizeBytes: payload.sizeBytes,
       thresholdBytes: payload.thresholdBytes,
