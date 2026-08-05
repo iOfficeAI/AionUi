@@ -57,39 +57,29 @@ export const useLocalFilePreview = (workspace?: string) => {
           }
         }
 
-        openPreview(
-          content,
-          contentType,
-          {
-            title: fileName,
-            file_name: fileName,
-            file_path,
-            workspace,
-            language: getPreviewLanguage(fileName),
-            truncated: isLargeTextTruncated,
-            targetLine: reference?.line,
-            targetColumn: reference?.column,
-            editable: contentType === 'markdown' || contentType === 'image' || isLargeTextTruncated ? false : undefined,
-          },
-          { replace: true }
-        );
+        openPreview(content, contentType, {
+          title: fileName,
+          file_name: fileName,
+          file_path,
+          workspace,
+          language: getPreviewLanguage(fileName),
+          truncated: isLargeTextTruncated,
+          targetLine: reference?.line,
+          targetColumn: reference?.column,
+          editable: contentType === 'markdown' || contentType === 'image' || isLargeTextTruncated ? false : undefined,
+        });
       } catch {
-        openPreview(
-          '',
-          contentType,
-          {
-            title: fileName,
-            file_name: fileName,
-            file_path,
-            workspace,
-            language: getPreviewLanguage(fileName),
-            targetLine: reference?.line,
-            targetColumn: reference?.column,
-            editable: false,
-            missingFile: true,
-          },
-          { replace: true }
-        );
+        openPreview('', contentType, {
+          title: fileName,
+          file_name: fileName,
+          file_path,
+          workspace,
+          language: getPreviewLanguage(fileName),
+          targetLine: reference?.line,
+          targetColumn: reference?.column,
+          editable: false,
+          missingFile: true,
+        });
       }
     },
     [openPreview, workspace]

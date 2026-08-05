@@ -19,7 +19,7 @@ vi.mock('@/common', () => ({
     },
     fs: {
       writeFile: { invoke: vi.fn() },
-      getFileMetadata: { invoke: vi.fn() },
+      getFileMetadata: { invoke: vi.fn(() => Promise.resolve(null)) },
       readFile: { invoke: vi.fn() },
       getImageBase64: { invoke: vi.fn() },
     },
@@ -68,6 +68,31 @@ describe('PreviewContext', () => {
     expect(result.current.tabs).toHaveLength(1);
     expect(result.current.tabs[0].content).toBe('# Hello');
     expect(result.current.tabs[0].content_type).toBe('markdown');
+  });
+
+  it('keeps different files in separate tabs and focuses an already-open file', () => {
+    const { result } = renderHook(() => usePreviewContext(), { wrapper });
+
+    act(() => {
+      result.current.openPreview('first', 'code', { file_name: 'first.ts', file_path: '/workspace/first.ts' });
+    });
+    act(() => {
+      result.current.openPreview('second', 'code', { file_name: 'second.ts', file_path: '/workspace/second.ts' });
+    });
+
+    expect(result.current.tabs.map((tab) => tab.title)).toEqual(['first.ts', 'second.ts']);
+    expect(result.current.activeTab?.title).toBe('second.ts');
+
+    act(() => {
+      result.current.openPreview('first updated', 'code', {
+        file_name: 'first.ts',
+        file_path: '/workspace/first.ts',
+      });
+    });
+
+    expect(result.current.tabs).toHaveLength(2);
+    expect(result.current.activeTab?.title).toBe('first.ts');
+    expect(result.current.activeTab?.content).toBe('first updated');
   });
 
   it('closes preview and clears all tabs', () => {
