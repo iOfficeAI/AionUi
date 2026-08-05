@@ -1,0 +1,15 @@
+/* Transient highlight applied when jumping to a dependency's card. */
+@keyframes activity-card-pulse {
+  0% {
+    box-shadow: 0 0 0 0 var(--brand, #3491fa);
+  }
+  100% {
+    box-shadow: 0 0 0 4px transparent;
+  }
+}
+.activity-card-highlight {
+  animation: activity-card-pulse 1.4s ease-out;
+  outline: 2px solid var(--brand, #3491fa);
+  outline-offset: 1px;
+  border-radius: 8px;
+}

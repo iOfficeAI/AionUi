@@ -101,7 +101,8 @@
   "view": {
     "label": "视图",
     "parallel": "并行",
-    "single": "单聊"
+    "single": "单聊",
+    "board": "看板"
   },
   "warmup": {
     "title": "正在唤醒团队…",
@@ -116,5 +117,40 @@
     "leaderFailedHint": "可在上方切换其模型后重试。",
     "retry": "重试"
   },
-  "reorderMember": "拖动以调整成员顺序"
+  "reorderMember": "拖动以调整成员顺序",
+  "activity": {
+    "control": {
+      "sortNewest": "最新",
+      "sortOldest": "最早",
+      "filterAll": "全部",
+      "filterMessages": "仅消息",
+      "filterTasks": "仅任务",
+      "allMembers": "全部成员",
+      "showSystem": "系统消息",
+      "showTerminal": "已完成任务"
+    },
+    "fallbackLane": "未分配 / 外部",
+    "empty": "暂无动态",
+    "userIdentity": "用户 / 外部",
+    "broadcast": "广播@全体",
+    "read": "已读",
+    "unread": "未读",
+    "attachments": "{{count}} 个附件",
+    "expand": "展开",
+    "collapse": "收起",
+    "blockedBy": "被 #{{id}} 阻塞",
+    "blockedByNamed": "被《{{name}}》阻塞",
+    "blockerUnknown": "任务不可用",
+    "status": {
+      "pending": "待处理",
+      "in_progress": "进行中",
+      "completed": "已完成",
+      "deleted": "已删除"
+    },
+    "msgType": {
+      "message": "消息",
+      "idle_notification": "空闲通知",
+      "shutdown_request": "关闭请求"
+    }
+  }
 }

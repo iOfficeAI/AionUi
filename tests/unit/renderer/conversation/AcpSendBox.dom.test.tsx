@@ -10,6 +10,7 @@ import React from 'react';
 import { BackendHttpError } from '@/common/adapter/httpBridge';
 import AcpSendBox from '@/renderer/pages/conversation/platforms/acp/AcpSendBox';
 import type { UseAcpMessageReturn } from '@/renderer/pages/conversation/platforms/acp/useAcpMessage';
+import type { TeamSendBoxRuntime } from '@/renderer/pages/team/components/teamSendRuntime';
 
 const {
   sendMessageInvokeMock,
@@ -21,6 +22,7 @@ const {
   useTeamPermissionMock,
   isMobileMock,
   mobileActionSheetEntries,
+  sendBoxPropsSpy,
 } = vi.hoisted(() => ({
   sendMessageInvokeMock: vi.fn(),
   addOrUpdateMessageMock: vi.fn(),
@@ -29,6 +31,7 @@ const {
   setSendBoxHandlerMock: vi.fn(),
   useAcpConfigOptionsMock: vi.fn(),
   useTeamPermissionMock: vi.fn(),
+  sendBoxPropsSpy: vi.fn(),
   isMobileMock: { current: false },
   mobileActionSheetEntries: {
     current: [] as Array<{
@@ -61,28 +64,35 @@ vi.mock('@/renderer/components/chat/SendBox', () => ({
     onChange,
     rightTools,
     sendButtonPrefix,
+    active,
+    onFocused,
   }: {
     onSend: (message: string) => Promise<void>;
     onChange?: (value: string) => void;
     rightTools?: React.ReactNode;
     sendButtonPrefix?: React.ReactNode;
-  }) => (
-    <div>
-      {rightTools}
-      {sendButtonPrefix}
-      <button type='button' onClick={() => onChange?.('hello')}>
-        change
-      </button>
-      <button
-        type='button'
-        onClick={() => {
-          void onSend('Hello').catch(() => {});
-        }}
-      >
-        send
-      </button>
-    </div>
-  ),
+    active?: boolean;
+    onFocused?: () => void;
+  }) => {
+    sendBoxPropsSpy({ active, onFocused });
+    return (
+      <div>
+        {rightTools}
+        {sendButtonPrefix}
+        <button type='button' onClick={() => onChange?.('hello')}>
+          change
+        </button>
+        <button
+          type='button'
+          onClick={() => {
+            void onSend('Hello').catch(() => {});
+          }}
+        >
+          send
+        </button>
+      </div>
+    );
+  },
 }));
 
 vi.mock('@/renderer/components/agent/AgentModeSelector', () => ({ default: () => null }));
@@ -586,5 +596,22 @@ describe('AcpSendBox', () => {
     await waitFor(() => {
       expect(setConfigOption).toHaveBeenCalledWith('reasoning_effort', 'high');
     });
+  });
+
+  it('passes teamRuntime.isActive and onFocus down to SendBox as active/onFocused', () => {
+    const onFocus = vi.fn();
+    render(
+      <AcpSendBox
+        conversation_id='conv-1'
+        backend='claude'
+        workspacePath='/tmp/workspace'
+        messageState={makeMessageState()}
+        teamRuntime={{ loading: false, startedAtMs: null, isActive: true, onFocus } as unknown as TeamSendBoxRuntime}
+      />
+    );
+    const props = sendBoxPropsSpy.mock.calls.at(-1)?.[0] as { active?: boolean; onFocused?: () => void };
+    expect(props.active).toBe(true);
+    props.onFocused?.();
+    expect(onFocus).toHaveBeenCalledTimes(1);
   });
 });

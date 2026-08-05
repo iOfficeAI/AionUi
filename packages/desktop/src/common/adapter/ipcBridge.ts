@@ -15,6 +15,7 @@
 import type { IConfirmation } from '@/common/chat/chatLib';
 import type { AcpSlashCommandApiItem } from '@/common/chat/slash/types';
 import { bridge } from '@/common/platform/bridge';
+import { buildListTasksPath } from './teamTaskPath';
 import type { OpenDialogOptions } from 'electron';
 import type {
   ICssTheme,
@@ -55,9 +56,12 @@ import type {
   ITeamAgentRuntimeStatusEvent,
   ITeamAgentSpawnedEvent,
   ITeamAgentStatusEvent,
+  ITeamActivityPage,
   ITeamChildTurnEvent,
   ITeamCreatedEvent,
   ITeamListChangedEvent,
+  ITeamMailboxChangedEvent,
+  ITeamMailboxMessage,
   ITeamRemovedEvent,
   ITeamRenamedEvent,
   ITeamRunAck,
@@ -67,6 +71,7 @@ import type {
   ITeamSessionStatusChangedEvent,
   ITeamSlotWorkChangedEvent,
   ITeamTaskChangedEvent,
+  ITeamTaskItem,
   ICancelTeamChildTurnParams,
   ICancelTeamRunParams,
   IPauseTeamSlotParams,
@@ -2093,6 +2098,31 @@ export const team = {
     (p) => ({ mode: p.session_mode })
   ),
   getRunState: httpGet<ITeamRunStateResponse, { team_id: string }>((p) => `/api/teams/${p.team_id}/run-state`),
+  listMailbox: httpGet<ITeamMailboxMessage[], { team_id: string; limit?: number }>(
+    (p) => `/api/teams/${p.team_id}/mailbox?limit=${p.limit ?? 500}`
+  ),
+  listTasks: httpGet<ITeamTaskItem[], { team_id: string; limit?: number; ids?: string[] }>((p) =>
+    buildListTasksPath(p)
+  ),
+  listActivity: httpGet<
+    ITeamActivityPage,
+    {
+      team_id: string;
+      limit?: number;
+      cursor_ts?: number;
+      cursor_id?: string;
+      direction?: 'desc' | 'asc';
+      kind?: 'all' | 'message' | 'task';
+    }
+  >((p) => {
+    const q = new URLSearchParams();
+    if (p.limit != null) q.set('limit', String(p.limit));
+    if (p.cursor_ts != null) q.set('cursor_ts', String(p.cursor_ts));
+    if (p.cursor_id != null) q.set('cursor_id', p.cursor_id);
+    if (p.direction) q.set('direction', p.direction);
+    if (p.kind) q.set('kind', p.kind);
+    return `/api/teams/${p.team_id}/activity?${q.toString()}`;
+  }),
   sendMessage: httpPost<ITeamRunAck, ISendTeamMessageParams>(
     (p) => `/api/teams/${p.team_id}/messages`,
     (p) => ({
@@ -2141,6 +2171,7 @@ export const team = {
   teammateMessage: wsEmitter<ITeamTeammateMessageEvent>('team.teammateMessage'),
   sessionStatusChanged: wsEmitter<ITeamSessionStatusChangedEvent>('team.sessionStatusChanged'),
   taskChanged: wsEmitter<ITeamTaskChangedEvent>('team.taskChanged'),
+  mailboxChanged: wsEmitter<ITeamMailboxChangedEvent>('team.mailboxChanged'),
   sessionChanged: wsEmitter<ITeamSessionChangedEvent>('team.sessionChanged'),
   runAccepted: wsEmitter<ITeamRunEvent>('team.runAccepted'),
   runStarted: wsEmitter<ITeamRunEvent>('team.runStarted'),

@@ -730,6 +730,8 @@ Please check your local CLI tool authentication status`,
           setAtPath(items);
         }}
         loading={teamRuntime?.loading ?? isBusy}
+        active={teamRuntime?.isActive}
+        onFocused={teamRuntime?.onFocus}
         disabled={false}
         placeholder={t('acp.sendbox.placeholder', {
           backend: agent_name || backend,

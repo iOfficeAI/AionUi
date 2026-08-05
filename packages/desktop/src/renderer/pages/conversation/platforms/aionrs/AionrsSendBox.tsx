@@ -710,6 +710,8 @@ const AionrsSendBox: React.FC<{
           setAtPath(items);
         }}
         loading={teamRuntime?.loading ?? isBusy}
+        active={teamRuntime?.isActive}
+        onFocused={teamRuntime?.onFocus}
         disabled={!current_model?.use_model}
         placeholder={
           current_model?.use_model

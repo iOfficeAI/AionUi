@@ -68,5 +68,43 @@
       "expert_review": "Faire analyser le même problème par plusieurs experts"
     }
   },
-  "reorderMember": "Faites glisser pour réorganiser le membre"
+  "reorderMember": "Faites glisser pour réorganiser le membre",
+  "view": {
+    "board": "Tableau"
+  },
+  "activity": {
+    "control": {
+      "sortNewest": "Récent",
+      "sortOldest": "Ancien",
+      "filterAll": "Tout",
+      "filterMessages": "Messages",
+      "filterTasks": "Tâches",
+      "allMembers": "Tous les membres",
+      "showSystem": "Messages système",
+      "showTerminal": "Tâches terminées"
+    },
+    "fallbackLane": "Non attribué / externe",
+    "empty": "Aucune activité",
+    "userIdentity": "Utilisateur / externe",
+    "broadcast": "Diffusion à tous",
+    "read": "Lu",
+    "unread": "Non lu",
+    "attachments": "{{count}} fichiers",
+    "expand": "Développer",
+    "collapse": "Réduire",
+    "blockedBy": "bloqué par #{{id}}",
+    "blockedByNamed": "bloqué par {{name}}",
+    "blockerUnknown": "Tâche indisponible",
+    "status": {
+      "pending": "En attente",
+      "in_progress": "En cours",
+      "completed": "Terminé",
+      "deleted": "Supprimé"
+    },
+    "msgType": {
+      "message": "Message",
+      "idle_notification": "Notif. d’inactivité",
+      "shutdown_request": "Demande d’arrêt"
+    }
+  }
 }

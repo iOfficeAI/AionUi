@@ -101,7 +101,8 @@
   "view": {
     "label": "View",
     "parallel": "Parallel",
-    "single": "Single"
+    "single": "Single",
+    "board": "تابلو"
   },
   "warmup": {
     "title": "Waking up the team…",
@@ -116,5 +117,40 @@
     "leaderFailedHint": "Switch its model above, then retry.",
     "retry": "Retry"
   },
-  "reorderMember": "برای تغییر ترتیب عضو بکشید"
+  "reorderMember": "برای تغییر ترتیب عضو بکشید",
+  "activity": {
+    "control": {
+      "sortNewest": "جدیدترین",
+      "sortOldest": "قدیمی‌ترین",
+      "filterAll": "همه",
+      "filterMessages": "پیام‌ها",
+      "filterTasks": "وظایف",
+      "allMembers": "همه اعضا",
+      "showSystem": "پیام‌های سیستمی",
+      "showTerminal": "وظایف پایان‌یافته"
+    },
+    "fallbackLane": "بدون تخصیص / خارجی",
+    "empty": "هنوز فعالیتی نیست",
+    "userIdentity": "کاربر / خارجی",
+    "broadcast": "ارسال همگانی",
+    "read": "خوانده‌شده",
+    "unread": "خوانده‌نشده",
+    "attachments": "{{count}} پیوست",
+    "expand": "گسترش",
+    "collapse": "جمع کردن",
+    "blockedBy": "مسدود شده توسط #{{id}}",
+    "blockedByNamed": "مسدود شده توسط {{name}}",
+    "blockerUnknown": "وظیفه در دسترس نیست",
+    "status": {
+      "pending": "در انتظار",
+      "in_progress": "در حال انجام",
+      "completed": "انجام‌شده",
+      "deleted": "حذف‌شده"
+    },
+    "msgType": {
+      "message": "پیام",
+      "idle_notification": "اعلان بی‌کاری",
+      "shutdown_request": "درخواست توقف"
+    }
+  }
 }
