@@ -23,6 +23,11 @@
     "waiting": "Telefonda onay bekleniyor...",
     "expired": "Bu QR kodunun süresi doldu",
     "refresh": "QR kodunu yenile",
+    "personalModels": {
+      "configured": "{{count}} yetkili kişisel model hizmeti otomatik olarak yapılandırıldı",
+      "partial": "Bazı kişisel modeller yapılandırılamadı. Yetkilendirmeyi kontrol edin veya bir yöneticiyle iletişime geçin.",
+      "unavailable": "Güvenli kimlik bilgisi depolaması kullanılamadığı için kişisel model kimlik bilgileri alınmadı."
+    },
     "errors": {
       "networkError": "GEA'ya bağlanılamıyor. Lütfen tekrar deneyin",
       "serverError": "GEA giriş hizmeti geçici olarak kullanılamıyor",

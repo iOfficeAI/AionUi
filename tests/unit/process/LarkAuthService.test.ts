@@ -176,4 +176,73 @@ describe('LarkAuthService', () => {
     service.logout();
     await expect(gatewaySession.listTools()).rejects.toMatchObject({ code: 'GEA_LOGIN_REQUIRED' });
   });
+
+  it('uses the platform token to claim a personal credential and the personal secret only for model discovery', async () => {
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse({ success: true, result: { success: true, token: 'platform-token' } }))
+      .mockResolvedValueOnce(
+        jsonResponse({
+          success: true,
+          result: { userInfo: { id: '10086', username: 'zhangsan', realname: '张三' } },
+        })
+      )
+      .mockResolvedValueOnce(
+        jsonResponse({
+          success: true,
+          result: {
+            records: [
+              {
+                id: 'credential-1',
+                tenantId: 1,
+                accessKeyId: 'uk-gea-1',
+                agentId: 'sales-forecast',
+                status: 'PENDING_CLAIM',
+              },
+            ],
+            total: 1,
+          },
+        })
+      )
+      .mockResolvedValueOnce(
+        jsonResponse({
+          success: true,
+          result: {
+            credentialId: 'credential-1',
+            accessKeyId: 'uk-gea-1',
+            agentCode: 'sales-forecast',
+            baseUrl: 'https://model.example/v1',
+            secret: 'sk-user-sensitive',
+            status: 'ENABLED',
+          },
+        })
+      )
+      .mockResolvedValueOnce(jsonResponse({ data: [{ id: 'deepseek-v4-flash' }] }));
+    const service = new LarkAuthService({ baseUrl: 'https://gea.example/gea-boot', fetchImpl });
+    await service.pollQrSession('QRCODELOGIN:1');
+
+    await expect(service.listPersonalModelCredentials()).resolves.toEqual([
+      {
+        credentialId: 'credential-1',
+        tenantId: '1',
+        accessKeyId: 'uk-gea-1',
+        agentCode: 'sales-forecast',
+        status: 'PENDING_CLAIM',
+      },
+    ]);
+    const claimed = await service.claimPersonalModelCredential('credential-1', '1');
+    await expect(service.listPersonalModels(claimed.baseUrl, claimed.secret)).resolves.toEqual(['deepseek-v4-flash']);
+
+    expect(fetchImpl.mock.calls[2][1]?.headers).toMatchObject({ 'X-Access-Token': 'platform-token' });
+    expect(fetchImpl.mock.calls[3][0]).toContain('/my/claim?id=credential-1');
+    expect(fetchImpl.mock.calls[3][1]).toMatchObject({
+      method: 'POST',
+      headers: expect.objectContaining({
+        'X-Access-Token': 'platform-token',
+        'X-Tenant-Id': '1',
+      }),
+    });
+    expect(fetchImpl.mock.calls[4][1]?.headers).toMatchObject({ Authorization: 'Bearer sk-user-sensitive' });
+    expect(JSON.stringify(fetchImpl.mock.calls.slice(0, 4))).not.toContain('sk-user-sensitive');
+  });
 });

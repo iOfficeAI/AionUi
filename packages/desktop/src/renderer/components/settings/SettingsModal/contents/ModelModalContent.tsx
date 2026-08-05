@@ -5,6 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
+import { isGeaPersonalProvider } from '@/common/config/geaPersonalModel';
 import type { IProvider } from '@/common/config/storage';
 import { supportsOpenAiApiMode } from '@/common/utils/modelCapabilities';
 import { Button, Divider, Message, Popconfirm, Collapse, Tag, Switch, Tooltip } from '@arco-design/web-react';
@@ -78,6 +79,9 @@ const getApiKeyCount = (api_key: string): number => {
  * Get provider enable state (all/partial/none)
  */
 const getProviderState = (platform: IProvider): { checked: boolean; indeterminate: boolean } => {
+  if (isGeaPersonalProvider(platform) && platform.enabled === false) {
+    return { checked: false, indeterminate: false };
+  }
   if (!platform.model_enabled) {
     // 没有 model_enabled 记录，默认全部启用
     return { checked: true, indeterminate: false };
@@ -110,6 +114,7 @@ const ModelModalContent: React.FC = () => {
   const viewMode = useSettingsViewMode();
   const isPageMode = viewMode === 'page';
   const [collapseKey, setCollapseKey] = useState<Record<string, boolean>>({});
+  const [geaSyncing, setGeaSyncing] = useState(false);
   const [healthCheckLoading, setHealthCheckLoading] = useState<Record<string, boolean>>({});
   const { data, mutate } = useProvidersQuery();
   const [message, messageContext] = Message.useMessage();
@@ -172,6 +177,10 @@ const ModelModalContent: React.FC = () => {
 
   // 切换供应商启用状态（全选 ↔ 全不选）
   const toggleProviderEnabled = (platform: IProvider) => {
+    if (isGeaPersonalProvider(platform)) {
+      updatePlatform({ ...platform, enabled: platform.enabled === false }, () => {});
+      return;
+    }
     const { checked } = getProviderState(platform);
     const newState = !checked; // 切换状态
 
@@ -283,12 +292,14 @@ const ModelModalContent: React.FC = () => {
     if (!data) return;
     const nextArray: IProvider[] = data.map((platform: IProvider) => ({
       ...platform,
-      model_health: undefined as IProvider['model_health'],
+      model_health: isGeaPersonalProvider(platform) ? platform.model_health : undefined,
     }));
     void mutate(nextArray, false);
 
     Promise.all(
-      (data || []).map((platform) => ipcBridge.mode.updateProvider.invoke({ id: platform.id, model_health: {} }))
+      (data || [])
+        .filter((platform) => !isGeaPersonalProvider(platform))
+        .map((platform) => ipcBridge.mode.updateProvider.invoke({ id: platform.id, model_health: {} }))
     )
       .then(() => {
         void mutate();
@@ -336,6 +347,36 @@ const ModelModalContent: React.FC = () => {
     },
   });
 
+  const syncModelsFromGea = async () => {
+    if (geaSyncing) return;
+    setGeaSyncing(true);
+    try {
+      const result = await ipcBridge.larkAuth.syncPersonalModels.invoke();
+      if (!result.success) {
+        message.error(t('settings.personalModelFetchFailed'));
+        return;
+      }
+
+      const sync = result.data;
+      await mutate();
+      if (sync.status === 'notAuthenticated') {
+        message.warning(t('settings.personalModelLoginRequired'));
+      } else if (sync.status === 'unavailable') {
+        message.warning(t('login.lark.personalModels.unavailable'));
+      } else if (sync.status === 'partial') {
+        message.error(t('settings.personalModelFetchFailed'));
+      } else if (sync.configured > 0) {
+        message.success(t('login.lark.personalModels.configured', { count: sync.configured }));
+      } else {
+        message.info(t('settings.personalModelNoneAvailable'));
+      }
+    } catch {
+      message.error(t('settings.personalModelFetchFailed'));
+    } finally {
+      setGeaSyncing(false);
+    }
+  };
+
   const headerActions = (
     <>
       <Button type='text' size='small' onClick={clearAllHealthData} className='!text-t-secondary hover:!text-t-primary'>
@@ -343,7 +384,15 @@ const ModelModalContent: React.FC = () => {
       </Button>
       <TalkToButlerButton
         label={t('settings.addModel')}
+        data-testid='add-model-menu'
         chatLabel={t('settings.talkToButler.addViaChat', { defaultValue: 'Add via chat' })}
+        extraActions={[
+          {
+            key: 'gea',
+            label: geaSyncing ? t('settings.personalModelFetching') : t('settings.personalModelFetchFromGea'),
+            onClick: () => void syncModelsFromGea(),
+          },
+        ]}
         onManual={() => addPlatformModalCtrl.open()}
         manualLabel={t('settings.talkToButler.addManually', { defaultValue: 'Add manually' })}
         prompt={t('settings.talkToButler.prompt.addModel', {
@@ -423,6 +472,7 @@ const ModelModalContent: React.FC = () => {
             {(data || []).map((platform: IProvider) => {
               const key = platform.id;
               const isExpanded = collapseKey[platform.id] ?? false;
+              const isManaged = isGeaPersonalProvider(platform);
               return (
                 <Collapse
                   activeKey={isExpanded ? ['image-generation'] : []}
@@ -444,11 +494,20 @@ const ModelModalContent: React.FC = () => {
                     className='[&_.arco-collapse-item-header-title]:flex-1 group'
                     header={
                       <div className='group flex items-center justify-between w-full min-h-32px gap-8px min-w-0'>
-                        <span
-                          className={`text-14px font-500 truncate min-w-0 transition-colors ${isExpanded ? 'text-t-primary' : 'text-2 group-hover:text-1'}`}
-                        >
-                          {platform.name}
-                        </span>
+                        <div className='flex min-w-0 items-center gap-8px'>
+                          <span
+                            className={`text-14px font-500 truncate min-w-0 transition-colors ${isExpanded ? 'text-t-primary' : 'text-2 group-hover:text-1'}`}
+                          >
+                            {platform.name}
+                          </span>
+                          {isManaged && (
+                            <Tooltip content={t('settings.personalModelManagedHint')}>
+                              <Tag size='small' className='shrink-0'>
+                                {t('settings.personalModelManaged')}
+                              </Tag>
+                            </Tooltip>
+                          )}
+                        </div>
                         <div
                           className='flex items-center gap-8px shrink-0'
                           onClick={(e) => {
@@ -458,54 +517,61 @@ const ModelModalContent: React.FC = () => {
                             e.stopPropagation();
                           }}
                         >
-                          <span className='text-12px text-t-secondary whitespace-nowrap hidden md:inline-flex items-center overflow-hidden max-w-0 opacity-0 group-hover:max-w-320px group-hover:opacity-100 transition-all duration-180'>
-                            <span
-                              className='cursor-pointer hover:text-t-primary transition-colors'
-                              onClick={() => setCollapseKey((prev) => ({ ...prev, [platform.id]: !isExpanded }))}
-                            >
-                              {t('settings.modelCount')}（{(platform.models ?? []).length}）
-                            </span>
-                            <span className='mx-6px'>|</span>
-                            <span
-                              className='cursor-pointer hover:text-t-primary transition-colors'
-                              onClick={() => editModalCtrl.open({ data: platform })}
-                            >
-                              {t('settings.apiKeyCount')}（{getApiKeyCount(platform.api_key)}）
-                            </span>
-                          </span>
-                          <span className='text-12px text-t-secondary whitespace-nowrap md:hidden'>
-                            {(platform.models ?? []).length} / {getApiKeyCount(platform.api_key)}
-                          </span>
+                          {!isManaged && (
+                            <>
+                              <span className='text-12px text-t-secondary whitespace-nowrap hidden md:inline-flex items-center overflow-hidden max-w-0 opacity-0 group-hover:max-w-320px group-hover:opacity-100 transition-all duration-180'>
+                                <span
+                                  className='cursor-pointer hover:text-t-primary transition-colors'
+                                  onClick={() => setCollapseKey((prev) => ({ ...prev, [platform.id]: !isExpanded }))}
+                                >
+                                  {t('settings.modelCount')}（{(platform.models ?? []).length}）
+                                </span>
+                                <span className='mx-6px'>|</span>
+                                <span
+                                  className='cursor-pointer hover:text-t-primary transition-colors'
+                                  onClick={() => editModalCtrl.open({ data: platform })}
+                                >
+                                  {t('settings.apiKeyCount')}（{getApiKeyCount(platform.api_key)}）
+                                </span>
+                              </span>
+                              <span className='text-12px text-t-secondary whitespace-nowrap md:hidden'>
+                                {(platform.models ?? []).length} / {getApiKeyCount(platform.api_key)}
+                              </span>
+                            </>
+                          )}
                           {/* 供应商启用开关 / Provider enable switch */}
                           <Switch
+                            data-testid={`provider-toggle-${platform.id}`}
                             size='small'
                             checked={getProviderState(platform).checked}
                             onChange={() => toggleProviderEnabled(platform)}
                           />
-                          <div className='flex items-center gap-4px'>
-                            <Button
-                              size='mini'
-                              className='model-provider-action-btn !w-28px !h-28px !min-w-28px text-t-secondary hover:text-t-primary'
-                              icon={<Plus size='14' />}
-                              onClick={() => addModelModalCtrl.open({ data: platform })}
-                            />
-                            <Popconfirm
-                              title={t('settings.deleteAllModelConfirm')}
-                              onOk={() => removePlatform(platform.id)}
-                            >
+                          {!isManaged && (
+                            <div data-testid={`provider-actions-${platform.id}`} className='flex items-center gap-4px'>
                               <Button
                                 size='mini'
                                 className='model-provider-action-btn !w-28px !h-28px !min-w-28px text-t-secondary hover:text-t-primary'
-                                icon={<Minus size='14' />}
+                                icon={<Plus size='14' />}
+                                onClick={() => addModelModalCtrl.open({ data: platform })}
                               />
-                            </Popconfirm>
-                            <Button
-                              size='mini'
-                              className='model-provider-action-btn !w-28px !h-28px !min-w-28px text-t-secondary hover:text-t-primary'
-                              icon={<Write size='14' />}
-                              onClick={() => editModalCtrl.open({ data: platform })}
-                            />
-                          </div>
+                              <Popconfirm
+                                title={t('settings.deleteAllModelConfirm')}
+                                onOk={() => removePlatform(platform.id)}
+                              >
+                                <Button
+                                  size='mini'
+                                  className='model-provider-action-btn !w-28px !h-28px !min-w-28px text-t-secondary hover:text-t-primary'
+                                  icon={<Minus size='14' />}
+                                />
+                              </Popconfirm>
+                              <Button
+                                size='mini'
+                                className='model-provider-action-btn !w-28px !h-28px !min-w-28px text-t-secondary hover:text-t-primary'
+                                icon={<Write size='14' />}
+                                onClick={() => editModalCtrl.open({ data: platform })}
+                              />
+                            </div>
+                          )}
                         </div>
                       </div>
                     }
@@ -609,6 +675,7 @@ const ModelModalContent: React.FC = () => {
 
                               {/* 模型启用开关 / Model enable switch */}
                               <Switch
+                                data-testid={`model-toggle-${platform.id}-${model}`}
                                 className='shrink-0'
                                 size='small'
                                 checked={isModelEnabled(platform, model)}
@@ -616,63 +683,70 @@ const ModelModalContent: React.FC = () => {
                               />
                             </div>
 
-                            <div className='flex items-center gap-6px shrink-0'>
-                              <Tooltip content={t('settings.configureModel')}>
-                                <Button
-                                  size='mini'
-                                  className='!w-28px !h-28px !min-w-28px !bg-[var(--color-bg-1)] text-t-secondary hover:text-t-primary hover:!bg-[var(--fill-0)]'
-                                  icon={<SettingTwo theme='outline' size='16' />}
-                                  onClick={() => addModelModalCtrl.open({ data: platform, model })}
-                                />
-                              </Tooltip>
-
-                              {/* 心跳检测按钮 / Health check button */}
-                              <Tooltip content={t('settings.healthCheck')}>
-                                <Button
-                                  size='mini'
-                                  className='!w-28px !h-28px !min-w-28px !bg-[var(--color-bg-1)] text-t-secondary hover:text-t-primary hover:!bg-[var(--fill-0)]'
-                                  icon={<Heartbeat theme='outline' size='16' />}
-                                  loading={healthCheckLoading[`${platform.id}-${model}`]}
-                                  onClick={() => performHealthCheck(platform, model)}
-                                />
-                              </Tooltip>
-
-                              <Popconfirm
-                                title={t('settings.deleteModelConfirm')}
-                                onOk={() => {
-                                  const newModels = platform.models.filter((item: string) => item !== model);
-                                  // 同时清理模型相关状态，避免删除后重加模型时复用脏状态
-                                  // Clean all per-model state to avoid stale state on re-add.
-                                  const newProtocols = { ...platform.model_protocols };
-                                  const newModelEnabled = { ...platform.model_enabled };
-                                  const newModelHealth = { ...platform.model_health };
-                                  const newModelSettings = { ...platform.model_settings };
-                                  delete newProtocols[model];
-                                  delete newModelEnabled[model];
-                                  delete newModelHealth[model];
-                                  delete newModelSettings[model];
-
-                                  updatePlatform(
-                                    {
-                                      ...platform,
-                                      models: newModels,
-                                      model_protocols: Object.keys(newProtocols).length > 0 ? newProtocols : undefined,
-                                      model_enabled:
-                                        Object.keys(newModelEnabled).length > 0 ? newModelEnabled : undefined,
-                                      model_health: Object.keys(newModelHealth).length > 0 ? newModelHealth : undefined,
-                                      model_settings: newModelSettings,
-                                    },
-                                    () => {}
-                                  );
-                                }}
+                            {!isManaged && (
+                              <div
+                                data-testid={`model-actions-${platform.id}-${model}`}
+                                className='flex items-center gap-6px shrink-0'
                               >
-                                <Button
-                                  size='mini'
-                                  className='!w-28px !h-28px !min-w-28px !bg-[var(--color-bg-1)] text-t-secondary hover:text-t-primary hover:!bg-[var(--fill-0)]'
-                                  icon={<DeleteFour theme='outline' size='18' strokeWidth={2} />}
-                                />
-                              </Popconfirm>
-                            </div>
+                                <Tooltip content={t('settings.configureModel')}>
+                                  <Button
+                                    size='mini'
+                                    className='!w-28px !h-28px !min-w-28px !bg-[var(--color-bg-1)] text-t-secondary hover:text-t-primary hover:!bg-[var(--fill-0)]'
+                                    icon={<SettingTwo theme='outline' size='16' />}
+                                    onClick={() => addModelModalCtrl.open({ data: platform, model })}
+                                  />
+                                </Tooltip>
+
+                                {/* 心跳检测按钮 / Health check button */}
+                                <Tooltip content={t('settings.healthCheck')}>
+                                  <Button
+                                    size='mini'
+                                    className='!w-28px !h-28px !min-w-28px !bg-[var(--color-bg-1)] text-t-secondary hover:text-t-primary hover:!bg-[var(--fill-0)]'
+                                    icon={<Heartbeat theme='outline' size='16' />}
+                                    loading={healthCheckLoading[`${platform.id}-${model}`]}
+                                    onClick={() => performHealthCheck(platform, model)}
+                                  />
+                                </Tooltip>
+
+                                <Popconfirm
+                                  title={t('settings.deleteModelConfirm')}
+                                  onOk={() => {
+                                    const newModels = platform.models.filter((item: string) => item !== model);
+                                    // 同时清理模型相关状态，避免删除后重加模型时复用脏状态
+                                    // Clean all per-model state to avoid stale state on re-add.
+                                    const newProtocols = { ...platform.model_protocols };
+                                    const newModelEnabled = { ...platform.model_enabled };
+                                    const newModelHealth = { ...platform.model_health };
+                                    const newModelSettings = { ...platform.model_settings };
+                                    delete newProtocols[model];
+                                    delete newModelEnabled[model];
+                                    delete newModelHealth[model];
+                                    delete newModelSettings[model];
+
+                                    updatePlatform(
+                                      {
+                                        ...platform,
+                                        models: newModels,
+                                        model_protocols:
+                                          Object.keys(newProtocols).length > 0 ? newProtocols : undefined,
+                                        model_enabled:
+                                          Object.keys(newModelEnabled).length > 0 ? newModelEnabled : undefined,
+                                        model_health:
+                                          Object.keys(newModelHealth).length > 0 ? newModelHealth : undefined,
+                                        model_settings: newModelSettings,
+                                      },
+                                      () => {}
+                                    );
+                                  }}
+                                >
+                                  <Button
+                                    size='mini'
+                                    className='!w-28px !h-28px !min-w-28px !bg-[var(--color-bg-1)] text-t-secondary hover:text-t-primary hover:!bg-[var(--fill-0)]'
+                                    icon={<DeleteFour theme='outline' size='18' strokeWidth={2} />}
+                                  />
+                                </Popconfirm>
+                              </div>
+                            )}
                           </div>
                           {index < arr.length - 1 && <Divider className='!my-0 !border-[var(--color-border-2)]/70' />}
                         </div>

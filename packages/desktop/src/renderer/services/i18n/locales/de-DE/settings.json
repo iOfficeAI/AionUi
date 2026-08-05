@@ -433,6 +433,8 @@
   "tools": "Tools",
   "toolsDescription": "MCP-Server und integrierte Tools wie die Bildgenerierung konfigurieren. Die Bildgenerierung kann erst aktiviert werden, nachdem auf der Modellseite ein bildfähiges Modell konfiguriert wurde.",
   "modelDescription": "LLM-Anbieter und API-Schlüssel für alle Assistenten konfigurieren. Nur GEA CLI unterstützt eigene Modelle; andere Agenten nutzen ihre integrierten Modelle.",
+  "personalModelManaged": "Persönliche Autorisierung",
+  "personalModelManagedHint": "Nach der Anmeldung automatisch konfiguriert. Kann aktiviert oder deaktiviert, aber nicht bearbeitet oder gelöscht werden.",
   "capabilities": "Fähigkeiten",
   "capabilitiesTab": {
     "skills": "Skills",
@@ -1295,5 +1297,10 @@
     "emptyOverridesError": "Enter a launch path or at least one environment variable before saving."
   },
   "providerIdConflict": "Provider-ID existiert bereits. Bitte erneut versuchen.",
+  "personalModelFetchFromGea": "Von GEA abrufen",
+  "personalModelFetching": "Wird von GEA abgerufen…",
+  "personalModelFetchFailed": "Persönliche Modelle konnten nicht von GEA abgerufen werden. Versuchen Sie es später erneut oder wenden Sie sich an den Administrator.",
+  "personalModelLoginRequired": "Melden Sie sich an, bevor Sie persönliche Modelle von GEA abrufen.",
+  "personalModelNoneAvailable": "In GEA ist keine synchronisierbare persönliche Modellautorisierung verfügbar.",
   "autoInjectedSkillsHint": "Werden automatisch in jede Unterhaltung geladen – kein Aktivieren nötig; der Agent entscheidet, wann er sie nutzt."
 }

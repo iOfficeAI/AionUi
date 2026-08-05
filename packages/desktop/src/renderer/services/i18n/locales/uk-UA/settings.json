@@ -441,6 +441,8 @@
   "tools": "Інструменти",
   "toolsDescription": "Налаштуйте MCP-сервери та вбудовані інструменти, як-от генерація зображень. Генерацію зображень можна ввімкнути лише після налаштування моделі з підтримкою зображень на сторінці моделей.",
   "modelDescription": "Налаштуйте постачальників LLM та ключі API для використання в усіх асистентах. Власні моделі підтримує лише GEA CLI; інші агенти використовують свої вбудовані моделі.",
+  "personalModelManaged": "Особиста авторизація",
+  "personalModelManagedHint": "Налаштовується автоматично після входу. Можна вмикати або вимикати, але не можна редагувати чи видаляти.",
   "capabilities": "Можливості",
   "capabilitiesTab": {
     "skills": "Навички",
@@ -1294,6 +1296,11 @@
     "callbackRecommendation": "Рекомендація: використовуйте reverse proxy із сертифікатом або Cloudflare Tunnel / ngrok для перенаправлення на цей компʼютер."
   },
   "providerIdConflict": "Provider ID вже існує. Спробуйте ще раз.",
+  "personalModelFetchFromGea": "Отримати з GEA",
+  "personalModelFetching": "Отримання з GEA…",
+  "personalModelFetchFailed": "Не вдалося отримати персональні моделі з GEA. Спробуйте пізніше або зверніться до адміністратора.",
+  "personalModelLoginRequired": "Увійдіть перед отриманням персональних моделей з GEA.",
+  "personalModelNoneAvailable": "У GEA немає доступних для синхронізації дозволів на персональні моделі.",
   "channels.wecomTitle": "WeCom",
   "channels.wecomDesc": "Chat with GEAUi assistant via WeCom (Enterprise WeChat AI Bot)",
   "autoInjectedSkillsHint": "Автоматично завантажуються в кожну розмову — вмикати не потрібно; агент сам вирішує, коли їх використовувати."

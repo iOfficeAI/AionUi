@@ -431,6 +431,8 @@
   "tools": "Herramientas",
   "toolsDescription": "Configura servidores MCP y herramientas integradas como la generación de imágenes. La generación de imágenes solo se puede activar tras configurar un modelo compatible con imágenes en la página de Modelos.",
   "modelDescription": "Configura proveedores de LLM y claves de API para usar en todos los asistentes. Solo GEA CLI admite modelos personalizados; los demás agentes usan sus modelos integrados.",
+  "personalModelManaged": "Autorización personal",
+  "personalModelManagedHint": "Se configura automáticamente al iniciar sesión. Puedes activarla o desactivarla, pero no editarla ni eliminarla.",
   "capabilities": "Capacidades",
   "capabilitiesTab": {
     "skills": "Habilidades",
@@ -1295,5 +1297,10 @@
     "solveWithButler": "Preguntar al Mayordomo"
   },
   "providerIdConflict": "El ID del proveedor ya existe. Inténtalo de nuevo.",
+  "personalModelFetchFromGea": "Obtener de GEA",
+  "personalModelFetching": "Obteniendo de GEA…",
+  "personalModelFetchFailed": "No se pudieron obtener los modelos personales de GEA. Inténtalo más tarde o contacta al administrador.",
+  "personalModelLoginRequired": "Inicia sesión antes de obtener modelos personales de GEA.",
+  "personalModelNoneAvailable": "No hay autorizaciones de modelos personales disponibles para sincronizar desde GEA.",
   "autoInjectedSkillsHint": "Se cargan automáticamente en cada conversación: no hace falta activarlas; el agente decide cuándo usarlas."
 }

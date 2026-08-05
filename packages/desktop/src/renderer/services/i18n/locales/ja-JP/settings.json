@@ -441,6 +441,8 @@
   "tools": "ツール",
   "toolsDescription": "MCP サーバーと画像生成などの組み込みツールを設定します。画像生成は、モデルページで画像対応モデルを設定した後にのみ有効化できます。",
   "modelDescription": "すべてのアシスタントで使用する LLM プロバイダーと API キーを設定します。カスタムモデルに対応するのは GEA CLI のみで、他のエージェントは各自の組み込みモデルを使用します。",
+  "personalModelManaged": "個人認証",
+  "personalModelManagedHint": "ログイン後に自動設定されます。有効化または無効化のみ可能で、編集や削除はできません。",
   "capabilities": "能力拡張",
   "capabilitiesTab": {
     "skills": "スキル",
@@ -1297,5 +1299,10 @@
     "solveWithButler": "執事に相談"
   },
   "providerIdConflict": "Provider ID は既に存在します。もう一度お試しください。",
+  "personalModelFetchFromGea": "GEA から取得",
+  "personalModelFetching": "GEA から取得中…",
+  "personalModelFetchFailed": "GEA から個人モデルを取得できませんでした。後でもう一度試すか、管理者に連絡してください。",
+  "personalModelLoginRequired": "ログインしてから GEA の個人モデルを取得してください。",
+  "personalModelNoneAvailable": "GEA に同期可能な個人モデル認可がありません。",
   "autoInjectedSkillsHint": "すべての会話に自動的に読み込まれます。有効化は不要で、エージェントが使用するタイミングを判断します。"
 }

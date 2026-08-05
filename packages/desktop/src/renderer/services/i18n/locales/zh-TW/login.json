@@ -23,6 +23,11 @@
     "waiting": "等待手機確認...",
     "expired": "QR Code 已過期",
     "refresh": "重新整理 QR Code",
+    "personalModels": {
+      "configured": "已自動設定 {{count}} 個個人授權模型服務",
+      "partial": "部分個人模型未能自動設定，請檢查授權狀態或聯絡管理員。",
+      "unavailable": "系統安全憑證儲存不可用，未領取個人模型憑證。"
+    },
     "errors": {
       "networkError": "無法連線至 GEA，請重試",
       "serverError": "GEA 登入服務暫時無法使用",

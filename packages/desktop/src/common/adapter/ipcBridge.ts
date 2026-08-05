@@ -46,6 +46,7 @@ import type {
   LarkAuthStatus,
   LarkQrLoginPollResult,
   LarkQrLoginSession,
+  PersonalModelSyncResult,
 } from '../types/platform/larkAuth';
 import type {
   CreateProviderRequest,
@@ -550,6 +551,9 @@ export const larkAuth = {
   createQrSession: bridge.buildProvider<LarkAuthResult<LarkQrLoginSession>, void>('lark-auth.create-qr-session'),
   pollQrSession: bridge.buildProvider<LarkAuthResult<LarkQrLoginPollResult>, { qrcodeId: string }>(
     'lark-auth.poll-qr-session'
+  ),
+  syncPersonalModels: bridge.buildProvider<LarkAuthResult<PersonalModelSyncResult>, void>(
+    'lark-auth.sync-personal-models'
   ),
   status: bridge.buildProvider<LarkAuthResult<LarkAuthStatus>, void>('lark-auth.status'),
   logout: bridge.buildProvider<LarkAuthResult<LarkAuthStatus>, void>('lark-auth.logout'),

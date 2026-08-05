@@ -441,6 +441,8 @@
   "tools": "Araçlar",
   "toolsDescription": "MCP sunucularını ve görüntü oluşturma gibi yerleşik araçları yapılandırın. Görüntü oluşturma yalnızca Model sayfasında görüntü destekli bir model yapılandırıldıktan sonra etkinleştirilebilir.",
   "modelDescription": "Tüm asistanlarda kullanmak için LLM sağlayıcılarını ve API anahtarlarını yapılandırın. Özel modelleri yalnızca GEA CLI destekler; diğer aracılar kendi yerleşik modellerini kullanır.",
+  "personalModelManaged": "Kişisel yetkilendirme",
+  "personalModelManagedHint": "Oturum açıldıktan sonra otomatik yapılandırılır. Etkinleştirilebilir veya devre dışı bırakılabilir ancak düzenlenemez ya da silinemez.",
   "capabilities": "Yetenekler",
   "capabilitiesTab": {
     "skills": "Beceriler",
@@ -1295,5 +1297,10 @@
     "solveWithButler": "Kâhya'ya sor"
   },
   "providerIdConflict": "Provider ID zaten var. Lütfen tekrar deneyin.",
+  "personalModelFetchFromGea": "GEA'dan al",
+  "personalModelFetching": "GEA'dan alınıyor…",
+  "personalModelFetchFailed": "Kişisel modeller GEA'dan alınamadı. Daha sonra tekrar deneyin veya yöneticinize başvurun.",
+  "personalModelLoginRequired": "GEA'dan kişisel modelleri almadan önce oturum açın.",
+  "personalModelNoneAvailable": "GEA'da eşitlenebilecek kişisel model yetkisi yok.",
   "autoInjectedSkillsHint": "Her sohbete otomatik olarak yüklenir — etkinleştirmeye gerek yoktur; aracı bunları ne zaman kullanacağına karar verir."
 }

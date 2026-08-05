@@ -23,6 +23,11 @@
     "waiting": "Esperando la confirmación en tu teléfono...",
     "expired": "Este código QR ha caducado",
     "refresh": "Actualizar código QR",
+    "personalModels": {
+      "configured": "Se configuraron automáticamente {{count}} servicios de modelos personales autorizados",
+      "partial": "No se pudieron configurar algunos modelos personales. Comprueba la autorización o contacta con un administrador.",
+      "unavailable": "No se reclamaron los modelos personales porque el almacenamiento seguro de credenciales no está disponible."
+    },
     "errors": {
       "networkError": "No se puede conectar con GEA. Inténtalo de nuevo",
       "serverError": "El servicio de inicio de sesión de GEA no está disponible temporalmente",

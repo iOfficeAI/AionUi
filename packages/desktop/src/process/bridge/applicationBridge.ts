@@ -14,7 +14,13 @@ import { getGpuStatus, setGpuUserOverride } from '@process/utils/gpuRecovery';
 import { initApplicationBridgeCore } from './applicationBridgeCore';
 import type { IStartOnBootStatus } from '@/common/adapter/ipcBridge';
 import { restartApplication } from './restartApplication';
-import { getSharedLarkAuthService, LarkAuthServiceError } from '@process/services/LarkAuthService';
+import {
+  getSharedLarkAuthService,
+  LarkAuthServiceError,
+  logoutSharedLarkAuthSession,
+  pollSharedLarkAuthSession,
+  syncSharedPersonalModels,
+} from '@process/services/LarkAuthService';
 import type { LarkAuthErrorCode, LarkAuthResult } from '@/common/types/platform/larkAuth';
 
 let mainWindowRef: BrowserWindow | null = null;
@@ -113,12 +119,13 @@ export function initApplicationBridge(): void {
 
   ipcBridge.larkAuth.createQrSession.provider(() => withLarkAuthResult(() => larkAuthService.createQrSession()));
   ipcBridge.larkAuth.pollQrSession.provider(({ qrcodeId }) =>
-    withLarkAuthResult(() => larkAuthService.pollQrSession(qrcodeId))
+    withLarkAuthResult(() => pollSharedLarkAuthSession(qrcodeId))
   );
+  ipcBridge.larkAuth.syncPersonalModels.provider(() => withLarkAuthResult(syncSharedPersonalModels));
   ipcBridge.larkAuth.status.provider(() => withLarkAuthResult(() => larkAuthService.getStatus()));
   ipcBridge.larkAuth.logout.provider(() =>
-    withLarkAuthResult(() => {
-      larkAuthService.logout();
+    withLarkAuthResult(async () => {
+      await logoutSharedLarkAuthSession();
       return larkAuthService.getStatus();
     })
   );

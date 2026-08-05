@@ -10,8 +10,21 @@ export type {
 } from './types.js';
 export { startStaticServer, stopStaticServer } from './static-server.js';
 export type { StaticServerOptions, StaticServerHandle } from './static-server.js';
-export { createGeaLarkAuth, GeaLarkAuthService, GeaLarkAuthServiceError, GeaMcpGatewayError } from './gea-lark-auth.js';
-export type { GeaMcpGatewayCallResult, GeaMcpGatewaySession, GeaMcpGatewayTool } from './gea-lark-auth.js';
+export {
+  createGeaLarkAuth,
+  GeaLarkAuthService,
+  GeaLarkAuthServiceError,
+  GeaMcpGatewayError,
+  GeaPersonalModelError,
+} from './gea-lark-auth.js';
+export type {
+  GeaClaimedPersonalModelCredential,
+  GeaMcpGatewayCallResult,
+  GeaMcpGatewaySession,
+  GeaMcpGatewayTool,
+  GeaPersonalModelCredential,
+  GeaPersonalModelCredentialStatus,
+} from './gea-lark-auth.js';
 export { startGeaMcpBridge } from './gea-mcp-bridge.js';
 export type { GeaMcpBridgeHandle } from './gea-mcp-bridge.js';
 

@@ -441,6 +441,8 @@
   "tools": "工具",
   "toolsDescription": "配置 MCP 服务器与内置工具（如图像生成）。图像生成需先在“模型”页配置支持图像的模型后才能启用。",
   "modelDescription": "配置大模型服务商与 API Key，供所有助手使用。目前仅 GEA CLI 支持自定义模型，其它 Agent 使用各自内置的模型。",
+  "personalModelManaged": "个人授权",
+  "personalModelManagedHint": "登录后自动配置，可启用或停用，但不能编辑或删除。",
   "capabilities": "能力扩展",
   "capabilitiesTab": {
     "skills": "技能",
@@ -1296,5 +1298,10 @@
     "solveWithButler": "找管家排查"
   },
   "providerIdConflict": "Provider ID 已存在，请重试。",
+  "personalModelFetchFromGea": "从 GEA 获取",
+  "personalModelFetching": "正在从 GEA 获取…",
+  "personalModelFetchFailed": "从 GEA 获取个人模型失败，请稍后重试或联系管理员。",
+  "personalModelLoginRequired": "请先登录，再从 GEA 获取个人模型。",
+  "personalModelNoneAvailable": "GEA 中没有可同步的个人模型授权。",
   "autoInjectedSkillsHint": "每次对话都会自动加载，无需手动启用；由智能体自行决定何时调用。"
 }

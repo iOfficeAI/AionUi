@@ -46,6 +46,12 @@ export type WebHostLarkQrLoginSession = {
 export type WebHostLarkQrLoginPollResult = {
   status: 'authenticated' | 'expired' | 'pending';
   user?: WebHostLarkAuthUser;
+  personalModelSync?: {
+    configured: number;
+    failed: number;
+    skipped: number;
+    status: 'completed' | 'notAuthenticated' | 'partial' | 'unavailable';
+  };
 };
 
 export type WebHostLarkAuthResult<T> =
@@ -58,6 +64,7 @@ export type WebHostLarkAuthResult<T> =
  */
 export type WebHostLarkAuth = {
   createQrSession: () => Promise<WebHostLarkAuthResult<WebHostLarkQrLoginSession>>;
+  logout?: () => Promise<void> | void;
   pollQrSession: (qrcodeId: string) => Promise<WebHostLarkAuthResult<WebHostLarkQrLoginPollResult>>;
 };
 

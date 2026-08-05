@@ -23,6 +23,11 @@
     "waiting": "Warten auf Bestätigung am Smartphone...",
     "expired": "Dieser QR-Code ist abgelaufen",
     "refresh": "QR-Code aktualisieren",
+    "personalModels": {
+      "configured": "{{count}} persönlich autorisierte Modelldienste wurden automatisch konfiguriert",
+      "partial": "Einige persönliche Modelle konnten nicht konfiguriert werden. Prüfen Sie die Autorisierung oder wenden Sie sich an einen Administrator.",
+      "unavailable": "Persönliche Modellzugänge wurden nicht abgerufen, da kein sicherer Anmeldedatenspeicher verfügbar ist."
+    },
     "errors": {
       "networkError": "Verbindung zu GEA fehlgeschlagen. Bitte erneut versuchen",
       "serverError": "Der GEA-Anmeldedienst ist vorübergehend nicht verfügbar",

@@ -441,6 +441,8 @@
   "tools": "Tools",
   "toolsDescription": "Configure MCP servers and built-in tools like image generation. Image generation must be enabled after configuring an image-capable model on the Model page.",
   "modelDescription": "Configure LLM providers and API keys for use across all assistants. Only GEA CLI supports custom models; other agents use their own built-in models.",
+  "personalModelManaged": "Personal authorization",
+  "personalModelManagedHint": "Configured automatically after sign-in. You can enable or disable it, but cannot edit or delete it.",
   "capabilities": "Capabilities",
   "capabilitiesTab": {
     "skills": "Skills",
@@ -1295,5 +1297,10 @@
     "solveWithButler": "Ask the Butler"
   },
   "providerIdConflict": "Provider ID already exists. Please try again.",
+  "personalModelFetchFromGea": "Fetch from GEA",
+  "personalModelFetching": "Fetching from GEA…",
+  "personalModelFetchFailed": "Failed to fetch personal models from GEA. Try again later or contact your administrator.",
+  "personalModelLoginRequired": "Sign in before fetching personal models from GEA.",
+  "personalModelNoneAvailable": "No personal model authorization is available to sync from GEA.",
   "autoInjectedSkillsHint": "Loaded automatically into every conversation — no need to enable them; the agent decides when to use them."
 }

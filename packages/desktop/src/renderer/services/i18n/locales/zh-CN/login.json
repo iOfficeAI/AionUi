@@ -23,6 +23,11 @@
     "waiting": "等待手机确认...",
     "expired": "二维码已过期",
     "refresh": "刷新二维码",
+    "personalModels": {
+      "configured": "已自动配置 {{count}} 个个人授权模型服务",
+      "partial": "部分个人模型未能自动配置，请检查授权状态或联系管理员。",
+      "unavailable": "系统安全凭据存储不可用，未领取个人模型凭证。"
+    },
     "errors": {
       "networkError": "无法连接 GEA，请重试",
       "serverError": "GEA 登录服务暂不可用",

@@ -181,6 +181,7 @@ export class LarkAuthGateway {
     if ((url === '/api/lark-auth/logout' || url === '/logout') && req.method === 'POST') {
       const token = cookieValue(req.headers.cookie, WEB_SESSION_COOKIE);
       if (token) this.sessions.delete(token);
+      await this.larkAuth.logout?.();
       writeJson(
         res,
         200,

@@ -23,6 +23,11 @@
     "waiting": "Waiting for confirmation on your phone...",
     "expired": "This QR code has expired",
     "refresh": "Refresh QR code",
+    "personalModels": {
+      "configured": "Configured {{count}} authorized personal model provider",
+      "partial": "Some personal models could not be configured. Check your authorization or contact an administrator.",
+      "unavailable": "Personal models were not claimed because secure credential storage is unavailable."
+    },
     "errors": {
       "networkError": "Unable to connect to GEA. Please try again",
       "serverError": "The GEA sign-in service is temporarily unavailable",

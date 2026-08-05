@@ -7,7 +7,9 @@ import type {
 } from './types.js';
 
 const DEFAULT_GEA_BASE_URL = 'https://gea.synear.cn/gea-boot';
+const DEFAULT_GEA_TENANT_ID = '0';
 const QR_CODE_EXPIRES_IN_SECONDS = 300;
+const PERSONAL_CREDENTIAL_PAGE_SIZE = 100;
 
 type FetchLike = typeof fetch;
 type LarkAuthErrorCode = 'invalidResponse' | 'networkError' | 'serverError';
@@ -91,6 +93,44 @@ type UserInfoResponse = {
   };
 };
 
+export type GeaPersonalModelCredentialStatus =
+  | 'PENDING_CLAIM'
+  | 'ENABLED'
+  | 'ROTATION_PENDING'
+  | 'DISABLED'
+  | 'REVOKED';
+
+export type GeaPersonalModelCredential = {
+  accessKeyId: string;
+  agentCode: string;
+  credentialId: string;
+  status: GeaPersonalModelCredentialStatus;
+  tenantId: string;
+};
+
+export type GeaClaimedPersonalModelCredential = Omit<GeaPersonalModelCredential, 'tenantId'> & {
+  baseUrl: string;
+  secret: string;
+};
+
+type PersonalCredentialListResponse = {
+  records?: unknown;
+  total?: unknown;
+};
+
+type PersonalCredentialClaimResponse = {
+  accessKeyId?: unknown;
+  agentCode?: unknown;
+  baseUrl?: unknown;
+  credentialId?: unknown;
+  secret?: unknown;
+  status?: unknown;
+};
+
+type OpenAiModelsResponse = {
+  data?: unknown;
+};
+
 export class GeaLarkAuthServiceError extends Error {
   readonly code: LarkAuthErrorCode;
 
@@ -107,6 +147,16 @@ export class GeaMcpGatewayError extends Error {
   constructor(code: string) {
     super(code);
     this.name = 'GeaMcpGatewayError';
+    this.code = code;
+  }
+}
+
+export class GeaPersonalModelError extends Error {
+  readonly code: string;
+
+  constructor(code: string) {
+    super(code);
+    this.name = 'GeaPersonalModelError';
     this.code = code;
   }
 }
@@ -212,6 +262,96 @@ export class GeaLarkAuthService {
     this.accessToken = null;
     this.authGeneration += 1;
     this.currentUser = null;
+  }
+
+  async listPersonalModelCredentials(): Promise<GeaPersonalModelCredential[]> {
+    const generation = this.authGeneration;
+    const accessToken = this.requireAccessToken(generation);
+    const credentials: GeaPersonalModelCredential[] = [];
+    let pageNo = 1;
+
+    while (true) {
+      const query = new URLSearchParams({
+        pageNo: String(pageNo),
+        pageSize: String(PERSONAL_CREDENTIAL_PAGE_SIZE),
+      });
+      const payload = await this.requestPersonalModelJson<GeaResponse<PersonalCredentialListResponse>>(
+        `/aidata/user-agent-credential/my/list?${query.toString()}`,
+        accessToken
+      );
+      if (payload.success !== true || !Array.isArray(payload.result?.records)) {
+        throw new GeaPersonalModelError('GEA_PERSONAL_CREDENTIAL_LIST_INVALID');
+      }
+
+      credentials.push(...payload.result.records.map(parsePersonalCredential));
+      const total = typeof payload.result.total === 'number' ? payload.result.total : credentials.length;
+      if (credentials.length >= total || payload.result.records.length < PERSONAL_CREDENTIAL_PAGE_SIZE) break;
+      pageNo += 1;
+    }
+
+    this.requireAccessToken(generation);
+    return credentials;
+  }
+
+  async claimPersonalModelCredential(
+    credentialId: string,
+    tenantId: string
+  ): Promise<GeaClaimedPersonalModelCredential> {
+    const normalizedCredentialId = credentialId.trim();
+    const normalizedTenantId = normalizeTenantId(tenantId);
+    if (!normalizedCredentialId) {
+      throw new GeaPersonalModelError('GEA_PERSONAL_CREDENTIAL_ID_MISSING');
+    }
+    const generation = this.authGeneration;
+    const accessToken = this.requireAccessToken(generation);
+    const query = new URLSearchParams({ id: normalizedCredentialId });
+    const payload = await this.requestPersonalModelJson<GeaResponse<PersonalCredentialClaimResponse>>(
+      `/aidata/user-agent-credential/my/claim?${query.toString()}`,
+      accessToken,
+      'POST',
+      normalizedTenantId
+    );
+    this.requireAccessToken(generation);
+    if (payload.success !== true || !payload.result) {
+      throw new GeaPersonalModelError('GEA_PERSONAL_CREDENTIAL_CLAIM_REJECTED');
+    }
+    return parseClaimedPersonalCredential(payload.result);
+  }
+
+  async listPersonalModels(baseUrl: string, secret: string): Promise<string[]> {
+    const normalizedSecret = secret.trim();
+    if (!normalizedSecret) {
+      throw new GeaPersonalModelError('GEA_PERSONAL_SECRET_MISSING');
+    }
+    const generation = this.authGeneration;
+    this.requireAccessToken(generation);
+    const url = resolvePersonalModelsUrl(baseUrl);
+    let response: Response;
+    try {
+      response = await this.fetchImpl(url, {
+        headers: {
+          Accept: 'application/json',
+          Authorization: `Bearer ${normalizedSecret}`,
+        },
+      });
+    } catch {
+      throw new GeaPersonalModelError('GEA_PERSONAL_MODELS_NETWORK_ERROR');
+    }
+    if (!response.ok) {
+      throw new GeaPersonalModelError(`GEA_PERSONAL_MODELS_HTTP_${response.status}`);
+    }
+    let payload: OpenAiModelsResponse;
+    try {
+      payload = (await response.json()) as OpenAiModelsResponse;
+    } catch {
+      throw new GeaPersonalModelError('GEA_PERSONAL_MODELS_INVALID');
+    }
+    if (!Array.isArray(payload.data)) {
+      throw new GeaPersonalModelError('GEA_PERSONAL_MODELS_INVALID');
+    }
+    const models = payload.data.map(parseOpenAiModelId);
+    this.requireAccessToken(generation);
+    return [...new Set(models)];
   }
 
   async createMcpGatewaySession(agentCode: string): Promise<GeaMcpGatewaySession> {
@@ -326,6 +466,38 @@ export class GeaLarkAuthService {
     }
   }
 
+  private async requestPersonalModelJson<T>(
+    path: string,
+    accessToken: string,
+    method: 'GET' | 'POST' = 'GET',
+    tenantId: string = DEFAULT_GEA_TENANT_ID
+  ): Promise<T> {
+    let response: Response;
+    try {
+      response = await this.fetchImpl(`${this.baseUrl}${path}`, {
+        method,
+        headers: {
+          Accept: 'application/json',
+          'Cache-Control': 'no-store',
+          'X-Access-Token': accessToken,
+          'X-Tenant-Id': tenantId,
+        },
+      });
+    } catch {
+      throw new GeaPersonalModelError('GEA_PERSONAL_NETWORK_ERROR');
+    }
+    if (!response.ok) {
+      throw new GeaPersonalModelError(
+        response.status === 401 ? 'GEA_LOGIN_REQUIRED' : `GEA_PERSONAL_HTTP_${response.status}`
+      );
+    }
+    try {
+      return (await response.json()) as T;
+    } catch {
+      throw new GeaPersonalModelError('GEA_PERSONAL_INVALID_RESPONSE');
+    }
+  }
+
   private async fetchCurrentUser(token: string): Promise<WebHostLarkAuthUser> {
     let response: Response;
     try {
@@ -355,6 +527,86 @@ export class GeaLarkAuthService {
       ...(typeof raw?.phone === 'string' && raw.phone.trim() ? { phone: raw.phone.trim() } : {}),
     };
   }
+}
+
+function parsePersonalCredential(value: unknown): GeaPersonalModelCredential {
+  if (!value || typeof value !== 'object') {
+    throw new GeaPersonalModelError('GEA_PERSONAL_CREDENTIAL_INVALID');
+  }
+  const raw = value as Record<string, unknown>;
+  const credentialId = typeof raw.id === 'string' ? raw.id.trim() : '';
+  const tenantId = normalizeTenantId(raw.tenantId);
+  const accessKeyId = typeof raw.accessKeyId === 'string' ? raw.accessKeyId.trim() : '';
+  const agentCode = typeof raw.agentId === 'string' ? raw.agentId.trim() : '';
+  const status = parsePersonalCredentialStatus(raw.status);
+  if (!credentialId || !accessKeyId || !agentCode) {
+    throw new GeaPersonalModelError('GEA_PERSONAL_CREDENTIAL_INVALID');
+  }
+  return { credentialId, accessKeyId, agentCode, status, tenantId };
+}
+
+function normalizeTenantId(value: unknown): string {
+  const tenantId = typeof value === 'number' ? String(value) : typeof value === 'string' ? value.trim() : '';
+  if (!/^\d+$/.test(tenantId)) {
+    throw new GeaPersonalModelError('GEA_PERSONAL_TENANT_ID_INVALID');
+  }
+  return tenantId;
+}
+
+function parseClaimedPersonalCredential(value: PersonalCredentialClaimResponse): GeaClaimedPersonalModelCredential {
+  const credentialId = typeof value.credentialId === 'string' ? value.credentialId.trim() : '';
+  const accessKeyId = typeof value.accessKeyId === 'string' ? value.accessKeyId.trim() : '';
+  const agentCode = typeof value.agentCode === 'string' ? value.agentCode.trim() : '';
+  const secret = typeof value.secret === 'string' ? value.secret.trim() : '';
+  const baseUrl = typeof value.baseUrl === 'string' ? normalizePersonalModelBaseUrl(value.baseUrl) : '';
+  const status = parsePersonalCredentialStatus(value.status);
+  if (!credentialId || !accessKeyId || !agentCode || !secret || !baseUrl || status !== 'ENABLED') {
+    throw new GeaPersonalModelError('GEA_PERSONAL_CREDENTIAL_CLAIM_INVALID');
+  }
+  return { credentialId, accessKeyId, agentCode, secret, baseUrl, status };
+}
+
+function parsePersonalCredentialStatus(value: unknown): GeaPersonalModelCredentialStatus {
+  if (
+    value === 'PENDING_CLAIM' ||
+    value === 'ENABLED' ||
+    value === 'ROTATION_PENDING' ||
+    value === 'DISABLED' ||
+    value === 'REVOKED'
+  ) {
+    return value;
+  }
+  throw new GeaPersonalModelError('GEA_PERSONAL_CREDENTIAL_STATUS_INVALID');
+}
+
+function normalizePersonalModelBaseUrl(value: string): string {
+  const url = new URL(value.trim());
+  const isLocalHttp =
+    url.protocol === 'http:' &&
+    (url.hostname === '127.0.0.1' || url.hostname === 'localhost' || url.hostname === '::1');
+  if (url.protocol !== 'https:' && !isLocalHttp) {
+    throw new GeaPersonalModelError('GEA_PERSONAL_GATEWAY_URL_INSECURE');
+  }
+  url.search = '';
+  url.hash = '';
+  return url.toString().replace(/\/$/, '');
+}
+
+function resolvePersonalModelsUrl(baseUrl: string): string {
+  return `${normalizePersonalModelBaseUrl(baseUrl)}/models`;
+}
+
+function parseOpenAiModelId(value: unknown): string {
+  const id =
+    typeof value === 'string'
+      ? value.trim()
+      : value && typeof value === 'object' && typeof (value as { id?: unknown }).id === 'string'
+        ? (value as { id: string }).id.trim()
+        : '';
+  if (!id) {
+    throw new GeaPersonalModelError('GEA_PERSONAL_MODEL_INVALID');
+  }
+  return id;
 }
 
 function toGatewayErrorCode(code: unknown, fallback: string): string {

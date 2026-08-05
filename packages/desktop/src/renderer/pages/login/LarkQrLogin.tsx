@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Alert, Button, Spin, Typography } from '@arco-design/web-react';
+import { Alert, Button, Message, Spin, Typography } from '@arco-design/web-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { QRCodeSVG } from 'qrcode.react';
@@ -77,6 +77,16 @@ const LarkQrLogin = () => {
             void poll();
           }, POLL_INTERVAL_MS);
         }
+        if (result.data.status === 'authenticated' && result.data.personalModelSync) {
+          const sync = result.data.personalModelSync;
+          if (sync.status === 'unavailable') {
+            Message.warning(t('login.lark.personalModels.unavailable'));
+          } else if (sync.status === 'partial') {
+            Message.warning(t('login.lark.personalModels.partial'));
+          } else if (sync.configured > 0) {
+            Message.success(t('login.lark.personalModels.configured', { count: sync.configured }));
+          }
+        }
       } catch {
         if (!cancelled) {
           setErrorCode('networkError');
@@ -92,7 +102,7 @@ const LarkQrLogin = () => {
       cancelled = true;
       if (timer !== undefined) window.clearTimeout(timer);
     };
-  }, [phase, pollLarkQrLogin, session]);
+  }, [phase, pollLarkQrLogin, session, t]);
 
   const errorMessage =
     errorCode === 'invalidResponse'

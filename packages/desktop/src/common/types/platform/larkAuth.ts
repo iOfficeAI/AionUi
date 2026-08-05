@@ -21,9 +21,27 @@ export type LarkAuthUser = {
 
 export type LarkQrLoginStatus = 'pending' | 'expired' | 'authenticated';
 
+export type PersonalModelSyncResult = {
+  configured: number;
+  failed: number;
+  reason?:
+    | 'credentialListFailed'
+    | 'credentialClaimFailed'
+    | 'credentialSyncFailed'
+    | 'localProxyFailed'
+    | 'modelDiscoveryFailed'
+    | 'notAuthenticated'
+    | 'providerListFailed'
+    | 'providerSaveFailed'
+    | 'secureStorageUnavailable';
+  skipped: number;
+  status: 'completed' | 'notAuthenticated' | 'partial' | 'unavailable';
+};
+
 export type LarkQrLoginPollResult = {
   status: LarkQrLoginStatus;
   user?: LarkAuthUser;
+  personalModelSync?: PersonalModelSyncResult;
 };
 
 export type LarkAuthStatus = {
