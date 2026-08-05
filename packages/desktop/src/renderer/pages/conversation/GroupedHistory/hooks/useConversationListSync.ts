@@ -60,9 +60,15 @@ export type SidebarStreamGuardDecision = {
 export const getSidebarStreamGuardDecision = ({
   type,
   completed,
+  completedTurnId,
+  streamTurnId,
 }: {
   type: string;
   completed: boolean;
+  /** Turn whose completion set the `completed` flag, when known. */
+  completedTurnId?: string | null;
+  /** Turn the incoming stream frame belongs to, when known. */
+  streamTurnId?: string | null;
 }): SidebarStreamGuardDecision => {
   if (!isGeneratingStreamMessage(type)) {
     return {
@@ -81,10 +87,28 @@ export const getSidebarStreamGuardDecision = ({
   }
 
   if (completed) {
+    // A frame from a DIFFERENT turn than the one that completed is not late —
+    // it belongs to a newer turn. codex keeps streaming after ending its
+    // prompt turn (unified exec runs the command in a background PTY), so the
+    // old turn's completion used to swallow the next turn's whole stream and
+    // the sidebar never lit up as generating.
+    const isNewerTurn =
+      typeof streamTurnId === 'string' &&
+      streamTurnId.length > 0 &&
+      typeof completedTurnId === 'string' &&
+      completedTurnId.length > 0 &&
+      streamTurnId !== completedTurnId;
+    if (!isNewerTurn) {
+      return {
+        markGenerating: false,
+        clearCompleted: false,
+        lateIgnored: true,
+      };
+    }
     return {
-      markGenerating: false,
-      clearCompleted: false,
-      lateIgnored: true,
+      markGenerating: true,
+      clearCompleted: true,
+      lateIgnored: false,
     };
   }
 
@@ -207,8 +231,13 @@ const clearCompletionUnreadState = (conversation_id: string) => {
   emitStoreChange();
 };
 
-const markCompleted = (conversation_id: string) => {
+/** Turn id that put a conversation into the `completed` set (for turn-aware
+ *  late-frame detection). */
+const completedTurnIdByConversation = new Map<string, string | null>();
+
+const markCompleted = (conversation_id: string, turn_id?: string | null) => {
   completedConversationIdsState = new Set(completedConversationIdsState).add(conversation_id);
+  completedTurnIdByConversation.set(conversation_id, turn_id ?? null);
 };
 
 const clearCompleted = (conversation_id: string) => {
@@ -219,6 +248,7 @@ const clearCompleted = (conversation_id: string) => {
   const next = new Set(completedConversationIdsState);
   next.delete(conversation_id);
   completedConversationIdsState = next;
+  completedTurnIdByConversation.delete(conversation_id);
 };
 
 const logLateStreamIgnored = (conversation_id: string, type: string) => {
@@ -278,6 +308,8 @@ const initializeConversationListSyncStore = () => {
     const decision = getSidebarStreamGuardDecision({
       type: message.type,
       completed: completedConversationIdsState.has(conversation_id),
+      completedTurnId: completedTurnIdByConversation.get(conversation_id) ?? null,
+      streamTurnId: message.turn_id ?? null,
     });
     if (decision.clearCompleted) {
       clearCompleted(conversation_id);
@@ -294,7 +326,7 @@ const initializeConversationListSyncStore = () => {
     if (isTerminalTurnState(event.state) && activeConversationIdState !== event.session_id) {
       markCompletionUnread(event.session_id);
     }
-    markCompleted(event.session_id);
+    markCompleted(event.session_id, event.turn_id);
     clearGenerating(event.session_id);
     refreshConversations();
   });

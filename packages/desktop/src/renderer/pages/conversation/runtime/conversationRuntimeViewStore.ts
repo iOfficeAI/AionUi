@@ -24,6 +24,7 @@ export type ConversationRuntimeViewLogEvent =
   | 'runtime_hydrate_missing_summary'
   | 'turn_completed_applied'
   | 'turn_completed_missing_runtime'
+  | 'turn_completed_ignored_for_other_turn'
   | 'runtime_release_confirmed'
   | 'local_send_started'
   | 'local_send_accepted'
@@ -453,6 +454,21 @@ export const turnCompleted = (
   turn_id: string,
   runtime: TConversationRuntimeSummary | null
 ): ConversationRuntimeViewLogEntry[] => {
+  const current = runtimeViews.get(conversation_id);
+  // A completion for a turn that is NOT the one currently running must not
+  // touch the view: codex keeps streaming after ending its prompt turn (unified
+  // exec leaves the command running in a background PTY), so the trailing
+  // CLI-initiated turn's completion can land AFTER the user's next turn has
+  // already started — clearing that new turn's pending-send gate and resetting
+  // its state from a stale summary.
+  if (current?.activeTurnId && turn_id && current.activeTurnId !== turn_id) {
+    return [
+      createLog('warn', 'turn_completed_ignored_for_other_turn', current, {
+        turn_id,
+        active_turn_id: current.activeTurnId,
+      }),
+    ];
+  }
   const metadata = getRuntimeMetadata(conversation_id);
   metadata.pendingLocalSendSeq = null;
   if (metadata.pendingStopTurnId === turn_id) {
