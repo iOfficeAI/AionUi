@@ -87,3 +87,75 @@ describe('backend startup copy — no misleading reinstall/antivirus wording (AC
     expect(backendStartup.incompleteInstallation.description).toContain('重新安装');
   });
 });
+
+// Sentry 136646113 — the new portReportTimeout reason and the neutralized
+// startupFailed fallback both reuse the exited.* key structure.
+describe('backend startup copy — portReportTimeout / startupFailed (Sentry 136646113)', () => {
+  const NEW_GROUPS = ['portReportTimeout', 'startupFailed'] as const;
+
+  it('every supported language defines both new key groups with the exited key structure', () => {
+    for (const lang of config.supportedLanguages) {
+      const backendStartup = getBackendStartup(lang);
+      for (const group of NEW_GROUPS) {
+        const entry = backendStartup[group];
+        expect(entry, `${lang} ${group} missing`).toBeDefined();
+        for (const key of EXITED_KEYS) {
+          expect(typeof entry[key], `${lang} ${group}.${key}`).toBe('string');
+          expect(entry[key].length, `${lang} ${group}.${key} empty`).toBeGreaterThan(0);
+        }
+      }
+    }
+  });
+
+  it('no locale reuses installation-integrity guidance wording in the new copy', () => {
+    const forbidden = [
+      'reinstall',
+      'réinstall',
+      'neu installieren',
+      'reinstal',
+      'переустанов',
+      'перевстанов',
+      'yeniden yükle',
+      '再インストール',
+      '재설치',
+      '重新安装',
+      '重装',
+      '重新安裝',
+      '杀毒',
+      '防毒',
+      '隔离',
+      '隔離',
+      'antivirus',
+      'quarantine',
+      'quarantaine',
+    ];
+    for (const lang of config.supportedLanguages) {
+      const backendStartup = getBackendStartup(lang);
+      for (const group of NEW_GROUPS) {
+        for (const key of ['title', 'description'] as const) {
+          const text = backendStartup[group][key].toLowerCase();
+          for (const phrase of forbidden) {
+            expect(text.includes(phrase.toLowerCase()), `${lang} ${group}.${key} contains "${phrase}"`).toBe(false);
+          }
+        }
+      }
+    }
+  });
+
+  it('new titles stay distinguishable from exited / incompleteInstallation titles in every locale', () => {
+    for (const lang of config.supportedLanguages) {
+      const backendStartup = getBackendStartup(lang);
+      expect(backendStartup.portReportTimeout.title, `${lang} portReportTimeout title clashes with exited`).not.toBe(
+        backendStartup.exited.title
+      );
+      expect(
+        backendStartup.portReportTimeout.title,
+        `${lang} portReportTimeout title clashes with incompleteInstallation`
+      ).not.toBe(backendStartup.incompleteInstallation.title);
+      expect(
+        backendStartup.startupFailed.title,
+        `${lang} startupFailed title clashes with incompleteInstallation`
+      ).not.toBe(backendStartup.incompleteInstallation.title);
+    }
+  });
+});
