@@ -198,7 +198,8 @@ describe('MarkdownViewer', () => {
           language: 'ts',
           targetLine: 10,
           targetColumn: undefined,
-          truncated: false,
+          oversized: false,
+          lastModified: 1_717_000_000,
         }),
         { replace: true }
       );
@@ -229,7 +230,8 @@ describe('MarkdownViewer', () => {
           language: 'ts',
           targetLine: 1,
           targetColumn: undefined,
-          truncated: false,
+          oversized: false,
+          lastModified: 1_717_000_000,
         }),
         { replace: true }
       );

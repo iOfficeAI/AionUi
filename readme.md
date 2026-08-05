@@ -368,7 +368,6 @@ _10+ formats: PDF, Word, Excel, PPT, code, Markdown, images, HTML, Diff — view
 - **Instant Preview** — after the agent generates files, view results immediately without switching apps
 - **Real-time Tracking + Editable** — automatically tracks file changes; supports live editing of Markdown, code, HTML
 - **Multi-Tab Support** — open multiple files simultaneously, each in its own tab
-- **Version History** — view and restore historical versions of files (Git-based)
 
 <p align="center">
   <img src="./resources/preview.gif" alt="Preview Panel" width="800">

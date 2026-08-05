@@ -29,7 +29,7 @@ import { isBackendHttpError } from '@/common/adapter/httpBridge';
 import { PROJECT_ERROR_DUPLICATE, PROJECT_ERROR_OVERLAP } from '@/common/types/project';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import WorkspaceOpenButton from '@/renderer/pages/conversation/components/ChatLayout/WorkspaceOpenButton';
-import { getContentTypeByExtension } from '@/renderer/pages/conversation/Preview/fileUtils';
+import { getFileTypeInfo } from '@/renderer/utils/file/fileType';
 import { classifyPreviewError, previewErrorToI18nKey } from '@/renderer/utils/previewError';
 // PATCH(ELECTRON-3SZ): used only by the preview payload patch below — remove with it.
 import type { PreviewContentType } from '@/common/types/office/preview';
@@ -38,6 +38,7 @@ import { emitter } from '@/renderer/utils/emitter';
 import { projectFileRef } from '@/common/types/chatFile';
 import type { ChatFileRef } from '@/common/types/chatFile';
 import type { FileOrFolderItem } from '@/renderer/utils/file/fileTypes';
+import { resolvePreviewPayload } from '@/renderer/utils/file/previewPayload';
 
 import { ExplorerPanel } from './ExplorerPanel';
 import { buildRemoveRequest, buildRenameRequest, parentRel, peKey, type RenameRequest } from './explorerModel';
@@ -74,42 +75,57 @@ export type ExplorerPreviewPayload = {
     fileRef: ChatFileRef;
     language: string;
     editable?: boolean;
+    oversized?: boolean;
+    sizeBytes?: number;
+    thresholdBytes?: number;
+    lastModified?: number;
   };
 };
 
 // The Explorer tree knows `{pe_id, relative_path}`, mapped straight to a Project
-// ChatFileRef. Text/image read their content eagerly over `/api/fs/content`
-// (utf8 / dataurl — the backend prepends the image data-URL prefix); pdf and
-// office carry no content (pdf renders from the stream URL, office resolves the
-// ref server-side for its watch). No absolute path is ever exposed — the old WS
-// path-resolve patch is gone.
+// ChatFileRef. Reading goes through the shared `resolvePreviewPayload` gate, so
+// this entry point applies the same size ceiling and picks up the same
+// save-conflict timestamp as every other way of opening a file. No absolute path
+// is ever exposed — the old WS path-resolve patch is gone.
 export const buildExplorerPreviewPayload = async (
   peId: string,
   relativePath: string
 ): Promise<ExplorerPreviewPayload> => {
   const name = relativePath.split('/').pop() || relativePath;
-  const contentType = getContentTypeByExtension(name);
+  const { contentType, editable } = getFileTypeInfo(name);
   const fileRef = projectFileRef(peId, relativePath);
 
-  let content = '';
-  if (contentType === 'image') {
-    content = await ipcBridge.fs.readContent.invoke({ file: fileRef, encoding: 'dataurl' });
-  } else if (contentType === 'pdf' || contentType === 'word' || contentType === 'excel' || contentType === 'ppt') {
-    // Binary preview: no content read. pdf renders via the /api/fs/stream URL
-    // built from fileRef; office resolves fileRef server-side for its watch.
-  } else {
-    content = await ipcBridge.fs.readContent.invoke({ file: fileRef, encoding: 'utf8' });
-  }
+  const payload = await resolvePreviewPayload(fileRef, contentType);
 
   return {
-    content,
+    content: payload.content,
     contentType,
     metadata: {
       title: name,
       file_name: name,
       fileRef,
       language: name.split('.').pop() || '',
-      editable: contentType === 'markdown' || contentType === 'image' ? false : undefined,
+      // Taken from the type table, then tightened — never decided here.
+      //
+      // This entry point used to compute editability itself, which made it a second
+      // source for one fact. It happened to agree with the table on everything that
+      // mattered, and "happened to agree" is the whole problem: nothing kept the two in
+      // step, and the day they diverged the symptom would be one file behaving
+      // differently depending on whether it was opened from the tree or from a message.
+      // It also produced a wrong answer that something else then reasoned from —
+      // markdown was marked read-only here, and persistence nearly took that to mean
+      // its content could not have been edited.
+      //
+      // `oversized` still has to be applied on top, because it is a fact about this
+      // read rather than about the type: the file was never fully loaded, so letting a
+      // fragment reach a saveable editor is what destroyed files before. Tightening is
+      // the only direction available here, so this can restrict what the table allows
+      // and can never contradict it.
+      editable: payload.oversized ? false : editable,
+      oversized: payload.oversized,
+      sizeBytes: payload.sizeBytes,
+      thresholdBytes: payload.thresholdBytes,
+      lastModified: payload.lastModified,
     },
   };
 };

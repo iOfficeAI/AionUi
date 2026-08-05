@@ -136,7 +136,7 @@ describe('PreviewContext browser tabs', () => {
 });
 
 describe('PreviewContext browser tab persistence', () => {
-  const readScope = (scope: string) => JSON.parse(localStorage.getItem(`aionui_preview:${scope}`) ?? '{}');
+  const readScope = (scope: string) => JSON.parse(localStorage.getItem(`preview-ui:${scope}`) ?? '{}');
 
   it('persists browser tabs per project so switching projects restores the right pages', async () => {
     renderProvider();
@@ -232,17 +232,32 @@ describe('PreviewContext focus on open', () => {
     expect(ctx.activeTabId).toBe(browserTabs()[1].id);
   });
 
-  it('re-focuses the existing tab when the same content is opened again', () => {
+  // Dedup keys on ChatFileRef identity. A file name is not identity — matching on it
+  // merged same-named files from different directories into one tab, where they
+  // overwrote each other. Two ref-less tabs therefore stay separate.
+  it('re-focuses the existing tab when the same file is opened again', () => {
+    const fileRef = { kind: 'project' as const, pe_id: 'peA', relative_path: 'src/a.ts' };
+    const otherRef = { kind: 'project' as const, pe_id: 'peA', relative_path: 'src/b.ts' };
     renderProvider();
-    act(() => ctx.openPreview('a', 'code', { file_name: 'a.ts' }));
+    act(() => ctx.openPreview('a', 'code', { file_name: 'a.ts', fileRef }));
     const firstId = ctx.tabs[0].id;
-    act(() => ctx.openPreview('b', 'code', { file_name: 'b.ts' }));
+    act(() => ctx.openPreview('b', 'code', { file_name: 'b.ts', fileRef: otherRef }));
     expect(ctx.activeTabId).not.toBe(firstId);
 
-    act(() => ctx.openPreview('a', 'code', { file_name: 'a.ts' }));
+    act(() => ctx.openPreview('a', 'code', { file_name: 'a.ts', fileRef }));
 
     expect(ctx.tabs).toHaveLength(2);
     expect(ctx.activeTabId).toBe(firstId);
+  });
+
+  it('keeps ref-less tabs separate rather than merging them by name', () => {
+    renderProvider();
+    act(() => ctx.openPreview('a', 'code', { file_name: 'a.ts' }));
+    act(() => ctx.openPreview('a', 'code', { file_name: 'a.ts' }));
+
+    // No identity to compare, so no dedup: an extra tab is the safe outcome, while
+    // a wrong merge would let two files overwrite each other.
+    expect(ctx.tabs).toHaveLength(2);
   });
 
   /**

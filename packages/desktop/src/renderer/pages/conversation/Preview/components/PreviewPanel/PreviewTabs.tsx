@@ -163,6 +163,27 @@ const PreviewTabs: React.FC<PreviewTabsProps> = ({
                 style={{ maxWidth: `${MAX_TAB_WIDTH_PX}px` }}
                 onClick={() => onSwitchTab(tab.id)}
                 onContextMenu={(e) => onContextMenu(e, tab.id)}
+                // 中键关闭 / Middle-click to close.
+                //
+                // 走 onCloseTab 而不是直接关，所以未保存的 tab 仍会先弹确认——中键
+                // 不能成为绕过该确认的第二条路。
+                //
+                // Routed through onCloseTab rather than closing directly, so a tab with
+                // unsaved edits still asks first: middle-click must not become a second
+                // path around that confirmation.
+                //
+                // preventDefault 只在这个 tab 上：中键在浏览器里默认触发自动滚动，
+                // 而全局拦截会连带破坏页面其它地方的正常中键行为。
+                //
+                // preventDefault is scoped to this tab: middle-click otherwise starts
+                // autoscroll, and intercepting it globally would break legitimate
+                // middle-click behaviour elsewhere on the page.
+                onAuxClick={(e) => {
+                  if (e.button !== 1) return;
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onCloseTab(tab.id);
+                }}
               >
                 {/* min-w-0 是省略号生效的前提：flex 子项默认按内容撑开，不允许收缩
                     min-w-0 is what makes truncation possible: a flex child defaults

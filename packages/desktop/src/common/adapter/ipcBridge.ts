@@ -35,7 +35,6 @@ import type {
   SetAssistantStateRequest,
   UpdateAssistantRequest,
 } from '../types/agent/assistantTypes';
-import type { PreviewHistoryTarget, PreviewSnapshotInfo } from '../types/office/preview';
 import type {
   EnsureConversationRuntimeResponse,
   GetConfigOptionsResponse,
@@ -418,6 +417,27 @@ export const project = {
    * for a subdir, the existing focused) entry. 409 `project_explorer_duplicate` /
    * `project_explorer_overlap` surface via BackendHttpError.code.
    */
+  /**
+   * POST /api/projects/{id}/resolve-ref → the strongest identity for a file.
+   *
+   * The explorer and a chat link describe the same file differently (`project` vs
+   * `local`), so anything keyed on the ref — tab identity, change subscriptions —
+   * would otherwise treat one file as two. This resolves a local path that lives
+   * under one of the project's roots into its project form.
+   *
+   * Always answers with a usable ref: `project` and `upload` come back untouched,
+   * and a path outside every root — or one that does not exist — is echoed back
+   * rather than raising, so a caller mid-way through opening a missing file still
+   * has something to render with. `upgraded` says whether it changed.
+   *
+   * The comparison stays server-side because case folding is a compile-time
+   * platform decision; comparing path strings here would miss matches on macOS and
+   * merge distinct files on Linux.
+   */
+  resolveRef: httpPost<{ file: ChatFileRef; upgraded: boolean }, { project_id: string; file: ChatFileRef }>(
+    (p) => `/api/projects/${encodeURIComponent(p.project_id)}/resolve-ref`,
+    (p) => ({ file: p.file })
+  ),
   attachFolder: httpPost<ProjectEntryDto, { project_id: string } & AttachFolderRequest>(
     (p) => `/api/projects/${encodeURIComponent(p.project_id)}/folders`,
     (p) => (p.display_name ? { uri: p.uri, display_name: p.display_name } : { uri: p.uri })
@@ -688,6 +708,14 @@ export const fs = {
   // calls shell.showItemInFolder — the front end never builds the absolute path
   // (avoids the Windows verbatim `\\?\` pitfall). Electron-only at the call site.
   reveal: httpPost<void, { pe_id: string; relative_path: string }>('/api/fs/reveal'),
+  // Open a file in the OS default application, addressed by ChatFileRef so it
+  // works for all three ref kinds (project / local / upload). The backend
+  // resolves the ref and shells out; the front end never receives an absolute
+  // path — errors come back as codes only (FILE_NOT_FOUND / REVEAL_FAILED /
+  // INTERNAL_ERROR), never a message containing a path. This is the escape hatch
+  // for tabs that cannot be previewed (oversized, unsupported), including
+  // explorer-opened files that deliberately carry no file_path.
+  openSystem: httpPost<void, { file: ChatFileRef }>('/api/fs/open-system'),
   listWorkspaceFiles: withResponseMap(
     httpPost<Array<RawWorkspaceFlatFile>, { root: string }>('/api/fs/list'),
     fromBackendWorkspaceFlatFiles
@@ -831,12 +859,13 @@ export const fs = {
 // File Watch — routed to /api/fs/watch/*
 // ---------------------------------------------------------------------------
 
-// Workspace Office file watch
-export const workspaceOfficeWatch = {
-  start: httpPost<void, { workspace: string }>('/api/fs/office-watch/start'),
-  stop: httpPost<void, { workspace: string }>('/api/fs/office-watch/stop'),
-  fileAdded: wsEmitter<{ file_path: string; workspace: string }>('workspaceOfficeWatch.fileAdded'),
-};
+// Note for whoever next compares a watch event's path against a local one: the
+// workspace Office watch removed here carried the repo's only macOS
+// `/private/var` → `/var` (and `/private/tmp` → `/tmp`) normalizer. macOS reports
+// watch events under the `/private` symlink while a workspace path usually is not,
+// so a naive string comparison silently never matches on that platform. The fold
+// survives as `normalizeWatchPath` in `renderer/utils/workspace/workspace.ts` —
+// use it on both sides of the comparison.
 
 // File streaming updates (real-time content push when agent writes)
 export const fileStream = {
@@ -1200,28 +1229,6 @@ export const database = {
   ),
 };
 
-// ---------------------------------------------------------------------------
-// Preview History — routed to /api/preview-history/*
-// ---------------------------------------------------------------------------
-
-function mapPreviewTarget(target: PreviewHistoryTarget): Record<string, unknown> {
-  return { ...target, content_type: target.contentType, contentType: undefined };
-}
-
-export const previewHistory = {
-  list: httpPost<PreviewSnapshotInfo[], { target: PreviewHistoryTarget }>('/api/preview-history/list', (p) => ({
-    target: mapPreviewTarget(p.target),
-  })),
-  save: httpPost<PreviewSnapshotInfo, { target: PreviewHistoryTarget; content: string }>(
-    '/api/preview-history/save',
-    (p) => ({ target: mapPreviewTarget(p.target), content: p.content })
-  ),
-  getContent: httpPost<
-    { snapshot: PreviewSnapshotInfo; content: string } | null,
-    { target: PreviewHistoryTarget; snapshot_id: string }
-  >('/api/preview-history/get-content', (p) => ({ target: mapPreviewTarget(p.target), snapshot_id: p.snapshot_id })),
-};
-
 // Preview panel
 export const preview = {
   open: wsEmitter<{
@@ -1339,10 +1346,6 @@ export const systemSettings = {
   getSaveUploadToWorkspace: httpGetClientSetting<boolean>('saveUploadToWorkspace'),
   setSaveUploadToWorkspace: httpPut<void, { enabled: boolean }>('/api/settings/client', (p) => ({
     saveUploadToWorkspace: p.enabled,
-  })),
-  getAutoPreviewOfficeFiles: httpGetClientSetting<boolean>('autoPreviewOfficeFiles'),
-  setAutoPreviewOfficeFiles: httpPut<void, { enabled: boolean }>('/api/settings/client', (p) => ({
-    autoPreviewOfficeFiles: p.enabled,
   })),
   getPetEnabled: bridge.buildProvider<boolean, void>('system-settings:get-pet-enabled'),
   setPetEnabled: bridge.buildProvider<void, { enabled: boolean }>('system-settings:set-pet-enabled'),

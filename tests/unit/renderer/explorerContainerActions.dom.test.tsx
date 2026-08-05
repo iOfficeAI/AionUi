@@ -73,6 +73,7 @@ const removeFolder = vi.fn();
 const showOpen = vi.fn();
 const copyFiles = vi.fn();
 const readContent = vi.fn();
+const getContentMetadata = vi.fn();
 vi.mock('@/common', () => ({
   ipcBridge: {
     project: {
@@ -83,6 +84,10 @@ vi.mock('@/common', () => ({
     fs: {
       copyFilesToProject: { invoke: (p: unknown) => copyFiles(p) },
       readContent: { invoke: (p: unknown) => readContent(p) },
+      // Opening a file goes through resolvePreviewPayload, which stats it first:
+      // size decides whether the content is read at all, lastModified becomes the
+      // save-time If-Match.
+      getContentMetadata: { invoke: (p: unknown) => getContentMetadata(p) },
     },
     dialog: { showOpen: { invoke: (p: unknown) => showOpen(p) } },
   },
@@ -126,6 +131,14 @@ beforeEach(() => {
   activeConversationId = null;
   fsRead.mockReset().mockResolvedValue({ content: 'hello', encoding: 'utf-8' });
   readContent.mockReset().mockResolvedValue('hello');
+  // Small file, well within the preview size ceiling.
+  getContentMetadata.mockReset().mockResolvedValue({
+    name: 'readme.md',
+    path: '/abs/readme.md',
+    size: 5,
+    type: 'file',
+    lastModified: 1_717_000_000,
+  });
   vi.spyOn(Message, 'info').mockImplementation(() => '' as never);
   vi.spyOn(Message, 'warning').mockImplementation(() => '' as never);
   vi.spyOn(Message, 'error').mockImplementation(() => '' as never);

@@ -129,3 +129,12 @@ export {
   type TProviderWithModel,
   type AionrsTestModels,
 } from './chatAionrs';
+export {
+  installMonitorRecorder,
+  monitorRecorderStatus,
+  readMonitorEvents,
+  clearMonitorEvents,
+  uninstallMonitorRecorder,
+  type MonitorEvent,
+  type MonitorRecorderStatus,
+} from './monitorEvents';
