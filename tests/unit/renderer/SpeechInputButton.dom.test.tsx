@@ -72,8 +72,15 @@ describe('SpeechInputButton', () => {
     expect(button.getAttribute('aria-label')).toContain('M');
     fireEvent.mouseEnter(view.container.querySelector('.speech-input-control') as Element);
 
-    fireEvent.keyDown(window, { code: 'KeyM', metaKey: true });
-    await waitFor(() => expect(mocks.startRecording).toHaveBeenCalledTimes(1));
+    // The window keydown listener is attached in an effect gated on async
+    // config loading, so a single fire can race the attachment on slow CI
+    // runners. Retry the press until it is observed; presses before the
+    // listener exists contribute zero calls, so the final count stays exact.
+    await waitFor(() => {
+      fireEvent.keyDown(window, { code: 'KeyM', metaKey: true });
+      expect(mocks.startRecording).toHaveBeenCalled();
+    });
+    expect(mocks.startRecording).toHaveBeenCalledTimes(1);
 
     mocks.status = 'recording';
     view.rerender(<SpeechInputButton onTranscript={vi.fn()} />);
@@ -92,8 +99,14 @@ describe('SpeechInputButton', () => {
     const controls = view.container.querySelectorAll('.speech-input-control');
     fireEvent.mouseEnter(controls[1]);
 
-    fireEvent.keyDown(window, { code: 'KeyM', metaKey: true });
-    await waitFor(() => expect(mocks.startRecording).toHaveBeenCalledTimes(1));
+    // Same listener-attachment race as above: retry the press until observed.
+    // Only the hovered instance passes the ownership check, so the final
+    // count still proves exactly one recording started.
+    await waitFor(() => {
+      fireEvent.keyDown(window, { code: 'KeyM', metaKey: true });
+      expect(mocks.startRecording).toHaveBeenCalled();
+    });
+    expect(mocks.startRecording).toHaveBeenCalledTimes(1);
   });
 
   it('shows only the spinner button while transcribing', async () => {
