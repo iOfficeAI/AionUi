@@ -32,6 +32,7 @@ import { copyText } from '@/renderer/utils/ui/clipboard';
 import { blurActiveElement, shouldBlockMobileInputFocus } from '@/renderer/utils/ui/focus';
 import { Button, Input, Message, Tag } from '@arco-design/web-react';
 import { ArrowUp, CloseSmall, Plus, Quote } from '@icon-park/react';
+import { chatFileRefKey } from '@/common/types/chatFile';
 import type { SlashCommandItem } from '@/common/chat/slash/types';
 import { buildSkillSlashCommands, mergeSlashCommands } from '@/common/chat/slash/mergeSlashCommands';
 import React, { useCallback, useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
@@ -71,11 +72,22 @@ const getSelectedItemMatchKeys = (item: FileSelectionItem): string[] => {
   return [item.relativePath, item.path].filter((value): value is string => Boolean(value));
 };
 
-const getSelectedItemPath = (item: FileSelectionItem): string | undefined => {
+// Stable identity key for dedup / ownership tracking / React render key. A file
+// carrying a `chatRef` is keyed by its ref identity via `chatFileRefKey` — this
+// is what lets an Explorer pe ROOT (whose `relative_path` is '', so `item.path`
+// is the empty string) survive: its ref key is non-empty and unique per pe, so
+// distinct roots no longer collide on an empty path. Items without a chatRef
+// fall back to their path. This is NOT the mention match key set
+// (`getSelectedItemMatchKeys`), which stays keyed on relativePath/path for
+// `@`-query matching.
+const getSelectedItemKey = (item: FileSelectionItem): string | undefined => {
   if (typeof item === 'string') {
     return item;
   }
-  return item.path;
+  if (item.chatRef) {
+    return chatFileRefKey(item.chatRef);
+  }
+  return item.path || undefined;
 };
 
 const getSelectedItemDisplayLabel = (item: FileSelectionItem): string => {
@@ -86,7 +98,7 @@ const getSelectedItemDisplayLabel = (item: FileSelectionItem): string => {
 };
 
 const rememberSelectedItem = (itemsByPath: Map<string, FileSelectionItem>, item: FileSelectionItem): void => {
-  const path = getSelectedItemPath(item);
+  const path = getSelectedItemKey(item);
   if (!path) {
     return;
   }
@@ -118,7 +130,7 @@ const areSelectionItemsEquivalent = (left: FileSelectionItem[], right: FileSelec
       return false;
     }
 
-    if (getSelectedItemPath(leftItem) !== getSelectedItemPath(rightItem)) {
+    if (getSelectedItemKey(leftItem) !== getSelectedItemKey(rightItem)) {
       return false;
     }
   }
@@ -137,7 +149,7 @@ const buildOwnedSelectionItems = (
   const seenPaths = new Set<string>();
 
   for (const item of currentItems) {
-    const path = getSelectedItemPath(item);
+    const path = getSelectedItemKey(item);
     if (!path || seenPaths.has(path) || !ownedPaths.has(path)) {
       continue;
     }
@@ -439,7 +451,14 @@ const SendBox: React.FC<{
 
     const mentionQueries = new Set(allAtFileQueries.map((item) => item.query));
     return selectedWorkspaceItems.filter((item) => {
-      if (typeof item !== 'string' && !item.isFile) {
+      // A non-file (folder) item is still a valid chat attachment when it
+      // carries a chatRef — the Explorer tree's add-to-chat builds a project
+      // ref, and a pe ROOT is a folder whose relative_path is ''. The backend
+      // resolves a directory ref to its absolute path (verified in
+      // aionui-project resolve_chat_file_ref: a project ref only requires the
+      // target to exist, not to be a regular file). Only drop a non-file item
+      // that has no ref identity at all.
+      if (typeof item !== 'string' && !item.isFile && !item.chatRef) {
         return false;
       }
       return !getSelectedItemMatchKeys(item).some((key) => mentionQueries.has(key));
@@ -854,7 +873,7 @@ const SendBox: React.FC<{
     }
 
     for (const item of selectedWorkspaceItems) {
-      const path = getSelectedItemPath(item);
+      const path = getSelectedItemKey(item);
       if (!path) {
         continue;
       }
@@ -866,7 +885,7 @@ const SendBox: React.FC<{
 
     const incomingPaths = new Set<string>();
     for (const item of selectedWorkspaceItems) {
-      const path = getSelectedItemPath(item);
+      const path = getSelectedItemKey(item);
       if (path) {
         incomingPaths.add(path);
       }
@@ -901,7 +920,7 @@ const SendBox: React.FC<{
 
   const handleExternalSelectionAppend = useCallback((items: FileSelectionItem[]) => {
     for (const item of items) {
-      const path = getSelectedItemPath(item);
+      const path = getSelectedItemKey(item);
       if (!path) {
         continue;
       }
@@ -985,7 +1004,7 @@ const SendBox: React.FC<{
       const nextValue = input.slice(0, activeAtFileQuery.start) + nextInsertion + input.slice(activeAtFileQuery.end);
       const nextCaret = activeAtFileQuery.start + nextInsertion.length;
       const insertedTokenKey = `${activeAtFileQuery.start}:${nextInsertion.slice(1)}`;
-      const path = getSelectedItemPath(item);
+      const path = getSelectedItemKey(item);
 
       setDismissedAtFileToken(insertedTokenKey);
       setInput(nextValue);
@@ -1583,11 +1602,11 @@ const SendBox: React.FC<{
             <div className='flex flex-wrap gap-6px mb-8px'>
               {unmatchedSelectedWorkspaceItems.map((item) => (
                 <Tag
-                  key={typeof item === 'string' ? item : item.path}
+                  key={getSelectedItemKey(item) ?? getSelectedItemDisplayLabel(item)}
                   closable
                   closeIcon={<CloseSmall theme='outline' size='12' />}
                   onClose={() => {
-                    const path = getSelectedItemPath(item);
+                    const path = getSelectedItemKey(item);
                     if (!path) {
                       return;
                     }
