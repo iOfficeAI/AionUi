@@ -25,6 +25,16 @@ export async function refreshManagedAgentCatalogAndAssistants(): Promise<Managed
 }
 
 /**
+ * Perform an ACP handshake for an agent and refresh the renderer catalogs
+ * with the metadata persisted by the backend.
+ */
+export async function probeManagedAgentCatalog(agentId: string): Promise<ManagedAgent> {
+  const agent = await ipcBridge.acpConversation.checkManagedAgentHealthById.invoke({ id: agentId });
+  await refreshManagedAgentCatalogAndAssistants();
+  return agent;
+}
+
+/**
  * Hook for the Agent settings management surface only. Reads the dedicated
  * `/api/agents/management` diagnostics view (`MANAGED_AGENTS_SWR_KEY`) so
  * user-disabled or missing agents stay listed with working test-connection

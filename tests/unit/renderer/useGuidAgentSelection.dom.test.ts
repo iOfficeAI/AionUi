@@ -20,9 +20,10 @@ import {
 let mockAssistants: Assistant[] = [];
 let mockManagedAgents: ManagedAgent[] = [];
 
-const { configGetMock, configSetMock } = vi.hoisted(() => ({
+const { configGetMock, configSetMock, probeManagedAgentCatalogMock } = vi.hoisted(() => ({
   configGetMock: vi.fn(),
   configSetMock: vi.fn(),
+  probeManagedAgentCatalogMock: vi.fn(),
 }));
 
 vi.mock('@/common/config/configService', () => ({
@@ -39,6 +40,7 @@ vi.mock('@/renderer/pages/guid/hooks/useCustomAgentsLoader', () => ({
 }));
 
 vi.mock('@/renderer/hooks/agent/useManagedAgents', () => ({
+  probeManagedAgentCatalog: probeManagedAgentCatalogMock,
   useManagedAgentRuntimeCatalog: () => mockManagedAgents,
 }));
 
@@ -46,6 +48,8 @@ describe('useGuidAssistantSelection', () => {
   beforeEach(() => {
     configGetMock.mockReturnValue(undefined);
     configSetMock.mockResolvedValue(undefined);
+    probeManagedAgentCatalogMock.mockClear();
+    probeManagedAgentCatalogMock.mockResolvedValue({} as ManagedAgent);
     mockManagedAgents = [];
     mockAssistants = [
       {
@@ -93,6 +97,102 @@ describe('useGuidAssistantSelection', () => {
         { id: 'claude-sonnet', label: 'claude-sonnet' },
       ],
     });
+  });
+
+  it('probes an online ACP agent when its model catalog is empty', async () => {
+    mockAssistants = [
+      assistantFixture({ id: 'assistant-claude', runtimeKey: 'claude', source: 'builtin', sortOrder: 1 }),
+    ];
+
+    const { result, unmount } = renderHook(() =>
+      useGuidAssistantSelection({
+        resetAssistant: false,
+      })
+    );
+
+    await waitFor(() => {
+      expect(probeManagedAgentCatalogMock).toHaveBeenCalledWith('agent-claude');
+    });
+    await waitFor(() => {
+      expect(result.current.modelCatalogProbeLoading).toBe(false);
+    });
+    unmount();
+  });
+
+  it('does not probe the same ACP agent more than once while the catalog is empty', async () => {
+    mockAssistants = [
+      assistantFixture({ id: 'assistant-claude', runtimeKey: 'claude', source: 'builtin', sortOrder: 1 }),
+    ];
+
+    const { rerender, unmount } = renderHook(() =>
+      useGuidAssistantSelection({
+        resetAssistant: false,
+      })
+    );
+
+    await waitFor(() => {
+      expect(probeManagedAgentCatalogMock).toHaveBeenCalledTimes(1);
+    });
+
+    rerender();
+    expect(probeManagedAgentCatalogMock).toHaveBeenCalledTimes(1);
+    unmount();
+  });
+
+  it('surfaces ACP catalog probe failures without retrying', async () => {
+    const error = new Error('ACP handshake failed');
+    probeManagedAgentCatalogMock.mockRejectedValue(error);
+    mockAssistants = [
+      assistantFixture({ id: 'assistant-claude', runtimeKey: 'claude', source: 'builtin', sortOrder: 1 }),
+    ];
+
+    const { result, unmount } = renderHook(() =>
+      useGuidAssistantSelection({
+        resetAssistant: false,
+      })
+    );
+
+    await waitFor(() => {
+      expect(result.current.modelCatalogProbeError).toBe(error);
+    });
+
+    expect(result.current.modelCatalogProbeLoading).toBe(false);
+    expect(probeManagedAgentCatalogMock).toHaveBeenCalledTimes(1);
+    unmount();
+  });
+
+  it('clears a previous probe failure when the selected assistant changes', async () => {
+    const error = new Error('ACP handshake failed');
+    probeManagedAgentCatalogMock.mockRejectedValue(error);
+    mockAssistants = [
+      assistantFixture({ id: 'assistant-claude', runtimeKey: 'claude', source: 'builtin', sortOrder: 1 }),
+      {
+        ...assistantFixture({ id: 'assistant-codex', runtimeKey: 'codex', source: 'builtin', sortOrder: 2 }),
+        models: ['gpt-5.4-codex'],
+      },
+    ];
+
+    const { result, rerender, unmount } = renderHook(() =>
+      useGuidAssistantSelection({
+        resetAssistant: false,
+      })
+    );
+
+    await waitFor(() => {
+      expect(result.current.modelCatalogProbeError).toBe(error);
+    });
+
+    act(() => {
+      result.current.setSelectedAssistantId('assistant-codex');
+    });
+    rerender();
+
+    await waitFor(() => {
+      expect(result.current.selectedAssistantId).toBe('assistant-codex');
+      expect(result.current.modelCatalogProbeError).toBeNull();
+    });
+    expect(result.current.currentAcpCachedModelInfo?.available_models[0]?.id).toBe('gpt-5.4-codex');
+    unmount();
   });
 
   it('restores the last selected guid assistant before falling back to the aionrs default', async () => {

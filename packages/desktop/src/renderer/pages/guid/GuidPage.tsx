@@ -598,6 +598,8 @@ const GuidPage: React.FC = () => {
       setSelectedAcpModel={setGuidSelectedAcpModel}
       thoughtLevelOption={isGeminiMode ? null : agentSelection.currentThoughtLevelOption}
       onThoughtLevelSelect={setGuidSelectedThoughtLevel}
+      modelCatalogProbeLoading={agentSelection.modelCatalogProbeLoading}
+      modelCatalogProbeError={agentSelection.modelCatalogProbeError}
     />
   );
 

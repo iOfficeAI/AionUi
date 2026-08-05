@@ -24,6 +24,7 @@ vi.mock('@/common', () => ({
   ipcBridge: {
     acpConversation: {
       refreshCustomAgents: { invoke: vi.fn().mockResolvedValue(undefined) },
+      checkManagedAgentHealthById: { invoke: vi.fn().mockResolvedValue({ id: 'agent-1' }) },
     },
   },
 }));
@@ -33,7 +34,7 @@ vi.mock('@/renderer/utils/model/agentTypes', () => ({
   fetchManagedAgents: vi.fn(),
 }));
 
-import { getManagedAgents, useManagedAgents } from '@/renderer/hooks/agent/useManagedAgents';
+import { getManagedAgents, probeManagedAgentCatalog, useManagedAgents } from '@/renderer/hooks/agent/useManagedAgents';
 import { ipcBridge } from '@/common';
 import useSWR, { mutate } from 'swr';
 import { fetchManagedAgents } from '@/renderer/utils/model/agentTypes';
@@ -122,5 +123,13 @@ describe('useManagedAgents', () => {
     expect(mutate).toHaveBeenCalledWith('agents.managed', managedAgents, { revalidate: false });
     expect(mutate).not.toHaveBeenCalledWith('agents.detected');
     expect(result).toEqual(managedAgents);
+  });
+
+  it('probes an agent before refreshing managed and assistant catalogs', async () => {
+    await probeManagedAgentCatalog('agent-1');
+
+    expect(ipcBridge.acpConversation.checkManagedAgentHealthById.invoke).toHaveBeenCalledWith({ id: 'agent-1' });
+    expect(mutate).toHaveBeenCalledWith('agents.managed');
+    expect(mutate).toHaveBeenCalledWith('assistants.list');
   });
 });

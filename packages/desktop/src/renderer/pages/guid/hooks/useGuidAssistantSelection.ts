@@ -17,7 +17,7 @@ import {
   type AgentRuntimeDerivedOption,
 } from '@/renderer/utils/model/agentRuntimeCatalog';
 import type { SlashCommandItem } from '@/common/chat/slash/types';
-import { useManagedAgentRuntimeCatalog } from '@/renderer/hooks/agent/useManagedAgents';
+import { probeManagedAgentCatalog, useManagedAgentRuntimeCatalog } from '@/renderer/hooks/agent/useManagedAgents';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useCustomAgentsLoader } from './useCustomAgentsLoader';
 
@@ -49,6 +49,8 @@ export type GuidAssistantSelectionResult = {
     value: React.SetStateAction<string>,
     options?: { persistPreference?: boolean }
   ) => void;
+  modelCatalogProbeLoading: boolean;
+  modelCatalogProbeError: unknown;
 };
 
 export function resolveInitialAssistantModel(models: string[]): string | null {
@@ -127,6 +129,8 @@ export const useGuidAssistantSelection = ({
   const [selectedThoughtLevelValue, _setSelectedThoughtLevelValue] = useState<string>('');
   const { assistants } = useCustomAgentsLoader();
   const managedAgentRuntimeCatalog = useManagedAgentRuntimeCatalog();
+  const [modelCatalogProbeLoading, setModelCatalogProbeLoading] = useState(false);
+  const [modelCatalogProbeError, setModelCatalogProbeError] = useState<unknown>(null);
 
   const setSelectedMode = useCallback(
     (mode: React.SetStateAction<string>, _options?: { persistPreference?: boolean }) => {
@@ -317,6 +321,64 @@ export const useGuidAssistantSelection = ({
     return buildAssistantModelInfo(selectedAssistantModels);
   }, [selectedAssistantModels, selectedAgentRuntimeModelInfo]);
 
+  const probedAgentIdsRef = useRef(new Set<string>());
+  const probingAgentIdsRef = useRef(new Set<string>());
+  const activeProbeAgentIdRef = useRef<string | null>(null);
+  const probeScopeAgentIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    const selectedAgentId = selectedAssistant?.agent_id;
+    const isAcpAssistant = selectedAssistant?.agent?.type === 'acp';
+    const hasAvailableModels = Boolean(currentAcpCachedModelInfo?.available_models.length);
+
+    if (probeScopeAgentIdRef.current !== selectedAgentId) {
+      probeScopeAgentIdRef.current = selectedAgentId ?? null;
+      setModelCatalogProbeLoading(false);
+      setModelCatalogProbeError(null);
+    }
+
+    if (activeProbeAgentIdRef.current !== null && activeProbeAgentIdRef.current !== selectedAgentId) {
+      activeProbeAgentIdRef.current = null;
+      setModelCatalogProbeLoading(false);
+      setModelCatalogProbeError(null);
+    }
+
+    if (hasAvailableModels) {
+      if (modelCatalogProbeError) {
+        setModelCatalogProbeError(null);
+      }
+      return;
+    }
+
+    if (
+      !selectedAgentId ||
+      !isAcpAssistant ||
+      selectedAssistant?.agent_status !== 'online' ||
+      probedAgentIdsRef.current.has(selectedAgentId) ||
+      probingAgentIdsRef.current.has(selectedAgentId)
+    ) {
+      return;
+    }
+
+    probingAgentIdsRef.current.add(selectedAgentId);
+    probedAgentIdsRef.current.add(selectedAgentId);
+    activeProbeAgentIdRef.current = selectedAgentId;
+    setModelCatalogProbeLoading(true);
+    setModelCatalogProbeError(null);
+
+    void probeManagedAgentCatalog(selectedAgentId)
+      .catch((error: unknown) => {
+        console.error('[Guid] Failed to load ACP model catalog:', error);
+        setModelCatalogProbeError(error);
+      })
+      .finally(() => {
+        probingAgentIdsRef.current.delete(selectedAgentId);
+        if (activeProbeAgentIdRef.current === selectedAgentId) {
+          activeProbeAgentIdRef.current = null;
+          setModelCatalogProbeLoading(false);
+        }
+      });
+  }, [currentAcpCachedModelInfo, modelCatalogProbeError, selectedAssistant]);
+
   const defaultAssistantId = useMemo(() => pickDefaultAssistantSelectionKey(assistants), [assistants]);
 
   return {
@@ -337,5 +399,7 @@ export const useGuidAssistantSelection = ({
     currentThoughtLevelOption,
     selectedThoughtLevelValue,
     setSelectedThoughtLevelValue,
+    modelCatalogProbeLoading,
+    modelCatalogProbeError,
   };
 };

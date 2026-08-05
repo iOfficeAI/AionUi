@@ -38,6 +38,8 @@ type GuidModelSelectorProps = {
   setSelectedAcpModel: React.Dispatch<React.SetStateAction<string | null>>;
   thoughtLevelOption?: AgentRuntimeDerivedOption | null;
   onThoughtLevelSelect?: (value: string) => void;
+  modelCatalogProbeLoading?: boolean;
+  modelCatalogProbeError?: unknown;
 };
 
 /** Composite id for a provider+model pair, so the shared flat model list can track selection. */
@@ -53,6 +55,8 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
   setSelectedAcpModel,
   thoughtLevelOption,
   onThoughtLevelSelect,
+  modelCatalogProbeLoading = false,
+  modelCatalogProbeError,
 }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -189,6 +193,43 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
           </span>
         </Button>
       </Dropdown>
+    );
+  }
+
+  if (modelCatalogProbeLoading) {
+    return (
+      <Button
+        className={'sendbox-model-btn guid-config-btn'}
+        shape='round'
+        size='small'
+        loading
+        disabled
+        data-testid='guid-model-selector-loading'
+      >
+        <span className='flex items-center gap-6px min-w-0'>
+          <Brain theme='outline' size='14' fill={iconColors.secondary} className='shrink-0' />
+          <span className='guid-model-label'>{t('common.loading')}</span>
+        </span>
+      </Button>
+    );
+  }
+
+  if (modelCatalogProbeError) {
+    return (
+      <Tooltip content={t('settings.noAvailableModels')} position='top'>
+        <Button
+          className={'sendbox-model-btn guid-config-btn'}
+          shape='round'
+          size='small'
+          style={{ cursor: 'default' }}
+          data-testid='guid-model-selector-error'
+        >
+          <span className='flex items-center gap-6px min-w-0'>
+            <Brain theme='outline' size='14' fill={iconColors.secondary} className='shrink-0' />
+            <span className='guid-model-label'>{defaultModelLabel}</span>
+          </span>
+        </Button>
+      </Tooltip>
     );
   }
 

@@ -207,4 +207,41 @@ describe('GuidModelSelector', () => {
     expect(screen.queryByText('Thinking Level')).not.toBeInTheDocument();
     expect(screen.queryByText('Medium')).not.toBeInTheDocument();
   });
+
+  it('shows a loading state while the ACP model catalog is being probed', () => {
+    render(
+      <GuidModelSelector
+        isGeminiMode={false}
+        modelList={[]}
+        current_model={undefined}
+        setCurrentModel={vi.fn()}
+        currentAcpCachedModelInfo={null}
+        selectedAcpModel={null}
+        setSelectedAcpModel={vi.fn()}
+        modelCatalogProbeLoading
+      />
+    );
+
+    expect(screen.getByTestId('guid-model-selector-loading')).toHaveTextContent('common.loading');
+  });
+
+  it('shows a non-interactive fallback when the ACP model catalog probe fails', () => {
+    render(
+      <GuidModelSelector
+        isGeminiMode={false}
+        modelList={[]}
+        current_model={undefined}
+        setCurrentModel={vi.fn()}
+        currentAcpCachedModelInfo={null}
+        selectedAcpModel={null}
+        setSelectedAcpModel={vi.fn()}
+        modelCatalogProbeError={new Error('probe failed')}
+      />
+    );
+
+    expect(screen.getByTestId('guid-model-selector-error').parentElement).toHaveAttribute(
+      'data-tooltip-content',
+      'settings.noAvailableModels'
+    );
+  });
 });
