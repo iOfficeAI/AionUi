@@ -118,8 +118,18 @@ export function fromApiPaginatedConversations<T>(result: { items: T[]; total: nu
   total: number;
   has_more: boolean;
 } {
+  const currentUserId = typeof localStorage !== 'undefined' ? localStorage.getItem('aion_current_user_id') : null;
+  const mapped = result.items.map(fromApiConversation);
+  const filtered = currentUserId
+    ? mapped.filter((item) => {
+        const conv = item as unknown as { user_id?: string };
+        return !conv.user_id || conv.user_id === currentUserId;
+      })
+    : mapped;
+
   return {
     ...result,
-    items: result.items.map(fromApiConversation),
+    total: filtered.length,
+    items: filtered,
   };
 }

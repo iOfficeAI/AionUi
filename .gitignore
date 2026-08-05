@@ -220,3 +220,16 @@ graphify-out/
 
 # Local scratch/analysis (wireframes, candidate mockups)
 .analysis/
+
+# Local deployment stacks & user workspaces (private data, never commit)
+deploy-librechat-stack/
+deploy-openclaw-stack/
+workspaces/
+*.db
+*.sqlite
+*.sqlite3
+user1-*
+user2-*
+0e354126-*/
+
+

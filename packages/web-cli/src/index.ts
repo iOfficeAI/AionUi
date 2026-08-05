@@ -7,6 +7,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { openBrowserUrl, shouldAutoOpenBrowser } from './browser.js';
 import { ensureAdminPassword } from './ensureAdminPassword.js';
+import { ensureUsers } from './ensureUsers.js';
 
 // tarball layout:
 //   aionui-web/
@@ -237,6 +238,15 @@ async function runStart(flags: Map<string, string | true>): Promise<void> {
         warn: (msg) => console.warn(msg),
         sleep: (ms) => delay(ms),
         now: () => Date.now(),
+      }
+    );
+
+    await ensureUsers(
+      { backendPort: handle.backendPort, dataDir: workDir },
+      {
+        fetch: (...args) => fetch(...args),
+        log: (msg) => console.log(msg),
+        warn: (msg) => console.warn(msg),
       }
     );
 

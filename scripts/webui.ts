@@ -26,6 +26,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { startWebHost } from '@aionui/web-host';
 import { openBrowserUrl, shouldAutoOpenBrowser } from '../packages/web-cli/src/browser.js';
+import { ensureUsers } from '../packages/web-cli/src/ensureUsers.js';
 
 // Aligned with packages/desktop/src/common/config/constants.ts WEBUI_DEFAULT_PORT.
 const DEFAULT_PORT = (() => {
@@ -290,6 +291,19 @@ async function main(): Promise<void> {
     }
   } catch (err) {
     console.warn('[webui] could not query admin credentials:', err);
+  }
+
+  try {
+    await ensureUsers(
+      { backendPort: handle.backendPort, dataDir: workDir },
+      {
+        fetch: (...args) => fetch(...args),
+        log: (msg) => console.log(msg),
+        warn: (msg) => console.warn(msg),
+      }
+    );
+  } catch (err) {
+    console.warn('[webui] multi-user setup error:', err);
   }
 
   if (autoOpenBrowser) {

@@ -172,6 +172,12 @@ function redactForLog(value: unknown, depth = 0): unknown {
   );
 }
 
+function getCsrfTokenFromCookie(): string | undefined {
+  if (typeof document === 'undefined') return undefined;
+  const match = document.cookie.match(/(?:^|;\s*)(?:aionui-csrf-token|csrf-token)\s*=\s*([^;]+)/);
+  return match ? decodeURIComponent(match[1]) : undefined;
+}
+
 export async function httpRequest<T>(
   method: string,
   path: string,
@@ -183,6 +189,14 @@ export async function httpRequest<T>(
 
   if (body !== undefined) {
     headers['Content-Type'] = 'application/json';
+  }
+
+  if (method !== 'GET' && method !== 'HEAD') {
+    const csrfToken = getCsrfTokenFromCookie();
+    if (csrfToken) {
+      headers['X-CSRF-Token'] = csrfToken;
+      headers['aionui-csrf-token'] = csrfToken;
+    }
   }
 
   if (options?.headers) {
@@ -197,6 +211,7 @@ export async function httpRequest<T>(
   const response = await fetch(url, {
     method,
     headers,
+    credentials: 'include',
     body: body !== undefined ? JSON.stringify(body) : undefined,
   });
 

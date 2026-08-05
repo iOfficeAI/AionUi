@@ -124,9 +124,15 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
     const currentUser = await fetchCurrentUser(controller.signal);
     if (currentUser) {
       setUser(currentUser);
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem('aion_current_user_id', currentUser.id);
+      }
       setStatus('authenticated');
     } else {
       setUser(null);
+      if (typeof localStorage !== 'undefined') {
+        localStorage.removeItem('aion_current_user_id');
+      }
       setStatus('unauthenticated');
     }
     setReady(true);
