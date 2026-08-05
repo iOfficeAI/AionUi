@@ -17,6 +17,22 @@ export function dispatchChatMessageJump(detail: ChatMessageJumpDetail) {
   );
 }
 
+export const CHAT_SCROLL_TO_BOTTOM_EVENT = 'aionui-chat-scroll-to-bottom';
+
+export interface ChatScrollToBottomDetail {
+  conversation_id: string;
+  behavior?: 'auto' | 'smooth';
+}
+
+export function dispatchChatScrollToBottom(detail: ChatScrollToBottomDetail) {
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(
+    new CustomEvent<ChatScrollToBottomDetail>(CHAT_SCROLL_TO_BOTTOM_EVENT, {
+      detail,
+    })
+  );
+}
+
 /**
  * Request that a conversation's search panel be opened.
  *

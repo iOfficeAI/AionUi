@@ -59,6 +59,16 @@
   "option": "Варіант",
   "noOptionsAvailable": "Немає доступних варіантів",
   "processing": "Обробка...",
+  "plan": {
+    "progress": "Крок {{current}} із {{total}}",
+    "expand": "Розгорнути план, {{progress}}",
+    "collapse": "Згорнути план, {{progress}}",
+    "status": {
+      "pending": "Очікує",
+      "in_progress": "Виконується",
+      "completed": "Завершено"
+    }
+  },
   "responseSentSuccessfully": "Відповідь надіслано успішно",
   "permissionResponseFailed": "Не вдалося надіслати відповідь. Спробуйте ще раз.",
   "confirmation": {

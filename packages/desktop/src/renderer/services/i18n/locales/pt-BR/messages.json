@@ -60,6 +60,16 @@
   "option": "Opção",
   "noOptionsAvailable": "Nenhuma opção disponível",
   "processing": "Processando...",
+  "plan": {
+    "progress": "Etapa {{current}} de {{total}}",
+    "expand": "Expandir plano, {{progress}}",
+    "collapse": "Recolher plano, {{progress}}",
+    "status": {
+      "pending": "Pendente",
+      "in_progress": "Em andamento",
+      "completed": "Concluído"
+    }
+  },
   "responseSentSuccessfully": "Resposta enviada com sucesso",
   "permissionResponseFailed": "Não foi possível enviar a resposta. Tente novamente.",
   "confirmation": {

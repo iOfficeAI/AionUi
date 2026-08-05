@@ -10,6 +10,27 @@
   max-width: 100%;
 }
 
+.message-list-bottom-indicator {
+  display: inline-flex;
+  width: 36px;
+  height: 36px;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  color: var(--color-text-2);
+  background: var(--color-bg-2);
+  border: 1px solid var(--color-border-2);
+  border-radius: 50%;
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--color-text-1) 10%, transparent);
+}
+
+.message-list-bottom-indicator.arco-btn:hover,
+.message-list-bottom-indicator.arco-btn:focus-visible {
+  color: var(--color-text-1);
+  background: var(--color-fill-1);
+  border-color: var(--color-border-3);
+}
+
 @container (min-width: 720px) {
   .chat-surface-fluid {
     width: calc(100% - clamp(80px, 10cqw, 240px));

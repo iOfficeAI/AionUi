@@ -11,12 +11,27 @@ import {
   type GeaMcpBridgeHandle,
   type WebHostLarkAuth,
 } from '@aionui/web-host';
-import type { LarkAuthUser, LarkQrLoginPollResult, PersonalModelSyncResult } from '@/common/types/platform/larkAuth';
+import type {
+  LarkAuthStatus,
+  LarkAuthUser,
+  LarkQrLoginPollResult,
+  PersonalModelSyncResult,
+} from '@/common/types/platform/larkAuth';
 import type { PersonalModelAuthClient } from './PersonalModelGatewayService';
 
 export { GeaLarkAuthService as LarkAuthService, GeaLarkAuthServiceError as LarkAuthServiceError };
 
 const GEA_AGENT_CODE = process.env.GEA_AGENT_CODE?.trim() || 'sales_forecast';
+// Desktop development uses AionCore's local identity so restarts do not require
+// another QR scan. The GEA service remains unauthenticated until a real login.
+const DEVELOPMENT_LOCAL_AUTH_STATUS: LarkAuthStatus = {
+  authenticated: true,
+  user: {
+    id: 'system_default_user',
+    realname: 'admin',
+    username: 'admin',
+  },
+};
 const sharedLarkAuthService = new GeaLarkAuthService();
 let geaMcpBridgePromise: Promise<GeaMcpBridgeHandle> | null = null;
 
@@ -69,6 +84,10 @@ export async function syncSharedPersonalModels(): Promise<PersonalModelSyncResul
 export async function logoutSharedLarkAuthSession(): Promise<void> {
   sharedLarkAuthService.logout();
   await personalModelGateway?.deactivate().catch(() => {});
+}
+
+export function resolveDesktopLarkAuthStatus(isPackaged: boolean, status: LarkAuthStatus): LarkAuthStatus {
+  return isPackaged ? status : DEVELOPMENT_LOCAL_AUTH_STATUS;
 }
 
 export function getSharedLarkAuthService(): GeaLarkAuthService {

@@ -41,6 +41,24 @@ vi.mock('react-router-dom', () => ({
 }));
 
 vi.mock('@arco-design/web-react', () => ({
+  Button: ({
+    children,
+    icon,
+    shape: _shape,
+    type: _type,
+    ...props
+  }: PropsWithChildren<
+    Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'type'> & {
+      icon?: React.ReactNode;
+      shape?: string;
+      type?: string;
+    }
+  >) => (
+    <button {...props}>
+      {icon}
+      {children}
+    </button>
+  ),
   Image: {
     PreviewGroup: ({ children }: PropsWithChildren) => <>{children}</>,
   },

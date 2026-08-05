@@ -1,34 +1,103 @@
-import { Badge } from '@arco-design/web-react';
-import { IconCheckCircle, IconDown, IconRight } from '@arco-design/web-react/icon';
-import React, { useState } from 'react';
 import type { IMessagePlan } from '@/common/chat/chatLib';
+import { Button, Spin } from '@arco-design/web-react';
+import { CheckOne, Round } from '@icon-park/react';
+import React, { useCallback, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import styles from './MessagePlan.module.css';
 
-const MessagePlan: React.FC<{ message: IMessagePlan }> = ({ message }) => {
-  const [showMore, setShowMore] = useState(true);
+const getCurrentStep = (entries: IMessagePlan['content']['entries']): number => {
+  const activeIndex = entries.findIndex((entry) => entry.status === 'in_progress');
+  if (activeIndex >= 0) return activeIndex + 1;
+
+  const pendingIndex = entries.findIndex((entry) => entry.status === 'pending');
+  if (pendingIndex >= 0) return pendingIndex + 1;
+
+  return entries.length;
+};
+
+const MessagePlan: React.FC<{ message: IMessagePlan; onNavigateToLatest?: () => void }> = ({
+  message,
+  onNavigateToLatest,
+}) => {
+  const { t } = useTranslation();
+  const [expanded, setExpanded] = useState(false);
+  const { entries } = message.content;
+  const expand = useCallback(() => setExpanded(true), []);
+  const collapse = useCallback(() => setExpanded(false), []);
+
+  const handleBlur = useCallback(
+    (event: React.FocusEvent<HTMLDivElement>) => {
+      if (!event.currentTarget.contains(event.relatedTarget)) {
+        collapse();
+      }
+    },
+    [collapse]
+  );
+
+  if (entries.length === 0) return null;
+
+  const isRunning = entries.some((entry) => entry.status === 'in_progress');
+  const progress = t('messages.plan.progress', {
+    current: getCurrentStep(entries),
+    total: entries.length,
+  });
+  const panelId = `message-plan-${message.id}`;
+
   return (
-    <div>
-      <div className='flex items-center gap-10px color-#86909C cursor-pointer' onClick={() => setShowMore(!showMore)}>
-        <Badge status='default' text='To do list' className={'![&_span.arco-badge-status-text]:color-#86909C'}></Badge>
-        {showMore ? <IconDown /> : <IconRight />}
-      </div>
-      {showMore && (
-        <div className='p-l-20px flex flex-col gap-8px pt-8px'>
-          {message.content.entries.map((item, index) => {
-            return (
-              <div className='flex flex-row items-center color-#86909C gap-8px'>
-                {item.status === 'completed' ? (
-                  <IconCheckCircle fontSize={22} strokeWidth={4} className='flex color-#00B42A' />
-                ) : (
-                  <div className='size-22px flex items-center justify-center'>
-                    <div className='size-14px  rd-10px b-2px b-solid b-[rgba(201,205,212,1)]'></div>
-                  </div>
-                )}
-                <span>{item.content} </span>
+    <div className={styles.plan} data-testid='message-plan'>
+      <div
+        className={styles.trigger}
+        onMouseEnter={expand}
+        onMouseLeave={collapse}
+        onFocusCapture={expand}
+        onBlurCapture={handleBlur}
+      >
+        {expanded ? (
+          <div id={panelId} className={styles.card} role='list'>
+            {entries.map((entry, index) => (
+              <div
+                className={styles.item}
+                data-status={entry.status}
+                key={`${index}-${entry.content}`}
+                role='listitem'
+                aria-label={`${t(`messages.plan.status.${entry.status}`)}: ${entry.content}`}
+              >
+                <span className={styles.statusIcon} aria-hidden='true'>
+                  {entry.status === 'in_progress' ? (
+                    <Spin size={12} />
+                  ) : entry.status === 'completed' ? (
+                    <CheckOne theme='outline' size='14' strokeWidth={3} />
+                  ) : (
+                    <Round theme='outline' size='14' strokeWidth={3} />
+                  )}
+                </span>
+                <span className={styles.content}>{entry.content}</span>
               </div>
-            );
-          })}
-        </div>
-      )}
+            ))}
+          </div>
+        ) : null}
+
+        <Button
+          className={styles.toggle}
+          type='secondary'
+          size='small'
+          aria-controls={panelId}
+          aria-expanded={expanded}
+          aria-label={`${t('messages.scrollToBottom')}, ${progress}`}
+          title={t('messages.scrollToBottom')}
+          onClick={onNavigateToLatest}
+        >
+          <span
+            className={styles.progressIcon}
+            data-running={isRunning}
+            data-testid='message-plan-progress-icon'
+            aria-hidden='true'
+          >
+            {isRunning ? <Spin size={13} /> : <Round theme='outline' size='13' strokeWidth={3} />}
+          </span>
+          <span>{progress}</span>
+        </Button>
+      </div>
     </div>
   );
 };

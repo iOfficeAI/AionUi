@@ -19,6 +19,7 @@ import {
   LarkAuthServiceError,
   logoutSharedLarkAuthSession,
   pollSharedLarkAuthSession,
+  resolveDesktopLarkAuthStatus,
   syncSharedPersonalModels,
 } from '@process/services/LarkAuthService';
 import type { LarkAuthErrorCode, LarkAuthResult } from '@/common/types/platform/larkAuth';
@@ -122,7 +123,9 @@ export function initApplicationBridge(): void {
     withLarkAuthResult(() => pollSharedLarkAuthSession(qrcodeId))
   );
   ipcBridge.larkAuth.syncPersonalModels.provider(() => withLarkAuthResult(syncSharedPersonalModels));
-  ipcBridge.larkAuth.status.provider(() => withLarkAuthResult(() => larkAuthService.getStatus()));
+  ipcBridge.larkAuth.status.provider(() =>
+    withLarkAuthResult(() => resolveDesktopLarkAuthStatus(app.isPackaged, larkAuthService.getStatus()))
+  );
   ipcBridge.larkAuth.logout.provider(() =>
     withLarkAuthResult(async () => {
       await logoutSharedLarkAuthSession();

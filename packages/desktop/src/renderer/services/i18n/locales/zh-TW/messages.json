@@ -60,6 +60,16 @@
   "option": "選項",
   "noOptionsAvailable": "沒有可用選項",
   "processing": "處理中...",
+  "plan": {
+    "progress": "第 {{current}} / {{total}} 步",
+    "expand": "展開計畫，{{progress}}",
+    "collapse": "收合計畫，{{progress}}",
+    "status": {
+      "pending": "待處理",
+      "in_progress": "進行中",
+      "completed": "已完成"
+    }
+  },
   "responseSentSuccessfully": "回覆已成功送出",
   "permissionResponseFailed": "無法傳送回應，請再試一次。",
   "confirmation": {

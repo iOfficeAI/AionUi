@@ -11,8 +11,13 @@ import { useConversationRuntimeView } from '@/renderer/pages/conversation/runtim
 import { getChatSurfaceWidthClass } from '@/renderer/pages/conversation/utils/chatSurfaceWidth';
 import { useTeamPermission } from '@/renderer/pages/team/hooks/TeamPermissionContext';
 import { iconColors } from '@/renderer/styles/colors';
-import { CHAT_MESSAGE_JUMP_EVENT, type ChatMessageJumpDetail } from '@/renderer/utils/chat/chatMinimapEvents';
-import { Image } from '@arco-design/web-react';
+import {
+  CHAT_MESSAGE_JUMP_EVENT,
+  CHAT_SCROLL_TO_BOTTOM_EVENT,
+  type ChatMessageJumpDetail,
+  type ChatScrollToBottomDetail,
+} from '@/renderer/utils/chat/chatMinimapEvents';
+import { Button, Image } from '@arco-design/web-react';
 import { Down } from '@icon-park/react';
 import MessageAcpPermission from '@renderer/pages/conversation/Messages/acp/MessageAcpPermission';
 import MessagePermission from './components/MessagePermission';
@@ -36,7 +41,6 @@ import {
   useMessagePaginationState,
 } from './hooks';
 import MessageAgentStatus from './components/MessageAgentStatus';
-import MessagePlan from './components/MessagePlan';
 import MessageTips from './components/MessageTips';
 import MessageToolCall from './components/MessageToolCall';
 import MessageToolGroup from './components/MessageToolGroup';
@@ -280,7 +284,7 @@ const MessageItem: React.FC<{
         case 'acp_tool_call':
           return <MessageAcpToolCall message={message}></MessageAcpToolCall>;
         case 'plan':
-          return <MessagePlan message={message}></MessagePlan>;
+          return null;
         case 'thinking':
           return <MessageThinking message={message}></MessageThinking>;
         case 'available_commands':
@@ -315,6 +319,15 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
   // moving down, so we defer its copy/timestamp row until the turn finishes to
   // avoid the row flashing in and the layout reflowing mid-stream.
   const { isProcessing } = useConversationRuntimeView(conversationContext?.conversation_id ?? '');
+  const hasActivePlan = useMemo(() => {
+    for (let index = list.length - 1; index >= 0; index -= 1) {
+      const message = list[index];
+      if (!message.hidden && message.type === 'plan' && message.content.entries.length > 0) {
+        return message.content.entries.some((entry) => entry.status !== 'completed');
+      }
+    }
+    return false;
+  }, [list]);
   const { t } = useTranslation();
   const location = useLocation();
   const locationState = (location.state || {}) as ConversationLocationState;
@@ -378,6 +391,7 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
       // Skip hidden and available_commands messages
       if (message.hidden) continue;
       if (message.type === 'available_commands') continue;
+      if (message.type === 'plan') continue;
       if (message.type === 'tool_group') {
         const writeFileResults = message.content.flatMap((item) =>
           item.name === 'WriteFile' && isWriteFileResult(item.result_display) ? [item.result_display] : []
@@ -626,10 +640,22 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
   ]);
 
   // Click scroll button
-  const handleScrollButtonClick = () => {
+  const handleScrollButtonClick = useCallback(() => {
     hideScrollButton();
     scrollToBottom('smooth');
-  };
+  }, [hideScrollButton, scrollToBottom]);
+
+  useEffect(() => {
+    const handleScrollToBottom = (event: Event) => {
+      const detail = (event as CustomEvent<ChatScrollToBottomDetail>).detail;
+      if (!detail || detail.conversation_id !== conversationContext?.conversation_id) return;
+      hideScrollButton();
+      scrollToBottom(detail.behavior ?? 'smooth');
+    };
+
+    window.addEventListener(CHAT_SCROLL_TO_BOTTOM_EVENT, handleScrollToBottom);
+    return () => window.removeEventListener(CHAT_SCROLL_TO_BOTTOM_EVENT, handleScrollToBottom);
+  }, [conversationContext?.conversation_id, hideScrollButton, scrollToBottom]);
 
   const renderItem = (_index: number, item: (typeof processedList)[0]) => {
     const highlighted = matchesTargetMessage(item, highlightedMessageId);
@@ -713,20 +739,22 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
         </ImagePreviewContext.Provider>
       </Image.PreviewGroup>
 
-      {showScrollButton && (
+      {showScrollButton && !hasActivePlan && (
         <>
           {/* Gradient mask */}
           <div className='absolute bottom-0 left-0 right-0 h-100px pointer-events-none' />
           {/* Scroll button */}
-          <div className='absolute bottom-20px left-50% transform -translate-x-50% z-100'>
-            <div
-              className='flex items-center justify-center w-40px h-40px rd-full bg-base shadow-lg cursor-pointer hover:bg-1 transition-all hover:scale-110 border-1 border-solid border-3'
+          <div className='absolute bottom-20px left-50% transform -translate-x-50% z-5'>
+            <Button
+              className='message-list-bottom-indicator'
+              data-testid='message-list-scroll-to-bottom'
+              shape='circle'
+              type='secondary'
               onClick={handleScrollButtonClick}
+              aria-label={t('messages.scrollToBottom')}
               title={t('messages.scrollToBottom')}
-              style={{ lineHeight: 0 }}
-            >
-              <Down theme='filled' size='20' fill={iconColors.secondary} style={{ display: 'block' }} />
-            </div>
+              icon={<Down theme='filled' size='18' fill={iconColors.secondary} />}
+            />
           </div>
         </>
       )}

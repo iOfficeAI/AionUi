@@ -6,7 +6,7 @@
 
 import { describe, expect, it, vi } from 'vitest';
 import type { LarkAuthServiceError } from '@/process/services/LarkAuthService';
-import { LarkAuthService } from '@/process/services/LarkAuthService';
+import { LarkAuthService, resolveDesktopLarkAuthStatus } from '@/process/services/LarkAuthService';
 
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -16,6 +16,26 @@ function jsonResponse(body: unknown, status = 200): Response {
 }
 
 describe('LarkAuthService', () => {
+  it('uses the local system user in desktop development', () => {
+    expect(resolveDesktopLarkAuthStatus(false, { authenticated: false })).toEqual({
+      authenticated: true,
+      user: {
+        id: 'system_default_user',
+        realname: 'admin',
+        username: 'admin',
+      },
+    });
+  });
+
+  it('preserves the real GEA authentication status in packaged builds', () => {
+    const status = {
+      authenticated: true,
+      user: { id: '10086', realname: '张三', username: 'zhangsan' },
+    };
+
+    expect(resolveDesktopLarkAuthStatus(true, status)).toBe(status);
+  });
+
   it('creates a QR session using the GEA state format', async () => {
     const fetchImpl = vi.fn(async () =>
       jsonResponse({ success: true, result: { qrcodeId: 'QRCODELOGIN:1234567890' } })

@@ -60,6 +60,16 @@
   "option": "옵션",
   "noOptionsAvailable": "사용 가능한 옵션 없음",
   "processing": "처리 중...",
+  "plan": {
+    "progress": "{{current}} / {{total}}단계",
+    "expand": "계획 펼치기, {{progress}}",
+    "collapse": "계획 접기, {{progress}}",
+    "status": {
+      "pending": "대기 중",
+      "in_progress": "진행 중",
+      "completed": "완료"
+    }
+  },
   "responseSentSuccessfully": "응답 전송 성공",
   "permissionResponseFailed": "응답을 보내지 못했습니다. 다시 시도해 주세요.",
   "confirmation": {

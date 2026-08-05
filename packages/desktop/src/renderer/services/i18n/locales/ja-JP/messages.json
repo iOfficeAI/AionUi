@@ -60,6 +60,16 @@
   "option": "オプション",
   "noOptionsAvailable": "利用可能なオプションはありません",
   "processing": "Processing...",
+  "plan": {
+    "progress": "ステップ {{current}} / {{total}}",
+    "expand": "計画を展開、{{progress}}",
+    "collapse": "計画を折りたたむ、{{progress}}",
+    "status": {
+      "pending": "保留中",
+      "in_progress": "進行中",
+      "completed": "完了"
+    }
+  },
   "responseSentSuccessfully": "応答が正常に送信されました",
   "permissionResponseFailed": "応答を送信できませんでした。もう一度お試しください。",
   "confirmation": {

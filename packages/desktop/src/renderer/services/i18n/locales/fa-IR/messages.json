@@ -60,6 +60,16 @@
   "option": "گزینه",
   "noOptionsAvailable": "گزینه‌ای در دسترس نیست",
   "processing": "در حال پردازش...",
+  "plan": {
+    "progress": "مرحله {{current}} از {{total}}",
+    "expand": "باز کردن برنامه، {{progress}}",
+    "collapse": "بستن برنامه، {{progress}}",
+    "status": {
+      "pending": "در انتظار",
+      "in_progress": "در حال انجام",
+      "completed": "تکمیل‌شده"
+    }
+  },
   "responseSentSuccessfully": "پاسخ با موفقیت ارسال شد",
   "permissionResponseFailed": "ارسال پاسخ ممکن نشد. دوباره تلاش کنید.",
   "confirmation": {
