@@ -95,4 +95,42 @@ describe('cleanupRegisteredAgentProcesses', () => {
     const entries = await readdir(path.dirname(registryPath));
     expect(entries.filter((name) => name.includes('.corrupt.'))).toHaveLength(1);
   });
+
+  it('leaves no temp files and writes parseable JSON after cleanup', async () => {
+    if (process.platform === 'win32') {
+      return;
+    }
+
+    const dataDir = await mkdtemp(path.join(os.tmpdir(), 'aionui-agent-registry-'));
+    const registryPath = resolveAgentProcessRegistryPath(dataDir);
+    await mkdir(path.dirname(registryPath), { recursive: true });
+    await writeFile(
+      registryPath,
+      JSON.stringify({
+        version: 1,
+        processes: [
+          {
+            pid: 6883,
+            conversation_id: 'conv-1',
+            agent_type: 'acp',
+            registered_at_ms: 1,
+          },
+        ],
+      }),
+      'utf8'
+    );
+
+    const notFound = () => Object.assign(new Error('ESRCH'), { code: 'ESRCH' });
+    vi.spyOn(process, 'kill').mockImplementation((() => {
+      throw notFound();
+    }) as typeof process.kill);
+
+    await cleanupRegisteredAgentProcesses(dataDir);
+
+    const entries = await readdir(path.dirname(registryPath));
+    expect(entries.filter((name) => name.endsWith('.tmp'))).toHaveLength(0);
+
+    const written = JSON.parse(await readFile(registryPath, 'utf8')) as { processes: unknown[] };
+    expect(written.processes).toEqual([]);
+  });
 });

@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process';
-import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
+import { mkdir, open, readFile, rename, rm } from 'node:fs/promises';
 import path from 'node:path';
 
 type RegisteredAgentProcess = {
@@ -105,10 +105,34 @@ async function quarantineCorruptRegistry(registryPath: string): Promise<void> {
 
 async function writeRegistry(registryPath: string, registry: AgentProcessRegistry): Promise<void> {
   await mkdir(path.dirname(registryPath), { recursive: true });
-  const tmpPath = `${registryPath}.tmp`;
-  await writeFile(tmpPath, `${JSON.stringify(registry, null, 2)}\n`, 'utf8');
-  await rm(registryPath, { force: true });
-  await rename(tmpPath, registryPath);
+  // pid+counter namespaced temp: a sibling backend writing the same registry
+  // can never clobber our in-flight temp (fixed-name temps were one of the
+  // corruption sources behind ELECTRON-3WN).
+  const tmpPath = `${registryPath}.${process.pid}.${nextRegistryFileCounter()}.tmp`;
+  const payload = `${JSON.stringify(registry, null, 2)}\n`;
+
+  const handle = await open(tmpPath, 'w');
+  try {
+    await handle.writeFile(payload, 'utf8');
+    await handle.sync();
+  } finally {
+    await handle.close();
+  }
+
+  try {
+    await rename(tmpPath, registryPath);
+  } catch {
+    // Windows can refuse to rename over a concurrently open target; retry
+    // once after a best-effort removal instead of unconditionally deleting
+    // the live registry up front.
+    try {
+      await rm(registryPath, { force: true });
+      await rename(tmpPath, registryPath);
+    } catch (retryError) {
+      await rm(tmpPath, { force: true });
+      throw retryError;
+    }
+  }
 }
 
 async function terminateRegisteredProcess(entry: RegisteredAgentProcess, signal: 'SIGTERM' | 'SIGKILL'): Promise<void> {
