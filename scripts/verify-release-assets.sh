@@ -65,7 +65,7 @@ for f in latest-win-arm64.yml latest-arm64-mac.yml; do
   fi
 done
 
-for f in AionUi-1.0.0-win-x64.exe AionUi-1.0.0-win-arm64.exe AionUi-1.0.0-mac-x64.dmg AionUi-1.0.0-mac-arm64.dmg AionUi-1.0.0.deb AionUi-1.0.0-arm64.deb; do
+for f in GEAUi-1.0.0-win-x64.exe GEAUi-1.0.0-win-arm64.exe GEAUi-1.0.0-mac-x64.dmg GEAUi-1.0.0-mac-arm64.dmg GEAUi-1.0.0.deb GEAUi-1.0.0-arm64.deb; do
   if [ ! -f "$OUTPUT_DIR/$f" ]; then
     echo "FAIL: missing distributable: $f"
     ERRORS=$((ERRORS + 1))
