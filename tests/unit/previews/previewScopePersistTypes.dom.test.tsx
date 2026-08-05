@@ -202,6 +202,38 @@ describe('keeping every open tab across a project switch', () => {
     expect(stored.tabs.find((tab) => tab.title === 'main.py')?.content).toBe('contents of main.py');
   });
 
+  // The boundary of the re-obtainability rule, and the reason it is not "is the type
+  // read-only". `diff` and `patch` are declared `editable: false`, so a rule phrased
+  // around editability would sweep them in — and a diff's content is a patch generated
+  // in a conversation, with no file behind it (`useDiffPreviewHandlers` passes
+  // `diffContent` and no path). Blanking it destroys the only copy.
+  //
+  // This is the assertion that stops that change from being made quietly.
+  it('keeps a diff tab content, because there is no file to re-read it from', async () => {
+    mount();
+    act(() => ctx.closePreviewIfScopeChanged(SCOPE_A));
+    act(() => {
+      // Exactly how a diff tab is opened: content, no fileRef.
+      ctx.openPreview('--- a/x.ts\n+++ b/x.ts\n@@ -1 +1 @@\n-old\n+new\n', 'diff', {
+        title: 'x.ts.diff',
+        file_name: 'x.ts.diff',
+        language: 'diff',
+        editable: false,
+      });
+    });
+    await waitFor(() => expect(localStorage.getItem(previewScopeStorageKey(SCOPE_A))).toBeTruthy());
+
+    act(() => ctx.closePreviewIfScopeChanged(SCOPE_B));
+    act(() => ctx.closePreviewIfScopeChanged(SCOPE_A));
+
+    await waitFor(() => {
+      const restored = ctx.tabs.find((tab) => tab.title === 'x.ts.diff');
+      // Present at all, and with its patch text — a blank diff viewer would be a tab
+      // that survived in name only.
+      expect(restored?.content).toContain('+new');
+    });
+  });
+
   // Nothing to reopen from: an image with no ref would restore as a viewer that can
   // never show anything, which is worse than not restoring it.
   it('drops an identity-restored tab that has no file reference', async () => {
