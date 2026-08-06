@@ -468,6 +468,8 @@ const CssThemeSettings: React.FC = () => {
           return (
             <div
               key={theme.id}
+              data-testid={`theme-card-${theme.id}`}
+              data-active={activeThemeId === theme.id}
               className={`relative cursor-pointer rounded-12px overflow-hidden border-2 transition-all duration-200 h-112px w-full ${activeThemeId === theme.id ? 'border-[var(--color-primary)]' : 'border-transparent hover:border-border-2'}`}
               style={cardStyle}
               onClick={() => handleSelectTheme(theme)}
