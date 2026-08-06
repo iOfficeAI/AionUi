@@ -267,11 +267,6 @@ const applyRepositoriesChanged = (delta: ScmRepositoriesChanged | undefined): vo
   // holds exactly one project, so another project's added/removed would otherwise
   // corrupt the current view. A malformed frame missing `project_id` also fails this
   // guard (`undefined !== projectId`) and is dropped — the safe outcome.
-  // Drop a frame addressed to a different project before touching the store. The
-  // status/change stream is shared across a multi-project session while this store
-  // holds exactly one project, so another project's added/removed would otherwise
-  // corrupt the current view. A malformed frame missing `project_id` also fails this
-  // guard (`undefined !== projectId`) and is dropped — the safe outcome.
   if (delta.project_id !== projectId) return;
   const removed = new Set(delta.removed ?? []);
   const byId = new Map(repositories.map((r) => [r.repo_id, r]));
