@@ -26,23 +26,25 @@
  */
 
 import { Button, Spin, Tooltip } from '@arco-design/web-react';
-import { Minus, Plus, Refresh, Undo } from '@icon-park/react';
+import { Branch, Minus, Plus, Refresh, Undo } from '@icon-park/react';
 import React, { useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { ScmDiffView } from './ScmDiffView';
+import { usePreviewContext } from '../Preview';
 import { ScmResourceRow } from './ScmResourceRow';
 import {
   actionableResources,
+  diffAnchors,
   groupResources,
   resourceKey,
+  resourceName,
   type ScmActionKind,
   type ScmGroupId,
   type ScmRepository,
   type ScmResource,
   type ScmStatus,
 } from './scmModel';
-import { openScmProject, refreshAllRepos, selectScmResource, setSelectedRepo, useScm } from './scmStore';
+import { fetchScmDiff, openScmProject, refreshAllRepos, selectScmResource, setSelectedRepo, useScm } from './scmStore';
 import { initScmRuntime } from './scmTransport';
 import { type ScmActionReport, useScmActions } from './useScmActions';
 
@@ -111,25 +113,30 @@ export const ScmPanel: React.FC<ScmPanelProps> = ({ projectId }) => {
 
   return (
     <div data-scm-panel className='h-full flex flex-col min-h-0'>
-      <div className='flex-shrink-0 flex items-center justify-end px-8px py-2px'>
+      {/* Header bar. The action summary and the refresh button share this one row
+          — the summary claims the left, the refresh stays pinned right — instead of
+          the summary opening a separate banner below a near-empty toolbar. The
+          report's secondary parts (a failed-file detail line, a retry button) are
+          rare and can be wide, so they drop to their own full-width row underneath
+          via `ActionReportExtras`; the common success case stays a single line. */}
+      <div className='flex-shrink-0 flex items-center gap-8px px-8px py-2px min-h-28px'>
+        {actions.report ? (
+          <ActionReportSummary report={actions.report} onDismiss={actions.clearReport} />
+        ) : (
+          <div className='flex-1 min-w-0' />
+        )}
         <Tooltip content={t('conversation.explorer.scm.refresh')} mini>
           <Button
             type='text'
             size='mini'
+            className='flex-shrink-0'
             icon={<Refresh theme='outline' size='14' />}
             aria-label={t('conversation.explorer.scm.refresh')}
             onClick={() => void refreshAllRepos()}
           />
         </Tooltip>
       </div>
-      {actions.report && (
-        <ActionReport
-          report={actions.report}
-          busy={actions.busy}
-          onDismiss={actions.clearReport}
-          onRetry={actions.retry}
-        />
-      )}
+      {actions.report && <ActionReportExtras report={actions.report} busy={actions.busy} onRetry={actions.retry} />}
       {/* Repo switcher only for a multi-repo project (D3): a single repo goes
           straight to its changes with no list. Clicking is pure front-end. */}
       {multiRepo && (
@@ -145,16 +152,76 @@ export const ScmPanel: React.FC<ScmPanelProps> = ({ projectId }) => {
           failedRowKeys={actions.report?.failedRowKeys ?? []}
         />
       </div>
+      {/* Selecting a change opens its diff in the shared preview panel (a `'diff'`
+          tab, reusing the same `openPreview` mechanism the file tree uses) rather
+          than a fixed pane docked below this panel. Rendered as a hookless bridge
+          so the fetch/open effect only exists while a row is selected and unmounts
+          cleanly when it clears. */}
       {selected && (
-        <ScmDiffView
+        <ScmDiffPreviewBridge
           repoId={selected.repo.repo_id}
           staging={selected.repo.capabilities.staging}
           resource={selected.resource}
-          onClose={() => selectScmResource(null)}
         />
       )}
     </div>
   );
+};
+
+/**
+ * Bridges a selected change to the shared preview panel: on selection (or when the
+ * selected row's staged/working identity changes) it fetches the unified diff and
+ * hands it to `openPreview` as a `'diff'` tab, exactly the mechanism the file tree
+ * uses for file previews — the diff no longer lives in a pane docked under this
+ * panel. Renders nothing itself.
+ *
+ * A per-effect `cancelled` flag guards the async fetch: rapid row switches must not
+ * let a slow earlier response open a stale tab over the newer one. Binary/empty
+ * diffs carry no patch to render, so they open a short notice as plain text instead
+ * of a blank diff view — the panel still "唤起" a preview for every click. Fetch
+ * failures are swallowed here (the row stays selected, no tab opens); surfacing them
+ * belongs to the action-report path, not this passive bridge.
+ */
+const ScmDiffPreviewBridge: React.FC<{
+  repoId: string;
+  staging: boolean;
+  resource: ScmResource;
+}> = ({ repoId, staging, resource }) => {
+  const { t } = useTranslation();
+  const { openPreview } = usePreviewContext();
+  const name = resourceName(resource);
+  const { pe_id: peId, relative_path: relativePath } = resource.file;
+  const { from, to } = diffAnchors(resource, staging);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const result = await fetchScmDiff({
+          repository: repoId,
+          file: { pe_id: peId, relative_path: relativePath },
+          from,
+          to,
+        });
+        if (cancelled) return;
+        const body =
+          result.binary === true
+            ? t('conversation.explorer.scm.diff.binary')
+            : result.patch && result.patch.length > 0
+              ? result.patch
+              : t('conversation.explorer.scm.diff.empty');
+        openPreview(body, 'diff', { file_name: name, title: name });
+      } catch {
+        // Passive bridge: a failed diff fetch leaves the selection intact and opens
+        // nothing. Error surfacing is the action-report path's job, not this effect's.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [repoId, peId, relativePath, from, to, name, openPreview, t]);
+
+  return null;
 };
 
 /**
@@ -194,12 +261,18 @@ const RepoList: React.FC<{
             isSelected ? 'bg-2' : ''
           }`}
         >
-          <span className='overflow-hidden text-ellipsis whitespace-nowrap text-13px text-t-primary'>
+          <span className='flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-13px text-t-primary'>
             {repo.pe_name || repo.label}
           </span>
+          {/* Branch info is pinned to the right of the row (`ml-auto`), the branch
+              name preceded by a branch glyph. `flex-1` on the repo name above
+              claims the slack so the two never touch; both truncate under pressure.
+              Rendered only when a head name is known — a detached/unknown head
+              shows nothing rather than a lone icon. */}
           {repo.head?.name && (
-            <span className='overflow-hidden text-ellipsis whitespace-nowrap text-t-tertiary text-12px flex-shrink-0'>
-              {repo.head.name}
+            <span className='ml-auto flex items-center gap-2px min-w-0 flex-shrink text-t-tertiary text-12px'>
+              <Branch theme='outline' size='12' className='flex-shrink-0' />
+              <span className='overflow-hidden text-ellipsis whitespace-nowrap'>{repo.head.name}</span>
             </span>
           )}
         </div>
@@ -208,39 +281,55 @@ const RepoList: React.FC<{
   </div>
 );
 
+const reportToneClass = (tone: ScmActionReport['tone']): string =>
+  tone === 'success' ? 'text-success' : tone === 'warning' ? 'text-warning' : 'text-danger';
+
 /**
- * Outcome banner. Tone carries the distinction that matters: a `warning` means the
- * action **partly happened** (so the message states counts, never "failed"), while
- * `error` means nothing happened. Retry appears only when trying again could
- * actually succeed.
+ * The action outcome's one-line summary, living inline in the header row to the
+ * left of the refresh button. Tone carries the distinction that matters: a
+ * `warning` means the action **partly happened** (message states counts, never
+ * "failed"), while `error` means nothing happened. Only the message and its
+ * dismiss control belong here — the detail and retry are wide/rare and go to
+ * `ActionReportExtras` so this stays one line. `data-scm-report` stays on this
+ * node so existing selectors keep resolving the report by tone.
  */
-const ActionReport: React.FC<{
+const ActionReportSummary: React.FC<{
+  report: ScmActionReport;
+  onDismiss: () => void;
+}> = ({ report, onDismiss }) => {
+  const { t } = useTranslation();
+  return (
+    <div data-scm-report={report.tone} className='flex-1 min-w-0 flex items-center gap-4px text-12px'>
+      <span className={`flex-1 min-w-0 truncate ${reportToneClass(report.tone)}`}>{report.message}</span>
+      <Button type='text' size='mini' className='flex-shrink-0' aria-label={t('common.close')} onClick={onDismiss}>
+        ×
+      </Button>
+    </div>
+  );
+};
+
+/**
+ * The report's secondary parts — a failed-file detail line and a retry button —
+ * on their own full-width row below the header. Renders nothing when neither is
+ * present (the common success case), so the summary stays a single line up top.
+ * Retry appears only when trying again could actually succeed.
+ */
+const ActionReportExtras: React.FC<{
   report: ScmActionReport;
   /** Disables retry while another action is in flight (parity with row/bulk buttons). */
   busy: boolean;
-  onDismiss: () => void;
   onRetry: () => void;
-}> = ({ report, busy, onDismiss, onRetry }) => {
+}> = ({ report, busy, onRetry }) => {
   const { t } = useTranslation();
-  const toneClass =
-    report.tone === 'success' ? 'text-success' : report.tone === 'warning' ? 'text-warning' : 'text-danger';
+  if (!report.detail && !report.retryable) return null;
   return (
-    <div
-      data-scm-report={report.tone}
-      className='flex-shrink-0 flex items-start gap-4px px-8px py-4px text-12px border-b border-[var(--bg-3)]'
-    >
-      <div className='flex-1 min-w-0'>
-        <div className={toneClass}>{report.message}</div>
-        {report.detail && <div className='text-t-tertiary break-all'>{report.detail}</div>}
-      </div>
+    <div className='flex-shrink-0 flex items-start gap-4px px-8px py-4px text-12px border-b border-[var(--bg-3)]'>
+      {report.detail && <div className='flex-1 min-w-0 text-t-tertiary break-all'>{report.detail}</div>}
       {report.retryable && (
         <Button type='text' size='mini' data-scm-retry disabled={busy} onClick={onRetry}>
           {t('conversation.explorer.scm.actions.retry')}
         </Button>
       )}
-      <Button type='text' size='mini' aria-label={t('common.close')} onClick={onDismiss}>
-        ×
-      </Button>
     </div>
   );
 };

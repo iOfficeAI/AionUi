@@ -22,6 +22,15 @@ vi.mock('@/renderer/pages/conversation/SourceControl/scmTransport', () => ({
   initScmRuntime: () => ({}),
 }));
 
+// Selecting a change now hands its diff to the shared preview panel via
+// `openPreview` rather than rendering an inline pane. The panel is mounted here
+// without a real PreviewProvider, so we mock the Preview module and capture the
+// `openPreview` calls to assert what tab the panel would open.
+const openPreviewMock = vi.fn();
+vi.mock('@/renderer/pages/conversation/Preview', () => ({
+  usePreviewContext: () => ({ openPreview: openPreviewMock }),
+}));
+
 import { ScmPanel } from '@/renderer/pages/conversation/SourceControl/ScmPanel';
 import {
   applyScmNotification,
@@ -83,6 +92,7 @@ const installPort = (setup: PortSetup): void => {
 beforeEach(() => {
   resetScmStoreForTest();
   diffCalls.length = 0;
+  openPreviewMock.mockClear();
 });
 
 afterEach(() => {
@@ -278,7 +288,10 @@ describe('ScmPanel diff view', () => {
       from: 'staged',
       to: 'working',
     });
-    expect(await screen.findByText('unified patch text')).toBeInTheDocument();
+    // The fetched patch is opened as a `'diff'` tab in the shared preview panel,
+    // titled by the file name — not rendered inline under this panel.
+    await waitFor(() => expect(openPreviewMock).toHaveBeenCalledTimes(1));
+    expect(openPreviewMock).toHaveBeenCalledWith('unified patch text', 'diff', { file_name: 'a.ts', title: 'a.ts' });
   });
 
   it('never sends the staged anchor when opening a conflicted row (would return empty content)', async () => {
@@ -305,7 +318,7 @@ describe('ScmPanel diff view', () => {
     });
   });
 
-  it('shows a failure message when the diff request rejects', async () => {
+  it('opens nothing in the preview panel when the diff request rejects (passive bridge)', async () => {
     installPort({
       repositories: [repo()],
       firstFrames: { 'scm:pe1': status('scm:pe1', 1, [resource('src/a.ts')]) },
@@ -315,10 +328,13 @@ describe('ScmPanel diff view', () => {
     await screen.findByText('a.ts');
     fireEvent.click(screen.getByText('a.ts'));
 
-    expect(await screen.findByText('conversation.explorer.scm.diff.failed')).toBeInTheDocument();
+    // The fetch is attempted, but a failure leaves the selection intact and opens no
+    // tab — error surfacing belongs to the action-report path, not this bridge.
+    await waitFor(() => expect(diffCalls).toHaveLength(1));
+    expect(openPreviewMock).not.toHaveBeenCalled();
   });
 
-  it('shows a binary placeholder instead of a patch', async () => {
+  it('opens a binary placeholder as the diff tab body instead of a patch', async () => {
     installPort({
       repositories: [repo()],
       firstFrames: { 'scm:pe1': status('scm:pe1', 1, [resource('logo.png')]) },
@@ -328,18 +344,25 @@ describe('ScmPanel diff view', () => {
     await screen.findByText('logo.png');
     fireEvent.click(screen.getByText('logo.png'));
 
-    expect(await screen.findByText('conversation.explorer.scm.diff.binary')).toBeInTheDocument();
+    await waitFor(() => expect(openPreviewMock).toHaveBeenCalledTimes(1));
+    expect(openPreviewMock).toHaveBeenCalledWith('conversation.explorer.scm.diff.binary', 'diff', {
+      file_name: 'logo.png',
+      title: 'logo.png',
+    });
   });
 
-  it('closes the diff when the selected row disappears from a newer status frame', async () => {
+  it('stops bridging (no further openPreview) once the selected row disappears from a newer frame', async () => {
     await setup();
     fireEvent.click(screen.getByText('a.ts'));
-    await screen.findByText('unified patch text');
+    await waitFor(() => expect(openPreviewMock).toHaveBeenCalledTimes(1));
 
-    // The change was committed elsewhere → the whole-frame replace drops the row.
-    // A stale patch for a resource that no longer exists must not stay on screen.
+    // The change was committed elsewhere → the whole-frame replace drops the row and
+    // clears the selection, so the diff bridge unmounts and opens no stale tab. The
+    // preview panel owns its already-open tab's lifecycle from here.
+    openPreviewMock.mockClear();
     applyScmNotification('scm/statusChanged', status('scm:pe1', 2, []));
-    await waitFor(() => expect(document.querySelector('[data-scm-diff]')).toBeNull());
+    await waitFor(() => expect(document.querySelector('[data-scm-resource]')).toBeNull());
+    expect(openPreviewMock).not.toHaveBeenCalled();
   });
 });
 

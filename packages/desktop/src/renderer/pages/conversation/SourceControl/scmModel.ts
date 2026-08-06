@@ -79,7 +79,13 @@ export type ScmResource = {
 };
 
 export type ScmStatus = {
-  repository: { repo_id: string };
+  /**
+   * `head` is an optional enrichment (same shape as `ScmRepository.head`): the
+   * backend attaches it so a status push after e.g. a terminal `checkout` can
+   * update the branch display without a separate `repositoriesChanged` frame.
+   * Absent for providers that cannot supply it — never assume it is present.
+   */
+  repository: { repo_id: string; head?: { name?: string; detached?: boolean } };
   resources: ScmResource[];
   /** Per-repo monotonic sequence; older frames are dropped by the store. */
   seq: number;

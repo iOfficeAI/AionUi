@@ -317,7 +317,8 @@ describe('outcome reporting', () => {
     expect(banner.textContent).toContain('"failed":1');
     expect(banner.textContent).not.toContain('rejectedFailed');
     // Partial success is never retryable — the successful files must not be redone.
-    expect(banner.querySelector('[data-scm-retry]')).toBeNull();
+    // Retry (when present) lives in the report's secondary row, so assert at panel scope.
+    expect(document.querySelector('[data-scm-retry]')).toBeNull();
   });
 
   it('flags the failed row so the user can see which file it was', async () => {
@@ -354,7 +355,8 @@ describe('outcome reporting', () => {
 
     const banner = document.querySelector('[data-scm-report="error"]')!;
     expect(banner.textContent).toContain('rejectedBlocked');
-    expect(banner.querySelector('[data-scm-retry]')).toBeNull();
+    // Retry lives in the report's secondary row; assert its absence at panel scope.
+    expect(document.querySelector('[data-scm-retry]')).toBeNull();
   });
 
   it('does NOT offer retry for -32052 (a static provider property)', async () => {
@@ -528,8 +530,10 @@ describe('transport failure wording (must never claim the action did not run)', 
     expect(banner.textContent).not.toContain('rejectedFailed');
     expect(banner.textContent).not.toContain('rejectedBlocked');
     expect(banner.textContent).not.toContain('actions.notSent');
-    // …and it must not invite a redo.
-    expect(banner.querySelector('[data-scm-retry]')).toBeNull();
+    // …and it must not invite a redo. Retry lives in the report's secondary row
+    // (a sibling of the summary banner), so assert it at panel scope, not inside
+    // the banner node.
+    expect(document.querySelector('[data-scm-retry]')).toBeNull();
   });
 
   it('a frame that never left the client DOES say nothing changed, and offers retry', async () => {
@@ -542,7 +546,9 @@ describe('transport failure wording (must never claim the action did not run)', 
 
     const banner = document.querySelector('[data-scm-report]')!;
     expect(banner.textContent).toContain('actions.notSent');
-    expect(banner.querySelector('[data-scm-retry]')).not.toBeNull();
+    // Retry now sits in the report's secondary row beside the failed-file detail,
+    // a sibling of the summary banner — assert at panel scope.
+    expect(document.querySelector('[data-scm-retry]')).not.toBeNull();
   });
 });
 
