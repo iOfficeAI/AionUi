@@ -108,22 +108,34 @@ logDiagnostic(`Connecting chrome-devtools-mcp to the in-app browser bridge at ${
 const CHROME_DEVTOOLS_MCP_VERSION = '0.16.0';
 
 /**
- * Windows 上 npx 实际是 npx.cmd，不走 shell 的 spawn 会直接 ENOENT。
- * On Windows npx is npx.cmd, which spawn cannot exec without a shell.
+ * Windows 上 npx 是 npx.cmd，而 .cmd 属于批处理文件，没有终端无法自己执行。
+ * 直接 spawn('npx.cmd') 会同步抛错（CVE-2024-27980 修复后 Node 收紧了 .cmd 处理，
+ * 表现为 EINVAL；见 issue #3883），于是 MCP 在 Windows 上根本起不来。
+ *
+ * 这里显式走 cmd.exe /c，而不是加 shell: true：后者虽然也能跑通，但 Node 已用
+ * DEP0190 弃用「shell + args 数组」的组合，而且会把 browserUrl 交给 shell 解析。
+ * cmd.exe /c 是官方推荐写法，保留参数数组各自的转义语义。
+ *
+ * On Windows npx is npx.cmd, a batch file that cannot execute without a terminal, so
+ * spawn('npx.cmd') throws synchronously (Node tightened .cmd handling after
+ * CVE-2024-27980, surfacing as EINVAL — see issue #3883) and the MCP never starts.
+ *
+ * We go through cmd.exe /c rather than setting shell: true: that also works, but Node
+ * deprecated the "shell + args array" combination (DEP0190) and it would hand browserUrl
+ * to the shell for parsing. cmd.exe /c is the documented approach and keeps each argument
+ * individually escaped.
  */
 const isWindows = process.platform === 'win32';
 
-const child = spawn(
-  isWindows ? 'npx.cmd' : 'npx',
-  ['-y', `chrome-devtools-mcp@${CHROME_DEVTOOLS_MCP_VERSION}`, '--browser-url', browserUrl],
-  {
-    // stdio 直通：这个进程只是转发者，MCP 协议流不能被中间层缓冲或改写
-    // Pass stdio straight through: this process is a forwarder, and the MCP
-    // protocol stream must not be buffered or rewritten in between.
-    stdio: 'inherit',
-    env: process.env,
-  }
-);
+const mcpArgs = ['-y', `chrome-devtools-mcp@${CHROME_DEVTOOLS_MCP_VERSION}`, '--browser-url', browserUrl];
+
+const child = spawn(isWindows ? 'cmd.exe' : 'npx', isWindows ? ['/c', 'npx', ...mcpArgs] : mcpArgs, {
+  // stdio 直通：这个进程只是转发者，MCP 协议流不能被中间层缓冲或改写
+  // Pass stdio straight through: this process is a forwarder, and the MCP
+  // protocol stream must not be buffered or rewritten in between.
+  stdio: 'inherit',
+  env: process.env,
+});
 
 child.on('error', (error) => {
   logDiagnostic(`Failed to spawn chrome-devtools-mcp: ${error instanceof Error ? error.message : String(error)}`);
