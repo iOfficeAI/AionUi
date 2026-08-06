@@ -10,9 +10,12 @@ import type { TChatConversation } from '@/common/config/storage';
 import { ipcBridge } from '@/common';
 import { assistantRuntimeKey, type Assistant } from '@/common/types/agent/assistantTypes';
 import { resolveLocaleKey } from '@/common/utils';
-import type { AgentLogoMap } from '@/renderer/utils/model/agentLogo';
 import { resolveAgentLogo, useAgentLogos } from '@/renderer/utils/model/agentLogo';
-import { isLikelyLocalFilePath, resolveAssistantAvatar } from '@/renderer/utils/model/assistantAvatar';
+import {
+  isLikelyLocalFilePath,
+  resolveAssistantAvatar,
+  resolveAssistantDisplayAvatar,
+} from '@/renderer/utils/model/assistantAvatar';
 import useSWR from 'swr';
 export interface PresetAssistantInfo {
   name: string;
@@ -132,8 +135,11 @@ function resolveLegacyRuntimeDisplayName(conversation: TChatConversation): strin
  * 规范化头像：支持 emoji / 内置 svg / 扩展资源 URL
  * Normalize avatar to either emoji text or a renderable image URL
  */
-function normalizeAvatar(avatar: string | undefined): { logo: string; isEmoji: boolean; isFallback?: boolean } {
-  const resolved = resolveAssistantAvatar(avatar);
+function normalizeAvatar(
+  avatar: string | undefined,
+  identity?: { id?: string; source?: string; backend?: string }
+): { logo: string; isEmoji: boolean; isFallback?: boolean } {
+  const resolved = identity ? resolveAssistantDisplayAvatar(avatar, identity) : resolveAssistantAvatar(avatar);
   if (resolved.kind === 'image') {
     return { logo: resolved.value, isEmoji: false };
   }
@@ -215,13 +221,18 @@ function buildPresetInfoFromAssistant(assistant: Assistant, locale: string): Pre
   const localeKey = resolveLocaleKey(locale);
   const name = assistant.name_i18n?.[localeKey] || assistant.name_i18n?.[locale] || assistant.name || assistant.id;
   const avatar = typeof assistant.avatar === 'string' ? assistant.avatar : '';
-  const normalized = normalizeAvatar(avatar);
+  const backend = assistantRuntimeKey(assistant) || undefined;
+  const normalized = normalizeAvatar(avatar, {
+    id: assistant.id,
+    source: assistant.source,
+    backend,
+  });
   return {
     name,
     logo: normalized.logo,
     isEmoji: normalized.isEmoji,
     isFallback: normalized.isFallback,
-    backend: assistantRuntimeKey(assistant) || undefined,
+    backend,
     assistantId: assistant.id,
   };
 }
@@ -229,7 +240,11 @@ function buildPresetInfoFromAssistant(assistant: Assistant, locale: string): Pre
 function buildPresetInfoFromConversationAssistant(
   assistant: NonNullable<TChatConversation['assistant']>
 ): PresetAssistantInfo {
-  const normalized = normalizeAvatar(assistant.avatar);
+  const normalized = normalizeAvatar(assistant.avatar, {
+    id: assistant.id,
+    source: assistant.source,
+    backend: assistant.backend,
+  });
   return {
     name: assistant.name,
     logo: normalized.logo,

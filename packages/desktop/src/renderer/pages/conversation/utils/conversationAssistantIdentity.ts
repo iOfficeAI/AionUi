@@ -1,6 +1,6 @@
 import type { TChatConversation } from '@/common/config/storage';
 import type { PresetAssistantInfo } from '@/renderer/hooks/agent/usePresetAssistantInfo';
-import { resolveAssistantAvatar } from '@/renderer/utils/model/assistantAvatar';
+import { resolveAssistantAvatar, resolveAssistantDisplayAvatar } from '@/renderer/utils/model/assistantAvatar';
 import { resolveAgentLogo } from '@/renderer/utils/model/agentLogo';
 import type { AgentLogoMap } from '@/renderer/utils/model/agentLogo';
 
@@ -112,6 +112,14 @@ export function resolveConversationLeadingMark(
   }
 
   const backendKey = resolveConversationBackend(conversation)?.trim() || 'agent';
+  const brandedAvatar = resolveAssistantDisplayAvatar(undefined, { backend: backendKey });
+  if (brandedAvatar.kind === 'image') {
+    return {
+      kind: 'image',
+      value: brandedAvatar.value,
+      label: backendKey,
+    };
+  }
   const logo = resolveAgentLogo(logos, { backend: backendKey });
   if (logo) {
     return {

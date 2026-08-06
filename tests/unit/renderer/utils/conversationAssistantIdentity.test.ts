@@ -5,8 +5,8 @@
  */
 
 import type { TChatConversation } from '@/common/config/storage';
-import type { PresetAssistantInfo } from '@/renderer/hooks/agent/usePresetAssistantInfo';
 import { resolveConversationLeadingMark } from '@/renderer/pages/conversation/utils/conversationAssistantIdentity';
+import siderBrandIcon from '@/renderer/assets/logos/brand/sider-brand.png';
 import { describe, expect, it } from 'vitest';
 
 const TEST_LOGOS = {
@@ -69,6 +69,23 @@ describe('resolveConversationLeadingMark', () => {
       kind: 'image',
       value: '/api/assets/logos/gemini.svg',
       label: 'gemini',
+    });
+  });
+
+  it('uses the GEAUi brand for legacy Aion CLI conversations', () => {
+    const result = resolveConversationLeadingMark(
+      makeConversation({
+        type: 'aionrs',
+        extra: {},
+      }),
+      undefined,
+      TEST_LOGOS
+    );
+
+    expect(result).toEqual({
+      kind: 'image',
+      value: siderBrandIcon,
+      label: 'aionrs',
     });
   });
 

@@ -8,6 +8,7 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import React from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import type { Assistant } from '@/common/types/agent/assistantTypes';
+import siderBrandIcon from '@/renderer/assets/logos/brand/sider-brand.png';
 import AssistantSelectionArea, {
   hasTruncatedAssistantLabels,
   resolveAssistantVisibleLimit,
@@ -71,6 +72,19 @@ describe('AssistantSelectionArea', () => {
     expect(screen.queryByText('Select an assistant to start a task')).not.toBeInTheDocument();
     expect(screen.queryByText('Try these example prompts:')).not.toBeInTheDocument();
     expect(screen.queryByText('Summarize today')).not.toBeInTheDocument();
+  });
+
+  it('shows the GEAUi brand icon for the generated Aion CLI pill', () => {
+    render(
+      <AssistantSelectionArea
+        selectedAssistantId='bare-aionrs'
+        assistants={assistants()}
+        localeKey='en-US'
+        onSelectAssistant={vi.fn()}
+      />
+    );
+
+    expect(screen.getByTestId('preset-pill-bare-aionrs').querySelector('img')).toHaveAttribute('src', siderBrandIcon);
   });
 
   it('moves overflow assistants into a more dropdown', async () => {
@@ -307,9 +321,11 @@ function assistants(): Assistant[] {
       name: 'Aion CLI',
       name_i18n: {},
       description_i18n: {},
+      avatar: '/api/assistants/bare-aionrs/avatar',
       enabled: true,
       sort_order: 10,
-      preset_agent_type: 'aionrs',
+      agent_id: 'aionrs',
+      agent: { type: 'aionrs', source: 'internal' },
       enabled_skills: [],
       custom_skill_names: [],
       disabled_builtin_skills: [],
@@ -329,7 +345,8 @@ function assistants(): Assistant[] {
       description_i18n: {},
       enabled: true,
       sort_order: 20,
-      preset_agent_type: 'claude',
+      agent_id: 'claude',
+      agent: { type: 'claude', source: 'builtin' },
       enabled_skills: [],
       custom_skill_names: [],
       disabled_builtin_skills: [],
@@ -369,7 +386,8 @@ function mkAssistant(
     description_i18n: {},
     enabled: true,
     sort_order,
-    preset_agent_type,
+    agent_id: preset_agent_type,
+    agent: { type: preset_agent_type, source: source === 'user' ? 'custom' : 'builtin' },
     enabled_skills: [],
     custom_skill_names: [],
     disabled_builtin_skills: [],

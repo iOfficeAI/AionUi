@@ -5,11 +5,18 @@
  */
 
 import { resolveBackendAssetUrl } from '@/renderer/utils/platform';
+import siderBrandIcon from '@/renderer/assets/logos/brand/sider-brand.png';
 
 export type AssistantAvatar =
   | { kind: 'image'; value: string }
   | { kind: 'emoji'; value: string }
   | { kind: 'fallback' };
+
+type AssistantAvatarIdentity = {
+  id?: string | null;
+  source?: string | null;
+  backend?: string | null;
+};
 
 export function isBackendRelativeAssetPath(value: string): boolean {
   return value.startsWith('/api/') || value.startsWith('/assets/');
@@ -42,4 +49,24 @@ export function resolveAssistantAvatar(avatar: string | undefined): AssistantAva
   }
 
   return { kind: 'emoji', value };
+}
+
+/**
+ * Keep the product's default Aion CLI identity aligned with the GEAUi brand.
+ * User-created and builtin assistants backed by aionrs keep their own avatars.
+ */
+export function resolveAssistantDisplayAvatar(
+  avatar: string | undefined,
+  identity: AssistantAvatarIdentity
+): AssistantAvatar {
+  const id = identity.id?.trim().toLowerCase();
+  const source = identity.source?.trim().toLowerCase();
+  const backend = identity.backend?.trim().toLowerCase();
+  const isDefaultAionCli = backend === 'aionrs' && (source === 'generated' || id === 'bare-aionrs' || (!id && !source));
+
+  if (isDefaultAionCli) {
+    return { kind: 'image', value: siderBrandIcon };
+  }
+
+  return resolveAssistantAvatar(avatar);
 }

@@ -7,6 +7,7 @@
 import { renderHook } from '@testing-library/react';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import type { TChatConversation } from '@/common/config/storage';
+import siderBrandIcon from '@/renderer/assets/logos/brand/sider-brand.png';
 import { resolveAssistantConfigId, usePresetAssistantInfo } from '@/renderer/hooks/agent/usePresetAssistantInfo';
 
 const useSWRMock = vi.fn();
@@ -283,6 +284,39 @@ describe('usePresetAssistantInfo', () => {
       isFallback: true,
       backend: 'codex',
       assistantId: 'bare-codex',
+    });
+  });
+
+  it('uses the GEAUi brand for an explicit generated Aion CLI conversation', () => {
+    useSWRMock.mockImplementation((key: unknown) => {
+      if (key === 'assistants.list') return { data: [], isLoading: false };
+      if (key === 'extensions.acpAdapters') return { data: [], isLoading: false };
+      return { data: undefined, isLoading: false };
+    });
+
+    const conversation = {
+      ...makeConversation({
+        assistant_id: 'bare-aionrs',
+        backend: 'aionrs',
+      }),
+      type: 'aionrs',
+      assistant: {
+        id: 'bare-aionrs',
+        source: 'generated',
+        name: 'Aion CLI',
+        avatar: '/api/assistants/bare-aionrs/avatar',
+        backend: 'aionrs',
+      },
+    } as TChatConversation;
+
+    const { result } = renderHook(() => usePresetAssistantInfo(conversation));
+
+    expect(result.current.info).toEqual({
+      name: 'Aion CLI',
+      logo: siderBrandIcon,
+      isEmoji: false,
+      backend: 'aionrs',
+      assistantId: 'bare-aionrs',
     });
   });
 

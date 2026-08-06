@@ -5,7 +5,8 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { resolveAssistantAvatar } from '@/renderer/utils/model/assistantAvatar';
+import siderBrandIcon from '@/renderer/assets/logos/brand/sider-brand.png';
+import { resolveAssistantAvatar, resolveAssistantDisplayAvatar } from '@/renderer/utils/model/assistantAvatar';
 
 describe('resolveAssistantAvatar', () => {
   it('treats assistant avatar api routes as image sources', () => {
@@ -44,6 +45,32 @@ describe('resolveAssistantAvatar', () => {
     expect(resolveAssistantAvatar('🤖')).toEqual({
       kind: 'emoji',
       value: '🤖',
+    });
+  });
+
+  it('uses the GEAUi brand for the default generated Aion CLI assistant', () => {
+    expect(
+      resolveAssistantDisplayAvatar('/api/assistants/bare-aionrs/avatar', {
+        id: 'bare-aionrs',
+        source: 'generated',
+        backend: 'aionrs',
+      })
+    ).toEqual({
+      kind: 'image',
+      value: siderBrandIcon,
+    });
+  });
+
+  it('preserves custom avatars for user-created aionrs assistants', () => {
+    expect(
+      resolveAssistantDisplayAvatar('/api/assistants/custom-aionrs/avatar', {
+        id: 'custom-aionrs',
+        source: 'user',
+        backend: 'aionrs',
+      })
+    ).toEqual({
+      kind: 'image',
+      value: '/api/assistants/custom-aionrs/avatar',
     });
   });
 });

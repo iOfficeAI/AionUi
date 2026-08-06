@@ -11,7 +11,7 @@ import { Button } from '@arco-design/web-react';
 import { AionSearchInput } from '@/renderer/components/base';
 import { useAssistantOrder } from '@/renderer/hooks/assistant/useAssistantOrder';
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { resolveAssistantAvatar } from '@/renderer/utils/model/assistantAvatar';
+import { resolveAssistantDisplayAvatar } from '@/renderer/utils/model/assistantAvatar';
 import { selectableAssistants } from '@/renderer/utils/model/assistantSelection';
 import { useTranslation } from 'react-i18next';
 
@@ -181,7 +181,12 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
   if (enabledAssistants.length === 0) return null;
 
   const renderAssistantPill = (assistant: Assistant, testId: string, fullWidth = false) => {
-    const avatar = resolveAssistantAvatar(assistant.avatar);
+    const backend = assistantRuntimeKey(assistant);
+    const avatar = resolveAssistantDisplayAvatar(assistant.avatar, {
+      id: assistant.id,
+      source: assistant.source,
+      backend,
+    });
     const isSelected = selectedId === assistant.id;
     const label = assistant.name_i18n?.[localeKey] || assistant.name;
 
@@ -190,7 +195,7 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
         key={assistant.id}
         data-testid={testId}
         data-assistant-id={assistant.id}
-        data-assistant-backend={assistantRuntimeKey(assistant)}
+        data-assistant-backend={backend}
         data-assistant-selected={isSelected ? 'true' : 'false'}
         type='text'
         className={`!inline-flex !min-w-0 !h-auto !items-center !gap-6px !rounded-999px !border-none !px-12px !py-8px !text-13px transition-all ${
