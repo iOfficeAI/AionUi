@@ -27,10 +27,7 @@ type ImageExtension = (typeof IMAGE_EXTENSIONS)[number];
 
 const isWithin = (root: string, target: string): boolean => {
   const relative = path.relative(root, target);
-  return (
-    relative === '' ||
-    (!relative.startsWith(`..${path.sep}`) && relative !== '..' && !path.isAbsolute(relative))
-  );
+  return relative === '' || (!relative.startsWith(`..${path.sep}`) && relative !== '..' && !path.isAbsolute(relative));
 };
 
 const resolveSafePath = (workspaceDir: string, candidate: string): string => {
@@ -248,9 +245,7 @@ export async function executeImageGeneration(
 
     // Process image URIs
     if (hasImages) {
-      const imageResults = await Promise.allSettled(
-        imageUris.map((uri) => processImageUri(uri, resolvedWorkspaceDir))
-      );
+      const imageResults = await Promise.allSettled(imageUris.map((uri) => processImageUri(uri, resolvedWorkspaceDir)));
 
       const successful: ImageContent[] = [];
       const errors: string[] = [];

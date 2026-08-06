@@ -84,25 +84,19 @@ describe('processImageUri', () => {
   it('should block path traversal via ../ from escaping the workspace', async () => {
     const ws = createWorkspace();
 
-    await expect(processImageUri('../../../etc/passwd', ws)).rejects.toThrow(
-      'Path traversal blocked'
-    );
+    await expect(processImageUri('../../../etc/passwd', ws)).rejects.toThrow('Path traversal blocked');
   });
 
   it('should block path traversal for ".." (parent without trailing path)', async () => {
     const ws = createWorkspace();
     // ".." triggers relative !== '..' short-circuit branch in isWithin
-    await expect(processImageUri('..', ws)).rejects.toThrow(
-      'Path traversal blocked'
-    );
+    await expect(processImageUri('..', ws)).rejects.toThrow('Path traversal blocked');
   });
 
   it('should block absolute path outside the workspace', async () => {
     const ws = createWorkspace();
 
-    await expect(processImageUri('/etc/passwd', ws)).rejects.toThrow(
-      'Path traversal blocked'
-    );
+    await expect(processImageUri('/etc/passwd', ws)).rejects.toThrow('Path traversal blocked');
   });
 
   it('should allow an absolute path that is inside the workspace', async () => {
@@ -119,17 +113,13 @@ describe('processImageUri', () => {
     const ws = createWorkspace();
     createNonImageFile(ws, 'notes.txt');
 
-    await expect(processImageUri('notes.txt', ws)).rejects.toThrow(
-      'not a supported image type'
-    );
+    await expect(processImageUri('notes.txt', ws)).rejects.toThrow('not a supported image type');
   });
 
   it('should resolve a "." path to the workspace directory itself', async () => {
     const ws = createWorkspace();
     // "." resolves to workspace dir — isWithin returns true via relative === '' branch
-    await expect(processImageUri('.', ws)).rejects.toThrow(
-      'not a supported image type'
-    );
+    await expect(processImageUri('.', ws)).rejects.toThrow('not a supported image type');
   });
 
   it('should resolve a path with dot segments within the workspace', async () => {
@@ -147,9 +137,7 @@ describe('processImageUri', () => {
   it('should reject a missing file within the workspace', async () => {
     const ws = createWorkspace();
 
-    await expect(processImageUri('nonexistent.png', ws)).rejects.toThrow(
-      'Image file not found'
-    );
+    await expect(processImageUri('nonexistent.png', ws)).rejects.toThrow('Image file not found');
   });
 });
 
