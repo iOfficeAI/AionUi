@@ -64,6 +64,7 @@ type TMessageType =
   | 'agent_status'
   | 'permission'
   | 'acp_permission'
+  | 'ask'
   | 'acp_tool_call'
   | 'plan'
   | 'thinking'
@@ -295,6 +296,30 @@ export type IMessageAgentStatus = IMessage<
 
 export type IMessageAcpPermission = IMessage<'acp_permission', AcpPermissionRequest>;
 
+/** One structured question inside an `ask` frame (claude AskUserQuestion shape;
+ *  qwen/grok converged on the same layout — cross-vendor contract). */
+export interface IAskQuestion {
+  question: string;
+  header?: string;
+  /** The ws relay snake_cases every key (normalize_keys_to_snake_case), so the
+   *  wire spelling is multi_select; multiSelect kept for direct payloads. */
+  multiSelect?: boolean;
+  multi_select?: boolean;
+  options: Array<{ label: string; description?: string }>;
+}
+
+/** Structured question card (AgentStreamEvent::Ask, wire tag `ask`). Answered via
+ *  confirmMessage with `{answers:[{question, labels[]}]}` or `{ask_decline:true}`;
+ *  call_id = request_id (the claude control correlation key). */
+export type IMessageAsk = IMessage<
+  'ask',
+  {
+    session_id: string;
+    request_id: string;
+    questions: IAskQuestion[];
+  }
+>;
+
 export type IMessagePermission = IMessage<'permission', IConfirmation>;
 
 export type IMessageAcpToolCall = IMessage<'acp_tool_call', ToolCallUpdate>;
@@ -377,6 +402,7 @@ export type TMessage =
   | IMessageAgentStatus
   | IMessagePermission
   | IMessageAcpPermission
+  | IMessageAsk
   | IMessageAcpToolCall
   | IMessagePlan
   | IMessageThinking
@@ -394,6 +420,9 @@ export interface IConfirmation<Option extends any = any> {
     value: Option;
     params?: Record<string, string>; // Translation interpolation parameters
   }>;
+  /** AskUserQuestion recovery: the bare questions[] payload — when present the
+   *  recovery path rebuilds the real question card instead of a permission card. */
+  questions?: IAskQuestion[];
   /**
    * Command type for exec confirmations (e.g., 'curl', 'npm', 'git')
    * Used for "always allow" permission memory
@@ -748,6 +777,17 @@ const transformMessageInner = (message: IResponseMessage): TMessage | undefined 
       return {
         id: uuid(),
         type: 'permission',
+        msg_id: message.msg_id,
+        position: 'left',
+        conversation_id: message.conversation_id,
+        created_at,
+        content: message.data as any,
+      };
+    }
+    case 'ask': {
+      return {
+        id: uuid(),
+        type: 'ask',
         msg_id: message.msg_id,
         position: 'left',
         conversation_id: message.conversation_id,

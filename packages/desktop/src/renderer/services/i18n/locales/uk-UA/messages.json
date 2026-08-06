@@ -82,5 +82,12 @@
     "errorPointUnsupported": "Цей агент може відгалужуватися лише від останнього повідомлення",
     "errorUnsupported": "Цей агент не підтримує відгалуження",
     "errorGeneric": "Не вдалося створити відгалуження: {{message}}"
-  }
+  },
+  "askSubmit": "Надіслати",
+  "askDecline": "Не відповідати",
+  "askAnswered": "Відповіли",
+  "askDeclined": "Пропущено",
+  "askOther": "Інше",
+  "askOtherPlaceholder": "Введіть свою відповідь",
+  "requestDetails": "Деталі запиту:"
 }
