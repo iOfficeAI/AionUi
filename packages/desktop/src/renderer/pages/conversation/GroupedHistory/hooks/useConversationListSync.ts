@@ -133,6 +133,14 @@ let generatingConversationIdsState = new Set<string>();
 let completionUnreadConversationIdsState = new Set<string>();
 let completedConversationIdsState = new Set<string>();
 let conversation_idsState = new Set<string>();
+// Full id → owning project_id map over ALL loaded conversations (incl. the team
+// member rows filtered out of `conversationsState`). Every row from
+// GET /api/conversations carries project_id, so this lets the route publish the
+// active project synchronously on switch — no waiting for the per-conversation
+// `conversation.get` to resolve (that async lag painted the previous project's
+// tree). `null` = known conversation with no project (or project_id not yet
+// backfilled); a missing key = not loaded yet (caller placeholders).
+let projectIdByIdState = new Map<string, string | null>();
 let activeConversationIdState: string | null = null;
 let snapshotState: ConversationListSyncSnapshot = {
   conversations: conversationsState,
@@ -158,6 +166,24 @@ const subscribeConversationListSync = (listener: () => void) => {
 
 const getConversationListSyncSnapshot = (): ConversationListSyncSnapshot => snapshotState;
 
+/**
+ * Synchronous lookup of a conversation's owning project id from the in-memory
+ * list snapshot (loaded once via GET /api/conversations, every row carrying
+ * project_id). Returns the project id string, `null` when the conversation is
+ * known but has no project (or its project_id has not been backfilled yet), or
+ * `undefined` when the conversation is not in the snapshot yet (brand-new /
+ * not-loaded — the caller should placeholder rather than paint a stale project).
+ */
+export const getSnapshotConversationProjectId = (conversation_id: string): string | null | undefined => {
+  if (!projectIdByIdState.has(conversation_id)) return undefined;
+  return projectIdByIdState.get(conversation_id) ?? null;
+};
+
+/** Test hook: seed the id → project_id map so the sync lookup can be exercised. */
+export const setConversationProjectMapForTest = (entries: Array<[string, string | null]>): void => {
+  projectIdByIdState = new Map(entries);
+};
+
 const refreshConversations = () => {
   void ipcBridge.database.getUserConversations
     .invoke({ limit: 10000 })
@@ -175,18 +201,23 @@ const refreshConversations = () => {
         // responseStream listener recognises them as known and doesn't
         // trigger an infinite refreshConversations loop.
         conversation_idsState = new Set(items.map((conversation) => conversation.id));
+        // Map ALL rows (unfiltered) so a team member conversation's project_id is
+        // resolvable too — the team route looks up its leader conversation here.
+        projectIdByIdState = new Map(items.map((conversation) => [conversation.id, conversation.project_id ?? null]));
         emitStoreChange();
         return;
       }
 
       conversationsState = [];
       conversation_idsState = new Set();
+      projectIdByIdState = new Map();
       emitStoreChange();
     })
     .catch((error) => {
       console.error('[WorkspaceGroupedHistory] Failed to load conversations:', error);
       conversationsState = [];
       conversation_idsState = new Set();
+      projectIdByIdState = new Map();
       emitStoreChange();
     });
 };

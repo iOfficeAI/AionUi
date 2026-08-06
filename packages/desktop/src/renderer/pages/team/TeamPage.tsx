@@ -38,6 +38,7 @@ import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import { previewScopeKey } from '@/renderer/pages/conversation/Preview/context/previewScope';
 import { setCurrentProject } from '@/renderer/pages/conversation/explorer/currentProjectStore';
 import { setCurrentConversation } from '@/renderer/pages/conversation/explorer/currentConversationStore';
+import { getSnapshotConversationProjectId } from '@/renderer/pages/conversation/GroupedHistory/hooks/useConversationListSync';
 
 type Props = {
   team: TTeam;
@@ -277,7 +278,16 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({
     () => getConversationOrNull(leadAssistant!.conversation_id)
   );
   const leaderConversationIdForProject = leadAssistant?.conversation_id;
-  const teamProjectId = dispatchConversation?.project_id ?? null;
+  // Prefer the synchronous list-snapshot project id for the leader conversation
+  // so switching teams publishes the project immediately. `dispatchConversation`
+  // is an async SWR fetch that previously lagged the switch, leaving the prior
+  // team's Explorer tree painted until it resolved. Snapshot miss (cold start /
+  // row not yet loaded) falls back to the fetched conversation's project_id.
+  const snapshotTeamProjectId = leaderConversationIdForProject
+    ? getSnapshotConversationProjectId(leaderConversationIdForProject)
+    : undefined;
+  const teamProjectId =
+    snapshotTeamProjectId !== undefined ? snapshotTeamProjectId : (dispatchConversation?.project_id ?? null);
 
   // Publish the team's project so the Layout-level Explorer host renders it —
   // mirrors conversation/index.tsx (project-scoped, persistent across agent-tab
