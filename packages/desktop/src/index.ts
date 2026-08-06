@@ -38,6 +38,7 @@ import { setupApplicationMenu } from './process/utils/appMenu';
 import { startWebHost } from '@aionui/web-host';
 import { initializeZoomFactor, setupZoomForWindow } from './process/utils/zoom';
 import { hydrateWindowsProcessPath } from './process/startup/windowsPath';
+import { registerWindowsAppUserModelId } from './process/startup/windowsAppUserModelId';
 import {
   MIN_WINDOW_WIDTH,
   MIN_WINDOW_HEIGHT,
@@ -139,6 +140,7 @@ if (process.platform === 'darwin' || process.platform === 'linux') {
   }
 } else if (process.platform === 'win32') {
   hydrateWindowsProcessPath();
+  registerWindowsAppUserModelId({ app });
 }
 
 // Handle Squirrel startup events (Windows installer)
