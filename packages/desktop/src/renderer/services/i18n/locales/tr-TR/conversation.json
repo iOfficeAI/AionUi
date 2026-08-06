@@ -632,5 +632,12 @@
       "empty": "Eşleşen dosya yok",
       "limitReached": "İlk {{count}} gösteriliyor — daraltın"
     }
+  },
+  "terminal": {
+    "running": "Çalışıyor",
+    "stopped": "Durduruldu",
+    "exited": "Çıkış {{code}}",
+    "stop": "Durdur",
+    "truncated": "(önceki çıktı kesildi)"
   }
 }

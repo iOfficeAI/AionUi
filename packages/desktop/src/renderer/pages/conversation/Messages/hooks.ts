@@ -57,6 +57,7 @@ interface MessageIndex {
   call_idIndex: Map<string, number>; // tool_call.call_id -> index
   tool_call_idIndex: Map<string, number>; // acp_tool_call.update.tool_call_id -> index
   permission_call_idIndex: Map<string, number>; // permission.content.call_id -> index
+  terminal_idIndex: Map<string, number>; // acp_terminal_output.content.terminal_id -> index
 }
 
 function getMessageIndexKey(message: TMessage): string | undefined {
@@ -88,6 +89,7 @@ export function buildMessageIndex(list: TMessage[]): MessageIndex {
   const call_idIndex = new Map<string, number>();
   const tool_call_idIndex = new Map<string, number>();
   const permission_call_idIndex = new Map<string, number>();
+  const terminal_idIndex = new Map<string, number>();
 
   for (let i = 0; i < list.length; i++) {
     const msg = list[i];
@@ -104,9 +106,12 @@ export function buildMessageIndex(list: TMessage[]): MessageIndex {
     if (msg.type === 'permission' && msg.content?.call_id) {
       permission_call_idIndex.set(msg.content.call_id, i);
     }
+    if (msg.type === 'acp_terminal_output' && msg.content?.terminal_id) {
+      terminal_idIndex.set(msg.content.terminal_id, i);
+    }
   }
 
-  return { msgIdIndex, call_idIndex, tool_call_idIndex, permission_call_idIndex };
+  return { msgIdIndex, call_idIndex, tool_call_idIndex, permission_call_idIndex, terminal_idIndex };
 }
 
 // 获取或构建索引（带缓存）
@@ -201,6 +206,24 @@ export function composeMessageWithIndex(
     index.call_idIndex.set(message.content.call_id, newIdx);
     const msgIndexKey = getMessageIndexKey(message);
     if (msgIndexKey) index.msgIdIndex.set(msgIndexKey, newIdx);
+    return list.concat(message);
+  }
+
+  // acp_terminal_output: one live card per terminal_id, replaced in place
+  // (every frame of a turn shares msg_id, so the generic msg_id arm would
+  // collapse two terminals of the same turn into one card).
+  if (message.type === 'acp_terminal_output' && message.content?.terminal_id) {
+    const existingIdx = index.terminal_idIndex.get(message.content.terminal_id);
+    if (existingIdx !== undefined && existingIdx < list.length) {
+      const existingMsg = list[existingIdx];
+      if (existingMsg.type === 'acp_terminal_output') {
+        const newList = list.slice();
+        newList[existingIdx] = { ...existingMsg, content: message.content };
+        return newList;
+      }
+    }
+    const newIdx = list.length;
+    index.terminal_idIndex.set(message.content.terminal_id, newIdx);
     return list.concat(message);
   }
 
@@ -412,6 +435,9 @@ export const useMergeLiveMessage = () => {
           }
           if (msg.type === 'permission' && msg.content?.call_id) {
             index.permission_call_idIndex.set(msg.content.call_id, newIdx);
+          }
+          if (msg.type === 'acp_terminal_output' && msg.content?.terminal_id) {
+            index.terminal_idIndex.set(msg.content.terminal_id, newIdx);
           }
           newList = newList.concat(msg);
         } else {

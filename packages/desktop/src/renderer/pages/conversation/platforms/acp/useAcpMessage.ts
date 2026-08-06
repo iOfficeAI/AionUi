@@ -478,6 +478,12 @@ export const useAcpMessage = (
           }
           break;
         }
+        case 'acp_terminal_output':
+          // Live client-hosted terminal snapshot. Merge the card only — the
+          // frame can trail the turn's Finish (final exit snapshot), so it
+          // must not re-light turn state like the default arm does.
+          mergeLiveMessage(transformedMessage);
+          break;
         case 'acp_context_usage': {
           const usageData = message.data as {
             used: number;

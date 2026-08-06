@@ -631,5 +631,12 @@
       "empty": "Keine passenden Dateien",
       "limitReached": "Erste {{count}} werden angezeigt — eingrenzen"
     }
+  },
+  "terminal": {
+    "running": "Läuft",
+    "stopped": "Gestoppt",
+    "exited": "Exit {{code}}",
+    "stop": "Stopp",
+    "truncated": "(frühere Ausgabe gekürzt)"
   }
 }

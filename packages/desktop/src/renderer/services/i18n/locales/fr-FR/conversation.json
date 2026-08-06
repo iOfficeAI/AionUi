@@ -629,5 +629,12 @@
       "empty": "Aucun fichier correspondant",
       "limitReached": "Affichage des {{count}} premiers — affinez la recherche"
     }
+  },
+  "terminal": {
+    "running": "En cours",
+    "stopped": "Arrêté",
+    "exited": "Code {{code}}",
+    "stop": "Arrêter",
+    "truncated": "(sortie antérieure tronquée)"
   }
 }

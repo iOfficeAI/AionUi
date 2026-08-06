@@ -630,5 +630,12 @@
       "empty": "一致するファイルがありません",
       "limitReached": "最初の {{count}} 件を表示 — 絞り込んでください"
     }
+  },
+  "terminal": {
+    "running": "実行中",
+    "stopped": "停止済み",
+    "exited": "終了コード {{code}}",
+    "stop": "停止",
+    "truncated": "(以前の出力は切り捨て)"
   }
 }
