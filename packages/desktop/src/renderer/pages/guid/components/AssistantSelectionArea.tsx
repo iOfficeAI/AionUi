@@ -10,10 +10,36 @@ import { Down, Robot } from '@icon-park/react';
 import { Button } from '@arco-design/web-react';
 import { AionSearchInput } from '@/renderer/components/base';
 import { useAssistantOrder } from '@/renderer/hooks/assistant/useAssistantOrder';
+import { useManagedAgentRuntimeCatalog } from '@/renderer/hooks/agent/useManagedAgents';
+import { managedAgentSearchText } from '@/renderer/utils/model/agentTypes';
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { resolveAssistantAvatar } from '@/renderer/utils/model/assistantAvatar';
 import { selectableAssistants } from '@/renderer/utils/model/assistantSelection';
 import { useTranslation } from 'react-i18next';
+
+/**
+ * Mirrors the Agent settings search: matches the assistant's own name and
+ * description plus the joined runtime-agent haystack (backend/command/binary),
+ * so both surfaces find the same agents for the same query.
+ */
+export function assistantMatchesSearch(
+  assistant: Assistant,
+  localeKey: string,
+  query: string,
+  agentSearchText?: string
+): boolean {
+  const searchableText = [
+    assistant.name,
+    assistant.name_i18n?.[localeKey],
+    assistant.description,
+    assistant.description_i18n?.[localeKey],
+    agentSearchText,
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+  return searchableText.includes(query);
+}
 
 export function resolveAssistantVisibleLimit(width: number): number {
   if (width >= 720) return 4;
@@ -169,14 +195,28 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
   const overflowColumns = widthVisibleLimit;
   // Search only earns its row when the unfiltered list is long enough to scan.
   const showOverflowSearch = Math.ceil(overflowAssistants.length / overflowColumns) > 5;
+  const managedAgentRuntimeCatalog = useManagedAgentRuntimeCatalog();
+  // Same haystack as the Agent settings search: joining the runtime catalog row
+  // adds backend/command/binary fields, so e.g. "ag" finds Antigravity (`agy`).
+  const agentSearchTextById = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const agent of managedAgentRuntimeCatalog) {
+      map.set(agent.id, managedAgentSearchText(agent, localeKey));
+    }
+    return map;
+  }, [localeKey, managedAgentRuntimeCatalog]);
   const filteredOverflowAssistants = useMemo(() => {
     const query = showOverflowSearch ? search.trim().toLowerCase() : '';
     if (!query) return overflowAssistants;
-    return overflowAssistants.filter((assistant) => {
-      const label = assistant.name_i18n?.[localeKey] || assistant.name;
-      return label.toLowerCase().includes(query);
-    });
-  }, [localeKey, overflowAssistants, search, showOverflowSearch]);
+    return overflowAssistants.filter((assistant) =>
+      assistantMatchesSearch(
+        assistant,
+        localeKey,
+        query,
+        assistant.agent_id ? agentSearchTextById.get(assistant.agent_id) : undefined
+      )
+    );
+  }, [agentSearchTextById, localeKey, overflowAssistants, search, showOverflowSearch]);
 
   if (enabledAssistants.length === 0) return null;
 
