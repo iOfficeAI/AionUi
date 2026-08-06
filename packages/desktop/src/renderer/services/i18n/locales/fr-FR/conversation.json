@@ -618,7 +618,6 @@
       "files": "Fichiers",
       "changes": "Modifications"
     },
-    "changesPlaceholder": "Le contrôle de version arrive dans un onglet séparé — bientôt.",
     "addedToChat": "{{name}} ajouté au chat",
     "imported": "{{count}} fichier(s) importé(s)",
     "importPartialFailed": "{{copied}} copié(s), {{failed}} échec(s) (conflits de noms ou non pris en charge)",
@@ -628,6 +627,73 @@
       "searching": "Recherche…",
       "empty": "Aucun fichier correspondant",
       "limitReached": "Affichage des {{count}} premiers — affinez la recherche"
+    },
+    "scm": {
+      "notARepository": "Ce dossier n'est pas sous gestion de version",
+      "noChanges": "Aucune modification",
+      "loading": "Chargement des modifications…",
+      "loadFailed": "Impossible de charger les modifications",
+      "refresh": "Actualiser",
+      "groups": {
+        "staged": "Modifications indexées",
+        "unstaged": "Modifications",
+        "changes": "Modifications",
+        "blocked": "À résoudre"
+      },
+      "state": {
+        "created": "Ajouté",
+        "modified": "Modifié",
+        "deleted": "Supprimé",
+        "renamed": "Renommé",
+        "conflicted": "Conflit",
+        "unknown": "État non reconnu"
+      },
+      "badge": {
+        "created": "A",
+        "modified": "M",
+        "deleted": "D",
+        "renamed": "R",
+        "conflicted": "!",
+        "unknown": "?"
+      },
+      "conflictedHint": "Résolvez d'abord ce conflit en dehors d'AionUi",
+      "opaqueHint": "Cet état provient d'un backend plus récent — affiché en lecture seule",
+      "degraded": "L'actualisation est ralentie car l'index git ne peut pas être écrit",
+      "truncated": "Trop de modifications — seule la première partie est affichée",
+      "renamedFrom": "{{from}} → {{to}}",
+      "diff": {
+        "loading": "Chargement des différences…",
+        "failed": "Impossible de charger les différences",
+        "binary": "Fichier binaire — pas de différence textuelle",
+        "truncated": "Différences tronquées (fichier volumineux)",
+        "empty": "Aucune modification textuelle",
+        "close": "Fermer les différences"
+      },
+      "actions": {
+        "stage": "Indexer les modifications",
+        "unstage": "Désindexer",
+        "discard": "Abandonner les modifications",
+        "stageAll": "Tout indexer",
+        "unstageAll": "Tout désindexer",
+        "blockedHint": "Résolvez le conflit en dehors d'AionUi avant d'indexer ou d'abandonner",
+        "confirmDiscardTitle": "Abandonner les modifications ?",
+        "confirmDiscardTracked": "Les modifications de {{count}} fichiers seront perdues. Cette action est irréversible.",
+        "confirmDiscardUntracked": "{{count}} nouveaux fichiers seront déplacés vers la corbeille.",
+        "confirmDiscardMixed": "Les modifications de {{tracked}} fichier(s) seront perdues définitivement ; {{untracked}} nouveau(x) fichier(s) iront à la corbeille.",
+        "discardConfirmButton": "Abandonner",
+        "okStage": "{{count}} fichiers indexés",
+        "okUnstage": "{{count}} fichiers désindexés",
+        "okDiscard": "{{count}} fichiers abandonnés",
+        "partial": "{{succeeded}} sur {{total}} effectués —— {{failed}} n’ont pas pu être terminés",
+        "partialDetail": "Non terminés : {{files}}",
+        "rejectedBlocked": "Rien n'a été modifié —— résolvez d'abord le conflit",
+        "rejectedUnsupported": "Ce dépôt ne prend pas en charge cette action",
+        "rejectedFailed": "L'action n'a pas pu être effectuée",
+        "retry": "Réessayer",
+        "notSent": "La requête n'a pas atteint le backend — rien n'a été modifié. Vous pouvez réessayer.",
+        "outcomeUnknown": "La connexion a été réinitialisée avant la réponse — cette action a peut-être abouti, ou non. Actualisez et vérifiez la liste des fichiers avant de réessayer.",
+        "allFailed": "Aucun des {{count}} fichier(s) n'a pu être traité"
+      }
     }
   },
   "terminal": {

@@ -142,14 +142,16 @@ describe('ExplorerContainer data integration', () => {
 
     // Component-switcher tabs present (t returns the raw key here).
     fireEvent.click(screen.getByText('conversation.explorer.tabs.changes'));
-    // Changes tab shows the placeholder…
-    expect(screen.getByText('conversation.explorer.changesPlaceholder')).toBeInTheDocument();
+    // Changes tab shows the Source Control panel. With no SCM port configured (the
+    // WS runtime is stubbed here) the store lands in its error state, which is
+    // enough to prove the real panel — not the old placeholder — is mounted.
+    expect(await screen.findByText('conversation.explorer.scm.loadFailed')).toBeInTheDocument();
     // …and the explorer stays mounted (root still in the DOM, just hidden) — no rebuild.
     expect(screen.getByText('Root Alpha')).toBeInTheDocument();
 
-    // Switching back hides the placeholder and keeps the tree.
+    // Switching back unmounts the SCM panel and keeps the tree.
     fireEvent.click(screen.getByText('conversation.explorer.tabs.files'));
-    expect(screen.queryByText('conversation.explorer.changesPlaceholder')).not.toBeInTheDocument();
+    expect(screen.queryByText('conversation.explorer.scm.loadFailed')).not.toBeInTheDocument();
     expect(screen.getByText('Root Alpha')).toBeInTheDocument();
   });
 

@@ -619,7 +619,6 @@
       "files": "ファイル",
       "changes": "変更"
     },
-    "changesPlaceholder": "ソース管理は別レーンで近日公開。",
     "addedToChat": "{{name}} をチャットに追加しました",
     "imported": "{{count}} 件のファイルをインポートしました",
     "importPartialFailed": "{{copied}} 件コピー、{{failed}} 件失敗（名前の重複または非対応）",
@@ -629,6 +628,73 @@
       "searching": "検索中…",
       "empty": "一致するファイルがありません",
       "limitReached": "最初の {{count}} 件を表示 — 絞り込んでください"
+    },
+    "scm": {
+      "notARepository": "このフォルダーはバージョン管理されていません",
+      "noChanges": "変更はありません",
+      "loading": "変更を読み込み中…",
+      "loadFailed": "変更を読み込めませんでした",
+      "refresh": "更新",
+      "groups": {
+        "staged": "ステージ済みの変更",
+        "unstaged": "変更",
+        "changes": "変更",
+        "blocked": "要解決"
+      },
+      "state": {
+        "created": "追加",
+        "modified": "変更",
+        "deleted": "削除",
+        "renamed": "名前変更",
+        "conflicted": "競合",
+        "unknown": "未知の状態"
+      },
+      "badge": {
+        "created": "A",
+        "modified": "M",
+        "deleted": "D",
+        "renamed": "R",
+        "conflicted": "!",
+        "unknown": "?"
+      },
+      "conflictedHint": "この競合は AionUi の外で解決してください",
+      "opaqueHint": "この状態は新しいバックエンドのものです — 読み取り専用で表示",
+      "degraded": "git のインデックスを更新できないため、低速モードで更新しています",
+      "truncated": "変更が多すぎるため、先頭部分のみ表示しています",
+      "renamedFrom": "{{from}} → {{to}}",
+      "diff": {
+        "loading": "差分を読み込み中…",
+        "failed": "差分を読み込めませんでした",
+        "binary": "バイナリファイル — テキスト差分なし",
+        "truncated": "差分は切り詰められました（大きいファイル）",
+        "empty": "テキストの変更はありません",
+        "close": "差分を閉じる"
+      },
+      "actions": {
+        "stage": "変更をステージ",
+        "unstage": "ステージを取り消す",
+        "discard": "変更を破棄",
+        "stageAll": "すべてステージ",
+        "unstageAll": "すべてステージ解除",
+        "blockedHint": "ステージや破棄の前に、AionUi の外で競合を解決してください",
+        "confirmDiscardTitle": "変更を破棄しますか？",
+        "confirmDiscardTracked": "{{count}} 個のファイルの編集は失われ、元に戻せません。",
+        "confirmDiscardUntracked": "{{count}} 個の新規ファイルがゴミ箱に移動されます。",
+        "confirmDiscardMixed": "{{tracked}} 個のファイルの編集は失われ元に戻せません。{{untracked}} 個の新規ファイルはゴミ箱に移動されます。",
+        "discardConfirmButton": "破棄",
+        "okStage": "{{count}} 個のファイルをステージしました",
+        "okUnstage": "{{count}} 個のファイルのステージを解除しました",
+        "okDiscard": "{{count}} 個のファイルを破棄しました",
+        "partial": "{{total}} 件のうち {{succeeded}} 件完了 —— {{failed}} 件は未完了",
+        "partialDetail": "未完了: {{files}}",
+        "rejectedBlocked": "何も変更されていません —— まず競合を解決してください",
+        "rejectedUnsupported": "このリポジトリはその操作に対応していません",
+        "rejectedFailed": "操作を完了できませんでした",
+        "retry": "再試行",
+        "notSent": "リクエストがバックエンドに届かず、何も変更されていません。再試行できます。",
+        "outcomeUnknown": "応答が届く前に接続がリセットされました——この操作は完了した可能性も、していない可能性もあります。再試行の前に更新してファイル一覧を確認してください。",
+        "allFailed": "{{count}} 個のファイルはいずれも処理できませんでした"
+      }
     }
   },
   "terminal": {

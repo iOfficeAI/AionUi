@@ -625,7 +625,6 @@
       "files": "Arquivos",
       "changes": "Alterações"
     },
-    "changesPlaceholder": "O controle de versão fica em uma aba separada — em breve.",
     "addedToChat": "{{name}} adicionado ao chat",
     "imported": "{{count}} arquivo(s) importado(s)",
     "importPartialFailed": "{{copied}} copiado(s), {{failed}} com falha (conflitos de nome ou não suportados)",
@@ -635,6 +634,73 @@
       "searching": "Buscando…",
       "empty": "Nenhum arquivo corresponde",
       "limitReached": "Mostrando os primeiros {{count}} — refine a busca"
+    },
+    "scm": {
+      "notARepository": "Esta pasta não está sob controle de versão",
+      "noChanges": "Nenhuma alteração",
+      "loading": "Carregando alterações…",
+      "loadFailed": "Não foi possível carregar as alterações",
+      "refresh": "Atualizar",
+      "groups": {
+        "staged": "Alterações preparadas",
+        "unstaged": "Alterações",
+        "changes": "Alterações",
+        "blocked": "Precisa ser resolvido"
+      },
+      "state": {
+        "created": "Adicionado",
+        "modified": "Modificado",
+        "deleted": "Excluído",
+        "renamed": "Renomeado",
+        "conflicted": "Conflito",
+        "unknown": "Estado não reconhecido"
+      },
+      "badge": {
+        "created": "A",
+        "modified": "M",
+        "deleted": "D",
+        "renamed": "R",
+        "conflicted": "!",
+        "unknown": "?"
+      },
+      "conflictedHint": "Resolva este conflito fora do AionUi primeiro",
+      "opaqueHint": "Este estado vem de um backend mais novo — exibido somente leitura",
+      "degraded": "A atualização está em modo mais lento porque o índice do git não pode ser gravado",
+      "truncated": "Alterações demais para listar — mostrando apenas a primeira parte",
+      "renamedFrom": "{{from}} → {{to}}",
+      "diff": {
+        "loading": "Carregando diferenças…",
+        "failed": "Não foi possível carregar as diferenças",
+        "binary": "Arquivo binário — sem diferenças de texto",
+        "truncated": "Diferenças truncadas (arquivo grande)",
+        "empty": "Nenhuma alteração de texto",
+        "close": "Fechar diferenças"
+      },
+      "actions": {
+        "stage": "Preparar alterações",
+        "unstage": "Retirar da preparação",
+        "discard": "Descartar alterações",
+        "stageAll": "Preparar tudo",
+        "unstageAll": "Retirar tudo da preparação",
+        "blockedHint": "Resolva o conflito fora do AionUi antes de preparar ou descartar",
+        "confirmDiscardTitle": "Descartar alterações?",
+        "confirmDiscardTracked": "As edições em {{count}} arquivos serão perdidas. Isso não pode ser desfeito.",
+        "confirmDiscardUntracked": "{{count}} novos arquivos serão movidos para a lixeira.",
+        "confirmDiscardMixed": "As edições em {{tracked}} arquivo(s) serão perdidas de forma irreversível; {{untracked}} novo(s) arquivo(s) vão para a lixeira.",
+        "discardConfirmButton": "Descartar",
+        "okStage": "{{count}} arquivos preparados",
+        "okUnstage": "{{count}} arquivos retirados da preparação",
+        "okDiscard": "{{count}} arquivos descartados",
+        "partial": "{{succeeded}} de {{total}} concluídos —— {{failed}} não foi possível concluir",
+        "partialDetail": "Não concluídos: {{files}}",
+        "rejectedBlocked": "Nada foi alterado —— resolva o conflito primeiro",
+        "rejectedUnsupported": "Este repositório não suporta essa ação",
+        "rejectedFailed": "Não foi possível concluir a ação",
+        "retry": "Tentar novamente",
+        "notSent": "A solicitação não chegou ao backend — nada foi alterado. Você pode tentar novamente.",
+        "outcomeUnknown": "A conexão foi reiniciada antes da resposta — esta ação pode ou não ter sido concluída. Atualize e confira a lista de arquivos antes de tentar de novo.",
+        "allFailed": "Nenhum dos {{count}} arquivo(s) pôde ser processado"
+      }
     }
   },
   "terminal": {
