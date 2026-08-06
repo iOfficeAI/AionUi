@@ -18,7 +18,7 @@ export const ROUTES = {
     assistants: '#/settings/assistants',
     skills: '#/settings/skills',
     tools: '#/settings/tools',
-    display: '#/settings/display',
+    display: '#/settings/appearance',
     webui: '#/settings/webui',
     system: '#/settings/system',
     about: '#/settings/about',

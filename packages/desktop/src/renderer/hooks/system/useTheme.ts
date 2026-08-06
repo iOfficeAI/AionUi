@@ -7,7 +7,7 @@
 import { configService } from '@/common/config/configService';
 import { ipcBridge } from '@/common';
 import { resolveActiveTheme } from '@/common/theme/resolveTheme';
-import { applyTheme, setActiveTheme } from '@/renderer/utils/theme/applyTheme';
+import { applyTheme, seedElectronTheme, setActiveTheme } from '@/renderer/utils/theme/applyTheme';
 import { getSystemPrefersDark } from '@/renderer/utils/theme/systemAppearance';
 import { startSystemThemeWatcher } from '@/renderer/utils/theme/systemThemeWatcher';
 import { BUILTIN_THEMES } from '@renderer/theme/builtinThemes';
@@ -16,6 +16,14 @@ import type { Theme } from '@/common/theme/types';
 import { useCallback, useEffect, useState } from 'react';
 
 const APPEARANCE_CACHE_KEY = '__aionui_theme';
+
+function cacheAppearance(theme: Theme): void {
+  try {
+    localStorage.setItem(APPEARANCE_CACHE_KEY, theme.appearance);
+  } catch {
+    /* noop */
+  }
+}
 
 function getPersistedActiveId(): string {
   return (configService.get('theme.activeId') as string) || LIGHT_THEME_ID;
@@ -28,13 +36,9 @@ async function initActiveTheme(): Promise<Theme> {
     const userThemes = (configService.get('theme.userThemes') as Theme[]) ?? [];
     const resolved = resolveActiveTheme(activeId, [...BUILTIN_THEMES, ...userThemes], getSystemPrefersDark());
     applyTheme(resolved);
-    try {
-      localStorage.setItem(APPEARANCE_CACHE_KEY, resolved.appearance);
-    } catch {
-      /* noop */
-    }
+    cacheAppearance(resolved);
     // Seed the main-process relay so other surfaces (markdown shadow DOM, pet windows) can pull it.
-    void ipcBridge.theme.setActive.invoke(resolved).catch(() => {});
+    void seedElectronTheme(resolved).catch(() => {});
     return resolved;
   } catch (e) {
     console.error('init theme failed', e);
@@ -73,11 +77,7 @@ const useTheme = (): [Theme | null, (activeId: string) => Promise<void>, string 
         // Best-effort: config was persisted before the broadcast, fall back to the resolved id.
         setActiveId((configService.get('theme.activeId') as string) || t.id);
       }
-      try {
-        localStorage.setItem(APPEARANCE_CACHE_KEY, t.appearance);
-      } catch {
-        /* noop */
-      }
+      cacheAppearance(t);
     });
     const offSystemWatch = startSystemThemeWatcher();
     return () => {
@@ -87,9 +87,11 @@ const useTheme = (): [Theme | null, (activeId: string) => Promise<void>, string 
     };
   }, []);
 
-  const select = useCallback(async (activeId: string) => {
-    await setActiveTheme(activeId);
-    setActiveId(activeId);
+  const select = useCallback(async (selectedId: string) => {
+    const resolved = await setActiveTheme(selectedId);
+    setActive(resolved);
+    setActiveId(selectedId);
+    cacheAppearance(resolved);
   }, []);
 
   return [active, select, activeId];
