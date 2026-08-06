@@ -230,9 +230,14 @@ export const ScmResourceRow: React.FC<ScmResourceRowProps> = ({
       >
         {t(`conversation.explorer.scm.badge.${suffix}`)}
       </span>
+      {/* Filename must carry an explicit primary-text token, not inherit. With no
+          colour class it inherited a value that does not follow the theme, so in dark
+          mode the name resolved dark-on-dark and blurred into the background (real-
+          browser check: inherited stayed rgb(0,0,0) under dark, while text-t-primary
+          resolves to #fff). conflicted/failed keep danger; everything else is primary. */}
       <span
         className={`overflow-hidden text-ellipsis whitespace-nowrap text-13px ${
-          kind === 'conflicted' || failed ? 'text-danger' : ''
+          kind === 'conflicted' || failed ? 'text-danger' : 'text-t-primary'
         } ${resource.state === 'deleted' ? 'line-through' : ''}`}
       >
         {label}

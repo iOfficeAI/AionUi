@@ -45,6 +45,13 @@ export type ScmRepository = {
   /** repo root = `{ pe_id, relative_path: '' }`. */
   root: ScmFileRef;
   label: string;
+  /**
+   * Human-facing project-explorer name of this repo's root, when the backend knows
+   * one (wire field `pe_name`, aligned with backend W-1). Optional because it is an
+   * open-set enrichment: a provider that cannot supply it simply omits it, and the
+   * UI falls back to `label`. Never assume it is present.
+   */
+  pe_name?: string;
   head?: { name?: string; detached?: boolean };
   capabilities: ScmCapabilities;
   state: 'idle' | 'refreshing' | 'operation' | 'error';

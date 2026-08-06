@@ -44,6 +44,7 @@ import {
   SCM_ERR_OPERATION_FAILED,
   SCM_ERR_RESOURCE_BLOCKED,
   selectScmResource,
+  setSelectedRepo,
   subscribeScm,
 } from '@/renderer/pages/conversation/SourceControl/scmStore';
 
@@ -527,6 +528,56 @@ describe('resource selection + diff', () => {
         to: 'working',
       })
     ).rejects.toThrow(/not configured/);
+  });
+});
+
+describe('setSelectedRepo (front-end repo switch, D2丙)', () => {
+  const twoRepos = async (): Promise<void> => {
+    h.setRepos([repo(), repo({ repo_id: 'scm:pe2', root: { pe_id: 'pe2', relative_path: '' } })]);
+    await openScmProject('p1');
+  };
+
+  it('defaults selectedRepoId to null on open (the view resolves that to the first repo)', async () => {
+    await twoRepos();
+    expect(getScmSnapshot().selectedRepoId).toBeNull();
+  });
+
+  it('records the chosen repo', async () => {
+    await twoRepos();
+    setSelectedRepo('scm:pe2');
+    expect(getScmSnapshot().selectedRepoId).toBe('scm:pe2');
+  });
+
+  it('clears the open diff on an actual switch — the selection belonged to the other repo', async () => {
+    await twoRepos();
+    selectScmResource('pe1\0src/a.ts\0u');
+    setSelectedRepo('scm:pe2');
+    expect(getScmSnapshot().selectedResource).toBeNull();
+  });
+
+  it('is a no-op for the same id (does not clear a selection made within the same repo)', async () => {
+    await twoRepos();
+    setSelectedRepo('scm:pe2');
+    selectScmResource('pe2\0b.ts\0u');
+    setSelectedRepo('scm:pe2'); // same repo again
+    expect(getScmSnapshot().selectedResource).toBe('pe2\0b.ts\0u');
+  });
+
+  it('resets selectedRepoId to null when the SELECTED repo is removed (no stale id, no resurrection)', async () => {
+    await twoRepos();
+    setSelectedRepo('scm:pe2');
+    applyScmNotification('scm/repositoriesChanged', { removed: ['scm:pe2'] });
+    // Not left pointing at the removed repo — so a later re-add of scm:pe2 will not
+    // silently jump the view back to it.
+    expect(getScmSnapshot().selectedRepoId).toBeNull();
+    expect(getScmSnapshot().selectedResource).toBeNull();
+  });
+
+  it('leaves the selection untouched when a DIFFERENT repo is removed', async () => {
+    await twoRepos();
+    setSelectedRepo('scm:pe2');
+    applyScmNotification('scm/repositoriesChanged', { removed: ['scm:pe1'] });
+    expect(getScmSnapshot().selectedRepoId).toBe('scm:pe2');
   });
 });
 

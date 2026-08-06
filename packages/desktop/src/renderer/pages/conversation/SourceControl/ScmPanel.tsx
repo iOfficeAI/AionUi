@@ -42,7 +42,7 @@ import {
   type ScmResource,
   type ScmStatus,
 } from './scmModel';
-import { openScmProject, refreshAllRepos, selectScmResource, useScm } from './scmStore';
+import { openScmProject, refreshAllRepos, selectScmResource, setSelectedRepo, useScm } from './scmStore';
 import { initScmRuntime } from './scmTransport';
 import { type ScmActionReport, useScmActions } from './useScmActions';
 
@@ -75,10 +75,26 @@ export const ScmPanel: React.FC<ScmPanelProps> = ({ projectId }) => {
     };
   }, []);
 
-  const selected = useMemo(
-    () => findSelected(view.repositories, view.statuses, view.selectedResource),
-    [view.repositories, view.statuses, view.selectedResource]
+  // The repo whose changes the body shows. A stale or absent `selectedRepoId`
+  // (default on open, or after the selected repo was removed) resolves to the first
+  // repo — so the body never renders nothing while a repo exists. Undefined only
+  // when there are no repos at all, which the guards below handle first.
+  const selectedRepo = useMemo(
+    () => view.repositories.find((r) => r.repo_id === view.selectedRepoId) ?? view.repositories[0],
+    [view.repositories, view.selectedRepoId]
   );
+
+  // Diff selection is scoped to the shown repo: only its rows are on screen, and a
+  // repo switch clears `selectedResource` (see `setSelectedRepo`), so a resolved row
+  // always belongs to `selectedRepo`. A whole-frame replace that drops the row
+  // resolves to null and closes the diff.
+  const selected = useMemo(() => {
+    if (!selectedRepo || !view.selectedResource) return null;
+    const resource = view.statuses[selectedRepo.repo_id]?.resources.find(
+      (r) => resourceKey(r) === view.selectedResource
+    );
+    return resource ? { repo: selectedRepo, resource } : null;
+  }, [selectedRepo, view.statuses, view.selectedResource]);
 
   if (view.loadState === 'loading' && view.repositories.length === 0) {
     return <PanelNotice text={t('conversation.explorer.scm.loading')} />;
@@ -87,9 +103,11 @@ export const ScmPanel: React.FC<ScmPanelProps> = ({ projectId }) => {
     return <PanelNotice text={t('conversation.explorer.scm.loadFailed')} />;
   }
   // No pe root of this project is a repository → say so, do not fabricate a repo.
-  if (view.repositories.length === 0) {
+  if (view.repositories.length === 0 || !selectedRepo) {
     return <PanelNotice text={t('conversation.explorer.scm.notARepository')} />;
   }
+
+  const multiRepo = view.repositories.length > 1;
 
   return (
     <div data-scm-panel className='h-full flex flex-col min-h-0'>
@@ -112,19 +130,20 @@ export const ScmPanel: React.FC<ScmPanelProps> = ({ projectId }) => {
           onRetry={actions.retry}
         />
       )}
+      {/* Repo switcher only for a multi-repo project (D3): a single repo goes
+          straight to its changes with no list. Clicking is pure front-end. */}
+      {multiRepo && (
+        <RepoList repositories={view.repositories} selectedRepoId={selectedRepo.repo_id} onSelect={setSelectedRepo} />
+      )}
       <div className='flex-1 min-h-0 overflow-auto pl-4px pr-4px pb-8px'>
-        {view.repositories.map((repo) => (
-          <RepoSection
-            key={repo.repo_id}
-            repo={repo}
-            status={view.statuses[repo.repo_id]}
-            selectedKey={view.selectedResource}
-            multiRepo={view.repositories.length > 1}
-            onAction={actions.run}
-            busy={actions.busy}
-            failedRowKeys={actions.report?.failedRowKeys ?? []}
-          />
-        ))}
+        <RepoSection
+          repo={selectedRepo}
+          status={view.statuses[selectedRepo.repo_id]}
+          selectedKey={view.selectedResource}
+          onAction={actions.run}
+          busy={actions.busy}
+          failedRowKeys={actions.report?.failedRowKeys ?? []}
+        />
       </div>
       {selected && (
         <ScmDiffView
@@ -137,6 +156,57 @@ export const ScmPanel: React.FC<ScmPanelProps> = ({ projectId }) => {
     </div>
   );
 };
+
+/**
+ * Repository switcher, shown only for a multi-repo project. Each item is one repo:
+ * its name (preferring the project-explorer `pe_name` over the bare `label`) and
+ * current branch. The name uses `||`, not `??`: the backend promises never to emit
+ * `Some("")`, but an empty string must still fall back to `label` rather than smear
+ * into a blank repo name. Clicking changes which repo fills the body — pure
+ * front-end, no `scm/*` request (every repo is already subscribed; see `setSelectedRepo`).
+ */
+const RepoList: React.FC<{
+  repositories: ScmRepository[];
+  selectedRepoId: string;
+  onSelect: (repoId: string) => void;
+}> = ({ repositories, selectedRepoId, onSelect }) => (
+  <div
+    data-scm-repo-list
+    className='flex-shrink-0 flex flex-col gap-1px px-4px py-4px border-b border-[var(--bg-3)] max-h-[30vh] overflow-auto'
+  >
+    {repositories.map((repo) => {
+      const isSelected = repo.repo_id === selectedRepoId;
+      return (
+        <div
+          key={repo.repo_id}
+          role='button'
+          tabIndex={0}
+          data-scm-repo-item={repo.repo_id}
+          aria-current={isSelected ? 'true' : undefined}
+          onClick={() => onSelect(repo.repo_id)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              onSelect(repo.repo_id);
+            }
+          }}
+          className={`flex items-center gap-6px px-8px py-3px rd-4px cursor-pointer hover:bg-2 min-w-0 ${
+            isSelected ? 'bg-2' : ''
+          }`}
+        >
+          <span className='overflow-hidden text-ellipsis whitespace-nowrap text-13px text-t-primary'>
+            {repo.pe_name || repo.label}
+          </span>
+          {repo.head?.name && (
+            <span className='overflow-hidden text-ellipsis whitespace-nowrap text-t-tertiary text-12px flex-shrink-0'>
+              {repo.head.name}
+            </span>
+          )}
+        </div>
+      );
+    })}
+  </div>
+);
 
 /**
  * Outcome banner. Tone carries the distinction that matters: a `warning` means the
@@ -192,16 +262,18 @@ const PanelNotice: React.FC<{ text: string }> = ({ text }) => (
   <div className='h-full flex items-center justify-center px-16px text-center text-t-secondary text-13px'>{text}</div>
 );
 
-/** One repo's section: header (only when multi-repo) + warnings + grouped rows. */
+/**
+ * One repo's section: warnings + grouped rows. No repo header here — repo identity
+ * lives in the top `RepoList` (multi-repo) and is implicit for a single repo.
+ */
 const RepoSection: React.FC<{
   repo: ScmRepository;
   status: ScmStatus | undefined;
   selectedKey: string | null;
-  multiRepo: boolean;
   onAction: (action: ScmActionKind, repoId: string, resources: ScmResource[]) => void;
   busy: boolean;
   failedRowKeys: string[];
-}> = ({ repo, status, selectedKey, multiRepo, onAction, busy, failedRowKeys }) => {
+}> = ({ repo, status, selectedKey, onAction, busy, failedRowKeys }) => {
   const { t } = useTranslation();
   // Grouping is a display-layer derivation from capabilities — the wire is flat
   // and never pre-grouped (source-control.md §变更清单).
@@ -213,12 +285,6 @@ const RepoSection: React.FC<{
 
   return (
     <div data-scm-repo={repo.repo_id}>
-      {multiRepo && (
-        <div className='px-8px pt-6px pb-2px text-12px text-t-secondary font-medium flex items-center gap-4px'>
-          <span className='overflow-hidden text-ellipsis whitespace-nowrap'>{repo.label}</span>
-          {repo.head?.name && <span className='text-t-tertiary'>{repo.head.name}</span>}
-        </div>
-      )}
       {/* Awaiting this repo's first status frame. The condition is "no status yet",
           NOT `state === 'refreshing'`: per protocol.md v10 the `refreshing` state
           only ever travels on `scm/listRepositories` / `scm/repositoriesChanged`,
@@ -333,21 +399,4 @@ const RepoSection: React.FC<{
       })}
     </div>
   );
-};
-
-/** Resolve the selected row key back to its repo + resource, or null if it is gone. */
-const findSelected = (
-  repositories: ScmRepository[],
-  statuses: Record<string, ScmStatus>,
-  selectedKey: string | null
-): { repo: ScmRepository; resource: ScmResource } | null => {
-  if (!selectedKey) return null;
-  for (const repo of repositories) {
-    const resource = statuses[repo.repo_id]?.resources.find((r) => resourceKey(r) === selectedKey);
-    // A whole-frame replace can drop the selected row (the change was committed or
-    // reverted elsewhere). Resolving to null closes the diff rather than showing a
-    // stale patch for a resource that no longer exists.
-    if (resource) return { repo, resource };
-  }
-  return null;
 };

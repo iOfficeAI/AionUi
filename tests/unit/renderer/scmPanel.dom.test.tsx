@@ -368,38 +368,137 @@ describe('ScmPanel lifecycle (tab switch must not release the subscription)', ()
   });
 });
 
-describe('ScmPanel multi-repo', () => {
-  it('shows a per-repo header only when the project has more than one repo', async () => {
-    installPort({
-      repositories: [
-        repo(),
-        repo({ repo_id: 'scm:pe2', label: 'shared-lib', root: { pe_id: 'pe2', relative_path: '' } }),
-      ],
-      firstFrames: {
-        'scm:pe1': status('scm:pe1', 1, [resource('a.ts')]),
-        'scm:pe2': status('scm:pe2', 1, [
-          {
-            file: { pe_id: 'pe2', relative_path: 'b.ts' },
-            repo_relative_path: 'b.ts',
-            state: 'created',
-            staged: false,
-          },
-        ]),
-      },
-    });
-    render(<ScmPanel projectId='p1' />);
-
-    expect(await screen.findByText('aion')).toBeInTheDocument();
-    expect(screen.getByText('shared-lib')).toBeInTheDocument();
-    expect(document.querySelectorAll('[data-scm-repo]')).toHaveLength(2);
+describe('ScmPanel multi-repo (top list + click to switch, D2丙)', () => {
+  const twoRepos = (): PortSetup => ({
+    repositories: [
+      repo(),
+      repo({
+        repo_id: 'scm:pe2',
+        label: 'shared-lib',
+        root: { pe_id: 'pe2', relative_path: '' },
+        head: { name: 'dev' },
+      }),
+    ],
+    firstFrames: {
+      'scm:pe1': status('scm:pe1', 1, [resource('a.ts')]),
+      'scm:pe2': status('scm:pe2', 1, [
+        resource('b.ts', { file: { pe_id: 'pe2', relative_path: 'b.ts' }, state: 'created' }),
+      ]),
+    },
   });
 
-  it('omits the repo header for a single-repo project', async () => {
+  it('lists every repo up top but renders only the selected one in the body (defaults to the first)', async () => {
+    installPort(twoRepos());
+    render(<ScmPanel projectId='p1' />);
+
+    // The list carries one item per repo, and it is a list — not two stacked sections.
+    await waitFor(() => expect(document.querySelectorAll('[data-scm-repo-item]')).toHaveLength(2));
+    expect(document.querySelector('[data-scm-repo-list]')).not.toBeNull();
+    expect(screen.getByText('aion')).toBeInTheDocument();
+    expect(screen.getByText('shared-lib')).toBeInTheDocument();
+
+    // Body shows only the first repo's changes — the second repo's file is not rendered.
+    expect(document.querySelectorAll('[data-scm-repo]')).toHaveLength(1);
+    expect(screen.getByText('a.ts')).toBeInTheDocument();
+    expect(screen.queryByText('b.ts')).not.toBeInTheDocument();
+  });
+
+  it('renders the OTHER repo after its list item is clicked — no refetch, pure switch', async () => {
+    installPort(twoRepos());
+    render(<ScmPanel projectId='p1' />);
+    await screen.findByText('a.ts');
+
+    fireEvent.click(screen.getByText('shared-lib'));
+
+    await screen.findByText('b.ts');
+    expect(screen.queryByText('a.ts')).not.toBeInTheDocument();
+    expect(document.querySelector('[data-scm-repo="scm:pe2"]')).not.toBeNull();
+    // The selected item is marked current.
+    expect(document.querySelector('[data-scm-repo-item="scm:pe2"]')?.getAttribute('aria-current')).toBe('true');
+  });
+
+  it('falls back to the first repo when the SELECTED repo is removed (repositoriesChanged)', async () => {
+    installPort(twoRepos());
+    render(<ScmPanel projectId='p1' />);
+    await screen.findByText('a.ts');
+
+    // Select the second repo, then have the backend drop it.
+    fireEvent.click(screen.getByText('shared-lib'));
+    await screen.findByText('b.ts');
+
+    applyScmNotification('scm/repositoriesChanged', { removed: ['scm:pe2'] });
+
+    // Only one repo remains → the list disappears and the body lands on it.
+    await screen.findByText('a.ts');
+    expect(screen.queryByText('b.ts')).not.toBeInTheDocument();
+    expect(document.querySelector('[data-scm-repo-list]')).toBeNull();
+  });
+
+  it('omits the repo list for a single-repo project and shows the changes directly', async () => {
     installPort({ repositories: [repo()], firstFrames: { 'scm:pe1': status('scm:pe1', 1, [resource('a.ts')]) } });
     render(<ScmPanel projectId='p1' />);
 
     await screen.findByText('a.ts');
+    expect(document.querySelector('[data-scm-repo-list]')).toBeNull();
+    // The repo's own name is not shown anywhere for a single repo (no list, no header).
     expect(screen.queryByText('aion')).not.toBeInTheDocument();
+  });
+
+  it('labels a repo by its pe_name when present, falling back to label otherwise', async () => {
+    installPort({
+      repositories: [
+        repo({ pe_name: 'My Frontend' }), // pe_name present → wins over label 'aion'
+        repo({ repo_id: 'scm:pe2', label: 'shared-lib', root: { pe_id: 'pe2', relative_path: '' } }), // no pe_name → label
+        // Empty-string pe_name must ALSO fall back to label. This is the second half
+        // of the double-insurance: the backend promises never to emit Some(""), but
+        // the render uses `||` (not `??`) so a stray "" cannot smear into a blank
+        // repo name. Reverting the render to `??` makes this assertion fail.
+        repo({ repo_id: 'scm:pe3', pe_name: '', label: 'empty-name-repo', root: { pe_id: 'pe3', relative_path: '' } }),
+      ],
+      firstFrames: {
+        'scm:pe1': status('scm:pe1', 1, [resource('a.ts')]),
+        'scm:pe2': status('scm:pe2', 1, [resource('b.ts', { file: { pe_id: 'pe2', relative_path: 'b.ts' } })]),
+        'scm:pe3': status('scm:pe3', 1, [resource('c.ts', { file: { pe_id: 'pe3', relative_path: 'c.ts' } })]),
+      },
+    });
+    render(<ScmPanel projectId='p1' />);
+
+    await waitFor(() => expect(document.querySelectorAll('[data-scm-repo-item]')).toHaveLength(3));
+    expect(screen.getByText('My Frontend')).toBeInTheDocument(); // pe_name shown
+    expect(screen.queryByText('aion')).not.toBeInTheDocument(); // bare label hidden when pe_name exists
+    expect(screen.getByText('shared-lib')).toBeInTheDocument(); // missing pe_name → fallback to label
+    expect(screen.getByText('empty-name-repo')).toBeInTheDocument(); // empty-string pe_name → fallback to label
+  });
+});
+
+describe('ScmPanel filename colour (dark-mode legibility)', () => {
+  // The filename span must carry an explicit theme token, never inherit: with no
+  // colour class it inherited a value that does not follow the theme, so a dark
+  // scheme rendered the name dark-on-dark. jsdom loads no CSS, so this asserts the
+  // CLASS the component applies (the layer jsdom can see); that the token paints
+  // correctly in both themes is verified in scmBadgeCss.test.ts + a real-browser probe.
+  it('gives an ordinary filename the primary-text token, not an inherited colour', async () => {
+    installPort({
+      repositories: [repo()],
+      firstFrames: { 'scm:pe1': status('scm:pe1', 1, [resource('a.ts', { state: 'modified' })]) },
+    });
+    render(<ScmPanel projectId='p1' />);
+
+    const name = await screen.findByText('a.ts');
+    expect(name.className).toContain('text-t-primary');
+    expect(name.className).not.toContain('text-danger');
+  });
+
+  it('keeps a conflicted filename on the danger token (not primary)', async () => {
+    installPort({
+      repositories: [repo()],
+      firstFrames: { 'scm:pe1': status('scm:pe1', 1, [resource('c.ts', { state: 'conflicted', staged: undefined })]) },
+    });
+    render(<ScmPanel projectId='p1' />);
+
+    const name = await screen.findByText('c.ts');
+    expect(name.className).toContain('text-danger');
+    expect(name.className).not.toContain('text-t-primary');
   });
 });
 

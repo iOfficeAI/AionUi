@@ -29,12 +29,13 @@ import { beforeAll, describe, expect, it } from 'vitest';
 
 import unoConfig from '../../../uno.config';
 
-/** Classes used by `ScmResourceRow`'s BADGE_CLASS map. */
+/** Classes used by the SCM row: the `BADGE_CLASS` map + the filename colour. */
 const BADGE_CLASSES = [
   'text-success', // created + renamed
   'text-warning', // modified
-  'text-danger', // deleted
+  'text-danger', // deleted (and conflicted/failed filename)
   'text-t-tertiary', // unknown
+  'text-t-primary', // ordinary filename — must follow the theme, not inherit
   // conflicted — a filled chip, deliberately structural rather than another shade
   'bg-danger-light-1',
   'border-danger-4',
@@ -74,6 +75,32 @@ describe('every badge class actually produces a CSS rule', () => {
     for (const cls of ['text-success', 'text-warning', 'text-danger']) {
       expect(ruleFor(cls)).not.toMatch(/#[0-9a-f]{3,8}/i);
     }
+  });
+
+  it('routes the ordinary filename through --text-primary, which flips per theme', () => {
+    // The dark-mode bug this guards: a filename with no colour class inherited a
+    // value that does not follow the theme (real-browser check: it stayed rgb(0,0,0)
+    // under the dark scheme). `--text-primary` is #000 light / #fff dark, so the token
+    // is what makes the name legible in both.
+    //
+    // Two halves make the title true, not just plausible:
+    //  1. the class resolves to the token (not a literal hex), so it can follow theme;
+    expect(ruleFor('text-t-primary')).toBe('color:var(--text-primary);');
+    expect(ruleFor('text-t-primary')).not.toMatch(/#[0-9a-f]{3,8}/i);
+
+    //  2. the token itself actually flips: #000 under the light selector, #fff under
+    //     the dark one. Without this the token could be defined once (no flip) and the
+    //     name would be legible in one theme only — the exact bug, one level down.
+    const scheme = readFileSync(
+      path.join(__dirname, '../../../packages/desktop/src/renderer/styles/themes/default-color-scheme.css'),
+      'utf8'
+    );
+    const darkAt = scheme.indexOf("[data-color-scheme='default'][data-theme='dark']");
+    expect(darkAt, 'dark theme selector must exist').toBeGreaterThan(-1);
+    const light = scheme.slice(0, darkAt); // everything before the dark block = the :root/light scope
+    const dark = scheme.slice(darkAt);
+    expect(light).toMatch(/--text-primary:\s*#000000/i); // light → black
+    expect(dark).toMatch(/--text-primary:\s*#ffffff/i); //  dark  → white
   });
 
   it('resolves the conflicted chip variables down to real RGB components', () => {

@@ -87,6 +87,14 @@ export type ScmView = {
   loadState: ScmLoadState;
   /** Set when `loadState === 'error'`; an i18n-agnostic message for the panel. */
   error?: string;
+  /**
+   * Which repo's changes the multi-repo panel body shows. `null` means "fall back
+   * to the first repo" — the default on open and the landing spot after the selected
+   * repo is removed. Pure front-end view state: switching it issues no `scm/*`
+   * request (every repo of the project is already subscribed, design D2丙). The view
+   * resolves `null`-or-stale to the first repo, so a stale id never renders nothing.
+   */
+  selectedRepoId: string | null;
   /** Currently selected resource row key (see `resourceKey`), for diff view. */
   selectedResource: string | null;
   /** True while a stage/unstage/discard request is in flight. */
@@ -124,6 +132,7 @@ const EMPTY_VIEW: ScmView = {
   repositories: [],
   statuses: {},
   loadState: 'idle',
+  selectedRepoId: null,
   selectedResource: null,
   actionBusy: false,
   actionReport: null,
@@ -142,6 +151,7 @@ let appliedSeq = new Map<string, number>();
 let subscribed = new Set<string>();
 let loadState: ScmLoadState = 'idle';
 let error: string | undefined;
+let selectedRepoId: string | null = null;
 let selectedResource: string | null = null;
 let actionBusy = false;
 let actionReport: ScmActionReport | null = null;
@@ -158,6 +168,7 @@ const rebuild = (): void => {
     statuses: Object.fromEntries(statuses),
     loadState,
     error,
+    selectedRepoId,
     selectedResource,
     actionBusy,
     actionReport,
@@ -246,6 +257,15 @@ const applyRepositoriesChanged = (delta: ScmRepositoriesChanged | undefined): vo
     subscribed.delete(repoId);
   }
 
+  // If the repo being shown was removed, drop the selection so the view falls back
+  // to the first repo. Reset to null (not to a specific id) on purpose: the view
+  // derives the fallback, and a null won't resurrect this repo if the same id is
+  // re-added later.
+  if (selectedRepoId !== null && removed.has(selectedRepoId)) {
+    selectedRepoId = null;
+    selectedResource = null;
+  }
+
   // A repo named in `removed` AND in `added`/`changed` is a contradictory frame.
   // Removal has already won above; say so, because the alternative is a user
   // staring at a repo that never loads with nothing in the log to explain it.
@@ -306,6 +326,7 @@ export const openScmProject = async (id: string): Promise<void> => {
   repositories = [];
   statuses = new Map();
   appliedSeq = new Map();
+  selectedRepoId = null;
   selectedResource = null;
   error = undefined;
   // Action state is per-project (same reason as in `closeScmProject`): a report
@@ -356,6 +377,7 @@ export const closeScmProject = (): void => {
   repositories = [];
   statuses = new Map();
   appliedSeq = new Map();
+  selectedRepoId = null;
   selectedResource = null;
   loadState = 'idle';
   error = undefined;
@@ -393,6 +415,24 @@ export const refreshAllRepos = async (): Promise<void> => {
 /** Select (or clear) the resource row whose diff is shown. */
 export const selectScmResource = (key: string | null): void => {
   selectedResource = key;
+  commit();
+};
+
+/**
+ * Choose which repo's changes the panel body shows (multi-repo projects).
+ *
+ * Pure front-end view state: every repo of the open project is already subscribed
+ * and its status already in `statuses`, so switching renders from cache with **no
+ * `scm/*` request and no latency** (design D2丙). A no-op when the id is unchanged.
+ *
+ * Clears the open diff on an actual switch: the selected resource belongs to the
+ * repo being left, so keeping it would show one repo's patch above another repo's
+ * file list.
+ */
+export const setSelectedRepo = (repoId: string): void => {
+  if (selectedRepoId === repoId) return;
+  selectedRepoId = repoId;
+  selectedResource = null;
   commit();
 };
 
@@ -596,6 +636,7 @@ export const resetScmStoreForTest = (): void => {
   subscribed = new Set();
   loadState = 'idle';
   error = undefined;
+  selectedRepoId = null;
   selectedResource = null;
   actionBusy = false;
   actionReport = null;
