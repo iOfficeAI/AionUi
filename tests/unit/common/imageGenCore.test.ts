@@ -89,6 +89,14 @@ describe('processImageUri', () => {
     );
   });
 
+  it('should block path traversal for ".." (parent without trailing path)', async () => {
+    const ws = createWorkspace();
+    // ".." triggers relative !== '..' short-circuit branch in isWithin
+    await expect(processImageUri('..', ws)).rejects.toThrow(
+      'Path traversal blocked'
+    );
+  });
+
   it('should block absolute path outside the workspace', async () => {
     const ws = createWorkspace();
 
@@ -114,6 +122,26 @@ describe('processImageUri', () => {
     await expect(processImageUri('notes.txt', ws)).rejects.toThrow(
       'not a supported image type'
     );
+  });
+
+  it('should resolve a "." path to the workspace directory itself', async () => {
+    const ws = createWorkspace();
+    // "." resolves to workspace dir — isWithin returns true via relative === '' branch
+    await expect(processImageUri('.', ws)).rejects.toThrow(
+      'not a supported image type'
+    );
+  });
+
+  it('should resolve a path with dot segments within the workspace', async () => {
+    const ws = createWorkspace();
+    const subDir = join(ws, 'subdir');
+    mkdirSync(subDir);
+    createImageFile(subDir, 'image.png');
+
+    const result = await processImageUri('subdir/../subdir/image.png', ws);
+
+    expect(result).toBeDefined();
+    expect(result!.type).toBe('image_url');
   });
 
   it('should reject a missing file within the workspace', async () => {
