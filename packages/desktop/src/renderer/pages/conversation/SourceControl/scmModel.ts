@@ -52,10 +52,17 @@ export type ScmRepository = {
    * UI falls back to `label`. Never assume it is present.
    */
   pe_name?: string;
-  head?: { name?: string; detached?: boolean };
+  head?: ScmHead;
   capabilities: ScmCapabilities;
   state: 'idle' | 'refreshing' | 'operation' | 'error';
 };
+
+/**
+ * The repository HEAD: branch name and whether it is detached (wire `ScmHead`,
+ * aioncore `types.rs`). Both fields are optional — a provider that cannot resolve
+ * a branch name omits it, and `detached` defaults to false when absent.
+ */
+export type ScmHead = { name?: string; detached?: boolean };
 
 /** The resource states this build knows about. */
 export type ScmKnownResourceState = 'created' | 'modified' | 'deleted' | 'conflicted' | 'renamed';
@@ -79,14 +86,18 @@ export type ScmResource = {
 };
 
 export type ScmStatus = {
-  /**
-   * `head` is an optional enrichment (same shape as `ScmRepository.head`): the
-   * backend attaches it so a status push after e.g. a terminal `checkout` can
-   * update the branch display without a separate `repositoriesChanged` frame.
-   * Absent for providers that cannot supply it — never assume it is present.
-   */
-  repository: { repo_id: string; head?: { name?: string; detached?: boolean } };
+  /** Identity of the repo this snapshot belongs to — a pure reference, no state. */
+  repository: { repo_id: string };
   resources: ScmResource[];
+  /**
+   * HEAD at the time of this snapshot (wire `ScmStatus.head`, top-level and sibling
+   * to `resources`/`seq`, per aioncore `types.rs`; `skip_serializing_if none`). It is
+   * a property of the snapshot, not of the repo identity, so it lives here rather than
+   * on `repository`. Optional: a status push after e.g. a terminal `checkout` carries
+   * it so the branch display updates without a separate `repositoriesChanged` frame,
+   * but a provider that cannot supply it omits it — never assume it is present.
+   */
+  head?: ScmHead;
   /** Per-repo monotonic sequence; older frames are dropped by the store. */
   seq: number;
   truncated?: boolean;

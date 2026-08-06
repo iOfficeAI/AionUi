@@ -34,6 +34,7 @@ import type {
   ScmActionFailure,
   ScmActionKind,
   ScmFileRef,
+  ScmHead,
   ScmRepositoriesChanged,
   ScmRepository,
   ScmResource,
@@ -194,21 +195,21 @@ const applyStatusFrame = (status: ScmStatus): boolean => {
   if (applied !== undefined && !(status.seq > applied)) return false; // stale/duplicate frame
   appliedSeq.set(repoId, status.seq);
   statuses.set(repoId, status);
-  applyHeadFromStatus(repoId, status.repository.head);
+  applyHeadFromStatus(repoId, status.head);
   return true;
 };
 
 /**
- * Mirror an optional `head` enrichment from a status frame onto the matching
- * `repositories` entry. The branch display (`RepoList`) reads `repo.head` off
- * `repositories`, not the per-repo status frame, so a terminal `checkout` that
- * only triggers a `scm/statusChanged` push would otherwise leave the branch name
- * stale. `head` is open-set optional: a frame that omits it must not clobber a
- * head already learned from `listRepositories` / `repositoriesChanged`, so we
- * only write when the frame actually carries one. The reference is replaced (not
- * mutated) so `useScm` selectors relying on identity re-render.
+ * Mirror the top-level `head` of a status frame onto the matching `repositories`
+ * entry. The branch display (`RepoList`) reads `repo.head` off `repositories`, not
+ * the per-repo status frame, so a terminal `checkout` that only triggers a
+ * `scm/statusChanged` push would otherwise leave the branch name stale. `head` is
+ * open-set optional: a frame that omits it must not clobber a head already learned
+ * from `listRepositories` / `repositoriesChanged`, so we only write when the frame
+ * actually carries one. The reference is replaced (not mutated) so `useScm`
+ * selectors relying on identity re-render.
  */
-const applyHeadFromStatus = (repoId: string, head: ScmRepository['head']): void => {
+const applyHeadFromStatus = (repoId: string, head: ScmHead | undefined): void => {
   if (!head) return;
   const index = repositories.findIndex((r) => r.repo_id === repoId);
   if (index === -1) return;

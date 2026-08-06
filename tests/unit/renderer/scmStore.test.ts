@@ -438,10 +438,7 @@ describe('head enrichment carried on a status frame (terminal checkout branch sy
     // A terminal `git checkout feature` triggers only a status push (no repositoriesChanged
     // frame). The branch display reads repo.head off `repositories`, so the store must copy
     // the frame's head there or the panel would keep showing the stale branch.
-    applyScmNotification(
-      'scm/statusChanged',
-      status('scm:pe1', 2, [resource('a.ts')], { repository: { repo_id: 'scm:pe1', head: { name: 'feature' } } })
-    );
+    applyScmNotification('scm/statusChanged', status('scm:pe1', 2, [resource('a.ts')], { head: { name: 'feature' } }));
 
     expect(getScmSnapshot().repositories[0].head?.name).toBe('feature');
   });
@@ -455,24 +452,15 @@ describe('head enrichment carried on a status frame (terminal checkout branch sy
   it('does not resurrect head for an unknown repo (no matching repositories entry)', () => {
     // A head enrichment for a repo the store never learned about must be a no-op, not
     // create a phantom repositories entry.
-    applyScmNotification(
-      'scm/statusChanged',
-      status('scm:ghost', 1, [], { repository: { repo_id: 'scm:ghost', head: { name: 'x' } } })
-    );
+    applyScmNotification('scm/statusChanged', status('scm:ghost', 1, [], { head: { name: 'x' } }));
 
     expect(getScmSnapshot().repositories.map((r) => r.repo_id)).toEqual(['scm:pe1']);
   });
 
   it('ignores a stale-seq frame before it can mutate head (seq guard runs first)', () => {
-    applyScmNotification(
-      'scm/statusChanged',
-      status('scm:pe1', 5, [resource('a.ts')], { repository: { repo_id: 'scm:pe1', head: { name: 'feature' } } })
-    );
+    applyScmNotification('scm/statusChanged', status('scm:pe1', 5, [resource('a.ts')], { head: { name: 'feature' } }));
     // Late, lower-seq frame carrying a different head must be dropped whole — head included.
-    applyScmNotification(
-      'scm/statusChanged',
-      status('scm:pe1', 3, [resource('a.ts')], { repository: { repo_id: 'scm:pe1', head: { name: 'stale' } } })
-    );
+    applyScmNotification('scm/statusChanged', status('scm:pe1', 3, [resource('a.ts')], { head: { name: 'stale' } }));
 
     expect(getScmSnapshot().repositories[0].head?.name).toBe('feature');
   });
