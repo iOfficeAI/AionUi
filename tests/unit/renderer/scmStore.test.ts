@@ -360,7 +360,7 @@ describe('scm/repositoriesChanged', () => {
 
   it('adds a new repo and subscribes to it', async () => {
     const added = repo({ repo_id: 'scm:pe2', root: { pe_id: 'pe2', relative_path: '' } });
-    applyScmNotification('scm/repositoriesChanged', { added: [added] });
+    applyScmNotification('scm/repositoriesChanged', { project_id: 'p1', added: [added] });
     await vi.waitFor(() => expect(h.subscribeCalls).toHaveLength(2));
 
     expect(getScmSnapshot().repositories.map((r) => r.repo_id)).toEqual(['scm:pe1', 'scm:pe2']);
@@ -369,7 +369,7 @@ describe('scm/repositoriesChanged', () => {
 
   it('removes a repo along with its status and seq high-water mark', () => {
     applyScmNotification('scm/statusChanged', status('scm:pe1', 7, [resource('a.ts')]));
-    applyScmNotification('scm/repositoriesChanged', { removed: ['scm:pe1'] });
+    applyScmNotification('scm/repositoriesChanged', { project_id: 'p1', removed: ['scm:pe1'] });
 
     expect(getScmSnapshot().repositories).toEqual([]);
     expect(getScmSnapshot().statuses['scm:pe1']).toBeUndefined();
@@ -381,6 +381,7 @@ describe('scm/repositoriesChanged', () => {
 
   it('updates head/state metadata for a changed repo', () => {
     applyScmNotification('scm/repositoriesChanged', {
+      project_id: 'p1',
       changed: [repo({ head: { name: 'feature' }, state: 'refreshing' })],
     });
 
@@ -390,6 +391,7 @@ describe('scm/repositoriesChanged', () => {
 
   it('does not resurrect a repo that is only in `changed` and not currently listed', () => {
     applyScmNotification('scm/repositoriesChanged', {
+      project_id: 'p1',
       changed: [repo({ repo_id: 'scm:ghost', root: { pe_id: 'ghost', relative_path: '' } })],
     });
     expect(getScmSnapshot().repositories.map((r) => r.repo_id)).toEqual(['scm:pe1']);
@@ -397,6 +399,31 @@ describe('scm/repositoriesChanged', () => {
 
   it('ignores an undefined payload', () => {
     expect(() => applyScmNotification('scm/repositoriesChanged', undefined)).not.toThrow();
+  });
+
+  it('drops a frame addressed to a different project without touching the store (Design-Z guard)', () => {
+    // A multi-project session shares one notification stream while this store holds a
+    // single project. A frame carrying another project's `project_id` must be dropped
+    // before any mutation, or its added/removed would corrupt the current view.
+    applyScmNotification('scm/statusChanged', status('scm:pe1', 5, [resource('a.ts')]));
+    setSelectedRepo('scm:pe1');
+    const beforeRepos = getScmSnapshot().repositories.map((r) => r.repo_id);
+    const beforeStatus = getScmSnapshot().statuses['scm:pe1'];
+    h.subscribeCalls.length = 0;
+
+    // Maximal would-be corruption: this frame both ADDS scm:pe2 and REMOVES the
+    // currently-shown scm:pe1. Because `project_id` is not the open project, the guard
+    // drops it and none of that happens.
+    applyScmNotification('scm/repositoriesChanged', {
+      project_id: 'other-project',
+      added: [repo({ repo_id: 'scm:pe2', root: { pe_id: 'pe2', relative_path: '' } })],
+      removed: ['scm:pe1'],
+    });
+
+    expect(getScmSnapshot().repositories.map((r) => r.repo_id)).toEqual(beforeRepos); // still ['scm:pe1']
+    expect(getScmSnapshot().statuses['scm:pe1']).toBe(beforeStatus); // status not dropped
+    expect(getScmSnapshot().selectedRepoId).toBe('scm:pe1'); // selection not reset by the foreign removal
+    expect(h.subscribeCalls).toEqual([]); // the foreign added repo was never subscribed
   });
 });
 
@@ -566,7 +593,7 @@ describe('setSelectedRepo (front-end repo switch, D2丙)', () => {
   it('resets selectedRepoId to null when the SELECTED repo is removed (no stale id, no resurrection)', async () => {
     await twoRepos();
     setSelectedRepo('scm:pe2');
-    applyScmNotification('scm/repositoriesChanged', { removed: ['scm:pe2'] });
+    applyScmNotification('scm/repositoriesChanged', { project_id: 'p1', removed: ['scm:pe2'] });
     // Not left pointing at the removed repo — so a later re-add of scm:pe2 will not
     // silently jump the view back to it.
     expect(getScmSnapshot().selectedRepoId).toBeNull();
@@ -576,7 +603,7 @@ describe('setSelectedRepo (front-end repo switch, D2丙)', () => {
   it('leaves the selection untouched when a DIFFERENT repo is removed', async () => {
     await twoRepos();
     setSelectedRepo('scm:pe2');
-    applyScmNotification('scm/repositoriesChanged', { removed: ['scm:pe1'] });
+    applyScmNotification('scm/repositoriesChanged', { project_id: 'p1', removed: ['scm:pe1'] });
     expect(getScmSnapshot().selectedRepoId).toBe('scm:pe2');
   });
 });
@@ -765,7 +792,7 @@ describe('A-1: a self-contradictory repositoriesChanged frame', () => {
     // (status / seq / subscription) would disagree with `repositories`, leaving a
     // repo on screen that has no status and no subscription — a panel that looks
     // fine but never populates.
-    applyScmNotification('scm/repositoriesChanged', { removed: ['scm:pe1'], added: [repo()] });
+    applyScmNotification('scm/repositoriesChanged', { project_id: 'p1', removed: ['scm:pe1'], added: [repo()] });
 
     expect(getScmSnapshot().repositories).toEqual([]);
     expect(getScmSnapshot().statuses['scm:pe1']).toBeUndefined();
@@ -777,7 +804,7 @@ describe('A-1: a self-contradictory repositoriesChanged frame', () => {
     // `missing` is computed from the post-removal list; computing it before the
     // removal would re-declare a repo the backend has just released.
     h.subscribeCalls.length = 0;
-    applyScmNotification('scm/repositoriesChanged', { removed: ['scm:pe1'], added: [repo()] });
+    applyScmNotification('scm/repositoriesChanged', { project_id: 'p1', removed: ['scm:pe1'], added: [repo()] });
 
     expect(h.subscribeCalls).toEqual([]);
   });
@@ -786,7 +813,7 @@ describe('A-1: a self-contradictory repositoriesChanged frame', () => {
     // Without this, the only symptom is a repo that never loads and nothing in the
     // log to explain why.
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
-    applyScmNotification('scm/repositoriesChanged', { removed: ['scm:pe1'], changed: [repo()] });
+    applyScmNotification('scm/repositoriesChanged', { project_id: 'p1', removed: ['scm:pe1'], changed: [repo()] });
 
     expect(warn).toHaveBeenCalledOnce();
     expect(String(warn.mock.calls[0][0])).toContain('both removed and added/changed');
@@ -795,8 +822,8 @@ describe('A-1: a self-contradictory repositoriesChanged frame', () => {
 
   it('does not warn for an ordinary frame', () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
-    applyScmNotification('scm/repositoriesChanged', { added: [other] });
-    applyScmNotification('scm/repositoriesChanged', { removed: ['scm:pe2'] });
+    applyScmNotification('scm/repositoriesChanged', { project_id: 'p1', added: [other] });
+    applyScmNotification('scm/repositoriesChanged', { project_id: 'p1', removed: ['scm:pe2'] });
 
     expect(warn).not.toHaveBeenCalled();
     warn.mockRestore();
@@ -805,7 +832,7 @@ describe('A-1: a self-contradictory repositoriesChanged frame', () => {
   it('still subscribes a genuinely new repo in the same frame as an unrelated removal', async () => {
     // The contradiction guard must not block the normal add path.
     h.subscribeCalls.length = 0;
-    applyScmNotification('scm/repositoriesChanged', { removed: ['scm:pe1'], added: [other] });
+    applyScmNotification('scm/repositoriesChanged', { project_id: 'p1', removed: ['scm:pe1'], added: [other] });
 
     await vi.waitFor(() => expect(h.subscribeCalls).toEqual([['scm:pe2']]));
     expect(getScmSnapshot().repositories.map((r) => r.repo_id)).toEqual(['scm:pe2']);

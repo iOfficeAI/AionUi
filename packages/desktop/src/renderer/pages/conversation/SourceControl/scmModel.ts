@@ -88,6 +88,12 @@ export type ScmStatus = {
 };
 
 export type ScmRepositoriesChanged = {
+  /**
+   * The project this delta belongs to (wire field `project_id`, snake; the backend
+   * always sends it). The notification stream is not per-project while the store is,
+   * so a consumer must drop any frame whose `project_id` is not the open one.
+   */
+  project_id: string;
   added?: ScmRepository[];
   removed?: string[];
   changed?: ScmRepository[];

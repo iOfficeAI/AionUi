@@ -426,7 +426,7 @@ describe('ScmPanel multi-repo (top list + click to switch, D2丙)', () => {
     fireEvent.click(screen.getByText('shared-lib'));
     await screen.findByText('b.ts');
 
-    applyScmNotification('scm/repositoriesChanged', { removed: ['scm:pe2'] });
+    applyScmNotification('scm/repositoriesChanged', { project_id: 'p1', removed: ['scm:pe2'] });
 
     // Only one repo remains → the list disappears and the body lands on it.
     await screen.findByText('a.ts');
