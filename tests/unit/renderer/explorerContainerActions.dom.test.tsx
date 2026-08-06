@@ -72,6 +72,8 @@ const attachFolder = vi.fn();
 const removeFolder = vi.fn();
 const showOpen = vi.fn();
 const copyFiles = vi.fn();
+const readContent = vi.fn();
+const getContentMetadata = vi.fn();
 vi.mock('@/common', () => ({
   ipcBridge: {
     project: {
@@ -79,7 +81,14 @@ vi.mock('@/common', () => ({
       attachFolder: { invoke: (p: unknown) => attachFolder(p) },
       removeFolder: { invoke: (p: unknown) => removeFolder(p) },
     },
-    fs: { copyFilesToProject: { invoke: (p: unknown) => copyFiles(p) } },
+    fs: {
+      copyFilesToProject: { invoke: (p: unknown) => copyFiles(p) },
+      readContent: { invoke: (p: unknown) => readContent(p) },
+      // Opening a file goes through resolvePreviewPayload, which stats it first:
+      // size decides whether the content is read at all, lastModified becomes the
+      // save-time If-Match.
+      getContentMetadata: { invoke: (p: unknown) => getContentMetadata(p) },
+    },
     dialog: { showOpen: { invoke: (p: unknown) => showOpen(p) } },
   },
 }));
@@ -121,6 +130,15 @@ beforeEach(() => {
   emit.mockReset();
   activeConversationId = null;
   fsRead.mockReset().mockResolvedValue({ content: 'hello', encoding: 'utf-8' });
+  readContent.mockReset().mockResolvedValue('hello');
+  // Small file, well within the preview size ceiling.
+  getContentMetadata.mockReset().mockResolvedValue({
+    name: 'readme.md',
+    path: '/abs/readme.md',
+    size: 5,
+    type: 'file',
+    lastModified: 1_717_000_000,
+  });
   vi.spyOn(Message, 'info').mockImplementation(() => '' as never);
   vi.spyOn(Message, 'warning').mockImplementation(() => '' as never);
   vi.spyOn(Message, 'error').mockImplementation(() => '' as never);
@@ -184,20 +202,24 @@ describe('ExplorerContainer attach/remove', () => {
     await waitFor(() => expect(Message.error).toHaveBeenCalledWith('conversation.explorer.attachFailed'));
   });
 
-  it('opens a selected file in preview via WS fs/read (pe_id + relative_path, no absolute path)', async () => {
+  it('opens a selected file in preview via /content by ChatFileRef (pe_id + relative_path, no absolute path)', async () => {
     renderIt();
     await screen.findByTestId('roots');
     fireEvent.click(screen.getByTestId('do-open'));
+    // Text content is read by Project ChatFileRef over /api/fs/content (utf8), not WS fs/read.
     await waitFor(() =>
-      expect(fsRead).toHaveBeenCalledWith('fs/read', {
-        file: { pe_id: 'peA', relative_path: 'docs/readme.md' },
-        encoding: 'utf-8',
+      expect(readContent).toHaveBeenCalledWith({
+        file: { kind: 'project', pe_id: 'peA', relative_path: 'docs/readme.md' },
+        encoding: 'utf8',
       })
     );
+    expect(fsRead).not.toHaveBeenCalled();
     await waitFor(() => expect(openPreview).toHaveBeenCalled());
-    const [content, type] = openPreview.mock.calls[0];
+    const [content, type, metadata] = openPreview.mock.calls[0];
     expect(content).toBe('hello');
     expect(type).toBe('markdown'); // readme.md → markdown
+    // Carries the Project ref so preview I/O addresses the file by pe identity.
+    expect(metadata.fileRef).toEqual({ kind: 'project', pe_id: 'peA', relative_path: 'docs/readme.md' });
   });
 
   it('removes an attached folder and revalidates the tree', async () => {

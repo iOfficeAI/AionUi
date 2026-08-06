@@ -95,4 +95,57 @@ describe('resolveDefaultTeamAgentModel', () => {
       })
     ).resolves.toBe('auto');
   });
+
+  it('returns an empty model for antigravity assistants resolved from engine details', async () => {
+    getAssistantMock.mockResolvedValue({
+      defaults: {
+        model: { mode: 'auto' },
+      },
+      preferences: {
+        last_model_id: undefined,
+      },
+      engine: {
+        agent_id: 'agy-agent',
+        agent: {
+          id: 'agy-agent',
+          type: 'acp',
+          source: 'builtin',
+          acp_backend: 'antigravity',
+        },
+      },
+    });
+
+    await expect(
+      resolveDefaultTeamAgentModel({
+        assistant_id: 'assistant-antigravity',
+      })
+    ).resolves.toBe('');
+  });
+
+  it('returns an empty model for the antigravity backend when detail lookup fails', async () => {
+    getAssistantMock.mockRejectedValue(new Error('lookup failed'));
+
+    await expect(
+      resolveDefaultTeamAgentModel({
+        assistant_id: 'assistant-antigravity',
+        assistant_backend: 'antigravity',
+      })
+    ).resolves.toBe('');
+  });
+
+  it('keeps the default placeholder for aionrs assistants', async () => {
+    await expect(
+      resolveDefaultTeamAgentModel({
+        assistant_backend: 'aionrs',
+      })
+    ).resolves.toBe('default');
+  });
+
+  it('keeps the default placeholder for other ACP backends such as claude', async () => {
+    await expect(
+      resolveDefaultTeamAgentModel({
+        assistant_backend: 'claude',
+      })
+    ).resolves.toBe('default');
+  });
 });

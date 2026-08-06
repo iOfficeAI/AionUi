@@ -182,6 +182,46 @@
   background-color: transparent;
 }
 
+/* Migration invite capsule (discontinued build only): a pill-shaped button in
+   the titlebar toolbar, colored with the theme warning token so it reads as an
+   "update available" notice. Clicking re-opens the migration invite dialog. */
+.app-titlebar__migration-capsule {
+  -webkit-app-region: no-drag;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 24px;
+  padding: 0 12px;
+  border: none;
+  border-radius: 12px;
+  background-color: var(--warning);
+  color: var(--text-white);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    filter 0.2s ease,
+    transform 0.2s ease;
+}
+
+.app-titlebar__migration-capsule:hover {
+  filter: brightness(1.08);
+}
+
+.app-titlebar__migration-capsule:active {
+  filter: brightness(0.94);
+}
+
+.app-titlebar__migration-capsule-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--text-white);
+  flex-shrink: 0;
+}
+
 /* Optical alignment: arrow icons have their visual weight pulled upward by
    the V tip; nudge them down 1px to sit on the same centerline as the
    sidebar rectangle icon (which has a solid, symmetric visual weight). */

@@ -4,15 +4,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { ipcBridge } from '@/common';
-import type { PreviewContentType } from '@/common/types/office/preview';
+import { localFileRef } from '@/common/types/chatFile';
 import type { LocalFileLinkReference } from '@/renderer/components/Markdown/markdownUtils';
-import {
-  LARGE_TEXT_PREVIEW_MAX_LENGTH,
-  LARGE_TEXT_PREVIEW_THRESHOLD,
-} from '@/renderer/pages/conversation/Preview/constants';
 import { getContentTypeByExtension } from '@/renderer/pages/conversation/Preview/fileUtils';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview/context/PreviewContext';
+import { resolvePreviewPayload, upgradeFileRef } from '@/renderer/utils/file/previewPayload';
+import { getCurrentProject } from '@/renderer/pages/conversation/explorer/currentProjectStore';
 import { useCallback } from 'react';
 
 const getFileNameFromPath = (file_path: string): string => {
@@ -25,9 +22,6 @@ const getPreviewLanguage = (file_name: string): string => {
   return dotIndex >= 0 ? file_name.slice(dotIndex + 1).toLowerCase() : '';
 };
 
-const shouldReadPreviewContent = (contentType: PreviewContentType): boolean =>
-  !['pdf', 'word', 'excel', 'ppt'].includes(contentType);
-
 export const useLocalFilePreview = (workspace?: string) => {
   const { openPreview } = usePreviewContext();
 
@@ -35,41 +29,40 @@ export const useLocalFilePreview = (workspace?: string) => {
     async (file_path: string, reference?: LocalFileLinkReference) => {
       const fileName = getFileNameFromPath(file_path);
       const contentType = getContentTypeByExtension(fileName);
-      let content = '';
-      let isLargeTextTruncated = false;
+      // Local-file links point at a backend-host absolute path (no pe identity) →
+      // a Local ChatFileRef, read over /api/fs/content.
+      //
+      // Upgraded before anything else uses it: the same file opened from the
+      // explorer carries a project ref, so without this the two entry points would
+      // produce two tabs for one file, and this one would get no change signals.
+      const fileRef = await upgradeFileRef(localFileRef(file_path), getCurrentProject());
 
       try {
-        const metadata = await ipcBridge.fs.getFileMetadata.invoke({ path: file_path, workspace });
-        if (metadata == null) throw null;
-
-        if (contentType === 'image') {
-          const imageContent = await ipcBridge.fs.getImageBase64.invoke({ path: file_path, workspace });
-          if (imageContent == null) throw null;
-          content = imageContent;
-        } else if (shouldReadPreviewContent(contentType)) {
-          const textContent = await ipcBridge.fs.readFile.invoke({ path: file_path, workspace });
-          if (textContent == null) throw null;
-          content = textContent;
-
-          if (contentType === 'code' && content.length > LARGE_TEXT_PREVIEW_THRESHOLD) {
-            content = content.slice(0, LARGE_TEXT_PREVIEW_MAX_LENGTH);
-            isLargeTextTruncated = true;
-          }
-        }
+        // Shared gate: applies the size ceiling, reads content only when the file
+        // is within it, and returns the mtime used as the save-time If-Match. It
+        // throws when the file is missing, which is the existence pre-check this
+        // entry point has always relied on.
+        const payload = await resolvePreviewPayload(fileRef, contentType);
 
         openPreview(
-          content,
+          payload.content,
           contentType,
           {
             title: fileName,
             file_name: fileName,
+            fileRef,
             file_path,
             workspace,
             language: getPreviewLanguage(fileName),
-            truncated: isLargeTextTruncated,
             targetLine: reference?.line,
             targetColumn: reference?.column,
-            editable: contentType === 'markdown' || contentType === 'image' || isLargeTextTruncated ? false : undefined,
+            // An oversized file is read-only: no content was read, so there is
+            // nothing to edit and no partial content that could be written back.
+            editable: contentType === 'markdown' || contentType === 'image' || payload.oversized ? false : undefined,
+            oversized: payload.oversized,
+            sizeBytes: payload.sizeBytes,
+            thresholdBytes: payload.thresholdBytes,
+            lastModified: payload.lastModified,
           },
           { replace: true }
         );
@@ -80,6 +73,7 @@ export const useLocalFilePreview = (workspace?: string) => {
           {
             title: fileName,
             file_name: fileName,
+            fileRef,
             file_path,
             workspace,
             language: getPreviewLanguage(fileName),

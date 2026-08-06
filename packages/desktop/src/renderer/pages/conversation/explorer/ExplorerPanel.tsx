@@ -12,10 +12,10 @@
  * a right-click "Remove from project" action; the workspace root is immutable.
  */
 
-import { Dropdown, Menu, Tree } from '@arco-design/web-react';
+import { Button, Dropdown, Menu, Tree } from '@arco-design/web-react';
 import { isElectronDesktop } from '@/renderer/utils/platform';
 import type { TreeProps } from '@arco-design/web-react';
-import { Caution } from '@icon-park/react';
+import { Caution, MoreOne } from '@icon-park/react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -130,7 +130,9 @@ export const ExplorerPanel: React.FC<ExplorerPanelProps> = ({
   const handleSelect: TreeProps['onSelect'] = (selectedKeys, extra) => {
     const key = selectedKeys.length > 0 ? String(selectedKeys[0]) : null;
     select(key);
-    // Selecting a file (leaf) opens it in the preview panel.
+    // Selecting a file (leaf) opens it in the preview panel. Folders are expanded
+    // by arco itself via `actionOnClick` on the <Tree> below — not here, so a row
+    // click is never toggled twice.
     const data = extra?.node?.props?.dataRef as TreeNode | undefined;
     if (key && data?.isLeaf && onOpenFile) {
       const ref = keyToRef(key);
@@ -201,10 +203,23 @@ export const ExplorerPanel: React.FC<ExplorerPanelProps> = ({
       // Reveal-in-folder is Electron-only (needs a local OS shell; WebUI may be
       // remote and has no shell permission), so gate the menu item on the runtime.
       const canReveal = Boolean(onRevealInFolder) && isElectronDesktop();
+      const showWebActions = !isElectronDesktop();
       const hasMenu = onAddToChat || canReveal || (isRoot ? onRemoveRoot : onRename || onDelete);
       if (!hasMenu) return title;
 
-      const onClickMenuItem = (menuKey: string) => {
+      // Stop menu-item clicks from bubbling. arco renders the droplist as a React
+      // child of this Dropdown, which arco itself nests inside the tree node's
+      // onClick(select) span — so a menu click would otherwise bubble (React
+      // portals propagate through the React tree) into the node's select handler,
+      // which opens the preview. Halting here keeps context-menu actions from
+      // selecting the node / opening preview.
+      //
+      // This must happen inside onClickMenuItem rather than in a wrapper <div>
+      // around <Menu>: arco only applies its compact dropdown-menu styling when
+      // <Menu> is a *direct* child of the droplist. Any wrapper element makes it
+      // fall back to the tall sidebar-navigation Menu look (40px rows).
+      const onClickMenuItem = (menuKey: string, event: { stopPropagation?: () => void }) => {
+        event?.stopPropagation?.();
         if (menuKey === 'addToChat') onAddToChat?.(peId, rel, name, isFile);
         else if (menuKey === 'rename') onRename?.(peId, rel, name);
         else if (menuKey === 'delete') onDelete?.(peId, rel, name);
@@ -212,39 +227,44 @@ export const ExplorerPanel: React.FC<ExplorerPanelProps> = ({
         else if (menuKey === 'revealInFolder') onRevealInFolder?.(peId, rel);
       };
 
+      const renderMenu = () => (
+        <Menu onClickMenuItem={onClickMenuItem}>
+          {onAddToChat && <Menu.Item key='addToChat'>{t('conversation.explorer.contextMenu.addToChat')}</Menu.Item>}
+          {canReveal && (
+            <Menu.Item key='revealInFolder'>{t('conversation.workspace.contextMenu.openLocation')}</Menu.Item>
+          )}
+          {!isRoot && onRename && <Menu.Item key='rename'>{t('conversation.explorer.contextMenu.rename')}</Menu.Item>}
+          {!isRoot && onDelete && <Menu.Item key='delete'>{t('common.delete')}</Menu.Item>}
+          {isRoot && onRemoveRoot && (
+            <Menu.Item key='remove' disabled={!removable}>
+              {t('conversation.explorer.removeFolder')}
+            </Menu.Item>
+          )}
+        </Menu>
+      );
+
+      const rowTitle = showWebActions ? (
+        <span className='flex items-center min-w-0 w-full'>
+          <span className='min-w-0 flex-1'>{title}</span>
+          <span onClick={(event) => event.stopPropagation()} onContextMenu={(event) => event.stopPropagation()}>
+            <Dropdown trigger='click' position='br' droplist={renderMenu()}>
+              <Button
+                type='text'
+                size='mini'
+                className='flex-shrink-0'
+                aria-label={t('common.more')}
+                icon={<MoreOne theme='outline' size='16' />}
+              />
+            </Dropdown>
+          </span>
+        </span>
+      ) : (
+        title
+      );
+
       return (
-        <Dropdown
-          trigger='contextMenu'
-          position='bl'
-          droplist={
-            // Stop menu-item clicks from bubbling. arco renders the droplist as a
-            // React child of this Dropdown, which arco itself nests inside the
-            // tree node's onClick(select) span — so a menu click would otherwise
-            // bubble (React portals propagate through the React tree) into the
-            // node's select handler, which opens the preview. Halting here keeps
-            // context-menu actions from selecting the node / opening preview.
-            <div onClick={(e) => e.stopPropagation()}>
-              <Menu onClickMenuItem={onClickMenuItem}>
-                {onAddToChat && (
-                  <Menu.Item key='addToChat'>{t('conversation.explorer.contextMenu.addToChat')}</Menu.Item>
-                )}
-                {canReveal && (
-                  <Menu.Item key='revealInFolder'>{t('conversation.workspace.contextMenu.openLocation')}</Menu.Item>
-                )}
-                {!isRoot && onRename && (
-                  <Menu.Item key='rename'>{t('conversation.explorer.contextMenu.rename')}</Menu.Item>
-                )}
-                {!isRoot && onDelete && <Menu.Item key='delete'>{t('common.delete')}</Menu.Item>}
-                {isRoot && onRemoveRoot && (
-                  <Menu.Item key='remove' disabled={!removable}>
-                    {t('conversation.explorer.removeFolder')}
-                  </Menu.Item>
-                )}
-              </Menu>
-            </div>
-          }
-        >
-          {title}
+        <Dropdown trigger='contextMenu' position='bl' droplist={renderMenu()}>
+          {rowTitle}
         </Dropdown>
       );
     },
@@ -292,6 +312,17 @@ export const ExplorerPanel: React.FC<ExplorerPanelProps> = ({
         treeData={view.treeData as TreeProps['treeData']}
         expandedKeys={view.expanded}
         selectedKeys={view.selected ? [view.selected] : []}
+        /* 点一整行就展开/收起文件夹，不必精准点中前面那个小箭头（arco 默认只有
+           'select'，所以整行点击此前只会选中、不会展开）。arco 内部对同一次点击只
+           走一条展开路径（有 loadMore 且未展开时走 loadMore，否则走 onExpand），
+           所以不会重复切换；点箭头本身仍然照旧生效。
+           Clicking anywhere on a folder row expands/collapses it, instead of
+           requiring a precise hit on the small leading arrow (arco defaults to
+           'select' alone, which is why a row click previously only selected).
+           Internally arco takes exactly one expand path per click — loadMore when
+           children are absent and the node is collapsed, onExpand otherwise — so
+           nothing toggles twice, and clicking the arrow still works as before. */
+        actionOnClick={['select', 'expand']}
         loadMore={handleLoadMore}
         onExpand={handleExpand}
         onSelect={handleSelect}

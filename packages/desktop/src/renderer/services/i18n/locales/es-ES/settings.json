@@ -311,8 +311,6 @@
   "cacheClearFailed": "Error al limpiar el caché",
   "language": "Idioma",
   "saveUploadToWorkspace": "Guardar subidas en la carpeta del proyecto",
-  "autoPreviewOfficeFiles": "Vista previa automática de archivos Office nuevos",
-  "autoPreviewOfficeFilesDesc": "Abre automáticamente los archivos Word, Excel y PowerPoint recién creados en el proyecto actual. Los archivos de bloqueo temporales de Office se ignoran.",
   "startOnBoot": "Iniciar al encender",
   "startOnBootDesc": "Inicia AionUi automáticamente cuando inicias sesión en macOS o Windows.",
   "startOnBootUnsupported": "Disponible solo en aplicaciones empaquetadas de macOS y Windows.",
@@ -321,6 +319,8 @@
   "hardwareAcceleration": "Aceleración de hardware",
   "hardwareAccelerationDesc": "Usa la GPU para renderizar la interfaz. Desactiva si la aplicación falla al iniciar o la gráfica parpadea.",
   "hardwareAccelerationAutoDisabled": "Desactivado automáticamente tras bloqueos repetidos de GPU.",
+  "hardwareAccelerationAutoDisabledTitle": "Aceleración por hardware desactivada",
+  "hardwareAccelerationAutoDisabledNotice": "Se detectaron fallos gráficos repetidos, por lo que la aceleración por hardware se desactivó automáticamente para mantener la aplicación estable. Puedes volver a activarla en Ajustes → Sistema.",
   "hardwareAccelerationRestartConfirm": "¿Reiniciar AionUi para aplicar la nueva configuración de aceleración de hardware?",
   "hardwareAccelerationUpdateFailed": "Error al actualizar la configuración de aceleración de hardware",
   "notification": "Notificaciones",
@@ -331,6 +331,8 @@
   "groupAbout": "Otros",
   "agentIdleTimeout": "Tiempo de inactividad del agente (min)",
   "agentIdleTimeoutDesc": "Terminar procesos de agente inactivos después de este tiempo para liberar memoria",
+  "previewTextSizeLimit": "Límite de tamaño de vista previa (MB)",
+  "previewTextSizeLimitDesc": "Los archivos de texto que superen este tamaño se abren con un aviso en lugar del contenido. Solo se aplica a las pestañas nuevas.",
   "gemini": "Gemini CLI",
   "model": "Modelo",
   "system": "Sistema",
@@ -1295,5 +1297,19 @@
     "solveWithButler": "Preguntar al Mayordomo"
   },
   "providerIdConflict": "El ID del proveedor ya existe. Inténtalo de nuevo.",
-  "autoInjectedSkillsHint": "Se cargan automáticamente en cada conversación: no hace falta activarlas; el agente decide cuándo usarlas."
+  "autoInjectedSkillsHint": "Se cargan automáticamente en cada conversación: no hace falta activarlas; el agente decide cuándo usarlas.",
+  "browserData": {
+    "title": "Navegador integrado",
+    "agentControlLabel": "Permitir que el agente use el navegador integrado",
+    "agentControlDesc": "Cuando está activado, el agente puede abrir páginas, hacer clic y rellenar formularios por ti en el navegador integrado, por ejemplo para buscar información o completar un trámite en un sitio web. Solo puede controlar esa vista del navegador: no llega a la interfaz de AionUi ni abre nunca una ventana de Chrome aparte. Si lo desactivas, el navegador sigue funcionando para ti; solo el agente pierde el acceso.",
+    "agentControlSaved": "Ajuste guardado",
+    "agentControlFailed": "No se pudo guardar el ajuste",
+    "agentControlRestartRequired": "Este ajuste se aplica al reiniciar la aplicación.",
+    "clearLabel": "Borrar datos de navegación",
+    "clearDesc": "Cierra la sesión en todos los sitios donde el navegador está conectado y borra la caché. Las pestañas abiertas se actualizan al recargar.",
+    "clearConfirmTitle": "¿Borrar los datos de navegación?",
+    "clearConfirmContent": "Se cerrará tu sesión en todos los sitios del navegador integrado. Esta acción no se puede deshacer.",
+    "clearSuccess": "Datos de navegación borrados",
+    "clearFailed": "No se pudieron borrar los datos de navegación"
+  }
 }

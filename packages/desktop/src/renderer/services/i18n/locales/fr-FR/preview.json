@@ -1,18 +1,5 @@
 {
-  "historyVersions": "Versions historiques",
-  "currentFile": "Fichier actuel",
   "loading": "Chargement...",
-  "loadHistoryFailed": "Échec du chargement de l'historique",
-  "noHistory": "Aucune version historique",
-  "snapshotSaved": "Instantané enregistré",
-  "snapshotSaveFailed": "Échec de l'enregistrement de l'instantané",
-  "historyLoaded": "Version historique chargée",
-  "historyLoadFailed": "Échec du chargement de la version historique",
-  "tooFrequent": "Trop fréquent, veuillez réessayer plus tard",
-  "saveSnapshot": "Enregistrer l'instantané actuel",
-  "snapshotNotSupported": "Le contenu actuel ne supporte pas les instantanés",
-  "history": "Historique",
-  "historyNotSupported": "Le contenu actuel ne supporte pas l'historique",
   "downloadFile": "Télécharger le fichier",
   "closePreview": "Fermer l'aperçu",
   "collapsePanel": "Réduire le panneau",
@@ -21,7 +8,6 @@
   "preview": "Aperçu",
   "editor": "Éditeur",
   "previewEffect": "Aperçu",
-  "snapshot": "Instantané",
   "downloadMarkdown": "Télécharger le fichier Markdown",
   "downloadCode": "Télécharger le fichier {{language}}",
   "downloadDiff": "Télécharger le fichier Diff",
@@ -36,6 +22,8 @@
   "continueEdit": "Continuer la modification",
   "closeTabTitle": "Fermer l'onglet",
   "closeTabMessage": "Le contenu actuel n'a pas été enregistré. Voulez-vous enregistrer avant de fermer ?",
+  "closeTabsTitle": "Fermer les onglets",
+  "closeTabsMessage": "{{count}} onglets contiennent des modifications non enregistrées. Les enregistrer avant de fermer ?",
   "saveAndClose": "Enregistrer et fermer",
   "closeWithoutSave": "Ne pas enregistrer",
   "pptTitle": "Présentation PowerPoint",
@@ -60,14 +48,21 @@
   "noTabs": "Aucun onglet ouvert",
   "openInPanelTooltip": "Voir dans le panneau d'aperçu",
   "mermaidTitle": "Diagramme Mermaid",
-  "largeTextTruncatedHint": "Mode aperçu grand fichier : affichage des {{count}} premiers caractères pour les performances.",
-  "truncatedBanner": "Le contenu de l'aperçu a été tronqué. Cliquez sur télécharger pour voir le fichier complet.",
+  "oversized": {
+    "title": "Fichier trop volumineux pour l'aperçu",
+    "detail": "La taille du fichier {{size}} dépasse la limite de {{threshold}}. Veuillez l'ouvrir dans un éditeur système.",
+    "downloadUnavailable": "Ce fichier est trop volumineux pour être téléchargé ici. Utilisez « Ouvrir dans le système »."
+  },
+  "unsupported": {
+    "title": "Aperçu non pris en charge pour ce format",
+    "detail": "Les fichiers {{format}} ne peuvent pas être affichés ici. Ouvrez-les dans une application système.",
+    "downloadUnavailable": "Ce fichier ne peut pas être téléchargé ici. Utilisez « Ouvrir dans le système »."
+  },
   "aiWriting": "L’IA écrit…",
   "errors": {
     "missingFilePath": "Chemin du fichier manquant",
     "openWithoutPath": "Impossible d'ouvrir : le chemin du fichier n'est pas fourni",
-    "conversionFailed": "Échec de la conversion",
-    "emptySnapshot": "Le contenu de l'instantané est vide"
+    "conversionFailed": "Échec de la conversion"
   },
   "office": {
     "installLinkText": "Guide d'installation d'OfficeCli ouvert",
@@ -139,5 +134,28 @@
     "installing": "Installation du composant d'aperçu...",
     "startFailed": "Échec du démarrage de l'aperçu PPT",
     "installHint": "Assurez-vous qu'officecli est installé : npm run postinstall"
+  },
+  "browser": {
+    "newTab": "Nouvel onglet",
+    "addressPlaceholder": "Saisissez une URL ou recherchez",
+    "agentActiveTooltip": "L'agent utilise cet onglet",
+    "tabLimitReached": "Limite d'onglets atteinte ({{count}}). L'onglet le plus ancien a été réutilisé.",
+    "agentFirstUseTitle": "L'agent utilise le navigateur intégré",
+    "agentFirstUseContent": "Il peut ouvrir des pages, cliquer et lire du contenu dans ce panneau. Votre connexion est conservée.",
+    "agentFirstUseAction": "Ouvrir les paramètres"
+  },
+  "saveConflict": "Échec de l'enregistrement : ce fichier a changé sur le disque depuis que vous l'avez ouvert. Rechargez pour voir les autres modifications — vos modifications sont toujours là, non enregistrées.",
+  "persistQuotaExceeded": "Le stockage local est plein : les onglets ouverts de ce projet ne peuvent plus être mémorisés. Fermez des onglets ou effacez les données du site.",
+  "refresh": {
+    "label": "Actualiser",
+    "tooltip": "Recharger depuis le disque",
+    "hasUpdate": "Ce fichier a changé sur le disque — cliquez pour le recharger",
+    "noSignalSource": "Ce fichier n'est pas dans le projet, les modifications ne seront pas signalées",
+    "unavailable": "Ce fichier est introuvable",
+    "failed": "Impossible de recharger ce fichier",
+    "confirmTitle": "Recharger et perdre les modifications non enregistrées ?",
+    "confirmMessage": "Cet onglet contient des modifications non enregistrées. Recharger les remplacera par le contenu du disque.",
+    "discardAndRefresh": "Abandonner les modifications et actualiser",
+    "officeNotWired": "L'actualisation des documents Office n'est pas encore disponible — fermez puis rouvrez le fichier pour voir les modifications."
   }
 }

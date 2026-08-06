@@ -134,11 +134,27 @@ export function applySnapshot(cache: FactCache, key: PeKey, entries: Entry[]): F
 export type Change =
   | { op: 'added'; name: string; kind: EntryKind; excluded?: boolean }
   | { op: 'removed'; name: string }
-  | { op: 'renamed'; from: string; to: string };
+  | { op: 'renamed'; from: string; to: string }
+  /**
+   * An existing entry's contents changed. Carries no timestamp by design — it says
+   * that something changed, not what it now is, so a consumer re-reads rather than
+   * trusting a value from the notification.
+   *
+   * The directory listing is unaffected (the entry is already in it), so the fact
+   * cache ignores this op; it exists for consumers watching a particular file, such
+   * as the preview panel's refresh indicator.
+   */
+  | { op: 'modified'; name: string };
 
 /**
  * `fs/delta`: apply incremental changes to one directory's listing. Unknown
  * directory (not cached) is left untouched. Returns a new cache.
+ *
+ * Ops this build does not know are skipped, which is what lets the backend ship a new
+ * op before the frontend handles it. The cost is that the gap is invisible: `modified`
+ * was being sent and dropped here for several rounds of work before anyone noticed,
+ * because silently ignoring it looks exactly like it never arriving. Hence the warning
+ * — still no throw, so a newer backend keeps working, but the drift says so once.
  */
 export function applyDelta(cache: FactCache, key: PeKey, changes: Change[]): FactCache {
   const existing = cache.get(key);
@@ -170,11 +186,36 @@ export function applyDelta(cache: FactCache, key: PeKey, changes: Change[]): Fac
         }
         break;
       }
+      case 'modified':
+        // Contents changed, listing did not — nothing for the fact cache to do. The
+        // preview panel is the consumer that cares (see monitorTransport's fan-out).
+        break;
+      default:
+        warnUnknownDeltaOp(change);
+        break;
     }
   }
   const next = new Map(cache);
   next.set(key, entries);
   return next;
+}
+
+/** Ops already reported, so a stream of them does not bury everything else. */
+const reportedUnknownOps = new Set<string>();
+
+/**
+ * Say once, per op, that the backend sent something this build does not handle.
+ *
+ * Once rather than every time: an unknown op typically arrives with every delta for the
+ * rest of the session, and a console full of one repeated line gets skipped as noise.
+ */
+function warnUnknownDeltaOp(change: Change): void {
+  const op = String((change as { op?: unknown }).op);
+  if (reportedUnknownOps.has(op)) return;
+  reportedUnknownOps.add(op);
+  console.warn(
+    `[explorer] ignoring unknown fs/delta op "${op}" — this build does not handle it, so the change is not reflected. The frontend is behind the backend's protocol.`
+  );
 }
 
 // ── anti-stale rules (frontend.md) ──────────────────────────────────────────
@@ -295,7 +336,7 @@ export function buildTreeData(cache: FactCache, expanded: ReadonlySet<PeKey>, ro
     // Sort a copy — never mutate the cached listing.
     return entries
       .slice()
-      .sort(compareEntriesForDisplay)
+      .toSorted(compareEntriesForDisplay)
       .map((entry) => {
         const childRel = joinRel(dirRel, entry.name);
         const isDir = entry.kind === 'dir';

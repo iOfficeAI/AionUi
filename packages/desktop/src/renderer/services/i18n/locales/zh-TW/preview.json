@@ -1,18 +1,5 @@
 {
-  "historyVersions": "歷史版本",
-  "currentFile": "當前檔案",
   "loading": "載入中...",
-  "loadHistoryFailed": "載入歷史版本失敗",
-  "noHistory": "暫無歷史版本",
-  "snapshotSaved": "已儲存快照",
-  "snapshotSaveFailed": "儲存快照失敗",
-  "historyLoaded": "已載入歷史版本內容",
-  "historyLoadFailed": "載入歷史版本失敗",
-  "tooFrequent": "操作過於頻繁，請稍後再試",
-  "saveSnapshot": "儲存當前快照",
-  "snapshotNotSupported": "當前內容不支援快照",
-  "history": "歷史",
-  "historyNotSupported": "當前內容不支援歷史版本",
   "downloadFile": "下載檔案",
   "closePreview": "關閉預覽",
   "collapsePanel": "收起面板",
@@ -21,7 +8,6 @@
   "preview": "預覽",
   "editor": "編輯器",
   "previewEffect": "預覽效果",
-  "snapshot": "快照",
   "downloadMarkdown": "下載 Markdown 檔案",
   "downloadCode": "下載 {{language}} 檔案",
   "downloadDiff": "下載 Diff 檔案",
@@ -36,6 +22,8 @@
   "continueEdit": "繼續編輯",
   "closeTabTitle": "關閉標籤頁",
   "closeTabMessage": "當前內容還未儲存，是否儲存後再關閉？",
+  "closeTabsTitle": "關閉標籤頁",
+  "closeTabsMessage": "有 {{count}} 個標籤頁尚未儲存，是否儲存後再關閉？",
   "saveAndClose": "儲存並關閉",
   "closeWithoutSave": "不儲存",
   "pptTitle": "PowerPoint 簡報",
@@ -60,14 +48,21 @@
   "noTabs": "尚無標籤",
   "openInPanelTooltip": "在預覽面板中查看",
   "mermaidTitle": "Mermaid 圖表",
-  "largeTextTruncatedHint": "大型檔案預覽模式：為了保持流暢度，僅顯示前 {{count}} 個字元。",
-  "truncatedBanner": "預覽內容已截斷，點擊下載即可查看完整檔案。",
+  "oversized": {
+    "title": "檔案過大，無法預覽",
+    "detail": "檔案大小 {{size}} 超過 {{threshold}}，請使用系統編輯器開啟。",
+    "downloadUnavailable": "檔案過大，無法在此下載。請改用「在系統中開啟」。"
+  },
+  "unsupported": {
+    "title": "暫不支援預覽此格式",
+    "detail": "{{format}} 檔案無法在此預覽，請使用系統應用程式開啟。",
+    "downloadUnavailable": "該檔案無法在此下載。請改用「在系統中開啟」。"
+  },
   "aiWriting": "AI 正在寫入…",
   "errors": {
     "missingFilePath": "未提供檔案路徑",
     "openWithoutPath": "無法開啟：未提供檔案路徑",
-    "conversionFailed": "轉換失敗",
-    "emptySnapshot": "快照內容為空"
+    "conversionFailed": "轉換失敗"
   },
   "office": {
     "installLinkText": "開啟 officecli 安裝說明",
@@ -139,5 +134,28 @@
     "installing": "正在安裝預覽元件...",
     "startFailed": "啟動 PPT 預覽失敗",
     "installHint": "請從官方 iOfficeAI/OfficeCLI releases 頁面安裝 OfficeCLI"
+  },
+  "browser": {
+    "newTab": "新增標籤頁",
+    "addressPlaceholder": "輸入網址或搜尋內容",
+    "agentActiveTooltip": "Agent 正在操作此標籤頁",
+    "tabLimitReached": "標籤頁數量已達上限（{{count}} 個），已重複使用最早開啟的標籤頁。",
+    "agentFirstUseTitle": "Agent 正在使用應用內瀏覽器",
+    "agentFirstUseContent": "它可以在這個面板裡開啟網頁、點擊和讀取內容。你的登入狀態會被保留。",
+    "agentFirstUseAction": "前往設定"
+  },
+  "saveConflict": "儲存失敗：該檔案在你開啟後已被變更。可重新載入查看其他變更——你的編輯仍在，尚未儲存。",
+  "persistQuotaExceeded": "本機儲存空間已滿，無法再記住該專案開啟的標籤頁。請關閉一些標籤頁或清理網站資料。",
+  "refresh": {
+    "label": "重新整理",
+    "tooltip": "從磁碟重新載入",
+    "hasUpdate": "該檔案已在磁碟上變更——點擊重新載入",
+    "noSignalSource": "該檔案不在專案內，不會自動提示更新",
+    "unavailable": "無法定位該檔案",
+    "failed": "無法重新載入該檔案",
+    "confirmTitle": "重新載入將遺失未儲存的變更？",
+    "confirmMessage": "此標籤頁有未儲存的變更，重新載入會以磁碟上的內容覆蓋它們。",
+    "discardAndRefresh": "放棄變更並重新整理",
+    "officeNotWired": "Office 文件的重新整理尚未接入——請關閉後重新開啟檔案以查看變更。"
   }
 }

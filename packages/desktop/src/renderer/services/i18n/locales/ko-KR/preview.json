@@ -1,18 +1,5 @@
 {
-  "historyVersions": "이전 버전",
-  "currentFile": "현재 파일",
   "loading": "로딩 중...",
-  "loadHistoryFailed": "기록을 불러오지 못했습니다",
-  "noHistory": "이전 버전 없음",
-  "snapshotSaved": "스냅샷 저장됨",
-  "snapshotSaveFailed": "스냅샷 저장 실패",
-  "historyLoaded": "이전 버전 로드됨",
-  "historyLoadFailed": "이전 버전을 불러오지 못했습니다",
-  "tooFrequent": "너무 빈번합니다. 나중에 다시 시도하세요",
-  "saveSnapshot": "현재 스냅샷 저장",
-  "snapshotNotSupported": "현재 콘텐츠는 스냅샷을 지원하지 않습니다",
-  "history": "기록",
-  "historyNotSupported": "현재 콘텐츠는 기록을 지원하지 않습니다",
   "downloadFile": "파일 다운로드",
   "closePreview": "미리보기 닫기",
   "collapsePanel": "패널 접기",
@@ -21,7 +8,6 @@
   "preview": "미리보기",
   "editor": "에디터",
   "previewEffect": "미리보기 효과",
-  "snapshot": "스냅샷",
   "downloadMarkdown": "Markdown 파일 다운로드",
   "downloadCode": "{{language}} 파일 다운로드",
   "downloadDiff": "Diff 파일 다운로드",
@@ -36,6 +22,8 @@
   "continueEdit": "계속 편집",
   "closeTabTitle": "탭 닫기",
   "closeTabMessage": "현재 내용이 저장되지 않았습니다. 닫기 전에 저장하시겠습니까?",
+  "closeTabsTitle": "탭 닫기",
+  "closeTabsMessage": "저장되지 않은 탭이 {{count}}개 있습니다. 저장한 후 닫을까요?",
   "saveAndClose": "저장하고 닫기",
   "closeWithoutSave": "저장하지 않음",
   "pptTitle": "PowerPoint 프레젠테이션",
@@ -60,14 +48,21 @@
   "noTabs": "열린 탭 없음",
   "openInPanelTooltip": "미리보기 패널에서 보기",
   "mermaidTitle": "Mermaid 다이어그램",
-  "largeTextTruncatedHint": "대용량 파일 미리보기 모드: 성능을 위해 앞의 {{count}}자만 표시합니다.",
-  "truncatedBanner": "미리보기 내용이 잘렸습니다. 전체 파일은 다운로드해서 확인하세요.",
+  "oversized": {
+    "title": "파일이 너무 커서 미리 볼 수 없습니다",
+    "detail": "파일 크기 {{size}}이(가) 제한 {{threshold}}을(를) 초과합니다. 시스템 편집기로 열어 주세요.",
+    "downloadUnavailable": "이 파일은 너무 커서 여기서 다운로드할 수 없습니다. '시스템에서 열기'를 사용하세요."
+  },
+  "unsupported": {
+    "title": "이 형식은 미리보기를 지원하지 않습니다",
+    "detail": "{{format}} 파일은 여기서 미리 볼 수 없습니다. 시스템 응용 프로그램으로 열어 주세요.",
+    "downloadUnavailable": "이 파일은 여기서 다운로드할 수 없습니다. '시스템에서 열기'를 사용하세요."
+  },
   "aiWriting": "AI가 작성 중…",
   "errors": {
     "missingFilePath": "파일 경로가 누락되었습니다",
     "openWithoutPath": "열 수 없음: 파일 경로가 제공되지 않았습니다",
-    "conversionFailed": "변환 실패",
-    "emptySnapshot": "스냅샷 내용이 비어 있습니다"
+    "conversionFailed": "변환 실패"
   },
   "office": {
     "installLinkText": "officecli 설치 안내 열기",
@@ -139,5 +134,28 @@
     "installing": "미리보기 구성 요소 설치 중...",
     "startFailed": "PPT 미리보기 시작 실패",
     "installHint": "공식 iOfficeAI/OfficeCLI releases 페이지에서 OfficeCLI를 설치하세요"
+  },
+  "browser": {
+    "newTab": "새 탭",
+    "addressPlaceholder": "URL 입력 또는 검색",
+    "agentActiveTooltip": "에이전트가 이 탭을 조작하고 있습니다",
+    "tabLimitReached": "탭 수 한도({{count}})에 도달하여 가장 오래된 탭을 재사용했습니다.",
+    "agentFirstUseTitle": "에이전트가 앱 내 브라우저를 사용하고 있습니다",
+    "agentFirstUseContent": "이 패널에서 페이지를 열고 클릭하고 내용을 읽을 수 있습니다. 로그인 상태는 유지됩니다.",
+    "agentFirstUseAction": "설정 열기"
+  },
+  "saveConflict": "저장하지 못했습니다: 이 파일은 열어 둔 사이에 디스크에서 변경되었습니다. 다시 불러오면 다른 변경을 확인할 수 있으며, 편집 내용은 저장되지 않은 상태로 남아 있습니다.",
+  "persistQuotaExceeded": "로컬 저장 공간이 가득 차 이 프로젝트의 열린 탭을 기억할 수 없습니다. 탭을 닫거나 사이트 데이터를 지워 주세요.",
+  "refresh": {
+    "label": "새로 고침",
+    "tooltip": "디스크에서 다시 불러오기",
+    "hasUpdate": "이 파일이 디스크에서 변경되었습니다 — 클릭해 다시 불러오세요",
+    "noSignalSource": "이 파일은 프로젝트 외부에 있어 변경이 자동으로 알려지지 않습니다",
+    "unavailable": "이 파일의 위치를 찾을 수 없습니다",
+    "failed": "이 파일을 다시 불러올 수 없습니다",
+    "confirmTitle": "다시 불러와 저장하지 않은 변경을 버릴까요?",
+    "confirmMessage": "이 탭에는 저장하지 않은 변경이 있습니다. 다시 불러오면 디스크의 내용으로 대체됩니다.",
+    "discardAndRefresh": "변경을 버리고 새로 고침",
+    "officeNotWired": "Office 문서 새로 고침은 아직 지원되지 않습니다 — 파일을 닫고 다시 열면 변경 내용이 보입니다."
   }
 }

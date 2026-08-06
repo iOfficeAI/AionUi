@@ -92,3 +92,15 @@ describe('BackendStartupGate — lifecycle-driven view switching (AC-4 / AC-11)'
     expect(screen.queryByTestId('view-failure')).toBeNull();
   });
 });
+
+describe('BackendStartupGate — port report timeout is fatal (Sentry 136646113)', () => {
+  it('shows the failure view for backend_startup_port_report_timeout', () => {
+    installBridge({ reason: 'backend_startup_port_report_timeout' });
+
+    render(<BackendStartupGate {...gateProps} />);
+
+    expect(screen.getByTestId('view-failure').textContent).toBe('backend_startup_port_report_timeout');
+    expect(screen.queryByTestId('view-app')).toBeNull();
+    expect(screen.queryByTestId('view-starting')).toBeNull();
+  });
+});
