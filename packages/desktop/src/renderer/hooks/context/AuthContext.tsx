@@ -6,6 +6,23 @@ const hasValidCsrfToken = (): boolean => true;
 const clearCookie = (_name: string, _path?: string): void => {};
 const CSRF_COOKIE_NAME = 'csrf-token';
 
+// Double Submit Cookie against Core: the backend sets the non-HttpOnly
+// `aionui-csrf-token` cookie and requires unsafe requests to echo it in the
+// `x-csrf-token` header (aionui-auth csrf middleware). `/login` and the
+// pairing endpoint are exempt — which is why sign-in works — but `/logout`
+// is NOT exempt and fails with CSRF_INVALID unless the header is attached.
+const CORE_CSRF_COOKIE_NAME = 'aionui-csrf-token';
+const readCoreCsrfToken = (): string => {
+  for (const part of document.cookie.split(';')) {
+    const eq = part.indexOf('=');
+    if (eq === -1) continue;
+    if (part.slice(0, eq).trim() === CORE_CSRF_COOKIE_NAME) {
+      return decodeURIComponent(part.slice(eq + 1));
+    }
+  }
+  return '';
+};
+
 type AuthStatus = 'checking' | 'authenticated' | 'unauthenticated';
 
 export interface AuthUser {
@@ -266,6 +283,7 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
         // Logout also needs CSRF token / 登出同样需要 CSRF Token
         headers: {
           'Content-Type': 'application/json',
+          'x-csrf-token': readCoreCsrfToken(),
         },
         credentials: 'include',
         body: JSON.stringify(withCsrfToken({})),
