@@ -134,18 +134,27 @@ export const ExplorerContainer: React.FC<ExplorerContainerProps> = ({ projectId 
   const { t } = useTranslation();
   const { openPreview } = usePreviewContext();
   const activeConversationId = useCurrentConversation();
-  const { data, isLoading, mutate } = useSWR(projectId ? `explorer-project/${projectId}` : null, () =>
-    ipcBridge.project.get.invoke({ project_id: projectId })
-  );
+  const { data, isLoading, mutate } = useSWR(projectId ? `explorer-project/${projectId}` : null, (key: string) => {
+    // Derive the project id from the SWR key, not the captured `projectId`
+    // closure, so a fetch's result can never be filed under a different key.
+    const id = key.slice('explorer-project/'.length);
+    return ipcBridge.project.get.invoke({ project_id: id });
+  });
+  // Apply-time guard: only feed the store roots whose detail actually belongs to
+  // the current project. Combined with the per-project remount (this component is
+  // keyed by `projectId` in ProjectPanelHost), a stale/other-project detail can
+  // never reach the tree — a mismatch yields no roots rather than another
+  // project's (宁空勿画错).
+  const detail = data && data.project_id === projectId ? data : undefined;
 
   // Let the workspace-collapse hook (keyed per-project via workspacePreferenceKey)
   // read + restore this project's panel open/closed preference. The hook starts
   // collapsed and expands on this signal (pref takes priority); without it the
   // panel would stay collapsed on every conversation switch.
   useEffect(() => {
-    if (!projectId || !data) return;
-    dispatchWorkspaceHasFilesEvent(data.explorer.entries.length > 0, undefined, false);
-  }, [projectId, data]);
+    if (!projectId || !detail) return;
+    dispatchWorkspaceHasFilesEvent(detail.explorer.entries.length > 0, undefined, false);
+  }, [projectId, detail]);
 
   // Open a file in the preview panel. The tree only knows `{pe_id, relative_path}`,
   // mapped to a Project ChatFileRef — content is read over `/api/fs/content` (text/
@@ -310,18 +319,21 @@ export const ExplorerContainer: React.FC<ExplorerContainerProps> = ({ projectId 
   };
 
   if (!projectId) return null;
-  if (isLoading && !data) return <Spin loading />;
+  // Spin only while the CURRENT project's detail is still loading. A stale value
+  // for a different project (detail undefined) falls through to empty roots, not
+  // another project's tree.
+  if (!detail && isLoading) return <Spin loading />;
 
-  const roots = data ? toRootRefs(data) : [];
+  const roots = detail ? toRootRefs(detail) : [];
   // Search roots = the project's pe roots (each folder root, rel=''). fs/search
   // spans all bound folders; the front-end ranks the merged hit stream.
   const searchRoots = roots.map((root) => ({ pe_id: root.pe_id, relative_path: '' }));
   // pe_id → folder name for the search result's `PE · REL` secondary label.
   const searchPeNames = Object.fromEntries(roots.map((root) => [root.pe_id, root.title]));
-  const workspacePeId = data?.explorer.workspace_pe_id;
+  const workspacePeId = detail?.explorer.workspace_pe_id;
   // Absolute path of the workspace root (derived display_path) for the
   // open-externally button.
-  const workspacePath = data?.explorer.entries.find((e) => e.pe_id === workspacePeId)?.display_path;
+  const workspacePath = detail?.explorer.entries.find((e) => e.pe_id === workspacePeId)?.display_path;
 
   const tabButton = (key: 'files' | 'changes', label: string) => (
     <Button

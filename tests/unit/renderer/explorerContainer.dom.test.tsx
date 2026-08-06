@@ -41,8 +41,11 @@ const entry = (over: Partial<ProjectEntryDto>): ProjectEntryDto => ({
   ...over,
 });
 
-const detail = (entries: ProjectEntryDto[]): ProjectDetailDto => ({
-  project_id: 'p1',
+// `project_id` must match the projectId the container was mounted with — the
+// container only applies a detail whose `project_id === projectId` (the
+// apply-time guard against a poisoned shared SWR entry painting another project).
+const detail = (entries: ProjectEntryDto[], projectId = 'p1'): ProjectDetailDto => ({
+  project_id: projectId,
   name: 'Proj',
   explorer: { workspace_pe_id: entries[0]?.pe_id ?? '', entries },
 });
@@ -153,8 +156,8 @@ describe('ExplorerContainer data integration', () => {
   it('refetches and re-projects when projectId changes', async () => {
     projectGet.mockImplementation(async ({ project_id }) =>
       project_id === 'p1'
-        ? detail([entry({ pe_id: 'peA', display_name: 'Root Alpha' })])
-        : detail([entry({ pe_id: 'peB', display_name: 'Root Beta' })])
+        ? detail([entry({ pe_id: 'peA', display_name: 'Root Alpha' })], 'p1')
+        : detail([entry({ pe_id: 'peB', display_name: 'Root Beta' })], 'p2')
     );
 
     const { rerender } = renderContainer('p1');
@@ -167,5 +170,20 @@ describe('ExplorerContainer data integration', () => {
     );
     expect(await screen.findByText('Root Beta')).toBeInTheDocument();
     expect(screen.queryByText('Root Alpha')).not.toBeInTheDocument();
+  });
+
+  // Apply-time guard: a detail whose project_id does not match the mounted
+  // projectId (a poisoned shared SWR entry — another project's data filed under
+  // this key during a rapid switch) must NOT paint that other project's roots.
+  // Removing the `data.project_id === projectId` guard makes this render "Ghost
+  // Root" (the pre-fix wrong-tree bug).
+  it('never paints roots from a detail belonging to a different project (anti-poison guard)', async () => {
+    projectGet.mockResolvedValue(detail([entry({ pe_id: 'peX', display_name: 'Ghost Root' })], 'other-project'));
+    renderContainer('p1');
+
+    await waitFor(() => expect(projectGet).toHaveBeenCalled());
+    // The fetched detail belongs to 'other-project', not 'p1' → dropped, no roots.
+    await new Promise((r) => setTimeout(r, 30));
+    expect(screen.queryByText('Ghost Root')).not.toBeInTheDocument();
   });
 });
