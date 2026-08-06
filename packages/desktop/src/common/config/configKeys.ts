@@ -27,12 +27,17 @@ export type ConfigKeyMap = {
   'system.notificationEnabled': boolean | undefined;
   'system.cronNotificationEnabled': boolean | undefined;
   'system.keepAwake': boolean | undefined;
-  'system.autoPreviewOfficeFiles': boolean | undefined;
   'skillsMarket.enabled': boolean | undefined;
   'pet.enabled': boolean | undefined;
   'pet.size': number | undefined;
   'pet.dnd': boolean | undefined;
   'pet.confirmEnabled': boolean | undefined;
+  // Removed: 'system.autoPreviewOfficeFiles'. It gated "auto-open a preview tab
+  // when an Office file appears in the workspace", a behaviour that was dropped
+  // along with its hook — leaving the toggle would have been a switch the user
+  // can flip with nothing behind it. Existing values may still sit in older
+  // installs' stored preferences; nothing reads them, and the migration ignores
+  // unknown keys, so they are inert.
   // One-shot completion flags for legacy → backend migrations. Kept in the
   // local config file (not the backend client-preferences bag) so a downgrade
   // to a pre-flag build still re-reads the legacy data unchanged. See

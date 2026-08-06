@@ -52,7 +52,6 @@ export interface IConfigStorageRefer {
   // 阻止系统休眠以保证定时任务执行 / Prevent system sleep to ensure scheduled tasks run
   'system.keepAwake'?: boolean;
   // Automatically preview newly created Office files in the current workspace
-  'system.autoPreviewOfficeFiles'?: boolean;
   // Skills Market: whether the external skills market source is enabled
   'skillsMarket.enabled'?: boolean;
   /**
@@ -167,6 +166,32 @@ interface IChatConversation<T, Extra> {
    * conversations without a bound project.
    */
   project_id?: string;
+  /**
+   * Session-fork capability (from `ConversationResponse.fork_capability`).
+   * Filled ONLY on the single-conversation detail response (never on lists).
+   * Present = the fork entry point may be shown; `at_turn` = any message may
+   * be forked (codex), otherwise only the latest turn (claude / ACP HEAD fork).
+   */
+  fork_capability?: { at_turn: boolean };
+  /**
+   * Prompt media capability (from `ConversationResponse.prompt_capability`).
+   * Filled ONLY on the single-conversation detail response (never on lists).
+   * Absent = unknown/unsupported — media attachments are delivered to the
+   * agent as file paths instead of native image/audio content blocks.
+   */
+  prompt_capability?: { image: boolean; audio: boolean };
+}
+
+/**
+ * Fork lineage riding `extra.fork` on a forked conversation (server-minted by
+ * the fork API). Purely informational for the renderer: badge + jump link.
+ */
+export interface TConversationForkLineage {
+  parent_conversation_id: string;
+  parent_message_id: string;
+  /** Backend session snapshot/anchor fields — renderer never consumes these. */
+  parent_session_id?: string;
+  last_turn_id?: string;
 }
 
 // Token 使用统计数据类型
@@ -246,6 +271,8 @@ export type TChatConversation =
           is_health_check?: boolean;
           /** Cron job ID that spawned this conversation */
           cron_job_id?: string;
+          /** Fork lineage (present only on forked conversations). */
+          fork?: TConversationForkLineage;
         }
       >,
       'model'

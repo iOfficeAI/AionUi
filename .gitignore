@@ -212,6 +212,22 @@ dist-server/
 .omc/
 .superset/
 .claude/teams/
+
+# Locally auto-injected agent skills: these are SYMLINKS into a developer's own
+# machine (e.g. ~/.aionui-dev/builtin-skills/...), so committing them gives
+# everyone else broken links. The repo's own skills live in real directories
+# next to them (.claude/skills/architecture/, /testing/, ...) and stay tracked.
+.aionrs/skills/
+.claude/skills/aionui-config
+.claude/skills/antigravity-cli-issue-triage
+.claude/skills/cron
+.claude/skills/officecli
+.claude/skills/skill-creator
+.codex/skills/
+
+# Local Sentry feedback triage artifacts (analysis notes + case ledger).
+feedback-diagnostics-db-json.md
+feedback-diagnostics-db-json.ledger.json
 iterations/
 graphify-out/
 .graphify_python

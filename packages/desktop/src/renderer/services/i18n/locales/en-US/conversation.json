@@ -1,7 +1,4 @@
 {
-  "officePreview": {
-    "fileWatchUnavailable": "Live file watching is unavailable — the system may have run out of file-watch handles (inotify). Auto-preview of new Office files is disabled. Raise fs.inotify.max_user_instances or close programs holding many file watches."
-  },
   "welcome": {
     "title": "Hi, what's your plan for today?",
     "placeholder": "Send a message, upload files, open a folder, create a scheduled task, or type / for commands...",
@@ -77,7 +74,9 @@
     "removeProjectConfirm": "Remove project \"{{name}}\"? Its {{count}} conversation(s) will be removed too.",
     "newConversationInProject": "New chat in this project",
     "deleting": "Deleting...",
-    "reorderPinned": "Drag to reorder pinned conversation"
+    "reorderPinned": "Drag to reorder pinned conversation",
+    "forkedFrom": "Forked from “{{name}}”",
+    "forkedConversation": "Forked conversation"
   },
   "historySearch": {
     "tooltip": "Search messages",
@@ -419,7 +418,8 @@
     "openWith": {
       "vscode": "VS Code",
       "terminal": "Terminal",
-      "explorer": "File Explorer"
+      "explorer": "File Explorer",
+      "browser": "Browser"
     }
   },
   "minimap": {
@@ -445,6 +445,7 @@
     "switchAgentFailed": "Failed to switch agent",
     "speech": {
       "recordTooltip": "Start voice input",
+      "recordTooltipWithShortcut": "Voice input cmd+M",
       "pickFileTooltip": "Select an audio file",
       "stopTooltip": "Stop recording",
       "processing": "Transcribing audio...",
@@ -566,7 +567,8 @@
     "sendboxHint": "Preparing the runtime environment. First startup can take a little longer."
   },
   "sendbox": {
-    "hint": "Type / for commands, @ to reference files, ↑/↓ for message history"
+    "hint": "Type / for commands, @ to reference files, ↑/↓ for message history",
+    "mediaPathFallback": "This agent has no native support for this file type; it will be sent as a file path."
   },
   "agentTip": {
     "codes": {
@@ -629,5 +631,12 @@
       "empty": "No files match",
       "limitReached": "Showing first {{count}} — refine to narrow"
     }
+  },
+  "terminal": {
+    "running": "Running",
+    "stopped": "Stopped",
+    "exited": "Exit {{code}}",
+    "stop": "Stop",
+    "truncated": "(earlier output truncated)"
   }
 }

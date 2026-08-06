@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Preview module is the file preview and editing system in AionUi, supporting viewing and editing of multiple file formats. The module adopts a **multi-tab architecture**, allowing multiple files to be opened simultaneously, with each file displayed in its own tab. The Preview module integrates advanced features such as real-time streaming updates, version history, split-screen preview, and keyboard shortcuts, providing users with powerful file handling capabilities.
+The Preview module is the file preview and editing system in AionUi, supporting viewing and editing of multiple file formats. The module adopts a **multi-tab architecture**, allowing multiple files to be opened simultaneously, with each file displayed in its own tab. The Preview module integrates advanced features such as real-time streaming updates, split-screen preview, and keyboard shortcuts, providing users with powerful file handling capabilities.
 
 ## Core Features
 
@@ -36,7 +36,6 @@ Supported Editors:
 ### 3. Advanced Features
 
 - **Real-time streaming updates** - Auto-update preview when agent writes files (with debounce optimization)
-- **Version history** - View and restore historical versions (Git-based)
 - **Split-screen preview** - Show editor and preview simultaneously with scroll sync
 - **Keyboard shortcuts** - `Cmd/Ctrl + S` to save, `Cmd/Ctrl + W` to close tab
 - **Dirty detection** - Automatically detect unsaved changes, show confirmation when closing
@@ -54,10 +53,9 @@ preview/
 │   ├── PreviewPanel/                  # Main panel component
 │   │   ├── PreviewPanel.tsx           # Main component (manages view states, split-screen, edit mode)
 │   │   ├── PreviewTabs.tsx            # Tab bar (tab switching, context menu)
-│   │   ├── PreviewToolbar.tsx         # Toolbar (view switching, edit, save, history)
+│   │   ├── PreviewToolbar.tsx         # Toolbar (view switching, edit, save)
 │   │   ├── PreviewContextMenu.tsx     # Context menu
-│   │   ├── PreviewConfirmModals.tsx   # Confirmation dialogs
-│   │   └── PreviewHistoryDropdown.tsx # History version dropdown
+│   │   └── PreviewConfirmModals.tsx   # Confirmation dialogs
 │   ├── viewers/                       # Viewer components
 │   │   ├── MarkdownViewer.tsx         # Markdown rendering
 │   │   ├── ImageViewer.tsx            # Image viewer
@@ -75,7 +73,6 @@ preview/
 │       ├── HTMLRenderer.tsx           # HTML iframe renderer
 │       └── SelectionToolbar.tsx       # HTML selection toolbar
 ├── hooks/                             # Custom hooks
-│   ├── usePreviewHistory.ts           # Version history management
 │   ├── usePreviewKeyboardShortcuts.ts # Keyboard shortcut handling
 │   ├── useScrollSync.ts               # Scroll synchronization
 │   ├── useTabOverflow.ts              # Tab overflow handling
@@ -314,23 +311,6 @@ function SendBox() {
 
 ## Custom Hooks
 
-### usePreviewHistory
-
-Manage file version history (Git-based).
-
-```typescript
-const {
-  historyVersions, // List of history versions
-  historyLoading, // Loading state
-  snapshotSaving, // Snapshot saving state
-  historyError, // Error message
-  historyTarget, // Currently viewing history version
-  refreshHistory, // Refresh history
-  handleSaveSnapshot, // Save snapshot
-  handleSnapshotSelect, // Select history version
-} = usePreviewHistory({ activeTab, updateContent });
-```
-
 ### usePreviewKeyboardShortcuts
 
 Register global keyboard shortcuts.
@@ -435,28 +415,6 @@ Drag the divider in the middle to adjust the left-right ratio:
 - Minimum width: 30%
 - Maximum width: 70%
 - Ratio is automatically saved to LocalStorage
-
-## Version History
-
-### Feature Description
-
-Version history is Git-based and allows viewing all historical versions of a file.
-
-Prerequisites:
-
-- File must be in a Git repository
-- File must have `workspace` and `filePath` metadata
-
-### How to Use
-
-1. Click the "History" button in the toolbar
-2. View historical versions in the dropdown menu
-3. Click on a version to view its content
-4. Click "Restore this version" to restore content to that version
-
-### Save Snapshot
-
-Click the "Save snapshot" button to create a new Git commit, saving the current state.
 
 ## Performance Optimizations
 

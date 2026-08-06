@@ -1,18 +1,5 @@
 {
-  "historyVersions": "History Versions",
-  "currentFile": "Current File",
   "loading": "Loading...",
-  "loadHistoryFailed": "Failed to load history",
-  "noHistory": "No history versions",
-  "snapshotSaved": "Snapshot saved",
-  "snapshotSaveFailed": "Failed to save snapshot",
-  "historyLoaded": "History version loaded",
-  "historyLoadFailed": "Failed to load history version",
-  "tooFrequent": "Too frequent, please try later",
-  "saveSnapshot": "Save current snapshot",
-  "snapshotNotSupported": "Current content does not support snapshot",
-  "history": "History",
-  "historyNotSupported": "Current content does not support history",
   "downloadFile": "Download file",
   "closePreview": "Close preview",
   "collapsePanel": "Collapse panel",
@@ -21,7 +8,6 @@
   "preview": "Preview",
   "editor": "Editor",
   "previewEffect": "Preview",
-  "snapshot": "Snapshot",
   "downloadMarkdown": "Download Markdown file",
   "downloadCode": "Download {{language}} file",
   "downloadDiff": "Download Diff file",
@@ -36,6 +22,8 @@
   "continueEdit": "Continue Editing",
   "closeTabTitle": "Close Tab",
   "closeTabMessage": "The current content has not been saved. Do you want to save before closing?",
+  "closeTabsTitle": "Close Tabs",
+  "closeTabsMessage": "{{count}} tabs have unsaved changes. Save them before closing?",
   "saveAndClose": "Save and Close",
   "closeWithoutSave": "Don't Save",
   "pptTitle": "PowerPoint Presentation",
@@ -60,14 +48,21 @@
   "noTabs": "No tabs open",
   "openInPanelTooltip": "View in preview panel",
   "mermaidTitle": "Mermaid Diagram",
-  "largeTextTruncatedHint": "Large file preview mode: showing first {{count}} characters for performance.",
-  "truncatedBanner": "Preview content was truncated. Click download to view the full file.",
+  "oversized": {
+    "title": "File too large to preview",
+    "detail": "File size {{size}} exceeds the {{threshold}} limit. Please open it in a system editor.",
+    "downloadUnavailable": "This file is too large to download here. Use “Open in system” instead."
+  },
+  "unsupported": {
+    "title": "Preview not supported for this format",
+    "detail": "{{format}} files cannot be previewed here. Open it in a system application instead.",
+    "downloadUnavailable": "This file cannot be downloaded here. Use “Open in system” instead."
+  },
   "aiWriting": "AI is writing…",
   "errors": {
     "missingFilePath": "File path is missing",
     "openWithoutPath": "Unable to open: file path is not provided",
-    "conversionFailed": "Conversion failed",
-    "emptySnapshot": "Snapshot content is empty"
+    "conversionFailed": "Conversion failed"
   },
   "office": {
     "installLinkText": "Open officecli install guide",
@@ -139,5 +134,28 @@
     "installing": "Installing preview component...",
     "startFailed": "Failed to start PPT preview",
     "installHint": "Install OfficeCLI from the official iOfficeAI/OfficeCLI releases page"
+  },
+  "browser": {
+    "newTab": "New tab",
+    "addressPlaceholder": "Enter a URL or search",
+    "agentActiveTooltip": "The agent is operating this tab",
+    "tabLimitReached": "Browser tab limit reached ({{count}}). The oldest tab was reused.",
+    "agentFirstUseTitle": "The agent is using the in-app browser",
+    "agentFirstUseContent": "It can open pages, click and read content in this panel. Your sign-in state is kept between sessions.",
+    "agentFirstUseAction": "Open settings"
+  },
+  "saveConflict": "Could not save: this file changed on disk since you opened it. Reload to see the other changes — your edits are still here, unsaved.",
+  "persistQuotaExceeded": "Local storage is full, so open tabs can no longer be remembered for this project. Close some tabs or clear site data.",
+  "refresh": {
+    "label": "Refresh",
+    "tooltip": "Reload from disk",
+    "hasUpdate": "This file changed on disk — reload to see it",
+    "noSignalSource": "This file is not in the project, so changes will not be announced",
+    "unavailable": "This file cannot be located",
+    "failed": "Could not reload this file",
+    "confirmTitle": "Reload and lose unsaved changes?",
+    "confirmMessage": "This tab has unsaved changes. Reloading replaces them with what is on disk.",
+    "discardAndRefresh": "Discard changes and reload",
+    "officeNotWired": "Refreshing Office documents is not available yet — close and reopen the file to see changes."
   }
 }

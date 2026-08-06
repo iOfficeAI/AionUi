@@ -118,14 +118,20 @@
     },
     "recoverableDatabaseCorruption": {
       "title": "Os dados locais estão corrompidos",
-      "description": "O AionUi detectou que o banco de dados local está corrompido e não pode continuar a inicialização. Após a confirmação, o banco de dados antigo será salvo como backup e um novo banco de dados local será criado para continuar a inicialização. Os dados locais históricos não serão exibidos por enquanto, e o banco antigo será mantido como backup.",
+      "description": "O AionUi detectou que o banco de dados local está corrompido e não pode continuar a inicialização. Após a confirmação, o banco de dados antigo será salvo como backup e um novo banco de dados local será criado para continuar a inicialização. As conversas anteriores não serão mais exibidas, e o banco antigo será mantido como arquivo de backup.",
       "confirmRebuild": "Fazer backup do DB antigo e criar novo DB",
       "sendDiagnostics": "Enviar diagnóstico",
       "diagnosticsHint": "Enviar diagnóstico não modificará o banco de dados local.",
       "diagnosticsSent": "Diagnóstico enviado",
       "diagnosticsReportSuccess": "Relatório de diagnóstico enviado",
       "diagnosticsReportFailed": "Falha ao enviar relatório de diagnóstico",
-      "rebuildFailed": "Falha ao fazer backup do DB antigo e criar novo DB"
+      "rebuildFailed": "Falha ao fazer backup do DB antigo e criar novo DB",
+      "confirmDialog": {
+        "title": "Reconstruir o banco de dados?",
+        "content": "Esta ação fará backup do banco de dados corrompido atual e criará um totalmente novo e vazio. As conversas anteriores não serão mais exibidas (o banco antigo é mantido como arquivo de backup). Deseja continuar?",
+        "okText": "Confirmar reconstrução",
+        "cancelText": "Cancelar"
+      }
     },
     "transientConcurrentStartup": {
       "title": "O AionUi está iniciando",
@@ -143,6 +149,22 @@
     "exited": {
       "title": "A inicialização não foi concluída",
       "description": "O AionCore não conseguiu concluir a inicialização e foi encerrado. Reinicie o aplicativo; se isso continuar acontecendo, envie o diagnóstico.",
+      "sendDiagnostics": "Enviar diagnóstico",
+      "diagnosticsSent": "Diagnóstico enviado",
+      "diagnosticsReportSuccess": "Diagnóstico enviado",
+      "diagnosticsReportFailed": "Falha ao enviar o diagnóstico, tente novamente"
+    },
+    "portReportTimeout": {
+      "title": "Tempo de inicialização esgotado",
+      "description": "O AionCore não concluiu a inicialização dentro do tempo esperado. Reinicie o aplicativo; se isso continuar acontecendo, envie o diagnóstico.",
+      "sendDiagnostics": "Enviar diagnóstico",
+      "diagnosticsSent": "Diagnóstico enviado",
+      "diagnosticsReportSuccess": "Diagnóstico enviado",
+      "diagnosticsReportFailed": "Falha ao enviar o diagnóstico, tente novamente"
+    },
+    "startupFailed": {
+      "title": "Falha na inicialização",
+      "description": "O AionCore não conseguiu iniciar. Reinicie o aplicativo; se isso continuar acontecendo, envie o diagnóstico.",
       "sendDiagnostics": "Enviar diagnóstico",
       "diagnosticsSent": "Diagnóstico enviado",
       "diagnosticsReportSuccess": "Diagnóstico enviado",

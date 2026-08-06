@@ -195,6 +195,10 @@ const SendBox: React.FC<{
    * `tools` and `rightTools` are not rendered inline on mobile.
    */
   onMobilePlusClick?: () => void;
+  /** Team multi-column focus coordination: whether this box owns focus (default true). */
+  active?: boolean;
+  /** Called when the textarea gains focus, so the team layer can sync tab selection. */
+  onFocused?: () => void;
 }> = ({
   onSend,
   onStop,
@@ -222,6 +226,8 @@ const SendBox: React.FC<{
   onSelectedWorkspaceItemsChange,
   bottomHint,
   onMobilePlusClick,
+  active = true,
+  onFocused,
 }) => {
   const layout = useLayoutContext();
   const isMobile = layout?.isMobile ?? false;
@@ -596,6 +602,32 @@ const SendBox: React.FC<{
     textarea.setSelectionRange(end, end);
     setCaretPosition(end);
   }, [getTextareaElement, input, isMobile, prefillFocusRequest]);
+
+  // Selection→focus latch: whether we've already granted focus for the current
+  // active session. Reset when this box goes inactive so the next activation
+  // re-focuses. Prevents stealing focus back after the user moves elsewhere.
+  const activeFocusGrantedRef = useRef(false);
+
+  useEffect(() => {
+    if (!active) {
+      activeFocusGrantedRef.current = false;
+    }
+  }, [active]);
+
+  useEffect(() => {
+    if (!active || isMobile || disabled) return;
+    if (activeFocusGrantedRef.current) return;
+    const textarea = getTextareaElement();
+    if (!textarea) return;
+    activeFocusGrantedRef.current = true;
+    // Already focused (e.g. user clicked into this box, which drove selection
+    // here via onFocused): latch it but leave the caret where the user put it.
+    if (document.activeElement === textarea) return;
+    textarea.focus();
+    const end = textarea.value.length;
+    textarea.setSelectionRange(end, end);
+    setCaretPosition(end);
+  }, [active, disabled, isMobile, getTextareaElement]);
 
   const syncCaretPosition = useCallback(
     (target?: EventTarget | null) => {
@@ -1041,7 +1073,8 @@ const SendBox: React.FC<{
     mobileUserFocusIntentUntilRef.current = 0;
     handlePasteFocus();
     setIsInputFocused(true);
-  }, [handlePasteFocus, isMobile]);
+    onFocused?.();
+  }, [handlePasteFocus, isMobile, onFocused]);
   const handleInputBlur = useCallback(() => {
     setIsInputFocused(false);
   }, []);
@@ -1366,15 +1399,11 @@ const SendBox: React.FC<{
   ) : null;
 
   // On mobile compact mode, the parent supplies the action sheet — collapse
-  // tools/rightTools into the `+` launcher and skip the inline speech button.
+  // tools/rightTools into the `+` launcher while keeping voice input accessible.
   const renderedTools = isMobileCompact ? mobilePlusButton : tools;
   const renderedRightTools = isMobileCompact ? null : rightTools;
-  const renderedSpeechButton = isMobileCompact ? null : (
-    <SpeechInputButton
-      disabled={disabled || isLoading || loading || isUploading}
-      onLiveTranscript={handleLiveTranscript}
-      onTranscript={handleSpeechTranscript}
-    />
+  const renderedSpeechButton = (
+    <SpeechInputButton onLiveTranscript={handleLiveTranscript} onTranscript={handleSpeechTranscript} />
   );
 
   const renderHighlightedInputValue = useCallback(() => {
@@ -1617,7 +1646,7 @@ const SendBox: React.FC<{
               {renderHighlightedInputValue()}
             </div>
             <Input.TextArea
-              autoFocus={!isMobile}
+              autoFocus={active && !isMobile}
               disabled={disabled}
               spellCheck={false}
               value={input}
@@ -1676,7 +1705,7 @@ const SendBox: React.FC<{
             ></Input.TextArea>
           </div>
           {isSingleLine && (
-            <div className='flex items-center gap-2'>
+            <div className='flex items-center gap-1'>
               {renderedSpeechButton}
               {sendButtonPrefix}
               {renderActionButtons()}
@@ -1696,7 +1725,7 @@ const SendBox: React.FC<{
             >
               {renderedTools}
             </div>
-            <div className='sendbox-actions flex items-center gap-2'>
+            <div className='sendbox-actions flex items-center gap-1'>
               {renderedRightTools}
               {renderedSpeechButton}
               {sendButtonPrefix}

@@ -118,14 +118,20 @@
     },
     "recoverableDatabaseCorruption": {
       "title": "本地数据已损坏",
-      "description": "检测到本地数据库损坏，AionUi 无法继续启动。确认后将备份旧数据库，并创建新的本地数据库继续启动。历史本地数据暂时不会显示，旧数据库会保留为备份。",
+      "description": "检测到本地数据库损坏，AionUi 无法继续启动。确认后将备份旧数据库，并创建新的本地数据库继续启动。历史会话将不再显示，旧数据库会保留为备份文件。",
       "confirmRebuild": "备份旧库并重建新库",
       "sendDiagnostics": "发送诊断报告",
       "diagnosticsHint": "发送诊断报告不会修改本地数据库。",
       "diagnosticsSent": "诊断报告已发送",
       "diagnosticsReportSuccess": "诊断报告已发送",
       "diagnosticsReportFailed": "诊断报告发送失败",
-      "rebuildFailed": "备份旧库并重建新库失败"
+      "rebuildFailed": "备份旧库并重建新库失败",
+      "confirmDialog": {
+        "title": "确认重建数据库？",
+        "content": "此操作会备份当前损坏的数据库并创建一个全新空库。历史会话将不再显示（旧库会保留为备份文件）。确定继续吗？",
+        "okText": "确认重建",
+        "cancelText": "取消"
+      }
     },
     "transientConcurrentStartup": {
       "title": "AionUi 正在启动",
@@ -143,6 +149,22 @@
     "exited": {
       "title": "启动未完成",
       "description": "AionCore 未能完成启动并已退出。请重启应用；若反复出现，请上报诊断信息。",
+      "sendDiagnostics": "发送诊断",
+      "diagnosticsSent": "诊断已发送",
+      "diagnosticsReportSuccess": "诊断信息已上报",
+      "diagnosticsReportFailed": "诊断上报失败，请稍后重试"
+    },
+    "portReportTimeout": {
+      "title": "启动超时",
+      "description": "AionCore 未在预期时间内完成启动。请重启应用；若反复出现，请发送诊断。",
+      "sendDiagnostics": "发送诊断",
+      "diagnosticsSent": "诊断已发送",
+      "diagnosticsReportSuccess": "诊断信息已上报",
+      "diagnosticsReportFailed": "诊断上报失败，请稍后重试"
+    },
+    "startupFailed": {
+      "title": "启动失败",
+      "description": "AionCore 启动失败。请重启应用；若反复出现，请发送诊断。",
       "sendDiagnostics": "发送诊断",
       "diagnosticsSent": "诊断已发送",
       "diagnosticsReportSuccess": "诊断信息已上报",

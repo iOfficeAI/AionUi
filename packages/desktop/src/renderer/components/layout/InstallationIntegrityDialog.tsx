@@ -14,7 +14,9 @@ type InstallationIntegrityDialogKind =
   | 'recoverable_database_corruption'
   | 'transient_concurrent_startup'
   | 'startup_directory'
-  | 'backend_exited';
+  | 'backend_exited'
+  | 'port_report_timeout'
+  | 'startup_failed';
 
 export type InstallationIntegrityDiagnostics = {
   source: 'backend_startup_failure' | 'runtime_status';
@@ -48,6 +50,8 @@ export function getInstallationIntegrityTitle(
   if (diagnosticsKind === 'startup_directory') return t('common.backendStartup.startupDirectory.title');
   if (diagnosticsKind === 'local_data_repair') return t('common.backendStartup.localDataRepair.title');
   if (diagnosticsKind === 'backend_exited') return t('common.backendStartup.exited.title');
+  if (diagnosticsKind === 'port_report_timeout') return t('common.backendStartup.portReportTimeout.title');
+  if (diagnosticsKind === 'startup_failed') return t('common.backendStartup.startupFailed.title');
   return diagnosticsKind === 'data_migration'
     ? t('common.backendStartup.dataMigration.title')
     : t('common.backendStartup.incompleteInstallation.title');
@@ -82,6 +86,8 @@ export function getInstallationIntegrityDiagnosticsSentText(
   if (diagnosticsKind === 'startup_directory') return t('common.backendStartup.startupDirectory.diagnosticsSent');
   if (diagnosticsKind === 'local_data_repair') return t('common.backendStartup.localDataRepair.diagnosticsSent');
   if (diagnosticsKind === 'backend_exited') return t('common.backendStartup.exited.diagnosticsSent');
+  if (diagnosticsKind === 'port_report_timeout') return t('common.backendStartup.portReportTimeout.diagnosticsSent');
+  if (diagnosticsKind === 'startup_failed') return t('common.backendStartup.startupFailed.diagnosticsSent');
   return diagnosticsKind === 'data_migration'
     ? t('common.backendStartup.dataMigration.diagnosticsSent')
     : t('common.backendStartup.incompleteInstallation.diagnosticsSent');
@@ -184,7 +190,11 @@ export function getInstallationIntegrityModalActions(
                 ? t('common.backendStartup.dataMigration.sendDiagnostics')
                 : diagnosticsKind === 'backend_exited'
                   ? t('common.backendStartup.exited.sendDiagnostics')
-                  : getInstallationIntegritySendDiagnosticsText(t),
+                  : diagnosticsKind === 'port_report_timeout'
+                    ? t('common.backendStartup.portReportTimeout.sendDiagnostics')
+                    : diagnosticsKind === 'startup_failed'
+                      ? t('common.backendStartup.startupFailed.sendDiagnostics')
+                      : getInstallationIntegritySendDiagnosticsText(t),
   };
 }
 
@@ -222,7 +232,7 @@ export const InstallationIntegrityContent: React.FC<{ description: string; diagn
   </div>
 );
 
-const InstallationIntegrityFooter: React.FC<{
+export const InstallationIntegrityFooter: React.FC<{
   diagnostics?: InstallationIntegrityDiagnostics;
   diagnosticsKind?: InstallationIntegrityDialogKind;
 }> = ({ diagnostics, diagnosticsKind = 'incomplete_installation' }) => {
@@ -255,7 +265,11 @@ const InstallationIntegrityFooter: React.FC<{
                 ? t('common.backendStartup.dataMigration.diagnosticsReportSuccess')
                 : diagnosticsKind === 'backend_exited'
                   ? t('common.backendStartup.exited.diagnosticsReportSuccess')
-                  : t('common.backendStartup.incompleteInstallation.diagnosticsReportSuccess')
+                  : diagnosticsKind === 'port_report_timeout'
+                    ? t('common.backendStartup.portReportTimeout.diagnosticsReportSuccess')
+                    : diagnosticsKind === 'startup_failed'
+                      ? t('common.backendStartup.startupFailed.diagnosticsReportSuccess')
+                      : t('common.backendStartup.incompleteInstallation.diagnosticsReportSuccess')
       );
     } catch {
       Message.error(
@@ -269,22 +283,36 @@ const InstallationIntegrityFooter: React.FC<{
                 ? t('common.backendStartup.dataMigration.diagnosticsReportFailed')
                 : diagnosticsKind === 'backend_exited'
                   ? t('common.backendStartup.exited.diagnosticsReportFailed')
-                  : t('common.backendStartup.incompleteInstallation.diagnosticsReportFailed')
+                  : diagnosticsKind === 'port_report_timeout'
+                    ? t('common.backendStartup.portReportTimeout.diagnosticsReportFailed')
+                    : diagnosticsKind === 'startup_failed'
+                      ? t('common.backendStartup.startupFailed.diagnosticsReportFailed')
+                      : t('common.backendStartup.incompleteInstallation.diagnosticsReportFailed')
       );
     } finally {
       setReporting(false);
     }
   };
 
-  const handleRecoverCorruptedDatabase = async () => {
+  const handleRecoverCorruptedDatabase = () => {
     if (recovering) return;
-    setRecovering(true);
-    try {
-      await actions.onRecoverCorruptedDatabase();
-    } catch {
-      Message.error(t('common.backendStartup.recoverableDatabaseCorruption.rebuildFailed'));
-      setRecovering(false);
-    }
+    // Rebuild is destructive (backs up the corrupted DB and creates an empty one),
+    // so gate it behind an explicit second confirmation before invoking recovery.
+    Modal.confirm({
+      title: t('common.backendStartup.recoverableDatabaseCorruption.confirmDialog.title'),
+      content: t('common.backendStartup.recoverableDatabaseCorruption.confirmDialog.content'),
+      okText: t('common.backendStartup.recoverableDatabaseCorruption.confirmDialog.okText'),
+      cancelText: t('common.backendStartup.recoverableDatabaseCorruption.confirmDialog.cancelText'),
+      onOk: async () => {
+        setRecovering(true);
+        try {
+          await actions.onRecoverCorruptedDatabase();
+        } catch {
+          Message.error(t('common.backendStartup.recoverableDatabaseCorruption.rebuildFailed'));
+          setRecovering(false);
+        }
+      },
+    });
   };
 
   return (
@@ -306,7 +334,8 @@ const InstallationIntegrityFooter: React.FC<{
         <Button
           data-testid='recoverable-database-corruption-rebuild'
           loading={recovering}
-          type='primary'
+          status='danger'
+          type='outline'
           onClick={handleRecoverCorruptedDatabase}
         >
           {actions.recoverText}

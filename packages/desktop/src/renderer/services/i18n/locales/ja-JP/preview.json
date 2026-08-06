@@ -1,18 +1,5 @@
 {
-  "historyVersions": "履歴バージョン",
-  "currentFile": "現在のファイル",
   "loading": "読み込み中...",
-  "loadHistoryFailed": "履歴の読み込みに失敗しました",
-  "noHistory": "履歴バージョンはありません",
-  "snapshotSaved": "スナップショットを保存しました",
-  "snapshotSaveFailed": "スナップショットの保存に失敗しました",
-  "historyLoaded": "履歴バージョンを読み込みました",
-  "historyLoadFailed": "履歴バージョンの読み込みに失敗しました",
-  "tooFrequent": "操作が頻繁すぎます。しばらくしてから再試行してください",
-  "saveSnapshot": "現在のスナップショットを保存",
-  "snapshotNotSupported": "現在のコンテンツはスナップショットをサポートしていません",
-  "history": "履歴",
-  "historyNotSupported": "現在のコンテンツは履歴をサポートしていません",
   "downloadFile": "ファイルをダウンロード",
   "closePreview": "プレビューを閉じる",
   "collapsePanel": "パネルを閉じる",
@@ -21,7 +8,6 @@
   "preview": "プレビュー",
   "editor": "エディタ",
   "previewEffect": "プレビュー",
-  "snapshot": "スナップショット",
   "downloadMarkdown": "Markdown ファイルをダウンロード",
   "downloadCode": "{{language}} ファイルをダウンロード",
   "downloadDiff": "Diff ファイルをダウンロード",
@@ -36,6 +22,8 @@
   "continueEdit": "編集を続ける",
   "closeTabTitle": "タブを閉じる",
   "closeTabMessage": "現在の内容はまだ保存されていません。保存してから閉じますか？",
+  "closeTabsTitle": "タブを閉じる",
+  "closeTabsMessage": "未保存のタブが {{count}} 件あります。保存してから閉じますか？",
   "saveAndClose": "保存して閉じる",
   "closeWithoutSave": "保存しない",
   "pptTitle": "PowerPoint プレゼンテーション",
@@ -60,14 +48,21 @@
   "noTabs": "タブはありません",
   "openInPanelTooltip": "プレビューパネルで表示",
   "mermaidTitle": "Mermaid 図",
-  "largeTextTruncatedHint": "大きなファイルのプレビューでは、パフォーマンスのため先頭 {{count}} 文字のみ表示します。",
-  "truncatedBanner": "プレビュー内容は途中で切り詰められています。完全な内容はダウンロードして確認してください。",
+  "oversized": {
+    "title": "ファイルが大きすぎてプレビューできません",
+    "detail": "ファイルサイズ {{size}} が上限 {{threshold}} を超えています。システムのエディタで開いてください。",
+    "downloadUnavailable": "このファイルは大きすぎてここではダウンロードできません。「システムで開く」をご利用ください。"
+  },
+  "unsupported": {
+    "title": "この形式はプレビューに対応していません",
+    "detail": "{{format}} ファイルはここではプレビューできません。システムのアプリで開いてください。",
+    "downloadUnavailable": "このファイルはここではダウンロードできません。「システムで開く」をご利用ください。"
+  },
   "aiWriting": "AI が書き込み中…",
   "errors": {
     "missingFilePath": "ファイルパスが指定されていません",
     "openWithoutPath": "ファイルパスがないため開けません",
-    "conversionFailed": "変換に失敗しました",
-    "emptySnapshot": "スナップショット内容が空です"
+    "conversionFailed": "変換に失敗しました"
   },
   "office": {
     "installLinkText": "officecli のインストール手順を開く",
@@ -139,5 +134,28 @@
     "installing": "プレビューコンポーネントをインストール中...",
     "startFailed": "PPTプレビューの起動に失敗しました",
     "installHint": "公式 iOfficeAI/OfficeCLI releases ページから OfficeCLI をインストールしてください"
+  },
+  "browser": {
+    "newTab": "新しいタブ",
+    "addressPlaceholder": "URL を入力または検索",
+    "agentActiveTooltip": "エージェントがこのタブを操作しています",
+    "tabLimitReached": "タブ数の上限（{{count}}）に達したため、最も古いタブを再利用しました。",
+    "agentFirstUseTitle": "エージェントがアプリ内ブラウザーを使用しています",
+    "agentFirstUseContent": "このパネル内でページを開き、クリックや内容の読み取りができます。ログイン状態は保持されます。",
+    "agentFirstUseAction": "設定を開く"
+  },
+  "saveConflict": "保存できませんでした：このファイルは開いた後に変更されています。再読み込みで他の変更を確認できます——あなたの編集は未保存のまま残っています。",
+  "persistQuotaExceeded": "ローカルストレージが満杯のため、このプロジェクトで開いているタブを記憶できません。タブを閉じるか、サイトデータを消去してください。",
+  "refresh": {
+    "label": "再読み込み",
+    "tooltip": "ディスクから再読み込み",
+    "hasUpdate": "このファイルはディスク上で変更されました——クリックで再読み込み",
+    "noSignalSource": "このファイルはプロジェクト外のため、更新は自動通知されません",
+    "unavailable": "このファイルの場所を特定できません",
+    "failed": "このファイルを再読み込みできませんでした",
+    "confirmTitle": "再読み込みして未保存の変更を破棄しますか？",
+    "confirmMessage": "このタブには未保存の変更があります。再読み込みするとディスクの内容で置き換えられます。",
+    "discardAndRefresh": "変更を破棄して再読み込み",
+    "officeNotWired": "Office 文書の再読み込みは未対応です——ファイルを閉じて開き直すと変更が反映されます。"
   }
 }

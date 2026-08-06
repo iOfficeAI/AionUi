@@ -118,14 +118,20 @@
     },
     "recoverableDatabaseCorruption": {
       "title": "ローカルデータが破損しています",
-      "description": "ローカルデータベースの破損を検出したため、AionUi は起動を続行できません。確認後、古いデータベースをバックアップし、新しいローカルデータベースを作成して起動を続行します。過去のローカルデータは当面表示されず、古いデータベースはバックアップとして保持されます。",
+      "description": "ローカルデータベースの破損を検出したため、AionUi は起動を続行できません。確認後、古いデータベースをバックアップし、新しいローカルデータベースを作成して起動を続行します。過去の会話は表示されなくなり、古いデータベースはバックアップファイルとして保持されます。",
       "confirmRebuild": "古いDBをバックアップして新しいDBを再作成",
       "sendDiagnostics": "診断レポートを送信",
       "diagnosticsHint": "診断レポートの送信ではローカルデータベースは変更されません。",
       "diagnosticsSent": "診断レポートを送信しました",
       "diagnosticsReportSuccess": "診断レポートを送信しました",
       "diagnosticsReportFailed": "診断レポートの送信に失敗しました",
-      "rebuildFailed": "古いDBのバックアップと新しいDBの再作成に失敗しました"
+      "rebuildFailed": "古いDBのバックアップと新しいDBの再作成に失敗しました",
+      "confirmDialog": {
+        "title": "データベースを再構築しますか？",
+        "content": "この操作は現在の破損したデータベースをバックアップし、まったく新しい空のデータベースを作成します。過去の会話は表示されなくなります（古いデータベースはバックアップファイルとして保持されます）。続行しますか？",
+        "okText": "再構築を確認",
+        "cancelText": "キャンセル"
+      }
     },
     "transientConcurrentStartup": {
       "title": "AionUi を起動しています",
@@ -143,6 +149,22 @@
     "exited": {
       "title": "起動が完了しませんでした",
       "description": "AionCore は起動を完了できずに終了しました。アプリを再起動してください。繰り返し発生する場合は、診断情報を送信してください。",
+      "sendDiagnostics": "診断を送信",
+      "diagnosticsSent": "診断を送信しました",
+      "diagnosticsReportSuccess": "診断情報を送信しました",
+      "diagnosticsReportFailed": "診断の送信に失敗しました。しばらくしてから再試行してください。"
+    },
+    "portReportTimeout": {
+      "title": "起動がタイムアウトしました",
+      "description": "AionCore は想定時間内に起動を完了できませんでした。アプリを再起動してください。繰り返し発生する場合は、診断情報を送信してください。",
+      "sendDiagnostics": "診断を送信",
+      "diagnosticsSent": "診断を送信しました",
+      "diagnosticsReportSuccess": "診断情報を送信しました",
+      "diagnosticsReportFailed": "診断の送信に失敗しました。しばらくしてから再試行してください。"
+    },
+    "startupFailed": {
+      "title": "起動に失敗しました",
+      "description": "AionCore を起動できませんでした。アプリを再起動してください。繰り返し発生する場合は、診断情報を送信してください。",
       "sendDiagnostics": "診断を送信",
       "diagnosticsSent": "診断を送信しました",
       "diagnosticsReportSuccess": "診断情報を送信しました",

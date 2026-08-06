@@ -64,6 +64,56 @@ const FileChangesPanel: React.FC<FileChangesPanelProps> = ({
     return null;
   }
 
+  if (files.length === 1) {
+    const [file] = files;
+
+    return (
+      <div
+        className={classNames(
+          'w-full box-border rounded-8px overflow-hidden border border-solid border-[var(--aou-2)]',
+          className
+        )}
+        style={{ width: '100%' }}
+      >
+        <div className='group flex items-center justify-between px-16px py-12px hover:bg-3 transition-colors'>
+          <div className='flex items-center min-w-0 gap-8px'>
+            <span className='w-8px h-8px rounded-full shrink-0' style={{ backgroundColor: diffColors.addition }} />
+            <span className='text-14px text-t-primary font-medium truncate'>{file.file_name}</span>
+          </div>
+          <div className='flex items-center gap-8px shrink-0'>
+            {(file.insertions > 0 || file.deletions > 0) && (
+              <span
+                className={classNames(
+                  'flex items-center gap-4px rd-4px px-4px py-2px',
+                  onDiffClick && 'cursor-pointer hover:bg-4 transition-colors'
+                )}
+                onClick={() => onDiffClick?.(file)}
+              >
+                {file.insertions > 0 && (
+                  <span className='text-14px font-medium' style={{ color: diffColors.addition }}>
+                    +{file.insertions}
+                  </span>
+                )}
+                {file.deletions > 0 && (
+                  <span className='text-14px font-medium' style={{ color: diffColors.deletion }}>
+                    -{file.deletions}
+                  </span>
+                )}
+              </span>
+            )}
+            <span
+              className='flex items-center gap-4px text-12px text-t-secondary cursor-pointer rd-4px px-4px py-2px hover:bg-4'
+              onClick={() => onFileClick?.(file)}
+            >
+              <PreviewOpen className='line-height-8px' theme='outline' size='14' fill={iconColors.secondary} />
+              {t('preview.preview')}
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       className={classNames(

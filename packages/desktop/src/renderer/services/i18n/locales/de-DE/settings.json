@@ -313,8 +313,6 @@
   "cacheClearFailed": "Cache leeren fehlgeschlagen",
   "language": "Sprache",
   "saveUploadToWorkspace": "Uploads im Arbeitsbereich speichern",
-  "autoPreviewOfficeFiles": "Neue Office-Dateien automatisch vorschau",
-  "autoPreviewOfficeFilesDesc": "Neu erstellte Word-, Excel- und PowerPoint-Dateien im aktuellen Arbeitsbereich automatisch öffnen. Office-temporäre Sperrdateien werden ignoriert.",
   "startOnBoot": "Beim Start ausführen",
   "startOnBootDesc": "AionUi automatisch starten, wenn du dich bei macOS oder Windows anmeldest.",
   "startOnBootUnsupported": "Nur in gepackten macOS- und Windows-Apps verfügbar.",
@@ -323,6 +321,8 @@
   "hardwareAcceleration": "Hardware-Beschleunigung",
   "hardwareAccelerationDesc": "GPU zur Darstellung der UI verwenden. Deaktivieren, wenn die App beim Start abstürzt oder Grafikflimmern auftritt.",
   "hardwareAccelerationAutoDisabled": "Nach wiederholten GPU-Abstürzen automatisch deaktiviert.",
+  "hardwareAccelerationAutoDisabledTitle": "Hardwarebeschleunigung deaktiviert",
+  "hardwareAccelerationAutoDisabledNotice": "Wiederholte Grafikabstürze wurden erkannt, daher wurde die Hardwarebeschleunigung automatisch deaktiviert, um die App stabil zu halten. Sie können sie unter Einstellungen → System wieder aktivieren.",
   "hardwareAccelerationRestartConfirm": "AionUi neu starten, um die neue Einstellung für Hardware-Beschleunigung anzuwenden?",
   "hardwareAccelerationUpdateFailed": "Hardware-Beschleunigung konnte nicht aktualisiert werden",
   "notification": "Benachrichtigungen",
@@ -333,6 +333,8 @@
   "groupAbout": "Sonstiges",
   "agentIdleTimeout": "Agenten-Leerlaufzeitüberschreitung (Min.)",
   "agentIdleTimeoutDesc": "Inaktive Agentenprozesse nach dieser Dauer beenden, um Speicher freizugeben",
+  "previewTextSizeLimit": "Vorschau-Größenlimit (MB)",
+  "previewTextSizeLimitDesc": "Textdateien über dieser Größe werden mit einem Hinweis statt mit Inhalt geöffnet. Gilt nur für neu geöffnete Tabs.",
   "gemini": "Gemini CLI",
   "model": "Modell",
   "system": "System",
@@ -1295,5 +1297,19 @@
     "emptyOverridesError": "Enter a launch path or at least one environment variable before saving."
   },
   "providerIdConflict": "Provider-ID existiert bereits. Bitte erneut versuchen.",
-  "autoInjectedSkillsHint": "Werden automatisch in jede Unterhaltung geladen – kein Aktivieren nötig; der Agent entscheidet, wann er sie nutzt."
+  "autoInjectedSkillsHint": "Werden automatisch in jede Unterhaltung geladen – kein Aktivieren nötig; der Agent entscheidet, wann er sie nutzt.",
+  "browserData": {
+    "title": "Integrierter Browser",
+    "agentControlLabel": "Agent darf den integrierten Browser bedienen",
+    "agentControlDesc": "Wenn aktiviert, kann der Agent im integrierten Browser Seiten öffnen, klicken und Formulare für Sie ausfüllen – etwa um etwas zu recherchieren oder einen Ablauf auf einer Website abzuschließen. Er kann ausschließlich diese eine Browseransicht steuern: die AionUi-Oberfläche selbst bleibt unerreichbar, und es wird nie ein separates Chrome-Fenster geöffnet. Ist die Option aus, können Sie den Browser weiterhin selbst nutzen; nur der Agent verliert den Zugriff.",
+    "agentControlSaved": "Einstellung gespeichert",
+    "agentControlFailed": "Einstellung konnte nicht gespeichert werden",
+    "agentControlRestartRequired": "Diese Einstellung wird nach einem Neustart der App wirksam.",
+    "clearLabel": "Browserdaten löschen",
+    "clearDesc": "Meldet dich von allen Websites ab, bei denen der Browser angemeldet ist, und löscht den Cache. Offene Tabs wirken nach dem Neuladen.",
+    "clearConfirmTitle": "Browserdaten löschen?",
+    "clearConfirmContent": "Du wirst von allen Websites im integrierten Browser abgemeldet. Das kann nicht rückgängig gemacht werden.",
+    "clearSuccess": "Browserdaten gelöscht",
+    "clearFailed": "Browserdaten konnten nicht gelöscht werden"
+  }
 }

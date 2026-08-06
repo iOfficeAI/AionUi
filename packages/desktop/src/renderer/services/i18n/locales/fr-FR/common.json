@@ -118,14 +118,20 @@
     },
     "recoverableDatabaseCorruption": {
       "title": "Les données locales sont corrompues",
-      "description": "AionUi a détecté que la base de données locale est corrompue et ne peut pas continuer le démarrage. Après confirmation, AionUi sauvegardera l'ancienne base de données et créera une nouvelle base de données locale pour continuer le démarrage. Les données locales historiques ne seront pas affichées pour l'instant et l'ancienne base de données sera conservée comme sauvegarde.",
+      "description": "AionUi a détecté que la base de données locale est corrompue et ne peut pas continuer le démarrage. Après confirmation, AionUi sauvegardera l'ancienne base de données et créera une nouvelle base de données locale pour continuer le démarrage. Les conversations passées ne seront plus affichées et l'ancienne base de données sera conservée comme fichier de sauvegarde.",
       "confirmRebuild": "Sauvegarder l'ancienne base de données et reconstruire la nouvelle base de données",
       "sendDiagnostics": "Envoyer des diagnostics",
       "diagnosticsHint": "L'envoi de diagnostics ne modifiera pas la base de données locale.",
       "diagnosticsSent": "Diagnostics envoyés",
       "diagnosticsReportSuccess": "Rapport de diagnostic envoyé",
       "diagnosticsReportFailed": "Échec de l'envoi du rapport de diagnostic",
-      "rebuildFailed": "Échec de la sauvegarde de l'ancienne base de données et de la reconstruction de la nouvelle base de données"
+      "rebuildFailed": "Échec de la sauvegarde de l'ancienne base de données et de la reconstruction de la nouvelle base de données",
+      "confirmDialog": {
+        "title": "Reconstruire la base de données ?",
+        "content": "Cette opération sauvegardera la base de données actuellement corrompue et créera une toute nouvelle base vide. Les conversations passées ne seront plus affichées (l'ancienne base est conservée comme fichier de sauvegarde). Continuer ?",
+        "okText": "Confirmer la reconstruction",
+        "cancelText": "Annuler"
+      }
     },
     "transientConcurrentStartup": {
       "title": "AionUi démarre",
@@ -143,6 +149,22 @@
     "exited": {
       "title": "Le démarrage ne s'est pas terminé",
       "description": "AionCore n'a pas pu terminer son démarrage et s'est fermé. Veuillez redémarrer l'application ; si le problème persiste, envoyez un diagnostic.",
+      "sendDiagnostics": "Envoyer le diagnostic",
+      "diagnosticsSent": "Diagnostic envoyé",
+      "diagnosticsReportSuccess": "Diagnostic envoyé",
+      "diagnosticsReportFailed": "Échec de l'envoi du diagnostic, veuillez réessayer"
+    },
+    "portReportTimeout": {
+      "title": "Délai de démarrage dépassé",
+      "description": "AionCore n'a pas terminé son démarrage dans le délai prévu. Veuillez redémarrer l'application ; si le problème persiste, envoyez un diagnostic.",
+      "sendDiagnostics": "Envoyer le diagnostic",
+      "diagnosticsSent": "Diagnostic envoyé",
+      "diagnosticsReportSuccess": "Diagnostic envoyé",
+      "diagnosticsReportFailed": "Échec de l'envoi du diagnostic, veuillez réessayer"
+    },
+    "startupFailed": {
+      "title": "Échec du démarrage",
+      "description": "AionCore n'a pas pu démarrer. Veuillez redémarrer l'application ; si le problème persiste, envoyez un diagnostic.",
       "sendDiagnostics": "Envoyer le diagnostic",
       "diagnosticsSent": "Diagnostic envoyé",
       "diagnosticsReportSuccess": "Diagnostic envoyé",

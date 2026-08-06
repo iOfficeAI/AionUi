@@ -1,18 +1,5 @@
 {
-  "historyVersions": "Versões do Histórico",
-  "currentFile": "Arquivo Atual",
   "loading": "Carregando...",
-  "loadHistoryFailed": "Falha ao carregar o histórico",
-  "noHistory": "Nenhuma versão no histórico",
-  "snapshotSaved": "Instantâneo salvo",
-  "snapshotSaveFailed": "Falha ao salvar instantâneo",
-  "historyLoaded": "Versão do histórico carregada",
-  "historyLoadFailed": "Falha ao carregar a versão do histórico",
-  "tooFrequent": "Muito frequente, por favor tente mais tarde",
-  "saveSnapshot": "Salvar instantâneo atual",
-  "snapshotNotSupported": "O conteúdo atual não suporta instantâneo",
-  "history": "Histórico",
-  "historyNotSupported": "O conteúdo atual não suporta histórico",
   "downloadFile": "Baixar arquivo",
   "closePreview": "Fechar visualização",
   "collapsePanel": "Recolher painel",
@@ -21,7 +8,6 @@
   "preview": "Pré-visualização",
   "editor": "Editor",
   "previewEffect": "Visualização",
-  "snapshot": "Instantâneo",
   "downloadMarkdown": "Baixar arquivo Markdown",
   "downloadCode": "Baixar arquivo {{language}}",
   "downloadDiff": "Baixar arquivo Diff",
@@ -36,6 +22,8 @@
   "continueEdit": "Continuar Editando",
   "closeTabTitle": "Fechar Guia",
   "closeTabMessage": "O conteúdo atual não foi salvo. Deseja salvar antes de fechar?",
+  "closeTabsTitle": "Fechar abas",
+  "closeTabsMessage": "{{count}} abas têm alterações não salvas. Salvar antes de fechar?",
   "saveAndClose": "Salvar e Fechar",
   "closeWithoutSave": "Não Salvar",
   "pptTitle": "Apresentação do PowerPoint",
@@ -60,14 +48,21 @@
   "noTabs": "Nenhuma guia aberta",
   "openInPanelTooltip": "Ver no painel de visualização",
   "mermaidTitle": "Diagrama Mermaid",
-  "largeTextTruncatedHint": "Modo de pré-visualização de arquivos grandes: mostrando os primeiros {{count}} caracteres para melhor desempenho.",
-  "truncatedBanner": "O conteúdo da pré-visualização foi truncado. Clique em baixar para visualizar o arquivo completo.",
+  "oversized": {
+    "title": "Arquivo muito grande para pré-visualizar",
+    "detail": "O tamanho do arquivo {{size}} excede o limite de {{threshold}}. Abra-o em um editor do sistema.",
+    "downloadUnavailable": "Este arquivo é muito grande para baixar aqui. Use “Abrir no sistema”."
+  },
+  "unsupported": {
+    "title": "Pré-visualização não suportada para este formato",
+    "detail": "Arquivos {{format}} não podem ser pré-visualizados aqui. Abra em um aplicativo do sistema.",
+    "downloadUnavailable": "Este arquivo não pode ser baixado aqui. Use “Abrir no sistema”."
+  },
   "aiWriting": "A IA está escrevendo…",
   "errors": {
     "missingFilePath": "O caminho do arquivo está ausente",
     "openWithoutPath": "Não é possível abrir: o caminho do arquivo não foi fornecido",
-    "conversionFailed": "A conversão falhou",
-    "emptySnapshot": "O conteúdo do instantâneo está vazio"
+    "conversionFailed": "A conversão falhou"
   },
   "office": {
     "installLinkText": "Abrir guia de instalação do officecli",
@@ -139,5 +134,28 @@
     "installing": "Instalando componente de visualização...",
     "startFailed": "Falha ao iniciar a visualização do PPT",
     "installHint": "Instale o OfficeCLI pela página oficial de releases iOfficeAI/OfficeCLI"
+  },
+  "browser": {
+    "newTab": "Nova aba",
+    "addressPlaceholder": "Digite uma URL ou pesquise",
+    "agentActiveTooltip": "O agente está operando esta aba",
+    "tabLimitReached": "Limite de abas atingido ({{count}}). A aba mais antiga foi reutilizada.",
+    "agentFirstUseTitle": "O agente está usando o navegador interno",
+    "agentFirstUseContent": "Ele pode abrir páginas, clicar e ler conteúdo neste painel. Seu login é preservado.",
+    "agentFirstUseAction": "Abrir configurações"
+  },
+  "saveConflict": "Não foi possível salvar: este arquivo mudou no disco depois que você o abriu. Recarregue para ver as outras alterações — suas edições continuam aqui, não salvas.",
+  "persistQuotaExceeded": "O armazenamento local está cheio, então as abas abertas deste projeto não podem mais ser lembradas. Feche algumas abas ou limpe os dados do site.",
+  "refresh": {
+    "label": "Atualizar",
+    "tooltip": "Recarregar do disco",
+    "hasUpdate": "Este arquivo mudou no disco — clique para recarregar",
+    "noSignalSource": "Este arquivo não está no projeto, então mudanças não serão anunciadas",
+    "unavailable": "Não foi possível localizar este arquivo",
+    "failed": "Não foi possível recarregar este arquivo",
+    "confirmTitle": "Recarregar e perder alterações não salvas?",
+    "confirmMessage": "Esta aba tem alterações não salvas. Recarregar as substitui pelo conteúdo do disco.",
+    "discardAndRefresh": "Descartar alterações e recarregar",
+    "officeNotWired": "A atualização de documentos do Office ainda não está disponível — feche e reabra o arquivo para ver as alterações."
   }
 }
