@@ -4,33 +4,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { ipcBridge } from '@/common';
 import { joinPath } from '@/common/chat/chatLib';
+import { localFileRef } from '@/common/types/chatFile';
 import type { PreviewContentType } from '@/common/types/office/preview';
 import { useConversationContextSafe } from '@/renderer/hooks/context/ConversationContext';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
-import {
-  LARGE_TEXT_PREVIEW_MAX_LENGTH,
-  LARGE_TEXT_PREVIEW_THRESHOLD,
-} from '@/renderer/pages/conversation/Preview/constants';
+import { resolvePreviewPayload, upgradeFileRef } from '@/renderer/utils/file/previewPayload';
+import { getCurrentProject } from '@/renderer/pages/conversation/explorer/currentProjectStore';
 import { classifyPreviewError, type PreviewErrorKind } from '@/renderer/utils/previewError';
 import { useCallback, useState } from 'react';
-
-const LARGE_TEXT_PREVIEW_TYPES = new Set<PreviewContentType>(['code', 'markdown', 'html', 'diff']);
-
-const normalizeLargeTextPreview = (
-  content: string,
-  contentType: PreviewContentType
-): { content: string; truncated: boolean } => {
-  if (!LARGE_TEXT_PREVIEW_TYPES.has(contentType) || content.length <= LARGE_TEXT_PREVIEW_THRESHOLD) {
-    return { content, truncated: false };
-  }
-
-  return {
-    content: content.slice(0, LARGE_TEXT_PREVIEW_MAX_LENGTH),
-    truncated: true,
-  };
-};
 
 /**
  * 预览启动选项 / Preview launch options
@@ -96,6 +78,14 @@ export const usePreviewLauncher = () => {
       // 优先使用工作区 + 相对路径拼接绝对路径 / Prefer workspace + relative path to build absolute path
       const absolutePath = workspace && relativePath ? joinPath(workspace, relativePath) : undefined;
       const resolvedPath = absolutePath || originalPath || relativePath || undefined;
+      // Backend-host absolute path (agent workspace file, no pe identity) → a Local
+      // ChatFileRef for content I/O over /api/fs/content. Only when we have an
+      // absolute-ish path to read (a bare relativePath can't resolve on the backend).
+      const readPath = absolutePath || originalPath;
+      // Upgraded to a project identity where possible, so a file opened from a tool
+      // card and the same file opened from the explorer are one tab, and this one can
+      // receive change signals too.
+      const fileRef = readPath ? await upgradeFileRef(localFileRef(readPath), getCurrentProject()) : undefined;
 
       // 文件名和标题计算 / Compute file name and title
       const computedFileName =
@@ -106,68 +96,42 @@ export const usePreviewLauncher = () => {
       const metadata = {
         title: previewTitle,
         file_name: computedFileName || previewTitle,
+        fileRef,
         file_path: resolvedPath,
         workspace,
         language,
-        truncated: false,
       };
 
       // 1. 乐观预览：如果有回退内容（如 Diff 中提取的内容），立即显示 / Optimistic preview: Show fallback content immediately if available
       let hasOpened = false;
       if (typeof fallbackContent === 'string') {
-        const normalizedFallback = normalizeLargeTextPreview(fallbackContent, contentType);
-        openPreview(normalizedFallback.content, contentType, {
+        openPreview(fallbackContent, contentType, {
           ...metadata,
-          editable: normalizedFallback.truncated ? false : editable,
-          truncated: normalizedFallback.truncated,
+          editable,
         });
         hasOpened = true;
       }
 
       try {
         // 2. 尝试读取实际文件内容（覆盖乐观预览） / Try to read actual file content (override optimistic preview)
-        if (absolutePath || originalPath) {
+        if (fileRef) {
           try {
-            const pathToRead = absolutePath || originalPath;
+            // 单一判定点：取一次 metadata 拿到 size（判上限）与 lastModified（保存时的
+            // If-Match 条件），超限则完全不读内容。
+            // Single decision point: one metadata call yields size (ceiling check)
+            // and lastModified (the save-time If-Match); oversized files are never read.
+            const payload = await resolvePreviewPayload(fileRef, contentType);
 
-            if (contentType === 'image') {
-              const base64 = await ipcBridge.fs.getImageBase64.invoke({ path: pathToRead!, workspace });
-              if (!base64) {
-                setErrorKind(classifyPreviewError(base64));
-                return;
-              }
-              openPreview(base64, contentType, {
-                ...metadata,
-                editable,
-              });
-              return;
-            }
-
-            const binaryOnlyTypes: PreviewContentType[] = ['pdf', 'ppt', 'word', 'excel'];
-            if (binaryOnlyTypes.includes(contentType)) {
-              // 这类格式仅依赖文件路径渲染，不需要实际读取内容
-              // These formats rely on file path; no need to read file content
-              openPreview('', contentType, {
-                ...metadata,
-                editable,
-              });
-              return;
-            }
-
-            // 使用 Promise.race 防止长时间卡死 / Use Promise.race to prevent hanging
-            const content = await Promise.race([
-              ipcBridge.fs.readFile.invoke({ path: pathToRead!, workspace }),
-              new Promise<never>((_, reject) => setTimeout(() => reject(new Error('File read timeout')), 5000)),
-            ]);
-            if (content == null) {
-              setErrorKind(classifyPreviewError(content));
-              return;
-            }
-            const normalizedContent = normalizeLargeTextPreview(content, contentType);
-            openPreview(normalizedContent.content, contentType, {
+            openPreview(payload.content, contentType, {
               ...metadata,
-              editable: normalizedContent.truncated ? false : editable,
-              truncated: normalizedContent.truncated,
+              // 超限文件只读：没有内容可编辑，也没有半截内容可被写回。
+              // Oversized files are read-only: no content to edit, and no partial
+              // content that could be written back over the full file.
+              editable: payload.oversized ? false : editable,
+              oversized: payload.oversized,
+              sizeBytes: payload.sizeBytes,
+              thresholdBytes: payload.thresholdBytes,
+              lastModified: payload.lastModified,
             });
             return;
           } catch (error) {

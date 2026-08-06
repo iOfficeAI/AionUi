@@ -1,5 +1,117 @@
 # Changelog
 
+## [2.1.50](https://github.com/iOfficeAI/AionUi/compare/v2.1.49...v2.1.50) (2026-08-06)
+
+### Desktop
+
+#### Bug Fixes
+
+- **browser:** stop in-app browser MCP commands hanging, and fix Windows spawn EINVAL (#3885)
+- **explorer:** publish active project synchronously on conversation switch (#3875)
+- **notification:** register Windows AppUserModelID for NSIS toast delivery (#3890)
+- **team:** create antigravity team members with an empty model instead of the 'default' placeholder (#3887)
+- **theme:** sync webui toggle state immediately (#3892)
+
+### Core ([v0.1.61](https://github.com/iOfficeAI/AionCore/releases/tag/v0.1.61))
+
+_Includes AionCore v0.1.59 – v0.1.61._
+
+#### Features
+
+- **acp:** client-hosted terminals — declare clientCapabilities.terminal and serve terminal/\* (#779)
+- **agent:** multimodal prompt — native image/audio content blocks gated by promptCapabilities (#774)
+- **preview:** backend half of preview v2 — office refresh, overflow marker, content-change signal (#780)
+- **session:** AskUserQuestion as a first-class capability (own event, command, counter and endpoint) (#778)
+- **team:** add read-only mailbox/task activity API and real-time events (#740)
+
+#### Bug Fixes
+
+- **adoption:** move legacy root assistant-rules to the adopter (#788)
+- **ai-agent:** degrade corrupt process registry, atomic writes, and startup-failure child cleanup (#784)
+- **antigravity:** drop the 'default' UI placeholder model while discovery is empty (#785)
+- **engine:** update rust crate getrandom to 0.4 (#212)
+- **session:** stop reporting still-running codex commands as cancelled (#783)
+
+---
+
+## [2.1.47](https://github.com/iOfficeAI/AionUi/compare/v2.1.46...v2.1.47-final) (2026-08-04)
+
+### Desktop
+
+#### Features
+
+- **conversation:** message-level fork entry with capability-gated visibility (#3843)
+- **conversation:** tag derived titles with name_source for agent auto-naming (#3839)
+- **preview:** add agent-controllable in-app browser over a single-target CDP bridge (#3826)
+- **preview:** pdf via stream URL + office ChatFileRef + drop fs/resolve (#3837)
+- **preview:** migrate content I/O to ChatFileRef /content endpoints (#3825)
+- **update:** discontinue AionUi in-app updates and guide migration to the official website (#3730)
+
+#### Bug Fixes
+
+- **conversation:** keep the anchor rail clear of text and cover full history (#3848)
+- **desktop:** silence GPU-process crash noise and surface HW-accel auto-disable (#3838)
+- **renderer:** gate database rebuild behind a second confirmation (#3840)
+- **renderer:** keep workspace toggle in titlebar (#3845)
+- **team:** handle omitted slot work in run state (#3847)
+
+### Core ([v0.1.58](https://github.com/iOfficeAI/AionCore/releases/tag/v0.1.58))
+
+#### Features
+
+- **conversation:** agent-driven session auto-naming (ACP session_info_update + claude generate_session_title) (#768)
+- **conversation:** fork a conversation into a new one at a chosen message (#772)
+- **fs:** add ChatFileRef content endpoints (#757)
+- **fs:** pdf stream endpoint + office ChatFileRef resolve + retire fs/resolve & WS fs/read (#762)
+
+#### Bug Fixes
+
+- **agent:** keep the thought-level picker on a resumed conversation (#763)
+- **runtime:** add bounded retry to managed node version probe (#771)
+- **session:** keep claude session cost cumulative across process respawns (#767)
+- **session:** settle cards through teardown and resume so no stored row spins forever (#766)
+
+---
+
+## [2.1.46](https://github.com/iOfficeAI/AionUi/compare/v2.1.45...v2.1.46) (2026-08-03)
+
+### Desktop
+
+#### Features
+
+- **update:** make manual update check CDN-authoritative (#3830)
+- **conversation:** add a message anchor rail with a search entry point (#3824)
+- **explorer:** add reveal-in-folder context menu (Electron only) (#3820)
+
+#### Bug Fixes
+
+- **startup:** stop misreporting slow backend startup as broken installation (#3831)
+- **runtime:** reconcile self-healed install-integrity failures before alerting (#3828)
+- **guid:** stop a CLI agent's first turn from using the aionrs provider model (#3827)
+- **conversation:** make Antigravity conversations usable in the UI (#3812)
+- **preview:** restore multi-tab when opening files from explorer (#3821)
+- **office-preview:** degrade gracefully on FILE_WATCH_UNAVAILABLE (#3819)
+
+### Core ([v0.1.57](https://github.com/iOfficeAI/AionCore/releases/tag/v0.1.57))
+
+#### Features
+
+- **agent:** add Antigravity (agy CLI) as a direct-CLI agent (#741)
+- **fs:** add /api/fs/reveal endpoint (resolve pe-ref + show in folder) (#754)
+- **session:** make background work visible — live progress cards and out-of-turn delivery (#758)
+
+#### Bug Fixes
+
+- **conversation:** apply a cancel that arrives while the agent is still building (#747)
+- **db:** widen migration-030 pre-repair gate to any pre-030 start point (#756)
+- **file-watch:** degrade gracefully when watcher init fails instead of killing backend (#751)
+- **file:** strip verbatim \\?\ prefix from non-browse path outputs (#736)
+- **process:** reap tool subprocesses that left the process group (#753)
+- **runtime:** retry transient bundled-node activation copy and reclassify persistent I/O failures (#760)
+- **server:** emit AIONCORE_READY marker once serving begins (#761)
+
+---
+
 ## [2.1.45](https://github.com/iOfficeAI/AionUi/compare/v2.1.44...v2.1.45) (2026-07-31)
 
 ### Desktop

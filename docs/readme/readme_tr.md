@@ -54,7 +54,7 @@
 </h3>
 
 <p align="center">
-  <sub><strong>Kimi K3</strong> yayında ve AionUi'de kutudan çıktığı gibi çalışıyor — <a href="https://www.kimi.com/code?aff=aionui" target="_blank">Kimi For Coding planı edinin</a> veya API anahtarı alın (<a href="https://platform.kimi.ai?aff=aionui" target="_blank">Global</a> / <a href="https://platform.kimi.com?aff=aionui" target="_blank">Çin</a>)</sub>
+  <sub><strong>Kimi K3</strong> yayında ve AionUi'de kutudan çıktığı gibi çalışıyor — <a href="https://www.kimi.com/code?aff=aionui" target="_blank">Kimi For Coding planı edinin</a> veya API anahtarı alın (<a href="https://platform.kimi.ai?track_id=track-32e04532b08d460fac729191744fa75c&aff=aionui" target="_blank">Global</a> / <a href="https://platform.kimi.com?track_id=track-98f92981df1c4c61b2c68930ba3ab658&aff=aionui" target="_blank">Çin</a>)</sub>
 </p>
 
 ---
@@ -76,14 +76,14 @@
 
 **AionUi sadece bir sohbet istemcisi değil.** AI Agents'ın bilgisayarınızda sizinle çalıştığı bir Cowork platformudur — dosya okuma, kod yazma, web'de gezinme ve görevleri otomatikleştirme. Agent'ın yaptığı her şeyi görürsünüz ve her zaman kontrol sizdedir.
 
-|                                        | Geleneksel AI Sohbet İstemcileri | **AionUi (Cowork)**                                                                                                             |
-| :------------------------------------- | :------------------------------- | :------------------------------------------------------------------------------------------------------------------------------ |
-| AI dosyalarınızda işlem yapabilir      | Sınırlı veya Yok                 | **Evet — tam dosya erişimi ile yerleşik Agent**                                                                                 |
-| AI çok adımlı görevleri çalıştırabilir | Sınırlı                          | **Evet — onayınızla özerk**                                                                                                     |
-| Telefondan uzaktan erişim              | Nadiren                          | **WebUI + Telegram / Lark / DingTalk**                                                                                          |
-| Zamanlanmış otomasyon                  | Hayır                            | **Cron — 7/24 gözetimsiz**                                                                                                      |
-| Aynı anda birden fazla AI Agent        | Hayır                            | **Claude Code, Codex, Qwen Code, Hermes Agent, Snow CLI, Cursor Agent ve 13+ daha fazla — otomatik algılanan, birleşik arayüz** |
-| Fiyat                                  | Ücretsiz / Ücretli               | **Ücretsiz ve Açık Kaynak**                                                                                                     |
+|                                        | Geleneksel AI Sohbet İstemcileri | **AionUi (Cowork)**                                                                                                    |
+| :------------------------------------- | :------------------------------- | :--------------------------------------------------------------------------------------------------------------------- |
+| AI dosyalarınızda işlem yapabilir      | Sınırlı veya Yok                 | **Evet — tam dosya erişimi ile yerleşik Agent**                                                                        |
+| AI çok adımlı görevleri çalıştırabilir | Sınırlı                          | **Evet — onayınızla özerk**                                                                                            |
+| Telefondan uzaktan erişim              | Nadiren                          | **WebUI + Telegram / Lark / DingTalk**                                                                                 |
+| Zamanlanmış otomasyon                  | Hayır                            | **Cron — 7/24 gözetimsiz**                                                                                             |
+| Aynı anda birden fazla AI Agent        | Hayır                            | **Claude Code, Codex, Qwen Code, Hermes Agent ve Cursor Agent dahil onlarca harici Agent — tek bir birleşik arayüzde** |
+| Fiyat                                  | Ücretsiz / Ücretli               | **Ücretsiz ve Açık Kaynak**                                                                                            |
 
 <p align="center">
   <img src="../../resources/offica-ai BANNER-function.png" alt="AionUi Cowork Platform" width="800">
@@ -104,13 +104,64 @@ AionUi tam bir AI Agent motoru ile birlikte gelir. CLI Agent'ları ayrı olarak 
   <img src="../../resources/homepage.png" alt="Built-in Agents" width="800">
 </p>
 
+### **Office asistanları — PPT, Word ve Excel**
+
+Office asistanları, istekleri düzenlenebilir ve yeniden kullanılabilir dosyalara dönüştürür. PPT, Word ve Excel iş akışları daha güvenilir sonuçlar için **[OfficeCLI](https://github.com/iOfficeAI/OfficeCLI)** kullanır.
+
+#### **PPT asistanı**
+
+> **Çıktı:** düzenlenebilir Morph PPT (`.pptx`)
+> Tutarlı Morph geçişleri ve akıcı görsel anlatım; [OfficeCLI](https://github.com/iOfficeAI/OfficeCLI) ile desteklenir.
+
+<table>
+  <tr>
+    <td align="center" width="50%">
+      <img src="../../resources/morph-ppt-balanced.gif" alt="PPT Morph geçişleri" width="390">
+    </td>
+    <td align="center" width="50%">
+      <img src="../../resources/readme-demo-assistant-ppt.gif" alt="PPT asistanı demosu" width="390">
+    </td>
+  </tr>
+</table>
+
+#### **Word asistanı**
+
+> **Çıktı:** düzenlenebilir Word (`.docx`)
+> `docx` becerisiyle düzenlenebilir belgeler ve akademik çalışmalar; [OfficeCLI](https://github.com/iOfficeAI/OfficeCLI) ile desteklenir.
+
+<table>
+  <tr>
+    <td align="center" width="50%">
+      <img src="../../resources/readme-demo-generate-academic-paper.gif" alt="Akademik belge oluşturma demosu" width="390">
+    </td>
+    <td align="center" width="50%">
+      <img src="../../resources/readme-demo-assistant-write-paper.gif" alt="Word asistanı demosu" width="390">
+    </td>
+  </tr>
+</table>
+
+#### **Excel asistanı**
+
+> **Çıktı:** kullanılabilir Excel (`.xlsx/.xlsm/.csv`)
+> `xlsx` ile analiz, biçimlendirme ve grafik içeren elektronik tablolar oluşturur ve günceller; [OfficeCLI](https://github.com/iOfficeAI/OfficeCLI) ile desteklenir.
+
+<table>
+  <tr>
+    <td align="center" width="50%">
+      <img src="../../resources/readme-demo-generate-excel.gif" alt="Excel oluşturma demosu" width="390">
+    </td>
+    <td align="center" width="50%">
+      <img src="../../resources/readme-demo-assistant-excel.gif" alt="Excel asistanı demosu" width="390">
+    </td>
+  </tr>
+</table>
 ---
 
 ## Çoklu Agent Modu — Zaten CLI Agent'larınız var mı? Getirin
 
 Zaten Claude Code, Codex, Hermes Agent veya OpenClaw kullanıyorsanız, AionUi bunları otomatik olarak algılar ve hepsiyle Cowork yapmanıza izin verir — yerleşik Agent ile birlikte.
 
-**Desteklenen Agents:** Yerleşik Agent (sıfır kurulum) • Claude Code • Codex • Qwen Code • Goose AI • OpenClaw • Augment Code • CodeBuddy • Kimi CLI • OpenCode • Factory Droid • GitHub Copilot • Qoder CLI • Mistral Vibe • Nanobot • Aion CLI (aionrs, AionUi ile birlikte dağıtılan Rust tabanlı arka uç servisi) • Snow CLI • Hermes Agent • Cursor Agent ve daha fazlası
+**Desteklenen Agents:** Yerleşik Agent (gömülü [aionrs](https://github.com/iOfficeAI/aionrs) Agent motoruyla çalışır) • Claude Code • Codex • Qwen Code • Gemini CLI • Goose • OpenClaw • Augment Code • CodeBuddy • Kimi CLI • OpenCode • Factory Droid • GitHub Copilot • Qoder • Mistral Vibe • Nanobot • Snow • Hermes • Cursor Agent • Pi • MiMo Code • omp • Antigravity ve daha fazlası
 
 <p align="center">
   <img src="../../resources/multi-agent支持openclaw.gif" alt="Multi-Agent Cowork" width="800">
@@ -119,8 +170,8 @@ Zaten Claude Code, Codex, Hermes Agent veya OpenClaw kullanıyorsanız, AionUi b
 - **Otomatik Algılama** — kurulu CLI araçlarını otomatik olarak tanır
 - **Birleşik Arayüz** — tüm AI Agent'larınız için tek bir Cowork platformu
 - **Paralel Oturumlar** — bağımsız bağlam ile birden fazla Agent'ı aynı anda çalıştırın
-- **MCP Birleşik Yönetimi** — MCP (Model Context Protocol) araçlarını bir kez yapılandırın, tüm Agent'lara otomatik olarak senkronize edilir — her Agent'ı ayrı ayrı yapılandırmanıza gerek yok
-- **YOLO Mode** (tüm Agent eylemlerini manuel onay olmadan otomatik onayla) / **Tam Otomatik Mod** — tek tıkla izin istemlerini atlayın; tüm Agent'lar gözetimsiz çalıştırma için tam otomatik modu destekler
+- **MCP Birleşik Yönetimi** — MCP (Model Context Protocol) araçlarını tek yerde yönetin; AionUi her Agent'ın yeteneklerine göre uyumlu aktarımları enjekte eder veya senkronize eder
+- **YOLO / Tam Otomatik Mod** — desteklenen Agent'lar gözetimsiz çalışma sunabilir; kullanılabilir modlar ve izin davranışı seçilen Agent'a bağlıdır
 
 ### Team Mode — Koordineli Çoklu Agent İşbirliği
 
@@ -130,7 +181,7 @@ Birden fazla AI Agent'ı organize bir ekip olarak çalıştırın: bir **Leader*
   <img src="../../resources/AionUi_team.gif" alt="Team Mode overview" width="800">
 </p>
 
-- **Paralel çoklu agent çalıştırma** — Leader görevleri alt görevlere bölerek paralel çalışan Teammate Agent'lara devreder; her Teammate ACP (Agent Communication Protocol, AionUi'nin çoklu agent koordinasyon katmanı), Gemini veya Aionrs aracılığıyla kendi modelini kullanır
+- **Paralel çoklu agent çalıştırma** — Leader görevleri bölüp Teammate'lere paralel olarak devreder; harici Agent'lar ACP (Agent Client Protocol) ile bağlanır ve ekibi AionUi koordine eder
 - **Leader orkestrasyonu** — Leader atar, izler ve sonuçları toplar; desteklenen arka uçlar: Claude Code, Codex, Hermes Agent, Gemini, Snow CLI ve Aion CLI
 - **Ekip izole çalışma alanı** — tüm Agent'lar aynı klasörü paylaşır; her birinin bekleyen onaylar için kenar çubuğu rozeti ile kendi izin onay iletişim kutusu vardır
 
@@ -224,9 +275,11 @@ AionUi önceden tanımlanmış yeteneklere sahip **21 profesyonel asistan** içe
 - **🔧 OpenClaw Kurulumu** — OpenClaw entegrasyonu için kurulum ve yapılandırma asistanı
 - **📖 Hikaye Rol Oynama** — Karakter kartları ve dünya bilgisi ile sürükleyici hikaye rol oynama (SillyTavern uyumlu)
 
-**Özel Beceriler**: `skills/` dizininde beceriler oluşturun, AI yeteneklerini genişletmek için asistanlar için becerileri etkinleştirin/devre dışı bırakın. Beceriler üç kaynaktan gelir: yerleşik (AionUi ile birlikte gelen), özel (kendinizinkiler) ve Extension (Extension SDK aracılığıyla katkıda bulunulan). Yerleşik beceriler `pptx`, `docx`, `pdf`, `xlsx`, `mermaid` ve daha fazlasını içerir.
+- **🧭 AionUi Butler** — AionUi içinde ürün rehberliği, kurulum yardımı ve sorun giderme
 
-> 💡 Her asistan bir markdown dosyası ile tanımlanır. Örnekler için `assistant/` dizinine bakın.
+**Özel Beceriler**: **Ayarlar → Skills** bölümünden beceri içe aktarın veya oluşturun ve gerekli asistanlara bağlayın. Beceriler yerleşik, özel ve Extension olmak üzere üç kaynaktan gelir. Yerleşik beceriler `pptx`, `docx`, `pdf`, `xlsx`, `mermaid` ve daha fazlasını içerir.
+
+> 💡 Yerleşik tanımların resmi kaynağı AionCore içindeki [asistan kataloğudur](https://github.com/iOfficeAI/AionCore/blob/main/crates/aionui-app/assets/builtin-assistants/assistants.json). Kurallar Markdown olarak kalır ve AionUi içinde özelleştirilebilir.
 
 </details>
 

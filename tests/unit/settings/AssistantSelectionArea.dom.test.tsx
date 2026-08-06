@@ -21,6 +21,12 @@ vi.mock('@/renderer/utils/platform', () => ({
   resolveExtensionAssetUrl: vi.fn(() => null),
 }));
 
+vi.mock('@/renderer/hooks/agent/useManagedAgents', () => ({
+  useManagedAgentRuntimeCatalog: () => [
+    { id: 'agent-antigravity', name: 'Antigravity', backend: 'antigravity', command: 'agy' },
+  ],
+}));
+
 describe('AssistantSelectionArea', () => {
   it('returns the real assistant id when a pill is selected', () => {
     const onSelectAssistant = vi.fn();
@@ -100,7 +106,57 @@ describe('AssistantSelectionArea', () => {
     expect(screen.getByText('学术论文助手')).toBeInTheDocument();
     expect(screen.queryByText('Academic Paper')).not.toBeInTheDocument();
   });
+
+  it('finds an overflow assistant by its runtime agent command (ag → agy → Antigravity)', () => {
+    // Sorted last so it lands in the overflow panel rather than a visible pill.
+    const antigravity = overflowAssistant('antigravity', 'Antigravity', 99);
+    const fillers = Array.from({ length: 25 }, (_, index) =>
+      overflowAssistant(`filler-${index}`, `Filler ${index}`, index + 1)
+    );
+
+    render(
+      <ConfigProvider>
+        <AssistantSelectionArea
+          selectedAssistantId={null}
+          assistants={[...fillers, antigravity]}
+          localeKey='en-US'
+          onSelectAssistant={vi.fn()}
+        />
+      </ConfigProvider>
+    );
+
+    fireEvent.click(screen.getByTestId('assistant-more-btn'));
+    expect(screen.getByTestId('assistant-overflow-filler-10')).toBeInTheDocument();
+
+    fireEvent.change(screen.getByPlaceholderText('Search'), { target: { value: 'ag' } });
+
+    expect(screen.getByTestId('assistant-overflow-antigravity')).toBeInTheDocument();
+    expect(screen.queryByTestId('assistant-overflow-filler-10')).not.toBeInTheDocument();
+  });
 });
+
+function overflowAssistant(id: string, name: string, sortOrder: number): Assistant {
+  return {
+    id,
+    source: 'builtin',
+    name,
+    name_i18n: {},
+    description_i18n: {},
+    enabled: true,
+    sort_order: sortOrder,
+    agent_id: `agent-${id}`,
+    enabled_skills: [],
+    custom_skill_names: [],
+    disabled_builtin_skills: [],
+    context_i18n: {},
+    prompts: [],
+    prompts_i18n: {},
+    models: [],
+    agent_status: 'online',
+    team_selectable: true,
+    deletable: false,
+  } as Assistant;
+}
 
 function assistants(): Assistant[] {
   return [

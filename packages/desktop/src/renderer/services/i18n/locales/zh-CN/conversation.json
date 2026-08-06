@@ -1,7 +1,4 @@
 {
-  "officePreview": {
-    "fileWatchUnavailable": "文件实时监听不可用——系统的文件监听句柄（inotify）可能已耗尽，新 Office 文件的自动预览已停用。请提高 fs.inotify.max_user_instances，或关闭占用大量文件监听的程序。"
-  },
   "welcome": {
     "title": "Hi，今天有什么安排？",
     "placeholder": "发消息、上传文件、打开文件夹、创建定时任务，或输入 / 唤起命令...",
@@ -77,7 +74,9 @@
     "removeProjectConfirm": "确定要移除项目「{{name}}」吗？项目下的 {{count}} 个对话也会被一起移除。",
     "newConversationInProject": "在此项目中新建对话",
     "deleting": "删除中...",
-    "reorderPinned": "拖动以调整置顶会话顺序"
+    "reorderPinned": "拖动以调整置顶会话顺序",
+    "forkedFrom": "分叉自「{{name}}」",
+    "forkedConversation": "分叉会话"
   },
   "historySearch": {
     "tooltip": "检索会话",
@@ -419,7 +418,8 @@
     "openWith": {
       "vscode": "VS Code",
       "terminal": "终端",
-      "explorer": "文件资源管理器"
+      "explorer": "文件资源管理器",
+      "browser": "浏览器"
     }
   },
   "minimap": {
@@ -445,6 +445,7 @@
     "switchAgentFailed": "切换 Agent 失败",
     "speech": {
       "recordTooltip": "开始语音输入",
+      "recordTooltipWithShortcut": "语音输入 cmd+M",
       "pickFileTooltip": "选择音频文件",
       "stopTooltip": "停止录音",
       "processing": "正在转写音频...",
@@ -566,7 +567,8 @@
     "sendboxHint": "正在准备运行环境。首次启动可能会稍慢一些。"
   },
   "sendbox": {
-    "hint": "输入 / 唤起命令，@ 引用文件，↑/↓ 切换历史消息"
+    "hint": "输入 / 唤起命令，@ 引用文件，↑/↓ 切换历史消息",
+    "mediaPathFallback": "该 Agent 不原生支持此文件类型，将以文件路径形式发送。"
   },
   "agentTip": {
     "codes": {
@@ -618,7 +620,6 @@
       "files": "文件",
       "changes": "变更"
     },
-    "changesPlaceholder": "源代码管理在独立通道中,敬请期待。",
     "addedToChat": "已将 {{name}} 添加到聊天",
     "imported": "已导入 {{count}} 个文件",
     "importPartialFailed": "已复制 {{copied}} 个，{{failed}} 个失败（重名或不支持）",
@@ -628,6 +629,80 @@
       "searching": "搜索中…",
       "empty": "没有匹配的文件",
       "limitReached": "仅显示前 {{count}} 项 — 请缩小范围"
+    },
+    "scm": {
+      "notARepository": "该文件夹未纳入版本控制",
+      "noChanges": "没有变更",
+      "loading": "正在加载变更…",
+      "loadFailed": "无法加载变更",
+      "refresh": "刷新",
+      "groups": {
+        "staged": "已暂存的变更",
+        "unstaged": "变更",
+        "changes": "变更",
+        "blocked": "需先解决"
+      },
+      "state": {
+        "created": "新增",
+        "modified": "已修改",
+        "deleted": "已删除",
+        "renamed": "已重命名",
+        "conflicted": "冲突",
+        "unknown": "未识别的状态"
+      },
+      "badge": {
+        "created": "A",
+        "modified": "M",
+        "deleted": "D",
+        "renamed": "R",
+        "conflicted": "!",
+        "unknown": "?"
+      },
+      "conflictedHint": "请先在 AionUi 之外解决此冲突",
+      "opaqueHint": "该状态来自更新版本的后端 — 仅供查看",
+      "degraded": "由于无法更新 git 索引，刷新正以较慢的模式运行",
+      "truncated": "变更过多，仅显示前一部分",
+      "renamedFrom": "{{from}} → {{to}}",
+      "diff": {
+        "loading": "正在加载差异…",
+        "failed": "无法加载差异",
+        "binary": "二进制文件 — 无文本差异",
+        "truncated": "差异已截断（文件过大）",
+        "empty": "没有文本变更",
+        "close": "关闭差异"
+      },
+      "actions": {
+        "stage": "暂存更改",
+        "unstage": "取消暂存",
+        "discard": "丢弃更改",
+        "stageAll": "全部暂存",
+        "unstageAll": "全部取消暂存",
+        "blockedHint": "请先在 AionUi 之外解决冲突，然后再暂存或丢弃",
+        "confirmDiscardTitle": "要丢弃更改吗？",
+        "confirmDiscardTracked": "{{count}} 个文件的修改将丢失，且无法撤销。",
+        "confirmDiscardUntracked": "{{count}} 个新文件将被移到回收站。",
+        "confirmDiscardMixed": "{{tracked}} 个文件的修改将丢失且无法撤销；{{untracked}} 个新文件将被移到回收站。",
+        "discardConfirmButton": "丢弃",
+        "okStage": "已暂存 {{count}} 个文件",
+        "okUnstage": "已取消暂存 {{count}} 个文件",
+        "okDiscard": "已丢弃 {{count}} 个文件",
+        "partial": "已完成 {{succeeded}}/{{total}} —— {{failed}} 个未能完成",
+        "partialDetail": "未完成：{{files}}",
+        "rejectedBlocked": "未改动任何内容 —— 请先解决冲突",
+        "rejectedUnsupported": "该仓库不支持此操作",
+        "rejectedFailed": "操作未能完成",
+        "retry": "重试",
+        "notSent": "请求没有发出到后端，未改动任何内容。可以重试。",
+        "outcomeUnknown": "连接在收到答复前已重置——此操作可能已完成，也可能未完成。请刷新并核对文件列表，确认后再决定是否重试。",
+        "allFailed": "{{count}} 个文件都未能处理"
+      }
     }
+  },
+  "terminal": {
+    "running": "运行中",
+    "stopped": "已停止",
+    "exited": "退出码 {{code}}",
+    "stop": "停止",
+    "truncated": "(较早输出已截断)"
   }
 }

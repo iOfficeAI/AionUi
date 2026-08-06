@@ -73,41 +73,45 @@ if (isWebUI || isResetPassword) {
 }
 
 // ---------------------------------------------------------------------------
-// Chrome DevTools Protocol (CDP) — enable remote debugging
-// so chrome-devtools-mcp and other CDP clients can connect to this Electron app.
+// Agent browser control (CDP) — user-facing on/off switch and its persisted config.
 //
-// Default port: 9230 (avoids conflict with common CDP ports).
-// Override via AIONUI_CDP_PORT env variable. Set to "0" to disable.
+// This block no longer allocates a port. The single-target bridge (cdpBridge.ts) binds an
+// OS-assigned ephemeral port via listen(0) and backfills it here through setActiveCdpPort,
+// so there is exactly one port concept in the codebase: the one you can actually connect to.
+//
+// The 9230-9250 reservation and the ~/.aionui-cdp-registry.json instance registry were
+// removed with Chromium's application-wide remote-debugging-port switch. Once that switch
+// was gone nothing listened on that range, so the registry tracked a service that did not
+// exist, multi-instance avoidance was avoiding phantoms, and — worst of all — the settings
+// page displayed the reserved number as "the current CDP port" and built copy-pasteable MCP
+// config from it, handing users an address that could never connect.
+//
+// Do not move the bridge onto a fixed port to bring that bookkeeping back: the ephemeral
+// port is the only real barrier against same-user local processes, because the token leaks
+// through the unauthenticated discovery endpoint (see the threat model note in cdpBridge.ts).
 //
 // Configuration file: userData/cdp.config.json
-// - enabled: boolean - whether CDP is enabled (default: true in dev mode, false in production)
-// - port: number - preferred port (will find available port if occupied)
+// - enabled: boolean - whether agent browser control is enabled (default: on)
+// - port: number - legacy preferred-port field, retained for config compatibility
 //
-// Multi-instance support: a file-based registry tracks all active instances
-// so each one gets a unique port and MCP tools can discover them all.
-// Registry file: ~/.aionui-cdp-registry.json
+// Override via AIONUI_CDP_PORT env variable. Set to "0" or "false" to disable.
 // ---------------------------------------------------------------------------
 
-export const DEFAULT_CDP_PORT = 9230;
-export const CDP_PORT_RANGE_START = 9230;
-export const CDP_PORT_RANGE_END = 9250;
-const CDP_REGISTRY_FILE = path.join(os.homedir(), '.aionui-cdp-registry.json');
 const CDP_CONFIG_FILE = 'cdp.config.json';
 
 /** CDP configuration stored in userData directory */
 export interface CdpConfig {
   /** Whether CDP is enabled (default: true in dev mode, false in production) */
   enabled?: boolean;
-  /** Preferred port number (default: 9230) */
+  /**
+   * 历史字段：以前用来挑保留端口。通道改用 listen(0) 之后不再读它，
+   * 但保留在类型里，这样老配置文件不会因为多一个未知键而出问题。
+   *
+   * Legacy field that used to pick a reserved port. Unread since the bridge moved to
+   * listen(0), but kept in the type so existing config files do not trip over an
+   * unrecognised key.
+   */
   port?: number;
-}
-
-/** CDP registry entry for multi-instance tracking */
-interface CdpRegistryEntry {
-  pid: number;
-  port: number;
-  cwd: string;
-  startTime: number;
 }
 
 /** CDP status information exposed to renderer */
@@ -120,102 +124,31 @@ export interface CdpStatus {
   startupEnabled: boolean;
   /** Whether CDP is enabled in the persisted config file (may differ from runtime) */
   configEnabled: boolean;
-  /** All active CDP instances from registry */
-  instances: CdpRegistryEntry[];
   /** Whether the app is running in development mode */
   isDevMode: boolean;
 }
 
-/** Read the CDP registry file, returning an empty array on any error. */
-function readRegistry(): CdpRegistryEntry[] {
+/**
+ * 顺手删掉遗留的实例注册表文件。
+ *
+ * 这个文件（~/.aionui-cdp-registry.json）以前记录「每个实例占了哪个 CDP 端口」。相关逻辑
+ * 已随应用级 remote-debugging-port 一起删除，但升级上来的机器上文件还在，里面是一堆早已
+ * 无效的 pid/端口。留着只会让人以为还有这套机制，所以清掉。best-effort，失败无所谓。
+ *
+ * Remove the leftover instance-registry file. ~/.aionui-cdp-registry.json used to record
+ * which CDP port each instance had taken; that logic went away with the application-wide
+ * remote-debugging-port switch, but upgraded machines still have the file sitting there full
+ * of long-dead pids and ports. Leaving it implies the mechanism still exists, so clean it up.
+ * Best-effort: failure is harmless.
+ */
+function removeLegacyCdpRegistryFile(): void {
   try {
-    if (!fs.existsSync(CDP_REGISTRY_FILE)) return [];
-    const raw = fs.readFileSync(CDP_REGISTRY_FILE, 'utf-8');
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-}
-
-/** Write the CDP registry file atomically. */
-function writeRegistry(entries: CdpRegistryEntry[]): void {
-  try {
-    fs.writeFileSync(CDP_REGISTRY_FILE, JSON.stringify(entries, null, 2), 'utf-8');
-  } catch {
-    // Non-critical — log but don't crash
-    console.warn('[CDP] Failed to write CDP registry file');
-  }
-}
-
-/** Check if a process is still alive by sending signal 0. */
-function isProcessAlive(pid: number): boolean {
-  try {
-    process.kill(pid, 0);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-/** Remove dead-process entries from the registry and return live ones. */
-function pruneRegistry(): CdpRegistryEntry[] {
-  const entries = readRegistry();
-  const alive = entries.filter((e) => isProcessAlive(e.pid));
-  if (alive.length !== entries.length) {
-    writeRegistry(alive);
-  }
-  return alive;
-}
-
-/** Find the first available port not occupied by a live registry entry. */
-function findAvailablePort(preferredPort: number): number {
-  const liveEntries = pruneRegistry();
-  const usedPorts = new Set(liveEntries.map((e) => e.port));
-
-  if (!usedPorts.has(preferredPort)) {
-    return preferredPort;
-  }
-
-  console.log(
-    `[CDP] Port ${preferredPort} is occupied by another AionUi instance, scanning range ${CDP_PORT_RANGE_START}-${CDP_PORT_RANGE_END}`
-  );
-
-  for (let p = CDP_PORT_RANGE_START; p <= CDP_PORT_RANGE_END; p++) {
-    if (!usedPorts.has(p)) {
-      console.log(`[CDP] Found available port from registry: ${p}`);
-      return p;
+    const legacyRegistry = path.join(os.homedir(), '.aionui-cdp-registry.json');
+    if (fs.existsSync(legacyRegistry)) {
+      fs.unlinkSync(legacyRegistry);
     }
-  }
-
-  console.warn(
-    `[CDP] All ports in range ${CDP_PORT_RANGE_START}-${CDP_PORT_RANGE_END} are used by active AionUi instances, trying ${preferredPort}`
-  );
-  return preferredPort;
-}
-
-/** Register the current process in the CDP registry. */
-function registerInstance(port: number): void {
-  const entries = pruneRegistry();
-  // Remove any stale entry for our own PID (e.g. from a previous crash)
-  const filtered = entries.filter((e) => e.pid !== process.pid);
-  filtered.push({
-    pid: process.pid,
-    port,
-    cwd: process.cwd(),
-    startTime: Date.now(),
-  });
-  writeRegistry(filtered);
-}
-
-/** Remove the current process from the CDP registry. */
-export function unregisterInstance(): void {
-  try {
-    const entries = readRegistry();
-    const filtered = entries.filter((e) => e.pid !== process.pid);
-    writeRegistry(filtered);
   } catch {
-    // Best-effort cleanup
+    // Nothing depends on this succeeding.
   }
 }
 
@@ -258,31 +191,31 @@ export function saveCdpConfig(config: CdpConfig): void {
 }
 
 /**
- * Resolve CDP port from environment variable.
- * Returns null if explicitly disabled via env.
- */
-function resolveCdpPortFromEnv(): number | null | undefined {
-  const envVal = process.env.AIONUI_CDP_PORT;
-  if (envVal === '0' || envVal === 'false') return null;
-  if (envVal) {
-    const parsed = Number(envVal);
-    return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
-  }
-  return undefined;
-}
-
-/**
  * Determine if CDP should be enabled at startup.
- * Priority: env variable > config file > default (dev mode: true, production: false)
+ * Priority: env variable > config file > default (enabled).
+ *
+ * 默认开启（含正式版）：应用内浏览器要让 Agent 操作，就必须有这条通道，否则
+ * 「装好即可用」不成立。通道只绑 127.0.0.1，不对外暴露；用户仍可在设置里关掉，
+ * 关掉后 Agent 就无法操作浏览器（此时 MCP 启动器会拒绝启动，不会偷偷开一个
+ * 用户看不见的 Chrome）。
+ *
+ * AIONUI_CDP_PORT 现在只当开关用（"0"/"false" 关闭，其它非空值开启）。它的数值不再
+ * 决定端口 —— 通道走 listen(0)，端口由系统分配。名字保留是为了不破坏既有脚本和 E2E 夹具。
+ *
+ * Enabled by default, production included: the in-app browser cannot be driven by the agent
+ * without this bridge, so "works out of the box" would otherwise fail. The bridge binds to
+ * 127.0.0.1 only and is never externally reachable. Users can still turn it off in settings,
+ * after which the agent simply cannot drive the browser (the MCP launcher refuses to start
+ * rather than quietly opening a Chrome the user cannot see).
+ *
+ * AIONUI_CDP_PORT now acts purely as a switch ("0"/"false" disables, any other non-empty
+ * value enables). Its numeric value no longer selects a port — the bridge uses listen(0) and
+ * the OS assigns one. The name is kept so existing scripts and E2E fixtures keep working.
  */
 function shouldEnableCdp(config: CdpConfig): boolean {
   const envVal = process.env.AIONUI_CDP_PORT;
   if (envVal === '0' || envVal === 'false') return false;
   if (envVal) return true;
-
-  if (app.isPackaged) {
-    return false;
-  }
 
   if (config.enabled !== undefined) {
     return config.enabled;
@@ -292,26 +225,33 @@ function shouldEnableCdp(config: CdpConfig): boolean {
 }
 
 /**
- * Determine preferred CDP port.
- * Priority: env variable > config file > default (9230)
+ * 通道的实际监听端口，由 cdpBridge 启动后回填；未启用/未起来时为 null。
+ *
+ * 刻意不再在这里预留 9230-9250 段的端口号。移除 remote-debugging-port 之后那个号段
+ * 没有任何进程监听，findAvailablePort/registerInstance 追踪的是一个不存在的服务：
+ * 多实例避让失去意义，而设置页把它显示成「当前 CDP 端口」、还据此生成可复制的 MCP 配置，
+ * 等于给用户一个连不上的地址。通道走 listen(0)（这也是本机唯一真实屏障，见 cdpBridge.ts
+ * 的威胁模型说明），所以真实端口只可能在桥起来之后才知道 —— 由它回填这里，全局只保留
+ * 一个端口概念。
+ *
+ * The bridge's real listening port, backfilled by cdpBridge once it starts; null while agent
+ * browser control is off or the bridge has not come up.
+ *
+ * Deliberately no longer reserves a port from the 9230-9250 range here. With
+ * remote-debugging-port gone nothing listens on that range, so findAvailablePort /
+ * registerInstance were tracking a service that does not exist: multi-instance avoidance
+ * became meaningless, while the settings page displayed it as "the current CDP port" and
+ * generated copy-pasteable MCP config from it — handing the user an address that cannot be
+ * reached. The bridge uses listen(0) (also the only real local barrier — see the threat model
+ * note in cdpBridge.ts), so the real port is only knowable after it starts. It backfills this
+ * value, leaving exactly one port concept in the codebase.
  */
-function getPreferredPort(config: CdpConfig): number {
-  // Environment variable takes highest priority
-  const envPort = resolveCdpPortFromEnv();
-  if (envPort !== null && envPort !== undefined) {
-    return envPort;
-  }
-
-  // Config file setting
-  if (config.port && Number.isFinite(config.port) && config.port > 0) {
-    return config.port;
-  }
-
-  return DEFAULT_CDP_PORT;
-}
-
-/** The active CDP port, or null if remote debugging is disabled. */
 export let cdpPort: number | null = null;
+
+/** Called by cdpBridge once it is listening, so status/UI report the reachable port. */
+export function setActiveCdpPort(port: number | null): void {
+  cdpPort = port;
+}
 
 /** Whether CDP was enabled at startup (requires restart to change). */
 export let cdpStartupEnabled: boolean = false;
@@ -321,64 +261,45 @@ const cdpConfig = loadCdpConfig();
 cdpStartupEnabled = shouldEnableCdp(cdpConfig);
 
 if (cdpStartupEnabled) {
-  const preferredPort = getPreferredPort(cdpConfig);
-  const port = findAvailablePort(preferredPort);
-  app.commandLine.appendSwitch('remote-debugging-port', String(port));
-  cdpPort = port;
-  registerInstance(port);
-
-  // Log CDP initialization
-  console.log('[CDP] Chrome DevTools Protocol enabled');
-  console.log(`[CDP] Remote debugging port: ${port}`);
-  console.log(`[CDP] DevTools URL: http://127.0.0.1:${port}`);
-  console.log('[CDP] MCP chrome-devtools connection: --browser-url=http://127.0.0.1:' + port);
-
-  // Clean up registry on exit - handle multiple exit signals
-  const cleanup = () => unregisterInstance();
-  process.on('exit', cleanup);
-  process.on('SIGINT', cleanup);
-  process.on('SIGTERM', cleanup);
-  // Handle Windows specific signals
-  if (process.platform === 'win32') {
-    process.on('SIGBREAK', cleanup);
-  }
+  /**
+   * 刻意不再调用 appendSwitch('remote-debugging-port', ...)。
+   *
+   * Chromium 那个开关是应用级的，没有 per-target ACL：一开就把每个 WebContents 都
+   * 暴露出去，包括挂着 preload 桥的主窗口，而且不需要任何认证。本机任意进程连上去就能
+   * 驱动整个应用。
+   *
+   * 改由 cdpBridge 只暴露侧边浏览器那一个 webContents。端口与 env 的写入都移到桥启动处
+   * （见 index.ts），这里只负责判断「用户是否开启了这个能力」。
+   *
+   * Deliberately no longer calls appendSwitch('remote-debugging-port', ...). That switch is
+   * application-wide with no per-target ACL: it exposes every WebContents — including the
+   * main window with its preload bridge — with no authentication, so any local process can
+   * drive the whole app. cdpBridge exposes only the in-app browser webview instead. Port
+   * allocation and env publication now live where the bridge starts (see index.ts); this
+   * block only decides whether the user enabled the capability at all.
+   */
+  console.log('[CDP] Agent browser control enabled (single-target bridge)');
 } else {
-  console.log('[CDP] Chrome DevTools Protocol disabled');
+  console.log('[CDP] Agent browser control disabled');
 }
 
-/**
- * Verify CDP remote debugging is actually accessible after app starts.
- * Retries several times with delay to account for startup time.
- */
-export async function verifyCdpReady(port: number, maxRetries = 5, retryDelay = 800): Promise<boolean> {
-  for (let i = 0; i < maxRetries; i++) {
-    const ok = await new Promise<boolean>((resolve) => {
-      const req = http.get(`http://127.0.0.1:${port}/json/version`, { timeout: 2000 }, (res) => {
-        let data = '';
-        res.on('data', (chunk) => (data += chunk));
-        res.on('end', () => resolve(res.statusCode === 200 && data.length > 0));
-      });
-      req.on('error', () => resolve(false));
-      req.on('timeout', () => {
-        req.destroy();
-        resolve(false);
-      });
-    });
-    if (ok) return true;
-    if (i < maxRetries - 1) {
-      await new Promise((r) => setTimeout(r, retryDelay));
-    }
-  }
-  return false;
-}
+// 无论开关状态如何都清一次：关掉这个能力的用户同样不该留着那个失效文件。
+// Runs regardless of the switch: users who turned the capability off should not be left
+// with the stale file either.
+removeLegacyCdpRegistryFile();
 
 /**
- * Get all live CDP instances from the registry.
- * Prunes dead entries automatically.
+ * verifyCdpReady 已随 remote-debugging-port 一并移除。
+ *
+ * 它探测的是 Chromium 那个应用级端口的 /json/version；现在没有进程在那个端口上监听，
+ * 留着只会让启动日志报一个必然失败的警告。单目标通道的就绪与否由 startCdpBridge()
+ * 的返回值直接体现，不需要再探测。
+ *
+ * verifyCdpReady was removed together with remote-debugging-port. It probed
+ * /json/version on Chromium's application-wide port, where nothing listens any more, so
+ * keeping it would only emit a warning that can never succeed. Bridge readiness is now
+ * evident from startCdpBridge()'s return value, with no probing required.
  */
-export function getActiveCdpInstances(): CdpRegistryEntry[] {
-  return pruneRegistry();
-}
 
 /**
  * Get current CDP status for display in UI.
@@ -386,11 +307,18 @@ export function getActiveCdpInstances(): CdpRegistryEntry[] {
 export function getCdpStatus(): CdpStatus {
   const config = loadCdpConfig();
   return {
+    /**
+     * enabled 表示「通道真的起来了、连得上」，所以看 cdpPort 而不是配置：
+     * 配置开着但桥启动失败时，UI 不该说它是启用的。
+     *
+     * `enabled` means the bridge is actually up and reachable, so it reads cdpPort rather
+     * than the config: with the setting on but bridge startup failed, the UI must not claim
+     * the capability is active.
+     */
     enabled: cdpPort !== null,
     port: cdpPort,
     startupEnabled: cdpStartupEnabled,
     configEnabled: config.enabled ?? cdpStartupEnabled,
-    instances: getActiveCdpInstances(),
     isDevMode: !app.isPackaged,
   };
 }

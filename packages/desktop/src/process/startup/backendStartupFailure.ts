@@ -9,6 +9,8 @@ import type { BackendStartupFailureInfo } from '@/common/types/platform/electron
 type ErrorWithDetails = Error & {
   details?: {
     stage?: unknown;
+    serverListeningObserved?: unknown;
+    healthTimeoutKeptAlive?: unknown;
     isPackaged?: unknown;
     causeMessage?: unknown;
     stderrTail?: unknown;
@@ -239,6 +241,44 @@ function classifyStartupDirectoryFailure(
   return undefined;
 }
 
+// A health_timeout whose process was observed listening AND kept alive (pending)
+// is a recoverable "slow startup", not a broken installation. The kept-alive
+// gate excludes health_timeouts on paths that kill the process (e.g. database
+// recovery, `allowPendingOnHealthTimeout: false`), which must fall through to
+// their existing classification instead of being shown as "still starting".
+function classifyPendingSlowStartup(details: ErrorWithDetails['details']): BackendStartupFailureInfo | undefined {
+  if (!details) return undefined;
+  if (details.stage !== 'health_timeout') return undefined;
+  if (details.serverListeningObserved !== true) return undefined;
+  if (details.healthTimeoutKeptAlive !== true) return undefined;
+
+  return { reason: 'backend_startup_pending_slow' };
+}
+
+// A process that was observed listening but then exited before becoming ready is
+// an honest startup failure — never a missing-resource / reinstall case. Both
+// exit paths share stage `early_exit` (exit within the health window and exit
+// after the pending health timeout), so this single gate covers both.
+function classifyBackendStartupExited(details: ErrorWithDetails['details']): BackendStartupFailureInfo | undefined {
+  if (!details) return undefined;
+  if (details.stage !== 'early_exit') return undefined;
+  if (details.serverListeningObserved !== true) return undefined;
+
+  return { reason: 'backend_startup_exited' };
+}
+
+// A spawned process that never reported its listening port within the
+// port-report window (stage `listen_timeout`) timed out while starting — it is
+// NOT a broken installation. Unlike pending-slow/exited this gate must not
+// require `serverListeningObserved === true`: on this stage it is always false
+// by definition (Sentry 136646113).
+function classifyPortReportTimeout(details: ErrorWithDetails['details']): BackendStartupFailureInfo | undefined {
+  if (!details) return undefined;
+  if (details.stage !== 'listen_timeout') return undefined;
+
+  return { reason: 'backend_startup_port_report_timeout' };
+}
+
 export function classifyBackendStartupFailure(error: unknown): BackendStartupFailureInfo {
   const details = getBackendStartupDetails(error);
   const packageArchitectureMismatch = classifyPackageArchitectureMismatch(details);
@@ -296,6 +336,15 @@ export function classifyBackendStartupFailure(error: unknown): BackendStartupFai
       backendBoundaryStage,
     };
   }
+
+  const pendingSlowStartup = classifyPendingSlowStartup(details);
+  if (pendingSlowStartup) return pendingSlowStartup;
+
+  const backendStartupExited = classifyBackendStartupExited(details);
+  if (backendStartupExited) return backendStartupExited;
+
+  const portReportTimeout = classifyPortReportTimeout(details);
+  if (portReportTimeout) return portReportTimeout;
 
   return {
     reason: 'backend_startup_failed',

@@ -85,7 +85,9 @@ describe('useAutoTitle', () => {
     expect(loadAllMessages).not.toHaveBeenCalled();
     expect(updateConversation).toHaveBeenCalledWith({
       id: 'conversation-1',
-      updates: { name: 'Fallback title' },
+      // Derived default titles are tagged 'auto' so the backend keeps them
+      // overwritable by agent-generated session titles (never 'user'-locked).
+      updates: { name: 'Fallback title', name_source: 'auto' },
     });
     expect(emit).toHaveBeenCalledWith('chat.history.refresh');
   });

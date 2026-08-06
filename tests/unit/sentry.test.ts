@@ -330,6 +330,51 @@ describe('initSentry beforeSend', () => {
     expect(sentryInitOptions?.beforeSend?.(event)).toBe(event);
   });
 
+  it('drops a native GPU-process illegal-instruction minidump identified only by crashpad process type (ELECTRON-3WS)', () => {
+    initSentry();
+
+    const event = {
+      exception: {
+        values: [
+          {
+            value: 'Fatal Error: EXCEPTION_ILLEGAL_INSTRUCTION / 0x7ff76a709d81',
+            stacktrace: { frames: [{ function: 'mojo::Message::~Message' }] },
+          },
+        ],
+      },
+      contexts: {
+        'AionUi.exe': { process_type: 'gpu-process', ptype: 'gpu-process' },
+      },
+    };
+
+    expect(sentryInitOptions?.beforeSend?.(event)).toBeNull();
+  });
+
+  it('drops a GPU-process crash identified only by the event.process tag', () => {
+    initSentry();
+
+    const event = {
+      tags: { 'event.process': 'gpu' },
+      exception: { values: [{ value: 'EXCEPTION_ACCESS_VIOLATION_0x0' }] },
+    };
+
+    expect(sentryInitOptions?.beforeSend?.(event)).toBeNull();
+  });
+
+  it('keeps a renderer-process crash (only GPU-process crashes are dropped)', () => {
+    initSentry();
+
+    const event = {
+      exception: { values: [{ value: 'EXCEPTION_ACCESS_VIOLATION_0x0' }] },
+      contexts: {
+        'AionUi.exe': { process_type: 'renderer', ptype: 'renderer' },
+      },
+      tags: { 'event.process': 'renderer' },
+    };
+
+    expect(sentryInitOptions?.beforeSend?.(event)).toBe(event);
+  });
+
   it('drops backend-port secondary errors after backend startup already failed', () => {
     initSentry();
     (globalThis as { __backendStartupFailed?: boolean }).__backendStartupFailed = true;

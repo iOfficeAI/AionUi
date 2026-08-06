@@ -313,8 +313,6 @@
   "cacheClearFailed": "Falha ao limpar o cache",
   "language": "Idioma",
   "saveUploadToWorkspace": "Salvar Uploads na Pasta do Projeto",
-  "autoPreviewOfficeFiles": "Auto Visualizar Novos Arquivos Office",
-  "autoPreviewOfficeFilesDesc": "Abre automaticamente os novos arquivos Word, Excel e PowerPoint no projeto atual. Arquivos temporários de trava do Office são ignorados.",
   "startOnBoot": "Iniciar com o Sistema",
   "startOnBootDesc": "Inicia o AionUi automaticamente ao entrar no macOS ou Windows.",
   "startOnBootUnsupported": "Disponível apenas em aplicativos empacotados para macOS e Windows.",
@@ -323,6 +321,8 @@
   "hardwareAcceleration": "Aceleração de Hardware",
   "hardwareAccelerationDesc": "Usa a GPU para renderizar a UI. Desative se o app travar ao iniciar ou se a tela piscar.",
   "hardwareAccelerationAutoDisabled": "Desativado automaticamente após repetidas falhas na GPU.",
+  "hardwareAccelerationAutoDisabledTitle": "Aceleração de hardware desativada",
+  "hardwareAccelerationAutoDisabledNotice": "Foram detectadas falhas repetidas de renderização gráfica, então a aceleração de hardware foi desativada automaticamente para manter o aplicativo estável. Você pode reativá-la em Configurações → Sistema.",
   "hardwareAccelerationRestartConfirm": "Reiniciar o AionUi para aplicar a nova configuração de aceleração de hardware?",
   "hardwareAccelerationUpdateFailed": "Falha ao atualizar a configuração de aceleração de hardware",
   "browserNotification": {
@@ -341,6 +341,8 @@
   "groupAbout": "Outros",
   "agentIdleTimeout": "Tempo Limite de Ociosidade do Agente (min)",
   "agentIdleTimeoutDesc": "Encerra processos de agente ociosos após este tempo para liberar memória",
+  "previewTextSizeLimit": "Limite de tamanho da pré-visualização (MB)",
+  "previewTextSizeLimitDesc": "Arquivos de texto maiores que isso abrem com um aviso em vez do conteúdo. Aplica-se somente às novas abas.",
   "gemini": "Gemini CLI",
   "model": "Modelo",
   "system": "Sistema",
@@ -1298,5 +1300,19 @@
     "solveWithButler": "Perguntar ao Mordomo"
   },
   "providerIdConflict": "O Provider ID já existe. Tente novamente.",
-  "autoInjectedSkillsHint": "Carregadas automaticamente em cada conversa — não é preciso ativá-las; o agente decide quando usá-las."
+  "autoInjectedSkillsHint": "Carregadas automaticamente em cada conversa — não é preciso ativá-las; o agente decide quando usá-las.",
+  "browserData": {
+    "title": "Navegador interno",
+    "agentControlLabel": "Permitir que o agente use o navegador integrado",
+    "agentControlDesc": "Quando ativado, o agente pode abrir páginas, clicar e preencher formulários para você no navegador integrado — por exemplo, para pesquisar algo ou concluir um processo em um site. Ele só controla essa única visualização do navegador: não alcança a interface do AionUi e nunca abre uma janela do Chrome separada. Se desativado, o navegador continua disponível para você; apenas o agente perde o acesso.",
+    "agentControlSaved": "Configuração salva",
+    "agentControlFailed": "Falha ao salvar a configuração",
+    "agentControlRestartRequired": "Esta configuração passa a valer após reiniciar o aplicativo.",
+    "clearLabel": "Limpar dados de navegação",
+    "clearDesc": "Sai de todos os sites em que o navegador está conectado e limpa o cache. As abas abertas são afetadas após recarregar.",
+    "clearConfirmTitle": "Limpar dados de navegação?",
+    "clearConfirmContent": "Você sairá de todos os sites no navegador interno. Isso não pode ser desfeito.",
+    "clearSuccess": "Dados de navegação limpos",
+    "clearFailed": "Falha ao limpar dados de navegação"
+  }
 }

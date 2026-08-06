@@ -17,6 +17,7 @@ import {
 import type { TeamSendBoxRuntime } from './teamSendRuntime';
 import type { TeamRunReconcileResult, TeamRunViewState } from '../hooks/useTeamRunView';
 import TeamChatEmptyState from './TeamChatEmptyState';
+import { useTeamTabs } from '@/renderer/pages/team/hooks/TeamTabsContext';
 import { usePresetAssistantInfo } from '@/renderer/hooks/agent/usePresetAssistantInfo';
 import { resolveConversationBackend } from '@/renderer/pages/conversation/utils/conversationAssistantIdentity';
 
@@ -139,6 +140,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({
   onTeamSlotPaused,
 }) => {
   const { t } = useTranslation();
+  const { activeSlotId, switchTab } = useTeamTabs();
   const { info: presetAssistantInfo } = usePresetAssistantInfo(conversation);
   const capabilitySnapshot = conversation.extra as TeamConversationCapabilitySnapshot | undefined;
   // Single source of truth for the team greeting. Each *Chat simply forwards
@@ -254,6 +256,10 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({
           // a directed per-member attach (not warmupSession/ensure_session).
           onRetryStart: isRuntimeFailed ? buildTeamRetryStartHandler({ team_id, slot_id }) : undefined,
           onInterruptSend: interruptAndSend,
+          // Focus coordination: the active tab owns its column's sendbox focus,
+          // and focusing that sendbox syncs the active tab back.
+          isActive: slot_id === activeSlotId,
+          onFocus: () => switchTab(slot_id),
         }
       : undefined;
   const content = (() => {

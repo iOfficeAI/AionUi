@@ -23,7 +23,17 @@ import { isElectronDesktop } from '@/renderer/utils/platform';
 import type { AcpModelInfo } from '../types';
 import { getAvailableModels } from '../utils/modelUtils';
 import { Button, Checkbox, Dropdown, Menu, Message, Tooltip } from '@arco-design/web-react';
-import { ArrowUp, Brain, FolderUpload, Lightning, Plus, Shield, UploadOne } from '@icon-park/react';
+import {
+  ArrowUp,
+  Brain,
+  FolderOpen,
+  FolderUpload,
+  Lightning,
+  Paperclip,
+  Plus,
+  Shield,
+  UploadOne,
+} from '@icon-park/react';
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import styles from '../index.module.css';
@@ -306,15 +316,36 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
       });
     }
 
-    // Attach files (action row; no submenu).
-    entries.push({
-      key: 'attach',
-      icon: <FolderUpload theme='outline' size='16' />,
-      label: t('common.fileAttach.addFiles', { defaultValue: 'Add files' }),
-      variant: 'muted',
-      dividerBefore: true,
-      onClick: () => (isWebUI ? fileInputRef.current?.click() : openHostFilePicker()),
-    });
+    // Match the conversation send box: WebUI offers both the backend-machine
+    // picker and an upload from the phone/current browser device.
+    if (isWebUI) {
+      entries.push(
+        {
+          key: 'attach-host-files',
+          icon: <Paperclip theme='outline' size='16' />,
+          label: t('common.fileAttach.addFiles', { defaultValue: 'Add files' }),
+          variant: 'muted',
+          dividerBefore: true,
+          onClick: openHostFilePicker,
+        },
+        {
+          key: 'attach-my-device',
+          icon: <FolderOpen theme='outline' size='16' />,
+          label: t('common.fileAttach.myDevice', { defaultValue: 'Upload from device' }),
+          variant: 'muted',
+          onClick: () => fileInputRef.current?.click(),
+        }
+      );
+    } else {
+      entries.push({
+        key: 'attach',
+        icon: <FolderUpload theme='outline' size='16' />,
+        label: t('common.fileAttach.addFiles', { defaultValue: 'Add files' }),
+        variant: 'muted',
+        dividerBefore: true,
+        onClick: openHostFilePicker,
+      });
+    }
 
     // Skills (multi-select).
     if (allSkills.length > 0) {

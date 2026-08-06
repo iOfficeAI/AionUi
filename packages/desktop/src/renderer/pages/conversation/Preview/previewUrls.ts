@@ -1,19 +1,41 @@
 /**
- * Build a valid src for the PDF <webview>.
- *
- * On Windows, file paths use backslashes (e.g. `C:\Users\me\a.pdf`). Feeding such a
- * path straight into `file://${encodeURI(path)}` yields `file://C:%5CUsers%5C...`,
- * a malformed URL that fails to load (ERR_FAILED) and renders a blank preview.
- *
- * Normalize backslashes to forward slashes, guarantee the leading slash so the result
- * is a proper `file:///` URL on every platform, and encode segments (spaces / CJK) via
- * encodeURI (which preserves `/` and `:`).
+ * @license
+ * Copyright 2025 AionUi (aionui.com)
+ * SPDX-License-Identifier: Apache-2.0
  */
-export const buildPdfSrc = (file_path?: string, content?: string): string => {
-  if (file_path) {
-    const normalized = file_path.replace(/\\/g, '/');
-    const withLeadingSlash = normalized.startsWith('/') ? normalized : `/${normalized}`;
-    return `file://${encodeURI(withLeadingSlash)}`;
+
+import { getBaseUrl } from '@/common/adapter/httpBridge';
+import type { ChatFileRef } from '@/common/types/chatFile';
+
+/**
+ * Build the backend stream URL for a ChatFileRef-addressed file.
+ *
+ * `GET /api/fs/stream` is a raw byte range server (Content-Type + Range) that the
+ * PDF `<webview>` loads directly. The identity travels as a flattened ChatFileRef
+ * query (a webview GET has no request body): `kind` selects the variant, then
+ * `pe_id`+`relative_path` (project) or `path` (upload/local). URLSearchParams
+ * percent-encodes each value; the backend's serde_urlencoded Query decodes it.
+ */
+export const buildStreamUrl = (ref: ChatFileRef): string => {
+  const params = new URLSearchParams({ kind: ref.kind });
+  if (ref.kind === 'project') {
+    params.set('pe_id', ref.pe_id);
+    params.set('relative_path', ref.relative_path);
+  } else {
+    params.set('path', ref.path);
   }
+  return `${getBaseUrl()}/api/fs/stream?${params.toString()}`;
+};
+
+/**
+ * Build the src for the PDF `<webview>`.
+ *
+ * Prefer the ChatFileRef identity → an authenticated backend stream URL (Range +
+ * Content-Type served by the backend; the renderer never sees an absolute path,
+ * unlike the old `file://` src). Fall back to inline `content` (e.g. a blob/data
+ * URL) when no ref is available.
+ */
+export const buildPdfSrc = (fileRef?: ChatFileRef, content?: string): string => {
+  if (fileRef) return buildStreamUrl(fileRef);
   return content || '';
 };

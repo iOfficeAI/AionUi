@@ -54,7 +54,7 @@
 </h3>
 
 <p align="center">
-  <sub><strong>Kimi K3</strong> が登場、AionUi ですぐに使えます——<a href="https://www.kimi.com/code?aff=aionui" target="_blank">Kimi For Coding プランを入手</a>、または API キー（<a href="https://platform.kimi.ai?aff=aionui" target="_blank">グローバル</a> / <a href="https://platform.kimi.com?aff=aionui" target="_blank">中国</a>）</sub>
+  <sub><strong>Kimi K3</strong> が登場、AionUi ですぐに使えます——<a href="https://www.kimi.com/code?aff=aionui" target="_blank">Kimi For Coding プランを入手</a>、または API キー（<a href="https://platform.kimi.ai?track_id=track-32e04532b08d460fac729191744fa75c&aff=aionui" target="_blank">グローバル</a> / <a href="https://platform.kimi.com?track_id=track-98f92981df1c4c61b2c68930ba3ab658&aff=aionui" target="_blank">中国</a>）</sub>
 </p>
 
 ---
@@ -76,14 +76,14 @@
 
 **AionUi は単なるチャットクライアントではありません。** これは Cowork プラットフォームであり、AI Agent があなたのコンピューター上であなたと共に働きます——ファイルを読み、コードを書き、ウェブを閲覧し、タスクを自動化します。Agent のすべての動作を見ることができ、常にあなたがコントロールしています。
 
-|                                       | 従来の AI チャットクライアント | **AionUi (Cowork)**                                                                                                  |
-| :------------------------------------ | :----------------------------- | :------------------------------------------------------------------------------------------------------------------- |
-| AI がファイルを操作できる             | 限定的または不可               | **はい — 内蔵 Agent、完全なファイルアクセス**                                                                        |
-| AI がマルチステップタスクを実行できる | 限定的                         | **はい — 自律実行、あなたの承認が必要**                                                                              |
-| スマホからのリモートアクセス          | まれ                           | **WebUI + Telegram / Lark / DingTalk / WeChat**                                                                      |
-| スケジュール自動化                    | いいえ                         | **Cron — 24/7 無人運転**                                                                                             |
-| 複数の AI Agent を同時実行            | いいえ                         | **Claude Code、Codex、Qwen Code、Hermes Agent、Snow CLI、Cursor Agent など 13+ 個 — 自動検出、統一インターフェース** |
-| 価格                                  | 無料 / 有料                    | **無料かつオープンソース**                                                                                           |
+|                                       | 従来の AI チャットクライアント | **AionUi (Cowork)**                                                                                                                         |
+| :------------------------------------ | :----------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------ |
+| AI がファイルを操作できる             | 限定的または不可               | **はい — 内蔵 Agent、完全なファイルアクセス**                                                                                               |
+| AI がマルチステップタスクを実行できる | 限定的                         | **はい — 自律実行、あなたの承認が必要**                                                                                                     |
+| スマホからのリモートアクセス          | まれ                           | **WebUI + Telegram / Lark / DingTalk / WeChat**                                                                                             |
+| スケジュール自動化                    | いいえ                         | **Cron — 24/7 無人運転**                                                                                                                    |
+| 複数の AI Agent を同時実行            | いいえ                         | **Claude Code、Codex、Qwen Code、Hermes Agent、Cursor Agent など数十の外部 Agent — 統一インターフェースでインストール状況に応じて自動検出** |
+| 価格                                  | 無料 / 有料                    | **無料かつオープンソース**                                                                                                                  |
 
 <p align="center">
   <img src="../../resources/offica-ai BANNER-function.png" alt="AionUi Cowork Platform" width="800">
@@ -104,26 +104,64 @@ AionUi には完全な AI Agent エンジンが内蔵されています。CLI Ag
   <img src="../../resources/homepage.png" alt="Built-in Agents" width="800">
 </p>
 
-### **Morph PPT アニメーションデモ — 一言で滑らかな遷移**
+### **Office アシスタント — PPT、Word、Excel**
 
-_AionUi には専用の Morph PPT アシスタントが内蔵されています。静的なスライドを作るだけでなく、内容を“語れる”動的プレゼンに変えます。テーマ/アウトライン（または参考スタイル）を入力するだけで、連続感のある Morph プレゼンを生成できます。基盤は [OfficeCLI](https://github.com/iOfficeAI/OfficeCLI#) で動作します。_
+Office アシスタントは、依頼を編集・再利用できるファイルに仕上げます。PPT、Word、Excel のワークフローは、より安定した成果物のために **[OfficeCLI](https://github.com/iOfficeAI/OfficeCLI)** を使用します。
 
-- **普通の PPT 生成とは違う** — Morph によるストーリー表現とスライド間の連続的な動きに特化
-- **ワークフローを内蔵** — 企画、生成、品質チェック、反復を一体化
-- **スタイル合わせに対応** — 参考画像/参考スタイルで見た目を素早く調整
-- **生成してすぐ確認** — `.ppt` / `.pptx` を AionUi 上でそのままプレビュー
+#### **PPT アシスタント**
 
-<p align="center">
-  <img src="../../resources/morph-ppt-balanced.gif" alt="Morph PPT Demo" width="800">
-</p>
+> **出力：** 編集可能な Morph PPT（`.pptx`）
+> 一貫した Morph トランジションと滑らかなストーリー展開を提供し、[OfficeCLI](https://github.com/iOfficeAI/OfficeCLI) で動作します。
 
+<table>
+  <tr>
+    <td align="center" width="50%">
+      <img src="../../resources/morph-ppt-balanced.gif" alt="PPT Morph トランジション" width="390">
+    </td>
+    <td align="center" width="50%">
+      <img src="../../resources/readme-demo-assistant-ppt.gif" alt="PPT アシスタントのデモ" width="390">
+    </td>
+  </tr>
+</table>
+
+#### **Word アシスタント**
+
+> **出力：** 編集可能な Word（`.docx`）
+> `docx` スキルで編集可能な文書や学術資料を作成し、[OfficeCLI](https://github.com/iOfficeAI/OfficeCLI) で動作します。
+
+<table>
+  <tr>
+    <td align="center" width="50%">
+      <img src="../../resources/readme-demo-generate-academic-paper.gif" alt="学術文書生成のデモ" width="390">
+    </td>
+    <td align="center" width="50%">
+      <img src="../../resources/readme-demo-assistant-write-paper.gif" alt="Word アシスタントのデモ" width="390">
+    </td>
+  </tr>
+</table>
+
+#### **Excel アシスタント**
+
+> **出力：** 利用可能な Excel（`.xlsx/.xlsm/.csv`）
+> `xlsx` で分析、書式、グラフを備えたスプレッドシートを生成・更新し、[OfficeCLI](https://github.com/iOfficeAI/OfficeCLI) で動作します。
+
+<table>
+  <tr>
+    <td align="center" width="50%">
+      <img src="../../resources/readme-demo-generate-excel.gif" alt="Excel 生成のデモ" width="390">
+    </td>
+    <td align="center" width="50%">
+      <img src="../../resources/readme-demo-assistant-excel.gif" alt="Excel アシスタントのデモ" width="390">
+    </td>
+  </tr>
+</table>
 ---
 
 ## マルチ Agent モード — すでに CLI Agent をお持ちですか？一緒に使えます
 
 すでに Claude Code、Codex、Hermes Agent、または OpenClaw を使用している場合、AionUi は自動的に検出し、それらすべてと Cowork できます——内蔵 Agent と一緒に。
 
-**サポートされている Agent：** 内蔵 Agent（ゼロ設定） • Claude Code • Codex • Qwen Code • Goose AI • OpenClaw • Augment Code • CodeBuddy • Kimi CLI • OpenCode • Factory Droid • GitHub Copilot • Qoder CLI • Mistral Vibe • Nanobot • Aion CLI（aionrs、AionUi に同梱される Rust バックエンドサービス） • Snow CLI • Hermes Agent • Cursor Agent など
+**サポートされている Agent：** 内蔵 Agent（組み込みの [aionrs](https://github.com/iOfficeAI/aionrs) Agent エンジンで動作） • Claude Code • Codex • Qwen Code • Gemini CLI • Goose • OpenClaw • Augment Code • CodeBuddy • Kimi CLI • OpenCode • Factory Droid • GitHub Copilot • Qoder • Mistral Vibe • Nanobot • Snow • Hermes • Cursor Agent • Pi • MiMo Code • omp • Antigravity など
 
 <p align="center">
   <img src="../../resources/multi-agent支持openclaw.gif" alt="Multi-Agent Cowork" width="800">
@@ -132,8 +170,8 @@ _AionUi には専用の Morph PPT アシスタントが内蔵されています�
 - **自動検出** — インストール済みの CLI ツールを自動認識
 - **統一インターフェース** — すべての AI Agent を管理する一つの Cowork プラットフォーム
 - **並列セッション** — 独立したコンテキストで複数の Agent を同時実行
-- **MCP 統一管理** — MCP（Model Context Protocol）ツールを一度設定すれば、すべての Agent に自動同期——各 Agent を個別に設定する必要はありません
-- **YOLO Mode**（すべての Agent 操作を自動承認）/ **フルオートモード** — ワンクリックで権限プロンプトをスキップ；すべての Agent が無人実行のフルオートモードに対応
+- **MCP 統一管理** — MCP（Model Context Protocol）ツールを一元管理し、各 Agent の機能に応じて互換性のあるトランスポートを注入または同期
+- **YOLO / フルオートモード** — 対応する Agent では無人実行モードを利用可能；モードと権限動作は選択した Agent によって異なります
 
 ### Team Mode — 整然としたマルチエージェント協調
 
@@ -143,7 +181,7 @@ _AionUi には専用の Morph PPT アシスタントが内蔵されています�
   <img src="../../resources/AionUi_team.gif" alt="Team Mode overview" width="800">
 </p>
 
-- **並列マルチエージェント実行** — Leader がタスクをサブタスクに分解して並行実行する Teammate Agent に委任；各 Teammate は ACP（Agent Communication Protocol、AionUi のマルチエージェント調整層）、Gemini、または Aionrs を通じて独自のモデルを使用
+- **並列マルチエージェント実行** — Leader がタスクを分割して Teammate に並列委任；外部 Agent は ACP（Agent Client Protocol）で接続し、チームの調整は AionUi が担当
 - **Leader によるオーケストレーション** — Leader が割り当て、追跡、集約；対応バックエンドは Claude Code、Codex、Hermes Agent、Gemini、Snow CLI、Aion CLI
 - **チーム隔離ワークスペース** — すべての Agent が同じフォルダを共有；各エージェントに独自の権限確認ダイアログがあり、サイドバーバッジで承認待ちを表示
 
@@ -237,9 +275,11 @@ AionUi には、事前定義された機能を持つ **21 個のプロフェッ�
 - **🔧 OpenClaw セットアップ** — OpenClaw 統合のセットアップと設定アシスタント
 - **📖 ストーリーロールプレイ** — キャラクターカードと世界情報を備えた没入型ストーリーロールプレイ（SillyTavern 互換）
 
-**カスタムスキル**：`skills/` ディレクトリにスキルを作成し、アシスタントのスキルを有効化/無効化して AI 機能を拡張します。スキルは三つのソースから提供されます：内蔵（AionUi に同梱）、カスタム（ユーザー定義）、Extension（Extension SDK 経由で提供）。内蔵スキルには `pptx`、`docx`、`pdf`、`xlsx`、`mermaid` などが含まれます。
+- **🧭 AionUi Butler** — AionUi 内で製品ガイド、セットアップ支援、トラブルシューティングを提供
 
-> 💡 各アシスタントは markdown ファイルで定義されます。`assistant/` ディレクトリで例を確認してください。
+**カスタムスキル**：**設定 → Skills** からスキルをインポートまたは作成し、必要なアシスタントに割り当てます。スキルは内蔵、カスタム、Extension の三つのソースから提供されます。内蔵スキルには `pptx`、`docx`、`pdf`、`xlsx`、`mermaid` などが含まれます。
+
+> 💡 内蔵定義の正規情報は AionCore の[アシスタントカタログ](https://github.com/iOfficeAI/AionCore/blob/main/crates/aionui-app/assets/builtin-assistants/assistants.json)にあります。ルールは引き続き Markdown で、AionUi 内からカスタマイズできます。
 
 </details>
 

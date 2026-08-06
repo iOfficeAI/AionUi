@@ -54,7 +54,7 @@
 </h3>
 
 <p align="center">
-  <sub><strong>Kimi K3</strong> вже тут і працює в AionUi одразу — <a href="https://www.kimi.com/code?aff=aionui" target="_blank">оформіть план Kimi For Coding</a> або отримайте API-ключ (<a href="https://platform.kimi.ai?aff=aionui" target="_blank">Global</a> / <a href="https://platform.kimi.com?aff=aionui" target="_blank">Китай</a>)</sub>
+  <sub><strong>Kimi K3</strong> вже тут і працює в AionUi одразу — <a href="https://www.kimi.com/code?aff=aionui" target="_blank">оформіть план Kimi For Coding</a> або отримайте API-ключ (<a href="https://platform.kimi.ai?track_id=track-32e04532b08d460fac729191744fa75c&aff=aionui" target="_blank">Global</a> / <a href="https://platform.kimi.com?track_id=track-98f92981df1c4c61b2c68930ba3ab658&aff=aionui" target="_blank">Китай</a>)</sub>
 </p>
 
 ---
@@ -76,14 +76,14 @@
 
 **AionUi — це більше, ніж просто чат-клієнт.** Це платформа для спільної роботи (Cowork), де AI-агенти працюють пліч-о-пліч із вами на вашому комп'ютері: читають файли, пишуть код, шукають в інтернеті та автоматизують завдання. Ви бачите все, що робить агент, і завжди зберігаєте контроль.
 
-|                                    | Традиційні AI чат-клієнти | **AionUi (Cowork)**                                                                                                  |
-| :--------------------------------- | :------------------------ | :------------------------------------------------------------------------------------------------------------------- |
-| AI може працювати з вашими файлами | Обмежено або ні           | **Так — вбудований агент із повним доступом до файлів**                                                              |
-| AI може виконувати багато кроків   | Обмежено                  | **Так — автономно за вашим підтвердженням**                                                                          |
-| Віддалений доступ із телефону      | Рідко                     | **WebUI + Telegram / Lark / DingTalk / WeChat**                                                                      |
-| Автоматизація за розкладом         | Ні                        | **Cron — 24/7 без нагляду**                                                                                          |
-| Кілька AI-агентів одночасно        | Ні                        | **Claude Code, Codex, Qwen Code, Hermes Agent, Snow CLI, Cursor Agent та ще 13+ — автовизначення, єдиний інтерфейс** |
-| Ціна                               | Безкоштовно / Платно      | **Безкоштовно та з відкритим кодом**                                                                                 |
+|                                    | Традиційні AI чат-клієнти | **AionUi (Cowork)**                                                                                                     |
+| :--------------------------------- | :------------------------ | :---------------------------------------------------------------------------------------------------------------------- |
+| AI може працювати з вашими файлами | Обмежено або ні           | **Так — вбудований агент із повним доступом до файлів**                                                                 |
+| AI може виконувати багато кроків   | Обмежено                  | **Так — автономно за вашим підтвердженням**                                                                             |
+| Віддалений доступ із телефону      | Рідко                     | **WebUI + Telegram / Lark / DingTalk / WeChat**                                                                         |
+| Автоматизація за розкладом         | Ні                        | **Cron — 24/7 без нагляду**                                                                                             |
+| Кілька AI-агентів одночасно        | Ні                        | **Десятки зовнішніх агентів, зокрема Claude Code, Codex, Qwen Code, Hermes Agent і Cursor Agent, в єдиному інтерфейсі** |
+| Ціна                               | Безкоштовно / Платно      | **Безкоштовно та з відкритим кодом**                                                                                    |
 
 <p align="center">
   <img src="../../resources/offica-ai BANNER-function.png" alt="AionUi Cowork Platform" width="800">
@@ -106,7 +106,7 @@ AionUi постачається з повноцінним рушієм AI-аге
 
 ### **Офісні асистенти — PPT, Word та Excel**
 
-Ці напрямки відповідають реальним можливостям додатка: пресети **Morph PPT** та навички **`pptx` / `docx` / `xlsx`** (див. пресети `assistant/` та `skills/` у репозиторії). Потрібні документи чи таблиці? Вбудований **[OfficeCLI](https://github.com/iOfficeAI/OfficeCLI)** допомагає створювати PPT (Morph), Word (`.docx`) та Excel (`.xlsx/.xlsm/.csv`) швидше та надійніше.
+Ці напрямки відповідають реальним можливостям додатка: пресети **Morph PPT** та навички **`pptx` / `docx` / `xlsx`**. Канонічні [визначення асистентів](https://github.com/iOfficeAI/AionCore/blob/main/crates/aionui-app/assets/builtin-assistants/assistants.json) і [вбудовані навички](https://github.com/iOfficeAI/AionCore/tree/main/crates/aionui-app/assets/builtin-skills) підтримуються в AionCore. Потрібні документи чи таблиці? Вбудований **[OfficeCLI](https://github.com/iOfficeAI/OfficeCLI)** допомагає створювати PPT (Morph), Word (`.docx`) та Excel (`.xlsx/.xlsm/.csv`) швидше та надійніше.
 
 #### **Асистент PPT**
 
@@ -162,7 +162,7 @@ AionUi постачається з повноцінним рушієм AI-аге
 
 Якщо ви вже використовуєте Claude Code, Codex, Hermes Agent або OpenClaw, AionUi автоматично виявить їх і дозволить працювати з усіма ними разом із вбудованим агентом.
 
-**Підтримувані агенти:** Вбудований агент • Claude Code • Codex • Qwen Code • Goose AI • OpenClaw • Augment Code • CodeBuddy • Kimi CLI • OpenCode • Factory Droid • GitHub Copilot • Qoder CLI • Mistral Vibe • Nanobot • Aion CLI (aionrs, Rust-бекенд-сервіс, що постачається з AionUi) • Snow CLI • Hermes Agent • Cursor Agent та інші
+**Підтримувані агенти:** Вбудований агент (на вбудованому рушії [aionrs](https://github.com/iOfficeAI/aionrs)) • Claude Code • Codex • Qwen Code • Gemini CLI • Goose • OpenClaw • Augment Code • CodeBuddy • Kimi CLI • OpenCode • Factory Droid • GitHub Copilot • Qoder • Mistral Vibe • Nanobot • Snow • Hermes • Cursor Agent • Pi • MiMo Code • omp • Antigravity та інші
 
 <p align="center">
   <img src="../../resources/multi-agent支持openclaw.gif" alt="Мульти-агентний режим" width="800">
@@ -171,8 +171,8 @@ AionUi постачається з повноцінним рушієм AI-аге
 - **Автовизначення** — автоматично розпізнає встановлені CLI-інструменти
 - **Єдиний інтерфейс** — одна платформа для всіх ваших AI-агентів
 - **Паралельні сесії** — запуск кількох агентів одночасно з незалежними контекстами
-- **Єдине керування MCP** — налаштуйте інструменти MCP один раз, і вони автоматично синхронізуються для всіх агентів
-- **YOLO Mode** (автопідтвердження всіх дій агента без ручного підтвердження) / **Повністю автоматичний режим** — одним кліком пропускайте запити на дозвіл; всі агенти підтримують повністю автоматичний режим для роботи без нагляду
+- **Єдине керування MCP** — керуйте MCP-інструментами в одному місці; AionUi додає або синхронізує сумісні транспорти відповідно до можливостей кожного агента
+- **YOLO / повністю автоматичний режим** — підтримувані агенти можуть працювати без нагляду; доступні режими та дозволи залежать від обраного агента
 
 ### Team Mode — Скоординована мульти-агентна співпраця
 
@@ -182,7 +182,7 @@ AionUi постачається з повноцінним рушієм AI-аге
   <img src="../../resources/AionUi_team.gif" alt="Team Mode overview" width="800">
 </p>
 
-- **Паралельне виконання кількох агентів** — Leader ділить завдання на підзадачі і делегує паралельно працюючим Teammate-агентам; кожен Teammate використовує свою модель через ACP (Agent Communication Protocol, шар координації мульти-агентності AionUi), Gemini або Aionrs
+- **Паралельне виконання кількох агентів** — Leader ділить і делегує завдання Teammate-агентам; зовнішні агенти підключаються через ACP (Agent Client Protocol), а AionUi координує команду
 - **Оркестрація Leader** — Leader призначає, відстежує та агрегує результати; підтримувані бекенди: Claude Code, Codex, Hermes Agent, Gemini, Snow CLI, Aion CLI
 - **Ізольований робочий простір команди** — всі агенти спільно використовують одну папку; кожен має свій діалог підтвердження дозволів із значком на бічній панелі для очікуваних підтверджень
 
@@ -274,7 +274,11 @@ _Система асистентів із 21 вбудованим професі
 - **🔧 OpenClaw Setup** — Налаштування інтеграції з OpenClaw
 - **📖 Story Roleplay** — Рольові ігри (сумісно з SillyTavern)
 
-**Навички**: навички з трьох джерел — вбудовані (поставляються з AionUi), власні (ваші особисті) та Extension (через Extension SDK). Вбудовані: `pptx`, `docx`, `pdf`, `xlsx`, `mermaid` та інші.
+- **🧭 AionUi Butler** — Поради щодо продукту, допомога з налаштуванням і усунення несправностей в AionUi
+
+**Навички**: імпортуйте або створюйте навички в **Налаштування → Skills** і призначайте їх потрібним асистентам. Джерела навичок: вбудовані, власні та Extension. Серед вбудованих: `pptx`, `docx`, `pdf`, `xlsx`, `mermaid` та інші.
+
+> 💡 Канонічні вбудовані визначення містяться в [каталозі асистентів](https://github.com/iOfficeAI/AionCore/blob/main/crates/aionui-app/assets/builtin-assistants/assistants.json) AionCore. Правила залишаються у Markdown і налаштовуються в AionUi.
 
 </details>
 

@@ -101,7 +101,8 @@
   "view": {
     "label": "View",
     "parallel": "Parallel",
-    "single": "Single"
+    "single": "Single",
+    "board": "Pano"
   },
   "warmup": {
     "title": "Waking up the team…",
@@ -122,5 +123,40 @@
   "clearCommand": {
     "member": "Bu üyenin bağlamını temizle",
     "leader": "Bir üyenin bağlamını temizle: /clear <üye adı>"
+  },
+  "activity": {
+    "control": {
+      "sortNewest": "En yeni",
+      "sortOldest": "En eski",
+      "filterAll": "Tümü",
+      "filterMessages": "Mesajlar",
+      "filterTasks": "Görevler",
+      "allMembers": "Tüm üyeler",
+      "showSystem": "Sistem mesajları",
+      "showTerminal": "Tamamlanan görevler"
+    },
+    "fallbackLane": "Atanmamış / harici",
+    "empty": "Henüz etkinlik yok",
+    "userIdentity": "Kullanıcı / harici",
+    "broadcast": "Herkese yayınla",
+    "read": "Okundu",
+    "unread": "Okunmadı",
+    "attachments": "{{count}} dosya",
+    "expand": "Genişlet",
+    "collapse": "Daralt",
+    "blockedBy": "#{{id}} tarafından engellendi",
+    "blockedByNamed": "{{name}} tarafından engellendi",
+    "blockerUnknown": "Görev kullanılamıyor",
+    "status": {
+      "pending": "Beklemede",
+      "in_progress": "Devam ediyor",
+      "completed": "Tamamlandı",
+      "deleted": "Silindi"
+    },
+    "msgType": {
+      "message": "Mesaj",
+      "idle_notification": "Boşta bildirimi",
+      "shutdown_request": "Kapatma isteği"
+    }
   }
 }

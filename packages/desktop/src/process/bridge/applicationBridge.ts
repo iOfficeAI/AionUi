@@ -5,11 +5,13 @@
  */
 
 import type { BrowserWindow } from 'electron';
-import { app } from 'electron';
+import { app, session } from 'electron';
 import { ipcBridge } from '@/common';
+import { BROWSER_SESSION_PARTITION } from '@/common/config/constants';
 import { ProcessConfig } from '@process/utils/initStorage';
 import { getZoomFactor, setZoomFactor } from '@process/utils/zoom';
 import { getCdpStatus, updateCdpConfig } from '@process/utils/configureChromium';
+import { getCdpBridgeHandle } from '@process/utils/cdpBridgeRegistry';
 import { getGpuStatus, setGpuUserOverride } from '@process/utils/gpuRecovery';
 import { initApplicationBridgeCore } from './applicationBridgeCore';
 import type { IStartOnBootStatus } from '@/common/adapter/ipcBridge';
@@ -188,6 +190,60 @@ export function initApplicationBridge(): void {
       return { success: true, data: updatedConfig };
     } catch (e) {
       return { success: false, msg: e.message || e.toString() };
+    }
+  });
+
+  /**
+   * 清空应用内浏览器的登录态与缓存。
+   *
+   * 登录态是全局共享的（所有 tab、所有项目共用一个 partition），所以这里是唯一
+   * 的"退出全部网站"入口。已打开的浏览器 tab 需要刷新后才会体现，这在设置项的
+   * 说明文案里告诉用户。
+   *
+   * Clear the in-app browser's sign-in state and cache. Sign-in state is globally
+   * shared (one partition across all tabs and projects), so this is the only way
+   * to sign out everywhere. Already-open browser tabs reflect it after a reload,
+   * which the settings copy tells the user.
+   */
+  ipcBridge.application.clearBrowserData.provider(async () => {
+    try {
+      const browserSession = session.fromPartition(BROWSER_SESSION_PARTITION);
+      // clearStorageData 只清 cookie 和各类 storage，不含 HTTP 缓存和认证缓存 ——
+      // 而设置里的文案承诺了「清理缓存」，所以三个都要清。
+      //
+      // clearStorageData covers cookies and storages but neither the HTTP cache nor
+      // the HTTP auth cache, and the settings copy promises the cache is cleared.
+      await browserSession.clearStorageData();
+      await browserSession.clearCache();
+      await browserSession.clearAuthCache();
+      return { success: true };
+    } catch (e) {
+      return { success: false, msg: e instanceof Error ? e.message : String(e) };
+    }
+  });
+
+  ipcBridge.application.reportBrowserWebContentsId.provider(async ({ webContentsId }) => {
+    /**
+     * 把单目标 CDP 通道附加到侧边浏览器。
+     *
+     * 每次浏览器 tab 切换都会重报一次：通道同时只服务一个目标，切换即改附加对象，
+     * 这样 Agent 操作的始终是用户当前看到的那个页面。多 tab 情况下这是刻意的取舍 ——
+     * 与其同时暴露 10 个 webContents，不如只暴露活跃的那一个。
+     *
+     * Attaches the single-target CDP bridge to the in-app browser. Re-reported on every
+     * browser tab switch: the bridge serves one target at a time, so switching re-points
+     * it and the agent always drives the page the user is actually looking at. With
+     * multiple tabs this is a deliberate trade-off — exposing only the active webContents
+     * rather than all ten at once.
+     */
+    try {
+      const handle = getCdpBridgeHandle();
+      if (!handle) return { success: false, msg: 'Agent browser control is not enabled.' };
+      const result = handle.attach(webContentsId);
+      if (result.ok === false) return { success: false, msg: result.reason };
+      return { success: true };
+    } catch (e) {
+      return { success: false, msg: e instanceof Error ? e.message : String(e) };
     }
   });
 

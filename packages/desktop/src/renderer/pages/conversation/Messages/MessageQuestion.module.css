@@ -1,0 +1,111 @@
+/* Question card (ask frame). Shares the permission panel's design language:
+ * same card chrome, same bordered full-width option-row list, same tokens.
+ * Extreme-content rules: long question/label/description text wraps (never
+ * clips, never pushes the row wide); descriptions sit UNDER their label as a
+ * secondary line so a paragraph-length description stays readable. */
+
+.header {
+  margin-bottom: 2px;
+  color: var(--color-text-3);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+.question {
+  margin-bottom: 8px;
+  color: var(--color-text-1);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.questionBlock + .questionBlock {
+  margin-top: 16px;
+}
+
+/* Same bordered list container as the permission card's optionsGroup. */
+.optionList {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--color-border-2);
+  border-radius: 8px;
+}
+
+/* One full-width selectable row. The Arco Radio/Checkbox IS the row (label
+ * semantics: the whole row toggles), control aligned to the first text line.
+ * display needs !important: Arco's vertical group rule
+ * (.arco-radio-group-direction-vertical .arco-radio { display: block }) is a
+ * two-class selector that beats this single class — with block layout the
+ * inline text span flowed under the row's right padding and hugged the border
+ * (E2/E3 extreme-case catch). */
+.optionRow {
+  display: flex !important;
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0;
+  align-items: flex-start;
+  padding: 10px 12px;
+  transition: background-color 0.16s ease;
+}
+
+.optionRow:hover {
+  background: var(--color-fill-1);
+}
+
+.optionRow + .optionRow {
+  border-top: 1px solid var(--color-border-2);
+}
+
+/* Optically center the radio/checkbox control on the FIRST text line: rows are
+ * top-aligned (descriptions wrap below), and Arco's control sits flush with the
+ * block top — 3px nudges its 15px circle to the middle of the 21px label line
+ * (14px * 1.5 line-height). Without this the circle floats visibly high. */
+.optionRow :global(.arco-icon-hover) {
+  margin-top: 3px;
+}
+
+/* The Arco text span must own the remaining row width and shrink inside it —
+ * without flex:1 + min-width:0 a long URL/CJK run rides over the row's right
+ * padding and hugs the border (E2 extreme-case catch). */
+.optionRow :global(.arco-radio-text),
+.optionRow :global(.arco-checkbox-text) {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.optionText {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.optionLabel {
+  color: var(--color-text-1);
+  font-size: 14px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.optionDesc {
+  color: var(--color-text-3);
+  font-size: 12px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.otherInput {
+  margin: 8px 12px 12px;
+  width: calc(100% - 24px);
+}
+
+.actions {
+  display: flex;
+  margin-top: 16px;
+  align-items: center;
+  gap: 8px;
+}

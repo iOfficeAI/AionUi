@@ -54,7 +54,7 @@
 </h3>
 
 <p align="center">
-  <sub><strong>Kimi K3</strong> 已发布，在 AionUi 中开箱即用——<a href="https://www.kimi.com/code?aff=aionui" target="_blank">订阅 Kimi For Coding</a>，或获取 API Key（<a href="https://platform.kimi.com?aff=aionui" target="_blank">国内</a> / <a href="https://platform.kimi.ai?aff=aionui" target="_blank">海外</a>）· 也欢迎转发我们在 <a href="https://x.com/AionUi/status/2079493379914961069" target="_blank">X 上的活动帖</a></sub>
+  <sub><strong>Kimi K3</strong> 已发布，在 AionUi 中开箱即用——<a href="https://www.kimi.com/code?aff=aionui" target="_blank">订阅 Kimi For Coding</a>，或获取 API Key（<a href="https://platform.kimi.com?track_id=track-98f92981df1c4c61b2c68930ba3ab658&aff=aionui" target="_blank">国内</a> / <a href="https://platform.kimi.ai?track_id=track-32e04532b08d460fac729191744fa75c&aff=aionui" target="_blank">海外</a>）· 也欢迎转发我们在 <a href="https://x.com/AionUi/status/2079493379914961069" target="_blank">X 上的活动帖</a></sub>
 </p>
 
 ---
@@ -76,14 +76,14 @@
 
 **AionUi 不只是个聊天工具。** 它是一个真正的 Cowork 平台，AI Agent 就像您的得力助手，在电脑上帮您处理各种任务——读文件、写代码、查资料、自动化工作流。Agent 的一举一动都在您的掌控之中，透明可见。
 
-|                       | 传统 AI 聊天客户端 | **AionUi (Cowork)**                                                                                    |
-| :-------------------- | :----------------- | :----------------------------------------------------------------------------------------------------- |
-| AI 可以操作您的文件   | 有限或不可用       | **是 — 内置 Agent，完全文件访问**                                                                      |
-| AI 可以执行多步骤任务 | 有限               | **是 — 自主执行，需您批准**                                                                            |
-| 从手机远程访问        | 很少               | **WebUI + Telegram / Lark / DingTalk / WeChat**                                                        |
-| 定时自动化            | 否                 | **Cron — 24/7 无人值守**                                                                               |
-| 同时运行多个 AI Agent | 否                 | **Claude Code、Codex、Qwen Code、Hermes Agent、Snow CLI、Cursor Agent 等 13+ 个 — 自动检测，统一界面** |
-| 价格                  | 免费 / 付费        | **免费且开源**                                                                                         |
+|                       | 传统 AI 聊天客户端 | **AionUi (Cowork)**                                                                                                     |
+| :-------------------- | :----------------- | :---------------------------------------------------------------------------------------------------------------------- |
+| AI 可以操作您的文件   | 有限或不可用       | **是 — 内置 Agent，完全文件访问**                                                                                       |
+| AI 可以执行多步骤任务 | 有限               | **是 — 自主执行，需您批准**                                                                                             |
+| 从手机远程访问        | 很少               | **WebUI + Telegram / Lark / DingTalk / WeChat**                                                                         |
+| 定时自动化            | 否                 | **Cron — 24/7 无人值守**                                                                                                |
+| 同时运行多个 AI Agent | 否                 | **数十种外部 Agent（包括 Claude Code、Codex、Qwen Code、Hermes Agent、Cursor Agent 等）— 统一界面，按安装情况自动检测** |
+| 价格                  | 免费 / 付费        | **免费且开源**                                                                                                          |
 
 <p align="center">
   <img src="../../resources/offica-ai BANNER-function.png" alt="AionUi Cowork Platform" width="800">
@@ -163,7 +163,7 @@ AionUi 自带完整的 AI Agent。不像其他工具需要你手动安装各种 
 
 如果你已经在用 Claude Code、Codex、Hermes Agent 或 OpenClaw，AionUi 会自动发现它们，让你同时和这些 Agent 一起协作——当然，还有内置 Agent。
 
-**支持的 Agent：** 内置 Agent（零配置） • Claude Code • Codex • Qwen Code • Goose AI • OpenClaw • Augment Code • CodeBuddy • Kimi CLI • OpenCode • Factory Droid • GitHub Copilot • Qoder CLI • Mistral Vibe • Nanobot • Aion CLI（aionrs，AionUi 随附的 Rust 后端服务） • Snow CLI • Hermes Agent • Cursor Agent 等
+**支持的 Agent：** 内置 Agent（由嵌入式 [aionrs](https://github.com/iOfficeAI/aionrs) Agent 引擎驱动） • Claude Code • Codex • Qwen Code • Gemini CLI • Goose • OpenClaw • Augment Code • CodeBuddy • Kimi CLI • OpenCode • Factory Droid • GitHub Copilot • Qoder • Mistral Vibe • Nanobot • Snow • Hermes • Cursor Agent • Pi • MiMo Code • omp • Antigravity 等
 
 <p align="center">
   <img src="../../resources/multi-agent支持openclaw.gif" alt="Multi-Agent Cowork" width="800">
@@ -172,8 +172,8 @@ AionUi 自带完整的 AI Agent。不像其他工具需要你手动安装各种 
 - **自动检测** — 自动识别已安装的 CLI 工具
 - **统一界面** — 一个 Cowork 平台管理所有 AI Agent
 - **并行会话** — 同时运行多个 Agent，各自独立上下文
-- **MCP 统一管理** — 配置一次 MCP（模型上下文协议）工具，自动同步到所有 Agent — 无需为每个 Agent 单独配置
-- **YOLO Mode**（自动批准所有 Agent 操作，无需手动确认）/ **全自动模式** — 一键绕过权限提示；所有 Agent 均支持全自动无人值守执行
+- **MCP 统一管理** — 在一处管理 MCP（模型上下文协议）工具；AionUi 会根据各 Agent 的能力注入或同步兼容的传输方式
+- **YOLO / 全自动模式** — 支持的 Agent 可以提供无人值守模式；可用模式和权限行为取决于所选 Agent
 
 ### Team Mode — 多 Agent 有序协作
 
@@ -183,7 +183,7 @@ AionUi 自带完整的 AI Agent。不像其他工具需要你手动安装各种 
   <img src="../../resources/AionUi_team.gif" alt="Team Mode overview" width="800">
 </p>
 
-- **多 Agent 并行执行** — Leader 将任务分解为子任务并委派给并行运行的 Teammate Agent；每个 Teammate 通过 ACP（Agent Communication Protocol，AionUi 的多 Agent 协调层）、Gemini 或 Aionrs 使用独立模型
+- **多 Agent 并行执行** — Leader 将任务拆分并委派给并行运行的 Teammate；外部 Agent 通过 ACP（Agent Client Protocol）连接，由 AionUi 负责团队协调
 - **Leader 统筹编排** — Leader 分配、追踪并汇总结果；支持的后端包括 Claude Code、Codex、Hermes Agent、Gemini、Snow CLI 和 Aion CLI
 - **团队隔离工作空间** — 所有 Agent 共享同一文件夹；每个 Agent 有独立的权限确认弹窗，侧边栏角标显示待确认项
 
@@ -278,9 +278,11 @@ AionUi 内置 **21 个专业助手**，每个都有独特能力，还能通过�
 - **🔧 OpenClaw 设置** — OpenClaw 集成的设置和配置助手
 - **📖 故事角色扮演** — 沉浸式故事角色扮演，支持角色卡和世界信息（兼容 SillyTavern）
 
-**自定义技能**：在 `skills/` 目录下创建你的专属技能，随时为助手开启或关闭，让 AI 能力无限扩展。技能来源分三层：内置（随 AionUi 附带）、自定义（你自己的）以及扩展（通过扩展 SDK 贡献）。内置技能有 `pptx`、`docx`、`pdf`、`xlsx`、`mermaid` 等。
+- **🧭 AionUi Butler** — 在 AionUi 内提供产品使用指导、配置帮助和故障排查
 
-> 💡 每个助手都用 markdown 文件定义，想看看怎么做的？去 `assistant/` 目录找例子。
+**自定义技能**：在 **设置 → Skills** 中导入或创建技能，再按需绑定到助手。技能来源分三层：内置（随 AionUi 附带）、自定义（你自己的）以及扩展（通过扩展 SDK 贡献）。内置技能有 `pptx`、`docx`、`pdf`、`xlsx`、`mermaid` 等。
+
+> 💡 内置定义的权威来源是 AionCore 的[助手目录](https://github.com/iOfficeAI/AionCore/blob/main/crates/aionui-app/assets/builtin-assistants/assistants.json)；助手规则仍使用 Markdown，并可在 AionUi 中自定义。
 
 </details>
 

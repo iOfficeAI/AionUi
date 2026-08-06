@@ -1,0 +1,15 @@
+{
+  "case": "ELECTRON-3RE",
+  "sentry_link": "https://iofficeai.sentry.io/issues/136706173/",
+  "status": "active",
+  "duplicate_of": "ELECTRON-3RD",
+  "fixed_by": null,
+  "fix_version": null,
+  "verification": "n/a (duplicate)",
+  "root_cause_summary": "DUPLICATE of ELECTRON-3RD, same physical machine & user (M1 Pro, macOS 26.5.1 25F80, 3024x1964, Seattle geo + Asia/Shanghai tz, boot_time within 1s of 3RD's; device_id differs only because wiping config regenerates it). User escalated: '清空配置 重装也无法使用' (wiped config + reinstalled, still broken) ~2.75h after 3RD. Logs confirm identical mechanism: fresh 07-27-only logs (wipe erased history), claude turns fail UserLlmProviderAuthFailed text_len=39 ('Invalid API key . Fix external API key'), ZERO cc-switch log lines (silent-empty provider env read), spawn env only AIONUI_*. The wipe+reinstall failing actually STRENGTHENS the 3RD diagnosis: AionUi's config wipe touches neither ~/.claude (stale invalidated key claude falls back to) nor ~/.cc-switch, so the failure survives reinstall exactly as the mechanism predicts.",
+  "next_action": "Track under ELECTRON-3RD (see its note for product fixes + user workaround). Sentry issue already marked resolved.",
+  "report_path": "feedback-diagnostics-db-json.md",
+  "ledger_sidecar": "feedback-diagnostics-db-json.ledger.json",
+  "needs_report_reconcile": false,
+  "updated_at": "2026-07-28"
+}

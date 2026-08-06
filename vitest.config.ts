@@ -17,7 +17,9 @@ export default defineConfig({
   },
   test: {
     globals: true,
-    testTimeout: 10000,
+    // CI runners (especially windows-2022) can be slow enough that dom tests
+    // rendering heavy components occasionally exceed the local 10s budget.
+    testTimeout: process.env.CI ? 30000 : 10000,
     // Use projects to run different environments (Vitest 4+)
     projects: [
       // Node environment tests (existing tests)

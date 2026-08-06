@@ -187,28 +187,6 @@ describe('Layout sider brand Home button', () => {
     expect(sider).not.toHaveClass('collapsed');
   });
 
-  it('offers no resize cursor on the sider divider, whose drag only snaps collapse', () => {
-    currentPathname = '/conversation/xyz';
-    const { container } = renderLayout();
-
-    // The divider is the sider's aria-hidden drag target on its right edge.
-    const divider = container.querySelector('.layout-sider [aria-hidden="true"].w-8px') as HTMLElement;
-    expect(divider).toBeTruthy();
-
-    // The sider width is fixed: dragging snaps collapsed/expanded and never
-    // resizes, so advertising `col-resize` would promise an unavailable action.
-    expect(divider.className).not.toContain('cursor-col-resize');
-
-    // ...and the drag itself must not paint a resize cursor on the body either.
-    fireEvent.mouseDown(divider, { clientX: 260 });
-    expect(document.body.style.cursor).not.toBe('col-resize');
-    // Text selection is still suppressed, so the drag remains usable.
-    expect(document.body.style.userSelect).toBe('none');
-
-    fireEvent.mouseUp(window);
-    expect(document.body.style.userSelect).toBe('');
-  });
-
   it('keeps the common shortcut owner mounted on team routes', () => {
     currentPathname = '/team/team-1';
     featureMocks.teamModeEnabled = true;

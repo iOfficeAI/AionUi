@@ -2,7 +2,7 @@
 
 ## 概述
 
-Preview 模块是 AionUi 中的文件预览和编辑系统，支持多种文件格式的查看和编辑。该模块采用**多 Tab 架构**，支持同时打开多个文件，每个文件在独立的 Tab 中显示。Preview 模块集成了实时流式更新、版本历史、分屏预览、快捷键等高级功能，为用户提供强大的文件处理能力。
+Preview 模块是 AionUi 中的文件预览和编辑系统，支持多种文件格式的查看和编辑。该模块采用**多 Tab 架构**，支持同时打开多个文件，每个文件在独立的 Tab 中显示。Preview 模块集成了实时流式更新、分屏预览、快捷键等高级功能，为用户提供强大的文件处理能力。
 
 ## 核心特性
 
@@ -36,7 +36,6 @@ Preview 模块是 AionUi 中的文件预览和编辑系统，支持多种文件�
 ### 3. 高级功能
 
 - **实时流式更新** - Agent 写入文件时自动更新预览（带防抖优化）
-- **版本历史** - 查看和恢复历史版本（基于 Git）
 - **分屏预览** - 编辑器和预览同时显示，支持滚动同步
 - **快捷键** - `Cmd/Ctrl + S` 保存，`Cmd/Ctrl + W` 关闭 Tab
 - **脏检测** - 自动检测未保存的修改，关闭时弹出确认
@@ -57,7 +56,6 @@ preview/
 │   │   ├── PreviewToolbar.tsx         # 工具栏（视图切换、编辑、保存、历史）
 │   │   ├── PreviewContextMenu.tsx     # 右键菜单
 │   │   ├── PreviewConfirmModals.tsx   # 确认对话框
-│   │   └── PreviewHistoryDropdown.tsx # 历史版本下拉菜单
 │   ├── viewers/                       # 查看器组件
 │   │   ├── MarkdownViewer.tsx         # Markdown 渲染
 │   │   ├── ImageViewer.tsx            # 图片查看
@@ -75,7 +73,6 @@ preview/
 │       ├── HTMLRenderer.tsx           # HTML iframe 渲染器
 │       └── SelectionToolbar.tsx       # HTML 选择工具栏
 ├── hooks/                             # 自定义 Hooks
-│   ├── usePreviewHistory.ts           # 版本历史管理
 │   ├── usePreviewKeyboardShortcuts.ts # 快捷键处理
 │   ├── useScrollSync.ts               # 滚动同步
 │   ├── useTabOverflow.ts              # Tab 溢出处理
@@ -314,23 +311,6 @@ function SendBox() {
 
 ## 自定义 Hooks
 
-### usePreviewHistory
-
-管理文件版本历史（基于 Git）。
-
-```typescript
-const {
-  historyVersions, // 历史版本列表
-  historyLoading, // 加载状态
-  snapshotSaving, // 保存快照状态
-  historyError, // 错误信息
-  historyTarget, // 当前查看的历史版本
-  refreshHistory, // 刷新历史
-  handleSaveSnapshot, // 保存快照
-  handleSnapshotSelect, // 选择历史版本
-} = usePreviewHistory({ activeTab, updateContent });
-```
-
 ### usePreviewKeyboardShortcuts
 
 注册全局快捷键。
@@ -435,28 +415,6 @@ const currentTheme = useThemeDetection(); // 'light' | 'dark'
 - 最小宽度：30%
 - 最大宽度：70%
 - 比例会自动保存到 LocalStorage
-
-## 版本历史
-
-### 功能说明
-
-版本历史基于 Git，可以查看文件的所有历史版本。
-
-前提条件：
-
-- 文件必须在 Git 仓库中
-- 文件有 `workspace` 和 `filePath` 元数据
-
-### 使用方法
-
-1. 点击工具栏的"历史"按钮
-2. 在下拉菜单中查看历史版本
-3. 点击某个版本查看内容
-4. 点击"恢复此版本"将内容恢复到该版本
-
-### 保存快照
-
-点击"保存快照"按钮可以创建一个新的 Git commit，保存当前状态。
 
 ## 性能优化
 

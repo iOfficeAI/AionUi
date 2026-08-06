@@ -54,7 +54,7 @@
 </h3>
 
 <p align="center">
-  <sub><strong>Kimi K3</strong> 已發布，在 AionUi 中開箱即用——<a href="https://www.kimi.com/code?aff=aionui" target="_blank">訂閱 Kimi For Coding</a>，或取得 API Key（<a href="https://platform.kimi.com?aff=aionui" target="_blank">中國</a> / <a href="https://platform.kimi.ai?aff=aionui" target="_blank">國際</a>）</sub>
+  <sub><strong>Kimi K3</strong> 已發布，在 AionUi 中開箱即用——<a href="https://www.kimi.com/code?aff=aionui" target="_blank">訂閱 Kimi For Coding</a>，或取得 API Key（<a href="https://platform.kimi.com?track_id=track-98f92981df1c4c61b2c68930ba3ab658&aff=aionui" target="_blank">中國</a> / <a href="https://platform.kimi.ai?track_id=track-32e04532b08d460fac729191744fa75c&aff=aionui" target="_blank">國際</a>）</sub>
 </p>
 
 ---
@@ -76,14 +76,14 @@
 
 **AionUi 不只是個聊天工具。** 它是一個真正的 Cowork 平台，AI Agent 就像您的得力助手，在電腦上幫您處理各種任務——讀檔案、寫程式碼、查資料、自動化工作流。Agent 的一舉一動都在您的掌控之中，透明可見。
 
-|                       | 傳統 AI 聊天客戶端 | **AionUi (Cowork)**                                                                                    |
-| :-------------------- | :----------------- | :----------------------------------------------------------------------------------------------------- |
-| AI 可以操作您的檔案   | 有限或不可用       | **是 — 內建 Agent，完全檔案存取**                                                                      |
-| AI 可以執行多步驟任務 | 有限               | **是 — 自主執行，需您批准**                                                                            |
-| 從手機遠端存取        | 很少               | **WebUI + Telegram / Lark / DingTalk / WeChat**                                                        |
-| 定時自動化            | 否                 | **Cron — 24/7 無人值守**                                                                               |
-| 同時執行多個 AI Agent | 否                 | **Claude Code、Codex、Qwen Code、Hermes Agent、Snow CLI、Cursor Agent 等 13+ 個 — 自動偵測，統一介面** |
-| 價格                  | 免費 / 付費        | **免費且開源**                                                                                         |
+|                       | 傳統 AI 聊天客戶端 | **AionUi (Cowork)**                                                                                                     |
+| :-------------------- | :----------------- | :---------------------------------------------------------------------------------------------------------------------- |
+| AI 可以操作您的檔案   | 有限或不可用       | **是 — 內建 Agent，完全檔案存取**                                                                                       |
+| AI 可以執行多步驟任務 | 有限               | **是 — 自主執行，需您批准**                                                                                             |
+| 從手機遠端存取        | 很少               | **WebUI + Telegram / Lark / DingTalk / WeChat**                                                                         |
+| 定時自動化            | 否                 | **Cron — 24/7 無人值守**                                                                                                |
+| 同時執行多個 AI Agent | 否                 | **數十種外部 Agent（包括 Claude Code、Codex、Qwen Code、Hermes Agent、Cursor Agent 等）— 統一介面，依安裝情況自動偵測** |
+| 價格                  | 免費 / 付費        | **免費且開源**                                                                                                          |
 
 <p align="center">
   <img src="../../resources/offica-ai BANNER-function.png" alt="AionUi Cowork Platform" width="800">
@@ -163,7 +163,7 @@ AionUi 自帶完整的 AI Agent 引擎。不像其他工具需要您手動安裝
 
 如果您已經在用 Claude Code、Codex 或 Qwen Code，AionUi 會自動發現它們，讓您同時和這些 Agent 一起 Cowork——當然，還有內建 Agent。
 
-**支援的 Agent：** 內建 Agent（零配置） • Claude Code • Codex • Qwen Code • Goose AI • OpenClaw • Augment Code • CodeBuddy • Kimi CLI • OpenCode • Factory Droid • GitHub Copilot • Qoder CLI • Mistral Vibe • Nanobot • Aion CLI（aionrs，隨附於 AionUi 的 Rust 後端服務） • Snow CLI • Hermes Agent • Cursor Agent 等
+**支援的 Agent：** 內建 Agent（由嵌入式 [aionrs](https://github.com/iOfficeAI/aionrs) Agent 引擎驅動） • Claude Code • Codex • Qwen Code • Gemini CLI • Goose • OpenClaw • Augment Code • CodeBuddy • Kimi CLI • OpenCode • Factory Droid • GitHub Copilot • Qoder • Mistral Vibe • Nanobot • Snow • Hermes • Cursor Agent • Pi • MiMo Code • omp • Antigravity 等
 
 <p align="center">
   <img src="../../resources/multi-agent支持openclaw.gif" alt="Multi-Agent Cowork" width="800">
@@ -172,8 +172,8 @@ AionUi 自帶完整的 AI Agent 引擎。不像其他工具需要您手動安裝
 - **自動偵測** — 自動識別已安裝的 CLI 工具
 - **統一介面** — 一個 Cowork 平台管理所有 AI Agent
 - **並行會話** — 同時執行多個 Agent，各自獨立上下文
-- **MCP 統一管理** — 配置一次 MCP（模型上下文協定）工具，自動同步到所有 Agent — 無需為每個 Agent 單獨配置
-- **YOLO Mode**（自動批准所有 Agent 操作，無需手動確認）/ **全自動模式** — 一鍵跳過權限提示；所有 Agent 均支援全自動無人值守執行
+- **MCP 統一管理** — 在一處管理 MCP（模型上下文協定）工具；AionUi 會依各 Agent 的能力注入或同步相容的傳輸方式
+- **YOLO / 全自動模式** — 支援的 Agent 可提供無人值守模式；可用模式和權限行為取決於所選 Agent
 
 ### Team Mode — 多 Agent 有序協作
 
@@ -183,7 +183,7 @@ AionUi 自帶完整的 AI Agent 引擎。不像其他工具需要您手動安裝
   <img src="../../resources/AionUi_team.gif" alt="Team Mode overview" width="800">
 </p>
 
-- **多 Agent 並行執行** — Leader 將任務分解為子任務並委派給並行運行的 Teammate Agent；每個 Teammate 透過 ACP（Agent Communication Protocol，AionUi 的多 Agent 協調層）、Gemini 或 Aionrs 使用獨立模型
+- **多 Agent 並行執行** — Leader 將任務拆分並委派給並行運行的 Teammate；外部 Agent 透過 ACP（Agent Client Protocol）連線，由 AionUi 負責團隊協調
 - **Leader 統籌編排** — Leader 分配、追蹤並彙總結果；支援的後端包括 Claude Code、Codex、Hermes Agent、Gemini、Snow CLI 和 Aion CLI
 - **團隊隔離工作空間** — 所有 Agent 共享同一資料夾；每個 Agent 有獨立的權限確認彈窗，側邊欄角標顯示待確認項
 
@@ -278,9 +278,11 @@ AionUi 內建 **21 個專業助手**，每個都有獨特能力，還能透過�
 - **🔧 OpenClaw 設定** — OpenClaw 整合的設定和配置助手
 - **📖 故事角色扮演** — 沉浸式故事角色扮演，支援角色卡和世界資訊（相容 SillyTavern）
 
-**自訂技能**：在 `skills/` 目錄下建立您的專屬技能，隨時為助手開啟或關閉，讓 AI 能力無限擴展。技能來源分三層：內建（隨 AionUi 附帶）、自訂（您自己的）以及擴展（透過擴展 SDK 貢獻）。內建技能有 `pptx`、`docx`、`pdf`、`xlsx`、`mermaid` 等。
+- **🧭 AionUi Butler** — 在 AionUi 內提供產品使用指引、設定協助和故障排查
 
-> 💡 每個助手都用 markdown 檔案定義，想看看怎麼做的？去 `assistant/` 目錄找範例。
+**自訂技能**：在 **設定 → Skills** 中匯入或建立技能，再按需綁定到助手。技能來源分三層：內建（隨 AionUi 附帶）、自訂（您自己的）以及擴展（透過擴展 SDK 貢獻）。內建技能有 `pptx`、`docx`、`pdf`、`xlsx`、`mermaid` 等。
+
+> 💡 內建定義的權威來源是 AionCore 的[助手目錄](https://github.com/iOfficeAI/AionCore/blob/main/crates/aionui-app/assets/builtin-assistants/assistants.json)；助手規則仍使用 Markdown，並可在 AionUi 中自訂。
 
 </details>
 

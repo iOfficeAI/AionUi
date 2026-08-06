@@ -35,6 +35,15 @@ function tokensToCss(tokens?: Record<string, string>): string | null {
   return `:root {\n${body}\n}`;
 }
 
+function isElectronRenderer(): boolean {
+  return typeof window !== 'undefined' && Boolean((window as Window & { electronAPI?: unknown }).electronAPI);
+}
+
+async function publishThemeToElectron(theme: Theme): Promise<void> {
+  if (!isElectronRenderer()) return;
+  await ipcBridge.theme.setActive.invoke(theme);
+}
+
 /** Apply a resolved theme to a document. Used by every app-chrome surface. */
 export function applyTheme(theme: Theme, root: Document = document): void {
   root.documentElement.setAttribute('data-theme', theme.appearance);
@@ -43,11 +52,17 @@ export function applyTheme(theme: Theme, root: Document = document): void {
   upsertStyle(DECORATION_STYLE_ID, theme.css ? processCustomCss(theme.css) : null, root);
 }
 
-/** Resolve `activeId` locally, apply, persist, and publish to main for cross-window broadcast. */
-export async function setActiveTheme(activeId: string): Promise<void> {
+/** Resolve `activeId` locally, apply, persist, and publish to Electron for cross-window broadcast. */
+export async function setActiveTheme(activeId: string): Promise<Theme> {
   const userThemes = (configService.get('theme.userThemes') as Theme[] | undefined) ?? [];
   const resolved = resolveActiveTheme(activeId, [...BUILTIN_THEMES, ...userThemes], getSystemPrefersDark());
   applyTheme(resolved);
   await configService.set('theme.activeId', activeId);
-  await ipcBridge.theme.setActive.invoke(resolved);
+  await publishThemeToElectron(resolved);
+  return resolved;
+}
+
+/** Seed Electron's cross-window theme relay. WebUI has no Electron surfaces to notify. */
+export async function seedElectronTheme(theme: Theme): Promise<void> {
+  await publishThemeToElectron(theme);
 }

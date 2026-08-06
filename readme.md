@@ -54,7 +54,7 @@
 </h3>
 
 <p align="center">
-  <sub><strong>Kimi K3</strong> is here and works out of the box in AionUi — <a href="https://www.kimi.com/code?aff=aionui" target="_blank">get a Kimi For Coding plan</a> or an API key (<a href="https://platform.kimi.ai?aff=aionui" target="_blank">Global</a> / <a href="https://platform.kimi.com?aff=aionui" target="_blank">China</a>) · ready to claim? <a href="https://github.com/iOfficeAI/AionUi/discussions/3640">comment here</a></sub>
+  <sub><strong>Kimi K3</strong> is here and works out of the box in AionUi — <a href="https://www.kimi.com/code?aff=aionui" target="_blank">get a Kimi For Coding plan</a> or an API key (<a href="https://platform.kimi.ai?track_id=track-32e04532b08d460fac729191744fa75c&aff=aionui" target="_blank">Global</a> / <a href="https://platform.kimi.com?track_id=track-98f92981df1c4c61b2c68930ba3ab658&aff=aionui" target="_blank">China</a>) · ready to claim? <a href="https://github.com/iOfficeAI/AionUi/discussions/3640">comment here</a></sub>
 </p>
 
 ---
@@ -76,14 +76,14 @@
 
 **AionUi is more than a chat client.** It's a Cowork platform where AI agents work alongside you on your computer — reading files, writing code, browsing the web, and automating tasks. You see everything the agent does, and you're always in control.
 
-|                                 | Traditional AI Chat Clients | **AionUi (Cowork)**                                                                                                     |
-| :------------------------------ | :-------------------------- | :---------------------------------------------------------------------------------------------------------------------- |
-| AI can operate on your files    | Limited or No               | **Yes — built-in agent with full file access**                                                                          |
-| AI can execute multi-step tasks | Limited                     | **Yes — autonomous with your approval**                                                                                 |
-| Remote access from phone        | Rarely                      | **WebUI + Telegram / Lark / DingTalk / WeChat**                                                                         |
-| Scheduled automation            | No                          | **Cron — 24/7 unattended**                                                                                              |
-| Multiple AI Agents at once      | No                          | **Claude Code, Codex, Qwen Code, Hermes Agent, Snow CLI, Cursor Agent and 13+ more — auto-detected, unified interface** |
-| Price                           | Free / Paid                 | **Free & Open Source**                                                                                                  |
+|                                 | Traditional AI Chat Clients | **AionUi (Cowork)**                                                                                                                      |
+| :------------------------------ | :-------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------- |
+| AI can operate on your files    | Limited or No               | **Yes — built-in agent with full file access**                                                                                           |
+| AI can execute multi-step tasks | Limited                     | **Yes — autonomous with your approval**                                                                                                  |
+| Remote access from phone        | Rarely                      | **WebUI + Telegram / Lark / DingTalk / WeChat**                                                                                          |
+| Scheduled automation            | No                          | **Cron — 24/7 unattended**                                                                                                               |
+| Multiple AI Agents at once      | No                          | **Dozens of external agents — including Claude Code, Codex, Qwen Code, Hermes Agent, Cursor Agent, and more — in one unified interface** |
+| Price                           | Free / Paid                 | **Free & Open Source**                                                                                                                   |
 
 <p align="center">
   <img src="./resources/offica-ai BANNER-function.png" alt="AionUi Cowork Platform" width="800">
@@ -106,7 +106,7 @@ AionUi ships with a complete AI agent engine. Unlike tools that require you to i
 
 ### **Office assistants — PPT, Word & Excel**
 
-These tracks match what the app actually ships: **Morph PPT** presets and the **`pptx` / `docx` / `xlsx` skills** (see `assistant/` presets and `skills/` in the repo). Want document/table output? AionUi’s built-in **[OfficeCLI](https://github.com/iOfficeAI/OfficeCLI)** helps PPT (Morph), Word (`.docx`), and Excel (`.xlsx/.xlsm/.csv`) go from request to deliverable faster and more reliably.
+These tracks match what the app actually ships: **Morph PPT** presets and the **`pptx` / `docx` / `xlsx` skills**. The canonical [assistant catalog](https://github.com/iOfficeAI/AionCore/blob/main/crates/aionui-app/assets/builtin-assistants/assistants.json) and [built-in skills](https://github.com/iOfficeAI/AionCore/tree/main/crates/aionui-app/assets/builtin-skills) are maintained with AionCore. Want document/table output? AionUi’s built-in **[OfficeCLI](https://github.com/iOfficeAI/OfficeCLI)** helps PPT (Morph), Word (`.docx`), and Excel (`.xlsx/.xlsm/.csv`) go from request to deliverable faster and more reliably.
 The three assistant types map to file workflows, and the final outputs are directly editable and reusable.
 
 #### **PPT assistant**
@@ -163,7 +163,7 @@ The three assistant types map to file workflows, and the final outputs are direc
 
 If you already use Claude Code, Codex, Hermes Agent, or OpenClaw, AionUi auto-detects them and lets you Cowork with all of them — alongside the built-in agent.
 
-**Supported Agents:** Built-in Agent (zero setup) • Claude Code • Codex • Qwen Code • Goose AI • OpenClaw • Augment Code • CodeBuddy • Kimi CLI • OpenCode • Factory Droid • GitHub Copilot • Qoder CLI • Mistral Vibe • Nanobot • Aion CLI (aionrs, the Rust-based backend service shipped with AionUi) • Snow CLI • Hermes Agent • Cursor Agent and more
+**Supported Agents:** Built-in Agent (powered by the embedded [aionrs](https://github.com/iOfficeAI/aionrs) agent engine) • Claude Code • Codex • Qwen Code • Gemini CLI • Goose • OpenClaw • Augment Code • CodeBuddy • Kimi CLI • OpenCode • Factory Droid • GitHub Copilot • Qoder • Mistral Vibe • Nanobot • Snow • Hermes • Cursor Agent • Pi • MiMo Code • omp • Antigravity • and more
 
 <p align="center">
   <img src="./resources/multi-agent支持openclaw.gif" alt="Multi-Agent Cowork" width="800">
@@ -172,8 +172,8 @@ If you already use Claude Code, Codex, Hermes Agent, or OpenClaw, AionUi auto-de
 - **Auto Detection** — automatically recognizes installed CLI tools
 - **Unified Interface** — one Cowork platform for all your AI agents
 - **Parallel Sessions** — run multiple agents simultaneously with independent context
-- **MCP Unified Management** — configure MCP (Model Context Protocol) tools once, automatically sync to all agents — no need to configure each agent separately
-- **YOLO Mode** (auto-approve all agent actions without manual confirmation) / **Full-Auto Mode** — one click to bypass permission prompts; all agents support full-auto mode for unattended execution
+- **MCP Unified Management** — manage MCP (Model Context Protocol) tools in one place; AionUi injects or syncs compatible transports according to each agent's capabilities
+- **YOLO / Full-Auto Mode** — supported agents can expose an unattended mode; available modes and permission behavior depend on the selected agent
 
 ### Team Mode — Coordinated Multi-Agent Collaboration
 
@@ -183,7 +183,7 @@ Run multiple AI agents as an organized team: a **Leader** agent receives your in
   <img src="./resources/AionUi_team.gif" alt="Team Mode overview" width="800">
 </p>
 
-- **Parallel multi-agent execution** — Leader breaks tasks into subtasks and delegates to Teammate agents running in parallel; each Teammate uses its own model via ACP (Agent Communication Protocol, AionUi's multi-agent coordination layer), Gemini, or Aionrs
+- **Parallel multi-agent execution** — Leader breaks tasks into subtasks and delegates to Teammate agents running in parallel; each Teammate uses its own model through the selected backend. External agents connect through ACP (Agent Client Protocol), while AionUi coordinates the team
 - **Leader orchestration** — Leader assigns, tracks, and aggregates results; supported backends include Claude Code, Codex, Hermes Agent, Gemini, Snow CLI, and Aion CLI
 - **Team-isolated workspace** — all agents share the same folder; each has its own permission dialog with sidebar badge for pending approvals
 
@@ -279,10 +279,11 @@ AionUi includes **21 professional assistants** with predefined capabilities, ext
 - **📈 Beautiful Mermaid** — Flowcharts, sequence diagrams, and more
 - **🔧 OpenClaw Setup** — Setup and configuration assistant for OpenClaw integration
 - **📖 Story Roleplay** — Immersive story roleplay with character cards and world info (SillyTavern compatible)
+- **🧭 AionUi Butler** — Product guidance, setup help, and troubleshooting inside AionUi
 
-**Custom Skills**: Create skills in the `skills/` directory, enable/disable skills for assistants to extend AI capabilities. Skills come from three sources: builtin (shipped with AionUi), custom (your own), and Extension (contributed via the Extension SDK). Built-in skills include `pptx`, `docx`, `pdf`, `xlsx`, `mermaid`, and more.
+**Custom Skills**: Import or create skills from **Settings → Skills**, then attach them to assistants as needed. Skills come from three sources: built-in (shipped with AionUi), custom (your own), and Extension (contributed via the Extension SDK). Built-in skills include `pptx`, `docx`, `pdf`, `xlsx`, `mermaid`, and more.
 
-> 💡 Each assistant is defined by a markdown file. Check the `assistant/` directory for examples.
+> 💡 The canonical built-in definitions live in AionCore's [assistant catalog](https://github.com/iOfficeAI/AionCore/blob/main/crates/aionui-app/assets/builtin-assistants/assistants.json); assistant rules remain Markdown and can be customized in AionUi.
 
 </details>
 
@@ -368,7 +369,6 @@ _10+ formats: PDF, Word, Excel, PPT, code, Markdown, images, HTML, Diff — view
 - **Instant Preview** — after the agent generates files, view results immediately without switching apps
 - **Real-time Tracking + Editable** — automatically tracks file changes; supports live editing of Markdown, code, HTML
 - **Multi-Tab Support** — open multiple files simultaneously, each in its own tab
-- **Version History** — view and restore historical versions of files (Git-based)
 
 <p align="center">
   <img src="./resources/preview.gif" alt="Preview Panel" width="800">

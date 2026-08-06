@@ -15,6 +15,7 @@ import MobileActionSheet, {
 import SendBox from '@/renderer/components/chat/SendBox';
 import ThoughtDisplay from '@/renderer/components/chat/ThoughtDisplay';
 import FileAttachButton from '@/renderer/components/media/FileAttachButton';
+import { audioExts, getFileExtension, imageExts } from '@/renderer/services/FileService';
 import FilePreview from '@/renderer/components/media/FilePreview';
 import HorizontalFileList from '@/renderer/components/media/HorizontalFileList';
 import { classifyConfigSetError, useAcpConfigOptions } from '@/renderer/hooks/agent/useAcpConfigOptions';
@@ -150,6 +151,24 @@ const AcpSendBox: React.FC<{
       name,
       status: 'loaded',
     }));
+  const promptCapability = conversationContext?.promptCapability;
+  // Hint shown on a media chip when the agent takes no native image/audio
+  // blocks — the attachment then reaches it as a file path. SVG is never
+  // sent natively (vision APIs reject it), so it always hints like a path.
+  const mediaPathHintFor = useCallback(
+    (path: string): string | undefined => {
+      const ext = getFileExtension(path).toLowerCase();
+      const isNativeImage = ext !== '.svg' && imageExts.includes(ext);
+      const isNativeAudio = audioExts.includes(ext);
+      if (!isNativeImage && !isNativeAudio) return undefined;
+      const supported = isNativeImage ? promptCapability?.image : promptCapability?.audio;
+      if (supported) return undefined;
+      return t('conversation.sendbox.mediaPathFallback', {
+        defaultValue: 'This agent has no native support for this file type; it will be sent as a file path.',
+      });
+    },
+    [promptCapability, t]
+  );
   const [isMobileSheetOpen, setIsMobileSheetOpen] = useState(false);
   const [currentMode, setCurrentMode] = useState<string | undefined>(session_mode);
   const prepareRuntimeConfig = useCallback(async () => {
@@ -701,7 +720,7 @@ Please check your local CLI tool authentication status`,
     },
     [effectiveHandleStop, prioritize]
   );
-  const sendBoxWidthClass = getChatSurfaceWidthClass(Boolean(teamPermission));
+  const sendBoxWidthClass = getChatSurfaceWidthClass();
 
   return (
     <div className={`${sendBoxWidthClass} flex flex-col mt-auto mb-16px`}>
@@ -738,6 +757,8 @@ Please check your local CLI tool authentication status`,
           setAtPath(items);
         }}
         loading={teamRuntime?.loading ?? isBusy}
+        active={teamRuntime?.isActive}
+        onFocused={teamRuntime?.onFocus}
         disabled={false}
         placeholder={t('acp.sendbox.placeholder', {
           backend: agent_name || backend,
@@ -786,6 +807,7 @@ Please check your local CLI tool authentication status`,
                   <FilePreview
                     key={path}
                     path={path}
+                    hint={mediaPathHintFor(path)}
                     onRemove={() => setUploadFile(uploadFile.filter((v) => v !== path))}
                   />
                 ))}
@@ -840,9 +862,7 @@ Please check your local CLI tool authentication status`,
                 {t('team.interruptAndSend')}
               </Button>
             )}
-            {tokenUsage ? (
-              <ContextUsageIndicator tokenUsage={tokenUsage} context_limit={context_limit} size={24} />
-            ) : undefined}
+            {tokenUsage ? <ContextUsageIndicator tokenUsage={tokenUsage} context_limit={context_limit} /> : undefined}
           </>
         }
       ></SendBox>

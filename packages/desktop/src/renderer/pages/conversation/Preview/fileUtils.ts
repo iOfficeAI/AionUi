@@ -14,13 +14,33 @@ export const FILE_EXTENSION_MAP: Record<PreviewContentType, readonly string[]> =
   markdown: ['md', 'markdown', 'mdown', 'mkd'],
   html: ['html', 'htm'],
   pdf: ['pdf'],
-  word: ['doc', 'docx', 'odt'],
-  ppt: ['ppt', 'pptx', 'odp'],
-  excel: ['xls', 'xlsx', 'ods', 'csv'],
+  // Only what officecli actually renders. `.doc/.odt` moved to `unsupported`:
+  // routing them here produced a failure that told the user to install officecli,
+  // which does not help for a format it cannot open.
+  word: ['docx'],
+  ppt: ['pptx'],
+  excel: ['xlsx'],
+  // CSV is plain text, and officecli rejects it outright — so it reads as text
+  // rather than failing in a spreadsheet renderer.
+  csv: ['csv'],
   image: ['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'bmp', 'ico', 'tif', 'tiff', 'avif'],
   code: [], // code 作为默认类型，不需要显式映射 / code is the default type, no explicit mapping needed
   diff: ['diff', 'patch'],
+  /**
+   * Identifiable but genuinely unrenderable here — say so, and offer the escape
+   * hatch, instead of failing inside a renderer that never had a chance:
+   *
+   * - `doc/xls/ppt` legacy Office binaries and `odt/ods/odp` ODF: officecli only
+   *   handles the OOXML trio.
+   * - `docm/xlsm/pptm` macro-enabled: officecli's factory claims them, but its
+   *   watch path accepts only pptx/docx/xlsx, so they fail on startup instead.
+   * - `heic`: Chromium has no HEVC decoder (licensing), so mapping it to `image`
+   *   yields a broken-image placeholder with no explanation — strictly worse than
+   *   saying it is unsupported.
+   */
+  unsupported: ['doc', 'xls', 'ppt', 'odt', 'ods', 'odp', 'docm', 'xlsm', 'pptm', 'heic'],
   url: [], // url 类型用于网页预览，无扩展名映射 / url type for web preview, no extension mapping
+  browser: [], // browser 类型用于应用内浏览器 tab，无扩展名映射 / browser type for in-app browser tabs, no extension mapping
 };
 
 /**
@@ -102,7 +122,7 @@ export const isImageFile = (file_path: string): boolean => {
  */
 export const isTextFile = (file_path: string): boolean => {
   const contentType = getContentTypeByExtension(file_path);
-  return ['markdown', 'html', 'code'].includes(contentType);
+  return ['markdown', 'html', 'code', 'csv'].includes(contentType);
 };
 
 /**

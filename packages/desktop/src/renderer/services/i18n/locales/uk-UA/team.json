@@ -101,7 +101,8 @@
   "view": {
     "label": "View",
     "parallel": "Parallel",
-    "single": "Single"
+    "single": "Single",
+    "board": "Дошка"
   },
   "warmup": {
     "title": "Waking up the team…",
@@ -122,5 +123,40 @@
   "clearCommand": {
     "member": "Очистити контекст цього учасника",
     "leader": "Очистити контекст учасника: /clear <ім'я учасника>"
+  },
+  "activity": {
+    "control": {
+      "sortNewest": "Найновіші",
+      "sortOldest": "Найстаріші",
+      "filterAll": "Усі",
+      "filterMessages": "Повідомлення",
+      "filterTasks": "Завдання",
+      "allMembers": "Усі учасники",
+      "showSystem": "Системні повідомлення",
+      "showTerminal": "Завершені завдання"
+    },
+    "fallbackLane": "Без призначення / зовнішні",
+    "empty": "Поки що немає активності",
+    "userIdentity": "Користувач / зовнішній",
+    "broadcast": "Надіслати всім",
+    "read": "Прочитано",
+    "unread": "Непрочитано",
+    "attachments": "Вкладень: {{count}}",
+    "expand": "Розгорнути",
+    "collapse": "Згорнути",
+    "blockedBy": "заблоковано #{{id}}",
+    "blockedByNamed": "заблоковано «{{name}}»",
+    "blockerUnknown": "Завдання недоступне",
+    "status": {
+      "pending": "Очікує",
+      "in_progress": "У роботі",
+      "completed": "Завершено",
+      "deleted": "Видалено"
+    },
+    "msgType": {
+      "message": "Повідомлення",
+      "idle_notification": "Сповіщення про простій",
+      "shutdown_request": "Запит на зупинку"
+    }
   }
 }
