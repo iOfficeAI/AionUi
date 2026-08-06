@@ -154,11 +154,17 @@ describe('ExplorerContainer data integration', () => {
   });
 
   it('refetches and re-projects when projectId changes', async () => {
-    projectGet.mockImplementation(async ({ project_id }) =>
-      project_id === 'p1'
-        ? detail([entry({ pe_id: 'peA', display_name: 'Root Alpha' })], 'p1')
-        : detail([entry({ pe_id: 'peB', display_name: 'Root Beta' })], 'p2')
-    );
+    // Echo the requested project_id into the returned detail — faithfully models
+    // the key-derived fetcher (a fetch for key X always resolves project X's
+    // data), so the container's `project_id === projectId` guard sees a match for
+    // whichever project is mounted. Avoids a hardcoded id that would rot.
+    projectGet.mockImplementation(async ({ project_id }) => {
+      const isP1 = project_id === 'p1';
+      return detail(
+        [entry({ pe_id: isP1 ? 'peA' : 'peB', display_name: isP1 ? 'Root Alpha' : 'Root Beta' })],
+        project_id
+      );
+    });
 
     const { rerender } = renderContainer('p1');
     expect(await screen.findByText('Root Alpha')).toBeInTheDocument();
