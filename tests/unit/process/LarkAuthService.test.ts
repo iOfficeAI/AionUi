@@ -4,12 +4,18 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 import type { LarkAuthServiceError } from '@/process/services/LarkAuthService';
 import {
   configureSharedPersonalModelGateway,
+  ElectronLarkAuthSessionStore,
   getSharedLarkAuthService,
+  initializeSharedPersonalModelGateway,
   LarkAuthService,
+  type LarkAuthSafeStorageAdapter,
   pollSharedLarkAuthSession,
   resolveDesktopLarkAuthStatus,
 } from '@/process/services/LarkAuthService';
@@ -21,6 +27,8 @@ function jsonResponse(body: unknown, status = 200): Response {
   });
 }
 
+const xor = (value: Buffer): Buffer => Buffer.from(value.map((byte) => byte ^ 0xa5));
+
 describe('LarkAuthService', () => {
   it('uses the local system user in desktop development', () => {
     expect(resolveDesktopLarkAuthStatus(false, { authenticated: false })).toEqual({
@@ -31,6 +39,15 @@ describe('LarkAuthService', () => {
         username: 'admin',
       },
     });
+  });
+
+  it('preserves the authenticated GEA user in desktop development', () => {
+    const status = {
+      authenticated: true,
+      user: { id: '10086', realname: '张三', username: 'zhangsan' },
+    };
+
+    expect(resolveDesktopLarkAuthStatus(false, status)).toBe(status);
   });
 
   it('preserves the real GEA authentication status in packaged builds', () => {
@@ -56,6 +73,22 @@ describe('LarkAuthService', () => {
     });
     expect(sync).toHaveBeenCalledWith(user, service);
     pollSpy.mockRestore();
+  });
+
+  it('restores personal model routes for an authenticated session during startup', async () => {
+    const service = getSharedLarkAuthService();
+    const user = { id: '10086', realname: '张三', username: 'zhangsan' };
+    const statusSpy = vi.spyOn(service, 'getStatus').mockReturnValue({ authenticated: true, user });
+    const sync = vi.fn().mockResolvedValue({ configured: 1, failed: 0, skipped: 0, status: 'completed' });
+
+    await expect(initializeSharedPersonalModelGateway({ deactivate: vi.fn(), sync })).resolves.toEqual({
+      configured: 1,
+      failed: 0,
+      skipped: 0,
+      status: 'completed',
+    });
+    expect(sync).toHaveBeenCalledWith(user, service);
+    statusSpy.mockRestore();
   });
 
   it('creates a QR session using the GEA state format', async () => {
@@ -117,8 +150,143 @@ describe('LarkAuthService', () => {
     expect(userInfoRequest[0]).toBe('https://gea.synear.cn/gea-boot/sys/user/getUserInfo');
     expect(userInfoRequest[1]?.headers).toMatchObject({ 'X-Access-Token': 'sensitive-token' });
 
-    service.logout();
+    await service.logout();
     expect(service.getStatus()).toEqual({ authenticated: false });
+  });
+
+  it('restores an authenticated session after the app process restarts', async () => {
+    let storedSession: { accessToken: string } | null = null;
+    const sessionStore = {
+      load: vi.fn(async () => storedSession),
+      save: vi.fn(async (session: { accessToken: string }) => {
+        storedSession = session;
+      }),
+      clear: vi.fn(async () => {
+        storedSession = null;
+      }),
+    };
+    const loginFetch = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse({ success: true, result: { success: true, token: 'persisted-token' } }))
+      .mockResolvedValueOnce(
+        jsonResponse({
+          success: true,
+          result: { userInfo: { id: '10086', username: 'zhangsan', realname: '张三', loginTenantId: 1 } },
+        })
+      );
+    const firstProcess = new LarkAuthService({ fetchImpl: loginFetch, sessionStore });
+
+    await firstProcess.pollQrSession('QRCODELOGIN:1');
+    expect(sessionStore.save).toHaveBeenCalledWith({ accessToken: 'persisted-token' });
+
+    const restoreFetch = vi.fn().mockResolvedValueOnce(
+      jsonResponse({
+        success: true,
+        result: { userInfo: { id: '10086', username: 'zhangsan', realname: '张三', loginTenantId: 1 } },
+      })
+    );
+    const restartedProcess = new LarkAuthService({ fetchImpl: restoreFetch, sessionStore });
+    await restartedProcess.initializeSession();
+
+    expect(restartedProcess.getStatus()).toMatchObject({
+      authenticated: true,
+      user: { id: '10086', realname: '张三' },
+    });
+    expect(restoreFetch).toHaveBeenCalledWith(
+      'https://gea.synear.cn/gea-boot/sys/user/getUserInfo',
+      expect.objectContaining({ headers: expect.objectContaining({ 'X-Access-Token': 'persisted-token' }) })
+    );
+
+    await restartedProcess.logout();
+    expect(sessionStore.clear).toHaveBeenCalledOnce();
+    expect(storedSession).toBeNull();
+  });
+
+  it('clears a persisted session when GEA rejects the token', async () => {
+    const sessionStore = {
+      load: vi.fn().mockResolvedValue({ accessToken: 'expired-token' }),
+      save: vi.fn(),
+      clear: vi.fn().mockResolvedValue(undefined),
+    };
+    const fetchImpl = vi.fn().mockResolvedValueOnce(jsonResponse({ success: false }, 401));
+    const service = new LarkAuthService({ fetchImpl, sessionStore });
+
+    await service.initializeSession();
+
+    expect(service.getStatus()).toEqual({ authenticated: false });
+    expect(fetchImpl).toHaveBeenCalledOnce();
+    expect(sessionStore.clear).toHaveBeenCalledOnce();
+  });
+
+  it('retries restoration after a transient network failure', async () => {
+    const sessionStore = {
+      load: vi.fn().mockResolvedValue({ accessToken: 'persisted-token' }),
+      save: vi.fn(),
+      clear: vi.fn(),
+    };
+    const fetchImpl = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('offline'))
+      .mockResolvedValueOnce(
+        jsonResponse({
+          success: true,
+          result: { userInfo: { id: '10086', username: 'zhangsan', realname: '张三', loginTenantId: 1 } },
+        })
+      );
+    const service = new LarkAuthService({ fetchImpl, sessionStore });
+
+    await service.initializeSession();
+
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+    expect(service.getStatus()).toMatchObject({ authenticated: true, user: { id: '10086' } });
+    expect(sessionStore.clear).not.toHaveBeenCalled();
+  });
+
+  it('does not report logout success when the persisted session cannot be removed', async () => {
+    const sessionStore = {
+      load: vi.fn().mockResolvedValue({ accessToken: 'persisted-token' }),
+      save: vi.fn(),
+      clear: vi.fn().mockRejectedValue(new Error('disk unavailable')),
+    };
+    const fetchImpl = vi.fn().mockResolvedValue(
+      jsonResponse({
+        success: true,
+        result: { userInfo: { id: '10086', username: 'zhangsan', realname: '张三', loginTenantId: 1 } },
+      })
+    );
+    const service = new LarkAuthService({ fetchImpl, sessionStore });
+    await service.initializeSession();
+
+    await expect(service.logout()).rejects.toThrow('disk unavailable');
+    expect(service.getStatus()).toMatchObject({ authenticated: true, user: { id: '10086' } });
+  });
+
+  it('persists the desktop session only as encrypted bytes and removes invalid data', async () => {
+    const tempDir = await mkdtemp(path.join(os.tmpdir(), 'aionui-lark-auth-'));
+    const filePath = path.join(tempDir, 'lark-auth-session.bin');
+    const storage: LarkAuthSafeStorageAdapter = {
+      isEncryptionAvailable: () => true,
+      getSelectedStorageBackend: () => 'gnome_libsecret',
+      encryptString: (value) => xor(Buffer.from(value, 'utf8')),
+      decryptString: (value) => xor(value).toString('utf8'),
+    };
+
+    try {
+      const store = new ElectronLarkAuthSessionStore(filePath, storage);
+      await store.save({ accessToken: 'sensitive-platform-token' });
+
+      const persisted = await readFile(filePath);
+      expect(persisted.toString('utf8')).not.toContain('sensitive-platform-token');
+      await expect(new ElectronLarkAuthSessionStore(filePath, storage).load()).resolves.toEqual({
+        accessToken: 'sensitive-platform-token',
+      });
+
+      await writeFile(filePath, xor(Buffer.from('{"version":1}', 'utf8')));
+      await expect(new ElectronLarkAuthSessionStore(filePath, storage).load()).resolves.toBeNull();
+      await expect(readFile(filePath)).rejects.toMatchObject({ code: 'ENOENT' });
+    } finally {
+      await rm(tempDir, { recursive: true, force: true });
+    }
   });
 
   it('rejects an invalid GEA response without accepting an empty token', async () => {
@@ -215,7 +383,7 @@ describe('LarkAuthService', () => {
     expect(fetchImpl.mock.calls[3][1]?.body).toContain('delegation-token');
     expect(fetchImpl.mock.calls[4][1]?.body).toContain('delegation-token');
 
-    service.logout();
+    await service.logout();
     await expect(gatewaySession.listTools()).rejects.toMatchObject({ code: 'GEA_LOGIN_REQUIRED' });
   });
 

@@ -19,6 +19,8 @@ export {
 } from './gea-lark-auth.js';
 export type {
   GeaClaimedPersonalModelCredential,
+  GeaLarkAuthSession,
+  GeaLarkAuthSessionStore,
   GeaMcpGatewayCallResult,
   GeaMcpGatewaySession,
   GeaMcpGatewayTool,

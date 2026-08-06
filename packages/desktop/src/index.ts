@@ -73,7 +73,11 @@ import {
   setIsQuitting,
 } from './process/utils/tray';
 import { readCloseToTraySetting } from './process/utils/closeToTraySetting';
-import { configureSharedPersonalModelGateway } from './process/services/LarkAuthService';
+import {
+  getSharedLarkAuthSessionStore,
+  initializeSharedLarkAuthSession,
+  initializeSharedPersonalModelGateway,
+} from './process/services/LarkAuthService';
 import { getPersonalModelGatewayRuntime } from './process/services/PersonalModelGatewayRuntime';
 // @ts-expect-error - electron-squirrel-startup doesn't have types
 import electronSquirrelStartup from 'electron-squirrel-startup';
@@ -370,7 +374,9 @@ function markBackendReady(backendPort: number, source: string): void {
   if (backendStartedOk) return;
   console.log(`[AionUi] ${source} ready (port=${backendPort})`);
   exposeBackendPort(backendPort);
-  configureSharedPersonalModelGateway(getPersonalModelGatewayRuntime());
+  void initializeSharedPersonalModelGateway(getPersonalModelGatewayRuntime()).catch((error) => {
+    console.warn('[AionUi] Failed to restore GEA personal models:', error);
+  });
   registerCronResumeBridge(backendPort);
   backendStartedOk = true;
   backendStartupFailed = false;
@@ -675,6 +681,13 @@ const handleAppReady = async (): Promise<void> => {
     console.error('Failed to initialize process:', error);
     app.exit(1);
     return;
+  }
+
+  try {
+    await initializeSharedLarkAuthSession(getSharedLarkAuthSessionStore());
+    mark('restoreLarkAuthSession');
+  } catch (error) {
+    console.warn('[AionUi] Failed to restore Lark authentication session:', error);
   }
 
   const debugBackendStartupFailure = resolveDebugBackendStartupFailure();

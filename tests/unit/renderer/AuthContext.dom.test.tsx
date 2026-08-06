@@ -31,6 +31,7 @@ import { AuthProvider, useAuth } from '@renderer/hooks/context/AuthContext';
 const Probe = () => {
   const { logout, pollLarkQrLogin, startLarkQrLogin, status, user } = useAuth();
   const [qrcodeId, setQrcodeId] = useState('');
+  const [logoutFailed, setLogoutFailed] = useState(false);
 
   return (
     <div>
@@ -47,7 +48,8 @@ const Probe = () => {
         start
       </button>
       <button onClick={() => void pollLarkQrLogin('QRCODELOGIN:1')}>poll</button>
-      <button onClick={() => void logout()}>logout</button>
+      <button onClick={() => void logout().catch(() => setLogoutFailed(true))}>logout</button>
+      {logoutFailed && <span>logout failed</span>}
     </div>
   );
 };
@@ -103,5 +105,20 @@ describe('desktop AuthProvider', () => {
     fireEvent.click(screen.getByText('logout'));
     await waitFor(() => expect(screen.getByText('unauthenticated')).toBeInTheDocument());
     expect(screen.queryByText('张三')).toBeNull();
+  });
+
+  it('keeps the authenticated user when persistent logout fails', async () => {
+    bridgeMocks.logout.mockResolvedValue({ success: false, code: 'serverError' });
+    renderProbe();
+    await waitFor(() => expect(screen.getByText('unauthenticated')).toBeInTheDocument());
+
+    fireEvent.click(screen.getByText('poll'));
+    await waitFor(() => expect(screen.getByText('张三')).toBeInTheDocument());
+
+    fireEvent.click(screen.getByText('logout'));
+
+    await waitFor(() => expect(screen.getByText('logout failed')).toBeInTheDocument());
+    expect(screen.getByText('authenticated')).toBeInTheDocument();
+    expect(screen.getByText('张三')).toBeInTheDocument();
   });
 });

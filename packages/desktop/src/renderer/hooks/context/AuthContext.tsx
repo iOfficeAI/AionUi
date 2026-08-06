@@ -145,7 +145,8 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
 
   const logout = useCallback(async () => {
     if (isDesktopRuntime) {
-      await ipcBridge.larkAuth.logout.invoke();
+      const result = await ipcBridge.larkAuth.logout.invoke();
+      if (result.success === false) throw new Error(result.code);
       setUser(null);
       setStatus('unauthenticated');
       setReady(true);

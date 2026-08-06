@@ -9,10 +9,23 @@ import type {
 const DEFAULT_GEA_BASE_URL = 'https://gea.synear.cn/gea-boot';
 const DEFAULT_GEA_TENANT_ID = '0';
 const QR_CODE_EXPIRES_IN_SECONDS = 300;
+const SESSION_RESTORE_ATTEMPTS = 2;
+const SESSION_RESTORE_RETRY_DELAY_MS = 100;
+const SESSION_RESTORE_TIMEOUT_MS = 2_500;
 const PERSONAL_CREDENTIAL_PAGE_SIZE = 100;
 
 type FetchLike = typeof fetch;
 type LarkAuthErrorCode = 'invalidResponse' | 'networkError' | 'serverError';
+
+export type GeaLarkAuthSession = {
+  accessToken: string;
+};
+
+export type GeaLarkAuthSessionStore = {
+  clear: () => Promise<void>;
+  load: () => Promise<GeaLarkAuthSession | null>;
+  save: (session: GeaLarkAuthSession) => Promise<void>;
+};
 
 type GeaResponse<T> = {
   code?: string | number;
@@ -135,11 +148,13 @@ type OpenAiModelsResponse = {
 
 export class GeaLarkAuthServiceError extends Error {
   readonly code: LarkAuthErrorCode;
+  readonly httpStatus?: number;
 
-  constructor(code: LarkAuthErrorCode) {
+  constructor(code: LarkAuthErrorCode, httpStatus?: number) {
     super(code);
     this.name = 'LarkAuthServiceError';
     this.code = code;
+    this.httpStatus = httpStatus;
   }
 }
 
@@ -177,7 +192,7 @@ function resolveAvatarUrl(baseUrl: string, value: string): string | undefined {
 
 async function readJson<T>(response: Response): Promise<GeaResponse<T>> {
   if (!response.ok) {
-    throw new GeaLarkAuthServiceError('serverError');
+    throw new GeaLarkAuthServiceError('serverError', response.status);
   }
   try {
     return (await response.json()) as GeaResponse<T>;
@@ -189,14 +204,32 @@ async function readJson<T>(response: Response): Promise<GeaResponse<T>> {
 export class GeaLarkAuthService {
   private readonly baseUrl: string;
   private readonly fetchImpl: FetchLike;
+  private sessionStore: GeaLarkAuthSessionStore | null;
   private accessToken: string | null = null;
   private authGeneration = 0;
   private currentTenantId = DEFAULT_GEA_TENANT_ID;
   private currentUser: WebHostLarkAuthUser | null = null;
 
-  constructor(options: { baseUrl?: string; fetchImpl?: FetchLike } = {}) {
+  constructor(options: { baseUrl?: string; fetchImpl?: FetchLike; sessionStore?: GeaLarkAuthSessionStore } = {}) {
     this.baseUrl = normalizeBaseUrl(options.baseUrl ?? process.env.AUTH_BROKER_PUBLIC_URL ?? DEFAULT_GEA_BASE_URL);
     this.fetchImpl = options.fetchImpl ?? fetch;
+    this.sessionStore = options.sessionStore ?? null;
+  }
+
+  async initializeSession(sessionStore?: GeaLarkAuthSessionStore): Promise<void> {
+    if (sessionStore) this.sessionStore = sessionStore;
+    const store = this.sessionStore;
+    if (!store) return;
+
+    let session: GeaLarkAuthSession | null;
+    try {
+      session = await store.load();
+    } catch {
+      return;
+    }
+    if (!session) return;
+
+    await this.restoreSession(session, store, SESSION_RESTORE_ATTEMPTS);
   }
 
   async createQrSession(): Promise<WebHostLarkQrLoginSession> {
@@ -249,10 +282,8 @@ export class GeaLarkAuthService {
     }
 
     const { tenantId, user } = await this.fetchCurrentUser(token);
-    this.accessToken = token;
-    this.authGeneration += 1;
-    this.currentTenantId = tenantId;
-    this.currentUser = user;
+    this.acceptAuthenticatedSession(token, tenantId, user);
+    await this.sessionStore?.save({ accessToken: token }).catch(() => {});
     return { status: 'authenticated', user };
   }
 
@@ -262,7 +293,8 @@ export class GeaLarkAuthService {
       : { authenticated: false };
   }
 
-  logout(): void {
+  async logout(): Promise<void> {
+    await this.sessionStore?.clear();
     this.accessToken = null;
     this.authGeneration += 1;
     this.currentTenantId = DEFAULT_GEA_TENANT_ID;
@@ -505,11 +537,15 @@ export class GeaLarkAuthService {
     }
   }
 
-  private async fetchCurrentUser(token: string): Promise<{ tenantId: string; user: WebHostLarkAuthUser }> {
+  private async fetchCurrentUser(
+    token: string,
+    signal?: AbortSignal
+  ): Promise<{ tenantId: string; user: WebHostLarkAuthUser }> {
     let response: Response;
     try {
       response = await this.fetchImpl(`${this.baseUrl}/sys/user/getUserInfo`, {
         headers: { Accept: 'application/json', 'X-Access-Token': token },
+        signal,
       });
     } catch {
       throw new GeaLarkAuthServiceError('networkError');
@@ -537,6 +573,40 @@ export class GeaLarkAuthService {
       },
     };
   }
+
+  private async restoreSession(
+    session: GeaLarkAuthSession,
+    sessionStore: GeaLarkAuthSessionStore,
+    attemptsRemaining: number
+  ): Promise<void> {
+    try {
+      const { tenantId, user } = await this.fetchCurrentUser(
+        session.accessToken,
+        AbortSignal.timeout(SESSION_RESTORE_TIMEOUT_MS)
+      );
+      this.acceptAuthenticatedSession(session.accessToken, tenantId, user);
+    } catch (error) {
+      if (error instanceof GeaLarkAuthServiceError && (error.httpStatus === 401 || error.httpStatus === 403)) {
+        await sessionStore.clear().catch(() => {});
+        return;
+      }
+      if (!isRetryableSessionRestoreError(error) || attemptsRemaining <= 1) return;
+      await new Promise((resolve) => setTimeout(resolve, SESSION_RESTORE_RETRY_DELAY_MS));
+      await this.restoreSession(session, sessionStore, attemptsRemaining - 1);
+    }
+  }
+
+  private acceptAuthenticatedSession(token: string, tenantId: string, user: WebHostLarkAuthUser): void {
+    this.accessToken = token;
+    this.authGeneration += 1;
+    this.currentTenantId = tenantId;
+    this.currentUser = user;
+  }
+}
+
+function isRetryableSessionRestoreError(error: unknown): boolean {
+  if (!(error instanceof GeaLarkAuthServiceError)) return false;
+  return error.code === 'networkError' || (error.code === 'serverError' && (error.httpStatus ?? 500) >= 500);
 }
 
 function parsePersonalCredential(value: unknown): GeaPersonalModelCredential {
