@@ -16,8 +16,6 @@ export const EnvStorage = buildStorage<IEnvStorageRefer>('agent.env');
 
 export interface IConfigStorageRefer {
   language: string;
-  theme: string; // @deprecated migrated to theme.activeId/theme.userThemes
-  colorScheme: string; // @deprecated migrated to theme.activeId/theme.userThemes
   /** Persisted app-wide UI zoom factor for Display settings */
   'ui.zoomFactor'?: number;
   /** Per-region configurable font sizes (px), set in Appearance settings */
@@ -32,9 +30,6 @@ export interface IConfigStorageRefer {
   'webui.desktop.allowRemote'?: boolean;
   /** 桌面模式下 WebUI 端口 / WebUI port in desktop mode */
   'webui.desktop.port'?: number;
-  customCss: string; // 自定义 CSS 样式 // @deprecated migrated to theme.activeId/theme.userThemes
-  'css.themes': ICssTheme[]; // 自定义 CSS 主题列表 / Custom CSS themes list // @deprecated migrated to theme.activeId/theme.userThemes
-  'css.activeThemeId': string; // 当前激活的主题 ID / Currently active theme ID // @deprecated migrated to theme.activeId/theme.userThemes
   /** Active unified theme ID */
   'theme.activeId': string;
   /** User-created themes */
