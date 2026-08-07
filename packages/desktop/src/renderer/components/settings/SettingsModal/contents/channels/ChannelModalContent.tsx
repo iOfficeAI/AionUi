@@ -20,11 +20,12 @@ import ChannelItem from './ChannelItem';
 import type { ChannelConfig } from './types';
 import DingTalkConfigForm from './DingTalkConfigForm';
 import LarkConfigForm from './LarkConfigForm';
+import SlackConfigForm from './SlackConfigForm';
 import TelegramConfigForm from './TelegramConfigForm';
 import WeixinConfigForm from './WeixinConfigForm';
 import WecomConfigForm from './WecomConfigForm';
 
-type ChannelSettingsPlatform = 'telegram' | 'lark' | 'dingtalk' | 'weixin' | 'wecom';
+type ChannelSettingsPlatform = 'telegram' | 'lark' | 'dingtalk' | 'weixin' | 'wecom' | 'slack';
 
 type ExtensionFieldType = 'text' | 'password' | 'select' | 'number' | 'boolean';
 
@@ -148,11 +149,13 @@ const ChannelModalContent: React.FC = () => {
   const [dingtalkPluginStatus, setDingtalkPluginStatus] = useState<IChannelPluginStatus | null>(null);
   const [weixinPluginStatus, setWeixinPluginStatus] = useState<IChannelPluginStatus | null>(null);
   const [wecomPluginStatus, setWecomPluginStatus] = useState<IChannelPluginStatus | null>(null);
+  const [slackPluginStatus, setSlackPluginStatus] = useState<IChannelPluginStatus | null>(null);
   const [enableLoading, setEnableLoading] = useState(false);
   const [larkEnableLoading, setLarkEnableLoading] = useState(false);
   const [dingtalkEnableLoading, setDingtalkEnableLoading] = useState(false);
   const [weixinEnableLoading, setWeixinEnableLoading] = useState(false);
   const [wecomEnableLoading, setWecomEnableLoading] = useState(false);
+  const [slackEnableLoading, setSlackEnableLoading] = useState(false);
   const [extensionStatuses, setExtensionStatuses] = useState<Record<string, IChannelPluginStatus>>({});
   const [extensionLoadingMap, setExtensionLoadingMap] = useState<Record<string, boolean>>({});
   const [extensionFieldValues, setExtensionFieldValues] = useState<ExtensionFieldValues>({});
@@ -178,6 +181,7 @@ const ChannelModalContent: React.FC = () => {
   const dingtalkModelSelection = useChannelModelSelection('dingtalk');
   const weixinModelSelection = useChannelModelSelection('weixin');
   const wecomModelSelection = useChannelModelSelection('wecom');
+  const slackModelSelection = useChannelModelSelection('slack');
 
   // Load plugin status
   const loadPluginStatus = useCallback(async () => {
@@ -190,6 +194,7 @@ const ChannelModalContent: React.FC = () => {
         const dingtalkPlugin = plugins.find((p) => p.type === 'dingtalk');
         const weixinPlugin = plugins.find((p) => p.type === 'weixin');
         const wecomPlugin = plugins.find((p) => p.type === 'wecom');
+        const slackPlugin = plugins.find((p) => p.type === 'slack');
         const extensionPlugins = plugins.filter((p) => !BUILTIN_CHANNEL_TYPES.has(p.type));
 
         setPluginStatus(telegramPlugin || null);
@@ -197,6 +202,7 @@ const ChannelModalContent: React.FC = () => {
         setDingtalkPluginStatus(dingtalkPlugin || null);
         setWeixinPluginStatus(weixinPlugin || null);
         setWecomPluginStatus(wecomPlugin || null);
+        setSlackPluginStatus(slackPlugin || null);
         setExtensionStatuses(() => {
           const next: Record<string, IChannelPluginStatus> = {};
           for (const plugin of extensionPlugins) {
@@ -262,6 +268,8 @@ const ChannelModalContent: React.FC = () => {
         setWeixinPluginStatus(status);
       } else if (status.type === 'wecom') {
         setWecomPluginStatus(status);
+      } else if (status.type === 'slack') {
+        setSlackPluginStatus(status);
       } else if (!BUILTIN_CHANNEL_TYPES.has(status.type)) {
         setExtensionStatuses((prev) => ({
           ...prev,
@@ -384,6 +392,39 @@ const ChannelModalContent: React.FC = () => {
       Message.error(error instanceof Error ? error.message : String(error));
     } finally {
       setDingtalkEnableLoading(false);
+    }
+  };
+
+  // Enable/Disable Slack plugin
+  const handleToggleSlackPlugin = async (enabled: boolean) => {
+    setSlackEnableLoading(true);
+    try {
+      if (enabled) {
+        if (!slackPluginStatus?.hasToken) {
+          Message.warning(t('settings.slack.credentialsRequired', 'Please configure Slack credentials first'));
+          setSlackEnableLoading(false);
+          return;
+        }
+
+        await channel.enablePlugin.invoke({
+          plugin_id: 'slack',
+          config: {},
+        });
+
+        Message.success(t('settings.slack.pluginEnabled', 'Slack bot enabled'));
+        await loadPluginStatus();
+      } else {
+        await channel.disablePlugin.invoke({
+          plugin_id: 'slack',
+        });
+
+        Message.success(t('settings.slack.pluginDisabled', 'Slack bot disabled'));
+        await loadPluginStatus();
+      }
+    } catch (error: unknown) {
+      Message.error(error instanceof Error ? error.message : String(error));
+    } finally {
+      setSlackEnableLoading(false);
     }
   };
 
@@ -710,6 +751,25 @@ const ChannelModalContent: React.FC = () => {
       ),
     };
 
+    const slackChannel: ChannelConfig = {
+      id: 'slack',
+      title: t('settings.channels.slackTitle', 'Slack'),
+      description: t('settings.channels.slackDesc', 'Chat with AionUi assistant via Slack'),
+      status: 'active',
+      enabled: slackPluginStatus?.enabled || false,
+      disabled: slackEnableLoading,
+      is_connected: slackPluginStatus?.connected || false,
+      botUsername: slackPluginStatus?.botUsername,
+      defaultModel: slackModelSelection.current_model?.use_model,
+      content: (
+        <SlackConfigForm
+          pluginStatus={slackPluginStatus}
+          modelSelection={slackModelSelection}
+          onStatusChange={setSlackPluginStatus}
+        />
+      ),
+    };
+
     const wecomChannel: ChannelConfig = {
       id: 'wecom',
       title: t('settings.channels.wecomTitle', 'WeCom'),
@@ -748,21 +808,6 @@ const ChannelModalContent: React.FC = () => {
     const extensionTypeSet = new Set(extensionChannels.map((channel) => String(channel.id).toLowerCase()));
     const comingSoonChannels: ChannelConfig[] = [
       {
-        id: 'slack',
-        title: t('settings.channels.slackTitle', 'Slack'),
-        description: t('settings.channels.slackDesc', 'Chat with AionUi assistant via Slack'),
-        status: 'coming_soon' as const,
-        enabled: false,
-        disabled: true,
-        content: (
-          <div className='text-14px text-t-secondary py-12px'>
-            {t('settings.channels.comingSoonDesc', 'Support for {{channel}} is coming soon', {
-              channel: t('settings.channels.slackTitle', 'Slack'),
-            })}
-          </div>
-        ),
-      },
-      {
         id: 'discord',
         title: t('settings.channels.discordTitle', 'Discord'),
         description: t('settings.channels.discordDesc', 'Chat with AionUi assistant via Discord'),
@@ -783,6 +828,7 @@ const ChannelModalContent: React.FC = () => {
       telegramChannel,
       larkChannel,
       dingtalkChannel,
+      slackChannel,
       weixinChannel,
       wecomChannel,
       ...extensionChannels,
@@ -792,14 +838,17 @@ const ChannelModalContent: React.FC = () => {
     pluginStatus,
     larkPluginStatus,
     dingtalkPluginStatus,
+    slackPluginStatus,
     extensionStatuses,
     extensionLoadingMap,
     telegramModelSelection,
     larkModelSelection,
     dingtalkModelSelection,
+    slackModelSelection,
     enableLoading,
     larkEnableLoading,
     dingtalkEnableLoading,
+    slackEnableLoading,
     weixinPluginStatus,
     weixinEnableLoading,
     weixinModelSelection,
@@ -816,6 +865,7 @@ const ChannelModalContent: React.FC = () => {
     if (channelId === 'telegram') return handleTogglePlugin;
     if (channelId === 'lark') return handleToggleLarkPlugin;
     if (channelId === 'dingtalk') return handleToggleDingtalkPlugin;
+    if (channelId === 'slack') return handleToggleSlackPlugin;
     if (channelId === 'weixin') return handleToggleWeixinPlugin;
     if (channelId === 'wecom') return handleToggleWecomPlugin;
     if (extensionStatuses[channelId]) {

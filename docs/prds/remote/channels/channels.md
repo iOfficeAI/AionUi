@@ -1,9 +1,10 @@
 # 设置页 → 远程连接 — Channels 渠道接入 (F-CHAN)
 
-> 本文档覆盖「设置 → 远程连接」页面 **Channels Tab** 的全部功能，包括渠道卡片总览、各 IM 渠道配置（Telegram/Lark/DingTalk/WeChat/WeCom）、Agent/模型选择、配对授权通用流程、扩展渠道支持。
+> 本文档覆盖「设置 → 远程连接」页面 **Channels Tab** 的全部功能，包括渠道卡片总览、各 IM 渠道配置（Telegram/Lark/DingTalk/WeChat/WeCom/Slack）、Agent/模型选择、配对授权通用流程、扩展渠道支持。
 > 基于静态代码分析和动态 UI 验证综合整理。
 >
 > WebUI Tab 相关内容见 [webui.md](../webui/webui.md)。
+> Slack 用户安装指南见 [slack/Slack-Bot-Setup-Guide.md](slack/Slack-Bot-Setup-Guide.md)。
 
 ---
 
@@ -22,18 +23,18 @@
 
 **渠道列表与排序**：
 
-| 顺序 | 渠道          | pluginId                | 状态        |
-| ---- | ------------- | ----------------------- | ----------- |
-| 1    | Telegram      | `telegram_default`      | active      |
-| 2    | Lark / Feishu | `lark_default`          | active      |
-| 3    | DingTalk      | `dingtalk_default`      | active      |
-| 4    | WeChat        | `weixin_default`        | active      |
-| 5    | WeCom         | `wecom_default`         | active      |
-| 6+   | 扩展渠道      | 动态（`extensionMeta`） | active      |
-| 末尾 | Slack         | -                       | coming_soon |
-| 末尾 | Discord       | -                       | coming_soon |
+| 顺序 | 渠道          | pluginId / type         | 状态                   |
+| ---- | ------------- | ----------------------- | ---------------------- |
+| 1    | Telegram      | `telegram`              | active                 |
+| 2    | Lark / Feishu | `lark`                  | active                 |
+| 3    | DingTalk      | `dingtalk`              | active                 |
+| 4    | Slack         | `slack`                 | active                 |
+| 5    | WeChat        | `weixin`                | active                 |
+| 6    | WeCom         | `wecom`                 | coming_soon / 部分实现 |
+| 6+   | 扩展渠道      | 动态（`extensionMeta`） | active                 |
+| 末尾 | Discord       | -                       | coming_soon            |
 
-**说明**：Slack/Discord 若已被扩展渠道实现（`extensionTypeSet` 包含 `slack`/`discord`），则隐藏对应 coming_soon 占位卡片。
+**说明**：Discord 若已被扩展渠道实现（`extensionTypeSet` 包含 `discord`），则隐藏对应 coming_soon 占位卡片。
 
 **异常情况**：
 
@@ -48,7 +49,8 @@
 - [ ] Switch 开关可在卡片 header 直接操作
 - [ ] 渠道状态（Connected/未连接）实时更新
 - [ ] 非桌面端直接显示 Channels 内容（无 Tab 切换）
-- [ ] Slack/Discord 显示"coming soon"占位文案
+- [ ] Discord 显示"coming soon"占位文案
+- [ ] Slack 为 active 渠道（非 coming soon）
 - [ ] 已被扩展实现的 coming_soon 渠道自动隐藏
 
 ---
@@ -319,11 +321,61 @@ idle → loading_qr → showing_qr → scanned → connected
 
 ---
 
+## (F-WEBUI-22) Slack 渠道配置（Socket Mode） [已实现]
+
+**用户故事**：作为用户，我希望通过 Bot Token + App Token（Socket Mode）连接 Slack，并按渠道 allowlist / @mention 规则与配对授权与 AI 助手对话。
+
+**前置条件**：用户已在 Slack API 创建 App 并完成 Socket Mode、事件订阅、安装到 workspace（见 [slack/Slack-Bot-Setup-Guide.md](slack/Slack-Bot-Setup-Guide.md)）
+
+**正常流程**（用户视角）：
+
+1. 展开 Slack 卡片，显示配置面板
+2. **必填字段**：
+   - Bot Token（`xoxb-…`，必填）
+   - App Token（`xapp-…` with `connections:write`，Password，必填）
+3. **可选字段**：
+   - Allowed channels：逗号分隔 `C…`/`G…`；**留空 = 仅 DM**
+4. 文档链接 "Slack setup guide" → GitHub Wiki `Slack-Bot-Setup-Guide`（源文件在仓库 `docs/prds/remote/channels/slack/`）
+5. 点击 **Test & Connect**：
+   - `channel.testPlugin`（token + `extra_config.app_secret` = app token）
+   - 成功后 `channel.enablePlugin`：`credentials.token` / `credentials.app_token`，`config.allowed_channels`，`config.mode: websocket`
+6. 连接成功后显示 Connection Status + Next Steps（4 步：打开 Slack → 发消息 → 批准配对 → 聊天）
+7. 配对 / 授权用户管理与 Telegram 相同（见 F-WEBUI-20）
+8. Assistant / Model 选择与其他渠道相同（F-WEBUI-18 / F-WEBUI-19）
+
+**平台行为（后端 AionCore）**：
+
+| 场景         | 行为                                                                  |
+| ------------ | --------------------------------------------------------------------- |
+| DM           | 配对后每条消息处理，无需 @mention                                     |
+| 频道         | 仅当 channel ID ∈ allowlist **且** @mention / `app_mention`           |
+| Allowlist 空 | 仅 DM                                                                 |
+| Thread       | 每个 thread 独立会话（`chat_id = channel:thread_root`）               |
+| 会话标题     | 技术 slug（如 `slack-aionrs-…`），与 tg/lark 一致，**不用**人类频道名 |
+
+**异常情况**：
+
+- Bot / App Token 为空：warning toast credentials required，字段标红
+- 测试失败：error toast
+- 启用无凭据（Switch）：warning toast configure credentials first
+- 有授权用户时：凭据与 allowlist 输入禁用（tokenLocked）
+
+**验收标准**：
+
+- [ ] Bot Token + App Token 必填，Test & Connect 成功后自动启用
+- [ ] Allowed channels 可选；空 = DM-only
+- [ ] Setup guide 链接可打开
+- [ ] Socket Mode 连接状态 Connected / Error / Connecting 正确
+- [ ] 配对 / 授权 / 撤销与通用流程一致
+- [ ] 列表中不再显示 Slack coming_soon 占位
+
+---
+
 ## (F-WEBUI-20) 渠道配对与用户授权（通用流程） [已实现]
 
 **用户故事**：作为用户，我希望通过配对码机制控制哪些 IM 用户可以与我的 AionUi 交互，保证安全性。
 
-**适用渠道**：Telegram、Lark、DingTalk、WeChat、WeCom（全部 5 个已实现渠道共享此流程）
+**适用渠道**：Telegram、Lark、DingTalk、WeChat、Slack（及已实现的 WeCom / 扩展渠道共享此流程）
 
 **正常流程**（用户视角）：
 
@@ -342,7 +394,7 @@ idle → loading_qr → showing_qr → scanned → connected
    - "Revoke access"删除按钮（红色危险态）
 7. 点击 Revoke：`channel.revokeUser.invoke({ userId })` → 成功 toast → 用户从列表移除
 
-**凭据锁定机制**：当 `authorizedUsers.length > 0` 时，凭据输入框和测试按钮变为 disabled，tooltip 提示"请先关闭渠道并删除所有授权用户后才能修改配置"。此规则适用于 Telegram（Token）、Lark（AppID/Secret）、DingTalk（ClientID/Secret）、WeCom（BotID/Secret）。
+**凭据锁定机制**：当 `authorizedUsers.length > 0` 时，凭据输入框和测试按钮变为 disabled，tooltip 提示"请先关闭渠道并删除所有授权用户后才能修改配置"。此规则适用于 Telegram（Token）、Lark（AppID/Secret）、DingTalk（ClientID/Secret）、Slack（Bot/App Token + allowlist）、WeCom（BotID/Secret）。
 
 **异常情况**：
 
