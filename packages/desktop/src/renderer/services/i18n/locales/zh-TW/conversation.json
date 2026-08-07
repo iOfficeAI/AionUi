@@ -597,6 +597,9 @@
       },
       "CLI_VERSION_NEWER": {
         "body": "已安裝的 {{cli}} 高於 AionUi 驗證過的版本。通常仍可正常使用；如遇異常行為請回報。 （本機 {{reported}} / AionUi 驗證過 {{verified}}）"
+      },
+      "CODEX_RETRYING": {
+        "body": "{{detail}}（累計第 {{attempts}} 次重試，已等待 {{elapsed}}——Agent 的服務方反覆中斷連線，AionUi 正在等待重連。）"
       }
     }
   },

@@ -598,6 +598,9 @@
       },
       "CLI_VERSION_NEWER": {
         "body": "Das installierte {{cli}} ist neuer als die von AionUi verifizierte Version. Es sollte weiterhin funktionieren; melden Sie ungewöhnliches Verhalten. (installiert: {{reported}} / von AionUi verifiziert: {{verified}})"
+      },
+      "CODEX_RETRYING": {
+        "body": "{{detail}} (Versuch {{attempts}}, bisher {{elapsed}} – der Anbieter des Agents bricht die Verbindung wiederholt ab; AionUi wartet ab.)"
       }
     }
   },

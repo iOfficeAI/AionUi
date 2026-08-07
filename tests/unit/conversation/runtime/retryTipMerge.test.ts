@@ -17,7 +17,13 @@
 import { describe, expect, it } from 'vitest';
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 import { transformMessage, type IMessageTips, type TMessage } from '@/common/chat/chatLib';
-import { buildMessageIndex, composeMessageWithIndex } from '@/renderer/pages/conversation/Messages/hooks';
+import {
+  buildMessageIndex,
+  composeMessageWithIndex,
+  foldSupersededTips,
+  normalizeDbMessage,
+  prependHistoryMessages,
+} from '@/renderer/pages/conversation/Messages/hooks';
 
 const TURN_MSG_ID = 'turn-a';
 
@@ -73,5 +79,77 @@ describe('codex retry tip live merge', () => {
     const list = replay([retryFrame(1), retryFrame(2, 'codex-retry:turn-b')]);
 
     expect(list.filter((message) => message.type === 'tips')).toHaveLength(2);
+  });
+});
+
+/**
+ * The rows below are the shape the backend actually persisted during a live run
+ * against codex 0.147.0: every attempt is stored (the backend cannot know which
+ * one is last), all sharing one key per retry round, with the tip payload kept
+ * as a JSON string in `content`.
+ */
+describe('codex retry tip history fold', () => {
+  const KEY_A = 'codex-retry:019fdbc6-cf7a-74c1-ba24-e0a63bda9485';
+  const KEY_B = 'codex-retry:019fdbca-84a8-74d3-b8bc-c6170b1dddb6';
+
+  const persistedRetry = (rowId: string, attempt: number, key: string): TMessage =>
+    ({
+      id: rowId,
+      conversation_id: 'conv-1',
+      type: 'tips',
+      position: 'left',
+      status: 'finish',
+      content: JSON.stringify({
+        content: `Reconnecting... ${attempt}/5 — We're currently experiencing high demand`,
+        type: 'warning',
+        code: null,
+        params: null,
+        supersedes_key: key,
+      }),
+    }) as unknown as TMessage;
+
+  const persistedRun = (): TMessage[] =>
+    [
+      ...[1, 2, 3, 4, 5].map((n) => persistedRetry(`a${n}`, n, KEY_A)),
+      ...[1, 2, 3, 4, 5].map((n) => persistedRetry(`b${n}`, n, KEY_B)),
+    ].map(normalizeDbMessage);
+
+  it('carries the merge key through DB normalization', () => {
+    const rows = persistedRun();
+    expect((rows[0] as IMessageTips).content.supersedes_key).toBe(KEY_A);
+  });
+
+  it('shows one card per retry round instead of re-expanding the stack', () => {
+    const folded = foldSupersededTips(persistedRun());
+
+    expect(folded).toHaveLength(2);
+    expect((folded[0] as IMessageTips).content.content).toContain('5/5');
+    expect((folded[1] as IMessageTips).content.content).toContain('5/5');
+    // The card keeps the position (and id) of the attempt it started at.
+    expect(folded[0].id).toBe('a1');
+  });
+
+  it('folds a run whose attempts straddle a page boundary', () => {
+    const rows = persistedRun();
+    const olderPage = rows.slice(0, 3);
+    const alreadyLoaded = rows.slice(3);
+
+    const list = prependHistoryMessages(alreadyLoaded, olderPage);
+
+    expect(list.filter((message) => message.type === 'tips')).toHaveLength(2);
+  });
+
+  it('leaves tips without a key untouched', () => {
+    const drift = normalizeDbMessage({
+      id: 'drift',
+      conversation_id: 'conv-1',
+      type: 'tips',
+      position: 'left',
+      content: JSON.stringify({ content: 'The installed codex is newer…', type: 'info', code: 'CLI_VERSION_NEWER' }),
+    } as unknown as TMessage);
+
+    const folded = foldSupersededTips([drift, ...persistedRun(), drift]);
+
+    expect(folded.filter((message) => message.type === 'tips')).toHaveLength(4);
   });
 });

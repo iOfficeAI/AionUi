@@ -598,6 +598,9 @@
       },
       "CLI_VERSION_NEWER": {
         "body": "The installed {{cli}} is newer than the version AionUi verified. It should still work; report anything that behaves oddly. (installed {{reported}} / verified by AionUi: {{verified}})"
+      },
+      "CODEX_RETRYING": {
+        "body": "{{detail}} (attempt {{attempts}}, {{elapsed}} so far — the agent's provider keeps dropping the connection; AionUi is waiting it out.)"
       }
     }
   },

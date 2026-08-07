@@ -472,6 +472,7 @@ export type I18nKey =
   | 'conversation.agentTip.codes.ANTIGRAVITY_STEPS_FAILED.body'
   | 'conversation.agentTip.codes.CLI_VERSION_NEWER.body'
   | 'conversation.agentTip.codes.CLI_VERSION_OLDER.body'
+  | 'conversation.agentTip.codes.CODEX_RETRYING.body'
   | 'conversation.chat.apiErrorNoCli'
   | 'conversation.chat.apiErrorSwitchFailed'
   | 'conversation.chat.apiErrorSwitched'

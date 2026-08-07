@@ -598,6 +598,9 @@
       },
       "CLI_VERSION_NEWER": {
         "body": "已安装的 {{cli}} 高于 AionUi 验证过的版本。通常仍可正常使用；如遇异常行为请反馈。 （本地 {{reported}} / AionUi 验证过 {{verified}}）"
+      },
+      "CODEX_RETRYING": {
+        "body": "{{detail}}（累计第 {{attempts}} 次重试，已等待 {{elapsed}}——Agent 的服务方反复中断连接，AionUi 正在等待重连。）"
       }
     }
   },

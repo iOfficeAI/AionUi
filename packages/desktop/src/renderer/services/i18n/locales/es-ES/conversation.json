@@ -598,6 +598,9 @@
       },
       "CLI_VERSION_NEWER": {
         "body": "El {{cli}} instalado es posterior a la versión verificada por AionUi. Debería seguir funcionando; informa de cualquier comportamiento extraño. (instalado: {{reported}} / verificado por AionUi: {{verified}})"
+      },
+      "CODEX_RETRYING": {
+        "body": "{{detail}} (intento {{attempts}}, {{elapsed}} transcurridos: el proveedor del agente corta la conexión una y otra vez; AionUi está esperando.)"
       }
     }
   },

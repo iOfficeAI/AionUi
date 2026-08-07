@@ -599,6 +599,9 @@
       },
       "CLI_VERSION_NEWER": {
         "body": "Kurulu {{cli}} sürümü AionUi tarafından doğrulanan sürümden yeni. Genelde çalışır; tuhaf bir davranış görürseniz bildirin. (kurulu: {{reported}} / AionUi tarafından doğrulanan: {{verified}})"
+      },
+      "CODEX_RETRYING": {
+        "body": "{{detail}} ({{attempts}}. deneme, {{elapsed}} geçti — aracının sağlayıcısı bağlantıyı sürekli kesiyor; AionUi bekliyor.)"
       }
     }
   },

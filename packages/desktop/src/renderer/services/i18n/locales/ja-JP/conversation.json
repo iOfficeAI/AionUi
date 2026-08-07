@@ -597,6 +597,9 @@
       },
       "CLI_VERSION_NEWER": {
         "body": "インストール済みの {{cli}} は、AionUi が検証したバージョンより新しいです。通常は動作しますが、不審な挙動があればご報告ください。 （インストール済み {{reported}} / AionUi 検証済み {{verified}}）"
+      },
+      "CODEX_RETRYING": {
+        "body": "{{detail}}（累計 {{attempts}} 回目の再試行、経過 {{elapsed}} — エージェントの提供元が接続を切断し続けており、AionUi は再接続を待っています。）"
       }
     }
   },
