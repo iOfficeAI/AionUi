@@ -6,59 +6,7 @@
 
 import type { ProtocolConverter, ConverterConfig } from './ProtocolConverter';
 import type Anthropic from '@anthropic-ai/sdk';
-
-// OpenAI types - compatible with actual OpenAI SDK types
-export interface OpenAIChatCompletionParams {
-  model: string;
-  messages: Array<{
-    role: string;
-    content:
-      | string
-      | Array<{
-          type: string;
-          text?: string;
-          image_url?: { url: string; detail?: string };
-        }>;
-  }>;
-  max_tokens?: number;
-  temperature?: number;
-  top_p?: number;
-  stop?: string | string[];
-  stream?: boolean;
-  tools?: Array<{
-    type: 'function';
-    function: {
-      name: string;
-      description?: string;
-      parameters?: unknown;
-    };
-  }>;
-  tool_choice?: 'auto' | 'none' | { type: 'function'; function: { name: string } };
-}
-
-export interface OpenAIChatCompletionResponse {
-  id: string;
-  object: string;
-  created: number;
-  model: string;
-  choices: Array<{
-    index: number;
-    message: {
-      role: string;
-      content: string;
-      images?: Array<{
-        type: 'image_url';
-        image_url: { url: string };
-      }>;
-    };
-    finish_reason: string;
-  }>;
-  usage?: {
-    prompt_tokens: number;
-    completion_tokens: number;
-    total_tokens: number;
-  };
-}
+import type { OpenAIChatCompletionParams, OpenAIChatCompletionResponse } from './openaiTypes';
 
 // Anthropic types
 export type AnthropicMessageRequest = Anthropic.MessageCreateParamsNonStreaming;

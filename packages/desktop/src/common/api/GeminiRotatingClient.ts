@@ -8,11 +8,8 @@ import { GoogleGenAI, type GenerateContentParameters, type GoogleGenAIOptions } 
 import { AuthType } from '@/common/types/provider/authType';
 import type { RotatingApiClientOptions } from './RotatingApiClient';
 import { RotatingApiClient } from './RotatingApiClient';
-import {
-  OpenAI2GeminiConverter,
-  type OpenAIChatCompletionParams,
-  type OpenAIChatCompletionResponse,
-} from './OpenAI2GeminiConverter';
+import { OpenAI2GeminiConverter } from './OpenAI2GeminiConverter';
+import type { OpenAIChatCompletionParams, OpenAIChatCompletionResponse } from './openaiTypes';
 
 export interface GeminiClientConfig {
   model?: string;

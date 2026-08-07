@@ -8,11 +8,8 @@ import Anthropic, { type ClientOptions as AnthropicClientOptions_ } from '@anthr
 import { AuthType } from '@/common/types/provider/authType';
 import type { RotatingApiClientOptions } from './RotatingApiClient';
 import { RotatingApiClient } from './RotatingApiClient';
-import {
-  OpenAI2AnthropicConverter,
-  type OpenAIChatCompletionParams,
-  type OpenAIChatCompletionResponse,
-} from './OpenAI2AnthropicConverter';
+import { OpenAI2AnthropicConverter } from './OpenAI2AnthropicConverter';
+import type { OpenAIChatCompletionParams, OpenAIChatCompletionResponse } from './openaiTypes';
 
 export interface AnthropicClientConfig {
   model?: string;

@@ -6,7 +6,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { OpenAI2AnthropicConverter } from '@/common/api/OpenAI2AnthropicConverter';
-import type { OpenAIChatCompletionParams, OpenAIChatCompletionResponse } from '@/common/api/OpenAI2AnthropicConverter';
+import type { OpenAIChatCompletionParams, OpenAIChatCompletionResponse } from '@/common/api/openaiTypes';
 
 describe('OpenAI2AnthropicConverter', () => {
   describe('convertRequest', () => {
@@ -359,6 +359,107 @@ describe('OpenAI2AnthropicConverter', () => {
       expect(openaiResponse.choices[0].message.content).toBe('Hi there!');
       expect(openaiResponse.model).toBe('gpt-4');
       expect(openaiResponse.usage?.total_tokens).toBe(15);
+    });
+  });
+
+  describe('extra OpenAI params pass-through (#541)', () => {
+    // Verifies the interface accepts arbitrary OpenAI SDK fields. The
+    // converter drops fields it doesn't translate; the goal here is that
+    // extras don't crash conversion.
+
+    it('accepts service_tier without type error', () => {
+      const converter = new OpenAI2AnthropicConverter();
+      const input: OpenAIChatCompletionParams = {
+        model: 'gpt-4',
+        messages: [{ role: 'user', content: 'test' }],
+        service_tier: 'flex',
+      };
+
+      const result = converter.convertRequest(input) as Record<string, unknown>;
+
+      // Anthropic has no service_tier equivalent — silently dropped
+      expect(result.service_tier).toBeUndefined();
+      expect(result.messages).toHaveLength(1);
+    });
+
+    it('accepts frequency_penalty without crashing', () => {
+      const converter = new OpenAI2AnthropicConverter();
+      const input: OpenAIChatCompletionParams = {
+        model: 'gpt-4',
+        messages: [{ role: 'user', content: 'test' }],
+        frequency_penalty: 0.5,
+      };
+
+      expect(() => converter.convertRequest(input)).not.toThrow();
+    });
+
+    it('accepts seed without crashing', () => {
+      const converter = new OpenAI2AnthropicConverter();
+      const input: OpenAIChatCompletionParams = {
+        model: 'gpt-4',
+        messages: [{ role: 'user', content: 'test' }],
+        seed: 12345,
+      };
+
+      expect(() => converter.convertRequest(input)).not.toThrow();
+    });
+
+    it('accepts logit_bias (a record-shaped extra)', () => {
+      const converter = new OpenAI2AnthropicConverter();
+      const input: OpenAIChatCompletionParams = {
+        model: 'gpt-4',
+        messages: [{ role: 'user', content: 'test' }],
+        logit_bias: { '50256': -100 },
+      };
+
+      const result = converter.convertRequest(input) as Record<string, unknown>;
+
+      // Anthropic has no logit_bias equivalent — silently dropped
+      expect(result.logit_bias).toBeUndefined();
+    });
+
+    it('accepts multiple extras at once without affecting known fields', () => {
+      const converter = new OpenAI2AnthropicConverter();
+      const input: OpenAIChatCompletionParams = {
+        model: 'gpt-4',
+        messages: [
+          { role: 'system', content: 'You are helpful.' },
+          { role: 'user', content: 'Hello' },
+        ],
+        service_tier: 'priority',
+        frequency_penalty: 0.3,
+        seed: 42,
+        logit_bias: { '50256': -100 },
+        parallel_tool_calls: true,
+        // Known field — must still be applied
+        temperature: 0.7,
+      };
+
+      const result = converter.convertRequest(input);
+
+      // Known fields still work
+      expect(result.system).toBe('You are helpful.');
+      expect(result.temperature).toBe(0.7);
+      expect(result.max_tokens).toBe(4096);
+
+      // Extras are dropped, not crash
+      expect((result as Record<string, unknown>).service_tier).toBeUndefined();
+      expect((result as Record<string, unknown>).frequency_penalty).toBeUndefined();
+      expect((result as Record<string, unknown>).seed).toBeUndefined();
+      expect((result as Record<string, unknown>).logit_bias).toBeUndefined();
+      expect((result as Record<string, unknown>).parallel_tool_calls).toBeUndefined();
+    });
+
+    it('accepts an experimental/forward-compat param', () => {
+      const converter = new OpenAI2AnthropicConverter();
+      const input: OpenAIChatCompletionParams = {
+        model: 'gpt-4',
+        messages: [{ role: 'user', content: 'test' }],
+        // Future OpenAI param the converter has never seen
+        structured_outputs_v2: { enabled: true },
+      };
+
+      expect(() => converter.convertRequest(input)).not.toThrow();
     });
   });
 });
