@@ -160,6 +160,12 @@ export async function processImageUri(imageUri: string, workspaceDir: string): P
 export interface ImageGenParams {
   prompt: string;
   image_uris?: string[] | string;
+  /**
+   * Pass-through for any additional OpenAI SDK parameters (e.g.
+   * `service_tier`, `temperature`, `top_p`, `seed`). Forwarded as-is to
+   * the rotating client. Ignored by Gemini/Anthropic providers.
+   */
+  extraOpenAIParams?: Record<string, unknown>;
 }
 
 export interface ImageGenResult {
@@ -243,7 +249,11 @@ export async function executeImageGeneration(
     });
 
     const completion: UnifiedChatCompletionResponse = await rotatingClient.createChatCompletion(
-      { model: provider.use_model, messages: messages as any },
+      {
+        ...params.extraOpenAIParams,
+        model: provider.use_model,
+        messages: messages as any,
+      },
       { signal, timeout: API_TIMEOUT_MS }
     );
 
