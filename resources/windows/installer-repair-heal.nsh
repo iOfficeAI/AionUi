@@ -5,12 +5,10 @@ Var /GLOBAL CsbuWorkMateRegistryInstallIsValid
 Var /GLOBAL CsbuWorkMateInnerFailureSummary
 Var /GLOBAL CsbuWorkMateInnerRootCode
 Var /GLOBAL CsbuWorkMateInnerFailureReadResult
-Var /GLOBAL CsbuWorkMateInstallerLifecycleInitialized
-Var /GLOBAL CsbuWorkMateHadLegacyRegistry
-Var /GLOBAL CsbuWorkMateTransientRegistryHydrated
 Var /GLOBAL CsbuWorkMateStateActionResult
 Var /GLOBAL CsbuWorkMateStateInstallLocation
 Var /GLOBAL CsbuWorkMateStateUninstallerPath
+Var /GLOBAL CsbuWorkMateLegacyMigrationPending
 Var /GLOBAL CsbuWorkMateLegacyMachineInstallLocation
 Var /GLOBAL CsbuWorkMateRegInstallLocation
 Var /GLOBAL CsbuWorkMateRegUninstallString
@@ -26,26 +24,8 @@ Var /GLOBAL CsbuWorkMateRepairLogResult
   File /oname=$PLUGINSDIR\csbu-workmate-installer-state.ps1 "${PROJECT_DIR}\resources\windows\support\installer-state.ps1"
 !macroend
 
-!macro CSBU_WORKMATE_DELETE_INSTALL_REGISTRY
-  DeleteRegKey HKCU "${UNINSTALL_REGISTRY_KEY}"
-  !ifdef UNINSTALL_REGISTRY_KEY_2
-    DeleteRegKey HKCU "${UNINSTALL_REGISTRY_KEY_2}"
-  !endif
-  DeleteRegKey HKCU "${INSTALL_REGISTRY_KEY}"
-!macroend
-
 !macro CSBU_WORKMATE_CLEANUP_TRANSIENT_INSTALL_REGISTRY
-  !ifndef BUILD_UNINSTALLER
-    ${If} $CsbuWorkMateInstallerLifecycleInitialized == "1"
-      ${If} $CsbuWorkMateTransientRegistryHydrated == "1"
-        !insertmacro CSBU_WORKMATE_DELETE_INSTALL_REGISTRY
-        !insertmacro CSBU_WORKMATE_LOG_EVENT "event=registry-cleanup phase=transient-or-fresh"
-      ${ElseIf} $CsbuWorkMateHadLegacyRegistry != "1"
-        !insertmacro CSBU_WORKMATE_DELETE_INSTALL_REGISTRY
-        !insertmacro CSBU_WORKMATE_LOG_EVENT "event=registry-cleanup phase=transient-or-fresh"
-      ${EndIf}
-    ${EndIf}
-  !endif
+  ; Compatibility no-op retained for existing failure-reporting macros.
 !macroend
 
 !macro CSBU_WORKMATE_DELETE_INSTALL_STATE
@@ -71,42 +51,19 @@ Var /GLOBAL CsbuWorkMateRepairLogResult
     !insertmacro CSBU_WORKMATE_LOG_EVENT "event=install-state-read result=missing"
   ${Else}
     !insertmacro CSBU_WORKMATE_LOG_EVENT "event=install-state-read result=invalid code=$CsbuWorkMateStateActionResult"
+  ${EndIf}
+!macroend
+
+!macro CSBU_WORKMATE_FINALIZE_STANDARD_INSTALL
+  ${If} $CsbuWorkMateLegacyMigrationPending == "1"
     !insertmacro CSBU_WORKMATE_DELETE_INSTALL_STATE
+    !insertmacro CSBU_WORKMATE_LOG_EVENT "event=legacy-install-state-delete phase=install-success"
   ${EndIf}
-!macroend
-
-!macro CSBU_WORKMATE_HYDRATE_TRANSIENT_INSTALL_REGISTRY
-  WriteRegStr HKCU "${INSTALL_REGISTRY_KEY}" "InstallLocation" "$CsbuWorkMateStateInstallLocation"
-  WriteRegStr HKCU "${INSTALL_REGISTRY_KEY}" "KeepShortcuts" "true"
-  WriteRegStr HKCU "${INSTALL_REGISTRY_KEY}" "ShortcutName" "${PRODUCT_NAME}"
-  WriteRegStr HKCU "${UNINSTALL_REGISTRY_KEY}" "UninstallString" '$\"$CsbuWorkMateStateUninstallerPath$\" /currentuser'
-  WriteRegStr HKCU "${UNINSTALL_REGISTRY_KEY}" "QuietUninstallString" '$\"$CsbuWorkMateStateUninstallerPath$\" /currentuser /S'
-  WriteRegDWORD HKCU "${UNINSTALL_REGISTRY_KEY}" "SystemComponent" 1
-  StrCpy $CsbuWorkMateTransientRegistryHydrated "1"
-  !insertmacro CSBU_WORKMATE_LOG_EVENT "event=registry-hydrate source=file-state hidden=1 instDir=$INSTDIR"
-!macroend
-
-!macro CSBU_WORKMATE_WRITE_INSTALL_STATE
-  !insertmacro CSBU_WORKMATE_STAGE_INSTALL_STATE_HELPER
-  nsExec::Exec `"$SYSDIR\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -File "$PLUGINSDIR\csbu-workmate-installer-state.ps1" -Action write -ExpectedArch "${CSBU_WORKMATE_TARGET_ARCH}" -InstallDir "$INSTDIR" -Version "${VERSION}" -UninstallerPath "$INSTDIR\${UNINSTALL_FILENAME}"`
-  Pop $CsbuWorkMateStateActionResult
-  ${If} $CsbuWorkMateStateActionResult != 0
-    !insertmacro CSBU_WORKMATE_FAIL_REPORTABLE_BILINGUAL ${CSBU_WORKMATE_E_INSTALL_STATE_WRITE_FAILED} "install-state-write result=$CsbuWorkMateStateActionResult instDir=$INSTDIR" "${CSBU_WORKMATE_MSG_INSTALL_STATE_WRITE_FAILED_EN}" "${CSBU_WORKMATE_MSG_INSTALL_STATE_WRITE_FAILED_ZH}" "${CSBU_WORKMATE_MSG_INSTALL_STATE_WRITE_ACTION_EN}" "${CSBU_WORKMATE_MSG_INSTALL_STATE_WRITE_ACTION_ZH}"
-  ${EndIf}
-  !insertmacro CSBU_WORKMATE_LOG_EVENT "event=install-state-write result=ok instDir=$INSTDIR"
-!macroend
-
-!macro CSBU_WORKMATE_FINALIZE_REGISTRY_FREE_INSTALL
-  !insertmacro CSBU_WORKMATE_WRITE_INSTALL_STATE
-  !insertmacro CSBU_WORKMATE_DELETE_INSTALL_REGISTRY
-  StrCpy $CsbuWorkMateTransientRegistryHydrated "0"
-  !insertmacro CSBU_WORKMATE_LOG_EVENT "event=registry-cleanup phase=install-success"
 !macroend
 
 !macro CSBU_WORKMATE_DEFINE_INSTALLER_LIFECYCLE_CALLBACKS
   !ifndef BUILD_UNINSTALLER
     Function .onGUIEnd
-      !insertmacro CSBU_WORKMATE_CLEANUP_TRANSIENT_INSTALL_REGISTRY
       !insertmacro CSBU_WORKMATE_CLEAR_ACTIVE_INSTALLER_MARKER
     FunctionEnd
   !endif
@@ -278,10 +235,8 @@ Var /GLOBAL CsbuWorkMateRepairLogResult
 !macroend
 
 !macro customInit
-  StrCpy $CsbuWorkMateInstallerLifecycleInitialized "1"
-  StrCpy $CsbuWorkMateHadLegacyRegistry "0"
-  StrCpy $CsbuWorkMateTransientRegistryHydrated "0"
   StrCpy $CsbuWorkMateRegistryInstallIsValid "0"
+  StrCpy $CsbuWorkMateLegacyMigrationPending "0"
 
   ReadRegStr $CsbuWorkMateLegacyMachineInstallLocation HKLM "${INSTALL_REGISTRY_KEY}" "InstallLocation"
   ${If} $CsbuWorkMateLegacyMachineInstallLocation != ""
@@ -289,22 +244,16 @@ Var /GLOBAL CsbuWorkMateRepairLogResult
     !insertmacro CSBU_WORKMATE_FAIL_REPORTABLE_BILINGUAL ${CSBU_WORKMATE_E_LEGACY_MACHINE_INSTALL} "legacy-machine-install instDir=$CsbuWorkMateLegacyMachineInstallLocation" "${CSBU_WORKMATE_MSG_LEGACY_MACHINE_INSTALL_EN}" "${CSBU_WORKMATE_MSG_LEGACY_MACHINE_INSTALL_ZH}" "${CSBU_WORKMATE_MSG_LEGACY_MACHINE_INSTALL_ACTION_EN}" "${CSBU_WORKMATE_MSG_LEGACY_MACHINE_INSTALL_ACTION_ZH}"
   ${EndIf}
 
-  ReadRegStr $CsbuWorkMateRegInstallLocation HKCU "${INSTALL_REGISTRY_KEY}" "InstallLocation"
-  ReadRegStr $CsbuWorkMateRegUninstallString HKCU "${UNINSTALL_REGISTRY_KEY}" "UninstallString"
-  ${If} $CsbuWorkMateRegInstallLocation != ""
-  ${AndIf} $CsbuWorkMateRegUninstallString != ""
-  ${AndIf} ${FileExists} "$CsbuWorkMateRegInstallLocation\${CSBU_WORKMATE_APP_EXECUTABLE_FILENAME}"
-    StrCpy $CsbuWorkMateHadLegacyRegistry "1"
-  ${EndIf}
-
-  !insertmacro CSBU_WORKMATE_LOAD_INSTALL_STATE
+  !insertmacro CSBU_WORKMATE_HEAL_INSTALL_REGISTRY
   ${If} $CsbuWorkMateRegistryInstallIsValid == "1"
-    !insertmacro CSBU_WORKMATE_HYDRATE_TRANSIENT_INSTALL_REGISTRY
     !insertmacro CSBU_WORKMATE_REPAIR_INSTALLED_UNINSTALLER
   ${Else}
-    !insertmacro CSBU_WORKMATE_HEAL_INSTALL_REGISTRY
+    ; One-time migration from the previous registry-free installer. The helper
+    ; validates architecture and paths before assigning $INSTDIR.
+    !insertmacro CSBU_WORKMATE_LOAD_INSTALL_STATE
     ${If} $CsbuWorkMateRegistryInstallIsValid == "1"
-      !insertmacro CSBU_WORKMATE_REPAIR_INSTALLED_UNINSTALLER
+      StrCpy $CsbuWorkMateLegacyMigrationPending "1"
+      !insertmacro CSBU_WORKMATE_LOG_EVENT "event=legacy-install-state-migration instDir=$INSTDIR"
     ${EndIf}
   ${EndIf}
 !macroend

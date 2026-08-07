@@ -131,7 +131,7 @@ describe('release packaging configuration', () => {
     expect(buildScript).not.toContain('CSBU_WORKMATE_METADATA_FREE');
   });
 
-  it('sets the requested ProductName and LegalCopyright on every Windows executable', () => {
+  it('uses electron-builder CSBU WorkMate metadata without legacy brand overrides', () => {
     const packageJson = JSON.parse(readProjectFile('package.json')) as {
       author: { name: string };
       productName: string;
@@ -143,16 +143,12 @@ describe('release packaging configuration', () => {
 
     expect(packageJson.author.name).toBe('CSBU');
     expect(packageJson.productName).toBe('CSBU WorkMate');
-    expect(afterPack).toContain("const WINDOWS_PRODUCT_NAME = '锐捷Codex'");
-    expect(afterPack).toContain("const WINDOWS_LEGAL_COPYRIGHT = 'Copyright © 2026 锐捷Codex'");
-    expect(afterPack).toContain('LegalCopyright: legalCopyright');
-    expect(afterPack).toContain('ProductName: productName');
-    expect(afterSign).toContain('await setWindowsExecutableMetadata(executablePath)');
-    expect(buildScript).toContain("const WINDOWS_EXE_PRODUCT_NAME = '锐捷Codex'");
-    expect(buildScript).toContain("const WINDOWS_EXE_LEGAL_COPYRIGHT = 'Copyright © 2026 锐捷Codex'");
-    expect(buildScript).toContain('Patched electron-builder NSIS Windows EXE metadata.');
-    expect(reusableWorkflow).toContain("'锐捷Codex'");
-    expect(reusableWorkflow).toContain("'Copyright © 2026 锐捷Codex'");
+    expect(afterPack).not.toContain('锐捷Codex');
+    expect(afterSign).not.toContain('setWindowsExecutableMetadata');
+    expect(buildScript).not.toContain('锐捷Codex');
+    expect(buildScript).not.toContain('Patched electron-builder NSIS Windows EXE metadata.');
+    expect(reusableWorkflow).toContain("$expectedProductName = 'CSBU WorkMate'");
+    expect(reusableWorkflow).toContain("$expectedLegalCopyright = 'Copyright © 2026 CSBU'");
     expect(reusableWorkflow).toContain('if ($info.ProductName -ne $expectedProductName)');
     expect(reusableWorkflow).toContain('if ($info.LegalCopyright -ne $expectedLegalCopyright)');
   });
@@ -174,15 +170,33 @@ describe('release packaging configuration', () => {
     expect(reusableWorkflow).toContain("-ArgumentList '/S'");
   });
 
-  it('keeps successful current-user installs out of the Windows uninstall registry', () => {
+  it('uses standard current-user registry entries and retains a one-time legacy migration reader', () => {
     const config = readProjectFile('packages/desktop/electron-builder.yml');
     const reusableWorkflow = readProjectFile('.github/workflows/_build-reusable.yml');
     const installerState = readProjectFile('resources/windows/support/installer-state.ps1');
+    const installerMigration = readProjectFile('resources/windows/installer-repair-heal.nsh');
 
     expect(config).toContain('allowElevation: false');
+    expect(config).toContain('perMachine: false');
     expect(installerState).toContain("'installer-state.ini'");
-    expect(reusableWorkflow).toContain('Windows uninstall registration remains after installation');
-    expect(reusableWorkflow).toContain('Registry-free installer state was not created');
+    expect(installerMigration).toContain('$CsbuWorkMateLegacyMigrationPending == "1"');
+    expect(installerMigration).toContain('StrCpy $CsbuWorkMateLegacyMigrationPending "1"');
+    expect(reusableWorkflow).toContain('Standard Windows installation registration is missing');
+    expect(reusableWorkflow).toContain('Legacy registry-free installer state remains after installation');
+    expect(reusableWorkflow).toContain('Registry-free in-place migration failed');
+  });
+
+  it('configures GitHub Releases without requiring Windows Authenticode signing', () => {
+    const config = readProjectFile('packages/desktop/electron-builder.yml');
+    const reusableWorkflow = readProjectFile('.github/workflows/_build-reusable.yml');
+
+    expect(config).toContain('provider: github');
+    expect(config).toContain('owner: suoak');
+    expect(config).toContain('repo: AionUi');
+    expect(config).not.toContain('publisherName:');
+    expect(reusableWorkflow).not.toContain('WIN_CSC_LINK');
+    expect(reusableWorkflow).not.toContain('Authenticode');
+    expect(reusableWorkflow).toContain('UPDATE_MANIFEST_ED25519_PUBLIC_KEY');
   });
 
   it('runs push checks for every branch and cancels stale branch runs', () => {

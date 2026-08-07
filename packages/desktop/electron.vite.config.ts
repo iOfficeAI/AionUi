@@ -153,6 +153,9 @@ export default defineConfig(({ mode }) => {
         'process.env.NODE_ENV': JSON.stringify(mode),
         'process.env.env': JSON.stringify(process.env.env),
         'process.env.SENTRY_DSN': JSON.stringify(process.env.SENTRY_DSN ?? ''),
+        'process.env.CSBU_WORKMATE_UPDATE_MANIFEST_PUBLIC_KEY': JSON.stringify(
+          process.env.CSBU_WORKMATE_UPDATE_MANIFEST_PUBLIC_KEY ?? ''
+        ),
       },
     },
 

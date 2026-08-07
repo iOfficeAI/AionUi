@@ -408,6 +408,19 @@ jobs:
           GH_TOKEN: ${{ secrets.GH_TOKEN || secrets.GITHUB_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Require the update verification key for stable Windows releases
+        if: startsWith(matrix.platform, 'windows')
+        shell: bash
+        env:
+          RELEASE_REF: ${{ inputs.ref || github.ref }}
+          UPDATE_MANIFEST_ED25519_PUBLIC_KEY: ${{ secrets.UPDATE_MANIFEST_ED25519_PUBLIC_KEY }}
+        run: |
+          set -euo pipefail
+          if [[ "${RELEASE_REF}" =~ (^|/)v[0-9]+\.[0-9]+\.[0-9]+$ ]] && [ -z "${UPDATE_MANIFEST_ED25519_PUBLIC_KEY:-}" ]; then
+            echo "UPDATE_MANIFEST_ED25519_PUBLIC_KEY is required for stable Windows releases"
+            exit 1
+          fi
+
       - name: Build with electron-builder (Windows)
         if: startsWith(matrix.platform, 'windows')
         id: windows-build
@@ -454,8 +467,7 @@ jobs:
           appleIdPassword: ${{ secrets.APPLE_ID_PASSWORD }}
           teamId: ${{ secrets.TEAM_ID }}
           identity: ${{ secrets.IDENTITY }}
-          CSC_NAME: ${{ secrets.IDENTITY }}
-          CSC_IDENTITY_AUTO_DISCOVERY: false
+          CSBU_WORKMATE_UPDATE_MANIFEST_PUBLIC_KEY: ${{ secrets.UPDATE_MANIFEST_ED25519_PUBLIC_KEY }}
           # Windows build flags / Windows 构建参数
           MSVS_VERSION: 2022
           GYP_MSVS_VERSION: 2022
@@ -510,8 +522,8 @@ jobs:
             if ($info.CompanyName -ne 'CSBU') {
               throw "Unexpected CompanyName in $($target.FullName): $($info.CompanyName)"
             }
-            $expectedProductName = '锐捷Codex'
-            $expectedLegalCopyright = 'Copyright © 2026 锐捷Codex'
+            $expectedProductName = 'CSBU WorkMate'
+            $expectedLegalCopyright = 'Copyright © 2026 CSBU'
             if ($info.ProductName -ne $expectedProductName) {
               throw "Unexpected ProductName in $($target.FullName): $($info.ProductName)"
             }
@@ -566,13 +578,49 @@ jobs:
             if (-not $uninstaller) {
               throw "Installed uninstaller executable was not found under $installDirectory"
             }
-            if (-not (Test-Path -LiteralPath $installStatePath)) {
-              throw "Registry-free installer state was not created: $installStatePath"
+
+            # Recreate the previous registry-free state, remove standard registration,
+            # and verify that the next installer migrates in place without /D.
+            $stateHelper = Join-Path $env:GITHUB_WORKSPACE 'resources\windows\support\installer-state.ps1'
+            $packageVersion = (Get-Content -LiteralPath 'package.json' -Raw | ConvertFrom-Json).version
+            & powershell.exe `
+              -NoProfile `
+              -ExecutionPolicy Bypass `
+              -File $stateHelper `
+              -Action write `
+              -ExpectedArch '${{ matrix.arch }}' `
+              -InstallDir $installDirectory `
+              -Version $packageVersion `
+              -UninstallerPath $uninstaller.FullName
+            if ($LASTEXITCODE -ne 0) {
+              throw "Failed to prepare legacy installer state: $LASTEXITCODE"
             }
             foreach ($registryPath in @($installRegistryPath, $uninstallRegistryPath)) {
               if (Test-Path -LiteralPath $registryPath) {
-                throw "Windows uninstall registration remains after installation: $registryPath"
+                Remove-Item -LiteralPath $registryPath -Recurse -Force
               }
+            }
+            $migrationProcess = Start-Process `
+              -FilePath $installer.FullName `
+              -ArgumentList '/S' `
+              -Wait `
+              -PassThru `
+              -NoNewWindow
+            if ($migrationProcess.ExitCode -ne 0) {
+              throw "Registry-free in-place migration failed with exit code $($migrationProcess.ExitCode)"
+            }
+
+            if (Test-Path -LiteralPath $installStatePath) {
+              throw "Legacy registry-free installer state remains after installation: $installStatePath"
+            }
+            foreach ($registryPath in @($installRegistryPath, $uninstallRegistryPath)) {
+              if (-not (Test-Path -LiteralPath $registryPath)) {
+                throw "Standard Windows installation registration is missing: $registryPath"
+              }
+            }
+            $migratedInstallLocation = (Get-ItemProperty -LiteralPath $installRegistryPath).InstallLocation
+            if ([IO.Path]::GetFullPath($migratedInstallLocation) -ne [IO.Path]::GetFullPath($installDirectory)) {
+              throw "Migration changed the install directory: $migratedInstallLocation"
             }
 
             foreach ($target in @((Get-Item -LiteralPath $installedApplication), $uninstaller)) {
@@ -593,8 +641,8 @@ jobs:
               if ($info.CompanyName -ne 'CSBU') {
                 throw "Unexpected installed CompanyName in $($target.FullName): $($info.CompanyName)"
               }
-              $expectedProductName = '锐捷Codex'
-              $expectedLegalCopyright = 'Copyright © 2026 锐捷Codex'
+              $expectedProductName = 'CSBU WorkMate'
+              $expectedLegalCopyright = 'Copyright © 2026 CSBU'
               if ($info.ProductName -ne $expectedProductName) {
                 throw "Unexpected installed ProductName in $($target.FullName): $($info.ProductName)"
               }
@@ -602,6 +650,7 @@ jobs:
                 throw "Unexpected installed LegalCopyright in $($target.FullName): $($info.LegalCopyright)"
               }
               Write-Host "Verified installed executable metadata: $($target.FullName)"
+
             }
 
             $uninstallProcess = Start-Process `

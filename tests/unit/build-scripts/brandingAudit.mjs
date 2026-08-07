@@ -44,7 +44,9 @@ export function auditBranding(root = DEFAULT_ROOT) {
   if (!builderConfig.includes('productName: CSBU WorkMate'))
     violations.push('desktop productName must be CSBU WorkMate');
   if (!builderConfig.includes('csbu-workmate')) violations.push('desktop protocol must use csbu-workmate');
-  if (builderConfig.includes('publish:')) violations.push('public electron-builder publishing must remain disabled');
+  if (!builderConfig.includes('provider: github') || !builderConfig.includes('repo: AionUi')) {
+    violations.push('desktop updater must publish through suoak/AionUi GitHub Releases');
+  }
 
   const localeFiles = [
     ...listFiles(root, 'packages/desktop/src/renderer/services/i18n/locales', new Set(['.json'])),
@@ -91,8 +93,9 @@ export function auditBranding(root = DEFAULT_ROOT) {
   }
 
   const mainSource = read('packages/desktop/src/index.ts');
-  if (!mainSource.includes('const disableAutoUpdater = true;'))
-    violations.push('public auto-update must remain disabled');
+  if (!mainSource.includes("process.env.CSBU_WORKMATE_DISABLE_AUTO_UPDATE === '1'")) {
+    violations.push('packaged Windows auto-update must retain an explicit disable switch');
+  }
 
   const hubPreparation = read('scripts/prepareHubResources.js');
   if (/iOfficeAI\/AionHub/i.test(hubPreparation)) {
@@ -105,7 +108,7 @@ export function auditBranding(root = DEFAULT_ROOT) {
   }
 
   const bridgeIndex = read('packages/desktop/src/process/bridge/index.ts');
-  if (bridgeIndex.includes('initUpdateBridge();')) violations.push('public update IPC must remain unregistered');
+  if (!bridgeIndex.includes('initUpdateBridge();')) violations.push('update IPC must be registered');
 
   const applicationMenu = read('packages/desktop/src/process/utils/appMenu.ts');
   if (applicationMenu.includes('Check for Updates')) violations.push('public update menu must remain removed');

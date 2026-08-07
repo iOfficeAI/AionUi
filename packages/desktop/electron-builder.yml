@@ -121,8 +121,14 @@ win:
   icon: resources/app.ico # Use the checked-in Windows icon resource for executable metadata/icon patching
   artifactName: CSBU-WorkMate-${version}-${os}-${arch}.${ext}
 
+publish:
+  provider: github
+  owner: suoak
+  repo: AionUi
+
 nsis:
   oneClick: false
+  perMachine: false
   allowElevation: false
   allowToChangeInstallationDirectory: true
   createDesktopShortcut: true

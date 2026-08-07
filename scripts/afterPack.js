@@ -11,41 +11,6 @@ const {
 const { verifyBundledAioncoreResources } = require('../packages/shared-scripts/src/verify-bundled-aioncore-resources');
 const { verifyBundledLarkCliResources } = require('../packages/shared-scripts/src/prepare-lark-cli');
 
-const WINDOWS_PRODUCT_NAME = '锐捷Codex';
-const WINDOWS_LEGAL_COPYRIGHT = 'Copyright © 2026 锐捷Codex';
-
-async function setWindowsExecutableMetadata(
-  executablePath,
-  productName = WINDOWS_PRODUCT_NAME,
-  legalCopyright = WINDOWS_LEGAL_COPYRIGHT
-) {
-  const { NtExecutable, NtExecutableResource, Resource } = require('resedit');
-  const executable = NtExecutable.from(await fs.promises.readFile(executablePath));
-  const resources = NtExecutableResource.from(executable);
-  const versionInfoEntries = Resource.VersionInfo.fromEntries(resources.entries);
-
-  if (versionInfoEntries.length === 0) {
-    throw new Error(`Cannot set ProductName because VERSIONINFO is missing: ${executablePath}`);
-  }
-
-  for (const versionInfo of versionInfoEntries) {
-    const languages = versionInfo.getAllLanguagesForStringValues();
-    if (languages.length === 0) {
-      throw new Error(`Cannot set ProductName because VERSIONINFO has no string table: ${executablePath}`);
-    }
-    for (const language of languages) {
-      versionInfo.setStringValues(language, {
-        LegalCopyright: legalCopyright,
-        ProductName: productName,
-      });
-    }
-    versionInfo.outputToResourceEntries(resources.entries);
-  }
-
-  resources.outputResource(executable);
-  await fs.promises.writeFile(executablePath, Buffer.from(executable.generate()));
-}
-
 /**
  * afterPack hook for electron-builder
  * Rebuilds native modules for cross-architecture builds
@@ -279,7 +244,3 @@ module.exports = async function afterPack(context) {
 
   console.log(`✅ All native modules rebuilt successfully for ${targetArch}\n`);
 };
-
-module.exports.setWindowsExecutableMetadata = setWindowsExecutableMetadata;
-module.exports.WINDOWS_LEGAL_COPYRIGHT = WINDOWS_LEGAL_COPYRIGHT;
-module.exports.WINDOWS_PRODUCT_NAME = WINDOWS_PRODUCT_NAME;

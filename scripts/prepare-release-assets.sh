@@ -119,12 +119,38 @@ echo "==> Validating required metadata ..."
 
 VERSION="${MOCK_VERSION:-$(node -p "require('./package.json').version")}"
 MISSING=0
-for required in latest.yml latest-mac.yml latest-linux.yml latest-linux-arm64.yml; do
+for required in latest.yml latest-win-arm64.yml latest-mac.yml latest-arm64-mac.yml latest-linux.yml latest-linux-arm64.yml; do
   if [ ! -f "$OUTPUT_DIR/$required" ]; then
     echo "::error::Missing required updater metadata: $required"
     MISSING=1
   fi
 done
+
+node - "$OUTPUT_DIR" <<'NODE'
+const fs = require('fs');
+const path = require('path');
+const outputDir = process.argv[2];
+const manifests = fs.readdirSync(outputDir).filter((name) => /^latest.*\.yml$/.test(name));
+let invalid = false;
+for (const manifestName of manifests) {
+  const manifest = fs.readFileSync(path.join(outputDir, manifestName), 'utf8');
+  const assetUrls = [...manifest.matchAll(/^\s*-\s+url:\s*(?:"([^"]+)"|'([^']+)'|([^#\r\n]+?))\s*$/gm)].map(
+    (match) => (match[1] || match[2] || match[3] || '').trim(),
+  );
+  if (assetUrls.length === 0) {
+    console.error(`::error::${manifestName} does not contain any updater asset URLs`);
+    invalid = true;
+  }
+  for (const assetUrl of assetUrls) {
+    const assetName = path.basename(assetUrl);
+    if (!assetName || !fs.existsSync(path.join(outputDir, assetName))) {
+      console.error(`::error::${manifestName} references missing asset: ${assetName || assetUrl}`);
+      invalid = true;
+    }
+  }
+}
+if (invalid) process.exit(1);
+NODE
 
 # ---------------------------------------------------------------------------
 # 5b) Hard validation for desktop release assets

@@ -6,9 +6,9 @@
 
 export interface GitHubReleaseAsset {
   name: string;
-  /** Primary download URL — rewritten to CDN for faster download. */
+  /** Primary download URL from the selected update source. */
   url: string;
-  /** Original GitHub download URL — used as fallback when CDN fails. */
+  /** Optional GitHub fallback URL for a recoverable internal-source failure. */
   fallbackUrl?: string;
   size: number;
   contentType?: string;
@@ -31,12 +31,16 @@ export interface UpdateCheckResult {
   currentVersion: string;
   updateAvailable: boolean;
   latest?: UpdateReleaseInfo;
+  autoUpdateAvailable: boolean;
+  autoUpdateInfo?: {
+    version: string;
+    releaseDate?: string;
+    releaseNotes?: string;
+  };
 }
 
 export interface UpdateCheckRequest {
   includePrerelease?: boolean;
-  /** Defaults to CSBU/CSBU-WorkMate when omitted */
-  repo?: string;
 }
 
 export interface UpdateDownloadRequest {

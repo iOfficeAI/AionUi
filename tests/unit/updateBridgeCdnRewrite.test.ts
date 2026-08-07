@@ -71,7 +71,7 @@ const makeGitHubReleaseResponse = () => [
     tag_name: 'v1.9.22',
     name: 'v1.9.22',
     body: 'release notes',
-    html_url: 'https://github.com/CSBU/CSBU-WorkMate/releases/tag/v1.9.22',
+    html_url: 'https://github.com/suoak/AionUi/releases/tag/v1.9.22',
     published_at: '2026-04-29T00:00:00Z',
     prerelease: false,
     draft: false,
@@ -79,21 +79,21 @@ const makeGitHubReleaseResponse = () => [
       {
         name: 'CSBU-WorkMate-1.9.22-mac-arm64.dmg',
         browser_download_url:
-          'https://github.com/CSBU/CSBU-WorkMate/releases/download/v1.9.22/CSBU-WorkMate-1.9.22-mac-arm64.dmg',
+          'https://github.com/suoak/AionUi/releases/download/v1.9.22/CSBU-WorkMate-1.9.22-mac-arm64.dmg',
         size: 123,
         content_type: 'application/x-apple-diskimage',
       },
       {
         name: 'CSBU-WorkMate-1.9.22-win-x64.exe',
         browser_download_url:
-          'https://github.com/CSBU/CSBU-WorkMate/releases/download/v1.9.22/CSBU-WorkMate-1.9.22-win-x64.exe',
+          'https://github.com/suoak/AionUi/releases/download/v1.9.22/CSBU-WorkMate-1.9.22-win-x64.exe',
         size: 456,
         content_type: 'application/vnd.microsoft.portable-executable',
       },
       {
         name: 'CSBU-WorkMate-1.9.22-linux-amd64.deb',
         browser_download_url:
-          'https://github.com/CSBU/CSBU-WorkMate/releases/download/v1.9.22/CSBU-WorkMate-1.9.22-linux-amd64.deb',
+          'https://github.com/suoak/AionUi/releases/download/v1.9.22/CSBU-WorkMate-1.9.22-linux-amd64.deb',
         size: 789,
       },
     ],
@@ -135,26 +135,9 @@ const makeDeferred = () => {
   return { promise, resolve, reject };
 };
 
-// The check flow is CDN-first: the channel yml is the authoritative source of
-// version + assets, GitHub only enriches release notes. Serve both hosts.
-const CDN_CHANNEL_YML = `version: 1.9.22
-files:
-  - url: CSBU-WorkMate-1.9.22-mac-arm64.dmg
-    size: 123
-  - url: CSBU-WorkMate-1.9.22-win-x64.exe
-    size: 456
-  - url: CSBU-WorkMate-1.9.22-linux-amd64.deb
-    size: 789
-path: CSBU-WorkMate-1.9.22-mac-arm64.dmg
-releaseDate: '2026-04-29T00:00:00Z'
-`;
-
-const stubCdnAndGitHubFetch = () => {
+const stubGitHubFetch = () => {
   const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
     const url = String(input);
-    if (url.startsWith('https://updates.csbu.internal/releases/latest')) {
-      return new Response(CDN_CHANNEL_YML, { status: 200 });
-    }
     if (url.startsWith('https://api.github.com/')) {
       return new Response(JSON.stringify(makeGitHubReleaseResponse()), { status: 200 });
     }
@@ -164,17 +147,17 @@ const stubCdnAndGitHubFetch = () => {
   return fetchMock;
 };
 
-describe('updateBridge CDN URL rewriting', () => {
+describe('updateBridge GitHub asset mapping', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('rewrites asset.url to the CDN path and keeps GitHub URL in fallbackUrl', async () => {
-    const fetchMock = stubCdnAndGitHubFetch();
+  it('keeps published GitHub asset URLs as the primary manual download', async () => {
+    const fetchMock = stubGitHubFetch();
 
     try {
       const handler = await getCheckHandler();
-      const result = await handler({ repo: 'CSBU/CSBU-WorkMate' });
+      const result = await handler({});
 
       expect(result.success).toBe(true);
       expect(result.data?.currentVersion).toBe('1.0.0');
@@ -183,14 +166,14 @@ describe('updateBridge CDN URL rewriting', () => {
 
       const macAsset = assets.find((a: { name: string }) => a.name === 'CSBU-WorkMate-1.9.22-mac-arm64.dmg');
       expect(macAsset).toBeDefined();
-      expect(macAsset?.url).toBe('https://updates.csbu.internal/releases/1.9.22/CSBU-WorkMate-1.9.22-mac-arm64.dmg');
-      expect(macAsset?.fallbackUrl).toBe(
-        'https://github.com/CSBU/CSBU-WorkMate/releases/download/v1.9.22/CSBU-WorkMate-1.9.22-mac-arm64.dmg'
+      expect(macAsset?.url).toBe(
+        'https://github.com/suoak/AionUi/releases/download/v1.9.22/CSBU-WorkMate-1.9.22-mac-arm64.dmg'
       );
+      expect(macAsset?.fallbackUrl).toBeUndefined();
 
       const linuxAsset = assets.find((a: { name: string }) => a.name === 'CSBU-WorkMate-1.9.22-linux-amd64.deb');
       expect(linuxAsset?.url).toBe(
-        'https://updates.csbu.internal/releases/1.9.22/CSBU-WorkMate-1.9.22-linux-amd64.deb'
+        'https://github.com/suoak/AionUi/releases/download/v1.9.22/CSBU-WorkMate-1.9.22-linux-amd64.deb'
       );
       expect(fetchMock).toHaveBeenCalled();
     } finally {
@@ -198,23 +181,22 @@ describe('updateBridge CDN URL rewriting', () => {
     }
   });
 
-  it('uses the normalized version (no v prefix) in the CDN path', async () => {
-    stubCdnAndGitHubFetch();
+  it('preserves the GitHub release tag in asset URLs', async () => {
+    stubGitHubFetch();
 
     try {
       const handler = await getCheckHandler();
-      const result = await handler({ repo: 'CSBU/CSBU-WorkMate' });
+      const result = await handler({});
       const asset = result.data?.latest?.assets?.[0];
-      expect(asset?.url).toMatch(/^https:\/\/updates\.csbu\.internal\/releases\/1\.9\.22\//);
-      expect(asset?.url).not.toMatch(/\/v1\.9\.22\//);
+      expect(asset?.url).toMatch(/\/releases\/download\/v1\.9\.22\//);
     } finally {
       vi.unstubAllGlobals();
     }
   });
 });
 
-describe('updateBridge allowlist includes CDN host', () => {
-  it('accepts updates.csbu.internal URLs for download', async () => {
+describe('updateBridge download allowlist', () => {
+  it('rejects the removed updates.csbu.internal host', async () => {
     vi.resetModules();
     vi.clearAllMocks();
 
@@ -246,8 +228,7 @@ describe('updateBridge allowlist includes CDN host', () => {
         file_name: 'CSBU-WorkMate-1.9.22-mac-arm64.dmg',
       });
 
-      expect(result.success).toBe(true);
-      expect(result.data?.downloadId).toBe('manual-download-1');
+      expect(result.success).toBe(false);
     } finally {
       vi.unstubAllGlobals();
     }

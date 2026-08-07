@@ -6,23 +6,19 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+const checkForUpdatesMock = vi.hoisted(() => vi.fn());
+const originalPlatform = process.platform;
+const originalArch = process.arch;
+
+const setRuntime = (platform: NodeJS.Platform, arch: NodeJS.Architecture): void => {
+  Object.defineProperty(process, 'platform', { configurable: true, value: platform });
+  Object.defineProperty(process, 'arch', { configurable: true, value: arch });
+};
+
 vi.mock('@/common/platform/bridge', () => ({
   bridge: {
-    buildProvider: vi.fn(() => {
-      const handlerMap = new Map<string, Function>();
-      return {
-        provider: vi.fn((handler: Function) => {
-          handlerMap.set('handler', handler);
-          return vi.fn();
-        }),
-        invoke: vi.fn(),
-        _getHandler: () => handlerMap.get('handler'),
-      };
-    }),
-    buildEmitter: vi.fn(() => ({
-      emit: vi.fn(),
-      on: vi.fn(),
-    })),
+    buildProvider: vi.fn(() => ({ provider: vi.fn(), invoke: vi.fn() })),
+    buildEmitter: vi.fn(() => ({ emit: vi.fn(), on: vi.fn() })),
   },
 }));
 
@@ -33,26 +29,17 @@ vi.mock('electron', () => ({
     exit: vi.fn(),
     isPackaged: true,
   },
-  autoUpdater: {
-    on: vi.fn(),
-    removeListener: vi.fn(),
-  },
+  autoUpdater: { on: vi.fn(), removeListener: vi.fn() },
 }));
 
-vi.mock('electron-updater', () => ({
-  autoUpdater: {
-    logger: null,
-    autoDownload: false,
-    autoInstallOnAppQuit: true,
-    allowPrerelease: false,
-    allowDowngrade: false,
-    setFeedURL: vi.fn(),
-    on: vi.fn(),
-    removeListener: vi.fn(),
-    checkForUpdates: vi.fn(),
+vi.mock('@process/services/autoUpdaterService', () => ({
+  autoUpdaterService: {
+    setAllowPrerelease: vi.fn(),
+    checkForUpdates: (...args: unknown[]) => checkForUpdatesMock(...args),
     downloadUpdate: vi.fn(),
+    restoreDownloadedUpdateIfAvailable: vi.fn(),
+    cancelDownload: vi.fn(),
     quitAndInstall: vi.fn(),
-    checkForUpdatesAndNotify: vi.fn(),
   },
 }));
 
@@ -66,152 +53,128 @@ vi.mock('electron-log', () => ({
   },
 }));
 
-vi.mock('@process/services/i18n', () => ({
-  default: { t: (key: string) => key },
-}));
+vi.mock('@process/services/i18n', () => ({ default: { t: (key: string) => key } }));
 
-// The fixtures below are mac-arm64 assets and both resolveCdnChannelFile and
-// pickRecommendedAsset read the host platform/arch, so pin the runtime to keep
-// results identical on every CI runner (linux/windows x64 would otherwise
-// filter the assets out and pick no recommended asset).
-import { afterAll, beforeAll } from 'vitest';
-
-const realPlatform = process.platform;
-const realArch = process.arch;
-beforeAll(() => {
-  Object.defineProperty(process, 'platform', { value: 'darwin', configurable: true });
-  Object.defineProperty(process, 'arch', { value: 'arm64', configurable: true });
+const githubRelease = (overrides: Record<string, unknown> = {}) => ({
+  tag_name: 'v2.1.52',
+  name: 'v2.1.52',
+  body: 'release notes',
+  html_url: 'https://github.com/suoak/AionUi/releases/tag/v2.1.52',
+  published_at: '2026-08-06T00:00:00Z',
+  prerelease: false,
+  draft: false,
+  assets: [
+    {
+      name: 'CSBU-WorkMate-2.1.52-win-x64.exe',
+      browser_download_url:
+        'https://github.com/suoak/AionUi/releases/download/v2.1.52/CSBU-WorkMate-2.1.52-win-x64.exe',
+      size: 100,
+      content_type: 'application/vnd.microsoft.portable-executable',
+    },
+  ],
+  ...overrides,
 });
-afterAll(() => {
-  Object.defineProperty(process, 'platform', { value: realPlatform, configurable: true });
-  Object.defineProperty(process, 'arch', { value: realArch, configurable: true });
-});
-
-const CDN_YML = `version: 2.1.45
-files:
-  - url: CSBU-WorkMate-2.1.45-mac-arm64.zip
-    size: 100
-  - url: CSBU-WorkMate-2.1.45-mac-arm64.dmg
-    size: 200
-path: CSBU-WorkMate-2.1.45-mac-arm64.zip
-releaseDate: '2026-07-31T14:45:19.381Z'
-`;
-
-const GITHUB_RELEASES = [
-  {
-    tag_name: 'v2.1.45',
-    name: 'v2.1.45',
-    body: 'changelog body',
-    html_url: 'https://github.com/CSBU/CSBU-WorkMate/releases/tag/v2.1.45',
-    prerelease: false,
-    draft: false,
-    assets: [],
-  },
-];
 
 const getCheckHandler = async () => {
   vi.resetModules();
   const { initUpdateBridge } = await import('@process/bridge/updateBridge');
   const { ipcBridge } = await import('@/common');
   initUpdateBridge();
-  const provider = vi.mocked(ipcBridge.update.check.provider);
-  const lastCall = provider.mock.calls.at(-1);
-  if (!lastCall) throw new Error('update.check handler not registered');
-  return lastCall[0];
+  const call = vi.mocked(ipcBridge.update.check.provider).mock.calls.at(-1);
+  if (!call) throw new Error('update.check handler not registered');
+  return call[0];
 };
 
-type FetchScenario = {
-  cdn?: () => Promise<Response> | Response;
-  github?: () => Promise<Response> | Response;
-};
-
-const stubFetch = (scenario: FetchScenario) => {
-  const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
-    const url = String(input);
-    if (url.startsWith('https://updates.csbu.internal/releases/latest')) {
-      if (!scenario.cdn) throw new Error('unexpected CDN request');
-      return scenario.cdn();
-    }
-    if (url.startsWith('https://api.github.com/')) {
-      if (!scenario.github) throw new Error('github unreachable');
-      return scenario.github();
-    }
-    throw new Error(`unexpected fetch: ${url}`);
-  });
-  vi.stubGlobal('fetch', fetchMock);
-  return fetchMock;
-};
-
-const ymlResponse = (body: string) => new Response(body, { status: 200 });
-const jsonResponse = (body: unknown) => new Response(JSON.stringify(body), { status: 200 });
-
-describe('update.check CDN-first', () => {
+describe('unified update check', () => {
   beforeEach(() => {
+    setRuntime('win32', 'x64');
     vi.clearAllMocks();
+    checkForUpdatesMock.mockResolvedValue({ success: true });
   });
 
   afterEach(() => {
     vi.unstubAllGlobals();
+    setRuntime(originalPlatform, originalArch);
   });
 
-  it('reports an update from the CDN manifest and attaches GitHub notes', async () => {
-    stubFetch({ cdn: () => ymlResponse(CDN_YML), github: () => jsonResponse(GITHUB_RELEASES) });
-    const handler = await getCheckHandler();
-    const res = await handler({});
-    expect(res.success).toBe(true);
-    expect(res.data?.updateAvailable).toBe(true);
-    expect(res.data?.latest?.version).toBe('2.1.45');
-    expect(res.data?.latest?.body).toBe('changelog body');
-    expect(res.data?.latest?.htmlUrl).toBe('https://github.com/CSBU/CSBU-WorkMate/releases/tag/v2.1.45');
-    expect(res.data?.latest?.recommendedAsset?.url).toBe(
-      'https://updates.csbu.internal/releases/2.1.45/CSBU-WorkMate-2.1.45-mac-arm64.dmg'
+  it('registers update IPC providers only once', async () => {
+    vi.resetModules();
+    const { initUpdateBridge } = await import('@process/bridge/updateBridge');
+    const { ipcBridge } = await import('@/common');
+
+    initUpdateBridge();
+    initUpdateBridge();
+
+    expect(ipcBridge.update.check.provider).toHaveBeenCalledTimes(1);
+    expect(ipcBridge.autoUpdate.download.provider).toHaveBeenCalledTimes(1);
+  });
+
+  it('uses the published GitHub release and direct assets as the manual source', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify([githubRelease()]), { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await (await getCheckHandler())({});
+
+    expect(result.success).toBe(true);
+    expect(result.data?.latest?.recommendedAsset?.url).toContain('github.com/suoak/AionUi/releases/download');
+    expect(fetchMock).toHaveBeenCalledWith('https://api.github.com/repos/suoak/AionUi/releases', expect.any(Object));
+  });
+
+  it('ignores drafts and stable checks ignore prereleases', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        .mockResolvedValue(
+          new Response(
+            JSON.stringify([
+              githubRelease({ tag_name: 'v2.1.54', draft: true }),
+              githubRelease({ tag_name: 'v2.1.53', prerelease: true }),
+              githubRelease(),
+            ]),
+            { status: 200 }
+          )
+        )
     );
+
+    const result = await (await getCheckHandler())({ includePrerelease: false });
+    expect(result.data?.latest?.version).toBe('2.1.52');
   });
 
-  it('succeeds without notes when GitHub is unreachable', async () => {
-    stubFetch({ cdn: () => ymlResponse(CDN_YML) });
-    const handler = await getCheckHandler();
-    const res = await handler({});
-    expect(res.success).toBe(true);
-    expect(res.data?.updateAvailable).toBe(true);
-    expect(res.data?.latest?.body).toBeUndefined();
-    expect(res.data?.latest?.htmlUrl).toBe('');
-    expect(res.data?.latest?.assets.length).toBeGreaterThan(0);
+  it('allows prereleases only as manual downloads in the first rollout', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify([githubRelease({ tag_name: 'v2.1.53-beta.1', prerelease: true })]), {
+          status: 200,
+        })
+      )
+    );
+
+    const result = await (await getCheckHandler())({ includePrerelease: true });
+    expect(result.data?.latest?.version).toBe('2.1.53-beta.1');
+    expect(result.data?.autoUpdateAvailable).toBe(false);
+    expect(checkForUpdatesMock).not.toHaveBeenCalled();
   });
 
-  it('ignores GitHub releases that do not match the CDN version', async () => {
-    stubFetch({
-      cdn: () => ymlResponse(CDN_YML),
-      github: () => jsonResponse([{ ...GITHUB_RELEASES[0], tag_name: 'v9.9.9' }]),
+  it('keeps automatic installation available when GitHub metadata enrichment fails', async () => {
+    checkForUpdatesMock.mockResolvedValue({
+      success: true,
+      updateInfo: { version: '2.1.52', releaseDate: '2026-08-06T00:00:00Z', releaseNotes: 'native notes' },
     });
-    const handler = await getCheckHandler();
-    const res = await handler({});
-    expect(res.success).toBe(true);
-    expect(res.data?.latest?.body).toBeUndefined();
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('GitHub unavailable')));
+
+    const result = await (await getCheckHandler())({});
+    expect(result.success).toBe(true);
+    expect(result.data?.autoUpdateAvailable).toBe(true);
+    expect(result.data?.latest?.version).toBe('2.1.52');
   });
 
-  it('reports up-to-date when CDN version equals current version', async () => {
-    stubFetch({
-      cdn: () => ymlResponse(CDN_YML.replace(/2\.1\.45/g, '2.1.40')),
-      github: () => jsonResponse([]),
-    });
-    const handler = await getCheckHandler();
-    const res = await handler({});
-    expect(res.success).toBe(true);
-    expect(res.data?.updateAvailable).toBe(false);
-  });
+  it('returns an error when neither automatic nor GitHub checks succeed', async () => {
+    checkForUpdatesMock.mockResolvedValue({ success: false, error: 'native failed' });
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('GitHub unavailable')));
 
-  it('fails the check when the CDN manifest request fails', async () => {
-    stubFetch({ cdn: () => new Response('nope', { status: 502 }), github: () => jsonResponse(GITHUB_RELEASES) });
-    const handler = await getCheckHandler();
-    const res = await handler({});
-    expect(res.success).toBe(false);
-  });
-
-  it('fails the check when the CDN manifest is malformed', async () => {
-    stubFetch({ cdn: () => ymlResponse('not: [valid'), github: () => jsonResponse(GITHUB_RELEASES) });
-    const handler = await getCheckHandler();
-    const res = await handler({});
-    expect(res.success).toBe(false);
+    const result = await (await getCheckHandler())({});
+    expect(result.success).toBe(false);
   });
 });

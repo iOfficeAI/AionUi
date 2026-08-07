@@ -597,7 +597,8 @@ const createWindow = ({ showOnReady = true }: { showOnReady?: boolean } = {}): v
 
   // Initialize auto-updater service (skip when disabled via env, e.g. E2E / CI)
   // 初始化自动更新服务（通过环境变量禁用时跳过，例如 E2E / CI 场景）
-  const disableAutoUpdater = true;
+  const disableAutoUpdater =
+    !app.isPackaged || process.platform !== 'win32' || process.env.CSBU_WORKMATE_DISABLE_AUTO_UPDATE === '1';
   if (!disableAutoUpdater) {
     Promise.all([import('./process/services/autoUpdaterService'), import('./process/bridge/updateBridge')])
       .then(([{ autoUpdaterService }, { createAutoUpdateStatusBroadcast }]) => {
@@ -617,7 +618,7 @@ const createWindow = ({ showOnReady = true }: { showOnReady?: boolean } = {}): v
         console.error('[App] Failed to initialize autoUpdaterService:', error);
       });
   } else {
-    console.log('[CSBU WorkMate] Auto-updater disabled by internal distribution policy');
+    console.log('[CSBU WorkMate] Auto-updater disabled for this runtime');
   }
 
   // Load the renderer: dev server URL in development, built HTML file in production

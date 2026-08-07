@@ -112,8 +112,7 @@ describe('updateBridge manual download dedupe', () => {
   it('reuses the active manual download for the same URL, fallback URL, and file name', async () => {
     const handler = await getDownloadHandler();
     const request = {
-      url: 'https://updates.csbu.internal/releases/2.2.0/CSBU-WorkMate-2.2.0-mac-arm64.dmg',
-      fallbackUrl: 'https://github.com/CSBU/CSBU-WorkMate/releases/download/v2.2.0/CSBU-WorkMate-2.2.0-mac-arm64.dmg',
+      url: 'https://github.com/suoak/AionUi/releases/download/v2.2.0/CSBU-WorkMate-2.2.0-mac-arm64.dmg',
       file_name: 'CSBU-WorkMate-2.2.0-mac-arm64.dmg',
     };
 
@@ -149,8 +148,7 @@ describe('updateBridge manual download dedupe', () => {
 
     const handler = await getDownloadHandler();
     const request = {
-      url: 'https://updates.csbu.internal/releases/2.2.0/CSBU-WorkMate-2.2.0-mac-arm64.dmg',
-      fallbackUrl: 'https://github.com/CSBU/CSBU-WorkMate/releases/download/v2.2.0/CSBU-WorkMate-2.2.0-mac-arm64.dmg',
+      url: 'https://github.com/suoak/AionUi/releases/download/v2.2.0/CSBU-WorkMate-2.2.0-mac-arm64.dmg',
       file_name: 'CSBU-WorkMate-2.2.0-mac-arm64.dmg',
     };
 
@@ -193,8 +191,7 @@ describe('updateBridge manual download dedupe', () => {
 
     const { download, cancel, ipcBridge } = await getDownloadHandlers();
     const request = {
-      url: 'https://updates.csbu.internal/releases/2.2.0/CSBU-WorkMate-2.2.0-mac-arm64.dmg',
-      fallbackUrl: 'https://github.com/CSBU/CSBU-WorkMate/releases/download/v2.2.0/CSBU-WorkMate-2.2.0-mac-arm64.dmg',
+      url: 'https://github.com/suoak/AionUi/releases/download/v2.2.0/CSBU-WorkMate-2.2.0-mac-arm64.dmg',
       file_name: 'CSBU-WorkMate-2.2.0-mac-arm64.dmg',
     };
 

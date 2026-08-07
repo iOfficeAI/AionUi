@@ -5,7 +5,7 @@
  */
 
 import { autoUpdater } from 'electron-updater';
-import type { ProgressInfo, ResolvedUpdateFileInfo, UpdateInfo } from 'electron-updater';
+import type { ProgressInfo, ResolvedUpdateFileInfo, UpdateCheckResult, UpdateInfo } from 'electron-updater';
 import type { UpdateInfoAndProvider } from 'electron-updater/out/AppUpdater';
 import type { DownloadedUpdateHelper } from 'electron-updater/out/DownloadedUpdateHelper';
 import { findFile } from 'electron-updater/out/providers/Provider';
@@ -24,7 +24,14 @@ import {
   recordAutoUpdateQuitAndInstall,
   recordAutoUpdateStatus,
 } from './autoUpdateDiagnostics';
-import { buildCdnFeedOptions } from './updateFeed';
+import {
+  buildUpdateFeedOptions,
+  GITHUB_UPDATE_OWNER,
+  GITHUB_UPDATE_REPO,
+  resolveUpdateSourceConfig,
+  shouldFallbackToGitHub,
+  type UpdateSourceConfig,
+} from './updateFeed';
 
 const FORCE_DEV_AUTO_UPDATE_ENV = 'CSBU_WORKMATE_FORCE_DEV_AUTO_UPDATE';
 const DEBUG_AUTO_UPDATE_CURRENT_VERSION_ENV = 'CSBU_WORKMATE_DEBUG_AUTO_UPDATE_CURRENT_VERSION';
@@ -94,10 +101,6 @@ type AutoUpdaterCacheAccess = {
   constructor?: { name?: string };
 };
 
-type WindowsNsisUpdaterAccess = {
-  installDirectory?: string;
-};
-
 /** Events emitted by AutoUpdaterService */
 export interface AutoUpdaterEvents {
   'update-status': (status: AutoUpdateStatus) => void;
@@ -121,6 +124,14 @@ class AutoUpdaterService extends EventEmitter {
     timer: ReturnType<typeof setTimeout>;
   } | null = null;
   private _downloadedUpdateVersion: string | undefined;
+  private _updateSource: UpdateSourceConfig = {
+    kind: 'github',
+    owner: GITHUB_UPDATE_OWNER,
+    repo: GITHUB_UPDATE_REPO,
+    manifestPublicKey: '',
+  };
+  private _githubManifestPublicKey = '';
+  private _updateConfigurationError: string | undefined;
   /** Stores registered autoUpdater event handlers for cleanup and test access */
   private readonly _autoUpdaterHandlers = new Map<string, (...args: unknown[]) => void>();
   private readonly _nativeAutoUpdaterHandlers = new Map<string, (...args: unknown[]) => void>();
@@ -134,14 +145,7 @@ class AutoUpdaterService extends EventEmitter {
     // Disable auto-download for manual control
     autoUpdater.autoDownload = false;
     autoUpdater.autoInstallOnAppQuit = true;
-    if (process.platform === 'win32' && app.isPackaged) {
-      (autoUpdater as WindowsNsisUpdaterAccess).installDirectory = path.dirname(process.execPath);
-      log.info('[auto-update] Windows install directory pinned for registry-free updates', {
-        installDirectory: path.dirname(process.execPath),
-      });
-    }
     this.configureDevAutoUpdateDebug();
-    const cdnFeedOptions = buildCdnFeedOptions();
 
     // Set the correct update channel based on platform and architecture before
     // any update checks are performed
@@ -150,14 +154,38 @@ class AutoUpdaterService extends EventEmitter {
       autoUpdater.channel = channel;
       log.info(`Update channel set to: ${channel}`);
     }
-    autoUpdater.setFeedURL(cdnFeedOptions);
-    log.info('Update feed set to CDN provider');
-    log.debug('[auto-update] CDN feed configured', {
-      provider: cdnFeedOptions.provider,
-      url: cdnFeedOptions.url,
+    try {
+      this._updateSource = resolveUpdateSourceConfig({ isPackaged: app.isPackaged });
+      this._githubManifestPublicKey = this._updateSource.manifestPublicKey;
+    } catch (error) {
+      this._updateConfigurationError = error instanceof Error ? error.message : String(error);
+      log.error('[auto-update] Update source policy rejected:', this._updateConfigurationError);
+    }
+    this.applyUpdateSource(this._updateSource);
+    log.debug('[auto-update] Update feed configured', {
+      source: this._updateSource.kind,
       channel: channel ?? 'latest',
       platform: process.platform,
       arch: process.arch,
+    });
+  }
+
+  private applyUpdateSource(source: UpdateSourceConfig): void {
+    autoUpdater.setFeedURL(buildUpdateFeedOptions(source));
+    this._updateSource = source;
+  }
+
+  private canFallbackToGitHub(error: unknown): boolean {
+    return shouldFallbackToGitHub(this._updateSource, error);
+  }
+
+  private useGitHubFallback(): void {
+    log.warn('[auto-update] Internal update source unavailable; switching to GitHub fallback');
+    this.applyUpdateSource({
+      kind: 'github',
+      owner: GITHUB_UPDATE_OWNER,
+      repo: GITHUB_UPDATE_REPO,
+      manifestPublicKey: this._githubManifestPublicKey,
     });
   }
 
@@ -204,10 +232,10 @@ class AutoUpdaterService extends EventEmitter {
    */
   private ensureDevUpdateConfig(): void {
     try {
-      const cdnFeedOptions = buildCdnFeedOptions();
       const devConfig = [
-        'provider: generic',
-        `url: ${cdnFeedOptions.url}`,
+        'provider: github',
+        `owner: ${GITHUB_UPDATE_OWNER}`,
+        `repo: ${GITHUB_UPDATE_REPO}`,
         'updaterCacheDirName: com.csbu.workmate',
         '',
       ].join('\n');
@@ -336,8 +364,7 @@ class AutoUpdaterService extends EventEmitter {
   }
 
   /**
-   * Set whether to allow prerelease/dev updates
-   * When enabled, also sets allowDowngrade to true
+   * Set whether the separate manual check may include prerelease builds.
    */
   setAllowPrerelease(allow: boolean): void {
     this._allowPrerelease = allow;
@@ -617,6 +644,9 @@ class AutoUpdaterService extends EventEmitter {
       if (!this._isInitialized) {
         throw new Error('AutoUpdaterService not initialized');
       }
+      if (this._updateConfigurationError) {
+        throw new Error(this._updateConfigurationError);
+      }
 
       log.debug('[auto-update] checkForUpdates requested', {
         allowPrerelease: this._allowPrerelease,
@@ -627,11 +657,18 @@ class AutoUpdaterService extends EventEmitter {
 
       if (this._allowPrerelease) {
         log.info('Skipping electron-updater check for prerelease manual mode');
-        log.debug('[auto-update] CDN stable feed skipped because prerelease mode is handled by GitHub API');
+        log.debug('[auto-update] Stable auto-install check skipped because prerelease mode is manual-only');
         return { success: true };
       }
 
-      const result = await autoUpdater.checkForUpdates();
+      let result: UpdateCheckResult | null;
+      try {
+        result = await autoUpdater.checkForUpdates();
+      } catch (error) {
+        if (!this.canFallbackToGitHub(error)) throw error;
+        this.useGitHubFallback();
+        result = await autoUpdater.checkForUpdates();
+      }
       if (!result) {
         const { default: i18n } = await import('./i18n');
         log.debug('[auto-update] checkForUpdates returned null');
@@ -641,12 +678,12 @@ class AutoUpdaterService extends EventEmitter {
       // When isUpdateAvailable is false, updateInfoAndProvider is NOT set internally,
       // so a subsequent downloadUpdate() call would fail with "Please check update first".
       if (!result.isUpdateAvailable) {
-        log.debug('[auto-update] no update available from CDN feed', {
+        log.debug('[auto-update] no automatic update available from configured feed', {
           version: result.updateInfo.version,
         });
         return { success: true };
       }
-      log.debug('[auto-update] update available from CDN feed', {
+      log.debug('[auto-update] automatic update available from configured feed', {
         version: result.updateInfo.version,
         releaseDate: result.updateInfo.releaseDate,
       });
@@ -898,12 +935,10 @@ class AutoUpdaterService extends EventEmitter {
    * Check for updates and notify (for startup)
    */
   async checkForUpdatesAndNotify(): Promise<void> {
-    try {
-      // Ensure clean state: prevent stale allowDowngrade=true from prior setAllowPrerelease(true) calls
-      autoUpdater.allowDowngrade = false;
-      await autoUpdater.checkForUpdatesAndNotify();
-    } catch (error) {
-      log.error('Auto-update check failed:', error);
+    autoUpdater.allowDowngrade = false;
+    const result = await this.checkForUpdates();
+    if (!result.success) {
+      log.error('Auto-update check failed:', result.error);
     }
   }
 }

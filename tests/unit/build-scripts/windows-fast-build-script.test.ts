@@ -1,17 +1,8 @@
-import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { execFileSync, spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { parse, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { NtExecutable, NtExecutableResource, Resource } from 'resedit';
-
-const { setWindowsExecutableMetadata } = require('../../../scripts/afterPack.js') as {
-  setWindowsExecutableMetadata: (
-    executablePath: string,
-    productName?: string,
-    legalCopyright?: string
-  ) => Promise<void>;
-};
 
 const packageJson = JSON.parse(readFileSync('package.json', 'utf8')) as {
   scripts: Record<string, string>;
@@ -19,15 +10,6 @@ const packageJson = JSON.parse(readFileSync('package.json', 'utf8')) as {
 const buildScript = readFileSync('scripts/build-with-builder.js', 'utf8');
 const nativeRebuildScript = readFileSync('scripts/rebuildNativeModules.js', 'utf8');
 const installerStateScript = resolve('resources/windows/support/installer-state.ps1');
-
-function readWindowsVersionStrings(executablePath: string): Record<string, string> {
-  const executable = NtExecutable.from(readFileSync(executablePath));
-  const resources = NtExecutableResource.from(executable);
-  const versionInfo = Resource.VersionInfo.fromEntries(resources.entries)[0];
-  const language = versionInfo?.getAllLanguagesForStringValues()[0];
-  if (!versionInfo || !language) throw new Error(`VERSIONINFO not found: ${executablePath}`);
-  return versionInfo.getStringValues(language);
-}
 
 describe('Windows fast build scripts', () => {
   it('provides an x64 fast installer build that preserves executable version resources', () => {
@@ -64,36 +46,14 @@ describe('Windows fast build scripts', () => {
     expect(nativeRebuildScript).not.toContain('bun x');
   });
 
-  it.runIf(process.platform === 'win32')('changes only the requested packaged application metadata', async () => {
-    const tempDirectory = mkdtempSync(resolve(tmpdir(), 'csbu-product-name-'));
-    const executablePath = resolve(tempDirectory, 'CSBU WorkMate.exe');
+  it('uses builder metadata without patching Windows executable branding', () => {
+    const afterPackScript = readFileSync('scripts/afterPack.js', 'utf8');
+    const builderConfig = readFileSync('packages/desktop/electron-builder.yml', 'utf8');
 
-    try {
-      copyFileSync(resolve('node_modules/electron/dist/electron.exe'), executablePath);
-      const before = readWindowsVersionStrings(executablePath);
-
-      await setWindowsExecutableMetadata(executablePath);
-
-      const after = readWindowsVersionStrings(executablePath);
-      expect(after.ProductName).toBe('锐捷Codex');
-      expect(after.LegalCopyright).toBe('Copyright © 2026 锐捷Codex');
-      expect(after.CompanyName).toBe(before.CompanyName);
-      expect(after.FileVersion).toBe(before.FileVersion);
-    } finally {
-      rmSync(tempDirectory, { force: true, recursive: true });
-    }
-  });
-
-  it('refuses to recreate missing VERSIONINFO implicitly', async () => {
-    const tempDirectory = mkdtempSync(resolve(tmpdir(), 'csbu-missing-version-info-'));
-    const invalidExecutablePath = resolve(tempDirectory, 'invalid.exe');
-
-    try {
-      writeFileSync(invalidExecutablePath, 'not a PE executable');
-      await expect(setWindowsExecutableMetadata(invalidExecutablePath)).rejects.toThrow();
-    } finally {
-      rmSync(tempDirectory, { force: true, recursive: true });
-    }
+    expect(builderConfig).toContain('productName: CSBU WorkMate');
+    expect(builderConfig).toContain('copyright: Copyright © 2026 CSBU');
+    expect(afterPackScript).not.toContain('setWindowsExecutableMetadata');
+    expect(buildScript).not.toContain('锐捷Codex');
   });
 
   it.runIf(process.platform === 'win32')('round-trips registry-free installer state atomically', () => {

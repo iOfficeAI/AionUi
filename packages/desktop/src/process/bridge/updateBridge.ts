@@ -20,11 +20,11 @@ import { uuid } from '@/common/utils';
 import { app } from 'electron';
 import log from 'electron-log';
 import * as fs from 'fs';
-import { load as loadYaml } from 'js-yaml';
 import * as path from 'path';
 import semver from 'semver';
 import { autoUpdaterService } from '../services/autoUpdaterService';
 import { consumeInstallerLastFailure } from '../services/installerLastFailure';
+import { DEFAULT_GITHUB_REPO, normalizeInternalUpdateBaseUrl, resolveUpdateSourceConfig } from '../services/updateFeed';
 
 /** Lazily loads i18n to avoid pulling in initStorage chain at module load time */
 let _i18nCache: Promise<typeof import('../services/i18n')> | null = null;
@@ -60,13 +60,10 @@ interface AutoUpdateCheckParams {
   includePrerelease?: boolean;
 }
 
-const DEFAULT_REPO = 'CSBU/CSBU-WorkMate';
+const DEFAULT_REPO = DEFAULT_GITHUB_REPO;
 const DEFAULT_USER_AGENT = 'CSBU WorkMate';
 const ALLOWED_ASSET_EXTS = new Set(['.exe', '.msi', '.dmg', '.zip', '.deb', '.rpm']);
-const CDN_HOST = 'updates.csbu.internal';
-const CDN_BASE_URL = `https://${CDN_HOST}/releases`;
 const ALLOWED_DOWNLOAD_HOSTS = new Set<string>([
-  CDN_HOST,
   'github.com',
   'objects.githubusercontent.com',
   'github-releases.githubusercontent.com',
@@ -87,13 +84,30 @@ const normalizeTagToSemver = (tag: string): string | null => {
   return semver.valid(withoutV);
 };
 
-/**
- * Rewrite a GitHub release asset URL to the CDN URL for faster download.
- * The CDN path follows the fixed convention `{base}/{version}/{original-filename}`,
- * matching electron-builder's artifactName output, so no name conversion is needed.
- */
-const rewriteAssetUrlToCDN = (assetName: string, version: string): string => {
-  return `${CDN_BASE_URL}/${version}/${assetName}`;
+/** Map GitHub API release data to the renderer-facing update model. */
+const mapGitHubRelease = (release: GitHubReleaseApi): UpdateReleaseInfo | null => {
+  const version = normalizeTagToSemver(release.tag_name);
+  if (!version) return null;
+  const assets = (release.assets ?? [])
+    .filter((asset) => isAllowedAssetName(asset.name))
+    .map((asset) => ({
+      name: asset.name,
+      url: asset.browser_download_url,
+      size: asset.size,
+      contentType: asset.content_type,
+    }));
+  return {
+    tagName: release.tag_name,
+    version,
+    name: release.name,
+    body: release.body,
+    htmlUrl: release.html_url,
+    publishedAt: release.published_at,
+    prerelease: release.prerelease,
+    draft: release.draft,
+    assets,
+    recommendedAsset: pickRecommendedAsset(assets),
+  };
 };
 
 type RuntimePlatformInfo = {
@@ -190,81 +204,9 @@ export const pickRecommendedAsset = (
   return scored[0]?.asset;
 };
 
-export type CdnManifestFile = { url: string; size?: number };
-export type CdnLatestManifest = { version: string; files: CdnManifestFile[]; releaseDate?: string };
-
-/**
- * Pick the electron-builder channel file for the current platform/arch,
- * matching the names build-and-release uploads to the CDN root.
- */
-export const resolveCdnChannelFile = (
-  runtime: RuntimePlatformInfo = { platform: process.platform, arch: process.arch }
-): string => {
-  const isArm64 = normalizeArch(runtime.arch) === 'arm64';
-  if (runtime.platform === 'win32') return isArm64 ? 'latest-win-arm64.yml' : 'latest.yml';
-  if (runtime.platform === 'darwin') return isArm64 ? 'latest-arm64-mac.yml' : 'latest-mac.yml';
-  return isArm64 ? 'latest-linux-arm64.yml' : 'latest-linux.yml';
-};
-
-/** Parse an electron-builder channel yml; null when the shape is unusable. */
-export const parseCdnManifest = (raw: string): CdnLatestManifest | null => {
-  let doc: unknown;
-  try {
-    doc = loadYaml(raw);
-  } catch {
-    return null;
-  }
-  if (!doc || typeof doc !== 'object') return null;
-  const { version, files, releaseDate } = doc as Record<string, unknown>;
-  if (typeof version !== 'string' || !Array.isArray(files)) return null;
-  const mappedFiles = files
-    .filter((file): file is Record<string, unknown> => Boolean(file) && typeof file === 'object')
-    .filter((file) => typeof file.url === 'string')
-    .map((file) => ({ url: file.url as string, size: typeof file.size === 'number' ? file.size : undefined }));
-  if (!mappedFiles.length) return null;
-  return {
-    version,
-    files: mappedFiles,
-    releaseDate: typeof releaseDate === 'string' ? releaseDate : undefined,
-  };
-};
-
-/**
- * Build an UpdateReleaseInfo from the CDN manifest alone. `htmlUrl`/`body`
- * stay empty here — the GitHub best-effort enrichment fills them when
- * reachable. fallbackUrl follows GitHub's fixed release-asset URL scheme, so
- * no API call is needed to construct it.
- */
-export const mapCdnManifestToRelease = (manifest: CdnLatestManifest, repo: string): UpdateReleaseInfo | null => {
-  const version = semver.valid(manifest.version);
-  if (!version) return null;
-  const assets: GitHubReleaseAsset[] = [];
-  for (const file of manifest.files) {
-    const name = path.basename(file.url.trim());
-    if (!name || !isAllowedAssetName(name)) continue;
-    assets.push({
-      name,
-      url: rewriteAssetUrlToCDN(name, version),
-      fallbackUrl: `https://github.com/${repo}/releases/download/v${version}/${name}`,
-      size: file.size ?? 0,
-    });
-  }
-  return {
-    tagName: `v${version}`,
-    version,
-    htmlUrl: '',
-    publishedAt: manifest.releaseDate,
-    prerelease: false,
-    draft: false,
-    assets,
-    recommendedAsset: pickRecommendedAsset(assets),
-  };
-};
-
-const resolveRepo = (requestRepo?: string): string => {
-  const envRepo = process.env.CSBU_WORKMATE_GITHUB_REPO?.trim();
-  const repo = (requestRepo || envRepo || DEFAULT_REPO).trim();
-  return repo || DEFAULT_REPO;
+const resolveRepo = (): string => {
+  const envRepo = app.isPackaged ? undefined : process.env.CSBU_WORKMATE_GITHUB_REPO?.trim();
+  return envRepo || DEFAULT_REPO;
 };
 
 const assertAllowedUrl = async (rawUrl: string) => {
@@ -275,6 +217,23 @@ const assertAllowedUrl = async (rawUrl: string) => {
     throw new Error((await getI18n()).t('update.errors.invalidUrl'));
   }
 
+  if (parsed.protocol === 'https:' && ALLOWED_DOWNLOAD_HOSTS.has(parsed.hostname)) return;
+
+  let source;
+  try {
+    source = resolveUpdateSourceConfig({ isPackaged: app.isPackaged });
+  } catch {
+    source = undefined;
+  }
+  if (source?.kind === 'internal-http' && parsed.protocol === 'http:') {
+    const configured = new URL(normalizeInternalUpdateBaseUrl(source.baseUrl));
+    if (
+      parsed.origin === configured.origin &&
+      parsed.pathname.startsWith(`${configured.pathname.replace(/\/$/, '')}/`)
+    ) {
+      return;
+    }
+  }
   if (parsed.protocol !== 'https:') {
     throw new Error((await getI18n()).t('update.errors.httpsOnly'));
   }
@@ -285,6 +244,8 @@ const assertAllowedUrl = async (rawUrl: string) => {
 
 const fetchWithAllowlistedRedirects = async (rawUrl: string, signal: AbortSignal): Promise<Response> => {
   let current = rawUrl;
+  const initialUrl = new URL(rawUrl);
+  const internalOrigin = initialUrl.protocol === 'http:' ? initialUrl.origin : undefined;
 
   for (let i = 0; i <= MAX_REDIRECTS; i++) {
     await assertAllowedUrl(current);
@@ -302,7 +263,11 @@ const fetchWithAllowlistedRedirects = async (rawUrl: string, signal: AbortSignal
       if (!location) {
         throw new Error((await getI18n()).t('update.errors.redirectNoLocation'));
       }
-      current = new URL(location, current).toString();
+      const redirected = new URL(location, current);
+      if (internalOrigin && redirected.origin !== internalOrigin) {
+        throw new Error((await getI18n()).t('update.errors.hostNotAllowed', { host: redirected.hostname }));
+      }
+      current = redirected.toString();
       continue;
     }
 
@@ -344,71 +309,6 @@ const fetchGitHubReleases = async (repo: string, timeoutMs = 30000): Promise<Git
     throw err;
   } finally {
     clearTimeout(timeoutId);
-  }
-};
-
-const CDN_MANIFEST_TIMEOUT_MS = 15000;
-const GITHUB_NOTES_TIMEOUT_MS = 10000;
-
-/**
- * Fetch and parse the authoritative CDN channel manifest for the current
- * platform/arch. Any failure here fails the manual check — the CDN is the
- * single source of truth for "is there an update".
- */
-const fetchCdnManifest = async (): Promise<CdnLatestManifest> => {
-  const url = `${CDN_BASE_URL}/${resolveCdnChannelFile()}`;
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), CDN_MANIFEST_TIMEOUT_MS);
-
-  log.info('[manual-update] Checking CDN manifest:', url);
-  try {
-    const res = await fetch(url, {
-      headers: { 'User-Agent': DEFAULT_USER_AGENT },
-      signal: controller.signal,
-    });
-    if (!res.ok) {
-      throw new Error((await getI18n()).t('update.errors.cdnManifestFailed', { status: res.status }));
-    }
-    const manifest = parseCdnManifest(await res.text());
-    if (!manifest) {
-      throw new Error((await getI18n()).t('update.errors.cdnManifestInvalid'));
-    }
-    log.info('[manual-update] CDN manifest resolved:', {
-      url,
-      version: manifest.version,
-      files: manifest.files.length,
-    });
-    return manifest;
-  } catch (err: unknown) {
-    if (err instanceof Error && err.name === 'AbortError') {
-      throw new Error((await getI18n()).t('update.errors.cdnManifestTimeout'), { cause: err });
-    }
-    throw err;
-  } finally {
-    clearTimeout(timeoutId);
-  }
-};
-
-type ReleaseNotesEnrichment = { body?: string; htmlUrl?: string; name?: string; publishedAt?: string };
-
-/**
- * Best-effort GitHub lookup for the release matching the CDN version. The
- * manual check must work without GitHub (the repo stays the changelog source
- * but may be unreachable), so every failure path resolves to an empty object.
- */
-const fetchReleaseNotesEnrichment = async (repo: string, version: string): Promise<ReleaseNotesEnrichment> => {
-  try {
-    const releases = await fetchGitHubReleases(repo, GITHUB_NOTES_TIMEOUT_MS);
-    const match = releases.find((rel) => rel && !rel.draft && normalizeTagToSemver(rel.tag_name) === version);
-    if (!match) return {};
-    return {
-      body: match.body,
-      htmlUrl: match.html_url,
-      name: match.name,
-      publishedAt: match.published_at,
-    };
-  } catch {
-    return {};
   }
 };
 
@@ -658,7 +558,11 @@ export function createAutoUpdateStatusBroadcast(): (
   };
 }
 
+let updateBridgeInitialized = false;
+
 export function initUpdateBridge(): void {
+  if (updateBridgeInitialized) return;
+  updateBridgeInitialized = true;
   ipcBridge.update.consumeInstallerLastFailure.provider(
     async (): Promise<{ success: boolean; data: InstallerLastFailureMarker | null; msg?: string }> => {
       try {
@@ -675,45 +579,73 @@ export function initUpdateBridge(): void {
   ipcBridge.update.check.provider(
     async (params): Promise<{ success: boolean; data?: UpdateCheckResult; msg?: string }> => {
       try {
-        const repo = resolveRepo(params?.repo);
+        const repo = resolveRepo();
         const currentVersion = app.getVersion();
 
-        // EN: Versioning note
-        // Update comparisons are pure semver: `app.getVersion()` (packaged app version) vs the CDN
-        // manifest `version`. If you want dev/prerelease updates to work reliably, CI must inject a
-        // prerelease semver into `package.json#version` for dev builds (e.g. `1.7.2-dev.1234+sha.abcdef0`)
-        // so semver ordering holds.
-        //
-        // 中文：版本号说明
-        // 更新比较严格使用 semver：`app.getVersion()`（应用自身版本号）对比 CDN manifest 的 `version`。
-        // 若要 dev/预发布版本更新可靠生效，需要 CI 在 dev 构建时把 `package.json#version`
-        // 注入为带 prerelease 的 semver（如 `1.7.2-dev.1234+sha.abcdef0`），以保证比较顺序正确。
-
-        // The CDN channel manifest is the authoritative source. It serves a single
-        // stable channel, so `includePrerelease` no longer affects detection.
-        const manifest = await fetchCdnManifest();
-        const latest = mapCdnManifestToRelease(manifest, repo);
-
+        // Update comparisons use the packaged application version and the selected source version.
+        // Prereleases remain manual-only; stable packaged Windows builds can auto-install.
         const currentSemver = semver.valid(currentVersion) || semver.coerce(currentVersion)?.version;
-        if (!currentSemver || !latest) {
-          return { success: true, data: { currentVersion, updateAvailable: false } };
+        if (!currentSemver) {
+          return { success: true, data: { currentVersion, updateAvailable: false, autoUpdateAvailable: false } };
         }
 
-        // GitHub only enriches the result with release notes; it never blocks.
-        const enrichment = await fetchReleaseNotesEnrichment(repo, latest.version);
+        const includePrerelease = Boolean(params?.includePrerelease);
+        let autoUpdateInfo: UpdateCheckResult['autoUpdateInfo'];
+        if (app.isPackaged && process.platform === 'win32' && !includePrerelease) {
+          autoUpdaterService.setAllowPrerelease(false);
+          const autoResult = await autoUpdaterService.checkForUpdates();
+          if (autoResult.success && autoResult.updateInfo) {
+            autoUpdateInfo = {
+              version: autoResult.updateInfo.version,
+              releaseDate: autoResult.updateInfo.releaseDate,
+              releaseNotes:
+                typeof autoResult.updateInfo.releaseNotes === 'string' ? autoResult.updateInfo.releaseNotes : undefined,
+            };
+          } else if (!autoResult.success) {
+            log.warn('[manual-update] Automatic update check failed; using GitHub manual fallback', autoResult.error);
+          }
+        }
+
+        let releases: GitHubReleaseApi[] = [];
+        try {
+          releases = await fetchGitHubReleases(repo);
+        } catch (error) {
+          if (!autoUpdateInfo) throw error;
+          log.warn('[manual-update] GitHub metadata enrichment failed', error);
+        }
+
+        const candidates = releases
+          .filter((release) => !release.draft && (includePrerelease || !release.prerelease))
+          .map(mapGitHubRelease)
+          .filter((release): release is UpdateReleaseInfo => Boolean(release))
+          .toSorted((a, b) => semver.rcompare(a.version, b.version));
+        let latest = autoUpdateInfo
+          ? candidates.find((release) => release.version === autoUpdateInfo.version)
+          : candidates[0];
+
+        if (autoUpdateInfo && !latest) {
+          latest = {
+            tagName: `v${autoUpdateInfo.version}`,
+            version: autoUpdateInfo.version,
+            body: autoUpdateInfo.releaseNotes,
+            htmlUrl: `https://github.com/${repo}/releases/tag/v${autoUpdateInfo.version}`,
+            publishedAt: autoUpdateInfo.releaseDate,
+            prerelease: false,
+            draft: false,
+            assets: [],
+          };
+        }
+
+        const updateAvailable = Boolean(latest && semver.gt(latest.version, currentSemver));
 
         return {
           success: true,
           data: {
             currentVersion,
-            updateAvailable: semver.gt(latest.version, currentSemver),
-            latest: {
-              ...latest,
-              body: enrichment.body,
-              name: enrichment.name,
-              htmlUrl: enrichment.htmlUrl ?? '',
-              publishedAt: enrichment.publishedAt ?? latest.publishedAt,
-            },
+            updateAvailable,
+            latest,
+            autoUpdateAvailable: Boolean(autoUpdateInfo && semver.gt(autoUpdateInfo.version, currentSemver)),
+            autoUpdateInfo,
           },
         };
       } catch (err: unknown) {
@@ -730,9 +662,9 @@ export function initUpdateBridge(): void {
         }
 
         // Defense-in-depth: do not allow arbitrary downloads from renderer.
-        // EN: Only allowlisted hosts (CDN + GitHub release hosts) are permitted;
+        // EN: Only the configured internal origin and GitHub release hosts are permitted;
         // each redirect hop is re-validated against the allowlist.
-        // 中文：仅允许白名单内的域名（CDN + GitHub release 相关），并手动处理重定向，每一跳都校验白名单。
+        // 中文：仅允许配置的内网源和 GitHub Release 相关域名，并校验每一跳重定向。
         await assertAllowedUrl(params.url);
         if (params.fallbackUrl) {
           await assertAllowedUrl(params.fallbackUrl);

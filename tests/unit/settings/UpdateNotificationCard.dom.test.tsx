@@ -111,15 +111,13 @@ describe('UpdateNotificationCard', () => {
           version: '2.1.14',
           name: 'v2.1.14',
           body: 'notes',
-          htmlUrl: 'https://github.com/CSBU/CSBU-WorkMate/releases/tag/v2.1.14',
+          htmlUrl: 'https://github.com/suoak/AionUi/releases/tag/v2.1.14',
           prerelease: false,
           draft: false,
           assets: [],
           recommendedAsset: {
             name: 'CSBU-WorkMate-2.1.14-mac-arm64.dmg',
-            url: 'https://updates.csbu.internal/releases/2.1.14/CSBU-WorkMate-2.1.14-mac-arm64.dmg',
-            fallbackUrl:
-              'https://github.com/CSBU/CSBU-WorkMate/releases/download/v2.1.14/CSBU-WorkMate-2.1.14-mac-arm64.dmg',
+            url: 'https://github.com/suoak/AionUi/releases/download/v2.1.14/CSBU-WorkMate-2.1.14-mac-arm64.dmg',
             size: 123,
           },
         },
@@ -644,7 +642,7 @@ describe('UpdateNotificationCard', () => {
 
     fireEvent.click(screen.getByText('update.installerLastFailure.retryUpdate'));
     await waitFor(() => {
-      expect(mocks.autoUpdateCheckMock).toHaveBeenCalled();
+      expect(mocks.updateCheckMock).toHaveBeenCalled();
     });
   });
 });

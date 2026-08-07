@@ -1,14 +1,9 @@
 const { execSync } = require('child_process');
-const path = require('path');
-const { setWindowsExecutableMetadata } = require('./afterPack');
 
 exports.default = async function afterSign(context) {
   const { electronPlatformName, appOutDir } = context;
 
   if (electronPlatformName === 'win32') {
-    const executablePath = path.join(appOutDir, `${context.packager.appInfo.productFilename}.exe`);
-    await setWindowsExecutableMetadata(executablePath);
-    console.log('Windows EXE ProductName and LegalCopyright metadata updated');
     return;
   }
 

@@ -94,6 +94,10 @@ describe('AutoUpdaterService', () => {
     appMock.isPackaged = false;
     delete process.env.CSBU_WORKMATE_FORCE_DEV_AUTO_UPDATE;
     delete process.env.CSBU_WORKMATE_DEBUG_AUTO_UPDATE_CURRENT_VERSION;
+    delete process.env.CSBU_WORKMATE_UPDATE_SOURCE;
+    delete process.env.CSBU_WORKMATE_UPDATE_BASE_URL;
+    delete process.env.CSBU_WORKMATE_UPDATE_MANIFEST_PUBLIC_KEY;
+    process.env.CSBU_WORKMATE_UPDATE_MANIFEST_PUBLIC_KEY = 'public-key';
     nativeAutoUpdaterMock.on.mockReset();
     nativeAutoUpdaterMock.removeListener.mockReset();
     Object.defineProperty(autoUpdaterMock, 'currentVersion', {
@@ -131,26 +135,70 @@ describe('AutoUpdaterService', () => {
     expect(autoUpdaterMock.checkForUpdates).not.toHaveBeenCalled();
   });
 
-  it('configures electron-updater to read stable metadata from the CDN', async () => {
+  it('configures electron-updater to verify signed metadata from GitHub Releases', async () => {
     const { autoUpdaterService } = await import('@/process/services/autoUpdaterService');
-    const { CdnGenericProvider } = await import('@/process/services/cdnGenericProvider');
 
     autoUpdaterService.resetForTest();
 
     expect(autoUpdaterMock.setFeedURL).toHaveBeenCalledWith({
       provider: 'custom',
-      url: 'https://updates.csbu.internal/releases',
-      updateProvider: CdnGenericProvider,
+      url: 'https://github.com/suoak/AionUi/releases/latest/download',
+      sourceKind: 'github',
+      artifactPathMode: 'release-root',
+      manifestPublicKey: 'public-key',
+      updateProvider: expect.any(Function),
     });
   });
 
-  it('pins packaged Windows updates to the current executable directory', async () => {
+  it('falls back from an unavailable internal source to GitHub once', async () => {
+    process.env.CSBU_WORKMATE_UPDATE_SOURCE = 'internal-http';
+    process.env.CSBU_WORKMATE_UPDATE_BASE_URL = 'http://10.20.30.40/releases';
+    process.env.CSBU_WORKMATE_UPDATE_MANIFEST_PUBLIC_KEY = 'public-key';
+    autoUpdaterMock.checkForUpdates
+      .mockRejectedValueOnce(Object.assign(new Error('connection refused'), { code: 'ECONNREFUSED' }))
+      .mockResolvedValueOnce({ isUpdateAvailable: false, updateInfo: { version: '2.1.13' } });
+
+    const { autoUpdaterService } = await import('@/process/services/autoUpdaterService');
+    autoUpdaterService.initialize();
+
+    await expect(autoUpdaterService.checkForUpdates()).resolves.toEqual({ success: true });
+    expect(autoUpdaterMock.checkForUpdates).toHaveBeenCalledTimes(2);
+    expect(autoUpdaterMock.setFeedURL).toHaveBeenLastCalledWith({
+      provider: 'custom',
+      url: 'https://github.com/suoak/AionUi/releases/latest/download',
+      sourceKind: 'github',
+      artifactPathMode: 'release-root',
+      manifestPublicKey: 'public-key',
+      updateProvider: expect.any(Function),
+    });
+  });
+
+  it('does not fall back when the internal manifest signature is invalid', async () => {
+    process.env.CSBU_WORKMATE_UPDATE_SOURCE = 'internal-http';
+    process.env.CSBU_WORKMATE_UPDATE_BASE_URL = 'http://10.20.30.40/releases';
+    process.env.CSBU_WORKMATE_UPDATE_MANIFEST_PUBLIC_KEY = 'public-key';
+    autoUpdaterMock.checkForUpdates.mockRejectedValueOnce(
+      Object.assign(new Error('Internal update manifest signature verification failed'), {
+        code: 'ERR_UPDATER_MANIFEST_SIGNATURE_INVALID',
+      })
+    );
+
+    const { autoUpdaterService } = await import('@/process/services/autoUpdaterService');
+    autoUpdaterService.initialize();
+
+    const result = await autoUpdaterService.checkForUpdates();
+    expect(result.success).toBe(false);
+    expect(autoUpdaterMock.checkForUpdates).toHaveBeenCalledTimes(1);
+    expect(autoUpdaterMock.setFeedURL).toHaveBeenCalledTimes(1);
+  });
+
+  it('leaves the standard NSIS install directory under electron-updater control', async () => {
     setPlatform('win32');
     appMock.isPackaged = true;
 
     await import('@/process/services/autoUpdaterService');
 
-    expect(autoUpdaterMock.installDirectory).toBe(path.dirname(process.execPath));
+    expect(autoUpdaterMock.installDirectory).toBeUndefined();
   });
 
   it('does not pin the NSIS install directory outside packaged Windows builds', async () => {
@@ -321,7 +369,7 @@ describe('AutoUpdaterService', () => {
       releaseDate: '2026-06-08T00:00:00.000Z',
     };
     const fileInfo = {
-      url: new URL('https://updates.csbu.internal/releases/2.1.14/CSBU-WorkMate-2.1.14-mac.zip'),
+      url: new URL('http://10.20.30.40/releases/2.1.14/CSBU-WorkMate-2.1.14-mac.zip'),
       info: { url: 'CSBU-WorkMate-2.1.14-mac.zip', sha512: 'sha512-value' },
     };
     const cachedUpdatePath = path.join('/cache/pending', 'CSBU-WorkMate-2.1.14-mac.zip');
@@ -365,7 +413,7 @@ describe('AutoUpdaterService', () => {
       releaseDate: '2026-06-08T00:00:00.000Z',
     };
     const fileInfo = {
-      url: new URL('https://updates.csbu.internal/releases/2.1.14/CSBU-WorkMate-2.1.14-mac.zip'),
+      url: new URL('http://10.20.30.40/releases/2.1.14/CSBU-WorkMate-2.1.14-mac.zip'),
       info: { url: 'CSBU-WorkMate-2.1.14-mac.zip', sha512: 'sha512-value' },
     };
     const validateDownloadedPath = vi.fn().mockResolvedValue(null);

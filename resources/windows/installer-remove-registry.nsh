@@ -2,9 +2,9 @@
 !define CSBU_WORKMATE_INSTALLER_REMOVE_REGISTRY_NSH
 
 !macro CSBU_WORKMATE_CLEAR_INSTALL_REGISTRY _REASON
-  DeleteRegKey SHCTX "${UNINSTALL_REGISTRY_KEY}"
-  DeleteRegKey SHCTX "${INSTALL_REGISTRY_KEY}"
-  !insertmacro CSBU_WORKMATE_LOG_EVENT "event=registry-clear reason=${_REASON} uninstallKey=${UNINSTALL_REGISTRY_KEY} installKey=${INSTALL_REGISTRY_KEY}"
+  ; Standard NSIS installs keep their registry state. Failure paths must not
+  ; erase a previously working installation's uninstall metadata.
+  !insertmacro CSBU_WORKMATE_LOG_EVENT "event=registry-preserved reason=${_REASON} uninstallKey=${UNINSTALL_REGISTRY_KEY} installKey=${INSTALL_REGISTRY_KEY}"
 !macroend
 
 !macro CSBU_WORKMATE_LOG_ATOMIC_REMOVE_FAILURE

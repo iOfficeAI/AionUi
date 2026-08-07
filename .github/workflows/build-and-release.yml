@@ -7,6 +7,8 @@ permissions:
   actions: write
 
 on:
+  release:
+    types: [published]
   push:
     branches: [dev]
     tags:
@@ -22,6 +24,43 @@ env:
   BUN_INSTALL_REGISTRY: 'https://registry.npmjs.org/'
 
 jobs:
+  verify-published-updater:
+    name: Verify Published Updater Metadata
+    if: github.event_name == 'release'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify published channel manifests
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          REPOSITORY: ${{ github.repository }}
+          UPDATE_MANIFEST_ED25519_PUBLIC_KEY: ${{ secrets.UPDATE_MANIFEST_ED25519_PUBLIC_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "${UPDATE_MANIFEST_ED25519_PUBLIC_KEY:-}" ]; then
+            echo "UPDATE_MANIFEST_ED25519_PUBLIC_KEY is required to verify published updates"
+            exit 1
+          fi
+          for manifest in latest.yml latest-win-arm64.yml latest-mac.yml latest-arm64-mac.yml latest-linux.yml latest-linux-arm64.yml; do
+            url="https://github.com/${REPOSITORY}/releases/download/${RELEASE_TAG}/${manifest}"
+            curl --fail --location --silent --show-error --retry 3 --output "$manifest" "$url"
+            curl --fail --location --silent --show-error --retry 3 --output "$manifest.sig" "$url.sig"
+            test -s "$manifest"
+            test -s "$manifest.sig"
+          done
+          node <<'NODE'
+          const fs = require('fs');
+          const { verify } = require('crypto');
+          const publicKey = process.env.UPDATE_MANIFEST_ED25519_PUBLIC_KEY.replace(/\\n/g, '\n').trim();
+          for (const name of fs.readdirSync('.').filter((entry) => /^latest.*\.yml$/.test(entry))) {
+            const manifest = fs.readFileSync(name);
+            const signature = Buffer.from(fs.readFileSync(`${name}.sig`, 'utf8').trim(), 'base64');
+            if (!verify(null, manifest, publicKey, signature)) {
+              throw new Error(`Published update manifest signature is invalid: ${name}`);
+            }
+          }
+          NODE
+
   # 独立 code-quality job,供桌面构建和 web-cli 打包共用,避免重复跑
   code-quality:
     name: Code Quality
@@ -327,6 +366,39 @@ jobs:
         shell: bash
         run: bash scripts/prepare-release-assets.sh build-artifacts release-assets
 
+      - name: Sign update manifests
+        shell: bash
+        env:
+          UPDATE_MANIFEST_ED25519_PRIVATE_KEY: ${{ secrets.UPDATE_MANIFEST_ED25519_PRIVATE_KEY }}
+          UPDATE_MANIFEST_ED25519_PUBLIC_KEY: ${{ secrets.UPDATE_MANIFEST_ED25519_PUBLIC_KEY }}
+          IS_DEV_RELEASE: ${{ steps.version.outputs.is_dev }}
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const path = require('path');
+          const { sign, verify } = require('crypto');
+          const privateKey = process.env.UPDATE_MANIFEST_ED25519_PRIVATE_KEY?.replace(/\\n/g, '\n').trim();
+          const publicKey = process.env.UPDATE_MANIFEST_ED25519_PUBLIC_KEY?.replace(/\\n/g, '\n').trim();
+          if (!privateKey) {
+            if (process.env.IS_DEV_RELEASE !== 'true') {
+              throw new Error('UPDATE_MANIFEST_ED25519_PRIVATE_KEY is required for stable releases');
+            }
+            console.log('Update manifest signing key is not configured; unsigned development release will continue.');
+            process.exit(0);
+          }
+          if (!publicKey) {
+            throw new Error('UPDATE_MANIFEST_ED25519_PUBLIC_KEY is required when signing update manifests');
+          }
+          for (const name of fs.readdirSync('release-assets').filter((entry) => /^latest.*\.yml$/.test(entry))) {
+            const manifest = fs.readFileSync(path.join('release-assets', name));
+            const signature = sign(null, manifest, privateKey);
+            if (!verify(null, manifest, publicKey, signature)) {
+              throw new Error('Update manifest Ed25519 public and private keys do not match');
+            }
+            fs.writeFileSync(path.join('release-assets', `${name}.sig`), signature.toString('base64'));
+          }
+          NODE
+
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
@@ -339,6 +411,7 @@ jobs:
             release-assets/**/*.deb
             release-assets/**/*.zip
             release-assets/**/*.yml
+            release-assets/**/*.sig
             release-assets/**/*.tar.gz
             release-assets/**/*.sha256
             release-assets/install-web.sh
