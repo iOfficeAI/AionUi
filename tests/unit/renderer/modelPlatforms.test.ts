@@ -24,6 +24,24 @@ describe('MODEL_PLATFORMS ordering', () => {
     expect(DEFAULT_PLATFORM_VALUE).toBe('custom');
   });
 
+  it('places OrcaRouter next to OpenRouter without shadowing it', () => {
+    const values = MODEL_PLATFORMS.map((p) => p.value);
+    expect(values.indexOf('OrcaRouter')).toBe(values.indexOf('OpenRouter') + 1);
+
+    const openRouter = MODEL_PLATFORMS.find((p) => p.value === 'OpenRouter');
+    const orcaRouter = MODEL_PLATFORMS.find((p) => p.value === 'OrcaRouter');
+    expect(openRouter?.base_url).toBe('https://openrouter.ai/api/v1');
+    expect(orcaRouter?.base_url).toBe('https://api.orcarouter.ai/v1');
+    // The image-gen allowlist and default-image-model supplement both key off
+    // `openrouter.ai`, so OrcaRouter's host must not contain it.
+    expect(orcaRouter?.base_url).not.toContain('openrouter.ai');
+  });
+
+  it('defines every platform value exactly once', () => {
+    const values = MODEL_PLATFORMS.map((p) => p.value);
+    expect(values).toHaveLength(new Set(values).size);
+  });
+
   it('defines each Moonshot entry exactly once', () => {
     const moonshotEntries = MODEL_PLATFORMS.filter((p) => p.value.startsWith('Moonshot'));
     expect(moonshotEntries.map((p) => p.value)).toEqual(['Moonshot', 'Moonshot-Global']);

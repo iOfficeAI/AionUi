@@ -148,6 +148,16 @@ export const MODEL_PLATFORMS: PlatformConfig[] = [
     base_url: 'https://openrouter.ai/api/v1',
   },
   {
+    name: 'OrcaRouter',
+    value: 'OrcaRouter',
+    // Logo assets are served by the AionCore backend, not bundled in this repo,
+    // so this stays null (renders the generic cloud icon) until the backend
+    // asset bundle ships `ai-cloud/orcarouter.svg`.
+    logo: null,
+    platform: 'custom',
+    base_url: 'https://api.orcarouter.ai/v1',
+  },
+  {
     name: 'Dashscope',
     value: 'Dashscope',
     logo: buildLogoAssetUrl('ai-china/qwen.svg'),

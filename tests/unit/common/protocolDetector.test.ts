@@ -139,6 +139,15 @@ describe('protocolDetector', () => {
       expect(guessProtocolFromUrl('https://api.openai.com/v1')).toBe('openai');
       expect(guessProtocolFromUrl('https://api.deepseek.com/v1')).toBe('openai');
       expect(guessProtocolFromUrl('https://openrouter.ai/v1')).toBe('openai');
+      expect(guessProtocolFromUrl('https://api.orcarouter.ai/v1')).toBe('openai');
+    });
+
+    it('does not confuse the two router hosts with each other', () => {
+      // Both are OpenAI-protocol, but the hosts are distinct: a pattern loose
+      // enough to match one via the other would also match unrelated hosts.
+      expect(guessProtocolFromUrl('https://api.orcarouter.ai/v1')).toBe('openai');
+      expect(guessProtocolFromUrl('https://openrouter.ai/api/v1')).toBe('openai');
+      expect(guessProtocolFromUrl('https://orcarouter.example.com/v1')).toBeNull();
     });
 
     it('detects Anthropic URLs', () => {
