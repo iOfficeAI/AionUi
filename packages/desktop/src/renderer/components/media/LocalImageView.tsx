@@ -4,6 +4,7 @@ import { LoadingTwo } from '@icon-park/react';
 import React, { useEffect, useMemo, useState } from 'react';
 import { createContext } from '@renderer/utils/ui/createContext';
 import { iconColors } from '@/renderer/styles/colors';
+import { resolveLocalFileReadRoot } from '@/renderer/utils/file/fileSelection';
 
 const [useLocalImage, LocalImageProvider, useUpdateLocalImage] = createContext({ root: '' });
 
@@ -33,11 +34,12 @@ const LocalImageView: React.FC<{
     }
     return joinPath(root, src);
   }, [src, root]);
+  const readRoot = useMemo(() => resolveLocalFileReadRoot(absolutePath, root || undefined), [absolutePath, root]);
 
   useEffect(() => {
     setLoading(true);
     ipcBridge.fs.getImageBase64
-      .invoke({ path: absolutePath, workspace: root || undefined })
+      .invoke({ path: absolutePath, workspace: readRoot })
       .then((base64) => {
         if (base64) {
           setUrl(base64);
@@ -51,7 +53,7 @@ const LocalImageView: React.FC<{
         });
         setLoading(false);
       });
-  }, [absolutePath]);
+  }, [absolutePath, readRoot]);
   if (loading)
     return (
       <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>

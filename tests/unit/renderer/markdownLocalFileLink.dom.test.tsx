@@ -8,8 +8,21 @@ import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import MarkdownView from '@/renderer/components/Markdown';
+import LocalImageView from '@/renderer/components/media/LocalImageView';
+import { downloadFileFromPath } from '@/renderer/utils/file/download';
 
 const copyTextMock = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
+const getImageBase64Mock = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
+
+vi.mock('@/common', () => ({
+  ipcBridge: {
+    fs: {
+      getImageBase64: {
+        invoke: (...args: unknown[]) => getImageBase64Mock(...args),
+      },
+    },
+  },
+}));
 
 vi.mock('@/renderer/components/Markdown/ShadowView', () => ({
   __esModule: true,
@@ -19,11 +32,6 @@ vi.mock('@/renderer/components/Markdown/ShadowView', () => ({
 vi.mock('@/renderer/components/Markdown/CodeBlock', () => ({
   __esModule: true,
   default: ({ children }: { children?: React.ReactNode }) => <code>{children}</code>,
-}));
-
-vi.mock('@/renderer/components/media/LocalImageView', () => ({
-  __esModule: true,
-  default: ({ src, alt }: { src: string; alt: string }) => <img src={src} alt={alt} />,
 }));
 
 vi.mock('@/renderer/utils/chat/latexDelimiters', () => ({
@@ -57,6 +65,7 @@ vi.mock('@arco-design/web-react', () => ({
 
 vi.mock('@icon-park/react', () => ({
   Copy: () => <span data-testid='copy-icon' />,
+  LoadingTwo: () => <span data-testid='loading-icon' />,
 }));
 
 vi.mock('react-i18next', () => ({
@@ -68,6 +77,7 @@ vi.mock('react-i18next', () => ({
 describe('MarkdownView local file links', () => {
   beforeEach(() => {
     copyTextMock.mockClear();
+    getImageBase64Mock.mockReset().mockResolvedValue(undefined);
   });
 
   it('renders local file links as app controls instead of browser anchors', () => {
@@ -258,31 +268,38 @@ describe('MarkdownView local file links', () => {
     expect(onLocalFileLink).toHaveBeenCalledWith(generatedPath, expect.objectContaining({ filePath: generatedPath }));
   });
 
-  it('renders relative generated images from their absolute tool-output alias', () => {
+  it('reads a Grok image alias through its artifact directory when it is outside the workspace', async () => {
     const generatedPath = 'C:\\Users\\test\\.grok\\sessions\\session-1\\images\\1.jpg';
+    const workspace = 'C:\\Users\\test\\workspace';
 
     render(
-      <MarkdownView localFileAliases={{ 'images/1.jpg': generatedPath }}>{'![landscape](images/1.jpg)'}</MarkdownView>
+      <LocalImageView.Provider value={{ root: workspace }}>
+        <MarkdownView localFileAliases={{ 'images/1.jpg': generatedPath }}>{'![landscape](images/1.jpg)'}</MarkdownView>
+      </LocalImageView.Provider>
     );
 
-    expect(screen.getByRole('img', { name: 'landscape' })).toHaveAttribute('src', generatedPath);
+    expect(await screen.findByRole('img', { name: 'landscape' })).toHaveAttribute('src', generatedPath);
+    expect(getImageBase64Mock).toHaveBeenCalledWith({
+      path: generatedPath,
+      workspace: 'C:\\Users\\test\\.grok\\sessions\\session-1\\images',
+    });
   });
 
-  it('preserves Windows separators in direct local image destinations', () => {
+  it('preserves Windows separators in direct local image destinations', async () => {
     render(
       <MarkdownView>{'![landscape](C:\\Users\\admin\\.codex\\generated_images\\session\\generated.png)'}</MarkdownView>
     );
 
-    expect(screen.getByRole('img', { name: 'landscape' })).toHaveAttribute(
+    expect(await screen.findByRole('img', { name: 'landscape' })).toHaveAttribute(
       'src',
       'C:/Users/admin/.codex/generated_images/session/generated.png'
     );
   });
 
-  it('does not crash on malformed percent escapes in generated image links', () => {
+  it('does not crash on malformed percent escapes in generated image links', async () => {
     render(<MarkdownView>{'![broken](images/bad%name.jpg)'}</MarkdownView>);
 
-    expect(screen.getByRole('img', { name: 'broken' })).toHaveAttribute('src', 'images/bad%name.jpg');
+    expect(await screen.findByRole('img', { name: 'broken' })).toHaveAttribute('src', 'images/bad%name.jpg');
   });
 
   it('keeps http hash links as browser anchors', () => {
@@ -300,5 +317,51 @@ describe('MarkdownView local file links', () => {
     const image = container.querySelector('img');
     expect(image).toHaveAttribute('src', 'https://example.com/generated.png');
     expect(image).toHaveAttribute('alt', '');
+  });
+});
+
+describe('local artifact downloads', () => {
+  beforeEach(() => {
+    getImageBase64Mock.mockReset();
+  });
+
+  it('downloads a Codex image through its artifact directory when it is outside the workspace', async () => {
+    const imagePath = String.raw`C:\Users\admin\.codex\generated_images\session-1\image.png`;
+    const createObjectURL = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:generated-image');
+    const revokeObjectURL = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
+    const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    getImageBase64Mock.mockResolvedValue(`data:image/png;base64,${btoa('image-bytes')}`);
+
+    await downloadFileFromPath(imagePath, 'image.png');
+
+    expect(getImageBase64Mock).toHaveBeenCalledWith({
+      path: imagePath,
+      workspace: String.raw`C:\Users\admin\.codex\generated_images\session-1`,
+    });
+    expect(click).toHaveBeenCalledOnce();
+
+    click.mockRestore();
+    revokeObjectURL.mockRestore();
+    createObjectURL.mockRestore();
+  });
+
+  it('rejects without triggering a browser download when the backend returns no file data', async () => {
+    const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    getImageBase64Mock.mockResolvedValue(undefined);
+
+    await expect(downloadFileFromPath('/missing/image.png', 'image.png')).rejects.toThrow('File data not found');
+    expect(click).not.toHaveBeenCalled();
+
+    click.mockRestore();
+  });
+
+  it('does not trigger a browser download when the backend rejects the read', async () => {
+    const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    getImageBase64Mock.mockRejectedValue(new Error('read denied'));
+
+    await expect(downloadFileFromPath('/denied/image.png', 'image.png')).rejects.toThrow('read denied');
+    expect(click).not.toHaveBeenCalled();
+
+    click.mockRestore();
   });
 });

@@ -134,4 +134,84 @@ describe('MessageToolGroup — FeedbackButton wiring', () => {
       });
     });
   });
+
+  it('reads generated images outside the workspace through their artifact directory', async () => {
+    const imagePath = String.raw`C:\Users\test\.grok\sessions\session-1\images\1.jpg`;
+    const message = {
+      ...buildToolGroup('Success'),
+      content: [
+        {
+          call_id: 'image-1',
+          description: 'generated image',
+          name: 'ImageGeneration',
+          render_output_as_markdown: false,
+          status: 'Success',
+          result_display: {
+            img_url: imagePath,
+            relative_path: 'images/1.jpg',
+          },
+        },
+      ],
+    } as IMessageToolGroup;
+
+    render(<MessageToolGroup message={message} />);
+
+    await waitFor(() => {
+      expect(getImageBase64Mock).toHaveBeenCalledWith({
+        path: imagePath,
+        workspace: String.raw`C:\Users\test\.grok\sessions\session-1\images`,
+      });
+    });
+  });
+
+  it.each([
+    ['remote', 'https://example.com/generated.jpg'],
+    ['inline', 'data:image/png;base64,preview'],
+  ])('does not read %s generated images from the local filesystem', async (_source, imgUrl) => {
+    const message = {
+      ...buildToolGroup('Success'),
+      content: [
+        {
+          call_id: 'image-1',
+          description: 'generated image',
+          name: 'ImageGeneration',
+          render_output_as_markdown: false,
+          status: 'Success',
+          result_display: {
+            img_url: imgUrl,
+            relative_path: 'images/1.jpg',
+          },
+        },
+      ],
+    } as IMessageToolGroup;
+
+    render(<MessageToolGroup message={message} />);
+
+    await waitFor(() => expect(screen.queryByText('common.loading')).not.toBeInTheDocument());
+    expect(getImageBase64Mock).not.toHaveBeenCalled();
+  });
+
+  it('shows the existing failure state when a local generated image cannot be read', async () => {
+    getImageBase64Mock.mockRejectedValue(new Error('not found'));
+    const message = {
+      ...buildToolGroup('Success'),
+      content: [
+        {
+          call_id: 'image-1',
+          description: 'generated image',
+          name: 'ImageGeneration',
+          render_output_as_markdown: false,
+          status: 'Success',
+          result_display: {
+            img_url: '/missing/generated.jpg',
+            relative_path: 'generated.jpg',
+          },
+        },
+      ],
+    } as IMessageToolGroup;
+
+    render(<MessageToolGroup message={message} />);
+
+    expect(await screen.findByText('messages.imageLoadFailed')).toBeInTheDocument();
+  });
 });

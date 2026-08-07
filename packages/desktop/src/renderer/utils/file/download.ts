@@ -6,6 +6,7 @@
 
 import { ipcBridge } from '@/common';
 import { base64ToBlob, BINARY_MIME_MAP } from './base64';
+import { resolveLocalFileReadRoot } from './fileSelection';
 
 function triggerBlobDownload(blob: Blob, file_name: string): void {
   const url = URL.createObjectURL(blob);
@@ -23,7 +24,8 @@ function triggerBlobDownload(blob: Blob, file_name: string): void {
  * Uses getImageBase64 + in-memory atob decode to bypass CSP connect-src restrictions.
  */
 export async function downloadFileFromPath(file_path: string, file_name: string, workspace?: string): Promise<void> {
-  const dataUrl = await ipcBridge.fs.getImageBase64.invoke({ path: file_path, workspace });
+  const readRoot = resolveLocalFileReadRoot(file_path, workspace);
+  const dataUrl = await ipcBridge.fs.getImageBase64.invoke({ path: file_path, workspace: readRoot });
   if (!dataUrl) {
     throw new Error('File data not found');
   }

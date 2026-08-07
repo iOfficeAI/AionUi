@@ -42,6 +42,46 @@ export const stripWindowsVerbatimPrefix = (path: string): string => {
   return path;
 };
 
+const WINDOWS_ABSOLUTE_PATH_RE = /^[A-Za-z]:[\\/]/;
+
+const isAbsoluteLocalPath = (path: string): boolean =>
+  WINDOWS_ABSOLUTE_PATH_RE.test(path) || path.startsWith('\\\\') || path.startsWith('//') || path.startsWith('/');
+
+const normalizePathForComparison = (path: string): string => {
+  const slashNormalized = path.replace(/\\/g, '/');
+  const normalized = slashNormalized.replace(/\/+$/, '') || '/';
+  const isWindowsPath = WINDOWS_ABSOLUTE_PATH_RE.test(path) || path.startsWith('\\\\') || path.startsWith('//');
+  return isWindowsPath ? normalized.toLowerCase() : normalized;
+};
+
+const isPathWithinRoot = (path: string, root: string): boolean => {
+  const normalizedPath = normalizePathForComparison(path);
+  const normalizedRoot = normalizePathForComparison(root);
+  return normalizedPath === normalizedRoot || normalizedPath.startsWith(`${normalizedRoot}/`);
+};
+
+const getParentDirectory = (path: string): string | undefined => {
+  const lastSeparator = Math.max(path.lastIndexOf('/'), path.lastIndexOf('\\'));
+  if (lastSeparator < 0) return undefined;
+  if (lastSeparator === 0) return '/';
+  if (lastSeparator === 2 && WINDOWS_ABSOLUTE_PATH_RE.test(path)) return path.slice(0, 3);
+  return path.slice(0, lastSeparator);
+};
+
+/**
+ * Select the narrowest backend read root for a local file.
+ *
+ * Agent artifacts may live outside the conversation workspace. In particular,
+ * Grok stores generated images below `~/.grok`, which can itself be a junction
+ * to another drive. Passing the artifact's parent lets the backend validate the
+ * canonical target without granting access to the rest of that drive.
+ */
+export const resolveLocalFileReadRoot = (path: string, workspace?: string): string | undefined => {
+  if (!isAbsoluteLocalPath(path)) return workspace;
+  if (workspace && isPathWithinRoot(path, workspace)) return workspace;
+  return getParentDirectory(path) ?? workspace;
+};
+
 /**
  * Dedup key for a selection item. Project Explorer items are keyed by their pe
  * identity (`chatRef`) so the same `relative_path` under different pes stays

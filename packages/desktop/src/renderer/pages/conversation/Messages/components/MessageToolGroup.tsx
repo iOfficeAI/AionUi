@@ -17,6 +17,7 @@ import FileChangesPanel from '@/renderer/components/base/FileChangesPanel';
 import { useDiffPreviewHandlers } from '@/renderer/hooks/file/useDiffPreviewHandlers';
 import { useConversationContextSafe } from '@/renderer/hooks/context/ConversationContext';
 import { parseDiff } from '@/renderer/utils/file/diffUtils';
+import { resolveLocalFileReadRoot } from '@/renderer/utils/file/fileSelection';
 import MessageFileChanges from '../MessageFileChanges';
 import CollapsibleContent from '@renderer/components/chat/CollapsibleContent';
 import LocalImageView from '@renderer/components/media/LocalImageView';
@@ -236,6 +237,10 @@ const ImageDisplay: React.FC<{
   const [loading, setLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const { inPreviewGroup } = useContext(ImagePreviewContext);
+  const readRoot = useMemo(
+    () => resolveLocalFileReadRoot(imgUrl, conversationContext?.workspace),
+    [conversationContext?.workspace, imgUrl]
+  );
 
   // 如果是本地路径，需要加载为 base64 Load local paths as base64
   React.useEffect(() => {
@@ -246,7 +251,7 @@ const ImageDisplay: React.FC<{
       setLoading(true);
       setHasError(false);
       ipcBridge.fs.getImageBase64
-        .invoke({ path: imgUrl, workspace: conversationContext?.workspace })
+        .invoke({ path: imgUrl, workspace: readRoot })
         .then((base64) => {
           if (!base64) {
             throw new Error('Image file not found');
@@ -260,7 +265,7 @@ const ImageDisplay: React.FC<{
           setLoading(false);
         });
     }
-  }, [conversationContext?.workspace, imgUrl]);
+  }, [imgUrl, readRoot]);
 
   // 获取图片 blob（复用逻辑）Get image blob (reusable logic)
   const getImageBlob = useCallback(async (): Promise<Blob> => {
