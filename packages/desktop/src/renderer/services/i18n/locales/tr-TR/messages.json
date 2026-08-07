@@ -60,6 +60,14 @@
   "option": "Seçenek",
   "noOptionsAvailable": "Seçenek yok",
   "processing": "İşleniyor...",
+  "plan": {
+    "progress": "{{current}} / {{total}}. adım",
+    "status": {
+      "pending": "Bekliyor",
+      "in_progress": "Devam ediyor",
+      "completed": "Tamamlandı"
+    }
+  },
   "responseSentSuccessfully": "Yanıt başarıyla gönderildi",
   "permissionResponseFailed": "Yanıt gönderilemedi. Lütfen tekrar deneyin.",
   "confirmation": {

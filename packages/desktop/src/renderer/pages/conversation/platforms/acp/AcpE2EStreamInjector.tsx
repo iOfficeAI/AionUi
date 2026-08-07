@@ -19,6 +19,7 @@ type RunScenarioOptions = {
 
 type StreamController = {
   runScenario: (options?: RunScenarioOptions) => Promise<void>;
+  emitPlan: (entries: Array<{ content: string; status: 'pending' | 'in_progress' | 'completed' }>) => Promise<void>;
   emitInfoTip: (code: string, content: string) => Promise<void>;
   emitErrorTip: (content: string, error?: Record<string, unknown>) => Promise<void>;
   emitToolError: (toolName: string, description: string) => Promise<void>;
@@ -103,6 +104,27 @@ const AcpE2EStreamInjector: React.FC<{ conversationId: string }> = ({ conversati
     const registry = (window.__AIONUI_E2E_MESSAGE_STREAM__ ??= { controllers: {} });
 
     registry.controllers[conversationId] = {
+      emitPlan: async (entries) => {
+        const msgId = 'e2e-plan';
+
+        addOrUpdateMessage({
+          id: msgId,
+          msg_id: msgId,
+          conversation_id: conversationId,
+          type: 'plan',
+          position: 'left',
+          status: 'work',
+          created_at: Date.now(),
+          content: {
+            session_id: 'e2e-session',
+            entries,
+          },
+        });
+
+        await new Promise<void>((resolve) => {
+          window.setTimeout(resolve, STREAM_TICK_MS);
+        });
+      },
       runScenario: async (options?: RunScenarioOptions) => {
         const historyPairs = options?.historyPairs ?? 18;
         const lines = options?.lines ?? 160;

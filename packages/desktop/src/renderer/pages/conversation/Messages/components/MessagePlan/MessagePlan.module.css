@@ -1,0 +1,124 @@
+.plan {
+  position: relative;
+  z-index: 20;
+  display: flex;
+  min-height: 36px;
+  justify-content: center;
+  margin-bottom: 8px;
+  pointer-events: none;
+}
+
+.trigger {
+  position: relative;
+  display: flex;
+  width: fit-content;
+  justify-content: center;
+  pointer-events: auto;
+}
+
+.card {
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: 50%;
+  transform: translateX(-50%);
+  box-sizing: border-box;
+  display: flex;
+  width: min(320px, calc(100vw - 48px));
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  color: var(--color-text-2);
+  background: var(--color-bg-2);
+  border: 1px solid var(--color-border-2);
+  border-radius: 14px;
+  box-shadow: 0 4px 8px color-mix(in srgb, var(--color-text-1) 10%, transparent);
+}
+
+.item {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr);
+  gap: 7px;
+  align-items: start;
+  min-height: 22px;
+  font-size: 15px;
+  line-height: 22px;
+}
+
+.item[data-status='in_progress'] {
+  color: var(--color-text-2);
+}
+
+.item[data-status='completed'] {
+  color: var(--color-text-3);
+}
+
+.statusIcon {
+  display: inline-flex;
+  width: 16px;
+  height: 22px;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-3);
+}
+
+.item[data-status='in_progress'] .statusIcon,
+.progressIcon {
+  color: rgb(var(--primary-5));
+}
+
+.item[data-status='completed'] .statusIcon {
+  color: rgb(var(--success-6));
+}
+
+.content {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  text-wrap: pretty;
+}
+
+.toggle:global(.arco-btn) {
+  display: inline-flex;
+  min-width: 116px;
+  height: 36px;
+  padding: 0 12px;
+  gap: 7px;
+  color: var(--color-text-2);
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 34px;
+  background: var(--color-bg-2);
+  border-color: var(--color-border-2);
+  border-radius: 999px;
+  box-shadow: none;
+}
+
+.toggle:global(.arco-btn):hover,
+.toggle:global(.arco-btn):focus-visible {
+  color: var(--color-text-1);
+  background: var(--color-fill-1);
+  border-color: var(--color-border-3);
+}
+
+.progressIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@media (max-width: 767px) {
+  .card {
+    width: min(320px, calc(100vw - 32px));
+    padding: 8px 9px;
+  }
+
+  .item,
+  .toggle:global(.arco-btn) {
+    font-size: 14px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toggle:global(.arco-btn) {
+    transition: none;
+  }
+}

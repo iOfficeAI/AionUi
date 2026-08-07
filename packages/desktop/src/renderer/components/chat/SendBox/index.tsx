@@ -21,6 +21,7 @@ import {
   getAllAtFileQueries,
   resolveAtFileMenuKey,
 } from '@/renderer/utils/chat/atFileQuery';
+import { dispatchChatScrollToBottom } from '@/renderer/utils/chat/chatMinimapEvents';
 import { getLastAssistantText } from '@/renderer/utils/chat/getLastAssistantText';
 import { emitter, type ReplyQuote, useAddEventListener } from '@/renderer/utils/emitter';
 import { mergeFileSelectionItems, type FileSelectionItem } from '@/renderer/utils/file/fileSelection';
@@ -42,6 +43,7 @@ import { useConversationExport } from '@renderer/hooks/file/useConversationExpor
 import { useDragUpload } from '@renderer/hooks/file/useDragUpload';
 import { useLatestRef } from '@renderer/hooks/ui/useLatestRef';
 import { usePasteService } from '@renderer/hooks/file/usePasteService';
+import MessagePlan, { findLatestActivePlan } from '@renderer/pages/conversation/Messages/components/MessagePlan';
 import { useMessageList } from '@renderer/pages/conversation/Messages/hooks';
 import type { FileMetadata } from '@renderer/services/FileService';
 import { useUploadState } from '@renderer/hooks/file/useUploadState';
@@ -250,6 +252,7 @@ const SendBox: React.FC<{
   const latestInputRef = useLatestRef(input);
   const setInputRef = useLatestRef(setInput);
   const messageList = useMessageList();
+  const activePlan = useMemo(() => findLatestActivePlan(messageList), [messageList]);
   const [historyNavigationIndex, setHistoryNavigationIndex] = useState<number | null>(null);
   const historyDraftRef = useRef<string | null>(null);
   const [replyQuote, setReplyQuote] = useState<ReplyQuote | null>(null);
@@ -1447,7 +1450,19 @@ const SendBox: React.FC<{
   }, [allAtFileQueries, input]);
 
   return (
-    <div className={className}>
+    <div className={`${className ?? ''} relative`}>
+      {activePlan ? (
+        <MessagePlan
+          message={activePlan}
+          onNavigateToLatest={() => {
+            if (!conversationContext?.conversation_id) return;
+            dispatchChatScrollToBottom({
+              conversation_id: conversationContext.conversation_id,
+              behavior: 'smooth',
+            });
+          }}
+        />
+      ) : null}
       <div
         ref={containerRef}
         className={`sendbox-panel relative p-16px border-3 b bg-dialog-fill-0 b-solid rd-20px flex flex-col ${isOverlayOpen ? 'overflow-visible' : 'overflow-hidden'} ${isFileDragging ? 'b-dashed sendbox-panel--dragging' : ''}`}

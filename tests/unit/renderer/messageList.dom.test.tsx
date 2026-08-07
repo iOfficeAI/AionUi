@@ -122,6 +122,7 @@ vi.mock('@/renderer/pages/conversation/Messages/acp/MessageAcpToolCall', () => (
 
 vi.mock('@/renderer/pages/conversation/Messages/components/MessagePlan', () => ({
   default: () => <div>plan</div>,
+  findLatestActivePlan: () => undefined,
 }));
 
 vi.mock('@/renderer/pages/conversation/Messages/components/MessageThinking', () => ({

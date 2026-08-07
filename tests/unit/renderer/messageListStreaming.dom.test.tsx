@@ -7,7 +7,7 @@
 import React, { type PropsWithChildren } from 'react';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { IMessageText } from '@/common/chat/chatLib';
+import type { IMessagePlan, IMessageText, TMessage } from '@/common/chat/chatLib';
 import { MessageListProvider } from '@/renderer/pages/conversation/Messages/hooks';
 import MessageList from '@/renderer/pages/conversation/Messages/MessageList';
 
@@ -41,6 +41,24 @@ vi.mock('react-router-dom', () => ({
 }));
 
 vi.mock('@arco-design/web-react', () => ({
+  Button: ({
+    children,
+    icon,
+    shape: _shape,
+    type: _type,
+    ...props
+  }: PropsWithChildren<
+    Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'type'> & {
+      icon?: React.ReactNode;
+      shape?: string;
+      type?: string;
+    }
+  >) => (
+    <button {...props}>
+      {icon}
+      {children}
+    </button>
+  ),
   Image: {
     PreviewGroup: ({ children }: PropsWithChildren) => <>{children}</>,
   },
@@ -84,10 +102,6 @@ vi.mock('@/renderer/pages/conversation/Messages/acp/MessageAcpPermission', () =>
 
 vi.mock('@/renderer/pages/conversation/Messages/acp/MessageAcpToolCall', () => ({
   default: () => <div>acp_tool_call</div>,
-}));
-
-vi.mock('@/renderer/pages/conversation/Messages/components/MessagePlan', () => ({
-  default: () => <div>plan</div>,
 }));
 
 vi.mock('@/renderer/pages/conversation/Messages/components/MessageThinking', () => ({
@@ -134,7 +148,22 @@ function createTextMessage(content: string): IMessageText {
   };
 }
 
-function Wrapper({ children, messages }: PropsWithChildren<{ messages: IMessageText[] }>): JSX.Element {
+function createPlanMessage(status: 'in_progress' | 'completed'): IMessagePlan {
+  return {
+    id: 'plan-1',
+    msg_id: 'plan-1',
+    conversation_id: 'conversation-1',
+    type: 'plan',
+    position: 'left',
+    content: {
+      session_id: 'session-1',
+      entries: [{ content: 'Implement the UI', status }],
+    },
+    created_at: 2,
+  };
+}
+
+function Wrapper({ children, messages }: PropsWithChildren<{ messages: TMessage[] }>): JSX.Element {
   return <MessageListProvider value={messages}>{children}</MessageListProvider>;
 }
 
@@ -263,5 +292,42 @@ describe('MessageList streaming scroll behavior', () => {
     flushResizeObserver();
 
     expect(scroller.scrollTo).not.toHaveBeenCalled();
+  });
+
+  it('replaces the scroll control while a plan is active and restores it after completion', () => {
+    const textMessage = createTextMessage('hello');
+    const { unmount } = render(
+      <Wrapper messages={[textMessage, createPlanMessage('in_progress')]}>
+        <MessageList />
+      </Wrapper>
+    );
+
+    const scroller = screen.getByTestId('message-list-scroller') as HTMLDivElement;
+    setScrollableMetrics(scroller, { scrollTop: 0 });
+    act(() => {
+      vi.runAllTimers();
+    });
+
+    scroller.scrollTop = 0;
+    vi.setSystemTime(new Date('2026-05-26T12:00:00.250Z'));
+    fireEvent.scroll(scroller);
+    expect(screen.queryByTestId('message-list-scroll-to-bottom')).not.toBeInTheDocument();
+    expect(screen.queryByText('plan')).not.toBeInTheDocument();
+
+    unmount();
+    render(
+      <Wrapper messages={[textMessage, createPlanMessage('completed')]}>
+        <MessageList />
+      </Wrapper>
+    );
+    const completedScroller = screen.getByTestId('message-list-scroller') as HTMLDivElement;
+    setScrollableMetrics(completedScroller, { scrollTop: 0 });
+    act(() => {
+      vi.runAllTimers();
+    });
+    completedScroller.scrollTop = 0;
+    vi.setSystemTime(new Date('2026-05-26T12:00:00.500Z'));
+    fireEvent.scroll(completedScroller);
+    expect(screen.getByTestId('message-list-scroll-to-bottom')).toBeInTheDocument();
   });
 });

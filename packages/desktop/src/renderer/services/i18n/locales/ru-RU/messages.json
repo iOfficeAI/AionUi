@@ -57,6 +57,14 @@
   "option": "Опция",
   "noOptionsAvailable": "Нет доступных опций",
   "processing": "Обработка...",
+  "plan": {
+    "progress": "Шаг {{current}} из {{total}}",
+    "status": {
+      "pending": "Ожидает",
+      "in_progress": "Выполняется",
+      "completed": "Завершено"
+    }
+  },
   "responseSentSuccessfully": "Ответ успешно отправлен",
   "permissionResponseFailed": "Не удалось отправить ответ. Повторите попытку.",
   "confirmation": {
