@@ -649,6 +649,9 @@
       },
       "viewAsTree": "Ağaç olarak görüntüle",
       "viewAsList": "Liste olarak görüntüle",
+      "worktree": "Çalışma ağacı",
+      "expandWorktrees": "Çalışma ağaçlarını göster",
+      "collapseWorktrees": "Çalışma ağaçlarını gizle",
       "state": {
         "created": "Eklendi",
         "modified": "Değiştirildi",

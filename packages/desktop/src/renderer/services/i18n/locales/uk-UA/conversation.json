@@ -647,6 +647,9 @@
       },
       "viewAsTree": "Показати деревом",
       "viewAsList": "Показати списком",
+      "worktree": "Робоче дерево",
+      "expandWorktrees": "Показати робочі дерева",
+      "collapseWorktrees": "Приховати робочі дерева",
       "state": {
         "created": "Додано",
         "modified": "Змінено",

@@ -678,3 +678,117 @@ describe('ScmPanel view-as-tree / view-as-list toggle', () => {
     expect(diffCalls.length).toBeGreaterThan(0);
   });
 });
+
+describe('ScmPanel worktree aggregation in the Repositories section', () => {
+  // A primary repo with one nested worktree, plus a second plain repo so the
+  // Repositories section renders (multi-repo) and the primary's own changes show.
+  const worktreeWorkspace = (): PortSetup => ({
+    repositories: [
+      repo({ repo_id: 'scm:pe1', label: 'core', head: { name: 'main' } }),
+      repo({
+        repo_id: 'scm:pe1/feature',
+        root: { pe_id: 'pe1', relative_path: 'feature' },
+        label: 'feature',
+        head: { name: 'feature' },
+        is_worktree: true,
+        worktree_of: 'scm:pe1',
+      }),
+      repo({ repo_id: 'scm:pe2', root: { pe_id: 'pe2', relative_path: '' }, label: 'other' }),
+    ],
+    firstFrames: {
+      'scm:pe1': status('scm:pe1', 1, [resource('a.ts')]),
+      'scm:pe1/feature': status('scm:pe1/feature', 1, []),
+      'scm:pe2': status('scm:pe2', 1, []),
+    },
+  });
+
+  it('nests the worktree row under its primary and exposes an expand toggle', async () => {
+    installPort(worktreeWorkspace());
+    render(<ScmPanel projectId='p1' />);
+
+    await screen.findByText('a.ts');
+    expect(document.querySelector('[data-scm-repo-item="scm:pe1"]')).not.toBeNull();
+    expect(document.querySelector('[data-scm-repo-item="scm:pe1/feature"]')).not.toBeNull();
+    // Only the primary with children carries a toggle.
+    const toggle = document.querySelector('[data-scm-repo-toggle="scm:pe1"]');
+    expect(toggle).not.toBeNull();
+    expect(toggle?.getAttribute('aria-expanded')).toBe('true');
+    expect(document.querySelector('[data-scm-repo-toggle="scm:pe2"]')).toBeNull();
+  });
+
+  it('collapses and re-expands the worktree children via the toggle, and persists', async () => {
+    installPort(worktreeWorkspace());
+    render(<ScmPanel projectId='p1' />);
+
+    await screen.findByText('a.ts');
+    const toggle = document.querySelector('[data-scm-repo-toggle="scm:pe1"]') as HTMLElement;
+
+    fireEvent.click(toggle);
+    await waitFor(() => expect(document.querySelector('[data-scm-repo-item="scm:pe1/feature"]')).toBeNull());
+    expect(toggle.getAttribute('aria-expanded')).toBe('false');
+    // Primary row itself stays.
+    expect(document.querySelector('[data-scm-repo-item="scm:pe1"]')).not.toBeNull();
+    // Collapse persisted for this project.
+    expect(localStorage.getItem('scm-ui:p1')).toContain('scm:pe1');
+
+    fireEvent.click(toggle);
+    await waitFor(() => expect(document.querySelector('[data-scm-repo-item="scm:pe1/feature"]')).not.toBeNull());
+    expect(toggle.getAttribute('aria-expanded')).toBe('true');
+  });
+
+  it('selecting a nested worktree row switches the body to that worktree', async () => {
+    installPort({
+      repositories: [
+        repo({ repo_id: 'scm:pe1', label: 'core', head: { name: 'main' } }),
+        repo({
+          repo_id: 'scm:pe1/feature',
+          root: { pe_id: 'pe1', relative_path: 'feature' },
+          label: 'feature',
+          head: { name: 'feature' },
+          is_worktree: true,
+          worktree_of: 'scm:pe1',
+        }),
+      ],
+      firstFrames: {
+        'scm:pe1': status('scm:pe1', 1, [resource('a.ts')]),
+        'scm:pe1/feature': status('scm:pe1/feature', 1, [resource('wt.ts')]),
+      },
+    });
+    render(<ScmPanel projectId='p1' />);
+
+    await screen.findByText('a.ts');
+    fireEvent.click(document.querySelector('[data-scm-repo-item="scm:pe1/feature"]') as HTMLElement);
+
+    await screen.findByText('wt.ts');
+    expect(screen.queryByText('a.ts')).not.toBeInTheDocument();
+    expect(document.querySelector('[data-scm-repo="scm:pe1/feature"]')).not.toBeNull();
+    expect(document.querySelector('[data-scm-repo-item="scm:pe1/feature"]')?.getAttribute('aria-current')).toBe('true');
+  });
+
+  it('renders an orphan worktree (primary out of view) flat at the outer level', async () => {
+    installPort({
+      repositories: [
+        repo({ repo_id: 'scm:pe2', root: { pe_id: 'pe2', relative_path: '' }, label: 'other', head: { name: 'main' } }),
+        repo({
+          repo_id: 'scm:pe1/wt',
+          root: { pe_id: 'pe1', relative_path: 'wt' },
+          label: 'stray',
+          head: { name: 'stray' },
+          is_worktree: true,
+          worktree_of: 'scm:pe1',
+        }),
+      ],
+      firstFrames: {
+        'scm:pe2': status('scm:pe2', 1, [resource('a.ts')]),
+        'scm:pe1/wt': status('scm:pe1/wt', 1, []),
+      },
+    });
+    render(<ScmPanel projectId='p1' />);
+
+    await screen.findByText('a.ts');
+    // The orphan sits at the outer level with no parent toggle anywhere.
+    expect(document.querySelector('[data-scm-repo-item="scm:pe1/wt"]')).not.toBeNull();
+    expect(document.querySelector('[data-scm-repo-toggle]')).toBeNull();
+    expect(document.querySelector('[data-scm-repo-item="scm:pe1/wt"]')?.style.paddingLeft).toBe('');
+  });
+});

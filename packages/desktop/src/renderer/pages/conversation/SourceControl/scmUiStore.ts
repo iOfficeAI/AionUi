@@ -38,6 +38,12 @@ export type ScmUiView = {
   heights: Record<string, number>;
   /** Directory keys the tree view has expanded. Absent ⇒ the view expands all by default. */
   treeExpanded: string[];
+  /**
+   * Primary `repo_id`s whose nested worktree rows are collapsed in the Repositories
+   * section. Absent id ⇒ expanded (the default), so only collapsed parents are
+   * stored — a fresh project shows every worktree, matching VS Code.
+   */
+  repoCollapsed: string[];
   viewMode: ScmViewMode;
 };
 
@@ -45,6 +51,7 @@ type PersistedUi = {
   collapsed?: Record<string, boolean>;
   heights?: Record<string, number>;
   treeExpanded?: string[];
+  repoCollapsed?: string[];
   viewMode?: ScmViewMode;
 };
 
@@ -52,9 +59,17 @@ let projectId: string | null = null;
 let collapsed: Map<string, boolean> = new Map();
 let heights: Map<string, number> = new Map();
 let treeExpanded: Set<string> | null = null; // null ⇒ "expand all" default, not yet overridden
+let repoCollapsed: Set<string> = new Set(); // only collapsed worktree parents; empty ⇒ all expanded
 let viewMode: ScmViewMode = 'list';
 
-let snapshot: ScmUiView = { projectId: null, collapsed: {}, heights: {}, treeExpanded: [], viewMode: 'list' };
+let snapshot: ScmUiView = {
+  projectId: null,
+  collapsed: {},
+  heights: {},
+  treeExpanded: [],
+  repoCollapsed: [],
+  viewMode: 'list',
+};
 
 // ── persistence (per-project) ────────────────────────────────────────────────
 
@@ -98,6 +113,9 @@ const loadUi = (id: string): PersistedUi => {
       treeExpanded: Array.isArray(parsed.treeExpanded)
         ? parsed.treeExpanded.filter((k): k is string => typeof k === 'string')
         : undefined,
+      repoCollapsed: Array.isArray(parsed.repoCollapsed)
+        ? parsed.repoCollapsed.filter((k): k is string => typeof k === 'string')
+        : undefined,
       viewMode: isViewMode(parsed.viewMode) ? parsed.viewMode : undefined,
     };
   } catch {
@@ -116,6 +134,8 @@ const persistUi = (): void => {
   // Only persist an explicit tree expansion once the user has touched it; a null
   // set means "still on the expand-all default", which needs no stored override.
   if (treeExpanded) data.treeExpanded = [...treeExpanded];
+  // Empty ⇒ every worktree parent expanded (the default); skip the key entirely.
+  if (repoCollapsed.size > 0) data.repoCollapsed = [...repoCollapsed];
   try {
     ls.setItem(uiStorageKey(projectId), JSON.stringify(data));
   } catch {
@@ -131,6 +151,7 @@ const rebuildSnapshot = (): void => {
     collapsed: Object.fromEntries(collapsed),
     heights: Object.fromEntries(heights),
     treeExpanded: treeExpanded ? [...treeExpanded] : [],
+    repoCollapsed: [...repoCollapsed],
     viewMode,
   };
 };
@@ -155,6 +176,7 @@ export const openScmUi = (id: string): void => {
   collapsed = new Map(Object.entries(ui.collapsed ?? {}));
   heights = new Map(Object.entries(ui.heights ?? {}));
   treeExpanded = ui.treeExpanded ? new Set(ui.treeExpanded) : null;
+  repoCollapsed = new Set(ui.repoCollapsed ?? []);
   viewMode = ui.viewMode ?? 'list';
   commit();
 };
@@ -194,6 +216,15 @@ export const setScmTreeExpanded = (keys: string[]): void => {
   commit();
 };
 
+/** Collapse or expand a primary repo's nested worktree rows in the Repositories section. */
+export const setRepoWorktreesCollapsed = (repoId: string, isCollapsed: boolean): void => {
+  if (isCollapsed === repoCollapsed.has(repoId)) return;
+  if (isCollapsed) repoCollapsed.add(repoId);
+  else repoCollapsed.delete(repoId);
+  persistUi();
+  commit();
+};
+
 export const subscribeScmUi = (listener: () => void): (() => void) => {
   listeners.add(listener);
   return () => {
@@ -216,7 +247,8 @@ export const resetScmUiStoreForTest = (): void => {
   collapsed = new Map();
   heights = new Map();
   treeExpanded = null;
+  repoCollapsed = new Set();
   viewMode = 'list';
-  snapshot = { projectId: null, collapsed: {}, heights: {}, treeExpanded: [], viewMode: 'list' };
+  snapshot = { projectId: null, collapsed: {}, heights: {}, treeExpanded: [], repoCollapsed: [], viewMode: 'list' };
   listeners.clear();
 };

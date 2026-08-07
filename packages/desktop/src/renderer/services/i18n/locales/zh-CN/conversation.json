@@ -648,6 +648,9 @@
       },
       "viewAsTree": "以树状视图显示",
       "viewAsList": "以列表视图显示",
+      "worktree": "工作树",
+      "expandWorktrees": "显示工作树",
+      "collapseWorktrees": "隐藏工作树",
       "state": {
         "created": "新增",
         "modified": "已修改",

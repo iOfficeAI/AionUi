@@ -647,6 +647,9 @@
       },
       "viewAsTree": "트리로 보기",
       "viewAsList": "목록으로 보기",
+      "worktree": "워크트리",
+      "expandWorktrees": "워크트리 표시",
+      "collapseWorktrees": "워크트리 숨기기",
       "state": {
         "created": "추가",
         "modified": "수정",

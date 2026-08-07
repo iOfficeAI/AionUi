@@ -647,6 +647,9 @@
       },
       "viewAsTree": "以樹狀檢視顯示",
       "viewAsList": "以清單檢視顯示",
+      "worktree": "工作樹",
+      "expandWorktrees": "顯示工作樹",
+      "collapseWorktrees": "隱藏工作樹",
       "state": {
         "created": "新增",
         "modified": "已修改",

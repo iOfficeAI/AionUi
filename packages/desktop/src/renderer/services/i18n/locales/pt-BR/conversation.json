@@ -653,6 +653,9 @@
       },
       "viewAsTree": "Ver como árvore",
       "viewAsList": "Ver como lista",
+      "worktree": "Árvore de trabalho",
+      "expandWorktrees": "Mostrar árvores de trabalho",
+      "collapseWorktrees": "Ocultar árvores de trabalho",
       "state": {
         "created": "Adicionado",
         "modified": "Modificado",
