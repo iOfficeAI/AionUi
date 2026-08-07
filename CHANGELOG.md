@@ -1,5 +1,19 @@
 # Changelog
 
+## [2.1.52](https://github.com/suoak/AionUi/compare/v2.1.51...v2.1.52) (2026-08-07)
+
+### Desktop
+
+#### Features
+
+- **updater:** add Ed25519-verified automatic updates through GitHub Releases (#19)
+
+#### Bug Fixes
+
+- **renderer:** support previewing and downloading generated images outside the workspace (#18)
+
+---
+
 ## [2.1.51](https://github.com/suoak/AionUi/compare/v2.1.50...v2.1.51) (2026-08-05)
 
 ### Desktop
