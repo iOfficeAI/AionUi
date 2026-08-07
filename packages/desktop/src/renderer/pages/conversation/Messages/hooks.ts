@@ -172,6 +172,26 @@ export function composeMessageWithIndex(
     return result;
   }
 
+  // A superseding tip replaces its predecessor wherever it already sits in the
+  // list instead of appending: codex reports a stalled turn as a series of retry
+  // attempts ("Reconnecting... 1/5", then 2/5 …) and the user should watch one
+  // card count up rather than collect ten near-identical ones. Matching on the
+  // key — not msg_id, which differs per attempt — also survives other messages
+  // arriving in between. Tips are rare, so the scan costs nothing.
+  if (message.type === 'tips' && message.content?.supersedes_key) {
+    const key = message.content.supersedes_key;
+    const existingIdx = list.findIndex((item) => item.type === 'tips' && item.content?.supersedes_key === key);
+    if (existingIdx >= 0) {
+      const newList = list.slice();
+      newList[existingIdx] = { ...list[existingIdx], ...message, content: message.content } as TMessage;
+      return newList;
+    }
+    const newIdx = list.length;
+    const msgIndexKey = getMessageIndexKey(message);
+    if (msgIndexKey) index.msgIdIndex.set(msgIndexKey, newIdx);
+    return list.concat(message);
+  }
+
   // tool_call: 使用 call_idIndex 快速查找
   // tool_call: use call_idIndex for fast lookup
   if (message.type === 'tool_call' && message.content?.call_id) {
