@@ -22,31 +22,47 @@
  * no `.git` event, so the backend watch cannot observe it; only this signal can
  * (source-control.md §三信号 ③).
  *
- * Read-only this round: no stage/unstage/discard (PR-4).
+ * Layout: the body is a stack of collapsible/resizable sections (VS Code SCM
+ * sidebar). Repositories and Changes are the two sections today; a future graph
+ * section drops in as a third with no framework change (see `ScmSectionStack`).
  */
 
-import { Button, Spin, Tooltip } from '@arco-design/web-react';
-import { Branch, Minus, Plus, Refresh, Undo } from '@icon-park/react';
+import { Button, Tooltip } from '@arco-design/web-react';
+import { Branch, ListView, Refresh, Tree } from '@icon-park/react';
 import React, { useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { usePreviewContext } from '../Preview';
-import { ScmResourceRow } from './ScmResourceRow';
+import { ScmChangesView } from './ScmChangesView';
+import { ScmSection, ScmSectionDivider } from './ScmSection';
 import {
-  actionableResources,
   diffAnchors,
-  groupResources,
   resourceKey,
   resourceName,
   type ScmActionKind,
-  type ScmGroupId,
   type ScmRepository,
   type ScmResource,
-  type ScmStatus,
 } from './scmModel';
-import { fetchScmDiff, openScmProject, refreshAllRepos, selectScmResource, setSelectedRepo, useScm } from './scmStore';
+import { fetchScmDiff, openScmProject, refreshAllRepos, setSelectedRepo, useScm } from './scmStore';
 import { initScmRuntime } from './scmTransport';
+import {
+  clearSectionHeight,
+  openScmUi,
+  setScmViewMode,
+  setSectionCollapsed,
+  setSectionHeight,
+  useScmUi,
+  type ScmViewMode,
+} from './scmUiStore';
 import { type ScmActionReport, useScmActions } from './useScmActions';
+
+/** Section ids — the persistence keys and the extensible section registry. */
+const SECTION_REPOSITORIES = 'repositories';
+const SECTION_CHANGES = 'changes';
+
+/** Bounds for the repositories section drag height, in px. */
+const REPO_SECTION_MIN_PX = 44;
+const REPO_SECTION_MAX_PX = 400;
 
 export type ScmPanelProps = {
   /** Owning project id — scopes the store's repositories + statuses. */
@@ -56,13 +72,16 @@ export type ScmPanelProps = {
 export const ScmPanel: React.FC<ScmPanelProps> = ({ projectId }) => {
   const { t } = useTranslation();
   const view = useScm();
+  const ui = useScmUi();
   const actions = useScmActions();
 
   // Wire the WS runtime (idempotent) and declare the project. Deliberately no
-  // cleanup: unmount here means "tab switched", not "project closed".
+  // cleanup: unmount here means "tab switched", not "project closed". The UI store
+  // is opened alongside so collapse/height/view-mode restore for this project.
   useEffect(() => {
     initScmRuntime();
     void openScmProject(projectId);
+    openScmUi(projectId);
   }, [projectId]);
 
   // Focus refresh — the only signal that catches an external editor's write and a
@@ -137,21 +156,16 @@ export const ScmPanel: React.FC<ScmPanelProps> = ({ projectId }) => {
         </Tooltip>
       </div>
       {actions.report && <ActionReportExtras report={actions.report} busy={actions.busy} onRetry={actions.retry} />}
-      {/* Repo switcher only for a multi-repo project (D3): a single repo goes
-          straight to its changes with no list. Clicking is pure front-end. */}
-      {multiRepo && (
-        <RepoList repositories={view.repositories} selectedRepoId={selectedRepo.repo_id} onSelect={setSelectedRepo} />
-      )}
-      <div className='flex-1 min-h-0 overflow-auto pl-4px pr-4px pb-8px'>
-        <RepoSection
-          repo={selectedRepo}
-          status={view.statuses[selectedRepo.repo_id]}
-          selectedKey={view.selectedResource}
-          onAction={actions.run}
-          busy={actions.busy}
-          failedRowKeys={actions.report?.failedRowKeys ?? []}
-        />
-      </div>
+      <ScmSectionStack
+        view={view}
+        ui={ui}
+        selectedRepo={selectedRepo}
+        multiRepo={multiRepo}
+        onRepoSelect={setSelectedRepo}
+        onAction={actions.run}
+        busy={actions.busy}
+        failedRowKeys={actions.report?.failedRowKeys ?? []}
+      />
       {/* Selecting a change opens its diff in the shared preview panel (a `'diff'`
           tab, reusing the same `openPreview` mechanism the file tree uses) rather
           than a fixed pane docked below this panel. Rendered as a hookless bridge
@@ -165,6 +179,131 @@ export const ScmPanel: React.FC<ScmPanelProps> = ({ projectId }) => {
         />
       )}
     </div>
+  );
+};
+
+/**
+ * The section stack: the collapsible/resizable body of the panel below the header
+ * bar. Renders the Repositories section (multi-repo only) and the Changes section,
+ * with a drag divider between them. The Changes section always flexes to fill and
+ * its header is `flex-shrink-0`, so it can never lose its header no matter how many
+ * repos the list holds — the hard layout requirement.
+ *
+ * Extensible by construction: a future graph section is one more `ScmSection` +
+ * divider in this stack; collapse/height persistence is already id-keyed in the UI
+ * store, so no mechanism here is hard-wired to exactly two sections.
+ */
+const ScmSectionStack: React.FC<{
+  view: ReturnType<typeof useScm>;
+  ui: ReturnType<typeof useScmUi>;
+  selectedRepo: ScmRepository;
+  multiRepo: boolean;
+  onRepoSelect: (repoId: string) => void;
+  onAction: (action: ScmActionKind, repoId: string, resources: ScmResource[]) => void;
+  busy: boolean;
+  failedRowKeys: string[];
+}> = ({ view, ui, selectedRepo, multiRepo, onRepoSelect, onAction, busy, failedRowKeys }) => {
+  const { t } = useTranslation();
+  const reposCollapsed = ui.collapsed[SECTION_REPOSITORIES] === true;
+  const changesCollapsed = ui.collapsed[SECTION_CHANGES] === true;
+  // The repositories body height: the user's dragged value if any, else natural.
+  // When absent the body sizes to content (capped in CSS), so no blank space.
+  const repoHeight = ui.heights[SECTION_REPOSITORIES];
+
+  // Dragging the divider grows/shrinks the repositories section by the pixel delta.
+  // The Changes section takes the remaining space, so it is never given an explicit
+  // height and can always show its header. Clamped to sane bounds.
+  const onDividerDrag = (deltaY: number): void => {
+    const base = repoHeight ?? reposNaturalPx(view.repositories.length);
+    const next = Math.min(REPO_SECTION_MAX_PX, Math.max(REPO_SECTION_MIN_PX, base + deltaY));
+    setSectionHeight(SECTION_REPOSITORIES, next);
+  };
+
+  const viewMode: ScmViewMode = ui.viewMode;
+
+  return (
+    <div data-scm-section-stack className='flex-1 min-h-0 flex flex-col'>
+      {multiRepo && (
+        <>
+          <ScmSection
+            id={SECTION_REPOSITORIES}
+            title={t('conversation.explorer.scm.sections.repositories')}
+            collapsed={reposCollapsed}
+            onToggleCollapsed={() => setSectionCollapsed(SECTION_REPOSITORIES, !reposCollapsed)}
+          >
+            <div
+              className='flex-shrink-0 overflow-auto'
+              // A dragged height fixes the body; otherwise it fits content up to a cap
+              // (never leaving blank space below the last repo row).
+              style={repoHeight ? { height: repoHeight } : { maxHeight: REPO_SECTION_MAX_PX }}
+            >
+              <RepoList
+                repositories={view.repositories}
+                selectedRepoId={selectedRepo.repo_id}
+                onSelect={onRepoSelect}
+              />
+            </div>
+          </ScmSection>
+          {/* Divider only makes sense when both neighbors are open. */}
+          {!reposCollapsed && !changesCollapsed && (
+            <ScmSectionDivider
+              onDrag={onDividerDrag}
+              onDragEnd={undefined}
+              onDoubleReset={() => clearSectionHeight(SECTION_REPOSITORIES)}
+            />
+          )}
+        </>
+      )}
+      <ScmSection
+        id={SECTION_CHANGES}
+        title={t('conversation.explorer.scm.sections.changes')}
+        collapsed={changesCollapsed}
+        onToggleCollapsed={() => setSectionCollapsed(SECTION_CHANGES, !changesCollapsed)}
+        actions={<ViewModeToggle mode={viewMode} onChange={setScmViewMode} />}
+      >
+        <div className='flex-1 min-h-0 overflow-auto pl-4px pr-4px pb-8px'>
+          <ScmChangesView
+            repo={selectedRepo}
+            status={view.statuses[selectedRepo.repo_id]}
+            selectedKey={view.selectedResource}
+            onAction={onAction}
+            busy={busy}
+            failedRowKeys={failedRowKeys}
+            viewMode={viewMode}
+            treeExpanded={ui.treeExpanded}
+          />
+        </div>
+      </ScmSection>
+    </div>
+  );
+};
+
+/** Natural height estimate for the repo list (row ≈ 24px + padding), used as the
+ *  drag baseline before any explicit height is stored. */
+const reposNaturalPx = (repoCount: number): number =>
+  Math.min(REPO_SECTION_MAX_PX, Math.max(REPO_SECTION_MIN_PX, repoCount * 24 + 8));
+
+/**
+ * The Changes section header's view-as-tree / view-as-list toggle (VS Code parity).
+ * A single button that flips to the other mode; the icon shows the mode it switches
+ * TO, matching VS Code's toolbar affordance.
+ */
+const ViewModeToggle: React.FC<{ mode: ScmViewMode; onChange: (mode: ScmViewMode) => void }> = ({ mode, onChange }) => {
+  const { t } = useTranslation();
+  const next: ScmViewMode = mode === 'tree' ? 'list' : 'tree';
+  const label = t(next === 'tree' ? 'conversation.explorer.scm.viewAsTree' : 'conversation.explorer.scm.viewAsList');
+  return (
+    <Tooltip content={label} mini>
+      <Button
+        type='text'
+        size='mini'
+        data-scm-view-toggle={mode}
+        className='flex-shrink-0'
+        icon={next === 'tree' ? <Tree theme='outline' size='14' /> : <ListView theme='outline' size='14' />}
+        aria-label={label}
+        onClick={() => onChange(next)}
+      />
+    </Tooltip>
   );
 };
 
@@ -334,158 +473,6 @@ const ActionReportExtras: React.FC<{
   );
 };
 
-/**
- * The bulk staging action a group header offers, or null for none.
- *
- * `blocked` gets none by construction — every row in it is non-actionable. The
- * single `changes` group of a provider without a staging area gets none either:
- * there is no index to move things into.
- */
-const bulkAction = (groupId: ScmGroupId): ScmActionKind | null => {
-  if (groupId === 'staged') return 'unstage';
-  if (groupId === 'unstaged') return 'stage';
-  return null;
-};
-
 const PanelNotice: React.FC<{ text: string }> = ({ text }) => (
   <div className='h-full flex items-center justify-center px-16px text-center text-t-secondary text-13px'>{text}</div>
 );
-
-/**
- * One repo's section: warnings + grouped rows. No repo header here — repo identity
- * lives in the top `RepoList` (multi-repo) and is implicit for a single repo.
- */
-const RepoSection: React.FC<{
-  repo: ScmRepository;
-  status: ScmStatus | undefined;
-  selectedKey: string | null;
-  onAction: (action: ScmActionKind, repoId: string, resources: ScmResource[]) => void;
-  busy: boolean;
-  failedRowKeys: string[];
-}> = ({ repo, status, selectedKey, onAction, busy, failedRowKeys }) => {
-  const { t } = useTranslation();
-  // Grouping is a display-layer derivation from capabilities — the wire is flat
-  // and never pre-grouped (source-control.md §变更清单).
-  const groups = useMemo(
-    () => groupResources(status?.resources ?? [], repo.capabilities.staging),
-    [status?.resources, repo.capabilities.staging]
-  );
-  const failed = useMemo(() => new Set(failedRowKeys), [failedRowKeys]);
-
-  return (
-    <div data-scm-repo={repo.repo_id}>
-      {/* Awaiting this repo's first status frame. The condition is "no status yet",
-          NOT `state === 'refreshing'`: per protocol.md v10 the `refreshing` state
-          only ever travels on `scm/listRepositories` / `scm/repositoriesChanged`,
-          and stage 1 never pushes such a frame — so keying the spinner off it would
-          leave a huge repo's slow first frame rendering nothing at all. `state` is
-          still honoured (an explicitly refreshing repo shows progress even if a
-          stale status is on screen), which keeps this correct if that push is ever
-          added. */}
-      {(!status || repo.state === 'refreshing') && (
-        <div data-scm-loading className='px-8px py-4px'>
-          <Spin size={14} />
-        </div>
-      )}
-      {/* degraded is a notice, NOT an error: the list is complete, recompute is
-          just persistently slower because git's index cannot be written back. */}
-      {status?.degraded === true && (
-        <div data-scm-degraded className='px-8px py-4px text-12px text-warning'>
-          {t('conversation.explorer.scm.degraded')}
-        </div>
-      )}
-      {status?.truncated === true && (
-        <div data-scm-truncated className='px-8px py-4px text-12px text-t-tertiary'>
-          {t('conversation.explorer.scm.truncated')}
-        </div>
-      )}
-      {status && groups.length === 0 && (
-        <div className='px-8px py-4px text-13px text-t-secondary'>{t('conversation.explorer.scm.noChanges')}</div>
-      )}
-      {groups.map((group) => {
-        const bulk = bulkAction(group.id);
-        // Only the rows the backend would accept — a bulk button that sends a
-        // conflicted row would have the whole batch refused.
-        const bulkTargets = bulk ? actionableResources(group.resources) : [];
-        // Bulk discard is offered for every group EXCEPT `staged`: `scm/discard`
-        // acts on the unstaged side only (protocol.md v11), so a bulk discard on the
-        // staged group would destroy working-tree edits belonging to other rows.
-        //
-        // Excluding by GROUP ID is the right test here — deliberately not the same
-        // condition the row uses. The `changes` group (a provider with no staging
-        // area) is not the `staged` group, so it keeps bulk discard for free; testing
-        // the rows' `staged` flag instead would take that provider's only action away.
-        const discardTargets = group.id === 'staged' ? [] : actionableResources(group.resources);
-        return (
-          <div key={group.id} data-scm-group={group.id} className='group/scmgroup'>
-            <div className='flex items-center px-8px pt-6px pb-2px text-12px text-t-tertiary uppercase'>
-              <span className='flex-1 min-w-0'>{t(`conversation.explorer.scm.groups.${group.id}`)}</span>
-              {/* Bulk discard for any group whose rows can be acted on — including
-                  the single `changes` group of a provider without a staging area.
-                  Goes through the same confirmation as a single row, which states
-                  whichever consequence(s) the selection actually carries. */}
-              {discardTargets.length > 0 && (
-                <Button
-                  type='text'
-                  size='mini'
-                  disabled={busy}
-                  data-scm-bulk-discard
-                  className='flex-shrink-0 opacity-0 group-hover/scmgroup:opacity-100 focus:opacity-100'
-                  icon={<Undo theme='outline' size='13' />}
-                  aria-label={t('conversation.explorer.scm.actions.discard')}
-                  title={t('conversation.explorer.scm.actions.discard')}
-                  onClick={() => onAction('discard', repo.repo_id, discardTargets)}
-                />
-              )}
-              {bulk && bulkTargets.length > 0 && (
-                <Button
-                  type='text'
-                  size='mini'
-                  disabled={busy}
-                  data-scm-bulk={bulk}
-                  className='flex-shrink-0 opacity-0 group-hover/scmgroup:opacity-100 focus:opacity-100'
-                  icon={bulk === 'stage' ? <Plus theme='outline' size='13' /> : <Minus theme='outline' size='13' />}
-                  aria-label={t(
-                    bulk === 'stage'
-                      ? 'conversation.explorer.scm.actions.stageAll'
-                      : 'conversation.explorer.scm.actions.unstageAll'
-                  )}
-                  title={t(
-                    bulk === 'stage'
-                      ? 'conversation.explorer.scm.actions.stageAll'
-                      : 'conversation.explorer.scm.actions.unstageAll'
-                  )}
-                  onClick={() => onAction(bulk, repo.repo_id, bulkTargets)}
-                />
-              )}
-            </div>
-            {/* A group whose rows have no buttons at all reads like a bug unless the
-                reason is stated. The per-row hint is `title`-only (hover), which a
-                user facing an inert group will not think to try — so the blocked
-                group says it inline. */}
-            {group.id === 'blocked' && (
-              <div data-scm-blocked-hint className='px-8px pb-2px text-12px text-t-tertiary'>
-                {t('conversation.explorer.scm.actions.blockedHint')}
-              </div>
-            )}
-            {group.resources.map((resource) => {
-              const key = resourceKey(resource);
-              return (
-                <ScmResourceRow
-                  key={key}
-                  resource={resource}
-                  selected={selectedKey === key}
-                  onSelect={(r) => selectScmResource(resourceKey(r))}
-                  staging={repo.capabilities.staging}
-                  onAction={(action, r) => onAction(action, repo.repo_id, [r])}
-                  busy={busy}
-                  failed={failed.has(key)}
-                />
-              );
-            })}
-          </div>
-        );
-      })}
-    </div>
-  );
-};

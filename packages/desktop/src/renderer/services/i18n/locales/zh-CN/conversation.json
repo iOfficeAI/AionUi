@@ -642,6 +642,12 @@
         "changes": "变更",
         "blocked": "需先解决"
       },
+      "sections": {
+        "repositories": "仓库",
+        "changes": "变更"
+      },
+      "viewAsTree": "以树状视图显示",
+      "viewAsList": "以列表视图显示",
       "state": {
         "created": "新增",
         "modified": "已修改",

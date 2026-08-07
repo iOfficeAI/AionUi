@@ -641,6 +641,12 @@
         "changes": "تغییرات",
         "blocked": "نیازمند رفع"
       },
+      "sections": {
+        "repositories": "مخازن",
+        "changes": "تغییرات"
+      },
+      "viewAsTree": "نمایش درختی",
+      "viewAsList": "نمایش فهرستی",
       "state": {
         "created": "افزوده‌شده",
         "modified": "تغییریافته",

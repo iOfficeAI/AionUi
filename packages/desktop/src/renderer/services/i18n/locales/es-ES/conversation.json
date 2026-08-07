@@ -642,6 +642,12 @@
         "changes": "Cambios",
         "blocked": "Requiere resolución"
       },
+      "sections": {
+        "repositories": "Repositorios",
+        "changes": "Cambios"
+      },
+      "viewAsTree": "Ver como árbol",
+      "viewAsList": "Ver como lista",
       "state": {
         "created": "Añadido",
         "modified": "Modificado",

@@ -641,6 +641,12 @@
         "changes": "Зміни",
         "blocked": "Потребує розв’язання"
       },
+      "sections": {
+        "repositories": "Репозиторії",
+        "changes": "Зміни"
+      },
+      "viewAsTree": "Показати деревом",
+      "viewAsList": "Показати списком",
       "state": {
         "created": "Додано",
         "modified": "Змінено",

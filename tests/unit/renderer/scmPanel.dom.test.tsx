@@ -38,6 +38,7 @@ import {
   getScmInternalsForTest,
   resetScmStoreForTest,
 } from '@/renderer/pages/conversation/SourceControl/scmStore';
+import { resetScmUiStoreForTest } from '@/renderer/pages/conversation/SourceControl/scmUiStore';
 
 const repo = (over: Partial<ScmRepository> = {}): ScmRepository => ({
   repo_id: 'scm:pe1',
@@ -91,6 +92,8 @@ const installPort = (setup: PortSetup): void => {
 
 beforeEach(() => {
   resetScmStoreForTest();
+  resetScmUiStoreForTest();
+  localStorage.clear();
   diffCalls.length = 0;
   openPreviewMock.mockClear();
 });
@@ -98,6 +101,8 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   resetScmStoreForTest();
+  resetScmUiStoreForTest();
+  localStorage.clear();
 });
 
 describe('ScmPanel empty / failure states', () => {
@@ -565,5 +570,111 @@ describe('ScmPanel first-frame loading (protocol.md v10: `refreshing` is never p
 
     await screen.findByText('a.ts');
     expect(document.querySelector('[data-scm-loading]')).not.toBeNull();
+  });
+});
+
+describe('ScmPanel section framework (VS Code SCM parity)', () => {
+  const twoRepos: ScmRepository[] = [
+    repo(),
+    repo({ repo_id: 'scm:pe2', root: { pe_id: 'pe2', relative_path: '' }, label: 'other' }),
+  ];
+  const twoRepoFrames: Record<string, ScmStatus> = {
+    'scm:pe1': status('scm:pe1', 1, [resource('a.ts')]),
+    'scm:pe2': status('scm:pe2', 1, []),
+  };
+
+  it('always renders the Changes section header, even with a single repo', async () => {
+    installPort({ repositories: [repo()], firstFrames: { 'scm:pe1': status('scm:pe1', 1, [resource('a.ts')]) } });
+    render(<ScmPanel projectId='p1' />);
+
+    await screen.findByText('a.ts');
+    expect(document.querySelector('[data-scm-section-header="changes"]')).not.toBeNull();
+  });
+
+  it('does not render a Repositories section for a single-repo project', async () => {
+    installPort({ repositories: [repo()], firstFrames: { 'scm:pe1': status('scm:pe1', 1, [resource('a.ts')]) } });
+    render(<ScmPanel projectId='p1' />);
+
+    await screen.findByText('a.ts');
+    expect(document.querySelector('[data-scm-section-header="repositories"]')).toBeNull();
+  });
+
+  it('renders both section headers for a multi-repo project', async () => {
+    installPort({ repositories: twoRepos, firstFrames: twoRepoFrames });
+    render(<ScmPanel projectId='p1' />);
+
+    await screen.findByText('a.ts');
+    expect(document.querySelector('[data-scm-section-header="repositories"]')).not.toBeNull();
+    expect(document.querySelector('[data-scm-section-header="changes"]')).not.toBeNull();
+  });
+
+  it('collapsing the Changes section hides its body but keeps the header visible', async () => {
+    installPort({ repositories: [repo()], firstFrames: { 'scm:pe1': status('scm:pe1', 1, [resource('a.ts')]) } });
+    render(<ScmPanel projectId='p1' />);
+
+    await screen.findByText('a.ts');
+    const header = document.querySelector('[data-scm-section-header="changes"]') as HTMLElement;
+    expect(header.getAttribute('aria-expanded')).toBe('true');
+
+    fireEvent.click(header);
+
+    // Header stays; body content is gone.
+    expect(document.querySelector('[data-scm-section-header="changes"]')).not.toBeNull();
+    expect(header.getAttribute('aria-expanded')).toBe('false');
+    expect(screen.queryByText('a.ts')).toBeNull();
+  });
+
+  it('shows a divider only when both sections are open', async () => {
+    installPort({ repositories: twoRepos, firstFrames: twoRepoFrames });
+    render(<ScmPanel projectId='p1' />);
+
+    await screen.findByText('a.ts');
+    expect(document.querySelector('[data-scm-section-divider]')).not.toBeNull();
+
+    fireEvent.click(document.querySelector('[data-scm-section-header="changes"]') as HTMLElement);
+    expect(document.querySelector('[data-scm-section-divider]')).toBeNull();
+  });
+});
+
+describe('ScmPanel view-as-tree / view-as-list toggle', () => {
+  const nested = [resource('src/app/main.ts'), resource('src/app/util.ts'), resource('readme.md')];
+
+  it('defaults to list view (flat rows, no directory nodes)', async () => {
+    installPort({ repositories: [repo()], firstFrames: { 'scm:pe1': status('scm:pe1', 1, nested) } });
+    render(<ScmPanel projectId='p1' />);
+
+    await screen.findByText('main.ts');
+    expect(document.querySelector('[data-scm-view-toggle="list"]')).not.toBeNull();
+    expect(document.querySelector('[data-scm-tree-dir]')).toBeNull();
+  });
+
+  it('switches to tree view, rendering directory nodes, and persists the preference', async () => {
+    installPort({ repositories: [repo()], firstFrames: { 'scm:pe1': status('scm:pe1', 1, nested) } });
+    render(<ScmPanel projectId='p1' />);
+
+    await screen.findByText('main.ts');
+    fireEvent.click(document.querySelector('[data-scm-view-toggle="list"]') as HTMLElement);
+
+    await waitFor(() => expect(document.querySelector('[data-scm-tree-dir]')).not.toBeNull());
+    // Files still present under their folders.
+    expect(screen.getByText('main.ts')).toBeInTheDocument();
+    expect(screen.getByText('util.ts')).toBeInTheDocument();
+    // Preference persisted for this project.
+    expect(localStorage.getItem('scm-ui:p1')).toContain('tree');
+  });
+
+  it('preserves click → openPreview diff in tree view', async () => {
+    installPort({ repositories: [repo()], firstFrames: { 'scm:pe1': status('scm:pe1', 1, nested) } });
+    render(<ScmPanel projectId='p1' />);
+
+    await screen.findByText('main.ts');
+    fireEvent.click(document.querySelector('[data-scm-view-toggle="list"]') as HTMLElement);
+    await waitFor(() => expect(document.querySelector('[data-scm-tree-dir]')).not.toBeNull());
+
+    openPreviewMock.mockClear();
+    fireEvent.click(screen.getByText('main.ts'));
+
+    await waitFor(() => expect(openPreviewMock).toHaveBeenCalled());
+    expect(diffCalls.length).toBeGreaterThan(0);
   });
 });

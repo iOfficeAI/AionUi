@@ -641,6 +641,12 @@
         "changes": "Изменения",
         "blocked": "Требует решения"
       },
+      "sections": {
+        "repositories": "Репозитории",
+        "changes": "Изменения"
+      },
+      "viewAsTree": "В виде дерева",
+      "viewAsList": "В виде списка",
       "state": {
         "created": "Добавлен",
         "modified": "Изменён",

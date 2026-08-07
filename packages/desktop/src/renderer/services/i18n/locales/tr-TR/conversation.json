@@ -643,6 +643,12 @@
         "changes": "Değişiklikler",
         "blocked": "Çözülmesi gerekiyor"
       },
+      "sections": {
+        "repositories": "Depolar",
+        "changes": "Değişiklikler"
+      },
+      "viewAsTree": "Ağaç olarak görüntüle",
+      "viewAsList": "Liste olarak görüntüle",
       "state": {
         "created": "Eklendi",
         "modified": "Değiştirildi",
