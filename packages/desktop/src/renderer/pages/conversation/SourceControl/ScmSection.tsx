@@ -65,8 +65,8 @@ export const ScmSection: React.FC<ScmSectionProps> = ({
         aria-expanded={!collapsed}
       >
         {collapsed ? <Right theme='outline' size='14' /> : <Down theme='outline' size='14' />}
-        <span className='text-11px font-600 uppercase tracking-wide text-t-secondary truncate'>{title}</span>
-        {badge != null && <span className='text-11px text-t-tertiary flex-shrink-0'>{badge}</span>}
+        <span className='text-13px font-600 uppercase tracking-wide text-t-secondary truncate'>{title}</span>
+        {badge != null && <span className='text-12px text-t-tertiary flex-shrink-0'>{badge}</span>}
         {actions != null && (
           <span className='ml-auto flex items-center gap-2px' onClick={(e) => e.stopPropagation()}>
             {actions}

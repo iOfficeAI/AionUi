@@ -51,6 +51,37 @@ const bulkAction = (groupId: ScmGroupId): ScmActionKind | null => {
   return null;
 };
 
+/**
+ * Whether a group's own gray title row is suppressed. The `unstaged` and staging-less
+ * `changes` groups both label to "变更", which merely repeats the black section header
+ * — VS Code shows no such duplicate. We hide those, hoisting their bulk stage-all into
+ * the section header (see `stageAllTargets`); `staged` and `blocked` carry distinct
+ * meaning and keep their labels.
+ */
+const isRedundantGroupTitle = (groupId: ScmGroupId): boolean => groupId === 'unstaged' || groupId === 'changes';
+
+/** The unstaged/changes groups of a status — the ones whose title we suppress and
+ *  whose bulk actions we hoist to the section header. */
+const unstagedGroups = (status: ScmStatus | undefined, staging: boolean) =>
+  status ? groupResources(status.resources, staging).filter((g) => g.id === 'unstaged' || g.id === 'changes') : [];
+
+/**
+ * The resources a header-level "stage all" acts on: every actionable row in the
+ * unstaged/changes groups of a status. Exposed so the Changes section header can
+ * offer one stage-all instead of a per-group button on the (now title-less) group.
+ */
+export const stageAllTargets = (status: ScmStatus | undefined, staging: boolean): ScmResource[] =>
+  unstagedGroups(status, staging).flatMap((g) => actionableResources(g.resources));
+
+/**
+ * The resources a header-level "discard all" acts on: every actionable row in the
+ * unstaged/changes groups. `scm/discard` only ever touches the unstaged side
+ * (protocol.md v11), so `staged` is intentionally excluded — the same gate the
+ * per-group discard used before its title row was removed.
+ */
+export const discardAllTargets = (status: ScmStatus | undefined, staging: boolean): ScmResource[] =>
+  unstagedGroups(status, staging).flatMap((g) => actionableResources(g.resources));
+
 type RowCallbacks = {
   selectedKey: string | null;
   staging: boolean;
@@ -222,45 +253,51 @@ export const ScmChangesView: React.FC<{
           busy,
           failed,
         };
+        // The unstaged/changes group's title merely repeats the section header, so we
+        // drop its gray row; its stage-all lives in the section header now. Its
+        // remaining bulk (discard-all) stays reachable via per-row hover actions.
+        const showTitle = !isRedundantGroupTitle(group.id);
         return (
           <div key={group.id} data-scm-group={group.id} className='group/scmgroup'>
-            <div className='flex items-center px-8px pt-6px pb-2px text-12px text-t-tertiary uppercase'>
-              <span className='flex-1 min-w-0'>{t(`conversation.explorer.scm.groups.${group.id}`)}</span>
-              {discardTargets.length > 0 && (
-                <Button
-                  type='text'
-                  size='mini'
-                  disabled={busy}
-                  data-scm-bulk-discard
-                  className='flex-shrink-0 opacity-0 group-hover/scmgroup:opacity-100 focus:opacity-100'
-                  icon={<Undo theme='outline' size='13' />}
-                  aria-label={t('conversation.explorer.scm.actions.discard')}
-                  title={t('conversation.explorer.scm.actions.discard')}
-                  onClick={() => onAction('discard', repo.repo_id, discardTargets)}
-                />
-              )}
-              {bulk && bulkTargets.length > 0 && (
-                <Button
-                  type='text'
-                  size='mini'
-                  disabled={busy}
-                  data-scm-bulk={bulk}
-                  className='flex-shrink-0 opacity-0 group-hover/scmgroup:opacity-100 focus:opacity-100'
-                  icon={bulk === 'stage' ? <Plus theme='outline' size='13' /> : <Minus theme='outline' size='13' />}
-                  aria-label={t(
-                    bulk === 'stage'
-                      ? 'conversation.explorer.scm.actions.stageAll'
-                      : 'conversation.explorer.scm.actions.unstageAll'
-                  )}
-                  title={t(
-                    bulk === 'stage'
-                      ? 'conversation.explorer.scm.actions.stageAll'
-                      : 'conversation.explorer.scm.actions.unstageAll'
-                  )}
-                  onClick={() => onAction(bulk, repo.repo_id, bulkTargets)}
-                />
-              )}
-            </div>
+            {showTitle && (
+              <div className='flex items-center px-8px pt-6px pb-2px text-12px text-t-tertiary uppercase'>
+                <span className='flex-1 min-w-0'>{t(`conversation.explorer.scm.groups.${group.id}`)}</span>
+                {discardTargets.length > 0 && (
+                  <Button
+                    type='text'
+                    size='mini'
+                    disabled={busy}
+                    data-scm-bulk-discard
+                    className='flex-shrink-0 opacity-0 group-hover/scmgroup:opacity-100 focus:opacity-100'
+                    icon={<Undo theme='outline' size='13' />}
+                    aria-label={t('conversation.explorer.scm.actions.discard')}
+                    title={t('conversation.explorer.scm.actions.discard')}
+                    onClick={() => onAction('discard', repo.repo_id, discardTargets)}
+                  />
+                )}
+                {bulk && bulkTargets.length > 0 && (
+                  <Button
+                    type='text'
+                    size='mini'
+                    disabled={busy}
+                    data-scm-bulk={bulk}
+                    className='flex-shrink-0 opacity-0 group-hover/scmgroup:opacity-100 focus:opacity-100'
+                    icon={bulk === 'stage' ? <Plus theme='outline' size='13' /> : <Minus theme='outline' size='13' />}
+                    aria-label={t(
+                      bulk === 'stage'
+                        ? 'conversation.explorer.scm.actions.stageAll'
+                        : 'conversation.explorer.scm.actions.unstageAll'
+                    )}
+                    title={t(
+                      bulk === 'stage'
+                        ? 'conversation.explorer.scm.actions.stageAll'
+                        : 'conversation.explorer.scm.actions.unstageAll'
+                    )}
+                    onClick={() => onAction(bulk, repo.repo_id, bulkTargets)}
+                  />
+                )}
+              </div>
+            )}
             {group.id === 'blocked' && (
               <div data-scm-blocked-hint className='px-8px pb-2px text-12px text-t-tertiary'>
                 {t('conversation.explorer.scm.actions.blockedHint')}

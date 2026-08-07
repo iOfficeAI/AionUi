@@ -792,3 +792,43 @@ describe('ScmPanel worktree aggregation in the Repositories section', () => {
     expect(document.querySelector('[data-scm-repo-item="scm:pe1/wt"]')?.style.paddingLeft).toBe('');
   });
 });
+
+describe('ScmPanel Changes section header consolidates actions (VS Code parity)', () => {
+  it('hosts refresh and stage-all on the Changes header, not a separate top toolbar', async () => {
+    installPort({ repositories: [repo()], firstFrames: { 'scm:pe1': status('scm:pe1', 1, [resource('a.ts')]) } });
+    render(<ScmPanel projectId='p1' />);
+
+    await screen.findByText('a.ts');
+    const header = document.querySelector('[data-scm-section-header="changes"]') as HTMLElement;
+    // Refresh, stage-all and discard-all all live inside the Changes header row.
+    expect(header.querySelector('[data-scm-header-refresh]')).not.toBeNull();
+    expect(header.querySelector('[data-scm-header-stage-all]')).not.toBeNull();
+    expect(header.querySelector('[data-scm-header-discard-all]')).not.toBeNull();
+    // The view-as toggle is on the same row.
+    expect(header.querySelector('[data-scm-view-toggle]')).not.toBeNull();
+  });
+
+  it('drops the duplicate gray "changes" group title row but keeps the rows', async () => {
+    installPort({ repositories: [repo()], firstFrames: { 'scm:pe1': status('scm:pe1', 1, [resource('a.ts')]) } });
+    render(<ScmPanel projectId='p1' />);
+
+    await screen.findByText('a.ts');
+    // The unstaged group still renders its rows (grouping intact)…
+    const group = document.querySelector('[data-scm-group="unstaged"]');
+    expect(group).not.toBeNull();
+    // …but no longer draws its own uppercase title row (it duplicated the section header).
+    expect(group?.querySelector('[data-scm-bulk]')).toBeNull();
+    expect(group?.querySelector('[data-scm-bulk-discard]')).toBeNull();
+  });
+
+  it('omits stage-all when there is nothing to stage', async () => {
+    installPort({ repositories: [repo()], firstFrames: { 'scm:pe1': status('scm:pe1', 1, []) } });
+    render(<ScmPanel projectId='p1' />);
+
+    await screen.findByText('conversation.explorer.scm.noChanges');
+    const header = document.querySelector('[data-scm-section-header="changes"]') as HTMLElement;
+    expect(header.querySelector('[data-scm-header-stage-all]')).toBeNull();
+    // Refresh is always available.
+    expect(header.querySelector('[data-scm-header-refresh]')).not.toBeNull();
+  });
+});

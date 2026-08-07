@@ -28,12 +28,12 @@
  */
 
 import { Button, Tooltip } from '@arco-design/web-react';
-import { Branch, Down, ListView, Refresh, Right, Tree, TreeList } from '@icon-park/react';
+import { Branch, Down, ListView, Plus, Refresh, Right, Tree, TreeList, Undo } from '@icon-park/react';
 import React, { useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { usePreviewContext } from '../Preview';
-import { ScmChangesView } from './ScmChangesView';
+import { discardAllTargets, ScmChangesView, stageAllTargets } from './ScmChangesView';
 import { ScmSection, ScmSectionDivider } from './ScmSection';
 import {
   diffAnchors,
@@ -134,29 +134,18 @@ export const ScmPanel: React.FC<ScmPanelProps> = ({ projectId }) => {
 
   return (
     <div data-scm-panel className='h-full flex flex-col min-h-0'>
-      {/* Header bar. The action summary and the refresh button share this one row
-          — the summary claims the left, the refresh stays pinned right — instead of
-          the summary opening a separate banner below a near-empty toolbar. The
-          report's secondary parts (a failed-file detail line, a retry button) are
-          rare and can be wide, so they drop to their own full-width row underneath
-          via `ActionReportExtras`; the common success case stays a single line. */}
-      <div className='flex-shrink-0 flex items-center gap-8px px-8px py-2px min-h-28px'>
-        {actions.report ? (
+      {/* Action-report banner. Refresh and the bulk/view controls now live on the
+          Changes section header (VS Code parity — actions sit on the section they
+          act on), so this row exists only to surface an action report and collapses
+          away entirely when there is none, leaving no empty toolbar strip on top.
+          The report's secondary parts (a failed-file detail line, a retry button)
+          are rare and wide, so they drop to their own full-width row underneath via
+          `ActionReportExtras`; the common success case stays a single line. */}
+      {actions.report && (
+        <div className='flex-shrink-0 flex items-center gap-8px px-8px py-2px min-h-28px'>
           <ActionReportSummary report={actions.report} onDismiss={actions.clearReport} />
-        ) : (
-          <div className='flex-1 min-w-0' />
-        )}
-        <Tooltip content={t('conversation.explorer.scm.refresh')} mini>
-          <Button
-            type='text'
-            size='mini'
-            className='flex-shrink-0'
-            icon={<Refresh theme='outline' size='14' />}
-            aria-label={t('conversation.explorer.scm.refresh')}
-            onClick={() => void refreshAllRepos()}
-          />
-        </Tooltip>
-      </div>
+        </div>
+      )}
       {actions.report && <ActionReportExtras report={actions.report} busy={actions.busy} onRetry={actions.retry} />}
       <ScmSectionStack
         view={view}
@@ -208,20 +197,42 @@ const ScmSectionStack: React.FC<{
   const { t } = useTranslation();
   const reposCollapsed = ui.collapsed[SECTION_REPOSITORIES] === true;
   const changesCollapsed = ui.collapsed[SECTION_CHANGES] === true;
-  // The repositories body height: the user's dragged value if any, else natural.
-  // When absent the body sizes to content (capped in CSS), so no blank space.
-  const repoHeight = ui.heights[SECTION_REPOSITORIES];
+  // The repositories body height the user dragged to, if any. It is always capped at
+  // the actual content height below so a tall drag never leaves blank space under the
+  // last repo row (the reported gap). Absent ⇒ the body just fits its content.
+  const draggedRepoHeight = ui.heights[SECTION_REPOSITORIES];
+
+  // Measure the repo list's real content height so we can clamp the dragged height to
+  // it. Worktree expand/collapse changes the row count, so we re-measure whenever the
+  // rendered list or the collapse state that affects it changes.
+  const repoContentRef = React.useRef<HTMLDivElement>(null);
+  const [repoContentPx, setRepoContentPx] = React.useState<number>(0);
+  React.useLayoutEffect(() => {
+    const el = repoContentRef.current;
+    if (el) setRepoContentPx(el.scrollHeight);
+  }, [view.repositories, ui.repoCollapsed, reposCollapsed]);
+
+  // Applied height = min(dragged, content); never below the drag minimum. When nothing
+  // has been dragged (or content isn't measured yet) the body fits content via maxHeight.
+  const cappedRepoHeight =
+    draggedRepoHeight !== undefined && repoContentPx > 0
+      ? Math.max(REPO_SECTION_MIN_PX, Math.min(draggedRepoHeight, repoContentPx))
+      : undefined;
 
   // Dragging the divider grows/shrinks the repositories section by the pixel delta.
   // The Changes section takes the remaining space, so it is never given an explicit
-  // height and can always show its header. Clamped to sane bounds.
+  // height and can always show its header. Clamped to sane bounds and to content.
   const onDividerDrag = (deltaY: number): void => {
-    const base = repoHeight ?? reposNaturalPx(view.repositories.length);
-    const next = Math.min(REPO_SECTION_MAX_PX, Math.max(REPO_SECTION_MIN_PX, base + deltaY));
+    const contentCap = repoContentPx > 0 ? Math.min(REPO_SECTION_MAX_PX, repoContentPx) : REPO_SECTION_MAX_PX;
+    const base = draggedRepoHeight ?? reposNaturalPx(view.repositories.length);
+    const next = Math.min(contentCap, Math.max(REPO_SECTION_MIN_PX, base + deltaY));
     setSectionHeight(SECTION_REPOSITORIES, next);
   };
 
   const viewMode: ScmViewMode = ui.viewMode;
+  const changesStatus = view.statuses[selectedRepo.repo_id];
+  const stageTargets = stageAllTargets(changesStatus, selectedRepo.capabilities.staging);
+  const discardTargets = discardAllTargets(changesStatus, selectedRepo.capabilities.staging);
 
   return (
     <div data-scm-section-stack className='flex-1 min-h-0 flex flex-col'>
@@ -235,17 +246,22 @@ const ScmSectionStack: React.FC<{
           >
             <div
               className='flex-shrink-0 overflow-auto'
-              // A dragged height fixes the body; otherwise it fits content up to a cap
-              // (never leaving blank space below the last repo row).
-              style={repoHeight ? { height: repoHeight } : { maxHeight: REPO_SECTION_MAX_PX }}
+              // A dragged height (already capped at content height) fixes the body;
+              // otherwise it fits content up to a cap, never leaving blank space below
+              // the last repo row.
+              style={cappedRepoHeight !== undefined ? { height: cappedRepoHeight } : { maxHeight: REPO_SECTION_MAX_PX }}
             >
-              <RepoList
-                repositories={view.repositories}
-                selectedRepoId={selectedRepo.repo_id}
-                onSelect={onRepoSelect}
-                collapsedParents={ui.repoCollapsed}
-                onToggleParent={setRepoWorktreesCollapsed}
-              />
+              {/* Inner wrapper measured for its natural content height (see the
+                  clamp above); the RepoList itself sets the scrollable padding. */}
+              <div ref={repoContentRef}>
+                <RepoList
+                  repositories={view.repositories}
+                  selectedRepoId={selectedRepo.repo_id}
+                  onSelect={onRepoSelect}
+                  collapsedParents={ui.repoCollapsed}
+                  onToggleParent={setRepoWorktreesCollapsed}
+                />
+              </div>
             </div>
           </ScmSection>
           {/* Divider only makes sense when both neighbors are open. */}
@@ -263,7 +279,17 @@ const ScmSectionStack: React.FC<{
         title={t('conversation.explorer.scm.sections.changes')}
         collapsed={changesCollapsed}
         onToggleCollapsed={() => setSectionCollapsed(SECTION_CHANGES, !changesCollapsed)}
-        actions={<ViewModeToggle mode={viewMode} onChange={setScmViewMode} />}
+        actions={
+          <ChangesHeaderActions
+            mode={viewMode}
+            onChangeMode={setScmViewMode}
+            stageTargets={stageTargets}
+            discardTargets={discardTargets}
+            busy={busy}
+            onStageAll={() => onAction('stage', selectedRepo.repo_id, stageTargets)}
+            onDiscardAll={() => onAction('discard', selectedRepo.repo_id, discardTargets)}
+          />
+        }
       >
         <div className='flex-1 min-h-0 overflow-auto pl-4px pr-4px pb-8px'>
           <ScmChangesView
@@ -286,6 +312,70 @@ const ScmSectionStack: React.FC<{
  *  drag baseline before any explicit height is stored. */
 const reposNaturalPx = (repoCount: number): number =>
   Math.min(REPO_SECTION_MAX_PX, Math.max(REPO_SECTION_MIN_PX, repoCount * 24 + 8));
+
+/**
+ * The Changes section header's action cluster (VS Code parity — the actions sit on
+ * the section they act on, not on a separate top toolbar): stage-all, refresh, and
+ * the view-as-tree/list toggle, in that right-to-left importance order. Stage-all
+ * only appears when there is something to stage; refresh acts on every repo.
+ * `stopPropagation` keeps a click on any action from also toggling the section's
+ * collapse (the header row owns that click otherwise).
+ */
+const ChangesHeaderActions: React.FC<{
+  mode: ScmViewMode;
+  onChangeMode: (mode: ScmViewMode) => void;
+  stageTargets: ScmResource[];
+  discardTargets: ScmResource[];
+  busy: boolean;
+  onStageAll: () => void;
+  onDiscardAll: () => void;
+}> = ({ mode, onChangeMode, stageTargets, discardTargets, busy, onStageAll, onDiscardAll }) => {
+  const { t } = useTranslation();
+  return (
+    <>
+      {discardTargets.length > 0 && (
+        <Tooltip content={t('conversation.explorer.scm.actions.discard')} mini>
+          <Button
+            type='text'
+            size='mini'
+            disabled={busy}
+            data-scm-header-discard-all
+            className='flex-shrink-0'
+            icon={<Undo theme='outline' size='14' />}
+            aria-label={t('conversation.explorer.scm.actions.discard')}
+            onClick={onDiscardAll}
+          />
+        </Tooltip>
+      )}
+      {stageTargets.length > 0 && (
+        <Tooltip content={t('conversation.explorer.scm.actions.stageAll')} mini>
+          <Button
+            type='text'
+            size='mini'
+            disabled={busy}
+            data-scm-header-stage-all
+            className='flex-shrink-0'
+            icon={<Plus theme='outline' size='14' />}
+            aria-label={t('conversation.explorer.scm.actions.stageAll')}
+            onClick={onStageAll}
+          />
+        </Tooltip>
+      )}
+      <Tooltip content={t('conversation.explorer.scm.refresh')} mini>
+        <Button
+          type='text'
+          size='mini'
+          data-scm-header-refresh
+          className='flex-shrink-0'
+          icon={<Refresh theme='outline' size='14' />}
+          aria-label={t('conversation.explorer.scm.refresh')}
+          onClick={() => void refreshAllRepos()}
+        />
+      </Tooltip>
+      <ViewModeToggle mode={mode} onChange={onChangeMode} />
+    </>
+  );
+};
 
 /**
  * The Changes section header's view-as-tree / view-as-list toggle (VS Code parity).
@@ -463,7 +553,10 @@ const RepoList: React.FC<{
   return (
     <div
       data-scm-repo-list
-      className='flex-shrink-0 flex flex-col gap-1px px-4px py-4px border-b border-[var(--bg-3)] max-h-[30vh] overflow-auto'
+      // No own scroll/max-height: the enclosing section body owns scrolling and the
+      // height cap, and measures this list's natural height. A second scroll box here
+      // would clip that measurement and reintroduce blank space.
+      className='flex flex-col gap-1px px-4px py-4px border-b border-[var(--bg-3)]'
     >
       {groups.map((group) => (
         <RepoGroupRows
