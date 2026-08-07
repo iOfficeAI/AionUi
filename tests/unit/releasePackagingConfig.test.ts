@@ -161,13 +161,27 @@ describe('release packaging configuration', () => {
     expect(nsisInclude).not.toMatch(/CRCCheck\s+off/i);
   });
 
-  it('installs and verifies the generated Windows uninstaller', () => {
+  it('bounds Windows installer smoke phases and preserves diagnostics', () => {
     const reusableWorkflow = readProjectFile('.github/workflows/_build-reusable.yml');
 
-    expect(reusableWorkflow).toContain('Verify installed Windows uninstaller metadata');
+    expect(reusableWorkflow).toContain('Verify Windows installation and registry-free migration');
     expect(reusableWorkflow).toContain("-Filter 'Uninstall*.exe'");
     expect(reusableWorkflow).toContain('Required installed VERSIONINFO is missing');
-    expect(reusableWorkflow).toContain("-ArgumentList '/S'");
+    expect(reusableWorkflow).toContain('$process.WaitForExit($TimeoutSeconds * 1000)');
+    expect(reusableWorkflow).toContain('& taskkill.exe /PID $process.Id /T /F');
+    expect(reusableWorkflow).toContain("-Phase 'fresh-install'");
+    expect(reusableWorkflow).toContain("-Phase 'fresh-uninstall'");
+    expect(reusableWorkflow).toContain("-Phase 'migrated-uninstall'");
+    expect(reusableWorkflow).toContain('Upload Windows installer smoke diagnostics');
+  });
+
+  it('uploads Windows builds before running installer smoke tests', () => {
+    const reusableWorkflow = readProjectFile('.github/workflows/_build-reusable.yml');
+    const uploadIndex = reusableWorkflow.indexOf('Upload Windows build artifacts before installer smoke tests');
+    const smokeIndex = reusableWorkflow.indexOf('Verify Windows installation and registry-free migration');
+
+    expect(uploadIndex).toBeGreaterThan(-1);
+    expect(smokeIndex).toBeGreaterThan(uploadIndex);
   });
 
   it('uses standard current-user registry entries and retains a one-time legacy migration reader', () => {
@@ -183,7 +197,11 @@ describe('release packaging configuration', () => {
     expect(installerMigration).toContain('StrCpy $CsbuWorkMateLegacyMigrationPending "1"');
     expect(reusableWorkflow).toContain('Standard Windows installation registration is missing');
     expect(reusableWorkflow).toContain('Legacy registry-free installer state remains after installation');
-    expect(reusableWorkflow).toContain('Registry-free in-place migration failed');
+    expect(reusableWorkflow).toContain("CSBU_WORKMATE_LEGACY_INSTALLER_TAG: 'v2.1.51'");
+    expect(reusableWorkflow).toContain('gh release download $env:CSBU_WORKMATE_LEGACY_INSTALLER_TAG');
+    expect(reusableWorkflow).toContain('Get-FileHash -LiteralPath $fixturePath -Algorithm SHA256');
+    expect(reusableWorkflow).toContain("-Phase 'registry-free-migration'");
+    expect(reusableWorkflow).not.toContain('-Action write');
   });
 
   it('configures GitHub Releases without requiring Windows Authenticode signing', () => {

@@ -34,6 +34,7 @@ on:
 env:
   BUN_INSTALL_REGISTRY: 'https://registry.npmjs.org/'
   CSBU_WORKMATE_HUB_TAG: 'dist-ebc6a2b'
+  CSBU_WORKMATE_LEGACY_INSTALLER_TAG: 'v2.1.51'
 
 jobs:
   code-quality:
@@ -533,7 +534,78 @@ jobs:
             Write-Host "Verified executable metadata: $($target.FullName)"
           }
 
-      - name: Verify installed Windows uninstaller metadata
+      - name: Clean up non-installer Windows artifacts
+        if: >-
+          startsWith(matrix.platform, 'windows') && inputs.upload_installers_only &&
+          steps.windows-build.outputs.result == 'success'
+        shell: bash
+        run: |
+          echo "Removing non-installer files from out/ ..."
+          rm -f out/*.blockmap out/*.zip out/*.yml out/builder-debug.yml 2>/dev/null || true
+          echo "Remaining artifacts:"
+          ls -lh out/ || true
+
+      # Preserve a successful Windows build before installer smoke tests. A smoke
+      # failure must not discard the installer and updater manifests needed for diagnosis.
+      - name: Upload Windows build artifacts before installer smoke tests
+        uses: actions/upload-artifact@v6
+        if: >-
+          startsWith(matrix.platform, 'windows') &&
+          steps.windows-build.outputs.result == 'success'
+        with:
+          name: ${{ inputs.append_commit_hash && format('{0}-{1}', matrix.artifact-name, steps.commit.outputs.short) || matrix.artifact-name }}
+          path: |
+            out/*.exe
+            out/*.msi
+            out/*.yml
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Download registry-free Windows migration fixture
+        if: >-
+          startsWith(matrix.platform, 'windows') &&
+          steps.windows-build.outputs.result == 'success'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $fixtureDirectory = Join-Path $env:RUNNER_TEMP 'csbu-workmate-legacy-installer'
+          New-Item -ItemType Directory -Path $fixtureDirectory -Force | Out-Null
+          $assetName = 'CSBU-WorkMate-2.1.51-win-${{ matrix.arch }}.exe'
+          Write-Host "Downloading $assetName from $env:CSBU_WORKMATE_LEGACY_INSTALLER_TAG"
+          $downloaded = $false
+          foreach ($attempt in 1..3) {
+            gh release download $env:CSBU_WORKMATE_LEGACY_INSTALLER_TAG `
+              --repo $env:GITHUB_REPOSITORY `
+              --pattern $assetName `
+              --dir $fixtureDirectory `
+              --clobber
+            if ($LASTEXITCODE -eq 0) {
+              $downloaded = $true
+              break
+            }
+            Write-Warning "Legacy fixture download attempt $attempt failed"
+            Start-Sleep -Seconds 10
+          }
+          if (-not $downloaded) {
+            throw "Failed to download legacy migration fixture: $assetName"
+          }
+          if (-not (Test-Path -LiteralPath (Join-Path $fixtureDirectory $assetName))) {
+            throw "Legacy migration fixture was not downloaded: $assetName"
+          }
+          $expectedSha256 = if ('${{ matrix.arch }}' -eq 'arm64') {
+            '293ad6adcbac19c4bff9623a5b036e7ce8eee76e67d1da73afe04507fb0f7d56'
+          } else {
+            'f94dc03c88e01aa5af8062532b2b789c1216a26e53a571a0e416f906e0eba476'
+          }
+          $fixturePath = Join-Path $fixtureDirectory $assetName
+          $actualSha256 = (Get-FileHash -LiteralPath $fixturePath -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($actualSha256 -ne $expectedSha256) {
+            throw "Legacy migration fixture checksum mismatch: $actualSha256"
+          }
+
+      - name: Verify Windows installation and registry-free migration
         if: >-
           startsWith(matrix.platform, 'windows') &&
           steps.windows-build.outputs.result == 'success'
@@ -547,27 +619,97 @@ jobs:
             throw 'NSIS installer executable was not found for installation smoke test'
           }
 
-          $installDirectory = Join-Path $env:RUNNER_TEMP "csbu-workmate-metadata-smoke-${{ matrix.arch }}"
+          $freshInstallDirectory = Join-Path $env:RUNNER_TEMP "csbu-workmate-fresh-smoke-${{ matrix.arch }}"
+          $installDirectory = Join-Path $env:RUNNER_TEMP "csbu-workmate-migration-smoke-${{ matrix.arch }}"
           $installStatePath = Join-Path $env:LOCALAPPDATA 'CSBU WorkMate\installer-state.ini'
           $installRegistryPath = 'HKCU:\Software\d1c5b48c-1cbe-5096-9ab3-71e40b612193'
           $uninstallRegistryPath = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\d1c5b48c-1cbe-5096-9ab3-71e40b612193'
-          if (Test-Path -LiteralPath $installDirectory) {
-            Remove-Item -LiteralPath $installDirectory -Recurse -Force
+          $diagnosticsDirectory = Join-Path $env:RUNNER_TEMP "csbu-workmate-installer-diagnostics-${{ matrix.arch }}"
+          $legacyInstaller = Join-Path $env:RUNNER_TEMP 'csbu-workmate-legacy-installer\CSBU-WorkMate-2.1.51-win-${{ matrix.arch }}.exe'
+          New-Item -ItemType Directory -Path $diagnosticsDirectory -Force | Out-Null
+
+          function Invoke-BoundedInstallerProcess {
+            param(
+              [Parameter(Mandatory)] [string] $Phase,
+              [Parameter(Mandatory)] [string] $FilePath,
+              [Parameter(Mandatory)] [string[]] $ArgumentList,
+              [int] $TimeoutSeconds = 600
+            )
+
+            Write-Host "::group::Installer smoke phase: $Phase"
+            Write-Host "Starting $FilePath with timeout ${TimeoutSeconds}s"
+            $startedAt = Get-Date
+            $process = Start-Process `
+              -FilePath $FilePath `
+              -ArgumentList $ArgumentList `
+              -PassThru `
+              -NoNewWindow
+            if (-not $process.WaitForExit($TimeoutSeconds * 1000)) {
+              Write-Host "Process $($process.Id) timed out during $Phase; terminating its process tree"
+              & taskkill.exe /PID $process.Id /T /F 2>&1 |
+                Out-File -LiteralPath (Join-Path $diagnosticsDirectory "$Phase-taskkill.txt")
+              Write-Host '::endgroup::'
+              throw "$Phase timed out after ${TimeoutSeconds}s"
+            }
+            $duration = [math]::Round(((Get-Date) - $startedAt).TotalSeconds, 1)
+            Write-Host "$Phase finished with exit code $($process.ExitCode) after ${duration}s"
+            Write-Host '::endgroup::'
+            if ($process.ExitCode -ne 0) {
+              throw "$Phase failed with exit code $($process.ExitCode)"
+            }
+          }
+          foreach ($directory in @($freshInstallDirectory, $installDirectory)) {
+            if (Test-Path -LiteralPath $directory) {
+              Remove-Item -LiteralPath $directory -Recurse -Force
+            }
           }
           if (Test-Path -LiteralPath $installStatePath) {
             Remove-Item -LiteralPath $installStatePath -Force
           }
+          foreach ($registryPath in @($installRegistryPath, $uninstallRegistryPath)) {
+            if (Test-Path -LiteralPath $registryPath) {
+              Remove-Item -LiteralPath $registryPath -Recurse -Force
+            }
+          }
 
           try {
-            $installProcess = Start-Process `
+            $freshLog = Join-Path $diagnosticsDirectory 'fresh-install.jsonl'
+            Invoke-BoundedInstallerProcess `
+              -Phase 'fresh-install' `
               -FilePath $installer.FullName `
-              -ArgumentList @('/S', "/D=$installDirectory") `
-              -Wait `
-              -PassThru `
-              -NoNewWindow
-            if ($installProcess.ExitCode -ne 0) {
-              throw "Silent installation failed with exit code $($installProcess.ExitCode)"
+              -ArgumentList @('/S', "--installer-log=$freshLog", "/D=$freshInstallDirectory")
+            $freshUninstaller = Get-ChildItem -LiteralPath $freshInstallDirectory -Recurse -File -Filter 'Uninstall*.exe' |
+              Select-Object -First 1
+            if (-not $freshUninstaller) {
+              throw "Fresh installation uninstaller was not found under $freshInstallDirectory"
             }
+            foreach ($registryPath in @($installRegistryPath, $uninstallRegistryPath)) {
+              if (-not (Test-Path -LiteralPath $registryPath)) {
+                throw "Fresh Windows installation registration is missing: $registryPath"
+              }
+            }
+            $freshInstallLocation = (Get-ItemProperty -LiteralPath $installRegistryPath).InstallLocation
+            if ([IO.Path]::GetFullPath($freshInstallLocation) -ne [IO.Path]::GetFullPath($freshInstallDirectory)) {
+              throw "Fresh installation directory registration mismatch: $freshInstallLocation"
+            }
+            Invoke-BoundedInstallerProcess `
+              -Phase 'fresh-uninstall' `
+              -FilePath $freshUninstaller.FullName `
+              -ArgumentList @('/S', "--installer-log=$freshLog")
+            if (Test-Path -LiteralPath $freshInstallDirectory) {
+              Remove-Item -LiteralPath $freshInstallDirectory -Recurse -Force -ErrorAction Continue
+            }
+            foreach ($registryPath in @($installRegistryPath, $uninstallRegistryPath)) {
+              if (Test-Path -LiteralPath $registryPath) {
+                throw "Fresh uninstall registration remains after uninstallation: $registryPath"
+              }
+            }
+
+            $legacyLog = Join-Path $diagnosticsDirectory 'legacy-install.jsonl'
+            Invoke-BoundedInstallerProcess `
+              -Phase 'legacy-install' `
+              -FilePath $legacyInstaller `
+              -ArgumentList @('/S', "--installer-log=$legacyLog", "/D=$installDirectory")
 
             $installedApplication = Join-Path $installDirectory 'CSBU WorkMate.exe'
             $uninstaller = Get-ChildItem -LiteralPath $installDirectory -Recurse -File -Filter 'Uninstall*.exe' |
@@ -579,36 +721,20 @@ jobs:
               throw "Installed uninstaller executable was not found under $installDirectory"
             }
 
-            # Recreate the previous registry-free state, remove standard registration,
-            # and verify that the next installer migrates in place without /D.
-            $stateHelper = Join-Path $env:GITHUB_WORKSPACE 'resources\windows\support\installer-state.ps1'
-            $packageVersion = (Get-Content -LiteralPath 'package.json' -Raw | ConvertFrom-Json).version
-            & powershell.exe `
-              -NoProfile `
-              -ExecutionPolicy Bypass `
-              -File $stateHelper `
-              -Action write `
-              -ExpectedArch '${{ matrix.arch }}' `
-              -InstallDir $installDirectory `
-              -Version $packageVersion `
-              -UninstallerPath $uninstaller.FullName
-            if ($LASTEXITCODE -ne 0) {
-              throw "Failed to prepare legacy installer state: $LASTEXITCODE"
+            if (-not (Test-Path -LiteralPath $installStatePath)) {
+              throw "Legacy registry-free installer did not create migration state: $installStatePath"
             }
             foreach ($registryPath in @($installRegistryPath, $uninstallRegistryPath)) {
               if (Test-Path -LiteralPath $registryPath) {
-                Remove-Item -LiteralPath $registryPath -Recurse -Force
+                throw "Legacy registry-free installer unexpectedly registered: $registryPath"
               }
             }
-            $migrationProcess = Start-Process `
+
+            $migrationLog = Join-Path $diagnosticsDirectory 'migration-install.jsonl'
+            Invoke-BoundedInstallerProcess `
+              -Phase 'registry-free-migration' `
               -FilePath $installer.FullName `
-              -ArgumentList '/S' `
-              -Wait `
-              -PassThru `
-              -NoNewWindow
-            if ($migrationProcess.ExitCode -ne 0) {
-              throw "Registry-free in-place migration failed with exit code $($migrationProcess.ExitCode)"
-            }
+              -ArgumentList @('/S', "--installer-log=$migrationLog")
 
             if (Test-Path -LiteralPath $installStatePath) {
               throw "Legacy registry-free installer state remains after installation: $installStatePath"
@@ -623,7 +749,10 @@ jobs:
               throw "Migration changed the install directory: $migratedInstallLocation"
             }
 
-            foreach ($target in @((Get-Item -LiteralPath $installedApplication), $uninstaller)) {
+            $installedApplication = Get-Item -LiteralPath (Join-Path $installDirectory 'CSBU WorkMate.exe')
+            $uninstaller = Get-ChildItem -LiteralPath $installDirectory -Recurse -File -Filter 'Uninstall*.exe' |
+              Select-Object -First 1
+            foreach ($target in @($installedApplication, $uninstaller)) {
               $info = $target.VersionInfo
               $requiredValues = @{
                 CompanyName = $info.CompanyName
@@ -653,15 +782,10 @@ jobs:
 
             }
 
-            $uninstallProcess = Start-Process `
+            Invoke-BoundedInstallerProcess `
+              -Phase 'migrated-uninstall' `
               -FilePath $uninstaller.FullName `
-              -ArgumentList '/S' `
-              -Wait `
-              -PassThru `
-              -NoNewWindow
-            if ($uninstallProcess.ExitCode -ne 0) {
-              throw "Silent uninstallation failed with exit code $($uninstallProcess.ExitCode)"
-            }
+              -ArgumentList @('/S', "--installer-log=$migrationLog")
             if (Test-Path -LiteralPath $installStatePath) {
               throw "Installer state remains after uninstallation: $installStatePath"
             }
@@ -671,10 +795,38 @@ jobs:
               }
             }
           } finally {
-            if (Test-Path -LiteralPath $installDirectory) {
-              Remove-Item -LiteralPath $installDirectory -Recurse -Force
+            Get-CimInstance Win32_Process |
+              Where-Object { $_.Name -match 'CSBU|Uninstall|nsis' } |
+              Select-Object ProcessId, ParentProcessId, Name, ExecutablePath, CommandLine |
+              ConvertTo-Json -Depth 4 |
+              Set-Content -LiteralPath (Join-Path $diagnosticsDirectory 'processes.json')
+            Get-ChildItem -LiteralPath $env:TEMP -File -Filter 'csbu-workmate-installer-*-log.jsonl' -ErrorAction SilentlyContinue |
+              Copy-Item -Destination $diagnosticsDirectory -Force -ErrorAction Continue
+            foreach ($directory in @($freshInstallDirectory, $installDirectory)) {
+              if (Test-Path -LiteralPath $directory) {
+                Remove-Item -LiteralPath $directory -Recurse -Force -ErrorAction Continue
+              }
+            }
+            if (Test-Path -LiteralPath $installStatePath) {
+              Remove-Item -LiteralPath $installStatePath -Force -ErrorAction Continue
+            }
+            foreach ($registryPath in @($installRegistryPath, $uninstallRegistryPath)) {
+              if (Test-Path -LiteralPath $registryPath) {
+                Remove-Item -LiteralPath $registryPath -Recurse -Force -ErrorAction Continue
+              }
             }
           }
+
+      - name: Upload Windows installer smoke diagnostics
+        uses: actions/upload-artifact@v6
+        if: >-
+          always() && startsWith(matrix.platform, 'windows') &&
+          steps.windows-build.outputs.result == 'success'
+        with:
+          name: windows-installer-diagnostics-${{ matrix.arch }}-${{ steps.commit.outputs.short }}
+          path: ${{ runner.temp }}/csbu-workmate-installer-diagnostics-${{ matrix.arch }}/
+          if-no-files-found: warn
+          retention-days: 7
 
       # Clean up any stale disk images before DMG creation (macOS only)
       # 清理可能残留的磁盘镜像，避免 hdiutil "Device not configured" 错误
@@ -877,8 +1029,7 @@ jobs:
       # - Windows: 仅当 windows-build 步骤成功
       - name: Clean up non-installer artifacts
         if: >-
-          inputs.upload_installers_only && success() &&
-          (!startsWith(matrix.platform, 'windows') || steps.windows-build.outputs.result == 'success')
+          !startsWith(matrix.platform, 'windows') && inputs.upload_installers_only && success()
         shell: bash
         run: |
           echo "Removing non-installer files from out/ ..."
@@ -889,8 +1040,7 @@ jobs:
       - name: Upload build artifacts
         uses: actions/upload-artifact@v6
         if: >-
-          success() &&
-          (!startsWith(matrix.platform, 'windows') || steps.windows-build.outputs.result == 'success')
+          !startsWith(matrix.platform, 'windows') && success()
         with:
           name: ${{ inputs.append_commit_hash && format('{0}-{1}', matrix.artifact-name, steps.commit.outputs.short) || matrix.artifact-name }}
           path: |
