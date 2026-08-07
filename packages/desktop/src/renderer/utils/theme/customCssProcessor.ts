@@ -9,25 +9,37 @@
  * 统一处理自定义 CSS 的 !important 添加和格式化
  */
 
+import { parse } from 'postcss';
+
 /**
- * 自动为所有 CSS 属性添加 !important
+ * 自动为所有 CSS 声明添加 !important
+ *
+ * 使用 PostCSS 进行真实的 CSS 解析（AST），只给声明（declaration）追加
+ * !important，绝不触碰选择器。这样可以正确处理伪类 / 伪元素选择器
+ * （如 `.btn:hover`、`::before`、`:not()`、`::-webkit-scrollbar-thumb:hover`），
+ * 也能覆盖块内最后一条没有结尾分号的声明。已带 !important 的声明保持不变。
+ *
  * @param css - 原始 CSS 字符串
- * @returns 处理后的 CSS 字符串（所有属性都带 !important）
+ * @returns 处理后的 CSS 字符串（所有声明都带 !important）
  */
 export const addImportantToAll = (css: string): string => {
   if (!css || !css.trim()) {
     return '';
   }
 
-  return css.replace(/([a-zA-Z-]+)\s*:\s*([^;!}]+);/g, (match, property, value) => {
-    const trimmedValue = value.trim();
-    // 如果已经包含 !important，不再添加
-    if (trimmedValue.endsWith('!important')) {
-      return match;
-    }
-    // 添加 !important
-    return `${property}: ${trimmedValue} !important;`;
-  });
+  try {
+    const root = parse(css);
+    root.walkDecls((decl) => {
+      if (!decl.important) {
+        decl.important = true;
+      }
+    });
+    return root.toString();
+  } catch {
+    // CSS 语法非法时（PostCSS 抛 CssSyntaxError），原样返回输入，
+    // 避免因解析失败而中断主题应用。
+    return css;
+  }
 };
 
 /**
