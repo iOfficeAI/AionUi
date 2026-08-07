@@ -610,7 +610,9 @@
     "removeFailed": "Couldn't remove the folder",
     "contextMenu": {
       "rename": "تغییر نام",
-      "addToChat": "افزودن به گفتگو"
+      "addToChat": "افزودن به گفتگو",
+      "copyRelativePath": "کپی کردن مسیر نسبی",
+      "copyAbsolutePath": "کپی کردن مسیر مطلق"
     },
     "namePlaceholder": "نام",
     "deleteConfirm": "«{{name}}» حذف شود؟ این عمل قابل بازگردانی نیست.",
@@ -704,7 +706,9 @@
         "outcomeUnknown": "پیش از رسیدن پاسخ، اتصال بازنشانی شد — این عمل ممکن است کامل شده باشد یا نه. پیش از تلاش دوباره، بازخوانی کنید و فهرست پرونده‌ها را بررسی کنید.",
         "allFailed": "هیچ‌یک از {{count}} پرونده پردازش نشد"
       }
-    }
+    },
+    "pathCopied": "مسیر کپی شد",
+    "copyFailed": "کپی مسیر ناموفق بود"
   },
   "terminal": {
     "running": "در حال اجرا",

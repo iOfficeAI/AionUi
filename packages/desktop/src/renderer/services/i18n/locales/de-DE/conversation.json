@@ -611,7 +611,9 @@
     "removeFailed": "Couldn't remove the folder",
     "contextMenu": {
       "rename": "Umbenennen",
-      "addToChat": "Zum Chat hinzufügen"
+      "addToChat": "Zum Chat hinzufügen",
+      "copyRelativePath": "Relativen Pfad kopieren",
+      "copyAbsolutePath": "Absoluten Pfad kopieren"
     },
     "namePlaceholder": "Name",
     "deleteConfirm": "„{{name}}“ löschen? Dies kann nicht rückgängig gemacht werden.",
@@ -705,7 +707,9 @@
         "outcomeUnknown": "Die Verbindung wurde vor einer Antwort zurückgesetzt — diese Aktion kann abgeschlossen sein oder auch nicht. Aktualisieren und die Dateiliste prüfen, bevor Sie es erneut versuchen.",
         "allFailed": "Keine der {{count}} Datei(en) konnte verarbeitet werden"
       }
-    }
+    },
+    "pathCopied": "Pfad kopiert",
+    "copyFailed": "Pfad konnte nicht kopiert werden"
   },
   "terminal": {
     "running": "Läuft",

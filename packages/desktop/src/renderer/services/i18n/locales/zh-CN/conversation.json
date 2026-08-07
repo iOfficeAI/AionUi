@@ -611,7 +611,9 @@
     "removeFailed": "移除文件夹失败",
     "contextMenu": {
       "rename": "重命名",
-      "addToChat": "添加到聊天"
+      "addToChat": "添加到聊天",
+      "copyRelativePath": "复制相对路径",
+      "copyAbsolutePath": "复制绝对路径"
     },
     "namePlaceholder": "名称",
     "deleteConfirm": "删除“{{name}}”？此操作无法撤销。",
@@ -705,7 +707,9 @@
         "outcomeUnknown": "连接在收到答复前已重置——此操作可能已完成，也可能未完成。请刷新并核对文件列表，确认后再决定是否重试。",
         "allFailed": "{{count}} 个文件都未能处理"
       }
-    }
+    },
+    "pathCopied": "已复制路径",
+    "copyFailed": "复制路径失败"
   },
   "terminal": {
     "running": "运行中",

@@ -609,7 +609,9 @@
     "removeFailed": "Couldn't remove the folder",
     "contextMenu": {
       "rename": "Renommer",
-      "addToChat": "Ajouter au chat"
+      "addToChat": "Ajouter au chat",
+      "copyRelativePath": "Copier le chemin relatif",
+      "copyAbsolutePath": "Copier le chemin absolu"
     },
     "namePlaceholder": "Nom",
     "deleteConfirm": "Supprimer « {{name}} » ? Cette action est irréversible.",
@@ -703,7 +705,9 @@
         "outcomeUnknown": "La connexion a été réinitialisée avant la réponse — cette action a peut-être abouti, ou non. Actualisez et vérifiez la liste des fichiers avant de réessayer.",
         "allFailed": "Aucun des {{count}} fichier(s) n'a pu être traité"
       }
-    }
+    },
+    "pathCopied": "Chemin copié",
+    "copyFailed": "Échec de la copie du chemin"
   },
   "terminal": {
     "running": "En cours",

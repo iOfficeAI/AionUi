@@ -719,6 +719,12 @@ export const fs = {
   // calls shell.showItemInFolder — the front end never builds the absolute path
   // (avoids the Windows verbatim `\\?\` pitfall). Electron-only at the call site.
   reveal: httpPost<void, { pe_id: string; relative_path: string }>('/api/fs/reveal'),
+  // Copy a project-scoped entry's absolute device path to the OS clipboard, for
+  // the Explorer "copy absolute path" action. Mirrors reveal: the backend resolves
+  // the path AND writes the clipboard itself, returning void — the front end never
+  // receives the absolute path. Electron desktop-only (a remote WebUI must not use
+  // it). Errors come back as codes only, never a message containing a path.
+  copyAbsolutePath: httpPost<void, { pe_id: string; relative_path: string }>('/api/fs/copy-absolute-path'),
   // Open a file in the OS default application, addressed by ChatFileRef so it
   // works for all three ref kinds (project / local / upload). The backend
   // resolves the ref and shells out; the front end never receives an absolute

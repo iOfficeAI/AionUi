@@ -616,7 +616,9 @@
     "removeFailed": "Couldn't remove the folder",
     "contextMenu": {
       "rename": "Renomear",
-      "addToChat": "Adicionar ao chat"
+      "addToChat": "Adicionar ao chat",
+      "copyRelativePath": "Copiar caminho relativo",
+      "copyAbsolutePath": "Copiar caminho absoluto"
     },
     "namePlaceholder": "Nome",
     "deleteConfirm": "Excluir “{{name}}”? Isso não pode ser desfeito.",
@@ -710,7 +712,9 @@
         "outcomeUnknown": "A conexão foi reiniciada antes da resposta — esta ação pode ou não ter sido concluída. Atualize e confira a lista de arquivos antes de tentar de novo.",
         "allFailed": "Nenhum dos {{count}} arquivo(s) pôde ser processado"
       }
-    }
+    },
+    "pathCopied": "Caminho copiado",
+    "copyFailed": "Falha ao copiar o caminho"
   },
   "terminal": {
     "running": "Executando",

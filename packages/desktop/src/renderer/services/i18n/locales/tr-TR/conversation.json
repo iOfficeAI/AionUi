@@ -612,7 +612,9 @@
     "removeFailed": "Couldn't remove the folder",
     "contextMenu": {
       "rename": "Yeniden adlandır",
-      "addToChat": "Sohbete ekle"
+      "addToChat": "Sohbete ekle",
+      "copyRelativePath": "Göreli yolu kopyala",
+      "copyAbsolutePath": "Mutlak yolu kopyala"
     },
     "namePlaceholder": "Ad",
     "deleteConfirm": "“{{name}}” silinsin mi? Bu geri alınamaz.",
@@ -706,7 +708,9 @@
         "outcomeUnknown": "Yanıt gelmeden bağlantı sıfırlandı — bu işlem tamamlanmış da olabilir, olmamış da. Yeniden denemeden önce yenileyip dosya listesini kontrol edin.",
         "allFailed": "{{count}} dosyanın hiçbiri işlenemedi"
       }
-    }
+    },
+    "pathCopied": "Yol kopyalandı",
+    "copyFailed": "Yol kopyalanamadı"
   },
   "terminal": {
     "running": "Çalışıyor",
