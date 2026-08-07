@@ -62,9 +62,14 @@ import { type ScmActionReport, useScmActions } from './useScmActions';
 const SECTION_REPOSITORIES = 'repositories';
 const SECTION_CHANGES = 'changes';
 
-/** Bounds for the repositories section drag height, in px. */
-const REPO_SECTION_MIN_PX = 44;
-const REPO_SECTION_MAX_PX = 400;
+/** Height of a section header row, in px (mirror of ScmSection's `h-24px`). Used to
+ *  bound section body heights so at least one header row always stays on screen. */
+const SECTION_HEADER_PX = 24;
+/** Minimum body height a sized (bottom-anchored) section keeps when dragged small. */
+const SECTION_MIN_BODY_PX = 40;
+/** Default body height for a sized section when nothing is stored: a fraction of the
+ *  panel height (the Changes section should open roomy, ~60%). */
+const SECTION_DEFAULT_FRACTION = 0.6;
 
 export type ScmPanelProps = {
   /** Owning project id — scopes the store's repositories + statuses. */
@@ -197,36 +202,51 @@ const ScmSectionStack: React.FC<{
   const { t } = useTranslation();
   const reposCollapsed = ui.collapsed[SECTION_REPOSITORIES] === true;
   const changesCollapsed = ui.collapsed[SECTION_CHANGES] === true;
-  // The repositories body height the user dragged to, if any. It is always capped at
-  // the actual content height below so a tall drag never leaves blank space under the
-  // last repo row (the reported gap). Absent ⇒ the body just fits its content.
-  const draggedRepoHeight = ui.heights[SECTION_REPOSITORIES];
 
-  // Measure the repo list's real content height so we can clamp the dragged height to
-  // it. Worktree expand/collapse changes the row count, so we re-measure whenever the
-  // rendered list or the collapse state that affects it changes.
-  const repoContentRef = React.useRef<HTMLDivElement>(null);
-  const [repoContentPx, setRepoContentPx] = React.useState<number>(0);
+  // Measure the stack's own pixel height so a sized section can default to a fraction
+  // of it and so drags can be clamped to "leave at least the other headers on screen".
+  const stackRef = React.useRef<HTMLDivElement>(null);
+  const [stackPx, setStackPx] = React.useState<number>(0);
   React.useLayoutEffect(() => {
-    const el = repoContentRef.current;
-    if (el) setRepoContentPx(el.scrollHeight);
-  }, [view.repositories, ui.repoCollapsed, reposCollapsed]);
+    const el = stackRef.current;
+    if (!el) return;
+    setStackPx(el.clientHeight);
+    const ro = new ResizeObserver((entries) => {
+      for (const entry of entries) setStackPx(entry.contentRect.height);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
-  // Applied height = min(dragged, content); never below the drag minimum. When nothing
-  // has been dragged (or content isn't measured yet) the body fits content via maxHeight.
-  const cappedRepoHeight =
-    draggedRepoHeight !== undefined && repoContentPx > 0
-      ? Math.max(REPO_SECTION_MIN_PX, Math.min(draggedRepoHeight, repoContentPx))
-      : undefined;
+  // Bottom-anchored stack model. Screen order is fixed (repositories on top, changes
+  // below, a future graph further below). The FIRST open section is the "filler": it
+  // flexes to take whatever space the sized sections below leave. Every other open
+  // section keeps its own persisted body height and anchors from the bottom up. This
+  // is what lets the Changes header be dragged all the way to full height (repositories
+  // shrinks to just its header) or down to just its own header (repositories fills).
+  const repoOpen = multiRepo && !reposCollapsed;
+  // With only two sections today, the filler is repositories when it is open, else the
+  // changes section fills. Generalizes to "first open section fills" when graph lands.
+  const changesIsFiller = !repoOpen;
 
-  // Dragging the divider grows/shrinks the repositories section by the pixel delta.
-  // The Changes section takes the remaining space, so it is never given an explicit
-  // height and can always show its header. Clamped to sane bounds and to content.
-  const onDividerDrag = (deltaY: number): void => {
-    const contentCap = repoContentPx > 0 ? Math.min(REPO_SECTION_MAX_PX, repoContentPx) : REPO_SECTION_MAX_PX;
-    const base = draggedRepoHeight ?? reposNaturalPx(view.repositories.length);
-    const next = Math.min(contentCap, Math.max(REPO_SECTION_MIN_PX, base + deltaY));
-    setSectionHeight(SECTION_REPOSITORIES, next);
+  // Body height a bottom-anchored (non-filler) section uses. Absent stored value ⇒ a
+  // fraction of the panel. Always clamped so the filler above keeps at least its header
+  // visible (min body) and so the sized body itself never collapses below a usable min.
+  const sizedBodyHeight = (id: string): number => {
+    const stored = ui.heights[id];
+    const fallback = stackPx > 0 ? Math.round(stackPx * SECTION_DEFAULT_FRACTION) : 240;
+    const desired = stored ?? fallback;
+    // Reserve room above for the filler's header (and its own header is outside the body).
+    const upperReserve = SECTION_HEADER_PX + SECTION_MIN_BODY_PX;
+    const maxBody = stackPx > 0 ? Math.max(SECTION_MIN_BODY_PX, stackPx - upperReserve) : desired;
+    return Math.max(SECTION_MIN_BODY_PX, Math.min(desired, maxBody));
+  };
+
+  // Dragging the divider above the Changes section: up (negative delta) grows the
+  // Changes body, down shrinks it. The filler (repositories) absorbs the inverse.
+  const onChangesDividerDrag = (deltaY: number): void => {
+    const current = ui.heights[SECTION_CHANGES] ?? sizedBodyHeight(SECTION_CHANGES);
+    setSectionHeight(SECTION_CHANGES, current - deltaY);
   };
 
   const viewMode: ScmViewMode = ui.viewMode;
@@ -234,84 +254,93 @@ const ScmSectionStack: React.FC<{
   const stageTargets = stageAllTargets(changesStatus, selectedRepo.capabilities.staging);
   const discardTargets = discardAllTargets(changesStatus, selectedRepo.capabilities.staging);
 
+  const changesActions = (
+    <ChangesHeaderActions
+      mode={viewMode}
+      onChangeMode={setScmViewMode}
+      stageTargets={stageTargets}
+      discardTargets={discardTargets}
+      busy={busy}
+      onStageAll={() => onAction('stage', selectedRepo.repo_id, stageTargets)}
+      onDiscardAll={() => onAction('discard', selectedRepo.repo_id, discardTargets)}
+    />
+  );
+
+  const changesBody = (
+    <div className='flex-1 min-h-0 overflow-auto pl-4px pr-4px pb-8px'>
+      <ScmChangesView
+        repo={selectedRepo}
+        status={view.statuses[selectedRepo.repo_id]}
+        selectedKey={view.selectedResource}
+        onAction={onAction}
+        busy={busy}
+        failedRowKeys={failedRowKeys}
+        viewMode={viewMode}
+        treeExpanded={ui.treeExpanded}
+      />
+    </div>
+  );
+
   return (
-    <div data-scm-section-stack className='flex-1 min-h-0 flex flex-col'>
+    <div data-scm-section-stack ref={stackRef} className='flex-1 min-h-0 flex flex-col'>
       {multiRepo && (
-        <>
+        <div
+          data-scm-section-slot={SECTION_REPOSITORIES}
+          // Repositories is the filler when open (flex-1); when collapsed it is just
+          // its header (flex-shrink-0). It never carries a stored height — it always
+          // takes the space the sized sections below leave.
+          className={repoOpen ? 'flex-1 min-h-0 flex flex-col' : 'flex-shrink-0 flex flex-col'}
+        >
           <ScmSection
             id={SECTION_REPOSITORIES}
             title={t('conversation.explorer.scm.sections.repositories')}
             collapsed={reposCollapsed}
             onToggleCollapsed={() => setSectionCollapsed(SECTION_REPOSITORIES, !reposCollapsed)}
           >
-            <div
-              className='flex-shrink-0 overflow-auto'
-              // A dragged height (already capped at content height) fixes the body;
-              // otherwise it fits content up to a cap, never leaving blank space below
-              // the last repo row.
-              style={cappedRepoHeight !== undefined ? { height: cappedRepoHeight } : { maxHeight: REPO_SECTION_MAX_PX }}
-            >
-              {/* Inner wrapper measured for its natural content height (see the
-                  clamp above); the RepoList itself sets the scrollable padding. */}
-              <div ref={repoContentRef}>
-                <RepoList
-                  repositories={view.repositories}
-                  selectedRepoId={selectedRepo.repo_id}
-                  onSelect={onRepoSelect}
-                  collapsedParents={ui.repoCollapsed}
-                  onToggleParent={setRepoWorktreesCollapsed}
-                />
-              </div>
+            <div className='flex-1 min-h-0 overflow-auto'>
+              <RepoList
+                repositories={view.repositories}
+                selectedRepoId={selectedRepo.repo_id}
+                onSelect={onRepoSelect}
+                collapsedParents={ui.repoCollapsed}
+                onToggleParent={setRepoWorktreesCollapsed}
+              />
             </div>
           </ScmSection>
-          {/* Divider only makes sense when both neighbors are open. */}
-          {!reposCollapsed && !changesCollapsed && (
-            <ScmSectionDivider
-              onDrag={onDividerDrag}
-              onDragEnd={undefined}
-              onDoubleReset={() => clearSectionHeight(SECTION_REPOSITORIES)}
-            />
-          )}
-        </>
+        </div>
       )}
-      <ScmSection
-        id={SECTION_CHANGES}
-        title={t('conversation.explorer.scm.sections.changes')}
-        collapsed={changesCollapsed}
-        onToggleCollapsed={() => setSectionCollapsed(SECTION_CHANGES, !changesCollapsed)}
-        actions={
-          <ChangesHeaderActions
-            mode={viewMode}
-            onChangeMode={setScmViewMode}
-            stageTargets={stageTargets}
-            discardTargets={discardTargets}
-            busy={busy}
-            onStageAll={() => onAction('stage', selectedRepo.repo_id, stageTargets)}
-            onDiscardAll={() => onAction('discard', selectedRepo.repo_id, discardTargets)}
-          />
+      {/* Divider above Changes: only meaningful when the section above it (repositories)
+          is open and Changes is sized (not itself the filler / not collapsed). */}
+      {repoOpen && !changesCollapsed && (
+        <ScmSectionDivider onDrag={onChangesDividerDrag} onDoubleReset={() => clearSectionHeight(SECTION_CHANGES)} />
+      )}
+      <div
+        data-scm-section-slot={SECTION_CHANGES}
+        // Changes fills only when it is the first open section (repositories collapsed
+        // or single-repo); otherwise it is bottom-anchored at its stored/derived height.
+        // Collapsed ⇒ just its header.
+        className={
+          changesIsFiller && !changesCollapsed ? 'flex-1 min-h-0 flex flex-col' : 'flex-shrink-0 flex flex-col'
+        }
+        style={
+          changesIsFiller || changesCollapsed
+            ? undefined
+            : { height: SECTION_HEADER_PX + sizedBodyHeight(SECTION_CHANGES) }
         }
       >
-        <div className='flex-1 min-h-0 overflow-auto pl-4px pr-4px pb-8px'>
-          <ScmChangesView
-            repo={selectedRepo}
-            status={view.statuses[selectedRepo.repo_id]}
-            selectedKey={view.selectedResource}
-            onAction={onAction}
-            busy={busy}
-            failedRowKeys={failedRowKeys}
-            viewMode={viewMode}
-            treeExpanded={ui.treeExpanded}
-          />
-        </div>
-      </ScmSection>
+        <ScmSection
+          id={SECTION_CHANGES}
+          title={t('conversation.explorer.scm.sections.changes')}
+          collapsed={changesCollapsed}
+          onToggleCollapsed={() => setSectionCollapsed(SECTION_CHANGES, !changesCollapsed)}
+          actions={changesActions}
+        >
+          {changesBody}
+        </ScmSection>
+      </div>
     </div>
   );
 };
-
-/** Natural height estimate for the repo list (row ≈ 24px + padding), used as the
- *  drag baseline before any explicit height is stored. */
-const reposNaturalPx = (repoCount: number): number =>
-  Math.min(REPO_SECTION_MAX_PX, Math.max(REPO_SECTION_MIN_PX, repoCount * 24 + 8));
 
 /**
  * The Changes section header's action cluster (VS Code parity — the actions sit on

@@ -5,7 +5,7 @@
  */
 
 import React from 'react';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { ScmRepository, ScmResource, ScmStatus } from '@/renderer/pages/conversation/SourceControl/scmModel';
@@ -38,7 +38,11 @@ import {
   getScmInternalsForTest,
   resetScmStoreForTest,
 } from '@/renderer/pages/conversation/SourceControl/scmStore';
-import { resetScmUiStoreForTest } from '@/renderer/pages/conversation/SourceControl/scmUiStore';
+import {
+  resetScmUiStoreForTest,
+  setSectionCollapsed,
+  setSectionHeight,
+} from '@/renderer/pages/conversation/SourceControl/scmUiStore';
 
 const repo = (over: Partial<ScmRepository> = {}): ScmRepository => ({
   repo_id: 'scm:pe1',
@@ -830,5 +834,81 @@ describe('ScmPanel Changes section header consolidates actions (VS Code parity)'
     expect(header.querySelector('[data-scm-header-stage-all]')).toBeNull();
     // Refresh is always available.
     expect(header.querySelector('[data-scm-header-refresh]')).not.toBeNull();
+  });
+});
+
+describe('ScmPanel bottom-anchored section stack', () => {
+  const twoRepos: ScmRepository[] = [
+    repo(),
+    repo({ repo_id: 'scm:pe2', root: { pe_id: 'pe2', relative_path: '' }, label: 'other' }),
+  ];
+  const twoRepoFrames: Record<string, ScmStatus> = {
+    'scm:pe1': status('scm:pe1', 1, [resource('a.ts')]),
+    'scm:pe2': status('scm:pe2', 1, []),
+  };
+  const changesSlot = () => document.querySelector('[data-scm-section-slot="changes"]') as HTMLElement;
+  const repoSlot = () => document.querySelector('[data-scm-section-slot="repositories"]') as HTMLElement;
+
+  it('bottom-anchors Changes with an explicit height while Repositories fills', async () => {
+    installPort({ repositories: twoRepos, firstFrames: twoRepoFrames });
+    render(<ScmPanel projectId='p1' />);
+
+    await screen.findByText('a.ts');
+    // Repositories is the filler (flex-1, no fixed height); Changes carries a height.
+    expect(repoSlot().className).toContain('flex-1');
+    expect(changesSlot().style.height).not.toBe('');
+    expect(changesSlot().className).not.toContain('flex-1');
+  });
+
+  it('honours a persisted Changes height', async () => {
+    installPort({ repositories: twoRepos, firstFrames: twoRepoFrames });
+    render(<ScmPanel projectId='p1' />);
+    await screen.findByText('a.ts');
+
+    act(() => setSectionHeight('changes', 150));
+    // Header (24) + stored body (150) = 174px, clamped only by the (unmeasured) panel.
+    await waitFor(() => expect(changesSlot().style.height).toBe('174px'));
+  });
+
+  it('makes Changes the filler when Repositories is collapsed (ignores its stored height)', async () => {
+    installPort({ repositories: twoRepos, firstFrames: twoRepoFrames });
+    render(<ScmPanel projectId='p1' />);
+    await screen.findByText('a.ts');
+
+    act(() => setSectionHeight('changes', 150));
+    act(() => setSectionCollapsed('repositories', true));
+
+    // Repositories collapsed to its header; Changes now flexes to fill and drops its height.
+    await waitFor(() => expect(repoSlot().className).toContain('flex-shrink-0'));
+    expect(changesSlot().className).toContain('flex-1');
+    expect(changesSlot().style.height).toBe('');
+    // No divider once the section above is collapsed.
+    expect(document.querySelector('[data-scm-section-divider]')).toBeNull();
+  });
+
+  it('single-repo project: Changes fills (no repositories section to anchor against)', async () => {
+    installPort({ repositories: [repo()], firstFrames: { 'scm:pe1': status('scm:pe1', 1, [resource('a.ts')]) } });
+    render(<ScmPanel projectId='p1' />);
+
+    await screen.findByText('a.ts');
+    expect(repoSlot()).toBeNull();
+    expect(changesSlot().className).toContain('flex-1');
+    expect(changesSlot().style.height).toBe('');
+  });
+
+  it('double-clicking the divider clears the stored Changes height (reset to default)', async () => {
+    installPort({ repositories: twoRepos, firstFrames: twoRepoFrames });
+    render(<ScmPanel projectId='p1' />);
+    await screen.findByText('a.ts');
+
+    act(() => setSectionHeight('changes', 150));
+    await waitFor(() => expect(changesSlot().style.height).toBe('174px'));
+
+    fireEvent.doubleClick(document.querySelector('[data-scm-section-divider]') as HTMLElement);
+
+    // Stored override gone; height falls back to the panel-fraction default (240 fallback
+    // when the panel is unmeasured in jsdom) → 24 + 240 = 264px.
+    await waitFor(() => expect(changesSlot().style.height).toBe('264px'));
+    expect(localStorage.getItem('scm-ui:p1') ?? '').not.toContain('"changes":150');
   });
 });
