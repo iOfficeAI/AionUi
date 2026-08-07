@@ -248,7 +248,9 @@ export const ExplorerPanel: React.FC<ExplorerPanelProps> = ({
       };
 
       const renderMenu = () => (
-        <Menu onClickMenuItem={onClickMenuItem}>
+        // `explorer-context-menu` opts this menu out of Arco's 200px dropdown
+        // height cap (arco-override.css) so all items show without a scrollbar.
+        <Menu className='explorer-context-menu' onClickMenuItem={onClickMenuItem}>
           {onAddToChat && <Menu.Item key='addToChat'>{t('conversation.explorer.contextMenu.addToChat')}</Menu.Item>}
           {canReveal && (
             <Menu.Item key='revealInFolder'>{t('conversation.workspace.contextMenu.openLocation')}</Menu.Item>
