@@ -571,6 +571,13 @@
     "hint": "Komutlar için /, dosya için @ yazın, ↑/↓ ile mesaj geçmişi",
     "mediaPathFallback": "Bu ajan bu dosya türünü yerel olarak desteklemiyor; dosya yolu olarak gönderilecek."
   },
+  "resources": {
+    "tooltip": "Kaynaklar ve çıktılar",
+    "outputs": "Çıktılar",
+    "sources": "Kaynaklar",
+    "emptyOutputs": "Henüz çıktı yok",
+    "emptySources": "Henüz kaynak yok"
+  },
   "agentTip": {
     "codes": {
       "ACP_EMPTY_TURN": {

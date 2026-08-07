@@ -569,6 +569,13 @@
     "hint": "/ でコマンド、@ でファイルを参照、↑/↓ でメッセージ履歴",
     "mediaPathFallback": "このエージェントはこのファイル形式をネイティブに扱えないため、ファイルパスとして送信されます。"
   },
+  "resources": {
+    "tooltip": "情報源と成果物",
+    "outputs": "成果物",
+    "sources": "情報源",
+    "emptyOutputs": "成果物はまだありません",
+    "emptySources": "情報源はまだありません"
+  },
   "agentTip": {
     "codes": {
       "ACP_EMPTY_TURN": {

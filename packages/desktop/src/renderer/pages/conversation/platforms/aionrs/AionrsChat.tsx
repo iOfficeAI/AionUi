@@ -25,6 +25,7 @@ import LocalImageView from '@renderer/components/media/LocalImageView';
 import type { TeamSendBoxRuntime } from '@/renderer/pages/team/components/teamSendRuntime';
 import AionrsSendBox from './AionrsSendBox';
 import type { AionrsModelSelection } from './useAionrsModelSelection';
+import ConversationResourcesPortal from '../../components/ConversationResources';
 
 const AionrsChat: React.FC<{
   conversation_id: string;
@@ -77,6 +78,7 @@ const AionrsChat: React.FC<{
   return (
     <ConversationProvider value={conversationValue}>
       <ConversationArtifactProvider conversation_id={conversation_id}>
+        <ConversationResourcesPortal conversationId={conversation_id} workspace={workspace} />
         <div className={`${CHAT_SURFACE_CONTAINER_CLASS} flex-1 flex flex-col px-20px min-h-0`}>
           <FlexFullContainer>
             <MessageList className='flex-1' emptySlot={emptySlot} />

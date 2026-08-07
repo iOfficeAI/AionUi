@@ -5,7 +5,6 @@
  */
 
 import type { IMessageText } from '@/common/chat/chatLib';
-import { AIONUI_FILES_MARKER } from '@/common/config/constants';
 import { useConversationContextSafe } from '@/renderer/hooks/context/ConversationContext';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { useLocalFilePreview } from '@/renderer/pages/conversation/Preview/hooks/useLocalFilePreview';
@@ -25,6 +24,10 @@ import { stripSkillSuggest, hasSkillSuggest } from '@renderer/utils/chat/skillSu
 import { isForkEnabled } from '@/common/chat/forkConversation';
 import { useForkConversation } from '@/renderer/hooks/chat/useForkConversation';
 import ForkBranchIcon from '@renderer/components/base/ForkBranchIcon';
+import {
+  parseMessageFileMarker,
+  resolveConversationResourcePath,
+} from '@/renderer/pages/conversation/components/ConversationResources/model';
 
 /**
  * Format a timestamp for message display.
@@ -55,82 +58,7 @@ import { useTeammateColor } from '@/renderer/pages/team/identity/TeamIdentityCon
 
 const CODE_STYLE = { marginTop: 4, marginBlock: 4 };
 
-type ParsedFileMarker = {
-  text: string;
-  files: string[];
-};
-
-const URL_SCHEME_PATTERN = /^[a-z][a-z0-9+.-]*:\/\//i;
-const MARKDOWN_ATTACHMENT_LINE_PATTERN = /^(#{1,6}\s|[-*+]\s|\d+[.)]\s|>\s?|```|~~~|\|)/;
-
-const parseFileMarker = (content: string, canParseFileMarker: boolean): ParsedFileMarker => {
-  if (!canParseFileMarker) {
-    return { text: content, files: [] };
-  }
-
-  const lines = content.split(/\r?\n/);
-  let markerLineIndex = -1;
-  for (let index = lines.length - 1; index >= 0; index -= 1) {
-    if (lines[index].trim() === AIONUI_FILES_MARKER) {
-      markerLineIndex = index;
-      break;
-    }
-  }
-
-  if (markerLineIndex === -1) {
-    return { text: content, files: [] };
-  }
-
-  const files = lines
-    .slice(markerLineIndex + 1)
-    .map((line) => line.trim())
-    .filter(Boolean);
-
-  if (!files.length || files.some((file_path) => !isLocalMessageFilePath(file_path))) {
-    return { text: content, files: [] };
-  }
-
-  return {
-    text: lines.slice(0, markerLineIndex).join('\n').trimEnd(),
-    files,
-  };
-};
-
-const isAbsoluteMessageFilePath = (file_path: string): boolean =>
-  file_path.startsWith('/') || file_path.startsWith('\\\\') || /^[A-Za-z]:[\\/]/.test(file_path);
-
-const isWorkspaceRelativeMessageFilePath = (file_path: string): boolean => {
-  const normalizedFilePath = file_path.replace(/\\/g, '/');
-  return (
-    normalizedFilePath.startsWith('./') ||
-    normalizedFilePath.startsWith('../') ||
-    normalizedFilePath.includes('/') ||
-    /(?:^|\/)[^/]+\.[^./\s][^/]*$/.test(normalizedFilePath)
-  );
-};
-
-const isLocalMessageFilePath = (file_path: string): boolean => {
-  const trimmedFilePath = file_path.trim();
-  if (
-    !trimmedFilePath ||
-    URL_SCHEME_PATTERN.test(trimmedFilePath) ||
-    MARKDOWN_ATTACHMENT_LINE_PATTERN.test(trimmedFilePath)
-  ) {
-    return false;
-  }
-
-  return isAbsoluteMessageFilePath(trimmedFilePath) || isWorkspaceRelativeMessageFilePath(trimmedFilePath);
-};
-
-export const resolveMessageFilePath = (file_path: string, workspace?: string): string => {
-  if (!file_path || isAbsoluteMessageFilePath(file_path) || !workspace) {
-    return file_path;
-  }
-
-  const normalizedWorkspace = workspace.replace(/[\\/]+$/, '').replace(/\\/g, '/');
-  const normalizedFilePath = file_path.replace(/^\.?[\\/]+/, '').replace(/\\/g, '/');
-  return `${normalizedWorkspace}/${normalizedFilePath}`.replace(/\/+/g, '/');
-};
+export const resolveMessageFilePath = resolveConversationResourcePath;
 
 const useFormatContent = (content: string) => {
   return useMemo(() => {
@@ -176,7 +104,7 @@ const MessageText: React.FC<{
   const isUserMessage = message.position === 'right';
   const isTeammateMessage = message.position === 'left' && message.content.teammateMessage === true;
   const { text, files } = useMemo(
-    () => parseFileMarker(contentToRender, isUserMessage),
+    () => parseMessageFileMarker(contentToRender, isUserMessage),
     [contentToRender, isUserMessage]
   );
   const { data, json } = useFormatContent(text);

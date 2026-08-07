@@ -569,6 +569,13 @@
     "hint": "輸入 / 喚起命令，@ 引用檔案，↑/↓ 切換歷史訊息",
     "mediaPathFallback": "該 Agent 不原生支援此檔案類型，將以檔案路徑形式傳送。"
   },
+  "resources": {
+    "tooltip": "來源與產出物",
+    "outputs": "產出物",
+    "sources": "來源",
+    "emptyOutputs": "暫無產出物",
+    "emptySources": "暫無來源"
+  },
   "agentTip": {
     "codes": {
       "ACP_EMPTY_TURN": {

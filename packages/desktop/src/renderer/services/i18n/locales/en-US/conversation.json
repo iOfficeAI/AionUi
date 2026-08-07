@@ -570,6 +570,13 @@
     "hint": "Type / for commands, @ to reference files, ↑/↓ for message history",
     "mediaPathFallback": "This agent has no native support for this file type; it will be sent as a file path."
   },
+  "resources": {
+    "tooltip": "Sources and outputs",
+    "outputs": "Outputs",
+    "sources": "Sources",
+    "emptyOutputs": "No outputs yet",
+    "emptySources": "No sources yet"
+  },
   "agentTip": {
     "codes": {
       "ACP_EMPTY_TURN": {

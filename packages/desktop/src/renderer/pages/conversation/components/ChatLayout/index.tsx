@@ -24,6 +24,7 @@ import { Layout as ArcoLayout } from '@arco-design/web-react';
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import './chat-layout.css';
+import { conversationResourcesSlotId } from '../ConversationResources/model';
 
 // headerExtra allows injecting custom actions (e.g., model picker) into the header's right area
 const ChatLayout: React.FC<{
@@ -182,6 +183,13 @@ const ChatLayout: React.FC<{
     return () => observer.disconnect();
   }, [layout?.isMobile]);
 
+  const headerActions = (
+    <div className='flex items-center gap-12px shrink-0'>
+      {props.headerExtra}
+      {conversation_id && <div id={conversationResourcesSlotId(conversation_id)} className='flex items-center' />}
+    </div>
+  );
+
   const desktopHeader = (
     <ArcoLayout.Header
       className={classNames(
@@ -214,15 +222,13 @@ const ChatLayout: React.FC<{
           }
         />
       </FlexFullContainer>
-      <div className='flex items-center gap-12px shrink-0'>{props.headerExtra}</div>
+      {headerActions}
     </ArcoLayout.Header>
   );
 
   const headerBlock = (
     <>
-      {layout?.isMobile
-        ? mobileActionsSlot && props.headerExtra && createPortal(props.headerExtra, mobileActionsSlot)
-        : desktopHeader}
+      {layout?.isMobile ? mobileActionsSlot && createPortal(headerActions, mobileActionsSlot) : desktopHeader}
       {props.tabsSlot}
     </>
   );

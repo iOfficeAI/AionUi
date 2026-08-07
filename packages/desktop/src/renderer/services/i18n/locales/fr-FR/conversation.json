@@ -568,6 +568,13 @@
     "hint": "Tapez / pour les commandes, @ pour référencer des fichiers, ↑/↓ pour l'historique des messages",
     "mediaPathFallback": "Cet agent ne prend pas en charge nativement ce type de fichier ; il sera envoyé sous forme de chemin de fichier."
   },
+  "resources": {
+    "tooltip": "Sources et résultats",
+    "outputs": "Résultats",
+    "sources": "Sources",
+    "emptyOutputs": "Aucun résultat pour le moment",
+    "emptySources": "Aucune source pour le moment"
+  },
   "agentTip": {
     "codes": {
       "ACP_EMPTY_TURN": {

@@ -19,6 +19,7 @@ type RunScenarioOptions = {
 
 type StreamController = {
   runScenario: (options?: RunScenarioOptions) => Promise<void>;
+  emitConversationResources: (sourcePath: string, outputPath: string, sourceUrl: string) => Promise<void>;
   emitInfoTip: (code: string, content: string) => Promise<void>;
   emitErrorTip: (content: string, error?: Record<string, unknown>) => Promise<void>;
   emitToolError: (toolName: string, description: string) => Promise<void>;
@@ -142,6 +143,64 @@ const AcpE2EStreamInjector: React.FC<{ conversationId: string }> = ({ conversati
           };
 
           pushNextChunk();
+        });
+      },
+      emitConversationResources: async (sourcePath: string, outputPath: string, sourceUrl: string) => {
+        const timestamp = Date.now();
+
+        addOrUpdateMessage(
+          {
+            id: `e2e-resource-source-${timestamp}`,
+            msg_id: `e2e-resource-source-${timestamp}`,
+            conversation_id: conversationId,
+            type: 'text',
+            position: 'right',
+            created_at: timestamp,
+            content: {
+              content: `Use these references\n[[AION_FILES]]\n${sourcePath}`,
+            },
+          },
+          true
+        );
+        addOrUpdateMessage(
+          {
+            id: `e2e-resource-url-${timestamp}`,
+            msg_id: `e2e-resource-url-${timestamp}`,
+            conversation_id: conversationId,
+            type: 'text',
+            position: 'left',
+            created_at: timestamp + 1,
+            content: {
+              content: `Reference: ${sourceUrl}`,
+            },
+          },
+          true
+        );
+        addOrUpdateMessage(
+          {
+            id: `e2e-resource-output-${timestamp}`,
+            msg_id: `e2e-resource-output-${timestamp}`,
+            conversation_id: conversationId,
+            type: 'acp_tool_call',
+            position: 'left',
+            created_at: timestamp + 2,
+            content: {
+              session_id: 'e2e-session',
+              update: {
+                sessionUpdate: 'tool_call_update',
+                tool_call_id: `e2e-resource-output-${timestamp}-call`,
+                status: 'completed',
+                title: `Write ${outputPath}`,
+                kind: 'edit',
+                content: [{ type: 'diff', path: outputPath, old_text: '', new_text: '# Generated output' }],
+              },
+            },
+          },
+          true
+        );
+
+        await new Promise<void>((resolve) => {
+          window.setTimeout(resolve, STREAM_TICK_MS);
         });
       },
       emitInfoTip: async (code: string, content: string) => {

@@ -569,6 +569,13 @@
     "hint": "/ 로 명령, @ 로 파일 참조, ↑/↓ 로 메시지 기록 전환",
     "mediaPathFallback": "이 에이전트는 이 파일 형식을 기본적으로 지원하지 않으므로 파일 경로로 전송됩니다."
   },
+  "resources": {
+    "tooltip": "소스 및 결과물",
+    "outputs": "결과물",
+    "sources": "소스",
+    "emptyOutputs": "아직 결과물이 없습니다",
+    "emptySources": "아직 소스가 없습니다"
+  },
   "agentTip": {
     "codes": {
       "ACP_EMPTY_TURN": {

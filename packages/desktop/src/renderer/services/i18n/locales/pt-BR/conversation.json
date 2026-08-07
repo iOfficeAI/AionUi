@@ -575,6 +575,13 @@
     "hint": "Digite / para comandos, @ para referenciar arquivos, ↑/↓ para o histórico de mensagens",
     "mediaPathFallback": "Este agente não tem suporte nativo para este tipo de arquivo; ele será enviado como um caminho de arquivo."
   },
+  "resources": {
+    "tooltip": "Fontes e resultados",
+    "outputs": "Resultados",
+    "sources": "Fontes",
+    "emptyOutputs": "Nenhum resultado ainda",
+    "emptySources": "Nenhuma fonte ainda"
+  },
   "agentTip": {
     "codes": {
       "ACP_EMPTY_TURN": {

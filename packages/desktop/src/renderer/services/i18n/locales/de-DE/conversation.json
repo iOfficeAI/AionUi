@@ -570,6 +570,13 @@
     "hint": "Tippe / für Befehle, @ um Dateien zu referenzieren, ↑/↓ für den Nachrichtenverlauf",
     "mediaPathFallback": "Dieser Agent unterstützt diesen Dateityp nicht nativ; die Datei wird als Dateipfad gesendet."
   },
+  "resources": {
+    "tooltip": "Quellen und Ergebnisse",
+    "outputs": "Ergebnisse",
+    "sources": "Quellen",
+    "emptyOutputs": "Noch keine Ergebnisse",
+    "emptySources": "Noch keine Quellen"
+  },
   "agentTip": {
     "codes": {
       "ACP_EMPTY_TURN": {

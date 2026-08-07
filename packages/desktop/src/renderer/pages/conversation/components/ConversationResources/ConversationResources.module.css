@@ -1,0 +1,17 @@
+.popover :global(.arco-popover-content) {
+  overflow: hidden;
+  border-radius: 16px;
+}
+
+.resourceButton {
+  display: flex !important;
+  align-items: center;
+  justify-content: flex-start !important;
+  border-radius: 8px !important;
+  text-align: left;
+}
+
+.resourceButton > svg,
+.resourceButton > :global(.i-icon) {
+  flex: 0 0 auto;
+}

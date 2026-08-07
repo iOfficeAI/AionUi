@@ -570,6 +570,13 @@
     "hint": "输入 / 唤起命令，@ 引用文件，↑/↓ 切换历史消息",
     "mediaPathFallback": "该 Agent 不原生支持此文件类型，将以文件路径形式发送。"
   },
+  "resources": {
+    "tooltip": "来源与产出物",
+    "outputs": "产出物",
+    "sources": "来源",
+    "emptyOutputs": "暂无产出物",
+    "emptySources": "暂无来源"
+  },
   "agentTip": {
     "codes": {
       "ACP_EMPTY_TURN": {
