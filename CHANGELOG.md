@@ -1,5 +1,29 @@
 # Changelog
 
+## [2.1.52](https://github.com/iOfficeAI/AionUi/compare/v2.1.50...v2.1.52) (2026-08-07)
+
+### Desktop
+
+#### Features
+
+- **scm:** Changes panel with multi-repo switcher and repo labels (#3894)
+
+#### Bug Fixes
+
+- **guid:** align assistant dropdown search fields with Agent settings (#3903)
+- **security:** prevent path traversal in image generation MCP tool (#3906)
+- **shortcuts:** use platform-native primary modifier (#3909)
+- **theme:** converge appearance attributes and defer arco-theme (#3917)
+- **theme:** parse custom CSS via postcss instead of regex (#3915)
+
+### Core ([v0.1.62](https://github.com/iOfficeAI/AionCore/releases/tag/v0.1.62))
+
+#### Features
+
+- **scm:** live repository-set changes + pe_name (#790)
+
+---
+
 ## [2.1.50](https://github.com/iOfficeAI/AionUi/compare/v2.1.49...v2.1.50) (2026-08-06)
 
 ### Desktop
