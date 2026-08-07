@@ -5,7 +5,7 @@
  */
 
 import { describe, expect, it, afterEach } from 'vitest';
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { join, resolve as pathResolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { processImageUri, saveGeneratedImage, executeImageGeneration } from '@/common/chat/imageGenCore';
@@ -138,6 +138,38 @@ describe('processImageUri', () => {
     const ws = createWorkspace();
 
     await expect(processImageUri('nonexistent.png', ws)).rejects.toThrow('Image file not found');
+  });
+
+  it('should block a symlink inside the workspace that points outside', async () => {
+    const ws = createWorkspace();
+    // Secret image lives outside the workspace; a symlink inside the workspace
+    // points to it. The lexical containment check passes for the link path, but
+    // realpath must reveal the escape and block the read.
+    const outsideDir = createWorkspace();
+    const secretImg = createImageFile(outsideDir, 'secret.png');
+    symlinkSync(secretImg, join(ws, 'linked.png'));
+
+    await expect(processImageUri('linked.png', ws)).rejects.toThrow('Path traversal blocked');
+  });
+
+  it('should block a symlinked directory inside the workspace that points outside', async () => {
+    const ws = createWorkspace();
+    const outsideDir = createWorkspace();
+    createImageFile(outsideDir, 'secret.png');
+    symlinkSync(outsideDir, join(ws, 'linked-dir'), 'dir');
+
+    await expect(processImageUri('linked-dir/secret.png', ws)).rejects.toThrow('Path traversal blocked');
+  });
+
+  it('should allow a symlink inside the workspace that stays inside', async () => {
+    const ws = createWorkspace();
+    const imgPath = createImageFile(ws, 'real.png');
+    symlinkSync(imgPath, join(ws, 'alias.png'));
+
+    const result = await processImageUri('alias.png', ws);
+
+    expect(result).toBeDefined();
+    expect(result!.type).toBe('image_url');
   });
 });
 

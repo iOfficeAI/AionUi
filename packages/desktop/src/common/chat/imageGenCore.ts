@@ -30,12 +30,33 @@ const isWithin = (root: string, target: string): boolean => {
   return relative === '' || (!relative.startsWith(`..${path.sep}`) && relative !== '..' && !path.isAbsolute(relative));
 };
 
-const resolveSafePath = (workspaceDir: string, candidate: string): string => {
+/**
+ * Resolve `candidate` against `workspaceDir` and verify the result stays inside
+ * the workspace. A lexical containment check always applies; when the target
+ * exists, it is additionally canonicalized with `realpath` so symlinks inside
+ * the workspace cannot escape to arbitrary files outside it. Missing targets
+ * resolve lexically — the caller's existence check reports "not found".
+ */
+const resolveSafePath = async (workspaceDir: string, candidate: string): Promise<string> => {
   const resolved = path.resolve(workspaceDir, candidate);
   if (!isWithin(workspaceDir, resolved)) {
     throw new Error(`Path traversal blocked: "${candidate}" resolves outside workspace`);
   }
-  return resolved;
+
+  const realWorkspaceDir = await fs.promises.realpath(workspaceDir);
+  let realTarget: string;
+  try {
+    realTarget = await fs.promises.realpath(resolved);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+      return resolved;
+    }
+    throw error;
+  }
+  if (!isWithin(realWorkspaceDir, realTarget)) {
+    throw new Error(`Path traversal blocked: "${candidate}" resolves outside workspace`);
+  }
+  return realTarget;
 };
 
 // ===== Utility Functions =====
@@ -138,7 +159,7 @@ export async function processImageUri(imageUri: string, workspaceDir: string): P
     processedUri = imageUri.substring(1);
   }
 
-  const fullPath = resolveSafePath(workspaceDir, processedUri);
+  const fullPath = await resolveSafePath(workspaceDir, processedUri);
 
   try {
     await fs.promises.access(fullPath, fs.constants.F_OK);
@@ -154,15 +175,17 @@ export async function processImageUri(imageUri: string, workspaceDir: string): P
       image_url: { url: `data:${mimeType};base64,${base64Data}`, detail: 'auto' },
     };
   } catch (error) {
-    const possiblePaths = [imageUri, resolveSafePath(workspaceDir, imageUri)].filter(
-      (p, i, arr) => arr.indexOf(p) === i
-    );
     const errorMessage = error instanceof Error ? error.message : String(error);
 
-    if (errorMessage.includes('Image file not found') || errorMessage.includes('not a supported image type')) {
+    if (
+      errorMessage.includes('Path traversal blocked') ||
+      errorMessage.includes('Image file not found') ||
+      errorMessage.includes('not a supported image type')
+    ) {
       throw error;
     }
 
+    const possiblePaths = [imageUri, path.resolve(workspaceDir, imageUri)].filter((p, i, arr) => arr.indexOf(p) === i);
     throw new Error(
       `Image file not found. Searched paths:\n${possiblePaths.map((p) => `- ${p}`).join('\n')}\n\nPlease ensure the image file exists and has a valid image extension (.jpg, .png, .gif, .webp, etc.)`,
       { cause: error }
@@ -308,8 +331,8 @@ export async function executeImageGeneration(
           const processedImages: Array<{ type: 'image_url'; image_url: { url: string } }> = [];
           for (const match of file_pathMatches) {
             const file_path = match[1];
-            const fullPath = resolveSafePath(resolvedWorkspaceDir, file_path);
             try {
+              const fullPath = await resolveSafePath(resolvedWorkspaceDir, file_path);
               await fs.promises.access(fullPath);
               const base64Data = await fileToBase64(fullPath);
               const mimeType = getImageMimeType(fullPath);
