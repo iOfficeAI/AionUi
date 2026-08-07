@@ -242,11 +242,18 @@ const ScmSectionStack: React.FC<{
     return Math.max(SECTION_MIN_BODY_PX, Math.min(desired, maxBody));
   };
 
-  // Dragging the divider above the Changes section: up (negative delta) grows the
-  // Changes body, down shrinks it. The filler (repositories) absorbs the inverse.
-  const onChangesDividerDrag = (deltaY: number): void => {
-    const current = ui.heights[SECTION_CHANGES] ?? sizedBodyHeight(SECTION_CHANGES);
-    setSectionHeight(SECTION_CHANGES, current - deltaY);
+  // Dragging the divider above the Changes section: up (negative cumulative delta)
+  // grows the Changes body, down shrinks it; the filler (repositories) absorbs the
+  // inverse. `totalDeltaY` is measured from the drag start, so the base height is
+  // captured once when the drag begins — reading `ui.heights` on every move would
+  // hit the stale closure captured at pointerdown and drop all but the last step.
+  const changesDragBase = React.useRef<number | null>(null);
+  const onChangesDividerDrag = (totalDeltaY: number): void => {
+    changesDragBase.current ??= ui.heights[SECTION_CHANGES] ?? sizedBodyHeight(SECTION_CHANGES);
+    setSectionHeight(SECTION_CHANGES, changesDragBase.current - totalDeltaY);
+  };
+  const onChangesDividerDragEnd = (): void => {
+    changesDragBase.current = null;
   };
 
   const viewMode: ScmViewMode = ui.viewMode;
@@ -312,7 +319,11 @@ const ScmSectionStack: React.FC<{
       {/* Divider above Changes: only meaningful when the section above it (repositories)
           is open and Changes is sized (not itself the filler / not collapsed). */}
       {repoOpen && !changesCollapsed && (
-        <ScmSectionDivider onDrag={onChangesDividerDrag} onDoubleReset={() => clearSectionHeight(SECTION_CHANGES)} />
+        <ScmSectionDivider
+          onDrag={onChangesDividerDrag}
+          onDragEnd={onChangesDividerDragEnd}
+          onDoubleReset={() => clearSectionHeight(SECTION_CHANGES)}
+        />
       )}
       <div
         data-scm-section-slot={SECTION_CHANGES}

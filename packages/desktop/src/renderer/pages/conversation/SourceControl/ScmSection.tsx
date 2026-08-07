@@ -79,13 +79,16 @@ export const ScmSection: React.FC<ScmSectionProps> = ({
 };
 
 /**
- * Vertical drag handle placed between two sections. Dragging reports a signed pixel
- * delta to the caller, which applies it to the section above (growing it shrinks the
- * one below and vice-versa). A thin hit-target with a wider invisible grab area, so
- * it is easy to grab without a visible fat bar.
+ * Vertical drag handle placed between two sections. On every move it reports the
+ * signed cumulative pixel delta measured from the drag start; the caller applies it
+ * to a base height captured when the drag began. Cumulative reporting (instead of
+ * per-move increments) keeps the math correct even though the caller's `onDrag`
+ * closure is the one captured at pointerdown — with increments, every step would be
+ * applied to the same stale base and all but the last one would be lost. A thin
+ * visible line with a wider invisible grab area, so it is easy to grab.
  */
 export const ScmSectionDivider: React.FC<{
-  onDrag: (deltaY: number) => void;
+  onDrag: (totalDeltaY: number) => void;
   onDragEnd?: () => void;
   /** Double-click resets the split (caller clears the stored height → natural size). */
   onDoubleReset?: () => void;
@@ -93,20 +96,20 @@ export const ScmSectionDivider: React.FC<{
   const onPointerDown = (e: React.PointerEvent<HTMLDivElement>): void => {
     e.preventDefault();
     const startY = e.clientY;
-    let lastY = startY;
     const handle = e.currentTarget;
-    handle.setPointerCapture(e.pointerId);
+    handle.setPointerCapture?.(e.pointerId);
     const move = (ev: PointerEvent): void => {
-      onDrag(ev.clientY - lastY);
-      lastY = ev.clientY;
+      onDrag(ev.clientY - startY);
     };
-    const up = (): void => {
+    const finish = (): void => {
       handle.removeEventListener('pointermove', move);
-      handle.removeEventListener('pointerup', up);
+      handle.removeEventListener('pointerup', finish);
+      handle.removeEventListener('pointercancel', finish);
       onDragEnd?.();
     };
     handle.addEventListener('pointermove', move);
-    handle.addEventListener('pointerup', up);
+    handle.addEventListener('pointerup', finish);
+    handle.addEventListener('pointercancel', finish);
   };
   return (
     <div

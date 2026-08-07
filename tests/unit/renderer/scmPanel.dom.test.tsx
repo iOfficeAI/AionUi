@@ -896,6 +896,36 @@ describe('ScmPanel bottom-anchored section stack', () => {
     expect(changesSlot().style.height).toBe('');
   });
 
+  it('applies the cumulative drag delta from the drag start, not just the last step', async () => {
+    installPort({ repositories: twoRepos, firstFrames: twoRepoFrames });
+    render(<ScmPanel projectId='p1' />);
+    await screen.findByText('a.ts');
+
+    act(() => setSectionHeight('changes', 150));
+    await waitFor(() => expect(changesSlot().style.height).toBe('174px'));
+
+    const divider = document.querySelector('[data-scm-section-divider]') as HTMLElement;
+    // Multi-step drag upward by 120px total. Each move must build on the height at
+    // drag start (150 + 120), not re-base on a stale increment (which kept only the
+    // final 10px step — the regression this test pins down).
+    fireEvent.pointerDown(divider, { clientY: 400 });
+    for (let step = 1; step <= 12; step++) {
+      fireEvent.pointerMove(divider, { clientY: 400 - step * 10 });
+    }
+    fireEvent.pointerUp(divider, { clientY: 280 });
+
+    // Body 150 + 120 = 270, slot = 24 header + 270 = 294px.
+    await waitFor(() => expect(changesSlot().style.height).toBe('294px'));
+
+    // A second drag re-captures the base from the new height (no leakage of the old base).
+    fireEvent.pointerDown(divider, { clientY: 300 });
+    fireEvent.pointerMove(divider, { clientY: 320 });
+    fireEvent.pointerMove(divider, { clientY: 340 });
+    fireEvent.pointerUp(divider, { clientY: 340 });
+    // Dragged down 40px: 270 - 40 = 230 body → 24 + 230 = 254px.
+    await waitFor(() => expect(changesSlot().style.height).toBe('254px'));
+  });
+
   it('double-clicking the divider clears the stored Changes height (reset to default)', async () => {
     installPort({ repositories: twoRepos, firstFrames: twoRepoFrames });
     render(<ScmPanel projectId='p1' />);
