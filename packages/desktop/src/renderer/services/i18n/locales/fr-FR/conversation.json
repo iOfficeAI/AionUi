@@ -640,6 +640,15 @@
         "changes": "Modifications",
         "blocked": "À résoudre"
       },
+      "sections": {
+        "repositories": "Dépôts",
+        "changes": "Modifications"
+      },
+      "viewAsTree": "Afficher en arborescence",
+      "viewAsList": "Afficher en liste",
+      "worktree": "Arbre de travail",
+      "expandWorktrees": "Afficher les arbres de travail",
+      "collapseWorktrees": "Masquer les arbres de travail",
       "state": {
         "created": "Ajouté",
         "modified": "Modifié",

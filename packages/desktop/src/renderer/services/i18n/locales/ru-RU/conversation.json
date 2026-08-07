@@ -641,6 +641,15 @@
         "changes": "Изменения",
         "blocked": "Требует решения"
       },
+      "sections": {
+        "repositories": "Репозитории",
+        "changes": "Изменения"
+      },
+      "viewAsTree": "В виде дерева",
+      "viewAsList": "В виде списка",
+      "worktree": "Рабочее дерево",
+      "expandWorktrees": "Показать рабочие деревья",
+      "collapseWorktrees": "Скрыть рабочие деревья",
       "state": {
         "created": "Добавлен",
         "modified": "Изменён",

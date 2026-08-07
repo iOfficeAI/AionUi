@@ -641,6 +641,15 @@
         "changes": "変更",
         "blocked": "要解決"
       },
+      "sections": {
+        "repositories": "リポジトリ",
+        "changes": "変更"
+      },
+      "viewAsTree": "ツリー表示",
+      "viewAsList": "リスト表示",
+      "worktree": "ワークツリー",
+      "expandWorktrees": "ワークツリーを表示",
+      "collapseWorktrees": "ワークツリーを非表示",
       "state": {
         "created": "追加",
         "modified": "変更",

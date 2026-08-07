@@ -643,6 +643,15 @@
         "changes": "Değişiklikler",
         "blocked": "Çözülmesi gerekiyor"
       },
+      "sections": {
+        "repositories": "Depolar",
+        "changes": "Değişiklikler"
+      },
+      "viewAsTree": "Ağaç olarak görüntüle",
+      "viewAsList": "Liste olarak görüntüle",
+      "worktree": "Çalışma ağacı",
+      "expandWorktrees": "Çalışma ağaçlarını göster",
+      "collapseWorktrees": "Çalışma ağaçlarını gizle",
       "state": {
         "created": "Eklendi",
         "modified": "Değiştirildi",

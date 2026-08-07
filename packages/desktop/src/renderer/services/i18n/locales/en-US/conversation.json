@@ -642,6 +642,15 @@
         "changes": "Changes",
         "blocked": "Needs resolving"
       },
+      "sections": {
+        "repositories": "Repositories",
+        "changes": "Changes"
+      },
+      "viewAsTree": "View as tree",
+      "viewAsList": "View as list",
+      "worktree": "Worktree",
+      "expandWorktrees": "Show worktrees",
+      "collapseWorktrees": "Hide worktrees",
       "state": {
         "created": "Added",
         "modified": "Modified",

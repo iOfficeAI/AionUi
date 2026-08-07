@@ -641,6 +641,15 @@
         "changes": "تغییرات",
         "blocked": "نیازمند رفع"
       },
+      "sections": {
+        "repositories": "مخازن",
+        "changes": "تغییرات"
+      },
+      "viewAsTree": "نمایش درختی",
+      "viewAsList": "نمایش فهرستی",
+      "worktree": "درخت‌کاری",
+      "expandWorktrees": "نمایش درخت‌کاری‌ها",
+      "collapseWorktrees": "پنهان کردن درخت‌کاری‌ها",
       "state": {
         "created": "افزوده‌شده",
         "modified": "تغییریافته",

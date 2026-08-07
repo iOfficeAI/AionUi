@@ -116,6 +116,18 @@ export type ScmResourceRowProps = {
   busy?: boolean;
   /** True when the last action reported this row in its `failed[]`. */
   failed?: boolean;
+  /**
+   * Left indent in px, added to the row's base padding. Tree view uses this to
+   * step files under their folder; list view leaves it 0. The badge/name layout is
+   * unchanged — only the leading gap grows.
+   */
+  indent?: number;
+  /**
+   * Suppress the dimmed parent-directory suffix. Tree view sets this: the folder
+   * chain already shows the path, so repeating the dir on every leaf is noise (VS
+   * Code hides it in tree mode). List view leaves it shown.
+   */
+  hideDir?: boolean;
 };
 
 export const ScmResourceRow: React.FC<ScmResourceRowProps> = ({
@@ -126,6 +138,8 @@ export const ScmResourceRow: React.FC<ScmResourceRowProps> = ({
   onAction,
   busy = false,
   failed = false,
+  indent = 0,
+  hideDir = false,
 }) => {
   const { t } = useTranslation();
   const kind = classifyResourceState(resource.state);
@@ -222,6 +236,7 @@ export const ScmResourceRow: React.FC<ScmResourceRowProps> = ({
       className={`group flex items-center gap-6px px-8px py-3px rd-4px cursor-pointer hover:bg-2 min-w-0 ${
         selected ? 'bg-2' : ''
       }`}
+      style={indent ? { paddingLeft: 8 + indent } : undefined}
       title={hint ?? resource.repo_relative_path}
     >
       <span
@@ -242,7 +257,7 @@ export const ScmResourceRow: React.FC<ScmResourceRowProps> = ({
       >
         {label}
       </span>
-      {dir && (
+      {dir && !hideDir && (
         <span className='overflow-hidden text-ellipsis whitespace-nowrap text-t-tertiary text-12px flex-1 min-w-0'>
           {dir}
         </span>
