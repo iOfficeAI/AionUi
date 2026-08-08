@@ -163,25 +163,70 @@ describe('release packaging configuration', () => {
 
   it('bounds Windows installer smoke phases and preserves diagnostics', () => {
     const reusableWorkflow = readProjectFile('.github/workflows/_build-reusable.yml');
+    const smokeScript = readProjectFile('resources/windows/support/verify-installer-migration.ps1');
 
-    expect(reusableWorkflow).toContain('Verify Windows installation and registry-free migration');
-    expect(reusableWorkflow).toContain("-Filter 'Uninstall*.exe'");
-    expect(reusableWorkflow).toContain('Required installed VERSIONINFO is missing');
-    expect(reusableWorkflow).toContain('$process.WaitForExit($TimeoutSeconds * 1000)');
-    expect(reusableWorkflow).toContain('& taskkill.exe /PID $process.Id /T /F');
-    expect(reusableWorkflow).toContain("-Phase 'fresh-install'");
-    expect(reusableWorkflow).toContain("-Phase 'fresh-uninstall'");
-    expect(reusableWorkflow).toContain("-Phase 'migrated-uninstall'");
+    expect(reusableWorkflow).toContain('Verify fresh Windows installation');
+    expect(reusableWorkflow).toContain('Prepare registry-free migration fixture');
+    expect(reusableWorkflow).toContain('Upload pre-upgrade migration diagnostics');
+    expect(reusableWorkflow).toContain('Verify registry-free migration upgrade');
+    expect(reusableWorkflow).toContain('windows-installer-smoke:');
+    expect(reusableWorkflow).toContain('needs: build');
+    expect(reusableWorkflow).toContain('actions/download-artifact@v7');
+    expect(reusableWorkflow).toContain("& 'resources/windows/support/verify-installer-migration.ps1'");
+    expect(reusableWorkflow).toContain('run_windows_registry_free_migration_smoke:');
+    expect(reusableWorkflow).toContain(
+      'scenario: ${{ fromJSON(inputs.run_windows_registry_free_migration_smoke && \'["fresh","migration"]\' || \'["fresh"]\') }}'
+    );
+    expect(reusableWorkflow).toContain("if: matrix.scenario == 'migration'");
+    expect(reusableWorkflow).toContain("-Mode 'migration-prepare'");
+    expect(reusableWorkflow).toContain("-Mode 'migration-upgrade'");
+    expect(smokeScript).toContain("-Filter 'Uninstall*.exe'");
+    expect(smokeScript).toContain("[ValidateSet('fresh', 'migration-prepare', 'migration-upgrade')]");
+    expect(smokeScript).toContain("if ($Mode -eq 'fresh')");
+    expect(smokeScript).toContain('$process.WaitForExit(5000)');
+    expect(smokeScript).toContain('heartbeat: pid=$($process.Id)');
+    expect(smokeScript).toContain('Select-Object -Skip $reportedLogLineCount');
+    expect(smokeScript).toContain('& taskkill.exe /PID $process.Id /T /F');
+    expect(smokeScript).toContain('function Wait-ForUninstallCompletion');
+    expect(smokeScript).toContain("-Phase 'fresh-install'");
+    expect(smokeScript).toContain("-Phase 'fresh-uninstall'");
+    expect(smokeScript).toContain("-Phase 'migrated-uninstall'");
+    expect(smokeScript).toContain('function Assert-LegacyMigrationState');
+    expect(smokeScript).toContain("Save-DiagnosticsSnapshot -Phase 'before-upgrade'");
+    expect(smokeScript).toContain('$migrationInstallDirectory = Join-Path $env:LOCALAPPDATA');
+    expect(smokeScript).toContain("'smoke-status.txt'");
     expect(reusableWorkflow).toContain('Upload Windows installer smoke diagnostics');
   });
 
   it('uploads Windows builds before running installer smoke tests', () => {
     const reusableWorkflow = readProjectFile('.github/workflows/_build-reusable.yml');
     const uploadIndex = reusableWorkflow.indexOf('Upload Windows build artifacts before installer smoke tests');
-    const smokeIndex = reusableWorkflow.indexOf('Verify Windows installation and registry-free migration');
+    const smokeIndex = reusableWorkflow.lastIndexOf('Verify registry-free migration upgrade');
 
     expect(uploadIndex).toBeGreaterThan(-1);
     expect(smokeIndex).toBeGreaterThan(uploadIndex);
+  });
+
+  it('runs installer smoke tests on clean downstream Windows runners', () => {
+    const reusableWorkflow = readProjectFile('.github/workflows/_build-reusable.yml');
+    const releaseWorkflow = readProjectFile('.github/workflows/build-and-release.yml');
+    const manualWorkflow = readProjectFile('.github/workflows/build-manual.yml');
+
+    expect(releaseWorkflow).toContain('run_windows_installer_smoke: true');
+    expect(releaseWorkflow).not.toContain('run_windows_registry_free_migration_smoke: true');
+    expect(releaseWorkflow).toContain('"platform":"windows-arm64"');
+    expect(reusableWorkflow).toContain(
+      "if: ${{ always() && inputs.run_windows_installer_smoke && needs.build.result == 'success' }}"
+    );
+    expect(manualWorkflow).toContain(
+      'run_windows_installer_smoke: ${{ steps.set-matrix.outputs.run_windows_installer_smoke }}'
+    );
+    expect(manualWorkflow).toContain(
+      'run_windows_installer_smoke: ${{ fromJSON(needs.prepare-matrix.outputs.run_windows_installer_smoke) }}'
+    );
+    expect(manualWorkflow).toContain(
+      'windows_installer_smoke_matrix: ${{ needs.prepare-matrix.outputs.windows_installer_smoke_matrix }}'
+    );
   });
 
   it('uses standard current-user registry entries and retains a one-time legacy migration reader', () => {
@@ -189,18 +234,26 @@ describe('release packaging configuration', () => {
     const reusableWorkflow = readProjectFile('.github/workflows/_build-reusable.yml');
     const installerState = readProjectFile('resources/windows/support/installer-state.ps1');
     const installerMigration = readProjectFile('resources/windows/installer-repair-heal.nsh');
+    const installerProcessControl = readProjectFile('resources/windows/installer-process-control.nsh');
 
     expect(config).toContain('allowElevation: false');
     expect(config).toContain('perMachine: false');
     expect(installerState).toContain("'installer-state.ini'");
     expect(installerMigration).toContain('$CsbuWorkMateLegacyMigrationPending == "1"');
     expect(installerMigration).toContain('StrCpy $CsbuWorkMateLegacyMigrationPending "1"');
+    expect(installerMigration).toContain('-Action prepare-migration');
+    expect(installerMigration).toContain('-Action rollback-migration');
+    expect(installerMigration).toContain('-Action commit-migration');
+    expect(installerProcessControl).toContain('!insertmacro CSBU_WORKMATE_PREPARE_LEGACY_MIGRATION');
+    expect(readProjectFile('scripts/build-with-builder.js')).toContain('CSBU WorkMate migration direct extraction');
     expect(reusableWorkflow).toContain('Standard Windows installation registration is missing');
     expect(reusableWorkflow).toContain('Legacy registry-free installer state remains after installation');
     expect(reusableWorkflow).toContain("CSBU_WORKMATE_LEGACY_INSTALLER_TAG: 'v2.1.51'");
     expect(reusableWorkflow).toContain('gh release download $env:CSBU_WORKMATE_LEGACY_INSTALLER_TAG');
     expect(reusableWorkflow).toContain('Get-FileHash -LiteralPath $fixturePath -Algorithm SHA256');
-    expect(reusableWorkflow).toContain("-Phase 'registry-free-migration'");
+    expect(readProjectFile('resources/windows/support/verify-installer-migration.ps1')).toContain(
+      "-Phase 'registry-free-migration'"
+    );
     expect(reusableWorkflow).not.toContain('-Action write');
   });
 

@@ -31,6 +31,18 @@ on:
         description: 'Optional AionCore Manual Build workflow run id to bundle instead of the pinned release'
         type: string
         default: ''
+      run_windows_installer_smoke:
+        description: 'Run Windows installer smoke tests in clean downstream runners'
+        type: boolean
+        default: false
+      run_windows_registry_free_migration_smoke:
+        description: 'Run the destructive two-installer migration smoke only on an isolated Windows runner'
+        type: boolean
+        default: false
+      windows_installer_smoke_matrix:
+        description: 'Windows installer smoke matrix as JSON'
+        type: string
+        default: '{"include":[{"platform":"windows-x64","os":"windows-2022","artifact-name":"windows-build-x64","arch":"x64"}]}'
 env:
   BUN_INSTALL_REGISTRY: 'https://registry.npmjs.org/'
   CSBU_WORKMATE_HUB_TAG: 'dist-ebc6a2b'
@@ -563,7 +575,7 @@ jobs:
 
       - name: Download registry-free Windows migration fixture
         if: >-
-          startsWith(matrix.platform, 'windows') &&
+          false && startsWith(matrix.platform, 'windows') &&
           steps.windows-build.outputs.result == 'success'
         shell: pwsh
         env:
@@ -607,7 +619,7 @@ jobs:
 
       - name: Verify Windows installation and registry-free migration
         if: >-
-          startsWith(matrix.platform, 'windows') &&
+          false && startsWith(matrix.platform, 'windows') &&
           steps.windows-build.outputs.result == 'success'
         shell: pwsh
         run: |
@@ -627,6 +639,9 @@ jobs:
           $diagnosticsDirectory = Join-Path $env:RUNNER_TEMP "csbu-workmate-installer-diagnostics-${{ matrix.arch }}"
           $legacyInstaller = Join-Path $env:RUNNER_TEMP 'csbu-workmate-legacy-installer\CSBU-WorkMate-2.1.51-win-${{ matrix.arch }}.exe'
           New-Item -ItemType Directory -Path $diagnosticsDirectory -Force | Out-Null
+          Set-Content `
+            -LiteralPath (Join-Path $diagnosticsDirectory 'smoke-status.txt') `
+            -Value "Installer smoke started at $(Get-Date -Format o)"
 
           function Invoke-BoundedInstallerProcess {
             param(
@@ -657,6 +672,46 @@ jobs:
             if ($process.ExitCode -ne 0) {
               throw "$Phase failed with exit code $($process.ExitCode)"
             }
+          }
+
+          function Wait-ForUninstallCompletion {
+            param(
+              [Parameter(Mandatory)] [string] $Phase,
+              [Parameter(Mandatory)] [string] $InstallDirectory,
+              [int] $TimeoutSeconds = 600
+            )
+
+            Write-Host "Waiting for the detached NSIS uninstaller during $Phase"
+            $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
+            $lastProgressAt = Get-Date
+            while ((Get-Date) -lt $deadline) {
+              $directoryExists = Test-Path -LiteralPath $InstallDirectory
+              $registrationExists = @($installRegistryPath, $uninstallRegistryPath) |
+                Where-Object { Test-Path -LiteralPath $_ } |
+                Select-Object -First 1
+              if (-not $directoryExists -and -not $registrationExists) {
+                Write-Host "$Phase completed and removed its directory and registration"
+                return
+              }
+              if (((Get-Date) - $lastProgressAt).TotalSeconds -ge 15) {
+                Write-Host "$Phase still running: directoryExists=$directoryExists registrationExists=$([bool]$registrationExists)"
+                $lastProgressAt = Get-Date
+              }
+              Start-Sleep -Seconds 1
+            }
+
+            $stuckProcesses = @(Get-CimInstance Win32_Process |
+              Where-Object {
+                $_.Name -match '^Un_' -or
+                ([string]$_.CommandLine).Contains($InstallDirectory, [StringComparison]::OrdinalIgnoreCase)
+              })
+            ConvertTo-Json -InputObject $stuckProcesses -Depth 4 -AsArray |
+              Set-Content -LiteralPath (Join-Path $diagnosticsDirectory "$Phase-stuck-processes.json")
+            foreach ($stuckProcess in $stuckProcesses) {
+              & taskkill.exe /PID $stuckProcess.ProcessId /T /F 2>&1 |
+                Out-File -LiteralPath (Join-Path $diagnosticsDirectory "$Phase-taskkill.txt") -Append
+            }
+            throw "$Phase did not finish cleanup within ${TimeoutSeconds}s"
           }
           foreach ($directory in @($freshInstallDirectory, $installDirectory)) {
             if (Test-Path -LiteralPath $directory) {
@@ -696,9 +751,9 @@ jobs:
               -Phase 'fresh-uninstall' `
               -FilePath $freshUninstaller.FullName `
               -ArgumentList @('/S', "--installer-log=$freshLog")
-            if (Test-Path -LiteralPath $freshInstallDirectory) {
-              Remove-Item -LiteralPath $freshInstallDirectory -Recurse -Force -ErrorAction Continue
-            }
+            Wait-ForUninstallCompletion `
+              -Phase 'fresh-uninstall' `
+              -InstallDirectory $freshInstallDirectory
             foreach ($registryPath in @($installRegistryPath, $uninstallRegistryPath)) {
               if (Test-Path -LiteralPath $registryPath) {
                 throw "Fresh uninstall registration remains after uninstallation: $registryPath"
@@ -786,6 +841,9 @@ jobs:
               -Phase 'migrated-uninstall' `
               -FilePath $uninstaller.FullName `
               -ArgumentList @('/S', "--installer-log=$migrationLog")
+            Wait-ForUninstallCompletion `
+              -Phase 'migrated-uninstall' `
+              -InstallDirectory $installDirectory
             if (Test-Path -LiteralPath $installStatePath) {
               throw "Installer state remains after uninstallation: $installStatePath"
             }
@@ -795,11 +853,14 @@ jobs:
               }
             }
           } finally {
-            Get-CimInstance Win32_Process |
+            $processSnapshot = @(Get-CimInstance Win32_Process |
               Where-Object { $_.Name -match 'CSBU|Uninstall|nsis' } |
-              Select-Object ProcessId, ParentProcessId, Name, ExecutablePath, CommandLine |
-              ConvertTo-Json -Depth 4 |
+              Select-Object ProcessId, ParentProcessId, Name, ExecutablePath, CommandLine)
+            ConvertTo-Json -InputObject $processSnapshot -Depth 4 -AsArray |
               Set-Content -LiteralPath (Join-Path $diagnosticsDirectory 'processes.json')
+            Add-Content `
+              -LiteralPath (Join-Path $diagnosticsDirectory 'smoke-status.txt') `
+              -Value "Installer smoke finished at $(Get-Date -Format o)"
             Get-ChildItem -LiteralPath $env:TEMP -File -Filter 'csbu-workmate-installer-*-log.jsonl' -ErrorAction SilentlyContinue |
               Copy-Item -Destination $diagnosticsDirectory -Force -ErrorAction Continue
             foreach ($directory in @($freshInstallDirectory, $installDirectory)) {
@@ -820,7 +881,7 @@ jobs:
       - name: Upload Windows installer smoke diagnostics
         uses: actions/upload-artifact@v6
         if: >-
-          always() && startsWith(matrix.platform, 'windows') &&
+          false && always() && startsWith(matrix.platform, 'windows') &&
           steps.windows-build.outputs.result == 'success'
         with:
           name: windows-installer-diagnostics-${{ matrix.arch }}-${{ steps.commit.outputs.short }}
@@ -1053,10 +1114,144 @@ jobs:
           if-no-files-found: warn
           retention-days: 7
 
+  windows-installer-smoke:
+    name: Installer Smoke ${{ matrix.target.platform }} (${{ matrix.scenario }})
+    runs-on: ${{ matrix.target.os }}
+    needs: build
+    if: ${{ always() && inputs.run_windows_installer_smoke && needs.build.result == 'success' }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        scenario: ${{ fromJSON(inputs.run_windows_registry_free_migration_smoke && '["fresh","migration"]' || '["fresh"]') }}
+        target: ${{ fromJSON(inputs.windows_installer_smoke_matrix).include }}
+
+    steps:
+      - name: Checkout smoke test support
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.ref }}
+
+      - name: Get commit hash
+        id: commit
+        shell: bash
+        run: echo "short=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Download current Windows installer
+        uses: actions/download-artifact@v7
+        with:
+          name: ${{ inputs.append_commit_hash && format('{0}-{1}', matrix.target.artifact-name, steps.commit.outputs.short) || matrix.target.artifact-name }}
+          path: ${{ runner.temp }}/current-installer
+
+      - name: Download registry-free Windows migration fixture
+        if: matrix.scenario == 'migration'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $fixtureDirectory = Join-Path $env:RUNNER_TEMP 'legacy-installer'
+          New-Item -ItemType Directory -Path $fixtureDirectory -Force | Out-Null
+          $assetName = 'CSBU-WorkMate-2.1.51-win-${{ matrix.target.arch }}.exe'
+          $downloaded = $false
+          foreach ($attempt in 1..3) {
+            gh release download $env:CSBU_WORKMATE_LEGACY_INSTALLER_TAG `
+              --repo $env:GITHUB_REPOSITORY `
+              --pattern $assetName `
+              --dir $fixtureDirectory `
+              --clobber
+            if ($LASTEXITCODE -eq 0) {
+              $downloaded = $true
+              break
+            }
+            Write-Warning "Legacy fixture download attempt $attempt failed"
+            Start-Sleep -Seconds 10
+          }
+          if (-not $downloaded) {
+            throw "Failed to download legacy migration fixture: $assetName"
+          }
+          $expectedSha256 = if ('${{ matrix.target.arch }}' -eq 'arm64') {
+            '293ad6adcbac19c4bff9623a5b036e7ce8eee76e67d1da73afe04507fb0f7d56'
+          } else {
+            'f94dc03c88e01aa5af8062532b2b789c1216a26e53a571a0e416f906e0eba476'
+          }
+          $fixturePath = Join-Path $fixtureDirectory $assetName
+          $actualSha256 = (Get-FileHash -LiteralPath $fixturePath -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($actualSha256 -ne $expectedSha256) {
+            throw "Legacy migration fixture checksum mismatch: $actualSha256"
+          }
+
+      - name: Verify fresh Windows installation
+        if: matrix.scenario == 'fresh'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $currentInstaller = Get-ChildItem -LiteralPath (Join-Path $env:RUNNER_TEMP 'current-installer') -File -Filter '*.exe' |
+            Sort-Object LastWriteTime -Descending |
+            Select-Object -First 1
+          if (-not $currentInstaller) {
+            throw 'Current Windows installer artifact was not found'
+          }
+          $smokeArguments = @{
+            CurrentInstaller = $currentInstaller.FullName
+            Arch = '${{ matrix.target.arch }}'
+            DiagnosticsDirectory = (Join-Path $env:RUNNER_TEMP 'installer-diagnostics')
+            Mode = 'fresh'
+          }
+          & 'resources/windows/support/verify-installer-migration.ps1' @smokeArguments
+
+      - name: Prepare registry-free migration fixture
+        if: matrix.scenario == 'migration'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $currentInstaller = Get-ChildItem -LiteralPath (Join-Path $env:RUNNER_TEMP 'current-installer') -File -Filter '*.exe' |
+            Sort-Object LastWriteTime -Descending |
+            Select-Object -First 1
+          & 'resources/windows/support/verify-installer-migration.ps1' `
+            -CurrentInstaller $currentInstaller.FullName `
+            -LegacyInstaller (Join-Path $env:RUNNER_TEMP 'legacy-installer\CSBU-WorkMate-2.1.51-win-${{ matrix.target.arch }}.exe') `
+            -Arch '${{ matrix.target.arch }}' `
+            -DiagnosticsDirectory (Join-Path $env:RUNNER_TEMP 'installer-diagnostics') `
+            -Mode 'migration-prepare'
+
+      - name: Upload pre-upgrade migration diagnostics
+        uses: actions/upload-artifact@v6
+        if: ${{ always() && matrix.scenario == 'migration' }}
+        with:
+          name: windows-installer-pre-upgrade-${{ matrix.target.arch }}-${{ steps.commit.outputs.short }}
+          path: ${{ runner.temp }}/installer-diagnostics/
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Verify registry-free migration upgrade
+        if: matrix.scenario == 'migration'
+        timeout-minutes: 15
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $currentInstaller = Get-ChildItem -LiteralPath (Join-Path $env:RUNNER_TEMP 'current-installer') -File -Filter '*.exe' |
+            Sort-Object LastWriteTime -Descending |
+            Select-Object -First 1
+          & 'resources/windows/support/verify-installer-migration.ps1' `
+            -CurrentInstaller $currentInstaller.FullName `
+            -Arch '${{ matrix.target.arch }}' `
+            -DiagnosticsDirectory (Join-Path $env:RUNNER_TEMP 'installer-diagnostics') `
+            -Mode 'migration-upgrade'
+
+      - name: Upload Windows installer smoke diagnostics
+        uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: windows-installer-diagnostics-${{ matrix.target.arch }}-${{ matrix.scenario }}-${{ steps.commit.outputs.short }}
+          path: ${{ runner.temp }}/installer-diagnostics/
+          if-no-files-found: warn
+          retention-days: 7
+
   build-summary:
     name: Build Summary
     runs-on: ubuntu-latest
-    needs: [code-quality, build]
+    needs: [code-quality, build, windows-installer-smoke]
     if: always()
 
     steps:
@@ -1075,3 +1270,4 @@ jobs:
           echo "| Platforms | $PLATFORMS |" >> $GITHUB_STEP_SUMMARY
           echo "| Code Quality | ${{ needs.code-quality.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Build | ${{ needs.build.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Windows installer smoke | ${{ needs.windows-installer-smoke.result }} |" >> $GITHUB_STEP_SUMMARY

@@ -1,6 +1,6 @@
 param(
   [Parameter(Mandatory = $true)]
-  [ValidateSet('read', 'write', 'delete')]
+  [ValidateSet('read', 'write', 'delete', 'prepare-migration', 'commit-migration', 'rollback-migration')]
   [string]$Action,
   [string]$ExpectedArch = '',
   [string]$InstallDir = '',
@@ -16,6 +16,7 @@ $StatePath = Join-Path $StateDirectory 'installer-state.ini'
 $ExpectedAppId = 'com.csbu.workmate'
 $ExpectedUninstallerName = 'Uninstall CSBU WorkMate.exe'
 $ExpectedExecutableName = 'CSBU WorkMate.exe'
+$MigrationStagingSuffix = '.__csbu-migration'
 
 function Get-NormalizedInstallDirectory([string]$PathValue) {
   if ([string]::IsNullOrWhiteSpace($PathValue) -or -not [IO.Path]::IsPathRooted($PathValue)) {
@@ -48,6 +49,48 @@ function Read-IniSection([string]$PathValue) {
   return $values
 }
 
+function Test-InstallPayload([string]$Directory) {
+  return (Test-Path -LiteralPath (Join-Path $Directory $ExpectedExecutableName) -PathType Leaf) -and
+    (Test-Path -LiteralPath (Join-Path $Directory $ExpectedUninstallerName) -PathType Leaf)
+}
+
+function Remove-DirectoryIfExists([string]$Directory) {
+  if (Test-Path -LiteralPath $Directory) {
+    Remove-Item -LiteralPath $Directory -Recurse -Force -ErrorAction Stop
+  }
+  if (Test-Path -LiteralPath $Directory) {
+    throw 'migration-directory-remove-failed'
+  }
+}
+
+function Get-ValidatedState([string]$Architecture, [bool]$AllowMigrationStaging) {
+  if (-not (Test-Path -LiteralPath $StatePath -PathType Leaf)) {
+    return $null
+  }
+  $state = Read-IniSection $StatePath
+  if ($state.SchemaVersion -ne '1' -or $state.AppId -ne $ExpectedAppId) {
+    throw 'identity-invalid'
+  }
+  if ($Architecture -and $state.Arch -ne $Architecture) {
+    throw 'architecture-mismatch'
+  }
+  $normalizedInstallDir = Get-NormalizedInstallDirectory $state.InstallLocation
+  $normalizedUninstaller = [IO.Path]::GetFullPath($state.UninstallerPath)
+  $expectedUninstaller = Join-Path $normalizedInstallDir $ExpectedUninstallerName
+  if ($normalizedUninstaller -ine $expectedUninstaller) {
+    throw 'uninstaller-location-invalid'
+  }
+  $stagingDirectory = "$normalizedInstallDir$MigrationStagingSuffix"
+  if (-not (Test-InstallPayload $normalizedInstallDir) -and
+    (-not $AllowMigrationStaging -or -not (Test-InstallPayload $stagingDirectory))) {
+    throw 'application-or-uninstaller-missing'
+  }
+  return [pscustomobject]@{
+    InstallDirectory = $normalizedInstallDir
+    StagingDirectory = $stagingDirectory
+  }
+}
+
 function Remove-StateFiles {
   Remove-Item -LiteralPath $StatePath -Force -ErrorAction SilentlyContinue
   if (Test-Path -LiteralPath $StateDirectory) {
@@ -66,27 +109,55 @@ try {
   }
 
   if ($Action -eq 'read') {
-    if (-not (Test-Path -LiteralPath $StatePath -PathType Leaf)) {
+    $validatedState = Get-ValidatedState $ExpectedArch $true
+    if (-not $validatedState) {
       exit 10
     }
-    $state = Read-IniSection $StatePath
-    if ($state.SchemaVersion -ne '1' -or $state.AppId -ne $ExpectedAppId) {
-      throw 'identity-invalid'
+    exit 0
+  }
+
+  if ($Action -eq 'prepare-migration') {
+    $validatedState = Get-ValidatedState $ExpectedArch $true
+    if (-not $validatedState) {
+      throw 'migration-state-missing'
     }
-    if ($ExpectedArch -and $state.Arch -ne $ExpectedArch) {
-      throw 'architecture-mismatch'
+    try {
+      if (Test-InstallPayload $validatedState.StagingDirectory) {
+        Remove-DirectoryIfExists $validatedState.InstallDirectory
+      } else {
+        Remove-DirectoryIfExists $validatedState.StagingDirectory
+        Move-Item -LiteralPath $validatedState.InstallDirectory -Destination $validatedState.StagingDirectory
+      }
+      New-Item -ItemType Directory -Path $validatedState.InstallDirectory -Force | Out-Null
+    } catch {
+      if (Test-InstallPayload $validatedState.StagingDirectory) {
+        Remove-DirectoryIfExists $validatedState.InstallDirectory
+        Move-Item -LiteralPath $validatedState.StagingDirectory -Destination $validatedState.InstallDirectory
+      }
+      throw
     }
-    $normalizedInstallDir = Get-NormalizedInstallDirectory $state.InstallLocation
-    $normalizedUninstaller = [IO.Path]::GetFullPath($state.UninstallerPath)
-    $expectedUninstaller = Join-Path $normalizedInstallDir $ExpectedUninstallerName
-    if ($normalizedUninstaller -ine $expectedUninstaller) {
-      throw 'uninstaller-location-invalid'
+    exit 0
+  }
+
+  if ($Action -eq 'rollback-migration') {
+    $validatedState = Get-ValidatedState $ExpectedArch $true
+    if (-not $validatedState -or -not (Test-InstallPayload $validatedState.StagingDirectory)) {
+      throw 'migration-staging-invalid'
     }
-    if (-not (Test-Path -LiteralPath (Join-Path $normalizedInstallDir $ExpectedExecutableName) -PathType Leaf)) {
-      throw 'application-missing'
+    Remove-DirectoryIfExists $validatedState.InstallDirectory
+    Move-Item -LiteralPath $validatedState.StagingDirectory -Destination $validatedState.InstallDirectory
+    exit 0
+  }
+
+  if ($Action -eq 'commit-migration') {
+    $validatedState = Get-ValidatedState $ExpectedArch $true
+    if (-not $validatedState) {
+      throw 'migration-state-missing'
     }
-    if (-not (Test-Path -LiteralPath $normalizedUninstaller -PathType Leaf)) {
-      throw 'uninstaller-missing'
+    try {
+      Remove-DirectoryIfExists $validatedState.StagingDirectory
+    } finally {
+      Remove-StateFiles
     }
     exit 0
   }

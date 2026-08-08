@@ -177,6 +177,36 @@ function patchElectronBuilderNsisInstaller() {
     fs.writeFileSync(installUtilPath, patched);
     console.log('Patched electron-builder NSIS uninstall failure handoff.');
   }
+
+  const extractAppPackagePath = path.join(appBuilderDir, 'templates', 'nsis', 'include', 'extractAppPackage.nsh');
+  if (!fs.existsSync(extractAppPackagePath)) {
+    throw new Error(`electron-builder NSIS extraction template not found: ${extractAppPackagePath}`);
+  }
+  const originalExtraction = fs.readFileSync(extractAppPackagePath, 'utf8');
+  const migrationExtractionMarker = 'CSBU WorkMate migration direct extraction';
+  const extractionMacroStart = '!macro extractUsing7za FILE\n  Push $OUTDIR';
+  const migrationExtraction = [
+    '!macro extractUsing7za FILE',
+    '  Push $OUTDIR',
+    '  ${if} $CsbuWorkMateLegacyMigrationPrepared == "1"',
+    `    DetailPrint \`${migrationExtractionMarker}.\``,
+    '    Nsis7z::Extract "${FILE}"',
+    '    Pop $R0',
+    '    SetOutPath $R0',
+    '    Goto DoneExtract7za',
+    '  ${endIf}',
+  ].join('\n');
+  let patchedExtraction = originalExtraction;
+  if (!patchedExtraction.includes(migrationExtractionMarker)) {
+    if (!patchedExtraction.includes(extractionMacroStart)) {
+      throw new Error('electron-builder NSIS extraction template changed; update patchElectronBuilderNsisInstaller.');
+    }
+    patchedExtraction = patchedExtraction.replace(extractionMacroStart, migrationExtraction);
+  }
+  if (patchedExtraction !== originalExtraction) {
+    fs.writeFileSync(extractAppPackagePath, patchedExtraction);
+    console.log('Patched electron-builder NSIS migration extraction path.');
+  }
 }
 
 function walkFiles(dir, acc = []) {

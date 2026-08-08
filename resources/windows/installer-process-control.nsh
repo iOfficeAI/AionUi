@@ -289,6 +289,10 @@ Var /GLOBAL CsbuWorkMateCurrentOutDir
       ${EndIf}
   ${EndIf}
 
+  ${If} $CsbuWorkMateLegacyMigrationPending == "1"
+    !insertmacro CSBU_WORKMATE_PREPARE_LEGACY_MIGRATION
+  ${EndIf}
+
 !macroend
 
 !endif

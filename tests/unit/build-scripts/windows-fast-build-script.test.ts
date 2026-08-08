@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { execFileSync, spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { parse, resolve } from 'node:path';
@@ -163,6 +163,124 @@ describe('Windows fast build scripts', () => {
 
     rmSync(tempDirectory, { force: true, recursive: true });
     expect(result.status).toBe(11);
+  });
+
+  it.runIf(process.platform === 'win32')('commits a registry-free migration from an atomic staging directory', () => {
+    const tempDirectory = mkdtempSync(resolve(tmpdir(), 'csbu-installer-migration-'));
+    const localAppData = resolve(tempDirectory, 'local-app-data');
+    const installDirectory = resolve(tempDirectory, 'custom-install');
+    const stagingDirectory = `${installDirectory}.__csbu-migration`;
+    const uninstallerPath = resolve(installDirectory, 'Uninstall CSBU WorkMate.exe');
+    const stateArguments = ['-ExpectedArch', 'x64', '-StateRoot', localAppData];
+
+    try {
+      mkdirSync(installDirectory, { recursive: true });
+      writeFileSync(resolve(installDirectory, 'CSBU WorkMate.exe'), 'legacy-application');
+      writeFileSync(uninstallerPath, 'legacy-uninstaller');
+      execFileSync('powershell', [
+        '-NoProfile',
+        '-ExecutionPolicy',
+        'Bypass',
+        '-File',
+        installerStateScript,
+        '-Action',
+        'write',
+        ...stateArguments,
+        '-InstallDir',
+        installDirectory,
+        '-Version',
+        '2.1.51',
+        '-UninstallerPath',
+        uninstallerPath,
+      ]);
+
+      execFileSync('powershell', [
+        '-NoProfile',
+        '-ExecutionPolicy',
+        'Bypass',
+        '-File',
+        installerStateScript,
+        '-Action',
+        'prepare-migration',
+        ...stateArguments,
+      ]);
+      expect(readFileSync(resolve(stagingDirectory, 'CSBU WorkMate.exe'), 'utf8')).toBe('legacy-application');
+
+      writeFileSync(resolve(installDirectory, 'CSBU WorkMate.exe'), 'current-application');
+      writeFileSync(uninstallerPath, 'current-uninstaller');
+      execFileSync('powershell', [
+        '-NoProfile',
+        '-ExecutionPolicy',
+        'Bypass',
+        '-File',
+        installerStateScript,
+        '-Action',
+        'commit-migration',
+        ...stateArguments,
+      ]);
+
+      expect(readFileSync(resolve(installDirectory, 'CSBU WorkMate.exe'), 'utf8')).toBe('current-application');
+      expect(existsSync(stagingDirectory)).toBe(false);
+    } finally {
+      rmSync(tempDirectory, { force: true, recursive: true });
+    }
+  });
+
+  it.runIf(process.platform === 'win32')('rolls back an interrupted registry-free migration', () => {
+    const tempDirectory = mkdtempSync(resolve(tmpdir(), 'csbu-installer-rollback-'));
+    const localAppData = resolve(tempDirectory, 'local-app-data');
+    const installDirectory = resolve(tempDirectory, 'custom-install');
+    const uninstallerPath = resolve(installDirectory, 'Uninstall CSBU WorkMate.exe');
+    const stateArguments = ['-ExpectedArch', 'x64', '-StateRoot', localAppData];
+
+    try {
+      mkdirSync(installDirectory, { recursive: true });
+      writeFileSync(resolve(installDirectory, 'CSBU WorkMate.exe'), 'legacy-application');
+      writeFileSync(uninstallerPath, 'legacy-uninstaller');
+      execFileSync('powershell', [
+        '-NoProfile',
+        '-ExecutionPolicy',
+        'Bypass',
+        '-File',
+        installerStateScript,
+        '-Action',
+        'write',
+        ...stateArguments,
+        '-InstallDir',
+        installDirectory,
+        '-Version',
+        '2.1.51',
+        '-UninstallerPath',
+        uninstallerPath,
+      ]);
+      execFileSync('powershell', [
+        '-NoProfile',
+        '-ExecutionPolicy',
+        'Bypass',
+        '-File',
+        installerStateScript,
+        '-Action',
+        'prepare-migration',
+        ...stateArguments,
+      ]);
+      writeFileSync(resolve(installDirectory, 'partial-file'), 'partial');
+
+      execFileSync('powershell', [
+        '-NoProfile',
+        '-ExecutionPolicy',
+        'Bypass',
+        '-File',
+        installerStateScript,
+        '-Action',
+        'rollback-migration',
+        ...stateArguments,
+      ]);
+
+      expect(readFileSync(resolve(installDirectory, 'CSBU WorkMate.exe'), 'utf8')).toBe('legacy-application');
+      expect(existsSync(resolve(installDirectory, 'partial-file'))).toBe(false);
+    } finally {
+      rmSync(tempDirectory, { force: true, recursive: true });
+    }
   });
 
   it('supports a temporary build-time auto-update version override', () => {

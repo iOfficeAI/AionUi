@@ -50,6 +50,8 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
+      run_windows_installer_smoke: ${{ steps.set-matrix.outputs.run_windows_installer_smoke }}
+      windows_installer_smoke_matrix: ${{ steps.set-matrix.outputs.windows_installer_smoke_matrix }}
 
     steps:
       - name: Generate build matrix
@@ -82,6 +84,19 @@ jobs:
           fi
 
           echo "matrix=$MATRIX" >> $GITHUB_OUTPUT
+          RUN_WINDOWS_INSTALLER_SMOKE=false
+          WINDOWS_INSTALLER_SMOKE_MATRIX='{"include":[{"platform":"windows-x64","os":"windows-2022","artifact-name":"windows-build-x64","arch":"x64"}]}'
+          if [ "$PLATFORM" = "windows-x64" ]; then
+            RUN_WINDOWS_INSTALLER_SMOKE=true
+          elif [ "$PLATFORM" = "windows-arm64" ]; then
+            RUN_WINDOWS_INSTALLER_SMOKE=true
+            WINDOWS_INSTALLER_SMOKE_MATRIX='{"include":[{"platform":"windows-arm64","os":"windows-11-arm","artifact-name":"windows-build-arm64","arch":"arm64"}]}'
+          elif [ "$PLATFORM" = "all" ]; then
+            RUN_WINDOWS_INSTALLER_SMOKE=true
+            WINDOWS_INSTALLER_SMOKE_MATRIX='{"include":[{"platform":"windows-x64","os":"windows-2022","artifact-name":"windows-build-x64","arch":"x64"},{"platform":"windows-arm64","os":"windows-11-arm","artifact-name":"windows-build-arm64","arch":"arm64"}]}'
+          fi
+          echo "run_windows_installer_smoke=$RUN_WINDOWS_INSTALLER_SMOKE" >> $GITHUB_OUTPUT
+          echo "windows_installer_smoke_matrix=$WINDOWS_INSTALLER_SMOKE_MATRIX" >> $GITHUB_OUTPUT
           echo "Generated matrix for platform '$PLATFORM':"
           echo "$MATRIX" | python3 -m json.tool
 
@@ -96,4 +111,6 @@ jobs:
       aioncore_run_id: ${{ inputs.aioncore_run_id }}
       append_commit_hash: true
       upload_installers_only: true
+      run_windows_installer_smoke: ${{ fromJSON(needs.prepare-matrix.outputs.run_windows_installer_smoke) }}
+      windows_installer_smoke_matrix: ${{ needs.prepare-matrix.outputs.windows_installer_smoke_matrix }}
     secrets: inherit

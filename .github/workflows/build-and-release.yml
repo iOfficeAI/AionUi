@@ -129,6 +129,12 @@ jobs:
     with:
       ref: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || '' }}
       skip_code_quality: true
+      run_windows_installer_smoke: true
+      windows_installer_smoke_matrix: >-
+        {"include":[
+          {"platform":"windows-x64","os":"windows-2022","artifact-name":"windows-build-x64","arch":"x64"},
+          {"platform":"windows-arm64","os":"windows-11-arm","artifact-name":"windows-build-arm64","arch":"arm64"}
+        ]}
       matrix: >-
         {"include":[
           {"platform":"macos-arm64","os":"macos-14","command":"node scripts/build-with-builder.js arm64 --mac --arm64","artifact-name":"macos-build-arm64","arch":"arm64"},

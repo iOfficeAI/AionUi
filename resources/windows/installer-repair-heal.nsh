@@ -9,6 +9,8 @@ Var /GLOBAL CsbuWorkMateStateActionResult
 Var /GLOBAL CsbuWorkMateStateInstallLocation
 Var /GLOBAL CsbuWorkMateStateUninstallerPath
 Var /GLOBAL CsbuWorkMateLegacyMigrationPending
+Var /GLOBAL CsbuWorkMateLegacyMigrationPrepared
+Var /GLOBAL CsbuWorkMateLegacyMigrationCompleted
 Var /GLOBAL CsbuWorkMateLegacyMachineInstallLocation
 Var /GLOBAL CsbuWorkMateRegInstallLocation
 Var /GLOBAL CsbuWorkMateRegUninstallString
@@ -34,6 +36,33 @@ Var /GLOBAL CsbuWorkMateRepairLogResult
   Pop $CsbuWorkMateStateActionResult
 !macroend
 
+!macro CSBU_WORKMATE_PREPARE_LEGACY_MIGRATION
+  !insertmacro CSBU_WORKMATE_STAGE_INSTALL_STATE_HELPER
+  nsExec::Exec `"$SYSDIR\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -File "$PLUGINSDIR\csbu-workmate-installer-state.ps1" -Action prepare-migration -ExpectedArch "${CSBU_WORKMATE_TARGET_ARCH}"`
+  Pop $CsbuWorkMateStateActionResult
+  ${If} $CsbuWorkMateStateActionResult != 0
+    !insertmacro CSBU_WORKMATE_FAIL_REPORTABLE_BILINGUAL ${CSBU_WORKMATE_E_INSTALL_DIR_REMOVE_OR_LOCKED} "legacy-migration prepare-failed result=$CsbuWorkMateStateActionResult instDir=$INSTDIR" "${CSBU_WORKMATE_MSG_REPLACE_LOCKED_EN}" "${CSBU_WORKMATE_MSG_REPLACE_LOCKED_ZH}" "${CSBU_WORKMATE_MSG_CLOSE_INSTALL_DIR_ACTION_EN}" "${CSBU_WORKMATE_MSG_CLOSE_INSTALL_DIR_ACTION_ZH}"
+  ${EndIf}
+  StrCpy $CsbuWorkMateLegacyMigrationPrepared "1"
+  !insertmacro CSBU_WORKMATE_LOG_EVENT "event=legacy-migration-staging phase=prepared instDir=$INSTDIR"
+!macroend
+
+!macro CSBU_WORKMATE_ROLLBACK_LEGACY_MIGRATION
+  ${If} $CsbuWorkMateLegacyMigrationPrepared == "1"
+  ${AndIf} $CsbuWorkMateLegacyMigrationCompleted != "1"
+    !insertmacro CSBU_WORKMATE_STAGE_INSTALL_STATE_HELPER
+    nsExec::Exec `"$SYSDIR\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -File "$PLUGINSDIR\csbu-workmate-installer-state.ps1" -Action rollback-migration -ExpectedArch "${CSBU_WORKMATE_TARGET_ARCH}"`
+    Pop $CsbuWorkMateStateActionResult
+    ${If} $CsbuWorkMateStateActionResult == 0
+      DeleteRegKey HKCU "${UNINSTALL_REGISTRY_KEY}"
+      DeleteRegKey HKCU "${INSTALL_REGISTRY_KEY}"
+      !insertmacro CSBU_WORKMATE_LOG_EVENT "event=legacy-migration-staging phase=rolled-back instDir=$INSTDIR"
+    ${Else}
+      !insertmacro CSBU_WORKMATE_LOG_EVENT "event=legacy-migration-staging phase=rollback-failed result=$CsbuWorkMateStateActionResult instDir=$INSTDIR"
+    ${EndIf}
+  ${EndIf}
+!macroend
+
 !macro CSBU_WORKMATE_LOAD_INSTALL_STATE
   StrCpy $CsbuWorkMateStateInstallLocation ""
   StrCpy $CsbuWorkMateStateUninstallerPath ""
@@ -56,14 +85,18 @@ Var /GLOBAL CsbuWorkMateRepairLogResult
 
 !macro CSBU_WORKMATE_FINALIZE_STANDARD_INSTALL
   ${If} $CsbuWorkMateLegacyMigrationPending == "1"
-    !insertmacro CSBU_WORKMATE_DELETE_INSTALL_STATE
-    !insertmacro CSBU_WORKMATE_LOG_EVENT "event=legacy-install-state-delete phase=install-success"
+    StrCpy $CsbuWorkMateLegacyMigrationCompleted "1"
+    !insertmacro CSBU_WORKMATE_STAGE_INSTALL_STATE_HELPER
+    nsExec::Exec `"$SYSDIR\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -File "$PLUGINSDIR\csbu-workmate-installer-state.ps1" -Action commit-migration -ExpectedArch "${CSBU_WORKMATE_TARGET_ARCH}"`
+    Pop $CsbuWorkMateStateActionResult
+    !insertmacro CSBU_WORKMATE_LOG_EVENT "event=legacy-migration-staging phase=committed result=$CsbuWorkMateStateActionResult instDir=$INSTDIR"
   ${EndIf}
 !macroend
 
 !macro CSBU_WORKMATE_DEFINE_INSTALLER_LIFECYCLE_CALLBACKS
   !ifndef BUILD_UNINSTALLER
     Function .onGUIEnd
+      !insertmacro CSBU_WORKMATE_ROLLBACK_LEGACY_MIGRATION
       !insertmacro CSBU_WORKMATE_CLEAR_ACTIVE_INSTALLER_MARKER
     FunctionEnd
   !endif
@@ -237,6 +270,8 @@ Var /GLOBAL CsbuWorkMateRepairLogResult
 !macro customInit
   StrCpy $CsbuWorkMateRegistryInstallIsValid "0"
   StrCpy $CsbuWorkMateLegacyMigrationPending "0"
+  StrCpy $CsbuWorkMateLegacyMigrationPrepared "0"
+  StrCpy $CsbuWorkMateLegacyMigrationCompleted "0"
 
   ReadRegStr $CsbuWorkMateLegacyMachineInstallLocation HKLM "${INSTALL_REGISTRY_KEY}" "InstallLocation"
   ${If} $CsbuWorkMateLegacyMachineInstallLocation != ""

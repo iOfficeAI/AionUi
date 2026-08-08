@@ -378,9 +378,15 @@ childProcess.execSync = function mockedExecSync(command) {
 
       if (args.includes('--win')) {
         const installUtil = readFileSync(resolveAppBuilderInstallUtil(), 'utf8');
+        const extractAppPackage = readFileSync(
+          resolveAppBuilderInstallUtil().replace('installUtil.nsh', 'extractAppPackage.nsh'),
+          'utf8'
+        );
         expect(installUtil).toContain('CSBU-WorkMate-bundled-uninstaller override source');
         expect(installUtil).toContain('$PLUGINSDIR\\CSBU-WorkMate-fixed-uninstaller.exe');
         expect(installUtil.match(/CSBU-WorkMate-bundled-uninstaller override source/g)).toHaveLength(1);
+        expect(extractAppPackage).toContain('CSBU WorkMate migration direct extraction');
+        expect(extractAppPackage).toContain('$CsbuWorkMateLegacyMigrationPrepared == "1"');
       }
 
       const calls = JSON.parse(readFileSync(callsPath, 'utf8')) as Array<{
