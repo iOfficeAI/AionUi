@@ -1,5 +1,22 @@
 # Changelog
 
+## [2.1.53](https://github.com/suoak/AionUi/compare/v2.1.52...v2.1.53) (2026-08-08)
+
+### Desktop
+
+#### Bug Fixes
+
+- **ci:** harden Windows installer smoke tests (#21)
+- **ci:** isolate Windows installer smoke validation (#22)
+
+### Core ([v0.1.65](https://github.com/suoak/AionCore/releases/tag/v0.1.65))
+
+#### Bug Fixes
+
+- **aionrs:** improve provider recovery
+
+---
+
 ## [2.1.52](https://github.com/suoak/AionUi/compare/v2.1.51...v2.1.52) (2026-08-07)
 
 ### Desktop
