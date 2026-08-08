@@ -611,7 +611,9 @@
     "removeFailed": "Couldn't remove the folder",
     "contextMenu": {
       "rename": "Rename",
-      "addToChat": "Add to chat"
+      "addToChat": "Add to chat",
+      "copyRelativePath": "Copy relative path",
+      "copyAbsolutePath": "Copy absolute path"
     },
     "namePlaceholder": "Name",
     "deleteConfirm": "Delete “{{name}}”? This can’t be undone.",
@@ -705,7 +707,9 @@
         "outcomeUnknown": "The connection reset before a reply arrived — this action may or may not have completed. Refresh and check the file list before retrying.",
         "allFailed": "None of the {{count}} file(s) could be processed"
       }
-    }
+    },
+    "pathCopied": "Path copied",
+    "copyFailed": "Failed to copy path"
   },
   "terminal": {
     "running": "Running",

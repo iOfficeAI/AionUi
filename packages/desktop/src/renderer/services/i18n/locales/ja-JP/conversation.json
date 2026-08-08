@@ -610,7 +610,9 @@
     "removeFailed": "Couldn't remove the folder",
     "contextMenu": {
       "rename": "名前を変更",
-      "addToChat": "チャットに追加"
+      "addToChat": "チャットに追加",
+      "copyRelativePath": "相対パスをコピー",
+      "copyAbsolutePath": "絶対パスをコピー"
     },
     "namePlaceholder": "名前",
     "deleteConfirm": "「{{name}}」を削除しますか？この操作は取り消せません。",
@@ -704,7 +706,9 @@
         "outcomeUnknown": "応答が届く前に接続がリセットされました——この操作は完了した可能性も、していない可能性もあります。再試行の前に更新してファイル一覧を確認してください。",
         "allFailed": "{{count}} 個のファイルはいずれも処理できませんでした"
       }
-    }
+    },
+    "pathCopied": "パスをコピーしました",
+    "copyFailed": "パスのコピーに失敗しました"
   },
   "terminal": {
     "running": "実行中",

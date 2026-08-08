@@ -34,6 +34,7 @@ import { classifyPreviewError, previewErrorToI18nKey } from '@/renderer/utils/pr
 // PATCH(ELECTRON-3SZ): used only by the preview payload patch below — remove with it.
 import type { PreviewContentType } from '@/common/types/office/preview';
 
+import { copyText } from '@/renderer/utils/ui/clipboard';
 import { emitter } from '@/renderer/utils/emitter';
 import { projectFileRef } from '@/common/types/chatFile';
 import type { ChatFileRef } from '@/common/types/chatFile';
@@ -281,6 +282,32 @@ export const ExplorerContainer: React.FC<ExplorerContainerProps> = ({ projectId 
     });
   };
 
+  // Copy the node's path relative to its owning pe root — the tree's native
+  // identity (`relative_path`, always `/`-separated, cross-platform). A pe-root
+  // node's relative_path is '' (it IS the root); copy '.' (its own literal
+  // relative path) rather than the display `name`, which may be a custom label or
+  // even the internal pe_id — never a real path. Pure clipboard (no OS shell / no
+  // absolute path), so it works for files and folders on both Electron and WebUI.
+  const handleCopyRelativePath = (_peId: string, rel: string): void => {
+    void copyText(rel === '' ? '.' : rel)
+      .then(() => Message.success(t('conversation.explorer.pathCopied')))
+      .catch(() => Message.error(t('conversation.explorer.copyFailed')));
+  };
+
+  // Copy the node's ABSOLUTE device path. The front end never holds it (project
+  // refs are pe_id + relative_path only) and never receives it: the backend
+  // resolves the path AND writes the clipboard itself (mirrors reveal), returning
+  // void — we only toast on success/failure. Desktop-only: the menu item is
+  // Electron-gated in ExplorerPanel, so this handler only runs there (a remote
+  // WebUI must not surface it). A pe-root node (rel '') resolves to the root
+  // folder's own absolute path server-side.
+  const handleCopyAbsolutePath = (peId: string, rel: string): void => {
+    void ipcBridge.fs.copyAbsolutePath
+      .invoke({ pe_id: peId, relative_path: rel })
+      .then(() => Message.success(t('conversation.explorer.pathCopied')))
+      .catch(() => Message.error(t('conversation.explorer.copyFailed')));
+  };
+
   // Search result default action: locate the hit in the tree — switch to the
   // files tab, expand its ancestor chain (reveal subscribes the parent dir), and
   // select it. Reuses the store's existing reveal path; does NOT open preview
@@ -425,6 +452,8 @@ export const ExplorerContainer: React.FC<ExplorerContainerProps> = ({ projectId 
             onDelete={handleDelete}
             onAddToChat={activeConversationId ? handleAddToChat : undefined}
             onRevealInFolder={handleRevealInFolder}
+            onCopyRelativePath={handleCopyRelativePath}
+            onCopyAbsolutePath={handleCopyAbsolutePath}
             onImportFiles={handleImportFiles}
           />
         </SearchPanel>

@@ -611,7 +611,9 @@
     "removeFailed": "Couldn't remove the folder",
     "contextMenu": {
       "rename": "Cambiar nombre",
-      "addToChat": "Añadir al chat"
+      "addToChat": "Añadir al chat",
+      "copyRelativePath": "Copiar ruta relativa",
+      "copyAbsolutePath": "Copiar ruta absoluta"
     },
     "namePlaceholder": "Nombre",
     "deleteConfirm": "¿Eliminar «{{name}}»? Esto no se puede deshacer.",
@@ -705,7 +707,9 @@
         "outcomeUnknown": "La conexión se restableció antes de recibir respuesta: esta acción puede haberse completado o no. Actualiza y revisa la lista de archivos antes de reintentar.",
         "allFailed": "No se pudo procesar ninguno de los {{count}} archivo(s)"
       }
-    }
+    },
+    "pathCopied": "Ruta copiada",
+    "copyFailed": "No se pudo copiar la ruta"
   },
   "terminal": {
     "running": "En ejecución",

@@ -610,7 +610,9 @@
     "removeFailed": "Couldn't remove the folder",
     "contextMenu": {
       "rename": "이름 바꾸기",
-      "addToChat": "채팅에 추가"
+      "addToChat": "채팅에 추가",
+      "copyRelativePath": "상대 경로 복사",
+      "copyAbsolutePath": "절대 경로 복사"
     },
     "namePlaceholder": "이름",
     "deleteConfirm": "“{{name}}”을(를) 삭제할까요? 이 작업은 취소할 수 없습니다.",
@@ -704,7 +706,9 @@
         "outcomeUnknown": "응답이 오기 전에 연결이 재설정되었습니다 — 이 작업은 완료되었을 수도, 되지 않았을 수도 있습니다. 다시 시도하기 전에 새로 고쳐 파일 목록을 확인하세요.",
         "allFailed": "{{count}}개 파일을 모두 처리하지 못했습니다"
       }
-    }
+    },
+    "pathCopied": "경로가 복사되었습니다",
+    "copyFailed": "경로 복사에 실패했습니다"
   },
   "terminal": {
     "running": "실행 중",
