@@ -1,5 +1,16 @@
 # Changelog
 
+## [2.1.56](https://github.com/suoak/AionUi/compare/v2.1.55...v2.1.56) (2026-08-10)
+
+### Desktop
+
+#### Features
+
+- **updater:** improve update guidance and release policy (#32)
+- **about:** refine the product attribution as developed and maintained by the Cybersecurity Operations Management Department (#32)
+
+---
+
 ## [2.1.55](https://github.com/suoak/AionUi/compare/v2.1.54...v2.1.55) (2026-08-09)
 
 ### Desktop
