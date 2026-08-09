@@ -368,16 +368,17 @@ describe('static-server', () => {
   });
 });
 
+const iface = (address: string, overrides: Partial<NetworkInterfaceInfo> = {}): NetworkInterfaceInfo => ({
+  address,
+  netmask: '255.255.255.0',
+  family: 'IPv4',
+  mac: '00:00:00:00:00:00',
+  internal: false,
+  cidr: `${address}/24`,
+  ...overrides,
+});
+
 describe('getLanIP', () => {
-  const iface = (address: string, overrides: Partial<NetworkInterfaceInfo> = {}): NetworkInterfaceInfo => ({
-    address,
-    netmask: '255.255.255.0',
-    family: 'IPv4',
-    mac: '00:00:00:00:00:00',
-    internal: false,
-    cidr: `${address}/24`,
-    ...overrides,
-  });
 
   const mockInterfaces = (interfaces: Record<string, NetworkInterfaceInfo[]>): void => {
     vi.mocked(networkInterfaces).mockReturnValue(interfaces);
@@ -418,6 +419,38 @@ describe('getLanIP', () => {
       Office: [iface('172.20.1.8')],
     });
     expect(getLanIP()).toBe('172.20.1.8');
+  });
+
+  it('skips the remaining special-purpose ranges (protocol, TEST-NET, multicast, reserved)', () => {
+    mockInterfaces({
+      Zero: [iface('0.1.2.3')],
+      Protocol: [iface('192.0.0.9')],
+      TestNet1: [iface('192.0.2.1')],
+      TestNet2: [iface('198.51.100.1')],
+      TestNet3: [iface('203.0.113.1')],
+      Multicast: [iface('224.0.0.1')],
+      Reserved: [iface('240.0.0.1')],
+      Real: [iface('10.1.2.3')],
+    });
+    expect(getLanIP()).toBe('10.1.2.3');
+  });
+
+  it('falls back to a public IPv4 when no private address exists', () => {
+    mockInterfaces({ WAN: [iface('8.8.8.8')] });
+    expect(getLanIP()).toBe('8.8.8.8');
+  });
+
+  it('ignores malformed IPv4 addresses', () => {
+    mockInterfaces({
+      Weird: [iface('not-an-ip'), iface('256.1.1.1'), iface('1.2.3')],
+      Real: [iface('192.168.1.10')],
+    });
+    expect(getLanIP()).toBe('192.168.1.10');
+  });
+
+  it('handles numeric IPv4 family values (older Node)', () => {
+    mockInterfaces({ Ethernet: [{ ...iface('192.168.1.10'), family: 4 }] });
+    expect(getLanIP()).toBe('192.168.1.10');
   });
 
   it('ignores internal interfaces', () => {
