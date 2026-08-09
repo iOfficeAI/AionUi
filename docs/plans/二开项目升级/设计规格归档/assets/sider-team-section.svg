@@ -1,0 +1,97 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="560" viewBox="0 0 760 560" font-family="-apple-system, 'PingFang SC', 'Segoe UI', sans-serif">
+  <!--
+    侧栏团队区 · 展开/收起线框（标注版）
+    证据: TeamSiderSection.tsx @ e3f154559
+    同时含临时团队会话入口：CollaborationLauncher / TeamStatusCard
+  -->
+  <defs>
+    <style>
+      .lbl { font-size: 10px; fill: #86909c; }
+      .dim { font-size: 9px; fill: #165dff; }
+      .state { font-size: 12px; font-weight: 600; fill: #1d2129; }
+      .txt2 { font-size: 11px; fill: #4e5969; }
+      .box { fill: #ffffff; stroke: #c9cdd4; stroke-width: 1; }
+      .fill1 { fill: #f2f3f5; }
+      .fill2 { fill: #e5e6eb; }
+    </style>
+  </defs>
+
+  <rect x="0" y="0" width="760" height="560" fill="#f7f8fa"/>
+  <text x="16" y="18" font-size="10" fill="#86909c">sider-team-section.svg — TeamSiderSection（侧栏「团队」区）+ 会话内临时团队入口</text>
+
+  <!-- 展开态 -->
+  <rect x="24" y="32" width="260" height="380" rx="10" class="box"/>
+  <text x="40" y="56" class="state">展开（sider 未折叠）</text>
+  <text x="40" y="82" font-size="14" fill="#86909c">团队 ▸</text>
+  <rect x="248" y="66" width="20" height="20" rx="4" class="fill2"/>
+  <text x="258" y="80" font-size="11" fill="#4e5969" text-anchor="middle">＋</text>
+  <text x="40" y="100" class="dim">标签行 h-28 px-12 sticky：「团队」14px t-tertiary（hover t-primary）+ chevron（展开转 90°，localStorage 记忆）+ 右侧 20px 新建钮（testid team-create-btn，Tooltip 新建团队）</text>
+
+  <rect x="36" y="110" width="236" height="36" rx="8" class="fill1"/>
+  <text x="48" y="133" font-size="13" fill="#165dff">👥</text>
+  <text x="72" y="133" font-size="13" fill="#1d2129">多语言翻译团</text>
+  <circle cx="252" cy="128" r="9" fill="#f53f3f"/>
+  <text x="252" y="132" font-size="10" fill="#fff" text-anchor="middle" font-weight="700">3</text>
+  <text x="40" y="160" class="dim">团队项：icon 16（普通=Peoples / 临时=Comment / 运行中=Spin 16）· 选中 bg-active · 未读徽标 18px danger-6（&gt;99 显 99+，hover 隐藏）</text>
+
+  <rect x="36" y="168" width="236" height="36" rx="8" fill="none" stroke="#e5e6eb"/>
+  <text x="48" y="191" font-size="13" fill="#4e5969">💬</text>
+  <text x="72" y="191" font-size="13" fill="#1d2129">代码评审（临时）</text>
+  <text x="40" y="218" class="dim">临时团队（origin_conversation_id 存在）：Comment 图标 + Tooltip「临时团队」</text>
+
+  <rect x="36" y="226" width="236" height="36" rx="8" fill="none" stroke="#e5e6eb"/>
+  <text x="48" y="249" font-size="13" fill="#4e5969">📌</text>
+  <text x="72" y="249" font-size="13" fill="#1d2129">置顶团队示例</text>
+
+  <!-- 右键菜单 -->
+  <rect x="96" y="270" width="140" height="104" rx="8" fill="#ffffff" stroke="#c9cdd4"/>
+  <text x="110" y="292" class="txt2">📌 置顶 / 取消置顶</text>
+  <text x="110" y="316" class="txt2">✎ 重命名</text>
+  <text x="110" y="340" font-size="11" fill="#f53f3f">🗑 删除（danger）</text>
+  <text x="110" y="362" class="dim">删除中项禁用，文案变「删除中...」</text>
+  <text x="40" y="396" class="dim">删除 → Modal.confirm「删除此团队？此操作不可撤销。」（okButton warning，圆角 12，alignCenter，挂 body）· 置顶存 localStorage team-pinned-ids，置顶排前</text>
+
+  <!-- 收起态 -->
+  <rect x="320" y="32" width="120" height="380" rx="10" class="box"/>
+  <text x="336" y="56" class="state">收起（collapsed）</text>
+  <rect x="340" y="66" width="80" height="40" rx="8" class="fill1"/>
+  <text x="380" y="91" font-size="14" fill="#165dff" text-anchor="middle">👥</text>
+  <circle cx="412" cy="74" r="9" fill="#f53f3f"/>
+  <text x="412" y="78" font-size="10" fill="#fff" text-anchor="middle" font-weight="700">3</text>
+  <rect x="340" y="114" width="80" height="40" rx="8" fill="none" stroke="#e5e6eb"/>
+  <text x="380" y="139" font-size="14" fill="#4e5969" text-anchor="middle">💬</text>
+  <text x="336" y="176" class="dim">仅在有团队时渲染</text>
+  <text x="336" y="194" class="dim">项 40px rd-8 · Tooltip 右侧</text>
+  <text x="336" y="212" class="dim">（临时团队 Tooltip 追加</text>
+  <text x="336" y="228" class="dim">「临时团队」）· 徽标叠右上</text>
+
+  <!-- 重命名弹窗 -->
+  <rect x="320" y="250" width="200" height="120" rx="12" fill="#ffffff" stroke="#c9cdd4"/>
+  <text x="336" y="274" font-size="13" font-weight="600" fill="#1d2129">重命名团队</text>
+  <rect x="336" y="284" width="168" height="30" rx="6" class="fill1" stroke="#e5e6eb"/>
+  <text x="344" y="303" class="lbl">团队名称</text>
+  <text x="336" y="336" class="dim">Arco Modal rd-12 alignCenter 挂 body · 输入 allowClear autoFocus Enter 提交 · 名为空禁用确定 · 成功 Message「团队已重命名」</text>
+
+  <!-- 右栏：会话内临时团队入口 -->
+  <text x="560" y="56" class="state">会话页入口（临时团队）</text>
+
+  <rect x="540" y="70" width="200" height="40" rx="8" class="box"/>
+  <text x="556" y="95" font-size="13" fill="#4e5969">👥</text>
+  <text x="580" y="95" class="txt2">协作按钮</text>
+  <text x="540" y="126" class="dim">CollaborationLauncher：会话抬头 text mini 图标钮（Peoples 18，Tooltip「团队协作」）→ AgentSelectorModal</text>
+
+  <rect x="540" y="140" width="200" height="86" rx="8" class="fill1" stroke="#dee0e3"/>
+  <text x="552" y="160" font-size="12" font-weight="500" fill="#4e5969">团队 ●  <tspan fill="#165dff">◔ 运行中</tspan>  <tspan fill="#86909c">[3]</tspan> <tspan fill="#f53f3f">[2]</tspan></text>
+  <text x="552" y="180" font-size="13" font-weight="500" fill="#1d2129">代码评审专家组</text>
+  <text x="552" y="198" font-size="11" fill="#4e5969">最新消息预览…</text>
+  <text x="540" y="240" class="dim">TeamStatusCard：text mini 钮 rd-8 bg-2 hover:bg-hover border · Peoples filled 16 primary + 标题「团队」12px + 状态点 + 成员数徽标 + 未读徽标 + 名 13px 截断 + 预览 max-w-160</text>
+  <text x="540" y="258" class="dim">运行中：Spin 10 +「运行中」11px primary +「N 个活跃轮次」· 已解散：灰「已解散」标签，点击回源会话；否则点击跳 /team/:id（不换路由）</text>
+
+  <rect x="540" y="272" width="200" height="140" rx="12" fill="#ffffff" stroke="#c9cdd4"/>
+  <text x="556" y="296" font-size="13" font-weight="600" fill="#1d2129">选择智能体</text>
+  <rect x="556" y="306" width="168" height="26" rx="6" class="fill2"/>
+  <text x="564" y="323" class="lbl">已选回显条 +「已加入」</text>
+  <rect x="556" y="338" width="168" height="30" rx="8" class="fill1"/>
+  <text x="564" y="357" class="lbl">搜索 + 助手列表（modal 密度）</text>
+  <text x="556" y="386" class="dim">AgentSelectorModal：AionModal standard size medium（600×400）· loading 时 200px 高 Spin · 确认 disabled 直到选中 · 创建中禁关</text>
+</svg>

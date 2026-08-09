@@ -1,0 +1,123 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="980" height="700" viewBox="0 0 980 700" font-family="-apple-system, 'PingFang SC', 'Segoe UI', sans-serif">
+  <!--
+    团队创建弹窗 · 桌面双栏布局线框（标注版）
+    证据: packages/desktop/src/renderer/pages/team/components/TeamCreateModal.tsx @ e3f154559
+    AionModal variant='standard', width 900, maxWidth calc(100vw - 72px)
+    body: grid-cols-[1fr_1fr], height min(54vh,470px), minHeight 390
+  -->
+  <defs>
+    <style>
+      .lbl { font-size: 10px; fill: #86909c; }
+      .dim { font-size: 9px; fill: #165dff; }
+      .tok { font-size: 9px; fill: #b58a5e; }
+      .txt { font-size: 12px; fill: #1d2129; }
+      .txt2 { font-size: 11px; fill: #4e5969; }
+      .box { fill: #ffffff; stroke: #c9cdd4; stroke-width: 1; }
+      .fill1 { fill: #f2f3f5; }
+      .fill2 { fill: #e5e6eb; }
+      .divider { stroke: #e5e6eb; stroke-width: 1; }
+      .anno { stroke: #165dff; stroke-width: 1; fill: none; stroke-dasharray: 3 2; }
+    </style>
+  </defs>
+
+  <rect x="0" y="0" width="980" height="700" fill="#f7f8fa"/>
+  <text x="20" y="20" class="lbl">team-create-modal-desktop.svg — 团队创建弹窗（桌面 ≥768px，双栏）· 源: TeamCreateModal.tsx desktopBody</text>
+
+  <!-- Modal 900px -->
+  <rect x="40" y="34" width="900" height="640" rx="16" class="box"/>
+  <text x="944" y="30" class="dim" text-anchor="end">width 900 · maxWidth calc(100vw − 72px) · radius 16 · zIndex wrap 10000 / mask 9999</text>
+
+  <!-- Header: px-24 pt-20 pb-16 -->
+  <text x="64" y="62" font-size="18" font-weight="500" fill="#1d2129">新建团队</text>
+  <text x="64" y="82" class="txt2">让多个 AI 助手组队协作。建议一个团队只专注一个目标，不同任务分开建。</text>
+  <rect x="884" y="48" width="32" height="32" rx="8" class="fill2"/>
+  <text x="900" y="68" font-size="12" fill="#4e5969" text-anchor="middle">✕</text>
+  <text x="64" y="100" class="dim">header: px-24 pt-20 pb-16 · title 18px/500 · close 32×32 rd-8 hover:bg-2</text>
+  <line x1="40" y1="110" x2="940" y2="110" class="divider"/>
+
+  <!-- Body grid: 2 cols, height min(54vh,470px)=470 -->
+  <line x1="490" y1="110" x2="490" y2="580" stroke="#dee0e3" stroke-width="1"/>
+  <text x="492" y="124" class="dim">border-r border-border-3 通栏竖线 · body height min(54vh,470px) min 390 · contentStyle padding:0</text>
+
+  <!-- Left pane: assistants tab active -->
+  <text x="56" y="134" class="tok">左栏 section px-20 pb-18 pt-12 · Tabs justify</text>
+  <rect x="60" y="140" width="200" height="30" rx="4" fill="none" stroke="#165dff" stroke-width="1.5"/>
+  <text x="160" y="159" class="txt" text-anchor="middle" fill="#165dff">所有助手 (N)</text>
+  <rect x="268" y="140" width="160" height="30" rx="4" fill="none" stroke="#c9cdd4"/>
+  <text x="348" y="159" class="txt2" text-anchor="middle">专家团</text>
+  <text x="440" y="159" class="dim">Tabs: assistants | presets</text>
+
+  <!-- search -->
+  <rect x="60" y="180" width="404" height="34" rx="8" class="fill1" stroke="#e5e6eb"/>
+  <text x="72" y="201" class="lbl">搜索</text>
+  <text x="468" y="201" class="dim" text-anchor="end">AionSearchInput h-34</text>
+
+  <!-- assistant rows 44px modal density -->
+  <g>
+    <rect x="60" y="224" width="404" height="44" rx="8" class="fill1"/>
+    <rect x="68" y="231" width="30" height="30" rx="8" class="fill2"/>
+    <text x="106" y="250" class="txt2">助手名称（头像 30×30 rd-8 · 名 14px/500）</text>
+    <rect x="424" y="238" width="30" height="30" rx="6" fill="none" stroke="#c9cdd4"/>
+    <text x="439" y="258" font-size="12" fill="#4e5969" text-anchor="middle">＋</text>
+  </g>
+  <rect x="60" y="274" width="404" height="44" rx="8" fill="none" stroke="#e5e6eb"/>
+  <rect x="60" y="324" width="404" height="44" rx="8" fill="none" stroke="#e5e6eb"/>
+  <text x="262" y="392" class="lbl" text-anchor="middle">行高 44px（modal 密度）· 行间距 6 · hover bg-fill-2 · 列表 flex-1 滚动</text>
+  <rect x="60" y="404" width="404" height="44" rx="8" fill="none" stroke="#c9cdd4" stroke-dasharray="4 3"/>
+  <text x="262" y="430" class="lbl" text-anchor="middle">禁用行：文字 t-tertiary + cursor-not-allowed + Tooltip 说明原因</text>
+  <text x="60" y="470" class="dim">空态：虚线框 min-h-112 rd-8 border-dashed border-border-2 bg-fill-1「未检测到可用的助手」</text>
+  <text x="60" y="486" class="dim">搜索无结果：Arco Empty「未找到结果」</text>
+
+  <!-- Right pane: details -->
+  <text x="506" y="134" class="tok">右栏 section px-20 pb-14 pt-12（assistants 模式）</text>
+  <text x="506" y="158" font-size="15" font-weight="600" fill="#4e5969">已选成员 2</text>
+  <text x="900" y="158" class="lbl" text-anchor="end">⚑ = Leader（12px t-tertiary，crown var(--warning)）</text>
+  <text x="506" y="176" class="lbl">选择团队成员并指定一个 Leader。同一个助手可被多次选择。（12px t-tertiary，mb-12）</text>
+
+  <!-- member list box -->
+  <rect x="506" y="184" width="408" height="160" rx="8" class="fill1"/>
+  <text x="918" y="178" class="dim" text-anchor="end">成员框 bg-fill-1 rd-8 p-8 · min-h-120 · flex-1 滚动 · 行距 6</text>
+  <g>
+    <rect x="514" y="192" width="392" height="40" rx="8" fill="#ffffff" stroke="#e5e6eb"/>
+    <rect x="522" y="197" width="30" height="30" rx="8" class="fill2"/>
+    <text x="560" y="216" class="txt2">成员 A</text>
+    <rect x="830" y="199" width="26" height="26" rx="6" fill="rgba(255,125,0,0.16)"/>
+    <text x="843" y="216" font-size="11" fill="#ff7d00" text-anchor="middle">⚑</text>
+    <rect x="872" y="200" width="24" height="24" rx="4" fill="none" stroke="#c9cdd4"/>
+    <text x="884" y="216" font-size="11" fill="#86909c" text-anchor="middle">✕</text>
+    <text x="560" y="228" class="dim">行 40px · 头像 30 · crown 26×26 选中 bg warning-6/16% · 移除 24×24</text>
+  </g>
+  <rect x="514" y="238" width="392" height="40" rx="8" fill="#ffffff" stroke="#e5e6eb"/>
+  <rect x="522" y="243" width="30" height="30" rx="8" class="fill2"/>
+  <text x="560" y="262" class="txt2">成员 B（crown 未选中：outline、t-tertiary）</text>
+  <text x="610" y="306" class="lbl">空态（无成员）：居中两段文案「请至少选择一个助手当团队 Leader。」+ 提示「创建后可让 Leader 在对话中创建临时队员。」max-w-260</text>
+  <text x="610" y="324" class="lbl">点击 crown = 设为 Leader（aria-pressed，同一时刻仅一个 Leader）</text>
+
+  <!-- team fields -->
+  <line x1="506" y1="358" x2="914" y2="358" class="divider"/>
+  <text x="506" y="352" class="dim">mt-14 border-t border-border-2 pt-14</text>
+  <text x="506" y="384" font-size="14" font-weight="600" fill="#4e5969">团队名 <tspan fill="#f53f3f">*</tspan></text>
+  <rect x="596" y="366" width="318" height="38" rx="8" class="fill1" stroke="#e5e6eb"/>
+  <text x="608" y="390" class="lbl">团队名称</text>
+  <text x="918" y="390" class="dim" text-anchor="end">input h-38 rd-8 text-13</text>
+  <text x="506" y="430" font-size="14" font-weight="500" fill="#4e5969">工作空间</text>
+  <rect x="596" y="412" width="318" height="38" rx="8" fill="#ffffff" stroke="#e5e6eb"/>
+  <text x="608" y="436" class="lbl">选择文件夹（WorkspaceFolderSelect：最近使用 / 选择其他目录）</text>
+  <text x="506" y="462" class="dim">字段栅格 grid-cols-[76px_1fr] gap-x-14 gap-y-10 · 标签 14px/600（必填带 * danger-6）</text>
+
+  <!-- invoke 回填提示 -->
+  <rect x="506" y="480" width="408" height="86" rx="8" fill="none" stroke="#165dff" stroke-dasharray="4 3"/>
+  <text x="514" y="500" class="dim">专家团「调用」回填行为（handleInvokePreset）：</text>
+  <text x="514" y="518" class="txt2">· 切回 assistants tab，团队名 = 预设名</text>
+  <text x="514" y="536" class="txt2">· 成员草稿 = 预设成员（按 order 排序，缺失成员被跳过）</text>
+  <text x="514" y="554" class="txt2">· Leader = 预设 leader（取不到则回退第一个成员）</text>
+
+  <!-- Footer -->
+  <line x1="40" y1="596" x2="940" y2="596" class="divider"/>
+  <text x="64" y="592" class="dim">footer: border-t var(--bg-3) · px-24 py-16 · 右对齐 gap-10</text>
+  <rect x="700" y="612" width="100" height="38" rx="8" fill="#ffffff" stroke="#e5e6eb"/>
+  <text x="750" y="636" class="txt2" text-anchor="middle">取消</text>
+  <rect x="812" y="612" width="112" height="38" rx="8" fill="#165dff"/>
+  <text x="868" y="636" font-size="13" fill="#ffffff" text-anchor="middle">确认创建</text>
+  <text x="700" y="666" class="dim">按钮 h-38 rd-8 px-18 text-13 · Cancel min-w-84 / Confirm min-w-100 · Confirm disabled 条件：!name || 0 成员 || 无 Leader · loading 时转圈</text>
+</svg>

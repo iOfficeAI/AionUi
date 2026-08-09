@@ -1,0 +1,111 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="980" height="640" viewBox="0 0 980 640" font-family="-apple-system, 'PingFang SC', 'Segoe UI', sans-serif">
+  <!--
+    团队页 · 并行视图线框（标注版）
+    证据: TeamPage.tsx / TeamTabs.tsx / TeamViewToggle.tsx @ e3f154559
+    路由 /team/:id（Router.tsx，TEAM_MODE_ENABLED 开关）
+  -->
+  <defs>
+    <style>
+      .lbl { font-size: 10px; fill: #86909c; }
+      .dim { font-size: 9px; fill: #165dff; }
+      .tok { font-size: 9px; fill: #b58a5e; }
+      .txt { font-size: 12px; fill: #1d2129; }
+      .txt2 { font-size: 11px; fill: #4e5969; }
+      .box { fill: #ffffff; stroke: #c9cdd4; stroke-width: 1; }
+      .fill1 { fill: #f2f3f5; }
+      .fill2 { fill: #e5e6eb; }
+      .divider { stroke: #e5e6eb; stroke-width: 1; }
+    </style>
+  </defs>
+
+  <rect x="0" y="0" width="980" height="640" fill="#f7f8fa"/>
+  <text x="20" y="20" class="lbl">team-page-parallel.svg — 团队页并行视图（ChatLayout + tabsSlot + 多列对话）</text>
+
+  <!-- 标题行 -->
+  <rect x="20" y="30" width="940" height="48" rx="8" class="box"/>
+  <text x="36" y="59" font-size="14" fill="#4e5969">←</text>
+  <text x="56" y="59" font-size="14" fill="#1d2129">👥</text>
+  <text x="80" y="59" font-size="14" font-weight="600" fill="#1d2129">多语言翻译团</text>
+  <text x="36" y="28" class="dim">headerLeading：origin 返回箭头（仅临时团队有）+ Peoples 16 · 标题=团队名（可重命名）· 右侧 ChatLayout 工作空间入口</text>
+  <text x="700" y="55" class="lbl">视图</text>
+  <rect x="730" y="38" width="66" height="30" rx="8" class="fill1"/>
+  <rect x="734" y="40" width="30" height="26" rx="6" fill="#165dff"/>
+  <text x="749" y="57" font-size="11" fill="#fff" text-anchor="middle">▦</text>
+  <rect x="764" y="40" width="30" height="26" rx="6" fill="none"/>
+  <text x="779" y="57" font-size="11" fill="#86909c" text-anchor="middle">▢</text>
+  <text x="806" y="59" class="dim">TeamViewToggle：仅成员&gt;1 显示 · 分段控件 p-2 rd-8 bg-2 · 钮 30×26 rd-6 · 选中 bg-brand 白字+阴影 · 按团队记忆（localStorage）</text>
+
+  <!-- 胶囊成员栏 TeamTabs -->
+  <rect x="20" y="86" width="940" height="48" class="box"/>
+  <text x="24" y="84" class="dim">TeamTabs（tabsSlot）：bar min-h-48 bg-1 border（t/x/b）· 胶囊列表 px-12 py-8 gap-6 横滚（scrollbar 隐藏）· 两侧 28px 渐隐提示</text>
+  <!-- leader pill active -->
+  <rect x="36" y="94" width="120" height="34" rx="17" fill="#f7f8fa" stroke="#165dff" stroke-width="1.5"/>
+  <circle cx="56" cy="111" r="11" class="fill2"/>
+  <circle cx="64" cy="119" r="4" fill="#22c55e"/>
+  <text x="74" y="115" font-size="13" font-weight="600" fill="#165dff">Claude</text>
+  <!-- member pill -->
+  <rect x="164" y="94" width="110" height="34" rx="17" fill="#f7f8fa" stroke="transparent"/>
+  <circle cx="184" cy="111" r="11" class="fill2"/>
+  <circle cx="192" cy="119" r="4" fill="#9ca3af"/>
+  <text x="202" y="115" font-size="13" font-weight="600" fill="#5c9ea4">Gemini</text>
+  <!-- member pill with pending badge -->
+  <rect x="282" y="94" width="128" height="34" rx="17" fill="#f7f8fa" stroke="transparent"/>
+  <text x="292" y="115" font-size="12">‼️</text>
+  <circle cx="316" cy="111" r="11" class="fill2"/>
+  <text x="334" y="115" font-size="13" font-weight="600" fill="#b58a5e">Codex</text>
+  <text x="420" y="115" class="dim">‼️ = 待授权数&gt;0（animate-wiggle）· 状态点 8px：active 绿+脉冲 / idle·pending·completed 灰 / failed 红 / dormant 空心</text>
+  <!-- add member fixed -->
+  <line x1="820" y1="86" x2="820" y2="134" class="divider"/>
+  <rect x="832" y="94" width="116" height="32" rx="8" fill="none"/>
+  <text x="890" y="115" font-size="13" font-weight="500" fill="#4e5969" text-anchor="middle">＋ 添加成员</text>
+  <text x="948" y="128" class="dim" text-anchor="end">固定最右 · 左分隔线 · h-32 px-10 rd-8 无边框 · hover 文字 brand + bg-2</text>
+
+  <!-- 对话列 -->
+  <rect x="20" y="134" width="313" height="420" fill="rgba(22,93,255,0.04)" stroke="#e5e6eb"/>
+  <rect x="333" y="134" width="313" height="420" fill="rgba(92,158,164,0.04)" stroke="#e5e6eb"/>
+  <rect x="646" y="134" width="314" height="420" fill="rgba(181,138,94,0.04)" stroke="#e5e6eb"/>
+  <text x="30" y="560" class="dim">列：flex 1 1 400px · min-width 400（≤2 成员时 240）· 超宽横向滚动 + scroll-snap · 列间 1px 分隔线（末列无）· 列身 4% 身份色淡底</text>
+
+  <!-- 列抬头 -->
+  <rect x="20" y="134" width="313" height="40" fill="#ffffff" stroke="#e5e6eb"/>
+  <text x="32" y="159" font-size="13" font-weight="600" fill="#165dff">Claude</text>
+  <rect x="170" y="140" width="100" height="28" rx="6" class="fill1"/>
+  <text x="220" y="158" font-size="11" fill="#4e5969" text-anchor="middle">模型选择器</text>
+  <text x="312" y="159" font-size="13" fill="#86909c" text-anchor="middle">⛶</text>
+  <text x="32" y="140" class="dim">列抬头 h-40 px-12 border-b bg-1：彩色名（身份色 13px/600）+ CronJobManager + 模型选择器（max-w-140，窄屏隐藏）+ 全屏切换 ⛶（hover bg-fill-3）</text>
+
+  <!-- 聊天体 -->
+  <rect x="36" y="190" width="200" height="46" rx="10" fill="#ffffff" stroke="#e5e6eb"/>
+  <text x="48" y="212" class="txt2">消息气泡（身份色色条+彩名）</text>
+  <rect x="96" y="246" width="200" height="46" rx="10" fill="#ffffff" stroke="#e5e6eb"/>
+  <rect x="36" y="470" width="281" height="68" rx="10" fill="#ffffff" stroke="#e5e6eb"/>
+  <text x="48" y="496" class="lbl">SendBox（发送框）</text>
+  <text x="176" y="420" class="lbl" text-anchor="middle">对话加载中：居中 Spin</text>
+
+  <rect x="349" y="134" width="297" height="40" fill="#ffffff" stroke="#e5e6eb"/>
+  <text x="361" y="159" font-size="13" font-weight="600" fill="#5c9ea4">Gemini</text>
+  <rect x="662" y="134" width="298" height="40" fill="#ffffff" stroke="#e5e6eb"/>
+  <text x="674" y="159" font-size="13" font-weight="600" fill="#b58a5e">Codex</text>
+
+  <!-- 滚动箭头 -->
+  <rect x="20" y="280" width="48" height="60" fill="url(#lgrad)" opacity="0.8"/>
+  <circle cx="44" cy="310" r="16" fill="rgba(0,0,0,0.5)"/>
+  <text x="44" y="316" font-size="14" fill="#fff" text-anchor="middle">←</text>
+  <text x="70" y="276" class="dim">溢出时两侧浮箭头：w-48 渐变 + 32px 黑半透明圆钮 · 点击切到上/下一成员列</text>
+
+  <defs>
+    <linearGradient id="lgrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="40%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- 点击胶囊行为 -->
+  <rect x="340" y="580" width="620" height="48" rx="8" fill="none" stroke="#165dff" stroke-dasharray="4 3"/>
+  <text x="352" y="598" class="dim">点胶囊（并行视图）：switchTab + scrollIntoView 平滑滚动到该列 + 闪动（opacity 1→0→1，150ms×2）</text>
+  <text x="352" y="616" class="dim">单聊视图：全屏当前成员（⛶ 或点胶囊切换），找不到选中时回退 Leader · 视图模式按团队持久化</text>
+
+  <!-- warmup 遮罩位置 -->
+  <rect x="20" y="134" width="940" height="420" fill="none" stroke="#f53f3f" stroke-dasharray="6 4"/>
+  <text x="960" y="148" font-size="10" fill="#f53f3f" text-anchor="end">warmup 遮罩覆盖区：top=41px（列抬头 40+1 之下）→ 底部，遮罩内仍可点抬头模型选择器自救</text>
+</svg>

@@ -1,0 +1,126 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="980" height="700" viewBox="0 0 980 700" font-family="-apple-system, 'PingFang SC', 'Segoe UI', sans-serif">
+  <!--
+    专家团 Tab（预设选择器 + 预览）线框（标注版）
+    证据: TeamPresetPicker / TeamPresetPreview / TeamPresetMemberList @ e3f154559
+    宿主: TeamCreateModal 桌面双栏 · presets 模式（左 picker / 右 preview）
+  -->
+  <defs>
+    <style>
+      .lbl { font-size: 10px; fill: #86909c; }
+      .dim { font-size: 9px; fill: #165dff; }
+      .tok { font-size: 9px; fill: #b58a5e; }
+      .txt { font-size: 12px; fill: #1d2129; }
+      .txt2 { font-size: 11px; fill: #4e5969; }
+      .box { fill: #ffffff; stroke: #c9cdd4; stroke-width: 1; }
+      .fill1 { fill: #f2f3f5; }
+      .fill2 { fill: #e5e6eb; }
+      .divider { stroke: #e5e6eb; stroke-width: 1; }
+    </style>
+  </defs>
+
+  <rect x="0" y="0" width="980" height="700" fill="#f7f8fa"/>
+  <text x="20" y="20" class="lbl">presets-tab.svg — 团队创建弹窗「专家团」Tab（桌面）· 左 TeamPresetPicker / 右 TeamPresetPreview</text>
+
+  <rect x="40" y="34" width="900" height="620" rx="16" class="box"/>
+  <text x="64" y="62" font-size="18" font-weight="500" fill="#1d2129">新建团队</text>
+  <line x1="40" y1="80" x2="940" y2="80" class="divider"/>
+  <line x1="490" y1="80" x2="490" y2="560" stroke="#dee0e3" stroke-width="1"/>
+
+  <!-- Tabs -->
+  <rect x="60" y="96" width="200" height="28" rx="4" fill="none" stroke="#c9cdd4"/>
+  <text x="160" y="115" class="txt2" text-anchor="middle">所有助手 (N)</text>
+  <rect x="268" y="96" width="160" height="28" rx="4" fill="none" stroke="#165dff" stroke-width="1.5"/>
+  <text x="348" y="115" class="txt" text-anchor="middle" fill="#165dff">专家团</text>
+
+  <!-- ===== Left: TeamPresetPicker ===== -->
+  <text x="56" y="140" class="tok">TeamPresetPicker（h-full flex-col）</text>
+  <text x="60" y="164" font-size="15" font-weight="600" fill="#4e5969">专家团</text>
+  <rect x="392" y="146" width="72" height="24" rx="6" fill="#165dff"/>
+  <text x="428" y="162" font-size="11" fill="#fff" text-anchor="middle">＋ 新建</text>
+  <text x="60" y="140" class="dim">标题行 mb-12：标题 15px/600 t-secondary · New = primary size-mini + Plus 14</text>
+
+  <rect x="60" y="176" width="404" height="34" rx="8" class="fill1" stroke="#e5e6eb"/>
+  <text x="72" y="197" class="lbl">搜索专家团</text>
+  <text x="468" y="197" class="dim" text-anchor="end">Input.Search mb-12（注：旧版未接过滤逻辑，仅 UI）</text>
+
+  <!-- preset card: default -->
+  <rect x="60" y="220" width="404" height="58" rx="8" fill="#f2f3f5" stroke="#dee0e3"/>
+  <text x="72" y="242" font-size="13" font-weight="500" fill="#1d2129">代码评审专家组</text>
+  <text x="72" y="260" font-size="11" fill="#86909c">Engineering</text>
+  <text x="468" y="284" class="dim" text-anchor="end">卡片：Button text 铺满 · rd-8 · px-12 py-10 · 默认 border-border-2 bg-fill-1 · hover border-primary bg-fill-2 · 卡间距 8 · 列表 pr-4 滚动</text>
+
+  <!-- preset card: selected -->
+  <rect x="60" y="286" width="404" height="58" rx="8" fill="rgba(22,93,255,0.08)" stroke="#165dff"/>
+  <text x="72" y="308" font-size="13" font-weight="500" fill="#1d2129">多语言翻译团</text>
+  <text x="72" y="326" font-size="11" fill="#86909c">Localization</text>
+  <text x="468" y="350" class="dim" text-anchor="end">选中态：border-primary + bg primary-6/8%</text>
+
+  <!-- preset card: hover (actions revealed) -->
+  <rect x="60" y="352" width="404" height="58" rx="8" class="fill2" stroke="#165dff" stroke-dasharray="4 3"/>
+  <text x="72" y="374" font-size="13" font-weight="500" fill="#1d2129">增长黑客小队</text>
+  <text x="72" y="392" font-size="11" fill="#86909c">Marketing</text>
+  <rect x="330" y="366" width="64" height="24" rx="6" fill="#ffffff" stroke="#c9cdd4"/>
+  <text x="362" y="382" font-size="11" fill="#4e5969" text-anchor="middle">→ 调用</text>
+  <rect x="402" y="366" width="28" height="24" rx="6" fill="#ffffff" stroke="#c9cdd4"/>
+  <text x="416" y="382" font-size="11" fill="#4e5969" text-anchor="middle">⋯</text>
+  <text x="440" y="382" class="dim">hover 才显示（opacity 0→100）：「调用」(Right 14) 与「⋯」下拉（编辑/删除，position br，trigger click，挂 body）</text>
+
+  <text x="60" y="440" class="dim">空态（0 预设）：标题行保留 + 居中「创建可复用的专家团，加快团队组建。」（无独立插画；TeamPresetEmptyState 另用于整面板空态：Arco Empty + primary small「创建专家团」）</text>
+
+  <!-- ===== Right: TeamPresetPreview ===== -->
+  <text x="506" y="140" class="tok">TeamPresetPreview（px-4 py-2 gap-12 滚动）</text>
+  <rect x="506" y="150" width="44" height="44" rx="12" class="fill2"/>
+  <text x="528" y="178" font-size="18" fill="#165dff" text-anchor="middle">👥</text>
+  <text x="562" y="168" font-size="16" font-weight="600" fill="#1d2129">多语言翻译团</text>
+  <rect x="562" y="176" width="86" height="20" rx="4" class="fill1" stroke="#e5e6eb"/>
+  <text x="605" y="190" font-size="11" fill="#4e5969" text-anchor="middle">Localization</text>
+  <text x="918" y="168" class="dim" text-anchor="end">头：icon 44 rd-12 bg-fill-2 text-primary（Peoples filled 24）· 名 16px/600 · 分类 Tag small</text>
+
+  <text x="506" y="224" font-size="13" fill="#4e5969">覆盖 13 种语言的互译与审校，适合文档本地化。</text>
+  <text x="918" y="224" class="dim" text-anchor="end">简介 13px / leading-20 / t-secondary</text>
+
+  <rect x="506" y="236" width="52" height="20" rx="4" fill="#e8f3ff"/>
+  <text x="532" y="250" font-size="11" fill="#165dff" text-anchor="middle">翻译</text>
+  <rect x="564" y="236" width="52" height="20" rx="4" fill="#e8f3ff"/>
+  <text x="590" y="250" font-size="11" fill="#165dff" text-anchor="middle">审校</text>
+  <text x="700" y="250" class="dim">擅长领域 Tag small color=arcoblue · gap-6 wrap</text>
+
+  <!-- missing warning -->
+  <rect x="506" y="266" width="408" height="34" rx="8" fill="rgba(245,63,63,0.08)"/>
+  <text x="518" y="287" font-size="12" fill="#f53f3f">该专家团中的部分助手不可用，创建前请替换。</text>
+  <text x="918" y="264" class="dim" text-anchor="end">缺失警示：bg danger-6/8% · text danger-6 12px · px-12 py-8 rd-8（仅有缺失成员时渲染）</text>
+
+  <text x="506" y="326" font-size="13" font-weight="600" fill="#4e5969">成员</text>
+  <g>
+    <rect x="506" y="334" width="408" height="30" rx="6" fill="#ffffff" stroke="#e5e6eb"/>
+    <rect x="514" y="338" width="22" height="22" rx="11" class="fill2"/>
+    <text x="544" y="352" font-size="13" font-weight="500" fill="#1d2129">Claude</text>
+    <rect x="830" y="338" width="76" height="22" rx="4" fill="#fff7e8" stroke="#ff7d00"/>
+    <text x="868" y="353" font-size="11" fill="#ff7d00" text-anchor="middle">👑 队长</text>
+    <text x="544" y="368" class="dim">成员行：px-8 py-6 rd-6 hover bg-fill-2 · 头像圈 22 bg-fill-2（Peoples 14）· 名 13px/500 · Leader Tag orange（Crown 12 + 队长）</text>
+  </g>
+  <rect x="506" y="370" width="408" height="30" rx="6" fill="#ffffff" stroke="#e5e6eb"/>
+  <rect x="514" y="374" width="22" height="22" rx="11" class="fill2"/>
+  <text x="544" y="388" font-size="13" font-weight="500" fill="#f53f3f">Gemini（已下线）</text>
+  <rect x="852" y="374" width="54" height="22" rx="4" fill="#ffece8" stroke="#f53f3f"/>
+  <text x="879" y="389" font-size="11" fill="#f53f3f" text-anchor="middle">缺失</text>
+  <text x="544" y="404" class="dim">缺失成员：名字 danger-6 + Tag small red「缺失」</text>
+
+  <text x="506" y="434" font-size="13" font-weight="600" fill="#4e5969">示例任务</text>
+  <text x="506" y="454" font-size="12" fill="#86909c">• 把 README 翻译成日语</text>
+  <text x="506" y="472" font-size="12" fill="#86909c">• 审校一份法语合同</text>
+  <text x="918" y="434" class="dim" text-anchor="end">示例：12px t-tertiary · 行距 4 · 「• 」前缀</text>
+
+  <rect x="506" y="498" width="408" height="38" rx="8" fill="#c9cdd4"/>
+  <text x="710" y="522" font-size="13" fill="#ffffff" text-anchor="middle">调用此专家团</text>
+  <text x="918" y="492" class="dim" text-anchor="end">底部按钮 mt-auto pt-12：primary long「调用此专家团」· 有缺失成员时 disabled（图示为禁用态）</text>
+
+  <text x="506" y="566" class="dim">未选中预设时：整栏居中 13px t-tertiary「选择一个专家团以预览详情。」</text>
+
+  <!-- Footer -->
+  <line x1="40" y1="584" x2="940" y2="584" class="divider"/>
+  <rect x="700" y="600" width="100" height="38" rx="8" fill="#ffffff" stroke="#e5e6eb"/>
+  <text x="750" y="624" class="txt2" text-anchor="middle">取消</text>
+  <rect x="812" y="600" width="112" height="38" rx="8" fill="#165dff"/>
+  <text x="868" y="624" font-size="13" fill="#ffffff" text-anchor="middle">确认创建</text>
+</svg>

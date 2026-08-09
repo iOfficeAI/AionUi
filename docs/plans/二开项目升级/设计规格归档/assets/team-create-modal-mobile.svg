@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="560" height="720" viewBox="0 0 560 720" font-family="-apple-system, 'PingFang SC', 'Segoe UI', sans-serif">
+  <!--
+    团队创建弹窗 · 窄屏（<768px）单栏线框（标注版）
+    证据: TeamCreateModal.tsx mobileBody + TeamAssistantPickerDropdown @ e3f154559
+    width calc(100vw - 32px) · data-testid team-create-layout-mobile
+  -->
+  <defs>
+    <style>
+      .lbl { font-size: 10px; fill: #86909c; }
+      .dim { font-size: 9px; fill: #165dff; }
+      .tok { font-size: 9px; fill: #b58a5e; }
+      .txt { font-size: 12px; fill: #1d2129; }
+      .txt2 { font-size: 11px; fill: #4e5969; }
+      .box { fill: #ffffff; stroke: #c9cdd4; stroke-width: 1; }
+      .fill1 { fill: #f2f3f5; }
+      .fill2 { fill: #e5e6eb; }
+      .divider { stroke: #e5e6eb; stroke-width: 1; }
+    </style>
+  </defs>
+
+  <rect x="0" y="0" width="560" height="720" fill="#f7f8fa"/>
+  <text x="16" y="18" class="lbl">team-create-modal-mobile.svg — 窄屏单栏（layout.isMobile &lt;768px）</text>
+
+  <rect x="30" y="28" width="500" height="660" rx="16" class="box"/>
+  <text x="534" y="24" class="dim" text-anchor="end">width / maxWidth = calc(100vw − 32px)</text>
+  <text x="54" y="56" font-size="18" font-weight="500" fill="#1d2129">新建团队</text>
+  <rect x="474" y="40" width="32" height="32" rx="8" class="fill2"/>
+  <text x="490" y="60" font-size="12" fill="#4e5969" text-anchor="middle">✕</text>
+  <line x1="30" y1="76" x2="530" y2="76" class="divider"/>
+
+  <text x="54" y="96" class="dim">内容区自带内边距：px-20 py-16 · 单栏 flex-col gap-16</text>
+
+  <!-- Tabs -->
+  <rect x="54" y="104" width="200" height="28" rx="4" fill="none" stroke="#165dff" stroke-width="1.5"/>
+  <text x="154" y="123" class="txt" text-anchor="middle" fill="#165dff">所有助手 (N)</text>
+  <rect x="262" y="104" width="160" height="28" rx="4" fill="none" stroke="#c9cdd4"/>
+  <text x="342" y="123" class="txt2" text-anchor="middle">专家团</text>
+  <text x="430" y="123" class="dim">Tabs shrink-0（非 justify）</text>
+
+  <!-- 已选成员 + 添加成员按钮（headerAction） -->
+  <text x="54" y="160" font-size="15" font-weight="600" fill="#4e5969">已选成员 1</text>
+  <rect x="382" y="142" width="120" height="30" rx="15" fill="#ffffff" stroke="#165dff"/>
+  <text x="442" y="161" font-size="13" fill="#165dff" text-anchor="middle">＋ 添加成员</text>
+  <text x="54" y="140" class="dim">headerAction 替换 Leader 图例：outline small 胶囊按钮 h-30 rd-999 px-12 text-13</text>
+  <text x="54" y="184" class="lbl">选择团队成员并指定一个 Leader。同一个助手可被多次选择。</text>
+
+  <!-- member list box max-h-38vh -->
+  <rect x="54" y="192" width="448" height="120" rx="8" class="fill1"/>
+  <text x="506" y="188" class="dim" text-anchor="end">成员框 !max-h-[38vh]：成员变多时框内滚动，团队字段始终可见</text>
+  <rect x="62" y="200" width="432" height="40" rx="8" fill="#ffffff" stroke="#e5e6eb"/>
+  <rect x="70" y="205" width="30" height="30" rx="8" class="fill2"/>
+  <text x="108" y="224" class="txt2">Claude</text>
+  <rect x="436" y="207" width="26" height="26" rx="6" fill="rgba(255,125,0,0.16)"/>
+  <text x="449" y="224" font-size="11" fill="#ff7d00" text-anchor="middle">⚑</text>
+  <text x="478" y="224" font-size="11" fill="#86909c">✕</text>
+
+  <!-- 添加成员下拉面板（触发时） -->
+  <rect x="196" y="320" width="260" height="200" rx="10" fill="#ffffff" stroke="#dee0e3" stroke-width="1.5"/>
+  <text x="460" y="316" class="dim" text-anchor="end">下拉面板 w-260 · rd-10 · border-3 · bg-dialog-fill-0 · p-8 · shadow 0 4 12 /10% · max-h min(360px,60vh) · zIndex 10020 · 锚 team-create-add-member-btn · position br + popupAlign bottom:8</text>
+  <rect x="204" y="328" width="244" height="30" rx="8" class="fill1"/>
+  <text x="214" y="347" class="lbl">搜索（AionInlineSearchInput 浅灰无边框）</text>
+  <rect x="204" y="364" width="244" height="44" rx="8" class="fill1"/>
+  <rect x="212" y="371" width="30" height="30" rx="8" class="fill2"/>
+  <text x="250" y="390" class="txt2">Gemini</text>
+  <text x="440" y="390" font-size="12" fill="#4e5969" text-anchor="end">＋</text>
+  <rect x="204" y="414" width="244" height="44" rx="8" fill="none" stroke="#e5e6eb"/>
+  <text x="326" y="486" class="lbl" text-anchor="middle">选中即关：下拉收起，成员立刻出现在上方已选列表</text>
+  <text x="326" y="504" class="lbl" text-anchor="middle">（Tooltip 挂 body、zIndex 10060，保证压过本下拉）</text>
+
+  <!-- team fields -->
+  <line x1="54" y1="540" x2="502" y2="540" class="divider"/>
+  <text x="54" y="566" font-size="14" font-weight="600" fill="#4e5969">团队名 <tspan fill="#f53f3f">*</tspan></text>
+  <rect x="134" y="548" width="368" height="38" rx="8" class="fill1" stroke="#e5e6eb"/>
+  <text x="146" y="572" class="lbl">团队名称</text>
+  <text x="54" y="612" font-size="14" font-weight="500" fill="#4e5969">工作空间</text>
+  <rect x="134" y="594" width="368" height="38" rx="8" fill="#ffffff" stroke="#e5e6eb"/>
+  <text x="146" y="618" class="lbl">选择文件夹</text>
+  <text x="54" y="640" class="dim">字段与桌面同一份（grid 76px 标签列）· mt-16</text>
+
+  <!-- Footer -->
+  <line x1="30" y1="652" x2="530" y2="652" class="divider"/>
+  <rect x="310" y="664" width="84" height="30" rx="8" fill="#ffffff" stroke="#e5e6eb"/>
+  <text x="352" y="684" class="txt2" text-anchor="middle">取消</text>
+  <rect x="406" y="664" width="100" height="30" rx="8" fill="#165dff"/>
+  <text x="456" y="684" font-size="13" fill="#ffffff" text-anchor="middle">确认创建</text>
+  <text x="54" y="684" class="dim">专家团 Tab（窄屏）：picker 与 preview 上下堆叠（flex-col gap-16），不再是左右分栏</text>
+</svg>
