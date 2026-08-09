@@ -37,6 +37,7 @@ describe('AboutModalContent', () => {
 
     expect(screen.getByText('CSBU WorkMate')).toBeInTheDocument();
     expect(screen.getByText('settings.appDescription')).toBeInTheDocument();
+    expect(screen.getByText('settings.producer')).toBeInTheDocument();
     expect(screen.getByText('v2.1.44')).toBeInTheDocument();
     expect(screen.queryByText('settings.checkForUpdates')).not.toBeInTheDocument();
   });

@@ -39,8 +39,11 @@ const AboutModalContent: React.FC = () => {
             <Typography.Title heading={3} className='text-24px font-bold text-t-primary mb-8px'>
               CSBU WorkMate
             </Typography.Title>
-            <Typography.Text className='text-14px text-t-secondary mb-12px text-center'>
+            <Typography.Text className='text-14px text-t-secondary mb-4px text-center'>
               {t('settings.appDescription')}
+            </Typography.Text>
+            <Typography.Text className='text-13px text-t-secondary mb-12px text-center'>
+              {t('settings.producer')}
             </Typography.Text>
             <div className='flex items-center justify-center gap-8px'>
               <span className='px-10px py-4px rd-6px text-13px bg-fill-2 text-t-primary font-500'>
