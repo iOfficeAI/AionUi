@@ -1,5 +1,15 @@
 # Changelog
 
+## [2.1.55](https://github.com/suoak/AionUi/compare/v2.1.54...v2.1.55) (2026-08-09)
+
+### Desktop
+
+#### Bug Fixes
+
+- **update:** restore the visible update entry and global update notification flow (#30)
+
+---
+
 ## [2.1.54](https://github.com/suoak/AionUi/compare/v2.1.53...v2.1.54) (2026-08-09)
 
 ### Desktop
