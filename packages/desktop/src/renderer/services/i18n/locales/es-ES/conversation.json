@@ -611,7 +611,9 @@
     "removeFailed": "Couldn't remove the folder",
     "contextMenu": {
       "rename": "Cambiar nombre",
-      "addToChat": "Añadir al chat"
+      "addToChat": "Añadir al chat",
+      "copyRelativePath": "Copiar ruta relativa",
+      "copyAbsolutePath": "Copiar ruta absoluta"
     },
     "namePlaceholder": "Nombre",
     "deleteConfirm": "¿Eliminar «{{name}}»? Esto no se puede deshacer.",
@@ -620,7 +622,6 @@
       "files": "Archivos",
       "changes": "Cambios"
     },
-    "changesPlaceholder": "El control de versiones estará en una pestaña aparte — próximamente.",
     "addedToChat": "Se añadió {{name}} al chat",
     "imported": "{{count}} archivo(s) importado(s)",
     "importPartialFailed": "{{copied}} copiado(s), {{failed}} con error (conflictos de nombre o no admitidos)",
@@ -630,6 +631,91 @@
       "searching": "Buscando…",
       "empty": "Ningún archivo coincide",
       "limitReached": "Mostrando los primeros {{count}} — afina la búsqueda"
-    }
+    },
+    "scm": {
+      "notARepository": "Esta carpeta no está bajo control de versiones",
+      "noChanges": "Sin cambios",
+      "loading": "Cargando cambios…",
+      "loadFailed": "No se pudieron cargar los cambios",
+      "refresh": "Actualizar",
+      "groups": {
+        "staged": "Cambios preparados",
+        "unstaged": "Cambios",
+        "changes": "Cambios",
+        "blocked": "Requiere resolución"
+      },
+      "sections": {
+        "repositories": "Repositorios",
+        "changes": "Cambios"
+      },
+      "viewAsTree": "Ver como árbol",
+      "viewAsList": "Ver como lista",
+      "worktree": "Árbol de trabajo",
+      "expandWorktrees": "Mostrar árboles de trabajo",
+      "collapseWorktrees": "Ocultar árboles de trabajo",
+      "state": {
+        "created": "Añadido",
+        "modified": "Modificado",
+        "deleted": "Eliminado",
+        "renamed": "Renombrado",
+        "conflicted": "Conflicto",
+        "unknown": "Estado no reconocido"
+      },
+      "badge": {
+        "created": "A",
+        "modified": "M",
+        "deleted": "D",
+        "renamed": "R",
+        "conflicted": "!",
+        "unknown": "?"
+      },
+      "conflictedHint": "Resuelve este conflicto fuera de AionUi primero",
+      "opaqueHint": "Este estado proviene de un backend más nuevo — se muestra solo lectura",
+      "degraded": "La actualización va en un modo más lento porque no se puede escribir el índice de git",
+      "truncated": "Demasiados cambios para listar — mostrando solo la primera parte",
+      "renamedFrom": "{{from}} → {{to}}",
+      "diff": {
+        "loading": "Cargando diferencias…",
+        "failed": "No se pudieron cargar las diferencias",
+        "binary": "Archivo binario — sin diferencias de texto",
+        "truncated": "Diferencias truncadas (archivo grande)",
+        "empty": "Sin cambios de texto",
+        "close": "Cerrar diferencias"
+      },
+      "actions": {
+        "stage": "Preparar cambios",
+        "unstage": "Quitar de preparados",
+        "discard": "Descartar cambios",
+        "stageAll": "Preparar todo",
+        "unstageAll": "Quitar todo de preparados",
+        "blockedHint": "Resuelve el conflicto fuera de AionUi antes de preparar o descartar",
+        "confirmDiscardTitle": "¿Descartar los cambios?",
+        "confirmDiscardTracked": "Las ediciones de {{count}} archivos se perderán. Esto no se puede deshacer.",
+        "confirmDiscardUntracked": "{{count}} archivos nuevos se moverán a la papelera.",
+        "confirmDiscardMixed": "Las ediciones de {{tracked}} archivo(s) se perderán de forma irreversible; {{untracked}} archivo(s) nuevo(s) irán a la papelera.",
+        "discardConfirmButton": "Descartar",
+        "okStage": "{{count}} archivos preparados",
+        "okUnstage": "{{count}} archivos quitados de preparados",
+        "okDiscard": "{{count}} archivos descartados",
+        "partial": "{{succeeded}} de {{total}} completados —— {{failed}} no se pudieron completar",
+        "partialDetail": "No completados: {{files}}",
+        "rejectedBlocked": "No se cambió nada —— resuelve primero el conflicto",
+        "rejectedUnsupported": "Este repositorio no admite esa acción",
+        "rejectedFailed": "No se pudo completar la acción",
+        "retry": "Reintentar",
+        "notSent": "La solicitud no llegó al backend: no se cambió nada. Puedes volver a intentarlo.",
+        "outcomeUnknown": "La conexión se restableció antes de recibir respuesta: esta acción puede haberse completado o no. Actualiza y revisa la lista de archivos antes de reintentar.",
+        "allFailed": "No se pudo procesar ninguno de los {{count}} archivo(s)"
+      }
+    },
+    "pathCopied": "Ruta copiada",
+    "copyFailed": "No se pudo copiar la ruta"
+  },
+  "terminal": {
+    "running": "En ejecución",
+    "stopped": "Detenido",
+    "exited": "Salida {{code}}",
+    "stop": "Detener",
+    "truncated": "(salida anterior truncada)"
   }
 }

@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process';
-import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
+import { mkdir, open, readFile, rename, rm } from 'node:fs/promises';
 import path from 'node:path';
 
 type RegisteredAgentProcess = {
@@ -21,6 +21,13 @@ export const AGENT_PROCESS_REGISTRY_RELATIVE_PATH = path.join('runtime', 'agent-
 
 const TERM_GRACE_MS = 1_000;
 
+let registryFileCounter = 0;
+
+function nextRegistryFileCounter(): number {
+  registryFileCounter += 1;
+  return registryFileCounter;
+}
+
 export function resolveAgentProcessRegistryPath(dataDir: string): string {
   return path.join(dataDir, AGENT_PROCESS_REGISTRY_RELATIVE_PATH);
 }
@@ -28,6 +35,16 @@ export function resolveAgentProcessRegistryPath(dataDir: string): string {
 export async function cleanupRegisteredAgentProcesses(dataDir?: string): Promise<void> {
   if (!dataDir) return;
 
+  try {
+    await cleanupRegisteredAgentProcessesInner(dataDir);
+  } catch (error) {
+    // Orphan reaping is best-effort bookkeeping: no failure here may abort
+    // the application stop flow (backend-launcher stop() has no catch).
+    console.warn('[web-host] agent process cleanup failed; continuing shutdown', error);
+  }
+}
+
+async function cleanupRegisteredAgentProcessesInner(dataDir: string): Promise<void> {
   const registryPath = resolveAgentProcessRegistryPath(dataDir);
   const registry = await readRegistry(registryPath);
   if (registry.processes.length === 0) return;
@@ -44,21 +61,26 @@ export async function cleanupRegisteredAgentProcesses(dataDir?: string): Promise
     }
   }
 
-  const survivors = registry.processes.filter((entry) => isRegisteredProcessTreeAlive(entry));
+  // Re-read before writing back: entries registered concurrently by another
+  // backend during the kill sequence (seconds) must survive. Only pids we
+  // attempted to kill this round are filtered down to the still-alive ones;
+  // untouched entries are kept verbatim. This shrinks the lock-free RMW loss
+  // window from the whole kill sequence to the re-read→rename gap.
+  const attempted = new Set(registry.processes.map((entry) => entry.pid));
+  const latest = await readRegistry(registryPath);
+  const survivors = latest.processes.filter(
+    (entry) => !attempted.has(entry.pid) || isRegisteredProcessTreeAlive(entry)
+  );
   await writeRegistry(registryPath, {
-    version: registry.version,
+    version: latest.version,
     processes: survivors,
   });
 }
 
 async function readRegistry(registryPath: string): Promise<AgentProcessRegistry> {
+  let raw: string;
   try {
-    const raw = await readFile(registryPath, 'utf8');
-    const parsed = JSON.parse(raw) as Partial<AgentProcessRegistry>;
-    return {
-      version: parsed.version ?? 1,
-      processes: Array.isArray(parsed.processes) ? parsed.processes.filter(isRegisteredProcess) : [],
-    };
+    raw = await readFile(registryPath, 'utf8');
   } catch (error) {
     if (isNotFound(error)) {
       return {
@@ -68,14 +90,71 @@ async function readRegistry(registryPath: string): Promise<AgentProcessRegistry>
     }
     throw error;
   }
+
+  try {
+    const parsed = JSON.parse(raw) as Partial<AgentProcessRegistry>;
+    return {
+      version: parsed.version ?? 1,
+      processes: Array.isArray(parsed.processes) ? parsed.processes.filter(isRegisteredProcess) : [],
+    };
+  } catch (error) {
+    // Fail-safe on corruption: the registry is pure bookkeeping for orphan
+    // reaping, so a torn/empty file must not abort shutdown cleanup.
+    // Quarantine it for forensics and continue with an empty registry.
+    console.warn(
+      `[web-host] agent process registry ${registryPath} is corrupt; quarantining and continuing empty`,
+      error
+    );
+    await quarantineCorruptRegistry(registryPath);
+    return {
+      version: 1,
+      processes: [],
+    };
+  }
+}
+
+async function quarantineCorruptRegistry(registryPath: string): Promise<void> {
+  const quarantinePath = path.join(
+    path.dirname(registryPath),
+    `.${path.basename(registryPath)}.corrupt.${process.pid}.${nextRegistryFileCounter()}`
+  );
+  try {
+    await rename(registryPath, quarantinePath);
+  } catch (error) {
+    console.warn(`[web-host] failed to quarantine corrupt agent process registry ${registryPath}`, error);
+  }
 }
 
 async function writeRegistry(registryPath: string, registry: AgentProcessRegistry): Promise<void> {
   await mkdir(path.dirname(registryPath), { recursive: true });
-  const tmpPath = `${registryPath}.tmp`;
-  await writeFile(tmpPath, `${JSON.stringify(registry, null, 2)}\n`, 'utf8');
-  await rm(registryPath, { force: true });
-  await rename(tmpPath, registryPath);
+  // pid+counter namespaced temp: a sibling backend writing the same registry
+  // can never clobber our in-flight temp (fixed-name temps were one of the
+  // corruption sources behind ELECTRON-3WN).
+  const tmpPath = `${registryPath}.${process.pid}.${nextRegistryFileCounter()}.tmp`;
+  const payload = `${JSON.stringify(registry, null, 2)}\n`;
+
+  const handle = await open(tmpPath, 'w');
+  try {
+    await handle.writeFile(payload, 'utf8');
+    await handle.sync();
+  } finally {
+    await handle.close();
+  }
+
+  try {
+    await rename(tmpPath, registryPath);
+  } catch {
+    // Windows can refuse to rename over a concurrently open target; retry
+    // once after a best-effort removal instead of unconditionally deleting
+    // the live registry up front.
+    try {
+      await rm(registryPath, { force: true });
+      await rename(tmpPath, registryPath);
+    } catch (retryError) {
+      await rm(tmpPath, { force: true });
+      throw retryError;
+    }
+  }
 }
 
 async function terminateRegisteredProcess(entry: RegisteredAgentProcess, signal: 'SIGTERM' | 'SIGKILL'): Promise<void> {

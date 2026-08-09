@@ -57,6 +57,7 @@ interface MessageIndex {
   call_idIndex: Map<string, number>; // tool_call.call_id -> index
   tool_call_idIndex: Map<string, number>; // acp_tool_call.update.tool_call_id -> index
   permission_call_idIndex: Map<string, number>; // permission.content.call_id -> index
+  terminal_idIndex: Map<string, number>; // acp_terminal_output.content.terminal_id -> index
 }
 
 function getMessageIndexKey(message: TMessage): string | undefined {
@@ -83,11 +84,12 @@ export function logDroppedToolCallWithoutCallId(message: TMessage | undefined): 
 
 // 构建消息索引
 // Build message index
-function buildMessageIndex(list: TMessage[]): MessageIndex {
+export function buildMessageIndex(list: TMessage[]): MessageIndex {
   const msgIdIndex = new Map<string, number>();
   const call_idIndex = new Map<string, number>();
   const tool_call_idIndex = new Map<string, number>();
   const permission_call_idIndex = new Map<string, number>();
+  const terminal_idIndex = new Map<string, number>();
 
   for (let i = 0; i < list.length; i++) {
     const msg = list[i];
@@ -104,9 +106,12 @@ function buildMessageIndex(list: TMessage[]): MessageIndex {
     if (msg.type === 'permission' && msg.content?.call_id) {
       permission_call_idIndex.set(msg.content.call_id, i);
     }
+    if (msg.type === 'acp_terminal_output' && msg.content?.terminal_id) {
+      terminal_idIndex.set(msg.content.terminal_id, i);
+    }
   }
 
-  return { msgIdIndex, call_idIndex, tool_call_idIndex, permission_call_idIndex };
+  return { msgIdIndex, call_idIndex, tool_call_idIndex, permission_call_idIndex, terminal_idIndex };
 }
 
 // 获取或构建索引（带缓存）
@@ -127,7 +132,11 @@ const sanitizeMessageForList = (message: TMessage): TMessage =>
 
 // 使用索引优化的消息合并函数
 // Index-optimized message compose function
-function composeMessageWithIndex(message: TMessage | undefined, list: TMessage[], index: MessageIndex): TMessage[] {
+export function composeMessageWithIndex(
+  message: TMessage | undefined,
+  list: TMessage[],
+  index: MessageIndex
+): TMessage[] {
   if (!message) return list || [];
 
   if (logDroppedToolCallWithoutCallId(message)) {
@@ -177,10 +186,44 @@ function composeMessageWithIndex(message: TMessage | undefined, list: TMessage[]
       }
     }
     // 未找到，添加新消息并更新索引
+    // A TERMINAL frame that finds no card to settle is suspicious: it means the
+    // running card is somewhere else (or was never indexed), so the user is left
+    // with a spinner that never stops plus a duplicate card. Codex's detached
+    // exec makes this reachable — its terminal lands minutes later, under a
+    // different turn. Log it so the next occurrence is diagnosable.
+    const status = (message.content as { status?: string } | undefined)?.status;
+    if (status === 'completed' || status === 'error' || status === 'canceled') {
+      console.warn('[tool-call] terminal frame found no card to settle; appending a new one', {
+        conversation_id: message.conversation_id,
+        msg_id: message.msg_id,
+        call_id: message.content.call_id,
+        status,
+        indexed_call_ids: index.call_idIndex.size,
+        list_len: list.length,
+      });
+    }
     const newIdx = list.length;
     index.call_idIndex.set(message.content.call_id, newIdx);
     const msgIndexKey = getMessageIndexKey(message);
     if (msgIndexKey) index.msgIdIndex.set(msgIndexKey, newIdx);
+    return list.concat(message);
+  }
+
+  // acp_terminal_output: one live card per terminal_id, replaced in place
+  // (every frame of a turn shares msg_id, so the generic msg_id arm would
+  // collapse two terminals of the same turn into one card).
+  if (message.type === 'acp_terminal_output' && message.content?.terminal_id) {
+    const existingIdx = index.terminal_idIndex.get(message.content.terminal_id);
+    if (existingIdx !== undefined && existingIdx < list.length) {
+      const existingMsg = list[existingIdx];
+      if (existingMsg.type === 'acp_terminal_output') {
+        const newList = list.slice();
+        newList[existingIdx] = { ...existingMsg, content: message.content };
+        return newList;
+      }
+    }
+    const newIdx = list.length;
+    index.terminal_idIndex.set(message.content.terminal_id, newIdx);
     return list.concat(message);
   }
 
@@ -392,6 +435,9 @@ export const useMergeLiveMessage = () => {
           }
           if (msg.type === 'permission' && msg.content?.call_id) {
             index.permission_call_idIndex.set(msg.content.call_id, newIdx);
+          }
+          if (msg.type === 'acp_terminal_output' && msg.content?.terminal_id) {
+            index.terminal_idIndex.set(msg.content.terminal_id, newIdx);
           }
           newList = newList.concat(msg);
         } else {

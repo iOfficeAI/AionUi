@@ -50,10 +50,6 @@ vi.mock('@/renderer/hooks/context/ConversationContext', () => ({
   useConversationContextSafe: () => null,
 }));
 
-vi.mock('@/renderer/hooks/file/useAutoPreviewOfficeFiles', () => ({
-  useAutoPreviewOfficeFiles: () => {},
-}));
-
 vi.mock('@/renderer/pages/conversation/Messages/artifacts', () => ({
   useConversationArtifacts: () => [],
 }));

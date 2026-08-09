@@ -1,5 +1,63 @@
 # Changelog
 
+## [2.1.52](https://github.com/iOfficeAI/AionUi/compare/v2.1.50...v2.1.52) (2026-08-07)
+
+### Desktop
+
+#### Features
+
+- **scm:** Changes panel with multi-repo switcher and repo labels (#3894)
+
+#### Bug Fixes
+
+- **guid:** align assistant dropdown search fields with Agent settings (#3903)
+- **security:** prevent path traversal in image generation MCP tool (#3906)
+- **shortcuts:** use platform-native primary modifier (#3909)
+- **theme:** converge appearance attributes and defer arco-theme (#3917)
+- **theme:** parse custom CSS via postcss instead of regex (#3915)
+
+### Core ([v0.1.62](https://github.com/iOfficeAI/AionCore/releases/tag/v0.1.62))
+
+#### Features
+
+- **scm:** live repository-set changes + pe_name (#790)
+
+---
+
+## [2.1.50](https://github.com/iOfficeAI/AionUi/compare/v2.1.49...v2.1.50) (2026-08-06)
+
+### Desktop
+
+#### Bug Fixes
+
+- **browser:** stop in-app browser MCP commands hanging, and fix Windows spawn EINVAL (#3885)
+- **explorer:** publish active project synchronously on conversation switch (#3875)
+- **notification:** register Windows AppUserModelID for NSIS toast delivery (#3890)
+- **team:** create antigravity team members with an empty model instead of the 'default' placeholder (#3887)
+- **theme:** sync webui toggle state immediately (#3892)
+
+### Core ([v0.1.61](https://github.com/iOfficeAI/AionCore/releases/tag/v0.1.61))
+
+_Includes AionCore v0.1.59 – v0.1.61._
+
+#### Features
+
+- **acp:** client-hosted terminals — declare clientCapabilities.terminal and serve terminal/\* (#779)
+- **agent:** multimodal prompt — native image/audio content blocks gated by promptCapabilities (#774)
+- **preview:** backend half of preview v2 — office refresh, overflow marker, content-change signal (#780)
+- **session:** AskUserQuestion as a first-class capability (own event, command, counter and endpoint) (#778)
+- **team:** add read-only mailbox/task activity API and real-time events (#740)
+
+#### Bug Fixes
+
+- **adoption:** move legacy root assistant-rules to the adopter (#788)
+- **ai-agent:** degrade corrupt process registry, atomic writes, and startup-failure child cleanup (#784)
+- **antigravity:** drop the 'default' UI placeholder model while discovery is empty (#785)
+- **engine:** update rust crate getrandom to 0.4 (#212)
+- **session:** stop reporting still-running codex commands as cancelled (#783)
+
+---
+
 ## [2.1.47](https://github.com/iOfficeAI/AionUi/compare/v2.1.46...v2.1.47-final) (2026-08-04)
 
 ### Desktop

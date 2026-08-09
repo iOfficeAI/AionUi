@@ -80,5 +80,12 @@
     "errorPointUnsupported": "Bu ajan yalnızca en son mesajdan çatallayabilir",
     "errorUnsupported": "Bu ajan çatallamayı desteklemiyor",
     "errorGeneric": "Çatallama başarısız: {{message}}"
-  }
+  },
+  "askSubmit": "Gönder",
+  "askDecline": "Yanıtlama",
+  "askAnswered": "Yanıtlandı",
+  "askDeclined": "Atlandı",
+  "askOther": "Diğer",
+  "askOtherPlaceholder": "Yanıtınızı yazın",
+  "requestDetails": "İstek ayrıntıları:"
 }

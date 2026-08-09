@@ -146,11 +146,45 @@ const attachInternal = (webContentsId: number): { ok: true } | { ok: false; reas
   return { ok: true };
 };
 
-const sendError = (ws: WebSocket, id: number | undefined, message: string) => {
-  ws.send(JSON.stringify({ id: id ?? 0, error: { code: -32601, message } }));
+/**
+ * 回包必须带上入站的 sessionId，否则页面级命令会永久挂起。
+ *
+ * puppeteer 按 sessionId 分发回包（cdp/Connection.js）：带 sessionId 的交给对应
+ * CdpSession 的 CallbackRegistry，不带的交给 Connection 自己那一份。而页面级命令是
+ * 用 session.send() 发的，callback 只登记在 session 的 registry 里 —— 回包一旦漏掉
+ * sessionId 就会被投到 Connection 的 registry，那里查无此 id，
+ * CallbackRegistry.resolve/reject 直接静默 return，Promise 永不 settle。
+ *
+ * 于是一个本该「立刻报错」的命令变成了挂死，最后由 puppeteer 的 protocolTimeout 抛出
+ * 「XXX timed out. Increase the 'protocolTimeout' setting」—— 一条把人指向超时设置的
+ * 假线索，而真实原因（比如浏览器面板没打开）被彻底吞掉。
+ *
+ * Replies must echo the inbound sessionId or page-level commands hang forever.
+ * puppeteer routes replies by sessionId: with one it goes to that CdpSession's
+ * CallbackRegistry, without one to the Connection's own. Page-level commands are sent via
+ * session.send(), so the callback lives only in the session registry; a reply missing the
+ * sessionId lands in the Connection registry, which has no such id, and
+ * CallbackRegistry.resolve/reject silently returns — the promise never settles.
+ *
+ * An immediate error therefore turns into a hang that surfaces as puppeteer's
+ * "... timed out. Increase the 'protocolTimeout' setting", a misleading clue that buries the
+ * real cause (e.g. the browser panel was never opened).
+ */
+const sendError = (ws: WebSocket, id: number | undefined, message: string, sessionId?: string) => {
+  ws.send(JSON.stringify({ id: id ?? 0, error: { code: -32601, message }, sessionId }));
 };
 
-const handleSocketMessage = async (ws: WebSocket, raw: string) => {
+/**
+ * announcedSessions 是**每条连接**的状态，不能提到模块作用域：一条新连接的 puppeteer
+ * 手上没有任何会话对象，必须重新收到 attachedToTarget 才能建立；若跨连接共享，第二个
+ * 客户端就永远等不到那个事件，browser.pages() 会一直是 0。
+ *
+ * announcedSessions is PER-CONNECTION state and must not be hoisted to module scope: a freshly
+ * connected puppeteer holds no session objects and needs attachedToTarget to build them. Sharing
+ * the set across connections would starve the second client of that event, leaving
+ * browser.pages() at 0 forever.
+ */
+const handleSocketMessage = async (ws: WebSocket, raw: string, announcedSessions: Set<string>) => {
   let req: CdpRequest;
   try {
     req = JSON.parse(raw) as CdpRequest;
@@ -162,21 +196,62 @@ const handleSocketMessage = async (ws: WebSocket, raw: string) => {
   if (!method) return;
 
   if (!isAcceptableSessionId(sessionId)) {
-    sendError(ws, id, `Unknown sessionId: ${sessionId}`);
+    sendError(ws, id, `Unknown sessionId: ${sessionId}`, sessionId);
     return;
   }
 
   const decision = decideCdpCommand(req, currentTargetInfo);
 
   if (decision.kind === 'error') {
-    sendError(ws, id, decision.message);
+    sendError(ws, id, decision.message, sessionId);
     return;
   }
 
   if (decision.kind === 'reply' || decision.kind === 'reply-and-emit') {
-    ws.send(JSON.stringify({ id, result: decision.payload }));
+    ws.send(JSON.stringify({ id, result: decision.payload, sessionId }));
     if (decision.kind === 'reply-and-emit') {
       for (const evt of decision.emit) {
+        /**
+         * 同一个 sessionId 只宣布一次 attachedToTarget —— 重复宣布会让 puppeteer 换掉
+         * 会话对象，把调用方手里的 handle 变成孤儿。
+         *
+         * puppeteer 的 Connection.onMessage 收到 attachedToTarget 时无条件
+         * `new CdpCDPSession(...)` 再 `#sessions.set(sessionId, session)`（cdp/Connection.js）。
+         * 它不检查这个 sessionId 是否已经存在，于是第二次宣布会用一个全新对象覆盖旧的，
+         * 而新对象带着一份空的 CallbackRegistry。
+         *
+         * 这正是致命之处：setAutoAttach 已经宣布过一次，attachToTarget 再宣布一次，
+         * 调用方（TargetManager / 任何持有 CDPSession 的代码）手上那个 handle 就指向了被
+         * 换掉的旧对象。它 send() 出去的命令 id 登记在旧 registry 里，回包却按 sessionId
+         * 被路由到新对象的 registry —— 那里查无此 id，resolve/reject 静默 return，
+         * Promise 永不 settle，最后以 protocolTimeout 的形式浮现。
+         *
+         * 真实 Chrome 不会重复宣布已附加的会话，所以这是本伪装层特有的问题。
+         *
+         * Announce attachedToTarget at most once per sessionId: re-announcing makes puppeteer
+         * swap out the session object and orphans handles the caller already holds.
+         *
+         * On attachedToTarget, puppeteer's Connection.onMessage unconditionally constructs a
+         * new CdpCDPSession and does `#sessions.set(sessionId, session)` — it never checks
+         * whether that sessionId already exists, so a second announcement replaces the old
+         * object with a fresh one carrying an EMPTY CallbackRegistry.
+         *
+         * That is the fatal part: setAutoAttach already announced once, so announcing again on
+         * attachToTarget leaves the caller holding the replaced object. Commands it sends
+         * register their id in the old registry, while replies are routed by sessionId into the
+         * new object's registry, which has no such id — resolve/reject silently returns and the
+         * promise never settles, surfacing later as a protocolTimeout.
+         *
+         * Real Chrome does not re-announce an already-attached session, so this is specific to
+         * this emulation layer.
+         */
+        if (evt.method === 'Target.attachedToTarget') {
+          const announcedId = (evt.params as { sessionId?: string }).sessionId;
+          if (typeof announcedId === 'string') {
+            if (announcedSessions.has(announcedId)) continue;
+            announcedSessions.add(announcedId);
+          }
+        }
         ws.send(JSON.stringify({ method: evt.method, params: evt.params }));
       }
     }
@@ -185,7 +260,22 @@ const handleSocketMessage = async (ws: WebSocket, raw: string) => {
 
   // forward
   if (!attached || attached.contents.isDestroyed()) {
-    sendError(ws, id, 'The in-app browser is not currently attached.');
+    /**
+     * 说清楚「怎么办」，因为 Agent 侧无法自己修复：attach 只由渲染进程在 webview
+     * dom-ready 时上报触发（WebviewHost.tsx），Target.createTarget 又是明确拒绝的。
+     * 所以这条消息必须告诉用户去开浏览器面板，否则 Agent 只能反复撞同一面墙。
+     *
+     * Say what to do about it: the agent cannot fix this itself. Attachment is only
+     * triggered by the renderer reporting its webContents id on dom-ready
+     * (WebviewHost.tsx), and Target.createTarget is explicitly refused — so this message
+     * has to point at opening the browser panel, or the agent just retries into the same wall.
+     */
+    sendError(
+      ws,
+      id,
+      'The in-app browser is not currently attached. Open the browser panel in AionUi so a page is available to control.',
+      sessionId
+    );
     return;
   }
 
@@ -277,7 +367,8 @@ export const startCdpBridge = async (): Promise<CdpBridgeHandle> => {
     }
     wss.handleUpgrade(req, socket, head, (ws) => {
       sockets.add(ws);
-      ws.on('message', (data) => void handleSocketMessage(ws, data.toString()));
+      const announcedSessions = new Set<string>();
+      ws.on('message', (data) => void handleSocketMessage(ws, data.toString(), announcedSessions));
       ws.on('close', () => sockets.delete(ws));
       ws.on('error', () => sockets.delete(ws));
     });

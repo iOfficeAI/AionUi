@@ -14,7 +14,9 @@ import { CHAT_MESSAGE_JUMP_EVENT, type ChatMessageJumpDetail } from '@/renderer/
 import { Image } from '@arco-design/web-react';
 import { Down } from '@icon-park/react';
 import MessageAcpPermission from '@renderer/pages/conversation/Messages/acp/MessageAcpPermission';
+import MessageQuestion from './MessageQuestion';
 import MessagePermission from './components/MessagePermission';
+import MessageAcpTerminalOutput from '@renderer/pages/conversation/Messages/acp/MessageAcpTerminalOutput';
 import MessageAcpToolCall from '@renderer/pages/conversation/Messages/acp/MessageAcpToolCall';
 import classNames from 'classnames';
 import React, { createContext, useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -46,7 +48,6 @@ import MessageText from './components/MessageText';
 import MessageThinking from './components/MessageThinking';
 import type { WriteFileResult } from './types';
 import { useAutoScroll } from './useAutoScroll';
-import { useAutoPreviewOfficeFiles } from '@/renderer/hooks/file/useAutoPreviewOfficeFiles';
 import SelectionReplyButton from './components/SelectionReplyButton';
 
 type IMessageVO =
@@ -289,8 +290,12 @@ const MessageItem: React.FC<{
           return <MessagePermission message={message}></MessagePermission>;
         case 'acp_permission':
           return <MessageAcpPermission message={message}></MessageAcpPermission>;
+        case 'ask':
+          return <MessageQuestion message={message}></MessageQuestion>;
         case 'acp_tool_call':
           return <MessageAcpToolCall message={message}></MessageAcpToolCall>;
+        case 'acp_terminal_output':
+          return <MessageAcpTerminalOutput message={message}></MessageAcpTerminalOutput>;
         case 'plan':
           return <MessagePlan message={message}></MessagePlan>;
         case 'thinking':
@@ -323,7 +328,6 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
   const rowWidthClass = getChatSurfaceWidthClass();
   const loadPreviousMessagePage = useLoadPreviousMessagePage(conversationContext?.conversation_id);
   const loadAnchorMessageWindow = useLoadAnchorMessageWindow(conversationContext?.conversation_id);
-  useAutoPreviewOfficeFiles(conversationContext);
   // While the agent is still streaming, the in-progress turn's last text keeps
   // moving down, so we defer its copy/timestamp row until the turn finishes to
   // avoid the row flashing in and the layout reflowing mid-stream.

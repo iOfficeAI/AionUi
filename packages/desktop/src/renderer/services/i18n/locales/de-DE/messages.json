@@ -80,5 +80,12 @@
     "errorPointUnsupported": "Dieser Agent kann nur ab der neuesten Nachricht verzweigen",
     "errorUnsupported": "Dieser Agent unterstützt kein Verzweigen",
     "errorGeneric": "Verzweigen fehlgeschlagen: {{message}}"
-  }
+  },
+  "askSubmit": "Absenden",
+  "askDecline": "Nicht beantworten",
+  "askAnswered": "Beantwortet",
+  "askDeclined": "Übersprungen",
+  "askOther": "Andere",
+  "askOtherPlaceholder": "Antwort eingeben",
+  "requestDetails": "Anfragedetails:"
 }

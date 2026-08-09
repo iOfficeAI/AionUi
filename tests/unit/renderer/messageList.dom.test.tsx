@@ -54,10 +54,6 @@ vi.mock('@/renderer/pages/conversation/runtime/useConversationRuntimeView', () =
   useConversationRuntimeView: () => ({ isProcessing: mockIsProcessing }),
 }));
 
-vi.mock('@/renderer/hooks/file/useAutoPreviewOfficeFiles', () => ({
-  useAutoPreviewOfficeFiles: () => {},
-}));
-
 vi.mock('@/renderer/pages/conversation/Messages/artifacts', () => ({
   useConversationArtifacts: () => [],
 }));

@@ -80,5 +80,12 @@
     "errorPointUnsupported": "이 에이전트는 최신 메시지에서만 분기할 수 있습니다",
     "errorUnsupported": "이 에이전트는 분기를 지원하지 않습니다",
     "errorGeneric": "분기 실패: {{message}}"
-  }
+  },
+  "askSubmit": "제출",
+  "askDecline": "답변 안 함",
+  "askAnswered": "답변 완료",
+  "askDeclined": "건너뜀",
+  "askOther": "기타",
+  "askOtherPlaceholder": "답변을 입력하세요",
+  "requestDetails": "요청 내용:"
 }

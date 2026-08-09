@@ -12,15 +12,6 @@ export type HttpRoute = {
   mapResponse?: ResponseMapperKey;
 };
 
-function mapPreviewHistoryTarget(target: Record<string, unknown> | undefined): Record<string, unknown> | undefined {
-  if (!target) return target;
-  return {
-    ...target,
-    content_type: target.content_type ?? target.contentType,
-    file_path: target.file_path ?? target.filePath,
-  };
-}
-
 /**
  * Mapping from legacy dotted IPC keys to aioncore HTTP routes.
  * Only keys actually used by E2E tests are listed — unknown keys fall through
@@ -134,30 +125,6 @@ export const HTTP_ROUTES: Record<string, HttpRoute> = {
     method: 'POST',
     path: '/api/document/convert',
     mapBody: (p) => ({ file_path: p.file_path ?? p.filePath, to: p.to, workspace: p.workspace }),
-  },
-  'preview-history.list': {
-    method: 'POST',
-    path: '/api/preview-history/list',
-    mapBody: (p) => ({ target: mapPreviewHistoryTarget(p.target as Record<string, unknown> | undefined) }),
-    mapResponse: 'previewSnapshotInfo',
-  },
-  'preview-history.save': {
-    method: 'POST',
-    path: '/api/preview-history/save',
-    mapBody: (p) => ({
-      target: mapPreviewHistoryTarget(p.target as Record<string, unknown> | undefined),
-      content: p.content,
-    }),
-    mapResponse: 'previewSnapshotInfo',
-  },
-  'preview-history.get-content': {
-    method: 'POST',
-    path: '/api/preview-history/get-content',
-    mapBody: (p) => ({
-      target: mapPreviewHistoryTarget(p.target as Record<string, unknown> | undefined),
-      snapshot_id: p.snapshot_id ?? p.snapshotId,
-    }),
-    mapResponse: 'previewSnapshotContent',
   },
   // File snapshot — git-backed staging/compare/discard for workspace changes.
   'fs.snapshot.init': { method: 'POST', path: '/api/fs/snapshot/init' },

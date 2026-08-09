@@ -80,5 +80,12 @@
     "errorPointUnsupported": "این عامل فقط از آخرین پیام می‌تواند انشعاب بگیرد",
     "errorUnsupported": "این عامل از انشعاب پشتیبانی نمی‌کند",
     "errorGeneric": "انشعاب ناموفق بود: {{message}}"
-  }
+  },
+  "askSubmit": "ارسال",
+  "askDecline": "پاسخ ندادن",
+  "askAnswered": "پاسخ داده شد",
+  "askDeclined": "رد شد",
+  "askOther": "سایر",
+  "askOtherPlaceholder": "پاسخ خود را بنویسید",
+  "requestDetails": "جزئیات درخواست:"
 }

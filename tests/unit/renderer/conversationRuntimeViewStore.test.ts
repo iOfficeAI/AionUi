@@ -46,6 +46,35 @@ describe('conversationRuntimeViewStore turn id contract', () => {
     resetConversationRuntimeViewStoreForTest();
   });
 
+  it('ignores a stale turn.completed for a turn that is no longer active (codex background exec)', () => {
+    // codex ends its prompt turn while unified exec keeps the command running;
+    // the trailing CLI-initiated turn's completion lands AFTER the user's next
+    // turn started and used to clear that new turn's pending gate.
+    localSendStarted('conv-1');
+    localSendAccepted('conv-1', 'turn-new', runningRuntime('turn-new'), 'msg-1');
+    expect(getConversationRuntimeViewSnapshot('conv-1').activeTurnId).toBe('turn-new');
+
+    const logs = turnCompleted('conv-1', 'turn-orphan', idleRuntime());
+
+    const view = getConversationRuntimeViewSnapshot('conv-1');
+    expect(view.activeTurnId).toBe('turn-new');
+    expect(view.isProcessing).toBe(true);
+    expect(view.canSendMessage).toBe(false);
+    expect(logs.map((l) => l.event)).toContain('turn_completed_ignored_for_other_turn');
+  });
+
+  it('still applies turn.completed for the active turn', () => {
+    localSendStarted('conv-1');
+    localSendAccepted('conv-1', 'turn-1', runningRuntime('turn-1'), 'msg-1');
+
+    const logs = turnCompleted('conv-1', 'turn-1', idleRuntime());
+
+    const view = getConversationRuntimeViewSnapshot('conv-1');
+    expect(view.canSendMessage).toBe(true);
+    expect(view.isProcessing).toBe(false);
+    expect(logs.map((l) => l.event)).toContain('turn_completed_applied');
+  });
+
   it('keeps idle when turn.completed arrives before local send accepted', () => {
     localSendStarted('conv-1');
     turnCompleted('conv-1', 'turn-1', idleRuntime());

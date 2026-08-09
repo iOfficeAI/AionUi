@@ -13,7 +13,10 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useR
 import { BROWSER_BLANK_URL, BROWSER_TAB_FALLBACK_TITLE, MAX_BROWSER_TABS } from '../browser/constants';
 import { isBrowserMcpActivity, isBrowserMcpSettled } from '../browser/agentActivity';
 import { maybeNotifyFirstAgentBrowserUse } from '../browser/firstUseNotice';
-import type { PreviewScopeKey } from './previewScope';
+import { listPersistedPreviewScopeKeys, previewScopeStorageKey, type PreviewScopeKey } from './previewScope';
+import { peKey } from '@/renderer/pages/conversation/explorer/explorerModel';
+import { reflessTabKey } from './reflessTabKey';
+import { onPreviewWatchChange, reconcilePreviewWatch, resetPreviewWatch } from './previewWatchStore';
 
 /** DOM 片段数据结构 / DOM snippet data structure */
 export interface DomSnippet {
@@ -39,7 +42,22 @@ export interface PreviewMetadata {
   file_path?: string; // 工作空间文件的绝对路径 / Absolute file path in workspace
   workspace?: string; // 工作空间根目录 / Workspace root directory
   editable?: boolean; // 是否可编辑 / Whether editable
-  truncated?: boolean; // 预览内容是否被截断 / Whether preview content was truncated
+  // 文件超过大小上限：内容从未被读取，只显示提示 + 逃生按钮
+  // File exceeds its size ceiling: content was never read; the tab shows an
+  // explanation plus an escape hatch instead of an editor.
+  oversized?: boolean;
+  sizeBytes?: number; // 实际文件大小 / Actual file size, for the oversized message
+  // 打开时生效的上限快照。刻意不在渲染时重算 —— 否则日后阈值改成设置项时，
+  // 调小设置会让已打开的 tab 显示新阈值，破坏「只影响新开 tab」的约束。
+  // Ceiling captured at open time. Deliberately not recomputed at render time:
+  // once the threshold becomes a setting, recomputing would let a changed
+  // setting alter tabs already on screen.
+  thresholdBytes?: number;
+  // 上次已知修改时间，保存时作为 If-Match 乐观并发条件。
+  // openPreview 会把它写进 fileMtimeRef —— 那是这个字段唯一的用途。
+  // Last-known mtime, the If-Match condition for save-time conflict detection.
+  // openPreview copies it into fileMtimeRef, which is this field's only purpose.
+  lastModified?: number;
   targetLine?: number; // 打开文件后定位到的目标行 / Target line to reveal after opening
   targetColumn?: number; // 打开文件后定位到的目标列 / Target column to reveal after opening
   missingFile?: boolean; // 文件不存在或无法读取 / Whether the referenced file is missing or unreadable
@@ -103,6 +121,8 @@ export interface PreviewContextValue {
    */
   openBrowserTab: (url?: string) => void;
   closePreview: () => void;
+  /** Discard this scope's tabs entirely (see closePreview for the difference). */
+  clearPreviewForScope: () => void;
   closeTab: (tabId: string) => void;
   switchTab: (tabId: string) => void;
   updateContent: (content: string) => void;
@@ -126,7 +146,28 @@ export interface PreviewContextValue {
    * the silent tab reuse looking like a bug.
    */
   browserTabLimitHitAt: number | null;
+  /**
+   * Timestamp of the most recent time persisting tabs had to be given up because
+   * local storage is full (null when it never happened).
+   *
+   * Surfaced so the UI can say it out loud: persistence failing silently meant a
+   * user's tabs simply stopped coming back after switching projects, with nothing
+   * connecting that to a full storage quota.
+   */
+  persistQuotaExceededAt: number | null;
   saveContent: (tabId?: string) => Promise<boolean>; // 保存内容 / Save content
+  /** Re-read a tab from disk, replacing its content and clearing its dirty mark. */
+  reloadTabContent: (tabId: string) => Promise<boolean>;
+  /**
+   * Tab ids with a reported, unconsumed change on disk.
+   *
+   * Drives the refresh control's amber state. Keyed by tab so two tabs in the same
+   * watched directory are flagged independently — the directory changed, but only the
+   * tabs whose own file changed should say so.
+   */
+  tabsWithUpdate: ReadonlySet<string>;
+  /** Clear a tab's pending-change mark (after a reload, or when it is dismissed). */
+  clearTabUpdate: (tabId: string) => void;
   findPreviewTab: (type: PreviewContentType, content?: string, metadata?: PreviewMetadata) => PreviewTab | null; // 查找匹配的 tab
   closePreviewByIdentity: (type: PreviewContentType, content?: string, metadata?: PreviewMetadata) => void; // 根据内容关闭指定 tab
   closePreviewIfScopeChanged: (scopeKey: PreviewScopeKey) => void; // 切换隔离 scope(project;见 previewScope.ts):持久化旧 scope、恢复新 scope 的 tabs+可见性(per-project)
@@ -146,8 +187,23 @@ const PreviewContext = createContext<PreviewContextValue | null>(null);
 
 // Persistence is per **preview scope** (project id, or workspace fallback — see
 // `previewScope.ts`), so each project restores its own open tabs + visibility
-// when switching conversations / projects. Key: `aionui_preview:<scope>`.
-const previewScopeStorageKey = (scope: string): string => `aionui_preview:${scope}`;
+// when switching conversations / projects. Key: `preview-ui:<scope>`.
+
+/**
+ * How many scopes keep persisted state, least-recently-written evicted first.
+ *
+ * Sizing: a scope holds at most a handful of text tabs, each capped at
+ * {@link MAX_PERSISTED_TAB_CONTENT_LENGTH} (80k chars) — so a *pathological*
+ * scope approaches a few hundred KB, while a typical one is a few KB. Browsers
+ * give an origin roughly 5–10 MB of localStorage, shared with everything else the
+ * app stores. 12 keeps the realistic footprint comfortably inside that (~tens of
+ * KB typical) and still bounds the worst case, while being far more scopes than
+ * anyone switches between in a session.
+ *
+ * Previously unbounded: every project ever opened kept its entry forever, with no
+ * cleanup anywhere, so the quota could only ever be approached, never released.
+ */
+const MAX_PERSISTED_SCOPES = 12;
 
 /** Persisted per-scope preview state. */
 type PersistedScopeState = { isOpen: boolean; tabs: PreviewTab[]; activeTabId: string | null };
@@ -158,51 +214,193 @@ const MAX_PERSISTED_TAB_CONTENT_LENGTH = 80_000;
 // `browser` tabs persist so switching projects/conversations restores the same
 // open pages (per-project, see `previewScope.ts`). Their `content` is just a URL,
 // so they are always well under the size cap.
-const PERSISTABLE_CONTENT_TYPES = new Set<PreviewContentType>(['markdown', 'html', 'code', 'diff', 'browser']);
+/**
+ * Types whose content never comes from `/api/fs/content`: pdf streams from a URL,
+ * office renders through its own process, and an unsupported format has nothing to
+ * render. Reloading these means telling their viewer to re-fetch, not re-reading text.
+ */
+const CONTENT_FREE_PREVIEW_TYPES = new Set<PreviewContentType>(['pdf', 'word', 'excel', 'ppt', 'unsupported']);
 
+/**
+ * Types whose content can be fetched again from the file, so storing it is pointless.
+ *
+ * The test is **re-obtainability**, not whether the type is editable. Their viewers
+ * already re-fetch from the `fileRef`: a pdf builds a stream URL from it, office hands
+ * it to its own process and ignores `content` entirely, and the image viewer re-reads
+ * whenever `content` is absent. Persisting the bytes buys nothing that reopening does
+ * not, and for an image it costs a great deal — a data URL up to the 20 MB image
+ * ceiling would exhaust the storage quota on its own and start evicting other projects'
+ * tabs through the LRU.
+ *
+ * ⚠️ Do not extend this by asking "is the type read-only". `diff` and `patch` are
+ * declared `editable: false` in the type table, and adding them here would destroy
+ * them: a diff tab's content is a patch generated by an agent
+ * (`useDiffPreviewHandlers` passes `diffContent` and no file), so there is no file on
+ * disk to re-read and blanking it loses the only copy. Read-only says the UI will not
+ * offer an editor; it says nothing about where the content came from, and those are
+ * different questions.
+ *
+ * Storing an empty `content` here is safe because the content is recoverable, not
+ * because these tabs cannot be edited — an `editable: false` tab CAN currently go
+ * dirty (Explorer marks every markdown read-only, yet the markdown branch mounts a
+ * writable editor), so "read-only implies clean" is not a property to rely on. What
+ * makes the blank safe is that every one of these types renders from its ref, so
+ * nothing ever reads the empty string as the file's contents.
+ *
+ * A tab of one of these types without a `fileRef` has nothing to restore from, so it is
+ * dropped rather than restored as a permanently empty viewer.
+ */
+const REFETCHABLE_CONTENT_TYPES = new Set<PreviewContentType>([...CONTENT_FREE_PREVIEW_TYPES, 'image']);
+
+/**
+ * Types worth persisting at all.
+ *
+ * Everything the panel can open, which is the point: this used to list only the text
+ * types, so switching project and back silently dropped every image, pdf and office
+ * tab. The tabs were still in memory — collapsing and reopening the panel restored all
+ * of them — so the loss appeared only when the panel's state went through storage,
+ * which made it look like the file types were unsupported rather than unsaved.
+ */
+const PERSISTABLE_CONTENT_TYPES = new Set<PreviewContentType>([
+  'markdown',
+  'html',
+  'code',
+  'csv',
+  'diff',
+  'browser',
+  'image',
+  'pdf',
+  'word',
+  'excel',
+  'ppt',
+  'unsupported',
+]);
+
+/**
+ * Reduce one tab to what should be written, or `null` to drop it.
+ *
+ * The split is by whether the content can be got back. If it can (a file the viewer
+ * re-fetches from its ref), only the identity is stored. If it cannot — text being
+ * edited, or a diff generated in a conversation — the content is the only copy and has
+ * to be written, which is the data loss this whole area has been about.
+ */
+const tabForPersistence = (tab: PreviewTab): PreviewTab | null => {
+  const shared = {
+    ...tab,
+    // Agent activity is a live, per-session signal — never restore it as active.
+    metadata: tab.metadata?.agentActive ? { ...tab.metadata, agentActive: false } : tab.metadata,
+  };
+
+  if (REFETCHABLE_CONTENT_TYPES.has(tab.content_type)) {
+    // A missing `fileRef` is not rejected here. Dropping unrestorable tabs is the
+    // reader's job, whose guard covers every stored record rather than only the ones
+    // this build wrote — refusing here as well would be a second copy of the same rule,
+    // and two guards for one rule invite deleting either as "already covered".
+    //
+    // Blanked before any size check, so a large image is stored rather than dropped for
+    // being large: the size cap exists to keep bulky text out of storage, and there is
+    // no text here to keep out.
+    return { ...shared, content: '', originalContent: '', isDirty: false };
+  }
+
+  if (tab.content.length > MAX_PERSISTED_TAB_CONTENT_LENGTH) return null;
+
+  return {
+    ...shared,
+    // Preserve the edit and the fact that it is unsaved. `originalContent` keeps
+    // the last saved text so the dirty comparison still works after restore.
+    isDirty: tab.isDirty === true,
+    originalContent: typeof tab.originalContent === 'string' ? tab.originalContent : tab.content,
+  };
+};
+
+/**
+ * Prepare tabs for persistence.
+ *
+ * Unsaved edits are stored **as unsaved** — content, original content and the dirty
+ * flag all as they stand. Previously this forced `isDirty: false` and overwrote
+ * `originalContent` with the edited text, so an unsaved edit was written to disk
+ * looking exactly like a saved one: on restart the tab showed no dirty marker, and
+ * the user had no way to tell that their change had never reached the file.
+ *
+ * Keeping the flag is also what makes "switch away and back leaves things as they
+ * were" true rather than approximately true — the restored tab is still dirty, still
+ * marked, and Cmd+S still writes it.
+ */
 const sanitizeTabsForPersistence = (input: PreviewTab[]): PreviewTab[] => {
   return input
     .filter((tab) => PERSISTABLE_CONTENT_TYPES.has(tab.content_type))
-    .filter((tab) => tab.content.length <= MAX_PERSISTED_TAB_CONTENT_LENGTH)
-    .map((tab) => ({
-      ...tab,
-      isDirty: false,
-      originalContent: tab.content,
-      // Agent activity is a live, per-session signal — never restore it as active.
-      metadata: tab.metadata?.agentActive ? { ...tab.metadata, agentActive: false } : tab.metadata,
-    }));
+    .map(tabForPersistence)
+    .filter((tab): tab is PreviewTab => tab !== null);
+};
+
+/**
+ * Legacy migration: earlier builds truncated a long text preview to 40,000
+ * characters and persisted the remnant (the cap above is 80,000, so it fitted),
+ * flagged by a `truncated: true` metadata field that no longer exists.
+ *
+ * That flag drove the only on-screen warning that the content was a fragment.
+ * Restoring such a tab now would show the fragment with no indication at all —
+ * silently presenting part of a document as the whole file.
+ *
+ * So drop these tabs on restore. Note the old threshold compared the *length of
+ * content already read*, not the file size, so a file of any size could end up
+ * truncated here — reopening one may well land in the oversized state rather than
+ * loading fully. Either outcome is honest, which the restored fragment is not.
+ * Nothing recoverable is lost: those tabs persisted as read-only, so they hold no
+ * unsaved edits, and their remnant was never writable back to disk.
+ */
+const isLegacyTruncatedTab = (tab: PreviewTab): boolean => {
+  // `truncated` is deliberately absent from PreviewMetadata now, so read it
+  // through a narrowed view rather than resurrecting the field.
+  const legacyMetadata = tab.metadata as (PreviewMetadata & { truncated?: unknown }) | undefined;
+  return legacyMetadata?.truncated === true;
 };
 
 const parsePersistedTabs = (value: unknown): PreviewTab[] => {
   if (!Array.isArray(value)) return [];
 
-  return value
-    .filter((tab): tab is PreviewTab => {
-      if (!tab || typeof tab !== 'object') return false;
-      const candidate = tab as Partial<PreviewTab>;
-      return (
-        typeof candidate.id === 'string' &&
-        typeof candidate.title === 'string' &&
-        typeof candidate.content === 'string' &&
-        typeof candidate.content_type === 'string'
-      );
-    })
-    .filter((tab) => PERSISTABLE_CONTENT_TYPES.has(tab.content_type))
-    .filter((tab) => tab.content.length <= MAX_PERSISTED_TAB_CONTENT_LENGTH)
-    .map((tab) => {
-      // Drop a persisted fileRef that no longer matches the ChatFileRef shape
-      // (defensive against stale/tampered localStorage), keeping the rest intact.
-      const metadata =
-        tab.metadata?.fileRef && !isChatFileRef(tab.metadata.fileRef)
-          ? { ...tab.metadata, fileRef: undefined }
-          : tab.metadata;
-      return {
+  return (
+    value
+      .filter((tab): tab is PreviewTab => {
+        if (!tab || typeof tab !== 'object') return false;
+        const candidate = tab as Partial<PreviewTab>;
+        return (
+          typeof candidate.id === 'string' &&
+          typeof candidate.title === 'string' &&
+          typeof candidate.content === 'string' &&
+          typeof candidate.content_type === 'string'
+        );
+      })
+      .filter((tab) => !isLegacyTruncatedTab(tab))
+      .filter((tab) => PERSISTABLE_CONTENT_TYPES.has(tab.content_type))
+      // The size cap applies to stored text only. Identity-restored tabs were written
+      // with an empty content, so they pass it either way — but checking them against a
+      // text limit would be asserting something about a value that carries no text.
+      .filter(
+        (tab) =>
+          REFETCHABLE_CONTENT_TYPES.has(tab.content_type) || tab.content.length <= MAX_PERSISTED_TAB_CONTENT_LENGTH
+      )
+      // An identity-restored tab has nothing but its ref to reopen from, so one without
+      // a ref would restore as a viewer that can never show anything.
+      .filter((tab) => !REFETCHABLE_CONTENT_TYPES.has(tab.content_type) || Boolean(tab.metadata?.fileRef))
+      // A stored ref that no longer matches the ChatFileRef shape (stale or tampered
+      // storage) means this tab's identity is unusable. Drop the whole tab.
+      //
+      // The previous behaviour — strip the ref, keep the tab — was worse than it
+      // looked: the tab silently became ref-less, so it no longer matched itself on
+      // reopen and the same file opened a second tab. It also could not be saved,
+      // since writing goes through the ref. Keeping a tab that can neither dedup nor
+      // save only postpones the confusion.
+      .filter((tab) => !tab.metadata?.fileRef || isChatFileRef(tab.metadata.fileRef))
+      .map((tab) => ({
         ...tab,
-        metadata,
         originalContent: typeof tab.originalContent === 'string' ? tab.originalContent : tab.content,
-        isDirty: false,
-      };
-    });
+        // Restore the unsaved state as it was stored. Forcing `false` here is what
+        // made a restored unsaved edit look saved.
+        isDirty: tab.isDirty === true,
+      }))
+  );
 };
 
 const EMPTY_SCOPE_STATE: PersistedScopeState = { isOpen: false, tabs: [], activeTabId: null };
@@ -222,14 +420,98 @@ const loadScopeState = (scope: string): PersistedScopeState => {
   }
 };
 
+/** Parse one stored scope entry, or null when absent/corrupt. */
+const readPersistedEntry = (key: string): { tabs?: unknown; savedAt?: unknown } | null => {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? (JSON.parse(raw) as { tabs?: unknown; savedAt?: unknown }) : null;
+  } catch {
+    return null;
+  }
+};
+
+/**
+ * Drop the coldest scope entries until at most `keep` remain **in total**.
+ *
+ * `protectedKey` is never evicted (it is the scope just written, which the user is
+ * looking at) but it still counts toward `keep` — otherwise the stored total would
+ * settle at `keep + 1`.
+ *
+ * Recency comes from the `savedAt` stamp written with each entry; entries from
+ * before that stamp existed (or with a corrupt one) sort oldest and are evicted
+ * first, which is the right bias — they are by definition the least recently
+ * written by this build.
+ */
+const evictColdestScopes = (keep: number, protectedKey?: string): void => {
+  const allKeys = listPersistedPreviewScopeKeys();
+  const evictable = allKeys
+    .filter((key) => key !== protectedKey)
+    .map((key) => {
+      let savedAt = 0;
+      try {
+        const parsed = JSON.parse(localStorage.getItem(key) ?? '{}') as { savedAt?: unknown };
+        if (typeof parsed.savedAt === 'number') savedAt = parsed.savedAt;
+      } catch {
+        // Unparseable entry — treat as coldest so it is the first to go.
+      }
+      return { key, savedAt };
+    })
+    .toSorted((a, b) => a.savedAt - b.savedAt);
+
+  // Count every stored scope, including the protected one, against the cap.
+  const excess = Math.min(allKeys.length - keep, evictable.length);
+  for (let i = 0; i < excess; i++) {
+    localStorage.removeItem(evictable[i].key);
+  }
+};
+
+/**
+ * Called when persistence had to be abandoned because storage is full.
+ *
+ * Wired by the provider to a visible warning. Silence was the old behaviour and
+ * the reason this needed fixing: writes failed, tabs stopped coming back after a
+ * project switch, and nothing ever told the user why.
+ */
+let onPersistQuotaExceeded: (() => void) | null = null;
+
 /** Persist a scope's preview state (lightweight text tabs + active tab + visibility). */
 const persistScopeState = (scope: string, state: PersistedScopeState): void => {
-  try {
+  const key = previewScopeStorageKey(scope);
+  const write = (): void => {
     const tabs = sanitizeTabsForPersistence(state.tabs);
     const activeTabId = tabs.some((t) => t.id === state.activeTabId) ? state.activeTabId : (tabs[0]?.id ?? null);
-    localStorage.setItem(previewScopeStorageKey(scope), JSON.stringify({ isOpen: state.isOpen, tabs, activeTabId }));
+    const payload = { isOpen: state.isOpen, tabs, activeTabId };
+
+    // `savedAt` drives LRU eviction, so it has to mean "the tabs here last changed",
+    // not "this key was last written". Writes also happen for visibility-only changes
+    // — collapsing the panel persists `isOpen` — and letting those bump the stamp
+    // would make a scope the user merely glanced at outrank one holding real work,
+    // evicting the wrong entry. So carry the previous stamp forward when the stored
+    // tab set is unchanged.
+    const previous = readPersistedEntry(key);
+    const tabsUnchanged = previous !== null && JSON.stringify(previous.tabs) === JSON.stringify(tabs);
+    const savedAt = tabsUnchanged && typeof previous.savedAt === 'number' ? previous.savedAt : Date.now();
+
+    localStorage.setItem(key, JSON.stringify({ ...payload, savedAt }));
+  };
+
+  try {
+    write();
+    // Bound the number of scopes kept. Runs after a successful write so the scope
+    // just written is never the one evicted.
+    evictColdestScopes(MAX_PERSISTED_SCOPES, key);
   } catch {
-    // storage full / unavailable — non-fatal
+    // Out of quota (or storage unavailable). Free the coldest scopes and retry
+    // once — persistence recovering on its own is better than a warning the user
+    // can do nothing about.
+    try {
+      evictColdestScopes(Math.floor(MAX_PERSISTED_SCOPES / 2), key);
+      write();
+    } catch {
+      // Still failing: this scope's tabs will not come back. Say so rather than
+      // letting persistence die quietly.
+      onPersistQuotaExceeded?.();
+    }
   }
 };
 
@@ -252,12 +534,77 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
   // Set when a browser-tab open was folded into an existing tab because the cap
   // was reached, so the UI can tell the user instead of silently reusing a tab.
   const [browserTabLimitHitAt, setBrowserTabLimitHitAt] = useState<number | null>(null);
+  // Set when a persist attempt was abandoned on a full quota, so the UI can warn
+  // instead of letting persistence stop working unannounced.
+  const [persistQuotaExceededAt, setPersistQuotaExceededAt] = useState<number | null>(null);
+
+  // Tabs whose file has been reported as changed and not yet re-read.
+  const [tabsWithUpdate, setTabsWithUpdate] = useState<ReadonlySet<string>>(() => new Set());
+
+  const clearTabUpdate = useCallback((tabId: string) => {
+    setTabsWithUpdate((prev) => {
+      if (!prev.has(tabId)) return prev;
+      const next = new Set(prev);
+      next.delete(tabId);
+      return next;
+    });
+  }, []);
+
+  // Translate "a watched directory changed" into "these tabs may be stale".
+  //
+  // Marking rather than reloading is deliberate: silently replacing what is on screen
+  // is what the old poller did, and it could overwrite an edit in progress. The user
+  // decides when to take the new content.
+  //
+  // If you are here because the refresh indicator did not light up: check what the
+  // signal was. A `files` signal only flags the tabs it names, so a change to a file no
+  // tab has open correctly flags nothing. A `directory` signal flags every tab in that
+  // directory, because the report could not say which file changed.
+  //
+  // What still gets lost: a change the backend never reported at all. The kernel drops
+  // events under load, and the rescan that follows *replaces* the per-file changes
+  // coalesced into its window rather than accompanying them — those are gone, not
+  // delayed. The directory signal is what keeps that from passing as silence.
+  useEffect(() => {
+    return onPreviewWatchChange((changedDir, signal) => {
+      const affected = tabsRef.current
+        .filter((tab) => {
+          const ref = tab.metadata?.fileRef;
+          if (!ref || ref.kind !== 'project') return false;
+          const lastSlash = ref.relative_path.lastIndexOf('/');
+          const dir = lastSlash < 0 ? '' : ref.relative_path.slice(0, lastSlash);
+          if (peKey(ref.pe_id, dir) !== changedDir) return false;
+          // A named report is matched per file: several tabs usually share a directory,
+          // and flagging all of them would send the user to re-read files that never
+          // changed. Without names there is nothing to narrow by, so living in the
+          // directory is enough.
+          if (signal.kind === 'directory') return true;
+          const name = lastSlash < 0 ? ref.relative_path : ref.relative_path.slice(lastSlash + 1);
+          return signal.names.includes(name);
+        })
+        .map((tab) => tab.id);
+      if (affected.length === 0) return;
+      setTabsWithUpdate((prev) => {
+        const next = new Set(prev);
+        for (const id of affected) next.add(id);
+        return next;
+      });
+    });
+  }, []);
+
+  // Route the module-level persist failure hook into this provider's state.
+  useEffect(() => {
+    onPersistQuotaExceeded = () => setPersistQuotaExceededAt(Date.now());
+    return () => {
+      onPersistQuotaExceeded = null;
+    };
+  }, []);
   // const [sendBoxHandler, setSendBoxHandlerState] = useState<((text: string) => void) | null>(null);
   const sendBoxHandler = useRef<((text: string) => void) | null>(null);
   const [domSnippets, setDomSnippets] = useState<DomSnippet[]>([]);
 
   // Persist the active scope's preview state (open tabs + active tab + visibility)
-  // to `aionui_preview:<scope>`, debounced. Keeps activeTabIdRef in sync eagerly.
+  // to `preview-ui:<scope>`, debounced. Keeps activeTabIdRef in sync eagerly.
   useEffect(() => {
     activeTabIdRef.current = activeTabId;
     const scope = currentScopeRef.current;
@@ -268,15 +615,38 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
     return () => clearTimeout(timer);
   }, [tabs, activeTabId, isOpen]);
 
+  // Keep the panel's directory subscriptions in step with its open tabs.
+  //
+  // Driven by tab state, not by an "a tab opened" event: a file reached from a chat
+  // link starts with a local ref and only gains its project identity after an async
+  // upgrade, whose write-back lands here as a metadata change. Recomputing on every
+  // tabs change is what picks that up — deciding once at open time would leave that
+  // file without signals forever, and without any error to notice.
+  //
+  // Reconciliation diffs wanted against subscribed, so the extra passes this causes
+  // (StrictMode, or any other feature writing to tab metadata) cost nothing.
+  useEffect(() => {
+    reconcilePreviewWatch(tabs);
+  }, [tabs]);
+
   // 追踪是否正在保存（避免与流式更新冲突）/ Track if currently saving (to avoid conflicts with streaming updates)
   const savingFilesRef = useRef<Set<string>>(new Set());
+
+  // 每个文件上次已知的 mtime，保存时作为 If-Match 条件。
+  // 两个填充点：打开 tab 时（openPreview 从 metadata.lastModified 取）和保存成功后。
+  // 缺了前者，每个 tab 的首次保存都会不带 If-Match ⇒ 后端跳过冲突检测 ⇒ 静默覆盖。
+  //
+  // Last-known mtime per file, used as the If-Match condition on save. Two fill
+  // points: opening a tab (openPreview, from metadata.lastModified) and a
+  // successful save. Without the former, the first save of every tab would carry
+  // no If-Match, so the backend would skip conflict detection and silently
+  // overwrite a concurrent external edit.
+  const fileMtimeRef = useRef<Map<string, number>>(new Map());
 
   // 获取当前激活的 tab / Get active tab
   const activeTab = useMemo(() => {
     return tabs.find((tab) => tab.id === activeTabId) || null;
   }, [tabs, activeTabId]);
-
-  const normalize = useCallback((value?: string | null) => value?.trim() || '', []);
 
   // 从可能包含描述的字符串中提取文件名 / Extract filename from string that may contain description
   const extractFileName = useCallback((str?: string): string | undefined => {
@@ -286,68 +656,58 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
     return match ? match[1] : str;
   }, []);
 
+  /**
+   * Find an already-open tab with the same identity, or null.
+   *
+   * Two levels, and nothing else:
+   *
+   *   L1  both sides carry a ChatFileRef → compare `chatFileRefKey`
+   *   L2  neither carries one            → compare the ref-less namespace key
+   *   one side has a ref, the other does not → not the same tab
+   *
+   * The mixed case returns false on purpose rather than guessing. This replaced a
+   * five-level fallback chain (ref → file_path → file_name+path → title → whole
+   * content) whose lower levels caused real damage: two diffs of same-named files
+   * in different directories were treated as one tab and overwrote each other,
+   * while the same file opened from two entry points produced two tabs — the exact
+   * inverse of what dedup is for.
+   *
+   * `file_path` is deliberately not a fallback. Once entry points upgrade a local
+   * path to a project ref, the same file always yields the same ref, so path
+   * matching adds nothing — and a display path is the last thing that should carry
+   * identity.
+   */
   const findPreviewTabInList = useCallback(
     (tabList: PreviewTab[], type: PreviewContentType, content?: string, meta?: PreviewMetadata) => {
       // Browser tabs are never deduped: each one is an independent page the user
-      // (or an agent) opened on purpose. They carry no file identity, so the
-      // title/content fallbacks below would wrongly merge two fresh tabs that
-      // happen to share a placeholder title.
+      // (or an agent) opened on purpose, and they carry no file identity.
       if (type === 'browser') return null;
 
-      const normalizedFileName = normalize(meta?.file_name);
-      const normalizedTitle = normalize(meta?.title);
-      const normalizedFilePath = normalize(meta?.file_path);
       const refKey = meta?.fileRef ? chatFileRefKey(meta.fileRef) : '';
+      const reflessKey = refKey ? null : reflessTabKey(type, content, meta);
 
       return (
         tabList.find((tab) => {
+          // Type is a precondition, not a tiebreaker: the same path rendered as
+          // source and as a diff are legitimately two different tabs.
           if (tab.content_type !== type) return false;
-          const tabFileName = normalize(tab.metadata?.file_name);
-          const tabTitle = normalize(tab.metadata?.title);
-          const tabFilePath = normalize(tab.metadata?.file_path);
+
           const tabRefKey = tab.metadata?.fileRef ? chatFileRefKey(tab.metadata.fileRef) : '';
 
-          // 优先通过 ChatFileRef 身份匹配（终态身份，最可靠）
-          // Prefer matching by ChatFileRef identity (terminal identity, most reliable)
-          if (refKey && tabRefKey && refKey === tabRefKey) return true;
+          // L1 — the only authoritative identity.
+          if (refKey && tabRefKey) return refKey === tabRefKey;
 
-          // 再通过 file_path 匹配（未迁移到 ref 的来源）/ Then match by file_path (sources not yet on a ref)
-          if (normalizedFilePath && tabFilePath && normalizedFilePath === tabFilePath) return true;
+          // Mixed: one side has an identity and the other does not. They may well
+          // be the same file, but merging on a guess risks silent overwrites.
+          if (refKey || tabRefKey) return false;
 
-          // 通过 file_name 匹配时，需要确保路径兼容（避免同名文件在不同目录的冲突）
-          // When matching by file_name, ensure path compatibility (avoid conflicts of same-named files in different directories)
-          if (normalizedFileName && tabFileName && normalizedFileName === tabFileName) {
-            // 如果两边都有 file_path，则必须完全匹配
-            // If both have file_path, they must match exactly
-            if (normalizedFilePath && tabFilePath) {
-              return normalizedFilePath === tabFilePath;
-            }
-            // 如果只有一边有 file_path，不能仅凭 file_name 匹配
-            // If only one side has file_path, cannot match by file_name alone
-            if (normalizedFilePath || tabFilePath) {
-              return false;
-            }
-            // 都没有 file_path 时，可以通过 file_name 匹配
-            // When neither has file_path, can match by file_name
-            return true;
-          }
-
-          // 再通过 title 匹配 / Then match by title
-          if (!normalizedFileName && normalizedTitle && tabTitle && normalizedTitle === tabTitle) return true;
-
-          // 最后才通过 content 匹配（仅用于小文件）/ Finally match by content (only for small files)
-          // 对于大文件（PPT/Excel/Word），不使用 content 比较，避免性能问题
-          // For large files (PPT/Excel/Word), skip content comparison to avoid performance issues
-          if (!normalizedFileName && !normalizedTitle && !normalizedFilePath && content !== undefined) {
-            // 只对小于 100KB 的内容进行比较 / Only compare content smaller than 100KB
-            if (content.length < 100000 && tab.content === content) return true;
-          }
-
-          return false;
+          // L2 — both ref-less. Only the cases with an explicit key dedup at all.
+          if (!reflessKey) return false;
+          return reflessKey === reflessTabKey(tab.content_type, tab.content, tab.metadata);
         }) || null
       );
     },
-    [normalize]
+    []
   );
 
   const findPreviewTab = useCallback(
@@ -377,6 +737,20 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
        * invokes it twice.
        */
       const currentTabs = tabsRef.current;
+
+      // 记下打开时的 mtime，作为下次保存的 If-Match 条件。
+      // 必须在 setTabs 之外做 —— updater 在 StrictMode 下会跑两次，且必须保持纯函数。
+      // 这是「打开 tab 时取一次」那个填充点：没有它，每个 tab 的首次保存都不带
+      // If-Match，后端会跳过冲突检测并静默覆盖别人的改动。
+      //
+      // Record the mtime known at open time as the next save's If-Match condition.
+      // Done outside setTabs: the updater runs twice under StrictMode and must
+      // stay pure. This is the "read once when the tab opens" fill point — without
+      // it the first save of every tab carries no If-Match, so the backend skips
+      // conflict detection and silently overwrites a concurrent external edit.
+      if (meta?.fileRef && meta.lastModified != null) {
+        fileMtimeRef.current.set(chatFileRefKey(meta.fileRef), meta.lastModified);
+      }
 
       // 已打开同一内容：聚焦现有 tab，不新建 / Same content already open: focus it
       const existingTab = findPreviewTabInList(currentTabs, type, new_content, meta);
@@ -492,7 +866,39 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
     [openPreview]
   );
 
+  /**
+   * Hide the preview panel, keeping its tabs.
+   *
+   * Only visibility changes. The tabs stay in memory and stay persisted, so the
+   * user gets them back when the panel reopens — which is what "collapse" should
+   * mean and what the persisted shape already supported: `loadScopeState` restores
+   * on `isOpen === true && tabs.length > 0`, so `isOpen` and `tabs` were always
+   * independent and "closed but holding tabs" was already a legal state.
+   *
+   * This used to also `setTabs([])`, and the damage went well beyond the current
+   * view: the persist effect depends on `tabs`, so ~150ms later it wrote the now-
+   * empty list back over `preview-ui:<scope>`. One click on "new conversation"
+   * erased that project's entire remembered tab list — saved tabs included, not
+   * just unsaved ones. A dirty-state confirmation would not have helped, because
+   * clean tabs were being destroyed too.
+   *
+   * Use {@link clearPreviewForScope} when the intent really is to discard.
+   */
   const closePreview = useCallback(() => {
+    setIsOpen(false);
+    // DOM snippets are per-session scratch state tied to the visible HTML inspector,
+    // not tab content, so they are cleared with the view.
+    setDomSnippets([]);
+  }, []);
+
+  /**
+   * Discard this scope's tabs outright — the panel closes and nothing is restored.
+   *
+   * Separated from {@link closePreview} because "I am done with these files" and "get
+   * this panel out of my way" were the same function, and every caller meant the
+   * latter.
+   */
+  const clearPreviewForScope = useCallback(() => {
     setIsOpen(false);
     setTabs([]);
     setActiveTabId(null);
@@ -509,8 +915,22 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
       const prev = currentScopeRef.current;
       if (prev === scopeKey) return;
       if (prev != null) persistScopeState(prev, { isOpen, tabs, activeTabId });
+      // Release the leaving scope's directory subscriptions.
+      //
+      // Placed before the state updates as a matter of habit, not because the position
+      // currently matters: this callback is synchronous, so React flushes the tabs
+      // effect only after the whole body returns, and the release therefore happens
+      // first wherever it is written. Measured both orders — the resulting subscription
+      // set is identical.
+      //
+      // Kept here because that stops being true the moment anything in this function
+      // awaits: the effect could then run mid-body, and a release placed afterwards
+      // would drop the subscriptions the restore had just created.
+      resetPreviewWatch();
       currentScopeRef.current = scopeKey;
       const loaded = scopeKey != null ? loadScopeState(scopeKey) : EMPTY_SCOPE_STATE;
+      // Subscriptions for these tabs come from the tabs effect, which this setTabs
+      // triggers — restored tabs are subscribed exactly like freshly opened ones.
       setTabs(loaded.tabs);
       setActiveTabId(loaded.activeTabId);
       activeTabIdRef.current = loaded.activeTabId;
@@ -519,9 +939,6 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
     },
     [isOpen, tabs, activeTabId]
   );
-
-  // Track last-known mtime per file path for external change detection
-  const fileMtimeRef = useRef<Map<string, number>>(new Map());
 
   const closeTab = useCallback(
     (tabId: string) => {
@@ -606,6 +1023,54 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
         return next;
       })
     );
+  }, []);
+
+  /**
+   * Re-read a tab's content from disk, replacing what is on screen.
+   *
+   * Used by the refresh control once the user has decided what to do about any unsaved
+   * edit. The tab comes back clean, because after this its content *is* what the file
+   * holds — leaving the dirty marker set would claim there are unsaved changes when
+   * there are none.
+   *
+   * Refreshes the save-conflict timestamp too. Without that, the very next save would
+   * carry the mtime from before this reload and be rejected as a conflict against a
+   * change the user has already taken on board.
+   *
+   * Returns false when there is nothing to re-read (no ref, or the read failed); the
+   * caller decides whether that is worth reporting.
+   */
+  const reloadTabContent = useCallback(async (tabId: string): Promise<boolean> => {
+    const tab = tabsRef.current.find((t) => t.id === tabId);
+    const fileRef = tab?.metadata?.fileRef;
+    if (!tab || !fileRef) return false;
+
+    // pdf and office render from their own sources rather than from `content`, so
+    // there is nothing to fetch here; their reload paths live in the viewers.
+    if (CONTENT_FREE_PREVIEW_TYPES.has(tab.content_type)) return false;
+
+    const encoding: ContentEncoding = tab.content_type === 'image' ? 'dataurl' : 'utf8';
+    try {
+      const content = await ipcBridge.fs.readContent.invoke({ file: fileRef, encoding });
+      if (content == null) return false;
+
+      setTabs((prev) =>
+        prev.map((t) => (t.id === tabId ? { ...t, content, originalContent: content, isDirty: false } : t))
+      );
+
+      // Best-effort: a stale timestamp only costs one rejected save, which the user
+      // is told about, so it is not worth failing the reload over.
+      void ipcBridge.fs.getContentMetadata
+        .invoke({ file: fileRef })
+        .then((metadata) => {
+          if (metadata) fileMtimeRef.current.set(chatFileRefKey(fileRef), metadata.lastModified);
+        })
+        .catch(() => {});
+
+      return true;
+    } catch {
+      return false;
+    }
   }, []);
 
   const saveContent = useCallback(
@@ -771,76 +1236,6 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
     };
   }, [closeTab]); // 只依赖 closeTab，不依赖 tabs，避免重复订阅 / Only depend on closeTab, not tabs, to avoid re-subscribing
 
-  // File mtime polling: detect external file changes (Claude Code CLI, Gemini, etc.) by comparing lastModified.
-  // Only polls the active tab to minimize IPC overhead; checks other tabs once on tab switch.
-  // Uses polling instead of fileWatch IPC events because buildEmitter's main→renderer event delivery
-  // is unreliable after the first emission in Electron (only the first event reaches the renderer).
-  const checkFileUpdate = useCallback(
-    (tab: PreviewTab) => {
-      const fileRef = tab.metadata?.fileRef;
-      if (!fileRef || tab.isDirty) return;
-      const refKey = chatFileRefKey(fileRef);
-      if (savingFilesRef.current.has(refKey)) return;
-
-      void ipcBridge.fs.getContentMetadata
-        .invoke({ file: fileRef })
-        .then((metadata) => {
-          if (!metadata) return;
-          const prevMtime = fileMtimeRef.current.get(refKey);
-          fileMtimeRef.current.set(refKey, metadata.lastModified);
-          if (prevMtime === undefined || metadata.lastModified === prevMtime) return;
-
-          const encoding: ContentEncoding = tab.content_type === 'image' ? 'dataurl' : 'utf8';
-
-          void ipcBridge.fs.readContent
-            .invoke({ file: fileRef, encoding })
-            .then((content) => {
-              if (content == null) return;
-              setTabs((latest) =>
-                latest.map((t) => {
-                  const tRef = t.metadata?.fileRef;
-                  if (!tRef || chatFileRefKey(tRef) !== refKey) return t;
-                  if (savingFilesRef.current.has(refKey) || t.isDirty) return t;
-                  return { ...t, content, originalContent: content, isDirty: false };
-                })
-              );
-            })
-            .catch((error) => {
-              console.error('[PreviewContext] Failed to read content after mtime change:', refKey, error);
-            });
-        })
-        .catch((error) => {
-          console.error('[PreviewContext] Failed to get content metadata:', refKey, error);
-        });
-    },
-    [setTabs]
-  );
-
-  // Keep a ref to activeTab so the polling interval always sees the latest object
-  // without re-running the effect on every tabs state change.
-  const activeTabRef = useRef<PreviewTab | null>(null);
-  activeTabRef.current = activeTab;
-
-  const activeFileKey = activeTab?.metadata?.fileRef ? chatFileRefKey(activeTab.metadata.fileRef) : undefined;
-
-  // Poll active tab every 1s
-  useEffect(() => {
-    if (!activeFileKey) return;
-
-    const pollId = setInterval(() => {
-      const current = activeTabRef.current;
-      if (current) checkFileUpdate(current);
-    }, 1000);
-
-    // Check immediately on tab switch
-    const current = activeTabRef.current;
-    if (current) checkFileUpdate(current);
-
-    return () => {
-      clearInterval(pollId);
-    };
-  }, [activeFileKey, checkFileUpdate]);
-
   // 监听 preview.open 事件（用于 agent 打开网页预览）/ Listen to preview.open event (for agent to open web preview)
   // 同时监听 IPC 和 renderer emitter 两种方式 / Listen to both IPC and renderer emitter
   useEffect(() => {
@@ -946,13 +1341,18 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
       activeTab,
       openPreview,
       closePreview,
+      clearPreviewForScope,
       closeTab,
       switchTab: setActiveTabId,
       updateContent,
       updateTab,
       openBrowserTab,
       browserTabLimitHitAt,
+      persistQuotaExceededAt,
       saveContent,
+      reloadTabContent,
+      tabsWithUpdate,
+      clearTabUpdate,
       findPreviewTab,
       closePreviewByIdentity,
       closePreviewIfScopeChanged,
@@ -970,13 +1370,18 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
     activeTab,
     openPreview,
     closePreview,
+    clearPreviewForScope,
     closeTab,
     setActiveTabId,
     updateContent,
     updateTab,
     openBrowserTab,
     browserTabLimitHitAt,
+    persistQuotaExceededAt,
     saveContent,
+    reloadTabContent,
+    tabsWithUpdate,
+    clearTabUpdate,
     findPreviewTab,
     closePreviewByIdentity,
     closePreviewIfScopeChanged,

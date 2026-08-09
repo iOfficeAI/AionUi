@@ -74,11 +74,24 @@ function resolveBackendDefaultModel(assistant_backend?: string): Promise<string>
     return resolveAionrsDefaultModel();
   }
 
+  if (assistant_backend === 'antigravity') {
+    return resolveAntigravityDefaultModel();
+  }
+
   return resolveAcpDefaultModel(assistant_backend ?? 'acp');
 }
 
 async function resolveAcpDefaultModel(_assistant_backend: string): Promise<string> {
   return 'default';
+}
+
+async function resolveAntigravityDefaultModel(): Promise<string> {
+  // An empty model means "no --model flag": team provisioning persists it
+  // verbatim, the session layer filters empty ids to None, and agy runs on
+  // its own default model — the exact path direct chat already uses. The
+  // 'default' placeholder is not a real agy model id and fails every team
+  // turn with UserLlmProviderModelNotFound while agy's discovery is empty.
+  return '';
 }
 
 async function resolveGeminiDefaultModel(): Promise<string> {
