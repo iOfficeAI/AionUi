@@ -32,14 +32,27 @@ describe('AboutModalContent', () => {
     vi.unstubAllGlobals();
   });
 
-  it('shows the branded application identity without public update controls', () => {
+  it('shows the branded application identity with a visible update entry', () => {
     render(<AboutModalContent />);
 
     expect(screen.getByText('CSBU WorkMate')).toBeInTheDocument();
     expect(screen.getByText('settings.appDescription')).toBeInTheDocument();
     expect(screen.getByText('settings.producer')).toBeInTheDocument();
     expect(screen.getByText('v2.1.44')).toBeInTheDocument();
-    expect(screen.queryByText('settings.checkForUpdates')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'settings.checkForUpdates' })).toBeInTheDocument();
+  });
+
+  it('opens the update notification when the update entry is clicked', () => {
+    const openListener = vi.fn();
+    window.addEventListener('csbu-workmate-open-update-modal', openListener);
+    render(<AboutModalContent />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'settings.checkForUpdates' }));
+
+    expect(openListener).toHaveBeenCalledOnce();
+    const [event] = openListener.mock.calls[0]!;
+    expect((event as CustomEvent).detail).toEqual({ source: 'about' });
+    window.removeEventListener('csbu-workmate-open-update-modal', openListener);
   });
 
   it('opens the feedback report from the bug report action', () => {

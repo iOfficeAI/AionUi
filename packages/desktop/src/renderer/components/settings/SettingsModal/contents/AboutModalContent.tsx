@@ -4,7 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Divider, Typography } from '@arco-design/web-react';
+import { Button, Divider, Typography } from '@arco-design/web-react';
+import { Refresh } from '@icon-park/react';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import classNames from 'classnames';
@@ -17,6 +18,14 @@ import { FEEDBACK_REPORTING_ENABLED } from '@/common/types/feedbackDiagnostics';
 // '../../../../../../package.json'` resolved to packages/desktop/package.json
 // which is a workspace placeholder permanently pinned at "0.0.0".
 declare const __APP_VERSION__: string;
+
+const openUpdateNotification = () => {
+  window.dispatchEvent(
+    new CustomEvent('csbu-workmate-open-update-modal', {
+      detail: { source: 'about' },
+    })
+  );
+};
 
 const AboutModalContent: React.FC = () => {
   const { t } = useTranslation();
@@ -50,6 +59,14 @@ const AboutModalContent: React.FC = () => {
                 v{__APP_VERSION__}
               </span>
             </div>
+            <Button
+              type='secondary'
+              className='mt-16px !rounded-8px'
+              icon={<Refresh theme='outline' size={16} />}
+              onClick={openUpdateNotification}
+            >
+              {t('settings.checkForUpdates')}
+            </Button>
           </div>
 
           {/* Divider */}

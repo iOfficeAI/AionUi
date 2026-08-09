@@ -8,6 +8,7 @@ import { ipcBridge } from '@/common';
 import { TEAM_MODE_ENABLED } from '@/common/config/constants';
 import PwaPullToRefresh from '@/renderer/components/layout/PwaPullToRefresh';
 import Titlebar from '@/renderer/components/layout/Titlebar';
+import UpdateNotificationCard from '@/renderer/components/settings/UpdateNotificationCard';
 import { Layout as ArcoLayout, Tooltip } from '@arco-design/web-react';
 import classNames from 'classnames';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
@@ -599,6 +600,7 @@ const Layout: React.FC<{
           </ArcoLayout>
         </div>
       </NavigationHistoryProvider>
+      <UpdateNotificationCard />
     </LayoutContext.Provider>
   );
 };

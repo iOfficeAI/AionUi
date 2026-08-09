@@ -52,7 +52,9 @@ vi.mock('@/common/config/constants', () => ({
 }));
 vi.mock('@/renderer/components/layout/PwaPullToRefresh', () => ({ default: () => null }));
 vi.mock('@/renderer/components/layout/Titlebar', () => ({ default: () => null }));
-vi.mock('@/renderer/components/settings/UpdateModal', () => ({ default: () => null }));
+vi.mock('@/renderer/components/settings/UpdateNotificationCard', () => ({
+  default: () => <div data-testid='update-notification-host' />,
+}));
 vi.mock('@renderer/hooks/system/useDeepLink', () => ({ useDeepLink: () => {} }));
 vi.mock('@renderer/hooks/system/notification/useNotificationClick', () => ({ useNotificationClick: () => {} }));
 vi.mock('@renderer/hooks/system/notification/useBrowserNotification', () => ({ useBrowserNotification: () => {} }));
@@ -111,6 +113,13 @@ describe('Layout sider brand Home button', () => {
 
     fireEvent.click(screen.getByLabelText(BACK_KEY));
     expect(navigate).toHaveBeenCalledWith('/conversation/abc');
+  });
+
+  it('mounts the global update notification host', () => {
+    currentPathname = '/settings/about';
+    renderLayout();
+
+    expect(screen.getByTestId('update-notification-host')).toBeInTheDocument();
   });
 
   it('falls back to /guid in a settings route when no path is recorded', () => {
