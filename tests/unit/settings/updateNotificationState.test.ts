@@ -102,6 +102,45 @@ describe('updateNotificationReducer', () => {
     expect(result.effects).toEqual([]);
   });
 
+  it('keeps an optional available update visible as a compact reminder after later', () => {
+    const availableState: UpdateNotificationState = {
+      ...initialUpdateNotificationState,
+      visible: true,
+      status: 'available',
+      updatePolicy: { mode: 'optional' },
+    };
+
+    const result = updateNotificationReducer(availableState, {
+      type: 'dismissRequested',
+      reason: 'later',
+    });
+
+    expect(result.state.visible).toBe(true);
+    expect(result.state.presentation).toBe('mini');
+    expect(result.state.status).toBe('available');
+  });
+
+  it('does not allow a required update to be dismissed, minimized, or cancelled', () => {
+    const requiredState: UpdateNotificationState = {
+      ...initialUpdateNotificationState,
+      visible: true,
+      status: 'downloading',
+      updatePolicy: { mode: 'required', minimumSupportedVersion: '2.1.53' },
+      activeTask: { kind: 'auto', id: 'auto' },
+    };
+
+    const dismissed = updateNotificationReducer(requiredState, {
+      type: 'dismissRequested',
+      reason: 'later',
+    });
+    const minimized = updateNotificationReducer(requiredState, { type: 'minimizeRequested' });
+    const cancelled = updateNotificationReducer(requiredState, { type: 'cancelDownloadRequested' });
+
+    expect(dismissed.state).toBe(requiredState);
+    expect(minimized.state).toBe(requiredState);
+    expect(cancelled.state).toBe(requiredState);
+  });
+
   it('cancels an active download and restores the available update state', () => {
     const downloadingState: UpdateNotificationState = {
       ...initialUpdateNotificationState,

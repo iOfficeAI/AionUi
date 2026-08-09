@@ -6,6 +6,8 @@
   "alreadyLatest": "已經是最新版本了",
   "currentVersion": "目前版本：{{version}}",
   "availableTitle": "有新版本可用",
+  "requiredTitle": "必須更新",
+  "requiredDescription": "必須完成此更新才能繼續使用 CSBU WorkMate，無法延後處理。",
   "noReleaseNotes": "沒有提供更新說明。",
   "downloadingTitle": "正在下載更新...",
   "downloadButton": "立即下載",

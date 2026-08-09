@@ -99,6 +99,23 @@ describe('release packaging configuration', () => {
     expect(releaseWorkflow).toContain("github.event_name == 'workflow_dispatch' || needs.create-tag.result");
   });
 
+  it('writes the selected update policy before signing release manifests', () => {
+    const releaseWorkflow = readProjectFile('.github/workflows/build-and-release.yml');
+    const policyIndex = releaseWorkflow.indexOf('Apply release update policy');
+    const signingIndex = releaseWorkflow.indexOf('Sign update manifests');
+
+    expect(releaseWorkflow).toContain('minimum_supported_version:');
+    expect(policyIndex).toBeGreaterThan(-1);
+    expect(signingIndex).toBeGreaterThan(policyIndex);
+  });
+
+  it('defaults every release path to an optional update', () => {
+    const releaseWorkflow = readProjectFile('.github/workflows/build-and-release.yml');
+
+    expect(releaseWorkflow).toMatch(/update_mode:[\s\S]*?default: optional/);
+    expect(releaseWorkflow).toContain("inputs.update_mode || 'optional'");
+  });
+
   it('uses Node 24-based actions throughout the release pipelines', () => {
     const workflows = [
       readProjectFile('.github/workflows/build-and-release.yml'),

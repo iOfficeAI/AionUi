@@ -875,7 +875,7 @@
   "googleCloudProjectPlaceholder": "Entrer votre ID de projet Google Cloud",
   "noAvailableModels": "Aucun modèle disponible",
   "appDescription": "L’espace de travail IA interne de CSBU pour les tâches bureautiques quotidiennes.",
-  "producer": "Produit par : Département de gestion des opérations de cybersécurité",
+  "producer": "Développé et maintenu par le Département de gestion des opérations de cybersécurité",
   "helpDocumentation": "Documentation d'aide",
   "updateLog": "Journal des mises à jour",
   "feedback": "Retour d'expérience",

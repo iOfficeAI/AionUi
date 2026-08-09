@@ -19,6 +19,18 @@ on:
         description: 'Existing tag to build and publish, for example v2.1.44'
         required: true
         type: string
+      update_mode:
+        description: 'Update policy written into the signed manifest'
+        required: true
+        default: optional
+        type: choice
+        options:
+          - optional
+          - required
+      minimum_supported_version:
+        description: 'Optional: require only clients older than this version, for example 2.1.53'
+        required: false
+        type: string
 
 env:
   BUN_INSTALL_REGISTRY: 'https://registry.npmjs.org/'
@@ -371,6 +383,34 @@ jobs:
       - name: Prepare release assets (normalize updater metadata)
         shell: bash
         run: bash scripts/prepare-release-assets.sh build-artifacts release-assets
+
+      - name: Apply release update policy
+        shell: bash
+        env:
+          UPDATE_MODE: ${{ github.event_name == 'workflow_dispatch' && inputs.update_mode || 'optional' }}
+          MINIMUM_SUPPORTED_VERSION: ${{ github.event_name == 'workflow_dispatch' && inputs.minimum_supported_version || '' }}
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const path = require('path');
+          const mode = process.env.UPDATE_MODE === 'required' ? 'required' : 'optional';
+          const minimumVersion = process.env.MINIMUM_SUPPORTED_VERSION?.trim() || '';
+          if (minimumVersion && !/^v?\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(minimumVersion)) {
+            throw new Error(`Invalid minimum supported version: ${minimumVersion}`);
+          }
+          for (const name of fs.readdirSync('release-assets').filter((entry) => /^latest.*\.yml$/.test(entry))) {
+            const manifestPath = path.join('release-assets', name);
+            const original = fs.readFileSync(manifestPath, 'utf8').replace(/\r\n/g, '\n').trimEnd();
+            const withoutPolicy = original
+              .split('\n')
+              .filter((line) => !/^(updateMode|minimumSupportedVersion):/.test(line))
+              .join('\n');
+            const policyLines = [`updateMode: ${mode}`];
+            if (minimumVersion) policyLines.push(`minimumSupportedVersion: ${minimumVersion.replace(/^v/, '')}`);
+            fs.writeFileSync(manifestPath, `${withoutPolicy}\n${policyLines.join('\n')}\n`);
+            console.log(`Applied ${mode} update policy to ${name}`);
+          }
+          NODE
 
       - name: Sign update manifests
         shell: bash

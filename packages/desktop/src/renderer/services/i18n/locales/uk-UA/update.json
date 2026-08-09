@@ -6,6 +6,8 @@
   "alreadyLatest": "У вас уже найновіша версія",
   "currentVersion": "Поточна версія: {{version}}",
   "availableTitle": "Доступне оновлення",
+  "requiredTitle": "Обов’язкове оновлення",
+  "requiredDescription": "Це оновлення потрібне для подальшого використання CSBU WorkMate, його не можна відкласти.",
   "noReleaseNotes": "Нотатки до випуску не надані.",
   "downloadingTitle": "Завантаження оновлення...",
   "downloadButton": "Завантажити зараз",

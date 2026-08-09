@@ -5,7 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
-import type { UpdateReleaseInfo } from '@/common/update/updateTypes';
+import type { UpdateCheckResult, UpdateReleaseInfo } from '@/common/update/updateTypes';
 
 /**
  * Discriminated outcome of an update check. The `available`/`upToDate` field
@@ -20,6 +20,7 @@ export type CheckUpdateOutcome =
       releasePageUrl: string;
       autoUpdateAvailable: boolean;
       autoUpdateInfo: { version: string; releaseNotes?: string } | null;
+      updatePolicy: UpdateCheckResult['updatePolicy'];
     }
   | {
       kind: 'upToDate';
@@ -62,6 +63,7 @@ export const runUpdateCheck = async (opts: {
         updateInfo: latest,
         releasePageUrl,
         autoUpdateAvailable: Boolean(res.data.autoUpdateAvailable),
+        updatePolicy: res.data.updatePolicy ?? { mode: 'optional' },
         autoUpdateInfo: res.data.autoUpdateInfo
           ? {
               version: res.data.autoUpdateInfo.version,

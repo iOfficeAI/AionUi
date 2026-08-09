@@ -106,6 +106,8 @@ describe('UpdateNotificationCard', () => {
       data: {
         currentVersion: '2.1.13',
         updateAvailable: true,
+        autoUpdateAvailable: true,
+        updatePolicy: { mode: 'optional' },
         latest: {
           tagName: 'v2.1.14',
           version: '2.1.14',
@@ -340,6 +342,67 @@ describe('UpdateNotificationCard', () => {
     expect(screen.queryByText('update.manualInstall')).not.toBeInTheDocument();
     expect(screen.getByText('update.later')).toBeInTheDocument();
     expect(screen.getByText('update.downloadButton')).toBeInTheDocument();
+  });
+
+  it('keeps a compact global reminder after an optional update is postponed', async () => {
+    render(<UpdateNotificationCard />);
+
+    await waitFor(() => expect(mocks.autoStatusHandler).toBeTruthy());
+    await act(async () => {
+      mocks.autoStatusHandler?.({
+        status: 'available',
+        version: '2.1.14',
+        currentVersion: '2.1.13',
+        updatePolicy: { mode: 'optional' },
+      });
+    });
+
+    fireEvent.click(await screen.findByText('update.later'));
+
+    expect(screen.queryByTestId('update-notification-card')).not.toBeInTheDocument();
+    expect(screen.getByTestId('update-notification-mini-progress')).toHaveAttribute('data-mini-status', 'available');
+  });
+
+  it('does not offer postponement or cancellation for a required update', async () => {
+    render(<UpdateNotificationCard />);
+
+    await waitFor(() => expect(mocks.autoStatusHandler).toBeTruthy());
+    await act(async () => {
+      mocks.autoStatusHandler?.({
+        status: 'available',
+        version: '2.1.14',
+        currentVersion: '2.1.13',
+        updatePolicy: { mode: 'required', minimumSupportedVersion: '2.1.53' },
+      });
+    });
+
+    expect(await screen.findByText('update.requiredTitle')).toBeInTheDocument();
+    expect(screen.getByText('update.requiredDescription')).toBeInTheDocument();
+    expect(screen.getByTestId('required-update-backdrop')).toBeInTheDocument();
+    expect(screen.queryByText('update.later')).not.toBeInTheDocument();
+    expect(screen.getByText('update.downloadButton')).toBeInTheDocument();
+  });
+
+  it('shows a close action instead of later when the app is up to date', async () => {
+    mocks.updateCheckMock.mockResolvedValue({
+      success: true,
+      data: {
+        currentVersion: '2.1.55',
+        updateAvailable: false,
+        autoUpdateAvailable: false,
+        updatePolicy: { mode: 'optional' },
+      },
+    });
+    render(<UpdateNotificationCard />);
+
+    await waitFor(() => expect(mocks.updateOpenHandler).toBeTruthy());
+    await act(async () => {
+      mocks.updateOpenHandler?.({ source: 'about' });
+    });
+
+    expect(await screen.findByText('update.upToDateTitle')).toBeInTheDocument();
+    expect(screen.queryByText('update.later')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'common.close' })).toBeInTheDocument();
   });
 
   it('shows release-note loading and failure states instead of empty notes', async () => {

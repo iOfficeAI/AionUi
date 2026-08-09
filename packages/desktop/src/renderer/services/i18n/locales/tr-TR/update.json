@@ -6,6 +6,8 @@
   "alreadyLatest": "Zaten en son sürümü kullanıyorsunuz",
   "currentVersion": "Mevcut sürüm: {{version}}",
   "availableTitle": "Güncelleme Mevcut",
+  "requiredTitle": "Zorunlu güncelleme",
+  "requiredDescription": "CSBU WorkMate'i kullanmaya devam etmek için bu güncelleme gereklidir ve ertelenemez.",
   "noReleaseNotes": "Sürüm notu yok.",
   "downloadingTitle": "Güncelleme indiriliyor...",
   "downloadButton": "Şimdi indir",

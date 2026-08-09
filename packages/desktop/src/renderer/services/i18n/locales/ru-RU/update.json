@@ -6,6 +6,8 @@
   "alreadyLatest": "У вас уже последняя версия",
   "currentVersion": "Текущая версия: {{version}}",
   "availableTitle": "Доступно обновление",
+  "requiredTitle": "Обязательное обновление",
+  "requiredDescription": "Это обновление необходимо для продолжения работы с CSBU WorkMate, его нельзя отложить.",
   "noReleaseNotes": "Примечания к выпуску не предоставлены.",
   "downloadingTitle": "Загрузка обновления...",
   "downloadButton": "Скачать сейчас",

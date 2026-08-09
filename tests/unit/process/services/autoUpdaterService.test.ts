@@ -112,6 +112,20 @@ describe('AutoUpdaterService', () => {
     setPlatform(originalPlatform);
   });
 
+  it('resolves optional and required policies from signed update metadata', async () => {
+    const { resolveUpdatePolicy } = await import('@/process/services/autoUpdaterService');
+    const optionalInfo = { version: '2.1.56' };
+    const requiredInfo = { version: '2.1.56', updateMode: 'required' };
+    const minimumInfo = { version: '2.1.56', updateMode: 'optional', minimumSupportedVersion: '2.1.54' };
+
+    expect(resolveUpdatePolicy(optionalInfo as never, '2.1.55')).toEqual({ mode: 'optional' });
+    expect(resolveUpdatePolicy(requiredInfo as never, '2.1.55')).toEqual({ mode: 'required' });
+    expect(resolveUpdatePolicy(minimumInfo as never, '2.1.53')).toEqual({
+      mode: 'required',
+      minimumSupportedVersion: '2.1.54',
+    });
+  });
+
   it('does not use the stable CDN updater when prerelease manual mode is enabled', async () => {
     autoUpdaterMock.checkForUpdates.mockResolvedValue({
       isUpdateAvailable: true,
@@ -398,6 +412,7 @@ describe('AutoUpdaterService', () => {
         version: '2.1.14',
         currentVersion: '2.1.13',
         filePath: cachedUpdatePath,
+        updatePolicy: { mode: 'optional' },
       },
     });
     expect(validateDownloadedPath).toHaveBeenCalledWith(cachedUpdatePath, updateInfo, fileInfo, expect.anything());

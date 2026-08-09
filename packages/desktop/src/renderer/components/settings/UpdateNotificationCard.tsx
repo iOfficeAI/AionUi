@@ -32,6 +32,7 @@ const UpdateNotificationCard: React.FC = () => {
 
   if (state.presentation === 'mini') {
     const miniPercent = state.status === 'downloaded' ? 100 : state.progress.percent;
+    const isAvailableReminder = state.status === 'available';
     const miniColor =
       state.status === 'downloaded'
         ? 'rgb(var(--success-6))'
@@ -43,31 +44,38 @@ const UpdateNotificationCard: React.FC = () => {
         <span className='text-30px leading-none text-[rgb(var(--success-6))]'>✓</span>
       ) : state.status === 'error' ? (
         <span className='text-30px leading-none text-[rgb(var(--danger-6))]'>×</span>
+      ) : isAvailableReminder ? (
+        <Download size='24' fill='rgb(var(--primary-6))' />
       ) : (
         <span className='text-13px leading-none text-t-primary font-600'>{miniPercent}%</span>
       );
 
     return renderNotificationLayer(
-      <button
-        type='button'
+      <Button
+        shape='circle'
         data-testid='update-notification-mini-progress'
         data-mini-status={state.status}
         data-ring-stroke-width='8'
         aria-label={t('update.restoreUpdateNotification')}
-        className='fixed right-24px bottom-24px z-1000 w-52px h-52px rd-full bg-1 shadow-lg flex items-center justify-center cursor-pointer'
+        className='!fixed right-24px bottom-24px z-1000 !w-52px !h-52px !p-0 !border-none !bg-1 shadow-lg flex items-center justify-center'
         onClick={actions.restore}
       >
-        <Progress
-          type='circle'
-          percent={miniPercent}
-          size='small'
-          width={46}
-          strokeWidth={8}
-          color={miniColor}
-          showText={false}
-        />
+        {!isAvailableReminder && (
+          <Progress
+            type='circle'
+            percent={miniPercent}
+            size='small'
+            width={46}
+            strokeWidth={8}
+            color={miniColor}
+            showText={false}
+          />
+        )}
         <span className='absolute inset-0 flex items-center justify-center pointer-events-none'>{miniContent}</span>
-      </button>
+        {isAvailableReminder && (
+          <span className='absolute top-2px right-2px w-9px h-9px rd-full bg-[rgb(var(--danger-6))]' />
+        )}
+      </Button>
     );
   }
 
@@ -107,17 +115,23 @@ const UpdateNotificationCard: React.FC = () => {
         );
       case 'available':
         return (
-          <div className='flex items-center gap-10px text-13px text-t-secondary'>
-            <span>
-              {state.currentVersion} → {versionLabel}
-            </span>
-            <button
-              type='button'
-              className='bg-transparent border-none p-0 cursor-pointer text-inherit underline underline-offset-2'
-              onClick={() => setReleaseLogVisible(true)}
-            >
-              {t('update.releaseLog')}
-            </button>
+          <div className='text-13px text-t-secondary'>
+            <div className='flex items-center gap-10px'>
+              <span>
+                {state.currentVersion} → {versionLabel}
+              </span>
+              <Button
+                type='text'
+                size='mini'
+                className='!p-0 !h-auto !text-inherit underline underline-offset-2'
+                onClick={() => setReleaseLogVisible(true)}
+              >
+                {t('update.releaseLog')}
+              </Button>
+            </div>
+            {state.updatePolicy.mode === 'required' && (
+              <div className='mt-8px text-[rgb(var(--warning-6))]'>{t('update.requiredDescription')}</div>
+            )}
           </div>
         );
       case 'downloading':
@@ -165,9 +179,11 @@ const UpdateNotificationCard: React.FC = () => {
     if (state.status === 'downloaded') {
       return (
         <>
-          <Button size='small' className={ACTION_BTN_CLASS} onClick={() => actions.dismiss('later')}>
-            {t('update.later')}
-          </Button>
+          {state.updatePolicy.mode !== 'required' && (
+            <Button size='small' className={ACTION_BTN_CLASS} onClick={() => actions.dismiss('later')}>
+              {t('update.later')}
+            </Button>
+          )}
           <Button type='primary' size='small' className={ACTION_BTN_CLASS} onClick={actions.quitAndInstall}>
             {t('update.restartNow')}
           </Button>
@@ -177,9 +193,11 @@ const UpdateNotificationCard: React.FC = () => {
     if (state.status === 'success') {
       return (
         <>
-          <Button size='small' className={ACTION_BTN_CLASS} onClick={() => actions.dismiss('later')}>
-            {t('update.later')}
-          </Button>
+          {state.updatePolicy.mode !== 'required' && (
+            <Button size='small' className={ACTION_BTN_CLASS} onClick={() => actions.dismiss('later')}>
+              {t('update.later')}
+            </Button>
+          )}
           <Button type='primary' size='small' className={ACTION_BTN_CLASS} onClick={actions.openFile}>
             {t('update.installNow')}
           </Button>
@@ -239,15 +257,18 @@ const UpdateNotificationCard: React.FC = () => {
     if (state.status === 'available') {
       return (
         <>
-          <Button size='small' className={ACTION_BTN_CLASS} onClick={() => actions.dismiss('later')}>
-            {t('update.later')}
-          </Button>
+          {state.updatePolicy.mode !== 'required' && (
+            <Button size='small' className={ACTION_BTN_CLASS} onClick={() => actions.dismiss('later')}>
+              {t('update.later')}
+            </Button>
+          )}
           <Button type='primary' size='small' className={ACTION_BTN_CLASS} onClick={actions.startDownload}>
             {t('update.downloadButton')}
           </Button>
         </>
       );
     }
+    if (state.status === 'upToDate') return null;
     return (
       <Button size='small' className={ACTION_BTN_CLASS} onClick={() => actions.dismiss('later')}>
         {t('update.later')}
@@ -259,9 +280,16 @@ const UpdateNotificationCard: React.FC = () => {
 
   return renderNotificationLayer(
     <>
+      {state.updatePolicy.mode === 'required' && (
+        <div data-testid='required-update-backdrop' className='fixed inset-0 z-999 bg-[rgba(var(--gray-10),0.45)]' />
+      )}
       <section
         data-testid='update-notification-card'
-        className='fixed right-24px bottom-24px z-1000 w-max min-w-300px max-w-[calc(100vw-32px)] bg-1 border border-border-2 rd-8px shadow-[0_2px_16px_rgba(0,0,0,0.12)] overflow-hidden'
+        className={`fixed z-1000 w-max min-w-300px max-w-[calc(100vw-32px)] bg-1 border border-border-2 rd-8px shadow-[0_2px_16px_rgba(0,0,0,0.12)] overflow-hidden ${
+          state.updatePolicy.mode === 'required'
+            ? 'left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2'
+            : 'right-24px bottom-24px'
+        }`}
       >
         <div className='flex items-center gap-10px px-16px pt-12px pb-6px min-w-0'>
           <Download
@@ -271,26 +299,42 @@ const UpdateNotificationCard: React.FC = () => {
           <div className='text-14px text-t-primary font-600 truncate flex-1'>
             {state.status === 'installer-last-failure'
               ? t('update.installerLastFailure.title')
-              : t('update.modalTitle')}
+              : state.updatePolicy.mode === 'required'
+                ? t('update.requiredTitle')
+                : t('update.modalTitle')}
           </div>
-          {state.status === 'downloading' && (
+          {(state.status === 'upToDate' ||
+            (state.status === 'downloading' && state.updatePolicy.mode !== 'required')) && (
             <div className='flex items-center gap-4px'>
-              <Button
-                type='text'
-                size='mini'
-                className='!p-0 !w-24px !h-24px !text-t-tertiary hover:!text-t-primary'
-                icon={<Minus size='16' />}
-                onClick={actions.minimize}
-                aria-label={t('update.minimize')}
-              />
-              <Button
-                type='text'
-                size='mini'
-                className='!p-0 !w-24px !h-24px !text-t-tertiary hover:!text-t-primary'
-                icon={<Close size='16' />}
-                onClick={actions.cancelDownload}
-                aria-label={t('update.cancel')}
-              />
+              {state.status === 'downloading' ? (
+                <>
+                  <Button
+                    type='text'
+                    size='mini'
+                    className='!p-0 !w-24px !h-24px !text-t-tertiary hover:!text-t-primary'
+                    icon={<Minus size='16' />}
+                    onClick={actions.minimize}
+                    aria-label={t('update.minimize')}
+                  />
+                  <Button
+                    type='text'
+                    size='mini'
+                    className='!p-0 !w-24px !h-24px !text-t-tertiary hover:!text-t-primary'
+                    icon={<Close size='16' />}
+                    onClick={actions.cancelDownload}
+                    aria-label={t('update.cancel')}
+                  />
+                </>
+              ) : (
+                <Button
+                  type='text'
+                  size='mini'
+                  className='!p-0 !w-24px !h-24px !text-t-tertiary hover:!text-t-primary'
+                  icon={<Close size='16' />}
+                  onClick={() => actions.dismiss('close')}
+                  aria-label={t('common.close')}
+                />
+              )}
             </div>
           )}
         </div>
@@ -299,7 +343,9 @@ const UpdateNotificationCard: React.FC = () => {
         ) : (
           <>
             <div className='px-16px py-6px'>{renderBody()}</div>
-            <div className='flex justify-start gap-8px px-16px pt-6px pb-12px'>{renderActions()}</div>
+            {state.status !== 'upToDate' && (
+              <div className='flex justify-start gap-8px px-16px pt-6px pb-12px'>{renderActions()}</div>
+            )}
           </>
         )}
       </section>
@@ -322,13 +368,14 @@ const UpdateNotificationCard: React.FC = () => {
             <div className='flex items-center gap-6px'>
               <span>{t('update.releaseNotesFailed')}</span>
               {state.releasePageUrl && (
-                <button
-                  type='button'
-                  className='bg-transparent border-none p-0 cursor-pointer text-[rgb(var(--primary-6))] underline underline-offset-2'
+                <Button
+                  type='text'
+                  size='mini'
+                  className='!p-0 !h-auto !text-[rgb(var(--primary-6))] underline underline-offset-2'
                   onClick={actions.openReleasePage}
                 >
                   {t('update.viewRelease')}
-                </button>
+                </Button>
               )}
             </div>
           ) : releaseNotes ? (

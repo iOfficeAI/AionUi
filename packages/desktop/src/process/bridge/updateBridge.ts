@@ -586,15 +586,25 @@ export function initUpdateBridge(): void {
         // Prereleases remain manual-only; stable packaged Windows builds can auto-install.
         const currentSemver = semver.valid(currentVersion) || semver.coerce(currentVersion)?.version;
         if (!currentSemver) {
-          return { success: true, data: { currentVersion, updateAvailable: false, autoUpdateAvailable: false } };
+          return {
+            success: true,
+            data: {
+              currentVersion,
+              updateAvailable: false,
+              autoUpdateAvailable: false,
+              updatePolicy: { mode: 'optional' },
+            },
+          };
         }
 
         const includePrerelease = Boolean(params?.includePrerelease);
         let autoUpdateInfo: UpdateCheckResult['autoUpdateInfo'];
+        let updatePolicy: UpdateCheckResult['updatePolicy'] = { mode: 'optional' };
         if (app.isPackaged && process.platform === 'win32' && !includePrerelease) {
           autoUpdaterService.setAllowPrerelease(false);
           const autoResult = await autoUpdaterService.checkForUpdates();
           if (autoResult.success && autoResult.updateInfo) {
+            updatePolicy = autoResult.updatePolicy ?? { mode: 'optional' };
             autoUpdateInfo = {
               version: autoResult.updateInfo.version,
               releaseDate: autoResult.updateInfo.releaseDate,
@@ -645,6 +655,7 @@ export function initUpdateBridge(): void {
             updateAvailable,
             latest,
             autoUpdateAvailable: Boolean(autoUpdateInfo && semver.gt(autoUpdateInfo.version, currentSemver)),
+            updatePolicy,
             autoUpdateInfo,
           },
         };

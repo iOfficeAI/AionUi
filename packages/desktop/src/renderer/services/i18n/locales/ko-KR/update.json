@@ -6,6 +6,8 @@
   "alreadyLatest": "이미 최신 버전입니다",
   "currentVersion": "현재 버전: {{version}}",
   "availableTitle": "업데이트 가능",
+  "requiredTitle": "필수 업데이트",
+  "requiredDescription": "CSBU WorkMate를 계속 사용하려면 이 업데이트가 필요하며 나중으로 미룰 수 없습니다.",
   "noReleaseNotes": "릴리스 노트가 없습니다.",
   "downloadingTitle": "업데이트 다운로드 중...",
   "downloadButton": "지금 다운로드",

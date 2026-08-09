@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { InstallerLastFailureMarker, UpdateReleaseInfo } from '@/common/update/updateTypes';
+import type { InstallerLastFailureMarker, UpdatePolicy, UpdateReleaseInfo } from '@/common/update/updateTypes';
 
 type UpdateNotificationStatus =
   | 'idle'
@@ -43,6 +43,7 @@ export type UpdateNotificationState = {
   visible: boolean;
   status: UpdateNotificationStatus;
   autoUpdateAvailable: boolean;
+  updatePolicy: UpdatePolicy;
   currentVersion: string;
   autoUpdateInfo: AutoUpdateInfo | null;
   updateInfo: UpdateReleaseInfo | null;
@@ -65,6 +66,7 @@ export type UpdateNotificationEvent =
       version: string;
       currentVersion?: string;
       releaseNotes?: string;
+      updatePolicy?: UpdatePolicy;
     }
   | {
       type: 'openRequested';
@@ -102,6 +104,7 @@ export type UpdateNotificationEvent =
       releasePageUrl: string;
       autoUpdateAvailable: boolean;
       autoUpdateInfo: AutoUpdateInfo | null;
+      updatePolicy: UpdatePolicy;
     }
   | {
       type: 'checkUpToDate';
@@ -147,6 +150,7 @@ export type UpdateNotificationEvent =
       currentVersion?: string;
       releaseNotes?: string;
       size?: number;
+      updatePolicy?: UpdatePolicy;
     }
   | {
       type: 'autoPreparingInstall';
@@ -193,6 +197,7 @@ export const initialUpdateNotificationState: UpdateNotificationState = {
   visible: false,
   status: 'idle',
   autoUpdateAvailable: false,
+  updatePolicy: { mode: 'optional' },
   currentVersion: '',
   autoUpdateInfo: null,
   updateInfo: null,
@@ -264,6 +269,7 @@ export const updateNotificationReducer = (
           visible: true,
           status: 'available',
           autoUpdateAvailable: true,
+          updatePolicy: event.updatePolicy ?? { mode: 'optional' },
           currentVersion: event.currentVersion ?? state.currentVersion,
           autoUpdateInfo: {
             version: event.version,
@@ -286,6 +292,7 @@ export const updateNotificationReducer = (
           updateInfo: event.updateInfo,
           releasePageUrl: event.releasePageUrl,
           autoUpdateAvailable: event.autoUpdateAvailable,
+          updatePolicy: event.updatePolicy,
           autoUpdateInfo: event.autoUpdateInfo,
           errorMsg: '',
           installerLastFailure: undefined,
@@ -301,6 +308,7 @@ export const updateNotificationReducer = (
           ...state,
           visible: true,
           status: 'upToDate',
+          updatePolicy: { mode: 'optional' },
           currentVersion: event.currentVersion,
           updateInfo: event.updateInfo,
           releasePageUrl: event.releasePageUrl,
@@ -318,6 +326,7 @@ export const updateNotificationReducer = (
           ...state,
           visible: true,
           status: 'error',
+          updatePolicy: { mode: 'optional' },
           errorMsg: event.message,
           installerLastFailure: undefined,
           pendingInstallerLastFailure: undefined,
@@ -335,6 +344,22 @@ export const updateNotificationReducer = (
         effects: [],
       };
     case 'dismissRequested':
+      if (state.updatePolicy.mode === 'required') {
+        return { state, effects: [] };
+      }
+      if (
+        event.reason === 'later' &&
+        (state.status === 'available' || state.status === 'downloaded' || state.status === 'success')
+      ) {
+        return {
+          state: {
+            ...state,
+            visible: true,
+            presentation: 'mini',
+          },
+          effects: [],
+        };
+      }
       return {
         state: {
           ...state,
@@ -344,7 +369,7 @@ export const updateNotificationReducer = (
         effects: [],
       };
     case 'minimizeRequested':
-      if (state.status !== 'downloading') {
+      if (state.status !== 'downloading' || state.updatePolicy.mode === 'required') {
         return { state, effects: [] };
       }
       return {
@@ -365,7 +390,7 @@ export const updateNotificationReducer = (
         effects: [],
       };
     case 'cancelDownloadRequested':
-      if (!state.activeTask) {
+      if (!state.activeTask || state.updatePolicy.mode === 'required') {
         return { state, effects: [] };
       }
       return {
@@ -477,6 +502,7 @@ export const updateNotificationReducer = (
           visible: true,
           status: 'downloaded',
           autoUpdateAvailable: true,
+          updatePolicy: event.updatePolicy ?? { mode: 'optional' },
           installerLastFailure: undefined,
           pendingInstallerLastFailure: undefined,
           currentVersion: event.currentVersion ?? state.currentVersion,

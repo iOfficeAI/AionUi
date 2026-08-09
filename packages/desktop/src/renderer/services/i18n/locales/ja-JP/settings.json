@@ -863,7 +863,7 @@
   "googleCloudProjectPlaceholder": "Google Cloud プロジェクト ID を入力してください",
   "noAvailableModels": "利用可能なモデルがありません",
   "appDescription": "CSBU 内部向けの日常業務 AI ワークスペース。",
-  "producer": "制作：サイバーセキュリティ運用管理部",
+  "producer": "サイバーセキュリティ運用管理部が開発・保守しています",
   "helpDocumentation": "ヘルプドキュメント",
   "updateLog": "アップデートログ",
   "feedback": "フィードバック",

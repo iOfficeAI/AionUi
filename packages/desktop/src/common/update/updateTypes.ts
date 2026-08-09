@@ -14,6 +14,18 @@ export interface GitHubReleaseAsset {
   contentType?: string;
 }
 
+export type UpdateMode = 'optional' | 'required';
+
+/**
+ * Release-controlled update policy carried by the signed updater manifest.
+ * `minimumSupportedVersion` lets a release require updates only for clients
+ * older than a specific version while keeping newer clients optional.
+ */
+export type UpdatePolicy = {
+  mode: UpdateMode;
+  minimumSupportedVersion?: string;
+};
+
 export interface UpdateReleaseInfo {
   tagName: string;
   version: string;
@@ -32,6 +44,7 @@ export interface UpdateCheckResult {
   updateAvailable: boolean;
   latest?: UpdateReleaseInfo;
   autoUpdateAvailable: boolean;
+  updatePolicy: UpdatePolicy;
   autoUpdateInfo?: {
     version: string;
     releaseDate?: string;
@@ -116,6 +129,7 @@ export interface AutoUpdateStatus {
   currentVersion?: string;
   releaseDate?: string;
   releaseNotes?: string;
+  updatePolicy?: UpdatePolicy;
   progress?: AutoUpdateProgress;
   error?: string;
 }
@@ -127,4 +141,5 @@ export interface AutoUpdateReadyResult {
   releaseNotes?: string;
   filePath?: string;
   size?: number;
+  updatePolicy?: UpdatePolicy;
 }

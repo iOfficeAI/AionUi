@@ -10,13 +10,13 @@ import type { UpdateInfoAndProvider } from 'electron-updater/out/AppUpdater';
 import type { DownloadedUpdateHelper } from 'electron-updater/out/DownloadedUpdateHelper';
 import { findFile } from 'electron-updater/out/providers/Provider';
 import { CancellationError, CancellationToken } from 'builder-util-runtime';
-import type { AutoUpdateReadyResult } from '@/common/update/updateTypes';
+import type { AutoUpdateReadyResult, UpdateMode, UpdatePolicy } from '@/common/update/updateTypes';
 import { app, autoUpdater as nativeAutoUpdater } from 'electron';
 import log from 'electron-log';
 import { EventEmitter } from 'events';
 import fs from 'fs';
 import path from 'path';
-import { parse } from 'semver';
+import { coerce, lt, parse, valid } from 'semver';
 import {
   recordAutoUpdateNativeInstallError,
   recordAutoUpdateNativeInstallReady,
@@ -82,6 +82,7 @@ export interface AutoUpdateStatus {
   currentVersion?: string;
   releaseDate?: string;
   releaseNotes?: string;
+  updatePolicy?: UpdatePolicy;
   progress?: {
     bytesPerSecond: number;
     percent: number;
@@ -90,6 +91,32 @@ export interface AutoUpdateStatus {
   };
   error?: string;
 }
+
+type PolicyAwareUpdateInfo = UpdateInfo & {
+  updateMode?: unknown;
+  minimumSupportedVersion?: unknown;
+};
+
+const normalizeVersion = (version: string): string | null => valid(version) || coerce(version)?.version || null;
+
+/** Resolve a signed release policy against the currently installed version. */
+export const resolveUpdatePolicy = (info: UpdateInfo, currentVersion: string): UpdatePolicy => {
+  const policyInfo = info as PolicyAwareUpdateInfo;
+  const requestedMode: UpdateMode = policyInfo.updateMode === 'required' ? 'required' : 'optional';
+  const minimumSupportedVersion =
+    typeof policyInfo.minimumSupportedVersion === 'string'
+      ? normalizeVersion(policyInfo.minimumSupportedVersion)
+      : null;
+  const normalizedCurrentVersion = normalizeVersion(currentVersion);
+  const belowMinimum = Boolean(
+    minimumSupportedVersion && normalizedCurrentVersion && lt(normalizedCurrentVersion, minimumSupportedVersion)
+  );
+
+  return {
+    mode: requestedMode === 'required' || belowMinimum ? 'required' : 'optional',
+    ...(minimumSupportedVersion ? { minimumSupportedVersion } : {}),
+  };
+};
 
 /** Callback type for broadcasting update status */
 export type StatusBroadcastCallback = (status: AutoUpdateStatus) => void;
@@ -417,14 +444,16 @@ class AutoUpdaterService extends EventEmitter {
     register('update-available', (info: UpdateInfo) => {
       log.info(`Update available: ${info.version}`);
       this.resetNativeInstallReady(info.version);
+      const currentVersion = autoUpdater.currentVersion?.version || app.getVersion();
       this.broadcastStatus({
         status: 'available',
         version: info.version,
         // Reflects the dev debug override (autoUpdater.currentVersion) when set,
         // so the "current → new" display matches the version used for comparison.
-        currentVersion: autoUpdater.currentVersion?.version,
+        currentVersion,
         releaseDate: info.releaseDate,
         releaseNotes: typeof info.releaseNotes === 'string' ? info.releaseNotes : undefined,
+        updatePolicy: resolveUpdatePolicy(info, currentVersion),
       });
     });
 
@@ -639,7 +668,12 @@ class AutoUpdaterService extends EventEmitter {
     }
   }
 
-  async checkForUpdates(): Promise<{ success: boolean; updateInfo?: UpdateInfo; error?: string }> {
+  async checkForUpdates(): Promise<{
+    success: boolean;
+    updateInfo?: UpdateInfo;
+    updatePolicy?: UpdatePolicy;
+    error?: string;
+  }> {
     try {
       if (!this._isInitialized) {
         throw new Error('AutoUpdaterService not initialized');
@@ -690,6 +724,7 @@ class AutoUpdaterService extends EventEmitter {
       return {
         success: true,
         updateInfo: result.updateInfo,
+        updatePolicy: resolveUpdatePolicy(result.updateInfo, autoUpdater.currentVersion?.version || app.getVersion()),
       };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
@@ -739,6 +774,10 @@ class AutoUpdaterService extends EventEmitter {
         version: checkResult.updateInfo.version,
         currentVersion: autoUpdater.currentVersion?.version,
         filePath: cachedUpdate.filePath,
+        updatePolicy: resolveUpdatePolicy(
+          checkResult.updateInfo,
+          autoUpdater.currentVersion?.version || app.getVersion()
+        ),
       };
       if (typeof checkResult.updateInfo.releaseNotes === 'string') {
         data.releaseNotes = checkResult.updateInfo.releaseNotes;

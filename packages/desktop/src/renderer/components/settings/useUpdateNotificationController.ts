@@ -116,6 +116,7 @@ export const useUpdateNotificationController = () => {
         version: evt.version || '',
         currentVersion: evt.currentVersion || __APP_VERSION__,
         releaseNotes: evt.releaseNotes,
+        updatePolicy: evt.updatePolicy,
       });
       void loadManualReleaseInfoForDisplay();
     },
@@ -140,6 +141,7 @@ export const useUpdateNotificationController = () => {
           releasePageUrl: outcome.releasePageUrl,
           autoUpdateAvailable: outcome.autoUpdateAvailable,
           autoUpdateInfo: outcome.autoUpdateInfo,
+          updatePolicy: outcome.updatePolicy,
         });
         return;
       case 'upToDate':
@@ -172,6 +174,7 @@ export const useUpdateNotificationController = () => {
       releasePageUrl: outcome.releasePageUrl,
       autoUpdateAvailable: outcome.autoUpdateAvailable,
       autoUpdateInfo: outcome.autoUpdateInfo,
+      updatePolicy: outcome.updatePolicy,
     });
   }, []);
 
@@ -194,6 +197,7 @@ export const useUpdateNotificationController = () => {
         currentVersion: res.data.currentVersion || __APP_VERSION__,
         releaseNotes: res.data.releaseNotes,
         size: res.data.size,
+        updatePolicy: res.data.updatePolicy,
       });
     } catch (error) {
       console.warn('Restore downloaded auto-update error:', error);

@@ -6,6 +6,8 @@
   "alreadyLatest": "Du bist bereits auf der neuesten Version",
   "currentVersion": "Aktuelle Version: {{version}}",
   "availableTitle": "Update verfügbar",
+  "requiredTitle": "Erforderliches Update",
+  "requiredDescription": "Dieses Update ist erforderlich, um CSBU WorkMate weiter zu verwenden, und kann nicht verschoben werden.",
   "noReleaseNotes": "Keine Versionshinweise vorhanden.",
   "downloadingTitle": "Update wird heruntergeladen...",
   "downloadButton": "Herunterladen",

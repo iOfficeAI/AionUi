@@ -6,6 +6,8 @@
   "alreadyLatest": "شما از آخرین نسخه استفاده می‌کنید",
   "currentVersion": "نسخه فعلی: {{version}}",
   "availableTitle": "به‌روزرسانی موجود است",
+  "requiredTitle": "به‌روزرسانی الزامی",
+  "requiredDescription": "این به‌روزرسانی برای ادامه استفاده از CSBU WorkMate الزامی است و نمی‌توان آن را به تعویق انداخت.",
   "noReleaseNotes": "یادداشت‌های انتشار ارائه نشده است.",
   "downloadingTitle": "در حال دانلود به‌روزرسانی...",
   "downloadButton": "دانلود",

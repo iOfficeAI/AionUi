@@ -2707,6 +2707,8 @@ export type I18nKey =
   | 'update.releaseLog'
   | 'update.releaseNotesFailed'
   | 'update.releaseNotesLoading'
+  | 'update.requiredDescription'
+  | 'update.requiredTitle'
   | 'update.restartNow'
   | 'update.restoreUpdateNotification'
   | 'update.showInFolder'
