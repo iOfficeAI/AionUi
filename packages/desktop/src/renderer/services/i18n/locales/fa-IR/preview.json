@@ -138,6 +138,6 @@
     "loading": "در حال شروع پیش‌نمایش PPT...",
     "installing": "در حال نصب مؤلفه پیش‌نمایش...",
     "startFailed": "شروع پیش‌نمایش PPT ناموفق بود",
-    "installHint": "OfficeCLI را از صفحه انتشارات رسمی iOfficeAI/OfficeCli نصب کنید"
+    "installHint": "OfficeCLI را از صفحه انتشار suoak/OfficeCLI نصب کنید"
   }
 }

@@ -39,6 +39,12 @@ describe('OfficeWatchViewer module shape', () => {
   it('uses the CSBU WorkMate OfficeCLI releases page', () => {
     expect(officeWatchViewer.OFFICECLI_INSTALL_URL).toBe('https://github.com/suoak/OfficeCLI/releases');
   });
+
+  it('uses the CSBU WorkMate OfficeCLI installer for web servers', () => {
+    expect(officeWatchViewer.OFFICECLI_SERVER_INSTALL_COMMAND).toBe(
+      'curl -fsSL https://raw.githubusercontent.com/suoak/OfficeCLI/main/install.sh | bash'
+    );
+  });
 });
 
 /**

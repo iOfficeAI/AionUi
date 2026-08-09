@@ -132,7 +132,8 @@ function normalizeOfficeWatchErrorCode(error?: string | null): OfficeWatchErrorC
 
 // officecli runs next to the backend, so on web deployments it must be
 // installed on the server — same command the backend's auto-installer uses.
-export const OFFICECLI_SERVER_INSTALL_COMMAND = 'curl -fsSL https://d.officecli.ai/install.sh | bash';
+export const OFFICECLI_SERVER_INSTALL_COMMAND =
+  'curl -fsSL https://raw.githubusercontent.com/suoak/OfficeCLI/main/install.sh | bash';
 
 export function resolveOfficeErrorActions(
   code: OfficeWatchErrorCode | undefined,
