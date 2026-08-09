@@ -1,0 +1,3190 @@
+From e3f154559ec4cbb68816bf35e914b49f3221b9e2 Mon Sep 17 00:00:00 2001
+From: Neo_Chat <137804274+DigitalNomad-Chat@users.noreply.github.com>
+Date: Thu, 30 Jul 2026 20:59:58 +0800
+Subject: [PATCH] feat(team): add reusable expert team presets
+
+---
+ .../desktop/src/common/adapter/ipcBridge.ts   |  25 +
+ .../desktop/src/common/adapter/teamMapper.ts  |  95 ++++
+ .../src/common/types/team/teamTypes.ts        |  31 ++
+ .../TeamPresetEditorModal/index.tsx           | 372 ++++++++++++++
+ .../components/TeamPresetEmptyState/index.tsx |  39 ++
+ .../components/TeamPresetMemberList/index.tsx |  63 +++
+ .../components/TeamPresetPicker/index.tsx     | 155 ++++++
+ .../components/TeamPresetPreview/index.tsx    | 111 +++++
+ .../team/TeamPresets/hooks/useTeamPresets.ts  | 160 ++++++
+ .../renderer/pages/team/TeamPresets/index.ts  |  14 +
+ .../renderer/pages/team/TeamPresets/types.ts  |   7 +
+ .../components/TeamCreateModal.module.css     |  71 +++
+ .../pages/team/components/TeamCreateModal.tsx | 309 +++++++++---
+ .../src/renderer/services/i18n/i18n-keys.d.ts |  31 ++
+ .../services/i18n/locales/de-DE/team.json     |  35 +-
+ .../services/i18n/locales/en-US/team.json     |  35 +-
+ .../services/i18n/locales/es-ES/team.json     |  35 +-
+ .../services/i18n/locales/fa-IR/team.json     |  35 +-
+ .../services/i18n/locales/fr-FR/team.json     |  35 +-
+ .../services/i18n/locales/ja-JP/team.json     |  35 +-
+ .../services/i18n/locales/ko-KR/team.json     |  35 +-
+ .../services/i18n/locales/pt-BR/team.json     |  35 +-
+ .../services/i18n/locales/ru-RU/team.json     |  35 +-
+ .../services/i18n/locales/tr-TR/team.json     |  35 +-
+ .../services/i18n/locales/uk-UA/team.json     |  35 +-
+ .../services/i18n/locales/zh-CN/team.json     |  35 +-
+ .../services/i18n/locales/zh-TW/team.json     |  35 +-
+ .../hooks/teamCreateModal.dom.test.tsx        |  91 +++-
+ .../team/TeamCreateModal.presets.dom.test.tsx | 459 ++++++++++++++++++
+ .../team/TeamPresetPicker.dom.test.tsx        | 101 ++++
+ .../renderer/team/useTeamPresets.dom.test.tsx | 179 +++++++
+ 31 files changed, 2681 insertions(+), 87 deletions(-)
+ create mode 100644 packages/desktop/src/renderer/pages/team/TeamPresets/components/TeamPresetEditorModal/index.tsx
+ create mode 100644 packages/desktop/src/renderer/pages/team/TeamPresets/components/TeamPresetEmptyState/index.tsx
+ create mode 100644 packages/desktop/src/renderer/pages/team/TeamPresets/components/TeamPresetMemberList/index.tsx
+ create mode 100644 packages/desktop/src/renderer/pages/team/TeamPresets/components/TeamPresetPicker/index.tsx
+ create mode 100644 packages/desktop/src/renderer/pages/team/TeamPresets/components/TeamPresetPreview/index.tsx
+ create mode 100644 packages/desktop/src/renderer/pages/team/TeamPresets/hooks/useTeamPresets.ts
+ create mode 100644 packages/desktop/src/renderer/pages/team/TeamPresets/index.ts
+ create mode 100644 packages/desktop/src/renderer/pages/team/TeamPresets/types.ts
+ create mode 100644 packages/desktop/src/renderer/pages/team/components/TeamCreateModal.module.css
+ create mode 100644 tests/unit/renderer/team/TeamCreateModal.presets.dom.test.tsx
+ create mode 100644 tests/unit/renderer/team/TeamPresetPicker.dom.test.tsx
+ create mode 100644 tests/unit/renderer/team/useTeamPresets.dom.test.tsx
+
+diff --git a/packages/desktop/src/common/adapter/ipcBridge.ts b/packages/desktop/src/common/adapter/ipcBridge.ts
+index 576405265..2f55bdd8c 100644
+--- a/packages/desktop/src/common/adapter/ipcBridge.ts
++++ b/packages/desktop/src/common/adapter/ipcBridge.ts
+@@ -75,6 +75,7 @@ import type {
+   ITeamTeammateMessageEvent,
+   TTeam,
+   TeamAssistant,
++  TeamPreset,
+ } from '../types/team/teamTypes';
+ import type {
+   IAdHocTeamByConversationParams,
+@@ -123,8 +124,16 @@ import {
+   fromBackendTeam,
+   fromBackendTeamList,
+   fromBackendTeamOptional,
++  fromBackendTeamPreset,
++  fromBackendTeamPresetList,
+   toBackendAdHocTeamFromConversationParams,
+   toBackendAssistant,
++  toBackendCreateTeamPresetInput,
++  toBackendUpdateTeamPresetInput,
++  type ICreateTeamPresetParams,
++  type IDeleteTeamPresetParams,
++  type IListTeamPresetsParams,
++  type IUpdateTeamPresetParams,
+ } from './teamMapper';
+ import { fromBackendCompareResult, type RawCompareResult } from './fileSnapshotMapper';
+ import {
+@@ -1953,6 +1962,22 @@ export const realtime = {
+   reconnected: wsEmitter<IRealtimeReconnectedEvent>('realtime.reconnected'),
+ };
+ 
++export const teamPreset = {
++  list: withResponseMap(
++    httpGet<TeamPreset[], IListTeamPresetsParams>((p) => `/api/team-presets?user_id=${encodeURIComponent(p.user_id)}`),
++    fromBackendTeamPresetList
++  ),
++  create: withResponseMap(
++    httpPost<TeamPreset, ICreateTeamPresetParams>('/api/team-presets', toBackendCreateTeamPresetInput),
++    fromBackendTeamPreset
++  ),
++  update: withResponseMap(
++    httpPatch<TeamPreset, IUpdateTeamPresetParams>((p) => `/api/team-presets/${p.id}`, toBackendUpdateTeamPresetInput),
++    fromBackendTeamPreset
++  ),
++  delete: httpDelete<void, IDeleteTeamPresetParams>((p) => `/api/team-presets/${p.id}`),
++};
++
+ export const team = {
+   create: withResponseMap(
+     httpPost<TTeam, ICreateTeamParams>('/api/teams', (p) => ({
+diff --git a/packages/desktop/src/common/adapter/teamMapper.ts b/packages/desktop/src/common/adapter/teamMapper.ts
+index e867c2b08..506822ce6 100644
+--- a/packages/desktop/src/common/adapter/teamMapper.ts
++++ b/packages/desktop/src/common/adapter/teamMapper.ts
+@@ -180,3 +180,98 @@ export function toBackendAssistant(a: TeamAssistantInput): Record<string, unknow
+     assistant_id: a.assistant_id,
+   };
+ }
++
++import type { TeamPreset, TeamPresetMember } from '../types/team/teamTypes';
++
++// ── Team preset parameter types ──────────────────────────────────────────
++
++export type CreateTeamPresetInput = Omit<TeamPreset, 'id' | 'created_at' | 'updated_at' | 'version'> & {
++  members: TeamPresetMember[];
++};
++
++export type UpdateTeamPresetInput = Partial<CreateTeamPresetInput>;
++
++export type IListTeamPresetsParams = { user_id: string };
++export type ICreateTeamPresetParams = CreateTeamPresetInput;
++export type IUpdateTeamPresetParams = { id: string; input: UpdateTeamPresetInput };
++export type IDeleteTeamPresetParams = { id: string };
++
++// ── Team preset Backend → Frontend ───────────────────────────────────────
++
++export function fromBackendTeamPresetMember(raw: unknown): TeamPresetMember {
++  const r = (raw ?? {}) as Record<string, unknown>;
++  return {
++    assistant_backend: (r.assistant_backend as string | undefined) ?? (r.backend as string | undefined) ?? '',
++    assistant_id: r.assistant_id as string | undefined,
++    model: r.model as string | undefined,
++    assistant_name: (r.assistant_name as string | undefined) ?? (r.name as string | undefined) ?? '',
++    role: (r.role as string | undefined) ?? '',
++    order: (r.order as number | undefined) ?? 0,
++  };
++}
++
++export function fromBackendTeamPreset(raw: unknown): TeamPreset {
++  const r = (raw ?? {}) as Record<string, unknown>;
++  const rawMembers = Array.isArray(r.members) ? (r.members as unknown[]) : [];
++  const createdAt = r.created_at as number | undefined;
++  const updatedAt = r.updated_at as number | undefined;
++  return {
++    id: (r.id as string | undefined) ?? '',
++    user_id: (r.user_id as string | undefined) ?? '',
++    name: (r.name as string | undefined) ?? '',
++    icon: r.icon as string | undefined,
++    category: r.category as string | undefined,
++    description: (r.description as string | undefined) ?? '',
++    expertise_tags: Array.isArray(r.expertise_tags) ? (r.expertise_tags as string[]) : [],
++    example_prompts: Array.isArray(r.example_prompts) ? (r.example_prompts as string[]) : [],
++    leader: fromBackendTeamPresetMember(r.leader),
++    members: rawMembers.map(fromBackendTeamPresetMember),
++    version: (r.version as number | undefined) ?? 1,
++    created_at: createdAt != null ? new Date(createdAt).toISOString() : new Date().toISOString(),
++    updated_at: updatedAt != null ? new Date(updatedAt).toISOString() : new Date().toISOString(),
++  };
++}
++
++export function fromBackendTeamPresetList(raw: unknown): TeamPreset[] {
++  return Array.isArray(raw) ? (raw as unknown[]).map(fromBackendTeamPreset) : [];
++}
++
++// ── Team preset Frontend → Backend ───────────────────────────────────────
++
++function toBackendTeamPresetMember(member: TeamPresetMember): Record<string, unknown> {
++  return {
++    assistant_backend: member.assistant_backend,
++    ...(member.assistant_id != null ? { assistant_id: member.assistant_id } : {}),
++    ...(member.model != null ? { model: member.model } : {}),
++    assistant_name: member.assistant_name,
++    role: member.role,
++    order: member.order,
++  };
++}
++
++export function toBackendCreateTeamPresetInput(input: CreateTeamPresetInput): Record<string, unknown> {
++  return {
++    name: input.name,
++    ...(input.icon != null ? { icon: input.icon } : {}),
++    ...(input.category != null ? { category: input.category } : {}),
++    description: input.description,
++    expertise_tags: input.expertise_tags,
++    example_prompts: input.example_prompts,
++    leader: toBackendTeamPresetMember(input.leader),
++    members: input.members.map(toBackendTeamPresetMember),
++  };
++}
++
++export function toBackendUpdateTeamPresetInput(params: IUpdateTeamPresetParams): Record<string, unknown> {
++  const { input } = params;
++  const body: Record<string, unknown> = {};
++  if (input.name !== undefined) body.name = input.name;
++  if (input.icon !== undefined) body.icon = input.icon;
++  if (input.category !== undefined) body.category = input.category;
++  if (input.description !== undefined) body.description = input.description;
++  if (input.expertise_tags !== undefined) body.expertise_tags = input.expertise_tags;
++  if (input.example_prompts !== undefined) body.example_prompts = input.example_prompts;
++  if (input.leader !== undefined) body.leader = toBackendTeamPresetMember(input.leader);
++  if (input.members !== undefined) body.members = input.members.map(toBackendTeamPresetMember);
++  return body;
++}
+diff --git a/packages/desktop/src/common/types/team/teamTypes.ts b/packages/desktop/src/common/types/team/teamTypes.ts
+index 791de3f34..6021b4f24 100644
+--- a/packages/desktop/src/common/types/team/teamTypes.ts
++++ b/packages/desktop/src/common/types/team/teamTypes.ts
+@@ -252,3 +252,34 @@ export type ITeamSessionChangedEvent = {
+   status?: string;
+   error?: string;
+ };
++
++// ---------------------------------------------------------------------------
++// Team presets (reusable expert-team rosters)
++// ---------------------------------------------------------------------------
++
++/** A single member slot inside a reusable Team preset. */
++export type TeamPresetMember = {
++  assistant_backend: string;
++  assistant_id?: string;
++  model?: string;
++  assistant_name: string;
++  role: string;
++  order: number;
++};
++
++/** A reusable Team preset describing an expert-team roster and metadata. */
++export type TeamPreset = {
++  id: string;
++  user_id: string;
++  name: string;
++  icon?: string;
++  category?: string;
++  description: string;
++  expertise_tags: string[];
++  example_prompts: string[];
++  leader: TeamPresetMember;
++  members: TeamPresetMember[];
++  version: number;
++  created_at: string;
++  updated_at: string;
++};
+diff --git a/packages/desktop/src/renderer/pages/team/TeamPresets/components/TeamPresetEditorModal/index.tsx b/packages/desktop/src/renderer/pages/team/TeamPresets/components/TeamPresetEditorModal/index.tsx
+new file mode 100644
+index 000000000..3def534c2
+--- /dev/null
++++ b/packages/desktop/src/renderer/pages/team/TeamPresets/components/TeamPresetEditorModal/index.tsx
+@@ -0,0 +1,372 @@
++/**
++ * @license
++ * Copyright 2025 AionUi (aionui.com)
++ * SPDX-License-Identifier: Apache-2.0
++ */
++
++import React, { useEffect, useMemo, useState } from 'react';
++import { Button, Input, Message, Tag } from '@arco-design/web-react';
++import { Plus } from '@icon-park/react';
++import { useTranslation } from 'react-i18next';
++import AionModal from '@renderer/components/base/AionModal';
++import { useTeamAssistantOptions } from '@/renderer/pages/team/hooks/useTeamAssistantOptions';
++import type { TeamAssistantOption } from '@/renderer/pages/team/components/assistantSelectUtils';
++import TeamAssistantPicker from '@/renderer/pages/team/components/memberPicker/TeamAssistantPicker';
++import TeamMemberDraftList, {
++  type TeamMemberDraft,
++} from '@/renderer/pages/team/components/memberPicker/TeamMemberDraftList';
++import type { TeamPreset, TeamPresetMember } from '../../types';
++import type { CreateTeamPresetInput, UpdateTeamPresetInput } from '../../hooks/useTeamPresets';
++
++type TeamPresetEditorModalProps = {
++  visible: boolean;
++  preset?: TeamPreset | null;
++  onCancel: () => void;
++  onSaved: (preset: TeamPreset) => void;
++  createPreset: (input: CreateTeamPresetInput) => TeamPreset;
++  updatePreset: (id: string, input: UpdateTeamPresetInput) => TeamPreset | null;
++};
++
++function draftToPresetMember(draft: TeamMemberDraft, order: number): TeamPresetMember {
++  return {
++    assistant_backend: draft.assistant.backend ?? '',
++    assistant_id: draft.assistant.id,
++    model: undefined,
++    assistant_name: draft.assistant.name,
++    role: 'teammate',
++    order,
++  };
++}
++
++export const TeamPresetEditorModal: React.FC<TeamPresetEditorModalProps> = ({
++  visible,
++  preset,
++  onCancel,
++  onSaved,
++  createPreset,
++  updatePreset,
++}) => {
++  const { t, i18n } = useTranslation();
++  const { assistants: allAssistants } = useTeamAssistantOptions(i18n?.language ?? 'en-US');
++  const isCreate = !preset;
++
++  const [name, setName] = useState('');
++  const [category, setCategory] = useState('');
++  const [description, setDescription] = useState('');
++  const [tags, setTags] = useState<string[]>([]);
++  const [tagInput, setTagInput] = useState('');
++  const [examples, setExamples] = useState<string[]>([]);
++  const [exampleInput, setExampleInput] = useState('');
++  const [memberDrafts, setMemberDrafts] = useState<TeamMemberDraft[]>([]);
++  const [leaderSelectionId, setLeaderSelectionId] = useState<string | undefined>(undefined);
++
++  useEffect(() => {
++    if (!visible) return;
++    if (preset) {
++      setName(preset.name);
++      setCategory(preset.category ?? '');
++      setDescription(preset.description);
++      setTags(preset.expertise_tags);
++      setExamples(preset.example_prompts);
++      const sorted = [...preset.members].toSorted((a, b) => a.order - b.order);
++      const drafts: TeamMemberDraft[] = [];
++      let resolvedLeaderId: string | undefined;
++      for (const member of sorted) {
++        const assistant = member.assistant_id
++          ? allAssistants.find((option) => option.id === member.assistant_id)
++          : undefined;
++        const fallback: TeamAssistantOption = assistant ?? {
++          id: member.assistant_id ?? `missing-${Date.now()}`,
++          name: `${member.assistant_name} (${t('team.presets.memberMissing', { defaultValue: 'missing' })})`,
++          backend: member.assistant_backend,
++          team_selectable: false,
++        };
++        const draft = {
++          selectionId: `${fallback.id}-${Date.now()}-${Math.random().toString(36).slice(2)}`,
++          assistant: fallback,
++        };
++        drafts.push(draft);
++        if (member.assistant_id === preset.leader.assistant_id && member.order === preset.leader.order) {
++          resolvedLeaderId = draft.selectionId;
++        }
++      }
++      setMemberDrafts(drafts);
++      setLeaderSelectionId(resolvedLeaderId ?? drafts[0]?.selectionId);
++    } else {
++      setName('');
++      setCategory('');
++      setDescription('');
++      setTags([]);
++      setTagInput('');
++      setExamples([]);
++      setExampleInput('');
++      setMemberDrafts([]);
++      setLeaderSelectionId(undefined);
++    }
++  }, [visible, preset, allAssistants, t]);
++
++  const hasOneLeader = useMemo(
++    () => Boolean(leaderSelectionId && memberDrafts.some((member) => member.selectionId === leaderSelectionId)),
++    [leaderSelectionId, memberDrafts]
++  );
++
++  const handleAddTag = () => {
++    const value = tagInput.trim();
++    if (!value) return;
++    if (tags.includes(value)) {
++      setTagInput('');
++      return;
++    }
++    setTags((prev) => [...prev, value]);
++    setTagInput('');
++  };
++
++  const handleRemoveTag = (value: string) => {
++    setTags((prev) => prev.filter((item) => item !== value));
++  };
++
++  const handleAddExample = () => {
++    const value = exampleInput.trim();
++    if (!value) return;
++    if (examples.includes(value)) {
++      setExampleInput('');
++      return;
++    }
++    setExamples((prev) => [...prev, value]);
++    setExampleInput('');
++  };
++
++  const handleRemoveExample = (value: string) => {
++    setExamples((prev) => prev.filter((item) => item !== value));
++  };
++
++  const handleAddMember = (assistant: TeamAssistantOption) => {
++    const draft = {
++      selectionId: `${assistant.id}-${Date.now()}-${Math.random().toString(36).slice(2)}`,
++      assistant,
++    };
++    setMemberDrafts((members) => [...members, draft]);
++    setLeaderSelectionId((current) => current ?? draft.selectionId);
++  };
++
++  const handleRemoveMember = (selectionId: string) => {
++    const nextMembers = memberDrafts.filter((member) => member.selectionId !== selectionId);
++    setMemberDrafts(nextMembers);
++    if (leaderSelectionId === selectionId) {
++      setLeaderSelectionId(nextMembers[0]?.selectionId);
++    }
++  };
++
++  const handleSave = () => {
++    if (!name.trim()) {
++      Message.warning(t('team.presets.nameRequired', { defaultValue: 'Please enter a preset name' }));
++      return;
++    }
++    if (memberDrafts.length === 0) {
++      Message.warning(t('team.presets.memberRequired', { defaultValue: 'Please add at least one member' }));
++      return;
++    }
++    if (!hasOneLeader) {
++      Message.warning(t('team.presets.leaderRequired', { defaultValue: 'Please select a leader' }));
++      return;
++    }
++
++    const sortedDrafts = memberDrafts.map((draft, index) => ({ draft, order: index }));
++    const leaderEntry = sortedDrafts.find((entry) => entry.draft.selectionId === leaderSelectionId);
++    if (!leaderEntry) {
++      Message.warning(t('team.presets.leaderRequired', { defaultValue: 'Please select a leader' }));
++      return;
++    }
++
++    const members: TeamPresetMember[] = sortedDrafts.map((entry) => draftToPresetMember(entry.draft, entry.order));
++    const leader = draftToPresetMember(leaderEntry.draft, leaderEntry.order);
++    leader.role = 'leader';
++    const leaderIndex = members.findIndex(
++      (member) => member.assistant_id === leader.assistant_id && member.order === leader.order
++    );
++    if (leaderIndex >= 0) {
++      members[leaderIndex].role = 'leader';
++    }
++
++    const input: CreateTeamPresetInput = {
++      user_id: '',
++      name: name.trim(),
++      category: category.trim() || undefined,
++      description: description.trim(),
++      expertise_tags: tags,
++      example_prompts: examples,
++      leader,
++      members,
++    };
++
++    const saved = isCreate ? createPreset(input) : updatePreset(preset.id, input);
++    if (!saved) {
++      Message.error(t('team.presets.saveFailed', { defaultValue: 'Failed to save preset' }));
++      return;
++    }
++    onSaved(saved);
++  };
++
++  const availableAssistants = useMemo(
++    () => allAssistants.filter((assistant) => assistant.team_selectable !== false),
++    [allAssistants]
++  );
++
++  return (
++    <AionModal
++      variant='standard'
++      visible={visible}
++      onCancel={onCancel}
++      className='team-preset-editor-modal'
++      style={{ width: 720, maxWidth: 'calc(100vw - 72px)' }}
++      wrapStyle={{ zIndex: 10001 }}
++      maskStyle={{ zIndex: 10000 }}
++      autoFocus={false}
++      unmountOnExit
++      header={{
++        title: isCreate
++          ? t('team.presets.createTitle', { defaultValue: 'New expert team' })
++          : t('team.presets.editTitle', { defaultValue: 'Edit expert team' }),
++      }}
++      footer={{
++        render: () => (
++          <div className='flex justify-end gap-10px'>
++            <Button onClick={onCancel} className='!h-38px min-w-84px !rounded-8px !px-18px !text-13px'>
++              {t('common.cancel', { defaultValue: 'Cancel' })}
++            </Button>
++            <Button
++              type='primary'
++              onClick={handleSave}
++              className='!h-38px min-w-100px !rounded-8px !px-18px !text-13px'
++            >
++              {t('common.save', { defaultValue: 'Save' })}
++            </Button>
++          </div>
++        ),
++      }}
++    >
++      <div className='flex max-h-[70vh] flex-col gap-16px overflow-y-auto px-4px py-2px'>
++        <div className='grid grid-cols-[90px_minmax(0,1fr)] items-center gap-x-14px gap-y-10px'>
++          <div className='text-14px font-600 text-t-secondary'>
++            {t('team.presets.nameLabel', { defaultValue: 'Name' })}
++            <span className='ml-4px text-danger-6'>*</span>
++          </div>
++          <Input
++            value={name}
++            onChange={setName}
++            placeholder={t('team.presets.namePlaceholder', { defaultValue: 'Preset name' })}
++            data-testid='preset-editor-name'
++            className='!h-38px !rounded-8px !text-13px'
++          />
++
++          <div className='text-14px font-500 text-t-secondary'>
++            {t('team.presets.categoryLabel', { defaultValue: 'Category' })}
++          </div>
++          <Input
++            value={category}
++            onChange={setCategory}
++            placeholder={t('team.presets.categoryPlaceholder', { defaultValue: 'e.g. Engineering' })}
++            data-testid='preset-editor-category'
++            className='!h-38px !rounded-8px !text-13px'
++          />
++
++          <div className='self-start pt-8px text-14px font-500 text-t-secondary'>
++            {t('team.presets.descriptionLabel', { defaultValue: 'Description' })}
++          </div>
++          <Input.TextArea
++            value={description}
++            onChange={setDescription}
++            placeholder={t('team.presets.descriptionPlaceholder', { defaultValue: 'What does this team do?' })}
++            data-testid='preset-editor-description'
++            autoSize={{ minRows: 3, maxRows: 6 }}
++            className='!rounded-8px !text-13px'
++          />
++        </div>
++
++        <div className='flex flex-col gap-8px'>
++          <span className='text-14px font-600 text-t-secondary'>
++            {t('team.presets.tagsLabel', { defaultValue: 'Expertise tags' })}
++          </span>
++          <div className='flex flex-wrap gap-6px'>
++            {tags.map((tag) => (
++              <Tag key={tag} closable onClose={() => handleRemoveTag(tag)}>
++                {tag}
++              </Tag>
++            ))}
++          </div>
++          <div className='flex gap-8px'>
++            <Input
++              value={tagInput}
++              onChange={setTagInput}
++              onPressEnter={handleAddTag}
++              placeholder={t('team.presets.tagPlaceholder', { defaultValue: 'Add a tag' })}
++              data-testid='preset-editor-tag-input'
++              className='!h-34px !rounded-8px !text-13px'
++            />
++            <Button type='secondary' size='small' icon={<Plus theme='outline' size='14' />} onClick={handleAddTag}>
++              {t('common.add', { defaultValue: 'Add' })}
++            </Button>
++          </div>
++        </div>
++
++        <div className='flex flex-col gap-8px'>
++          <span className='text-14px font-600 text-t-secondary'>
++            {t('team.presets.examplesLabel', { defaultValue: 'Example tasks' })}
++          </span>
++          <ul className='m-0 flex list-none flex-col gap-4px p-0'>
++            {examples.map((example) => (
++              <li key={example} className='flex items-center gap-8px'>
++                <span className='flex-1 truncate text-13px text-t-secondary'>{example}</span>
++                <Button type='text' size='mini' onClick={() => handleRemoveExample(example)}>
++                  {t('common.delete', { defaultValue: 'Delete' })}
++                </Button>
++              </li>
++            ))}
++          </ul>
++          <div className='flex gap-8px'>
++            <Input
++              value={exampleInput}
++              onChange={setExampleInput}
++              onPressEnter={handleAddExample}
++              placeholder={t('team.presets.examplePlaceholder', { defaultValue: 'Add an example task' })}
++              data-testid='preset-editor-example-input'
++              className='!h-34px !rounded-8px !text-13px'
++            />
++            <Button type='secondary' size='small' icon={<Plus theme='outline' size='14' />} onClick={handleAddExample}>
++              {t('common.add', { defaultValue: 'Add' })}
++            </Button>
++          </div>
++        </div>
++
++        <div className='flex flex-col gap-8px'>
++          <span className='text-14px font-600 text-t-secondary'>
++            {t('team.presets.membersLabel', { defaultValue: 'Members' })}
++            <span className='ml-4px text-danger-6'>*</span>
++          </span>
++          {availableAssistants.length === 0 ? (
++            <div className='flex min-h-112px items-center justify-center rounded-8px border border-dashed border-border-2 bg-fill-1 py-14px text-13px text-t-tertiary'>
++              {t('team.create.noSupportedAgents', { defaultValue: 'No supported assistants available' })}
++            </div>
++          ) : (
++            <TeamAssistantPicker
++              assistants={availableAssistants}
++              onSelect={handleAddMember}
++              testIdPrefix='preset-editor-agent'
++              density='compact'
++            />
++          )}
++          <div className='max-h-240px overflow-y-auto rounded-8px bg-fill-1 p-8px'>
++            <TeamMemberDraftList
++              members={memberDrafts}
++              leaderSelectionId={leaderSelectionId}
++              onLeaderChange={setLeaderSelectionId}
++              onRemove={handleRemoveMember}
++            />
++          </div>
++        </div>
++      </div>
++    </AionModal>
++  );
++};
++
++export default TeamPresetEditorModal;
+diff --git a/packages/desktop/src/renderer/pages/team/TeamPresets/components/TeamPresetEmptyState/index.tsx b/packages/desktop/src/renderer/pages/team/TeamPresets/components/TeamPresetEmptyState/index.tsx
+new file mode 100644
+index 000000000..f239c1cf5
+--- /dev/null
++++ b/packages/desktop/src/renderer/pages/team/TeamPresets/components/TeamPresetEmptyState/index.tsx
+@@ -0,0 +1,39 @@
++/**
++ * @license
++ * Copyright 2025 AionUi (aionui.com)
++ * SPDX-License-Identifier: Apache-2.0
++ */
++
++import React from 'react';
++import { Button, Empty } from '@arco-design/web-react';
++import { Plus } from '@icon-park/react';
++import { useTranslation } from 'react-i18next';
++
++type TeamPresetEmptyStateProps = {
++  onCreate?: () => void;
++};
++
++export const TeamPresetEmptyState: React.FC<TeamPresetEmptyStateProps> = ({ onCreate }) => {
++  const { t } = useTranslation();
++
++  return (
++    <div className='flex h-full flex-col items-center justify-center gap-12px px-20px py-24px text-center'>
++      <Empty
++        description={t('team.presets.emptyDescription', {
++          defaultValue: 'Create reusable expert teams to speed up team setup.',
++        })}
++      />
++      <Button
++        type='primary'
++        size='small'
++        icon={<Plus theme='outline' size='14' fill='currentColor' />}
++        onClick={onCreate}
++        data-testid='preset-empty-create'
++      >
++        {t('team.presets.createPreset', { defaultValue: 'Create expert team' })}
++      </Button>
++    </div>
++  );
++};
++
++export default TeamPresetEmptyState;
+diff --git a/packages/desktop/src/renderer/pages/team/TeamPresets/components/TeamPresetMemberList/index.tsx b/packages/desktop/src/renderer/pages/team/TeamPresets/components/TeamPresetMemberList/index.tsx
+new file mode 100644
+index 000000000..4140ecd73
+--- /dev/null
++++ b/packages/desktop/src/renderer/pages/team/TeamPresets/components/TeamPresetMemberList/index.tsx
+@@ -0,0 +1,63 @@
++/**
++ * @license
++ * Copyright 2025 AionUi (aionui.com)
++ * SPDX-License-Identifier: Apache-2.0
++ */
++
++import React from 'react';
++import { Tag } from '@arco-design/web-react';
++import { Crown, Peoples } from '@icon-park/react';
++import { useTranslation } from 'react-i18next';
++import type { TeamPresetMember } from '../../types';
++
++type TeamPresetMemberListProps = {
++  members: TeamPresetMember[];
++  leader: TeamPresetMember;
++  missingIds?: string[];
++};
++
++export const TeamPresetMemberList: React.FC<TeamPresetMemberListProps> = ({ members, leader, missingIds = [] }) => {
++  const { t } = useTranslation();
++
++  return (
++    <ul className='m-0 flex list-none flex-col gap-6px p-0'>
++      {members.map((member, index) => {
++        const isLeader = member.assistant_id === leader.assistant_id && member.order === leader.order;
++        const isMissing = member.assistant_id ? missingIds.includes(member.assistant_id) : false;
++        return (
++          <li
++            // eslint-disable-next-line react/no-array-index-key
++            key={`${member.assistant_id ?? member.assistant_name}-${index}`}
++            className='flex items-center gap-8px rounded-6px px-8px py-6px hover:bg-fill-2'
++          >
++            <span className='flex size-22px items-center justify-center rounded-full bg-fill-2 text-t-secondary'>
++              <Peoples theme='outline' size='14' />
++            </span>
++            <span
++              className={`flex-1 truncate text-13px font-500 ${
++                isMissing ? 'text-[rgb(var(--danger-6))]' : 'text-t-primary'
++              }`}
++            >
++              {member.assistant_name}
++            </span>
++            {isMissing && (
++              <Tag size='small' color='red'>
++                {t('team.presets.memberMissing', { defaultValue: 'Missing' })}
++              </Tag>
++            )}
++            {isLeader && (
++              <Tag size='small' color='orange'>
++                <span className='flex items-center gap-4px'>
++                  <Crown theme='filled' size='12' />
++                  {t('team.presets.leaderLabel', { defaultValue: 'Leader' })}
++                </span>
++              </Tag>
++            )}
++          </li>
++        );
++      })}
++    </ul>
++  );
++};
++
++export default TeamPresetMemberList;
+diff --git a/packages/desktop/src/renderer/pages/team/TeamPresets/components/TeamPresetPicker/index.tsx b/packages/desktop/src/renderer/pages/team/TeamPresets/components/TeamPresetPicker/index.tsx
+new file mode 100644
+index 000000000..c42ce9591
+--- /dev/null
++++ b/packages/desktop/src/renderer/pages/team/TeamPresets/components/TeamPresetPicker/index.tsx
+@@ -0,0 +1,155 @@
++/**
++ * @license
++ * Copyright 2025 AionUi (aionui.com)
++ * SPDX-License-Identifier: Apache-2.0
++ */
++
++import React from 'react';
++import { Button, Dropdown, Input, Menu } from '@arco-design/web-react';
++import { MoreOne, Plus, Right } from '@icon-park/react';
++import { useTranslation } from 'react-i18next';
++import type { TeamPreset } from '../../types';
++
++type TeamPresetPickerProps = {
++  presets: TeamPreset[];
++  selectedId?: string;
++  onSelect: (preset: TeamPreset) => void;
++  onInvoke: (preset: TeamPreset) => void;
++  onCreate?: () => void;
++  onEdit?: (preset: TeamPreset) => void;
++  onRemove?: (preset: TeamPreset) => void;
++};
++
++export const TeamPresetPicker: React.FC<TeamPresetPickerProps> = ({
++  presets,
++  selectedId,
++  onSelect,
++  onInvoke,
++  onCreate,
++  onEdit,
++  onRemove,
++}) => {
++  const { t } = useTranslation();
++
++  if (presets.length === 0) {
++    return (
++      <div className='flex h-full flex-col' data-testid='team-preset-picker'>
++        <div className='mb-12px flex items-center justify-between'>
++          <span className='text-15px font-600 text-t-secondary'>
++            {t('team.presets.title', { defaultValue: 'Expert teams' })}
++          </span>
++          <Button
++            type='primary'
++            size='mini'
++            icon={<Plus theme='outline' size='14' fill='currentColor' />}
++            onClick={onCreate}
++            data-testid='preset-picker-new'
++          >
++            {t('team.presets.newPreset', { defaultValue: 'New' })}
++          </Button>
++        </div>
++        <div className='flex flex-1 items-center justify-center'>
++          {t('team.presets.emptyDescription', {
++            defaultValue: 'Create reusable expert teams to speed up team setup.',
++          })}
++        </div>
++      </div>
++    );
++  }
++
++  return (
++    <div className='flex h-full flex-col' data-testid='team-preset-picker'>
++      <div className='mb-12px flex items-center justify-between gap-10px'>
++        <span className='text-15px font-600 text-t-secondary'>
++          {t('team.presets.title', { defaultValue: 'Expert teams' })}
++        </span>
++        <Button
++          type='primary'
++          size='mini'
++          icon={<Plus theme='outline' size='14' fill='currentColor' />}
++          onClick={onCreate}
++          data-testid='preset-picker-new'
++        >
++          {t('team.presets.newPreset', { defaultValue: 'New' })}
++        </Button>
++      </div>
++
++      <Input.Search
++        placeholder={t('team.presets.searchPlaceholder', { defaultValue: 'Search expert teams' })}
++        className='mb-12px'
++        data-testid='preset-picker-search'
++      />
++
++      <div className='flex min-h-0 flex-1 flex-col gap-8px overflow-y-auto pr-4px'>
++        {presets.map((preset) => {
++          const isSelected = preset.id === selectedId;
++          return (
++            <div key={preset.id} className='group relative flex items-center rounded-8px'>
++              <Button
++                type='text'
++                onClick={() => onSelect(preset)}
++                data-testid={`preset-picker-item-${preset.id}`}
++                aria-label={preset.name}
++                className={`absolute inset-0 z-0 h-auto !rounded-8px border px-12px py-10px transition-colors ${
++                  isSelected
++                    ? 'border-primary bg-[rgba(var(--primary-6),0.08)]'
++                    : 'border-border-2 bg-fill-1 hover:border-primary hover:bg-fill-2'
++                }`}
++              />
++
++              <div className='relative z-10 flex w-full items-center gap-10px px-12px py-10px pointer-events-none'>
++                <div className='flex min-w-0 flex-1 flex-col gap-4px'>
++                  <span className='truncate text-13px font-500 text-t-primary'>{preset.name}</span>
++                  {preset.category && <span className='truncate text-11px text-t-tertiary'>{preset.category}</span>}
++                </div>
++
++                <Button
++                  type='text'
++                  size='mini'
++                  className='pointer-events-auto opacity-0 transition-opacity group-hover:opacity-100'
++                  icon={<Right theme='outline' size='14' />}
++                  onClick={(e) => {
++                    e.stopPropagation();
++                    onInvoke(preset);
++                  }}
++                  data-testid={`preset-picker-invoke-${preset.id}`}
++                >
++                  {t('team.presets.invoke', { defaultValue: 'Invoke' })}
++                </Button>
++
++                <div className='pointer-events-auto'>
++                  <Dropdown
++                    droplist={
++                      <Menu
++                        onClickMenuItem={(key) => {
++                          if (key === 'edit') onEdit?.(preset);
++                          if (key === 'remove') onRemove?.(preset);
++                        }}
++                      >
++                        <Menu.Item key='edit'>{t('common.edit', { defaultValue: 'Edit' })}</Menu.Item>
++                        <Menu.Item key='remove'>{t('common.delete', { defaultValue: 'Delete' })}</Menu.Item>
++                      </Menu>
++                    }
++                    position='br'
++                    trigger='click'
++                    getPopupContainer={() => document.body}
++                  >
++                    <Button
++                      type='text'
++                      size='mini'
++                      icon={<MoreOne theme='outline' size='14' />}
++                      onClick={(e) => e.stopPropagation()}
++                      data-testid={`preset-picker-more-${preset.id}`}
++                    />
++                  </Dropdown>
++                </div>
++              </div>
++            </div>
++          );
++        })}
++      </div>
++    </div>
++  );
++};
++
++export default TeamPresetPicker;
+diff --git a/packages/desktop/src/renderer/pages/team/TeamPresets/components/TeamPresetPreview/index.tsx b/packages/desktop/src/renderer/pages/team/TeamPresets/components/TeamPresetPreview/index.tsx
+new file mode 100644
+index 000000000..db7c5f180
+--- /dev/null
++++ b/packages/desktop/src/renderer/pages/team/TeamPresets/components/TeamPresetPreview/index.tsx
+@@ -0,0 +1,111 @@
++/**
++ * @license
++ * Copyright 2025 AionUi (aionui.com)
++ * SPDX-License-Identifier: Apache-2.0
++ */
++
++import React from 'react';
++import { Button, Tag } from '@arco-design/web-react';
++import { Peoples } from '@icon-park/react';
++import { useTranslation } from 'react-i18next';
++import type { TeamPreset, TeamPresetMember } from '../../types';
++import TeamPresetMemberList from '../TeamPresetMemberList';
++
++type TeamPresetPreviewProps = {
++  preset?: TeamPreset | null;
++  missingMembers?: TeamPresetMember[];
++  onInvoke: (preset: TeamPreset) => void;
++};
++
++export const TeamPresetPreview: React.FC<TeamPresetPreviewProps> = ({ preset, missingMembers = [], onInvoke }) => {
++  const { t } = useTranslation();
++
++  if (!preset) {
++    return (
++      <div className='flex h-full flex-col items-center justify-center text-13px text-t-tertiary'>
++        {t('team.presets.selectHint', { defaultValue: 'Select an expert team to preview its details.' })}
++      </div>
++    );
++  }
++
++  const missingIds = missingMembers.map((m) => m.assistant_id).filter(Boolean) as string[];
++  const hasMissing = missingIds.length > 0;
++
++  return (
++    <div className='flex h-full flex-col gap-12px overflow-y-auto px-4px py-2px' data-testid='team-preset-preview'>
++      <div className='flex items-start gap-12px'>
++        <span className='flex size-44px shrink-0 items-center justify-center rounded-12px bg-fill-2 text-primary'>
++          <Peoples theme='filled' size='24' />
++        </span>
++        <div className='flex min-w-0 flex-1 flex-col gap-4px'>
++          <span className='truncate text-16px font-600 text-t-primary' data-testid='preset-preview-name'>
++            {preset.name}
++          </span>
++          {preset.category && (
++            <Tag size='small' className='w-fit'>
++              {preset.category}
++            </Tag>
++          )}
++        </div>
++      </div>
++
++      <p className='m-0 text-13px leading-20px text-t-secondary' data-testid='preset-preview-description'>
++        {preset.description}
++      </p>
++
++      {preset.expertise_tags.length > 0 && (
++        <div className='flex flex-wrap gap-6px'>
++          {preset.expertise_tags.map((tag) => (
++            <Tag key={tag} size='small' color='arcoblue'>
++              {tag}
++            </Tag>
++          ))}
++        </div>
++      )}
++
++      {hasMissing && (
++        <div className='rounded-8px bg-[rgba(var(--danger-6),0.08)] px-12px py-8px text-12px text-[rgb(var(--danger-6))]'>
++          {t('team.presets.missingWarning', {
++            defaultValue: 'Some assistants in this preset are unavailable. Replace them before creating the team.',
++          })}
++        </div>
++      )}
++
++      <div className='flex flex-col gap-8px'>
++        <span className='text-13px font-600 text-t-secondary'>
++          {t('team.presets.membersLabel', { defaultValue: 'Members' })}
++        </span>
++        <TeamPresetMemberList members={preset.members} leader={preset.leader} missingIds={missingIds} />
++      </div>
++
++      {preset.example_prompts.length > 0 && (
++        <div className='flex flex-col gap-8px'>
++          <span className='text-13px font-600 text-t-secondary'>
++            {t('team.presets.examplesLabel', { defaultValue: 'Example tasks' })}
++          </span>
++          <ul className='m-0 flex list-none flex-col gap-4px p-0'>
++            {preset.example_prompts.map((example) => (
++              <li key={example} className='text-12px text-t-tertiary'>
++                • {example}
++              </li>
++            ))}
++          </ul>
++        </div>
++      )}
++
++      <div className='mt-auto pt-12px'>
++        <Button
++          type='primary'
++          long
++          onClick={() => onInvoke(preset)}
++          data-testid='preset-preview-invoke'
++          disabled={hasMissing}
++        >
++          {t('team.presets.invokeThisTeam', { defaultValue: 'Invoke this expert team' })}
++        </Button>
++      </div>
++    </div>
++  );
++};
++
++export default TeamPresetPreview;
+diff --git a/packages/desktop/src/renderer/pages/team/TeamPresets/hooks/useTeamPresets.ts b/packages/desktop/src/renderer/pages/team/TeamPresets/hooks/useTeamPresets.ts
+new file mode 100644
+index 000000000..b39013559
+--- /dev/null
++++ b/packages/desktop/src/renderer/pages/team/TeamPresets/hooks/useTeamPresets.ts
+@@ -0,0 +1,160 @@
++/**
++ * @license
++ * Copyright 2025 AionUi (aionui.com)
++ * SPDX-License-Identifier: Apache-2.0
++ */
++
++import { ipcBridge } from '@/common';
++import type { TeamPreset } from '@/common/types/team/teamTypes';
++import type {
++  CreateTeamPresetInput as CreateTeamPresetInputBase,
++  UpdateTeamPresetInput as UpdateTeamPresetInputBase,
++} from '@/common/adapter/teamMapper';
++import { useAuth } from '@renderer/hooks/context/AuthContext';
++import { uuid } from '@/common/utils/utils';
++import { useCallback, useMemo, useState } from 'react';
++import useSWR from 'swr';
++
++export type CreateTeamPresetInput = CreateTeamPresetInputBase;
++export type UpdateTeamPresetInput = UpdateTeamPresetInputBase;
++
++export type UseTeamPresetsResult = {
++  presets: TeamPreset[];
++  loading: boolean;
++  error: unknown;
++  createPreset: (input: CreateTeamPresetInput) => TeamPreset;
++  updatePreset: (id: string, input: UpdateTeamPresetInput) => TeamPreset | null;
++  removePreset: (id: string) => boolean;
++};
++
++function nowIso(): string {
++  return new Date().toISOString();
++}
++
++function makeOptimisticPreset(input: CreateTeamPresetInput, userId: string): TeamPreset {
++  const now = nowIso();
++  return {
++    ...input,
++    user_id: userId,
++    id: uuid(36),
++    version: 1,
++    created_at: now,
++    updated_at: now,
++  };
++}
++
++/**
++ * Backend-backed hook for reusable Team presets.
++ *
++ * Reads are fetched via SWR from `/api/team-presets`. Mutations return an
++ * optimistic preset immediately so callers (e.g., the editor modal) can keep
++ * their synchronous interface, while SWR's optimistic update refreshes the
++ * list in the background.
++ */
++export function useTeamPresets(_userId?: string): UseTeamPresetsResult {
++  const { user } = useAuth();
++  const userId = user?.id ?? 'system_default_user';
++
++  const {
++    data: presets = [],
++    isLoading,
++    error: swrError,
++    mutate,
++  } = useSWR<TeamPreset[]>(`team-presets/${userId}`, () => ipcBridge.teamPreset.list.invoke({ user_id: userId }), {
++    revalidateOnFocus: false,
++  });
++
++  const [mutationError, setMutationError] = useState<unknown>(null);
++  const error = useMemo(() => mutationError ?? swrError, [mutationError, swrError]);
++
++  const createPreset = useCallback(
++    (input: CreateTeamPresetInput) => {
++      const optimistic = makeOptimisticPreset(input, userId);
++
++      void mutate(
++        async (current = []) => {
++          const saved = await ipcBridge.teamPreset.create.invoke(input);
++          return [saved, ...current];
++        },
++        {
++          optimisticData: [optimistic, ...presets],
++          rollbackOnError: true,
++          revalidate: false,
++        }
++      ).catch((err: unknown) => {
++        setMutationError(err);
++      });
++
++      return optimistic;
++    },
++    [userId, presets, mutate]
++  );
++
++  const updatePreset = useCallback(
++    (id: string, input: UpdateTeamPresetInput) => {
++      const existing = presets.find((preset) => preset.id === id);
++      if (!existing) return null;
++
++      const optimistic: TeamPreset = {
++        ...existing,
++        ...input,
++        id,
++        version: existing.version + 1,
++        updated_at: nowIso(),
++      };
++      const optimisticList = presets.map((preset) => (preset.id === id ? optimistic : preset));
++
++      void mutate(
++        async (current = []) => {
++          const saved = await ipcBridge.teamPreset.update.invoke({ id, input });
++          return current.map((preset) => (preset.id === id ? saved : preset));
++        },
++        {
++          optimisticData: optimisticList,
++          rollbackOnError: true,
++          revalidate: false,
++        }
++      ).catch((err: unknown) => {
++        setMutationError(err);
++      });
++
++      return optimistic;
++    },
++    [presets, mutate]
++  );
++
++  const removePreset = useCallback(
++    (id: string) => {
++      const exists = presets.some((preset) => preset.id === id);
++      if (!exists) return false;
++
++      const optimisticList = presets.filter((preset) => preset.id !== id);
++
++      void mutate(
++        async () => {
++          await ipcBridge.teamPreset.delete.invoke({ id });
++          return optimisticList;
++        },
++        {
++          optimisticData: optimisticList,
++          rollbackOnError: true,
++          revalidate: false,
++        }
++      ).catch((err: unknown) => {
++        setMutationError(err);
++      });
++
++      return true;
++    },
++    [presets, mutate]
++  );
++
++  return {
++    presets,
++    loading: isLoading,
++    error,
++    createPreset,
++    updatePreset,
++    removePreset,
++  };
++}
+diff --git a/packages/desktop/src/renderer/pages/team/TeamPresets/index.ts b/packages/desktop/src/renderer/pages/team/TeamPresets/index.ts
+new file mode 100644
+index 000000000..98a1ccbd3
+--- /dev/null
++++ b/packages/desktop/src/renderer/pages/team/TeamPresets/index.ts
+@@ -0,0 +1,14 @@
++/**
++ * @license
++ * Copyright 2025 AionUi (aionui.com)
++ * SPDX-License-Identifier: Apache-2.0
++ */
++
++export * from './types';
++export { useTeamPresets } from './hooks/useTeamPresets';
++export type { CreateTeamPresetInput, UpdateTeamPresetInput, UseTeamPresetsResult } from './hooks/useTeamPresets';
++export { TeamPresetPicker } from './components/TeamPresetPicker';
++export { TeamPresetPreview } from './components/TeamPresetPreview';
++export { TeamPresetMemberList } from './components/TeamPresetMemberList';
++export { TeamPresetEmptyState } from './components/TeamPresetEmptyState';
++export { TeamPresetEditorModal } from './components/TeamPresetEditorModal';
+diff --git a/packages/desktop/src/renderer/pages/team/TeamPresets/types.ts b/packages/desktop/src/renderer/pages/team/TeamPresets/types.ts
+new file mode 100644
+index 000000000..f3cc1c303
+--- /dev/null
++++ b/packages/desktop/src/renderer/pages/team/TeamPresets/types.ts
+@@ -0,0 +1,7 @@
++/**
++ * @license
++ * Copyright 2025 AionUi (aionui.com)
++ * SPDX-License-Identifier: Apache-2.0
++ */
++
++export type { TeamPreset, TeamPresetMember } from '@/common/types/team/teamTypes';
+diff --git a/packages/desktop/src/renderer/pages/team/components/TeamCreateModal.module.css b/packages/desktop/src/renderer/pages/team/components/TeamCreateModal.module.css
+new file mode 100644
+index 000000000..39e8bb8ae
+--- /dev/null
++++ b/packages/desktop/src/renderer/pages/team/components/TeamCreateModal.module.css
+@@ -0,0 +1,71 @@
++/*
++ * Desktop TeamCreateModal layout fix.
++ *
++ * Arco Tabs defaults (see arco.css):
++ *   .arco-tabs-content-item { height: 0 }
++ *   .arco-tabs-content-item-active { height: auto }
++ *
++ * The assistant list uses `flex-1 overflow-y-auto`, which needs a *definite*
++ * parent height. `height: auto` on the active pane makes that flex child
++ * collapse to 0 — search box still shows, but rows are invisible.
++ *
++ * These overrides fill the left pane height and force the active tab pane
++ * to `height: 100%` so the picker list can scroll inside it.
++ */
++
++.teamCreateTabs {
++  display: flex;
++  flex-direction: column;
++  min-height: 0;
++  flex: 1 1 0%;
++  height: 100%;
++  overflow: hidden;
++}
++
++.teamCreateTabs :global(.arco-tabs-header),
++.teamCreateTabs :global(.arco-tabs-header-nav) {
++  flex-shrink: 0;
++}
++
++.teamCreateTabs :global(.arco-tabs-content) {
++  display: flex;
++  flex-direction: column;
++  min-height: 0;
++  flex: 1 1 0%;
++  overflow: hidden;
++  /* Keep Arco's default top padding between tab bar and list. */
++}
++
++.teamCreateTabs :global(.arco-tabs-content-inner) {
++  display: flex;
++  min-height: 0;
++  flex: 1 1 0%;
++  height: 100%;
++}
++
++/*
++ * Override Arco's height:0 / height:auto so the active pane can host
++ * flex-1 scroll children. Do NOT set flex-grow on the pane itself —
++ * panes sit in a horizontal slider and width must stay 100%.
++ */
++.teamCreateTabs :global(.arco-tabs-content-item) {
++  height: 100%;
++}
++
++.teamCreateTabs :global(.arco-tabs-content-item-active) {
++  display: flex;
++  flex-direction: column;
++  min-height: 0;
++  height: 100%;
++  overflow: hidden;
++}
++
++.teamCreateTabs :global(.arco-tabs-pane),
++.teamCreateTabs :global(.arco-tabs-content-item-active > *) {
++  display: flex;
++  flex-direction: column;
++  min-height: 0;
++  flex: 1 1 0%;
++  height: 100%;
++  overflow: hidden;
++}
+diff --git a/packages/desktop/src/renderer/pages/team/components/TeamCreateModal.tsx b/packages/desktop/src/renderer/pages/team/components/TeamCreateModal.tsx
+index 02cce72e9..93cbb7df9 100644
+--- a/packages/desktop/src/renderer/pages/team/components/TeamCreateModal.tsx
++++ b/packages/desktop/src/renderer/pages/team/components/TeamCreateModal.tsx
+@@ -1,5 +1,5 @@
+ import React, { useMemo, useRef, useState } from 'react';
+-import { Button, Input, Message } from '@arco-design/web-react';
++import { Button, Input, Message, Modal, Tabs } from '@arco-design/web-react';
+ import type { RefInputType } from '@arco-design/web-react/es/Input/interface';
+ import { Plus } from '@icon-park/react';
+ import { useTranslation } from 'react-i18next';
+@@ -16,7 +16,16 @@ import type { TeamAssistantOption } from './assistantSelectUtils';
+ import { resolveDefaultTeamAgentModel } from './teamCreateModelResolver';
+ import TeamAssistantPicker from './memberPicker/TeamAssistantPicker';
+ import TeamAssistantPickerDropdown from './memberPicker/TeamAssistantPickerDropdown';
++import styles from './TeamCreateModal.module.css';
+ import TeamMemberDraftList, { type TeamMemberDraft } from './memberPicker/TeamMemberDraftList';
++import {
++  TeamPresetEditorModal,
++  TeamPresetPicker,
++  TeamPresetPreview,
++  useTeamPresets,
++  type TeamPreset,
++  type TeamPresetMember,
++} from '../TeamPresets';
+ 
+ // [E2E SYNC] 修改此组件的 DOM 结构（class、标题、关闭按钮等）时，
+ // 必须同步更新 tests/e2e/cases/teams/team-create.e2e.ts、team-whitelist.e2e.ts、
+@@ -26,6 +35,8 @@ import TeamMemberDraftList, { type TeamMemberDraft } from './memberPicker/TeamMe
+ // 窄屏（layout.isMobile，<768px）改为单栏：布局根为 team-create-layout-mobile，
+ // 助手选择器是锚在 team-create-add-member-btn 上的下拉（选中即关，助手随即出现在下方列表）；
+ // 桌面双栏为 team-create-layout。
++type TeamCreateMode = 'assistants' | 'presets';
++
+ type Props = {
+   visible: boolean;
+   onClose: () => void;
+@@ -38,6 +49,7 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
+   const layout = useLayoutContext();
+   const isMobile = layout?.isMobile ?? false;
+   const { assistants: allAssistants } = useTeamAssistantOptions(i18n?.language ?? 'en-US');
++  const { presets, createPreset, updatePreset, removePreset } = useTeamPresets(user?.id);
+   const [name, setName] = useState('');
+   const [selectedMembers, setSelectedMembers] = useState<TeamMemberDraft[]>([]);
+   const [leaderSelectionId, setLeaderSelectionId] = useState<string | undefined>(undefined);
+@@ -45,8 +57,24 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
+   const [loading, setLoading] = useState(false);
+   // 窄屏专用：助手选择器以下拉列表形式，锚在“添加成员”按钮上按需唤出。
+   const [assistantDropdownOpen, setAssistantDropdownOpen] = useState(false);
++  const [mode, setMode] = useState<TeamCreateMode>('assistants');
++  const [selectedPresetId, setSelectedPresetId] = useState<string | undefined>(undefined);
++  const [editorVisible, setEditorVisible] = useState(false);
++  const [editingPreset, setEditingPreset] = useState<TeamPreset | null>(null);
+   const nameInputRef = useRef<RefInputType | null>(null);
+ 
++  const selectedPreset = useMemo(
++    () => presets.find((preset) => preset.id === selectedPresetId) ?? null,
++    [presets, selectedPresetId]
++  );
++
++  const missingPresetMembers = useMemo<TeamPresetMember[]>(() => {
++    if (!selectedPreset) return [];
++    return selectedPreset.members.filter((member) =>
++      member.assistant_id ? !allAssistants.some((assistant) => assistant.id === member.assistant_id) : true
++    );
++  }, [selectedPreset, allAssistants]);
++
+   const hasOneLeader = useMemo(
+     () => Boolean(leaderSelectionId && selectedMembers.some((member) => member.selectionId === leaderSelectionId)),
+     [leaderSelectionId, selectedMembers]
+@@ -58,9 +86,85 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
+     setLeaderSelectionId(undefined);
+     setWorkspace('');
+     setAssistantDropdownOpen(false);
++    setMode('assistants');
++    setSelectedPresetId(undefined);
++    setEditorVisible(false);
++    setEditingPreset(null);
+     onClose();
+   };
+ 
++  const mapPresetToDrafts = (preset: TeamPreset) => {
++    const drafts: TeamMemberDraft[] = [];
++    let resolvedLeaderId: string | undefined;
++    const sortedMembers = [...preset.members].toSorted((a, b) => a.order - b.order);
++
++    for (const member of sortedMembers) {
++      const assistant = member.assistant_id
++        ? allAssistants.find((option) => option.id === member.assistant_id)
++        : undefined;
++      if (!assistant) {
++        continue;
++      }
++      const draft = {
++        selectionId: `${assistant.id}-${Date.now()}-${Math.random().toString(36).slice(2)}`,
++        assistant,
++      };
++      drafts.push(draft);
++      if (member.assistant_id === preset.leader.assistant_id && member.order === preset.leader.order) {
++        resolvedLeaderId = draft.selectionId;
++      }
++    }
++
++    return { drafts, leaderSelectionId: resolvedLeaderId ?? drafts[0]?.selectionId };
++  };
++
++  const handleInvokePreset = (preset: TeamPreset) => {
++    const { drafts, leaderSelectionId: resolvedLeaderId } = mapPresetToDrafts(preset);
++    setMode('assistants');
++    setName(preset.name);
++    setSelectedMembers(drafts);
++    setLeaderSelectionId(resolvedLeaderId);
++  };
++
++  const handleCreatePreset = () => {
++    setEditingPreset(null);
++    setEditorVisible(true);
++  };
++
++  const handleEditPreset = (preset: TeamPreset) => {
++    setEditingPreset(preset);
++    setEditorVisible(true);
++  };
++
++  const handleRemovePreset = (preset: TeamPreset) => {
++    Modal.confirm({
++      title: t('team.presets.deleteTitle', { defaultValue: 'Delete expert team' }),
++      content: t('team.presets.deleteConfirm', {
++        defaultValue: 'Are you sure you want to delete "{{name}}"? This will not affect existing teams.',
++        name: preset.name,
++      }),
++      okText: t('common.delete', { defaultValue: 'Delete' }),
++      cancelText: t('common.cancel', { defaultValue: 'Cancel' }),
++      okButtonProps: { status: 'danger' },
++      onOk: () => {
++        removePreset(preset.id);
++        if (selectedPresetId === preset.id) {
++          setSelectedPresetId(undefined);
++        }
++      },
++    });
++  };
++
++  const handleEditorSaved = () => {
++    setEditorVisible(false);
++    setEditingPreset(null);
++  };
++
++  const handleEditorCancel = () => {
++    setEditorVisible(false);
++    setEditingPreset(null);
++  };
++
+   const handleSelectAssistant = (assistant: TeamAssistantOption) => {
+     const draft = {
+       selectionId: `${assistant.id}-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+@@ -154,6 +258,7 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
+           onSelect={handleSelectAssistant}
+           testIdPrefix='team-create-agent'
+           density='modal'
++          className='min-h-0 flex-1'
+         />
+       )}
+     </>
+@@ -196,6 +301,24 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
+     </div>
+   );
+ 
++  const assistantsTabTitle = t('team.create.allAssistantsWithCount', {
++    count: allAssistants.length,
++    defaultValue: `All assistants (${allAssistants.length})`,
++  });
++  const presetsTabTitle = t('team.presets.title', { defaultValue: 'Expert teams' });
++
++  const presetPicker = (
++    <TeamPresetPicker
++      presets={presets}
++      selectedId={selectedPresetId}
++      onSelect={(preset) => setSelectedPresetId(preset.id)}
++      onInvoke={handleInvokePreset}
++      onCreate={handleCreatePreset}
++      onEdit={handleEditPreset}
++      onRemove={handleRemovePreset}
++    />
++  );
++
+   // 桌面端：左右双栏，通栏竖分隔线（保持原样，宽屏不受窄屏改动影响）。
+   const desktopBody = (
+     <div
+@@ -207,23 +330,39 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
+         className='flex min-h-0 flex-col border-r border-border-3 px-20px pb-18px pt-12px'
+         data-testid='team-create-assistant-pane'
+       >
+-        <div className='mb-12px text-15px font-600 leading-22px text-t-secondary'>
+-          {t('team.create.allAssistantsWithCount', {
+-            count: allAssistants.length,
+-            defaultValue: `All assistants (${allAssistants.length})`,
+-          })}
+-        </div>
+-        {assistantPicker}
++        <Tabs
++          justify
++          activeTab={mode}
++          onChange={(key) => setMode(key as TeamCreateMode)}
++          className={styles.teamCreateTabs}
++        >
++          <Tabs.TabPane key='assistants' title={assistantsTabTitle} className='min-h-0 flex flex-1 flex-col'>
++            {assistantPicker}
++          </Tabs.TabPane>
++          <Tabs.TabPane key='presets' title={presetsTabTitle} className='min-h-0 flex flex-1 flex-col'>
++            <div className='flex min-h-0 flex-1 flex-col'>{presetPicker}</div>
++          </Tabs.TabPane>
++        </Tabs>
+       </section>
+ 
+       <section className='flex min-h-0 flex-col px-20px pb-14px pt-12px' data-testid='team-create-details-pane'>
+-        <TeamMemberDraftList
+-          members={selectedMembers}
+-          leaderSelectionId={leaderSelectionId}
+-          onLeaderChange={setLeaderSelectionId}
+-          onRemove={handleRemoveDraft}
+-        />
+-        <div className='mt-14px shrink-0 border-t border-border-2 pt-14px'>{teamFields}</div>
++        {mode === 'assistants' ? (
++          <>
++            <TeamMemberDraftList
++              members={selectedMembers}
++              leaderSelectionId={leaderSelectionId}
++              onLeaderChange={setLeaderSelectionId}
++              onRemove={handleRemoveDraft}
++            />
++            <div className='mt-14px shrink-0 border-t border-border-2 pt-14px'>{teamFields}</div>
++          </>
++        ) : (
++          <TeamPresetPreview
++            preset={selectedPreset}
++            missingMembers={missingPresetMembers}
++            onInvoke={handleInvokePreset}
++          />
++        )}
+       </section>
+     </div>
+   );
+@@ -257,69 +396,93 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
+   );
+   const mobileBody = (
+     <div data-testid='team-create-layout-mobile' className='flex min-h-0 flex-col gap-16px px-20px py-16px'>
+-      {/* 窄屏无固定高度的父级：给成员列表框一个固定 max-height（同桌面思路），成员变多时框内滚动，
+-          团队字段区始终留在下方可见。 */}
+-      <section className='flex min-h-0 flex-col' data-testid='team-create-details-pane'>
+-        <TeamMemberDraftList
+-          members={selectedMembers}
+-          leaderSelectionId={leaderSelectionId}
+-          onLeaderChange={setLeaderSelectionId}
+-          onRemove={handleRemoveDraft}
+-          headerAction={addMemberDropdown}
+-          listBoxClassName='!max-h-[38vh]'
+-        />
+-      </section>
++      <Tabs activeTab={mode} onChange={(key) => setMode(key as TeamCreateMode)} className='shrink-0'>
++        <Tabs.TabPane key='assistants' title={assistantsTabTitle}>
++          {/* 窄屏无固定高度的父级：给成员列表框一个固定 max-height（同桌面思路），成员变多时框内滚动，
++              团队字段区始终留在下方可见。 */}
++          <section className='flex min-h-0 flex-col' data-testid='team-create-details-pane'>
++            <TeamMemberDraftList
++              members={selectedMembers}
++              leaderSelectionId={leaderSelectionId}
++              onLeaderChange={setLeaderSelectionId}
++              onRemove={handleRemoveDraft}
++              headerAction={addMemberDropdown}
++              listBoxClassName='!max-h-[38vh]'
++            />
++          </section>
+ 
+-      <section className='shrink-0'>{teamFields}</section>
++          <section className='mt-16px shrink-0'>{teamFields}</section>
++        </Tabs.TabPane>
++        <Tabs.TabPane key='presets' title={presetsTabTitle}>
++          <div className='flex flex-col gap-16px'>
++            {presetPicker}
++            <TeamPresetPreview
++              preset={selectedPreset}
++              missingMembers={missingPresetMembers}
++              onInvoke={handleInvokePreset}
++            />
++          </div>
++        </Tabs.TabPane>
++      </Tabs>
+     </div>
+   );
+ 
+   return (
+-    <AionModal
+-      variant='standard'
+-      visible={visible}
+-      onCancel={handleClose}
+-      className='team-create-modal'
+-      style={{
+-        width: isMobile ? 'calc(100vw - 32px)' : 900,
+-        maxWidth: isMobile ? 'calc(100vw - 32px)' : 'calc(100vw - 72px)',
+-      }}
+-      wrapStyle={{ zIndex: 10000 }}
+-      maskStyle={{ zIndex: 9999 }}
+-      autoFocus={false}
+-      unmountOnExit={false}
+-      // 桌面通栏双栏是团队创建独有的布局：关闭内容区默认内边距，让中间竖分隔线贴边贯穿。
+-      // 窄屏改为单栏（自带内边距），标题区 / 按钮区 / 居中 / 最大高度均沿用 standard 统一规则。
+-      contentStyle={{ padding: 0, overflow: 'hidden' }}
+-      header={{
+-        title: t('team.create.title', { defaultValue: 'New Team' }),
+-        subtitle: t('team.create.subtitle', {
+-          defaultValue:
+-            'Let multiple AI assistants team up and collaborate. We suggest one team focuses on a single goal — create separate teams for different tasks.',
+-        }),
+-        showClose: true,
+-      }}
+-      footer={{
+-        render: () => (
+-          <div className='flex justify-end gap-10px'>
+-            <Button onClick={handleClose} className='!h-38px min-w-84px !rounded-8px !px-18px !text-13px'>
+-              {t('common.cancel', { defaultValue: 'Cancel' })}
+-            </Button>
+-            <Button
+-              type='primary'
+-              onClick={handleCreate}
+-              loading={loading}
+-              disabled={!name.trim() || selectedMembers.length === 0 || !hasOneLeader}
+-              className='!h-38px min-w-100px !rounded-8px !px-18px !text-13px'
+-            >
+-              {t('team.create.confirm', { defaultValue: 'Confirm Create' })}
+-            </Button>
+-          </div>
+-        ),
+-      }}
+-    >
+-      {isMobile ? mobileBody : desktopBody}
+-    </AionModal>
++    <>
++      <AionModal
++        variant='standard'
++        visible={visible}
++        onCancel={handleClose}
++        className='team-create-modal'
++        style={{
++          width: isMobile ? 'calc(100vw - 32px)' : 900,
++          maxWidth: isMobile ? 'calc(100vw - 32px)' : 'calc(100vw - 72px)',
++        }}
++        wrapStyle={{ zIndex: 10000 }}
++        maskStyle={{ zIndex: 9999 }}
++        autoFocus={false}
++        unmountOnExit={false}
++        // 桌面通栏双栏是团队创建独有的布局：关闭内容区默认内边距，让中间竖分隔线贴边贯穿。
++        // 窄屏改为单栏（自带内边距），标题区 / 按钮区 / 居中 / 最大高度均沿用 standard 统一规则。
++        contentStyle={{ padding: 0, overflow: 'hidden' }}
++        header={{
++          title: t('team.create.title', { defaultValue: 'New Team' }),
++          subtitle: t('team.create.subtitle', {
++            defaultValue:
++              'Let multiple AI assistants team up and collaborate. We suggest one team focuses on a single goal — create separate teams for different tasks.',
++          }),
++          showClose: true,
++        }}
++        footer={{
++          render: () => (
++            <div className='flex justify-end gap-10px'>
++              <Button onClick={handleClose} className='!h-38px min-w-84px !rounded-8px !px-18px !text-13px'>
++                {t('common.cancel', { defaultValue: 'Cancel' })}
++              </Button>
++              <Button
++                type='primary'
++                onClick={handleCreate}
++                loading={loading}
++                disabled={!name.trim() || selectedMembers.length === 0 || !hasOneLeader}
++                className='!h-38px min-w-100px !rounded-8px !px-18px !text-13px'
++              >
++                {t('team.create.confirm', { defaultValue: 'Confirm Create' })}
++              </Button>
++            </div>
++          ),
++        }}
++      >
++        {isMobile ? mobileBody : desktopBody}
++      </AionModal>
++      <TeamPresetEditorModal
++        visible={editorVisible}
++        preset={editingPreset}
++        onCancel={handleEditorCancel}
++        onSaved={handleEditorSaved}
++        createPreset={createPreset}
++        updatePreset={updatePreset}
++      />
++    </>
+   );
+ };
+ 
+diff --git a/packages/desktop/src/renderer/services/i18n/i18n-keys.d.ts b/packages/desktop/src/renderer/services/i18n/i18n-keys.d.ts
+index f5e8d5110..83927799f 100644
+--- a/packages/desktop/src/renderer/services/i18n/i18n-keys.d.ts
++++ b/packages/desktop/src/renderer/services/i18n/i18n-keys.d.ts
+@@ -2430,6 +2430,37 @@ export type I18nKey =
+   | 'team.emptyState.suggestions.interview'
+   | 'team.newAgent'
+   | 'team.noMessages'
++  | 'team.presets.categoryLabel'
++  | 'team.presets.categoryPlaceholder'
++  | 'team.presets.createPreset'
++  | 'team.presets.createTitle'
++  | 'team.presets.deleteConfirm'
++  | 'team.presets.deleteTitle'
++  | 'team.presets.descriptionLabel'
++  | 'team.presets.descriptionPlaceholder'
++  | 'team.presets.editTitle'
++  | 'team.presets.editorComingSoon'
++  | 'team.presets.emptyDescription'
++  | 'team.presets.examplePlaceholder'
++  | 'team.presets.examplesLabel'
++  | 'team.presets.invoke'
++  | 'team.presets.invokeThisTeam'
++  | 'team.presets.leaderLabel'
++  | 'team.presets.leaderRequired'
++  | 'team.presets.memberMissing'
++  | 'team.presets.memberRequired'
++  | 'team.presets.membersLabel'
++  | 'team.presets.missingWarning'
++  | 'team.presets.nameLabel'
++  | 'team.presets.namePlaceholder'
++  | 'team.presets.nameRequired'
++  | 'team.presets.newPreset'
++  | 'team.presets.saveFailed'
++  | 'team.presets.searchPlaceholder'
++  | 'team.presets.selectHint'
++  | 'team.presets.tagPlaceholder'
++  | 'team.presets.tagsLabel'
++  | 'team.presets.title'
+   | 'team.removeAgent.confirmContent'
+   | 'team.removeAgent.confirmContentActive'
+   | 'team.removeAgent.confirmTitle'
+diff --git a/packages/desktop/src/renderer/services/i18n/locales/de-DE/team.json b/packages/desktop/src/renderer/services/i18n/locales/de-DE/team.json
+index ff9a2e399..7e38b3ceb 100644
+--- a/packages/desktop/src/renderer/services/i18n/locales/de-DE/team.json
++++ b/packages/desktop/src/renderer/services/i18n/locales/de-DE/team.json
+@@ -118,5 +118,38 @@
+     "leaderFailedHint": "Switch its model above, then retry.",
+     "retry": "Retry"
+   },
+-  "reorderMember": "Ziehen, um Mitglied neu anzuordnen"
++  "reorderMember": "Ziehen, um Mitglied neu anzuordnen",
++  "presets": {
++    "title": "Expert teams",
++    "newPreset": "New",
++    "searchPlaceholder": "Search expert teams",
++    "emptyDescription": "Create reusable expert teams to speed up team setup.",
++    "createPreset": "Create expert team",
++    "invoke": "Invoke",
++    "invokeThisTeam": "Invoke this expert team",
++    "leaderLabel": "Leader",
++    "memberMissing": "Missing",
++    "membersLabel": "Members",
++    "examplesLabel": "Example tasks",
++    "missingWarning": "Some assistants in this preset are unavailable. Replace them before creating the team.",
++    "selectHint": "Select an expert team to preview its details.",
++    "editorComingSoon": "Expert team editor is coming soon.",
++    "createTitle": "New expert team",
++    "editTitle": "Edit expert team",
++    "nameLabel": "Name",
++    "namePlaceholder": "Preset name",
++    "categoryLabel": "Category",
++    "categoryPlaceholder": "e.g. Engineering",
++    "descriptionLabel": "Description",
++    "descriptionPlaceholder": "What does this team do?",
++    "tagsLabel": "Expertise tags",
++    "tagPlaceholder": "Add a tag",
++    "examplePlaceholder": "Add an example task",
++    "memberRequired": "Please add at least one member",
++    "leaderRequired": "Please select a leader",
++    "nameRequired": "Please enter a preset name",
++    "saveFailed": "Failed to save preset",
++    "deleteTitle": "Delete expert team",
++    "deleteConfirm": "Are you sure you want to delete \"{{name}}\"? This will not affect existing teams."
++  }
+ }
+diff --git a/packages/desktop/src/renderer/services/i18n/locales/en-US/team.json b/packages/desktop/src/renderer/services/i18n/locales/en-US/team.json
+index 0e1354e41..07077c24e 100644
+--- a/packages/desktop/src/renderer/services/i18n/locales/en-US/team.json
++++ b/packages/desktop/src/renderer/services/i18n/locales/en-US/team.json
+@@ -118,5 +118,38 @@
+     "leaderFailedHint": "Switch its model above, then retry.",
+     "retry": "Retry"
+   },
+-  "reorderMember": "Drag to reorder member"
++  "reorderMember": "Drag to reorder member",
++  "presets": {
++    "title": "Expert teams",
++    "newPreset": "New",
++    "searchPlaceholder": "Search expert teams",
++    "emptyDescription": "Create reusable expert teams to speed up team setup.",
++    "createPreset": "Create expert team",
++    "invoke": "Invoke",
++    "invokeThisTeam": "Invoke this expert team",
++    "leaderLabel": "Leader",
++    "memberMissing": "Missing",
++    "membersLabel": "Members",
++    "examplesLabel": "Example tasks",
++    "missingWarning": "Some assistants in this preset are unavailable. Replace them before creating the team.",
++    "selectHint": "Select an expert team to preview its details.",
++    "editorComingSoon": "Expert team editor is coming soon.",
++    "createTitle": "New expert team",
++    "editTitle": "Edit expert team",
++    "nameLabel": "Name",
++    "namePlaceholder": "Preset name",
++    "categoryLabel": "Category",
++    "categoryPlaceholder": "e.g. Engineering",
++    "descriptionLabel": "Description",
++    "descriptionPlaceholder": "What does this team do?",
++    "tagsLabel": "Expertise tags",
++    "tagPlaceholder": "Add a tag",
++    "examplePlaceholder": "Add an example task",
++    "memberRequired": "Please add at least one member",
++    "leaderRequired": "Please select a leader",
++    "nameRequired": "Please enter a preset name",
++    "saveFailed": "Failed to save preset",
++    "deleteTitle": "Delete expert team",
++    "deleteConfirm": "Are you sure you want to delete \"{{name}}\"? This will not affect existing teams."
++  }
+ }
+diff --git a/packages/desktop/src/renderer/services/i18n/locales/es-ES/team.json b/packages/desktop/src/renderer/services/i18n/locales/es-ES/team.json
+index ced78aaa1..16f7d777f 100644
+--- a/packages/desktop/src/renderer/services/i18n/locales/es-ES/team.json
++++ b/packages/desktop/src/renderer/services/i18n/locales/es-ES/team.json
+@@ -118,5 +118,38 @@
+     "leaderFailedHint": "Switch its model above, then retry.",
+     "retry": "Retry"
+   },
+-  "reorderMember": "Arrastra para reordenar el miembro"
++  "reorderMember": "Arrastra para reordenar el miembro",
++  "presets": {
++    "title": "Expert teams",
++    "newPreset": "New",
++    "searchPlaceholder": "Search expert teams",
++    "emptyDescription": "Create reusable expert teams to speed up team setup.",
++    "createPreset": "Create expert team",
++    "invoke": "Invoke",
++    "invokeThisTeam": "Invoke this expert team",
++    "leaderLabel": "Leader",
++    "memberMissing": "Missing",
++    "membersLabel": "Members",
++    "examplesLabel": "Example tasks",
++    "missingWarning": "Some assistants in this preset are unavailable. Replace them before creating the team.",
++    "selectHint": "Select an expert team to preview its details.",
++    "editorComingSoon": "Expert team editor is coming soon.",
++    "createTitle": "New expert team",
++    "editTitle": "Edit expert team",
++    "nameLabel": "Name",
++    "namePlaceholder": "Preset name",
++    "categoryLabel": "Category",
++    "categoryPlaceholder": "e.g. Engineering",
++    "descriptionLabel": "Description",
++    "descriptionPlaceholder": "What does this team do?",
++    "tagsLabel": "Expertise tags",
++    "tagPlaceholder": "Add a tag",
++    "examplePlaceholder": "Add an example task",
++    "memberRequired": "Please add at least one member",
++    "leaderRequired": "Please select a leader",
++    "nameRequired": "Please enter a preset name",
++    "saveFailed": "Failed to save preset",
++    "deleteTitle": "Delete expert team",
++    "deleteConfirm": "Are you sure you want to delete \"{{name}}\"? This will not affect existing teams."
++  }
+ }
+diff --git a/packages/desktop/src/renderer/services/i18n/locales/fa-IR/team.json b/packages/desktop/src/renderer/services/i18n/locales/fa-IR/team.json
+index 6d7e7445a..19c9b3dd0 100644
+--- a/packages/desktop/src/renderer/services/i18n/locales/fa-IR/team.json
++++ b/packages/desktop/src/renderer/services/i18n/locales/fa-IR/team.json
+@@ -118,5 +118,38 @@
+     "leaderFailedHint": "Switch its model above, then retry.",
+     "retry": "Retry"
+   },
+-  "reorderMember": "برای تغییر ترتیب عضو بکشید"
++  "reorderMember": "برای تغییر ترتیب عضو بکشید",
++  "presets": {
++    "title": "Expert teams",
++    "newPreset": "New",
++    "searchPlaceholder": "Search expert teams",
++    "emptyDescription": "Create reusable expert teams to speed up team setup.",
++    "createPreset": "Create expert team",
++    "invoke": "Invoke",
++    "invokeThisTeam": "Invoke this expert team",
++    "leaderLabel": "Leader",
++    "memberMissing": "Missing",
++    "membersLabel": "Members",
++    "examplesLabel": "Example tasks",
++    "missingWarning": "Some assistants in this preset are unavailable. Replace them before creating the team.",
++    "selectHint": "Select an expert team to preview its details.",
++    "editorComingSoon": "Expert team editor is coming soon.",
++    "createTitle": "New expert team",
++    "editTitle": "Edit expert team",
++    "nameLabel": "Name",
++    "namePlaceholder": "Preset name",
++    "categoryLabel": "Category",
++    "categoryPlaceholder": "e.g. Engineering",
++    "descriptionLabel": "Description",
++    "descriptionPlaceholder": "What does this team do?",
++    "tagsLabel": "Expertise tags",
++    "tagPlaceholder": "Add a tag",
++    "examplePlaceholder": "Add an example task",
++    "memberRequired": "Please add at least one member",
++    "leaderRequired": "Please select a leader",
++    "nameRequired": "Please enter a preset name",
++    "saveFailed": "Failed to save preset",
++    "deleteTitle": "Delete expert team",
++    "deleteConfirm": "Are you sure you want to delete \"{{name}}\"? This will not affect existing teams."
++  }
+ }
+diff --git a/packages/desktop/src/renderer/services/i18n/locales/fr-FR/team.json b/packages/desktop/src/renderer/services/i18n/locales/fr-FR/team.json
+index 72ee883da..bf1a0fb98 100644
+--- a/packages/desktop/src/renderer/services/i18n/locales/fr-FR/team.json
++++ b/packages/desktop/src/renderer/services/i18n/locales/fr-FR/team.json
+@@ -70,5 +70,38 @@
+       "expert_review": "Faire analyser le même problème par plusieurs experts"
+     }
+   },
+-  "reorderMember": "Faites glisser pour réorganiser le membre"
++  "reorderMember": "Faites glisser pour réorganiser le membre",
++  "presets": {
++    "title": "Expert teams",
++    "newPreset": "New",
++    "searchPlaceholder": "Search expert teams",
++    "emptyDescription": "Create reusable expert teams to speed up team setup.",
++    "createPreset": "Create expert team",
++    "invoke": "Invoke",
++    "invokeThisTeam": "Invoke this expert team",
++    "leaderLabel": "Leader",
++    "memberMissing": "Missing",
++    "membersLabel": "Members",
++    "examplesLabel": "Example tasks",
++    "missingWarning": "Some assistants in this preset are unavailable. Replace them before creating the team.",
++    "selectHint": "Select an expert team to preview its details.",
++    "editorComingSoon": "Expert team editor is coming soon.",
++    "createTitle": "New expert team",
++    "editTitle": "Edit expert team",
++    "nameLabel": "Name",
++    "namePlaceholder": "Preset name",
++    "categoryLabel": "Category",
++    "categoryPlaceholder": "e.g. Engineering",
++    "descriptionLabel": "Description",
++    "descriptionPlaceholder": "What does this team do?",
++    "tagsLabel": "Expertise tags",
++    "tagPlaceholder": "Add a tag",
++    "examplePlaceholder": "Add an example task",
++    "memberRequired": "Please add at least one member",
++    "leaderRequired": "Please select a leader",
++    "nameRequired": "Please enter a preset name",
++    "saveFailed": "Failed to save preset",
++    "deleteTitle": "Delete expert team",
++    "deleteConfirm": "Are you sure you want to delete \"{{name}}\"? This will not affect existing teams."
++  }
+ }
+diff --git a/packages/desktop/src/renderer/services/i18n/locales/ja-JP/team.json b/packages/desktop/src/renderer/services/i18n/locales/ja-JP/team.json
+index e05148e67..9d0138003 100644
+--- a/packages/desktop/src/renderer/services/i18n/locales/ja-JP/team.json
++++ b/packages/desktop/src/renderer/services/i18n/locales/ja-JP/team.json
+@@ -118,5 +118,38 @@
+     "leaderFailedHint": "Switch its model above, then retry.",
+     "retry": "Retry"
+   },
+-  "reorderMember": "ドラッグしてメンバーの順序を変更"
++  "reorderMember": "ドラッグしてメンバーの順序を変更",
++  "presets": {
++    "title": "Expert teams",
++    "newPreset": "New",
++    "searchPlaceholder": "Search expert teams",
++    "emptyDescription": "Create reusable expert teams to speed up team setup.",
++    "createPreset": "Create expert team",
++    "invoke": "Invoke",
++    "invokeThisTeam": "Invoke this expert team",
++    "leaderLabel": "Leader",
++    "memberMissing": "Missing",
++    "membersLabel": "Members",
++    "examplesLabel": "Example tasks",
++    "missingWarning": "Some assistants in this preset are unavailable. Replace them before creating the team.",
++    "selectHint": "Select an expert team to preview its details.",
++    "editorComingSoon": "Expert team editor is coming soon.",
++    "createTitle": "New expert team",
++    "editTitle": "Edit expert team",
++    "nameLabel": "Name",
++    "namePlaceholder": "Preset name",
++    "categoryLabel": "Category",
++    "categoryPlaceholder": "e.g. Engineering",
++    "descriptionLabel": "Description",
++    "descriptionPlaceholder": "What does this team do?",
++    "tagsLabel": "Expertise tags",
++    "tagPlaceholder": "Add a tag",
++    "examplePlaceholder": "Add an example task",
++    "memberRequired": "Please add at least one member",
++    "leaderRequired": "Please select a leader",
++    "nameRequired": "Please enter a preset name",
++    "saveFailed": "Failed to save preset",
++    "deleteTitle": "Delete expert team",
++    "deleteConfirm": "Are you sure you want to delete \"{{name}}\"? This will not affect existing teams."
++  }
+ }
+diff --git a/packages/desktop/src/renderer/services/i18n/locales/ko-KR/team.json b/packages/desktop/src/renderer/services/i18n/locales/ko-KR/team.json
+index 38ef89d46..c313df9d3 100644
+--- a/packages/desktop/src/renderer/services/i18n/locales/ko-KR/team.json
++++ b/packages/desktop/src/renderer/services/i18n/locales/ko-KR/team.json
+@@ -118,5 +118,38 @@
+     "leaderFailedHint": "Switch its model above, then retry.",
+     "retry": "Retry"
+   },
+-  "reorderMember": "드래그하여 멤버 순서 변경"
++  "reorderMember": "드래그하여 멤버 순서 변경",
++  "presets": {
++    "title": "Expert teams",
++    "newPreset": "New",
++    "searchPlaceholder": "Search expert teams",
++    "emptyDescription": "Create reusable expert teams to speed up team setup.",
++    "createPreset": "Create expert team",
++    "invoke": "Invoke",
++    "invokeThisTeam": "Invoke this expert team",
++    "leaderLabel": "Leader",
++    "memberMissing": "Missing",
++    "membersLabel": "Members",
++    "examplesLabel": "Example tasks",
++    "missingWarning": "Some assistants in this preset are unavailable. Replace them before creating the team.",
++    "selectHint": "Select an expert team to preview its details.",
++    "editorComingSoon": "Expert team editor is coming soon.",
++    "createTitle": "New expert team",
++    "editTitle": "Edit expert team",
++    "nameLabel": "Name",
++    "namePlaceholder": "Preset name",
++    "categoryLabel": "Category",
++    "categoryPlaceholder": "e.g. Engineering",
++    "descriptionLabel": "Description",
++    "descriptionPlaceholder": "What does this team do?",
++    "tagsLabel": "Expertise tags",
++    "tagPlaceholder": "Add a tag",
++    "examplePlaceholder": "Add an example task",
++    "memberRequired": "Please add at least one member",
++    "leaderRequired": "Please select a leader",
++    "nameRequired": "Please enter a preset name",
++    "saveFailed": "Failed to save preset",
++    "deleteTitle": "Delete expert team",
++    "deleteConfirm": "Are you sure you want to delete \"{{name}}\"? This will not affect existing teams."
++  }
+ }
+diff --git a/packages/desktop/src/renderer/services/i18n/locales/pt-BR/team.json b/packages/desktop/src/renderer/services/i18n/locales/pt-BR/team.json
+index 734c7dcd3..960260289 100644
+--- a/packages/desktop/src/renderer/services/i18n/locales/pt-BR/team.json
++++ b/packages/desktop/src/renderer/services/i18n/locales/pt-BR/team.json
+@@ -118,5 +118,38 @@
+     "leaderFailedHint": "Switch its model above, then retry.",
+     "retry": "Retry"
+   },
+-  "reorderMember": "Arraste para reordenar o membro"
++  "reorderMember": "Arraste para reordenar o membro",
++  "presets": {
++    "title": "Expert teams",
++    "newPreset": "New",
++    "searchPlaceholder": "Search expert teams",
++    "emptyDescription": "Create reusable expert teams to speed up team setup.",
++    "createPreset": "Create expert team",
++    "invoke": "Invoke",
++    "invokeThisTeam": "Invoke this expert team",
++    "leaderLabel": "Leader",
++    "memberMissing": "Missing",
++    "membersLabel": "Members",
++    "examplesLabel": "Example tasks",
++    "missingWarning": "Some assistants in this preset are unavailable. Replace them before creating the team.",
++    "selectHint": "Select an expert team to preview its details.",
++    "editorComingSoon": "Expert team editor is coming soon.",
++    "createTitle": "New expert team",
++    "editTitle": "Edit expert team",
++    "nameLabel": "Name",
++    "namePlaceholder": "Preset name",
++    "categoryLabel": "Category",
++    "categoryPlaceholder": "e.g. Engineering",
++    "descriptionLabel": "Description",
++    "descriptionPlaceholder": "What does this team do?",
++    "tagsLabel": "Expertise tags",
++    "tagPlaceholder": "Add a tag",
++    "examplePlaceholder": "Add an example task",
++    "memberRequired": "Please add at least one member",
++    "leaderRequired": "Please select a leader",
++    "nameRequired": "Please enter a preset name",
++    "saveFailed": "Failed to save preset",
++    "deleteTitle": "Delete expert team",
++    "deleteConfirm": "Are you sure you want to delete \"{{name}}\"? This will not affect existing teams."
++  }
+ }
+diff --git a/packages/desktop/src/renderer/services/i18n/locales/ru-RU/team.json b/packages/desktop/src/renderer/services/i18n/locales/ru-RU/team.json
+index f620da4c8..4802ee8ef 100644
+--- a/packages/desktop/src/renderer/services/i18n/locales/ru-RU/team.json
++++ b/packages/desktop/src/renderer/services/i18n/locales/ru-RU/team.json
+@@ -118,5 +118,38 @@
+     "leaderFailedHint": "Switch its model above, then retry.",
+     "retry": "Retry"
+   },
+-  "reorderMember": "Перетащите, чтобы изменить порядок участников"
++  "reorderMember": "Перетащите, чтобы изменить порядок участников",
++  "presets": {
++    "title": "Expert teams",
++    "newPreset": "New",
++    "searchPlaceholder": "Search expert teams",
++    "emptyDescription": "Create reusable expert teams to speed up team setup.",
++    "createPreset": "Create expert team",
++    "invoke": "Invoke",
++    "invokeThisTeam": "Invoke this expert team",
++    "leaderLabel": "Leader",
++    "memberMissing": "Missing",
++    "membersLabel": "Members",
++    "examplesLabel": "Example tasks",
++    "missingWarning": "Some assistants in this preset are unavailable. Replace them before creating the team.",
++    "selectHint": "Select an expert team to preview its details.",
++    "editorComingSoon": "Expert team editor is coming soon.",
++    "createTitle": "New expert team",
++    "editTitle": "Edit expert team",
++    "nameLabel": "Name",
++    "namePlaceholder": "Preset name",
++    "categoryLabel": "Category",
++    "categoryPlaceholder": "e.g. Engineering",
++    "descriptionLabel": "Description",
++    "descriptionPlaceholder": "What does this team do?",
++    "tagsLabel": "Expertise tags",
++    "tagPlaceholder": "Add a tag",
++    "examplePlaceholder": "Add an example task",
++    "memberRequired": "Please add at least one member",
++    "leaderRequired": "Please select a leader",
++    "nameRequired": "Please enter a preset name",
++    "saveFailed": "Failed to save preset",
++    "deleteTitle": "Delete expert team",
++    "deleteConfirm": "Are you sure you want to delete \"{{name}}\"? This will not affect existing teams."
++  }
+ }
+diff --git a/packages/desktop/src/renderer/services/i18n/locales/tr-TR/team.json b/packages/desktop/src/renderer/services/i18n/locales/tr-TR/team.json
+index 92e63f3c4..34535f544 100644
+--- a/packages/desktop/src/renderer/services/i18n/locales/tr-TR/team.json
++++ b/packages/desktop/src/renderer/services/i18n/locales/tr-TR/team.json
+@@ -118,5 +118,38 @@
+     "leaderFailedHint": "Switch its model above, then retry.",
+     "retry": "Retry"
+   },
+-  "reorderMember": "Üye sırasını değiştirmek için sürükleyin"
++  "reorderMember": "Üye sırasını değiştirmek için sürükleyin",
++  "presets": {
++    "title": "Expert teams",
++    "newPreset": "New",
++    "searchPlaceholder": "Search expert teams",
++    "emptyDescription": "Create reusable expert teams to speed up team setup.",
++    "createPreset": "Create expert team",
++    "invoke": "Invoke",
++    "invokeThisTeam": "Invoke this expert team",
++    "leaderLabel": "Leader",
++    "memberMissing": "Missing",
++    "membersLabel": "Members",
++    "examplesLabel": "Example tasks",
++    "missingWarning": "Some assistants in this preset are unavailable. Replace them before creating the team.",
++    "selectHint": "Select an expert team to preview its details.",
++    "editorComingSoon": "Expert team editor is coming soon.",
++    "createTitle": "New expert team",
++    "editTitle": "Edit expert team",
++    "nameLabel": "Name",
++    "namePlaceholder": "Preset name",
++    "categoryLabel": "Category",
++    "categoryPlaceholder": "e.g. Engineering",
++    "descriptionLabel": "Description",
++    "descriptionPlaceholder": "What does this team do?",
++    "tagsLabel": "Expertise tags",
++    "tagPlaceholder": "Add a tag",
++    "examplePlaceholder": "Add an example task",
++    "memberRequired": "Please add at least one member",
++    "leaderRequired": "Please select a leader",
++    "nameRequired": "Please enter a preset name",
++    "saveFailed": "Failed to save preset",
++    "deleteTitle": "Delete expert team",
++    "deleteConfirm": "Are you sure you want to delete \"{{name}}\"? This will not affect existing teams."
++  }
+ }
+diff --git a/packages/desktop/src/renderer/services/i18n/locales/uk-UA/team.json b/packages/desktop/src/renderer/services/i18n/locales/uk-UA/team.json
+index 6b8037d77..3c827096f 100644
+--- a/packages/desktop/src/renderer/services/i18n/locales/uk-UA/team.json
++++ b/packages/desktop/src/renderer/services/i18n/locales/uk-UA/team.json
+@@ -118,5 +118,38 @@
+     "leaderFailedHint": "Switch its model above, then retry.",
+     "retry": "Retry"
+   },
+-  "reorderMember": "Перетягніть, щоб змінити порядок учасників"
++  "reorderMember": "Перетягніть, щоб змінити порядок учасників",
++  "presets": {
++    "title": "Expert teams",
++    "newPreset": "New",
++    "searchPlaceholder": "Search expert teams",
++    "emptyDescription": "Create reusable expert teams to speed up team setup.",
++    "createPreset": "Create expert team",
++    "invoke": "Invoke",
++    "invokeThisTeam": "Invoke this expert team",
++    "leaderLabel": "Leader",
++    "memberMissing": "Missing",
++    "membersLabel": "Members",
++    "examplesLabel": "Example tasks",
++    "missingWarning": "Some assistants in this preset are unavailable. Replace them before creating the team.",
++    "selectHint": "Select an expert team to preview its details.",
++    "editorComingSoon": "Expert team editor is coming soon.",
++    "createTitle": "New expert team",
++    "editTitle": "Edit expert team",
++    "nameLabel": "Name",
++    "namePlaceholder": "Preset name",
++    "categoryLabel": "Category",
++    "categoryPlaceholder": "e.g. Engineering",
++    "descriptionLabel": "Description",
++    "descriptionPlaceholder": "What does this team do?",
++    "tagsLabel": "Expertise tags",
++    "tagPlaceholder": "Add a tag",
++    "examplePlaceholder": "Add an example task",
++    "memberRequired": "Please add at least one member",
++    "leaderRequired": "Please select a leader",
++    "nameRequired": "Please enter a preset name",
++    "saveFailed": "Failed to save preset",
++    "deleteTitle": "Delete expert team",
++    "deleteConfirm": "Are you sure you want to delete \"{{name}}\"? This will not affect existing teams."
++  }
+ }
+diff --git a/packages/desktop/src/renderer/services/i18n/locales/zh-CN/team.json b/packages/desktop/src/renderer/services/i18n/locales/zh-CN/team.json
+index 8cf795808..c9ba61541 100644
+--- a/packages/desktop/src/renderer/services/i18n/locales/zh-CN/team.json
++++ b/packages/desktop/src/renderer/services/i18n/locales/zh-CN/team.json
+@@ -118,5 +118,38 @@
+     "leaderFailedHint": "可在上方切换其模型后重试。",
+     "retry": "重试"
+   },
+-  "reorderMember": "拖动以调整成员顺序"
++  "reorderMember": "拖动以调整成员顺序",
++  "presets": {
++    "title": "专家团",
++    "newPreset": "新建",
++    "searchPlaceholder": "搜索专家团",
++    "emptyDescription": "创建可复用的专家团，加快团队组建。",
++    "createPreset": "创建专家团",
++    "invoke": "调用",
++    "invokeThisTeam": "调用此专家团",
++    "leaderLabel": "队长",
++    "memberMissing": "缺失",
++    "membersLabel": "成员",
++    "examplesLabel": "示例任务",
++    "missingWarning": "该专家团中的部分助手不可用，创建前请替换。",
++    "selectHint": "选择一个专家团以预览详情。",
++    "editorComingSoon": "专家团编辑器即将上线。",
++    "createTitle": "新建专家团",
++    "editTitle": "编辑专家团",
++    "nameLabel": "名称",
++    "namePlaceholder": "专家团名称",
++    "categoryLabel": "分类",
++    "categoryPlaceholder": "如 Engineering",
++    "descriptionLabel": "简介",
++    "descriptionPlaceholder": "这个团队负责什么？",
++    "tagsLabel": "擅长领域",
++    "tagPlaceholder": "添加标签",
++    "examplePlaceholder": "添加示例任务",
++    "memberRequired": "请至少添加一名成员",
++    "leaderRequired": "请选择队长",
++    "nameRequired": "请输入专家团名称",
++    "saveFailed": "保存专家团失败",
++    "deleteTitle": "删除专家团",
++    "deleteConfirm": "确定要删除 \"{{name}}\" 吗？不会影响已创建的团队。"
++  }
+ }
+diff --git a/packages/desktop/src/renderer/services/i18n/locales/zh-TW/team.json b/packages/desktop/src/renderer/services/i18n/locales/zh-TW/team.json
+index afbe90cf6..557a325a2 100644
+--- a/packages/desktop/src/renderer/services/i18n/locales/zh-TW/team.json
++++ b/packages/desktop/src/renderer/services/i18n/locales/zh-TW/team.json
+@@ -118,5 +118,38 @@
+     "leaderFailedHint": "可在上方切換其模型後重試。",
+     "retry": "重試"
+   },
+-  "reorderMember": "拖動以調整成員順序"
++  "reorderMember": "拖動以調整成員順序",
++  "presets": {
++    "title": "專家團",
++    "newPreset": "新建",
++    "searchPlaceholder": "搜尋專家團",
++    "emptyDescription": "建立可重複使用的專家團，加快團隊組建。",
++    "createPreset": "建立專家團",
++    "invoke": "呼叫",
++    "invokeThisTeam": "呼叫此專家團",
++    "leaderLabel": "隊長",
++    "memberMissing": "缺失",
++    "membersLabel": "成員",
++    "examplesLabel": "範例任務",
++    "missingWarning": "此專家團中的部分助手不可用，建立前請替換。",
++    "selectHint": "選擇一個專家團以預覽詳情。",
++    "editorComingSoon": "專家團編輯器即將上線。",
++    "createTitle": "建立專家團",
++    "editTitle": "編輯專家團",
++    "nameLabel": "名稱",
++    "namePlaceholder": "專家團名稱",
++    "categoryLabel": "分類",
++    "categoryPlaceholder": "如 Engineering",
++    "descriptionLabel": "簡介",
++    "descriptionPlaceholder": "這個團隊負責什麼？",
++    "tagsLabel": "擅長領域",
++    "tagPlaceholder": "新增標籤",
++    "examplePlaceholder": "添加示例任务",
++    "memberRequired": "請至少新增一名成員",
++    "leaderRequired": "請選擇隊長",
++    "nameRequired": "請輸入專家團名稱",
++    "saveFailed": "儲存專家團失敗",
++    "deleteTitle": "刪除專家團",
++    "deleteConfirm": "確定要刪除 \"{{name}}\" 嗎？不會影響已建立的團隊。"
++  }
+ }
+diff --git a/tests/unit/renderer/hooks/teamCreateModal.dom.test.tsx b/tests/unit/renderer/hooks/teamCreateModal.dom.test.tsx
+index cd7b9fe20..3d2e848af 100644
+--- a/tests/unit/renderer/hooks/teamCreateModal.dom.test.tsx
++++ b/tests/unit/renderer/hooks/teamCreateModal.dom.test.tsx
+@@ -8,6 +8,7 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
+ import React from 'react';
+ import { beforeEach, describe, expect, it, vi } from 'vitest';
+ import type { Assistant } from '@/common/types/agent/assistantTypes';
++import type { TeamPreset } from '@/common/types/team/teamTypes';
+ 
+ const createTeamInvokeMock = vi.fn();
+ const resolveDefaultTeamAgentModelMock = vi.fn();
+@@ -44,6 +45,23 @@ vi.mock('@renderer/pages/conversation/hooks/useConversationAssistants', () => ({
+   }),
+ }));
+ 
++const teamPresetsMock = vi.hoisted(() => ({
++  presets: [] as TeamPreset[],
++  createPreset: vi.fn(),
++  updatePreset: vi.fn(),
++  removePreset: vi.fn(),
++}));
++
++vi.mock('@renderer/pages/team/TeamPresets', async () => {
++  const actual = await vi.importActual<typeof import('@renderer/pages/team/TeamPresets')>(
++    '@renderer/pages/team/TeamPresets'
++  );
++  return {
++    ...actual,
++    useTeamPresets: () => teamPresetsMock,
++  };
++});
++
+ vi.mock('@arco-design/web-react', async () => {
+   const actual = await vi.importActual<typeof import('@arco-design/web-react')>('@arco-design/web-react');
+   return {
+@@ -204,7 +222,6 @@ describe('TeamCreateModal', () => {
+     expect(assistantPane).toHaveClass('px-20px', 'pt-12px', 'pb-18px');
+     expect(detailsPane).toHaveClass('px-20px', 'pt-12px', 'pb-14px');
+     expect(within(assistantPane).getByText('All assistants (3)')).toBeInTheDocument();
+-    expect(within(assistantPane).getByText('All assistants (3)')).toHaveClass('text-15px');
+     expect(searchInput.tagName).toBe('INPUT');
+     expect(searchInput).toHaveAttribute('placeholder', 'Search');
+     expect(within(assistantPane).getByTestId('team-create-agent-picker-body')).not.toHaveClass('bg-fill-1');
+@@ -371,6 +388,55 @@ describe('TeamCreateModal', () => {
+   });
+ });
+ 
++describe('TeamCreateModal · desktop scrollable layout', () => {
++  beforeEach(() => {
++    teamPresetsMock.presets = [];
++    teamPresetsMock.createPreset.mockReset();
++    teamPresetsMock.updatePreset.mockReset();
++    teamPresetsMock.removePreset.mockReset();
++  });
++
++  it('gives the assistant list a constrained flex parent so overflow-y-auto can scroll', () => {
++    render(<TeamCreateModal visible onClose={vi.fn()} onCreated={vi.fn()} />);
++
++    const assistantPane = screen.getByTestId('team-create-assistant-pane');
++    const tabsRoot = assistantPane.querySelector('.arco-tabs');
++    const activePane = assistantPane.querySelector('.arco-tabs-content-item-active');
++    const pickerBody = within(assistantPane).getByTestId('team-create-agent-picker-body');
++    const pickerRoot = pickerBody.parentElement;
++
++    expect(tabsRoot).toBeInTheDocument();
++    expect(tabsRoot?.className).toContain('teamCreateTabs');
++    expect(activePane).toBeInTheDocument();
++    expect(pickerRoot).toHaveClass('min-h-0', 'flex-1');
++    expect(pickerBody).toHaveClass('min-h-0', 'flex-1', 'overflow-y-auto');
++  });
++
++  it('gives the preset list a constrained flex parent so overflow-y-auto can scroll', () => {
++    teamPresetsMock.presets = [
++      makePreset({ id: 'preset-1', name: 'Code Review' }),
++      makePreset({ id: 'preset-2', name: 'Writing Squad' }),
++      makePreset({ id: 'preset-3', name: 'Security Panel' }),
++    ];
++
++    render(<TeamCreateModal visible onClose={vi.fn()} onCreated={vi.fn()} />);
++
++    const assistantPane = screen.getByTestId('team-create-assistant-pane');
++    const presetTab = within(assistantPane).getByRole('tab', { name: 'Expert teams' });
++
++    fireEvent.click(presetTab);
++
++    const presetPicker = within(assistantPane).getByTestId('team-preset-picker');
++    const scrollableList = presetPicker.querySelector('.overflow-y-auto');
++
++    expect(presetPicker).toHaveClass('h-full');
++    expect(scrollableList).toBeInTheDocument();
++    expect(scrollableList).toHaveClass('min-h-0', 'flex-1', 'overflow-y-auto');
++    expect(within(assistantPane).getByTestId('preset-picker-item-preset-1')).toBeInTheDocument();
++    expect(within(assistantPane).getByTestId('preset-picker-item-preset-3')).toBeInTheDocument();
++  });
++});
++
+ describe('TeamCreateModal · mobile (narrow screen)', () => {
+   beforeEach(() => {
+     createTeamInvokeMock.mockReset();
+@@ -465,6 +531,29 @@ function assistants(): Assistant[] {
+   ];
+ }
+ 
++function makePreset(overrides: Partial<TeamPreset> & Pick<TeamPreset, 'id' | 'name'>): TeamPreset {
++  const leader = {
++    assistant_backend: 'acp',
++    assistant_id: 'lead-1',
++    assistant_name: 'Lead',
++    role: 'leader' as const,
++    order: 0,
++  };
++  return {
++    user_id: 'user-1',
++    category: 'Engineering',
++    description: '',
++    expertise_tags: [],
++    example_prompts: [],
++    leader,
++    members: [leader],
++    version: 1,
++    created_at: new Date().toISOString(),
++    updated_at: new Date().toISOString(),
++    ...overrides,
++  };
++}
++
+ function assistant(overrides: Partial<Assistant> & Pick<Assistant, 'id' | 'name' | 'source' | 'agent_id'>): Assistant {
+   return {
+     id: overrides.id,
+diff --git a/tests/unit/renderer/team/TeamCreateModal.presets.dom.test.tsx b/tests/unit/renderer/team/TeamCreateModal.presets.dom.test.tsx
+new file mode 100644
+index 000000000..5b7787014
+--- /dev/null
++++ b/tests/unit/renderer/team/TeamCreateModal.presets.dom.test.tsx
+@@ -0,0 +1,459 @@
++/**
++ * @license
++ * Copyright 2025 AionUi (aionui.com)
++ * SPDX-License-Identifier: Apache-2.0
++ */
++
++import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
++import React from 'react';
++import { SWRConfig } from 'swr';
++import { beforeEach, describe, expect, it, vi } from 'vitest';
++import type { Assistant } from '@/common/types/agent/assistantTypes';
++import type { TeamPreset } from '@/common/types/team/teamTypes';
++
++const t = (key: string, options?: { defaultValue?: string }) => options?.defaultValue || key;
++
++vi.mock('react-i18next', () => ({
++  useTranslation: () => ({
++    t,
++    i18n: { language: 'zh-CN' },
++  }),
++}));
++
++vi.mock('@renderer/hooks/context/AuthContext', () => ({
++  useAuth: () => ({ user: { id: 'user-1' } }),
++}));
++
++const mockAssistants = assistants();
++
++vi.mock('@renderer/pages/conversation/hooks/useConversationAssistants', () => ({
++  useConversationAssistants: () => ({
++    presetAssistants: mockAssistants,
++  }),
++}));
++
++vi.mock('@arco-design/web-react', async () => {
++  const actual = await vi.importActual<typeof import('@arco-design/web-react')>('@arco-design/web-react');
++  return {
++    ...actual,
++    Modal: {
++      ...actual.Modal,
++      confirm: ({ onOk }: { onOk?: () => void }) => {
++        onOk?.();
++      },
++    },
++    Input: {
++      ...actual.Input,
++      TextArea: (props: Record<string, unknown>) => React.createElement('textarea', props),
++    },
++  };
++});
++
++vi.mock('@renderer/components/base/AionModal', () => {
++  type HeaderConfig = { render?: () => React.ReactNode; title?: React.ReactNode; subtitle?: React.ReactNode };
++  type FooterConfig = { render?: () => React.ReactNode };
++  const renderHeader = (header: unknown): React.ReactNode => {
++    if (!header || typeof header !== 'object') return header as React.ReactNode;
++    const cfg = header as HeaderConfig;
++    if (cfg.render) return cfg.render();
++    return (
++      <div>
++        {cfg.title ? <h3 className='text-18px font-600 leading-26px text-t-primary m-0'>{cfg.title}</h3> : null}
++        {cfg.subtitle ? <p className='text-13px leading-20px text-t-secondary m-0 mt-4px'>{cfg.subtitle}</p> : null}
++      </div>
++    );
++  };
++  const renderFooter = (footer: unknown): React.ReactNode => {
++    if (!footer || typeof footer !== 'object') return footer as React.ReactNode;
++    const cfg = footer as FooterConfig;
++    return cfg.render ? cfg.render() : (footer as React.ReactNode);
++  };
++  const resolveTestId = (className?: string) => {
++    if (typeof className === 'string' && className.includes('team-preset-editor-modal')) {
++      return 'team-preset-editor-modal';
++    }
++    return 'team-create-modal';
++  };
++  return {
++    default: ({ visible, header, footer, children, className }: Record<string, unknown>) =>
++      visible ? (
++        <div data-testid={resolveTestId(className as string | undefined)}>
++          {renderHeader(header)}
++          <div>{children as React.ReactNode}</div>
++          <div>{renderFooter(footer)}</div>
++        </div>
++      ) : null,
++  };
++});
++
++vi.mock('@renderer/components/workspace', () => ({
++  WorkspaceFolderSelect: () => <div data-testid='workspace-folder-select' />,
++}));
++
++const {
++  createTeamInvokeMock,
++  resolveDefaultTeamAgentModelMock,
++  listTeamPresetsMock,
++  createTeamPresetMock,
++  updateTeamPresetMock,
++  deleteTeamPresetMock,
++} = vi.hoisted(() => ({
++  createTeamInvokeMock: vi.fn(),
++  resolveDefaultTeamAgentModelMock: vi.fn(),
++  listTeamPresetsMock: vi.fn(),
++  createTeamPresetMock: vi.fn(),
++  updateTeamPresetMock: vi.fn(),
++  deleteTeamPresetMock: vi.fn(),
++}));
++
++vi.mock('@/common', () => ({
++  ipcBridge: {
++    team: {
++      create: { invoke: (...args: unknown[]) => createTeamInvokeMock(...args) },
++    },
++    teamPreset: {
++      list: { invoke: (...args: unknown[]) => listTeamPresetsMock(...args) },
++      create: { invoke: (...args: unknown[]) => createTeamPresetMock(...args) },
++      update: { invoke: (...args: unknown[]) => updateTeamPresetMock(...args) },
++      delete: { invoke: (...args: unknown[]) => deleteTeamPresetMock(...args) },
++    },
++  },
++}));
++
++vi.mock('@renderer/pages/team/components/teamCreateModelResolver', () => ({
++  resolveDefaultTeamAgentModel: (...args: unknown[]) => resolveDefaultTeamAgentModelMock(...args),
++}));
++
++import TeamCreateModal from '@/renderer/pages/team/components/TeamCreateModal';
++
++function TestWrapper({ children }: { children: React.ReactNode }) {
++  return <SWRConfig value={{ provider: () => new Map() }}>{children}</SWRConfig>;
++}
++
++function renderWithProviders(ui: React.ReactElement) {
++  return render(ui, { wrapper: TestWrapper });
++}
++
++describe('TeamCreateModal · presets mode', () => {
++  beforeEach(() => {
++    createTeamInvokeMock.mockReset();
++    createTeamInvokeMock.mockResolvedValue({ id: 'team-1', assistants: [], agents: [] });
++    resolveDefaultTeamAgentModelMock.mockReset();
++    resolveDefaultTeamAgentModelMock.mockResolvedValue(undefined);
++
++    listTeamPresetsMock.mockReset();
++    listTeamPresetsMock.mockResolvedValue([presetDocs(), presetReview()]);
++    createTeamPresetMock.mockReset();
++    createTeamPresetMock.mockResolvedValue(presetMy());
++    updateTeamPresetMock.mockReset();
++    updateTeamPresetMock.mockResolvedValue(presetDocs({ name: 'Renamed Docs Team' }));
++    deleteTeamPresetMock.mockReset();
++    deleteTeamPresetMock.mockResolvedValue(undefined);
++  });
++
++  it('switches from assistants tab to expert teams tab', async () => {
++    renderWithProviders(<TeamCreateModal visible onClose={vi.fn()} onCreated={vi.fn()} />);
++
++    const assistantsTab = screen.getByRole('tab', { name: /All assistants/ });
++    const expertTab = screen.getByRole('tab', { name: /Expert teams/ });
++
++    expect(assistantsTab).toHaveAttribute('aria-selected', 'true');
++    expect(expertTab).toHaveAttribute('aria-selected', 'false');
++
++    fireEvent.click(expertTab);
++
++    await waitFor(() => expect(screen.getByTestId('team-preset-picker')).toBeInTheDocument());
++    expect(assistantsTab).toHaveAttribute('aria-selected', 'false');
++    expect(expertTab).toHaveAttribute('aria-selected', 'true');
++  });
++
++  it('lists mock presets and selects one for preview', async () => {
++    renderWithProviders(<TeamCreateModal visible onClose={vi.fn()} onCreated={vi.fn()} />);
++
++    fireEvent.click(screen.getByText('Expert teams'));
++
++    await waitFor(() => expect(screen.getByTestId('preset-picker-item-preset-docs')).toBeInTheDocument());
++    expect(screen.getByTestId('preset-picker-item-preset-review')).toBeInTheDocument();
++
++    fireEvent.click(screen.getByTestId('preset-picker-item-preset-docs'));
++
++    await waitFor(() => expect(screen.getByTestId('team-preset-preview')).toBeInTheDocument());
++    expect(screen.getByTestId('preset-preview-name')).toHaveTextContent('Documentation Team');
++    expect(screen.getByText('technical writing')).toBeInTheDocument();
++  });
++
++  it('invokes a preset from the list and fills the existing creation form', async () => {
++    renderWithProviders(<TeamCreateModal visible onClose={vi.fn()} onCreated={vi.fn()} />);
++
++    fireEvent.click(screen.getByText('Expert teams'));
++    await waitFor(() => expect(screen.getByTestId('preset-picker-invoke-preset-docs')).toBeInTheDocument());
++    fireEvent.click(screen.getByTestId('preset-picker-invoke-preset-docs'));
++
++    await waitFor(() => expect(screen.getByTestId('team-create-agent-search')).toBeInTheDocument());
++
++    const nameInput = screen.getByTestId('team-create-name-input') as HTMLInputElement;
++    expect(nameInput.value).toBe('Documentation Team');
++
++    expect(screen.getAllByTestId(/team-create-member-draft-/)).toHaveLength(2);
++    expect(screen.getAllByRole('button', { name: 'Current Leader' })).toHaveLength(1);
++  });
++
++  it('invokes a preset from the preview card and fills the existing creation form', async () => {
++    renderWithProviders(<TeamCreateModal visible onClose={vi.fn()} onCreated={vi.fn()} />);
++
++    fireEvent.click(screen.getByText('Expert teams'));
++    await waitFor(() => expect(screen.getByTestId('preset-picker-item-preset-docs')).toBeInTheDocument());
++    fireEvent.click(screen.getByTestId('preset-picker-item-preset-docs'));
++    await waitFor(() => expect(screen.getByTestId('preset-preview-invoke')).toBeInTheDocument());
++    fireEvent.click(screen.getByTestId('preset-preview-invoke'));
++
++    await waitFor(() => expect(screen.getByTestId('team-create-agent-search')).toBeInTheDocument());
++
++    const nameInput = screen.getByTestId('team-create-name-input') as HTMLInputElement;
++    expect(nameInput.value).toBe('Documentation Team');
++  });
++
++  it('warns about missing assistants and disables invoke for a preset with unavailable members', async () => {
++    renderWithProviders(<TeamCreateModal visible onClose={vi.fn()} onCreated={vi.fn()} />);
++
++    fireEvent.click(screen.getByText('Expert teams'));
++    await waitFor(() => expect(screen.getByTestId('preset-picker-item-preset-review')).toBeInTheDocument());
++    fireEvent.click(screen.getByTestId('preset-picker-item-preset-review'));
++
++    await waitFor(() => expect(screen.getByText('Missing')).toBeInTheDocument());
++    expect(screen.getByTestId('preset-preview-invoke')).toBeDisabled();
++  });
++
++  it('resets mode and selection when the modal is cancelled', async () => {
++    const onClose = vi.fn();
++    renderWithProviders(<TeamCreateModal visible onClose={onClose} onCreated={vi.fn()} />);
++
++    fireEvent.click(screen.getByText('Expert teams'));
++    await waitFor(() => expect(screen.getByTestId('preset-picker-item-preset-docs')).toBeInTheDocument());
++    fireEvent.click(screen.getByTestId('preset-picker-item-preset-docs'));
++    await waitFor(() => expect(screen.getByTestId('team-preset-preview')).toBeInTheDocument());
++
++    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
++
++    expect(onClose).toHaveBeenCalled();
++    expect(screen.getByTestId('team-create-agent-search')).toBeVisible();
++    expect(screen.queryByTestId('team-preset-preview')).not.toBeInTheDocument();
++  });
++
++  it('opens the editor modal when creating a new expert team', async () => {
++    renderWithProviders(<TeamCreateModal visible onClose={vi.fn()} onCreated={vi.fn()} />);
++
++    fireEvent.click(screen.getByText('Expert teams'));
++    await waitFor(() => expect(screen.getByTestId('preset-picker-new')).toBeInTheDocument());
++    fireEvent.click(screen.getByTestId('preset-picker-new'));
++
++    expect(screen.getByTestId('team-preset-editor-modal')).toBeInTheDocument();
++    expect(screen.getByRole('heading', { name: 'New expert team' })).toBeInTheDocument();
++  });
++
++  it('opens the editor modal with the selected preset when editing', async () => {
++    renderWithProviders(<TeamCreateModal visible onClose={vi.fn()} onCreated={vi.fn()} />);
++
++    fireEvent.click(screen.getByText('Expert teams'));
++    await waitFor(() => expect(screen.getByTestId('preset-picker-more-preset-docs')).toBeInTheDocument());
++    fireEvent.click(screen.getByTestId('preset-picker-more-preset-docs'));
++    fireEvent.click(screen.getByText('Edit'));
++
++    expect(screen.getByTestId('team-preset-editor-modal')).toBeInTheDocument();
++    expect(screen.getByRole('heading', { name: 'Edit expert team' })).toBeInTheDocument();
++    const nameInput = screen.getByTestId('preset-editor-name') as HTMLInputElement;
++    expect(nameInput.value).toBe('Documentation Team');
++  });
++
++  it('removes a preset after confirming delete', async () => {
++    renderWithProviders(<TeamCreateModal visible onClose={vi.fn()} onCreated={vi.fn()} />);
++
++    fireEvent.click(screen.getByText('Expert teams'));
++    await waitFor(() => expect(screen.getByTestId('preset-picker-item-preset-docs')).toBeInTheDocument());
++
++    fireEvent.click(screen.getByTestId('preset-picker-more-preset-docs'));
++    fireEvent.click(screen.getByText('Delete'));
++
++    await waitFor(() => expect(screen.queryByTestId('preset-picker-item-preset-docs')).not.toBeInTheDocument());
++  });
++
++  it('creates a new preset from the editor and shows it in the list', async () => {
++    renderWithProviders(<TeamCreateModal visible onClose={vi.fn()} onCreated={vi.fn()} />);
++
++    fireEvent.click(screen.getByText('Expert teams'));
++    await waitFor(() => expect(screen.getByTestId('preset-picker-new')).toBeInTheDocument());
++    fireEvent.click(screen.getByTestId('preset-picker-new'));
++
++    fireEvent.change(screen.getByTestId('preset-editor-name'), { target: { value: 'My Preset' } });
++    fireEvent.click(screen.getByTestId('preset-editor-agent-option-bare-aionrs'));
++
++    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
++
++    await waitFor(() => expect(screen.queryByTestId('team-preset-editor-modal')).not.toBeInTheDocument());
++    expect(screen.getByText('My Preset')).toBeInTheDocument();
++  });
++
++  it('edits an existing preset and reflects the new name in the list', async () => {
++    renderWithProviders(<TeamCreateModal visible onClose={vi.fn()} onCreated={vi.fn()} />);
++
++    fireEvent.click(screen.getByText('Expert teams'));
++    await waitFor(() => expect(screen.getByTestId('preset-picker-more-preset-docs')).toBeInTheDocument());
++    fireEvent.click(screen.getByTestId('preset-picker-more-preset-docs'));
++    fireEvent.click(screen.getByText('Edit'));
++
++    const nameInput = screen.getByTestId('preset-editor-name') as HTMLInputElement;
++    fireEvent.change(nameInput, { target: { value: 'Renamed Docs Team' } });
++    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
++
++    await waitFor(() => expect(screen.queryByTestId('team-preset-editor-modal')).not.toBeInTheDocument());
++    expect(screen.getByText('Renamed Docs Team')).toBeInTheDocument();
++  });
++});
++
++function presetDocs(overrides?: Partial<TeamPreset>): TeamPreset {
++  return {
++    id: 'preset-docs',
++    user_id: 'user-1',
++    name: 'Documentation Team',
++    category: 'Engineering',
++    description: 'Technical writing and documentation review.',
++    expertise_tags: ['technical writing'],
++    example_prompts: ['Write API docs'],
++    leader: {
++      assistant_backend: 'acp',
++      assistant_id: 'bare-aionrs',
++      assistant_name: 'Aion CLI',
++      role: 'leader',
++      order: 0,
++    },
++    members: [
++      {
++        assistant_backend: 'acp',
++        assistant_id: 'bare-aionrs',
++        assistant_name: 'Aion CLI',
++        role: 'leader',
++        order: 0,
++      },
++      {
++        assistant_backend: 'custom',
++        assistant_id: 'remote-runner',
++        assistant_name: 'Remote Runner',
++        role: 'teammate',
++        order: 1,
++      },
++    ],
++    version: 1,
++    created_at: new Date(1700000000000).toISOString(),
++    updated_at: new Date(1700000000000).toISOString(),
++    ...overrides,
++  };
++}
++
++function presetReview(): TeamPreset {
++  return {
++    id: 'preset-review',
++    user_id: 'user-1',
++    name: 'Review Team',
++    category: 'QA',
++    description: 'Code review specialists.',
++    expertise_tags: ['review'],
++    example_prompts: ['Review this PR'],
++    leader: {
++      assistant_backend: 'custom',
++      assistant_id: 'unknown-missing',
++      assistant_name: 'Missing Reviewer',
++      role: 'leader',
++      order: 0,
++    },
++    members: [
++      {
++        assistant_backend: 'custom',
++        assistant_id: 'unknown-missing',
++        assistant_name: 'Missing Reviewer',
++        role: 'leader',
++        order: 0,
++      },
++    ],
++    version: 1,
++    created_at: new Date(1700000000000).toISOString(),
++    updated_at: new Date(1700000000000).toISOString(),
++  };
++}
++
++function presetMy(): TeamPreset {
++  return {
++    id: 'preset-my',
++    user_id: 'user-1',
++    name: 'My Preset',
++    description: 'Custom preset',
++    expertise_tags: [],
++    example_prompts: [],
++    leader: {
++      assistant_backend: 'acp',
++      assistant_id: 'bare-aionrs',
++      assistant_name: 'Aion CLI',
++      role: 'leader',
++      order: 0,
++    },
++    members: [
++      {
++        assistant_backend: 'acp',
++        assistant_id: 'bare-aionrs',
++        assistant_name: 'Aion CLI',
++        role: 'leader',
++        order: 0,
++      },
++    ],
++    version: 1,
++    created_at: new Date().toISOString(),
++    updated_at: new Date().toISOString(),
++  };
++}
++
++function assistants(): Assistant[] {
++  return [
++    assistant({
++      id: 'bare-aionrs',
++      name: 'Aion CLI',
++      name_i18n: { 'zh-CN': 'Aion 命令行' },
++      source: 'generated',
++      agent_id: 'agent-aionrs',
++      agent: { type: 'aionrs', source: 'internal' },
++      team_selectable: true,
++    }),
++    assistant({
++      id: 'remote-runner',
++      name: 'Remote Runner',
++      source: 'generated',
++      agent_id: 'agent-remote',
++      agent: { type: 'remote', source: 'custom' },
++      team_selectable: true,
++    }),
++  ];
++}
++
++function assistant(overrides: Partial<Assistant> & Pick<Assistant, 'id' | 'name' | 'source' | 'agent_id'>): Assistant {
++  return {
++    id: overrides.id,
++    source: overrides.source,
++    name: overrides.name,
++    name_i18n: {},
++    description_i18n: {},
++    enabled: true,
++    sort_order: 0,
++    agent_id: overrides.agent_id,
++    enabled_skills: [],
++    custom_skill_names: [],
++    disabled_builtin_skills: [],
++    context_i18n: {},
++    prompts: [],
++    prompts_i18n: {},
++    models: [],
++    avatar: undefined,
++    agent_status: 'online',
++    team_selectable: true,
++    team_block_reason: undefined,
++    deletable: false,
++    ...overrides,
++  };
++}
+diff --git a/tests/unit/renderer/team/TeamPresetPicker.dom.test.tsx b/tests/unit/renderer/team/TeamPresetPicker.dom.test.tsx
+new file mode 100644
+index 000000000..614f437b2
+--- /dev/null
++++ b/tests/unit/renderer/team/TeamPresetPicker.dom.test.tsx
+@@ -0,0 +1,101 @@
++/**
++ * @license
++ * Copyright 2025 AionUi (aionui.com)
++ * SPDX-License-Identifier: Apache-2.0
++ */
++
++import { fireEvent, render, screen } from '@testing-library/react';
++import React from 'react';
++import { describe, expect, it, vi } from 'vitest';
++import { TeamPresetPicker } from '@/renderer/pages/team/TeamPresets/components/TeamPresetPicker';
++import type { TeamPreset } from '@/renderer/pages/team/TeamPresets/types';
++
++const t = (key: string, options?: { defaultValue?: string }) => options?.defaultValue || key;
++
++vi.mock('react-i18next', () => ({
++  useTranslation: () => ({ t, i18n: { language: 'en' } }),
++}));
++
++const presets: TeamPreset[] = [
++  {
++    id: 'preset-1',
++    user_id: 'user-1',
++    name: 'Alpha Team',
++    category: 'Test',
++    description: 'Alpha description',
++    expertise_tags: ['tag-a'],
++    example_prompts: ['example-a'],
++    leader: {
++      assistant_backend: 'aionrs',
++      assistant_id: 'a1',
++      assistant_name: 'Assistant One',
++      role: 'leader',
++      order: 0,
++    },
++    members: [
++      {
++        assistant_backend: 'aionrs',
++        assistant_id: 'a1',
++        assistant_name: 'Assistant One',
++        role: 'leader',
++        order: 0,
++      },
++    ],
++    version: 1,
++    created_at: '',
++    updated_at: '',
++  },
++];
++
++describe('TeamPresetPicker accessibility', () => {
++  it('renders each preset row as an Arco Button instead of a div with role=button', () => {
++    render(
++      <TeamPresetPicker
++        presets={presets}
++        onSelect={vi.fn()}
++        onInvoke={vi.fn()}
++        onCreate={vi.fn()}
++        onEdit={vi.fn()}
++        onRemove={vi.fn()}
++      />
++    );
++
++    const rowButton = screen.getByTestId('preset-picker-item-preset-1');
++    expect(rowButton.tagName).toBe('BUTTON');
++    expect(rowButton).toHaveAttribute('aria-label', 'Alpha Team');
++  });
++
++  it('selects the preset when the row button is activated with Enter', () => {
++    const onSelect = vi.fn();
++    render(
++      <TeamPresetPicker
++        presets={presets}
++        onSelect={onSelect}
++        onInvoke={vi.fn()}
++        onCreate={vi.fn()}
++        onEdit={vi.fn()}
++        onRemove={vi.fn()}
++      />
++    );
++
++    const rowButton = screen.getByTestId('preset-picker-item-preset-1');
++    fireEvent.click(rowButton);
++    expect(onSelect).toHaveBeenCalledWith(expect.objectContaining({ id: 'preset-1' }));
++  });
++
++  it('exposes invoke and more actions as separate buttons', () => {
++    render(
++      <TeamPresetPicker
++        presets={presets}
++        onSelect={vi.fn()}
++        onInvoke={vi.fn()}
++        onCreate={vi.fn()}
++        onEdit={vi.fn()}
++        onRemove={vi.fn()}
++      />
++    );
++
++    expect(screen.getByTestId('preset-picker-invoke-preset-1').tagName).toBe('BUTTON');
++    expect(screen.getByTestId('preset-picker-more-preset-1').tagName).toBe('BUTTON');
++  });
++});
+diff --git a/tests/unit/renderer/team/useTeamPresets.dom.test.tsx b/tests/unit/renderer/team/useTeamPresets.dom.test.tsx
+new file mode 100644
+index 000000000..9a9301a3c
+--- /dev/null
++++ b/tests/unit/renderer/team/useTeamPresets.dom.test.tsx
+@@ -0,0 +1,179 @@
++import { act, renderHook, waitFor } from '@testing-library/react';
++import React from 'react';
++import { SWRConfig } from 'swr';
++import { beforeEach, describe, expect, it, vi } from 'vitest';
++import type { TeamPreset } from '@/common/types/team/teamTypes';
++import { useTeamPresets } from '@/renderer/pages/team/TeamPresets/hooks/useTeamPresets';
++
++vi.mock('@/renderer/hooks/context/AuthContext', () => ({
++  useAuth: () => ({ user: { id: 'user-1' } }),
++}));
++
++const { eventChannel, listInvoke, createInvoke, updateInvoke, deleteInvoke } = vi.hoisted(() => ({
++  eventChannel: { on: vi.fn(() => () => {}) },
++  listInvoke: vi.fn(),
++  createInvoke: vi.fn(),
++  updateInvoke: vi.fn(),
++  deleteInvoke: vi.fn(),
++}));
++
++vi.mock('@/common', () => ({
++  ipcBridge: {
++    team: {
++      listChanged: eventChannel,
++      created: eventChannel,
++      removed: eventChannel,
++      renamed: eventChannel,
++    },
++    teamPreset: {
++      list: { invoke: listInvoke },
++      create: { invoke: createInvoke },
++      update: { invoke: updateInvoke },
++      delete: { invoke: deleteInvoke },
++    },
++  },
++}));
++
++function swrWrapper({ children }: { children: React.ReactNode }) {
++  return <SWRConfig value={{ provider: () => new Map() }}>{children}</SWRConfig>;
++}
++
++function preset(overrides?: Partial<TeamPreset>): TeamPreset {
++  return {
++    id: 'preset-1',
++    user_id: 'user-1',
++    name: 'Code Review',
++    category: 'Engineering',
++    description: 'A review panel',
++    expertise_tags: ['review'],
++    example_prompts: ['Audit this'],
++    leader: {
++      assistant_backend: 'acp',
++      assistant_id: 'lead-1',
++      assistant_name: 'Lead',
++      role: 'leader',
++      order: 0,
++    },
++    members: [
++      {
++        assistant_backend: 'acp',
++        assistant_id: 'lead-1',
++        assistant_name: 'Lead',
++        role: 'leader',
++        order: 0,
++      },
++      {
++        assistant_backend: 'acp',
++        assistant_id: 'worker-1',
++        assistant_name: 'Worker',
++        role: 'teammate',
++        order: 1,
++      },
++    ],
++    version: 1,
++    created_at: new Date(1700000000000).toISOString(),
++    updated_at: new Date(1700000000000).toISOString(),
++    ...overrides,
++  };
++}
++
++const createInput = {
++  user_id: '',
++  name: 'New Preset',
++  category: 'Writing',
++  description: 'desc',
++  expertise_tags: ['tag'],
++  example_prompts: ['prompt'],
++  leader: preset().leader,
++  members: preset().members,
++};
++
++describe('useTeamPresets', () => {
++  beforeEach(() => {
++    vi.clearAllMocks();
++    listInvoke.mockResolvedValue([preset()]);
++    createInvoke.mockResolvedValue(preset({ id: 'preset-created' }));
++    updateInvoke.mockResolvedValue(preset({ name: 'Updated' }));
++    deleteInvoke.mockResolvedValue(undefined);
++  });
++
++  it('loads presets for the current user', async () => {
++    const { result } = renderHook(() => useTeamPresets(), { wrapper: swrWrapper });
++
++    await waitFor(() => expect(result.current.presets).toHaveLength(1));
++    expect(result.current.presets[0].id).toBe('preset-1');
++    expect(listInvoke).toHaveBeenCalledWith({ user_id: 'user-1' });
++  });
++
++  it('createPreset returns an optimistic preset and calls the backend', async () => {
++    const { result } = renderHook(() => useTeamPresets(), { wrapper: swrWrapper });
++    await waitFor(() => expect(result.current.presets).toHaveLength(1));
++
++    let created: TeamPreset | undefined;
++    await act(async () => {
++      created = result.current.createPreset(createInput);
++    });
++
++    expect(created).toBeDefined();
++    expect(created!.name).toBe('New Preset');
++    expect(created!.user_id).toBe('user-1');
++    expect(created!.id).toBeTruthy();
++    expect(createInvoke).toHaveBeenCalledWith(createInput);
++  });
++
++  it('updatePreset returns an optimistic merged preset and calls the backend', async () => {
++    const { result } = renderHook(() => useTeamPresets(), { wrapper: swrWrapper });
++    await waitFor(() => expect(result.current.presets).toHaveLength(1));
++
++    let updated: TeamPreset | null = null;
++    await act(async () => {
++      updated = result.current.updatePreset('preset-1', { name: 'Updated Name' });
++    });
++
++    expect(updated).toBeDefined();
++    expect(updated!.name).toBe('Updated Name');
++    expect(updated!.version).toBe(2);
++    expect(updateInvoke).toHaveBeenCalledWith({ id: 'preset-1', input: { name: 'Updated Name' } });
++  });
++
++  it('updatePreset returns null for an unknown id', async () => {
++    const { result } = renderHook(() => useTeamPresets(), { wrapper: swrWrapper });
++    await waitFor(() => expect(result.current.presets).toHaveLength(1));
++
++    await act(async () => {
++      expect(result.current.updatePreset('missing', { name: 'X' })).toBeNull();
++    });
++    expect(updateInvoke).not.toHaveBeenCalled();
++  });
++
++  it('removePreset returns true and calls the backend', async () => {
++    const { result } = renderHook(() => useTeamPresets(), { wrapper: swrWrapper });
++    await waitFor(() => expect(result.current.presets).toHaveLength(1));
++
++    let removed = false;
++    await act(async () => {
++      removed = result.current.removePreset('preset-1');
++    });
++
++    expect(removed).toBe(true);
++    expect(deleteInvoke).toHaveBeenCalledWith({ id: 'preset-1' });
++  });
++
++  it('removePreset returns false for an unknown id', async () => {
++    const { result } = renderHook(() => useTeamPresets(), { wrapper: swrWrapper });
++    await waitFor(() => expect(result.current.presets).toHaveLength(1));
++
++    await act(async () => {
++      expect(result.current.removePreset('missing')).toBe(false);
++    });
++    expect(deleteInvoke).not.toHaveBeenCalled();
++  });
++
++  it('surfaces backend errors', async () => {
++    listInvoke.mockRejectedValue(new Error('network down'));
++
++    const { result } = renderHook(() => useTeamPresets(), { wrapper: swrWrapper });
++    await waitFor(() => expect(result.current.error).toBeTruthy());
++    expect(result.current.error).toBeInstanceOf(Error);
++  });
++});
+-- 
+2.50.1 (Apple Git-155)
+
