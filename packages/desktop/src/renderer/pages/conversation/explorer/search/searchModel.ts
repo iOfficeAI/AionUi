@@ -17,6 +17,7 @@
 
 import { projectFileRef } from '@/common/types/chatFile';
 import type { FileOrFolderItem } from '@/renderer/utils/file/fileTypes';
+import { isInternalWorkspacePath } from '../explorerModel';
 
 /**
  * One filename-search hit as delivered by `fs/searchMatch` (protocol.md). It is
@@ -99,7 +100,9 @@ export const scoreSearchHit = (hit: SearchHit, query: string): number => {
  */
 export const rankSearchHits = (hits: SearchHit[], query: string): SearchHit[] => {
   const q = normalize(query);
-  const scored = hits.map((hit) => ({ hit, score: q ? scoreSearchHit(hit, q) : 0 }));
+  const scored = hits
+    .filter((hit) => !isInternalWorkspacePath(hit.relative_path))
+    .map((hit) => ({ hit, score: q ? scoreSearchHit(hit, q) : 0 }));
   return scored
     .filter((entry) => (q ? entry.score >= 0 : true))
     .toSorted((left, right) => {

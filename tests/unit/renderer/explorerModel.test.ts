@@ -258,6 +258,15 @@ describe('buildTreeData', () => {
     ]);
   });
 
+  it('hides runtime-owned branding directories while keeping ordinary dotfiles visible', () => {
+    const cache: FactCache = new Map([
+      [peKey('pe1', ''), [dir('.aionrs'), dir('.csbu-workmate'), file('.env'), dir('src')]],
+    ]);
+    const tree = buildTreeData(cache, set(peKey('pe1', '')), roots);
+
+    expect(tree[0].children?.map((node) => node.title)).toEqual(['src', '.env']);
+  });
+
   it('descends only expanded directories (lazy)', () => {
     const cache: FactCache = new Map([
       [peKey('pe1', ''), [dir('src')]],

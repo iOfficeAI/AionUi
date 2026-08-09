@@ -26,6 +26,14 @@ export type Entry = {
   excluded?: boolean;
 };
 
+/** Runtime-owned workspace folders that should not appear as user files. */
+const INTERNAL_WORKSPACE_DIRECTORY_NAMES = new Set(['.aionrs', '.csbu-workmate']);
+
+/** Keep backend implementation directories out of the user-facing explorer and search. */
+export function isInternalWorkspacePath(relativePath: string): boolean {
+  return relativePath.split('/').some((segment) => INTERNAL_WORKSPACE_DIRECTORY_NAMES.has(segment));
+}
+
 /** Directory / file identity on the wire: pe-relative, never canonical. */
 export type DirRef = {
   pe_id: string;
@@ -295,6 +303,7 @@ export function buildTreeData(cache: FactCache, expanded: ReadonlySet<PeKey>, ro
     // Sort a copy — never mutate the cached listing.
     return entries
       .slice()
+      .filter((entry) => !isInternalWorkspacePath(joinRel(dirRel, entry.name)))
       .sort(compareEntriesForDisplay)
       .map((entry) => {
         const childRel = joinRel(dirRel, entry.name);

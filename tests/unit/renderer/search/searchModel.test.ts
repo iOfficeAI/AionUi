@@ -62,6 +62,15 @@ describe('rankSearchHits', () => {
     const ranked = rankSearchHits([hit('p', 'z.ts'), hit('p', 'a.ts')], '');
     expect(ranked.map((h) => h.relative_path)).toEqual(['a.ts', 'z.ts']);
   });
+
+  it('omits runtime-owned workspace files from search results', () => {
+    const ranked = rankSearchHits(
+      [hit('p', '.aionrs/skills/cron/SKILL.md'), hit('p', 'src/cron.ts'), hit('p', '.env')],
+      ''
+    );
+
+    expect(ranked.map((item) => item.relative_path)).toEqual(['.env', 'src/cron.ts']);
+  });
 });
 
 describe('searchHitToMentionItem (search→add-to-chat, project ref)', () => {
