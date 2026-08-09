@@ -5,3 +5,4 @@
  */
 
 export { createSkillFileService } from './skillFiles';
+export { LarkCliManager } from './larkCliManager';

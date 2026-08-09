@@ -13,6 +13,7 @@ import { getCdpStatus, updateCdpConfig } from '@process/utils/configureChromium'
 import { getGpuStatus, setGpuUserOverride } from '@process/utils/gpuRecovery';
 import { initApplicationBridgeCore } from './applicationBridgeCore';
 import type { IStartOnBootStatus } from '@/common/adapter/ipcBridge';
+import { LarkCliManager } from '@/process/services/skills';
 import { restartApplication } from './restartApplication';
 import { getCrashRecoveryService } from '@process/services/CrashRecoveryService';
 import { SAFE_MODE_SWITCH } from '@process/startup/mainProcessDiagnostics';
@@ -90,6 +91,48 @@ export function setApplicationMainWindow(win: BrowserWindow): void {
 export function initApplicationBridge(): void {
   // Platform-agnostic handlers: systemInfo, updateSystemInfo, getPath
   initApplicationBridgeCore();
+
+  const larkCliManager = new LarkCliManager({
+    userDataPath: app.getPath('userData'),
+    resourcesPath: process.resourcesPath,
+    cwd: process.cwd(),
+    isPackaged: app.isPackaged,
+    platform: process.platform,
+    arch: process.arch,
+    env: process.env,
+  });
+
+  ipcBridge.larkCli.status.provider(async () => {
+    try {
+      return { success: true, data: await larkCliManager.getStatus() };
+    } catch (error) {
+      return { success: false, msg: error instanceof Error ? error.message : String(error) };
+    }
+  });
+
+  ipcBridge.larkCli.check.provider(async () => {
+    try {
+      return { success: true, data: await larkCliManager.checkForUpdates() };
+    } catch (error) {
+      return { success: false, msg: error instanceof Error ? error.message : String(error) };
+    }
+  });
+
+  ipcBridge.larkCli.install.provider(async ({ version }) => {
+    try {
+      return { success: true, data: await larkCliManager.install(version) };
+    } catch (error) {
+      return { success: false, msg: error instanceof Error ? error.message : String(error) };
+    }
+  });
+
+  ipcBridge.larkCli.restoreBundled.provider(async () => {
+    try {
+      return { success: true, data: await larkCliManager.restoreBundled() };
+    } catch (error) {
+      return { success: false, msg: error instanceof Error ? error.message : String(error) };
+    }
+  });
 
   ipcBridge.application.restart.provider(async () => {
     // Backend subprocess shutdown is handled by backendManager.stop() in the

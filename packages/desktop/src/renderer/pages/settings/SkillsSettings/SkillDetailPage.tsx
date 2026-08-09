@@ -16,12 +16,13 @@
  */
 
 import { ipcBridge } from '@/common';
+import type { LarkCliStatus } from '@/common/adapter/ipcBridge';
 import type { Assistant, UpdateAssistantRequest } from '@/common/types/agent/assistantTypes';
 import { resolveLocaleKey } from '@/common/utils';
 import { useTalkToButler } from '@/renderer/hooks/assistant/useTalkToButler';
 import AssistantAvatar from '@/renderer/pages/settings/AssistantSettings/AssistantAvatar';
 import { Button, Dropdown, Menu, Message, Spin, Typography } from '@arco-design/web-react';
-import { ArrowLeft, Close, Plus, Right } from '@icon-park/react';
+import { ApplicationOne, ArrowLeft, Close, MessageOne, NewLark, Permissions, Plus, Right } from '@icon-park/react';
 import React, { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
@@ -80,6 +81,7 @@ const SkillDetailPage: React.FC = () => {
   const { skillName = '' } = useParams<{ skillName: string }>();
   const decodedName = decodeURIComponent(skillName);
   const [saving, setSaving] = useState(false);
+  const [larkCliAction, setLarkCliAction] = useState<'check' | 'install' | 'restore' | null>(null);
 
   const { data: skills, isLoading: skillsLoading } = useSWR<SkillInfo[]>('skills.list', () =>
     ipcBridge.fs.listAvailableSkills.invoke()
@@ -91,6 +93,16 @@ const SkillDetailPage: React.FC = () => {
   } = useSWR<Assistant[]>('assistants.list', () => ipcBridge.assistants.list.invoke());
 
   const skill = useMemo(() => (skills ?? []).find((s) => s.name === decodedName), [skills, decodedName]);
+  const isBuiltinLark = skill?.name === 'lark' && skill.source === 'builtin';
+  const skillDisplayName = isBuiltinLark ? t('settings.skillsHub.larkSetup.assistantName') : skill?.name;
+  const { data: larkCliStatus, mutate: mutateLarkCliStatus } = useSWR<LarkCliStatus>(
+    isBuiltinLark ? 'lark-cli.status' : null,
+    async () => {
+      const result = await ipcBridge.larkCli.status.invoke();
+      if (!result.success || !result.data) throw new Error(result.msg || 'Lark CLI status unavailable');
+      return result.data;
+    }
+  );
   const usingAssistants = useMemo(
     () => getAssistantsUsingSkill(decodedName, assistants ?? []),
     [assistants, decodedName]
@@ -132,6 +144,44 @@ const SkillDetailPage: React.FC = () => {
       prompt: t('settings.skillsHub.larkSetup.prompt'),
     });
   }, [t, talkToButler]);
+
+  const runLarkCliAction = useCallback(
+    async (action: 'check' | 'install' | 'restore') => {
+      setLarkCliAction(action);
+      try {
+        let result;
+        if (action === 'check') {
+          result = await ipcBridge.larkCli.check.invoke();
+        } else if (action === 'install') {
+          if (!larkCliStatus?.latestVersion) throw new Error('Latest Lark CLI version unavailable');
+          result = await ipcBridge.larkCli.install.invoke({ version: larkCliStatus.latestVersion });
+        } else {
+          result = await ipcBridge.larkCli.restoreBundled.invoke();
+        }
+        if (!result.success || !result.data) throw new Error(result.msg || 'Lark CLI action failed');
+        await mutateLarkCliStatus(result.data, false);
+        if (action === 'check') {
+          Message.success(
+            result.data.updateAvailable
+              ? t('settings.skillsHub.larkSetup.updateAvailable', { version: result.data.latestVersion })
+              : t('settings.skillsHub.larkSetup.upToDate')
+          );
+        } else {
+          Message.success(
+            action === 'install'
+              ? t('settings.skillsHub.larkSetup.updateSuccess')
+              : t('settings.skillsHub.larkSetup.restoreSuccess')
+          );
+        }
+      } catch (error) {
+        console.error('Lark CLI action failed:', error);
+        Message.error(t('settings.skillsHub.larkSetup.actionFailed'));
+      } finally {
+        setLarkCliAction(null);
+      }
+    },
+    [larkCliStatus?.latestVersion, mutateLarkCliStatus, t]
+  );
 
   const openAssistant = useCallback(
     (assistantId: string) => {
@@ -213,44 +263,157 @@ const SkillDetailPage: React.FC = () => {
               data-testid='skill-detail-info'
             >
               <div className='flex gap-16px'>
-                <div
-                  className={`h-48px w-48px shrink-0 rounded-12px flex items-center justify-center text-18px font-bold shadow-sm text-transform-uppercase ${getAvatarColorClass(skill.name)}`}
-                >
-                  {skill.name.charAt(0).toUpperCase()}
-                </div>
+                {isBuiltinLark ? (
+                  <div className='h-48px w-48px shrink-0 rounded-12px flex items-center justify-center bg-[rgba(var(--primary-6),0.08)] text-primary-6 shadow-sm'>
+                    <NewLark theme='filled' size={26} fill='currentColor' />
+                  </div>
+                ) : (
+                  <div
+                    className={`h-48px w-48px shrink-0 rounded-12px flex items-center justify-center text-18px font-bold shadow-sm text-transform-uppercase ${getAvatarColorClass(skill.name)}`}
+                  >
+                    {skill.name.charAt(0).toUpperCase()}
+                  </div>
+                )}
                 <div className='min-w-0 flex flex-col gap-6px'>
                   <div className='flex items-center gap-8px'>
-                    <span className='text-16px font-600 text-t-primary'>{skill.name}</span>
+                    <span className='text-16px font-600 text-t-primary'>{skillDisplayName}</span>
                     <span className='rounded-4px border border-border-2 bg-fill-1 px-6px py-1px text-11px text-t-secondary'>
                       {sourceLabel(skill)}
                     </span>
                   </div>
                   <p className='m-0 text-13px leading-relaxed text-t-secondary'>
-                    {skill.description ||
-                      t('settings.skillsHub.detailNoDescription', { defaultValue: 'No description.' })}
+                    {isBuiltinLark
+                      ? t('settings.skillsHub.larkSetup.description')
+                      : skill.description ||
+                        t('settings.skillsHub.detailNoDescription', { defaultValue: 'No description.' })}
                   </p>
                 </div>
               </div>
             </SectionCard>
 
-            {skill.name === 'lark' && skill.source === 'builtin' ? (
+            {isBuiltinLark ? (
               <SectionCard
-                title={t('settings.skillsHub.larkSetup.title')}
+                title={t('settings.skillsHub.larkSetup.onboardingTitle')}
                 data-testid='lark-setup-guide'
                 extra={
-                  <span className='rounded-4px bg-[rgba(var(--warning-6),0.08)] px-7px py-2px text-11px font-500 text-warning-6'>
-                    {t('settings.skillsHub.larkSetup.dependencyLabel')}
+                  <span className='rounded-4px bg-[rgba(var(--success-6),0.08)] px-7px py-2px text-11px font-500 text-success-6'>
+                    {t('settings.skillsHub.larkSetup.quickSetupBadge')}
                   </span>
                 }
               >
-                <div className='flex flex-col gap-12px'>
-                  <p className='m-0 text-13px leading-relaxed text-t-secondary'>
-                    {t('settings.skillsHub.larkSetup.description')}
-                  </p>
+                <div className='flex flex-col gap-14px'>
                   <div>
-                    <Button type='primary' size='small' data-testid='btn-setup-lark' onClick={setupLarkViaChat}>
-                      {t('settings.skillsHub.larkSetup.setupButton')}
+                    <p className='m-0 text-14px font-500 leading-relaxed text-t-primary'>
+                      {t('settings.skillsHub.larkSetup.onboardingSubtitle')}
+                    </p>
+                    <p className='mb-0 mt-4px text-12px leading-relaxed text-t-secondary'>
+                      {t('settings.skillsHub.larkSetup.capabilities')}
+                    </p>
+                  </div>
+
+                  <div className='grid grid-cols-1 gap-8px md:grid-cols-3' data-testid='lark-onboarding-steps'>
+                    {[
+                      {
+                        icon: <ApplicationOne size={18} fill='currentColor' />,
+                        title: t('settings.skillsHub.larkSetup.stepPrepareTitle'),
+                        description: t('settings.skillsHub.larkSetup.stepPrepareDescription'),
+                      },
+                      {
+                        icon: <Permissions size={18} fill='currentColor' />,
+                        title: t('settings.skillsHub.larkSetup.stepAuthorizeTitle'),
+                        description: t('settings.skillsHub.larkSetup.stepAuthorizeDescription'),
+                      },
+                      {
+                        icon: <MessageOne size={18} fill='currentColor' />,
+                        title: t('settings.skillsHub.larkSetup.stepUseTitle'),
+                        description: t('settings.skillsHub.larkSetup.stepUseDescription'),
+                      },
+                    ].map((step, index) => (
+                      <div key={step.title} className='rounded-10px border border-border-2 bg-fill-1 px-12px py-11px'>
+                        <div className='mb-7px flex items-center gap-7px text-primary-6'>
+                          {step.icon}
+                          <span className='text-12px font-600 text-t-primary'>
+                            {index + 1}. {step.title}
+                          </span>
+                        </div>
+                        <p className='m-0 text-11px leading-relaxed text-t-secondary'>{step.description}</p>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className='rounded-8px border border-primary-2 bg-primary-1 px-12px py-10px'>
+                    <div className='text-12px font-600 text-t-primary'>
+                      {t('settings.skillsHub.larkSetup.permissionTitle')}
+                    </div>
+                    <p className='mb-0 mt-4px text-11px leading-relaxed text-t-secondary'>
+                      {t('settings.skillsHub.larkSetup.permissionNote')}
+                    </p>
+                  </div>
+
+                  <div>
+                    <Button type='primary' size='default' data-testid='btn-setup-lark' onClick={setupLarkViaChat}>
+                      {t('settings.skillsHub.larkSetup.startButton')}
                     </Button>
+                    <span className='ml-10px text-11px text-t-tertiary'>
+                      {t('settings.skillsHub.larkSetup.startHint')}
+                    </span>
+                  </div>
+
+                  {larkCliStatus ? (
+                    <div className='rounded-8px border border-border-2 bg-fill-1 px-12px py-10px text-12px text-t-secondary'>
+                      <div className='flex flex-wrap items-center gap-x-16px gap-y-4px'>
+                        <span>
+                          {t('settings.skillsHub.larkSetup.versionLabel')}: v{larkCliStatus.currentVersion ?? '—'}
+                        </span>
+                        <span>
+                          {t('settings.skillsHub.larkSetup.sourceLabel')}:{' '}
+                          {t(
+                            larkCliStatus.source === 'managed'
+                              ? 'settings.skillsHub.larkSetup.sourceManaged'
+                              : 'settings.skillsHub.larkSetup.sourceBundled'
+                          )}
+                        </span>
+                        {larkCliStatus.latestVersion ? (
+                          <span>
+                            {t('settings.skillsHub.larkSetup.latestLabel')}: v{larkCliStatus.latestVersion}
+                          </span>
+                        ) : null}
+                      </div>
+                      {!larkCliStatus.supported ? (
+                        <div className='mt-6px text-warning-6'>{t('settings.skillsHub.larkSetup.unsupported')}</div>
+                      ) : null}
+                    </div>
+                  ) : null}
+                  <div className='flex flex-wrap gap-8px'>
+                    <Button
+                      size='small'
+                      loading={larkCliAction === 'check'}
+                      disabled={!larkCliStatus?.supported || larkCliAction !== null}
+                      onClick={() => void runLarkCliAction('check')}
+                    >
+                      {t('settings.skillsHub.larkSetup.checkUpdate')}
+                    </Button>
+                    {larkCliStatus?.updateAvailable && larkCliStatus.latestVersion ? (
+                      <Button
+                        type='primary'
+                        size='small'
+                        loading={larkCliAction === 'install'}
+                        disabled={larkCliAction !== null}
+                        onClick={() => void runLarkCliAction('install')}
+                      >
+                        {t('settings.skillsHub.larkSetup.installUpdate', { version: larkCliStatus.latestVersion })}
+                      </Button>
+                    ) : null}
+                    {larkCliStatus?.source === 'managed' ? (
+                      <Button
+                        size='small'
+                        loading={larkCliAction === 'restore'}
+                        disabled={larkCliAction !== null}
+                        onClick={() => void runLarkCliAction('restore')}
+                      >
+                        {t('settings.skillsHub.larkSetup.restoreBundled')}
+                      </Button>
+                    ) : null}
                   </div>
                 </div>
               </SectionCard>

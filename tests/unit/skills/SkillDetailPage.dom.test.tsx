@@ -18,6 +18,10 @@ const mocks = vi.hoisted(() => ({
   readSkillFile: vi.fn(),
   assistantsList: vi.fn(),
   assistantsUpdate: vi.fn(),
+  larkCliStatus: vi.fn(),
+  larkCliCheck: vi.fn(),
+  larkCliInstall: vi.fn(),
+  larkCliRestore: vi.fn(),
   talkToButler: vi.fn(),
   messageError: vi.fn(),
   messageSuccess: vi.fn(),
@@ -36,6 +40,12 @@ vi.mock('@/common', () => ({
     assistants: {
       list: { invoke: mocks.assistantsList },
       update: { invoke: mocks.assistantsUpdate },
+    },
+    larkCli: {
+      status: { invoke: mocks.larkCliStatus },
+      check: { invoke: mocks.larkCliCheck },
+      install: { invoke: mocks.larkCliInstall },
+      restoreBundled: { invoke: mocks.larkCliRestore },
     },
   },
 }));
@@ -168,6 +178,27 @@ describe('SkillDetailPage', () => {
       { name: 'config.json', relativePath: 'config.json', type: 'file' },
     ]);
     mocks.readSkillFile.mockResolvedValue('# Demo skill');
+    mocks.larkCliStatus.mockResolvedValue({
+      success: true,
+      data: {
+        bundledVersion: '1.0.85',
+        currentVersion: '1.0.85',
+        source: 'bundled',
+        supported: true,
+        updateAvailable: false,
+      },
+    });
+    mocks.larkCliCheck.mockResolvedValue({
+      success: true,
+      data: {
+        bundledVersion: '1.0.85',
+        currentVersion: '1.0.85',
+        latestVersion: '1.0.86',
+        source: 'bundled',
+        supported: true,
+        updateAvailable: true,
+      },
+    });
   });
 
   it('renders skill info and used-by rows (builtin marked read-only)', async () => {
@@ -291,8 +322,33 @@ describe('SkillDetailPage', () => {
     ]);
 
     renderWithFreshCache();
+    expect(await screen.findByText('settings.skillsHub.larkSetup.assistantName')).toBeInTheDocument();
+    const onboardingSteps = screen.getByTestId('lark-onboarding-steps');
+    expect(onboardingSteps).toHaveTextContent('settings.skillsHub.larkSetup.stepPrepareTitle');
+    expect(onboardingSteps).toHaveTextContent('settings.skillsHub.larkSetup.stepAuthorizeTitle');
+    expect(onboardingSteps).toHaveTextContent('settings.skillsHub.larkSetup.stepUseTitle');
     fireEvent.click(await screen.findByTestId('btn-setup-lark'));
 
     expect(mocks.talkToButler).toHaveBeenCalledWith({ prompt: 'settings.skillsHub.larkSetup.prompt' });
+  });
+
+  it('checks for a managed Lark CLI update from the built-in skill page', async () => {
+    mocks.params.skillName = 'lark';
+    mocks.listAvailableSkills.mockResolvedValue([
+      {
+        name: 'lark',
+        description: 'Use Lark CLI.',
+        location: '/tmp/builtin-skills/lark',
+        is_auto_inject: false,
+        is_custom: false,
+        source: 'builtin',
+      },
+    ]);
+
+    renderWithFreshCache();
+    fireEvent.click(await screen.findByText('settings.skillsHub.larkSetup.checkUpdate'));
+
+    await waitFor(() => expect(mocks.larkCliCheck).toHaveBeenCalledTimes(1));
+    expect(mocks.messageSuccess).toHaveBeenCalledWith('settings.skillsHub.larkSetup.updateAvailable');
   });
 });

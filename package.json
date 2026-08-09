@@ -262,7 +262,7 @@
   "electronRebuild": {
     "electronVersion": "^37.10.3"
   },
-  "larkCliVersion": "v1.0.71",
+  "larkCliVersion": "v1.0.85",
   "patchedDependencies": {
     "7zip-bin@5.2.0": "patches/7zip-bin@5.2.0.patch"
   },

@@ -505,7 +505,8 @@ describe('SkillsHubSettings', () => {
     const larkCard = await screen.findByTestId('official-skill-card-lark');
     const officeCard = screen.getByTestId('official-skill-card-officecli');
     expect(larkCard.compareDocumentPosition(officeCard) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(screen.getByText('settings.skillsHub.larkSetup.dependencyLabel')).toBeInTheDocument();
+    expect(screen.getByText('settings.skillsHub.larkSetup.assistantName')).toBeInTheDocument();
+    expect(screen.getByText('settings.skillsHub.larkSetup.quickSetupBadge')).toBeInTheDocument();
   });
 
   it('restores the originating tab and preserves it when opening another skill', async () => {

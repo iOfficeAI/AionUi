@@ -2,7 +2,7 @@ import { ipcBridge } from '@/common';
 import type { Assistant } from '@/common/types/agent/assistantTypes';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { Button, Checkbox, Message, Modal } from '@arco-design/web-react';
-import { Delete, Help, Lightning, Puzzle } from '@icon-park/react';
+import { Delete, Help, Lightning, NewLark, Puzzle } from '@icon-park/react';
 import React, { useCallback, useEffect, useRef, useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
@@ -655,6 +655,7 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
   const renderReadonlySkillCard = (skill: SkillInfo, variant: 'official' | 'extension' | 'auto', testId?: string) => {
     const isAuto = variant === 'auto';
     const isExtension = variant === 'extension';
+    const isBuiltinLark = skill.name === 'lark' && skill.source === 'builtin';
     const accent = isAuto ? 'success' : 'primary';
     return (
       <div
@@ -667,7 +668,11 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
         className={`flex flex-col sm:flex-row gap-16px p-16px bg-base border hover:border-border-1 hover:bg-fill-1 rd-12px transition-all duration-200 cursor-pointer ${highlightedSkill === skill.name ? 'border-primary-5 bg-primary-1' : 'border-transparent'}`}
       >
         <div className='shrink-0 flex items-start sm:mt-2px'>
-          {isExtension || isAuto ? (
+          {isBuiltinLark ? (
+            <div className='h-40px w-40px rd-10px flex items-center justify-center bg-[rgba(var(--primary-6),0.08)] text-primary-6 shadow-sm'>
+              <NewLark theme='filled' size={22} fill='currentColor' />
+            </div>
+          ) : isExtension || isAuto ? (
             <div
               className={`w-40px h-40px rd-10px bg-[rgba(var(--${accent}-6),0.08)] flex items-center justify-center shadow-sm`}
             >
@@ -687,16 +692,18 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
         </div>
         <div className='flex-1 min-w-0 flex flex-col justify-center gap-4px'>
           <div className='flex min-w-0 flex-wrap items-center gap-6px'>
-            <h3 className='text-14px font-semibold text-t-primary/90 truncate m-0'>{skill.name}</h3>
-            {skill.name === 'lark' && skill.source === 'builtin' ? (
-              <span className='rounded-4px bg-[rgba(var(--warning-6),0.08)] px-6px py-2px text-10px font-500 text-warning-6'>
-                {t('settings.skillsHub.larkSetup.dependencyLabel')}
+            <h3 className='text-14px font-semibold text-t-primary/90 truncate m-0'>
+              {isBuiltinLark ? t('settings.skillsHub.larkSetup.assistantName') : skill.name}
+            </h3>
+            {isBuiltinLark ? (
+              <span className='rounded-4px bg-[rgba(var(--success-6),0.08)] px-6px py-2px text-10px font-500 text-success-6'>
+                {t('settings.skillsHub.larkSetup.quickSetupBadge')}
               </span>
             ) : null}
           </div>
-          {skill.description && (
+          {(isBuiltinLark || skill.description) && (
             <p className='text-13px text-t-secondary leading-relaxed line-clamp-2 m-0' title={skill.description}>
-              {skill.description}
+              {isBuiltinLark ? t('settings.skillsHub.larkSetup.description') : skill.description}
             </p>
           )}
         </div>

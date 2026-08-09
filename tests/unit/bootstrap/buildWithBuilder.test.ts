@@ -396,7 +396,7 @@ childProcess.execSync = function mockedExecSync(command) {
       }>;
       expect(calls).toContainEqual(expect.objectContaining({ resource: 'aioncore', arch: expectedArch }));
       expect(calls).toContainEqual(
-        expect.objectContaining({ resource: 'lark-cli', arch: expectedArch, version: 'v1.0.71' })
+        expect.objectContaining({ resource: 'lark-cli', arch: expectedArch, version: 'v1.0.85' })
       );
     } finally {
       rmSync(outDir, { recursive: true, force: true });

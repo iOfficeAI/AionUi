@@ -654,6 +654,15 @@ export interface IRendererLogEntry {
   data?: unknown;
 }
 
+export type LarkCliStatus = {
+  bundledVersion: string | null;
+  currentVersion: string | null;
+  latestVersion?: string;
+  source: 'managed' | 'bundled';
+  supported: boolean;
+  updateAvailable: boolean;
+};
+
 // ---------------------------------------------------------------------------
 // Application — stays IPC (Electron-native)
 // ---------------------------------------------------------------------------
@@ -701,6 +710,13 @@ export const application = {
     'app.log-stream'
   ),
   devToolsStateChanged: bridge.buildEmitter<{ isOpen: boolean }>('app.devtools-state-changed'),
+};
+
+export const larkCli = {
+  status: bridge.buildProvider<IBridgeResponse<LarkCliStatus>, void>('lark-cli.status'),
+  check: bridge.buildProvider<IBridgeResponse<LarkCliStatus>, void>('lark-cli.check'),
+  install: bridge.buildProvider<IBridgeResponse<LarkCliStatus>, { version: string }>('lark-cli.install'),
+  restoreBundled: bridge.buildProvider<IBridgeResponse<LarkCliStatus>, void>('lark-cli.restore-bundled'),
 };
 
 // ---------------------------------------------------------------------------

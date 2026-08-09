@@ -26,13 +26,13 @@ afterEach(() => {
 
 describe('prepare Lark CLI build resources', () => {
   it('maps supported desktop targets to official release asset names', () => {
-    expect(getLarkCliAssetName('win32', 'x64', 'v1.0.71')).toBe('lark-cli-1.0.71-windows-amd64.zip');
-    expect(getLarkCliAssetName('darwin', 'arm64', '1.0.71')).toBe('lark-cli-1.0.71-darwin-arm64.tar.gz');
+    expect(getLarkCliAssetName('win32', 'x64', 'v1.0.85')).toBe('lark-cli-1.0.85-windows-amd64.zip');
+    expect(getLarkCliAssetName('darwin', 'arm64', '1.0.85')).toBe('lark-cli-1.0.85-darwin-arm64.tar.gz');
   });
 
   it('rejects invalid versions and unsupported targets', () => {
     expect(() => normalizeVersion('../latest')).toThrow('Invalid Lark CLI version');
-    expect(() => getLarkCliAssetName('win32', 'ia32', '1.0.71')).toThrow('Unsupported Lark CLI target');
+    expect(() => getLarkCliAssetName('win32', 'ia32', '1.0.85')).toThrow('Unsupported Lark CLI target');
   });
 
   it('selects the exact checksum entry for an asset', () => {
