@@ -58,6 +58,8 @@
     "exportFailed": "导出失败",
     "pin": "置顶",
     "unpin": "取消置顶",
+    "markAsUnread": "标为未读",
+    "markAsRead": "标为已读",
     "pinned": "已置顶",
     "pinFailed": "置顶操作失败",
     "pinnedSection": "置顶",

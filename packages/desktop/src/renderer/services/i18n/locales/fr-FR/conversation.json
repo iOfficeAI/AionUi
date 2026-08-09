@@ -58,6 +58,8 @@
     "exportFailed": "Échec de l'export",
     "pin": "Épingler",
     "unpin": "Désépingler",
+    "markAsUnread": "Marquer comme non lu",
+    "markAsRead": "Marquer comme lu",
     "pinned": "Épinglé",
     "pinFailed": "Échec de l'épinglage",
     "pinnedSection": "Épinglés",

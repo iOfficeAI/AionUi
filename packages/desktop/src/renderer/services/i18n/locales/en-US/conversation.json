@@ -58,6 +58,8 @@
     "exportFailed": "Export failed",
     "pin": "Pin",
     "unpin": "Unpin",
+    "markAsUnread": "Mark as unread",
+    "markAsRead": "Mark as read",
     "pinned": "Pinned",
     "pinFailed": "Pin operation failed",
     "pinnedSection": "Pinned",

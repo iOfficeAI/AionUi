@@ -242,7 +242,7 @@ const clearGenerating = (conversation_id: string) => {
   emitStoreChange();
 };
 
-const markCompletionUnread = (conversation_id: string) => {
+const markCompletionUnreadState = (conversation_id: string) => {
   if (completionUnreadConversationIdsState.has(conversation_id)) {
     return;
   }
@@ -265,6 +265,14 @@ const clearCompletionUnreadState = (conversation_id: string) => {
 /** Turn id that put a conversation into the `completed` set (for turn-aware
  *  late-frame detection). */
 const completedTurnIdByConversation = new Map<string, string | null>();
+
+/** Test hook: replace the whole completion-unread set and emit so listeners
+ *  (and `useSyncExternalStore`) stay consistent. Lets unread-toggle tests start
+ *  from a deterministic state. */
+export const setCompletionUnreadForTest = (conversationIds: string[]): void => {
+  completionUnreadConversationIdsState = new Set(conversationIds);
+  emitStoreChange();
+};
 
 const markCompleted = (conversation_id: string, turn_id?: string | null) => {
   completedConversationIdsState = new Set(completedConversationIdsState).add(conversation_id);
@@ -330,7 +338,7 @@ const initializeConversationListSyncStore = () => {
     if (isTerminalStreamMessage(message)) {
       const wasGenerating = generatingConversationIdsState.has(conversation_id);
       if (wasGenerating && activeConversationIdState !== conversation_id) {
-        markCompletionUnread(conversation_id);
+        markCompletionUnreadState(conversation_id);
       }
       clearGenerating(conversation_id);
       return;
@@ -355,7 +363,7 @@ const initializeConversationListSyncStore = () => {
   });
   ipcBridge.conversation.turnCompleted.on((event) => {
     if (isTerminalTurnState(event.state) && activeConversationIdState !== event.session_id) {
-      markCompletionUnread(event.session_id);
+      markCompletionUnreadState(event.session_id);
     }
     markCompleted(event.session_id, event.turn_id);
     clearGenerating(event.session_id);
@@ -381,6 +389,9 @@ export const useConversationListSync = () => {
   const setActiveConversation = useCallback((conversation_id: string | null) => {
     setActiveConversationState(conversation_id);
   }, []);
+  const markCompletionUnread = useCallback((conversation_id: string) => {
+    markCompletionUnreadState(conversation_id);
+  }, []);
 
   const isConversationGenerating = useCallback(
     (conversation_id: string) => {
@@ -401,6 +412,7 @@ export const useConversationListSync = () => {
     isConversationGenerating,
     hasCompletionUnread,
     clearCompletionUnread,
+    markCompletionUnread,
     setActiveConversation,
   };
 };

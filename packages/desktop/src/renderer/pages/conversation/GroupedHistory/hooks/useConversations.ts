@@ -62,6 +62,7 @@ export const useConversations = () => {
     isConversationGenerating,
     hasCompletionUnread,
     clearCompletionUnread,
+    markCompletionUnread,
     setActiveConversation,
     groupedHistory,
   } = useConversationHistoryContext();
@@ -210,6 +211,8 @@ export const useConversations = () => {
     conversations,
     isConversationGenerating,
     hasCompletionUnread,
+    clearCompletionUnread,
+    markCompletionUnread,
     expandedWorkspaces,
     pinnedConversations,
     timelineSections,

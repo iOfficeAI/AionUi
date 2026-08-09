@@ -46,6 +46,8 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
     conversations,
     isConversationGenerating,
     hasCompletionUnread,
+    clearCompletionUnread,
+    markCompletionUnread,
     expandedWorkspaces,
     pinnedConversations,
     timelineSections,
@@ -152,6 +154,17 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
     [conversationNameById]
   );
 
+  const handleToggleUnread = useCallback(
+    (conversation: TChatConversation) => {
+      if (hasCompletionUnread(conversation.id)) {
+        clearCompletionUnread(conversation.id);
+        return;
+      }
+      markCompletionUnread(conversation.id);
+    },
+    [hasCompletionUnread, clearCompletionUnread, markCompletionUnread]
+  );
+
   const getConversationRowProps = useCallback(
     (conversation: TChatConversation): ConversationRowProps => ({
       conversation,
@@ -171,6 +184,7 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
       onCreateCronTask: handleCreateCronTask,
       onDelete: handleDeleteClick,
       onTogglePin: handleTogglePin,
+      onToggleUnread: handleToggleUnread,
       getJobStatus,
       resolveConversationName,
     }),
@@ -191,6 +205,7 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
       handleCreateCronTask,
       handleDeleteClick,
       handleTogglePin,
+      handleToggleUnread,
       getJobStatus,
       resolveConversationName,
     ]
