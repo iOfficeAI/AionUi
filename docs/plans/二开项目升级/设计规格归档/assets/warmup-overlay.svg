@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="980" height="520" viewBox="0 0 980 520" font-family="-apple-system, 'PingFang SC', 'Segoe UI', sans-serif">
+  <!--
+    warmup 遮罩 · 两阶段线框（标注版）
+    证据: TeamWarmupOverlay.tsx + base.css keyframes @ e3f154559
+  -->
+  <defs>
+    <style>
+      .lbl { font-size: 10px; fill: #86909c; }
+      .dim { font-size: 9px; fill: #165dff; }
+      .state { font-size: 13px; font-weight: 600; fill: #1d2129; }
+      .txt2 { font-size: 11px; fill: #4e5969; }
+      .box { fill: #ffffff; stroke: #c9cdd4; stroke-width: 1; }
+    </style>
+  </defs>
+
+  <rect x="0" y="0" width="980" height="520" fill="#f7f8fa"/>
+  <text x="20" y="20" font-size="10" fill="#86909c">warmup-overlay.svg — TeamWarmupOverlay：磨砂遮罩 bg-1 80% + blur(3px) · 容器 top=41px · 内容 max-w-420 px-40 py-28 gap-14 · data-phase 可测</text>
+
+  <!-- ===== 左：warming ===== -->
+  <rect x="30" y="36" width="440" height="440" rx="12" fill="rgba(255,255,255,0.8)" stroke="#c9cdd4"/>
+  <text x="50" y="62" class="state">阶段 1 · 唤醒中（phase = warming）</text>
+
+  <!-- avatars -->
+  <circle cx="180" cy="120" r="17" fill="#e5e6eb" stroke="#165dff" stroke-width="2"/>
+  <circle cx="230" cy="120" r="17" fill="#e5e6eb" opacity="0.75" stroke="#5c9ea4" stroke-width="2" stroke-dasharray="3 2"/>
+  <circle cx="280" cy="120" r="17" fill="#e5e6eb" opacity="0.35"/>
+  <circle cx="330" cy="120" r="17" fill="#e5e6eb" opacity="0.35"/>
+  <text x="255" y="158" class="dim" text-anchor="middle">头像 34px（最多 6 个，gap-10）：未开始 opacity .35 暗淡 · pending .75 + 呼吸动画 1.6s（0.55↔0.9）+ 55% 身份色环 · ready 1 + 身份色环+外发光 · Leader 先亮</text>
+
+  <text x="255" y="196" font-size="15" font-weight="600" fill="#1d2129" text-anchor="middle">正在唤醒团队…</text>
+  <text x="255" y="220" font-size="12" fill="#86909c" text-anchor="middle">正在准备成员</text>
+  <rect x="165" y="240" width="180" height="4" rx="2" fill="#e5e6eb"/>
+  <rect x="237" y="240" width="108" height="4" rx="2" fill="#165dff"/>
+  <text x="255" y="266" class="dim" text-anchor="middle">进度条 180×4 rd-2 · 不确定进度扫动 1.4s（20%→60% 宽，brand-hover→brand 渐变）</text>
+
+  <text x="50" y="310" class="lbl">warming 期间：胶囊栏增/删/改名全部禁用；</text>
+  <text x="50" y="328" class="lbl">遮罩从列抬头下方开始 → 抬头模型选择器仍可点。</text>
+  <text x="50" y="346" class="lbl">撤除时机：全员 ready（整体闸门 phase=ready，遮罩 unmount）。</text>
+
+  <!-- ===== 右：error ===== -->
+  <rect x="510" y="36" width="440" height="440" rx="12" fill="rgba(255,255,255,0.8)" stroke="#c9cdd4"/>
+  <text x="530" y="62" class="state">阶段 2 · 失败（phase = error）</text>
+
+  <circle cx="660" cy="110" r="17" fill="#e5e6eb" stroke="#165dff" stroke-width="2"/>
+  <circle cx="710" cy="110" r="17" fill="#e5e6eb" stroke="#f53f3f" stroke-width="2"/>
+  <circle cx="722" cy="122" r="7" fill="#f53f3f" stroke="#ffffff" stroke-width="1.5"/>
+  <text x="722" y="126" font-size="9" fill="#fff" text-anchor="middle" font-weight="700">!</text>
+  <circle cx="760" cy="110" r="17" fill="#e5e6eb" opacity="0.35"/>
+  <text x="705" y="146" class="dim" text-anchor="middle">failed 头像：opacity 1 + 灰化 + 2px danger 红环 + 14px「!」角标</text>
+
+  <text x="705" y="182" font-size="15" font-weight="600" fill="#1d2129" text-anchor="middle">成员「Grok」未能启动</text>
+  <text x="950" y="170" class="dim" text-anchor="end">标题分四种：单成员 / Leader / 多成员 N 个 / 兜底</text>
+
+  <rect x="590" y="196" width="320" height="52" rx="6" fill="rgba(245,63,63,0.08)"/>
+  <text x="600" y="216" font-size="11" fill="#f53f3f">Provider 'aionrs' not found</text>
+  <text x="910" y="244" class="dim" text-anchor="end">错误框：danger 8% 底 · 11px danger · 单失败 max-w-320 max-h-64 / 多失败 w-320 max-h-120 逐行（名字+精简原因）· simplifyWarmupError 剥噪声</text>
+
+  <text x="705" y="286" font-size="12" fill="#86909c" text-anchor="middle">可在上方切换其模型，或从顶部移除后重试。</text>
+  <text x="910" y="300" class="dim" text-anchor="end">引导：有可移除 teammate → 提示移除路径；仅 Leader 失败 → 只提示切模型</text>
+
+  <rect x="660" y="310" width="90" height="32" rx="8" fill="#165dff"/>
+  <text x="705" y="330" font-size="13" fill="#fff" text-anchor="middle">⟳ 重试</text>
+  <text x="770" y="330" class="dim">重试钮 h-32 px-18 rd-8 bg-brand 白字 13px/500 + Refresh 14</text>
+
+  <text x="530" y="380" class="lbl">失败后：胶囊操作解禁（可移除失败成员）；胶囊头像同步标红（见 team-tabs-capsules 状态 6）。</text>
+  <text x="530" y="398" class="lbl">多失败：标题「{{count}} 个成员未能启动」+ 逐行「名字(Leader 后缀)：原因」列表。</text>
+  <text x="530" y="416" class="lbl">点击「重试」重新触发 ensureSession 全员唤醒流程。</text>
+</svg>

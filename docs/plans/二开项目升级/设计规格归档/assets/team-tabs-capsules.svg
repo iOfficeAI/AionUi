@@ -1,0 +1,92 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="560" viewBox="0 0 900 560" font-family="-apple-system, 'PingFang SC', 'Segoe UI', sans-serif">
+  <!--
+    胶囊成员栏 · 全部状态线框（标注版）
+    证据: TeamTabs.tsx TeamTabView + AgentStatusBadge + teamMemberColors @ e3f154559
+  -->
+  <defs>
+    <style>
+      .lbl { font-size: 10px; fill: #86909c; }
+      .dim { font-size: 9px; fill: #165dff; }
+      .txt { font-size: 12px; fill: #1d2129; }
+      .fill2 { fill: #e5e6eb; }
+      .state { font-size: 12px; font-weight: 600; fill: #1d2129; }
+    </style>
+  </defs>
+
+  <rect x="0" y="0" width="900" height="560" fill="#f7f8fa"/>
+  <text x="20" y="20" font-size="10" fill="#86909c">team-tabs-capsules.svg — 成员胶囊状态全集 · 胶囊：h-34 rd-999 pl-6 pr-10 gap-6 max-w-220 · 底 bg-2 恒定 · 身份色仅落在名字与选中描边</text>
+
+  <!-- 1 默认 Leader -->
+  <text x="30" y="56" class="state">1 · Leader 默认（不可拖/不可删，固定首位）</text>
+  <rect x="30" y="68" width="150" height="34" rx="17" fill="#f7f8fa" stroke="transparent"/>
+  <circle cx="50" cy="85" r="11" class="fill2"/>
+  <circle cx="58" cy="93" r="4" fill="#9ca3af"/>
+  <text x="68" y="89" font-size="13" font-weight="600" fill="#165dff">Claude</text>
+  <text x="200" y="89" class="dim">边框 transparent · 名字用身份色（Leader=var(--brand)）· 状态点 8px 叠头像右下（2px 描边环）</text>
+
+  <!-- 2 选中 -->
+  <text x="30" y="140" class="state">2 · 选中（active）</text>
+  <rect x="30" y="152" width="150" height="34" rx="17" fill="#f7f8fa" stroke="#5c9ea4" stroke-width="1.5"/>
+  <circle cx="50" cy="169" r="11" class="fill2"/>
+  <circle cx="58" cy="177" r="4" fill="#22c55e"/>
+  <text x="68" y="173" font-size="13" font-weight="600" fill="#5c9ea4">Gemini</text>
+  <text x="200" y="173" class="dim">选中 = 一圈成员身份色 1.5px 描边（borderColor: color）· 底色不变 · 点击=switchTab</text>
+
+  <!-- 3 hover -->
+  <text x="30" y="224" class="state">3 · hover（增宽露操作：拖拽手柄 + 改名 + 移除）</text>
+  <rect x="30" y="236" width="230" height="34" rx="17" fill="#f7f8fa" stroke="transparent"/>
+  <text x="40" y="258" font-size="11" fill="#86909c">⠿</text>
+  <circle cx="66" cy="253" r="11" class="fill2"/>
+  <text x="84" y="257" font-size="13" font-weight="600" fill="#9481bf">Codex</text>
+  <rect x="188" y="243" width="20" height="20" rx="6" fill="#e5e6eb"/>
+  <text x="198" y="257" font-size="10" fill="#4e5969" text-anchor="middle">✎</text>
+  <rect x="214" y="243" width="20" height="20" rx="6" fill="#e5e6eb"/>
+  <text x="224" y="257" font-size="10" fill="#f53f3f" text-anchor="middle">✕</text>
+  <text x="280" y="257" class="dim">手柄 14×20 cursor-grab（拖拽激活距离 8px，仅水平轴）· ✎/✕ 20×20 rd-6 hover bg-3 · Leader 无手柄与 ✕ · ✕ hover 变 danger</text>
+
+  <!-- 4 拖拽中 -->
+  <text x="30" y="308" class="state">4 · 拖拽中（isDragging）</text>
+  <rect x="30" y="320" width="180" height="34" rx="17" fill="#f7f8fa" stroke="transparent" opacity="0.72"/>
+  <text x="40" y="342" font-size="11" fill="#86909c">⠿</text>
+  <circle cx="66" cy="337" r="11" class="fill2"/>
+  <text x="84" y="341" font-size="13" font-weight="600" fill="#9481bf">Codex</text>
+  <text x="230" y="341" class="dim">opacity 0.72 · 手柄 cursor-grabbing · 兄弟胶囊 transform 实时让位 · dragActive 期间冻结其他胶囊 hover 增宽</text>
+
+  <!-- 5 改名中 -->
+  <text x="30" y="392" class="state">5 · 改名中（双击或 ✎ 进入）</text>
+  <rect x="30" y="404" width="200" height="34" rx="17" fill="#f7f8fa" stroke="#165dff" stroke-dasharray="3 2"/>
+  <rect x="46" y="412" width="150" height="18" fill="#ffffff" stroke="#c9cdd4"/>
+  <text x="50" y="425" font-size="12" fill="#1d2129">Codex|</text>
+  <text x="250" y="425" class="dim">内联 input 15px 无边框 · Enter/blur 提交（空或不变则还原）· Esc 取消 · 打开时自动全选</text>
+
+  <!-- 6 warmup 失败 -->
+  <text x="30" y="476" class="state">6 · warmup 失败（红环 + 感叹角标 + 灰化）</text>
+  <rect x="30" y="488" width="150" height="34" rx="17" fill="#f7f8fa" stroke="transparent"/>
+  <circle cx="50" cy="505" r="11" fill="#e5e6eb" stroke="#f53f3f" stroke-width="0"/>
+  <circle cx="50" cy="505" r="12" fill="none" stroke="#f53f3f" stroke-width="2"/>
+  <circle cx="60" cy="514" r="6" fill="#f53f3f" stroke="#ffffff" stroke-width="1.5"/>
+  <text x="60" y="518" font-size="8" fill="#fff" text-anchor="middle" font-weight="700">!</text>
+  <text x="76" y="509" font-size="13" font-weight="600" fill="#c07d97">Grok</text>
+  <text x="200" y="509" class="dim">头像 grayscale · 红环 2px var(--danger) · 角标 12px 圆（1.5px 描边）· 失败后操作解禁（可移除自救）；warmup 进行中才禁用增删改名</text>
+
+  <!-- 右栏状态点图例 -->
+  <text x="520" y="56" class="state">状态点（AgentStatusBadge，overlay 8px）</text>
+  <circle cx="530" cy="80" r="5" fill="#22c55e"/><text x="544" y="84" class="lbl">active 绿 + animate-pulse</text>
+  <circle cx="530" cy="104" r="5" fill="#9ca3af"/><text x="544" y="108" class="lbl">idle / pending / completed 灰</text>
+  <circle cx="530" cy="128" r="5" fill="#ef4444"/><text x="544" y="132" class="lbl">failed 红</text>
+  <circle cx="530" cy="152" r="5" fill="transparent" stroke="#9ca3af"/><text x="544" y="156" class="lbl">dormant 空心（从未唤醒）</text>
+
+  <text x="520" y="196" class="state">身份色板（TEAM_MEMBER_PALETTE）</text>
+  <rect x="520" y="208" width="24" height="24" rx="6" fill="#165dff"/><text x="552" y="224" class="lbl">0 Leader 品牌色 var(--brand)</text>
+  <rect x="520" y="238" width="24" height="24" rx="6" fill="#5c9ea4"/><text x="552" y="254" class="lbl">1 雾青</text>
+  <rect x="520" y="268" width="24" height="24" rx="6" fill="#b58a5e"/><text x="552" y="284" class="lbl">2 暖褐</text>
+  <rect x="520" y="298" width="24" height="24" rx="6" fill="#9481bf"/><text x="552" y="314" class="lbl">3 藕紫</text>
+  <rect x="520" y="328" width="24" height="24" rx="6" fill="#c07d97"/><text x="552" y="344" class="lbl">4 豆沙玫</text>
+  <rect x="520" y="358" width="24" height="24" rx="6" fill="#6ba07e"/><text x="552" y="374" class="lbl">5 灰绿</text>
+  <rect x="520" y="388" width="24" height="24" rx="6" fill="#4f8ac9"/><text x="552" y="404" class="lbl">6 雾蓝</text>
+  <rect x="520" y="418" width="24" height="24" rx="6" fill="#c99a4b"/><text x="552" y="434" class="lbl">7 琥珀 · 新成员取最小未占用非 0 色号，满则取模循环</text>
+
+  <text x="520" y="474" class="state">溢出与固定操作区</text>
+  <text x="520" y="494" class="lbl">列表横滚（scrollbar 隐藏）· 两端 28px 渐变渐隐（阈值 10px）· 右侧渐隐避开添加按钮区 var(--team-add-w,132px)</text>
+  <text x="520" y="512" class="lbl">「＋ 添加成员」固定最右不随滚动 · warmup 中禁用：仅文字变浅 text-disabled，盒模型锁定不变形</text>
+</svg>

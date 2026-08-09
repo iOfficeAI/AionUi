@@ -1,0 +1,94 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="860" height="720" viewBox="0 0 860 720" font-family="-apple-system, 'PingFang SC', 'Segoe UI', sans-serif">
+  <!--
+    专家团编辑器弹窗线框（标注版）
+    证据: TeamPresetEditorModal/index.tsx @ e3f154559
+    AionModal standard · width 720 · maxWidth calc(100vw - 72px) · zIndex wrap 10001 / mask 10000（叠在创建弹窗之上）
+  -->
+  <defs>
+    <style>
+      .lbl { font-size: 10px; fill: #86909c; }
+      .dim { font-size: 9px; fill: #165dff; }
+      .tok { font-size: 9px; fill: #b58a5e; }
+      .txt { font-size: 12px; fill: #1d2129; }
+      .txt2 { font-size: 11px; fill: #4e5969; }
+      .box { fill: #ffffff; stroke: #c9cdd4; stroke-width: 1; }
+      .fill1 { fill: #f2f3f5; }
+      .fill2 { fill: #e5e6eb; }
+      .divider { stroke: #e5e6eb; stroke-width: 1; }
+    </style>
+  </defs>
+
+  <rect x="0" y="0" width="860" height="720" fill="#f7f8fa"/>
+  <text x="20" y="20" class="lbl">preset-editor-modal.svg — 新建/编辑专家团弹窗 · TeamPresetEditorModal（class team-preset-editor-modal）</text>
+
+  <rect x="70" y="34" width="720" height="660" rx="16" class="box"/>
+  <text x="794" y="30" class="dim" text-anchor="end">width 720 · 标题：新建专家团 / 编辑专家团 · 内容区 max-h-70vh 滚动 · px-4 py-2 · 段落间距 16</text>
+
+  <text x="94" y="66" font-size="18" font-weight="500" fill="#1d2129">新建专家团</text>
+  <rect x="734" y="48" width="32" height="32" rx="8" class="fill2"/>
+  <text x="750" y="68" font-size="12" fill="#4e5969" text-anchor="middle">✕</text>
+  <line x1="70" y1="88" x2="790" y2="88" class="divider"/>
+
+  <!-- 基础信息栅格 grid-cols-[90px_1fr] gap-x-14 gap-y-10 -->
+  <text x="94" y="116" font-size="14" font-weight="600" fill="#4e5969">名称 <tspan fill="#f53f3f">*</tspan></text>
+  <rect x="196" y="98" width="570" height="38" rx="8" class="fill1" stroke="#e5e6eb"/>
+  <text x="208" y="122" class="lbl">专家团名称</text>
+  <text x="94" y="164" font-size="14" font-weight="500" fill="#4e5969">分类</text>
+  <rect x="196" y="146" width="570" height="38" rx="8" class="fill1" stroke="#e5e6eb"/>
+  <text x="208" y="170" class="lbl">如 Engineering</text>
+  <text x="94" y="212" font-size="14" font-weight="500" fill="#4e5969">简介</text>
+  <rect x="196" y="194" width="570" height="72" rx="8" class="fill1" stroke="#e5e6eb"/>
+  <text x="208" y="218" class="lbl">这个团队负责什么？</text>
+  <text x="770" y="262" class="dim" text-anchor="end">TextArea autoSize minRows 3 / maxRows 6 · 标签 self-start pt-8</text>
+  <text x="94" y="286" class="dim">栅格 grid-cols-[90px_1fr] · gap-x-14 gap-y-10 · 输入 h-38 rd-8 text-13 · 必填标签 14px/600 + *（ml-4 danger-6）</text>
+
+  <!-- 擅长领域 -->
+  <text x="94" y="318" font-size="14" font-weight="600" fill="#4e5969">擅长领域</text>
+  <rect x="196" y="302" width="64" height="24" rx="4" class="fill2"/>
+  <text x="228" y="318" font-size="11" fill="#1d2129" text-anchor="middle">翻译 ✕</text>
+  <rect x="266" y="302" width="64" height="24" rx="4" class="fill2"/>
+  <text x="298" y="318" font-size="11" fill="#1d2129" text-anchor="middle">审校 ✕</text>
+  <text x="420" y="318" class="dim">已有标签：Tag closable（gap-6 wrap）· 去重：重复输入直接清空不入列</text>
+  <rect x="196" y="334" width="480" height="34" rx="8" class="fill1" stroke="#e5e6eb"/>
+  <text x="208" y="355" class="lbl">添加标签（Enter 或点 Add 提交）</text>
+  <rect x="684" y="334" width="82" height="34" rx="8" class="fill2" stroke="#e5e6eb"/>
+  <text x="725" y="355" class="txt2" text-anchor="middle">＋ 添加</text>
+  <text x="94" y="360" class="dim">标签输入 h-34 rd-8 · Add = secondary small + Plus 14</text>
+
+  <!-- 示例任务 -->
+  <text x="94" y="398" font-size="14" font-weight="600" fill="#4e5969">示例任务</text>
+  <rect x="196" y="382" width="480" height="26" rx="4" fill="#ffffff" stroke="#e5e6eb"/>
+  <text x="204" y="399" class="txt2">把 README 翻译成日语</text>
+  <text x="668" y="399" font-size="11" fill="#4e5969" text-anchor="end">删除</text>
+  <text x="700" y="399" class="dim">每条：truncate 13px t-secondary + text mini「删除」· 行距 4 · 同样去重</text>
+  <rect x="196" y="416" width="480" height="34" rx="8" class="fill1" stroke="#e5e6eb"/>
+  <text x="208" y="437" class="lbl">添加示例任务</text>
+  <rect x="684" y="416" width="82" height="34" rx="8" class="fill2" stroke="#e5e6eb"/>
+  <text x="725" y="437" class="txt2" text-anchor="middle">＋ 添加</text>
+
+  <!-- 成员 -->
+  <text x="94" y="486" font-size="14" font-weight="600" fill="#4e5969">成员 <tspan fill="#f53f3f">*</tspan></text>
+  <rect x="196" y="462" width="570" height="40" rx="8" class="fill1" stroke="#e5e6eb"/>
+  <text x="204" y="486" class="lbl">TeamAssistantPicker（compact 密度：行 48px · 头像 32 · max-h-300 滚动 · 常驻描边搜索框）· 仅列 team_selectable ≠ false 的助手</text>
+  <text x="94" y="516" class="dim">无可用助手时：虚线框 min-h-112「未检测到可用的助手」（同创建弹窗空态）</text>
+
+  <rect x="196" y="524" width="570" height="104" rx="8" class="fill1"/>
+  <text x="770" y="518" class="dim" text-anchor="end">已选草稿框 bg-fill-1 rd-8 p-8 · max-h-240 滚动（TeamMemberDraftList：行 40 · crown 设 Leader · ✕ 移除 · 删 Leader 自动移交首位）</text>
+  <rect x="204" y="532" width="554" height="40" rx="8" fill="#ffffff" stroke="#e5e6eb"/>
+  <rect x="212" y="537" width="30" height="30" rx="8" class="fill2"/>
+  <text x="250" y="556" class="txt2">Claude</text>
+  <rect x="700" y="539" width="26" height="26" rx="6" fill="rgba(255,125,0,0.16)"/>
+  <text x="713" y="556" font-size="11" fill="#ff7d00" text-anchor="middle">⚑</text>
+  <text x="742" y="556" font-size="11" fill="#86909c">✕</text>
+  <rect x="204" y="578" width="554" height="40" rx="8" fill="#ffffff" stroke="#e5e6eb"/>
+  <rect x="212" y="583" width="30" height="30" rx="8" class="fill2"/>
+  <text x="250" y="602" class="txt2">缺失成员显示为「名字 (missing)」，team_selectable=false 不可再加</text>
+
+  <!-- Footer -->
+  <line x1="70" y1="644" x2="790" y2="644" class="divider"/>
+  <rect x="570" y="658" width="84" height="38" rx="8" fill="#ffffff" stroke="#e5e6eb"/>
+  <text x="612" y="682" class="txt2" text-anchor="middle">取消</text>
+  <rect x="666" y="658" width="100" height="38" rx="8" fill="#165dff"/>
+  <text x="716" y="682" font-size="13" fill="#ffffff" text-anchor="middle">保存</text>
+  <text x="94" y="682" class="dim">校验（Message.warning 顶部提示）：名称为空「请输入专家团名称」· 0 成员「请至少添加一名成员」· 无 Leader「请选择队长」· 保存失败 Message.error「保存专家团失败」</text>
+</svg>
