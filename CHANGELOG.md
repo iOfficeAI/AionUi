@@ -1,5 +1,32 @@
 # Changelog
 
+## [2.1.54](https://github.com/suoak/AionUi/compare/v2.1.53...v2.1.54) (2026-08-09)
+
+### Desktop
+
+#### Features
+
+- **lark:** add beginner-friendly Lark Assistant setup and managed CLI updates (#24)
+- **models:** add CSBU API and 锐擎 API presets, and rename the generic entry to New API 网关 (#26)
+- **about:** add formal producer attribution for 网络安全运营管理部 (#27)
+
+#### Bug Fixes
+
+- **office:** use the `suoak/OfficeCLI` installer consistently across desktop, backend, and web guidance (#28)
+- **explorer:** hide `.csbu-workmate` and legacy `.aionrs` internal workspace directories (#25)
+
+### Core ([v0.1.66](https://github.com/suoak/AionCore/releases/tag/v0.1.66))
+
+#### Features
+
+- **skills:** migrate managed workspace skills to `.csbu-workmate/skills` while preserving legacy compatibility
+
+#### Runtime
+
+- bundle `suoak/aionrs` v0.2.12 with branded project-skill discovery and legacy fallback
+
+---
+
 ## [2.1.53](https://github.com/suoak/AionUi/compare/v2.1.52...v2.1.53) (2026-08-08)
 
 ### Desktop
