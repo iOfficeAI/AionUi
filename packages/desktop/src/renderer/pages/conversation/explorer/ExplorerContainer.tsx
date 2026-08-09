@@ -269,6 +269,13 @@ export const ExplorerContainer: React.FC<ExplorerContainerProps> = ({ projectId 
     emitter.emit('acp.selected.file.append', payload, activeConversationId);
     emitter.emit('codex.selected.file.append', payload, activeConversationId);
     emitter.emit('aionrs.selected.file.append', payload, activeConversationId);
+    // Optimistic success: the emitter is fire-and-forget with no landing ack, so
+    // this reports "dispatched", not "rendered a chip". It is accurate whenever a
+    // send box for this conversation is mounted (the type-matching box consumes
+    // the event synchronously). The chip-drop bugs that made this toast lie for a
+    // folder / pe-root ref (empty-path identity + the folder render filter) are
+    // fixed in SendBox; a genuine no-op only remains in the edge case where no
+    // send box is mounted for the active conversation.
     Message.success(t('conversation.explorer.addedToChat', { name }));
   };
 
