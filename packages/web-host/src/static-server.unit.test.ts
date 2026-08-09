@@ -379,7 +379,6 @@ const iface = (address: string, overrides: Partial<NetworkInterfaceInfo> = {}): 
 });
 
 describe('getLanIP', () => {
-
   const mockInterfaces = (interfaces: Record<string, NetworkInterfaceInfo[]>): void => {
     vi.mocked(networkInterfaces).mockReturnValue(interfaces);
   };
