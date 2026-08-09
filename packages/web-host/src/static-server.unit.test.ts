@@ -1,10 +1,19 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { promises as fs } from 'node:fs';
 import http from 'node:http';
-import os from 'node:os';
+import os, { networkInterfaces } from 'node:os';
+import type { NetworkInterfaceInfo } from 'node:os';
 import path from 'node:path';
 import type { AddressInfo } from 'node:net';
-import { startStaticServer, type StaticServerHandle } from './static-server.js';
+import { getLanIP, startStaticServer, type StaticServerHandle } from './static-server.js';
+
+// Spy on the adapter table for getLanIP() tests. node:os named imports are
+// live bindings, so a plain vi.spyOn is not intercepted — mock the module and
+// keep every other os API (tmpdir used by fixtures) intact via importOriginal.
+vi.mock('node:os', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('node:os')>();
+  return { ...actual, networkInterfaces: vi.fn(() => ({})) };
+});
 
 async function mkRendererFixture(): Promise<string> {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'ws-static-'));
@@ -356,5 +365,74 @@ describe('static-server', () => {
     // may still be undefined on CI machines without a LAN interface
     expect(typeof h2.networkUrl === 'string' || h2.networkUrl === undefined).toBe(true);
     await h2.stop();
+  });
+});
+
+describe('getLanIP', () => {
+  const iface = (address: string, overrides: Partial<NetworkInterfaceInfo> = {}): NetworkInterfaceInfo => ({
+    address,
+    netmask: '255.255.255.0',
+    family: 'IPv4',
+    mac: '00:00:00:00:00:00',
+    internal: false,
+    cidr: `${address}/24`,
+    ...overrides,
+  });
+
+  const mockInterfaces = (interfaces: Record<string, NetworkInterfaceInfo[]>): void => {
+    vi.mocked(networkInterfaces).mockReturnValue(interfaces);
+  };
+
+  afterEach(() => {
+    vi.mocked(networkInterfaces).mockReset();
+    vi.mocked(networkInterfaces).mockReturnValue({});
+  });
+
+  it('returns the single LAN IPv4 address', () => {
+    mockInterfaces({ Ethernet: [iface('192.168.1.10')] });
+    expect(getLanIP()).toBe('192.168.1.10');
+  });
+
+  it('skips TUN/VPN special-purpose adapters (198.18.0.1) and picks the real LAN adapter', () => {
+    // Regression for Windows multi-adapter machines (Clash/Sing-box TUN
+    // bind the IANA benchmarking block 198.18.0.0/15).
+    mockInterfaces({
+      Meta: [iface('198.18.0.1', { netmask: '255.255.255.252', cidr: '198.18.0.1/30' })],
+      Ethernet: [iface('192.168.3.38')],
+    });
+    expect(getLanIP()).toBe('192.168.3.38');
+  });
+
+  it('prefers RFC 1918 private addresses over public ones', () => {
+    mockInterfaces({
+      WAN: [iface('8.8.8.8')],
+      LAN: [iface('10.0.0.5')],
+    });
+    expect(getLanIP()).toBe('10.0.0.5');
+  });
+
+  it('skips link-local and CGNAT ranges', () => {
+    mockInterfaces({
+      APIPA: [iface('169.254.0.1')],
+      CGNAT: [iface('100.64.0.2', { netmask: '255.192.0.0', cidr: '100.64.0.2/10' })],
+      Office: [iface('172.20.1.8')],
+    });
+    expect(getLanIP()).toBe('172.20.1.8');
+  });
+
+  it('ignores internal interfaces', () => {
+    mockInterfaces({
+      Loopback: [iface('127.0.0.1', { internal: true })],
+      Ethernet: [iface('192.168.1.10')],
+    });
+    expect(getLanIP()).toBe('192.168.1.10');
+  });
+
+  it('returns null when no LAN-reachable IPv4 exists', () => {
+    mockInterfaces({
+      Meta: [iface('198.18.0.1')],
+      WSL: [iface('169.254.123.45')],
+    });
+    expect(getLanIP()).toBeNull();
   });
 });

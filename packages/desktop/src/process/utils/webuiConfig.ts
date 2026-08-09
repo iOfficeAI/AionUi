@@ -7,10 +7,9 @@
 import { app } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
-import { networkInterfaces } from 'os';
 import { getSystemDir } from './initStorage';
 import { httpRequest } from '@/common/adapter/httpBridge';
-import { startWebHost, type WebHostHandle } from '@aionui/web-host';
+import { getLanIP, startWebHost, type WebHostHandle } from '@aionui/web-host';
 import { getDataPath } from './utils';
 
 const WEBUI_CONFIG_FILE = 'webui.config.json';
@@ -185,19 +184,6 @@ let currentInitialPassword: string | undefined;
 export function setDesktopWebUIInitialPassword(password: string | undefined): void {
   currentInitialPassword = password;
 }
-
-const getLanIP = (): string | null => {
-  const nets = networkInterfaces();
-  for (const name of Object.keys(nets)) {
-    const netInfo = nets[name];
-    if (!netInfo) continue;
-    for (const net of netInfo) {
-      const isIPv4 = net.family === 'IPv4' || (net.family as unknown) === 4;
-      if (isIPv4 && !net.internal) return net.address;
-    }
-  }
-  return null;
-};
 
 const toDesktopHandle = (handle: WebHostHandle, allowRemote: boolean): DesktopWebUIHandle => ({
   port: handle.port,
