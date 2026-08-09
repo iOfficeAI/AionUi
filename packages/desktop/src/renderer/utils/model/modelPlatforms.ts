@@ -41,6 +41,8 @@ export interface PlatformConfig {
   base_url?: string;
   /** 国际化 key（可选，用于需要翻译的平台名称） / i18n key (optional, for platform names that need translation) */
   i18nKey?: string;
+  /** 平台说明国际化 key / Platform description i18n key */
+  descriptionI18nKey?: string;
 }
 
 /**
@@ -73,13 +75,32 @@ export const MODEL_PLATFORMS: PlatformConfig[] = [
     base_url: 'https://api.moonshot.ai/v1',
   },
 
-  // New API 多模型网关 / New API multi-model gateway
+  // New API 品牌预设与通用网关 / Branded presets and generic New API gateway
+  {
+    name: 'CSBU API',
+    value: 'csbu-api',
+    logo: buildLogoAssetUrl('ai-cloud/newapi.svg'),
+    platform: 'new-api',
+    base_url: 'http://10.51.135.15:8180/',
+    i18nKey: 'settings.platformCsbuApi',
+    descriptionI18nKey: 'settings.platformCsbuApiDescription',
+  },
+  {
+    name: 'Ruiqing API',
+    value: 'ruiqing-api',
+    logo: buildLogoAssetUrl('ai-cloud/newapi.svg'),
+    platform: 'new-api',
+    base_url: 'https://uniapi.ruijie.com.cn/v1',
+    i18nKey: 'settings.platformRuiqingApi',
+    descriptionI18nKey: 'settings.platformRuiqingApiDescription',
+  },
   {
     name: 'New API',
     value: 'new-api',
     logo: buildLogoAssetUrl('ai-cloud/newapi.svg'),
     platform: 'new-api',
     i18nKey: 'settings.platformNewApi',
+    descriptionI18nKey: 'settings.platformNewApiDescription',
   },
 
   // 官方 Gemini 平台

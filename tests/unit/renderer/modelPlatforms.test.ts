@@ -9,7 +9,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { DEFAULT_PLATFORM_VALUE, MODEL_PLATFORMS } from '@renderer/utils/model/modelPlatforms';
+import { DEFAULT_PLATFORM_VALUE, MODEL_PLATFORMS, getPlatformByValue } from '@renderer/utils/model/modelPlatforms';
 
 describe('MODEL_PLATFORMS ordering', () => {
   it('keeps Custom first and pins both Moonshot entries right after it', () => {
@@ -31,5 +31,19 @@ describe('MODEL_PLATFORMS ordering', () => {
       'https://api.moonshot.cn/v1',
       'https://api.moonshot.ai/v1',
     ]);
+  });
+
+  it('configures CSBU API as a branded New API preset', () => {
+    const platform = getPlatformByValue('csbu-api');
+    expect(platform?.platform).toBe('new-api');
+    expect(platform?.base_url).toBe('http://10.51.135.15:8180/');
+    expect(platform?.logo).toBe(getPlatformByValue('new-api')?.logo);
+  });
+
+  it('configures Ruiqing API as a branded New API preset', () => {
+    const platform = getPlatformByValue('ruiqing-api');
+    expect(platform?.platform).toBe('new-api');
+    expect(platform?.base_url).toBe('https://uniapi.ruijie.com.cn/v1');
+    expect(platform?.logo).toBe(getPlatformByValue('new-api')?.logo);
   });
 });

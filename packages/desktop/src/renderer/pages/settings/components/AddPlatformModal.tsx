@@ -199,14 +199,20 @@ const ProviderLogo: React.FC<{ logo: string | null; name: string; size?: number 
  * @param platform - 平台配置 / Platform config
  * @param t - 翻译函数 / Translation function
  */
-const renderPlatformOption = (platform: PlatformConfig, t?: (key: string) => string) => {
+const renderPlatformOption = (platform: PlatformConfig, t?: (key: string) => string, showDescription = false) => {
   // 如果有 i18nKey 且提供了翻译函数，使用翻译后的名称；否则使用原始名称
   // If i18nKey exists and t function is provided, use translated name; otherwise use original name
   const display_name = platform.i18nKey && t ? t(platform.i18nKey) : platform.name;
+  const description = platform.descriptionI18nKey && t ? t(platform.descriptionI18nKey) : undefined;
   return (
     <div className='flex items-center gap-8px'>
       <ProviderLogo logo={platform.logo} name={display_name} size={18} />
-      <span>{display_name}</span>
+      <div className='flex flex-col min-w-0'>
+        <span>{display_name}</span>
+        {showDescription && description && (
+          <span className='text-11px leading-16px text-t-tertiary truncate'>{description}</span>
+        )}
+      </div>
     </div>
   );
 };
@@ -462,7 +468,7 @@ const AddPlatformModal = ModalHOC<{
             >
               {MODEL_PLATFORMS.map((plat) => (
                 <Select.Option key={plat.value} value={plat.value}>
-                  {renderPlatformOption(plat, t)}
+                  {renderPlatformOption(plat, t, true)}
                 </Select.Option>
               ))}
             </Select>
