@@ -1,0 +1,71 @@
+/*
+ * Desktop TeamCreateModal layout fix.
+ *
+ * Arco Tabs defaults (see arco.css):
+ *   .arco-tabs-content-item { height: 0 }
+ *   .arco-tabs-content-item-active { height: auto }
+ *
+ * The assistant list uses `flex-1 overflow-y-auto`, which needs a *definite*
+ * parent height. `height: auto` on the active pane makes that flex child
+ * collapse to 0 — search box still shows, but rows are invisible.
+ *
+ * These overrides fill the left pane height and force the active tab pane
+ * to `height: 100%` so the picker list can scroll inside it.
+ */
+
+.teamCreateTabs {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1 1 0%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.teamCreateTabs :global(.arco-tabs-header),
+.teamCreateTabs :global(.arco-tabs-header-nav) {
+  flex-shrink: 0;
+}
+
+.teamCreateTabs :global(.arco-tabs-content) {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1 1 0%;
+  overflow: hidden;
+  /* Keep Arco's default top padding between tab bar and list. */
+}
+
+.teamCreateTabs :global(.arco-tabs-content-inner) {
+  display: flex;
+  min-height: 0;
+  flex: 1 1 0%;
+  height: 100%;
+}
+
+/*
+ * Override Arco's height:0 / height:auto so the active pane can host
+ * flex-1 scroll children. Do NOT set flex-grow on the pane itself —
+ * panes sit in a horizontal slider and width must stay 100%.
+ */
+.teamCreateTabs :global(.arco-tabs-content-item) {
+  height: 100%;
+}
+
+.teamCreateTabs :global(.arco-tabs-content-item-active) {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+.teamCreateTabs :global(.arco-tabs-pane),
+.teamCreateTabs :global(.arco-tabs-content-item-active > *) {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1 1 0%;
+  height: 100%;
+  overflow: hidden;
+}
