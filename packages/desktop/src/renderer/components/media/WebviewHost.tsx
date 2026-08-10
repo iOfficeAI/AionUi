@@ -5,7 +5,10 @@
  */
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Left, Right, Refresh, Loading } from '@icon-park/react';
+import { ipcBridge } from '@/common';
+import { InternalNavTracker, shouldResetHistoryForUrlProp } from './webviewHistory';
 
 export interface WebviewHostProps {
   /** URL to display */
@@ -24,6 +27,21 @@ export interface WebviewHostProps {
   onDidFinishLoad?: () => void;
   /** Called when the page fails to load */
   onDidFailLoad?: (errorCode: number, errorDescription: string) => void;
+  /**
+   * Called whenever the displayed URL changes (navigation, link click, address bar).
+   * Lets the owner persist the current location without polling the webview.
+   */
+  onUrlChange?: (url: string) => void;
+  /** Called when the page reports a new document title */
+  onTitleChange?: (title: string) => void;
+  /** Called when the page reports favicons; receives the first (preferred) one */
+  onFaviconChange?: (favicon: string) => void;
+  /**
+   * Overrides how raw address bar input becomes a URL.
+   * Return null to ignore the input. Defaults to bare `https://` prefixing,
+   * which keeps existing embedded consumers behaving exactly as before.
+   */
+  resolveUrlInput?: (raw: string) => string | null;
 }
 
 const MIN_ZOOM_FACTOR = 0.75;
@@ -48,11 +66,25 @@ const WebviewHost: React.FC<WebviewHostProps> = ({
   style,
   onDidFinishLoad,
   onDidFailLoad,
+  onUrlChange,
+  onTitleChange,
+  onFaviconChange,
+  resolveUrlInput,
 }) => {
+  const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement | null>(null);
   const contentRef = useRef<HTMLDivElement | null>(null);
   const webviewRef = useRef<Electron.WebviewTag | null>(null);
   const autoFitPendingRef = useRef(false);
+
+  // Callbacks are mirrored into refs so the listener effect does not re-subscribe
+  // on every parent render (inline arrow props would otherwise churn it).
+  const onUrlChangeRef = useRef(onUrlChange);
+  onUrlChangeRef.current = onUrlChange;
+  const onTitleChangeRef = useRef(onTitleChange);
+  onTitleChangeRef.current = onTitleChange;
+  const onFaviconChangeRef = useRef(onFaviconChange);
+  onFaviconChangeRef.current = onFaviconChange;
 
   // Navigation state
   const [currentUrl, setCurrentUrl] = useState(url);
@@ -61,9 +93,23 @@ const WebviewHost: React.FC<WebviewHostProps> = ({
   const [zoomFactor, setZoomFactor] = useState(1);
   const [webviewReady, setWebviewReady] = useState(false);
 
-  // Self-managed history stacks
-  const historyBackRef = useRef<string[]>([]);
-  const historyForwardRef = useRef<string[]>([]);
+  // 最近由本组件内部触发的导航地址集合。
+  //
+  // 浏览器 tab 会把「当前地址」当作 url prop 回传下来，于是内部导航会形成回环：
+  // 内部导航 → onUrlChange → 父组件更新 url prop → 下面的重置 effect 触发 → 历史被清空。
+  // 结果就是后退按钮永远是灰的。记住内部导航的地址，当 prop 只是这个回环的回声时
+  // 就跳过重置。完整说明与「为什么要记一组而不是最后一个」见 webviewHistory.ts。
+  //
+  // Addresses recently navigated to from inside this component.
+  //
+  // A browser tab feeds its current address back down as the `url` prop, so an
+  // internal navigation forms a loop: internal nav → onUrlChange → parent updates
+  // the `url` prop → the reset effect below fires → history is wiped. The result is
+  // a permanently greyed-out Back button. Remember the internal targets so the reset
+  // can be skipped when the prop is merely the echo of that loop. See
+  // webviewHistory.ts for the full rationale, including why this tracks a set
+  // rather than only the most recent target.
+  const internalNavRef = useRef(new InternalNavTracker());
   const [canGoBack, setCanGoBack] = useState(false);
   const [canGoForward, setCanGoForward] = useState(false);
 
@@ -81,10 +127,24 @@ const WebviewHost: React.FC<WebviewHostProps> = ({
 
   const isStarOffice = isStarOfficeUrl(currentUrl);
 
+  // Single funnel for URL change notifications: every navigation path
+  // (address bar, link click, back/forward, did-navigate) lands on currentUrl,
+  // so watching it here avoids sprinkling callbacks across each handler.
+  useEffect(() => {
+    if (!currentUrl) return;
+    onUrlChangeRef.current?.(currentUrl);
+  }, [currentUrl]);
+
   // Reset when props.url changes
   useEffect(() => {
-    historyBackRef.current = [];
-    historyForwardRef.current = [];
+    // 只有「外部」换址才该清空历史（换 tab、换预览文件）。判断逻辑抽到
+    // shouldResetHistoryForUrlProp，那里有完整的回环说明与单测。
+    //
+    // Only an *external* address change should clear history (switching tabs or
+    // preview targets). The decision lives in shouldResetHistoryForUrlProp, which
+    // carries the full explanation of the loop and its unit tests.
+    if (!shouldResetHistoryForUrlProp(url, internalNavRef.current)) return;
+    internalNavRef.current.clear();
     setCanGoBack(false);
     setCanGoForward(false);
     setCurrentUrl(url);
@@ -105,22 +165,24 @@ const WebviewHost: React.FC<WebviewHostProps> = ({
     }
   }, [isStarOffice, zoomFactor, webviewReady]);
 
-  // Navigate to new URL (add to history)
+  /**
+   * 主动导航到新地址 / Navigate to a new address.
+   *
+   * 历史由 webview 自己维护，这里只需要发起导航；按钮状态在 did-navigate 里统一同步。
+   * The webview owns the history, so this only triggers the navigation — button state
+   * is synced centrally in did-navigate.
+   */
   const navigateToWithHistory = useCallback(
     (targetUrl: string) => {
       const webviewEl = webviewRef.current;
       if (!webviewEl || !targetUrl) return;
       if (targetUrl === currentUrl) return;
 
-      if (currentUrl) {
-        historyBackRef.current.push(currentUrl);
-      }
-      historyForwardRef.current = [];
-
+      // 标记为内部导航，避免 url prop 回环触发历史重置
+      // Mark as internal so the url-prop echo cannot trigger a history reset.
+      internalNavRef.current.record(targetUrl);
       setCurrentUrl(targetUrl);
       setInputUrl(targetUrl);
-      setCanGoBack(historyBackRef.current.length > 0);
-      setCanGoForward(false);
 
       webviewEl.src = targetUrl;
     },
@@ -135,6 +197,15 @@ const WebviewHost: React.FC<WebviewHostProps> = ({
     const handleStartLoading = () => setIsLoading(true);
     const handleStopLoading = () => {
       setIsLoading(false);
+    };
+
+    /**
+     * 把按钮的可用状态对齐 webview 的真实历史。
+     * Align the buttons' enabled state with the webview's real history.
+     */
+    const syncNavState = () => {
+      setCanGoBack(Boolean(webviewEl.canGoBack?.()));
+      setCanGoForward(Boolean(webviewEl.canGoForward?.()));
     };
 
     // Inject script to intercept links / window.open / form submissions
@@ -216,16 +287,43 @@ const WebviewHost: React.FC<WebviewHostProps> = ({
     };
 
     const handleDidNavigate = (event: Event & { url?: string }) => {
-      const newUrl = (event as any).url;
+      const newUrl = event.url;
       if (newUrl && newUrl !== currentUrl) {
+        internalNavRef.current.record(newUrl);
         setCurrentUrl(newUrl);
         setInputUrl(newUrl);
       }
+      syncNavState();
     };
 
     const handleDomReady = () => {
       setWebviewReady(true);
+      syncNavState();
       injectClickInterceptor();
+
+      /**
+       * 把这个 webview 的 webContents id 报给主进程，让单目标 CDP 通道附加到它。
+       *
+       * 放在 dom-ready 里：此时 getWebContentsId() 才可用，而且每次导航/切 tab 后都会
+       * 再触发一次，正好让通道跟着用户当前看的页面走。失败只记日志不打扰用户 ——
+       * Agent 操作浏览器本就是可选能力，不该因为它挡住正常浏览。
+       *
+       * Report this webview's webContents id so the single-target CDP bridge can attach.
+       * Done on dom-ready because getWebContentsId() is only valid by then, and because it
+       * fires again after navigation or a tab switch, which keeps the bridge pointed at the
+       * page the user is actually viewing. Failures are logged only: agent browser control
+       * is optional and must not block ordinary browsing.
+       */
+      try {
+        const webContentsId = webviewEl.getWebContentsId?.();
+        if (typeof webContentsId === 'number') {
+          void ipcBridge.application.reportBrowserWebContentsId.invoke({ webContentsId }).then((res) => {
+            if (!res.success && res.msg) console.warn('[browser] agent control unavailable:', res.msg);
+          });
+        }
+      } catch (error) {
+        console.warn('[browser] could not report webContents id:', error);
+      }
 
       // Inject viewport meta for responsive pages
       webviewEl
@@ -329,6 +427,15 @@ const WebviewHost: React.FC<WebviewHostProps> = ({
       onDidFailLoad?.(event.errorCode, event.errorDescription);
     };
 
+    const handlePageTitleUpdated = (event: Event & { title?: string }) => {
+      if (event.title) onTitleChangeRef.current?.(event.title);
+    };
+
+    const handlePageFaviconUpdated = (event: Event & { favicons?: string[] }) => {
+      const favicons = event.favicons;
+      if (Array.isArray(favicons) && favicons[0]) onFaviconChangeRef.current?.(favicons[0]);
+    };
+
     webviewEl.addEventListener('did-start-loading', handleStartLoading);
     webviewEl.addEventListener('did-stop-loading', handleStopLoading);
     webviewEl.addEventListener('dom-ready', handleDomReady);
@@ -337,6 +444,8 @@ const WebviewHost: React.FC<WebviewHostProps> = ({
     webviewEl.addEventListener('console-message', handleConsoleMessage as EventListener);
     webviewEl.addEventListener('did-finish-load', handleDidFinishLoad);
     webviewEl.addEventListener('did-fail-load', handleDidFailLoad as EventListener);
+    webviewEl.addEventListener('page-title-updated', handlePageTitleUpdated as EventListener);
+    webviewEl.addEventListener('page-favicon-updated', handlePageFaviconUpdated as EventListener);
 
     return () => {
       webviewEl.removeEventListener('did-start-loading', handleStartLoading);
@@ -347,6 +456,8 @@ const WebviewHost: React.FC<WebviewHostProps> = ({
       webviewEl.removeEventListener('console-message', handleConsoleMessage as EventListener);
       webviewEl.removeEventListener('did-finish-load', handleDidFinishLoad);
       webviewEl.removeEventListener('did-fail-load', handleDidFailLoad as EventListener);
+      webviewEl.removeEventListener('page-title-updated', handlePageTitleUpdated as EventListener);
+      webviewEl.removeEventListener('page-favicon-updated', handlePageFaviconUpdated as EventListener);
     };
   }, [navigateToWithHistory, currentUrl, onDidFinishLoad, onDidFailLoad, isStarOfficeUrl]);
 
@@ -419,29 +530,31 @@ const WebviewHost: React.FC<WebviewHostProps> = ({
     [isStarOffice]
   );
 
-  // Back
+  /**
+   * 后退 / 前进直接交给 webview 自己的历史。
+   *
+   * 之前是手写两个地址栈 + 手动改 src。这在浏览器 tab 上是坏的：webview 自己的历史
+   * 与手写栈是两份状态，重定向、页内跳转、prop 回环都会让它们对不上，出现「按钮亮着
+   * 但点了没反应」（canGoBack 为 true，而栈已经被清空）。webview 本来就维护着一份
+   * 准确的历史，用它就不存在同步问题。
+   *
+   * Delegate Back/Forward to the webview's own history instead of hand-rolled URL
+   * stacks plus manual `src` assignment. The stacks were a second copy of state that
+   * redirects, in-page routing, and prop echoes could desync from the real history,
+   * producing an enabled-but-dead button (canGoBack true, stack already cleared).
+   * The webview already tracks this accurately, so there is nothing to keep in sync.
+   */
   const handleGoBack = useCallback(() => {
-    if (historyBackRef.current.length === 0) return;
-    const prevUrl = historyBackRef.current.pop()!;
-    historyForwardRef.current.push(currentUrl);
-    setCanGoBack(historyBackRef.current.length > 0);
-    setCanGoForward(true);
-    setCurrentUrl(prevUrl);
-    setInputUrl(prevUrl);
-    if (webviewRef.current) webviewRef.current.src = prevUrl;
-  }, [currentUrl]);
+    const webviewEl = webviewRef.current;
+    if (!webviewEl?.canGoBack?.()) return;
+    webviewEl.goBack();
+  }, []);
 
-  // Forward
   const handleGoForward = useCallback(() => {
-    if (historyForwardRef.current.length === 0) return;
-    const nextUrl = historyForwardRef.current.pop()!;
-    historyBackRef.current.push(currentUrl);
-    setCanGoBack(true);
-    setCanGoForward(historyForwardRef.current.length > 0);
-    setCurrentUrl(nextUrl);
-    setInputUrl(nextUrl);
-    if (webviewRef.current) webviewRef.current.src = nextUrl;
-  }, [currentUrl]);
+    const webviewEl = webviewRef.current;
+    if (!webviewEl?.canGoForward?.()) return;
+    webviewEl.goForward();
+  }, []);
 
   // Refresh
   const handleRefresh = useCallback(() => {
@@ -452,14 +565,18 @@ const WebviewHost: React.FC<WebviewHostProps> = ({
   const handleUrlSubmit = useCallback(
     (e: React.FormEvent) => {
       e.preventDefault();
-      let targetUrl = inputUrl.trim();
-      if (!targetUrl) return;
-      if (!/^https?:\/\//i.test(targetUrl)) {
-        targetUrl = 'https://' + targetUrl;
+      const raw = inputUrl.trim();
+      if (!raw) return;
+      if (resolveUrlInput) {
+        const resolved = resolveUrlInput(raw);
+        if (!resolved) return;
+        navigateToWithHistory(resolved);
+        return;
       }
+      const targetUrl = /^https?:\/\//i.test(raw) ? raw : 'https://' + raw;
       navigateToWithHistory(targetUrl);
     },
-    [inputUrl, navigateToWithHistory]
+    [inputUrl, navigateToWithHistory, resolveUrlInput]
   );
 
   const handleUrlKeyDown = useCallback(
@@ -473,9 +590,27 @@ const WebviewHost: React.FC<WebviewHostProps> = ({
   );
 
   // Build webview attributes
+  /**
+   * 这个 webview 渲染任意外部网页，所以三个开关都按「不信任页面」来设。
+   *
+   * contextIsolation=yes 是刻意打开的：Electron 官方建议即使关掉 nodeIntegration 也保持
+   * 隔离，多一层纵深。我们不依赖与页面共享 JS 上下文 —— 注入脚本和宿主之间靠
+   * postMessage → console.log → 'console-message' 事件通信（见 handleConsoleMessage），
+   * 全程在页面世界里，隔离开着照样成立。别为了图方便把它关回 no：那样以后任何
+   * preload / IPC 暴露都会被不可信页面直接摸到。
+   *
+   * This webview renders arbitrary external pages, so all three flags assume the page is
+   * untrusted. contextIsolation is deliberately on: Electron recommends keeping it even
+   * with nodeIntegration off, for defence in depth. Nothing here needs a shared JS context
+   * with the page — the injected script talks to the host via
+   * postMessage → console.log → the 'console-message' event (see handleConsoleMessage),
+   * which stays entirely in the page world and works with isolation enabled. Do not flip
+   * this back to `no` for convenience: any future preload or IPC surface would then be
+   * directly reachable by untrusted pages.
+   */
   const webviewAttrs: Record<string, string> = {
     allowpopups: 'false',
-    webpreferences: 'contextIsolation=no, nodeIntegration=no, nativeWindowOpen=no',
+    webpreferences: 'contextIsolation=yes, nodeIntegration=no, nativeWindowOpen=no',
   };
   if (partition) {
     webviewAttrs.partition = partition;
@@ -552,6 +687,14 @@ const WebviewHost: React.FC<WebviewHostProps> = ({
             .aion-url-viewer-toolbar .toolbar-input {
               -webkit-appearance: none;
               appearance: none;
+              /* box-sizing 必须显式声明：width:100% 配 padding + border 时，
+                 content-box 会把左右各 13px（12px padding + 1px border）加在
+                 100% 之外，整行被顶宽 26px 而溢出预览框右边缘。
+                 box-sizing must be explicit: with width:100% plus padding and
+                 border, content-box adds 13px per side (12px padding + 1px
+                 border) on top of the 100%, widening the row by 26px so it
+                 overflows the preview panel's right edge. */
+              box-sizing: border-box;
               width: 100%;
               height: 30px;
               padding: 0 12px;
@@ -577,13 +720,23 @@ const WebviewHost: React.FC<WebviewHostProps> = ({
       {/* Navigation bar (optional) */}
       {showNavBar && (
         <div className='aion-url-viewer-toolbar flex items-center gap-6px h-40px px-10px bg-bg-2 border-b border-border-1 flex-shrink-0'>
-          <button onClick={handleGoBack} disabled={!canGoBack} className='toolbar-btn icon-btn' title='Back'>
+          <button
+            onClick={handleGoBack}
+            disabled={!canGoBack}
+            className='toolbar-btn icon-btn'
+            title={t('common.historyBack')}
+          >
             <Left theme='outline' size={16} />
           </button>
-          <button onClick={handleGoForward} disabled={!canGoForward} className='toolbar-btn icon-btn' title='Forward'>
+          <button
+            onClick={handleGoForward}
+            disabled={!canGoForward}
+            className='toolbar-btn icon-btn'
+            title={t('common.forward')}
+          >
             <Right theme='outline' size={16} />
           </button>
-          <button onClick={handleRefresh} className='toolbar-btn icon-btn' title='Refresh'>
+          <button onClick={handleRefresh} className='toolbar-btn icon-btn' title={t('common.refresh')}>
             {isLoading ? (
               <Loading theme='outline' size={16} className='animate-spin' />
             ) : (
@@ -609,7 +762,7 @@ const WebviewHost: React.FC<WebviewHostProps> = ({
               onKeyDown={handleUrlKeyDown}
               onFocus={(e) => e.target.select()}
               className='toolbar-input'
-              placeholder='Enter URL...'
+              placeholder={t('preview.browser.addressPlaceholder')}
             />
           </form>
         </div>
@@ -618,7 +771,7 @@ const WebviewHost: React.FC<WebviewHostProps> = ({
       {/* Loading indicator (when no nav bar) */}
       {!showNavBar && isLoading && (
         <div className='absolute inset-0 flex items-center justify-center text-t-secondary text-14px z-10 pointer-events-none'>
-          <span className='animate-pulse'>Loading…</span>
+          <span className='animate-pulse'>{t('preview.loading')}</span>
         </div>
       )}
 

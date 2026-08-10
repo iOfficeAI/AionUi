@@ -262,7 +262,12 @@ export const updateNotificationReducer = (
         },
         effects: [],
       };
-    case 'autoStatusAvailable':
+    case 'autoStatusAvailable': {
+      const hasReleaseNotes = Boolean(
+        event.releaseNotes ||
+        (state.updateInfo?.version === event.version && state.updateInfo.body) ||
+        (state.autoUpdateInfo?.version === event.version && state.autoUpdateInfo.releaseNotes)
+      );
       return {
         state: {
           ...state,
@@ -278,10 +283,11 @@ export const updateNotificationReducer = (
           installerLastFailure: undefined,
           pendingInstallerLastFailure: undefined,
           presentation: 'card',
-          releaseNotesStatus: event.releaseNotes ? 'loaded' : 'loading',
+          releaseNotesStatus: hasReleaseNotes ? 'loaded' : 'loading',
         },
         effects: [{ type: 'loadManualReleaseInfoForDisplay' }],
       };
+    }
     case 'checkAvailable':
       return {
         state: {

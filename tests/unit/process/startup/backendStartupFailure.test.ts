@@ -227,3 +227,47 @@ describe('classifyBackendStartupFailure — slow startup / exited', () => {
     expect(result.reason).not.toBe('backend_incomplete_installation');
   });
 });
+
+// Sentry 136646113 — stage 'listen_timeout' (spawned but never reported its
+// listening port) must get its own honest reason instead of falling through to
+// the generic bucket, which used to render the "incomplete installation /
+// reinstall / antivirus" dialog for a pure startup timeout.
+describe('classifyBackendStartupFailure — port report timeout (listen_timeout)', () => {
+  it('classifies listen_timeout as backend_startup_port_report_timeout', () => {
+    const result = classifyBackendStartupFailure({
+      details: {
+        stage: 'listen_timeout',
+        serverListeningObserved: false,
+      },
+      message: 'aioncore did not report its listening port before timeout',
+      name: 'BackendStartupError',
+    });
+
+    expect(result).toEqual({ reason: 'backend_startup_port_report_timeout' });
+  });
+
+  it('classifies listen_timeout with a backend boundary code as backend_startup_port_report_timeout', () => {
+    const result = classifyBackendStartupFailure({
+      details: {
+        stage: 'listen_timeout',
+        serverListeningObserved: false,
+        backendBoundaryCode: 'SOME_BOUNDARY_CODE',
+        backendBoundaryStage: 'some.stage',
+      },
+      message: 'aioncore did not report its listening port before timeout',
+      name: 'BackendStartupError',
+    });
+
+    expect(result.reason).toBe('backend_startup_port_report_timeout');
+  });
+
+  it('keeps an unknown future stage in the generic backend_startup_failed bucket', () => {
+    const result = classifyBackendStartupFailure({
+      details: { stage: 'some_future_stage' },
+      message: 'aioncore failed in a new way',
+      name: 'BackendStartupError',
+    });
+
+    expect(result.reason).toBe('backend_startup_failed');
+  });
+});

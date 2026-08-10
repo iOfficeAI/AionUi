@@ -32,6 +32,33 @@ describe('updateNotificationReducer', () => {
     expect(result.effects).toEqual([{ type: 'loadManualReleaseInfoForDisplay' }]);
   });
 
+  it('keeps loaded release notes visible when a repeated available event omits them', () => {
+    const stateWithReleaseNotes: UpdateNotificationState = {
+      ...initialUpdateNotificationState,
+      visible: true,
+      status: 'available',
+      updateInfo: {
+        tagName: 'v2.2.0',
+        version: '2.2.0',
+        body: 'loaded release notes',
+        htmlUrl: 'https://github.com/suoak/AionUi/releases/tag/v2.2.0',
+        prerelease: false,
+        draft: false,
+        assets: [],
+      },
+      releaseNotesStatus: 'loaded',
+    };
+
+    const result = updateNotificationReducer(stateWithReleaseNotes, {
+      type: 'autoStatusAvailable',
+      version: '2.2.0',
+      currentVersion: '2.1.9',
+    });
+
+    expect(result.state.releaseNotesStatus).toBe('loaded');
+    expect(result.state.updateInfo?.body).toBe('loaded release notes');
+  });
+
   it('preserves the active download when an entry opens during downloading', () => {
     const downloadingState: UpdateNotificationState = {
       ...initialUpdateNotificationState,

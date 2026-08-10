@@ -190,7 +190,7 @@ describe('server delta application + guard', () => {
       target: { pe_id: 'pe1', relative_path: '' },
       changes: [{ op: 'added', name: 'b.ts', kind: 'file' }],
     });
-    expect(childNames(getExplorerSnapshot().treeData, peKey('pe1', ''))?.sort()).toEqual(['a.ts', 'b.ts']);
+    expect(childNames(getExplorerSnapshot().treeData, peKey('pe1', ''))?.toSorted()).toEqual(['a.ts', 'b.ts']);
   });
 
   it('drops in-flight residue for a just-unsubscribed dir without touching the three structures (guard)', async () => {
@@ -323,8 +323,8 @@ describe('reconnect re-declares', () => {
     onReconnect();
     await flush();
 
-    const resubscribed = h.subscribed.flat().map(refToKey).sort();
-    expect(resubscribed).toEqual([peKey('pe1', ''), peKey('pe1', 'a')].sort());
+    const resubscribed = h.subscribed.flat().map(refToKey).toSorted();
+    expect(resubscribed).toEqual([peKey('pe1', ''), peKey('pe1', 'a')].toSorted());
   });
 });
 
@@ -362,7 +362,7 @@ describe('setExpandedKeys (controlled arco expand → store mirror)', () => {
     await flush();
 
     // Store mirrors it (view.expanded drives arco's controlled expandedKeys)…
-    expect(getExplorerSnapshot().expanded.sort()).toEqual([peKey('pe1', ''), peKey('pe1', 'a')].sort());
+    expect(getExplorerSnapshot().expanded.toSorted()).toEqual([peKey('pe1', ''), peKey('pe1', 'a')].toSorted());
     // …and reconcile subscribed the newly-expanded 'a'.
     expect(h.subscribed.flat().map(refToKey)).toContain(peKey('pe1', 'a'));
   });

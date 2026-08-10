@@ -366,10 +366,13 @@ describe('verifyBundledAioncoreResources', () => {
     expect(result.missing).toContain('bundled-aioncore/win32-x64/managed-resources/manifest.json<contract_failure>');
   });
 
-  it('fails when a required CLI is missing from the contract', () => {
+  it('accepts a contract with no bundled CLIs at all', () => {
+    // claude/codex are no longer shipped inside managed-resources — they run
+    // from the user's own install, like agy always has — so an empty `clis`
+    // list is the normal shape, not a packaging failure.
     const manifestPath = join(managedResourcesDir, 'manifest.json');
     const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
-    manifest.clis = manifest.clis.filter((cli: { name: string }) => cli.name !== 'codex');
+    manifest.clis = [];
     writeJson(manifestPath, manifest);
 
     const result = verifyBundledAioncoreResources({
@@ -378,12 +381,24 @@ describe('verifyBundledAioncoreResources', () => {
       targetArch: 'x64',
     });
 
-    expect(result.failures).toContainEqual(
-      expect.objectContaining({
-        component: 'codex',
-        reason: 'missing_required_cli',
-      })
-    );
+    expect(result.failures).toEqual([]);
+  });
+
+  it('still validates CLI entries that a bundle does carry', () => {
+    // Older bundles keep their entries, and a malformed one must still fail:
+    // dropping the required-CLI rule must not mean dropping validation.
+    const manifestPath = join(managedResourcesDir, 'manifest.json');
+    const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
+    manifest.clis = manifest.clis.map((cli: { name: string }) => (cli.name === 'codex' ? { ...cli, name: '' } : cli));
+    writeJson(manifestPath, manifest);
+
+    const result = verifyBundledAioncoreResources({
+      resourcesDir,
+      electronPlatformName: 'win32',
+      targetArch: 'x64',
+    });
+
+    expect(result.failures.length).toBeGreaterThan(0);
   });
 
   it('fails when the contract is invalid JSON', () => {

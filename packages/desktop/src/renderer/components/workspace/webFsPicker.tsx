@@ -30,7 +30,7 @@ type PickerProps = {
   onDone: (paths: string[] | undefined) => void;
 };
 
-const WebFsPicker: React.FC<PickerProps> = ({ options, onDone }) => {
+export const WebFsPicker: React.FC<PickerProps> = ({ options, onDone }) => {
   const { t } = useTranslation();
   const properties = options?.properties ?? [];
   const wantsDirectory = properties.includes('openDirectory');
@@ -152,7 +152,7 @@ const WebFsPicker: React.FC<PickerProps> = ({ options, onDone }) => {
       onCancel={() => settle(undefined)}
       autoFocus={false}
       focusLock
-      style={{ width: 640 }}
+      style={{ width: 'calc(100vw - 32px)', maxWidth: 640 }}
       footer={
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
           <span

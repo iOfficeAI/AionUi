@@ -101,7 +101,8 @@
   "view": {
     "label": "View",
     "parallel": "Parallel",
-    "single": "Single"
+    "single": "Single",
+    "board": "ボード"
   },
   "warmup": {
     "title": "Waking up the team…",
@@ -116,5 +117,40 @@
     "leaderFailedHint": "Switch its model above, then retry.",
     "retry": "Retry"
   },
-  "reorderMember": "ドラッグしてメンバーの順序を変更"
+  "reorderMember": "ドラッグしてメンバーの順序を変更",
+  "activity": {
+    "control": {
+      "sortNewest": "新しい順",
+      "sortOldest": "古い順",
+      "filterAll": "すべて",
+      "filterMessages": "メッセージのみ",
+      "filterTasks": "タスクのみ",
+      "allMembers": "全メンバー",
+      "showSystem": "システムメッセージ",
+      "showTerminal": "完了タスク"
+    },
+    "fallbackLane": "未割り当て / 外部",
+    "empty": "アクティビティなし",
+    "userIdentity": "ユーザー / 外部",
+    "broadcast": "全体へ配信",
+    "read": "既読",
+    "unread": "未読",
+    "attachments": "{{count}} 件の添付",
+    "expand": "展開",
+    "collapse": "折りたたむ",
+    "blockedBy": "#{{id}} によりブロック",
+    "blockedByNamed": "「{{name}}」によりブロック",
+    "blockerUnknown": "タスクは利用できません",
+    "status": {
+      "pending": "保留中",
+      "in_progress": "進行中",
+      "completed": "完了",
+      "deleted": "削除済み"
+    },
+    "msgType": {
+      "message": "メッセージ",
+      "idle_notification": "アイドル通知",
+      "shutdown_request": "停止リクエスト"
+    }
+  }
 }

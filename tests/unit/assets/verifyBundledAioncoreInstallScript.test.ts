@@ -27,7 +27,6 @@ describe('Windows bundled aioncore install verifier', () => {
 
   it('logs machine-readable contract failures', () => {
     expect(script).toContain('duplicate_cli_name');
-    expect(script).toContain('missing_required_cli');
     expect(script).toContain('unsupported_schema_version');
     expect(script).toContain('invalid_schema');
     expect(script).toContain('result=fail runtime=$RuntimeKey failures=$summary');

@@ -392,8 +392,6 @@
   "cacheClearFailed": "Failed to clear cache",
   "language": "語言",
   "saveUploadToWorkspace": "上傳檔案儲存到專案資料夾",
-  "autoPreviewOfficeFiles": "自動預覽新建 Office 文件",
-  "autoPreviewOfficeFilesDesc": "自動打開目前專案中新建立的 Word、Excel 與 PowerPoint 文件，並忽略 Office 臨時鎖定文件。",
   "startOnBoot": "開機啟動",
   "startOnBootDesc": "登入 macOS 或 Windows 後自動啟動 CSBU WorkMate。",
   "startOnBootUnsupported": "僅在打包後的 macOS 與 Windows 用戶端中可用。",
@@ -402,6 +400,8 @@
   "hardwareAcceleration": "硬體加速",
   "hardwareAccelerationDesc": "使用 GPU 渲染介面。如啟動時崩潰或畫面異常，請關閉。",
   "hardwareAccelerationAutoDisabled": "因 GPU 反覆崩潰已自動關閉。",
+  "hardwareAccelerationAutoDisabledTitle": "已關閉硬體加速",
+  "hardwareAccelerationAutoDisabledNotice": "偵測到顯示卡渲染反覆崩潰，已自動關閉硬體加速以維持應用程式穩定。可在 設定 → 系統 中重新開啟。",
   "hardwareAccelerationRestartConfirm": "重新啟動 CSBU WorkMate 以套用新的硬體加速設定？",
   "hardwareAccelerationUpdateFailed": "更新硬體加速設定失敗",
   "browserNotification": {
@@ -466,12 +466,7 @@
   "addModelTips": "支援直接輸入模型名稱，建議與服務商主控台保持一致。",
   "customOpenAI": "自定義(相容OpenAI)",
   "platformCustom": "自定義",
-  "platformCsbuApi": "CSBU API",
-  "platformCsbuApiDescription": "CSBU 內部模型服務（基於 New API）",
-  "platformRuiqingApi": "銳擎 API",
-  "platformRuiqingApiDescription": "銳擎模型服務（基於 New API）",
   "platformNewApi": "New API 閘道",
-  "platformNewApiDescription": "適用於自行架設或第三方 New API 服務",
   "modelProtocol": "請求協議",
   "modelProtocolTip": "選擇該模型的 API 請求格式。new-api 閘道將使用所選協議路由到上游服務。",
   "configureModel": "設定模型",
@@ -875,7 +870,6 @@
   "googleCloudProjectPlaceholder": "請輸入 Google Cloud Project ID",
   "noAvailableModels": "暫無可用模型",
   "appDescription": "CSBU 內部日常辦公 AI 工作台。",
-  "producer": "由網路安全營運管理部開發與維護",
   "helpDocumentation": "幫助文檔",
   "updateLog": "更新日誌",
   "feedback": "意見反饋",
@@ -1217,7 +1211,6 @@
     "editCustomAgent": "編輯自訂 Agent",
     "officialAgents": "官方 Agents",
     "configureConnection": "設定",
-    "internalCliName": "CSBU WorkMate",
     "testConnection": "測試連線",
     "testConnectionOnline": "「{{name}}」連線成功。",
     "testConnectionOffline": "「{{name}}」目前離線。",
@@ -1256,13 +1249,14 @@
       "managed_runtime_unavailable": "請修復或重新安裝 {{resource}}，然後重新測試連線。",
       "auth_required": "Agent 可連線，但需要先登入。請在 CLI 中登入，或在「環境變數」中補充所需的 API 金鑰，然後重新測試連線。",
       "no_provider": "尚未設定模型供應商。請在設定中新增並啟用一個供應商，然後重新測試連線。",
-      "version_drift_older": "已安裝的 agy 低於本整合驗證過的版本，部分功能可能缺失，建議升級 agy。",
-      "version_drift_newer": "已安裝的 agy 高於本整合驗證過的版本。通常仍可正常使用；如遇異常行為請回報。"
+      "version_drift_older": "已安裝的 CLI 低於CSBU WorkMate 驗證過的版本，部分功能可能缺失。建議升級。",
+      "version_drift_newer": "已安裝的 CLI 高於CSBU WorkMate 驗證過的版本。通常仍可正常使用；如遇異常行為請回報。"
     },
     "boundAssistantsTitle": "綁定此 Agent 的助手",
     "boundAssistantsCount": "{{count}} 個助手",
     "boundAssistantsEmpty": "暫無助手綁定此 Agent。",
-    "viewAssistant": "查看詳情"
+    "viewAssistant": "查看詳情",
+    "internalCliName": "CSBU WorkMate"
   },
   "repair": {
     "pathLabel": "啟動路徑",
@@ -1384,6 +1378,26 @@
   },
   "providerIdConflict": "Provider ID 已存在，請重試。",
   "autoInjectedSkillsHint": "每次對話都會自動載入，無需手動啟用；由智能體自行決定何時呼叫。",
-  "hardwareAccelerationAutoDisabledTitle": "已關閉硬體加速",
-  "hardwareAccelerationAutoDisabledNotice": "偵測到顯示卡渲染反覆崩潰，已自動關閉硬體加速以維持應用程式穩定。可在 設定 → 系統 中重新開啟。"
+  "platformCsbuApi": "CSBU API",
+  "platformCsbuApiDescription": "CSBU 內部模型服務（基於 New API）",
+  "platformRuiqingApi": "銳擎 API",
+  "platformRuiqingApiDescription": "銳擎模型服務（基於 New API）",
+  "platformNewApiDescription": "適用於自行架設或第三方 New API 服務",
+  "producer": "由網路安全營運管理部開發與維護",
+  "previewTextSizeLimit": "預覽大小上限（MB）",
+  "previewTextSizeLimitDesc": "超過該大小的文字檔案只顯示提示、不載入內容。僅對新開啟的標籤頁生效。",
+  "browserData": {
+    "title": "應用內瀏覽器",
+    "agentControlLabel": "允許 Agent 操作 APP 內的瀏覽器",
+    "agentControlDesc": "開啟後，Agent 可以在應用內瀏覽器裡替你開啟網頁、點擊和填寫表單，例如查資料或完成某個網站流程。它只能操作應用內瀏覽器這一個頁面，碰不到 CSBU WorkMate 介面本身，也不會開啟獨立的 Chrome 視窗。關閉後瀏覽器仍可自行使用，只是 Agent 無法操作。",
+    "agentControlSaved": "設定已儲存",
+    "agentControlFailed": "設定儲存失敗",
+    "agentControlRestartRequired": "此設定需重新啟動應用後生效。",
+    "clearLabel": "清空瀏覽資料",
+    "clearDesc": "登出瀏覽器中所有已登入的網站，並清空快取。已開啟的瀏覽器標籤頁重新載入後生效。",
+    "clearConfirmTitle": "確定清空瀏覽資料？",
+    "clearConfirmContent": "應用內瀏覽器中所有網站的登入狀態都會被登出，且無法復原。",
+    "clearSuccess": "瀏覽資料已清空",
+    "clearFailed": "清空瀏覽資料失敗"
+  }
 }

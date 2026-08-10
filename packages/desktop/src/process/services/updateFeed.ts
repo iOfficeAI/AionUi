@@ -35,6 +35,20 @@ type ResolveUpdateSourceOptions = {
   manifestPublicKey?: string;
 };
 
+const resolveRequestedUpdateSource = (options: ResolveUpdateSourceOptions): string | undefined => {
+  const platform = options.platform ?? process.platform;
+  const env = options.env ?? process.env;
+  const readPolicy = options.readPolicyValue ?? readUpdatePolicyValue;
+  return !options.isPackaged
+    ? env.CSBU_WORKMATE_UPDATE_SOURCE?.trim()
+    : platform === 'win32'
+      ? readPolicy('UpdateSource')?.trim()
+      : undefined;
+};
+
+export const isInternalUpdateSourceRequested = (options: ResolveUpdateSourceOptions): boolean =>
+  resolveRequestedUpdateSource(options) === 'internal-http';
+
 const isPrivateIpv4 = (hostname: string): boolean => {
   const octets = hostname.split('.').map(Number);
   if (octets.length !== 4 || octets.some((value) => !Number.isInteger(value) || value < 0 || value > 255)) {
@@ -97,15 +111,10 @@ export const readUpdatePolicyValue = (name: 'UpdateSource' | 'UpdateBaseUrl'): s
 };
 
 export const resolveUpdateSourceConfig = (options: ResolveUpdateSourceOptions): UpdateSourceConfig => {
-  const platform = options.platform ?? process.platform;
   const env = options.env ?? process.env;
   const readPolicy = options.readPolicyValue ?? readUpdatePolicyValue;
   const allowEnvironmentOverride = !options.isPackaged;
-  const requestedSource = allowEnvironmentOverride
-    ? env.CSBU_WORKMATE_UPDATE_SOURCE?.trim()
-    : platform === 'win32'
-      ? readPolicy('UpdateSource')?.trim()
-      : undefined;
+  const requestedSource = resolveRequestedUpdateSource(options);
 
   if (requestedSource && requestedSource !== 'github' && requestedSource !== 'internal-http') {
     throw new Error(`Unsupported update source policy: ${requestedSource}`);

@@ -4,17 +4,21 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { IMessageTips } from '@/common/chat/chatLib';
-import { Collapse, Tag } from '@arco-design/web-react';
-import { Attention, CheckOne, Info } from '@icon-park/react';
+import type { IMessageTips, TMessage } from '@/common/chat/chatLib';
+import { CSBU_WORKMATE_FILES_MARKER } from '@/common/config/constants';
+import { Button, Collapse, Tag } from '@arco-design/web-react';
+import { Attention, CheckOne, Info, Refresh } from '@icon-park/react';
 import classNames from 'classnames';
-import React, { useMemo } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import MarkdownView from '@renderer/components/Markdown';
 import ButlerDiagnoseButton from '@renderer/components/base/ButlerDiagnoseButton';
 import FeedbackButton from '@renderer/components/base/FeedbackButton';
 import CollapsibleContent from '@renderer/components/chat/CollapsibleContent';
 import { iconColors } from '@/renderer/styles/colors';
+import { useConversationContextSafe } from '@/renderer/hooks/context/ConversationContext';
+import { useMessageList } from '@/renderer/pages/conversation/Messages/hooks';
+import { emitter, type SendBoxRetryRequest } from '@/renderer/utils/emitter';
 
 // One entry per `IMessageTips['type']`. `info` was missing, and the render
 // falls back to `warning`, so every informational tip was drawn with the alarm
@@ -62,8 +66,29 @@ const resolveAgentTipBody = (
   });
 };
 
+export const findRetryableUserText = (messages: TMessage[], errorMessageId: string): string | null => {
+  const errorIndex = messages.findIndex((candidate) => candidate.id === errorMessageId);
+  if (errorIndex < 0) return null;
+
+  for (let index = errorIndex - 1; index >= 0; index -= 1) {
+    const candidate = messages[index];
+    if (candidate.type !== 'text' || candidate.position !== 'right') continue;
+
+    const lines = candidate.content.content.split(/\r?\n/);
+    const markerIndex = lines.findLastIndex((line) => line.trim() === CSBU_WORKMATE_FILES_MARKER);
+    const text = (markerIndex >= 0 ? lines.slice(0, markerIndex) : lines).join('\n').trimEnd();
+    return text.trim() ? text : null;
+  }
+
+  return null;
+};
+
 const MessageTips: React.FC<{ message: IMessageTips }> = ({ message }) => {
   const { t } = useTranslation();
+  const messages = useMessageList();
+  const conversationContext = useConversationContextSafe();
+  const [retrying, setRetrying] = useState(false);
+  const [retryAccepted, setRetryAccepted] = useState(false);
   const { content, type, code, params } = message.content;
   const structuredError = type === 'error' ? message.content.error : undefined;
   const localizedTipBody = resolveAgentTipBody(content, code, params, t);
@@ -76,6 +101,34 @@ const MessageTips: React.FC<{ message: IMessageTips }> = ({ message }) => {
   // what the Butler diagnoses best.
   const shouldShowButler = type === 'error';
   const shouldShowFeedback = type === 'error' && structuredError?.feedback_recommended !== false;
+  const retryInput = useMemo(
+    () => (structuredError?.retryable ? findRetryableUserText(messages, message.id) : null),
+    [message.id, messages, structuredError?.retryable]
+  );
+  const canRetry =
+    Boolean(retryInput) &&
+    !retryAccepted &&
+    !conversationContext?.hideSendBox &&
+    (conversationContext?.type === 'acp' || conversationContext?.type === 'aionrs');
+  const handleRetry = useCallback(() => {
+    if (!retryInput || !conversationContext || retrying || retryAccepted) return;
+    if (conversationContext.type !== 'acp' && conversationContext.type !== 'aionrs') return;
+
+    setRetrying(true);
+    const request: SendBoxRetryRequest = {
+      conversationId: conversationContext.conversation_id,
+      conversationType: conversationContext.type,
+      input: retryInput,
+      claimed: false,
+      onAccepted: () => {
+        setRetryAccepted(true);
+        setRetrying(false);
+      },
+      onRejected: () => setRetrying(false),
+    };
+    emitter.emit('sendbox.retry', request);
+    if (!request.claimed) setRetrying(false);
+  }, [conversationContext, retryAccepted, retryInput, retrying]);
 
   if (structuredError) {
     const errorCode = structuredError.code;
@@ -180,8 +233,19 @@ const MessageTips: React.FC<{ message: IMessageTips }> = ({ message }) => {
               )}
             </div>
           </div>
-          {shouldShowButler && (
-            <div className='flex justify-end'>
+          {(canRetry || shouldShowButler) && (
+            <div className='flex items-center justify-end gap-8px'>
+              {canRetry && (
+                <Button
+                  type='secondary'
+                  size='mini'
+                  loading={retrying}
+                  icon={<Refresh theme='outline' size='14' />}
+                  onClick={handleRetry}
+                >
+                  {t('common.retry')}
+                </Button>
+              )}
               <ButlerDiagnoseButton errorText={[title, body, ...detailParts].filter(Boolean).join('\n')} />
               {shouldShowFeedback && (
                 <FeedbackButton

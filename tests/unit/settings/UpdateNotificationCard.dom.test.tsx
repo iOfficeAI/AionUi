@@ -445,6 +445,38 @@ describe('UpdateNotificationCard', () => {
     expect(screen.queryByText('update.viewRelease')).not.toBeInTheDocument();
   });
 
+  it('keeps loaded release notes visible when a later available event has no notes', async () => {
+    render(<UpdateNotificationCard />);
+
+    await waitFor(() => {
+      expect(mocks.autoStatusHandler).toBeTruthy();
+    });
+
+    await act(async () => {
+      mocks.autoStatusHandler?.({
+        status: 'available',
+        version: '2.1.14',
+        currentVersion: '2.1.13',
+        releaseNotes: 'auto notes',
+      });
+    });
+
+    fireEvent.click(await screen.findByText('update.releaseLog'));
+    expect(await screen.findByText('notes')).toBeInTheDocument();
+
+    mocks.updateCheckMock.mockImplementation(() => new Promise(() => undefined));
+    await act(async () => {
+      mocks.autoStatusHandler?.({
+        status: 'available',
+        version: '2.1.14',
+        currentVersion: '2.1.13',
+      });
+    });
+
+    expect(screen.getByText('notes')).toBeInTheDocument();
+    expect(screen.queryByText('update.releaseNotesLoading')).not.toBeInTheDocument();
+  });
+
   it('keeps the cancel action available while downloading and cancel restores the initial state', async () => {
     render(<UpdateNotificationCard />);
 

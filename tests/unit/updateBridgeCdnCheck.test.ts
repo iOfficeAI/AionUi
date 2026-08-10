@@ -7,6 +7,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const checkForUpdatesMock = vi.hoisted(() => vi.fn());
+const updateSourceKind = vi.hoisted(() => ({ value: 'github' as 'github' | 'internal-http' }));
 const originalPlatform = process.platform;
 const originalArch = process.arch;
 
@@ -42,6 +43,29 @@ vi.mock('@process/services/autoUpdaterService', () => ({
     quitAndInstall: vi.fn(),
   },
 }));
+
+vi.mock('@process/services/updateFeed', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@process/services/updateFeed')>();
+  return {
+    ...actual,
+    isInternalUpdateSourceRequested: vi.fn(() => updateSourceKind.value === 'internal-http'),
+    resolveUpdateSourceConfig: vi.fn(() =>
+      updateSourceKind.value === 'internal-http'
+        ? {
+            kind: 'internal-http',
+            baseUrl: 'http://10.20.30.40/releases/2.1.52',
+            fallback: 'github',
+            manifestPublicKey: 'test-public-key',
+          }
+        : {
+            kind: 'github',
+            owner: 'suoak',
+            repo: 'AionUi',
+            manifestPublicKey: 'test-public-key',
+          }
+    ),
+  };
+});
 
 vi.mock('electron-log', () => ({
   default: {
@@ -88,6 +112,7 @@ const getCheckHandler = async () => {
 describe('unified update check', () => {
   beforeEach(() => {
     setRuntime('win32', 'x64');
+    updateSourceKind.value = 'github';
     vi.clearAllMocks();
     checkForUpdatesMock.mockResolvedValue({ success: true });
   });
@@ -168,6 +193,27 @@ describe('unified update check', () => {
     expect(result.success).toBe(true);
     expect(result.data?.autoUpdateAvailable).toBe(true);
     expect(result.data?.latest?.version).toBe('2.1.52');
+  });
+
+  it('uses private Chinese manifest notes without contacting or exposing GitHub for internal updates', async () => {
+    updateSourceKind.value = 'internal-http';
+    checkForUpdatesMock.mockResolvedValue({
+      success: true,
+      updateInfo: {
+        version: '2.1.52',
+        releaseDate: '2026-08-06T00:00:00Z',
+        releaseNotes: '**由运营管理部提供**\n\n- 修复更新日志显示异常。',
+      },
+    });
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await (await getCheckHandler())({});
+
+    expect(result.success).toBe(true);
+    expect(result.data?.latest?.body).toContain('由运营管理部提供');
+    expect(result.data?.latest?.htmlUrl).toBe('');
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it('returns an error when neither automatic nor GitHub checks succeed', async () => {

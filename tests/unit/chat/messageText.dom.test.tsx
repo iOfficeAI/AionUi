@@ -12,10 +12,6 @@ import { ipcBridge } from '@/common';
 import { ConversationProvider } from '@/renderer/hooks/context/ConversationContext';
 import MessageText from '@/renderer/pages/conversation/Messages/components/MessageText';
 import { copyText } from '@/renderer/utils/ui/clipboard';
-import {
-  LARGE_TEXT_PREVIEW_MAX_LENGTH,
-  LARGE_TEXT_PREVIEW_THRESHOLD,
-} from '@/renderer/pages/conversation/Preview/constants';
 
 const previewMocks = vi.hoisted(() => ({
   openPreview: vi.fn(),
@@ -36,6 +32,12 @@ const localFileLinkMocks = vi.hoisted(() => ({
 }));
 const mockFilePreview = vi.fn(({ path }: { path: string }) => <div data-testid='file-preview'>{path}</div>);
 
+const forkMocks = vi.hoisted(() => ({
+  fork: vi.fn(),
+  ensureRuntime: vi.fn().mockResolvedValue(undefined),
+  navigate: vi.fn(),
+}));
+
 vi.mock('@/common', () => ({
   ipcBridge: {
     fs: {
@@ -46,7 +48,16 @@ vi.mock('@/common', () => ({
       getContentMetadata: { invoke: vi.fn() },
       readContent: { invoke: vi.fn() },
     },
+    conversation: {
+      fork: { invoke: forkMocks.fork },
+      ensureRuntime: { invoke: forkMocks.ensureRuntime },
+    },
   },
+}));
+
+// useForkConversation needs a router context; MessageText renders without one.
+vi.mock('react-router-dom', () => ({
+  useNavigate: () => forkMocks.navigate,
 }));
 
 vi.mock('@/renderer/pages/conversation/Preview/context/PreviewContext', () => ({
@@ -509,7 +520,8 @@ describe('MessageText attachment paths', () => {
           language: 'ts',
           targetLine: 42,
           targetColumn: 7,
-          truncated: false,
+          oversized: false,
+          lastModified: 1_717_000_000,
         }),
         { replace: true }
       );
@@ -549,7 +561,8 @@ describe('MessageText attachment paths', () => {
           language: 'ts',
           targetLine: 10,
           targetColumn: undefined,
-          truncated: false,
+          oversized: false,
+          lastModified: 1_717_000_000,
         }),
         { replace: true }
       );
@@ -617,11 +630,20 @@ describe('MessageText attachment paths', () => {
     });
   });
 
-  it('opens large code local markdown links with truncated read content', async () => {
+  // Supersedes the old "truncated read content" case. Truncation is gone: an
+  // oversized file is not read at all, because a partially read document reaching
+  // a saveable editor is what destroyed the unread remainder on save.
+  it('opens oversized local markdown links without reading content, read-only', async () => {
     const filePath = '/workspace/demo/logs/app.log';
-    const content = 'a'.repeat(LARGE_TEXT_PREVIEW_THRESHOLD + 1);
+    const oversize = 1024 * 1024 + 1;
     localFileLinkMocks.payload = { path: filePath, reference: undefined };
-    vi.mocked(ipcBridge.fs.readContent.invoke).mockResolvedValue(content);
+    vi.mocked(ipcBridge.fs.getContentMetadata.invoke).mockResolvedValue({
+      name: 'app.log',
+      path: filePath,
+      size: oversize,
+      type: 'file',
+      lastModified: 1_717_000_000,
+    });
 
     renderMessageWithLocalLink('[app.log](/workspace/demo/logs/app.log)');
 
@@ -629,16 +651,87 @@ describe('MessageText attachment paths', () => {
 
     await waitFor(() => {
       expect(previewMocks.openPreview).toHaveBeenCalledWith(
-        content.slice(0, LARGE_TEXT_PREVIEW_MAX_LENGTH),
+        '',
         'code',
         expect.objectContaining({
           file_name: 'app.log',
           file_path: filePath,
-          truncated: true,
+          oversized: true,
+          sizeBytes: oversize,
+          thresholdBytes: 1024 * 1024,
           editable: false,
         }),
         { replace: true }
       );
+    });
+    // The whole point: the content endpoint is never hit for an oversized file.
+    expect(ipcBridge.fs.readContent.invoke).not.toHaveBeenCalled();
+  });
+});
+
+describe('MessageText fork entry point', () => {
+  const forkMessage = (overrides: Partial<IMessageText> = {}): IMessageText => ({
+    id: 'msg-fork-1',
+    msg_id: 'msg-fork-1',
+    conversation_id: 'conv-fork',
+    type: 'text',
+    position: 'left',
+    createdAt: Date.now(),
+    content: { content: 'assistant reply' },
+    ...overrides,
+  });
+
+  const renderWithCapability = (
+    capability: { at_turn: boolean } | undefined,
+    props: { isLastMessage?: boolean; hasForkAnchor?: boolean } = {}
+  ) => {
+    render(
+      <ConversationProvider
+        value={{ conversation_id: 'conv-fork', workspace: '/workspace/demo', type: 'acp', forkCapability: capability }}
+      >
+        <MessageText message={forkMessage()} isLastMessage={props.isLastMessage} hasForkAnchor={props.hasForkAnchor} />
+      </ConversationProvider>
+    );
+  };
+
+  beforeEach(() => {
+    forkMocks.fork.mockReset().mockResolvedValue({ id: 'conv-forked' });
+    forkMocks.ensureRuntime.mockReset().mockResolvedValue(undefined);
+    forkMocks.navigate.mockReset();
+  });
+
+  it('hides the fork button when the agent declares no capability', () => {
+    renderWithCapability(undefined, { isLastMessage: true });
+    expect(screen.queryByTestId('message-fork-button')).toBeNull();
+  });
+
+  it('shows the fork button on anchored mid-history messages for at_turn backends', () => {
+    renderWithCapability({ at_turn: true }, { isLastMessage: false, hasForkAnchor: true });
+    expect(screen.getByTestId('message-fork-button')).toBeInTheDocument();
+  });
+
+  it('hides the fork button on un-anchored legacy messages even for at_turn backends', () => {
+    renderWithCapability({ at_turn: true }, { isLastMessage: false, hasForkAnchor: false });
+    expect(screen.queryByTestId('message-fork-button')).toBeNull();
+  });
+
+  it('limits head-only backends to the last message', () => {
+    renderWithCapability({ at_turn: false }, { isLastMessage: false });
+    expect(screen.queryByTestId('message-fork-button')).toBeNull();
+  });
+
+  it('shows the fork button on the last message for head-only backends', () => {
+    renderWithCapability({ at_turn: false }, { isLastMessage: true });
+    expect(screen.getByTestId('message-fork-button')).toBeInTheDocument();
+  });
+
+  it('clicking fork calls the API, refreshes, navigates, and pre-warms the runtime', async () => {
+    renderWithCapability({ at_turn: true }, { isLastMessage: false, hasForkAnchor: true });
+    fireEvent.click(screen.getByTestId('message-fork-button'));
+    await waitFor(() => {
+      expect(forkMocks.fork).toHaveBeenCalledWith({ conversation_id: 'conv-fork', message_id: 'msg-fork-1' });
+      expect(forkMocks.navigate).toHaveBeenCalledWith('/conversation/conv-forked');
+      expect(forkMocks.ensureRuntime).toHaveBeenCalledWith({ conversation_id: 'conv-forked' });
     });
   });
 });

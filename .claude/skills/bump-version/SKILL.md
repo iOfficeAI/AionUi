@@ -135,6 +135,15 @@ Prepend the new entry in this format:
 
 - **upload:** abort in-flight uploads when switching conversations (#3019)
 
+#### 内网更新说明
+
+<!-- internal-release-notes:start -->
+
+**由运营管理部提供**
+
+- 用中文概括本版本面向用户的功能变化和问题修复，不包含仓库链接、PR 编号、提交作者或其他身份信息。
+<!-- internal-release-notes:end -->
+
 #### Features
 
 - **thinking:** add streaming indicator (#3015)
@@ -154,6 +163,7 @@ Rules:
 - If no frontend commits since last tag: show `_No frontend changes in this release._` under "### Desktop"
 - Date format: `YYYY-MM-DD`
 - Always keep the top-level `# Changelog` header exactly once
+- Always include the `内网更新说明` block in Chinese. It must contain `由运营管理部提供` and must not contain URLs, repository names, PR numbers, commit authors, usernames, or attribution metadata. The signed updater manifests embed this block for offline internal clients.
 
 ### Step 8: Release Dependency Compatibility Gate
 

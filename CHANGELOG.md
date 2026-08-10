@@ -1,5 +1,50 @@
 # Changelog
 
+## [2.1.57](https://github.com/suoak/AionUi/compare/v2.1.56...v2.1.57) (2026-08-10)
+
+### Desktop
+
+#### Features
+
+- **browser:** add token-protected agent browser control and browser data management
+- **conversation:** add conversation forks, question prompts, terminal output cards, and message anchors
+- **preview:** adopt preview v2 with refresh tracking, larger-file safeguards, and browser tabs
+- **scm:** add source-control status and repository actions in the workspace
+- **team:** add team activity feeds, controls, and task status views
+
+#### Bug Fixes
+
+- **image:** restrict image generation file access to the active workspace
+- **branding:** preserve CSBU WorkMate update sources, application identity, storage prefixes, and localized product names
+- **messages:** retain local file aliases while integrating upstream message and retry behavior
+
+#### 内网更新说明
+
+<!-- internal-release-notes:start -->
+
+**由运营管理部提供**
+
+- 新增浏览器协作、会话分叉、终端输出、源码管理和团队活动能力。
+- 升级文件预览体验，并加强大文件、图片访问和浏览器控制安全性。
+- 保留现有品牌、更新通道、模型配置及本地功能兼容性。
+
+<!-- internal-release-notes:end -->
+
+### Core ([v0.1.67](https://github.com/suoak/AionCore/releases/tag/v0.1.67))
+
+#### Features
+
+- **skills:** preserve the CSBU WorkMate workspace skill path
+- **scm:** add repository monitoring and source-control operations
+- **session:** support user-installed Claude and Codex with shared version-drift handling
+
+#### Bug Fixes
+
+- **project:** preserve real-case absolute workspace paths
+- **runtime:** update the branded aionrs dependency to v0.2.13
+
+---
+
 ## [2.1.56](https://github.com/suoak/AionUi/compare/v2.1.55...v2.1.56) (2026-08-10)
 
 ### Desktop
@@ -8,6 +53,25 @@
 
 - **updater:** improve update guidance and release policy (#32)
 - **about:** refine the product attribution as developed and maintained by the Cybersecurity Operations Management Department (#32)
+
+#### Upstream Sync
+
+- **browser:** add agent-controlled in-app browsing through a token-protected, single-target CDP bridge
+- **conversation:** add message-level conversation forks, first-class questions, terminal output cards, and detached command handling
+- **preview:** adopt reference-based preview I/O, refresh/watch signaling, file-size gates, stable tab identity, and browser tabs
+- **scm:** add multi-repository source-control discovery and changes panels
+- **team:** add the activity board and task/mailbox activity feed
+- **security:** reject image-generation workspace path traversal and clear browser session data through the main-process bridge
+
+#### 内网更新说明
+
+<!-- internal-release-notes:start -->
+
+**由运营管理部提供**
+
+- 优化版本更新提示、更新策略和更新入口。
+- 明确产品由网络安全运营管理部开发和维护。
+<!-- internal-release-notes:end -->
 
 ---
 

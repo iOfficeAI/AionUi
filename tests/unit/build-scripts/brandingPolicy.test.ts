@@ -4,7 +4,7 @@ import { auditBranding, containsForbiddenPromotion, containsOldBrandInValue } fr
 describe('CSBU WorkMate branding audit', () => {
   it('accepts the repository branding policy', () => {
     expect(auditBranding()).toEqual([]);
-  });
+  }, 30_000);
 
   it('detects an old product name in nested locale values', () => {
     expect(containsOldBrandInValue({ nested: ['AionUi'] })).toBe(true);

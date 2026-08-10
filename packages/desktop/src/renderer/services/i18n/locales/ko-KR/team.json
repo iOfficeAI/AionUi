@@ -101,7 +101,8 @@
   "view": {
     "label": "View",
     "parallel": "Parallel",
-    "single": "Single"
+    "single": "Single",
+    "board": "보드"
   },
   "warmup": {
     "title": "Waking up the team…",
@@ -116,5 +117,40 @@
     "leaderFailedHint": "Switch its model above, then retry.",
     "retry": "Retry"
   },
-  "reorderMember": "드래그하여 멤버 순서 변경"
+  "reorderMember": "드래그하여 멤버 순서 변경",
+  "activity": {
+    "control": {
+      "sortNewest": "최신순",
+      "sortOldest": "오래된순",
+      "filterAll": "전체",
+      "filterMessages": "메시지만",
+      "filterTasks": "작업만",
+      "allMembers": "모든 멤버",
+      "showSystem": "시스템 메시지",
+      "showTerminal": "완료된 작업"
+    },
+    "fallbackLane": "미할당 / 외부",
+    "empty": "활동 없음",
+    "userIdentity": "사용자 / 외부",
+    "broadcast": "전체 브로드캐스트",
+    "read": "읽음",
+    "unread": "안 읽음",
+    "attachments": "첨부 {{count}}개",
+    "expand": "펼치기",
+    "collapse": "접기",
+    "blockedBy": "#{{id}}에 의해 차단됨",
+    "blockedByNamed": "「{{name}}」에 의해 차단됨",
+    "blockerUnknown": "작업을 사용할 수 없음",
+    "status": {
+      "pending": "대기 중",
+      "in_progress": "진행 중",
+      "completed": "완료",
+      "deleted": "삭제됨"
+    },
+    "msgType": {
+      "message": "메시지",
+      "idle_notification": "유휴 알림",
+      "shutdown_request": "종료 요청"
+    }
+  }
 }

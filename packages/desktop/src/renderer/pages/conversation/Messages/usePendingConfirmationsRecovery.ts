@@ -5,7 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
-import type { IConfirmation, IMessagePermission, TMessage } from '@/common/chat/chatLib';
+import type { IConfirmation, IMessageAsk, IMessagePermission, TMessage } from '@/common/chat/chatLib';
 import { useEffect } from 'react';
 import { useUpdateMessageList } from './hooks';
 
@@ -14,7 +14,27 @@ export const pendingConfirmationMsgId = (confirmationId: string) => `confirmatio
 export function buildPendingConfirmationMessage(
   conversation_id: string,
   confirmation: IConfirmation<unknown>
-): IMessagePermission {
+): IMessagePermission | IMessageAsk {
+  // A pending AskUserQuestion carries its questions[] payload — rebuild the
+  // REAL question card (title/multi-question/multiSelect/Other), answered via
+  // the ask confirm contract keyed on call_id = request_id. Without this the
+  // recovery degraded to a title-less permission card that could only show
+  // flattened labels (user report, 2026-08-05).
+  if (Array.isArray(confirmation.questions) && confirmation.questions.length > 0) {
+    return {
+      id: pendingConfirmationMsgId(confirmation.id),
+      msg_id: pendingConfirmationMsgId(confirmation.id),
+      type: 'ask',
+      position: 'left',
+      conversation_id,
+      created_at: Date.now(),
+      content: {
+        session_id: conversation_id,
+        request_id: confirmation.call_id,
+        questions: confirmation.questions,
+      },
+    };
+  }
   return {
     id: pendingConfirmationMsgId(confirmation.id),
     msg_id: pendingConfirmationMsgId(confirmation.id),
@@ -27,11 +47,21 @@ export function buildPendingConfirmationMessage(
 }
 
 export function hasPermissionMessageForCallId(list: TMessage[], callId: string): boolean {
-  return list.some((message) => message.type === 'permission' && message.content?.call_id === callId);
+  return list.some(
+    (message) =>
+      (message.type === 'permission' && message.content?.call_id === callId) ||
+      (message.type === 'ask' && message.content?.request_id === callId)
+  );
 }
 
 export function removePermissionMessage(list: TMessage[], target: { id?: string; call_id?: string }): TMessage[] {
   return list.filter((message) => {
+    if (message.type === 'ask') {
+      // A recovered ask is keyed by request_id (== call_id == confirmation id).
+      if (target.id && message.content.request_id === target.id) return false;
+      if (target.call_id && message.content.request_id === target.call_id) return false;
+      return true;
+    }
     if (message.type !== 'permission') return true;
     if (target.id && message.content.id === target.id) return false;
     if (target.call_id && message.content.call_id === target.call_id) return false;

@@ -36,6 +36,17 @@ export async function downloadFileFromPath(file_path: string, file_name: string,
 }
 
 /**
+ * Download an image that is already available to the renderer as a remote or data URL.
+ */
+export async function downloadFileFromUrl(file_url: string, file_name: string): Promise<void> {
+  const response = await fetch(file_url);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch file: ${response.status}`);
+  }
+  triggerBlobDownload(await response.blob(), file_name);
+}
+
+/**
  * Download in-memory text content as a file.
  */
 export function downloadTextContent(content: string, file_name: string, mimeType: string): void {

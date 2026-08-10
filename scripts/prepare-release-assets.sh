@@ -15,6 +15,7 @@ set -euo pipefail
 
 ARTIFACTS_DIR="${1:-build-artifacts}"
 OUTPUT_DIR="${2:-release-assets}"
+VERSION="${MOCK_VERSION:-$(node -p "require('./package.json').version")}"
 
 rm -rf "$OUTPUT_DIR"
 mkdir -p "$OUTPUT_DIR"
@@ -113,11 +114,70 @@ echo "==> Writing architecture-specific updater metadata ..."
 [ -n "$MAC_ARM64_LATEST" ]  && cp -f "$MAC_ARM64_LATEST"  "$OUTPUT_DIR/latest-arm64-mac.yml"
 
 # ---------------------------------------------------------------------------
-# 5) Hard validation for required updater metadata
+# 5) Embed sanitized Chinese release notes for offline internal updates
+# ---------------------------------------------------------------------------
+echo "==> Embedding internal release notes ..."
+
+node - "$OUTPUT_DIR" "$VERSION" <<'NODE'
+const fs = require('fs');
+const path = require('path');
+
+const outputDir = process.argv[2];
+const version = process.argv[3];
+const override = process.env.INTERNAL_RELEASE_NOTES?.trim();
+let releaseNotes = override;
+
+if (!releaseNotes) {
+  const changelog = fs.readFileSync('CHANGELOG.md', 'utf8').replace(/\r\n/g, '\n');
+  const versionHeading = new RegExp(`^## \\[${version.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\].*$`, 'm');
+  const versionMatch = changelog.match(versionHeading);
+  if (!versionMatch || versionMatch.index === undefined) {
+    throw new Error(`CHANGELOG.md does not contain release ${version}`);
+  }
+  const versionSectionStart = versionMatch.index + versionMatch[0].length;
+  const remainingChangelog = changelog.slice(versionSectionStart);
+  const nextVersionOffset = remainingChangelog.search(/^## \[/m);
+  const versionSection = nextVersionOffset === -1 ? remainingChangelog : remainingChangelog.slice(0, nextVersionOffset);
+  const notesMatch = versionSection.match(
+    /<!-- internal-release-notes:start -->\s*([\s\S]*?)\s*<!-- internal-release-notes:end -->/
+  );
+  releaseNotes = notesMatch?.[1]?.trim();
+}
+
+if (!releaseNotes) {
+  throw new Error(`Chinese internal release notes are required for release ${version}`);
+}
+if (!releaseNotes.includes('由运营管理部提供')) {
+  throw new Error('Internal release notes must identify 运营管理部 as the provider');
+}
+if (!/[\u3400-\u9fff]/u.test(releaseNotes)) {
+  throw new Error('Internal release notes must be written in Chinese');
+}
+if (/https?:\/\/|github|suoak|@[-\w]+|co-authored-by|author|作者|提交者/iu.test(releaseNotes)) {
+  throw new Error('Internal release notes must not expose repository links or author identities');
+}
+
+const manifests = fs.readdirSync(outputDir).filter((name) => /^latest.*\.yml$/.test(name));
+for (const name of manifests) {
+  const manifestPath = path.join(outputDir, name);
+  const lines = fs.readFileSync(manifestPath, 'utf8').replace(/\r\n/g, '\n').trimEnd().split('\n');
+  const existingNotesIndex = lines.findIndex((line) => /^releaseNotes:/.test(line));
+  if (existingNotesIndex >= 0) {
+    let end = existingNotesIndex + 1;
+    while (end < lines.length && (lines[end].trim() === '' || /^\s+/.test(lines[end]))) end += 1;
+    lines.splice(existingNotesIndex, end - existingNotesIndex);
+  }
+  const yamlReleaseNotes = ['releaseNotes: |-'].concat(releaseNotes.split('\n').map((line) => `  ${line}`));
+  fs.writeFileSync(manifestPath, `${lines.join('\n')}\n${yamlReleaseNotes.join('\n')}\n`);
+  console.log(`Embedded sanitized Chinese release notes in ${name}`);
+}
+NODE
+
+# ---------------------------------------------------------------------------
+# 6) Hard validation for required updater metadata
 # ---------------------------------------------------------------------------
 echo "==> Validating required metadata ..."
 
-VERSION="${MOCK_VERSION:-$(node -p "require('./package.json').version")}"
 MISSING=0
 for required in latest.yml latest-win-arm64.yml latest-mac.yml latest-arm64-mac.yml latest-linux.yml latest-linux-arm64.yml; do
   if [ ! -f "$OUTPUT_DIR/$required" ]; then
@@ -153,7 +213,7 @@ if (invalid) process.exit(1);
 NODE
 
 # ---------------------------------------------------------------------------
-# 5b) Hard validation for desktop release assets
+# 6b) Hard validation for desktop release assets
 # ---------------------------------------------------------------------------
 echo "==> Validating desktop release assets ..."
 
@@ -172,7 +232,7 @@ for arch in x64 arm64; do
 done
 
 # ---------------------------------------------------------------------------
-# 5c) Hard validation for web-cli release assets
+# 6c) Hard validation for web-cli release assets
 # ---------------------------------------------------------------------------
 echo "==> Validating web-cli assets ..."
 

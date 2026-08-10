@@ -10,12 +10,6 @@
  */
 
 /**
- * 快照保存防抖时间（毫秒）
- * Snapshot save debounce time (milliseconds)
- */
-export const SNAPSHOT_DEBOUNCE_TIME = 1000;
-
-/**
  * 滚动同步防抖时间（毫秒）
  * Scroll sync debounce time (milliseconds)
  */
@@ -58,18 +52,6 @@ export const MIN_SPLIT_WIDTH = 20;
 export const MAX_SPLIT_WIDTH = 80;
 
 /**
- * 大文本进入预览裁剪的阈值（字符）
- * Threshold for enabling large-text preview truncation (characters)
- */
-export const LARGE_TEXT_PREVIEW_THRESHOLD = 120_000;
-
-/**
- * 大文本预览最多保留字符数（字符）
- * Maximum characters kept for truncated large-text previews
- */
-export const LARGE_TEXT_PREVIEW_MAX_LENGTH = 40_000;
-
-/**
  * 代码编辑器降级阈值（字符）：超过则关闭语法高亮与折叠以保持响应（内容不截断）
  * Threshold (chars) above which the code editor disables syntax highlighting
  * and folding to stay responsive. Content is never truncated.
@@ -86,4 +68,4 @@ export const FILE_TYPES_WITH_BUILTIN_OPEN = ['word', 'ppt', 'pdf', 'excel'] as c
  * 可编辑的内容类型
  * Editable content types
  */
-export const EDITABLE_CONTENT_TYPES = ['markdown', 'html', 'code'] as const;
+export const EDITABLE_CONTENT_TYPES = ['markdown', 'html', 'code', 'csv'] as const;

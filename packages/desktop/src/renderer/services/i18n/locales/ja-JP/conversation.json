@@ -76,7 +76,9 @@
     "removeProjectConfirm": "プロジェクト「{{name}}」を削除しますか？プロジェクト内の {{count}} 件の会話も削除されます。",
     "newConversationInProject": "このプロジェクト内で新しい会話",
     "deleting": "削除中...",
-    "reorderPinned": "ドラッグしてピン留め会話の順序を変更"
+    "reorderPinned": "ドラッグしてピン留め会話の順序を変更",
+    "forkedFrom": "「{{name}}」から分岐",
+    "forkedConversation": "分岐した会話"
   },
   "historySearch": {
     "tooltip": "メッセージを検索",
@@ -418,7 +420,8 @@
     "openWith": {
       "vscode": "VS Code",
       "terminal": "ターミナル",
-      "explorer": "エクスプローラー"
+      "explorer": "エクスプローラー",
+      "browser": "ブラウザ"
     }
   },
   "minimap": {
@@ -565,7 +568,8 @@
     "sendboxHint": "実行環境を準備しています。初回起動は少し時間がかかる場合があります。"
   },
   "sendbox": {
-    "hint": "/ でコマンド、@ でファイルを参照、↑/↓ でメッセージ履歴"
+    "hint": "/ でコマンド、@ でファイルを参照、↑/↓ でメッセージ履歴",
+    "mediaPathFallback": "このエージェントはこのファイル形式をネイティブに扱えないため、ファイルパスとして送信されます。"
   },
   "agentTip": {
     "codes": {
@@ -590,11 +594,14 @@
       "ANTIGRAVITY_STEPS_FAILED": {
         "body": "このターンで {{count}} 件のステップが失敗し、実行されませんでした。agy はこうしたターンも成功として終了するため、返答ではなく実際の結果を確認してください。"
       },
-      "ANTIGRAVITY_VERSION_OLDER": {
-        "body": "インストールされている agy {{reported}} は、この統合が検証した {{verified}} より古いため、一部の機能が利用できない可能性があります。agy の更新をご検討ください。"
+      "CLI_VERSION_OLDER": {
+        "body": "インストール済みの {{cli}} は、CSBU WorkMate が検証したバージョンより古いため、一部の機能が使えない可能性があります。{{cli}} の更新を検討してください。 （インストール済み {{reported}} / CSBU WorkMate 検証済み {{verified}}）"
       },
-      "ANTIGRAVITY_VERSION_NEWER": {
-        "body": "インストールされている agy {{reported}} は、この統合が検証した {{verified}} より新しいバージョンです。通常は問題なく動作しますが、異常があればご報告ください。"
+      "CLI_VERSION_NEWER": {
+        "body": "インストール済みの {{cli}} は、CSBU WorkMate が検証したバージョンより新しいです。通常は動作しますが、不審な挙動があればご報告ください。 （インストール済み {{reported}} / CSBU WorkMate 検証済み {{verified}}）"
+      },
+      "CODEX_RETRYING": {
+        "body": "{{detail}}（累計 {{attempts}} 回目の再試行、経過 {{elapsed}} — エージェントの提供元が接続を切断し続けており、CSBU WorkMate は再接続を待っています。）"
       }
     }
   },
@@ -608,7 +615,9 @@
     "removeFailed": "Couldn't remove the folder",
     "contextMenu": {
       "rename": "名前を変更",
-      "addToChat": "チャットに追加"
+      "addToChat": "チャットに追加",
+      "copyRelativePath": "相対パスをコピー",
+      "copyAbsolutePath": "絶対パスをコピー"
     },
     "namePlaceholder": "名前",
     "deleteConfirm": "「{{name}}」を削除しますか？この操作は取り消せません。",
@@ -617,7 +626,6 @@
       "files": "ファイル",
       "changes": "変更"
     },
-    "changesPlaceholder": "ソース管理は別レーンで近日公開。",
     "addedToChat": "{{name}} をチャットに追加しました",
     "imported": "{{count}} 件のファイルをインポートしました",
     "importPartialFailed": "{{copied}} 件コピー、{{failed}} 件失敗（名前の重複または非対応）",
@@ -627,6 +635,91 @@
       "searching": "検索中…",
       "empty": "一致するファイルがありません",
       "limitReached": "最初の {{count}} 件を表示 — 絞り込んでください"
-    }
+    },
+    "scm": {
+      "notARepository": "このフォルダーはバージョン管理されていません",
+      "noChanges": "変更はありません",
+      "loading": "変更を読み込み中…",
+      "loadFailed": "変更を読み込めませんでした",
+      "refresh": "更新",
+      "groups": {
+        "staged": "ステージ済みの変更",
+        "unstaged": "変更",
+        "changes": "変更",
+        "blocked": "要解決"
+      },
+      "sections": {
+        "repositories": "リポジトリ",
+        "changes": "変更"
+      },
+      "viewAsTree": "ツリー表示",
+      "viewAsList": "リスト表示",
+      "worktree": "ワークツリー",
+      "expandWorktrees": "ワークツリーを表示",
+      "collapseWorktrees": "ワークツリーを非表示",
+      "state": {
+        "created": "追加",
+        "modified": "変更",
+        "deleted": "削除",
+        "renamed": "名前変更",
+        "conflicted": "競合",
+        "unknown": "未知の状態"
+      },
+      "badge": {
+        "created": "A",
+        "modified": "M",
+        "deleted": "D",
+        "renamed": "R",
+        "conflicted": "!",
+        "unknown": "?"
+      },
+      "conflictedHint": "この競合は CSBU WorkMate の外で解決してください",
+      "opaqueHint": "この状態は新しいバックエンドのものです — 読み取り専用で表示",
+      "degraded": "git のインデックスを更新できないため、低速モードで更新しています",
+      "truncated": "変更が多すぎるため、先頭部分のみ表示しています",
+      "renamedFrom": "{{from}} → {{to}}",
+      "diff": {
+        "loading": "差分を読み込み中…",
+        "failed": "差分を読み込めませんでした",
+        "binary": "バイナリファイル — テキスト差分なし",
+        "truncated": "差分は切り詰められました（大きいファイル）",
+        "empty": "テキストの変更はありません",
+        "close": "差分を閉じる"
+      },
+      "actions": {
+        "stage": "変更をステージ",
+        "unstage": "ステージを取り消す",
+        "discard": "変更を破棄",
+        "stageAll": "すべてステージ",
+        "unstageAll": "すべてステージ解除",
+        "blockedHint": "ステージや破棄の前に、CSBU WorkMate の外で競合を解決してください",
+        "confirmDiscardTitle": "変更を破棄しますか？",
+        "confirmDiscardTracked": "{{count}} 個のファイルの編集は失われ、元に戻せません。",
+        "confirmDiscardUntracked": "{{count}} 個の新規ファイルがゴミ箱に移動されます。",
+        "confirmDiscardMixed": "{{tracked}} 個のファイルの編集は失われ元に戻せません。{{untracked}} 個の新規ファイルはゴミ箱に移動されます。",
+        "discardConfirmButton": "破棄",
+        "okStage": "{{count}} 個のファイルをステージしました",
+        "okUnstage": "{{count}} 個のファイルのステージを解除しました",
+        "okDiscard": "{{count}} 個のファイルを破棄しました",
+        "partial": "{{total}} 件のうち {{succeeded}} 件完了 —— {{failed}} 件は未完了",
+        "partialDetail": "未完了: {{files}}",
+        "rejectedBlocked": "何も変更されていません —— まず競合を解決してください",
+        "rejectedUnsupported": "このリポジトリはその操作に対応していません",
+        "rejectedFailed": "操作を完了できませんでした",
+        "retry": "再試行",
+        "notSent": "リクエストがバックエンドに届かず、何も変更されていません。再試行できます。",
+        "outcomeUnknown": "応答が届く前に接続がリセットされました——この操作は完了した可能性も、していない可能性もあります。再試行の前に更新してファイル一覧を確認してください。",
+        "allFailed": "{{count}} 個のファイルはいずれも処理できませんでした"
+      }
+    },
+    "pathCopied": "パスをコピーしました",
+    "copyFailed": "パスのコピーに失敗しました"
+  },
+  "terminal": {
+    "running": "実行中",
+    "stopped": "停止済み",
+    "exited": "終了コード {{code}}",
+    "stop": "停止",
+    "truncated": "(以前の出力は切り捨て)"
   }
 }

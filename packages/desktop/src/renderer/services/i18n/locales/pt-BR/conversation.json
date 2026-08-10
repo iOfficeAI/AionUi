@@ -76,7 +76,9 @@
     "removeProjectConfirm": "Remover o projeto \"{{name}}\"? Suas {{count}} conversa(s) também serão removidas.",
     "newConversationInProject": "Novo chat neste projeto",
     "deleting": "Excluindo...",
-    "reorderPinned": "Arraste para reordenar a conversa fixada"
+    "reorderPinned": "Arraste para reordenar a conversa fixada",
+    "forkedFrom": "Bifurcada de “{{name}}”",
+    "forkedConversation": "Conversa bifurcada"
   },
   "historySearch": {
     "tooltip": "Pesquisar mensagens",
@@ -424,7 +426,8 @@
     "openWith": {
       "vscode": "VS Code",
       "terminal": "Terminal",
-      "explorer": "Explorador de Arquivos"
+      "explorer": "Explorador de Arquivos",
+      "browser": "Navegador"
     }
   },
   "minimap": {
@@ -571,7 +574,8 @@
     "sendboxHint": "Preparando o ambiente de execução. A primeira inicialização pode demorar um pouco mais."
   },
   "sendbox": {
-    "hint": "Digite / para comandos, @ para referenciar arquivos, ↑/↓ para o histórico de mensagens"
+    "hint": "Digite / para comandos, @ para referenciar arquivos, ↑/↓ para o histórico de mensagens",
+    "mediaPathFallback": "Este agente não tem suporte nativo para este tipo de arquivo; ele será enviado como um caminho de arquivo."
   },
   "agentTip": {
     "codes": {
@@ -596,11 +600,14 @@
       "ANTIGRAVITY_STEPS_FAILED": {
         "body": "{{count}} etapa(s) falharam e NÃO tiveram efeito. O agy encerra esses turnos como bem-sucedidos mesmo assim, então confira o resultado real em vez da resposta."
       },
-      "ANTIGRAVITY_VERSION_OLDER": {
-        "body": "A versão instalada do agy {{reported}} é anterior à {{verified}} verificada nesta integração; alguns recursos podem estar ausentes. Considere atualizar o agy."
+      "CLI_VERSION_OLDER": {
+        "body": "O {{cli}} instalado é anterior à versão verificada pelo CSBU WorkMate; alguns recursos podem estar ausentes. Considere atualizar o {{cli}}. (instalado: {{reported}} / verificado pelo CSBU WorkMate: {{verified}})"
       },
-      "ANTIGRAVITY_VERSION_NEWER": {
-        "body": "A versão instalada do agy {{reported}} é mais recente que a {{verified}} verificada nesta integração. Deve continuar funcionando; relate qualquer comportamento estranho."
+      "CLI_VERSION_NEWER": {
+        "body": "O {{cli}} instalado é posterior à versão verificada pelo CSBU WorkMate. Deve continuar funcionando; relate qualquer comportamento estranho. (instalado: {{reported}} / verificado pelo CSBU WorkMate: {{verified}})"
+      },
+      "CODEX_RETRYING": {
+        "body": "{{detail}} (tentativa {{attempts}}, {{elapsed}} decorridos — o provedor do agente derruba a conexão repetidamente; o CSBU WorkMate está aguardando.)"
       }
     }
   },
@@ -614,7 +621,9 @@
     "removeFailed": "Couldn't remove the folder",
     "contextMenu": {
       "rename": "Renomear",
-      "addToChat": "Adicionar ao chat"
+      "addToChat": "Adicionar ao chat",
+      "copyRelativePath": "Copiar caminho relativo",
+      "copyAbsolutePath": "Copiar caminho absoluto"
     },
     "namePlaceholder": "Nome",
     "deleteConfirm": "Excluir “{{name}}”? Isso não pode ser desfeito.",
@@ -623,7 +632,6 @@
       "files": "Arquivos",
       "changes": "Alterações"
     },
-    "changesPlaceholder": "O controle de versão fica em uma aba separada — em breve.",
     "addedToChat": "{{name}} adicionado ao chat",
     "imported": "{{count}} arquivo(s) importado(s)",
     "importPartialFailed": "{{copied}} copiado(s), {{failed}} com falha (conflitos de nome ou não suportados)",
@@ -633,6 +641,91 @@
       "searching": "Buscando…",
       "empty": "Nenhum arquivo corresponde",
       "limitReached": "Mostrando os primeiros {{count}} — refine a busca"
-    }
+    },
+    "scm": {
+      "notARepository": "Esta pasta não está sob controle de versão",
+      "noChanges": "Nenhuma alteração",
+      "loading": "Carregando alterações…",
+      "loadFailed": "Não foi possível carregar as alterações",
+      "refresh": "Atualizar",
+      "groups": {
+        "staged": "Alterações preparadas",
+        "unstaged": "Alterações",
+        "changes": "Alterações",
+        "blocked": "Precisa ser resolvido"
+      },
+      "sections": {
+        "repositories": "Repositórios",
+        "changes": "Alterações"
+      },
+      "viewAsTree": "Ver como árvore",
+      "viewAsList": "Ver como lista",
+      "worktree": "Árvore de trabalho",
+      "expandWorktrees": "Mostrar árvores de trabalho",
+      "collapseWorktrees": "Ocultar árvores de trabalho",
+      "state": {
+        "created": "Adicionado",
+        "modified": "Modificado",
+        "deleted": "Excluído",
+        "renamed": "Renomeado",
+        "conflicted": "Conflito",
+        "unknown": "Estado não reconhecido"
+      },
+      "badge": {
+        "created": "A",
+        "modified": "M",
+        "deleted": "D",
+        "renamed": "R",
+        "conflicted": "!",
+        "unknown": "?"
+      },
+      "conflictedHint": "Resolva este conflito fora do CSBU WorkMate primeiro",
+      "opaqueHint": "Este estado vem de um backend mais novo — exibido somente leitura",
+      "degraded": "A atualização está em modo mais lento porque o índice do git não pode ser gravado",
+      "truncated": "Alterações demais para listar — mostrando apenas a primeira parte",
+      "renamedFrom": "{{from}} → {{to}}",
+      "diff": {
+        "loading": "Carregando diferenças…",
+        "failed": "Não foi possível carregar as diferenças",
+        "binary": "Arquivo binário — sem diferenças de texto",
+        "truncated": "Diferenças truncadas (arquivo grande)",
+        "empty": "Nenhuma alteração de texto",
+        "close": "Fechar diferenças"
+      },
+      "actions": {
+        "stage": "Preparar alterações",
+        "unstage": "Retirar da preparação",
+        "discard": "Descartar alterações",
+        "stageAll": "Preparar tudo",
+        "unstageAll": "Retirar tudo da preparação",
+        "blockedHint": "Resolva o conflito fora do CSBU WorkMate antes de preparar ou descartar",
+        "confirmDiscardTitle": "Descartar alterações?",
+        "confirmDiscardTracked": "As edições em {{count}} arquivos serão perdidas. Isso não pode ser desfeito.",
+        "confirmDiscardUntracked": "{{count}} novos arquivos serão movidos para a lixeira.",
+        "confirmDiscardMixed": "As edições em {{tracked}} arquivo(s) serão perdidas de forma irreversível; {{untracked}} novo(s) arquivo(s) vão para a lixeira.",
+        "discardConfirmButton": "Descartar",
+        "okStage": "{{count}} arquivos preparados",
+        "okUnstage": "{{count}} arquivos retirados da preparação",
+        "okDiscard": "{{count}} arquivos descartados",
+        "partial": "{{succeeded}} de {{total}} concluídos —— {{failed}} não foi possível concluir",
+        "partialDetail": "Não concluídos: {{files}}",
+        "rejectedBlocked": "Nada foi alterado —— resolva o conflito primeiro",
+        "rejectedUnsupported": "Este repositório não suporta essa ação",
+        "rejectedFailed": "Não foi possível concluir a ação",
+        "retry": "Tentar novamente",
+        "notSent": "A solicitação não chegou ao backend — nada foi alterado. Você pode tentar novamente.",
+        "outcomeUnknown": "A conexão foi reiniciada antes da resposta — esta ação pode ou não ter sido concluída. Atualize e confira a lista de arquivos antes de tentar de novo.",
+        "allFailed": "Nenhum dos {{count}} arquivo(s) pôde ser processado"
+      }
+    },
+    "pathCopied": "Caminho copiado",
+    "copyFailed": "Falha ao copiar o caminho"
+  },
+  "terminal": {
+    "running": "Executando",
+    "stopped": "Parado",
+    "exited": "Saída {{code}}",
+    "stop": "Parar",
+    "truncated": "(saída anterior truncada)"
   }
 }

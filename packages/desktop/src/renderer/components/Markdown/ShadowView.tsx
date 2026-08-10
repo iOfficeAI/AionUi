@@ -216,6 +216,36 @@ const createInitStyle = (
     max-width: 100%;
     height: auto;
   }
+  .markdown-image {
+    position: relative;
+    display: inline-block;
+    max-width: 100%;
+    line-height: 0;
+  }
+  .markdown-image-download {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    min-width: 28px;
+    height: 28px;
+    padding: 0;
+    border: 1px solid var(--bg-3);
+    border-radius: 50%;
+    background: var(--bg-1);
+    color: var(--text-primary);
+    opacity: 0.8;
+    cursor: pointer;
+    transition: opacity 0.15s ease, background-color 0.15s ease;
+  }
+  .markdown-image-download:hover,
+  .markdown-image-download:focus-visible {
+    background: var(--bg-2);
+    opacity: 1;
+  }
    /* Table border styles */
   table {
     border-collapse: collapse;

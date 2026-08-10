@@ -392,8 +392,6 @@
   "cacheClearFailed": "Failed to clear cache",
   "language": "Language",
   "saveUploadToWorkspace": "Save Uploads to Project Folder",
-  "autoPreviewOfficeFiles": "Auto Preview New Office Files",
-  "autoPreviewOfficeFilesDesc": "Automatically open newly created Word, Excel, and PowerPoint files in the current project. Office temporary lock files are ignored.",
   "startOnBoot": "Start on Boot",
   "startOnBootDesc": "Launch CSBU WorkMate automatically when you sign in to macOS or Windows.",
   "startOnBootUnsupported": "Available only in packaged macOS and Windows apps.",
@@ -402,6 +400,8 @@
   "hardwareAcceleration": "Hardware Acceleration",
   "hardwareAccelerationDesc": "Use the GPU to render the UI. Disable if the app crashes on launch or graphics flicker.",
   "hardwareAccelerationAutoDisabled": "Disabled automatically after repeated GPU crashes.",
+  "hardwareAccelerationAutoDisabledTitle": "Hardware acceleration disabled",
+  "hardwareAccelerationAutoDisabledNotice": "Repeated graphics crashes were detected, so hardware acceleration was turned off automatically to keep CSBU WorkMate stable. You can re-enable it in Settings → System.",
   "hardwareAccelerationRestartConfirm": "Restart CSBU WorkMate to apply the new hardware acceleration setting?",
   "hardwareAccelerationUpdateFailed": "Failed to update hardware acceleration setting",
   "browserNotification": {
@@ -466,12 +466,7 @@
   "addModelTips": "You can paste any model name directly. Keep it consistent with the provider console for best compatibility.",
   "customOpenAI": "Custom (OpenAI Compatible)",
   "platformCustom": "Custom",
-  "platformCsbuApi": "CSBU API",
-  "platformCsbuApiDescription": "CSBU internal model service (powered by New API)",
-  "platformRuiqingApi": "锐擎 API",
-  "platformRuiqingApiDescription": "Ruiqing model service (powered by New API)",
   "platformNewApi": "New API Gateway",
-  "platformNewApiDescription": "For self-hosted or third-party New API services",
   "modelProtocol": "Request Protocol",
   "modelProtocolTip": "Choose the API request format for this model. new-api gateway will route to the upstream using the selected protocol.",
   "configureModel": "Configure model",
@@ -875,7 +870,6 @@
   "googleCloudProjectPlaceholder": "Enter your Google Cloud Project ID",
   "noAvailableModels": "No available models",
   "appDescription": "CSBU's internal AI workspace for everyday office tasks.",
-  "producer": "Developed and maintained by the Cybersecurity Operations Management Department",
   "helpDocumentation": "Help Documentation",
   "updateLog": "Update Log",
   "feedback": "Feedback",
@@ -1215,7 +1209,6 @@
     "editCustomAgent": "Edit Custom Agent",
     "officialAgents": "Official Agents",
     "configureConnection": "Configure",
-    "internalCliName": "CSBU WorkMate",
     "testConnection": "Test Connection",
     "testConnectionOnline": "{{name}} connected successfully.",
     "testConnectionOffline": "{{name}} is offline.",
@@ -1254,13 +1247,14 @@
       "managed_runtime_unavailable": "Repair or reinstall {{resource}}, then retry the connection test.",
       "auth_required": "The agent is reachable but requires sign-in. Log in via the CLI, or add the required API key under Environment Variables, then retry the connection test.",
       "no_provider": "No model provider is configured. Add and enable a provider in Settings, then retry the connection test.",
-      "version_drift_older": "The installed agy is older than the version this integration was verified against; some features may be missing. Consider upgrading agy.",
-      "version_drift_newer": "The installed agy is newer than the version this integration was verified against. It should still work; report anything that behaves oddly."
+      "version_drift_older": "The installed CLI is older than the version CSBU WorkMate verified; some features may be missing. Consider upgrading it.",
+      "version_drift_newer": "The installed CLI is newer than the version CSBU WorkMate verified. It should still work; report anything that behaves oddly."
     },
     "boundAssistantsTitle": "Assistants using this agent",
     "boundAssistantsCount": "{{count}} assistant(s)",
     "boundAssistantsEmpty": "No assistants are bound to this agent yet.",
-    "viewAssistant": "View"
+    "viewAssistant": "View",
+    "internalCliName": "CSBU WorkMate"
   },
   "repair": {
     "pathLabel": "Launch Path",
@@ -1382,6 +1376,26 @@
   },
   "providerIdConflict": "Provider ID already exists. Please try again.",
   "autoInjectedSkillsHint": "Loaded automatically into every conversation — no need to enable them; the agent decides when to use them.",
-  "hardwareAccelerationAutoDisabledTitle": "Hardware acceleration disabled",
-  "hardwareAccelerationAutoDisabledNotice": "Repeated graphics crashes were detected, so hardware acceleration was turned off automatically to keep CSBU WorkMate stable. You can re-enable it in Settings → System."
+  "platformCsbuApi": "CSBU API",
+  "platformCsbuApiDescription": "CSBU internal model service (powered by New API)",
+  "platformRuiqingApi": "锐擎 API",
+  "platformRuiqingApiDescription": "Ruiqing model service (powered by New API)",
+  "platformNewApiDescription": "For self-hosted or third-party New API services",
+  "producer": "Developed and maintained by the Cybersecurity Operations Management Department",
+  "previewTextSizeLimit": "Preview Size Limit (MB)",
+  "previewTextSizeLimitDesc": "Text files larger than this open with a notice instead of content. Applies to newly opened tabs only.",
+  "browserData": {
+    "title": "In-app browser",
+    "agentControlLabel": "Let the agent use the in-app browser",
+    "agentControlDesc": "When on, the agent can open pages, click and fill in forms in the in-app browser for you — for example to look something up or complete a flow on a website. It can only drive that one browser view: it cannot reach the CSBU WorkMate interface itself, and it never opens a separate Chrome window. When off, the browser still works for you; only the agent loses access.",
+    "agentControlSaved": "Setting saved",
+    "agentControlFailed": "Failed to save setting",
+    "agentControlRestartRequired": "This setting takes effect after you restart the app.",
+    "clearLabel": "Clear browsing data",
+    "clearDesc": "Signs out of every site the browser is logged into and clears its cache. Open browser tabs take effect after a reload.",
+    "clearConfirmTitle": "Clear browsing data?",
+    "clearConfirmContent": "You will be signed out of every site in the in-app browser. This cannot be undone.",
+    "clearSuccess": "Browsing data cleared",
+    "clearFailed": "Failed to clear browsing data"
+  }
 }

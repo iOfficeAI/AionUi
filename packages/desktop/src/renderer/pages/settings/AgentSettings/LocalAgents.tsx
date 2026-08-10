@@ -6,7 +6,11 @@
 
 import { ipcBridge } from '@/common';
 import { parseError } from '@/common/utils';
-import { formatManagedAgentDiagnosticMessage, type ManagedAgent } from '@/renderer/utils/model/agentTypes';
+import {
+  formatManagedAgentDiagnosticMessage,
+  managedAgentSearchText,
+  type ManagedAgent,
+} from '@/renderer/utils/model/agentTypes';
 import WorkMateModal from '@/renderer/components/base/WorkMateModal';
 import { WorkMateSearchInput } from '@/renderer/components/base';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
@@ -116,19 +120,7 @@ const LocalAgents: React.FC = () => {
   const matchesAgentSearch = useCallback(
     (agent: ManagedAgent) => {
       if (!normalizedSearchQuery) return true;
-      const searchableText = [
-        agent.name,
-        agent.name_i18n?.[i18n.language],
-        agent.description,
-        agent.description_i18n?.[i18n.language],
-        agent.backend,
-        agent.command,
-        agent.agent_source_info?.binary_name,
-      ]
-        .filter(Boolean)
-        .join(' ')
-        .toLowerCase();
-      return searchableText.includes(normalizedSearchQuery);
+      return managedAgentSearchText(agent, i18n.language).includes(normalizedSearchQuery);
     },
     [i18n.language, normalizedSearchQuery]
   );

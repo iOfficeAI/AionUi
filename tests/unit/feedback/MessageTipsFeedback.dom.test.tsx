@@ -66,7 +66,11 @@ vi.mock('@renderer/components/Markdown', () => ({
 }));
 
 import MessageTips from '@/renderer/pages/conversation/Messages/components/MessageTips';
-import type { AgentStreamErrorInfo, IMessageTips } from '@/common/chat/chatLib';
+import type { AgentStreamErrorInfo, IMessageText, IMessageTips } from '@/common/chat/chatLib';
+import { CSBU_WORKMATE_FILES_MARKER } from '@/common/config/constants';
+import { ConversationProvider } from '@/renderer/hooks/context/ConversationContext';
+import { MessageListProvider } from '@/renderer/pages/conversation/Messages/hooks';
+import { emitter } from '@/renderer/utils/emitter';
 
 const requiredAgentErrorCodes = [
   'AIONUI_CONVERSATION_BUSY',
@@ -115,10 +119,12 @@ const buildTips = (
 describe('MessageTips — FeedbackButton wiring', () => {
   beforeEach(() => {
     openFeedbackMock.mockClear();
+    emitter.removeAllListeners('sendbox.retry');
   });
 
   afterEach(() => {
     cleanup();
+    emitter.removeAllListeners('sendbox.retry');
   });
 
   it('does not render FeedbackButton on success tips', () => {
@@ -492,6 +498,70 @@ describe('MessageTips — FeedbackButton wiring', () => {
     const detailsToggle = screen.getByRole('button', { name: /common.technical_details/ });
     expect(detailsToggle).toHaveAttribute('aria-expanded', 'true');
     expect(screen.getByText(/Provider returned 401/)).toBeInTheDocument();
+  });
+
+  it('retries the preceding user text without its attachment marker', async () => {
+    const user = userEvent.setup();
+    const userMessage = {
+      id: 'user-1',
+      type: 'text',
+      position: 'right',
+      conversation_id: 'conversation-1',
+      content: {
+        content: `Please inspect this\n${CSBU_WORKMATE_FILES_MARKER}\nC:/workspace/screenshot.png`,
+      },
+    } as IMessageText;
+    const errorMessage = {
+      ...buildTips('error', 'rate limited', {
+        message: 'rate limited',
+        retryable: true,
+      }),
+      conversation_id: 'conversation-1',
+    };
+    const retryListener = vi.fn((request) => {
+      request.claimed = true;
+      request.onAccepted();
+    });
+    emitter.on('sendbox.retry', retryListener);
+
+    render(
+      <ConversationProvider value={{ conversation_id: 'conversation-1', type: 'acp' }}>
+        <MessageListProvider value={[userMessage, errorMessage]}>
+          <MessageTips message={errorMessage} />
+        </MessageListProvider>
+      </ConversationProvider>
+    );
+
+    await user.click(screen.getByRole('button', { name: 'common.retry' }));
+
+    expect(retryListener).toHaveBeenCalledWith(
+      expect.objectContaining({
+        conversationId: 'conversation-1',
+        conversationType: 'acp',
+        input: 'Please inspect this',
+      })
+    );
+    expect(screen.queryByRole('button', { name: 'common.retry' })).not.toBeInTheDocument();
+  });
+
+  it('does not offer retry when no preceding text message can be recovered', () => {
+    const errorMessage = {
+      ...buildTips('error', 'rate limited', {
+        message: 'rate limited',
+        retryable: true,
+      }),
+      conversation_id: 'conversation-1',
+    };
+
+    render(
+      <ConversationProvider value={{ conversation_id: 'conversation-1', type: 'acp' }}>
+        <MessageListProvider value={[errorMessage]}>
+          <MessageTips message={errorMessage} />
+        </MessageListProvider>
+      </ConversationProvider>
+    );
+
+    expect(screen.queryByRole('button', { name: 'common.retry' })).not.toBeInTheDocument();
   });
 });
 

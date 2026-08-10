@@ -77,7 +77,9 @@
     "removeProjectConfirm": "Remove project \"{{name}}\"? Its {{count}} conversation(s) will be removed too.",
     "newConversationInProject": "New chat in this project",
     "deleting": "Deleting...",
-    "reorderPinned": "Drag to reorder pinned conversation"
+    "reorderPinned": "Drag to reorder pinned conversation",
+    "forkedFrom": "Forked from “{{name}}”",
+    "forkedConversation": "Forked conversation"
   },
   "historySearch": {
     "tooltip": "Search messages",
@@ -419,7 +421,8 @@
     "openWith": {
       "vscode": "VS Code",
       "terminal": "Terminal",
-      "explorer": "File Explorer"
+      "explorer": "File Explorer",
+      "browser": "Browser"
     }
   },
   "minimap": {
@@ -445,6 +448,7 @@
     "switchAgentFailed": "Failed to switch agent",
     "speech": {
       "recordTooltip": "Start voice input",
+      "recordTooltipWithShortcut": "Voice input cmd+M",
       "pickFileTooltip": "Select an audio file",
       "stopTooltip": "Stop recording",
       "processing": "Transcribing audio...",
@@ -566,7 +570,8 @@
     "sendboxHint": "Preparing the runtime environment. First startup can take a little longer."
   },
   "sendbox": {
-    "hint": "Type / for commands, @ to reference files, ↑/↓ for message history"
+    "hint": "Type / for commands, @ to reference files, ↑/↓ for message history",
+    "mediaPathFallback": "This agent has no native support for this file type; it will be sent as a file path."
   },
   "agentTip": {
     "codes": {
@@ -591,11 +596,14 @@
       "ANTIGRAVITY_STEPS_FAILED": {
         "body": "{{count}} step(s) failed and did NOT take effect. agy ends such turns as successful, so check the result rather than the reply."
       },
-      "ANTIGRAVITY_VERSION_OLDER": {
-        "body": "agy {{reported}} is older than the {{verified}} this integration was verified against; some features may be missing. Consider upgrading agy."
+      "CLI_VERSION_OLDER": {
+        "body": "The installed {{cli}} is older than the version CSBU WorkMate verified; some features may be missing. Consider upgrading {{cli}}. (installed {{reported}} / verified by CSBU WorkMate: {{verified}})"
       },
-      "ANTIGRAVITY_VERSION_NEWER": {
-        "body": "agy {{reported}} is newer than the {{verified}} this integration was verified against. It should still work; report anything that behaves oddly."
+      "CLI_VERSION_NEWER": {
+        "body": "The installed {{cli}} is newer than the version CSBU WorkMate verified. It should still work; report anything that behaves oddly. (installed {{reported}} / verified by CSBU WorkMate: {{verified}})"
+      },
+      "CODEX_RETRYING": {
+        "body": "{{detail}} (attempt {{attempts}}, {{elapsed}} so far — the agent's provider keeps dropping the connection; CSBU WorkMate is waiting it out.)"
       }
     }
   },
@@ -609,7 +617,9 @@
     "removeFailed": "Couldn't remove the folder",
     "contextMenu": {
       "rename": "Rename",
-      "addToChat": "Add to chat"
+      "addToChat": "Add to chat",
+      "copyRelativePath": "Copy relative path",
+      "copyAbsolutePath": "Copy absolute path"
     },
     "namePlaceholder": "Name",
     "deleteConfirm": "Delete “{{name}}”? This can’t be undone.",
@@ -618,7 +628,6 @@
       "files": "Files",
       "changes": "Changes"
     },
-    "changesPlaceholder": "Source control lives in a separate lane — coming soon.",
     "addedToChat": "Added {{name}} to chat",
     "imported": "Imported {{count}} file(s)",
     "importPartialFailed": "{{copied}} copied, {{failed}} failed (name conflicts or unsupported)",
@@ -628,6 +637,91 @@
       "searching": "Searching…",
       "empty": "No files match",
       "limitReached": "Showing first {{count}} — refine to narrow"
-    }
+    },
+    "scm": {
+      "notARepository": "Not a version-controlled folder",
+      "noChanges": "No changes",
+      "loading": "Loading changes…",
+      "loadFailed": "Couldn't load changes",
+      "refresh": "Refresh",
+      "groups": {
+        "staged": "Staged changes",
+        "unstaged": "Changes",
+        "changes": "Changes",
+        "blocked": "Needs resolving"
+      },
+      "sections": {
+        "repositories": "Repositories",
+        "changes": "Changes"
+      },
+      "viewAsTree": "View as tree",
+      "viewAsList": "View as list",
+      "worktree": "Worktree",
+      "expandWorktrees": "Show worktrees",
+      "collapseWorktrees": "Hide worktrees",
+      "state": {
+        "created": "Added",
+        "modified": "Modified",
+        "deleted": "Deleted",
+        "renamed": "Renamed",
+        "conflicted": "Conflict",
+        "unknown": "Unrecognized state"
+      },
+      "badge": {
+        "created": "A",
+        "modified": "M",
+        "deleted": "D",
+        "renamed": "R",
+        "conflicted": "!",
+        "unknown": "?"
+      },
+      "conflictedHint": "Resolve this conflict outside CSBU WorkMate first",
+      "opaqueHint": "This state comes from a newer backend — shown read-only",
+      "degraded": "Refresh is running in a slower mode because git's index can't be updated",
+      "truncated": "Too many changes to list — showing the first part only",
+      "renamedFrom": "{{from}} → {{to}}",
+      "diff": {
+        "loading": "Loading diff…",
+        "failed": "Couldn't load the diff",
+        "binary": "Binary file — no text diff",
+        "truncated": "Diff truncated (large file)",
+        "empty": "No textual changes",
+        "close": "Close diff"
+      },
+      "actions": {
+        "stage": "Stage changes",
+        "unstage": "Unstage changes",
+        "discard": "Discard changes",
+        "stageAll": "Stage all",
+        "unstageAll": "Unstage all",
+        "blockedHint": "Resolve the conflict outside CSBU WorkMate before staging or discarding",
+        "confirmDiscardTitle": "Discard changes?",
+        "confirmDiscardTracked": "Edits to {{count}} files will be lost. This can’t be undone.",
+        "confirmDiscardUntracked": "{{count}} new files will be moved to the trash.",
+        "confirmDiscardMixed": "Edits to {{tracked}} file(s) will be lost and can’t be undone; {{untracked}} new file(s) go to the trash.",
+        "discardConfirmButton": "Discard",
+        "okStage": "Staged {{count}} files",
+        "okUnstage": "Unstaged {{count}} files",
+        "okDiscard": "Discarded {{count}} files",
+        "partial": "{{succeeded}} of {{total}} done — {{failed}} couldn’t be completed",
+        "partialDetail": "Not completed: {{files}}",
+        "rejectedBlocked": "Nothing was changed — resolve the conflict first",
+        "rejectedUnsupported": "This repository doesn’t support that action",
+        "rejectedFailed": "The action couldn’t be completed",
+        "retry": "Retry",
+        "notSent": "The request didn't reach the backend — nothing was changed. You can try again.",
+        "outcomeUnknown": "The connection reset before a reply arrived — this action may or may not have completed. Refresh and check the file list before retrying.",
+        "allFailed": "None of the {{count}} file(s) could be processed"
+      }
+    },
+    "pathCopied": "Path copied",
+    "copyFailed": "Failed to copy path"
+  },
+  "terminal": {
+    "running": "Running",
+    "stopped": "Stopped",
+    "exited": "Exit {{code}}",
+    "stop": "Stop",
+    "truncated": "(earlier output truncated)"
   }
 }

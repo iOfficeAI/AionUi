@@ -11,6 +11,7 @@ import type { ProviderRuntimeOptions } from 'electron-updater/out/providers/Prov
 import { CdnGenericProvider } from '@/process/services/cdnGenericProvider';
 import {
   buildUpdateFeedOptions,
+  isInternalUpdateSourceRequested,
   normalizeInternalUpdateBaseUrl,
   parseRegistryQueryValue,
   resolveUpdateSourceConfig,
@@ -24,6 +25,16 @@ const makeRuntimeOptions = (): ProviderRuntimeOptions => ({
 });
 
 describe('update source policy', () => {
+  it('recognizes an internal source request before validating the rest of its configuration', () => {
+    expect(
+      isInternalUpdateSourceRequested({
+        isPackaged: true,
+        platform: 'win32',
+        readPolicyValue: (name) => (name === 'UpdateSource' ? 'internal-http' : undefined),
+      })
+    ).toBe(true);
+  });
+
   it('uses GitHub Releases by default', () => {
     expect(
       resolveUpdateSourceConfig({
@@ -163,6 +174,10 @@ describe('signed internal update provider', () => {
     'path: CSBU-WorkMate-2.1.52-win-x64.exe',
     'sha512: c2hhNTEy',
     'releaseDate: 2026-08-06T00:00:00.000Z',
+    'releaseNotes: |-',
+    '  **由运营管理部提供**',
+    '',
+    '  - 修复更新日志显示异常。',
     '',
   ].join('\n');
   const { privateKey, publicKey } = generateKeyPairSync('ed25519');
@@ -215,6 +230,7 @@ describe('signed internal update provider', () => {
     const files = provider.resolveFiles(updateInfo);
 
     expect(updateInfo.version).toBe('2.1.52');
+    expect(updateInfo.releaseNotes).toContain('由运营管理部提供');
     expect(files[0]?.url.href).toBe('http://10.0.0.5/releases/2.1.52/CSBU-WorkMate-2.1.52-win-x64.exe');
   });
 

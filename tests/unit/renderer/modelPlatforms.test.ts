@@ -12,16 +12,20 @@ import { describe, expect, it } from 'vitest';
 import { DEFAULT_PLATFORM_VALUE, MODEL_PLATFORMS, getPlatformByValue } from '@renderer/utils/model/modelPlatforms';
 
 describe('MODEL_PLATFORMS ordering', () => {
-  it('keeps Custom first and pins both Moonshot entries right after it', () => {
+  it('keeps CSBU API first and Ruiqing API second', () => {
     const values = MODEL_PLATFORMS.map((p) => p.value);
-    expect(values[0]).toBe('custom');
-    expect(values[1]).toBe('Moonshot');
-    expect(values[2]).toBe('Moonshot-Global');
+    expect(values[0]).toBe('csbu-api');
+    expect(values[1]).toBe('ruiqing-api');
+  });
+
+  it('keeps Custom and both Moonshot entries together after the branded presets', () => {
+    const values = MODEL_PLATFORMS.map((p) => p.value);
+    expect(values.slice(2, 5)).toEqual(['custom', 'Moonshot', 'Moonshot-Global']);
   });
 
   it('defaults the add-model modal platform to the first list entry', () => {
     expect(DEFAULT_PLATFORM_VALUE).toBe(MODEL_PLATFORMS[0].value);
-    expect(DEFAULT_PLATFORM_VALUE).toBe('custom');
+    expect(DEFAULT_PLATFORM_VALUE).toBe('csbu-api');
   });
 
   it('defines each Moonshot entry exactly once', () => {

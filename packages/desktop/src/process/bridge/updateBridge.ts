@@ -24,7 +24,12 @@ import * as path from 'path';
 import semver from 'semver';
 import { autoUpdaterService } from '../services/autoUpdaterService';
 import { consumeInstallerLastFailure } from '../services/installerLastFailure';
-import { DEFAULT_GITHUB_REPO, normalizeInternalUpdateBaseUrl, resolveUpdateSourceConfig } from '../services/updateFeed';
+import {
+  DEFAULT_GITHUB_REPO,
+  isInternalUpdateSourceRequested,
+  normalizeInternalUpdateBaseUrl,
+  resolveUpdateSourceConfig,
+} from '../services/updateFeed';
 
 /** Lazily loads i18n to avoid pulling in initStorage chain at module load time */
 let _i18nCache: Promise<typeof import('../services/i18n')> | null = null;
@@ -579,6 +584,7 @@ export function initUpdateBridge(): void {
   ipcBridge.update.check.provider(
     async (params): Promise<{ success: boolean; data?: UpdateCheckResult; msg?: string }> => {
       try {
+        const usesInternalUpdateSource = isInternalUpdateSourceRequested({ isPackaged: app.isPackaged });
         const repo = resolveRepo();
         const currentVersion = app.getVersion();
 
@@ -617,11 +623,13 @@ export function initUpdateBridge(): void {
         }
 
         let releases: GitHubReleaseApi[] = [];
-        try {
-          releases = await fetchGitHubReleases(repo);
-        } catch (error) {
-          if (!autoUpdateInfo) throw error;
-          log.warn('[manual-update] GitHub metadata enrichment failed', error);
+        if (!usesInternalUpdateSource) {
+          try {
+            releases = await fetchGitHubReleases(repo);
+          } catch (error) {
+            if (!autoUpdateInfo) throw error;
+            log.warn('[manual-update] GitHub metadata enrichment failed', error);
+          }
         }
 
         const candidates = releases
@@ -638,7 +646,9 @@ export function initUpdateBridge(): void {
             tagName: `v${autoUpdateInfo.version}`,
             version: autoUpdateInfo.version,
             body: autoUpdateInfo.releaseNotes,
-            htmlUrl: `https://github.com/${repo}/releases/tag/v${autoUpdateInfo.version}`,
+            htmlUrl: usesInternalUpdateSource
+              ? ''
+              : `https://github.com/${repo}/releases/tag/v${autoUpdateInfo.version}`,
             publishedAt: autoUpdateInfo.releaseDate,
             prerelease: false,
             draft: false,

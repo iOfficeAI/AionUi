@@ -22,6 +22,7 @@ type StreamController = {
   emitInfoTip: (code: string, content: string) => Promise<void>;
   emitErrorTip: (content: string, error?: Record<string, unknown>) => Promise<void>;
   emitToolError: (toolName: string, description: string) => Promise<void>;
+  emitFileChange: (path: string, oldText: string, newText: string) => Promise<void>;
   emitAgentStatusError: (agentName: string) => Promise<void>;
   emitFollowUpExchange: () => Promise<void>;
 };
@@ -214,6 +215,38 @@ const AcpE2EStreamInjector: React.FC<{ conversationId: string }> = ({ conversati
               },
             ],
           } as unknown as TMessage,
+          true
+        );
+
+        await new Promise<void>((resolve) => {
+          window.setTimeout(resolve, STREAM_TICK_MS);
+        });
+      },
+      emitFileChange: async (path: string, oldText: string, newText: string) => {
+        const msgId = `e2e-file-change-${Date.now()}`;
+
+        addOrUpdateMessage(
+          {
+            id: msgId,
+            msg_id: msgId,
+            conversation_id: conversationId,
+            type: 'acp_tool_call',
+            position: 'left',
+            status: 'finish',
+            created_at: Date.now(),
+            content: {
+              session_id: 'e2e-session',
+              update: {
+                sessionUpdate: 'tool_call_update',
+                tool_call_id: `${msgId}-call`,
+                status: 'completed',
+                title: `Write ${path}`,
+                kind: 'edit',
+                rawInput: { path },
+                content: [{ type: 'diff', path, old_text: oldText, new_text: newText }],
+              },
+            },
+          } as TMessage,
           true
         );
 

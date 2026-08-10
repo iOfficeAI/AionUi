@@ -41,6 +41,11 @@ export type BackendStartupFailureReason =
   // becoming ready (either within the health window or after the pending timeout).
   // Honest startup failure — surfaced without reinstall/antivirus guidance.
   | 'backend_startup_exited'
+  // Backend process spawned but never reported its listening port within the
+  // port-report window (stage `listen_timeout`). The process has been killed,
+  // so this is a fatal-but-honest "startup timed out" — never an "incomplete
+  // installation" (Sentry 136646113).
+  | 'backend_startup_port_report_timeout'
   | 'backend_startup_failed';
 
 export type BackendIncompleteInstallationKind = 'missing_backend_binary' | 'missing_directory_resources';

@@ -307,6 +307,8 @@ const ChatConversation: React.FC<{
               (conversation.extra as { mcp_statuses?: IConversationMcpStatus[] } | undefined)?.mcp_statuses
             }
             assistantId={acpAssistantId}
+            forkCapability={conversation.fork_capability}
+            promptCapability={conversation.prompt_capability}
           ></AcpChat>
         );
       default:

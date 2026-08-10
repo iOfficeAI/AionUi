@@ -395,6 +395,30 @@ const AionrsSendBox: React.FC<{
     await executeCommand({ input: message, files: filesToSend });
   };
 
+  useAddEventListener(
+    'sendbox.retry',
+    (request) => {
+      if (request.conversationType !== 'aionrs' || request.conversationId !== conversation_id) return;
+
+      request.claimed = true;
+      const command: Pick<ConversationCommandQueueItem, 'input' | 'files'> = { input: request.input, files: [] };
+      if (
+        shouldEnqueueConversationCommand({
+          enabled: true,
+          isBusy,
+          hasPendingCommands,
+        })
+      ) {
+        enqueue(command);
+        request.onAccepted();
+        return;
+      }
+
+      void executeCommand(command).then(request.onAccepted).catch(request.onRejected);
+    },
+    [conversation_id, enqueue, executeCommand, hasPendingCommands, isBusy]
+  );
+
   const handleEditQueuedCommand = useCallback(
     (item: ConversationCommandQueueItem) => {
       remove(item.id);
@@ -671,7 +695,7 @@ const AionrsSendBox: React.FC<{
     },
     [effectiveHandleStop, prioritize]
   );
-  const sendBoxWidthClass = getChatSurfaceWidthClass(Boolean(teamPermission));
+  const sendBoxWidthClass = getChatSurfaceWidthClass();
 
   return (
     <div className={`${sendBoxWidthClass} flex flex-col mt-auto mb-16px`}>
@@ -710,6 +734,8 @@ const AionrsSendBox: React.FC<{
           setAtPath(items);
         }}
         loading={teamRuntime?.loading ?? isBusy}
+        active={teamRuntime?.isActive}
+        onFocused={teamRuntime?.onFocus}
         disabled={!current_model?.use_model}
         placeholder={
           current_model?.use_model

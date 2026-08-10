@@ -40,6 +40,7 @@ const FORBIDDEN_PHRASES = ['missing required local resources', 'reinstall', 'ant
 import BackendStartingView from '@/renderer/components/layout/BackendStartingView';
 import {
   getBackendStartupInstallationDescription,
+  getInstallationIntegrityDiagnosticsSentText,
   getInstallationIntegrityModalActions,
   getInstallationIntegrityTitle,
 } from '@/renderer/components/layout/InstallationIntegrityDialog';
@@ -86,6 +87,45 @@ describe('AC-5: backend_exited honest-failure wiring', () => {
     const actions = getInstallationIntegrityModalActions(echoT, { diagnosticsKind: 'incomplete_installation' });
     // WorkMate keeps recovery guidance in-product and does not expose the
     // upstream public download action.
+    expect(actions.downloadText).toBeUndefined();
+  });
+});
+
+// Sentry 136646113 — dedicated port-report-timeout kind plus the neutralized
+// startup_failed fallback kind. Neither may expose the download/reinstall path.
+describe('port_report_timeout and startup_failed dialog wiring (Sentry 136646113)', () => {
+  it('uses the port-report-timeout copy with a report action but no download action', () => {
+    expect(getInstallationIntegrityTitle(echoT, 'port_report_timeout')).toBe(
+      'common.backendStartup.portReportTimeout.title'
+    );
+    expect(getInstallationIntegrityDiagnosticsSentText(echoT, 'port_report_timeout')).toBe(
+      'common.backendStartup.portReportTimeout.diagnosticsSent'
+    );
+
+    const actions = getInstallationIntegrityModalActions(echoT, { diagnosticsKind: 'port_report_timeout' });
+    expect(actions.reportText).toBe('common.backendStartup.portReportTimeout.sendDiagnostics');
+    expect(actions.downloadText).toBeUndefined();
+    expect(actions.recoverText).toBeUndefined();
+  });
+
+  it('uses the neutral startup-failed copy for the fallback kind, with no download action', () => {
+    expect(getInstallationIntegrityTitle(echoT, 'startup_failed')).toBe('common.backendStartup.startupFailed.title');
+    expect(getInstallationIntegrityDiagnosticsSentText(echoT, 'startup_failed')).toBe(
+      'common.backendStartup.startupFailed.diagnosticsSent'
+    );
+
+    const actions = getInstallationIntegrityModalActions(echoT, { diagnosticsKind: 'startup_failed' });
+    expect(actions.reportText).toBe('common.backendStartup.startupFailed.sendDiagnostics');
+    expect(actions.downloadText).toBeUndefined();
+    expect(actions.recoverText).toBeUndefined();
+  });
+
+  it('keeps incomplete-installation recovery guidance in-product without a public download action', () => {
+    expect(getInstallationIntegrityTitle(echoT, 'incomplete_installation')).toBe(
+      'common.backendStartup.incompleteInstallation.title'
+    );
+
+    const actions = getInstallationIntegrityModalActions(echoT, { diagnosticsKind: 'incomplete_installation' });
     expect(actions.downloadText).toBeUndefined();
   });
 });

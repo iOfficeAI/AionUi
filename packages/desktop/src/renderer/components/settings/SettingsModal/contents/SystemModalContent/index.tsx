@@ -12,6 +12,12 @@ import WorkMateScrollArea from '@/renderer/components/base/WorkMateScrollArea';
 import FeedbackButton from '@/renderer/components/base/FeedbackButton';
 import LanguageSwitcher from '@/renderer/components/settings/LanguageSwitcher';
 import { getClientBusinessSetting, setClientBusinessSetting } from '@/renderer/services/clientBusinessSettings';
+import {
+  DEFAULT_TEXT_PREVIEW_LIMIT_MB,
+  MAX_TEXT_PREVIEW_LIMIT_MB,
+  MIN_TEXT_PREVIEW_LIMIT_MB,
+  normalizeTextPreviewLimitMb,
+} from '@/renderer/utils/file/previewPayload';
 import { notifyManualRestartRequired } from '@/renderer/utils/appRestart';
 import { isElectronDesktop } from '@/renderer/utils/platform';
 import { Alert, Collapse, Form, InputNumber, Message, Modal, Switch } from '@arco-design/web-react';
@@ -21,6 +27,7 @@ import useSWR from 'swr';
 import { useSettingsViewMode } from '../../settingsViewContext';
 import BrowserNotificationGrant from './BrowserNotificationGrant';
 import DevSettings from './DevSettings';
+import BrowserDataSection from './BrowserDataSection';
 import DirInputItem from './DirInputItem';
 import PreferenceRow from './PreferenceRow';
 import VoiceInputSection from './VoiceInputSection';
@@ -57,8 +64,21 @@ const SystemModalContent: React.FC = () => {
   const [cronNotificationEnabled, setCronNotificationEnabled] = useState(false);
   const [promptTimeout, setPromptTimeout] = useState<number>(300);
   const [agentIdleTimeout, setAgentIdleTimeout] = useState<number>(5);
+  /**
+   * The committed limit — what is stored, and what the field falls back to.
+   *
+   * The field itself is left uncontrolled while typing. Arco's `InputNumber` skips its
+   * internal "user is typing" state whenever a `value` prop is present, and then
+   * renders the number it parsed rather than the characters that were entered. `1.` is
+   * not a number, so the dot was dropped on the keystroke that produced it and `1.5`
+   * came out as `15`.
+   *
+   * Remounting on commit (via `key`) is what lets an uncontrolled field still show a
+   * clamped result: type `0.2`, blur, and the field comes back as the accepted `1`.
+   */
+  const [previewLimitMb, setPreviewLimitMb] = useState<number>(DEFAULT_TEXT_PREVIEW_LIMIT_MB);
+  const previewLimitDraftRef = useRef<string>(String(DEFAULT_TEXT_PREVIEW_LIMIT_MB));
   const [saveUploadToWorkspace, setSaveUploadToWorkspace] = useState(false);
-  const [autoPreviewOfficeFiles, setAutoPreviewOfficeFiles] = useState(true);
 
   useEffect(() => {
     writeSystemSettingsLog('info', 'mounted', { isDesktop, isDev: process.env.NODE_ENV !== 'production' });
@@ -106,7 +126,6 @@ const SystemModalContent: React.FC = () => {
     setNotificationEnabled(configService.get('system.notificationEnabled') ?? true);
     setCronNotificationEnabled(configService.get('system.cronNotificationEnabled') ?? false);
     setSaveUploadToWorkspace(configService.get('upload.saveToWorkspace') ?? false);
-    setAutoPreviewOfficeFiles(configService.get('system.autoPreviewOfficeFiles') ?? true);
   }, [isDesktop]);
 
   useEffect(() => {
@@ -114,9 +133,10 @@ const SystemModalContent: React.FC = () => {
 
     const loadAcpTimeouts = async () => {
       try {
-        const [storedPromptTimeout, storedAgentIdleTimeout] = await Promise.all([
+        const [storedPromptTimeout, storedAgentIdleTimeout, storedPreviewLimitMb] = await Promise.all([
           getClientBusinessSetting('acp.promptTimeout'),
           getClientBusinessSetting('acp.agentIdleTimeout'),
+          getClientBusinessSetting('preview.textSizeLimitMb'),
         ]);
         if (cancelled) {
           return;
@@ -127,6 +147,14 @@ const SystemModalContent: React.FC = () => {
         }
         if (typeof storedAgentIdleTimeout === 'number' && storedAgentIdleTimeout > 0) {
           setAgentIdleTimeout(storedAgentIdleTimeout);
+        }
+        // Normalized rather than range-checked inline: the same clamp guards the
+        // stored value, the field, and the size check, so a hand-edited or legacy
+        // entry cannot present one limit here and apply another when a file opens.
+        if (storedPreviewLimitMb !== undefined) {
+          const stored = normalizeTextPreviewLimitMb(storedPreviewLimitMb);
+          setPreviewLimitMb(stored);
+          previewLimitDraftRef.current = String(stored);
         }
         writeSystemSettingsLog('info', 'ACP timeout settings loaded');
       } catch (error: unknown) {
@@ -266,19 +294,47 @@ const SystemModalContent: React.FC = () => {
     void setClientBusinessSetting('acp.agentIdleTimeout', clamped).catch(() => {});
   }, [agentIdleTimeout]);
 
+  /**
+   * Keep what the user typed, not a number parsed from it.
+   *
+   * A decimal is typed one character at a time, and `1.` is a necessary intermediate
+   * state on the way to `1.5`. Storing it as a number turns it back into `1`, the
+   * controlled value re-renders the field as `"1"`, and the trailing dot is gone
+   * before the next keystroke arrives — so `1.5` came out as `15`. Holding the raw
+   * string lets the dot survive until the value is actually used.
+   *
+   * Nothing downstream sees this string: {@link handlePreviewLimitMbBlur} is the only
+   * writer, and it normalizes first.
+   */
+  const handlePreviewLimitMbChange = useCallback((val: number | string) => {
+    previewLimitDraftRef.current = val === undefined || val === null ? '' : String(val);
+  }, []);
+
+  /**
+   * Persist on blur, not on every keystroke: the field is cleared to empty while
+   * retyping, and writing that intermediate state would store a limit the user never
+   * chose. The clamp runs here too, so the stored value is always one the size check
+   * would accept.
+   *
+   * Only newly opened preview tabs see the new limit — tabs already open captured
+   * theirs when they opened. That is deliberate: reclassifying an open tab would move
+   * a file being edited into the "too large to show" state mid-edit.
+   */
+  const handlePreviewLimitMbBlur = useCallback(() => {
+    const typed = previewLimitDraftRef.current.trim();
+    // An emptied field means "unset", which normalize turns into the default; Number('')
+    // would be 0 and clamp up to the minimum instead, silently choosing for the user.
+    const clamped = normalizeTextPreviewLimitMb(typed === '' ? undefined : Number(typed));
+    setPreviewLimitMb(clamped);
+    previewLimitDraftRef.current = String(clamped);
+    void setClientBusinessSetting('preview.textSizeLimitMb', clamped).catch(() => {});
+  }, []);
+
   const handleSaveUploadToWorkspaceChange = useCallback((checked: boolean) => {
     setSaveUploadToWorkspace(checked);
     configService.set('upload.saveToWorkspace', checked).catch(() => {
       setSaveUploadToWorkspace(!checked);
       configService.setLocal('upload.saveToWorkspace', !checked);
-    });
-  }, []);
-
-  const handleAutoPreviewOfficeFilesChange = useCallback((checked: boolean) => {
-    setAutoPreviewOfficeFiles(checked);
-    configService.set('system.autoPreviewOfficeFiles', checked).catch(() => {
-      setAutoPreviewOfficeFiles(!checked);
-      configService.setLocal('system.autoPreviewOfficeFiles', !checked);
     });
   }, []);
 
@@ -374,15 +430,27 @@ const SystemModalContent: React.FC = () => {
       ),
     },
     {
+      key: 'previewTextSizeLimit',
+      label: t('settings.previewTextSizeLimit'),
+      description: t('settings.previewTextSizeLimitDesc'),
+      component: (
+        <InputNumber
+          key={`preview-limit-${previewLimitMb}`}
+          defaultValue={previewLimitMb}
+          onChange={handlePreviewLimitMbChange}
+          onBlur={handlePreviewLimitMbBlur}
+          min={MIN_TEXT_PREVIEW_LIMIT_MB}
+          max={MAX_TEXT_PREVIEW_LIMIT_MB}
+          step={0.5}
+          style={{ width: 120 }}
+          suffix='MB'
+        />
+      ),
+    },
+    {
       key: 'saveUploadToWorkspace',
       label: t('settings.saveUploadToWorkspace'),
       component: <Switch checked={saveUploadToWorkspace} onChange={handleSaveUploadToWorkspaceChange} />,
-    },
-    {
-      key: 'autoPreviewOfficeFiles',
-      label: t('settings.autoPreviewOfficeFiles'),
-      description: t('settings.autoPreviewOfficeFilesDesc'),
-      component: <Switch checked={autoPreviewOfficeFiles} onChange={handleAutoPreviewOfficeFilesChange} />,
     },
   ];
 
@@ -505,6 +573,9 @@ const SystemModalContent: React.FC = () => {
 
           {/* Voice input (speech-to-text) settings */}
           <VoiceInputSection />
+
+          {/* In-app browser: sign-in state and cache */}
+          <BrowserDataSection />
 
           {/* Developer settings must not mount in packaged builds. Its status probe is main-process-only. */}
           {process.env.NODE_ENV !== 'production' && <DevSettings />}

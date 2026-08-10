@@ -264,32 +264,44 @@ export default defineConfig(({ mode }) => {
           output: {
             manualChunks(id: string) {
               if (!id.includes('node_modules')) return undefined;
-              if (id.includes('/react-dom/') || id.includes('/react/')) return 'vendor-react';
-              if (id.includes('/@arco-design/')) return 'vendor-arco';
+              // Keep React and every vendor tightly coupled to it in ONE chunk.
+              //
+              // Splitting these into separate manual chunks (vendor-react,
+              // vendor-arco, vendor-highlight, vendor-markdown, vendor-editor)
+              // produced circular ESM imports between the emitted chunks:
+              //   vendor-react -> vendor-editor -> vendor-highlight
+              //     -> vendor-arco -> vendor-react
+              // (the loose `/react/` match also pulled React wrappers such as
+              // @monaco-editor/react into vendor-react, wiring it to the editor
+              // chunk). With a chunk cycle, ESM evaluation order left React's
+              // exports uninitialized when vendor-arco's top level ran
+              // `React.createContext`, throwing
+              // "Cannot read properties of undefined (reading 'createContext')"
+              // and leaving #root empty — a full white screen in the packaged
+              // build (dmg + electron-vite preview). Co-locating them removes the
+              // cross-chunk edges entirely; a single vendor chunk is loaded from
+              // disk (file://) so the extra granularity bought nothing.
               if (
+                id.includes('/react-dom/') ||
+                id.includes('/react/') ||
+                id.includes('/@arco-design/') ||
                 id.includes('/react-markdown/') ||
                 id.includes('/remark-') ||
                 id.includes('/rehype-') ||
                 id.includes('/unified/') ||
                 id.includes('/mdast-') ||
                 id.includes('/hast-') ||
-                id.includes('/micromark')
-              )
-                return 'vendor-markdown';
-              if (
+                id.includes('/micromark') ||
                 id.includes('/react-syntax-highlighter/') ||
                 id.includes('/refractor/') ||
-                id.includes('/highlight.js/')
-              )
-                return 'vendor-highlight';
-              if (
+                id.includes('/highlight.js/') ||
                 id.includes('/monaco-editor/') ||
                 id.includes('/@monaco-editor/') ||
                 id.includes('/codemirror/') ||
-                id.includes('/@codemirror/')
+                id.includes('/@codemirror/') ||
+                id.includes('/katex/')
               )
-                return 'vendor-editor';
-              if (id.includes('/katex/')) return 'vendor-katex';
+                return 'vendor';
               if (id.includes('/@icon-park/')) return 'vendor-icons';
               if (id.includes('/diff2html/')) return 'vendor-diff';
               return undefined;

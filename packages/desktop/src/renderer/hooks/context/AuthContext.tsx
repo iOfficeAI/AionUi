@@ -1,4 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { PREVIEW_SCOPE_KEY_PREFIX } from '@/renderer/pages/conversation/Preview/context/previewScope';
 // M6: CSRF removed with legacy webserver — stub functions for compatibility, re-implement in M7
 const withCsrfToken = <T extends Record<string, unknown>>(data: T): T => data;
 const hasValidCsrfToken = (): boolean => true;
@@ -59,11 +60,20 @@ function clearAuthCache(): void {
     clearCookie(CSRF_COOKIE_NAME);
     clearCookie(CSRF_COOKIE_NAME, '/');
 
-    // Clear localStorage auth-related items
+    // Clear localStorage auth-related items, plus per-user UI state that must not
+    // leak across accounts. Preview scopes are keyed by project id and hold file
+    // content, so leaving them behind would show the next user the previous one's
+    // open tabs — and nothing else ever cleaned them up.
     const keysToRemove: string[] = [];
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
-      if (key && (key.includes('auth') || key.includes('csrf') || key.includes('token'))) {
+      if (
+        key &&
+        (key.includes('auth') ||
+          key.includes('csrf') ||
+          key.includes('token') ||
+          key.startsWith(PREVIEW_SCOPE_KEY_PREFIX))
+      ) {
         keysToRemove.push(key);
       }
     }

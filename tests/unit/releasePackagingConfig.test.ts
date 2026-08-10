@@ -311,13 +311,85 @@ describe('release packaging configuration', () => {
     expect(workflow).toContain('bun run test');
   });
 
+  itWithBash('embeds sanitized Chinese release notes in updater manifests', () => {
+    const tempDir = mkdtempSync(resolve(tmpdir(), 'csbu-workmate-release-notes-'));
+    const artifactsDir = resolve(tempDir, 'build-artifacts');
+    const outputDir = resolve(tempDir, 'release-assets');
+
+    try {
+      const env = {
+        ...process.env,
+        MOCK_VERSION: '1.0.0',
+        INTERNAL_RELEASE_NOTES: '**由运营管理部提供**\n\n- 修复更新日志显示异常。',
+      };
+      const createResult = spawnSync('bash', ['scripts/create-mock-release-artifacts.sh', artifactsDir], {
+        cwd: projectRoot,
+        env,
+        encoding: 'utf8',
+      });
+      expect(createResult.status).toBe(0);
+
+      const prepareResult = spawnSync('bash', ['scripts/prepare-release-assets.sh', artifactsDir, outputDir], {
+        cwd: projectRoot,
+        env,
+        encoding: 'utf8',
+      });
+
+      expect(prepareResult.status).toBe(0);
+      const manifest = readFileSync(resolve(outputDir, 'latest.yml'), 'utf8');
+      expect(manifest).toContain('releaseNotes: |-');
+      expect(manifest).toContain('  **由运营管理部提供**');
+      expect(manifest).toContain('  - 修复更新日志显示异常。');
+      expect(manifest).not.toMatch(/github|https?:\/\/|suoak/i);
+    } finally {
+      rmSync(tempDir, { force: true, recursive: true });
+    }
+  });
+
+  itWithBash('rejects internal release notes that expose a repository URL', () => {
+    const tempDir = mkdtempSync(resolve(tmpdir(), 'csbu-workmate-release-notes-'));
+    const artifactsDir = resolve(tempDir, 'build-artifacts');
+    const outputDir = resolve(tempDir, 'release-assets');
+
+    try {
+      const env = {
+        ...process.env,
+        MOCK_VERSION: '1.0.0',
+        INTERNAL_RELEASE_NOTES: '由运营管理部提供：https://example.com/repository',
+      };
+      const createResult = spawnSync('bash', ['scripts/create-mock-release-artifacts.sh', artifactsDir], {
+        cwd: projectRoot,
+        env,
+        encoding: 'utf8',
+      });
+      expect(createResult.status).toBe(0);
+
+      const prepareResult = spawnSync('bash', ['scripts/prepare-release-assets.sh', artifactsDir, outputDir], {
+        cwd: projectRoot,
+        env,
+        encoding: 'utf8',
+      });
+
+      expect(prepareResult.status).not.toBe(0);
+      expect(`${prepareResult.stdout}\n${prepareResult.stderr}`).toContain(
+        'must not expose repository links or author identities'
+      );
+    } finally {
+      rmSync(tempDir, { force: true, recursive: true });
+    }
+  });
+
   itWithBash('fails release asset preparation when a mac zip is missing', () => {
     const tempDir = mkdtempSync(resolve(tmpdir(), 'csbu-workmate-release-assets-'));
     const artifactsDir = resolve(tempDir, 'build-artifacts');
     const outputDir = resolve(tempDir, 'release-assets');
 
     try {
-      const env = { ...process.env, MOCK_VERSION: '1.0.0' };
+      const env = {
+        ...process.env,
+        MOCK_VERSION: '1.0.0',
+        INTERNAL_RELEASE_NOTES: '由运营管理部提供：修复更新日志显示异常。',
+      };
       const createResult = spawnSync('bash', ['scripts/create-mock-release-artifacts.sh', artifactsDir], {
         cwd: projectRoot,
         env,

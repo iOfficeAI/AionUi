@@ -344,6 +344,29 @@ describe('MessageAcpToolCall image output', () => {
     expect(panel).toHaveAttribute('data-deletions', '1');
   });
 
+  it('shows a diff-only file change without duplicate tool details', () => {
+    render(
+      <MessageAcpToolCall
+        message={createMessage({
+          ...baseUpdate,
+          rawInput: { path: '/workspace/file.ts' },
+          content: [
+            {
+              type: 'diff',
+              path: '/workspace/file.ts',
+              old_text: 'before',
+              new_text: 'after',
+            },
+          ],
+        })}
+      />
+    );
+
+    expect(screen.getByTestId('file-changes-panel')).toBeInTheDocument();
+    expect(screen.queryByText(/Tool Call ID/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/workspace\/file.ts/)).not.toBeInTheDocument();
+  });
+
   it('renders string raw input as markdown', () => {
     render(
       <MessageAcpToolCall

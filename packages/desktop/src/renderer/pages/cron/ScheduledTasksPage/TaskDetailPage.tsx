@@ -524,9 +524,9 @@ const TaskDetailPage: React.FC = () => {
 
             <section className='flex flex-col gap-10px'>
               <h2 className='m-0 text-13px font-medium text-t-secondary'>{t('cron.detail.repeats')}</h2>
-              <div className='flex flex-wrap items-start gap-10px'>
+              <div className='flex flex-wrap items-center gap-10px'>
                 {!isManualOnly && <Switch size='small' checked={job.enabled} onChange={handleToggleEnabled} />}
-                <span className='min-w-0 flex-1 text-14px leading-22px text-t-primary'>{formatSchedule(job, t)}</span>
+                <span className='min-w-0 flex-1 text-14px leading-20px text-t-primary'>{formatSchedule(job, t)}</span>
               </div>
             </section>
 
@@ -549,9 +549,9 @@ const TaskDetailPage: React.FC = () => {
 
             <section className='flex flex-col gap-10px'>
               <h2 className='m-0 text-13px font-medium text-t-secondary'>{t('cron.page.form.queue')}</h2>
-              <div className='flex items-start gap-10px'>
+              <div className='flex items-center gap-10px'>
                 <Switch size='small' checked={job.state.queue_enabled} disabled />
-                <span className='min-w-0 flex-1 text-13px leading-20px text-t-secondary'>
+                <span className='min-w-0 flex-1 text-13px leading-18px text-t-secondary'>
                   {t('cron.page.form.queueHint')}
                 </span>
               </div>

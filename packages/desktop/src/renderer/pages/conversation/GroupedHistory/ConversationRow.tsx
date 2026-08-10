@@ -13,6 +13,7 @@ import { cleanupSiderTooltips, getSiderTooltipProps } from '@/renderer/utils/ui/
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { Checkbox, Dropdown, Menu, Spin, Tooltip } from '@arco-design/web-react';
 import { DeleteOne, EditOne, Export, MessageOne, MoreOne, Pushpin, Robot, Timer } from '@icon-park/react';
+import ForkBranchIcon from '@renderer/components/base/ForkBranchIcon';
 import classNames from 'classnames';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
@@ -52,6 +53,13 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
   const { t } = useTranslation();
   const { info: assistantInfo } = usePresetAssistantInfo(conversation);
   const isPinned = isConversationPinned(conversation);
+  // Fork-lineage badge: present only on forked conversations (extra.fork is
+  // server-minted by the fork API). Parent name resolves from the loaded
+  // sidebar list; a deleted/unloaded parent degrades to the generic tip.
+  const forkLineage = (conversation.extra as { fork?: { parent_conversation_id?: string } } | undefined)?.fork;
+  const forkParentName = forkLineage?.parent_conversation_id
+    ? props.resolveConversationName?.(forkLineage.parent_conversation_id)
+    : undefined;
   const cronStatus = getJobStatus(conversation.id);
   const siderTooltipProps = getSiderTooltipProps(tooltipEnabled);
   const inlineNameTooltipEnabled = !collapsed && !isMobile && !!conversation.name;
@@ -192,8 +200,22 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
             popupHoverStay={false}
             position='top'
           >
-            <div className='chat-history__item-name overflow-hidden text-ellipsis block w-full text-14px font-[500] lh-24px whitespace-nowrap min-w-0 text-t-primary'>
-              <span className='block overflow-hidden text-ellipsis whitespace-nowrap'>{conversation.name}</span>
+            <div className='chat-history__item-name overflow-hidden text-ellipsis flex items-center gap-4px w-full text-14px font-[500] lh-24px whitespace-nowrap min-w-0 text-t-primary'>
+              <span className='block overflow-hidden text-ellipsis whitespace-nowrap min-w-0'>{conversation.name}</span>
+              {forkLineage && (
+                <Tooltip
+                  content={
+                    forkParentName
+                      ? t('conversation.history.forkedFrom', { name: forkParentName })
+                      : t('conversation.history.forkedConversation')
+                  }
+                  position='top'
+                >
+                  <span className='flex-shrink-0 line-height-0 text-t-tertiary' data-testid='conversation-fork-badge'>
+                    <ForkBranchIcon size={12} />
+                  </span>
+                </Tooltip>
+              )}
             </div>
           </Tooltip>
         </FlexFullContainer>

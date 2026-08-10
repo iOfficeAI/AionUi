@@ -76,7 +76,9 @@
     "removeProjectConfirm": "\"{{name}}\" projesi kaldırılsın mı? Projedeki {{count}} konuşma da kaldırılacak.",
     "newConversationInProject": "Bu projede yeni konuşma",
     "deleting": "Siliniyor...",
-    "reorderPinned": "Sabitlenmiş sohbetin sırasını değiştirmek için sürükleyin"
+    "reorderPinned": "Sabitlenmiş sohbetin sırasını değiştirmek için sürükleyin",
+    "forkedFrom": "“{{name}}” konuşmasından çatallandı",
+    "forkedConversation": "Çatallanmış konuşma"
   },
   "historySearch": {
     "tooltip": "Mesajları ara",
@@ -403,7 +405,8 @@
     "openWith": {
       "vscode": "VS Code",
       "terminal": "Terminal",
-      "explorer": "Dosya Gezgini"
+      "explorer": "Dosya Gezgini",
+      "browser": "Tarayıcı"
     }
   },
   "minimap": {
@@ -567,7 +570,8 @@
     "sendboxHint": "Çalışma ortamı hazırlanıyor. İlk başlatma biraz daha uzun sürebilir."
   },
   "sendbox": {
-    "hint": "Komutlar için /, dosya için @ yazın, ↑/↓ ile mesaj geçmişi"
+    "hint": "Komutlar için /, dosya için @ yazın, ↑/↓ ile mesaj geçmişi",
+    "mediaPathFallback": "Bu ajan bu dosya türünü yerel olarak desteklemiyor; dosya yolu olarak gönderilecek."
   },
   "agentTip": {
     "codes": {
@@ -592,11 +596,14 @@
       "ANTIGRAVITY_STEPS_FAILED": {
         "body": "{{count}} adım başarısız oldu ve etkili OLMADI. agy bu turları yine de başarılı olarak bitirir; bu yüzden yanıta değil gerçek sonuca bakın."
       },
-      "ANTIGRAVITY_VERSION_OLDER": {
-        "body": "Kurulu agy {{reported}} sürümü, bu entegrasyonun doğrulandığı {{verified}} sürümünden eski; bazı özellikler eksik olabilir. agy'yi güncellemeniz önerilir."
+      "CLI_VERSION_OLDER": {
+        "body": "Kurulu {{cli}} sürümü CSBU WorkMate tarafından doğrulanan sürümden eski; bazı özellikler eksik olabilir. {{cli}} sürümünü yükseltmeyi düşünün. (kurulu: {{reported}} / CSBU WorkMate tarafından doğrulanan: {{verified}})"
       },
-      "ANTIGRAVITY_VERSION_NEWER": {
-        "body": "Kurulu agy {{reported}} sürümü, bu entegrasyonun doğrulandığı {{verified}} sürümünden yeni. Yine de çalışması beklenir; tuhaf davranışları bildirin."
+      "CLI_VERSION_NEWER": {
+        "body": "Kurulu {{cli}} sürümü CSBU WorkMate tarafından doğrulanan sürümden yeni. Genelde çalışır; tuhaf bir davranış görürseniz bildirin. (kurulu: {{reported}} / CSBU WorkMate tarafından doğrulanan: {{verified}})"
+      },
+      "CODEX_RETRYING": {
+        "body": "{{detail}} ({{attempts}}. deneme, {{elapsed}} geçti — aracının sağlayıcısı bağlantıyı sürekli kesiyor; CSBU WorkMate bekliyor.)"
       }
     }
   },
@@ -610,7 +617,9 @@
     "removeFailed": "Couldn't remove the folder",
     "contextMenu": {
       "rename": "Yeniden adlandır",
-      "addToChat": "Sohbete ekle"
+      "addToChat": "Sohbete ekle",
+      "copyRelativePath": "Göreli yolu kopyala",
+      "copyAbsolutePath": "Mutlak yolu kopyala"
     },
     "namePlaceholder": "Ad",
     "deleteConfirm": "“{{name}}” silinsin mi? Bu geri alınamaz.",
@@ -619,7 +628,6 @@
       "files": "Dosyalar",
       "changes": "Değişiklikler"
     },
-    "changesPlaceholder": "Kaynak denetimi ayrı bir hatta — yakında.",
     "addedToChat": "{{name}} sohbete eklendi",
     "imported": "{{count}} dosya içe aktarıldı",
     "importPartialFailed": "{{copied}} kopyalandı, {{failed}} başarısız (ad çakışması veya desteklenmiyor)",
@@ -629,6 +637,91 @@
       "searching": "Aranıyor…",
       "empty": "Eşleşen dosya yok",
       "limitReached": "İlk {{count}} gösteriliyor — daraltın"
-    }
+    },
+    "scm": {
+      "notARepository": "Bu klasör sürüm denetiminde değil",
+      "noChanges": "Değişiklik yok",
+      "loading": "Değişiklikler yükleniyor…",
+      "loadFailed": "Değişiklikler yüklenemedi",
+      "refresh": "Yenile",
+      "groups": {
+        "staged": "Hazırlanan değişiklikler",
+        "unstaged": "Değişiklikler",
+        "changes": "Değişiklikler",
+        "blocked": "Çözülmesi gerekiyor"
+      },
+      "sections": {
+        "repositories": "Depolar",
+        "changes": "Değişiklikler"
+      },
+      "viewAsTree": "Ağaç olarak görüntüle",
+      "viewAsList": "Liste olarak görüntüle",
+      "worktree": "Çalışma ağacı",
+      "expandWorktrees": "Çalışma ağaçlarını göster",
+      "collapseWorktrees": "Çalışma ağaçlarını gizle",
+      "state": {
+        "created": "Eklendi",
+        "modified": "Değiştirildi",
+        "deleted": "Silindi",
+        "renamed": "Yeniden adlandırıldı",
+        "conflicted": "Çakışma",
+        "unknown": "Tanınmayan durum"
+      },
+      "badge": {
+        "created": "A",
+        "modified": "M",
+        "deleted": "D",
+        "renamed": "R",
+        "conflicted": "!",
+        "unknown": "?"
+      },
+      "conflictedHint": "Bu çakışmayı önce CSBU WorkMate dışında çözün",
+      "opaqueHint": "Bu durum daha yeni bir arka uçtan geliyor — salt okunur gösteriliyor",
+      "degraded": "git dizini güncellenemediği için yenileme daha yavaş bir modda çalışıyor",
+      "truncated": "Listelenecek çok fazla değişiklik var — yalnızca ilk kısım gösteriliyor",
+      "renamedFrom": "{{from}} → {{to}}",
+      "diff": {
+        "loading": "Fark yükleniyor…",
+        "failed": "Fark yüklenemedi",
+        "binary": "İkili dosya — metin farkı yok",
+        "truncated": "Fark kısaltıldı (büyük dosya)",
+        "empty": "Metinsel değişiklik yok",
+        "close": "Farkı kapat"
+      },
+      "actions": {
+        "stage": "Değişiklikleri hazırla",
+        "unstage": "Hazırlamayı geri al",
+        "discard": "Değişiklikleri sil",
+        "stageAll": "Tümünü hazırla",
+        "unstageAll": "Tümünün hazırlamasını geri al",
+        "blockedHint": "Hazırlamadan veya silmeden önce çakışmayı CSBU WorkMate dışında çözün",
+        "confirmDiscardTitle": "Değişiklikler silinsin mi?",
+        "confirmDiscardTracked": "{{count}} dosyadaki düzenlemeler kaybolacak. Bu geri alınamaz.",
+        "confirmDiscardUntracked": "{{count}} yeni dosya çöp kutusuna taşınacak.",
+        "confirmDiscardMixed": "{{tracked}} dosyadaki düzenlemeler geri alınamaz şekilde kaybolacak; {{untracked}} yeni dosya çöp kutusuna gidecek.",
+        "discardConfirmButton": "Sil",
+        "okStage": "{{count}} dosya hazırlandı",
+        "okUnstage": "{{count}} dosyanın hazırlaması geri alındı",
+        "okDiscard": "{{count}} dosya silindi",
+        "partial": "{{total}} işlemden {{succeeded}} tamamlandı —— {{failed}} tamamlanamadı",
+        "partialDetail": "Tamamlanamayan: {{files}}",
+        "rejectedBlocked": "Hiçbir şey değişmedi —— önce çakışmayı çözün",
+        "rejectedUnsupported": "Bu depo bu işlemi desteklemiyor",
+        "rejectedFailed": "İşlem tamamlanamadı",
+        "retry": "Yeniden dene",
+        "notSent": "İstek arka uca ulaşmadı, hiçbir şey değişmedi. Yeniden deneyebilirsiniz.",
+        "outcomeUnknown": "Yanıt gelmeden bağlantı sıfırlandı — bu işlem tamamlanmış da olabilir, olmamış da. Yeniden denemeden önce yenileyip dosya listesini kontrol edin.",
+        "allFailed": "{{count}} dosyanın hiçbiri işlenemedi"
+      }
+    },
+    "pathCopied": "Yol kopyalandı",
+    "copyFailed": "Yol kopyalanamadı"
+  },
+  "terminal": {
+    "running": "Çalışıyor",
+    "stopped": "Durduruldu",
+    "exited": "Çıkış {{code}}",
+    "stop": "Durdur",
+    "truncated": "(önceki çıktı kesildi)"
   }
 }

@@ -16,7 +16,7 @@
  * reveal / explicit add-to-chat; see {@link SearchPanel}).
  */
 
-import { Button, Input, Message, Modal, Spin } from '@arco-design/web-react';
+import { Button, Input, Message, Modal, Spin, Tooltip } from '@arco-design/web-react';
 import { FolderPlus } from '@icon-park/react';
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -29,15 +29,17 @@ import { isBackendHttpError } from '@/common/adapter/httpBridge';
 import { PROJECT_ERROR_DUPLICATE, PROJECT_ERROR_OVERLAP } from '@/common/types/project';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import WorkspaceOpenButton from '@/renderer/pages/conversation/components/ChatLayout/WorkspaceOpenButton';
-import { getContentTypeByExtension } from '@/renderer/pages/conversation/Preview/fileUtils';
+import { getFileTypeInfo } from '@/renderer/utils/file/fileType';
 import { classifyPreviewError, previewErrorToI18nKey } from '@/renderer/utils/previewError';
 // PATCH(ELECTRON-3SZ): used only by the preview payload patch below — remove with it.
 import type { PreviewContentType } from '@/common/types/office/preview';
 
+import { copyText } from '@/renderer/utils/ui/clipboard';
 import { emitter } from '@/renderer/utils/emitter';
 import { projectFileRef } from '@/common/types/chatFile';
 import type { ChatFileRef } from '@/common/types/chatFile';
 import type { FileOrFolderItem } from '@/renderer/utils/file/fileTypes';
+import { resolvePreviewPayload } from '@/renderer/utils/file/previewPayload';
 
 import { ExplorerPanel } from './ExplorerPanel';
 import { buildRemoveRequest, buildRenameRequest, parentRel, peKey, type RenameRequest } from './explorerModel';
@@ -47,6 +49,7 @@ import { reveal, select } from './explorerStore';
 import { useCurrentConversation } from './currentConversationStore';
 import { SearchPanel } from './search/SearchPanel';
 import type { SearchHit } from './search/searchModel';
+import { ScmPanel } from '../SourceControl/ScmPanel';
 
 export type ExplorerContainerProps = {
   /** Owning project id — scopes the store's fact cache + localStorage UI state. */
@@ -74,42 +77,57 @@ export type ExplorerPreviewPayload = {
     fileRef: ChatFileRef;
     language: string;
     editable?: boolean;
+    oversized?: boolean;
+    sizeBytes?: number;
+    thresholdBytes?: number;
+    lastModified?: number;
   };
 };
 
 // The Explorer tree knows `{pe_id, relative_path}`, mapped straight to a Project
-// ChatFileRef. Text/image read their content eagerly over `/api/fs/content`
-// (utf8 / dataurl — the backend prepends the image data-URL prefix); pdf and
-// office carry no content (pdf renders from the stream URL, office resolves the
-// ref server-side for its watch). No absolute path is ever exposed — the old WS
-// path-resolve patch is gone.
+// ChatFileRef. Reading goes through the shared `resolvePreviewPayload` gate, so
+// this entry point applies the same size ceiling and picks up the same
+// save-conflict timestamp as every other way of opening a file. No absolute path
+// is ever exposed — the old WS path-resolve patch is gone.
 export const buildExplorerPreviewPayload = async (
   peId: string,
   relativePath: string
 ): Promise<ExplorerPreviewPayload> => {
   const name = relativePath.split('/').pop() || relativePath;
-  const contentType = getContentTypeByExtension(name);
+  const { contentType, editable } = getFileTypeInfo(name);
   const fileRef = projectFileRef(peId, relativePath);
 
-  let content = '';
-  if (contentType === 'image') {
-    content = await ipcBridge.fs.readContent.invoke({ file: fileRef, encoding: 'dataurl' });
-  } else if (contentType === 'pdf' || contentType === 'word' || contentType === 'excel' || contentType === 'ppt') {
-    // Binary preview: no content read. pdf renders via the /api/fs/stream URL
-    // built from fileRef; office resolves fileRef server-side for its watch.
-  } else {
-    content = await ipcBridge.fs.readContent.invoke({ file: fileRef, encoding: 'utf8' });
-  }
+  const payload = await resolvePreviewPayload(fileRef, contentType);
 
   return {
-    content,
+    content: payload.content,
     contentType,
     metadata: {
       title: name,
       file_name: name,
       fileRef,
       language: name.split('.').pop() || '',
-      editable: contentType === 'markdown' || contentType === 'image' ? false : undefined,
+      // Taken from the type table, then tightened — never decided here.
+      //
+      // This entry point used to compute editability itself, which made it a second
+      // source for one fact. It happened to agree with the table on everything that
+      // mattered, and "happened to agree" is the whole problem: nothing kept the two in
+      // step, and the day they diverged the symptom would be one file behaving
+      // differently depending on whether it was opened from the tree or from a message.
+      // It also produced a wrong answer that something else then reasoned from —
+      // markdown was marked read-only here, and persistence nearly took that to mean
+      // its content could not have been edited.
+      //
+      // `oversized` still has to be applied on top, because it is a fact about this
+      // read rather than about the type: the file was never fully loaded, so letting a
+      // fragment reach a saveable editor is what destroyed files before. Tightening is
+      // the only direction available here, so this can restrict what the table allows
+      // and can never contradict it.
+      editable: payload.oversized ? false : editable,
+      oversized: payload.oversized,
+      sizeBytes: payload.sizeBytes,
+      thresholdBytes: payload.thresholdBytes,
+      lastModified: payload.lastModified,
     },
   };
 };
@@ -118,18 +136,27 @@ export const ExplorerContainer: React.FC<ExplorerContainerProps> = ({ projectId 
   const { t } = useTranslation();
   const { openPreview } = usePreviewContext();
   const activeConversationId = useCurrentConversation();
-  const { data, isLoading, mutate } = useSWR(projectId ? `explorer-project/${projectId}` : null, () =>
-    ipcBridge.project.get.invoke({ project_id: projectId })
-  );
+  const { data, isLoading, mutate } = useSWR(projectId ? `explorer-project/${projectId}` : null, (key: string) => {
+    // Derive the project id from the SWR key, not the captured `projectId`
+    // closure, so a fetch's result can never be filed under a different key.
+    const id = key.slice('explorer-project/'.length);
+    return ipcBridge.project.get.invoke({ project_id: id });
+  });
+  // Apply-time guard: only feed the store roots whose detail actually belongs to
+  // the current project. Combined with the per-project remount (this component is
+  // keyed by `projectId` in ProjectPanelHost), a stale/other-project detail can
+  // never reach the tree — a mismatch yields no roots rather than another
+  // project's (宁空勿画错).
+  const detail = data && data.project_id === projectId ? data : undefined;
 
   // Let the workspace-collapse hook (keyed per-project via workspacePreferenceKey)
   // read + restore this project's panel open/closed preference. The hook starts
   // collapsed and expands on this signal (pref takes priority); without it the
   // panel would stay collapsed on every conversation switch.
   useEffect(() => {
-    if (!projectId || !data) return;
-    dispatchWorkspaceHasFilesEvent(data.explorer.entries.length > 0, undefined, false);
-  }, [projectId, data]);
+    if (!projectId || !detail) return;
+    dispatchWorkspaceHasFilesEvent(detail.explorer.entries.length > 0, undefined, false);
+  }, [projectId, detail]);
 
   // Open a file in the preview panel. The tree only knows `{pe_id, relative_path}`,
   // mapped to a Project ChatFileRef — content is read over `/api/fs/content` (text/
@@ -180,8 +207,10 @@ export const ExplorerContainer: React.FC<ExplorerContainerProps> = ({ projectId 
   // commands; the change is pushed back as a delta on the parent dir's
   // subscription, so the tree updates itself (single source, no manual refetch).
   // Component switcher tab (host component switcher, this round in-container):
-  // 'files' = the Explorer, 'changes' = source-control placeholder (that lane is
-  // not built yet — the tab exists but shows an empty state).
+  // 'files' = the Explorer, 'changes' = the Source Control panel. Switching tabs
+  // unmounts the inactive one for `changes`, which is safe because the SCM
+  // subscription is owned by its store per project, not by the component's mount
+  // (see ScmPanel's lifecycle note) — a tab switch never drops the backend watch.
   const [activeTab, setActiveTab] = useState<'files' | 'changes'>('files');
   const [renameDialog, setRenameDialog] = useState<RenameRequest | null>(null);
   const [nameValue, setNameValue] = useState('');
@@ -240,6 +269,13 @@ export const ExplorerContainer: React.FC<ExplorerContainerProps> = ({ projectId 
     emitter.emit('acp.selected.file.append', payload, activeConversationId);
     emitter.emit('codex.selected.file.append', payload, activeConversationId);
     emitter.emit('aionrs.selected.file.append', payload, activeConversationId);
+    // Optimistic success: the emitter is fire-and-forget with no landing ack, so
+    // this reports "dispatched", not "rendered a chip". It is accurate whenever a
+    // send box for this conversation is mounted (the type-matching box consumes
+    // the event synchronously). The chip-drop bugs that made this toast lie for a
+    // folder / pe-root ref (empty-path identity + the folder render filter) are
+    // fixed in SendBox; a genuine no-op only remains in the edge case where no
+    // send box is mounted for the active conversation.
     Message.success(t('conversation.explorer.addedToChat', { name }));
   };
 
@@ -251,6 +287,32 @@ export const ExplorerContainer: React.FC<ExplorerContainerProps> = ({ projectId 
     void ipcBridge.fs.reveal.invoke({ pe_id: peId, relative_path: rel }).catch(() => {
       Message.error(t('conversation.workspace.contextMenu.revealFailed'));
     });
+  };
+
+  // Copy the node's path relative to its owning pe root — the tree's native
+  // identity (`relative_path`, always `/`-separated, cross-platform). A pe-root
+  // node's relative_path is '' (it IS the root); copy '.' (its own literal
+  // relative path) rather than the display `name`, which may be a custom label or
+  // even the internal pe_id — never a real path. Pure clipboard (no OS shell / no
+  // absolute path), so it works for files and folders on both Electron and WebUI.
+  const handleCopyRelativePath = (_peId: string, rel: string): void => {
+    void copyText(rel === '' ? '.' : rel)
+      .then(() => Message.success(t('conversation.explorer.pathCopied')))
+      .catch(() => Message.error(t('conversation.explorer.copyFailed')));
+  };
+
+  // Copy the node's ABSOLUTE device path. The front end never holds it (project
+  // refs are pe_id + relative_path only) and never receives it: the backend
+  // resolves the path AND writes the clipboard itself (mirrors reveal), returning
+  // void — we only toast on success/failure. Desktop-only: the menu item is
+  // Electron-gated in ExplorerPanel, so this handler only runs there (a remote
+  // WebUI must not surface it). A pe-root node (rel '') resolves to the root
+  // folder's own absolute path server-side.
+  const handleCopyAbsolutePath = (peId: string, rel: string): void => {
+    void ipcBridge.fs.copyAbsolutePath
+      .invoke({ pe_id: peId, relative_path: rel })
+      .then(() => Message.success(t('conversation.explorer.pathCopied')))
+      .catch(() => Message.error(t('conversation.explorer.copyFailed')));
   };
 
   // Search result default action: locate the hit in the tree — switch to the
@@ -294,18 +356,21 @@ export const ExplorerContainer: React.FC<ExplorerContainerProps> = ({ projectId 
   };
 
   if (!projectId) return null;
-  if (isLoading && !data) return <Spin loading />;
+  // Spin only while the CURRENT project's detail is still loading. A stale value
+  // for a different project (detail undefined) falls through to empty roots, not
+  // another project's tree.
+  if (!detail && isLoading) return <Spin loading />;
 
-  const roots = data ? toRootRefs(data) : [];
+  const roots = detail ? toRootRefs(detail) : [];
   // Search roots = the project's pe roots (each folder root, rel=''). fs/search
   // spans all bound folders; the front-end ranks the merged hit stream.
   const searchRoots = roots.map((root) => ({ pe_id: root.pe_id, relative_path: '' }));
   // pe_id → folder name for the search result's `PE · REL` secondary label.
   const searchPeNames = Object.fromEntries(roots.map((root) => [root.pe_id, root.title]));
-  const workspacePeId = data?.explorer.workspace_pe_id;
+  const workspacePeId = detail?.explorer.workspace_pe_id;
   // Absolute path of the workspace root (derived display_path) for the
   // open-externally button.
-  const workspacePath = data?.explorer.entries.find((e) => e.pe_id === workspacePeId)?.display_path;
+  const workspacePath = detail?.explorer.entries.find((e) => e.pe_id === workspacePeId)?.display_path;
 
   const tabButton = (key: 'files' | 'changes', label: string) => (
     <Button
@@ -320,37 +385,64 @@ export const ExplorerContainer: React.FC<ExplorerContainerProps> = ({ projectId 
 
   return (
     <div className='h-full flex flex-col min-h-0'>
-      {/* Host component-switcher tab bar: 文件 = explorer, 变更 = source-control
-          placeholder (that lane isn't built — tab present, empty state only).
+      {/* Host component-switcher tab bar: 文件 = explorer, 变更 = source control.
           Tabs are left-aligned and scroll horizontally when they overflow; the
           attach + open-externally cluster is pinned right (flex-shrink-0) with
           container padding, so it never scrolls with the tabs nor clips at narrow
-          widths. */}
-      <div className='flex items-center gap-4px px-8px py-4px flex-shrink-0 border-b border-[var(--bg-3)]'>
+          widths.
+
+          左内边距 12px 是本面板的对齐基准线，三处必须一致（见下方 SearchPanel 与
+          arco-override.css 的 .workspace-tree 规则）：外框一律从 12px 起，框内内容
+          （tab 文字 / 搜索图标 / 树箭头）一律从 20px 起。12px 不是随手取的——侧栏
+          的拖宽把手正好盖住最左 12px 且层级更高，任何落在其左侧的东西都点不到。
+
+          The 12px left padding is this panel's alignment baseline and must match in
+          all three places (see SearchPanel below and the .workspace-tree rules in
+          arco-override.css): outer boxes start at 12px, their inner content (tab
+          text / search icon / tree arrow) starts at 20px. 12px is not arbitrary —
+          the sider's resize handle covers the leftmost 12px and sits above this
+          content, so anything placed to its left cannot be clicked. */}
+      <div className='flex items-center gap-4px pl-12px pr-8px py-4px flex-shrink-0 border-b border-[var(--bg-3)]'>
         <div className='flex items-center gap-2px overflow-x-auto flex-1 min-w-0'>
           {tabButton('files', t('conversation.explorer.tabs.files'))}
           {tabButton('changes', t('conversation.explorer.tabs.changes'))}
         </div>
         <div className='flex items-center gap-2px flex-shrink-0'>
-          <Button
-            type='text'
-            size='mini'
-            icon={<FolderPlus theme='outline' size='16' />}
-            aria-label={t('conversation.explorer.addFolder')}
-            title={t('conversation.explorer.addFolder')}
-            onClick={handleAddFolder}
-          />
+          {/* Tooltip 与右侧「打开工作区」按钮保持同一形态（mini），让相邻按钮的
+              悬浮提示观感一致。注意：Arco 的 Tooltip 不能包裹 Dropdown（会取到
+              非 DOM 节点而崩），这里包的是普通 Button，安全。
+              Same `mini` Tooltip as the neighboring workspace-open button so
+              adjacent buttons feel consistent. Note: an Arco Tooltip must not wrap
+              a Dropdown (it would resolve a non-DOM node and crash); wrapping a
+              plain Button like this is safe. */}
+          <Tooltip content={t('conversation.explorer.addFolder')} mini>
+            <Button
+              type='text'
+              size='small'
+              className='flex items-center justify-center'
+              icon={<FolderPlus theme='outline' size='16' />}
+              aria-label={t('conversation.explorer.addFolder')}
+              onClick={handleAddFolder}
+            />
+          </Tooltip>
           {workspacePath && <WorkspaceOpenButton workspacePath={workspacePath} isTemporary={false} />}
         </div>
       </div>
       {/* Files tab (explorer): kept mounted across tab switches so the tree + WS
-          state survive (only hidden when the changes tab is active). Left padding
-          clears the sider's col-resize drag handle overlay. */}
+          state survive (only hidden when the changes tab is active). */}
       {/* Search area is persistent at the top of the files tab; the tree renders
           underneath (children slot) and stays mounted while searching so its WS
           subscriptions never thrash. SearchPanel owns the scroll region, so this
-          container no longer sets overflow. */}
-      <div className='flex-1 min-h-0 pl-16px' style={activeTab === 'files' ? undefined : { display: 'none' }}>
+          container no longer sets overflow.
+
+          没有左内边距是刻意的：搜索框和文件树各自对齐到 12px 基准线（前者靠自身
+          padding，后者靠 arco-override.css 里的 .workspace-tree 规则），在这里再加
+          一层会把两者一起推离基准线。
+          Deliberately no left padding: the search box and the tree each align to
+          the 12px baseline on their own (the former via its own padding, the latter
+          via the .workspace-tree rules in arco-override.css). Adding a layer here
+          would push both off that baseline. */}
+      <div className='flex-1 min-h-0' style={activeTab === 'files' ? undefined : { display: 'none' }}>
         <SearchPanel
           roots={searchRoots}
           peNames={searchPeNames}
@@ -367,13 +459,15 @@ export const ExplorerContainer: React.FC<ExplorerContainerProps> = ({ projectId 
             onDelete={handleDelete}
             onAddToChat={activeConversationId ? handleAddToChat : undefined}
             onRevealInFolder={handleRevealInFolder}
+            onCopyRelativePath={handleCopyRelativePath}
+            onCopyAbsolutePath={handleCopyAbsolutePath}
             onImportFiles={handleImportFiles}
           />
         </SearchPanel>
       </div>
       {activeTab === 'changes' && (
-        <div className='flex-1 min-h-0 flex items-center justify-center px-16px text-center text-t-secondary text-13px'>
-          {t('conversation.explorer.changesPlaceholder')}
+        <div className='flex-1 min-h-0'>
+          <ScmPanel projectId={projectId} />
         </div>
       )}
       <Modal

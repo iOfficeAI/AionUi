@@ -3,7 +3,7 @@ import type { NavigateFunction } from 'react-router-dom';
 import { useLocation } from 'react-router-dom';
 import { useVisibleConversationIds } from '@/renderer/pages/conversation/GroupedHistory/hooks/useVisibleConversationIds';
 import { isElectronDesktop } from '@/renderer/utils/platform';
-import { isPrimaryApplicationShortcut } from '@/renderer/utils/ui/keyboardShortcuts';
+import { isPlatformPrimaryModifier, isPrimaryApplicationShortcut } from '@/renderer/utils/ui/keyboardShortcuts';
 import { dispatchWorkspaceToggleEvent } from '@/renderer/utils/workspace/workspaceEvents';
 
 type UseConversationShortcutsParams = {
@@ -34,7 +34,7 @@ const isConversationTabShortcut = (event: KeyboardEvent): boolean => {
 };
 
 const isNewConversationShortcut = (event: KeyboardEvent): boolean => {
-  return (event.metaKey || event.ctrlKey) && !event.altKey && !event.shiftKey && event.key.toLowerCase() === 't';
+  return isPlatformPrimaryModifier(event) && !event.altKey && !event.shiftKey && event.key.toLowerCase() === 't';
 };
 
 export const useConversationShortcuts = ({ navigate, toggleSider }: UseConversationShortcutsParams): void => {

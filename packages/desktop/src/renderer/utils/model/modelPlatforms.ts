@@ -50,12 +50,31 @@ export interface PlatformConfig {
  * Model Platform options list
  *
  * 顺序：
- * 1. 自定义（需要用户输入 base url）
- * 2. Moonshot/Kimi（战略合作，置顶展示）
- * 3. New API / Gemini 官方平台
- * 4+ 预设供应商
+ * 1. CSBU API
+ * 2. 锐擎 API
+ * 3. 自定义与其他预设供应商
  */
 export const MODEL_PLATFORMS: PlatformConfig[] = [
+  // Branded New API presets are the primary choices in the add-model flow.
+  {
+    name: 'CSBU API',
+    value: 'csbu-api',
+    logo: buildLogoAssetUrl('ai-cloud/newapi.svg'),
+    platform: 'new-api',
+    base_url: 'http://10.51.135.15:8180/',
+    i18nKey: 'settings.platformCsbuApi',
+    descriptionI18nKey: 'settings.platformCsbuApiDescription',
+  },
+  {
+    name: 'Ruiqing API',
+    value: 'ruiqing-api',
+    logo: buildLogoAssetUrl('ai-cloud/newapi.svg'),
+    platform: 'new-api',
+    base_url: 'https://uniapi.ruijie.com.cn/v1',
+    i18nKey: 'settings.platformRuiqingApi',
+    descriptionI18nKey: 'settings.platformRuiqingApiDescription',
+  },
+
   // 自定义选项（需要用户输入 base url）/ Custom option (requires user to input base url)
   { name: 'Custom', value: 'custom', logo: null, platform: 'custom', i18nKey: 'settings.platformCustom' },
 
@@ -75,25 +94,7 @@ export const MODEL_PLATFORMS: PlatformConfig[] = [
     base_url: 'https://api.moonshot.ai/v1',
   },
 
-  // New API 品牌预设与通用网关 / Branded presets and generic New API gateway
-  {
-    name: 'CSBU API',
-    value: 'csbu-api',
-    logo: buildLogoAssetUrl('ai-cloud/newapi.svg'),
-    platform: 'new-api',
-    base_url: 'http://10.51.135.15:8180/',
-    i18nKey: 'settings.platformCsbuApi',
-    descriptionI18nKey: 'settings.platformCsbuApiDescription',
-  },
-  {
-    name: 'Ruiqing API',
-    value: 'ruiqing-api',
-    logo: buildLogoAssetUrl('ai-cloud/newapi.svg'),
-    platform: 'new-api',
-    base_url: 'https://uniapi.ruijie.com.cn/v1',
-    i18nKey: 'settings.platformRuiqingApi',
-    descriptionI18nKey: 'settings.platformRuiqingApiDescription',
-  },
+  // Generic New API gateway
   {
     name: 'New API',
     value: 'new-api',

@@ -16,6 +16,9 @@ import remarkMath from 'remark-math';
 import 'katex/dist/katex.min.css';
 
 import { openExternalUrl } from '@/renderer/utils/platform';
+import { downloadFileFromPath, downloadFileFromUrl } from '@/renderer/utils/file/download';
+import { Button, Message, Tooltip } from '@arco-design/web-react';
+import { Download } from '@icon-park/react';
 import classNames from 'classnames';
 import React, { useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -33,6 +36,67 @@ const isLocalFilePath = (src: string): boolean => {
   if (src.startsWith('http://') || src.startsWith('https://')) return false;
   if (src.startsWith('data:')) return false;
   return true;
+};
+
+const getImageFileName = (src: string): string => {
+  const path = src.startsWith('data:') ? '' : src.split(/[?#]/, 1)[0];
+  const encodedName = path.split(/[/\\]/).pop();
+  if (!encodedName) return 'image.png';
+  try {
+    return decodeURIComponent(encodedName);
+  } catch {
+    return encodedName;
+  }
+};
+
+const MarkdownImage: React.FC<
+  React.ImgHTMLAttributes<HTMLImageElement> & {
+    src: string;
+    alt: string;
+    local: boolean;
+    workspace?: string;
+  }
+> = ({ src, alt, className, local, workspace, ...imageProps }) => {
+  const { t } = useTranslation();
+  const handleDownload = useCallback(async () => {
+    try {
+      const fileName = getImageFileName(src);
+      if (local) {
+        await downloadFileFromPath(src, fileName, workspace);
+      } else {
+        await downloadFileFromUrl(src, fileName);
+      }
+      Message.success(t('acp.image.download_success'));
+    } catch (error) {
+      console.error('[MarkdownImage] Failed to download image:', error);
+      Message.error(t('acp.image.download_error'));
+    }
+  }, [local, src, t, workspace]);
+
+  return (
+    <span className='markdown-image'>
+      {local ? (
+        <LocalImageView src={src} alt={alt} className={className} />
+      ) : (
+        <img {...imageProps} src={src} alt={alt} className={className} />
+      )}
+      <Tooltip content={t('acp.image.download')}>
+        <Button
+          aria-label={t('acp.image.download_aria')}
+          className='markdown-image-download'
+          type='secondary'
+          size='mini'
+          shape='circle'
+          icon={<Download theme='outline' size='14' />}
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            void handleDownload();
+          }}
+        />
+      </Tooltip>
+    </span>
+  );
 };
 
 const normalizeLocalFileLinkDestinations = (
@@ -184,9 +248,17 @@ const MarkdownView: React.FC<MarkdownViewProps> = React.memo(
           if (isLocalFilePath(imgProps.src || '')) {
             const rawSrc = imgProps.src || '';
             const src = resolveMarkdownLocalFilePath(rawSrc, localFileAliases, localFileBasePath) ?? rawSrc;
-            return <LocalImageView src={src} alt={imgProps.alt || ''} className={imgProps.className} />;
+            return (
+              <MarkdownImage
+                src={src}
+                alt={imgProps.alt || ''}
+                className={imgProps.className}
+                local
+                workspace={localFileBasePath}
+              />
+            );
           }
-          return <img {...imgProps} alt={imgProps.alt || ''} />;
+          return <MarkdownImage {...imgProps} src={imgProps.src || ''} alt={imgProps.alt || ''} local={false} />;
         },
       }),
       [codeStyle, hiddenCodeCopyButton, handleLinkClick, localFileAliases, localFileBasePath, onLocalFileLink]

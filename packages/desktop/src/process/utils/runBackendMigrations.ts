@@ -9,6 +9,7 @@ import { migrateConfigStorage, migrateLegacyMcpConfigToDb, migrateProviders } fr
 import { httpRequest } from '@/common/adapter/httpBridge';
 import { mcpService } from '@/common/adapter/ipcBridge';
 import type { ImageGenerationModelSetting } from '@/common/config/clientSettings';
+import { BUILTIN_BROWSER_MCP_NAME } from '@/common/config/constants';
 import {
   removeImageGenerationEnvKeys,
   resolveImageGenerationMcpEnv,
@@ -23,6 +24,20 @@ type MigrationStepResult = boolean;
 type McpImportServer = Partial<IMcpServer> & Pick<IMcpServer, 'name' | 'transport'>;
 type BackendClientPreferences = Record<string, unknown>;
 const BUILTIN_CHROME_DEVTOOLS_NAME = 'chrome-devtools';
+
+/**
+ * 内置「应用内浏览器」MCP。
+ *
+ * 与 chrome-devtools 的区别：那个默认关闭，开启后会由 MCP 自己开一个独立 Chrome
+ * 窗口 —— 用户在 APP 里看不见。这个默认开启，且强制连到 APP 自己的 CDP 端口，
+ * Agent 的每一步操作都发生在用户能看到的侧边预览面板里。
+ *
+ * The built-in in-app browser MCP. Unlike `chrome-devtools` (default-disabled and
+ * spawning its own separate Chrome window the user cannot see), this one is
+ * enabled by default and pinned to the app's own CDP port, so every agent action
+ * happens in the side preview panel where the user can watch it.
+ */
+const BUILTIN_BROWSER_SCRIPT = 'builtin-mcp-browser';
 
 const LEGACY_BACKEND_CLIENT_PREFERENCE_KEYS = [
   'assistants',
@@ -160,6 +175,31 @@ function isSameStdioTransport(left: IMcpServer['transport'], right: IMcpServer['
   );
 }
 
+function buildBuiltinBrowserServer(): McpImportServer {
+  const scriptPath = getBuiltinMcpScriptPath(BUILTIN_BROWSER_SCRIPT);
+  const serverConfig = {
+    command: 'node',
+    args: [scriptPath],
+  };
+
+  return {
+    name: BUILTIN_BROWSER_MCP_NAME,
+    description:
+      "Control AionUi's built-in browser (the side preview panel): open pages, click, type and read content. " +
+      'Sign-in state is shared across tabs and preserved between sessions.',
+    // 默认开启：用户装好即可用，无需任何配置
+    // Enabled by default: works out of the box with zero configuration.
+    enabled: true,
+    builtin: true,
+    transport: {
+      type: 'stdio',
+      command: serverConfig.command,
+      args: serverConfig.args,
+    },
+    original_json: JSON.stringify({ mcpServers: { [BUILTIN_BROWSER_MCP_NAME]: serverConfig } }, null, 2),
+  };
+}
+
 function buildDefaultMcpServers(): McpImportServer[] {
   const chromeConfig = {
     command: 'npx',
@@ -179,6 +219,7 @@ function buildDefaultMcpServers(): McpImportServer[] {
       },
       original_json: JSON.stringify({ mcpServers: { [BUILTIN_CHROME_DEVTOOLS_NAME]: chromeConfig } }, null, 2),
     },
+    buildBuiltinBrowserServer(),
   ];
 }
 
@@ -351,10 +392,53 @@ async function ensureBootstrapMcpServersInDb(configFile: ConfigFile): Promise<vo
     );
   }
 
+  /**
+   * 修复浏览器 MCP 记录里过期的脚本绝对路径。
+   *
+   * 注册时把绝对路径写进了 transport.args，只在「首次插入」时写一次。应用被移动过
+   * （用户把 .app 拖出 /Applications、Windows 重装到别的目录、开发时换 worktree）
+   * 之后这条路径就失效了，而按名字判断「已注册」使它永远不会被重新插入 ——
+   * 结果是浏览器工具永久失效且不会自愈。所以每次启动都对齐一次实际路径。
+   *
+   * Repair a stale absolute script path in the browser MCP record. The path is baked
+   * into transport.args and only written on first insert, so once the app moves (user
+   * drags the .app out of /Applications, a Windows reinstall to a different directory,
+   * a developer switching worktrees) it goes stale — and because "already registered"
+   * is decided by name, it is never re-inserted, leaving the browser tools broken with
+   * no self-heal. Reconcile against the real path on every startup instead.
+   */
+  const existingBrowserServer = existing.find((server) => server.name === BUILTIN_BROWSER_MCP_NAME);
+  let browserServerUpdated = false;
+  if (existingBrowserServer) {
+    const desiredBrowserServer = buildBuiltinBrowserServer();
+    const browserTransportChanged = !isSameStdioTransport(
+      existingBrowserServer.transport,
+      desiredBrowserServer.transport
+    );
+    const browserJsonChanged = existingBrowserServer.original_json !== desiredBrowserServer.original_json;
+    if (browserTransportChanged || browserJsonChanged) {
+      console.info(
+        '[Migration] browser MCP path drifted, server id: %s, transport changed: %s, json changed: %s',
+        existingBrowserServer.id,
+        browserTransportChanged ? 'yes' : 'no',
+        browserJsonChanged ? 'yes' : 'no'
+      );
+      await mcpService.updateServer.invoke({
+        id: existingBrowserServer.id,
+        data: {
+          transport: desiredBrowserServer.transport,
+          original_json: desiredBrowserServer.original_json,
+        },
+      });
+      browserServerUpdated = true;
+    }
+  }
+
   console.info(
-    '[Migration] MCP bootstrap completed, imported %d missing defaults, updated image server: %s, image config source: %s, image enabled: %s',
+    '[Migration] MCP bootstrap completed, imported %d missing defaults, updated image server: %s, updated browser server: %s, image config source: %s, image enabled: %s',
     missing.length,
     imageServerUpdated ? 'yes' : 'no',
+    browserServerUpdated ? 'yes' : 'no',
     imageConfigSource,
     imageConfig?.switch === true ? 'yes' : 'no'
   );

@@ -32,6 +32,7 @@ import { copyText } from '@/renderer/utils/ui/clipboard';
 import { blurActiveElement, shouldBlockMobileInputFocus } from '@/renderer/utils/ui/focus';
 import { Button, Input, Message, Tag } from '@arco-design/web-react';
 import { ArrowUp, CloseSmall, Plus, Quote } from '@icon-park/react';
+import { chatFileRefKey } from '@/common/types/chatFile';
 import type { SlashCommandItem } from '@/common/chat/slash/types';
 import { buildSkillSlashCommands, mergeSlashCommands } from '@/common/chat/slash/mergeSlashCommands';
 import React, { useCallback, useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
@@ -71,11 +72,22 @@ const getSelectedItemMatchKeys = (item: FileSelectionItem): string[] => {
   return [item.relativePath, item.path].filter((value): value is string => Boolean(value));
 };
 
-const getSelectedItemPath = (item: FileSelectionItem): string | undefined => {
+// Stable identity key for dedup / ownership tracking / React render key. A file
+// carrying a `chatRef` is keyed by its ref identity via `chatFileRefKey` — this
+// is what lets an Explorer pe ROOT (whose `relative_path` is '', so `item.path`
+// is the empty string) survive: its ref key is non-empty and unique per pe, so
+// distinct roots no longer collide on an empty path. Items without a chatRef
+// fall back to their path. This is NOT the mention match key set
+// (`getSelectedItemMatchKeys`), which stays keyed on relativePath/path for
+// `@`-query matching.
+const getSelectedItemKey = (item: FileSelectionItem): string | undefined => {
   if (typeof item === 'string') {
     return item;
   }
-  return item.path;
+  if (item.chatRef) {
+    return chatFileRefKey(item.chatRef);
+  }
+  return item.path || undefined;
 };
 
 const getSelectedItemDisplayLabel = (item: FileSelectionItem): string => {
@@ -86,7 +98,7 @@ const getSelectedItemDisplayLabel = (item: FileSelectionItem): string => {
 };
 
 const rememberSelectedItem = (itemsByPath: Map<string, FileSelectionItem>, item: FileSelectionItem): void => {
-  const path = getSelectedItemPath(item);
+  const path = getSelectedItemKey(item);
   if (!path) {
     return;
   }
@@ -118,7 +130,7 @@ const areSelectionItemsEquivalent = (left: FileSelectionItem[], right: FileSelec
       return false;
     }
 
-    if (getSelectedItemPath(leftItem) !== getSelectedItemPath(rightItem)) {
+    if (getSelectedItemKey(leftItem) !== getSelectedItemKey(rightItem)) {
       return false;
     }
   }
@@ -137,7 +149,7 @@ const buildOwnedSelectionItems = (
   const seenPaths = new Set<string>();
 
   for (const item of currentItems) {
-    const path = getSelectedItemPath(item);
+    const path = getSelectedItemKey(item);
     if (!path || seenPaths.has(path) || !ownedPaths.has(path)) {
       continue;
     }
@@ -195,6 +207,10 @@ const SendBox: React.FC<{
    * `tools` and `rightTools` are not rendered inline on mobile.
    */
   onMobilePlusClick?: () => void;
+  /** Team multi-column focus coordination: whether this box owns focus (default true). */
+  active?: boolean;
+  /** Called when the textarea gains focus, so the team layer can sync tab selection. */
+  onFocused?: () => void;
 }> = ({
   onSend,
   onStop,
@@ -222,6 +238,8 @@ const SendBox: React.FC<{
   onSelectedWorkspaceItemsChange,
   bottomHint,
   onMobilePlusClick,
+  active = true,
+  onFocused,
 }) => {
   const layout = useLayoutContext();
   const isMobile = layout?.isMobile ?? false;
@@ -433,7 +451,14 @@ const SendBox: React.FC<{
 
     const mentionQueries = new Set(allAtFileQueries.map((item) => item.query));
     return selectedWorkspaceItems.filter((item) => {
-      if (typeof item !== 'string' && !item.isFile) {
+      // A non-file (folder) item is still a valid chat attachment when it
+      // carries a chatRef — the Explorer tree's add-to-chat builds a project
+      // ref, and a pe ROOT is a folder whose relative_path is ''. The backend
+      // resolves a directory ref to its absolute path (verified in
+      // aionui-project resolve_chat_file_ref: a project ref only requires the
+      // target to exist, not to be a regular file). Only drop a non-file item
+      // that has no ref identity at all.
+      if (typeof item !== 'string' && !item.isFile && !item.chatRef) {
         return false;
       }
       return !getSelectedItemMatchKeys(item).some((key) => mentionQueries.has(key));
@@ -596,6 +621,32 @@ const SendBox: React.FC<{
     textarea.setSelectionRange(end, end);
     setCaretPosition(end);
   }, [getTextareaElement, input, isMobile, prefillFocusRequest]);
+
+  // Selection→focus latch: whether we've already granted focus for the current
+  // active session. Reset when this box goes inactive so the next activation
+  // re-focuses. Prevents stealing focus back after the user moves elsewhere.
+  const activeFocusGrantedRef = useRef(false);
+
+  useEffect(() => {
+    if (!active) {
+      activeFocusGrantedRef.current = false;
+    }
+  }, [active]);
+
+  useEffect(() => {
+    if (!active || isMobile || disabled) return;
+    if (activeFocusGrantedRef.current) return;
+    const textarea = getTextareaElement();
+    if (!textarea) return;
+    activeFocusGrantedRef.current = true;
+    // Already focused (e.g. user clicked into this box, which drove selection
+    // here via onFocused): latch it but leave the caret where the user put it.
+    if (document.activeElement === textarea) return;
+    textarea.focus();
+    const end = textarea.value.length;
+    textarea.setSelectionRange(end, end);
+    setCaretPosition(end);
+  }, [active, disabled, isMobile, getTextareaElement]);
 
   const syncCaretPosition = useCallback(
     (target?: EventTarget | null) => {
@@ -822,7 +873,7 @@ const SendBox: React.FC<{
     }
 
     for (const item of selectedWorkspaceItems) {
-      const path = getSelectedItemPath(item);
+      const path = getSelectedItemKey(item);
       if (!path) {
         continue;
       }
@@ -834,7 +885,7 @@ const SendBox: React.FC<{
 
     const incomingPaths = new Set<string>();
     for (const item of selectedWorkspaceItems) {
-      const path = getSelectedItemPath(item);
+      const path = getSelectedItemKey(item);
       if (path) {
         incomingPaths.add(path);
       }
@@ -869,7 +920,7 @@ const SendBox: React.FC<{
 
   const handleExternalSelectionAppend = useCallback((items: FileSelectionItem[]) => {
     for (const item of items) {
-      const path = getSelectedItemPath(item);
+      const path = getSelectedItemKey(item);
       if (!path) {
         continue;
       }
@@ -953,7 +1004,7 @@ const SendBox: React.FC<{
       const nextValue = input.slice(0, activeAtFileQuery.start) + nextInsertion + input.slice(activeAtFileQuery.end);
       const nextCaret = activeAtFileQuery.start + nextInsertion.length;
       const insertedTokenKey = `${activeAtFileQuery.start}:${nextInsertion.slice(1)}`;
-      const path = getSelectedItemPath(item);
+      const path = getSelectedItemKey(item);
 
       setDismissedAtFileToken(insertedTokenKey);
       setInput(nextValue);
@@ -1041,7 +1092,8 @@ const SendBox: React.FC<{
     mobileUserFocusIntentUntilRef.current = 0;
     handlePasteFocus();
     setIsInputFocused(true);
-  }, [handlePasteFocus, isMobile]);
+    onFocused?.();
+  }, [handlePasteFocus, isMobile, onFocused]);
   const handleInputBlur = useCallback(() => {
     setIsInputFocused(false);
   }, []);
@@ -1366,15 +1418,11 @@ const SendBox: React.FC<{
   ) : null;
 
   // On mobile compact mode, the parent supplies the action sheet — collapse
-  // tools/rightTools into the `+` launcher and skip the inline speech button.
+  // tools/rightTools into the `+` launcher while keeping voice input accessible.
   const renderedTools = isMobileCompact ? mobilePlusButton : tools;
   const renderedRightTools = isMobileCompact ? null : rightTools;
-  const renderedSpeechButton = isMobileCompact ? null : (
-    <SpeechInputButton
-      disabled={disabled || isLoading || loading || isUploading}
-      onLiveTranscript={handleLiveTranscript}
-      onTranscript={handleSpeechTranscript}
-    />
+  const renderedSpeechButton = (
+    <SpeechInputButton onLiveTranscript={handleLiveTranscript} onTranscript={handleSpeechTranscript} />
   );
 
   const renderHighlightedInputValue = useCallback(() => {
@@ -1554,11 +1602,11 @@ const SendBox: React.FC<{
             <div className='flex flex-wrap gap-6px mb-8px'>
               {unmatchedSelectedWorkspaceItems.map((item) => (
                 <Tag
-                  key={typeof item === 'string' ? item : item.path}
+                  key={getSelectedItemKey(item) ?? getSelectedItemDisplayLabel(item)}
                   closable
                   closeIcon={<CloseSmall theme='outline' size='12' />}
                   onClose={() => {
-                    const path = getSelectedItemPath(item);
+                    const path = getSelectedItemKey(item);
                     if (!path) {
                       return;
                     }
@@ -1617,7 +1665,7 @@ const SendBox: React.FC<{
               {renderHighlightedInputValue()}
             </div>
             <Input.TextArea
-              autoFocus={!isMobile}
+              autoFocus={active && !isMobile}
               disabled={disabled}
               spellCheck={false}
               value={input}
@@ -1676,7 +1724,7 @@ const SendBox: React.FC<{
             ></Input.TextArea>
           </div>
           {isSingleLine && (
-            <div className='flex items-center gap-2'>
+            <div className='flex items-center gap-1'>
               {renderedSpeechButton}
               {sendButtonPrefix}
               {renderActionButtons()}
@@ -1696,7 +1744,7 @@ const SendBox: React.FC<{
             >
               {renderedTools}
             </div>
-            <div className='sendbox-actions flex items-center gap-2'>
+            <div className='sendbox-actions flex items-center gap-1'>
               {renderedRightTools}
               {renderedSpeechButton}
               {sendButtonPrefix}

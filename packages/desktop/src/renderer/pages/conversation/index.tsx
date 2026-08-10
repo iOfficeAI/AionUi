@@ -1,6 +1,6 @@
 import { ipcBridge } from '@/common';
 import { Message, Spin } from '@arco-design/web-react';
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useLayoutEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
 import useSWR from 'swr';
@@ -11,6 +11,7 @@ import { setCurrentProject } from '@/renderer/pages/conversation/explorer/curren
 import { setCurrentConversation } from '@/renderer/pages/conversation/explorer/currentConversationStore';
 import { useAutoTitle } from '@/renderer/hooks/chat/useAutoTitle';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
+import { getSnapshotConversationProjectId } from '@/renderer/pages/conversation/GroupedHistory/hooks/useConversationListSync';
 
 const ChatConversationIndex: React.FC = () => {
   const { id } = useParams();
@@ -36,10 +37,25 @@ const ChatConversationIndex: React.FC = () => {
     closePreviewIfScopeChanged(previewScopeKey(data.project_id ?? null, workspace));
   }, [data, closePreviewIfScopeChanged]);
 
-  // Publish the active project to the module store so the Layout-level Explorer
-  // column (above this per-conversation route subtree) renders it. Not cleared on
-  // unmount — same-project conversation switches keep the value, so the column
-  // does not remount; Layout clears it when leaving the conversation route.
+  // Publish the active project SYNCHRONOUSLY on conversation switch, from the
+  // in-memory list snapshot (every row carries project_id) — before the async
+  // `conversation.get` resolves. Without this the module store held the previous
+  // conversation's project until the fetch landed (~120-280ms, seconds when the
+  // conversation is cold / mid-backfill), so the Explorer painted the old
+  // project's tree. A known conversation publishes its project id immediately
+  // (covers never-opened rows — the snapshot is the full list); an unknown one
+  // (brand-new / not yet in the snapshot) publishes null — an empty placeholder,
+  // never a stale project. Runs before paint (layout effect) so no stale frame.
+  useLayoutEffect(() => {
+    if (!id) return;
+    setCurrentProject(getSnapshotConversationProjectId(id) ?? null);
+  }, [id]);
+
+  // Post-resolve authoritative correction: once `conversation.get` lands, publish
+  // its project_id (also the backfill path — a workspace conversation's
+  // project_id flips None→Some server-side and re-flows here via the refetch
+  // below). `setCurrentProject` dedups, so when the sync effect already set the
+  // right value this is a no-op.
   useEffect(() => {
     if (data) setCurrentProject(data.project_id ?? null);
   }, [data]);

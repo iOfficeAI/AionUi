@@ -124,7 +124,7 @@ describe('applyDelta', () => {
       next
         .get(key)
         ?.map((e) => e.name)
-        .sort()
+        .toSorted()
     ).toEqual(['a.ts', 'b.ts', 'sub']);
   });
 
@@ -139,7 +139,7 @@ describe('applyDelta', () => {
       next
         .get(key)
         ?.map((e) => e.name)
-        .sort()
+        .toSorted()
     ).toEqual(['c.ts', 'sub']);
   });
 
@@ -155,7 +155,7 @@ describe('applyDelta', () => {
       next
         .get(key)
         ?.map((e) => e.name)
-        .sort()
+        .toSorted()
     ).toEqual(['a.ts', 'sub']);
   });
 
@@ -165,7 +165,7 @@ describe('applyDelta', () => {
       next
         .get(key)
         ?.map((e) => e.name)
-        .sort()
+        .toSorted()
     ).toEqual(['a.ts', 'sub']);
   });
 
@@ -196,7 +196,7 @@ describe('applyDelta', () => {
       next
         .get(key)
         ?.map((e) => e.name)
-        .sort()
+        .toSorted()
     ).toEqual(['a.ts', 'sub']);
   });
 });
@@ -218,8 +218,8 @@ describe('isDescendantOrSelf', () => {
 describe('subtreeKeys (removed cascade)', () => {
   it('collects the removed dir and all descendants, leaving siblings', () => {
     const keys = [peKey('pe1', 'a'), peKey('pe1', 'a/b'), peKey('pe1', 'a/b/c'), peKey('pe1', 'other')];
-    expect(subtreeKeys(keys, peKey('pe1', 'a')).sort()).toEqual(
-      [peKey('pe1', 'a'), peKey('pe1', 'a/b'), peKey('pe1', 'a/b/c')].sort()
+    expect(subtreeKeys(keys, peKey('pe1', 'a')).toSorted()).toEqual(
+      [peKey('pe1', 'a'), peKey('pe1', 'a/b'), peKey('pe1', 'a/b/c')].toSorted()
     );
   });
 });

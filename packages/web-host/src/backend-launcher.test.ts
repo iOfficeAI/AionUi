@@ -577,10 +577,11 @@ describe('BackendLifecycleManager.start (health timeout)', () => {
       details: expect.objectContaining({
         stage: 'listen_timeout',
         port: 0,
+        healthCheckTimeoutMs: 60_000,
       }),
     });
 
-    await vi.advanceTimersByTimeAsync(31_000);
+    await vi.advanceTimersByTimeAsync(61_000);
     await expectedRejection;
 
     expect(mgr.status).toBe('error');

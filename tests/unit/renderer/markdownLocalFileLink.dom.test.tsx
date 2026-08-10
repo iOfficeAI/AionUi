@@ -5,7 +5,7 @@
  */
 
 import React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import MarkdownView from '@/renderer/components/Markdown';
 import LocalImageView from '@/renderer/components/media/LocalImageView';
@@ -13,6 +13,8 @@ import { downloadFileFromPath } from '@/renderer/utils/file/download';
 
 const copyTextMock = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
 const getImageBase64Mock = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
+const messageSuccessMock = vi.hoisted(() => vi.fn());
+const messageErrorMock = vi.hoisted(() => vi.fn());
 
 vi.mock('@/common', () => ({
   ipcBridge: {
@@ -58,13 +60,15 @@ vi.mock('@arco-design/web-react', () => ({
     </button>
   ),
   Message: {
-    error: vi.fn(),
+    success: (...args: unknown[]) => messageSuccessMock(...args),
+    error: (...args: unknown[]) => messageErrorMock(...args),
   },
   Tooltip: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
 }));
 
 vi.mock('@icon-park/react', () => ({
   Copy: () => <span data-testid='copy-icon' />,
+  Download: () => <span data-testid='download-icon' />,
   LoadingTwo: () => <span data-testid='loading-icon' />,
 }));
 
@@ -78,6 +82,8 @@ describe('MarkdownView local file links', () => {
   beforeEach(() => {
     copyTextMock.mockClear();
     getImageBase64Mock.mockReset().mockResolvedValue(undefined);
+    messageSuccessMock.mockClear();
+    messageErrorMock.mockClear();
   });
 
   it('renders local file links as app controls instead of browser anchors', () => {
@@ -317,6 +323,67 @@ describe('MarkdownView local file links', () => {
     const image = container.querySelector('img');
     expect(image).toHaveAttribute('src', 'https://example.com/generated.png');
     expect(image).toHaveAttribute('alt', '');
+  });
+
+  it('downloads a local markdown image from its resolved artifact path', async () => {
+    const imagePath = String.raw`C:\Users\admin\.codex\generated_images\session-1\qr-code.png`;
+    const createObjectURL = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:qr-code');
+    const revokeObjectURL = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
+    const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    getImageBase64Mock.mockResolvedValue(`data:image/png;base64,${btoa('image-bytes')}`);
+
+    render(<MarkdownView>{`![QR code](${imagePath})`}</MarkdownView>);
+    fireEvent.click(screen.getByLabelText('acp.image.download_aria'));
+
+    await waitFor(() => expect(messageSuccessMock).toHaveBeenCalledWith('acp.image.download_success'));
+    expect(getImageBase64Mock).toHaveBeenLastCalledWith({
+      path: 'C:/Users/admin/.codex/generated_images/session-1/qr-code.png',
+      workspace: 'C:/Users/admin/.codex/generated_images/session-1',
+    });
+    expect(click).toHaveBeenCalledOnce();
+
+    click.mockRestore();
+    revokeObjectURL.mockRestore();
+    createObjectURL.mockRestore();
+  });
+
+  it('downloads a remote markdown image with its URL file name', async () => {
+    const imageBlob = new Blob(['image-bytes'], { type: 'image/png' });
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, blob: vi.fn().mockResolvedValue(imageBlob) });
+    const createObjectURL = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:remote-qr-code');
+    const revokeObjectURL = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
+    let downloadedName = '';
+    const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function () {
+      downloadedName = this.download;
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(<MarkdownView>{'![QR code](https://example.com/files/qr-code.png?token=secret)'}</MarkdownView>);
+    const downloadButton = screen.getByLabelText('acp.image.download_aria');
+    expect(downloadButton.className).toContain('markdown-image-download');
+    fireEvent.click(downloadButton);
+
+    await waitFor(() => expect(messageSuccessMock).toHaveBeenCalledWith('acp.image.download_success'));
+    expect(fetchMock).toHaveBeenCalledWith('https://example.com/files/qr-code.png?token=secret');
+    expect(downloadedName).toBe('qr-code.png');
+
+    vi.unstubAllGlobals();
+    click.mockRestore();
+    revokeObjectURL.mockRestore();
+    createObjectURL.mockRestore();
+  });
+
+  it('shows a localized error when a markdown image cannot be downloaded', async () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+    getImageBase64Mock.mockRejectedValue(new Error('read denied'));
+
+    render(<MarkdownView>{'![broken](/missing/image.png)'}</MarkdownView>);
+    fireEvent.click(screen.getByLabelText('acp.image.download_aria'));
+
+    await waitFor(() => expect(messageErrorMock).toHaveBeenCalledWith('acp.image.download_error'));
+    expect(consoleError).toHaveBeenCalledWith('[MarkdownImage] Failed to download image:', expect.any(Error));
+
+    consoleError.mockRestore();
   });
 });
 

@@ -27,7 +27,7 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
   const { pathname, search, hash } = location;
 
   const navigate = useNavigate();
-  const { closePreview } = usePreviewContext();
+  const { closePreview, clearPreviewForScope } = usePreviewContext();
   const { logout, status } = useAuth();
   const { theme, setTheme } = useThemeContext();
   const [isBatchMode, setIsBatchMode] = useState(false);
@@ -116,6 +116,8 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
   const handleLogout = useCallback(async () => {
     cleanupSiderTooltips();
     blurActiveElement();
+    // Hide the panel now so the UI responds immediately; the tabs themselves are
+    // discarded after logout resolves, below.
     closePreview();
     try {
       await logout();
@@ -123,10 +125,24 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
       console.error('Logout failed:', error);
       return; // logout 失败时不执行后续操作
     }
+    // Discard this account's tabs from memory.
+    //
+    // `clearAuthCache` (inside logout) already deletes the stored `preview-ui:`
+    // keys, but PreviewProvider is mounted at the app root and does not unmount on
+    // logout, so its state survives. The persist effect depends on [tabs,
+    // activeTabId, isOpen] and is still live — so the next change of any of those
+    // would write this account's tabs straight back to disk, undoing the very
+    // cleanup that ran moments earlier and showing them to whoever logs in next.
+    //
+    // Done after `await logout()` rather than before: discarding first would throw
+    // the tabs away even on a path that left the user signed in. `logout()` handles
+    // its own request failure and clears auth in a `finally`, so reaching this line
+    // means the account really is signed out.
+    clearPreviewForScope();
     if (onSessionClick) {
       onSessionClick();
     }
-  }, [closePreview, logout, onSessionClick]);
+  }, [closePreview, clearPreviewForScope, logout, onSessionClick]);
 
   useEffect(() => {
     if (!showLogout) return;
