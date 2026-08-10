@@ -170,8 +170,18 @@ const runReconcile = (): void => {
         if (changed) commit();
       })
       .catch(() => {
-        // Offline / reconnect: current already advanced; the reconnect path
-        // resets current and re-declares, so no gap is left behind.
+        // Subscribe failed (offline, or the socket not yet ready right after a
+        // reconnect). Roll the just-declared keys back out of `current`: leaving
+        // them there would strand them as permanently-but-falsely declared, so
+        // reconcileDiff would see them as already-current and never re-add them —
+        // the directory would keep its stale cache and receive no more updates,
+        // an invisible failure (it looks identically "expanded with contents").
+        // Rolled back, they re-enter `toAdd` on the next reconcile — the reconnect
+        // re-declare, or any user expand/collapse — which retries the subscribe.
+        // We deliberately do NOT reschedule here: retrying immediately against a
+        // still-dead socket would hammer it every round-trip; the next reconcile
+        // trigger is the retry.
+        for (const key of toAdd) current.delete(key);
       });
   }
 };
