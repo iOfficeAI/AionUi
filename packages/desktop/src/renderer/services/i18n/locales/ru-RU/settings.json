@@ -218,6 +218,8 @@
   "assistantManagedPromptCount": "В продукте поддерживается {{count}} рекомендованных подсказок.",
   "assistantManagedPromptFallback": "Рекомендуемые подсказки поддерживаются продуктом.",
   "assistantEngineAffectsDefaults": "При изменении агента обновляется набор доступных ниже моделей и разрешений.",
+  "assistantSearchAgent": "Поиск агентов",
+  "assistantNoMatchingAgent": "Нет подходящих агентов",
   "assistantEffectiveImmediately": "Изменения применяются сразу",
   "assistantOnlyNewConversation": "Только для новых чатов",
   "assistantDefaultModelLabel": "Модель",

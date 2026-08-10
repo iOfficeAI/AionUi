@@ -218,6 +218,8 @@
   "assistantManagedPromptCount": "製品側で管理されている推奨プロンプトが {{count}} 件あります。",
   "assistantManagedPromptFallback": "推奨プロンプトは製品側で管理されています。",
   "assistantEngineAffectsDefaults": "Agent を変更すると、下で選択できるモデルと権限の範囲がそれに応じて更新されます。",
+  "assistantSearchAgent": "エージェントを検索",
+  "assistantNoMatchingAgent": "一致するエージェントがありません",
   "assistantEffectiveImmediately": "変更はすぐ反映",
   "assistantOnlyNewConversation": "新しい会話にのみ適用",
   "assistantDefaultModelLabel": "モデル",

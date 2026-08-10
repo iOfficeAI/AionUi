@@ -218,6 +218,8 @@
   "assistantManagedPromptCount": "目前由產品內建維護 {{count}} 條推薦提示詞。",
   "assistantManagedPromptFallback": "推薦提示詞由產品內建維護。",
   "assistantEngineAffectsDefaults": "更換 Agent 後，下方可選的模型和權限範圍會隨之更新。",
+  "assistantSearchAgent": "搜尋 Agent",
+  "assistantNoMatchingAgent": "沒有符合的 Agent",
   "assistantEffectiveImmediately": "改動立即生效",
   "assistantOnlyNewConversation": "僅對新會話生效",
   "assistantDefaultModelLabel": "模型",

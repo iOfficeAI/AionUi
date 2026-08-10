@@ -218,6 +218,8 @@
   "assistantManagedPromptCount": "Ürün tarafından yönetilen {{count}} önerilen istem var.",
   "assistantManagedPromptFallback": "Önerilen istemler ürün tarafından yönetilir.",
   "assistantEngineAffectsDefaults": "Agent değiştirildiğinde, aşağıda seçilebilen model ve izin aralığı buna göre güncellenir.",
+  "assistantSearchAgent": "Aracıları ara",
+  "assistantNoMatchingAgent": "Eşleşen aracı yok",
   "assistantEffectiveImmediately": "Hemen geçerli",
   "assistantOnlyNewConversation": "Yalnızca yeni sohbetler için",
   "assistantDefaultModelLabel": "Model",

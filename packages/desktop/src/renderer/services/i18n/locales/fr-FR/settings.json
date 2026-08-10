@@ -218,6 +218,8 @@
   "assistantManagedPromptCount": "{{count}} invite les suggestions maintenues par le produit.",
   "assistantManagedPromptFallback": "Les suggestions rapides sont maintenues par le produit.",
   "assistantEngineAffectsDefaults": "La modification de l'agent met à jour les valeurs de modèle et d'autorisation disponibles ci-dessous.",
+  "assistantSearchAgent": "Rechercher un agent",
+  "assistantNoMatchingAgent": "Aucun agent correspondant",
   "assistantEffectiveImmediately": "S'applique immédiatement",
   "assistantOnlyNewConversation": "Nouvelles conversations uniquement",
   "assistantDefaultModelLabel": "Modèle",
