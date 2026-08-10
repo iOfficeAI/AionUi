@@ -1,6 +1,12 @@
 import type { WebHostOptions, WebHostHandle } from './types.js';
 
-export type { AppMetadata, BackendBinaryResolver, WebHostOptions, WebHostHandle } from './types.js';
+export type {
+  AppMetadata,
+  BackendBinaryResolver,
+  BackendIdentityMode,
+  WebHostOptions,
+  WebHostHandle,
+} from './types.js';
 export { startStaticServer, stopStaticServer } from './static-server.js';
 export type { StaticServerOptions, StaticServerHandle } from './static-server.js';
 
@@ -28,12 +34,17 @@ export async function startWebHost(opts: WebHostOptions): Promise<WebHostHandle>
   const { startBackend } = await import('./backend-launcher.js');
   const { startStaticServer } = await import('./static-server.js');
 
+  if (opts.allowRemote && opts.backend.identityMode === 'local') {
+    throw new Error('Remote WebUI requires an authenticated webui backend');
+  }
+
   // 1. Start backend (M4)
   let backendHandle;
   if (opts.backend.kind === 'ownBackend') {
     backendHandle = await startBackend({
       app: opts.app,
       resolveBackend: opts.backend.resolveBackend,
+      identityMode: opts.backend.identityMode,
       dataDir: opts.dataDir,
       logDir: opts.logDir,
       dirs: opts.dirs,
@@ -42,6 +53,7 @@ export async function startWebHost(opts: WebHostOptions): Promise<WebHostHandle>
     // useExistingBackend: create a fake handle
     backendHandle = {
       port: opts.backend.port,
+      localClientSecret: undefined,
       stop: async () => {
         // no-op: external backend
       },
@@ -56,6 +68,7 @@ export async function startWebHost(opts: WebHostOptions): Promise<WebHostHandle>
       backendPort: backendHandle.port,
       port: opts.port,
       allowRemote: opts.allowRemote ?? false,
+      trustProxy: opts.trustProxy ?? false,
     });
   } catch (err) {
     // If static-server fails, clean up backend
@@ -67,6 +80,7 @@ export async function startWebHost(opts: WebHostOptions): Promise<WebHostHandle>
   return {
     port: staticHandle.port,
     backendPort: backendHandle.port,
+    localClientSecret: backendHandle.localClientSecret,
     url: staticHandle.url,
     localUrl: staticHandle.localUrl,
     networkUrl: staticHandle.networkUrl,

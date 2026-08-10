@@ -2,11 +2,10 @@ import { startWebHost, startStaticServer } from '@aionui/web-host';
 import type { WebHostHandle, StaticServerHandle } from '@aionui/web-host';
 import { setTimeout as delay } from 'node:timers/promises';
 import fs from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { openBrowserUrl, shouldAutoOpenBrowser } from './browser.js';
-import { ensureAdminPassword } from './ensureAdminPassword.js';
+import { resolveDataDir, resolveLogDir, resolveWorkDir } from './paths.js';
 
 // tarball layout:
 //   aionui-web/
@@ -34,24 +33,8 @@ function resolveCliRoot(): string {
 
 const cliRoot = resolveCliRoot();
 
-// `isPackaged` mirrors AppMetadata.isPackaged: true when running as the
-// bun-compiled single-file binary inside a release tarball. Only the
-// resetpass hint text varies by mode today.
-//
-// Note on macOS quarantine: we tried stripping `com.apple.quarantine` from
-// cliRoot at process start, but Gatekeeper refuses exec _before_ our code
-// runs, so the first launch still fails. Users must either run
-// `xattr -dr com.apple.quarantine <path>` manually or use `install-web.sh`,
-// which does it for them. Until we sign + notarize, there is nothing the
-// binary itself can do about first-launch quarantine.
-const isPackaged = (() => {
-  const exeName = path.basename(process.execPath).toLowerCase();
-  return exeName === 'aionui-web' || exeName === 'aionui-web.exe';
-})();
-
 const BACKEND_BINARY = process.platform === 'win32' ? 'aioncore.exe' : 'aioncore';
 const DEFAULT_PORT = 25808;
-const RESET_COMMAND = isPackaged ? 'aionui-web resetpass' : 'bun run resetpass';
 
 let currentHandle: WebHostHandle | StaticServerHandle | null = null;
 
@@ -89,22 +72,6 @@ function resolveStaticDir(flags: Map<string, string | true>): string {
   return path.join(cliRoot, 'static');
 }
 
-function resolveDataDir(flags: Map<string, string | true>): string {
-  const override = flags.get('data-dir');
-  if (typeof override === 'string') return path.resolve(override);
-  const envOverride = process.env.AIONUI_DATA_DIR;
-  if (envOverride) return path.resolve(envOverride);
-  return path.join(os.homedir(), '.aionui-web');
-}
-
-function resolveLogDir(flags: Map<string, string | true>, dataDir: string): string {
-  const override = flags.get('log-dir');
-  if (typeof override === 'string') return path.resolve(override);
-  const envOverride = process.env.AIONUI_LOG_DIR;
-  if (envOverride) return path.resolve(envOverride);
-  return path.join(dataDir, 'logs');
-}
-
 function resolvePort(flags: Map<string, string | true>): number {
   const cli = flags.get('port');
   if (typeof cli === 'string' && /^\d+$/.test(cli)) return Number(cli);
@@ -120,6 +87,13 @@ function resolveAllowRemote(flags: Map<string, string | true>): boolean {
   return ['1', 'true', 'yes', 'on'].includes(env.trim().toLowerCase());
 }
 
+function resolveTrustProxy(flags: Map<string, string | true>): boolean {
+  if (flags.has('trust-proxy')) return true;
+  const env = process.env.AIONUI_TRUST_PROXY;
+  if (!env) return false;
+  return ['1', 'true', 'yes', 'on'].includes(env.trim().toLowerCase());
+}
+
 function readPackageVersion(): string {
   try {
     const pkgPath = path.join(cliRoot, 'package.json');
@@ -130,6 +104,15 @@ function readPackageVersion(): string {
   }
 }
 
+function printInitialAdminCredentialHint(dataDir: string): void {
+  const configured = process.env.AIONUI_INITIAL_ADMIN_CREDENTIALS_FILE?.trim();
+  const credentialFile = configured || path.join(dataDir, 'initial-admin-credentials.json');
+  if (!fs.existsSync(credentialFile)) return;
+
+  console.log(`  Initial credentials: ${credentialFile}`);
+  console.log('  Sign in with that one-time password and replace it immediately.');
+}
+
 async function runStart(flags: Map<string, string | true>): Promise<void> {
   const backendBin = resolveBackendBinary(flags);
   const staticDir = resolveStaticDir(flags);
@@ -137,8 +120,11 @@ async function runStart(flags: Map<string, string | true>): Promise<void> {
   fs.mkdirSync(dataDir, { recursive: true });
   const logDir = resolveLogDir(flags, dataDir);
   fs.mkdirSync(logDir, { recursive: true });
+  const workDir = resolveWorkDir(flags, dataDir);
+  fs.mkdirSync(workDir, { recursive: true });
   const port = resolvePort(flags);
   const allowRemote = resolveAllowRemote(flags);
+  const trustProxy = resolveTrustProxy(flags);
   const version = readPackageVersion();
   const autoOpenBrowser = shouldAutoOpenBrowser({
     allowRemote,
@@ -156,9 +142,10 @@ async function runStart(flags: Map<string, string | true>): Promise<void> {
   console.log(`[aionui-web] version    : ${version}`);
   console.log(`[aionui-web] data dir   : ${dataDir}`);
   console.log(`[aionui-web] log dir    : ${logDir}`);
+  console.log(`[aionui-web] work dir   : ${workDir}`);
   console.log(`[aionui-web] static dir : ${staticDir}`);
   console.log(`[aionui-web] backend bin: ${backendBin}`);
-  console.log(`[aionui-web] launching  : port=${port} allowRemote=${allowRemote}`);
+  console.log(`[aionui-web] launching  : port=${port} allowRemote=${allowRemote} trustProxy=${trustProxy}`);
 
   const backendAvailable = fs.existsSync(backendBin);
 
@@ -178,6 +165,7 @@ async function runStart(flags: Map<string, string | true>): Promise<void> {
       backendPort: 0, // invalid port → API proxy will fail cleanly
       port,
       allowRemote,
+      trustProxy,
     });
     currentHandle = handle;
 
@@ -206,16 +194,18 @@ async function runStart(flags: Map<string, string | true>): Promise<void> {
       staticDir,
       port,
       allowRemote,
+      trustProxy,
       dataDir,
       logDir,
       dirs: {
         cacheDir: dataDir,
-        workDir: dataDir,
+        workDir,
         logDir,
       },
       backend: {
         kind: 'ownBackend',
         resolveBackend: () => backendBin,
+        identityMode: 'webui',
       },
     });
 
@@ -225,20 +215,7 @@ async function runStart(flags: Map<string, string | true>): Promise<void> {
     console.log('AionUi WebUI is ready');
     console.log(`  Local  : ${handle.localUrl}`);
     if (handle.networkUrl) console.log(`  Network: ${handle.networkUrl}`);
-
-    // First-launch bootstrap: if SQLite has no admin password yet, seed one via
-    // backend and print plaintext credentials. Failure must not abort startup —
-    // the user can always fall back to running resetpass manually.
-    await ensureAdminPassword(
-      { backendPort: handle.backendPort, resetCommand: RESET_COMMAND },
-      {
-        fetch: (...args) => fetch(...args),
-        log: (msg) => console.log(msg),
-        warn: (msg) => console.warn(msg),
-        sleep: (ms) => delay(ms),
-        now: () => Date.now(),
-      }
-    );
+    printInitialAdminCredentialHint(dataDir);
 
     if (autoOpenBrowser) {
       const openResult = openBrowserUrl(handle.localUrl);
@@ -307,17 +284,22 @@ async function runResetPassword(flags: Map<string, string | true>): Promise<void
     dataDir,
     logDir,
     dirs: { cacheDir: dataDir, workDir: dataDir, logDir },
-    backend: { kind: 'ownBackend', resolveBackend: () => backendBin },
+    backend: { kind: 'ownBackend', resolveBackend: () => backendBin, identityMode: 'local' },
   });
   currentHandle = handle;
 
   try {
+    const localClientHeaders = handle.localClientSecret
+      ? { 'x-aionui-local-secret': handle.localClientSecret }
+      : undefined;
     // Wait for backend to finish migrating + seeding before we hit the endpoint.
     const deadline = Date.now() + 15_000;
     let ready = false;
     while (Date.now() < deadline) {
       try {
-        const res = await fetch(`http://127.0.0.1:${handle.backendPort}/api/auth/status`);
+        const res = await fetch(`http://127.0.0.1:${handle.backendPort}/api/auth/status`, {
+          headers: localClientHeaders,
+        });
         if (res.ok) {
           ready = true;
           break;
@@ -328,16 +310,15 @@ async function runResetPassword(flags: Map<string, string | true>): Promise<void
       await delay(500);
     }
     if (!ready) {
-      console.error('[aionui-web] backend did not become ready within 15s');
-      process.exit(1);
+      throw new Error('backend did not become ready within 15s');
     }
 
     const res = await fetch(`http://127.0.0.1:${handle.backendPort}/api/webui/reset-password`, {
       method: 'POST',
+      headers: localClientHeaders,
     });
     if (!res.ok) {
-      console.error(`[aionui-web] /api/webui/reset-password returned ${res.status}`);
-      process.exit(1);
+      throw new Error(`/api/webui/reset-password returned ${res.status}`);
     }
     const payload = (await res.json()) as {
       data?: { new_password?: string; username?: string };
@@ -347,8 +328,7 @@ async function runResetPassword(flags: Map<string, string | true>): Promise<void
     const newPassword = payload.data?.new_password ?? payload.new_password;
     const username = payload.data?.username ?? payload.username ?? 'admin';
     if (!newPassword) {
-      console.error('[aionui-web] reset-password response missing new_password');
-      process.exit(1);
+      throw new Error('reset-password response missing new_password');
     }
     console.log(`[aionui-web] username: ${username}`);
     console.log(`[aionui-web] new password: ${newPassword}`);
@@ -383,10 +363,12 @@ Commands:
 Options for start:
   --port <n>              Listen port (default: ${DEFAULT_PORT})
   --remote                Bind 0.0.0.0 instead of 127.0.0.1
+  --trust-proxy           Trust one reverse-proxy hop for client IP and host
   --open                  Force opening the local URL in a browser
   --no-open               Disable automatic browser opening
   --data-dir <path>       Override data dir (default: ~/.aionui-web)
   --log-dir <path>        Override log dir (default: <data-dir>/logs)
+  --work-dir <path>       Override workspace root (default: <data-dir>)
   --static-dir <path>     Override static assets dir
   --backend-bin <path>    Override backend binary path
 
@@ -395,8 +377,10 @@ Options for resetpass:
   --backend-bin <path>    Override backend binary path
 
 Environment variables:
-  AIONUI_PORT, AIONUI_ALLOW_REMOTE, AIONUI_DATA_DIR, AIONUI_LOG_DIR,
-  AIONUI_BACKEND_BIN, AIONUI_OPEN_BROWSER
+  AIONUI_PORT, AIONUI_ALLOW_REMOTE, AIONUI_DATA_DIR, AIONUI_LOG_DIR, AIONUI_WORK_DIR,
+  AIONUI_BACKEND_BIN, AIONUI_OPEN_BROWSER, AIONUI_TRUST_PROXY, AIONUI_HTTPS,
+  AIONUI_BOOTSTRAP_WORKSPACE, AIONUI_INITIAL_ADMIN_USERNAME,
+  AIONUI_INITIAL_ADMIN_PASSWORD_FILE, AIONUI_INITIAL_ADMIN_CREDENTIALS_FILE
 `);
     return;
   }

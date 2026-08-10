@@ -72,7 +72,10 @@
     "test:smoke:installer:rstrtmgr-ui": "node scripts/smoke-installer-rstrtmgr-ui.js",
     "prepare": "husky",
     "postinstall": "node scripts/postinstall.js",
-    "test:bun": "bun test packages/desktop/src/process/services/database/drivers/*.bun.test.ts"
+    "test:bun": "bun test packages/desktop/src/process/services/database/drivers/*.bun.test.ts",
+    "docker:dev": "docker compose -f docker-compose.dev.yml up --build --detach",
+    "docker:dev:down": "docker compose -f docker-compose.dev.yml down",
+    "docker:verify": "bash scripts/verify-team-docker.sh"
   },
   "dependencies": {
     "@agentclientprotocol/sdk": "^0.18.2",
@@ -258,7 +261,7 @@
   "engines": {
     "node": ">=22 <25"
   },
-  "aioncoreVersion": "v0.1.63",
+  "aioncoreVersion": "v0.1.64",
   "electronRebuild": {
     "electronVersion": "^37.3.1"
   },

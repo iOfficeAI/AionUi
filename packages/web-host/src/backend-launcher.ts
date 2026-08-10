@@ -9,10 +9,11 @@
  */
 
 import { type ChildProcess, spawn } from 'node:child_process';
+import { randomBytes } from 'node:crypto';
 import { mkdirSync, statSync } from 'node:fs';
 import { connect, createServer, type Socket } from 'node:net';
 import { cleanupRegisteredAgentProcesses } from './agent-process-registry.js';
-import type { AppMetadata, BackendBinaryResolver } from './types.js';
+import type { AppMetadata, BackendBinaryResolver, BackendIdentityMode } from './types.js';
 
 type BackendStatus = 'stopped' | 'starting' | 'running' | 'error';
 type BackendStartupStage =
@@ -65,6 +66,7 @@ type SpawnConfig = {
   port: number;
   dbPath: string;
   local: boolean;
+  identityMode?: BackendIdentityMode;
   parentPid?: number;
   logDir?: string;
   workDir?: string;
@@ -86,6 +88,7 @@ export type BackendDirConfig = {
 export type BackendLaunchOptions = {
   app: AppMetadata;
   resolveBackend: BackendBinaryResolver;
+  identityMode: BackendIdentityMode;
   port?: number;
   dataDir?: string;
   logDir?: string;
@@ -99,6 +102,7 @@ export type BackendLaunchOptions = {
 
 export type BackendHandle = {
   port: number;
+  localClientSecret?: string;
   stop: () => Promise<void>;
 };
 
@@ -211,6 +215,7 @@ export function buildSpawnArgs(config: SpawnConfig): string[] {
   if (config.logDir) args.push('--log-dir', config.logDir);
   if (config.workDir) args.push('--work-dir', config.workDir);
   if (config.local) args.push('--local');
+  else if (config.identityMode) args.push('--identity-mode', config.identityMode);
   if (config.recoverCorruptedDatabase) args.push('--recover-corrupted-database');
   return args;
 }
@@ -221,13 +226,45 @@ export function buildSpawnArgs(config: SpawnConfig): string[] {
  * backend's `/api/system/info` matches what Electron main persists in
  * ProcessEnv('aionui.dir').
  */
-export function buildSpawnEnv(dirs: BackendDirConfig): NodeJS.ProcessEnv {
-  return {
+export function buildSpawnEnv(
+  dirs?: BackendDirConfig,
+  identityMode?: BackendIdentityMode,
+  localClientSecret?: string
+): NodeJS.ProcessEnv {
+  const env: NodeJS.ProcessEnv = {
     ...process.env,
-    AIONUI_CACHE_DIR: dirs.cacheDir,
-    AIONUI_WORK_DIR: dirs.workDir,
-    AIONUI_LOG_DIR: dirs.logDir,
+    ...(dirs
+      ? {
+          AIONUI_CACHE_DIR: dirs.cacheDir,
+          AIONUI_WORK_DIR: dirs.workDir,
+          AIONUI_LOG_DIR: dirs.logDir,
+        }
+      : {}),
   };
+
+  // Packaged Electron pages have the opaque `null` origin, which AionCore
+  // allows in Local mode. Development loads the renderer from Vite instead;
+  // pass that exact origin automatically unless the operator supplied an
+  // explicit allowlist.
+  if (identityMode === 'local' && process.env.AIONCORE_ALLOWED_ORIGINS === undefined) {
+    const rendererUrl = process.env.ELECTRON_RENDERER_URL?.trim();
+    if (rendererUrl) {
+      try {
+        const url = new URL(rendererUrl);
+        if (url.protocol === 'http:' || url.protocol === 'https:') {
+          env.AIONCORE_ALLOWED_ORIGINS = url.origin;
+        }
+      } catch {
+        // The renderer loader reports malformed development URLs separately.
+      }
+    }
+  }
+
+  if (identityMode === 'local' && localClientSecret) {
+    env.AIONCORE_LOCAL_CLIENT_SECRET = localClientSecret;
+  }
+
+  return env;
 }
 
 const FETCH_FORBIDDEN_PORTS = new Set([
@@ -517,14 +554,24 @@ export class BackendLifecycleManager {
   private restartWindowStart = 0;
   private readonly maxRestarts = 3;
   private readonly restartWindowMs = 60_000;
+  private readonly _localClientSecret?: string;
 
   constructor(
     private readonly appMeta: AppMetadata,
-    private readonly resolveBackend: BackendBinaryResolver
-  ) {}
+    private readonly resolveBackend: BackendBinaryResolver,
+    private readonly identityMode: BackendIdentityMode = 'local'
+  ) {
+    // Authenticate the packaged renderer to the loopback backend with an
+    // unguessable per-launch value; `Origin: null` alone is forgeable.
+    this._localClientSecret = identityMode === 'local' ? randomBytes(32).toString('base64url') : undefined;
+  }
 
   get port(): number {
     return this._port;
+  }
+
+  get localClientSecret(): string | undefined {
+    return this._localClientSecret;
   }
 
   get status(): BackendStatus {
@@ -658,7 +705,8 @@ export class BackendLifecycleManager {
     const args = buildSpawnArgs({
       port: this._port,
       dbPath,
-      local: true,
+      local: this.identityMode === 'local',
+      identityMode: this.identityMode,
       parentPid: process.pid,
       logDir,
       workDir: dirs?.workDir,
@@ -682,7 +730,7 @@ export class BackendLifecycleManager {
     try {
       this.childProcess = spawn(binaryPath, args, {
         stdio: ['pipe', 'pipe', 'pipe'],
-        env: dirs ? buildSpawnEnv(dirs) : process.env,
+        env: buildSpawnEnv(dirs, this.identityMode, this._localClientSecret),
         cwd: dirs?.workDir ?? dbPath,
         detached: process.platform !== 'win32',
       });
@@ -1069,7 +1117,7 @@ export class BackendLifecycleManager {
  * directly to preserve current stop/port getter semantics).
  */
 export async function startBackend(opts: BackendLaunchOptions): Promise<BackendHandle> {
-  const manager = new BackendLifecycleManager(opts.app, opts.resolveBackend);
+  const manager = new BackendLifecycleManager(opts.app, opts.resolveBackend, opts.identityMode);
   const dataDir = opts.dataDir ?? '';
   if (!dataDir) {
     throw new Error('startBackend: dataDir is required');
@@ -1077,6 +1125,7 @@ export async function startBackend(opts: BackendLaunchOptions): Promise<BackendH
   const port = await manager.start(dataDir, opts.logDir, opts.dirs);
   return {
     port,
+    localClientSecret: manager.localClientSecret,
     stop: () => manager.stop(),
   };
 }

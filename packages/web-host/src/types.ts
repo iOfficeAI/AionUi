@@ -16,6 +16,14 @@ export type AppMetadata = {
 export type BackendBinaryResolver = () => string;
 
 /**
+ * Authentication boundary enforced by AionCore.
+ *
+ * `local` is reserved for the trusted Electron process. Every browser-facing
+ * host must use `webui`, even when only one account exists.
+ */
+export type BackendIdentityMode = 'local' | 'webui';
+
+/**
  * System dirs exported to the backend via AIONUI_{CACHE,WORK,LOG}_DIR env.
  * Backend surfaces these on `/api/system/info`. Omit and the backend inherits
  * process.env, which may carry stale values from the parent shell — better to
@@ -35,10 +43,13 @@ export type WebHostOptions = {
   staticDir: string;
   port?: number;
   allowRemote?: boolean;
+  trustProxy?: boolean;
   dataDir?: string;
   logDir?: string;
   dirs?: BackendSystemDirs;
-  backend: { kind: 'ownBackend'; resolveBackend: BackendBinaryResolver } | { kind: 'useExistingBackend'; port: number };
+  backend:
+    | { kind: 'ownBackend'; resolveBackend: BackendBinaryResolver; identityMode: BackendIdentityMode }
+    | { kind: 'useExistingBackend'; port: number; identityMode: BackendIdentityMode };
 };
 
 /**
@@ -47,6 +58,8 @@ export type WebHostOptions = {
 export type WebHostHandle = {
   port: number;
   backendPort: number;
+  /** Present only for trusted Node callers that own a Local-mode backend. */
+  localClientSecret?: string;
   url: string;
   localUrl: string;
   networkUrl?: string;

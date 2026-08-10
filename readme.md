@@ -572,12 +572,17 @@ A: AionUi is completely free and open source. You only pay for the API usage of 
 
 <details>
 <summary><strong>Q: Can I run AionUi on a server (headless)?</strong></summary>
-A: Yes — AionUi WebUI mode runs as a standalone HTTP server. See the WebUI section above for setup instructions.
+A: Yes — AionUi WebUI mode runs as a standalone HTTP server without Electron. For a container deployment, pull the release image with <code>docker compose -f docker-compose.yml up -d</code> (defaults to <code>ghcr.io/iofficeai/aionui:latest</code>), or build from source with <code>docker compose -f docker-compose.dev.yml up --build -d</code>. See the <a href="./docs/guides/docker.md">Docker deployment guide</a>.
+</details>
+
+<details>
+<summary><strong>Q: Can several people use one server?</strong></summary>
+A: Yes. A personal installation starts with one administrator, who can add separate administrators and members later. Accounts have separate sessions, settings, provider credentials, conversations, and private workspaces by default. Owners can grant explicit <code>view</code>/<code>edit</code> shares for conversations, projects, and provider connections. Administrators are trusted instance operators with host-level agent capabilities; members stay isolated unless something is shared with them.
 </details>
 
 <details>
 <summary><strong>Q: Is my data secure?</strong></summary>
-A: All data is stored locally in a SQLite database. Nothing is uploaded to any server.
+A: Application metadata, sessions, settings, and conversations are stored locally under the configured data directory, primarily in SQLite. Project files stay on the local filesystem. In Docker, persistent application state lives in <code>/data</code>, the bootstrap administrator's mounted workspace is <code>/workspace</code>, and every additional account gets a server-derived private workspace root under <code>/data</code>. Nothing is uploaded by AionUi merely for storage.
 </details>
 
 ---
