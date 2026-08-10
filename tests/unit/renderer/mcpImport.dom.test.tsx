@@ -167,4 +167,72 @@ describe('MCP import flows', () => {
     });
     expect(getManagedAgents).not.toHaveBeenCalled();
   });
+
+  it('lists every backend-detected agent except AionUi itself as import source', async () => {
+    getAgentMcpConfigsInvoke.mockResolvedValue([
+      { source: 'claude', servers: [] },
+      { source: 'codex', servers: [] },
+      { source: 'gemini', servers: [] },
+      { source: 'qwen', servers: [] },
+      { source: 'codebuddy', servers: [] },
+      { source: 'opencode', servers: [] },
+      { source: 'aionrs', servers: [] },
+      { source: 'aionui', servers: [] },
+    ]);
+
+    render(<OneClickImportModal visible existingServerNames={[]} onCancel={vi.fn()} onBatchImport={vi.fn()} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('settings.mcpImportAgentGemini')).toBeInTheDocument();
+    });
+
+    for (const key of [
+      'settings.mcpImportAgentClaude',
+      'settings.mcpImportAgentCodex',
+      'settings.mcpImportAgentGemini',
+      'settings.mcpImportAgentQwen',
+      'settings.mcpImportAgentCodebuddy',
+      'settings.mcpImportAgentOpencode',
+      'settings.mcpImportAgentAionrs',
+    ]) {
+      expect(screen.getByText(key)).toBeInTheDocument();
+    }
+    // AionUi itself must be excluded (importing from self is a no-op)
+    expect(screen.queryByText('aionui')).not.toBeInTheDocument();
+    // First backend source is preselected
+    expect(screen.getByTestId('select-value')).toHaveTextContent('claude');
+  });
+
+  it('fetches servers of the selected agent when scanning', async () => {
+    getAgentMcpConfigsInvoke.mockResolvedValue([
+      { source: 'claude', servers: [] },
+      { source: 'gemini', servers: [] },
+    ]);
+
+    render(<OneClickImportModal visible existingServerNames={[]} onCancel={vi.fn()} onBatchImport={vi.fn()} />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('select-value')).toHaveTextContent('claude');
+    });
+
+    fireEvent.click(screen.getByText('settings.mcpImportAgentGemini'));
+    fireEvent.click(screen.getByText('settings.mcpNextStep'));
+
+    await waitFor(() => {
+      expect(screen.getByText('settings.mcpNoServersFound')).toBeInTheDocument();
+    });
+    expect(getManagedAgents).not.toHaveBeenCalled();
+  });
+
+  it('falls back to Claude Code and Codex when the backend scan returns no agents', async () => {
+    getAgentMcpConfigsInvoke.mockResolvedValue([]);
+
+    render(<OneClickImportModal visible existingServerNames={[]} onCancel={vi.fn()} onBatchImport={vi.fn()} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('settings.mcpImportAgentClaude')).toBeInTheDocument();
+    });
+    expect(screen.getByText('settings.mcpImportAgentCodex')).toBeInTheDocument();
+    expect(screen.getByTestId('select-value')).toHaveTextContent('claude');
+  });
 });
