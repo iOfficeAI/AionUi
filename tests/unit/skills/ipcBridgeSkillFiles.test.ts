@@ -3,8 +3,10 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { fs } from '@/common/adapter/ipcBridge';
+import { fromBackendSkillFileNodes, resolveWebSkillFile } from '@/common/adapter/workspaceMapper';
 
-// These mocks must exist before the adapter's hoisted module mocks select a transport.
+// Keep these spies available when Vitest runs the hoisted module factories before imports.
 const mocks = vi.hoisted(() => ({
   nativeListSkillFiles: vi.fn(async () => [{ name: 'native', relativePath: 'native', type: 'file' }]),
   nativeReadSkillFile: vi.fn(async () => 'native content'),
@@ -12,6 +14,8 @@ const mocks = vi.hoisted(() => ({
   webReadSkillFile: vi.fn(),
 }));
 
+// The adapter creates native providers during module evaluation, so expose
+// deterministic implementations for the two skill-file IPC channels.
 vi.mock('@/common/platform/bridge', () => ({
   bridge: {
     buildProvider: vi.fn((channel: string) => {
@@ -30,6 +34,8 @@ vi.mock('@/common/platform/bridge', () => ({
   },
 }));
 
+// WebUI falls back to the generic filesystem endpoints; unrelated HTTP
+// providers stay inert so importing the shared adapter has no side effects.
 vi.mock('@/common/adapter/httpBridge', () => {
   const provider = () => ({ provider: vi.fn(), invoke: vi.fn() });
   const emitter = () => ({ on: vi.fn(() => vi.fn()), emit: vi.fn() });
@@ -70,6 +76,7 @@ describe('ipcBridge skill file platform dispatch', () => {
   });
 
   afterEach(() => {
+    // Do not leak the simulated renderer platform into other Node-environment tests.
     const win = globalThis as unknown as { window?: WindowWithElectron };
     delete win.window;
   });
@@ -90,8 +97,6 @@ describe('ipcBridge skill file platform dispatch', () => {
       { name: 'SKILL.md', relative_path: 'SKILL.md', is_dir: false, is_file: true },
       { name: 'a.txt', relative_path: 'a.txt', is_dir: false, is_file: true },
     ]);
-    const { fs } = await import('@/common/adapter/ipcBridge');
-
     await expect(fs.listSkillFiles.invoke({ skill_location: 'C:\\skills\\demo' })).resolves.toEqual([
       { name: 'SKILL.md', relativePath: 'SKILL.md', type: 'file' },
       {
@@ -111,8 +116,6 @@ describe('ipcBridge skill file platform dispatch', () => {
 
   it('resolves directory and SKILL.md locations to the same WebUI root', async () => {
     mocks.webListSkillFiles.mockResolvedValue([]);
-    const { fs } = await import('@/common/adapter/ipcBridge');
-
     await fs.listSkillFiles.invoke({ skill_location: '/opt/skills/demo' });
     await fs.listSkillFiles.invoke({ skill_location: '/opt/skills/demo/SKILL.md' });
 
@@ -122,10 +125,32 @@ describe('ipcBridge skill file platform dispatch', () => {
     ]);
   });
 
+  it('keeps a root-level skill read inside the filesystem boundary', () => {
+    expect(resolveWebSkillFile('/SKILL.md', '/SKILL.md')).toEqual({
+      path: '/SKILL.md',
+      workspace: '/',
+    });
+  });
+
+  it('normalizes legacy node fields and infers missing paths and types', () => {
+    expect(
+      fromBackendSkillFileNodes([
+        // Together these fixtures exercise every supported casing and metadata fallback.
+        { name: 'legacyDir', relativePath: './legacyDir', isDir: true },
+        { name: 'inferredDir', is_file: false },
+        { name: 'camel.txt', relativePath: '/camel.txt', isFile: true },
+        { name: 'default.txt' },
+      ])
+    ).toEqual([
+      { name: 'inferredDir', relativePath: 'inferredDir', type: 'directory', children: [] },
+      { name: 'legacyDir', relativePath: 'legacyDir', type: 'directory', children: [] },
+      { name: 'camel.txt', relativePath: 'camel.txt', type: 'file' },
+      { name: 'default.txt', relativePath: 'default.txt', type: 'file' },
+    ]);
+  });
+
   it('reads an absolute WebUI target within the skill root boundary', async () => {
     mocks.webReadSkillFile.mockResolvedValue('content');
-    const { fs } = await import('@/common/adapter/ipcBridge');
-
     await expect(
       fs.readSkillFile.invoke({ skill_location: 'C:\\skills\\demo\\SKILL.md', relative_path: 'scripts\\run.ts' })
     ).resolves.toBe('content');
@@ -140,8 +165,6 @@ describe('ipcBridge skill file platform dispatch', () => {
     const readError = new Error('read unavailable');
     mocks.webListSkillFiles.mockRejectedValue(listingError);
     mocks.webReadSkillFile.mockRejectedValue(readError);
-    const { fs } = await import('@/common/adapter/ipcBridge');
-
     await expect(fs.listSkillFiles.invoke({ skill_location: '/skills/demo' })).rejects.toBe(listingError);
     await expect(fs.readSkillFile.invoke({ skill_location: '/skills/demo', relative_path: 'SKILL.md' })).rejects.toBe(
       readError
@@ -150,8 +173,6 @@ describe('ipcBridge skill file platform dispatch', () => {
 
   it('rejects when the WebUI file endpoint returns no content', async () => {
     mocks.webReadSkillFile.mockResolvedValue(null);
-    const { fs } = await import('@/common/adapter/ipcBridge');
-
     await expect(
       fs.readSkillFile.invoke({ skill_location: '/skills/demo', relative_path: 'SKILL.md' })
     ).rejects.toThrow('Skill file could not be read');
@@ -159,8 +180,6 @@ describe('ipcBridge skill file platform dispatch', () => {
 
   it('keeps listing and reading on native IPC inside Electron', async () => {
     setElectron(true);
-    const { fs } = await import('@/common/adapter/ipcBridge');
-
     await expect(fs.listSkillFiles.invoke({ skill_location: '/skills/demo' })).resolves.toEqual([
       { name: 'native', relativePath: 'native', type: 'file' },
     ]);
