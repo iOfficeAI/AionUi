@@ -274,6 +274,20 @@ describe('MarkdownView local file links', () => {
     expect(onLocalFileLink).toHaveBeenCalledWith(generatedPath, expect.objectContaining({ filePath: generatedPath }));
   });
 
+  it('preserves encoded Grok workspace directories when opening artifact links', () => {
+    const onLocalFileLink = vi.fn();
+    const generatedPath = String.raw`C:\Users\admin\.grok\sessions\C%3A%5CUsers%5Cadmin%5CWorkMate\session-1\images\1.jpg`;
+
+    render(
+      <MarkdownView onLocalFileLink={onLocalFileLink} localFileAliases={{ 'images/1.jpg': generatedPath }}>
+        {'[images/1.jpg](images/1.jpg)'}
+      </MarkdownView>
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'images/1.jpg' }));
+    expect(onLocalFileLink).toHaveBeenCalledWith(generatedPath, expect.objectContaining({ filePath: generatedPath }));
+  });
+
   it('reads a Grok image alias through its artifact directory when it is outside the workspace', async () => {
     const generatedPath = 'C:\\Users\\test\\.grok\\sessions\\session-1\\images\\1.jpg';
     const workspace = 'C:\\Users\\test\\workspace';

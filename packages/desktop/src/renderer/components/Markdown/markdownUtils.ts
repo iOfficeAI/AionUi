@@ -187,7 +187,7 @@ export const resolveLocalFileLinkReference = (
   rawHref: string,
   resolvedHref?: string
 ): LocalFileLinkReference | null => {
-  const href = safeDecodeURIComponent((rawHref || resolvedHref || '').trim());
+  const href = (rawHref || resolvedHref || '').trim();
   if (!href) return null;
 
   const candidate = normalizeLocalFileHrefToPath(href);

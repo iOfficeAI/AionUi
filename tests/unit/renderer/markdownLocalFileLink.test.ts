@@ -25,6 +25,12 @@ describe('resolveLocalFileLinkPath', () => {
     );
   });
 
+  it('preserves percent-encoded directory names in absolute filesystem paths', () => {
+    const generatedPath = String.raw`C:\Users\admin\.grok\sessions\C%3A%5CUsers%5Cadmin%5CWorkMate\session-1\images\1.jpg`;
+
+    expect(resolveLocalFileLinkPath(generatedPath)).toBe(generatedPath);
+  });
+
   it('recognizes common POSIX absolute paths', () => {
     expect(resolveLocalFileLinkPath('/Users/demo/outputs/report.xlsx')).toBe('/Users/demo/outputs/report.xlsx');
   });
@@ -162,6 +168,13 @@ describe('resolveLocalFileLinkPath', () => {
     expect(
       resolveMarkdownLocalFilePath('IMAGES/1.JPG', { 'images/1.jpg': generatedPath }, 'C:\\Users\\test\\workspace')
     ).toBe(generatedPath);
+  });
+
+  it('keeps encoded Grok session directories when resolving artifact aliases', () => {
+    const generatedPath = String.raw`C:\Users\admin\.grok\sessions\C%3A%5CUsers%5Cadmin%5CWorkMate\session-1\images\1.jpg`;
+
+    expect(resolveMarkdownLocalFilePath('images/1.jpg', { 'images/1.jpg': generatedPath })).toBe(generatedPath);
+    expect(resolveLocalFileLinkReference(generatedPath)?.filePath).toBe(generatedPath);
   });
 
   it('resolves safe relative files against the conversation workspace', () => {
