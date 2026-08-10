@@ -1,0 +1,9 @@
+{
+  "schema": "aionui-2dev-asset-inventory/1",
+  "superseded": true,
+  "supersededAt": "2026-08-10",
+  "supersededBy": "P8-1 physical split (follow-up to b09128ba0)",
+  "successor": "../01-原版二开资产清单.manifest.json",
+  "successorSchema": "aionui-2dev-asset-inventory/2",
+  "note": "本文件为旧文件名兼容指向。历史内容见 git 历史（b09128ba0 父级）；请引用 successor 的双层结构（originalSource/adapterTarget）。"
+}

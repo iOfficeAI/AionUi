@@ -2,15 +2,17 @@
 
 > 本目录是二开资产化的唯一权威落点。目标：把二开代码划出**可携带边界**——逐文件/逐组件/逐接口给出风险分级、上游依赖、变化触发器、接入点和验证方法，并定义未来源码扩展包的目录与 manifest/adapter 结构。
 >
-> 建立日期：2026-08-09。本文档集只做调研与归档，不修改任何产品代码。
+> 建立日期：2026-08-09。2026-08-10（P8-1）按来源审计 `/tmp/audit-2dev-docs-provenance-20260810.md` 完成**物理分层**：原版资产、v2.1.52 适配、扩展包决策三分离，旧文件名移入 `legacy/` 保留指向。本文档集只做调研与归档，不修改任何产品代码。
 
 ## 文档构成
 
 | 文档 | 内容 |
 | --- | --- |
-| [01-二开代码资产与依赖分级.md](./01-二开代码资产与依赖分级.md) + [manifest.json](./01-二开代码资产与依赖分级.manifest.json) | **清单定稿**：A-D 分级、来源 commit、职责、依赖、宿主接点（含 v2.1.52 精确插入点）、上游变更触发器、迁移方式、验证方式；吸收临时团队 UI 审计证据并附勘误；机读 manifest 供抽包工具核对 |
-| [02-二开扩展包目录与manifest-adapter方案.md](./02-二开扩展包目录与manifest-adapter方案.md) | 未来二开源码扩展包的目录边界、manifest 字段、adapter 分层与宿主接点收敛策略 |
-| ~~01-二开资产清单与风险分级.md~~ | 已合并入 01 定稿，仅留指向页 |
+| [01-原版二开资产清单.md](./01-原版二开资产清单.md) + [01-原版二开资产清单.manifest.json](./01-原版二开资产清单.manifest.json) | **原版清单**：仅以固定证据树（PIN-UI `adf8dfaa4` / PIN-CORE `eb0c884e` / `e3f154559`）核验的 A-D 分级、来源 commit、职责、依赖、契约、触发器、缺陷；机读 manifest 为 `originalSource`/`adapterTarget` 双层（schema `aionui-2dev-asset-inventory/2`） |
+| [02-v2.1.52适配矩阵.md](./02-v2.1.52适配矩阵.md) | **适配矩阵**：v2.1.52 重做线的提交对应、B/C 级插入点、移植判定、迁移窗口（038/039/040、repair 脚本）与 P7 修复记录（`d0beccbf8`/`21d73ba45`） |
+| [03-扩展包与adapter决策.md](./03-扩展包与adapter决策.md) | **adapter 决策层**：未来二开源码扩展包的目录边界、manifest 字段、adapter 分层、宿主接点收敛策略与形态决策记录（DR-1） |
+| [设计规格归档/](./设计规格归档/) | 专家团/创建弹窗等 e3 原版 UI 设计规格与验收清单（P8-2 维护） |
+| [legacy/](./legacy/) | 旧文件名兼容指向与历史说明（`01-二开代码资产与依赖分级.*`、`01-二开资产清单与风险分级.md`、`02-二开扩展包目录与manifest-adapter方案.md`） |
 
 ## 盘点范围（数据口径）
 
@@ -18,8 +20,8 @@
 
 | 形态 | 位置 | 基线 | 状态 |
 | --- | --- | --- | --- |
-| 主集成分支 | 本仓 `integrate/ad-hoc-team-latest` @ `b397e15fd` | AionUi v2.1.40 × AionCore v0.1.51 | 二开功能最完整（23 个本地提交，其中 18 个为二开/文档，5 个为浅克隆噪声的上游提交） |
-| v2.1.52 隔离 worktree | `/private/tmp/aionui-latest-poc` @ `bd728fb4d` | AionUi v2.1.52（`7ebae30aa`）× AionCore v0.1.62 | "最新基线重做"进行中：15 个已提交重做提交（43 文件，+2476/−30）；临时团队会话 UI 组件（`AdHocTeam/`、`useTeammateBackflow`、`runtimeGate`、`conversationTeamOwnership`）与 SendBox 接线已于 2026-08-09 收口为 `d0beccbf8`（原"尚未提交"状态失效，来源审计 §8） |
+| 主集成分支 | 本仓 `integrate/ad-hoc-team-latest` @ `b397e15fd`（原版证据 PIN-UI `adf8dfaa4` / PIN-CORE `eb0c884e`） | AionUi v2.1.40 × AionCore v0.1.51 | 二开功能最完整（23 个本地提交，其中 18 个为二开/文档，5 个为浅克隆噪声的上游提交） |
+| v2.1.52 隔离 worktree | `/private/tmp/aionui-latest-poc` @ `bd728fb4d` | AionUi v2.1.52（`7ebae30aa`）× AionCore v0.1.62 | "最新基线重做"进行中：15 个已提交重做提交（43 文件，+2476/−30）；临时团队会话 UI 组件与 SendBox 接线已于 2026-08-09 收口为 `d0beccbf8`；专家团弹窗回归于 2026-08-10 修复为 `21d73ba45` |
 | 旧版原型分支 | `feat/ad-hoc-team-context` @ `8b2953a33` | v2.1.33 时代 | 已被 `700fdf117` 取代，仅作溯源；`backup/poc-latest-ui-*` 指向当前 HEAD，属回滚备份 |
 
 另有一份固化补丁：`patches/2026-07-30-feat-team-add-reusable-expert-team-presets.patch`（`e3f154559` 导出，31 文件，+2681/−87，仅专家团功能、纯 AionUi 前端）。
@@ -45,6 +47,6 @@
 ### 必须沿用的命名与规则
 
 - 窗口编号 **P0–P6**，暂停点 **S0–S5**；一次性整合分支 `integrate/ad-hoc-team-YYYYMMDD`；备份 `backup/poc-latest-{ui,core}-<timestamp>`。
-- **迁移编号规则**：二开迁移必须使用上游最新版本号之后的编号（`M+1..`），按依赖排序、不预留空号、已发布不改号；checksum（SHA-384）与 version 必须同事务修复（AionCore 脚本 `scripts/migration/repair-legacy-versions.sh`——该脚本为 v0.1.62 重做线资产，`e0e03ab8` 引入；原版 PIN-CORE `eb0c884e` 无此脚本，详见 01 §5.3 双栏）。
+- **迁移编号规则**：二开迁移必须使用上游最新版本号之后的编号（`M+1..`），按依赖排序、不预留空号、已发布不改号；checksum（SHA-384）与 version 必须同事务修复。迁移编号双窗口（原版 034/035/036 @ PIN-CORE；v2.1.52 线 038/039/040）见 01 §5.3 与 02 §5；修复脚本 `scripts/migration/repair-legacy-versions.sh` 为 v0.1.62 重做线资产（`e0e03ab8` 引入；原版 PIN-CORE 无此脚本）。
 - **成对配套原则**：AionUi `package.json` 的 `aioncoreVersion` pin + bundle manifest（version/sourceType/source + binary SHA256）+ Core tag/SHA 三者必须写入兼容矩阵同一行；AionUi 与 AionCore 成对回滚，禁止对原分支 destructive reset。
 - 术语：临时团队 = ad-hoc team；来源会话 = origin/source conversation（`origin_conversation_id`）；归属键 `extra.teamId`（promoted source）/ `extra.team_id`（成员会话）；专家团 = Team Presets（`TeamPreset`/`TeamPresetMember`，SWR key `team-presets/${user_id}`）。
