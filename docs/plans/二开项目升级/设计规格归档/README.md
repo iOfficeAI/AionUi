@@ -14,6 +14,7 @@
 | 文案 | `packages/desktop/src/renderer/services/i18n/locales/*/team.json`、`conversation.json`（13 语言，本档案录 zh-CN/en-US） |
 | 测试取证 | `tests/unit/renderer/team/`（TeamPresetPicker、TeamCreateModal.presets、useTeamPresets、TeamTabs、TeamWarmupOverlay 等 DOM 测试） |
 | 配套 PRD | `docs/prds/teams/team-runtime-experience.md` / `.design.md`（同 commit） |
+| 旁证审计 | `/tmp/adhoc-team-ui-audit-v2.1.52.md`（任务 019fe703 高保真审计：临时团队 UI 自 `700fdf117` 原型至 `b397e15fd` 的演进链与 v2.1.52 差异，与本档案的 e3f154559 规格相互印证） |
 
 取证方式：以上文件均按 commit `e3f154559` 提取并逐行精读；所有尺寸、颜色 token、状态、文案键均可在对应源码行中复核。旧版界面未重新构建运行（避免回退当前工作区），故视觉稿采用**从源码测量值生成的精确 SVG 线框**（见 `assets/`），每张图顶部标注了证据来源，可用任意浏览器/SVG 工具打开复现。
 
