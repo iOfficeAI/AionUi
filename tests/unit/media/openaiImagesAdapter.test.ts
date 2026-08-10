@@ -118,4 +118,129 @@ describe('OpenAiImagesAdapter', () => {
     expect(outcome.success).toBe(false);
     expect(outcome.error).toBe('empty-response');
   });
+
+  it('returns a cancelled result without calling the client when the signal is already aborted', async () => {
+    const spy = vi.spyOn(ClientFactory, 'createRotatingClient');
+
+    const outcome = await adapter.generate({
+      kind: 'image',
+      prompt: 'a red square',
+      params: {},
+      inputUris: [],
+      provider,
+      spec: resolveMediaModelSpec('image', provider, 'dall-e-3'),
+      workspaceDir,
+      signal: AbortSignal.abort(),
+    });
+
+    expect(outcome).toMatchObject({ success: false, error: 'cancelled' });
+    expect(spy).not.toHaveBeenCalled();
+  });
+
+  it('rejects a provider whose resolved client does not speak the OpenAI protocol', async () => {
+    // Any object that is not `instanceof OpenAIRotatingClient` — e.g. a
+    // Gemini/Anthropic rotating client — must be rejected explicitly rather
+    // than crash on a missing `.images` method.
+    vi.spyOn(ClientFactory, 'createRotatingClient').mockResolvedValue({} as never);
+
+    const outcome = await runGenerate();
+
+    expect(outcome).toMatchObject({ success: false, error: 'incompatible-provider' });
+    expect(outcome.text).toContain('does not speak the OpenAI protocol');
+  });
+
+  it('forwards seed and negative_prompt as gateway extension fields', async () => {
+    const client = fakeClient({ created: 0, data: [{ b64_json: TINY_PNG_B64 }] });
+    vi.spyOn(ClientFactory, 'createRotatingClient').mockResolvedValue(client);
+
+    await adapter.generate({
+      kind: 'image',
+      prompt: 'a red square',
+      params: { seed: 7, negativePrompt: 'blurry' },
+      inputUris: [],
+      provider,
+      spec: resolveMediaModelSpec('image', provider, 'dall-e-3'),
+      workspaceDir,
+    });
+
+    expect(client.createImage).toHaveBeenCalledWith(
+      expect.objectContaining({ seed: 7, negative_prompt: 'blurry' }),
+      expect.anything()
+    );
+  });
+
+  it('routes to createImageEdit with local reference files when the spec declares imageInput', async () => {
+    const refPath = path.join(workspaceDir, 'ref.png');
+    await fs.promises.writeFile(refPath, Buffer.from(TINY_PNG_B64, 'base64'));
+    const client = fakeClient({ created: 0, data: [{ b64_json: TINY_PNG_B64 }] });
+    vi.spyOn(ClientFactory, 'createRotatingClient').mockResolvedValue(client);
+    const editProvider: TProviderWithModel = { ...provider, use_model: 'dall-e-2' };
+
+    const outcome = await adapter.generate({
+      kind: 'image',
+      prompt: 'add a hat',
+      params: {},
+      inputUris: ['ref.png'],
+      provider: editProvider,
+      spec: resolveMediaModelSpec('image', editProvider, 'dall-e-2'),
+      workspaceDir,
+    });
+
+    expect(outcome.success).toBe(true);
+    expect(client.createImageEdit).toHaveBeenCalledOnce();
+    expect(client.createImage).not.toHaveBeenCalled();
+  });
+
+  it('reports no-local-input when every edit reference is an HTTP URL', async () => {
+    vi.spyOn(ClientFactory, 'createRotatingClient').mockResolvedValue(fakeClient({}));
+    const editProvider: TProviderWithModel = { ...provider, use_model: 'dall-e-2' };
+
+    const outcome = await adapter.generate({
+      kind: 'image',
+      prompt: 'add a hat',
+      params: {},
+      inputUris: ['https://example.com/ref.png'],
+      provider: editProvider,
+      spec: resolveMediaModelSpec('image', editProvider, 'dall-e-2'),
+      workspaceDir,
+    });
+
+    expect(outcome).toMatchObject({ success: false, error: 'no-local-input' });
+  });
+
+  it('surfaces an unexpected API failure as a plain error result', async () => {
+    const client = Object.create(OpenAIRotatingClient.prototype) as OpenAIRotatingClient;
+    (client as unknown as { createImage: () => Promise<unknown> }).createImage = vi
+      .fn()
+      .mockRejectedValue(new Error('rate limited'));
+    vi.spyOn(ClientFactory, 'createRotatingClient').mockResolvedValue(client);
+
+    const outcome = await runGenerate();
+
+    expect(outcome.success).toBe(false);
+    expect(outcome.error).toBe('rate limited');
+  });
+
+  it('reports a cancelled result when the API call rejects after the signal was aborted', async () => {
+    const controller = new AbortController();
+    const client = Object.create(OpenAIRotatingClient.prototype) as OpenAIRotatingClient;
+    (client as unknown as { createImage: () => Promise<unknown> }).createImage = vi
+      .fn()
+      .mockRejectedValue(new Error('aborted mid-flight'));
+    vi.spyOn(ClientFactory, 'createRotatingClient').mockResolvedValue(client);
+    controller.abort();
+
+    const outcome = await adapter.generate({
+      kind: 'image',
+      prompt: 'a red square',
+      params: {},
+      inputUris: [],
+      provider,
+      spec: resolveMediaModelSpec('image', provider, 'dall-e-3'),
+      workspaceDir,
+      signal: controller.signal,
+    });
+
+    expect(outcome).toMatchObject({ success: false, error: 'cancelled' });
+  });
 });

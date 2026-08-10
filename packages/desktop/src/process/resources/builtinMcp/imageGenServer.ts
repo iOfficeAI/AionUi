@@ -22,7 +22,7 @@ import { IMAGE_GEN_ENV_KEYS } from '@/common/config/imageGenerationMcpEnv';
 import type { TProviderWithModel } from '@/common/config/storage';
 
 // Read provider config from environment variables
-function getProviderFromEnv(): TProviderWithModel | null {
+export function getProviderFromEnv(): TProviderWithModel | null {
   const platform = process.env[IMAGE_GEN_ENV_KEYS.platform];
   const base_url = process.env[IMAGE_GEN_ENV_KEYS.baseUrl];
   const api_key = process.env[IMAGE_GEN_ENV_KEYS.apiKey];
@@ -46,11 +46,84 @@ function getProviderFromEnv(): TProviderWithModel | null {
   };
 }
 
-function normalizeImageUris(imageUris: string[] | string | undefined): string[] {
+export function normalizeImageUris(imageUris: string[] | string | undefined): string[] {
   if (!imageUris) return [];
   if (Array.isArray(imageUris)) return imageUris;
   const parsed = safeJsonParse<string[] | null>(imageUris, null);
   return Array.isArray(parsed) ? parsed : [imageUris];
+}
+
+export type ImageGenerationToolArgs = {
+  prompt: string;
+  image_uris?: string[];
+  size?: string;
+  aspect_ratio?: string;
+  n?: number;
+  quality?: string;
+  seed?: number;
+  negative_prompt?: string;
+};
+
+/**
+ * The tool handler, extracted from `server.tool(...)` so it can be exercised
+ * directly by tests without spinning up a real MCP stdio transport.
+ */
+export async function handleImageGeneration({
+  prompt,
+  image_uris,
+  size,
+  aspect_ratio,
+  n,
+  quality,
+  seed,
+  negative_prompt,
+}: ImageGenerationToolArgs) {
+  const provider = getProviderFromEnv();
+  if (!provider) {
+    return {
+      content: [
+        {
+          type: 'text' as const,
+          text: 'Error: Image generation model not configured. Please select an image generation model in Settings > Tools.',
+        },
+      ],
+      isError: true,
+    };
+  }
+
+  const proxy = process.env.AIONUI_IMG_PROXY || undefined;
+  // Trusted workspace root: the MCP server inherits the agent process cwd,
+  // which the backend sets to the conversation workspace. Never accept a
+  // workspace path from the model (path traversal boundary).
+  const workspaceDir = process.cwd();
+
+  const result = await executeMediaGeneration({
+    kind: 'image',
+    prompt,
+    params: {
+      size,
+      aspectRatio: aspect_ratio,
+      n,
+      quality,
+      seed,
+      negativePrompt: negative_prompt,
+    },
+    inputUris: normalizeImageUris(image_uris),
+    provider,
+    workspaceDir,
+    proxy,
+  });
+
+  if (!result.success) {
+    return {
+      content: [{ type: 'text' as const, text: result.text }],
+      isError: true,
+    };
+  }
+
+  return {
+    content: [{ type: 'text' as const, text: result.text }],
+  };
 }
 
 async function main() {
@@ -130,61 +203,21 @@ IMPORTANT: When user provides multiple images, ALWAYS pass ALL images to the ima
         .optional()
         .describe('Optional: What the image should NOT contain, for models that support negative prompts.'),
     },
-    async ({ prompt, image_uris, size, aspect_ratio, n, quality, seed, negative_prompt }) => {
-      const provider = getProviderFromEnv();
-      if (!provider) {
-        return {
-          content: [
-            {
-              type: 'text' as const,
-              text: 'Error: Image generation model not configured. Please select an image generation model in Settings > Tools.',
-            },
-          ],
-          isError: true,
-        };
-      }
-
-      const proxy = process.env.AIONUI_IMG_PROXY || undefined;
-      // Trusted workspace root: the MCP server inherits the agent process cwd,
-      // which the backend sets to the conversation workspace. Never accept a
-      // workspace path from the model (path traversal boundary).
-      const workspaceDir = process.cwd();
-
-      const result = await executeMediaGeneration({
-        kind: 'image',
-        prompt,
-        params: {
-          size,
-          aspectRatio: aspect_ratio,
-          n,
-          quality,
-          seed,
-          negativePrompt: negative_prompt,
-        },
-        inputUris: normalizeImageUris(image_uris),
-        provider,
-        workspaceDir,
-        proxy,
-      });
-
-      if (!result.success) {
-        return {
-          content: [{ type: 'text' as const, text: result.text }],
-          isError: true,
-        };
-      }
-
-      return {
-        content: [{ type: 'text' as const, text: result.text }],
-      };
-    }
+    handleImageGeneration
   );
 
   const transport = new StdioServerTransport();
   await server.connect(transport);
 }
 
-main().catch((error) => {
-  console.error('[ImageGenMCP] Fatal error:', error);
-  process.exit(1);
-});
+// Skip the real stdio transport under Vitest: this module is imported by
+// tests to exercise `handleImageGeneration`/`getProviderFromEnv` directly,
+// and connecting a real StdioServerTransport there would hang the test
+// process waiting on stdin instead of exercising the app's runtime path
+// (the script is always launched via `node <scriptPath>`, never imported).
+if (!process.env.VITEST) {
+  main().catch((error) => {
+    console.error('[ImageGenMCP] Fatal error:', error);
+    process.exit(1);
+  });
+}

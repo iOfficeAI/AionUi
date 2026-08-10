@@ -39,6 +39,13 @@ describe('media catalog resolution', () => {
     });
   });
 
+  describe('resolveMediaModelSpec edge cases', () => {
+    it('returns null for an empty model name rather than matching the first entry', () => {
+      const provider = { platform: 'gemini', base_url: '', name: 'Google' };
+      expect(resolveMediaModelSpec('image', provider, '')).toBeNull();
+    });
+  });
+
   describe('Form A entries (new coverage)', () => {
     it('supports dall-e-3 on OpenAI-compatible providers', () => {
       const provider = { platform: 'openai', base_url: 'https://api.openai.com/v1', name: 'OpenAI' };

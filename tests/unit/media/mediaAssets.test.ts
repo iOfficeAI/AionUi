@@ -4,11 +4,17 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { describe, expect, it, afterEach } from 'vitest';
+import { describe, expect, it, afterEach, vi } from 'vitest';
 import { mkdtempSync, mkdirSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { join, resolve as pathResolve } from 'node:path';
 import { tmpdir } from 'node:os';
-import { processImageUri, saveBase64MediaAsset } from '@/common/media/mediaAssets';
+import {
+  downloadUrlMediaAsset,
+  processImageUri,
+  resolveLocalInputPath,
+  safeJsonParse,
+  saveBase64MediaAsset,
+} from '@/common/media/mediaAssets';
 
 let cleanupDirs: string[] = [];
 
@@ -192,5 +198,89 @@ describe('saveBase64MediaAsset', () => {
     const asset = await saveBase64MediaAsset('image', DATA_URL_PNG, trickyDir);
 
     expect(asset.filePath.startsWith(pathResolve(ws))).toBe(true);
+  });
+});
+
+describe('resolveLocalInputPath', () => {
+  it('resolves a relative path against the workspace and strips an @ prefix', async () => {
+    const ws = createWorkspace();
+    createImageFile(ws, 'ref.png');
+
+    await expect(resolveLocalInputPath('@ref.png', ws)).resolves.toBe(join(ws, 'ref.png'));
+  });
+
+  it('blocks a traversal attempt the same way processImageUri does', async () => {
+    const ws = createWorkspace();
+
+    await expect(resolveLocalInputPath('../../../../etc/passwd', ws)).rejects.toThrow('Path traversal blocked');
+  });
+});
+
+describe('safeJsonParse', () => {
+  it('parses valid JSON', () => {
+    expect(safeJsonParse('["a","b"]', [])).toEqual(['a', 'b']);
+  });
+
+  it('falls back when input is empty or not a string', () => {
+    expect(safeJsonParse('', ['fallback'])).toEqual(['fallback']);
+    expect(safeJsonParse(undefined as unknown as string, ['fallback'])).toEqual(['fallback']);
+  });
+
+  it('repairs mildly malformed JSON before giving up', () => {
+    // jsonrepair fixes trailing commas / single quotes; this is what makes
+    // "close enough" model output usable instead of a hard failure.
+    expect(safeJsonParse("['a','b',]", [])).toEqual(['a', 'b']);
+  });
+
+  it('falls back to the default when even repair cannot parse it', () => {
+    expect(safeJsonParse('not json at all {{{', ['fallback'])).toEqual(['fallback']);
+  });
+});
+
+describe('downloadUrlMediaAsset', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('infers the extension from the content-type header', async () => {
+    const ws = createWorkspace();
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(Buffer.from(PNG_1x1), {
+          status: 200,
+          headers: { 'content-type': 'image/png' },
+        })
+      )
+    );
+
+    const asset = await downloadUrlMediaAsset('image', 'https://cdn.example.com/result', ws);
+
+    expect(asset.filePath).toMatch(/\.png$/);
+  });
+
+  it('falls back to the URL extension when there is no usable content-type', async () => {
+    const ws = createWorkspace();
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(Buffer.from(PNG_1x1), { status: 200, headers: {} })));
+
+    const asset = await downloadUrlMediaAsset('image', 'https://cdn.example.com/result.png?sig=abc', ws);
+
+    expect(asset.filePath).toMatch(/\.png$/);
+  });
+
+  it('falls back to the kind default extension when nothing else is available', async () => {
+    const ws = createWorkspace();
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(Buffer.from(PNG_1x1), { status: 200, headers: {} })));
+
+    const asset = await downloadUrlMediaAsset('image', 'https://cdn.example.com/result', ws);
+
+    expect(asset.filePath).toMatch(/\.png$/);
+  });
+
+  it('throws when the download response is not ok', async () => {
+    const ws = createWorkspace();
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(null, { status: 404, statusText: 'Not Found' })));
+
+    await expect(downloadUrlMediaAsset('image', 'https://cdn.example.com/gone', ws)).rejects.toThrow(
+      'Failed to download generated image: HTTP 404'
+    );
   });
 });
