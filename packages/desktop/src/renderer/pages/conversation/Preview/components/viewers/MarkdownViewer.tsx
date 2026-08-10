@@ -295,6 +295,26 @@ const MarkdownPreview: React.FC<MarkdownPreviewProps> = ({
   // 监听文本选择 / Monitor text selection
   const { selectedText, selectionPosition, clearSelection } = useTextSelection(containerRef);
 
+  // Streamdown binds an unconditional wheel-zoom handler ({ passive: false }) on each
+  // mermaid pan layer, so scrolling a long doc over a diagram zooms it instead of
+  // scrolling the page. Intercept wheel in the capture phase before it reaches that
+  // handler: stopPropagation() keeps Streamdown from zooming, and NOT calling
+  // preventDefault() lets the container scroll natively. Buttons (click) and drag-pan
+  // (pointer events) are untouched, so zoom controls and drag still work. Fullscreen
+  // portals the diagram out of this container, so wheel-zoom stays available there.
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const onWheelCapture = (e: WheelEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (target?.closest("[data-streamdown='mermaid-block']")) {
+        e.stopPropagation();
+      }
+    };
+    el.addEventListener('wheel', onWheelCapture, { capture: true });
+    return () => el.removeEventListener('wheel', onWheelCapture, { capture: true });
+  }, [containerRef]);
+
   const baseDir = useMemo(() => {
     if (!file_path) return undefined;
     const normalized = file_path.replace(/\\/g, '/');

@@ -222,7 +222,9 @@
 /* Mermaid diagrams expose Streamdown's pan/zoom controls (zoom in/out, reset,
    fullscreen) enabled via the viewer's `controls` prop. The block must receive
    pointer events so the control buttons are clickable and the diagram can be
-   dragged; wheel over a diagram zooms it (use the reset button to recenter). */
+   dragged. Wheel-zoom over an inline diagram is suppressed in MarkdownViewer
+   (capture-phase listener) so scrolling the doc scrolls the page; use the zoom
+   buttons to scale, or fullscreen where wheel-zoom stays active. */
 .aionui-markdown [data-streamdown='mermaid-block'] {
   pointer-events: auto;
 }
