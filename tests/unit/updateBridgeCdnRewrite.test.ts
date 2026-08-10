@@ -66,6 +66,14 @@ vi.mock('electron-log', () => ({
   },
 }));
 
+vi.mock('@process/services/updateFeed', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@process/services/updateFeed')>();
+  return {
+    ...actual,
+    isInternalUpdateSourceRequested: vi.fn(() => false),
+  };
+});
+
 const makeGitHubReleaseResponse = () => [
   {
     tag_name: 'v1.9.22',
