@@ -276,7 +276,7 @@ const UpdateNotificationCard: React.FC = () => {
     );
   };
 
-  const releaseNotes = state.updateInfo?.body || state.autoUpdateInfo?.releaseNotes || '';
+  const releaseNotes = state.autoUpdateInfo?.releaseNotes || state.updateInfo?.body || t('update.releaseNotesFallback');
 
   return renderNotificationLayer(
     <>
@@ -364,20 +364,6 @@ const UpdateNotificationCard: React.FC = () => {
         >
           {state.releaseNotesStatus === 'loading' ? (
             <span>{t('update.releaseNotesLoading')}</span>
-          ) : state.releaseNotesStatus === 'failed' ? (
-            <div className='flex items-center gap-6px'>
-              <span>{t('update.releaseNotesFailed')}</span>
-              {state.releasePageUrl && (
-                <Button
-                  type='text'
-                  size='mini'
-                  className='!p-0 !h-auto !text-[rgb(var(--primary-6))] underline underline-offset-2'
-                  onClick={actions.openReleasePage}
-                >
-                  {t('update.viewRelease')}
-                </Button>
-              )}
-            </div>
           ) : releaseNotes ? (
             <MarkdownView allowHtml>{releaseNotes}</MarkdownView>
           ) : (

@@ -2857,6 +2857,7 @@ export type I18nKey =
   | 'update.readyToInstallDesc'
   | 'update.releaseLog'
   | 'update.releaseNotesFailed'
+  | 'update.releaseNotesFallback'
   | 'update.releaseNotesLoading'
   | 'update.requiredDescription'
   | 'update.requiredTitle'

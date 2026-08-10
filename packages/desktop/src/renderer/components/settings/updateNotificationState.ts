@@ -263,10 +263,11 @@ export const updateNotificationReducer = (
         effects: [],
       };
     case 'autoStatusAvailable': {
-      const hasReleaseNotes = Boolean(
+      const releaseNotes =
         event.releaseNotes ||
-        (state.updateInfo?.version === event.version && state.updateInfo.body) ||
-        (state.autoUpdateInfo?.version === event.version && state.autoUpdateInfo.releaseNotes)
+        (state.autoUpdateInfo?.version === event.version ? state.autoUpdateInfo.releaseNotes : undefined);
+      const hasReleaseNotes = Boolean(
+        releaseNotes || (state.updateInfo?.version === event.version && state.updateInfo.body)
       );
       return {
         state: {
@@ -278,7 +279,7 @@ export const updateNotificationReducer = (
           currentVersion: event.currentVersion ?? state.currentVersion,
           autoUpdateInfo: {
             version: event.version,
-            releaseNotes: event.releaseNotes,
+            releaseNotes,
           },
           installerLastFailure: undefined,
           pendingInstallerLastFailure: undefined,

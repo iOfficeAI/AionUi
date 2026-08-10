@@ -9,6 +9,7 @@
   "requiredTitle": "Atualização obrigatória",
   "requiredDescription": "Esta atualização é necessária para continuar usando o CSBU WorkMate e não pode ser adiada.",
   "noReleaseNotes": "Nenhuma nota de lançamento fornecida.",
+  "releaseNotesFallback": "Esta atualização inclui melhorias de recursos e correções de erros.",
   "downloadingTitle": "Baixando atualização...",
   "downloadButton": "Baixar agora",
   "downloadAndInstall": "Baixar e Instalar",

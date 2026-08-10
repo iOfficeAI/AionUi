@@ -9,6 +9,7 @@
   "requiredTitle": "Обязательное обновление",
   "requiredDescription": "Это обновление необходимо для продолжения работы с CSBU WorkMate, его нельзя отложить.",
   "noReleaseNotes": "Примечания к выпуску не предоставлены.",
+  "releaseNotesFallback": "Это обновление включает улучшения функций и исправления ошибок.",
   "downloadingTitle": "Загрузка обновления...",
   "downloadButton": "Скачать сейчас",
   "downloadAndInstall": "Скачать и установить",

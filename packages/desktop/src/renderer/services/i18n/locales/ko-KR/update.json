@@ -9,6 +9,7 @@
   "requiredTitle": "필수 업데이트",
   "requiredDescription": "CSBU WorkMate를 계속 사용하려면 이 업데이트가 필요하며 나중으로 미룰 수 없습니다.",
   "noReleaseNotes": "릴리스 노트가 없습니다.",
+  "releaseNotesFallback": "이번 업데이트에는 기능 개선 및 버그 수정이 포함되어 있습니다.",
   "downloadingTitle": "업데이트 다운로드 중...",
   "downloadButton": "지금 다운로드",
   "downloadAndInstall": "다운로드 및 설치",

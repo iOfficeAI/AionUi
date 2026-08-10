@@ -9,6 +9,7 @@
   "requiredTitle": "Zorunlu güncelleme",
   "requiredDescription": "CSBU WorkMate'i kullanmaya devam etmek için bu güncelleme gereklidir ve ertelenemez.",
   "noReleaseNotes": "Sürüm notu yok.",
+  "releaseNotesFallback": "Bu güncelleme özellik iyileştirmeleri ve hata düzeltmeleri içerir.",
   "downloadingTitle": "Güncelleme indiriliyor...",
   "downloadButton": "Şimdi indir",
   "downloadAndInstall": "İndir ve Yükle",

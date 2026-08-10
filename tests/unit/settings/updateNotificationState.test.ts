@@ -46,6 +46,10 @@ describe('updateNotificationReducer', () => {
         draft: false,
         assets: [],
       },
+      autoUpdateInfo: {
+        version: '2.2.0',
+        releaseNotes: 'updater release notes',
+      },
       releaseNotesStatus: 'loaded',
     };
 
@@ -57,6 +61,7 @@ describe('updateNotificationReducer', () => {
 
     expect(result.state.releaseNotesStatus).toBe('loaded');
     expect(result.state.updateInfo?.body).toBe('loaded release notes');
+    expect(result.state.autoUpdateInfo?.releaseNotes).toBe('updater release notes');
   });
 
   it('preserves the active download when an entry opens during downloading', () => {

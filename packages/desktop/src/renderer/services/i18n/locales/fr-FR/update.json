@@ -9,6 +9,7 @@
   "requiredTitle": "Mise à jour requise",
   "requiredDescription": "Cette mise à jour est nécessaire pour continuer à utiliser CSBU WorkMate et ne peut pas être reportée.",
   "noReleaseNotes": "Aucune note de version fournie.",
+  "releaseNotesFallback": "Cette mise à jour comprend des améliorations fonctionnelles et des corrections de bugs.",
   "downloadingTitle": "Téléchargement de la mise à jour...",
   "downloadButton": "Télécharger",
   "downloadAndInstall": "Télécharger et installer",

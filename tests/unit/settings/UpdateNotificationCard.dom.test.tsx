@@ -140,7 +140,7 @@ describe('UpdateNotificationCard', () => {
     vi.unstubAllGlobals();
   });
 
-  it('renders a bottom-right notification card for auto-update availability without a dialog', async () => {
+  it('prefers updater release notes over the GitHub release body', async () => {
     render(<UpdateNotificationCard />);
 
     await waitFor(() => {
@@ -168,6 +168,30 @@ describe('UpdateNotificationCard', () => {
 
     // Release notes moved to a centered modal opened via the Release Log link.
     expect(screen.queryByText('notes')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByText('update.releaseLog'));
+    expect(await screen.findByText('auto notes')).toBeInTheDocument();
+    expect(screen.queryByText('notes')).not.toBeInTheDocument();
+  });
+
+  it('falls back to the GitHub release body when updater release notes are unavailable', async () => {
+    render(<UpdateNotificationCard />);
+
+    await waitFor(() => {
+      expect(mocks.autoStatusHandler).toBeTruthy();
+    });
+
+    await act(async () => {
+      mocks.autoStatusHandler?.({
+        status: 'available',
+        version: '2.1.14',
+        currentVersion: '2.1.13',
+      });
+    });
+
+    await waitFor(() => {
+      expect(mocks.updateCheckMock).toHaveBeenCalled();
+    });
+
     fireEvent.click(screen.getByText('update.releaseLog'));
     expect(await screen.findByText('notes')).toBeInTheDocument();
   });
@@ -405,7 +429,7 @@ describe('UpdateNotificationCard', () => {
     expect(screen.getByRole('button', { name: 'common.close' })).toBeInTheDocument();
   });
 
-  it('shows release-note loading and failure states instead of empty notes', async () => {
+  it('shows release-note loading and configured fallback states instead of empty notes', async () => {
     mocks.updateCheckMock.mockImplementation(() => new Promise(() => undefined));
     render(<UpdateNotificationCard />);
 
@@ -441,8 +465,8 @@ describe('UpdateNotificationCard', () => {
     });
 
     fireEvent.click(await screen.findByText('update.releaseLog'));
-    expect(await screen.findByText('update.releaseNotesFailed')).toBeInTheDocument();
-    expect(screen.queryByText('update.viewRelease')).not.toBeInTheDocument();
+    expect(await screen.findByText('update.releaseNotesFallback')).toBeInTheDocument();
+    expect(screen.queryByText('update.releaseNotesFailed')).not.toBeInTheDocument();
   });
 
   it('keeps loaded release notes visible when a later available event has no notes', async () => {
@@ -462,7 +486,7 @@ describe('UpdateNotificationCard', () => {
     });
 
     fireEvent.click(await screen.findByText('update.releaseLog'));
-    expect(await screen.findByText('notes')).toBeInTheDocument();
+    expect(await screen.findByText('auto notes')).toBeInTheDocument();
 
     mocks.updateCheckMock.mockImplementation(() => new Promise(() => undefined));
     await act(async () => {
@@ -473,7 +497,7 @@ describe('UpdateNotificationCard', () => {
       });
     });
 
-    expect(screen.getByText('notes')).toBeInTheDocument();
+    expect(screen.getByText('auto notes')).toBeInTheDocument();
     expect(screen.queryByText('update.releaseNotesLoading')).not.toBeInTheDocument();
   });
 

@@ -9,6 +9,7 @@
   "requiredTitle": "必须更新",
   "requiredDescription": "此版本必须更新后才能继续使用 CSBU WorkMate，无法稍后处理。",
   "noReleaseNotes": "暂无更新说明。",
+  "releaseNotesFallback": "本次更新包含功能优化和问题修复。",
   "downloadingTitle": "正在下载更新...",
   "downloadButton": "立即下载",
   "downloadAndInstall": "下载并安装",
