@@ -17,8 +17,8 @@
 
 - 这里的目录是**原版代码快照**，用于查找、比对和提取；不是直接覆盖新版宿主的安装目录。
 - A/B/C 宿主交织文件仍须按 [01-原版二开资产清单](../01-原版二开资产清单.md) 的 anchor/patch 规则处理。
-- 需要完整变更序列、恢复脚本、SHA 清单或 149 项 curated team-only 包时，使用 [`AionTeamSuite`](../../../../AionTeamSuite/README.md)。该目录是权威完整归档；本目录是就近的人可读代码备份。
-- 来源、文件数量和校验以 [`AionTeamSuite/manifests/SHA-MANIFEST.json`](../../../../AionTeamSuite/manifests/SHA-MANIFEST.json) 为准。
+- 需要完整变更序列、恢复脚本、SHA 清单或 149 项 curated team-only 包时，使用 [`AionTeamSuite`](../../../../../AionTeamSuite/README.md)。该目录是权威完整归档；本目录是就近的人可读代码备份。
+- 来源、文件数量和校验以 [`AionTeamSuite/manifests/SHA-MANIFEST.json`](../../../../../AionTeamSuite/manifests/SHA-MANIFEST.json) 为准。
 
 ## 快速定位
 
