@@ -24,6 +24,8 @@
   "loading": "기다려주세요...",
   "copy": "복사",
   "reply": "인용",
+  "openInBuiltinBrowser": "내장 브라우저로 열기",
+  "openInSystemBrowser": "시스템 브라우저로 열기",
   "copySuccess": "복사됨",
   "copyFailed": "복사 실패",
   "download": "다운로드",

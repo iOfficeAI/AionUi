@@ -24,6 +24,8 @@
   "loading": "Lütfen bekleyin...",
   "copy": "Kopyala",
   "reply": "Alıntı",
+  "openInBuiltinBrowser": "Yerleşik tarayıcıda aç",
+  "openInSystemBrowser": "Sistem tarayıcısında aç",
   "copySuccess": "Kopyalandı",
   "copyFailed": "Kopyalama başarısız",
   "download": "İndir",
