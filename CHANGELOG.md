@@ -1,5 +1,27 @@
 # Changelog
 
+## [2.1.59](https://github.com/suoak/AionUi/compare/v2.1.58...v2.1.59) (2026-08-10)
+
+### Desktop
+
+#### Features
+
+- **branding:** refresh the application icon across desktop, mobile, and PWA assets (#39)
+- **updater:** prefer the signed CSBU intranet update feed with a GitHub fallback (#40)
+
+#### 内网更新说明
+
+<!-- internal-release-notes:start -->
+
+**由运营管理部提供**
+
+- 全面更新应用图标，在桌面端、移动端和网页端提供更清晰统一的品牌视觉。
+- 正式版本优先使用内网自动更新服务；内网服务暂不可用时继续使用原有更新通道。
+
+<!-- internal-release-notes:end -->
+
+---
+
 ## [2.1.58](https://github.com/suoak/AionUi/compare/v2.1.57...v2.1.58) (2026-08-10)
 
 ### Desktop
