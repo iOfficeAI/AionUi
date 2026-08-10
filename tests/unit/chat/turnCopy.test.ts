@@ -73,7 +73,10 @@ describe('buildTurnClipboardText', () => {
   });
 
   it('strips think tags and skill-suggest blocks per segment', () => {
-    const joined = buildTurnClipboardText(['<think>draft</think>answer', 'tail [SKILL_SUGGEST]{"skills":[]}[/SKILL_SUGGEST]']);
+    const joined = buildTurnClipboardText([
+      '<think>draft</think>answer',
+      'tail [SKILL_SUGGEST]{"skills":[]}[/SKILL_SUGGEST]',
+    ]);
     expect(joined).not.toContain('draft');
     expect(joined).not.toContain('SKILL_SUGGEST');
     expect(joined).toContain('answer');
