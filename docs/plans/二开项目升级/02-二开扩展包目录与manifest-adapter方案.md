@@ -26,8 +26,8 @@ extensions/team-suite/                    # 二开扩展包根（名字待定，
 │   │   └── utils/                        # conversationTeamOwnership.ts runtimeGate.ts
 │   └── team-presets/
 │       ├── adapter/                      # teamPresetBridge.ts
-│       ├── components/                   # TeamPreset*.tsx 平铺布局（以 v2.1.52
-│       │                               # worktree 形态为准）+ TeamPresetPanel
+│       ├── components/                   # TeamPreset*.tsx 平铺布局（形态基准
+│       │                               # 见下方决策记录 DR-1）+ TeamPresetPanel
 │       └── hooks/                        # useTeamPresets.ts
 ├── slots/                                # B/C 级：宿主插槽补丁（声明 + patch 正文）
 │   ├── README.md                         # slot 应用顺序与冲突处理规程
@@ -47,12 +47,15 @@ extensions/team-suite/                    # 二开扩展包根（名字待定，
 │   └── locales/                          # 13 语言 × team/conversation 两模块的增量片段
 ├── migrations/                           # 仅声明与 SQL 引用，不直接进宿主树
 │   ├── desktop/                          # migration_v27 片段（up/down）+ 编号重排规程
-│   └── aioncore/                         # 038/039/040 SQL 引用（实体在 AionCore 仓）
+│   └── aioncore/                         # 038/039/040 SQL 引用（实体在 AionCore 仓；
+│                                         # 编号属 v2.1.52 窗口，原版为 034/035/036，见 01 §5.3）
 ├── tests/                                # 27 个单测，目录镜像 modules/ 与 slots/
 └── docs/                                 # 本目录（01/02）软链或拷贝
 ```
 
 边界说明：
+
+> **决策记录 DR-1（2026-08-10，leader 确认，依据来源审计 §7.2 升级为显式决策）**：扩展包 `team-presets` 模块以 **v2.1.52 worktree 平铺形态**（`pages/team/components/TeamPreset*.tsx`，重做提交 `f5ab5f9b2`/`16cceab84`/`9990640d6`）为收拢与对照基准，**舍弃 `e3f154559` 原版的 `TeamPresets/` 目录形态**。理由：新版宿主已按平铺落地并完成 P7 弹窗层级/对齐回归修复（`21d73ba45`），扩展包从现行宿主形态收拢比重构回目录形态成本低、冲突面小；原版目录形态不作为规范，但作为**规格证据**完整保留在 `设计规格归档/`（来源审计已核验其 e3 证据链未被污染）。后续若推翻本基准，需在此追加 DR-2 并同步 01 §2.4/§4 与 manifest。
 
 - `modules/` 与宿主源码通过**构建期拷贝或 path alias**（如 `@ext/team-suite/*`）接入，保持文件物理独立；现阶段（未抽包前）可先以目录约定模拟——这正是 v2.1.52 worktree 把 presets 组件平铺进 `pages/team/components/` 的过渡形态，抽包时再收拢。
 - `slots/` 采用"一宿主域一 patch"而非"一提交一 patch"（区别于 `patches/2026-07-30-*.patch` 的 format-patch 固化）：每个 slot patch 以宿主**结构锚点**（组件名/hook 名/JSX 容器）定位，基线漂移时按锚点重放，冲突即显式报出而非静默错位。
@@ -101,7 +104,7 @@ extensions/team-suite/                    # 二开扩展包根（名字待定，
     { "id": "chat-conversation", "grade": "B", "hostFile": "packages/desktop/src/renderer/pages/conversation/components/ChatConversation.tsx",
       "anchors": ["AionrsConversationPanel.headerExtra", "ChatConversation.rightSider 模型选择器行"], "onConflict": "manual" },
     { "id": "team-create-modal", "grade": "C", "hostFile": "packages/desktop/src/renderer/pages/team/components/TeamCreateModal.tsx",
-      "anchors": ["desktopBody 左栏 Tabs", "mobileBody Tabs", "return fragment 双 Modal"], "onConflict": "manual", "note": "全 delta 最深改写；优先对照 v2.1.52 worktree 版本" },
+      "anchors": ["desktopBody 左栏 Tabs", "mobileBody Tabs", "return fragment 双 Modal"], "onConflict": "manual", "note": "全 delta 最深改写；优先对照 v2.1.52 worktree 版本（平铺形态基准依据 DR-1）" },
     { "id": "acp-message-backflow", "grade": "C", "hostFile": "packages/desktop/src/renderer/pages/conversation/platforms/acp/useAcpMessage.ts",
       "anchors": ["case 'teammate_message'", "ensureRuntime 调用点 ×3"], "onConflict": "manual" },
     { "id": "shared-types", "grade": "C", "hostFile": "packages/desktop/src/common/types/team/teamTypes.ts",
@@ -111,6 +114,7 @@ extensions/team-suite/                    # 二开扩展包根（名字待定，
   "requires": {                    // D 级要求（窗口流程保证，包内不含实体）
     "desktopDb": { "minVersion": 27, "columns": ["teams.origin_conversation_id"], "numberingRule": "upstream-max+1, no reserved gaps" },
     "aioncoreMigrations": ["038_ad_hoc_team_origin_conversation", "039_team_presets", "040_backfill_formal_team_leader_team_id"],
+                             // 编号属 v2.1.52 窗口（a887fc23 线）；原版 PIN-CORE eb0c884e 为同名 034/035/036，见 01 §5.3
     "bundleManifest": ["version", "sourceType", "source", "sha256"]
   },
   "i18n": { "namespaces": ["team", "conversation"], "keyPrefixes": ["team.presets.", "team.sider.adHoc", "conversation.collaboration.", "conversation.history.deleteTeamSource"] },
@@ -141,6 +145,7 @@ extensions/team-suite/                    # 二开扩展包根（名字待定，
 │  · C 级：结构改写（人工合并，对照 worktree）│
 ├─ migration adapter（版本窗口层，包外）──────┤
 │  desktop v27 片段 + AionCore 038/039/040    │
+│  （编号属 v2.1.52 窗口；原版 034/035/036）   │
 │  · 编号随上游窗口平移，checksum 同事务修复  │
 │  · P0–P6 窗口流程 + 兼容矩阵 + 成对回滚     │
 └────────────────────────────────────────────┘
@@ -151,7 +156,7 @@ extensions/team-suite/                    # 二开扩展包根（名字待定，
 ## 5. 与既有流程的衔接
 
 - **升级窗口**：扩展包不改变 P0–P6 流程，只改变各阶段产物形态——P3（协议桥接）产出 adapter 重放报告，P4（UI）产出 slot 重放报告，P5 沿用成对 bundle 黑盒，P6 兼容矩阵追加一行扩展包 `version`。
-- **迁移编号**：`requires.desktopDb.numberingRule` 固化"M+1 起、按依赖排序、不预留空号、已发布不改号"；AionCore 侧继续用 `repair-legacy-versions.sh` 处理存量库。
+- **迁移编号**：`requires.desktopDb.numberingRule` 固化"M+1 起、按依赖排序、不预留空号、已发布不改号"；AionCore 侧继续用 `repair-legacy-versions.sh` 处理存量库（该脚本为 v0.1.62 重做线资产，`e0e03ab8` 引入；原版 PIN-CORE 无此脚本，见 01 §5.3）。
 - **补丁维护**：`patches/` 目录继续存放"单提交固化补丁"（历史重放输入），`slots/` 存放"结构锚点补丁"（前向重放输入）——两者职责不同，不互相取代。
 - **验证**：`verification` 段与 01 清单的逐行"验证方式"对应，作为 S0–S5 暂停点的检查清单来源。
 
