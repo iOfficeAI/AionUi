@@ -125,8 +125,12 @@ import {
 } from './teamMapper';
 import {
   absoluteToRelativePath,
+  fromBackendSkillFileNodes,
   fromBackendWorkspaceFlatFiles,
   fromBackendWorkspaceList,
+  resolveWebSkillFile,
+  resolveWebSkillRoot,
+  type RawSkillFileNode,
   type RawWorkspaceFlatFile,
 } from './workspaceMapper';
 
@@ -666,12 +670,15 @@ export const registerWebShowOpenHandler = (handler: ShowOpenHandler | null): voi
 
 const nativeShowOpen = bridge.buildProvider<string[] | undefined, ShowOpenOptions>('show-open');
 
+/** Detect Electron at call time because this adapter is shared by Electron and WebUI renderers. */
+const isElectronRenderer = (): boolean =>
+  typeof window !== 'undefined' && Boolean((window as { electronAPI?: unknown }).electronAPI);
+
 export const dialog = {
   showOpen: {
     provider: nativeShowOpen.provider,
     invoke: ((options?: ShowOpenOptions) => {
-      const hasElectron = typeof window !== 'undefined' && Boolean((window as { electronAPI?: unknown }).electronAPI);
-      if (!hasElectron && webShowOpenHandler) {
+      if (!isElectronRenderer() && webShowOpenHandler) {
         return webShowOpenHandler(options);
       }
       return nativeShowOpen.invoke(options);
@@ -689,6 +696,15 @@ export type SkillFileNode = {
   type: 'directory' | 'file';
   children?: SkillFileNode[];
 };
+
+// Keep both transports available: Electron owns dedicated skill-file IPC channels,
+// while WebUI must use the backend's workspace-scoped filesystem endpoints.
+const webListSkillFiles = httpPost<RawSkillFileNode[], { dir: string; root: string }>('/api/fs/dir');
+const webReadSkillFile = httpPost<string | null, { path: string; workspace: string }>('/api/fs/read');
+const nativeListSkillFiles = bridge.buildProvider<SkillFileNode[], { skill_location: string }>('skills.files.list');
+const nativeReadSkillFile = bridge.buildProvider<string, { skill_location: string; relative_path: string }>(
+  'skills.files.read'
+);
 
 /** Raw metadata as the backend serializes it (snake_case). */
 type RawFileMetadata = {
@@ -868,8 +884,27 @@ export const fs = {
   ),
   enableSkillsMarket: httpPost<void, void>('/api/skills/market/enable'),
   disableSkillsMarket: httpPost<void, void>('/api/skills/market/disable'),
-  listSkillFiles: bridge.buildProvider<SkillFileNode[], { skill_location: string }>('skills.files.list'),
-  readSkillFile: bridge.buildProvider<string, { skill_location: string; relative_path: string }>('skills.files.read'),
+  listSkillFiles: {
+    provider: nativeListSkillFiles.provider,
+    invoke: async ({ skill_location }: { skill_location: string }) => {
+      if (isElectronRenderer()) return nativeListSkillFiles.invoke({ skill_location });
+
+      // The generic WebUI directory endpoint returns backend-shaped nodes, so
+      // normalize them to the same contract consumed from native IPC.
+      const root = resolveWebSkillRoot(skill_location);
+      const nodes = await webListSkillFiles.invoke({ dir: root, root });
+      return fromBackendSkillFileNodes(nodes);
+    },
+  },
+  readSkillFile: {
+    provider: nativeReadSkillFile.provider,
+    invoke: async ({ skill_location, relative_path }: { skill_location: string; relative_path: string }) => {
+      if (isElectronRenderer()) return nativeReadSkillFile.invoke({ skill_location, relative_path });
+      const content = await webReadSkillFile.invoke(resolveWebSkillFile(skill_location, relative_path));
+      if (content === null) throw new Error('Skill file could not be read');
+      return content;
+    },
+  },
 };
 
 // ---------------------------------------------------------------------------
