@@ -593,11 +593,14 @@
       "ANTIGRAVITY_STEPS_FAILED": {
         "body": "{{count}} paso(s) han fallado y NO se han aplicado. agy termina estos turnos como correctos igualmente, así que comprueba el resultado real en lugar de la respuesta."
       },
-      "ANTIGRAVITY_VERSION_OLDER": {
-        "body": "La versión instalada de agy {{reported}} es anterior a la {{verified}} verificada para esta integración; puede que falten funciones. Se recomienda actualizar agy."
+      "CLI_VERSION_OLDER": {
+        "body": "El {{cli}} instalado es anterior a la versión verificada por AionUi; puede que falten funciones. Se recomienda actualizar {{cli}}. (instalado: {{reported}} / verificado por AionUi: {{verified}})"
       },
-      "ANTIGRAVITY_VERSION_NEWER": {
-        "body": "La versión instalada de agy {{reported}} es posterior a la {{verified}} verificada para esta integración. Debería seguir funcionando; informa de cualquier comportamiento extraño."
+      "CLI_VERSION_NEWER": {
+        "body": "El {{cli}} instalado es posterior a la versión verificada por AionUi. Debería seguir funcionando; informa de cualquier comportamiento extraño. (instalado: {{reported}} / verificado por AionUi: {{verified}})"
+      },
+      "CODEX_RETRYING": {
+        "body": "{{detail}} (intento {{attempts}}, {{elapsed}} transcurridos: el proveedor del agente corta la conexión una y otra vez; AionUi está esperando.)"
       }
     }
   },

@@ -1168,8 +1168,8 @@
       "managed_runtime_unavailable": "Repair or reinstall {{resource}}, then retry the connection test.",
       "auth_required": "O agente está acessível, mas requer login. Faça login pelo CLI ou adicione a chave de API necessária em Variáveis de Ambiente e tente o teste de conexão novamente.",
       "no_provider": "Nenhum provedor de modelo está configurado. Adicione e ative um provedor nas Configurações e tente o teste de conexão novamente.",
-      "version_drift_older": "A versão instalada do agy é anterior à verificada nesta integração; alguns recursos podem estar ausentes. Considere atualizar.",
-      "version_drift_newer": "A versão instalada do agy é mais recente que a verificada nesta integração. Deve continuar funcionando; relate qualquer comportamento estranho."
+      "version_drift_older": "A CLI instalada é anterior à versão verificada pelo AionUi; alguns recursos podem estar ausentes. Considere atualizá-la.",
+      "version_drift_newer": "A CLI instalada é posterior à versão verificada pelo AionUi. Deve continuar funcionando; relate qualquer comportamento estranho."
     },
     "boundAssistantsTitle": "Assistentes que usam este agente",
     "boundAssistantsCount": "{{count}} assistente(s)",

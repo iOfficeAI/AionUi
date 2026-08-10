@@ -1156,8 +1156,8 @@
       "managed_runtime_unavailable": "Repair or reinstall {{resource}}, then retry the connection test.",
       "auth_required": "Aracıya erişilebilir ancak oturum açılması gerekiyor. CLI üzerinden giriş yapın veya gerekli API anahtarını Ortam Değişkenleri altına ekleyin, ardından bağlantı testini yeniden deneyin.",
       "no_provider": "Yapılandırılmış bir model sağlayıcısı yok. Ayarlar'da bir sağlayıcı ekleyip etkinleştirin, ardından bağlantı testini yeniden deneyin.",
-      "version_drift_older": "Kurulu agy sürümü, bu entegrasyonun doğrulandığı sürümden eski; bazı özellikler eksik olabilir. Güncellemeniz önerilir.",
-      "version_drift_newer": "Kurulu agy sürümü, bu entegrasyonun doğrulandığı sürümden yeni. Yine de çalışması beklenir; tuhaf davranışları bildirin."
+      "version_drift_older": "Kurulu CLI, AionUi tarafından doğrulanan sürümden eski; bazı özellikler eksik olabilir. Yükseltmeyi düşünün.",
+      "version_drift_newer": "Kurulu CLI, AionUi tarafından doğrulanan sürümden yeni. Genelde çalışır; tuhaf bir davranış görürseniz bildirin."
     },
     "boundAssistantsTitle": "Bu ajanı kullanan asistanlar",
     "boundAssistantsCount": "{{count}} asistan",

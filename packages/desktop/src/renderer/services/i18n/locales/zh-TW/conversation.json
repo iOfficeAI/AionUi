@@ -592,11 +592,14 @@
       "ANTIGRAVITY_STEPS_FAILED": {
         "body": "本輪有 {{count}} 個步驟失敗且未生效。agy 仍會將這類輪次標記為成功，請核對實際結果而非回覆內容。"
       },
-      "ANTIGRAVITY_VERSION_OLDER": {
-        "body": "已安裝的 agy {{reported}} 低於本整合驗證過的 {{verified}}，部分功能可能缺失，建議升級 agy。"
+      "CLI_VERSION_OLDER": {
+        "body": "已安裝的 {{cli}} 低於 AionUi 驗證過的版本，部分功能可能缺失。建議升級 {{cli}}。 （本機 {{reported}} / AionUi 驗證過 {{verified}}）"
       },
-      "ANTIGRAVITY_VERSION_NEWER": {
-        "body": "已安裝的 agy {{reported}} 高於本整合驗證過的 {{verified}}。通常仍可正常使用；如遇異常行為請回報。"
+      "CLI_VERSION_NEWER": {
+        "body": "已安裝的 {{cli}} 高於 AionUi 驗證過的版本。通常仍可正常使用；如遇異常行為請回報。 （本機 {{reported}} / AionUi 驗證過 {{verified}}）"
+      },
+      "CODEX_RETRYING": {
+        "body": "{{detail}}（累計第 {{attempts}} 次重試，已等待 {{elapsed}}——Agent 的服務方反覆中斷連線，AionUi 正在等待重連。）"
       }
     }
   },

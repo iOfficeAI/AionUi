@@ -237,3 +237,4 @@ graphify-out/
 # Local scratch/analysis (wireframes, candidate mockups)
 .analysis/
 temp/
+.playwright-mcp/

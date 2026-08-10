@@ -1,8 +1,6 @@
 const fs = require('fs');
 const path = require('path');
 
-const REQUIRED_CLI_NAMES = ['claude', 'codex'];
-
 function backendBinaryName(platform) {
   return platform === 'win32' ? 'aioncore.exe' : 'aioncore';
 }
@@ -248,14 +246,10 @@ function verifyManagedClisFromContract(baseDir, runtimeKey, contract, checked, m
     validClis.push(cli);
   }
 
-  for (const requiredName of REQUIRED_CLI_NAMES) {
-    if (!seen.has(requiredName)) {
-      failures.push({
-        component: requiredName,
-        reason: 'missing_required_cli',
-      });
-    }
-  }
+  // No agent CLI is required to be bundled. claude/codex used to ship pinned
+  // inside managed-resources; they now run from the user's own install like agy
+  // always has, so `clis` is normally empty. Entries that ARE present (older
+  // bundles) still have to be well-formed — that is what the loop below checks.
 
   for (const cli of validClis) {
     verifyManagedCliFromContract(baseDir, runtimeKey, cli, checked, missing, failures);
