@@ -296,6 +296,8 @@ export type I18nKey =
   | 'common.model'
   | 'common.more'
   | 'common.name'
+  | 'common.openInBuiltinBrowser'
+  | 'common.openInSystemBrowser'
   | 'common.optional'
   | 'common.processing'
   | 'common.readOnly'

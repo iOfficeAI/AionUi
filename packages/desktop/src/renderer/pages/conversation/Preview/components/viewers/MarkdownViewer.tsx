@@ -293,7 +293,7 @@ const MarkdownPreview: React.FC<MarkdownPreviewProps> = ({
   );
 
   // 监听文本选择 / Monitor text selection
-  const { selectedText, selectionPosition, clearSelection } = useTextSelection(containerRef);
+  const { selectedText, selectedUrl, selectionPosition, clearSelection } = useTextSelection(containerRef);
 
   const baseDir = useMemo(() => {
     if (!file_path) return undefined;
@@ -373,7 +373,12 @@ const MarkdownPreview: React.FC<MarkdownPreviewProps> = ({
 
       {/* 文本选择浮动工具栏 / Text selection floating toolbar */}
       {selectedText && (
-        <SelectionToolbar selectedText={selectedText} position={selectionPosition} onClear={clearSelection} />
+        <SelectionToolbar
+          selectedText={selectedText}
+          selectedUrl={selectedUrl}
+          position={selectionPosition}
+          onClear={clearSelection}
+        />
       )}
     </div>
   );

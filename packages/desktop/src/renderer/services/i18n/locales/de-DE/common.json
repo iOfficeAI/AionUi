@@ -23,6 +23,8 @@
   "loading": "Bitte warten...",
   "copy": "Kopieren",
   "reply": "Antworten",
+  "openInBuiltinBrowser": "Im integrierten Browser öffnen",
+  "openInSystemBrowser": "Im Systembrowser öffnen",
   "copySuccess": "Kopiert",
   "copyFailed": "Kopieren fehlgeschlagen",
   "download": "Herunterladen",
