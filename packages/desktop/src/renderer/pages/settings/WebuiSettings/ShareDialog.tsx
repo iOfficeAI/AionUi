@@ -189,11 +189,10 @@ const ShareDialog: React.FC<ShareDialogProps> = ({
                     : t('settings.account.collaboration.shareDialog.userPlaceholder')
                 }
                 disabled={directory.length === 0}
-                filterOption={(input, option) =>
-                  String(option?.props?.children ?? '')
-                    .toLowerCase()
-                    .includes(input.toLowerCase())
-                }
+                filterOption={(inputValue, option) => {
+                  const label = String((option as { children?: unknown } | undefined)?.children ?? '');
+                  return label.toLowerCase().includes(inputValue.toLowerCase());
+                }}
               >
                 {directory.map((item) => (
                   <Select.Option key={item.id} value={item.username}>

@@ -6,6 +6,7 @@
 
 import { httpRequest } from '@/common/adapter/httpBridge';
 import { mode, shares } from '@/common/adapter/ipcBridge';
+import type { IProvider } from '@/common/config/storage';
 import type { SharePermission, ShareRecord, ShareResourceType } from '@/common/types/platform/share';
 import { Alert, Button, Message, Modal, Select, Table, Tabs, Tag, Typography } from '@arco-design/web-react';
 import { Refresh, Share } from '@icon-park/react';
@@ -73,7 +74,7 @@ const CollaborationPanel: React.FC = () => {
           'GET',
           '/api/conversations?limit=100'
         ).catch(() => ({ items: [] as Array<{ id?: string; name?: string; project_id?: string | null }> })),
-        mode.listProviders.invoke().catch(() => []),
+        mode.listProviders.invoke().catch((): IProvider[] => []),
       ]);
 
       setReceived(receivedPage.items ?? []);
@@ -86,12 +87,10 @@ const CollaborationPanel: React.FC = () => {
         .map((item) => ({ id: item.id, name: item.name?.trim() || item.id }));
       setConversations(convItems);
 
-      const providerItems = (providerList ?? [])
-        .filter((item): item is { id: string; name?: string; platform?: string } => typeof item?.id === 'string')
-        .map((item) => ({
-          id: item.id,
-          name: (item.name || item.platform || item.id).trim() || item.id,
-        }));
+      const providerItems = providerList.map((item) => ({
+        id: item.id,
+        name: (item.name || item.platform || item.id).trim() || item.id,
+      }));
       setProviders(providerItems);
 
       // No dedicated projects list API — collect workspace projects from conversations.
@@ -289,11 +288,10 @@ const CollaborationPanel: React.FC = () => {
                 showSearch
                 allowClear
                 disabled={resourceOptions.length === 0}
-                filterOption={(input, option) =>
-                  String(option?.props?.children ?? '')
-                    .toLowerCase()
-                    .includes(input.toLowerCase())
-                }
+                filterOption={(inputValue, option) => {
+                  const label = String((option as { children?: unknown } | undefined)?.children ?? '');
+                  return label.toLowerCase().includes(inputValue.toLowerCase());
+                }}
               >
                 {resourceOptions.map((item) => (
                   <Select.Option key={item.id} value={item.id}>
