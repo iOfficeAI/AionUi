@@ -13,6 +13,7 @@ export const GITHUB_UPDATE_OWNER = 'suoak';
 export const GITHUB_UPDATE_REPO = 'AionUi';
 export const DEFAULT_GITHUB_REPO = `${GITHUB_UPDATE_OWNER}/${GITHUB_UPDATE_REPO}`;
 export const GITHUB_UPDATE_BASE_URL = `https://github.com/${DEFAULT_GITHUB_REPO}/releases/latest/download`;
+export const DEFAULT_INTERNAL_UPDATE_BASE_URL = 'http://10.51.134.126/workmate-update';
 export const UPDATE_POLICY_REGISTRY_KEY = String.raw`HKLM\Software\Policies\CSBU\CSBU WorkMate`;
 const EMBEDDED_MANIFEST_PUBLIC_KEY = process.env.CSBU_WORKMATE_UPDATE_MANIFEST_PUBLIC_KEY ?? '';
 
@@ -39,11 +40,9 @@ const resolveRequestedUpdateSource = (options: ResolveUpdateSourceOptions): stri
   const platform = options.platform ?? process.platform;
   const env = options.env ?? process.env;
   const readPolicy = options.readPolicyValue ?? readUpdatePolicyValue;
-  return !options.isPackaged
-    ? env.CSBU_WORKMATE_UPDATE_SOURCE?.trim()
-    : platform === 'win32'
-      ? readPolicy('UpdateSource')?.trim()
-      : undefined;
+  if (!options.isPackaged) return env.CSBU_WORKMATE_UPDATE_SOURCE?.trim();
+  if (platform === 'win32') return readPolicy('UpdateSource')?.trim() || 'internal-http';
+  return 'internal-http';
 };
 
 export const isInternalUpdateSourceRequested = (options: ResolveUpdateSourceOptions): boolean =>
@@ -111,6 +110,7 @@ export const readUpdatePolicyValue = (name: 'UpdateSource' | 'UpdateBaseUrl'): s
 };
 
 export const resolveUpdateSourceConfig = (options: ResolveUpdateSourceOptions): UpdateSourceConfig => {
+  const platform = options.platform ?? process.platform;
   const env = options.env ?? process.env;
   const readPolicy = options.readPolicyValue ?? readUpdatePolicyValue;
   const allowEnvironmentOverride = !options.isPackaged;
@@ -130,7 +130,10 @@ export const resolveUpdateSourceConfig = (options: ResolveUpdateSourceOptions): 
     return { kind: 'github', owner: GITHUB_UPDATE_OWNER, repo: GITHUB_UPDATE_REPO, manifestPublicKey };
   }
 
-  const rawBaseUrl = allowEnvironmentOverride ? env.CSBU_WORKMATE_UPDATE_BASE_URL : readPolicy('UpdateBaseUrl');
+  const policyBaseUrl = platform === 'win32' ? readPolicy('UpdateBaseUrl') : undefined;
+  const rawBaseUrl = allowEnvironmentOverride
+    ? env.CSBU_WORKMATE_UPDATE_BASE_URL
+    : policyBaseUrl || DEFAULT_INTERNAL_UPDATE_BASE_URL;
   if (!rawBaseUrl) throw new Error('Internal update policy is missing UpdateBaseUrl');
 
   return {

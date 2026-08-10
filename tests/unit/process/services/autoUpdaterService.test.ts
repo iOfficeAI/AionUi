@@ -164,6 +164,22 @@ describe('AutoUpdaterService', () => {
     });
   });
 
+  it('configures packaged builds to prefer the CSBU intranet update service', async () => {
+    appMock.isPackaged = true;
+    setPlatform('win32');
+
+    await import('@/process/services/autoUpdaterService');
+
+    expect(autoUpdaterMock.setFeedURL).toHaveBeenCalledWith({
+      provider: 'custom',
+      url: 'http://10.51.134.126/workmate-update',
+      sourceKind: 'internal-http',
+      artifactPathMode: 'version-directory',
+      manifestPublicKey: 'public-key',
+      updateProvider: expect.any(Function),
+    });
+  });
+
   it('falls back from an unavailable internal source to GitHub once', async () => {
     process.env.CSBU_WORKMATE_UPDATE_SOURCE = 'internal-http';
     process.env.CSBU_WORKMATE_UPDATE_BASE_URL = 'http://10.20.30.40/releases';

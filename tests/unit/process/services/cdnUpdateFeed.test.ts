@@ -11,6 +11,7 @@ import type { ProviderRuntimeOptions } from 'electron-updater/out/providers/Prov
 import { CdnGenericProvider } from '@/process/services/cdnGenericProvider';
 import {
   buildUpdateFeedOptions,
+  DEFAULT_INTERNAL_UPDATE_BASE_URL,
   isInternalUpdateSourceRequested,
   normalizeInternalUpdateBaseUrl,
   parseRegistryQueryValue,
@@ -35,7 +36,7 @@ describe('update source policy', () => {
     ).toBe(true);
   });
 
-  it('uses GitHub Releases by default', () => {
+  it('uses the CSBU intranet update service by default in packaged Windows builds', () => {
     expect(
       resolveUpdateSourceConfig({
         isPackaged: true,
@@ -44,9 +45,24 @@ describe('update source policy', () => {
         readPolicyValue: () => undefined,
       })
     ).toEqual({
-      kind: 'github',
-      owner: 'suoak',
-      repo: 'AionUi',
+      kind: 'internal-http',
+      baseUrl: DEFAULT_INTERNAL_UPDATE_BASE_URL,
+      fallback: 'github',
+      manifestPublicKey: 'public-key',
+    });
+  });
+
+  it('uses the CSBU intranet update service by default in packaged non-Windows builds', () => {
+    expect(
+      resolveUpdateSourceConfig({
+        isPackaged: true,
+        platform: 'darwin',
+        manifestPublicKey: 'public-key',
+      })
+    ).toEqual({
+      kind: 'internal-http',
+      baseUrl: DEFAULT_INTERNAL_UPDATE_BASE_URL,
+      fallback: 'github',
       manifestPublicKey: 'public-key',
     });
   });
@@ -62,6 +78,22 @@ describe('update source policy', () => {
         },
         manifestPublicKey: 'public-key',
         readPolicyValue: () => undefined,
+      })
+    ).toEqual({
+      kind: 'internal-http',
+      baseUrl: DEFAULT_INTERNAL_UPDATE_BASE_URL,
+      fallback: 'github',
+      manifestPublicKey: 'public-key',
+    });
+  });
+
+  it('allows Windows policy to force GitHub Releases', () => {
+    expect(
+      resolveUpdateSourceConfig({
+        isPackaged: true,
+        platform: 'win32',
+        manifestPublicKey: 'public-key',
+        readPolicyValue: (name) => (name === 'UpdateSource' ? 'github' : undefined),
       })
     ).toEqual({ kind: 'github', owner: 'suoak', repo: 'AionUi', manifestPublicKey: 'public-key' });
   });
