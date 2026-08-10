@@ -187,8 +187,11 @@ export const resolveLocalFileLinkReference = (
   rawHref: string,
   resolvedHref?: string
 ): LocalFileLinkReference | null => {
-  const href = (rawHref || resolvedHref || '').trim();
-  if (!href) return null;
+  const trimmedHref = (rawHref || resolvedHref || '').trim();
+  if (!trimmedHref) return null;
+
+  const isWindowsAbsolutePath = /^[A-Za-z]:[\\/]/.test(trimmedHref) || /^\/[A-Za-z]:[\\/]/.test(trimmedHref);
+  const href = isWindowsAbsolutePath ? trimmedHref : safeDecodeURIComponent(trimmedHref);
 
   const candidate = normalizeLocalFileHrefToPath(href);
   if (!candidate || candidate.hasInvalidHash) return null;

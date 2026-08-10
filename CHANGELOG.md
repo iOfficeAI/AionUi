@@ -1,5 +1,35 @@
 # Changelog
 
+## [2.1.58](https://github.com/suoak/AionUi/compare/v2.1.57...v2.1.58) (2026-08-10)
+
+### Desktop
+
+#### Bug Fixes
+
+- **grok:** preserve encoded artifact paths when opening generated images (#35)
+- **tray:** synchronize native menu labels with the selected application language (#36)
+- **update:** keep release notes available and provide a localized fallback (#37)
+
+#### 内网更新说明
+
+<!-- internal-release-notes:start -->
+
+**由运营管理部提供**
+
+- 修复 Grok 生成图片无法打开的问题，并更新 Grok 运行组件。
+- 托盘右键菜单现在会跟随应用语言显示。
+- 改进更新说明的加载、保留和缺省提示。
+
+<!-- internal-release-notes:end -->
+
+### Core ([v0.1.68](https://github.com/suoak/AionCore/releases/tag/v0.1.68))
+
+#### Bug Fixes
+
+- **grok:** update the managed package version to 1.0.0
+
+---
+
 ## [2.1.57](https://github.com/suoak/AionUi/compare/v2.1.56...v2.1.57) (2026-08-10)
 
 ### Desktop
